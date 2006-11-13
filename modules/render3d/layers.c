@@ -56,7 +56,7 @@ static void l2d_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force_rende
 	M_Layer2D *l2d;
 	l2d = (M_Layer2D *)n;
 	if (force_render) gf_node_render(l2d->background, eff);
-	btop = gf_list_get(eff->backgrounds, 0);
+	btop = (GF_Node*)gf_list_get(eff->backgrounds, 0);
 	if (btop != l2d->background) { 
 		gf_node_unregister(l2d->background, n);
 		gf_node_register(btop, n); 
@@ -64,7 +64,7 @@ static void l2d_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force_rende
 		gf_node_event_out_str(n, "background");
 	}
 	if (force_render) gf_node_render(l2d->viewport, eff);
-	btop = gf_list_get(eff->viewpoints, 0);
+	btop = (GF_Node*)gf_list_get(eff->viewpoints, 0);
 	if (btop != l2d->viewport) { 
 		gf_node_unregister(l2d->viewport, n);
 		gf_node_register(btop, n); 
@@ -97,11 +97,9 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 
 	l2d_CheckBindables(node, eff, st->first);
 
-	back = NULL;
-	if (gf_list_count(st->backs)) back = gf_list_get(st->backs, 0);
+	back = (GF_Node*)gf_list_get(st->backs, 0);
 
-	viewport = NULL;
-	if (gf_list_count(st->views)) viewport = gf_list_get(st->views, 0);
+	viewport = (GF_Node*)gf_list_get(st->views, 0);
 
 	if (gf_node_dirty_get(node)) {
 		/*recompute children bounds (otherwise culling will fail)*/
@@ -199,7 +197,7 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 
 void R3D_InitLayer2D(Render3D *sr, GF_Node *node)
 {
-	Layer2DStack *stack = malloc(sizeof(Layer2DStack));
+	Layer2DStack *stack = (Layer2DStack *)malloc(sizeof(Layer2DStack));
 	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, ((M_Layer2D *)node)->children);
 	stack->backs = gf_list_new();
 	stack->views = gf_list_new();
@@ -251,7 +249,7 @@ static void l3d_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force_rende
 	eff->traversing_mode = TRAVERSE_GET_BOUNDS;
 
 	if (force_render) gf_node_render(l3d->background, eff);
-	btop = gf_list_get(eff->backgrounds, 0);
+	btop = (GF_Node*)gf_list_get(eff->backgrounds, 0);
 	if (btop != l3d->background) { 
 		gf_node_unregister(l3d->background, n);
 		gf_node_register(btop, n); 
@@ -259,7 +257,7 @@ static void l3d_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force_rende
 		gf_node_event_out_str(n, "background");
 	}
 	if (force_render) gf_node_render(l3d->viewpoint, eff);
-	btop = gf_list_get(eff->viewpoints, 0);
+	btop = (GF_Node*)gf_list_get(eff->viewpoints, 0);
 	if (btop != l3d->viewpoint) { 
 		gf_node_unregister(l3d->viewpoint, n);
 		gf_node_register(btop, n); 
@@ -267,7 +265,7 @@ static void l3d_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force_rende
 		gf_node_event_out_str(n, "viewpoint");
 	}
 	if (force_render) gf_node_render(l3d->navigationInfo, eff);
-	btop = gf_list_get(eff->navigations, 0);
+	btop = (GF_Node*)gf_list_get(eff->navigations, 0);
 	if (btop != l3d->navigationInfo) { 
 		gf_node_unregister(l3d->navigationInfo, n);
 		gf_node_register(btop, n); 
@@ -275,7 +273,7 @@ static void l3d_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force_rende
 		gf_node_event_out_str(n, "navigationInfo");
 	}
 	if (force_render) gf_node_render(l3d->fog, eff);
-	btop = gf_list_get(eff->fogs, 0);
+	btop = (GF_Node*)gf_list_get(eff->fogs, 0);
 	if (btop != l3d->fog) { 
 		gf_node_unregister(l3d->fog, n);
 		gf_node_register(btop, n); 
@@ -549,7 +547,7 @@ GF_Camera *l3d_get_camera(GF_Node *node)
 void l3d_bind_camera(GF_Node *node, Bool do_bind, u32 nav_value)
 {
 	Layer3DStack *st = (Layer3DStack *) gf_node_get_private(node);
-	GF_Node *n = gf_list_get(st->navinfos, 0);
+	GF_Node *n = (GF_Node*)gf_list_get(st->navinfos, 0);
 	if (n) Bindable_SetSetBind(n, do_bind);
 	else st->cam.navigate_mode = nav_value;
 }

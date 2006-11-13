@@ -169,7 +169,7 @@ static void TTD_UpdateSizeInfo(TTDPriv *priv)
 
 static GF_Err TTD_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *capability)
 {
-	TTDPriv *priv = plug->privateStack;
+	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	switch (capability->CapCode) {
 	case GF_CODEC_WIDTH:
 		capability->cap.valueInt = priv->cfg->text_width;
@@ -188,7 +188,7 @@ static GF_Err TTD_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *capa
 
 static GF_Err TTD_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability capability)
 {
-	TTDPriv *priv = plug->privateStack;
+	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	if (capability.CapCode==GF_CODEC_SHOW_SCENE) {
 		if (capability.cap.valueInt) {
 			TTD_ResetDisplay(priv);
@@ -203,7 +203,7 @@ static GF_Err TTD_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 
 GF_Err TTD_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
 {
-	TTDPriv *priv = plug->privateStack;
+	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	if (priv->nb_streams) return GF_BAD_PARAM;
 	/*timedtext cannot be a root scene object*/
 	if (is_scene_decoder) return GF_BAD_PARAM;
@@ -214,7 +214,7 @@ GF_Err TTD_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_sce
 
 GF_Err TTD_ReleaseScene(GF_SceneDecoder *plug)
 {
-	TTDPriv *priv = plug->privateStack;
+	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	if (priv->nb_streams) return GF_BAD_PARAM;
 	return GF_OK;
 }
@@ -238,13 +238,13 @@ static GFINLINE GF_Node *ttd_create_node(TTDPriv *ttd, u32 tag, const char *def_
 
 static GF_Err TTD_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
-									 unsigned char *decSpecInfo, 
+									 char *decSpecInfo, 
 									 u32 decSpecInfoSize, 
 									 u16 DependsOnES_ID,
 									 u32 objectTypeIndication, 
 									 Bool Upstream)
 {
-	TTDPriv *priv = plug->privateStack;
+	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	GF_Err e;
 	GF_DefaultDescriptor dsi;
 	GF_Node *root, *n1, *n2;
@@ -352,7 +352,7 @@ static GF_Err TTD_AttachStream(GF_BaseDecoder *plug,
 
 static GF_Err TTD_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
-	TTDPriv *priv = plug->privateStack;
+	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	if (!priv->nb_streams) return GF_BAD_PARAM;
 
 	gf_is_register_extra_graph(priv->inlineScene, priv->sg, 1);
@@ -380,7 +380,7 @@ static void ttd_set_blink_fraction(GF_Node *node)
 	Bool blink_on = 1;
 	if (priv->process_blink->set_fraction>FIX_ONE/2) blink_on = 0;
 	i=0;
-	while ((m = gf_list_enum(priv->blink_nodes, &i))) {
+	while ((m = (M_Material2D*)gf_list_enum(priv->blink_nodes, &i))) {
 		if (m->filled != blink_on) {
 			m->filled = blink_on;
 			gf_node_changed((GF_Node *) m, NULL);
@@ -449,7 +449,7 @@ static void TTD_ResetDisplay(TTDPriv *priv)
 {
 	gf_list_reset(priv->blink_nodes);
 	while (gf_list_count(priv->dlist->children)) {
-		GF_Node *n = gf_list_get(priv->dlist->children, 0);
+		GF_Node *n = (GF_Node *)gf_list_get(priv->dlist->children, 0);
 		gf_list_rem(priv->dlist->children, 0);
 		gf_node_unregister(n, (GF_Node *)priv->dlist);
 	}
@@ -498,7 +498,7 @@ typedef struct
 	layout to handle new lines and proper scrolling*/
 } TTDTextChunk;
 
-void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form *form, s16 *utf16_txt, TTDTextChunk *tc)
+static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form *form, u16 *utf16_txt, TTDTextChunk *tc)
 {
 	GF_Node *txt_model, *n2, *txt_material;
 	M_Text *text;
@@ -617,7 +617,7 @@ void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form *form,
 
 				n2 = gf_node_clone(priv->sg, txt_model, NULL);
 				if (tc->hlink && tc->hlink->URL) {
-					GF_Node *t = gf_list_get(((M_Anchor *)n2)->children, 0);
+					GF_Node *t = (GF_Node *)gf_list_get(((M_Anchor *)n2)->children, 0);
 					text = (M_Text *) ((M_Shape *)t)->geometry;
 					txt_material = ((M_Appearance *) ((M_Shape *)t)->appearance)->material;
 				} else {
@@ -677,7 +677,7 @@ void TTD_SplitChunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, GF_Box *
 	if (end_char>nb_chars) end_char = nb_chars;
 
 	i=0;
-	while ((tc = gf_list_enum(chunks, &i))) {
+	while ((tc = (TTDTextChunk *)gf_list_enum(chunks, &i))) {
 		if (tc->end_char<=start_char) continue;
 		/*need to split chunk at begin*/
 		if (tc->start_char<start_char) {
@@ -732,7 +732,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	GF_BoxRecord br;
 	M_Material2D *n;
 	M_Form *form;
-	s16 utf16_text[5000];
+	u16 utf16_text[5000];
 	u32 char_offset, char_count;
 	GF_List *chunks;
 	TTDTextChunk *tc;
@@ -753,7 +753,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	if (!sdi || !txt || !txt->len) return;
 
 	i=0;
-	while ((td = gf_list_enum(priv->cfg->sample_descriptions, &i))) {
+	while ((td = (GF_TextSampleDescriptor *)gf_list_enum(priv->cfg->sample_descriptions, &i))) {
 		if (td->sample_index==sdi) break;
 		td = NULL;
 	}
@@ -912,12 +912,12 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	}
 	/*apply all other modifiers*/
 	i=0;
-	while ((a = gf_list_enum(txt->others, &i))) {
+	while ((a = (GF_Box*)gf_list_enum(txt->others, &i))) {
 		TTD_SplitChunks(txt, char_count, chunks, a);
 	}
 
 	while (gf_list_count(chunks)) {
-		tc = gf_list_get(chunks, 0);
+		tc = (TTDTextChunk*)gf_list_get(chunks, 0);
 		gf_list_rem(chunks, 0);
 		TTD_NewTextChunk(priv, td, form, utf16_text, tc);
 		free(tc);
@@ -1041,12 +1041,12 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	gf_node_changed((GF_Node *) priv->ts_scroll, NULL);
 }
 
-static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, unsigned char *inBuffer, u32 inBufferLength, 
+static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	GF_BitStream *bs;
 	GF_Err e = GF_OK;
-	TTDPriv *priv = plug->privateStack;
+	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 
 	bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
@@ -1078,9 +1078,9 @@ static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, unsigned char *inBuffer, u32
 	return e;
 }
 
-Bool TTD_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+Bool TTD_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
-	TTDPriv *priv = ifce->privateStack;
+	TTDPriv *priv = (TTDPriv *)ifce->privateStack;
 	if (StreamType!=GF_STREAM_TEXT) return 0;
 	if (ObjectType!=0x08) return 0;
 	priv->PL = PL;
@@ -1090,7 +1090,7 @@ Bool TTD_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, u
 
 void DeleteTimedTextDec(GF_BaseDecoder *plug)
 {
-	TTDPriv *priv = plug->privateStack;
+	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	/*in case something went wrong*/
 	if (priv->cfg) gf_odf_desc_del((GF_Descriptor *) priv->cfg);
 	free(priv);
@@ -1119,6 +1119,7 @@ GF_BaseDecoder *NewTimedTextDec()
 	return (GF_BaseDecoder *) tmp;
 }
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -1134,6 +1135,7 @@ void DeleteTTReader(void *ifce);
 void *NewTTReader();
 #endif
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -1145,6 +1147,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

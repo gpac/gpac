@@ -124,7 +124,7 @@ static void RenderPathLayout(GF_Node *node, void *rs)
 	}
 
 	for (i=0; i<count; i++) {
-		cg = gf_list_get(gr->groups, i);
+		cg = (ChildGroup*)gf_list_get(gr->groups, i);
 		if (cg->original.width>length) break;
 
 		/*first set our center and baseline*/
@@ -201,7 +201,7 @@ static void RenderPathLayout(GF_Node *node, void *rs)
 
 next:
 		if (i+1<count) {
-			ChildGroup *cg_next = gf_list_get(gr->groups, i+1);
+			ChildGroup *cg_next = (ChildGroup*)gf_list_get(gr->groups, i+1);
 
 			/*update offset according to major alignment */
 			switch (major) {
@@ -227,7 +227,7 @@ next:
 
 	/*undrawn nodes*/
 	for (;i<count; i++) {
-		cg = gf_list_get(gr->groups, i);
+		cg = (ChildGroup*)gf_list_get(gr->groups, i);
 		child_render_done_complex(cg, (RenderEffect3D *)rs, NULL);
 	}
 
@@ -236,8 +236,9 @@ next:
 
 void R3D_InitPathLayout(Render3D *sr, GF_Node *node)
 {
-	PathLayoutStack *stack = malloc(sizeof(PathLayoutStack));
-	memset(stack, 0, sizeof(PathLayoutStack));
+	PathLayoutStack *stack;
+	GF_SAFEALLOC(stack, PathLayoutStack);
+
 	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, ((M_PathLayout *)node)->children);
 	gf_node_set_private(node, stack);
 	gf_node_set_predestroy_function(node, DestroyPathLayout);

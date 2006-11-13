@@ -801,7 +801,7 @@ static GF_Err GAPI_FlipBackBuffer(GF_VideoOutput *dr)
 	}
 
 	ptr += gctx->dst_blt.x * pitch_x + pitch_y * gctx->dst_blt.y;
-	dst.video_buffer = ptr;
+	dst.video_buffer = (char*)ptr;
 	dst.pitch = pitch_y;
 		
 	gf_stretch_bits(&dst, &src, NULL, NULL, pitch_x, 0xFF, 0, NULL, NULL);
@@ -901,7 +901,7 @@ static GF_Err GAPI_InitBackBuffer(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoH
 	gctx->bb_pitch = VideoWidth * gctx->BPP;
 
 	if (gctx->force_gx || gctx->fullscreen) {
-		gctx->backbuffer = (unsigned char *) malloc(sizeof(unsigned char) * gctx->bb_size);
+		gctx->backbuffer = (char *) malloc(sizeof(unsigned char) * gctx->bb_size);
 		gctx->gx_mode = 1;
 	} else {
 		HDC dc = GetDC(gctx->hWnd);

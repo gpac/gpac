@@ -46,13 +46,13 @@ void Script_PreDestroy(GF_Node *node)
 {
 	GF_ScriptPriv *priv;
 	GF_ScriptField *field;
-	priv = node->sgprivate->privateStack;
+	priv = (GF_ScriptPriv *)node->sgprivate->privateStack;
 	
 	if (priv->JS_PreDestroy) priv->JS_PreDestroy(node);
 
 	//destroy extra fields
 	while (gf_list_count(priv->fields)) {
-		field = gf_list_get(priv->fields, 0);
+		field = (GF_ScriptField *)gf_list_get(priv->fields, 0);
 		gf_list_rem(priv->fields, 0);
 		if (field->pField) {
 			//if Node unregister
@@ -80,7 +80,7 @@ void Script_PreDestroy(GF_Node *node)
 u32 gf_sg_script_get_num_fields(GF_Node *node, u8 IndexMode)
 {
 	u32 nb_static;
-	GF_ScriptPriv *priv = node->sgprivate->privateStack;
+	GF_ScriptPriv *priv = (GF_ScriptPriv *)node->sgprivate->privateStack;
 	switch (IndexMode) {
 	case GF_SG_FIELD_CODING_IN:
 		return priv->numIn;
@@ -101,9 +101,9 @@ GF_Err gf_sg_script_get_field_index(GF_Node *node, u32 inField, u8 IndexMode, u3
 	u32 i;
 	GF_ScriptField *sf;
 	u32 nb_static = script_get_nb_static_field(node);
-	GF_ScriptPriv *priv = node->sgprivate->privateStack;
+	GF_ScriptPriv *priv = (GF_ScriptPriv *)node->sgprivate->privateStack;
 	i=0;
-	while ((sf = gf_list_enum(priv->fields, &i))) {
+	while ((sf = (GF_ScriptField *)gf_list_enum(priv->fields, &i))) {
 		*allField = i-1+nb_static;
 		switch (IndexMode) {
 		case GF_SG_FIELD_CODING_IN:
@@ -139,7 +139,7 @@ GF_Err gf_sg_script_get_field(GF_Node *node, GF_FieldInfo *info)
 
 	if (!info || !node) return GF_BAD_PARAM;
 
-	priv = gf_node_get_private(node);
+	priv = (GF_ScriptPriv *)gf_node_get_private(node);
 	nb_static = script_get_nb_static_field(node);
 
 	//static fields
@@ -153,7 +153,7 @@ GF_Err gf_sg_script_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 
 	//dyn fields
-	field = gf_list_get(priv->fields, info->fieldIndex - nb_static);
+	field = (GF_ScriptField *)gf_list_get(priv->fields, info->fieldIndex - nb_static);
 	if (!field) return GF_BAD_PARAM;
 
 	info->eventType = field->eventType;
@@ -211,7 +211,7 @@ GF_ScriptField *gf_sg_script_field_new(GF_Node *node, u32 eventType, u32 fieldTy
 		return NULL;
 
 	if (eventType > GF_SG_SCRIPT_TYPE_EVENT_OUT) return NULL;
-	priv = gf_node_get_private(node);
+	priv = (GF_ScriptPriv *)gf_node_get_private(node);
 
 	GF_SAFEALLOC(field, GF_ScriptField)
 	field->fieldType = fieldType;
@@ -253,12 +253,12 @@ GF_Err gf_sg_script_prepare_clone(GF_Node *dest, GF_Node *orig)
 	u32 i, type;
 	GF_ScriptField *sf;
 	GF_ScriptPriv *dest_priv, *orig_priv;
-	orig_priv = orig->sgprivate->privateStack;
-	dest_priv = dest->sgprivate->privateStack;
+	orig_priv = (GF_ScriptPriv *)orig->sgprivate->privateStack;
+	dest_priv = (GF_ScriptPriv *)dest->sgprivate->privateStack;
 	if (!orig_priv || !dest_priv) return GF_BAD_PARAM;
 
 	i=0;
-	while ((sf = gf_list_enum(orig_priv->fields, &i))) {
+	while ((sf = (GF_ScriptField *)gf_list_enum(orig_priv->fields, &i))) {
 		switch (sf->eventType) {
 		case GF_SG_EVENT_IN:
 			type = GF_SG_SCRIPT_TYPE_EVENT_IN;
@@ -303,7 +303,7 @@ GF_Err gf_sg_script_field_get_info(GF_ScriptField *field, GF_FieldInfo *info)
 
 void gf_sg_script_event_in(GF_Node *node, GF_FieldInfo *in_field)
 {
-	GF_ScriptPriv *priv = node->sgprivate->privateStack;
+	GF_ScriptPriv *priv = (GF_ScriptPriv *)node->sgprivate->privateStack;
 	if (priv->JS_EventIn) priv->JS_EventIn(node, in_field);
 }
 

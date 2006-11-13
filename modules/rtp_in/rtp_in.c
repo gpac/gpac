@@ -91,12 +91,12 @@ static void RP_cleanup(RTPClient *rtp)
 	RTSPSession *sess;
 
 	while (gf_list_count(rtp->channels)) {
-		RTPStream *ch = gf_list_get(rtp->channels, 0);
+		RTPStream *ch = (RTPStream *)gf_list_get(rtp->channels, 0);
 		gf_list_rem(rtp->channels, 0);
 		RP_DeleteStream(ch);
 	}
 
-	while ( (sess = gf_list_last(rtp->sessions)) ) {
+	while ( (sess = (RTSPSession *)gf_list_last(rtp->sessions)) ) {
 		gf_list_rem_last(rtp->sessions);
 		RP_RemoveSession(sess, 1);
 	}
@@ -128,7 +128,7 @@ u32 RP_Thread(void *param)
 	GF_NetworkCommand com;
 	RTSPSession *sess;
 	RTPStream *ch;
-	RTPClient *rtp = param;
+	RTPClient *rtp = (RTPClient *)param;
 
 	rtp->th_state = 1;
 	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
@@ -137,7 +137,7 @@ u32 RP_Thread(void *param)
 
 		/*fecth data on udp*/
 		i=0;
-		while ((ch = gf_list_enum(rtp->channels, &i))) {
+		while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
 			if ((ch->flags & RTP_EOS) || (ch->status!=RTP_Running) ) continue;
 			/*for interleaved channels don't read too fast, query the buffer occupancy*/
 			if (ch->flags & RTP_INTERLEAVED) {
@@ -153,7 +153,7 @@ u32 RP_Thread(void *param)
 		
 		/*and process commands / flush TCP*/
 		i=0;
-		while ((sess = gf_list_enum(rtp->sessions, &i))) {
+		while ((sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i))) {
 			RP_ProcessCommands(sess);
 		}
 
@@ -192,7 +192,7 @@ static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	RTSPSession *sess;
-	RTPClient *priv = plug->priv;
+	RTPClient *priv = (RTPClient *)plug->priv;
 
 	/*store user address*/
 	priv->service = serv;
@@ -239,7 +239,7 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 
 static GF_Err RP_CloseService(GF_InputService *plug)
 {
-	RTPClient *rtp = plug->priv;
+	RTPClient *rtp = (RTPClient *)plug->priv;
 	RP_close_service_thread(rtp);
 	if (rtp->th_state==1) rtp->th_state = 0;
 	return GF_OK;
@@ -248,7 +248,7 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 static GF_Descriptor *RP_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
 	GF_Descriptor *desc;
-	RTPClient *priv = plug->priv;
+	RTPClient *priv = (RTPClient *)plug->priv;
 
 	if ((expect_type!=GF_MEDIA_OBJECT_UNDEF) && (expect_type!=GF_MEDIA_OBJECT_SCENE)) {
 		/*ignore the SDP IOD and regenerate one*/
@@ -269,7 +269,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 	RTPStream *ch;
 	RTSPSession *sess;
 	char *es_url;
-	RTPClient *priv = plug->priv;
+	RTPClient *priv = (RTPClient *)plug->priv;
 	if (upstream) return GF_NOT_SUPPORTED;
 
 
@@ -301,8 +301,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 		|| strstr(url, "data:application/mpeg4-es-au;base64")
 		) {
 		
-		ch = malloc(sizeof(RTPStream));
-		memset(ch, 0, sizeof(RTPStream));
+		GF_SAFEALLOC(ch, RTPStream);
 		ch->control = strdup(url);
 		ch->owner = priv;
 		ch->channel = channel;
@@ -327,7 +326,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 static GF_Err RP_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	RTPStream *ch;
-	RTPClient *priv = plug->priv;
+	RTPClient *priv = (RTPClient *)plug->priv;
 
 	ch = RP_FindChannel(priv, channel, 0, NULL, 0);
 	if (!ch) return GF_STREAM_NOT_FOUND;
@@ -342,7 +341,7 @@ static GF_Err RP_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	RTPStream *ch;
-	RTPClient *priv = plug->priv;
+	RTPClient *priv = (RTPClient *)plug->priv;
 
 	/*ignore commands other than channels one*/
 	if (!com->base.on_channel) {
@@ -433,7 +432,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_GET_DSI:
 		if (ch->sl_map.configSize) {
 			com->get_dsi.dsi_len = ch->sl_map.configSize;
-			com->get_dsi.dsi = malloc(sizeof(char)*com->get_dsi.dsi_len);
+			com->get_dsi.dsi = (char*)malloc(sizeof(char)*com->get_dsi.dsi_len);
 			memcpy(com->get_dsi.dsi, ch->sl_map.config, sizeof(char)*com->get_dsi.dsi_len);
 		} else {
 			com->get_dsi.dsi = NULL;
@@ -474,7 +473,7 @@ static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char
 {
 	char *data;
 	RTPStream *ch;
-	RTPClient *priv = plug->priv;
+	RTPClient *priv = (RTPClient *)plug->priv;
 
 	ch = RP_FindChannel(priv, channel, 0, NULL, 0);
 	if (!ch) return GF_STREAM_NOT_FOUND;
@@ -513,7 +512,7 @@ static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char
 static GF_Err RP_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	RTPStream *ch;
-	RTPClient *priv = plug->priv;
+	RTPClient *priv = (RTPClient *)plug->priv;
 
 	ch = RP_FindChannel(priv, channel, 0, NULL, 0);
 	if (!ch) return GF_STREAM_NOT_FOUND;
@@ -528,7 +527,7 @@ static GF_Err RP_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 static Bool RP_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
 	RTSPSession *sess;
-	RTPClient *priv = plug->priv;
+	RTPClient *priv = (RTPClient *)plug->priv;
 
 	if (strstr(url, "data:application/mpeg4-od-au;base64") 
 		|| strstr(url, "data:application/mpeg4-bifs-au;base64")
@@ -564,8 +563,7 @@ GF_InputService *RTP_Load()
 	plug->ChannelGetSLP = RP_ChannelGetSLP;
 	plug->ChannelReleaseSLP = RP_ChannelReleaseSLP;
 
-	priv = malloc(sizeof(RTPClient));
-	memset(priv, 0, sizeof(RTPClient));
+	GF_SAFEALLOC(priv, RTPClient);
 	priv->sessions = gf_list_new();
 	priv->channels = gf_list_new();
 
@@ -583,7 +581,7 @@ void RTP_Delete(GF_BaseInterface *bi)
 	RTPClient *priv;
 	u32 retry;
 	GF_InputService *plug = (GF_InputService *) bi;
-	priv = plug->priv;
+	priv = (RTPClient *)plug->priv;
 
 	retry = 20;
 	while ((priv->th_state==1) && retry) {
@@ -601,18 +599,21 @@ void RTP_Delete(GF_BaseInterface *bi)
 	free(bi);
 }
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
 	return 0;
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)RTP_Load();
 	return NULL;
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

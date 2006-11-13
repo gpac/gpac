@@ -85,7 +85,7 @@ static void CTXLoad_Reset(CTXLoadPriv *priv)
 	gf_sg_reset(priv->inline_scene->graph);
 	if (priv->load_flags != 3) priv->load_flags = 0;
 	while (gf_list_count(priv->files_to_delete)) {
-		char *fileName = gf_list_get(priv->files_to_delete, 0);
+		char *fileName = (char*)gf_list_get(priv->files_to_delete, 0);
 		gf_list_rem(priv->files_to_delete, 0);
 		gf_delete_file(fileName);
 		free(fileName);
@@ -147,7 +147,7 @@ static Bool CTXLoad_CheckDownload(CTXLoadPriv *priv)
 
 static GF_Err CTXLoad_Setup(GF_BaseDecoder *plug)
 {
-	CTXLoadPriv *priv = plug->privateStack;
+	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
 	if (!priv->file_name) return GF_BAD_PARAM;
 
 	priv->ctx = gf_sm_new(priv->inline_scene->graph);
@@ -163,7 +163,7 @@ static GF_Err CTXLoad_Setup(GF_BaseDecoder *plug)
 
 static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
-									 unsigned char *decSpecInfo, 
+									 char *decSpecInfo, 
 									 u32 decSpecInfoSize, 
 									 u16 DependsOnES_ID,
 									 u32 objectTypeIndication, 
@@ -172,14 +172,14 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 	const char *ext;
 	GF_BitStream *bs;
 	u32 size;
-	CTXLoadPriv *priv = plug->privateStack;
+	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
 	if (Upstream) return GF_NOT_SUPPORTED;
 
 	/*animation stream like*/
 	if (priv->ctx) {
 		GF_StreamContext *sc;
 		u32 i = 0;
-		while ((sc = gf_list_enum(priv->ctx->streams, &i))) {
+		while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
 			if (ES_ID == sc->ESID) {
 				priv->nb_streams++;
 				return GF_OK;
@@ -226,14 +226,14 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 
 static GF_Err CTXLoad_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
-	CTXLoadPriv *priv = plug->privateStack;
+	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
 	priv->nb_streams --;
 	return GF_OK;
 }
 
 static GF_Err CTXLoad_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
 {
-	CTXLoadPriv *priv = plug->privateStack;
+	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
 	if (priv->ctx) return GF_BAD_PARAM;
 
 	priv->inline_scene = scene;
@@ -258,7 +258,7 @@ static Bool CTXLoad_StreamInRootOD(GF_ObjectDescriptor *od, u32 ESID)
 	/*idem*/
 	if (!count) return 1;
 	for (i=0; i<count; i++) {
-		GF_ESD *esd = gf_list_get(od->ESDescriptors, i);
+		GF_ESD *esd = (GF_ESD *)gf_list_get(od->ESDescriptors, i);
 		if (esd->ESID==ESID) return 1;
 	}
 	return 0;
@@ -289,13 +289,13 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 	GF_StreamContext *sc;
 	max_dur = 0;
 	i=0;
-	while ((sc = gf_list_enum(priv->ctx->streams, &i))) {
+	while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
 		/*all streams in root OD are handled with ESID 0 to differentiate with any animation streams*/
 		if (CTXLoad_StreamInRootOD(priv->ctx->root_od, sc->ESID)) sc->ESID = 0;
 		if (!sc->timeScale) sc->timeScale = 1000;
 
 		j=0;
-		while ((au = gf_list_enum(sc->AUs, &j))) {
+		while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
 			if (!au->timing) au->timing = (u64) (sc->timeScale*au->timing_sec);
 		}
 		if (au && !sc->ESID && (au->timing>max_dur)) max_dur = (u32) (au->timing * 1000 / sc->timeScale);
@@ -306,7 +306,7 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 	}
 }
 
-static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
+static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
@@ -314,7 +314,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 	GF_AUContext *au;
 	Bool can_delete_com;
 	GF_StreamContext *sc;
-	CTXLoadPriv *priv = plug->privateStack;
+	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
 
 	/*something failed*/
 	if (priv->load_flags==3) return GF_EOS;
@@ -410,7 +410,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 	nb_updates = 0;
 
 	i=0;
-	while ((sc = gf_list_enum(priv->ctx->streams, &i))) {
+	while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
 		/*not our stream*/
 		if (sc->ESID && (sc->ESID != ES_ID)) continue;
 		/*not the base stream*/
@@ -433,13 +433,13 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 
 		/*we're in the right stream, apply update*/
 		j=0;
-		while ((au = gf_list_enum(sc->AUs, &j))) {
+		while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
 			u32 au_time = (u32) (au->timing*1000/sc->timeScale);
 			if (au_time + 1 <= sc->last_au_time) {
 				/*remove first replace command*/
 				if (can_delete_com && (sc->streamType==GF_STREAM_SCENE)) {
 					while (gf_list_count(au->commands)) {
-						GF_Command *com = gf_list_get(au->commands, 0);
+						GF_Command *com = (GF_Command *)gf_list_get(au->commands, 0);
 						gf_list_rem(au->commands, 0);
 						gf_sg_command_del(com);
 					}
@@ -459,7 +459,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 				GF_Command *com;
 				/*apply the commands*/
 				k=0;
-				while ((com = gf_list_enum(au->commands, &k))) {
+				while ((com = (GF_Command *)gf_list_enum(au->commands, &k))) {
 					e = gf_sg_command_apply(priv->inline_scene->graph, com, 0);
 					if (e) break;
 					/*remove commands on base layer*/
@@ -474,7 +474,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 				/*apply the commands*/
 				while (gf_list_count(au->commands)) {
 					Bool keep_com = 0;
-					GF_ODCom *com = gf_list_get(au->commands, 0);
+					GF_ODCom *com = (GF_ODCom *)gf_list_get(au->commands, 0);
 					gf_list_rem(au->commands, 0);
 					switch (com->tag) {
 					case GF_ODF_OD_UPDATE_TAG:
@@ -484,10 +484,10 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 							GF_ESD *esd;
 							char *remote;
 							GF_MuxInfo *mux = NULL;
-							GF_ObjectDescriptor *od = gf_list_get(odU->objectDescriptors, 0);
+							GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, 0);
 							gf_list_rem(odU->objectDescriptors, 0);
 							/*we can only work with single-stream ods*/
-							esd = gf_list_get(od->ESDescriptors, 0);
+							esd = (GF_ESD*)gf_list_get(od->ESDescriptors, 0);
 							if (!esd) {
 								if (od->URLString) {
 									ODS_SetupOD(priv->inline_scene, od);
@@ -506,7 +506,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 							}
 							/*look for MUX info*/
 							k=0;
-							while ((mux = gf_list_enum(esd->extensionDescriptors, &k))) {
+							while ((mux = (GF_MuxInfo*)gf_list_enum(esd->extensionDescriptors, &k))) {
 								if (mux->tag == GF_ODF_MUXINFO_TAG) break;
 								mux = NULL;
 							}
@@ -618,7 +618,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 
 const char *CTXLoad_GetName(struct _basedecoder *plug)
 {
-	CTXLoadPriv *priv = plug->privateStack;
+	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
 
 	switch (priv->load.type) {
 	case GF_SM_LOAD_BT: return "MPEG-4 BT Parser";
@@ -635,7 +635,7 @@ const char *CTXLoad_GetName(struct _basedecoder *plug)
 	}
 }
 
-Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
 		if (ObjectType==1) return 1;
@@ -649,7 +649,7 @@ Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectTyp
 
 void DeleteContextLoader(GF_BaseDecoder *plug)
 {
-	CTXLoadPriv *priv = plug->privateStack;
+	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
 	if (priv->file_name) free(priv->file_name);
 	assert(!priv->ctx);
 	gf_list_del(priv->files_to_delete);
@@ -681,6 +681,7 @@ GF_BaseDecoder *NewContextLoader()
 }
 
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -691,6 +692,7 @@ Bool QueryInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -700,6 +702,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

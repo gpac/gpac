@@ -88,7 +88,7 @@ void MC_Restart(GF_ObjectManager *odm)
 	to_restart = gf_list_new();
 	/*do stop/start in 2 pass, it's much cleaner for servers*/
 	i=0;
-	while ((ctrl_od = gf_list_enum(odm->parentscene->ODlist, &i))) {
+	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(odm->parentscene->ODlist, &i))) {
 		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
 		/*if running, stop and collect for restart*/
 		if (ctrl_od->is_open) {
@@ -102,7 +102,7 @@ void MC_Restart(GF_ObjectManager *odm)
 
 	/*play on all ODs collected for restart*/
 	i=0;
-	while ((ctrl_od = gf_list_enum(to_restart, &i))) {
+	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
 		gf_odm_start(ctrl_od);
 	}
 	gf_list_del(to_restart);
@@ -149,7 +149,7 @@ void MC_Resume(GF_ObjectManager *odm)
 	}
 
 	i=0;
-	while ((ctrl_od = gf_list_enum(in_scene->ODlist, &i))) {
+	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->ODlist, &i))) {
 		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
 		gf_odm_resume(ctrl_od);
 	}
@@ -180,7 +180,7 @@ void MC_Pause(GF_ObjectManager *odm)
 	}
 
 	i=0;
-	while ((ctrl_od = gf_list_enum(in_scene->ODlist, &i))) {
+	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->ODlist, &i))) {
 		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
 		gf_odm_pause(ctrl_od);
 	}
@@ -210,7 +210,7 @@ void MC_SetSpeed(GF_ObjectManager *odm, Fixed speed)
 	}
 
 	i=0;
-	while ((ctrl_od = gf_list_enum(in_scene->ODlist, &i))) {
+	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->ODlist, &i))) {
 		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
 		gf_odm_set_speed(ctrl_od, speed);
 	}
@@ -222,7 +222,7 @@ void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range
 	Double duration;
 	GF_Segment *last_seg, *prev_seg;
 	if (gf_list_count(ctrl->seg)) {
-		GF_Segment *desc = gf_list_get(ctrl->seg, ctrl->current_seg);
+		GF_Segment *desc = (GF_Segment *)gf_list_get(ctrl->seg, ctrl->current_seg);
 		if (!desc) {
 			*start_range = 0;
 			*end_range = 0;
@@ -233,7 +233,7 @@ void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range
 		last_seg = NULL;
 		duration = desc->Duration;
 		i=1+ctrl->current_seg; 
-		while ((last_seg = gf_list_enum(ctrl->seg, &i))) {
+		while ((last_seg = (GF_Segment *)gf_list_enum(ctrl->seg, &i))) {
 			if (prev_seg->startTime + prev_seg->Duration != last_seg->startTime) {
 				last_seg = NULL;
 				break;
@@ -394,8 +394,8 @@ void RenderMediaControl(GF_Node *node, void *rs)
 
 void InitMediaControl(GF_InlineScene *is, GF_Node *node)
 {
-	MediaControlStack *stack  =malloc(sizeof(MediaControlStack));
-	memset(stack, 0, sizeof(MediaControlStack));
+	MediaControlStack *stack;
+	GF_SAFEALLOC(stack, MediaControlStack);
 
 	stack->changed = 1;
 	stack->parent = is;

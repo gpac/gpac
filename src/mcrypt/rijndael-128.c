@@ -19,7 +19,7 @@
  * All modifications are placed under the license of libmcrypt.
  */
 
-/* $Id: rijndael-128.c,v 1.1.1.1 2005-07-13 14:36:35 jeanlf Exp $ */
+/* $Id: rijndael-128.c,v 1.2 2006-11-13 18:07:07 jeanlf Exp $ */
 
 #include <gpac/internal/crypt_dev.h>
 
@@ -397,9 +397,9 @@ static  void _mcrypt_decrypt(RI * rinst, u8 * buff)
 
 void gf_crypt_register_rijndael_128(GF_Crypt *td)
 {
-	td->a_encrypt = _mcrypt_encrypt;
-	td->a_decrypt = _mcrypt_decrypt;
-	td->a_set_key = _mcrypt_set_key;
+	td->a_encrypt = (void *)_mcrypt_encrypt;
+	td->a_decrypt = (void *)_mcrypt_decrypt;
+	td->a_set_key = (void *)_mcrypt_set_key;
 	td->algo_name = "Rijndael-128";
 	td->algo_version = 20010801;
 	td->num_key_sizes = 3;

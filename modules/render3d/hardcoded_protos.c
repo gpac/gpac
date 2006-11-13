@@ -77,7 +77,7 @@ static void RenderPathExtrusion(GF_Node *node, void *rs)
 	stack2D *st2D;
 
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
-	DrawableStack *st = gf_node_get_private(node);
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 
 	if (!PathExtrusion_GetNode(node, &path_ext)) return;
 	if (!path_ext.geometry) return;
@@ -94,7 +94,7 @@ static void RenderPathExtrusion(GF_Node *node, void *rs)
 		case TAG_MPEG4_XCurve2D:
 		case TAG_MPEG4_IndexedFaceSet2D:
 		case TAG_MPEG4_IndexedLineSet2D:
-			st2D = gf_node_get_private(path_ext.geometry);
+			st2D = (stack2D*)gf_node_get_private(path_ext.geometry);
 			if (!st2D) return;
 			mesh_extrude_path(st->mesh, st2D->path, path_ext.spine, path_ext.creaseAngle, path_ext.beginCap, path_ext.endCap, path_ext.orientation, path_ext.scale, path_ext.txAlongSpine);
 			break;
@@ -182,7 +182,7 @@ static void RenderPlanarExtrusion(GF_Node *node, void *rs)
 	GF_Path *geo, *spine;
 
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
-	DrawableStack *st = gf_node_get_private(node);
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 
 	if (!PlanarExtrusion_GetNode(node, &plane_ext)) return;
 	if (!plane_ext.geometry || !plane_ext.spine) return;
@@ -202,7 +202,7 @@ static void RenderPlanarExtrusion(GF_Node *node, void *rs)
 		case TAG_MPEG4_XCurve2D:
 		case TAG_MPEG4_IndexedFaceSet2D:
 		case TAG_MPEG4_IndexedLineSet2D:
-			st2D = gf_node_get_private(plane_ext.geometry);
+			st2D = (stack2D*)gf_node_get_private(plane_ext.geometry);
 			if (st2D) geo = st2D->path;
 			break;
 		default:
@@ -216,7 +216,7 @@ static void RenderPlanarExtrusion(GF_Node *node, void *rs)
 		case TAG_MPEG4_XCurve2D:
 		case TAG_MPEG4_IndexedFaceSet2D:
 		case TAG_MPEG4_IndexedLineSet2D:
-			st2D = gf_node_get_private(plane_ext.spine);
+			st2D = (stack2D*)gf_node_get_private(plane_ext.spine);
 			if (st2D) spine = st2D->path;
 			break;
 		default:
@@ -364,7 +364,7 @@ static void RenderPlaneClipper(GF_Node *node, void *rs)
 {
 	PlaneClipper pc;
 	GF_Plane p;
-	GroupingNode *st = gf_node_get_private(node);
+	GroupingNode *st = (GroupingNode *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *) rs;
 	if (!PlaneClipper_GetNode(node, &pc)) return;
 
@@ -397,7 +397,7 @@ void R3D_InitPlaneClipper(Render3D *sr, GF_Node *node)
 {
 	PlaneClipper pc;
 	if (PlaneClipper_GetNode(node, &pc)) {
-		GroupingNode *stack = malloc(sizeof(GroupingNode));
+		GroupingNode *stack = (GroupingNode *)malloc(sizeof(GroupingNode));
 		SetupGroupingNode(stack, sr->compositor, node, pc.children);
 		gf_node_set_private(node, stack);
 		gf_node_set_predestroy_function(node, DestroyBaseGrouping);

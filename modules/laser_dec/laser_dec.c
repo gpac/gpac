@@ -50,7 +50,7 @@ static GF_Err LSR_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 
 GF_Err LSR_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
 {
-	LSRPriv *priv = plug->privateStack;
+	LSRPriv *priv = (LSRPriv *)plug->privateStack;
 	if (priv->codec) return GF_BAD_PARAM;
 	priv->pScene = scene;
 	priv->app = scene->root_od->term;
@@ -63,7 +63,7 @@ GF_Err LSR_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_sce
 
 GF_Err LSR_ReleaseScene(GF_SceneDecoder *plug)
 {
-	LSRPriv *priv = plug->privateStack;
+	LSRPriv *priv = (LSRPriv *)plug->privateStack;
 	if (!priv->codec || priv->nb_streams) return GF_BAD_PARAM;
 	gf_laser_decoder_del(priv->codec);
 	priv->codec = NULL;
@@ -72,13 +72,13 @@ GF_Err LSR_ReleaseScene(GF_SceneDecoder *plug)
 
 static GF_Err LSR_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
-									 unsigned char *decSpecInfo, 
+									 char *decSpecInfo, 
 									 u32 decSpecInfoSize, 
 									 u16 DependsOnES_ID,
 									 u32 objectTypeIndication, 
 									 Bool Upstream)
 {
-	LSRPriv *priv = plug->privateStack;
+	LSRPriv *priv = (LSRPriv *)plug->privateStack;
 	GF_Err e;
 	if (Upstream) return GF_NOT_SUPPORTED;
 	e = gf_laser_decoder_configure_stream(priv->codec, ES_ID, decSpecInfo, decSpecInfoSize);
@@ -89,18 +89,18 @@ static GF_Err LSR_AttachStream(GF_BaseDecoder *plug,
 static GF_Err LSR_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
 	GF_Err e;
-	LSRPriv *priv = plug->privateStack;
+	LSRPriv *priv = (LSRPriv *)plug->privateStack;
 	e = gf_laser_decoder_remove_stream(priv->codec, ES_ID);
 	if (e) return e;
 	priv->nb_streams--;
 	return GF_OK;
 }
 
-static GF_Err LSR_ProcessData(GF_SceneDecoder*plug, unsigned char *inBuffer, u32 inBufferLength, 
+static GF_Err LSR_ProcessData(GF_SceneDecoder*plug, char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
-	LSRPriv *priv = plug->privateStack;
+	LSRPriv *priv = (LSRPriv *)plug->privateStack;
 
 	e = gf_laser_decode_au(priv->codec, ES_ID, inBuffer, inBufferLength);
 
@@ -109,7 +109,7 @@ static GF_Err LSR_ProcessData(GF_SceneDecoder*plug, unsigned char *inBuffer, u32
 	return e;
 }
 
-Bool LSR_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+Bool LSR_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	if ((StreamType==GF_STREAM_SCENE) && (ObjectType == 0x09)) return 1;
 	return 0;
@@ -118,7 +118,7 @@ Bool LSR_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, u
 
 void DeleteLSRDec(GF_BaseDecoder *plug)
 {
-	LSRPriv *priv = plug->privateStack;
+	LSRPriv *priv = (LSRPriv *)plug->privateStack;
 	/*in case something went wrong*/
 	if (priv->codec) gf_laser_decoder_del(priv->codec);
 	free(priv);
@@ -147,6 +147,7 @@ GF_BaseDecoder *NewLSRDec()
 	return (GF_BaseDecoder *) tmp;
 }
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -157,6 +158,7 @@ Bool QueryInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -167,6 +169,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

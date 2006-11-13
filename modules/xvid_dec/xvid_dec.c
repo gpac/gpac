@@ -54,7 +54,7 @@ typedef struct
 #define XVIDCTX()	XVIDDec *ctx = (XVIDDec *) ifcg->privateStack
 
 
-static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
@@ -184,9 +184,9 @@ static GF_Err XVID_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	return GF_NOT_SUPPORTED;
 }
 static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg, 
-		unsigned char *inBuffer, u32 inBufferLength,
+		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
-		unsigned char *outBuffer, u32 *outBufferLength,
+		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
 #ifdef XVID_USE_OLD_API
@@ -285,7 +285,7 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 	return GF_OK;
 }
 
-static Bool XVID_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool XVID_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	if (StreamType != GF_STREAM_VISUAL) return 0;
 	switch (ObjectType) {

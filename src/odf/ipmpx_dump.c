@@ -36,7 +36,7 @@
 	} \
 
 
-static void StartList(FILE *trace, char *name, u32 indent, Bool XMTDump)
+static void StartList(FILE *trace, const char *name, u32 indent, Bool XMTDump)
 {
 	char ind_buf[GF_IPMPX_MAX_TREE];
 	GF_IPMPX_FORMAT_INDENT(ind_buf, indent);
@@ -46,7 +46,7 @@ static void StartList(FILE *trace, char *name, u32 indent, Bool XMTDump)
 		fprintf(trace, "%s%s [\n", ind_buf, name);
 	}
 }
-static void EndList(FILE *trace, char *name, u32 indent, Bool XMTDump)
+static void EndList(FILE *trace, const char *name, u32 indent, Bool XMTDump)
 {
 	char ind_buf[GF_IPMPX_MAX_TREE];
 	GF_IPMPX_FORMAT_INDENT(ind_buf, indent);
@@ -57,7 +57,7 @@ static void EndList(FILE *trace, char *name, u32 indent, Bool XMTDump)
 	}
 }
 
-static void StartElement(FILE *trace, char *descName, u32 indent, Bool XMTDump)
+static void StartElement(FILE *trace, const char *descName, u32 indent, Bool XMTDump)
 {
 	char ind_buf[GF_IPMPX_MAX_TREE];
 	GF_IPMPX_FORMAT_INDENT(ind_buf, indent);
@@ -81,7 +81,7 @@ static void EndAttributes(FILE *trace, Bool XMTDump, Bool has_children)
 	}
 }
 
-static void EndElement(FILE *trace, char *descName, u32 indent, Bool XMTDump)
+static void EndElement(FILE *trace, const char *descName, u32 indent, Bool XMTDump)
 {
 	char ind_buf[GF_IPMPX_MAX_TREE];
 	GF_IPMPX_FORMAT_INDENT(ind_buf, indent);
@@ -94,7 +94,7 @@ static void EndElement(FILE *trace, char *descName, u32 indent, Bool XMTDump)
 	}
 }
 
-static void StartAttribute(FILE *trace, char *attName, u32 indent, Bool XMTDump)
+static void StartAttribute(FILE *trace, const char *attName, u32 indent, Bool XMTDump)
 {
 	char ind_buf[GF_IPMPX_MAX_TREE];
 	GF_IPMPX_FORMAT_INDENT(ind_buf, indent);
@@ -138,7 +138,7 @@ static void DumpBool(FILE *trace, char *attName, u32  val, u32 indent, Bool XMTD
 	EndAttribute(trace, indent, XMTDump);
 }
 
-static void DumpData(FILE *trace, char *name, char *data, u32 dataLength, u32 indent, Bool XMTDump)
+static void DumpData(FILE *trace, const char *name, char *data, u32 dataLength, u32 indent, Bool XMTDump)
 {
 	u32 i;
 	Bool ASCII_Dump;
@@ -211,11 +211,11 @@ static void DumpDate(FILE *trace, char *name, char *data, u32 indent, Bool XMTDu
 	EndAttribute(trace, indent, XMTDump);
 }
 
-void gf_ipmpx_dump_ByteArray(GF_IPMPX_ByteArray *_p, char *attName, FILE *trace, u32 indent, Bool XMTDump)
+void gf_ipmpx_dump_ByteArray(GF_IPMPX_ByteArray *_p, const char *attName, FILE *trace, u32 indent, Bool XMTDump)
 {
 	if (_p && _p->data) {
 		if (XMTDump) {
-			StartElement(trace, attName ? attName : "ByteArray", indent, XMTDump);
+			StartElement(trace, attName ? attName : (char*)"ByteArray", indent, XMTDump);
 			indent++;
 			DumpData(trace, "array", _p->data, _p->length, indent, XMTDump);
 			indent--;
@@ -354,7 +354,7 @@ GF_Err gf_ipmpx_dump_TrustSecurityMetadata(GF_IPMPX_Data *_p, FILE *trace, u32 i
 	indent++;
 
 	for (i=0; i<gf_list_count(p->TrustedTools); i++) {
-		GF_IPMPX_TrustedTool *tt = gf_list_get(p->TrustedTools, i);
+		GF_IPMPX_TrustedTool *tt = (GF_IPMPX_TrustedTool *)gf_list_get(p->TrustedTools, i);
 		StartElement(trace, "IPMP_TrustedTool", indent, XMTDump);
 		indent++;
 		DumpBin128(trace, "toolID", (char *)tt->toolID, indent, XMTDump);
@@ -363,7 +363,7 @@ GF_Err gf_ipmpx_dump_TrustSecurityMetadata(GF_IPMPX_Data *_p, FILE *trace, u32 i
 		StartList(trace, "trustSpecifications", indent, XMTDump);
 		indent++;
 		for (j=0; j<gf_list_count(tt->trustSpecifications); j++) {
-			GF_IPMPX_TrustSpecification *ts = gf_list_get(tt->trustSpecifications, j);
+			GF_IPMPX_TrustSpecification *ts = (GF_IPMPX_TrustSpecification *)gf_list_get(tt->trustSpecifications, j);
 			StartElement(trace, "IPMP_TrustSpecification", indent, XMTDump);
 			indent++;
 			DumpDate(trace, "startDate", ts->startDate, indent, XMTDump);
@@ -403,7 +403,7 @@ GF_Err gf_ipmpx_dump_MutualAuthentication(GF_IPMPX_Data *_p, FILE *trace, u32 in
 	count = gf_list_count(p->candidateAlgorithms);
 	indent++;
 	for (i=0; i<count; i++) {
-		GF_IPMPX_Authentication *ip_auth = gf_list_get(p->candidateAlgorithms, i);
+		GF_IPMPX_Authentication *ip_auth = (GF_IPMPX_Authentication *)gf_list_get(p->candidateAlgorithms, i);
 		gf_ipmpx_dump_AUTH(ip_auth, trace, indent, XMTDump);
 	}
 	indent--;
@@ -413,7 +413,7 @@ GF_Err gf_ipmpx_dump_MutualAuthentication(GF_IPMPX_Data *_p, FILE *trace, u32 in
 	count = gf_list_count(p->agreedAlgorithms);
 	indent++;
 	for (i=0; i<count; i++) {
-		GF_IPMPX_Authentication *ip_auth = gf_list_get(p->agreedAlgorithms, i);
+		GF_IPMPX_Authentication *ip_auth = (GF_IPMPX_Authentication *)gf_list_get(p->agreedAlgorithms, i);
 		gf_ipmpx_dump_AUTH(ip_auth, trace, indent, XMTDump);
 	}
 	indent--;
@@ -427,7 +427,7 @@ GF_Err gf_ipmpx_dump_MutualAuthentication(GF_IPMPX_Data *_p, FILE *trace, u32 in
 		if (count) {
 			StartList(trace, "certificates", indent, XMTDump);
 			for (i=0; i<count; i++) {
-				GF_IPMPX_ByteArray *ipd = gf_list_get(p->certificates, i);
+				GF_IPMPX_ByteArray *ipd = (GF_IPMPX_ByteArray *)gf_list_get(p->certificates, i);
 				if (XMTDump) {
 					gf_ipmpx_dump_ByteArray(ipd, NULL, trace, indent, XMTDump);
 				} else {
@@ -464,14 +464,12 @@ GF_Err gf_ipmpx_dump_MutualAuthentication(GF_IPMPX_Data *_p, FILE *trace, u32 in
 
 GF_Err gf_ipmpx_dump_GetToolsResponse(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDump)
 {
-	GF_Err DumpDescList(GF_List *list, FILE *trace, u32 indent, char *ListName, Bool XMTDump);
-
 	GF_IPMPX_GetToolsResponse*p = (GF_IPMPX_GetToolsResponse*)_p;
 	StartElement(trace, "IPMP_GetToolsResponse", indent, XMTDump);
 	indent++;
 	EndAttributes(trace, XMTDump, 1);
 	gf_ipmpx_dump_BaseData(_p, trace, indent, XMTDump);
-	DumpDescList(p->ipmp_tools, trace, indent, "IPMP_Tools", XMTDump);
+	DumpDescList(p->ipmp_tools, trace, indent, "IPMP_Tools", XMTDump, 0);
 	indent--;
 	EndElement(trace, "IPMP_GetToolsResponse", indent, XMTDump);
 	return GF_OK;
@@ -492,7 +490,7 @@ GF_Err gf_ipmpx_dump_ParametricDescription(GF_IPMPX_Data *_p, FILE *trace, u32 i
 	StartList(trace, "descriptions", indent, XMTDump);
 	indent++;
 	for (i=0; i<gf_list_count(p->descriptions); i++) {
-		GF_IPMPX_ParametricDescriptionItem *it = gf_list_get(p->descriptions, i);
+		GF_IPMPX_ParametricDescriptionItem *it = (GF_IPMPX_ParametricDescriptionItem *)gf_list_get(p->descriptions, i);
 		StartElement(trace, "IPMP_ParametricDescriptionItem", indent, XMTDump);
 		indent++;
 		EndAttributes(trace, XMTDump, 1);
@@ -695,7 +693,7 @@ GF_Err gf_ipmpx_dump_ToolAPI_Config(GF_IPMPX_Data *_p, FILE *trace, u32 indent, 
 GF_Err gf_ipmpx_dump_WatermarkingInit(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDump)
 {
 	GF_IPMPX_WatermarkingInit*p = (GF_IPMPX_WatermarkingInit*)_p;
-	StartElement(trace, (_p->tag==GF_IPMPX_AUDIO_WM_INIT_TAG) ? "IPMP_AudioWatermarkingInit" : "IPMP_VideoWatermarkingInit", indent, XMTDump);
+	StartElement(trace, (char*) (_p->tag==GF_IPMPX_AUDIO_WM_INIT_TAG) ? "IPMP_AudioWatermarkingInit" : "IPMP_VideoWatermarkingInit", indent, XMTDump);
 	indent++;
 	DumpInt(trace, "inputFormat", p->inputFormat, indent, XMTDump);
 	DumpInt(trace, "requiredOp", p->requiredOp, indent, XMTDump);
@@ -725,13 +723,13 @@ GF_Err gf_ipmpx_dump_WatermarkingInit(GF_IPMPX_Data *_p, FILE *trace, u32 indent
 	EndAttributes(trace, XMTDump, 1);
 	gf_ipmpx_dump_BaseData(_p, trace, indent, XMTDump);
 	indent--;
-	EndElement(trace, (_p->tag==GF_IPMPX_AUDIO_WM_INIT_TAG) ? "IPMP_AudioWatermarkingInit" : "IPMP_VideoWatermarkingInit", indent, XMTDump);
+	EndElement(trace, (char*) (_p->tag==GF_IPMPX_AUDIO_WM_INIT_TAG) ? "IPMP_AudioWatermarkingInit" : "IPMP_VideoWatermarkingInit", indent, XMTDump);
 	return GF_OK;
 }
 GF_Err gf_ipmpx_dump_SendWatermark(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDump)
 {
 	GF_IPMPX_SendWatermark*p = (GF_IPMPX_SendWatermark*)_p;
-	StartElement(trace, (_p->tag==GF_IPMPX_AUDIO_WM_SEND_TAG) ? "IPMP_SendAudioWatermark" : "IPMP_SendVideoWatermark", indent, XMTDump);
+	StartElement(trace, (char*) (_p->tag==GF_IPMPX_AUDIO_WM_SEND_TAG) ? "IPMP_SendAudioWatermark" : "IPMP_SendVideoWatermark", indent, XMTDump);
 	indent++;
 	DumpInt(trace, "wmStatus", p->wm_status, indent, XMTDump);
 	DumpInt(trace, "compression_status", p->compression_status, indent, XMTDump);
@@ -740,7 +738,7 @@ GF_Err gf_ipmpx_dump_SendWatermark(GF_IPMPX_Data *_p, FILE *trace, u32 indent, B
 	if (p->wm_status==GF_IPMPX_WM_PAYLOAD) gf_ipmpx_dump_ByteArray(p->payload, "payload", trace, indent, XMTDump);
 	if (p->opaqueData) gf_ipmpx_dump_ByteArray(p->opaqueData, "opaqueData", trace, indent, XMTDump);
 	indent--;
-	EndElement(trace, (_p->tag==GF_IPMPX_AUDIO_WM_SEND_TAG) ? "IPMP_SendAudioWatermark" : "IPMP_SendVideoWatermark", indent, XMTDump);
+	EndElement(trace, (char*) (_p->tag==GF_IPMPX_AUDIO_WM_SEND_TAG) ? "IPMP_SendAudioWatermark" : "IPMP_SendVideoWatermark", indent, XMTDump);
 	return GF_OK;
 }
 
@@ -763,10 +761,10 @@ GF_Err gf_ipmpx_dump_SelectiveDecryptionInit(GF_IPMPX_Data *_p, FILE *trace, u32
 		StartList(trace, "SelectiveBuffers", indent, XMTDump);
 		indent++;
 		for (i=0; i<count; i++) {
-			GF_IPMPX_SelEncBuffer *sb = gf_list_get(p->SelEncBuffer, i);
+			GF_IPMPX_SelEncBuffer *sb = (GF_IPMPX_SelEncBuffer *)gf_list_get(p->SelEncBuffer, i);
 			StartElement(trace, "IPMP_SelectiveBuffer", indent, XMTDump);
 			indent++;
-			DumpBin128(trace, "cipher_Id", sb->cipher_Id, indent, XMTDump);
+			DumpBin128(trace, "cipher_Id", (char*)sb->cipher_Id, indent, XMTDump);
 			DumpInt(trace, "syncBoundary", sb->syncBoundary, indent, XMTDump);
 			if (!sb->Stream_Cipher_Specific_Init_Info) {
 				DumpInt(trace, "mode", sb->mode, indent, XMTDump);
@@ -789,7 +787,7 @@ GF_Err gf_ipmpx_dump_SelectiveDecryptionInit(GF_IPMPX_Data *_p, FILE *trace, u32
 		StartList(trace, "SelectiveFields", indent, XMTDump);
 		indent++;
 		for (i=0; i<count; i++) {
-			GF_IPMPX_SelEncField *sf = gf_list_get(p->SelEncFields, i);
+			GF_IPMPX_SelEncField *sf = (GF_IPMPX_SelEncField *)gf_list_get(p->SelEncFields, i);
 			StartElement(trace, "IPMP_SelectiveField", indent, XMTDump);
 			indent++;
 			DumpInt(trace, "field_Id", sf->field_Id, indent, XMTDump);
@@ -864,7 +862,7 @@ GF_Err gf_ipmpx_dump_data(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDu
 	case GF_IPMPX_USER_QUERY_TAG: return gf_ipmpx_dump_UserQuery(_p, trace, indent, XMTDump);
 	case GF_IPMPX_USER_RESPONSE_TAG: return gf_ipmpx_dump_UserQueryResponse(_p, trace, indent, XMTDump);
 */
-	case GF_IPMPX_GET_TOOLS_TAG: return 0;
+	case GF_IPMPX_GET_TOOLS_TAG: return GF_BAD_PARAM;
 	default: return GF_BAD_PARAM;
 	}
 }

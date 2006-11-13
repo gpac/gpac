@@ -128,9 +128,9 @@ static void anurbs_basis(anim_nurbs *nurbs, s32 span, Fixed t)
 	u32 i, j;
 	Fixed saved, temp;
 	if (!nurbs->n) {
-		nurbs->n = malloc(sizeof(Fixed) * (nurbs->p+1));
-		nurbs->left = malloc(sizeof(Fixed) * (nurbs->p+1));
-		nurbs->right = malloc(sizeof(Fixed) * (nurbs->p+1));
+		nurbs->n = (Fixed*)malloc(sizeof(Fixed) * (nurbs->p+1));
+		nurbs->left = (Fixed*)malloc(sizeof(Fixed) * (nurbs->p+1));
+		nurbs->right = (Fixed*)malloc(sizeof(Fixed) * (nurbs->p+1));
 	}
 	nurbs->n[0] = FIX_ONE;
 

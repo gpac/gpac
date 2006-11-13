@@ -80,7 +80,7 @@ static Bool OnJSGetScriptFile(void *opaque, GF_SceneGraph *parent_graph, const c
 	JSDownload *jsdnload;
 	GF_InlineScene *is;
 	if (!parent_graph || !OnDone) return 0;
-	is = gf_sg_get_private(parent_graph);
+	is = (GF_InlineScene *)gf_sg_get_private(parent_graph);
 	if (!is) return 0;
 	GF_SAFEALLOC(jsdnload, JSDownload)
 	jsdnload->OnDone = OnDone;
@@ -109,7 +109,7 @@ static Bool OnJSAction(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
 	}
 
 	if (type==GF_JSAPI_OP_GET_SCENE_URI) {
-		GF_InlineScene *is = gf_sg_get_private(gf_node_get_graph(n));
+		GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph(n));
 		param->uri.url = is->root_od->net_service->url;
 		param->uri.nb_params = 0;
 		return 1;
@@ -224,7 +224,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	const char *cf;
 	if (!check_user(user)) return NULL;
 
-	tmp = malloc(sizeof(GF_Terminal));
+	tmp = (GF_Terminal*)malloc(sizeof(GF_Terminal));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_Terminal));
 
@@ -360,10 +360,10 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 
 	/*pause all clocks on all services*/
 	i=0;
-	while ( (ns = gf_list_enum(term->net_services, &i)) ) {
+	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
 		GF_Clock *ck;
 		j=0;
-		while ( (ck = gf_list_enum(ns->Clocks, &j)) ) {
+		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
 			if (PlayState) gf_clock_pause(ck);
 			else gf_clock_resume(ck);
 		}
@@ -380,10 +380,10 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 
 	gf_sr_lock(term->renderer, 1);
 	i=0;
-	while ( (ns = gf_list_enum(term->net_services, &i)) ) {
+	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
 		GF_Clock *ck;
 		j=0;
-		while ( (ck = gf_list_enum(ns->Clocks, &j)) ) {
+		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
 			ck->init_time += ms_diff;
 		}
 	}
@@ -520,14 +520,14 @@ u32 Term_CheckClocks(GF_ClientService *ns, GF_InlineScene *is)
 			if (!Term_CheckClocks(is->root_od->net_service, is)) return 0;
 		}
 		i=0;
-		while ( (odm = gf_list_enum(is->ODlist, &i)) ) {
+		while ( (odm = (GF_ObjectManager*)gf_list_enum(is->ODlist, &i)) ) {
 			if (odm->net_service != ns) {
 				if (!Term_CheckClocks(odm->net_service, NULL)) return 0;
 			}
 		}
 	}
 	i=0;
-	while ( (ck = gf_list_enum(ns->Clocks, &i) ) ) {
+	while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &i) ) ) {
 		if (!ck->has_seen_eos) return 0;
 	}
 	return 1;
@@ -570,7 +570,7 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 
 GF_Err gf_term_set_size(GF_Terminal * term, u32 NewWidth, u32 NewHeight)
 {
-	if (!term) return 0;
+	if (!term) return GF_BAD_PARAM;
 	return gf_sr_set_size(term->renderer, NewWidth, NewHeight);
 }
 
@@ -581,12 +581,12 @@ void gf_term_handle_services(GF_Terminal *term)
 	/*play ODs that need it*/
 	gf_mx_p(term->net_mx);
 	while (gf_list_count(term->media_queue)) {
-		GF_ObjectManager *odm = gf_list_get(term->media_queue, 0);
+		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(term->media_queue, 0);
 		gf_list_rem(term->media_queue, 0);
 		/*unlock net before sending play/pause*/
 		gf_mx_v(term->net_mx);
 		/*this is a stop*/
-		if (odm->media_start_time == -1) {
+		if (odm->media_start_time == (u64)-1) {
 			odm->media_start_time = 0;
 			gf_odm_stop(odm, 0);
 		} 
@@ -604,7 +604,7 @@ void gf_term_handle_services(GF_Terminal *term)
 	gf_sr_lock(term->renderer, 1);
 	while (gf_list_count(term->net_services_to_remove)) {
 		gf_mx_p(term->net_mx);
-		ns = gf_list_get(term->net_services_to_remove, 0);
+		ns = (GF_ClientService*)gf_list_get(term->net_services_to_remove, 0);
 		if (ns) gf_list_rem(term->net_services_to_remove, 0);
 		gf_mx_v(term->net_mx);
 		if (!ns) break;
@@ -616,7 +616,7 @@ void gf_term_handle_services(GF_Terminal *term)
 		i=0;
 		count = gf_list_count(term->nodes_pending);
 		while (i<count) {
-			GF_Node *n = gf_list_get(term->nodes_pending, i);
+			GF_Node *n = (GF_Node *)gf_list_get(term->nodes_pending, i);
 			gf_node_render(n, NULL);
 			if (!term->nodes_pending) break;
 			n_count = gf_list_count(term->nodes_pending);
@@ -634,6 +634,7 @@ void gf_term_handle_services(GF_Terminal *term)
 		term->reload_state = 2;
 	}
 	if (term->reload_state == 2) {
+		if (gf_list_count(term->net_services)) return;
 		term->reload_state = 0;
 		gf_term_connect(term, term->reload_url);
 		free(term->reload_url);
@@ -698,7 +699,7 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 
 	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
 	i=0;
-	while ( (ns = gf_list_enum(term->net_services, &i)) ) {
+	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
 		if (gf_term_service_can_handle_url(ns, serviceURL)) {
 			odm->net_service = ns;
 			/*service not yet setup !!*/
@@ -739,7 +740,7 @@ GF_Err gf_term_connect_remote_channel(GF_Terminal *term, GF_Channel *ch, char *U
 		return GF_OK;
 	}
 	i=0;
-	while ( (ns = gf_list_enum(term->net_services, &i)) ) {
+	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
 		if (gf_term_service_can_handle_url(ns, URL)) {
 			ch->service = ns;
 			gf_term_lock_net(term, 0);
@@ -896,8 +897,7 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 	odm->subscene = is;
 	odm->term = term;
 
-	odm->net_service = malloc(sizeof(GF_ClientService));
-	memset(odm->net_service, 0, sizeof(GF_ClientService));
+	GF_SAFEALLOC(odm->net_service , GF_ClientService);
 	odm->net_service->term = term;
 	odm->net_service->owner = odm;
 	odm->net_service->ifce = service_hdl;
@@ -911,6 +911,7 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
 }
 
+GF_EXPORT
 GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 {
 	GF_Err e;
@@ -943,7 +944,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 		load.ctx = gf_sm_new(term->root_scene->graph);
 		/*restore streams*/
 		i=0;
-		while ((esd = gf_list_enum(term->root_scene->root_od->OD->ESDescriptors, &i)) ) {
+		while ((esd = (GF_ESD*)gf_list_enum(term->root_scene->root_od->OD->ESDescriptors, &i)) ) {
 			switch (esd->decoderConfig->streamType) {
 			case GF_STREAM_OD:
 			case GF_STREAM_SCENE:
@@ -999,10 +1000,10 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 		u32 j, au_count, st_count;
 		st_count = gf_list_count(load.ctx->streams);
 		for (i=0; i<st_count; i++) {
-			sc = gf_list_get(load.ctx->streams, i);
+			sc = (GF_StreamContext*)gf_list_get(load.ctx->streams, i);
 			au_count = gf_list_count(sc->AUs);
 			for (j=0; j<au_count; j++) {
-				GF_AUContext *au = gf_list_get(sc->AUs, j);
+				GF_AUContext *au = (GF_AUContext *)gf_list_get(sc->AUs, j);
 				e = gf_sg_command_apply_list(term->root_scene->graph, au->commands, time);
 				if (e) break;
 			}
@@ -1019,3 +1020,17 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	gf_sm_del(load.ctx);
 	return e;
 }
+
+GF_Err gf_term_get_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer)
+{
+	if (!term) return GF_BAD_PARAM;
+	return gf_sr_get_screen_buffer(term->renderer, framebuffer);
+}
+
+GF_Err gf_term_release_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer)
+{
+	if (!term) return GF_BAD_PARAM;
+	return gf_sr_release_screen_buffer(term->renderer, framebuffer);
+}
+
+

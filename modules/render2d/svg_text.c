@@ -44,15 +44,15 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
 	DrawableContext *ctx;
-	SVG_TextStack *st = gf_node_get_private(node);
+	SVG_TextStack *st = (SVG_TextStack *)gf_node_get_private(node);
 	Drawable *cs = st->draw;
-	RenderEffect2D *eff = rs;
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 	SVGtextElement *text = (SVGtextElement *)node;
 	GF_FontRaster *ft_dr = eff->surface->render->compositor->font_engine;
   
 	SVGPropertiesPointers backup_props;
 
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
@@ -79,8 +79,8 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 		char styles[1000];
 		char *str = text->textContent;
 		/* todo : place each character one by one */
-		SVG_Coordinate *xc = (gf_list_count(text->x) ? gf_list_get(text->x, 0) : NULL);
-		SVG_Coordinate *yc = (gf_list_count(text->y) ? gf_list_get(text->y, 0) : NULL);
+		SVG_Coordinate *xc = (SVG_Coordinate *) gf_list_get(text->x, 0);
+		SVG_Coordinate *yc = (SVG_Coordinate *) gf_list_get(text->y, 0);
 		Fixed x, y;
 		if (xc) x = xc->value; else x = 0;
 		if (yc) y = yc->value; else y = 0;
@@ -91,7 +91,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 			len = gf_utf8_mbstowcs(wcTemp, 5000, (const char **) &str);
 			if (len == (u32) -1) return;
 
-			wcText = malloc(sizeof(unsigned short) * (len+1));
+			wcText = (u16*)malloc(sizeof(unsigned short) * (len+1));
 			memcpy(wcText, wcTemp, sizeof(unsigned short) * (len+1));
 			wcText[len] = 0;
 

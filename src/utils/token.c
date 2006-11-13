@@ -34,6 +34,7 @@ static GFINLINE s32 gf_tok_is_char_in_set(char TestChar, char *TestSet)
 	return 0;
 }
 
+GF_EXPORT
 s32 gf_token_get(char *Buffer, s32 Start,  char *Separator,  char *Container, s32 ContainerSize)
 {
 	s32 i, start, end, Len;
@@ -79,6 +80,7 @@ s32 gf_token_get_strip(char *Buffer, s32 Start, char *Separator, char *strip_set
 }
 
 
+GF_EXPORT
 s32 gf_token_get_line(char	*Buffer, u32 Start, u32 Size, char *LineBuffer, u32 LineBufferSize)
 {
 	u32 offset;
@@ -102,6 +104,7 @@ s32 gf_token_get_line(char	*Buffer, u32 Start, u32 Size, char *LineBuffer, u32 L
 	return (End + offset);
 }
 
+GF_EXPORT
 s32 gf_token_find(char *Buffer, u32 Start, u32 Size, char *Pattern)
 {
 	u32 i, j, flag;

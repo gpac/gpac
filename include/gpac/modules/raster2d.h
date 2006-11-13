@@ -174,7 +174,7 @@ typedef struct _raster2d_interface
 	NOTE: this stencil acts as a data wrapper, the pixel data is not required to be locally copied
 	data is not required to be available for texturing until the stencil is used in a draw operation
 	*/
-	GF_Err (*stencil_set_texture) (GF_STENCIL _this, unsigned char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy);
+	GF_Err (*stencil_set_texture) (GF_STENCIL _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy);
 	/*creates internal texture - pixel data is owned by texture brush - set to NULL if not supported - this is used to 
 	cope with engines that don't support random strides (ex: Gdiplus needs stride to be a multiple of 4) 
 	if not set the renderer will create its own mem texture and pass it through set_texture - pixel format shall 
@@ -211,7 +211,7 @@ typedef struct _raster2d_interface
 		@stride: texture horizontal pitch (bytes to skip to get to next row)
 		@pixelFormat: texture pixel format
 	*/
-	GF_Err (*surface_attach_to_buffer) (GF_SURFACE _this, unsigned char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat);
+	GF_Err (*surface_attach_to_buffer) (GF_SURFACE _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat);
 
 	GF_Err (*surface_attach_to_callbacks) (GF_SURFACE _this, GF_RasterCallback *callbacks, u32 width, u32 height);
 

@@ -2433,7 +2433,7 @@ void wxOsmo4Frame::BuildChapterList(Bool reset_only)
 		if (com.name) { title.Append(wxString(com.name, wxConvUTF8)); title += wxT(" "); }
 		if (com.album) { title += wxT("("); title.Append(wxString(com.album, wxConvUTF8)); title += wxT(")"); }
 		
-		SetTitle(title);
+		if (title.length()) SetTitle(title);
 	}
 
 }

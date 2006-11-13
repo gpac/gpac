@@ -52,7 +52,7 @@ static u32 htk_num_users = 0;
 
 GF_Err IS_Configure(GF_BaseDecoder *plug, GF_InlineScene *scene, Bool is_remote)
 {
-	ISPriv *is = plug->privateStack;
+	ISPriv *is = (ISPriv *)plug->privateStack;
 	/*we can only deal with encoded content (for now)*/
 	if (!scene->scene_codec) return GF_NOT_SUPPORTED;
 	is->scene = scene;
@@ -74,7 +74,7 @@ static void add_field(ISPriv *priv, u32 fieldType, const char *fieldName)
 
 static GF_Err IS_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
-									 unsigned char *decSpecInfo, 
+									 char *decSpecInfo, 
 									 u32 decSpecInfoSize, 
 									 u16 DependsOnES_ID,
 									 u32 objectTypeIndication, 
@@ -83,9 +83,9 @@ static GF_Err IS_AttachStream(GF_BaseDecoder *plug,
 	GF_BitStream *bs;
 	u32 len, size, i;
 	char devName[255];
-	s16 termSeq[20];
+	u16 termSeq[20];
 
-	ISPriv *is = plug->privateStack;
+	ISPriv *is = (ISPriv *)plug->privateStack;
 	if (Upstream) return GF_NOT_SUPPORTED;
 	if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -187,7 +187,7 @@ static GF_Err IS_AttachStream(GF_BaseDecoder *plug,
 
 static GF_Err IS_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
-	ISPriv *is = plug->privateStack;
+	ISPriv *is = (ISPriv *)plug->privateStack;
 	is->ES_ID = 0;
 #if GPAC_HTK_DEMO
 	if (htk_num_users) {
@@ -212,7 +212,7 @@ static GF_Err IS_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability 
 	return GF_OK;
 }
 
-static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
+static GF_Err IS_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	u32 i, j, count;
@@ -220,13 +220,13 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 	GF_BitStream *bs;
 	GF_FieldInfo *field;
 	ISStack *st;
-	ISPriv *priv = plug->privateStack;
+	ISPriv *priv = (ISPriv *)plug->privateStack;
 	GF_Err e = GF_OK;
 
 	/*decode data frame except if local stringSensor*/
 	bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
 	i=0;
-	while ((field = gf_list_enum(priv->ddf, &i))) {
+	while ((field = (GF_FieldInfo *)gf_list_enum(priv->ddf, &i))) {
 		/*store present flag in eventIn for command skip - this is an ugly hack but it works since DDF don't have event types*/
 		field->eventType = gf_bs_read_int(bs, 1);
 		/*parse val ourselves (we don't want to depend on bifs codec)*/
@@ -266,7 +266,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 				if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 
 				if ( ((SFString *)field->far_ptr)->buffer ) free( ((SFString *)field->far_ptr)->buffer);
-				((SFString *)field->far_ptr)->buffer = malloc(sizeof(char)*(length+1));
+				((SFString *)field->far_ptr)->buffer = (char*)malloc(sizeof(char)*(length+1));
 				memset(((SFString *)field->far_ptr)->buffer , 0, length+1);
 				for (j=0; j<length; j++) {
 					 ((SFString *)field->far_ptr)->buffer[j] = gf_bs_read_int(bs, 8);
@@ -283,8 +283,8 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 		char tmp_utf8[5000];
 		const unsigned short *ptr;
 		u32 len;
-		GF_FieldInfo *field1 = gf_list_get(priv->ddf, 0);
-		GF_FieldInfo *field2 = gf_list_get(priv->ddf, 1);
+		GF_FieldInfo *field1 = (GF_FieldInfo *)gf_list_get(priv->ddf, 0);
+		GF_FieldInfo *field2 = (GF_FieldInfo *)gf_list_get(priv->ddf, 1);
 		SFString *inText = (SFString *) field1->far_ptr;
 		SFString *outText = (SFString *) field2->far_ptr;
 
@@ -296,7 +296,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 			ptr = priv->enteredText;
 			len = gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
 			if (outText->buffer) free(outText->buffer);
-			outText->buffer = malloc(sizeof(char) * (len+1));
+			outText->buffer = (char*)malloc(sizeof(char) * (len+1));
 			memcpy(outText->buffer, tmp_utf8, sizeof(char) * len);
 			outText->buffer[len] = 0;
 			if (inText->buffer) free(inText->buffer);
@@ -320,7 +320,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 			ptr = priv->enteredText;
 			len = gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
 			if (inText->buffer) free(inText->buffer);
-			inText->buffer = malloc(sizeof(char) * (len+1));
+			inText->buffer = (char*)malloc(sizeof(char) * (len+1));
 			memcpy(inText->buffer, tmp_utf8, sizeof(char) * len);
 			inText->buffer[len] = 0;
 			field1->eventType = 1;
@@ -329,7 +329,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 
 	/*apply it*/
 	i=0;
-	while ((st = gf_list_enum(priv->is_nodes, &i))) {
+	while ((st = (ISStack*)gf_list_enum(priv->is_nodes, &i))) {
 		assert(st->is);
 		assert(st->mo);
 		if (!st->is->enabled) continue;
@@ -337,9 +337,9 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 		count = gf_list_count(st->is->buffer.commandList);
 		scene_time = gf_is_get_time(priv->scene);
 		for (j=0; j<count; j++) {
-			GF_Command *com = gf_list_get(st->is->buffer.commandList, j);
-			GF_FieldInfo *field = gf_list_get(priv->ddf, j);
-			GF_CommandField *info = gf_list_get(com->command_fields, 0);
+			GF_Command *com = (GF_Command *)gf_list_get(st->is->buffer.commandList, j);
+			GF_FieldInfo *field = (GF_FieldInfo *)gf_list_get(priv->ddf, j);
+			GF_CommandField *info = (GF_CommandField *)gf_list_get(com->command_fields, 0);
 			if (info && field && field->eventType) {
 				gf_sg_vrml_field_copy(info->field_ptr, field->far_ptr, field->fieldType);
 				gf_sg_command_apply(priv->scene->graph, com, scene_time);
@@ -351,11 +351,11 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 
 void ISDec_Delete(GF_BaseDecoder *plug)
 {
-	ISPriv *priv = plug->privateStack;
+	ISPriv *priv = (ISPriv *)plug->privateStack;
 	gf_list_del(priv->is_nodes);
 
 	while (gf_list_count(priv->ddf)) {
-		GF_FieldInfo *fi = gf_list_get(priv->ddf, 0);
+		GF_FieldInfo *fi = (GF_FieldInfo *)gf_list_get(priv->ddf, 0);
 		gf_list_rem(priv->ddf, 0);
 		gf_sg_vrml_field_pointer_del(fi->far_ptr, fi->fieldType);
 		free(fi);
@@ -416,9 +416,9 @@ static void IS_Unregister(ISStack *st)
 	assert(odm->codec && (odm->codec->type == GF_STREAM_INTERACT));
 
 	/*get IS dec*/
-	is_dec = odm->codec->decio->privateStack;
+	is_dec = (ISPriv*)odm->codec->decio->privateStack;
 	for (i=0; i<gf_list_count(is_dec->is_nodes); i++) {
-		ISStack *tmp = gf_list_get(is_dec->is_nodes, i);
+		ISStack *tmp = (ISStack *)gf_list_get(is_dec->is_nodes, i);
 		if (tmp == st) {
 			gf_list_rem(is_dec->is_nodes, i);
 			i--;
@@ -434,14 +434,14 @@ static void IS_Register(GF_Node *n)
 {
 	GF_ObjectManager *odm;
 	ISPriv *is_dec;
-	ISStack *st = gf_node_get_private(n);
+	ISStack *st = (ISStack *)gf_node_get_private(n);
 	odm = st->mo->odm;
 	if (!odm) return;
 
 	assert(odm->codec && (odm->codec->type == GF_STREAM_INTERACT));
 
 	/*get IS dec*/
-	is_dec = odm->codec->decio->privateStack;
+	is_dec = (ISPriv*)odm->codec->decio->privateStack;
 	gf_list_add(is_dec->is_nodes, st);
 	st->registered = 1;
 #if GPAC_HTK_DEMO
@@ -455,7 +455,7 @@ static void IS_Register(GF_Node *n)
 
 static void RenderInputSensor(GF_Node *node, void *rs)
 {
-	ISStack *st = gf_node_get_private(node);
+	ISStack *st = (ISStack*)gf_node_get_private(node);
 	M_InputSensor *is = (M_InputSensor *)node;
 
 	/*get decoder object */
@@ -467,9 +467,9 @@ static void RenderInputSensor(GF_Node *node, void *rs)
 void DestroyInputSensor(GF_Node *node)
 {
 	GF_InlineScene *is;
-	ISStack *st = gf_node_get_private(node);
+	ISStack *st = (ISStack *)gf_node_get_private(node);
 	if (st->registered) IS_Unregister(st);
-	is = gf_sg_get_private(gf_node_get_graph(node));
+	is = (GF_InlineScene*)gf_sg_get_private(gf_node_get_graph(node));
 	gf_term_rem_render_node(is->root_od->term, node);
 	free(st);
 }
@@ -477,8 +477,7 @@ void DestroyInputSensor(GF_Node *node)
 void InitInputSensor(GF_InlineScene *is, GF_Node *node)
 {
 	ISStack *stack;
-	stack = malloc(sizeof(ISStack));
-	memset(stack, 0, sizeof(ISStack));
+	GF_SAFEALLOC(stack, ISStack);
 	stack->is = (M_InputSensor *) node;
 	gf_node_set_private(node, stack);
 	gf_node_set_render_function(node, RenderInputSensor);
@@ -494,7 +493,7 @@ void InputSensorModified(GF_Node *node)
 	ISPriv *is_dec;
 #endif
 	GF_MediaObject *mo;
-	ISStack *st = gf_node_get_private(node);
+	ISStack *st = (ISStack *)gf_node_get_private(node);
 
 	mo = gf_mo_find(node, &st->is->url, 0);
 	if ((mo!=st->mo) || !st->registered){
@@ -538,7 +537,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 	GF_Codec *cod;
 	GF_BitStream *bs;
 	GF_SLHeader slh;
-	unsigned char *buf;
+	char *buf;
 	u32 buf_size;
 	Fixed bX, bY;
 
@@ -604,10 +603,10 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 
 	/*get all IS Mouse decoders and send frame*/
 	i=0;
-	while ((cod = gf_list_enum(term->input_streams, &i))) {
-		ISPriv *is = cod->decio->privateStack;
+	while ((cod = (GF_Codec*)gf_list_enum(term->input_streams, &i))) {
+		ISPriv *is = (ISPriv *)cod->decio->privateStack;
 		if (is->type==IS_Mouse) {
-			GF_Channel *ch = gf_list_get(cod->inChannels, 0);
+			GF_Channel *ch = (GF_Channel *)gf_list_get(cod->inChannels, 0);
 			gf_es_receive_sl_packet(ch->service, ch, buf, buf_size, &slh, GF_OK);
 		}
 	}
@@ -619,7 +618,7 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 	u32 i;
 	GF_BitStream *bs;
 	GF_SLHeader slh;
-	unsigned char *buf;
+	char *buf;
 	X_KeySensor *n;
 	u32 buf_size;
 	u32 actionKey = 0;
@@ -699,8 +698,8 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 
 	/*get all IS keySensor decoders and send frame*/
 	i=0;
-	while ((cod = gf_list_enum(term->input_streams, &i))) {
-		ISPriv *is = cod->decio->privateStack;
+	while ((cod = (GF_Codec*)gf_list_enum(term->input_streams, &i))) {
+		ISPriv *is = (ISPriv *)cod->decio->privateStack;
 		if (is->type==IS_KeySensor) {
 //			GF_Channel *ch = gf_list_get(cod->inChannels, 0);
 //			gf_es_receive_sl_packet(ch->service, ch, buf, buf_size, &slh, GF_OK);
@@ -711,7 +710,7 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 	free(buf);
 	
 	i=0;
-	while ((n = gf_list_enum(term->x3d_sensors, &i))) {
+	while ((n = (X_KeySensor*)gf_list_enum(term->x3d_sensors, &i))) {
 		u16 tc[2];
 		u32 len;
 		char szStr[10];
@@ -724,7 +723,7 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 			tc[0] = keyPressed; tc[1] = 0;
 			ptr = tc;
 			len = gf_utf8_wcstombs(szStr, 10, &ptr);
-			n->keyPress.buffer = malloc(sizeof(char) * (len+1));
+			n->keyPress.buffer = (char*)malloc(sizeof(char) * (len+1));
 			memcpy(n->keyPress.buffer, szStr, sizeof(char) * len);
 			n->keyPress.buffer[len] = 0;
 			gf_node_event_out_str((GF_Node *)n, "keyPress");
@@ -734,7 +733,7 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 			tc[0] = keyReleased; tc[1] = 0;
 			ptr = tc;
 			len = gf_utf8_wcstombs(szStr, 10, &ptr);
-			n->keyRelease.buffer = malloc(sizeof(char) * (len+1));
+			n->keyRelease.buffer = (char*)malloc(sizeof(char) * (len+1));
 			memcpy(n->keyRelease.buffer, szStr, sizeof(char) * len);
 			n->keyRelease.buffer[len] = 0;
 			gf_node_event_out_str((GF_Node *)n, "keyRelease");
@@ -778,7 +777,7 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 	GF_SLHeader slh;
 	X_StringSensor *n;
 	GF_Codec *cod;
-	unsigned char *buf;
+	char *buf;
 	u32 buf_size;
 
 	if (!character || !term) return;
@@ -792,11 +791,11 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 
 	/*get all IS StringSensor decoders and send frame*/
 	i=0;
-	while ((cod = gf_list_enum(term->input_streams, &i))) {
-		ISPriv *is = cod->decio->privateStack;
+	while ((cod = (GF_Codec*)gf_list_enum(term->input_streams, &i))) {
+		ISPriv *is = (ISPriv *)cod->decio->privateStack;
 		if (is->type==IS_StringSensor) {
 
-			GF_Channel *ch = gf_list_get(cod->inChannels, 0);
+			GF_Channel *ch = (GF_Channel *)gf_list_get(cod->inChannels, 0);
 			is->enteredText[is->text_len] = character;
 			is->text_len += 1;
 
@@ -817,7 +816,7 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 
 	/*get all X3D StringSensors*/
 	i=0;
-	while ((n = gf_list_enum(term->x3d_sensors, &i))) {
+	while ((n = (X_StringSensor*)gf_list_enum(term->x3d_sensors, &i))) {
 		StringSensorStack *st;
 		char szStr[5000];
 		const unsigned short *ptr;

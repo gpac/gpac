@@ -31,6 +31,7 @@ void InitSL_RTP(GF_SLConfig *slc);
 
 
 
+GF_EXPORT
 GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt, GF_SLConfig *slc, u32 flags,
 				void *cbk_obj, 
 				void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
@@ -68,6 +69,7 @@ GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt, GF_SLConfig *slc, u32 flags,
 	return tmp;
 }
 
+GF_EXPORT
 void gf_rtp_builder_del(GP_RTPPacketizer *builder)
 {
 	if (!builder) return;
@@ -77,6 +79,7 @@ void gf_rtp_builder_del(GP_RTPPacketizer *builder)
 	free(builder);
 }
 
+GF_EXPORT
 GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex)
 {
 	if (!builder) return GF_BAD_PARAM;
@@ -108,6 +111,7 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 
 
 //Compute the #params of the slMap
+GF_EXPORT
 void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU, u32 max_ptime, 
 					   u32 StreamType, u32 OTI, u32 PL_ID,
 					   u32 avgSize, u32 maxSize, 
@@ -396,6 +400,7 @@ void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 	builder->is_encrypted = is_encrypted;
 }
 
+GF_EXPORT
 Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName, char *szMediaName)
 {
 	u32 flags = rtpb->flags;
@@ -483,6 +488,7 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 }
 
 
+GF_EXPORT
 GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, char *dsi, u32 dsi_size)
 {
 	char buffer[20000], dsiString[20000];

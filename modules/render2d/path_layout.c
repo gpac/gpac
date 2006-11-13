@@ -116,7 +116,7 @@ static void RenderPathLayout(GF_Node *node, void *rs)
 	}
 
 	for (i=0; i<count; i++) {
-		cg = gf_list_get(gr->groups, i);
+		cg = (ChildGroup2D *)gf_list_get(gr->groups, i);
 		if (cg->original.width>length) break;
 
 		/*first set our center and baseline*/
@@ -193,7 +193,7 @@ static void RenderPathLayout(GF_Node *node, void *rs)
 
 next:
 		if (i+1<count) {
-			ChildGroup2D *cg_next = gf_list_get(gr->groups, i+1);
+			ChildGroup2D *cg_next = (ChildGroup2D *)gf_list_get(gr->groups, i+1);
 
 			/*update offset according to major alignment */
 			switch (major) {
@@ -219,7 +219,7 @@ next:
 
 	/*undrawn nodes*/
 	for (;i<count; i++) {
-		cg = gf_list_get(gr->groups, i);
+		cg = (ChildGroup2D *)gf_list_get(gr->groups, i);
 		child2d_render_done_complex(cg, (RenderEffect2D *)rs, NULL);
 	}
 	group2d_reset_children((GroupingNode2D *) gr);

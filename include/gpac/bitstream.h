@@ -66,7 +66,7 @@ typedef struct __tag_bitstream GF_BitStream;
  *	\note In write mode on an existing data buffer, data overflow is never signaled but simply ignored, it is the caller responsability to ensure it 
  *	does not write more than possible.
  */
-GF_BitStream *gf_bs_new(unsigned char *buffer, u64 size, u32 mode);
+GF_BitStream *gf_bs_new(char *buffer, u64 size, u32 mode);
 /*!
  *	\brief bitstream constructor from file handle
  *
@@ -132,7 +132,7 @@ Double gf_bs_read_double(GF_BitStream *bs);
  *	\return the number of bytes actually read.
  *	\warning the data buffer passed must be large enough to hold the desired amount of bytes.
  */
-u32 gf_bs_read_data(GF_BitStream *bs, unsigned char *data, u32 nbBytes);
+u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes);
 
 /*!
  *	\brief align char reading
@@ -238,7 +238,7 @@ void gf_bs_write_double(GF_BitStream *bs, Double value);
  *	\param data the data to write
  *	\param nbBytes number of data bytes to write
  */
-u32 gf_bs_write_data(GF_BitStream *bs, unsigned char *data, u32 nbBytes);
+u32 gf_bs_write_data(GF_BitStream *bs, char *data, u32 nbBytes);
 
 /*!
  *	\brief align char writing
@@ -339,7 +339,7 @@ u64 gf_bs_available(GF_BitStream *bs);
 	* It is the user responsability to destroy the allocated buffer
 	* Once this function has been called, the internal bitstream buffer is reseted.
  */
-void gf_bs_get_content(GF_BitStream *bs, unsigned char **output, u32 *outSize);
+void gf_bs_get_content(GF_BitStream *bs, char **output, u32 *outSize);
 /*!
  *	\brief byte skipping
  *

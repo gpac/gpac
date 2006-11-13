@@ -49,7 +49,7 @@ static GF_Err BIFS_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapabilit
 
 GF_Err BIFS_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
 {
-	BIFSPriv *priv = plug->privateStack;
+	BIFSPriv *priv = (BIFSPriv *)plug->privateStack;
 	if (priv->codec) return GF_BAD_PARAM;
 	priv->pScene = scene;
 	priv->app = scene->root_od->term;
@@ -62,7 +62,7 @@ GF_Err BIFS_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_sc
 
 GF_Err BIFS_ReleaseScene(GF_SceneDecoder *plug)
 {
-	BIFSPriv *priv = plug->privateStack;
+	BIFSPriv *priv = (BIFSPriv *)plug->privateStack;
 	if (!priv->codec || priv->nb_streams) return GF_BAD_PARAM;
 	gf_bifs_decoder_del(priv->codec);
 	priv->codec = NULL;
@@ -71,13 +71,13 @@ GF_Err BIFS_ReleaseScene(GF_SceneDecoder *plug)
 
 static GF_Err BIFS_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
-									 unsigned char *decSpecInfo, 
+									 char *decSpecInfo, 
 									 u32 decSpecInfoSize, 
 									 u16 DependsOnES_ID,
 									 u32 objectTypeIndication, 
 									 Bool Upstream)
 {
-	BIFSPriv *priv = plug->privateStack;
+	BIFSPriv *priv = (BIFSPriv *)plug->privateStack;
 	GF_Err e;
 	if (Upstream) return GF_NOT_SUPPORTED;
 	e = gf_bifs_decoder_configure_stream(priv->codec, ES_ID, decSpecInfo, decSpecInfoSize, objectTypeIndication);
@@ -88,18 +88,18 @@ static GF_Err BIFS_AttachStream(GF_BaseDecoder *plug,
 static GF_Err BIFS_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
 	GF_Err e;
-	BIFSPriv *priv = plug->privateStack;
+	BIFSPriv *priv = (BIFSPriv *)plug->privateStack;
 	e = gf_bifs_decoder_remove_stream(priv->codec, ES_ID);
 	if (e) return e;
 	priv->nb_streams--;
 	return GF_OK;
 }
 
-static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, unsigned char *inBuffer, u32 inBufferLength, 
+static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
-	BIFSPriv *priv = plug->privateStack;
+	BIFSPriv *priv = (BIFSPriv *)plug->privateStack;
 
 	e = gf_bifs_decode_au(priv->codec, ES_ID, inBuffer, inBufferLength, ((Double)AU_time)/1000.0);
 
@@ -108,9 +108,9 @@ static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, unsigned char *inBuffer, u3
 	return e;
 }
 
-Bool BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+Bool BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
-	BIFSPriv *priv = ifce->privateStack;
+	BIFSPriv *priv = (BIFSPriv *)ifce->privateStack;
 	if (StreamType!=GF_STREAM_SCENE) return 0;
 	switch (ObjectType) {
 	case 0x00:
@@ -128,7 +128,7 @@ Bool BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, 
 
 void DeleteBIFSDec(GF_BaseDecoder *plug)
 {
-	BIFSPriv *priv = plug->privateStack;
+	BIFSPriv *priv = (BIFSPriv *)plug->privateStack;
 	/*in case something went wrong*/
 	if (priv->codec) gf_bifs_decoder_del(priv->codec);
 	free(priv);
@@ -157,6 +157,7 @@ GF_BaseDecoder *NewBIFSDec()
 	return (GF_BaseDecoder *) tmp;
 }
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -167,6 +168,7 @@ Bool QueryInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -177,6 +179,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

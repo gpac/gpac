@@ -55,7 +55,7 @@ void *gf_node_animation_get(GF_Node *node, u32 i)
 
 GF_Err gf_node_animation_rem(GF_Node *node, u32 i)
 {
-	if (!node || !node->sgprivate->animations) return 0;
+	if (!node || !node->sgprivate->animations) return GF_OK;
 	return gf_list_rem(node->sgprivate->animations, i);
 }
 
@@ -135,7 +135,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 		Fixed keyTimeBefore = 0, keyTimeAfter=0; 
 		u32 keyTimesCount = gf_list_count(anim->keyTimes);
 		for (keyTimeIndex = rai->previous_keytime_index; keyTimeIndex<keyTimesCount; keyTimeIndex++) {
-			Fixed *tm1, *t = gf_list_get(anim->keyTimes, keyTimeIndex);
+			Fixed *tm1, *t = (Fixed *)gf_list_get(anim->keyTimes, keyTimeIndex);
 			if (normalized_simple_time < *t) {
 				rai->previous_keytime_index = keyTimeIndex;
 				tm1 = (Fixed *) gf_list_get(anim->keyTimes, keyTimeIndex-1);
@@ -363,7 +363,7 @@ static Bool gf_svg_compute_path_anim(SMIL_Anim_RTI *rai, GF_Matrix2D *m, Fixed n
 static void gf_smil_anim_animate_using_path(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
 {
 	Bool res = 0;
-	res = gf_svg_compute_path_anim(rai, rai->interpolated_value.far_ptr, normalized_simple_time);
+	res = gf_svg_compute_path_anim(rai, (GF_Matrix2D*)rai->interpolated_value.far_ptr, normalized_simple_time);
 	if (res) rai->target_value_changed = 1;
 }
 
@@ -415,9 +415,9 @@ static SMIL_Anim_RTI *gf_smil_anim_get_anim_runtime_from_timing(SMIL_Timing_RTI 
 	if (!e->xlink->href.target) return NULL;
 	for (i = 0; i < gf_node_animation_count((GF_Node *)e->xlink->href.target); i++) {
 		SMIL_Anim_RTI *rai_tmp;
-		SMIL_AttributeAnimations *aa = gf_node_animation_get((GF_Node *)e->xlink->href.target, i);
+		SMIL_AttributeAnimations *aa = (SMIL_AttributeAnimations *)gf_node_animation_get((GF_Node *)e->xlink->href.target, i);
 		j=0;
-		while ((rai_tmp = gf_list_enum(aa->anims, &j))) {
+		while ((rai_tmp = (SMIL_Anim_RTI *)gf_list_enum(aa->anims, &j))) {
 			if (rai_tmp->anim_elt->timing->runtime == rti) {						
 				return rai_tmp;
 			}
@@ -548,6 +548,7 @@ static void gf_smil_anim_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_simple_
 	}
 }
 
+GF_EXPORT
 void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props)
 {
 	u32 count_all, i;
@@ -559,7 +560,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 		/* Performing the animations for a given animated attribute */
 		u32 j, count;
 		
-		SMIL_AttributeAnimations *aa = gf_node_animation_get(node, i);		
+		SMIL_AttributeAnimations *aa = (SMIL_AttributeAnimations *)gf_node_animation_get(node, i);		
 		count = gf_list_count(aa->anims);
 		if (!count) continue;
 	
@@ -580,7 +581,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 		aa->current_color_value.far_ptr = &((SVGElement*)node)->properties->color;
 
 		for (j = 0; j < count; j++) {
-			SMIL_Anim_RTI *rai = gf_list_get(aa->anims, j);			
+			SMIL_Anim_RTI *rai = (SMIL_Anim_RTI *)gf_list_get(aa->anims, j);			
 			SMIL_Timing_RTI *rti = rai->anim_elt->timing->runtime;
 			//Double scene_time = gf_node_get_scene_time(node);
 			Double scene_time = rti->scene_time;
@@ -622,7 +623,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 			   which holds the supplemental matrix until all animateMotion are done 
 			*/
 			if (!tr_e->motionTransform) {
-				tr_e->motionTransform = malloc(sizeof(GF_Matrix2D));
+				tr_e->motionTransform = (GF_Matrix2D*)malloc(sizeof(GF_Matrix2D));
 				gf_mx2d_init(*tr_e->motionTransform);
 			}
 			gf_node_get_field_by_name((GF_Node *)tr_e, "motionTransform", &target_attribute);
@@ -666,12 +667,12 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 				u32 count;
 				count = gf_list_count(((SVGElement *)e)->children);
 				for (i = 0; i < count; i++) {
-					GF_Node *child = gf_list_get(((SVGElement *)e)->children, i);
+					GF_Node *child = (GF_Node *)gf_list_get(((SVGElement *)e)->children, i);
 					if (gf_node_get_tag((GF_Node *)child) == TAG_SVG_mpath) {
 						SVGmpathElement *mpath = (SVGmpathElement *)child;
 						GF_Node *used_path = NULL;
 						if (mpath->xlink && mpath->xlink->href.target) used_path = (GF_Node *)mpath->xlink->href.target;
-						else if (mpath->xlink->href.iri) used_path= gf_sg_find_node_by_name(gf_node_get_graph((GF_Node *)mpath), mpath->xlink->href.iri);
+						else if (mpath->xlink->href.iri) used_path = (GF_Node *)gf_sg_find_node_by_name(gf_node_get_graph((GF_Node *)mpath), mpath->xlink->href.iri);
 						if (used_path && gf_node_get_tag(used_path) == TAG_SVG_path) {
 							SVGpathElement *used_path_elt = (SVGpathElement *)used_path;
 							gf_svg_path_build(rai->path, used_path_elt->d.commands, used_path_elt->d.points);
@@ -689,7 +690,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 	   if yes, get the list and append the new animation
 	   if no, create a list and add the new animation. */
 	for (i = 0; i < gf_node_animation_count((GF_Node *)e->xlink->href.target); i++) {
-		aa = gf_node_animation_get((GF_Node *)e->xlink->href.target, i);
+		aa = (SMIL_AttributeAnimations *)gf_node_animation_get((GF_Node *)e->xlink->href.target, i);
 		if (aa->presentation_value.fieldIndex == target_attribute.fieldIndex) {
 			gf_list_add(aa->anims, rai);
 			break;
@@ -736,9 +737,9 @@ void gf_smil_anim_remove_from_target(SVGElement *anim, SVGElement *target)
 	if (!target) return;
 	for (i = 0; i < gf_node_animation_count((GF_Node *)target); i ++) {
 		SMIL_Anim_RTI *rai;
-		SMIL_AttributeAnimations *aa = gf_node_animation_get((GF_Node *)target, i);
+		SMIL_AttributeAnimations *aa = (SMIL_AttributeAnimations *)gf_node_animation_get((GF_Node *)target, i);
 		j=0;
-		while ((rai = gf_list_enum(aa->anims, &j))) {
+		while ((rai = (SMIL_Anim_RTI *)gf_list_enum(aa->anims, &j))) {
 			if (rai->anim_elt == anim) {
 				gf_list_rem(aa->anims, j-1);
 				gf_smil_anim_delete_runtime_info(rai);
@@ -760,10 +761,10 @@ void gf_smil_anim_delete_animations(SVGElement *e)
 	u32 i, j;
 	for (i = 0; i < gf_node_animation_count((GF_Node *)e); i ++) {
 		SMIL_Anim_RTI *rai;
-		SMIL_AttributeAnimations *aa = gf_node_animation_get((GF_Node *)e, i);
+		SMIL_AttributeAnimations *aa = (SMIL_AttributeAnimations *)gf_node_animation_get((GF_Node *)e, i);
 		gf_svg_delete_attribute_value(aa->specified_value.fieldType, aa->specified_value.far_ptr, e->sgprivate->scenegraph);
 		j=0;
-		while ((rai = gf_list_enum(aa->anims, &j))) {
+		while ((rai = (SMIL_Anim_RTI *)gf_list_enum(aa->anims, &j))) {
 			gf_smil_anim_delete_runtime_info(rai);
 		}
 		gf_list_del(aa->anims);
@@ -791,7 +792,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 		} else {
 			GF_Node *n;
 			
-			n = gf_sg_find_node_by_name(gf_node_get_graph(node), anim_elt->xlink->href.iri);
+			n = (GF_Node*)gf_sg_find_node_by_name(gf_node_get_graph(node), anim_elt->xlink->href.iri);
 			if (n) {
 				anim_elt->xlink->href.type = SVG_IRI_ELEMENTID;
 				anim_elt->xlink->href.target = (SVGElement *)n;
@@ -810,6 +811,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 }
 
 /* TODO: update for elliptical arcs */		
+GF_EXPORT
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 {
 	u32 i, j, command_count, points_count;
@@ -819,10 +821,10 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 	orig.x = orig.y = ct_orig.x = ct_orig.y = 0;
 
 	for (i=0, j=0; i<command_count; i++) {
-		u8 *command = gf_list_get(commands, i);
+		u8 *command = (u8 *)gf_list_get(commands, i);
 		switch (*command) {
 		case SVG_PATHCOMMAND_M: /* Move To */
-			tmp = gf_list_get(points, j);
+			tmp = (SVG_Point*)gf_list_get(points, j);
 			orig = *tmp;
 			gf_path_add_move_to(path, orig.x, orig.y);
 			j++;
@@ -833,7 +835,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			ct_orig = orig;
 			break;
 		case SVG_PATHCOMMAND_L: /* Line To */
-			tmp = gf_list_get(points, j);
+			tmp = (SVG_Point*)gf_list_get(points, j);
 			end = *tmp;
 
 			gf_path_add_line_to(path, end.x, end.y);
@@ -843,11 +845,11 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			ct_orig = orig;
 			break;
 		case SVG_PATHCOMMAND_C: /* Curve To */
-			tmp = gf_list_get(points, j);
+			tmp = (SVG_Point*)gf_list_get(points, j);
 			ct_orig = *tmp;
-			tmp = gf_list_get(points, j+1);
+			tmp = (SVG_Point*)gf_list_get(points, j+1);
 			ct_end = *tmp;
-			tmp = gf_list_get(points, j+2);
+			tmp = (SVG_Point*)gf_list_get(points, j+2);
 			end = *tmp;
 			gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
 			ct_orig = ct_end;
@@ -857,9 +859,9 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 		case SVG_PATHCOMMAND_S: /* Next Curve To */
 			ct_orig.x = 2*orig.x - ct_orig.x;
 			ct_orig.y = 2*orig.y - ct_orig.y;
-			tmp = gf_list_get(points, j);
+			tmp = (SVG_Point*)gf_list_get(points, j);
 			ct_end = *tmp;
-			tmp = gf_list_get(points, j+1);
+			tmp = (SVG_Point*)gf_list_get(points, j+1);
 			end = *tmp;
 			gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
 			ct_orig = ct_end;
@@ -867,9 +869,9 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			j+=2;
 			break;
 		case SVG_PATHCOMMAND_Q: /* Quadratic Curve To */
-			tmp = gf_list_get(points, j);
+			tmp = (SVG_Point*)gf_list_get(points, j);
 			ct_orig = *tmp;
-			tmp = gf_list_get(points, j+1);
+			tmp = (SVG_Point*)gf_list_get(points, j+1);
 			end = *tmp;
 			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);			
 			orig = end;
@@ -878,7 +880,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 		case SVG_PATHCOMMAND_T: /* Next Quadratic Curve To */
 			ct_orig.x = 2*orig.x - ct_orig.x;
 			ct_orig.y = 2*orig.y - ct_orig.y;
-			tmp = gf_list_get(points, j);
+			tmp = (SVG_Point*)gf_list_get(points, j);
 			end = *tmp;
 			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);
 			orig = end;

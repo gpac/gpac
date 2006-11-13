@@ -40,7 +40,7 @@ void effect3d_reset(RenderEffect3D *eff)
 	gf_list_reset(eff->sensors);
 
 	while (gf_list_count(eff->local_lights)) {
-		DLightContext *dl = gf_list_get(eff->local_lights, 0);
+		DLightContext *dl = (DLightContext *)gf_list_get(eff->local_lights, 0);
 		gf_list_rem(eff->local_lights, 0);
 		free(dl);
 	}
@@ -180,11 +180,11 @@ static void DestroyLineProps(GF_Node *n)
 {
 	StrikeInfo *si;
 	u32 i;
-	LinePropStack *st = gf_node_get_private(n);
+	LinePropStack *st = (LinePropStack *)gf_node_get_private(n);
 	Render3D *sr = (Render3D *)st->sr;
 	
 	i=0;
-	while ((si = gf_list_enum(sr->strike_bank, &i))) {
+	while ((si = (StrikeInfo*)gf_list_enum(sr->strike_bank, &i))) {
 		if (si->lineProps == n) {
 			/*remove from node*/
 			if (si->node2D) {
@@ -201,7 +201,7 @@ static void DestroyLineProps(GF_Node *n)
 
 void R3D_InitLineProps(Render3D *sr, GF_Node *node)
 {
-	LinePropStack *st = malloc(sizeof(LinePropStack));
+	LinePropStack *st = (LinePropStack *)malloc(sizeof(LinePropStack));
 	st->sr = sr;
 	st->last_mod_time = 1;
 	gf_node_set_private(node, st);
@@ -210,7 +210,7 @@ void R3D_InitLineProps(Render3D *sr, GF_Node *node)
 
 u32 R3D_LP_GetLastUpdateTime(GF_Node *node)
 {
-	LinePropStack *st = gf_node_get_private(node);
+	LinePropStack *st = (LinePropStack *)gf_node_get_private(node);
 	if (!st) return 0;
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		st->last_mod_time ++;
@@ -263,7 +263,7 @@ void R3D_DrawScene(GF_VisualRenderer *vr)
 	}
 
 	i=0; 
-	while ((sg = gf_list_enum(sr->compositor->extra_scenes, &i))) {
+	while ((sg = (GF_SceneGraph*)gf_list_enum(sr->compositor->extra_scenes, &i))) {
 		GF_Node *n = gf_sg_get_root_node(sg);
 		if (!n) continue;
 		
@@ -453,9 +453,8 @@ GF_Err R3D_LoadRenderer(GF_VisualRenderer *vr, GF_Renderer *compositor)
 	Render3D *sr;
 	if (vr->user_priv) return GF_BAD_PARAM;
 
-	sr = malloc(sizeof(Render3D));
+	GF_SAFEALLOC(sr, Render3D);
 	if (!sr) return GF_OUT_OF_MEM;
-	memset(sr, 0, sizeof(Render3D));
 
 	sr->compositor = compositor;
 	sr->strike_bank = gf_list_new();
@@ -557,7 +556,7 @@ GF_Err R3D_SetOption(GF_VisualRenderer *vr, u32 option, u32 value)
 				if (sr->active_layer) {
 					l3d_bind_camera(sr->active_layer, 0, value);
 				} else {
-					n = gf_list_get(sr->surface->navigation_stack, 0);
+					n = (GF_Node*)gf_list_get(sr->surface->navigation_stack, 0);
 					if (n) Bindable_SetSetBind(n, 0);
 					else cam->navigate_mode = value;
 				}
@@ -710,15 +709,24 @@ static Bool R3D_ScriptAction(GF_VisualRenderer *vr, u32 type, GF_Node *n, GF_JSA
 	}
 }
 
+/*interface query*/
+GF_EXPORT
+Bool QueryInterface(u32 InterfaceType)
+{
+	if (InterfaceType == GF_RENDERER_INTERFACE) return 1;
+	return 0;
+}
+
 /*interface create*/
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	GF_VisualRenderer *sr;
 	if (InterfaceType != GF_RENDERER_INTERFACE) return NULL;
 	
-	sr = malloc(sizeof(GF_VisualRenderer));
+	GF_SAFEALLOC(sr, GF_VisualRenderer);
 	if (!sr) return NULL;
-	memset(sr, 0, sizeof(GF_VisualRenderer));
+
 	GF_REGISTER_MODULE_INTERFACE(sr, GF_RENDERER_INTERFACE, "GPAC 3D Renderer", "gpac distribution");
 
 	sr->LoadRenderer = R3D_LoadRenderer;
@@ -753,6 +761,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 
 
 /*interface destroy*/
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	GF_VisualRenderer *rend = (GF_VisualRenderer *)ifce;
@@ -760,12 +769,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	assert(rend->user_priv==NULL);
 	free(rend);
 }
-
-/*interface query*/
-Bool QueryInterface(u32 InterfaceType)
-{
-	if (InterfaceType == GF_RENDERER_INTERFACE) return 1;
-	return 0;
-}
-
 

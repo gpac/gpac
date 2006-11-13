@@ -70,6 +70,7 @@ static const u8 ISMA_BIFS_AI[] =
 };
 
 
+GF_EXPORT
 GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr)
 {
 	u32 AudioTrack, VideoTrack, Tracks, i, mType, bifsT, odT, descIndex, VideoType, VID, AID, bifsID, odID;
@@ -204,21 +205,25 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 
 			gf_odf_desc_add_desc((GF_Descriptor *)od, (GF_Descriptor *)v_esd);
 			gf_list_add(odU->objectDescriptors, od);
-			gf_isom_get_visual_info(mp4file, VideoTrack, 1, &w, &h);
-			if ((v_esd->decoderConfig->objectTypeIndication==0x20) && (v_esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
-				GF_M4VDecSpecInfo dsi;
-				gf_m4v_get_config(v_esd->decoderConfig->decoderSpecificInfo->data, v_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-				if (!is_image && (!w || !h)) {
-					w = dsi.width;
-					h = dsi.height;
-					gf_isom_set_visual_info(mp4file, VideoTrack, 1, w, h);
-					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA convert] Adjusting visual track size to %d x %d\n", w, h));
+
+			gf_isom_get_track_layout_info(mp4file, VideoTrack, &w, &h, NULL, NULL, NULL);
+			if (!w || !h) {
+				gf_isom_get_visual_info(mp4file, VideoTrack, 1, &w, &h);
+				if ((v_esd->decoderConfig->objectTypeIndication==0x20) && (v_esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
+					GF_M4VDecSpecInfo dsi;
+					gf_m4v_get_config(v_esd->decoderConfig->decoderSpecificInfo->data, v_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+					if (!is_image && (!w || !h)) {
+						w = dsi.width;
+						h = dsi.height;
+						gf_isom_set_visual_info(mp4file, VideoTrack, 1, w, h);
+						GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA convert] Adjusting visual track size to %d x %d\n", w, h));
+					}
+					if (dsi.par_num && (dsi.par_den!=dsi.par_num)) {
+						w *= dsi.par_num;
+						w /= dsi.par_den;
+					}
+					if (dsi.VideoPL) visualPL = dsi.VideoPL;
 				}
-				if (dsi.par_num && (dsi.par_den!=dsi.par_num)) {
-					w *= dsi.par_num;
-					w /= dsi.par_den;
-				}
-				if (dsi.VideoPL) visualPL = dsi.VideoPL;
 			}
 		}
 	}
@@ -311,7 +316,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	gf_bs_write_int(bs, w, 16);
 	gf_bs_write_int(bs, h, 16);
 	gf_bs_align(bs);
-	gf_bs_get_content(bs, (unsigned char **) &_esd->decoderConfig->decoderSpecificInfo->data, &_esd->decoderConfig->decoderSpecificInfo->dataLength);
+	gf_bs_get_content(bs, &_esd->decoderConfig->decoderSpecificInfo->data, &_esd->decoderConfig->decoderSpecificInfo->dataLength);
 	gf_isom_new_mpeg4_description(mp4file, bifsT, _esd, NULL, NULL, &descIndex);
 	gf_odf_desc_del((GF_Descriptor *)_esd);
 	gf_bs_del(bs);
@@ -370,6 +375,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 }
 
 
+GF_EXPORT
 GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 {
 	u32 Tracks, i, mType, nb_vid, nb_avc, nb_aud, nb_txt, nb_non_mp4;
@@ -590,6 +596,7 @@ typedef struct
 } TrackFragmenter;
 
 
+GF_EXPORT
 GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration)
 {
 	u8 NbBits;
@@ -688,8 +695,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 						defaultPadding, defaultDegradationPriority);
 			if (e) goto err_exit;
 
-			tf = malloc(sizeof(TrackFragmenter));
-			memset(tf, 0, sizeof(TrackFragmenter));
+			GF_SAFEALLOC(tf, TrackFragmenter);
 			tf->TrackID = gf_isom_get_track_id(output, TrackNum);
 			tf->SampleCount = gf_isom_get_sample_count(input, i+1);
 			tf->OriginalTrack = i+1;
@@ -717,7 +723,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		if (e) goto err_exit;
 		//setup some default
 		for (i=0; i<count; i++) {
-			tf = gf_list_get(fragmenters, i);
+			tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
 			if (tf->MediaType == GF_ISOM_MEDIA_VISUAL) {
 				e = gf_isom_set_fragment_option(output, tf->TrackID, GF_ISOM_TRAF_RANDOM_ACCESS, 1);
 				if (e) goto err_exit;
@@ -727,7 +733,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		
 		//process track by track
 		for (i=0; i<count; i++) {
-			tf = gf_list_get(fragmenters, i);
+			tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
 
 			//ok write samples
 			while (1) {
@@ -774,7 +780,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 err_exit:
 	while (gf_list_count(fragmenters)) {
-		tf = gf_list_get(fragmenters, 0);
+		tf = (TrackFragmenter *)gf_list_get(fragmenters, 0);
 		free(tf);
 		gf_list_rem(fragmenters, 0);
 	}
@@ -785,6 +791,7 @@ err_exit:
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import_fps)
 {
 	GF_Err e;
@@ -950,6 +957,7 @@ err_exit:
 
 #endif //GPAC_READ_ONLY
 
+GF_EXPORT
 GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 {
 	u32 type;
@@ -985,7 +993,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		gf_bs_write_u32(bs, subtype);
 		/*ignore the rest*/
 		gf_bs_write_int(bs, subtype, 5*8);
-		gf_bs_get_content(bs, (unsigned char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+		gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 		return esd;
 	}
@@ -1005,7 +1013,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		gf_isom_get_visual_info(mp4, track, 1, &w, &h);
 		gf_bs_write_u16(bs, w);
 		gf_bs_write_u16(bs, h);
-		gf_bs_get_content(bs, (unsigned char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+		gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 		return esd;
 	}
@@ -1038,7 +1046,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		free(udesc->extension_buf);
 	}
 	if (udesc) free(udesc);
-	gf_bs_get_content(bs, (unsigned char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+	gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 	gf_bs_del(bs);
 	return esd;
 }

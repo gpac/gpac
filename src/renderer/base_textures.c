@@ -113,7 +113,7 @@ static void MT_UpdateTime(GF_TimeNode *st)
 {
 	Double time;
 	M_MovieTexture *mt = (M_MovieTexture *)st->obj;
-	MovieTextureStack *stack = gf_node_get_private(st->obj);
+	MovieTextureStack *stack = (MovieTextureStack *)gf_node_get_private(st->obj);
 	
 	/*not active, store start time and speed*/
 	if ( ! mt->isActive) {
@@ -151,8 +151,8 @@ static void MT_UpdateTime(GF_TimeNode *st)
 }
 void InitMovieTexture(GF_Renderer *sr, GF_Node *node)
 {
-	MovieTextureStack *st = malloc(sizeof(MovieTextureStack));
-	memset(st, 0, sizeof(MovieTextureStack));
+	MovieTextureStack *st;
+	GF_SAFEALLOC(st, MovieTextureStack);
 	gf_sr_texture_setup(&st->txh, sr, node);
 	st->txh.update_texture_fcnt = UpdateMovieTexture;
 	st->time_handle.UpdateTimeNode = MT_UpdateTime;
@@ -223,7 +223,8 @@ static void UpdateImageTexture(GF_TextureHandler *txh)
 
 void InitImageTexture(GF_Renderer *sr, GF_Node *node)
 {
-	ImageTextureStack *st = malloc(sizeof(ImageTextureStack));
+	ImageTextureStack *st;
+	GF_SAFEALLOC(st, ImageTextureStack);
 	gf_sr_texture_setup(&st->txh, sr, node);
 	st->txh.update_texture_fcnt = UpdateImageTexture;
 	gf_node_set_private(node, st);
@@ -313,7 +314,7 @@ static void UpdatePixelTexture(GF_TextureHandler *txh)
 	if (!txh->hwtx) return;
 
 	if (st->pixels) free(st->pixels);
-	st->pixels = malloc(sizeof(char) * stride * pt->image.height);
+	st->pixels = (char*)malloc(sizeof(char) * stride * pt->image.height);
 	if (txh->compositor->visual_renderer->bNeedsGL) {
 		for (i=0; i<pt->image.height; i++) {
 			memcpy(st->pixels + i * stride, pt->image.pixels + i * stride, stride);
@@ -337,7 +338,8 @@ static void UpdatePixelTexture(GF_TextureHandler *txh)
 
 void InitPixelTexture(GF_Renderer *sr, GF_Node *node)
 {
-	PixelTextureStack *st = malloc(sizeof(PixelTextureStack));
+	PixelTextureStack *st;
+	GF_SAFEALLOC(st, PixelTextureStack);
 	gf_sr_texture_setup(&st->txh, sr, node);
 	st->pixels = NULL;
 	st->txh.update_texture_fcnt = UpdatePixelTexture;
@@ -356,6 +358,7 @@ GF_TextureHandler *pt_get_texture(GF_Node *node)
 }
 
 
+GF_EXPORT
 GF_TextureHandler *gf_sr_texture_get_handler(GF_Node *n)
 {
 	if (!n) return NULL;

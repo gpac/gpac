@@ -153,7 +153,7 @@ enum {
 typedef GF_FieldInfo SVGAttributeInfo;
 
 /* Definition of SVG base data types */
-typedef u8 *DOM_String;
+typedef char *DOM_String;
 typedef DOM_String SVG_String;
 typedef DOM_String SVG_ContentType;
 typedef DOM_String SVG_LanguageID;
@@ -305,7 +305,7 @@ enum {
 };
 typedef struct {
 	u8 type;
-	u8 *iri;
+	char *iri;
 	struct _svg_element *target;
 } SVG_IRI;
 

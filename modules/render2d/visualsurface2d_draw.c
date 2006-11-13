@@ -355,7 +355,7 @@ void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHand
 	tx_tile = 0;
 	if (txh->flags & GF_SR_TEXTURE_REPEAT_S) tx_tile |= GF_TEXTURE_REPEAT_S;
 	if (txh->flags & GF_SR_TEXTURE_REPEAT_T) tx_tile |= GF_TEXTURE_REPEAT_T;
-	r2d->stencil_set_tiling(txh->hwtx, tx_tile);
+	r2d->stencil_set_tiling(txh->hwtx, (GF_TextureTiling) tx_tile);
 
 	if (!ctx->is_background) {
 		/*texture alpha scale is the original material transparency, NOT the one after color transform*/

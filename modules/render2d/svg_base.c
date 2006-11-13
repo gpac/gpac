@@ -47,7 +47,7 @@ void svg_render_node_list(GF_List *children, RenderEffect2D *eff)
 	GF_Node *node;
 	u32 i, count = gf_list_count(children);
 	for (i=0; i<count; i++) {
-		node = gf_list_get(children, i);
+		node = (GF_Node*)gf_list_get(children, i);
 		svg_render_node(node, eff);
 	}
 }
@@ -66,7 +66,7 @@ void svg_get_nodes_bounds(GF_Node *self, GF_List *children, RenderEffect2D *eff)
 	for (i=0; i<count; i++) {
 		gf_mx2d_init(eff->transform);
 		eff->bounds = gf_rect_center(0,0);
-		node = gf_list_get(children, i);
+		node = (GF_Node*)gf_list_get(children, i);
 		gf_node_render(node, eff);
 		/*we hit the target node*/
 		if (node == eff->for_node) eff->for_node = NULL;
@@ -306,7 +306,7 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 		is_root_svg = 1;
 	}
 
-	SVG_Render_base(node, rs, &backup_props);
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		memcpy(eff->svg_props, &backup_props, styling_size);
@@ -369,7 +369,7 @@ static void SVG_Render_g(GF_Node *node, void *rs)
 	SVGgElement *g = (SVGgElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
-	SVG_Render_base(node, rs, &backup_props);
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		u32 prev_flags = eff->trav_flags;
@@ -405,7 +405,7 @@ static Bool eval_conditional(GF_Renderer *sr, SVGElement *elt)
 
 	count = gf_list_count(elt->conditional->requiredFeatures);
 	for (i=0;i<count;i++) {
-		SVG_IRI *iri = gf_list_get(elt->conditional->requiredFeatures, i);
+		SVG_IRI *iri = (SVG_IRI *)gf_list_get(elt->conditional->requiredFeatures, i);
 		if (!iri->iri) continue;
 		/*TODO FIXME: be a bit more precise :)*/
 		if (!strnicmp(iri->iri, "http://www.w3.org/", 18)) {
@@ -429,7 +429,7 @@ static Bool eval_conditional(GF_Renderer *sr, SVGElement *elt)
 	count = gf_list_count(elt->conditional->systemLanguage);
 	found = count ? 0 : 1;
 	for (i=0;i<count;i++) {
-		char *lang = gf_list_get(elt->conditional->systemLanguage, i);
+		char *lang = (char*)gf_list_get(elt->conditional->systemLanguage, i);
 		/*3 char-code*/
 		if (strlen(lang)==3) {
 			if (!stricmp(lang, lang_3cc)) { found = 1; break; }
@@ -454,7 +454,7 @@ static void SVG_Render_switch(GF_Node *node, void *rs)
 	SVGswitchElement *s = (SVGswitchElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
-	SVG_Render_base(node, rs, &backup_props);
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		gf_svg_restore_parent_transformation(eff, &backup_matrix);
@@ -468,7 +468,7 @@ static void SVG_Render_switch(GF_Node *node, void *rs)
 	} else {
 		count = gf_list_count(s->children);
 		for (i=0; i<count; i++) {
-			child = gf_list_get(s->children, i);
+			child = (SVGElement*)gf_list_get(s->children, i);
 			if (eval_conditional(eff->surface->render->compositor, child)) {
 				svg_render_node((GF_Node*)child, eff);
 				break;
@@ -666,10 +666,10 @@ static void SVG_Render_polyline(GF_Node *node, void *rs)
 		u32 nbPoints = gf_list_count(polyline->points);
 		drawable_reset_path(cs);
 		if (nbPoints) {
-			SVG_Point *p = gf_list_get(polyline->points, 0);
+			SVG_Point *p = (SVG_Point *)gf_list_get(polyline->points, 0);
 			gf_path_add_move_to(cs->path, p->x, p->y);
 			for (i = 1; i < nbPoints; i++) {
-				p = gf_list_get(polyline->points, i);
+				p = (SVG_Point *)gf_list_get(polyline->points, i);
 				gf_path_add_line_to(cs->path, p->x, p->y);
 			}
 			cs->node_changed = 1;
@@ -701,10 +701,10 @@ static void SVG_Render_polygon(GF_Node *node, void *rs)
 		u32 nbPoints = gf_list_count(polygon->points);
 		drawable_reset_path(cs);
 		if (nbPoints) {
-			SVG_Point *p = gf_list_get(polygon->points, 0);
+			SVG_Point *p = (SVG_Point *)gf_list_get(polygon->points, 0);
 			gf_path_add_move_to(cs->path, p->x, p->y);
 			for (i = 1; i < nbPoints; i++) {
-				p = gf_list_get(polygon->points, i);
+				p = (SVG_Point *)gf_list_get(polygon->points, i);
 				gf_path_add_line_to(cs->path, p->x, p->y);
 			}
 			gf_path_close(cs->path);
@@ -729,9 +729,9 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 	SVGpathElement *path = (SVGpathElement *)node;
 	SVGPropertiesPointers backup_props;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		
@@ -761,8 +761,9 @@ static void SVG_Render_a(GF_Node *node, void *rs)
 	SVGPropertiesPointers backup_props;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGaElement *a = (SVGaElement *) node;
-	RenderEffect2D *eff = rs;
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
+
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		gf_svg_apply_local_transformation(eff, node, &backup_matrix);
@@ -792,7 +793,7 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 	assert(gf_node_get_tag(event->currentTarget)==TAG_SVG_a);
 
 	a = (SVGaElement *) event->currentTarget;
-	compositor = gf_node_get_private((GF_Node *)handler);
+	compositor = (GF_Renderer *)gf_node_get_private((GF_Node *)handler);
 
 #ifndef DANAE
 	if (!compositor->user->EventProc) return;
@@ -844,7 +845,7 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 			found = 0;
 			count = gf_list_count(set->timing->begin);
 			for (i=0; i<count; i++) {
-				SMIL_Time *first = gf_list_get(set->timing->begin, i);
+				SMIL_Time *first = (SMIL_Time *)gf_list_get(set->timing->begin, i);
 				/*remove past instanciations*/
 				if ((first->type==GF_SMIL_TIME_EVENT_RESLOVED) && (first->clock < begin->clock)) {
 					gf_list_rem(set->timing->begin, i);
@@ -932,8 +933,8 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_List *children)
 	st->txh.transparent = 0;
 	count = gf_list_count(children);
 	st->nb_col = 0;
-	st->cols = realloc(st->cols, sizeof(u32)*count);
-	st->keys = realloc(st->keys, sizeof(Fixed)*count);
+	st->cols = (u32*)realloc(st->cols, sizeof(u32)*count);
+	st->keys = (Fixed*)realloc(st->keys, sizeof(Fixed)*count);
 
 	max_offset = 0;
 	for (i=0; i<count; i++) {
@@ -964,7 +965,7 @@ static void SVG_Render_PaintServer(GF_Node *node, void *rs)
 	SVGElement *elt = (SVGElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
-	SVG_Render_base(node, rs, &backup_props);
+	SVG_Render_base(node, eff, &backup_props);
 	
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		return;
@@ -1003,7 +1004,7 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	end.y = lg->y2.value;
 	if (lg->y2.type==SVG_NUMBER_PERCENTAGE) end.x /= 100;
 
-	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, lg->spreadMethod);
+	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, (GF_GradientMode) lg->spreadMethod);
 
 	gf_mx2d_copy(*mat, lg->gradientTransform);
 
@@ -1017,8 +1018,8 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 
 void SVG_Init_linearGradient(Render2D *sr, GF_Node *node)
 {
-	SVG_GradientStack *st = malloc(sizeof(SVG_GradientStack));
-	memset(st, 0, sizeof(SVG_GradientStack));
+	SVG_GradientStack *st;
+	GF_SAFEALLOC(st, SVG_GradientStack);
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = SVG_UpdateLinearGradient;
@@ -1057,7 +1058,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	center.y = rg->cy.value;
 	if (rg->cy.type==SVG_NUMBER_PERCENTAGE) center.y /= 100;
 
-	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, rg->spreadMethod);
+	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, (GF_GradientMode) rg->spreadMethod);
 
 	focal.x = rg->fx.value;
 	if (rg->fx.type==SVG_NUMBER_PERCENTAGE) focal.x /= 100;
@@ -1077,8 +1078,8 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 
 void SVG_Init_radialGradient(Render2D *sr, GF_Node *node)
 {
-	SVG_GradientStack *st = malloc(sizeof(SVG_GradientStack));
-	memset(st, 0, sizeof(SVG_GradientStack));
+	SVG_GradientStack *st;
+	GF_SAFEALLOC(st, SVG_GradientStack);
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = SVG_UpdateRadialGradient;

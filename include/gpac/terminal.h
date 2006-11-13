@@ -143,6 +143,15 @@ void gf_term_string_input(GF_Terminal *term, u32 character);
 
 
 
+/*framebuffer access*/
+#include <gpac/color.h>
+
+/*gets screen buffer - this locks the scene graph too until released is called*/
+GF_Err gf_term_get_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer);
+/*releases screen buffer and unlocks graph*/
+GF_Err gf_term_release_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer);
+
+
 /*ObjectManager used by both terminal and object browser (term_info.h)*/
 typedef struct _od_manager GF_ObjectManager;
 

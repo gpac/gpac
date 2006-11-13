@@ -388,7 +388,7 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->size < 18 + GPP_BOX_SIZE + GPP_STYLE_SIZE) return GF_ISOM_INVALID_FILE;
 
-	gf_bs_read_data(bs, (unsigned char*)ptr->reserved, 6);
+	gf_bs_read_data(bs, ptr->reserved, 6);
 	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
 	ptr->displayFlags = gf_bs_read_u32(bs);
 	ptr->horizontal_justification = gf_bs_read_u8(bs);
@@ -450,7 +450,7 @@ GF_Err tx3g_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	gf_bs_write_data(bs, (unsigned char*)ptr->reserved, 6);
+	gf_bs_write_data(bs, ptr->reserved, 6);
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
 	gf_bs_write_u32(bs, ptr->displayFlags);
 	gf_bs_write_u8(bs, ptr->horizontal_justification);

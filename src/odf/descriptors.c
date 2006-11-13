@@ -42,6 +42,7 @@ s32 gf_odf_size_field_size(u32 size_desc)
 }
 
 
+GF_EXPORT
 GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc_size)
 {
 	u32 val, size, sizeHeader;
@@ -114,7 +115,7 @@ GF_Err gf_odf_delete_descriptor_list(GF_List *descList)
 	//no error if NULL chain...
 	if (! descList) return GF_OK;
 	i=0;
-	while ((tmp = gf_list_enum(descList, &i))) {
+	while ((tmp = (GF_Descriptor*)gf_list_enum(descList, &i))) {
 		e = gf_odf_delete_descriptor(tmp);
 		if (e) return e;
 	}
@@ -269,6 +270,8 @@ GF_Err gf_odf_write_descriptor_list_filter(GF_BitStream *bs, GF_List *descList, 
 }
 
 static char szStreamText[20];
+
+GF_EXPORT
 const char *gf_odf_stream_type_name(u32 streamType)
 {
 	switch (streamType) {
@@ -290,6 +293,7 @@ const char *gf_odf_stream_type_name(u32 streamType)
 	}
 }
 
+GF_EXPORT
 u32 gf_odf_stream_type_by_name(const char *streamType)
 {
 	if (!streamType) return 0;
@@ -309,6 +313,7 @@ u32 gf_odf_stream_type_by_name(const char *streamType)
 
 
 /*special authoring functions*/
+GF_EXPORT
 GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 {
 	Bool hasSize, cmd_stream;
@@ -357,6 +362,7 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 }
 
 /*special function for authoring - convert DSI to LASERConfig*/
+GF_EXPORT
 GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
 {
 	GF_BitStream *bs;
@@ -386,6 +392,7 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg)
 {
 	u32 len, i;
@@ -395,7 +402,7 @@ GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg)
 	cfg->tag = GF_ODF_UI_CFG_TAG;	
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
 	len = gf_bs_read_int(bs, 8);
-	cfg->deviceName = malloc(sizeof(char) * (len+1));
+	cfg->deviceName = (char*)malloc(sizeof(char) * (len+1));
 	for (i=0; i<len; i++) cfg->deviceName[i] = gf_bs_read_int(bs, 8);
 	cfg->deviceName[i] = 0;
 
@@ -407,6 +414,7 @@ GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_odf_encode_ui_config(GF_UIConfig *cfg, GF_DefaultDescriptor **out_dsi)
 {
 	u32 i, len;
@@ -431,13 +439,14 @@ GF_Err gf_odf_encode_ui_config(GF_UIConfig *cfg, GF_DefaultDescriptor **out_dsi)
 	if (cfg->ui_data) gf_bs_write_data(bs, cfg->ui_data, cfg->ui_data_length);
 
 	dsi = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-	gf_bs_get_content(bs, (unsigned char **) &dsi->data, &dsi->dataLength);
+	gf_bs_get_content(bs, &dsi->data, &dsi->dataLength);
 	gf_bs_del(bs);
 	*out_dsi = dsi;
 	return GF_OK;
 }
 
 
+GF_EXPORT
 GF_AVCConfig *gf_odf_avc_cfg_new()
 {
 	GF_AVCConfig *cfg;
@@ -448,18 +457,19 @@ GF_AVCConfig *gf_odf_avc_cfg_new()
 	return cfg;
 }
 
+GF_EXPORT
 void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 {
 	if (!cfg) return;
 	while (gf_list_count(cfg->sequenceParameterSets)) {
-		GF_AVCConfigSlot *sl = gf_list_get(cfg->sequenceParameterSets, 0);
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->sequenceParameterSets, 0);
 		gf_list_rem(cfg->sequenceParameterSets, 0);
 		if (sl->data) free(sl->data);
 		free(sl);
 	}
 	gf_list_del(cfg->sequenceParameterSets);
 	while (gf_list_count(cfg->pictureParameterSets)) {
-		GF_AVCConfigSlot *sl = gf_list_get(cfg->pictureParameterSets, 0);
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->pictureParameterSets, 0);
 		gf_list_rem(cfg->pictureParameterSets, 0);
 		if (sl->data) free(sl->data);
 		free(sl);
@@ -468,6 +478,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 	free(cfg);
 }
 
+GF_EXPORT
 GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
 {
 	u32 i, count;
@@ -482,25 +493,26 @@ GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
 	count = gf_list_count(cfg->sequenceParameterSets);
 	gf_bs_write_int(bs, count, 5);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = gf_list_get(cfg->sequenceParameterSets, i);
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->sequenceParameterSets, i);
 		gf_bs_write_int(bs, sl->size, 16);
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
 	count = gf_list_count(cfg->pictureParameterSets);
 	gf_bs_write_int(bs, count, 8);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = gf_list_get(cfg->pictureParameterSets, i);
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->pictureParameterSets, i);
 		gf_bs_write_int(bs, sl->size, 16);
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
 
 	*outSize = 0;
 	*outData = NULL;
-	gf_bs_get_content(bs, (unsigned char **) outData, outSize);
+	gf_bs_get_content(bs, outData, outSize);
 	gf_bs_del(bs);
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size)
 {
 	u32 i, count;
@@ -515,17 +527,17 @@ GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size)
 	gf_bs_read_int(bs, 3);
 	count = gf_bs_read_int(bs, 5);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = malloc(sizeof(GF_AVCConfigSlot));
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
 		sl->size = gf_bs_read_int(bs, 16);
-		sl->data = malloc(sizeof(char)*sl->size);
+		sl->data = (char*)malloc(sizeof(char)*sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(avcc->sequenceParameterSets, sl);
 	}
 	count = gf_bs_read_int(bs, 8);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = malloc(sizeof(GF_AVCConfigSlot));
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
 		sl->size = gf_bs_read_int(bs, 16);
-		sl->data = malloc(sizeof(char)*sl->size);
+		sl->data = (char*)malloc(sizeof(char)*sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(avcc->pictureParameterSets, sl);
 	}
@@ -571,7 +583,7 @@ void ResetTextConfig(GF_TextConfig *desc)
 {
 	GF_List *bck;
 	while (gf_list_count(desc->sample_descriptions)) {
-		GF_TextSampleDescriptor *sd = gf_list_get(desc->sample_descriptions, 0);
+		GF_TextSampleDescriptor *sd = (GF_TextSampleDescriptor *)gf_list_get(desc->sample_descriptions, 0);
 		gf_list_rem(desc->sample_descriptions, 0);
 		gf_odf_del_tx3g(sd);
 	}
@@ -591,6 +603,7 @@ GF_Err gf_odf_del_text_cfg(GF_TextConfig *desc)
 
 /*we need box parsing*/
 #include <gpac/internal/isomedia_dev.h>
+GF_EXPORT
 GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *cfg)
 {
 	u32 i, j;
@@ -641,7 +654,7 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				goto exit;
 			}
-			txdesc = malloc(sizeof(GF_TextSampleDescriptor));
+			txdesc = (GF_TextSampleDescriptor *)malloc(sizeof(GF_TextSampleDescriptor));
 			txdesc->sample_index = sample_index;
 			txdesc->displayFlags = a->displayFlags;
 			txdesc->back_color = a->back_color;
@@ -651,7 +664,7 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 			txdesc->horiz_justif = a->horizontal_justification;
 			txdesc->font_count = a->font_table ? a->font_table->entry_count : 0;
 			if (txdesc->font_count) {
-				txdesc->fonts = malloc(sizeof(GF_FontRecord)*txdesc->font_count);
+				txdesc->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord)*txdesc->font_count);
 				for (j=0; j<txdesc->font_count; j++) {
 					txdesc->fonts[j].fontID = a->font_table->fonts[j].fontID;
 					txdesc->fonts[j].fontName = a->font_table->fonts[j].fontName ? strdup(a->font_table->fonts[j].fontName) : NULL;

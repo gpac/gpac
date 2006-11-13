@@ -163,7 +163,7 @@ void TTIn_download_file(GF_InputService *plug, char *url)
 static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	GF_Err e;
-	TTIn *tti = plug->priv;
+	TTIn *tti = (TTIn *)plug->priv;
 
 	tti->service = serv;
 
@@ -183,7 +183,7 @@ static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 
 static GF_Err TTIn_CloseService(GF_InputService *plug)
 {
-	TTIn *tti = plug->priv;
+	TTIn *tti = (TTIn *)plug->priv;
 	if (tti->samp) gf_isom_sample_del(&tti->samp);
 	if (tti->mp4) gf_isom_delete(tti->mp4);
 	tti->mp4 = NULL;
@@ -201,7 +201,7 @@ static GF_Err TTIn_CloseService(GF_InputService *plug)
 
 static GF_Descriptor *TTIn_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	TTIn *tti = plug->priv;
+	TTIn *tti = (TTIn *)plug->priv;
 	/*visual object*/
 	if (expect_type==GF_MEDIA_OBJECT_TEXT) {
 		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
@@ -217,7 +217,7 @@ static GF_Err TTIn_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 {
 	u32 ES_ID;
 	GF_Err e;
-	TTIn *tti = plug->priv;
+	TTIn *tti = (TTIn *)plug->priv;
 
 	e = GF_SERVICE_ERROR;
 	if (tti->ch==channel) goto exit;
@@ -238,7 +238,7 @@ exit:
 
 static GF_Err TTIn_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	TTIn *tti = plug->priv;
+	TTIn *tti = (TTIn *)plug->priv;
 	GF_Err e = GF_STREAM_NOT_FOUND;
 
 	if (tti->ch == channel) {
@@ -251,7 +251,7 @@ static GF_Err TTIn_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel
 
 static GF_Err TTIn_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
-	TTIn *tti = plug->priv;
+	TTIn *tti = (TTIn *)plug->priv;
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 	switch (com->command_type) {
@@ -279,7 +279,7 @@ static GF_Err TTIn_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 static GF_Err TTIn_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
-	TTIn *tti = plug->priv;
+	TTIn *tti = (TTIn *)plug->priv;
 
 	*out_reception_status = GF_OK;
 	*sl_compressed = 0;
@@ -323,7 +323,7 @@ static GF_Err TTIn_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, ch
 
 static GF_Err TTIn_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	TTIn *tti = plug->priv;
+	TTIn *tti = (TTIn *)plug->priv;
 
 	if (tti->ch == channel) {
 		if (!tti->samp) return GF_BAD_PARAM;
@@ -339,8 +339,8 @@ static GF_Err TTIn_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel
 void *NewTTReader()
 {
 	TTIn *priv;
-	GF_InputService *plug = malloc(sizeof(GF_InputService));
-	memset(plug, 0, sizeof(GF_InputService));
+	GF_InputService *plug;
+	GF_SAFEALLOC(plug, GF_InputService);
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC SubTitle Reader", "gpac distribution")
 
 	plug->CanHandleURL = TTIn_CanHandleURL;
@@ -354,8 +354,7 @@ void *NewTTReader()
 	plug->ChannelReleaseSLP = TTIn_ChannelReleaseSLP;
 	plug->ServiceCommand = TTIn_ServiceCommand;
 
-	priv = malloc(sizeof(TTIn));
-	memset(priv, 0, sizeof(TTIn));
+	GF_SAFEALLOC(priv, TTIn);
 	plug->priv = priv;
 	return plug;
 }
@@ -363,7 +362,7 @@ void *NewTTReader()
 void DeleteTTReader(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
-	TTIn *tti = plug->priv;
+	TTIn *tti = (TTIn *)plug->priv;
 	free(tti);
 	free(plug);
 }

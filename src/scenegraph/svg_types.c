@@ -33,13 +33,13 @@ void gf_svg_reset_path(SVG_PathData d)
 	u32 i, count;
 	count = gf_list_count(d.commands);
 	for (i = 0; i < count; i++) {
-		u8 *command = gf_list_get(d.commands, i);
+		u8 *command = (u8 *)gf_list_get(d.commands, i);
 		free(command);
 	}
 	gf_list_del(d.commands);
 	count = gf_list_count(d.points);
 	for (i = 0; i < count; i++) {
-		SVG_Point *pt = gf_list_get(d.points, i);
+		SVG_Point *pt = (SVG_Point *)gf_list_get(d.points, i);
 		free(pt);
 	}
 	gf_list_del(d.points);
@@ -50,7 +50,7 @@ void gf_smil_delete_times(GF_List *list)
 	u32 i, count;
 	count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
-		SMIL_Time *v=gf_list_get(list, i);
+		SMIL_Time *v = (SMIL_Time *)gf_list_get(list, i);
 		if (v->element_id) free(v->element_id);
 		free(v);
 	}
@@ -61,7 +61,7 @@ void gf_svg_delete_points(GF_List *list)
 {
 	u32 i, count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
-		SVG_Point *p=gf_list_get(list, i);
+		SVG_Point *p = (SVG_Point *)gf_list_get(list, i);
 		free(p);
 	}
 	gf_list_del(list);
@@ -71,7 +71,7 @@ void gf_svg_delete_coordinates(GF_List *list)
 {
 	u32 i, count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
-		SVG_Coordinate *c=gf_list_get(list, i);
+		SVG_Coordinate *c = (SVG_Coordinate *)gf_list_get(list, i);
 		free(c);
 	}
 	gf_list_del(list);
@@ -157,7 +157,7 @@ static void svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph 
 void gf_smil_delete_key_types(GF_List *l)
 {
 	while (gf_list_count(l)) {
-		Fixed *t = gf_list_get(l, 0);
+		Fixed *t = (Fixed *)gf_list_get(l, 0);
 		gf_list_rem(l, 0);
 		free(t);
 	}
@@ -293,7 +293,7 @@ static void gf_svg_delete_anim(SMILAnimationAttributes *p, GF_SceneGraph *sg)
 static void svg_delete_string_list(GF_List *l) 
 {
 	while (gf_list_count(l)) {
-		char *str = gf_list_last(l);
+		char *str = (char *)gf_list_last(l);
 		gf_list_rem_last(l);
 		free(str);
 	}
@@ -302,7 +302,7 @@ static void svg_delete_string_list(GF_List *l)
 void gf_svg_delete_conditional(SVGConditionalAttributes *p)
 {
 	while (gf_list_count(p->requiredFeatures)) {
-		SVG_IRI *iri = gf_list_last(p->requiredFeatures);
+		SVG_IRI *iri = (SVG_IRI *)gf_list_last(p->requiredFeatures);
 		gf_list_rem_last(p->requiredFeatures);
 		if (iri->iri) free(iri->iri);
 		free(iri);
@@ -310,7 +310,7 @@ void gf_svg_delete_conditional(SVGConditionalAttributes *p)
 	gf_list_del(p->requiredFeatures);
 
 	while (gf_list_count(p->requiredExtensions)) {
-		SVG_IRI *iri = gf_list_last(p->requiredExtensions);
+		SVG_IRI *iri = (SVG_IRI *)gf_list_last(p->requiredExtensions);
 		gf_list_rem_last(p->requiredExtensions);
 		if (iri->iri) free(iri->iri);
 		free(iri);

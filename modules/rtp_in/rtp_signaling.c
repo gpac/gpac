@@ -29,7 +29,7 @@ Bool channel_is_valid(RTPClient *rtp, RTPStream *ch)
 {
 	u32 i=0;
 	RTPStream *st;
-	while ((st = gf_list_enum(rtp->channels, &i))) {
+	while ((st = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
 		if (st == ch) return 1;
 	}
 	return 0;
@@ -53,7 +53,7 @@ Bool RP_SessionActive(RTPStream *ch)
 	RTPStream *ach;
 	u32 i, count;
 	i = count = 0;
-	while ((ach = gf_list_enum(ch->owner->channels, &i))) {
+	while ((ach = (RTPStream *)gf_list_enum(ch->owner->channels, &i))) {
 		if (ach->rtsp != ch->rtsp) continue;
 		/*count only active channels*/
 		if (ach->status == RTP_Running) count++;
@@ -147,7 +147,7 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	u32 i;
 	GF_RTSPTransport *trans;
 	
-	ch = com->user_data;
+	ch = (RTPStream *)com->user_data;
 	if (e) goto exit;
 
 	switch (sess->rtsp_rsp->ResponseCode) {
@@ -165,7 +165,7 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 
 	/*transport setup: break at the first correct transport */
 	i=0;
-	while ((trans = gf_list_enum(sess->rtsp_rsp->Transports, &i))) {
+	while ((trans = (GF_RTSPTransport *)gf_list_enum(sess->rtsp_rsp->Transports, &i))) {
 		/*copy over previous ports (hack for some servers overriding client ports)*/
 		const char *opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceClientPorts");
 		if (opt && !stricmp(opt, "yes")) 
@@ -231,7 +231,7 @@ Bool RP_ProcessDescribe(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	ChannelDescribe *ch_desc;
 
 	ch = NULL;
-	ch_desc = com->user_data;
+	ch_desc = (ChannelDescribe *)com->user_data;
 	if (e) goto exit;
 
 	switch (sess->rtsp_rsp->ResponseCode) {
@@ -298,7 +298,7 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 		ch = RP_FindChannel(sess->owner, channel, 0, esd_url, 0);
 		if (ch) {
 			if (!ch->channel) ch->channel = channel;
-			ch_desc = malloc(sizeof(ChannelDescribe));
+			ch_desc = (ChannelDescribe *)malloc(sizeof(ChannelDescribe));
 			ch_desc->esd_url = esd_url ? strdup(esd_url) : NULL;
 			ch_desc->channel = channel;
 			RP_SetupChannel(ch, ch_desc);
@@ -318,7 +318,7 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 		com->Accept = strdup("application/sdp");
 		com->ControlString = esd_url ? strdup(esd_url) : NULL;
 
-		ch_desc = malloc(sizeof(ChannelDescribe));
+		ch_desc = (ChannelDescribe *)malloc(sizeof(ChannelDescribe));
 		ch_desc->esd_url = esd_url ? strdup(esd_url) : NULL;
 		ch_desc->channel = channel;
 		
@@ -349,7 +349,7 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 	GF_Err e;
 	Bool skip_it;
 
-	ch_ctrl = com->user_data;
+	ch_ctrl = (ChannelControl *)com->user_data;
 	if (!ch_ctrl) return 1;
 	ch = ch_ctrl->ch;
 	
@@ -398,7 +398,7 @@ static void SkipCommandOnSession(RTPStream *ch)
 	RTPStream *a_ch;
 	if (!ch || (ch->flags & RTP_SKIP_NEXT_COM) || !(ch->rtsp->flags & RTSP_AGG_CONTROL) ) return;
 	i=0;
-	while ((a_ch = gf_list_enum(ch->owner->channels, &i))) {
+	while ((a_ch = (RTPStream *)gf_list_enum(ch->owner->channels, &i))) {
 		if ((ch == a_ch) || (a_ch->rtsp != ch->rtsp) ) continue;
 		a_ch->flags |= RTP_SKIP_NEXT_COM;
 	}
@@ -413,7 +413,7 @@ void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	GF_RTPInfo *info;
 
 
-	ch_ctrl = com->user_data;
+	ch_ctrl = (ChannelControl *)com->user_data;
 	ch = ch_ctrl->ch;
 
 	if (!channel_is_valid(sess->owner, ch)) {
@@ -463,7 +463,7 @@ process_reply:
 		//process all RTP infos
 		count = gf_list_count(sess->rtsp_rsp->RTP_Infos);
 		for (i=0;i<count; i++) {
-			info = gf_list_get(sess->rtsp_rsp->RTP_Infos, i);
+			info = (GF_RTPInfo*)gf_list_get(sess->rtsp_rsp->RTP_Infos, i);
 			agg_ch = RP_FindChannel(sess->owner, NULL, 0, info->url, 0);
 
 			if (!agg_ch || (agg_ch->rtsp != sess) ) continue;
@@ -531,7 +531,7 @@ static void RP_FlushAndTearDown(RTSPSession *sess)
 	gf_mx_p(sess->owner->mx);
 
 	while (gf_list_count(sess->rtsp_commands)) {
-		com = gf_list_get(sess->rtsp_commands, 0);
+		com = (GF_RTSPCommand *)gf_list_get(sess->rtsp_commands, 0);
 		gf_list_rem(sess->rtsp_commands, 0);
 		gf_rtsp_command_del(com);
 	}
@@ -567,7 +567,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		if (ch->status == RTP_Disconnected) {
 			if (sess->flags & RTSP_AGG_CONTROL) {
 				i=0;
-				while ((a_ch = gf_list_enum(sess->owner->channels, &i))) {
+				while ((a_ch = (RTPStream *)gf_list_enum(sess->owner->channels, &i))) {
 					if (a_ch->rtsp != sess) continue;
 					RP_Setup(a_ch);
 				}
@@ -658,7 +658,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		return;
 	}
 
-	ch_ctrl = malloc(sizeof(ChannelControl));
+	ch_ctrl = (ChannelControl *)malloc(sizeof(ChannelControl));
 	ch_ctrl->ch = ch;
 	memcpy(&ch_ctrl->com, command, sizeof(GF_NetworkCommand));
 	com->user_data = ch_ctrl;

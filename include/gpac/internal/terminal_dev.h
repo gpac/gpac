@@ -189,6 +189,9 @@ GF_SceneGraph *gf_is_get_proto_lib(void *_is, MFURL *lib_url);
 /*exported for renderers: handles filtering of "self" parameter indicating anchor only acts on container inline scene
 not root one. Returns 1 if handled (cf user.h, navigate event)*/
 Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt);
+/*extern proto fetcher*/
+GF_SceneGraph *gf_is_get_proto_lib(void *SceneCallback, MFURL *lib_url);
+		void gf_is_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo);
 
 
 struct _tag_terminal
@@ -749,7 +752,7 @@ struct _mediaobj
 	/*data frame size*/
 	u32 framesize;
 	/*pointer to data frame */
-	unsigned char *frame;
+	char *frame;
 };
 
 GF_MediaObject *gf_mo_new();

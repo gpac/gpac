@@ -39,7 +39,7 @@ u32 GetHintFormat(GF_TrackBox *trak)
 {
 	GF_HintMediaHeaderBox *hmhd = (GF_HintMediaHeaderBox *)trak->Media->information->InfoHeader;
 	if (!hmhd->subType) {
-		GF_Box *a = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
+		GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
 		if (a) hmhd->subType = a->type;
 	}
 	return hmhd->subType;
@@ -64,7 +64,7 @@ GF_Err AdjustHintInfo(GF_HintSampleEntryBox *entry, u32 HintSampleNumber)
 	count = gf_list_count(entry->hint_sample->packetTable);
 	
 	for (i=0; i<count; i++) {
-		pck = gf_list_get(entry->hint_sample->packetTable, i);
+		pck = (GF_HintPacket *)gf_list_get(entry->hint_sample->packetTable, i);
 		if (offset && entry->hint_sample->dataLength) {
 			//adjust any offset in this packet
 			e = gf_isom_hint_pck_offset(entry->hint_sample->HintType, pck, offset, HintSampleNumber);
@@ -88,10 +88,6 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType
 	//UDTA related ...
 	GF_UserDataBox *udta;
 
-	GF_Err tref_AddBox(GF_TrackReferenceBox *ptr, GF_Box *a);
-	GF_Err trak_AddBox(GF_TrackBox *ptr, GF_Box *a);
-	GF_Err moov_AddBox(GF_MovieBox *ptr, GF_Box *a);
-	GF_Err udta_AddBox(GF_UserDataBox *ptr, GF_Box *a);
 
 	//what do we support
 	switch (HintType) {
@@ -121,7 +117,7 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType
 	if (!trak->References) {
 		if (!trak->References) {
 			tref = (GF_TrackReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREF);
-			e = trak_AddBox(trak, (GF_Box *)tref);
+			e = trak_AddBox((GF_Box*)trak, (GF_Box *)tref);
 			if (e) return e;
 		}
 	}
@@ -135,7 +131,7 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType
 
 	//create our dep
 	dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HINT);
-	e = tref_AddBox(tref, (GF_Box *) dpnd);
+	e = tref_AddBox((GF_Box*)tref, (GF_Box *) dpnd);
 	if (e) return e;
 
 	//for RTP, we need to do some UDTA-related stuff...
@@ -144,7 +140,7 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType
 	if (!trak->udta) {
 		//create one
 		udta = (GF_UserDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA);
-		e = trak_AddBox(trak, (GF_Box *) udta);
+		e = trak_AddBox((GF_Box*)trak, (GF_Box *) udta);
 		if (e) return e;
 	}
 	udta = trak->udta;
@@ -171,7 +167,6 @@ GF_Err gf_isom_new_hint_description(GF_ISOFile *the_file, u32 trackNumber, s32 H
 	GF_TrackBox *trak;
 	GF_HintSampleEntryBox *hdesc;
 	GF_RelyHintBox *relyA;
-	GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a);
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -230,11 +225,11 @@ GF_Err gf_isom_rtp_set_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 Hint
 	if (!trak || !CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
 
 	//OK, create a new HintSampleDesc
-	hdesc = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, HintDescriptionIndex - 1);
+	hdesc = (GF_HintSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, HintDescriptionIndex - 1);
 	count = gf_list_count(hdesc->HintDataTable);
 
 	for (i=0; i< count; i++) {
-		ent = gf_list_get(hdesc->HintDataTable, i);
+		ent = (GF_TSHintEntryBox *)gf_list_get(hdesc->HintDataTable, i);
 		if (ent->type == GF_ISOM_BOX_TYPE_TIMS) {			
 			ent->timeScale = TimeScale;
 			return GF_OK;
@@ -259,11 +254,11 @@ GF_Err gf_isom_rtp_set_time_offset(GF_ISOFile *the_file, u32 trackNumber, u32 Hi
 	if (!trak || !CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
 
 	//OK, create a new HintSampleDesc
-	hdesc = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, HintDescriptionIndex - 1);
+	hdesc = (GF_HintSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, HintDescriptionIndex - 1);
 	count = gf_list_count(hdesc->HintDataTable);
 
 	for (i=0; i< count; i++) {
-		ent = gf_list_get(hdesc->HintDataTable, i);
+		ent = (GF_TimeOffHintEntryBox *)gf_list_get(hdesc->HintDataTable, i);
 		if (ent->type == GF_ISOM_BOX_TYPE_TSRO) {			
 			ent->TimeOffset = TimeOffset;
 			return GF_OK;
@@ -288,11 +283,11 @@ GF_Err gf_isom_rtp_set_time_sequence_offset(GF_ISOFile *the_file, u32 trackNumbe
 	if (!trak || !CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
 
 	//OK, create a new HintSampleDesc
-	hdesc = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, HintDescriptionIndex - 1);
+	hdesc = (GF_HintSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, HintDescriptionIndex - 1);
 	count = gf_list_count(hdesc->HintDataTable);
 
 	for (i=0; i< count; i++) {
-		ent = gf_list_get(hdesc->HintDataTable, i);
+		ent = (GF_SeqOffHintEntryBox *)gf_list_get(hdesc->HintDataTable, i);
 		if (ent->type == GF_ISOM_BOX_TYPE_SNRO) {			
 			ent->SeqOffset = SequenceNumberOffset;
 			return GF_OK;
@@ -379,7 +374,7 @@ GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u8 IsRando
 	samp->IsRAP = IsRandomAccessPoint;
 	samp->DTS = entry->hint_sample->TransmissionTime;
 	//get the sample
-	gf_bs_get_content(bs, (unsigned char **) &samp->data, &samp->dataLength);
+	gf_bs_get_content(bs, &samp->data, &samp->dataLength);
 	gf_bs_del(bs);
 
 	//finally add the sample 
@@ -411,7 +406,7 @@ GF_Err gf_isom_hint_blank_data(GF_ISOFile *the_file, u32 trackNumber, u8 AtBegin
 	if (!entry->hint_sample) return GF_BAD_PARAM;
 	count = gf_list_count(entry->hint_sample->packetTable);
 	if (!count) return GF_BAD_PARAM;
-	pck = gf_list_get(entry->hint_sample->packetTable, count - 1);
+	pck = (GF_HintPacket *)gf_list_get(entry->hint_sample->packetTable, count - 1);
 
 	dte = (GF_EmptyDTE *) NewDTE(0);
 	return gf_isom_hint_pck_add_dte(entry->hint_sample->HintType, pck, (GF_GenericDTE *)dte, AtBegin);
@@ -439,7 +434,7 @@ GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, char *dat
 	if (!entry->hint_sample) return GF_BAD_PARAM;
 	count = gf_list_count(entry->hint_sample->packetTable);
 	if (!count) return GF_BAD_PARAM;
-	pck = gf_list_get(entry->hint_sample->packetTable, count - 1);
+	pck = (GF_HintPacket *)gf_list_get(entry->hint_sample->packetTable, count - 1);
 
 	dte = (GF_ImmediateDTE *) NewDTE(1);
 	memcpy(dte->data, data + offset, dataLength);
@@ -458,8 +453,6 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 Sourc
 	GF_Err e;
 	GF_TrackReferenceTypeBox *hint;
 
-	GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
-
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
 
@@ -469,7 +462,7 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 Sourc
 	if (!entry->hint_sample) return GF_BAD_PARAM;
 	count = gf_list_count(entry->hint_sample->packetTable);
 	if (!count) return GF_BAD_PARAM;
-	pck = gf_list_get(entry->hint_sample->packetTable, count - 1);
+	pck = (GF_HintPacket *)gf_list_get(entry->hint_sample->packetTable, count - 1);
 
 	dte = (GF_SampleDTE *) NewDTE(2);
 
@@ -488,7 +481,7 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 Sourc
 		dte->trackRefIndex = (u8) (refIndex - 1);
 	} else {
 		//we're in the hint track
-		dte->trackRefIndex = -1;
+		dte->trackRefIndex = (s8) -1;
 		//basic check...
 		if (SampleNumber > trak->Media->information->sampleTable->SampleSize->sampleCount + 1) {
 			DelDTE((GF_GenericDTE *)dte);
@@ -499,7 +492,7 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 Sourc
 		if (!SampleNumber || (SampleNumber == trak->Media->information->sampleTable->SampleSize->sampleCount + 1)) {
 			//we adding some stuff in the current sample ...
 			dte->byteOffset += entry->hint_sample->dataLength;
-			entry->hint_sample->AdditionalData = realloc(entry->hint_sample->AdditionalData, sizeof(char) * (entry->hint_sample->dataLength + DataLength));
+			entry->hint_sample->AdditionalData = (char*)realloc(entry->hint_sample->AdditionalData, sizeof(char) * (entry->hint_sample->dataLength + DataLength));
 			if (AtBegin) {
 				if (entry->hint_sample->dataLength)
 					memmove(entry->hint_sample->AdditionalData + entry->hint_sample->dataLength, entry->hint_sample->AdditionalData, entry->hint_sample->dataLength);
@@ -529,8 +522,6 @@ GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumbe
 	GF_Err e;
 	GF_TrackReferenceTypeBox *hint;
 
-	GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
-
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
 
@@ -539,14 +530,14 @@ GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumbe
 	if (!entry->hint_sample) return GF_BAD_PARAM;
 	count = gf_list_count(entry->hint_sample->packetTable);
 	if (!count) return GF_BAD_PARAM;
-	pck = gf_list_get(entry->hint_sample->packetTable, count - 1);
+	pck = (GF_HintPacket *)gf_list_get(entry->hint_sample->packetTable, count - 1);
 
 	dte = (GF_StreamDescDTE *) NewDTE(3);
 	dte->byteOffset = offsetInDescription;
 	dte->dataLength = DataLength;
 	dte->streamDescIndex = StreamDescriptionIndex;
 	if (SourceTrackID == trak->Header->trackID) {
-		dte->trackRefIndex = -1;
+		dte->trackRefIndex = (s8) -1;
 	} else {
 		//get (or set) the track reference index 
 		e = Track_FindRef(trak, GF_ISOM_REF_HINT, &hint);
@@ -585,7 +576,7 @@ GF_Err gf_isom_rtp_packet_set_flags(GF_ISOFile *the_file, u32 trackNumber,
 
 	ind = gf_list_count(entry->hint_sample->packetTable);
 	if (!ind) return GF_BAD_PARAM;
-	pck = gf_list_get(entry->hint_sample->packetTable, ind-1);
+	pck = (GF_RTPPacket *)gf_list_get(entry->hint_sample->packetTable, ind-1);
 
 	pck->P_bit = PackingBit ? 1 : 0;
 	pck->X_bit = eXtensionBit ? 1 : 0;
@@ -651,12 +642,12 @@ GF_Err gf_isom_rtp_packet_set_offset(GF_ISOFile *the_file, u32 trackNumber, s32 
 	if (e) return e;
 	if (!entry->hint_sample) return GF_BAD_PARAM;
 
-	pck = gf_list_get(entry->hint_sample->packetTable, gf_list_count(entry->hint_sample->packetTable) - 1);
+	pck = (GF_RTPPacket *)gf_list_get(entry->hint_sample->packetTable, gf_list_count(entry->hint_sample->packetTable) - 1);
 	if (!pck) return GF_BAD_PARAM;
 
 	//look in the TLV
 	i=0;
-	while ((rtpo = gf_list_enum(pck->TLV, &i))) {
+	while ((rtpo = (GF_RTPOBox *)gf_list_enum(pck->TLV, &i))) {
 		if (rtpo->type == GF_ISOM_BOX_TYPE_RTPO) {
 			rtpo->timeOffset = timeOffset;
 			return GF_OK;
@@ -672,15 +663,15 @@ GF_Err gf_isom_rtp_packet_set_offset(GF_ISOFile *the_file, u32 trackNumber, s32 
 
 static void AddSDPLine(GF_List *list, char *sdp_text, Bool is_movie_sdp)
 {
-	char *sdp_order;
+	const char *sdp_order;
 	u32 i, count = gf_list_count(list);
 	char fc = sdp_text[0];
 
 	sdp_order = (is_movie_sdp) ? "vosiuepcbzkatr" : "micbka";
 	for (i=0; i<count; i++) {
-		char *l = gf_list_get(list, i);
-		char *s1 = strchr(sdp_order, l[0]);
-		char *s2 = strchr(sdp_order, fc);
+		char *l = (char *)gf_list_get(list, i);
+		char *s1 = (char *)strchr(sdp_order, l[0]);
+		char *s2 = (char *)strchr(sdp_order, fc);
 		if (s1 && s2 && (strlen(s2)>strlen(s1))) {
 			gf_list_insert(list, sdp_text, i);
 			return;
@@ -710,7 +701,7 @@ static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
 	}
 	strcpy(sdp_text, "");
 	while (gf_list_count(lines)) {
-		char *cur = gf_list_get(lines, 0);
+		char *cur = (char *)gf_list_get(lines, 0);
 		gf_list_rem(lines, 0);
 		strcat(sdp_text, cur);
 		free(cur);
@@ -727,7 +718,6 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 	GF_SDPBox *sdp;
 	GF_Err e;
 	char *buf;
-	GF_Err hnti_AddBox(GF_HintTrackInfoBox *hnti, GF_Box *a);
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -741,7 +731,7 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 	//we should have only one HNTI in the UDTA
 	if (gf_list_count(map->boxList) != 1) return GF_ISOM_INVALID_FILE;
 
-	hnti = gf_list_get(map->boxList, 0);
+	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->boxList, 0);
 	if (!hnti->SDP) {
 		e = hnti_AddBox(hnti, gf_isom_box_new(GF_ISOM_BOX_TYPE_SDP));
 		if (e) return e;
@@ -749,12 +739,12 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 	sdp = (GF_SDPBox *) hnti->SDP;
 
 	if (!sdp->sdpText) {
-		sdp->sdpText = malloc(sizeof(char) * (strlen(text) + 3));
+		sdp->sdpText = (char *)malloc(sizeof(char) * (strlen(text) + 3));
 		strcpy(sdp->sdpText, text);
 		strcat(sdp->sdpText, "\r\n");
 		return GF_OK;
 	}
-	buf = malloc(sizeof(char) * (strlen(sdp->sdpText) + strlen(text) + 3));
+	buf = (char *)malloc(sizeof(char) * (strlen(sdp->sdpText) + strlen(text) + 3));
 	strcpy(buf, sdp->sdpText);
 	strcat(buf, text);
 	strcat(buf, "\r\n");
@@ -783,7 +773,7 @@ GF_Err gf_isom_sdp_clean_track(GF_ISOFile *the_file, u32 trackNumber)
 	//we should have only one HNTI in the UDTA
 	if (gf_list_count(map->boxList) != 1) return GF_ISOM_INVALID_FILE;
 
-	hnti = gf_list_get(map->boxList, 0);
+	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->boxList, 0);
 	if (!hnti->SDP) return GF_OK;
 	//and free the SDP
 	free(((GF_SDPBox *)hnti->SDP)->sdpText);
@@ -802,15 +792,11 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	GF_HintTrackInfoBox *hnti;
 	char *buf;
 
-	GF_Err udta_AddBox(GF_UserDataBox *ptr, GF_Box *a);
-	GF_Err hnti_AddBox(GF_HintTrackInfoBox *hnti, GF_Box *a);
-	GF_Err moov_AddBox(GF_MovieBox *moov, GF_Box *a);
-
 	if (!movie->moov) return GF_BAD_PARAM;
 
 	//check if we have a udta ...
 	if (!movie->moov->udta) {
-		e = moov_AddBox(movie->moov, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
+		e = moov_AddBox((GF_Box*)movie->moov, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
 		if (e) return e;
 	}
 	//find a hnti in the udta
@@ -828,12 +814,12 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	}
 	else if (gf_list_count(map->boxList) < 1) return GF_ISOM_INVALID_FILE;
 
-	hnti = gf_list_get(map->boxList, 0);
+	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->boxList, 0);
 
 	if (!hnti->SDP) {
 		//we have to create it by hand, as we have a duplication of box type 
 		//(GF_RTPSampleEntryBox and GF_RTPBox have the same type...)
-		rtp = malloc(sizeof(GF_RTPBox));
+		rtp = (GF_RTPBox *) malloc(sizeof(GF_RTPBox));
 		rtp->subType = GF_ISOM_BOX_TYPE_SDP;
 		rtp->type = GF_ISOM_BOX_TYPE_RTP;
 		rtp->sdpText = NULL;
@@ -842,12 +828,12 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	rtp = (GF_RTPBox *) hnti->SDP;
 
 	if (!rtp->sdpText) {
-		rtp->sdpText = malloc(sizeof(char) * (strlen(text) + 3));
+		rtp->sdpText = (char*)malloc(sizeof(char) * (strlen(text) + 3));
 		strcpy(rtp->sdpText, text);
 		strcat(rtp->sdpText, "\r\n");
 		return GF_OK;
 	}
-	buf = malloc(sizeof(char) * (strlen(rtp->sdpText) + strlen(text) + 3));
+	buf = (char*)malloc(sizeof(char) * (strlen(rtp->sdpText) + strlen(text) + 3));
 	strcpy(buf, rtp->sdpText);
 	strcat(buf, text);
 	strcat(buf, "\r\n");
@@ -873,7 +859,7 @@ GF_Err gf_isom_sdp_clean(GF_ISOFile *movie)
 
 	//there should be one and only one hnti
 	if (gf_list_count(map->boxList) != 1) return GF_ISOM_INVALID_FILE;
-	hnti = gf_list_get(map->boxList, 0);
+	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->boxList, 0);
 
 	//remove and destroy the entry
 	gf_list_rem(map->boxList, 0);
@@ -883,6 +869,7 @@ GF_Err gf_isom_sdp_clean(GF_ISOFile *movie)
 
 #endif //GPAC_READ_ONLY
 
+GF_EXPORT
 GF_Err gf_isom_sdp_get(GF_ISOFile *movie, const char **sdp, u32 *length)
 {
 	GF_UserDataMap *map;
@@ -900,7 +887,7 @@ GF_Err gf_isom_sdp_get(GF_ISOFile *movie, const char **sdp, u32 *length)
 
 	//there should be one and only one hnti
 	if (gf_list_count(map->boxList) != 1) return GF_ISOM_INVALID_FILE;
-	hnti = gf_list_get(map->boxList, 0);
+	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->boxList, 0);
 
 	if (!hnti->SDP) return GF_OK;
 	rtp = (GF_RTPBox *) hnti->SDP;
@@ -910,6 +897,7 @@ GF_Err gf_isom_sdp_get(GF_ISOFile *movie, const char **sdp, u32 *length)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_sdp_track_get(GF_ISOFile *the_file, u32 trackNumber, const char **sdp, u32 *length)
 {
 	GF_TrackBox *trak;
@@ -930,7 +918,7 @@ GF_Err gf_isom_sdp_track_get(GF_ISOFile *the_file, u32 trackNumber, const char *
 	//we should have only one HNTI in the UDTA
 	if (gf_list_count(map->boxList) != 1) return GF_ISOM_INVALID_FILE;
 
-	hnti = gf_list_get(map->boxList, 0);
+	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->boxList, 0);
 	if (!hnti->SDP) return GF_OK;
 	sdpa = (GF_SDPBox *) hnti->SDP;
 

@@ -1634,12 +1634,12 @@ static void smil_parse_time_list(SVGElement *e, GF_List *values, char *begin_or_
 		u32 i, count;
 		u8 added = 0;
 		do {
-			v = gf_list_get(values, 0);
+			v = (SMIL_Time*)gf_list_get(values, 0);
 			gf_list_rem(values, 0);
 			added = 0;
 			count = gf_list_count(sorted);
 			for (i=0; i<count; i++) {
-				sv = gf_list_get(sorted, i);
+				sv = (SMIL_Time*)gf_list_get(sorted, i);
 				if (v->type >= GF_SMIL_TIME_EVENT) {
 					/* unresolved or indefinite so add at the end of the sorted list */
 					gf_list_add(sorted, v);
@@ -1808,7 +1808,7 @@ static void svg_parse_coordinates(GF_List *values, char *value_string)
 	u32 len = strlen(str);
 
 	while (gf_list_count(values)) {
-		c = gf_list_get(values, 0);
+		c = (SVG_Coordinate*)gf_list_get(values, 0);
 		gf_list_rem(values, 0);
 		free(c);
 	}
@@ -1867,7 +1867,7 @@ static void svg_string_list_add(GF_List *values, char *string, u32 string_type)
 	SVG_IRI *iri;
 	switch (string_type) {
 	case 1:
-		iri = malloc(sizeof(SVG_IRI));
+		iri = (SVG_IRI*)malloc(sizeof(SVG_IRI));
 		iri->type = SVG_IRI_IRI;
 		iri->iri = strdup(string);
 		gf_list_add(values, iri);
@@ -1883,7 +1883,7 @@ static void svg_parse_strings(GF_List *values, char *value_string, u32 string_ty
 	char *next, *sep = value_string;
 
 	while (gf_list_count(values)) {
-		next = gf_list_last(values);
+		next = (char*)gf_list_last(values);
 		gf_list_rem_last(values);
 		free(next);
 	}
@@ -1924,7 +1924,7 @@ static void svg_parse_strokedasharray(SVG_StrokeDashArray *value, char *value_st
 		vals->count = gf_list_count(values);
 		vals->vals = (Fixed *) malloc(sizeof(Fixed)*vals->count);
 		for (i = 0; i < vals->count; i++) {
-			Fixed *f = gf_list_get(values, i);
+			Fixed *f = (Fixed *)gf_list_get(values, i);
 			vals->vals[i] = *f;
 			free(f);
 		}
@@ -2376,16 +2376,16 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		*((SVG_GradientUnit *)info->far_ptr) = !strcmp(attribute_content, "userSpaceOnUse") ? SVG_GRADIENTUNITS_USER : SVG_GRADIENTUNITS_OBJECT;
 		break;
 	case SVG_FocusHighlight_datatype:
-		svg_parse_focushighlight(info->far_ptr, attribute_content);
+		svg_parse_focushighlight((SVG_FocusHighlight*)info->far_ptr, attribute_content);
 		break;
 	case SVG_InitialVisibility_datatype:
-		svg_parse_initialvisibility(info->far_ptr, attribute_content);
+		svg_parse_initialvisibility((SVG_InitialVisibility*)info->far_ptr, attribute_content);
 		break;
 	case SVG_Overlay_datatype:
-		svg_parse_overlay(info->far_ptr, attribute_content);
+		svg_parse_overlay((SVG_Overlay*)info->far_ptr, attribute_content);
 		break;
 	case SVG_TransformBehavior_datatype:
-		svg_parse_transformbehavior(info->far_ptr, attribute_content);
+		svg_parse_transformbehavior((SVG_TransformBehavior*)info->far_ptr, attribute_content);
 		break;
 	case SVG_SpreadMethod_datatype:
 		if (!strcmp(attribute_content, "reflect")) *(u8*)info->far_ptr = SVG_SPREAD_REFLECT;
@@ -2405,17 +2405,17 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 	case SVG_FontSize_datatype:
 	case SVG_Rotate_datatype:
 	case SVG_Number_datatype:
-		svg_parse_number(info->far_ptr, attribute_content, 0);
+		svg_parse_number((SVG_Number*)info->far_ptr, attribute_content, 0);
 		break;
 
 	case SMIL_AnimateValue_datatype:
-		svg_parse_one_anim_value(elt, info->far_ptr, attribute_content, anim_value_type, transform_type);
+		svg_parse_one_anim_value(elt, (SMIL_AnimateValue*)info->far_ptr, attribute_content, anim_value_type, transform_type);
 		break;
 	case SMIL_AnimateValues_datatype:
-		svg_parse_anim_values(elt, info->far_ptr, attribute_content, anim_value_type, transform_type);
+		svg_parse_anim_values(elt, (SMIL_AnimateValues*)info->far_ptr, attribute_content, anim_value_type, transform_type);
 		break;
 	case SVG_IRI_datatype:
-		svg_parse_iri(elt, info->far_ptr, attribute_content);
+		svg_parse_iri(elt, (SVG_IRI*)info->far_ptr, attribute_content);
 		break;
 	case SMIL_AttributeName_datatype:
 		/* Should be not called here but directly */
@@ -2424,14 +2424,14 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		smil_parse_time_list(elt, *(GF_List **)info->far_ptr, attribute_content);
 		break;
 	case SMIL_Duration_datatype:
-		smil_parse_min_max_dur_repeatdur(info->far_ptr, attribute_content);
+		smil_parse_min_max_dur_repeatdur((SMIL_Duration*)info->far_ptr, attribute_content);
 		break;
 	case SMIL_RepeatCount_datatype:
-		smil_parse_repeatcount(info->far_ptr, attribute_content);
+		smil_parse_repeatcount((SMIL_RepeatCount*)info->far_ptr, attribute_content);
 		break;
 
 	case SVG_PathData_datatype:
-		svg_parse_path(info->far_ptr, attribute_content);
+		svg_parse_path((SVG_PathData*)info->far_ptr, attribute_content);
 		break;
 	case SVG_Points_datatype:
 		svg_parse_points(*(GF_List **)(info->far_ptr), attribute_content);
@@ -2445,30 +2445,30 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		svg_parse_coordinates(*(GF_List **)(info->far_ptr), attribute_content);
 		break;
 	case SVG_ViewBox_datatype:
-		svg_parse_viewbox(info->far_ptr, attribute_content);
+		svg_parse_viewbox((SVG_ViewBox*)info->far_ptr, attribute_content);
 		break;
 	case SVG_StrokeDashArray_datatype:
-		svg_parse_strokedasharray(info->far_ptr, attribute_content);
+		svg_parse_strokedasharray((SVG_StrokeDashArray*)info->far_ptr, attribute_content);
 		break;
 	case SVG_FontFamily_datatype:
-		svg_parse_fontfamily(info->far_ptr, attribute_content);
+		svg_parse_fontfamily((SVG_FontFamily*)info->far_ptr, attribute_content);
 		break;
 	case SVG_Matrix_datatype:
 		if (transform_type == SVG_TRANSFORM_MATRIX) {
-			Bool is_ref = svg_parse_transform(info->far_ptr, attribute_content);
+			Bool is_ref = svg_parse_transform((SVG_Matrix*)info->far_ptr, attribute_content);
 			if (gf_svg_is_element_transformable(gf_node_get_tag((GF_Node *)elt)))
 				((SVGTransformableElement *)elt)->is_ref_transform = is_ref;
 		} else 
 			svg_parse_transform_animation_value(elt, info->far_ptr, attribute_content, transform_type);
 		break;
 	case SVG_PreserveAspectRatio_datatype:
-		svg_parse_preserveaspectratio(info->far_ptr, attribute_content);
+		svg_parse_preserveaspectratio((SVG_PreserveAspectRatio*)info->far_ptr, attribute_content);
 		break;
 	case SVG_Motion_datatype:
-		svg_parse_point_into_matrix(info->far_ptr, attribute_content);
+		svg_parse_point_into_matrix((SVG_Matrix*)info->far_ptr, attribute_content);
 		break;
 	case SVG_TransformType_datatype:
-		svg_parse_animatetransform_type(info->far_ptr, attribute_content);
+		svg_parse_animatetransform_type((SVG_TransformType*)info->far_ptr, attribute_content);
 		break;
 
 	case SVG_ID_datatype:
@@ -2494,7 +2494,7 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 
 	case XMLEV_Event_datatype:
 	{
-		XMLEV_Event *xml_ev = info->far_ptr;
+		XMLEV_Event *xml_ev = (XMLEV_Event *)info->far_ptr;
 		char *sep = strchr(attribute_content, '(');
 		if (sep) {
 			sep[0] = 0;
@@ -2518,20 +2518,20 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		break;
 
 	case SVG_Focus_datatype:
-		svg_parse_focus(elt, info->far_ptr, attribute_content);
+		svg_parse_focus(elt, (SVG_Focus*)info->far_ptr, attribute_content);
 		break;
 	case LASeR_Choice_datatype:
-		laser_parse_choice(info->far_ptr, attribute_content);
+		laser_parse_choice((LASeR_Choice*)info->far_ptr, attribute_content);
 		break;
 	case LASeR_Size_datatype:
-		laser_parse_size(info->far_ptr, attribute_content);
+		laser_parse_size((LASeR_Size*)info->far_ptr, attribute_content);
 		break;
 	case LASeR_TimeAttribute_datatype:
 		if (!strcmp(attribute_content, "end")) *(u8 *)info->far_ptr = LASeR_TIMEATTRIBUTE_END;
 		else *(u8 *)info->far_ptr = LASeR_TIMEATTRIBUTE_BEGIN;
 		break;
 	case SVG_Clock_datatype:
-		svg_parse_clock_value(attribute_content, info->far_ptr);
+		svg_parse_clock_value(attribute_content, (SVG_Clock*)info->far_ptr);
 		break;
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] skipping unsupported attribute %s\n", info->name));
@@ -2551,7 +2551,7 @@ void svg_parse_one_style(SVGElement *elt, char *one_style)
 	c = strchr(one_style, ':');
 	if (!c) return;
 	attributeNameLen = (c - one_style);
-	attributeName = malloc(attributeNameLen+1);
+	attributeName = (char*)malloc(attributeNameLen+1);
 	memcpy(attributeName, one_style, attributeNameLen);
 	attributeName[attributeNameLen] = 0;
 	if (!gf_node_get_field_by_name((GF_Node *)elt, attributeName, &info)) {
@@ -2769,7 +2769,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 		break;
 	case SVG_PathData_datatype:
 		{
-			SVG_PathData *path = malloc(sizeof(SVG_PathData));
+			SVG_PathData *path = (SVG_PathData *)malloc(sizeof(SVG_PathData));
 			path->commands = gf_list_new();
 			path->points = gf_list_new();
 			return path;
@@ -2878,59 +2878,59 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 		switch(command) {
 		case SVG_PATHCOMMAND_M:
 			strcat(attValue, "M");			
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_L:
 			strcat(attValue, "L");
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_C:
 			strcat(attValue, "C");
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_S:
 			strcat(attValue, "S");
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_Q:
 			strcat(attValue, "Q");
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_T:
 			strcat(attValue, "T");
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_A:
 			strcat(attValue, "A");
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
 			strcat(attValue, "0 0 0 ");
-			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
 			strcat(attValue, szT);
 			pt_i++;
 			break;
@@ -3274,7 +3274,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		u32 i, count = gf_list_count(l);
 		for (i=0; i<count; i++) {
 			char szT[1024];
-			SVG_IRI *iri = gf_list_get(l, i);
+			SVG_IRI *iri = (SVG_IRI *)gf_list_get(l, i);
 			svg_dump_iri(iri, szT);
 			if (strlen(szT)) {
 				if (strlen(attValue)) strcat(attValue, " ");
@@ -3297,7 +3297,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		u32 count = gf_list_count(l);
 		for (i=0; i<count; i++) {
 			char szT[1000];
-			SVG_Point *p = gf_list_get(l, i);
+			SVG_Point *p = (SVG_Point *)gf_list_get(l, i);
 			sprintf(szT, "%g %g", FIX2FLT(p->x), FIX2FLT(p->x));
 			if (i) strcat(attValue, " ");
 			strcat(attValue, szT);
@@ -3314,7 +3314,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		u32 count = gf_list_count(l);
 		for (i=0; i<count; i++) {
 			char szT[1000];
-			Fixed *p = gf_list_get(l, i);
+			Fixed *p = (Fixed *)gf_list_get(l, i);
 			sprintf(szT, "%g", FIX2FLT(*p));
 			if (i) strcat(attValue, " ");
 			strcat(attValue, szT);
@@ -3329,7 +3329,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		u32 count = gf_list_count(l);
 		for (i=0; i<count; i++) {
 			char szT[1000];
-			SVG_Coordinate *p = gf_list_get(l, i);
+			SVG_Coordinate *p = (SVG_Coordinate *)gf_list_get(l, i);
 			svg_dump_number((SVG_Length *)p, szT);
 			if (strstr(szT, "pt")) {
 				fprintf(stderr, "found pt in output\n");
@@ -3411,7 +3411,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		break;
 	case SVG_Focus_datatype:
 	{
-		SVG_Focus *foc = info->far_ptr;
+		SVG_Focus *foc = (SVG_Focus *)info->far_ptr;
 		if (foc->type==SVG_FOCUS_SELF) strcpy(attValue, "self");
 		else if (foc->type==SVG_FOCUS_AUTO) strcpy(attValue, "auto");
 		else sprintf(attValue, "#%s", foc->target.iri);
@@ -3427,7 +3427,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		u32 i = 0;
 		u32 count = gf_list_count(l1);
 		for (i=0; i<count; i++) {
-			char *p1 = gf_list_get(l1, i);
+			char *p1 = (char *)gf_list_get(l1, i);
 			if (strlen(attValue)) strcat(attValue, " ");
 			strcat(attValue, p1);
 		}
@@ -3441,7 +3441,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		u32 count = gf_list_count(l1);
 		for (i=0; i<count; i++) {
 			char szT[1024];
-			SVG_Number *p = gf_list_get(l1, i);
+			SVG_Number *p = (SVG_Number *)gf_list_get(l1, i);
 			svg_dump_number(p, attValue);
 			if (i) strcat(attValue, " ");
 			strcat(attValue, szT);
@@ -3452,11 +3452,11 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 	case SVG_Matrix_datatype:
 #if DUMP_COORDINATES
 		if (info->eventType==SVG_TRANSFORM_TRANSLATE) {
-			SVG_Point *pt = info->far_ptr;
+			SVG_Point *pt = (SVG_Point *)info->far_ptr;
 			sprintf(attValue, "%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y) );
 		}
 		else if (info->eventType==SVG_TRANSFORM_SCALE) {
-			SVG_Point *pt = info->far_ptr;
+			SVG_Point *pt = (SVG_Point *)info->far_ptr;
 			if (pt->x == pt->y) {
 				sprintf(attValue, "%g", FIX2FLT(pt->x));
 			} else {
@@ -3464,7 +3464,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			}
 		}
 		else if (info->eventType==SVG_TRANSFORM_ROTATE) {
-			SVG_Point_Angle *pt = info->far_ptr;
+			SVG_Point_Angle *pt = (SVG_Point_Angle *)info->far_ptr;
 			if (pt->x || pt->y) {
 				sprintf(attValue, "%g %g %g", FIX2FLT( 180 * gf_divfix(pt->angle, GF_PI) ), FIX2FLT(pt->x), FIX2FLT(pt->y) );
 			} else {
@@ -3472,7 +3472,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			}
 		} else if (info->eventType==SVG_TRANSFORM_SKEWX || 
 				   info->eventType==SVG_TRANSFORM_SKEWY) {
-			Fixed *f = info->far_ptr;
+			Fixed *f = (Fixed *)info->far_ptr;
 			sprintf(attValue, "%g", FIX2FLT( 180 * gf_divfix(*f, GF_PI) ));
 		} else {
 			SVG_Matrix *matrix = (SVG_Matrix *)info->far_ptr;
@@ -3543,7 +3543,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		count = gf_list_count(l);
 		for (i=0; i<count; i++) {
 			char szBuf[1000];
-			SMIL_Time *t = gf_list_get(l, i);
+			SMIL_Time *t = (SMIL_Time *)gf_list_get(l, i);
 			if (i) strcat(attValue, ";");
 			if (t->type == GF_SMIL_TIME_CLOCK) {
 				sprintf(szBuf, "%gs", t->clock);
@@ -3657,7 +3657,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 
 	case XMLEV_Event_datatype:
 	{
-		XMLEV_Event *d = info->far_ptr;
+		XMLEV_Event *d = (XMLEV_Event *)info->far_ptr;
 		if (d->parameter) {
 			svg_dump_access_key(d, attValue);
 		} else {
@@ -3686,7 +3686,7 @@ GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *
 	case SVG_Points_datatype:
 	{
 #if DUMP_COORDINATES
-		SVG_Point *p = info->far_ptr;
+		SVG_Point *p = (SVG_Point *)info->far_ptr;
 		sprintf(attValue, "%g %g", FIX2FLT(p->x), FIX2FLT(p->y));
 #endif
 	}
@@ -3696,14 +3696,14 @@ GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *
 	case SMIL_KeyTimes_datatype:
 	case SMIL_KeySplines_datatype:
 	{
-		Fixed *p = info->far_ptr;
+		Fixed *p = (Fixed *)info->far_ptr;
 		sprintf(attValue, "%g", FIX2FLT(*p));
 	}
 		break;
 	case SVG_Coordinates_datatype:
 	{
 #if DUMP_COORDINATES
-		SVG_Coordinate *p = info->far_ptr;
+		SVG_Coordinate *p = (SVG_Coordinate *)info->far_ptr;
 		svg_dump_number((SVG_Length *)p, attValue);
 		if (strstr(attValue, "pt")) {
 			fprintf(stderr, "found pt in output\n");
@@ -3713,19 +3713,19 @@ GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *
 		break;
 	case SVG_ViewBox_datatype:
 	{
-		Fixed *v = info->far_ptr;
+		Fixed *v = (Fixed *)info->far_ptr;
 		sprintf(attValue, "%g", FIX2FLT(*v));
 	}
 		break;
 	case SVG_StrokeDashArray_datatype:
 	{
-		Fixed *p = info->far_ptr;
+		Fixed *p = (Fixed *)info->far_ptr;
 		sprintf(attValue, "%g", FIX2FLT(*p));
 	}
 		break;
 	case SMIL_Times_datatype:
 	{
-		SMIL_Time *t = info->far_ptr;
+		SMIL_Time *t = (SMIL_Time *)info->far_ptr;
 		if (t->type == GF_SMIL_TIME_CLOCK) {
 			sprintf(attValue, "%gs", t->clock);
 		} else if (t->type==GF_SMIL_TIME_INDEFINITE) {
@@ -3911,7 +3911,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		u32 i, count = gf_list_count(l1);
 		if (gf_list_count(l2)!=count) return 0;
 		for (i=0; i<count; i++) {
-			if (!svg_iris_equal(gf_list_get(l1, i), gf_list_get(l2, i) )) return 0;
+			if (!svg_iris_equal((SVG_IRI*)gf_list_get(l1, i), (SVG_IRI*)gf_list_get(l2, i) )) return 0;
 		}
 		return 1;
 	}
@@ -3932,8 +3932,8 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		u32 count = gf_list_count(l1);
 		if (gf_list_count(l2)!=count) return 0;
 		for (i=0; i<count; i++) {
-			SVG_Point *p1 = gf_list_get(l1, i);
-			SVG_Point *p2 = gf_list_get(l2, i);
+			SVG_Point *p1 = (SVG_Point *)gf_list_get(l1, i);
+			SVG_Point *p2 = (SVG_Point *)gf_list_get(l2, i);
 			if (p1->x != p2->x) return 0;
 			if (p1->y != p2->y) return 0;
 		}
@@ -3949,8 +3949,8 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		u32 count = gf_list_count(l1);
 		if (gf_list_count(l2)!=count) return 0;
 		for (i=0; i<count; i++) {
-			Fixed *p1 = gf_list_get(l1, i);
-			Fixed *p2 = gf_list_get(l2, i);
+			Fixed *p1 = (Fixed *)gf_list_get(l1, i);
+			Fixed *p2 = (Fixed *)gf_list_get(l2, i);
 			if (*p1 != *p2) return 0;
 		}
 		return 1;
@@ -3963,8 +3963,8 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		u32 count = gf_list_count(l1);
 		if (gf_list_count(l2) != count) return 0;
 		for (i=0; i<count; i++) {
-			SVG_Coordinate *p1 = gf_list_get(l1, i);
-			SVG_Coordinate *p2 = gf_list_get(l2, i);
+			SVG_Coordinate *p1 = (SVG_Coordinate *)gf_list_get(l1, i);
+			SVG_Coordinate *p2 = (SVG_Coordinate *)gf_list_get(l2, i);
 			if (!svg_numbers_equal(p1, p2)) return 0;
 		}
 		return 1;
@@ -4004,7 +4004,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	/* required for animateMotion */
 	case SVG_Motion_datatype:
 	case SVG_Matrix_datatype:
-		return svg_matrices_equal(f1->far_ptr, f2->far_ptr);
+		return svg_matrices_equal((SVG_Matrix*)f1->far_ptr, (SVG_Matrix*)f2->far_ptr);
 
 	case SVG_ID_datatype:
 	case SVG_LanguageID_datatype:
@@ -4020,8 +4020,8 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 
 	case SVG_Focus_datatype:
 	{
-		SVG_Focus *foc1 = f1->far_ptr;
-		SVG_Focus *foc2 = f2->far_ptr;
+		SVG_Focus *foc1 = (SVG_Focus *) f1->far_ptr;
+		SVG_Focus *foc2 = (SVG_Focus *)f2->far_ptr;
 		if (foc1->type!=foc2->type) return 0;
 		if (foc1->type != SVG_FOCUS_IRI) return 1;
 		return (foc1->target.iri && foc2->target.iri && !strcmp(foc1->target.iri, foc2->target.iri)) ? 1 : 0;
@@ -4039,8 +4039,8 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		u32 count = gf_list_count(l1);
 		if (gf_list_count(l2) != count) return 0;
 		for (i=0; i<count; i++) {
-			char *p1 = gf_list_get(l1, i);
-			char *p2 = gf_list_get(l2, i);
+			char *p1 = (char *)gf_list_get(l1, i);
+			char *p2 = (char *)gf_list_get(l2, i);
 			if (strcmp(p1, p2)) return 0;
 		}
 		return 1;
@@ -4053,8 +4053,8 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		u32 count = gf_list_count(l1);
 		if (gf_list_count(l2) != count) return 0;
 		for (i=0; i<count; i++) {
-			SVG_Number *p1 = gf_list_get(l1, i);
-			SVG_Number *p2 = gf_list_get(l2, i);
+			SVG_Number *p1 = (SVG_Number *)gf_list_get(l1, i);
+			SVG_Number *p2 = (SVG_Number *)gf_list_get(l2, i);
 			if (!svg_numbers_equal(p1, p2)) return 0;
 		}
 		return 1;
@@ -4067,8 +4067,8 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		u32 count = gf_list_count(l1);
 		if (gf_list_count(l2) != count) return 0;
 		for (i=0; i<count; i++) {
-			SMIL_Time *p1 = gf_list_get(l1, i);
-			SMIL_Time *p2 = gf_list_get(l2, i);
+			SMIL_Time *p1 = (SMIL_Time *)gf_list_get(l1, i);
+			SMIL_Time *p2 = (SMIL_Time *)gf_list_get(l2, i);
 			if (p1->type != p2->type) return 0;
 			if (p1->clock != p2->clock) return 0;
 			if (p1->type==GF_SMIL_TIME_EVENT) {
@@ -4124,16 +4124,16 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	}
 	case XMLEV_Event_datatype:
 	{
-		XMLEV_Event *d1 = f1->far_ptr;
-		XMLEV_Event *d2 = f2->far_ptr;
+		XMLEV_Event *d1 = (XMLEV_Event *)f1->far_ptr;
+		XMLEV_Event *d2 = (XMLEV_Event *)f2->far_ptr;
 		if (d1->type != d2->type) return 0;
 		if (d1->parameter != d2->parameter) return 0;
 		return 1;
 	}
 	case LASeR_Size_datatype:
 	{
-		LASeR_Size *sz1 = f1->far_ptr;
-		LASeR_Size *sz2 = f2->far_ptr;
+		LASeR_Size *sz1 = (LASeR_Size *)f1->far_ptr;
+		LASeR_Size *sz2 = (LASeR_Size *)f2->far_ptr;
 		if (sz1->width != sz2->width) return 0;
 		if (sz1->height != sz2->height) return 0;
 		return 1;
@@ -4214,8 +4214,8 @@ static GF_Err svg_points_muladd(Fixed alpha, SVG_Points *a, Fixed beta, SVG_Poin
 	gf_list_reset(*c);
 	for (i = 0; i < a_count; i ++) {
 		SVG_Point *ptc;
-		SVG_Point *pta = gf_list_get(*a, i);
-		SVG_Point *ptb = gf_list_get(*b, i);
+		SVG_Point *pta = (SVG_Point *)gf_list_get(*a, i);
+		SVG_Point *ptb = (SVG_Point *)gf_list_get(*b, i);
 		GF_SAFEALLOC(ptc, SVG_Point)
 		svg_point_muladd(alpha, pta, beta, ptb, ptc);
 		gf_list_add(*c, ptc);
@@ -4230,14 +4230,14 @@ static GF_Err svg_points_copy(SVG_Points *a, SVG_Points *b)
 
 	count = gf_list_count(*a);
 	for (i = 0; i < count; i++) {
-		SVG_Point *pt = gf_list_get(*a, i);
+		SVG_Point *pt = (SVG_Point *)gf_list_get(*a, i);
 		free(pt);
 	}
 	gf_list_reset(*a);
 	
 	count = gf_list_count(*b);
 	for (i = 0; i < count; i ++) {
-		SVG_Point *ptb = gf_list_get(*b, i);
+		SVG_Point *ptb = (SVG_Point *)gf_list_get(*b, i);
 		SVG_Point *pta;
 		GF_SAFEALLOC(pta, SVG_Point)
 		*pta = *ptb;
@@ -4257,8 +4257,8 @@ static GF_Err svg_numbers_muladd(Fixed alpha, SVG_Numbers *a, Fixed beta, SVG_Nu
 	gf_list_reset(*c);
 	for (i = 0; i < a_count; i ++) {
 		SVG_Number *nc;
-		SVG_Number *na = gf_list_get(*a, i);
-		SVG_Number *nb = gf_list_get(*b, i);
+		SVG_Number *na = (SVG_Number *)gf_list_get(*a, i);
+		SVG_Number *nb = (SVG_Number *)gf_list_get(*b, i);
 		GF_SAFEALLOC(nc, SVG_Number)
 		svg_number_muladd(alpha, na, beta, nb, nc);
 		gf_list_add(*c, nc);
@@ -4272,7 +4272,7 @@ static GF_Err svg_numbers_copy(SVG_Numbers *a, SVG_Numbers *b)
 
 	count = gf_list_count(*a);
 	for (i = 0; i < count; i++) {
-		SVG_Coordinate *c = gf_list_get(*a, i);
+		SVG_Coordinate *c = (SVG_Coordinate *)gf_list_get(*a, i);
 		free(c);
 	}
 	gf_list_reset(*a);
@@ -4306,24 +4306,24 @@ static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_Path
 #endif
 
 	while (gf_list_count(c->commands)) {
-		u8 *command = gf_list_last(c->commands);
+		u8 *command = (u8 *)gf_list_last(c->commands);
 		free(command);
 		gf_list_rem_last(c->commands);
 	}
 	while (gf_list_count(c->points)) {
-		SVG_Point *pt = gf_list_last(c->points);
+		SVG_Point *pt = (SVG_Point *)gf_list_last(c->points);
 		free(pt);
 		gf_list_rem_last(c->points);
 	}
 	
 	for (i = 0; i < ccount; i++) {
-		u8 *nc = malloc(sizeof(u8));
+		u8 *nc = (u8 *)malloc(sizeof(u8));
 		*nc = *(u8*)gf_list_get(a->commands, i);
 		gf_list_add(c->commands, nc);
 	}
 	for (i = 0; i < pcount; i++) {
-		SVG_Point *pta = gf_list_get(a->points, i);
-		SVG_Point *ptb = gf_list_get(b->points, i);
+		SVG_Point *pta = (SVG_Point *)gf_list_get(a->points, i);
+		SVG_Point *ptb = (SVG_Point *)gf_list_get(b->points, i);
 		SVG_Point *ptc;
 		GF_SAFEALLOC(ptc, SVG_Point)
 		svg_point_muladd(alpha, pta, beta, ptb, ptc);
@@ -4337,20 +4337,20 @@ static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
 	u32 i, count;
 	count = gf_list_count(a->commands);
 	for (i = 0; i < count; i++) {
-		u8 *command = gf_list_get(a->commands, i);
+		u8 *command = (u8 *)gf_list_get(a->commands, i);
 		free(command);
 	}
 	gf_list_reset(a->commands);
 	count = gf_list_count(a->points);
 	for (i = 0; i < count; i++) {
-		SVG_Point *pt = gf_list_get(a->points, i);
+		SVG_Point *pt = (SVG_Point *)gf_list_get(a->points, i);
 		free(pt);
 	}
 	gf_list_reset(a->points);
 	
 	count = gf_list_count(b->commands);
 	for (i = 0; i < count; i ++) {
-		u8 *nc = malloc(sizeof(u8));
+		u8 *nc = (u8 *)malloc(sizeof(u8));
 		*nc = *(u8*)gf_list_get(b->commands, i);
 		gf_list_add(a->commands, nc);
 	}
@@ -4383,7 +4383,7 @@ static GF_Err svg_dasharray_copy(SVG_StrokeDashArray *a, SVG_StrokeDashArray *b)
 {
 	a->type = b->type;
 	a->array.count = b->array.count;
-	a->array.vals = malloc(sizeof(Fixed)*a->array.count);
+	a->array.vals = (Fixed*)malloc(sizeof(Fixed)*a->array.count);
 	memcpy(a->array.vals, b->array.vals, sizeof(Fixed)*a->array.count);
 	return GF_OK;
 }
@@ -4429,7 +4429,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 
 	/* Numeric types */
 	case SVG_Color_datatype:
-		return svg_color_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr, clamp);
+		return svg_color_muladd(alpha, (SVG_Color*)a->far_ptr, beta, (SVG_Color*)b->far_ptr, (SVG_Color*)c->far_ptr, clamp);
 
 	case SVG_Paint_datatype:
 		{
@@ -4448,41 +4448,41 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	case SVG_FontSize_datatype:
-		return svg_number_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+		return svg_number_muladd(alpha, (SVG_Number*)a->far_ptr, beta, (SVG_Number*)b->far_ptr, (SVG_Number*)c->far_ptr);
 
 	case SVG_ViewBox_datatype:
-		return svg_viewbox_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+		return svg_viewbox_muladd(alpha, (SVG_ViewBox*)a->far_ptr, beta, (SVG_ViewBox*)b->far_ptr, (SVG_ViewBox*)c->far_ptr);
 
 	case SVG_Points_datatype:
-		return svg_points_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+		return svg_points_muladd(alpha, (GF_List **)a->far_ptr, beta, (GF_List **)b->far_ptr, (GF_List **)c->far_ptr);
 
 	case SVG_Numbers_datatype:
 	case SVG_Coordinates_datatype:
-		return svg_numbers_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+		return svg_numbers_muladd(alpha, (GF_List **)a->far_ptr, beta, (GF_List **)b->far_ptr, (GF_List **)c->far_ptr);
 
 	case SVG_PathData_datatype:
-		return svg_path_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+		return svg_path_muladd(alpha, (SVG_PathData*)a->far_ptr, beta, (SVG_PathData*)b->far_ptr, (SVG_PathData*)c->far_ptr);
 
 	case SVG_StrokeDashArray_datatype:
-		return svg_dasharray_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+		return svg_dasharray_muladd(alpha, (SVG_StrokeDashArray*)a->far_ptr, beta, (SVG_StrokeDashArray*)b->far_ptr, (SVG_StrokeDashArray*)c->far_ptr);
 
 	case SVG_Motion_datatype:
-		return svg_matrix_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+		return svg_matrix_muladd(alpha, (SVG_Matrix*)a->far_ptr, beta, (SVG_Matrix*)b->far_ptr, (SVG_Matrix*)c->far_ptr);
 
 	case SVG_Matrix_datatype:
 		if (!b->eventType) {
 			/* a, b and c are full matrices */
-			return svg_matrix_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+			return svg_matrix_muladd(alpha, (SVG_Matrix*)a->far_ptr, beta, (SVG_Matrix*)b->far_ptr, (SVG_Matrix*)c->far_ptr);
 		} else {
 			if (a->eventType) {
 				/* a, b and c are not matrices */
 				switch (b->eventType) {
 				case SVG_TRANSFORM_TRANSLATE:
 				case SVG_TRANSFORM_SCALE:
-					svg_point_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+					svg_point_muladd(alpha, (SVG_Point*)a->far_ptr, beta, (SVG_Point*)b->far_ptr, (SVG_Point*)c->far_ptr);
 					break;
 				case SVG_TRANSFORM_ROTATE:
-					svg_point_angle_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+					svg_point_angle_muladd(alpha, (SVG_Point_Angle*)a->far_ptr, beta, (SVG_Point_Angle*)b->far_ptr, (SVG_Point_Angle*)c->far_ptr);
 					break;
 				case SVG_TRANSFORM_SKEWX:
 				case SVG_TRANSFORM_SKEWY:
@@ -4520,7 +4520,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] copy of attributes %s not supported\n", a->name));
 					return GF_NOT_SUPPORTED;
 				}
-				gf_mx2d_add_matrix(&tmp, a->far_ptr);
+				gf_mx2d_add_matrix(&tmp, (GF_Matrix2D*)a->far_ptr);
 				gf_mx2d_copy(*(GF_Matrix2D *)c->far_ptr, tmp);
 			}
 			return GF_OK;
@@ -4529,24 +4529,24 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	{
 		u32 len;
 		char *res;
-		SVG_String *s_a = a->far_ptr;
-		SVG_String *s_b = b->far_ptr;
+		SVG_String *s_a = (SVG_String *)a->far_ptr;
+		SVG_String *s_b = (SVG_String *)b->far_ptr;
 		u32 len_a = strlen(*s_a);
 		u32 len_b = strlen(*s_b);
 		len_a = FIX2INT(alpha * len_a);
 		len_b = FIX2INT(beta * len_b);
 		len = len_a + len_b + 1;
-		res = malloc(sizeof(char) * len);
+		res = (char*)malloc(sizeof(char) * len);
 		memcpy(res, *s_a, len_a);
 		memcpy(res+len_a, *s_b, len_b);
 		res[len-1] = 0;
-		s_a = c->far_ptr;
+		s_a = (SVG_String*)c->far_ptr;
 		if (*s_a) free(*s_a);
 		*s_a = res;
 	}
 		break;
 	case LASeR_Size_datatype:
-		laser_size_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+		laser_size_muladd(alpha, (LASeR_Size*)a->far_ptr, beta, (LASeR_Size*)b->far_ptr, (LASeR_Size*)c->far_ptr);
 		break;
 
 	/* Keyword types */
@@ -4652,17 +4652,17 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		break;
 
 	case SVG_Points_datatype:
-		return svg_points_copy(a->far_ptr, b->far_ptr);
+		return svg_points_copy((GF_List**)a->far_ptr, (GF_List**)b->far_ptr);
 
 	case SVG_Numbers_datatype:
 	case SVG_Coordinates_datatype:
-		return svg_numbers_copy(a->far_ptr, b->far_ptr);
+		return svg_numbers_copy((GF_List**)a->far_ptr, (GF_List**)b->far_ptr);
 
 	case SVG_PathData_datatype:
-		return svg_path_copy(a->far_ptr, b->far_ptr);
+		return svg_path_copy((SVG_PathData*)a->far_ptr, (SVG_PathData*)b->far_ptr);
 
 	case SVG_StrokeDashArray_datatype:
-		return svg_dasharray_copy(a->far_ptr, b->far_ptr);
+		return svg_dasharray_copy((SVG_StrokeDashArray*)a->far_ptr, (SVG_StrokeDashArray*)b->far_ptr);
 
 	case SVG_Motion_datatype:
 		gf_mx2d_copy(*(SVG_Matrix *)a->far_ptr, *(SVG_Matrix *)b->far_ptr);
@@ -4746,7 +4746,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SVG_LanguageID_datatype:
 	case SVG_ContentType_datatype:
 	case SVG_String_datatype:
-		a->far_ptr = strdup((u8 *)b->far_ptr);
+		a->far_ptr = strdup((char *)b->far_ptr);
 		return GF_OK;
 
 	case SVG_FontFamily_datatype:
@@ -4766,7 +4766,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		if (((SVG_IRI *)a->far_ptr)->type == SVG_IRI_ELEMENTID) {
 			GF_Node *n = (GF_Node *) ((SVG_IRI *)b->far_ptr)->target;
 			/*TODO Check if assigning IRI from # scenegraph can happen*/
-			if (n) gf_svg_register_iri(gf_node_get_graph(n), a->far_ptr);
+			if (n) gf_svg_register_iri(gf_node_get_graph(n), (SVG_IRI*)a->far_ptr);
 		}
 		return GF_OK;
 	

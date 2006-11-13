@@ -31,12 +31,12 @@ static void mpa12_do_flush(GP_RTPPacketizer *builder, Bool start_new)
 	u32 tmp_size;
 	/*flush*/
 	if (builder->pck_hdr) {
-		gf_bs_get_content(builder->pck_hdr, (unsigned char **) &tmp, &tmp_size);
+		gf_bs_get_content(builder->pck_hdr, &tmp, &tmp_size);
 		builder->OnData(builder->cbk_obj, tmp, tmp_size, 1);
 		free(tmp);
 
 		if (gf_bs_get_size(builder->payload)) {
-			gf_bs_get_content(builder->payload, (unsigned char **) &tmp, &tmp_size);
+			gf_bs_get_content(builder->payload, &tmp, &tmp_size);
 			builder->OnData(builder->cbk_obj, tmp, tmp_size, 0);
 			free(tmp);
 		}
@@ -87,7 +87,7 @@ static GF_Err gp_rtp_builder_do_mpeg12Audio(GP_RTPPacketizer *builder, char *dat
 		if (builder->OnDataReference) 
 			builder->OnDataReference(builder->cbk_obj, pck_size, offset);
 		else
-			gf_bs_write_data(builder->payload, (unsigned char *) data + offset, pck_size);
+			gf_bs_write_data(builder->payload, data + offset, pck_size);
 
 		data_size -= pck_size;
 		builder->bytesInPacket += pck_size;

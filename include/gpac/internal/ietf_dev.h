@@ -276,7 +276,7 @@ GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort);
 /*check connection status*/
 GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess);
 /*send data on RTSP*/
-GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, unsigned char *buffer, u32 Size);
+GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, char *buffer, u32 Size);
 
 /* 
 			Common RTSP tools

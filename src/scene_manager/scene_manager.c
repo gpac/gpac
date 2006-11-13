@@ -61,6 +61,7 @@ Bool gf_node_in_table(GF_Node *node, u32 NDTType)
 }
 
 
+GF_EXPORT
 GF_SceneManager *gf_sm_new(GF_SceneGraph *graph)
 {
 	GF_SceneManager *tmp;
@@ -72,13 +73,14 @@ GF_SceneManager *gf_sm_new(GF_SceneGraph *graph)
 	return tmp;
 }
 
+GF_EXPORT
 GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamType, u8 objectType)
 {
 	u32 i;
 	GF_StreamContext *tmp;
 
 	i=0;
-	while ((tmp = gf_list_enum(ctx->streams, &i))) {
+	while ((tmp = (GF_StreamContext*)gf_list_enum(ctx->streams, &i))) {
 		/*we MUST use the same ST*/
 		if (tmp->streamType!=streamType) continue;
 		/*if no ESID/OTI specified this is a base layer (default stream created by parsers)
@@ -90,8 +92,7 @@ GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamTyp
 		}
 	}
 	
-	tmp = malloc(sizeof(GF_StreamContext));
-	memset(tmp , 0, sizeof(GF_StreamContext));
+	GF_SAFEALLOC(tmp, GF_StreamContext);
 	tmp->AUs = gf_list_new();
 	tmp->ESID = ES_ID;
 	tmp->streamType = streamType;
@@ -107,7 +108,7 @@ GF_StreamContext *gf_sm_stream_find(GF_SceneManager *ctx, u16 ES_ID)
 	if (!ES_ID) return NULL;
 	count = gf_list_count(ctx->streams);
 	for (i=0; i<count; i++) {
-		GF_StreamContext *tmp = gf_list_get(ctx->streams, i);
+		GF_StreamContext *tmp = (GF_StreamContext *)gf_list_get(ctx->streams, i);
 		if (tmp->ESID==ES_ID) return tmp;
 	}
 	return NULL;
@@ -115,7 +116,7 @@ GF_StreamContext *gf_sm_stream_find(GF_SceneManager *ctx, u16 ES_ID)
 static void gf_sm_delete_stream(GF_StreamContext *sc)
 {
 	while (gf_list_count(sc->AUs)) {
-		GF_AUContext *au = gf_list_last(sc->AUs);
+		GF_AUContext *au = (GF_AUContext *)gf_list_last(sc->AUs);
 		gf_list_rem_last(sc->AUs);
 
 		while (gf_list_count(au->commands)) {
@@ -137,6 +138,7 @@ static void gf_sm_delete_stream(GF_StreamContext *sc)
 	free(sc);
 }
 
+GF_EXPORT
 void gf_sm_stream_del(GF_SceneManager *ctx, GF_StreamContext *sc)
 {
 	if (gf_list_del_item(ctx->streams, sc)>=0) {
@@ -144,11 +146,12 @@ void gf_sm_stream_del(GF_SceneManager *ctx, GF_StreamContext *sc)
 	}
 }
 
+GF_EXPORT
 void gf_sm_del(GF_SceneManager *ctx)
 {
 	u32 count;
 	while ( (count = gf_list_count(ctx->streams)) ) {
-		GF_StreamContext *sc = gf_list_get(ctx->streams, count-1);
+		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, count-1);
 		gf_list_rem(ctx->streams, count-1);
 		gf_sm_delete_stream(sc);
 	}
@@ -158,6 +161,7 @@ void gf_sm_del(GF_SceneManager *ctx)
 }
 
 
+GF_EXPORT
 GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double time_sec, Bool isRap)
 {
 	u32 i;
@@ -165,13 +169,13 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 
 	/*look for existing AU*/
 	i=0;
-	while ((tmp = gf_list_enum(stream->AUs, &i))) {
+	while ((tmp = (GF_AUContext *)gf_list_enum(stream->AUs, &i))) {
 		if (timing && (tmp->timing==timing)) return tmp;
 		else if (time_sec && (tmp->timing_sec == time_sec)) return tmp;
 		else if (!time_sec && !timing && !tmp->timing && !tmp->timing_sec) return tmp;
 		/*insert AU*/
 		else if ((time_sec && time_sec<tmp->timing_sec) || (timing && timing<tmp->timing)) {
-			tmp = malloc(sizeof(GF_AUContext));
+			tmp = (GF_AUContext *)malloc(sizeof(GF_AUContext));
 			tmp->commands = gf_list_new();
 			tmp->is_rap = isRap;
 			tmp->timing = timing;
@@ -181,7 +185,7 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 			return tmp;
 		}
 	}
-	tmp = malloc(sizeof(GF_AUContext));
+	tmp = (GF_AUContext *)malloc(sizeof(GF_AUContext));
 	tmp->commands = gf_list_new();
 	tmp->is_rap = isRap;
 	tmp->timing = timing;
@@ -191,6 +195,7 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 	return tmp;
 }
 
+GF_EXPORT
 GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 {
 	GF_Err e;
@@ -201,22 +206,22 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 	e = GF_OK;
 	stream_count = gf_list_count(ctx->streams);
 	for (i=0; i<stream_count; i++) {
-		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
+		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
 		/*FIXME - do this as well for ODs*/
 		if (sc->streamType == GF_STREAM_SCENE) {
 			/*apply all commands - this will also apply the SceneReplace*/
 			j=0;
-			while ((au = gf_list_enum(sc->AUs, &j))) {
+			while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
 				e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
 				if (e) return e;
 			}
 
 			/* Delete all the commands in the stream */
 			while ( (au_count = gf_list_count(sc->AUs)) ) {
-				au = gf_list_get(sc->AUs, au_count-1);
+				au = (GF_AUContext *)gf_list_get(sc->AUs, au_count-1);
 				gf_list_rem(sc->AUs, au_count-1);
 				while ( (com_count = gf_list_count(au->commands)) ) {
-					com = gf_list_get(au->commands, com_count - 1);
+					com = (GF_Command*)gf_list_get(au->commands, com_count - 1);
 					gf_list_rem(au->commands, com_count - 1);
 					gf_sg_command_del(com);
 				}
@@ -331,6 +336,7 @@ static void gf_sm_load_done_string(GF_SceneLoader *load, Bool do_clean)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str, Bool do_clean)
 {
 	GF_Err e = gf_sm_load_init_from_string(load, str);
@@ -342,6 +348,7 @@ GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str, Bool do_clean)
 
 
 /*initializes the context loader*/
+GF_EXPORT
 GF_Err gf_sm_load_init(GF_SceneLoader *load)
 {
 	char *ext, szExt[50];
@@ -413,6 +420,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	return GF_NOT_SUPPORTED;
 }
 
+GF_EXPORT
 void gf_sm_load_done(GF_SceneLoader *load)
 {
 	switch (load->type) {
@@ -445,6 +453,7 @@ void gf_sm_load_done(GF_SceneLoader *load)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_sm_load_run(GF_SceneLoader *load)
 {
 	switch (load->type) {

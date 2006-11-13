@@ -45,7 +45,7 @@ static Bool check_in_scene(GF_InlineScene *scene, GF_ObjectManager *odm)
 	scene = root->subscene;
 
 	i=0;
-	while ((ptr = gf_list_enum(scene->ODlist, &i))) {
+	while ((ptr = (GF_ObjectManager *)gf_list_enum(scene->ODlist, &i))) {
 		if (ptr == odm) return 1;
 		if (check_in_scene(ptr->subscene, odm)) return 1;
 	}
@@ -162,7 +162,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 			info->buffer = -1;
 			buf = 0;
 			i=0;
-			while ((ch = gf_list_enum(odm->channels, &i))) {
+			while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 				info->db_unit_count += ch->AU_Count;
 				if (!ch->is_pulling) {
 					if (ch->MaxBuffer) info->buffer = 0;
@@ -243,7 +243,7 @@ Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_
 	if (odm->net_service->owner != odm) return 0;
 
 	if (*d_enum >= gf_list_count(odm->net_service->dnloads)) return 0;
-	sess = gf_list_get(odm->net_service->dnloads, *d_enum);
+	sess = (GF_DownloadSession*)gf_list_get(odm->net_service->dnloads, *d_enum);
 	if (!sess) return 0;
 	(*d_enum) ++;
 	gf_dm_sess_get_stats(sess, server, path, bytes_done, total_bytes, bytes_per_sec, NULL);
@@ -256,7 +256,7 @@ Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 
 	GF_NetworkCommand com;
 	if (!term || !odm || !gf_term_check_odm(term, odm)) return 0;
 	if (*d_enum >= gf_list_count(odm->channels)) return 0;
-	ch = gf_list_get(odm->channels, *d_enum);
+	ch = (GF_Channel*)gf_list_get(odm->channels, *d_enum);
 	if (!ch) return 0;
 	(*d_enum) ++;
 	if (ch->is_pulling) {
@@ -276,7 +276,7 @@ GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, NetInf
 {
 	GF_Err e;
 	GF_NetworkCommand com;
-	if (!term || !odm || !netinfo || !gf_term_check_odm(term, odm)) return 0;
+	if (!term || !odm || !netinfo || !gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_SERVICE_INFO;
 	e = gf_term_service_command(odm->net_service, &com);
@@ -293,10 +293,10 @@ const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od
 	info = NULL;
 	if (!scene_od) {
 		if (!term->root_scene) return NULL;
-		info = term->root_scene->world_info;
+		info = (GF_Node*)term->root_scene->world_info;
 	} else {
 		if (!gf_term_check_odm(term, scene_od)) return NULL;
-		info = (scene_od->subscene ? scene_od->subscene->world_info : scene_od->parentscene->world_info);
+		info = (GF_Node*) (scene_od->subscene ? scene_od->subscene->world_info : scene_od->parentscene->world_info);
 	}
 	if (!info) return NULL;
 	

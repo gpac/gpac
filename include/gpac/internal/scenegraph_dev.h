@@ -511,7 +511,10 @@ struct _protofield
 	char *FieldName;
 
 	/*default field value*/
-	void *default_value;
+	void *def_value;
+	
+	GF_Node *def_sfnode_value;
+	GF_List *def_mfnode_value;
 
 	/*for instanciation - if externProto dit not specify field val*/
 	u8 val_not_loaded;

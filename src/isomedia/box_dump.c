@@ -272,7 +272,7 @@ GF_Err gb_box_array_dump(GF_List *list, FILE * trace)
 	GF_Box *a;
 	if (!list) return GF_OK;
 	i=0;
-	while ((a = gf_list_enum(list, &i))) {
+	while ((a = (GF_Box *)gf_list_enum(list, &i))) {
 		gb_box_dump(a, trace);
 	}
 	return GF_OK;
@@ -280,6 +280,7 @@ GF_Err gb_box_array_dump(GF_List *list, FILE * trace)
 
 
 
+GF_EXPORT
 GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 {
 	GF_Err gb_box_dump(void *ptr, FILE * trace);
@@ -294,7 +295,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 	fprintf(trace, "<IsoMediaFile Name=\"%s\">\n", mov->fileName);
 
 	i=0;
-	while ((box = gf_list_enum(mov->TopBoxes, &i))) {
+	while ((box = (GF_Box *)gf_list_enum(mov->TopBoxes, &i))) {
 		switch (box->type) {
 		case GF_ISOM_BOX_TYPE_FTYP:
 		case GF_ISOM_BOX_TYPE_MOOV:
@@ -602,7 +603,7 @@ GF_Err chpl_dump(GF_Box *a, FILE * trace)
 
 	count = gf_list_count(p->list);
 	for (i=0; i<count; i++) {
-		GF_ChapterEntry *ce = gf_list_get(p->list, i);
+		GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(p->list, i);
 		fprintf(trace, "<Chapter name=\"%s\" startTime=\"%s\" />\n", ce->name, format_duration(ce->start_time, 1000*10000, szDur));
 	}
 
@@ -705,7 +706,7 @@ void base_visual_entry_dump(GF_VisualSampleEntryBox *p, FILE * trace)
 
 	//dump reserved info
 	fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
-	if (strlen(p->compressor_name) )
+	if (strlen((const char*)p->compressor_name) )
 		fprintf(trace, " CompressorName=\"%s\"\n", p->compressor_name);
 
 }
@@ -821,7 +822,7 @@ GF_Err udta_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 
 	i=0;
-	while ((map = gf_list_enum(p->recordList, &i))) {
+	while ((map = (GF_UserDataMap *)gf_list_enum(p->recordList, &i))) {
 		fprintf(trace, "<UDTARecord Type=\"%s\">\n", gf_4cc_to_str(map->boxType));
 		gb_box_array_dump(map->boxList, trace);
 		fprintf(trace, "</UDTARecord>\n");
@@ -867,7 +868,7 @@ GF_Err stts_dump(GF_Box *a, FILE * trace)
 	gb_full_box_dump(a, trace);
 
 	i=0;
-	while ((t = gf_list_enum(p->entryList, &i))) {
+	while ((t = (GF_SttsEntry *)gf_list_enum(p->entryList, &i))) {
 		fprintf(trace, "<TimeToSampleEntry SampleDelta=\"%d\" SampleCount=\"%d\"/>\n", t->sampleDelta, t->sampleCount);
 	}
 	fprintf(trace, "</TimeToSampleBox>\n");
@@ -886,7 +887,7 @@ GF_Err ctts_dump(GF_Box *a, FILE * trace)
 	gb_full_box_dump(a, trace);
 
 	i=0;
-	while ((t = gf_list_enum(p->entryList, &i))) {
+	while ((t = (GF_DttsEntry *)gf_list_enum(p->entryList, &i))) {
 		fprintf(trace, "<CompositionOffsetEntry CompositionOffset=\"%d\" SampleCount=\"%d\"/>\n", t->decodingOffset, t->sampleCount);
 	}
 	fprintf(trace, "</CompositionOffsetBox>\n");
@@ -904,7 +905,7 @@ GF_Err stsh_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 	i=0;
-	while ((t = gf_list_enum(p->entries, &i))) {
+	while ((t = (GF_StshEntry *)gf_list_enum(p->entries, &i))) {
 		fprintf(trace, "<SyncShadowEntry ShadowedSample=\"%d\" SyncSample=\"%d\"/>\n", t->shadowedSampleNumber, t->syncSampleNumber);
 	}
 	fprintf(trace, "</SyncShadowBox>\n");
@@ -923,7 +924,7 @@ GF_Err elst_dump(GF_Box *a, FILE * trace)
 	gb_full_box_dump(a, trace);
 
 	i=0;
-	while ((t = gf_list_enum(p->entryList, &i))) {
+	while ((t = (GF_EdtsEntry *)gf_list_enum(p->entryList, &i))) {
 		fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%d\"/>\n", t->segmentDuration, t->mediaTime, t->mediaRate);
 	}
 	fprintf(trace, "</EditListBox>\n");
@@ -942,7 +943,7 @@ GF_Err stsc_dump(GF_Box *a, FILE * trace)
 	gb_full_box_dump(a, trace);
 
 	i=0;
-	while ((t = gf_list_enum(p->entryList, &i))) {
+	while ((t = (GF_StscEntry *)gf_list_enum(p->entryList, &i))) {
 		fprintf(trace, "<SampleToChunkEntry FirstChunk=\"%d\" SamplesPerChunk=\"%d\" SampleDescriptionIndex=\"%d\"/>\n", t->firstChunk, t->samplesPerChunk, t->sampleDescriptionIndex);
 	}
 	fprintf(trace, "</SampleToChunkBox>\n");
@@ -1254,7 +1255,7 @@ GF_Err stsf_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 
 	for (i=0; i<count; i++) {
-		ent = gf_list_get(p->entryList, i);
+		ent = (GF_StsfEntry *)gf_list_get(p->entryList, i);
 		fprintf(trace, "<SampleFragmentEntry SampleNumber=\"%d\" FragmentCount=\"%d\">\n", ent->SampleNumber, ent->fragmentCount);
 		for (j=0;j<ent->fragmentCount;j++) fprintf(trace, "<FragmentSizeEntry size=\"%d\"/>\n", ent->fragmentSizes[j]);
 		fprintf(trace, "</SampleFragmentEntry>\n");
@@ -1367,14 +1368,14 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 
 	count = gf_list_count(p->config->sequenceParameterSets);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *c = gf_list_get(p->config->sequenceParameterSets, i);
+		GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(p->config->sequenceParameterSets, i);
 		fprintf(trace, "<sequenceParameterSets size=\"%d\" content=\"", c->size);
 		DumpData(trace, c->data, c->size);
 		fprintf(trace, "\"/>\n");
 	}
 	count = gf_list_count(p->config->pictureParameterSets);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *c = gf_list_get(p->config->pictureParameterSets, i);
+		GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(p->config->pictureParameterSets, i);
 		fprintf(trace, "<pictureParameterSets size=\"%d\" content=\"", c->size);
 		DumpData(trace, c->data, c->size);
 		fprintf(trace, "\"/>\n");
@@ -1394,7 +1395,7 @@ GF_Err m4ds_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<MPEG4ExtensionDescriptorsBox>\n");
 
 	i=0;
-	while ((desc = gf_list_enum(p->descriptors, &i))) {
+	while ((desc = (GF_Descriptor *)gf_list_enum(p->descriptors, &i))) {
 		gf_odf_dump_desc(desc, trace, 1, 1);
 	}
 	DumpBox(a, trace);
@@ -1415,7 +1416,10 @@ GF_Err avc1_dump(GF_Box *a, FILE * trace)
 {
 	GF_AVCSampleEntryBox *p = (GF_AVCSampleEntryBox *)a;
 
-	fprintf(trace, "<AVCSampleEntryBox>\n");
+	fprintf(trace, "<AVCSampleEntryBox ");
+	base_visual_entry_dump((GF_VisualSampleEntryBox *)p, trace);
+	fprintf(trace, ">\n");
+
 	if (p->avc_config) gb_box_dump(p->avc_config, trace);
 	if (p->ipod_ext) gb_box_dump(p->ipod_ext, trace);
 	if (p->descr) gb_box_dump(p->descr, trace);
@@ -1663,11 +1667,11 @@ GF_Err iloc_dump(GF_Box *a, FILE * trace)
 	gb_full_box_dump(a, trace);
 	count = gf_list_count(p->location_entries);
 	for (i=0;i<count;i++) {
-		GF_ItemLocationEntry *ie = gf_list_get(p->location_entries, i);
+		GF_ItemLocationEntry *ie = (GF_ItemLocationEntry *)gf_list_get(p->location_entries, i);
 		count2 = gf_list_count(ie->extent_entries);
 		fprintf(trace, "<ItemLocationEntry item_ID=\"%d\" data_reference_index=\"%d\" base_offset=\""LLD"\" />\n", ie->item_ID, ie->data_reference_index, ie->base_offset);
 		for (j=0; j<count2; j++) {
-			GF_ItemExtentEntry *iee = gf_list_get(ie->extent_entries, j);
+			GF_ItemExtentEntry *iee = (GF_ItemExtentEntry *)gf_list_get(ie->extent_entries, j);
 			fprintf(trace, "<ItemExtentEntry extent_offset=\""LLD"\" extent_length=\""LLD"\" />\n", iee->extent_offset, iee->extent_length);
 		}
 	}
@@ -1685,7 +1689,7 @@ GF_Err imif_dump(GF_Box *a, FILE * trace)
 	gb_full_box_dump(a, trace);
 	count = gf_list_count(p->descriptors);
 	for (i=0; i<count; i++) {
-		GF_Descriptor *d = gf_list_get(p->descriptors, i);
+		GF_Descriptor *d = (GF_Descriptor *)gf_list_get(p->descriptors, i);
 		gf_odf_dump_desc(d, trace, 0, 1);
 	}
 	fprintf(trace, "</IPMPInfoBox>\n");
@@ -1704,7 +1708,7 @@ GF_Err ipmc_dump(GF_Box *a, FILE * trace)
 	if (p->ipmp_tools) gf_odf_dump_desc(p->ipmp_tools, trace, 0, 1);
 	count = gf_list_count(p->descriptors);
 	for (i=0; i<count; i++) {
-		GF_Descriptor *d = gf_list_get(p->descriptors, i);
+		GF_Descriptor *d = (GF_Descriptor *)gf_list_get(p->descriptors, i);
 		gf_odf_dump_desc(d, trace, 0, 1);
 	}
 	fprintf(trace, "</IPMPControlBox>\n");
@@ -1970,7 +1974,7 @@ GF_Err hnti_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 
 	i=0;
-	while ((ptr = gf_list_enum(p->boxList, &i))) {
+	while ((ptr = (GF_Box *)gf_list_enum(p->boxList, &i))) {
 		if (ptr->type !=GF_ISOM_BOX_TYPE_RTP) {
 			gb_box_dump(ptr, trace);
 		} else {
@@ -2140,7 +2144,7 @@ GF_Err trun_dump(GF_Box *a, FILE * trace)
 
 	if (p->flags & (GF_ISOM_TRUN_DURATION|GF_ISOM_TRUN_SIZE|GF_ISOM_TRUN_CTS_OFFSET|GF_ISOM_TRUN_FLAGS)) {
 		i=0;
-		while ((ent = gf_list_enum(p->entries, &i))) {
+		while ((ent = (GF_TrunEntry *)gf_list_enum(p->entries, &i))) {
 
 			fprintf(trace, "<TrackRunEntry");
 
@@ -2177,7 +2181,7 @@ GF_Err DTE_Dump(GF_List *dte, FILE * trace)
 
 	count = gf_list_count(dte);
 	for (i=0; i<count; i++) {
-		p = gf_list_get(dte, i);
+		p = (GF_GenericDTE *)gf_list_get(dte, i);
 		switch (p->source) {
 		case 0:
 			fprintf(trace, "<EmptyDataEntry/>\n");
@@ -2205,6 +2209,7 @@ GF_Err DTE_Dump(GF_List *dte, FILE * trace)
 }
 
 
+GF_EXPORT
 GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 SampleNum, FILE * trace)
 {
 	GF_ISOSample *tmp;
@@ -2247,7 +2252,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 	fprintf(trace, "<RTPHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%d\">\n", SampleNum, tmp->DTS, tmp->IsRAP, count);
 
 	for (i=0; i<count; i++) {
-		pck = gf_list_get(s->packetTable, i);
+		pck = (GF_RTPPacket *)gf_list_get(s->packetTable, i);
 
 		fprintf(trace, "<RTPHintPacket PacketNumber=\"%d\" P=\"%d\" X=\"%d\" M=\"%d\" PayloadType=\"%d\"", 
 			i+1,  pck->P_bit, pck->X_bit, pck->M_bit, pck->payloadType);
@@ -2359,7 +2364,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 
 	nb_descs = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
 	for (i=0; i<nb_descs; i++) {
-		GF_TextSampleEntryBox *txt = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, i);
+		GF_TextSampleEntryBox *txt = (GF_TextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, i);
 
 		fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
 		switch (txt->horizontal_justification) {
@@ -2445,11 +2450,11 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 			if ((txt->len>2) && ((unsigned char) txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) txt->text[1] == (unsigned char) 0xFF)) {
 				/*copy 2 more chars because the lib always add 2 '0' at the end for UTF16 end of string*/
 				memcpy((char *) utf16Line, txt->text+2, sizeof(char) * (txt->len));
-				len = gf_utf8_wcslen(utf16Line);
+				len = gf_utf8_wcslen((const u16*)utf16Line);
 			} else {
 				char *str;
 				str = txt->text;
-				len = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
+				len = gf_utf8_mbstowcs((u16*)utf16Line, 10000, (const char **) &str);
 			}
 			if (len != (u32) -1) {
 				utf16Line[len] = 0;
@@ -2505,7 +2510,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 			}
 		}
 		j=0;
-		while ((a = gf_list_enum(txt->others, &j))) {
+		while ((a = (GF_Box *)gf_list_enum(txt->others, &j))) {
 			switch (a->type) {
 			case GF_ISOM_BOX_TYPE_HLIT:
 				fprintf(dump, "<Highlight ");
@@ -2604,7 +2609,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		txt = gf_isom_parse_texte_sample(bs);
 		gf_bs_del(bs);
 
-		txtd = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, di-1);
+		txtd = (GF_TextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, di-1);
 
 		if (!txt->len) {
 			fprintf(dump, "\n");
@@ -2699,6 +2704,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, Bool srt_dump)
 {
 	if (srt_dump) return gf_isom_dump_srt_track(the_file, track, dump);
@@ -2840,7 +2846,7 @@ GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, u32 S
 	fprintf(trace, "IsEncrypted=\"%s\" ", (isma_samp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? "Yes" : "No");
 	if (isma_samp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
 		fprintf(trace, "IV=\""LLD"\" ", isma_samp->IV);
-		if (isma_samp->key_indicator) dump_data(trace, "KeyIndicator", isma_samp->key_indicator, isma_samp->KI_length);
+		if (isma_samp->key_indicator) dump_data(trace, "KeyIndicator", (char*)isma_samp->key_indicator, isma_samp->KI_length);
 	}
 	fprintf(trace, "/>\n");
 

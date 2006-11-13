@@ -47,7 +47,7 @@ typedef struct
 
 #define FAADCTX() FAADDec *ctx = (FAADDec *) ifcg->privateStack
 
-static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	GF_Err e;
 	GF_M4ADecSpecInfo a_cfg;
@@ -168,9 +168,9 @@ static s8 FAAD_GetChannelPos(FAADDec *ffd, u32 ch_cfg)
 }
 
 static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg, 
-		unsigned char *inBuffer, u32 inBufferLength,
+		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
-		unsigned char *outBuffer, u32 *outBufferLength,
+		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
 	void *buffer;
@@ -269,7 +269,7 @@ static const char *FAAD_GetCodecName(GF_BaseDecoder *ifcg)
 	return "FAAD2 " FAAD2_VERSION;
 }
 
-static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	GF_M4ADecSpecInfo a_cfg;
 	/*audio decs*/	

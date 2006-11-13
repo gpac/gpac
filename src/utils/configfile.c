@@ -49,6 +49,7 @@ struct __tag_config
 	Bool hasChanged;
 };
 
+GF_EXPORT
 GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 {
 	IniSection *p;
@@ -135,7 +136,7 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 	return tmp;
 }
 
-void DelSection(IniSection *ptr)
+static void DelSection(IniSection *ptr)
 {
 	IniKey *k;
 	if (!ptr) return;
@@ -152,7 +153,7 @@ void DelSection(IniSection *ptr)
 }
 
 
-GF_Err WriteIniFile(GF_Config *iniFile)
+static GF_Err WriteIniFile(GF_Config *iniFile)
 {
 	u32 i, j;
 	IniSection *sec;
@@ -178,6 +179,7 @@ GF_Err WriteIniFile(GF_Config *iniFile)
 	return GF_OK;
 }
 
+GF_EXPORT
 void gf_cfg_del(GF_Config *iniFile)
 {
 	IniSection *p;
@@ -195,12 +197,8 @@ void gf_cfg_del(GF_Config *iniFile)
 	free(iniFile);
 }
 
-char *IF_GetPath(GF_Config *iniFile)
-{
-	return iniFile->filePath;
-}
 
-
+GF_EXPORT
 const char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *keyName)
 {
 	u32 i;
@@ -223,6 +221,7 @@ get_key:
 
 
 
+GF_EXPORT
 GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue)
 {
 	u32 i;
@@ -273,16 +272,21 @@ set_value:
 	return GF_OK;
 }
 
+GF_EXPORT
 u32 gf_cfg_get_section_count(GF_Config *iniFile)
 {
 	return gf_list_count(iniFile->sections);
 }
+
+GF_EXPORT
 const char *gf_cfg_get_section_name(GF_Config *iniFile, u32 secIndex)
 {
 	IniSection *is = (IniSection *) gf_list_get(iniFile->sections, secIndex);
 	if (!is) return NULL;
 	return is->section_name;
 }
+
+GF_EXPORT
 u32 gf_cfg_get_key_count(GF_Config *iniFile, const char *secName)
 {
 	u32 i = 0;
@@ -293,6 +297,7 @@ u32 gf_cfg_get_key_count(GF_Config *iniFile, const char *secName)
 	return 0;
 }
 
+GF_EXPORT
 const char *gf_cfg_get_key_name(GF_Config *iniFile, const char *secName, u32 keyIndex)
 {
 	u32 i = 0;
@@ -306,6 +311,7 @@ const char *gf_cfg_get_key_name(GF_Config *iniFile, const char *secName, u32 key
 	return NULL;
 }
 
+GF_EXPORT
 GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue, u32 index)
 {
 	u32 i;

@@ -44,12 +44,12 @@ u32 payt_get_type(RTPClient *rtp, GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "MP4A-LATM")) {
 		GF_SDP_FMTP *fmtp;
 		i=0;
-		while ((fmtp = gf_list_enum(media->FMTP, &i))) {
+		while ((fmtp = (GF_SDP_FMTP *) gf_list_enum(media->FMTP, &i))) {
 			GF_X_Attribute *att;
 			if (fmtp->PayloadType != map->PayloadType) continue;
 			//this is our payload. check cpresent is 0
 			j=0;
-			while ((att = gf_list_enum(fmtp->Attributes, &j))) {
+			while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
 				if (!stricmp(att->Name, "cpresent") && atoi(att->Value)) return 0;
 			}
 		}
@@ -96,7 +96,7 @@ static GF_Err payt_set_param(RTPStream *ch, char *param_name, char *param_val)
 		}
 		if (ch->sl_map.config) free(ch->sl_map.config);
 		ch->sl_map.config = NULL;
-		gf_bs_get_content(bs, (unsigned char **) &ch->sl_map.config, &ch->sl_map.configSize);
+		gf_bs_get_content(bs, &ch->sl_map.config, &ch->sl_map.configSize);
 		gf_bs_del(bs);
 	}
 	/*mpeg4-generic payload type items required*/
@@ -178,12 +178,12 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 
 	/*then process all FMTPs*/
 	i=0;
-	while ((fmtp = gf_list_enum(media->FMTP, &i))) {
+	while ((fmtp = (GF_SDP_FMTP*)gf_list_enum(media->FMTP, &i))) {
 		GF_X_Attribute *att;
 		//we work with only one PayloadType for now
 		if (fmtp->PayloadType != map->PayloadType) continue;
 		j=0;
-		while ((att = gf_list_enum(fmtp->Attributes, &j))) {
+		while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
 			payt_set_param(ch, att->Name, att->Value);
 		}
 	}
@@ -232,7 +232,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		gf_bs_write_int(bs, cfg.base_sr_index, 4);
 		gf_bs_write_int(bs, cfg.nb_chan, 4);
 		gf_bs_align(bs);
-		gf_bs_get_content(bs, (unsigned char **) &ch->sl_map.config, &ch->sl_map.configSize);
+		gf_bs_get_content(bs, &ch->sl_map.config, &ch->sl_map.configSize);
 		gf_bs_del(bs);
 		ch->sl_map.StreamType = GF_STREAM_AUDIO;
 		ch->sl_map.ObjectTypeIndication = 0x40;
@@ -297,7 +297,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 				gf_bs_write_u32(bs, GF_4CC('s', 'a', 'w', 'b'));
 			}
 			gf_bs_write_int(bs, 0, 5*8);
-			gf_bs_get_content(bs, (unsigned char **) &ch->sl_map.config, &ch->sl_map.configSize);
+			gf_bs_get_content(bs, &ch->sl_map.config, &ch->sl_map.configSize);
 			gf_bs_del(bs);
 		}
 		break;
@@ -308,7 +308,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 			GF_BitStream *bs;
 			x = y = w = h = 0;
 			j=0;
-			while ((att = gf_list_enum(media->Attributes, &j))) {
+			while ((att = (GF_X_Attribute *)gf_list_enum(media->Attributes, &j))) {
 				if (stricmp(att->Name, "cliprect")) continue;
 				/*only get the display area*/
 				sscanf(att->Value, "%d,%d,%d,%d", &y, &x, &h, &w);
@@ -321,7 +321,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 			gf_bs_write_u32(bs, GF_4CC('h', '2', '6', '3'));
 			gf_bs_write_u16(bs, w);
 			gf_bs_write_u16(bs, h);
-			gf_bs_get_content(bs, (unsigned char **) &ch->sl_map.config, &ch->sl_map.configSize);
+			gf_bs_get_content(bs, &ch->sl_map.config, &ch->sl_map.configSize);
 			gf_bs_del(bs);
 			/*we signal RAPs*/
 			ch->sl_map.RandomAccessIndication = 1;
@@ -344,11 +344,11 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		tx3g = NULL;
 
 		i=0;
-		while ((fmtp = gf_list_enum(media->FMTP, &i))) {
+		while ((fmtp = (GF_SDP_FMTP*)gf_list_enum(media->FMTP, &i))) {
 			GF_X_Attribute *att;
 			if (fmtp->PayloadType != map->PayloadType) continue;
 			j=0;
-			while ((att = gf_list_enum(fmtp->Attributes, &j))) {
+			while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
 
 				if (!stricmp(att->Name, "width")) tcfg.text_width = atoi(att->Value);
 				else if (!stricmp(att->Name, "height")) tcfg.text_height = atoi(att->Value);
@@ -403,7 +403,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		gf_bs_write_u16(bs, tcfg.video_height);
 		gf_bs_write_u16(bs, tcfg.horiz_offset);
 		gf_bs_write_u16(bs, tcfg.vert_offset);
-		gf_bs_get_content(bs, (unsigned char **)&ch->sl_map.config, &ch->sl_map.configSize);
+		gf_bs_get_content(bs, &ch->sl_map.config, &ch->sl_map.configSize);
 		ch->sl_map.StreamType = GF_STREAM_TEXT;
 		ch->sl_map.ObjectTypeIndication = 0x08;
 		gf_bs_del(bs);
@@ -424,11 +424,11 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		ch->sl_map.RandomAccessIndication = 1;
 		/*rewrite sps and pps*/
 		i=0;
-		while ((fmtp = gf_list_enum(media->FMTP, &i))) {
+		while ((fmtp = (GF_SDP_FMTP*)gf_list_enum(media->FMTP, &i))) {
 			GF_X_Attribute *att;
 			if (fmtp->PayloadType != map->PayloadType) continue;
 			j=0;
-			while ((att = gf_list_enum(fmtp->Attributes, &j))) {
+			while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
 				char *nal_ptr;
 				if (stricmp(att->Name, "sprop-parameter-sets")) continue;
 
@@ -448,14 +448,14 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 						assert(idx);
 						b64size = idx;
 					}
-					b64_d = malloc(sizeof(char)*b64size);
+					b64_d = (char*)malloc(sizeof(char)*b64size);
 					ret = gf_base64_decode(nal_ptr, b64size, b64_d, b64size); 
 					b64_d[ret] = 0;
 					nalt = b64_d[0] & 0x1F;
 					if (/*SPS*/(nalt==0x07) || /*PPS*/(nalt==0x08)) {
-						GF_AVCConfigSlot *sl = malloc(sizeof(GF_AVCConfigSlot));
+						GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
 						sl->size = ret;
-						sl->data = malloc(sizeof(char)*sl->size);
+						sl->data = (char*)malloc(sizeof(char)*sl->size);
 						memcpy(sl->data, b64_d, sizeof(char)*sl->size);
 						if (nalt==0x07) {
 							gf_list_add(avcc->sequenceParameterSets, sl);
@@ -633,7 +633,7 @@ void RP_ParsePayloadMPEG4(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 s
 		if (ch->sl_hdr.accessUnitStartFlag && (ch->flags & RTP_M4V_CHECK_RAP)) {
 			u32 i;
 			Bool is_rap = 0;
-			unsigned char *pay = payload + pay_start;
+			unsigned char *pay = (unsigned char *) payload + pay_start;
 			i=0;
 			while (i<au_size-4) {
 				if (!pay[i] && !pay[i+1] && (pay[i+2]==1) && (pay[i+3]==0xB6)) {
@@ -899,14 +899,14 @@ void rtp_ttxt_flush(RTPStream *ch, u32 ts)
 	gf_bs_write_u8(bs, ch->sidx);
 	gf_bs_write_u24(bs, ch->sl_hdr.au_duration);
 	gf_bs_write_u16(bs, ch->txt_len);
-	gf_bs_get_content(bs, (unsigned char **)&data, &data_size);
+	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
 
 	gf_term_on_sl_packet(ch->owner->service, ch->channel, data, data_size, &ch->sl_hdr, GF_OK);
 	free(data);
 	ch->sl_hdr.accessUnitStartFlag = 0;
 	ch->sl_hdr.accessUnitEndFlag = 1;
-	gf_bs_get_content(ch->inter_bs, (unsigned char **)&data, &data_size);
+	gf_bs_get_content(ch->inter_bs, &data, &data_size);
 	gf_term_on_sl_packet(ch->owner->service, ch->channel, data, data_size, &ch->sl_hdr, GF_OK);
 	free(data);
 
@@ -1028,7 +1028,7 @@ static void rtp_avc_flush(RTPStream*ch, GF_RTPHeader *hdr, Bool missed_end)
 
 	data = NULL;
 	data_size = 0;
-	gf_bs_get_content(ch->inter_bs, (unsigned char **) &data, &data_size);
+	gf_bs_get_content(ch->inter_bs, &data, &data_size);
 	gf_bs_del(ch->inter_bs);
 	ch->inter_bs = NULL;
 	nal_s = data_size-4;

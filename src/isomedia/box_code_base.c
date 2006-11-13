@@ -121,7 +121,7 @@ void chpl_del(GF_Box *s)
 	GF_ChapterListBox *ptr = (GF_ChapterListBox *) s;
 	if (ptr == NULL) return;
 	while (gf_list_count(ptr->list)) {
-		GF_ChapterEntry *ce = gf_list_get(ptr->list, 0);
+		GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(ptr->list, 0);
 		if (ce->name) free(ce->name);
 		free(ce);
 		gf_list_rem(ptr->list, 0);
@@ -151,7 +151,7 @@ GF_Err chpl_Read(GF_Box *s,GF_BitStream *bs)
 		ce->start_time = gf_bs_read_u64(bs);
 		len = gf_bs_read_u8(bs);
 		if (len) {
-			ce->name = malloc(sizeof(char)*(len+1));
+			ce->name = (char *)malloc(sizeof(char)*(len+1));
 			gf_bs_read_data(bs, ce->name, len);
 			ce->name[len] = 0;
 		} else {
@@ -159,7 +159,7 @@ GF_Err chpl_Read(GF_Box *s,GF_BitStream *bs)
 		}
 
 		for (i=0;i<count; i++) {
-			GF_ChapterEntry *ace = gf_list_get(ptr->list, i);
+			GF_ChapterEntry *ace = (GF_ChapterEntry *) gf_list_get(ptr->list, i);
 			if (ace->start_time >= ce->start_time) {
 				gf_list_insert(ptr->list, ce, i);
 				ce = NULL;
@@ -188,7 +188,7 @@ GF_Err chpl_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, count);
 	for (i=0; i<count; i++) {
 		u32 len;
-		GF_ChapterEntry *ce = gf_list_get(ptr->list, i);
+		GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(ptr->list, i);
 		gf_bs_write_u64(bs, ce->start_time);
 		if (ce->name) {
 			len = strlen(ce->name); if (len>255) len = 255;
@@ -212,7 +212,7 @@ GF_Err chpl_Size(GF_Box *s)
 
 	count = gf_list_count(ptr->list);
 	for (i=0; i<count; i++) {
-		GF_ChapterEntry *ce = gf_list_get(ptr->list, i);
+		GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(ptr->list, i);
 		ptr->size += 9; /*64bit time stamp + 8bit str len*/
 		if (ce->name) ptr->size += strlen(ce->name);
 	}
@@ -249,7 +249,7 @@ GF_Err cprt_Read(GF_Box *s,GF_BitStream *bs)
 		u32 bytesToRead = (u32) ptr->size;
 		ptr->notice = (char*)malloc(bytesToRead * sizeof(char));
 		if (ptr->notice == NULL) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, (unsigned char *)ptr->notice, bytesToRead);
+		gf_bs_read_data(bs, ptr->notice, bytesToRead);
 	}
 	return GF_OK;
 }
@@ -290,7 +290,7 @@ GF_Err cprt_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_int(bs, 0, 15);
 	}
 	if (ptr->notice) {
-		gf_bs_write_data(bs, (unsigned char*)ptr->notice, (unsigned long)strlen(ptr->notice) + 1);
+		gf_bs_write_data(bs, ptr->notice, (unsigned long)strlen(ptr->notice) + 1);
 	}
 	return GF_OK;
 }
@@ -443,7 +443,7 @@ GF_Err url_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size) {
 		ptr->location = (char*)malloc((u32) ptr->size);
 		if (! ptr->location) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, (unsigned char*)ptr->location, (u32)ptr->size);
+		gf_bs_read_data(bs, ptr->location, (u32)ptr->size);
 	}
 	return GF_OK;
 }
@@ -472,7 +472,7 @@ GF_Err url_Write(GF_Box *s, GF_BitStream *bs)
 	//the flag set indicates we have a string (WE HAVE TO for URLs)
     if ( !(ptr->flags & 1)) {
 		if (ptr->location) {
-			gf_bs_write_data(bs, (unsigned char*)ptr->location, (u32)strlen(ptr->location) + 1);
+			gf_bs_write_data(bs, ptr->location, (u32)strlen(ptr->location) + 1);
 		}
 	}
 	return GF_OK;
@@ -518,7 +518,7 @@ GF_Err urn_Read(GF_Box *s, GF_BitStream *bs)
 	tmpName = (char*)malloc(sizeof(char) * to_read);
 	if (!tmpName) return GF_OUT_OF_MEM;
 	//get the data
-	gf_bs_read_data(bs, (unsigned char*)tmpName, to_read);
+	gf_bs_read_data(bs, tmpName, to_read);
 
 	//then get the break
 	i = 0;
@@ -580,10 +580,10 @@ GF_Err urn_Write(GF_Box *s, GF_BitStream *bs)
     if ( !(ptr->flags & 1)) {
 		//to check, the spec says: First name, then location
 		if (ptr->nameURN) {
-			gf_bs_write_data(bs, (unsigned char*)ptr->nameURN, (u32)strlen(ptr->nameURN) + 1);
+			gf_bs_write_data(bs, ptr->nameURN, (u32)strlen(ptr->nameURN) + 1);
 		}
 		if (ptr->location) {
-			gf_bs_write_data(bs, (unsigned char*)ptr->location, (u32)strlen(ptr->location) + 1);
+			gf_bs_write_data(bs, ptr->location, (u32)strlen(ptr->location) + 1);
 		}
 	}
 	return GF_OK;
@@ -625,7 +625,7 @@ GF_Err defa_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->data = (char*)malloc(bytesToRead);
 		if (ptr->data == NULL ) return GF_OUT_OF_MEM;
 		ptr->dataSize = bytesToRead;
-		gf_bs_read_data(bs, (unsigned char*)ptr->data, ptr->dataSize);
+		gf_bs_read_data(bs, ptr->data, ptr->dataSize);
 	}
 	return GF_OK;
 }
@@ -650,7 +650,7 @@ GF_Err defa_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
     if (ptr->data) {
-		gf_bs_write_data(bs, (unsigned char*)ptr->data, ptr->dataSize);
+		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
 	}
 	return GF_OK;
 }
@@ -688,7 +688,7 @@ GF_Err uuid_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->data = (char*)malloc(bytesToRead);
 		if (ptr->data == NULL ) return GF_OUT_OF_MEM;
 		ptr->dataSize = bytesToRead;
-		gf_bs_read_data(bs, (unsigned char*)ptr->data, ptr->dataSize);
+		gf_bs_read_data(bs, ptr->data, ptr->dataSize);
 	}
 	return GF_OK;
 }
@@ -714,7 +714,7 @@ GF_Err uuid_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
     if (ptr->data) {
-		gf_bs_write_data(bs, (unsigned char*)ptr->data, ptr->dataSize);
+		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
 	}
 	return GF_OK;
 }
@@ -1113,7 +1113,7 @@ GF_Err esds_Read(GF_Box *s, GF_BitStream *bs)
 		enc_desc = (char*)malloc(sizeof(char) * descSize);
 		if (!enc_desc) return GF_OUT_OF_MEM;
 		//get the payload
-		gf_bs_read_data(bs, (unsigned char*)enc_desc, descSize);
+		gf_bs_read_data(bs, enc_desc, descSize);
 		//send it to the OD Codec
 		e = gf_odf_desc_read(enc_desc, descSize, (GF_Descriptor **) &ptr->desc);
 		//OK, free our desc
@@ -1128,7 +1128,6 @@ GF_Err esds_Read(GF_Box *s, GF_BitStream *bs)
 					ptr->desc->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 					ptr->desc->slConfig->predefined = SLPredef_MP4;
 				} else if (ptr->desc->slConfig->predefined != SLPredef_MP4) {
-					GF_Err gf_odf_slc_set_pref(GF_SLConfig *sl);
 					ptr->desc->slConfig->predefined = SLPredef_MP4;
 					gf_odf_slc_set_pref(ptr->desc->slConfig);
 				}
@@ -1165,7 +1164,7 @@ GF_Err esds_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	e = gf_odf_desc_write((GF_Descriptor *)ptr->desc, &enc_desc, &descSize);
 	if (e) return e;
-	gf_bs_write_data(bs, (unsigned char*)enc_desc, descSize);
+	gf_bs_write_data(bs, enc_desc, descSize);
 	//free our buffer
 	free(enc_desc);
 	return GF_OK;
@@ -1204,7 +1203,7 @@ GF_Err free_Read(GF_Box *s, GF_BitStream *bs)
 	
 	if (bytesToRead) {
 		ptr->data = (char*)malloc(bytesToRead * sizeof(char));
-		gf_bs_read_data(bs, (unsigned char*)ptr->data, bytesToRead);
+		gf_bs_read_data(bs, ptr->data, bytesToRead);
 		ptr->dataSize = bytesToRead;
 	}
 	return GF_OK;
@@ -1228,7 +1227,7 @@ GF_Err free_Write(GF_Box *s, GF_BitStream *bs)
 	GF_FreeSpaceBox *ptr = (GF_FreeSpaceBox *)s;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	if (ptr->dataSize)	gf_bs_write_data(bs, (unsigned char*)ptr->data, ptr->dataSize);
+	if (ptr->dataSize)	gf_bs_write_data(bs, ptr->data, ptr->dataSize);
 	return GF_OK;
 }
 
@@ -1349,9 +1348,9 @@ GF_Err gnrm_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	ptr->type = GF_ISOM_BOX_TYPE_GNRM;
-	gf_bs_write_data(bs, (unsigned char*)ptr->reserved, 6);
+	gf_bs_write_data(bs, ptr->reserved, 6);
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
-	gf_bs_write_data(bs, (unsigned char*) ptr->data, ptr->data_size);
+	gf_bs_write_data(bs,  ptr->data, ptr->data_size);
 	return GF_OK;
 }
 
@@ -1403,7 +1402,7 @@ GF_Err gnrv_Write(GF_Box *s, GF_BitStream *bs)
 	ptr->type = GF_ISOM_BOX_TYPE_GNRV;
 
 	gf_isom_video_sample_entry_write((GF_VisualSampleEntryBox *)ptr, bs);
-	gf_bs_write_data(bs, (unsigned char*) ptr->data, ptr->data_size);
+	gf_bs_write_data(bs,  ptr->data, ptr->data_size);
 	return GF_OK;
 }
 
@@ -1457,7 +1456,7 @@ GF_Err gnra_Write(GF_Box *s, GF_BitStream *bs)
 	ptr->type = GF_ISOM_BOX_TYPE_GNRA;
 
 	gf_isom_audio_sample_entry_write((GF_AudioSampleEntryBox *)ptr, bs);
-	gf_bs_write_data(bs, (unsigned char*) ptr->data, ptr->data_size);
+	gf_bs_write_data(bs,  ptr->data, ptr->data_size);
 	return GF_OK;
 }
 
@@ -1494,12 +1493,12 @@ GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	ptr->reserved1 = gf_bs_read_u32(bs);
 	ptr->handlerType = gf_bs_read_u32(bs);
-	gf_bs_read_data(bs, ptr->reserved2, 12);
+	gf_bs_read_data(bs, (char*)ptr->reserved2, 12);
 	ptr->size -= 20;
 	if (ptr->size) {
 		ptr->nameUTF8 = (char*)malloc((u32) ptr->size);
 		if (ptr->nameUTF8 == NULL) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, (unsigned char*)ptr->nameUTF8, (u32) ptr->size);
+		gf_bs_read_data(bs, ptr->nameUTF8, (u32) ptr->size);
 		/*safety check in case the string is not null-terminated*/
 		if (ptr->nameUTF8[ptr->size-1]) {
 			char *str = (char*)malloc((u32) ptr->size + 1);
@@ -1534,8 +1533,8 @@ GF_Err hdlr_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	gf_bs_write_u32(bs, ptr->reserved1);
 	gf_bs_write_u32(bs, ptr->handlerType);
-	gf_bs_write_data(bs, ptr->reserved2, 12);
-	if (ptr->nameUTF8) gf_bs_write_data(bs, (unsigned char*)ptr->nameUTF8, strlen(ptr->nameUTF8));
+	gf_bs_write_data(bs, (char*)ptr->reserved2, 12);
+	if (ptr->nameUTF8) gf_bs_write_data(bs, ptr->nameUTF8, strlen(ptr->nameUTF8));
 	/*NULL-terminated string is written*/
 	gf_bs_write_u8(bs, 0);
 	return GF_OK;
@@ -1592,7 +1591,7 @@ GF_Err hinf_AddBox(GF_Box *s, GF_Box *a)
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_MAXR:
 		i=0;
-		while ((maxR = gf_list_enum(hinf->dataRates, &i))) {
+		while ((maxR = (GF_MAXRBox *)gf_list_enum(hinf->dataRates, &i))) {
 			if (maxR->granularity == ((GF_MAXRBox *)a)->granularity) return GF_ISOM_INVALID_FILE;
 		}
 		gf_list_add(hinf->dataRates, a);
@@ -1717,7 +1716,7 @@ void hnti_del(GF_Box *a)
 	GF_RTPBox *rtp;
 	GF_HintTrackInfoBox *ptr = (GF_HintTrackInfoBox *)a;
 	while (gf_list_count(ptr->boxList)) {
-		t = gf_list_get(ptr->boxList, 0);
+		t = (GF_Box*)gf_list_get(ptr->boxList, 0);
 		if (t->type != GF_ISOM_BOX_TYPE_RTP) {
 			gf_isom_box_del(t);
 		} else {
@@ -1775,7 +1774,7 @@ GF_Err hnti_Read(GF_Box *s, GF_BitStream *bs)
 			ptr->size-=a->size;
 		} else {
 			u32 sr;
-			rtp = malloc(sizeof(GF_RTPBox));
+			rtp = (GF_RTPBox*)malloc(sizeof(GF_RTPBox));
 			if (!rtp) return GF_OUT_OF_MEM;
 			rtp->size = gf_bs_read_u32(bs);
 			rtp->type = gf_bs_read_u32(bs);
@@ -1788,7 +1787,7 @@ GF_Err hnti_Read(GF_Box *s, GF_BitStream *bs)
 			if (rtp->subType != GF_ISOM_BOX_TYPE_SDP) return GF_NOT_SUPPORTED;
 			if (rtp->size < sr) return GF_ISOM_INVALID_FILE;
 			length = (u32) (rtp->size - sr);
-			rtp->sdpText = malloc(sizeof(char) * (length + 1));
+			rtp->sdpText = (char*)malloc(sizeof(char) * (length + 1));
 			if (!rtp->sdpText) {
 				free(rtp);
 				return GF_OUT_OF_MEM;
@@ -1821,7 +1820,7 @@ GF_Err hnti_Write(GF_Box *s, GF_BitStream *bs)
 
 	count = gf_list_count(ptr->boxList);
 	for (i = 0; i < count; i ++) {
-		a = gf_list_get(ptr->boxList, i);
+		a = (GF_Box*)gf_list_get(ptr->boxList, i);
 		if (a->type != GF_ISOM_BOX_TYPE_RTP) {
 			e = gf_isom_box_write(a, bs);
 			if (e) return e;
@@ -1854,7 +1853,7 @@ GF_Err hnti_Size(GF_Box *s)
 
 	count = gf_list_count(ptr->boxList);
 	for (i = 0; i < count; i ++) {
-		a = gf_list_get(ptr->boxList, i);
+		a = (GF_Box*)gf_list_get(ptr->boxList, i);
 		if (a->type != GF_ISOM_BOX_TYPE_RTP) {
 			e = gf_isom_box_size(a);
 			if (e) return e;
@@ -1891,7 +1890,7 @@ GF_Err sdp_Read(GF_Box *s, GF_BitStream *bs)
 
 	length = (u32) (ptr->size);
 	//sdp text has no delimiter !!!
-	ptr->sdpText = malloc(sizeof(char) * (length+1));
+	ptr->sdpText = (char*)malloc(sizeof(char) * (length+1));
 	if (!ptr->sdpText) return GF_OUT_OF_MEM;
 	
 	gf_bs_read_data(bs, ptr->sdpText, length);
@@ -2571,7 +2570,7 @@ GF_Err payt_Read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->payloadCode = gf_bs_read_u32(bs);
 	length = (u32) (ptr->size);
-	ptr->payloadString = malloc(sizeof(char) * length);
+	ptr->payloadString = (char*)malloc(sizeof(char) * length);
 	if (! ptr->payloadString) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->payloadString, length);
 	return GF_OK;
@@ -2628,7 +2627,7 @@ GF_Err name_Read(GF_Box *s, GF_BitStream *bs)
 	GF_NameBox *ptr = (GF_NameBox *)s;
 
 	length = (u32) (ptr->size);
-	ptr->string = malloc(sizeof(char) * length);
+	ptr->string = (char*)malloc(sizeof(char) * length);
 	if (! ptr->string) return GF_OUT_OF_MEM;
 
 	gf_bs_read_data(bs, ptr->string, length);
@@ -2687,7 +2686,7 @@ GF_Err iods_Read(GF_Box *s, GF_BitStream *bs)
 	//use the OD codec...
 	descSize = (u32) (ptr->size);
 	desc = (char*)malloc(sizeof(char) * descSize);
-	gf_bs_read_data(bs, (unsigned char*)desc, descSize);
+	gf_bs_read_data(bs, desc, descSize);
 	e = gf_odf_desc_read(desc, descSize, &ptr->descriptor);
 	//OK, free our desc
 	free(desc);
@@ -2720,7 +2719,7 @@ GF_Err iods_Write(GF_Box *s, GF_BitStream *bs)
 	//call our OD codec
 	e = gf_odf_desc_write(ptr->descriptor, &desc, &descSize);
 	if (e) return e;
-	gf_bs_write_data(bs, (unsigned char*)desc, descSize);
+	gf_bs_write_data(bs, desc, descSize);
 	//and free our stuff maybe!!
 	free(desc);
 	return GF_OK;
@@ -2781,7 +2780,7 @@ GF_Err mdat_Write(GF_Box *s, GF_BitStream *bs)
 	//make sure we have some data ...
 	//if not, we handle that independantly (edit files)
 	if (ptr->data) {
-		gf_bs_write_data(bs, (unsigned char*)ptr->data, (u32) ptr->dataSize);
+		gf_bs_write_data(bs, ptr->data, (u32) ptr->dataSize);
 	}
 	return GF_OK;
 }
@@ -3477,7 +3476,7 @@ GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
 GF_Err mp4a_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_MPEGAudioSampleEntryBox *ptr;
-	unsigned char *data;
+	char *data;
 	u32 i, size;
 	GF_Err e;
 	u64 pos;
@@ -3492,7 +3491,7 @@ GF_Err mp4a_Read(GF_Box *s, GF_BitStream *bs)
 	/*hack for some weird files (possibly recorded with live.com tools, needs further investigations)*/	
 	ptr = (GF_MPEGAudioSampleEntryBox *)s;
 	gf_bs_seek(bs, pos);
-	data = malloc(sizeof(char) * size);
+	data = (char*)malloc(sizeof(char) * size);
 	gf_bs_read_data(bs, data, size);
 	for (i=0; i<size-8; i++) {
 		if (GF_4CC(data[i+4], data[i+5], data[i+6], data[i+7]) == GF_ISOM_BOX_TYPE_ESDS) {
@@ -3508,7 +3507,7 @@ GF_Err mp4a_Read(GF_Box *s, GF_BitStream *bs)
 
 GF_Box *mp4a_New()
 {
-	GF_MPEGAudioSampleEntryBox *tmp = malloc(sizeof(GF_MPEGAudioSampleEntryBox));
+	GF_MPEGAudioSampleEntryBox *tmp = (GF_MPEGAudioSampleEntryBox *)malloc(sizeof(GF_MPEGAudioSampleEntryBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_MPEGAudioSampleEntryBox));
 	tmp->type = GF_ISOM_BOX_TYPE_MP4A;
@@ -3597,7 +3596,7 @@ GF_Err mp4s_AddBox(GF_Box *s, GF_Box *a)
 GF_Err mp4s_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_MPEGSampleEntryBox *ptr = (GF_MPEGSampleEntryBox *)s;
-	gf_bs_read_data(bs, (unsigned char*)ptr->reserved, 6);
+	gf_bs_read_data(bs, ptr->reserved, 6);
 	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
 	ptr->size -= 8;
 	return gf_isom_read_box_list(s, bs, mp4s_AddBox);
@@ -3630,7 +3629,7 @@ GF_Err mp4s_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	gf_bs_write_data(bs, (unsigned char*)ptr->reserved, 6);
+	gf_bs_write_data(bs, ptr->reserved, 6);
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
 	e = gf_isom_box_write((GF_Box *)ptr->esd, bs);
 	if (e) return e;
@@ -3916,7 +3915,7 @@ GF_Err mvhd_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	ptr->preferredRate = gf_bs_read_u32(bs);
 	ptr->preferredVolume = gf_bs_read_u16(bs);
-	gf_bs_read_data(bs, (unsigned char*)ptr->reserved, 10);
+	gf_bs_read_data(bs, ptr->reserved, 10);
 	ptr->matrixA = gf_bs_read_u32(bs);
 	ptr->matrixB = gf_bs_read_u32(bs);
 	ptr->matrixU = gf_bs_read_u32(bs);
@@ -3978,7 +3977,7 @@ GF_Err mvhd_Write(GF_Box *s, GF_BitStream *bs)
 	}
 	gf_bs_write_u32(bs, ptr->preferredRate);
 	gf_bs_write_u16(bs, ptr->preferredVolume);
-	gf_bs_write_data(bs, (unsigned char*)ptr->reserved, 10);
+	gf_bs_write_data(bs, ptr->reserved, 10);
 	gf_bs_write_u32(bs, ptr->matrixA);
 	gf_bs_write_u32(bs, ptr->matrixB);
 	gf_bs_write_u32(bs, ptr->matrixU);
@@ -4075,7 +4074,7 @@ GF_Err padb_Read(GF_Box *s,GF_BitStream *bs)
 
 	ptr->SampleCount = gf_bs_read_u32(bs);
 
-	ptr->padbits = malloc(sizeof(u8)*ptr->SampleCount);
+	ptr->padbits = (u8 *)malloc(sizeof(u8)*ptr->SampleCount);
 	for (i=0; i<ptr->SampleCount; i += 2) {
 		gf_bs_read_int(bs, 1);
 		if (i+1 < ptr->SampleCount) {
@@ -4443,8 +4442,6 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_Box *a;
 	//we need to parse DegPrior in a special way
-	GF_Err stdp_Read(GF_Box *s, GF_BitStream *bs);
-	GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs);
 	GF_SampleTableBox *ptr = (GF_SampleTableBox *)s;
 
 	while (ptr->size) {
@@ -5063,7 +5060,7 @@ GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs)
 		if (!p) return GF_OUT_OF_MEM;
 		p->SampleNumber = gf_bs_read_u32(bs);
 		p->fragmentCount = gf_bs_read_u32(bs);
-		p->fragmentSizes = malloc(sizeof(GF_StsfEntry) * p->fragmentCount);
+		p->fragmentSizes = (u16*)malloc(sizeof(GF_StsfEntry) * p->fragmentCount);
 		for (i=0; i<p->fragmentCount; i++) {
 			p->fragmentSizes[i] = gf_bs_read_u16(bs);
 		}
@@ -5134,7 +5131,7 @@ GF_Err stsf_Size(GF_Box *s)
 	entryCount = gf_list_count(ptr->entryList);
 	ptr->size += 4;
 	for (i=0;i<entryCount; i++) {
-		p = gf_list_get(ptr->entryList, i);
+		p = (GF_StsfEntry *)gf_list_get(ptr->entryList, i);
 		ptr->size += 8 + 2*p->fragmentCount;
 	}
 	return GF_OK;
@@ -5148,7 +5145,7 @@ void stsh_del(GF_Box *s)
 	GF_StshEntry *ent;
 	GF_ShadowSyncBox *ptr = (GF_ShadowSyncBox *)s;
 	if (ptr == NULL) return;
-	while ( (ent = gf_list_enum(ptr->entries, &i)) ) {
+	while ( (ent = (GF_StshEntry *)gf_list_enum(ptr->entries, &i)) ) {
 		free(ent);
 	}
 	gf_list_del(ptr->entries);
@@ -5208,7 +5205,7 @@ GF_Err stsh_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	gf_bs_write_u32(bs, gf_list_count(ptr->entries));
 	i=0;
-	while ((ent = gf_list_enum(ptr->entries, &i))) {
+	while ((ent = (GF_StshEntry *)gf_list_enum(ptr->entries, &i))) {
 		gf_bs_write_u32(bs, ent->shadowedSampleNumber);
 		gf_bs_write_u32(bs, ent->syncSampleNumber);
 	}
@@ -5522,7 +5519,7 @@ void stts_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->entryList) {
 		u32 i=0;
-		while ((ent = gf_list_enum(ptr->entryList, &i))) {
+		while ((ent = (GF_SttsEntry *)gf_list_enum(ptr->entryList, &i))) {
 			free(ent);
 		}
 		gf_list_del(ptr->entryList);
@@ -5596,7 +5593,7 @@ GF_Err stts_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	gf_bs_write_u32(bs, gf_list_count(ptr->entryList));
 	i=0;
-	while ((ent = gf_list_enum(ptr->entryList, &i))) {
+	while ((ent = (GF_SttsEntry *)gf_list_enum(ptr->entryList, &i))) {
 		gf_bs_write_u32(bs, ent->sampleCount);
 		gf_bs_write_u32(bs, ent->sampleDelta);
 	}
@@ -6004,7 +6001,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 	u64 read;
 
 	i=0;
-	while ((a = gf_list_enum(trak->Media->information->sampleTable->SampleDescription->boxList, &i))) {
+	while ((a = (GF_UnknownBox*)gf_list_enum(trak->Media->information->sampleTable->SampleDescription->boxList, &i))) {
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_MP4S:
 		case GF_ISOM_BOX_TYPE_ENCS:
@@ -6038,7 +6035,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *) genv, bs);
 			genv->data_size = (u32) gf_bs_available(bs);
 			if (genv->data_size) {
-				genv->data = malloc(sizeof(char) * genv->data_size);
+				genv->data = (char*)malloc(sizeof(char) * genv->data_size);
 				gf_bs_read_data(bs, genv->data, genv->data_size);
 			}
 			gf_bs_del(bs);
@@ -6056,7 +6053,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			gf_isom_audio_sample_entry_read((GF_AudioSampleEntryBox *) gena, bs);
 			gena->data_size = (u32) gf_bs_available(bs);
 			if (gena->data_size) {
-				gena->data = malloc(sizeof(char) * gena->data_size);
+				gena->data = (char*)malloc(sizeof(char) * gena->data_size);
 				gf_bs_read_data(bs, gena->data, gena->data_size);
 			}
 			gf_bs_del(bs);
@@ -6077,7 +6074,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			genm->dataReferenceIndex = gf_bs_read_u16(bs);
 			genm->data_size = (u32) gf_bs_available(bs);
 			if (genm->data_size) {
-				genm->data = malloc(sizeof(char) * genm->data_size);
+				genm->data = (char*)malloc(sizeof(char) * genm->data_size);
 				gf_bs_read_data(bs, genm->data, genm->data_size);
 			}
 			gf_bs_del(bs);
@@ -6462,7 +6459,7 @@ void trun_del(GF_Box *s)
 	if (ptr == NULL) return;
 	
 	while (gf_list_count(ptr->entries)) {
-		p = gf_list_get(ptr->entries, 0);
+		p = (GF_TrunEntry*)gf_list_get(ptr->entries, 0);
 		gf_list_rem(ptr->entries, 0);
 		free(p);
 	}
@@ -6566,7 +6563,7 @@ GF_Err trun_Write(GF_Box *s, GF_BitStream *bs)
 	//if nothing to do, this will be skipped automatically
 	count = gf_list_count(ptr->entries);
 	for (i=0; i<count; i++) {
-		p = gf_list_get(ptr->entries, i);
+		p = (GF_TrunEntry*)gf_list_get(ptr->entries, i);
 
 		if (ptr->flags & GF_ISOM_TRUN_DURATION) {
 			gf_bs_write_u32(bs, p->Duration);
@@ -6603,7 +6600,7 @@ GF_Err trun_Size(GF_Box *s)
 	//if nothing to do, this will be skipped automatically
 	count = gf_list_count(ptr->entries);
 	for (i=0; i<count; i++) {
-		p = gf_list_get(ptr->entries, i);
+		p = (GF_TrunEntry*)gf_list_get(ptr->entries, i);
 		if (ptr->flags & GF_ISOM_TRUN_DURATION) ptr->size += 4;
 		if (ptr->flags & GF_ISOM_TRUN_SIZE) ptr->size += 4;
 		//SHOULDN'T BE USED IF GF_ISOM_TRUN_FIRST_FLAG IS DEFINED
@@ -6674,7 +6671,7 @@ void udta_del(GF_Box *s)
 	GF_UserDataBox *ptr = (GF_UserDataBox *)s;
 	if (ptr == NULL) return;
 	i=0;
-	while ((map = gf_list_enum(ptr->recordList, &i))) {
+	while ((map = (GF_UserDataMap *)gf_list_enum(ptr->recordList, &i))) {
 		gf_isom_box_array_del(map->boxList);
 		free(map);
 	}
@@ -6687,7 +6684,7 @@ GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 box_type, bin128 *uuid)
 	u32 i;
 	GF_UserDataMap *map;
 	i=0;
-	while ((map = gf_list_enum(ptr->recordList, &i))) {
+	while ((map = (GF_UserDataMap *)gf_list_enum(ptr->recordList, &i))) {
 		if (map->boxType == box_type) {
 			if ((box_type != GF_ISOM_BOX_TYPE_UUID) || !uuid) return map;
 			if (!memcmp(map->uuid, *uuid, 16)) return map;
@@ -6775,7 +6772,7 @@ GF_Err udta_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	i=0;
-	while ((map = gf_list_enum(ptr->recordList, &i))) {
+	while ((map = (GF_UserDataMap *)gf_list_enum(ptr->recordList, &i))) {
 		//warning: here we are not passing the actual "parent" of the list
 		//but the UDTA box. The parent itself is not an box, we don't care about it
 		e = gf_isom_box_array_write(s, map->boxList, bs);
@@ -6794,7 +6791,7 @@ GF_Err udta_Size(GF_Box *s)
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
 	i=0;
-	while ((map = gf_list_enum(ptr->recordList, &i))) {
+	while ((map = (GF_UserDataMap *)gf_list_enum(ptr->recordList, &i))) {
 		//warning: here we are not passing the actual "parent" of the list
 		//but the UDTA box. The parent itself is not an box, we don't care about it
 		e = gf_isom_box_array_size(s, map->boxList);
@@ -6934,8 +6931,8 @@ GF_Err pdin_Read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	ptr->count = (u32) (ptr->size) / 8;
-	ptr->rates = malloc(sizeof(u32)*ptr->count);
-	ptr->times = malloc(sizeof(u32)*ptr->count);
+	ptr->rates = (u32*)malloc(sizeof(u32)*ptr->count);
+	ptr->times = (u32*)malloc(sizeof(u32)*ptr->count);
 	for (i=0; i<ptr->count; i++) {
 		ptr->rates[i] = gf_bs_read_u32(bs);
 		ptr->times[i] = gf_bs_read_u32(bs);
@@ -7006,7 +7003,7 @@ GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs)
 	/*out-of-order sdtp, assume no padding at the end*/
 	if (!ptr->sampleCount) ptr->sampleCount = (u32) (ptr->size - 8);
 	ptr->sample_info = (u8 *) malloc(sizeof(u8)*ptr->sampleCount);
-	gf_bs_read_data(bs, ptr->sample_info, ptr->sampleCount);
+	gf_bs_read_data(bs, (char*)ptr->sample_info, ptr->sampleCount);
 	ptr->size -= ptr->sampleCount;
 	return GF_OK;
 }
@@ -7020,7 +7017,7 @@ GF_Err sdtp_Write(GF_Box *s, GF_BitStream *bs)
 	GF_SampleDependencyTypeBox *ptr = (GF_SampleDependencyTypeBox *)s;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_data(bs, ptr->sample_info, ptr->sampleCount);
+	gf_bs_write_data(bs, (char*)ptr->sample_info, ptr->sampleCount);
 	return GF_OK;
 }
 

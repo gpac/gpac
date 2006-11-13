@@ -62,8 +62,8 @@ static void RenderILS2D(GF_Node *node, void *rs)
 {
 	DrawableContext *ctx;
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
-	Drawable *cs = gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
 	if (!ils2D->coord) return;
 
@@ -210,7 +210,7 @@ static void ILS2D_Draw(DrawableContext *ctx)
 			if (grad) {
 				r2d->stencil_set_vertex_path(grad, path);
 
-				colors = malloc(sizeof(u32) * num_col);
+				colors = (u32*)malloc(sizeof(u32) * num_col);
 				for (j=0; j<num_col; j++) {
 					if (ils2D->colorIndex.count>0) {
 						col = color->color.vals[ils2D->colorIndex.vals[col_ind+j]];

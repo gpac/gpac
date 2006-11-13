@@ -26,9 +26,9 @@
 
 GF_Clock *NewClock(GF_Terminal *term)
 {
-	GF_Clock *tmp = malloc(sizeof(GF_Clock));
+	GF_Clock *tmp;
+	GF_SAFEALLOC(tmp, GF_Clock);
 	if (!tmp) return NULL;
-	memset(tmp, 0, sizeof(GF_Clock));
 	tmp->mx = gf_mx_new();
 	tmp->term = term;
 	tmp->speed = FIX_ONE;
@@ -47,7 +47,7 @@ GF_Clock *gf_clock_find(GF_List *Clocks, u16 clockID, u16 ES_ID)
 	u32 i;
 	GF_Clock *tmp;
 	i=0;
-	while ((tmp = gf_list_enum(Clocks, &i))) {
+	while ((tmp = (GF_Clock *)gf_list_enum(Clocks, &i))) {
 		//first check the clock ID
 		if (tmp->clockID == clockID) return tmp;
 		//then check the ES ID
@@ -65,14 +65,14 @@ GF_Clock *CK_LookForClockDep(struct _inline_scene *is, u16 clockID)
 
 	/*check in top OD*/
 	i=0;
-	while ((ch = gf_list_enum(is->root_od->channels, &i))) {
+	while ((ch = (GF_Channel*)gf_list_enum(is->root_od->channels, &i))) {
 		if (ch->esd->ESID == clockID) return ch->clock;
 	}
 	/*check in sub ODs*/
 	j=0;
-	while ((odm = gf_list_enum(is->ODlist, &j))) {
+	while ((odm = (GF_ObjectManager*)gf_list_enum(is->ODlist, &j))) {
 		i=0;
-		while ((ch = gf_list_enum(odm->channels, &i))) {
+		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 			if (ch->esd->ESID == clockID) return ch->clock;
 		}
 	}
@@ -90,7 +90,7 @@ void CK_ResolveClockDep(GF_List *clocks, struct _inline_scene *is, GF_Clock *ck,
 	/*check all channels - if any is using a clock which ID is the clock_ESID then
 	this clock shall be removed*/
 	i=0;
-	while ((ch = gf_list_enum(is->root_od->channels, &i))) {
+	while ((ch = (GF_Channel*)gf_list_enum(is->root_od->channels, &i))) {
 		if (ch->clock->clockID == Clock_ESID) {
 			if (is->scene_codec && is->scene_codec->ck == ch->clock) is->scene_codec->ck = ck;
 			if (is->od_codec && is->od_codec->ck == ch->clock) is->od_codec->ck = ck;
@@ -100,9 +100,9 @@ void CK_ResolveClockDep(GF_List *clocks, struct _inline_scene *is, GF_Clock *ck,
 		}
 	}
 	j=0;
-	while ((odm = gf_list_enum(is->ODlist, &j))) {
+	while ((odm = (GF_ObjectManager*)gf_list_enum(is->ODlist, &j))) {
 		i=0;
-		while ((ch = gf_list_enum(odm->channels, &i))) {
+		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 			if (ch->clock->clockID == Clock_ESID) {
 				if (odm->codec && (odm->codec->ck==ch->clock)) odm->codec->ck = ck;
 				if (odm->oci_codec && (odm->oci_codec->ck==ch->clock)) odm->oci_codec->ck = ck;
@@ -113,7 +113,7 @@ void CK_ResolveClockDep(GF_List *clocks, struct _inline_scene *is, GF_Clock *ck,
 	}
 	/*destroy clock*/
 	i=0;
-	while ((clock = gf_list_enum(clocks, &i))) {
+	while ((clock = (GF_Clock*)gf_list_enum(clocks, &i))) {
 		if (clock->clockID == Clock_ESID) {
 			gf_list_rem(clocks, i-1);
 			gf_clock_del(clock);

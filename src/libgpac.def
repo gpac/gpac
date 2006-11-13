@@ -671,6 +671,8 @@ EXPORTS
 	gf_term_download_del
 	gf_term_download_update_stats
 	gf_term_scene_update
+	gf_term_get_screen_buffer
+	gf_term_release_screen_buffer
 
 ;ietf.h exports
 	gf_rtsp_nc_to_string

@@ -28,6 +28,7 @@
 #define MAX_RTP_SN	0x10000
 
 
+GF_EXPORT
 GF_RTPChannel *gf_rtp_new()
 {
 	GF_RTPChannel *tmp;
@@ -38,6 +39,7 @@ GF_RTPChannel *gf_rtp_new()
 	return tmp;
 }
 
+GF_EXPORT
 void gf_rtp_del(GF_RTPChannel *ch)
 {
 	if (!ch) return;
@@ -62,6 +64,7 @@ void gf_rtp_del(GF_RTPChannel *ch)
 
 
 
+GF_EXPORT
 GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, char *remote_address)
 {
 	if (!ch || !trans_info) return GF_BAD_PARAM;
@@ -94,6 +97,7 @@ GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, c
 }
 
 
+GF_EXPORT
 void gf_rtp_reset_buffers(GF_RTPChannel *ch)
 {
 	if (ch->rtp) gf_sk_reset(ch->rtp);
@@ -105,6 +109,7 @@ void gf_rtp_reset_buffers(GF_RTPChannel *ch)
 }
 
 
+GF_EXPORT
 GF_Err gf_rtp_set_info_rtp(GF_RTPChannel *ch, u32 seq_num, u32 rtp_time, u32 ssrc)
 {
 	if (!ch) return GF_BAD_PARAM;
@@ -120,6 +125,7 @@ GF_Err gf_rtp_set_info_rtp(GF_RTPChannel *ch, u32 seq_num, u32 rtp_time, u32 ssr
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u32 PathMTU, u32 ReorederingSize, u32 MaxReorderDelay, char *local_interface_ip)
 {
 	GF_Err e;
@@ -213,7 +219,6 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		if (!ch->rtp) {
 			ch->CName = strdup("mpeg4rtp");
 		} else {
-			void gf_get_user_name(char *buf, u32 buf_size);
 			char name[GF_MAX_IP_NAME_LEN];
 
 			s32 start;
@@ -225,6 +230,13 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			ch->CName = strdup(name);
 		}
 	}
+	
+
+#ifndef GPAC_DISABLE_LOG
+	if ((gf_log_get_level() >= (GF_LOG_DEBUG)) && (gf_log_get_tools() & (GF_LOG_RTP)))  {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Packet Log Format: SSRC SequenceNumber TimeStamp NTP@recvTime deviance, Jiter, PckLost PckTotal BytesTotal\n"));
+	}
+#endif
 	
 	return GF_OK;
 }
@@ -261,6 +273,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch)
 }
 
 
+GF_EXPORT
 u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 {
 	GF_Err e;
@@ -270,7 +283,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 	//only if the socket exist (otherwise RTSP interleaved channel)
 	if (!ch || !ch->rtp) return 0;
 
-	e = gf_sk_receive(ch->rtp, (unsigned char *)buffer, buffer_size, 0, &res);
+	e = gf_sk_receive(ch->rtp, buffer, buffer_size, 0, &res);
 	if (!res || e || (res < 12)) res = 0;
 
 	//add the packet to our Queue if any
@@ -291,6 +304,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 }
 
 
+GF_EXPORT
 GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart)
 {
 	GF_Err e;
@@ -387,8 +401,8 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP]\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
 									ch->SenderSSRC,
-									rtp_hdr->TimeStamp,
 									rtp_hdr->SequenceNumber,
+									rtp_hdr->TimeStamp,
 									ntp,
 									delta,
 									ch->Jitter >> 4,
@@ -408,6 +422,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 }
 
 
+GF_EXPORT
 Double gf_rtp_get_current_time(GF_RTPChannel *ch)
 {
 	Double ret;
@@ -423,6 +438,7 @@ Double gf_rtp_get_current_time(GF_RTPChannel *ch)
 
 
 
+GF_EXPORT
 GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_header, u32 extra_header_size, char *pck, u32 pck_size)
 {
 	GF_Err e;
@@ -440,7 +456,7 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_
 	//we don't support multiple CSRC now. Only one source (the server) is allowed
 	if (rtp_hdr->CSRCCount) return GF_NOT_SUPPORTED;
 
-	bs = gf_bs_new((unsigned char *)ch->send_buffer, ch->send_buffer_size, GF_BITSTREAM_WRITE);
+	bs = gf_bs_new(ch->send_buffer, ch->send_buffer_size, GF_BITSTREAM_WRITE);
 	
 	//write header
 	gf_bs_write_int(bs, rtp_hdr->Version, 2);
@@ -467,7 +483,7 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_
 	}
 	//payload
 	memcpy(ch->send_buffer + Start, pck, pck_size);
-	e = gf_sk_send(ch->rtp, (unsigned char *)ch->send_buffer, Start + pck_size);
+	e = gf_sk_send(ch->rtp, ch->send_buffer, Start + pck_size);
 	if (e) return e;
 
 	//Update RTCP for sender reports
@@ -488,24 +504,28 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_
 	return GF_OK;
 }
 
+GF_EXPORT
 u32 gf_rtp_is_unicast(GF_RTPChannel *ch)
 {
 	if (!ch) return 0;
 	return ch->net_info.IsUnicast;
 }
 
+GF_EXPORT
 u32 gf_rtp_is_interleaved(GF_RTPChannel *ch)
 {
 	if (!ch || !ch->net_info.Profile) return 0;
 	return ch->net_info.IsInterleaved;
 }
 
+GF_EXPORT
 u32 gf_rtp_get_clockrate(GF_RTPChannel *ch)
 {
 	if (!ch || !ch->TimeScale) return 0;
 	return ch->TimeScale;
 }
 
+GF_EXPORT
 u32 gf_rtp_is_active(GF_RTPChannel *ch)
 {
 	if (!ch) return 0;
@@ -513,12 +533,14 @@ u32 gf_rtp_is_active(GF_RTPChannel *ch)
 	return 1;
 }
 
+GF_EXPORT
 u8 gf_rtp_get_low_interleave_id(GF_RTPChannel *ch)
 {
 	if (!ch || !ch->net_info.IsInterleaved) return 0;
 	return ch->net_info.rtpID;
 }
 
+GF_EXPORT
 u8 gf_rtp_get_hight_interleave_id(GF_RTPChannel *ch)
 {
 	if (!ch || !ch->net_info.IsInterleaved) return 0;
@@ -530,6 +552,7 @@ u8 gf_rtp_get_hight_interleave_id(GF_RTPChannel *ch)
 
 static u16 NextAvailablePort = RTP_DEFAULT_FIRSTPORT;
 
+GF_EXPORT
 GF_Err gf_rtp_set_ports(GF_RTPChannel *ch)
 {
 	u32 retry;
@@ -562,6 +585,7 @@ GF_Err gf_rtp_set_ports(GF_RTPChannel *ch)
 }
 
 
+GF_EXPORT
 GF_Err gf_rtp_setup_payload(GF_RTPChannel *ch, GF_RTPMap *map)
 {
 	if (!ch || !map) return GF_BAD_PARAM;
@@ -570,12 +594,14 @@ GF_Err gf_rtp_setup_payload(GF_RTPChannel *ch, GF_RTPMap *map)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_RTSPTransport *gf_rtp_get_transport(GF_RTPChannel *ch)
 {
 	if (!ch) return NULL;
 	return &ch->net_info;
 }
 
+GF_EXPORT
 u32 gf_rtp_get_local_ssrc(GF_RTPChannel *ch)
 {
 	if (!ch) return 0;
@@ -592,17 +618,20 @@ u32 gf_rtp_get_local_ssrc(GF_RTPChannel *ch)
 	"#RTCP-RR StreamSSRC Jitter ExtendedSeqNum ExpectDiff LossDiff NTP\n"
 #endif
 
+GF_EXPORT
 Float gf_rtp_get_loss(GF_RTPChannel *ch)
 {
 	if (!ch->tot_num_pck_expected) return 0.0f;
 	return 100.0f - (100.0f * ch->tot_num_pck_rcv) / ch->tot_num_pck_expected;
 }
 
+GF_EXPORT
 u32 gf_rtp_get_tcp_bytes_sent(GF_RTPChannel *ch)
 {
 	return ch->rtcp_bytes_sent;
 }
 
+GF_EXPORT
 void gf_rtp_get_ports(GF_RTPChannel *ch, u16 *rtp_port, u16 *rtcp_port)
 {
 	*rtp_port = ch->net_info.client_port_first;

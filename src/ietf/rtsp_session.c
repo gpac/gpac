@@ -107,6 +107,7 @@ found:
 
 
 //create a new GF_RTSPSession from URL - DO NOT USE WITH SDP
+GF_EXPORT
 GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort)
 {
 	GF_RTSPSession *sess;
@@ -142,6 +143,7 @@ GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort)
 }
 
 
+GF_EXPORT
 void gf_rtsp_reset_aggregation(GF_RTSPSession *sess)
 {
 	if (!sess) return;
@@ -172,6 +174,7 @@ void RemoveTCPChannels(GF_RTSPSession *sess)
 }
 
 
+GF_EXPORT
 void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 {
 	gf_mx_p(sess->mx);
@@ -190,7 +193,7 @@ void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 	
 	sess->RTSP_State = GF_RTSP_STATE_INIT;
 	sess->CSeq = sess->NbPending = 0;
-	sess->InterID = -1;
+	sess->InterID = (u8) -1;
 	sess->pck_start = sess->payloadSize = 0;
 	sess->CurrentPos = sess->CurrentSize = 0;
 	strcpy(sess->RTSPLastRequest, "");
@@ -198,6 +201,7 @@ void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 	gf_mx_v(sess->mx);
 }
 
+GF_EXPORT
 void gf_rtsp_session_del(GF_RTSPSession *sess)
 {
 	if (!sess) return;
@@ -214,6 +218,7 @@ void gf_rtsp_session_del(GF_RTSPSession *sess)
 	free(sess);
 }
 
+GF_EXPORT
 u32 gf_rtsp_get_session_state(GF_RTSPSession *sess)
 {
 	u32 state;
@@ -225,6 +230,7 @@ u32 gf_rtsp_get_session_state(GF_RTSPSession *sess)
 	return state;
 }
 
+GF_EXPORT
 char *gf_rtsp_get_last_request(GF_RTSPSession *sess)
 {
 	char *ret;
@@ -238,6 +244,7 @@ char *gf_rtsp_get_last_request(GF_RTSPSession *sess)
 
 //check whether the url contains server and service name
 //no thread protection as this is const throughout the session
+GF_EXPORT
 u32 gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url)
 {
 	if (!sess) return 0;
@@ -247,6 +254,7 @@ u32 gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url)
 	return 0;
 }
 
+GF_EXPORT
 char *gf_rtsp_get_session_id(GF_RTSPSession *sess)
 {
 	char *sessID;
@@ -257,18 +265,21 @@ char *gf_rtsp_get_session_id(GF_RTSPSession *sess)
 	return sessID;
 }
 
+GF_EXPORT
 char *gf_rtsp_get_server_name(GF_RTSPSession *sess)
 {
 	if (!sess) return NULL;
 	return sess->Server;
 }
 
+GF_EXPORT
 char *gf_rtsp_get_service_name(GF_RTSPSession *sess)
 {
 	if (!sess) return NULL;
 	return sess->Service;
 }
 
+GF_EXPORT
 u16 gf_rtsp_get_session_port(GF_RTSPSession *sess)
 {
 	return (sess ? sess->Port : 0);
@@ -300,7 +311,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 }
 
 
-GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, unsigned char *buffer, u32 Size)
+GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, char *buffer, u32 Size)
 {
 	GF_Err e;
 	u32 Size64;
@@ -310,7 +321,7 @@ GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, unsigned char *buffer, u32 Size)
 
 	//RTSP requests on HTTP are base 64 encoded
 	if (sess->HasTunnel) {
-		unsigned char buf64[3000];
+		char buf64[3000];
 		Size64 = gf_base64_encode(buffer, Size, buf64, 3000);
 		buf64[Size64] = 0;
 		//send on http connection
@@ -411,7 +422,7 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 		}
 		sess->payloadSize = 0;
 		sess->pck_start = 0;
-		sess->InterID = -1;
+		sess->InterID = (u8) -1;
 		sess->CurrentPos += res;
 		assert(sess->CurrentPos <= sess->CurrentSize);
 	}
@@ -444,7 +455,7 @@ GF_Err RTSP_ResetInterleaving(GF_RTSPSession *sess, Bool ResetChannels)
 	gf_mx_p(sess->mx);
 	sess->payloadSize = 0;
 	sess->pck_start = 0;
-	sess->InterID = -1;
+	sess->InterID = (u8) -1;
 	if (ResetChannels) RemoveTCPChannels(sess);
 	gf_mx_v(sess->mx);
 	
@@ -452,6 +463,7 @@ GF_Err RTSP_ResetInterleaving(GF_RTSPSession *sess, Bool ResetChannels)
 }
 
 
+GF_EXPORT
 GF_Err gf_rtsp_session_read(GF_RTSPSession *sess)
 {
 	GF_Err e;
@@ -471,6 +483,7 @@ GF_Err gf_rtsp_session_read(GF_RTSPSession *sess)
 }
 
 
+GF_EXPORT
 u32 gf_rtsp_unregister_interleave(GF_RTSPSession *sess, u8 LowInterID)
 {
 	GF_TCPChan *ptr;
@@ -482,6 +495,7 @@ u32 gf_rtsp_unregister_interleave(GF_RTSPSession *sess, u8 LowInterID)
 	return gf_list_count(sess->TCPChannels);
 }
 
+GF_EXPORT
 GF_Err gf_rtsp_register_interleave(GF_RTSPSession *sess, void *the_ch, u8 LowInterID, u8 HighInterID)
 {
 	GF_TCPChan *ptr;
@@ -503,6 +517,7 @@ GF_Err gf_rtsp_register_interleave(GF_RTSPSession *sess, void *the_ch, u8 LowInt
 }
 
 
+GF_EXPORT
 GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess,
 						GF_Err (*SignalData)(GF_RTSPSession *sess, void *chan, char *buffer, u32 bufferSize, Bool IsRTCP)
 				)
@@ -527,6 +542,7 @@ GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess,
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_rtsp_set_buffer_size(GF_RTSPSession *sess, u32 BufferSize)
 {
 	if (!sess) return GF_BAD_PARAM;
@@ -586,11 +602,11 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	pos += sprintf(buffer + pos, "Cache-Control: no-cache\r\n\r\n" );	
 	
 	//	send it!
-	e = gf_sk_send_wait(sess->connection, (unsigned char *)buffer, strlen(buffer), HTTP_WAIT_SEC);
+	e = gf_sk_send_wait(sess->connection, buffer, strlen(buffer), HTTP_WAIT_SEC);
 	if (e) return e;
 	
 	//	2. wait for "HTTP/1.0 200 OK"
-	e = gf_sk_receive_wait(sess->connection, (unsigned char *)buffer, GF_RTSP_DEFAULT_BUFFER, 0, &size, HTTP_WAIT_SEC);
+	e = gf_sk_receive_wait(sess->connection, buffer, GF_RTSP_DEFAULT_BUFFER, 0, &size, HTTP_WAIT_SEC);
 	if (e) return e;
 	
 	//get HTTP/1.0 200 OK
@@ -614,7 +630,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	pos += sprintf(buffer + pos, "Expires: Sun. 9 Jan 1972 00:00:00 GMT\r\n\r\n");
  
 	//	send it!
-	e = gf_sk_send_wait(sess->http, (unsigned char *)buffer, strlen(buffer), HTTP_WAIT_SEC);
+	e = gf_sk_send_wait(sess->http, buffer, strlen(buffer), HTTP_WAIT_SEC);
 	
 	return e;
 }
@@ -625,6 +641,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 static u32 SessionID_RandInit = 0;
 
 
+GF_EXPORT
 GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener)
 {
 	GF_RTSPSession *sess;
@@ -670,6 +687,7 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener)
 }
 
 
+GF_EXPORT
 GF_Err gf_rtsp_load_service_name(GF_RTSPSession *sess, char *URL)
 {
 	char server[1024], service[1024];
@@ -694,6 +712,7 @@ GF_Err gf_rtsp_load_service_name(GF_RTSPSession *sess, char *URL)
 }
 
 
+GF_EXPORT
 GF_Err gf_rtsp_set_session_id(GF_RTSPSession *sess, char *your_custom_id)
 {
 	u32 one, two;
@@ -724,6 +743,7 @@ GF_Err gf_rtsp_set_session_id(GF_RTSPSession *sess, char *your_custom_id)
 }
 
 
+GF_EXPORT
 GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char *buffer)
 {
 	if (!sess || !sess->connection) return GF_BAD_PARAM;
@@ -732,6 +752,7 @@ GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char *buffer)
 }
 
 
+GF_EXPORT
 u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess)
 {
 	u32 i;
@@ -747,6 +768,7 @@ u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess)
 }
 
 
+GF_EXPORT
 GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buf)
 {
 	if (!sess || !sess->connection) return GF_BAD_PARAM;

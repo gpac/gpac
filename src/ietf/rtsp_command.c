@@ -26,6 +26,7 @@
 #include <gpac/internal/ietf_dev.h>
 #include <gpac/token.h>
 
+GF_EXPORT
 GF_RTSPCommand *gf_rtsp_command_new()
 {
 	GF_RTSPCommand *tmp;
@@ -39,6 +40,7 @@ GF_RTSPCommand *gf_rtsp_command_new()
 #define COM_FREE_CLEAN(hdr)		if (com->hdr) free(com->hdr);	\
 								com->hdr = NULL;
 
+GF_EXPORT
 void gf_rtsp_command_reset(GF_RTSPCommand *com)
 {
 	GF_RTSPTransport *trans;
@@ -89,6 +91,7 @@ void gf_rtsp_command_reset(GF_RTSPCommand *com)
 	}
 }
 
+GF_EXPORT
 void gf_rtsp_command_del(GF_RTSPCommand *com)
 {
 	if (!com) return;
@@ -262,6 +265,7 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 //format a DESCRIBE, SETUP, PLAY or PAUSE on a session
 //YOUR COMMAND MUST BE FORMATTED ACCORDINGLY 
 //sCtrl contains a control string if needed, formating the REQUEST as server_url/service_name/sCtrl
+GF_EXPORT
 GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 {
 	GF_Err e;
@@ -366,7 +370,7 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Sending Command:\n%s\n", result));
 
 	//send buffer
-	e = gf_rtsp_send_data(sess, (unsigned char *)result, size);
+	e = gf_rtsp_send_data(sess, result, size);
 	if (e) goto exit;
 
 
@@ -475,6 +479,7 @@ GF_Err RTSP_ParseCommandHeader(GF_RTSPSession *sess, GF_RTSPCommand *com, u32 Bo
 }
 
 
+GF_EXPORT
 GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 {
 	GF_Err e;

@@ -1199,7 +1199,7 @@ u32 TOK_To_ET(u32 tok)
 		return ET_VAR;
 	default:
 		assert(0);
-		return -1;
+		return (u32) -1;
 	}
 }
 
@@ -1343,7 +1343,7 @@ u32 MoveToToken(ScriptEnc *sc_enc, u32 endTok, u32 cur, u32 end)
 	else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: illegal MoveToToken %s\n", tok_names[endTok]));
 		sc_enc->err = GF_BAD_PARAM;
-		return -1;
+		return (u32) -1;
 	}
 	do {
 		curTok = sc_enc->expr_toks[cur++];
@@ -1351,7 +1351,7 @@ u32 MoveToToken(ScriptEnc *sc_enc, u32 endTok, u32 cur, u32 end)
 		else if (curTok == endTok) cnt--;
 	} while ( (curTok != endTok || cnt) && cur < end);
 	if (curTok==endTok && cnt==0) return cur-1;
-	return -1;
+	return (u32) -1;
 }
 
 

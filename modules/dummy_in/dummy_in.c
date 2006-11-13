@@ -53,7 +53,7 @@ DummyChannel *DC_GetChannel(DCReader *read, LPNETCHANNEL ch)
 {
 	DummyChannel *dc;
 	u32 i=0;
-	while ((dc = gf_list_enum(read->channels, &i))) {
+	while ((dc = (DummyChannel *)gf_list_enum(read->channels, &i))) {
 		if (dc->ch && dc->ch==ch) return dc;
 	}
 	return NULL;
@@ -63,7 +63,7 @@ Bool DC_RemoveChannel(DCReader *read, LPNETCHANNEL ch)
 {
 	DummyChannel *dc;
 	u32 i=0;
-	while ((dc = gf_list_enum(read->channels, &i))) {
+	while ((dc = (DummyChannel *)gf_list_enum(read->channels, &i))) {
 		if (dc->ch && dc->ch==ch) {
 			gf_list_rem(read->channels, i-1);
 			free(dc);
@@ -260,12 +260,13 @@ static GF_Descriptor *DC_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(bs, size);
 	gf_bs_write_data(bs, uri, strlen(uri));
-	gf_bs_get_content(bs, (unsigned char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+	gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 	gf_bs_del(bs);
 
 	gf_list_add(iod->ESDescriptors, esd);
 	return (GF_Descriptor *)iod;
 }
+
 
 GF_Err DC_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
@@ -360,12 +361,14 @@ Bool DC_CanHandleURLInService(GF_InputService *plug, const char *url)
 	return 0;
 }
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	if (InterfaceType==GF_NET_CLIENT_INTERFACE) return 1;
 	return 0;
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	DCReader *read;
@@ -391,6 +394,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return (GF_BaseInterface *)plug;
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *bi)
 {
 	GF_InputService *ifcn = (GF_InputService*)bi;

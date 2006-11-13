@@ -58,6 +58,7 @@ static GF_Err ISOW_Open(GF_StreamingCache *mc, GF_ClientService *serv, const cha
 	cache->service = serv;
 	return GF_OK;
 }
+
 static GF_Err ISOW_Close(GF_StreamingCache *mc, Bool delete_cache)
 {
 	GF_Err e;
@@ -65,7 +66,7 @@ static GF_Err ISOW_Close(GF_StreamingCache *mc, Bool delete_cache)
 	if (!cache->mov || !cache->service) return GF_BAD_PARAM;
 
 	while (gf_list_count(cache->channels)) {
-		ISOMChannel *ch = gf_list_get(cache->channels, 0);
+		ISOMChannel *ch = (ISOMChannel *)gf_list_get(cache->channels, 0);
 		gf_list_rem(cache->channels, 0);
 		if (ch->cache_sample) {
 			gf_isom_add_sample(cache->mov, ch->track, 1, ch->cache_sample);
@@ -155,7 +156,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		mch->cache_sample = gf_isom_sample_new();
 		mch->cache_sample->IsRAP = sl_hdr->randomAccessPointFlag;
 		mch->cache_sample->dataLength = data_size;
-		mch->cache_sample->data = malloc(sizeof(char)*data_size);
+		mch->cache_sample->data = (char*)malloc(sizeof(char)*data_size);
 		memcpy(mch->cache_sample->data, data, sizeof(char)*data_size);
 		return GF_OK;
 	}
@@ -204,7 +205,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 	mch->cache_sample->DTS = DTS + mch->frame_cts_offset;
 	mch->cache_sample->CTS_Offset = (u32) (sl_hdr->compositionTimeStamp - mch->cache_seed_ts - DTS);
 	mch->cache_sample->dataLength = data_size;
-	mch->cache_sample->data = malloc(sizeof(char)*data_size);
+	mch->cache_sample->data = (char*)malloc(sizeof(char)*data_size);
 	memcpy(mch->cache_sample->data, data, sizeof(char)*data_size);
 	return GF_OK;
 }
@@ -254,7 +255,7 @@ GF_BaseInterface *isow_load_cache()
 void isow_delete_cache(GF_BaseInterface *bi)
 {
 	GF_StreamingCache *mc = (GF_StreamingCache*) bi;
-	ISOMReader *cache = mc->priv;
+	ISOMReader *cache = (ISOMReader *)mc->priv;
 	gf_list_del(cache->channels);
 	free(cache);
 	free(bi);

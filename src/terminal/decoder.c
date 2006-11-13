@@ -42,12 +42,12 @@ GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL);
 
 GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err *e)
 {
-	GF_Codec *tmp = malloc(sizeof(GF_Codec));
+	GF_Codec *tmp;
+	GF_SAFEALLOC(tmp, GF_Codec);
 	if (! tmp) {
 		*e = GF_OUT_OF_MEM;
 		return NULL;
 	}
-	memset(tmp, 0, sizeof(GF_Codec));
 	tmp->odm = odm;
 
 	if (PL<0) PL = 0xFF;
@@ -84,7 +84,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 	GF_Err e;
 	GF_NetworkCommand com;
 	GF_Channel *a_ch;
-	unsigned char *dsi;
+	char *dsi;
 	u32 dsiSize, CUsize, i;
 	GF_CodecCapability cap;
 	u32 min, max;
@@ -197,7 +197,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 	else {
 		/*make sure all channels are in order*/
 		i=0;
-		while ((a_ch = gf_list_enum(codec->inChannels, &i))) {
+		while ((a_ch = (GF_Channel*)gf_list_enum(codec->inChannels, &i))) {
 			if (ch->esd->dependsOnESID == a_ch->esd->ESID) {
 				return gf_list_insert(codec->inChannels, ch, i);
 			}
@@ -260,7 +260,7 @@ static void Decoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, GF_DB
 	minDTS = (u32) -1;
 	/*reverse browsing to make sure we fill enhancement before base layer*/
 	for (i=count;i>0;i--) {
-		ch = gf_list_get(codec->inChannels, i-1);
+		ch = (GF_Channel*)gf_list_get(codec->inChannels, i-1);
 
 		if ((codec->type==GF_STREAM_OCR) && ch->IsClockInit) {
 			/*check duration - we assume that scalable OCR streams are just pure nonsense...*/
@@ -388,7 +388,7 @@ check_unit:
 	codec->odm->current_time = gf_clock_time(codec->ck);
 
 	now = gf_term_get_time(codec->odm->term);
-	e = sdec->ProcessData(sdec, (unsigned char *) AU->data, AU->dataLength, ch->esd->ESID, au_time, mm_level);
+	e = sdec->ProcessData(sdec, AU->data, AU->dataLength, ch->esd->ESID, au_time, mm_level);
 	now = gf_term_get_time(codec->odm->term) - now;
 
 	codec_update_stats(codec, AU->dataLength, now);
@@ -452,7 +452,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 		return GF_OK;
 	}
 
-	ch = gf_list_get(codec->inChannels, 0);
+	ch = (GF_Channel*)gf_list_get(codec->inChannels, 0);
 	if (!ch) return GF_OK;
 	resume_clock = 0;
 	/*init channel clock*/
@@ -559,8 +559,6 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 		if (!dec->CB->Min) dec->CB->Min = 1;
 	}
 	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene) {
-		void gf_is_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo);
-
 		gf_is_force_scene_size_video(dec->odm->parentscene, dec->odm->mo);
 	}
 	return GF_OK;

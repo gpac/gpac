@@ -562,7 +562,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 }
 
 //send length bytes of a buffer
-GF_Err gf_sk_send(GF_Socket *sock, unsigned char *buffer, u32 length)
+GF_Err gf_sk_send(GF_Socket *sock, char *buffer, u32 length)
 {
 	GF_Err e;
 	u32 Count, Res;
@@ -802,7 +802,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 //fetch nb bytes on a socket and fill the buffer from startFrom
 //length is the allocated size of the receiving buffer
 //BytesRead is the number of bytes read from the network
-GF_Err gf_sk_receive(GF_Socket *sock, unsigned char *buffer, u32 length, u32 startFrom, u32 *BytesRead)
+GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead)
 {
 	GF_Err e;
 	u32 res;
@@ -1014,7 +1014,7 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 
 
 //send length bytes of a buffer
-GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, char *remoteHost, u16 remotePort)
+GF_Err gf_sk_send_to(GF_Socket *sock, char *buffer, u32 length, char *remoteHost, u16 remotePort)
 {
 	u32 Count, Res, remote_add_len;
 #ifdef GPAC_IPV6
@@ -1106,7 +1106,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, char *r
 
 
 
-GF_Err gf_sk_receive_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u32 startFrom, u32 *BytesRead, u32 Second )
+GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead, u32 Second )
 {
 	GF_Err e;
 	u32 res;
@@ -1159,7 +1159,7 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u3
 
 
 //send length bytes of a buffer
-GF_Err gf_sk_send_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u32 Second )
+GF_Err gf_sk_send_wait(GF_Socket *sock, char *buffer, u32 length, u32 Second )
 {
 
 	GF_Err e;

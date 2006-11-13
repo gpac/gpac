@@ -34,10 +34,11 @@ GF_MetaBox *gf_isom_get_meta(GF_ISOFile *file, Bool root_meta, u32 track_num)
 	if (root_meta) return file->meta;
 	if (!track_num) return file->moov ? file->moov->meta : NULL;
 
-	tk = gf_list_get(file->moov->trackList, track_num-1);
+	tk = (GF_TrackBox*)gf_list_get(file->moov->trackList, track_num-1);
 	return tk ? tk->meta : NULL;
 }
 
+GF_EXPORT
 u32 gf_isom_get_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num)
 {
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -46,6 +47,7 @@ u32 gf_isom_get_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num)
 	return meta->handler->handlerType;
 }
 
+GF_EXPORT
 u32 gf_isom_has_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num)
 {
 	u32 i, count;
@@ -54,7 +56,7 @@ u32 gf_isom_has_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num)
 
 	count = gf_list_count(meta->other_boxes);
 	for (i=0; i<count; i++) {
-		GF_Box *a = gf_list_get(meta->other_boxes, i);
+		GF_Box *a = (GF_Box *)gf_list_get(meta->other_boxes, i);
 		if (a->type == GF_ISOM_BOX_TYPE_XML) return 1;
 		if (a->type == GF_ISOM_BOX_TYPE_BXML) return 2;
 	}
@@ -72,7 +74,7 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	/*Find XMLBox*/
 	count = gf_list_count(meta->other_boxes);
 	for (i = 0; i <count; i++) {
-		GF_Box *a = gf_list_get(meta->other_boxes, i);
+		GF_Box *a = (GF_Box *)gf_list_get(meta->other_boxes, i);
 		if ((a->type == GF_ISOM_BOX_TYPE_XML) || (a->type == GF_ISOM_BOX_TYPE_BXML) ) {
 			xml = (GF_XMLBox *)a;
 			break;
@@ -91,6 +93,7 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 
 
 
+GF_EXPORT
 u32 gf_isom_get_meta_item_count(GF_ISOFile *file, Bool root_meta, u32 track_num)
 {
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -98,6 +101,7 @@ u32 gf_isom_get_meta_item_count(GF_ISOFile *file, Bool root_meta, u32 track_num)
 	return gf_list_count(meta->item_infos->item_infos);
 }
 
+GF_EXPORT
 GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num, 
 							u32 *itemID, u32 *protection_idx, Bool *is_self_reference,
 							const char **item_name, const char **item_mime_type, const char **item_encoding,
@@ -108,7 +112,7 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta || !meta->item_infos || !meta->item_locations) return GF_BAD_PARAM;
 
-	iinf = gf_list_get(meta->item_infos->item_infos, item_num-1);
+	iinf = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, item_num-1);
 	if (!iinf) return GF_BAD_PARAM;
 	
 	if (itemID) (*itemID) = iinf->item_ID;
@@ -123,10 +127,10 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 
 	count = gf_list_count(meta->item_locations->location_entries);
 	for (i=0; i<count; i++) {
-		GF_ItemLocationEntry *iloc = gf_list_get(meta->item_locations->location_entries, i);
+		GF_ItemLocationEntry *iloc = (GF_ItemLocationEntry *)gf_list_get(meta->item_locations->location_entries, i);
 		if (iloc->item_ID==iinf->item_ID) {
 			if (iloc->data_reference_index) {
-				GF_Box *a = gf_list_get(meta->file_locations->dref->boxList, iloc->data_reference_index-1);
+				GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->boxList, iloc->data_reference_index-1);
 				if (a->type==GF_ISOM_BOX_TYPE_URL) {
 					if (item_url) (*item_url) = ((GF_DataEntryURLBox*)a)->location;
 				} else if (a->type==GF_ISOM_BOX_TYPE_URN) {
@@ -135,7 +139,7 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 				}
 				break;
 			} else if (is_self_reference && !iloc->base_offset) {
-				GF_ItemExtentEntry *entry = gf_list_get(iloc->extent_entries, 0);
+				GF_ItemExtentEntry *entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
 				if (!entry->extent_length && !entry->original_extent_offset)
 					*is_self_reference = 1;
 			}
@@ -144,6 +148,7 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 	return GF_OK;
 }
 
+GF_EXPORT
 u32 gf_isom_get_meta_item_by_id(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_ID)
 {
 	GF_ItemInfoEntryBox *iinf;
@@ -152,7 +157,7 @@ u32 gf_isom_get_meta_item_by_id(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	if (!meta || !meta->item_infos || !meta->item_locations) return 0;
 	count = gf_list_count(meta->item_infos->item_infos);
 	for (i=0; i<count; i++) {
-		iinf = gf_list_get(meta->item_infos->item_infos, i);
+		iinf = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, i);
 		if (iinf->item_ID==item_ID) return i+1;
 	}
 	return 0;
@@ -173,15 +178,14 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 
 	item_num = gf_isom_get_meta_item_by_id(file, root_meta, track_num, item_id);
 	if (item_num) {
-		GF_ItemInfoEntryBox *item_entry;
-		item_entry = gf_list_get(meta->item_infos->item_infos, item_num-1);
+		GF_ItemInfoEntryBox *item_entry = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, item_num-1);
 		item_name = item_entry->item_name;
 	} 
 
 	location_entry = NULL;
 	count = gf_list_count(meta->item_locations->location_entries);
 	for (i=0; i<count; i++) {
-		location_entry = gf_list_get(meta->item_locations->location_entries, i);
+		location_entry = (GF_ItemLocationEntry *)gf_list_get(meta->item_locations->location_entries, i);
 		if (location_entry->item_ID == item_id) break;
 		location_entry = NULL;
 	}
@@ -190,7 +194,7 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 	/*FIXME*/
 	if (location_entry->data_reference_index) {
 		char *item_url = NULL, *item_urn = NULL;
-		GF_Box *a = gf_list_get(meta->file_locations->dref->boxList, location_entry->data_reference_index-1);
+		GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->boxList, location_entry->data_reference_index-1);
 		if (a->type==GF_ISOM_BOX_TYPE_URL) {
 			item_url = ((GF_DataEntryURLBox*)a)->location;
 		} else if (a->type==GF_ISOM_BOX_TYPE_URN) {
@@ -204,7 +208,7 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 	/*don't extract self-reference item*/
 	count = gf_list_count(location_entry->extent_entries);
 	if (!location_entry->base_offset && (count==1)) {
-		extent_entry = gf_list_get(location_entry->extent_entries, 0);
+		extent_entry = (GF_ItemExtentEntry *)gf_list_get(location_entry->extent_entries, 0);
 		if (!extent_entry->extent_length && !extent_entry->original_extent_offset) return GF_BAD_PARAM;
 	}
 
@@ -219,7 +223,7 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 	for (i=0; i<count; i++) {
 		char buf_cache[4096];
 		u64 remain;
-		GF_ItemExtentEntry *extent_entry = gf_list_get(location_entry->extent_entries, i);
+		GF_ItemExtentEntry *extent_entry = (GF_ItemExtentEntry *)gf_list_get(location_entry->extent_entries, i);
 		gf_bs_seek(file->movieFileMap->bs, /*location_entry->base_offset +*/ extent_entry->extent_offset);
 
 		remain = extent_entry->extent_length;
@@ -265,7 +269,7 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 			if (!track_num) {
 				file->moov->meta = meta;
 			} else {
-				GF_TrackBox *tk = gf_list_get(file->moov->trackList, track_num-1);
+				GF_TrackBox *tk = (GF_TrackBox *)gf_list_get(file->moov->trackList, track_num-1);
 				if (!tk) {
 					gf_isom_box_del((GF_Box *)meta);
 					return GF_BAD_PARAM;
@@ -283,7 +287,7 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 				gf_isom_box_del((GF_Box *)file->moov->meta);
 				file->moov->meta = NULL;
 			} else {
-				GF_TrackBox *tk = gf_list_get(file->moov->trackList, track_num-1);
+				GF_TrackBox *tk = (GF_TrackBox *)gf_list_get(file->moov->trackList, track_num-1);
 				if (!tk) return GF_BAD_PARAM;
 				gf_isom_box_del((GF_Box *)tk->meta);
 				tk->meta = NULL;
@@ -309,7 +313,7 @@ GF_Err gf_isom_remove_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num)
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta) return GF_BAD_PARAM;
 	i=0;
-	while ((a = gf_list_enum(meta->other_boxes, &i))) {
+	while ((a = (GF_Box*)gf_list_enum(meta->other_boxes, &i))) {
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_XML:
 		case GF_ISOM_BOX_TYPE_BXML:
@@ -349,7 +353,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	fseek(xmlfile, 0, SEEK_END);
 	xml->xml_length = ftell(xmlfile);
 	fseek(xmlfile, 0, SEEK_SET);
-	xml->xml = malloc(sizeof(unsigned char)*xml->xml_length);
+	xml->xml = (char*)malloc(sizeof(unsigned char)*xml->xml_length);
 	xml->xml_length = fread(xml->xml, 1, sizeof(unsigned char)*xml->xml_length, xmlfile);
 	if (ferror(xmlfile)) {
 		free(xml->xml);
@@ -389,7 +393,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 		u32 i;
 		u32 item_count = gf_list_count(meta->item_infos->item_infos);
 		for (i = 0; i < item_count; i++) {
-			GF_ItemInfoEntryBox *e= gf_list_get(meta->item_infos->item_infos, i);
+			GF_ItemInfoEntryBox *e= (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, i);
 			if (e->item_ID > lastItemID) lastItemID = e->item_ID;
 		}
 	}
@@ -416,7 +420,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 	if (content_encoding) infe->content_encoding = strdup(content_encoding);
 
 	/*Creation of the ItemLocation */
-	location_entry = malloc(sizeof(GF_ItemLocationEntry));
+	location_entry = (GF_ItemLocationEntry*)malloc(sizeof(GF_ItemLocationEntry));
 	if (!location_entry) {
 		gf_isom_box_del((GF_Box *)infe);
 		return GF_OUT_OF_MEM;
@@ -519,12 +523,12 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 
 	item_num = gf_isom_get_meta_item_by_id(file, root_meta, track_num, item_id);
 	if (!item_num) return GF_BAD_PARAM;
-	iinf = gf_list_get(meta->item_infos->item_infos, item_num-1);
+	iinf = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, item_num-1);
 	gf_list_rem(meta->item_infos->item_infos, item_num-1);
 
 	count = gf_list_count(meta->item_locations->location_entries);
 	for (i=0; i<count; i++) {
-		GF_ItemLocationEntry *iloc = gf_list_get(meta->item_locations->location_entries, i);
+		GF_ItemLocationEntry *iloc = (GF_ItemLocationEntry *)gf_list_get(meta->item_locations->location_entries, i);
 		if (iloc->item_ID==iinf->item_ID) {
 			/*FIXME: remove data ref...*/
 			if (iloc->data_reference_index) { }

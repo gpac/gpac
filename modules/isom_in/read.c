@@ -28,7 +28,7 @@ ISOMChannel *isor_get_channel(ISOMReader *reader, LPNETCHANNEL channel)
 {
 	u32 i=0;
 	ISOMChannel *ch;
-	while ((ch = gf_list_enum(reader->channels, &i))) {
+	while ((ch = (ISOMChannel *)gf_list_enum(reader->channels, &i))) {
 		if (ch->channel == channel) return ch;
 	}
 	return NULL;
@@ -38,7 +38,7 @@ static void isor_delete_channel(ISOMReader *reader, ISOMChannel *ch)
 {
 	u32 i=0;
 	ISOMChannel *ch2;
-	while ((ch2 = gf_list_enum(reader->channels, &i))) {
+	while ((ch2 = (ISOMChannel *)gf_list_enum(reader->channels, &i))) {
 		if (ch2 == ch) {
 			isor_reset_reader(ch);
 			free(ch);
@@ -213,7 +213,7 @@ GF_Err ISOR_CloseService(GF_InputService *plug)
 	read->mov = NULL;
 
 	while (gf_list_count(read->channels)) {
-		ISOMChannel *ch = gf_list_get(read->channels, 0);
+		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, 0);
 		gf_list_rem(read->channels, 0);
 		isor_delete_channel(read, ch);
 	}
@@ -276,7 +276,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			iod->OD_profileAndLevel = iod->audio_profileAndLevel = iod->graphics_profileAndLevel = iod->scene_profileAndLevel = iod->visual_profileAndLevel = 0xFE;
 		} else {
 			while (gf_list_count(iod->ESDescriptors)) {
-				GF_ESD *old = gf_list_get(iod->ESDescriptors, 0);
+				GF_ESD *old = (GF_ESD *)gf_list_get(iod->ESDescriptors, 0);
 				gf_odf_desc_del((GF_Descriptor *) old);
 				gf_list_rem(iod->ESDescriptors, 0);
 			}
@@ -295,7 +295,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		return isor_emulate_iod(read);
 	}
 	if (count==1) {
-		esd = gf_list_get(iod->ESDescriptors, 0);
+		esd = (GF_ESD *)gf_list_get(iod->ESDescriptors, 0);
 		switch (esd->decoderConfig->streamType) {
 		case GF_STREAM_SCENE:
 		case GF_STREAM_PRIVATE_SCENE:
@@ -321,7 +321,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	/*check IOD is not badly formed (eg mixing audio, video or text streams)*/
 	nb_st = 0;
 	for (i=0; i<count; i++) {
-		esd = gf_list_get(iod->ESDescriptors, i);
+		esd = (GF_ESD *)gf_list_get(iod->ESDescriptors, i);
 		switch (esd->decoderConfig->streamType) {
 		case GF_STREAM_VISUAL: nb_st |= 1; break;
 		case GF_STREAM_AUDIO: nb_st |= 2; break;
@@ -399,8 +399,7 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 		goto exit;
 	}
 
-	ch = malloc(sizeof(ISOMChannel));
-	memset(ch, 0, sizeof(ISOMChannel));
+	GF_SAFEALLOC(ch, ISOMChannel);
 	ch->owner = read;
 	ch->channel = channel;
 	gf_list_add(read->channels, ch);
@@ -677,8 +676,8 @@ static Bool ISOR_CanHandleURLInService(GF_InputService *plug, const char *url)
 GF_InputService *isor_client_load()
 {
 	ISOMReader *reader;
-	GF_InputService *plug = malloc(sizeof(GF_InputService));
-	memset(plug, 0, sizeof(GF_InputService));
+	GF_InputService *plug;
+	GF_SAFEALLOC(plug, GF_InputService);
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC IsoMedia Reader", "gpac distribution")
 
 	plug->CanHandleURL = ISOR_CanHandleURL;
@@ -693,8 +692,7 @@ GF_InputService *isor_client_load()
 	plug->ChannelGetSLP = ISOR_ChannelGetSLP;
 	plug->ChannelReleaseSLP = ISOR_ChannelReleaseSLP;
 
-	reader = malloc(sizeof(ISOMReader));
-	memset(reader, 0, sizeof(ISOMReader));
+	GF_SAFEALLOC(reader, ISOMReader);
 	reader->channels = gf_list_new();
 	plug->priv = reader;
 	return plug;
@@ -703,7 +701,7 @@ GF_InputService *isor_client_load()
 void isor_client_del(GF_BaseInterface *bi)
 {
 	GF_InputService *plug = (GF_InputService *) bi;
-	ISOMReader *read = plug->priv;
+	ISOMReader *read = (ISOMReader *)plug->priv;
 
 	gf_list_del(read->channels);
 	free(read);

@@ -254,7 +254,7 @@ typedef struct {
 	u8 contentType;
 	u8 contentIdentifierType;
 	/*international code string*/
-	unsigned char *contentIdentifier;	
+	char *contentIdentifier;	
 } GF_CIDesc;
 
 /*Supplementary Content Identification Descriptor)*/
@@ -601,7 +601,7 @@ typedef struct {
 typedef struct {
 	QOS_BASE_QUALIFIER
 	u32 DataLength;		/*max size class : 2^28 - 1*/
-	unsigned char *Data;
+	char *Data;
 } GF_QoS_Private;
 
 
@@ -610,7 +610,7 @@ typedef struct {
 	BASE_DESCRIPTOR
 	u32 formatIdentifier;
 	u32 dataLength;
-	unsigned char *additionalIdentificationInfo;
+	char *additionalIdentificationInfo;
 } GF_Registration;
 
 /*Language Descriptor*/
@@ -649,7 +649,7 @@ typedef struct {
 	u32 classificationEntity;
 	u16 classificationTable;
 	u32 dataLength;
-	unsigned char *contentClassificationData;
+	char *contentClassificationData;
 } GF_CCDescriptor;
 
 
@@ -672,7 +672,7 @@ typedef struct {
 	u32 ratingEntity;
 	u16 ratingCriteria;
 	u32 infoLength;
-	unsigned char *ratingInfo;
+	char *ratingInfo;
 } GF_Rating;
 
 
@@ -698,7 +698,7 @@ typedef struct {
 	u8 isUTF8;
 	GF_List *itemDescriptionList;
 	GF_List *itemTextList;
-	unsigned char *NonItemText;
+	char *NonItemText;
 } GF_ExpandedTextual;
 
 /*this structure is used in GF_CC_Name*/
@@ -719,7 +719,7 @@ typedef struct {
 /*Content Creation Date Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
-	unsigned char contentCreationDate[5];
+	char contentCreationDate[5];
 } GF_CC_Date;
 
 
@@ -739,7 +739,7 @@ typedef struct {
 /*OCI Creation Date Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
-	unsigned char OCICreationDate[5];
+	char OCICreationDate[5];
 } GF_OCI_Data;
 
 
@@ -805,7 +805,7 @@ typedef struct
 	BASE_DESCRIPTOR
 	Double startTime;
 	Double Duration;
-	unsigned char *SegmentName;
+	char *SegmentName;
 } GF_Segment;
 
 typedef struct
@@ -1233,7 +1233,7 @@ enum
 	GF_IPMPX_SEL_ENC_FIELD_TAG = 0xA7,
 };
 
-typedef u8 GF_IPMPX_Date[5];
+typedef char GF_IPMPX_Date[5];
 
 
 #define GF_IPMPX_DATA_BASE	\

@@ -301,7 +301,7 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 
 	count = gf_list_count(stbl->SampleToChunk->entryList);
 	if (count==stbl->SampleSize->sampleCount) {
-		ent = gf_list_get(stbl->SampleToChunk->entryList, sampleNumber-1);
+		ent = (GF_StscEntry *)gf_list_get(stbl->SampleToChunk->entryList, sampleNumber-1);
 		if (!ent) return GF_BAD_PARAM;
 		(*descIndex) = ent->sampleDescriptionIndex;
 		(*chunkNumber) = sampleNumber;
@@ -481,7 +481,7 @@ u32 stbl_GetSampleFragmentCount(GF_SampleFragmentBox *stsf, u32 sampleNumber)
 	
 	count = gf_list_count(stsf->entryList);
 	for (; i<count; i++) {
-		ent = gf_list_get(stsf->entryList, i);
+		ent = (GF_StsfEntry *)gf_list_get(stsf->entryList, i);
 		if (ent->SampleNumber == sampleNumber) {
 			stsf->r_currentEntry = ent;
 			stsf->r_currentEntryIndex = i;
@@ -506,7 +506,7 @@ u32 stbl_GetSampleFragmentSize(GF_SampleFragmentBox *stsf, u32 sampleNumber, u32
 	i = stsf->r_currentEntryIndex;
 	count = gf_list_count(stsf->entryList);
 	for (; i<count; i++) {
-		ent = gf_list_get(stsf->entryList, i);
+		ent = (GF_StsfEntry *)gf_list_get(stsf->entryList, i);
 		if (ent->SampleNumber == sampleNumber) {
 			stsf->r_currentEntry = ent;
 			stsf->r_currentEntryIndex = i;

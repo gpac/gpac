@@ -102,7 +102,7 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 	}
 }
 
-static void gf_m2ts_reframe_default(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
+static void gf_m2ts_reframe_default(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, char *data, u32 data_len)
 {
 	GF_M2TS_PES_PCK pck;
 	pck.flags = 0;
@@ -125,7 +125,7 @@ static void gf_m2ts_reframe_default(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 }
 
 
-static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
+static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, char *data, u32 data_len)
 {
 	Bool start_code_found = 0;
 	u32 nal_type, sc_pos = 0;
@@ -144,7 +144,7 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 	pck.flags = 0;
 
 	while (sc_pos<data_len) {
-		unsigned char *start = memchr(data+sc_pos, 0, data_len-sc_pos);
+		char *start = (char *)memchr(data+sc_pos, 0, data_len-sc_pos);
 		if (!start) break;
 		sc_pos = start - data;
 
@@ -194,7 +194,7 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 	}
 }
 
-static void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
+static void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, char *data, u32 data_len)
 {
 	u32 sc_pos = 0;
 	u32 to_send = data_len;
@@ -213,11 +213,11 @@ static void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u6
 	pck.flags = 0;
 
 	while (sc_pos<data_len) {
-		unsigned char *start = memchr(data+sc_pos, 0, data_len-sc_pos);
+		unsigned char *start = (unsigned char*)memchr(data+sc_pos, 0, data_len-sc_pos);
 		if (!start) break;
-		sc_pos = start - data;
+		sc_pos = start - (unsigned char*)data;
 		/*found picture or sequence start_code*/
-		if (!start[1] && (start[2]==1)) {
+		if (!start[1] && (start[2]==0x01)) {
 			if (!start[3] || (start[3]==0xb3) || (start[3]==0xb8)) {
 				Bool new_au;
 				if (sc_pos) {
@@ -241,7 +241,7 @@ static void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u6
 				}
 
 				if (!pes->vid_h && (pes->frame_state==0xb3)) {
-					unsigned char *p = data+4;
+					char *p = data+4;
 					pes->vid_w = (p[0] << 4) | ((p[1] >> 4) & 0xf);
 					pes->vid_h = ((p[1] & 0xf) << 8) | p[2];
 					pes->vid_par = (p[3] >> 4) & 0xf;
@@ -270,7 +270,7 @@ static void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u6
 	ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 }
 
-static void gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
+static void gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, char *data, u32 data_len)
 {
 	GF_M2TS_PES_PCK pck;
 	u32 pos, frame_size, remain;
@@ -417,7 +417,7 @@ static const u32 m2ts_crc_table[256] = {
 	0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4
 };
 
-u32 gf_m2ts_crc32(unsigned char *data, u32 len)
+u32 gf_m2ts_crc32(char *data, u32 len)
 {
     register u32 i;
     u32 crc = 0xffffffff;
@@ -428,7 +428,7 @@ u32 gf_m2ts_crc32(unsigned char *data, u32 len)
     return crc;
 }
 
-Bool gf_m2ts_crc32_check(unsigned char *data, u32 len)
+Bool gf_m2ts_crc32_check(char *data, u32 len)
 {
     u32 crc = gf_m2ts_crc32(data, len);
 	u32 crc_val = GF_4CC(data[len], data[len+1], data[len+2], data[len+3]);
@@ -469,7 +469,7 @@ static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
 static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 {
 	while (gf_list_count(ts->SDTs)) {
-		GF_M2TS_SDT *sdt = gf_list_last(ts->SDTs);
+		GF_M2TS_SDT *sdt = (GF_M2TS_SDT *)gf_list_last(ts->SDTs);
 		gf_list_rem_last(ts->SDTs);
 		if (sdt->provider) free(sdt->provider);
 		if (sdt->service) free(sdt->service);
@@ -518,7 +518,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		/*table spread across several sections, gather*/
 		if (sec->last_section_number) {
 			u32 pay_size = sec->data_size + sec->length - sec->start;
-			sec->data = realloc(sec->data, sizeof(char)*pay_size);
+			sec->data = (char*)realloc(sec->data, sizeof(char)*pay_size);
 			memcpy(sec->data+sec->data_size, sec->section+sec->start, sizeof(char)*(sec->length - sec->start) );
 			sec->data_size = pay_size;
 			if (sec->section) free(sec->section);
@@ -568,7 +568,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 	sec->length = sec->received = 0;
 }
 
-static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_ES *es, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size)
+static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_ES *es, GF_M2TS_Header *hdr, char *data, u32 data_size)
 {
 	u8 expect_cc = (sec->cc<0) ? hdr->continuity_counter : (sec->cc + 1) & 0xf;
 	Bool disc = (expect_cc == hdr->continuity_counter) ? 0 : 1;
@@ -596,7 +596,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 
 		if (sec->section) free(sec->section);
 		sec->length = sec->received = 0;
-		sec->section = malloc(sizeof(char)*data_size);
+		sec->section = (char*)malloc(sizeof(char)*data_size);
 		memcpy(sec->section, data, sizeof(char)*data_size);
 		sec->received = data_size;
 		sec->had_error = 0;
@@ -618,7 +618,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 		if (sec->length) {
 			memcpy(sec->section + sec->received, data, sizeof(char)*data_size);
 		} else {
-			sec->section = realloc(sec->section, sizeof(char)*(sec->received+data_size));
+			sec->section = (char*)realloc(sec->section, sizeof(char)*(sec->received+data_size));
 			memcpy(sec->section + sec->received, data, sizeof(char)*data_size);
 		}
 		sec->received += data_size;
@@ -628,7 +628,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 	/*alloc final buffer*/
 	if (!sec->length && (sec->received >= 3)) {
 		sec->length = 3 + ( ((sec->section[1]<<8) | sec->section[2]) & 0x3ff );
-		sec->section = realloc(sec->section, sizeof(char)*sec->length);
+		sec->section = (char*)realloc(sec->section, sizeof(char)*sec->length);
 	}
 	if (sec->received < sec->length) return;
 
@@ -636,7 +636,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 	gf_m2ts_section_complete(ts, sec, es);
 }
 
-static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned char *data, u32 data_size, Bool is_repeated)
+static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, char *data, u32 data_size, Bool is_repeated)
 {
 	u32 orig_net_id, pos, evt_type;
 
@@ -698,14 +698,14 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned ch
 				sdt->service_type = data[pos+d_pos];
 				ulen = data[pos+d_pos+1];
 				d_pos += 2;
-				sdt->provider = malloc(sizeof(char)*(ulen+1));
+				sdt->provider = (char*)malloc(sizeof(char)*(ulen+1));
 				memcpy(sdt->provider, data+pos+d_pos, sizeof(char)*ulen);
 				sdt->provider[ulen] = 0;
 				d_pos += ulen;
 
 				ulen = data[pos+d_pos];
 				d_pos += 1;
-				sdt->service = malloc(sizeof(char)*(ulen+1));
+				sdt->service = (char*)malloc(sizeof(char)*(ulen+1));
 				memcpy(sdt->service, data+pos+d_pos, sizeof(char)*ulen);
 				sdt->service[ulen] = 0;
 				d_pos += ulen;
@@ -723,7 +723,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned ch
 	if (ts->on_event) ts->on_event(ts, evt_type, NULL);
 }
 
-static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned char *data, u32 data_size, Bool is_repeated)
+static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, char *data, u32 data_size, Bool is_repeated)
 {
 	GF_M2TS_SL_PCK sl_pck;
 	GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
@@ -739,7 +739,7 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, un
 }
 
 
-static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned char *data, u32 data_size, Bool is_repeated)
+static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, char *data, u32 data_size, Bool is_repeated)
 {
 	GF_M2TS_PES *pes;
 	u32 info_length, pos, desc_len, evt_type;
@@ -830,7 +830,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 					pes->ES_ID = ((data[7] & 0x1f) << 8) | data[8];
 					
 					pes->has_SL = 1;
-					while ( (esd = gf_list_enum(pmt->program->pmt_iod->ESDescriptors, &esd_index)) ) {
+					while ( (esd = (GF_ESD*)gf_list_enum(pmt->program->pmt_iod->ESDescriptors, &esd_index)) ) {
 						if (esd->ESID == pes->ES_ID) pes->esd = esd;
 					}
 					
@@ -872,7 +872,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 }
 
 
-static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned char *data, u32 data_size, Bool is_repeated)
+static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, char *data, u32 data_size, Bool is_repeated)
 {
 	GF_M2TS_Program *prog;
 	GF_M2TS_ES *pmt;
@@ -906,7 +906,7 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned ch
 }
 
 
-static GFINLINE u64 gf_m2ts_get_pts(unsigned char *data)
+static GFINLINE u64 gf_m2ts_get_pts(char *data)
 {
     u64 pts;
     u32 val;
@@ -918,7 +918,7 @@ static GFINLINE u64 gf_m2ts_get_pts(unsigned char *data)
     return pts;
 }
 
-static void gf_m2ts_pes_header(unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
+static void gf_m2ts_pes_header(char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
 {
 	Bool has_pts, has_dts;
 	memset(pesh, 0, sizeof(GF_M2TS_PESHeader));
@@ -958,7 +958,7 @@ static void gf_m2ts_pes_header(unsigned char *data, u32 data_size, GF_M2TS_PESHe
 	}
 }
 
-static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size, GF_M2TS_AdaptationField *paf)
+static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, char *data, u32 data_size, GF_M2TS_AdaptationField *paf)
 {
 	if (pes->stream_type == 0x13) { 		
 		gf_m2ts_gather_section(ts, pes->sec, (GF_M2TS_ES *)pes, hdr, data, data_size);
@@ -988,7 +988,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 				pes->reframe(ts, pes, pesh.DTS, pesh.PTS, pes->data+len, pes->data_len-len);
 			} 
 			/*SL-packetized stream*/
-			else if (pes->data[3]==0xfa) {
+			else if ((u8) pes->data[3]==0xfa) {
 				GF_M2TS_SL_PCK sl_pck;
 				/*read header*/
 				gf_m2ts_pes_header(pes->data+3, pes->data_len-3, &pesh);
@@ -1012,8 +1012,8 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	}
 
 	/*reassemble*/
-	if (pes->data) pes->data = realloc(pes->data, pes->data_len+data_size);
-	else pes->data = malloc(data_size);
+	if (pes->data) pes->data = (char*)realloc(pes->data, pes->data_len+data_size);
+	else pes->data = (char*)malloc(data_size);
 	memcpy(pes->data+pes->data_len, data, data_size);
 	pes->data_len += data_size;
 
@@ -1021,7 +1021,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 }
 
 
-static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_AdaptationField *paf, unsigned char *data, u32 size)
+static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_AdaptationField *paf, char *data, u32 size)
 {
 	paf->discontinuity_indicator = (data[0] & 0x80) ? 1 : 0;
 	paf->random_access_indicator = (data[0] & 0x40) ? 1 : 0;
@@ -1047,7 +1047,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 #endif	
 }
 
-static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
+static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, char *data)
 {
 	GF_M2TS_ES *es;
 	GF_M2TS_Header hdr;
@@ -1154,7 +1154,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 	if (ts->buffer) {
 		if (ts->alloc_size < ts->buffer_size+data_size) {
 			ts->alloc_size = ts->buffer_size+data_size;
-			ts->buffer = realloc(ts->buffer, sizeof(char)*ts->alloc_size);
+			ts->buffer = (char*)realloc(ts->buffer, sizeof(char)*ts->alloc_size);
 		}
 		memcpy(ts->buffer + ts->buffer_size, data, sizeof(char)*data_size);
 		ts->buffer_size += data_size;
@@ -1168,7 +1168,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 	pos = gf_m2ts_sync(ts, is_align);
 	if (pos==ts->buffer_size) {
 		if (is_align) {
-			ts->buffer = malloc(sizeof(char)*data_size);
+			ts->buffer = (char*)malloc(sizeof(char)*data_size);
 			memcpy(ts->buffer, data, sizeof(char)*data_size);
 			ts->alloc_size = ts->buffer_size = data_size;
 		}
@@ -1185,7 +1185,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 			}
 			if (is_align) {
 				data = ts->buffer+pos;
-				ts->buffer = malloc(sizeof(char)*ts->buffer_size);
+				ts->buffer = (char*)malloc(sizeof(char)*ts->buffer_size);
 				memcpy(ts->buffer, data, sizeof(char)*ts->buffer_size);
 				ts->alloc_size = ts->buffer_size;
 			} else {
@@ -1269,7 +1269,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	}
 	if (ts->buffer) free(ts->buffer);
 	while (gf_list_count(ts->programs)) {
-		GF_M2TS_Program *p = gf_list_last(ts->programs);
+		GF_M2TS_Program *p = (GF_M2TS_Program *)gf_list_last(ts->programs);
 		gf_list_rem_last(ts->programs);
 		gf_list_del(p->streams);
 		if (p->pmt_iod) gf_odf_desc_del((GF_Descriptor *)p->pmt_iod);

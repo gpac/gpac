@@ -836,6 +836,7 @@ GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStrea
 }
 
 
+GF_EXPORT
 GF_Err gf_bifs_encoder_get_rap(GF_BifsEncoder *codec, char **out_data, u32 *out_data_length)
 {
 	GF_BitStream *bs;
@@ -853,7 +854,7 @@ GF_Err gf_bifs_encoder_get_rap(GF_BifsEncoder *codec, char **out_data, u32 *out_
 	e = BE_SceneReplace(codec, codec->scene_graph, bs);
 	if (e == GF_OK) {
 		GF_BIFS_WRITE_INT(codec, bs, 0, 1, "moreCommands", NULL);
-		gf_bs_get_content(bs, (unsigned char **)out_data, out_data_length);
+		gf_bs_get_content(bs, out_data, out_data_length);
 	}
 	gf_bs_del(bs);
 	

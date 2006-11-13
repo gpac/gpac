@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Sep 15 09:04:18 2006
+	DO NOT MOFIFY - File generated on GMT Tue Oct 24 08:04:28 2006
 
 	BY MPEG4Gen for GPAC Version 0.4.3-DEV
 */
@@ -586,7 +586,7 @@ GF_Node *AudioBuffer_Create()
 	p->startTime = 0;
 	p->stopTime = 0;
 	p->numChan = 1;
-	p->phaseGroup.vals = malloc(sizeof(SFInt32)*1);
+	p->phaseGroup.vals = (SFInt32*)malloc(sizeof(SFInt32)*1);
 	p->phaseGroup.count = 1;
 	p->phaseGroup.vals[0] = 1;
 	p->length = FLT2FIX(0.0);
@@ -1723,7 +1723,7 @@ GF_Node *Background_Create()
 
 
 	/*default field values*/
-	p->skyColor.vals = malloc(sizeof(SFColor)*1);
+	p->skyColor.vals = (SFColor*)malloc(sizeof(SFColor)*1);
 	p->skyColor.count = 1;
 	p->skyColor.vals[0].red = FLT2FIX(0);
 	p->skyColor.vals[0].green = FLT2FIX(0);
@@ -4711,7 +4711,7 @@ GF_Node *Extrusion_Create()
 	p->ccw = 1;
 	p->convex = 1;
 	p->creaseAngle = FLT2FIX(0.0);
-	p->crossSection.vals = malloc(sizeof(SFVec2f)*5);
+	p->crossSection.vals = (SFVec2f*)malloc(sizeof(SFVec2f)*5);
 	p->crossSection.count = 5;
 	p->crossSection.vals[0].x = FLT2FIX(1);
 	p->crossSection.vals[0].y = FLT2FIX(1);
@@ -4724,18 +4724,18 @@ GF_Node *Extrusion_Create()
 	p->crossSection.vals[4].x = FLT2FIX(1);
 	p->crossSection.vals[4].y = FLT2FIX(1);
 	p->endCap = 1;
-	p->orientation.vals = malloc(sizeof(GF_Vec4)*1);
+	p->orientation.vals = (GF_Vec4*)malloc(sizeof(GF_Vec4)*1);
 	p->orientation.count = 1;
 	p->orientation.vals[0].x = FLT2FIX(0);
 	p->orientation.vals[0].y = FLT2FIX(0);
 	p->orientation.vals[0].z = FLT2FIX(1);
 	p->orientation.vals[0].q = FLT2FIX(0);
-	p->scale.vals = malloc(sizeof(SFVec2f)*1);
+	p->scale.vals = (SFVec2f*)malloc(sizeof(SFVec2f)*1);
 	p->scale.count = 1;
 	p->scale.vals[0].x = FLT2FIX(1);
 	p->scale.vals[0].y = FLT2FIX(1);
 	p->solid = 1;
-	p->spine.vals = malloc(sizeof(SFVec3f)*2);
+	p->spine.vals = (SFVec3f *)malloc(sizeof(SFVec3f)*2);
 	p->spine.count = 2;
 	p->spine.vals[0].x = FLT2FIX(0);
 	p->spine.vals[0].y = FLT2FIX(0);
@@ -4874,7 +4874,7 @@ GF_Node *Fog_Create()
 	p->color.red = FLT2FIX(1);
 	p->color.green = FLT2FIX(1);
 	p->color.blue = FLT2FIX(1);
-	p->fogType.buffer = malloc(sizeof(char) * 7);
+	p->fogType.buffer = (char*)malloc(sizeof(char) * 7);
 	strcpy(p->fogType.buffer, "LINEAR");
 	p->visibilityRange = FLT2FIX(0);
 	return (GF_Node *)p;
@@ -5027,19 +5027,19 @@ GF_Node *FontStyle_Create()
 
 
 	/*default field values*/
-	p->family.vals = malloc(sizeof(SFString)*1);
+	p->family.vals = (char**)malloc(sizeof(SFString)*1);
 	p->family.count = 1;
-	p->family.vals[0] = malloc(sizeof(char) * 6);
+	p->family.vals[0] = (char*)malloc(sizeof(char) * 6);
 	strcpy(p->family.vals[0], "SERIF");
 	p->horizontal = 1;
-	p->justify.vals = malloc(sizeof(SFString)*1);
+	p->justify.vals = (char**)malloc(sizeof(SFString)*1);
 	p->justify.count = 1;
-	p->justify.vals[0] = malloc(sizeof(char) * 6);
+	p->justify.vals[0] = (char*)malloc(sizeof(char) * 6);
 	strcpy(p->justify.vals[0], "BEGIN");
 	p->leftToRight = 1;
 	p->size = FLT2FIX(1.0);
 	p->spacing = FLT2FIX(1.0);
-	p->style.buffer = malloc(sizeof(char) * 6);
+	p->style.buffer = (char*)malloc(sizeof(char) * 6);
 	strcpy(p->style.buffer, "PLAIN");
 	p->topToBottom = 1;
 	return (GF_Node *)p;
@@ -6829,9 +6829,9 @@ GF_Node *Layout_Create()
 	p->size.x = FLT2FIX(-1);
 	p->size.y = FLT2FIX(-1);
 	p->horizontal = 1;
-	p->justify.vals = malloc(sizeof(SFString)*1);
+	p->justify.vals = (char**)malloc(sizeof(SFString)*1);
 	p->justify.count = 1;
-	p->justify.vals[0] = malloc(sizeof(char) * 6);
+	p->justify.vals[0] = (char*)malloc(sizeof(char) * 6);
 	strcpy(p->justify.vals[0], "BEGIN");
 	p->leftToRight = 1;
 	p->topToBottom = 1;
@@ -7702,18 +7702,18 @@ GF_Node *NavigationInfo_Create()
 
 
 	/*default field values*/
-	p->avatarSize.vals = malloc(sizeof(SFFloat)*3);
+	p->avatarSize.vals = (SFFloat*)malloc(sizeof(SFFloat)*3);
 	p->avatarSize.count = 3;
 	p->avatarSize.vals[0] = FLT2FIX(0.25);
 	p->avatarSize.vals[1] = FLT2FIX(1.6);
 	p->avatarSize.vals[2] = FLT2FIX(0.75);
 	p->headlight = 1;
 	p->speed = FLT2FIX(1.0);
-	p->type.vals = malloc(sizeof(SFString)*2);
+	p->type.vals = (char**)malloc(sizeof(SFString)*2);
 	p->type.count = 2;
-	p->type.vals[0] = malloc(sizeof(char) * 5);
+	p->type.vals[0] = (char*)malloc(sizeof(char) * 5);
 	strcpy(p->type.vals[0], "WALK");
-	p->type.vals[1] = malloc(sizeof(char) * 4);
+	p->type.vals[1] = (char*)malloc(sizeof(char) * 4);
 	strcpy(p->type.vals[1], "ANY");
 	p->visibilityLimit = FLT2FIX(0.0);
 	return (GF_Node *)p;
@@ -13398,16 +13398,16 @@ GF_Node *AcousticMaterial_Create()
 	p->specularColor.green = FLT2FIX(0);
 	p->specularColor.blue = FLT2FIX(0);
 	p->transparency = FLT2FIX(0);
-	p->reffunc.vals = malloc(sizeof(SFFloat)*1);
+	p->reffunc.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
 	p->reffunc.count = 1;
 	p->reffunc.vals[0] = FLT2FIX(0);
-	p->transfunc.vals = malloc(sizeof(SFFloat)*1);
+	p->transfunc.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
 	p->transfunc.count = 1;
 	p->transfunc.vals[0] = FLT2FIX(1);
-	p->refFrequency.vals = malloc(sizeof(SFFloat)*1);
+	p->refFrequency.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
 	p->refFrequency.count = 1;
 	p->refFrequency.vals[0] = FLT2FIX(0);
-	p->transFrequency.vals = malloc(sizeof(SFFloat)*1);
+	p->transFrequency.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
 	p->transFrequency.count = 1;
 	p->transFrequency.vals[0] = FLT2FIX(0);
 	return (GF_Node *)p;
@@ -13574,10 +13574,10 @@ GF_Node *AcousticScene_Create()
 	p->Size.x = FLT2FIX(-1);
 	p->Size.y = FLT2FIX(-1);
 	p->Size.z = FLT2FIX(-1);
-	p->reverbTime.vals = malloc(sizeof(SFTime)*1);
+	p->reverbTime.vals = (SFTime*)malloc(sizeof(SFTime)*1);
 	p->reverbTime.count = 1;
 	p->reverbTime.vals[0] = 0;
-	p->reverbFreq.vals = malloc(sizeof(SFFloat)*1);
+	p->reverbFreq.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
 	p->reverbFreq.count = 1;
 	p->reverbFreq.vals[0] = FLT2FIX(1000);
 	p->reverbLevel = FLT2FIX(0.4);
@@ -13958,10 +13958,10 @@ GF_Node *DirectiveSound_Create()
 	p->location.y = FLT2FIX(0);
 	p->location.z = FLT2FIX(0);
 	p->spatialize = 1;
-	p->directivity.vals = malloc(sizeof(SFFloat)*1);
+	p->directivity.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
 	p->directivity.count = 1;
 	p->directivity.vals[0] = FLT2FIX(1);
-	p->angles.vals = malloc(sizeof(SFFloat)*1);
+	p->angles.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
 	p->angles.count = 1;
 	p->angles.vals[0] = FLT2FIX(1);
 	p->speedOfSound = FLT2FIX(340);
@@ -14561,15 +14561,15 @@ GF_Node *PerceptualParameters_Create()
 	p->lateReverberance = FLT2FIX(1.0);
 	p->heavyness = FLT2FIX(1.0);
 	p->liveness = FLT2FIX(1.0);
-	p->omniDirectivity.vals = malloc(sizeof(SFFloat)*1);
+	p->omniDirectivity.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
 	p->omniDirectivity.count = 1;
 	p->omniDirectivity.vals[0] = FLT2FIX(1.0);
-	p->directFilterGains.vals = malloc(sizeof(SFFloat)*3);
+	p->directFilterGains.vals = (SFFloat*)malloc(sizeof(SFFloat)*3);
 	p->directFilterGains.count = 3;
 	p->directFilterGains.vals[0] = FLT2FIX(1.0);
 	p->directFilterGains.vals[1] = FLT2FIX(1.0);
 	p->directFilterGains.vals[2] = FLT2FIX(1.0);
-	p->inputFilterGains.vals = malloc(sizeof(SFFloat)*3);
+	p->inputFilterGains.vals = (SFFloat*)malloc(sizeof(SFFloat)*3);
 	p->inputFilterGains.count = 3;
 	p->inputFilterGains.vals[0] = FLT2FIX(1.0);
 	p->inputFilterGains.vals[1] = FLT2FIX(1.0);
@@ -14784,10 +14784,10 @@ GF_Node *TemporalTransform_Create()
 	p->speed = FLT2FIX(1.0);
 	p->scalability.x = FLT2FIX(1.0);
 	p->scalability.y = FLT2FIX(1.0);
-	p->stretchMode.vals = malloc(sizeof(SFInt32)*1);
+	p->stretchMode.vals = (SFInt32*)malloc(sizeof(SFInt32)*1);
 	p->stretchMode.count = 1;
 	p->stretchMode.vals[0] = 0;
-	p->shrinkMode.vals = malloc(sizeof(SFInt32)*1);
+	p->shrinkMode.vals = (SFInt32*)malloc(sizeof(SFInt32)*1);
 	p->shrinkMode.count = 1;
 	p->shrinkMode.vals[0] = 0;
 	p->maxDelay = 0;
@@ -15286,7 +15286,7 @@ GF_Node *MatteTexture_Create()
 
 	/*default field values*/
 	p->fraction = FLT2FIX(0);
-	p->parameter.vals = malloc(sizeof(SFFloat)*1);
+	p->parameter.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
 	p->parameter.count = 1;
 	p->parameter.vals[0] = FLT2FIX(0);
 	return (GF_Node *)p;
@@ -16095,7 +16095,7 @@ GF_Node *PositionAnimator_Create()
 	p->fromTo.x = FLT2FIX(0);
 	p->fromTo.y = FLT2FIX(1);
 	p->keyType = 0;
-	p->keySpline.vals = malloc(sizeof(SFVec2f)*2);
+	p->keySpline.vals = (SFVec2f*)malloc(sizeof(SFVec2f)*2);
 	p->keySpline.count = 2;
 	p->keySpline.vals[0].x = FLT2FIX(0);
 	p->keySpline.vals[0].y = FLT2FIX(0);
@@ -16294,7 +16294,7 @@ GF_Node *PositionAnimator2D_Create()
 	p->fromTo.y = FLT2FIX(1);
 	p->keyOrientation = 0;
 	p->keyType = 0;
-	p->keySpline.vals = malloc(sizeof(SFVec2f)*2);
+	p->keySpline.vals = (SFVec2f*)malloc(sizeof(SFVec2f)*2);
 	p->keySpline.count = 2;
 	p->keySpline.vals[0].x = FLT2FIX(0);
 	p->keySpline.vals[0].y = FLT2FIX(0);
@@ -16592,7 +16592,7 @@ GF_Node *ScalarAnimator_Create()
 	p->fromTo.x = FLT2FIX(0);
 	p->fromTo.y = FLT2FIX(1);
 	p->keyType = 0;
-	p->keySpline.vals = malloc(sizeof(SFVec2f)*2);
+	p->keySpline.vals = (SFVec2f*)malloc(sizeof(SFVec2f)*2);
 	p->keySpline.count = 2;
 	p->keySpline.vals[0].x = FLT2FIX(0);
 	p->keySpline.vals[0].y = FLT2FIX(0);
@@ -17371,7 +17371,7 @@ GF_Node *LinearGradient_Create()
 	/*default field values*/
 	p->endPoint.x = FLT2FIX(1);
 	p->endPoint.y = FLT2FIX(0);
-	p->opacity.vals = malloc(sizeof(SFFloat)*1);
+	p->opacity.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
 	p->opacity.count = 1;
 	p->opacity.vals[0] = FLT2FIX(1);
 	p->spreadMethod = 0;
@@ -17557,7 +17557,7 @@ GF_Node *PathLayout_Create()
 
 
 	/*default field values*/
-	p->alignment.vals = malloc(sizeof(SFInt32)*1);
+	p->alignment.vals = (SFInt32*)malloc(sizeof(SFInt32)*1);
 	p->alignment.count = 1;
 	p->alignment.vals[0] = 0;
 	p->pathOffset = FLT2FIX(0);
@@ -17748,7 +17748,7 @@ GF_Node *RadialGradient_Create()
 	p->center.y = FLT2FIX(0.5);
 	p->focalPoint.x = FLT2FIX(0);
 	p->focalPoint.y = FLT2FIX(0);
-	p->opacity.vals = malloc(sizeof(SFFloat)*1);
+	p->opacity.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
 	p->opacity.count = 1;
 	p->opacity.vals[0] = FLT2FIX(1);
 	p->radius = FLT2FIX(0.5);
@@ -18118,7 +18118,7 @@ GF_Node *Viewport_Create()
 	p->size.x = FLT2FIX(-1);
 	p->size.y = FLT2FIX(-1);
 	p->orientation = FLT2FIX(0);
-	p->alignment.vals = malloc(sizeof(SFInt32)*1);
+	p->alignment.vals = (SFInt32*)malloc(sizeof(SFInt32)*1);
 	p->alignment.count = 1;
 	p->alignment.vals[0] = 0;
 	p->fit = 0;
@@ -18450,24 +18450,24 @@ GF_Node *XFontStyle_Create()
 
 
 	/*default field values*/
-	p->fontName.vals = malloc(sizeof(SFString)*1);
+	p->fontName.vals = (char**)malloc(sizeof(SFString)*1);
 	p->fontName.count = 1;
-	p->fontName.vals[0] = malloc(sizeof(char) * 6);
+	p->fontName.vals[0] = (char*)malloc(sizeof(char) * 6);
 	strcpy(p->fontName.vals[0], "SERIF");
 	p->horizontal = 1;
-	p->justify.vals = malloc(sizeof(SFString)*1);
+	p->justify.vals = (char**)malloc(sizeof(SFString)*1);
 	p->justify.count = 1;
-	p->justify.vals[0] = malloc(sizeof(char) * 6);
+	p->justify.vals[0] = (char*)malloc(sizeof(char) * 6);
 	strcpy(p->justify.vals[0], "BEGIN");
 	p->leftToRight = 1;
 	p->size = FLT2FIX(1.0);
-	p->stretch.buffer = malloc(sizeof(char) * 7);
+	p->stretch.buffer = (char*)malloc(sizeof(char) * 7);
 	strcpy(p->stretch.buffer, "NORMAL");
 	p->letterSpacing = FLT2FIX(0.0);
 	p->wordSpacing = FLT2FIX(0.0);
 	p->weight = 400;
 	p->fontKerning = 1;
-	p->style.buffer = malloc(sizeof(char) * 6);
+	p->style.buffer = (char*)malloc(sizeof(char) * 6);
 	strcpy(p->style.buffer, "PLAIN");
 	p->topToBottom = 1;
 	return (GF_Node *)p;

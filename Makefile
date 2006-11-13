@@ -5,9 +5,9 @@ include config.mak
 
 vpath %.c $(SRC_PATH)
 
-INSTFLAGS=-s
+INSTFLAGS=-s -D
 ifeq ($(DEBUGBUILD),yes)
-INSTFLAGS=
+INSTFLAGS=-D
 endif
 
 all: lib apps mods
@@ -53,13 +53,13 @@ tar:
 	( tar zcvf ~/$(FILE).tar.gz ../gpac --exclude CVS --exclude bin --exclude lib --exclude Obj --exclude temp --exclude amr_nb --exclude amr_nb_ft --exclude amr_wb_ft --exclude *.mak --exclude *.o --exclude *.~*)
 
 install:
-	install -d "$(prefix)/bin"
-	install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(prefix)/bin"
+	install -d "$(DESTDIR)$(prefix)/bin"
+	install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
 	$(MAKE) -C applications install
-	install -d "$(moddir)"
-	install bin/gcc/*.$(DYN_LIB_SUFFIX) "$(moddir)"
-	rm -f $(moddir)/libgpac.$(DYN_LIB_SUFFIX)
-	rm -f $(moddir)/nposmozilla.$(DYN_LIB_SUFFIX)
+	install -d "$(DESTDIR)$(moddir)"
+	install bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
+	rm -f $(DESTDIR)$(moddir)/libgpac.$(DYN_LIB_SUFFIX)
+	rm -f $(DESTDIR)$(moddir)/nposmozilla.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(prefix)/lib
 else
@@ -67,20 +67,20 @@ ifeq ($(DEBUGBUILD),no)
 	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
-	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
+	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
+	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
 else
-	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
-	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
+	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
+	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
 	ldconfig || true
 endif
 endif
-	install -d "$(mandir)/man1"
-	install -m 644 doc/man/mp4box.1 $(mandir)/man1/
-	install -m 644 doc/man/mp4client.1 $(mandir)/man1/
-	install -m 644 doc/man/gpac.1 $(mandir)/man1/
-	install -d "$(prefix)/share/gpac"
-	install -m 644 doc/gpac.mp4 $(prefix)/share/gpac/
+	install -d "$(DESTDIR)$(mandir)/man1"
+	install -m 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/
+	install -m 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/
+	install -m 644 doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
+	install -d "$(DESTDIR)$(prefix)/share/gpac"
+	install -m 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/
 
 uninstall:
 	$(MAKE) -C applications uninstall
@@ -94,14 +94,14 @@ uninstall:
 	rm -rf $(prefix)/share/gpac
 
 install-lib:
-	mkdir -p "$(prefix)/include/gpac"
-	install -m 644 $(SRC_PATH)/include/gpac/*.h "$(prefix)/include/gpac"
-	mkdir -p "$(prefix)/include/gpac/internal" 
-	install -m 644 $(SRC_PATH)/include/gpac/internal/*.h "$(prefix)/include/gpac/internal"
-	mkdir -p "$(prefix)/include/gpac/modules" 
-	install -m 644 $(SRC_PATH)/include/gpac/modules/*.h "$(prefix)/include/gpac/modules"
-	mkdir -p "$(prefix)/lib"
-	install -m 644 "./bin/gcc/libgpac_static.a" "$(prefix)/lib"
+	mkdir -p "$(DESTDIR)$(prefix)/include/gpac"
+	install -m 644 $(SRC_PATH)/include/gpac/*.h "$(DESTDIR)$(prefix)/include/gpac"
+	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/internal"
+	install -m 644 $(SRC_PATH)/include/gpac/internal/*.h "$(DESTDIR)$(prefix)/include/gpac/internal"
+	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/modules"
+	install -m 644 $(SRC_PATH)/include/gpac/modules/*.h "$(DESTDIR)$(prefix)/include/gpac/modules"
+	mkdir -p "$(DESTDIR)$(prefix)/lib"
+	install -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/lib"
 
 uninstall-lib:
 	rm -rf "$(prefix)/include/gpac/internal"
@@ -125,8 +125,8 @@ help:
 	@echo "install: install applications and modules on system"
 	@echo "uninstall: uninstall applications and modules"
 	@echo 
-	@echo "install-lib: install gpac library (ligpac.so) and headers <gpac/*.h>, <gpac/modules/*.h> and <gpac/internal/*.h>"
-	@echo "uninstall-lib: uninstall gpac library (libgpac.so) and headers"
+	@echo "install-lib: install gpac library (dyn and static) and headers <gpac/*.h>, <gpac/modules/*.h> and <gpac/internal/*.h>"
+	@echo "uninstall-lib: uninstall gpac library (dyn and static) and headers"
 	@echo
 	@echo "to build libgpac documentation, go to gpac/doc and type 'doxygen'"
 

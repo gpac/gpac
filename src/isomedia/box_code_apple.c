@@ -344,7 +344,7 @@ GF_Err ListItem_Read(GF_Box *s,GF_BitStream *bs)
 		ptr->data->type = 0;
 		ptr->data->dataSize = gf_bs_read_u16(bs);
 		gf_bs_read_u16(bs);
-		ptr->data->data = malloc(sizeof(char)*(ptr->data->dataSize + 1));
+		ptr->data->data = (char *) malloc(sizeof(char)*(ptr->data->dataSize + 1));
 		gf_bs_read_data(bs, ptr->data->data, ptr->data->dataSize);
 		ptr->data->data[ptr->data->dataSize] = 0;
 		ptr->size -= ptr->data->dataSize;
@@ -436,7 +436,7 @@ GF_Err data_Read(GF_Box *s,GF_BitStream *bs)
 	ptr->size -= 4;
 	if (ptr->size) {
 		ptr->dataSize = (u32) ptr->size;
-		ptr->data = (u8*)malloc(ptr->dataSize * sizeof(ptr->data[0]) + 1);
+		ptr->data = (char*)malloc(ptr->dataSize * sizeof(ptr->data[0]) + 1);
 		if (ptr->data == NULL) return GF_OUT_OF_MEM;
 		ptr->data[ptr->dataSize] = 0;
 		gf_bs_read_data(bs, ptr->data, ptr->dataSize);
@@ -519,13 +519,11 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 	u32 i;
 	GF_MetaBox *meta;
 	GF_UserDataMap *map;
-	GF_Err moov_AddBox(GF_MovieBox *ptr, GF_Box *a);
-	GF_Err udta_AddBox (GF_UserDataBox *ptr, GF_Box *a);
 
 	if (!mov || !mov->moov) return NULL;
 
 	if (!mov->moov->udta){
-		e = moov_AddBox(mov->moov, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
+		e = moov_AddBox((GF_Box*)mov->moov, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
 		if (e) return NULL;
 	}
 

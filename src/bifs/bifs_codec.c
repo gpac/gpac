@@ -78,6 +78,7 @@ static void bifs_info_del(BIFSStreamInfo *info)
 	free(info);
 }
 
+GF_EXPORT
 GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec)
 {
 	GF_BifsDecoder *tmp;
@@ -112,6 +113,7 @@ BIFSStreamInfo *gf_bifs_dec_get_stream(GF_BifsDecoder * codec, u16 ESID)
 	return NULL;
 }
 
+GF_EXPORT
 GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *DecoderSpecificInfo, u32 DecoderSpecificInfoLength, u32 objectTypeIndication)
 {
 	GF_BitStream *bs;
@@ -126,7 +128,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	}
 
 	
-	bs = gf_bs_new((unsigned char *) DecoderSpecificInfo, DecoderSpecificInfoLength, GF_BITSTREAM_READ);
+	bs = gf_bs_new(DecoderSpecificInfo, DecoderSpecificInfoLength, GF_BITSTREAM_READ);
 	GF_SAFEALLOC(pInfo, BIFSStreamInfo);
 	pInfo->ESID = ESID;
 
@@ -159,12 +161,14 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	return GF_OK;
 }
 
+GF_EXPORT
 void gf_bifs_decoder_ignore_size_info(GF_BifsDecoder *codec)
 {
 	if (codec) codec->ignore_size = 1;
 }
 
 
+GF_EXPORT
 GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID)
 {
 	u32 i;
@@ -181,6 +185,7 @@ GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID)
 	return GF_BAD_PARAM;
 }
 
+GF_EXPORT
 void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 {	
 	if (codec->GlobalQP) gf_node_unregister((GF_Node *) codec->GlobalQP, NULL);
@@ -211,6 +216,7 @@ void BD_EndOfStream(void *co)
 
 void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), void *par);
 
+GF_EXPORT
 GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_length, Double ts_offset)
 {
 	GF_BitStream *bs;
@@ -228,7 +234,7 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_l
 	codec->current_graph = codec->scenegraph;
 	codec->cts_offset = ts_offset;
 
-	bs = gf_bs_new((unsigned char *)data, data_length, GF_BITSTREAM_READ);
+	bs = gf_bs_new(data, data_length, GF_BITSTREAM_READ);
 	gf_bs_set_eos_callback(bs, BD_EndOfStream, codec);
 
 	if (codec->info->config.elementaryMasks) {
@@ -267,6 +273,7 @@ GF_Node *gf_bifs_enc_find_node(GF_BifsEncoder *codec, u32 nodeID)
 }
 
 
+GF_EXPORT
 GF_BifsEncoder *gf_bifs_encoder_new(GF_SceneGraph *graph)
 {
 	GF_BifsEncoder * tmp;
@@ -293,6 +300,7 @@ static BIFSStreamInfo *BE_GetStream(GF_BifsEncoder * codec, u16 ESID)
 	return NULL;
 }
 
+GF_EXPORT
 void gf_bifs_encoder_del(GF_BifsEncoder *codec)
 {	
 	if (codec->GlobalQP) gf_node_unregister((GF_Node *) codec->GlobalQP, NULL);
@@ -310,6 +318,7 @@ void gf_bifs_encoder_del(GF_BifsEncoder *codec)
 	free(codec);
 }
 
+GF_EXPORT
 GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig *cfg, Bool encodeNames, Bool has_predictive)
 {
 	u32 i, count; 
@@ -352,6 +361,7 @@ GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_bifs_encode_au(GF_BifsEncoder *codec, u16 ESID, GF_List *command_list, char **out_data, u32 *out_data_length)
 {
 	GF_BitStream *bs;
@@ -374,12 +384,13 @@ GF_Err gf_bifs_encode_au(GF_BifsEncoder *codec, u16 ESID, GF_List *command_list,
 		e = gf_bifs_enc_commands(codec, command_list, bs);
 	}
 	gf_bs_align(bs);
-	gf_bs_get_content(bs, (unsigned char **) out_data, out_data_length);
+	gf_bs_get_content(bs, out_data, out_data_length);
 	gf_bs_del(bs);
 //	gf_mx_v(codec->mx);
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_bifs_encoder_get_config(GF_BifsEncoder *codec, u16 ESID, char **out_data, u32 *out_data_length)
 {
 	GF_BitStream *bs;
@@ -428,12 +439,13 @@ GF_Err gf_bifs_encoder_get_config(GF_BifsEncoder *codec, u16 ESID, char **out_da
 	}
 	
 	gf_bs_align(bs);
-	gf_bs_get_content(bs, (unsigned char **) out_data, out_data_length);
+	gf_bs_get_content(bs, out_data, out_data_length);
 	gf_bs_del(bs);
 //	gf_mx_v(codec->mx);
 	return GF_OK;
 }
 
+GF_EXPORT
 u8 gf_bifs_encoder_get_version(GF_BifsEncoder *codec, u16 ESID)
 {
 	u8 ret = 0;

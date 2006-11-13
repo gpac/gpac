@@ -39,7 +39,7 @@ typedef struct
 #define BMPCTX()	BMPDec *ctx = (BMPDec *) ((IMGDec *)ifcg->privateStack)->opaque
 
 
-static GF_Err BMP_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err BMP_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	BMPCTX();
 	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
@@ -97,9 +97,9 @@ static GF_Err BMP_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capab
 }
 
 static GF_Err BMP_ProcessData(GF_MediaDecoder *ifcg, 
-		unsigned char *inBuffer, u32 inBufferLength,
+		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
-		unsigned char *outBuffer, u32 *outBufferLength,
+		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
 	unsigned char *pix;

@@ -190,6 +190,7 @@ u32 SR_RenderRun(void *par)
 }
 
 /*forces graphics redraw*/
+GF_EXPORT
 void gf_sr_reset_graphics(GF_Renderer *sr)
 {	
 	if (sr) {
@@ -226,9 +227,9 @@ static GF_Renderer *SR_New(GF_User *user)
 	GF_VisualRenderer *vrend;
 	GF_GLConfig cfg, *gl_cfg;
 	Bool forced = 1;
-	GF_Renderer *tmp = malloc(sizeof(GF_Renderer));
+	GF_Renderer *tmp;
+	GF_SAFEALLOC(tmp, GF_Renderer);
 	if (!tmp) return NULL;
-	memset(tmp, 0, sizeof(GF_Renderer));
 	tmp->user = user;
 
 	/*load renderer to check for GL flag*/
@@ -420,7 +421,7 @@ void gf_sr_del(GF_Renderer *sr)
 
 	gf_mx_p(sr->ev_mx);
 	while (gf_list_count(sr->events)) {
-		GF_UserEvent *ev = gf_list_get(sr->events, 0);
+		GF_UserEvent *ev = (GF_UserEvent *)gf_list_get(sr->events, 0);
 		gf_list_rem(sr->events, 0);
 		free(ev);
 	}
@@ -553,7 +554,7 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 
 	gf_mx_p(sr->ev_mx);
 	while (gf_list_count(sr->events)) {
-		GF_UserEvent *ev = gf_list_get(sr->events, 0);
+		GF_UserEvent *ev = (GF_UserEvent *)gf_list_get(sr->events, 0);
 		gf_list_rem(sr->events, 0);
 		free(ev);
 	}
@@ -579,7 +580,7 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 #ifndef GPAC_DISABLE_SVG
 		{
 		SVGsvgElement *root = (SVGsvgElement *) gf_sg_get_root_node(sr->scene);
-		tag = gf_node_get_tag((GF_Node*)root);
+		tag = root ? gf_node_get_tag((GF_Node*)root) : 0;
 		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
 
 			/*default back color is white*/
@@ -662,6 +663,7 @@ void gf_sr_lock_audio(GF_Renderer *sr, Bool doLock)
 	}
 }
 
+GF_EXPORT
 void gf_sr_lock(GF_Renderer *sr, Bool doLock)
 {
 	if (doLock)
@@ -974,7 +976,7 @@ static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event)
 		gf_mx_p(sr->ev_mx);
 		count = gf_list_count(sr->events);
 		for (i=0; i<count; i++) {
-			ev = gf_list_get(sr->events, i);
+			ev = (GF_UserEvent *)gf_list_get(sr->events, i);
 			if (ev->event_type == GF_EVENT_MOUSEMOVE) {
 				ev->mouse =  event->mouse;
 				gf_mx_v(sr->ev_mx);
@@ -984,7 +986,7 @@ static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event)
 		gf_mx_v(sr->ev_mx);
 	}
 	default:
-		ev = malloc(sizeof(GF_UserEvent));
+		ev = (GF_UserEvent *)malloc(sizeof(GF_UserEvent));
 		ev->event_type = event->type;
 		if (event->type<=GF_EVENT_MOUSEWHEEL) {
 			ev->mouse = event->mouse;
@@ -1066,7 +1068,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	/*process pending user events*/
 	gf_mx_p(sr->ev_mx);
 	while (gf_list_count(sr->events)) {
-		GF_UserEvent *ev = gf_list_get(sr->events, 0);
+		GF_UserEvent *ev = (GF_UserEvent *)gf_list_get(sr->events, 0);
 		gf_list_rem(sr->events, 0);
 		if (!sr->visual_renderer->ExecuteEvent(sr->visual_renderer, ev)) {
 			SR_ForwardUserEvent(sr, ev);
@@ -1131,7 +1133,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	/*update all textures*/
 	count = gf_list_count(sr->textures);
 	for (i=0; i<count; i++) {
-		GF_TextureHandler *st = gf_list_get(sr->textures, i);
+		GF_TextureHandler *st = (GF_TextureHandler *)gf_list_get(sr->textures, i);
 		/*signal graphics reset before updating*/
 		if (sr->reset_graphics && st->hwtx) sr->visual_renderer->TextureHWReset(st);
 		st->update_texture_fcnt(st);
@@ -1160,7 +1162,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	/*release all textures - we must release them to handle a same OD being used by several textures*/
 	count = gf_list_count(sr->textures);
 	for (i=0; i<count; i++) {
-		GF_TextureHandler *st = gf_list_get(sr->textures, i);
+		GF_TextureHandler *st = (GF_TextureHandler *)gf_list_get(sr->textures, i);
 		gf_sr_texture_release_stream(st);
 	}
 	end_time = gf_sys_clock() - in_time;
@@ -1168,7 +1170,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 
 	/*update all timed nodes */
 	for (i=0; i<gf_list_count(sr->time_nodes); i++) {
-		GF_TimeNode *tn = gf_list_get(sr->time_nodes, i);
+		GF_TimeNode *tn = (GF_TimeNode *)gf_list_get(sr->time_nodes, i);
 		if (!tn->needs_unregister) tn->UpdateTimeNode(tn);
 		if (tn->needs_unregister) {
 			tn->is_registered = 0;
@@ -1292,6 +1294,7 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 		break;
 
 	case GF_EVENT_MOUSEMOVE:
+		event->mouse.button = 0;
 	case GF_EVENT_MOUSEDOWN:
 	case GF_EVENT_MOUSEUP:
 	case GF_EVENT_MOUSEWHEEL:

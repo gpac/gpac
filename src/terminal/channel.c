@@ -98,9 +98,9 @@ static void Channel_Reset(GF_Channel *ch, Bool for_start)
 GF_Channel *gf_es_new(GF_ESD *esd)
 {
 	u32 nbBits;
-	GF_Channel *tmp = malloc(sizeof(GF_Channel));
+	GF_Channel *tmp;
+	GF_SAFEALLOC(tmp, GF_Channel);
 	if (!tmp) return NULL;
-	memset((void *)tmp, 0, sizeof(GF_Channel));
 
 	tmp->mx = gf_mx_new();
 
@@ -396,7 +396,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	ch->buffer = NULL;
 
 	if (ch->len + ch->media_padding_bytes != ch->allocSize) {
-		au->data = realloc(au->data, sizeof(char) * (au->dataLength + ch->media_padding_bytes));
+		au->data = (char*)realloc(au->data, sizeof(char) * (au->dataLength + ch->media_padding_bytes));
 	}
 	if (ch->media_padding_bytes) memset(au->data + au->dataLength, 0, sizeof(char)*ch->media_padding_bytes);
 	
@@ -502,7 +502,7 @@ void Channel_RecieveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamB
 	au = gf_db_unit_new();
 	au->RAP = 1;
 	au->DTS = gf_clock_time(ch->clock);
-	au->data = malloc(sizeof(char) * (ch->media_padding_bytes + StreamLength));
+	au->data = (char*)malloc(sizeof(char) * (ch->media_padding_bytes + StreamLength));
 	memcpy(au->data, StreamBuf, sizeof(char) * StreamLength);
 	if (ch->media_padding_bytes) memset(au->data + StreamLength, 0, sizeof(char)*ch->media_padding_bytes);
 	au->dataLength = StreamLength;
@@ -825,7 +825,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		assert(!ch->buffer);
 		/*ignore length fields*/
 		size = StreamLength + ch->media_padding_bytes;
-		ch->buffer = malloc(sizeof(char) * size);
+		ch->buffer = (char*)malloc(sizeof(char) * size);
 		if (!ch->buffer) {
 			assert(0);
 			return;
@@ -859,7 +859,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			ch->len += StreamLength;
 		} else {
 			size = StreamLength + ch->len + ch->media_padding_bytes;
-			ch->buffer = realloc(ch->buffer, sizeof(char) * size);
+			ch->buffer = (char*)realloc(ch->buffer, sizeof(char) * size);
 			memcpy(ch->buffer+ch->len, payload, StreamLength);
 			ch->allocSize = size;
 			ch->len += StreamLength;
@@ -1147,7 +1147,7 @@ void gf_es_config_ismacryp(GF_Channel *ch, GF_NetComISMACryp *isma_cryp)
 	/*base64 inband encoding*/
 	if (!strnicmp(isma_cryp->kms_uri, "(key)", 5)) {
 		char data[100];
-		gf_base64_decode((unsigned char *) isma_cryp->kms_uri+5, strlen(isma_cryp->kms_uri)-5, data, 100);
+		gf_base64_decode((char*)isma_cryp->kms_uri+5, strlen(isma_cryp->kms_uri)-5, data, 100);
 		memcpy(ch->key, data, sizeof(char)*16);
 		memcpy(ch->salt, data+16, sizeof(char)*8);
 	}

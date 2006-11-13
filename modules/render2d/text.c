@@ -187,7 +187,7 @@ void TextStack2D_clean_paths(TextStack2D *stack)
 	TextLineEntry2D *tl;
 	/*delete all path objects*/
 	while (gf_list_count(stack->text_lines)) {
-		tl = gf_list_get(stack->text_lines, 0);
+		tl = (TextLineEntry2D *) gf_list_get(stack->text_lines, 0);
 		gf_list_rem(stack->text_lines, 0);
 		if (tl->path) gf_path_del(tl->path);
 		if (tl->hwtx) tl->sr->compositor->r2d->stencil_delete(tl->hwtx);
@@ -423,7 +423,7 @@ static void BuildVerticalTextGraph(TextStack2D *st, M_Text *txt, RenderEffect2D 
 		len = gf_utf8_mbstowcs(wcTemp, 5000, (const char **) &str);
 		if (len == (size_t) (-1)) continue;
 
-		lines[i].wcText = malloc(sizeof(unsigned short) * len);
+		lines[i].wcText = (u16*)malloc(sizeof(unsigned short) * len);
 		memcpy(lines[i].wcText, wcTemp, sizeof(unsigned short) * len);
 		lines[i].length = len;
 		
@@ -614,7 +614,7 @@ static void BuildTextGraph(TextStack2D *st, M_Text *txt, RenderEffect2D *eff)
 		if (len == (size_t) (-1)) continue;
 
 		lines[i].length = len;
-		lines[i].wcText = malloc(sizeof(unsigned short) * (len+1));
+		lines[i].wcText = (u16*)malloc(sizeof(unsigned short) * (len+1));
 		if (!FSLTR) {
 			for (k=0; k<len; k++) lines[i].wcText[k] = wcTemp[len-k-1];
 		} else {
@@ -785,7 +785,7 @@ void Text2D_Draw(DrawableContext *ctx)
 
 	/*text has been splited*/
 	if (ctx->sub_path_index > 0) {
-		tl = gf_list_get(st->text_lines, ctx->sub_path_index - 1);
+		tl = (TextLineEntry2D*)gf_list_get(st->text_lines, ctx->sub_path_index - 1);
 		if (!tl || !tl->path) return;
 		if (hl_color) VS2D_FillRect(ctx->surface, ctx, tl->bounds, hl_color);
 
@@ -800,7 +800,7 @@ void Text2D_Draw(DrawableContext *ctx)
 	}
 
 	i=0;
-	while ((tl = gf_list_enum(st->text_lines, &i))) {
+	while ((tl = (TextLineEntry2D*)gf_list_enum(st->text_lines, &i))) {
 		if (hl_color) VS2D_FillRect(ctx->surface, ctx, tl->bounds, hl_color);
 
 		if (can_texture_text && TextLine2D_TextureIsReady(tl)) {
@@ -832,13 +832,13 @@ Bool Text2D_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
 
 	/*otherwise get all paths*/
 	if (ctx->sub_path_index > 0) {
-		tl = gf_list_get(st->text_lines, ctx->sub_path_index - 1);
+		tl = (TextLineEntry2D*)gf_list_get(st->text_lines, ctx->sub_path_index - 1);
 		if (!tl || !tl->path) return 0;
 		return gf_path_point_over(tl->path, x, y);
 	}
 
 	i=0;
-	while ((tl = gf_list_enum(st->text_lines, &i))) {
+	while ((tl = (TextLineEntry2D*)gf_list_enum(st->text_lines, &i))) {
 		if (!tl->path) return 0;
 		if (gf_path_point_over(tl->path, x, y)) return 1;
 	}
@@ -893,7 +893,7 @@ static void Text_Render(GF_Node *n, void *rs)
 
 void R2D_InitText(Render2D *sr, GF_Node *node)
 {
-	TextStack2D *stack = malloc(sizeof(TextStack2D));
+	TextStack2D *stack = (TextStack2D *)malloc(sizeof(TextStack2D));
 	stack->graph = drawable_new();
 	/*override all funct*/
 	stack->graph->Draw = Text2D_Draw;

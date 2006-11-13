@@ -70,7 +70,7 @@ static GFINLINE SAFChannel *saf_get_channel(SAFIn *saf, u32 stream_id, LPNETCHAN
 {
 	SAFChannel *ch;
 	u32 i=0;
-	while ((ch=gf_list_enum(saf->channels, &i))) {
+	while ((ch = (SAFChannel *)gf_list_enum(saf->channels, &i))) {
 		if (ch->stream_id==stream_id) return ch;
 		if (a_ch && (ch->ch==a_ch)) return ch;
 	}
@@ -97,7 +97,7 @@ static void SAF_Regulate(SAFIn *read)
 	while (read->run_state) {
 		u32 min_occ = (u32) -1;
 		u32 i=0;
-		while ( (ch=gf_list_enum(read->channels, &i))) {
+		while ( (ch = (SAFChannel *)gf_list_enum(read->channels, &i))) {
 			com.base.on_channel = ch->ch;
 			gf_term_on_command(read->service, &com, GF_OK);
 			if (com.buffer.occupancy < ch->buffer_min) return;
@@ -145,7 +145,7 @@ static void SAF_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 	if (!read->run_state) return;
 
 	if (read->alloc_size < read->saf_size+size) {
-		read->saf_data = realloc(read->saf_data, sizeof(char)*(read->saf_size+size) );
+		read->saf_data = (char*)realloc(read->saf_data, sizeof(char)*(read->saf_size+size) );
 		read->alloc_size = read->saf_size+size;
 	}
 	memcpy(read->saf_data + read->saf_size, data, sizeof(char)*size);
@@ -188,7 +188,7 @@ static void SAF_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 			if (ch) {
 				gf_bs_skip_bytes(bs, au_size);
 			} else {
-				SAFChannel *first = gf_list_get(read->channels, 0);
+				SAFChannel *first = (SAFChannel *)gf_list_get(read->channels, 0);
 				GF_SAFEALLOC(ch, SAFChannel);
 				ch->stream_id = stream_id;
 				ch->esd = gf_odf_desc_esd_new(0);
@@ -208,14 +208,14 @@ static void SAF_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 				}
 				if (type==7) {
 					u16 urlLen = gf_bs_read_u16(bs);
-					ch->esd->URLString = malloc(sizeof(char)*(urlLen+1));
+					ch->esd->URLString = (char*)malloc(sizeof(char)*(urlLen+1));
 					gf_bs_read_data(bs, ch->esd->URLString, urlLen);
 					ch->esd->URLString[urlLen] = 0;
 					au_size -= urlLen+2;
 				}
 				if (au_size) {
 					ch->esd->decoderConfig->decoderSpecificInfo->dataLength = au_size;
-					ch->esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*au_size);
+					ch->esd->decoderConfig->decoderSpecificInfo->data = (char*)malloc(sizeof(char)*au_size);
 					gf_bs_read_data(bs, ch->esd->decoderConfig->decoderSpecificInfo->data, au_size);
 				}
 				if (ch->esd->decoderConfig->streamType==4) ch->buffer_min=100;
@@ -266,7 +266,7 @@ static void SAF_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 			go = 0;
 			read->run_state = 0;
 			i=0;
-			while ((ch=gf_list_enum(read->channels, &i))) {
+			while ((ch = (SAFChannel *)gf_list_enum(read->channels, &i))) {
 				gf_term_on_sl_packet(read->service, ch->ch, NULL, 0, NULL, GF_EOS);
 			}
 			break;
@@ -287,7 +287,7 @@ u32 SAF_Run(void *_p)
 {
 	char data[1024];
 	u32 size;
-	SAFIn *read = _p;
+	SAFIn *read = (SAFIn *)_p;
 
 	fseek(read->stream, 0, SEEK_SET);
 	read->saf_size=0;
@@ -363,7 +363,7 @@ static GF_Err SAF_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 {
 	char szURL[2048];
 	char *ext;
-	SAFIn *read = plug->priv;
+	SAFIn *read = (SAFIn *)plug->priv;
 	read->service = serv;
 
 	if (read->dnload) gf_term_download_del(read->dnload);
@@ -398,7 +398,7 @@ static GF_Err SAF_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 static GF_Err SAF_CloseService(GF_InputService *plug)
 {
-	SAFIn *read = plug->priv;
+	SAFIn *read = (SAFIn *)plug->priv;
 
 	if (read->th) {
 		if (read->run_state == 1) {
@@ -421,12 +421,12 @@ static GF_Descriptor *SAF_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 {
 	u32 i=0;
 	SAFChannel *root;
-	SAFIn *read = plug->priv;
+	SAFIn *read = (SAFIn *)plug->priv;
 	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
 
 	od->objectDescriptorID = 1;
 
-	while ( (root=gf_list_enum(read->channels, &i))) {
+	while ( (root = (SAFChannel *)gf_list_enum(read->channels, &i))) {
 		if (root->esd && (root->esd->decoderConfig->streamType==GF_STREAM_SCENE)) break;
 	}
 	if (!root) return NULL;
@@ -442,7 +442,7 @@ static GF_Err SAF_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	u32 ES_ID;
 	SAFChannel *ch;
 	GF_Err e;
-	SAFIn *read = plug->priv;
+	SAFIn *read = (SAFIn *)plug->priv;
 
 
 	ch = saf_get_channel(read, 0, channel);
@@ -465,7 +465,7 @@ static GF_Err SAF_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 static GF_Err SAF_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	SAFChannel *ch;
-	SAFIn *read = plug->priv;
+	SAFIn *read = (SAFIn *)plug->priv;
 
 	GF_Err e = GF_STREAM_NOT_FOUND;
 	ch = saf_get_channel(read, 0, channel);
@@ -481,7 +481,7 @@ static GF_Err SAF_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 static GF_Err SAF_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
-	SAFIn *read = plug->priv;
+	SAFIn *read = (SAFIn *)plug->priv;
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 	switch (com->command_type) {
@@ -523,8 +523,8 @@ static GF_Err SAF_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 GF_InputService *NewSAFReader()
 {
 	SAFIn *reader;
-	GF_InputService *plug = malloc(sizeof(GF_InputService));
-	memset(plug, 0, sizeof(GF_InputService));
+	GF_InputService *plug;
+	GF_SAFEALLOC(plug, GF_InputService);
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC SAF Reader", "gpac distribution")
 
 	plug->CanHandleURL = SAF_CanHandleURL;
@@ -535,8 +535,7 @@ GF_InputService *NewSAFReader()
 	plug->DisconnectChannel = SAF_DisconnectChannel;
 	plug->ServiceCommand = SAF_ServiceCommand;
 
-	reader = malloc(sizeof(SAFIn));
-	memset(reader, 0, sizeof(SAFIn));
+	GF_SAFEALLOC(reader, SAFIn);
 	reader->channels = gf_list_new();
 	plug->priv = reader;
 	return plug;
@@ -545,10 +544,10 @@ GF_InputService *NewSAFReader()
 void DeleteSAFReader(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
-	SAFIn *read = plug->priv;
+	SAFIn *read = (SAFIn *)plug->priv;
 
 	while (gf_list_count(read->channels)) {
-		SAFChannel *ch=gf_list_last(read->channels);
+		SAFChannel *ch = (SAFChannel *)gf_list_last(read->channels);
 		gf_list_rem_last(read->channels);
 		if (ch->esd) gf_odf_desc_del((GF_Descriptor *) ch->esd);
 		free(ch);
@@ -560,6 +559,7 @@ void DeleteSAFReader(void *ifce)
 }
 
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -568,6 +568,7 @@ Bool QueryInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -576,6 +577,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

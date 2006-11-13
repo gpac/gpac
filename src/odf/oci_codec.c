@@ -42,8 +42,8 @@ struct __tag_oci_event
 {
 	u16 EventID;
 	u8 AbsoluteTimeFlag;
-	u8 StartingTime[4];
-	u8 duration[4];
+	char StartingTime[4];
+	char duration[4];
 	GF_List *OCIDescriptors;
 };
 
@@ -57,11 +57,12 @@ struct __tag_oci_codec
 	u8 Mode;
 };
 
+GF_EXPORT
 OCIEvent *gf_oci_event_new(u16 EventID)
 {
 	OCIEvent *tmp;
 	if (EventID > MAX_OCIEVENT_ID) return NULL;
-	tmp = malloc(sizeof(OCIEvent));
+	tmp = (OCIEvent *)malloc(sizeof(OCIEvent));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(OCIEvent));
 	tmp->EventID = EventID;
@@ -69,13 +70,14 @@ OCIEvent *gf_oci_event_new(u16 EventID)
 	return tmp;
 }
 
+GF_EXPORT
 void gf_oci_event_del(OCIEvent *event)
 {
 	GF_Descriptor *desc;
 	if (!event) return;
 
 	while (gf_list_count(event->OCIDescriptors)) {
-		desc = gf_list_get(event->OCIDescriptors, 0);
+		desc = (GF_Descriptor *)gf_list_get(event->OCIDescriptors, 0);
 		gf_list_rem(event->OCIDescriptors, 0);
 		gf_odf_delete_descriptor(desc);
 	}
@@ -83,6 +85,7 @@ void gf_oci_event_del(OCIEvent *event)
 	free(event);	
 }
 
+GF_EXPORT
 GF_Err gf_oci_event_set_start_time(OCIEvent *event, u8 Hours, u8 Minutes, u8 Seconds, u8 HundredSeconds, u8 IsAbsoluteTime)
 {
 	if (!event || (Hours >= 100) || (Minutes >= 100) || (Seconds >= 100) || (HundredSeconds >= 100) )
@@ -96,6 +99,7 @@ GF_Err gf_oci_event_set_start_time(OCIEvent *event, u8 Hours, u8 Minutes, u8 Sec
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_oci_event_set_duration(OCIEvent *event, u8 Hours, u8 Minutes, u8 Seconds, u8 HundredSeconds)
 {
 	if (!event || (Hours >= 100) || (Minutes >= 100) || (Seconds >= 100) || (HundredSeconds >= 100) )
@@ -115,6 +119,7 @@ u8 OCI_IsOCIDesc(GF_Descriptor *oci_desc)
 	return 1;
 }
 
+GF_EXPORT
 GF_Err gf_oci_event_add_desc(OCIEvent *event, GF_Descriptor *oci_desc)
 {
 	if (!event || !oci_desc) return GF_BAD_PARAM;
@@ -124,6 +129,7 @@ GF_Err gf_oci_event_add_desc(OCIEvent *event, GF_Descriptor *oci_desc)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_oci_event_get_id(OCIEvent *event, u16 *ID)
 {
 	if (!event || !ID) return GF_BAD_PARAM;
@@ -131,6 +137,7 @@ GF_Err gf_oci_event_get_id(OCIEvent *event, u16 *ID)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_oci_event_get_start_time(OCIEvent *event, u8 *Hours, u8 *Minutes, u8 *Seconds, u8 *HundredSeconds, u8 *IsAbsoluteTime)
 {
 	if (!event || !Hours || !Minutes || !Seconds || !HundredSeconds || !IsAbsoluteTime) 
@@ -144,6 +151,7 @@ GF_Err gf_oci_event_get_start_time(OCIEvent *event, u8 *Hours, u8 *Minutes, u8 *
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_oci_event_get_duration(OCIEvent *event, u8 *Hours, u8 *Minutes, u8 *Seconds, u8 *HundredSeconds)
 {
 	if (!event || !Hours || !Minutes || !Seconds || !HundredSeconds) 
@@ -156,18 +164,21 @@ GF_Err gf_oci_event_get_duration(OCIEvent *event, u8 *Hours, u8 *Minutes, u8 *Se
 	return GF_OK;
 }
 
+GF_EXPORT
 u32 gf_oci_event_get_desc_count(OCIEvent *event)
 {
 	if (!event) return 0;
 	return gf_list_count(event->OCIDescriptors);
 }
 
+GF_EXPORT
 GF_Descriptor *gf_oci_event_get_desc(OCIEvent *event, u32 DescIndex)
 {
 	if (!event || DescIndex >= gf_list_count(event->OCIDescriptors) ) return NULL;
-	return gf_list_get(event->OCIDescriptors, DescIndex);
+	return (GF_Descriptor *) gf_list_get(event->OCIDescriptors, DescIndex);
 }
 
+GF_EXPORT
 GF_Err gf_oci_event_rem_desc(OCIEvent *event, u32 DescIndex)
 {
 	if (!event || DescIndex >= gf_list_count(event->OCIDescriptors) ) return GF_BAD_PARAM;
@@ -176,11 +187,12 @@ GF_Err gf_oci_event_rem_desc(OCIEvent *event, u32 DescIndex)
 
 
 //construction / destruction
+GF_EXPORT
 OCICodec *gf_oci_codec_new(u8 IsEncoder, u8 Version)
 {
 	OCICodec *tmp;
 	if (Version != 0x01) return NULL;
-	tmp = malloc(sizeof(OCICodec));
+	tmp = (OCICodec *)malloc(sizeof(OCICodec));
 	if (!tmp) return NULL;
 	tmp->Mode = IsEncoder ? 1 : 0;
 	tmp->Version = 0x01;
@@ -188,13 +200,14 @@ OCICodec *gf_oci_codec_new(u8 IsEncoder, u8 Version)
 	return tmp;
 }
 
+GF_EXPORT
 void gf_oci_codec_del(OCICodec *codec)
 {
 	OCIEvent *ev;
 	if (!codec) return;
 
 	while (gf_list_count(codec->OCIEvents)) {
-		ev = gf_list_get(codec->OCIEvents, 0);
+		ev = (OCIEvent *)gf_list_get(codec->OCIEvents, 0);
 		gf_oci_event_del(ev);
 		gf_list_rem(codec->OCIEvents, 0);
 	}
@@ -202,6 +215,7 @@ void gf_oci_codec_del(OCICodec *codec)
 	free(codec);
 }
 
+GF_EXPORT
 GF_Err gf_oci_codec_add_event(OCICodec *codec, OCIEvent *event)
 {
 	if (!codec || !codec->Mode || !event) return GF_BAD_PARAM;
@@ -245,6 +259,7 @@ GF_Err WriteSevenBitLength(GF_BitStream *bs, u32 size)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_oci_codec_encode(OCICodec *codec, char **outAU, u32 *au_length)
 {
 	GF_BitStream *bs;
@@ -259,7 +274,7 @@ GF_Err gf_oci_codec_encode(OCICodec *codec, char **outAU, u32 *au_length)
 
 	//get the size of each event
 	i=0;
-	while ((ev = gf_list_enum(codec->OCIEvents, &i))) {
+	while ((ev = (OCIEvent *)gf_list_enum(codec->OCIEvents, &i))) {
 		//fixed size header
 		size += 10;
 		e = gf_odf_size_descriptor_list(codec->OCIEvents, &desc_size);
@@ -275,7 +290,7 @@ GF_Err gf_oci_codec_encode(OCICodec *codec, char **outAU, u32 *au_length)
 
 	//get one event, write it and delete it
 	while (gf_list_count(codec->OCIEvents)) {
-		ev = gf_list_get(codec->OCIEvents, 0);
+		ev = (OCIEvent *)gf_list_get(codec->OCIEvents, 0);
 		gf_list_rem(codec->OCIEvents, 0);
 
 		gf_bs_write_int(bs, ev->EventID, 15);
@@ -289,7 +304,7 @@ GF_Err gf_oci_codec_encode(OCICodec *codec, char **outAU, u32 *au_length)
 		//OCI Event is aligned
 		gf_bs_align(bs);
 	}
-	gf_bs_get_content(bs, (unsigned char **) outAU, au_length);
+	gf_bs_get_content(bs, outAU, au_length);
 	gf_bs_del(bs);
 	return GF_OK;
 
@@ -298,7 +313,7 @@ err_exit:
 	if (bs) gf_bs_del(bs);
 	//delete everything
 	while (gf_list_count(codec->OCIEvents)) {
-		ev = gf_list_get(codec->OCIEvents, 0);
+		ev = (OCIEvent *)gf_list_get(codec->OCIEvents, 0);
 		gf_list_rem(codec->OCIEvents, 0);
 		gf_oci_event_del(ev);
 	}
@@ -306,6 +321,7 @@ err_exit:
 }
 
 
+GF_EXPORT
 GF_Err gf_oci_codec_decode(OCICodec *codec, char *au, u32 au_length)
 {
 	OCIEvent *ev;
@@ -387,7 +403,7 @@ err_exit:
 	if (ev) gf_oci_event_del(ev);
 	//delete everything
 	while (gf_list_count(codec->OCIEvents)) {
-		ev = gf_list_get(codec->OCIEvents, 0);
+		ev = (OCIEvent *)gf_list_get(codec->OCIEvents, 0);
 		gf_list_rem(codec->OCIEvents, 0);
 		gf_oci_event_del(ev);
 	}
@@ -395,11 +411,12 @@ err_exit:
 }
 
 
+GF_EXPORT
 OCIEvent *gf_oci_codec_get_event(OCICodec *codec)
 {
 	OCIEvent *ev;
 	if (!codec ||codec->Mode) return NULL;
-	ev = gf_list_get(codec->OCIEvents, 0);
+	ev = (OCIEvent *)gf_list_get(codec->OCIEvents, 0);
 	gf_list_rem(codec->OCIEvents, 0);
 	return ev;
 }

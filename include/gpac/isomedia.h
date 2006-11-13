@@ -231,6 +231,8 @@ enum
 	/*file complying to the generic ISO Media File (base specification ISO/IEC 14496-12)
 	this is the default brand when creating a new movie*/
 	GF_ISOM_BRAND_ISOM = GF_4CC( 'i', 's', 'o', 'm' ),
+	/*file complying to the generic ISO Media File (base specification ISO/IEC 14496-12) + Meta extensions*/
+	GF_ISOM_BRAND_ISO2 =  GF_4CC( 'i', 's', 'o', '2' ),
 	/*file complying to ISO/IEC 14496-1 2001 edition. A .mp4 file without a brand
 	is equivalent to a file compatible with this brand*/
 	GF_ISOM_BRAND_MP41 = GF_4CC( 'm', 'p', '4', '1' ),
@@ -643,7 +645,7 @@ typedef struct
 	u16 bits_per_sample;
 
 	/*if present*/
-	unsigned char *extension_buf;
+	char *extension_buf;
 	u32 extension_buf_size;
 } GF_GenericSampleDescription;
 
@@ -722,7 +724,7 @@ GF_Err gf_isom_add_sample_shadow(GF_ISOFile *the_file, u32 trackNumber, GF_ISOSa
 /*add data to current sample in the track. Use this function for media with
 fragmented options such as MPEG-4 video packets. This will update the data size.
 CANNOT be used with OD media type*/
-GF_Err gf_isom_append_sample_data(GF_ISOFile *the_file, u32 trackNumber, unsigned char *data, u32 data_size);
+GF_Err gf_isom_append_sample_data(GF_ISOFile *the_file, u32 trackNumber, char *data, u32 data_size);
 
 /*Add sample references to a track. The dataOffset is the offset of the data in the referenced file
 you MUST have created a StreamDescription with URL or URN specifying your referenced file
@@ -986,7 +988,7 @@ GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output);
 /*returns true if same set of sample description in both tracks - this does include self-contained checking
 and reserved flags. The specific media cfg (DSI & co) is not analysed, only
 a brutal memory comparaison is done*/
-GF_Err gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, GF_ISOFile *f2, u32 tk2);
+Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, GF_ISOFile *f2, u32 tk2);
 
 /*
 			Movie Fragments Writing API
@@ -1087,7 +1089,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, GF_ISOSamp
 
 /*appends data into last sample of track for video fragments/other media
 CANNOT be used with OD tracks*/
-GF_Err gf_isom_fragment_append_data(GF_ISOFile *the_file, u32 TrackID, unsigned char *data, u32 data_size, u8 PaddingBits);
+GF_Err gf_isom_fragment_append_data(GF_ISOFile *the_file, u32 TrackID, char *data, u32 data_size, u8 PaddingBits);
 
 
 
@@ -1501,7 +1503,7 @@ typedef struct
 	u8 *key_indicator;
 	u8 KI_length;/*repeated from sampleDesc for convenience*/
 	u32 dataLength;
-	u8 *data;
+	char *data;
 	u32 flags;
 } GF_ISMASample;
 /**

@@ -159,7 +159,7 @@ static GFINLINE void gray_record_cell( TRaster *raster )
 		if (y>=0) {
 			AAScanline *sl = &raster->scanlines[y];
 			if (sl->num >= sl->alloc) {
-				sl->cells = realloc(sl->cells, sizeof(AACell)* (sl->alloc + AA_CELL_STEP_ALLOC));
+				sl->cells = (AACell*)realloc(sl->cells, sizeof(AACell)* (sl->alloc + AA_CELL_STEP_ALLOC));
 				sl->alloc += AA_CELL_STEP_ALLOC;
 			}
 			cell = &sl->cells[sl->num];
@@ -478,7 +478,7 @@ static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
 		v_last  = outline->points[last];
 
 		point = outline->points + first;
-		tags  = outline->tags  + first;
+		tags  = (char*) outline->tags  + first;
 		tag   = tags[0];
 		gray_move_to(&v_start, user);
 		while ( point < limit ) {
@@ -724,7 +724,7 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 
 	size_y = raster->max_ey - raster->min_ey;
     if (raster->max_lines < size_y) {
-		raster->scanlines = realloc(raster->scanlines, sizeof(AAScanline)*size_y);
+		raster->scanlines = (AAScanline*)realloc(raster->scanlines, sizeof(AAScanline)*size_y);
 		memset(&raster->scanlines[raster->max_lines], 0, sizeof(AAScanline)*(size_y-raster->max_lines) );
 		raster->max_lines = size_y;
 	}

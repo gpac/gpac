@@ -379,7 +379,7 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, char *buffer, u32 bufferLength, u6
 		ptr->curPos = fileOffset;
 	}
 	//read our data.
-	bytesRead = gf_bs_read_data(ptr->bs, (unsigned char*)buffer, bufferLength);
+	bytesRead = gf_bs_read_data(ptr->bs, buffer, bufferLength);
 	//update our cache
 	if (bytesRead == bufferLength) {
 		ptr->curPos += bytesRead;
@@ -425,7 +425,7 @@ GF_Err FDM_AddData(GF_FileDataMap *ptr, char *data, u32 dataSize)
 	}
 	//OK, write our stuff to the datamap...
 	//we don't use bs here cause we want to know more about what has been written
-	ret = gf_bs_write_data(ptr->bs, (unsigned char*)data, dataSize);
+	ret = gf_bs_write_data(ptr->bs, data, dataSize);
 	if (ret != dataSize) {
 		ptr->curPos = orig;
 		gf_bs_seek(ptr->bs, orig);

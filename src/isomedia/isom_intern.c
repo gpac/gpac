@@ -49,14 +49,14 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 	if (mov->NextMoofNumber + 1 != moof->mfhd->sequence_number) return GF_ISOM_INVALID_FILE;
 
 	i=0;
-	while ((traf = gf_list_enum(moof->TrackList, &i))) {
+	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(moof->TrackList, &i))) {
 		if (!traf->tfhd) {
 			trak = NULL;
 			traf->trex = NULL;
 		} else {
 			trak = gf_isom_get_track_from_id(mov->moov, traf->tfhd->trackID);
 			j=0;
-			while ((traf->trex = gf_list_enum(mov->moov->mvex->TrackExList, &j))) {
+			while ((traf->trex = (GF_TrackExtendsBox*)gf_list_enum(mov->moov->mvex->TrackExList, &j))) {
 				if (traf->trex->trackID == traf->tfhd->trackID) break;
 				traf->trex = NULL;
 			}
@@ -444,7 +444,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *MediaTime, s64 *Segme
 	time = 0;
 	ent = NULL;
 	i=0;
-	while ((ent = gf_list_enum(trak->editBox->editList->entryList, &i))) {
+	while ((ent = (GF_EdtsEntry *)gf_list_enum(trak->editBox->editList->entryList, &i))) {
 		if (time + ent->segmentDuration > m_time) {
 			goto ent_found;
 		}
@@ -540,7 +540,7 @@ GF_Err GetNextMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime)
 	time = 0;
 	ent = NULL;
 	i=0;
-	while ((ent = gf_list_enum(trak->editBox->editList->entryList, &i))) {
+	while ((ent = (GF_EdtsEntry *)gf_list_enum(trak->editBox->editList->entryList, &i))) {
 		if (time * trak->Media->mediaHeader->timeScale >= movieTime * trak->moov->mvhd->timeScale) {
 			/*skip empty edits*/
 			if (ent->mediaTime >= 0) {
@@ -568,7 +568,7 @@ GF_Err GetPrevMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime)
 	time = 0;
 	ent = NULL;
 	i=0;
-	while ((ent = gf_list_enum(trak->editBox->editList->entryList, &i))) {
+	while ((ent = (GF_EdtsEntry *)gf_list_enum(trak->editBox->editList->entryList, &i))) {
 		if (ent->mediaTime == -1) {
 			if ( (time + ent->segmentDuration) * trak->Media->mediaHeader->timeScale >= movieTime * trak->moov->mvhd->timeScale) {
 				*OutMovieTime = time * trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale;
@@ -591,7 +591,6 @@ GF_Err GetPrevMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime)
 
 void gf_isom_insert_moov(GF_ISOFile *file)
 {
-	GF_Err moov_AddBox(GF_MovieBox *ptr, GF_Box *a);
 	u64 now;
 	GF_MovieHeaderBox *mvhd;
 	if (file->moov) return;
@@ -609,7 +608,7 @@ void gf_isom_insert_moov(GF_ISOFile *file)
 	mvhd->timeScale = 600;
 
 	file->interleavingTime = mvhd->timeScale;
-	moov_AddBox(file->moov, (GF_Box *)mvhd);
+	moov_AddBox((GF_Box*)file->moov, (GF_Box *)mvhd);
 	gf_list_add(file->TopBoxes, file->moov);
 }
 
@@ -617,10 +616,6 @@ void gf_isom_insert_moov(GF_ISOFile *file)
 GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char *tmp_dir)
 {
 	GF_Err e;
-	GF_Box *moov_New();
-	GF_Box *mdat_New();
-	GF_Box *mvhd_New();
-	GF_Box *iods_New();
 
 	GF_ISOFile *mov = gf_isom_new_movie();
 	if (!mov) return NULL;

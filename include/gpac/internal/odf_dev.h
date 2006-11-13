@@ -49,6 +49,8 @@ GF_Err gf_odf_size_descriptor_list(GF_List *descList, u32 *outSize);
 /*handle lazy bitstreams where SizeOfInstance is always encoded on 4 bytes*/
 s32 gf_odf_size_field_size(u32 size_desc);
 
+GF_Err DumpDescList(GF_List *list, FILE *trace, u32 indent, const char *ListName, Bool XMTDump, Bool no_skip_empty);
+
 /*IPMPX tools*/
 u32 gf_ipmpx_array_size(GF_BitStream *bs, u32 *array_size);
 void gf_ipmpx_write_array(GF_BitStream *bs, char *data, u32 data_len);

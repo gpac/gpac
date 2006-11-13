@@ -30,6 +30,7 @@
 #include <time.h>
 #endif
 
+GF_EXPORT
 u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 {
 	GF_Err e;
@@ -38,11 +39,12 @@ u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 	//only if the socket exist (otherwise RTSP interleaved channel)
 	if (!ch || !ch->rtcp) return 0;
 
-	e = gf_sk_receive(ch->rtcp, (unsigned char *)buffer, buffer_size, 0, &res);
+	e = gf_sk_receive(ch->rtcp, buffer, buffer_size, 0, &res);
 	if (e) return 0;
 	return res;
 }
 
+GF_EXPORT
 GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size)
 {
 	GF_RTCPHeader rtcp_hdr;
@@ -53,7 +55,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size)
 	
 	//bad RTCP packet
 	if (pck_size < 4 ) return GF_NON_COMPLIANT_BITSTREAM;
-	bs = gf_bs_new((unsigned char *)pck, pck_size, GF_BITSTREAM_READ);
+	bs = gf_bs_new(pck, pck_size, GF_BITSTREAM_READ);
 
 	first = 1;
 	while (pck_size) {
@@ -181,7 +183,7 @@ process_reports:
 					if (!sdes_type) break;
 					sdes_len = gf_bs_read_u8(bs);
 					val += 1;
-					gf_bs_read_data(bs, (unsigned char *) sdes_buffer, sdes_len);
+					gf_bs_read_data(bs, sdes_buffer, sdes_len);
 					sdes_buffer[sdes_len] = 0;
 					val += sdes_len;
 				}
@@ -236,7 +238,7 @@ process_reports:
 */
 		default:
 			//read all till end
-			gf_bs_read_data(bs, (unsigned char *) sdes_buffer, rtcp_hdr.Length*4);
+			gf_bs_read_data(bs, sdes_buffer, rtcp_hdr.Length*4);
 			rtcp_hdr.Length = 0;
 			break;
 		}
@@ -407,7 +409,7 @@ static u32 RTCP_FormatSDES(GF_RTPChannel *ch, GF_BitStream *bs)
 	gf_bs_write_u8(bs, 1);
 	//length and cname
 	gf_bs_write_u8(bs, strlen(ch->CName));	
-	gf_bs_write_data(bs, (unsigned char *) ch->CName, strlen(ch->CName));
+	gf_bs_write_data(bs, ch->CName, strlen(ch->CName));
 
 	gf_bs_write_u8(bs, 0);
 
@@ -435,6 +437,7 @@ static u32 RTCP_FormatBYE(GF_RTPChannel *ch, GF_BitStream *bs)
 	return 8;
 }
 
+GF_EXPORT
 GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 						GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
 						void *rtsp_cbk)
@@ -461,11 +464,11 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 
 	report_buf = NULL;
 	report_size = 0;
-	gf_bs_get_content(bs, (unsigned char **) &report_buf, &report_size);
+	gf_bs_get_content(bs, &report_buf, &report_size);
 	gf_bs_del(bs);
 
 	if (ch->rtcp) {
-		e = gf_sk_send(ch->rtcp, (unsigned char *) report_buf, report_size);
+		e = gf_sk_send(ch->rtcp, report_buf, report_size);
 	} else {
 		if (RTP_TCPCallback) 
 			e = RTP_TCPCallback(rtsp_cbk, report_buf, report_size);
@@ -476,6 +479,7 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch, 
 						GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
 						void *rtsp_cbk)
@@ -503,12 +507,12 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
 	//get content
 	report_buf = NULL;
 	report_size = 0;
-	gf_bs_get_content(bs, (unsigned char **) &report_buf, &report_size);
+	gf_bs_get_content(bs, &report_buf, &report_size);
 	gf_bs_del(bs);
 
 
 	if (ch->rtcp) {
-		e = gf_sk_send(ch->rtcp, (unsigned char *) report_buf, report_size);
+		e = gf_sk_send(ch->rtcp, report_buf, report_size);
 	} else {
 		if (RTP_TCPCallback) 
 			e = RTP_TCPCallback(rtsp_cbk, report_buf, report_size);
@@ -533,6 +537,7 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
 #define RTCP_SAFE_FREE(p) if (p) free(p);	\
 					p = NULL;
 
+GF_EXPORT
 GF_Err gf_rtp_set_info_rtcp(GF_RTPChannel *ch, u32 InfoCode, char *info_string)
 {
 	if (!ch) return GF_BAD_PARAM;

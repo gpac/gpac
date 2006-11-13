@@ -36,7 +36,7 @@ static void LASeR_Render_selector(GF_Node *node, void *rs)
 	SVGselectorElement *sel = (SVGselectorElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
-	SVG_Render_base(node, rs, &backup_props);
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		u32 prev_flags = eff->trav_flags;
@@ -67,7 +67,7 @@ static void LASeR_Render_selector(GF_Node *node, void *rs)
 		svg_render_node_list(sel->children, eff);
 		break;
 	case LASeR_CHOICE_N:
-		svg_render_node(gf_list_get(sel->children, sel->choice.choice_index), eff);
+		svg_render_node((GF_Node*)gf_list_get(sel->children, sel->choice.choice_index), eff);
 		break;
 	}
 
@@ -89,7 +89,7 @@ static void LASeR_Render_simpleLayout(GF_Node *node, void *rs)
 	SVGsimpleLayoutElement *sl = (SVGsimpleLayoutElement*)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
-	SVG_Render_base(node, rs, &backup_props);
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		u32 prev_flags = eff->trav_flags;
@@ -139,7 +139,7 @@ static void LASeR_Render_rectClip(GF_Node *node, void *rs)
 	SVGrectClipElement *rc = (SVGrectClipElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
-	SVG_Render_base(node, rs, &backup_props);
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		u32 prev_flags = eff->trav_flags;

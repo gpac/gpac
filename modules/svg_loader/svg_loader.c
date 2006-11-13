@@ -136,7 +136,7 @@ static GF_Err SVG_ProcessAU(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 
 }
 
 
-static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
+static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	SVGParser *parser = plug->privateStack;
@@ -209,7 +209,7 @@ static GF_Err SVG_ReleaseScene(GF_SceneDecoder *plug)
 
 static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
-									 unsigned char *decSpecInfo, 
+									 char *decSpecInfo, 
 									 u32 decSpecInfoSize, 
 									 u16 DependsOnES_ID,
 									 u32 objectTypeIndication, 
@@ -271,7 +271,7 @@ const char *SVG_GetName(struct _basedecoder *plug)
 	return "INTERNAL ERROR";
 }
 
-Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
 		if (ObjectType==SVGLOADER_OTI_SVG) return 1;

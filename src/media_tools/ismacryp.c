@@ -43,13 +43,13 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 	GF_XMLAttribute *att;
 	GF_TrackCryptInfo *tkc;
 	u32 i=0;
-	ISMACrypInfo *info = sax_cbck;
+	ISMACrypInfo *info = (ISMACrypInfo *)sax_cbck;
 	if (stricmp(node_name, "ISMACrypTrack")) return;
 
 	GF_SAFEALLOC(tkc, GF_TrackCryptInfo);
 	gf_list_add(info->tcis, tkc);
 
-	while ( (att = gf_list_enum(attributes, &i))) {
+	while ( (att = (GF_XMLAttribute *) gf_list_enum(attributes, &i))) {
 		if (!stricmp(att->name, "trackID") || !stricmp(att->name, "ID")) {
 			if (!strcmp(att->value, "*")) info->has_common_key = 1;
 			else tkc->trackID = atoi(att->value);
@@ -114,7 +114,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 static void del_crypt_info(ISMACrypInfo *info)
 {
 	while (gf_list_count(info->tcis)) {
-		GF_TrackCryptInfo *tci = gf_list_last(info->tcis);
+		GF_TrackCryptInfo *tci = (GF_TrackCryptInfo *)gf_list_last(info->tcis);
 		gf_list_rem_last(info->tcis);
 		free(tci);
 	}
@@ -140,6 +140,7 @@ static ISMACrypInfo *load_crypt_file(const char *file)
 }
 
 
+GF_EXPORT
 GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char *salt)
 {
 	GF_Err e;
@@ -152,7 +153,7 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 	if (!info) return GF_NOT_SUPPORTED;
 	count = gf_list_count(info->tcis);
 	for (i=0; i<count; i++) {
-		tci = gf_list_get(info->tcis, i);
+		tci = (GF_TrackCryptInfo *) gf_list_get(info->tcis, i);
 		if ((info->has_common_key && !tci->trackID) || (tci->trackID == stream_id) ) {
 			memcpy(key, tci->key, sizeof(char)*16);
 			memcpy(salt, tci->salt, sizeof(char)*8);
@@ -164,6 +165,7 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 	return e;
 }
 
+GF_EXPORT
 Bool gf_ismacryp_mpeg4ip_get_info(u32 stream_id, char *kms_uri, char *key, char *salt)
 {
 	char szPath[1024], catKey[24];
@@ -221,6 +223,7 @@ static GFINLINE void resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u32 done, u32 total), void *cbk)
 {
 	GF_Err e;
@@ -293,7 +296,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	esd = gf_isom_get_esd(mp4, track, 1);
 	if (esd) {
 		while (gf_list_count(esd->IPMPDescriptorPointers)) {
-			GF_Descriptor *d = gf_list_get(esd->IPMPDescriptorPointers, 0);
+			GF_Descriptor *d = (GF_Descriptor *)gf_list_get(esd->IPMPDescriptorPointers, 0);
 			gf_list_rem(esd->IPMPDescriptorPointers, 0);
 			gf_odf_desc_del(d);
 		}
@@ -339,6 +342,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 {
 	GF_Err e;
@@ -362,7 +366,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 	common_idx=0;
 	if (info && info->has_common_key) {
 		for (common_idx=0; common_idx<count; common_idx++) {
-			a_tci = gf_list_get(info->tcis, common_idx);
+			a_tci = (GF_TrackCryptInfo *)gf_list_get(info->tcis, common_idx);
 			if (!a_tci->trackID) break;
 		}
 	}
@@ -375,7 +379,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		if (!gf_isom_is_media_encrypted(mp4, i+1, 1)) continue;
 
 		for (idx=0; idx<count; idx++) {
-			a_tci = gf_list_get(info->tcis, idx);
+			a_tci = (GF_TrackCryptInfo *)gf_list_get(info->tcis, idx);
 			if (a_tci->trackID == trackID) break;
 		}
 		if (idx==count) {
@@ -384,7 +388,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			else continue;
 		}
 		if (count) {
-			a_tci = gf_list_get(info->tcis, idx);
+			a_tci = (GF_TrackCryptInfo *)gf_list_get(info->tcis, idx);
 			memcpy(&tci, a_tci, sizeof(GF_TrackCryptInfo));
 		} else {
 			memset(&tci, 0, sizeof(GF_TrackCryptInfo));
@@ -409,7 +413,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		/*GPAC*/
 		if (!strnicmp(KMS_URI, "(key)", 5)) {
 			char data[100];
-			gf_base64_decode((unsigned char *) KMS_URI+5, strlen(KMS_URI)-5, data, 100);
+			gf_base64_decode((char*)KMS_URI+5, strlen(KMS_URI)-5, data, 100);
 			memcpy(tci.key, data, sizeof(char)*16);
 			memcpy(tci.salt, data+16, sizeof(char)*8);
 		}
@@ -449,6 +453,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u32 done, u32 total), void *cbk)
 {
 	char IV[16];
@@ -672,6 +677,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 {
 	GF_Err e;
@@ -690,7 +696,7 @@ GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	common_idx=0;
 	if (info && info->has_common_key) {
 		for (common_idx=0; common_idx<count; common_idx++) {
-			tci = gf_list_get(info->tcis, common_idx);
+			tci = (GF_TrackCryptInfo *)gf_list_get(info->tcis, common_idx);
 			if (!tci->trackID) break;
 		}
 	}
@@ -698,14 +704,14 @@ GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	for (i=0; i<nb_tracks; i++) {
 		u32 trackID = gf_isom_get_track_id(mp4, i+1);
 		for (idx=0; idx<count; idx++) {
-			tci = gf_list_get(info->tcis, idx);
+			tci = (GF_TrackCryptInfo *)gf_list_get(info->tcis, idx);
 			if (tci->trackID==trackID) break;
 		}
 		if (idx==count) {
 			if (!info->has_common_key) continue;
 			idx = common_idx;
 		}
-		tci = gf_list_get(info->tcis, idx);
+		tci = (GF_TrackCryptInfo *)gf_list_get(info->tcis, idx);
 
 		/*default to FILE uri*/
 		if (!strlen(tci->KMS_URI)) strcpy(tci->KMS_URI, drm_file);

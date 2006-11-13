@@ -122,7 +122,7 @@ u32 gf_rtp_build_au_hdr_write(GP_RTPPacketizer *builder, u32 PayloadSize, u32 RT
 	/*key*/
 	if (builder->slMap.KI_length) {
 		if (builder->first_sl_in_rtp || (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU)) {
-			if (builder->key_indicator) gf_bs_write_data(builder->pck_hdr, (unsigned char *)builder->key_indicator, builder->slMap.KI_length);
+			if (builder->key_indicator) gf_bs_write_data(builder->pck_hdr, builder->key_indicator, builder->slMap.KI_length);
 			else gf_bs_write_int(builder->pck_hdr, 0, 8*builder->slMap.KI_length);
 			nbBits += 8*builder->slMap.KI_length;
 		}
@@ -227,7 +227,7 @@ GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_s
 			if (builder->payload) {
 				//don't store more than what we can (that is 2^slMap->CTSDelta - 1)
 				if ( (builder->flags & GP_RTP_PCK_SIGNAL_TS) 
-					&& (builder->sl_header.compositionTimeStamp - builder->rtp_header.TimeStamp >= ( 1 << builder->slMap.CTSDeltaLength) ) ) {
+					&& (builder->sl_header.compositionTimeStamp - builder->rtp_header.TimeStamp >= (u32) ( 1 << builder->slMap.CTSDeltaLength) ) ) {
 					goto flush_packet;
 				}
 				//don't split AU if # TS , start a new RTP pck 
@@ -311,7 +311,7 @@ GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_s
 		if (builder->OnDataReference) 
 			builder->OnDataReference(builder->cbk_obj, pckSize, data_size - bytesLeftInPacket);
 		else
-			gf_bs_write_data(builder->payload, (unsigned char *)data + (data_size - bytesLeftInPacket), pckSize);
+			gf_bs_write_data(builder->payload, data + (data_size - bytesLeftInPacket), pckSize);
 
 
 		bytesLeftInPacket -= pckSize;
@@ -357,7 +357,7 @@ flush_packet:
 		}
 
 		sl_buffer = NULL;
-		gf_bs_get_content(builder->pck_hdr, (unsigned char **) &sl_buffer, &sl_buffer_size);
+		gf_bs_get_content(builder->pck_hdr, &sl_buffer, &sl_buffer_size);
 		//delete our bitstream
 		gf_bs_del(builder->pck_hdr);
 		builder->pck_hdr = NULL;
@@ -365,7 +365,7 @@ flush_packet:
 		payl_buffer = NULL;
 		payl_buffer_size = 0;
 		if (!builder->OnDataReference) 
-			gf_bs_get_content(builder->payload, (unsigned char **) &payl_buffer, &payl_buffer_size);
+			gf_bs_get_content(builder->payload, &payl_buffer, &payl_buffer_size);
 
 		gf_bs_del(builder->payload);
 		builder->payload = NULL;

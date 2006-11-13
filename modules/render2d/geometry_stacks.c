@@ -36,7 +36,7 @@ static void RenderShape(GF_Node *node, void *rs)
 	RenderEffect2D *eff;
 	M_Shape *shape = (M_Shape *) node;
 	if (!shape->geometry) return;
-	eff = rs;
+	eff = (RenderEffect2D *)rs;
 
 	if (eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF) return;
 	eff->appear = (GF_Node *) shape->appearance;
@@ -54,8 +54,8 @@ void R2D_InitShape(Render2D *sr, GF_Node *node)
 static void RenderCircle(GF_Node *node, void *rs)
 {
 	DrawableContext *ctx;
-	Drawable *cs = gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		drawable_reset_path(cs);
@@ -79,8 +79,8 @@ void R2D_InitCircle(Render2D *sr, GF_Node *node)
 static void RenderEllipse(GF_Node *node, void *rs)
 {
 	DrawableContext *ctx;
-	Drawable *cs = gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		drawable_reset_path(cs);
@@ -104,8 +104,8 @@ void R2D_InitEllipse(Render2D  *sr, GF_Node *node)
 static void RenderRectangle(GF_Node *node, void *reff)
 {
 	DrawableContext *ctx;
-	Drawable *rs = gf_node_get_private(node);
-	RenderEffect2D *eff = reff;
+	Drawable *rs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)reff;
 
 	if (gf_node_dirty_get(node)) {
 		drawable_reset_path(rs);
@@ -311,8 +311,8 @@ static void RenderCurve2D(GF_Node *node, void *rs)
 {
 	DrawableContext *ctx;
 	M_Curve2D *c2D = (M_Curve2D *)node;
-	Drawable *cs = gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
 	if (!c2D->point) return;
 
@@ -505,7 +505,7 @@ static Bool Bitmap_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_t
 
 void R2D_InitBitmap(Render2D  *sr, GF_Node *node)
 {
-	BitmapStack *st = malloc(sizeof(BitmapStack));
+	BitmapStack *st = (BitmapStack *)malloc(sizeof(BitmapStack));
 	st->graph = drawable_new();
 
 	gf_sr_traversable_setup(st->graph, node, sr->compositor);
@@ -548,8 +548,8 @@ static void RenderPointSet2D(GF_Node *node, void *rs)
 {
 	DrawableContext *ctx;
 	M_PointSet2D *ps2D = (M_PointSet2D *)node;
-	Drawable *cs = gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
 	if (!ps2D->coord) return;
 

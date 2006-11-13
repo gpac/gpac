@@ -26,6 +26,7 @@
 #include <gpac/token.h>
 
 
+GF_EXPORT
 GF_RTSPResponse *gf_rtsp_response_new()
 {
 	GF_RTSPResponse *tmp;
@@ -40,6 +41,7 @@ GF_RTSPResponse *gf_rtsp_response_new()
 #define RSP_FREE_CLEAN(hdr)		if (rsp->hdr) free(rsp->hdr);	\
 								rsp->hdr = NULL;
 
+GF_EXPORT
 void gf_rtsp_response_reset(GF_RTSPResponse *rsp)
 {
 	GF_RTPInfo *inf;
@@ -116,6 +118,7 @@ void gf_rtsp_response_reset(GF_RTSPResponse *rsp)
 	}
 }
 
+GF_EXPORT
 void gf_rtsp_response_del(GF_RTSPResponse *rsp)
 {
 	if (!rsp) return;
@@ -129,6 +132,7 @@ void gf_rtsp_response_del(GF_RTSPResponse *rsp)
 
 
 
+GF_EXPORT
 GF_RTSPRange *gf_rtsp_range_parse(char *range_buf)
 {
 	GF_RTSPRange *rg;
@@ -146,6 +150,7 @@ GF_RTSPRange *gf_rtsp_range_parse(char *range_buf)
 	return rg;
 }
 
+GF_EXPORT
 void gf_rtsp_transport_del(GF_RTSPTransport *transp)
 {
 	if (!transp) return;
@@ -155,6 +160,7 @@ void gf_rtsp_transport_del(GF_RTSPTransport *transp)
 	free(transp);
 }
 
+GF_EXPORT
 GF_RTSPTransport *gf_rtsp_transport_clone(GF_RTSPTransport *original)
 {
 	GF_RTSPTransport *tr;
@@ -170,6 +176,7 @@ GF_RTSPTransport *gf_rtsp_transport_clone(GF_RTSPTransport *original)
 	return tr;
 }
 
+GF_EXPORT
 GF_RTSPRange *gf_rtsp_range_new()
 {
 	GF_RTSPRange *tmp;
@@ -177,6 +184,7 @@ GF_RTSPRange *gf_rtsp_range_new()
 	return tmp;
 }
 
+GF_EXPORT
 void gf_rtsp_range_del(GF_RTSPRange *range)
 {
 	if (!range) return;
@@ -349,6 +357,7 @@ u32 IsRTSPMessage(char *buffer)
 }
 
 
+GF_EXPORT
 GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 {
 	GF_Err e;
@@ -673,6 +682,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 }
 
 
+GF_EXPORT
 GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 {
 	u32 size;
@@ -688,7 +698,7 @@ GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	if (e) goto exit;
 
 	//send buffer
-	e = gf_rtsp_send_data(sess, (unsigned char *) buffer, size);
+	e = gf_rtsp_send_data(sess, buffer, size);
 	if (e) return e;
 //	printf("RTSP Send Response\n\n%s\n\n", buffer);
 

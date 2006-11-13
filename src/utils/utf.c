@@ -29,6 +29,7 @@
  * Original code from the GNU UTF-8 Library
  */
 
+GF_EXPORT
 size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 {
 	size_t count;
@@ -106,6 +107,7 @@ typedef struct
 
 static gf_utf8_mbstate_t internal;
 
+GF_EXPORT
 size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 {
 	gf_utf8_mbstate_t* ps = &internal;
@@ -174,6 +176,7 @@ bad_input:
 }
 
 
+GF_EXPORT
 size_t gf_utf8_wcslen (const unsigned short *s)
 {
   const unsigned short* ptr;

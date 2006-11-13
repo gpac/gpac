@@ -49,7 +49,7 @@ void meta_del(GF_Box *s)
 	if (ptr->IPMP_control) gf_isom_box_del((GF_Box *)ptr->IPMP_control);
 	count = gf_list_count(ptr->other_boxes);
 	for (i = 0; i < count; i++) {
-		GF_Box *a = gf_list_get(ptr->other_boxes, i);
+		GF_Box *a = (GF_Box *)gf_list_get(ptr->other_boxes, i);
 		gf_isom_box_del(a);
 	}
 	gf_list_del(ptr->other_boxes);
@@ -140,7 +140,7 @@ GF_Err meta_Write(GF_Box *s, GF_BitStream *bs)
 	}
 	if ((count = gf_list_count(ptr->other_boxes))) {
 		for (i = 0; i < count; i++) {
-			GF_Box *a = gf_list_get(ptr->other_boxes, i);
+			GF_Box *a = (GF_Box *)gf_list_get(ptr->other_boxes, i);
 			e = gf_isom_box_write(a, bs);
 			if (e) return e;
 		}
@@ -191,7 +191,7 @@ GF_Err meta_Size(GF_Box *s)
 	}
 	if ((count = gf_list_count(ptr->other_boxes))) {
 		for (i = 0; i < count; i++) {
-			GF_Box *a = gf_list_get(ptr->other_boxes, i);
+			GF_Box *a = (GF_Box *)gf_list_get(ptr->other_boxes, i);
 			e = gf_isom_box_size(a);
 			if (e) return e;
 			ptr->size += a->size;
@@ -227,7 +227,7 @@ GF_Err xml_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	ptr->xml_length = (u32)(ptr->size);
-	ptr->xml = malloc(ptr->xml_length);
+	ptr->xml = (char *)malloc(sizeof(char)*ptr->xml_length);
 	if (!ptr->xml) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->xml, ptr->xml_length);
 	return GF_OK;
@@ -282,7 +282,7 @@ GF_Err bxml_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	ptr->data_length = (u32)(ptr->size);
-	ptr->data = malloc(ptr->data_length);
+	ptr->data = (char*)malloc(sizeof(char)*ptr->data_length);
 	if (!ptr->data) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->data, ptr->data_length);
 	return GF_OK;
@@ -358,7 +358,7 @@ GF_Err iloc_Read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_int(bs, 4);
 	item_count = gf_bs_read_u16(bs);
 	for (i = 0; i < item_count; i++) {
-		GF_ItemLocationEntry *location_entry = malloc(sizeof(GF_ItemLocationEntry));
+		GF_ItemLocationEntry *location_entry = (GF_ItemLocationEntry *)malloc(sizeof(GF_ItemLocationEntry));
 		gf_list_add(ptr->location_entries, location_entry);
 		location_entry->item_ID = gf_bs_read_u16(bs);
 		location_entry->data_reference_index = gf_bs_read_u16(bs);
@@ -370,7 +370,7 @@ GF_Err iloc_Read(GF_Box *s, GF_BitStream *bs)
 		extent_count = gf_bs_read_u16(bs);
 		location_entry->extent_entries = gf_list_new();
 		for (j = 0; j < extent_count; j++) {
-			GF_ItemExtentEntry *extent_entry = malloc(sizeof(GF_ItemExtentEntry));
+			GF_ItemExtentEntry *extent_entry = (GF_ItemExtentEntry *)malloc(sizeof(GF_ItemExtentEntry));
 			gf_list_add(location_entry->extent_entries, extent_entry);
 			extent_entry->extent_offset = gf_bs_read_int(bs, 8*ptr->offset_size);
 			extent_entry->extent_length = gf_bs_read_int(bs, 8*ptr->length_size);
@@ -501,7 +501,7 @@ void ipro_del(GF_Box *s)
 	if (ptr == NULL) return;
 	count = gf_list_count(ptr->protection_information);
 	for (i = 0; i < count; i++) {
-		GF_Box *a = gf_list_get(ptr->protection_information, i);
+		GF_Box *a = (GF_Box *)gf_list_get(ptr->protection_information, i);
 		gf_isom_box_del(a);
 	}
 	gf_list_del(ptr->protection_information);
@@ -538,7 +538,7 @@ GF_Err ipro_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, count);
 	if (count) {
 		for (i = 0; i < count; i++) {
-			GF_Box *a = gf_list_get(ptr->protection_information, i);
+			GF_Box *a = (GF_Box *)gf_list_get(ptr->protection_information, i);
 			e = gf_isom_box_write(a, bs);
 			if (e) return e;
 		}
@@ -557,7 +557,7 @@ GF_Err ipro_Size(GF_Box *s)
 	ptr->size += 2;
 	if ((count = gf_list_count(ptr->protection_information))) {
 		for (i = 0; i < count; i++) {
-			GF_Box *a = gf_list_get(ptr->protection_information, i);
+			GF_Box *a = (GF_Box *)gf_list_get(ptr->protection_information, i);
 			e = gf_isom_box_size(a);
 			if (e) return e;
 			ptr->size += a->size;
@@ -591,7 +591,7 @@ void infe_del(GF_Box *s)
 GF_Err infe_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u8 *buf;
+	char *buf;
 	u32 buf_len, i, string_len, string_start;
 	GF_ItemInfoEntryBox *ptr = (GF_ItemInfoEntryBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
@@ -602,7 +602,7 @@ GF_Err infe_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->item_protection_index = gf_bs_read_u16(bs);
 	ptr->size -= 4;
 	buf_len = (u32) (ptr->size);
-	buf = malloc(buf_len);
+	buf = (char*)malloc(buf_len);
 	if (buf_len != gf_bs_read_data(bs, buf, buf_len)) {
 		free(buf);
 		return GF_ISOM_INVALID_FILE;
@@ -612,13 +612,13 @@ GF_Err infe_Read(GF_Box *s, GF_BitStream *bs)
 	for (i = 0; i < buf_len; i++) {
 		if (buf[i] == 0) {
 			if (!ptr->item_name) {
-				ptr->item_name = malloc(string_len);
+				ptr->item_name = (char*)malloc(sizeof(char)*string_len);
 				memcpy(ptr->item_name, buf+string_start, string_len);
 			} else if (!ptr->content_type) {
-				ptr->content_type = malloc(string_len);
+				ptr->content_type = (char*)malloc(sizeof(char)*string_len);
 				memcpy(ptr->content_type, buf+string_start, string_len);
 			} else {
-				ptr->content_encoding = malloc(string_len);
+				ptr->content_encoding = (char*)malloc(sizeof(char)*string_len);
 				memcpy(ptr->content_encoding, buf+string_start, string_len);
 			}
 			string_start += string_len;
@@ -690,7 +690,7 @@ void iinf_del(GF_Box *s)
 	if (ptr == NULL) return;
 	count = gf_list_count(ptr->item_infos);
 	for (i = 0; i < count; i++) {
-		GF_Box *a = gf_list_get(ptr->item_infos, i);
+		GF_Box *a = (GF_Box *)gf_list_get(ptr->item_infos, i);
 		gf_isom_box_del(a);
 	}
 	gf_list_del(ptr->item_infos);
@@ -735,7 +735,7 @@ GF_Err iinf_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, count);
 	if (count) {
 		for (i = 0; i < count; i++) {
-			GF_Box *a = gf_list_get(ptr->item_infos, i);
+			GF_Box *a = (GF_Box *)gf_list_get(ptr->item_infos, i);
 			e = gf_isom_box_write(a, bs);
 			if (e) return e;
 		}
@@ -754,7 +754,7 @@ GF_Err iinf_Size(GF_Box *s)
 	ptr->size += 2;
 	if ((count = gf_list_count(ptr->item_infos))) {
 		for (i = 0; i < count; i++) {
-			GF_Box *a = gf_list_get(ptr->item_infos, i);
+			GF_Box *a = (GF_Box *)gf_list_get(ptr->item_infos, i);
 			e = gf_isom_box_size(a);
 			if (e) return e;
 			ptr->size += a->size;
@@ -796,7 +796,7 @@ GF_Err imif_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	size = (u32) (s->size);
-	data = malloc(sizeof(char)*size);
+	data = (char*)malloc(sizeof(char)*size);
 	gf_bs_read_data(bs, data, size);
 	e = gf_odf_desc_list_read(data, size, ptr->descriptors);
 	free(data);

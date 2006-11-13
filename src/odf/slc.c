@@ -54,6 +54,7 @@ GF_Err gf_odf_del_slc(GF_SLConfig *sl)
 //
 //	Set the SL to the ISO predefined value
 //
+GF_EXPORT
 GF_Err gf_odf_slc_set_pref(GF_SLConfig *sl)
 {
 	if (! sl) return GF_BAD_PARAM;
@@ -300,6 +301,7 @@ GF_Err gf_odf_write_slc(GF_BitStream *bs, GF_SLConfig *sl)
 
 /*allocates and writes the SL-PDU (Header + PDU) given the SLConfig and the GF_SLHeader
 for this PDU. AUs must be split in PDUs by another process if needed (packetizer).*/
+GF_EXPORT
 void gf_sl_packetize(GF_SLConfig* slConfig, 
 				  GF_SLHeader *Header, 
 				  char *PDU, 
@@ -346,11 +348,12 @@ void gf_sl_packetize(GF_SLConfig* slConfig,
 	gf_bs_write_data(bs, PDU, size);
 
 	gf_bs_align(bs);
-	gf_bs_get_content(bs, (unsigned char **) outPacket, OutSize);
+	gf_bs_get_content(bs, outPacket, OutSize);
 	gf_bs_del(bs);
 }
 
 
+GF_EXPORT
 void gf_sl_depacketize (GF_SLConfig *slConfig, GF_SLHeader *Header, char *PDU, u32 PDULength, u32 *HeaderLen)
 {
 	GF_BitStream *bs;

@@ -187,8 +187,11 @@ enum
 	GF_EXPORT_SAF = (1<<7),
 
 	/*following ones are real flags*/
-	/*used for MP4 extraction, indicates track should be added to dest file if any*/
-	GF_EXPORT_MERGE_TRACKS = (1<<10),
+	/*
+	for MP4 extraction, indicates track should be added to dest file if any
+	for raw extraction, indicates data shall be appended at the end of output file if present
+	*/
+	GF_EXPORT_MERGE = (1<<10),
 	/*indicates QCP file format possible as well as native (EVRC and SMV audio only)*/
 	GF_EXPORT_USE_QCP = (1<<11),
 	/*indicates full NHML dump*/

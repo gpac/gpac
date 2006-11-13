@@ -100,7 +100,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		return GF_BAD_PARAM;
 	}
 	i=0;
-	while ((sc = gf_list_enum(ctx->streams, &i))) {
+	while ((sc = (GF_StreamContext*)gf_list_enum(ctx->streams, &i))) {
 		if (sc->streamType==GF_STREAM_SCENE) break;
 		sc = NULL;
 	}
@@ -175,7 +175,8 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 					inf = gf_sg_command_field_new(com);
 					inf->fieldIndex = style.fieldIndex;
 					inf->fieldType = style.fieldType;
-					sfstr = inf->field_ptr = gf_sg_vrml_field_pointer_new(style.fieldType);
+					inf->field_ptr = gf_sg_vrml_field_pointer_new(style.fieldType);
+					sfstr = (SFString *)inf->field_ptr;
 					if (bold && italic && underlined) sfstr->buffer = strdup("BOLDITALIC UNDERLINED");
 					else if (italic && underlined) sfstr->buffer = strdup("ITALIC UNDERLINED");
 					else if (bold && underlined) sfstr->buffer = strdup("BOLD UNDERLINED");
@@ -349,7 +350,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		return GF_BAD_PARAM;
 	}
 	i=0;
-	while ((sc = gf_list_enum(ctx->streams, &i))) {
+	while ((sc = (GF_StreamContext*)gf_list_enum(ctx->streams, &i))) {
 		if (sc->streamType==GF_STREAM_SCENE) break;
 		sc = NULL;
 	}
@@ -505,6 +506,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_sm_import_bifs_subtitle(GF_SceneManager *ctx, GF_ESD *src, GF_MuxInfo *mux)
 {
 	GF_Err e;

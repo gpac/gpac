@@ -66,8 +66,8 @@ static void RenderIFS2D(GF_Node *node, void *rs)
 {
 	DrawableContext *ctx;
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
-	Drawable *cs = gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
 	if (!ifs2D->coord) return;
 
@@ -209,7 +209,7 @@ static void IFS2D_Draw(DrawableContext *ctx)
 
 		alpha = INT2FIX(GF_COL_A(ctx->aspect.fill_color) ) / 255;
 
-		colors = malloc(sizeof(u32) * num_col);
+		colors = (u32*)malloc(sizeof(u32) * num_col);
 		col_cen.blue = col_cen.red = col_cen.green = 0;
 		for (j=0; j<num_col-1; j++) {
 			if (ifs2D->colorIndex.count > ind_col + j) {

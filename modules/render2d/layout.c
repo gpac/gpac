@@ -48,7 +48,7 @@ typedef struct
 static void layout_reset_lines(LayoutStack *st)
 {
 	while (gf_list_count(st->lines)) {
-		LineInfo *li = gf_list_get(st->lines, 0);
+		LineInfo *li = (LineInfo *)gf_list_get(st->lines, 0);
 		gf_list_rem(st->lines, 0);
 		free(li);
 	}
@@ -56,8 +56,8 @@ static void layout_reset_lines(LayoutStack *st)
 
 static LineInfo *new_line_info(LayoutStack *st)
 {
-	LineInfo *li = malloc(sizeof(LineInfo));
-	memset(li, 0, sizeof(LineInfo));
+	LineInfo *li;
+	GF_SAFEALLOC(li, LineInfo);
 	gf_list_add(st->lines, li);
 	return li;
 }
@@ -111,7 +111,7 @@ static void get_lines_info(LayoutStack *st, M_Layout *l)
 	li->first_child = 0;
 
 	for (i=0; i<count; i++) {
-		ChildGroup2D *cg = gf_list_get(st->groups, i);
+		ChildGroup2D *cg = (ChildGroup2D *)gf_list_get(st->groups, i);
 		if (!l->horizontal) {
 			/*check if exceed column size or not - if so, move to next column or clip given wrap mode*/
 			if (cg->final.height + li->height > max_h) {
@@ -166,7 +166,7 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 	nbLines = gf_list_count(st->lines);
 	if (l->horizontal) {
 		if (l->wrap && !l->topToBottom) {
-			li = gf_list_get(st->lines, 0);
+			li = (LineInfo*)gf_list_get(st->lines, 0);
 			current_top = st->clip.y - st->clip.height;
 			if (li) current_top += li->height;
 		} else {
@@ -175,14 +175,14 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 
 		/*for each line perform adjustment*/
 		for (k=0; k<nbLines; k++) {
-			li = gf_list_get(st->lines, k);
+			li = (LineInfo*)gf_list_get(st->lines, k);
 			first = li->first_child;
 			if (!l->leftToRight) first += li->nb_children - 1;
 
 			if (!l->topToBottom && k) current_top += li->height;
 			
 			/*set major alignment (X) */
-			cg = gf_list_get(st->groups, first);
+			cg = (ChildGroup2D *)gf_list_get(st->groups, first);
 			switch (major) {
 			case L_END:
 				cg->final.x = st->clip.x + st->clip.width - li->width;
@@ -199,7 +199,7 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 			/*for each in the run */
 			i = first;
 			while (1) {
-				cg = gf_list_get(st->groups, i);
+				cg = (ChildGroup2D *)gf_list_get(st->groups, i);
 				h = MAX(li->ascent, li->height);
 				switch (minor) {
 				case L_FIRST:
@@ -224,9 +224,9 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 				/*update left for non-first children in line*/
 				if (i != first) {
 					if (l->leftToRight) {
-						prev = gf_list_get(st->groups, i-1);
+						prev = (ChildGroup2D *)gf_list_get(st->groups, i-1);
 					} else {
-						prev = gf_list_get(st->groups, i+1);
+						prev = (ChildGroup2D *)gf_list_get(st->groups, i+1);
 					}
 					cg->final.x = prev->final.x + prev->final.width;
 				}
@@ -252,7 +252,7 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 	}
 
 	/*Vertical aligment*/
-	li = gf_list_get(st->lines, 0);
+	li = (LineInfo*)gf_list_get(st->lines, 0);
 	if (l->wrap && !l->leftToRight) {
 		current_left = st->clip.x + st->clip.width;
 		if (li) current_left -= li->width;
@@ -270,13 +270,13 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 
 	/*for all columns in run*/
 	for (k=0; k<nbLines; k++) {
-		li = gf_list_get(st->lines, k);
+		li = (LineInfo*)gf_list_get(st->lines, k);
 
 		first = li->first_child;
 		if (!l->topToBottom) first += li->nb_children - 1;
 		
 		/*set major alignment (Y) */
-		cg = gf_list_get(st->groups, first);
+		cg = (ChildGroup2D *)gf_list_get(st->groups, first);
 		switch (major) {
 		case L_END:
 			cg->final.y = st->clip.y - st->clip.height + li->height;
@@ -293,7 +293,7 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 		/*for each in the run */
 		i = first;
 		while (1) {
-			cg = gf_list_get(st->groups, i);
+			cg = (ChildGroup2D *)gf_list_get(st->groups, i);
 			switch (minor) {
 			case L_MIDDLE:
 				cg->final.x = current_left + li->width/2 - cg->final.width/2;
@@ -310,9 +310,9 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 			/*update top for non-first children in line*/
 			if (i != first) {
 				if (l->topToBottom) {
-					prev = gf_list_get(st->groups, i-1);
+					prev = (ChildGroup2D *)gf_list_get(st->groups, i-1);
 				} else {
-					prev = gf_list_get(st->groups, i+1);
+					prev = (ChildGroup2D *)gf_list_get(st->groups, i+1);
 				}
 				cg->final.y = prev->final.y - prev->final.height;
 			}
@@ -325,7 +325,7 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 		if (l->leftToRight) {
 			current_left += gf_mulfix(l->spacing, li->width);
 		} else if (k < nbLines - 1) {
-			li = gf_list_get(st->lines, k+1);
+			li = (LineInfo*)gf_list_get(st->lines, k+1);
 			current_left -= gf_mulfix(l->spacing, li->width);
 		}
 
@@ -501,7 +501,7 @@ static void layout_scroll(LayoutStack *st, M_Layout *l)
 
 			nb_lines = gf_list_count(st->lines);
 			for (i=0; i < nb_lines; i++) {
-				LineInfo *li = gf_list_get(st->lines, i);
+				LineInfo *li = (LineInfo*)gf_list_get(st->lines, i);
 				if (l->scrollVertical) {
 					if (ABS(scroll_diff) >= li->height) {
 						do_scroll = 1;
@@ -523,7 +523,7 @@ static void layout_scroll(LayoutStack *st, M_Layout *l)
 		scrolled = st->last_scroll;
 
 	i=0;
-	while ((cg = gf_list_enum(st->groups, &i))) {
+	while ((cg = (ChildGroup2D *)gf_list_enum(st->groups, &i))) {
 		if (l->scrollVertical)
 			cg->final.y += st->scroll_min + scrolled;
 		else
@@ -587,7 +587,7 @@ static void RenderLayout(GF_Node *node, void *rs)
 
 	/*center all nodes*/
 	i=0;
-	while ((cg = gf_list_enum(st->groups, &i))) {
+	while ((cg = (ChildGroup2D *)gf_list_enum(st->groups, &i))) {
 		cg->final.x = - cg->final.width/2;
 		cg->final.y = cg->final.height/2;
 	}
@@ -599,7 +599,7 @@ static void RenderLayout(GF_Node *node, void *rs)
 
 	/*and finish*/
 	i=0;
-	while ((cg = gf_list_enum(st->groups, &i))) {
+	while ((cg = (ChildGroup2D *)gf_list_enum(st->groups, &i))) {
 		child2d_render_done(cg, (RenderEffect2D *)rs, &st->clip);
 	}
 	group2d_reset_children((GroupingNode2D*)st);
@@ -608,8 +608,8 @@ static void RenderLayout(GF_Node *node, void *rs)
 
 void R2D_InitLayout(Render2D *sr, GF_Node *node)
 {
-	LayoutStack *stack = malloc(sizeof(LayoutStack));
-	memset(stack, 0, sizeof(LayoutStack));
+	LayoutStack *stack;
+	GF_SAFEALLOC(stack, LayoutStack);
 	SetupGroupingNode2D((GroupingNode2D*)stack, sr, node);
 	stack->lines = gf_list_new();
 

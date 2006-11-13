@@ -235,6 +235,7 @@ void MP4T_OnNewPacket(void *cbk, GF_RTPHeader *header)
 	if (res) gf_isom_rtp_packet_set_offset(tkHint->file, tkHint->HintTrack, res);
 }
 
+GF_EXPORT
 GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum, 
 							u32 Path_MTU, u32 max_ptime, u32 default_rtp_rate, u32 flags, u8 PayloadID, 
 							Bool copy_media, u32 InterleaveGroupID, u8 InterleaveGroupPriority, GF_Err *e)
@@ -476,9 +477,8 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	if (url || urn) return NULL;
 	
 	*e = GF_OUT_OF_MEM;
-	tmp = malloc(sizeof(GF_RTPHinter ));
+	GF_SAFEALLOC(tmp, GF_RTPHinter);
 	if (!tmp) return NULL;
-	memset(tmp, 0, sizeof(GF_RTPHinter ));
 
 	/*override hinter type if requested and possible*/
 	if (has_mpeg4_mapping && (flags & GP_RTP_PCK_FORCE_MPEG4)) {
@@ -600,21 +600,25 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	return tmp;
 }
 
+GF_EXPORT
 u32 gf_hinter_track_get_bandwidth(GF_RTPHinter *tkHinter)
 {
 	return tkHinter->bandwidth;
 }
 
+GF_EXPORT
 u32 gf_hinter_track_get_flags(GF_RTPHinter *tkHinter)
 {
 	return tkHinter->rtp_p->flags;
 }
+GF_EXPORT
 void gf_hinter_track_get_payload_name(GF_RTPHinter *tkHinter, char *payloadName)
 {
 	char mediaName[30];
 	gf_rtp_builder_get_payload_name(tkHinter->rtp_p, payloadName, mediaName);
 }
 
+GF_EXPORT
 void gf_hinter_track_del(GF_RTPHinter *tkHinter)
 {
 	if (!tkHinter) return;
@@ -623,6 +627,7 @@ void gf_hinter_track_del(GF_RTPHinter *tkHinter)
 	free(tkHinter);
 }
 
+GF_EXPORT
 GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 {
 	u32 i, descIndex, duration;
@@ -668,7 +673,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 			free(samp->data);
 			samp->data = s->data;
 			samp->dataLength = s->dataLength;
-			gp_rtp_builder_set_cryp_info(tkHint->rtp_p, s->IV, s->key_indicator, (s->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0);
+			gp_rtp_builder_set_cryp_info(tkHint->rtp_p, s->IV, (char*)s->key_indicator, (s->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0);
 			s->data = NULL;
 			s->dataLength = 0;
 			gf_isom_ismacryp_delete_sample(s);
@@ -768,6 +773,7 @@ static void gf_hinter_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_n
 	}
 }
 
+GF_EXPORT
 GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 {
 	u32 Width, Height;
@@ -834,7 +840,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 			strcat(sdpLine, "; sprop-parameter-sets=");
 			count = gf_list_count(avcc->sequenceParameterSets);
 			for (i=0; i<count; i++) {
-				GF_AVCConfigSlot *sl = gf_list_get(avcc->sequenceParameterSets, i);
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(avcc->sequenceParameterSets, i);
 				b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
 				b64[b64s]=0;
 				strcat(sdpLine, b64);
@@ -843,7 +849,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 			if (i) strcat(sdpLine, ",");
 			count = gf_list_count(avcc->pictureParameterSets);
 			for (i=0; i<count; i++) {
-				GF_AVCConfigSlot *sl = gf_list_get(avcc->pictureParameterSets, i);
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(avcc->pictureParameterSets, i);
 				b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
 				b64[b64s]=0;
 				strcat(sdpLine, b64);
@@ -880,7 +886,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	/*MPEG-4 Audio LATM*/
 	else if (tkHint->rtp_p->rtp_payt==GP_RTP_PAYT_LATM) { 
 		GF_BitStream *bs; 
-		unsigned char *config_bytes; 
+		char *config_bytes; 
 		u32 config_size; 
  
 		/* form config string */ 
@@ -920,6 +926,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	return GF_OK;
 }
 
+GF_EXPORT
 Bool gf_hinter_can_embbed_data(char *data, u32 data_size, u32 streamType)
 {
 	char data64[5000];
@@ -944,6 +951,7 @@ Bool gf_hinter_can_embbed_data(char *data, u32 data_size, u32 streamType)
 }
 
 
+GF_EXPORT
 GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 {
 	u32 i, sceneT, odT, descIndex, size, size64;
@@ -997,7 +1005,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 	if (IOD_Profile == GF_SDP_IOD_ISMA) {
 		Bool is_ok = 1;
 		while (gf_list_count(iod->ESDescriptors)) {
-			esd = gf_list_get(iod->ESDescriptors, 0);
+			esd = (GF_ESD*)gf_list_get(iod->ESDescriptors, 0);
 			gf_odf_desc_del((GF_Descriptor *) esd);
 			gf_list_rem(iod->ESDescriptors, 0);
 		}
@@ -1027,7 +1035,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 					esd->decoderConfig->bufferSizeDB = samp->dataLength;
 					esd->decoderConfig->maxBitrate = 0;
 					size64 = strlen(sdpLine)+1;
-					esd->URLString = malloc(sizeof(char) * size64);
+					esd->URLString = (char*)malloc(sizeof(char) * size64);
 					strcpy(esd->URLString, sdpLine);
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[rtp hinter] OD sample too large to be embedded in IOD - ISMA disabled\n"));
@@ -1061,7 +1069,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 				esd->decoderConfig->avgBitrate = 0;
 				esd->decoderConfig->bufferSizeDB = samp->dataLength;
 				esd->decoderConfig->maxBitrate = 0;
-				esd->URLString = malloc(sizeof(char) * (strlen(sdpLine)+1));
+				esd->URLString = (char*)malloc(sizeof(char) * (strlen(sdpLine)+1));
 				strcpy(esd->URLString, sdpLine);
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp hinter] Scene description sample too large to be embedded in IOD - ISMA disabled\n"));

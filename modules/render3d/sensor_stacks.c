@@ -50,7 +50,7 @@ static void DestroyAnchor(GF_Node *n)
 static void RenderAnchor(GF_Node *node, void *rs)
 {
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (!st->compositor->user->EventProc) {
 		st->enabled = 0;
@@ -158,8 +158,9 @@ SensorHandler *r3d_anchor_get_handler(GF_Node *n)
 void R3D_InitAnchor(Render3D *sr, GF_Node *node)
 {
 	GF_List *children;
-	AnchorStack *stack = malloc(sizeof(AnchorStack));
-	memset(stack, 0, sizeof(AnchorStack));
+	AnchorStack *stack;
+	GF_SAFEALLOC(stack, AnchorStack);
+
 	stack->hdl.IsEnabled = anchor_is_enabled;
 	stack->hdl.OnUserEvent = OnAnchor;
 	stack->hdl.owner = node;
@@ -253,8 +254,8 @@ SensorHandler *r3d_ds_get_handler(GF_Node *n)
 void R3D_InitDiscSensor(Render3D *sr, GF_Node *node)
 {
 	DiscSensorStack *st;
-	st = malloc(sizeof(DiscSensorStack));
-	memset(st, 0, sizeof(DiscSensorStack));
+	GF_SAFEALLOC(st, DiscSensorStack);
+
 	st->hdl.IsEnabled = ds_is_enabled;
 	st->hdl.OnUserEvent = OnDiscSensor;
 	st->hdl.owner = node;
@@ -342,8 +343,9 @@ SensorHandler *r3d_ps2D_get_handler(GF_Node *n)
 
 void R3D_InitPlaneSensor2D(Render3D *sr, GF_Node *node)
 {
-	PS2DStack *st = malloc(sizeof(PS2DStack));
-	memset(st, 0, sizeof(PS2DStack));
+	PS2DStack *st;
+	GF_SAFEALLOC(st, PS2DStack);
+
 	st->hdl.IsEnabled = ps2D_is_enabled;
 	st->hdl.OnUserEvent = OnPlaneSensor2D;
 	st->hdl.owner = node;
@@ -423,8 +425,9 @@ SensorHandler *r3d_prox2D_get_handler(GF_Node *n)
 
 void R3D_InitProximitySensor2D(Render3D *sr, GF_Node *node)
 {
-	Prox2DStack *st = malloc(sizeof(Prox2DStack));
-	memset(st, 0, sizeof(Prox2DStack));
+	Prox2DStack *st;
+	GF_SAFEALLOC(st, Prox2DStack);
+
 	st->hdl.IsEnabled = prox2D_is_enabled;
 	st->hdl.OnUserEvent = OnProximitySensor2D;
 	st->hdl.owner = node;
@@ -495,8 +498,9 @@ SensorHandler *r3d_touch_sensor_get_handler(GF_Node *n)
 
 void R3D_InitTouchSensor(Render3D *sr, GF_Node *node)
 {
-	TouchSensorStack *st = malloc(sizeof(TouchSensorStack));
-	memset(st, 0, sizeof(TouchSensorStack));
+	TouchSensorStack *st;
+	GF_SAFEALLOC(st, TouchSensorStack);
+
 	st->hdl.IsEnabled = ts_is_enabled;
 	st->hdl.OnUserEvent = OnTouchSensor;
 	st->hdl.owner = node;
@@ -655,8 +659,9 @@ SensorHandler *r3d_ps_get_handler(GF_Node *n)
 
 void R3D_InitPlaneSensor(Render3D *sr, GF_Node *node)
 {
-	PSStack *st = malloc(sizeof(PSStack));
-	memset(st, 0, sizeof(PSStack));
+	PSStack *st;
+	GF_SAFEALLOC(st, PSStack);
+
 	st->hdl.IsEnabled = ps_is_enabled;
 	st->hdl.OnUserEvent = OnPlaneSensor;
 	st->hdl.owner = node;
@@ -775,7 +780,7 @@ static void OnCylinderSensor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, 
 		gf_vec_norm(&dir2);
 		cx = gf_vec_cross(dir2, dir1);
 		gf_vec_norm(&cx);
-		if (gf_vec_len(cx)<GF_EPSILON_FLOAT) return;
+		if (gf_vec_len(cx)<FIX_EPSILON) return;
 		rot = gf_mulfix(radius, gf_acos(gf_vec_dot(dir2, dir1)) );
 		if (fabs(cx.y + FIX_ONE) < FIX_EPSILON) rot = -rot;
 		if (cs->autoOffset) rot += cs->offset;
@@ -797,8 +802,9 @@ SensorHandler *r3d_cs_get_handler(GF_Node *n)
 
 void R3D_InitCylinderSensor(Render3D *sr, GF_Node *node)
 {
-	CylinderSensorStack *st = malloc(sizeof(CylinderSensorStack));
-	memset(st, 0, sizeof(CylinderSensorStack));
+	CylinderSensorStack *st;
+	GF_SAFEALLOC(st, CylinderSensorStack);
+
 	st->hdl.IsEnabled = cs_is_enabled;
 	st->hdl.OnUserEvent = OnCylinderSensor;
 	st->hdl.owner = node;
@@ -904,8 +910,9 @@ SensorHandler *r3d_sphere_get_handler(GF_Node *n)
 
 void R3D_InitSphereSensor(Render3D *sr, GF_Node *node)
 {
-	SphereSensorStack *st = malloc(sizeof(SphereSensorStack));
-	memset(st, 0, sizeof(SphereSensorStack));
+	SphereSensorStack *st;
+	GF_SAFEALLOC(st, SphereSensorStack);
+
 	st->hdl.IsEnabled = sphere_is_enabled;
 	st->hdl.OnUserEvent = OnSphereSensor;
 	st->hdl.owner = node;

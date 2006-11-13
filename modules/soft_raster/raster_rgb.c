@@ -37,7 +37,7 @@ mul255(s32 a, s32 b)
 			RGB part
 */
 
-static void overmask_rgb(u32 src, unsigned char *dst, u32 alpha)
+static void overmask_rgb(u32 src, char *dst, u32 alpha)
 {
 	s32 srca = (src >> 24) & 0xff;
 	u32 srcr = (src >> 16) & 0xff;
@@ -196,7 +196,7 @@ GF_Err evg_surface_clear_rgb(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 			BGR part
 */
 
-static void overmask_bgr(u32 src, unsigned char *dst, u32 alpha)
+static void overmask_bgr(u32 src, char *dst, u32 alpha)
 {
 	s32 srca = (src >> 24) & 0xff;
 	s32 srcr = (src >> 16) & 0xff;

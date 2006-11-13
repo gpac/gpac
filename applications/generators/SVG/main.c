@@ -1665,7 +1665,7 @@ int main(int argc, char **argv)
 		fprintf(output, "\tswitch (ElementTag) {\n");
 		for (i=0; i<gf_list_count(svg_elements); i++) {
 			SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
-			fprintf(output, "\t\tcase TAG_SVG_%s: return gf_svg_new_%s();\n",elt->implementation_name,elt->implementation_name);
+			fprintf(output, "\t\tcase TAG_SVG_%s: return (SVGElement*) gf_svg_new_%s();\n",elt->implementation_name,elt->implementation_name);
 		}
 		fprintf(output, "\t\tdefault: return NULL;\n\t}\n}\n\n");
 		

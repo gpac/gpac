@@ -813,6 +813,7 @@ void BM_EndOfStream(void *co)
 
 void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), void *par);
 
+GF_EXPORT
 GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_length, GF_List *com_list)
 {
 	GF_BitStream *bs;
@@ -829,7 +830,7 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 	/*setup current scene graph*/
 	codec->current_graph = codec->scenegraph;
 
-	bs = gf_bs_new((unsigned char *)data, data_length, GF_BITSTREAM_READ);
+	bs = gf_bs_new(data, data_length, GF_BITSTREAM_READ);
 	gf_bs_set_eos_callback(bs, BM_EndOfStream, codec);
 
 	e = BM_ParseCommand(codec, bs, com_list);
@@ -847,7 +848,7 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 				codec->current_graph = gf_node_get_graph(cbi->node);
 				e = GF_OK;
 				if (cbi->cb->bufferSize) {
-					bs = gf_bs_new(cbi->cb->buffer, cbi->cb->bufferSize, GF_BITSTREAM_READ);
+					bs = gf_bs_new((char*)cbi->cb->buffer, cbi->cb->bufferSize, GF_BITSTREAM_READ);
 					gf_bs_set_eos_callback(bs, BM_EndOfStream, codec);
 					e = BM_ParseCommand(codec, bs, cbi->cb->commandList);
 					gf_bs_del(bs);

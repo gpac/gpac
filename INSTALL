@@ -1,4 +1,4 @@
-Installation instructions for GPAC 0.4.2 - July 2006:
+Installation instructions for GPAC 0.4.3 - November 2006:
 
 
 * Foreword
@@ -7,7 +7,7 @@ Installation instructions for GPAC 0.4.2 - July 2006:
 limited (no still image, no audio, no video, no text, no scripting). It is therefore recommended to download the 
 extra lib package available at http://sourceforge.net/projects/gpac. Compilation instructions for these libraries 
 are provided per library in the package. 
-	The current extra_lib package to use with gpac 0.4.2 is gpac_extra_libs 0.4.0.
+	The current extra_lib package to use with gpac 0.4.3 is gpac_extra_libs 0.4.0.
 
 	In case you have some of these libs already installed on your system, the detailed list of dependencies is
 	* freetype2 from version 2.1.4 on.
@@ -33,5 +33,7 @@ Detailed instruction for WinCE eVC Compilation are available in gpac/doc/INSTALL
 Detailed instruction for GCC Compilation are available in gpac/doc/INSTALL.gcc
 
 Detailed instruction for GCC cross-compilation for familiar+GPE systems are available in gpac/doc/INSTALL.gpe
+	
+Detailed instruction for GCCE/Symbian cross-compilation for Symbian v9.1 systems are available in gpac/doc/INSTALL.symbian
 	
 	

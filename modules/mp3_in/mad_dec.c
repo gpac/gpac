@@ -60,7 +60,7 @@ typedef struct
 #define MADCTX() MADDec *ctx = (MADDec *) ifcg->privateStack
 
 
-static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	MADCTX();
 	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
@@ -186,9 +186,9 @@ static GF_Err MAD_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capab
 	ret = chan >> (MAD_F_FRACBITS + 1 - 16);		\
 
 static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg, 
-		unsigned char *inBuffer, u32 inBufferLength,
+		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
-		unsigned char *outBuffer, u32 *outBufferLength,
+		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
 	mad_fixed_t *left_ch, *right_ch, chan;
@@ -290,7 +290,7 @@ static const char *MAD_GetCodecName(GF_BaseDecoder *dec)
 		MAD_VERSION;
 }
 
-static Bool MAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool MAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	/*audio decs*/	
 	if (StreamType != GF_STREAM_AUDIO) return 0;

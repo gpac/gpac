@@ -45,6 +45,7 @@ GF_Err gf_dom_listener_del(GF_Node *node, GF_Node *listener)
 	return (gf_list_del_item(node->sgprivate->events, listener)<0) ? GF_BAD_PARAM : GF_OK;
 }
 
+GF_EXPORT
 u32 gf_dom_listener_count(GF_Node *node)
 {
 	if (!node || !node->sgprivate->events) return 0;
@@ -54,7 +55,7 @@ u32 gf_dom_listener_count(GF_Node *node)
 SVGlistenerElement *gf_dom_listener_get(GF_Node *node, u32 i)
 {
 	if (!node || !node->sgprivate->events) return 0;
-	return gf_list_get(node->sgprivate->events, i);
+	return (SVGlistenerElement *)gf_list_get(node->sgprivate->events, i);
 }
 
 void gf_sg_handle_dom_event(SVGhandlerElement *hdl, GF_DOM_Event *event)
@@ -135,7 +136,7 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 		u32 i, count;
 		count = gf_list_count(node->sgprivate->events);
 		for (i=0; i<count; i++) {
-			SVGlistenerElement *listen = gf_list_get(node->sgprivate->events, i);
+			SVGlistenerElement *listen = (SVGlistenerElement *)gf_list_get(node->sgprivate->events, i);
 			if (listen->event.type <= GF_EVENT_MOUSEMOVE) event->has_ui_events=1;
 			if (listen->event.type != event->type) continue;
 			event->currentTarget = node;
@@ -173,6 +174,7 @@ void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
 	gf_sg_dom_stack_parents(gf_node_get_parent(node, 0), stack);
 }
 
+GF_EXPORT
 Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 {
 	if (!node || !event) return 0;
@@ -191,7 +193,7 @@ Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 		gf_sg_dom_stack_parents(gf_node_get_parent(node, 0), parents);
 		count = gf_list_count(parents);
 		for (i=0; i<count; i++) {
-			GF_Node *n = gf_list_get(parents, i);
+			GF_Node *n = (GF_Node *)gf_list_get(parents, i);
 			sg_fire_dom_event(n, event);
 			/*event has been canceled*/
 			if (event->event_phase==4) break;
@@ -212,6 +214,7 @@ Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 	return event->currentTarget ? 1 : 0;
 }
 
+GF_EXPORT
 SVGhandlerElement *gf_dom_listener_build(GF_Node *node, XMLEV_Event event)
 {
 	SVGlistenerElement *listener;
@@ -244,7 +247,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 	/*remove all previously instantiated times that are in the past
 	TODO FIXME: this is not 100% correct, a begin val in the past can be interpreted!!*/
 	for (i=0; i<count; i++) {
-		proto = gf_list_get(times, i);
+		proto = (SMIL_Time*)gf_list_get(times, i);
 		if ((proto->type == GF_SMIL_TIME_EVENT_RESLOVED) && (proto->clock<scene_time) ) {
 			free(proto);
 			gf_list_rem(times, i);
@@ -254,7 +257,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 	}
 
 	for (i=0; i<count; i++) {
-		proto = gf_list_get(times, i);
+		proto = (SMIL_Time*)gf_list_get(times, i);
 		if (proto->type != GF_SMIL_TIME_EVENT) continue;
 		if (proto->event.type != evt->type) continue;
 		if ((evt->type == GF_EVENT_KEYDOWN) || (evt->type == GF_EVENT_REPEAT)) {
@@ -267,7 +270,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 
 		/*insert in sorted order*/
 		for (j=0; j<count; j++) {
-			proto = gf_list_get(times, j);
+			proto = (SMIL_Time*)gf_list_get(times, j);
 
 			if ( GF_SMIL_TIME_IS_SPECIFIED_CLOCK(proto->type) ) {
 				if (proto->clock > resolved->clock) break;
@@ -287,7 +290,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 static void gf_smil_handle_event_begin(SVGhandlerElement *hdl, GF_DOM_Event *evt)
 {
 	GF_FieldInfo info;
-	SVGElement *timed_elt = gf_node_get_private((GF_Node *)hdl);
+	SVGElement *timed_elt = (SVGElement *)gf_node_get_private((GF_Node *)hdl);
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "begin";
 	info.far_ptr = &timed_elt->timing->begin;
@@ -298,7 +301,7 @@ static void gf_smil_handle_event_begin(SVGhandlerElement *hdl, GF_DOM_Event *evt
 static void gf_smil_handle_event_end(SVGhandlerElement *hdl, GF_DOM_Event *evt)
 {
 	GF_FieldInfo info;
-	SVGElement *timed_elt = gf_node_get_private((GF_Node *)hdl);
+	SVGElement *timed_elt = (SVGElement *)gf_node_get_private((GF_Node *)hdl);
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "end";
 	info.far_ptr = &timed_elt->timing->end;
@@ -312,7 +315,7 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 	u32 i, count;
 	count = gf_list_count(l);
 	for (i=0; i<count; i++) {
-		SMIL_Time *t = gf_list_get(l, i);
+		SMIL_Time *t = (SMIL_Time*)gf_list_get(l, i);
 		if (t->type != GF_SMIL_TIME_EVENT) continue;
 		/*not resolved yet*/
 		if (!t->element && t->element_id) continue;

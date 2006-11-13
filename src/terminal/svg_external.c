@@ -34,6 +34,7 @@
 #include <gpac/renderer.h>
 
 
+GF_EXPORT
 Bool gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, SVG_IRI *iri)
 {
 	Bool ret = 1;
@@ -53,6 +54,7 @@ Bool gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, SVG_IRI *iri)
 	return ret;
 }
 
+GF_EXPORT
 Bool gf_term_check_iri_change(GF_Terminal *term, MFURL *url, SVG_IRI *iri)
 {
 	if (url->count && !iri->iri) return 1;
@@ -70,7 +72,7 @@ static GF_InlineScene *gf_svg_get_subscene(SVGElement *elt, Bool use_sync)
 	Bool lock_timelines = 0;
 	GF_MediaObject *mo;
 	GF_SceneGraph *graph = gf_node_get_graph((GF_Node *) elt);
-	GF_InlineScene *is = gf_sg_get_private(graph);
+	GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(graph);
 	if (!is) return NULL;
 
 	if (use_sync && elt->sync) {
@@ -140,7 +142,7 @@ void gf_svg_subscene_stop(GF_InlineScene *is, Bool reset_ck)
 	/* stop main subod and all other sub od */
 	gf_mo_stop(is->root_od->mo);
 	i=0;
-	while ((ctrl_od = gf_list_enum(is->ODlist, &i))) {
+	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(is->ODlist, &i))) {
 		if (ctrl_od->mo->num_open) gf_mo_stop(ctrl_od->mo);
 	}
 	gf_mo_stop(is->root_od->mo);
@@ -159,7 +161,7 @@ static void svg_animation_smil_update(SMIL_Timing_RTI *rti, Fixed normalized_sce
 {
 	GF_InlineScene *is;
 	GF_Node *n = (GF_Node *)rti->timed_elt;
-	is = gf_node_get_private(n);
+	is = (GF_InlineScene *)gf_node_get_private(n);
 
 	if (!is) {
 		is = gf_svg_get_subscene((SVGElement *)n, 1);
@@ -185,15 +187,15 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 		svg_animation_smil_update(rti, normalized_scene_time);
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:
-		is = gf_node_get_private((GF_Node *)rti->timed_elt);
+		is = (GF_InlineScene *)gf_node_get_private((GF_Node *)rti->timed_elt);
 		if (is && is->root_od->mo) gf_mo_stop(is->root_od->mo);
 		break;
 	case SMIL_TIMING_EVAL_REMOVE:
-		is = gf_node_get_private((GF_Node *)rti->timed_elt);
+		is = (GF_InlineScene *)gf_node_get_private((GF_Node *)rti->timed_elt);
 		if (is && is->root_od->mo) gf_mo_stop(is->root_od->mo);
 		break;
 	case SMIL_TIMING_EVAL_RESTART:
-		is = gf_node_get_private((GF_Node *)rti->timed_elt);
+		is = (GF_InlineScene *)gf_node_get_private((GF_Node *)rti->timed_elt);
 		if (is && is->root_od->mo) is->needs_restart = 1;
 		break;
 	}
@@ -202,7 +204,7 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 void SVG_Render_animation(GF_Node *n, void *rs)
 {
 	GF_Node *sub_root;
-	GF_InlineScene *is = gf_node_get_private(n);
+	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(n);
 	if (!is || !is->graph_attached) return;
 
 	if (is->needs_restart) {
@@ -251,12 +253,12 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 	SVGuseElement *use = (SVGuseElement *)node;
 
 	if (use->xlink->href.type == SVG_IRI_ELEMENTID) {
-		GF_InlineScene *is = gf_sg_get_private(gf_node_get_graph((GF_Node *) node));
+		GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) node));
 		gf_sr_render_inline(is->root_od->term->renderer, node, (GF_Node *)use->xlink->href.target, rs);
 	} else {
 		char *fragment;
 		GF_Node *shadow_root;
-		GF_InlineScene *is = gf_node_get_private(node);
+		GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
 
 		if (!is) {
 			is = gf_svg_get_subscene((SVGElement *)node, 0);

@@ -29,9 +29,9 @@
 #define COL_555(c) ((( (c>>16) & 248)<<7) + (((c>>8) & 248)<<2)  + ((c&0xFF)>>3))
 
 static
-GF_Err gf_stencil_set_texture(GF_STENCIL _this, unsigned char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy)
+GF_Err gf_stencil_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy)
 {
-	unsigned char *ptr;
+	char *ptr;
 	Bool is_yuv;
 	u32 pFormat, isBGR, BPP, i, j, col;
 	unsigned char a, r, g, b;
@@ -112,7 +112,7 @@ GF_Err gf_stencil_set_texture(GF_STENCIL _this, unsigned char *pixels, u32 width
 	_sten->height = height;
 	_sten->destination_format = destination_format_hint;
 	if (is_yuv) {
-		_sten->orig_buf = pixels;
+		_sten->orig_buf = (unsigned char*)pixels;
 		_sten->orig_stride = stride;
 		_sten->is_converted = 0;
 		return GF_OK;
@@ -124,7 +124,7 @@ GF_Err gf_stencil_set_texture(GF_STENCIL _this, unsigned char *pixels, u32 width
 	/*GDIplus limitation : horiz_stride shall be multiple of 4 and no support for pure grayscale without palette*/
 	if (!copy && pixels && !(stride%4)) {
 		if (no_copy && isBGR) return GF_NOT_SUPPORTED;
-		GdipCreateBitmapFromScan0(_sten->width, _sten->height, stride, pFormat, pixels, &_sten->pBitmap);
+		GdipCreateBitmapFromScan0(_sten->width, _sten->height, stride, pFormat, (unsigned char*)pixels, &_sten->pBitmap);
 		_sten->invert_br = isBGR;
 	}
 	/*all other cases: create a local bitmap in desired format*/
@@ -464,12 +464,12 @@ void gf_convert_texture(struct _stencil *sten)
 	src.width = sten->width;
 	src.pitch = sten->orig_stride;
 	src.pixel_format = sten->orig_format;
-	src.video_buffer = sten->orig_buf;
+	src.video_buffer = (char*)sten->orig_buf;
 
 	dst.width = sten->width;
 	dst.height = sten->height;
 	dst.pitch = BPP*sten->width;
-	dst.video_buffer = sten->conv_buf;
+	dst.video_buffer = (char*)sten->conv_buf;
 
 	gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 0, NULL, NULL);
 

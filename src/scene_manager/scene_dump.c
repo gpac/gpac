@@ -31,7 +31,9 @@
 
 #ifndef GPAC_READ_ONLY
 
+#ifndef __SYMBIAN32__
 #include <wchar.h>
+#endif
 
 
 /*for QP types*/
@@ -73,6 +75,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 
 GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace);
 
+GF_EXPORT
 GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char indent_char, u32 dump_mode)
 {
 	GF_SceneDumper *tmp;
@@ -147,11 +150,12 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char inde
 	return tmp;
 }
 
+GF_EXPORT
 void gf_sm_dumper_del(GF_SceneDumper *sdump)
 {
 	gf_list_del(sdump->dump_nodes);
 	while (gf_list_count(sdump->mem_def_nodes)) {
-		GF_Node *tmp = gf_list_get(sdump->mem_def_nodes, 0);
+		GF_Node *tmp = (GF_Node *)gf_list_get(sdump->mem_def_nodes, 0);
 		gf_list_rem(sdump->mem_def_nodes, 0);
 		gf_node_unregister(tmp, NULL);
 	}
@@ -182,7 +186,7 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 			count = gf_list_count(iod->ESDescriptors);
 			for (i=0; i<count; i++) {
 				GF_LASERConfig lsrcfg;
-				GF_ESD *esd = gf_list_get(iod->ESDescriptors, i);
+				GF_ESD *esd = (GF_ESD *)gf_list_get(iod->ESDescriptors, i);
 				if (esd->decoderConfig->streamType != GF_STREAM_SCENE) continue;
 				if (esd->decoderConfig->objectTypeIndication != 0x09) continue;
 				if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) continue;
@@ -202,6 +206,10 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 			if (root_od) gf_odf_dump_desc(root_od, sdump->trace, 1, 1);
 			fprintf(sdump->trace, " </Header>\n");
 			fprintf(sdump->trace, " <Body>\n");
+			if (!root_od) {
+				fprintf(sdump->trace, "  <Replace>\n");
+				fprintf(sdump->trace, "   <Scene>\n");
+			}
 		} else {
 			if (sdump->dump_mode==GF_SM_DUMP_VRML) {
 				fprintf(sdump->trace, "#VRML V2.0\n");
@@ -225,7 +233,7 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 	}
 }
 
-void SD_FinalizeDump(GF_SceneDumper *sdump)
+void SD_FinalizeDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 {
 	if (sdump->dump_mode==GF_SM_DUMP_SVG) return;
 
@@ -236,6 +244,10 @@ void SD_FinalizeDump(GF_SceneDumper *sdump)
 	if (!sdump->XMLDump) return;
 
 	if (!sdump->X3DDump) {
+		if (!root_od) {
+			fprintf(sdump->trace, "   </Scene>\n");
+			fprintf(sdump->trace, "  </Replace>\n");
+		}
 		fprintf(sdump->trace, " </Body>\n");
 		fprintf(sdump->trace, "</XMT-A>\n");
 	} else {
@@ -366,7 +378,7 @@ Bool DumpFindRouteName(GF_SceneDumper *sdump, u32 ID, const char **outName)
 	if (r) { (*outName) = r->name; return 1; }
 
 	i=0;
-	while ((com = gf_list_enum(sdump->inserted_routes, &i))) {
+	while ((com = (GF_Command *)gf_list_enum(sdump->inserted_routes, &i))) {
 		if ((com->tag == GF_SG_ROUTE_INSERT)) {
 			if (com->RouteID==ID) {
 				(*outName) = com->def_name;
@@ -376,7 +388,7 @@ Bool DumpFindRouteName(GF_SceneDumper *sdump, u32 ID, const char **outName)
 	}
 	if (!sdump->current_com_list) return 0;
 	i=1;
-	while ((com = gf_list_enum(sdump->current_com_list, &i))) {
+	while ((com = (GF_Command *)gf_list_enum(sdump->current_com_list, &i))) {
 		if ((com->tag == GF_SG_ROUTE_INSERT) || (com->tag == GF_SG_ROUTE_REPLACE)) {
 			if (com->RouteID==ID) {
 				(*outName) = com->def_name;
@@ -409,9 +421,9 @@ void DumpBool(GF_SceneDumper *sdump, char *name, u32 value)
 void DumpUTFString(GF_SceneDumper *sdump, char *str)
 {
 	u32 len, i;
-	short *uniLine;
+	u16 *uniLine;
 	len = strlen(str);
-	uniLine = malloc(sizeof(short) * len);
+	uniLine = (u16*)malloc(sizeof(u16) * len);
 	len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
 	if (len != (size_t) (-1)) {
 		for (i=0; i<len; i++) {
@@ -480,17 +492,21 @@ void DumpSFField(GF_SceneDumper *sdump, u32 type, void *ptr, Bool is_mf)
 	{
 		u32 len, i;
 		char *str;
-		short *uniLine;
-		str = ((SFScript *)ptr)->script_text;
+		u16 *uniLine;
+		str = (char*)((SFScript *)ptr)->script_text;
 		len = strlen(str);
-		uniLine = malloc(sizeof(short) * len);
+		uniLine = (u16*)malloc(sizeof(short) * len);
 		len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
 		if (len != (size_t) -1) {
 			if (!sdump->XMLDump) fputc('\"', sdump->trace);
 
 			for (i=0; i<len; i++) {
 				if (!sdump->XMLDump) {
+#ifndef __SYMBIAN32__
 					fputwc(uniLine[i], sdump->trace);
+#else
+					fputc(uniLine[i], sdump->trace);
+#endif
 				} else {
 					switch (uniLine[i]) {
 					case '&': fprintf(sdump->trace, "&amp;"); break;
@@ -629,7 +645,7 @@ void DumpFieldValue(GF_SceneDumper *sdump, GF_FieldInfo field)
 		assert(gf_list_count(list));
 		sdump->indent++;
 		j=0;
-		while ((child = gf_list_enum(list, &j))) {
+		while ((child = (GF_Node*)gf_list_enum(list, &j))) {
 			DumpNode(sdump, child, 1, NULL);
 		}
 		sdump->indent--;
@@ -720,12 +736,15 @@ void DumpField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 	case GF_SG_VRML_MFNODE:
 		needs_field_container = 0;
 		if (sdump->XMLDump && sdump->X3DDump) needs_field_container = SD_NeedsFieldContainer(node, &field);
+		if (!sdump->X3DDump) {
+			if (gf_node_get_tag(node)==TAG_X3D_Switch) field.name = "choice";
+		}
 		list = * ((GF_List **) field.far_ptr);
 		assert(gf_list_count(list));
 		if (!sdump->XMLDump || !sdump->X3DDump) StartList(sdump, (char *) field.name);
 		sdump->indent++;
 		j=0;
-		while ((child = gf_list_enum(list, &j))) {
+		while ((child = (GF_Node*)gf_list_enum(list, &j))) {
 			DumpNode(sdump, child, 1, needs_field_container ? (char *) field.name : NULL);
 		}
 		sdump->indent--;
@@ -959,7 +978,7 @@ void DumpDynField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field, Bool
 					fprintf(sdump->trace, "\n");
 					sdump->indent++;
 					for (i=0; i<count; i++) {
-						DumpNode(sdump, gf_list_get(l, i), 1, NULL);
+						DumpNode(sdump, (GF_Node*)gf_list_get(l, i), 1, NULL);
 					}
 					sdump->indent--;
 					DUMP_IND(sdump);
@@ -992,7 +1011,7 @@ void DumpDynField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field, Bool
 					sdump->indent++;
 					if (!sdump->X3DDump) fprintf(sdump->trace, "<nodes>");
 					i=0;
-					while ((tmp = gf_list_enum(list, &i))) {
+					while ((tmp = (GF_Node*)gf_list_enum(list, &i))) {
 						DumpNode(sdump, tmp, 1, NULL);
 					}
 					if (!sdump->X3DDump) fprintf(sdump->trace, "</nodes>");
@@ -1066,7 +1085,7 @@ void DumpProtoField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 				sdump->indent++;
 				if (!sdump->X3DDump) fprintf(sdump->trace, "<nodes>");
 				i=0;
-				while ((tmp = gf_list_enum(list, &i))) {
+				while ((tmp = (GF_Node*)gf_list_enum(list, &i))) {
 					DumpNode(sdump, tmp, 1, NULL);
 				}
 				if (!sdump->X3DDump) fprintf(sdump->trace, "</nodes>");
@@ -1097,13 +1116,13 @@ GF_Route *SD_GetISedField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo *fi
 	u32 i;
 	GF_Route *r;
 	i=0;
-	while ((r = gf_list_enum(sdump->current_proto->sub_graph->Routes, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(sdump->current_proto->sub_graph->Routes, &i))) {
 		if (!r->IS_route) continue;
 		if ((r->ToNode==node) && (r->ToField.fieldIndex==field->fieldIndex)) return r;
 	}
 	if (!node || !node->sgprivate->events) return NULL;
 	i=0;
-	while ((r = gf_list_enum(node->sgprivate->events, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->events, &i))) {
 		if (!r->IS_route) continue;
 		if (r->FromField.fieldIndex == field->fieldIndex) return r;
 	}
@@ -1233,7 +1252,7 @@ void DumpNode(GF_SceneDumper *sdump, GF_Node *node, Bool in_list, char *fieldCon
 
 	/*get all fields*/
 	count = gf_node_get_field_count(node);
-	def_fields = malloc(sizeof(u32) * count);
+	def_fields = (u32*)malloc(sizeof(u32) * count);
 
 	base = NULL;
 	switch (gf_node_get_tag(node)) {
@@ -1489,7 +1508,7 @@ GF_Err DumpMultipleIndexedReplace(GF_SceneDumper *sdump, GF_Command *com)
 	GF_FieldInfo field;
 	GF_CommandField *inf;
 	if (!gf_list_count(com->command_fields)) return GF_OK;
-	inf = gf_list_get(com->command_fields, 0);
+	inf = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 	gf_node_get_field(com->node, inf->fieldIndex, &field);
 	field.fieldType = inf->fieldType;
 
@@ -1505,7 +1524,7 @@ GF_Err DumpMultipleIndexedReplace(GF_SceneDumper *sdump, GF_Command *com)
 	}
 	sdump->indent++;
 	i=0;
-	while ((inf = gf_list_enum(com->command_fields, &i))) {
+	while ((inf = (GF_CommandField *) gf_list_enum(com->command_fields, &i))) {
 		field.far_ptr = inf->field_ptr;
 
 		DUMP_IND(sdump);
@@ -1546,7 +1565,7 @@ GF_Err DumpMultipleReplace(GF_SceneDumper *sdump, GF_Command *com)
 		
 		sdump->indent++;
 		i=0;
-		while ((inf = gf_list_enum(com->command_fields, &i))) {
+		while ((inf = (GF_CommandField *) gf_list_enum(com->command_fields, &i))) {
 			gf_node_get_field(com->node, inf->fieldIndex, &info);
 			info.far_ptr = inf->field_ptr;
 
@@ -1571,7 +1590,7 @@ GF_Err DumpMultipleReplace(GF_SceneDumper *sdump, GF_Command *com)
 		fprintf(sdump->trace, " {\n");
 		sdump->indent++;
 		i=0;
-		while ((inf = gf_list_enum(com->command_fields, &i))) {
+		while ((inf = (GF_CommandField *) gf_list_enum(com->command_fields, &i))) {
 			gf_node_get_field(com->node, inf->fieldIndex, &info);
 			info.far_ptr = inf->field_ptr;
 			DumpField(sdump, com->node, info);
@@ -1587,7 +1606,7 @@ GF_Err DumpGlobalQP(GF_SceneDumper *sdump, GF_Command *com)
 {
 	GF_CommandField *inf;
 	if (!gf_list_count(com->command_fields)) return GF_OK;
-	inf = gf_list_get(com->command_fields, 0);
+	inf = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 
 	DUMP_IND(sdump);
 	if (sdump->XMLDump) {
@@ -1606,7 +1625,7 @@ GF_Err DumpNodeInsert(GF_SceneDumper *sdump, GF_Command *com)
 	GF_CommandField *inf;
 	char posname[20];
 	if (!gf_list_count(com->command_fields)) return GF_OK;
-	inf = gf_list_get(com->command_fields, 0);
+	inf = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 
 	switch (inf->pos) {
 	case 0:
@@ -1676,7 +1695,7 @@ GF_Err DumpIndexInsert(GF_SceneDumper *sdump, GF_Command *com)
 	GF_CommandField *inf;
 	char posname[20];
 	if (!gf_list_count(com->command_fields)) return GF_OK;
-	inf = gf_list_get(com->command_fields, 0);
+	inf = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 
 	switch (inf->pos) {
 	case 0:
@@ -1731,7 +1750,7 @@ GF_Err DumpIndexDelete(GF_SceneDumper *sdump, GF_Command *com)
 	GF_FieldInfo field;
 	GF_CommandField *inf;
 	if (!gf_list_count(com->command_fields)) return GF_OK;
-	inf = gf_list_get(com->command_fields, 0);
+	inf = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 
 	switch (inf->pos) {
 	case -1:
@@ -1805,7 +1824,7 @@ GF_Err DumpNodeReplace(GF_SceneDumper *sdump, GF_Command *com)
 {
 	GF_CommandField *inf;
 	if (!gf_list_count(com->command_fields)) return GF_OK;
-	inf = gf_list_get(com->command_fields, 0);
+	inf = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 	DUMP_IND(sdump);
 	if (sdump->XMLDump) {
 		fprintf(sdump->trace, "<Replace atNode=\"");
@@ -1829,7 +1848,7 @@ GF_Err DumpFieldReplace(GF_SceneDumper *sdump, GF_Command *com)
 	GF_FieldInfo field;
 	GF_CommandField *inf;
 	if (!gf_list_count(com->command_fields)) return GF_OK;
-	inf = gf_list_get(com->command_fields, 0);
+	inf = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 
 	e = gf_node_get_field(com->node, inf->fieldIndex, &field);
 
@@ -1862,7 +1881,7 @@ GF_Err DumpFieldReplace(GF_SceneDumper *sdump, GF_Command *com)
 			}
 			sdump->indent++;
 			i=0; 
-			while ((tmp = gf_list_enum(inf->node_list, &i))) {
+			while ((tmp = (GF_Node*)gf_list_enum(inf->node_list, &i))) {
 				DumpNode(sdump, tmp, 1, NULL);
 			}
 			sdump->indent--;
@@ -1875,13 +1894,13 @@ GF_Err DumpFieldReplace(GF_SceneDumper *sdump, GF_Command *com)
 		break;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 		if (sdump->XMLDump) {
-			SFCommandBuffer *cb = inf->field_ptr;
+			SFCommandBuffer *cb = (SFCommandBuffer*)inf->field_ptr;
 			fprintf(sdump->trace, ">\n");
 			gf_sm_dump_command_list(sdump, cb->commandList, sdump->indent+1, 0);
 			DUMP_IND(sdump);
 			fprintf(sdump->trace, "</Replace>\n");
 		} else {
-			SFCommandBuffer *cb = inf->field_ptr;
+			SFCommandBuffer *cb = (SFCommandBuffer*)inf->field_ptr;
 			fprintf(sdump->trace, " {\n");
 			gf_sm_dump_command_list(sdump, cb->commandList, sdump->indent+1, 0);
 			DUMP_IND(sdump);
@@ -1905,7 +1924,7 @@ GF_Err DumpIndexReplace(GF_SceneDumper *sdump, GF_Command *com)
 	GF_FieldInfo field;
 	GF_CommandField *inf;
 	if (!gf_list_count(com->command_fields)) return GF_OK;
-	inf = gf_list_get(com->command_fields, 0);
+	inf = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 
 	e = gf_node_get_field(com->node, inf->fieldIndex, &field);
 	if (e) return e;
@@ -2034,7 +2053,7 @@ GF_Err DumpProtos(GF_SceneDumper *sdump, GF_List *protoList)
 	prev_proto = sdump->current_proto;
 
 	i=0;
-	while ((proto = gf_list_enum(protoList, &i))) {
+	while ((proto = (GF_Proto*)gf_list_enum(protoList, &i))) {
 		sdump->current_proto = proto;
 	
 		DUMP_IND(sdump);
@@ -2056,10 +2075,10 @@ GF_Err DumpProtos(GF_SceneDumper *sdump, GF_List *protoList)
 		sdump->indent++;
 		count = gf_list_count(proto->proto_fields);
 		for (j=0; j<count; j++) {
-			GF_ProtoFieldInterface *pf = gf_list_get(proto->proto_fields, j);
+			GF_ProtoFieldInterface *pf = (GF_ProtoFieldInterface *)gf_list_get(proto->proto_fields, j);
 			field.fieldIndex = pf->ALL_index;
 			field.eventType = pf->EventType;
-			field.far_ptr = pf->default_value;
+			field.far_ptr = pf->def_value;
 			field.fieldType = pf->FieldType;
 			field.name = pf->FieldName;
 			field.NDTtype = NDT_SFWorldNode;
@@ -2137,12 +2156,12 @@ GF_Err DumpProtos(GF_SceneDumper *sdump, GF_List *protoList)
 
 		count = gf_list_count(proto->node_code);
 		for (j=0; j<count; j++) {
-			GF_Node *n = gf_list_get(proto->node_code, j);
+			GF_Node *n = (GF_Node*)gf_list_get(proto->node_code, j);
 			DumpNode(sdump, n, 1, NULL);
 		}
 		count = gf_list_count(proto->sub_graph->Routes);
 		for (j=0; j<count; j++) {
-			GF_Route *r = gf_list_get(proto->sub_graph->Routes, j);
+			GF_Route *r = (GF_Route *)gf_list_get(proto->sub_graph->Routes, j);
 			if (r->IS_route) continue;
 			DumpRoute(sdump, r, 0);
 		}
@@ -2229,12 +2248,13 @@ GF_Err DumpLSRNewScene(GF_SceneDumper *sdump, GF_Command *com)
 
 GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 {
-	char szAtt[80000], *com_name;
+	char szAtt[80000];
 	GF_CommandField *f;
 
-	com_name = (com->tag==GF_SG_LSR_REPLACE) ? "Replace" : ( (com->tag==GF_SG_LSR_ADD) ? "Add" : "Insert" );
+	const char *com_name = (com->tag==GF_SG_LSR_REPLACE) ? "Replace" : ( (com->tag==GF_SG_LSR_ADD) ? "Add" : "Insert" );
+
 	fprintf(sdump->trace, "<lsr:%s ref=\"%s\" ", com_name, lsr_format_node_id(com->node, com->RouteID, szAtt));
-	f = gf_list_get(com->command_fields, 0);
+	f = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 	if (f && (f->pos>=0) ) fprintf(sdump->trace, "index=\"%d\" ", f->pos);
 	if (f) {
 		GF_FieldInfo info;
@@ -2288,7 +2308,7 @@ GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 	} else if (f->node_list) {
 		u32 i, count = gf_list_count(f->node_list);
 		for (i=0; i<count; i++) 
-			SD_DumpSVGElement(sdump, gf_list_get(f->node_list, i), com->node, 0);
+			SD_DumpSVGElement(sdump, (GF_Node*)gf_list_get(f->node_list, i), com->node, 0);
 	}
 	fprintf(sdump->trace, "</lsr:%s>\n", com_name);
 	sdump->indent--;
@@ -2303,7 +2323,7 @@ GF_Err DumpLSRDelete(GF_SceneDumper *sdump, GF_Command *com)
 	char szID[1024];
 	GF_CommandField *f;
 	fprintf(sdump->trace, "<lsr:Delete ref=\"%s\" ", lsr_format_node_id(com->node, com->RouteID, szID));
-	f = gf_list_get(com->command_fields, 0);
+	f = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 	if (f && (f->pos>=0) ) fprintf(sdump->trace, "index=\"%d\" ", f->pos);
 	fprintf(sdump->trace, "/>\n");
 	return GF_OK;
@@ -2326,6 +2346,7 @@ GF_Err DumpLSRSendEvent(GF_SceneDumper *sdump, GF_Command *com)
 }
 #endif
 
+GF_EXPORT
 GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace)
 {
 	GF_Err e;
@@ -2345,7 +2366,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 	e = GF_OK;
 	count = gf_list_count(comList);
 	for (i=0; i<count; i++) {
-		GF_Command *com = gf_list_get(comList, i);
+		GF_Command *com = (GF_Command *) gf_list_get(comList, i);
 		if (i && !remain && (sdump->X3DDump || (sdump->dump_mode==GF_SM_DUMP_VRML))) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[Scene Dump] MPEG-4 Commands found, not supported in %s - skipping\n", sdump->X3DDump ? "X3D" : "VRML"));
 			break;
@@ -2505,7 +2526,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 		if (info.fieldType==SVG_ID_datatype) {
 			continue;
 		} else if (info.fieldType==SVG_ContentType_datatype) {
-			char *type = *(u8 **)info.far_ptr;
+			char *type = *(char **)info.far_ptr;
 			if (type && strstr(type, "text/")) is_cdata = 1;
 		}
 		if (info.fieldType==SVG_IRI_datatype) {
@@ -2530,7 +2551,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 		count = gf_list_count(n->sgprivate->events);
 		for (i=0; i<count; i++) {
 			SVGhandlerElement *hdl;
-			SVGlistenerElement *node = gf_list_get(n->sgprivate->events, i);
+			SVGlistenerElement *node = (SVGlistenerElement *)gf_list_get(n->sgprivate->events, i);
 			if (node->sgprivate->NodeID) continue;
 			hdl = (SVGhandlerElement *)node->handler.target;
 			if (!hdl || !hdl->textContent) continue;
@@ -2573,7 +2594,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 
 	sdump->indent++;
 	for (i=0; i<count; i++) {
-		GF_Node *c = gf_list_get(svg->children, i);
+		GF_Node *c = (GF_Node*)gf_list_get(svg->children, i);
 		SD_DumpSVGElement(sdump, c, n, 0);
 	}
 	sdump->indent--;
@@ -2593,6 +2614,7 @@ GF_Err SD_SetSceneGraph(GF_SceneDumper *sdump, GF_SceneGraph *sg)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes)
 {
 	u32 tag;
@@ -2620,7 +2642,7 @@ GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes
 			GF_ParentNode *p = (GF_ParentNode *)sdump->sg->RootNode;
 			count = gf_list_count(p->children);
 			for (i=0; i<count; i++) {
-				GF_Node *n = gf_list_get(p->children, i);
+				GF_Node *n = (GF_Node*)gf_list_get(p->children, i);
 				DumpNode(sdump, n, 0, NULL);
 			}
 		} else {
@@ -2630,7 +2652,7 @@ GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes
 		if (!skip_routes) {
 			GF_Route *r;
 			u32 i=0;
-			while ((r = gf_list_enum(sdump->sg->Routes, &i))) {
+			while ((r = (GF_Route*)gf_list_enum(sdump->sg->Routes, &i))) {
 				if (r->IS_route || (r->graph!=sdump->sg)) continue;
 				e = DumpRoute(sdump, r, 0);
 				if (e) return e;
@@ -2641,7 +2663,7 @@ GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes
 			EndElement(sdump, "Scene", 1);
 		}
 	
-		SD_FinalizeDump(sdump);
+		SD_FinalizeDump(sdump, NULL);
 		return GF_OK;
 	}
 #ifndef GPAC_DISABLE_SVG
@@ -2683,7 +2705,7 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 
 	has_base = 0;
 	i=0; 
-	while ((ptr = gf_list_enum(sample_list, &i))) {
+	while ((ptr = (GF_AUContext*)gf_list_enum(sample_list, &i))) {
 		if (
 			/*time ordered*/
 			(ptr->timing_sec > au->timing_sec) 
@@ -2702,6 +2724,7 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 	gf_list_add(sample_list, au);
 }
 
+GF_EXPORT
 GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 {
 	GF_Err e;
@@ -2723,7 +2746,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 	e = GF_OK;
 	/*configure all systems streams we're dumping*/
 	i=0;
-	while ((sc = gf_list_enum(ctx->streams, &i))) {
+	while ((sc = (GF_StreamContext*)gf_list_enum(ctx->streams, &i))) {
 
 		switch (sc->streamType) {
 		case GF_STREAM_SCENE:
@@ -2740,7 +2763,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		}
 		
 		j=0;
-		while ((au = gf_list_enum(sc->AUs, &j))) {
+		while ((au = (GF_AUContext*)gf_list_enum(sc->AUs, &j))) {
 			ReorderAUContext(sample_list, au, dumper->LSRDump);
 			if (dumper->dump_mode==GF_SM_DUMP_SVG) break;
 		}
@@ -2753,9 +2776,9 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 
 #ifndef GPAC_DISABLE_SVG
 	if (dumper->dump_mode==GF_SM_DUMP_SVG) {
-		GF_AUContext *au = gf_list_get(sample_list, 0);
+		GF_AUContext *au = (GF_AUContext*)gf_list_get(sample_list, 0);
 		GF_Command *com = NULL;
-		if (au) com = gf_list_get(au->commands, 0);
+		if (au) com = (GF_Command*)gf_list_get(au->commands, 0);
 		if (!au) {
 			SD_DumpSVGElement(dumper, dumper->sg->RootNode, NULL, 1);
 		} else if (!com || (com->tag!=GF_SG_LSR_NEW_SCENE) || !com->node) {
@@ -2772,7 +2795,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 	first_bifs = 1;
 
 	while (gf_list_count(sample_list)) {
-		GF_AUContext *au = gf_list_get(sample_list, 0);
+		GF_AUContext *au = (GF_AUContext*)gf_list_get(sample_list, 0);
 		gf_list_rem(sample_list, 0);
 
 		if (!dumper->XMLDump) {
@@ -2862,7 +2885,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		DumpNode(dumper, ctx->scene_graph->RootNode, 0, NULL);
 		i=0;
 		fprintf(dumper->trace, "\n");
-		while ((r = gf_list_enum(dumper->sg->Routes, &i))) {
+		while ((r = (GF_Route*)gf_list_enum(dumper->sg->Routes, &i))) {
 			if (r->IS_route || (r->graph!=dumper->sg)) continue;
 			e = DumpRoute(dumper, r, 0);
 			if (e) return e;
@@ -2877,7 +2900,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 	}
 
 exit:
-	SD_FinalizeDump(dumper);
+	SD_FinalizeDump(dumper, (GF_Descriptor *) ctx->root_od);
 	gf_sm_dumper_del(dumper);
 	gf_list_del(sample_list);
 	return e;

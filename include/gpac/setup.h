@@ -134,7 +134,7 @@ typedef unsigned int size_t;
 #elif defined(__SYMBIAN32__)
 
 #define GFINLINE inline
-#define GF_PATH_SEPARATOR	'/'
+#define GF_PATH_SEPARATOR	'\\'
 
 /*we must explicitely export our functions...*/
 #define GF_EXPORT EXPORT_C
@@ -154,7 +154,7 @@ typedef unsigned char u8;
 typedef __int64 s64;
 typedef int s32;
 typedef short s16;
-typedef char s8;
+typedef signed char s8;
 
 #pragma mpwc_relax on
 
@@ -168,6 +168,30 @@ typedef char s8;
 /*sorry this was developed under w32 :)*/
 #define stricmp		strcasecmp
 #define strnicmp	strncasecmp
+
+#ifndef strupr
+char * my_str_upr(char *str);
+#define strupr my_str_upr
+#endif
+
+#ifndef strlwr
+char * my_str_lwr(char *str);
+#define strlwr my_str_lwr
+#endif
+
+#ifndef DBL_MAX
+#include <libc/ieeefp.h>
+#define DBL_MAX	__IEEE_DBL_MAXPOWTWO
+#endif
+
+#ifndef FLT_MAX
+#include <libc/ieeefp.h>
+#define FLT_MAX	__IEEE_FLT_MAXPOWTWO
+#endif
+
+#ifndef FLT_EPSILON
+#define FLT_EPSILON 1
+#endif
 
 /*end SYMBIAN config*/
 

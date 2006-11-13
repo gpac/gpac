@@ -656,7 +656,7 @@ typedef struct
 	u32 horiz_res, vert_res;			\
 	u32 entry_data_size;				\
 	u16 frames_per_sample;				\
-	unsigned char compressor_name[33];	\
+	char compressor_name[33];	\
 	u16 bit_depth;						\
 	s16 color_table_index;
 
@@ -1084,14 +1084,14 @@ typedef struct
 {
 	GF_ISOM_FULL_BOX
 	u32 xml_length;
-	u8 *xml;
+	char *xml;
 } GF_XMLBox;
 
 typedef struct
 {
 	GF_ISOM_FULL_BOX
 	u32 data_length;
-	u8 *data;
+	char *data;
 } GF_BinaryXMLBox;
 
 typedef struct
@@ -1143,11 +1143,11 @@ typedef struct
 	u16 item_ID;
 	u16 item_protection_index;
 	/*zero-terminated strings*/
-	u8  *item_name;
-	u8  *content_type;
-	u8  *content_encoding;
+	char *item_name;
+	char *content_type;
+	char *content_encoding;
 	// needed to actually read the resource file, but not written in the MP21 file.
-	u8  *full_path;
+	char *full_path;
 } GF_ItemInfoEntryBox;
 
 typedef struct
@@ -1561,7 +1561,7 @@ typedef struct
 {
 	GF_ISOM_FULL_BOX
 	u32 reserved;
-	u8 *data;
+	char *data;
 	u32 dataSize;
 } GF_DataBox;
 
@@ -1896,6 +1896,24 @@ u32 GetHintFormat(GF_TrackBox *trak);
 /*locate a box by its type or UUID*/
 GF_ItemListBox *gf_ismo_locate_box(GF_List *list, u32 boxType, bin128 UUID);
 
+GF_Err moov_AddBox(GF_Box *ptr, GF_Box *a);
+GF_Err tref_AddBox(GF_Box *ptr, GF_Box *a);
+GF_Err trak_AddBox(GF_Box *ptr, GF_Box *a);
+GF_Err mvex_AddBox(GF_Box *ptr, GF_Box *a);
+GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a);
+GF_Err hnti_AddBox(GF_HintTrackInfoBox *hnti, GF_Box *a);
+GF_Err udta_AddBox(GF_UserDataBox *ptr, GF_Box *a);
+GF_Err edts_AddBox(GF_Box *s, GF_Box *a);
+GF_Err stdp_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err dinf_AddBox(GF_Box *s, GF_Box *a);
+GF_Err minf_AddBox(GF_Box *s, GF_Box *a);
+GF_Err mdia_AddBox(GF_Box *s, GF_Box *a);
+GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a);
+
+GF_Err AVC_UpdateESD(GF_AVCSampleEntryBox *avc, GF_ESD *esd);
+GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
+
 
 /*
 		Hinting stuff
@@ -1988,10 +2006,10 @@ typedef struct __tag_hint_sample
 	GF_List *sample_cache;
 } GF_HintSample;
 
-GF_HintSample *gf_isom_hint_sample_new();
+GF_HintSample *gf_isom_hint_sample_new(u32 ProtocolType);
 void gf_isom_hint_sample_del(GF_HintSample *ptr);
 GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sampleSize);
-u32 gf_isom_hint_sample_write(GF_HintSample *ptr, GF_BitStream *bs);
+GF_Err gf_isom_hint_sample_write(GF_HintSample *ptr, GF_BitStream *bs);
 u32 gf_isom_hint_sample_size(GF_HintSample *ptr);
 
 /*****************************************************

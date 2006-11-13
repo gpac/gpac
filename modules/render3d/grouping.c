@@ -30,19 +30,18 @@ void group_start_child(GroupingNode *group, GF_Node *n)
 {
 	ChildGroup *cg;
 	if (!n) {
-		ChildGroup *cg_prev = gf_list_get(group->groups, gf_list_count(group->groups)-1);
+		ChildGroup *cg_prev = (ChildGroup *)gf_list_get(group->groups, gf_list_count(group->groups)-1);
 		n = cg_prev ? cg_prev->child : NULL;
 	}
 	if (!n) return;
-	cg = malloc(sizeof(ChildGroup));
-	memset(cg, 0, sizeof(ChildGroup));
+	GF_SAFEALLOC(cg, ChildGroup);
 	cg->child = n;
 	gf_list_add(group->groups, cg);
 }
 
 void group_end_child(GroupingNode *group, GF_BBox *bounds)
 {
-	ChildGroup *cg = gf_list_get(group->groups, gf_list_count(group->groups)-1);
+	ChildGroup *cg = (ChildGroup *)gf_list_get(group->groups, gf_list_count(group->groups)-1);
 	if (!cg) return;
 	/*don't override splitted text info*/
 	if (cg->is_text_group) return;
@@ -52,7 +51,7 @@ void group_end_child(GroupingNode *group, GF_BBox *bounds)
 
 void group_end_text_child(GroupingNode *group, GF_Rect *bounds, Fixed ascent, Fixed descent, u32 split_text_idx)
 {
-	ChildGroup *cg = gf_list_get(group->groups, gf_list_count(group->groups)-1);
+	ChildGroup *cg = (ChildGroup *)gf_list_get(group->groups, gf_list_count(group->groups)-1);
 	if (!cg) return;
 	cg->split_text_idx = split_text_idx;
 	cg->is_text_group = 1;
@@ -65,7 +64,7 @@ void group_end_text_child(GroupingNode *group, GF_Rect *bounds, Fixed ascent, Fi
 void group_reset_children(GroupingNode *group)
 {
 	while (gf_list_count(group->groups)) {
-		ChildGroup *cg = gf_list_get(group->groups, 0);
+		ChildGroup *cg = (ChildGroup *)gf_list_get(group->groups, 0);
 		gf_list_rem(group->groups, 0);
 		free(cg);
 	}
@@ -111,7 +110,7 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 				if (hsens) gf_list_add(group->sensors, hsens);
 			}
 			for (i=0; i<count; i++) {
-				child = gf_list_get(group->children, positions ? positions[i] : i);
+				child = (GF_Node*)gf_list_get(group->children, positions ? positions[i] : i);
 				hsens = r3d_get_sensor_handler(child);
 				if (hsens) gf_list_add(group->sensors, hsens);
 				else if (r3d_is_light(child, 0)) gf_list_add(group->lights, child);
@@ -159,7 +158,7 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 	if (group->lights && (eff->traversing_mode==TRAVERSE_LIGHTING)) {
 		u32 lcount = gf_list_count(group->lights);
 		for (i=0; i<lcount; i++) {
-			GF_Node *n = gf_list_get(group->lights, i);
+			GF_Node *n = (GF_Node*)gf_list_get(group->lights, i);
 			/*don't render local lights*/
 			if (r3d_is_light(n, 1)) continue;
 			gf_node_render(n, eff);
@@ -177,7 +176,7 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 		/*add sensor(s) to effects*/
 		scount = gf_list_count(group->sensors);
 		for (i=0; i <scount; i++) {
-			SensorHandler *hsens = gf_list_get(group->sensors, i);
+			SensorHandler *hsens = (SensorHandler *)gf_list_get(group->sensors, i);
 			gf_list_add(eff->sensors, hsens);
 		}
 	}
@@ -192,10 +191,10 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 
 		lcount = gf_list_count(group->lights);
 		for (i=0; i<lcount; i++) {
-			GF_Node *n = gf_list_get(group->lights, i);
+			GF_Node *n = (GF_Node*)gf_list_get(group->lights, i);
 			if (r3d_is_light(n, 1)) {
 				/*store lights for alpha render*/
-				dl = malloc(sizeof(DLightContext));
+				dl = (DLightContext*)malloc(sizeof(DLightContext));
 				dl->dlight = n;
 				memcpy(&dl->light_matrix, &eff->model_matrix, sizeof(GF_Matrix));
 				gf_list_add(eff->local_lights, dl);
@@ -214,7 +213,7 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 		group->dont_cull = group->bbox.is_set = eff->bbox.is_set = 0;
 		
 		for (i=0; i<count; i++) {
-			child = gf_list_get(group->children, positions ? positions[i] : i);
+			child = (GF_Node*)gf_list_get(group->children, positions ? positions[i] : i);
 			if (is_parent) group_start_child(group, child);
 			gf_node_render(child, eff);
 			if (is_parent) group_end_child(group, &eff->bbox);
@@ -235,12 +234,12 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 	} else {
 		if (positions) {
 			for (i=0; i<count; i++) {
-				child = gf_list_get(group->children, positions[i]);
+				child = (GF_Node*)gf_list_get(group->children, positions[i]);
 				gf_node_render(child, eff);
 			} 
 		} else {
 			for (i=0; i<count; i++) {
-				child = gf_list_get(group->children, i);
+				child = (GF_Node*)gf_list_get(group->children, i);
 				gf_node_render(child, eff);
 			} 
 		}
@@ -259,7 +258,7 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 		eff->traversing_mode = TRAVERSE_RENDER;
 		eff->local_light_on = 0;
 		while ( (lcount = gf_list_count(eff->local_lights)) ) {
-			dl = gf_list_get(eff->local_lights, lcount-1);
+			dl = (DLightContext*)gf_list_get(eff->local_lights, lcount-1);
 			gf_list_rem(eff->local_lights, lcount-1);
 			gf_node_render(dl->dlight, eff);
 			free(dl);
@@ -337,7 +336,7 @@ void DestroyBaseGrouping(GF_Node *node)
 
 void NewGroupingNodeStack(GF_Renderer *sr, GF_Node *node, GF_List *children)
 {
-	GroupingNode *st = malloc(sizeof(GroupingNode));
+	GroupingNode *st = (GroupingNode *)malloc(sizeof(GroupingNode));
 	if (!st) return;
 	SetupGroupingNode(st, sr, node, children);
 	gf_node_set_private(node, st);

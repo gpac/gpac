@@ -41,6 +41,7 @@ int getDanaeTextureProperties(void *dmo, unsigned int stime,
 
 
 
+GF_EXPORT
 void gf_sr_texture_setup(GF_TextureHandler *txh, GF_Renderer *sr, GF_Node *owner)
 {
 	memset(txh, 0, sizeof(GF_TextureHandler));
@@ -50,6 +51,7 @@ void gf_sr_texture_setup(GF_TextureHandler *txh, GF_Renderer *sr, GF_Node *owner
 }
 
 
+GF_EXPORT
 void gf_sr_texture_destroy(GF_TextureHandler *txh)
 {
 	if (txh->hwtx) {
@@ -60,6 +62,7 @@ void gf_sr_texture_destroy(GF_TextureHandler *txh)
 	gf_list_del_item(txh->compositor->textures, txh);
 }
 
+GF_EXPORT
 Bool gf_sr_texture_check_url_change(GF_TextureHandler *txh, MFURL *url)
 {
 #ifdef DANAE
@@ -70,6 +73,7 @@ Bool gf_sr_texture_check_url_change(GF_TextureHandler *txh, MFURL *url)
 #endif
 }
 
+GF_EXPORT
 GF_Err gf_sr_texture_play_from(GF_TextureHandler *txh, MFURL *url, Double media_offset, Bool can_loop)
 {
 	if (txh->is_open) return GF_BAD_PARAM;
@@ -99,6 +103,8 @@ GF_Err gf_sr_texture_play_from(GF_TextureHandler *txh, MFURL *url, Double media_
 	txh->is_open = 1;
 	return GF_OK;
 }
+
+GF_EXPORT
 GF_Err gf_sr_texture_play(GF_TextureHandler *txh, MFURL *url)
 {
 	Double offset = 0;
@@ -111,6 +117,7 @@ GF_Err gf_sr_texture_play(GF_TextureHandler *txh, MFURL *url)
 }
 
 
+GF_EXPORT
 void gf_sr_texture_stop(GF_TextureHandler *txh)
 {
 	if (!txh->is_open) return;
@@ -128,6 +135,7 @@ void gf_sr_texture_stop(GF_TextureHandler *txh)
 	txh->stream = NULL;
 }
 
+GF_EXPORT
 void gf_sr_texture_restart(GF_TextureHandler *txh)
 {
 #ifdef DANAE
@@ -140,6 +148,7 @@ void gf_sr_texture_restart(GF_TextureHandler *txh)
 #endif
 }
 
+GF_EXPORT
 void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 {
 	u32 size, ts;
@@ -245,6 +254,7 @@ void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	gf_sr_invalidate(txh->compositor, NULL);
 }
 
+GF_EXPORT
 void gf_sr_texture_release_stream(GF_TextureHandler *txh)
 {
 	if (txh->needs_release) {
