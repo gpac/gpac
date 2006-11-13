@@ -57,8 +57,8 @@ static Bool Disk2DIntersectWithRay(GF_Node *owner, GF_Ray *ray, SFVec3f *outPoin
 
 static void RenderDisk2D(GF_Node *node, void *rs)
 {
-	stack2D *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	stack2D *st = (stack2D *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		Fixed a = ((X_Disk2D *) node)->outerRadius * 2;
@@ -85,8 +85,8 @@ void R3D_InitDisk2D(Render3D *sr, GF_Node *node)
 
 static void RenderArc2D(GF_Node *node, void *rs)
 {
-	stack2D *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	stack2D *st = (stack2D *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		stack2D_reset(st);
@@ -120,8 +120,8 @@ void R3D_InitArc2D(Render3D *sr, GF_Node *node)
 
 static void RenderPolyline2D(GF_Node *node, void *rs)
 {
-	stack2D *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	stack2D *st = (stack2D *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		u32 i;
@@ -153,8 +153,8 @@ void R3D_InitPolyline2D(Render3D *sr, GF_Node *node)
 static void RenderPolypoint2D(GF_Node *node, void *rs)
 {
 	SFColorRGBA col;
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		u32 i;
@@ -183,8 +183,8 @@ void R3D_InitPolypoint2D(Render3D *sr, GF_Node *node)
 
 static void RenderLineSet(GF_Node *node, void *rs)
 {
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		u32 i, j, c_idx;
@@ -250,8 +250,8 @@ void R3D_InitLineSet(Render3D *sr, GF_Node *node)
 
 static void RenderTriangleSet2D(GF_Node *node, void *rs)
 {
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		u32 i, count, idx;
@@ -396,8 +396,8 @@ static void BuildTriangleSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color, G
 
 static void RenderTriangleSet(GF_Node *node, void *rs)
 {
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 
 	if (gf_node_dirty_get(node)) {
@@ -422,8 +422,8 @@ void R3D_InitTriangleSet(Render3D *sr, GF_Node *node)
 
 static void RenderIndexedTriangleSet(GF_Node *node, void *rs)
 {
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 
 	if (gf_node_dirty_get(node)) {
@@ -627,8 +627,8 @@ static void BuildTriangleStripSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_col
 static void RenderTriangleStripSet(GF_Node *node, void *rs)
 {
 	X_TriangleStripSet *tss = (X_TriangleStripSet *)node;
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (!tss->coord) return;
 
@@ -651,8 +651,8 @@ void R3D_InitTriangleStripSet(Render3D *sr, GF_Node *node)
 
 static void RenderIndexedTriangleStripSet(GF_Node *node, void *rs)
 {
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		MFInt32 stripList;
@@ -851,8 +851,8 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 
 static void RenderTriangleFanSet(GF_Node *node, void *rs)
 {
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		X_TriangleFanSet *tfs = (X_TriangleFanSet *)node;
@@ -875,8 +875,8 @@ void R3D_InitTriangleFanSet(Render3D *sr, GF_Node *node)
 
 static void RenderIndexedTriangleFanSet(GF_Node *node, void *rs)
 {
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		MFInt32 fanList;

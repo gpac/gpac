@@ -140,8 +140,12 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 	fclose(f);
 	return 1;
 }
+
+
 /*TODO FIXME, this is ugly, add proper cache system*/
 #include <gpac/base_coding.h>
+
+GF_EXPORT
 Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char *base_filename)
 {
 	char szFile[GF_MAX_PATH], buf[20], *sep, *data, *ext;
@@ -183,13 +187,13 @@ Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char 
 	if (!strncmp(sep, ";base64,", 8)) {
 		sep += 8;
 		data_size = 2*strlen(sep);
-		data = malloc(sizeof(char)*data_size);
+		data = (char*)malloc(sizeof(char)*data_size);
 		if (!data) return 0;
 		data_size = gf_base64_decode(sep, strlen(sep), data, data_size);
 	}
 	else if (!strncmp(sep, ";base16,", 8)) {
 		data_size = 2*strlen(sep);
-		data = malloc(sizeof(char)*data_size);
+		data = (char*)malloc(sizeof(char)*data_size);
 		if (!data) return 0;
 		sep += 8;
 		data_size = gf_base16_decode(sep, strlen(sep), data, data_size);
@@ -248,7 +252,7 @@ void gf_svg_reset_lsr_conditional(SVGCommandBuffer *script)
 	u32 i;
 	if (script->data) free(script->data);
 	for (i=gf_list_count(script->com_list); i>0; i--) {
-		GF_Command *com = gf_list_get(script->com_list, i-1);
+		GF_Command *com = (GF_Command *)gf_list_get(script->com_list, i-1);
 		gf_sg_command_del(com);
 	}
 	gf_list_del(script->com_list);

@@ -104,7 +104,7 @@ typedef Double SFDouble;
 
 typedef struct
 {
-	unsigned char* buffer;
+	char* buffer;
 } SFString;
 
 typedef Double SFTime;

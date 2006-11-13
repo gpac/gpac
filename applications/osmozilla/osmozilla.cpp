@@ -44,8 +44,6 @@
 #include "osmozilla.h"
 
 #include <gpac/options.h>
-/*access to framebuffer for printing - under dev ...*/
-#include <gpac/internal/renderer_dev.h>
 
 nsIServiceManager *gServiceManager = NULL;
 
@@ -645,23 +643,18 @@ void nsOsmozillaInstance::Print(NPPrint* printInfo)
 		*/
 		HDC pDC = (HDC)printInfo->print.embedPrint.platformPrint;
 		GF_VideoSurface fb;
-		LPBITMAPINFO info; // Structure for storing the DIB information,  
-							// it will be used by 'StretchDIBits()' 
-		COLORREF c;
-		int xsrc, ysrc;
-		int xdst, ydst;
+		u32 xsrc, ysrc;
 		u16 src_16;
-		COLORREF color;
-		unsigned char *src;
+		char *src;
 		/*lock the source buffer */
-		gf_sr_get_screen_buffer(m_term->renderer, &fb);
+		gf_term_get_screen_buffer(m_term, &fb);
 		BITMAPINFO	*infoSrc = CreateBitmapInfoStruct(&fb);
 		float deltay = (float)printInfo->print.embedPrint.window.height/(float)fb.height;
 		int	ysuiv = 0;
-		unsigned char *ligne = (unsigned char *) LocalAlloc(GMEM_FIXED, fb.width*4);
+		char *ligne = (char *) LocalAlloc(GMEM_FIXED, fb.width*4);
 		for (ysrc=0; ysrc<fb.height; ysrc++)
 		{
-			unsigned char *dst = ligne;
+			char *dst = (char*)ligne;
 			src = fb.video_buffer + ysrc * fb.pitch;
 			for (xsrc=0; xsrc<fb.width; xsrc++)
 			{
@@ -716,7 +709,7 @@ void nsOsmozillaInstance::Print(NPPrint* printInfo)
 				dst += 4;
 			}
 			int ycrt = ysuiv;
-			ysuiv = ((float)ysrc+1.0)*deltay;
+			ysuiv = (u32) ( ((float)ysrc+1.0)*deltay);
 			int delta = ysuiv-ycrt;
 			StretchDIBits(
 				pDC, printInfo->print.embedPrint.window.x, ycrt+printInfo->print.embedPrint.window.y, printInfo->print.embedPrint.window.width, 
@@ -726,7 +719,7 @@ void nsOsmozillaInstance::Print(NPPrint* printInfo)
 		}
 
 		/*unlock GPAC frame buffer */
-		gf_sr_release_screen_buffer(m_term->renderer, &fb);
+		gf_term_release_screen_buffer(m_term, &fb);
 		/* free temporary  objects */
 		GlobalFree(ligne);
 		LocalFree(infoSrc);

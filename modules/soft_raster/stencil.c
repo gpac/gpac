@@ -643,7 +643,7 @@ static void gf_sr_texture_set_callback(EVG_Texture *_this)
 	}
 }
 
-GF_Err evg_stencil_set_texture(GF_STENCIL st, unsigned char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy)
+GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy)
 {
 	EVG_Texture *_this = (EVG_Texture *) st;
 	if (!_this || (_this->type != GF_STENCIL_TEXTURE) || !pixels || !width || !height || !stride || _this->owns_texture)

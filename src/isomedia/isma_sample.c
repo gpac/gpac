@@ -31,6 +31,7 @@ GF_ISMASample *gf_isom_ismacryp_new_sample()
 	memset(tmp, 0, sizeof(GF_ISMASample));
 	return tmp;
 }
+GF_EXPORT
 void gf_isom_ismacryp_delete_sample(GF_ISMASample *samp)
 {
 	if (!samp) return;
@@ -78,11 +79,11 @@ GF_ISMASample *gf_isom_ismacryp_sample_from_data(char *data, u32 dataLength, Boo
 		if (KI_length) {
 			if (s->dataLength < KI_length) goto exit;
 			s->key_indicator = (u8 *)malloc(KI_length);
-			gf_bs_read_data(bs, s->key_indicator, KI_length);
+			gf_bs_read_data(bs, (char*)s->key_indicator, KI_length);
 			s->dataLength -= KI_length;
 		}
 	}
-	s->data = malloc(s->dataLength);
+	s->data = (char*)malloc(sizeof(char)*s->dataLength);
 	gf_bs_read_data(bs, s->data, s->dataLength);
 	gf_bs_del(bs);
 	return s;
@@ -105,17 +106,18 @@ GF_Err gf_isom_ismacryp_sample_to_sample(GF_ISMASample *s, GF_ISOSample *dest)
 	} 
 	if (s->flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
 		if (s->IV_length) gf_bs_write_long_int(bs, s->IV, 8*s->IV_length);
-		if (s->KI_length) gf_bs_write_data(bs, s->key_indicator, s->KI_length);
+		if (s->KI_length) gf_bs_write_data(bs, (char*)s->key_indicator, s->KI_length);
 	}
 	gf_bs_write_data(bs, s->data, s->dataLength);
 	if (dest->data) free(dest->data);
 	dest->data = NULL;
 	dest->dataLength = 0;
-	gf_bs_get_content(bs, (unsigned char **) &dest->data, &dest->dataLength);
+	gf_bs_get_content(bs, &dest->data, &dest->dataLength);
 	gf_bs_del(bs);
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_ISMASample *gf_isom_get_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, GF_ISOSample *samp, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -140,6 +142,7 @@ GF_ISMASample *gf_isom_get_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber
 }
 
 
+GF_EXPORT
 Bool gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -154,6 +157,7 @@ Bool gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sampl
 	return 1;
 }
 
+GF_EXPORT
 Bool gf_isom_is_ismacryp_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -178,6 +182,7 @@ Bool gf_isom_is_ismacryp_media(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 }
 
 /*retrieves ISMACryp info for the given track & SDI*/
+GF_EXPORT
 GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, const char **outSchemeURI, const char **outKMS_URI, Bool *outSelectiveEncryption, u8 *outIVLength, u8 *outKeyIndicationLength)
 {
 	GF_TrackBox *trak;

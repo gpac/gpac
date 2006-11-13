@@ -91,7 +91,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 		char szUTF[1024];
 		u32 read = fread(szUTF, 1, 1023, test);
 		szUTF[read]=0;
-		sptr = (short*)szUTF;
+		sptr = (u16*)szUTF;
 		read = gf_utf8_wcstombs(szLine, read, &sptr);
 	} else {
 		val = fread(szLine, 1, 1024, test);
@@ -220,7 +220,7 @@ static char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32
 			i+=2;
 		}
 	}
-	sptr = (short *)szLine;
+	sptr = (u16 *)szLine;
 	i = gf_utf8_wcstombs(szLineConv, 1024, (const unsigned short **) &sptr);
 	szLineConv[i] = 0;
 	strcpy(szLine, szLineConv);
@@ -300,9 +300,9 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		/*and set sample descriptions*/
 		count = gf_list_count(cfg->sample_descriptions);
 		for (i=0; i<count; i++) {
-			GF_TextSampleDescriptor *sd= gf_list_get(cfg->sample_descriptions, i);
+			GF_TextSampleDescriptor *sd= (GF_TextSampleDescriptor *)gf_list_get(cfg->sample_descriptions, i);
 			if (!sd->font_count) {
-				sd->fonts = malloc(sizeof(GF_FontRecord));
+				sd->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
 				sd->font_count = 1;
 				sd->fonts[0].fontID = 1;
 				sd->fonts[0].fontName = strdup("Serif");
@@ -328,7 +328,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		entire display, and with bottom alignment things should be fine...*/
 		gf_isom_set_track_layout_info(import->dest, track, w<<16, h<<16, 0, 0, 0);
 		sd = (GF_TextSampleDescriptor*)gf_odf_desc_new(GF_ODF_TX3G_TAG);
-		sd->fonts = malloc(sizeof(GF_FontRecord));
+		sd->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
 		sd->font_count = 1;
 		sd->fonts[0].fontID = 1;
 		sd->fonts[0].fontName = strdup("Serif");
@@ -338,7 +338,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		sd->default_style.text_color = 0xFFFFFFFF;	/*white*/
 		sd->default_style.style_flags = 0;
 		sd->horiz_justif = 1; /*center of scene*/
-		sd->vert_justif = -1;	/*bottom of scene*/
+		sd->vert_justif = (s8) -1;	/*bottom of scene*/
 
 		if (import->flags & GF_IMPORT_SKIP_TXT_BOX) {
 			sd->default_pos.top = sd->default_pos.left = sd->default_pos.right = sd->default_pos.bottom = 0;
@@ -655,9 +655,9 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		/*and set sample descriptions*/
 		count = gf_list_count(cfg->sample_descriptions);
 		for (i=0; i<count; i++) {
-			GF_TextSampleDescriptor *sd= gf_list_get(cfg->sample_descriptions, i);
+			GF_TextSampleDescriptor *sd= (GF_TextSampleDescriptor *)gf_list_get(cfg->sample_descriptions, i);
 			if (!sd->font_count) {
-				sd->fonts = malloc(sizeof(GF_FontRecord));
+				sd->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
 				sd->font_count = 1;
 				sd->fonts[0].fontID = 1;
 				sd->fonts[0].fontName = strdup("Serif");
@@ -681,7 +681,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		entire display, and with bottom alignment things should be fine...*/
 		gf_isom_set_track_layout_info(import->dest, track, w<<16, h<<16, 0, 0, 0);
 		sd = (GF_TextSampleDescriptor*)gf_odf_desc_new(GF_ODF_TX3G_TAG);
-		sd->fonts = malloc(sizeof(GF_FontRecord));
+		sd->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
 		sd->font_count = 1;
 		sd->fonts[0].fontID = 1;
 		sd->fonts[0].fontName = strdup("Serif");
@@ -691,7 +691,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		sd->default_style.text_color = 0xFFFFFFFF;	/*white*/
 		sd->default_style.style_flags = 0;
 		sd->horiz_justif = 1; /*center of scene*/
-		sd->vert_justif = -1;	/*bottom of scene*/
+		sd->vert_justif = (s8) -1;	/*bottom of scene*/
 
 		if (import->flags & GF_IMPORT_SKIP_TXT_BOX) {
 			sd->default_pos.top = sd->default_pos.left = sd->default_pos.right = sd->default_pos.bottom = 0;
@@ -846,7 +846,7 @@ void ttxt_parse_text_box(GF_MediaImporter *import, GF_XMLNode *n, GF_BoxRecord *
 	u32 i=0;
 	GF_XMLAttribute *att;
 	memset(box, 0, sizeof(GF_BoxRecord));
-	while ( (att=gf_list_enum(n->attributes, &i))) {
+	while ( (att=(GF_XMLAttribute *)gf_list_enum(n->attributes, &i))) {
 		if (!stricmp(att->name, "top")) box->top = atoi(att->value);
 		else if (!stricmp(att->name, "bottom")) box->bottom = atoi(att->value);
 		else if (!stricmp(att->name, "left")) box->left = atoi(att->value);
@@ -863,7 +863,7 @@ void ttxt_parse_text_style(GF_MediaImporter *import, GF_XMLNode *n, GF_StyleReco
 	style->font_size = TTXT_DEFAULT_FONT_SIZE;
 	style->text_color = 0xFFFFFFFF;
 
-	while ( (att=gf_list_enum(n->attributes, &i))) {
+	while ( (att=(GF_XMLAttribute *)gf_list_enum(n->attributes, &i))) {
 		if (!stricmp(att->name, "fromChar")) style->startCharOffset = atoi(att->value);
 		else if (!stricmp(att->name, "toChar")) style->endCharOffset = atoi(att->value);
 		else if (!stricmp(att->name, "fontID")) style->fontID = atoi(att->value);
@@ -986,7 +986,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 	nb_children = gf_list_count(root->content);
 
 	i=0;
-	while ( (node = gf_list_enum(root->content, &i))) {
+	while ( (node = (GF_XMLNode*)gf_list_enum(root->content, &i))) {
 		if (node->type) { nb_children--; continue; }
 
 		if (!strcmp(node->name, "TextStreamHeader")) {
@@ -998,7 +998,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			nb_children--;
 
 			j=0;
-			while ( (att=gf_list_enum(node->attributes, &j))) {
+			while ( (att=(GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
 				if (!strcmp(att->name, "width")) w = atoi(att->value);
 				else if (!strcmp(att->name, "height")) h = atoi(att->value);
 				else if (!strcmp(att->name, "layer")) layer = atoi(att->value);
@@ -1008,7 +1008,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			gf_isom_set_track_layout_info(import->dest, track, w<<16, h<<16, tx<<16, ty<<16, (s16) layer);
 
 			j=0;
-			while ( (sdesc=gf_list_enum(node->content, &j))) {
+			while ( (sdesc=(GF_XMLNode*)gf_list_enum(node->content, &j))) {
 				if (sdesc->type) continue;
 
 				if (!strcmp(sdesc->name, "TextSampleDescription")) {
@@ -1016,20 +1016,20 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					u32 idx;
 					memset(&td, 0, sizeof(GF_TextSampleDescriptor));
 					td.tag = GF_ODF_TEXT_CFG_TAG;
-					td.vert_justif = -1;
+					td.vert_justif = (s8) -1;
 					td.default_style.fontID = 1;
 					td.default_style.font_size = TTXT_DEFAULT_FONT_SIZE;
 
 					k=0;
-					while ( (att=gf_list_enum(sdesc->attributes, &k))) {
+					while ( (att=(GF_XMLAttribute *)gf_list_enum(sdesc->attributes, &k))) {
 						if (!strcmp(att->name, "horizontalJustification")) {
 							if (!stricmp(att->value, "center")) td.horiz_justif = 1;
-							else if (!stricmp(att->value, "right")) td.horiz_justif = -1;
+							else if (!stricmp(att->value, "right")) td.horiz_justif = (s8) -1;
 							else if (!stricmp(att->value, "left")) td.horiz_justif = 0;
 						}
 						else if (!strcmp(att->name, "verticalJustification")) {
 							if (!stricmp(att->value, "center")) td.vert_justif = 1;
-							else if (!stricmp(att->value, "bottom")) td.vert_justif = -1;
+							else if (!stricmp(att->value, "bottom")) td.vert_justif = (s8) -1;
 							else if (!stricmp(att->value, "top")) td.vert_justif = 0;
 						}
 						else if (!strcmp(att->name, "backColor")) td.back_color = ttxt_get_color(import, att->value);
@@ -1052,20 +1052,20 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					}
 
 					k=0;
-					while ( (ext=gf_list_enum(sdesc->content, &k))) {
+					while ( (ext=(GF_XMLNode*)gf_list_enum(sdesc->content, &k))) {
 						if (ext->type) continue;
 						if (!strcmp(ext->name, "TextBox")) ttxt_parse_text_box(import, ext, &td.default_pos);
 						else if (!strcmp(ext->name, "Style")) ttxt_parse_text_style(import, ext, &td.default_style);
 						else if (!strcmp(ext->name, "FontTable")) {
 							GF_XMLNode *ftable;
 							u32 z=0;
-							while ( (ftable=gf_list_enum(ext->content, &z))) {
+							while ( (ftable=(GF_XMLNode*)gf_list_enum(ext->content, &z))) {
 								u32 m;
 								if (ftable->type || strcmp(ftable->name, "FontTableEntry")) continue;
 								td.font_count += 1;
-								td.fonts = realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
+								td.fonts = (GF_FontRecord*)realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
 								m=0;
-								while ( (att=gf_list_enum(ftable->attributes, &m))) {
+								while ( (att=(GF_XMLAttribute *)gf_list_enum(ftable->attributes, &m))) {
 									if (!stricmp(att->name, "fontID")) td.fonts[td.font_count-1].fontID = atoi(att->value);
 									else if (!stricmp(att->name, "fontName")) td.fonts[td.font_count-1].fontName = strdup(att->value);
 								}
@@ -1083,7 +1083,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					}
 					if (!td.fonts) {
 						td.font_count = 1;
-						td.fonts = malloc(sizeof(GF_FontRecord));
+						td.fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
 						td.fonts[0].fontID = 1;
 						td.fonts[0].fontName = strdup("Serif");
 					}
@@ -1110,7 +1110,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			last_sample_empty = 0;
 
 			j=0;
-			while ( (att=gf_list_enum(node->attributes, &j))) {
+			while ( (att=(GF_XMLAttribute*)gf_list_enum(node->attributes, &j))) {
 				if (!strcmp(att->name, "sampleTime")) {
 					u32 h, m, s, ms;
 					if (sscanf(att->value, "%d:%d:%d.%d", &h, &m, &s, &ms) == 4) {
@@ -1135,7 +1135,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 
 			/*get all modifiers*/
 			j=0;
-			while ( (ext=gf_list_enum(node->content, &j))) {
+			while ( (ext=(GF_XMLNode*)gf_list_enum(node->content, &j))) {
 				if (!has_text && (ext->type==GF_XML_TEXT_TYPE)) {
 					u32 len;
 					char *str = ttxt_parse_string(import, ext->name, 0);
@@ -1160,7 +1160,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					u16 start, end;
 					start = end = 0;
 					k=0;
-					while ( (att=gf_list_enum(ext->attributes, &k))) {
+					while ( (att=(GF_XMLAttribute *)gf_list_enum(ext->attributes, &k))) {
 						if (!strcmp(att->name, "fromChar")) start = atoi(att->value);
 						else if (!strcmp(att->name, "toChar")) end = atoi(att->value);
 					}
@@ -1170,7 +1170,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					u16 start, end;
 					start = end = 0;
 					k=0;
-					while ( (att=gf_list_enum(ext->attributes, &k))) {
+					while ( (att=(GF_XMLAttribute *)gf_list_enum(ext->attributes, &k))) {
 						if (!strcmp(att->name, "fromChar")) start = atoi(att->value);
 						else if (!strcmp(att->name, "toChar")) end = atoi(att->value);
 					}
@@ -1182,7 +1182,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					start = end = 0;
 					url = url_tt = NULL;
 					k=0;
-					while ( (att=gf_list_enum(ext->attributes, &k))) {
+					while ( (att=(GF_XMLAttribute *)gf_list_enum(ext->attributes, &k))) {
 						if (!strcmp(att->name, "fromChar")) start = atoi(att->value);
 						else if (!strcmp(att->name, "toChar")) end = atoi(att->value);
 						else if (!strcmp(att->name, "URL")) url = strdup(att->value);
@@ -1197,12 +1197,12 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					GF_XMLNode *krok;
 					startTime = 0;
 					k=0;
-					while ( (att=gf_list_enum(ext->attributes, &k))) {
+					while ( (att=(GF_XMLAttribute *)gf_list_enum(ext->attributes, &k))) {
 						if (!strcmp(att->name, "startTime")) startTime = (u32) (1000*atof(att->value));
 					}
 					gf_isom_text_add_karaoke(samp, startTime);
 					k=0;
-					while ( (krok=gf_list_enum(ext->content, &k))) {
+					while ( (krok=(GF_XMLNode*)gf_list_enum(ext->content, &k))) {
 						u16 start, end;
 						u32 endTime, m;
 						if (krok->type) continue;
@@ -1210,7 +1210,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 						start = end = 0;
 						endTime = 0;
 						m=0;
-						while ( (att=gf_list_enum(krok->attributes, &m))) {
+						while ( (att=(GF_XMLAttribute *)gf_list_enum(krok->attributes, &m))) {
 							if (!strcmp(att->name, "fromChar")) start = atoi(att->value);
 							else if (!strcmp(att->name, "toChar")) end = atoi(att->value);
 							else if (!strcmp(att->name, "endTime")) endTime = (u32) (1000*atof(att->value));
@@ -1285,7 +1285,7 @@ void tx3g_parse_text_box(GF_MediaImporter *import, GF_XMLNode *n, GF_BoxRecord *
 	u32 i=0;
 	GF_XMLAttribute *att;
 	memset(box, 0, sizeof(GF_BoxRecord));
-	while ((att=gf_list_enum(n->attributes, &i))) {
+	while ((att=(GF_XMLAttribute *)gf_list_enum(n->attributes, &i))) {
 		if (!stricmp(att->name, "x")) box->left = atoi(att->value);
 		else if (!stricmp(att->name, "y")) box->top = atoi(att->value);
 		else if (!stricmp(att->name, "height")) box->bottom = atoi(att->value);
@@ -1345,7 +1345,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 	layer = 0;
 	timescale = 1000;
 	i=0;
-	while ( (att=gf_list_enum(root->attributes, &i))) {
+	while ( (att=(GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
 		if (!strcmp(att->name, "trackWidth")) w = atoi(att->value);
 		else if (!strcmp(att->name, "trackHeight")) h = atoi(att->value);
 		else if (!strcmp(att->name, "layer")) layer = atoi(att->value);
@@ -1387,7 +1387,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 	nb_descs = 0;
 	nb_samples = 0;
 	i=0;
-	while ( (node=gf_list_enum(root->content, &i))) {
+	while ( (node=(GF_XMLNode*)gf_list_enum(root->content, &i))) {
 		GF_XMLNode *desc;
 		GF_TextSampleDescriptor td;
 		GF_TextSample * samp = NULL;
@@ -1401,7 +1401,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 		isRAP = 0;
 		duration = 1000;
 		j=0;
-		while ((att=gf_list_enum(node->attributes, &j))) {
+		while ((att=(GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
 			if (!strcmp(att->name, "duration")) duration = atoi(att->value);
 			else if (!strcmp(att->name, "keyframe")) isRAP = !stricmp(att->value, "true");
 		}
@@ -1410,27 +1410,27 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 		same_style = same_box = 0;
 		descIndex = 1;
 		j=0;
-		while ((desc=gf_list_enum(node->content, &j))) {
+		while ((desc=(GF_XMLNode*)gf_list_enum(node->content, &j))) {
 			if (desc->type) continue;
 
 			if (!strcmp(desc->name, "description")) {
 				GF_XMLNode *sub;
 				memset(&td, 0, sizeof(GF_TextSampleDescriptor));
 				td.tag = GF_ODF_TEXT_CFG_TAG;
-				td.vert_justif = -1;
+				td.vert_justif = (s8) -1;
 				td.default_style.fontID = 1;
 				td.default_style.font_size = TTXT_DEFAULT_FONT_SIZE;
 
 				k=0;
-				while ((att=gf_list_enum(desc->attributes, &k))) {
+				while ((att=(GF_XMLAttribute *)gf_list_enum(desc->attributes, &k))) {
 					if (!strcmp(att->name, "horizontalJustification")) {
 						if (!stricmp(att->value, "center")) td.horiz_justif = 1;
-						else if (!stricmp(att->value, "right")) td.horiz_justif = -1;
+						else if (!stricmp(att->value, "right")) td.horiz_justif = (s8) -1;
 						else if (!stricmp(att->value, "left")) td.horiz_justif = 0;
 					}
 					else if (!strcmp(att->name, "verticalJustification")) {
 						if (!stricmp(att->value, "center")) td.vert_justif = 1;
-						else if (!stricmp(att->value, "bottom")) td.vert_justif = -1;
+						else if (!stricmp(att->value, "bottom")) td.vert_justif = (s8) -1;
 						else if (!stricmp(att->value, "top")) td.vert_justif = 0;
 					}
 					else if (!strcmp(att->name, "backgroundColor")) td.back_color = tx3g_get_color(import, att->value);
@@ -1452,19 +1452,19 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 				}
 
 				k=0;
-				while ((sub=gf_list_enum(desc->content, &k))) {
+				while ((sub=(GF_XMLNode*)gf_list_enum(desc->content, &k))) {
 					if (sub->type) continue;
 					if (!strcmp(sub->name, "defaultTextBox")) tx3g_parse_text_box(import, sub, &td.default_pos);
 					else if (!strcmp(sub->name, "fontTable")) {
 						GF_XMLNode *ftable;
 						u32 m=0;
-						while ((ftable=gf_list_enum(sub->content, &m))) {
+						while ((ftable=(GF_XMLNode*)gf_list_enum(sub->content, &m))) {
 							if (ftable->type) continue;
 							if (!strcmp(ftable->name, "font")) {
 								u32 n=0;
 								td.font_count += 1;
-								td.fonts = realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
-								while ((att=gf_list_enum(ftable->attributes, &n))) {
+								td.fonts = (GF_FontRecord*)realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
+								while ((att=(GF_XMLAttribute *)gf_list_enum(ftable->attributes, &n))) {
 									if (!stricmp(att->name, "id")) td.fonts[td.font_count-1].fontID = atoi(att->value);
 									else if (!stricmp(att->name, "name")) td.fonts[td.font_count-1].fontName = strdup(att->value);
 								}
@@ -1475,7 +1475,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 						u32 idx = 0;
 						GF_XMLNode *style, *ftable;
 						u32 m=0;
-						while ((style=gf_list_enum(sub->content, &m))) {
+						while ((style=(GF_XMLNode*)gf_list_enum(sub->content, &m))) {
 							if (style->type) continue;
 							if (!strcmp(style->name, "style")) break;
 						}
@@ -1485,11 +1485,11 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 							char css_style[1024], css_val[1024];
 							memset(&styles[nb_styles], 0, sizeof(GF_StyleRecord));
 							m=0;
-							while ( (att=gf_list_enum(style->attributes, &m))) {
+							while ( (att=(GF_XMLAttribute *)gf_list_enum(style->attributes, &m))) {
 								if (!strcmp(att->name, "id")) styles[nb_styles].startCharOffset = atoi(att->value);
 							}
 							m=0;
-							while ( (ftable=gf_list_enum(style->content, &m))) {
+							while ( (ftable=(GF_XMLNode*)gf_list_enum(style->content, &m))) {
 								if (ftable->type) break;
 							}
 							cur = ftable->name;
@@ -1524,7 +1524,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 				}
 				if (!td.fonts) {
 					td.font_count = 1;
-					td.fonts = malloc(sizeof(GF_FontRecord));
+					td.fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
 					td.fonts[0].fontID = 1;
 					td.fonts[0].fontName = strdup("Serif");
 				}
@@ -1549,26 +1549,26 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 				samp = gf_isom_new_text_sample();
 
 				k=0;
-				while ((att=gf_list_enum(desc->attributes, &k))) {
+				while ((att=(GF_XMLAttribute *)gf_list_enum(desc->attributes, &k))) {
 					if (!strcmp(att->name, "targetEncoding") && !strcmp(att->value, "utf16")) is_utf16 = 1;
 					else if (!strcmp(att->name, "scrollDelay")) gf_isom_text_set_scroll_delay(samp, atoi(att->value) );
 					else if (!strcmp(att->name, "highlightColor")) gf_isom_text_set_highlight_color_argb(samp, tx3g_get_color(import, att->value));
 				}
 				start = end = 0;
 				k=0;
-				while ((sub=gf_list_enum(desc->content, &k))) {
+				while ((sub=(GF_XMLNode*)gf_list_enum(desc->content, &k))) {
 					if (sub->type) continue;
 					if (!strcmp(sub->name, "text")) {
 						GF_XMLNode *text;
 						styleID = 0;
 						m=0;
-						while ((att=gf_list_enum(sub->attributes, &m))) {
+						while ((att=(GF_XMLAttribute *)gf_list_enum(sub->attributes, &m))) {
 							if (!strcmp(att->name, "styleID")) styleID = atoi(att->value);
 						}
 						txt_len = 0;
 
 						m=0;
-						while ((text=gf_list_enum(sub->content, &m))) {
+						while ((text=(GF_XMLNode*)gf_list_enum(sub->content, &m))) {
 							if (!text->type) {
 								if (!strcmp(text->name, "marker")) {
 									u32 z;
@@ -1576,7 +1576,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 									marks[nb_marks].pos = nb_chars+txt_len;
 
 									z = 0;
-									while ( (att=gf_list_enum(text->attributes, &z))) {
+									while ( (att=(GF_XMLAttribute *)gf_list_enum(text->attributes, &z))) {
 										if (!strcmp(att->name, "id")) marks[nb_marks].id = atoi(att->value);
 									}
 									nb_marks++;
@@ -1597,7 +1597,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 					}
 					else if (!stricmp(sub->name, "highlight")) {
 						m=0;
-						while ((att=gf_list_enum(sub->attributes, &m))) {
+						while ((att=(GF_XMLAttribute *)gf_list_enum(sub->attributes, &m))) {
 							if (!strcmp(att->name, "startMarker")) GET_MARKER_POS(start, 0)
 							else if (!strcmp(att->name, "endMarker")) GET_MARKER_POS(end, 1)
 						}
@@ -1605,7 +1605,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 					}
 					else if (!stricmp(sub->name, "blink")) {
 						m=0;
-						while ((att=gf_list_enum(sub->attributes, &m))) {
+						while ((att=(GF_XMLAttribute *)gf_list_enum(sub->attributes, &m))) {
 							if (!strcmp(att->name, "startMarker")) GET_MARKER_POS(start, 0)
 							else if (!strcmp(att->name, "endMarker")) GET_MARKER_POS(end, 1)
 						}
@@ -1615,7 +1615,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 						char *url, *url_tt;
 						url = url_tt = NULL;
 						m=0;
-						while ((att=gf_list_enum(sub->attributes, &m))) {
+						while ((att=(GF_XMLAttribute *)gf_list_enum(sub->attributes, &m))) {
 							if (!strcmp(att->name, "startMarker")) GET_MARKER_POS(start, 0)
 							else if (!strcmp(att->name, "endMarker")) GET_MARKER_POS(end, 1)
 							else if (!strcmp(att->name, "URL") || !strcmp(att->name, "href")) url = strdup(att->value);
@@ -1629,17 +1629,17 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 						u32 time = 0;
 						GF_XMLNode *krok;
 						m=0;
-						while ((att=gf_list_enum(sub->attributes, &m))) {
+						while ((att=(GF_XMLAttribute *)gf_list_enum(sub->attributes, &m))) {
 							if (!strcmp(att->name, "startTime")) time = atoi(att->value);
 						}
 						gf_isom_text_add_karaoke(samp, time);
 						m=0;
-						while ((krok=gf_list_enum(sub->content, &m))) {
+						while ((krok=(GF_XMLNode*)gf_list_enum(sub->content, &m))) {
 							u32 u=0;
 							if (krok->type) continue;
 							if (strcmp(krok->name, "run")) continue;
 							start = end = 0;
-							while ((att=gf_list_enum(krok->attributes, &u))) {
+							while ((att=(GF_XMLAttribute *)gf_list_enum(krok->attributes, &u))) {
 								if (!strcmp(att->name, "startMarker")) GET_MARKER_POS(start, 0)
 								else if (!strcmp(att->name, "endMarker")) GET_MARKER_POS(end, 1)
 								else if (!strcmp(att->name, "duration")) time += atoi(att->value);

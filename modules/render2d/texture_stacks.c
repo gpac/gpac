@@ -56,7 +56,7 @@ static Bool Composite_CheckBindables(GF_Node *n, RenderEffect2D *eff, Bool force
 	Bool ret = 0;
 	M_CompositeTexture2D *c2d = (M_CompositeTexture2D *)n;
 	if (force_check || gf_node_dirty_get(c2d->background)) { gf_node_render(c2d->background, eff); ret = 1; }
-	btop = gf_list_get(eff->back_stack, 0);
+	btop = (GF_Node*)gf_list_get(eff->back_stack, 0);
 	if (btop != c2d->background) {
 		gf_node_unregister(c2d->background, n);
 		gf_node_register(btop, n); 
@@ -66,7 +66,7 @@ static Bool Composite_CheckBindables(GF_Node *n, RenderEffect2D *eff, Bool force
 	}
 
 	if (force_check || gf_node_dirty_get(c2d->viewport)) { gf_node_render(c2d->viewport, eff); ret = 1; }
-	btop = gf_list_get(eff->view_stack, 0);
+	btop = (GF_Node*)gf_list_get(eff->view_stack, 0);
 	if (btop != c2d->viewport) { 
 		gf_node_unregister(c2d->viewport, n);
 		gf_node_register(btop, n); 
@@ -109,8 +109,7 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 	}
 	if (!txh->hwtx) return;
 
-	eff = malloc(sizeof(RenderEffect2D));
-	memset(eff, 0, sizeof(RenderEffect2D));
+	GF_SAFEALLOC(eff, RenderEffect2D);
 	eff->sensors = gf_list_new();
 	eff->surface = st->surf;
 
@@ -142,7 +141,7 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 			st->sensors = gf_list_new();
 		}
 		for (i=0; i<count; i++) {
-			child = gf_list_get(ct2D->children, i);
+			child = (GF_Node*)gf_list_get(ct2D->children, i);
 			if (!child || !is_sensor_node(child) ) continue;
 			hsens = get_sensor_handler(child);
 			if (hsens) gf_list_add(st->sensors, hsens);
@@ -156,7 +155,7 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 
 	/*add sensor to effects*/	
 	i=0; 
-	while ((hsens = gf_list_enum(st->sensors, &i))) {
+	while ((hsens = (SensorHandler*)gf_list_enum(st->sensors, &i))) {
 		effect_add_sensor(eff, hsens, &eff->transform);
 	}
 
@@ -179,7 +178,7 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 
 	/*set active viewport in image coordinates top-left=(0, 0), not in BIFS*/
 	if (gf_list_count(st->surf->view_stack)) {
-		M_Viewport *vp = gf_list_get(st->surf->view_stack, 0);
+		M_Viewport *vp = (M_Viewport *)gf_list_get(st->surf->view_stack, 0);
 
 		if (vp->isBound) {
 			SFVec2f size = vp->size;
@@ -220,8 +219,8 @@ static void C2D_ReleaseSurfaceAccess(VisualSurface2D *surf)
 void R2D_InitCompositeTexture2D(Render2D *sr, GF_Node *node)
 {
 	M_CompositeTexture2D *c2d = (M_CompositeTexture2D *)node;
-	Composite2DStack *st = malloc(sizeof(Composite2DStack));
-	memset(st, 0, sizeof(Composite2DStack));
+	Composite2DStack *st;
+	GF_SAFEALLOC(st, Composite2DStack);
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = UpdateComposite2D;
 
@@ -384,7 +383,7 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 
 	st->txh.transparent = 0;
 	const_a = (lg->opacity.count == 1) ? 1 : 0;
-	cols = malloc(sizeof(u32) * lg->key.count);
+	cols = (u32*)malloc(sizeof(u32) * lg->key.count);
 	for (i=0; i<lg->key.count; i++) {
 		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, lg->keyValue.vals[i].red, lg->keyValue.vals[i].green, lg->keyValue.vals[i].blue);
@@ -392,7 +391,7 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 	}
 	txh->compositor->r2d->stencil_set_gradient_interpolation(txh->hwtx, lg->key.vals, cols, lg->key.count);
 	free(cols);
-	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, lg->spreadMethod);
+	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, (GF_GradientMode) lg->spreadMethod);
 
 }
 
@@ -432,8 +431,8 @@ static void LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2
 
 void R2D_InitLinearGradient(Render2D *sr, GF_Node *node)
 {
-	GradientStack *st = malloc(sizeof(GradientStack));
-	memset(st, 0, sizeof(GradientStack));
+	GradientStack *st;
+	GF_SAFEALLOC(st, GradientStack);
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = UpdateLinearGradient;
@@ -517,7 +516,7 @@ static void RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2
 	txh->compositor->r2d->stencil_set_radial_gradient(txh->hwtx, center.x, center.y, focal.x, focal.y, gf_mulfix(rg->radius, bounds->width), gf_mulfix(rg->radius, bounds->height));
 
 	const_a = (rg->opacity.count == 1) ? 1 : 0;
-	cols = malloc(sizeof(u32) * rg->key.count);
+	cols = (u32*)malloc(sizeof(u32) * rg->key.count);
 	for (i=0; i<rg->key.count; i++) {
 		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, rg->keyValue.vals[i].red, rg->keyValue.vals[i].green, rg->keyValue.vals[i].blue);
@@ -525,14 +524,14 @@ static void RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2
 	txh->compositor->r2d->stencil_set_gradient_interpolation(txh->hwtx, rg->key.vals, cols, rg->key.count);
 	free(cols);
 
-	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, rg->spreadMethod);
+	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, (GF_GradientMode) rg->spreadMethod);
 	gf_mx2d_add_translation(mat, bounds->x, bounds->y - bounds->height);
 }
 
 void R2D_InitRadialGradient(Render2D *sr, GF_Node *node)
 {
-	GradientStack *st = malloc(sizeof(GradientStack));
-	memset(st, 0, sizeof(GradientStack));
+	GradientStack *st;
+	GF_SAFEALLOC(st, GradientStack);
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = UpdateRadialGradient;

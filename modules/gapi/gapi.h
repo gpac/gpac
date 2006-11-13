@@ -59,7 +59,7 @@ typedef struct
 	Bool gx_mode;
 
 	/*main surface info*/
-	unsigned char *backbuffer;
+	char *backbuffer;
 	u32 bb_size, bb_width, bb_height, bb_pitch;
 	u32 pixel_format;
 	u32 BPP, bits_per_pixel;

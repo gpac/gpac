@@ -257,7 +257,7 @@ GF_Err evg_stencil_set_gradient_interpolation(GF_STENCIL p, Fixed *pos, GF_Color
 GF_Err evg_stencil_set_gradient_mode(GF_STENCIL p, GF_GradientMode mode);
 
 /*texture only*/
-GF_Err evg_stencil_set_texture(GF_STENCIL st, unsigned char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy);
+GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy);
 GF_Err evg_stencil_set_tiling(GF_STENCIL st, GF_TextureTiling mode);
 GF_Err evg_stencil_set_filter(GF_STENCIL st, GF_TextureFilter filter_mode);
 GF_Err evg_stencil_set_color_matrix(GF_STENCIL st, GF_ColorMatrix *cmat);
@@ -270,7 +270,7 @@ GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_Pixel
 GF_SURFACE evg_surface_new(GF_Raster2D *, Bool center_coords);
 void evg_surface_delete(GF_SURFACE _this);
 void evg_surface_detach(GF_SURFACE _this);
-GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, unsigned char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat);
+GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat);
 GF_Err evg_surface_attach_to_texture(GF_SURFACE _this, GF_STENCIL sten);
 GF_Err evg_surface_attach_to_callbacks(GF_SURFACE _this, GF_RasterCallback *callbacks, u32 width, u32 height);
 

@@ -48,7 +48,7 @@ typedef struct
 static void form_reset(FormStack *st)
 {
 	while (gf_list_count(st->grouplist)) {
-		FormGroup * fg = gf_list_get(st->grouplist, 0);
+		FormGroup * fg = (FormGroup * )gf_list_get(st->grouplist, 0);
 		gf_list_rem(st->grouplist, 0);
 		gf_list_del(fg->children);
 		free(fg);
@@ -57,7 +57,7 @@ static void form_reset(FormStack *st)
 
 static FormGroup *form_new_group(FormStack *st)
 {
-	FormGroup *fg = malloc(sizeof(FormGroup));
+	FormGroup *fg = (FormGroup * )malloc(sizeof(FormGroup));
 	gf_rect_reset(&fg->final);
 	gf_rect_reset(&fg->origin);
 	fg->children = gf_list_new();
@@ -75,7 +75,7 @@ static void fg_compute_bounds(FormGroup *fg)
 	u32 i = 0;
 	ChildGroup2D *cg;
 	gf_rect_reset(&fg->origin);
-	while ((cg = gf_list_enum(fg->children, &i))) {
+	while ((cg = (ChildGroup2D *) gf_list_enum(fg->children, &i))) {
 		gf_rect_union(&fg->origin, &cg->final);
 	}
 	fg->final = fg->origin;
@@ -88,7 +88,7 @@ static void fg_update_bounds(FormGroup *fg)
 	Fixed x, y;
 	x = fg->final.x - fg->origin.x;
 	y = fg->final.y - fg->origin.y;
-	while ((cg = gf_list_enum(fg->children, &i))) {
+	while ((cg = (ChildGroup2D *)gf_list_enum(fg->children, &i))) {
 		cg->final.x += x;
 		cg->final.y += y;
 	}
@@ -231,7 +231,7 @@ static void RenderForm(GF_Node *n, void *rs)
 
 	/*center all nodes*/
 	i=0;
-	while ((cg = gf_list_enum(st->groups, &i))) {
+	while ((cg = (ChildGroup2D *)gf_list_enum(st->groups, &i))) {
 		cg->final.x = - cg->final.width/2;
 		cg->final.y = cg->final.height/2;
 	}
@@ -251,7 +251,7 @@ static void RenderForm(GF_Node *n, void *rs)
 		}
 		/*broken form*/
 		if ((u32) fm->groups.vals[i]>gf_list_count(st->groups)) goto exit;
-		cg = gf_list_get(st->groups, fm->groups.vals[i]-1);
+		cg = (ChildGroup2D *)gf_list_get(st->groups, fm->groups.vals[i]-1);
 		gf_list_add(fg->children, cg);
 	}
 
@@ -272,7 +272,7 @@ static void RenderForm(GF_Node *n, void *rs)
 
 		/*refresh all group bounds*/
 		j=1;
-		while ((fg = gf_list_enum(st->grouplist, &j))) {
+		while ((fg = (FormGroup*)gf_list_enum(st->grouplist, &j))) {
 			fg_compute_bounds(fg);
 		}
 		/*done*/
@@ -280,7 +280,7 @@ static void RenderForm(GF_Node *n, void *rs)
 	}
 
 	i=0;
-	while ((cg = gf_list_enum(st->groups, &i))) {
+	while ((cg = (ChildGroup2D *)gf_list_enum(st->groups, &i))) {
 		child2d_render_done(cg, eff, &st->clip);
 	}
 
@@ -292,8 +292,8 @@ exit:
 
 void R2D_InitForm(Render2D *sr, GF_Node *node)
 {
-	FormStack *stack = malloc(sizeof(FormStack));
-	memset(stack, 0, sizeof(FormStack));
+	FormStack *stack;
+	GF_SAFEALLOC(stack, FormStack);
 	SetupGroupingNode2D((GroupingNode2D*)stack, sr, node);
 	stack->grouplist = gf_list_new();
 

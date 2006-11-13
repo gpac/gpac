@@ -48,7 +48,7 @@ typedef struct
 #define XVIDCTX()	XVIDDec *ctx = (XVIDDec *) (ifcg->privateStack)
 
 
-static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
@@ -153,9 +153,9 @@ static GF_Err XVID_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	return GF_NOT_SUPPORTED;
 }
 static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg, 
-		unsigned char *inBuffer, u32 inBufferLength,
+		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
-		unsigned char *outBuffer, u32 *outBufferLength,
+		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
 	unsigned char *pY, *pU, *pV;
@@ -188,7 +188,7 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 	*outBufferLength = ctx->out_size;
 	for (i=0; i<ctx->height; i++) {
 		unsigned char *src = pY + pitch*i;
-		unsigned char *dst = outBuffer + ctx->width*i;
+		char *dst = outBuffer + ctx->width*i;
 		memcpy(dst, src, sizeof(char) * ctx->width);
 	}
 	outBuffer += ctx->width * ctx->height;
@@ -196,13 +196,13 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 	uv_w = ctx->width/2;
 	for (i=0; i<half_h; i++) {
 		unsigned char *src = pU + pitch/2*i;
-		unsigned char *dst = outBuffer + i*uv_w;
+		char *dst = outBuffer + i*uv_w;
 		memcpy(dst, src, sizeof(char) * uv_w);
 	}
 	outBuffer += ctx->width * ctx->height / 4;
 	for (i=0; i<half_h; i++) {
 		unsigned char *src = pV + pitch/2*i;
-		unsigned char *dst = outBuffer + i*uv_w;
+		char *dst = outBuffer + i*uv_w;
 		memcpy(dst, src, sizeof(char) * uv_w);
 	}
 
@@ -214,7 +214,7 @@ static const char *XVID_GetCodecName(GF_BaseDecoder *dec)
 	return "XviD 1.0 for WinCE";
 }
 
-static Bool XVID_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool XVID_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	if (StreamType != GF_STREAM_VISUAL) return 0;
 	switch (ObjectType) {

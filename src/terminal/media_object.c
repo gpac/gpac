@@ -30,13 +30,14 @@
 #include <gpac/nodes_svg.h>
 
 
+GF_EXPORT
 GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 {
 	u32 obj_type;
 	GF_InlineScene *is;
 	GF_SceneGraph *sg = gf_node_get_graph(node);
 	if (!sg) return NULL;
-	is = gf_sg_get_private(sg);
+	is = (GF_InlineScene*)gf_sg_get_private(sg);
 	if (!is) return NULL;
 
 	/*keep track of the kind of object expected if URL is not using OD scheme*/
@@ -76,6 +77,7 @@ GF_MediaObject *gf_mo_new()
 }
 
 
+GF_EXPORT
 Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat)
 {
 	GF_CodecCapability cap;
@@ -114,6 +116,7 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 	return 1;
 }
 
+GF_EXPORT
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config)
 {
 	GF_CodecCapability cap;
@@ -161,7 +164,8 @@ void MO_UpdateCaps(GF_MediaObject *mo)
 	}
 }
 
-unsigned char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size)
+GF_EXPORT
+char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size)
 {
 	u32 obj_time;
 	GF_CMUnit *CU;
@@ -222,7 +226,7 @@ unsigned char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 
 			/*get next*/
 			CU = gf_cm_get_output(mo->odm->codec->CB);
 		}
-	}
+	}	
 	mo->framesize = CU->dataLength - CU->RenderedLength;
 	mo->frame = CU->data + CU->RenderedLength;
 	mo->timestamp = CU->TS;
@@ -238,6 +242,7 @@ unsigned char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 
 	return mo->frame;
 }
 
+GF_EXPORT
 void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop)
 {
 	u32 obj_time;
@@ -281,6 +286,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop)
 	gf_cm_lock(mo->odm->codec->CB, 0);
 }
 
+GF_EXPORT
 void gf_mo_get_object_time(GF_MediaObject *mo, u32 *obj_time)
 {
 	if (!mo || !mo->odm || !obj_time) return;
@@ -304,6 +310,7 @@ void gf_mo_get_object_time(GF_MediaObject *mo, u32 *obj_time)
 }
 
 
+GF_EXPORT
 void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop)
 {
 	if (!mo) return;
@@ -345,6 +352,7 @@ void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop)
 	mo->num_open++;
 }
 
+GF_EXPORT
 void gf_mo_stop(GF_MediaObject *mo)
 {
 	if (!mo || !mo->num_open) return;
@@ -355,7 +363,7 @@ void gf_mo_stop(GF_MediaObject *mo)
 		/*if object not in media queue, add it*/
 		if (gf_list_find(mo->odm->term->media_queue, mo->odm)<0) {
 			gf_list_add(mo->odm->term->media_queue, mo->odm);
-			mo->odm->media_start_time = -1;
+			mo->odm->media_start_time = (u64)-1;
 		}
 		/*otherwise a play is pending, remove it*/
 		else if (mo->odm->media_start_time >= 0) {
@@ -370,6 +378,7 @@ void gf_mo_stop(GF_MediaObject *mo)
 	}
 }
 
+GF_EXPORT
 void gf_mo_restart(GF_MediaObject *mo)
 {
 	MediaControlStack *ctrl;
@@ -386,6 +395,7 @@ void gf_mo_restart(GF_MediaObject *mo)
 	MC_Restart(mo->odm);
 }
 
+GF_EXPORT
 Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url)
 {
 	u32 od_id;
@@ -406,6 +416,7 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url)
 }
 
 
+GF_EXPORT
 void gf_mo_set_speed(GF_MediaObject *mo, Fixed speed)
 {
 	MediaControlStack *ctrl;
@@ -421,6 +432,7 @@ void gf_mo_set_speed(GF_MediaObject *mo, Fixed speed)
 	gf_odm_set_speed(mo->odm, speed);
 }
 
+GF_EXPORT
 Fixed gf_mo_get_speed(GF_MediaObject *mo, Fixed in_speed)
 {
 	MediaControlStack *ctrl;
@@ -430,6 +442,7 @@ Fixed gf_mo_get_speed(GF_MediaObject *mo, Fixed in_speed)
 	return ctrl ? ctrl->control->mediaSpeed : in_speed;
 }
 
+GF_EXPORT
 Bool gf_mo_get_loop(GF_MediaObject *mo, Bool in_loop)
 {
 	GF_Clock *ck;
@@ -446,12 +459,14 @@ Bool gf_mo_get_loop(GF_MediaObject *mo, Bool in_loop)
 	return in_loop;
 }
 
+GF_EXPORT
 Double gf_mo_get_duration(GF_MediaObject *mo)
 {
 	if (!mo || !mo->odm) return -1.0;
 	return ((Double) (s64)mo->odm->duration)/1000.0;
 }
 
+GF_EXPORT
 Bool gf_mo_should_deactivate(GF_MediaObject *mo)
 {
 	MediaControlStack *ctrl;
@@ -471,12 +486,14 @@ Bool gf_mo_should_deactivate(GF_MediaObject *mo)
 	return 1;
 }
 
+GF_EXPORT
 Bool gf_mo_is_muted(GF_MediaObject *mo)
 {
 	if (!mo->odm) return 1;
 	return mo->odm->media_ctrl ? mo->odm->media_ctrl->control->mute : 0;
 }
 
+GF_EXPORT
 Bool gf_mo_is_done(GF_MediaObject *mo)
 {
 	GF_Codec *codec;
@@ -503,6 +520,7 @@ Bool gf_mo_is_done(GF_MediaObject *mo)
 }
 
 /*resyncs clock - only audio objects are allowed to use this*/
+GF_EXPORT
 void gf_mo_adjust_clock(GF_MediaObject *mo, s32 ms_drift)
 {
 	if (!mo || !mo->odm) return;
@@ -510,11 +528,13 @@ void gf_mo_adjust_clock(GF_MediaObject *mo, s32 ms_drift)
 	gf_clock_adjust_drift(mo->odm->codec->ck, ms_drift);
 }
 
+GF_EXPORT
 u32 gf_mo_get_flags(GF_MediaObject *mo)
 {
 	return mo ? mo->flags : 0;
 }
 
+GF_EXPORT
 void gf_mo_set_flag(GF_MediaObject *mo, u32 flag, Bool set_on)
 {
 	if (mo) {

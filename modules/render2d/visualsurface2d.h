@@ -139,12 +139,12 @@ typedef struct
 } GF_RectArray;
 
 /*inits structure - called as a constructor*/
-#define ra_init(ra) { (ra)->count = 0; (ra)->alloc = 1; (ra)->list = malloc(sizeof(GF_IRect)); (ra)->opaque_node_index = NULL;}
+#define ra_init(ra) { (ra)->count = 0; (ra)->alloc = 1; (ra)->list = (GF_IRect*)malloc(sizeof(GF_IRect)); (ra)->opaque_node_index = NULL;}
 /*deletes structure - called as a destructor*/
 #define ra_del(ra) { free((ra)->list); if ((ra)->opaque_node_index) free((ra)->opaque_node_index); }
 /*adds rect to list - expand if needed*/
 #define ra_add(ra, rc) {	\
-	if ((ra)->count==(ra)->alloc) { (ra)->alloc += RA_DEFAULT_STEP; (ra)->list = realloc((ra)->list, sizeof(GF_IRect) * (ra)->alloc); }	\
+	if ((ra)->count==(ra)->alloc) { (ra)->alloc += RA_DEFAULT_STEP; (ra)->list = (GF_IRect*)realloc((ra)->list, sizeof(GF_IRect) * (ra)->alloc); }	\
 	(ra)->list[(ra)->count] = rc; (ra)->count++;	}
 /*clears list*/
 #define ra_clear(ra) { (ra)->count = 0; }

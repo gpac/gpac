@@ -52,7 +52,7 @@ typedef struct
 	u32 sax_max_duration;
 	u16 base_es_id;
 	u32 file_pos;
-	gzFile *src;
+	gzFile src;
 } SVGIn;
 
 static Bool svg_check_download(SVGIn *svgin)
@@ -68,11 +68,11 @@ static Bool svg_check_download(SVGIn *svgin)
 
 #define SVG_PROGRESSIVE_BUFFER_SIZE		4096
 
-static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
+static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
-	SVGIn *svgin = plug->privateStack;
+	SVGIn *svgin = (SVGIn *)plug->privateStack;
 	switch (svgin->oti) {
 	case SVG_IN_OTI_SVG:
 		/*full doc parsing*/
@@ -140,9 +140,9 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 		d_stream.zalloc = (alloc_func)0;
 		d_stream.zfree = (free_func)0;
 		d_stream.opaque = (voidpf)0;
-		d_stream.next_in  = inBuffer;
+		d_stream.next_in  = (Bytef*)inBuffer;
 		d_stream.avail_in = inBufferLength;
-		d_stream.next_out = svg_data;
+		d_stream.next_out = (Bytef*)svg_data;
 		d_stream.avail_out = 2048;
 
 		err = inflateInit(&d_stream);
@@ -158,7 +158,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 				if (e || (err== Z_STREAM_END)) break;
 				done = d_stream.total_out;
 				d_stream.avail_out = 2048;
-				d_stream.next_out = svg_data;
+				d_stream.next_out = (Bytef*)svg_data;
 			}
 			inflateEnd(&d_stream);
 		}
@@ -184,7 +184,7 @@ exit:
 
 static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
 {
-	SVGIn *svgin = plug->privateStack;
+	SVGIn *svgin = (SVGIn *)plug->privateStack;
 	memset(&svgin->loader, 0, sizeof(GF_SceneLoader));
 	svgin->inline_scene = scene;
 	svgin->loader.scene_graph = scene->graph;
@@ -201,7 +201,7 @@ static GF_Err SVG_ReleaseScene(GF_SceneDecoder *plug)
 
 static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
-									 unsigned char *decSpecInfo, 
+									 char *decSpecInfo, 
 									 u32 decSpecInfoSize, 
 									 u16 DependsOnES_ID,
 									 u32 objectTypeIndication, 
@@ -209,7 +209,7 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 {
 	const char *sOpt;
 	GF_BitStream *bs;
-	SVGIn *svgin = plug->privateStack;
+	SVGIn *svgin = (SVGIn *)plug->privateStack;
 	if (Upstream) return GF_NOT_SUPPORTED;
 
 	/* decSpecInfo is not null only when reading from an SVG file (local or distant, cached or not) */
@@ -245,7 +245,7 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 
 static GF_Err SVG_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
-	SVGIn *svgin = plug->privateStack;
+	SVGIn *svgin = (SVGIn *)plug->privateStack;
 	if (svgin->file_name) free(svgin->file_name);
 	svgin->file_name = NULL;
 	gf_sm_load_done(&svgin->loader);
@@ -254,7 +254,7 @@ static GF_Err SVG_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 
 const char *SVG_GetName(struct _basedecoder *plug)
 {
-	SVGIn *svgin = plug->privateStack;
+	SVGIn *svgin = (SVGIn *)plug->privateStack;
 	if (svgin->oti==SVG_IN_OTI_SVG) return ((svgin->sax_max_duration==(u32)-1) && svgin->file_size) ? "GPAC SVG SAX Parser" : "GPAC SVG Progressive Parser";
 	if (svgin->oti==SVG_IN_OTI_STREAMING_SVG) return "GPAC Streaming SVG Parser";
 	if (svgin->oti==SVG_IN_OTI_STREAMING_SVG_GZ) return "GPAC Streaming SVGZ Parser";
@@ -262,7 +262,7 @@ const char *SVG_GetName(struct _basedecoder *plug)
 	return "INTERNAL ERROR";
 }
 
-Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
 		if (ObjectType==SVG_IN_OTI_SVG) return 1;
@@ -293,6 +293,7 @@ static GF_Err SVG_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 }
 
 /*interface create*/
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	SVGIn *svgin;
@@ -319,6 +320,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 
 
 /*interface destroy*/
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)ifce;
@@ -330,6 +332,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 }
 
 /*interface query*/
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_SCENE_DECODER_INTERFACE) return 1;
@@ -339,6 +342,7 @@ Bool QueryInterface(u32 InterfaceType)
 
 
 /*interface create*/
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	return NULL;
@@ -346,11 +350,13 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 
 
 /*interface destroy*/
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 }
 
 /*interface query*/
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	return 0;

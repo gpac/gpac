@@ -41,7 +41,7 @@ static u32 mask8B[]=
 
 void oggpack_writeinit(oggpack_buffer *b){
   memset(b,0,sizeof(*b));
-  b->ptr=b->buffer=malloc(BUFFER_INCREMENT);
+  b->ptr = b->buffer = (unsigned char *)malloc(BUFFER_INCREMENT);
   b->buffer[0]='\0';
   b->storage=BUFFER_INCREMENT;
 }
@@ -71,7 +71,7 @@ void oggpackB_writetrunc(oggpack_buffer *b,s32 bits){
 /* Takes only up to 32 bits. */
 void oggpack_write(oggpack_buffer *b,u32 value,s32 bits){
   if(b->endbyte+4>=b->storage){
-    b->buffer=realloc(b->buffer,b->storage+BUFFER_INCREMENT);
+    b->buffer = (unsigned char *)realloc(b->buffer,b->storage+BUFFER_INCREMENT);
     b->storage+=BUFFER_INCREMENT;
     b->ptr=b->buffer+b->endbyte;
   }
@@ -105,7 +105,7 @@ void oggpack_write(oggpack_buffer *b,u32 value,s32 bits){
 /* Takes only up to 32 bits. */
 void oggpackB_write(oggpack_buffer *b,u32 value,s32 bits){
   if(b->endbyte+4>=b->storage){
-    b->buffer=realloc(b->buffer,b->storage+BUFFER_INCREMENT);
+    b->buffer = (unsigned char *)realloc(b->buffer,b->storage+BUFFER_INCREMENT);
     b->storage+=BUFFER_INCREMENT;
     b->ptr=b->buffer+b->endbyte;
   }
@@ -169,7 +169,7 @@ static void oggpack_writecopy_helper(oggpack_buffer *b,
     /* aligned block copy */
     if(b->endbyte+bytes+1>=b->storage){
       b->storage=b->endbyte+bytes+BUFFER_INCREMENT;
-      b->buffer=realloc(b->buffer,b->storage);
+      b->buffer = (unsigned char *)realloc(b->buffer,b->storage);
       b->ptr=b->buffer+b->endbyte;
     }
 
@@ -618,11 +618,11 @@ s32 ogg_stream_init(ogg_stream_state *os,s32 serialno){
   if(os){
     memset(os,0,sizeof(*os));
     os->body_storage=16*1024;
-    os->body_data=malloc(os->body_storage*sizeof(*os->body_data));
+    os->body_data = (unsigned char *)malloc(os->body_storage*sizeof(*os->body_data));
 
     os->lacing_storage=1024;
-    os->lacing_vals=malloc(os->lacing_storage*sizeof(*os->lacing_vals));
-    os->granule_vals=malloc(os->lacing_storage*sizeof(*os->granule_vals));
+    os->lacing_vals=(s32 *)malloc(os->lacing_storage*sizeof(*os->lacing_vals));
+    os->granule_vals=(s64*)malloc(os->lacing_storage*sizeof(*os->granule_vals));
 
     os->serialno=serialno;
 
@@ -657,15 +657,15 @@ s32 ogg_stream_destroy(ogg_stream_state *os){
 static void _os_body_expand(ogg_stream_state *os,s32 needed){
   if(os->body_storage<=os->body_fill+needed){
     os->body_storage+=(needed+1024);
-    os->body_data=realloc(os->body_data,os->body_storage*sizeof(*os->body_data));
+    os->body_data = (unsigned char *)realloc(os->body_data,os->body_storage*sizeof(*os->body_data));
   }
 }
 
 static void _os_lacing_expand(ogg_stream_state *os,s32 needed){
   if(os->lacing_storage<=os->lacing_fill+needed){
     os->lacing_storage+=(needed+32);
-    os->lacing_vals=realloc(os->lacing_vals,os->lacing_storage*sizeof(*os->lacing_vals));
-    os->granule_vals=realloc(os->granule_vals,os->lacing_storage*sizeof(*os->granule_vals));
+    os->lacing_vals=(s32*)realloc(os->lacing_vals,os->lacing_storage*sizeof(*os->lacing_vals));
+    os->granule_vals=(s64*)realloc(os->granule_vals,os->lacing_storage*sizeof(*os->granule_vals));
   }
 }
 
@@ -946,9 +946,9 @@ char *ogg_sync_buffer(ogg_sync_state *oy, s32 size){
     s32 newsize=size+oy->fill+4096; /* an extra page to be nice */
 
     if(oy->data)
-      oy->data=realloc(oy->data,newsize);
+      oy->data = (unsigned char *)realloc(oy->data,newsize);
     else
-      oy->data=malloc(newsize);
+      oy->data = (unsigned char *)malloc(newsize);
     oy->storage=newsize;
   }
 
@@ -1049,7 +1049,7 @@ s32 ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
   oy->bodybytes=0;
   
   /* search for possible capture */
-  next=memchr(page+1,'O',bytes-1);
+  next = (unsigned char *)memchr(page+1,'O',bytes-1);
   if(!next)
     next=oy->data+oy->fill;
 

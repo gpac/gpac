@@ -192,7 +192,7 @@ GF_Err schm_Read(GF_Box *s, GF_BitStream *bs)
 		u32 len = (u32) (ptr->size);
 		ptr->URI = (char*)malloc(sizeof(char)*len);
 		if (!ptr->URI) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, (unsigned char*)ptr->URI, len);
+		gf_bs_read_data(bs, ptr->URI, len);
 	}
 	return GF_OK;
 }
@@ -338,7 +338,7 @@ GF_Err iKMS_Read(GF_Box *s, GF_BitStream *bs)
 	len = (u32) (ptr->size);
 	ptr->URI = (char*) malloc(sizeof(char)*len);
 	if (!ptr->URI) return GF_OUT_OF_MEM;
-	gf_bs_read_data(bs, (unsigned char*)ptr->URI, len);
+	gf_bs_read_data(bs, ptr->URI, len);
 	return GF_OK;
 }
 

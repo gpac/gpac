@@ -108,7 +108,7 @@ GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 	sess->CurrentSize = res;
 
 	//now read from current pos
-	e = gf_sk_receive(sess->connection, (unsigned char *)sess->TCPBuffer + sess->CurrentSize, 
+	e = gf_sk_receive(sess->connection, sess->TCPBuffer + sess->CurrentSize, 
 				RTSP_TCP_BUF_SIZE - sess->CurrentSize, 
 				0, &res);
 
@@ -126,7 +126,7 @@ GF_Err gf_rtsp_fill_buffer(GF_RTSPSession *sess)
 	if (!sess->connection) return GF_IP_NETWORK_EMPTY;
 
 	if (sess->CurrentSize == sess->CurrentPos) {
-		e = gf_sk_receive(sess->connection, (unsigned char *)sess->TCPBuffer, RTSP_TCP_BUF_SIZE, 0, &sess->CurrentSize);
+		e = gf_sk_receive(sess->connection, sess->TCPBuffer, RTSP_TCP_BUF_SIZE, 0, &sess->CurrentSize);
 		sess->CurrentPos = 0;
 		sess->TCPBuffer[sess->CurrentSize] = 0;
 		if (e) sess->CurrentSize = 0;
@@ -266,6 +266,7 @@ GF_Err gf_rtsp_parse_header(char *buffer, u32 BufferSize, u32 BodyStart, GF_RTSP
 }
 
 
+GF_EXPORT
 const char *gf_rtsp_nc_to_string(u32 ErrCode)
 {
 	switch (ErrCode) {

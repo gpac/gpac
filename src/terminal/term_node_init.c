@@ -45,23 +45,23 @@ void SVG_Init_use(GF_InlineScene *is, GF_Node *node);
 
 void Destroy_WorldInfo(GF_Node *node)
 {
-	GF_InlineScene *is = gf_node_get_private(node);
+	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
 	is->world_info = NULL;
 }
 void Render_WorldInfo(GF_Node *node, void *rs)
 {
-	GF_InlineScene *is = gf_node_get_private(node);
+	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
 	is->world_info = (M_WorldInfo *) node;
 }
 
 void Destroy_SVGtitle(GF_Node *node)
 {
-	GF_InlineScene *is = gf_node_get_private(node);
+	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
 	is->world_info = (M_WorldInfo *) node;
 }
 void Render_SVGtitle(GF_Node *node, void *rs)
 {
-	GF_InlineScene *is = gf_node_get_private(node);
+	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
 	is->world_info = (M_WorldInfo *) node;
 }
 
@@ -130,6 +130,7 @@ void gf_term_on_node_modified(void *_is, GF_Node *node)
 	}
 }
 
+GF_EXPORT
 void gf_term_node_callback(void *_is, u32 type, GF_Node *n, void *param)
 {
 	if (type==GF_SG_CALLBACK_MODIFIED) gf_term_on_node_modified(_is, n);
@@ -140,7 +141,7 @@ void gf_term_node_callback(void *_is, u32 type, GF_Node *n, void *param)
 		GF_Node *root;
 		GF_InlineScene *is = (GF_InlineScene *)_is;
 
-		while ((root=gf_list_enum(is->inline_nodes, &i))) {
+		while ((root=(GF_Node*)gf_list_enum(is->inline_nodes, &i))) {
 			gf_node_dirty_set(root, GF_SG_CHILD_DIRTY, 1);
 		}
 	}

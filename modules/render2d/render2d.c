@@ -127,7 +127,7 @@ void R2D_ResetSurfaces(Render2D *sr)
 {
 	VisualSurface2D *surf;
 	u32 i=0;
-	while ((surf = gf_list_enum(sr->surfaces_2D, &i))) {
+	while ((surf = (VisualSurface2D *)gf_list_enum(sr->surfaces_2D, &i))) {
 		surf->num_contexts = 0;
 		//while (gf_list_count(surf->prev_nodes_drawn)) gf_list_rem(surf->prev_nodes_drawn, 0);
 		gf_list_reset(surf->prev_nodes_drawn);
@@ -199,7 +199,7 @@ Bool R2D_IsSurfaceRegistered(Render2D *sr, struct _visual_surface_2D *surf)
 {
 	VisualSurface2D *tmp;
 	u32 i = 0;
-	while ((tmp = gf_list_enum(sr->surfaces_2D, &i))) {
+	while ((tmp = (VisualSurface2D *)gf_list_enum(sr->surfaces_2D, &i))) {
 		if (tmp == surf) return 1;
 	}
 	return 0;
@@ -209,7 +209,7 @@ void effect_add_sensor(RenderEffect2D *eff, SensorHandler *ptr, GF_Matrix2D *mat
 {
 	SensorContext *ctx;
 	if (!ptr) return;
-	ctx = malloc(sizeof(SensorContext));
+	ctx = (SensorContext *)malloc(sizeof(SensorContext));
 	ctx->h_node = ptr;
 	
 	if (mat) {
@@ -224,7 +224,7 @@ void effect_pop_sensor(RenderEffect2D *eff)
 	SensorContext *ctx;
 	u32 last = gf_list_count(eff->sensors);
 	if (!last) return;
-	ctx = gf_list_get(eff->sensors, last-1);
+	ctx = (SensorContext *)gf_list_get(eff->sensors, last-1);
 	gf_list_rem(eff->sensors, last-1);
 	free(ctx);
 }
@@ -233,7 +233,7 @@ void effect_reset_sensors(RenderEffect2D *eff)
 {
 	SensorContext *ctx;
 	while (gf_list_count(eff->sensors)) {
-		ctx = gf_list_get(eff->sensors, 0);
+		ctx = (SensorContext *)gf_list_get(eff->sensors, 0);
 		gf_list_rem(eff->sensors, 0);
 		free(ctx);
 	}
@@ -298,7 +298,7 @@ void R2D_RegisterSensor(GF_Renderer *compositor, SensorHandler *sh)
 	SensorHandler *tmp;
 	u32 i=0;
 	Render2D *sr = (Render2D *)compositor->visual_renderer->user_priv;
-	while ((tmp = gf_list_enum(sr->sensors, &i))) {
+	while ((tmp = (SensorHandler *)gf_list_enum(sr->sensors, &i))) {
 		if (tmp == sh) return;
 	}
 	gf_list_add(sr->sensors, sh);
@@ -453,6 +453,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 
 	evt.context = NULL;
 	evt.event_type = event->event_type;
+	evt.button = event->mouse.button;
 	evt.x = 0;
 	evt.y = 0;
 	ev = &evt;
@@ -470,7 +471,8 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	}
 #endif
 	
-	if ((event->event_type>GF_EVENT_MOUSEUP) || (ev->button!=GF_MOUSE_LEFT)) goto browser_event;
+	if (event->event_type>GF_EVENT_KEYDOWN) goto browser_event;
+//	if ((event->event_type>GF_EVENT_MOUSEMOVE) || (ev->button!=GF_MOUSE_LEFT)) goto browser_event;
 	
 	if (sr->is_tracking) {
 		/*in case a node is inserted at the depth level of a node previously tracked (rrrhhhaaaa...) */
@@ -495,11 +497,11 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 		SensorContext *sc;
 		count = gf_list_count(ctx->sensors);
 		for (i=0; i<count; i++) {
-			SensorContext *sc = gf_list_get(ctx->sensors, i);
+			SensorContext *sc = (SensorContext *)gf_list_get(ctx->sensors, i);
 			sc->h_node->skip_second_pass = 1;
 		}
 
-		sc = gf_list_get(ctx->sensors, count-1);
+		sc = (SensorContext *)gf_list_get(ctx->sensors, count-1);
 		//also notify the app we're above a sensor
 		type = GF_CURSOR_NORMAL;
 		switch (gf_node_get_tag(sc->h_node->owner)) {
@@ -533,7 +535,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	ev->context = NULL;
 	count = gf_list_count(sr->sensors);
 	for (i=0; i< count; i++) {
-		SensorHandler *sh = gf_list_get(sr->sensors, i);
+		SensorHandler *sh = (SensorHandler *)gf_list_get(sr->sensors, i);
 		act = ! sh->skip_second_pass;
 		sh->skip_second_pass = 0;
 		if (act)
@@ -547,7 +549,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	if (prev_ctx && (prev_ctx != ctx)) {
 		count = gf_list_count(prev_ctx->sensors);
 		for (i=count; i>0; i--) {
-			SensorContext *sc = gf_list_get(prev_ctx->sensors, i-1);
+			SensorContext *sc = (SensorContext *)gf_list_get(prev_ctx->sensors, i-1);
 			sc->h_node->OnUserEvent(sc->h_node, ev, NULL);
 		}
 	}
@@ -557,7 +559,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 		ev->context = ctx;
 		count = gf_list_count(ctx->sensors);
 		for (i=count; i>0; i--) {
-			SensorContext *sc = gf_list_get(ctx->sensors, i-1);
+			SensorContext *sc = (SensorContext *)gf_list_get(ctx->sensors, i-1);
 			sc->h_node->skip_second_pass = 0;
 			if (sc->h_node->OnUserEvent(sc->h_node, ev, &sc->matrix)) 
 				break;
@@ -679,7 +681,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	gf_node_render(top_node, sr->top_effect);
 
 	i=0;
-	while ((sg = gf_list_enum(sr->compositor->extra_scenes, &i))) {
+	while ((sg = (GF_SceneGraph*)gf_list_enum(sr->compositor->extra_scenes, &i))) {
 		GF_Node *n = gf_sg_get_root_node(sg);
 		if (n) gf_node_render(n, sr->top_effect);
 	}
@@ -845,7 +847,7 @@ GF_Err R2D_GetSurfaceAccess(VisualSurface2D *surf)
 							sr->hw_surface.width, 
 							sr->hw_surface.height,
 							sr->hw_surface.pitch,
-							sr->hw_surface.pixel_format);
+							(GF_PixelFormat) sr->hw_surface.pixel_format);
 		if (!e) {
 			surf->is_attached = 1;
 			return GF_OK;
@@ -1061,17 +1063,15 @@ GF_Err R2D_LoadRenderer(GF_VisualRenderer *vr, GF_Renderer *compositor)
 	const char *sOpt;
 	if (vr->user_priv) return GF_BAD_PARAM;
 
-	sr = malloc(sizeof(Render2D));
+	GF_SAFEALLOC(sr, Render2D);
 	if (!sr) return GF_OUT_OF_MEM;
-	memset(sr, 0, sizeof(Render2D));
 
 	sr->compositor = compositor;
 
 	sr->strike_bank = gf_list_new();
 	sr->surfaces_2D = gf_list_new();
 
-	sr->top_effect = malloc(sizeof(RenderEffect2D));
-	memset(sr->top_effect, 0, sizeof(RenderEffect2D));
+	GF_SAFEALLOC(sr->top_effect, RenderEffect2D);
 	sr->top_effect->sensors = gf_list_new();
 	sr->sensors = gf_list_new();
 	
@@ -1133,7 +1133,7 @@ void R2D_ReleaseTexture(GF_TextureHandler *hdl)
 GF_Err R2D_SetTextureData(GF_TextureHandler *hdl)
 {
 	Render2D *sr = (Render2D *) hdl->compositor->visual_renderer->user_priv;
-	return hdl->compositor->r2d->stencil_set_texture(hdl->hwtx, hdl->data, hdl->width, hdl->height, hdl->stride, hdl->pixelformat, sr->compositor->video_out->pixel_format, 0);
+	return hdl->compositor->r2d->stencil_set_texture(hdl->hwtx, hdl->data, hdl->width, hdl->height, hdl->stride, (GF_PixelFormat) hdl->pixelformat, (GF_PixelFormat) sr->compositor->video_out->pixel_format, 0);
 }
 
 /*no module used HW for texturing for now*/
@@ -1379,9 +1379,8 @@ GF_Err R2D_SetViewport(GF_VisualRenderer *vr, u32 viewpoint_idx, const char *vie
 GF_VisualRenderer *NewVisualRenderer()
 {
 	GF_VisualRenderer *sr;	
-	sr = malloc(sizeof(GF_VisualRenderer));
+	GF_SAFEALLOC(sr, GF_VisualRenderer);
 	if (!sr) return NULL;
-	memset(sr, 0, sizeof(GF_VisualRenderer));
 
 	sr->LoadRenderer = R2D_LoadRenderer;
 	sr->UnloadRenderer = R2D_UnloadRenderer;
@@ -1412,14 +1411,15 @@ GF_VisualRenderer *NewVisualRenderer()
 #ifndef GPAC_STANDALONE_RENDER_2D
 
 /*interface create*/
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	GF_VisualRenderer *sr;
 	if (InterfaceType != GF_RENDERER_INTERFACE) return NULL;
 	
-	sr = malloc(sizeof(GF_VisualRenderer));
+	GF_SAFEALLOC(sr, GF_VisualRenderer);
 	if (!sr) return NULL;
-	memset(sr, 0, sizeof(GF_VisualRenderer));
+
 	GF_REGISTER_MODULE_INTERFACE(sr, GF_RENDERER_INTERFACE, "GPAC 2D Renderer", "gpac distribution");
 
 	sr->LoadRenderer = R2D_LoadRenderer;
@@ -1450,6 +1450,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 
 
 /*interface destroy*/
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	GF_VisualRenderer *rend = (GF_VisualRenderer *)ifce;
@@ -1459,6 +1460,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 }
 
 /*interface query*/
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_RENDERER_INTERFACE) return 1;

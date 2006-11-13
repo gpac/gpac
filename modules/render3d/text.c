@@ -81,8 +81,8 @@ typedef struct
 
 static CachedTextLine *new_text_line(Render3D *sr, GF_List *lines_register)
 {
-	CachedTextLine *tl = malloc(sizeof(CachedTextLine));
-	memset(tl, 0, sizeof(CachedTextLine));
+	CachedTextLine *tl;
+	GF_SAFEALLOC(tl, CachedTextLine);
 	tl->path = gf_path_new();
 
 	/*text texturing enabled*/
@@ -259,7 +259,7 @@ static void clean_paths(TextStack *stack)
 	CachedTextLine *tl;
 	/*delete all path objects*/
 	while (gf_list_count(stack->text_lines)) {
-		tl = gf_list_get(stack->text_lines, 0);
+		tl = (CachedTextLine *)gf_list_get(stack->text_lines, 0);
 		gf_list_rem(stack->text_lines, 0);
 		delete_text_line(tl);
 	}
@@ -453,7 +453,7 @@ static void BuildVerticalTextGraph(TextStack *st, M_Text *txt, RenderEffect3D *e
 		len = gf_utf8_mbstowcs(wcTemp, 5000, (const char **) &str);
 		if (len == (size_t) (-1)) continue;
 
-		lines[i].wcText = malloc(sizeof(unsigned short) * len);
+		lines[i].wcText = (u16*)malloc(sizeof(unsigned short) * len);
 		memcpy(lines[i].wcText, wcTemp, sizeof(unsigned short) * len);
 		lines[i].length = len;
 		
@@ -628,7 +628,7 @@ static void BuildTextGraph(TextStack *st, M_Text *txt, RenderEffect3D *eff)
 		if (len == (size_t) (-1)) continue;
 
 		lines[i].length = len;
-		lines[i].wcText = malloc(sizeof(unsigned short) * (len+1));
+		lines[i].wcText = (u16*)malloc(sizeof(unsigned short) * (len+1));
 		if (!FSLTR) {
 			for (k=0; k<len; k++) lines[i].wcText[k] = wcTemp[len-k-1];
 		} else {
@@ -754,7 +754,7 @@ static void Text_SetupBounds(RenderEffect3D *eff, TextStack *st)
 
 	/*otherwise notify each node as a different group*/
 	i=0;
-	while ((tl = gf_list_enum(st->text_lines, &i))) {
+	while ((tl = (CachedTextLine *)gf_list_enum(st->text_lines, &i))) {
 		/*the first one is always started by parent group*/
 		if (i>1) group_start_child(eff->parent, NULL);
 		group_end_text_child(eff->parent, &tl->bounds, st->ascent, st->descent, i);
@@ -890,7 +890,7 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 		if (draw2D) VS3D_SetMaterial2D(eff->surface, asp.fill_color, asp.alpha);
 
 		if (eff->split_text_idx) {
-			tl = gf_list_get(st->text_lines, eff->split_text_idx-1);
+			tl = (CachedTextLine *)gf_list_get(st->text_lines, eff->split_text_idx-1);
 			assert(tl);
 			if (hlight) {
 				VS3D_FillRect(eff->surface, tl->bounds, hl_color);
@@ -910,7 +910,7 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 			}
 		} else {
 			i=0; 
-			while ((tl = gf_list_enum(st->text_lines, &i))) {
+			while ((tl = (CachedTextLine *)gf_list_enum(st->text_lines, &i))) {
 
 				if (hlight) {
 					VS3D_FillRect(eff->surface, tl->bounds, hl_color);
@@ -942,11 +942,11 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 		VS_Set2DStrikeAspect(eff->surface, &asp);
 
 		if (eff->split_text_idx) {
-			tl = gf_list_get(st->text_lines, eff->split_text_idx-1);
+			tl = (CachedTextLine *)gf_list_get(st->text_lines, eff->split_text_idx-1);
 			Text_StrikeTextLine(eff, tl, &asp, vect_outline);
 		} else {
 			i=0;
-			while ((tl = gf_list_enum(st->text_lines, &i))) {
+			while ((tl = (CachedTextLine *)gf_list_enum(st->text_lines, &i))) {
 				Text_StrikeTextLine(eff, tl, &asp, vect_outline);
 			}
 		}
@@ -992,14 +992,14 @@ static void Text_Render(GF_Node *n, void *rs)
 
 static Bool TextIntersectWithRay(GF_Node *owner, GF_Ray *ray, SFVec3f *outPoint)
 {
-	TextStack *st = gf_node_get_private(owner);
+	TextStack *st = (TextStack*)gf_node_get_private(owner);
 	u32 i;
 	CachedTextLine *tl;
 
 	if (!R3D_Get2DPlaneIntersection(ray, outPoint)) return 0;
 
 	i=0;
-	while ((tl = gf_list_enum(st->text_lines, &i))) {	
+	while ((tl = (CachedTextLine *)gf_list_enum(st->text_lines, &i))) {	
 		if ( (outPoint->x >= tl->bounds.x) 
 		&& (outPoint->y <= tl->bounds.y) 
 		&& (outPoint->x <= tl->bounds.x + tl->bounds.width)
@@ -1050,7 +1050,7 @@ void Text_Extrude(GF_Node *node, RenderEffect3D *eff, GF_Mesh *mesh, MFVec3f *th
 	mesh_reset(mesh);
 	count = gf_list_count(st->text_lines);
 	for (i=0; i<count; i++) {
-		tl = gf_list_get(st->text_lines, i);
+		tl = (CachedTextLine *)gf_list_get(st->text_lines, i);
 		mesh_extrude_path_ext(mesh, tl->path, thespine, creaseAngle, min_cx, min_cy, width_cx, width_cy, begin_cap, end_cap, spine_ori, spine_scale, txAlongSpine);
 	}
 	mesh_update_bounds(mesh);

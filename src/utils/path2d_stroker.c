@@ -1635,6 +1635,7 @@ static GF_Path *gf_path_dash(GF_Path *path, GF_PenSettings *pen)
 	return dashed;
 }
 
+GF_EXPORT
 GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 {
 	s32 error;

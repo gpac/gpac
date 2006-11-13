@@ -330,6 +330,7 @@ Bool InitScalarInterpolator(M_ScalarInterpolator *node)
 
 
 /*taken from freeWRL*/
+GF_EXPORT
 SFRotation gf_sg_sfrotation_interpolate(SFRotation kv1, SFRotation kv2, Fixed fraction)
 {
 	SFRotation res;
@@ -591,7 +592,7 @@ static void BooleanSequencer_setPrevious(GF_Node *n)
 }
 static void DestroyBooleanSequencer(GF_Node *n)
 {
-	s32 *st = gf_node_get_private(n);
+	s32 *st = (s32 *) gf_node_get_private(n);
 	free(st);
 }
 void InitBooleanSequencer(GF_Node *n)
@@ -682,7 +683,7 @@ static void IntegerSequencer_setPrevious(GF_Node *n)
 }
 static void DestroyIntegerSequencer(GF_Node *n)
 {
-	s32 *st = gf_node_get_private(n);
+	s32 *st = (s32 *)gf_node_get_private(n);
 	free(st);
 }
 void InitIntegerSequencer(GF_Node *n)

@@ -170,7 +170,7 @@ void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list)
 	if (set_bind && is_bound) return;
 
 	i=0;
-	while ((stack = gf_list_enum(stack_list, &i))) {
+	while ((stack = (GF_List*)gf_list_enum(stack_list, &i))) {
 		on_top = (gf_list_get(stack, 0)==bindable) ? 1 : 0;
 
 		if (!set_bind) {
@@ -178,14 +178,14 @@ void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list)
 			if (on_top && (gf_list_count(stack)>1)) {
 				gf_list_rem(stack, 0);
 				gf_list_add(stack, bindable);
-				node = gf_list_get(stack, 0);
+				node = (GF_Node*)gf_list_get(stack, 0);
 				Bindable_SetIsBound(node, 1);
 			}
 		} else {
 			if (!is_bound) Bindable_SetIsBound(bindable, 1);
 			if (!on_top) {
 				/*push old top one down and unbind*/
-				node = gf_list_get(stack, 0);
+				node = (GF_Node*)gf_list_get(stack, 0);
 				Bindable_SetIsBound(node, 0);
 				/*insert new top*/
 				gf_list_del_item(stack, bindable);
@@ -199,7 +199,7 @@ void BindableStackDelete(GF_List *stack)
 {
 	while (gf_list_count(stack)) {
 		GF_List *bind_stack_list;
-		GF_Node *bindable = gf_list_get(stack, 0);
+		GF_Node *bindable = (GF_Node*)gf_list_get(stack, 0);
 		gf_list_rem(stack, 0);
 		bind_stack_list = Bindable_GetStack(bindable);
 		if (bind_stack_list) {
@@ -218,11 +218,11 @@ void PreDestroyBindable(GF_Node *bindable, GF_List *stack_list)
 
 	while (gf_list_count(stack_list)) {
 		GF_Node *stack_top;
-		GF_List *stack = gf_list_get(stack_list, 0);
+		GF_List *stack = (GF_List*)gf_list_get(stack_list, 0);
 		gf_list_rem(stack_list, 0);
 		gf_list_del_item(stack, bindable);
 		if (is_bound) {
-			stack_top = gf_list_get(stack, 0);
+			stack_top = (GF_Node*)gf_list_get(stack, 0);
 			if (stack_top) Bindable_SetSetBind(stack_top, 1);
 		}
 	}

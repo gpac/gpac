@@ -146,11 +146,11 @@ enum
 
 #define GF_CODEC_BASE_INTERFACE(IFCE_NAME)		\
 	GF_DECL_MODULE_INTERFACE	\
-	GF_Err (*AttachStream)(IFCE_NAME, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream);\
+	GF_Err (*AttachStream)(IFCE_NAME, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream);\
 	GF_Err (*DetachStream)(IFCE_NAME, u16 ES_ID);\
 	GF_Err (*GetCapabilities)(IFCE_NAME, GF_CodecCapability *capability);\
 	GF_Err (*SetCapabilities)(IFCE_NAME, GF_CodecCapability capability);\
-	Bool (*CanHandleStream)(IFCE_NAME, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL);\
+	Bool (*CanHandleStream)(IFCE_NAME, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL);\
 	const char *(*GetName)(IFCE_NAME);\
 	void *privateStack;	\
 
@@ -178,9 +178,9 @@ typedef struct _mediadecoder
 	@PaddingBits is the padding at the end of the buffer (some codecs need this info)
 	@mmlevel: speed indicator for the decoding - cf above for values*/
 	GF_Err (*ProcessData)(struct _mediadecoder *, 
-			unsigned char *inBuffer, u32 inBufferLength,
+			char *inBuffer, u32 inBufferLength,
 			u16 ES_ID,
-			unsigned char *outBuffer, u32 *outBufferLength,
+			char *outBuffer, u32 *outBufferLength,
 			u8 PaddingBits, u32 mmlevel);
 } GF_MediaDecoder;
 
@@ -217,7 +217,7 @@ typedef struct _scenedecoder
 	handling the scene graph without input data (cf below). In this case the buffer passed is always NULL and the AU
 	time caries the time of the scene (or of the stream object attached to the scene decoder, cf below)
 	@mmlevel: speed indicator for the decoding - cf above for values*/
-	GF_Err (*ProcessData)(struct _scenedecoder *, unsigned char *inBuffer, u32 inBufferLength,
+	GF_Err (*ProcessData)(struct _scenedecoder *, char *inBuffer, u32 inBufferLength,
 					u16 ES_ID, u32 AU_Time, u32 mmlevel);
 
 } GF_SceneDecoder;

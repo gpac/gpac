@@ -1252,8 +1252,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		fprintf(stdout, "\n");
 		return;
 	}
-	dur /= 1000;
-	rate = (u32) (size * 8 / dur);
+	rate = (u32) (size * 8 * 1000 / dur);
 	max_rate *= 8;
 	if (rate >= 1500) {
 		rate /= 1024;

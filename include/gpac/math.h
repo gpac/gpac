@@ -41,7 +41,6 @@ extern "C" {
 #include <math.h>
 #endif
 
-
 /*!
  \cond DUMMY_DOXY_SECTION
 */

@@ -168,7 +168,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	ctrl = NULL;
 	range = NULL;
 	i=0;
-	while ((att = gf_list_enum(media->Attributes, &i))) {
+	while ((att = (GF_X_Attribute*)gf_list_enum(media->Attributes, &i))) {
 		if (!stricmp(att->Name, "control")) ctrl = att->Value;
 		else if (!stricmp(att->Name, "gpac-broadcast")) force_bcast = 1;
 		else if (!stricmp(att->Name, "mpeg4-esid") && att->Value) ESID = atoi(att->Value);
@@ -183,7 +183,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 
 	/*check connection*/
 	conn = sdp->c_connection;
-	if (!conn) conn = gf_list_get(media->Connections, 0);
+	if (!conn) conn = (GF_SDPConnection*)gf_list_get(media->Connections, 0);
 
 	if (!conn) {
 		/*RTSP RFC recommends an empty "c= " line but some server don't send it. Use session info (o=)*/
@@ -201,7 +201,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	if (media->fmt_list || (gf_list_count(media->RTPMaps) > 1)) return NULL;
 
 	/*check payload type*/
-	map = gf_list_get(media->RTPMaps, 0);
+	map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
 
 	rtp_format = payt_get_type(rtp, map, media);
 	if (!rtp_format) return NULL;
@@ -217,8 +217,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		tmp = RP_FindChannel(rtp, NULL, ESID, NULL, 0);
 		if (tmp) return NULL;
 
-		tmp = malloc(sizeof(RTPStream));
-		memset(tmp, 0, sizeof(RTPStream));
+		GF_SAFEALLOC(tmp, RTPStream);
 		tmp->owner = rtp;
 	}
 	tmp->rtptype = rtp_format;

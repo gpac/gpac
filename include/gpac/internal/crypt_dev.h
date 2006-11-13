@@ -39,7 +39,10 @@ extern "C" {
 #define GPAC_CRYPT_ISMA_ONLY
 #endif
 
-
+typedef void (*mcryptfunc)(void*,void*);
+typedef GF_Err (*mcrypt_setkeystream)(void *, const void *, int, const void *, int);
+typedef GF_Err (*mcrypt_setkeyblock) (void *, const void *, int);
+typedef GF_Err (*mcrypt_docrypt) (void *, const void *, int);
 
 /*private - do not use*/
 typedef struct _tag_crypt_stream
@@ -61,8 +64,8 @@ typedef struct _tag_crypt_stream
 	/*modes access*/
 	GF_Err (*_init_mcrypt) (void *, void *, int, void *, int);
 	void (*_end_mcrypt) (void *);
-	GF_Err (*_mcrypt) (void *, void *, int, int, void *, void *, void*);
-	GF_Err (*_mdecrypt) (void *, void *, int, int, void *, void *, void*);
+	GF_Err (*_mcrypt) (void *, void *, int, int, void *, mcryptfunc func, mcryptfunc func2);
+	GF_Err (*_mdecrypt) (void *, void *, int, int, void *, mcryptfunc func, mcryptfunc func2);
 	GF_Err (*_mcrypt_set_state) (void *, void *, int );
 	GF_Err (*_mcrypt_get_state) (void *, void *, int *);
 	/*algo access*/

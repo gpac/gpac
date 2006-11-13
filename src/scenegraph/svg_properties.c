@@ -148,6 +148,7 @@ void gf_svg_init_properties(SVGElement *p)
 	The value shall not use the 'inherit' value, it uses the initial value.
     The property values are then updated when going down the tree using svg_properties_apply 
 */
+GF_EXPORT
 void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props) 
 {
 	if (!svg_props) return;
@@ -288,6 +289,7 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 
 }
 
+GF_EXPORT
 void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 {
 	if (!svg_props) return;
@@ -340,6 +342,7 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 /* 
 	TODO: Check if all properties are implemented 
 */
+GF_EXPORT
 void gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_props) 
 {
 	if (!elt || !render_svg_props) return;

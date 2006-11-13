@@ -1,11 +1,14 @@
-Latest CVS changes: 18/10/06
+Latest CVS changes: 13/11/06
+  - libgpac and some modules now ported to symbian 9.1, but player not done yet
+      !! GPAC may be quite unstable during this porting phase !! 
+  - added detection of FPS for raw AVC import when present
+  - fixed a display freezing bug in osmo4 for PocketPC 2003.
   - moved key/mouse event subsystem to DOM3 model 
   - added support for svg animation and svg use with external resources
   - cleanup of MPEG-4 RemoteOD + support for segment identifiers at scene level
   - added support for multiple RTSP sessions in an SDP description
   - added support for faked broadcast mode in SDP (forbids any timeline control by player except initial play/final stop)
       syntax is (in media SDP section, per stream): a=gpac-broadcast:1
-  - whole GPAC code is under massive cleanup due to symbian S60 porting 
   - some workarounds for iPod file producing (special UUID needed) (-ipod option, auto on for .m4a and .m4v extensions)
   - added windowless mode on Win32: transparent background color is defined in the config file ( [Rendering] ColorKey )
   - added iTunes tag support in GPAC clients (ID3 tags not supported yet)

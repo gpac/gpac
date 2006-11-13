@@ -48,7 +48,7 @@ GF_SceneGraph *gf_sg_new()
 	tmp->protos = gf_list_new();
 	tmp->unregistered_protos = gf_list_new();
 
-	tmp->node_registry = malloc(sizeof(GF_Node *) * NODEREG_STEP_ALLOC);
+	tmp->node_registry = (GF_Node **)malloc(sizeof(GF_Node *) * NODEREG_STEP_ALLOC);
 	tmp->node_reg_alloc = NODEREG_STEP_ALLOC;
 
 #ifdef GF_CYCLIC_RENDER_ON
@@ -64,6 +64,7 @@ GF_SceneGraph *gf_sg_new()
 	return tmp;
 }
 
+GF_EXPORT
 GF_SceneGraph *gf_sg_new_subscene(GF_SceneGraph *scene)
 {
 	GF_SceneGraph *tmp;
@@ -86,17 +87,20 @@ GF_SceneGraph *gf_sg_new_subscene(GF_SceneGraph *scene)
 }
 
 
+GF_EXPORT
 void gf_sg_set_node_callback(GF_SceneGraph *sg, void (*NodeCallback)(void *user_priv, u32 type, GF_Node *node, void *ctxdata) )
 {
 	sg->NodeCallback = NodeCallback;
 }
 
+GF_EXPORT
 void gf_sg_set_scene_time_callback(GF_SceneGraph *sg, Double (*GetSceneTime)(void *user_priv))
 {
 	sg->GetSceneTime = GetSceneTime;
 }
 
 
+GF_EXPORT
 Double gf_node_get_scene_time(GF_Node *node)
 {
 	if (!node || !node->sgprivate->scenegraph->GetSceneTime) return 0.0;
@@ -112,6 +116,7 @@ void gf_sg_set_max_render_cycle(GF_SceneGraph *sg, u16 max_cycle)
 #endif
 }
 
+GF_EXPORT
 void gf_sg_del(GF_SceneGraph *sg)
 {	
 	if (!sg) return;
@@ -172,7 +177,7 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 			else if (info.fieldType==GF_SG_VRML_MFNODE) {
 				mflist = *(GF_List **) info.far_ptr;
 				j=0;
-				while ((n = gf_list_enum(mflist, &j))) {
+				while ((n = (GF_Node *)gf_list_enum(mflist, &j))) {
 					if (n->sgprivate->scenegraph==sg) {
 						gf_node_unregister(n, node);
 						j--;
@@ -197,6 +202,7 @@ GFINLINE GF_Node *SG_SearchForNode(GF_SceneGraph *sg, GF_Node *node)
 	return NULL;
 }
 
+GF_EXPORT
 void gf_sg_reset(GF_SceneGraph *sg)
 {
 	u32 i, type, count;
@@ -217,7 +223,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 
 	/*destroy all routes*/
 	while (gf_list_count(sg->Routes)) {
-		GF_Route *r = gf_list_get(sg->Routes, 0);
+		GF_Route *r = (GF_Route*)gf_list_get(sg->Routes, 0);
 		/*this will unregister the route from the graph, so don't delete the chain entry*/
 		gf_sg_route_del(r);
 
@@ -309,13 +315,13 @@ restart:
 
 	/*destroy all proto*/
 	while (gf_list_count(sg->protos)) {
-		GF_Proto *p = gf_list_get(sg->protos, 0);
+		GF_Proto *p = (GF_Proto *)gf_list_get(sg->protos, 0);
 		/*this will unregister the proto from the graph, so don't delete the chain entry*/
 		gf_sg_proto_del(p);
 	}
 	/*destroy all unregistered proto*/
 	while (gf_list_count(sg->unregistered_protos)) {
-		GF_Proto *p = gf_list_get(sg->unregistered_protos, 0);
+		GF_Proto *p = (GF_Proto *)gf_list_get(sg->unregistered_protos, 0);
 		/*this will unregister the proto from the graph, so don't delete the chain entry*/
 		gf_sg_proto_del(p);
 	}
@@ -407,6 +413,7 @@ void *gf_sg_get_private(GF_SceneGraph *sg)
 }
 
 
+GF_EXPORT
 void gf_sg_set_scene_size_info(GF_SceneGraph *sg, u32 width, u32 height, Bool usePixelMetrics)
 {
 	if (!sg) return;
@@ -419,6 +426,7 @@ void gf_sg_set_scene_size_info(GF_SceneGraph *sg, u32 width, u32 height, Bool us
 	sg->usePixelMetrics = usePixelMetrics;
 }
 
+GF_EXPORT
 Bool gf_sg_use_pixel_metrics(GF_SceneGraph *sg)
 {
 	if (sg) {
@@ -428,6 +436,7 @@ Bool gf_sg_use_pixel_metrics(GF_SceneGraph *sg)
 	return 0;
 }
 
+GF_EXPORT
 Bool gf_sg_get_scene_size_info(GF_SceneGraph *sg, u32 *width, u32 *height)
 {
 	if (!sg) return 0;
@@ -437,16 +446,19 @@ Bool gf_sg_get_scene_size_info(GF_SceneGraph *sg, u32 *width, u32 *height)
 }
 
 
+GF_EXPORT
 GF_Node *gf_sg_get_root_node(GF_SceneGraph *sg)
 {
 	return sg ? sg->RootNode : NULL;
 }
 
+GF_EXPORT
 void gf_sg_set_root_node(GF_SceneGraph *sg, GF_Node *node)
 {
 	if (sg) sg->RootNode = node;
 }
 
+GF_EXPORT
 GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 {
 	u32 node_ind, j;
@@ -514,7 +526,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 
 	/*check all routes from or to this node and destroy them - cf spec*/
 	j=0;
-	while ((r = gf_list_enum(pSG->Routes, &j))) {
+	while ((r = (GF_Route *)gf_list_enum(pSG->Routes, &j))) {
 		if ( (r->ToNode == pNode) || (r->FromNode == pNode)) {
 			gf_sg_route_del(r);
 			j--;
@@ -530,6 +542,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 {
 	GF_SceneGraph *pSG; 
@@ -555,13 +568,13 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 #else
 	if (parentNode) {
 		if (!node->sgprivate->parents) {
-			node->sgprivate->parents = malloc(sizeof(GF_NodeList));
+			node->sgprivate->parents = (GF_NodeList*)malloc(sizeof(GF_NodeList));
 			node->sgprivate->parents->next = NULL;
 			node->sgprivate->parents->node = parentNode;
 		} else {
 			GF_NodeList *item, *nlist = node->sgprivate->parents;
 			while (nlist->next) nlist = nlist->next;
-			item = malloc(sizeof(GF_NodeList));
+			item = (GF_NodeList*)malloc(sizeof(GF_NodeList));
 			item->next = NULL;
 			item->node = parentNode;
 			nlist->next = item;
@@ -574,7 +587,7 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 void gf_node_unregister_children(GF_Node *container, GF_List *list)
 {
 	while (gf_list_count(list)) {
-		GF_Node *p = gf_list_get(list, 0);
+		GF_Node *p = (GF_Node *)gf_list_get(list, 0);
 		gf_list_rem(list, 0);
 		gf_node_unregister(p, container);
 	}
@@ -610,7 +623,7 @@ static void ReplaceDEFNode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 		case GF_SG_VRML_MFNODE:
 			container = *(GF_List **) field.far_ptr;
 			j=0;
-			while ((p = gf_list_enum(container, &j))) {
+			while ((p = (GF_Node *)gf_list_enum(container, &j))) {
 				/*replace nodes different from newNode but with same ID*/
 				if ((newNode == p) || (gf_node_get_id(p) != NodeID)) continue;
 				
@@ -643,7 +656,7 @@ static void Replace_IRI(GF_SceneGraph *sg, GF_Node *old_node, GF_Node *newNode)
 	u32 i, count;
 	count = gf_list_count(sg->xlink_hrefs);
 	for (i=0; i<count; i++) {
-		SVG_IRI *iri = gf_list_get(sg->xlink_hrefs, i);
+		SVG_IRI *iri = (SVG_IRI *)gf_list_get(sg->xlink_hrefs, i);
 		if (iri->target == (SVGElement *)old_node) {
 			iri->target = (SVGElement *)newNode;
 			if (!newNode) {
@@ -664,7 +677,7 @@ static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNod
 	container = ((SVGElement *)FromNode)->children;
 	count = gf_list_count(container);
 	for (i=0; i<count; i++) {
-		GF_Node *p = gf_list_get(container, i);
+		GF_Node *p = (GF_Node *)gf_list_get(container, i);
 		if (old_node!=p) continue;
 		gf_list_rem(container, i);
 		if (newNode) gf_list_insert(container, newNode, i);
@@ -743,7 +756,7 @@ static GFINLINE void insert_node_def(GF_SceneGraph *sg, GF_Node *def)
 
 	if (sg->node_reg_alloc==sg->node_reg_size) {
 		sg->node_reg_alloc+=NODEREG_STEP_ALLOC;
-		sg->node_registry = realloc(sg->node_registry, sg->node_reg_alloc * sizeof(GF_Node *));
+		sg->node_registry = (GF_Node **)realloc(sg->node_registry, sg->node_reg_alloc * sizeof(GF_Node *));
 	}
 
 	i=0;
@@ -760,6 +773,7 @@ static GFINLINE void insert_node_def(GF_SceneGraph *sg, GF_Node *def)
 
 
 
+GF_EXPORT
 GF_Err gf_node_set_id(GF_Node *p, u32 ID, const char *name)
 {
 	char *new_name;
@@ -803,6 +817,7 @@ GF_Err gf_node_set_id(GF_Node *p, u32 ID, const char *name)
 }
 
 /*calls RenderNode on this node*/
+GF_EXPORT
 void gf_node_render(GF_Node *node, void *renderStack)
 {
 #ifdef GF_CYCLIC_RENDER_ON
@@ -862,6 +877,7 @@ void gf_node_render(GF_Node *node, void *renderStack)
 }
 
 /*blindly calls RenderNode on all nodes in the "children" list*/
+GF_EXPORT
 void gf_node_render_children(GF_Node *node, void *renderStack)
 {
 	u32 i;
@@ -871,7 +887,7 @@ void gf_node_render_children(GF_Node *node, void *renderStack)
 
 	par = (GF_ParentNode *)node;
 	i=0;
-	while ((ptr = gf_list_enum(par->children, &i))) {
+	while ((ptr = (GF_Node *)gf_list_enum(par->children, &i))) {
 		gf_node_render(ptr, renderStack);
 	}
 }
@@ -891,12 +907,14 @@ GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 	return GF_BAD_PARAM;
 }
 
+GF_EXPORT
 GF_SceneGraph *gf_node_get_graph(GF_Node *node)
 {
 	return (node ? node->sgprivate->scenegraph : NULL);
 }
 
 
+GF_EXPORT
 GF_Node *gf_sg_find_node(GF_SceneGraph *sg, u32 nodeID)
 {
 	GF_Node *node;
@@ -905,6 +923,7 @@ GF_Node *gf_sg_find_node(GF_SceneGraph *sg, u32 nodeID)
 	return node;
 }
 
+GF_EXPORT
 GF_Node *gf_sg_find_node_by_name(GF_SceneGraph *sg, char *name)
 {
 	u32 i;
@@ -919,6 +938,7 @@ GF_Node *gf_sg_find_node_by_name(GF_SceneGraph *sg, char *name)
 }
 
 
+GF_EXPORT
 u32 gf_sg_get_next_available_node_id(GF_SceneGraph *sg) 
 {
 	u32 i, ID;
@@ -950,38 +970,52 @@ void gf_node_setup(GF_Node *p, u32 tag)
 
 GF_Node *gf_sg_new_base_node()
 {
-	GF_Node *newnode = malloc(sizeof(GF_Node));
+	GF_Node *newnode = (GF_Node *)malloc(sizeof(GF_Node));
 	gf_node_setup(newnode, TAG_UndefinedNode);
 	return newnode;
 }
+GF_EXPORT
 u32 gf_node_get_tag(GF_Node*p)
 {
+	assert(p);
 	return p->sgprivate->tag;
 }
+GF_EXPORT
 u32 gf_node_get_id(GF_Node*p)
 {
+	assert(p);
 	return p->sgprivate->NodeID;
 }
+GF_EXPORT
 const char *gf_node_get_name(GF_Node*p)
 {
+	assert(p);
 	return p->sgprivate->NodeName;
 }
+GF_EXPORT
 void *gf_node_get_private(GF_Node*p)
 {
+	assert(p);
 	return p->sgprivate->privateStack;
 }
+GF_EXPORT
 void gf_node_set_private(GF_Node*p, void *pr)
 {
+	assert(p);
 	p->sgprivate->privateStack = pr;
 }
+GF_EXPORT
 GF_Err gf_node_set_render_function(GF_Node *p, void (*RenderNode)(GF_Node *node, void *render_stack) )
 {
+	assert(p);
 	p->sgprivate->RenderNode = RenderNode;
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_node_set_predestroy_function(GF_Node *p, void (*PreDestroyNode)(struct _sfNode *node) )
 {
+	assert(p);
 	p->sgprivate->PreDestroyNode = PreDestroyNode;
 	return GF_OK;
 }
@@ -1029,6 +1063,7 @@ void gf_node_free(GF_Node *node)
 	free(node);
 }
 
+GF_EXPORT
 u32 gf_node_get_parent_count(GF_Node *node)
 {
 #ifdef GF_ARRAY_PARENT_NODES
@@ -1041,6 +1076,7 @@ u32 gf_node_get_parent_count(GF_Node *node)
 #endif
 }
 
+GF_EXPORT
 GF_Node *gf_node_get_parent(GF_Node *node, u32 idx)
 {
 #ifdef GF_ARRAY_PARENT_NODES
@@ -1100,6 +1136,7 @@ static void dirty_parents(GF_Node *node)
 	if (check_root && (node==node->sgprivate->scenegraph->RootNode) && node->sgprivate->scenegraph->NodeCallback) node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_GRAPH_DIRTY, NULL, NULL);
 }
 
+GF_EXPORT
 void gf_node_dirty_set(GF_Node *node, u16 flags, Bool and_dirty_parents)
 {
 	if (!node) return;
@@ -1110,6 +1147,7 @@ void gf_node_dirty_set(GF_Node *node, u16 flags, Bool and_dirty_parents)
 	if (and_dirty_parents) dirty_parents(node);
 }
 
+GF_EXPORT
 void gf_node_dirty_clear(GF_Node *node, u16 flag_to_remove)
 {
 	if (!node) return;
@@ -1117,6 +1155,7 @@ void gf_node_dirty_clear(GF_Node *node, u16 flag_to_remove)
 	else node->sgprivate->is_dirty = 0;
 }
 
+GF_EXPORT
 u16 gf_node_dirty_get(GF_Node *node)
 {
 	if (node) return node->sgprivate->is_dirty;
@@ -1124,6 +1163,7 @@ u16 gf_node_dirty_get(GF_Node *node)
 }
 
 
+GF_EXPORT
 void gf_node_dirty_reset(GF_Node *node)
 {
 	if (!node) return;
@@ -1134,6 +1174,7 @@ void gf_node_dirty_reset(GF_Node *node)
 }
 
 
+GF_EXPORT
 Bool gf_sg_is_first_render_cycle(GF_Node *n)
 {
 #ifdef GF_CYCLIC_RENDER_ON
@@ -1144,6 +1185,7 @@ Bool gf_sg_is_first_render_cycle(GF_Node *n)
 }
 
 
+GF_EXPORT
 void gf_node_init(GF_Node *node)
 {
 	GF_SceneGraph *pSG = node->sgprivate->scenegraph;
@@ -1161,6 +1203,7 @@ void gf_node_init(GF_Node *node)
 }
 
 
+GF_EXPORT
 void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 {
 	GF_SceneGraph *sg;
@@ -1197,6 +1240,7 @@ void gf_node_del(GF_Node *node)
 #endif
 }
 
+GF_EXPORT
 u32 gf_node_get_field_count(GF_Node *node)
 {
 	assert(node);
@@ -1211,6 +1255,7 @@ u32 gf_node_get_field_count(GF_Node *node)
 
 
 
+GF_EXPORT
 const char *gf_node_get_class_name(GF_Node *node)
 {
 	assert(node && node->sgprivate->tag);
@@ -1228,6 +1273,7 @@ const char *gf_node_get_class_name(GF_Node *node)
 #endif
 }
 
+GF_EXPORT
 GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 {
 	GF_Node *node;
@@ -1249,6 +1295,7 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 }
 
 
+GF_EXPORT
 GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 {
 	assert(node);

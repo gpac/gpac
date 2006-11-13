@@ -36,16 +36,16 @@ static Bool check_bounds_size(Drawable *node)
 	u32 i;
 	BoundsInfo **new_bounds;
 	if (node->current_count < node->bounds_size) return 1;
-	new_bounds = realloc(node->previous_bounds, sizeof(BoundsInfo *) * (node->bounds_size + BOUNDSINFO_STEPALLOC));
+	new_bounds = (BoundsInfo **)realloc(node->previous_bounds, sizeof(BoundsInfo *) * (node->bounds_size + BOUNDSINFO_STEPALLOC));
 	if (!new_bounds) return 0;
 	node->previous_bounds = new_bounds;
-	new_bounds = realloc(node->current_bounds, sizeof(BoundsInfo *) * (node->bounds_size + BOUNDSINFO_STEPALLOC));
+	new_bounds = (BoundsInfo **)realloc(node->current_bounds, sizeof(BoundsInfo *) * (node->bounds_size + BOUNDSINFO_STEPALLOC));
 	if (!new_bounds) return 0;
 	node->current_bounds = new_bounds;
 	
 	for (i=node->bounds_size; i<node->bounds_size + BOUNDSINFO_STEPALLOC; i++) {
-		node->current_bounds[i] = malloc(sizeof(BoundsInfo));
-		node->previous_bounds[i] = malloc(sizeof(BoundsInfo));
+		node->current_bounds[i] = (BoundsInfo *)malloc(sizeof(BoundsInfo));
+		node->previous_bounds[i] = (BoundsInfo *)malloc(sizeof(BoundsInfo));
 	}
 	node->bounds_size += BOUNDSINFO_STEPALLOC;
 	return 1;
@@ -148,7 +148,7 @@ void drawable_del(Drawable *dr)
 	dr->compositor->draw_next_frame = 1;
 	/*remove node from all surfaces it's on*/
 	while (gf_list_count(dr->on_surfaces)) {
-		VisualSurface2D *surf = gf_list_get(dr->on_surfaces, 0);
+		VisualSurface2D *surf = (VisualSurface2D *)gf_list_get(dr->on_surfaces, 0);
 		gf_list_rem(dr->on_surfaces, 0);
 		if (R2D_IsSurfaceRegistered((Render2D *)dr->compositor->visual_renderer->user_priv, surf)) 
 			VS2D_DrawableDeleted(surf, dr);
@@ -159,7 +159,7 @@ void drawable_del(Drawable *dr)
 	if (dr->path) gf_path_del(dr->path);
 
 	while (gf_list_count(dr->strike_list)) {
-		StrikeInfo2D *si = gf_list_get(dr->strike_list, 0);
+		StrikeInfo2D *si = (StrikeInfo2D *)gf_list_get(dr->strike_list, 0);
 		gf_list_rem(dr->strike_list, 0);
 		/*remove from main strike list*/
 		gf_list_del_item(((Render2D *)dr->compositor->visual_renderer->user_priv)->strike_bank, si);
@@ -173,8 +173,7 @@ void drawable_del(Drawable *dr)
 
 static void DestroyDrawableNode(GF_Node *node)
 {
-	Drawable *ptr = gf_node_get_private(node);
-	drawable_del(ptr);
+	drawable_del( (Drawable *)gf_node_get_private(node) );
 }
 
 Drawable *drawable_stack_new(Render2D *sr, GF_Node *node)
@@ -285,8 +284,8 @@ void drawable_unregister_from_surface(Drawable *node, struct _visual_surface_2D 
 
 DrawableContext *NewDrawableContext()
 {
-	DrawableContext *tmp = malloc(sizeof(DrawableContext));
-	memset(tmp, 0, sizeof(DrawableContext));
+	DrawableContext *tmp;
+	GF_SAFEALLOC(tmp, DrawableContext);
 	tmp->sensors = gf_list_new();
 	return tmp;
 }
@@ -322,14 +321,14 @@ void drawctx_reset(DrawableContext *ctx)
 void drawctx_reset_sensors(DrawableContext *ctx)
 {
 	while (gf_list_count(ctx->sensors)) {
-		SensorContext *ptr = gf_list_get(ctx->sensors, 0);
+		SensorContext *ptr = (SensorContext *)gf_list_get(ctx->sensors, 0);
 		gf_list_rem(ctx->sensors, 0);
 		free(ptr);
 	}
 }
 static void drawctx_add_sensor(DrawableContext *ctx, SensorContext *handler)
 {
-	SensorContext *pNew = malloc(sizeof(SensorContext));
+	SensorContext *pNew = (SensorContext *)malloc(sizeof(SensorContext));
 	pNew->h_node = handler->h_node;
 	gf_mx2d_copy(pNew->matrix, handler->matrix);
 	gf_list_add(ctx->sensors, pNew);
@@ -420,22 +419,22 @@ check_default:
 	if (m->lineProps && gf_node_dirty_get(m->lineProps)) ctx->redraw_flags |= CTX_APP_DIRTY;
 
 	if (LP) {
-		ctx->aspect.pen_props.dash = LP->lineStyle;
+		ctx->aspect.pen_props.dash = (GF_DashStyle)LP->lineStyle;
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(FIX_ONE-m->transparency, LP->lineColor.red, LP->lineColor.green, LP->lineColor.blue);
 		ctx->aspect.pen_props.width = LP->width;
 		ctx->aspect.line_color = gf_cmx_apply(&ctx->cmat, ctx->aspect.line_color);
 		return;
 	} 
 
-	ctx->aspect.pen_props.dash = XLP->lineStyle;
+	ctx->aspect.pen_props.dash = (GF_DashStyle)XLP->lineStyle;
 	ctx->aspect.line_color = GF_COL_ARGB_FIXED(FIX_ONE-XLP->transparency, XLP->lineColor.red, XLP->lineColor.green, XLP->lineColor.blue);
 	ctx->aspect.pen_props.width = XLP->width;
 	ctx->aspect.line_color = gf_cmx_apply(&ctx->cmat, ctx->aspect.line_color);
 	
 	ctx->aspect.is_scalable = XLP->isScalable;
 	ctx->aspect.pen_props.align = XLP->isCenterAligned ? GF_PATH_LINE_CENTER : GF_PATH_LINE_INSIDE;
-	ctx->aspect.pen_props.cap = XLP->lineCap;
-	ctx->aspect.pen_props.join = XLP->lineJoin;
+	ctx->aspect.pen_props.cap = (GF_LineCap) XLP->lineCap;
+	ctx->aspect.pen_props.join = (GF_LineJoin) XLP->lineJoin;
 	ctx->aspect.pen_props.miterLimit = XLP->miterLimit;
 	ctx->aspect.pen_props.dash_offset = XLP->dashOffset;
 
@@ -522,7 +521,7 @@ DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	/*setup sensors*/
 	count = gf_list_count(eff->sensors);
 	for (i=0; i<count; i++) 
-		drawctx_add_sensor(ctx, gf_list_get(eff->sensors, i));
+		drawctx_add_sensor(ctx, (SensorContext*)gf_list_get(eff->sensors, i));
 
 	setup_drawable_context(ctx, eff);
 
@@ -638,7 +637,7 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 
 	si = NULL;
 	i=0;
-	while ((si = gf_list_enum(ctx->node->strike_list, &i))) {
+	while ((si = (StrikeInfo2D*)gf_list_enum(ctx->node->strike_list, &i))) {
 		/*note this includes default LP (NULL)*/
 		if ((si->lineProps == lp) && (!path || (path==si->original)) ) break;
 		if (!si->lineProps) {
@@ -653,8 +652,7 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 	}
 	/*not found, add*/
 	if (!si) {
-		si = malloc(sizeof(StrikeInfo2D));
-		memset(si, 0, sizeof(StrikeInfo2D));
+		GF_SAFEALLOC(si, StrikeInfo2D);
 		si->lineProps = lp;
 		si->node = ctx->node->owner;
 		gf_list_add(ctx->node->strike_list, si);
@@ -703,7 +701,7 @@ void drawable_reset_path(Drawable *st)
 {
 	StrikeInfo2D *si;
 	u32 i=0;
-	while ((si = gf_list_enum(st->strike_list, &i))) {
+	while ((si = (StrikeInfo2D*)gf_list_enum(st->strike_list, &i))) {
 		if (si->outline) gf_path_del(si->outline);
 		si->outline = NULL;
 		si->original = NULL;
@@ -716,7 +714,7 @@ void R2D_LinePropsRemoved(Render2D *sr, GF_Node *n)
 {
 	StrikeInfo2D *si;
 	u32 i = 0;
-	while ((si = gf_list_enum(sr->strike_bank, &i))) {
+	while ((si = (StrikeInfo2D*)gf_list_enum(sr->strike_bank, &i))) {
 		if (si->lineProps == n) {
 			/*remove from node*/
 			if (si->node) {
@@ -738,13 +736,13 @@ void R2D_LinePropsRemoved(Render2D *sr, GF_Node *n)
 
 static void DestroyLineProps(GF_Node *n)
 {
-	LinePropStack *st = gf_node_get_private(n);
+	LinePropStack *st = (LinePropStack *)gf_node_get_private(n);
 	R2D_LinePropsRemoved(st->sr, n);
 	free(st);
 }
 void R2D_InitLineProps(Render2D *sr, GF_Node *node)
 {
-	LinePropStack *st = malloc(sizeof(LinePropStack));
+	LinePropStack *st = (LinePropStack *)malloc(sizeof(LinePropStack));
 	st->sr = sr;
 	st->last_mod_time = 1;
 	gf_node_set_private(node, st);
@@ -753,7 +751,7 @@ void R2D_InitLineProps(Render2D *sr, GF_Node *node)
 
 u32 R2D_LP_GetLastUpdateTime(GF_Node *node)
 {
-	LinePropStack *st = gf_node_get_private(node);
+	LinePropStack *st = (LinePropStack *)gf_node_get_private(node);
 	if (!st) return 0;
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		st->last_mod_time ++;
@@ -851,8 +849,8 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 	}
 	ctx->aspect.is_scalable = (*props.vector_effect == SVG_VECTOREFFECT_NONSCALINGSTROKE)?0:1;
 	
-	ctx->aspect.pen_props.cap = *props.stroke_linecap;
-	ctx->aspect.pen_props.join = *props.stroke_linejoin;
+	ctx->aspect.pen_props.cap = (GF_LineCap) *props.stroke_linecap;
+	ctx->aspect.pen_props.join = (GF_LineJoin) *props.stroke_linejoin;
 	ctx->aspect.pen_props.width = (ctx->aspect.has_line?props.stroke_width->value:0);
 	ctx->aspect.pen_props.miterLimit = props.stroke_miterlimit->value;
 }

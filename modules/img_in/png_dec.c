@@ -44,7 +44,7 @@ typedef struct
 #define PNGCTX()	PNGDec *ctx = (PNGDec *) ((IMGDec *)ifcg->privateStack)->opaque
 
 
-static GF_Err PNG_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err PNG_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	PNGCTX();
 	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
@@ -117,9 +117,9 @@ static void user_error_fn(png_structp png_ptr,png_const_charp error_msg)
 }
 
 static GF_Err PNG_ProcessData(GF_MediaDecoder *ifcg, 
-		unsigned char *inBuffer, u32 inBufferLength,
+		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
-		unsigned char *outBuffer, u32 *outBufferLength,
+		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
 	png_struct *png_ptr;

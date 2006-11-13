@@ -62,7 +62,7 @@ typedef struct
 #define AMRFTCTX() AMRFTDec *ctx = (AMRFTDec *) ifcg->privateStack
 
 
-static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	GF_BitStream *bs;
 	char name[5];
@@ -183,9 +183,9 @@ static GF_Err AMR_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capab
 
 
 static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg, 
-		unsigned char *inBuffer, u32 inBufferLength,
+		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
-		unsigned char *outBuffer, u32 *outBufferLength,
+		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
     u32 offset;
@@ -243,7 +243,7 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
 }
 
 
-static u32 AMR_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static u32 AMR_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	GF_BitStream *bs;
 	char name[5];

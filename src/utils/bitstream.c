@@ -59,7 +59,8 @@ struct __tag_bitstream
 };
 
 
-GF_BitStream *gf_bs_new(unsigned char *buffer, u64 BufferSize, u32 mode)
+GF_EXPORT
+GF_BitStream *gf_bs_new(char *buffer, u64 BufferSize, u32 mode)
 {
 	GF_BitStream *tmp;
 	if ( (buffer && ! BufferSize)) return NULL;
@@ -110,6 +111,7 @@ GF_BitStream *gf_bs_new(unsigned char *buffer, u64 BufferSize, u32 mode)
 	return tmp;
 }
 
+GF_EXPORT
 GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 {
 	GF_BitStream *tmp;
@@ -135,6 +137,7 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 	return tmp;
 }
 
+GF_EXPORT
 void gf_bs_del(GF_BitStream *bs)
 {
 	if (!bs) return;
@@ -145,7 +148,7 @@ void gf_bs_del(GF_BitStream *bs)
 
 
 /*returns 1 if aligned wrt current mode, 0 otherwise*/
-Bool BS_IsAlign(GF_BitStream *bs)
+static Bool BS_IsAlign(GF_BitStream *bs)
 {
 	switch (bs->bsmode) {
 	case GF_BITSTREAM_READ:
@@ -158,7 +161,7 @@ Bool BS_IsAlign(GF_BitStream *bs)
 
 
 /*fetch a new byte in the bitstream switch between packets*/
-u8 BS_ReadByte(GF_BitStream *bs)
+static u8 BS_ReadByte(GF_BitStream *bs)
 {
 	if (bs->bsmode == GF_BITSTREAM_READ) {
 		if (bs->position == bs->size) {
@@ -181,6 +184,7 @@ u8 BS_ReadByte(GF_BitStream *bs)
 static u8 bit_mask[] = {0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1};
 static u8 bits_mask[] = {0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F};
 
+GF_EXPORT
 u8 gf_bs_read_bit(GF_BitStream *bs)
 {
 	if (bs->nbBits == 8) {	
@@ -201,6 +205,7 @@ u8 gf_bs_read_bit(GF_BitStream *bs)
 
 }
 
+GF_EXPORT
 u32 gf_bs_read_int(GF_BitStream *bs, u32 nBits)
 {
 	u32 ret;
@@ -220,12 +225,14 @@ u32 gf_bs_read_int(GF_BitStream *bs, u32 nBits)
 	return ret;
 }
 
+GF_EXPORT
 u32 gf_bs_read_u8(GF_BitStream *bs)
 {
 	assert(bs->nbBits==8);
 	return (u32) BS_ReadByte(bs);
 }
 
+GF_EXPORT
 u32 gf_bs_read_u16(GF_BitStream *bs)
 {
 	u32 ret;
@@ -236,6 +243,7 @@ u32 gf_bs_read_u16(GF_BitStream *bs)
 }
 
 
+GF_EXPORT
 u32 gf_bs_read_u24(GF_BitStream *bs)
 {
 	u32 ret;
@@ -246,6 +254,7 @@ u32 gf_bs_read_u24(GF_BitStream *bs)
 	return ret;
 }
 
+GF_EXPORT
 u32 gf_bs_read_u32(GF_BitStream *bs)
 {
 	u32 ret;
@@ -257,6 +266,7 @@ u32 gf_bs_read_u32(GF_BitStream *bs)
 	return ret;
 }
 
+GF_EXPORT
 u64 gf_bs_read_u64(GF_BitStream *bs)
 {
 	u64 ret;
@@ -265,6 +275,7 @@ u64 gf_bs_read_u64(GF_BitStream *bs)
 	return ret;
 }
 
+GF_EXPORT
 u64 gf_bs_read_long_int(GF_BitStream *bs, u32 nBits)
 {
 	u64 ret = 0;
@@ -276,6 +287,7 @@ u64 gf_bs_read_long_int(GF_BitStream *bs, u32 nBits)
 }
 
 
+GF_EXPORT
 Float gf_bs_read_float(GF_BitStream *bs)
 {	
 	char buf [4] = "\0\0\0";
@@ -292,6 +304,7 @@ Float gf_bs_read_float(GF_BitStream *bs)
 	return (* (Float *) buf);
 }
 
+GF_EXPORT
 Double gf_bs_read_double(GF_BitStream *bs)
 {
 	char buf [8] = "\0\0\0\0\0\0\0";
@@ -301,7 +314,8 @@ Double gf_bs_read_double(GF_BitStream *bs)
 	return (* (Double *) buf);
 }
 
-u32 gf_bs_read_data(GF_BitStream *bs, unsigned char *data, u32 nbBytes)
+GF_EXPORT
+u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 {
 	u64 orig = bs->position;
 
@@ -332,7 +346,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, unsigned char *data, u32 nbBytes)
 
 
 
-void BS_WriteByte(GF_BitStream *bs, u8 val)
+static void BS_WriteByte(GF_BitStream *bs, u8 val)
 {
 	/*we don't allow write on READ buffers*/
 	if ( (bs->bsmode == GF_BITSTREAM_READ) || (bs->bsmode == GF_BITSTREAM_FILE_READ) ) return;
@@ -360,7 +374,7 @@ void BS_WriteByte(GF_BitStream *bs, u8 val)
 	bs->position += 1;
 }
 
-void BS_WriteBit(GF_BitStream *bs, u32 bit)
+static void BS_WriteBit(GF_BitStream *bs, u32 bit)
 {
 	bs->current <<= 1;
 	bs->current |= bit;
@@ -371,6 +385,7 @@ void BS_WriteBit(GF_BitStream *bs, u32 bit)
 	}
 }
 
+GF_EXPORT
 void gf_bs_write_int(GF_BitStream *bs, s32 value, s32 nBits)
 {
 	value <<= sizeof (s32) * 8 - nBits;
@@ -380,6 +395,7 @@ void gf_bs_write_int(GF_BitStream *bs, s32 value, s32 nBits)
 	}
 }
 
+GF_EXPORT
 void gf_bs_write_long_int(GF_BitStream *bs, s64 value, s32 nBits)
 {
 	value <<= sizeof (s64) * 8 - nBits;
@@ -389,12 +405,14 @@ void gf_bs_write_long_int(GF_BitStream *bs, s64 value, s32 nBits)
 	}
 }
 
+GF_EXPORT
 void gf_bs_write_u8(GF_BitStream *bs, u32 value)
 {
 	assert(!bs->nbBits);
 	BS_WriteByte(bs, (u8) value);
 }
 
+GF_EXPORT
 void gf_bs_write_u16(GF_BitStream *bs, u32 value)
 {
 	assert(!bs->nbBits);
@@ -402,6 +420,7 @@ void gf_bs_write_u16(GF_BitStream *bs, u32 value)
 	BS_WriteByte(bs, (u8) ((value)&0xff));
 }
 
+GF_EXPORT
 void gf_bs_write_u24(GF_BitStream *bs, u32 value)
 {
 	assert(!bs->nbBits);
@@ -410,6 +429,7 @@ void gf_bs_write_u24(GF_BitStream *bs, u32 value)
 	BS_WriteByte(bs, (u8) ((value)&0xff));
 }
 
+GF_EXPORT
 void gf_bs_write_u32(GF_BitStream *bs, u32 value)
 {
 	assert(!bs->nbBits);
@@ -419,6 +439,7 @@ void gf_bs_write_u32(GF_BitStream *bs, u32 value)
 	BS_WriteByte(bs, (u8) ((value)&0xff));
 }
 
+GF_EXPORT
 void gf_bs_write_u64(GF_BitStream *bs, u64 value)
 {
 	assert(!bs->nbBits);
@@ -426,6 +447,7 @@ void gf_bs_write_u64(GF_BitStream *bs, u64 value)
 	gf_bs_write_u32(bs, (u32) (value&0xffffffff));
 }
 
+GF_EXPORT
 void gf_bs_write_float(GF_BitStream *bs, Float value)
 {
 	u32 i;
@@ -440,6 +462,7 @@ void gf_bs_write_float(GF_BitStream *bs, Float value)
 
 }
 
+GF_EXPORT
 void gf_bs_write_double (GF_BitStream *bs, Double value)
 {
 	u32 i;
@@ -454,7 +477,8 @@ void gf_bs_write_double (GF_BitStream *bs, Double value)
 }
 
 
-u32 gf_bs_write_data(GF_BitStream *bs, unsigned char *data, u32 nbBytes)
+GF_EXPORT
+u32 gf_bs_write_data(GF_BitStream *bs, char *data, u32 nbBytes)
 {
 	/*we need some feedback for this guy...*/
 	u64 begin = bs->position;
@@ -483,7 +507,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, unsigned char *data, u32 nbBytes)
 			return nbBytes;
 		case GF_BITSTREAM_FILE_READ:
 		case GF_BITSTREAM_FILE_WRITE:
-			fwrite(data, nbBytes, 1, bs->stream);
+			if (fwrite(data, nbBytes, 1, bs->stream) != 1) return 0;
 			if (bs->size == bs->position) bs->size += nbBytes;
 			bs->position += nbBytes;
 			return nbBytes;
@@ -501,6 +525,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, unsigned char *data, u32 nbBytes)
 }
 
 /*align return the num of bits read in READ mode, 0 in WRITE*/
+GF_EXPORT
 u8 gf_bs_align(GF_BitStream *bs)
 {
 	u8 res = 8 - bs->nbBits;
@@ -519,6 +544,7 @@ u8 gf_bs_align(GF_BitStream *bs)
 
 
 /*size available in the bitstream*/
+GF_EXPORT
 u64 gf_bs_available(GF_BitStream *bs)
 {
 	s64 cur, end;
@@ -564,7 +590,8 @@ static u32 BS_CutBuffer(GF_BitStream *bs)
 }
 
 /*For DYN mode, this gets the content out*/
-void gf_bs_get_content(GF_BitStream *bs, unsigned char **output, u32 *outSize)
+GF_EXPORT
+void gf_bs_get_content(GF_BitStream *bs, char **output, u32 *outSize)
 {
 	/*only in WRITE MEM mode*/
 	if (bs->bsmode != GF_BITSTREAM_WRITE_DYN) return;
@@ -574,7 +601,7 @@ void gf_bs_get_content(GF_BitStream *bs, unsigned char **output, u32 *outSize)
 		free(bs->original);
 	} else {
 		BS_CutBuffer(bs);
-		*output = (unsigned char*)bs->original;
+		*output = bs->original;
 		*outSize = (u32) bs->size;
 	}
 	bs->original = NULL;
@@ -587,6 +614,7 @@ void gf_bs_get_content(GF_BitStream *bs, unsigned char **output, u32 *outSize)
 	If READ (MEM or FILE) mode, just read n times 8 bit
 	If WRITE (MEM or FILE) mode, write n times 0 on 8 bit
 */
+GF_EXPORT
 void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 {
 	if (!bs || !nbBytes) return;
@@ -613,6 +641,7 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 }
 
 /*Only valid for READ MEMORY*/
+GF_EXPORT
 void gf_bs_rewind_bits(GF_BitStream *bs, u64 nbBits)
 {
 	u64 nbBytes;
@@ -629,7 +658,7 @@ void gf_bs_rewind_bits(GF_BitStream *bs, u64 nbBits)
 }
 
 /*seek from begining of stream: use internally even when non aligned!*/
-GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
+static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 {
 	u32 i;
 	/*if mem, do it */
@@ -661,6 +690,7 @@ GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 }
 
 /*seek from begining of stream: align before anything else*/
+GF_EXPORT
 GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset)
 {
 	/*warning: we allow offset = bs->size for WRITE buffers*/
@@ -671,6 +701,7 @@ GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset)
 }
 
 /*peek bits (as int!!) from orig position (ON BYTE BOUNDARIES, from 0) - only for read ...*/
+GF_EXPORT
 u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u32 byte_offset)
 {
 	u64 curPos;
@@ -695,6 +726,7 @@ u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u32 byte_offset)
 	return ret;
 }
 
+GF_EXPORT
 u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 {
 	s64 offset;
@@ -713,16 +745,19 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 	}
 }
 
+GF_EXPORT
 u64 gf_bs_get_size(GF_BitStream *bs)
 {
 	return bs->size;
 }
 
+GF_EXPORT
 u64 gf_bs_get_position(GF_BitStream *bs)
 {
 	return bs->position;
 }
 
+GF_EXPORT
 u8 gf_bs_bits_available(GF_BitStream *bs)
 {
 	if (bs->size > bs->position) return 8;
@@ -730,6 +765,7 @@ u8 gf_bs_bits_available(GF_BitStream *bs)
 	return 0;
 }
 
+GF_EXPORT
 void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), void *par)
 {
 	bs->EndOfStream = EndOfStream;
@@ -737,12 +773,7 @@ void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), vo
 }
 
 
-Bool BS_CheckVideoStartCode(GF_BitStream *bs)
-{
-	if ((bs->position+4<bs->size) && ! bs->original[bs->position] && !bs->original[bs->position+1] && (bs->original[bs->position+2]==1)) return 1;
-	return 0;
-}
-
+GF_EXPORT
 u32 gf_bs_read_u32_le(GF_BitStream *bs)
 {
 	u32 ret, v;
@@ -752,6 +783,8 @@ u32 gf_bs_read_u32_le(GF_BitStream *bs)
 	v = gf_bs_read_int(bs, 8); v<<=24; ret |= v;
 	return ret;
 }
+
+GF_EXPORT
 u16 gf_bs_read_u16_le(GF_BitStream *bs)
 {
 	u32 ret, v;
@@ -760,6 +793,7 @@ u16 gf_bs_read_u16_le(GF_BitStream *bs)
 	return ret;
 }
 
+GF_EXPORT
 void gf_bs_write_u32_le(GF_BitStream *bs, u32 val)
 {
 	gf_bs_write_int(bs, val & 0xFF, 8);
@@ -767,12 +801,15 @@ void gf_bs_write_u32_le(GF_BitStream *bs, u32 val)
 	gf_bs_write_int(bs, val>>16, 8);
 	gf_bs_write_int(bs, val>>24, 8);
 }
+
+GF_EXPORT
 void gf_bs_write_u16_le(GF_BitStream *bs, u32 val)
 {
 	gf_bs_write_int(bs, val & 0xFF, 8);
 	gf_bs_write_int(bs, val>>8, 8);
 }
 
+GF_EXPORT
 u32 gf_bs_get_bit_offset(GF_BitStream *bs)
 {
 	return (u32) ( (bs->position - 1) * 8 + bs->nbBits);

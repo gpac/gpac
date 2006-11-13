@@ -63,7 +63,7 @@ void RP_SDPFromFile(RTPClient *rtp, char *file_name, RTPStream *stream)
 	fseek(_sdp, 0, SEEK_END);
 	sdp_size = ftell(_sdp);
 	fseek(_sdp, 0, SEEK_SET);
-	sdp_buf = malloc(sdp_size);
+	sdp_buf = (char*)malloc(sdp_size);
 	fread(sdp_buf, sdp_size, 1, _sdp);
 	RP_LoadSDP(rtp, sdp_buf, sdp_size, stream);
 
@@ -117,7 +117,7 @@ void RP_FetchSDP(GF_InputService *plug, char *url, RTPStream *stream)
 		return;
 	}
 	
-	sdp = malloc(sizeof(SDPFetch));
+	sdp = (SDPFetch*)malloc(sizeof(SDPFetch));
 	memset(sdp, 0, sizeof(SDPFetch));
 	sdp->client = rtp;
 	sdp->remote_url = strdup(url);

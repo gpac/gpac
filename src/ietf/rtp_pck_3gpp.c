@@ -30,7 +30,7 @@ static void rtp_amr_flush(GP_RTPPacketizer *builder)
 	char *hdr;
 	u32 hdr_size;
 	if (!builder->bytesInPacket) return;
-	gf_bs_get_content(builder->pck_hdr, (unsigned char **)&hdr, &hdr_size);
+	gf_bs_get_content(builder->pck_hdr, &hdr, &hdr_size);
 	gf_bs_del(builder->pck_hdr);
 	builder->pck_hdr = NULL;
 	/*overwrite last frame F bit*/
@@ -195,7 +195,7 @@ static void rtp_evrc_smv_flush(GP_RTPPacketizer *builder)
 		u32 hdr_size;
 		/*padding*/
 		if (builder->last_au_sn % 2) gf_bs_write_int(builder->pck_hdr, 0, 4);
-		gf_bs_get_content(builder->pck_hdr, (unsigned char **)&hdr, &hdr_size);
+		gf_bs_get_content(builder->pck_hdr, &hdr, &hdr_size);
 		gf_bs_del(builder->pck_hdr);
 		builder->pck_hdr = NULL;
 		/*overwrite count*/
@@ -312,7 +312,7 @@ GF_Err gp_rtp_builder_do_h264(GP_RTPPacketizer *builder, char *data, u32 data_si
 		builder->rtp_header.SequenceNumber += 1;
 		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
 		
-		bs = gf_bs_new((unsigned char *) hdr, 2, GF_BITSTREAM_WRITE);
+		bs = gf_bs_new(hdr, 2, GF_BITSTREAM_WRITE);
 		gf_bs_write_int(bs, 0, 5);
 		gf_bs_write_int(bs, Pbit, 1);
 		gf_bs_write_int(bs, 0, 10);
@@ -337,7 +337,7 @@ GF_Err gp_rtp_builder_do_h264(GP_RTPPacketizer *builder, char *data, u32 data_si
 GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex)
 {
 	GF_BitStream *bs;
-	unsigned char *hdr;
+	char *hdr;
 	u32 samp_size, txt_size, pay_start, hdr_size, txt_done, cur_frag, nb_frag;
 	Bool is_utf_16 = 0;
 	

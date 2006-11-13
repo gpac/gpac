@@ -25,10 +25,7 @@
 
 #include <gpac/path2d.h>
 
-#ifdef __SYMBIAN32__
-#include <math.h>
-#endif
-
+GF_EXPORT
 GF_Path *gf_path_new()
 {
 	GF_Path *gp;
@@ -37,6 +34,7 @@ GF_Path *gf_path_new()
 	return gp;
 }
 
+GF_EXPORT
 void gf_path_reset(GF_Path *gp)
 {
 	Fixed fineness;
@@ -52,6 +50,7 @@ void gf_path_reset(GF_Path *gp)
 	gp->fineness = fineness;
 }
 
+GF_EXPORT
 GF_Path *gf_path_clone(GF_Path *gp)
 {
 	GF_Path *dst;
@@ -74,6 +73,7 @@ GF_Path *gf_path_clone(GF_Path *gp)
 	return dst;
 }
 
+GF_EXPORT
 void gf_path_del(GF_Path *gp)
 {
 	if (!gp) return;
@@ -92,6 +92,8 @@ void gf_path_del(GF_Path *gp)
 		_gp->tags = (u8 *) realloc(_gp->tags, sizeof(u8)*(_gp->n_alloc_points));	\
 	}	\
 
+
+GF_EXPORT
 GF_Err gf_path_add_move_to(GF_Path *gp, Fixed x, Fixed y)
 {
 	if (!gp) return GF_BAD_PARAM;
@@ -118,8 +120,10 @@ GF_Err gf_path_add_move_to(GF_Path *gp, Fixed x, Fixed y)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_path_add_move_to_vec(GF_Path *gp, GF_Point2D *pt) { return gf_path_add_move_to(gp, pt->x, pt->y); }
 
+GF_EXPORT
 GF_Err gf_path_add_line_to(GF_Path *gp, Fixed x, Fixed y)
 {
 	if (!gp || !gp->n_contours) return GF_BAD_PARAM;
@@ -136,8 +140,10 @@ GF_Err gf_path_add_line_to(GF_Path *gp, Fixed x, Fixed y)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_path_add_line_to_vec(GF_Path *gp, GF_Point2D *pt) { return gf_path_add_line_to(gp, pt->x, pt->y); }
 
+GF_EXPORT
 GF_Err gf_path_close(GF_Path *gp)
 {
 	GF_Point2D start, end;
@@ -154,6 +160,7 @@ GF_Err gf_path_close(GF_Path *gp)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_path_add_cubic_to(GF_Path *gp, Fixed c1_x, Fixed c1_y, Fixed c2_x, Fixed c2_y, Fixed x, Fixed y)
 {
 	if (!gp || !gp->n_contours) return GF_BAD_PARAM;
@@ -176,12 +183,15 @@ GF_Err gf_path_add_cubic_to(GF_Path *gp, Fixed c1_x, Fixed c1_y, Fixed c2_x, Fix
 	gp->flags &= ~GF_PATH_FLATTENED;
 	return GF_OK;
 }
+
+GF_EXPORT
 GF_Err gf_path_add_cubic_to_vec(GF_Path *gp, GF_Point2D *c1, GF_Point2D *c2, GF_Point2D *pt)
 {
 	return gf_path_add_cubic_to(gp, c1->x, c1->y, c2->x, c2->y, pt->x, pt->y);
 }
 
 
+GF_EXPORT
 GF_Err gf_path_add_quadratic_to(GF_Path *gp, Fixed c_x, Fixed c_y, Fixed x, Fixed y)
 {
 	if (!gp || !gp->n_contours) return GF_BAD_PARAM;
@@ -200,12 +210,14 @@ GF_Err gf_path_add_quadratic_to(GF_Path *gp, Fixed c_x, Fixed c_y, Fixed x, Fixe
 	gp->flags &= ~GF_PATH_FLATTENED;
 	return GF_OK;
 }
+GF_EXPORT
 GF_Err gf_path_add_quadratic_to_vec(GF_Path *gp, GF_Point2D *c, GF_Point2D *pt)
 {
 	return gf_path_add_quadratic_to(gp, c->x, c->y, pt->x, pt->y);
 }
 
 /*adds rectangle centered on cx, cy*/
+GF_EXPORT
 GF_Err gf_path_add_rect_center(GF_Path *gp, Fixed cx, Fixed cy, Fixed w, Fixed h)
 {
 	GF_Err e = gf_path_add_move_to(gp, cx - w/2, cy - h/2);
@@ -219,6 +231,7 @@ GF_Err gf_path_add_rect_center(GF_Path *gp, Fixed cx, Fixed cy, Fixed w, Fixed h
 	return gf_path_close(gp);
 }
 
+GF_EXPORT
 GF_Err gf_path_add_rect(GF_Path *gp, Fixed ox, Fixed oy, Fixed w, Fixed h)
 {
 	GF_Err e = gf_path_add_move_to(gp, ox, oy);
@@ -234,6 +247,7 @@ GF_Err gf_path_add_rect(GF_Path *gp, Fixed ox, Fixed oy, Fixed w, Fixed h)
 
 #define GF_2D_DEFAULT_RES	64
 
+GF_EXPORT
 GF_Err gf_path_add_ellipse(GF_Path *gp, Fixed cx, Fixed cy, Fixed a_axis, Fixed b_axis)
 {
 	GF_Err e;
@@ -303,6 +317,7 @@ static void gf_add_n_bezier(GF_Path *gp, GF_Point2D *newpts, u32 nbPoints)
 	gf_path_add_line_to(gp, newpts[nbPoints-1].x, newpts[nbPoints-1].y);
 }
 
+GF_EXPORT
 GF_Err gf_path_add_bezier(GF_Path *gp, GF_Point2D *pts, u32 nbPoints)
 {
 	GF_Point2D *newpts;
@@ -318,6 +333,7 @@ GF_Err gf_path_add_bezier(GF_Path *gp, GF_Point2D *pts, u32 nbPoints)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_path_add_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed fa_x, Fixed fa_y, Fixed fb_x, Fixed fb_y, Bool cw)
 {
 	GF_Matrix2D mat, inv;
@@ -372,6 +388,7 @@ GF_Err gf_path_add_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed fa_x, Fix
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_angle, u32 close_type)
 {
 	GF_Err e;
@@ -410,6 +427,7 @@ GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_a
 }
 
 
+GF_EXPORT
 GF_Err gf_path_get_control_bounds(GF_Path *gp, GF_Rect *rc)
 {
 	GF_Point2D *pt, *end;
@@ -544,6 +562,7 @@ Suite:
 }
 
 
+GF_EXPORT
 GF_Err gf_path_get_bounds(GF_Path *gp, GF_Rect *rc)
 {
 	u32 i;
@@ -713,6 +732,7 @@ subdivide:
 	return gf_subdivide_cubic(gp, x_m, y_m, xb1, yb1, xb2, yb2, x3, y3, fineness);
 }
 
+GF_EXPORT
 GF_Path *gf_path_get_flatten(GF_Path *gp)
 {
 	GF_Path *ngp;
@@ -773,6 +793,7 @@ GF_Path *gf_path_get_flatten(GF_Path *gp)
 	return ngp;
 }
 
+GF_EXPORT
 void gf_path_flatten(GF_Path *gp)
 {
 	GF_Path *res;
@@ -839,6 +860,7 @@ static void gf_subdivide_cubic_hit_test(Fixed h_x, Fixed h_y, Fixed x0, Fixed y0
 	}
 }
 
+GF_EXPORT
 Bool gf_path_point_over(GF_Path *gp, Fixed x, Fixed y)
 {
 	u32 i, *contour, start_idx;
@@ -935,6 +957,7 @@ struct _path_iterator
 	Fixed length;
 };
 
+GF_EXPORT
 GF_PathIterator *gf_path_iterator_new(GF_Path *gp)
 {
 	GF_Path *flat;
@@ -974,11 +997,13 @@ GF_PathIterator *gf_path_iterator_new(GF_Path *gp)
 	return it;
 }
 
+GF_EXPORT
 Fixed gf_path_iterator_get_length(GF_PathIterator *it)
 {
 	return it ? it->length : 0;
 }
 
+GF_EXPORT
 Bool gf_path_iterator_get_transform(GF_PathIterator *path, Fixed offset, Bool follow_tangent, GF_Matrix2D *mat, Bool smooth_edges, Fixed length_after_point)
 {
 	GF_Matrix2D final, rot;
@@ -1051,6 +1076,7 @@ found:
 	return 1;
 }
 
+GF_EXPORT
 void gf_path_iterator_del(GF_PathIterator *it)
 {
 	if (it->seg) free(it->seg);
@@ -1093,6 +1119,7 @@ void gf_path_iterator_del(GF_PathIterator *it)
     dprev.x = dcur.x;		\
     dprev.y = dcur.y;							\
 
+GF_EXPORT
 u32 gf_polygone2d_get_convexity(GF_Point2D *pts, u32 len)
 {
 	s32 curDir, thisDir = 0, dirChanges = 0, angleSign = 0;

@@ -41,7 +41,7 @@ GF_Err R3D_GetViewpoint(GF_VisualRenderer *vr, u32 viewpoint_idx, const char **o
 	if (!viewpoint_idx) return GF_BAD_PARAM;
 	if (viewpoint_idx>count) return GF_EOS;
 
-	n = gf_list_get(sr->surface->view_stack, viewpoint_idx-1);
+	n = (GF_Node*)gf_list_get(sr->surface->view_stack, viewpoint_idx-1);
 	switch (gf_node_get_tag(n)) {
 	case TAG_MPEG4_Viewport: *outName = ((M_Viewport*)n)->description.buffer; *is_bound = ((M_Viewport*)n)->isBound;return GF_OK;
 	case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: *outName = ((M_Viewpoint*)n)->description.buffer; *is_bound = ((M_Viewpoint*)n)->isBound; return GF_OK;
@@ -61,14 +61,14 @@ GF_Err R3D_SetViewpoint(GF_VisualRenderer *vr, u32 viewpoint_idx, const char *vi
 
 	if (viewpoint_idx) {
 		Bool bind;
-		n = gf_list_get(sr->surface->view_stack, viewpoint_idx-1);
+		n = (GF_Node*)gf_list_get(sr->surface->view_stack, viewpoint_idx-1);
 		bind = Bindable_GetIsBound(n);
 		Bindable_SetSetBind(n, !bind);
 		return GF_OK;
 	}
 	for (i=0; i<count;i++) {
 		char *name = NULL;
-		n = gf_list_get(sr->surface->view_stack, viewpoint_idx-1);
+		n = (GF_Node*)gf_list_get(sr->surface->view_stack, viewpoint_idx-1);
 		switch (gf_node_get_tag(n)) {
 		case TAG_MPEG4_Viewport: name = ((M_Viewport*)n)->description.buffer; break;
 		case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: name = ((M_Viewpoint*)n)->description.buffer; break;
@@ -225,8 +225,9 @@ static void RenderViewport(GF_Node *node, void *rs)
 
 void R3D_InitViewport(Render3D *sr, GF_Node *node)
 {
-	ViewStack *st = malloc(sizeof(ViewStack));
-	memset(st, 0, sizeof(ViewStack));
+	ViewStack *st;
+	GF_SAFEALLOC(st, ViewStack);
+
 	st->reg_stacks = gf_list_new();
 	gf_sr_traversable_setup(st, node, sr->compositor);
 	gf_node_set_private(node, st);
@@ -314,8 +315,9 @@ static void RenderViewpoint(GF_Node *node, void *rs)
 
 void R3D_InitViewpoint(Render3D *sr, GF_Node *node)
 {
-	ViewStack *st = malloc(sizeof(ViewStack));
-	memset(st, 0, sizeof(ViewStack));
+	ViewStack *st;
+	GF_SAFEALLOC(st, ViewStack);
+
 	st->reg_stacks = gf_list_new();
 	gf_mx_init(st->world_view_mx);
 	gf_sr_traversable_setup(st, node, sr->compositor);
@@ -413,8 +415,9 @@ static void RenderNavigationInfo(GF_Node *node, void *rs)
 
 void R3D_InitNavigationInfo(Render3D *sr, GF_Node *node)
 {
-	ViewStack *st = malloc(sizeof(ViewStack));
-	memset(st, 0, sizeof(ViewStack));
+	ViewStack *st;
+	GF_SAFEALLOC(st, ViewStack);
+
 	st->reg_stacks = gf_list_new();
 	gf_sr_traversable_setup(st, node, sr->compositor);
 	gf_node_set_private(node, st);
@@ -467,7 +470,7 @@ static void RenderFog(GF_Node *node, void *rs)
 	if (!fog->isBound || !fog->visibilityRange) return;
 
 	/*fog visibility is expressed in current bound VP so get its matrix*/
-	vp = gf_list_get(eff->viewpoints, 0);
+	vp = (M_Viewpoint*)gf_list_get(eff->viewpoints, 0);
 	vp_st = NULL;
 	if (vp && vp->isBound) vp_st = (ViewStack *) gf_node_get_private((GF_Node *)vp);
 
@@ -488,8 +491,9 @@ static void RenderFog(GF_Node *node, void *rs)
 
 void R3D_InitFog(Render3D *sr, GF_Node *node)
 {
-	ViewStack *st = malloc(sizeof(ViewStack));
-	memset(st, 0, sizeof(ViewStack));
+	ViewStack *st;
+	GF_SAFEALLOC(st, ViewStack);
+
 	st->reg_stacks = gf_list_new();
 	gf_sr_traversable_setup(st, node, sr->compositor);
 	gf_node_set_private(node, st);

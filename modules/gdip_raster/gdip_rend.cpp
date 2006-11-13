@@ -55,8 +55,6 @@ struct IDirectDrawSurface7;
 #include "GdiplusColor.h"
 #include "GdiplusFlat.h"
 
-#include <math.h>
-
 struct _graphics
 {
 	GpGraphics *graph;
@@ -193,7 +191,7 @@ GF_Err gf_attach_surface_to_texture(GF_SURFACE _this, GF_STENCIL sten)
 	return GF_OK;
 }
 static
-GF_Err gf_attach_surface_to_buffer(GF_SURFACE _this, unsigned char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
+GF_Err gf_attach_surface_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
 {
 	GpMatrix *mat;
 	u32 pFormat;
@@ -223,7 +221,7 @@ GF_Err gf_attach_surface_to_buffer(GF_SURFACE _this, unsigned char *pixels, u32 
 	default:
 		return GF_NOT_SUPPORTED;
 	}
-	GdipCreateBitmapFromScan0(width, height, stride, pFormat, pixels, &_graph->pBitmap);
+	GdipCreateBitmapFromScan0(width, height, stride, pFormat, (unsigned char*)pixels, &_graph->pBitmap);
 	GdipGetImageGraphicsContext(_graph->pBitmap, &_graph->graph);
 	
 	GdipCreateMatrix(&mat);

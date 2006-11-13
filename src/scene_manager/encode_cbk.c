@@ -68,7 +68,7 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 	if (!iod) {
 		count = 0;
 		i=0;
-		while ((codec->sc = gf_list_enum(codec->ctx->streams, &i))) {
+		while ((codec->sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i))) {
 			if (codec->sc->streamType == GF_STREAM_OD) count++;
 			codec->sc = NULL;
 		}
@@ -78,7 +78,7 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 	codec->sc = NULL;
 	count = gf_list_count(codec->ctx->streams);
 	i=0;
-	while ((codec->sc = gf_list_enum(codec->ctx->streams, &i))) {
+	while ((codec->sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i))) {
 		if (codec->sc->streamType == GF_STREAM_SCENE) break;
 	}
 	if (!codec->sc) return GF_NOT_SUPPORTED;
@@ -92,7 +92,7 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 	if (iod) {
 		is_in_iod = 0;
 		j=0;
-		while ((esd = gf_list_enum(iod->ESDescriptors, &j))) {
+		while ((esd = (GF_ESD*)gf_list_enum(iod->ESDescriptors, &j))) {
 			if (esd->decoderConfig && esd->decoderConfig->streamType == GF_STREAM_SCENE) {
 				if (!codec->sc->ESID) codec->sc->ESID = esd->ESID;
 				if (codec->sc->ESID == esd->ESID) {
@@ -209,6 +209,7 @@ static GF_Err gf_sm_live_encode_bifs_au(GF_BifsEngine *codec, u32 currentAUCount
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_beng_aggregate_context(GF_BifsEngine *codec)
 {
 	GF_Err	e;
@@ -219,6 +220,7 @@ GF_Err gf_beng_aggregate_context(GF_BifsEngine *codec)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_beng_save_context(GF_BifsEngine *codec, char *  ctxFileName)
 {
 	u32	d_mode, do_enc;
@@ -249,6 +251,7 @@ GF_Err gf_beng_save_context(GF_BifsEngine *codec, char *  ctxFileName)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (*AUCallback)(void *, char *, u32 , u64 ))
 {
 	GF_StreamContext *sc;
@@ -263,7 +266,7 @@ GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (
 	sc = NULL;
 	count = gf_list_count(codec->ctx->streams);
 	i = 0;
-	while ((sc = gf_list_enum(codec->ctx->streams, &i))) {
+	while ((sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i))) {
 		if (sc->streamType == GF_STREAM_SCENE) break;
 		sc = NULL;
 	}
@@ -281,6 +284,7 @@ exit:
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_beng_encode_from_file(GF_BifsEngine *codec, char *auFile, GF_Err (*AUCallback)(void *, char *, u32 , u64 ))
 {
 	GF_Err e;
@@ -296,7 +300,7 @@ GF_Err gf_beng_encode_from_file(GF_BifsEngine *codec, char *auFile, GF_Err (*AUC
 	sc = NULL;
 	count = gf_list_count(codec->ctx->streams);
 	i=0;
-	while ((sc = gf_list_enum(codec->ctx->streams, &i))) {
+	while ((sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i))) {
 		if (sc->streamType == GF_STREAM_SCENE) break;
 		sc = NULL;
 	}
@@ -318,11 +322,13 @@ exit:
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_beng_encode_context(GF_BifsEngine *codec, GF_Err (*AUCallback)(void *, char *, u32 , u64 ))
 {
 	return gf_sm_live_encode_bifs_au(codec, 0, AUCallback);
 } 
 
+GF_EXPORT
 void gf_beng_terminate(GF_BifsEngine *codec)
 {
 	if (codec->bifsenc) gf_bifs_encoder_del(codec->bifsenc);
@@ -331,6 +337,7 @@ void gf_beng_terminate(GF_BifsEngine *codec)
 	free(codec);
 }
 
+GF_EXPORT
 void gf_beng_get_stream_config(GF_BifsEngine *codec, char **config, u32 *config_len)
 {
 	*config = codec->encoded_bifs_config;
@@ -338,6 +345,7 @@ void gf_beng_get_stream_config(GF_BifsEngine *codec, char **config, u32 *config_
 }
 
 
+GF_EXPORT
 GF_BifsEngine *gf_beng_init(void *calling_object, char * inputContext)
 {
 	GF_BifsEngine *codec;
@@ -379,6 +387,7 @@ exit:
 	return NULL;
 }
 
+GF_EXPORT
 GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char * inputContext, u32 width, u32 height, Bool usePixelMetrics)
 {
 	GF_BifsEngine *codec;

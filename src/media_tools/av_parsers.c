@@ -25,7 +25,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/internal/ogg.h>
 #include <gpac/constants.h>
-#include <math.h>
+#include <gpac/math.h>
 
 /*
 	MPEG-4 video (14496-2)
@@ -54,12 +54,12 @@ struct __tag_m4v_parser
 	u32 tc_dec, prev_tc_dec, tc_disp, prev_tc_disp;
 };
 
-GF_M4VParser *gf_m4v_parser_new(unsigned char *data, u32 data_size, Bool mpeg12video)
+GF_EXPORT
+GF_M4VParser *gf_m4v_parser_new(char *data, u32 data_size, Bool mpeg12video)
 {
 	GF_M4VParser *tmp;
 	if (!data || !data_size) return NULL;
-	tmp = malloc(sizeof(GF_M4VParser));
-	memset(tmp, 0, sizeof(GF_M4VParser));
+	GF_SAFEALLOC(tmp, GF_M4VParser);
 	tmp->bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	tmp->mpeg12 = mpeg12video;
 	return tmp;
@@ -68,13 +68,13 @@ GF_M4VParser *gf_m4v_parser_new(unsigned char *data, u32 data_size, Bool mpeg12v
 GF_M4VParser *gf_m4v_parser_bs_new(GF_BitStream *bs, Bool mpeg12video)
 {
 	GF_M4VParser *tmp;
-	tmp = malloc(sizeof(GF_M4VParser));
-	memset(tmp, 0, sizeof(GF_M4VParser));
+	GF_SAFEALLOC(tmp, GF_M4VParser);
 	tmp->bs = bs;
 	tmp->mpeg12 = mpeg12video;
 	return tmp;
 }
 
+GF_EXPORT
 void gf_m4v_parser_del(GF_M4VParser *m4v)
 {
 	gf_bs_del(m4v->bs);
@@ -86,7 +86,7 @@ void gf_m4v_parser_del(GF_M4VParser *m4v)
 s32 M4V_LoadObject(GF_M4VParser *m4v)
 {
 	u32 v, bpos, found;
-	unsigned char m4v_cache[M4V_CACHE_SIZE];
+	char m4v_cache[M4V_CACHE_SIZE];
 	u64 end, cache_start, load_size;
 	if (!m4v) return 0;
 	bpos = 0;
@@ -105,7 +105,7 @@ s32 M4V_LoadObject(GF_M4VParser *m4v)
 			cache_start = gf_bs_get_position(m4v->bs);
 			gf_bs_read_data(m4v->bs, m4v_cache, (u32) load_size);
 		}
-		v = ( (v<<8) & 0xFFFFFF00) | (m4v_cache[bpos]);
+		v = ( (v<<8) & 0xFFFFFF00) | ((u8) m4v_cache[bpos]);
 		bpos++;
 		if ((v & 0xFFFFFF00) == 0x00000100) {
 			end = cache_start+bpos-4;
@@ -120,6 +120,7 @@ s32 M4V_LoadObject(GF_M4VParser *m4v)
 	return (s32) m4v->current_object_type;
 }
 
+GF_EXPORT
 const char *gf_m4v_get_profile_name(u8 video_pl)
 {
 	switch (video_pl) {
@@ -189,27 +190,28 @@ const char *gf_m4v_get_profile_name(u8 video_pl)
 	}
 }
 
-void gf_m4v_rewrite_pl(unsigned char **o_data, u32 *o_dataLen, u8 PL)
+GF_EXPORT
+void gf_m4v_rewrite_pl(char **o_data, u32 *o_dataLen, u8 PL)
 {
 	u32 pos = 0;
-	unsigned char *data = *o_data;
+	unsigned char *data = (unsigned char *)*o_data;
 	u32 dataLen = *o_dataLen;
 
 	while (pos+4<dataLen) {
-		if (!data[pos] && !data[pos+1] && (data[pos+2]==1) && (data[pos+3]==M4V_VOS_START_CODE)) {
+		if (!data[pos] && !data[pos+1] && (data[pos+2]==0x01) && (data[pos+3]==M4V_VOS_START_CODE)) {
 			data[pos+4] = PL;
 			return;
 		}
 		pos ++;
 	}
 	/*emulate VOS at beggining*/
-	(*o_data) = malloc(sizeof(unsigned char)*(dataLen+5));
+	(*o_data) = (char *)malloc(sizeof(char)*(dataLen+5));
 	(*o_data)[0] = 0;
 	(*o_data)[1] = 0;
 	(*o_data)[2] = 1;
-	(*o_data)[3] = M4V_VOS_START_CODE;
+	(*o_data)[3] = (char) M4V_VOS_START_CODE;
 	(*o_data)[4] = PL;
-	memcpy( (*o_data + 5), data, sizeof(unsigned char)*dataLen);
+	memcpy( (*o_data + 5), data, sizeof(char)*dataLen);
 	free(data);
 	(*o_dataLen) = dataLen + 5;
 }
@@ -225,7 +227,7 @@ static GF_Err M4V_Reset(GF_M4VParser *m4v, u32 start)
 
 static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 {
-	unsigned char p[4];
+	char p[4];
 	s32 o_type;
 	u8 go, par;
 
@@ -398,6 +400,7 @@ static GF_Err gf_m4v_parse_config_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *ds
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_m4v_parse_config(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 {
 	if (m4v->mpeg12) {
@@ -418,7 +421,7 @@ static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi
 	firstObj = 1;
 	hasVOP = 0;
 	*is_coded = 0;
-	m4v->current_object_type = -1;
+	m4v->current_object_type = (u32) -1;
 	*frame_type = 0;
 
 	M4V_Reset(m4v, m4v->current_object_start);
@@ -489,7 +492,7 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 	firstObj = 1;
 	hasVOP = 0;
 	*is_coded = 0;
-	m4v->current_object_type = -1;
+	m4v->current_object_type = (u32) -1;
 	*frame_type = 0;
 
 	M4V_Reset(m4v, m4v->current_object_start);
@@ -563,6 +566,7 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u32 *size, u32 *start, Bool *is_coded)
 {
 	if (m4v->mpeg12) {
@@ -572,7 +576,7 @@ GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_ty
 	}
 }
 
-GF_Err gf_m4v_rewrite_par(unsigned char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
+GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 {
 	u32 start, end, size;
 	GF_BitStream *mod;
@@ -641,17 +645,20 @@ GF_Err gf_m4v_rewrite_par(unsigned char **o_data, u32 *o_dataLen, s32 par_n, s32
 	return GF_OK;
 }
 
+GF_EXPORT
 u32 gf_m4v_get_object_start(GF_M4VParser *m4v)
 {
 	return m4v->current_object_start;
 }
 
+GF_EXPORT
 Bool gf_m4v_is_valid_object_type(GF_M4VParser *m4v)
 {
 	return ((s32) m4v->current_object_type==-1) ? 0 : 1;
 }
 
 
+GF_EXPORT
 GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
 {
 	GF_Err e;
@@ -702,12 +709,14 @@ static const char *M4A_ObjectTypesNames[] = {
     "(Reserved)"
 };
 
+GF_EXPORT
 const char *gf_m4a_object_type_name(u32 objectType)
 {
   if (objectType>=32) return NULL;
   return M4A_ObjectTypesNames[objectType];
 }
 
+GF_EXPORT
 const char *gf_m4a_get_profile_name(u8 audio_pl)
 {
 	switch (audio_pl) {
@@ -781,6 +790,7 @@ u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
 {
 	GF_BitStream *bs;
@@ -833,6 +843,7 @@ GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
 	MP3 parser
 	credits go to CISCO - MPEG4IP
 */
+GF_EXPORT
 u8 gf_mp3_version(u32 hdr)
 {
 	return ((hdr >> 19) & 0x3); 
@@ -843,11 +854,13 @@ static u8 MP3_GetLayerV(u32 hdr)
 	return ((hdr >> 17) & 0x3); 
 }
 
+GF_EXPORT
 u8 gf_mp3_layer(u32 hdr)
 {
 	return 4 - (((hdr >> 17) & 0x3));
 }
 
+GF_EXPORT
 u8 gf_mp3_num_channels(u32 hdr)
 {
 	if (((hdr >> 6) & 0x3) == 3) return 1;
@@ -862,6 +875,7 @@ static u16 MP3SamplingRates[4][3] = {
 	{ 44100, 48000, 32000 }		/* MPEG-1 */
 };
 
+GF_EXPORT
 u16 gf_mp3_sampling_rate(u32 hdr)
 {
 	/* extract the necessary fields from the MP3 header */
@@ -870,6 +884,7 @@ u16 gf_mp3_sampling_rate(u32 hdr)
 	return MP3SamplingRates[version][sampleRateIndex];
 }
 
+GF_EXPORT
 u16 gf_mp3_window_size(u32 hdr)
 {
 	u8 version = gf_mp3_version(hdr);
@@ -883,6 +898,7 @@ u16 gf_mp3_window_size(u32 hdr)
 	return 384;
 }
 
+GF_EXPORT
 u8 gf_mp3_object_type_indication(u32 hdr)
 {
 	switch (gf_mp3_version(hdr)) {
@@ -904,6 +920,7 @@ static const char *MP3_Versions[] =
 	"MPEG-1"
 };
 
+GF_EXPORT
 const char *gf_mp3_version_name(u32 hdr)
 {
   u32 v = gf_mp3_version(hdr);
@@ -925,6 +942,7 @@ static u16 MP3BitRates[5][14] = {
 };
 
 
+GF_EXPORT
 u16 gf_mp3_frame_size(u32 hdr)
 {
 	u32 val;
@@ -984,6 +1002,7 @@ u16 gf_mp3_bit_rate(u32 hdr)
 
 
 
+GF_EXPORT
 u32 gf_mp3_get_next_header(FILE* in)
 {
 	u8 b, state = 0;
@@ -1034,6 +1053,7 @@ u32 gf_mp3_get_next_header(FILE* in)
 	return 0;
 }
 
+GF_EXPORT
 u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos)
 {
 	u32 cur;
@@ -1171,7 +1191,7 @@ u32 AVC_IsStartCode(GF_BitStream *bs)
 u32 AVC_NextStartCode(GF_BitStream *bs)
 {
 	u32 v, bpos;
-	unsigned char avc_cache[AVC_CACHE_SIZE];
+	char avc_cache[AVC_CACHE_SIZE];
 	u64 end, cache_start, load_size;
 	u64 start = gf_bs_get_position(bs);
 	if (start<3) return 0;
@@ -1645,7 +1665,7 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 	bs = gf_bs_new(buffer, nal_size, GF_BITSTREAM_READ);
 	gf_bs_read_int(bs, 8);
 
-	new_buffer = malloc(sizeof(char)*nal_size);
+	new_buffer = (char*)malloc(sizeof(char)*nal_size);
 	new_buffer[0] = (char) hdr;
 	written = 1;
 
@@ -1774,7 +1794,7 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 	memset(&avc, 0, sizeof(AVCState));
 
 	i=0;
-	while ((slc = gf_list_enum(avcc->sequenceParameterSets, &i))) {
+	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
 		orig = gf_bs_new(slc->data, slc->size, GF_BITSTREAM_READ);
 		/*skip NALU type*/
 		gf_bs_read_int(orig, 8);
@@ -1838,14 +1858,15 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 		gf_bs_del(orig);
 		free(slc->data);
 		slc->data = NULL;
-		gf_bs_get_content(mod, (unsigned char **) &slc->data, &flag);
+		gf_bs_get_content(mod, (char **) &slc->data, &flag);
 		slc->size = flag;
 		gf_bs_del(mod);
 	}
 	return GF_OK;
 }
 
-GF_Err gf_avc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d)
+GF_EXPORT
+GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d)
 {
 	GF_BitStream *bs;
 	AVCState avc;
@@ -1861,13 +1882,14 @@ GF_Err gf_avc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *width, u32 *height, 
 
 	if (width) *width = avc.sps[idx].width;
 	if (height) *height = avc.sps[idx].height;
-	if (par_n) *par_n = avc.sps[idx].par_num ? avc.sps[idx].par_num : -1;
-	if (par_d) *par_d = avc.sps[idx].par_den ? avc.sps[idx].par_den : -1;
+	if (par_n) *par_n = avc.sps[idx].par_num ? avc.sps[idx].par_num : (u32) -1;
+	if (par_d) *par_d = avc.sps[idx].par_den ? avc.sps[idx].par_den : (u32) -1;
 	return GF_OK;
 }
 
 #endif
 
+GF_EXPORT
 const char *gf_avc_get_profile_name(u8 video_prof)
 {
 	switch (video_prof) {
@@ -2036,13 +2058,14 @@ static u32 icount(u32 v)
 }
 
 
+GF_EXPORT
 Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 {
 	u32 pack_type, i, j, k, times, nb_part, nb_books, nb_modes;
 	char szNAME[8];
 	oggpack_buffer opb;
 
-	oggpack_readinit(&opb, data, data_len);
+	oggpack_readinit(&opb, (u8*)data, data_len);
 	pack_type = oggpack_read(&opb, 8);
 	i=0;
 	while (i<6) { szNAME[i] = oggpack_read(&opb, 8); i++;}
@@ -2133,12 +2156,12 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 			u32 *parts, *class_dims, count, rangebits;
 			u32 max_class = 0;
 			nb_part = oggpack_read(&opb, 5);
-			parts = malloc(sizeof(u32) * nb_part);
+			parts = (u32*)malloc(sizeof(u32) * nb_part);
 			for (j=0;j<nb_part;j++) {
 				parts[j] = oggpack_read(&opb, 4);
 				if (max_class<parts[j]) max_class = parts[j];
 			}
-			class_dims = malloc(sizeof(u32) * (max_class+1));
+			class_dims = (u32*)malloc(sizeof(u32) * (max_class+1));
 			for (j=0; j<max_class+1;j++) {
 				u32 class_sub;
 				class_dims[j] = oggpack_read(&opb, 3) + 1;
@@ -2217,12 +2240,13 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 	return 1;
 }
 
+GF_EXPORT
 u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length)
 {
 	s32 block_size;
 	oggpack_buffer opb;
 	if (!vp->is_init) return 0;
-	oggpack_readinit(&opb, data, data_length);
+	oggpack_readinit(&opb, (unsigned char*)data, data_length);
 	/*not audio*/
 	if (oggpack_read(&opb, 1) !=0) return 0;
 	block_size = oggpack_read(&opb, vp->modebits);
@@ -2232,6 +2256,7 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length)
 
 
 
+GF_EXPORT
 void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *width, u32 *height)
 {
 	u8 b1, b2, b3;

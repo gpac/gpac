@@ -90,7 +90,7 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
 			cu->prev = prev;
 		}
 		cu->dataLength = 0;
-		cu->data = UnitSize ? malloc(sizeof(char)*UnitSize) : NULL;
+		cu->data = UnitSize ? (char*)malloc(sizeof(char)*UnitSize) : NULL;
 		prev = cu;
 		capacity --;
 		i++;
@@ -353,10 +353,10 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 
 	cb->UnitSize = newCapacity;
 	/*don't touch any existing memory (it may happen on the fly with audio)*/
-	cu->data = realloc(cu->data, sizeof(char)*newCapacity);
+	cu->data = (char*)realloc(cu->data, sizeof(char)*newCapacity);
 	cu = cu->next;
 	while (cu != cb->input) {
-		cu->data = realloc(cu->data, sizeof(char)*newCapacity);
+		cu->data = (char*)realloc(cu->data, sizeof(char)*newCapacity);
 		cu = cu->next;
 	}
 
@@ -392,7 +392,7 @@ void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity)
 			cu->prev = prev;
 		}
 		cu->dataLength = 0;
-		cu->data = malloc(sizeof(char)*UnitSize);
+		cu->data = (char*)malloc(sizeof(char)*UnitSize);
 		prev = cu;
 		Capacity --;
 		i++;

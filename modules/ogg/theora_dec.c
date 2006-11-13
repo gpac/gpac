@@ -42,7 +42,7 @@ typedef struct
 
 #define THEORACTX() TheoraDec *ctx = (TheoraDec *) ((OGGWraper *)ifcg->privateStack)->opaque
 
-static GF_Err THEO_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err THEO_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
     ogg_packet oggpacket;
 	GF_BitStream *bs;
@@ -148,9 +148,9 @@ static GF_Err THEO_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 
 
 static GF_Err THEO_ProcessData(GF_MediaDecoder *ifcg, 
-		unsigned char *inBuffer, u32 inBufferLength,
+		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
-		unsigned char *outBuffer, u32 *outBufferLength,
+		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
 	ogg_packet op;

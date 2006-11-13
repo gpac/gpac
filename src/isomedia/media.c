@@ -96,7 +96,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 		memset(szName, 0, 80);
 		strcpy(szName, "QCELP-13K(GPAC-emulated)");
 		gf_bs_write_data(bs, szName, 80);
-		ent = gf_list_get(stbl->TimeToSample->entryList, 0);
+		ent = (GF_SttsEntry*)gf_list_get(stbl->TimeToSample->entryList, 0);
 		sample_rate = entry->samplerate_hi;
 		block_size = ent ? ent->sampleDelta : 160;
 		gf_bs_write_u16_le(bs, 8*sample_size*sample_rate/block_size);
@@ -118,7 +118,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 		gf_bs_write_u16(bs, 0);
 		memset(szName, 0, 80);
 		gf_bs_write_data(bs, szName, 20);/*reserved*/
-		gf_bs_get_content(bs, (unsigned char **) & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
+		gf_bs_get_content(bs, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 	}
 		return GF_OK;
@@ -136,7 +136,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 	gf_bs_write_u8(bs, entry->channel_count);
 	gf_bs_write_u8(bs, entry->bitspersample);
 	gf_bs_write_u8(bs, 0);
-	gf_bs_get_content(bs, (unsigned char **) & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
+	gf_bs_get_content(bs, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
 	gf_bs_del(bs);
 	return GF_OK;
 }
@@ -209,7 +209,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			gf_bs_write_u32(bs, entry->type);
 			gf_bs_write_u16(bs, ((GF_MPEGVisualSampleEntryBox*)entry)->Width);
 			gf_bs_write_u16(bs, ((GF_MPEGVisualSampleEntryBox*)entry)->Height);
-			gf_bs_get_content(bs, (unsigned char **) & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_bs_get_content(bs, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_bs_del(bs);
 			return GF_OK;
 		}
@@ -234,7 +234,7 @@ Bool Media_IsSampleSyncShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber)
 	GF_StshEntry *ent;
 	if (!stsh) return 0;
 	i=0;
-	while ((ent = gf_list_enum(stsh->entries, &i))) {
+	while ((ent = (GF_StshEntry*)gf_list_enum(stsh->entries, &i))) {
 		if ((u32) ent->syncSampleNumber == sampleNumber) return 1;
 		else if ((u32) ent->syncSampleNumber > sampleNumber) return 0;
 	}
@@ -450,7 +450,7 @@ GF_Err Media_FindDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname
 	if (!dref) return GF_BAD_PARAM;
 	*dataRefIndex = 0;
 	i=0;
-	while ((entry = gf_list_enum(dref->boxList, &i))) {
+	while ((entry = (GF_DataEntryURLBox*)gf_list_enum(dref->boxList, &i))) {
 		if (entry->type == GF_ISOM_BOX_TYPE_URL) {
 			//self-contained case
 			if (entry->flags == 1) {
@@ -493,7 +493,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 		trak->Media->mediaHeader->duration = 0;
 		if (Track_IsMPEG4Stream(trak->Media->handler->handlerType)) {
 			Media_GetESD(trak->Media, 1, &esd, 1);
-			if (esd && esd->URLString) trak->Media->mediaHeader->duration = -1;
+			if (esd && esd->URLString) trak->Media->mediaHeader->duration = (u64) -1;
 		}
 		return GF_OK;
 
@@ -505,7 +505,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 		//we assume a constant frame rate for the media and assume the last sample
 		//will be hold the same time as the prev one
 		stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS);
-		ent = gf_list_last(trak->Media->information->sampleTable->TimeToSample->entryList);
+		ent = (GF_SttsEntry*)gf_list_last(trak->Media->information->sampleTable->TimeToSample->entryList);
 		trak->Media->mediaHeader->duration = DTS;
 
 #if 1

@@ -141,7 +141,7 @@ void OD_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 	u32 len = strlen(val) / 3;
 	if (*out_data) free(*out_data);
 	*out_data_size = len;
-	*out_data = malloc(sizeof(char) * len);
+	*out_data = (char*)malloc(sizeof(char) * len);
 	s[2] = 0;
 	for (i=0; i<len; i++) {
 		s[0] = val[3*i+1];
@@ -167,7 +167,7 @@ void OD_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 	size = ftell(f);
 	fseek(f, 0, SEEK_SET);
 	*out_data_size = size;
-	*out_data = malloc(sizeof(char) * size);
+	*out_data = (char*)malloc(sizeof(char) * size);
 	fread(*out_data, sizeof(char) * size, 1, f);
 	fclose(f);
 }
@@ -179,7 +179,7 @@ void OD_ParseBin128(char *val, bin128 *data)
 	if (strlen(val)<16) {
 		GF_BitStream *bs;
 		u32 int_val = atoi(val);
-		bs = gf_bs_new((unsigned char *) (*data), 16, GF_BITSTREAM_WRITE);
+		bs = gf_bs_new((char*) (*data), 16, GF_BITSTREAM_WRITE);
 		gf_bs_write_int(bs, 0, 32);
 		gf_bs_write_int(bs, 0, 32);
 		gf_bs_write_int(bs, 0, 32);
@@ -532,7 +532,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "fontID") || !stricmp(fieldName, "fontName")) {
 			/*check if we need a new entry*/
 			if (!sd->font_count) {
-				sd->fonts = malloc(sizeof(GF_FontRecord));
+				sd->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
 				sd->font_count = 1;
 				sd->fonts[0].fontID = 0;
 				sd->fonts[0].fontName = NULL;
@@ -542,7 +542,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				else if (!stricmp(fieldName, "fontName") && sd->fonts[sd->font_count-1].fontName) realloc_fonts = 1;
 				if (realloc_fonts) {
 					sd->font_count += 1;
-					sd->fonts = realloc(sd->fonts, sizeof(GF_FontRecord)*sd->font_count);
+					sd->fonts = (GF_FontRecord*)realloc(sd->fonts, sizeof(GF_FontRecord)*sd->font_count);
 					sd->fonts[sd->font_count-1].fontID = 0;
 					sd->fonts[sd->font_count-1].fontName = NULL;
 				}
@@ -660,7 +660,7 @@ Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 			gf_bs_seek(bs, 0);
 			gf_bs_write_int(bs, nbWords, 8);
 			gf_bs_seek(bs, bs_cur);
-			gf_bs_get_content(bs, (unsigned char **)out_data, out_data_size);
+			gf_bs_get_content(bs, out_data, out_data_size);
 		}
 		gf_bs_del(bs);
 		return 1;

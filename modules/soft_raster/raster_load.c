@@ -28,8 +28,8 @@
 /*we don't need any private context*/
 GF_Raster2D *EVG_LoadRenderer()
 {
-	GF_Raster2D *dr = malloc(sizeof(GF_Raster2D));
-	memset(dr, 0, sizeof(GF_Raster2D));
+	GF_Raster2D *dr;
+	GF_SAFEALLOC(dr, GF_Raster2D);
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_RASTER_2D_INTERFACE, "GPAC 2D Raster", "gpac distribution")
 
 
@@ -73,12 +73,14 @@ void EVG_ShutdownRenderer(GF_Raster2D *dr)
 
 #ifndef GPAC_STANDALONE_RENDER_2D
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_RASTER_2D_INTERFACE) return 1;
 	return 0;
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType==GF_RASTER_2D_INTERFACE) {
@@ -87,6 +89,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	if (ifce->InterfaceType == GF_RASTER_2D_INTERFACE) {

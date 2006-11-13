@@ -121,7 +121,7 @@ GF_Err gf_isom_text_add_text(GF_TextSample *samp, char *text_data, u32 text_len)
 {
 	if (!samp) return GF_BAD_PARAM;
 	if (!text_len) return GF_OK;
-	samp->text = realloc(samp->text, sizeof(char) * (samp->len + text_len) );
+	samp->text = (char*)realloc(samp->text, sizeof(char) * (samp->len + text_len) );
 	memcpy(samp->text + samp->len, text_data, sizeof(char) * text_len);
 	samp->len += text_len;
 	return GF_OK;
@@ -131,7 +131,7 @@ GF_Err gf_isom_text_set_utf16_marker(GF_TextSample *samp)
 {
 	/*we MUST have an empty sample*/
 	if (!samp || samp->text) return GF_BAD_PARAM;
-	samp->text = malloc(sizeof(char) * 2);
+	samp->text = (char*)malloc(sizeof(char) * 2);
 	samp->text[0] = (char) 0xFE;
 	samp->text[1] = (char) 0xFF;
 	samp->len = 2;
@@ -146,7 +146,7 @@ GF_Err gf_isom_text_add_style(GF_TextSample *samp, GF_StyleRecord *rec)
 		samp->styles = (GF_TextStyleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STYL);
 		if (!samp->styles) return GF_OUT_OF_MEM;
 	}
-	samp->styles->styles = realloc(samp->styles->styles, sizeof(GF_StyleRecord)*(samp->styles->entry_count+1));
+	samp->styles->styles = (GF_StyleRecord*)realloc(samp->styles->styles, sizeof(GF_StyleRecord)*(samp->styles->entry_count+1));
 	if (!samp->styles->styles) return GF_OUT_OF_MEM;
 	samp->styles->styles[samp->styles->entry_count] = *rec;
 	samp->styles->entry_count++;
@@ -206,7 +206,7 @@ GF_Err gf_isom_text_add_karaoke(GF_TextSample *samp, u32 start_time)
 GF_Err gf_isom_text_set_karaoke_segment(GF_TextSample *samp, u32 end_time, u16 start_char, u16 end_char)
 {
 	if (!samp || !samp->cur_karaoke) return GF_BAD_PARAM;
-	samp->cur_karaoke->records = realloc(samp->cur_karaoke->records, sizeof(KaraokeRecord)*(samp->cur_karaoke->entrycount+1));
+	samp->cur_karaoke->records = (KaraokeRecord*)realloc(samp->cur_karaoke->records, sizeof(KaraokeRecord)*(samp->cur_karaoke->entrycount+1));
 	if (!samp->cur_karaoke->records) return GF_OUT_OF_MEM;
 	samp->cur_karaoke->records[samp->cur_karaoke->entrycount].end_charoffset = end_char;
 	samp->cur_karaoke->records[samp->cur_karaoke->entrycount].start_charoffset = start_char;
@@ -306,7 +306,7 @@ GF_ISOSample *gf_isom_text_to_sample(GF_TextSample *samp)
 	if (!e) {
 		GF_Box *a;
 		i=0;
-		while ((a = gf_list_enum(samp->others, &i))) {
+		while ((a = (GF_Box*)gf_list_enum(samp->others, &i))) {
 			e = gpp_write_modifier(bs, a);
 			if (e) break;
 		}
@@ -320,7 +320,7 @@ GF_ISOSample *gf_isom_text_to_sample(GF_TextSample *samp)
 		gf_bs_del(bs);
 		return NULL;
 	}
-	gf_bs_get_content(bs, (unsigned char **) &res->data, &res->dataLength);
+	gf_bs_get_content(bs, &res->data, &res->dataLength);
 	gf_bs_del(bs);
 	res->IsRAP = 1;
 	return res;
@@ -397,7 +397,7 @@ GF_Err gf_isom_text_reset_styles(GF_TextSample *samp)
 	samp->styles = NULL;
 	samp->cur_karaoke = NULL;
 	while (gf_list_count(samp->others)) {
-		GF_Box *a = gf_list_get(samp->others, 0);
+		GF_Box *a = (GF_Box*)gf_list_get(samp->others, 0);
 		gf_list_rem(samp->others, 0);
 		gf_isom_box_del(a);
 	}
@@ -413,6 +413,7 @@ GF_Err gf_isom_text_reset(GF_TextSample *samp)
 	return gf_isom_text_reset_styles(samp);
 }
 
+GF_EXPORT
 void gf_isom_delete_text_sample(GF_TextSample * tx_samp)
 {
 	gf_isom_text_reset(tx_samp);
@@ -420,6 +421,7 @@ void gf_isom_delete_text_sample(GF_TextSample * tx_samp)
 	free(tx_samp);
 }
 
+GF_EXPORT
 GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs)
 {
 	GF_TextSample *s = gf_isom_new_text_sample();
@@ -448,7 +450,7 @@ GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs)
 						gf_isom_box_del((GF_Box*)s->styles);
 						s->styles = st2;
 					} else {
-						s->styles->styles = realloc(s->styles->styles, sizeof(GF_StyleRecord) * (s->styles->entry_count + st2->entry_count));
+						s->styles->styles = (GF_StyleRecord*)realloc(s->styles->styles, sizeof(GF_StyleRecord) * (s->styles->entry_count + st2->entry_count));
 						memcpy(&s->styles->styles[s->styles->entry_count], st2->styles, sizeof(GF_StyleRecord) * st2->entry_count);
 						s->styles->entry_count += st2->entry_count;
 						gf_isom_box_del(a);
@@ -529,7 +531,7 @@ static void gf_isom_write_tx3g(GF_TextSampleEntryBox *a, GF_BitStream *bs, u32 s
 	/*write TextSampleEntry box*/
 	gf_bs_write_u32(bs, size);
 	gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_TX3G);
-	gf_bs_write_data(bs, (unsigned char*)a->reserved, 6);
+	gf_bs_write_data(bs, a->reserved, 6);
 	gf_bs_write_u16(bs, a->dataReferenceIndex);
 	gf_bs_write_u32(bs, a->displayFlags);
 	gf_bs_write_u8(bs, a->horizontal_justification);
@@ -589,7 +591,7 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 	/*write v info if any visual track in this movie*/
 	has_v_info = 0;
 	i=0;
-	while ((tk = gf_list_enum(mdia->mediaTrack->moov->trackList, &i))) {
+	while ((tk = (GF_TrackBox*)gf_list_enum(mdia->mediaTrack->moov->trackList, &i))) {
 		if (tk->Media->handler && (tk->Media->handler->handlerType == GF_ISOM_MEDIA_VISUAL)) {
 			has_v_info = 1;
 		}
@@ -620,7 +622,7 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 		gf_bs_write_u16(bs, trans);
 	}
 
-	gf_bs_get_content(bs, (unsigned char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+	gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 	gf_bs_del(bs);
 	*out_esd = esd;
 	return GF_OK;
@@ -662,7 +664,7 @@ GF_Err gf_isom_rewrite_text_sample(GF_ISOSample *samp, u32 sampleDescriptionInde
 
 	free(samp->data);
 	samp->data = NULL;
-	gf_bs_get_content(bs, (unsigned char **) &samp->data, &samp->dataLength);
+	gf_bs_get_content(bs, &samp->data, &samp->dataLength);
 	gf_bs_del(bs);
 	return GF_OK;
 }
@@ -684,7 +686,7 @@ GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 
 	gf_isom_write_tx3g(a, bs, sidx, sidx_offset);
 	*tx3g = NULL;
 	*tx3g_size = 0;
-	gf_bs_get_content(bs, (unsigned char **)tx3g, tx3g_size);
+	gf_bs_get_content(bs, tx3g, tx3g_size);
 	gf_bs_del(bs);
 	return GF_OK;
 }

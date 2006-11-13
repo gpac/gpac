@@ -94,7 +94,7 @@ GF_Err evg_surface_attach_to_callbacks(GF_SURFACE _this, GF_RasterCallback *call
 }
 
 
-GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, unsigned char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
+GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
 {
 	u32 BPP;
 	EVGSurface *surf = (EVGSurface *)_this;
@@ -122,7 +122,7 @@ GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, unsigned char *pixels, u32
 	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
 	surf->stencil_pix_run = (u32 *) malloc(sizeof(u32) * (width+2));
 	surf->height = height;
-	surf->pixels = pixels;
+	surf->pixels = (char*)pixels;
 	surf->pixelFormat = pixelFormat;
 	surf->BPP = BPP;
 
@@ -432,7 +432,7 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 	surf->ftoutline.n_contours = gp->n_contours;
 
 	surf->ftoutline.tags = gp->tags;
-	surf->ftoutline.contours = gp->contours;
+	surf->ftoutline.contours = (s32*) gp->contours;
 
 	/*store path bounds for gradient/textures*/
 	gf_path_get_bounds(gp, &surf->path_bounds);

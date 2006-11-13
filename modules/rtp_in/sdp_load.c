@@ -43,7 +43,7 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 	range = NULL;
 
 	i=0;
-	while ((att = gf_list_enum(sdp->Attributes, &i))) {
+	while ((att = (GF_X_Attribute*)gf_list_enum(sdp->Attributes, &i))) {
 		//session-level control string. Keep it in the current session if any
 		if (!strcmp(att->Name, "control") && att->Value) sess_ctrl = att->Value;
 		//NPT range only for now
@@ -57,7 +57,7 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 	
 	//setup all streams
 	i=0;
-	while ((media = gf_list_enum(sdp->media_desc, &i))) {
+	while ((media = (GF_SDPMedia*)gf_list_enum(sdp->media_desc, &i))) {
 		ch = RP_NewStream(rtp, media, sdp, stream);
 		//do not generate error if the channel is not created, just assume
 		//1 - this is not an MPEG-4 configured channel -> not needed
@@ -161,7 +161,7 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u16 OCR_ES_ID, u32 ch
 	esd->decoderConfig->streamType = ch->sl_map.StreamType;
 	esd->decoderConfig->objectTypeIndication = ch->sl_map.ObjectTypeIndication;
 	if (ch->sl_map.config) {
-		esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char) * ch->sl_map.configSize);
+		esd->decoderConfig->decoderSpecificInfo->data = (char*)malloc(sizeof(char) * ch->sl_map.configSize);
 		memcpy(esd->decoderConfig->decoderSpecificInfo->data, ch->sl_map.config, sizeof(char) * ch->sl_map.configSize);
 		esd->decoderConfig->decoderSpecificInfo->dataLength = ch->sl_map.configSize;
 	}
@@ -182,7 +182,7 @@ GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, const char *sub_url)
 	a_str = NULL;
 	if (sub_url || ((rtp->media_type != GF_MEDIA_OBJECT_SCENE) && (rtp->media_type != GF_MEDIA_OBJECT_UNDEF)) ) {
 		i=0;
-		while ((ch = gf_list_enum(rtp->channels, &i))) {
+		while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
 			if (ch->sl_map.StreamType != get_stream_type_from_hint(rtp->media_type)) continue;
 
 			if (!sub_url || strstr(sub_url, ch->control)) {
@@ -210,7 +210,7 @@ void RP_SetupObjects(RTPClient *rtp)
 
 	/*add everything*/
 	i=0;
-	while ((ch = gf_list_enum(rtp->channels, &i))) {
+	while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
 		if (ch->control && !strnicmp(ch->control, "data:", 5)) continue;
 
 		if (!rtp->media_type) {
@@ -249,7 +249,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 		/*look for IOD*/
 		if (e==GF_OK) {
 			i=0;
-			while ((att = gf_list_enum(sdp->Attributes, &i))) {
+			while ((att = (GF_X_Attribute*)gf_list_enum(sdp->Attributes, &i))) {
 				if (!iod_str && !strcmp(att->Name, "mpeg4-iod") ) iod_str = att->Value;
 				if (!is_isma_1 && !strcmp(att->Name, "isma-compliance") ) {
 					if (!stricmp(att->Value, "1,1.0,1")) is_isma_1 = 1;
@@ -264,7 +264,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 			if (iod_str) {
 				RTPStream *ch;
 				i=0;
-				while ((ch = gf_list_enum(rtp->channels, &i))) {
+				while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
 					if ((ch->rtptype==GP_RTP_PAYT_AMR) || (ch->rtptype==GP_RTP_PAYT_AMR_WB) ) {
 						iod_str = NULL;
 						break;
@@ -275,7 +275,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 				RTPStream *ch;
 				Bool needs_iod = 0;
 				i=0;
-				while ((ch = gf_list_enum(rtp->channels, &i))) {
+				while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
 					if ((ch->rtptype==GP_RTP_PAYT_MPEG4) && (ch->sl_map.StreamType==GF_STREAM_SCENE) ) {
 						needs_iod = 1;
 						break;

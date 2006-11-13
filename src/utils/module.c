@@ -25,6 +25,7 @@
 #include "module_wrap.h"
 #include <gpac/config.h>
 
+GF_EXPORT
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 {
 	GF_ModuleManager *tmp;
@@ -47,6 +48,7 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 	return tmp;
 }
 
+GF_EXPORT
 void gf_modules_del(GF_ModuleManager *pm)
 {
 	ModuleInstance *inst;
@@ -71,6 +73,7 @@ Bool gf_module_is_loaded(GF_ModuleManager *pm, char *filename)
 	return 0;
 }
 
+GF_EXPORT
 u32 gf_modules_get_count(GF_ModuleManager *pm)
 {
 	if (!pm) return 0;
@@ -78,6 +81,7 @@ u32 gf_modules_get_count(GF_ModuleManager *pm)
 }
 
 
+GF_EXPORT
 GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug, u32 InterfaceFamily)
 {
 	ModuleInstance *inst;
@@ -112,6 +116,7 @@ err_exit:
 }
 
 
+GF_EXPORT
 GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const char *plug_name, u32 InterfaceFamily)
 {
 	u32 i, count;
@@ -129,6 +134,7 @@ GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const 
 	return NULL;
 }
 
+GF_EXPORT
 GF_Err gf_modules_close_interface(GF_BaseInterface *ifce)
 {
 	ModuleInstance *par;
@@ -150,6 +156,7 @@ GF_Err gf_modules_close_interface(GF_BaseInterface *ifce)
 	return GF_OK;
 }
 
+GF_EXPORT
 const char *gf_modules_get_option(GF_BaseInterface *ifce, const char *secName, const char *keyName)
 {
 	GF_Config *cfg;
@@ -159,6 +166,7 @@ const char *gf_modules_get_option(GF_BaseInterface *ifce, const char *secName, c
 	return gf_cfg_get_key(cfg, secName, keyName);
 }
 
+GF_EXPORT
 GF_Err gf_modules_set_option(GF_BaseInterface *ifce, const char *secName, const char *keyName, const char *keyValue)
 {
 	GF_Config *cfg;
@@ -168,6 +176,7 @@ GF_Err gf_modules_set_option(GF_BaseInterface *ifce, const char *secName, const 
 	return gf_cfg_set_key(cfg, secName, keyName, keyValue);
 }
 
+GF_EXPORT
 const char *gf_modules_get_file_name(GF_ModuleManager *pm, u32 i)
 {
 	ModuleInstance *inst = (ModuleInstance *) gf_list_get(pm->plug_list, i);

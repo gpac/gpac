@@ -24,10 +24,10 @@
 
 #include <gpac/internal/odf_dev.h>
 
-#define GF_IPMPX_DATA_ALLOC(__ptr, __size, __tag) \
-	__ptr = malloc(__size); \
+#define GF_IPMPX_DATA_ALLOC(__ptr, __stname, __tag) \
+	__ptr = (__stname*)malloc(sizeof(__stname)); \
 	if (!__ptr) return NULL;	\
-	memset(__ptr, 0, __size);	\
+	memset(__ptr, 0, sizeof(__stname));	\
 	((GF_IPMPX_Data *)__ptr)->tag = __tag;	\
 	((GF_IPMPX_Data *)__ptr)->Version = 0x01;	\
 
@@ -79,8 +79,8 @@ GF_IPMPX_ByteArray *GF_IPMPX_GetByteArray(GF_BitStream *bs)
 		size |= val & 0x7F;
 	} while ( val & 0x80 );
 	if (!size) return NULL;
-	ba = malloc(sizeof(GF_IPMPX_ByteArray));
-	ba->data = malloc(sizeof(char)*size);
+	ba = (GF_IPMPX_ByteArray*)malloc(sizeof(GF_IPMPX_ByteArray));
+	ba->data = (char*)malloc(sizeof(char)*size);
 	gf_bs_read_data(bs, ba->data, size);
 	ba->length = size;
 	return ba;
@@ -216,7 +216,7 @@ GF_Err GF_IPMPX_AUTH_Parse(GF_BitStream *bs, GF_IPMPX_Authentication **auth)
 			if (!p) return GF_OUT_OF_MEM;
 			p->tag = tag;
 			p->keyBodyLength = size;
-			p->keyBody = malloc(sizeof(char)*size);
+			p->keyBody = (char*)malloc(sizeof(char)*size);
 			gf_bs_read_data(bs, p->keyBody, size);
 			*auth = (GF_IPMPX_Authentication *)p;
 			return GF_OK;
@@ -310,7 +310,7 @@ GF_Err GF_IPMPX_WriteBase(GF_BitStream *bs, GF_IPMPX_Data *p)
 static GF_IPMPX_Data *NewGF_IPMPX_InitAuthentication()
 {
 	GF_IPMPX_InitAuthentication *ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_InitAuthentication), GF_IPMPX_INIT_AUTHENTICATION_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_InitAuthentication, GF_IPMPX_INIT_AUTHENTICATION_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_InitAuthentication(GF_IPMPX_Data *_p)
@@ -341,7 +341,7 @@ static GF_Err WriteGF_IPMPX_InitAuthentication(GF_BitStream *bs, GF_IPMPX_Data *
 static GF_IPMPX_Data *NewGF_IPMPX_MutualAuthentication()
 {
 	GF_IPMPX_MutualAuthentication *ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_MutualAuthentication), GF_IPMPX_MUTUAL_AUTHENTICATION_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_MutualAuthentication, GF_IPMPX_MUTUAL_AUTHENTICATION_TAG);
 	ptr->candidateAlgorithms = gf_list_new();
 	ptr->agreedAlgorithms = gf_list_new();
 	ptr->certificates = gf_list_new();
@@ -352,7 +352,7 @@ static void delete_algo_list(GF_List *algos)
 {
 	u32 i;
 	for (i=0;i<gf_list_count(algos); i++) {
-		GF_IPMPX_Authentication *ip_auth = gf_list_get(algos, i);
+		GF_IPMPX_Authentication *ip_auth = (GF_IPMPX_Authentication *)gf_list_get(algos, i);
 		GF_IPMPX_AUTH_Delete(ip_auth);
 	}
 	gf_list_del(algos);
@@ -368,7 +368,7 @@ static void DelGF_IPMPX_MutualAuthentication(GF_IPMPX_Data *_p)
 	gf_ipmpx_data_del((GF_IPMPX_Data *)p->trustData);
 	GF_IPMPX_AUTH_Delete((GF_IPMPX_Authentication*)p->publicKey);
 	while (gf_list_count(p->certificates)) {
-		GF_IPMPX_ByteArray *ba = gf_list_get(p->certificates, 0);
+		GF_IPMPX_ByteArray *ba = (GF_IPMPX_ByteArray *)gf_list_get(p->certificates, 0);
 		gf_list_rem(p->certificates, 0);
 		GF_IPMPX_DELETE_ARRAY(ba);
 	}
@@ -445,7 +445,7 @@ static u32 SizeGF_IPMPX_MutualAuthentication(GF_IPMPX_Data *_p)
 	if (count) {
 		size += 1;
 		for (i=0; i<count; i++) {
-			GF_IPMPX_Authentication *ip_auth = gf_list_get(p->candidateAlgorithms, i);
+			GF_IPMPX_Authentication *ip_auth = (GF_IPMPX_Authentication *)gf_list_get(p->candidateAlgorithms, i);
 			size += GF_IPMPX_AUTH_FullSize(ip_auth);
 		}
 	}
@@ -453,7 +453,7 @@ static u32 SizeGF_IPMPX_MutualAuthentication(GF_IPMPX_Data *_p)
 	if (count) {
 		size += 1;
 		for (i=0; i<count; i++) {
-			GF_IPMPX_Authentication *ip_auth = gf_list_get(p->agreedAlgorithms, i);
+			GF_IPMPX_Authentication *ip_auth = (GF_IPMPX_Authentication *)gf_list_get(p->agreedAlgorithms, i);
 			size += GF_IPMPX_AUTH_FullSize(ip_auth);
 		}
 	}
@@ -466,7 +466,7 @@ static u32 SizeGF_IPMPX_MutualAuthentication(GF_IPMPX_Data *_p)
 		if (count) {
 			size += 1+4;
 			for (i=0; i<count; i++) {
-				GF_IPMPX_ByteArray *ba = gf_list_get(p->certificates, i);
+				GF_IPMPX_ByteArray *ba = (GF_IPMPX_ByteArray *)gf_list_get(p->certificates, i);
 				size += GF_IPMPX_GetByteArraySize(ba);
 			}
 		}
@@ -503,7 +503,7 @@ static GF_Err WriteGF_IPMPX_MutualAuthentication(GF_BitStream *bs, GF_IPMPX_Data
 	if (count) {
 		gf_bs_write_int(bs, count, 8);
 		for (i=0; i<count; i++) {
-			GF_IPMPX_Authentication *ip_auth = gf_list_get(p->candidateAlgorithms, i);
+			GF_IPMPX_Authentication *ip_auth = (GF_IPMPX_Authentication *)gf_list_get(p->candidateAlgorithms, i);
 			WriteGF_IPMPX_AUTH(bs, ip_auth);
 		}
 	}
@@ -511,7 +511,7 @@ static GF_Err WriteGF_IPMPX_MutualAuthentication(GF_BitStream *bs, GF_IPMPX_Data
 	if (count) {
 		gf_bs_write_int(bs, count, 8);
 		for (i=0; i<count; i++) {
-			GF_IPMPX_Authentication *ip_auth = gf_list_get(p->agreedAlgorithms, i);
+			GF_IPMPX_Authentication *ip_auth = (GF_IPMPX_Authentication *)gf_list_get(p->agreedAlgorithms, i);
 			WriteGF_IPMPX_AUTH(bs, ip_auth);
 		}
 	}
@@ -526,7 +526,7 @@ static GF_Err WriteGF_IPMPX_MutualAuthentication(GF_BitStream *bs, GF_IPMPX_Data
 			gf_bs_write_int(bs, count, 8);
 			gf_bs_write_int(bs, p->certType, 32);
 			for (i=0; i<count; i++) {
-				GF_IPMPX_ByteArray *ipd = gf_list_get(p->certificates, i);
+				GF_IPMPX_ByteArray *ipd = (GF_IPMPX_ByteArray *)gf_list_get(p->certificates, i);
 				if (ipd) GF_IPMPX_WriteByteArray(bs, ipd);
 			}
 		}
@@ -549,7 +549,7 @@ static GF_Err WriteGF_IPMPX_MutualAuthentication(GF_BitStream *bs, GF_IPMPX_Data
 static GF_IPMPX_Data *NewGF_IPMPX_TrustSecurityMetadata()
 {
 	GF_IPMPX_TrustSecurityMetadata *ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_TrustSecurityMetadata), GF_IPMPX_TRUST_SECURITY_METADATA_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_TrustSecurityMetadata, GF_IPMPX_TRUST_SECURITY_METADATA_TAG);
 	ptr->TrustedTools = gf_list_new();
 	return (GF_IPMPX_Data *) ptr;
 }
@@ -557,10 +557,10 @@ static void DelGF_IPMPX_TrustSecurityMetadata(GF_IPMPX_Data *_p)
 {
 	GF_IPMPX_TrustSecurityMetadata *p = (GF_IPMPX_TrustSecurityMetadata *)_p;
 	while (gf_list_count(p->TrustedTools)) {
-		GF_IPMPX_TrustedTool *tt = gf_list_get(p->TrustedTools, 0);
+		GF_IPMPX_TrustedTool *tt = (GF_IPMPX_TrustedTool *)gf_list_get(p->TrustedTools, 0);
 		gf_list_rem(p->TrustedTools, 0);
 		while (gf_list_count(tt->trustSpecifications)) {
-			GF_IPMPX_TrustSpecification *tts = gf_list_get(tt->trustSpecifications, 0);
+			GF_IPMPX_TrustSpecification *tts = (GF_IPMPX_TrustSpecification *)gf_list_get(tt->trustSpecifications, 0);
 			gf_list_rem(tt->trustSpecifications, 0);
 			GF_IPMPX_DELETE_ARRAY(tts->CCTrustMetadata);
 			free(tts);
@@ -577,19 +577,19 @@ static GF_Err ReadGF_IPMPX_TrustSecurityMetadata(GF_BitStream *bs, GF_IPMPX_Data
 	GF_IPMPX_TrustSecurityMetadata *p = (GF_IPMPX_TrustSecurityMetadata *)_p;
 	nbTools = gf_bs_read_int(bs, 16);
 	while (nbTools) {
-		GF_IPMPX_TrustedTool *tt = malloc(sizeof(GF_IPMPX_TrustedTool));
+		GF_IPMPX_TrustedTool *tt = (GF_IPMPX_TrustedTool *)malloc(sizeof(GF_IPMPX_TrustedTool));
 		if (!tt) return GF_OUT_OF_MEM;
 		memset(tt, 0, sizeof(GF_IPMPX_TrustedTool));
 		tt->tag = GF_IPMPX_TRUSTED_TOOL_TAG;
 		nbTools--;
 		gf_list_add(p->TrustedTools, tt);
-		gf_bs_read_data(bs, (unsigned char *)tt->toolID, 16);
-		gf_bs_read_data(bs, (unsigned char *)tt->AuditDate, 5);
+		gf_bs_read_data(bs, (char*)tt->toolID, 16);
+		gf_bs_read_data(bs, tt->AuditDate, 5);
 		tt->trustSpecifications = gf_list_new();
 		nbSpec = gf_bs_read_int(bs, 16);
 		while (nbSpec) {
 			Bool has_cc;
-			GF_IPMPX_TrustSpecification *tts = malloc(sizeof(GF_IPMPX_TrustSpecification));
+			GF_IPMPX_TrustSpecification *tts = (GF_IPMPX_TrustSpecification *)malloc(sizeof(GF_IPMPX_TrustSpecification));
 			if (!tts) return GF_OUT_OF_MEM;
 			memset(tts, 0, sizeof(GF_IPMPX_TrustSpecification));
 			tts->tag = GF_IPMPX_TRUST_SPECIFICATION_TAG;
@@ -600,7 +600,7 @@ static GF_Err ReadGF_IPMPX_TrustSecurityMetadata(GF_BitStream *bs, GF_IPMPX_Data
 			if (has_cc) {
 				tts->CCTrustMetadata = GF_IPMPX_GetByteArray(bs);
 			} else {
-				gf_bs_read_data(bs, (unsigned char *)tts->startDate, 5);
+				gf_bs_read_data(bs, tts->startDate, 5);
 				tts->attackerProfile = gf_bs_read_int(bs, 2);
 				gf_bs_read_int(bs, 6);
 				tts->trustedDuration = gf_bs_read_int(bs, 32);
@@ -615,10 +615,10 @@ static u32 SizeGF_IPMPX_TrustSecurityMetadata(GF_IPMPX_Data *_p)
 	GF_IPMPX_TrustSecurityMetadata *p = (GF_IPMPX_TrustSecurityMetadata *)_p;
 	size = 2;
 	for (i=0;i<gf_list_count(p->TrustedTools); i++) {
-		GF_IPMPX_TrustedTool *tt = gf_list_get(p->TrustedTools, i);
+		GF_IPMPX_TrustedTool *tt = (GF_IPMPX_TrustedTool *)gf_list_get(p->TrustedTools, i);
 		size += 23;
 		for (j=0; j<gf_list_count(tt->trustSpecifications); j++) {
-			GF_IPMPX_TrustSpecification *tts = gf_list_get(tt->trustSpecifications, j);
+			GF_IPMPX_TrustSpecification *tts = (GF_IPMPX_TrustSpecification *)gf_list_get(tt->trustSpecifications, j);
 			size += 1;
 			if (tts->CCTrustMetadata) size += GF_IPMPX_GetByteArraySize(tts->CCTrustMetadata);
 			else size += 10;
@@ -634,19 +634,19 @@ static GF_Err WriteGF_IPMPX_TrustSecurityMetadata(GF_BitStream *bs, GF_IPMPX_Dat
 	c1 = gf_list_count(p->TrustedTools);
 	gf_bs_write_int(bs, c1, 16);
 	for (i=0;i<c1; i++) {
-		GF_IPMPX_TrustedTool *tt = gf_list_get(p->TrustedTools, i);
-		gf_bs_write_data(bs, (unsigned char *)tt->toolID, 16);
-		gf_bs_write_data(bs, (unsigned char *)tt->AuditDate, 5);
+		GF_IPMPX_TrustedTool *tt = (GF_IPMPX_TrustedTool *)gf_list_get(p->TrustedTools, i);
+		gf_bs_write_data(bs, (char*)tt->toolID, 16);
+		gf_bs_write_data(bs, (char*)tt->AuditDate, 5);
 		c2 = gf_list_count(tt->trustSpecifications);
 		gf_bs_write_int(bs, c2, 16);
 
 		for (j=0; j<c2; j++) {
-			GF_IPMPX_TrustSpecification *tts = gf_list_get(tt->trustSpecifications, j);
+			GF_IPMPX_TrustSpecification *tts = (GF_IPMPX_TrustSpecification *)gf_list_get(tt->trustSpecifications, j);
 			gf_bs_write_int(bs, tts->CCTrustMetadata ? 1 : 0, 1);
 			gf_bs_write_int(bs, 0, 7);
 			if (tts->CCTrustMetadata) GF_IPMPX_WriteByteArray(bs, tts->CCTrustMetadata);
 			else {
-				gf_bs_write_data(bs, (unsigned char *)tts->startDate, 5);
+				gf_bs_write_data(bs, tts->startDate, 5);
 				gf_bs_write_int(bs, tts->attackerProfile, 2);
 				gf_bs_write_int(bs, 0, 6);
 				gf_bs_write_int(bs, tts->trustedDuration, 32);
@@ -659,7 +659,7 @@ static GF_Err WriteGF_IPMPX_TrustSecurityMetadata(GF_BitStream *bs, GF_IPMPX_Dat
 static GF_IPMPX_Data *NewGF_IPMPX_SecureContainer()
 {
 	GF_IPMPX_SecureContainer *ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_SecureContainer), GF_IPMPX_SECURE_CONTAINER_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_SecureContainer, GF_IPMPX_SECURE_CONTAINER_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_SecureContainer(GF_IPMPX_Data *_p)
@@ -724,7 +724,7 @@ static GF_Err WriteGF_IPMPX_SecureContainer(GF_BitStream *bs, GF_IPMPX_Data *_p)
 static GF_IPMPX_Data *NewGF_IPMPX_GetToolsResponse()
 {
 	GF_IPMPX_GetToolsResponse *ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_GetToolsResponse), GF_IPMPX_GET_TOOLS_RESPONSE_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_GetToolsResponse, GF_IPMPX_GET_TOOLS_RESPONSE_TAG);
 	ptr->ipmp_tools = gf_list_new();
 	return (GF_IPMPX_Data *) ptr;
 }
@@ -733,7 +733,7 @@ static void DelGF_IPMPX_GetToolsResponse(GF_IPMPX_Data *_p)
 	GF_IPMPX_GetToolsResponse *p = (GF_IPMPX_GetToolsResponse *)_p;
 	while (gf_list_count(p->ipmp_tools)) {
 		/*IPMPTools are descriptors*/
-		GF_Descriptor *d = gf_list_get(p->ipmp_tools, 0);
+		GF_Descriptor *d = (GF_Descriptor *)gf_list_get(p->ipmp_tools, 0);
 		gf_list_rem(p->ipmp_tools, 0);
 		gf_odf_desc_del((GF_Descriptor*)d);
 	}
@@ -771,7 +771,7 @@ static GF_Err WriteGF_IPMPX_GetToolsResponse(GF_BitStream *bs, GF_IPMPX_Data *_p
 	GF_IPMPX_GetToolsResponse *p = (GF_IPMPX_GetToolsResponse *)_p;
 
 	for (i=0; i<gf_list_count(p->ipmp_tools); i++) {
-		GF_Descriptor *desc = gf_list_get(p->ipmp_tools, i);
+		GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(p->ipmp_tools, i);
 		gf_odf_write_descriptor(bs, desc);
 	}
 	return GF_OK;
@@ -779,7 +779,7 @@ static GF_Err WriteGF_IPMPX_GetToolsResponse(GF_BitStream *bs, GF_IPMPX_Data *_p
 static GF_IPMPX_Data *NewGF_IPMPX_ParametricDescription()
 {
 	GF_IPMPX_ParametricDescription *ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_ParametricDescription), GF_IPMPX_PARAMETRIC_DESCRIPTION_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_ParametricDescription, GF_IPMPX_PARAMETRIC_DESCRIPTION_TAG);
 	ptr->descriptions = gf_list_new();
 	return (GF_IPMPX_Data *) ptr;
 }
@@ -788,7 +788,7 @@ static void DelGF_IPMPX_ParametricDescription(GF_IPMPX_Data *_p)
 	GF_IPMPX_ParametricDescription *p = (GF_IPMPX_ParametricDescription *)_p;
 	GF_IPMPX_DELETE_ARRAY(p->descriptionComment);
 	while (gf_list_count(p->descriptions)) {
-		GF_IPMPX_ParametricDescriptionItem *it = gf_list_get(p->descriptions, 0);
+		GF_IPMPX_ParametricDescriptionItem *it = (GF_IPMPX_ParametricDescriptionItem *)gf_list_get(p->descriptions, 0);
 		gf_list_rem(p->descriptions, 0);
 		GF_IPMPX_DELETE_ARRAY(it->main_class);
 		GF_IPMPX_DELETE_ARRAY(it->subClass);
@@ -809,7 +809,7 @@ static GF_Err ReadGF_IPMPX_ParametricDescription(GF_BitStream *bs, GF_IPMPX_Data
 	p->minorVersion = gf_bs_read_int(bs, 8);
 	count = gf_bs_read_int(bs, 32);
 	while (count) {
-		GF_IPMPX_ParametricDescriptionItem *it = malloc(sizeof(GF_IPMPX_ParametricDescriptionItem));
+		GF_IPMPX_ParametricDescriptionItem *it = (GF_IPMPX_ParametricDescriptionItem *)malloc(sizeof(GF_IPMPX_ParametricDescriptionItem));
 		gf_list_add(p->descriptions, it);
 		count--;
 		it->main_class = GF_IPMPX_GetByteArray(bs);
@@ -827,7 +827,7 @@ static u32 SizeGF_IPMPX_ParametricDescription(GF_IPMPX_Data *_p)
 	size = GF_IPMPX_GetByteArraySize(p->descriptionComment);
 	size += 6;
 	for (i=0; i<gf_list_count(p->descriptions); i++) {
-		GF_IPMPX_ParametricDescriptionItem *it = gf_list_get(p->descriptions, i);
+		GF_IPMPX_ParametricDescriptionItem *it = (GF_IPMPX_ParametricDescriptionItem *)gf_list_get(p->descriptions, i);
 		size += GF_IPMPX_GetByteArraySize(it->main_class);
 		size += GF_IPMPX_GetByteArraySize(it->subClass);
 		size += GF_IPMPX_GetByteArraySize(it->typeData);
@@ -836,7 +836,7 @@ static u32 SizeGF_IPMPX_ParametricDescription(GF_IPMPX_Data *_p)
 	}
 	return size;
 }
-static u32 WriteGF_IPMPX_ParametricDescription(GF_BitStream *bs, GF_IPMPX_Data *_p)
+static GF_Err WriteGF_IPMPX_ParametricDescription(GF_BitStream *bs, GF_IPMPX_Data *_p)
 {
 	u32 i;
 	GF_IPMPX_ParametricDescription *p = (GF_IPMPX_ParametricDescription *)_p;
@@ -846,7 +846,7 @@ static u32 WriteGF_IPMPX_ParametricDescription(GF_BitStream *bs, GF_IPMPX_Data *
 	gf_bs_write_int(bs, gf_list_count(p->descriptions), 32);
 
 	for (i=0; i<gf_list_count(p->descriptions); i++) {
-		GF_IPMPX_ParametricDescriptionItem *it = gf_list_get(p->descriptions, i);
+		GF_IPMPX_ParametricDescriptionItem *it = (GF_IPMPX_ParametricDescriptionItem *)gf_list_get(p->descriptions, i);
 		GF_IPMPX_WriteByteArray(bs, it->main_class);
 		GF_IPMPX_WriteByteArray(bs, it->subClass);
 		GF_IPMPX_WriteByteArray(bs, it->typeData);
@@ -858,7 +858,7 @@ static u32 WriteGF_IPMPX_ParametricDescription(GF_BitStream *bs, GF_IPMPX_Data *
 static GF_IPMPX_Data *NewGF_IPMPX_ToolParamCapabilitiesQuery()
 {
 	GF_IPMPX_ToolParamCapabilitiesQuery*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_ToolParamCapabilitiesQuery), GF_IPMPX_PARAMETRIC_CAPS_QUERY_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_ToolParamCapabilitiesQuery, GF_IPMPX_PARAMETRIC_CAPS_QUERY_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_ToolParamCapabilitiesQuery(GF_IPMPX_Data *_p)
@@ -885,7 +885,7 @@ static GF_Err WriteGF_IPMPX_ToolParamCapabilitiesQuery(GF_BitStream *bs, GF_IPMP
 static GF_IPMPX_Data *NewGF_IPMPX_ToolParamCapabilitiesResponse()
 {
 	GF_IPMPX_ToolParamCapabilitiesResponse*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_ToolParamCapabilitiesResponse), GF_IPMPX_PARAMETRIC_CAPS_RESPONSE_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_ToolParamCapabilitiesResponse, GF_IPMPX_PARAMETRIC_CAPS_RESPONSE_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_ToolParamCapabilitiesResponse(GF_IPMPX_Data *_p)
@@ -914,7 +914,7 @@ static GF_Err WriteGF_IPMPX_ToolParamCapabilitiesResponse(GF_BitStream *bs, GF_I
 static GF_IPMPX_Data *NewGF_IPMPX_ConnectTool()
 {
 	GF_IPMPX_ConnectTool*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_ConnectTool), GF_IPMPX_CONNECT_TOOL_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_ConnectTool, GF_IPMPX_CONNECT_TOOL_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_ConnectTool(GF_IPMPX_Data *_p)
@@ -946,7 +946,7 @@ static GF_Err WriteGF_IPMPX_ConnectTool(GF_BitStream *bs, GF_IPMPX_Data *_p)
 static GF_IPMPX_Data *NewGF_IPMPX_DisconnectTool()
 {
 	GF_IPMPX_DisconnectTool*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_DisconnectTool), GF_IPMPX_DISCONNECT_TOOL_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_DisconnectTool, GF_IPMPX_DISCONNECT_TOOL_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_DisconnectTool(GF_IPMPX_Data *_p)
@@ -973,7 +973,7 @@ static GF_Err WriteGF_IPMPX_DisconnectTool(GF_BitStream *bs, GF_IPMPX_Data *_p)
 static GF_IPMPX_Data *NewGF_IPMPX_GetToolContext()
 {
 	GF_IPMPX_GetToolContext*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_GetToolContext), GF_IPMPX_GET_TOOL_CONTEXT_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_GetToolContext, GF_IPMPX_GET_TOOL_CONTEXT_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_GetToolContext(GF_IPMPX_Data *_p)
@@ -1008,7 +1008,7 @@ static GF_Err WriteGF_IPMPX_GetToolContext(GF_BitStream *bs, GF_IPMPX_Data *_p)
 static GF_IPMPX_Data *NewGF_IPMPX_GetToolContextResponse()
 {
 	GF_IPMPX_GetToolContextResponse*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_GetToolContextResponse), GF_IPMPX_GET_TOOL_CONTEXT_RESPONSE_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_GetToolContextResponse, GF_IPMPX_GET_TOOL_CONTEXT_RESPONSE_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_GetToolContextResponse(GF_IPMPX_Data *_p)
@@ -1046,7 +1046,7 @@ static GF_Err WriteGF_IPMPX_GetToolContextResponse(GF_BitStream *bs, GF_IPMPX_Da
 static GF_IPMPX_Data *NewGF_IPMPX_AddToolNotificationListener()
 {
 	GF_IPMPX_AddToolNotificationListener*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_AddToolNotificationListener), GF_IPMPX_ADD_TOOL_LISTENER_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_AddToolNotificationListener, GF_IPMPX_ADD_TOOL_LISTENER_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_AddToolNotificationListener(GF_IPMPX_Data *_p)
@@ -1081,7 +1081,7 @@ static GF_Err WriteGF_IPMPX_AddToolNotificationListener(GF_BitStream *bs, GF_IPM
 static GF_IPMPX_Data *NewGF_IPMPX_RemoveToolNotificationListener()
 {
 	GF_IPMPX_RemoveToolNotificationListener*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_RemoveToolNotificationListener), GF_IPMPX_REMOVE_TOOL_LISTENER_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_RemoveToolNotificationListener, GF_IPMPX_REMOVE_TOOL_LISTENER_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_RemoveToolNotificationListener(GF_IPMPX_Data *_p)
@@ -1113,7 +1113,7 @@ static GF_Err WriteGF_IPMPX_RemoveToolNotificationListener(GF_BitStream *bs, GF_
 static GF_IPMPX_Data *NewGF_IPMPX_NotifyToolEvent()
 {
 	GF_IPMPX_NotifyToolEvent*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_NotifyToolEvent), GF_IPMPX_NOTIFY_TOOL_EVENT_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_NotifyToolEvent, GF_IPMPX_NOTIFY_TOOL_EVENT_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_NotifyToolEvent(GF_IPMPX_Data *_p)
@@ -1157,7 +1157,7 @@ static GF_Err WriteGF_IPMPX_NotifyToolEvent(GF_BitStream *bs, GF_IPMPX_Data *_p)
 static GF_IPMPX_Data *NewGF_IPMPX_CanProcess()
 {
 	GF_IPMPX_CanProcess*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_CanProcess), GF_IPMPX_CAN_PROCESS_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_CanProcess, GF_IPMPX_CAN_PROCESS_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_CanProcess(GF_IPMPX_Data *_p)
@@ -1185,7 +1185,7 @@ static GF_Err WriteGF_IPMPX_CanProcess(GF_BitStream *bs, GF_IPMPX_Data *_p)
 static GF_IPMPX_Data *NewGF_IPMPX_OpaqueData(u8 tag)
 {
 	GF_IPMPX_OpaqueData*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_OpaqueData), tag);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_OpaqueData, tag);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_OpaqueData(GF_IPMPX_Data *_p)
@@ -1214,7 +1214,7 @@ static GF_Err WriteGF_IPMPX_OpaqueData(GF_BitStream *bs, GF_IPMPX_Data *_p)
 static GF_IPMPX_Data *NewGF_IPMPX_KeyData()
 {
 	GF_IPMPX_KeyData*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_KeyData), GF_IPMPX_KEY_DATA_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_KeyData, GF_IPMPX_KEY_DATA_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_KeyData(GF_IPMPX_Data *_p)
@@ -1274,7 +1274,7 @@ static GF_Err WriteGF_IPMPX_KeyData(GF_BitStream *bs, GF_IPMPX_Data *_p)
 static GF_IPMPX_Data *NewGF_IPMPX_SelectiveDecryptionInit()
 {
 	GF_IPMPX_SelectiveDecryptionInit*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_SelectiveDecryptionInit), GF_IPMPX_SEL_DEC_INIT_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_SelectiveDecryptionInit, GF_IPMPX_SEL_DEC_INIT_TAG);
 	ptr->SelEncBuffer = gf_list_new();
 	ptr->SelEncFields = gf_list_new();
 	return (GF_IPMPX_Data *) ptr;
@@ -1283,14 +1283,14 @@ static void DelGF_IPMPX_SelectiveDecryptionInit(GF_IPMPX_Data *_p)
 {
 	GF_IPMPX_SelectiveDecryptionInit*p = (GF_IPMPX_SelectiveDecryptionInit*)_p;
 	while (gf_list_count(p->SelEncBuffer)) {
-		GF_IPMPX_SelEncBuffer *sb = gf_list_get(p->SelEncBuffer, 0);
+		GF_IPMPX_SelEncBuffer *sb = (GF_IPMPX_SelEncBuffer *)gf_list_get(p->SelEncBuffer, 0);
 		gf_list_rem(p->SelEncBuffer, 0);
 		GF_IPMPX_DELETE_ARRAY(sb->Stream_Cipher_Specific_Init_Info);
 		free(sb);
 	}
 	gf_list_del(p->SelEncBuffer);
 	while (gf_list_count(p->SelEncFields)) {
-		GF_IPMPX_SelEncField*sf = gf_list_get(p->SelEncFields, 0);
+		GF_IPMPX_SelEncField*sf = (GF_IPMPX_SelEncField*)gf_list_get(p->SelEncFields, 0);
 		gf_list_rem(p->SelEncFields, 0);
 		GF_IPMPX_DELETE_ARRAY(sf->shuffleSpecificInfo);
 		if (sf->mappingTable) free(sf->mappingTable);
@@ -1316,7 +1316,7 @@ static GF_Err ReadGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Da
 		GF_SAFEALLOC(sb, GF_IPMPX_SelEncBuffer);
 		gf_list_add(p->SelEncBuffer, sb);
 		count--;
-		gf_bs_read_data(bs, (unsigned char *) sb->cipher_Id, 16);
+		gf_bs_read_data(bs, (char*)sb->cipher_Id, 16);
 		sb->syncBoundary = gf_bs_read_int(bs, 8);
 		is_block = gf_bs_read_int(bs, 1);
 		gf_bs_read_int(bs, 7);
@@ -1350,7 +1350,7 @@ static GF_Err ReadGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Da
 				gf_bs_read_int(bs, 6);
 				if (sendMapTable) {
 					sf->mappingTableSize = gf_bs_read_int(bs, 16);
-					sf->mappingTable = malloc(sizeof(u16) * sf->mappingTableSize);
+					sf->mappingTable = (u16*)malloc(sizeof(u16) * sf->mappingTableSize);
 					for (i=0; i<sf->mappingTableSize; i++) sf->mappingTable[i] = gf_bs_read_int(bs, 16);
 				}
 				if (isShuffled) sf->shuffleSpecificInfo = GF_IPMPX_GetByteArray(bs);
@@ -1358,7 +1358,7 @@ static GF_Err ReadGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Da
 		}
 	} else {
 		p->RLE_DataLength = gf_bs_read_int(bs, 16);
-		p->RLE_Data = malloc(sizeof(u16)*p->RLE_DataLength);
+		p->RLE_Data = (u16*)malloc(sizeof(u16)*p->RLE_DataLength);
 		for (i=0; i<p->RLE_DataLength; i++) p->RLE_Data[i] = gf_bs_read_int(bs, 16);
 	}
 	return GF_OK;
@@ -1370,7 +1370,7 @@ static u32 SizeGF_IPMPX_SelectiveDecryptionInit(GF_IPMPX_Data *_p)
 
 	size = 5;
 	for (i=0; i<gf_list_count(p->SelEncBuffer); i++) {
-		GF_IPMPX_SelEncBuffer *sb = gf_list_get(p->SelEncBuffer, i);
+		GF_IPMPX_SelEncBuffer *sb = (GF_IPMPX_SelEncBuffer *)gf_list_get(p->SelEncBuffer, i);
 		size += 18;
 		if (sb->Stream_Cipher_Specific_Init_Info) {
 			size += GF_IPMPX_GetByteArraySize(sb->Stream_Cipher_Specific_Init_Info);
@@ -1384,7 +1384,7 @@ static u32 SizeGF_IPMPX_SelectiveDecryptionInit(GF_IPMPX_Data *_p)
 	} else {
 		size += 1;
 		for (i=0; i<gf_list_count(p->SelEncFields); i++) {
-			GF_IPMPX_SelEncField *sf = gf_list_get(p->SelEncFields, i);
+			GF_IPMPX_SelEncField *sf = (GF_IPMPX_SelEncField *)gf_list_get(p->SelEncFields, i);
 			size += 4;
 			if (sf->mappingTable || sf->shuffleSpecificInfo) {
 				size += 1;
@@ -1408,8 +1408,8 @@ static GF_Err WriteGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_D
 	count = gf_list_count(p->SelEncBuffer);
 	gf_bs_write_int(bs, count, 8);
 	for (i=0; i<count; i++) {
-		GF_IPMPX_SelEncBuffer *sb = gf_list_get(p->SelEncBuffer, i);
-		gf_bs_write_data(bs, (unsigned char *) sb->cipher_Id, 16);
+		GF_IPMPX_SelEncBuffer *sb = (GF_IPMPX_SelEncBuffer *)gf_list_get(p->SelEncBuffer, i);
+		gf_bs_write_data(bs, (char*)sb->cipher_Id, 16);
 		gf_bs_write_int(bs, sb->syncBoundary, 8);
 		gf_bs_write_int(bs, sb->Stream_Cipher_Specific_Init_Info ? 0 : 1, 1);
 		gf_bs_write_int(bs, 0, 7);
@@ -1430,7 +1430,7 @@ static GF_Err WriteGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_D
 		count = gf_list_count(p->SelEncFields);
 		gf_bs_write_int(bs, count, 8);
 		for (i=0; i<count; i++) {
-			GF_IPMPX_SelEncField *sf = gf_list_get(p->SelEncFields, i);
+			GF_IPMPX_SelEncField *sf = (GF_IPMPX_SelEncField *)gf_list_get(p->SelEncFields, i);
 			gf_bs_write_int(bs, sf->field_Id, 8);
 			gf_bs_write_int(bs, sf->field_Scope, 3);
 			gf_bs_write_int(bs, 0, 5);
@@ -1454,7 +1454,7 @@ static GF_Err WriteGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_D
 static GF_IPMPX_Data *NewGF_IPMPX_WatermarkingInit(u8 tag)
 {
 	GF_IPMPX_WatermarkingInit *ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_WatermarkingInit), tag);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_WatermarkingInit, tag);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_WatermarkingInit(GF_IPMPX_Data *_p)
@@ -1488,7 +1488,7 @@ static GF_Err ReadGF_IPMPX_WatermarkingInit(GF_BitStream *bs, GF_IPMPX_Data *_p,
 	case GF_IPMPX_WM_INSERT:
 	case GF_IPMPX_WM_REMARK:
 		p->wmPayloadLen = gf_bs_read_int(bs, 16);
-		p->wmPayload = malloc(sizeof(u8) * p->wmPayloadLen);
+		p->wmPayload = (char*)malloc(sizeof(u8) * p->wmPayloadLen);
 		gf_bs_read_data(bs, p->wmPayload, p->wmPayloadLen);
 		break;
 	case GF_IPMPX_WM_EXTRACT:
@@ -1498,7 +1498,7 @@ static GF_Err ReadGF_IPMPX_WatermarkingInit(GF_BitStream *bs, GF_IPMPX_Data *_p,
 	}
 	if (has_opaque_data) {
 		p->opaqueDataSize = gf_bs_read_int(bs, 16);
-		p->opaqueData = malloc(sizeof(u8) * p->wmPayloadLen);
+		p->opaqueData = (char*)malloc(sizeof(u8) * p->wmPayloadLen);
 		gf_bs_read_data(bs, p->opaqueData, p->opaqueDataSize);
 	}
 	return GF_OK;
@@ -1561,7 +1561,7 @@ static GF_Err WriteGF_IPMPX_WatermarkingInit(GF_BitStream *bs, GF_IPMPX_Data *_p
 static GF_IPMPX_Data *NewGF_IPMPX_SendWatermark(u8 tag)
 {
 	GF_IPMPX_SendWatermark*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_SendWatermark), tag);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_SendWatermark, tag);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_SendWatermark(GF_IPMPX_Data *_p)
@@ -1608,7 +1608,7 @@ static GF_Err WriteGF_IPMPX_SendWatermark(GF_BitStream *bs, GF_IPMPX_Data *_p)
 static GF_IPMPX_Data *NewGF_IPMPX_ToolAPI_Config()
 {
 	GF_IPMPX_ToolAPI_Config*ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_ToolAPI_Config), GF_IPMPX_TOOL_API_CONFIG_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_ToolAPI_Config, GF_IPMPX_TOOL_API_CONFIG_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_ToolAPI_Config(GF_IPMPX_Data *_p)
@@ -1654,7 +1654,7 @@ static GF_Err WriteGF_IPMPX_ToolAPI_Config(GF_BitStream *bs, GF_IPMPX_Data *_p)
 static GF_IPMPX_Data *NewGF_IPMPX_ISMACryp()
 {
 	GF_IPMPX_ISMACryp *ptr;
-	GF_IPMPX_DATA_ALLOC(ptr, sizeof(GF_IPMPX_ISMACryp), GF_IPMPX_ISMACRYP_TAG);
+	GF_IPMPX_DATA_ALLOC(ptr, GF_IPMPX_ISMACryp, GF_IPMPX_ISMACRYP_TAG);
 	return (GF_IPMPX_Data *) ptr;
 }
 static void DelGF_IPMPX_ISMACryp(GF_IPMPX_Data *_p)
@@ -1713,20 +1713,20 @@ GF_IPMPX_Data *gf_ipmpx_data_new(u8 tag)
 	case GF_IPMPX_GET_TOOLS_TAG: 
 	{
 		GF_IPMPX_Data *p;
-		GF_IPMPX_DATA_ALLOC(p, sizeof(GF_IPMPX_Data), GF_IPMPX_GET_TOOLS_TAG);
+		GF_IPMPX_DATA_ALLOC(p, GF_IPMPX_Data, GF_IPMPX_GET_TOOLS_TAG);
 		return p;
 	}
 	case GF_IPMPX_TRUSTED_TOOL_TAG:
 	{
 		GF_IPMPX_TrustedTool *p;
-		GF_IPMPX_DATA_ALLOC(p, sizeof(GF_IPMPX_TrustedTool), GF_IPMPX_TRUSTED_TOOL_TAG);
+		GF_IPMPX_DATA_ALLOC(p, GF_IPMPX_TrustedTool, GF_IPMPX_TRUSTED_TOOL_TAG);
 		p->trustSpecifications = gf_list_new();
 		return (GF_IPMPX_Data *)p;
 	}
 	case GF_IPMPX_TRUST_SPECIFICATION_TAG:
 	{
 		GF_IPMPX_TrustSpecification *p;
-		GF_IPMPX_DATA_ALLOC(p, sizeof(GF_IPMPX_TrustSpecification), GF_IPMPX_TRUST_SPECIFICATION_TAG);
+		GF_IPMPX_DATA_ALLOC(p, GF_IPMPX_TrustSpecification, GF_IPMPX_TRUST_SPECIFICATION_TAG);
 		return (GF_IPMPX_Data *)p;
 	}
 	case GF_IPMPX_TOOL_API_CONFIG_TAG: return NewGF_IPMPX_ToolAPI_Config();
@@ -1740,7 +1740,7 @@ GF_IPMPX_Data *gf_ipmpx_data_new(u8 tag)
 
 	case GF_IPMPX_ALGORITHM_DESCRIPTOR_TAG:
 	{
-		GF_IPMPX_AUTH_AlgorithmDescriptor *p = malloc(sizeof(GF_IPMPX_AUTH_AlgorithmDescriptor));
+		GF_IPMPX_AUTH_AlgorithmDescriptor *p = (GF_IPMPX_AUTH_AlgorithmDescriptor *)malloc(sizeof(GF_IPMPX_AUTH_AlgorithmDescriptor));
 		if (!p) return NULL;
 		memset(p, 0, sizeof(GF_IPMPX_AUTH_AlgorithmDescriptor));
 		p->tag = GF_IPMPX_ALGORITHM_DESCRIPTOR_TAG;
@@ -1748,7 +1748,7 @@ GF_IPMPX_Data *gf_ipmpx_data_new(u8 tag)
 	}
 	case GF_IPMPX_KEY_DESCRIPTOR_TAG:
 	{
-		GF_IPMPX_AUTH_KeyDescriptor *p = malloc(sizeof(GF_IPMPX_AUTH_KeyDescriptor));
+		GF_IPMPX_AUTH_KeyDescriptor *p = (GF_IPMPX_AUTH_KeyDescriptor *)malloc(sizeof(GF_IPMPX_AUTH_KeyDescriptor));
 		if (!p) return NULL;
 		memset(p, 0, sizeof(GF_IPMPX_AUTH_KeyDescriptor));
 		p->tag = GF_IPMPX_KEY_DESCRIPTOR_TAG;
@@ -1757,7 +1757,7 @@ GF_IPMPX_Data *gf_ipmpx_data_new(u8 tag)
 
 	case GF_IPMPX_PARAM_DESCRIPTOR_ITEM_TAG:
 	{
-		GF_IPMPX_AUTH_KeyDescriptor *p = malloc(sizeof(GF_IPMPX_ParametricDescriptionItem));
+		GF_IPMPX_AUTH_KeyDescriptor *p = (GF_IPMPX_AUTH_KeyDescriptor *)malloc(sizeof(GF_IPMPX_ParametricDescriptionItem));
 		if (!p) return NULL;
 		memset(p, 0, sizeof(GF_IPMPX_ParametricDescriptionItem));
 		p->tag = GF_IPMPX_PARAM_DESCRIPTOR_ITEM_TAG;
@@ -1765,7 +1765,7 @@ GF_IPMPX_Data *gf_ipmpx_data_new(u8 tag)
 	}
 	case GF_IPMPX_SEL_ENC_BUFFER_TAG:
 	{
-		GF_IPMPX_SelEncBuffer*p = malloc(sizeof(GF_IPMPX_SelEncBuffer));
+		GF_IPMPX_SelEncBuffer*p = (GF_IPMPX_SelEncBuffer*)malloc(sizeof(GF_IPMPX_SelEncBuffer));
 		if (!p) return NULL;
 		memset(p, 0, sizeof(GF_IPMPX_SelEncBuffer));
 		p->tag = GF_IPMPX_SEL_ENC_BUFFER_TAG;
@@ -1773,7 +1773,7 @@ GF_IPMPX_Data *gf_ipmpx_data_new(u8 tag)
 	}
 	case GF_IPMPX_SEL_ENC_FIELD_TAG:
 	{
-		GF_IPMPX_SelEncField*p = malloc(sizeof(GF_IPMPX_SelEncField));
+		GF_IPMPX_SelEncField*p = (GF_IPMPX_SelEncField*)malloc(sizeof(GF_IPMPX_SelEncField));
 		if (!p) return NULL;
 		memset(p, 0, sizeof(GF_IPMPX_SelEncField));
 		p->tag = GF_IPMPX_SEL_ENC_FIELD_TAG;
@@ -1830,7 +1830,7 @@ void gf_ipmpx_data_del(GF_IPMPX_Data *_p)
 	{
 		GF_IPMPX_TrustedTool *p = (GF_IPMPX_TrustedTool *)_p;
 		while (gf_list_count(p->trustSpecifications)) {
-			GF_IPMPX_Data *ts = gf_list_get(p->trustSpecifications, 0);
+			GF_IPMPX_Data *ts = (GF_IPMPX_Data *)gf_list_get(p->trustSpecifications, 0);
 			gf_list_rem(p->trustSpecifications, 0);
 			gf_ipmpx_data_del(ts);
 		}

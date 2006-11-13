@@ -26,7 +26,7 @@
 #include "img_in.h"
 
 
-static Bool DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	IMGDec *wrap = (IMGDec *)dec->privateStack;
 

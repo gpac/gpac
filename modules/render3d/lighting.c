@@ -113,13 +113,13 @@ void R3D_InitPointLight(Render3D *sr, GF_Node *node)
 
 static void DestroyDirectionalLight(GF_Node *n)
 {
-	Bool *stack = gf_node_get_private(n);
+	Bool *stack = (Bool*)gf_node_get_private(n);
 	free(stack);
 }
 
 static void RenderDirectionalLight(GF_Node *n, void *rs)
 {
-	Bool *stack = gf_node_get_private(n);
+	Bool *stack = (Bool*)gf_node_get_private(n);
 	M_DirectionalLight *dl = (M_DirectionalLight *)n;
 	RenderEffect3D *eff = (RenderEffect3D *) rs;
 
@@ -140,7 +140,7 @@ static void RenderDirectionalLight(GF_Node *n, void *rs)
 void R3D_InitDirectionalLight(Render3D *sr, GF_Node *node)
 {
 	/*our stack is just a boolean used to store whether the light was turned on successfully*/
-	Bool *stack = malloc(sizeof(Bool));
+	Bool *stack = (Bool*)malloc(sizeof(Bool));
 	*stack = 0;
 	gf_node_set_private(node, stack);
 	gf_node_set_predestroy_function(node, DestroyDirectionalLight);

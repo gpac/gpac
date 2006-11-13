@@ -197,8 +197,8 @@ static void b2D_set_bind(GF_Node *node)
 
 void R3D_InitBackground2D(Render3D *sr, GF_Node *node)
 {
-	Background2DStack *ptr = malloc(sizeof(Background2DStack));
-	memset(ptr, 0, sizeof(Background2DStack));
+	Background2DStack *ptr;
+	GF_SAFEALLOC(ptr, Background2DStack);
 
 	gf_sr_traversable_setup(ptr, node, sr->compositor);
 	ptr->reg_stacks = gf_list_new();
@@ -555,8 +555,8 @@ static void back_set_bind(GF_Node *node)
 
 void R3D_InitBackground(Render3D *sr, GF_Node *node)
 {
-	BackgroundStack *ptr = malloc(sizeof(BackgroundStack));
-	memset(ptr, 0, sizeof(BackgroundStack));
+	BackgroundStack *ptr;
+	GF_SAFEALLOC(ptr, BackgroundStack);
 
 	gf_sr_traversable_setup(ptr, node, sr->compositor);
 	ptr->reg_stacks = gf_list_new();

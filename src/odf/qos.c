@@ -352,7 +352,7 @@ GF_Err gf_odf_size_qos(GF_QoS_Descriptor *qos, u32 *outSize)
 	*outSize = 1;
 	
 	i=0;
-	while ((tmp = gf_list_enum(qos->QoS_Qualifiers, &i))) {
+	while ((tmp = (GF_QoS_Default *)gf_list_enum(qos->QoS_Qualifiers, &i))) {
 		e = gf_odf_size_qos_qual(tmp);
 		if (e) return e;
 		*outSize += tmp->size + gf_odf_size_field_size(tmp->size);
@@ -379,7 +379,7 @@ GF_Err gf_odf_write_qos(GF_BitStream *bs, GF_QoS_Descriptor *qos)
 
 	if (! qos->predefined) {
 		i=0;
-		while ((tmp = gf_list_enum(qos->QoS_Qualifiers, &i))) {
+		while ((tmp = (GF_QoS_Default *)gf_list_enum(qos->QoS_Qualifiers, &i))) {
 			e = gf_odf_write_qos_qual(bs, tmp);
 			if (e) return e;
 		}

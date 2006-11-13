@@ -28,7 +28,7 @@
 
 static void DestroyMediaSensor(GF_Node *node)
 {
-	MediaSensorStack *st = gf_node_get_private(node);
+	MediaSensorStack *st = (MediaSensorStack *)gf_node_get_private(node);
 
 	/*unlink from OD*/
 	if (st->stream && st->stream->odm) 
@@ -42,7 +42,7 @@ static void DestroyMediaSensor(GF_Node *node)
 void RenderMediaSensor(GF_Node *node, void *rs)
 {
 	GF_Clock *ck;
-	MediaSensorStack *st = gf_node_get_private(node);
+	MediaSensorStack *st = (MediaSensorStack *)gf_node_get_private(node);
 
 	if (!st->stream) st->stream = gf_mo_find(node, &st->sensor->url, 0);
 	if (!st->stream || !st->stream->odm) return;
@@ -80,8 +80,8 @@ void RenderMediaSensor(GF_Node *node, void *rs)
 
 void InitMediaSensor(GF_InlineScene *is, GF_Node *node)
 {
-	MediaSensorStack *st = malloc(sizeof(MediaSensorStack));
-	memset(st, 0, sizeof(MediaSensorStack));
+	MediaSensorStack *st;
+	GF_SAFEALLOC(st, MediaSensorStack);
 
 	st->parent = is;
 	st->sensor = (M_MediaSensor *)node;
@@ -95,7 +95,7 @@ void InitMediaSensor(GF_InlineScene *is, GF_Node *node)
 /*only URL can be changed, so reset and get new URL*/
 void MS_Modified(GF_Node *node)
 {
-	MediaSensorStack *st = gf_node_get_private(node);
+	MediaSensorStack *st = (MediaSensorStack *)gf_node_get_private(node);
 	if (!st) return;
 	
 	while (gf_list_count(st->seg)) gf_list_rem(st->seg, 0);
@@ -155,7 +155,7 @@ void MS_UpdateTiming(GF_ObjectManager *odm)
 
 		/*locate segment*/
 		for (i=media_sens->active_seg; i<count; i++) {
-			desc = gf_list_get(media_sens->seg, i);
+			desc = (GF_Segment*)gf_list_get(media_sens->seg, i);
 			/*not controled*/
 			if (desc->startTime > time) {
 				if (media_sens->sensor->isActive) {

@@ -89,7 +89,7 @@ static void saf_stream_del(GF_SAFStream *str)
 	if (str->dsi) free(str->dsi);
 
 	while (gf_list_count(str->aus)) {
-		GF_SAFSample *au = gf_list_last(str->aus);
+		GF_SAFSample *au = (GF_SAFSample *)gf_list_last(str->aus);
 		gf_list_rem_last(str->aus);
 		if (au->data) free(au->data);
 		free(au);
@@ -101,7 +101,7 @@ static void saf_stream_del(GF_SAFStream *str)
 void gf_saf_mux_del(GF_SAFMuxer *mux)
 {
 	while (gf_list_count(mux->streams)) {
-		GF_SAFStream *str = gf_list_last(mux->streams);
+		GF_SAFStream *str = (GF_SAFStream *)gf_list_last(mux->streams);
 		gf_list_rem_last(mux->streams);
 		saf_stream_del(str);
 	}
@@ -114,7 +114,7 @@ static GFINLINE GF_SAFStream *saf_get_stream(GF_SAFMuxer *mux, u32 stream_id)
 {
 	GF_SAFStream *str;
 	u32 i=0;
-	while ( (str = gf_list_enum(mux->streams, &i)) ) {
+	while ( (str = (GF_SAFStream *)gf_list_enum(mux->streams, &i)) ) {
 		if (str->stream_id==stream_id) return str;
 	}
 	return NULL;
@@ -190,7 +190,7 @@ GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u
 GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_session, char **out_data, u32 *out_size)
 {
 	u32 i, count, dlen;
-	unsigned char *data;
+	char *data;
 	GF_SAFStream *str;
 	GF_SAFSample*au;
 	GF_BitStream *bs, *payload;
@@ -210,10 +210,10 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 
 	/*1: write all stream headers*/
 	for (i=0; i<count; i++) {
-		str = gf_list_get(mux->streams, i);
+		str = (GF_SAFStream *)gf_list_get(mux->streams, i);
 		if (str->state & 1) continue;
 
-		au = gf_list_get(str->aus, 0);
+		au = (GF_SAFSample *)gf_list_get(str->aus, 0);
 
 		/*write stream declaration*/
 		payload = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -261,8 +261,8 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 		u32 mux_time = time_ms;
 
 		for (i=0; i<count; i++) {
-			str = gf_list_get(mux->streams, i);
-			au = gf_list_get(str->aus, 0);
+			str = (GF_SAFStream*)gf_list_get(mux->streams, i);
+			au = (GF_SAFSample*)gf_list_get(str->aus, 0);
 			if (au && (au->ts*1000 < mux_time*str->ts_resolution)) {
 				mux_time = 1000*au->ts/str->ts_resolution;
 				src = str;
@@ -271,7 +271,7 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 
 		if (!src) break;
 
-		au = gf_list_get(src->aus, 0);
+		au = (GF_SAFSample*)gf_list_get(src->aus, 0);
 		gf_list_rem(src->aus, 0);
 
 		/*write stream declaration*/
@@ -293,7 +293,7 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 
 	/*3: write all end of stream*/
 	for (i=0; i<count; i++) {
-		str = gf_list_get(mux->streams, i);
+		str = (GF_SAFStream*)gf_list_get(mux->streams, i);
 		/*mark as signaled*/
 		if (!(str->state & 2)) continue;
 		if (gf_list_count(str->aus)) continue;
@@ -326,7 +326,7 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 		gf_bs_write_int(bs, 0, 12);
 		mux->state = 2;
 	}
-	gf_bs_get_content(bs, (unsigned char**)out_data, out_size);
+	gf_bs_get_content(bs, out_data, out_size);
 	gf_bs_del(bs);
 	gf_mx_v(mux->mx);
 	return GF_OK;

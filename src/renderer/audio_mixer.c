@@ -111,7 +111,7 @@ void gf_mixer_remove_all(GF_AudioMixer *am)
 	u32 j;
 	gf_mixer_lock(am, 1);
 	while (gf_list_count(am->sources)) {
-		MixerInput *in = gf_list_get(am->sources, 0);
+		MixerInput *in = (MixerInput *)gf_list_get(am->sources, 0);
 		gf_list_rem(am->sources, 0);
 		for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
 			if (in->ch_buf[j]) free(in->ch_buf[j]);
@@ -126,7 +126,7 @@ Bool gf_mixer_is_src_present(GF_AudioMixer *am, GF_AudioInterface *ifce)
 {
 	MixerInput *in;
 	u32 i = 0;
-	while ((in = gf_list_enum(am->sources, &i))) {
+	while ((in = (MixerInput *)gf_list_enum(am->sources, &i))) {
 		if (in->src == ifce) return 1;
 	}
 	return 0;
@@ -176,7 +176,7 @@ void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src)
 	gf_mixer_lock(am, 1);
 	count = gf_list_count(am->sources);
 	for (i=0; i<count; i++) {
-		MixerInput *in = gf_list_get(am->sources, i);
+		MixerInput *in = (MixerInput *)gf_list_get(am->sources, i);
 		if (in->src != src) continue;
 		gf_list_rem(am->sources, i);
 		for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
@@ -610,17 +610,17 @@ do_mix:
 	/*step 1, cfg*/
 	if (am->output_size<buffer_size) {
 		if (am->output) free(am->output);
-		am->output = malloc(sizeof(s32) * buffer_size);
+		am->output = (s32*)malloc(sizeof(s32) * buffer_size);
 		am->output_size = buffer_size;
 	}
 
 	single_source = NULL;
 	for (i=0; i<count; i++) {
-		in = gf_list_get(am->sources, i);
+		in = (MixerInput *)gf_list_get(am->sources, i);
 		if (in->buffer_size<buffer_size) { 
 			for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
 				if (in->ch_buf[j]) free(in->ch_buf[j]); 
-				in->ch_buf[j] = (u32 *) malloc(sizeof(u32) * buffer_size);
+				in->ch_buf[j] = (s32 *) malloc(sizeof(s32) * buffer_size);
 			}
 			in->buffer_size = buffer_size; 
 		}
@@ -673,7 +673,7 @@ do_mix:
 		u32 nb_to_fill = 0;
 		/*fill*/
 		for (i=0; i<count; i++) {
-			in = gf_list_get(am->sources, i);
+			in = (MixerInput *)gf_list_get(am->sources, i);
 			if (in->out_samples_to_write>in->out_samples_written) {
 				AM_GetInputData(am, in, in->out_samples_written ? 0 : delay);
 				if (in->out_samples_to_write>in->out_samples_written) nb_to_fill++;
@@ -681,7 +681,7 @@ do_mix:
 		}
 		/*release - this is done in 2 steps in case 2 audio object use the same source...*/
 		for (i=0; i<count; i++) {
-			in = gf_list_get(am->sources, i);
+			in = (MixerInput *)gf_list_get(am->sources, i);
 			if (in->in_bytes_used) in->src->ReleaseFrame(in->src->callback, in->in_bytes_used-1);
 			in->in_bytes_used = 0;
 		}
@@ -693,7 +693,7 @@ do_mix:
 	nb_written = 0;
 	for (i=0; i<count; i++) {
 		out_mix = am->output;
-		in = gf_list_get(am->sources, i);
+		in = (MixerInput *)gf_list_get(am->sources, i);
 		if (!in->out_samples_to_write) continue;
 		/*only write what has been filled in the source buffer (may be less than output size)*/
 		for (j=0; j<in->out_samples_written; j++) {

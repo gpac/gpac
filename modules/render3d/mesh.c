@@ -31,13 +31,13 @@
 #define MESH_CHECK_VERTEX(m)		\
 	if (m->v_count == m->v_alloc) {	\
 		m->v_alloc *= 2;	\
-		m->vertices = realloc(m->vertices, sizeof(GF_Vertex)*m->v_alloc);	\
+		m->vertices = (GF_Vertex *)realloc(m->vertices, sizeof(GF_Vertex)*m->v_alloc);	\
 	}	\
 
 #define MESH_CHECK_IDX(m)		\
 	if (m->i_count == m->i_alloc) {	\
 		m->i_alloc *= 2;	\
-		m->indices = realloc(m->indices, sizeof(IDX_TYPE)*m->i_alloc);	\
+		m->indices = (IDX_TYPE*)realloc(m->indices, sizeof(IDX_TYPE)*m->i_alloc);	\
 	}	\
 
 
@@ -75,13 +75,13 @@ void mesh_free(GF_Mesh *mesh)
 
 GF_Mesh *new_mesh()
 {
-	GF_Mesh *mesh = malloc(sizeof(GF_Mesh));
+	GF_Mesh *mesh = (GF_Mesh *)malloc(sizeof(GF_Mesh));
 	if (mesh) {
 		memset(mesh, 0, sizeof(GF_Mesh));
 		mesh->v_alloc = 8;
-		mesh->vertices = malloc(sizeof(GF_Vertex)*mesh->v_alloc);
+		mesh->vertices = (GF_Vertex*)malloc(sizeof(GF_Vertex)*mesh->v_alloc);
 		mesh->i_alloc = 8;
-		mesh->indices = malloc(sizeof(IDX_TYPE)*mesh->i_alloc);
+		mesh->indices = (IDX_TYPE*)malloc(sizeof(IDX_TYPE)*mesh->i_alloc);
 	}
 	return mesh;
 }
@@ -90,11 +90,11 @@ static void mesh_fit_alloc(GF_Mesh *m)
 {
 	if (m->v_count && (m->v_count < m->v_alloc)) {
 		m->v_alloc = m->v_count;
-		m->vertices = realloc(m->vertices, sizeof(GF_Vertex)*m->v_alloc);
+		m->vertices = (GF_Vertex *)realloc(m->vertices, sizeof(GF_Vertex)*m->v_alloc);
 	}
 	if (m->i_count && (m->i_count  < m->i_alloc)) {
 		m->i_alloc = m->i_count;
-		m->indices = realloc(m->indices, sizeof(IDX_TYPE)*m->i_alloc);
+		m->indices = (IDX_TYPE*)realloc(m->indices, sizeof(IDX_TYPE)*m->i_alloc);
 	}
 }
 
@@ -126,14 +126,14 @@ void mesh_clone(GF_Mesh *dest, GF_Mesh *orig)
 {
 	if (dest->v_alloc<orig->v_alloc) {
 		dest->v_alloc = orig->v_alloc;
-		dest->vertices = realloc(dest->vertices, sizeof(GF_Vertex)*dest->v_alloc);
+		dest->vertices = (GF_Vertex *)realloc(dest->vertices, sizeof(GF_Vertex)*dest->v_alloc);
 	}
 	dest->v_count = orig->v_count;
 	memcpy(dest->vertices, orig->vertices, sizeof(GF_Vertex)*dest->v_count);
 
 	if (dest->i_alloc < orig->i_alloc) {
 		dest->i_alloc = orig->i_alloc;
-		dest->indices = realloc(dest->indices, sizeof(IDX_TYPE)*dest->i_alloc);
+		dest->indices = (IDX_TYPE*)realloc(dest->indices, sizeof(IDX_TYPE)*dest->i_alloc);
 	}
 	dest->i_count = orig->i_count;
 	memcpy(dest->indices, orig->indices, sizeof(IDX_TYPE)*dest->i_count);
@@ -360,8 +360,8 @@ void mesh_new_cylinder(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, B
 
 	nfacets = CYLINDER_SUBDIV;
 	if (low_res) nfacets /= HIGH_SPEED_RATIO;
-	coords = malloc(sizeof(SFVec3f) * nfacets);
-	texcoords = malloc(sizeof(SFVec2f) * nfacets);
+	coords = (SFVec3f*) malloc(sizeof(SFVec3f) * nfacets);
+	texcoords = (SFVec2f*)malloc(sizeof(SFVec2f) * nfacets);
 
 	compute_cylinder(height, radius, nfacets, coords, texcoords);
 
@@ -462,8 +462,8 @@ void mesh_new_cone(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool 
 
     nfacets = CONE_SUBDIV;
     if (low_res) nfacets /= HIGH_SPEED_RATIO;
-    coords = malloc(sizeof(SFVec3f) * nfacets);
-	texcoords = malloc(sizeof(SFVec2f) * nfacets);
+    coords = (SFVec3f*)malloc(sizeof(SFVec3f) * nfacets);
+	texcoords = (SFVec2f*)malloc(sizeof(SFVec2f) * nfacets);
 	
 	compute_cylinder(height, radius, nfacets, coords, texcoords);
 
@@ -561,8 +561,8 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 	if (low_res) num_steps /= 2;
     npts = num_steps * num_steps;
 
-	coords = malloc(sizeof(SFVec3f)*npts);
-	texcoords = malloc(sizeof(SFVec2f)*npts);
+	coords = (SFVec3f*)malloc(sizeof(SFVec3f)*npts);
+	texcoords = (SFVec2f*)malloc(sizeof(SFVec2f)*npts);
 	compute_sphere(radius, coords, texcoords, num_steps);
 
     for (i=0; i<num_steps-1; i++) {
@@ -942,7 +942,7 @@ void register_point_in_face(struct face_info *fi, u32 pt_index)
 {
 	if (fi->idx_count==fi->idx_alloc) {
 		fi->idx_alloc += 10;
-		fi->idx = realloc(fi->idx, sizeof(u32)*fi->idx_alloc);
+		fi->idx = (u32*)realloc(fi->idx, sizeof(u32)*fi->idx_alloc);
 	}
 	fi->idx[fi->idx_count] = pt_index;
 	fi->idx_count++;
@@ -952,7 +952,7 @@ void register_face_in_point(struct pt_info *pi, u32 face_index)
 {
 	if (pi->face_count==pi->face_alloc) {
 		pi->face_alloc += 10;
-		pi->faces = realloc(pi->faces, sizeof(u32)*pi->face_alloc);
+		pi->faces = (u32*)realloc(pi->faces, sizeof(u32)*pi->face_alloc);
 	}
 	pi->faces[pi->face_count] = face_index;
 	pi->face_count++;
@@ -1121,7 +1121,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 		if (coordIndex->vals[count-1] != -1) face_count++;
 	}
 	
-	faces = malloc(sizeof(GF_Mesh *)*face_count);
+	faces = (GF_Mesh**)malloc(sizeof(GF_Mesh *)*face_count);
 	for (i=0; i<face_count; i++) {
 		faces[i] = new_mesh();
 		if (coord2D) faces[i]->flags = MESH_IS_2D;
@@ -1131,9 +1131,9 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	
 	/*alloc face & normals tables*/
 	if (smooth_normals) {
-		faces_info = malloc(sizeof(struct face_info)*face_count);
+		faces_info = (struct face_info*)malloc(sizeof(struct face_info)*face_count);
 		memset(faces_info, 0, sizeof(struct face_info)*face_count);
-		pts_info = malloc(sizeof(struct pt_info)*c_count);
+		pts_info = (struct pt_info*)malloc(sizeof(struct pt_info)*c_count);
 		memset(pts_info, 0, sizeof(struct pt_info)*c_count);
 	}
 
@@ -1324,7 +1324,7 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	pt_count = eg->xDimension * eg->zDimension;
 	if (pt_count>eg->height.count) return;
 
-	smooth_normals = (!has_normal && (eg->creaseAngle > GF_EPSILON_FLOAT)) ? 1 : 0;
+	smooth_normals = (!has_normal && (eg->creaseAngle > FIX_EPSILON)) ? 1 : 0;
 
 	faces = NULL;
 	faces_info = NULL;
@@ -1332,10 +1332,10 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 
 	/*alloc face & normals tables*/
 	if (smooth_normals) {
-		faces = malloc(sizeof(GF_Mesh *)*face_count);
-		faces_info = malloc(sizeof(struct face_info)*face_count);
+		faces = (GF_Mesh **)malloc(sizeof(GF_Mesh *)*face_count);
+		faces_info = (struct face_info*)malloc(sizeof(struct face_info)*face_count);
 		memset(faces_info, 0, sizeof(struct face_info)*face_count);
-		pts_info = malloc(sizeof(struct pt_info)*pt_count);
+		pts_info = (struct pt_info*)malloc(sizeof(struct pt_info)*pt_count);
 		memset(pts_info, 0, sizeof(struct pt_info)*pt_count);
 	}
 
@@ -1565,16 +1565,16 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	pt_count = pts_per_cross * thespine->count;
 	smooth_normals = NEAR_ZERO(creaseAngle) ? 0 : 1;
 
-	faces = malloc(sizeof(GF_Mesh *)*face_count);
+	faces = (GF_Mesh**)malloc(sizeof(GF_Mesh *)*face_count);
 	for (i=0; i<face_count; i++) faces[i] = new_mesh();
 	faces_info = NULL;
 	pts_info = NULL;
 	
 	/*alloc face & normals tables*/
 	if (smooth_normals) {
-		faces_info = malloc(sizeof(struct face_info)*face_count);
+		faces_info = (struct face_info*)malloc(sizeof(struct face_info)*face_count);
 		memset(faces_info, 0, sizeof(struct face_info)*face_count);
-		pts_info = malloc(sizeof(struct pt_info)*pt_count);
+		pts_info = (struct pt_info*)malloc(sizeof(struct pt_info)*pt_count);
 		memset(pts_info, 0, sizeof(struct pt_info)*pt_count);
 	}
 

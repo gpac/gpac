@@ -30,6 +30,7 @@
 #define SDP_WRITE_STEPALLOC		2048
 
 
+GF_EXPORT
 GF_SDP_FMTP *gf_sdp_fmtp_new()
 {
 	GF_SDP_FMTP *tmp = (GF_SDP_FMTP*)malloc(sizeof(GF_SDP_FMTP));
@@ -38,6 +39,7 @@ GF_SDP_FMTP *gf_sdp_fmtp_new()
 	return tmp;
 }
 
+GF_EXPORT
 void gf_sdp_fmtp_del(GF_SDP_FMTP *fmtp)
 {
 	GF_X_Attribute *att;
@@ -235,6 +237,7 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 
 
 #define SDPM_DESTROY(p) if (media->p) free(media->p)
+GF_EXPORT
 void gf_sdp_media_del(GF_SDPMedia *media)
 {
 	GF_SDPBandwidth *bw;
@@ -294,6 +297,7 @@ void gf_sdp_media_del(GF_SDPMedia *media)
 }
 
 
+GF_EXPORT
 GF_SDPConnection *gf_sdp_conn_new()
 {
 	GF_SDPConnection *conn;
@@ -302,6 +306,7 @@ GF_SDPConnection *gf_sdp_conn_new()
 	return conn;
 }
 
+GF_EXPORT
 void gf_sdp_conn_del(GF_SDPConnection *conn)
 {
 	if (conn->add_type) free(conn->add_type);
@@ -310,6 +315,7 @@ void gf_sdp_conn_del(GF_SDPConnection *conn)
 	free(conn);
 }
 
+GF_EXPORT
 GF_SDPMedia *gf_sdp_media_new()
 {
 	GF_SDPMedia *tmp;
@@ -323,6 +329,7 @@ GF_SDPMedia *gf_sdp_media_new()
 	return tmp;
 }
 
+GF_EXPORT
 GF_SDPInfo *gf_sdp_info_new()
 {
 	GF_SDPInfo *sdp;
@@ -339,6 +346,7 @@ GF_SDPInfo *gf_sdp_info_new()
 					sdp->p = NULL;
 
 
+GF_EXPORT
 void gf_sdp_info_reset(GF_SDPInfo *sdp)
 {
 	GF_SDPBandwidth *bw;
@@ -401,6 +409,7 @@ void gf_sdp_info_reset(GF_SDPInfo *sdp)
 	sdp->a_SendRecieve = 0;
 }
 
+GF_EXPORT
 void gf_sdp_info_del(GF_SDPInfo *sdp)
 {	
 	if (!sdp) return;
@@ -456,6 +465,7 @@ s32 SDP_MakeSeconds(char *buf)
 }
 
 
+GF_EXPORT
 GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 {
 	GF_SDPBandwidth *bw;
@@ -716,6 +726,7 @@ GF_Err SDP_CheckConnection(GF_SDPConnection *conn)
 
 //return GF_BAD_PARAM if invalid structure, GF_REMOTE_SERVICE_ERROR if bad formatting
 //or GF_OK
+GF_EXPORT
 GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 {
 	GF_Err e;
@@ -844,6 +855,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 		SDP_WRITE_ALLOC_STR("\r\n", 0);		\
 	}
 
+GF_EXPORT
 GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 {
 	char *buf;

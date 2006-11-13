@@ -75,7 +75,7 @@ GF_Node *SWF_GetAppearance(SWFReader *read, GF_Node *parent, u32 fill_col, Fixed
 	if (line_transp<0) line_transp=0;
 
 	i=0;
-	while ((app = gf_list_enum(read->apps, &i))) {
+	while ((app = (M_Appearance*)gf_list_enum(read->apps, &i))) {
 		mat = (M_Material2D *)app->material;
 		if (!line_width) {
 			if (mat->lineProps || !mat->filled) continue;
@@ -448,7 +448,7 @@ void SWFShape_InsertBIFSShape(M_OrderedGroup *og, M_Shape *n)
 	M_Shape *prev;
 	u32 i;
 	i=0;
-	while ((prev = gf_list_enum(og->children, &i))) {
+	while ((prev = (M_Shape*)gf_list_enum(og->children, &i))) {
 		if (prev->appearance == n->appearance) {
 			SWF_MergeCurve2D( (M_Curve2D *)prev->geometry, (M_Curve2D *)n->geometry);
 			gf_node_register((GF_Node *)n, NULL);
@@ -482,9 +482,9 @@ GF_Node *SWFShapeToBIFS(SWFReader *read, SWFShape *shape)
 	/*direct match, no top group*/
 	if (count == 1) {
 		Bool is_fill = 1;
-		srec = gf_list_get(shape->fill_left, 0);
+		srec = (SWFShapeRec*)gf_list_get(shape->fill_left, 0);
 		if (!srec) {
-			srec = gf_list_get(shape->lines, 0);
+			srec = (SWFShapeRec*)gf_list_get(shape->lines, 0);
 			is_fill = 0;
 		}
 		return SWFShapeToCurve2D(read, shape, srec, is_fill);
@@ -493,12 +493,12 @@ GF_Node *SWFShapeToBIFS(SWFReader *read, SWFShape *shape)
 	/*we need a grouping node*/
 	og = SWF_NewNode(read, TAG_MPEG4_OrderedGroup);
 	i=0;
-	while ((srec = gf_list_enum(shape->fill_left, &i))) {
+	while ((srec = (SWFShapeRec*)gf_list_enum(shape->fill_left, &i))) {
 		n = SWFShapeToCurve2D(read, shape, srec, 1);
 		if (n) SWFShape_InsertBIFSShape((M_OrderedGroup*)og, (M_Shape *)n);
 	}
 	i=0;
-	while ((srec = gf_list_enum(shape->lines, &i))) {
+	while ((srec = (SWFShapeRec*)gf_list_enum(shape->lines, &i))) {
 		n = SWFShapeToCurve2D(read, shape, srec, 0);
 		if (n) SWFShape_InsertBIFSShape((M_OrderedGroup*)og, (M_Shape *)n);
 	}
@@ -570,7 +570,7 @@ GF_Node *SWF_GetGlyph(SWFReader *read, u32 fontID, u32 gl_index, GF_Node *par)
 		swf_report(read, GF_BAD_PARAM, "Glyph #%d not found in font %d - skipping", gl_index, fontID);
 		return NULL;
 	}
-	n = gf_list_get(ft->glyphs, gl_index);
+	n = (GF_Node*)gf_list_get(ft->glyphs, gl_index);
 	if (gf_node_get_tag(n) != TAG_MPEG4_Shape) {
 		swf_report(read, GF_BAD_PARAM, "Glyph #%d in font %d not a shape (translated in %s) - skipping", gl_index, fontID, gf_node_get_class_name(n));
 		return NULL;
@@ -612,7 +612,7 @@ GF_Node *SWFTextToBIFS(SWFReader *read, SWFText *text)
 
 
 	i=0;
-	while ((gr = gf_list_enum(text->text, &i))) {
+	while ((gr = (SWFGlyphRec*)gf_list_enum(text->text, &i))) {
 		par = (M_Transform2D *) SWF_NewNode(read, TAG_MPEG4_Transform2D);
 		par->translation.x = gr->orig_x;
 		par->translation.y = gr->orig_y;
@@ -638,7 +638,7 @@ GF_Node *SWFTextToBIFS(SWFReader *read, SWFText *text)
 
 		if (use_text) {
 			u16 *str_w, *widestr;
-			u8 *str;
+			char *str;
 			void *ptr;
 			M_Text *t = (M_Text *) SWF_NewNode(read, TAG_MPEG4_Text);
 			M_FontStyle *f = (M_FontStyle *) SWF_NewNode(read, TAG_MPEG4_FontStyle);
@@ -664,17 +664,17 @@ GF_Node *SWFTextToBIFS(SWFReader *read, SWFText *text)
 			else f->style.buffer = strdup("PLAIN");
 
 			/*convert to UTF-8*/
-			str_w = malloc(sizeof(u16) * (gr->nbGlyphs+1));
+			str_w = (u16*)malloc(sizeof(u16) * (gr->nbGlyphs+1));
 			for (j=0; j<gr->nbGlyphs; j++) str_w[j] = ft->glyph_codes[gr->indexes[j]];
 			str_w[j] = 0;
-			str = malloc(sizeof(u8) * (gr->nbGlyphs+2));
+			str = (char*)malloc(sizeof(char) * (gr->nbGlyphs+2));
 			widestr = str_w;
 			j = gf_utf8_wcstombs(str, sizeof(u8) * (gr->nbGlyphs+1), (const unsigned short **) &widestr);
-			if (j != -1) {
+			if (j != (u32) -1) {
 				str[j] = 0;
 				gf_sg_vrml_mf_reset(&t->string, GF_SG_VRML_MFSTRING);
 				gf_sg_vrml_mf_append(&t->string, GF_SG_VRML_MFSTRING, &ptr);
-				((SFString*)ptr)->buffer = malloc(sizeof(char) * (j+1));
+				((SFString*)ptr)->buffer = (char*)malloc(sizeof(char) * (j+1));
 				memcpy(((SFString*)ptr)->buffer, str, sizeof(char) * (j+1));
 			}
 

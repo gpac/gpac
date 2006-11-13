@@ -1448,7 +1448,7 @@ void sax_node_start(void *sax_cbck, const char *node_name, const char *name_spac
 	}
 }
 
-GF_ISOFile *package_file(char *file_name, const char *tmpdir)
+GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir)
 {
 	GF_ISOFile *file = NULL;
 	GF_Err e;
@@ -1472,11 +1472,20 @@ GF_ISOFile *package_file(char *file_name, const char *tmpdir)
 	if (e<0) goto exit;
 	e = GF_OK;
 
-	mtype = 0;
-	if (!stricmp(type, "svg")) mtype = ascii ? GF_4CC('s','v','g',' ') : GF_4CC('s','v','g','z');
-	else if (!stricmp(type, "smil")) mtype = ascii ? GF_4CC('s','m','i','l') : GF_4CC('s','m','l','z');
-	else if (!stricmp(type, "x3d")) mtype = ascii ? GF_4CC('x','3','d',' ')  : GF_4CC('x','3','d','z')  ;
-	else if (!stricmp(type, "xmt-a")) mtype = ascii ? GF_4CC('x','m','t','a') : GF_4CC('x','m','t','z');
+	if (fcc) {
+		mtype = GF_4CC(fcc[0],fcc[1],fcc[2],fcc[3]);
+	} else {
+		mtype = 0;
+		if (!stricmp(type, "svg")) mtype = ascii ? GF_4CC('s','v','g',' ') : GF_4CC('s','v','g','z');
+		else if (!stricmp(type, "smil")) mtype = ascii ? GF_4CC('s','m','i','l') : GF_4CC('s','m','l','z');
+		else if (!stricmp(type, "x3d")) mtype = ascii ? GF_4CC('x','3','d',' ')  : GF_4CC('x','3','d','z')  ;
+		else if (!stricmp(type, "xmt-a")) mtype = ascii ? GF_4CC('x','m','t','a') : GF_4CC('x','m','t','z');
+	}
+	if (!mtype) {
+		fprintf(stdout, "Missing 4CC code for meta name - please use ABCD:fileName\n");
+		e = GF_BAD_PARAM;
+		goto exit;
+	}
 
 
 	count = gf_list_count(imports);

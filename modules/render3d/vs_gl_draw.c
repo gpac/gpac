@@ -30,7 +30,7 @@
 #define CHECK_GL_EXT(name) ((strstr(ext, name) != NULL) ? 1 : 0)
 void R3D_LoadExtensions(Render3D *sr)
 {
-	const char *ext = glGetString(GL_EXTENSIONS);
+	const char *ext = (const char *) glGetString(GL_EXTENSIONS);
 	/*store OGL extension to config for app usage*/
 	gf_cfg_set_key(sr->compositor->user->config, "Render3D", "OpenGLExtensions", ext);
 	if (!ext) return;
@@ -71,8 +71,11 @@ void VS3D_Setup(VisualSurface *surf)
 #endif
 
     glShadeModel(GL_SMOOTH);
-	glGetIntegerv(GL_MAX_LIGHTS, &surf->max_lights);
+	glGetIntegerv(GL_MAX_LIGHTS, (GLint*)&surf->max_lights);
+#ifdef GF_MAX_CLIP_PLANES
 	glGetIntegerv(GL_MAX_CLIP_PLANES, &surf->max_clips);
+#endif
+
 
 	if (surf->render->compositor->high_speed) {
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
@@ -373,18 +376,22 @@ void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 u32 ogles_push_enable(u32 mask)
 {
 	u32 attrib = 0;
+#ifndef __SYMBIAN32__
 	if ((mask & GL_LIGHTING) && glIsEnabled(GL_LIGHTING) ) attrib |= GL_LIGHTING;
 	if ((mask & GL_BLEND) && glIsEnabled(GL_BLEND) ) attrib |= GL_BLEND;
 	if ((mask & GL_COLOR_MATERIAL) && glIsEnabled(GL_COLOR_MATERIAL) ) attrib |= GL_COLOR_MATERIAL;
 	if ((mask & GL_TEXTURE_2D) && glIsEnabled(GL_TEXTURE_2D) ) attrib |= GL_TEXTURE_2D;
+#endif
 	return attrib;
 }
 void ogles_pop_enable(u32 mask)
 {
+#ifndef __SYMBIAN32__
 	if (mask & GL_LIGHTING) glEnable(GL_LIGHTING);
 	if (mask & GL_BLEND) glEnable(GL_BLEND);
 	if (mask & GL_COLOR_MATERIAL) glEnable(GL_COLOR_MATERIAL);
 	if (mask & GL_TEXTURE_2D) glEnable(GL_TEXTURE_2D);
+#endif
 }
 #endif
 
@@ -881,6 +888,8 @@ void VS3D_LoadMatrix(VisualSurface *surf, Fixed *mat)
 
 void VS3D_SetClipper2D(VisualSurface *surf, GF_Rect clip)
 {
+#ifdef GF_MAX_CLIP_PLANES
+
 #ifdef GPAC_USE_OGL_ES
 
 	Fixed g[4];
@@ -918,10 +927,13 @@ void VS3D_SetClipper2D(VisualSurface *surf, GF_Rect clip)
 	glClipPlane(GL_CLIP_PLANE0 + cp + 3, g); glEnable(GL_CLIP_PLANE0 + cp + 3);
 	surf->num_clips += 4;
 #endif
+
+#endif
 }
 
 void VS3D_ResetClipper2D(VisualSurface *surf)
 {
+#ifdef GF_MAX_CLIP_PLANES
 	u32 cp;
 	if (surf->num_clips < 4) return;
 	cp = surf->num_clips - 4;
@@ -930,10 +942,13 @@ void VS3D_ResetClipper2D(VisualSurface *surf)
 	glDisable(GL_CLIP_PLANE0 + cp + 1);
 	glDisable(GL_CLIP_PLANE0 + cp);
 	surf->num_clips -= 4;
+#endif
 }
 
 void VS3D_SetClipPlane(VisualSurface *surf, GF_Plane p)
 {
+#ifdef GF_MAX_CLIP_PLANES
+
 #ifdef GPAC_USE_OGL_ES
 	Fixed g[4];
 	if (surf->num_clips + 1 > surf->max_clips) return;
@@ -955,13 +970,17 @@ void VS3D_SetClipPlane(VisualSurface *surf, GF_Plane p)
 #endif
 	glEnable(GL_CLIP_PLANE0 + surf->num_clips);
 	surf->num_clips++;
+#endif
+
 }
 
 void VS3D_ResetClipPlane(VisualSurface *surf)
 {
+#ifdef GF_MAX_CLIP_PLANES
 	if (!surf->num_clips) return;
 	glDisable(GL_CLIP_PLANE0 + surf->num_clips-1);
 	surf->num_clips -= 1;
+#endif
 }
 
 void VS3D_SetMaterial(VisualSurface *surf, u32 material_type, Fixed *rgba)
@@ -1230,7 +1249,7 @@ GF_Err R3D_GetScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *fb)
 	char *tmp;
 	Render3D *sr = (Render3D *)vr->user_priv;
 
-	fb->video_buffer = malloc(sizeof(char)*3*sr->out_width * sr->out_height);
+	fb->video_buffer = (char*)malloc(sizeof(char)*3*sr->out_width * sr->out_height);
 	fb->width = sr->out_width;
 	fb->pitch = 3*sr->out_width;
 	fb->height = sr->out_height;
@@ -1239,7 +1258,7 @@ GF_Err R3D_GetScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *fb)
 	glReadPixels(sr->out_x, sr->out_y, sr->out_width, sr->out_height, GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
 
 	/*flip image (openGL always handle image data bottom to top) */
-	tmp = malloc(sizeof(char)*fb->pitch);
+	tmp = (char*)malloc(sizeof(char)*fb->pitch);
 	hy = fb->height/2;
 	for (i=0; i<hy; i++) {
 		memcpy(tmp, fb->video_buffer+ i*fb->pitch, fb->pitch);

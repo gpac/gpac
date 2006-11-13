@@ -124,6 +124,7 @@ static Bool AI_GetConfig(GF_AudioInterface *aifc, Bool for_recf)
 	return 0;
 }
 
+GF_EXPORT
 void gf_sr_audio_setup(GF_AudioInput *ai, GF_Renderer *sr, GF_Node *node)
 {
 	memset(ai, 0, sizeof(GF_AudioInput));
@@ -144,6 +145,7 @@ void gf_sr_audio_setup(GF_AudioInput *ai, GF_Renderer *sr, GF_Node *node)
 
 
 
+GF_EXPORT
 GF_Err gf_sr_audio_open(GF_AudioInput *ai, MFURL *url)
 {
 	if (ai->is_open) return GF_BAD_PARAM;
@@ -165,6 +167,7 @@ GF_Err gf_sr_audio_open(GF_AudioInput *ai, MFURL *url)
 	return GF_OK;
 }
 
+GF_EXPORT
 void gf_sr_audio_stop(GF_AudioInput *ai)
 {
 	if (!ai->is_open) return;
@@ -183,6 +186,7 @@ void gf_sr_audio_stop(GF_AudioInput *ai)
 
 }
 
+GF_EXPORT
 void gf_sr_audio_restart(GF_AudioInput *ai)
 {
 	if (!ai->is_open) return;
@@ -192,12 +196,14 @@ void gf_sr_audio_restart(GF_AudioInput *ai)
 	gf_mo_restart(ai->stream);
 }
 
+GF_EXPORT
 Bool gf_sr_audio_check_url(GF_AudioInput *ai, MFURL *url)
 {
 	if (!ai->stream) return url->count;
 	return gf_mo_url_changed(ai->stream, url);
 }
 
+GF_EXPORT
 void gf_sr_audio_register(GF_AudioInput *ai, GF_BaseEffect *eff)
 {
 	/*check interface is valid*/
@@ -233,6 +239,7 @@ void gf_sr_audio_register(GF_AudioInput *ai, GF_BaseEffect *eff)
 	}
 }
 
+GF_EXPORT
 void gf_sr_audio_unregister(GF_AudioInput *ai)
 {
 	if (ai->register_with_renderer) {

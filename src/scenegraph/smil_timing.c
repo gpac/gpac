@@ -30,6 +30,7 @@ static void gf_smil_timing_null_timed_function(SMIL_Timing_RTI *rti, Fixed norma
 {
 }
 
+GF_EXPORT
 void gf_smil_timing_init_runtime_info(SVGElement *timed_elt)
 {
 	GF_SceneGraph *sg;
@@ -60,7 +61,7 @@ void gf_smil_timing_delete_runtime_info(SVGElement *timed_elt)
 	if (!timed_elt->timing || !timed_elt->timing->runtime) return;
 	rti = timed_elt->timing->runtime;
 	for (i = 0; i<gf_list_count(rti->intervals); i++) {
-		SMIL_Interval *interval = gf_list_get(rti->intervals, i);
+		SMIL_Interval *interval = (SMIL_Interval *)gf_list_get(rti->intervals, i);
 		free(interval);
 	}
 	gf_list_del(rti->intervals);
@@ -71,6 +72,7 @@ void gf_smil_timing_delete_runtime_info(SVGElement *timed_elt)
 	timed_elt->timing->runtime = NULL;
 }
 
+GF_EXPORT
 Bool gf_smil_timing_is_active(GF_Node *node) 
 {
 	SVGElement *e = (SVGElement *)node;
@@ -185,7 +187,7 @@ static void gf_smil_timing_add_new_interval(SMIL_Timing_RTI *rti, SMIL_Interval 
 	/* trying to find a matching end */
 	if (end_count > index) {
 		for (j = index; j < end_count; j++) {
-			end = gf_list_get(rti->timed_elt->timing->end, j);
+			end = (SMIL_Time*)gf_list_get(rti->timed_elt->timing->end, j);
 			if ( GF_SMIL_TIME_IS_SPECIFIED_CLOCK(end->type) )  {
 				if( end->clock >= interval->begin) {
 					interval->end = end->clock;
@@ -211,7 +213,7 @@ static void gf_smil_timing_init_interval_list(SMIL_Timing_RTI *rti)
 
 	count = gf_list_count(rti->intervals);
 	for (i = 0; i<count; i++) {
-		SMIL_Interval *interval = gf_list_get(rti->intervals, i);
+		SMIL_Interval *interval = (SMIL_Interval *)gf_list_get(rti->intervals, i);
 		free(interval);
 	}
 	gf_list_reset(rti->intervals);
@@ -219,7 +221,7 @@ static void gf_smil_timing_init_interval_list(SMIL_Timing_RTI *rti)
 	count = gf_list_count(rti->timed_elt->timing->begin);
 	if (count) {
 		for (i = 0; i < count; i ++) {
-			begin = gf_list_get(rti->timed_elt->timing->begin, i);
+			begin = (SMIL_Time*)gf_list_get(rti->timed_elt->timing->begin, i);
 			if (GF_SMIL_TIME_IS_CLOCK(begin->type) ) {
 				/* we create an acceptable only if begin is unspecified or defined (clock or wallclock) */
 				gf_smil_timing_add_new_interval(rti, NULL, begin->clock, i);
@@ -248,13 +250,13 @@ static void gf_smil_timing_refresh_interval_list(SMIL_Timing_RTI *rti)
 
 	for (i = 0; i < count; i ++) {
 		SMIL_Interval *existing_interval = NULL;
-		begin = gf_list_get(rti->timed_elt->timing->begin, i);
+		begin = (SMIL_Time*)gf_list_get(rti->timed_elt->timing->begin, i);
 		/* this is not an acceptable value for a begin */
 		if (! GF_SMIL_TIME_IS_CLOCK(begin->type) ) continue;
 
 		count2 = gf_list_count(rti->intervals);
 		for (j=0; j<count2; j++) {
-			existing_interval = gf_list_get(rti->intervals, j);
+			existing_interval = (SMIL_Interval *)gf_list_get(rti->intervals, j);
 			if (existing_interval->begin==begin->clock) break;
 			existing_interval = NULL;
 		}
@@ -284,7 +286,7 @@ static s32 gf_smil_timing_find_interval_index(SMIL_Timing_RTI *rti, Double scene
 	if (rti->current_interval) i = rti->current_interval_index + 1;
 	else i = 0;
 	for (; i<count; i++) {
-		SMIL_Interval *interval = gf_list_get(rti->intervals, i);
+		SMIL_Interval *interval = (SMIL_Interval *)gf_list_get(rti->intervals, i);
 		if (interval->begin <= scene_time) {
 			index = i;
 			break;
@@ -302,7 +304,7 @@ Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
 	if (!sg) return 0;
 
 	sg->update_smil_timing = 0;
-	while((rti = gf_list_enum(sg->smil_timed_elements, &i))) {
+	while((rti = (SMIL_Timing_RTI *)gf_list_enum(sg->smil_timed_elements, &i))) {
 		//scene_time = rti->timed_elt->sgprivate->scenegraph->GetSceneTime(rti->timed_elt->sgprivate->scenegraph->userpriv);
 		ret = gf_smil_timing_notify_time(rti, gf_node_get_scene_time((GF_Node*)rti->timed_elt) );
 		if (ret == -1) // special case for discard element
@@ -315,7 +317,7 @@ Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
 	while (sg->update_smil_timing) {
 		sg->update_smil_timing = 0;
 		i = 0;
-		while((rti = gf_list_enum(sg->smil_timed_elements, &i))) {
+		while((rti = (SMIL_Timing_RTI *)gf_list_enum(sg->smil_timed_elements, &i))) {
 			/*this means the anim has been, modified, re-evaluate it*/
 			if (rti->scene_time==-1) {
 				ret = gf_smil_timing_notify_time(rti, gf_node_get_scene_time((GF_Node*)rti->timed_elt) );
@@ -335,7 +337,7 @@ static Bool gf_smil_discard(SMIL_Timing_RTI *rti, Fixed scene_time)
 	GF_Node *to_del;
 	SMIL_Time *begin;
 	SVGdiscardElement *discard = (SVGdiscardElement *)rti->timed_elt;
-	begin = gf_list_get(discard->timing->begin, 0);
+	begin = (SMIL_Time *)gf_list_get(discard->timing->begin, 0);
 
 	if (!begin) return 0;
 	if (!GF_SMIL_TIME_IS_SPECIFIED_CLOCK(begin->type) ) return 0;
@@ -398,7 +400,7 @@ s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 		if (interval_index >= 0) {
 			rti->status = SMIL_STATUS_WAITING_TO_BEGIN;
 			rti->current_interval_index = interval_index;
-			rti->current_interval = gf_list_get(rti->intervals, rti->current_interval_index);
+			rti->current_interval = (SMIL_Interval*)gf_list_get(rti->intervals, rti->current_interval_index);
 			//gf_smil_timing_print_interval(stack->current_interval);
 		} else {
 			return 0;
@@ -436,7 +438,7 @@ waiting_to_begin:
 				interval_index != rti->current_interval_index) {
 				/* intervals are different, use the new one */
 				rti->current_interval_index = interval_index;
-				rti->current_interval = gf_list_get(rti->intervals, rti->current_interval_index);
+				rti->current_interval = (SMIL_Interval*)gf_list_get(rti->intervals, rti->current_interval_index);
 //				gf_smil_timing_print_interval(stack->current_interval);
 				memset(&evt, 0, sizeof(evt));
 				evt.type = GF_EVENT_BEGIN;
@@ -500,7 +502,7 @@ post_active:
 			if (interval_index >= 0 && interval_index != rti->current_interval_index) {
 				/* intervals are different, use the new one */
 				rti->current_interval_index = interval_index;
-				rti->current_interval = gf_list_get(rti->intervals, rti->current_interval_index);
+				rti->current_interval = (SMIL_Interval*)gf_list_get(rti->intervals, rti->current_interval_index);
 //				gf_smil_timing_print_interval(stack->current_interval);
 
 				rti->status = SMIL_STATUS_WAITING_TO_BEGIN;

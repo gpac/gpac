@@ -38,7 +38,7 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_List *container, s32 pos, GF_Node
 	if (!count) return GF_OK;
 	/*last item*/
 	if ( (pos == -1) || ((u32) pos >= count) ) pos = count - 1;
-	n = gf_list_get(container, (u32) pos);
+	n = (GF_Node*)gf_list_get(container, (u32) pos);
 
 	/*delete node*/
 
@@ -54,7 +54,7 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_List *container, s32 pos, GF_Node
 void gf_sg_destroy_routes(GF_SceneGraph *sg)
 {
 	while (gf_list_count(sg->routes_to_destroy) ) {
-		GF_Route *r = gf_list_get(sg->routes_to_destroy, 0);
+		GF_Route *r = (GF_Route *)gf_list_get(sg->routes_to_destroy, 0);
 		gf_list_rem(sg->routes_to_destroy, 0);
 		gf_sg_route_unqueue(sg, r);
 		if (r->name) free(r->name);
@@ -78,6 +78,7 @@ void gf_sg_route_queue(GF_SceneGraph *sg, GF_Route *r)
 }
 
 /*activate all routes in the order they where triggered*/
+GF_EXPORT
 void gf_sg_activate_routes(GF_SceneGraph *sg)
 {
 	GF_Route *r;
@@ -87,7 +88,7 @@ void gf_sg_activate_routes(GF_SceneGraph *sg)
 	sg->simulation_tick++;
 
 	while (gf_list_count(sg->routes_to_activate)) {
-		r = gf_list_get(sg->routes_to_activate, 0);
+		r = (GF_Route *)gf_list_get(sg->routes_to_activate, 0);
 		gf_list_rem(sg->routes_to_activate, 0);
 		if (r) {
 			targ = r->ToNode;
@@ -118,7 +119,7 @@ static void Node_on_add_children(GF_Node *node)
 
 	/*for each node in input*/
 	while (gf_list_count(n->addChildren)) {
-		child = gf_list_get(n->addChildren, 0);
+		child = (GF_Node*)gf_list_get(n->addChildren, 0);
 		/*nothing in VRML stops from adding twice the same node but we don't allow that*/
 		i = gf_list_find(n->children, child);
 		if (i<0) {
@@ -142,7 +143,7 @@ static void Node_on_remove_children(GF_Node *node)
 
 	/*for each node in input*/
 	while (gf_list_count(n->removeChildren)) {
-		child = gf_list_get(n->removeChildren, 0);
+		child = (GF_Node*)gf_list_get(n->removeChildren, 0);
 		/*remove from children*/
 		i = gf_list_find(n->children, child);
 		if (i>=0) {
@@ -180,12 +181,13 @@ GF_Err gf_sg_delete_all_protos(GF_SceneGraph *scene)
 {
 	if (!scene) return GF_BAD_PARAM;
 	while (gf_list_count(scene->protos)) {
-		GF_Proto *p = gf_list_get(scene->protos, 0);
+		GF_Proto *p = (GF_Proto *)gf_list_get(scene->protos, 0);
 		gf_sg_proto_del(p);
 	}
 	return GF_OK;
 }
 
+GF_EXPORT
 void gf_sg_set_proto_loader(GF_SceneGraph *scene, GF_SceneGraph *(*GetExternProtoLib)(void *SceneCallback, MFURL *lib_url))
 {
 	if (!scene) return;
@@ -202,7 +204,7 @@ u32 gf_sg_get_next_available_route_id(GF_SceneGraph *sg)
 		count = gf_list_count(sg->Routes);
 		/*routes are not sorted*/
 		for (i=0; i<count; i++) {
-			GF_Route *r = gf_list_get(sg->Routes, i);
+			GF_Route *r = (GF_Route *)gf_list_get(sg->Routes, i);
 			if (ID<=r->ID) ID = r->ID;
 		}
 		return ID+1;
@@ -224,12 +226,12 @@ u32 gf_sg_get_next_available_proto_id(GF_SceneGraph *sg)
 	count = gf_list_count(sg->protos);
 	/*protos are not sorted*/
 	for (i=0; i<count; i++) {
-		GF_Proto *p = gf_list_get(sg->protos, i);
+		GF_Proto *p = (GF_Proto *)gf_list_get(sg->protos, i);
 		if (ID<=p->ID) ID = p->ID;
 	}
 	count = gf_list_count(sg->unregistered_protos);
 	for (i=0; i<count; i++) {
-		GF_Proto *p = gf_list_get(sg->unregistered_protos, i);
+		GF_Proto *p = (GF_Proto *)gf_list_get(sg->unregistered_protos, i);
 		if (ID<=p->ID) ID = p->ID;
 	}
 	return ID+1;
@@ -273,7 +275,7 @@ GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, char *name)
 
 	/*browse all top-level */
 	i=0;
-	while ((proto = gf_list_enum(sg->protos, &i))) {
+	while ((proto = (GF_Proto *)gf_list_enum(sg->protos, &i))) {
 		/*first check on name if given, since parsers use this with ID=0*/
 		if (name) {
 			if (proto->Name && !stricmp(name, proto->Name)) return proto;
@@ -281,7 +283,7 @@ GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, char *name)
 	}
 	/*browse all top-level unregistered in reverse order*/
 	for (i=gf_list_count(sg->unregistered_protos); i>0; i--) {
-		proto = gf_list_get(sg->unregistered_protos, i-1);
+		proto = (GF_Proto *)gf_list_get(sg->unregistered_protos, i-1);
 		if (name) {
 			if (proto->Name && !stricmp(name, proto->Name)) return proto;
 		} else if (proto->ID == ProtoID) return proto;
@@ -314,6 +316,7 @@ GF_Err gf_bifs_get_field_index(GF_Node *Node, u32 inField, u8 IndexMode, u32 *al
 
 
 /* QUANTIZATION AND BIFS_Anim Info */
+GF_EXPORT
 Bool gf_bifs_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (Node->sgprivate->tag) {
@@ -324,188 +327,188 @@ Bool gf_bifs_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 
 static SFBool *NewSFBool()
 {
-	SFBool *tmp = malloc(sizeof(SFBool));
+	SFBool *tmp = (SFBool *)malloc(sizeof(SFBool));
 	memset(tmp, 0, sizeof(SFBool));
 	return tmp;
 }
 static SFFloat *NewSFFloat()
 {
-	SFFloat *tmp = malloc(sizeof(SFFloat));
+	SFFloat *tmp = (SFFloat *)malloc(sizeof(SFFloat));
 	memset(tmp, 0, sizeof(SFFloat));
 	return tmp;
 }
 static SFDouble *NewSFDouble()
 {
-	SFDouble *tmp = malloc(sizeof(SFDouble));
+	SFDouble *tmp = (SFDouble *)malloc(sizeof(SFDouble));
 	memset(tmp, 0, sizeof(SFDouble));
 	return tmp;
 }
 static SFTime *NewSFTime()
 {
-	SFTime *tmp = malloc(sizeof(SFTime));
+	SFTime *tmp = (SFTime *)malloc(sizeof(SFTime));
 	memset(tmp, 0, sizeof(SFTime));
 	return tmp;
 }
 static SFInt32 *NewSFInt32()
 {
-	SFInt32 *tmp = malloc(sizeof(SFInt32));
+	SFInt32 *tmp = (SFInt32 *)malloc(sizeof(SFInt32));
 	memset(tmp, 0, sizeof(SFInt32));
 	return tmp;
 }
 static SFString *NewSFString()
 {
-	SFString *tmp = malloc(sizeof(SFString));
+	SFString *tmp = (SFString *)malloc(sizeof(SFString));
 	memset(tmp, 0, sizeof(SFString));
 	return tmp;
 }
 static SFVec3f *NewSFVec3f()
 {
-	SFVec3f *tmp = malloc(sizeof(SFVec3f));
+	SFVec3f *tmp = (SFVec3f *)malloc(sizeof(SFVec3f));
 	memset(tmp, 0, sizeof(SFVec3f));
 	return tmp;
 }
 static SFVec3d *NewSFVec3d()
 {
-	SFVec3d *tmp = malloc(sizeof(SFVec3d));
+	SFVec3d *tmp = (SFVec3d *)malloc(sizeof(SFVec3d));
 	memset(tmp, 0, sizeof(SFVec3d));
 	return tmp;
 }
 static SFVec2f *NewSFVec2f()
 {
-	SFVec2f *tmp = malloc(sizeof(SFVec2f));
+	SFVec2f *tmp = (SFVec2f *)malloc(sizeof(SFVec2f));
 	memset(tmp, 0, sizeof(SFVec2f));
 	return tmp;
 }
 static SFVec2d *NewSFVec2d()
 {
-	SFVec2d *tmp = malloc(sizeof(SFVec2d));
+	SFVec2d *tmp = (SFVec2d *)malloc(sizeof(SFVec2d));
 	memset(tmp, 0, sizeof(SFVec2d));
 	return tmp;
 }
 static SFColor *NewSFColor()
 {
-	SFColor *tmp = malloc(sizeof(SFColor));
+	SFColor *tmp = (SFColor *)malloc(sizeof(SFColor));
 	memset(tmp, 0, sizeof(SFColor));
 	return tmp;
 }
 static SFColorRGBA *NewSFColorRGBA()
 {
-	SFColorRGBA *tmp = malloc(sizeof(SFColorRGBA));
+	SFColorRGBA *tmp = (SFColorRGBA *)malloc(sizeof(SFColorRGBA));
 	memset(tmp, 0, sizeof(SFColorRGBA));
 	return tmp;
 }
 static SFRotation *NewSFRotation()
 {
-	SFRotation *tmp = malloc(sizeof(SFRotation));
+	SFRotation *tmp = (SFRotation *)malloc(sizeof(SFRotation));
 	memset(tmp, 0, sizeof(SFRotation));
 	return tmp;
 }
 static SFImage *NewSFImage()
 {
-	SFImage *tmp = malloc(sizeof(SFImage));
+	SFImage *tmp = (SFImage *)malloc(sizeof(SFImage));
 	memset(tmp, 0, sizeof(SFImage));
 	return tmp;
 }
 static SFURL *NewSFURL()
 {
-	SFURL *tmp = malloc(sizeof(SFURL));
+	SFURL *tmp = (SFURL *)malloc(sizeof(SFURL));
 	memset(tmp, 0, sizeof(SFURL));
 	return tmp;
 }
 static SFCommandBuffer *NewSFCommandBuffer()
 {
-	SFCommandBuffer *tmp = malloc(sizeof(SFCommandBuffer));
+	SFCommandBuffer *tmp = (SFCommandBuffer *)malloc(sizeof(SFCommandBuffer));
 	memset(tmp, 0, sizeof(SFCommandBuffer));
 	tmp->commandList = gf_list_new();
 	return tmp;
 }
 static SFScript *NewSFScript()
 {
-	SFScript *tmp = malloc(sizeof(SFScript));
+	SFScript *tmp = (SFScript *)malloc(sizeof(SFScript));
 	memset(tmp, 0, sizeof(SFScript));
 	return tmp;
 }
 static MFBool *NewMFBool()
 {
-	MFBool *tmp = malloc(sizeof(MFBool));
+	MFBool *tmp = (MFBool *)malloc(sizeof(MFBool));
 	memset(tmp, 0, sizeof(MFBool));
 	return tmp;
 }
 static MFFloat *NewMFFloat()
 {
-	MFFloat *tmp = malloc(sizeof(MFFloat));
+	MFFloat *tmp = (MFFloat *)malloc(sizeof(MFFloat));
 	memset(tmp, 0, sizeof(MFFloat));
 	return tmp;
 }
 static MFTime *NewMFTime()
 {
-	MFTime *tmp = malloc(sizeof(MFTime));
+	MFTime *tmp = (MFTime *)malloc(sizeof(MFTime));
 	memset(tmp, 0, sizeof(MFTime));
 	return tmp;
 }
 static MFInt32 *NewMFInt32()
 {
-	MFInt32 *tmp = malloc(sizeof(MFInt32));
+	MFInt32 *tmp = (MFInt32 *)malloc(sizeof(MFInt32));
 	memset(tmp, 0, sizeof(MFInt32));
 	return tmp;
 }
 static MFString *NewMFString()
 {
-	MFString *tmp = malloc(sizeof(MFString));
+	MFString *tmp = (MFString *)malloc(sizeof(MFString));
 	memset(tmp, 0, sizeof(MFString));
 	return tmp;
 }
 static MFVec3f *NewMFVec3f()
 {
-	MFVec3f *tmp = malloc(sizeof(MFVec3f));
+	MFVec3f *tmp = (MFVec3f *)malloc(sizeof(MFVec3f));
 	memset(tmp, 0, sizeof(MFVec3f));
 	return tmp;
 }
 static MFVec3d *NewMFVec3d()
 {
-	MFVec3d *tmp = malloc(sizeof(MFVec3d));
+	MFVec3d *tmp = (MFVec3d *)malloc(sizeof(MFVec3d));
 	memset(tmp, 0, sizeof(MFVec3d));
 	return tmp;
 }
 static MFVec2f *NewMFVec2f()
 {
-	MFVec2f *tmp = malloc(sizeof(MFVec2f));
+	MFVec2f *tmp = (MFVec2f *)malloc(sizeof(MFVec2f));
 	memset(tmp, 0, sizeof(MFVec2f));
 	return tmp;
 }
 static MFVec2d *NewMFVec2d()
 {
-	MFVec2d *tmp = malloc(sizeof(MFVec2d));
+	MFVec2d *tmp = (MFVec2d *)malloc(sizeof(MFVec2d));
 	memset(tmp, 0, sizeof(MFVec2d));
 	return tmp;
 }
 static MFColor *NewMFColor()
 {
-	MFColor *tmp = malloc(sizeof(MFColor));
+	MFColor *tmp = (MFColor *)malloc(sizeof(MFColor));
 	memset(tmp, 0, sizeof(MFColor));
 	return tmp;
 }
 static MFColorRGBA *NewMFColorRGBA()
 {
-	MFColorRGBA *tmp = malloc(sizeof(MFColorRGBA));
+	MFColorRGBA *tmp = (MFColorRGBA *)malloc(sizeof(MFColorRGBA));
 	memset(tmp, 0, sizeof(MFColorRGBA));
 	return tmp;
 }
 static MFRotation *NewMFRotation()
 {
-	MFRotation *tmp = malloc(sizeof(MFRotation));
+	MFRotation *tmp = (MFRotation *)malloc(sizeof(MFRotation));
 	memset(tmp, 0, sizeof(MFRotation));
 	return tmp;
 }
 static MFURL *NewMFURL()
 {
-	MFURL *tmp = malloc(sizeof(MFURL));
+	MFURL *tmp = (MFURL *)malloc(sizeof(MFURL));
 	memset(tmp, 0, sizeof(MFURL));
 	return tmp;
 }
 static MFScript *NewMFScript()
 {
-	MFScript *tmp = malloc(sizeof(MFScript));
+	MFScript *tmp = (MFScript *)malloc(sizeof(MFScript));
 	memset(tmp, 0, sizeof(MFScript));
 	return tmp;
 }
@@ -594,13 +597,14 @@ void gf_sg_sfcommand_del(SFCommandBuffer cb)
 {
 	u32 i;
 	for (i=gf_list_count(cb.commandList); i>0; i--) {
-		GF_Command *com = gf_list_get(cb.commandList, i-1);
+		GF_Command *com = (GF_Command *)gf_list_get(cb.commandList, i-1);
 		gf_sg_command_del(com);
 	}
 	gf_list_del(cb.commandList);
 	if (cb.buffer) free(cb.buffer);
 }
 
+GF_EXPORT
 void gf_sg_mfurl_del(MFURL url)
 {
 	u32 i;
@@ -700,7 +704,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 	//used only in proto since this field is created by default for regular nodes
 	case GF_SG_VRML_MFNODE: 
 		while (gf_list_count((GF_List *)field)) {
-			node = gf_list_get((GF_List *)field, 0);
+			node = (GF_Node*)gf_list_get((GF_List *)field, 0);
 			gf_node_del(node);
 			gf_list_rem((GF_List *)field, 0);
 		}
@@ -977,7 +981,7 @@ GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertA
 	//first item ever
 	if (!mffield->count || !mffield->array) {
 		if (mffield->array) free(mffield->array);
-		mffield->array = malloc(sizeof(char)*FieldSize);
+		mffield->array = (char*)malloc(sizeof(char)*FieldSize);
 		memset(mffield->array, 0, sizeof(char)*FieldSize);
 		mffield->count = 1;
 		if (new_ptr) *new_ptr = mffield->array;
@@ -986,14 +990,14 @@ GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertA
 
 	//append at the end
 	if (InsertAt >= mffield->count) {
-		mffield->array = realloc(mffield->array, sizeof(char)*(1+mffield->count)*FieldSize);
+		mffield->array = (char*)realloc(mffield->array, sizeof(char)*(1+mffield->count)*FieldSize);
 		memset(mffield->array + mffield->count * FieldSize, 0, FieldSize);
 		if (new_ptr) *new_ptr = mffield->array + mffield->count * FieldSize;
 		mffield->count += 1;
 		return GF_OK;
 	}
 	//alloc 1+itemCount
-	buffer = malloc(sizeof(char)*(1+mffield->count)*FieldSize);
+	buffer = (char*)malloc(sizeof(char)*(1+mffield->count)*FieldSize);
 
 	//insert in the array
 	k=0;
@@ -1014,6 +1018,7 @@ GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertA
 }
 
 #define MAX_MFFIELD_ALLOC		5000000
+GF_EXPORT
 GF_Err gf_sg_vrml_mf_alloc(void *mf, u32 FieldType, u32 NbItems)
 {
 	u32 FieldSize;
@@ -1031,7 +1036,7 @@ GF_Err gf_sg_vrml_mf_alloc(void *mf, u32 FieldType, u32 NbItems)
 	if (mffield->count==NbItems) return GF_OK;
 	gf_sg_vrml_mf_reset(mf, FieldType);
 	if (NbItems) {
-		mffield->array = malloc(sizeof(char)*FieldSize*NbItems);
+		mffield->array = (char*)malloc(sizeof(char)*FieldSize*NbItems);
 		memset(mffield->array, 0, sizeof(char)*FieldSize*NbItems);
 	}
 	mffield->count = NbItems;
@@ -1057,6 +1062,7 @@ GF_Err gf_sg_vrml_mf_get_item(void *mf, u32 FieldType, void **new_ptr, u32 ItemP
 }
 
 
+GF_EXPORT
 GF_Err gf_sg_vrml_mf_append(void *mf, u32 FieldType, void **new_ptr)
 {
 	GenMFField *mffield = (GenMFField *)mf;
@@ -1085,7 +1091,7 @@ GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom)
 		return GF_OK;
 	}
 	k=0;
-	buffer = malloc(sizeof(char)*(mffield->count-1)*FieldSize);
+	buffer = (char*)malloc(sizeof(char)*(mffield->count-1)*FieldSize);
 	for (i=0; i<mffield->count; i++) {
 		if (RemoveFrom == i) {
 			k = 1;
@@ -1099,6 +1105,7 @@ GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sg_vrml_mf_reset(void *mf, u32 FieldType)
 {
 	GenMFField *mffield = (GenMFField *)mf;
@@ -1197,6 +1204,7 @@ void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_fiel
 	return;
 }
 
+GF_EXPORT
 void gf_sg_vrml_field_copy(void *dest, void *orig, u32 field_type)
 {
 	u32 size, i, sf_type;
@@ -1250,7 +1258,7 @@ void gf_sg_vrml_field_copy(void *dest, void *orig, u32 field_type)
 		((SFImage *)dest)->height = ((SFImage *)orig)->height;
 		((SFImage *)dest)->numComponents  = ((SFImage *)orig)->numComponents;
 		size = ((SFImage *)dest)->width * ((SFImage *)dest)->height * ((SFImage *)dest)->numComponents;
-		((SFImage *)dest)->pixels = malloc(sizeof(char)*size);
+		((SFImage *)dest)->pixels = (u8*)malloc(sizeof(char)*size);
 		memcpy(((SFImage *)dest)->pixels, ((SFImage *)orig)->pixels, sizeof(char)*size);
 		break;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
@@ -1258,7 +1266,7 @@ void gf_sg_vrml_field_copy(void *dest, void *orig, u32 field_type)
 		((SFCommandBuffer *)dest)->commandList = gf_list_new();
 		((SFCommandBuffer *)dest)->bufferSize = ((SFCommandBuffer *)orig)->bufferSize;
 		if (((SFCommandBuffer *)dest)->bufferSize) {
-			((SFCommandBuffer *)dest)->buffer = malloc(sizeof(char)*((SFCommandBuffer *)orig)->bufferSize);
+			((SFCommandBuffer *)dest)->buffer = (u8*)malloc(sizeof(char)*((SFCommandBuffer *)orig)->bufferSize);
 			memcpy(((SFCommandBuffer *)dest)->buffer, 
 				((SFCommandBuffer *)orig)->buffer,
 				sizeof(char)*((SFCommandBuffer *)orig)->bufferSize);
@@ -1272,7 +1280,7 @@ void gf_sg_vrml_field_copy(void *dest, void *orig, u32 field_type)
 		if (((SFScript*)dest)->script_text) free(((SFScript*)dest)->script_text);		
 		((SFScript*)dest)->script_text = NULL;
 		if ( ((SFScript*)orig)->script_text)
-			((SFScript *)dest)->script_text = strdup( ((SFScript*)orig)->script_text );
+			((SFScript *)dest)->script_text = (u8*)strdup( (char*) ((SFScript*)orig)->script_text );
 		break;
 
 
@@ -1304,6 +1312,7 @@ void gf_sg_vrml_field_copy(void *dest, void *orig, u32 field_type)
 }
 
 
+GF_EXPORT
 Bool gf_sg_vrml_field_equal(void *dest, void *orig, u32 field_type)
 {
 	u32 size, i, sf_type;
@@ -1400,6 +1409,7 @@ Bool gf_sg_vrml_field_equal(void *dest, void *orig, u32 field_type)
 
 
 
+GF_EXPORT
 SFColorRGBA gf_sg_sfcolor_to_rgba(SFColor val)
 {
 	SFColorRGBA res;

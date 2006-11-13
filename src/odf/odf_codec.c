@@ -28,6 +28,7 @@
 		Object GF_Descriptor Codec Functions
 ************************************************************/
 
+GF_EXPORT
 GF_ODCodec *gf_odf_codec_new()
 {
 	GF_ODCodec *codec;
@@ -47,12 +48,13 @@ GF_ODCodec *gf_odf_codec_new()
 	return codec;
 }
 
+GF_EXPORT
 void gf_odf_codec_del(GF_ODCodec *codec)
 {
 	if (!codec) return;
 
 	while (gf_list_count(codec->CommandList)) {
-		GF_ODCom *com = gf_list_get(codec->CommandList, 0);
+		GF_ODCom *com = (GF_ODCom *)gf_list_get(codec->CommandList, 0);
 		gf_odf_delete_command(com);
 		gf_list_rem(codec->CommandList, 0);
 	}
@@ -66,12 +68,14 @@ void gf_odf_codec_del(GF_ODCodec *codec)
 		Codec Encoder Functions
 ************************************************************/
 
+GF_EXPORT
 GF_Err gf_odf_codec_add_com(GF_ODCodec *codec, GF_ODCom *command)
 {
 	if (!codec || !command) return GF_BAD_PARAM;
 	return gf_list_add(codec->CommandList, command);
 }
 
+GF_EXPORT
 GF_Err gf_odf_codec_encode(GF_ODCodec *codec, Bool delete_content)
 {
 	GF_ODCom *com;
@@ -88,7 +92,7 @@ GF_Err gf_odf_codec_encode(GF_ODCodec *codec, Bool delete_content)
 
 	/*encode each command*/
 	i = 0;
-	while ((com = gf_list_enum(codec->CommandList, &i))) {
+	while ((com = (GF_ODCom *)gf_list_enum(codec->CommandList, &i))) {
 		e = gf_odf_write_command(codec->bs, com); if (e) goto err_exit;
 		//don't forget OD Commands are aligned...
 		gf_bs_align(codec->bs);
@@ -102,7 +106,7 @@ err_exit:
 	}
 	if (delete_content) {
 		while (gf_list_count(codec->CommandList)) {
-			com = gf_list_get(codec->CommandList, 0);
+			com = (GF_ODCom *)gf_list_get(codec->CommandList, 0);
 			gf_odf_delete_command(com);
 			gf_list_rem(codec->CommandList, 0);
 		}
@@ -110,10 +114,11 @@ err_exit:
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length)
 {
 	if (!codec || !codec->bs || !outAU || *outAU) return GF_BAD_PARAM;
-	gf_bs_get_content(codec->bs, (unsigned char**)outAU, au_length);
+	gf_bs_get_content(codec->bs, outAU, au_length);
 	gf_bs_del(codec->bs);
 	codec->bs = NULL;
 	return GF_OK;
@@ -125,6 +130,7 @@ GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length)
 		Codec Decoder Functions
 ************************************************************/
 
+GF_EXPORT
 GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, char *au, u32 au_length)
 {
 	if (!codec ) return GF_BAD_PARAM;
@@ -136,12 +142,13 @@ GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, char *au, u32 au_length)
 	//the bitStream should not be here
 	if (codec->bs) return GF_BAD_PARAM;
 	
-	codec->bs = gf_bs_new((unsigned char*)au, (u64) au_length, (unsigned char)GF_BITSTREAM_READ);
+	codec->bs = gf_bs_new(au, (u64) au_length, (unsigned char)GF_BITSTREAM_READ);
 	if (!codec->bs) return GF_OUT_OF_MEM;
 	return GF_OK;	
 }
 
 
+GF_EXPORT
 GF_Err gf_odf_codec_decode(GF_ODCodec *codec)
 {
 	GF_Err e = GF_OK;
@@ -181,6 +188,7 @@ err_exit:
 }
 
 //get the first command in the codec and remove the entry
+GF_EXPORT
 GF_ODCom *gf_odf_codec_get_com(GF_ODCodec *codec)
 {
 	GF_ODCom *com;
@@ -197,6 +205,7 @@ GF_ODCom *gf_odf_codec_get_com(GF_ODCodec *codec)
 ************************************************************/
 
 //some easy way to get an OD GF_ODCom...
+GF_EXPORT
 GF_ODCom *gf_odf_com_new(u8 tag)
 {
 	GF_ODCom *newcom;
@@ -207,6 +216,7 @@ GF_ODCom *gf_odf_com_new(u8 tag)
 }
 
 //	... and to delete it
+GF_EXPORT
 GF_Err gf_odf_com_del(GF_ODCom **com)
 {
 	GF_Err e;
@@ -222,6 +232,7 @@ GF_Err gf_odf_com_del(GF_ODCom **com)
 ************************************************************/
 
 //some easy way to get an mpeg4 descriptor ...
+GF_EXPORT
 GF_Descriptor *gf_odf_desc_new(u8 tag)
 {
 	GF_Descriptor *newdesc;
@@ -231,6 +242,7 @@ GF_Descriptor *gf_odf_desc_new(u8 tag)
 }
 
 //	... and to delete it
+GF_EXPORT
 void gf_odf_desc_del(GF_Descriptor *desc)
 {
 	if (desc) gf_odf_delete_descriptor(desc);
@@ -238,6 +250,7 @@ void gf_odf_desc_del(GF_Descriptor *desc)
 
 //use this function to decode a standalone descriptor
 //the desc MUST be formatted with tag and size field!!!
+GF_EXPORT
 GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor * *outDesc)
 {
 	GF_Err e;
@@ -246,7 +259,7 @@ GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor * *outDesc)
 
 	if (!raw_desc || !descSize) return GF_BAD_PARAM;
 
-	bs = gf_bs_new((unsigned char*)raw_desc, (u64) descSize, (unsigned char)GF_BITSTREAM_READ);
+	bs = gf_bs_new(raw_desc, (u64) descSize, (unsigned char)GF_BITSTREAM_READ);
 	if (!bs) return GF_OUT_OF_MEM;
 
 	size = 0;
@@ -267,6 +280,7 @@ GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor * *outDesc)
 
 //use this function to encode a standalone descriptor
 //the desc will be formatted with tag and size field
+GF_EXPORT
 GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize)
 {
 	GF_Err e;
@@ -286,12 +300,13 @@ GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize)
 		return e;
 	}
 	//then get the content from our bitstream
-	gf_bs_get_content(bs, (unsigned char**)outEncDesc, outSize);
+	gf_bs_get_content(bs, outEncDesc, outSize);
 	gf_bs_del(bs);
 	return GF_OK;
 }
 
 //use this function to get the size of a standalone descriptor
+GF_EXPORT
 u32 gf_odf_desc_size(GF_Descriptor *desc)
 {
 	u32 descSize;
@@ -308,6 +323,7 @@ u32 gf_odf_desc_size(GF_Descriptor *desc)
 }
 
 //this is usefull to duplicate on the fly a descriptor (mainly for authoring purposes) 
+GF_EXPORT
 GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc)
 {
 	GF_Err e;
@@ -330,6 +346,7 @@ GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc)
 //This functions handles internally what desc can be added to another desc
 //and adds it. NO DUPLICATION of the descriptor, so
 //once a desc is added to its parent, destroying the parent WILL destroy this desc
+GF_EXPORT
 GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc)
 {
 	GF_DecoderConfig *dcd;
@@ -403,6 +420,7 @@ GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc)
 		QoSQualifiers Functions
 ************************************************************/
 
+GF_EXPORT
 GF_QoS_Default *gf_odf_qos_new(u8 tag)
 {
 
@@ -414,6 +432,7 @@ GF_QoS_Default *gf_odf_qos_new(u8 tag)
 	return qos;
 }
 
+GF_EXPORT
 GF_Err gf_odf_qos_del(GF_QoS_Default **qos)
 {
 	if (*qos) gf_odf_delete_qos_qual(*qos);
@@ -423,6 +442,7 @@ GF_Err gf_odf_qos_del(GF_QoS_Default **qos)
 
 
 //same function, but for QoS, as a Qualifier IS NOT a descriptor
+GF_EXPORT
 GF_Err gf_odf_qos_add_qualif(GF_QoS_Descriptor *desc, GF_QoS_Default *qualif)
 {
 	u32 i;
@@ -432,7 +452,7 @@ GF_Err gf_odf_qos_add_qualif(GF_QoS_Descriptor *desc, GF_QoS_Default *qualif)
 	if (desc->predefined) return GF_ODF_FORBIDDEN_DESCRIPTOR;
 
 	i=0;
-	while ((def = gf_list_enum(desc->QoS_Qualifiers, &i))) {
+	while ((def = (GF_QoS_Default *)gf_list_enum(desc->QoS_Qualifiers, &i))) {
 		//if same Qualifier, not allowed...
 		if (def->tag == qualif->tag) return GF_ODF_FORBIDDEN_DESCRIPTOR;
 	}
@@ -451,6 +471,7 @@ GF_Err gf_odf_qos_add_qualif(GF_QoS_Descriptor *desc, GF_QoS_Default *qualif)
 	You must create the list yourself, the functions just encode/decode from/to the list
 *****************************************************************************************/
 
+GF_EXPORT
 GF_Err gf_odf_desc_list_read(char *raw_list, u32 raw_size, GF_List *descList)
 {
 	GF_BitStream *bs;
@@ -479,6 +500,7 @@ exit:
 }
 
 
+GF_EXPORT
 GF_Err gf_odf_desc_list_write(GF_List *descList, char **outEncList, u32 *outSize)
 {
 	GF_BitStream *bs;
@@ -497,17 +519,19 @@ GF_Err gf_odf_desc_list_write(GF_List *descList, char **outEncList, u32 *outSize
 		return e;
 	}
 
-	gf_bs_get_content(bs, (unsigned char**) outEncList, outSize);
+	gf_bs_get_content(bs, outEncList, outSize);
 	gf_bs_del(bs);
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_odf_desc_list_size(GF_List *descList, u32 *outSize)
 {
 	return gf_odf_size_descriptor_list(descList, outSize);
 }
 
 //this functions will destroy the descriptors in a list but not the list
+GF_EXPORT
 GF_Err gf_odf_desc_list_del(GF_List *descList)
 {
 	GF_Err e;
@@ -526,6 +550,7 @@ GF_Err gf_odf_desc_list_del(GF_List *descList)
 
 
 
+GF_EXPORT
 GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined)
 {
 	GF_ESD *esd;
@@ -547,7 +572,7 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 	switch (command->tag) {
 	case GF_ODF_OD_REMOVE_TAG:
 		for (i=0; i<count; i++) {
-			com = gf_list_get(codec->CommandList, i);
+			com = (GF_ODCom *)gf_list_get(codec->CommandList, i);
 			/*process OD updates*/
 			if (com->tag==GF_ODF_OD_UPDATE_TAG) {
 				u32 count, j, k;
@@ -556,7 +581,7 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 				count = gf_list_count(odU->objectDescriptors);
 				/*remove all descs*/
 				for (k=0; k<count; k++) {
-					GF_ObjectDescriptor *od = gf_list_get(odU->objectDescriptors, k);
+					GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, k);
 					for (j=0; j<odR->NbODs; j++) {
 						if (od->objectDescriptorID==odR->OD_ID[j]) {
 							gf_list_rem(odU->objectDescriptors, k);
@@ -592,7 +617,7 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 	case GF_ODF_OD_UPDATE_TAG:
 		odU_o = NULL;
 		for (i=0; i<count; i++) {
-			odU_o = gf_list_get(codec->CommandList, i);
+			odU_o = (GF_ODUpdate*)gf_list_get(codec->CommandList, i);
 			/*process OD updates*/
 			if (odU_o->tag==GF_ODF_OD_UPDATE_TAG) break;
 			odU_o = NULL;
@@ -605,10 +630,10 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 		count = gf_list_count(odU->objectDescriptors);
 		for (i=0; i<count; i++) {
 			Bool found = 0;
-			GF_ObjectDescriptor *od = gf_list_get(odU->objectDescriptors, i);
+			GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, i);
 			u32 j, count2 = gf_list_count(odU_o->objectDescriptors);
 			for (j=0; j<count2; j++) {
-				GF_ObjectDescriptor *od2 = gf_list_get(odU_o->objectDescriptors, j);
+				GF_ObjectDescriptor *od2 = (GF_ObjectDescriptor *)gf_list_get(odU_o->objectDescriptors, j);
 				if (od2->objectDescriptorID==od->objectDescriptorID) {
 					found = 1; 
 					break;

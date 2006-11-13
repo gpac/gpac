@@ -28,8 +28,9 @@
 
 VisualSurface *VS_New()
 {
-	VisualSurface *tmp = malloc(sizeof(VisualSurface));
-	memset(tmp, 0, sizeof(VisualSurface));
+	VisualSurface *tmp;
+	GF_SAFEALLOC(tmp, VisualSurface);
+
 	tmp->back_stack = gf_list_new();
 	tmp->view_stack = gf_list_new();
 	tmp->alpha_nodes_to_draw = gf_list_new();
@@ -50,7 +51,7 @@ void VS_Delete(VisualSurface *surf)
 
 DrawableStack *new_drawable(GF_Node *owner, GF_Renderer *compositor)
 {
-	DrawableStack *tmp = malloc(sizeof(DrawableStack));
+	DrawableStack *tmp = (DrawableStack *)malloc(sizeof(DrawableStack));
 	if (tmp) stack_setup(tmp, owner, compositor);
 	return tmp;
 }
@@ -62,7 +63,7 @@ void delete_drawable(DrawableStack*d)
 
 void drawable_Node_PreDestroy(GF_Node *n)
 {
-	DrawableStack *d = gf_node_get_private(n);
+	DrawableStack *d = (DrawableStack *)gf_node_get_private(n);
 	if (d) delete_drawable(d);
 }
 
@@ -83,7 +84,7 @@ void delete_strikeinfo(StrikeInfo *info)
 
 stack2D *new_stack2D(GF_Node *owner, GF_Renderer *compositor)
 {
-	stack2D *tmp = malloc(sizeof(stack2D));
+	stack2D *tmp = (stack2D *)malloc(sizeof(stack2D));
 	if (tmp) {
 		stack_setup(tmp, owner, compositor);
 		tmp->path = gf_path_new();
@@ -100,7 +101,7 @@ void stack2D_predestroy(stack2D *d)
 	gf_path_del(d->path);
 
 	while (gf_list_count(d->strike_list)) {
-		StrikeInfo *si = gf_list_get(d->strike_list, 0);
+		StrikeInfo *si = (StrikeInfo *)gf_list_get(d->strike_list, 0);
 		gf_list_rem(d->strike_list, 0);
 		/*remove from main strike list*/
 		gf_list_del_item(sr->strike_bank, si);
@@ -116,7 +117,7 @@ void delete_stack2D(stack2D *d)
 }
 void stack2D_node_predestroy(GF_Node *n)
 {
-	stack2D *d = gf_node_get_private(n);
+	stack2D *d = (stack2D *)gf_node_get_private(n);
 	if (d) delete_stack2D(d);
 }
 
@@ -140,7 +141,7 @@ void stack2D_reset(stack2D *d)
 	Render3D *sr = (Render3D *)d->compositor->visual_renderer->user_priv;
 	if (d->path) gf_path_reset(d->path);
 	while (gf_list_count(d->strike_list)) {
-		StrikeInfo *si = gf_list_get(d->strike_list, 0);
+		StrikeInfo *si = (StrikeInfo *)gf_list_get(d->strike_list, 0);
 		gf_list_rem(d->strike_list, 0);
 		gf_list_del_item(sr->strike_bank, si);
 		delete_strikeinfo(si);
@@ -198,21 +199,21 @@ Bool VS_GetAspect2D(RenderEffect3D *eff, Aspect2D *asp)
 		{
 			M_LineProperties *lp = (M_LineProperties *)mat->lineProps;
 			asp->pen_props.width = lp->width;
-			asp->pen_props.dash = lp->lineStyle;
+			asp->pen_props.dash = (GF_DashStyle) lp->lineStyle;
 			asp->line_color = lp->lineColor;
 		}
 			break;
 		case TAG_MPEG4_XLineProperties:
 		{
 			M_XLineProperties *xlp = (M_XLineProperties *)mat->lineProps;
-			asp->pen_props.dash = xlp->lineStyle;
+			asp->pen_props.dash = (GF_DashStyle) xlp->lineStyle;
 			asp->line_color = xlp->lineColor;
 			asp->line_alpha = FIX_ONE - xlp->transparency;
 			asp->pen_props.width = xlp->width;
 			asp->is_scalable = xlp->isScalable;
 			asp->pen_props.align = xlp->isCenterAligned ? GF_PATH_LINE_CENTER : GF_PATH_LINE_INSIDE;
-			asp->pen_props.cap = xlp->lineCap;
-			asp->pen_props.join = xlp->lineJoin;
+			asp->pen_props.cap = (GF_LineCap) xlp->lineCap;
+			asp->pen_props.join = (GF_LineJoin) xlp->lineJoin;
 			asp->pen_props.miterLimit = xlp->miterLimit;
 			asp->pen_props.dash_offset = xlp->dashOffset;
 			/*dash settings strutc is the same as MFFloat from XLP, typecast without storing*/
@@ -260,15 +261,15 @@ StrikeInfo *VS_GetStrikeInfo(stack2D *st, Aspect2D *asp, RenderEffect3D *eff)
 
 	si = NULL;
 	i=0;
-	while ((si = gf_list_enum(st->strike_list, &i))) {
+	while ((si = (StrikeInfo *)gf_list_enum(st->strike_list, &i))) {
 		/*note this includes default LP (NULL)*/
 		if (si->lineProps == asp->lp) break;
 		si = NULL;
 	}
 	/*not found, add*/
 	if (!si) {
-		si = malloc(sizeof(StrikeInfo));
-		memset(si, 0, sizeof(StrikeInfo));
+		GF_SAFEALLOC(si, StrikeInfo);
+
 		si->lineProps = asp->lp;
 		si->node2D = st->owner;
 		gf_list_add(st->strike_list, si);
@@ -332,15 +333,15 @@ StrikeInfo *VS_GetStrikeInfoIFS(stack2D *st, Aspect2D *asp, RenderEffect3D *eff)
 
 	si = NULL;
 	i=0;
-	while ((si = gf_list_enum(st->strike_list, &i))) {
+	while ((si = (StrikeInfo *)gf_list_enum(st->strike_list, &i))) {
 		/*note this includes default LP (NULL)*/
 		if (si->lineProps == asp->lp) break;
 		si = NULL;
 	}
 	/*not found, add*/
 	if (!si) {
-		si = malloc(sizeof(StrikeInfo));
-		memset(si, 0, sizeof(StrikeInfo));
+		GF_SAFEALLOC(si, StrikeInfo);
+
 		si->lineProps = asp->lp;
 		si->node2D = st->owner;
 		gf_list_add(st->strike_list, si);
@@ -761,7 +762,7 @@ void VS_SetupProjection(RenderEffect3D *eff)
 	eff->traversing_mode = TRAVERSE_RENDER_BINDABLE;
 
 	/*setup viewpoint (this directly modifies the frustum)*/
-	bindable = gf_list_get(eff->viewpoints, 0);
+	bindable = (GF_Node*)gf_list_get(eff->viewpoints, 0);
 	if (Bindable_GetIsBound(bindable)) {
 		gf_node_render(bindable, eff);
 		eff->camera->had_viewpoint = 1;
@@ -813,7 +814,7 @@ void VS_InitRender(RenderEffect3D *eff)
 	/*if not in layer, render navigation
 	FIXME: we should update the nav info according to the world transform at the current viewpoint (vrml)*/
 	eff->traversing_mode = TRAVERSE_RENDER_BINDABLE;
-	bindable = eff->navigations ? gf_list_get(eff->navigations, 0) : NULL;
+	bindable = eff->navigations ? (GF_Node*) gf_list_get(eff->navigations, 0) : NULL;
 	if (Bindable_GetIsBound(bindable)) {
 		gf_node_render(bindable, eff);
 		eff->camera->had_nav_info = 1;
@@ -863,7 +864,7 @@ void VS_InitRender(RenderEffect3D *eff)
 	/*setup background*/
 	mode = eff->traversing_mode;
 	eff->traversing_mode = TRAVERSE_RENDER_BINDABLE;
-	bindable = gf_list_get(eff->backgrounds, 0);
+	bindable = (GF_Node*) gf_list_get(eff->backgrounds, 0);
 
 	/*if in layer clear z buffer (even if background)*/
 	if (in_layer) VS3D_ClearDepth(eff->surface);
@@ -956,7 +957,7 @@ void VS_NodeRender(RenderEffect3D *eff, GF_Node *root_node)
 	
 
 	/*setup fog*/
-	fog = gf_list_get(eff->surface->fog_stack, 0);
+	fog = (GF_Node*) gf_list_get(eff->surface->fog_stack, 0);
 	eff->traversing_mode = TRAVERSE_RENDER_BINDABLE;
 	if (Bindable_GetIsBound(fog)) gf_node_render(fog, eff);
 
@@ -997,17 +998,17 @@ void VS_RootRenderChildren(RenderEffect3D *eff, GF_List *children)
 
 	eff->traversing_mode = TRAVERSE_LIGHTING;
 	for (i=0; i<count; i++) {
-		child = gf_list_get(children, i);
+		child = (GF_Node*) gf_list_get(children, i);
 		gf_node_render(child, eff);
 	}
 
 	eff->traversing_mode = TRAVERSE_SORT;
 	for (i=0; i<count; i++) {
-		child = gf_list_get(children, i);
+		child = (GF_Node*) gf_list_get(children, i);
 		gf_node_render(child, eff);
 	}
 	/*setup fog*/
-	child = gf_list_get(eff->fogs, 0);
+	child = (GF_Node*) gf_list_get(eff->fogs, 0);
 	eff->traversing_mode = TRAVERSE_RENDER_BINDABLE;
 	if (Bindable_GetIsBound(child)) gf_node_render(child, eff);
 
@@ -1055,7 +1056,7 @@ static GFINLINE Bool appear_has_alpha(RenderEffect3D *eff, GF_Node *node_to_draw
 	/*TODO - FIXME check alpha only...*/
 	if (!eff->color_mat.identity) return 1;
 
-	stack = gf_node_get_private(((M_Shape *)node_to_draw)->geometry);
+	stack = (DrawableStack*)gf_node_get_private(((M_Shape *)node_to_draw)->geometry);
 	if (stack && (stack->mesh->flags & MESH_HAS_ALPHA)) return 1;
 	return 0;
 }
@@ -1103,8 +1104,8 @@ void VS_RegisterContext(RenderEffect3D *eff, GF_Node *node_to_draw, GF_BBox *bou
 	ctx->split_text_idx = eff->split_text_idx;
 	
 	i=0;
-	while ((ol = gf_list_enum(eff->local_lights, &i))) {
-		nl = malloc(sizeof(DLightContext));
+	while ((ol = (DLightContext*)gf_list_enum(eff->local_lights, &i))) {
+		nl = (DLightContext*)malloc(sizeof(DLightContext));
 		memcpy(nl, ol, sizeof(DLightContext));
 		gf_list_add(ctx->directional_lights, nl);
 	}
@@ -1125,7 +1126,7 @@ void VS_RegisterContext(RenderEffect3D *eff, GF_Node *node_to_draw, GF_BBox *bou
 	speed purposes we store in reverse-z transparent nodes*/
 	count = gf_list_count(eff->surface->alpha_nodes_to_draw);
 	for (i=0; i<count; i++) {
-		Draw3DContext *next = gf_list_get(eff->surface->alpha_nodes_to_draw, i);
+		Draw3DContext *next = (Draw3DContext *)gf_list_get(eff->surface->alpha_nodes_to_draw, i);
 		if (next->zmax>ctx->zmax) {
 			gf_list_insert(eff->surface->alpha_nodes_to_draw, ctx, i);
 			return;
@@ -1143,14 +1144,14 @@ void VS_FlushContexts(VisualSurface *surf, RenderEffect3D *eff)
 	count = gf_list_count(surf->alpha_nodes_to_draw);
 	for (idx=0; idx<count; idx++) {
 		DLightContext *dl;
-		Draw3DContext *ctx = gf_list_get(surf->alpha_nodes_to_draw, idx);
+		Draw3DContext *ctx = (Draw3DContext *)gf_list_get(surf->alpha_nodes_to_draw, idx);
 
 		VS3D_PushMatrix(surf);
 
 		/*apply directional lights*/
 		eff->local_light_on = 1;
 		i=0;
-		while ((dl = gf_list_enum(ctx->directional_lights, &i))) {
+		while ((dl = (DLightContext*)gf_list_enum(ctx->directional_lights, &i))) {
 			VS3D_PushMatrix(surf);
 			VS3D_MultMatrix(surf, dl->light_matrix.m);
 			gf_node_render(dl->dlight, eff);
@@ -1184,7 +1185,7 @@ void VS_FlushContexts(VisualSurface *surf, RenderEffect3D *eff)
 		/*reset directional lights*/
 		eff->local_light_on = 0;
 		for (i=gf_list_count(ctx->directional_lights); i>0; i--) {
-			DLightContext *dl = gf_list_get(ctx->directional_lights, i-1);
+			DLightContext *dl = (DLightContext*)gf_list_get(ctx->directional_lights, i-1);
 			gf_node_render(dl->dlight, eff);
 			free(dl);
 		}
@@ -1295,7 +1296,7 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 	} else {
 		GF_Node *child;
 		i=0;
-		while ((child = gf_list_enum(node_list, &i))) {
+		while ((child = (GF_Node*)gf_list_enum(node_list, &i))) {
 			gf_node_render(child, eff);
 		}
 	}
@@ -1305,7 +1306,7 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 	stype = GF_CURSOR_NORMAL;
 	count = gf_list_count(sr->prev_sensors);
 	for (i=0; i<count; i++) {
-		hs = gf_list_get(sr->prev_sensors, i);
+		hs = (SensorHandler*)gf_list_get(sr->prev_sensors, i);
 		if (gf_list_find(sr->sensors, hs) < 0) {
 			/*that's a bit ugly but we need coords if pointer out of the shape when sensor grabbed...*/
 			if (sr->is_grabbed) {
@@ -1319,7 +1320,7 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 
 	count = gf_list_count(sr->sensors);
 	for (i=0; i<count; i++) {
-		hs = gf_list_get(sr->sensors, i);
+		hs = (SensorHandler*)gf_list_get(sr->sensors, i);
 		hs->OnUserEvent(hs, 1, ev, &sr->hit_info);
 		stype = gf_node_get_tag(hs->owner);
 		if (hs==hs_grabbed) hs_grabbed = NULL;
@@ -1391,7 +1392,7 @@ void drawable_do_pick(GF_Node *n, RenderEffect3D *eff)
 	Render3D *sr;
 	GF_Matrix mx;
 	GF_Ray r;
-	DrawableStack *st = gf_node_get_private(n);
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(n);
 	u32 cull_bckup = eff->cull_flag;
 	if (!st) return;
 
@@ -1532,7 +1533,7 @@ void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list)
 		} else {
 			GF_Node *child;
 			i=0;
-			while ((child = gf_list_enum(node_list, &i))) {
+			while ((child = (GF_Node*)gf_list_enum(node_list, &i))) {
 				gf_node_render(child, eff);
 			}
 		}
@@ -1613,7 +1614,7 @@ void drawable_do_collide(GF_Node *node, RenderEffect3D *eff)
 	Fixed dist, m_dist;
 	GF_Matrix mx;
 	u32 ntag, cull_backup;
-	DrawableStack *st = gf_node_get_private(node);
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 	if (!st) return;
 
 	/*no collision with lines & points*/

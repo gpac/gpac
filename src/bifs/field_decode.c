@@ -132,7 +132,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 
 		if ( ((SFString *)field->far_ptr)->buffer ) free( ((SFString *)field->far_ptr)->buffer);
-		((SFString *)field->far_ptr)->buffer = (unsigned char *)malloc(sizeof(char)*(length+1));
+		((SFString *)field->far_ptr)->buffer = (char *)malloc(sizeof(char)*(length+1));
 		memset(((SFString *)field->far_ptr)->buffer , 0, length+1);
 		for (i=0; i<length; i++) {
 			 ((SFString *)field->far_ptr)->buffer[i] = gf_bs_read_int(bs, 8);
@@ -148,7 +148,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			length = gf_bs_read_int(bs, 10);
 			url->OD_ID = length;
 		} else {
-			if ( url->OD_ID ) url->OD_ID = -1;
+			if ( url->OD_ID ) url->OD_ID = (u32) -1;
 			size = gf_bs_read_int(bs, 5);
 			length = gf_bs_read_int(bs, size);
 			if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
@@ -227,7 +227,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		else if (node->sgprivate->tag==TAG_MPEG4_InputSensor) {
 			GF_Err BM_ParseCommand(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_list);
 			GF_BitStream *is_bs;
-			is_bs = gf_bs_new(sfcb->buffer, sfcb->bufferSize, GF_BITSTREAM_READ);
+			is_bs = gf_bs_new((char*)sfcb->buffer, sfcb->bufferSize, GF_BITSTREAM_READ);
 			e = BM_ParseCommand(codec, is_bs, sfcb->commandList);
 			gf_bs_del(is_bs);
 		}

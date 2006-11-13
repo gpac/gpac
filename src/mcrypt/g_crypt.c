@@ -116,16 +116,16 @@ void gf_crypt_close(GF_Crypt *td)
 
 GF_Err gf_crypt_set_key(GF_Crypt *td, void *key, u32 keysize, const void *IV)
 {
-	int (*__mcrypt_set_key_stream) (void *, const void *, int, const void *, int);
-	int (*__mcrypt_set_key_block) (void *, const void *, int);
+	GF_Err (*__mcrypt_set_key_stream) (void *, const void *, int, const void *, int);
+	GF_Err (*__mcrypt_set_key_block) (void *, const void *, int);
 
 	if (td->is_block_algo== 0) {
 		/* stream */
-		__mcrypt_set_key_stream = td->a_set_key;
+		__mcrypt_set_key_stream = (mcrypt_setkeystream) td->a_set_key;
 		if (__mcrypt_set_key_stream == NULL) return GF_BAD_PARAM;
 		return __mcrypt_set_key_stream(td->akey, key, keysize, IV, (IV!=NULL) ? gf_crypt_get_iv_size(td) : 0);
 	} else {
-		__mcrypt_set_key_block = td->a_set_key;
+		__mcrypt_set_key_block = (mcrypt_setkeyblock) td->a_set_key;
 		if (__mcrypt_set_key_block == NULL) return GF_BAD_PARAM;
 		return __mcrypt_set_key_block(td->akey, key, keysize);
 	}
@@ -209,18 +209,18 @@ GF_Err gf_crypt_init(GF_Crypt *td, void *key, u32 lenofkey, const void *IV)
 		key_size = lenofkey;
 	}
 
-	td->keyword_given = malloc(sizeof(char)*gf_crypt_get_key_size(td));
+	td->keyword_given = (char*)malloc(sizeof(char)*gf_crypt_get_key_size(td));
 	if (td->keyword_given==NULL) return GF_OUT_OF_MEM; 
 	
 	memmove(td->keyword_given, key, lenofkey);
 
-	td->akey = malloc(sizeof(char)*td->algo_size);
+	td->akey = (char*)malloc(sizeof(char)*td->algo_size);
 	if (td->akey==NULL) {
 		free(td->keyword_given);
 		return GF_OUT_OF_MEM;
 	}
 	if (td->mode_size > 0) {
-		td->abuf = malloc(sizeof(char)*td->mode_size);
+		td->abuf = (char*)malloc(sizeof(char)*td->mode_size);
 		if (td->abuf==NULL) {
 			free(td->keyword_given);
 			free(td->akey);
@@ -249,13 +249,13 @@ void gf_crypt_deinit(GF_Crypt *td)
 GF_Err gf_crypt_encrypt(GF_Crypt *td, void *plaintext, int len)
 {
 	if (!td) return GF_BAD_PARAM;
-	return td->_mcrypt(td->abuf, plaintext, len, gf_crypt_get_block_size(td), td->akey, td->a_encrypt, td->a_decrypt);
+	return td->_mcrypt(td->abuf, plaintext, len, gf_crypt_get_block_size(td), td->akey, (mcryptfunc) td->a_encrypt, (mcryptfunc) td->a_decrypt);
 }
 
 GF_Err gf_crypt_decrypt(GF_Crypt *td, void *ciphertext, int len)
 {
 	if (!td) return GF_BAD_PARAM;
-	return td->_mdecrypt(td->abuf, ciphertext, len, gf_crypt_get_block_size(td), td->akey, td->a_encrypt, td->a_decrypt);
+	return td->_mdecrypt(td->abuf, ciphertext, len, gf_crypt_get_block_size(td), td->akey, (mcryptfunc) td->a_encrypt, (mcryptfunc) td->a_decrypt);
 }
 
 
@@ -319,7 +319,7 @@ u32 gf_crypt_str_get_algo_supported_key_sizes(const char *algorithm, int *keys)
 {
 	u32 ret;
 	GF_Crypt *td = gf_crypt_open_intern(algorithm, NULL, 1);
-	ret = gf_crypt_get_supported_key_sizes(td, keys);
+	ret = gf_crypt_get_supported_key_sizes(td, (u32 *)keys);
 	gf_crypt_close(td);
 	return ret;
 }

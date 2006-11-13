@@ -28,6 +28,7 @@
 #include <gpac/nodes_x3d.h>
 
 
+GF_EXPORT
 GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, GF_Node *toNode, u32 toField)
 {
 	GF_Route *r;
@@ -85,7 +86,7 @@ GF_Route *gf_sg_route_find(GF_SceneGraph *sg, u32 RouteID)
 {
 	GF_Route *r;
 	u32 i=0;
-	while ((r = gf_list_enum(sg->Routes, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(sg->Routes, &i))) {
 		if (r->ID == RouteID) return r;
 	}
 	return NULL;
@@ -98,7 +99,7 @@ GF_Route *gf_sg_route_find_by_name(GF_SceneGraph *sg, char *name)
 	if (!sg || !name) return NULL;
 
 	i=0;
-	while ((r = gf_list_enum(sg->Routes, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(sg->Routes, &i))) {
 		if (r->name && !strcmp(r->name, name)) return r;
 	}
 	return NULL;
@@ -187,13 +188,13 @@ Bool gf_sg_route_activate(GF_Route *r)
 
 		/*empty list*/
 		while (gf_list_count(dest)){
-			p = gf_list_get(dest, 0);
+			p = (GF_Node*)gf_list_get(dest, 0);
 			gf_list_rem(dest, 0);
 			gf_node_unregister(p, r->ToNode);
 		}
 
 		i=0;
-		while ((p = gf_list_enum(orig, &i))) {
+		while ((p = (GF_Node*)gf_list_enum(orig, &i))) {
 			gf_list_add(dest, p);
 			gf_node_register(p, r->ToNode);
 		}
@@ -252,7 +253,7 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 	
 	//search for routes to activate in the order they where declared
 	i=0;
-	while ((r = gf_list_enum(node->sgprivate->events, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->events, &i))) {
 		if (r->FromNode != node) continue;
 		if (r->FromField.fieldIndex != FieldIndex) continue;
 
@@ -268,6 +269,7 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 	}
 }
 
+GF_EXPORT
 void gf_node_event_out_str(GF_Node *node, const char *eventName)
 {
 	u32 i;
@@ -281,7 +283,7 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName)
 	
 	//search for routes to activate in the order they where declared
 	i=0;
-	while ((r = gf_list_enum(node->sgprivate->events, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->events, &i))) {
 		if (!r->is_setup) gf_sg_route_setup(r);
 		if (stricmp(r->FromField.name, eventName)) continue;
 

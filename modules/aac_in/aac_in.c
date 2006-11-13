@@ -116,7 +116,7 @@ static GF_ESD *AAC_GetESD(AACReader *read)
 	gf_bs_write_int(dsi, sbr_sr_idx, 4);
 
 	gf_bs_align(dsi);
-	gf_bs_get_content(dsi, (unsigned char **)&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+	gf_bs_get_content(dsi, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 	gf_bs_del(dsi);
 	return esd;
 }

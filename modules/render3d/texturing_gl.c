@@ -60,7 +60,7 @@ GF_Err tx_allocate(GF_TextureHandler *txh)
 {
 	GLTexture *gltx;
 	if (txh->hwtx) return GF_OK;
-	gltx = malloc(sizeof(GLTexture));
+	gltx = (GLTexture*)malloc(sizeof(GLTexture));
 	if (!gltx) return GF_OUT_OF_MEM;
 	txh->hwtx = gltx;
 	memset(gltx, 0, sizeof(GLTexture));
@@ -235,7 +235,7 @@ Bool tx_setup_format(GF_TextureHandler *txh)
 		return 0;
 	}
 	/*note we don't free the data if existing, since this only happen when re-setting up after context loss (same size)*/
-	if ((gltx->tx_flags == TX_MUST_SCALE) & !gltx->scale_data) gltx->scale_data = malloc(sizeof(char) * gltx->nb_comp*gltx->rescale_width*gltx->rescale_height);
+	if ((gltx->tx_flags == TX_MUST_SCALE) & !gltx->scale_data) gltx->scale_data = (char*)malloc(sizeof(char) * gltx->nb_comp*gltx->rescale_width*gltx->rescale_height);
 
 	glEnable(gltx->gl_type);
 	glBindTexture(gltx->gl_type, gltx->id);
@@ -309,7 +309,7 @@ Bool tx_convert(GF_TextureHandler *txh)
 			u32 i, hy;
 			char *tmp;
 			/*flip image*/
-			tmp = malloc(sizeof(char)*txh->stride);
+			tmp = (char*)malloc(sizeof(char)*txh->stride);
 			hy = txh->height/2;
 			for (i=0; i<hy; i++) {
 				memcpy(tmp, txh->data + i*txh->stride, txh->stride);
@@ -333,12 +333,12 @@ Bool tx_convert(GF_TextureHandler *txh)
 			/*convert video to a po of 2 WITHOUT SCALING VIDEO*/
 			gltx->conv_w = get_next_pow2(txh->width);
 			gltx->conv_h = get_next_pow2(txh->height);
-			gltx->conv_data = malloc(sizeof(char) * 3 * gltx->conv_w * gltx->conv_h);
+			gltx->conv_data = (char*)malloc(sizeof(char) * 3 * gltx->conv_w * gltx->conv_h);
 			memset(gltx->conv_data , 0, sizeof(char) * 3 * gltx->conv_w * gltx->conv_h);
 			gltx->conv_wscale = INT2FIX(txh->width) / gltx->conv_w;
 			gltx->conv_hscale = INT2FIX(txh->height) / gltx->conv_h;
 		} else {
-			gltx->conv_data = malloc(sizeof(char) * 3 * txh->width * txh->height);
+			gltx->conv_data = (char*)malloc(sizeof(char) * 3 * txh->width * txh->height);
 		}
 	}
 	out_stride = 3 * ((gltx->tx_flags & TX_EMULE_POW2) ? gltx->conv_w : txh->width);
@@ -470,7 +470,7 @@ Bool tx_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Matrix *
 			/*1- translate*/
 			gf_mx2d_add_translation(&mat, tt->translation.x, tt->translation.y);
 			/*2- rotate*/
-			if (fabs(tt->rotation) > GF_EPSILON_FLOAT) gf_mx2d_add_rotation(&mat, tt->center.x, tt->center.y, tt->rotation);
+			if (fabs(tt->rotation) > FIX_EPSILON) gf_mx2d_add_rotation(&mat, tt->center.x, tt->center.y, tt->rotation);
 			/*3- centered-scale*/
 			gf_mx2d_add_translation(&mat, -tt->center.x, -tt->center.y);
 			gf_mx2d_add_scale(&mat, tt->scale.x, tt->scale.y);

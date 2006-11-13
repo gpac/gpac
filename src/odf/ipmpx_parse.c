@@ -155,7 +155,7 @@ void GF_IPMPX_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 
 	if (val[0] != '%') {
 		len = *out_data_size = strlen(val);
-		*out_data = malloc(sizeof(char) * len);
+		*out_data = (char*)malloc(sizeof(char) * len);
 		memcpy(*out_data, val, sizeof(char) * len);
 		return;
 	}
@@ -163,7 +163,7 @@ void GF_IPMPX_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 	len = strlen(val) / 3;
 	if (*out_data) free(*out_data);
 	*out_data_size = len;
-	*out_data = malloc(sizeof(char) * len);
+	*out_data = (char*)malloc(sizeof(char) * len);
 	s[2] = 0;
 	for (i=0; i<len; i++) {
 		s[0] = val[3*i+1];
@@ -189,7 +189,7 @@ void GF_IPMPX_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 	size = ftell(f);
 	fseek(f, 0, SEEK_SET);
 	*out_data_size = size;
-	*out_data = malloc(sizeof(char) * size);
+	*out_data = (char*)malloc(sizeof(char) * size);
 	fread(*out_data, sizeof(char) * size, 1, f);
 	fclose(f);
 }
@@ -201,7 +201,7 @@ void GF_IPMPX_ParseBin128(char *val, bin128 *data)
 	if (strlen(val)<16) {
 		GF_BitStream *bs;
 		u32 int_val = atoi(val);
-		bs = gf_bs_new((unsigned char *) (*data), 16, GF_BITSTREAM_WRITE);
+		bs = gf_bs_new((char*) (*data), 16, GF_BITSTREAM_WRITE);
 		gf_bs_write_int(bs, 0, 32);
 		gf_bs_write_int(bs, 0, 32);
 		gf_bs_write_int(bs, 0, 32);
@@ -225,7 +225,7 @@ void GF_IPMPX_ParseDate(char *val, GF_IPMPX_Date *date)
 	if ((strlen(val)<7) || strnicmp(val, "0x", 2)) {
 		GF_BitStream *bs;
 		u32 int_val = atoi(val);
-		bs = gf_bs_new((unsigned char *) (*date), 5, GF_BITSTREAM_WRITE);
+		bs = gf_bs_new((*date), 5, GF_BITSTREAM_WRITE);
 		gf_bs_write_int(bs, 0, 8);
 		gf_bs_write_int(bs, int_val, 32);
 		gf_bs_del(bs);
@@ -268,7 +268,7 @@ GF_Err gf_ipmpx_data_parse_16(char *val, u16 **outData, u16 *outDataSize)
 {
 	char szVal[50];
 	u32 i, j, len, v, alloc, count;
-	u16 *data = malloc(sizeof(u16) * 100);
+	u16 *data = (u16*)malloc(sizeof(u16) * 100);
 	alloc = 100;
 
 	len = strlen(val);
@@ -291,11 +291,11 @@ GF_Err gf_ipmpx_data_parse_16(char *val, u16 **outData, u16 *outDataSize)
 			count += 1;
 			if (count == alloc) {
 				alloc += 100;
-				data = realloc(data, sizeof(u16)*alloc);
+				data = (u16*)realloc(data, sizeof(u16)*alloc);
 			}
 		}
 	}
-	(*outData) = realloc(data, sizeof(u16)*count);
+	(*outData) = (u16*)realloc(data, sizeof(u16)*count);
 	*outDataSize = count;
 	return GF_OK;
 }
@@ -610,9 +610,9 @@ GF_Err gf_ipmpx_set_byte_array(GF_IPMPX_Data *p, char *field, char *str)
 {
 	GF_IPMPX_ByteArray *d;
 	GF_IPMPX_ByteArray **dest;
-	d = malloc(sizeof(GF_IPMPX_ByteArray));
+	d = (GF_IPMPX_ByteArray*)malloc(sizeof(GF_IPMPX_ByteArray));
 	d->length = strlen(str);
-	d->data = malloc(sizeof(char)*d->length);
+	d->data = (char*)malloc(sizeof(char)*d->length);
 	memcpy(d->data, str, d->length);
 
 	dest = NULL;

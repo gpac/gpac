@@ -25,7 +25,7 @@
 #include "ogg_in.h"
 
 
-static Bool OGG_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool OGG_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	/*video decs*/
 	if (StreamType == GF_STREAM_VISUAL) {

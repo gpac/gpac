@@ -504,7 +504,7 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		*out_read = size;
 	} else 
 #endif
-		e = gf_sk_receive(sess->sock, (unsigned char *)data, data_size, 0, out_read);
+		e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
 	
 	return e;
 }
@@ -796,6 +796,7 @@ static GFINLINE void gf_dm_data_recieved(GF_DownloadSession *sess, char *data, u
 }
 
 
+GF_EXPORT
 GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_size, u32 *read_size)
 {
 	GF_Err e;
@@ -829,6 +830,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, u32 *net_status)
 {
 	if (!sess) return GF_BAD_PARAM;
@@ -843,6 +845,7 @@ GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, cons
 	return GF_OK;
 }
 
+GF_EXPORT
 const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess)
 {
 	if (!sess) return NULL;
@@ -918,7 +921,7 @@ void http_do_requests(GF_DownloadSession *sess)
 				sess->passwd = strdup(szPASS);
 			}
 			sprintf(pass_buf, "%s:%s", sess->user, sess->passwd);
-			size = gf_base64_encode((unsigned char *)pass_buf, strlen(pass_buf), (unsigned char *)range_buf, 1024);
+			size = gf_base64_encode(pass_buf, strlen(pass_buf), range_buf, 1024);
 			range_buf[size] = 0;
 			sprintf(pass_buf, "Authorization: Basic %s", range_buf);
 		}
@@ -967,10 +970,10 @@ void http_do_requests(GF_DownloadSession *sess)
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
 			e = GF_IP_NETWORK_FAILURE;
-			if (!SSL_write(sess->ssl, (unsigned char *)sHTTP, strlen(sHTTP))) e = GF_OK;
+			if (!SSL_write(sess->ssl, sHTTP, strlen(sHTTP))) e = GF_OK;
 		} else 
 #endif
-			e = gf_sk_send(sess->sock, (unsigned char *)sHTTP, strlen(sHTTP));
+			e = gf_sk_send(sess->sock, sHTTP, strlen(sHTTP));
 
 		if (e) {
 			sess->status = GF_DOWNLOAD_STATE_UNAVAILABLE;

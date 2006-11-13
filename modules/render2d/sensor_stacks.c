@@ -143,9 +143,8 @@ SensorHandler *r2d_ds_get_handler(GF_Node *n)
 void R2D_InitDiscSensor(Render2D *sr, GF_Node *node)
 {
 	DiscSensorStack *st;
-	
-	st = malloc(sizeof(DiscSensorStack));
-	memset(st, 0, sizeof(DiscSensorStack));
+	GF_SAFEALLOC(st, DiscSensorStack);
+
 	st->hdl.IsEnabled = ds_is_enabled;
 	st->hdl.OnUserEvent = OnDiscSensor;
 	st->hdl.owner = node;
@@ -289,8 +288,9 @@ SensorHandler *r2d_ps2D_get_handler(GF_Node *n)
 
 void R2D_InitPlaneSensor2D(Render2D *sr, GF_Node *node)
 {
-	PS2DStack *st = malloc(sizeof(PS2DStack));
-	memset(st, 0, sizeof(PS2DStack));
+	PS2DStack *st;
+	GF_SAFEALLOC(st, PS2DStack);
+
 	st->hdl.IsEnabled = ps2D_is_enabled;
 	st->hdl.OnUserEvent = OnPlaneSensor2D;
 	st->hdl.owner = node;
@@ -392,8 +392,9 @@ SensorHandler *r2d_prox2D_get_handler(GF_Node *n)
 
 void R2D_InitProximitySensor2D(Render2D *sr, GF_Node *node)
 {
-	Prox2DStack *st = malloc(sizeof(Prox2DStack));
-	memset(st, 0, sizeof(Prox2DStack));
+	Prox2DStack *st;
+	GF_SAFEALLOC(st, Prox2DStack);
+
 	st->hdl.IsEnabled = prox2D_is_enabled;
 	st->hdl.OnUserEvent = OnProximitySensor2D;
 	st->hdl.owner = node;
@@ -511,8 +512,9 @@ SensorHandler *r2d_touch_sensor_get_handler(GF_Node *n)
 
 void R2D_InitTouchSensor(Render2D *sr, GF_Node *node)
 {
-	TouchSensorStack *st = malloc(sizeof(TouchSensorStack));
-	memset(st, 0, sizeof(TouchSensorStack));
+	TouchSensorStack *st;
+	GF_SAFEALLOC(st, TouchSensorStack);
+
 	st->hdl.IsEnabled = ts_is_enabled;
 	st->hdl.OnUserEvent = OnTouchSensor;
 	st->hdl.owner = node;

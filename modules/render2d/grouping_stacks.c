@@ -69,7 +69,7 @@ static void RenderSwitch(GF_Node *node, void *rs)
 		/*deactivation must be signaled because switch may contain audio nodes...*/
 		for (i=0; i<count; i++) {
 			if ((s32) i==whichChoice) continue;
-			child = gf_list_get(children, i);
+			child = (GF_Node*)gf_list_get(children, i);
 			gf_node_render(child, eff);
 		}
 		eff->trav_flags &= ~GF_SR_TRAV_SWITCHED_OFF;
@@ -83,14 +83,14 @@ static void RenderSwitch(GF_Node *node, void *rs)
 	eff->trav_flags = prev_switch;
 
 	if (whichChoice>=0) {
-		child = gf_list_get(children, whichChoice);
+		child = (GF_Node*)gf_list_get(children, whichChoice);
 		gf_node_render(child, eff);
 	}
 }
 
 void R2D_InitSwitch(Render2D *sr, GF_Node *node)
 {
-	SwitchStack *st = malloc(sizeof(SwitchStack));
+	SwitchStack *st = (SwitchStack *)malloc(sizeof(SwitchStack));
 	st->last_switch = -1;
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, DestroySwitch);
@@ -146,7 +146,7 @@ static void RenderTransform2D(GF_Node *node, void *rs)
 
 void R2D_InitTransform2D(Render2D *sr, GF_Node *node)
 {
-	Transform2DStack *stack = malloc(sizeof(Transform2DStack));
+	Transform2DStack *stack = (Transform2DStack *)malloc(sizeof(Transform2DStack));
 	SetupGroupingNode2D((GroupingNode2D *)stack, sr, node);
 	gf_mx2d_init(stack->mat);
 	stack->is_identity = 1;
@@ -200,7 +200,7 @@ static void RenderTransformMatrix2D(GF_Node *node, void *rs)
 
 void R2D_InitTransformMatrix2D(Render2D *sr, GF_Node *node)
 {
-	Transform2DStack *stack = malloc(sizeof(Transform2DStack));
+	Transform2DStack *stack = (Transform2DStack *)malloc(sizeof(Transform2DStack));
 	SetupGroupingNode2D((GroupingNode2D *)stack, sr, node);
 	gf_mx2d_init(stack->mat);
 	gf_node_set_private(node, stack);
@@ -261,7 +261,7 @@ static void RenderColorTransform(GF_Node *node, void *rs)
 
 void R2D_InitColorTransform(Render2D *sr, GF_Node *node)
 {
-	ColorTransformStack *stack = malloc(sizeof(ColorTransformStack));
+	ColorTransformStack *stack = (ColorTransformStack *)malloc(sizeof(ColorTransformStack));
 	SetupGroupingNode2D((GroupingNode2D *)stack, sr, node);
 	gf_cmx_init(&stack->cmat);
 	gf_node_set_private(node, stack);
@@ -277,7 +277,7 @@ static void RenderGroup(GF_Node *node, void *rs)
 
 void R2D_InitGroup(Render2D *sr, GF_Node *node)
 {
-	GroupingNode2D *stack = malloc(sizeof(GroupingNode2D));
+	GroupingNode2D *stack = (GroupingNode2D *)malloc(sizeof(GroupingNode2D));
 	SetupGroupingNode2D(stack, sr, node);
 	gf_node_set_private(node, stack);
 	gf_node_set_predestroy_function(node, DestroyBaseGrouping2D);
@@ -307,7 +307,7 @@ static void RenderAnchor(GF_Node *node, void *rs)
 {
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(node);
 	M_Anchor *an = (M_Anchor *) node;
-	RenderEffect2D *eff = rs;
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
 	/*update enabled state*/
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
@@ -407,9 +407,9 @@ SensorHandler *r2d_anchor_get_handler(GF_Node *n)
 
 void R2D_InitAnchor(Render2D *sr, GF_Node *node)
 {
+	AnchorStack *stack;
 	M_Anchor *an = (M_Anchor *)node;
-	AnchorStack *stack = malloc(sizeof(AnchorStack));
-	memset(stack, 0, sizeof(AnchorStack));
+	GF_SAFEALLOC(stack, AnchorStack);
 
 	SetupGroupingNode2D((GroupingNode2D*)stack, sr, node);
 
@@ -484,7 +484,7 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 
 		if (ogs->priorities) free(ogs->priorities);
-		ogs->priorities = malloc(sizeof(struct og_pos)*count);
+		ogs->priorities = (struct og_pos*)malloc(sizeof(struct og_pos)*count);
 		for (i=0; i<count; i++) {
 			ogs->priorities[i].position = i;
 			ogs->priorities[i].priority = (i<og->order.count) ? og->order.vals[i] : 0;
@@ -502,7 +502,7 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 		}
 
 		for (i=0; i<count; i++) {
-			child = gf_list_get(og->children, ogs->priorities[i].position);
+			child = (GF_Node*)gf_list_get(og->children, ogs->priorities[i].position);
 			if (!child || !is_sensor_node(child) ) continue;
 			hsens = get_sensor_handler(child);
 			if (hsens) gf_list_add(ogs->sensors, hsens);
@@ -516,7 +516,7 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 		eff->sensors = gf_list_new();
 		/*add sensor to effects*/	
 		for (i=0; i <count2; i++) {
-			SensorHandler *hsens = gf_list_get(ogs->sensors, i);
+			SensorHandler *hsens = (SensorHandler *)gf_list_get(ogs->sensors, i);
 			effect_add_sensor(eff, hsens, &eff->transform);
 		}
 	}
@@ -525,7 +525,7 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 	if (eff->parent == (GroupingNode2D *) ogs) {
 		for (i=0; i<count; i++) {
 			group2d_start_child((GroupingNode2D *) ogs);
-			child = gf_list_get(og->children, ogs->priorities[i].position);
+			child = (GF_Node*)gf_list_get(og->children, ogs->priorities[i].position);
 			gf_node_render(child, eff);
 			group2d_end_child((GroupingNode2D *) ogs);
 		}
@@ -533,7 +533,7 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 		split_text_backup = eff->text_split_mode;
 		if (count>1) eff->text_split_mode = 0;
 		for (i=0; i<count; i++) {
-			child = gf_list_get(og->children, ogs->priorities[i].position);
+			child = (GF_Node*)gf_list_get(og->children, ogs->priorities[i].position);
 			gf_node_render(child, eff);
 		}
 		eff->text_split_mode = split_text_backup;
@@ -551,8 +551,8 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 
 void R2D_InitOrderedGroup(Render2D *sr, GF_Node *node)
 {
-	OrderedGroupStack *ptr = malloc(sizeof(OrderedGroupStack));
-	memset(ptr, 0, sizeof(OrderedGroupStack));
+	OrderedGroupStack *ptr;
+	GF_SAFEALLOC(ptr, OrderedGroupStack);
 
 	SetupGroupingNode2D((GroupingNode2D*)ptr, sr, node);
 	
@@ -631,12 +631,12 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 
 	back = NULL;
 	if (gf_list_count(l2D->backs) ) {
-		back = gf_list_get(l2D->backs, 0);
+		back = (M_Background2D*)gf_list_get(l2D->backs, 0);
 		if (!back->isBound) back = NULL;
 	}
 	vp = NULL;
 	if (gf_list_count(l2D->views)) {
-		vp = gf_list_get(l2D->views, 0);
+		vp = (M_Viewport*)gf_list_get(l2D->views, 0);
 		if (!vp->isBound) vp = NULL;
 	}
 	if (!eff->is_pixel_metrics) gf_mx2d_add_scale(&eff->transform, eff->min_hsize, eff->min_hsize);
@@ -665,7 +665,7 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 		/*we need a trick since we're not using a dedicated surface for layer rendering, 
 		we emulate the back context: remove previous context and insert fake one*/
 		if (!(eff->trav_flags & TF_RENDER_DIRECT) && (gf_list_count(l2D->groups)==1)) {
-			ChildGroup2D *cg = gf_list_get(l2D->groups, 0);
+			ChildGroup2D *cg = (ChildGroup2D *)gf_list_get(l2D->groups, 0);
 			back_ctx = VS2D_GetDrawableContext(eff->surface);
 			gf_list_rem(cg->contexts, 0);
 			gf_list_add(cg->contexts, back_ctx);
@@ -705,7 +705,7 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 	}
 
 	i=0;
-	while ((cg = gf_list_enum(l2D->groups, &i))) {
+	while ((cg = (ChildGroup2D *)gf_list_enum(l2D->groups, &i))) {
 		child2d_render_done(cg, eff, &l2D->clip);
 	}
 	group2d_reset_children((GroupingNode2D*)l2D);
@@ -715,7 +715,7 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 
 void R2D_InitLayer2D(Render2D *sr, GF_Node *node)
 {
-	Layer2DStack *stack = malloc(sizeof(Layer2DStack));
+	Layer2DStack *stack = (Layer2DStack *)malloc(sizeof(Layer2DStack));
 	SetupGroupingNode2D((GroupingNode2D*)stack, sr, node);
 	stack->backs = gf_list_new();
 	stack->views = gf_list_new();

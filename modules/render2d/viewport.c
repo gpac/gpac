@@ -39,7 +39,7 @@ GF_Err R2D_GetViewport(GF_VisualRenderer *vr, u32 viewpoint_idx, const char **ou
 	if (!viewpoint_idx) return GF_BAD_PARAM;
 	if (viewpoint_idx>count) return GF_EOS;
 
-	n = gf_list_get(sr->surface->view_stack, viewpoint_idx-1);
+	n = (GF_Node*)gf_list_get(sr->surface->view_stack, viewpoint_idx-1);
 	switch (gf_node_get_tag(n)) {
 	case TAG_MPEG4_Viewport: *outName = ((M_Viewport*)n)->description.buffer; *is_bound = ((M_Viewport*)n)->isBound; return GF_OK;
 	default: *outName = NULL; return GF_OK;
@@ -64,7 +64,7 @@ GF_Err R2D_SetViewport(GF_VisualRenderer *vr, u32 viewpoint_idx, const char *vie
 		return GF_OK;
 	}
 	for (i=0; i<count;i++) {
-		n = gf_list_get(sr->surface->view_stack, viewpoint_idx-1);
+		n = (M_Viewport*) gf_list_get(sr->surface->view_stack, viewpoint_idx-1);
 		if (n->description.buffer && !stricmp(n->description.buffer, viewpoint_name)) {
 			n->set_bind = !n->set_bind;
 			n->on_set_bind((GF_Node *) n);
@@ -94,7 +94,7 @@ static void DestroyViewport(GF_Node *node)
 	M_Viewport *n_vp;
 
 	while (gf_list_count(ptr->stack_list)) {
-		stack = gf_list_get(ptr->stack_list, 0);
+		stack = (GF_List*)gf_list_get(ptr->stack_list, 0);
 		i = gf_list_del_item(stack, node);
 		if (i==0) {
 			n_vp = (M_Viewport *) gf_list_get(stack, 0);
@@ -125,7 +125,7 @@ static void viewport_set_bind(GF_Node *node)
 
 	//notify all stacks using this node
 	i=0;
-	while ((stack = gf_list_enum(ptr->stack_list, &i))) {
+	while ((stack = (GF_List*)gf_list_enum(ptr->stack_list, &i))) {
 		on_top = (gf_list_get(stack, 0) == node) ? 1 : 0;
 	
 		if (!vp->set_bind) {
@@ -135,10 +135,10 @@ static void viewport_set_bind(GF_Node *node)
 			}
 
 			if (on_top) {
-				a_vp = gf_list_get(stack, 0);
+				a_vp = (GF_Node*)gf_list_get(stack, 0);
 				gf_list_rem(stack, 0);
 				gf_list_add(stack, a_vp);
-				a_vp = gf_list_get(stack, 0);
+				a_vp = (GF_Node*)gf_list_get(stack, 0);
 				if (a_vp != node) {
 					((M_Viewport *) a_vp)->set_bind = 1;
 					gf_node_event_out_str(a_vp, "set_bind");
@@ -153,7 +153,7 @@ static void viewport_set_bind(GF_Node *node)
 			}
 
 			if (!on_top) {
-				a_vp = gf_list_get(stack, 0);
+				a_vp = (GF_Node*)gf_list_get(stack, 0);
 				if (a_vp != node) {
 					gf_list_del_item(stack, vp);
 					gf_list_insert(stack, vp, 0);
@@ -177,7 +177,7 @@ static GF_List *vp_get_stack(ViewportStack *vp, RenderEffect2D *eff)
 	if (!eff->view_stack) return NULL;
 
 	i=0;
-	while ((stack = gf_list_enum(vp->stack_list, &i))) {
+	while ((stack = (GF_List*)gf_list_enum(vp->stack_list, &i))) {
 		if (eff->view_stack == stack) return eff->view_stack;	
 	}
 	gf_list_add(vp->stack_list, eff->view_stack);
@@ -214,8 +214,9 @@ static void RenderViewport(GF_Node *node, void *rs)
 
 void R2D_InitViewport(Render2D *sr, GF_Node *node)
 {
-	ViewportStack *ptr = malloc(sizeof(ViewportStack));
-	memset(ptr, 0, sizeof(ViewportStack));
+	ViewportStack *ptr;
+	GF_SAFEALLOC(ptr, ViewportStack);
+
 	ptr->first_time = 1;
 	ptr->stack_list = gf_list_new();
 

@@ -26,6 +26,7 @@
 #ifndef __GDIP_PRIV_H
 #define __GDIP_PRIV_H
 
+#include <math.h>
 #include <gpac/modules/raster2d.h>
 #include <gpac/modules/font.h>
 #include <windows.h>

@@ -73,14 +73,14 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		if (ogs->positions) free(ogs->positions);
 		count = gf_list_count(og->children);
-		priorities = malloc(sizeof(struct og_pos)*count);
+		priorities = (struct og_pos*)malloc(sizeof(struct og_pos)*count);
 		for (i=0; i<count; i++) {
 			priorities[i].position = i;
 			priorities[i].priority = (i<og->order.count) ? og->order.vals[i] : 0;
 		}
 		qsort(priorities, count, sizeof(struct og_pos), compare_priority);
 
-		ogs->positions = malloc(sizeof(u32) * count);
+		ogs->positions = (u32*)malloc(sizeof(u32) * count);
 		for (i=0; i<count; i++) ogs->positions[i] = priorities[i].position;
 		free(priorities);
 	}
@@ -89,8 +89,9 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 
 void R3D_InitOrderedGroup(Render3D *sr, GF_Node *node)
 {
-	OrderedGroupStack *ptr = malloc(sizeof(OrderedGroupStack));
-	memset(ptr, 0, sizeof(OrderedGroupStack));
+	OrderedGroupStack *ptr;
+	GF_SAFEALLOC(ptr, OrderedGroupStack);
+
 	SetupGroupingNode((GroupingNode*)ptr, sr->compositor, node, ((M_OrderedGroup *)node)->children);
 	gf_node_set_private(node, ptr);
 	gf_node_set_predestroy_function(node, DestroyOrderedGroup);
@@ -133,7 +134,7 @@ static void RenderSwitch(GF_Node *node, void *rs)
 		/*deactivation must be signaled because switch may contain audio nodes (I hate this spec!!!)*/
 		for (i=0; i<count; i++) {
 			if ((s32) i==whichChoice) continue;
-			child = gf_list_get(children, i);
+			child = (GF_Node*)gf_list_get(children, i);
 			gf_node_render(child, eff);
 		}
 		eff->trav_flags &= ~GF_SR_TRAV_SWITCHED_OFF;
@@ -142,14 +143,14 @@ static void RenderSwitch(GF_Node *node, void *rs)
 
 	eff->trav_flags = prev_switch;
 	if (whichChoice>=0) {
-		child = gf_list_get(children, whichChoice);
+		child = (GF_Node*)gf_list_get(children, whichChoice);
 		gf_node_render(child, eff);
 	}
 }
 
 void R3D_InitSwitch(Render3D *sr, GF_Node *node)
 {
-	s32 *last_switch = malloc(sizeof(s32));
+	s32 *last_switch = (s32*)malloc(sizeof(s32));
 	*last_switch = -1;
 	gf_node_set_private(node, last_switch);
 	gf_node_set_predestroy_function(node, DestroySwitch);
@@ -207,7 +208,7 @@ static void RenderColorTransform(GF_Node *node, void *rs)
 
 void R3D_InitColorTransform(Render3D *sr, GF_Node *node)
 {
-	ColorTransformStack *stack = malloc(sizeof(ColorTransformStack));
+	ColorTransformStack *stack = (ColorTransformStack *)malloc(sizeof(ColorTransformStack));
 	SetupGroupingNode((GroupingNode *)stack, sr->compositor, node, ((M_ColorTransform *)node)->children);
 	gf_cmx_init(&stack->cmat);
 	gf_node_set_private(node, stack);
@@ -222,7 +223,7 @@ static void RenderGroup(GF_Node *node, void *rs)
 }
 void R3D_InitGroup(Render3D *sr, GF_Node *node)
 {
-	GroupingNode *stack = malloc(sizeof(GroupingNode));
+	GroupingNode *stack = (GroupingNode *)malloc(sizeof(GroupingNode));
 	SetupGroupingNode(stack, sr->compositor, node, ((M_Group *)node)->children);
 	gf_node_set_private(node, stack);
 	gf_node_set_predestroy_function(node, DestroyBaseGrouping);
@@ -276,7 +277,7 @@ void RenderCollision(GF_Node *node, void *rs)
 
 void R3D_InitCollision(Render3D *sr, GF_Node *node)
 {
-	GroupingNode *stack = malloc(sizeof(GroupingNode));
+	GroupingNode *stack = (GroupingNode *)malloc(sizeof(GroupingNode));
 	SetupGroupingNode(stack, sr->compositor, node, ((M_Group *)node)->children);
 	gf_node_set_private(node, stack);
 	gf_node_set_predestroy_function(node, DestroyBaseGrouping);
@@ -302,8 +303,9 @@ static void DestroyTransform(GF_Node *n)
 
 static void NewTransformStack(Render3D *sr, GF_Node *node, GF_List *children)
 {
-	TransformStack *st= malloc(sizeof(TransformStack));
-	memset(st, 0, sizeof(TransformStack));
+	TransformStack *st;
+	GF_SAFEALLOC(st, TransformStack);
+
 	gf_mx_init(st->mx);
 	SetupGroupingNode((GroupingNode *)st, sr->compositor, node, children);
 	gf_node_set_private(node, st);
@@ -321,7 +323,7 @@ static void NewTransformStack(Render3D *sr, GF_Node *node, GF_List *children)
 static void RenderTransform(GF_Node *n, void *rs)
 {
 	GF_Matrix gf_mx_bckup;
-	TransformStack *st = gf_node_get_private(n);
+	TransformStack *st = (TransformStack *)gf_node_get_private(n);
 	M_Transform *tr = (M_Transform *)n;
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
@@ -460,7 +462,7 @@ void R3D_InitTransformMatrix2D(Render3D *sr, GF_Node *node)
 static void RenderBillboard(GF_Node *n, void *rs)
 {
 	GF_Matrix gf_mx_bckup;
-	TransformStack *st = gf_node_get_private(n);
+	TransformStack *st = (TransformStack *)gf_node_get_private(n);
 	M_Billboard *bb = (M_Billboard *)n;
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
@@ -475,7 +477,7 @@ static void RenderBillboard(GF_Node *n, void *rs)
 		gf_vec_norm(&user_pos);
 		axis = bb->axisOfRotation;
 		axis_len = gf_vec_len(axis);
-		if (axis_len<GF_EPSILON_FLOAT) {
+		if (axis_len<FIX_EPSILON) {
 			SFVec3f x, y, t;
 			/*get user's right in local coord*/
 			gf_vec_diff(t, eff->camera->position, eff->camera->target);
@@ -543,7 +545,7 @@ void R3D_InitBillboard(Render3D *sr, GF_Node *node)
 
 static void DestroyLOD(GF_Node *node)
 {
-	s32 *stack = gf_node_get_private(node);
+	s32 *stack = (s32 *)gf_node_get_private(node);
 	free(stack);
 }
 
@@ -559,7 +561,7 @@ static void RenderLOD(GF_Node *node, void *rs)
 	GF_Matrix mx;
 	SFVec3f center;
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
-	s32 *prev_child= gf_node_get_private(node);
+	s32 *prev_child = (s32 *)gf_node_get_private(node);
 
 
 	/*WARNING: X3D/MPEG4 NOT COMPATIBLE*/
@@ -605,19 +607,19 @@ static void RenderLOD(GF_Node *node, void *rs)
 		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
 		for (i=0; i<nb_children; i++) {
 			if (i==which_child) continue;
-			child = gf_list_get(children, i);
+			child = (GF_Node*)gf_list_get(children, i);
 			gf_node_render(child, rs);
 		}
 		eff->trav_flags = prev_flags;
 	}
 	
-	child = gf_list_get(children, which_child);
+	child = (GF_Node*)gf_list_get(children, which_child);
 	gf_node_render(child, rs);
 }
 
 void R3D_InitLOD(Render3D *sr, GF_Node *node)
 {
-	s32 *stack = malloc(sizeof(s32));
+	s32 *stack = (s32*)malloc(sizeof(s32));
 	*stack = -1;
 	gf_node_set_render_function(node, RenderLOD);
 	gf_node_set_private(node, stack);
@@ -639,7 +641,7 @@ static void RenderStaticGroup(GF_Node *node, void *rs)
 
 void R3D_InitStaticGroup(Render3D *sr, GF_Node *node)
 {
-	GroupingNode *stack = malloc(sizeof(GroupingNode));
+	GroupingNode *stack = (GroupingNode *)malloc(sizeof(GroupingNode));
 	SetupGroupingNode(stack, sr->compositor, node, ((X_StaticGroup *)node)->children);
 	gf_node_set_private(node, stack);
 	gf_node_set_predestroy_function(node, DestroyBaseGrouping);

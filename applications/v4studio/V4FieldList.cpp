@@ -148,7 +148,7 @@ void V4FieldList::SetFieldValue(GF_FieldInfo f, wxString *value, int pos)
 			break;
 		case GF_SG_VRML_SFSTRING:
 			if (((SFString *)ptr)->buffer) free(((SFString *)ptr)->buffer);
-			((SFString *)ptr)->buffer = (unsigned char *)strdup(value->c_str());
+			((SFString *)ptr)->buffer = strdup(value->c_str());
 			break;
 		default:
 			break;
@@ -438,7 +438,7 @@ void V4FieldList::OnCellLeftDClick(wxGridEvent &evt)
 			wxFont font = retData.GetChosenFont();
 			wxString name = font.GetFaceName();
 			if (((SFString *)ptr)->buffer) free(((SFString *)ptr)->buffer);
-			((SFString *)ptr)->buffer = (unsigned char *)strdup(name.c_str());
+			((SFString *)ptr)->buffer = strdup(name.c_str());
 		} else {
 			return;
 		}

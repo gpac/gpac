@@ -36,8 +36,8 @@ struct _statman
 
 static GF_SceneStatistics *NewSceneStats()
 {
-	GF_SceneStatistics *tmp = malloc(sizeof(GF_SceneStatistics));
-	memset(tmp, 0, sizeof(GF_SceneStatistics));
+	GF_SceneStatistics *tmp;
+	GF_SAFEALLOC(tmp, GF_SceneStatistics);
 	tmp->node_stats = gf_list_new();
 	tmp->proto_stats = gf_list_new();
 
@@ -57,12 +57,12 @@ static GF_SceneStatistics *NewSceneStats()
 static void ResetStatisitics(GF_SceneStatistics *stat)
 {
 	while (gf_list_count(stat->node_stats)) {
-		GF_NodeStats *ptr = gf_list_get(stat->node_stats, 0);
+		GF_NodeStats *ptr = (GF_NodeStats *)gf_list_get(stat->node_stats, 0);
 		gf_list_rem(stat->node_stats, 0);
 		free(ptr);
 	}
 	while (gf_list_count(stat->proto_stats)) {
-		GF_NodeStats *ptr = gf_list_get(stat->proto_stats, 0);
+		GF_NodeStats *ptr = (GF_NodeStats *)gf_list_get(stat->proto_stats, 0);
 		gf_list_rem(stat->proto_stats, 0);
 		free(ptr);
 	}
@@ -97,26 +97,24 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 	if (n->sgprivate->tag == TAG_ProtoNode) {
 		GF_ProtoInstance *pr = (GF_ProtoInstance *)n;
 		i=0;
-		while ((ptr = gf_list_enum(stat->proto_stats, &i))) {
+		while ((ptr = (GF_NodeStats *)gf_list_enum(stat->proto_stats, &i))) {
 			if (pr->proto_interface->ID == ptr->tag) break;
 			ptr = NULL;
 		}
 		if (!ptr) {
-			ptr = malloc(sizeof(GF_NodeStats));
-			memset(ptr, 0, sizeof(GF_NodeStats));
+			GF_SAFEALLOC(ptr, GF_NodeStats);
 			ptr->tag = pr->proto_interface->ID;
 			ptr->name = gf_sg_proto_get_class_name(pr->proto_interface);
 			gf_list_add(stat->proto_stats, ptr);
 		}
 	} else {
 		i=0;
-		while ((ptr = gf_list_enum(stat->node_stats, &i))) {
+		while ((ptr = (GF_NodeStats *)gf_list_enum(stat->node_stats, &i))) {
 			if (n->sgprivate->tag == ptr->tag) break;
 			ptr = NULL;
 		}
 		if (!ptr) {
-			ptr = malloc(sizeof(GF_NodeStats));
-			memset(ptr, 0, sizeof(GF_NodeStats));
+			GF_SAFEALLOC(ptr, GF_NodeStats);
 			ptr->tag = n->sgprivate->tag;
 			ptr->name = gf_node_get_class_name(n);
 			gf_list_add(stat->node_stats, ptr);
@@ -245,9 +243,9 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 	switch (field->fieldType) {
 	case SVG_PathData_datatype:
 		{
-			SVG_PathData *d = field->far_ptr;
+			SVG_PathData *d = (SVG_PathData *)field->far_ptr;
 			for (i=0; i<gf_list_count(d->points); i++) {
-				SVG_Point *p = gf_list_get(d->points, i);
+				SVG_Point *p = (SVG_Point *)gf_list_get(d->points, i);
 				StatSFVec2f(stat, (SFVec2f *)p);
 				stat->count_2d ++;
 			}
@@ -258,7 +256,7 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 		{
 			GF_List *points = *((GF_List **)field->far_ptr);
 			for (i=0; i<gf_list_count(points); i++) {
-				SVG_Point *p = gf_list_get(points, i);
+				SVG_Point *p = (SVG_Point *)gf_list_get(points, i);
 				StatSFVec2f(stat, (SFVec2f *)p);
 				stat->count_2d ++;
 			}
@@ -267,7 +265,7 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 	case SVG_Motion_datatype:
 	case SVG_Matrix_datatype:
 		{
-			GF_Matrix2D *mx = field->far_ptr;
+			GF_Matrix2D *mx = (GF_Matrix2D *)field->far_ptr;
 			if (!gf_mx2d_is_identity(*mx) && !(!mx->m[0] && !mx->m[1] && !mx->m[3] && !mx->m[4])) {
 				StatFixed(stat, mx->m[0], 1);
 				StatFixed(stat, mx->m[1], 1);
@@ -312,7 +310,7 @@ Bool StatIsUSE(GF_StatManager *st, GF_Node *n)
 	GF_Node *ptr;
 	if (!n || !n->sgprivate->NodeID) return 0;
 	i=0;
-	while ((ptr = gf_list_enum(st->def_nodes, &i))) {
+	while ((ptr = (GF_Node*)gf_list_enum(st->def_nodes, &i))) {
 		if (ptr == n) return 1;
 	}
 	gf_list_add(st->def_nodes, n);
@@ -348,7 +346,7 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 			StatSVGAttribute(st->stats, &field);
 		}
 		j=0;
-		while ((child = gf_list_enum(svge->children, &j))) {
+		while ((child = (GF_Node*)gf_list_enum(svge->children, &j))) {
 			StatNodeGraph(st, child);
 		}
 		
@@ -370,7 +368,7 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 			case GF_SG_VRML_MFNODE:
 				list = *((GF_List **)field.far_ptr);
 				j=0;
-				while ((child = gf_list_enum(list, &j))) {
+				while ((child = (GF_Node*)gf_list_enum(list, &j))) {
 					StatNodeGraph(st, child);
 				}
 				break;
@@ -387,6 +385,7 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 {
 	GF_FieldInfo field;
@@ -396,7 +395,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 	GF_List *list;
 	GF_CommandField *inf = NULL;
 	if (gf_list_count(com->command_fields)) 
-		inf = gf_list_get(com->command_fields, 0);
+		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 
 	if (!com || !stat) return GF_BAD_PARAM;
 	switch (com->tag) {
@@ -418,7 +417,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 		case GF_SG_VRML_MFNODE:
 			list = * ((GF_List **) inf->field_ptr);
 			i=0;
-			while ((node = gf_list_enum(list, &i))) {
+			while ((node = (GF_Node*)gf_list_enum(list, &i))) {
 				StatNodeGraph(stat, node);
 			}
 			break;
@@ -451,7 +450,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 
 		/*then we need special handling in case of a node*/
 		if (gf_sg_vrml_get_sf_type(field.fieldType) == GF_SG_VRML_SFNODE) {
-			GF_Node *n = gf_list_get(* ((GF_List **) field.far_ptr), inf->pos);
+			GF_Node *n = (GF_Node*)gf_list_get(* ((GF_List **) field.far_ptr), inf->pos);
 			if (n) StatNode(stat->stats, n, 0, 1, NULL);
 		} else {
 			StatRemField(stat->stats, inf->fieldType, NULL);
@@ -489,12 +488,13 @@ static GF_Err gf_sm_stat_au(GF_List *commandList, GF_StatManager *st)
 	u32 i, count;
 	count = gf_list_count(commandList);
 	for (i=0; i<count; i++) {
-		GF_Command *com = gf_list_get(commandList, i);
+		GF_Command *com = (GF_Command *)gf_list_get(commandList, i);
 		gf_sm_stats_for_command(st, com);
 	}
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sm_stats_for_scene(GF_StatManager *stat, GF_SceneManager *sm)
 {
 	u32 i, j;
@@ -503,11 +503,11 @@ GF_Err gf_sm_stats_for_scene(GF_StatManager *stat, GF_SceneManager *sm)
 
 	if (gf_list_count(sm->streams)) {
 		i=0;
-		while ((sc = gf_list_enum(sm->streams, &i))) {
+		while ((sc = (GF_StreamContext*)gf_list_enum(sm->streams, &i))) {
 			GF_AUContext *au;
 			if (sc->streamType != GF_STREAM_SCENE) continue;
 			j=0;
-			while ((au = gf_list_enum(sc->AUs, &j))) {
+			while ((au = (GF_AUContext*)gf_list_enum(sc->AUs, &j))) {
 				e = gf_sm_stat_au(au->commands, stat);
 				if (e) return e;
 			}
@@ -518,6 +518,7 @@ GF_Err gf_sm_stats_for_scene(GF_StatManager *stat, GF_SceneManager *sm)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sm_stats_for_graph(GF_StatManager *stat, GF_SceneGraph *sg)
 {
 	if (!stat || !sg) return GF_BAD_PARAM;
@@ -525,15 +526,17 @@ GF_Err gf_sm_stats_for_graph(GF_StatManager *stat, GF_SceneGraph *sg)
 }
 
 /*creates new stat handler*/
+GF_EXPORT
 GF_StatManager *gf_sm_stats_new()
 {
-	GF_StatManager *sm = malloc(sizeof(GF_StatManager));
+	GF_StatManager *sm = (GF_StatManager *)malloc(sizeof(GF_StatManager));
 	sm->def_nodes = gf_list_new();
 	sm->stats = NewSceneStats();
 	return sm;
 
 }
 /*deletes stat object returned by one of the above functions*/
+GF_EXPORT
 void gf_sm_stats_del(GF_StatManager *stat)
 {
 	gf_list_del(stat->def_nodes);
@@ -541,11 +544,13 @@ void gf_sm_stats_del(GF_StatManager *stat)
 	free(stat);
 }
 
+GF_EXPORT
 GF_SceneStatistics *gf_sm_stats_get(GF_StatManager *stat)
 {
 	return stat->stats;
 }
 
+GF_EXPORT
 void gf_sm_stats_reset(GF_StatManager *stat)
 {
 	if (!stat) return;

@@ -173,14 +173,14 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 	end.y *= GRAD_TEXTURE_SIZE;
 	r2d->stencil_set_linear_gradient(stenc, start.x, start.y, end.x, end.y);
 	const_a = (lg->opacity.count == 1) ? 1 : 0;
-	cols = malloc(sizeof(u32) * lg->key.count);
+	cols = (u32*)malloc(sizeof(u32) * lg->key.count);
 	for (i=0; i<lg->key.count; i++) {
 		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, lg->keyValue.vals[i].red, lg->keyValue.vals[i].green, lg->keyValue.vals[i].blue);
 	}
 	r2d->stencil_set_gradient_interpolation(stenc, lg->key.vals, cols, lg->key.count);
 	free(cols);
-	r2d->stencil_set_gradient_mode(stenc, lg->spreadMethod);
+	r2d->stencil_set_gradient_mode(stenc, (GF_GradientMode)lg->spreadMethod);
 
 	/*fill surface*/
 	path = gf_path_new();
@@ -238,8 +238,9 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 
 void R3D_InitLinearGradient(Render3D *sr, GF_Node *node)
 {
-	GradientStack *st = malloc(sizeof(GradientStack));
-	memset(st, 0, sizeof(GradientStack));
+	GradientStack *st;
+	GF_SAFEALLOC(st, GradientStack);
+
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = UpdateLinearGradient;
 	gf_node_set_private(node, st);
@@ -367,14 +368,14 @@ static void UpdateRadialGradient(GF_TextureHandler *txh)
 	r2d->stencil_set_radial_gradient(stenc, center.x, center.y, focal.x, focal.y, radius, radius);
 
 	const_a = (rg->opacity.count == 1) ? 1 : 0;
-	cols = malloc(sizeof(u32) * rg->key.count);
+	cols = (u32*) malloc(sizeof(u32) * rg->key.count);
 	for (i=0; i<rg->key.count; i++) {
 		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, rg->keyValue.vals[i].red, rg->keyValue.vals[i].green, rg->keyValue.vals[i].blue);
 	}
 	r2d->stencil_set_gradient_interpolation(stenc, rg->key.vals, cols, rg->key.count);
 	free(cols);
-	r2d->stencil_set_gradient_mode(stenc, rg->spreadMethod);
+	r2d->stencil_set_gradient_mode(stenc, (GF_GradientMode)rg->spreadMethod);
 
 	/*fill surface*/
 	path = gf_path_new();
@@ -434,8 +435,9 @@ static void UpdateRadialGradient(GF_TextureHandler *txh)
 
 void R3D_InitRadialGradient(Render3D *sr, GF_Node *node)
 {
-	GradientStack *st = malloc(sizeof(GradientStack));
-	memset(st, 0, sizeof(GradientStack));
+	GradientStack *st;
+	GF_SAFEALLOC(st, GradientStack);
+
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = UpdateRadialGradient;
 	gf_node_set_private(node, st);

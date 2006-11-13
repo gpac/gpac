@@ -30,7 +30,7 @@ GF_TrackBox *GetTrackbyID(GF_MovieBox *moov, u32 TrackID)
 	u32 i;
 	if (!moov) return NULL;
 	i=0;
-	while ((trak = gf_list_enum(moov->trackList, &i))) {
+	while ((trak = (GF_TrackBox *)gf_list_enum(moov->trackList, &i))) {
 		if (trak->Header->trackID == TrackID) return trak;
 	}
 	return NULL;
@@ -52,7 +52,7 @@ u32 gf_isom_get_tracknum_from_id(GF_MovieBox *moov, u32 trackID)
 	u32 i;
 	GF_TrackBox *trak;
 	i=0;
-	while ((trak = gf_list_enum(moov->trackList, &i))) {
+	while ((trak = (GF_TrackBox *)gf_list_enum(moov->trackList, &i))) {
 		if (trak->Header->trackID == trackID) return i;
 	}
 	return 0;
@@ -274,7 +274,7 @@ GF_Err Track_FindRef(GF_TrackBox *trak, u32 ReferenceType, GF_TrackReferenceType
 	}
 	ref = trak->References;
 	i=0;
-	while ((a = gf_list_enum(ref->boxList, &i))) {
+	while ((a = (GF_Box *)gf_list_enum(ref->boxList, &i))) {
 		if (a->type == ReferenceType) {
 			*dpnd = (GF_TrackReferenceTypeBox *)a;
 			return GF_OK;
@@ -324,7 +324,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 		trackDuration = 0;
 		elst = trak->editBox->editList;
 		i=0;
-		while ((ent = gf_list_enum(elst->entryList, &i))) {
+		while ((ent = (GF_EdtsEntry*)gf_list_enum(elst->entryList, &i))) {
 			trackDuration += ent->segmentDuration;
 		}
 	} else {
@@ -373,10 +373,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset
 	chunk_size = 0;
 
 	i=0;
-	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
+	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
 		//merge the run
 		for (j=0;j<trun->sample_count; j++) {
-			ent = gf_list_get(trun->entries, j);
+			ent = (GF_TrunEntry*)gf_list_get(trun->entries, j);
 			size = def_size;
 			duration = def_duration;
 			flags = def_flags;
@@ -440,7 +440,7 @@ u8 RequestTrack(GF_MovieBox *moov, u32 TrackID)
 	GF_TrackBox *trak;
 
 	i=0;
-	while ((trak = gf_list_enum(moov->trackList, &i))) {
+	while ((trak = (GF_TrackBox *)gf_list_enum(moov->trackList, &i))) {
 		if (trak->Header->trackID == TrackID) {
 			gf_isom_set_last_error(moov->mov, GF_BAD_PARAM);
 			return 0;
@@ -458,7 +458,7 @@ GF_Err Track_RemoveRef(GF_TrackBox *trak, u32 ReferenceType)
 	if (! trak->References) return GF_OK;
 	ref = trak->References;
 	i=0;
-	while ((a = gf_list_enum(ref->boxList, &i))) {
+	while ((a = (GF_Box *)gf_list_enum(ref->boxList, &i))) {
 		if (a->type == ReferenceType) {
 			gf_isom_box_del(a);
 			gf_list_rem(ref->boxList, i-1);
@@ -479,11 +479,6 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 	GF_SampleDescriptionBox *stsd;
 	GF_DataReferenceBox *dref;
 	char *str;
-
-	GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a);
-	GF_Err mdia_AddBox(GF_MediaBox *ptr, GF_Box *a);
-	GF_Err dinf_AddBox(GF_DataInformationBox *ptr, GF_Box *a);
-	GF_Err minf_AddBox(GF_MediaInformationBox *ptr, GF_Box *a);
 
 	GF_Err e;
 
@@ -573,15 +568,15 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 
 	//Create a data reference WITHOUT DATA ENTRY (we don't know anything yet about the media Data)
 	dref = (GF_DataReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DREF);
-	e = dinf_AddBox(dinf, (GF_Box *)dref); if (e) goto err_exit;
+	e = dinf_AddBox((GF_Box*)dinf, (GF_Box *)dref); if (e) goto err_exit;
 
-	e = minf_AddBox(minf, (GF_Box *) mediaInfo); if (e) goto err_exit;
-	e = minf_AddBox(minf, (GF_Box *) stbl); if (e) goto err_exit;
-	e = minf_AddBox(minf, (GF_Box *) dinf); if (e) goto err_exit;
+	e = minf_AddBox((GF_Box*)minf, (GF_Box *) mediaInfo); if (e) goto err_exit;
+	e = minf_AddBox((GF_Box*)minf, (GF_Box *) stbl); if (e) goto err_exit;
+	e = minf_AddBox((GF_Box*)minf, (GF_Box *) dinf); if (e) goto err_exit;
 
-	e = mdia_AddBox(*mdia, (GF_Box *) mdhd); if (e) goto err_exit;
-	e = mdia_AddBox(*mdia, (GF_Box *) minf); if (e) goto err_exit;
-	e = mdia_AddBox(*mdia, (GF_Box *) hdlr); if (e) goto err_exit;
+	e = mdia_AddBox((GF_Box*)*mdia, (GF_Box *) mdhd); if (e) goto err_exit;
+	e = mdia_AddBox((GF_Box*)*mdia, (GF_Box *) minf); if (e) goto err_exit;
+	e = mdia_AddBox((GF_Box*)*mdia, (GF_Box *) hdlr); if (e) goto err_exit;
 
 	return GF_OK;
 
@@ -606,12 +601,6 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	GF_TrackReferenceTypeBox *dpnd;
 	u16 tmpRef;
 
-	GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
-	GF_Err tref_AddBox(GF_TrackReferenceBox *ptr, GF_Box *a);
-	GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a);
-	GF_Err trak_AddBox(GF_TrackBox *ptr, GF_Box *a);
-	GF_Err AVC_UpdateESD(GF_AVCSampleEntryBox *avc, GF_ESD *esd);
-
 	entry = NULL;
 	tref = NULL;
 
@@ -632,7 +621,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	if (esd->dependsOnESID  || esd->OCRESID ) {
 		if (!trak->References) {
 			tref = (GF_TrackReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREF);
-			e = trak_AddBox(trak, (GF_Box *)tref);
+			e = trak_AddBox((GF_Box*)trak, (GF_Box *)tref);
 			if (e) return e;
 		}
 		tref = trak->References;
@@ -643,7 +632,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	if (e) return e;
 	if (!dpnd && esd->dependsOnESID) {
 		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DPND);
-		e = tref_AddBox(tref, (GF_Box *) dpnd);
+		e = tref_AddBox((GF_Box*)tref, (GF_Box *) dpnd);
 		if (e) return e;
 		e = reftype_AddRefTrack(dpnd, esd->dependsOnESID, NULL);
 		if (e) return e;
@@ -657,7 +646,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	if (e) return e;
 	if (!dpnd && esd->OCRESID) {
 		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SYNC);
-		e = tref_AddBox(tref, (GF_Box *) dpnd);
+		e = tref_AddBox((GF_Box*)tref, (GF_Box *) dpnd);
 		if (e) return e;
 		e = reftype_AddRefTrack(dpnd, esd->OCRESID, NULL);
 		if (e) return e;
@@ -676,7 +665,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		if (!dpnd) {
 			tmpRef = 0;
 			dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_IPIR);
-			e = tref_AddBox(tref, (GF_Box *) dpnd);
+			e = tref_AddBox((GF_Box*)tref, (GF_Box *) dpnd);
 			if (e) return e;
 			e = reftype_AddRefTrack(dpnd, esd->ipiPtr->IPI_ES_Id, &tmpRef);
 			if (e) return e;

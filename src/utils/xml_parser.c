@@ -736,6 +736,7 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string)
 {
 	char *current;
@@ -816,6 +817,7 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string)
 }
 
 
+GF_EXPORT
 GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM)
 {
 	u32 offset;
@@ -905,6 +907,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_sax_progress OnProgress)
 {
 	FILE *test;
@@ -932,12 +935,14 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	return xml_sax_read_file(parser);
 }
 
+GF_EXPORT
 Bool gf_xml_sax_binary_file(GF_SAXParser *parser)
 {
 	if (!parser || !parser->gz_in) return 0;
 	return (((z_stream*)parser->gz_in)->data_type==Z_BINARY) ? 1 : 0;
 }
 
+GF_EXPORT
 GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start, 
 							 gf_xml_sax_node_end on_node_end,
 							 gf_xml_sax_text_content on_text_content,
@@ -957,6 +962,7 @@ GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start,
 	return parser;
 }
 
+GF_EXPORT
 void gf_xml_sax_del(GF_SAXParser *parser)
 {
 	xml_sax_reset(parser);
@@ -967,6 +973,7 @@ void gf_xml_sax_del(GF_SAXParser *parser)
 	free(parser);
 }
 
+GF_EXPORT
 GF_Err gf_xml_sax_suspend(GF_SAXParser *parser, Bool do_suspend)
 {
 	parser->suspended = do_suspend;
@@ -977,10 +984,16 @@ GF_Err gf_xml_sax_suspend(GF_SAXParser *parser, Bool do_suspend)
 	return GF_OK;
 }
 
+GF_EXPORT
 u32 gf_xml_sax_get_line(GF_SAXParser *parser) { return parser->line + 1 ; }
+
+GF_EXPORT
 u32 gf_xml_sax_get_file_size(GF_SAXParser *parser) { return parser->gz_in ? parser->file_size : 0; }
+
+GF_EXPORT
 u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser) { return parser->gz_in ? parser->file_pos : 0; }
 
+GF_EXPORT
 char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value, char *substitute, char *get_attr, char *end_pattern, Bool *is_substitute)
 {
 	u32 state, att_len;
@@ -1084,6 +1097,7 @@ exit:
 	return result;
 }
 
+GF_EXPORT
 const char *gf_xml_sax_get_error(GF_SAXParser *parser)
 {
 	return parser->err_msg;
@@ -1103,6 +1117,7 @@ static void on_peek_node_start(void *cbk, const char *name, const char *ns, GF_L
 	pt->parser->suspended = 1;
 }
 
+GF_EXPORT
 char *gf_xml_get_root_type(const char *file)
 {
 	struct _peek_type pt;
@@ -1114,10 +1129,13 @@ char *gf_xml_get_root_type(const char *file)
 }
 
 
+GF_EXPORT
 u32 gf_xml_sax_get_node_start_pos(GF_SAXParser *parser)
-{
+{	
 	return parser->elt_start_pos;
 }
+
+GF_EXPORT
 u32 gf_xml_sax_get_node_end_pos(GF_SAXParser *parser)
 {
 	return parser->elt_end_pos;
@@ -1216,6 +1234,7 @@ static void on_dom_text_content(void *cbk, const char *content, Bool is_cdata)
 	gf_list_add(last->content, node);
 }
 
+GF_EXPORT
 GF_DOMParser *gf_xml_dom_new()
 {
 	GF_DOMParser *dom;
@@ -1246,6 +1265,7 @@ static void gf_xml_dom_reset(GF_DOMParser *dom, Bool full_reset)
 	}
 }
 
+GF_EXPORT
 void gf_xml_dom_del(GF_DOMParser *parser)
 {
 	gf_xml_dom_reset(parser, 1);
@@ -1258,6 +1278,7 @@ static void dom_on_progress(void *cbck, u32 done, u32 tot)
 	dom->OnProgress(dom->cbk, done, tot);
 }
 
+GF_EXPORT
 GF_Err gf_xml_dom_parse(GF_DOMParser *dom, const char *file, gf_xml_sax_progress OnProgress, void *cbk)
 {
 	GF_Err e;
@@ -1271,14 +1292,17 @@ GF_Err gf_xml_dom_parse(GF_DOMParser *dom, const char *file, gf_xml_sax_progress
 	return e<0 ? e : GF_OK;
 }
 
+GF_EXPORT
 GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser)
 {
 	return parser->root;
 }
+GF_EXPORT
 const char *gf_xml_dom_get_error(GF_DOMParser *parser)
 {
 	return gf_xml_sax_get_error(parser->parser);
 }
+GF_EXPORT
 u32 gf_xml_dom_get_line(GF_DOMParser *parser)
 {
 	return gf_xml_sax_get_line(parser->parser);

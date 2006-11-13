@@ -75,7 +75,7 @@ static void Conditional_execute(M_Conditional *node)
 	gf_node_event_out_str((GF_Node *)node, "isActive");
 	if (!node->buffer.bufferSize) return;
 
-	bs = gf_bs_new(node->buffer.buffer, node->buffer.bufferSize, GF_BITSTREAM_READ);
+	bs = gf_bs_new((char*)node->buffer.buffer, node->buffer.bufferSize, GF_BITSTREAM_READ);
 	codec = priv->codec;
 	codec->cts_offset = gf_node_get_scene_time((GF_Node*)node);
 	/*this may destroy the conditional...*/

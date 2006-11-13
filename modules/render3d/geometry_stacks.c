@@ -60,7 +60,7 @@ static void RenderShape(GF_Node *node, void *rs)
 		if (eff->traversing_mode==TRAVERSE_RENDER) 
 			gf_node_render((GF_Node *) shape->geometry, eff);
 		else if (eff->traversing_mode==TRAVERSE_SORT) {
-			st = gf_node_get_private(shape->geometry);
+			st = (DrawableStack*)gf_node_get_private(shape->geometry);
 			cull_bckup = eff->cull_flag;
 			if (st && node_cull(eff, &st->mesh->bounds, 0)) {
 				VS_RegisterContext(eff, node, &st->mesh->bounds, 1);
@@ -118,7 +118,7 @@ static Bool R3D_NoIntersectionWithRay(GF_Node *owner, GF_Ray *ray, SFVec3f *vec,
 static void RenderBox(GF_Node *n, void *rs)
 {
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
-	DrawableStack *st = gf_node_get_private(n);
+	DrawableStack *st = (DrawableStack*)gf_node_get_private(n);
 	M_Box *box = (M_Box *)n;
 
 	if (gf_node_dirty_get(n)) {
@@ -143,7 +143,7 @@ void R3D_InitBox(Render3D *sr, GF_Node *node)
 static void RenderCone(GF_Node *n, void *rs)
 {
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
-	DrawableStack *st = gf_node_get_private(n);
+	DrawableStack *st = (DrawableStack*)gf_node_get_private(n);
 	M_Cone *co = (M_Cone *)n;
 
 	if (gf_node_dirty_get(n)) {
@@ -168,7 +168,7 @@ void R3D_InitCone(Render3D *sr, GF_Node *node)
 static void RenderCylinder(GF_Node *n, void *rs)
 {
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
-	DrawableStack *st = gf_node_get_private(n);
+	DrawableStack *st = (DrawableStack*)gf_node_get_private(n);
 	M_Cylinder *cy = (M_Cylinder *)n;
 
 	if (gf_node_dirty_get(n) ) {
@@ -193,7 +193,7 @@ void R3D_InitCylinder(Render3D *sr, GF_Node *node)
 static void RenderSphere(GF_Node *n, void *rs)
 {
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
-	DrawableStack *st = gf_node_get_private(n);
+	DrawableStack *st = (DrawableStack*)gf_node_get_private(n);
 	M_Sphere *sp = (M_Sphere *)n;
 
 	if (gf_node_dirty_get(n)) {
@@ -234,8 +234,8 @@ static Bool CircleIntersectWithRay(GF_Node *owner, GF_Ray *ray, SFVec3f *outPoin
 
 static void RenderCircle(GF_Node *node, void *rs)
 {
-	stack2D *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	stack2D *st = (stack2D *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		Fixed a = ((M_Circle *) node)->radius * 2;
@@ -276,8 +276,8 @@ static Bool EllipseIntersectWithRay(GF_Node *owner, GF_Ray *ray, SFVec3f *outPoi
 
 static void RenderEllipse(GF_Node *node, void *rs)
 {
-	stack2D *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	stack2D *st = (stack2D *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		Fixed a = ((M_Ellipse *) node)->radius.x;
@@ -322,7 +322,7 @@ static Bool RectangleIntersectWithRay(GF_Node *owner, GF_Ray *ray, SFVec3f *outP
 static void RenderRectangle(GF_Node *node, void *rs)
 {
 	stack2D *st = (stack2D *) gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	/*build vec path*/
 	if (gf_node_dirty_get(node)) {
@@ -481,8 +481,8 @@ static void build_curve2D(stack2D *st, M_Curve2D *c2D)
 static void RenderCurve2D(GF_Node *node, void *rs)
 {
 	M_Curve2D *c2D = (M_Curve2D *)node;
-	stack2D *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	stack2D *st = (stack2D *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (!c2D->point) return;
 
@@ -541,8 +541,8 @@ static void RenderILS2D(GF_Node *node, void *rs)
 	Aspect2D asp;
 	StrikeInfo *si;
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
-	stack2D *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	stack2D *st = (stack2D *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		stack2D_reset(st);
@@ -602,8 +602,8 @@ void R3D_InitILS2D(Render3D *sr, GF_Node *node)
 static void RenderPointSet2D(GF_Node *node, void *rs)
 {
 	M_PointSet2D *ps2D = (M_PointSet2D *)node;
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	if (!ps2D->coord) return;
 
 	if (gf_node_dirty_get(node)) {
@@ -670,8 +670,8 @@ static void RenderIFS2D(GF_Node *node, void *rs)
 	Aspect2D asp;
 	StrikeInfo *si;
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
-	stack2D *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	stack2D *st = (stack2D *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		stack2D_reset(st);
@@ -734,8 +734,8 @@ void R3D_InitIFS2D(Render3D *sr, GF_Node *node)
 static void RenderPointSet(GF_Node *node, void *rs)
 {
 	M_PointSet *ps = (M_PointSet *)node;
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	if (!ps->coord) return;
 
 	if (gf_node_dirty_get(node)) {
@@ -760,8 +760,8 @@ void R3D_InitPointSet(Render3D *sr, GF_Node *node)
 
 static void RenderIFS(GF_Node *node, void *rs)
 {
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		mesh_new_ifs(st->mesh, node);
@@ -816,8 +816,8 @@ void R3D_InitIFS(Render3D *sr, GF_Node *node)
 static void RenderILS(GF_Node *node, void *rs)
 {
 	M_IndexedLineSet *ils = (M_IndexedLineSet *)node;
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (!ils->coord) return;
 
@@ -859,8 +859,8 @@ void R3D_InitILS(Render3D *sr, GF_Node *node)
 
 static void RenderElevationGrid(GF_Node *node, void *rs)
 {
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		mesh_new_elevation_grid(st->mesh, node);
@@ -891,8 +891,8 @@ void R3D_InitElevationGrid(Render3D *sr, GF_Node *node)
 
 static void RenderExtrusion(GF_Node *node, void *rs)
 {
-	DrawableStack *st = gf_node_get_private(node);
-	RenderEffect3D *eff = rs;
+	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
 	if (gf_node_dirty_get(node)) {
 		mesh_new_extrusion(st->mesh, node);
@@ -1133,7 +1133,7 @@ static void RenderNonLinearDeformer(GF_Node *n, void *rs)
 	}
 	/*invalidated*/
 	if (gf_node_dirty_get(n)) {
-		DrawableStack *geo_st = gf_node_get_private(nld->geometry);
+		DrawableStack *geo_st = (DrawableStack *)gf_node_get_private(nld->geometry);
 		if (!geo_st) return;
 		gf_node_dirty_clear(n, 0);
 		mesh_clone(st->mesh, geo_st->mesh);

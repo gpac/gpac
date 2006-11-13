@@ -315,7 +315,7 @@ next_line:
 			count = gf_list_count(parser->def_symbols);
 			for (i=0; i<count; i++) {
 				u32 symb_len, val_len, copy_len;
-				BTDefSymbol *def = gf_list_get(parser->def_symbols, i);
+				BTDefSymbol *def = (BTDefSymbol *)gf_list_get(parser->def_symbols, i);
 				char *start = strstr(parser->line_buffer, def->name);
 				if (!start) continue;
 				symb_len = strlen(def->name);
@@ -399,7 +399,7 @@ char *gf_bt_get_string(GF_BTParser *parser)
 	char *res;
 	s32 i, size;
 
-	res = malloc(sizeof(char) * 500);
+	res = (char*)malloc(sizeof(char) * 500);
 	size = 500;
 	while (parser->line_buffer[parser->line_pos]==' ') parser->line_pos++;
 	
@@ -413,7 +413,7 @@ char *gf_bt_get_string(GF_BTParser *parser)
 		if (parser->line_buffer[parser->line_pos] == '\"') 
 			if (parser->line_buffer[parser->line_pos-1] != '\\') break;
 		if (i==size) {
-			res = realloc(res, sizeof(char) * (size+500));
+			res = (char*)realloc(res, sizeof(char) * (size+500));
 			size += 500;
 		}
 
@@ -845,16 +845,16 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		u32 i, size, v;
 		char *str;
 		SFImage *img = (SFImage *)info->far_ptr;
-		gf_bt_parse_int(parser, "width", &img->width);
+		gf_bt_parse_int(parser, "width", (SFInt32 *)&img->width);
 		if (parser->last_error) return;
-		gf_bt_parse_int(parser, "height", &img->height);
+		gf_bt_parse_int(parser, "height", (SFInt32 *)&img->height);
 		if (parser->last_error) return;
-		gf_bt_parse_int(parser, "nbComp", &v);
+		gf_bt_parse_int(parser, "nbComp", (SFInt32 *)&v);
 		if (parser->last_error) return;
 		img->numComponents = v;
 		size = img->width * img->height * img->numComponents;
 		if (img->pixels) free(img->pixels);
-		img->pixels = malloc(sizeof(char) * size);
+		img->pixels = (unsigned char*)malloc(sizeof(char) * size);
 		for (i=0; i<size; i++) {
 			str = gf_bt_get_next(parser, 0);
 			if (strstr(str, "0x")) sscanf(str, "%x", &v);
@@ -891,7 +891,7 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		if (!gf_bt_check_code(parser, '\"')) {
 			gf_bt_report(parser, GF_BAD_PARAM, "\" expected in Script");
 		}
-		sc->script_text = gf_bt_get_string(parser);
+		sc->script_text = (unsigned char*)gf_bt_get_string(parser);
 	}
 		break;
 	default:
@@ -1029,7 +1029,7 @@ void gf_bt_check_unresolved_nodes(GF_BTParser *parser)
 	count = gf_list_count(parser->undef_nodes); 
 	if (!count) return;
 	for (i=0; i<count; i++) {
-		GF_Node *n = gf_list_get(parser->undef_nodes, i);
+		GF_Node *n = (GF_Node *)gf_list_get(parser->undef_nodes, i);
 		assert(n->sgprivate->NodeName);
 		gf_bt_report(parser, GF_BAD_PARAM, "Cannot find node %s\n", n->sgprivate->NodeName);
 	}
@@ -1041,7 +1041,7 @@ Bool gf_bt_has_been_def(GF_BTParser *parser, char *node_name)
 	u32 i, count;
 	count = gf_list_count(parser->def_nodes);
 	for (i=0; i<count; i++) {
-		GF_Node *n = gf_list_get(parser->def_nodes, i);
+		GF_Node *n = (GF_Node *) gf_list_get(parser->def_nodes, i);
 		if (!strcmp(n->sgprivate->NodeName, node_name)) return 1;
 	}
 	return 0;
@@ -1281,7 +1281,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 					gf_bt_report(parser, GF_BAD_PARAM, "%s: Unknown script field type", str);
 					goto err;
 				}
-				parser->last_error = 0;
+				parser->last_error = GF_OK;
 				str = gf_bt_get_next(parser, 0);
 				sf = gf_sg_script_field_new(node, eType, fType, str);
 				parser->last_error = gf_node_get_field_by_name(node, str, &info);
@@ -1325,7 +1325,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 				if (undef_node==node) {
 					GF_List *l = *(GF_List **)info.far_ptr;
 					while (gf_list_count(l)) {
-						GF_Node *tmp = gf_list_get(l, 0);
+						GF_Node *tmp = (GF_Node *)gf_list_get(l, 0);
 						gf_node_unregister(tmp, node);
 						gf_list_rem(l, 0);
 					}
@@ -1406,7 +1406,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 	}
 	count = gf_list_count(parser->peeked_nodes);
 	for (i=0; i<count; i++) {
-		n = gf_list_get(parser->peeked_nodes, i);
+		n = (GF_Node *)gf_list_get(parser->peeked_nodes, i);
 		if (!strcmp(n->sgprivate->NodeName, defID)) return n;
 	}
 
@@ -1499,7 +1499,7 @@ u32 gf_bt_get_route(GF_BTParser *parser, char *name)
 	GF_Route *r = gf_sg_route_find_by_name(parser->load->scene_graph, name);
 	if (r) return r->ID;
 	i=0;
-	while ((com = gf_list_enum(parser->inserted_routes, &i))) {
+	while ((com = (GF_Command *)gf_list_enum(parser->inserted_routes, &i))) {
 		if (com->def_name && !strcmp(com->def_name, name)) return com->RouteID;
 	}
 	return 0;
@@ -1512,7 +1512,7 @@ Bool gf_bt_route_id_used(GF_BTParser *parser, u32 ID)
 	GF_Route *r = gf_sg_route_find(parser->load->scene_graph, ID);
 	if (r) return 1;
 	i=0;
-	while ((com = gf_list_enum(parser->inserted_routes, &i))) {
+	while ((com = (GF_Command *)gf_list_enum(parser->inserted_routes, &i))) {
 		if (com->RouteID == ID) return 1;
 	}
 	return 0;
@@ -1591,14 +1591,15 @@ next_field:
 			str = gf_bt_get_next(parser, 0);
 			if (strcmp(str, "NULL")) {
 				if ( (!strlen(str) || (get_evt_type(str)!=GF_SG_EVENT_UNKNOWN)) && parser->is_extern_proto_field) goto next_field;
-				gf_bt_report(parser, GF_BAD_PARAM, "SFNode protofield must use NULL default value");
-				goto err;
+				pfield->def_sfnode_value = gf_bt_sf_node(parser, str, NULL, NULL);
 			}
 		} else if (fType==GF_SG_VRML_MFNODE) {
 			if (gf_bt_check_code(parser, '[')) {
-				if (!gf_bt_check_code(parser, ']')) {
-					gf_bt_report(parser, GF_BAD_PARAM, "MFNode protofield must use empty default value");
-					goto err;
+				while (1) {
+					GF_Node *pf_node;
+					if (gf_bt_check_code(parser, ']')) break;
+					pf_node = gf_bt_sf_node(parser, NULL, NULL, NULL);
+					if (pf_node) gf_list_add(pfield->def_mfnode_value, pf_node);
 				}
 			}
 		} else if (gf_sg_vrml_is_sf_field(fType)) {
@@ -1618,12 +1619,12 @@ next_field:
 		if (!strcmp(str, "QP")) {
 			u32 nbBits, hasMin;
 			Fixed ftMin, ftMax;
-			gf_bt_parse_int(parser, "QPType", &QPType);
+			gf_bt_parse_int(parser, "QPType", (SFInt32*)&QPType);
 
 			nbBits = 0;
 			str = gf_bt_get_next(parser, 0);
 			if (!strcmp(str, "nbBits")) {
-				gf_bt_parse_int(parser, "nbBits", &nbBits);
+				gf_bt_parse_int(parser, "nbBits", (SFInt32*)&nbBits);
 				str = gf_bt_get_next(parser, 0);
 			}
 			hasMin = 0;
@@ -1854,7 +1855,7 @@ void gf_bt_resolve_routes(GF_BTParser *parser, Bool clean)
 	GF_Command *com;
 	/*resolve all commands*/
 	while(gf_list_count(parser->unresolved_routes) ) {
-		com = gf_list_get(parser->unresolved_routes, 0);
+		com = (GF_Command *)gf_list_get(parser->unresolved_routes, 0);
 		gf_list_rem(parser->unresolved_routes, 0);
 		switch (com->tag) {
 		case GF_SG_ROUTE_DELETE:
@@ -2053,7 +2054,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			return GF_OK;
 		}
 		if (strcmp(str, "AT") && strcmp(str, "TO")) {
-			return gf_bt_report(parser, GF_BAD_PARAM, is_append ? "TO expected got %s" : "AT expected got %s", str);
+			return gf_bt_report(parser, GF_BAD_PARAM, (char*) (is_append ? "TO expected got %s" : "AT expected got %s"), str);
 		}
 		str = gf_bt_get_next(parser, 1);
 		strcpy(field, str);
@@ -2287,7 +2288,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 
 		while (!gf_bt_check_code(parser, ']')) {
 			u32 pos;
-			if (gf_bt_parse_int(parser, "position", &pos)) goto err;
+			if (gf_bt_parse_int(parser, "position", (SFInt32 *)&pos)) goto err;
 			str = gf_bt_get_next(parser, 0);
 			if (strcmp(str, "BY")) {
 				gf_bt_report(parser, GF_BAD_PARAM, "BY expected");
@@ -2356,7 +2357,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 				gf_bt_report(parser, GF_BAD_PARAM, "%s: Unknown proto", str);
 				goto err;
 			}
-			com->del_proto_list = realloc(com->del_proto_list, sizeof(u32)*(com->del_proto_list_size+1));
+			com->del_proto_list = (u32*)realloc(com->del_proto_list, sizeof(u32)*(com->del_proto_list_size+1));
 			com->del_proto_list[com->del_proto_list_size] = proto->ID;
 			com->del_proto_list_size++;
 		}
@@ -2714,7 +2715,7 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
  				return;
 			}
 			esdU = (GF_ESDUpdate *) gf_odf_com_new(GF_ODF_ESD_UPDATE_TAG);
-			parser->last_error = gf_bt_parse_int(parser, "OD_ID", &val);
+			parser->last_error = gf_bt_parse_int(parser, "OD_ID", (SFInt32*)&val);
 			if (parser->last_error) return;
 			esdU->ODID = val;
 			gf_list_add(parser->od_au->commands, esdU);
@@ -2783,9 +2784,9 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 			while (!parser->done) {
 				u32 id;
 				if (gf_bt_check_code(parser, ']')) break;
-				gf_bt_parse_int(parser, "ODID", &id);
+				gf_bt_parse_int(parser, "ODID", (SFInt32*)&id);
 				if (parser->last_error) return;
-				odR->OD_ID = realloc(odR->OD_ID, sizeof(u16) * (odR->NbODs+1));
+				odR->OD_ID = (u16*)realloc(odR->OD_ID, sizeof(u16) * (odR->NbODs+1));
 				odR->OD_ID[odR->NbODs] = id;
 				odR->NbODs++;
 			}
@@ -2800,7 +2801,7 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 				gf_bt_report(parser, GF_BAD_PARAM, "FROM expected got %s", str);
  				return;
 			}
-			gf_bt_parse_int(parser, "ODID", &odid);
+			gf_bt_parse_int(parser, "ODID", (SFInt32*)&odid);
 			if (parser->last_error) return;
 
 			if (!gf_bt_check_code(parser, '[')) {
@@ -2813,9 +2814,9 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 			while (!parser->done) {
 				u32 id;
 				if (gf_bt_check_code(parser, ']')) break;
-				gf_bt_parse_int(parser, "ES_ID", &id);
+				gf_bt_parse_int(parser, "ES_ID", (SFInt32*)&id);
 				if (parser->last_error) return;
-				esdR->ES_ID = realloc(esdR->ES_ID, sizeof(u16) * (esdR->NbESDs+1));
+				esdR->ES_ID = (u16*)realloc(esdR->ES_ID, sizeof(u16) * (esdR->NbESDs+1));
 				esdR->ES_ID[esdR->NbESDs] = id;
 				esdR->NbESDs++;
 			}
@@ -2911,7 +2912,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 			if (!gf_bt_check_code(parser, '{')) {
 				str = gf_bt_get_next(parser, 0);
 				if (!strcmp(str, "IN")) {
-					gf_bt_parse_int(parser, "IN", &parser->stream_id);
+					gf_bt_parse_int(parser, "IN", (SFInt32*)&parser->stream_id);
 					if (parser->last_error) break;
 				}
 				if (!gf_bt_check_code(parser, '{')) {
@@ -3039,7 +3040,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 
 	/*load scripts*/	
 	while (gf_list_count(parser->scripts)) {
-		GF_Node *n = gf_list_get(parser->scripts, 0);
+		GF_Node *n = (GF_Node *)gf_list_get(parser->scripts, 0);
 		gf_list_rem(parser->scripts, 0);
 		gf_sg_script_load(n);
 	}
@@ -3073,7 +3074,7 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 	memset(parser->line_buffer, 0, sizeof(char)*BT_LINE_SIZE);
 	parser->file_size = size;
 
-	gzgets(gzInput, BOM, 5);
+	gzgets(gzInput, (char*) BOM, 5);
 	gzseek(gzInput, 0, SEEK_SET);
 
 	/*0: no unicode, 1: UTF-16BE, 2: UTF-16LE*/
@@ -3124,7 +3125,7 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 		
 		/*restore context - note that base layer are ALWAYS declared BEFORE enhancement layers with gpac parsers*/
 		i=0;
-		while ((sc = gf_list_enum(load->ctx->streams, &i))) {
+		while ((sc = (GF_StreamContext*)gf_list_enum(load->ctx->streams, &i))) {
 			switch (sc->streamType) {
 			case GF_STREAM_SCENE: if (!parser->bifs_es) parser->bifs_es = sc; break;
 			case GF_STREAM_OD: if (!parser->od_es) parser->od_es = sc; break;
@@ -3180,7 +3181,7 @@ void gf_sm_load_done_BT(GF_SceneLoader *load)
 	gf_list_del(parser->def_nodes);
 	gf_list_del(parser->peeked_nodes);
 	while (gf_list_count(parser->def_symbols)) {
-		BTDefSymbol *d = gf_list_get(parser->def_symbols, 0);
+		BTDefSymbol *d = (BTDefSymbol *)gf_list_get(parser->def_symbols, 0);
 		gf_list_rem(parser->def_symbols, 0);
 		free(d->name);
 		free(d->value);
@@ -3224,7 +3225,7 @@ GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str)
 	gf_list_del(parser.def_nodes);
 	gf_list_del(parser.peeked_nodes);
 	while (gf_list_count(parser.def_symbols)) {
-		BTDefSymbol *d = gf_list_get(parser.def_symbols, 0);
+		BTDefSymbol *d = (BTDefSymbol *)gf_list_get(parser.def_symbols, 0);
 		gf_list_rem(parser.def_symbols, 0);
 		free(d->name);
 		free(d->value);
@@ -3294,7 +3295,7 @@ GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str)
 		
 		/*restore context - note that base layer are ALWAYS declared BEFORE enhancement layers with gpac parsers*/
 		i=0;
-		while ((sc = gf_list_enum(load->ctx->streams, &i))){ 
+		while ((sc = (GF_StreamContext*)gf_list_enum(load->ctx->streams, &i))){ 
 			switch (sc->streamType) {
 			case GF_STREAM_SCENE: 
 			case GF_STREAM_PRIVATE_SCENE: 

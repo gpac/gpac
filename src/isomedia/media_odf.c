@@ -77,7 +77,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			odU2 = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 
 			i=0;
-			while ((desc = gf_list_enum(odU->objectDescriptors, &i))) {
+			while ((desc = (GF_Descriptor*)gf_list_enum(odU->objectDescriptors, &i))) {
 				switch (desc->tag) {
 				case GF_ODF_OD_TAG:
 				case GF_ODF_ISOM_OD_TAG:
@@ -127,7 +127,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 				
 				//then rewrite the ESDesc
 				j=0;
-				while ((ref = gf_list_enum(isom_od->ES_ID_RefDescriptors, &j))){
+				while ((ref = (GF_ES_ID_Ref*)gf_list_enum(isom_od->ES_ID_RefDescriptors, &j))){
 					//if the ref index is not valid, skip this desc...
 					if (!mpod->trackIDs || gf_isom_get_track_from_id(mdia->mediaTrack->moov, mpod->trackIDs[ref->trackRef - 1]) == NULL) continue;
 					//OK, get the esd
@@ -156,7 +156,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			esdU2 = (GF_ESDUpdate *) gf_odf_com_new(GF_ODF_ESD_UPDATE_TAG);
 			esdU2->ODID = esdU->ODID;
 			i=0;
-			while ((ref = gf_list_enum(esdU->ESDescriptors, &i))) {
+			while ((ref = (GF_ES_ID_Ref*)gf_list_enum(esdU->ESDescriptors, &i))) {
 				//if the ref index is not valid, skip this desc...
 				if (gf_isom_get_track_from_id(mdia->mediaTrack->moov, mpod->trackIDs[ref->trackRef - 1]) == NULL) continue;
 				//OK, get the esd
@@ -245,9 +245,6 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 	GF_ESD *esd;
 	GF_ES_ID_Ref *ref;
 	GF_Descriptor *desc;
-	GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
-	GF_Err trak_AddBox(GF_TrackBox *ptr, GF_Box *a);
-	GF_Err tref_AddBox(GF_TrackReferenceBox *ptr, GF_Box *a);
 
 	if (!mdia || !sample || !sample->data || !sample->dataLength) return GF_BAD_PARAM;
 
@@ -255,7 +252,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 	tref = mdia->mediaTrack->References;
 	if (!tref) {
 		tref = (GF_TrackReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREF);
-		e = trak_AddBox(mdia->mediaTrack, (GF_Box *) tref);
+		e = trak_AddBox((GF_Box*)mdia->mediaTrack, (GF_Box *) tref);
 		if (e) return e;
 	}
 	//then find the OD reference, and create it if none
@@ -263,7 +260,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 	if (e) return e;
 	if (!mpod) {
 		mpod = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MPOD);
-		e = tref_AddBox(tref, (GF_Box *)mpod);
+		e = tref_AddBox((GF_Box*)tref, (GF_Box *)mpod);
 		if (e) return e;
 	}
 
@@ -291,7 +288,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			odU2 = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 
 			i=0;
-			while ((desc = gf_list_enum(odU->objectDescriptors, &i))) {
+			while ((desc = (GF_Descriptor*)gf_list_enum(odU->objectDescriptors, &i))) {
 				//both OD and IODs are accepted
 				switch (desc->tag) {
 				case GF_ODF_OD_TAG:
@@ -336,7 +333,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 				isom_od->objectDescriptorID = od->objectDescriptorID;
 
 				j=0;
-				while ((esd =gf_list_enum(od->ESDescriptors, &j))) {
+				while ((esd = (GF_ESD*)gf_list_enum(od->ESDescriptors, &j))) {
 					ref = (GF_ES_ID_Ref *) gf_odf_desc_new(GF_ODF_ESD_REF_TAG);
 					//1 to 1 mapping trackID and ESID. Add this track to MPOD
 					//if track does not exist, this will be remove while reading the OD stream
@@ -361,7 +358,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			esdU2 = (GF_ESDUpdate *) gf_odf_com_new(GF_ODF_ESD_UPDATE_TAG);
 			esdU2->ODID = esdU->ODID;
 			i=0;
-			while ((esd = gf_list_enum(esdU->ESDescriptors, &i))) {
+			while ((esd = (GF_ESD*)gf_list_enum(esdU->ESDescriptors, &i))) {
 				ref = (GF_ES_ID_Ref *) gf_odf_desc_new(GF_ODF_ESD_REF_TAG);
 				//1 to 1 mapping trackID and ESID
 				e = reftype_AddRefTrack(mpod, esd->ESID, &ref->trackRef);
@@ -461,7 +458,7 @@ static u32 Media_FindOD_ID(GF_MediaBox *mdia, GF_ISOSample *sample, u32 track_id
 		odU = (GF_ODUpdate *) com;
 
 		i=0;
-		while ((desc = gf_list_enum(odU->objectDescriptors, &i))) {
+		while ((desc = (GF_Descriptor*)gf_list_enum(odU->objectDescriptors, &i))) {
 			switch (desc->tag) {
 			case GF_ODF_OD_TAG:
 			case GF_ODF_IOD_TAG:
@@ -470,7 +467,7 @@ static u32 Media_FindOD_ID(GF_MediaBox *mdia, GF_ISOSample *sample, u32 track_id
 				continue;
 			}	
 			j=0;
-			while ((esd = gf_list_enum( esd_list, &j))){
+			while ((esd = (GF_ESD*)gf_list_enum( esd_list, &j))){
 				if (esd->ESID==track_id) {
 					the_od_id = ((GF_IsomObjectDescriptor*)desc)->objectDescriptorID;
 					break;
@@ -489,6 +486,7 @@ err_exit:
 }
 
 
+GF_EXPORT
 u32 gf_isom_find_od_for_track(GF_ISOFile *file, u32 track)
 {
 	u32 i, j, di, the_od_id;
@@ -498,7 +496,7 @@ u32 gf_isom_find_od_for_track(GF_ISOFile *file, u32 track)
 
 	the_od_id = 0;
 	i=0;
-	while ( (od_tk = gf_list_enum(file->moov->trackList, &i))) {
+	while ( (od_tk = (GF_TrackBox*)gf_list_enum(file->moov->trackList, &i))) {
 		if (od_tk->Media->handler->handlerType != GF_ISOM_MEDIA_OD) continue;
 
 		for (j=0; j<od_tk->Media->information->sampleTable->SampleSize->sampleCount; j++) {

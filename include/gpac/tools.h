@@ -400,6 +400,13 @@ void gf_rand_init(Bool Reset);
 u32 gf_rand();
 
 /*!
+ *	\brief user name 
+ *
+ *	Gets current user (login) name.
+*/
+void gf_get_user_name(char *buf, u32 buf_size);
+
+/*!
  *	\brief Directory Enumeration Callback
  *
  * The gf_enum_dir_item type is the type for the callback of the \ref gf_enum_directory function

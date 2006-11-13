@@ -56,7 +56,7 @@ typedef struct
 } JPGCtx;
 
 
-static GF_Err JPEG_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err JPEG_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	JPEGCTX();
 	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
@@ -145,9 +145,9 @@ void skip_input_data(j_decompress_ptr cinfo, long num_bytes)
 #define JPEG_MAX_SCAN_BLOCK_HEIGHT		16
 
 static GF_Err JPEG_ProcessData(GF_MediaDecoder *ifcg, 
-		unsigned char *inBuffer, u32 inBufferLength,
+		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
-		unsigned char *outBuffer, u32 *outBufferLength,
+		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
 	s32 i, j, scans, k;

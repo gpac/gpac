@@ -153,10 +153,10 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 
 	if (gf_node_dirty_get(node)) {
 		if (gf_node_get_tag(node)==TAG_SVG_image) {
-			SVG_BuildGraph_image(gf_node_get_private(node));
+			SVG_BuildGraph_image((SVG_image_stack*)gf_node_get_private(node));
 			m = &((SVGimageElement *)node)->transform;
 		} else {
-			SVG_BuildGraph_video(gf_node_get_private(node));
+			SVG_BuildGraph_video((SVG_video_stack*)gf_node_get_private(node));
 			m = &((SVGvideoElement *)node)->transform;
 		}
 
@@ -489,8 +489,8 @@ void R2D_RenderUse(GF_Node *node, GF_Node *sub_root, void *rs)
 	GF_Node *prev_use;
 	SVGuseElement *use = (SVGuseElement *)node;
 	SVGPropertiesPointers backup_props;
-	RenderEffect2D *eff = rs;
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
+	SVG_Render_base(node, eff, &backup_props);
 
 	gf_mx2d_init(translate);
 	translate.m[2] = use->x.value;

@@ -152,7 +152,7 @@ void svg_reset_defered_animations(GF_List *l)
 {
 	/*delete all unresolved anims*/
 	while (1) {
-		DeferedAnimation *anim = gf_list_last(l);
+		DeferedAnimation *anim = (DeferedAnimation *)gf_list_last(l);
 		if (!anim) break;
 		svg_delete_defered_anim(anim, l);
 	}
@@ -176,7 +176,7 @@ static Bool svg_resolve_smil_times(GF_SVGParser *parser, GF_SceneGraph *sg, SVGE
 	u32 i, done, count = gf_list_count(smil_times);
 	done = 0;
 	for (i=0; i<count; i++) {
-		SMIL_Time *t = gf_list_get(smil_times, i);
+		SMIL_Time *t = (SMIL_Time *)gf_list_get(smil_times, i);
 		/*not an event*/
 		if (t->type != GF_SMIL_TIME_EVENT) {
 			done++;
@@ -254,17 +254,17 @@ static Bool svg_parse_animation(GF_SVGParser *parser, GF_SceneGraph *sg, Defered
 		if (anim->to) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "to", &info);
 			gf_svg_parse_attribute(anim->animation_elt, &info, anim->to, anim_value_type, anim_transform_type);
-			if (anim_value_type==SVG_IRI_datatype) svg_post_process_href(parser, anim->animation_elt->anim->to.value);
+			if (anim_value_type==SVG_IRI_datatype) svg_post_process_href(parser, (SVG_IRI*)anim->animation_elt->anim->to.value);
 		} 
 		if (anim->from) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "from", &info);
 			gf_svg_parse_attribute(anim->animation_elt, &info, anim->from, anim_value_type, anim_transform_type);
-			if (anim_value_type==SVG_IRI_datatype) svg_post_process_href(parser, anim->animation_elt->anim->from.value);
+			if (anim_value_type==SVG_IRI_datatype) svg_post_process_href(parser, (SVG_IRI*)anim->animation_elt->anim->from.value);
 		} 
 		if (anim->by) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "by", &info);
 			gf_svg_parse_attribute(anim->animation_elt, &info, anim->by, anim_value_type, anim_transform_type);
-			if (anim_value_type==SVG_IRI_datatype) svg_post_process_href(parser, anim->animation_elt->anim->by.value);
+			if (anim_value_type==SVG_IRI_datatype) svg_post_process_href(parser, (SVG_IRI*)anim->animation_elt->anim->by.value);
 		} 
 		if (anim->values) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "values", &info);
@@ -272,7 +272,7 @@ static Bool svg_parse_animation(GF_SVGParser *parser, GF_SceneGraph *sg, Defered
 			if (anim_value_type==SVG_IRI_datatype) {
 				u32 i, count = gf_list_count(anim->animation_elt->anim->values.values);
 				for (i=0; i<count; i++) {
-					SVG_IRI *iri = gf_list_get(anim->animation_elt->anim->values.values, i);
+					SVG_IRI *iri = (SVG_IRI *)gf_list_get(anim->animation_elt->anim->values.values, i);
 					svg_post_process_href(parser, iri);
 				}
 			}
@@ -306,7 +306,7 @@ static void svg_resolved_refs(GF_SVGParser *parser, GF_SceneGraph *sg, const cha
 	count = gf_list_count(parser->defered_hrefs);
 	for (i=0; i<count; i++) {
 		GF_Node *targ;
-		SVG_IRI *iri = gf_list_get(parser->defered_hrefs, i);
+		SVG_IRI *iri = (SVG_IRI *)gf_list_get(parser->defered_hrefs, i);
 		if (nodeID && strcmp(iri->iri + 1, nodeID)) continue;
 		targ = gf_sg_find_node_by_name(sg, iri->iri + 1);
 		if (targ) {
@@ -325,7 +325,7 @@ static void svg_resolved_refs(GF_SVGParser *parser, GF_SceneGraph *sg, const cha
 	count = gf_list_count(parser->defered_listeners);
 	for (i=0; i<count; i++) {
 		GF_Node *par;
-		SVGlistenerElement *listener = gf_list_get(parser->defered_listeners, i);
+		SVGlistenerElement *listener = (SVGlistenerElement *)gf_list_get(parser->defered_listeners, i);
 
 		par = NULL;
 		if (listener->observer.type == SVG_IRI_ELEMENTID) {
@@ -348,7 +348,7 @@ static void svg_resolved_refs(GF_SVGParser *parser, GF_SceneGraph *sg, const cha
 	/*check unresolved anims*/
 	count = gf_list_count(parser->defered_animations);
 	for (i=0; i<count; i++) {
-		DeferedAnimation *anim = gf_list_get(parser->defered_animations, i);
+		DeferedAnimation *anim = (DeferedAnimation *)gf_list_get(parser->defered_animations, i);
 		/*resolve it - we don't check the name since it may be used in SMIL times, which we don't track at anim level*/
 		if (svg_parse_animation(parser, sg, anim, nodeID)) {
 			svg_delete_defered_anim(anim, parser->defered_animations);
@@ -402,7 +402,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	count = gf_list_count(attrs);
 	for (i=0; i<count; i++) {
 
-		GF_XMLAttribute *att = gf_list_get(attrs, i);
+		GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
 		if (!att->value || !strlen(att->value)) continue;
 
 		if (!stricmp(att->name, "style")) {
@@ -480,7 +480,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 			} else if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {
 				gf_svg_parse_attribute(elt, &info, att->value, 0, 0);
 				if (info.fieldType== SVG_IRI_datatype) {
-					SVG_IRI *iri = info.far_ptr;
+					SVG_IRI *iri = (SVG_IRI *)info.far_ptr;
 					if ((iri->type==SVG_IRI_ELEMENTID) && !iri->target && iri->iri)
 						gf_list_add(parser->defered_hrefs, iri);
 				}
@@ -490,7 +490,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 				if (gf_node_get_field_by_name((GF_Node *)elt, "transform", &info)==GF_OK) {
 					Float tx, ty;
 					sscanf(att->value, "%f %f", &tx, &ty);
-					gf_mx2d_add_translation(info.far_ptr, FLT2FIX(tx), FLT2FIX(ty));
+					gf_mx2d_add_translation((GF_Matrix2D*)info.far_ptr, FLT2FIX(tx), FLT2FIX(ty));
 				}
 			}
 			else {
@@ -550,7 +550,7 @@ static GF_ESD *lsr_parse_header(GF_SVGParser *parser, const char *name, const ch
 		GF_LASERConfig *lsrc = (GF_LASERConfig *) gf_odf_desc_new(GF_ODF_LASER_CFG_TAG);
 		count = gf_list_count(attrs);
 		for (i=0; i<count;i++) {
-			GF_XMLAttribute *att = gf_list_get(attrs, i);
+			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
 			if (!strcmp(att->name, "profile")) lsrc->profile = !strcmp(att->value, "full") ? 1 : 0;
 			else if (!strcmp(att->name, "level")) lsrc->level = atoi(att->value);
 			else if (!strcmp(att->name, "resolution")) lsrc->resolution = atoi(att->value);
@@ -594,7 +594,7 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 		return GF_OK;
 	case GF_SG_LSR_DELETE:
 		for (i=0; i<count; i++) {
-			GF_XMLAttribute *att = gf_list_get(attr, i);
+			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attr, i);
 			if (!strcmp(att->name, "ref")) atNode = att->value;
 			else if (!strcmp(att->name, "attributeName")) atAtt = att->value;
 			else if (!strcmp(att->name, "index")) index = atoi(att->value);
@@ -619,7 +619,7 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 	case GF_SG_LSR_ADD:
 	case GF_SG_LSR_INSERT:
 		for (i=0; i<count; i++) {
-			GF_XMLAttribute *att = gf_list_get(attr, i);
+			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attr, i);
 			if (!strcmp(att->name, "ref")) atNode = att->value;
 			else if (!strcmp(att->name, "operandElementId")) atOperandNode = att->value;
 			else if (!strcmp(att->name, "operandAttributeName")) atOperandAtt = att->value;
@@ -718,9 +718,9 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	SVGNodeStack *stack, *parent;
 	SVGElement *elt;
 	SVGconditionalElement *cond = NULL;
-	GF_SVGParser *parser = sax_cbck;
+	GF_SVGParser *parser = (GF_SVGParser *)sax_cbck;
 
-	parent = gf_list_last(parser->node_stack);
+	parent = (SVGNodeStack *)gf_list_last(parser->node_stack);
 	if (parent && parent->node->sgprivate->tag==TAG_SVG_conditional) {
 		cond = (SVGconditionalElement *)parent->node;
 		parent = NULL;
@@ -751,7 +751,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			time = startOffset = length = rap = 0;
 			count = gf_list_count(attributes);
 			for (i=0; i<count;i++) {
-				GF_XMLAttribute *att = gf_list_get(attributes, i);
+				GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attributes, i);
 				if (!strcmp(att->name, "time")) time = atoi(att->value);
 				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
 				else if (!strcmp(att->name, "startOffset")) startOffset = atoi(att->value);
@@ -771,7 +771,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			if (!gf_list_count(parser->laser_es->AUs)) rap = 1;
 			count = gf_list_count(attributes);
 			for (i=0; i<count;i++) {
-				GF_XMLAttribute *att = gf_list_get(attributes, i);
+				GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attributes, i);
 				if (!strcmp(att->name, "time")) time = atoi(att->value);
 				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
 			}
@@ -800,7 +800,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			rap = 0;
 			count = gf_list_count(attributes);
 			for (i=0; i<count;i++) {
-				GF_XMLAttribute *att = gf_list_get(attributes, i);
+				GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attributes, i);
 				if (!strcmp(att->name, "time")) time = atoi(att->value);
 				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
 				else if (!strcmp(att->name, "url")) { url = att->value; att->value = NULL; } 
@@ -840,7 +840,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				gf_list_add(parser->laser_au->commands, parser->command);
 			}
 			/*this is likely a conditional start - update unknown depth level*/	
-			top = gf_list_last(parser->node_stack);
+			top = (SVGNodeStack*)gf_list_last(parser->node_stack);
 			if (top) {
 				top->unknown_depth ++;
 				parser->command_depth++;
@@ -868,7 +868,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	if (!strcmp(name, "svg") && !parser->has_root) 
 		svg_init_root_element(parser, (SVGsvgElement *)elt);
 	else if (!parent && parser->has_root) {
-		GF_CommandField *field = gf_list_get(parser->command->command_fields, 0);
+		GF_CommandField *field = (GF_CommandField *)gf_list_get(parser->command->command_fields, 0);
 		assert(field);
 		/*either not assigned or textContent*/
 		assert(!field->fieldType || (field->fieldType==SVG_String_datatype));
@@ -889,8 +889,8 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 static void svg_node_end(void *sax_cbck, const char *name, const char *name_space)
 {
-	GF_SVGParser *parser = sax_cbck;
-	SVGNodeStack *top = gf_list_last(parser->node_stack);
+	GF_SVGParser *parser = (GF_SVGParser *)sax_cbck;
+	SVGNodeStack *top = (SVGNodeStack *)gf_list_last(parser->node_stack);
 
 	if (!top) {
 		if (parser->laser_au && !strcmp(name, "sceneUnit")) {
@@ -949,9 +949,9 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	char *result;
 	u32 len;
 	Bool space_preserve = 0;
-	GF_SVGParser *parser = sax_cbck;
+	GF_SVGParser *parser = (GF_SVGParser *)sax_cbck;
 	SVGElement *node_core, *node;
-	SVGNodeStack *top = gf_list_last(parser->node_stack);
+	SVGNodeStack *top = (SVGNodeStack *)gf_list_last(parser->node_stack);
 	node = top ? (SVGElement *) top->node : NULL;
 	if (!node && !parser->command) return;
 	if (top && top->unknown_depth) return;
@@ -1022,7 +1022,7 @@ skip_xml_space:
 	}
 
 	if (!node) {
-		GF_CommandField *field = gf_list_get(parser->command->command_fields, 0);
+		GF_CommandField *field = (GF_CommandField *)gf_list_get(parser->command->command_fields, 0);
 
 		free(result);
 		return;
@@ -1124,7 +1124,7 @@ GF_Err gf_sm_load_init_SVG(GF_SceneLoader *load)
 GF_Err gf_sm_load_init_SVGString(GF_SceneLoader *load, char *str_data)
 {
 	GF_Err e;
-	GF_SVGParser *parser = load->loader_priv;
+	GF_SVGParser *parser = (GF_SVGParser *)load->loader_priv;
 
 	if (!parser) {
 		char BOM[6];
@@ -1134,7 +1134,7 @@ GF_Err gf_sm_load_init_SVGString(GF_SceneLoader *load, char *str_data)
 		BOM[3] = str_data[3];
 		BOM[4] = BOM[5] = 0;
 		parser = svg_new_parser(load);
-		e = gf_xml_sax_init(parser->sax_parser, BOM);
+		e = gf_xml_sax_init(parser->sax_parser, (unsigned char*)BOM);
 		if (e) {
 			svg_report(parser, e, "Error initializing SAX parser: %s", gf_xml_sax_get_error(parser->sax_parser) );
 			return e;
@@ -1155,7 +1155,7 @@ GF_Err gf_sm_load_done_SVG(GF_SceneLoader *load)
 	GF_SVGParser *parser = (GF_SVGParser *)load->loader_priv;
 	if (!parser) return GF_OK;
 	while (gf_list_count(parser->node_stack)) {
-		SVGNodeStack *st = gf_list_last(parser->node_stack);
+		SVGNodeStack *st = (SVGNodeStack *)gf_list_last(parser->node_stack);
 		gf_list_rem_last(parser->node_stack);
 		free(st);
 	}

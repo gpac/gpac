@@ -178,7 +178,7 @@ typedef struct
 	/*cached lp node - do not touch*/
 	GF_Node *lp;
 	/*cached texture handler - do not touch*/
-	void *txh;
+	GF_TextureHandler *txh;
 	/*cached texture transform*/
 	GF_Node *tx_trans;
 } Aspect2D;

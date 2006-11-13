@@ -41,7 +41,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Doub
 GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *logs);
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir);
 
-GF_ISOFile *package_file(char *file_name, const char *tmpdir);
+GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir);
 GF_Err dump_cover_art(GF_ISOFile *file, char *inName);
 #endif
 
@@ -920,9 +920,9 @@ int main(int argc, char **argv)
 	TrackAction tracks[MAX_CUMUL_OPS];
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package, remove_root_od;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, remove_root_od;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart;
-	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itune_tags;
+	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itune_tags, *pack_file, *raw_cat;
 	GF_ISOFile *file;
 
 	if (argc < 2) {
@@ -940,7 +940,7 @@ int main(int argc, char **argv)
 	split_size = 0;
 	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = 0;
-	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
+	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
 	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
@@ -951,7 +951,7 @@ int main(int argc, char **argv)
 	trackID = stat_level = hint_flags = 0;
 	info_track_id = 0;
 	do_flat = 0;
-	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = NULL;
+	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = NULL;
 
 	swf_flags = 0;
 	swf_flatten_angle = 0.0f;
@@ -1211,6 +1211,11 @@ int main(int argc, char **argv)
 			}
 			szFilesToCat[nb_cat] = argv[i+1];
 			nb_cat++;
+			i++;
+		}
+		else if (!stricmp(arg, "-raw-cat")) {
+			CHECK_NEXT_ARG
+			raw_cat = argv[i+1];
 			i++;
 		}
 		else if (!stricmp(arg, "-rem")) {
@@ -1496,7 +1501,11 @@ int main(int argc, char **argv)
 			nb_meta_act++;
 			i++;
 		}
-		else if (!stricmp(arg, "-package")) do_package = 1;
+		else if (!stricmp(arg, "-package")) {
+			CHECK_NEXT_ARG 
+			pack_file  = argv[i+1];
+			i++;
+		}
 		
 		else if (!stricmp(arg, "-brand")) { 
 			char *b = argv[i+1];
@@ -1573,6 +1582,33 @@ int main(int argc, char **argv)
 	if (!inName) {
 		PrintUsage();
 		return 1;
+	}
+
+	if (raw_cat) {
+		char chunk[4096];
+		FILE *fin, *fout;
+		s64 to_copy, done;
+		fin = gf_f64_open(raw_cat, "rb");
+		if (!fin) return 1;
+		fout = gf_f64_open(inName, "a+b");
+		if (!fout) {
+			fclose(fin);
+			return 1;
+		}
+		gf_f64_seek(fin, 0, SEEK_END);
+		to_copy = gf_f64_tell(fin);
+		gf_f64_seek(fin, 0, SEEK_SET);
+		done = 0;
+		while (1) {
+			u32 nb_bytes = fread(chunk, 1, 4096, fin);
+			fwrite(chunk, 1, nb_bytes, fout);
+			done += nb_bytes;
+			fprintf(stdout, "Appending file %s - %02.2f done\r", raw_cat, 100.0*done/to_copy);
+			if (done >= to_copy) break;
+		}
+		fclose(fin);
+		fclose(fout);
+		return 0;
 	}
 
 	gf_log_set_level(GF_LOG_INFO);
@@ -1742,8 +1778,16 @@ int main(int argc, char **argv)
 		}
 	} 
 #ifndef GPAC_READ_ONLY
-	else if (do_package) {
-		file = package_file(inName, tmpdir);
+	else if (pack_file) {
+		char *fileName = strchr(pack_file, ':');
+		if (fileName && ((fileName - pack_file)==4)) {
+			fileName[0] = 0;
+			file = package_file(fileName + 1, pack_file, tmpdir);
+			fileName[0] = ':';
+		} else {
+			file = package_file(pack_file, NULL, tmpdir);
+		}
+		if (!outName) outName = inName;
 		needSave = 1;
 		open_edit = 1;
 	} 
@@ -1891,8 +1935,13 @@ int main(int argc, char **argv)
 		if (!do_saf) {
 			mdump.trackID = trackID;
 			mdump.sample_num = raw_sample_num;
-			sprintf(szFile, "%s_track%d", outfile, trackID);
-			mdump.out_name = szFile;
+			if (outName) {
+				mdump.out_name = outName;
+				mdump.flags |= GF_EXPORT_MERGE;
+			} else {
+				sprintf(szFile, "%s_track%d", outfile, trackID);
+				mdump.out_name = szFile;
+			}
 		} else {
 			mdump.out_name = outfile;
 		}
@@ -1911,14 +1960,10 @@ int main(int argc, char **argv)
 		switch (meta->act_type) {
 #ifndef GPAC_READ_ONLY
 		case 0:
-			/*remove main brand when modifying...*/
-			if (0 && meta->root_meta) {
-				u32 m = gf_isom_get_meta_type(file, meta->root_meta, tk);
-				if (m && (m!=meta->meta_4cc)) gf_isom_modify_alternate_brand(file, m, 0);
-			}
+			/*note: we don't handle file brand modification, this is an author stuff and cannot be guessed from meta type*/
 			e = gf_isom_set_meta_type(file, meta->root_meta, tk, meta->meta_4cc);
+			gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_ISO2, 1);
 			needSave = 1;
-			if (meta->root_meta) gf_isom_modify_alternate_brand(file, meta->meta_4cc, 1);
 			break;
 		case 1:
 			self_ref = !stricmp(meta->szPath, "NULL") || !stricmp(meta->szPath, "this") || !stricmp(meta->szPath, "self");
@@ -1989,7 +2034,7 @@ int main(int argc, char **argv)
 		} else {
 			char *rel_name = strrchr(inName, GF_PATH_SEPARATOR);
 			if (!rel_name) rel_name = strrchr(inName, '/');
-			if (do_package) {
+			if (pack_file) {
 				strcpy(outfile, rel_name ? rel_name + 1 : inName);
 				rel_name = strrchr(outfile, '.');
 				if (rel_name) rel_name[0] = 0;
@@ -2289,7 +2334,7 @@ int main(int argc, char **argv)
 		if (outName) {
 			fprintf(stdout, "Saving to %s: ", outfile);
 			gf_isom_set_final_name(file, outfile);
-		} else if (encode || do_package) {
+		} else if (encode || pack_file) {
 			fprintf(stdout, "Saving to %s: ", gf_isom_get_filename(file) );
 		} else {
 			fprintf(stdout, "Saving %s: ", inName);
@@ -2301,7 +2346,7 @@ int main(int argc, char **argv)
 
 		e = gf_isom_close(file);
 		if (e) goto err_exit;
-		if (!outName && !encode && !force_new && !do_package) {
+		if (!outName && !encode && !force_new && !pack_file) {
 			if (remove(inName)) fprintf(stdout, "Error removing file %s\n", inName);
 			else if (rename(outfile, inName)) fprintf(stdout, "Error renaming file %s\n", outfile);
 		}

@@ -54,7 +54,7 @@ typedef struct
 	/*string sensor sep char */
 	s16 termChar, delChar;
 	/*current typed text in UTF-8*/
-	short enteredText[5000];
+	unsigned short enteredText[5000];
 	u32 text_len;
 	Bool is_local;
 

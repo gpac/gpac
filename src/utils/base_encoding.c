@@ -25,9 +25,10 @@
 #include <gpac/base_coding.h>
 #include <gpac/constants.h>
 
-static unsigned char base_64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static char base_64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-u32 gf_base64_encode(unsigned char *in, u32 inSize, unsigned char *out, u32 outSize)
+GF_EXPORT
+u32 gf_base64_encode(char *in, u32 inSize, char *out, u32 outSize)
 {
 	u32 i = 0, j = 0, padding;
 
@@ -68,10 +69,10 @@ static unsigned char index_64[128] = {
       41,   42,   43,   44,   45,   46,   47,   48,   49,   50,   51, 0xff, 0xff, 0xff, 0xff, 0xff
 };
 
-#define char64(c)  ((c > 127) ? 0xff : index_64[(c)])
+#define char64(c)  ((c > 127) ? (char) 0xff : index_64[(c)])
 
 /*denoise input*/
-u32 load_block(unsigned char *in, u32 size, u32 pos, unsigned char *out) 
+u32 load_block(char *in, u32 size, u32 pos, char *out) 
 { 
 	u32 i, len; 
 	u8 c;
@@ -88,10 +89,12 @@ u32 load_block(unsigned char *in, u32 size, u32 pos, unsigned char *out)
 		}
 		i++;
 	}
-	while (len<4) { out[len] = 0xFF; len++; }
+	while (len<4) { out[len] = (char) 0xFF; len++; }
 	return pos+i;
 }
-u32 gf_base64_decode(unsigned char *in_buf, u32 inSize, unsigned char *out, u32 outSize)
+
+GF_EXPORT
+u32 gf_base64_decode(char *in_buf, u32 inSize, char *out, u32 outSize)
 {
 	u32 i = 0, j = 0, padding;
 	unsigned char c[4], in[4];
@@ -100,7 +103,7 @@ u32 gf_base64_decode(unsigned char *in_buf, u32 inSize, unsigned char *out, u32 
 
 	while ((i + 3) < inSize) {
 		padding = 0;
-		i = load_block(in_buf, inSize, i, in);
+		i = load_block(in_buf, inSize, i, (char*)in);
 		c[0] = char64(in[0]); 
 		padding += (c[0] == 0xff);
 		c[1] = char64(in[1]);
@@ -131,9 +134,10 @@ u32 gf_base64_decode(unsigned char *in_buf, u32 inSize, unsigned char *out, u32 
  *			Copyright (c) ENST 2004  - Philippe de Cuetos 
  */
 
-static unsigned char base_16[] = "0123456789abcdef";
+static char base_16[] = "0123456789abcdef";
 
-u32 gf_base16_encode(unsigned char *in, u32 inSize, unsigned char *out, u32 outSize)
+GF_EXPORT
+u32 gf_base16_encode(char *in, u32 inSize, char *out, u32 outSize)
 {
 	u32 i = 0;
 
@@ -150,7 +154,8 @@ u32 gf_base16_encode(unsigned char *in, u32 inSize, unsigned char *out, u32 outS
 
 #define char16(nb) (((nb) < 97) ? ((nb)-48) : ((nb)-87))
 
-u32 gf_base16_decode(unsigned char *in, u32 inSize, unsigned char *out, u32 outSize)
+GF_EXPORT
+u32 gf_base16_decode(char *in, u32 inSize, char *out, u32 outSize)
 {
 	u32 j=0;
 	u32 c[2] = {0,0};

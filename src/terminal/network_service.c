@@ -49,15 +49,15 @@ static void term_on_message(void *user_priv, GF_ClientService *service, GF_Err e
 			sOpt = gf_cfg_get_key(term->user->config, "Network", "UDPNotAvailable");
 			/*if option is already set don't bother try reconfig*/
 			if (!sOpt || stricmp(sOpt, "yes")) {
-				char szMsg[1024], *opt;
-				sprintf(szMsg, "UDP down (%s) - Retrying with TCP", message);
+				char szMsg[1024];
+				sprintf(szMsg, "!! UDP down (%s) - Retrying with TCP !!\n", message);
 				gf_term_message(term, service->url, szMsg, GF_OK);
-				/*reconnect top-level*/
-				opt = strdup(term->root_scene->root_od->net_service->url);
-				gf_term_disconnect(term);
+
+				/*reload scene*/
+				if (term->reload_url) free(term->reload_url);
+				term->reload_state = 1;
+				term->reload_url = strdup(term->root_scene->root_od->net_service->url);
 				gf_cfg_set_key(term->user->config, "Network", "UDPNotAvailable", "yes");
-				gf_term_connect(term, opt);
-				free(opt);
 				return;
 			}
 		}
@@ -118,7 +118,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 			GF_List *ODs = gf_list_new();
 			gf_term_lock_net(term, 1);
 			i=0;
-			while ((cs = gf_list_enum(term->channels_pending, &i))) {
+			while ((cs = (GF_ChannelSetup*)gf_list_enum(term->channels_pending, &i))) {
 				if (cs->ch->service != service) continue;
 				gf_list_rem(term->channels_pending, i-1);
 				i--;
@@ -131,7 +131,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 			gf_term_lock_net(term, 0);
 			/*finally setup all ODs concerned (we do this later in case of scalability)*/
 			while (gf_list_count(ODs)) {
-				GF_ObjectManager *odm = gf_list_get(ODs, 0);
+				GF_ObjectManager *odm = (GF_ObjectManager*)gf_list_get(ODs, 0);
 				gf_list_rem(ODs, 0);
 				/*force re-setup*/
 				gf_is_setup_object(odm->parentscene, odm);
@@ -291,11 +291,11 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		else if (service->owner->subscene) od_list = service->owner->subscene->ODlist;
 		if (!od_list) return;
 		i=0;
-		while ((odm=gf_list_enum(od_list, &i))) {
+		while ((odm = (GF_ObjectManager*)gf_list_enum(od_list, &i))) {
 			u32 j, count;
 			count = gf_list_count(odm->channels);
 			for (j=0; j<count; j++) {
-				GF_Channel *ch = gf_list_get(odm->channels, j);
+				GF_Channel *ch = (GF_Channel *)gf_list_get(odm->channels, j);
 				if (ch->service != service) continue;
 				if (ch->IsEndOfStream) continue;
 				if (ch->clock->Buffering) continue;
@@ -550,8 +550,7 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 	GF_InputService *ifce = gf_term_can_handle_service(term, url, parent_service ? parent_service->url : NULL, 0, &sURL, ret_code);
 	if (!ifce) return NULL;
 
-	serv = malloc(sizeof(GF_ClientService));
-	memset(serv, 0, sizeof(GF_ClientService));
+	GF_SAFEALLOC(serv, GF_ClientService);
 	serv->term = term;
 	serv->owner = owner;
 	serv->ifce = ifce;
@@ -601,37 +600,44 @@ GF_Err gf_term_channel_release_sl_packet(GF_ClientService *ns, LPNETCHANNEL chan
 	return ns->ifce->ChannelReleaseSLP(ns->ifce, channel);
 }
 
+GF_EXPORT
 void gf_term_on_message(GF_ClientService *service, GF_Err error, const char *message)
 {
 	assert(service);
 	term_on_message(service->term, service, error, message);
 }
+GF_EXPORT
 void gf_term_on_connect(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response)
 {
 	assert(service);
 	term_on_connect(service->term, service, ns, response);
 }
+GF_EXPORT
 void gf_term_on_disconnect(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response)
 {
 	assert(service);
 	term_on_disconnect(service->term, service, ns, response);
 }
+GF_EXPORT
 void gf_term_on_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Err response)
 {
 	assert(service);
 	term_on_command(service->term, service, com, response);
 }
+GF_EXPORT
 void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
 	assert(service);
 	term_on_slp_recieved(service->term, service, ns, data, data_size, hdr, reception_status);
 }
 
+GF_EXPORT
 void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
 {
 	term_on_media_add(service->term, service, media_desc, no_scene_check);
 }
 
+GF_EXPORT
 const char *gf_term_get_service_url(GF_ClientService *service)
 {
 	if (!service) return NULL;
@@ -647,7 +653,7 @@ void NM_DeleteService(GF_ClientService *ns)
 
 	/*delete all the clocks*/
 	while (gf_list_count(ns->Clocks)) {
-		GF_Clock *ck = gf_list_get(ns->Clocks, 0);
+		GF_Clock *ck = (GF_Clock *)gf_list_get(ns->Clocks, 0);
 		gf_list_rem(ns->Clocks, 0);
 		gf_clock_del(ck);
 	}
@@ -658,11 +664,13 @@ void NM_DeleteService(GF_ClientService *ns)
 	free(ns);
 }
 
+GF_EXPORT
 GF_InputService *gf_term_get_service_interface(GF_ClientService *serv)
 {
 	return serv ? serv->ifce : NULL;
 }
 
+GF_EXPORT
 GF_DownloadSession * gf_term_download_new(GF_ClientService *service, const char *url, u32 flags, void (*OnData)(void *cbk, char *data, u32 data_size, u32 state, GF_Err error), void *cbk)
 {
 	GF_Err e;
@@ -680,11 +688,12 @@ GF_DownloadSession * gf_term_download_new(GF_ClientService *service, const char 
 	return sess;
 }
 
+GF_EXPORT
 void gf_term_download_del(GF_DownloadSession * sess)
 {
 	GF_ClientService *serv;
 	if (!sess) return;
-	serv = gf_dm_sess_get_private(sess);
+	serv = (GF_ClientService *)gf_dm_sess_get_private(sess);
 
 	/*avoid sending data back to user*/
 	gf_dm_sess_abort(sess);
@@ -696,6 +705,7 @@ void gf_term_download_del(GF_DownloadSession * sess)
 	gf_list_add(serv->term->net_services_to_remove, sess);
 }
 
+GF_EXPORT
 void gf_term_download_update_stats(GF_DownloadSession * sess)
 {
 	GF_ClientService *serv;
@@ -703,7 +713,7 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 	u32 total_size, bytes_done, net_status, bytes_per_sec;
 	
 	gf_dm_sess_get_stats(sess, NULL, &szURI, &total_size, &bytes_done, &bytes_per_sec, &net_status);
-	serv = gf_dm_sess_get_private(sess);
+	serv = (GF_ClientService *)gf_dm_sess_get_private(sess);
 	switch (net_status) {
 	case GF_DOWNLOAD_STATE_SETUP:
 		gf_term_on_message(serv, GF_OK, "Connecting");
@@ -739,6 +749,7 @@ void gf_term_service_del(GF_ClientService *ns)
 	}
 }
 
+GF_EXPORT
 void gf_term_register_mime_type(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description)
 {
 	u32 len;
@@ -746,7 +757,7 @@ void gf_term_register_mime_type(GF_InputService *ifce, const char *mimeType, con
 	if (!ifce || !mimeType || !extList || !description) return;
 
 	len = strlen(extList) + 3 + strlen(description) + 3 + strlen(ifce->module_name) + 1;
-	buf = malloc(sizeof(char)*len);
+	buf = (char*)malloc(sizeof(char)*len);
 	sprintf(buf, "\"%s\" ", extList);
 	strlwr(buf);
 	strcat(buf, "\"");
@@ -757,6 +768,7 @@ void gf_term_register_mime_type(GF_InputService *ifce, const char *mimeType, con
 	free(buf);
 }
 
+GF_EXPORT
 Bool gf_term_check_extension(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description, const char *fileExt)
 {
 	const char *szExtList;

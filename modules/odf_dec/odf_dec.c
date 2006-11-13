@@ -45,7 +45,7 @@ static GF_Err ODF_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 
 static GF_Err ODF_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_inline_scene)
 {
-	ODPriv *priv = plug->privateStack;
+	ODPriv *priv = (ODPriv *)plug->privateStack;
 	if (!priv->scene) priv->scene = scene;
 	return GF_OK;
 }
@@ -76,7 +76,7 @@ static GF_Err ODS_ODUpdate(ODPriv *priv, GF_ODUpdate *odU)
 	if (count > 255) return GF_ODF_INVALID_DESCRIPTOR;
 
 	while (count) {
-		od = gf_list_get(odU->objectDescriptors, 0);
+		od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, 0);
 		gf_list_rem(odU->objectDescriptors, 0);
 		count--;
 		ODS_SetupOD(priv->scene, od);
@@ -109,14 +109,13 @@ static GF_Err ODS_UpdateESD(ODPriv *priv, GF_ESDUpdate *ESDs)
 	count = gf_list_count(ESDs->ESDescriptors);
 
 	while (count) {
-		esd = gf_list_get(ESDs->ESDescriptors, 0);
+		esd = (GF_ESD*)gf_list_get(ESDs->ESDescriptors, 0);
 		/*spec: "ES_Descriptors with ES_IDs that have already been received within the same name scope shall be ignored."*/
 		prev = NULL;
 		i=0;
-		while ((prev = gf_list_enum(odm->OD->ESDescriptors, &i))) {
+		while ((prev = (GF_ESD*)gf_list_enum(odm->OD->ESDescriptors, &i))) {
 			if (prev->ESID == esd->ESID) break;
 		}
-
 		if (prev) {
 			gf_odf_desc_del((GF_Descriptor *)esd);
 		} else {
@@ -153,7 +152,7 @@ static GF_Err ODS_RemoveESD(ODPriv *priv, GF_ESDRemove *ESDs)
 
 static GF_Err ODF_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
-									 unsigned char *decSpecInfo, 
+									 char *decSpecInfo, 
 									 u32 decSpecInfoSize, 
 									 u16 DependsOnES_ID,
 									 u32 objectTypeIndication, 
@@ -169,13 +168,13 @@ static GF_Err ODF_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 }
 
 
-static GF_Err ODF_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
+static GF_Err ODF_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBufferLength, 
 							u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	GF_Err e;
 	GF_ODCom *com;
 	GF_ODCodec *oddec;
-	ODPriv *priv = plug->privateStack;
+	ODPriv *priv = (ODPriv *)plug->privateStack;
 	
 	oddec = gf_odf_codec_new();
 
@@ -243,9 +242,9 @@ err_exit:
 }
 
 
-Bool ODF_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+Bool ODF_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
-	ODPriv *priv = ifce->privateStack;
+	ODPriv *priv = (ODPriv *)ifce->privateStack;
 	if (StreamType==GF_STREAM_OD) {
 		priv->PL = PL;
 		return 1;
@@ -256,7 +255,7 @@ Bool ODF_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, u
 
 void DeleteODDec(GF_BaseDecoder *plug)
 {
-	ODPriv *priv = plug->privateStack;
+	ODPriv *priv = (ODPriv *)plug->privateStack;
 	free(priv);
 	free(plug);
 }
@@ -284,6 +283,7 @@ GF_BaseDecoder *NewODDec()
 }
 
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -294,6 +294,7 @@ Bool QueryInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -304,6 +305,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

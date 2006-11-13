@@ -89,7 +89,7 @@ static Bool Composite_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force
 	{
 		M_CompositeTexture3D*c3d = (M_CompositeTexture3D*)n;
 		if (force_check || gf_node_dirty_get(c3d->background)) { gf_node_render(c3d->background, eff); ret = 1; }
-		btop = gf_list_get(eff->backgrounds, 0);
+		btop = (GF_Node*)gf_list_get(eff->backgrounds, 0);
 		if (btop != c3d->background) { 
 			gf_node_unregister(c3d->background, n);
 			gf_node_register(btop, n); 
@@ -98,7 +98,7 @@ static Bool Composite_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force
 			ret = 1; 
 		}
 		if (force_check || gf_node_dirty_get(c3d->viewpoint)) { gf_node_render(c3d->viewpoint, eff); ret = 1; }
-		btop = gf_list_get(eff->viewpoints, 0);
+		btop = (GF_Node*)gf_list_get(eff->viewpoints, 0);
 		if (btop != c3d->viewpoint) { 
 			gf_node_unregister(c3d->viewpoint, n);
 			gf_node_register(btop, n); 
@@ -108,7 +108,7 @@ static Bool Composite_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force
 		}
 		
 		if (force_check || gf_node_dirty_get(c3d->fog)) { gf_node_render(c3d->fog, eff); ret = 1; }
-		btop = gf_list_get(eff->fogs, 0);
+		btop = (GF_Node*)gf_list_get(eff->fogs, 0);
 		if (btop != c3d->fog) {
 			gf_node_unregister(c3d->fog, n);
 			gf_node_register(btop, n); 
@@ -118,7 +118,7 @@ static Bool Composite_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force
 		}
 		
 		if (force_check || gf_node_dirty_get(c3d->navigationInfo)) { gf_node_render(c3d->navigationInfo, eff); ret = 1; }
-		btop = gf_list_get(eff->navigations, 0);
+		btop = (GF_Node*)gf_list_get(eff->navigations, 0);
 		if (btop != c3d->navigationInfo) {
 			gf_node_unregister(c3d->navigationInfo, n);
 			gf_node_register(btop, n); 
@@ -132,7 +132,7 @@ static Bool Composite_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force
 	{
 		M_CompositeTexture2D *c2d = (M_CompositeTexture2D*)n;
 		if (force_check || gf_node_dirty_get(c2d->background)) { gf_node_render(c2d->background, eff); ret = 1; }
-		btop = gf_list_get(eff->backgrounds, 0);
+		btop = (GF_Node*)gf_list_get(eff->backgrounds, 0);
 		if (btop != c2d->background) {
 			gf_node_unregister(c2d->background, n);
 			gf_node_register(btop, n); 
@@ -142,7 +142,7 @@ static Bool Composite_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force
 		}
 
 		if (force_check || gf_node_dirty_get(c2d->viewport)) { gf_node_render(c2d->viewport, eff); ret = 1; }
-		btop = gf_list_get(eff->viewpoints, 0);
+		btop = (GF_Node*)gf_list_get(eff->viewpoints, 0);
 		if (btop != c2d->viewport) { 
 			gf_node_unregister(c2d->viewport, n);
 			gf_node_register(btop, n); 
@@ -219,7 +219,7 @@ static void UpdateCompositeTexture(GF_TextureHandler *txh)
 
 		tx_allocate(&st->txh);
 		
-		st->txh.data = malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
+		st->txh.data = (char*)malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
 		tx_setup_format(&st->txh);
 		tx_set_image(&st->txh, 0);
 		free(st->txh.data);
@@ -232,7 +232,7 @@ static void UpdateCompositeTexture(GF_TextureHandler *txh)
 	is_dirty = 0;
 	count = gf_list_count(children);
 	for (i=0; i<count; i++) {
-		child = gf_list_get(children, i);
+		child = (GF_Node*)gf_list_get(children, i);
 		if (gf_node_dirty_get(child)) {
 			is_dirty = 1;
 			break;
@@ -253,7 +253,7 @@ static void UpdateCompositeTexture(GF_TextureHandler *txh)
 		/*store bbox for background2D*/
 		box = eff->bbox;
 		for (i=0; i<count; i++) {
-			child = gf_list_get(children, i);
+			child = (GF_Node*)gf_list_get(children, i);
 			gf_node_render(child, eff);
 		}
 		eff->bbox = box;
@@ -323,8 +323,9 @@ void R3D_CompositeAdjustScale(GF_Node *node, Fixed *sx, Fixed *sy)
 void R3D_InitCompositeTexture3D(Render3D *sr, GF_Node *node)
 {
 	M_CompositeTexture3D *c3d = (M_CompositeTexture3D *)node;
-	CompositeTextureStack *st = malloc(sizeof(CompositeTextureStack));
-	memset(st, 0, sizeof(CompositeTextureStack));
+	CompositeTextureStack *st;
+	GF_SAFEALLOC(st, CompositeTextureStack);
+
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.flags = 0;
 	if (c3d->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
@@ -344,8 +345,9 @@ void R3D_InitCompositeTexture3D(Render3D *sr, GF_Node *node)
 void R3D_InitCompositeTexture2D(Render3D *sr, GF_Node *node)
 {
 	M_CompositeTexture2D *c2d = (M_CompositeTexture2D *)node;
-	CompositeTextureStack *st = malloc(sizeof(CompositeTextureStack));
-	memset(st, 0, sizeof(CompositeTextureStack));
+	CompositeTextureStack *st;
+	GF_SAFEALLOC(st, CompositeTextureStack);
+
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.flags = 0;
 	if ((c2d->repeatSandT==1) || (c2d->repeatSandT==3) ) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
@@ -403,7 +405,7 @@ Bool r3d_handle_composite_event(Render3D *sr, GF_UserEvent *ev)
 
 	children = Composite_GetChildren(st->txh.owner);
 	i=0;
-	while ((child = gf_list_enum(children, &i))) {
+	while ((child = (GF_Node*)gf_list_enum(children, &i))) {
 		SensorHandler *hsens = r3d_get_sensor_handler(child);
 		if (hsens) gf_list_add(eff->sensors, hsens);
 	}

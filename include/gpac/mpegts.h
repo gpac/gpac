@@ -113,7 +113,7 @@ enum
 	GF_M2TS_EVT_SL_PCK,
 };
 
-typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pes, unsigned char *data, u32 data_size, Bool is_repeated); 
+typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pes, char *data, u32 data_size, Bool is_repeated); 
 
 /*MPEG-2 TS section object (PAT, PMT, etc..)*/
 typedef struct GF_M2TS_SectionFilter
@@ -123,7 +123,7 @@ typedef struct GF_M2TS_SectionFilter
 
 	/*section reassembler*/
 	s16 cc;
-	unsigned char *section;
+	char *section;
 	u16 received;
 	/*section header*/
 	u8 table_id;
@@ -141,7 +141,7 @@ typedef struct GF_M2TS_SectionFilter
 	u8 last_version_number;
 
 	/*section aggregator*/
-	unsigned char *data;
+	char *data;
 	u32 data_size;
 
 	gf_m2ts_section_callback process_section; 
@@ -191,14 +191,14 @@ typedef struct tag_m2ts_pes
 
 	/*mpegts lib private - do not touch :)*/
 	/*PES re-assembler*/
-	unsigned char *data;
+	char *data;
 	u32 data_len;
 	Bool rap;
 	u64 PTS, DTS;
 	
 	/*PES reframer - if NULL, pes processing is skiped*/
 	u32 frame_state;
-	void (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, unsigned char *data, u32 data_len);
+	void (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, char *data, u32 data_len);
 
 	u64 first_dts;
 
@@ -224,7 +224,7 @@ typedef struct
 /*MPEG-2 TS packet*/
 typedef struct
 {
-	unsigned char *data;
+	char *data;
 	u32 data_len;
 	u32 flags;
 	u64 PTS, DTS;
@@ -235,7 +235,7 @@ typedef struct
 /*MPEG-4 SL packet from MPEG-2 TS*/
 typedef struct
 {
-	unsigned char *data;
+	char *data;
 	u32 data_len;
 	/*parent stream*/
 	GF_M2TS_PES *stream;
@@ -255,7 +255,7 @@ struct tag_m2ts_demux
 	void *user;
 
 	/*private resync buffer*/
-	unsigned char *buffer;
+	char *buffer;
 	u32 buffer_size, alloc_size;
 	/*default transport PID filters*/
 	GF_M2TS_SectionFilter *pas, *nit, *sdt;
@@ -271,6 +271,6 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts);
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode);
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size);
 
-u32 gf_m2ts_crc32(unsigned char *data, u32 len);
+u32 gf_m2ts_crc32(char *data, u32 len);
 
 #endif	//_GF_MPEG_TS_H_

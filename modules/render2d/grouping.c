@@ -41,7 +41,7 @@ void child2d_compute_bounds(ChildGroup2D *cg)
 	count = gf_list_count(cg->contexts);
 	for (i=0; i<count; i++) {
 		void text2D_get_ascent_descent(DrawableContext *ctx, Fixed *a, Fixed *d);
-		DrawableContext *ctx = gf_list_get(cg->contexts, i);
+		DrawableContext *ctx = (DrawableContext *)gf_list_get(cg->contexts, i);
 		gf_rect_union(&cg->original, &ctx->unclip);
 		if (!cg->is_text_group) continue;
 		if (!ctx->is_text) {
@@ -58,7 +58,7 @@ void group2d_force_bounds(GroupingNode2D *group, GF_Rect *clip)
 {
 	ChildGroup2D *cg;
 	if (!group || !clip) return;
-	cg = gf_list_get(group->groups, gf_list_count(group->groups)-1);
+	cg = (ChildGroup2D *)gf_list_get(group->groups, gf_list_count(group->groups)-1);
 	if (!cg) return;
 	cg->ascent = cg->descent = 0;
 	cg->is_text_group = 0;
@@ -69,14 +69,14 @@ void group2d_force_bounds(GroupingNode2D *group, GF_Rect *clip)
 
 void group2d_start_child(GroupingNode2D *group)
 {
-	ChildGroup2D *cg = malloc(sizeof(ChildGroup2D));
-	memset(cg, 0, sizeof(ChildGroup2D));
+	ChildGroup2D *cg;
+	GF_SAFEALLOC(cg, ChildGroup2D);
 	cg->contexts = gf_list_new();
 	gf_list_add(group->groups, cg);
 }
 void group2d_end_child(GroupingNode2D *group)
 {
-	ChildGroup2D *cg = gf_list_get(group->groups, gf_list_count(group->groups)-1);
+	ChildGroup2D *cg = (ChildGroup2D *)gf_list_get(group->groups, gf_list_count(group->groups)-1);
 	if (!cg) return;
 	child2d_compute_bounds(cg);
 	cg->final = cg->original;
@@ -85,7 +85,7 @@ void group2d_end_child(GroupingNode2D *group)
 void group2d_reset_children(GroupingNode2D *group)
 {
 	while (gf_list_count(group->groups)) {
-		ChildGroup2D *cg = gf_list_get(group->groups, 0);
+		ChildGroup2D *cg = (ChildGroup2D *)gf_list_get(group->groups, 0);
 		gf_list_rem(group->groups, 0);
 		gf_list_del(cg->contexts);
 		free(cg);
@@ -94,7 +94,7 @@ void group2d_reset_children(GroupingNode2D *group)
 
 void group2d_add_to_context_list(GroupingNode2D *group, DrawableContext *ctx)
 {
-	ChildGroup2D *cg = gf_list_get(group->groups, gf_list_count(group->groups)-1);
+	ChildGroup2D *cg = (ChildGroup2D *)gf_list_get(group->groups, gf_list_count(group->groups)-1);
 	if (!cg) return;
 	gf_list_add(cg->contexts, ctx);
 }
@@ -123,7 +123,7 @@ void group2d_traverse(GroupingNode2D *group, GF_List *children, RenderEffect2D *
 			if (hsens) gf_list_add(group->sensors, hsens);
 		}
 		for (i=0; i<count; i++) {
-			child = gf_list_get(children, i);
+			child = (GF_Node*)gf_list_get(children, i);
 			if (!child || !is_sensor_node(child) ) continue;
 			hsens = get_sensor_handler(child);
 			/*only keep track of locally enabled sensors*/
@@ -139,7 +139,7 @@ void group2d_traverse(GroupingNode2D *group, GF_List *children, RenderEffect2D *
 	
 		/*add sensor(s) to effects*/	
 		for (i=0; i <count2; i++) {
-			SensorHandler *hsens = gf_list_get(group->sensors, i);
+			SensorHandler *hsens = (SensorHandler *)gf_list_get(group->sensors, i);
 			effect_add_sensor(eff, hsens, &eff->transform);
 		}
 	}
@@ -149,7 +149,7 @@ void group2d_traverse(GroupingNode2D *group, GF_List *children, RenderEffect2D *
 	if (eff->parent == group) {
 		for (i=0; i<count; i++) {
 			group2d_start_child(group);
-			child = gf_list_get(children, i);
+			child = (GF_Node*)gf_list_get(children, i);
 			gf_node_render(child, eff);
 			group2d_end_child(group);
 		}
@@ -157,7 +157,7 @@ void group2d_traverse(GroupingNode2D *group, GF_List *children, RenderEffect2D *
 		split_text_backup = eff->text_split_mode;
 		if (count>1) eff->text_split_mode = 0;
 		for (i=0; i<count; i++) {
-			child = gf_list_get(children, i);
+			child = (GF_Node*)gf_list_get(children, i);
 			gf_node_render(child, eff);
 		}
 		eff->text_split_mode = split_text_backup;
@@ -197,7 +197,7 @@ void child2d_render_done(ChildGroup2D *cg, RenderEffect2D *eff, GF_Rect *par_cli
 
 	count = gf_list_count(cg->contexts);
 	for (i=0; i<count; i++) {
-		DrawableContext *ctx = gf_list_get(cg->contexts, i);
+		DrawableContext *ctx = (DrawableContext *)gf_list_get(cg->contexts, i);
 
 		gf_mx2d_apply_coords(&mat, &ctx->unclip.x, &ctx->unclip.y);
 		x = INT2FIX(ctx->clip.x); y = INT2FIX(ctx->clip.y);
@@ -211,7 +211,7 @@ void child2d_render_done(ChildGroup2D *cg, RenderEffect2D *eff, GF_Rect *par_cli
 
 		scount = gf_list_count(ctx->sensors);
 		for (j=0; j<scount; j++) {
-			SensorContext *sc = gf_list_get(ctx->sensors, j);
+			SensorContext *sc = (SensorContext *)gf_list_get(ctx->sensors, j);
 
 			if (!eff->is_pixel_metrics) gf_mx2d_add_scale(&sc->matrix, inv_min_hsize, inv_min_hsize);
 			gf_mx2d_add_matrix(&sc->matrix, &eff->transform);
@@ -236,7 +236,7 @@ void child2d_render_done_complex(ChildGroup2D *cg, RenderEffect2D *eff, GF_Matri
 	
 	count = gf_list_count(cg->contexts);
 	for (i=0; i<count; i++) {
-		DrawableContext *ctx = gf_list_get(cg->contexts, i);
+		DrawableContext *ctx = (DrawableContext *)gf_list_get(cg->contexts, i);
 		if (!mat) {
 			gf_rect_reset(&ctx->clip);
 			gf_rect_reset(&ctx->unclip);
@@ -247,7 +247,7 @@ void child2d_render_done_complex(ChildGroup2D *cg, RenderEffect2D *eff, GF_Matri
 
 		scount = gf_list_count(ctx->sensors);
 		for (j=0; j<scount; j++) {
-			SensorContext *sc = gf_list_get(ctx->sensors, j);
+			SensorContext *sc = (SensorContext *)gf_list_get(ctx->sensors, j);
 			gf_mx2d_add_matrix(&sc->matrix, &eff->transform);
 		}
 		gf_mx2d_apply_rect(&ctx->transform, &ctx->unclip);

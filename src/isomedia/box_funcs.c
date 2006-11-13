@@ -53,7 +53,7 @@ GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs)
 {
 	u32 type, hdr_size;
 	u64 size, start, end;
-	u8 uuid[16];
+	char uuid[16];
 	GF_Err e;
 	GF_Box *newBox;
 	e = GF_OK;
@@ -91,7 +91,7 @@ proceed_box:
 	/*handle uuid*/
 	memset(uuid, 0, 16);
 	if (type == GF_ISOM_BOX_TYPE_UUID ) {
-		gf_bs_read_data(bs, (unsigned char *) uuid, 16);
+		gf_bs_read_data(bs, uuid, 16);
 		hdr_size += 16;
 	}
 	
@@ -250,7 +250,7 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 	}
 	gf_bs_write_u32(bs, ptr->type);
 	if (ptr->type == GF_ISOM_BOX_TYPE_UUID) 
-		gf_bs_write_data(bs, (unsigned char *) ((GF_UUIDBox*)ptr)->uuid, 16);
+		gf_bs_write_data(bs, (char*)((GF_UUIDBox*)ptr)->uuid, 16);
 	if (ptr->size > 0xFFFFFFFF) 
 		gf_bs_write_u64(bs, ptr->size);
 	return GF_OK;

@@ -28,9 +28,7 @@
 VisualSurface2D *NewVisualSurface2D()
 {
 	VisualSurface2D *tmp;
-
-	tmp = malloc(sizeof(VisualSurface2D));
-	memset(tmp, 0, sizeof(VisualSurface2D));
+	GF_SAFEALLOC(tmp, VisualSurface2D);
 
 	tmp->center_coords = 1;
 	ra_init(&tmp->to_redraw);
@@ -44,7 +42,7 @@ VisualSurface2D *NewVisualSurface2D()
 void VS2D_ResetSensors(VisualSurface2D *surf)
 {
 	while (gf_list_count(surf->sensors)) {
-		SensorInfo *ptr = gf_list_get(surf->sensors, 0);
+		SensorInfo *ptr = (SensorInfo *)gf_list_get(surf->sensors, 0);
 		gf_list_rem(surf->sensors, 0);
 		gf_list_del(ptr->nodes_on_top);
 		free(ptr);
@@ -108,7 +106,7 @@ void VS2D_DrawableDeleted(struct _visual_surface_2D *surf, struct _drawable *nod
 	gf_list_del_item(surf->prev_nodes_drawn, node);
 
 	i=0;
-	while ((si = gf_list_enum(surf->sensors, &i))) {
+	while ((si = (SensorInfo *)gf_list_enum(surf->sensors, &i))) {
 		if (si->ctx->node==node) {
 			i--;
 			gf_list_rem(surf->sensors, i);
@@ -117,7 +115,7 @@ void VS2D_DrawableDeleted(struct _visual_surface_2D *surf, struct _drawable *nod
 		} else {
 			DrawableContext *ctx;
 			j=0; 
-			while ((ctx = gf_list_enum(si->nodes_on_top, &j))) {
+			while ((ctx = (DrawableContext*)gf_list_enum(si->nodes_on_top, &j))) {
 				if (ctx->node==node) {
 					j--;
 					gf_list_rem(si->nodes_on_top, j);
@@ -205,7 +203,7 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	/*reset prev nodes if any (previous render was indirect)*/
 	count = gf_list_count(surf->prev_nodes_drawn);
 	for (i=0; i<count; i++) {
-		Drawable *dr = gf_list_get(surf->prev_nodes_drawn, i);
+		Drawable *dr = (Drawable *)gf_list_get(surf->prev_nodes_drawn, i);
 		if (direct_render) {
 			/*direct rendering mode, remove all bounds info and unreg node */
 			drawable_reset_bounds(dr);
@@ -220,8 +218,7 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	if (!direct_render) return;
 
 	/*direct mode, draw background*/
-	bck = NULL;
-	if (gf_list_count(surf->back_stack)) bck = gf_list_get(surf->back_stack, 0);
+	bck = (M_Background2D*) gf_list_get(surf->back_stack, 0);
 	if (bck && bck->isBound) {
 		ctx = b2D_GetContext(bck, surf->back_stack);
 		ctx->clip = surf->surf_rect;
@@ -239,7 +236,7 @@ void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx)
 	u32 i, len;
 	SensorInfo *si;
 
-	while ((si = gf_list_enum(surf->sensors, &i))) {
+	while ((si = (SensorInfo *)gf_list_enum(surf->sensors, &i))) {
 		if (gf_rect_overlaps(si->ctx->unclip, ctx->unclip)) {
 			gf_list_add(si->nodes_on_top, ctx);
 		}
@@ -249,7 +246,7 @@ void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx)
 	if (len) {
 		/*if any of the attached sensor is active, register*/
 		for (i=0; i<len; i++) {
-			SensorContext *sc = gf_list_get(ctx->sensors, i);
+			SensorContext *sc = (SensorContext *)gf_list_get(ctx->sensors, i);
 			if (sc->h_node->IsEnabled(sc->h_node)) goto register_sensor;
 		}
 		/*disable all sensors*/
@@ -260,7 +257,7 @@ void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx)
 
 	
 register_sensor:
-	si = malloc(sizeof(SensorInfo));
+	si = (SensorInfo *)malloc(sizeof(SensorInfo));
 	si->ctx = ctx;
 	si->nodes_on_top = gf_list_new();
 	gf_list_add(surf->sensors, si);
@@ -299,7 +296,7 @@ static void mark_opaque_areas(VisualSurface2D *surf)
 #endif
 	GF_RectArray *ra = &surf->to_redraw;
 	if (!ra->count) return;
-	ra->opaque_node_index = realloc(ra->opaque_node_index, sizeof(u32) * ra->count);
+	ra->opaque_node_index = (u32*)realloc(ra->opaque_node_index, sizeof(u32) * ra->count);
 
 	for (k=0; k<ra->count; k++) {
 #if CHECK_UNCHANGED
@@ -387,8 +384,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	bck = NULL;
 	bck_ctx = NULL;
 
-	bck = NULL;
-	if (gf_list_count(surf->back_stack)) bck = gf_list_get(surf->back_stack, 0);
+	bck = (M_Background2D*)gf_list_get(surf->back_stack, 0);
 	if (bck) {
 		if (!bck->isBound) {
 			if (surf->last_had_back) redraw_all = 1;
@@ -430,7 +426,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	/*clear all remaining bounds since last frames (the ones that moved or that are not drawn this frame)*/
 	count = gf_list_count(surf->prev_nodes_drawn);
 	for (j=0; j<count; j++) {
-		Drawable *n = gf_list_get(surf->prev_nodes_drawn, j);
+		Drawable *n = (Drawable *)gf_list_get(surf->prev_nodes_drawn, j);
 		while (drawable_get_previous_bound(n, &refreshRect, surf)) {
 			if (!redraw_all) {
 				ra_union_rect(&surf->to_redraw, refreshRect);
@@ -535,7 +531,7 @@ DrawableContext *VS2D_PickSensitiveNode(VisualSurface2D *surf, Fixed X, Fixed Y)
 	i = count;
 restart:
 	for (; i > 0; i--) {
-		SensorInfo *si = gf_list_get(surf->sensors, i-1);
+		SensorInfo *si = (SensorInfo *)gf_list_get(surf->sensors, i-1);
 
 		/*check over bounds*/
 		if (! gf_point_in_rect(si->ctx->clip, x, y)) continue;
@@ -543,7 +539,7 @@ restart:
 		/*check over covering node for non-SVG*/
 		if (surf->render->main_surface_setup==1) {
 			for (k=gf_list_count(si->nodes_on_top); k>0; k--) {
-				ctx = gf_list_get(si->nodes_on_top, k-1);
+				ctx = (DrawableContext *)gf_list_get(si->nodes_on_top, k-1);
 				if (! gf_point_in_rect(ctx->clip, x, y) ) continue;
 				if (! ctx->node->IsPointOver(ctx, x, y, 0) ) continue;
 
@@ -601,7 +597,7 @@ GF_Node *VS2D_PickNode(VisualSurface2D *surf, Fixed x, Fixed y)
 	M_Background2D *bck;
 	bck = NULL;
 	back = NULL;
-	if (gf_list_count(surf->back_stack)) bck = gf_list_get(surf->back_stack, 0);
+	bck = (M_Background2D *) gf_list_get(surf->back_stack, 0);
 	if (bck && bck->isBound) back = (GF_Node *) bck;
 
 	i = surf->num_contexts;

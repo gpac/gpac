@@ -51,7 +51,7 @@ static GF_RTSPCommand *RP_GetCommand(RTSPSession *sess)
 {
 	GF_RTSPCommand *com;
 	gf_mx_p(sess->owner->mx);
-	com = gf_list_get(sess->rtsp_commands, 0);
+	com = (GF_RTSPCommand *)gf_list_get(sess->rtsp_commands, 0);
 	gf_mx_v(sess->owner->mx);
 	return com;
 }
@@ -182,7 +182,7 @@ RTPStream *RP_FindChannel(RTPClient *rtp, LPNETCHANNEL ch, u32 ES_ID, char *es_c
 	u32 i=0;
 	RTPStream *st;
 
-	while ((st = gf_list_enum(rtp->channels, &i))) {
+	while ((st = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
 		if (ch && (st->channel==ch)) goto found;
 		if (ES_ID && (st->ES_ID==ES_ID)) goto found;
 		if (es_control && st->control) {
@@ -207,7 +207,7 @@ RTSPSession *RP_CheckSession(RTPClient *rtp, char *control)
 	if (!strcmp(control, "*")) control = (char *) gf_term_get_service_url(rtp->service);
 
 	i=0;
-	while ( (sess = gf_list_enum(rtp->sessions, &i)) ) {
+	while ( (sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i)) ) {
 		if (gf_rtsp_is_my_session(sess->session, control)) return sess;
 	}
 	return NULL;
@@ -234,8 +234,7 @@ RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 
 	if (!rtsp) return NULL;
 
-	tmp = malloc(sizeof(RTSPSession));
-	memset(tmp, 0, sizeof(RTSPSession));
+	GF_SAFEALLOC(tmp, RTSPSession);
 	tmp->owner = rtp;
 	tmp->session = rtsp;
 
@@ -329,7 +328,7 @@ void RP_RemoveStream(RTPClient *rtp, RTPStream *ch)
 	u32 i=0;
 	RTPStream *st;
 	gf_mx_p(rtp->mx);
-	while ((st = gf_list_enum(rtp->channels, &i))) {
+	while ((st = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
 		if (st == ch) {
 			gf_list_rem(rtp->channels, i-1);
 			break;
@@ -345,7 +344,7 @@ void RP_ResetSession(RTSPSession *sess, GF_Err e)
 
 	//destroy command list
 	while (gf_list_count(sess->rtsp_commands)) {
-		com = gf_list_get(sess->rtsp_commands, 0);
+		com = (GF_RTSPCommand *)gf_list_get(sess->rtsp_commands, 0);
 		gf_list_rem(sess->rtsp_commands, 0);
 		//this destroys stacks if any
 //		RP_SendFailure(sess, com, first ? e : GF_OK);

@@ -60,7 +60,7 @@ typedef struct
 	/*!Pixel format of the video framebuffer*/
 	u32 pixel_format;
 	/*!pointer to the begining of the video memory (top-left corner)*/
-	unsigned char *video_buffer;
+	char *video_buffer;
 	/*!indicates that the video data reside on systems memory or video card one*/
 	Bool is_hardware_memory;
 } GF_VideoSurface;

@@ -23,7 +23,6 @@
  */
 
 
-
 #include "stacks2d.h"
 #include "visualsurface2d.h"
 
@@ -62,13 +61,13 @@ static void DestroyBackground2D(GF_Node *node)
 
 
 	while (gf_list_count(ptr->surfaces_links)) {
-		status = gf_list_get(ptr->surfaces_links, 0);
+		status = (BackgroundStatus *)gf_list_get(ptr->surfaces_links, 0);
 		gf_list_rem(ptr->surfaces_links, 0);
 		gf_list_del_item(status->bind_stack, node);
 
 		/*force bind - bindable nodes are the only cases where we generate eventIn in the scene graph*/
 		if (gf_list_count(status->bind_stack)) {
-			top = gf_list_get(status->bind_stack, 0);
+			top = (M_Background2D*)gf_list_get(status->bind_stack, 0);
 			if (!top->set_bind) {
 				top->set_bind = 1;
 				if (top->on_set_bind) top->on_set_bind((GF_Node *) top);
@@ -93,12 +92,11 @@ static BackgroundStatus *b2D_GetStatus(Background2DStack *bck, RenderEffect2D *e
 	if (!stack) return NULL;
 
 	i=0;
-	while ((status = gf_list_enum(bck->surfaces_links, &i))) {
+	while ((status = (BackgroundStatus *)gf_list_enum(bck->surfaces_links, &i))) {
 		if (status->bind_stack == stack) return status;
 	}
 
-	status = malloc(sizeof(BackgroundStatus));
-	memset(status, 0, sizeof(BackgroundStatus));
+	GF_SAFEALLOC(status, BackgroundStatus);
 	gf_mx2d_init(status->ctx.transform);
 	status->ctx.surface = eff->surface;
 	status->ctx.aspect.filled = 1;
@@ -199,7 +197,7 @@ static void b2D_set_bind(GF_Node *node)
 	Background2DStack *bcks = (Background2DStack *)gf_node_get_private(node);
 
 	i=0;
-	while ((status = gf_list_enum(bcks->surfaces_links, &i))) {
+	while ((status = (BackgroundStatus *)gf_list_enum(bcks->surfaces_links, &i))) {
 		isOnTop = (gf_list_get(status->bind_stack, 0)==node) ? 1 : 0;
 
 		if (! bck->set_bind) {
@@ -210,7 +208,7 @@ static void b2D_set_bind(GF_Node *node)
 			if (isOnTop && (gf_list_count(status->bind_stack)>1)) {
 				gf_list_rem(status->bind_stack, 0);
 				gf_list_add(status->bind_stack, node);
-				newTop = gf_list_get(status->bind_stack, 0);
+				newTop = (M_Background2D*)gf_list_get(status->bind_stack, 0);
 				newTop->set_bind = 1;
 				newTop->on_set_bind((GF_Node *) newTop);
 			}
@@ -221,7 +219,7 @@ static void b2D_set_bind(GF_Node *node)
 				gf_node_dirty_set(node, 0, 0);
 			}
 			if (!isOnTop) {
-				newTop = gf_list_get(status->bind_stack, 0);
+				newTop = (M_Background2D*)gf_list_get(status->bind_stack, 0);
 				gf_list_del_item(status->bind_stack, node);
 
 				gf_list_insert(status->bind_stack, node, 0);
@@ -241,9 +239,9 @@ DrawableContext *b2D_GetContext(M_Background2D *n, GF_List *from_stack)
 {
 	u32 i;
 	BackgroundStatus *status;
-	Background2DStack *ptr = gf_node_get_private((GF_Node *)n);
+	Background2DStack *ptr = (Background2DStack *)gf_node_get_private((GF_Node *)n);
 	i=0;
-	while ((status = gf_list_enum(ptr->surfaces_links, &i))) {
+	while ((status = (BackgroundStatus *)gf_list_enum(ptr->surfaces_links, &i))) {
 		if (status->bind_stack == from_stack) return &status->ctx;
 	}
 	return NULL;
@@ -329,8 +327,8 @@ static void UpdateBackgroundTexture(GF_TextureHandler *txh)
 
 void R2D_InitBackground2D(Render2D *sr, GF_Node *node)
 {
-	Background2DStack *ptr = malloc(sizeof(Background2DStack));
-	memset(ptr, 0, sizeof(Background2DStack));
+	Background2DStack *ptr;
+	GF_SAFEALLOC(ptr, Background2DStack);
 
 	gf_sr_traversable_setup(ptr, node, sr->compositor);
 	ptr->surfaces_links = gf_list_new();

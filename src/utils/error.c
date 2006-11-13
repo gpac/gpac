@@ -80,6 +80,7 @@ char *gf_strdup(const char *str)
 
 static char szTYPE[5];
 
+GF_EXPORT
 const char *gf_4cc_to_str(u32 type)
 {
 	u32 ch, i;
@@ -157,6 +158,7 @@ static void gf_on_progress_stdout(char *_title, u32 done, u32 total)
 static gf_on_progress_cbk prog_cbk = NULL;
 static void *user_cbk;
 
+GF_EXPORT
 void gf_set_progress(char *title, u32 done, u32 total)
 {
 	if (prog_cbk) {
@@ -165,6 +167,7 @@ void gf_set_progress(char *title, u32 done, u32 total)
 		gf_on_progress_stdout(title, done, total);
 	}
 }
+GF_EXPORT
 void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
 {
 	prog_cbk = _prog_cbk;
@@ -180,7 +183,10 @@ u32 global_log_tools = 0;
 u32 call_lev = 0;
 u32 call_tool = 0;
 
+GF_EXPORT
 u32 gf_log_get_level() { return global_log_level; }
+
+GF_EXPORT
 u32 gf_log_get_tools() { return global_log_tools; }
 
 void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_list vlist)
@@ -192,6 +198,7 @@ void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_l
 static void *user_log_cbk = NULL;
 static gf_log_cbk log_cbk = default_log_callback;
 
+GF_EXPORT
 void gf_log(const char *fmt, ...)
 {
 	va_list vl;
@@ -200,20 +207,24 @@ void gf_log(const char *fmt, ...)
 	va_end(vl);
 }
 
+GF_EXPORT
 void gf_log_set_level(u32 level)
 {
 	global_log_level = level;
 }
+GF_EXPORT
 void gf_log_set_tools(u32 modules)
 {
 	global_log_tools = modules;
 }
+GF_EXPORT
 void gf_log_lt(u32 ll, u32 lt)
 {
 	call_lev = ll;
 	call_tool = lt;
 }
 
+GF_EXPORT
 gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 {
 	gf_log_cbk prev_cbk = log_cbk;
@@ -223,18 +234,23 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 	return prev_cbk;
 }
 #else
+GF_EXPORT
 void gf_log(const char *fmt, ...)
 {
 }
+GF_EXPORT
 void gf_log_lt(u32 ll, lt)
 {
 }
+GF_EXPORT
 void gf_log_set_level(u32 level)
 {
 }
+GF_EXPORT
 void gf_log_set_tools(u32 modules)
 {
 }
+GF_EXPORT
 gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 {
 	return NULL;
@@ -243,6 +259,7 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 #endif
 
 
+GF_EXPORT
 const char *gf_error_to_string(GF_Err e)
 {
 	switch (e) {

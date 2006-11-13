@@ -92,7 +92,7 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, Bool from_ff_demux)
 	}
 }
 
-static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	u32 codec_id;
 	int gotpic;
@@ -386,9 +386,9 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 }
 
 static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug, 
-		unsigned char *inBuffer, u32 inBufferLength,
+		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
-		unsigned char *outBuffer, u32 *outBufferLength,
+		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
 
@@ -583,7 +583,7 @@ redecode:
 	return GF_OK;
 }
 
-static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	GF_BitStream *bs;
 	u32 codec_id;

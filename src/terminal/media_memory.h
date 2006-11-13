@@ -47,7 +47,7 @@ typedef struct _decoding_buffer
 	u8 PaddingBits;
 
 	u32 dataLength;
-	unsigned char *data;
+	char *data;
 } GF_DBUnit;
 
 GF_DBUnit *gf_db_unit_new();

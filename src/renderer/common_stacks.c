@@ -45,6 +45,7 @@ void gf_sr_on_node_init(GF_Renderer *sr, GF_Node *node)
 	}
 }
 
+GF_EXPORT
 void gf_sr_invalidate(GF_Renderer *sr, GF_Node *byObj)
 {
 
@@ -170,7 +171,7 @@ static void AS_UpdateTime(GF_TimeNode *st)
 {
 	Double time;
 	M_AnimationStream *as = (M_AnimationStream *)st->obj;
-	AnimationStreamStack *stack = gf_node_get_private(st->obj);
+	AnimationStreamStack *stack = (AnimationStreamStack *)gf_node_get_private(st->obj);
 	
 	/*not active, store start time and speed*/
 	if ( ! as->isActive) {
@@ -204,8 +205,8 @@ static void AS_UpdateTime(GF_TimeNode *st)
 
 void InitAnimationStream(GF_Renderer *sr, GF_Node *node)
 {
-	AnimationStreamStack *st = malloc(sizeof(AnimationStreamStack));
-	memset(st, 0, sizeof(AnimationStreamStack));
+	AnimationStreamStack *st;
+	GF_SAFEALLOC(st, AnimationStreamStack);
 	gf_sr_traversable_setup(st, node, sr);
 	st->time_handle.UpdateTimeNode = AS_UpdateTime;
 	st->time_handle.obj = node;
@@ -250,7 +251,7 @@ typedef struct
 static
 void DestroyTimeSensor(GF_Node *ts)
 {
-	TimeSensorStack *st = gf_node_get_private(ts);
+	TimeSensorStack *st = (TimeSensorStack *)gf_node_get_private(ts);
 	if (st->time_handle.is_registered) {
 		gf_sr_unregister_time_node(st->compositor, &st->time_handle);
 	}
@@ -275,7 +276,7 @@ void UpdateTimeSensor(GF_TimeNode *st)
 	Fixed newFraction;
 	u32 inc;
 	M_TimeSensor *TS = (M_TimeSensor *)st->obj;
-	TimeSensorStack *stack = gf_node_get_private(st->obj);
+	TimeSensorStack *stack = (TimeSensorStack *)gf_node_get_private(st->obj);
 
 	if (! TS->enabled) {
 		if (TS->isActive) {
@@ -368,8 +369,8 @@ void UpdateTimeSensor(GF_TimeNode *st)
 
 void InitTimeSensor(GF_Renderer *sr, GF_Node *node)
 {
-	TimeSensorStack *st = malloc(sizeof(TimeSensorStack));
-	memset(st, 0, sizeof(TimeSensorStack));
+	TimeSensorStack *st;
+	GF_SAFEALLOC(st, TimeSensorStack);
 	st->time_handle.UpdateTimeNode = UpdateTimeSensor;
 	st->time_handle.obj = node;
 	st->store_info = 1;

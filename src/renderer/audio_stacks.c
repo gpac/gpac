@@ -119,8 +119,8 @@ static void AC_UpdateTime(GF_TimeNode *tn)
 
 void InitAudioClip(GF_Renderer *sr, GF_Node *node)
 {
-	AudioClipStack *st = malloc(sizeof(AudioClipStack));
-	memset(st, 0, sizeof(AudioClipStack));
+	AudioClipStack *st;
+	GF_SAFEALLOC(st, AudioClipStack);
 	gf_sr_audio_setup(&st->input, sr, node);
 
 	st->time_handle.UpdateTimeNode = AC_UpdateTime;
@@ -250,8 +250,8 @@ static void AS_UpdateTime(GF_TimeNode *tn)
 
 void InitAudioSource(GF_Renderer *sr, GF_Node *node)
 {
-	AudioSourceStack *st = malloc(sizeof(AudioSourceStack));
-	memset(st, 0, sizeof(AudioSourceStack));
+	AudioSourceStack *st;
+	GF_SAFEALLOC(st, AudioSourceStack);
 	gf_sr_audio_setup(&st->input, sr, node);
 
 	st->time_handle.UpdateTimeNode = AS_UpdateTime;
@@ -348,7 +348,7 @@ static void RenderAudioBuffer(GF_Node *node, void *rs)
 	eff->audio_parent = (GF_AudioGroup *) st;
 	count = gf_list_count(ab->children);
 	for (i=0; i<count; i++) {
-		GF_Node *ptr = gf_list_get(ab->children, i);
+		GF_Node *ptr = (GF_Node *)gf_list_get(ab->children, i);
 		gf_node_render(ptr, eff);
 	}
 
@@ -361,7 +361,7 @@ static void RenderAudioBuffer(GF_Node *node, void *rs)
 		u32 count = gf_list_count(st->new_inputs);
 		update_mixer = 0;
 		for (j=0; j<count; j++) {
-			GF_AudioInput *cur = gf_list_get(st->new_inputs, j);
+			GF_AudioInput *cur = (GF_AudioInput *)gf_list_get(st->new_inputs, j);
 			if (!gf_mixer_is_src_present(st->am, &cur->input_ifce)) {
 				update_mixer = 1;
 				break;
@@ -375,7 +375,7 @@ static void RenderAudioBuffer(GF_Node *node, void *rs)
 	}
 
 	while (gf_list_count(st->new_inputs)) {
-		GF_AudioInput *src = gf_list_get(st->new_inputs, 0);
+		GF_AudioInput *src = (GF_AudioInput *)gf_list_get(st->new_inputs, 0);
 		gf_list_rem(st->new_inputs, 0);
 		if (update_mixer) gf_mixer_add_input(st->am, &src->input_ifce);
 	}
@@ -452,7 +452,7 @@ static char *AB_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 		blockAlign = gf_mixer_get_block_align(st->am);
 		/*BLOCK ALIGN*/
 		while (st->buffer_size%blockAlign) st->buffer_size++;
-		st->buffer = malloc(sizeof(char) * st->buffer_size);
+		st->buffer = (char*)malloc(sizeof(char) * st->buffer_size);
 		memset(st->buffer, 0, sizeof(char) * st->buffer_size);
 		st->read_pos = st->write_pos = 0;
 	}
@@ -569,8 +569,8 @@ void setup_audiobufer(GF_AudioInput *ai, GF_Renderer *sr, GF_Node *node)
 
 void InitAudioBuffer(GF_Renderer *sr, GF_Node *node)
 {
-	AudioBufferStack *st = malloc(sizeof(AudioBufferStack));
-	memset(st, 0, sizeof(AudioBufferStack));
+	AudioBufferStack *st;
+	GF_SAFEALLOC(st, AudioBufferStack);
 
 	/*use our private input*/
 	setup_audiobufer(&st->output, sr, node);

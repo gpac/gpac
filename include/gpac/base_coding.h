@@ -56,7 +56,7 @@ extern "C" {
  *\return size of the encoded Base64 buffer
  *\note the encoded data buffer is not NULL-terminated.
  */
-u32 gf_base64_encode(unsigned char *in_buffer, u32 in_buffer_size, unsigned char *out_buffer, u32 out_buffer_size);
+u32 gf_base64_encode(char *in_buffer, u32 in_buffer_size, char *out_buffer, u32 out_buffer_size);
 /*!
  *\brief base64 decoder
  *
@@ -67,7 +67,7 @@ u32 gf_base64_encode(unsigned char *in_buffer, u32 in_buffer_size, unsigned char
  *\param out_buffer_size output data buffer allocated size
  *\return size of the decoded buffer
  */
-u32 gf_base64_decode(unsigned char *in_buffer, u32 in_buffer_size, unsigned char *out_buffer, u32 out_buffer_size);
+u32 gf_base64_decode(char *in_buffer, u32 in_buffer_size, char *out_buffer, u32 out_buffer_size);
 
 /*!
  *\brief base16 encoder
@@ -80,7 +80,7 @@ u32 gf_base64_decode(unsigned char *in_buffer, u32 in_buffer_size, unsigned char
  *\return size of the encoded Base16 buffer
  *\note the encoded data buffer is not NULL-terminated.
  */
-u32 gf_base16_encode(unsigned char *in_buffer, u32 in_buffer_size, unsigned char *out_buffer, u32 out_buffer_size);
+u32 gf_base16_encode(char *in_buffer, u32 in_buffer_size, char *out_buffer, u32 out_buffer_size);
 
 /*!
  *\brief base16 decoder
@@ -92,7 +92,7 @@ u32 gf_base16_encode(unsigned char *in_buffer, u32 in_buffer_size, unsigned char
  *\param out_buffer_size output data buffer allocated size
  *\return size of the decoded buffer
  */
-u32 gf_base16_decode(unsigned char *in_buffer, u32 in_buffer_size, unsigned char *out_buffer, u32 out_buffer_size);
+u32 gf_base16_decode(char *in_buffer, u32 in_buffer_size, char *out_buffer, u32 out_buffer_size);
 
 /*! @} */
 
