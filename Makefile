@@ -5,10 +5,7 @@ include config.mak
 
 vpath %.c $(SRC_PATH)
 
-INSTFLAGS=-s -D
-ifeq ($(DEBUGBUILD),yes)
-INSTFLAGS=-D
-endif
+INSTFLAGS=-s
 
 all: lib apps mods
 
@@ -53,6 +50,7 @@ tar:
 	( tar zcvf ~/$(FILE).tar.gz ../gpac --exclude CVS --exclude bin --exclude lib --exclude Obj --exclude temp --exclude amr_nb --exclude amr_nb_ft --exclude amr_wb_ft --exclude *.mak --exclude *.o --exclude *.~*)
 
 install:
+	install -d "$(DESTDIR)$(prefix)"
 	install -d "$(DESTDIR)$(prefix)/bin"
 	install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
 	$(MAKE) -C applications install

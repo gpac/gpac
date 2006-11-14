@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS= main.o ../../../src/utils/list.o
+OBJS= main.o ../../../src/utils/list.o ../../../src/utils/error.o
 
 CFLAGS+=-g
 LDFLAGS+=-g
