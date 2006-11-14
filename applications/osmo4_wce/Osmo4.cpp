@@ -208,6 +208,7 @@ BOOL COsmo4::InitInstance()
 	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	m_user.modules = gf_modules_new(str, m_user.config);
 	if (!m_user.modules) {
+		unsigned char str_path[MAX_PATH];
 		const char *sOpt;
 		/*inital launch*/
 		m_user.modules = gf_modules_new(config_path, m_user.config);
@@ -222,7 +223,6 @@ BOOL COsmo4::InitInstance()
 
 			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
 			if (!sOpt) {
-				unsigned char str_path[MAX_PATH];
 				sprintf((char *) str_path, "%scache", config_path);
 				gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) str_path);
 			}
@@ -254,6 +254,10 @@ BOOL COsmo4::InitInstance()
 		}
 		/*by default use GDIplus, much faster than freetype on font loading*/
 		gf_cfg_set_key(m_user.config, "FontEngine", "DriverName", "ft_font");
+
+		sprintf((char *) str_path, "%sgpac.mp4", config_path);
+		gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
+
 		::MessageBox(NULL, _T("Osmo4/GPAC Setup complete"), _T("Initial launch"), MB_OK);
 	}	
 	if (! gf_modules_get_count(m_user.modules) ) {
@@ -299,7 +303,7 @@ BOOL COsmo4::InitInstance()
 	m_can_seek = 0;
 	m_DoResume = 0;
 	SetOptions();
-	//pFrame->SendMessage(WM_SETSIZE, 0, 0);
+	pFrame->SendMessage(WM_SETSIZE, 0, 0);
 	ShowTaskBar(0);
 
 	CCommandLineInfo cmdInfo;
@@ -309,7 +313,8 @@ BOOL COsmo4::InitInstance()
 		m_filename = cmdInfo.m_strFileName;
 		m_pMainWnd->PostMessage(WM_OPENURL);
 	} else {
-		m_pMainWnd->InvalidateRect(NULL);
+		str = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+		if (str) gf_term_connect(m_term, str);
 	}
 	return TRUE;
 }

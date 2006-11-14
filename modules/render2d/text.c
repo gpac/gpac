@@ -121,6 +121,7 @@ Bool TextLine2D_TextureIsReady(TextLineEntry2D *tl)
 	|| (gf_mulfix(scale, tl->bounds.height)>max)) {
 		scale = MIN(gf_divfix(max, tl->bounds.width), gf_divfix(max, tl->bounds.height));
 	}
+	if (scale<FIX_ONE) scale = FIX_ONE;
 
 
 	width = FIX2INT(gf_ceil(gf_mulfix(scale, tl->bounds.width)));

@@ -88,6 +88,7 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_MPEG4_Layout: R2D_InitLayout(sr, node); break;
 	case TAG_MPEG4_OrderedGroup: R2D_InitOrderedGroup(sr, node); break;
 	case TAG_MPEG4_MatteTexture: R2D_InitMatteTexture(sr, node); break;
+	case TAG_MPEG4_NavigationInfo: R2D_InitNavigationInfo(sr, node); break;
 	case TAG_MPEG4_PlaneSensor2D: R2D_InitPlaneSensor2D(sr, node); break;
 	case TAG_MPEG4_PointSet2D: R2D_InitPointSet2D(sr, node); break;
 	case TAG_MPEG4_ProximitySensor2D: R2D_InitProximitySensor2D(sr, node); break;

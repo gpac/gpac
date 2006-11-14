@@ -3443,7 +3443,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 		info = &ilst->encoder; 
 		break;
 	case GF_ISOM_ITUNE_GENRE: 
-		btype = GF_ISOM_BOX_TYPE_GNRE;
+		btype = data ? GF_ISOM_BOX_TYPE_0xA9GEN : GF_ISOM_BOX_TYPE_GNRE;
 		info = &ilst->genre; 
 		break;
 	case GF_ISOM_ITUNE_DISK: 
@@ -3466,6 +3466,10 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 		btype = GF_ISOM_BOX_TYPE_COVR;
 		info = &ilst->coverArt; 
 		break;
+	case GF_ISOM_ITUNE_GROUP: 
+		btype = GF_ISOM_BOX_TYPE_0xA9GRP;
+		info = &ilst->group; 
+		break;
 	case GF_ISOM_ITUNE_ITUNES_DATA: 
 		btype = GF_ISOM_BOX_TYPE_iTunesSpecificInfo;
 		info = &ilst->iTunesSpecificInfo; 
@@ -3477,10 +3481,20 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 		gf_isom_box_del((GF_Box *) *info);
 		*info = NULL;
 	}
+
 	if (data != NULL) {
 		*info = (GF_ListItemBox *)gf_isom_box_new(btype);
 		if (*info == NULL) return GF_OUT_OF_MEM;
-		(*info)->data->flags = 0x1;
+		switch (btype) {
+		case GF_ISOM_BOX_TYPE_TRKN:
+		case GF_ISOM_BOX_TYPE_DISK:
+		case GF_ISOM_BOX_TYPE_GNRE:
+			(*info)->data->flags = 0x0;
+			break;
+		default:
+			(*info)->data->flags = 0x1;
+			break;
+		}
 		if (tag==GF_ISOM_ITUNE_COVER_ART) {
 			if (data_len & 0x80000000) {
 				data_len = (data_len & 0x7FFFFFFF);
@@ -3494,14 +3508,22 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 		memcpy((*info)->data->data , data, sizeof(char)*data_len);
 
 	} else if (data_len && (tag==GF_ISOM_ITUNE_GENRE)) {
-		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		if (data_len<256) gf_bs_write_u8(bs, data_len);
-		else if (data_len<65536) gf_bs_write_u16(bs, data_len);
-		else if (data_len<16777216) gf_bs_write_u24(bs, data_len);
-		else gf_bs_write_u32(bs, data_len);
+		GF_BitStream *bs;
+		*info = (GF_ListItemBox *)gf_isom_box_new(btype);
+		if (*info == NULL) return GF_OUT_OF_MEM;
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_u8(bs, 0);
+		gf_bs_write_u8(bs, data_len);
 		gf_bs_get_content(bs, & (*info)->data->data, &(*info)->data->dataSize);
-		(*info)->data->flags = 0;
+		(*info)->data->flags = 0x0;
 		gf_bs_del(bs);
+	} else if (data_len && (tag==GF_ISOM_ITUNE_COMPILATION)) {
+		*info = (GF_ListItemBox *)gf_isom_box_new(btype);
+		if (*info == NULL) return GF_OUT_OF_MEM;
+		(*info)->data->data = (char*)malloc(sizeof(char));
+		(*info)->data->data[0] = 1;
+		(*info)->data->dataSize = 1;
+		(*info)->data->flags = 21;
 	}
 	return GF_OK;
 }

@@ -1202,6 +1202,7 @@ GF_Err R2D_SetOption(GF_VisualRenderer *vr, u32 option, u32 value)
 		R2D_SetUserTransform(sr, FIX_ONE, 0, 0, 1);
 		return GF_OK;
 	case GF_OPT_NAVIGATION:
+		if (sr->navigation_disabled) return GF_BAD_PARAM;
 		if ((value!=GF_NAVIGATE_NONE) && (value!=GF_NAVIGATE_SLIDE)) return GF_NOT_SUPPORTED;
 		sr->navigate_mode = value;
 		return GF_OK;

@@ -125,6 +125,8 @@ void TM2D_GetMatrix(GF_Node *n, GF_Matrix2D *mat);
 void R2D_InitPathLayout(Render2D *sr, GF_Node *node);
 void R2D_InitSound2D(Render2D *sr, GF_Node *node);
 
+void R2D_InitNavigationInfo(Render2D *sr, GF_Node *node);
+
 #endif
 
 
