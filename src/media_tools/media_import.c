@@ -3524,7 +3524,8 @@ restart_import:
 					slc->data = (char*)malloc(sizeof(char)*slc->size);
 					memcpy(slc->data, buffer, sizeof(char)*slc->size);
 					gf_list_add(avccfg->sequenceParameterSets, slc);
-					if (!import->video_fps && avc.sps[idx].timing_info_present_flag && avc.sps[idx].fixed_frame_rate_flag) {
+					/*disable frame rate scan, most bitstreams have wrong values there*/
+					if (0 && !import->video_fps && avc.sps[idx].timing_info_present_flag && avc.sps[idx].fixed_frame_rate_flag) {
 						timescale = avc.sps[idx].time_scale;
 						dts_inc = avc.sps[idx].num_units_in_tick;
 						FPS = import->video_fps = (Double)timescale / dts_inc;
@@ -3592,8 +3593,7 @@ restart_import:
 			store the poc as the CTS offset and update the whole table at the end*/
 			samp->CTS_Offset = last_poc - poc_shift;
 			assert(samp->CTS_Offset>=0);
-			if (!cur_samp || (cur_samp>100000)) 
-				gf_isom_add_sample(import->dest, track, di, samp);
+			gf_isom_add_sample(import->dest, track, di, samp);
 
 			gf_isom_sample_del(&samp);
 			cur_samp++;

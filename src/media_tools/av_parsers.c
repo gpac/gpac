@@ -1211,7 +1211,7 @@ u32 AVC_NextStartCode(GF_BitStream *bs)
 			cache_start = gf_bs_get_position(bs);
 			gf_bs_read_data(bs, avc_cache, (u32) load_size);
 		}
-		v = ( (v<<8) & 0xFFFFFF00) | (avc_cache[bpos]);
+		v = ( (v<<8) & 0xFFFFFF00) | ((u32) avc_cache[bpos]);
 		bpos++;
 		if (v == 0x00000001) end = cache_start+bpos-4;
 		else if ( (v & 0x00FFFFFF) == 0x00000001) end = cache_start+bpos-3;
@@ -1589,7 +1589,7 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 	case GF_AVC_NALU_DP_C_SLICE:
 	case GF_AVC_NALU_IDR_SLICE:
 		slice = 1;
-		/* slice buffer - read the info into the new_decode, and compare.*/
+		/* slice buffer - read the info and compare.*/
 		if (avc_parse_slice(bs, avc, &n_state) < 0) {
 			/*need more memory*/
 			return -1;
