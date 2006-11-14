@@ -948,7 +948,6 @@ void http_do_requests(GF_DownloadSession *sess)
 
 
 		sprintf(sHTTP, 
-			//"GET http://%s:%d%s HTTP/1.0\r\n"
 			"GET %s HTTP/1.0\r\n"
 					"Host: %s:%d\r\n"
 					"User-Agent: %s\r\n"
@@ -957,7 +956,6 @@ void http_do_requests(GF_DownloadSession *sess)
 					"%s"
 					"%s"
 					"\r\n", 
-					//sess->server_name, sess->port, 
 					sess->remote_path, 
 					sess->server_name,
 					sess->port,
@@ -975,6 +973,7 @@ void http_do_requests(GF_DownloadSession *sess)
 #endif
 			e = gf_sk_send(sess->sock, sHTTP, strlen(sHTTP));
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s", sHTTP));
 		if (e) {
 			sess->status = GF_DOWNLOAD_STATE_UNAVAILABLE;
 			sess->last_error = e;
@@ -1012,10 +1011,6 @@ void http_do_requests(GF_DownloadSession *sess)
 			default:
 				goto exit;
 			}
-			if (!bytesRead) {
-				bytesRead += res;
-				continue;
-			}
 			bytesRead += res;
 
 			/*locate body start*/
@@ -1034,6 +1029,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			goto exit;
 		}
 		sHTTP[BodyStart-1] = 0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s\n", sHTTP));
 
 		LinePos = gf_token_get_line(sHTTP, 0, bytesRead, buf, 1024);
 		Pos = gf_token_get(buf, 0, " \t\r\n", comp, 400);
