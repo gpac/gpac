@@ -560,9 +560,9 @@ static void RenderLayout(GF_Node *node, void *rs)
 		st->scale_scroll = st->scroll_rate = l->scrollRate;
 		if (eff->is_pixel_metrics) {
 			if (l->scrollVertical) {
-				st->scale_scroll *= eff->surface->render->cur_height;
+				st->scale_scroll *= eff->surface->render->compositor->scene_width;
 			} else {
-				st->scale_scroll *= eff->surface->render->cur_width;
+				st->scale_scroll *= eff->surface->render->compositor->scene_width;
 			}
 		}
 	}

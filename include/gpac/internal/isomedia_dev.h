@@ -247,6 +247,8 @@ enum
 	GF_ISOM_BOX_TYPE_0xA9TOO	= GF_4CC( 0xA9, 't', 'o', 'o' ),
 	GF_ISOM_BOX_TYPE_0xA9CPY	= GF_4CC( 0xA9, 'c', 'p', 'y' ),
 	GF_ISOM_BOX_TYPE_0xA9DES	= GF_4CC( 0xA9, 'd', 'e', 's' ),
+	GF_ISOM_BOX_TYPE_0xA9GEN	= GF_4CC( 0xA9, 'g', 'e', 'n' ),
+	GF_ISOM_BOX_TYPE_0xA9GRP	= GF_4CC( 0xA9, 'g', 'r', 'p' ),
 	GF_ISOM_BOX_TYPE_GNRE	= GF_4CC( 'g', 'n', 'r', 'e' ),
 	GF_ISOM_BOX_TYPE_DISK	= GF_4CC( 'd', 'i', 's', 'k' ),
 	GF_ISOM_BOX_TYPE_TRKN	= GF_4CC( 't', 'r', 'k', 'n' ),
@@ -1589,6 +1591,7 @@ typedef struct
 	GF_ListItemBox *tempo;
 	GF_ListItemBox *compilation;
 	GF_ListItemBox *coverArt;
+	GF_ListItemBox *group;
 	GF_ListItemBox *iTunesSpecificInfo;
 } GF_ItemListBox;
 

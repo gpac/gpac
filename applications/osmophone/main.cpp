@@ -238,6 +238,14 @@ Bool LoadTerminal()
 		memset(&user, 0, sizeof(GF_User));
 		return 0;
 	}
+
+	const char *str = gf_cfg_get_key(user.config, "General", "StartupFile");
+	if (str) {
+		do_layout(1);
+		strcpy(the_url, str);
+		gf_term_connect(term, str);
+	}
+
 	return 1;
 }
 
@@ -879,6 +887,10 @@ Bool initial_setup(const char *szExePath)
 
 	/*FIXME - is this true on all WinCE systems??*/
 	gf_cfg_set_key(user.config, "FontEngine", "FontDirectory", "\\Windows");
+
+	sprintf((char *) szPath, "%sgpac.mp4", szExePath);
+	gf_cfg_set_key(user.config, "General", "StartupFile", (const char *) szPath);
+
 
 	/*save*/
 	gf_cfg_del(user.config);

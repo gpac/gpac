@@ -319,6 +319,8 @@ static void ResetCaption()
 	if (is_connected) {
 		char szName[1024];
 		NetInfoCommand com;
+
+		event.caption.caption = NULL;
 		/*get any service info*/
 		if (!startup_file && gf_term_get_service_info(term, gf_term_get_root_object(term), &com) == GF_OK) {
 			strcpy(szName, "");
@@ -331,8 +333,9 @@ static void ResetCaption()
 			if (com.name) { strcat(szName, com.name); strcat(szName, " "); }
 			if (com.album) { strcat(szName, "("); strcat(szName, com.album); strcat(szName, ")"); }
 			
-			event.caption.caption = szName;
-		} else {
+			if (strlen(szName)) event.caption.caption = szName;
+		}
+		if (!event.caption.caption) {
 			char *str = strrchr(the_url, '\\');
 			if (!str) str = strrchr(the_url, '/');
 			event.caption.caption = str ? str+1 : the_url;
@@ -531,7 +534,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		Run = 0;
 		break;
 	case GF_EVENT_NAVIGATE_INFO:
-		fprintf(stdout, "Go to URL: \"%s\"\r", evt->navigate.to_url);
+		if (evt->navigate.to_url) fprintf(stdout, "Go to URL: \"%s\"\r", evt->navigate.to_url);
 		break;
 	case GF_EVENT_NAVIGATE:
 		if (gf_term_is_supported_url(term, evt->navigate.to_url, 1, no_mime_check)) {

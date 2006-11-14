@@ -169,8 +169,6 @@ struct _mediaobj *gf_is_find_object(GF_InlineScene *is, u16 ODID, char *url);
 Double gf_is_get_time(void *_is);
 /*returns true if the given node DEF name is the url target view (eg blabla#myview)*/
 Bool gf_is_default_scene_viewpoint(GF_Node *node);
-/*compares object URL with another URL - ONLY USE THIS WITH DYNAMIC ODs*/
-Bool gf_is_same_url(MFURL *obj_url, MFURL *inline_url);
 /*register extra scene graph for on-screen display*/
 void gf_is_register_extra_graph(GF_InlineScene *is, GF_SceneGraph *extra_scene, Bool do_remove);
 /*forces scene size info (without changing pixel metrics) - this may be needed by modules using extra graphs (like timedtext)*/
@@ -191,7 +189,9 @@ not root one. Returns 1 if handled (cf user.h, navigate event)*/
 Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt);
 /*extern proto fetcher*/
 GF_SceneGraph *gf_is_get_proto_lib(void *SceneCallback, MFURL *lib_url);
-		void gf_is_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo);
+void gf_is_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo);
+/*compares object URL with another URL - ONLY USE THIS WITH DYNAMIC ODs*/
+Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *inline_url);
 
 
 struct _tag_terminal

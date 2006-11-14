@@ -43,6 +43,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 
 GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir);
 GF_Err dump_cover_art(GF_ISOFile *file, char *inName);
+u32 id3_get_genre_tag(const char *name);
 #endif
 
 /*in filedump.c*/
@@ -124,6 +125,11 @@ void PrintGeneralUsage()
 			" -par tkID=PAR:       sets visual track pixel aspect ratio (PAR=N:D or \"none\")\n"
 			" -name tkID=NAME:     sets track handler name\n"
 			"                       * NAME can indicate a UTF-8 file (\"file://file name\"\n"
+			" -itags tag1[:tag2]:  sets iTunes tags to file\n"
+			"                       tags are formatted as name=value. Possible tag names are:\n"
+			"                        album, artist, comment, compilation, composer, created,\n"
+			"                        disk, encoder, genre, name, tempo, track, tracknum, writer,\n"
+			"                        group, cover (takes a jpeg or png file as argument)\n"    
 			" -split time_sec      splits in files of time_sec max duration\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
 			" -split-size size     splits in files of max filesize kB.\n"
@@ -2193,7 +2199,7 @@ int main(int argc, char **argv)
 			if (!strnicmp(tags, "album=", 6)) itag = GF_ISOM_ITUNE_ALBUM;
 			else if (!strnicmp(tags, "artist=", 7)) itag = GF_ISOM_ITUNE_ARTIST;
 			else if (!strnicmp(tags, "comment=", 8)) itag = GF_ISOM_ITUNE_COMMENT;
-			else if (!strnicmp(tags, "compilation=", 12)) itag = GF_ISOM_ITUNE_COMPILATION;
+			else if (!strnicmp(tags, "compilation", 11)) itag = GF_ISOM_ITUNE_COMPILATION;
 			else if (!strnicmp(tags, "composer=", 8)) itag = GF_ISOM_ITUNE_COMPOSER;
 			else if (!strnicmp(tags, "created=", 8)) itag = GF_ISOM_ITUNE_CREATED;
 			else if (!strnicmp(tags, "disk=", 5)) itag = GF_ISOM_ITUNE_DISK;
@@ -2204,12 +2210,27 @@ int main(int argc, char **argv)
 			else if (!strnicmp(tags, "track=", 6)) itag = GF_ISOM_ITUNE_TRACK;
 			else if (!strnicmp(tags, "tracknum=", 9)) itag = GF_ISOM_ITUNE_TRACKNUMBER;
 			else if (!strnicmp(tags, "writer=", 7)) itag = GF_ISOM_ITUNE_WRITER;
+			else if (!strnicmp(tags, "group=", 6)) itag = GF_ISOM_ITUNE_GROUP;
 			else if (!strnicmp(tags, "cover=", 6)) itag = GF_ISOM_ITUNE_COVER_ART;
-			val = strchr(tags, '=') + 1;
-			if ((val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
+			val = strchr(tags, '=');
+			if (!val && strnicmp(tags, "compilation", 11) ) {
+				fprintf(stdout, "Invalid iTune tag format \"%s\" (expecting '=') - ignoring\n", tags);
+				tags = NULL;
+				continue;
+			}
+			if (val) {
+				val ++;
+				if ((val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
+			}
 
 			tlen = val ? strlen(val) : 0;
-			if (itag == GF_ISOM_ITUNE_COVER_ART) {
+			if (!strnicmp(tags, "compilation", 11)) {
+				val = NULL;
+				tlen = 1;
+			}
+			switch (itag) {
+			case GF_ISOM_ITUNE_COVER_ART:
+			{
 				char *d, *ext;
 				FILE *t = fopen(val, "rb");
 				fseek(t, 0, SEEK_END);
@@ -2223,8 +2244,35 @@ int main(int argc, char **argv)
 				if (!stricmp(ext, ".png")) tlen |= 0x80000000;
 				e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
 				free(d);
-			} else if (itag) {
+			}
+				break;
+			case GF_ISOM_ITUNE_GENRE:
+			{
+				u8 _v = id3_get_genre_tag(val);
+				if (_v) {
+					gf_isom_apple_set_tag(file, itag, NULL, _v);
+				} else {
+					gf_isom_apple_set_tag(file, itag, val, strlen(val) );
+				}
+			}
+				break;
+			case GF_ISOM_ITUNE_DISK:
+			case GF_ISOM_ITUNE_TRACKNUMBER:
+			{
+				u32 n, t;
+				char _t[8];
+				n = t = 0;
+				memset(_t, 0, sizeof(char)*8);
+				tlen = (itag==GF_ISOM_ITUNE_DISK) ? 6 : 8;
+				if (sscanf(val, "%d/%d", &n, &t) == 2) { _t[3]=n; _t[5]=t;}
+				else if (sscanf(val, "%d/%d", &n) == 1) { _t[3]=n;}
+				else tlen = 0;
+				if (tlen) gf_isom_apple_set_tag(file, itag, _t, tlen);
+			}
+				break;
+			default:
 				gf_isom_apple_set_tag(file, itag, val, tlen);
+				break;
 			}
 			needSave = 1;
 

@@ -1,4 +1,5 @@
-Latest CVS changes: 13/11/06
+Latest CVS changes: 14/11/06
+  - fixed handling of iTunes tags in MP4Box (set/get) and in players (title display)
   - libgpac and some modules now ported to symbian 9.1, but player not done yet
       !! GPAC may be quite unstable during this porting phase !! 
   - added detection of FPS for raw AVC import when present

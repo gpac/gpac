@@ -227,8 +227,6 @@ void R2D_InitViewport(Render2D *sr, GF_Node *node)
 	((M_Viewport*)node)->on_set_bind = viewport_set_bind;
 }
 
-
-
 void vp_setup(GF_Node *n, RenderEffect2D *eff, GF_Rect *surf_clip)
 {
 	Fixed sx, sy, w, h, tx, ty;
@@ -338,5 +336,25 @@ void vp_setup(GF_Node *n, RenderEffect2D *eff, GF_Rect *surf_clip)
 	gf_mx2d_add_matrix(&eff->transform, &mat);
 	surf_clip->x += tx;
 	surf_clip->y += ty;
+}
+
+
+static void RenderNavigationInfo(GF_Node *node, void *rs)
+{
+	u32 i;
+	M_NavigationInfo *ni = (M_NavigationInfo *) node;
+	RenderEffect2D *eff = (RenderEffect2D *) rs;
+
+	/*FIXME, we only deal with one node, no bind stack for the current time*/
+	for (i=0; i<ni->type.count; i++) {
+		if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "NONE")) {
+			eff->surface->render->navigation_disabled = 1;
+		}
+	}
+}
+
+void R2D_InitNavigationInfo(Render2D *sr, GF_Node *node)
+{
+	gf_node_set_render_function(node, RenderNavigationInfo);
 }
 

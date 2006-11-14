@@ -447,17 +447,22 @@ static Bool Inline_SetScene(M_Inline *root)
 	return 1;
 }
 
-Bool gf_is_same_url(MFURL *obj_url, MFURL *inline_url)
+Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
 {
 	u32 i;
 	char szURL1[GF_MAX_PATH], szURL2[GF_MAX_PATH], *ext;
-	if (!obj_url->count) return 0;
 
-	strcpy(szURL1, obj_url->vals[0].url);
+	if (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID) {
+		assert(obj->odm);
+		strcpy(szURL1, obj->odm->net_service->url);
+	} else {
+		if (!obj->URLs.count) return 0;
+		strcpy(szURL1, obj->URLs.vals[0].url);
+	}
 	ext = strrchr(szURL1, '#');
 	if (ext) ext[0] = 0;
-	for (i=0; i<inline_url->count; i++) {
-		strcpy(szURL2, inline_url->vals[i].url);
+	for (i=0; i<an_url->count; i++) {
+		strcpy(szURL2, an_url->vals[i].url);
 		ext = strrchr(szURL2, '#');
 		if (ext) ext[0] = 0;
 		if (!stricmp(szURL1, szURL2)) return 1;
@@ -482,7 +487,7 @@ void gf_is_on_modified(GF_Node *node)
 			if (ODID != GF_ESM_DYNAMIC_OD_ID) {
 				if (ODID && (ODID==pIS->root_od->OD->objectDescriptorID)) changed = 0;
 			} else {
-				if (gf_is_same_url(&mo->URLs, &pInline->url) ) changed = 0;
+				if (gf_mo_is_same_url(mo, &pInline->url) ) changed = 0;
 			}
 			if (mo->num_open) {
 				if (!changed) return;
@@ -624,7 +629,7 @@ static GF_MediaObject *IS_CheckExistingObject(GF_InlineScene *is, MFURL *urls)
 	GF_MediaObject *obj;
 	u32 i = 0;
 	while ((obj = (GF_MediaObject *)gf_list_enum(is->media_objects, &i))) {
-		if ((obj->OD_ID == GF_ESM_DYNAMIC_OD_ID) && gf_is_same_url(&obj->URLs, urls)) return obj;
+		if ((obj->OD_ID == GF_ESM_DYNAMIC_OD_ID) && gf_mo_is_same_url(obj, urls)) return obj;
 		else if ((obj->OD_ID != GF_ESM_DYNAMIC_OD_ID) && (obj->OD_ID == urls->vals[0].OD_ID)) return obj;
 	}
 	return NULL;
@@ -656,7 +661,7 @@ GF_MediaObject *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_t
 		/*dynamic OD scheme*/
 		if ((OD_ID == GF_ESM_DYNAMIC_OD_ID) && (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID)
 			/*locate sub-url in given one (handles viewpoint/segments)*/
-			&& gf_is_same_url(&obj->URLs, url) 
+			&& gf_mo_is_same_url(obj, url) 
 			/*if object type unknown (media control, media sensor), return first obj matching URL
 			otherwise check types*/
 			&& is_match_obj_type(obj->type, obj_type_hint)
@@ -873,7 +878,7 @@ GF_SceneGraph *gf_is_get_proto_lib(void *_is, MFURL *lib_url)
 				return pl->mo->odm->subscene->graph;
 			}
 		} else if (lib_url->vals[0].url) {
-			if (gf_is_same_url(&pl->mo->URLs, lib_url)) {
+			if (gf_mo_is_same_url(pl->mo, lib_url)) {
 				if (!pl->mo->odm || !pl->mo->odm->subscene) return NULL;
 				return pl->mo->odm->subscene->graph;
 			}
@@ -1099,7 +1104,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 		if (is->audio_url.url) free(is->audio_url.url);
 		is->audio_url.url = NULL;
 		is->audio_url.OD_ID = first_odm->OD->objectDescriptorID;
-		if (first_odm->OD->URLString) is->audio_url.url = strdup(first_odm->OD->URLString);
+		if (is->audio_url.OD_ID==GF_ESM_DYNAMIC_OD_ID) is->audio_url.url = strdup(first_odm->net_service->url);
 		gf_sg_vrml_mf_append(&ac->url, GF_SG_VRML_MFURL, (void **) &sfu);
 		sfu->OD_ID = is->audio_url.OD_ID;
 		if (is->audio_url.url) sfu->url = strdup(is->audio_url.url);
@@ -1152,7 +1157,8 @@ void gf_is_regenerate(GF_InlineScene *is)
 		if (is->visual_url.url) free(is->visual_url.url);
 		is->visual_url.url = NULL;
 		is->visual_url.OD_ID = first_odm->OD->objectDescriptorID;
-		if (first_odm->OD->URLString) is->visual_url.url = strdup(first_odm->OD->URLString);
+		if (is->visual_url.OD_ID==GF_ESM_DYNAMIC_OD_ID) is->visual_url.url = strdup(first_odm->net_service->url);
+
 		gf_sg_vrml_mf_append(&mt->url, GF_SG_VRML_MFURL, (void **) &sfu);
 		sfu->OD_ID = is->visual_url.OD_ID;
 		if (is->visual_url.url) sfu->url = strdup(is->visual_url.url);
@@ -1187,9 +1193,9 @@ void gf_is_regenerate(GF_InlineScene *is)
 
 			gf_sg_vrml_mf_append(&as->url, GF_SG_VRML_MFURL, (void **) &sfu);
 			sfu->OD_ID = is->visual_url.OD_ID = odm->OD->objectDescriptorID;
-			if (odm->OD->URLString) {
-				sfu->url = strdup(odm->OD->URLString);
-				is->text_url.url = strdup(odm->OD->URLString);
+			if (odm->OD->objectDescriptorID == GF_ESM_DYNAMIC_OD_ID) {
+				sfu->url = strdup(odm->net_service->url);
+				is->text_url.url = strdup(odm->net_service->url);
 			}
 			first_odm = NULL;
 			if (!is->dyn_ck) is->dyn_ck = odm->codec->ck;
@@ -1202,9 +1208,9 @@ void gf_is_regenerate(GF_InlineScene *is)
 		is->text_url.url = NULL;
 		gf_sg_vrml_mf_append(&as->url, GF_SG_VRML_MFURL, (void **) &sfu);
 		sfu->OD_ID = is->text_url.OD_ID = first_odm->OD->objectDescriptorID;
-		if (first_odm->OD->URLString) {
-			sfu->url = strdup(first_odm->OD->URLString);
-			is->text_url.url = strdup(first_odm->OD->URLString);
+		if (is->text_url.OD_ID==GF_ESM_DYNAMIC_OD_ID) {
+			is->text_url.url = strdup(first_odm->net_service->url);
+			sfu->url = strdup(first_odm->net_service->url);
 		}
 		if (!is->dyn_ck) is->dyn_ck = first_odm->codec->ck;
 	}

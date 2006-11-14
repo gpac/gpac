@@ -608,12 +608,12 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 	CheckMenuItem(pPopupMenu->m_hMenu, ID_VIEW_FIT, MF_BYCOMMAND| app->m_fit_screen ? MF_CHECKED : MF_UNCHECKED);
 
 	u32 type;
-	if (!app->m_open) type = 0;
+	if (!app->m_open) type = GF_NAVIGATE_TYPE_NONE;
 	else type = gf_term_get_option(app->m_term, GF_OPT_NAVIGATION_TYPE);
 
-	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_NONE, MF_BYCOMMAND | (!type ? MF_GRAYED : MF_ENABLED) );
-	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_SLIDE, MF_BYCOMMAND | (!type ? MF_GRAYED : MF_ENABLED) );
-	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_RESET, MF_BYCOMMAND | (!type ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_NONE, MF_BYCOMMAND | ((type==GF_NAVIGATE_TYPE_NONE) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_SLIDE, MF_BYCOMMAND | ((type==GF_NAVIGATE_TYPE_NONE) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_RESET, MF_BYCOMMAND | ((type==GF_NAVIGATE_TYPE_NONE) ? MF_GRAYED : MF_ENABLED) );
 
 	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_WALK, MF_BYCOMMAND | ( (type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
 	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_FLY, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
@@ -623,7 +623,7 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 	EnableMenuItem(pPopupMenu->m_hMenu, ID_COLLIDE_DISP, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
 	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_GRAVITY, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
 
-	if (type) {
+	if (type==GF_NAVIGATE_TYPE_NONE) {
 		u32 mode = gf_term_get_option(app->m_term, GF_OPT_NAVIGATION);
 		CheckMenuItem(pPopupMenu->m_hMenu, ID_NAV_NONE, MF_BYCOMMAND | ( (mode==GF_NAVIGATE_NONE) ? MF_CHECKED : MF_UNCHECKED) );
 		CheckMenuItem(pPopupMenu->m_hMenu, ID_NAV_SLIDE, MF_BYCOMMAND | ( (mode==GF_NAVIGATE_SLIDE) ? MF_CHECKED : MF_UNCHECKED) );

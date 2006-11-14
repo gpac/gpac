@@ -29,6 +29,7 @@ void ilst_del(GF_Box *s)
 	if(ptr->artist != NULL) gf_isom_box_del((GF_Box *)ptr->artist);
 	if(ptr->created != NULL) gf_isom_box_del((GF_Box *)ptr->created);
 	if(ptr->comment != NULL) gf_isom_box_del((GF_Box *)ptr->comment);
+	if(ptr->group != NULL) gf_isom_box_del((GF_Box *)ptr->group);
 	if(ptr->name != NULL) gf_isom_box_del((GF_Box *)ptr->name);
 	free(ptr);
 }
@@ -71,7 +72,6 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 				break;
 			case GF_ISOM_BOX_TYPE_0xA9TRK:
 			case GF_ISOM_BOX_TYPE_TRKN:
-				assert(ptr->track == NULL);
 				if(ptr->track != NULL) gf_isom_box_del((GF_Box *)ptr->track);
 				ptr->track = (GF_ListItemBox *)a;
 				break;
@@ -96,7 +96,7 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 				ptr->encoder = (GF_ListItemBox *)a;
 				break;
 			case GF_ISOM_BOX_TYPE_GNRE:
-				assert(ptr->genre == NULL);
+			case GF_ISOM_BOX_TYPE_0xA9GEN:
 				if(ptr->genre != NULL) gf_isom_box_del((GF_Box *)ptr->genre);
 				ptr->genre = (GF_ListItemBox *)a;
 				break;
@@ -119,6 +119,11 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 				assert(ptr->coverArt == NULL);
 				if(ptr->coverArt != NULL) gf_isom_box_del((GF_Box *)ptr->coverArt);
 				ptr->coverArt = (GF_ListItemBox *)a;
+				break;
+			case GF_ISOM_BOX_TYPE_0xA9GRP:
+				assert(ptr->group == NULL);
+				if(ptr->group != NULL) gf_isom_box_del((GF_Box *)ptr->group);
+				ptr->group = (GF_ListItemBox *)a;
 				break;
 			default:
 				gf_isom_box_del(a);
@@ -211,6 +216,10 @@ GF_Err ilst_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)ptr->coverArt, bs);
 		if(e) return e;
 	}
+	if(ptr->group != NULL){
+		e = gf_isom_box_write((GF_Box *)ptr->group, bs);
+		if(e) return e;
+	}
 	if(ptr->iTunesSpecificInfo != NULL){
 		e = gf_isom_box_write((GF_Box *)ptr->iTunesSpecificInfo, bs);
 		if(e) return e;
@@ -299,6 +308,11 @@ GF_Err ilst_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->coverArt);
 		if(e) return e;
 		ptr->size += ptr->coverArt->size;
+	}
+	if(ptr->group != NULL){
+		e = gf_isom_box_size((GF_Box *)ptr->group);
+		if(e) return e;
+		ptr->size += ptr->group->size;
 	}
 	if(ptr->iTunesSpecificInfo != NULL){
 		e = gf_isom_box_size((GF_Box *)ptr->iTunesSpecificInfo);
@@ -540,16 +554,12 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 
 	if(meta != NULL){
 		meta->handler = (GF_HandlerBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_HDLR);
-
 		if(meta->handler == NULL){
 			gf_isom_box_del((GF_Box *)meta);
 			return NULL;
 		}
-
 		meta->handler->handlerType = GF_ISOM_HANDLER_TYPE_MDIR;
-
 		gf_list_add(meta->other_boxes, gf_isom_box_new(GF_ISOM_BOX_TYPE_ILST));
-
 		udta_AddBox(mov->moov->udta, (GF_Box *)meta);
 	}
 

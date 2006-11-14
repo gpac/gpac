@@ -403,7 +403,7 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url)
 	if (!mo) return (url ? 1 : 0);
 	od_id = URL_GetODID(url);
 	if ( (mo->OD_ID == GF_ESM_DYNAMIC_OD_ID) && (od_id == GF_ESM_DYNAMIC_OD_ID)) {
-		ret = !gf_is_same_url(&mo->URLs, url);
+		ret = !gf_mo_is_same_url(mo, url);
 	} else {
 		ret = (mo->OD_ID == od_id) ? 0 : 1;
 	}

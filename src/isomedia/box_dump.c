@@ -250,6 +250,8 @@ GF_Err gb_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_0xA9TOO:
 	case GF_ISOM_BOX_TYPE_0xA9CPY:
 	case GF_ISOM_BOX_TYPE_0xA9DES:
+	case GF_ISOM_BOX_TYPE_0xA9GEN:
+	case GF_ISOM_BOX_TYPE_0xA9GRP:
 	case GF_ISOM_BOX_TYPE_GNRE:
 	case GF_ISOM_BOX_TYPE_DISK:
 	case GF_ISOM_BOX_TYPE_TRKN:
@@ -630,10 +632,15 @@ GF_Err hdlr_dump(GF_Box *a, FILE * trace)
 {
 	GF_HandlerBox *p = (GF_HandlerBox *)a;
 	if ((u32) p->nameUTF8[0] == strlen(p->nameUTF8+1)) {
-		fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"%s\">\n", gf_4cc_to_str(p->handlerType), p->nameUTF8+1);
+		fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"%s\" ", gf_4cc_to_str(p->handlerType), p->nameUTF8+1);
 	} else {
-		fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"%s\">\n", gf_4cc_to_str(p->handlerType), p->nameUTF8);
+		fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"%s\" ", gf_4cc_to_str(p->handlerType), p->nameUTF8);
 	}
+	fprintf(trace, "reserved1=\"%d\" reserved2=\"", p->reserved1);
+	DumpData(trace, p->reserved2, 12);
+	fprintf(trace, "\"");
+
+	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 	fprintf(trace, "</HandlerBox>\n");
@@ -2877,17 +2884,33 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_BOX_TYPE_0xA9TOO: name = "Encoder"; break;
 	case GF_ISOM_BOX_TYPE_0xA9CPY: name = "Copyright"; break;
 	case GF_ISOM_BOX_TYPE_0xA9DES: name = "Description"; break;
-	case GF_ISOM_BOX_TYPE_GNRE: name = "Genre"; break;
+	case GF_ISOM_BOX_TYPE_0xA9GEN:
+	case GF_ISOM_BOX_TYPE_GNRE: 
+		name = "Genre"; break;
 	case GF_ISOM_BOX_TYPE_DISK: name = "Disk"; break;
 	case GF_ISOM_BOX_TYPE_TRKN: name = "TrackNumber"; break;
 	case GF_ISOM_BOX_TYPE_TMPO: name = "Tempo"; break;
 	case GF_ISOM_BOX_TYPE_CPIL: name = "Compilation"; break;
 	case GF_ISOM_BOX_TYPE_COVR: name = "CoverArt"; no_dump = 1; break;
 	case GF_ISOM_BOX_TYPE_iTunesSpecificInfo: name = "iTunes Specific"; no_dump = 1; break;
+	case GF_ISOM_BOX_TYPE_0xA9GRP: name = "Group"; break;
 	}
 	fprintf(trace, "<%sBox", name);
-	if (!no_dump) fprintf(trace, " value=\"%s\" ", itune->data->data);
+	if (!no_dump) {
+		switch (itune->type) {
+		case GF_ISOM_BOX_TYPE_DISK:
+		case GF_ISOM_BOX_TYPE_TRKN:
+			fprintf(trace, " value=\"");
+			DumpData(trace, itune->data->data, itune->data->dataSize);
+			fprintf(trace, "\" ");
+			break;
+		default:
+			fprintf(trace, " value=\"%s\" ", itune->data->data);
+			break;
+		}
+	}
 	fprintf(trace, ">\n");
+	gb_full_box_dump((GF_Box *)itune->data, trace);
 	DumpBox(a, trace);
 	fprintf(trace, "</%sBox>\n", name);
 	return GF_OK;

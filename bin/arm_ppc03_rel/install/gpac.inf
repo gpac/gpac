@@ -1,6 +1,6 @@
 [Version]
 Signature = "$Windows NT$"
-Provider = "GPAC 0.4.2"
+Provider = "GPAC 0.4.3"
 CESignature = "$Windows CE$"
 
 [CEStrings]
@@ -23,11 +23,13 @@ CESelfRegister=GPAX.dll
 
 1 =, "Common Files",, ..
 2 =, "Extra Files",, .
+3 =, "Doc Files",, ..\..\..\doc\
 
 [SourceDisksFiles]
 libgpac.dll = 1
 %ExeName% = 1
 GPAX.dll = 1
+gpac.mp4 = 3
 
 ;comment this one if not using SpiderMonkey
 js.dll = 1
@@ -88,6 +90,7 @@ DefaultDestDir = 0, %InstallDir%
 
 [Exefiles]
 "%ExeName%"
+"gpac.mp4"
 "gm_aac_in.dll"
 "gm_amr_dec.dll"
 ;"gm_amr_float_dec.dll"

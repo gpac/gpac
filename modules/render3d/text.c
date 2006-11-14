@@ -151,6 +151,7 @@ Bool TextLine_TextureIsReady(CachedTextLine *tl)
 	else if ((gf_mulfix(scale, tl->tx_bounds.width)<min) || (gf_mulfix(scale, tl->tx_bounds.height)<min)) {
 		scale = MAX(gf_divfix(min, tl->tx_bounds.width), gf_divfix(min, tl->tx_bounds.height));
 	}
+	if (scale<FIX_ONE) scale = FIX_ONE;
 
 	/*get closest pow2 sizes*/
 	tw = FIX2INT( gf_ceil(gf_mulfix(scale,tl->tx_bounds.width)) );
@@ -182,6 +183,7 @@ Bool TextLine_TextureIsReady(CachedTextLine *tl)
 	}
 
 	tl->tx_data = (char *) malloc(sizeof(char)*tl->tx_width*tl->tx_height*4);
+	memset(tl->tx_data, 0, sizeof(char)*tl->tx_width*tl->tx_height*4);
 	/*FIXME - make it work with alphagrey...*/
 	e = r2d->stencil_set_texture(texture2D, tl->tx_data, tl->tx_width, tl->tx_height, 4*tl->tx_width, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
 	if (!e) e = r2d->surface_attach_to_texture(surf, texture2D);
