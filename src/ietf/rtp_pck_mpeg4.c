@@ -401,7 +401,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 	/*we only do STAP or SINGLE modes*/
 	else if (builder->sl_header.accessUnitStartFlag) do_flush = 1;
 	/*we must NOT fragment a NALU*/
-	else if (builder->bytesInPacket + nalu_size > builder->Path_MTU) do_flush = 2;
+	else if (builder->bytesInPacket + nalu_size >= builder->Path_MTU) do_flush = 2;
 
 	if (builder->bytesInPacket && do_flush) {
 		builder->rtp_header.Marker = (do_flush==1) ? 1 : 0;
@@ -462,7 +462,8 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 		else
 			builder->OnData(builder->cbk_obj, nalu, nalu_size, 0);
 
-		builder->bytesInPacket += 2+nalu_size;
+		builder->bytesInPacket += nalu_size;
+
 		if (IsAUEnd) {
 			builder->rtp_header.Marker = 1;
 			builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);

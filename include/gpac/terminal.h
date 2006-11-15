@@ -128,12 +128,12 @@ void gf_term_user_event(GF_Terminal *term, GF_Event *event);
 void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event);
 
 /*post extended user key interaction to terminal 
-	@key_code: code of input key
+	@key_code: GPAC DOM code of input key
+	@hw_code: hardware code of input key
 	@isKeyUp: set if key is released
-	@xxxKeyDown: specifiy whether given key is down (2) or up (1), 0 if unchanged
 */
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
-void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp, u32 shiftKeyDown, u32 controlKeyDown, u32 altKeyDown);
+void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp);
 
 /*post extended user character interaction to terminal 
 	@character: unicode character input

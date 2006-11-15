@@ -1414,7 +1414,7 @@ void CMainFrame::BuildChapterList(Bool reset_only)
 		if (com.name) { title += com.name; title += " "; }
 		if (com.album) { title += "("; title += com.album; title += ")"; }
 		
-		SetWindowText(title);
+		if (title.GetLength()) SetWindowText(title);
 	}
 }
 
