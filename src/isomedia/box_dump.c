@@ -2352,6 +2352,8 @@ static char *ttd_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
 	return szDur;
 }
 
+//#define DUMP_OLD_TEXT
+
 static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump)
 {
 	u32 i, j, count, di, len, nb_descs, shift_offset[20], so_count;
@@ -2366,7 +2368,11 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 	fprintf(dump, "<!-- GPAC 3GPP Text Stream -->\n");
 
+#ifdef DUMP_OLD_TEXT
 	fprintf(dump, "<TextStream version=\"1.0\">\n");
+#else
+	fprintf(dump, "<TextStream version=\"1.1\">\n");
+#endif
 	fprintf(dump, "<TextStreamHeader width=\"%d\" height=\"%d\" layer=\"%d\" translation_x=\"%d\" translation_y=\"%d\">\n", trak->Header->width >> 16 , trak->Header->height >> 16, trak->Header->layer, trak->Header->matrix[6] >> 16, trak->Header->matrix[7] >> 16);
 
 	nb_descs = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
@@ -2446,9 +2452,27 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		txt = gf_isom_parse_texte_sample(bs);
 		gf_bs_del(bs);
 
+
+		if (txt->highlight_color) {
+			fprintf(dump, " ");
+			gpp_dump_rgba(dump, "highlightColor", txt->highlight_color->hil_color);
+		}
+		if (txt->scroll_delay) {
+			Double delay = txt->scroll_delay->scroll_delay;
+			delay /= trak->Media->mediaHeader->timeScale;
+			fprintf(dump, " scrollDelay=\"%g\"", delay);
+		}
+		if (txt->wrap) fprintf(dump, " wrap=\"%s\"", (txt->wrap->wrap_flag==0x01) ? "Automatic" : "None");
+
 		so_count = 0;
+
+#ifndef DUMP_OLD_TEXT
+		fprintf(dump, " xml:space=\"preserve\">");
+#endif
 		if (!txt->len) {
+#ifdef DUMP_OLD_TEXT
 			fprintf(dump, " text=\"\"");
+#endif
 			last_DTS = (u32) trak->Media->mediaHeader->duration;
 		} else {
 			s16 utf16Line[10000];
@@ -2465,10 +2489,16 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 			}
 			if (len != (u32) -1) {
 				utf16Line[len] = 0;
+#ifdef DUMP_OLD_TEXT
 				fprintf(dump, " text=\"\'");
+#endif
 				for (j=0; j<len; j++) {
 					if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') || (utf16Line[j]==0x85) || (utf16Line[j]==0x2028) || (utf16Line[j]==0x2029) ) {
+#ifndef DUMP_OLD_TEXT
+						fprintf(dump, "\n");
+#else
 						fprintf(dump, "\'\'");
+#endif
 						if ((utf16Line[j]=='\r') && (utf16Line[j+1]=='\n')) {
 							shift_offset[so_count] = j;
 							so_count++;
@@ -2492,23 +2522,19 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 						}
 					}
 				}
+#ifdef DUMP_OLD_TEXT
 				fprintf(dump, "\'\"");
+#endif
 			} else {
+#ifdef DUMP_OLD_TEXT
 				fprintf(dump, "text=\"%s\"", txt->text);
+#endif
 			}
 		}
-		if (txt->highlight_color) {
-			fprintf(dump, " ");
-			gpp_dump_rgba(dump, "highlightColor", txt->highlight_color->hil_color);
-		}
-		if (txt->scroll_delay) {
-			Double delay = txt->scroll_delay->scroll_delay;
-			delay /= trak->Media->mediaHeader->timeScale;
-			fprintf(dump, " scrollDelay=\"%g\"", delay);
-		}
-		if (txt->wrap) fprintf(dump, " wrap=\"%s\"", (txt->wrap->wrap_flag==0x01) ? "Automatic" : "None");
 
+#ifdef DUMP_OLD_TEXT
 		fprintf(dump, ">\n");
+#endif
 
 		if (txt->box) gpp_dump_box_nobox(dump, &txt->box->box);
 		if (txt->styles) {
