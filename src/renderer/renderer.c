@@ -1233,7 +1233,6 @@ void gf_sr_render_inline(GF_Renderer *sr, GF_Node *inline_parent, GF_Node *inlin
 
 static void gf_sr_on_event(void *cbck, GF_Event *event)
 {
-	u32 s, c, m;
 	GF_Renderer *sr = (GF_Renderer *)cbck;
 	/*not assigned yet*/
 	if (!sr || !sr->visual_renderer) return;
@@ -1265,16 +1264,33 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_KEYUP:
-		s = c = m = 0;
 		switch (event->key.key_code) {
-		case GF_KEY_SHIFT: s = (event->type==GF_EVENT_KEYDOWN) ? 2 : 1; sr->key_states |= GF_KEY_MOD_SHIFT; break;
-		case GF_KEY_CONTROL: c = (event->type==GF_EVENT_KEYDOWN) ? 2 : 1; sr->key_states |= GF_KEY_MOD_CTRL; break;
-		case GF_KEY_ALT: m = (event->type==GF_EVENT_KEYDOWN) ? 2 : 1; sr->key_states |= GF_KEY_MOD_ALT; break;
+		case GF_KEY_SHIFT: 
+			if (event->type==GF_EVENT_KEYDOWN) {
+				sr->key_states |= GF_KEY_MOD_SHIFT; 
+			} else {
+				sr->key_states &= ~GF_KEY_MOD_SHIFT; 
+			}
+			break;
+		case GF_KEY_CONTROL: 
+			if (event->type==GF_EVENT_KEYDOWN) {
+				sr->key_states |= GF_KEY_MOD_CTRL; 
+			} else {
+				sr->key_states &= ~GF_KEY_MOD_CTRL; 
+			}
+			break;
+		case GF_KEY_ALT: 
+			if (event->type==GF_EVENT_KEYDOWN) {
+				sr->key_states |= GF_KEY_MOD_ALT;
+			} else {
+				sr->key_states &= ~GF_KEY_MOD_ALT;
+			}
+			break;
 		}
 		event->key.flags |= sr->key_states;
 		/*key sensor*/
 		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) ) {
-			gf_term_keyboard_input(sr->term, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYDOWN) ? 0 : 1, s, c, m);
+			gf_term_keyboard_input(sr->term, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYUP) ? 1 : 0);
 		}		
 		SR_UserInputIntern(sr, event);
 		break;

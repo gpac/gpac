@@ -613,7 +613,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 	free(buf);
 }
 
-void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp, u32 shiftKeyDown, u32 controlKeyDown, u32 altKeyDown)
+void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp)
 {
 	u32 i;
 	GF_BitStream *bs;
@@ -622,6 +622,7 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 	X_KeySensor *n;
 	u32 buf_size;
 	u32 actionKey = 0;
+	u32 shiftKeyDown, controlKeyDown, altKeyDown;
 	GF_Codec *cod;
 	s32 keyPressed, keyReleased, actionKeyPressed, actionKeyReleased;
 
@@ -635,6 +636,7 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
+	shiftKeyDown = controlKeyDown = altKeyDown = 0;
 	keyPressed = keyReleased = actionKeyPressed = actionKeyReleased = 0;
 	/*key-sensor codes*/
 	switch (key_code) {
@@ -658,6 +660,19 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 	case GF_KEY_DOWN: actionKey = 18; break;
 	case GF_KEY_LEFT: actionKey = 19; break;
 	case GF_KEY_RIGHT: actionKey = 20; break;
+	case GF_KEY_SHIFT:
+		actionKey = 0;
+		shiftKeyDown = isKeyUp ? 1 : 2;
+		break;
+	case GF_KEY_CONTROL:
+		actionKey = 0;
+		controlKeyDown = isKeyUp ? 1 : 2;
+		break;
+	case GF_KEY_ALT:
+		actionKey = 0;
+		altKeyDown = isKeyUp ? 1 : 2;
+		break;
+
 	default: actionKey = 0; break;
 	}
 	if (actionKey) {
