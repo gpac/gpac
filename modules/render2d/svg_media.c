@@ -152,6 +152,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
 	if (gf_node_dirty_get(node)) {
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("xlink:href is %s\n", ((SVGElement *)node)->xlink->href.iri));
 		if (gf_node_get_tag(node)==TAG_SVG_image) {
 			SVG_BuildGraph_image((SVG_image_stack*)gf_node_get_private(node));
 			m = &((SVGimageElement *)node)->transform;
@@ -168,7 +169,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 			if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, & ((SVGElement *)node)->xlink->href)) {
 				gf_term_set_mfurl_from_uri(st->txh.compositor->term, &(st->txurl), & ((SVGElement*)node)->xlink->href);
 				if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
-				fprintf(stdout, "URL changed to %s\n", st->txurl.vals[0].url);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("URL changed to %s\n", st->txurl.vals[0].url));
 				gf_sr_texture_play(&st->txh, &st->txurl);
 			}
 		} 
@@ -347,7 +348,7 @@ static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 		stack->txh.stream = NULL;
 		gf_sr_invalidate(stack->txh.compositor, NULL);
 		break;
-	case SMIL_TIMING_EVAL_RESTART:
+	case SMIL_TIMING_EVAL_REPEAT:
 		gf_sr_texture_restart(&stack->txh);
 		break;
 	}
@@ -409,7 +410,7 @@ static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 			stack->is_active = 1;
 		}
 		break;
-	case SMIL_TIMING_EVAL_RESTART:
+	case SMIL_TIMING_EVAL_REPEAT:
 		if (stack->is_active) gf_sr_audio_restart(&stack->input);
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:

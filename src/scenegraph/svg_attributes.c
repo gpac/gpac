@@ -61,6 +61,7 @@ u32 gf_dom_event_type_by_name(const char *name)
 	if (!strcmp(name, "longkeypress") || !stricmp(name, "longaccesskey"))	return GF_EVENT_LONGKEYPRESS;
 	if (!strcmp(name, "battery"))		return GF_EVENT_BATTERY;
 	if (!strcmp(name, "cpu"))		return GF_EVENT_CPU;
+	GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[DOM Events] Unknown event found \"%s\"\n", name));
 	return GF_EVENT_UNKNOWN;
 }
 
@@ -706,7 +707,6 @@ static void svg_parse_clock_value(char *d, Double *clock_value)
  */
 static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d) 
 {
-	u32 len;
 	char *tmp;
 
 	/* Offset Values */
@@ -797,18 +797,17 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 			tmp++;
 		} else {
 			if ((tmp2 = strchr(tmp, '+')) || (tmp2 = strchr(tmp, '-'))) {
-				char c = *tmp2, offset[100];
+				char c = *tmp2;
+				char *tmp3 = tmp2;
 				tmp2[0] = 0;
+				tmp3--;
+				while (*tmp3==' ') { *tmp3=0; tmp3--; }
 				v->event.type = gf_dom_event_type_by_name(tmp);
 				if (v->event.type == GF_EVENT_REPEAT) v->event.parameter = 1;
 				tmp2[0] = c;
 				tmp2++;
-
-				len = tmp2 - d;
-				while (d[len-1] == ' ' && len > 0) len--;
-				memcpy(offset, d, len);
-				offset[len] = 0;
-				svg_parse_clock_value(offset, &(v->clock));
+				svg_parse_clock_value(tmp2, &(v->clock));
+				if (c == '-') v->clock *= -1;
 			} else {
 				v->event.type = gf_dom_event_type_by_name(tmp);
 				if (v->event.type == GF_EVENT_REPEAT) v->event.parameter = 1;

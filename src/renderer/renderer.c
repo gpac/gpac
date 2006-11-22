@@ -1062,6 +1062,8 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		return;
 	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[General] Time %f - Composing new frame #%d\n", gf_node_get_scene_time(gf_sg_get_root_node(sr->scene)), sr->frame_number));
+
 	in_time = gf_sys_clock();
 	if (sr->reset_graphics) sr->draw_next_frame = 1;
 
