@@ -65,13 +65,15 @@ void gf_sg_handle_dom_event(SVGhandlerElement *hdl, GF_DOM_Event *event)
 		if (hdl->sgprivate->scenegraph->svg_js->handler_execute((GF_Node *)hdl, event)) return;
 #endif
 	/*no clue what this is*/
-	GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG] Unknown event handler\n"));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[DOM Events] Unknown event handler\n"));
 }
 
 static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 {
 	SVGhandlerElement *handler = (SVGhandlerElement *) listen->handler.target;
 	if (!handler) return;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Time %f - Processing event type: %s\n", gf_node_get_scene_time((GF_Node *)listen), gf_dom_event_get_name(event->type)));
+
 	if (is_svg_animation_tag(handler->sgprivate->tag) && handler->anim && handler->timing->runtime) {
 		if (event->type == GF_EVENT_BATTERY) {
 			handler->timing->runtime->fraction = gf_divfix(INT2FIX(event->batteryLevel), INT2FIX(100));
@@ -178,7 +180,7 @@ GF_EXPORT
 Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 {
 	if (!node || !event) return 0;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Time %g - Firing event %s.%s\n", gf_node_get_scene_time(node), gf_node_get_name(node), gf_dom_event_get_name(event->type)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Time %f - Firing event %s.%s\n", gf_node_get_scene_time(node), gf_node_get_name(node), gf_dom_event_get_name(event->type)));
 
 	event->target = node;
 	event->currentTarget = NULL;
@@ -282,7 +284,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 		if (j!=count) i++;
 		count++;
 		found++;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Timing] Inserting new time in %s.%s: %g\n", gf_node_get_name(timed_elt), (is_end?"end":"begin"), resolved->clock));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Timing] Inserting new time in %s.%s: %f\n", gf_node_get_name(timed_elt), (is_end?"end":"begin"), resolved->clock));
 	}
 	if (found) gf_node_changed(timed_elt, info);
 }

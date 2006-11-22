@@ -2749,6 +2749,8 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	SVGhandlerElement *handler = (SVGhandlerElement *)node;
 	if (/*!script->xlink->type || strcmp(script->xlink->type, "text/ecmascript") || */ !handler->textContent) return 0;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Executing script code from handler\n"));
+
 	svg_js = node->sgprivate->scenegraph->svg_js;
 
 	prev_event = JS_GetPrivate(svg_js->js_ctx, svg_js->event);

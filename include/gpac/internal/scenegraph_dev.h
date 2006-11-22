@@ -316,10 +316,8 @@ void gf_smil_delete_key_types	(GF_List *l);
 /* SMIL Timing structures */
 /* status of an SMIL timed element */ 
 enum {
-	SMIL_STATUS_STARTUP = 0,
-	SMIL_STATUS_WAITING_TO_BEGIN,
+	SMIL_STATUS_WAITING_TO_BEGIN = 0,
 	SMIL_STATUS_ACTIVE,
-	SMIL_STATUS_END_INTERVAL,
 	SMIL_STATUS_POST_ACTIVE,
 	SMIL_STATUS_FROZEN,
 	SMIL_STATUS_DONE
@@ -343,7 +341,7 @@ enum
 	SMIL_TIMING_EVAL_UPDATE,
 	SMIL_TIMING_EVAL_FREEZE,
 	SMIL_TIMING_EVAL_REMOVE,
-	SMIL_TIMING_EVAL_RESTART,
+	SMIL_TIMING_EVAL_REPEAT,
 	SMIL_TIMING_EVAL_FRACTION,
 	SMIL_TIMING_EVAL_DISCARD,
 };
@@ -413,6 +411,8 @@ typedef struct {
 	GF_FieldInfo parent_presentation_value;
 	GF_FieldInfo current_color_value;
 	void *orig_dom_ptr;
+	/* flag set by any animation to inform other animations that there base value has changed */
+	Bool presentation_value_changed;
 } SMIL_AttributeAnimations;
 
 /* This structure is per animation element, 
@@ -430,6 +430,9 @@ typedef struct {
 
 	/* result of the animation */
 	GF_FieldInfo interpolated_value;
+	
+	/* has the interpolated value changed since last cycle */
+	Bool interpolated_value_changed;
 
 	/* last value of the animation, used in accumulation phase */
 	GF_FieldInfo last_specified_value;
@@ -441,9 +444,6 @@ typedef struct {
 	s32		previous_key_index;
 	Fixed	previous_coef;
 	u32		previous_keytime_index;
-
-	/* needed ? */
-	Bool target_value_changed;
 
 	GF_Path *path;
 	u8 rotate;
