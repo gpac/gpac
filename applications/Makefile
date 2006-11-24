@@ -1,6 +1,6 @@
 include ../config.mak
 
-APPDIRS=mp4box mp4client osmozilla
+APPDIRS=mp4box mp4client
 
 ifeq ($(SRC_LOCAL_PATH), yes)
 ifeq ($(TARGET_ARCH_ARMV4L), yes)
@@ -11,6 +11,11 @@ endif
 
 V4STUDIODIR=
 INSTDIRS=mp4client osmozilla
+ifeq ($(TARGET_ARCH_ARMV4L),yes)
+else
+INSTDIRS+=osmozilla
+APPDIRS+=osmozilla
+endif
 
 ifeq ($(USE_WXWIDGETS), yes)
 APPDIRS+=osmo4_wx
