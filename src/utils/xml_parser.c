@@ -612,8 +612,6 @@ static GF_Err xml_sax_parse(GF_SAXParser *parser, Bool force_parse)
 	u8 c;
 	char *elt, sep;
 
-	parser->line_size = strlen(parser->buffer);
-
 	is_text = 0;
 	while (parser->current_pos<parser->line_size) {
 		if (!force_parse && parser->suspended) goto exit;

@@ -1,4 +1,8 @@
-Latest CVS changes: 14/11/06
+Latest CVS changes: 13/12/06
+  - initial commit of symbian version. Build instructions are in doc/INSTALL.symbian.
+  - Speedup of XML SAX parser
+  - addded unthreaded mode in MP4Client (-no-thread switch) to test behavior on symbian
+  - addded fullscreen startup mode in MP4Client (-fs switch)
   - fixed handling of iTunes tags in MP4Box (set/get) and in players (title display)
   - libgpac and some modules now ported to symbian 9.1, but player not done yet
       !! GPAC may be quite unstable during this porting phase !! 

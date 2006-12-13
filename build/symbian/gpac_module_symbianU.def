@@ -1,0 +1,5 @@
+EXPORTS
+	QueryInterface @ 1 NONAME ; CODE
+	LoadInterface @ 2 NONAME ; CODE
+	ShutdownInterface @ 3 NONAME ; CODE
+

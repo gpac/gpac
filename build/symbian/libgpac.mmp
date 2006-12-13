@@ -1,0 +1,234 @@
+TARGET libgpac.dll
+TARGETTYPE DLL
+CAPABILITY	NetworkServices
+UID		0x1000008d 0xf01f9073
+
+//comment if you don't have JS
+MACRO GPAC_HAS_SPIDERMONKEY
+MACRO XP_PC
+SYSTEMINCLUDE ..\..\extra_lib\include\js
+STATICLIBRARY libjs.lib
+
+
+//Common tools
+SOURCEPATH ..\..\src\utils
+SOURCE base_encoding.c
+SOURCE bitstream.c
+SOURCE color.c
+SOURCE configfile.c
+SOURCE downloader.c
+SOURCE error.c
+SOURCE list.c
+SOURCE math.c
+SOURCE module.c
+SOURCE path2d.c
+SOURCE path2d_stroker.c
+SOURCE token.c
+SOURCE url.c
+SOURCE utf.c
+SOURCE xml_parser.c
+// zlib symbian on sybian SDKs doesn't come with gzio
+SOURCE gzio.cpp
+//SOURCE zutil.c
+// symbian-specific stuff
+SOURCE symbian_os.cpp
+SOURCE symbian_net.cpp
+
+//IETF tools
+SOURCEPATH ..\..\src\ietf
+SOURCE rtcp.c
+SOURCE rtp.c
+SOURCE rtp_packetizer.c
+SOURCE rtp_pck_3gpp.c
+SOURCE rtp_pck_mpeg12.c
+SOURCE rtp_pck_mpeg4.c
+SOURCE rtsp_command.c
+SOURCE rtsp_common.c
+SOURCE rtsp_response.c
+SOURCE rtsp_session.c
+SOURCE sdp.c
+
+//BIFS
+SOURCEPATH ..\..\src\bifs
+SOURCE arith_decoder.c
+SOURCE bifs_codec.c
+SOURCE bifs_node_tables.c
+SOURCE com_dec.c
+SOURCE com_enc.c
+SOURCE conditional.c
+SOURCE field_decode.c
+SOURCE field_encode.c
+SOURCE memory_decoder.c
+SOURCE predictive_mffield.c
+SOURCE quantize.c
+SOURCE script_dec.c
+SOURCE script_enc.c
+SOURCE unquantize.c
+
+//LASeR
+SOURCEPATH ..\..\src\laser
+SOURCE lsr_enc.c
+SOURCE lsr_dec.c
+SOURCE lsr_tables.c
+
+//IsoMedia
+SOURCEPATH ..\..\src\isomedia
+SOURCE avc_ext.c
+SOURCE box_code_3gpp.c
+SOURCE box_code_apple.c
+SOURCE box_code_base.c
+SOURCE box_code_isma.c
+SOURCE box_code_meta.c
+SOURCE box_dump.c
+SOURCE box_funcs.c
+SOURCE data_map.c
+SOURCE hint_track.c
+SOURCE hinting.c
+SOURCE isma_sample.c
+SOURCE isom_intern.c
+SOURCE isom_read.c
+SOURCE isom_store.c
+SOURCE isom_write.c
+SOURCE media.c
+SOURCE media_odf.c
+SOURCE meta.c
+SOURCE movie_fragments.c
+SOURCE sample_descs.c
+SOURCE stbl_read.c
+SOURCE stbl_write.c
+SOURCE track.c
+SOURCE tx3g.c 
+
+//OD Framework
+SOURCEPATH ..\..\src\odf
+SOURCE desc_private.c
+SOURCE descriptors.c
+SOURCE ipmpx_code.c
+SOURCE ipmpx_dump.c
+SOURCE ipmpx_parse.c
+SOURCE oci_codec.c
+SOURCE odf_code.c
+SOURCE odf_codec.c
+SOURCE odf_command.c
+SOURCE odf_dump.c
+SOURCE odf_parse.c
+SOURCE qos.c
+SOURCE slc.c
+
+//scenegraph
+SOURCEPATH ..\..\src\scenegraph
+SOURCE base_scenegraph.c
+SOURCE mpeg4_animators.c
+SOURCE commands.c
+SOURCE mpeg4_nodes.c
+SOURCE mpeg4_valuator.c
+SOURCE vrml_interpolators.c
+SOURCE vrml_proto.c
+SOURCE vrml_route.c
+SOURCE vrml_script.c
+SOURCE vrml_smjs.c
+SOURCE vrml_tools.c
+SOURCE x3d_nodes.c
+SOURCE svg_attributes.c
+SOURCE svg_nodes.c
+SOURCE svg_tools.c
+SOURCE svg_types.c
+SOURCE svg_smjs.c
+SOURCE smil_anim.c
+SOURCE smil_timing.c
+SOURCE svg_properties.c
+SOURCE dom_events.c
+
+//mcrypt
+SOURCEPATH ..\..\src\mcrypt
+SOURCE cbc.c
+SOURCE cfb.c
+SOURCE ctr.c
+SOURCE des.c
+SOURCE ecb.c
+SOURCE g_crypt.c
+SOURCE ncfb.c
+SOURCE nofb.c
+SOURCE ofb.c
+SOURCE rijndael-128.c
+SOURCE rijndael-192.c
+SOURCE rijndael-256.c
+SOURCE stream.c
+SOURCE tripledes.c
+
+//media tools
+SOURCEPATH ..\..\src\media_tools
+SOURCE av_parsers.c
+SOURCE avilib.c
+SOURCE gpac_ogg.c
+SOURCE ismacryp.c
+SOURCE isom_hinter.c
+SOURCE isom_tools.c
+SOURCE media_export.c
+SOURCE media_import.c
+SOURCE mpeg2_ps.c
+SOURCE text_import.c
+SOURCE saf.c
+SOURCE mpegts.c
+SOURCE vobsub.c
+
+
+//scene manager
+SOURCEPATH ..\..\src\scene_manager
+SOURCE loader_bt.c
+SOURCE loader_isom.c
+SOURCE loader_qt.c
+SOURCE loader_xmt.c
+SOURCE scene_dump.c
+SOURCE scene_manager.c
+SOURCE scene_stats.c
+SOURCE swf_parse.c
+SOURCE swf_shape.c
+SOURCE text_to_bifs.c
+SOURCE encode_cbk.c
+SOURCE encode_isom.c
+SOURCE loader_svg.c
+
+//terminal
+SOURCEPATH ..\..\src\terminal
+SOURCE channel.c
+SOURCE clock.c
+SOURCE decoder.c
+SOURCE term_node_init.c
+SOURCE inline.c
+SOURCE input_sensor.c
+SOURCE media_control.c
+SOURCE media_manager.c
+SOURCE media_memory.c
+SOURCE media_object.c
+SOURCE media_sensor.c
+SOURCE network_service.c
+SOURCE object_browser.c
+SOURCE object_manager.c
+SOURCE terminal.c 
+SOURCE svg_external.c
+
+//renderer
+SOURCEPATH ..\..\src\renderer
+SOURCE audio_input.c
+SOURCE audio_mixer.c
+SOURCE audio_render.c
+SOURCE audio_stacks.c
+SOURCE base_textures.c
+SOURCE common_stacks.c
+SOURCE renderer.c
+SOURCE texturing.c 
+
+SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
+
+LIBRARY euser.lib estlib.lib ezlib.lib hal.lib
+
+#if defined(WINS)
+    deffile ..\..\build\symbian\libgpac_symbian.def
+#else if defined(ARM)
+    deffile ..\..\build\symbian\libgpac_symbian.def
+#endif
+
+//EXPORTUNFROZEN
+//  nostrictdef
+

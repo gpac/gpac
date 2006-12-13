@@ -166,6 +166,15 @@ SOURCE=..\..\src\utils\utf.c
 # Begin Source File
 
 SOURCE=..\..\src\utils\xml_parser.c
+
+!IF  "$(CFG)" == "libgpac - Win32 Release"
+
+# SUBTRACT CPP /FA<none>
+
+!ELSEIF  "$(CFG)" == "libgpac - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # End Group
 # Begin Group "odf"

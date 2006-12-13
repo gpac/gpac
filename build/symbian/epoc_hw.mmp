@@ -1,0 +1,35 @@
+TARGET gm_epoc_hw.dll
+TARGETTYPE DLL
+CAPABILITY	NetworkServices
+UID		0x10000080 0
+
+MACRO GPAC_USE_OGL_ES
+
+//Common tools
+SOURCEPATH ..\..\modules\epoc_hw
+SOURCE epoc_vout.cpp
+SOURCE epoc_aout.cpp
+SOURCE epoc_codec.cpp
+
+SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
+
+LIBRARY euser.lib estlib.lib ws32.lib 
+LIBRARY libgpac.lib 
+//video libs
+LIBRARY fbscli.lib 
+//audio libs
+LIBRARY MediaClientAudioStream.lib
+//codec libs
+LIBRARY mmfserverbaseclasses.lib
+//OpenGL libs
+LIBRARY libgles_cm.lib
+
+#if defined(WINS)
+    deffile ..\..\build\symbian\gpac_module_symbian.def
+#else if defined(ARM)
+    deffile ..\..\build\symbian\gpac_module_symbian.def
+#endif
+
+//EXPORTUNFROZEN
+//  nostrictdef
+
