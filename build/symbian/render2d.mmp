@@ -1,0 +1,45 @@
+TARGET gm_render2d.dll
+TARGETTYPE DLL
+CAPABILITY	NetworkServices
+UID		0x10000080 0x10000081
+
+//Common tools
+SOURCEPATH ..\..\modules\render2d
+SOURCE background2d.c
+SOURCE drawable.c
+SOURCE form.c
+SOURCE geometry_stacks.c
+SOURCE grouping.c
+SOURCE grouping_stacks.c
+SOURCE ifs2d.c
+SOURCE ils2d.c
+SOURCE layout.c
+SOURCE path_layout.c
+SOURCE render2d.c
+SOURCE render2d_nodes.c
+SOURCE sensor_stacks.c
+SOURCE sound.c
+SOURCE text.c
+SOURCE texture_stacks.c
+SOURCE viewport.c
+SOURCE visualsurface2d.c
+SOURCE visualsurface2d_draw.c
+SOURCE svg_base.c
+SOURCE svg_text.c
+SOURCE svg_media.c
+SOURCE laser_base.c
+
+
+SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
+
+LIBRARY euser.lib estlib.lib libgpac.lib
+
+#if defined(WINS)
+    deffile ..\..\build\symbian\gpac_module_symbian.def
+#else if defined(ARM)
+    deffile ..\..\build\symbian\gpac_module_symbian.def
+#endif
+
+//EXPORTUNFROZEN
+//  nostrictdef
+

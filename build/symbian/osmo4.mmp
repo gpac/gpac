@@ -1,0 +1,61 @@
+/*
+* ==============================================================================
+*  Name        : osmo4.mmp
+*  Part of     : osmo4
+*  Interface   : 
+*  Description : 
+*  Version     : 
+*
+* ==============================================================================
+*/
+
+TARGET            osmo4.exe
+TARGETTYPE        EXE
+UID		0 0xf01f9075
+SECUREID	0xf01f9075
+VENDORID	0
+
+CAPABILITY	NetworkServices
+EPOCSTACKSIZE	32768
+
+SOURCEPATH        ..\..\applications\osmo4_sym
+SOURCE            osmo4.cpp
+SOURCE            osmo4_app.cpp
+SOURCE            osmo4_AppView.cpp
+SOURCE            osmo4_AppUi.cpp
+SOURCE            osmo4_doc.cpp
+SOURCE            playlist.cpp
+
+SOURCEPATH        ..\..\applications\osmo4_sym\res
+
+START RESOURCE    osmo4.rss
+HEADER
+TARGETPATH resource\apps
+END //RESOURCE
+
+START RESOURCE    osmo4_reg.rss
+#ifdef WINSCW
+TARGETPATH 	  \private\10003a3f\apps
+#else
+TARGETPATH 	  \private\10003a3f\import\apps
+#endif
+END //RESOURCE
+
+
+
+USERINCLUDE    ..\..\applications\osmo4_sym ..\..\applications\osmo4_sym\res
+SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
+
+//all libs need for base GUI
+LIBRARY           euser.lib apparc.lib cone.lib eikcore.lib avkon.lib efsrv.lib estlib.lib ws32.lib bafl.lib eikcoctl.lib
+//gpac ...
+LIBRARY           libgpac.lib
+//when using skin support
+LIBRARY           aknskins.lib 
+//hardware key listener stuff
+LIBRARY           remconcoreapi.lib remconinterfacebase.lib 
+
+LANG SC
+
+// End of File
+

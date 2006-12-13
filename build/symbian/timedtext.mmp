@@ -1,0 +1,23 @@
+TARGET gm_timedtext.dll
+TARGETTYPE DLL
+CAPABILITY	NetworkServices
+UID		0x10000080 0x10000081
+
+//Common tools
+SOURCEPATH ..\..\modules\timedtext
+SOURCE timedtext_in.c
+SOURCE timedtext_dec.c
+
+SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
+
+LIBRARY euser.lib estlib.lib libgpac.lib
+
+#if defined(WINS)
+    deffile ..\..\build\symbian\gpac_module_symbian.def
+#else if defined(ARM)
+    deffile ..\..\build\symbian\gpac_module_symbian.def
+#endif
+
+//EXPORTUNFROZEN
+//  nostrictdef
+
