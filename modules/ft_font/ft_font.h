@@ -25,42 +25,5 @@
 #ifndef _FT_FONT_H_
 #define _FT_FONT_H_
 
-#include <gpac/modules/font.h>
-#include <gpac/list.h>
-#include <gpac/utf.h>
-
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_GLYPH_H
-#include FT_OUTLINE_H
-/*TrueType tables*/
-#include FT_TRUETYPE_TABLES_H 
-
-
-typedef struct
-{
-	FT_Library library;
-	FT_Face active_face;
-
-	char *font_dir;
-
-	Fixed pixel_size;
-
-	GF_List *loaded_fonts;
-
-	/*0: no line, 1: underlined, 2: strikeout*/
-	u32 strike_style;
-
-	Bool register_font;
-
-	/*temp storage for enum - may be NULL*/
-	const char *tmp_font_name;
-	const char *tmp_font_style;
-	/*default fonts*/
-	char font_serif[1024];
-	char font_sans[1024];
-	char font_fixed[1024];
-} FTBuilder;
-
 
 #endif /*_FT_FONT_H_*/

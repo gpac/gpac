@@ -69,7 +69,8 @@ typedef struct
 	u32 type;
 	/*
 	For DOM nodes: name
-	For other (text, css, cdata), element content*/
+	For other (text, css, cdata), element content
+	*/
 	char *name;
 
 	/*for DOM nodes only*/
@@ -85,7 +86,7 @@ typedef struct
 */
 
 typedef struct _tag_sax_parser GF_SAXParser;
-typedef	void (*gf_xml_sax_node_start)(void *sax_cbck, const char *node_name, const char *name_space, GF_List *attributes);
+typedef	void (*gf_xml_sax_node_start)(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes);
 typedef	void (*gf_xml_sax_node_end)(void *sax_cbck, const char *node_name, const char *name_space);
 typedef	void (*gf_xml_sax_text_content)(void *sax_cbck, const char *content, Bool is_cdata);
 

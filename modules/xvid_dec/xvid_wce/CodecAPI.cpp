@@ -9,7 +9,7 @@
 #ifdef __SYMBIAN32__
 #include <e32std.h>
 #include <e32base.h>
-GLDEF_C TInt E32Dll(TDllReason){ return KErrNone; }
+//GLDEF_C TInt E32Dll(TDllReason){ return KErrNone; }
 #else
 #endif
 

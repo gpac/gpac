@@ -586,7 +586,7 @@ static u32 OggDemux(void *par)
 				com.base.on_channel = st->ch;
 				gf_term_on_command(read->service, &com, GF_OK);
 				if (com.buffer.occupancy < read->data_buffer_ms) {
-					//fprintf(stdout, "OGG: channel %d needs fill (%d ms data, %d max buffer)\n", st->ESID, com.buffer.occupancy, read->data_buffer_ms);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[OGG] channel %d needs fill (%d ms data, %d max buffer)\n", st->ESID, com.buffer.occupancy, read->data_buffer_ms));
 					go = 0;
 					break;
 				}

@@ -33,6 +33,16 @@
 extern "C" {
 #endif
 
+
+/*RGB 555 support is disabled by default*/
+//#define GF_RGB_555_SUPORT
+
+/*for symbian enable 4k color depth (RGB444, 4096 colors) since a good amount of devices use that*/
+#ifdef __SYMBIAN32__
+#define GF_RGB_444_SUPORT
+#endif
+
+
 typedef struct _evg_surface EVGSurface;
 
 /*base stencil stack*/
@@ -141,7 +151,14 @@ struct _evg_surface
 	/*in solid color mode to speed things*/
 	u32 fill_col;
 	u32 fill_565;
+
+#ifdef GF_RGB_444_SUPORT
+	u32 fill_444;
+#endif
+
+#ifdef GF_RGB_555_SUPORT
 	u32 fill_555;
+#endif
 
 	/*FreeType raster*/
 	EVG_Raster raster;
@@ -308,10 +325,19 @@ void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 GF_Err evg_surface_clear_565(GF_SURFACE _this, GF_IRect rc, GF_Color col);
 
+#ifdef GF_RGB_444_SUPORT
+void evg_444_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_444_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+GF_Err evg_surface_clear_444(GF_SURFACE surf, GF_IRect rc, GF_Color col);
+#endif
+
+#ifdef GF_RGB_555_SUPORT
 void evg_555_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_555_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 GF_Err evg_surface_clear_555(GF_SURFACE surf, GF_IRect rc, GF_Color col);
+#endif
 
 void evg_user_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_user_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);

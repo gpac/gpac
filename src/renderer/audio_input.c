@@ -41,6 +41,7 @@ static char *AI_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 
 	/*no more data or not enough data, reset syncro drift*/
 	if (!frame) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Render] No data in audio aobject (eos %d)\n", ai->stream_finished));
 		gf_mo_adjust_clock(ai->stream, 0);
 		return NULL;
 	}
@@ -61,6 +62,7 @@ static char *AI_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 	if (audio_delay_ms) {
 		/*CU is way too late, discard and fetch a new one - this usually happen when media speed is more than 1*/
 		if (drift>500) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Render] Audio data too late (drift %d ms) - resync forced\n", drift));
 			gf_mo_release_data(ai->stream, *size, 2);
 			ai->need_release = 0;
 			return AI_FetchFrame(callback, size, audio_delay_ms);
@@ -68,7 +70,6 @@ static char *AI_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Render] Audio clock: delay %d - obj time %d - CTS %d - adjust drift %d\n", audio_delay_ms, obj_time - audio_delay_ms, ts, drift));
 		gf_mo_adjust_clock(ai->stream, drift);
 	}
-
 	return frame;
 }
 

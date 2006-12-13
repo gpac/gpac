@@ -325,46 +325,46 @@ static Bool anchor_is_enabled(SensorHandler *sh)
 	return st->enabled;
 }
 
-static Bool OnAnchor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
+static Bool OnAnchor(SensorHandler *sh, GF_Event *evt, DrawableContext *ctx, GF_Matrix2D *sensor_matrix)
 {
 	u32 i;
-	GF_Event evt;
+	GF_Event event;
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(sh->owner);
 	M_Anchor *an = (M_Anchor *) sh->owner;
 
-	if (ev->context==NULL) {
-		evt.type = GF_EVENT_NAVIGATE_INFO;
-		evt.navigate.to_url = "";
-		st->compositor->user->EventProc(st->compositor->user->opaque, &evt);
+	if (ctx==NULL) {
+		event.type = GF_EVENT_NAVIGATE_INFO;
+		event.navigate.to_url = "";
+		st->compositor->user->EventProc(st->compositor->user->opaque, &event);
 		st->is_over = 0;
 		return 0;
 	}
 
-	if (ev->event_type == GF_EVENT_MOUSEMOVE) {
+	if (evt->type == GF_EVENT_MOUSEMOVE) {
 		if (!st->is_over && st->compositor->user->EventProc) {
-			evt.type = GF_EVENT_NAVIGATE_INFO;
-			evt.navigate.to_url = an->description.buffer;
-			if (!evt.navigate.to_url || !strlen(evt.navigate.to_url)) evt.navigate.to_url = an->url.vals[0].url;
-			st->compositor->user->EventProc(st->compositor->user->opaque, &evt);
+			event.type = GF_EVENT_NAVIGATE_INFO;
+			event.navigate.to_url = an->description.buffer;
+			if (!event.navigate.to_url || !strlen(event.navigate.to_url)) event.navigate.to_url = an->url.vals[0].url;
+			st->compositor->user->EventProc(st->compositor->user->opaque, &event);
 		}
 		st->is_over = 1;
 		return 0;
 	}
 
-	if ((ev->event_type != GF_EVENT_MOUSEUP) || (ev->button!=GF_MOUSE_LEFT)) return 0;
+	if ((evt->type != GF_EVENT_MOUSEUP) || (evt->mouse.button != GF_MOUSE_LEFT)) return 0;
 
-	evt.type = GF_EVENT_NAVIGATE;
-	evt.navigate.param_count = an->parameter.count;
-	evt.navigate.parameters = (const char **) an->parameter.vals;
+	event.type = GF_EVENT_NAVIGATE;
+	event.navigate.param_count = an->parameter.count;
+	event.navigate.parameters = (const char **) an->parameter.vals;
 	i=0;
 	while (i<an->url.count) {
-		evt.navigate.to_url = an->url.vals[i].url;
-		if (!evt.navigate.to_url) break;
+		event.navigate.to_url = an->url.vals[i].url;
+		if (!event.navigate.to_url) break;
 		/*current scene navigation*/
-		if (evt.navigate.to_url[0] == '#') {
+		if (event.navigate.to_url[0] == '#') {
 			GF_Node *n;
-			evt.navigate.to_url++;
-			n = gf_sg_find_node_by_name(gf_node_get_graph(sh->owner), (char *) evt.navigate.to_url);
+			event.navigate.to_url++;
+			n = gf_sg_find_node_by_name(gf_node_get_graph(sh->owner), (char *) event.navigate.to_url);
 			if (n) {
 				switch (gf_node_get_tag(n)) {
 				case TAG_MPEG4_Viewport:
@@ -375,10 +375,10 @@ static Bool OnAnchor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_mat
 				break;
 			}
 		} else if (st->compositor->term) {
-			if (gf_is_process_anchor(sh->owner, &evt))
+			if (gf_is_process_anchor(sh->owner, &event))
 				break;
 		} else if (st->compositor->user->EventProc) {
-			if (st->compositor->user->EventProc(st->compositor->user->opaque, &evt))
+			if (st->compositor->user->EventProc(st->compositor->user->opaque, &event))
 				break;
 		}
 
@@ -389,13 +389,13 @@ static Bool OnAnchor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_mat
 
 static void on_activate_anchor(GF_Node *node)
 {
-	UserEvent2D ev;
+	GF_Event ev;
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(node);
 	if (!((M_Anchor *)node)->activate) return;
 
-	ev.event_type = GF_EVENT_MOUSEUP;
-	ev.button = GF_MOUSE_LEFT;
-	OnAnchor(&st->hdl, &ev, NULL);
+	ev.type = GF_EVENT_MOUSEUP;
+	ev.mouse.button = GF_MOUSE_LEFT;
+	OnAnchor(&st->hdl, &ev, NULL, NULL);
 	return;
 }
 

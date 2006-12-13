@@ -3389,6 +3389,7 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, char *d
 
 GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 data_len)
 {
+	GF_BitStream *bs;
 	GF_Err e;
 	GF_ItemListBox *ilst;
 	GF_MetaBox *meta;
@@ -3508,12 +3509,10 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 		memcpy((*info)->data->data , data, sizeof(char)*data_len);
 
 	} else if (data_len && (tag==GF_ISOM_ITUNE_GENRE)) {
-		GF_BitStream *bs;
 		*info = (GF_ListItemBox *)gf_isom_box_new(btype);
 		if (*info == NULL) return GF_OUT_OF_MEM;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_u8(bs, 0);
-		gf_bs_write_u8(bs, data_len);
+		gf_bs_write_u16(bs, data_len);
 		gf_bs_get_content(bs, & (*info)->data->data, &(*info)->data->dataSize);
 		(*info)->data->flags = 0x0;
 		gf_bs_del(bs);
@@ -3524,6 +3523,14 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 		(*info)->data->data[0] = 1;
 		(*info)->data->dataSize = 1;
 		(*info)->data->flags = 21;
+	} else if (data_len && (tag==GF_ISOM_ITUNE_TEMPO)) {
+		*info = (GF_ListItemBox *)gf_isom_box_new(btype);
+		if (*info == NULL) return GF_OUT_OF_MEM;
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_u16(bs, data_len);
+		gf_bs_get_content(bs, & (*info)->data->data, &(*info)->data->dataSize);
+		(*info)->data->flags = 0x15;
+		gf_bs_del(bs);
 	}
 	return GF_OK;
 }

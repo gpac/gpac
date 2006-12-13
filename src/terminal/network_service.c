@@ -429,6 +429,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	char szExt[50];
 	GF_InputService *ifce;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Looking for plugin for URL %s\n", url));
 	*out_url = NULL;
 	if (!url) {
 		(*ret_code) = GF_URL_ERROR;
@@ -468,6 +469,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	/*load from mime type*/
 	if (mime_type) {
 		const char *sPlug = gf_cfg_get_key(term->user->config, "MimeTypes", mime_type);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Mime type found: %s\n", mime_type));
 		if (sPlug) sPlug = strrchr(sPlug, '"');
 		if (sPlug) {
 			sPlug += 2;
@@ -499,6 +501,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		ext = strrchr(szExt, '#');
 		if (ext) ext[0] = 0;
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] No mime type found - checking by extension %s\n", szExt));
 		keyCount = gf_cfg_get_key_count(term->user->config, "MimeTypes");
 		for (i=0; i<keyCount; i++) {
 			char *sMime, *sPlug;
@@ -528,6 +531,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		for (i=0; i< gf_modules_get_count(term->user->modules); i++) {
 			ifce = (GF_InputService *) gf_modules_load_interface(term->user->modules, i, GF_NET_CLIENT_INTERFACE);
 			if (!ifce) continue;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Checking if module %s supports URL %s\n", ifce->module_name, sURL));
 			if (net_check_interface(ifce) && ifce->CanHandleURL(ifce, sURL)) break;
 			gf_modules_close_interface((GF_BaseInterface *) ifce);
 			ifce = NULL;
@@ -539,6 +543,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		(*ret_code) = GF_NOT_SUPPORTED;
 		return NULL;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Found input plugin %s for URL %s\n", ifce->module_name, sURL));
 	*out_url = sURL;
 	return ifce;
 }

@@ -27,22 +27,6 @@
 
 #define BINOP_MINVAL ET_EQ
 
-static char* binaryOp[] =
-{
-	"==", "!=","<", "<=",
-	">", ">=", "+", "-",
-	"*", "/", "%",
-	"&&", "||",
-	"&", "|", "^",
-	"<<", ">>", ">>>"
-};
-
-static char* assignmentOp[] =
-{
-	"=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=",
-	"&=", "^=", "|="
-};
-
 typedef struct 
 {
 	GF_Node *script;
@@ -77,6 +61,7 @@ void SFS_Params(ScriptParser *parser);
 void SFS_GetNumber(ScriptParser *parser);
 void SFS_GetString(ScriptParser *parser);
 void SFS_GetBoolean(ScriptParser *parser);
+
 #define PARSER_STEP_ALLOC	500
 
 static void SFS_AddString(ScriptParser *parser, char *str)
@@ -514,90 +499,158 @@ void SFS_Expression(ScriptParser *parser)
 		break;
 
 	case ET_MULTIPLY:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "*");
+		SFS_Expression(parser);
+		break;
 	case ET_DIVIDE:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "/");
+		SFS_Expression(parser);
+		break;
 	case ET_MOD:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "%");
+		SFS_Expression(parser);
+		break;
 	case ET_PLUS:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "+");
+		SFS_Expression(parser);
+		break;
 	case ET_MINUS:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "-");
+		SFS_Expression(parser);
+		break;
 	case ET_LSHIFT:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "<<");
+		SFS_Expression(parser);
+		break;
 	case ET_RSHIFT:
+		SFS_Expression(parser);
+		SFS_AddString(parser, ">>");
+		SFS_Expression(parser);
+		break;
 	case ET_RSHIFTFILL:
+		SFS_Expression(parser);
+		SFS_AddString(parser, ">>>");
+		SFS_Expression(parser);
+		break;
 	case ET_AND:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "&");
+		SFS_Expression(parser);
+		break;
 	case ET_XOR:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "^");
+		SFS_Expression(parser);
+		break;
 	case ET_OR:
 		SFS_Expression(parser);
-		SFS_AddString(parser, binaryOp[val - BINOP_MINVAL]);
+		SFS_AddString(parser, "|");
 		SFS_Expression(parser);
 		break;
 	case ET_LT:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "<");
+		SFS_Expression(parser);
+		break;
 	case ET_LE:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "<=");
+		SFS_Expression(parser);
+		break;
 	case ET_GT:
+		SFS_Expression(parser);
+		SFS_AddString(parser, ">");
+		SFS_Expression(parser);
+		break;
 	case ET_GE:
+		SFS_Expression(parser);
+		SFS_AddString(parser, ">=");
+		SFS_Expression(parser);
+		break;
 	case ET_EQ:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "==");
+		SFS_Expression(parser);
+		break;
 	case ET_NE:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "!=");
+		SFS_Expression(parser);
+		break;
 	case ET_LAND:
+		SFS_Expression(parser);
+		SFS_AddString(parser, "&&");
+		SFS_Expression(parser);
+		break;
 	case ET_LOR:
 		SFS_Expression(parser);
-		SFS_AddString(parser, binaryOp[val - BINOP_MINVAL]);
+		SFS_AddString(parser, "||");
 		SFS_Expression(parser);
 		break;
 	case ET_ASSIGN:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[0]);
+		SFS_AddString(parser, "=");
 		SFS_Expression(parser);
 		break;
 	case ET_PLUSEQ:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[1]);
+		SFS_AddString(parser, "+=");
 		SFS_Expression(parser);
 		break;
 	case ET_MINUSEQ:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[2]);
+		SFS_AddString(parser, "-=");
 		SFS_Expression(parser);
 		break;
 	case ET_MULTIPLYEQ:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[3]);
+		SFS_AddString(parser, "*=");
 		SFS_Expression(parser);
 		break;
 	case ET_DIVIDEEQ:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[4]);
+		SFS_AddString(parser, "/=");
 		SFS_Expression(parser);
 		break;
 	case ET_MODEQ:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[5]);
+		SFS_AddString(parser, "%=");
 		SFS_Expression(parser);
 		break;
 	case ET_LSHIFTEQ:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[6]);
+		SFS_AddString(parser, "<<=");
 		SFS_Expression(parser);
 		break;
 	case ET_RSHIFTEQ:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[7]);
+		SFS_AddString(parser, ">>=");
 		SFS_Expression(parser);
 		break;
 	case ET_RSHIFTFILLEQ:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[8]);
+		SFS_AddString(parser, ">>>=");
 		SFS_Expression(parser);
 		break;
 	case ET_ANDEQ:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[9]);
+		SFS_AddString(parser, "&=");
 		SFS_Expression(parser);
 		break;
 	case ET_XOREQ:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[10]);
+		SFS_AddString(parser, "^=");
 		SFS_Expression(parser);
 		break;
 	case ET_OREQ:
 		SFS_Expression(parser);
-		SFS_AddString(parser, assignmentOp[11]);
+		SFS_AddString(parser, "|=");
 		SFS_Expression(parser);
 		break;
     case ET_BOOLEAN: 

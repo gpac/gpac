@@ -2148,17 +2148,17 @@ typedef struct
 } XMLBreaker;
 
 
-static void nhml_node_start(void *sax_cbck, const char *node_name, const char *name_space, GF_List *attributes)
+static void nhml_node_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	XMLBreaker *breaker = (XMLBreaker *)sax_cbck;
 	char *node_id;
-	u32 i=0;
+	u32 i;
 	GF_XMLAttribute *att;
 	node_id = NULL;
-	while ( (att = (GF_XMLAttribute *)gf_list_enum(attributes, &i))) {
+	for (i=0; i<nb_attributes; i++) {
+		att = (GF_XMLAttribute *) &attributes[i];
 		if (stricmp(att->name, "DEF") && stricmp(att->name, "id")) continue;
-		node_id = att->value;
-		att->value = NULL;
+		node_id = strdup(att->value);
 		break;
 	}
 	if (!node_id) node_id = strdup("__nhml__none");

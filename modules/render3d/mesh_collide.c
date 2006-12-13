@@ -251,7 +251,7 @@ void gf_mesh_build_aabbtree(GF_Mesh *mesh)
 	pars.depth = 0;
 	mesh_subdivide_aabbtree(mesh, mesh->aabb_root, &pars);
 
-	GF_LOG(GF_LOG_ERROR, GF_LOG_RENDER, ("[Render 3D] AABB tree done - %d nodes depth %d - size %d bytes\n", pars.nb_nodes, pars.depth, sizeof(AABBNode)*pars.nb_nodes));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] AABB tree done - %d nodes depth %d - size %d bytes\n", pars.nb_nodes, pars.depth, sizeof(AABBNode)*pars.nb_nodes));
 }
 
 

@@ -68,6 +68,9 @@ Double gf_term_get_framerate(GF_Terminal *term, Bool absoluteFPS);
 /*get main scene current time in milliseconds*/
 u32 gf_term_get_time_in_ms(GF_Terminal *term);
 
+/*returns current URL address*/
+const char *gf_term_get_url(GF_Terminal *term);
+
 /*get viewpoints/viewports for main scene - idx is 1-based, and if greater than number of viewpoints return GF_EOS*/
 GF_Err gf_term_get_viewpoint(GF_Terminal *term, u32 viewpoint_idx, const char **outName, Bool *is_bound);
 /*set active viewpoints/viewports for main scene given its name - idx is 1-based, or 0 to set by viewpoint name
@@ -111,13 +114,20 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com);
 */
 GF_Err gf_term_set_size(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
 
-/*decodes all pending media and render frame. This can only be used when the terminal runs
-in the non-threaded mode(GF_TERM_NOT_THREADED flag set)*/
-GF_Err gf_term_process(GF_Terminal *term);
+
+/*decodes pending media and render frame. 
+NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)
+*/
+GF_Err gf_term_process_step(GF_Terminal *term);
+
+/*decodes all pending media and render frame until no scene changes are detected.
+NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)
+*/
+GF_Err gf_term_process_flush(GF_Terminal *term);
 
 /*post user interaction to terminal*/
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
-void gf_term_user_event(GF_Terminal *term, GF_Event *event);
+Bool gf_term_user_event(GF_Terminal *term, GF_Event *event);
 
 /*post extended user mouse interaction to terminal 
 	X and Y are point coordinates in the display expressed in 2D coord system top-left (0,0), Y increasing towards bottom

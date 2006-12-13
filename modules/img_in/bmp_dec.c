@@ -25,7 +25,7 @@
 
 #include "img_in.h"
 
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(WIN32) || defined(_WIN32_WCE) || defined(__SYMBIAN32__)
 #else
 #include <netinet/in.h>
 #endif
@@ -102,7 +102,7 @@ static GF_Err BMP_ProcessData(GF_MediaDecoder *ifcg,
 		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
-	unsigned char *pix;
+	char *pix;
 	u32 i, j, irow, in_stride, out_stride, BPP;
 	GF_BitStream *bs;
 	BITMAPFILEHEADER fh;
@@ -112,8 +112,8 @@ static GF_Err BMP_ProcessData(GF_MediaDecoder *ifcg,
 	if (inBufferLength<54) return GF_NON_COMPLIANT_BITSTREAM;
 	bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
 
-#if defined(WIN32) || defined(_WIN32_WCE)
-	gf_bs_read_data(bs, (unsigned char *) &fh, 14);
+#if defined(WIN32) || defined(_WIN32_WCE) || defined(__SYMBIAN32__)
+	gf_bs_read_data(bs, (char *) &fh, 14);
 #else
 	fh.bfType = gf_bs_read_u16(bs);
 	fh.bfSize = gf_bs_read_u32(bs);
@@ -122,7 +122,7 @@ static GF_Err BMP_ProcessData(GF_MediaDecoder *ifcg,
 	fh.bfOffBits = gf_bs_read_u32(bs);
 	fh.bfOffBits = ntohl(fh.bfOffBits);
 #endif
-	gf_bs_read_data(bs, (unsigned char *) &fi, 40);
+	gf_bs_read_data(bs, (char *) &fi, 40);
 	gf_bs_del(bs);
 
 	if ((fi.biCompression != BI_RGB) || (fi.biPlanes!=1)) return GF_NOT_SUPPORTED;
@@ -177,7 +177,7 @@ static const char *BMP_GetCodecName(GF_BaseDecoder *dec)
 	return "BMP Decoder";
 }
 
-u32 NewBMPDec(GF_BaseDecoder *ifcd)
+Bool NewBMPDec(GF_BaseDecoder *ifcd)
 {
 	IMGDec *wrap = (IMGDec *) ifcd->privateStack;
 	BMPDec *dec = (BMPDec *) malloc(sizeof(BMPDec));

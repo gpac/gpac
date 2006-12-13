@@ -118,40 +118,41 @@ void MS_UpdateTiming(GF_ObjectManager *odm)
 	if (!ms_count) return;
 	
 	time = odm->current_time / 1000.0;
+
 	for (j=0; j<ms_count; j++) {
 		MediaSensorStack *media_sens = (MediaSensorStack *)gf_list_get(odm->ms_stack, j);
 		if (!media_sens->is_init) continue;
 		count = gf_list_count(media_sens->seg);
-		if (media_sens->active_seg==count) {
-			/*full object controled*/
-			if (!count) {
-				if (!media_sens->sensor->isActive) {
-					media_sens->sensor->isActive = 1;
-					gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
-					if (odm->subscene) {
-						media_sens->sensor->mediaDuration = (Double) (s64)odm->subscene->duration;
-					} else {
-						media_sens->sensor->mediaDuration = (Double) (s64)odm->duration;
-					}
-					media_sens->sensor->mediaDuration /= 1000;
-					gf_node_event_out_str((GF_Node *) media_sens->sensor, "mediaDuration");
+		
+		/*full object controled*/
+		if (!media_sens->active_seg && !count) {
+			if (!media_sens->sensor->isActive) {
+				media_sens->sensor->isActive = 1;
+				gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
+				if (odm->subscene) {
+					media_sens->sensor->mediaDuration = (Double) (s64)odm->subscene->duration;
+				} else {
+					media_sens->sensor->mediaDuration = (Double) (s64)odm->duration;
 				}
-				if (media_sens->sensor->mediaCurrentTime != time) {
-					media_sens->sensor->mediaCurrentTime = time;
-					gf_node_event_out_str((GF_Node *) media_sens->sensor, "mediaCurrentTime");
-				}
-				/*check for end of scene (MediaSensor on inline)*/
-				if (odm->subscene && odm->subscene->duration) {
-					GF_Clock *ck = gf_odm_get_media_clock(odm);
-					if (ck->has_seen_eos && media_sens->sensor->isActive && (1000*time>=(Double) (s64)odm->subscene->duration)) {
-						media_sens->sensor->isActive = 0;
-						gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
-					}
-				}
-				continue;
+				media_sens->sensor->mediaDuration /= 1000;
+				gf_node_event_out_str((GF_Node *) media_sens->sensor, "mediaDuration");
 			}
-		}
+			if (media_sens->sensor->mediaCurrentTime != time) {
+				media_sens->sensor->mediaCurrentTime = time;
+				gf_node_event_out_str((GF_Node *) media_sens->sensor, "mediaCurrentTime");
+			}
+			/*check for end of scene (MediaSensor on inline)*/
+			if (odm->subscene && odm->subscene->duration) {
+				GF_Clock *ck = gf_odm_get_media_clock(odm);
+				if (ck->has_seen_eos && media_sens->sensor->isActive && (1000*time>=(Double) (s64)odm->subscene->duration)) {
+					media_sens->sensor->isActive = 0;
+					gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
 
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[ODM%d] Deactivating media sensor\n", odm->OD->objectDescriptorID));
+				}
+			}
+			continue;
+		}
 
 		/*locate segment*/
 		for (i=media_sens->active_seg; i<count; i++) {
@@ -161,6 +162,8 @@ void MS_UpdateTiming(GF_ObjectManager *odm)
 				if (media_sens->sensor->isActive) {
 					media_sens->sensor->isActive = 0;
 					gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
+
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[ODM%d] Deactivating media sensor at time %g - segment %s\n", odm->OD->objectDescriptorID, time, desc->SegmentName));
 				}
 				break;
 			}
@@ -188,6 +191,8 @@ void MS_UpdateTiming(GF_ObjectManager *odm)
 				/*set seg start time*/
 				media_sens->sensor->streamObjectStartTime = desc->startTime;
 				gf_node_event_out_str((GF_Node *) media_sens->sensor, "streamObjectStartTime");
+
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[ODM%d] Activating media sensor time %g - segment %s\n", odm->OD->objectDescriptorID, time, desc->SegmentName));
 			}
 			/*set media time - relative to segment start time*/
 			time -= desc->startTime;
@@ -203,6 +208,7 @@ void MS_UpdateTiming(GF_ObjectManager *odm)
 				media_sens->sensor->isActive = 0;
 				gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
 				media_sens->active_seg = count;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[ODM%d] Deactivating media sensor at time %g: no more segments\n", odm->OD->objectDescriptorID, time));
 			}
 		}
 	}
@@ -213,6 +219,8 @@ void MS_Stop(MediaSensorStack *st)
 	if (st->sensor->isActive) {
 		st->sensor->isActive = 0;
 		gf_node_event_out_str((GF_Node *) st->sensor, "isActive");
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[ODM%d] Deactivating media sensor\n", st->stream->odm->OD->objectDescriptorID));
 	}
 	st->active_seg = 0;
 }

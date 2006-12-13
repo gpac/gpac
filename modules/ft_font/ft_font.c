@@ -23,7 +23,44 @@
  */
 
 
-#include "ft_font.h"
+#include <gpac/modules/font.h>
+#include <gpac/list.h>
+#include <gpac/utf.h>
+#include <gpac/tools.h>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_GLYPH_H
+#include FT_OUTLINE_H
+/*TrueType tables*/
+#include FT_TRUETYPE_TABLES_H 
+
+
+typedef struct
+{
+	FT_Library library;
+	FT_Face active_face;
+
+	char *font_dir;
+
+	Fixed pixel_size;
+
+	GF_List *loaded_fonts;
+
+	/*0: no line, 1: underlined, 2: strikeout*/
+	u32 strike_style;
+
+	Bool register_font;
+
+	/*temp storage for enum - may be NULL*/
+	const char *tmp_font_name;
+	const char *tmp_font_style;
+	/*default fonts*/
+	char font_serif[1024];
+	char font_sans[1024];
+	char font_fixed[1024];
+} FTBuilder;
+
 
 
 static GF_Err ft_init_font_engine(GF_FontRaster *dr)
@@ -35,7 +72,10 @@ static GF_Err ft_init_font_engine(GF_FontRaster *dr)
 	if (!sOpt) return GF_BAD_PARAM;
 
 	/*inits freetype*/
-	if (FT_Init_FreeType(&ftpriv->library) ) return GF_IO_ERR;
+	if (FT_Init_FreeType(&ftpriv->library) ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FreeType] Cannot initialize FreeType\n"));
+		return GF_IO_ERR;
+	}
 
 	/*remove the final delimiter*/
     ftpriv->font_dir = strdup(sOpt);
@@ -61,6 +101,9 @@ static GF_Err ft_init_font_engine(GF_FontRaster *dr)
 	
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed");
 	if (sOpt) strcpy(ftpriv->font_fixed, sOpt);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Init OK - font directpry %s\n", ftpriv->font_dir));
+	
 	return GF_OK;
 }
 
@@ -165,6 +208,8 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 	GF_FontRaster *dr = cbck;
 	FTBuilder *ftpriv = dr->priv;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Enumerating font %s (%s)\n", file_name, file_path));
+
 	if (FT_New_Face(ftpriv->library, file_path, 0, & face )) return 0;
 	if (!face) return 0;
 
@@ -191,6 +236,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 	gf_list_add(ftpriv->loaded_fonts, face);
 	ftpriv->active_face = face;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Found font %s in directory %s\n", file_name, file_path));
 	/*and store entry in cfg file*/
 	if (ftpriv->register_font) {
 		char szFont[GF_MAX_PATH];
@@ -235,6 +281,8 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 
 	if (styles && (!stricmp(styles, "PLAIN") || !stricmp(styles, "REGULAR"))) styles = NULL;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Setting current font to %s (styles %s)\n", fontName, styles));
+
 	/*first look in loaded fonts*/
 	ftpriv->active_face = ft_font_in_cache(ftpriv, fontName, styles);
 	if (ftpriv->active_face) return GF_OK;
@@ -268,6 +316,7 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 		}
 	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Looking for fonts in %s\n", ftpriv->font_dir));
 	/*not found, browse all fonts*/
 	ftpriv->register_font = 1;
 	if (!strlen(ftpriv->tmp_font_name)) ftpriv->tmp_font_name = NULL;
@@ -313,6 +362,7 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 			}
 		}
 	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Font not found\n"));
 	return GF_NOT_SUPPORTED;
 }
 
@@ -611,18 +661,21 @@ void FT_Delete(GF_BaseInterface *ifce)
 
 #ifndef GPAC_STANDALONE_RENDER_2D
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_FONT_RASTER_INTERFACE) return 1;
 	return 0;
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_FONT_RASTER_INTERFACE) return (GF_BaseInterface *)FT_Load();
 	return NULL;
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

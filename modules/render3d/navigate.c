@@ -222,7 +222,7 @@ void R3D_FitScene(Render3D *sr)
 	gf_mx_v(sr->compositor->mx);
 }
 
-static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
+static Bool R3D_HandleEvents3D(Render3D *sr, GF_Event *ev)
 {
 	Fixed x, y, trans_scale;
 	Fixed dx, dy, key_trans, key_pan, key_exam;
@@ -245,7 +245,7 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 	keys = sr->compositor->key_states;
 	x = y = 0;
 	/*renorm between -1, 1*/
-	if (ev->event_type<=GF_EVENT_MOUSEWHEEL) {
+	if (ev->type<=GF_EVENT_MOUSEWHEEL) {
 		x = gf_divfix( INT2FIX(ev->mouse.x + (s32) sr->surface->width/2), INT2FIX(sr->surface->width));
 		y = gf_divfix( INT2FIX(ev->mouse.y + (s32) sr->surface->height/2), INT2FIX(sr->surface->height));
 	}
@@ -268,7 +268,7 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 		key_trans*=4;
 	}
 
-	switch (ev->event_type) {
+	switch (ev->type) {
 	case GF_EVENT_MOUSEDOWN:
 		/*left*/
 		if (ev->mouse.button==GF_MOUSE_LEFT) {
@@ -494,7 +494,7 @@ static void VS_SetZoom2D(VisualSurface *surf, Fixed zoom)
 }
 
 /*let's try to keep the same behaviour as the 2D renderer*/
-static Bool VS_HandleEvents2D(VisualSurface *surf, GF_UserEvent *ev)
+static Bool VS_HandleEvents2D(VisualSurface *surf, GF_Event *ev)
 {
 	Fixed x, y, dx, dy, key_trans, key_rot;
 	s32 key_inv;
@@ -504,7 +504,7 @@ static Bool VS_HandleEvents2D(VisualSurface *surf, GF_UserEvent *ev)
 
 	x = y = 0;
 	/*renorm between -1, 1*/
-	if (ev->event_type<=GF_EVENT_MOUSEWHEEL) {
+	if (ev->type<=GF_EVENT_MOUSEWHEEL) {
 		x = INT2FIX(ev->mouse.x);
 		y = INT2FIX(ev->mouse.y);
 	} else {
@@ -527,7 +527,7 @@ static Bool VS_HandleEvents2D(VisualSurface *surf, GF_UserEvent *ev)
 
 	if (!is_pixel_metrics) { key_trans /= surf->width;}
 
-	switch (ev->event_type) {
+	switch (ev->type) {
 	case GF_EVENT_MOUSEDOWN:
 		/*left*/
 		if (ev->mouse.button==GF_MOUSE_LEFT) {
@@ -608,7 +608,7 @@ static Bool VS_HandleEvents2D(VisualSurface *surf, GF_UserEvent *ev)
 }
 
 
-Bool R3D_HandleUserEvent(Render3D *sr, GF_UserEvent *ev)
+Bool R3D_HandleUserEvent(Render3D *sr, GF_Event *ev)
 {
 	if (sr->root_is_3D || sr->active_layer) {
 		return R3D_HandleEvents3D(sr, ev);

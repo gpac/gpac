@@ -674,46 +674,44 @@ GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
 	AAC parser
 */
 
-static const char *M4A_ObjectTypesNames[] = {
-    "Reserved",
-    "AAC Main",
-    "AAC LC",
-    "AAC SSR",
-    "AAC LTP",
-    "SBR",
-    "AAC Scalable",
-    "TwinVQ",
-    "CELP", 
-    "HVXC",
-    "Reserved", 
-    "Reserved"
-    "TTSI",
-    "Main synthetic",
-    "Wavetable synthesis",
-    "General MIDI",
-    "Algorithmic Synthesis and Audio FX",
-    "ER AAC LC",
-    "Reserved",
-    "ER AAC LTP",
-    "ER AAC scalable",
-    "ER TwinVQ",
-    "ER BSAC",
-    "ER AAC LD",
-    "ER CELP",
-    "ER HVXC",
-    "ER HILN",
-    "ER Parametric",
-    "(Reserved)",
-    "(Reserved)",
-    "(Reserved)",
-    "(Reserved)"
-};
-
 GF_EXPORT
 const char *gf_m4a_object_type_name(u32 objectType)
 {
-  if (objectType>=32) return NULL;
-  return M4A_ObjectTypesNames[objectType];
+	switch (objectType) {
+	case 0: return "Reserved";
+	case 1: return "AAC Main";
+	case 2: return "AAC LC";
+	case 3: return "AAC SSR";
+	case 4: return "AAC LTP";
+	case 5: return "SBR";
+	case 6: return "AAC Scalable";
+	case 7: return "TwinVQ";
+	case 8: return "CELP";
+	case 9: return "HVXC";
+	case 10: return "Reserved";
+	case 11: return "Reserved";
+	case 12: return "TTSI";
+	case 13: return "Main synthetic";
+	case 14: return "Wavetable synthesis";
+	case 15: return "General MIDI";
+	case 16: return "Algorithmic Synthesis and Audio FX";
+	case 17: return "ER AAC LC";
+	case 18: return "Reserved";
+	case 19: return "ER AAC LTP";
+	case 20: return "ER AAC scalable";
+	case 21: return "ER TwinVQ";
+	case 22: return "ER BSAC";
+	case 23: return "ER AAC LD";
+	case 24: return "ER CELP";
+	case 25: return "ER HVXC";
+	case 26: return "ER HILN";
+	case 27: return "ER Parametric";
+	case 28: return "(Reserved)";
+	case 29: return "(Reserved)";
+	case 30: return "(Reserved)";
+	case 31: return "(Reserved)";
+	default: return "Unknown";
+	}
 }
 
 GF_EXPORT
@@ -868,12 +866,38 @@ u8 gf_mp3_num_channels(u32 hdr)
 }
 
 
-static u16 MP3SamplingRates[4][3] = {
-	{ 11025, 12000, 8000 },		/* MPEG-2.5 */
-	{ 0, 0, 0 },
-	{ 22050, 24000, 16000 },	/* MPEG-2 */
-	{ 44100, 48000, 32000 }		/* MPEG-1 */
-};
+static GFINLINE u32 get_MP3SamplingRates(u32 version, u32 idx) 
+{
+	switch (version) {
+	case 0:
+		switch (idx) {
+		case 0: return 11025;
+		case 1: return 12000;
+		case 2: return 8000;
+		default: return 0;
+		}
+		break;
+	case 1:
+		return 0;
+	case 2:
+		switch (idx) {
+		case 0: return 22050;
+		case 1: return 24000;
+		case 3: return 16000;
+		default: return 0;
+		}
+		break;
+	case 3:
+		switch (idx) {
+		case 0: return 44100;
+		case 1: return 48000;
+		case 3: return 32000;
+		default: return 0;
+		}
+		break;
+	}
+	return 0;
+}
 
 GF_EXPORT
 u16 gf_mp3_sampling_rate(u32 hdr)
@@ -881,7 +905,7 @@ u16 gf_mp3_sampling_rate(u32 hdr)
 	/* extract the necessary fields from the MP3 header */
 	u8 version = gf_mp3_version(hdr);
 	u8 sampleRateIndex = (hdr >> 10) & 0x3;
-	return MP3SamplingRates[version][sampleRateIndex];
+	return get_MP3SamplingRates(version, sampleRateIndex);
 }
 
 GF_EXPORT
@@ -912,34 +936,127 @@ u8 gf_mp3_object_type_indication(u32 hdr)
 		return 0x00;
 	}
 }
-static const char *MP3_Versions[] = 
-{
-	"MPEG-2.5",
-	"Reserved",
-	"MPEG-2",
-	"MPEG-1"
-};
 
 GF_EXPORT
 const char *gf_mp3_version_name(u32 hdr)
 {
-  u32 v = gf_mp3_version(hdr);
-  if (v>3) return NULL;
-  return MP3_Versions[v];
+	u32 v = gf_mp3_version(hdr);
+	switch (v) {
+	case 0: return "MPEG-2.5";
+	case 1: return "Reserved";
+	case 2: return "MPEG-2";
+	case 3: return "MPEG-1";
+	default: return "Unknown";
+	}
 }
 
-static u16 MP3BitRates[5][14] = {
+static GFINLINE u32 get_MP3BitRates(u32 idx1, u32 idx2) 
+{
+	switch (idx1) {
 	/* MPEG-1, Layer III */
-	{ 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320 },
+	case 0:
+		switch (idx2) {
+		case 0: return 32;
+		case 1: return 40;
+		case 2: return 48;
+		case 3: return 56;
+		case 4: return 64;
+		case 5: return 80;
+		case 6: return 96;
+		case 7: return 112;
+		case 8: return 128;
+		case 9: return 160;
+		case 10: return 192;
+		case 11: return 224;
+		case 12: return 256;
+		case 13: return 320;
+		default: return 0;
+		}
+		break;
 	/* MPEG-1, Layer II */
-	{ 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384 },
+	case 1:
+		switch (idx2) {
+		case 0: return 32;
+		case 1: return 48;
+		case 2: return 56;
+		case 3: return 64;
+		case 4: return 80;
+		case 5: return 96;
+		case 6: return 112;
+		case 7: return 128;
+		case 8: return 160;
+		case 9: return 192;
+		case 10: return 224;
+		case 11: return 256;
+		case 12: return 320;
+		case 13: return 384;
+		default: return 0;
+		}
+		break;
 	/* MPEG-1, Layer I */
-	{ 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448 },
+	case 2:
+		switch (idx2) {
+		case 0: return 32;
+		case 1: return 64;
+		case 2: return 96;
+		case 3: return 128;
+		case 4: return 160;
+		case 5: return 192;
+		case 6: return 224;
+		case 7: return 256;
+		case 8: return 288;
+		case 9: return 320;
+		case 10: return 352;
+		case 11: return 384;
+		case 12: return 416;
+		case 13: return 448;
+		default: return 0;
+		}
+		break;
 	/* MPEG-2 or 2.5, Layer II or III */
-	{ 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160 },
+	case 3:
+		switch (idx2) {
+		case 0: return 8;
+		case 1: return 16;
+		case 2: return 24;
+		case 3: return 32;
+		case 4: return 40;
+		case 5: return 48;
+		case 6: return 56;
+		case 7: return 64;
+		case 8: return 80;
+		case 9: return 96;
+		case 10: return 112;
+		case 11: return 128;
+		case 12: return 144;
+		case 13: return 160;
+		default: return 0;
+		}
+		break;
 	/* MPEG-2 or 2.5, Layer I */
-	{ 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256 }
-};
+	case 4:
+		switch (idx2) {
+		case 0: return 32;
+		case 1: return 48;
+		case 2: return 56;
+		case 3: return 64;
+		case 4: return 80;
+		case 5: return 96;
+		case 6: return 112;
+		case 7: return 128;
+		case 8: return 144;
+		case 9: return 160;
+		case 10: return 176;
+		case 11: return 192;
+		case 12: return 224;
+		case 13: return 256;
+		default: return 0;
+		}
+		break;
+	default:
+		return 0;
+	}
+}
 
 
 GF_EXPORT
@@ -952,7 +1069,7 @@ u16 gf_mp3_frame_size(u32 hdr)
 	u8 bitRateIndex2 = (hdr >> 12) & 0xF;
 	u8 sampleRateIndex = (hdr >> 10) & 0x3;
 	Bool isPadded = (hdr >> 9) & 0x1;
-	u16 frameSize = 0;
+	u32 frameSize = 0;
 
 	if (version == 3) {
 		bitRateIndex1 = layer - 1;
@@ -965,9 +1082,11 @@ u16 gf_mp3_frame_size(u32 hdr)
 	}
 
 	/* compute frame size */
-	val = (MP3SamplingRates[version][sampleRateIndex] << !(version & 1));
+	val = get_MP3SamplingRates(version, sampleRateIndex);
+	if (!(version & 1)) val <<= 1;
 	if (!val) return 0;
-	frameSize = 144 * 1000 * MP3BitRates[bitRateIndex1][bitRateIndex2-1] / val;
+	frameSize = 144 * 1000 * get_MP3BitRates(bitRateIndex1, bitRateIndex2-1);
+	frameSize /= val;
 
 	if (isPadded) {
 		if (layer == 3) {
@@ -976,7 +1095,7 @@ u16 gf_mp3_frame_size(u32 hdr)
 			frameSize++;
 		}
 	}
-	return frameSize;
+	return (u16) frameSize;
 }
 
 
@@ -997,7 +1116,7 @@ u16 gf_mp3_bit_rate(u32 hdr)
 	}
 
 	/* compute frame size */
-	return MP3BitRates[bitRateIndex1][bitRateIndex2-1];
+	return get_MP3BitRates(bitRateIndex1, bitRateIndex2-1);
 }
 
 
@@ -1007,7 +1126,7 @@ u32 gf_mp3_get_next_header(FILE* in)
 {
 	u8 b, state = 0;
 	u32 dropped = 0;
-	u8 bytes[4];
+	unsigned char bytes[4];
 	bytes[0] = bytes[1] = bytes[2] = bytes[3] = 0;
 
 	while (1) {

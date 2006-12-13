@@ -24,34 +24,68 @@
 
 #include <gpac/internal/renderer_dev.h>
 
-void AR_FillBuffer(void *ar, char *buffer, u32 buffer_size);
-u32 AR_MainLoop(void *ar);
 
-GF_Err AR_SetupAudioFormat(GF_AudioRenderer *ar)
+static GF_Err AR_SetupAudioFormat(GF_AudioRenderer *ar)
 {
 	GF_Err e;
-	u32 freq, nb_bits, nb_chan, BPS, ch_cfg;
+	u32 freq, nb_bits, nb_chan, ch_cfg;
 	gf_mixer_get_config(ar->mixer, &freq, &nb_chan, &nb_bits, &ch_cfg);
 
 	/*user disabled multichannel audio*/
 	if ((ar->flags && GF_SR_AUDIO_NO_MULTI_CH) && (nb_chan>2)) nb_chan = 2;
 
-	/*we try to set the FPS so that SR*2/FPS is an integer, and FPS the smallest int >= 30 fps */
-	BPS = freq * nb_chan * nb_bits / 8;
-	
 	e = ar->audio_out->ConfigureOutput(ar->audio_out, &freq, &nb_chan, &nb_bits, ch_cfg);
 	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioRender] reconfigure error %e\n", e));
 		if (nb_chan>2) {
 			nb_chan=2;
 			e = ar->audio_out->ConfigureOutput(ar->audio_out, &freq, &nb_chan, &nb_bits, ch_cfg);
 		}
 		if (e) return e;
 	}
-
 	gf_mixer_set_config(ar->mixer, freq, nb_chan, nb_bits, ch_cfg);
 	ar->audio_delay = ar->audio_out->GetAudioDelay(ar->audio_out);
 	return GF_OK;
 }
+
+void AR_FillBuffer(void *ptr, char *buffer, u32 buffer_size)
+{
+	GF_AudioRenderer *ar = (GF_AudioRenderer *) ptr;
+	if (!ar->need_reconfig) gf_mixer_get_output(ar->mixer, buffer, buffer_size);
+}
+
+u32 AR_MainLoop(void *p)
+{
+	GF_AudioRenderer *ar = (GF_AudioRenderer *) p;
+
+	ar->audio_th_state = 1;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] Entering audio thread\n"));
+
+	gf_mixer_lock(ar->mixer, 1);
+	ar->need_reconfig = 1;
+	gf_sr_ar_reconfig(ar);
+	gf_mixer_lock(ar->mixer, 0);
+
+	while (ar->audio_th_state == 1) {
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] Audio simulation step\n"));
+		gf_sleep(0);
+		gf_mixer_lock(ar->mixer, 1);
+		if (ar->Frozen) {
+			gf_mixer_lock(ar->mixer, 0);
+			gf_sleep(33);
+		} else {
+			if (ar->need_reconfig) gf_sr_ar_reconfig(ar);
+			ar->audio_out->WriteAudio(ar->audio_out);
+			gf_mixer_lock(ar->mixer, 0);
+		}
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] Exiting audio thread\n"));
+	ar->audio_out->Shutdown(ar->audio_out);
+	ar->audio_th_state = 3;
+	return 0;
+}
+
 
 GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 {
@@ -96,6 +130,7 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 			for (i=0; i<count; i++) {
 				ar->audio_out = (GF_AudioOutput *) gf_modules_load_interface(ar->user->modules, i, GF_AUDIO_OUTPUT_INTERFACE);
 				if (!ar->audio_out) continue;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] Audio output module %s loaded\n", ar->audio_out->module_name));
 				/*check that's a valid audio renderer*/
 				if (ar->audio_out->SelfThreaded) {
 					if (ar->audio_out->SetPriority) break;
@@ -111,9 +146,14 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 		if (ar->audio_out) {
 			ar->audio_out->FillBuffer = AR_FillBuffer;
 			ar->audio_out->audio_renderer = ar;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] Setting up audio module %s\n", ar->audio_out->module_name));
 			e = ar->audio_out->Setup(ar->audio_out, ar->user->os_window_handler, num_buffers, total_duration);
-			if (e==GF_OK) e = AR_SetupAudioFormat(ar);
+			
+			/*if audio module is not threaded, reconfigure it from our own thread*/
+//			if (e==GF_OK) e = AR_SetupAudioFormat(ar);
+
 			if (e != GF_OK) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("Could not setup audio out %s\n", ar->audio_out->module_name));
 				gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
 				ar->audio_out = NULL;
 			} else {
@@ -121,10 +161,11 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 				gf_cfg_set_key(user->config, "Audio", "DriverName", ar->audio_out->module_name);
 				if (!ar->audio_out->SelfThreaded) {
 					ar->th = gf_th_new();
-					ar->audio_th_state = 1;
 					gf_th_run(ar->th, AR_MainLoop, ar);
+				} else {
+					AR_SetupAudioFormat(ar);
+					if (ar->audio_out->SetPriority) ar->audio_out->SetPriority(ar->audio_out, GF_THREAD_PRIORITY_REALTIME);
 				}
-				if (ar->audio_out->SelfThreaded && ar->audio_out->SetPriority) ar->audio_out->SetPriority(ar->audio_out, GF_THREAD_PRIORITY_REALTIME);
 			}
 		}
 		if (!ar->audio_out) gf_cfg_set_key(user->config, "Audio", "DriverName", "No Audio Output Available");
@@ -148,27 +189,32 @@ void gf_sr_ar_del(GF_AudioRenderer *ar)
 {
 	if (!ar) return;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] Destroying renderer\n"));
 	/*resume if paused (might cause deadlock otherwise)*/
 	if (ar->Frozen) gf_sr_ar_control(ar, 1);
 	/*stop and shutdown*/
 	if (ar->audio_out) {
 		/*kill audio thread*/
 		if (!ar->audio_out->SelfThreaded) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] stoping audio thread\n"));
 			ar->audio_th_state = 2;
-			while (ar->audio_th_state != 3) gf_sleep(10);
+			while (ar->audio_th_state != 3) {
+				gf_sleep(33);
+			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] audio thread stopped\n"));
 			gf_th_del(ar->th);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] audio thread destroyed\n"));
 		}
 		/*lock access before shutdown and emulate a reconfig (avoids mixer lock from self-threaded modules)*/
 		ar->need_reconfig = 1;
 		gf_mixer_lock(ar->mixer, 1);
-		ar->audio_out->Shutdown(ar->audio_out);
+		if (ar->audio_out->SelfThreaded) ar->audio_out->Shutdown(ar->audio_out);
 		gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
 		gf_mixer_lock(ar->mixer, 0);
 	}
-
-
 	gf_mixer_del(ar->mixer);
 	free(ar);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] Renderer destroyed\n"));
 }
 
 
@@ -251,31 +297,6 @@ void gf_sr_ar_set_priority(GF_AudioRenderer *ar, u32 priority)
 	}
 }
 
-u32 AR_MainLoop(void *p)
-{
-	GF_AudioRenderer *ar = (GF_AudioRenderer *) p;
-
-	ar->audio_th_state = 1;
-	while (ar->audio_th_state == 1) {
-		gf_mixer_lock(ar->mixer, 1);
-		if (ar->Frozen) {
-			gf_mixer_lock(ar->mixer, 0);
-			gf_sleep(10);
-		} else {
-			ar->audio_out->WriteAudio(ar->audio_out);
-			gf_mixer_lock(ar->mixer, 0);
-		}
-	}
-	ar->audio_th_state = 3;
-	return 0;
-}
-
-void AR_FillBuffer(void *ptr, char *buffer, u32 buffer_size)
-{
-	GF_AudioRenderer *ar = (GF_AudioRenderer *) ptr;
-	if (!ar->need_reconfig) gf_mixer_get_output(ar->mixer, buffer, buffer_size);
-}
-
 void gf_sr_ar_reconfig(GF_AudioRenderer *ar)
 {
 	if (!ar->need_reconfig || !ar->audio_out) return;
@@ -284,11 +305,11 @@ void gf_sr_ar_reconfig(GF_AudioRenderer *ar)
 
 	AR_FreezeIntern(ar, 1, 1, 0);
 
+	ar->need_reconfig = 0;
 	AR_SetupAudioFormat(ar);
 
 	AR_FreezeIntern(ar, 0, 1, 0);
 	
-	ar->need_reconfig = 0;
 	/*unlock mixer*/
 	gf_mixer_lock(ar->mixer, 0);
 }

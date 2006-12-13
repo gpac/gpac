@@ -56,14 +56,21 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
 	if (!decSpecInfoSize || !decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Attaching stream %d\n", ES_ID));
+
 	if (ctx->codec) faacDecClose(ctx->codec);
 	ctx->codec = faacDecOpen();
-	if (!ctx->codec) return GF_IO_ERR;
+	if (!ctx->codec) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing decoder\n"));
+		return GF_IO_ERR;
+	}
 
 	e = gf_m4a_get_config((unsigned char *) decSpecInfo, decSpecInfoSize, &a_cfg);
 	if (e) return e;
-	if ( (s8) faacDecInit2(ctx->codec, (unsigned char *) decSpecInfo, decSpecInfoSize, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels) < 0)
+	if ( (s8) faacDecInit2(ctx->codec, (unsigned char *) decSpecInfo, decSpecInfoSize, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels) < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing stream %d\n", ES_ID));
 		return GF_NOT_SUPPORTED;
+	}
 
 	ctx->is_sbr = a_cfg.has_sbr;
 	ctx->num_samples = 1024;
@@ -196,15 +203,19 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 		return GF_BUFFER_TOO_SMALL;
 	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Decoding AU\n"));
 	buffer = faacDecDecode(ctx->codec, &ctx->info, inBuffer, inBufferLength);
 	if (ctx->info.error>0) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Error decoding AU %d\n", ctx->info.error));
 		*outBufferLength = 0;
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (!ctx->info.samples || !buffer || !ctx->info.bytesconsumed) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] empty/non complete AU\n"));
 		*outBufferLength = 0;
 		return GF_OK;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] AU decoded\n"));
 
 	/*FAAD froces us to decode a frame to get channel cfg*/
 	if (ctx->signal_mc) {

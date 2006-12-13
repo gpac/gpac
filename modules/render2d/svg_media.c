@@ -169,7 +169,6 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 			if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, & ((SVGElement *)node)->xlink->href)) {
 				gf_term_set_mfurl_from_uri(st->txh.compositor->term, &(st->txurl), & ((SVGElement*)node)->xlink->href);
 				if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("URL changed to %s\n", st->txurl.vals[0].url));
 				gf_sr_texture_play(&st->txh, &st->txurl);
 			}
 		} 

@@ -120,7 +120,7 @@ GF_EXPORT
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config)
 {
 	GF_CodecCapability cap;
-	if (mo->type != GF_MEDIA_OBJECT_AUDIO) return 0;
+	if (!mo->odm || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return 0;
 
 	if (sample_rate) {
 		cap.CapCode = GF_CODEC_SAMPLERATE;
@@ -217,7 +217,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 			if (CU->next->TS > obj_time) break;
 			nb_droped ++;
 			if (nb_droped>1) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MediaObject] ODM%d: At OTB %d dropped frame TS %d\n", obj_time, mo->odm->OD->objectDescriptorID, CU->TS));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At OTB %d dropped frame TS %d\n", obj_time, mo->odm->OD->objectDescriptorID, CU->TS));
 				mo->odm->codec->nb_droped++;
 			}
 			/*discard*/
@@ -229,7 +229,12 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	}	
 	mo->framesize = CU->dataLength - CU->RenderedLength;
 	mo->frame = CU->data + CU->RenderedLength;
-	mo->timestamp = CU->TS;
+	if (mo->timestamp != CU->TS) {
+		MS_UpdateTiming(mo->odm);
+		mo->timestamp = CU->TS;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %d fetch frame TS %d size %d - %d unit in CB\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp, mo->framesize, mo->odm->codec->CB->UnitCount));
+	}
+
 	/*also adjust CU time based on consummed bytes in input, since some codecs output very large audio chunks*/
 	if (mo->odm->codec->bytes_per_sec) mo->timestamp += CU->RenderedLength * 1000 / mo->odm->codec->bytes_per_sec;
 
@@ -237,7 +242,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	*timestamp = mo->timestamp;
 	*size = mo->framesize;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MediaObject] ODM%d: At OTB %d fetch frame TS %d size %d - %d unit in CB\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp, mo->framesize, mo->odm->codec->CB->UnitCount));
 	gf_cm_lock(mo->odm->codec->CB, 0);
 	return mo->frame;
 }
@@ -410,7 +414,7 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url)
 	/*special case for 3GPP text: if not playing and user node changed, force removing it*/
 	if (ret && mo->odm && !mo->num_open && (mo->type == GF_MEDIA_OBJECT_TEXT)) {
 		mo->flags |= GF_MO_DISPLAY_REMOVE;
-		gf_mm_stop_codec(mo->odm->codec);
+		gf_term_stop_codec(mo->odm->codec);
 	}
 	return ret;
 }

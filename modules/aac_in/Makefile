@@ -27,7 +27,7 @@ CFLAGS+=-DGPAC_HAS_FAAD
 #local faad lib
 ifeq ($(CONFIG_FAAD), local)
 EXTRALIBS+=-L../../extra_lib/lib/gcc
-CFLAGS+= -I../../extra_lib/include/faad
+CFLAGS+= -I$(LOCAL_INC_PATH)/faad
 endif
 EXTRALIBS+= -lfaad
 endif

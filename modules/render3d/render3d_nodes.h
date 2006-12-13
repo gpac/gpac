@@ -98,7 +98,7 @@ GF_TextureHandler *r3d_composite_get_texture(GF_Node *node);
 /*returns true if appearance has a composite texture*/
 Bool r3d_has_composite_texture(GF_Node *appear);
 /*handle event when hit object has a composite texture*/
-Bool r3d_handle_composite_event(Render3D *sr, GF_UserEvent *ev);
+Bool r3d_handle_composite_event(Render3D *sr, GF_Event *ev);
 /*updates scaling if composite texture has been rescaled for HW support (need for bitamp)*/
 void R3D_CompositeAdjustScale(GF_Node *node, Fixed *sx, Fixed *sy);
 void R3D_InitCone(Render3D *sr, GF_Node *node);

@@ -495,12 +495,14 @@ static void AM_GetInputData(GF_AudioMixer *am, MixerInput *in, u32 audio_delay)
 		am_map_channels(inChan, in_ch, in->src->ch_cfg, out_ch, am->channel_cfg);
 
 		for (j=0; j<out_ch ; j++) {
-			* (in->ch_buf[j] + in->out_samples_written) = (s32) (inChan[j] * FIX2INT(100*in->pan[j]) / 100 );
+			in->ch_buf[j][in->out_samples_written] = (s32) (inChan[j] * FIX2INT(100*in->pan[j]) / 100 );
 		}
+
 		in->out_samples_written ++;
 		if (in->out_samples_written == in->out_samples_to_write) break;
 		i++;
 	}
+
 	if (!(ratio%255)) {
 		in->has_prev = 0;
 		if (next==src_samp) {
@@ -533,8 +535,8 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size)
 	MixerInput *in, *single_source;
 	Fixed pan[6];
 	Bool is_muted;
-	u32 i, j, count, size, in_size, nb_samples, delay, nb_written;
-	s32 *out_mix, nb_act_src;
+	u32 i, j, count, size, in_size, nb_samples, delay, nb_written, nb_act_src;
+	s32 *out_mix;
 	char *data, *ptr;
 
 	/*the config has changed we don't write to output since settings change*/
@@ -596,11 +598,10 @@ single_source_mix:
 	/*not completely filled*/
 	if (buffer_size) {
 		if (!data) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Mixer] not enough input data (%d still to fill)\n", buffer_size));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_RENDER, ("[Audio Mixer] not enough input data (%d still to fill)\n", buffer_size));
 		}
 		memset(ptr, 0, buffer_size);
 	}
-
 	gf_mixer_lock(am, 0);
 	return (in_size - buffer_size);
 
@@ -617,12 +618,12 @@ do_mix:
 	single_source = NULL;
 	for (i=0; i<count; i++) {
 		in = (MixerInput *)gf_list_get(am->sources, i);
-		if (in->buffer_size<buffer_size) { 
+		if (in->buffer_size < nb_samples) { 
 			for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
 				if (in->ch_buf[j]) free(in->ch_buf[j]); 
-				in->ch_buf[j] = (s32 *) malloc(sizeof(s32) * buffer_size);
+				in->ch_buf[j] = (s32 *) malloc(sizeof(s32) * nb_samples);
 			}
-			in->buffer_size = buffer_size; 
+			in->buffer_size = nb_samples; 
 		}
 		in->speed = in->src->GetSpeed(in->src->callback);
 		if (in->speed<0) in->speed *= -1;

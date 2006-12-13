@@ -272,7 +272,7 @@ static const char *JPEG_GetCodecName(GF_BaseDecoder *dec)
 }
 
 
-u32 NewJPEGDec(GF_BaseDecoder *ifcd)
+Bool NewJPEGDec(GF_BaseDecoder *ifcd)
 {
 	IMGDec *wrap = (IMGDec *) ifcd->privateStack;
 	JPEGDec *dec = (JPEGDec *) malloc(sizeof(JPEGDec));

@@ -91,12 +91,32 @@ SOURCE=..\..\..\src\utils\error.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\html.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\laser.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\..\src\utils\list.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\main.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\v1.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\v2.c
+# End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\svggen.h
+# End Source File
 # End Target
 # End Project

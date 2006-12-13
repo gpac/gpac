@@ -569,6 +569,16 @@ void generateSVGCode_V1(GF_List *svg_elements)
 	fprintf(output, "\tdefault: return \"UndefinedNode\";\n\t}\n}\n\n");
 
 	/***************************************************/	
+	/* const char *gf_svg_get_attribute_index_by_name(u32 tag) */
+	/***************************************************/	
+	fprintf(output, "s32 gf_svg_get_attribute_index_by_name(GF_Node *node, char *name)\n{\n\tswitch(node->sgprivate->tag) {\n");
+	for (i=0; i<gf_list_count(svg_elements); i++) {
+		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
+		fprintf(output, "\tcase TAG_SVG_%s: return gf_svg_%s_get_attribute_index_from_name(name);\n", elt->implementation_name, elt->implementation_name);
+	}
+	fprintf(output, "\tdefault: return -1;\n\t}\n}\n\n");
+
+	/***************************************************/	
 	/* Bool gf_svg_is_element_transformable(u32 tag) */
 	/***************************************************/	
 	fprintf(output, "Bool gf_svg_is_element_transformable(u32 tag)\n{\n\tswitch(tag) {\n");

@@ -1213,7 +1213,7 @@ static void reset_collide_cursor(Render3D *sr)
 	}
 }
 
-Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev, GF_List *node_list)
+Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_Event *ev, GF_List *node_list)
 {
 	Fixed x, y;
 	SFVec3f start, end;
@@ -1225,7 +1225,7 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 	Render3D *sr = surf->render;
 
 	count = 0;
-	if ((ev->event_type > GF_EVENT_MOUSEMOVE) || sr->nav_is_grabbed) return 0;
+	if ((ev->type > GF_EVENT_MOUSEMOVE) || sr->nav_is_grabbed) return 0;
 
 	eff->camera = &surf->camera;
 	eff->surface = surf;

@@ -477,7 +477,10 @@ DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	assert(eff->surface);
 
 	/*switched-off geometry nodes are not rendered*/
-	if (eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF) return NULL;
+	if (eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render2D] Drawable is switched off - skipping\n"));
+		return NULL;
+	}
 
 	//Get a empty context from the current surface
 	ctx = VS2D_GetDrawableContext(eff->surface);
@@ -532,11 +535,11 @@ DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	completely break layout of children. We consider the node should be drawn*/
 	if (!eff->parent && check_transparent_skip(ctx, skipFill)) {
 		VS2D_RemoveLastContext(eff->surface);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render2D] Drawable is fully transparent - skipping\n"));
 		return NULL;
 	}
 
 	//setup clipper if needed
-
 	return ctx;
 }
 

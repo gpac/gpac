@@ -176,6 +176,7 @@ SDL_Cursor *SDLVid_LoadCursor(char *maskdata)
 
 static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt) 
 {
+	evt->flags = 0;
 	evt->hw_code = SDLkey;
 	switch (SDLkey) {
 	case SDLK_BACKSPACE: evt->key_code = GF_KEY_BACKSPACE; break;
@@ -629,7 +630,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	ctx->os_handle = os_handle;
 	ctx->is_init = 0;
 	ctx->is_3D_out = cfg ? 1 : 0;
-	ctx->systems_memory = (init_flags & GF_TERM_NOT_THREADED) ? 2 : 0;
+	ctx->systems_memory = (init_flags & (GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION) ) ? 2 : 0;
 	if (!SDLOUT_InitSDL()) return GF_IO_ERR;
 	ctx->sdl_th_state = 0;
 	gf_th_run(ctx->sdl_th, SDLVid_EventProc, dr);
@@ -828,7 +829,6 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 		SDL_UnlockSurface(ctx->back_buffer);
 		SDL_UnlockSurface(ctx->screen);
-		fprintf(stdout, "SDL bad format\n");
 	} else {
 		rc.x = dest->x; rc.y = dest->y; rc.w = dest->w; rc.h = dest->h;
 		SDL_BlitSurface(ctx->back_buffer, NULL, ctx->screen, &rc);

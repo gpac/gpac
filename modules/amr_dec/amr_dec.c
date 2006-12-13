@@ -40,14 +40,7 @@
 
 typedef struct
 {
-	u32 sample_rate, out_size, num_samples;
-	u8 num_channels;
-	/*no support for scalability in AMR*/
-	u16 ES_ID;
-	u32 cb_size, cb_trig;
-
-	u32 frame_count;
-
+	u32 out_size;
 	/*AMR NB state vars*/
 	Speech_Decode_FrameState * speech_decoder_state;
     enum RXFrameType rx_type;
@@ -63,45 +56,39 @@ typedef struct
 static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	GF_BitStream *bs;
-	char name[5];
-	u32 codec_4cc;
+	u32 packed_size;
 	AMRCTX();
-	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
-
-	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
-	codec_4cc = gf_bs_read_u32(bs);
-	gf_bs_del(bs);
-	strcpy(name, gf_4cc_to_str(codec_4cc));
+	if (DependsOnES_ID) return GF_NOT_SUPPORTED;
 	
-	if (stricmp(name, "samr") && stricmp(name, "amr ")) return GF_NOT_SUPPORTED;
+	if (strnicmp(decSpecInfo, "samr", 4) && strnicmp(decSpecInfo, "amr ", 4)) return GF_NOT_SUPPORTED;
 
-	ctx->frame_count = 0;
 	ctx->reset_flag = 0;
 	ctx->reset_flag_old = 1;
 	ctx->mode = 0;
 	ctx->rx_type = 0;
 	ctx->speech_decoder_state = NULL;
 	if (Speech_Decode_Frame_init(&ctx->speech_decoder_state, "Decoder")) return GF_IO_ERR;
-	ctx->num_channels = 1;
-	ctx->num_samples = 160;
-	ctx->sample_rate = 8000;
-	
-	/*max possible frames in a sample are seen in MP4, that's 15*/
-	ctx->out_size = 15 * 2 * ctx->num_samples * ctx->num_channels;
-	ctx->ES_ID = ES_ID;
 
+	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+	gf_bs_read_u32(bs);
+	gf_bs_read_u16(bs);
+	gf_bs_read_u16(bs);
+	gf_bs_read_u8(bs);
+	gf_bs_read_u8(bs);
+	packed_size = (u32) gf_bs_read_u8(bs);
+	gf_bs_del(bs);
+	/*max possible frames in a sample are seen in MP4, that's 15*/
+	if (!packed_size) packed_size = 15;
+	
+	ctx->out_size = packed_size * 2 * 160;
 	return GF_OK;
 }
 
 static GF_Err AMR_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
 	AMRCTX();
-	if (ES_ID != ctx->ES_ID) return GF_BAD_PARAM;
 	Speech_Decode_Frame_exit(&ctx->speech_decoder_state);
 	ctx->speech_decoder_state = NULL;
-	ctx->ES_ID = 0;
-	ctx->sample_rate = ctx->out_size = ctx->num_samples = 0;
-	ctx->num_channels = 0;
 	return GF_OK;
 }
 static GF_Err AMR_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
@@ -116,33 +103,28 @@ static GF_Err AMR_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capa
 		capability->cap.valueInt = ctx->out_size;
 		break;
 	case GF_CODEC_SAMPLERATE:
-		capability->cap.valueInt = ctx->sample_rate;
+		capability->cap.valueInt = 8000;
 		break;
 	case GF_CODEC_NB_CHAN:
-		capability->cap.valueInt = ctx->num_channels;
+		capability->cap.valueInt = 1;
 		break;
 	case GF_CODEC_BITS_PER_SAMPLE:
 		capability->cap.valueInt = 16;
 		break;
 	case GF_CODEC_BUFFER_MIN:
-		capability->cap.valueInt = ctx->cb_trig;
+		capability->cap.valueInt = DEFAULT_AUDIO_CM_TRIGGER;
 		break;
 	case GF_CODEC_BUFFER_MAX:
-		capability->cap.valueInt = ctx->cb_size;
+		capability->cap.valueInt = DEFAULT_AUDIO_CM_SIZE;
 		break;
-	/*FIXME: get exact sampling window*/
 	case GF_CODEC_CU_DURATION:
-		capability->cap.valueInt = ctx->num_samples;
+		capability->cap.valueInt = 160;
 		break;
 	case GF_CODEC_PADDING_BYTES:
 		capability->cap.valueInt = 4;
 		break;
 	case GF_CODEC_CHANNEL_CONFIG:
-		if (ctx->num_channels==1) {
-			capability->cap.valueInt = GF_AUDIO_CH_FRONT_CENTER;
-		} else {
-			capability->cap.valueInt = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
-		}
+		capability->cap.valueInt = GF_AUDIO_CH_FRONT_CENTER;
 		break;
 	default:
 		capability->cap.valueInt = 0;
@@ -175,9 +157,6 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
     s32 i;
 	AMRCTX();
 
-	/*not using scalabilty*/
-	assert(ctx->ES_ID == ES_ID);
-
 	/*if late or seeking don't decode (each frame is a RAP)*/
 	/*	switch (mmlevel) {
 	case GF_CODEC_LEVEL_SEEK:
@@ -207,7 +186,6 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
 
 		/*Unsort and unpack bits*/
 		ctx->rx_type = UnpackBits(q, ft, packed_bits, &ctx->mode, &serial[1]);
-		ctx->frame_count++;
 
 		if (ctx->rx_type == RX_NO_DATA) {
 			ctx->mode = ctx->speech_decoder_state->prev_mode;
@@ -255,22 +233,13 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
 
 static u32 AMR_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
-	GF_BitStream *bs;
-	char name[5];
-	u32 codec_4cc;
-
 	/*we handle audio only*/
 	if (!ObjectType) return (StreamType==GF_STREAM_AUDIO) ? 1 : 0;
 
 	/*audio dec*/
 	if (!decSpecInfo || (StreamType != GF_STREAM_AUDIO) || (ObjectType != GPAC_EXTRA_CODECS_OTI)) return 0;
-	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
-	codec_4cc = gf_bs_read_u32(bs);
-	gf_bs_del(bs);
-
-	strcpy(name, gf_4cc_to_str(codec_4cc));
-
-	if (!stricmp(name, "samr") || !stricmp(name, "amr ")) return 1;
+	if (decSpecInfoSize<4) return 0;
+	if (!strnicmp(decSpecInfo, "samr", 4) || !strnicmp(decSpecInfo, "amr ", 4)) return 1;
 	return 0;
 }
 
@@ -289,9 +258,6 @@ GF_MediaDecoder *NewAMRDecoder()
 	memset(dec, 0, sizeof(AMRDec));
 	ifce->privateStack = dec;
 	ifce->CanHandleStream = AMR_CanHandleStream;
-
-	dec->cb_size = DEFAULT_AUDIO_CM_SIZE;
-	dec->cb_trig = DEFAULT_AUDIO_CM_TRIGGER;
 
 	/*setup our own interface*/	
 	ifce->AttachStream = AMR_AttachStream;

@@ -50,12 +50,12 @@ typedef struct
 all destructors only destroy their private stacks (eg not the interface nor the wraper)
 */
 #ifdef GPAC_HAS_PNG
-u32 NewPNGDec(GF_BaseDecoder *dec);
+Bool NewPNGDec(GF_BaseDecoder *dec);
 void DeletePNGDec(GF_BaseDecoder *dec);
 #endif
 
 #ifdef GPAC_HAS_JPEG
-u32 NewJPEGDec(GF_BaseDecoder *dec);
+Bool NewJPEGDec(GF_BaseDecoder *dec);
 void DeleteJPEGDec(GF_BaseDecoder *dec);
 #endif
 
@@ -92,7 +92,7 @@ typedef struct tagBITMAPINFOHEADER{
 
 #define GPAC_BMP_OTI	0x82
 
-u32 NewBMPDec(GF_BaseDecoder *dec);
+Bool NewBMPDec(GF_BaseDecoder *dec);
 void DeleteBMPDec(GF_BaseDecoder *dec);
 
 #define IMG_CM_SIZE		1

@@ -80,7 +80,7 @@ void VS_RegisterContext(RenderEffect3D *eff, GF_Node *shape, GF_BBox *bounds, Bo
 /*draws all nodes registered on the surface - this assumes modelview/projection has been setup before*/
 void VS_FlushContexts(VisualSurface *surf, RenderEffect3D *eff);
 /*main picker function: @node_list: if specified uses nodes in this list, otherwise uses scenegraph root*/
-Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *event, GF_List *node_list);
+Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_Event *event, GF_List *node_list);
 /*handle user collisions
 @node_list: list of node to perform collision. If null, collision is done on scenegraph root*/
 void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list);

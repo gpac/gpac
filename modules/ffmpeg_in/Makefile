@@ -23,7 +23,7 @@ OBJS=ffmpeg_decode.o ffmpeg_demux.o ffmpeg_load.o
 #local ffmpeg lib
 ifeq ($(CONFIG_FFMPEG), local)
 LOCAL_LIB=-L../../extra_lib/lib/gcc
-CFLAGS+= -I../../extra_lib/include
+CFLAGS+= -I$(LOCAL_INC_PATH)
 endif
 
 ifeq ($(CONFIG_ZLIB), local)

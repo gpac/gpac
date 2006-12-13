@@ -454,7 +454,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			}
 		} else {
 			/*NOT SUPPORTED*/
-			fprintf(stdout, "LASER VALUE INSERTION NOT SUPPORTED\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[LASeR] VALUE INSERTION NOT SUPPORTED\n"));
 		}
 		break;
 	case GF_SG_LSR_ADD:

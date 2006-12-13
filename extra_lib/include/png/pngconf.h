@@ -171,6 +171,16 @@
 #  endif
 #endif
 
+#if defined(__SYMBIAN32__)
+#  define PNG_NO_CONSOLE_IO
+#  ifdef PNG_DEBUG
+#    undef PNG_DEBUG
+#  endif
+#  define PNGAPI 
+#  define _NO_PROTO
+#endif
+
+
 #ifdef PNG_BUILD_DLL
 #  ifndef PNG_CONSOLE_IO_SUPPORTED
 #    ifndef PNG_NO_CONSOLE_IO

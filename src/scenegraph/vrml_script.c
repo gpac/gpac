@@ -176,8 +176,6 @@ GF_Err gf_sg_script_get_field(GF_Node *node, GF_FieldInfo *info)
 	return GF_OK;
 }
 
-
-
 void gf_sg_script_init(GF_Node *node)
 {
 	GF_ScriptPriv *priv;

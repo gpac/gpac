@@ -32,25 +32,28 @@
 #include "svg_stacks.h"
 #endif
 
-void R2D_MapCoordsToAR(Render2D *sr, s32 inX, s32 inY, Fixed *x, Fixed *y)
+void R2D_MapCoordsToAR(Render2D *sr, s32 *x, s32 *y)
 {
 	if (sr->surface->center_coords) {
 		/*revert to BIFS like*/
-		inX = inX - sr->compositor->width /2;
-		inY = sr->compositor->height/2 - inY;
+		*x = *x - sr->compositor->width /2;
+		*y = sr->compositor->height/2 - *y;
 	} else {
-		inX -= sr->offset_x;
-		inY -= sr->offset_y;
+		*x -= sr->offset_x;
+		*y -= sr->offset_y;
 	}
-	*x = INT2FIX(inX);
-	*y = INT2FIX(inY);
 
 	/*if no size info scaling is never applied*/
 	if (!sr->compositor->has_size_info) return;
 
 	if (!sr->scalable_zoom) {
-		*x = gf_muldiv(*x, INT2FIX(sr->compositor->scene_width ), INT2FIX(sr->compositor->width));
-		*y = gf_muldiv(*y, INT2FIX(sr->compositor->scene_height), INT2FIX(sr->compositor->height));
+		Fixed _x, _y;
+		_x = INT2FIX(*x);
+		_y = INT2FIX(*y);
+		_x = gf_muldiv(_x, INT2FIX(sr->compositor->scene_width ), INT2FIX(sr->compositor->width));
+		_y = gf_muldiv(_y, INT2FIX(sr->compositor->scene_height), INT2FIX(sr->compositor->height));
+		*x = FIX2INT(_x);
+		*y = FIX2INT(_y);
 	}
 }
 
@@ -158,6 +161,7 @@ void R2D_SceneReset(GF_VisualRenderer *vr)
 	R2D_SetScaling(sr, sr->scale_x, sr->scale_y);
 	/*force resetup of main surface in case we're switching coord system*/
 	sr->main_surface_setup = 0;
+	sr->navigation_disabled = 0;
 	VS2D_ResetGraphics(sr->surface);
 }
 
@@ -314,7 +318,7 @@ void R2D_UnregisterSensor(GF_Renderer *compositor, SensorHandler *sh)
 
 #ifndef GPAC_DISABLE_SVG
 
-Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fixed Y)
+Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed Y)
 {
 	GF_DOM_Event evt;
 	u32 cursor_type;
@@ -323,7 +327,7 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 
 	cursor_type = GF_CURSOR_NORMAL;
 	/*all mouse events*/
-	if (event->event_type<=GF_EVENT_MOUSEMOVE) {
+	if (event->type<=GF_EVENT_MOUSEMOVE) {
 		DrawableContext *ctx = VS2D_PickContext(sr->surface, X, Y);
 		if (ctx) {
 			cursor_type = sr->last_sensor;
@@ -334,7 +338,7 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 			evt.cancelable = 1;
 			evt.key_flags = sr->compositor->key_states;
 
-			switch (event->event_type) {
+			switch (event->type) {
 			case GF_EVENT_MOUSEMOVE:
 				evt.cancelable = 0;
 				if (sr->grab_node != ctx->node) {
@@ -410,19 +414,19 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 			sr->last_sensor = cursor_type;
 		}
 	}
-	else if (event->event_type==GF_EVENT_TEXTINPUT) {
+	else if (event->type==GF_EVENT_TEXTINPUT) {
 	} 
-	else if ((event->event_type>=GF_EVENT_KEYUP) && (event->event_type<=GF_EVENT_LONGKEYPRESS)) {
+	else if ((event->type>=GF_EVENT_KEYUP) && (event->type<=GF_EVENT_LONGKEYPRESS)) {
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.key_flags = event->key.flags;
 		evt.bubbles = 1;
 		evt.cancelable = 1;
-		evt.type = event->event_type;
+		evt.type = event->type;
 		evt.detail = event->key.key_code;
 		evt.key_hw_code = event->key.hw_code;
 		ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
 
-		if ((event->event_type==GF_EVENT_KEYDOWN) && (event->key.key_code==GF_KEY_ENTER)) {
+		if ((event->type==GF_EVENT_KEYDOWN) && (event->key.key_code==GF_KEY_ENTER)) {
 			evt.type = GF_EVENT_ACTIVATE;
 			evt.detail = 0;
 			ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
@@ -441,38 +445,34 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 #endif
 
 
-Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
+Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_Event *event)
 {
 	u32 i, type, count;
 	Bool act;
 	s32 key_inv;
 	Fixed key_trans;
+	GF_Event evt;
 	DrawableContext *ctx, *prev_ctx;
-	UserEvent2D evt, *ev;
 	Render2D *sr = (Render2D *)vr->user_priv;
 
-	evt.context = NULL;
-	evt.event_type = event->event_type;
-	evt.button = event->mouse.button;
-	evt.x = 0;
-	evt.y = 0;
-	ev = &evt;
-	if (event->event_type<=GF_EVENT_MOUSEWHEEL) 
-		R2D_MapCoordsToAR(sr, event->mouse.x, event->mouse.y, &evt.x, &evt.y);
+	evt = *event;
+
+	if (event->type<=GF_EVENT_MOUSEWHEEL) {
+		R2D_MapCoordsToAR(sr, &evt.mouse.x, &evt.mouse.y);
+	}
 
 #ifndef GPAC_DISABLE_SVG
 	/*DOM-style events*/
 	if (sr->use_dom_events) {
-		if (R2D_ExecuteDOMEvent(vr, event, evt.x, evt.y)) {
+		if (R2D_ExecuteDOMEvent(vr, event, INT2FIX(evt.mouse.x), INT2FIX(evt.mouse.y) )) {
 			sr->grabbed = 0;
 			return 1;
 		}
 		goto browser_event;
 	}
 #endif
-	
-	if (event->event_type>GF_EVENT_KEYDOWN) goto browser_event;
-//	if ((event->event_type>GF_EVENT_MOUSEMOVE) || (ev->button!=GF_MOUSE_LEFT)) goto browser_event;
+	/*only process mouse events for MPEG-4/VRML*/
+	if (event->type>=GF_EVENT_MOUSEWHEEL) goto browser_event;
 	
 	if (sr->is_tracking) {
 		/*in case a node is inserted at the depth level of a node previously tracked (rrrhhhaaaa...) */
@@ -484,7 +484,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	
 	prev_ctx = sr->grab_ctx;
 	if (!sr->is_tracking) {
-		ctx = VS2D_PickSensitiveNode(sr->surface, ev->x, ev->y);
+		ctx = VS2D_PickSensitiveNode(sr->surface, INT2FIX(evt.mouse.x), INT2FIX(evt.mouse.y) );
 		sr->grab_ctx = ctx;
 		if (ctx) sr->grab_node = ctx->node;
 	} else {
@@ -492,7 +492,6 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	}
 
 	//3- mark all sensors of the context to skip deactivation
-	ev->context = ctx;
 	if (ctx) {	
 		SensorContext *sc;
 		count = gf_list_count(ctx->sensors);
@@ -532,14 +531,13 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	}
 
 	/*deactivate all other registered sensors*/
-	ev->context = NULL;
 	count = gf_list_count(sr->sensors);
 	for (i=0; i< count; i++) {
 		SensorHandler *sh = (SensorHandler *)gf_list_get(sr->sensors, i);
 		act = ! sh->skip_second_pass;
 		sh->skip_second_pass = 0;
 		if (act)
-			sh->OnUserEvent(sh, ev, NULL);
+			sh->OnUserEvent(sh, &evt, NULL, NULL);
 		if (count != gf_list_count(sr->sensors)) {
 			count--;
 			i-= 1;
@@ -550,23 +548,21 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 		count = gf_list_count(prev_ctx->sensors);
 		for (i=count; i>0; i--) {
 			SensorContext *sc = (SensorContext *)gf_list_get(prev_ctx->sensors, i-1);
-			sc->h_node->OnUserEvent(sc->h_node, ev, NULL);
+			sc->h_node->OnUserEvent(sc->h_node, &evt, NULL, NULL);
 		}
 	}
 
 	/*activate current one if any*/
 	if (ctx) {
-		ev->context = ctx;
 		count = gf_list_count(ctx->sensors);
 		for (i=count; i>0; i--) {
 			SensorContext *sc = (SensorContext *)gf_list_get(ctx->sensors, i-1);
 			sc->h_node->skip_second_pass = 0;
-			if (sc->h_node->OnUserEvent(sc->h_node, ev, &sc->matrix)) 
+			if (sc->h_node->OnUserEvent(sc->h_node, &evt, ctx, &sc->matrix)) 
 				break;
 		}
 		return 1;
 	}
-
 
 browser_event:
 	/*no object, perform zoom & pan*/
@@ -576,11 +572,11 @@ browser_event:
 	key_trans = 2*FIX_ONE;
 	if (sr->compositor->key_states & GF_KEY_MOD_SHIFT) key_trans *= 4;
 
-	switch (event->event_type) {
+	switch (event->type) {
 	case GF_EVENT_MOUSEDOWN:
 		if (event->mouse.button==GF_MOUSE_LEFT) {
-			sr->grab_x = ev->x;
-			sr->grab_y = ev->y;
+			sr->grab_x = evt.mouse.x;
+			sr->grab_y = evt.mouse.y;
 			sr->grabbed = 1;
 		}
 		break;
@@ -590,8 +586,8 @@ browser_event:
 	case GF_EVENT_MOUSEMOVE:
 		if (sr->grabbed && (sr->navigate_mode == GF_NAVIGATE_SLIDE)) {
 			Fixed dx, dy;
-			dx = ev->x - sr->grab_x;
-			dy = ev->y - sr->grab_y;
+			dx = INT2FIX(evt.mouse.x - sr->grab_x);
+			dy = INT2FIX(evt.mouse.y - sr->grab_y);
 			if (! sr->top_effect->is_pixel_metrics) {
 				dx /= sr->cur_width;
 				dy /= sr->cur_height;
@@ -607,8 +603,8 @@ browser_event:
 			else {
 				R2D_SetUserTransform(sr, sr->zoom, sr->trans_x+dx, sr->trans_y+dy, 0);
 			}
-			sr->grab_x = ev->x;
-			sr->grab_y = ev->y;
+			sr->grab_x = evt.mouse.x;
+			sr->grab_y = evt.mouse.y;
 		}
 		break;
 	case GF_EVENT_KEYDOWN:
@@ -632,6 +628,15 @@ browser_event:
 				R2D_SetUserTransform(sr, sr->zoom, sr->trans_x, sr->trans_y + key_inv*key_trans, 0);
 			}
 			break;
+		case GF_KEY_VOLUMEDOWN: key_inv = -1;
+		case GF_KEY_VOLUMEUP:
+		{
+			Fixed new_zoom = sr->zoom;
+			if (new_zoom > FIX_ONE) new_zoom += key_inv*FIX_ONE/10;
+			else new_zoom += key_inv*FIX_ONE/20;
+			R2D_SetUserTransform(sr, new_zoom, sr->trans_x, sr->trans_y, 0);
+		}
+			break;
 		}
 		break;
 	}
@@ -642,12 +647,16 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 {
 	GF_Window rc;
 	u32 i;
+	GF_Err e;
 	GF_SceneGraph *sg;
 	RenderEffect2D static_eff;
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_Node *top_node = gf_sg_get_root_node(sr->compositor->scene);
 
-	if (!top_node /*|| !sr->out_width*/) return;
+	if (!top_node /*|| !sr->out_width*/) {
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Scene has no root node, nothing to draw\n"));
+		return;
+	}
 
 	if (!sr->main_surface_setup) {
 		sr->use_dom_events = 0;
@@ -670,6 +679,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 #endif
 
 		sr->focus_node = top_node;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Main scene setup - Using DOM events: %d - pixel metrics %d - center coords %d\n", sr->use_dom_events, sr->top_effect->is_pixel_metrics, sr->surface->center_coords));
 	}
 
 	memcpy(&static_eff, sr->top_effect, sizeof(RenderEffect2D));
@@ -677,7 +687,10 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	sr->surface->width = sr->cur_width;
 	sr->surface->height = sr->cur_height;
 
-	VS2D_InitDraw(sr->surface, sr->top_effect);
+	e = VS2D_InitDraw(sr->surface, sr->top_effect);
+	if (e) return;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] primary surface initialized - traversing scene tree (top node %s)\n", gf_node_get_class_name(top_node) ));
 	gf_node_render(top_node, sr->top_effect);
 
 	i=0;
@@ -689,6 +702,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	VS2D_TerminateDraw(sr->surface, sr->top_effect);
 	memcpy(sr->top_effect, &static_eff, sizeof(RenderEffect2D));
 	sr->top_effect->invalidate_all = 0;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Rendering done - flushing output\n"));
 
 	/*and flush*/
 	rc.x = rc.y = 0; 
@@ -801,7 +815,6 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 
 GF_Node *R2D_PickNode(GF_VisualRenderer *vr, s32 X, s32 Y)
 {
-	Fixed x, y;
 	GF_Node *res = NULL;
 	Render2D *sr = (Render2D *)vr->user_priv;
 
@@ -809,13 +822,12 @@ GF_Node *R2D_PickNode(GF_VisualRenderer *vr, s32 X, s32 Y)
 	/*lock to prevent any change while picking*/
 	gf_sr_lock(sr->compositor, 1);
 	if (sr->compositor->scene) {
-		R2D_MapCoordsToAR(sr, X, Y, &x, &y);
-		res = VS2D_PickNode(sr->surface, x, y);
+		R2D_MapCoordsToAR(sr, &X, &Y);
+		res = VS2D_PickNode(sr->surface, INT2FIX(X), INT2FIX(Y) );
 	}
 	gf_sr_lock(sr->compositor, 0);
 	return res;
 }
-
 
 GF_Err R2D_GetSurfaceAccess(VisualSurface2D *surf)
 {
@@ -833,9 +845,11 @@ GF_Err R2D_GetSurfaceAccess(VisualSurface2D *surf)
 			e = sr->compositor->r2d->surface_attach_to_device(surf->the_surface, sr->hardware_context, sr->cur_width, sr->cur_height);
 			if (!e) {
 				surf->is_attached = 1;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render2D] Video surface handle attached to raster\n"));
 				return GF_OK;
 			}
 			sr->compositor->video_out->LockOSContext(sr->compositor->video_out, 0);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RENDER, ("[Render2D] Cannot attach video surface handle to raster: %s\n", gf_error_to_string(e) ));
 		}
 	}
 	
@@ -850,9 +864,11 @@ GF_Err R2D_GetSurfaceAccess(VisualSurface2D *surf)
 							(GF_PixelFormat) sr->hw_surface.pixel_format);
 		if (!e) {
 			surf->is_attached = 1;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render2D] Video surface memory attached to raster\n"));
 			return GF_OK;
 		}
-		sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, NULL, 0);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RENDER, ("[Render2D] Cannot attach video surface memory to raster: %s\n", gf_error_to_string(e) ));
+		sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, &sr->hw_surface, 0);
 	}
 	sr->locked = 0;
 	surf->is_attached = 0;
@@ -870,7 +886,7 @@ void R2D_ReleaseSurfaceAccess(VisualSurface2D *surf)
 		sr->compositor->video_out->LockOSContext(sr->compositor->video_out, 0);
 		sr->hardware_context = NULL;
 	} else if (sr->locked) {
-		sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, NULL, 0);
+		sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, &sr->hw_surface, 0);
 		sr->locked = 0;
 	}
 }
@@ -1107,6 +1123,7 @@ GF_Err R2D_LoadRenderer(GF_VisualRenderer *vr, GF_Renderer *compositor)
 void R2D_UnloadRenderer(GF_VisualRenderer *vr)
 {
 	Render2D *sr = (Render2D *)vr->user_priv;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render2D] Destroying 2D renderer\n"));
 	DeleteVisualSurface2D(sr->surface);
 	gf_list_del(sr->sensors);
 	gf_list_del(sr->surfaces_2D);
@@ -1114,6 +1131,7 @@ void R2D_UnloadRenderer(GF_VisualRenderer *vr)
 	effect_delete(sr->top_effect);
 	free(sr);
 	vr->user_priv = NULL;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render2D] 2D renderer destroyed\n"));
 }
 
 
@@ -1202,7 +1220,7 @@ GF_Err R2D_SetOption(GF_VisualRenderer *vr, u32 option, u32 value)
 		R2D_SetUserTransform(sr, FIX_ONE, 0, 0, 1);
 		return GF_OK;
 	case GF_OPT_NAVIGATION:
-		if (sr->navigation_disabled) return GF_BAD_PARAM;
+		if (sr->navigation_disabled) return GF_NOT_SUPPORTED;
 		if ((value!=GF_NAVIGATE_NONE) && (value!=GF_NAVIGATE_SLIDE)) return GF_NOT_SUPPORTED;
 		sr->navigate_mode = value;
 		return GF_OK;
@@ -1312,7 +1330,7 @@ GF_Err R2D_GetScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *framebuffer)
 GF_Err R2D_ReleaseScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *framebuffer)
 {
 	Render2D *sr = (Render2D *)vr->user_priv;
-	return sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, NULL, 0);
+	return sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, framebuffer, 0);
 }
 
 static Bool R2D_ScriptAction(GF_VisualRenderer *vr, u32 type, GF_Node *n, GF_JSAPIParam *param)

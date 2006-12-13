@@ -322,6 +322,18 @@ linux="yes"
 esac
 
 
+#
+if test "$source_path_used" = "yes" ; then
+    mkdir -p extra_lib
+    mkdir -p extra_lib/lib
+    mkdir -p extra_lib/lib/gcc
+fi
+
+#OK check for all local & systems lib
+local_inc=$source_path/extra_lib/include
+local_lib=extra_lib/lib/gcc
+
+
 #look for zlib
 cat > $TMPC << EOF
 #include <zlib.h>
@@ -366,10 +378,6 @@ else
 	fi
 fi
 
-
-#OK check for all local & systems lib
-local_inc=$source_path/extra_lib/include
-local_lib=$source_path/extra_lib/lib/gcc
 
 #look for spidermonkey JS support
 
@@ -1281,6 +1289,7 @@ else
 fi
 
 echo "SRC_PATH=$source_path" >> config.mak
+echo "LOCAL_INC_PATH=$local_inc" >> config.mak
 
 
 rm -f $TMPO $TMPC $TMPS $TMPCPP

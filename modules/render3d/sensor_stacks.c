@@ -73,14 +73,14 @@ static void RenderAnchor(GF_Node *node, void *rs)
 	grouping_traverse((GroupingNode*)st, eff, NULL);
 }
 
-static void OnAnchor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, RayHitInfo *hit_info)
+static void OnAnchor(SensorHandler *sh, Bool is_over, GF_Event *ev, RayHitInfo *hit_info)
 {
 	GF_Event evt;
 	MFURL *url;
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(sh->owner);
 
-	if ((ev->event_type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) st->active = 1;
-	else if (st->active && (ev->event_type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT) ) {
+	if ((ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) st->active = 1;
+	else if (st->active && (ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT) ) {
 		u32 i;
 		if (gf_node_get_tag(sh->owner)==TAG_MPEG4_Anchor) {
 			url = & ((M_Anchor *)sh->owner)->url;
@@ -114,7 +114,7 @@ static void OnAnchor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, RayHitIn
 			}
 			i++;
 		}
-	} else if (ev->event_type==GF_EVENT_MOUSEMOVE) {
+	} else if (ev->type==GF_EVENT_MOUSEMOVE) {
 		if (st->compositor->user->EventProc) {
 			evt.type = GF_EVENT_NAVIGATE_INFO;
 			if (gf_node_get_tag(sh->owner)==TAG_MPEG4_Anchor) {
@@ -138,11 +138,11 @@ static Bool anchor_is_enabled(GF_Node *node)
 
 static void on_activate_anchor(GF_Node *node)
 {
-	GF_UserEvent ev;
+	GF_Event ev;
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(node);
 	if (!((M_Anchor *)node)->on_activate) return;
 
-	ev.event_type = GF_EVENT_MOUSEUP;
+	ev.type = GF_EVENT_MOUSEUP;
 	ev.mouse.x = ev.mouse.y = 0;
 	ev.mouse.button = GF_MOUSE_LEFT;
 	OnAnchor(&st->hdl, 0, &ev, NULL);
@@ -200,12 +200,12 @@ static Bool ds_is_enabled(GF_Node *n)
 }
 
 
-static void OnDiscSensor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, RayHitInfo *hit_info)
+static void OnDiscSensor(SensorHandler *sh, Bool is_over, GF_Event *ev, RayHitInfo *hit_info)
 {
 	M_DiscSensor *ds = (M_DiscSensor *)sh->owner;
 	DiscSensorStack *stack = (DiscSensorStack *) gf_node_get_private(sh->owner);
 	
-	if (ds->isActive && (!ds->enabled || ((ev->event_type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT) ) ) ) {
+	if (ds->isActive && (!ds->enabled || ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT) ) ) ) {
 		if (ds->autoOffset) {
 			ds->offset = ds->rotation_changed;
 			/*that's an exposedField*/
@@ -215,7 +215,7 @@ static void OnDiscSensor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, RayH
 		gf_node_event_out_str(sh->owner, "isActive");
 		R3D_SetGrabbed(stack->compositor, 0);
 	}
-	else if (!ds->isActive && (ev->event_type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+	else if (!ds->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		/*store inverse matrix*/
 		gf_mx_copy(stack->initial_matrix, hit_info->local_to_world);
 		stack->start_angle = gf_atan2(hit_info->local_point.y, hit_info->local_point.x);
@@ -287,12 +287,12 @@ static Bool ps2D_is_enabled(GF_Node *n)
 	return (ps2d->enabled || ps2d->isActive);
 }
 
-static void OnPlaneSensor2D(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, RayHitInfo *hit_info)
+static void OnPlaneSensor2D(SensorHandler *sh, Bool is_over, GF_Event *ev, RayHitInfo *hit_info)
 {
 	M_PlaneSensor2D *ps = (M_PlaneSensor2D *)sh->owner;
 	PS2DStack *stack = (PS2DStack *) gf_node_get_private(sh->owner);
 
-	if (ps->isActive && (!ps->enabled || ((ev->event_type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) )) {
+	if (ps->isActive && (!ps->enabled || ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) )) {
 		if (ps->autoOffset) {
 			ps->offset = ps->translation_changed;
 			gf_node_event_out_str(sh->owner, "offset");
@@ -300,7 +300,7 @@ static void OnPlaneSensor2D(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, R
 		ps->isActive = 0;
 		gf_node_event_out_str(sh->owner, "isActive");
 		R3D_SetGrabbed(stack->compositor, 0);
-	} else if (!ps->isActive && (ev->event_type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+	} else if (!ps->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		gf_mx_copy(stack->initial_matrix, hit_info->local_to_world);
 		stack->start_drag.x = hit_info->local_point.x - ps->offset.x;
 		stack->start_drag.y = hit_info->local_point.y - ps->offset.y;
@@ -384,7 +384,7 @@ static Bool prox2D_is_in_sensor(Prox2DStack *st, M_ProximitySensor2D *ps, Fixed 
 	return 1;
 }
 
-static void OnProximitySensor2D(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, RayHitInfo *hit_info)
+static void OnProximitySensor2D(SensorHandler *sh, Bool is_over, GF_Event *ev, RayHitInfo *hit_info)
 {
 	M_ProximitySensor2D *ps = (M_ProximitySensor2D *)sh->owner;
 	Prox2DStack *stack = (Prox2DStack *) gf_node_get_private(sh->owner);
@@ -456,14 +456,14 @@ static Bool ts_is_enabled(GF_Node *n)
 	return ((M_TouchSensor *) n)->enabled;
 }
 
-static void OnTouchSensor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, RayHitInfo *hit_info)
+static void OnTouchSensor(SensorHandler *sh, Bool is_over, GF_Event *ev, RayHitInfo *hit_info)
 {
 	M_TouchSensor *ts = (M_TouchSensor *)sh->owner;
 	TouchSensorStack *st = (TouchSensorStack *) gf_node_get_private(sh->owner);
 	//assert(ts->enabled);
 
 	/*isActive becomes false, send touch time*/
-	if ((ev->event_type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT) && ts->isActive) {
+	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT) && ts->isActive) {
 		ts->touchTime = gf_node_get_scene_time(sh->owner);
 		gf_node_event_out_str(sh->owner, "touchTime");
 		ts->isActive = 0;
@@ -474,7 +474,7 @@ static void OnTouchSensor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, Ray
 		ts->isOver = is_over;
 		gf_node_event_out_str(sh->owner, "isOver");
 	}
-	if (!ts->isActive && (ev->event_type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+	if (!ts->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		ts->isActive = 1;
 		gf_node_event_out_str(sh->owner, "isActive");
 		R3D_SetGrabbed(st->compositor, 1);
@@ -603,13 +603,13 @@ static Bool ps_is_enabled(GF_Node *n)
 	return (ps->enabled || ps->isActive);
 }
 
-static void OnPlaneSensor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, RayHitInfo *hit_info)
+static void OnPlaneSensor(SensorHandler *sh, Bool is_over, GF_Event *ev, RayHitInfo *hit_info)
 {
 	M_PlaneSensor *ps = (M_PlaneSensor *)sh->owner;
 	PSStack *stack = (PSStack *) gf_node_get_private(sh->owner);
 	
 	
-	if (ps->isActive && (!ps->enabled || ((ev->event_type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) )) {
+	if (ps->isActive && (!ps->enabled || ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) )) {
 		if (ps->autoOffset) {
 			ps->offset = ps->translation_changed;
 			gf_node_event_out_str(sh->owner, "offset");
@@ -618,7 +618,7 @@ static void OnPlaneSensor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, Ray
 		gf_node_event_out_str(sh->owner, "isActive");
 		R3D_SetGrabbed(stack->compositor, 0);
 	}
-	else if (!ps->isActive && (ev->event_type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+	else if (!ps->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		gf_mx_copy(stack->initial_matrix, hit_info->local_to_world);
 		gf_vec_diff(stack->start_drag, hit_info->local_point, ps->offset);
 		stack->tracker.normal.x = stack->tracker.normal.y = 0; stack->tracker.normal.z = FIX_ONE;
@@ -694,12 +694,12 @@ static Bool cs_is_enabled(GF_Node *n)
 	return (cs->enabled || cs->isActive);
 }
 
-static void OnCylinderSensor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, RayHitInfo *hit_info)
+static void OnCylinderSensor(SensorHandler *sh, Bool is_over, GF_Event *ev, RayHitInfo *hit_info)
 {
 	M_CylinderSensor *cs = (M_CylinderSensor *)sh->owner;
 	CylinderSensorStack *st = (CylinderSensorStack *) gf_node_get_private(sh->owner);
 
-	if (cs->isActive && (!cs->enabled || ((ev->event_type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT))) ) {
+	if (cs->isActive && (!cs->enabled || ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT))) ) {
 		if (cs->autoOffset) {
 			cs->offset = cs->rotation_changed.q;
 			gf_node_event_out_str(sh->owner, "offset");
@@ -708,7 +708,7 @@ static void OnCylinderSensor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, 
 		gf_node_event_out_str(sh->owner, "isActive");
 		R3D_SetGrabbed(st->compositor, 0);
 	}
-	else if (!cs->isActive && (ev->event_type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+	else if (!cs->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		GF_Ray r;
 		SFVec3f yaxis;
 		Fixed acute, reva;
@@ -837,12 +837,12 @@ static Bool sphere_is_enabled(GF_Node *n)
 	return (ss->enabled || ss->isActive);
 }
 
-static void OnSphereSensor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, RayHitInfo *hit_info)
+static void OnSphereSensor(SensorHandler *sh, Bool is_over, GF_Event *ev, RayHitInfo *hit_info)
 {
 	M_SphereSensor *sphere = (M_SphereSensor *)sh->owner;
 	SphereSensorStack *st = (SphereSensorStack *) gf_node_get_private(sh->owner);
 
-	if (sphere->isActive && (!sphere->enabled || ((ev->event_type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) ) ) {
+	if (sphere->isActive && (!sphere->enabled || ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) ) ) {
 		if (sphere->autoOffset) {
 			sphere->offset = sphere->rotation_changed;
 			gf_node_event_out_str(sh->owner, "offset");
@@ -851,7 +851,7 @@ static void OnSphereSensor(SensorHandler *sh, Bool is_over, GF_UserEvent *ev, Ra
 		gf_node_event_out_str(sh->owner, "isActive");
 		R3D_SetGrabbed(st->compositor, 0);
 	}
-	else if (!sphere->isActive && (ev->event_type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+	else if (!sphere->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		st->center.x = st->center.y = st->center.z = 0;
 		gf_mx_apply_vec(&hit_info->local_to_world, &st->center);
 		st->radius = gf_vec_len(hit_info->local_point);

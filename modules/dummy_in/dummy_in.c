@@ -95,6 +95,7 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 	if (gf_term_check_extension(plug, "image/x-svgm", "svgm", "SVGM Document", sExt)) return 1;
 	if (gf_term_check_extension(plug, "application/x-LASeR+xml", "xsr", "LASeR Document", sExt)) return 1;
 
+#if 0
 	if (!strnicmp(url, "file://", 7) || !strstr(url, "://")) {
 		char *rtype = gf_xml_get_root_type(url);
 		if (rtype) {
@@ -107,7 +108,7 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 			return handled;
 		}
 	}
-	
+#endif	
 	return 0;
 }
 

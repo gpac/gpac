@@ -318,9 +318,18 @@ char *gf_strdup(const char *str);
 #if defined (WIN32) && !defined(__GNUC__)
 #define LLD "%I64d"
 #define LLU "%I64u"
+#define LLD_CAST
+#define LLU_CAST
+#elif defined (__SYMBIAN32__)
+#define LLD "%d"
+#define LLU "%u"
+#define LLD_CAST (u32)
+#define LLU_CAST (s32)
 #else
 #define LLD "%lld"
 #define LLU "%llu"
+#define LLD_CAST
+#define LLU_CAST
 #endif
 
 

@@ -297,13 +297,13 @@ void R3D_DrawScene(GF_VisualRenderer *vr)
 	sr->compositor->video_out->Flush(sr->compositor->video_out, NULL);
 }
 
-static Bool R3D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
+static Bool R3D_ExecuteEvent(GF_VisualRenderer *vr, GF_Event *event)
 {
-	GF_UserEvent evt;
+	GF_Event evt;
 	Render3D *sr = (Render3D *)vr->user_priv;
 	/*revert to BIFS like*/
 	evt = *event;
-	if (evt.event_type<=GF_EVENT_MOUSEMOVE) {
+	if (evt.type<=GF_EVENT_MOUSEMOVE) {
 		evt.mouse.x = event->mouse.x - sr->compositor->width/2;
 		evt.mouse.y = sr->compositor->height/2 - event->mouse.y;
 	}
@@ -312,7 +312,7 @@ static Bool R3D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	if ((sr->compositor->interaction_level & GF_INTERACT_NORMAL) && VS_ExecuteEvent(sr->surface, sr->top_effect, &evt, NULL)) 
 		return 1;
 	/*remember active layer on mouse click - may be NULL*/
-	if ((event->event_type==GF_EVENT_MOUSEDOWN) && (event->mouse.button==GF_MOUSE_LEFT)) sr->active_layer = sr->top_effect->collect_layer;
+	if ((event->type==GF_EVENT_MOUSEDOWN) && (event->mouse.button==GF_MOUSE_LEFT)) sr->active_layer = sr->top_effect->collect_layer;
 	/*process navigation events*/
 	if (sr->compositor->interaction_level & GF_INTERACT_NAVIGATION) return R3D_HandleUserEvent(sr, &evt);
 	return 0;

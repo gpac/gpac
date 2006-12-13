@@ -1026,20 +1026,19 @@ static void xmt_resolve_routes(GF_XMTParser *parser)
 	}
 	while (gf_list_count(parser->inserted_routes)) gf_list_rem(parser->inserted_routes, 0);
 }
-static void xmt_parse_route(GF_XMTParser *parser, GF_List *attrs, Bool is_insert, GF_Command *com)
+static void xmt_parse_route(GF_XMTParser *parser, const GF_XMLAttribute *attributes, u32 nb_attributes, Bool is_insert, GF_Command *com)
 {
 	GF_Route *r;
 	char *toN, *toNF, *fromN, *fromNF, *ID;
 	GF_Node *orig, *dest;
 	GF_Err e;
-	u32 rID, i, count;
+	u32 rID, i;
 	GF_FieldInfo orig_field, dest_field;
 
 	toN = toNF = fromN = fromNF = ID = NULL;
 
-	count = gf_list_count(attrs);
-	for (i=0; i<count; i++) {
-		GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+	for (i=0; i<nb_attributes; i++) {
+		GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 		if (!att->value || !strlen(att->value)) continue;
 		if (!strcmp(att->name, "fromNode")) fromN = att->value;
 		else if (!strcmp(att->name, "fromField")) fromNF = att->value;
@@ -1221,18 +1220,17 @@ static u32 xmt_get_et_by_name(const char *_name)
 	else return GF_SG_EVENT_UNKNOWN;
 }
 
-static void xmt_parse_script_field(GF_XMTParser *parser, GF_Node *node, GF_List *attrs)
+static void xmt_parse_script_field(GF_XMTParser *parser, GF_Node *node, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	GF_ScriptField *scfield;
 	GF_FieldInfo field;
 	char *val = NULL;
-	u32 fieldType, eventType, i, count;
+	u32 fieldType, eventType, i;
 	char *fieldName = NULL;
 	fieldType = eventType = 0;
 	val = NULL;
-	count = gf_list_count(attrs);
-	for (i=0; i<count; i++) {
-		GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+	for (i=0; i<nb_attributes; i++) {
+		GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
 		if (!att->value || !strlen(att->value)) continue;
 		if (!strcmp(att->name, "name")) fieldName = att->value; 
 		else if (!strcmp(att->name, "type")) fieldType = xmt_get_ft_by_name(att->value); 
@@ -1266,18 +1264,17 @@ static u32 xmt_get_next_proto_id(GF_XMTParser *parser)
 	return ID;
 }
 
-static void xmt_parse_proto(GF_XMTParser *parser, GF_List *attrs, GF_List *proto_list)
+static void xmt_parse_proto(GF_XMTParser *parser, const GF_XMLAttribute *attributes, u32 nb_attributes, GF_List *proto_list)
 {
 	GF_FieldInfo info;
 	GF_Proto *proto;
 	char *szName, *extURL;
-	u32 ID, i, count;
+	u32 ID, i;
 
 	ID = 0;
 	szName = extURL = NULL;
-	count = gf_list_count(attrs);
-	for (i=0; i<count; i++) {
-		GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+	for (i=0; i<nb_attributes; i++) {
+		GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
 		if (!att->value || !strlen(att->value)) continue;
 		if (!strcmp(att->name, "name")) szName = att->value; 
 		else if (!strcmp(att->name, "protoID")) ID = atoi(att->value); 
@@ -1336,7 +1333,7 @@ static GF_Err x3d_get_default_container(GF_Node *par, GF_Node *n, GF_FieldInfo *
 }
 
 
-static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *name_space, GF_List *attrs, XMTNodeStack *parent)
+static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes, XMTNodeStack *parent)
 {
 	GF_Err e;
 	GF_FieldInfo info;
@@ -1354,17 +1351,17 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 		if (!parser->parsing_proto && (parser->doc_type==1) ) {
 			GF_Command *sgcom = gf_sg_command_new(parser->load->scene_graph, GF_SG_ROUTE_INSERT);
 			gf_list_add(parser->scene_au->commands, sgcom);
-			xmt_parse_route(parser, attrs, 0, sgcom);
+			xmt_parse_route(parser, attributes, nb_attributes, 0, sgcom);
 			if (sgcom->RouteID) gf_list_add(parser->inserted_routes, sgcom);
 		} else {
-			xmt_parse_route(parser, attrs, 0, NULL);
+			xmt_parse_route(parser, attributes, nb_attributes, 0, NULL);
 		}
 		return NULL;
 	}
 	if (parent && parent->node && ((parent->node->sgprivate->tag==TAG_MPEG4_Script) || (parent->node->sgprivate->tag==TAG_X3D_Script)) ) {
 		is_script = 1;
 		if (!strcmp(name, "field")) {
-			xmt_parse_script_field(parser, parent->node, attrs);
+			xmt_parse_script_field(parser, parent->node, attributes, nb_attributes);
 			return NULL;
 		}
 		else if (!strcmp(name, "node") || !strcmp(name, "nodes") ) return NULL;
@@ -1373,7 +1370,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 	/*proto declaration*/
 	if (!strcmp(name, "ProtoDeclare") || !strcmp(name, "ExternProtoDeclare")) {
 		if (!parser->parsing_proto && parser->command && !parser->command->new_proto_list) parser->command->new_proto_list = gf_list_new();
-		xmt_parse_proto(parser, attrs, (!parser->parsing_proto && parser->command) ? parser->command->new_proto_list : NULL);
+		xmt_parse_proto(parser, attributes, nb_attributes, (!parser->parsing_proto && parser->command) ? parser->command->new_proto_list : NULL);
 		return NULL;
 	}
 	/*proto parsing*/
@@ -1387,9 +1384,8 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			u32 fType, eType;
 			fType = eType = 0;
 
-			count = gf_list_count(attrs);
-			for (i=0; i<count; i++) {
-				GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+			for (i=0; i<nb_attributes; i++) {
+				GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
 				if (!att->value || !strlen(att->value)) continue;
 
 				if (!strcmp(att->name, "name")) fieldName  = att->value;
@@ -1430,9 +1426,8 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			Fixed ftMin, ftMax;
 			ftMin = ftMax = 0;
 			qp_type = hasMinMax = nbBits = 0;
-			count = gf_list_count(attrs);
-			for (i=0; i<count; i++) {
-				GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+			for (i=0; i<nb_attributes; i++) {
+				GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 				if (!att->value || !strlen(att->value)) continue;
 				if (!strcmp(att->name, "quantCategory")) qp_type = xmt_get_protofield_qp_type(att->value);
 				else if (!strcmp(att->name, "nbBits")) nbBits = atoi(att->value);
@@ -1466,9 +1461,8 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 				return NULL;
 			}
 			atField = atProtoField = NULL;
-			count = gf_list_count(attrs);
-			for (i=0; i<count; i++) {
-				GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+			for (i=0; i<nb_attributes; i++) {
+				GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
 				if (!att->value || !strlen(att->value)) continue;
 				if (!strcmp(att->name, "nodeField")) atField = att->value;
 				else if (!strcmp(att->name, "protoField")) atProtoField = att->value;
@@ -1512,9 +1506,8 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			return NULL;
 		}
 		field = value = NULL;
-		count = gf_list_count(attrs);
-		for (i=0; i<count; i++) {
-			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+		for (i=0; i<nb_attributes; i++) {
+			GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
 			if (!strcmp(att->name, "name")) field = att->value;
 			else if (!strstr(att->name, "Value") || !strstr(att->name, "value")) value = att->value;
@@ -1547,11 +1540,10 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 	ID = 0;
 	def_name = NULL;
 	tag = 0;
-	count = gf_list_count(attrs);
 
 	if (!strcmp(name, "ProtoInstance")) {
-		for (i=0; i<count; i++) {
-			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+		for (i=0; i<nb_attributes; i++) {
+			GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
 			if (!strcmp(att->name, "name")) {
 				GF_SceneGraph *sg = parser->load->scene_graph;
@@ -1566,8 +1558,6 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 					return NULL;
 				}
 				node = gf_sg_proto_create_instance(parser->load->scene_graph, proto);
-				free(att->value);
-				att->value = NULL;
 			}
 			else if (!strcmp(att->name, "USE")) {
 				node = xmt_find_node(parser, att->value);
@@ -1626,8 +1616,8 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 		container.fieldType = 0;
 	}
 
-	for (i=0; i<count; i++) {
-		GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+	for (i=0; i<nb_attributes; i++) {
+		GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 		if (!att->value || !strlen(att->value)) continue;
 
 		if (!strcmp(att->name, "DEF")) {
@@ -1737,10 +1727,10 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 }
 
 
-GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, GF_List *attrs, GF_Descriptor *parent)
+GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_XMLAttribute *attributes, u32 nb_attributes, GF_Descriptor *parent)
 {
 	GF_Err e;
-	u32 i, count;
+	u32 i;
 	Bool fake_desc = 0;
 	GF_Descriptor *desc;
 	char *xmt_desc_name = NULL, *ocr_ref = NULL, *dep_ref = NULL;
@@ -1792,9 +1782,8 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, GF_List *a
 		if (!desc) return NULL;
 	}
 
-	count = gf_list_count(attrs);
-	for (i=0; i<count; i++) {
-		GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+	for (i=0; i<nb_attributes; i++) {
+		GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 		if (!att->value || !strlen(att->value)) continue;
 		if (!strcmp(att->name, "binaryID")) binaryID = atoi(att->value);
 		else if (!strcmp(att->name, "objectDescriptorID")) xmt_desc_name = att->value;
@@ -1860,20 +1849,20 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, GF_List *a
 	return desc;
 }
 
-static void xmt_parse_command(GF_XMTParser *parser, char *name, GF_List *attrs)
+static void xmt_parse_command(GF_XMTParser *parser, char *name, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	GF_Err e;
 	GF_FieldInfo info;
 	GF_CommandField *field;
-	u32 i, count = gf_list_count(attrs);
+	u32 i;
 	if (!strcmp(name, "Scene")) {
 		parser->doc_state = 4;
 		return;
 	}
 
 	if (!strcmp(name, "par")) {
-		for (i=0; i<count; i++) {
-			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+		for (i=0; i<nb_attributes; i++) {
+			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
 			if (!strcmp(att->name, "begin")) parser->au_time = atof(att->value);
 			else if (!strcmp(att->name, "isRAP")) parser->au_is_rap = !strcmp(att->value, "yes") ? 1 : 0;
@@ -1891,10 +1880,10 @@ static void xmt_parse_command(GF_XMTParser *parser, char *name, GF_List *attrs)
 			return;
 		}
 		if (parser->command->tag==GF_SG_ROUTE_INSERT) {
-			xmt_parse_route(parser, attrs, 1, parser->command);
+			xmt_parse_route(parser, attributes, nb_attributes, 1, parser->command);
 			gf_list_add(parser->inserted_routes, parser->command);
 		} else {
-			xmt_parse_route(parser, attrs, 0, parser->command);
+			xmt_parse_route(parser, attributes, nb_attributes, 0, parser->command);
 			if (!parser->command->RouteID) {
 				parser->command->unresolved = 1;
 				if (gf_list_find(parser->unresolved_routes, parser->command)<0)
@@ -1909,8 +1898,8 @@ static void xmt_parse_command(GF_XMTParser *parser, char *name, GF_List *attrs)
 		char *fieldValue = NULL;
 		assert(parser->command);
 		if (!parser->command->node) return;
-		for (i=0; i<count; i++) {
-			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+		for (i=0; i<nb_attributes; i++) {
+			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
 			if (!strcmp(att->name, "atField")) fieldName = att->value;
 			else if (!strcmp(att->name, "value")) fieldValue = att->value;
@@ -1952,8 +1941,8 @@ static void xmt_parse_command(GF_XMTParser *parser, char *name, GF_List *attrs)
 		char *fieldValue = NULL;
 		assert(parser->command);
 		if (!parser->command->node) return;
-		for (i=0; i<count; i++) {
-			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+		for (i=0; i<nb_attributes; i++) {
+			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
 			if (!strcmp(att->name, "position")) {
 				if (!strcmp(att->value, "BEGIN")) position = 0;
@@ -1999,8 +1988,8 @@ static void xmt_parse_command(GF_XMTParser *parser, char *name, GF_List *attrs)
 		if (!parser->stream_id) parser->stream_id = parser->base_scene_id;
 		stream_id = parser->stream_id;
 
-		for (i=0; i<count; i++) {
-			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+		for (i=0; i<nb_attributes; i++) {
+			GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
 			if (!strcmp(att->name, "begin")) au_time = atoi(att->value);
 			else if (!strcmp(att->name, "isRAP")) au_is_rap = !strcmp(att->value, "yes") ? 1 : 0;
@@ -2212,8 +2201,8 @@ static void xmt_parse_command(GF_XMTParser *parser, char *name, GF_List *attrs)
 		if (!parser->stream_id) parser->stream_id = parser->base_od_id;
 		stream_id = parser->stream_id;
 
-		for (i=0; i<count; i++) {
-			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_get(attrs, i);
+		for (i=0; i<nb_attributes; i++) {
+			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
 			if (!strcmp(att->name, "begin")) au_time = atoi(att->value);
 			else if (!strcmp(att->name, "isRAP")) au_is_rap = !strcmp(att->value, "yes") ? 1 : 0;
@@ -2283,7 +2272,7 @@ static void xmt_parse_command(GF_XMTParser *parser, char *name, GF_List *attrs)
 	}
 }
 
-static void xmt_node_start(void *sax_cbck, const char *name, const char *name_space, GF_List *attributes)
+static void xmt_node_start(void *sax_cbck, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	GF_Node *elt;
 	XMTNodeStack *top, *new_top;
@@ -2320,7 +2309,7 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 	if ((parser->doc_type == 1) && (parser->doc_state == 1)) {
 		GF_Descriptor *desc, *par;
 		par = (GF_Descriptor *)gf_list_last(parser->descriptors);
-		desc = xmt_parse_descriptor(parser, (char *) name, attributes, par);
+		desc = xmt_parse_descriptor(parser, (char *) name, attributes, nb_attributes, par);
 		if (desc) gf_list_add(parser->descriptors, desc);
 		return;
 	}
@@ -2349,10 +2338,10 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 		if (parser->od_command) {
 			GF_Descriptor *desc, *par;
 			par = (GF_Descriptor *)gf_list_last(parser->descriptors);
-			desc = xmt_parse_descriptor(parser, (char *) name, attributes, par);
+			desc = xmt_parse_descriptor(parser, (char *) name, attributes, nb_attributes, par);
 			if (desc) gf_list_add(parser->descriptors, desc);
 		} else {
-			xmt_parse_command(parser, (char *) name, attributes);
+			xmt_parse_command(parser, (char *) name, attributes, nb_attributes);
 		}
 		return;
 	}
@@ -2364,7 +2353,7 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 	top = (XMTNodeStack*)gf_list_last(parser->nodes);
 	if (!top) top = parser->x3d_root;
 
-	elt = xmt_parse_element(parser, (char *) name, name_space, attributes, top);
+	elt = xmt_parse_element(parser, (char *) name, name_space, attributes, nb_attributes, top);
 	if (!elt) return;
 	GF_SAFEALLOC(new_top, XMTNodeStack);
 	new_top->node = elt;
@@ -2759,7 +2748,7 @@ GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load)
 	parser = xmt_new_parser(load);
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("XMT: MPEG-4 (XMT) Scene Parsing\n"));
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);
-	if (e<0) xmt_report(parser, e, "Invalid XML document: %s", gf_xml_sax_get_error(parser->sax_parser));
+	if (e<0) xmt_report(parser, e, "Invalid XML document\n", gf_xml_sax_get_error(parser->sax_parser));
 	return parser->last_error;
 }
 

@@ -452,9 +452,7 @@ void svg_parse_dom_attributes(SVGParser *parser,
 				} else if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attributes->name, &info)) {
 					gf_svg_parse_attribute(elt, &info, attributes->children->content, anim_value_type, anim_transform_type);
 				} else {
-#ifdef PRINT_WARNING
-					fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", attributes->name, gf_node_get_class_name((GF_Node *)elt));
-#endif
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG] Unknown attribute %s on element %s\n", attributes->name, gf_node_get_class_name((GF_Node *)elt) ));
 				}
 			}
 		} 
@@ -571,14 +569,10 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 					anim_value_type		= SVG_Matrix_datatype;
 					anim_transform_type = *(SVG_TransformType*)type_info.far_ptr;
 				} else {
-#ifdef PRINT_WARNING
-					fprintf(stdout, "Warning: type attribute not found.\n");
-#endif
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG] type attribute not found.\n"));
 				}
 			} else {
-#ifdef PRINT_WARNING
-				fprintf(stdout, "Warning: type attribute not specified in animateTransform.\n");
-#endif
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG] type attribute not specified in animateTransform.\n"));
 			} 
 		} else if ((attributeName = xmlGetProp(node, "attributeName"))) {
 			GF_FieldInfo attributeName_info;
@@ -586,15 +580,11 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 				parse_attributename(elt, attributeName);
 				anim_value_type = ((SMIL_AttributeName *)attributeName_info.far_ptr)->type;
 			} else {
-#ifdef PRINT_WARNING
-				fprintf(stdout, "Warning: attributeName attribute not found.\n");
-#endif
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG] attributeName attribute not found.\n"));
 			}
 		} else {
 			if (tag != TAG_SVG_discard) {
-#ifdef PRINT_WARNING
-				fprintf(stdout, "Warning: target attribute not specified.\n");
-#endif			
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG] target attribute not specified.\n"));
 			}
 		}
 	}
@@ -719,9 +709,7 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 		case TAG_SVG_discard:
 			break;
 		default:
-#ifdef PRINT_WARNING
-			fprintf(stdout, "Error: no attributeName specified.\n");
-#endif
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG] No attributeName specified.\n"));
 			break;
 		}
 	}
@@ -945,9 +933,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 			} else if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attrs[attribute_index], &info)) {
 				gf_svg_parse_attribute(elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
 			} else {
-#ifdef PRINT_WARNING
-				fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", (char *)attrs[attribute_index], gf_node_get_class_name((GF_Node *)elt));
-#endif
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG] Unknown attribute %s on element %s\n", (char *)attrs[attribute_index], gf_node_get_class_name((GF_Node *)elt) ));
 			}
 		}
 		attribute_index+=2;

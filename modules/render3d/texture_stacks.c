@@ -364,7 +364,7 @@ void R3D_InitCompositeTexture2D(Render3D *sr, GF_Node *node)
 }
 
 
-Bool r3d_handle_composite_event(Render3D *sr, GF_UserEvent *ev)
+Bool r3d_handle_composite_event(Render3D *sr, GF_Event *ev)
 {
 	CompositeTextureStack *st;
 	GF_Matrix mx;
@@ -377,7 +377,7 @@ Bool r3d_handle_composite_event(Render3D *sr, GF_UserEvent *ev)
 	M_Appearance *ap = (M_Appearance *)sr->hit_info.appear;
 	assert(ap && ap->texture);
 
-	if (ev->event_type > GF_EVENT_MOUSEMOVE) return 0;
+	if (ev->type > GF_EVENT_MOUSEMOVE) return 0;
 
 	st = (CompositeTextureStack *) gf_node_get_private(ap->texture);
 

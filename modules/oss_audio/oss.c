@@ -126,7 +126,7 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 	ctx->delay = (1000*ctx->buf_size*nb_bufs) / (*SampleRate * blockalign);
 	if ( ioctl(ctx->audio_dev, SNDCTL_DSP_SETFRAGMENT, &frag_spec) < 0 ) return GF_IO_ERR;
 
-	//fprintf(stdout, "OSS setup %d buffers %d bytes each (%d ms buffer delay)", nb_bufs, ctx->buf_size, ctx->delay);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[OSS] setup %d buffers %d bytes each (%d ms buffer delay)", nb_bufs, ctx->buf_size, ctx->delay));
 	ctx->wav_buf = realloc(ctx->wav_buf, ctx->buf_size*sizeof(char));
 	if(!ctx->wav_buf) return GF_OUT_OF_MEM;
 	memset(ctx->wav_buf, 0, ctx->buf_size*sizeof(char));
@@ -175,11 +175,11 @@ static GF_Err OSS_QueryOutputSampleRate(GF_AudioOutput*dr, u32 *desired_sr, u32 
 	}
 	i=*desired_sr;
 	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&i)==-1) return GF_IO_ERR;
-	//fprintf(stdout, "OSS uses samplerate %d for desired sr %d\n", i, *desired_sr);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[OSS] uses samplerate %d for desired sr %d\n", i, *desired_sr));
 	*desired_sr = i;
 	i = *NbChannels;
 	if(ioctl(ctx->audio_dev,SNDCTL_DSP_CHANNELS, &i)==-1) return GF_IO_ERR;
-	//fprintf(stdout, "OSS uses %d channels for %d desired ones\n", i, *NbChannels);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[OSS] uses %d channels for %d desired ones\n", i, *NbChannels));
 	*NbChannels = i;
 	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&ctx->sr)==-1) return GF_OK;
 	if(ioctl(ctx->audio_dev,SNDCTL_DSP_CHANNELS, &ctx->nb_ch)==-1) return GF_OK;

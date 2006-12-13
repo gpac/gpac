@@ -50,7 +50,7 @@ static void DumpData(FILE *trace, char *data, u32 dataLength)
 GF_Err DumpBox(GF_Box *a, FILE * trace)
 {
 	if (a->size > 0xFFFFFFFF) {
-		fprintf(trace, "<BoxInfo LargeSize=\""LLD"\" ", a->size);
+		fprintf(trace, "<BoxInfo LargeSize=\""LLD"\" ", LLD_CAST a->size);
 	} else {
 		fprintf(trace, "<BoxInfo Size=\"%d\" ", (u32) a->size);
 	}
@@ -380,7 +380,7 @@ GF_Err mdat_dump(GF_Box *a, FILE * trace)
 	GF_MediaDataBox *p;
 
 	p = (GF_MediaDataBox *)a;
-	fprintf(trace, "<MediaDataBox dataSize=\""LLD"\">\n", p->dataSize);
+	fprintf(trace, "<MediaDataBox dataSize=\""LLD"\">\n", LLD_CAST p->dataSize);
 	DumpBox(a, trace);
 	fprintf(trace, "</MediaDataBox>\n");
 	return GF_OK;
@@ -415,10 +415,10 @@ GF_Err mvhd_dump(GF_Box *a, FILE * trace)
 	p = (GF_MovieHeaderBox *) a;
 
 	fprintf(trace, "<MovieHeaderBox ");
-	fprintf(trace, "CreationTime=\""LLD"\" ", p->creationTime);
-	fprintf(trace, "ModificationTime=\""LLD"\" ", p->modificationTime);
+	fprintf(trace, "CreationTime=\""LLD"\" ", LLD_CAST p->creationTime);
+	fprintf(trace, "ModificationTime=\""LLD"\" ", LLD_CAST p->modificationTime);
 	fprintf(trace, "TimeScale=\"%d\" ", p->timeScale);
-	fprintf(trace, "Duration=\""LLD"\" ", p->duration);
+	fprintf(trace, "Duration=\""LLD"\" ", LLD_CAST p->duration);
 	fprintf(trace, "NextTrackID=\"%d\">\n", p->nextTrackID);
 	
 	DumpBox(a, trace);
@@ -435,10 +435,10 @@ GF_Err mdhd_dump(GF_Box *a, FILE * trace)
 	p = (GF_MediaHeaderBox *)a;
 	fprintf(trace, "<MediaHeaderBox ");
 
-	fprintf(trace, "CreationTime=\""LLD"\" ", p->creationTime);
-	fprintf(trace, "ModificationTime=\""LLD"\" ", p->modificationTime);
+	fprintf(trace, "CreationTime=\""LLD"\" ", LLD_CAST p->creationTime);
+	fprintf(trace, "ModificationTime=\""LLD"\" ", LLD_CAST p->modificationTime);
 	fprintf(trace, "TimeScale=\"%d\" ", p->timeScale);
-	fprintf(trace, "Duration=\""LLD"\" ", p->duration);
+	fprintf(trace, "Duration=\""LLD"\" ", LLD_CAST p->duration);
 	fprintf(trace, "LanguageCode=\"%c%c%c\">\n", p->packedLanguage[0], p->packedLanguage[1], p->packedLanguage[2]);
 
 	DumpBox(a, trace);
@@ -932,7 +932,7 @@ GF_Err elst_dump(GF_Box *a, FILE * trace)
 
 	i=0;
 	while ((t = (GF_EdtsEntry *)gf_list_enum(p->entryList, &i))) {
-		fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%d\"/>\n", t->segmentDuration, t->mediaTime, t->mediaRate);
+		fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%d\"/>\n", LLD_CAST t->segmentDuration, LLD_CAST t->mediaTime, t->mediaRate);
 	}
 	fprintf(trace, "</EditListBox>\n");
 	return GF_OK;
@@ -1107,7 +1107,7 @@ GF_Err co64_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<Warning: No Chunk Offsets indications/>\n");
 	} else {
 		for (i=0; i<p->entryCount; i++) 
-			fprintf(trace, "<ChunkOffsetEntry offset=\""LLD"\"/>\n", p->offsets[i]);
+			fprintf(trace, "<ChunkOffsetEntry offset=\""LLD"\"/>\n", LLD_CAST p->offsets[i]);
 	}
 	fprintf(trace, "</ChunkLargeOffsetBox>\n");
 	return GF_OK;
@@ -1153,7 +1153,7 @@ GF_Err tkhd_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<TrackHeaderBox ");
 
 	fprintf(trace, "CreationTime=\""LLD"\" ModificationTime=\""LLD"\" TrackID=\"%d\" Duration=\""LLD"\"",
-		p->creationTime, p->modificationTime, p->trackID, p->duration);
+		LLD_CAST p->creationTime, LLD_CAST p->modificationTime, p->trackID, LLD_CAST p->duration);
 	
 	if (p->volume) {
 		fprintf(trace, " Volume=\"%.2f\"", (Float)p->volume / 256);
@@ -1676,10 +1676,10 @@ GF_Err iloc_dump(GF_Box *a, FILE * trace)
 	for (i=0;i<count;i++) {
 		GF_ItemLocationEntry *ie = (GF_ItemLocationEntry *)gf_list_get(p->location_entries, i);
 		count2 = gf_list_count(ie->extent_entries);
-		fprintf(trace, "<ItemLocationEntry item_ID=\"%d\" data_reference_index=\"%d\" base_offset=\""LLD"\" />\n", ie->item_ID, ie->data_reference_index, ie->base_offset);
+		fprintf(trace, "<ItemLocationEntry item_ID=\"%d\" data_reference_index=\"%d\" base_offset=\""LLD"\" />\n", ie->item_ID, ie->data_reference_index, LLD_CAST ie->base_offset);
 		for (j=0; j<count2; j++) {
 			GF_ItemExtentEntry *iee = (GF_ItemExtentEntry *)gf_list_get(ie->extent_entries, j);
-			fprintf(trace, "<ItemExtentEntry extent_offset=\""LLD"\" extent_length=\""LLD"\" />\n", iee->extent_offset, iee->extent_length);
+			fprintf(trace, "<ItemExtentEntry extent_offset=\""LLD"\" extent_length=\""LLD"\" />\n", LLD_CAST iee->extent_offset, LLD_CAST iee->extent_length);
 		}
 	}
 	fprintf(trace, "</ItemLocationBox>\n");
@@ -1740,7 +1740,7 @@ GF_Err trpy_dump(GF_Box *a, FILE * trace)
 	GF_TRPYBox *p;
 
 	p = (GF_TRPYBox *)a;
-	fprintf(trace, "<LargeTotalRTPBytesBox RTPBytesSent=\""LLD"\">\n", p->nbBytes);
+	fprintf(trace, "<LargeTotalRTPBytesBox RTPBytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
 	DumpBox(a, trace);
 	fprintf(trace, "</LargeTotalRTPBytesBox>\n");
 	return GF_OK;
@@ -1762,7 +1762,7 @@ GF_Err nump_dump(GF_Box *a, FILE * trace)
 	GF_NUMPBox *p;
 
 	p = (GF_NUMPBox *)a;
-	fprintf(trace, "<LargeTotalPacketBox PacketsSent=\""LLD"\">\n", p->nbPackets);
+	fprintf(trace, "<LargeTotalPacketBox PacketsSent=\""LLD"\">\n", LLD_CAST p->nbPackets);
 	DumpBox(a, trace);
 	fprintf(trace, "</LargeTotalPacketBox>\n");
 	return GF_OK;
@@ -1784,7 +1784,7 @@ GF_Err tpyl_dump(GF_Box *a, FILE * trace)
 	GF_NTYLBox *p;
 
 	p = (GF_NTYLBox *)a;
-	fprintf(trace, "<LargeTotalMediaBytesBox BytesSent=\""LLD"\">\n", p->nbBytes);
+	fprintf(trace, "<LargeTotalMediaBytesBox BytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
 	DumpBox(a, trace);
 	fprintf(trace, "</LargeTotalMediaBytesBox>\n");
 	return GF_OK;
@@ -1816,7 +1816,7 @@ GF_Err dmed_dump(GF_Box *a, FILE * trace)
 	GF_DMEDBox *p;
 
 	p = (GF_DMEDBox *)a;
-	fprintf(trace, "<BytesFromMediaTrackBox BytesSent=\""LLD"\">\n", p->nbBytes);
+	fprintf(trace, "<BytesFromMediaTrackBox BytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
 	DumpBox(a, trace);
 	fprintf(trace, "</BytesFromMediaTrackBox>\n");
 	return GF_OK;
@@ -1827,7 +1827,7 @@ GF_Err dimm_dump(GF_Box *a, FILE * trace)
 	GF_DIMMBox *p;
 
 	p = (GF_DIMMBox *)a;
-	fprintf(trace, "<ImmediateDataBytesBox BytesSent=\""LLD"\">\n", p->nbBytes);
+	fprintf(trace, "<ImmediateDataBytesBox BytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
 	DumpBox(a, trace);
 	fprintf(trace, "</ImmediateDataBytesBox>\n");
 	return GF_OK;
@@ -1838,7 +1838,7 @@ GF_Err drep_dump(GF_Box *a, FILE * trace)
 	GF_DREPBox *p;
 
 	p = (GF_DREPBox *)a;
-	fprintf(trace, "<RepeatedDataBytesBox RepeatedBytes=\""LLD"\">\n", p->nbBytes);
+	fprintf(trace, "<RepeatedDataBytesBox RepeatedBytes=\""LLD"\">\n", LLD_CAST p->nbBytes);
 	DumpBox(a, trace);
 	fprintf(trace, "</RepeatedDataBytesBox>\n");
 	return GF_OK;
@@ -2038,7 +2038,7 @@ GF_Err mvex_dump(GF_Box *a, FILE * trace)
 GF_Err mehd_dump(GF_Box *a, FILE * trace)
 {
 	GF_MovieExtendsHeaderBox *p = (GF_MovieExtendsHeaderBox*)a;
-	fprintf(trace, "<MovieExtendsHeaderBox fragmentDuration=\""LLD"\" >\n", p->fragment_duration);
+	fprintf(trace, "<MovieExtendsHeaderBox fragmentDuration=\""LLD"\" >\n", LLD_CAST p->fragment_duration);
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 	fprintf(trace, "</MovieExtendsHeaderBox>\n");
@@ -2110,7 +2110,7 @@ GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<TrackFragmentHeaderBox TrackID=\"%d\"", p->trackID);
 
 	if (p->flags & GF_ISOM_TRAF_BASE_OFFSET) {
-		fprintf(trace, " BaseDataOffset=\""LLD"\"", p->base_data_offset);
+		fprintf(trace, " BaseDataOffset=\""LLD"\"", LLD_CAST p->base_data_offset);
 	}
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_DESC) 
 		fprintf(trace, "SampleDescriptionIndex=\"%d\"", p->sample_desc_index);
@@ -2256,7 +2256,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 
 	count = gf_list_count(s->packetTable);
 
-	fprintf(trace, "<RTPHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%d\">\n", SampleNum, tmp->DTS, tmp->IsRAP, count);
+	fprintf(trace, "<RTPHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%d\">\n", SampleNum, LLD_CAST tmp->DTS, tmp->IsRAP, count);
 
 	for (i=0; i<count; i++) {
 		pck = (GF_RTPPacket *)gf_list_get(s->packetTable, i);
@@ -2873,12 +2873,12 @@ GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, u32 S
 		return GF_NOT_SUPPORTED;
 	}
 
-	fprintf(trace, "<ISMACrypSample SampleNumber=\"%d\" DataSize=\"%d\" CompositionTime=\""LLD"\" ", SampleNum, isma_samp->dataLength, samp->DTS+samp->CTS_Offset);
-	if (samp->CTS_Offset) fprintf(trace, "DecodingTime=\""LLD"\" ", samp->DTS);
+	fprintf(trace, "<ISMACrypSample SampleNumber=\"%d\" DataSize=\"%d\" CompositionTime=\""LLD"\" ", SampleNum, isma_samp->dataLength, LLD_CAST (samp->DTS+samp->CTS_Offset) );
+	if (samp->CTS_Offset) fprintf(trace, "DecodingTime=\""LLD"\" ", LLD_CAST samp->DTS);
 	if (gf_isom_has_sync_points(the_file, trackNumber)) fprintf(trace, "RandomAccessPoint=\"%s\" ", samp->IsRAP ? "Yes" : "No");
 	fprintf(trace, "IsEncrypted=\"%s\" ", (isma_samp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? "Yes" : "No");
 	if (isma_samp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
-		fprintf(trace, "IV=\""LLD"\" ", isma_samp->IV);
+		fprintf(trace, "IV=\""LLD"\" ", LLD_CAST isma_samp->IV);
 		if (isma_samp->key_indicator) dump_data(trace, "KeyIndicator", (char*)isma_samp->key_indicator, isma_samp->KI_length);
 	}
 	fprintf(trace, "/>\n");
@@ -2895,6 +2895,8 @@ GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, u32 S
 
 static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 {
+	GF_BitStream *bs;
+	u32 val;
 	Bool no_dump = 0;
 	char *name = "unknown";
 	GF_ListItemBox *itune = (GF_ListItemBox *)a;
@@ -2926,12 +2928,28 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 		switch (itune->type) {
 		case GF_ISOM_BOX_TYPE_DISK:
 		case GF_ISOM_BOX_TYPE_TRKN:
-			fprintf(trace, " value=\"");
-			DumpData(trace, itune->data->data, itune->data->dataSize);
-			fprintf(trace, "\" ");
+			bs = gf_bs_new(itune->data->data, itune->data->dataSize, GF_BITSTREAM_READ);
+			gf_bs_read_int(bs, 16);
+			val = gf_bs_read_int(bs, 16);
+			fprintf(trace, " TrackNumber=\"%d\" NbTracks=\"%d\" ", val, gf_bs_read_int(bs, 16) );
+			gf_bs_del(bs);
+			break;
+		case GF_ISOM_BOX_TYPE_TMPO:
+			bs = gf_bs_new(itune->data->data, itune->data->dataSize, GF_BITSTREAM_READ);
+			fprintf(trace, " BPM=\"%d\" ", gf_bs_read_int(bs, 16) );
+			gf_bs_del(bs);
+			break;
+		case GF_ISOM_BOX_TYPE_CPIL:
+			fprintf(trace, " IsCompilation=\"%s\" ", itune->data->data[0] ? "yes" : "no");
 			break;
 		default:
-			fprintf(trace, " value=\"%s\" ", itune->data->data);
+			if (itune->data->data[0]) {
+				fprintf(trace, " value=\"%s\" ", itune->data->data);
+			} else {
+				fprintf(trace, " value=\"");
+				DumpData(trace, itune->data->data, itune->data->dataSize);
+				fprintf(trace, "\" ");
+			}
 			break;
 		}
 	}

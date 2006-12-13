@@ -669,6 +669,7 @@ void AAC_Delete(void *ifce)
 	free(plug);
 }
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
@@ -683,6 +684,7 @@ GF_BaseDecoder *NewFAADDec();
 void DeleteFAADDec(GF_BaseDecoder *ifcg);
 #endif
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)AAC_Load();
@@ -692,6 +694,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

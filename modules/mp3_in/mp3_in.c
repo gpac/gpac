@@ -117,6 +117,8 @@ static Bool MP3_ConfigureFromFile(MP3Reader *read)
 	/*we don't have the full file...*/
 	if (read->is_remote) return	1;
 
+	return 1;
+
 	read->duration = gf_mp3_window_size(hdr);
 	size = gf_mp3_frame_size(hdr);
 	pos = ftell(read->stream);
@@ -494,7 +496,6 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			return GF_OK;
 		}
 
-		read->current_time += gf_mp3_window_size(hdr);
 
 		/*we're seeking*/
 		if (read->start_range && read->duration) {
@@ -513,9 +514,13 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 				fseek(read->stream, read->data_size-4, SEEK_CUR);
 			}
 			read->start_range = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[MP3Demux] Seeking to frame size %d - TS %d - file pos %d\n", read->data_size, read->current_time, ftell(read->stream)));
 		}
 
 		read->sl_hdr.compositionTimeStamp = read->current_time;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[MP3Demux] Found new frame size %d - TS %d - file pos %d\n", read->data_size, read->current_time, ftell(read->stream)));
+
+		read->current_time += gf_mp3_window_size(hdr);
 
 		read->data = malloc(sizeof(char) * (read->data_size+read->pad_bytes));
 		read->data[0] = (hdr >> 24) & 0xFF;
@@ -593,6 +598,7 @@ GF_BaseDecoder *NewMADDec();
 void DeleteMADDec(GF_BaseDecoder *ifcg);
 #endif
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
@@ -602,6 +608,7 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)MP3_Load();
@@ -611,6 +618,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

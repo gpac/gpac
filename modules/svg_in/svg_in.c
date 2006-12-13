@@ -79,9 +79,9 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 		if ((svgin->sax_max_duration==(u32) -1) && svgin->file_size) {
 			/*init step*/
 			if (!svgin->loader.fileName) {
-				svgin->loader.fileName = svgin->file_name;
 				/*not done yet*/
 				if (!svg_check_download(svgin)) return GF_OK;
+				svgin->loader.fileName = svgin->file_name;
 				e = gf_sm_load_init(&svgin->loader);
 			} else {
 				/*should not be needed since SVG parser loads the entire file for now*/

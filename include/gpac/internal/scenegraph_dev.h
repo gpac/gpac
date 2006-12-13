@@ -225,6 +225,7 @@ void gf_sg_mpeg4_node_del(GF_Node *node);
 const char *gf_sg_mpeg4_node_get_class_name(u32 NodeTag);
 #endif
 Bool gf_sg_mpeg4_node_get_aq_info(GF_Node *node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits);
+s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name);
 
 /*X3D def*/
 GF_Node *gf_sg_x3d_node_new(u32 NodeTag);
@@ -234,6 +235,7 @@ u32 gf_sg_x3d_node_get_field_count(GF_Node *node);
 void gf_sg_x3d_node_del(GF_Node *node);
 const char *gf_sg_x3d_node_get_class_name(u32 NodeTag);
 #endif
+s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name);
 
 void gf_sg_mfint32_del(MFInt32 par);
 void gf_sg_mffloat_del(MFFloat par);
@@ -465,6 +467,8 @@ void gf_svg_reset_lsr_conditional(SVGCommandBuffer *script);
 void gf_sg_handle_dom_event(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);
 void gf_smil_setup_events(GF_Node *node);
 
+s32 gf_svg_get_attribute_index_by_name(GF_Node *node, char *name);
+
 #endif
 
 
@@ -629,6 +633,8 @@ node can be the proto instance or a node from the proto code
 this will call NodeChanged if needed, forward to proto/node or trigger any route if needed*/
 void gf_sg_proto_check_field_change(GF_Node *node, u32 fieldIndex);
 
+s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *name);
+
 
 /*
 		Script node
@@ -637,7 +643,7 @@ void gf_sg_proto_check_field_change(GF_Node *node, u32 fieldIndex);
 #ifdef GPAC_HAS_SPIDERMONKEY
 
 /*WIN32 and WinCE config (no configure script)*/
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(WIN32) || defined(_WIN32_WCE) || defined(__SYMBIAN32__)
 #ifndef XP_PC
 #define XP_PC
 #endif

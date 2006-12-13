@@ -2802,7 +2802,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		
 			if (!first_bifs || (au->owner->streamType != GF_STREAM_SCENE) ) {
 				if (au->is_rap) fprintf(dumper->trace, "RAP ");
-				fprintf(dumper->trace, "AT "LLD" ", au->timing);
+				fprintf(dumper->trace, "AT "LLD" ", LLD_CAST au->timing);
 				if ( (au->owner->streamType==GF_STREAM_OD && num_od) || (au->owner->streamType==GF_STREAM_SCENE && num_scene)) {
 					fprintf(dumper->trace, "IN %d ", au->owner->ESID);
 				} 
@@ -2836,7 +2836,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 				if (time != au->timing_sec) {
 					time = au->timing_sec;
 					fprintf(dumper->trace, "<saf:sceneUnit");
-					if (time) fprintf(dumper->trace, " time=\""LLD"\"", au->timing);
+					if (time) fprintf(dumper->trace, " time=\""LLD"\"", LLD_CAST au->timing);
 					if (au->is_rap) fprintf(dumper->trace, " rap=\"true\"");
 					fprintf(dumper->trace, ">\n");
 				}

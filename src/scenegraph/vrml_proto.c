@@ -325,6 +325,24 @@ GF_Err gf_sg_proto_get_field(GF_Proto *proto, GF_Node *node, GF_FieldInfo *info)
 	return GF_OK;
 }
 
+s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *name)
+{
+	u32 i;
+	GF_ProtoFieldInterface *proto_field;
+	GF_Proto *__proto;
+
+	if (node && (node->sgprivate->tag!=TAG_ProtoNode)) return -1;
+
+	__proto = proto ? proto : ((GF_ProtoInstance *) node)->proto_interface;
+	if (!__proto ) return -1;
+
+	for (i=0; i<gf_list_count(__proto->proto_fields); i++) {
+		proto_field = (GF_ProtoFieldInterface*)gf_list_get(__proto->proto_fields, i);
+		if (proto_field->FieldName && !strcmp(proto_field->FieldName, name)) return i;
+	}
+	return -1;
+}
+
 GF_EXPORT
 GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent)
 {

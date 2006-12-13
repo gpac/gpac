@@ -73,7 +73,12 @@ static GF_ESD *AMR_GetESD(AMR_Reader *read)
 		esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
 		dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(dsi, read->mtype);
-		gf_bs_get_content(dsi, (unsigned char **) & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
+		gf_bs_write_u16(dsi, (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) ? 8000 : 16000);
+		gf_bs_write_u16(dsi, (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) ? 160 : 320);
+		gf_bs_write_u8(dsi, 1);
+		gf_bs_write_u8(dsi, 16);
+		gf_bs_write_u8(dsi, 1);
+		gf_bs_get_content(dsi, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(dsi);
 	} 
 	else if (read->mtype==GF_ISOM_SUBTYPE_3GP_EVRC) esd->decoderConfig->objectTypeIndication = 0xA0;
@@ -526,3 +531,33 @@ void DeleteAESReader(void *ifce)
 	free(read);
 	free(plug);
 }
+
+
+#ifdef GPAC_AMR_IN_STANDALONE
+GF_EXPORT
+Bool QueryInterface(u32 InterfaceType)
+{
+	switch (InterfaceType) {
+	case GF_NET_CLIENT_INTERFACE: return 1;
+	default: return 0;
+	}
+}
+
+GF_EXPORT
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
+{
+	switch (InterfaceType) {
+	case GF_NET_CLIENT_INTERFACE: return (GF_BaseInterface *) NewAESReader();
+	default: return NULL;
+	}
+}
+
+GF_EXPORT
+void ShutdownInterface(GF_BaseInterface *ifce)
+{
+	switch (ifce->InterfaceType) {
+	case GF_NET_CLIENT_INTERFACE:  DeleteAESReader(ifce); break;
+	}
+}
+#endif
+

@@ -834,12 +834,15 @@ void gf_node_render(GF_Node *node, void *renderStack)
 #ifdef GF_CYCLIC_RENDER_ON
 		if (node->sgprivate->RenderNode && (node->sgprivate->render_pass < max_pass)) { 
 			node->sgprivate->render_pass ++;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneGraph] Traversing node %s\n", gf_node_get_class_name(node) ));
 			node->sgprivate->RenderNode(node, renderStack);
 			node->sgprivate->render_pass --;
 		}
 #else
-		if (node->sgprivate->RenderNode)
+		if (node->sgprivate->RenderNode) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneGraph] Traversing node %s\n", gf_node_get_class_name(node) ));
 			node->sgprivate->RenderNode(node, renderStack);
+		}
 #endif
 		return;
 	}
@@ -867,12 +870,15 @@ void gf_node_render(GF_Node *node, void *renderStack)
 #ifdef GF_CYCLIC_RENDER_ON
 	if (node->sgprivate->RenderNode && (node->sgprivate->render_pass < node->sgprivate->scenegraph->max_cyclic_render)) {
 		node->sgprivate->render_pass ++;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneGraph] Traversing node %s\n", gf_node_get_class_name(node) ));
 		node->sgprivate->RenderNode(node, renderStack);
 		node->sgprivate->render_pass --;
 	}
 #else
-	if (node->sgprivate->RenderNode)
+	if (node->sgprivate->RenderNode) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneGraph] Traversing node %s\n", gf_node_get_class_name(node) ));
 		node->sgprivate->RenderNode(node, renderStack);
+	}
 #endif
 }
 
@@ -892,20 +898,6 @@ void gf_node_render_children(GF_Node *node, void *renderStack)
 	}
 }
 
-
-GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
-{
-	u32 i, count;
-	assert(node);
-	count = gf_node_get_field_count(node);
-	
-	memset(field, 0, sizeof(GF_FieldInfo));
-	for (i=0; i<count;i++) {
-		gf_node_get_field(node, i, field);
-		if (!strcmp(field->name, name)) return GF_OK;
-	}
-	return GF_BAD_PARAM;
-}
 
 GF_EXPORT
 GF_SceneGraph *gf_node_get_graph(GF_Node *node)
@@ -1322,5 +1314,42 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 u32 gf_node_get_num_instances(GF_Node *node)
 {
 	return node->sgprivate->num_instances;
+}
+
+static GF_Err gf_node_get_field_by_name_enum(GF_Node *node, char *name, GF_FieldInfo *field)
+{
+	u32 i, count;
+	assert(node);
+	count = gf_node_get_field_count(node);
+	memset(field, 0, sizeof(GF_FieldInfo));
+	for (i=0; i<count;i++) {
+		gf_node_get_field(node, i, field);
+		if (!strcmp(field->name, name)) return GF_OK;
+	}
+	return GF_BAD_PARAM;
+}
+
+GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
+{
+#ifdef GF_NODE_USE_POINTERS
+	return gf_node_get_field_by_name_enum(node, name, field);
+#else
+	s32 res = -1;
+
+	if (node->sgprivate->tag==TAG_UndefinedNode) return GF_BAD_PARAM;
+	else if (node->sgprivate->tag == TAG_ProtoNode) {
+		res = gf_sg_proto_get_field_index_by_name(NULL, node, name);
+	}
+	else if ((node->sgprivate->tag == TAG_MPEG4_Script) || (node->sgprivate->tag == TAG_X3D_Script) ) {
+		return gf_node_get_field_by_name_enum(node, name, field);
+	}
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) res = gf_sg_mpeg4_node_get_field_index_by_name(node, name);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) res = gf_sg_x3d_node_get_field_index_by_name(node, name);
+#ifndef GPAC_DISABLE_SVG
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) res = gf_svg_get_attribute_index_by_name(node, name);
+#endif
+	if (res==-1) return GF_BAD_PARAM;
+	return gf_node_get_field(node, (u32) res, field);
+#endif
 }
 

@@ -54,7 +54,7 @@ GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc
 	*desc_size = 0;
 
 	//tag
-	tag = gf_bs_read_int(bs, 8);
+	tag = (u8) gf_bs_read_int(bs, 8);
 	sizeHeader = 1;
 	
 	//size
@@ -64,8 +64,10 @@ GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc
 		sizeHeader++;
 		size <<= 7;
 		size |= val & 0x7F;
-	} while ( val & 0x80 );
+	} while ( val & 0x80);
 	*desc_size = size;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ODF] Reading descriptor (tag %d size %d)\n", tag, size ));
 
 	newDesc = gf_odf_create_descriptor(tag);
 	if (! newDesc) {
@@ -82,7 +84,6 @@ GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc
 	}
 
 	newDesc->tag = tag;
-
 	err = gf_odf_read_descriptor(bs, newDesc, *desc_size);
 
 	/*FFMPEG fix*/
@@ -99,6 +100,7 @@ GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc
 	*desc_size += sizeHeader - gf_odf_size_field_size(*desc_size);
 	*desc = newDesc;
 	if (err) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ODF] Error reading descriptor (tag %d size %d): %s\n", tag, size, gf_error_to_string(err) ));
 		gf_odf_delete_descriptor(newDesc);
 		*desc = NULL;
 	}

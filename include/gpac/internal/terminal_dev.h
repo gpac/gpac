@@ -194,14 +194,37 @@ void gf_is_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo);
 Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *inline_url);
 
 
+enum
+{
+	/*threading up to decoder*/
+	GF_TERM_THREAD_FREE,
+	/*single thread for all decoders*/
+	GF_TERM_THREAD_SINGLE,
+	/*all media (image, video, audio) decoders are threaded*/
+	GF_TERM_THREAD_MULTI,
+};
+
+enum
+{
+	GF_TERM_RUNNING= 1,
+	GF_TERM_DEAD = 1<<1,
+	GF_TERM_SINGLE_THREAD = 1<<2,
+	GF_TERM_MULTI_THREAD = 1<<3,
+	GF_TERM_SYSDEC_RESYNC = 1<<4,
+	GF_TERM_SINGLE_CLOCK = 1<<5,
+	GF_TERM_RENDER_FRAME = 1<<6
+};
+
+
+
 struct _tag_terminal
 {
+	u32 flags;
+
 	/*callback to user application*/	
 	GF_User *user;
 	/*JavaScript browser API*/
 	GF_JSInterface js_ifce;
-	/*media scheduler*/
-	struct _media_manager *mediaman;
 	/*scene renderer*/
 	struct __tag_base_renderer *renderer;
 	/*file downloader*/
@@ -209,9 +232,17 @@ struct _tag_terminal
 	/*top level scene*/
 	GF_InlineScene *root_scene;
 
-	/*rendering frame rate (used for systems AU execution)*/
-	Double system_fps;
-	u32 half_frame_duration;
+	/*Media manager*/
+	GF_List *codecs;
+	/*mutex for decoder access*/
+	GF_Mutex *mm_mx;
+	/*decoding thread*/
+	GF_Thread *mm_thread;
+	/*thread priority*/
+	s32 priority;
+	u32 cumulated_priority;
+	/*frame duration*/
+	u32 frame_duration;
 
 	/*net services*/
 	GF_List *net_services;
@@ -229,9 +260,6 @@ struct _tag_terminal
 	GF_List *input_streams;
 	
 	/*options (cf config doc)*/
-	Bool bifs_can_resync;
-	Bool force_single_clock;
-	Bool render_frames;
 	Bool enable_cache;
 	/*data timeout for network buffering in ms - if no data is recieved within this timeout
 	the initial buffering aborts. */
@@ -246,6 +274,17 @@ struct _tag_terminal
 	For these nodes, the traverse effect passed will be NULL. This is only used by InputSensor node at the moment*/
 	GF_List *nodes_pending;
 };
+
+
+
+GF_Err gf_term_init_scheduler(GF_Terminal *term, u32 threading_mode);
+void gf_term_stop_scheduler(GF_Terminal *term);
+void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec);
+void gf_term_remove_codec(GF_Terminal *term, GF_Codec *codec);
+void gf_term_start_codec(GF_Codec *codec);
+void gf_term_stop_codec(GF_Codec *codec);
+void gf_term_set_threading(GF_Terminal *term, u32 mode);
+void gf_term_set_priority(GF_Terminal *term, s32 Priority);
 
 
 /*error report function*/
@@ -283,50 +322,6 @@ For these nodes, the traverse effect passed will be NULL.*/
 void gf_term_add_render_node(GF_Terminal *term, GF_Node *node);
 void gf_term_rem_render_node(GF_Terminal *term, GF_Node *node);
 
-/*
-		Media manager
-*/
-
-enum
-{
-	/*threading up to decoder*/
-	GF_TERM_THREAD_FREE,
-	/*single thread for all decoders*/
-	GF_TERM_THREAD_SINGLE,
-	/*all media (image, video, audio) decoders are threaded*/
-	GF_TERM_THREAD_MULTI,
-};
-
-struct _media_manager
-{
-	/*MPEG4 terminal*/
-	GF_Terminal *term;
-	/*decoding thread*/
-	GF_Thread *th;
-	/*thread priority*/
-	s32 priority;
-	/*thread exec flags*/
-	u32 state;
-
-	/*mutex for decoder access*/
-	GF_Mutex *mx;
-
-	GF_List *unthreaded_codecs;
-	GF_List *threaded_codecs;
-	u32 cumulated_priority;
-	u32 interrupt_cycle_ms;
-	/*0: up to decoder, 1: single thread, 2: all decoders threaded*/
-	u32 threading_mode;
-};
-
-GF_MediaManager *gf_mm_new(GF_Terminal *term, u32 threading_mode);
-void gf_mm_del(GF_MediaManager *mgr);
-void gf_mm_add_codec(GF_MediaManager *mgr, GF_Codec *codec);
-void gf_mm_remove_codec(GF_MediaManager *mgr, GF_Codec *codec);
-void gf_mm_start_codec(GF_Codec *codec);
-void gf_mm_stop_codec(GF_Codec *codec);
-void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode);
-void gf_mm_set_priority(GF_MediaManager *mgr, s32 Priority);
 
 
 /*clock*/

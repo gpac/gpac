@@ -46,7 +46,7 @@
 
 static void gf_dm_connect(GF_DownloadSession *sess);
 
-#define GF_DOWNLOAD_AGENT_NAME		"GPAC " GPAC_VERSION
+#define GF_DOWNLOAD_AGENT_NAME		"GPAC/" GPAC_VERSION
 #define GF_DOWNLOAD_BUFFER_SIZE		8192
 
 /*internal flags*/
@@ -949,16 +949,17 @@ void http_do_requests(GF_DownloadSession *sess)
 
 		sprintf(sHTTP, 
 			"GET %s HTTP/1.0\r\n"
-					"Host: %s:%d\r\n"
+					"Host: %s\r\n"
 					"User-Agent: %s\r\n"
 					"Accept: */*\r\n"
+					"Connection: Keep-Alive\r\n"
 					"%s"
 					"%s"
 					"%s"
 					"\r\n", 
 					sess->remote_path, 
 					sess->server_name,
-					sess->port,
+//					sess->port,
 					user_agent,
 					(const char *) pass_buf,
 					(const char *) range_buf,

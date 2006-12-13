@@ -36,7 +36,7 @@
 #include <libxml/xpathInternals.h>
 
 /* if defined generates .c/.h directly in the appropriate GPAC source folders */
-#define LOCAL_SVG_NODES
+#undef LOCAL_SVG_NODES
 
 /* 
    Modes for generating SVG code
