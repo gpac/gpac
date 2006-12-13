@@ -28,12 +28,7 @@
 
 static Bool DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
-	IMGDec *wrap = (IMGDec *)dec->privateStack;
-
 	if (StreamType != GF_STREAM_VISUAL) return 0;
-
-	/*should never happen*/
-	assert(wrap->type == DEC_RESERVED);
 
 	switch (ObjectType) {
 #ifdef GPAC_HAS_PNG
@@ -57,8 +52,12 @@ GF_BaseDecoder *NewBaseDecoder()
 	GF_MediaDecoder *ifce;
 	IMGDec *wrap;
 	GF_SAFEALLOC(ifce, GF_MediaDecoder);
-	wrap = malloc(sizeof(IMGDec));
-	memset(wrap, 0, sizeof(IMGDec));
+	if (!ifce) return NULL;
+	GF_SAFEALLOC(wrap, IMGDec);
+	if (!wrap) {
+		free(ifce);
+		return NULL;
+	}
 	ifce->privateStack = wrap;
 	ifce->CanHandleStream = DEC_CanHandleStream;
 
@@ -93,6 +92,7 @@ void DeleteBaseDecoder(GF_BaseDecoder *ifcd)
 	free(ifcd);
 }
 
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -105,6 +105,7 @@ Bool QueryInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
@@ -117,6 +118,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	}
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

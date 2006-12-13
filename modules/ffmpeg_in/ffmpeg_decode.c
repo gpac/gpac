@@ -138,9 +138,10 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 		if (ffd->st==GF_STREAM_AUDIO) {
 			ffd->ctx->codec_type = CODEC_TYPE_AUDIO;
 			ffd->ctx->sample_rate = gf_bs_read_u16(bs);
+			ffd->ctx->frame_size = gf_bs_read_u16(bs);
 			ffd->ctx->channels = gf_bs_read_u8(bs);
 			ffd->ctx->bits_per_sample = gf_bs_read_u8(bs);
-			ffd->ctx->frame_size = gf_bs_read_u8(bs);
+			/*packed mode*/ gf_bs_read_u8(bs);
 			/*just in case...*/
 			if (codec_id == GF_4CC('a', 'm', 'r', ' ')) {
 			  ffd->ctx->sample_rate = 8000;

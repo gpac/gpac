@@ -741,6 +741,12 @@ void WriteNodeFields(FILE *f, BNode *n)
 	}
 	fprintf(f, "\tdefault:\n\t\treturn GF_BAD_PARAM;\n\t}\n}\n\n");
 
+	fprintf(f, "\nstatic s32 %s_get_field_index_by_name(char *name)\n{\n", n->name);
+	for (i=0;i<gf_list_count(n->Fields); i++) {
+		bf = gf_list_get(n->Fields, i);
+		fprintf(f, "\tif (!strcmp(\"%s\", name)) return %d;\n", bf->name, i);
+	}
+	fprintf(f, "\treturn -1;\n\t}\n");
 }
 
 
@@ -1265,7 +1271,7 @@ void WriteNodeCode(GF_List *BNodes)
 	}
 	fprintf(f, "\tdefault:\n\t\treturn GF_BAD_PARAM;\n\t}\n}\n\n");
 
-	fprintf(f, "\n\n#endif\n");
+	fprintf(f, "\n\n#endif\n\n");
 
 	fprintf(f, "GF_Err gf_sg_mpeg4_node_get_field_index(GF_Node *node, u32 inField, u8 code_mode, u32 *fieldIndex)\n{\n\tswitch (node->sgprivate->tag) {\n");
 	for (i=0; i<gf_list_count(BNodes); i++) {
@@ -1302,6 +1308,15 @@ void WriteNodeCode(GF_List *BNodes)
 		fprintf(f, "\tif (!strcmp(node_name, \"%s\")) return TAG_MPEG4_%s;\n", n->name, n->name);
 	}
 	fprintf(f, "\treturn 0;\n}\n\n");
+
+	fprintf(f, "s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name)\n{\n\tswitch (node->sgprivate->tag) {\n");
+	for (i=0; i<gf_list_count(BNodes); i++) {
+		n = gf_list_get(BNodes, i);
+		if (!n->skip_impl) {
+			fprintf(f, "\tcase TAG_MPEG4_%s: return %s_get_field_index_by_name(name);\n", n->name, n->name);
+		}
+	}
+	fprintf(f, "\tdefault:\n\t\treturn -1;\n\t}\n}\n\n");
 
 
 	EndFile(f, "", 1);

@@ -20,7 +20,7 @@
  *  along with this program ; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
- * $Id: idct.cpp,v 1.1.1.1 2005-07-13 14:36:14 jeanlf Exp $
+ * $Id: idct.cpp,v 1.2 2006-12-13 15:12:27 jeanlf Exp $
  *
  ****************************************************************************/
 
@@ -91,7 +91,7 @@ const int __W1 = 2841,        //2048*sqrt(2)*cos(1*pi/16)
 void S_decoder::InverseDiscreteCosineTransform(int *block) const{
 
    const t_clip_val *iclp = iclip + 512;
-#if defined __MARM__ && 1
+#if defined USE_ARM_ASM
    void InverseDiscreteCosineTransform_ARM(int *block, const int *iclip);
    InverseDiscreteCosineTransform_ARM(block, iclp);
 #else

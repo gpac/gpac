@@ -136,7 +136,7 @@ typedef struct _sensor3D_handler
 	evt_type: mouse event type
 	hit_info: current hit info
 	*/
-	void (*OnUserEvent)(struct _sensor3D_handler *sh, Bool is_over, GF_UserEvent *ev, RayHitInfo *hit_info);
+	void (*OnUserEvent)(struct _sensor3D_handler *sh, Bool is_over, GF_Event *ev, RayHitInfo *hit_info);
 	/*set the node pointer here*/
 	GF_Node *owner;
 } SensorHandler;
@@ -265,7 +265,7 @@ void R3D_NodeInit(GF_VisualRenderer *vr, GF_Node *node);
 
 
 /*user vp modifs*/
-Bool R3D_HandleUserEvent(Render3D *sr, GF_UserEvent *event);
+Bool R3D_HandleUserEvent(Render3D *sr, GF_Event *event);
 void R3D_ResetCamera(Render3D *sr);
 
 GF_TextureHandler *R3D_GetTextureHandler(GF_Node *n);

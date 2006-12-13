@@ -168,21 +168,23 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 			if (bs->EndOfStream) bs->EndOfStream(bs->par);
 			return 0;
 		}
-		return (u8) bs->original[bs->position++];
+		return (u32) bs->original[bs->position++];
 	}
 	/*we are in FILE mode, test for end of file*/
 	if (!feof(bs->stream)) {
 		bs->position++;
-		return fgetc(bs->stream);
+		return (u32) fgetc(bs->stream);
 	}
 	if (bs->EndOfStream) bs->EndOfStream(bs->par);
 	return 0;
 }
 
-//#define NO_OPTS
+#define NO_OPTS
 
-static u8 bit_mask[] = {0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1};
-static u8 bits_mask[] = {0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F};
+#ifndef NO_OPTS
+static u32 bit_mask[] = {0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1};
+static u32 bits_mask[] = {0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F};
+#endif
 
 GF_EXPORT
 u8 gf_bs_read_bit(GF_BitStream *bs)

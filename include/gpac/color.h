@@ -124,6 +124,8 @@ typedef u32 GF_Color;
 #define GF_COL_565(r, g, b) (u16) (((r & 248)<<8) + ((g & 252)<<3)  + (b>>3))
 /*!\hideinitializer 15-bits color formating macro from red, green and blue components*/
 #define GF_COL_555(r, g, b) (u16) (((r & 248)<<7) + ((g & 248)<<2)  + (b>>3))
+/*!\hideinitializer 15-bits color formating macro from red, green and blue components*/
+#define GF_COL_444(r, g, b) (u16) (((r & 240)<<4) + ((g & 240))  + ((b & 240)>>4))
 /*!\hideinitializer 16-bits alphagrey color formating macro alpha and grey components*/
 #define GF_COL_AG(a, g) (u16) ( (a << 8) | g)
 /*!\hideinitializer transfoms a 32-bits color into a 16-bits one.\note alpha component is lost*/
@@ -132,6 +134,8 @@ typedef u32 GF_Color;
 #define GF_COL_TO_555(c) (((GF_COL_R(c) & 248)<<7) + ((GF_COL_G(c) & 248)<<2)  + (GF_COL_B(c)>>3))
 /*!\hideinitializer transfoms a 32-bits color into a 16-bits alphagrey one.\note red component is used for grey, green and blue components are lost.*/
 #define GF_COL_TO_AG(c) ( (GF_COL_A(c) << 8) | GF_COL_R(c))
+/*!\hideinitializer transfoms a 32-bits color into a 15-bits one.\note alpha component is lost*/
+#define GF_COL_TO_444(c) (((GF_COL_R(c) & 240)<<4) + ((GF_COL_G(c) & 240))  + ((GF_COL_B(c)>>4) & 240) )
 
 /*!Inits a color matrix to identity*/
 void gf_cmx_init(GF_ColorMatrix *_this);

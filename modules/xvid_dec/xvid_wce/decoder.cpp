@@ -20,7 +20,7 @@
  *  along with this program ; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
- * $Id: decoder.cpp,v 1.2 2005-09-16 14:28:47 jeanlf Exp $
+ * $Id: decoder.cpp,v 1.3 2006-12-13 15:12:25 jeanlf Exp $
  *
  ****************************************************************************/
 
@@ -313,7 +313,7 @@ void XVID_ClearMatrix(void *dst);
 
 #else
 void XVID_ClearMatrix(void *dst);
-#ifndef __MARM__
+#ifndef USE_ARM_ASM
 inline void XVID_ClearMatrix(void *dst){ MemSet(dst, 0, 64 * sizeof(int)); }
 #endif
 #endif
@@ -1445,3 +1445,4 @@ done:
 }
 
 //----------------------------
+

@@ -2246,6 +2246,9 @@ int main(int argc, char **argv)
 				free(d);
 			}
 				break;
+			case GF_ISOM_ITUNE_TEMPO:
+				gf_isom_apple_set_tag(file, itag, NULL, atoi(val) );
+				break;
 			case GF_ISOM_ITUNE_GENRE:
 			{
 				u8 _v = id3_get_genre_tag(val);

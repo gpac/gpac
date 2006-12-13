@@ -19,7 +19,7 @@ OBJS=xvid_dec.o
 
 #local xvid lib
 ifeq ($(CONFIG_XVID), local)
-CFLAGS+= -I../../extra_lib/include/xvid
+CFLAGS+= -I$(LOCAL_INC_PATH)/xvid
 EXTRALIBS+= -L../../extra_lib/lib/gcc
 endif
 EXTRALIBS+= -lxvidcore

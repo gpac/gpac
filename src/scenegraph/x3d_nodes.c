@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Oct 26 04:12:29 2006
+	DO NOT MOFIFY - File generated on GMT Wed Dec 13 14:37:26 2006
 
 	BY X3DGen for GPAC Version 0.4.3-DEV
 */
@@ -114,6 +114,18 @@ static GF_Err Anchor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Anchor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("description", name)) return 3;
+	if (!strcmp("parameter", name)) return 4;
+	if (!strcmp("url", name)) return 5;
+	if (!strcmp("metadata", name)) return 6;
+	return -1;
+	}
 
 
 static GF_Node *Anchor_Create()
@@ -212,6 +224,17 @@ static GF_Err Appearance_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Appearance_get_field_index_by_name(char *name)
+{
+	if (!strcmp("material", name)) return 0;
+	if (!strcmp("texture", name)) return 1;
+	if (!strcmp("textureTransform", name)) return 2;
+	if (!strcmp("fillProperties", name)) return 3;
+	if (!strcmp("lineProperties", name)) return 4;
+	if (!strcmp("metadata", name)) return 5;
+	return -1;
+	}
+
 
 static GF_Node *Appearance_Create()
 {
@@ -285,6 +308,15 @@ static GF_Err Arc2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Arc2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("endAngle", name)) return 0;
+	if (!strcmp("radius", name)) return 1;
+	if (!strcmp("startAngle", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
 
 
 static GF_Node *Arc2D_Create()
@@ -369,6 +401,16 @@ static GF_Err ArcClose2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ArcClose2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("closureType", name)) return 0;
+	if (!strcmp("endAngle", name)) return 1;
+	if (!strcmp("radius", name)) return 2;
+	if (!strcmp("startAngle", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
 
 
 static GF_Node *ArcClose2D_Create()
@@ -504,6 +546,24 @@ static GF_Err AudioClip_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 AudioClip_get_field_index_by_name(char *name)
+{
+	if (!strcmp("description", name)) return 0;
+	if (!strcmp("loop", name)) return 1;
+	if (!strcmp("pitch", name)) return 2;
+	if (!strcmp("startTime", name)) return 3;
+	if (!strcmp("stopTime", name)) return 4;
+	if (!strcmp("url", name)) return 5;
+	if (!strcmp("duration_changed", name)) return 6;
+	if (!strcmp("isActive", name)) return 7;
+	if (!strcmp("metadata", name)) return 8;
+	if (!strcmp("pauseTime", name)) return 9;
+	if (!strcmp("resumeTime", name)) return 10;
+	if (!strcmp("elapsedTime", name)) return 11;
+	if (!strcmp("isPaused", name)) return 12;
+	return -1;
+	}
 
 
 static GF_Node *AudioClip_Create()
@@ -655,6 +715,25 @@ static GF_Err Background_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Background_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_bind", name)) return 0;
+	if (!strcmp("groundAngle", name)) return 1;
+	if (!strcmp("groundColor", name)) return 2;
+	if (!strcmp("backUrl", name)) return 3;
+	if (!strcmp("bottomUrl", name)) return 4;
+	if (!strcmp("frontUrl", name)) return 5;
+	if (!strcmp("leftUrl", name)) return 6;
+	if (!strcmp("rightUrl", name)) return 7;
+	if (!strcmp("topUrl", name)) return 8;
+	if (!strcmp("skyAngle", name)) return 9;
+	if (!strcmp("skyColor", name)) return 10;
+	if (!strcmp("isBound", name)) return 11;
+	if (!strcmp("metadata", name)) return 12;
+	if (!strcmp("bindTime", name)) return 13;
+	return -1;
+	}
+
 
 static GF_Node *Background_Create()
 {
@@ -746,6 +825,16 @@ static GF_Err Billboard_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Billboard_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("axisOfRotation", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
+
 
 static GF_Node *Billboard_Create()
 {
@@ -830,6 +919,16 @@ static GF_Err BooleanFilter_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 BooleanFilter_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_boolean", name)) return 0;
+	if (!strcmp("inputFalse", name)) return 1;
+	if (!strcmp("inputNegate", name)) return 2;
+	if (!strcmp("inputTrue", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
 
 
 static GF_Node *BooleanFilter_Create()
@@ -928,6 +1027,18 @@ static GF_Err BooleanSequencer_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 BooleanSequencer_get_field_index_by_name(char *name)
+{
+	if (!strcmp("next", name)) return 0;
+	if (!strcmp("previous", name)) return 1;
+	if (!strcmp("set_fraction", name)) return 2;
+	if (!strcmp("key", name)) return 3;
+	if (!strcmp("keyValue", name)) return 4;
+	if (!strcmp("value_changed", name)) return 5;
+	if (!strcmp("metadata", name)) return 6;
+	return -1;
+	}
+
 
 static GF_Node *BooleanSequencer_Create()
 {
@@ -996,6 +1107,14 @@ static GF_Err BooleanToggle_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 BooleanToggle_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_boolean", name)) return 0;
+	if (!strcmp("toggle", name)) return 1;
+	if (!strcmp("metadata", name)) return 2;
+	return -1;
+	}
 
 
 static GF_Node *BooleanToggle_Create()
@@ -1066,6 +1185,14 @@ static GF_Err BooleanTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 BooleanTrigger_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_triggerTime", name)) return 0;
+	if (!strcmp("triggerTrue", name)) return 1;
+	if (!strcmp("metadata", name)) return 2;
+	return -1;
+	}
+
 
 static GF_Node *BooleanTrigger_Create()
 {
@@ -1127,6 +1254,13 @@ static GF_Err Box_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Box_get_field_index_by_name(char *name)
+{
+	if (!strcmp("size", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *Box_Create()
@@ -1192,6 +1326,13 @@ static GF_Err Circle2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Circle2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("radius", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *Circle2D_Create()
@@ -1300,6 +1441,19 @@ static GF_Err Collision_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Collision_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("enabled", name)) return 3;
+	if (!strcmp("proxy", name)) return 4;
+	if (!strcmp("collideTime", name)) return 5;
+	if (!strcmp("isActive", name)) return 6;
+	if (!strcmp("metadata", name)) return 7;
+	return -1;
+	}
+
 
 static GF_Node *Collision_Create()
 {
@@ -1364,6 +1518,13 @@ static GF_Err Color_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Color_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *Color_Create()
@@ -1448,6 +1609,16 @@ static GF_Err ColorInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 ColorInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
+
 
 static GF_Node *ColorInterpolator_Create()
 {
@@ -1509,6 +1680,13 @@ static GF_Err ColorRGBA_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ColorRGBA_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *ColorRGBA_Create()
@@ -1589,6 +1767,16 @@ static GF_Err Cone_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Cone_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bottomRadius", name)) return 0;
+	if (!strcmp("height", name)) return 1;
+	if (!strcmp("side", name)) return 2;
+	if (!strcmp("bottom", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
 
 
 static GF_Node *Cone_Create()
@@ -1674,6 +1862,15 @@ static GF_Err Contour2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Contour2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
+
 
 static GF_Node *Contour2D_Create()
 {
@@ -1738,6 +1935,13 @@ static GF_Err ContourPolyline2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 ContourPolyline2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("point", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
+
 
 static GF_Node *ContourPolyline2D_Create()
 {
@@ -1800,6 +2004,13 @@ static GF_Err Coordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Coordinate_get_field_index_by_name(char *name)
+{
+	if (!strcmp("point", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *Coordinate_Create()
@@ -1864,6 +2075,13 @@ static GF_Err CoordinateDouble_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 CoordinateDouble_get_field_index_by_name(char *name)
+{
+	if (!strcmp("point", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
+
 
 static GF_Node *CoordinateDouble_Create()
 {
@@ -1926,6 +2144,13 @@ static GF_Err Coordinate2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Coordinate2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("point", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *Coordinate2D_Create()
@@ -2011,6 +2236,16 @@ static GF_Err CoordinateInterpolator_get_field(GF_Node *node, GF_FieldInfo *info
 }
 
 
+static s32 CoordinateInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
+
 
 static GF_Node *CoordinateInterpolator_Create()
 {
@@ -2094,6 +2329,16 @@ static GF_Err CoordinateInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *in
 	}
 }
 
+
+static s32 CoordinateInterpolator2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
 
 
 static GF_Node *CoordinateInterpolator2D_Create()
@@ -2180,6 +2425,17 @@ static GF_Err Cylinder_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Cylinder_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bottom", name)) return 0;
+	if (!strcmp("height", name)) return 1;
+	if (!strcmp("radius", name)) return 2;
+	if (!strcmp("side", name)) return 3;
+	if (!strcmp("top", name)) return 4;
+	if (!strcmp("metadata", name)) return 5;
+	return -1;
+	}
 
 
 static GF_Node *Cylinder_Create()
@@ -2309,6 +2565,23 @@ static GF_Err CylinderSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 CylinderSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("autoOffset", name)) return 0;
+	if (!strcmp("diskAngle", name)) return 1;
+	if (!strcmp("enabled", name)) return 2;
+	if (!strcmp("maxAngle", name)) return 3;
+	if (!strcmp("minAngle", name)) return 4;
+	if (!strcmp("offset", name)) return 5;
+	if (!strcmp("isActive", name)) return 6;
+	if (!strcmp("rotation_changed", name)) return 7;
+	if (!strcmp("trackPoint_changed", name)) return 8;
+	if (!strcmp("metadata", name)) return 9;
+	if (!strcmp("description", name)) return 10;
+	if (!strcmp("isOver", name)) return 11;
+	return -1;
+	}
+
 
 static GF_Node *CylinderSensor_Create()
 {
@@ -2401,6 +2674,17 @@ static GF_Err DirectionalLight_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 DirectionalLight_get_field_index_by_name(char *name)
+{
+	if (!strcmp("ambientIntensity", name)) return 0;
+	if (!strcmp("color", name)) return 1;
+	if (!strcmp("direction", name)) return 2;
+	if (!strcmp("intensity", name)) return 3;
+	if (!strcmp("on", name)) return 4;
+	if (!strcmp("metadata", name)) return 5;
+	return -1;
+	}
+
 
 static GF_Node *DirectionalLight_Create()
 {
@@ -2477,6 +2761,14 @@ static GF_Err Disk2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Disk2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("innerRadius", name)) return 0;
+	if (!strcmp("outerRadius", name)) return 1;
+	if (!strcmp("metadata", name)) return 2;
+	return -1;
+	}
 
 
 static GF_Node *Disk2D_Create()
@@ -2628,6 +2920,26 @@ static GF_Err ElevationGrid_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ElevationGrid_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_height", name)) return 0;
+	if (!strcmp("color", name)) return 1;
+	if (!strcmp("normal", name)) return 2;
+	if (!strcmp("texCoord", name)) return 3;
+	if (!strcmp("height", name)) return 4;
+	if (!strcmp("ccw", name)) return 5;
+	if (!strcmp("colorPerVertex", name)) return 6;
+	if (!strcmp("creaseAngle", name)) return 7;
+	if (!strcmp("normalPerVertex", name)) return 8;
+	if (!strcmp("solid", name)) return 9;
+	if (!strcmp("xDimension", name)) return 10;
+	if (!strcmp("xSpacing", name)) return 11;
+	if (!strcmp("zDimension", name)) return 12;
+	if (!strcmp("zSpacing", name)) return 13;
+	if (!strcmp("metadata", name)) return 14;
+	return -1;
+	}
 
 
 static GF_Node *ElevationGrid_Create()
@@ -2790,6 +3102,26 @@ static GF_Err Extrusion_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Extrusion_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_crossSection", name)) return 0;
+	if (!strcmp("set_orientation", name)) return 1;
+	if (!strcmp("set_scale", name)) return 2;
+	if (!strcmp("set_spine", name)) return 3;
+	if (!strcmp("beginCap", name)) return 4;
+	if (!strcmp("ccw", name)) return 5;
+	if (!strcmp("convex", name)) return 6;
+	if (!strcmp("creaseAngle", name)) return 7;
+	if (!strcmp("crossSection", name)) return 8;
+	if (!strcmp("endCap", name)) return 9;
+	if (!strcmp("orientation", name)) return 10;
+	if (!strcmp("scale", name)) return 11;
+	if (!strcmp("solid", name)) return 12;
+	if (!strcmp("spine", name)) return 13;
+	if (!strcmp("metadata", name)) return 14;
+	return -1;
+	}
+
 
 static GF_Node *Extrusion_Create()
 {
@@ -2898,6 +3230,15 @@ static GF_Err FillProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 FillProperties_get_field_index_by_name(char *name)
+{
+	if (!strcmp("filled", name)) return 0;
+	if (!strcmp("hatchColor", name)) return 1;
+	if (!strcmp("hatched", name)) return 2;
+	if (!strcmp("hatchStyle", name)) return 3;
+	return -1;
+	}
+
 
 static GF_Node *FillProperties_Create()
 {
@@ -2997,6 +3338,18 @@ static GF_Err Fog_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Fog_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("fogType", name)) return 1;
+	if (!strcmp("visibilityRange", name)) return 2;
+	if (!strcmp("set_bind", name)) return 3;
+	if (!strcmp("isBound", name)) return 4;
+	if (!strcmp("metadata", name)) return 5;
+	if (!strcmp("bindTime", name)) return 6;
+	return -1;
+	}
 
 
 static GF_Node *Fog_Create()
@@ -3118,6 +3471,21 @@ static GF_Err FontStyle_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 FontStyle_get_field_index_by_name(char *name)
+{
+	if (!strcmp("family", name)) return 0;
+	if (!strcmp("horizontal", name)) return 1;
+	if (!strcmp("justify", name)) return 2;
+	if (!strcmp("language", name)) return 3;
+	if (!strcmp("leftToRight", name)) return 4;
+	if (!strcmp("size", name)) return 5;
+	if (!strcmp("spacing", name)) return 6;
+	if (!strcmp("style", name)) return 7;
+	if (!strcmp("topToBottom", name)) return 8;
+	if (!strcmp("metadata", name)) return 9;
+	return -1;
+	}
+
 
 static GF_Node *FontStyle_Create()
 {
@@ -3213,6 +3581,15 @@ static GF_Err Group_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Group_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
+
 
 static GF_Node *Group_Create()
 {
@@ -3288,6 +3665,15 @@ static GF_Err ImageTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ImageTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("url", name)) return 0;
+	if (!strcmp("repeatS", name)) return 1;
+	if (!strcmp("repeatT", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
 
 
 static GF_Node *ImageTexture_Create()
@@ -3475,6 +3861,30 @@ static GF_Err IndexedFaceSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 IndexedFaceSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_colorIndex", name)) return 0;
+	if (!strcmp("set_coordIndex", name)) return 1;
+	if (!strcmp("set_normalIndex", name)) return 2;
+	if (!strcmp("set_texCoordIndex", name)) return 3;
+	if (!strcmp("color", name)) return 4;
+	if (!strcmp("coord", name)) return 5;
+	if (!strcmp("normal", name)) return 6;
+	if (!strcmp("texCoord", name)) return 7;
+	if (!strcmp("ccw", name)) return 8;
+	if (!strcmp("colorIndex", name)) return 9;
+	if (!strcmp("colorPerVertex", name)) return 10;
+	if (!strcmp("convex", name)) return 11;
+	if (!strcmp("coordIndex", name)) return 12;
+	if (!strcmp("creaseAngle", name)) return 13;
+	if (!strcmp("normalIndex", name)) return 14;
+	if (!strcmp("normalPerVertex", name)) return 15;
+	if (!strcmp("solid", name)) return 16;
+	if (!strcmp("texCoordIndex", name)) return 17;
+	if (!strcmp("metadata", name)) return 18;
+	return -1;
+	}
+
 
 static GF_Node *IndexedFaceSet_Create()
 {
@@ -3588,6 +3998,19 @@ static GF_Err IndexedLineSet_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 IndexedLineSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_colorIndex", name)) return 0;
+	if (!strcmp("set_coordIndex", name)) return 1;
+	if (!strcmp("color", name)) return 2;
+	if (!strcmp("coord", name)) return 3;
+	if (!strcmp("colorIndex", name)) return 4;
+	if (!strcmp("colorPerVertex", name)) return 5;
+	if (!strcmp("coordIndex", name)) return 6;
+	if (!strcmp("metadata", name)) return 7;
+	return -1;
+	}
 
 
 static GF_Node *IndexedLineSet_Create()
@@ -3716,6 +4139,22 @@ static GF_Err IndexedTriangleFanSet_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 IndexedTriangleFanSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_index", name)) return 0;
+	if (!strcmp("color", name)) return 1;
+	if (!strcmp("coord", name)) return 2;
+	if (!strcmp("normal", name)) return 3;
+	if (!strcmp("texCoord", name)) return 4;
+	if (!strcmp("ccw", name)) return 5;
+	if (!strcmp("colorPerVertex", name)) return 6;
+	if (!strcmp("normalPerVertex", name)) return 7;
+	if (!strcmp("solid", name)) return 8;
+	if (!strcmp("index", name)) return 9;
+	if (!strcmp("metadata", name)) return 10;
+	return -1;
+	}
 
 
 static GF_Node *IndexedTriangleFanSet_Create()
@@ -3848,6 +4287,22 @@ static GF_Err IndexedTriangleSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 IndexedTriangleSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_index", name)) return 0;
+	if (!strcmp("color", name)) return 1;
+	if (!strcmp("coord", name)) return 2;
+	if (!strcmp("normal", name)) return 3;
+	if (!strcmp("texCoord", name)) return 4;
+	if (!strcmp("ccw", name)) return 5;
+	if (!strcmp("colorPerVertex", name)) return 6;
+	if (!strcmp("normalPerVertex", name)) return 7;
+	if (!strcmp("solid", name)) return 8;
+	if (!strcmp("index", name)) return 9;
+	if (!strcmp("metadata", name)) return 10;
+	return -1;
+	}
+
 
 static GF_Node *IndexedTriangleSet_Create()
 {
@@ -3979,6 +4434,22 @@ static GF_Err IndexedTriangleStripSet_get_field(GF_Node *node, GF_FieldInfo *inf
 }
 
 
+static s32 IndexedTriangleStripSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_index", name)) return 0;
+	if (!strcmp("color", name)) return 1;
+	if (!strcmp("coord", name)) return 2;
+	if (!strcmp("creaseAngle", name)) return 3;
+	if (!strcmp("normal", name)) return 4;
+	if (!strcmp("texCoord", name)) return 5;
+	if (!strcmp("ccw", name)) return 6;
+	if (!strcmp("normalPerVertex", name)) return 7;
+	if (!strcmp("solid", name)) return 8;
+	if (!strcmp("index", name)) return 9;
+	if (!strcmp("metadata", name)) return 10;
+	return -1;
+	}
+
 
 static GF_Node *IndexedTriangleStripSet_Create()
 {
@@ -4051,6 +4522,14 @@ static GF_Err Inline_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Inline_get_field_index_by_name(char *name)
+{
+	if (!strcmp("url", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	if (!strcmp("load", name)) return 2;
+	return -1;
+	}
 
 
 static GF_Node *Inline_Create()
@@ -4150,6 +4629,18 @@ static GF_Err IntegerSequencer_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 IntegerSequencer_get_field_index_by_name(char *name)
+{
+	if (!strcmp("next", name)) return 0;
+	if (!strcmp("previous", name)) return 1;
+	if (!strcmp("set_fraction", name)) return 2;
+	if (!strcmp("key", name)) return 3;
+	if (!strcmp("keyValue", name)) return 4;
+	if (!strcmp("value_changed", name)) return 5;
+	if (!strcmp("metadata", name)) return 6;
+	return -1;
+	}
+
 
 static GF_Node *IntegerSequencer_Create()
 {
@@ -4224,6 +4715,15 @@ static GF_Err IntegerTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 IntegerTrigger_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_boolean", name)) return 0;
+	if (!strcmp("integerKey", name)) return 1;
+	if (!strcmp("triggerValue", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
 
 
 static GF_Node *IntegerTrigger_Create()
@@ -4338,6 +4838,21 @@ static GF_Err KeySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 KeySensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("enabled", name)) return 0;
+	if (!strcmp("actionKeyPress", name)) return 1;
+	if (!strcmp("actionKeyRelease", name)) return 2;
+	if (!strcmp("altKey", name)) return 3;
+	if (!strcmp("controlKey", name)) return 4;
+	if (!strcmp("isActive", name)) return 5;
+	if (!strcmp("keyPress", name)) return 6;
+	if (!strcmp("keyRelease", name)) return 7;
+	if (!strcmp("shiftKey", name)) return 8;
+	if (!strcmp("metadata", name)) return 9;
+	return -1;
+	}
+
 
 static GF_Node *KeySensor_Create()
 {
@@ -4412,6 +4927,15 @@ static GF_Err LineProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 LineProperties_get_field_index_by_name(char *name)
+{
+	if (!strcmp("applied", name)) return 0;
+	if (!strcmp("linetype", name)) return 1;
+	if (!strcmp("linewidthScaleFactor", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
 
 
 static GF_Node *LineProperties_Create()
@@ -4494,6 +5018,15 @@ static GF_Err LineSet_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 LineSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("coord", name)) return 1;
+	if (!strcmp("vertexCount", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
 
 
 static GF_Node *LineSet_Create()
@@ -4587,6 +5120,17 @@ static GF_Err LOD_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 LOD_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("center", name)) return 3;
+	if (!strcmp("range", name)) return 4;
+	if (!strcmp("metadata", name)) return 5;
+	return -1;
+	}
 
 
 static GF_Node *LOD_Create()
@@ -4684,6 +5228,18 @@ static GF_Err Material_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Material_get_field_index_by_name(char *name)
+{
+	if (!strcmp("ambientIntensity", name)) return 0;
+	if (!strcmp("diffuseColor", name)) return 1;
+	if (!strcmp("emissiveColor", name)) return 2;
+	if (!strcmp("shininess", name)) return 3;
+	if (!strcmp("specularColor", name)) return 4;
+	if (!strcmp("transparency", name)) return 5;
+	if (!strcmp("metadata", name)) return 6;
+	return -1;
+	}
+
 
 static GF_Node *Material_Create()
 {
@@ -4773,6 +5329,15 @@ static GF_Err MetadataDouble_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 MetadataDouble_get_field_index_by_name(char *name)
+{
+	if (!strcmp("name", name)) return 0;
+	if (!strcmp("reference", name)) return 1;
+	if (!strcmp("value", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
+
 
 static GF_Node *MetadataDouble_Create()
 {
@@ -4850,6 +5415,15 @@ static GF_Err MetadataFloat_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 MetadataFloat_get_field_index_by_name(char *name)
+{
+	if (!strcmp("name", name)) return 0;
+	if (!strcmp("reference", name)) return 1;
+	if (!strcmp("value", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
+
 
 static GF_Node *MetadataFloat_Create()
 {
@@ -4926,6 +5500,15 @@ static GF_Err MetadataInteger_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 MetadataInteger_get_field_index_by_name(char *name)
+{
+	if (!strcmp("name", name)) return 0;
+	if (!strcmp("reference", name)) return 1;
+	if (!strcmp("value", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
 
 
 static GF_Node *MetadataInteger_Create()
@@ -5005,6 +5588,15 @@ static GF_Err MetadataSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 MetadataSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("name", name)) return 0;
+	if (!strcmp("reference", name)) return 1;
+	if (!strcmp("value", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
+
 
 static GF_Node *MetadataSet_Create()
 {
@@ -5082,6 +5674,15 @@ static GF_Err MetadataString_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 MetadataString_get_field_index_by_name(char *name)
+{
+	if (!strcmp("name", name)) return 0;
+	if (!strcmp("reference", name)) return 1;
+	if (!strcmp("value", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
 
 
 static GF_Node *MetadataString_Create()
@@ -5218,6 +5819,25 @@ static GF_Err MovieTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 MovieTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("loop", name)) return 0;
+	if (!strcmp("speed", name)) return 1;
+	if (!strcmp("startTime", name)) return 2;
+	if (!strcmp("stopTime", name)) return 3;
+	if (!strcmp("url", name)) return 4;
+	if (!strcmp("repeatS", name)) return 5;
+	if (!strcmp("repeatT", name)) return 6;
+	if (!strcmp("duration_changed", name)) return 7;
+	if (!strcmp("isActive", name)) return 8;
+	if (!strcmp("metadata", name)) return 9;
+	if (!strcmp("resumeTime", name)) return 10;
+	if (!strcmp("pauseTime", name)) return 11;
+	if (!strcmp("elapsedTime", name)) return 12;
+	if (!strcmp("isPaused", name)) return 13;
+	return -1;
+	}
+
 
 static GF_Node *MovieTexture_Create()
 {
@@ -5322,6 +5942,18 @@ static GF_Err MultiTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 MultiTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("alpha", name)) return 0;
+	if (!strcmp("color", name)) return 1;
+	if (!strcmp("function", name)) return 2;
+	if (!strcmp("mode", name)) return 3;
+	if (!strcmp("source", name)) return 4;
+	if (!strcmp("texture", name)) return 5;
+	if (!strcmp("metadata", name)) return 6;
+	return -1;
+	}
+
 
 static GF_Node *MultiTexture_Create()
 {
@@ -5391,6 +6023,13 @@ static GF_Err MultiTextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info
 }
 
 
+static s32 MultiTextureCoordinate_get_field_index_by_name(char *name)
+{
+	if (!strcmp("texCoord", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
+
 
 static GF_Node *MultiTextureCoordinate_Create()
 {
@@ -5455,6 +6094,13 @@ static GF_Err MultiTextureTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 MultiTextureTransform_get_field_index_by_name(char *name)
+{
+	if (!strcmp("textureTransform", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *MultiTextureTransform_Create()
@@ -5571,6 +6217,21 @@ static GF_Err NavigationInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 NavigationInfo_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_bind", name)) return 0;
+	if (!strcmp("avatarSize", name)) return 1;
+	if (!strcmp("headlight", name)) return 2;
+	if (!strcmp("speed", name)) return 3;
+	if (!strcmp("type", name)) return 4;
+	if (!strcmp("visibilityLimit", name)) return 5;
+	if (!strcmp("isBound", name)) return 6;
+	if (!strcmp("metadata", name)) return 7;
+	if (!strcmp("transitionType", name)) return 8;
+	if (!strcmp("bindTime", name)) return 9;
+	return -1;
+	}
+
 
 static GF_Node *NavigationInfo_Create()
 {
@@ -5653,6 +6314,13 @@ static GF_Err Normal_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Normal_get_field_index_by_name(char *name)
+{
+	if (!strcmp("vector", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *Normal_Create()
@@ -5738,6 +6406,16 @@ static GF_Err NormalInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 NormalInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
+
 
 static GF_Node *NormalInterpolator_Create()
 {
@@ -5821,6 +6499,16 @@ static GF_Err OrientationInterpolator_get_field(GF_Node *node, GF_FieldInfo *inf
 }
 
 
+static s32 OrientationInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
+
 
 static GF_Node *OrientationInterpolator_Create()
 {
@@ -5895,6 +6583,15 @@ static GF_Err PixelTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PixelTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("image", name)) return 0;
+	if (!strcmp("repeatS", name)) return 1;
+	if (!strcmp("repeatT", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
 
 
 static GF_Node *PixelTexture_Create()
@@ -6015,6 +6712,22 @@ static GF_Err PlaneSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 PlaneSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("autoOffset", name)) return 0;
+	if (!strcmp("enabled", name)) return 1;
+	if (!strcmp("maxPosition", name)) return 2;
+	if (!strcmp("minPosition", name)) return 3;
+	if (!strcmp("offset", name)) return 4;
+	if (!strcmp("isActive", name)) return 5;
+	if (!strcmp("trackPoint_changed", name)) return 6;
+	if (!strcmp("translation_changed", name)) return 7;
+	if (!strcmp("metadata", name)) return 8;
+	if (!strcmp("description", name)) return 9;
+	if (!strcmp("isOver", name)) return 10;
+	return -1;
+	}
+
 
 static GF_Node *PlaneSensor_Create()
 {
@@ -6122,6 +6835,19 @@ static GF_Err PointLight_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 PointLight_get_field_index_by_name(char *name)
+{
+	if (!strcmp("ambientIntensity", name)) return 0;
+	if (!strcmp("attenuation", name)) return 1;
+	if (!strcmp("color", name)) return 2;
+	if (!strcmp("intensity", name)) return 3;
+	if (!strcmp("location", name)) return 4;
+	if (!strcmp("on", name)) return 5;
+	if (!strcmp("radius", name)) return 6;
+	if (!strcmp("metadata", name)) return 7;
+	return -1;
+	}
+
 
 static GF_Node *PointLight_Create()
 {
@@ -6207,6 +6933,14 @@ static GF_Err PointSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 PointSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("coord", name)) return 1;
+	if (!strcmp("metadata", name)) return 2;
+	return -1;
+	}
+
 
 static GF_Node *PointSet_Create()
 {
@@ -6270,6 +7004,13 @@ static GF_Err Polyline2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Polyline2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("lineSegments", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
+
 
 static GF_Node *Polyline2D_Create()
 {
@@ -6332,6 +7073,13 @@ static GF_Err Polypoint2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Polypoint2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("point", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *Polypoint2D_Create()
@@ -6416,6 +7164,16 @@ static GF_Err PositionInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 PositionInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
+
 
 static GF_Node *PositionInterpolator_Create()
 {
@@ -6498,6 +7256,16 @@ static GF_Err PositionInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *info
 	}
 }
 
+
+static s32 PositionInterpolator2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
 
 
 static GF_Node *PositionInterpolator2D_Create()
@@ -6609,6 +7377,21 @@ static GF_Err ProximitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 ProximitySensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("center", name)) return 0;
+	if (!strcmp("size", name)) return 1;
+	if (!strcmp("enabled", name)) return 2;
+	if (!strcmp("isActive", name)) return 3;
+	if (!strcmp("position_changed", name)) return 4;
+	if (!strcmp("orientation_changed", name)) return 5;
+	if (!strcmp("enterTime", name)) return 6;
+	if (!strcmp("exitTime", name)) return 7;
+	if (!strcmp("metadata", name)) return 8;
+	if (!strcmp("centerOfRotation_changed", name)) return 9;
+	return -1;
+	}
+
 
 static GF_Node *ProximitySensor_Create()
 {
@@ -6677,6 +7460,13 @@ static GF_Err Rectangle2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Rectangle2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("size", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *Rectangle2D_Create()
@@ -6763,6 +7553,16 @@ static GF_Err ScalarInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 ScalarInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
+
 
 static GF_Node *ScalarInterpolator_Create()
 {
@@ -6838,6 +7638,15 @@ static GF_Err Script_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Script_get_field_index_by_name(char *name)
+{
+	if (!strcmp("url", name)) return 0;
+	if (!strcmp("directOutput", name)) return 1;
+	if (!strcmp("mustEvaluate", name)) return 2;
+	if (!strcmp("metadata", name)) return 3;
+	return -1;
+	}
+
 
 static GF_Node *Script_Create()
 {
@@ -6909,6 +7718,14 @@ static GF_Err Shape_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Shape_get_field_index_by_name(char *name)
+{
+	if (!strcmp("appearance", name)) return 0;
+	if (!strcmp("geometry", name)) return 1;
+	if (!strcmp("metadata", name)) return 2;
+	return -1;
+	}
 
 
 static GF_Node *Shape_Create()
@@ -7028,6 +7845,22 @@ static GF_Err Sound_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Sound_get_field_index_by_name(char *name)
+{
+	if (!strcmp("direction", name)) return 0;
+	if (!strcmp("intensity", name)) return 1;
+	if (!strcmp("location", name)) return 2;
+	if (!strcmp("maxBack", name)) return 3;
+	if (!strcmp("maxFront", name)) return 4;
+	if (!strcmp("minBack", name)) return 5;
+	if (!strcmp("minFront", name)) return 6;
+	if (!strcmp("priority", name)) return 7;
+	if (!strcmp("source", name)) return 8;
+	if (!strcmp("spatialize", name)) return 9;
+	if (!strcmp("metadata", name)) return 10;
+	return -1;
+	}
+
 
 static GF_Node *Sound_Create()
 {
@@ -7102,6 +7935,13 @@ static GF_Err Sphere_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Sphere_get_field_index_by_name(char *name)
+{
+	if (!strcmp("radius", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *Sphere_Create()
@@ -7208,6 +8048,20 @@ static GF_Err SphereSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 SphereSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("autoOffset", name)) return 0;
+	if (!strcmp("enabled", name)) return 1;
+	if (!strcmp("offset", name)) return 2;
+	if (!strcmp("isActive", name)) return 3;
+	if (!strcmp("rotation_changed", name)) return 4;
+	if (!strcmp("trackPoint_changed", name)) return 5;
+	if (!strcmp("metadata", name)) return 6;
+	if (!strcmp("description", name)) return 7;
+	if (!strcmp("isOver", name)) return 8;
+	return -1;
+	}
 
 
 static GF_Node *SphereSensor_Create()
@@ -7331,6 +8185,22 @@ static GF_Err SpotLight_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 SpotLight_get_field_index_by_name(char *name)
+{
+	if (!strcmp("ambientIntensity", name)) return 0;
+	if (!strcmp("attenuation", name)) return 1;
+	if (!strcmp("beamWidth", name)) return 2;
+	if (!strcmp("color", name)) return 3;
+	if (!strcmp("cutOffAngle", name)) return 4;
+	if (!strcmp("direction", name)) return 5;
+	if (!strcmp("intensity", name)) return 6;
+	if (!strcmp("location", name)) return 7;
+	if (!strcmp("on", name)) return 8;
+	if (!strcmp("radius", name)) return 9;
+	if (!strcmp("metadata", name)) return 10;
+	return -1;
+	}
+
 
 static GF_Node *SpotLight_Create()
 {
@@ -7412,6 +8282,13 @@ static GF_Err StaticGroup_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 StaticGroup_get_field_index_by_name(char *name)
+{
+	if (!strcmp("children", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *StaticGroup_Create()
@@ -7502,6 +8379,17 @@ static GF_Err StringSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 StringSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("deletionAllowed", name)) return 0;
+	if (!strcmp("enabled", name)) return 1;
+	if (!strcmp("enteredText", name)) return 2;
+	if (!strcmp("finalText", name)) return 3;
+	if (!strcmp("isActive", name)) return 4;
+	if (!strcmp("metadata", name)) return 5;
+	return -1;
+	}
+
 
 static GF_Node *StringSensor_Create()
 {
@@ -7590,6 +8478,16 @@ static GF_Err Switch_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Switch_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("whichChoice", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
+
 
 static GF_Node *Switch_Create()
 {
@@ -7675,6 +8573,16 @@ static GF_Err Text_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Text_get_field_index_by_name(char *name)
+{
+	if (!strcmp("string", name)) return 0;
+	if (!strcmp("length", name)) return 1;
+	if (!strcmp("fontStyle", name)) return 2;
+	if (!strcmp("maxExtent", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
 
 
 static GF_Node *Text_Create()
@@ -7835,6 +8743,26 @@ static GF_Err TextureBackground_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 TextureBackground_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_bind", name)) return 0;
+	if (!strcmp("groundAngle", name)) return 1;
+	if (!strcmp("groundColor", name)) return 2;
+	if (!strcmp("backTexture", name)) return 3;
+	if (!strcmp("bottomTexture", name)) return 4;
+	if (!strcmp("frontTexture", name)) return 5;
+	if (!strcmp("leftTexture", name)) return 6;
+	if (!strcmp("rightTexture", name)) return 7;
+	if (!strcmp("topTexture", name)) return 8;
+	if (!strcmp("skyAngle", name)) return 9;
+	if (!strcmp("skyColor", name)) return 10;
+	if (!strcmp("transparency", name)) return 11;
+	if (!strcmp("bindTime", name)) return 12;
+	if (!strcmp("isBound", name)) return 13;
+	if (!strcmp("metadata", name)) return 14;
+	return -1;
+	}
+
 
 static GF_Node *TextureBackground_Create()
 {
@@ -7906,6 +8834,13 @@ static GF_Err TextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 TextureCoordinate_get_field_index_by_name(char *name)
+{
+	if (!strcmp("point", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
+
 
 static GF_Node *TextureCoordinate_Create()
 {
@@ -7975,6 +8910,14 @@ static GF_Err TextureCoordinateGenerator_get_field(GF_Node *node, GF_FieldInfo *
 	}
 }
 
+
+static s32 TextureCoordinateGenerator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("mode", name)) return 0;
+	if (!strcmp("parameter", name)) return 1;
+	if (!strcmp("metadata", name)) return 2;
+	return -1;
+	}
 
 
 static GF_Node *TextureCoordinateGenerator_Create()
@@ -8057,6 +9000,16 @@ static GF_Err TextureTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TextureTransform_get_field_index_by_name(char *name)
+{
+	if (!strcmp("center", name)) return 0;
+	if (!strcmp("rotation", name)) return 1;
+	if (!strcmp("scale", name)) return 2;
+	if (!strcmp("translation", name)) return 3;
+	if (!strcmp("metadata", name)) return 4;
+	return -1;
+	}
 
 
 static GF_Node *TextureTransform_Create()
@@ -8199,6 +9152,25 @@ static GF_Err TimeSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 TimeSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("cycleInterval", name)) return 0;
+	if (!strcmp("enabled", name)) return 1;
+	if (!strcmp("loop", name)) return 2;
+	if (!strcmp("startTime", name)) return 3;
+	if (!strcmp("stopTime", name)) return 4;
+	if (!strcmp("cycleTime", name)) return 5;
+	if (!strcmp("fraction_changed", name)) return 6;
+	if (!strcmp("isActive", name)) return 7;
+	if (!strcmp("time", name)) return 8;
+	if (!strcmp("metadata", name)) return 9;
+	if (!strcmp("pauseTime", name)) return 10;
+	if (!strcmp("resumeTime", name)) return 11;
+	if (!strcmp("elapsedTime", name)) return 12;
+	if (!strcmp("isPaused", name)) return 13;
+	return -1;
+	}
+
 
 static GF_Node *TimeSensor_Create()
 {
@@ -8273,6 +9245,14 @@ static GF_Err TimeTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TimeTrigger_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_boolean", name)) return 0;
+	if (!strcmp("triggerTime", name)) return 1;
+	if (!strcmp("metadata", name)) return 2;
+	return -1;
+	}
 
 
 static GF_Node *TimeTrigger_Create()
@@ -8378,6 +9358,20 @@ static GF_Err TouchSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TouchSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("enabled", name)) return 0;
+	if (!strcmp("hitNormal_changed", name)) return 1;
+	if (!strcmp("hitPoint_changed", name)) return 2;
+	if (!strcmp("hitTexCoord_changed", name)) return 3;
+	if (!strcmp("isActive", name)) return 4;
+	if (!strcmp("isOver", name)) return 5;
+	if (!strcmp("touchTime", name)) return 6;
+	if (!strcmp("metadata", name)) return 7;
+	if (!strcmp("description", name)) return 8;
+	return -1;
+	}
 
 
 static GF_Node *TouchSensor_Create()
@@ -8489,6 +9483,20 @@ static GF_Err Transform_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Transform_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("center", name)) return 2;
+	if (!strcmp("children", name)) return 3;
+	if (!strcmp("rotation", name)) return 4;
+	if (!strcmp("scale", name)) return 5;
+	if (!strcmp("scaleOrientation", name)) return 6;
+	if (!strcmp("translation", name)) return 7;
+	if (!strcmp("metadata", name)) return 8;
+	return -1;
+	}
 
 
 static GF_Node *Transform_Create()
@@ -8627,6 +9635,21 @@ static GF_Err TriangleFanSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 TriangleFanSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("coord", name)) return 1;
+	if (!strcmp("fanCount", name)) return 2;
+	if (!strcmp("normal", name)) return 3;
+	if (!strcmp("texCoord", name)) return 4;
+	if (!strcmp("ccw", name)) return 5;
+	if (!strcmp("colorPerVertex", name)) return 6;
+	if (!strcmp("normalPerVertex", name)) return 7;
+	if (!strcmp("solid", name)) return 8;
+	if (!strcmp("metadata", name)) return 9;
+	return -1;
+	}
+
 
 static GF_Node *TriangleFanSet_Create()
 {
@@ -8743,6 +9766,20 @@ static GF_Err TriangleSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 TriangleSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("coord", name)) return 1;
+	if (!strcmp("normal", name)) return 2;
+	if (!strcmp("texCoord", name)) return 3;
+	if (!strcmp("ccw", name)) return 4;
+	if (!strcmp("colorPerVertex", name)) return 5;
+	if (!strcmp("normalPerVertex", name)) return 6;
+	if (!strcmp("solid", name)) return 7;
+	if (!strcmp("metadata", name)) return 8;
+	return -1;
+	}
+
 
 static GF_Node *TriangleSet_Create()
 {
@@ -8809,6 +9846,13 @@ static GF_Err TriangleSet2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TriangleSet2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("vertices", name)) return 0;
+	if (!strcmp("metadata", name)) return 1;
+	return -1;
+	}
 
 
 static GF_Node *TriangleSet2D_Create()
@@ -8929,6 +9973,21 @@ static GF_Err TriangleStripSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 TriangleStripSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("coord", name)) return 1;
+	if (!strcmp("normal", name)) return 2;
+	if (!strcmp("stripCount", name)) return 3;
+	if (!strcmp("texCoord", name)) return 4;
+	if (!strcmp("ccw", name)) return 5;
+	if (!strcmp("colorPerVertex", name)) return 6;
+	if (!strcmp("normalPerVertex", name)) return 7;
+	if (!strcmp("solid", name)) return 8;
+	if (!strcmp("metadata", name)) return 9;
+	return -1;
+	}
+
 
 static GF_Node *TriangleStripSet_Create()
 {
@@ -9045,6 +10104,21 @@ static GF_Err Viewpoint_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 Viewpoint_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_bind", name)) return 0;
+	if (!strcmp("fieldOfView", name)) return 1;
+	if (!strcmp("jump", name)) return 2;
+	if (!strcmp("orientation", name)) return 3;
+	if (!strcmp("position", name)) return 4;
+	if (!strcmp("description", name)) return 5;
+	if (!strcmp("bindTime", name)) return 6;
+	if (!strcmp("isBound", name)) return 7;
+	if (!strcmp("metadata", name)) return 8;
+	if (!strcmp("centerOfRotation", name)) return 9;
+	return -1;
+	}
+
 
 static GF_Node *Viewpoint_Create()
 {
@@ -9149,6 +10223,18 @@ static GF_Err VisibilitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+static s32 VisibilitySensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("center", name)) return 0;
+	if (!strcmp("enabled", name)) return 1;
+	if (!strcmp("size", name)) return 2;
+	if (!strcmp("enterTime", name)) return 3;
+	if (!strcmp("exitTime", name)) return 4;
+	if (!strcmp("isActive", name)) return 5;
+	if (!strcmp("metadata", name)) return 6;
+	return -1;
+	}
+
 
 static GF_Node *VisibilitySensor_Create()
 {
@@ -9225,6 +10311,14 @@ static GF_Err WorldInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 WorldInfo_get_field_index_by_name(char *name)
+{
+	if (!strcmp("info", name)) return 0;
+	if (!strcmp("title", name)) return 1;
+	if (!strcmp("metadata", name)) return 2;
+	return -1;
+	}
 
 
 static GF_Node *WorldInfo_Create()
@@ -10182,6 +11276,112 @@ u32 gf_node_x3d_type_by_class_name(const char *node_name)
 	if (!strcmp(node_name, "VisibilitySensor")) return TAG_X3D_VisibilitySensor;
 	if (!strcmp(node_name, "WorldInfo")) return TAG_X3D_WorldInfo;
 	return 0;
+}
+
+s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name)
+{
+	switch (node->sgprivate->tag) {
+	case TAG_X3D_Anchor: return Anchor_get_field_index_by_name(name);
+	case TAG_X3D_Appearance: return Appearance_get_field_index_by_name(name);
+	case TAG_X3D_Arc2D: return Arc2D_get_field_index_by_name(name);
+	case TAG_X3D_ArcClose2D: return ArcClose2D_get_field_index_by_name(name);
+	case TAG_X3D_AudioClip: return AudioClip_get_field_index_by_name(name);
+	case TAG_X3D_Background: return Background_get_field_index_by_name(name);
+	case TAG_X3D_Billboard: return Billboard_get_field_index_by_name(name);
+	case TAG_X3D_BooleanFilter: return BooleanFilter_get_field_index_by_name(name);
+	case TAG_X3D_BooleanSequencer: return BooleanSequencer_get_field_index_by_name(name);
+	case TAG_X3D_BooleanToggle: return BooleanToggle_get_field_index_by_name(name);
+	case TAG_X3D_BooleanTrigger: return BooleanTrigger_get_field_index_by_name(name);
+	case TAG_X3D_Box: return Box_get_field_index_by_name(name);
+	case TAG_X3D_Circle2D: return Circle2D_get_field_index_by_name(name);
+	case TAG_X3D_Collision: return Collision_get_field_index_by_name(name);
+	case TAG_X3D_Color: return Color_get_field_index_by_name(name);
+	case TAG_X3D_ColorInterpolator: return ColorInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_ColorRGBA: return ColorRGBA_get_field_index_by_name(name);
+	case TAG_X3D_Cone: return Cone_get_field_index_by_name(name);
+	case TAG_X3D_Contour2D: return Contour2D_get_field_index_by_name(name);
+	case TAG_X3D_ContourPolyline2D: return ContourPolyline2D_get_field_index_by_name(name);
+	case TAG_X3D_Coordinate: return Coordinate_get_field_index_by_name(name);
+	case TAG_X3D_CoordinateDouble: return CoordinateDouble_get_field_index_by_name(name);
+	case TAG_X3D_Coordinate2D: return Coordinate2D_get_field_index_by_name(name);
+	case TAG_X3D_CoordinateInterpolator: return CoordinateInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_CoordinateInterpolator2D: return CoordinateInterpolator2D_get_field_index_by_name(name);
+	case TAG_X3D_Cylinder: return Cylinder_get_field_index_by_name(name);
+	case TAG_X3D_CylinderSensor: return CylinderSensor_get_field_index_by_name(name);
+	case TAG_X3D_DirectionalLight: return DirectionalLight_get_field_index_by_name(name);
+	case TAG_X3D_Disk2D: return Disk2D_get_field_index_by_name(name);
+	case TAG_X3D_ElevationGrid: return ElevationGrid_get_field_index_by_name(name);
+	case TAG_X3D_Extrusion: return Extrusion_get_field_index_by_name(name);
+	case TAG_X3D_FillProperties: return FillProperties_get_field_index_by_name(name);
+	case TAG_X3D_Fog: return Fog_get_field_index_by_name(name);
+	case TAG_X3D_FontStyle: return FontStyle_get_field_index_by_name(name);
+	case TAG_X3D_Group: return Group_get_field_index_by_name(name);
+	case TAG_X3D_ImageTexture: return ImageTexture_get_field_index_by_name(name);
+	case TAG_X3D_IndexedFaceSet: return IndexedFaceSet_get_field_index_by_name(name);
+	case TAG_X3D_IndexedLineSet: return IndexedLineSet_get_field_index_by_name(name);
+	case TAG_X3D_IndexedTriangleFanSet: return IndexedTriangleFanSet_get_field_index_by_name(name);
+	case TAG_X3D_IndexedTriangleSet: return IndexedTriangleSet_get_field_index_by_name(name);
+	case TAG_X3D_IndexedTriangleStripSet: return IndexedTriangleStripSet_get_field_index_by_name(name);
+	case TAG_X3D_Inline: return Inline_get_field_index_by_name(name);
+	case TAG_X3D_IntegerSequencer: return IntegerSequencer_get_field_index_by_name(name);
+	case TAG_X3D_IntegerTrigger: return IntegerTrigger_get_field_index_by_name(name);
+	case TAG_X3D_KeySensor: return KeySensor_get_field_index_by_name(name);
+	case TAG_X3D_LineProperties: return LineProperties_get_field_index_by_name(name);
+	case TAG_X3D_LineSet: return LineSet_get_field_index_by_name(name);
+	case TAG_X3D_LOD: return LOD_get_field_index_by_name(name);
+	case TAG_X3D_Material: return Material_get_field_index_by_name(name);
+	case TAG_X3D_MetadataDouble: return MetadataDouble_get_field_index_by_name(name);
+	case TAG_X3D_MetadataFloat: return MetadataFloat_get_field_index_by_name(name);
+	case TAG_X3D_MetadataInteger: return MetadataInteger_get_field_index_by_name(name);
+	case TAG_X3D_MetadataSet: return MetadataSet_get_field_index_by_name(name);
+	case TAG_X3D_MetadataString: return MetadataString_get_field_index_by_name(name);
+	case TAG_X3D_MovieTexture: return MovieTexture_get_field_index_by_name(name);
+	case TAG_X3D_MultiTexture: return MultiTexture_get_field_index_by_name(name);
+	case TAG_X3D_MultiTextureCoordinate: return MultiTextureCoordinate_get_field_index_by_name(name);
+	case TAG_X3D_MultiTextureTransform: return MultiTextureTransform_get_field_index_by_name(name);
+	case TAG_X3D_NavigationInfo: return NavigationInfo_get_field_index_by_name(name);
+	case TAG_X3D_Normal: return Normal_get_field_index_by_name(name);
+	case TAG_X3D_NormalInterpolator: return NormalInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_OrientationInterpolator: return OrientationInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_PixelTexture: return PixelTexture_get_field_index_by_name(name);
+	case TAG_X3D_PlaneSensor: return PlaneSensor_get_field_index_by_name(name);
+	case TAG_X3D_PointLight: return PointLight_get_field_index_by_name(name);
+	case TAG_X3D_PointSet: return PointSet_get_field_index_by_name(name);
+	case TAG_X3D_Polyline2D: return Polyline2D_get_field_index_by_name(name);
+	case TAG_X3D_Polypoint2D: return Polypoint2D_get_field_index_by_name(name);
+	case TAG_X3D_PositionInterpolator: return PositionInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_PositionInterpolator2D: return PositionInterpolator2D_get_field_index_by_name(name);
+	case TAG_X3D_ProximitySensor: return ProximitySensor_get_field_index_by_name(name);
+	case TAG_X3D_Rectangle2D: return Rectangle2D_get_field_index_by_name(name);
+	case TAG_X3D_ScalarInterpolator: return ScalarInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_Script: return Script_get_field_index_by_name(name);
+	case TAG_X3D_Shape: return Shape_get_field_index_by_name(name);
+	case TAG_X3D_Sound: return Sound_get_field_index_by_name(name);
+	case TAG_X3D_Sphere: return Sphere_get_field_index_by_name(name);
+	case TAG_X3D_SphereSensor: return SphereSensor_get_field_index_by_name(name);
+	case TAG_X3D_SpotLight: return SpotLight_get_field_index_by_name(name);
+	case TAG_X3D_StaticGroup: return StaticGroup_get_field_index_by_name(name);
+	case TAG_X3D_StringSensor: return StringSensor_get_field_index_by_name(name);
+	case TAG_X3D_Switch: return Switch_get_field_index_by_name(name);
+	case TAG_X3D_Text: return Text_get_field_index_by_name(name);
+	case TAG_X3D_TextureBackground: return TextureBackground_get_field_index_by_name(name);
+	case TAG_X3D_TextureCoordinate: return TextureCoordinate_get_field_index_by_name(name);
+	case TAG_X3D_TextureCoordinateGenerator: return TextureCoordinateGenerator_get_field_index_by_name(name);
+	case TAG_X3D_TextureTransform: return TextureTransform_get_field_index_by_name(name);
+	case TAG_X3D_TimeSensor: return TimeSensor_get_field_index_by_name(name);
+	case TAG_X3D_TimeTrigger: return TimeTrigger_get_field_index_by_name(name);
+	case TAG_X3D_TouchSensor: return TouchSensor_get_field_index_by_name(name);
+	case TAG_X3D_Transform: return Transform_get_field_index_by_name(name);
+	case TAG_X3D_TriangleFanSet: return TriangleFanSet_get_field_index_by_name(name);
+	case TAG_X3D_TriangleSet: return TriangleSet_get_field_index_by_name(name);
+	case TAG_X3D_TriangleSet2D: return TriangleSet2D_get_field_index_by_name(name);
+	case TAG_X3D_TriangleStripSet: return TriangleStripSet_get_field_index_by_name(name);
+	case TAG_X3D_Viewpoint: return Viewpoint_get_field_index_by_name(name);
+	case TAG_X3D_VisibilitySensor: return VisibilitySensor_get_field_index_by_name(name);
+	case TAG_X3D_WorldInfo: return WorldInfo_get_field_index_by_name(name);
+	default:
+		return -1;
+	}
 }
 
 

@@ -79,6 +79,7 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
 //=====================================
 static void x11_translate_key(u32 X11Key, GF_EventKey *evt)
 {
+	evt->flags = 0;
 	evt->hw_code = X11Key & 0xFF;
 	switch (X11Key) {
 
@@ -268,7 +269,7 @@ static void x11_translate_key(u32 X11Key, GF_EventKey *evt)
 		}
 		else {
 			evt->key_code = 0; 
-			fprintf(stdout, "unrecognized key %X\n", X11Key);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[X11] Unrecognized key %X\n", X11Key));
 		}
 		break;
 	}

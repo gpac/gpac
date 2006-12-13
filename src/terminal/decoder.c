@@ -308,7 +308,7 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	"frame dropping" is done by preventing the renderer from redrawing after an update and decoding following AU
 	so that the renderer is always woken up once all late systems AUs are decoded. This flag is overriden when 
 	seeking*/
-	check_next_unit = codec->odm->term->bifs_can_resync;
+	check_next_unit = (codec->odm->term->flags & GF_TERM_SYSDEC_RESYNC) ? 1 : 0;
 	
 check_unit:
 
@@ -331,7 +331,7 @@ check_unit:
 			cap.cap.valueInt = 0;
 			sdec->GetCapabilities(codec->decio, &cap);
 			if (!cap.cap.valueInt) {
-				gf_mm_stop_codec(codec);
+				gf_term_stop_codec(codec);
 				if ((codec->type==GF_STREAM_OD) && (codec->nb_dec_frames==1)) {
 					/*this is just by safety, since seeking is only allowed when a single clock is present 
 					in the scene*/
@@ -390,6 +390,7 @@ check_unit:
 	now = gf_term_get_time(codec->odm->term);
 	e = sdec->ProcessData(sdec, AU->data, AU->dataLength, ch->esd->ESID, au_time, mm_level);
 	now = gf_term_get_time(codec->odm->term) - now;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SysDec] Codec %s Processing AU CTS %d\n", sdec->module_name , AU->CTS));
 
 	codec_update_stats(codec, AU->dataLength, now);
 	codec->prev_au_size = AU->dataLength;
@@ -448,7 +449,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (codec->Muted) return GF_OK;
 
 	if (codec->Status == GF_ESM_CODEC_EOS) {
-		gf_mm_stop_codec(codec);
+		gf_term_stop_codec(codec);
 		return GF_OK;
 	}
 
@@ -554,6 +555,10 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 		/*at least 2 units for dec and render ...*/
 		if (unit_count<2) unit_count = 2;
 		while (unit_size*unit_count*1000 < dec->bytes_per_sec*audio_buf_len) unit_count++;
+#ifdef __SYMBIAN32__
+		/*FIXME - symbian tests*/
+		unit_count = 10;
+#endif
 		gf_cm_reinit(dec->CB, unit_size, unit_count);
 		dec->CB->Min = unit_count/3;
 		if (!dec->CB->Min) dec->CB->Min = 1;
@@ -593,7 +598,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				e = mdec->ProcessData(mdec, NULL, 0, 0, cu_buf, &cu_buf_size, 0, 0);
 				if (e==GF_OK) e = UnlockCompositionUnit(codec, codec->last_unit_cts+1, cu_buf_size);
 			}
-			gf_mm_stop_codec(codec);
+			gf_term_stop_codec(codec);
 			if (codec->CB) gf_cm_set_eos(codec->CB);
 		}
 		/*if no data, and channel not buffering, ABORT CB buffer (data timeout or EOS not detectable)*/
@@ -638,7 +643,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				/*extremely late, even if we decode the renderer will drop the frame 
 				so set the level to drop*/
 				mmlevel = GF_CODEC_LEVEL_DROP;
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Decoder] ODM%d: frame too late (%d vs %d) - dropping\n", codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Decoder] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
 			}
 			/*we are late according to the media manager*/
 			else if (codec->PriorityBoost) {
@@ -703,7 +708,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 					codec->cur_video_frames += 1;
 				}
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Decoder] ODM%d: decoded frame TS %d in %d ms\n", codec->odm->OD->objectDescriptorID, AU->CTS, now));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Decoder %s] ODM%d: decoded frame TS %d in %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, AU->CTS, now));
 			break;
 		/*this happens a lot when using non-MPEG-4 streams (ex: ffmpeg demuxer)*/
 		case GF_PACKED_FRAMES:
@@ -743,7 +748,10 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 drop:
 		gf_es_drop_au(ch);
-		if (e) return e;
+		if (e) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Decoder %s] ODM%d: decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));
+			return e;
+		}
 
 		/*escape from decoding loop only if above critical limit - this is to avoid starvation on audio*/
 		if (codec->CB->UnitCount > codec->CB->Min) {
@@ -777,7 +785,7 @@ GF_Err gf_codec_process(GF_Codec *codec, u32 TimeAvailable)
 		if (!AU || !ch) {
 			/*if the codec is in EOS state, move to STOP*/
 			if (codec->Status == GF_ESM_CODEC_EOS) {
-				gf_mm_stop_codec(codec);
+				gf_term_stop_codec(codec);
 				/*if a mediacontrol is ruling this OCR*/
 				if (codec->odm->media_ctrl && codec->odm->media_ctrl->control->loop) MC_Restart(codec->odm); 
 			}

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Oct 24 08:04:28 2006
+	DO NOT MOFIFY - File generated on GMT Wed Dec 13 14:37:48 2006
 
 	BY MPEG4Gen for GPAC Version 0.4.3-DEV
 */
@@ -136,6 +136,18 @@ static GF_Err Anchor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Anchor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("description", name)) return 3;
+	if (!strcmp("parameter", name)) return 4;
+	if (!strcmp("url", name)) return 5;
+	if (!strcmp("activate", name)) return 6;
+	return -1;
+	}
 static Bool Anchor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -264,6 +276,18 @@ static GF_Err AnimationStream_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 AnimationStream_get_field_index_by_name(char *name)
+{
+	if (!strcmp("loop", name)) return 0;
+	if (!strcmp("speed", name)) return 1;
+	if (!strcmp("startTime", name)) return 2;
+	if (!strcmp("stopTime", name)) return 3;
+	if (!strcmp("url", name)) return 4;
+	if (!strcmp("duration_changed", name)) return 5;
+	if (!strcmp("isActive", name)) return 6;
+	return -1;
+	}
 static Bool AnimationStream_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -377,6 +401,14 @@ static GF_Err Appearance_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Appearance_get_field_index_by_name(char *name)
+{
+	if (!strcmp("material", name)) return 0;
+	if (!strcmp("texture", name)) return 1;
+	if (!strcmp("textureTransform", name)) return 2;
+	return -1;
+	}
 static Bool Appearance_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -524,6 +556,21 @@ static GF_Err AudioBuffer_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 AudioBuffer_get_field_index_by_name(char *name)
+{
+	if (!strcmp("loop", name)) return 0;
+	if (!strcmp("pitch", name)) return 1;
+	if (!strcmp("startTime", name)) return 2;
+	if (!strcmp("stopTime", name)) return 3;
+	if (!strcmp("children", name)) return 4;
+	if (!strcmp("numChan", name)) return 5;
+	if (!strcmp("phaseGroup", name)) return 6;
+	if (!strcmp("length", name)) return 7;
+	if (!strcmp("duration_changed", name)) return 8;
+	if (!strcmp("isActive", name)) return 9;
+	return -1;
+	}
 static Bool AudioBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -698,6 +745,19 @@ static GF_Err AudioClip_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 AudioClip_get_field_index_by_name(char *name)
+{
+	if (!strcmp("description", name)) return 0;
+	if (!strcmp("loop", name)) return 1;
+	if (!strcmp("pitch", name)) return 2;
+	if (!strcmp("startTime", name)) return 3;
+	if (!strcmp("stopTime", name)) return 4;
+	if (!strcmp("url", name)) return 5;
+	if (!strcmp("duration_changed", name)) return 6;
+	if (!strcmp("isActive", name)) return 7;
+	return -1;
+	}
 static Bool AudioClip_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -830,6 +890,17 @@ static GF_Err AudioDelay_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 AudioDelay_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("delay", name)) return 3;
+	if (!strcmp("numChan", name)) return 4;
+	if (!strcmp("phaseGroup", name)) return 5;
+	return -1;
+	}
 static Bool AudioDelay_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -989,6 +1060,19 @@ static GF_Err AudioFX_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 AudioFX_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("orch", name)) return 3;
+	if (!strcmp("score", name)) return 4;
+	if (!strcmp("params", name)) return 5;
+	if (!strcmp("numChan", name)) return 6;
+	if (!strcmp("phaseGroup", name)) return 7;
+	return -1;
+	}
 static Bool AudioFX_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1145,6 +1229,18 @@ static GF_Err AudioMix_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 AudioMix_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("numInputs", name)) return 3;
+	if (!strcmp("matrix", name)) return 4;
+	if (!strcmp("numChan", name)) return 5;
+	if (!strcmp("phaseGroup", name)) return 6;
+	return -1;
+	}
 static Bool AudioMix_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1327,6 +1423,21 @@ static GF_Err AudioSource_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 AudioSource_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("url", name)) return 3;
+	if (!strcmp("pitch", name)) return 4;
+	if (!strcmp("speed", name)) return 5;
+	if (!strcmp("startTime", name)) return 6;
+	if (!strcmp("stopTime", name)) return 7;
+	if (!strcmp("numChan", name)) return 8;
+	if (!strcmp("phaseGroup", name)) return 9;
+	return -1;
+	}
 static Bool AudioSource_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1483,6 +1594,17 @@ static GF_Err AudioSwitch_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 AudioSwitch_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("whichChoice", name)) return 3;
+	if (!strcmp("numChan", name)) return 4;
+	if (!strcmp("phaseGroup", name)) return 5;
+	return -1;
+	}
 static Bool AudioSwitch_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1673,6 +1795,23 @@ static GF_Err Background_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Background_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_bind", name)) return 0;
+	if (!strcmp("groundAngle", name)) return 1;
+	if (!strcmp("groundColor", name)) return 2;
+	if (!strcmp("backUrl", name)) return 3;
+	if (!strcmp("bottomUrl", name)) return 4;
+	if (!strcmp("frontUrl", name)) return 5;
+	if (!strcmp("leftUrl", name)) return 6;
+	if (!strcmp("rightUrl", name)) return 7;
+	if (!strcmp("topUrl", name)) return 8;
+	if (!strcmp("skyAngle", name)) return 9;
+	if (!strcmp("skyColor", name)) return 10;
+	if (!strcmp("isBound", name)) return 11;
+	return -1;
+	}
 static Bool Background_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1812,6 +1951,15 @@ static GF_Err Background2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Background2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_bind", name)) return 0;
+	if (!strcmp("backColor", name)) return 1;
+	if (!strcmp("url", name)) return 2;
+	if (!strcmp("isBound", name)) return 3;
+	return -1;
+	}
 static Bool Background2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1935,6 +2083,15 @@ static GF_Err Billboard_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Billboard_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("axisOfRotation", name)) return 3;
+	return -1;
+	}
 static Bool Billboard_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2033,6 +2190,12 @@ static GF_Err Bitmap_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Bitmap_get_field_index_by_name(char *name)
+{
+	if (!strcmp("scale", name)) return 0;
+	return -1;
+	}
 static Bool Bitmap_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2119,6 +2282,12 @@ static GF_Err Box_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Box_get_field_index_by_name(char *name)
+{
+	if (!strcmp("size", name)) return 0;
+	return -1;
+	}
 static Bool Box_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2218,6 +2387,12 @@ static GF_Err Circle_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Circle_get_field_index_by_name(char *name)
+{
+	if (!strcmp("radius", name)) return 0;
+	return -1;
+	}
 static Bool Circle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2349,6 +2524,17 @@ static GF_Err Collision_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Collision_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("collide", name)) return 3;
+	if (!strcmp("proxy", name)) return 4;
+	if (!strcmp("collideTime", name)) return 5;
+	return -1;
+	}
 static Bool Collision_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2442,6 +2628,12 @@ static GF_Err Color_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Color_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	return -1;
+	}
 static Bool Color_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2555,6 +2747,15 @@ static GF_Err ColorInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ColorInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	return -1;
+	}
 static Bool ColorInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2705,6 +2906,19 @@ static GF_Err CompositeTexture2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 CompositeTexture2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("pixelWidth", name)) return 3;
+	if (!strcmp("pixelHeight", name)) return 4;
+	if (!strcmp("background", name)) return 5;
+	if (!strcmp("viewport", name)) return 6;
+	if (!strcmp("repeatSandT", name)) return 7;
+	return -1;
+	}
 static Bool CompositeTexture2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2890,6 +3104,22 @@ static GF_Err CompositeTexture3D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 CompositeTexture3D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("pixelWidth", name)) return 3;
+	if (!strcmp("pixelHeight", name)) return 4;
+	if (!strcmp("background", name)) return 5;
+	if (!strcmp("fog", name)) return 6;
+	if (!strcmp("navigationInfo", name)) return 7;
+	if (!strcmp("viewpoint", name)) return 8;
+	if (!strcmp("repeatS", name)) return 9;
+	if (!strcmp("repeatT", name)) return 10;
+	return -1;
+	}
 static Bool CompositeTexture3D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3016,6 +3246,15 @@ static GF_Err Conditional_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Conditional_get_field_index_by_name(char *name)
+{
+	if (!strcmp("activate", name)) return 0;
+	if (!strcmp("reverseActivate", name)) return 1;
+	if (!strcmp("buffer", name)) return 2;
+	if (!strcmp("isActive", name)) return 3;
+	return -1;
+	}
 static Bool Conditional_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3113,6 +3352,15 @@ static GF_Err Cone_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Cone_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bottomRadius", name)) return 0;
+	if (!strcmp("height", name)) return 1;
+	if (!strcmp("side", name)) return 2;
+	if (!strcmp("bottom", name)) return 3;
+	return -1;
+	}
 static Bool Cone_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3220,6 +3468,12 @@ static GF_Err Coordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Coordinate_get_field_index_by_name(char *name)
+{
+	if (!strcmp("point", name)) return 0;
+	return -1;
+	}
 static Bool Coordinate_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3317,6 +3571,12 @@ static GF_Err Coordinate2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Coordinate2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("point", name)) return 0;
+	return -1;
+	}
 static Bool Coordinate2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3431,6 +3691,15 @@ static GF_Err CoordinateInterpolator_get_field(GF_Node *node, GF_FieldInfo *info
 	}
 }
 
+
+static s32 CoordinateInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	return -1;
+	}
 static Bool CoordinateInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3551,6 +3820,15 @@ static GF_Err CoordinateInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *in
 	}
 }
 
+
+static s32 CoordinateInterpolator2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	return -1;
+	}
 static Bool CoordinateInterpolator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3668,6 +3946,14 @@ static GF_Err Curve2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Curve2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("point", name)) return 0;
+	if (!strcmp("fineness", name)) return 1;
+	if (!strcmp("type", name)) return 2;
+	return -1;
+	}
 static Bool Curve2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3784,6 +4070,16 @@ static GF_Err Cylinder_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Cylinder_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bottom", name)) return 0;
+	if (!strcmp("height", name)) return 1;
+	if (!strcmp("radius", name)) return 2;
+	if (!strcmp("side", name)) return 3;
+	if (!strcmp("top", name)) return 4;
+	return -1;
+	}
 static Bool Cylinder_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3935,6 +4231,20 @@ static GF_Err CylinderSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 CylinderSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("autoOffset", name)) return 0;
+	if (!strcmp("diskAngle", name)) return 1;
+	if (!strcmp("enabled", name)) return 2;
+	if (!strcmp("maxAngle", name)) return 3;
+	if (!strcmp("minAngle", name)) return 4;
+	if (!strcmp("offset", name)) return 5;
+	if (!strcmp("isActive", name)) return 6;
+	if (!strcmp("rotation_changed", name)) return 7;
+	if (!strcmp("trackPoint_changed", name)) return 8;
+	return -1;
+	}
 static Bool CylinderSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -4079,6 +4389,16 @@ static GF_Err DirectionalLight_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 DirectionalLight_get_field_index_by_name(char *name)
+{
+	if (!strcmp("ambientIntensity", name)) return 0;
+	if (!strcmp("color", name)) return 1;
+	if (!strcmp("direction", name)) return 2;
+	if (!strcmp("intensity", name)) return 3;
+	if (!strcmp("on", name)) return 4;
+	return -1;
+	}
 static Bool DirectionalLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -4238,6 +4558,19 @@ static GF_Err DiscSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 DiscSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("autoOffset", name)) return 0;
+	if (!strcmp("enabled", name)) return 1;
+	if (!strcmp("maxAngle", name)) return 2;
+	if (!strcmp("minAngle", name)) return 3;
+	if (!strcmp("offset", name)) return 4;
+	if (!strcmp("isActive", name)) return 5;
+	if (!strcmp("rotation_changed", name)) return 6;
+	if (!strcmp("trackPoint_changed", name)) return 7;
+	return -1;
+	}
 static Bool DiscSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -4434,6 +4767,25 @@ static GF_Err ElevationGrid_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ElevationGrid_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_height", name)) return 0;
+	if (!strcmp("color", name)) return 1;
+	if (!strcmp("normal", name)) return 2;
+	if (!strcmp("texCoord", name)) return 3;
+	if (!strcmp("height", name)) return 4;
+	if (!strcmp("ccw", name)) return 5;
+	if (!strcmp("colorPerVertex", name)) return 6;
+	if (!strcmp("creaseAngle", name)) return 7;
+	if (!strcmp("normalPerVertex", name)) return 8;
+	if (!strcmp("solid", name)) return 9;
+	if (!strcmp("xDimension", name)) return 10;
+	if (!strcmp("xSpacing", name)) return 11;
+	if (!strcmp("zDimension", name)) return 12;
+	if (!strcmp("zSpacing", name)) return 13;
+	return -1;
+	}
 static Bool ElevationGrid_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -4651,6 +5003,25 @@ static GF_Err Extrusion_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Extrusion_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_crossSection", name)) return 0;
+	if (!strcmp("set_orientation", name)) return 1;
+	if (!strcmp("set_scale", name)) return 2;
+	if (!strcmp("set_spine", name)) return 3;
+	if (!strcmp("beginCap", name)) return 4;
+	if (!strcmp("ccw", name)) return 5;
+	if (!strcmp("convex", name)) return 6;
+	if (!strcmp("creaseAngle", name)) return 7;
+	if (!strcmp("crossSection", name)) return 8;
+	if (!strcmp("endCap", name)) return 9;
+	if (!strcmp("orientation", name)) return 10;
+	if (!strcmp("scale", name)) return 11;
+	if (!strcmp("solid", name)) return 12;
+	if (!strcmp("spine", name)) return 13;
+	return -1;
+	}
 static Bool Extrusion_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -4833,6 +5204,16 @@ static GF_Err Fog_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Fog_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("fogType", name)) return 1;
+	if (!strcmp("visibilityRange", name)) return 2;
+	if (!strcmp("set_bind", name)) return 3;
+	if (!strcmp("isBound", name)) return 4;
+	return -1;
+	}
 static Bool Fog_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -4989,6 +5370,20 @@ static GF_Err FontStyle_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 FontStyle_get_field_index_by_name(char *name)
+{
+	if (!strcmp("family", name)) return 0;
+	if (!strcmp("horizontal", name)) return 1;
+	if (!strcmp("justify", name)) return 2;
+	if (!strcmp("language", name)) return 3;
+	if (!strcmp("leftToRight", name)) return 4;
+	if (!strcmp("size", name)) return 5;
+	if (!strcmp("spacing", name)) return 6;
+	if (!strcmp("style", name)) return 7;
+	if (!strcmp("topToBottom", name)) return 8;
+	return -1;
+	}
 static Bool FontStyle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -5151,6 +5546,18 @@ static GF_Err Form_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Form_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("size", name)) return 3;
+	if (!strcmp("groups", name)) return 4;
+	if (!strcmp("constraints", name)) return 5;
+	if (!strcmp("groupsIndex", name)) return 6;
+	return -1;
+	}
 static Bool Form_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -5278,6 +5685,14 @@ static GF_Err Group_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Group_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	return -1;
+	}
 static Bool Group_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -5378,6 +5793,14 @@ static GF_Err ImageTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ImageTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("url", name)) return 0;
+	if (!strcmp("repeatS", name)) return 1;
+	if (!strcmp("repeatT", name)) return 2;
+	return -1;
+	}
 static Bool ImageTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -5588,6 +6011,29 @@ static GF_Err IndexedFaceSet_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 IndexedFaceSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_colorIndex", name)) return 0;
+	if (!strcmp("set_coordIndex", name)) return 1;
+	if (!strcmp("set_normalIndex", name)) return 2;
+	if (!strcmp("set_texCoordIndex", name)) return 3;
+	if (!strcmp("color", name)) return 4;
+	if (!strcmp("coord", name)) return 5;
+	if (!strcmp("normal", name)) return 6;
+	if (!strcmp("texCoord", name)) return 7;
+	if (!strcmp("ccw", name)) return 8;
+	if (!strcmp("colorIndex", name)) return 9;
+	if (!strcmp("colorPerVertex", name)) return 10;
+	if (!strcmp("convex", name)) return 11;
+	if (!strcmp("coordIndex", name)) return 12;
+	if (!strcmp("creaseAngle", name)) return 13;
+	if (!strcmp("normalIndex", name)) return 14;
+	if (!strcmp("normalPerVertex", name)) return 15;
+	if (!strcmp("solid", name)) return 16;
+	if (!strcmp("texCoordIndex", name)) return 17;
+	return -1;
+	}
 static Bool IndexedFaceSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -5785,6 +6231,22 @@ static GF_Err IndexedFaceSet2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 IndexedFaceSet2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_colorIndex", name)) return 0;
+	if (!strcmp("set_coordIndex", name)) return 1;
+	if (!strcmp("set_texCoordIndex", name)) return 2;
+	if (!strcmp("color", name)) return 3;
+	if (!strcmp("coord", name)) return 4;
+	if (!strcmp("texCoord", name)) return 5;
+	if (!strcmp("colorIndex", name)) return 6;
+	if (!strcmp("colorPerVertex", name)) return 7;
+	if (!strcmp("convex", name)) return 8;
+	if (!strcmp("coordIndex", name)) return 9;
+	if (!strcmp("texCoordIndex", name)) return 10;
+	return -1;
+	}
 static Bool IndexedFaceSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -5937,6 +6399,18 @@ static GF_Err IndexedLineSet_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 IndexedLineSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_colorIndex", name)) return 0;
+	if (!strcmp("set_coordIndex", name)) return 1;
+	if (!strcmp("color", name)) return 2;
+	if (!strcmp("coord", name)) return 3;
+	if (!strcmp("colorIndex", name)) return 4;
+	if (!strcmp("colorPerVertex", name)) return 5;
+	if (!strcmp("coordIndex", name)) return 6;
+	return -1;
+	}
 static Bool IndexedLineSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -6082,6 +6556,18 @@ static GF_Err IndexedLineSet2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 IndexedLineSet2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_colorIndex", name)) return 0;
+	if (!strcmp("set_coordIndex", name)) return 1;
+	if (!strcmp("color", name)) return 2;
+	if (!strcmp("coord", name)) return 3;
+	if (!strcmp("colorIndex", name)) return 4;
+	if (!strcmp("colorPerVertex", name)) return 5;
+	if (!strcmp("coordIndex", name)) return 6;
+	return -1;
+	}
 static Bool IndexedLineSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -6182,6 +6668,12 @@ static GF_Err Inline_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Inline_get_field_index_by_name(char *name)
+{
+	if (!strcmp("url", name)) return 0;
+	return -1;
+	}
 static Bool Inline_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -6283,6 +6775,14 @@ static GF_Err LOD_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 LOD_get_field_index_by_name(char *name)
+{
+	if (!strcmp("level", name)) return 0;
+	if (!strcmp("center", name)) return 1;
+	if (!strcmp("range", name)) return 2;
+	return -1;
+	}
 static Bool LOD_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -6429,6 +6929,17 @@ static GF_Err Layer2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Layer2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("size", name)) return 3;
+	if (!strcmp("background", name)) return 4;
+	if (!strcmp("viewport", name)) return 5;
+	return -1;
+	}
 static Bool Layer2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -6584,6 +7095,19 @@ static GF_Err Layer3D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Layer3D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("size", name)) return 3;
+	if (!strcmp("background", name)) return 4;
+	if (!strcmp("fog", name)) return 5;
+	if (!strcmp("navigationInfo", name)) return 6;
+	if (!strcmp("viewpoint", name)) return 7;
+	return -1;
+	}
 static Bool Layer3D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -6774,6 +7298,26 @@ static GF_Err Layout_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Layout_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("wrap", name)) return 3;
+	if (!strcmp("size", name)) return 4;
+	if (!strcmp("horizontal", name)) return 5;
+	if (!strcmp("justify", name)) return 6;
+	if (!strcmp("leftToRight", name)) return 7;
+	if (!strcmp("topToBottom", name)) return 8;
+	if (!strcmp("spacing", name)) return 9;
+	if (!strcmp("smoothScroll", name)) return 10;
+	if (!strcmp("loop", name)) return 11;
+	if (!strcmp("scrollVertical", name)) return 12;
+	if (!strcmp("scrollRate", name)) return 13;
+	if (!strcmp("scrollMode", name)) return 14;
+	return -1;
+	}
 static Bool Layout_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -6915,6 +7459,14 @@ static GF_Err LineProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 LineProperties_get_field_index_by_name(char *name)
+{
+	if (!strcmp("lineColor", name)) return 0;
+	if (!strcmp("lineStyle", name)) return 1;
+	if (!strcmp("width", name)) return 2;
+	return -1;
+	}
 static Bool LineProperties_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7067,6 +7619,18 @@ static GF_Err ListeningPoint_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ListeningPoint_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_bind", name)) return 0;
+	if (!strcmp("jump", name)) return 1;
+	if (!strcmp("orientation", name)) return 2;
+	if (!strcmp("position", name)) return 3;
+	if (!strcmp("description", name)) return 4;
+	if (!strcmp("bindTime", name)) return 5;
+	if (!strcmp("isBound", name)) return 6;
+	return -1;
+	}
 static Bool ListeningPoint_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7205,6 +7769,17 @@ static GF_Err Material_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Material_get_field_index_by_name(char *name)
+{
+	if (!strcmp("ambientIntensity", name)) return 0;
+	if (!strcmp("diffuseColor", name)) return 1;
+	if (!strcmp("emissiveColor", name)) return 2;
+	if (!strcmp("shininess", name)) return 3;
+	if (!strcmp("specularColor", name)) return 4;
+	if (!strcmp("transparency", name)) return 5;
+	return -1;
+	}
 static Bool Material_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7363,6 +7938,15 @@ static GF_Err Material2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Material2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("emissiveColor", name)) return 0;
+	if (!strcmp("filled", name)) return 1;
+	if (!strcmp("lineProps", name)) return 2;
+	if (!strcmp("transparency", name)) return 3;
+	return -1;
+	}
 static Bool Material2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7518,6 +8102,20 @@ static GF_Err MovieTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 MovieTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("loop", name)) return 0;
+	if (!strcmp("speed", name)) return 1;
+	if (!strcmp("startTime", name)) return 2;
+	if (!strcmp("stopTime", name)) return 3;
+	if (!strcmp("url", name)) return 4;
+	if (!strcmp("repeatS", name)) return 5;
+	if (!strcmp("repeatT", name)) return 6;
+	if (!strcmp("duration_changed", name)) return 7;
+	if (!strcmp("isActive", name)) return 8;
+	return -1;
+	}
 static Bool MovieTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7658,6 +8256,18 @@ static GF_Err NavigationInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 NavigationInfo_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_bind", name)) return 0;
+	if (!strcmp("avatarSize", name)) return 1;
+	if (!strcmp("headlight", name)) return 2;
+	if (!strcmp("speed", name)) return 3;
+	if (!strcmp("type", name)) return 4;
+	if (!strcmp("visibilityLimit", name)) return 5;
+	if (!strcmp("isBound", name)) return 6;
+	return -1;
+	}
 static Bool NavigationInfo_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7781,6 +8391,12 @@ static GF_Err Normal_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Normal_get_field_index_by_name(char *name)
+{
+	if (!strcmp("vector", name)) return 0;
+	return -1;
+	}
 static Bool Normal_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7893,6 +8509,15 @@ static GF_Err NormalInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 NormalInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	return -1;
+	}
 static Bool NormalInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8016,6 +8641,15 @@ static GF_Err OrderedGroup_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 OrderedGroup_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("order", name)) return 3;
+	return -1;
+	}
 static Bool OrderedGroup_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8130,6 +8764,15 @@ static GF_Err OrientationInterpolator_get_field(GF_Node *node, GF_FieldInfo *inf
 	}
 }
 
+
+static s32 OrientationInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	return -1;
+	}
 static Bool OrientationInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8241,6 +8884,14 @@ static GF_Err PixelTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PixelTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("image", name)) return 0;
+	if (!strcmp("repeatS", name)) return 1;
+	if (!strcmp("repeatT", name)) return 2;
+	return -1;
+	}
 static Bool PixelTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8375,6 +9026,19 @@ static GF_Err PlaneSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PlaneSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("autoOffset", name)) return 0;
+	if (!strcmp("enabled", name)) return 1;
+	if (!strcmp("maxPosition", name)) return 2;
+	if (!strcmp("minPosition", name)) return 3;
+	if (!strcmp("offset", name)) return 4;
+	if (!strcmp("isActive", name)) return 5;
+	if (!strcmp("trackPoint_changed", name)) return 6;
+	if (!strcmp("translation_changed", name)) return 7;
+	return -1;
+	}
 static Bool PlaneSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8530,6 +9194,19 @@ static GF_Err PlaneSensor2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PlaneSensor2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("autoOffset", name)) return 0;
+	if (!strcmp("enabled", name)) return 1;
+	if (!strcmp("maxPosition", name)) return 2;
+	if (!strcmp("minPosition", name)) return 3;
+	if (!strcmp("offset", name)) return 4;
+	if (!strcmp("isActive", name)) return 5;
+	if (!strcmp("trackPoint_changed", name)) return 6;
+	if (!strcmp("translation_changed", name)) return 7;
+	return -1;
+	}
 static Bool PlaneSensor2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8682,6 +9359,18 @@ static GF_Err PointLight_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PointLight_get_field_index_by_name(char *name)
+{
+	if (!strcmp("ambientIntensity", name)) return 0;
+	if (!strcmp("attenuation", name)) return 1;
+	if (!strcmp("color", name)) return 2;
+	if (!strcmp("intensity", name)) return 3;
+	if (!strcmp("location", name)) return 4;
+	if (!strcmp("on", name)) return 5;
+	if (!strcmp("radius", name)) return 6;
+	return -1;
+	}
 static Bool PointLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8827,6 +9516,13 @@ static GF_Err PointSet_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PointSet_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("coord", name)) return 1;
+	return -1;
+	}
 static Bool PointSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8923,6 +9619,13 @@ static GF_Err PointSet2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PointSet2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("coord", name)) return 1;
+	return -1;
+	}
 static Bool PointSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9030,6 +9733,15 @@ static GF_Err PositionInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PositionInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	return -1;
+	}
 static Bool PositionInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9149,6 +9861,15 @@ static GF_Err PositionInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *info
 	}
 }
 
+
+static s32 PositionInterpolator2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	return -1;
+	}
 static Bool PositionInterpolator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9289,6 +10010,19 @@ static GF_Err ProximitySensor2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ProximitySensor2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("center", name)) return 0;
+	if (!strcmp("size", name)) return 1;
+	if (!strcmp("enabled", name)) return 2;
+	if (!strcmp("isActive", name)) return 3;
+	if (!strcmp("position_changed", name)) return 4;
+	if (!strcmp("orientation_changed", name)) return 5;
+	if (!strcmp("enterTime", name)) return 6;
+	if (!strcmp("exitTime", name)) return 7;
+	return -1;
+	}
 static Bool ProximitySensor2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9434,6 +10168,19 @@ static GF_Err ProximitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ProximitySensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("center", name)) return 0;
+	if (!strcmp("size", name)) return 1;
+	if (!strcmp("enabled", name)) return 2;
+	if (!strcmp("isActive", name)) return 3;
+	if (!strcmp("position_changed", name)) return 4;
+	if (!strcmp("orientation_changed", name)) return 5;
+	if (!strcmp("enterTime", name)) return 6;
+	if (!strcmp("exitTime", name)) return 7;
+	return -1;
+	}
 static Bool ProximitySensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9765,6 +10512,51 @@ static GF_Err QuantizationParameter_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 QuantizationParameter_get_field_index_by_name(char *name)
+{
+	if (!strcmp("isLocal", name)) return 0;
+	if (!strcmp("position3DQuant", name)) return 1;
+	if (!strcmp("position3DMin", name)) return 2;
+	if (!strcmp("position3DMax", name)) return 3;
+	if (!strcmp("position3DNbBits", name)) return 4;
+	if (!strcmp("position2DQuant", name)) return 5;
+	if (!strcmp("position2DMin", name)) return 6;
+	if (!strcmp("position2DMax", name)) return 7;
+	if (!strcmp("position2DNbBits", name)) return 8;
+	if (!strcmp("drawOrderQuant", name)) return 9;
+	if (!strcmp("drawOrderMin", name)) return 10;
+	if (!strcmp("drawOrderMax", name)) return 11;
+	if (!strcmp("drawOrderNbBits", name)) return 12;
+	if (!strcmp("colorQuant", name)) return 13;
+	if (!strcmp("colorMin", name)) return 14;
+	if (!strcmp("colorMax", name)) return 15;
+	if (!strcmp("colorNbBits", name)) return 16;
+	if (!strcmp("textureCoordinateQuant", name)) return 17;
+	if (!strcmp("textureCoordinateMin", name)) return 18;
+	if (!strcmp("textureCoordinateMax", name)) return 19;
+	if (!strcmp("textureCoordinateNbBits", name)) return 20;
+	if (!strcmp("angleQuant", name)) return 21;
+	if (!strcmp("angleMin", name)) return 22;
+	if (!strcmp("angleMax", name)) return 23;
+	if (!strcmp("angleNbBits", name)) return 24;
+	if (!strcmp("scaleQuant", name)) return 25;
+	if (!strcmp("scaleMin", name)) return 26;
+	if (!strcmp("scaleMax", name)) return 27;
+	if (!strcmp("scaleNbBits", name)) return 28;
+	if (!strcmp("keyQuant", name)) return 29;
+	if (!strcmp("keyMin", name)) return 30;
+	if (!strcmp("keyMax", name)) return 31;
+	if (!strcmp("keyNbBits", name)) return 32;
+	if (!strcmp("normalQuant", name)) return 33;
+	if (!strcmp("normalNbBits", name)) return 34;
+	if (!strcmp("sizeQuant", name)) return 35;
+	if (!strcmp("sizeMin", name)) return 36;
+	if (!strcmp("sizeMax", name)) return 37;
+	if (!strcmp("sizeNbBits", name)) return 38;
+	if (!strcmp("useEfficientCoding", name)) return 39;
+	return -1;
+	}
 static Bool QuantizationParameter_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10072,6 +10864,12 @@ static GF_Err Rectangle_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Rectangle_get_field_index_by_name(char *name)
+{
+	if (!strcmp("size", name)) return 0;
+	return -1;
+	}
 static Bool Rectangle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10187,6 +10985,15 @@ static GF_Err ScalarInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ScalarInterpolator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	return -1;
+	}
 static Bool ScalarInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10298,6 +11105,14 @@ static GF_Err Script_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Script_get_field_index_by_name(char *name)
+{
+	if (!strcmp("url", name)) return 0;
+	if (!strcmp("directOutput", name)) return 1;
+	if (!strcmp("mustEvaluate", name)) return 2;
+	return -1;
+	}
 static Bool Script_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10394,6 +11209,13 @@ static GF_Err Shape_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Shape_get_field_index_by_name(char *name)
+{
+	if (!strcmp("appearance", name)) return 0;
+	if (!strcmp("geometry", name)) return 1;
+	return -1;
+	}
 static Bool Shape_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10540,6 +11362,21 @@ static GF_Err Sound_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Sound_get_field_index_by_name(char *name)
+{
+	if (!strcmp("direction", name)) return 0;
+	if (!strcmp("intensity", name)) return 1;
+	if (!strcmp("location", name)) return 2;
+	if (!strcmp("maxBack", name)) return 3;
+	if (!strcmp("maxFront", name)) return 4;
+	if (!strcmp("minBack", name)) return 5;
+	if (!strcmp("minFront", name)) return 6;
+	if (!strcmp("priority", name)) return 7;
+	if (!strcmp("source", name)) return 8;
+	if (!strcmp("spatialize", name)) return 9;
+	return -1;
+	}
 static Bool Sound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10711,6 +11548,15 @@ static GF_Err Sound2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Sound2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("intensity", name)) return 0;
+	if (!strcmp("location", name)) return 1;
+	if (!strcmp("source", name)) return 2;
+	if (!strcmp("spatialize", name)) return 3;
+	return -1;
+	}
 static Bool Sound2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10805,6 +11651,12 @@ static GF_Err Sphere_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Sphere_get_field_index_by_name(char *name)
+{
+	if (!strcmp("radius", name)) return 0;
+	return -1;
+	}
 static Bool Sphere_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10928,6 +11780,17 @@ static GF_Err SphereSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 SphereSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("autoOffset", name)) return 0;
+	if (!strcmp("enabled", name)) return 1;
+	if (!strcmp("offset", name)) return 2;
+	if (!strcmp("isActive", name)) return 3;
+	if (!strcmp("rotation_changed", name)) return 4;
+	if (!strcmp("trackPoint_changed", name)) return 5;
+	return -1;
+	}
 static Bool SphereSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11084,6 +11947,21 @@ static GF_Err SpotLight_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 SpotLight_get_field_index_by_name(char *name)
+{
+	if (!strcmp("ambientIntensity", name)) return 0;
+	if (!strcmp("attenuation", name)) return 1;
+	if (!strcmp("beamWidth", name)) return 2;
+	if (!strcmp("color", name)) return 3;
+	if (!strcmp("cutOffAngle", name)) return 4;
+	if (!strcmp("direction", name)) return 5;
+	if (!strcmp("intensity", name)) return 6;
+	if (!strcmp("location", name)) return 7;
+	if (!strcmp("on", name)) return 8;
+	if (!strcmp("radius", name)) return 9;
+	return -1;
+	}
 static Bool SpotLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11250,6 +12128,13 @@ static GF_Err Switch_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Switch_get_field_index_by_name(char *name)
+{
+	if (!strcmp("choice", name)) return 0;
+	if (!strcmp("whichChoice", name)) return 1;
+	return -1;
+	}
 static Bool Switch_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11358,6 +12243,14 @@ static GF_Err TermCap_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TermCap_get_field_index_by_name(char *name)
+{
+	if (!strcmp("evaluate", name)) return 0;
+	if (!strcmp("capability", name)) return 1;
+	if (!strcmp("value", name)) return 2;
+	return -1;
+	}
 static Bool TermCap_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11485,6 +12378,15 @@ static GF_Err Text_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Text_get_field_index_by_name(char *name)
+{
+	if (!strcmp("string", name)) return 0;
+	if (!strcmp("length", name)) return 1;
+	if (!strcmp("fontStyle", name)) return 2;
+	if (!strcmp("maxExtent", name)) return 3;
+	return -1;
+	}
 static Bool Text_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11589,6 +12491,12 @@ static GF_Err TextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TextureCoordinate_get_field_index_by_name(char *name)
+{
+	if (!strcmp("point", name)) return 0;
+	return -1;
+	}
 static Bool TextureCoordinate_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11703,6 +12611,15 @@ static GF_Err TextureTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TextureTransform_get_field_index_by_name(char *name)
+{
+	if (!strcmp("center", name)) return 0;
+	if (!strcmp("rotation", name)) return 1;
+	if (!strcmp("scale", name)) return 2;
+	if (!strcmp("translation", name)) return 3;
+	return -1;
+	}
 static Bool TextureTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11868,6 +12785,20 @@ static GF_Err TimeSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TimeSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("cycleInterval", name)) return 0;
+	if (!strcmp("enabled", name)) return 1;
+	if (!strcmp("loop", name)) return 2;
+	if (!strcmp("startTime", name)) return 3;
+	if (!strcmp("stopTime", name)) return 4;
+	if (!strcmp("cycleTime", name)) return 5;
+	if (!strcmp("fraction_changed", name)) return 6;
+	if (!strcmp("isActive", name)) return 7;
+	if (!strcmp("time", name)) return 8;
+	return -1;
+	}
 static Bool TimeSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11994,6 +12925,18 @@ static GF_Err TouchSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TouchSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("enabled", name)) return 0;
+	if (!strcmp("hitNormal_changed", name)) return 1;
+	if (!strcmp("hitPoint_changed", name)) return 2;
+	if (!strcmp("hitTexCoord_changed", name)) return 3;
+	if (!strcmp("isActive", name)) return 4;
+	if (!strcmp("isOver", name)) return 5;
+	if (!strcmp("touchTime", name)) return 6;
+	return -1;
+	}
 static Bool TouchSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -12133,6 +13076,19 @@ static GF_Err Transform_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Transform_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("center", name)) return 2;
+	if (!strcmp("children", name)) return 3;
+	if (!strcmp("rotation", name)) return 4;
+	if (!strcmp("scale", name)) return 5;
+	if (!strcmp("scaleOrientation", name)) return 6;
+	if (!strcmp("translation", name)) return 7;
+	return -1;
+	}
 static Bool Transform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -12315,6 +13271,19 @@ static GF_Err Transform2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Transform2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("center", name)) return 3;
+	if (!strcmp("rotationAngle", name)) return 4;
+	if (!strcmp("scale", name)) return 5;
+	if (!strcmp("scaleOrientation", name)) return 6;
+	if (!strcmp("translation", name)) return 7;
+	return -1;
+	}
 static Bool Transform2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -12712,6 +13681,52 @@ static GF_Err Valuator_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Valuator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("inSFBool", name)) return 0;
+	if (!strcmp("inSFColor", name)) return 1;
+	if (!strcmp("inMFColor", name)) return 2;
+	if (!strcmp("inSFFloat", name)) return 3;
+	if (!strcmp("inMFFloat", name)) return 4;
+	if (!strcmp("inSFInt32", name)) return 5;
+	if (!strcmp("inMFInt32", name)) return 6;
+	if (!strcmp("inSFRotation", name)) return 7;
+	if (!strcmp("inMFRotation", name)) return 8;
+	if (!strcmp("inSFString", name)) return 9;
+	if (!strcmp("inMFString", name)) return 10;
+	if (!strcmp("inSFTime", name)) return 11;
+	if (!strcmp("inSFVec2f", name)) return 12;
+	if (!strcmp("inMFVec2f", name)) return 13;
+	if (!strcmp("inSFVec3f", name)) return 14;
+	if (!strcmp("inMFVec3f", name)) return 15;
+	if (!strcmp("outSFBool", name)) return 16;
+	if (!strcmp("outSFColor", name)) return 17;
+	if (!strcmp("outMFColor", name)) return 18;
+	if (!strcmp("outSFFloat", name)) return 19;
+	if (!strcmp("outMFFloat", name)) return 20;
+	if (!strcmp("outSFInt32", name)) return 21;
+	if (!strcmp("outMFInt32", name)) return 22;
+	if (!strcmp("outSFRotation", name)) return 23;
+	if (!strcmp("outMFRotation", name)) return 24;
+	if (!strcmp("outSFString", name)) return 25;
+	if (!strcmp("outMFString", name)) return 26;
+	if (!strcmp("outSFTime", name)) return 27;
+	if (!strcmp("outSFVec2f", name)) return 28;
+	if (!strcmp("outMFVec2f", name)) return 29;
+	if (!strcmp("outSFVec3f", name)) return 30;
+	if (!strcmp("outMFVec3f", name)) return 31;
+	if (!strcmp("Factor1", name)) return 32;
+	if (!strcmp("Factor2", name)) return 33;
+	if (!strcmp("Factor3", name)) return 34;
+	if (!strcmp("Factor4", name)) return 35;
+	if (!strcmp("Offset1", name)) return 36;
+	if (!strcmp("Offset2", name)) return 37;
+	if (!strcmp("Offset3", name)) return 38;
+	if (!strcmp("Offset4", name)) return 39;
+	if (!strcmp("Sum", name)) return 40;
+	return -1;
+	}
 static Bool Valuator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -12902,6 +13917,19 @@ static GF_Err Viewpoint_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Viewpoint_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_bind", name)) return 0;
+	if (!strcmp("fieldOfView", name)) return 1;
+	if (!strcmp("jump", name)) return 2;
+	if (!strcmp("orientation", name)) return 3;
+	if (!strcmp("position", name)) return 4;
+	if (!strcmp("description", name)) return 5;
+	if (!strcmp("bindTime", name)) return 6;
+	if (!strcmp("isBound", name)) return 7;
+	return -1;
+	}
 static Bool Viewpoint_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13047,6 +14075,17 @@ static GF_Err VisibilitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 VisibilitySensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("center", name)) return 0;
+	if (!strcmp("enabled", name)) return 1;
+	if (!strcmp("size", name)) return 2;
+	if (!strcmp("enterTime", name)) return 3;
+	if (!strcmp("exitTime", name)) return 4;
+	if (!strcmp("isActive", name)) return 5;
+	return -1;
+	}
 static Bool VisibilitySensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13152,6 +14191,13 @@ static GF_Err WorldInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 WorldInfo_get_field_index_by_name(char *name)
+{
+	if (!strcmp("info", name)) return 0;
+	if (!strcmp("title", name)) return 1;
+	return -1;
+	}
 static Bool WorldInfo_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13300,6 +14346,21 @@ static GF_Err AcousticMaterial_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 AcousticMaterial_get_field_index_by_name(char *name)
+{
+	if (!strcmp("ambientIntensity", name)) return 0;
+	if (!strcmp("diffuseColor", name)) return 1;
+	if (!strcmp("emissiveColor", name)) return 2;
+	if (!strcmp("shininess", name)) return 3;
+	if (!strcmp("specularColor", name)) return 4;
+	if (!strcmp("transparency", name)) return 5;
+	if (!strcmp("reffunc", name)) return 6;
+	if (!strcmp("transfunc", name)) return 7;
+	if (!strcmp("refFrequency", name)) return 8;
+	if (!strcmp("transFrequency", name)) return 9;
+	return -1;
+	}
 static Bool AcousticMaterial_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13506,6 +14567,17 @@ static GF_Err AcousticScene_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 AcousticScene_get_field_index_by_name(char *name)
+{
+	if (!strcmp("center", name)) return 0;
+	if (!strcmp("Size", name)) return 1;
+	if (!strcmp("reverbTime", name)) return 2;
+	if (!strcmp("reverbFreq", name)) return 3;
+	if (!strcmp("reverbLevel", name)) return 4;
+	if (!strcmp("reverbDelay", name)) return 5;
+	return -1;
+	}
 static Bool AcousticScene_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13685,6 +14757,18 @@ static GF_Err ApplicationWindow_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ApplicationWindow_get_field_index_by_name(char *name)
+{
+	if (!strcmp("isActive", name)) return 0;
+	if (!strcmp("startTime", name)) return 1;
+	if (!strcmp("stopTime", name)) return 2;
+	if (!strcmp("description", name)) return 3;
+	if (!strcmp("parameter", name)) return 4;
+	if (!strcmp("url", name)) return 5;
+	if (!strcmp("size", name)) return 6;
+	return -1;
+	}
 static Bool ApplicationWindow_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13876,6 +14960,24 @@ static GF_Err DirectiveSound_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 DirectiveSound_get_field_index_by_name(char *name)
+{
+	if (!strcmp("direction", name)) return 0;
+	if (!strcmp("intensity", name)) return 1;
+	if (!strcmp("location", name)) return 2;
+	if (!strcmp("source", name)) return 3;
+	if (!strcmp("perceptualParameters", name)) return 4;
+	if (!strcmp("roomEffect", name)) return 5;
+	if (!strcmp("spatialize", name)) return 6;
+	if (!strcmp("directivity", name)) return 7;
+	if (!strcmp("angles", name)) return 8;
+	if (!strcmp("frequency", name)) return 9;
+	if (!strcmp("speedOfSound", name)) return 10;
+	if (!strcmp("distance", name)) return 11;
+	if (!strcmp("useAirabs", name)) return 12;
+	return -1;
+	}
 static Bool DirectiveSound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -14046,6 +15148,15 @@ static GF_Err Hierarchical3DMesh_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Hierarchical3DMesh_get_field_index_by_name(char *name)
+{
+	if (!strcmp("triangleBudget", name)) return 0;
+	if (!strcmp("level", name)) return 1;
+	if (!strcmp("url", name)) return 2;
+	if (!strcmp("doneLoading", name)) return 3;
+	return -1;
+	}
 static Bool Hierarchical3DMesh_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -14179,6 +15290,17 @@ static GF_Err MaterialKey_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 MaterialKey_get_field_index_by_name(char *name)
+{
+	if (!strcmp("isKeyed", name)) return 0;
+	if (!strcmp("isRGB", name)) return 1;
+	if (!strcmp("keyColor", name)) return 2;
+	if (!strcmp("lowThreshold", name)) return 3;
+	if (!strcmp("highThreshold", name)) return 4;
+	if (!strcmp("transparency", name)) return 5;
+	return -1;
+	}
 static Bool MaterialKey_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -14412,6 +15534,30 @@ static GF_Err PerceptualParameters_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PerceptualParameters_get_field_index_by_name(char *name)
+{
+	if (!strcmp("sourcePresence", name)) return 0;
+	if (!strcmp("sourceWarmth", name)) return 1;
+	if (!strcmp("sourceBrilliance", name)) return 2;
+	if (!strcmp("roomPresence", name)) return 3;
+	if (!strcmp("runningReverberance", name)) return 4;
+	if (!strcmp("envelopment", name)) return 5;
+	if (!strcmp("lateReverberance", name)) return 6;
+	if (!strcmp("heavyness", name)) return 7;
+	if (!strcmp("liveness", name)) return 8;
+	if (!strcmp("omniDirectivity", name)) return 9;
+	if (!strcmp("directFilterGains", name)) return 10;
+	if (!strcmp("inputFilterGains", name)) return 11;
+	if (!strcmp("refDistance", name)) return 12;
+	if (!strcmp("freqLow", name)) return 13;
+	if (!strcmp("freqHigh", name)) return 14;
+	if (!strcmp("timeLimit1", name)) return 15;
+	if (!strcmp("timeLimit2", name)) return 16;
+	if (!strcmp("timeLimit3", name)) return 17;
+	if (!strcmp("modalDensity", name)) return 18;
+	return -1;
+	}
 static Bool PerceptualParameters_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -14726,6 +15872,24 @@ static GF_Err TemporalTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TemporalTransform_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("url", name)) return 3;
+	if (!strcmp("startTime", name)) return 4;
+	if (!strcmp("optimalDuration", name)) return 5;
+	if (!strcmp("active", name)) return 6;
+	if (!strcmp("speed", name)) return 7;
+	if (!strcmp("scalability", name)) return 8;
+	if (!strcmp("stretchMode", name)) return 9;
+	if (!strcmp("shrinkMode", name)) return 10;
+	if (!strcmp("maxDelay", name)) return 11;
+	if (!strcmp("actualDuration", name)) return 12;
+	return -1;
+	}
 static Bool TemporalTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -14906,6 +16070,20 @@ static GF_Err TemporalGroup_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TemporalGroup_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("costart", name)) return 3;
+	if (!strcmp("coend", name)) return 4;
+	if (!strcmp("meet", name)) return 5;
+	if (!strcmp("priority", name)) return 6;
+	if (!strcmp("isActive", name)) return 7;
+	if (!strcmp("activeChild", name)) return 8;
+	return -1;
+	}
 static Bool TemporalGroup_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15021,6 +16199,15 @@ static GF_Err ServerCommand_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ServerCommand_get_field_index_by_name(char *name)
+{
+	if (!strcmp("trigger", name)) return 0;
+	if (!strcmp("enable", name)) return 1;
+	if (!strcmp("url", name)) return 2;
+	if (!strcmp("command", name)) return 3;
+	return -1;
+	}
 static Bool ServerCommand_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15127,6 +16314,15 @@ static GF_Err InputSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 InputSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("enabled", name)) return 0;
+	if (!strcmp("buffer", name)) return 1;
+	if (!strcmp("url", name)) return 2;
+	if (!strcmp("eventTime", name)) return 3;
+	return -1;
+	}
 static Bool InputSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15259,6 +16455,18 @@ static GF_Err MatteTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 MatteTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("surfaceA", name)) return 0;
+	if (!strcmp("surfaceB", name)) return 1;
+	if (!strcmp("alphaSurface", name)) return 2;
+	if (!strcmp("operation", name)) return 3;
+	if (!strcmp("overwrite", name)) return 4;
+	if (!strcmp("fraction", name)) return 5;
+	if (!strcmp("parameter", name)) return 6;
+	return -1;
+	}
 static Bool MatteTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15380,6 +16588,17 @@ static GF_Err MediaBuffer_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 MediaBuffer_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bufferSize", name)) return 0;
+	if (!strcmp("url", name)) return 1;
+	if (!strcmp("mediaStartTime", name)) return 2;
+	if (!strcmp("mediaStopTime", name)) return 3;
+	if (!strcmp("isBuffered", name)) return 4;
+	if (!strcmp("enabled", name)) return 5;
+	return -1;
+	}
 static Bool MediaBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15519,6 +16738,20 @@ static GF_Err MediaControl_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 MediaControl_get_field_index_by_name(char *name)
+{
+	if (!strcmp("url", name)) return 0;
+	if (!strcmp("mediaStartTime", name)) return 1;
+	if (!strcmp("mediaStopTime", name)) return 2;
+	if (!strcmp("mediaSpeed", name)) return 3;
+	if (!strcmp("loop", name)) return 4;
+	if (!strcmp("preRoll", name)) return 5;
+	if (!strcmp("mute", name)) return 6;
+	if (!strcmp("enabled", name)) return 7;
+	if (!strcmp("isPreRolled", name)) return 8;
+	return -1;
+	}
 static Bool MediaControl_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15642,6 +16875,17 @@ static GF_Err MediaSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 MediaSensor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("url", name)) return 0;
+	if (!strcmp("mediaCurrentTime", name)) return 1;
+	if (!strcmp("streamObjectStartTime", name)) return 2;
+	if (!strcmp("mediaDuration", name)) return 3;
+	if (!strcmp("isActive", name)) return 4;
+	if (!strcmp("info", name)) return 5;
+	return -1;
+	}
 static Bool MediaSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15750,6 +16994,15 @@ static GF_Err CoordinateInterpolator4D_get_field(GF_Node *node, GF_FieldInfo *in
 	}
 }
 
+
+static s32 CoordinateInterpolator4D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	return -1;
+	}
 static Bool CoordinateInterpolator4D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15875,6 +17128,16 @@ static GF_Err NonLinearDeformer_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 NonLinearDeformer_get_field_index_by_name(char *name)
+{
+	if (!strcmp("axis", name)) return 0;
+	if (!strcmp("extend", name)) return 1;
+	if (!strcmp("geometry", name)) return 2;
+	if (!strcmp("param", name)) return 3;
+	if (!strcmp("type", name)) return 4;
+	return -1;
+	}
 static Bool NonLinearDeformer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -16044,6 +17307,24 @@ static GF_Err PositionAnimator_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PositionAnimator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("fromTo", name)) return 1;
+	if (!strcmp("key", name)) return 2;
+	if (!strcmp("keyOrientation", name)) return 3;
+	if (!strcmp("keyType", name)) return 4;
+	if (!strcmp("keySpline", name)) return 5;
+	if (!strcmp("keyValue", name)) return 6;
+	if (!strcmp("keyValueType", name)) return 7;
+	if (!strcmp("offset", name)) return 8;
+	if (!strcmp("weight", name)) return 9;
+	if (!strcmp("endValue", name)) return 10;
+	if (!strcmp("rotation_changed", name)) return 11;
+	if (!strcmp("value_changed", name)) return 12;
+	return -1;
+	}
 static Bool PositionAnimator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -16242,6 +17523,24 @@ static GF_Err PositionAnimator2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PositionAnimator2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("fromTo", name)) return 1;
+	if (!strcmp("key", name)) return 2;
+	if (!strcmp("keyOrientation", name)) return 3;
+	if (!strcmp("keyType", name)) return 4;
+	if (!strcmp("keySpline", name)) return 5;
+	if (!strcmp("keyValue", name)) return 6;
+	if (!strcmp("keyValueType", name)) return 7;
+	if (!strcmp("offset", name)) return 8;
+	if (!strcmp("weight", name)) return 9;
+	if (!strcmp("endValue", name)) return 10;
+	if (!strcmp("rotation_changed", name)) return 11;
+	if (!strcmp("value_changed", name)) return 12;
+	return -1;
+	}
 static Bool PositionAnimator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -16384,6 +17683,15 @@ static GF_Err PositionInterpolator4D_get_field(GF_Node *node, GF_FieldInfo *info
 	}
 }
 
+
+static s32 PositionInterpolator4D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("value_changed", name)) return 3;
+	return -1;
+	}
 static Bool PositionInterpolator4D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -16547,6 +17855,22 @@ static GF_Err ScalarAnimator_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ScalarAnimator_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_fraction", name)) return 0;
+	if (!strcmp("fromTo", name)) return 1;
+	if (!strcmp("key", name)) return 2;
+	if (!strcmp("keyType", name)) return 3;
+	if (!strcmp("keySpline", name)) return 4;
+	if (!strcmp("keyValue", name)) return 5;
+	if (!strcmp("keyValueType", name)) return 6;
+	if (!strcmp("offset", name)) return 7;
+	if (!strcmp("weight", name)) return 8;
+	if (!strcmp("endValue", name)) return 9;
+	if (!strcmp("value_changed", name)) return 10;
+	return -1;
+	}
 static Bool ScalarAnimator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -16706,6 +18030,18 @@ static GF_Err Clipper2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Clipper2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("geometry", name)) return 3;
+	if (!strcmp("inside", name)) return 4;
+	if (!strcmp("transform", name)) return 5;
+	if (!strcmp("XOR", name)) return 6;
+	return -1;
+	}
 static Bool Clipper2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -16936,6 +18272,34 @@ static GF_Err ColorTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 ColorTransform_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("mrr", name)) return 3;
+	if (!strcmp("mrg", name)) return 4;
+	if (!strcmp("mrb", name)) return 5;
+	if (!strcmp("mra", name)) return 6;
+	if (!strcmp("tr", name)) return 7;
+	if (!strcmp("mgr", name)) return 8;
+	if (!strcmp("mgg", name)) return 9;
+	if (!strcmp("mgb", name)) return 10;
+	if (!strcmp("mga", name)) return 11;
+	if (!strcmp("tg", name)) return 12;
+	if (!strcmp("mbr", name)) return 13;
+	if (!strcmp("mbg", name)) return 14;
+	if (!strcmp("mbb", name)) return 15;
+	if (!strcmp("mba", name)) return 16;
+	if (!strcmp("tb", name)) return 17;
+	if (!strcmp("mar", name)) return 18;
+	if (!strcmp("mag", name)) return 19;
+	if (!strcmp("mab", name)) return 20;
+	if (!strcmp("maa", name)) return 21;
+	if (!strcmp("ta", name)) return 22;
+	return -1;
+	}
 static Bool ColorTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -17167,6 +18531,12 @@ static GF_Err Ellipse_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Ellipse_get_field_index_by_name(char *name)
+{
+	if (!strcmp("radius", name)) return 0;
+	return -1;
+	}
 static Bool Ellipse_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -17306,6 +18676,18 @@ static GF_Err LinearGradient_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 LinearGradient_get_field_index_by_name(char *name)
+{
+	if (!strcmp("endPoint", name)) return 0;
+	if (!strcmp("key", name)) return 1;
+	if (!strcmp("keyValue", name)) return 2;
+	if (!strcmp("opacity", name)) return 3;
+	if (!strcmp("spreadMethod", name)) return 4;
+	if (!strcmp("startPoint", name)) return 5;
+	if (!strcmp("transform", name)) return 6;
+	return -1;
+	}
 static Bool LinearGradient_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -17504,6 +18886,21 @@ static GF_Err PathLayout_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 PathLayout_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("geometry", name)) return 3;
+	if (!strcmp("alignment", name)) return 4;
+	if (!strcmp("pathOffset", name)) return 5;
+	if (!strcmp("spacing", name)) return 6;
+	if (!strcmp("reverseLayout", name)) return 7;
+	if (!strcmp("wrapMode", name)) return 8;
+	if (!strcmp("splitText", name)) return 9;
+	return -1;
+	}
 static Bool PathLayout_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -17675,6 +19072,19 @@ static GF_Err RadialGradient_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 RadialGradient_get_field_index_by_name(char *name)
+{
+	if (!strcmp("center", name)) return 0;
+	if (!strcmp("focalPoint", name)) return 1;
+	if (!strcmp("key", name)) return 2;
+	if (!strcmp("keyValue", name)) return 3;
+	if (!strcmp("opacity", name)) return 4;
+	if (!strcmp("radius", name)) return 5;
+	if (!strcmp("spreadMethod", name)) return 6;
+	if (!strcmp("transform", name)) return 7;
+	return -1;
+	}
 static Bool RadialGradient_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -17871,6 +19281,20 @@ static GF_Err TransformMatrix2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 TransformMatrix2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("mxx", name)) return 3;
+	if (!strcmp("mxy", name)) return 4;
+	if (!strcmp("tx", name)) return 5;
+	if (!strcmp("myx", name)) return 6;
+	if (!strcmp("myy", name)) return 7;
+	if (!strcmp("ty", name)) return 8;
+	return -1;
+	}
 static Bool TransformMatrix2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -18055,6 +19479,20 @@ static GF_Err Viewport_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 Viewport_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_bind", name)) return 0;
+	if (!strcmp("position", name)) return 1;
+	if (!strcmp("size", name)) return 2;
+	if (!strcmp("orientation", name)) return 3;
+	if (!strcmp("alignment", name)) return 4;
+	if (!strcmp("fit", name)) return 5;
+	if (!strcmp("description", name)) return 6;
+	if (!strcmp("bindTime", name)) return 7;
+	if (!strcmp("isBound", name)) return 8;
+	return -1;
+	}
 static Bool Viewport_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -18201,6 +19639,14 @@ static GF_Err XCurve2D_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 XCurve2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("point", name)) return 0;
+	if (!strcmp("fineness", name)) return 1;
+	if (!strcmp("type", name)) return 2;
+	return -1;
+	}
 static Bool XCurve2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -18406,6 +19852,28 @@ static GF_Err XFontStyle_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 XFontStyle_get_field_index_by_name(char *name)
+{
+	if (!strcmp("fontName", name)) return 0;
+	if (!strcmp("horizontal", name)) return 1;
+	if (!strcmp("justify", name)) return 2;
+	if (!strcmp("language", name)) return 3;
+	if (!strcmp("leftToRight", name)) return 4;
+	if (!strcmp("size", name)) return 5;
+	if (!strcmp("stretch", name)) return 6;
+	if (!strcmp("letterSpacing", name)) return 7;
+	if (!strcmp("wordSpacing", name)) return 8;
+	if (!strcmp("weight", name)) return 9;
+	if (!strcmp("fontKerning", name)) return 10;
+	if (!strcmp("style", name)) return 11;
+	if (!strcmp("topToBottom", name)) return 12;
+	if (!strcmp("featureName", name)) return 13;
+	if (!strcmp("featureStartOffset", name)) return 14;
+	if (!strcmp("featureLength", name)) return 15;
+	if (!strcmp("featureValue", name)) return 16;
+	return -1;
+	}
 static Bool XFontStyle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -18611,6 +20079,24 @@ static GF_Err XLineProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+
+static s32 XLineProperties_get_field_index_by_name(char *name)
+{
+	if (!strcmp("lineColor", name)) return 0;
+	if (!strcmp("lineStyle", name)) return 1;
+	if (!strcmp("isCenterAligned", name)) return 2;
+	if (!strcmp("isScalable", name)) return 3;
+	if (!strcmp("lineCap", name)) return 4;
+	if (!strcmp("lineJoin", name)) return 5;
+	if (!strcmp("miterLimit", name)) return 6;
+	if (!strcmp("transparency", name)) return 7;
+	if (!strcmp("width", name)) return 8;
+	if (!strcmp("dashOffset", name)) return 9;
+	if (!strcmp("dashes", name)) return 10;
+	if (!strcmp("texture", name)) return 11;
+	if (!strcmp("textureTransform", name)) return 12;
+	return -1;
+	}
 static Bool XLineProperties_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -19740,6 +21226,7 @@ GF_Err gf_sg_mpeg4_node_get_field(GF_Node *node, GF_FieldInfo *field)
 
 
 #endif
+
 GF_Err gf_sg_mpeg4_node_get_field_index(GF_Node *node, u32 inField, u8 code_mode, u32 *fieldIndex)
 {
 	switch (node->sgprivate->tag) {
@@ -20165,5 +21652,136 @@ u32 gf_node_mpeg4_type_by_class_name(const char *node_name)
 	if (!strcmp(node_name, "XFontStyle")) return TAG_MPEG4_XFontStyle;
 	if (!strcmp(node_name, "XLineProperties")) return TAG_MPEG4_XLineProperties;
 	return 0;
+}
+
+s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name)
+{
+	switch (node->sgprivate->tag) {
+	case TAG_MPEG4_Anchor: return Anchor_get_field_index_by_name(name);
+	case TAG_MPEG4_AnimationStream: return AnimationStream_get_field_index_by_name(name);
+	case TAG_MPEG4_Appearance: return Appearance_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioBuffer: return AudioBuffer_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioClip: return AudioClip_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioDelay: return AudioDelay_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioFX: return AudioFX_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioMix: return AudioMix_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioSource: return AudioSource_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioSwitch: return AudioSwitch_get_field_index_by_name(name);
+	case TAG_MPEG4_Background: return Background_get_field_index_by_name(name);
+	case TAG_MPEG4_Background2D: return Background2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Billboard: return Billboard_get_field_index_by_name(name);
+	case TAG_MPEG4_Bitmap: return Bitmap_get_field_index_by_name(name);
+	case TAG_MPEG4_Box: return Box_get_field_index_by_name(name);
+	case TAG_MPEG4_Circle: return Circle_get_field_index_by_name(name);
+	case TAG_MPEG4_Collision: return Collision_get_field_index_by_name(name);
+	case TAG_MPEG4_Color: return Color_get_field_index_by_name(name);
+	case TAG_MPEG4_ColorInterpolator: return ColorInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_CompositeTexture2D: return CompositeTexture2D_get_field_index_by_name(name);
+	case TAG_MPEG4_CompositeTexture3D: return CompositeTexture3D_get_field_index_by_name(name);
+	case TAG_MPEG4_Conditional: return Conditional_get_field_index_by_name(name);
+	case TAG_MPEG4_Cone: return Cone_get_field_index_by_name(name);
+	case TAG_MPEG4_Coordinate: return Coordinate_get_field_index_by_name(name);
+	case TAG_MPEG4_Coordinate2D: return Coordinate2D_get_field_index_by_name(name);
+	case TAG_MPEG4_CoordinateInterpolator: return CoordinateInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_CoordinateInterpolator2D: return CoordinateInterpolator2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Curve2D: return Curve2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Cylinder: return Cylinder_get_field_index_by_name(name);
+	case TAG_MPEG4_CylinderSensor: return CylinderSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_DirectionalLight: return DirectionalLight_get_field_index_by_name(name);
+	case TAG_MPEG4_DiscSensor: return DiscSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_ElevationGrid: return ElevationGrid_get_field_index_by_name(name);
+	case TAG_MPEG4_Extrusion: return Extrusion_get_field_index_by_name(name);
+	case TAG_MPEG4_Fog: return Fog_get_field_index_by_name(name);
+	case TAG_MPEG4_FontStyle: return FontStyle_get_field_index_by_name(name);
+	case TAG_MPEG4_Form: return Form_get_field_index_by_name(name);
+	case TAG_MPEG4_Group: return Group_get_field_index_by_name(name);
+	case TAG_MPEG4_ImageTexture: return ImageTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_IndexedFaceSet: return IndexedFaceSet_get_field_index_by_name(name);
+	case TAG_MPEG4_IndexedFaceSet2D: return IndexedFaceSet2D_get_field_index_by_name(name);
+	case TAG_MPEG4_IndexedLineSet: return IndexedLineSet_get_field_index_by_name(name);
+	case TAG_MPEG4_IndexedLineSet2D: return IndexedLineSet2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Inline: return Inline_get_field_index_by_name(name);
+	case TAG_MPEG4_LOD: return LOD_get_field_index_by_name(name);
+	case TAG_MPEG4_Layer2D: return Layer2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Layer3D: return Layer3D_get_field_index_by_name(name);
+	case TAG_MPEG4_Layout: return Layout_get_field_index_by_name(name);
+	case TAG_MPEG4_LineProperties: return LineProperties_get_field_index_by_name(name);
+	case TAG_MPEG4_ListeningPoint: return ListeningPoint_get_field_index_by_name(name);
+	case TAG_MPEG4_Material: return Material_get_field_index_by_name(name);
+	case TAG_MPEG4_Material2D: return Material2D_get_field_index_by_name(name);
+	case TAG_MPEG4_MovieTexture: return MovieTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_NavigationInfo: return NavigationInfo_get_field_index_by_name(name);
+	case TAG_MPEG4_Normal: return Normal_get_field_index_by_name(name);
+	case TAG_MPEG4_NormalInterpolator: return NormalInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_OrderedGroup: return OrderedGroup_get_field_index_by_name(name);
+	case TAG_MPEG4_OrientationInterpolator: return OrientationInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_PixelTexture: return PixelTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_PlaneSensor: return PlaneSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_PlaneSensor2D: return PlaneSensor2D_get_field_index_by_name(name);
+	case TAG_MPEG4_PointLight: return PointLight_get_field_index_by_name(name);
+	case TAG_MPEG4_PointSet: return PointSet_get_field_index_by_name(name);
+	case TAG_MPEG4_PointSet2D: return PointSet2D_get_field_index_by_name(name);
+	case TAG_MPEG4_PositionInterpolator: return PositionInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_PositionInterpolator2D: return PositionInterpolator2D_get_field_index_by_name(name);
+	case TAG_MPEG4_ProximitySensor2D: return ProximitySensor2D_get_field_index_by_name(name);
+	case TAG_MPEG4_ProximitySensor: return ProximitySensor_get_field_index_by_name(name);
+	case TAG_MPEG4_QuantizationParameter: return QuantizationParameter_get_field_index_by_name(name);
+	case TAG_MPEG4_Rectangle: return Rectangle_get_field_index_by_name(name);
+	case TAG_MPEG4_ScalarInterpolator: return ScalarInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_Script: return Script_get_field_index_by_name(name);
+	case TAG_MPEG4_Shape: return Shape_get_field_index_by_name(name);
+	case TAG_MPEG4_Sound: return Sound_get_field_index_by_name(name);
+	case TAG_MPEG4_Sound2D: return Sound2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Sphere: return Sphere_get_field_index_by_name(name);
+	case TAG_MPEG4_SphereSensor: return SphereSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_SpotLight: return SpotLight_get_field_index_by_name(name);
+	case TAG_MPEG4_Switch: return Switch_get_field_index_by_name(name);
+	case TAG_MPEG4_TermCap: return TermCap_get_field_index_by_name(name);
+	case TAG_MPEG4_Text: return Text_get_field_index_by_name(name);
+	case TAG_MPEG4_TextureCoordinate: return TextureCoordinate_get_field_index_by_name(name);
+	case TAG_MPEG4_TextureTransform: return TextureTransform_get_field_index_by_name(name);
+	case TAG_MPEG4_TimeSensor: return TimeSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_TouchSensor: return TouchSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_Transform: return Transform_get_field_index_by_name(name);
+	case TAG_MPEG4_Transform2D: return Transform2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Valuator: return Valuator_get_field_index_by_name(name);
+	case TAG_MPEG4_Viewpoint: return Viewpoint_get_field_index_by_name(name);
+	case TAG_MPEG4_VisibilitySensor: return VisibilitySensor_get_field_index_by_name(name);
+	case TAG_MPEG4_WorldInfo: return WorldInfo_get_field_index_by_name(name);
+	case TAG_MPEG4_AcousticMaterial: return AcousticMaterial_get_field_index_by_name(name);
+	case TAG_MPEG4_AcousticScene: return AcousticScene_get_field_index_by_name(name);
+	case TAG_MPEG4_ApplicationWindow: return ApplicationWindow_get_field_index_by_name(name);
+	case TAG_MPEG4_DirectiveSound: return DirectiveSound_get_field_index_by_name(name);
+	case TAG_MPEG4_Hierarchical3DMesh: return Hierarchical3DMesh_get_field_index_by_name(name);
+	case TAG_MPEG4_MaterialKey: return MaterialKey_get_field_index_by_name(name);
+	case TAG_MPEG4_PerceptualParameters: return PerceptualParameters_get_field_index_by_name(name);
+	case TAG_MPEG4_TemporalTransform: return TemporalTransform_get_field_index_by_name(name);
+	case TAG_MPEG4_TemporalGroup: return TemporalGroup_get_field_index_by_name(name);
+	case TAG_MPEG4_ServerCommand: return ServerCommand_get_field_index_by_name(name);
+	case TAG_MPEG4_InputSensor: return InputSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_MatteTexture: return MatteTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_MediaBuffer: return MediaBuffer_get_field_index_by_name(name);
+	case TAG_MPEG4_MediaControl: return MediaControl_get_field_index_by_name(name);
+	case TAG_MPEG4_MediaSensor: return MediaSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_CoordinateInterpolator4D: return CoordinateInterpolator4D_get_field_index_by_name(name);
+	case TAG_MPEG4_NonLinearDeformer: return NonLinearDeformer_get_field_index_by_name(name);
+	case TAG_MPEG4_PositionAnimator: return PositionAnimator_get_field_index_by_name(name);
+	case TAG_MPEG4_PositionAnimator2D: return PositionAnimator2D_get_field_index_by_name(name);
+	case TAG_MPEG4_PositionInterpolator4D: return PositionInterpolator4D_get_field_index_by_name(name);
+	case TAG_MPEG4_ScalarAnimator: return ScalarAnimator_get_field_index_by_name(name);
+	case TAG_MPEG4_Clipper2D: return Clipper2D_get_field_index_by_name(name);
+	case TAG_MPEG4_ColorTransform: return ColorTransform_get_field_index_by_name(name);
+	case TAG_MPEG4_Ellipse: return Ellipse_get_field_index_by_name(name);
+	case TAG_MPEG4_LinearGradient: return LinearGradient_get_field_index_by_name(name);
+	case TAG_MPEG4_PathLayout: return PathLayout_get_field_index_by_name(name);
+	case TAG_MPEG4_RadialGradient: return RadialGradient_get_field_index_by_name(name);
+	case TAG_MPEG4_TransformMatrix2D: return TransformMatrix2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Viewport: return Viewport_get_field_index_by_name(name);
+	case TAG_MPEG4_XCurve2D: return XCurve2D_get_field_index_by_name(name);
+	case TAG_MPEG4_XFontStyle: return XFontStyle_get_field_index_by_name(name);
+	case TAG_MPEG4_XLineProperties: return XLineProperties_get_field_index_by_name(name);
+	default:
+		return -1;
+	}
 }
 

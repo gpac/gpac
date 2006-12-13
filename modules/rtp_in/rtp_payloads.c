@@ -293,10 +293,16 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (ch->rtptype == GP_RTP_PAYT_AMR) {
 				gf_bs_write_u32(bs, GF_4CC('s', 'a', 'm', 'r'));
+				gf_bs_write_u16(bs, 8000);
+				gf_bs_write_u16(bs, 160);
 			} else {
 				gf_bs_write_u32(bs, GF_4CC('s', 'a', 'w', 'b'));
+				gf_bs_write_u16(bs, 16000);
+				gf_bs_write_u16(bs, 320);
 			}
-			gf_bs_write_int(bs, 0, 5*8);
+			gf_bs_write_u8(bs, 1);
+			gf_bs_write_u8(bs, 16);
+			gf_bs_write_u8(bs, 1);
 			gf_bs_get_content(bs, &ch->sl_map.config, &ch->sl_map.configSize);
 			gf_bs_del(bs);
 		}

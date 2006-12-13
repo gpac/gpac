@@ -171,7 +171,7 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 	DDCONTEXT
 	dd->os_hwnd = (HWND) os_handle;
 	
-	if (init_flags & GF_TERM_NOT_THREADED) dd->systems_memory = 2;
+	if (init_flags & (GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION) ) dd->systems_memory = 2;
 	DD_SetupWindow(dr, init_flags);
 	/*fatal error*/
 	if (!dd->os_hwnd) return GF_IO_ERR;
@@ -425,14 +425,14 @@ static void DeleteVideoOutput(void *ifce)
 Bool QueryInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return 1;
-	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return 1;
+	//if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return 1;
 	return 0;
 }
 /*interface create*/
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return NewDXVideoOutput();
-	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return NewAudioOutput();
+	//if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return NewAudioOutput();
 	return NULL;
 }
 /*interface destroy*/
@@ -443,7 +443,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		DeleteVideoOutput((GF_VideoOutput *)ifce);
 		break;
 	case GF_AUDIO_OUTPUT_INTERFACE:
-		DeleteAudioOutput(ifce);
+		//DeleteAudioOutput(ifce);
 		break;
 	}
 }

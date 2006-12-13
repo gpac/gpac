@@ -151,8 +151,8 @@ GF_Err gf_modules_close_interface(GF_BaseInterface *ifce)
 	if (i<0) return GF_BAD_PARAM;
 	gf_list_rem(par->interfaces, (u32) i);
 	par->destroy_func(ifce);
-
 	gf_modules_unload_library(par);
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] interface %s unloaded\n", ifce->module_name));
 	return GF_OK;
 }
 

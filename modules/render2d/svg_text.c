@@ -42,6 +42,7 @@ typedef struct
 
 static void SVG_Render_text(GF_Node *node, void *rs)
 {
+	SVGPropertiesPointers backup_props;
 	GF_Matrix2D backup_matrix;
 	DrawableContext *ctx;
 	SVG_TextStack *st = (SVG_TextStack *)gf_node_get_private(node);
@@ -50,7 +51,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	SVGtextElement *text = (SVGtextElement *)node;
 	GF_FontRaster *ft_dr = eff->surface->render->compositor->font_engine;
   
-	SVGPropertiesPointers backup_props;
+	if (!ft_dr) return;
 
 	SVG_Render_base(node, eff, &backup_props);
 

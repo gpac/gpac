@@ -546,7 +546,6 @@ static void SVG_Render_rect(GF_Node *node, void *rs)
 		Fixed width = rect->width.value;
 		Fixed height = rect->height.value;
 
-		//fprintf(stdout, "Rebuilding rect %8x\n",rect);
 		drawable_reset_path(cs);
 		if (rx || ry) {
 			if (rx >= width/2) rx = width/2;
@@ -735,7 +734,6 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		
-		//fprintf(stdout, "Rebuilding path %8x\n", path);	
 		drawable_reset_path(cs);
 		if (*(eff->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 		gf_svg_path_build(cs->path, path->d.commands, path->d.points);

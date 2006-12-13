@@ -27,7 +27,7 @@
 #include <gpac/modules/codec.h>
 #include <gpac/constants.h>
 
-#ifdef _WIN32_WCE
+#if defined(_WIN32_WCE) || defined(__SYMBIAN32__)
 #ifndef FPM_DEFAULT 
 #define FPM_DEFAULT 
 #endif
@@ -245,6 +245,7 @@ static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
 		ctx->num_samples = ctx->synth.pcm.length;
 		ctx->out_size = 2 * ctx->num_samples * ctx->num_channels;
 		*outBufferLength = ctx->out_size;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[MAD] decoder initialized - MP3 sample rate %d - %d channel(s)", ctx->sample_rate, ctx->num_channels));
 		return GF_BUFFER_TOO_SMALL;
 	}
 	

@@ -605,6 +605,7 @@ u32 get_pix_rgba(char *pix) { return GF_COL_ARGB(*(pix+3) & 0xFF, *pix & 0xFF, *
 u32 get_pix_rgb_32(char *pix) { return ((*(u32 *) pix) | 0xFF000000); }
 u32 get_pix_rgb_24(char *pix) { return GF_COL_ARGB(0xFF, *pix & 0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF); }
 u32 get_pix_bgr_24(char *pix) { return GF_COL_ARGB(0xFF, *(pix+2) & 0xFF, * (pix+1) & 0xFF, *pix & 0xFF); }
+u32 get_pix_444(char *pix) { u16 val = *(u16*)pix; return GF_COL_ARGB(0xFF,  (u8) ( (val >> 4) & 0xf0), (u8) ( (val) & 0xf0),  (u8) ( (val << 4) & 0xf0)	); }
 u32 get_pix_555(char *pix) { u16 val = *(u16*)pix; return GF_COL_ARGB(0xFF, (u8) ( (val >> 7) & 0xf8), (u8) ( (val >> 2) & 0xf8), (u8) ( (val << 3) & 0xf8) ); }
 u32 get_pix_565(char *pix) { u16 val = *(u16*)pix; return GF_COL_ARGB(0xFF,  (u8) ( (val >> 8) & 0xf8), (u8) ( (val >> 3) & 0xfc),  (u8) ( (val << 3) & 0xf8)	); }
 u32 get_pix_grey(char *pix) { u8 val = *pix; return GF_COL_ARGB(0xFF, val, val, val); }
@@ -627,6 +628,9 @@ static void gf_sr_texture_set_callback(EVG_Texture *_this)
 		return;
 	case GF_PIXEL_BGR_24:
 		_this->tx_get_pixel = get_pix_bgr_24;
+		return;
+	case GF_PIXEL_RGB_444:
+		_this->tx_get_pixel = get_pix_444;
 		return;
 	case GF_PIXEL_RGB_555:
 		_this->tx_get_pixel = get_pix_555;
@@ -664,6 +668,7 @@ GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 heigh
 		break;
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:
+	case GF_PIXEL_RGB_444:
 	case GF_PIXEL_ALPHAGREY:
 		_this->Bpp = 2;
 		break;
@@ -800,6 +805,7 @@ GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_Pixel
 		break;
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:
+	case GF_PIXEL_RGB_444:
 	case GF_PIXEL_ALPHAGREY:
 		_this->Bpp = 2;
 		break;

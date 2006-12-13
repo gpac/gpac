@@ -201,7 +201,7 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 			item_url = ((GF_DataEntryURNBox*)a)->location;
 			item_urn = ((GF_DataEntryURNBox*)a)->nameURN;
 		}
-		fprintf(stdout, "Item already outside the ISO file at URL: %s, URN: %s\n", (item_url?item_url:"N/A"), (item_urn?item_urn:"N/A"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Item already outside the ISO file at URL: %s, URN: %s\n", (item_url?item_url:"N/A"), (item_urn?item_urn:"N/A") ));
 		return GF_OK;
 	}
 

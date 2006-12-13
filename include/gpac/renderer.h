@@ -73,8 +73,8 @@ void gf_sr_lock(GF_Renderer *sr, Bool doLock);
 /*locks/unlocks the audio scene rendering - this is needed whenever an audio object changes config on the fly*/
 void gf_sr_lock_audio(GF_Renderer *sr, Bool doLock);
 
-/*notify user input - only GF_EventMouse and GF_EventKey are checked, depending on the renderer used...*/
-void gf_sr_user_event(GF_Renderer *sr, GF_Event *event);
+/*notify user input - returns 0 if event hasn't been handled by the renderer*/
+Bool gf_sr_user_event(GF_Renderer *sr, GF_Event *event);
 
 /*maps screen coordinates to bifs 2D coordinates for the current zoom/pan settings
 X and Y are point coordinates in the display expressed in BIFS-like fashion (0,0) at center of 

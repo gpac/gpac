@@ -52,6 +52,7 @@ void releaseDanaeMediaObject(void *dmo);
 void loadDanaeUrl(void *session, char *url);
 #endif
 
+#define GF_SR_EVENT_QUEUE	
 
 /*FPS computed on this number of frame*/
 #define GF_SR_FPS_COMPUTE_SIZE	30
@@ -102,9 +103,11 @@ struct __tag_base_renderer
 	/*all textures (texture handlers)*/
 	GF_List *textures;
 
+#ifdef GF_SR_EVENT_QUEUE
 	/*event queue*/
 	GF_List *events;
 	GF_Mutex *ev_mx;
+#endif
 
 	/*simulation frame rate*/
 	Double frame_rate;
@@ -275,15 +278,6 @@ void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync);
 void gf_sr_texture_release_stream(GF_TextureHandler *txh);
 
 
-/*user interaction event storage - only mouse and keys are send to modules*/
-typedef struct
-{
-	u32 event_type;
-	GF_EventMouse mouse;
-	GF_EventKey key;
-	GF_EventChar character;
-} GF_UserEvent;
-
 /*
 		Renderer Module: this is a very basic interface allowing both 2D and 3D renderers
 		to be loaded at run-time
@@ -326,7 +320,7 @@ struct visual_render_module
 	for mouse events, x and y are in BIFS fashion (eg, from x in [-screen_width, screen_width] and y in [-screen_height, screen_height]) 
 	return 1 if event matches a pick in the scene, 0 otherwise (this avoids performing shortcuts when user
 	clicks on object...*/
-	Bool (*ExecuteEvent)(GF_VisualRenderer *vr, GF_UserEvent *event);
+	Bool (*ExecuteEvent)(GF_VisualRenderer *vr, GF_Event *event);
 	/*signals the hw driver has been reseted to reload cfg*/	
 	void (*GraphicsReset)(GF_VisualRenderer *vr);
 	/*render inline scene*/

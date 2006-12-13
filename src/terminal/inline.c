@@ -101,7 +101,7 @@ void gf_is_del(GF_InlineScene *is)
 		/*make sure the scene codec doesn't have anything left in the scene graph*/
 		if (dec->ReleaseScene) dec->ReleaseScene(dec);
 
-		gf_mm_remove_codec(is->root_od->term->mediaman, is->scene_codec);
+		gf_term_remove_codec(is->root_od->term, is->scene_codec);
 		gf_codec_del(is->scene_codec);
 		/*reset pointer to NULL in case nodes try to access scene time*/
 		is->scene_codec = NULL;
@@ -111,7 +111,7 @@ void gf_is_del(GF_InlineScene *is)
 	gf_sg_del(is->graph);
 
 	if (is->od_codec) {
-		gf_mm_remove_codec(is->root_od->term->mediaman, is->od_codec);
+		gf_term_remove_codec(is->root_od->term, is->od_codec);
 		gf_codec_del(is->od_codec);
 		is->od_codec = NULL;
 	}
@@ -453,8 +453,12 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
 	char szURL1[GF_MAX_PATH], szURL2[GF_MAX_PATH], *ext;
 
 	if (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID) {
-		assert(obj->odm);
-		strcpy(szURL1, obj->odm->net_service->url);
+		if (!obj->URLs.count) {
+			if (!obj->odm) return 0;
+			strcpy(szURL1, obj->odm->net_service->url);
+		} else {
+			strcpy(szURL1, obj->URLs.vals[0].url);
+		}
 	} else {
 		if (!obj->URLs.count) return 0;
 		strcpy(szURL1, obj->URLs.vals[0].url);
@@ -1065,6 +1069,8 @@ void gf_is_regenerate(GF_InlineScene *is)
 
 	if (!is->is_dynamic_scene) return;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inline] Regenerating scene graph for service %s\n", is->root_od->net_service->url));
+
 	if (is->root_od->term->root_scene == is) 
 		gf_sr_set_scene(is->root_od->term->renderer, NULL);
 
@@ -1334,7 +1340,7 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 	GF_List *to_restart;
 	GF_ObjectManager *odm;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[InlineScene] Restarting from "LLD"\n", from_time));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[InlineScene] Restarting from "LLD"\n", LLD_CAST from_time));
 	to_restart = gf_list_new();
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(is->ODlist, &i))) {

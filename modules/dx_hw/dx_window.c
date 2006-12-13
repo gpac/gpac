@@ -49,6 +49,7 @@ static void DD_GetCoordinates(DWORD lParam, GF_Event *evt)
 
 static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
 {
+	evt->flags = 0;
 	evt->hw_code = wParam;
 	switch (wParam) {
 	case VK_BACK: evt->key_code = GF_KEY_BACKSPACE; break;

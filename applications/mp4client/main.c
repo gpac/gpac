@@ -51,6 +51,7 @@ Bool has_input();
 u8 get_a_char();
 void set_echo_off(Bool echo_off);
 
+static Bool not_threaded = 0;
 Bool is_connected = 0;
 Bool startup_file = 0;
 GF_User user;
@@ -113,6 +114,7 @@ void PrintUsage()
 		"\t        \"all\"        : all tools logged\n"
 		"\n"
 		"\t-size WxH:      specifies visual size (default: scene size)\n"
+		"\t-no-thread:     disables thread usage (except for audio)\n"
 		"\t-no-wnd:        uses windowless mode (Win32 only)\n"
 		"\t-align vh:      specifies v and h alignment for windowless mode\n"
 		"                   possible v values: t(op), m(iddle), b(ottom)\n"
@@ -476,29 +478,24 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 
 		if (!(evt->key.flags & GF_KEY_MOD_CTRL)) return 0;
 		switch (evt->key.key_code) {
-		case 'F':
-		case 'f':
+		case GF_KEY_F:
 			fprintf(stdout, "Rendering rate: %f FPS\n", gf_term_get_framerate(term, 0));
 			break;
-		case 'T':
-		case 't':
+		case GF_KEY_T:
 			fprintf(stdout, "Scene Time: %f \n", gf_term_get_time_in_ms(term)/1000.0);
 			break;
-		case 'R':
-		case 'r':
+		case GF_KEY_R:
 //			gf_term_set_option(term, GF_OPT_REFRESH, 1);
 			gf_term_set_option(term, GF_OPT_DIRECT_RENDER, !gf_term_get_option(term, GF_OPT_DIRECT_RENDER) );
 			break;
-		case '4': gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3); break;
-		case '5': gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9); break;
-		case '6': gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN); break;
-		case '7': gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP); break;
-		case 'p':
-		case 'P':
+		case GF_KEY_4: gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3); break;
+		case GF_KEY_5: gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9); break;
+		case GF_KEY_6: gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN); break;
+		case GF_KEY_7: gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP); break;
+		case GF_KEY_P:
 			gf_term_set_option(term, GF_OPT_PLAY_STATE, (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) ? GF_STATE_PLAYING : GF_STATE_PAUSED);
 			break;
-		case 's':
-		case 'S':
+		case GF_KEY_S:
 			gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 			break;
 		}
@@ -529,6 +526,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			gf_term_user_event(term, &move);
 		}
 		break;
+
 
 	case GF_EVENT_QUIT:
 		Run = 0;
@@ -794,6 +792,7 @@ int main (int argc, char **argv)
 {
 	const char *str;
 	u32 i, width, height, times[100], nb_times, rend_mode, dump_mode;
+	Bool start_fs = 0;
 	Double fps = 25.0;
 	Bool ret, fill_ar, visible;
 	char *url_arg, *the_cfg, *rti_file;
@@ -866,6 +865,8 @@ int main (int argc, char **argv)
 			i++;
 		}
 		else if (!strcmp(arg, "-no-wnd")) user.init_flags |= GF_TERM_WINDOWLESS;
+		else if (!strcmp(arg, "-no-thread")) not_threaded = 1;
+		else if (!strcmp(arg, "-fs")) start_fs = 1;
 		else {
 			PrintUsage();
 			return 1;
@@ -895,7 +896,7 @@ int main (int argc, char **argv)
 	if (dump_mode) {
 		if (rend_mode==2) user.init_flags |= GF_TERM_FORCE_3D;
 		else if (rend_mode==1) user.init_flags |= GF_TERM_FORCE_2D;
-		user.init_flags |= GF_TERM_NOT_THREADED /*| GF_TERM_INIT_HIDE*/;
+		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
 		if (!visible) user.init_flags |= GF_TERM_INIT_HIDE;
 	} else {
 		init_w = width;
@@ -921,6 +922,7 @@ int main (int argc, char **argv)
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = user.modules;
+	if (not_threaded) user.init_flags |= GF_TERM_NO_VISUAL_THREAD;
 
 	fprintf(stdout, "Loading GPAC Terminal ... ");	
 	term = gf_term_new(&user);
@@ -1011,6 +1013,7 @@ int main (int argc, char **argv)
 		}
 	}
 
+	if (start_fs) gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
 
 	while (Run) {
 		char c;
@@ -1018,7 +1021,11 @@ int main (int argc, char **argv)
 		/*we don't want getchar to block*/
 		if (!has_input()) {
 //			UpdateRTInfo("");
-			gf_sleep(RTI_UPDATE_TIME_MS);
+			if (not_threaded) {
+				gf_term_process_step(term);
+			} else {
+				gf_sleep(RTI_UPDATE_TIME_MS);
+			}
 			continue;
 		}
 		c = get_a_char();

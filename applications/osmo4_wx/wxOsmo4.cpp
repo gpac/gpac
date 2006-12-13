@@ -1601,16 +1601,13 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 	case GF_EVENT_KEYDOWN:
 		if (!(event.gpac_evt.key.flags & GF_KEY_MOD_CTRL)) return;
 		switch (event.gpac_evt.key.key_code) {
-		case 'R':
-		case 'r':
+		case GF_KEY_R:
 			gf_term_set_option(m_term, GF_OPT_REFRESH, 1);
 			break;
-		case 'P':
-		case 'p':
+		case GF_KEY_P:
 			OnFilePlay(evt);
 			break;
-		case 's':
-		case 'S':
+		case GF_KEY_S:
 			OnFileStep(evt);
 			break;
 		}

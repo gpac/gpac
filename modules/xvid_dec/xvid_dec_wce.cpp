@@ -29,10 +29,6 @@
 
 #include "xvid_wce/xvid.h"
 
-
-/*beerk*/
-static Bool xvid_is_init = 0;
-
 typedef struct
 {
 	void *codec;
@@ -264,18 +260,25 @@ void DeleteXVIDDec(GF_BaseDecoder *ifcg)
 }
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
 	return 0;
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *) NewXVIDDec();
 	return NULL;
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
@@ -284,3 +287,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+#ifdef __cplusplus
+}
+#endif

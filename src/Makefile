@@ -71,7 +71,7 @@ OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_MCRYPT) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGP
 ## libgpac global compilation and linking options
 #1- zlib support
 ifeq ($(CONFIG_ZLIB), local)
-CFLAGS+= -I../extra_lib/include/zlib
+CFLAGS+= -I$(LOCAL_INC_PATH)/zlib
 EXTRALIBS+=-L../extra_lib/lib/gcc
 endif
 EXTRALIBS+=-lz

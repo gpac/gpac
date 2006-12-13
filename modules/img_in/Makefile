@@ -30,13 +30,13 @@ CFLAGS+=-DGPAC_HAS_PNG
 #local png lib
 ifeq ($(CONFIG_PNG), local)
 NEED_LOCAL_LIB="yes"
-CFLAGS+= -I../../extra_lib/include/png
+CFLAGS+= -I$(LOCAL_INC_PATH)/png
 endif
 endif
 
 ifeq ($(CONFIG_ZLIB),local)
 NEED_LOCAL_LIB="yes"
-CFLAGS+= -I../../extra_lib/include/zlib
+CFLAGS+= -I$(LOCAL_INC_PATH)/zlib
 endif
 
 #jpeg config
@@ -48,7 +48,7 @@ CFLAGS+=-DGPAC_HAS_JPEG
 #local png lib
 ifeq ($(CONFIG_JPEG), local)
 NEED_LOCAL_LIB="yes"
-CFLAGS+= -I../../extra_lib/include/jpeg
+CFLAGS+= -I$(LOCAL_INC_PATH)/jpeg
 endif
 endif
 

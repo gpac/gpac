@@ -331,6 +331,12 @@ void WriteNodeFields(FILE *f, X3DNode *n)
 	}
 	fprintf(f, "\tdefault:\n\t\treturn GF_BAD_PARAM;\n\t}\n}\n\n");
 
+	fprintf(f, "\nstatic s32 %s_get_field_index_by_name(char *name)\n{\n", n->name);
+	for (i=0;i<gf_list_count(n->Fields); i++) {
+		bf = gf_list_get(n->Fields, i);
+		fprintf(f, "\tif (!strcmp(\"%s\", name)) return %d;\n", bf->name, i);
+	}
+	fprintf(f, "\treturn -1;\n\t}\n");
 }
 
 void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
@@ -905,6 +911,15 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 		if (!n->skip_impl) fprintf(vrml_code, "\tif (!strcmp(node_name, \"%s\")) return TAG_X3D_%s;\n", n->name, n->name);
 	}
 	fprintf(vrml_code, "\treturn 0;\n}\n\n");
+
+	fprintf(vrml_code, "s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name)\n{\n\tswitch (node->sgprivate->tag) {\n");
+	for (i=0; i<gf_list_count(BNodes); i++) {
+		n = gf_list_get(BNodes, i);
+		if (!n->skip_impl) {
+			fprintf(vrml_code, "\tcase TAG_X3D_%s: return %s_get_field_index_by_name(name);\n", n->name, n->name);
+		}
+	}
+	fprintf(vrml_code, "\tdefault:\n\t\treturn -1;\n\t}\n}\n\n");
 
 }
 

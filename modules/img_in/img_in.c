@@ -139,7 +139,7 @@ void jp_download_file(GF_InputService *plug, char *url)
 static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	char *sExt;
-	IMGLoader *read = plug->priv;
+	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	read->service = serv;
 
@@ -170,7 +170,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 static GF_Err IMG_CloseService(GF_InputService *plug)
 {
-	IMGLoader *read = plug->priv;
+	IMGLoader *read = (IMGLoader *)plug->priv;
 	if (read->stream) fclose(read->stream);
 	read->stream = NULL;
 	if (read->dnload) gf_term_download_del(read->dnload);
@@ -182,7 +182,7 @@ static GF_Err IMG_CloseService(GF_InputService *plug)
 static GF_Descriptor *IMG_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
 	GF_ESD *esd;
-	IMGLoader *read = plug->priv;
+	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	/*override default*/
 	if (expect_type==GF_MEDIA_OBJECT_UNDEF) expect_type=GF_MEDIA_OBJECT_VIDEO;
@@ -204,7 +204,7 @@ static GF_Err IMG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 {
 	u32 ES_ID;
 	GF_Err e;
-	IMGLoader *read = plug->priv;
+	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	e = GF_SERVICE_ERROR;
 	if (read->ch==channel) goto exit;
@@ -229,7 +229,7 @@ exit:
 static GF_Err IMG_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	GF_Err e = GF_STREAM_NOT_FOUND;
-	IMGLoader *read = plug->priv;
+	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	if (read->ch == channel) {
 		read->ch = NULL;
@@ -241,7 +241,7 @@ static GF_Err IMG_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 static GF_Err IMG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
-	IMGLoader *read = plug->priv;
+	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 	switch (com->command_type) {
@@ -265,7 +265,7 @@ static GF_Err IMG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
-	IMGLoader *read = plug->priv;
+	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	*out_reception_status = GF_OK;
 	*sl_compressed = 0;
@@ -290,7 +290,7 @@ static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			}
 			*is_new_data = 1;
 			fseek(read->stream, 0, SEEK_SET);
-			read->data = malloc(sizeof(char) * (read->data_size + read->pad_bytes));
+			read->data = (char*) malloc(sizeof(char) * (read->data_size + read->pad_bytes));
 			fread(read->data, sizeof(char) * read->data_size, 1, read->stream);
 			fseek(read->stream, 0, SEEK_SET);
 			if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
@@ -305,7 +305,7 @@ static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 
 static GF_Err IMG_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	IMGLoader *read = plug->priv;
+	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	if (read->ch == channel) {
 		if (!read->data) return GF_BAD_PARAM;
@@ -321,8 +321,8 @@ static GF_Err IMG_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 void *NewLoaderInterface()
 {
 	IMGLoader *priv;
-	GF_InputService *plug = malloc(sizeof(GF_InputService));
-	memset(plug, 0, sizeof(GF_InputService));
+	GF_InputService *plug;
+	GF_SAFEALLOC(plug, GF_InputService);
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC Image Reader", "gpac distribution")
 
 	plug->CanHandleURL = IMG_CanHandleURL;
@@ -336,8 +336,7 @@ void *NewLoaderInterface()
 	plug->ChannelReleaseSLP = IMG_ChannelReleaseSLP;
 	plug->ServiceCommand = IMG_ServiceCommand;
 
-	priv = malloc(sizeof(IMGLoader));
-	memset(priv, 0, sizeof(IMGLoader));
+	GF_SAFEALLOC(priv, IMGLoader);
 	plug->priv = priv;
 	return plug;
 }
@@ -345,7 +344,7 @@ void *NewLoaderInterface()
 void DeleteLoaderInterface(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
-	IMGLoader *read = plug->priv;
+	IMGLoader *read = (IMGLoader *)plug->priv;
 	free(read);
 	free(plug);
 }

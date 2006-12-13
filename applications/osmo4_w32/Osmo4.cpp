@@ -221,8 +221,12 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	case GF_EVENT_SCENE_SIZE:
 		gpac->orig_width = evt->size.width;
 		gpac->orig_height = evt->size.height;
+#if 0
 		if (gpac->m_term && !pFrame->m_bFullScreen) 
 			pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
+#else
+			gf_term_set_size(gpac->m_term, 240, 234);
+#endif
 		break;
 	/*don't resize on win32 msg notif*/
 	case GF_EVENT_SIZE:

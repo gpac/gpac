@@ -19,7 +19,7 @@
  *  along with this program ; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
- * $Id: xvid.h,v 1.1.1.1 2005-07-13 14:36:16 jeanlf Exp $
+ * $Id: xvid.h,v 1.2 2006-12-13 15:12:27 jeanlf Exp $
  *
  ****************************************************************************/
 
@@ -65,7 +65,7 @@ enum{
 #endif
 
 #ifdef __MARM__
-#define USE_ARM_ASM
+//#define USE_ARM_ASM
 #endif
 
 /*****************************************************************************
@@ -235,16 +235,15 @@ typedef struct {
 
 
 /* XVID_GBL_INFO param1 */
-/*
+#if 0
 typedef struct {
 	int version;
 	int actual_version; // [out] returns the actual xvidcore version
 	const char * build; // [out] if !null, points to description of this xvid core build
-	unsigned int cpu_flags;      /* [out] detected cpu features
+	unsigned int cpu_flags;      // [out] detected cpu features
 	int num_threads;    // [out] detected number of cpus/threads
 } xvid_gbl_info_t;
-*/
-
+#endif
 
 
 #define XVID_GBL_INIT    0 /* initialize xvidcore; must be called before using xvid_decore, or xvid_encore) */

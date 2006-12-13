@@ -278,13 +278,13 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 
 	while (!term->renderer->scene) {
 		if (last_error) return 1;
-		gf_term_process(term);
+		gf_term_process_flush(term);
 		gf_sleep(10);
 	}
 	
 	if (width && height) {
 		gf_term_set_size(term, width, height);
-		gf_term_process(term);
+		gf_term_process_flush(term);
 	}
 
 	gf_sr_get_screen_buffer(term->renderer, &fb);
@@ -298,7 +298,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 		while ((width*3)%4) width--;
 
 		gf_term_set_size(term, width, height);
-		gf_term_process(term);
+		gf_term_process_flush(term);
 
 		gf_sr_get_screen_buffer(term->renderer, &fb);
 		width = fb.width;
@@ -341,7 +341,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 
 		while (time < dump_dur) {
 			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
-				gf_term_process(term);
+				gf_term_process_flush(term);
 			}
 			fprintf(stdout, "Dumping %02d/100\r", (u32) ((100.0*prev_time)/dump_dur) );
 
@@ -360,7 +360,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 
 		for (i=0; i<nb_times; i++) {
 			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
-				gf_term_process(term);
+				gf_term_process_flush(term);
 			}
 			dump_frame(term, szPath, dump_mode, i+1, NULL, NULL);
 			

@@ -128,11 +128,17 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		if (esd->decoderConfig->objectTypeIndication==GPAC_EXTRA_CODECS_OTI) {
 			char szCode[5];
 			strncpy(szCode, esd->decoderConfig->decoderSpecificInfo->data, 4);
+			szCode[4]=0;
 			if (!stricmp(szCode, "samr") || !stricmp(szCode, "amr ") || !stricmp(szCode, "sawb")) {
+				GF_BitStream *bs;
 				GF_3GPConfig amrc;
 				mapped = 1;
 				memset(&amrc, 0, sizeof(GF_3GPConfig));
-				amrc.frames_per_sample = 1;
+
+				bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
+				gf_bs_skip_bytes(bs, 10);
+				amrc.frames_per_sample = (u32) gf_bs_read_u8(bs);
+				gf_bs_del(bs);
 				amrc.type = (!stricmp(szCode, "sawb")) ? GF_ISOM_SUBTYPE_3GP_AMR_WB : GF_ISOM_SUBTYPE_3GP_AMR;
 				amrc.vendor = GF_4CC('G','P','A','C');
 				gf_isom_3gp_config_new(cache->mov, mch->track, &amrc, NULL, NULL, &di);

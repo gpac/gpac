@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Nov 09 12:07:36 2006
+	DO NOT MOFIFY - File generated on GMT Wed Dec 13 14:46:29 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -103,10 +103,7 @@ enum {
 *******************************************/
 typedef struct _tagSVGaElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_ID target;
 } SVGaElement;
 
@@ -141,10 +138,7 @@ typedef struct _tagSVGanimateTransformElement
 
 typedef struct _tagSVGanimationElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -163,10 +157,7 @@ typedef struct _tagSVGaudioElement
 
 typedef struct _tagSVGcircleElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate cx;
 	SVG_Coordinate cy;
 	SVG_Length r;
@@ -209,10 +200,7 @@ typedef struct _tagSVGdiscardElement
 
 typedef struct _tagSVGellipseElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Length rx;
 	SVG_Length ry;
 	SVG_Coordinate cx;
@@ -223,8 +211,8 @@ typedef struct _tagSVGellipseElement
 typedef struct _tagSVGfontElement
 {
 	BASE_SVG_ELEMENT
-	SVG_Number horiz_origin_x;
 	SVG_Number horiz_adv_x;
+	SVG_Number horiz_origin_x;
 } SVGfontElement;
 
 
@@ -276,10 +264,7 @@ typedef struct _tagSVGfont_face_uriElement
 
 typedef struct _tagSVGforeignObjectElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -289,30 +274,27 @@ typedef struct _tagSVGforeignObjectElement
 
 typedef struct _tagSVGgElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 } SVGgElement;
 
 
 typedef struct _tagSVGglyphElement
 {
 	BASE_SVG_ELEMENT
+	SVG_Number horiz_adv_x;
+	SVG_PathData d;
 	SVG_String unicode;
 	SVG_String glyph_name;
 	SVG_String arabic_form;
 	SVG_LanguageIDs lang;
-	SVG_Number horiz_adv_x;
-	SVG_PathData d;
 } SVGglyphElement;
 
 
 typedef struct _tagSVGhandlerElement
 {
 	BASE_SVG_ELEMENT
-	XMLEV_Event ev_event;
 	SVG_ContentType type;
+	XMLEV_Event ev_event;
 	void (*handle_event)(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);
 } SVGhandlerElement;
 
@@ -330,10 +312,7 @@ typedef struct _tagSVGhkernElement
 
 typedef struct _tagSVGimageElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -345,10 +324,7 @@ typedef struct _tagSVGimageElement
 
 typedef struct _tagSVGlineElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x1;
 	SVG_Coordinate y1;
 	SVG_Coordinate x2;
@@ -405,31 +381,22 @@ typedef struct _tagSVGmpathElement
 
 typedef struct _tagSVGpathElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
-	SVG_Number pathLength;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_PathData d;
+	SVG_Number pathLength;
 } SVGpathElement;
 
 
 typedef struct _tagSVGpolygonElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Points points;
 } SVGpolygonElement;
 
 
 typedef struct _tagSVGpolylineElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Points points;
 } SVGpolylineElement;
 
@@ -448,23 +415,20 @@ typedef struct _tagSVGprefetchElement
 typedef struct _tagSVGradialGradientElement
 {
 	BASE_SVG_ELEMENT
-	SVG_Coordinate fx;
-	SVG_Coordinate fy;
 	SVG_GradientUnit gradientUnits;
 	SVG_SpreadMethod spreadMethod;
 	SVG_Matrix gradientTransform;
 	SVG_Coordinate cx;
 	SVG_Coordinate cy;
 	SVG_Length r;
+	SVG_Coordinate fx;
+	SVG_Coordinate fy;
 } SVGradialGradientElement;
 
 
 typedef struct _tagSVGrectElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -476,10 +440,7 @@ typedef struct _tagSVGrectElement
 
 typedef struct _tagSVGrectClipElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	LASeR_Size size;
 } SVGrectClipElement;
 
@@ -493,10 +454,7 @@ typedef struct _tagSVGscriptElement
 
 typedef struct _tagSVGselectorElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	LASeR_Choice choice;
 } SVGselectorElement;
 
@@ -509,10 +467,7 @@ typedef struct _tagSVGsetElement
 
 typedef struct _tagSVGsimpleLayoutElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	LASeR_Size delta;
 } SVGsimpleLayoutElement;
 
@@ -533,6 +488,11 @@ typedef struct _tagSVGstopElement
 typedef struct _tagSVGsvgElement
 {
 	BASE_SVG_ELEMENT
+	SVG_Coordinate x;
+	SVG_Coordinate y;
+	SVG_Length width;
+	SVG_Length height;
+	SVG_PreserveAspectRatio preserveAspectRatio;
 	SVG_ViewBox viewBox;
 	SVG_ZoomAndPan zoomAndPan;
 	SVG_String version;
@@ -541,20 +501,12 @@ typedef struct _tagSVGsvgElement
 	SVG_Clock snapshotTime;
 	SVG_TimelineBegin timelineBegin;
 	SVG_PlaybackOrder playbackOrder;
-	SVG_Coordinate x;
-	SVG_Coordinate y;
-	SVG_Length width;
-	SVG_Length height;
-	SVG_PreserveAspectRatio preserveAspectRatio;
 } SVGsvgElement;
 
 
 typedef struct _tagSVGswitchElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 } SVGswitchElement;
 
 
@@ -566,28 +518,22 @@ typedef struct _tagSVGtbreakElement
 
 typedef struct _tagSVGtextElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
+	SVG_Boolean editable;
 	SVG_Coordinates x;
 	SVG_Coordinates y;
 	SVG_Numbers rotate;
-	SVG_Boolean editable;
 } SVGtextElement;
 
 
 typedef struct _tagSVGtextAreaElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
-	SVG_Length width;
-	SVG_Length height;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Boolean editable;
+	SVG_Length width;
+	SVG_Length height;
 } SVGtextAreaElement;
 
 
@@ -605,10 +551,7 @@ typedef struct _tagSVGtspanElement
 
 typedef struct _tagSVGuseElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 } SVGuseElement;
@@ -616,12 +559,7 @@ typedef struct _tagSVGuseElement
 
 typedef struct _tagSVGvideoElement
 {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	SVG_Matrix *motionTransform;
-	SVG_TransformBehavior transformBehavior;
-	SVG_Overlay overlay;
+	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -629,6 +567,8 @@ typedef struct _tagSVGvideoElement
 	SVG_PreserveAspectRatio preserveAspectRatio;
 	SVG_ContentType type;
 	SVG_InitialVisibility initialVisibility;
+	SVG_TransformBehavior transformBehavior;
+	SVG_Overlay overlay;
 } SVGvideoElement;
 
 

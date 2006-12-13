@@ -429,9 +429,9 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 			if (e) goto exit;
 		}
 		if (stat_level==2) {
-			fprintf(dump, "<AUStatistics StreamID=\"%d\" AUTime=\""LLD"\">\n", au->owner->ESID, au->timing);
+			fprintf(dump, "<AUStatistics StreamID=\"%d\" AUTime=\""LLD"\">\n", au->owner->ESID, LLD_CAST au->timing);
 		} else {
-			fprintf(dump, "<GraphStatistics StreamID=\"%d\" AUTime=\""LLD"\">\n", au->owner->ESID, au->timing);
+			fprintf(dump, "<GraphStatistics StreamID=\"%d\" AUTime=\""LLD"\">\n", au->owner->ESID, LLD_CAST au->timing);
 		}
 		/*dump stats*/
 		dump_stats(dump, gf_sm_stats_get(sm) );
@@ -732,7 +732,7 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 			cts = dts + (s32) samp->CTS_Offset;
 			gf_isom_sample_del(&samp);
 
-			fprintf(dump, "Sample %d - DTS "LLD" - CTS "LLD"", j+1, dts, cts);
+			fprintf(dump, "Sample %d - DTS "LLD" - CTS "LLD"", j+1, LLD_CAST dts, LLD_CAST cts);
 			if (cts<dts) { fprintf(dump, " #NEGATIVE CTS OFFSET!!!"); has_error = 1;}
 		
 			if (has_cts_offset) {
@@ -1521,7 +1521,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					}
 					gf_sl_depacketize(sl_pck->stream->esd->slConfig, &header, sl_pck->data, sl_pck->data_len, &header_len);
 					fwrite(sl_pck->data+header_len, sl_pck->data_len-header_len, 1, dumper->pes_out);
-					fprintf(dumper->pes_out_nhml, "<NHNTSample DTS=\""LLD"\" dataLength=\"%d\" isRAP=\"%s\"/>\n", header.decodingTimeStamp, sl_pck->data_len-header_len, (header.randomAccessPointFlag?"yes":"no"));
+					fprintf(dumper->pes_out_nhml, "<NHNTSample DTS=\""LLD"\" dataLength=\"%d\" isRAP=\"%s\"/>\n", LLD_CAST header.decodingTimeStamp, sl_pck->data_len-header_len, (header.randomAccessPointFlag?"yes":"no"));
 				}
 			}
 		}

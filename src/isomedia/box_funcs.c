@@ -100,10 +100,10 @@ proceed_box:
 		size = gf_bs_read_u64(bs);
 		hdr_size += 8;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLU" start "LLU"\n", gf_4cc_to_str(type), size, start));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(type), LLD_CAST size, LLD_CAST start));
 
 	if ( size < hdr_size ) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box size "LLD" less than box header size %d\n", size, hdr_size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box size "LLD" less than box header size %d\n", LLD_CAST size, hdr_size));
 		return GF_ISOM_INVALID_FILE;
 	}
 
@@ -142,7 +142,7 @@ proceed_box:
 	}
 
 	if (end-start > size) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" size "LLU" invalid (read "LLU")\n", gf_4cc_to_str(type), size, end-start));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" size "LLU" invalid (read "LLU")\n", gf_4cc_to_str(type), LLU_CAST size, LLU_CAST (end-start) ));
 		/*let's still try to load the file since no error was notified*/
 		gf_bs_seek(bs, start+size);
 	} else if (end-start < size) {

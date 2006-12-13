@@ -71,29 +71,20 @@ typedef struct _render_2d
 	/*rotation angle*/
 	Fixed rotation;
 
+	Bool navigation_disabled;
+
 	Bool grabbed;
-	Fixed grab_x, grab_y;
+	s32 grab_x, grab_y;
 	Fixed zoom, trans_x, trans_y;
 	u32 navigate_mode;
-	Bool navigation_disabled;
 	Bool use_dom_events;
+
 #ifndef GPAC_DISABLE_SVG
 	s32 last_click_x, last_click_y;
 	u32 num_clicks;
 #endif
 } Render2D;
 
-
-
-/*user interaction event*/
-typedef struct
-{
-	u32 event_type;
-	Fixed x, y;
-	u32 button;
-	/*current context passed to the sensor - if NULL the event is not over the node (deactivation)*/
-	struct _drawable_context *context;
-} UserEvent2D;
 
 /*sensor node handler - this is not defined as a stack (cf below) because Anchor is both a grouping
 node and a sensor node, and we DO need the groupingnode stack...*/
@@ -102,8 +93,12 @@ typedef struct _sensorhandler
 	/*sensor enabled or not ?*/
 	Bool (*IsEnabled)(struct _sensorhandler *sh);
 	/*user input on sensor. If return value is non-0, any sensors present above(before in VRML)
-	the called sensor won't be called*/
-	Bool (*OnUserEvent)(struct _sensorhandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix);
+	the called sensor won't be called
+		@evt: the event called
+		@ctx: the drawable context of the node attached to this handler, NULL when deactivating
+		@sensor_matrix: the world->local matrix at the sensor location
+	*/
+	Bool (*OnUserEvent)(struct _sensorhandler *sh, GF_Event *evt, struct _drawable_context *ctx, GF_Matrix2D *sensor_matrix);
 	/*set the node pointer here*/
 	GF_Node *owner;
 	/*private to compositor for deactivating sensors*/

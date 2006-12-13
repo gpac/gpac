@@ -150,7 +150,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 		interval_duration = keyTimeAfter - keyTimeBefore;
 		if (interval_duration) interpolation_coefficient = gf_divfix(normalized_simple_time - keyTimeBefore, interval_duration);
 		else interpolation_coefficient = 1;
-//		fprintf(stdout, "Using Key Times: index %d, interval duration %.2f, coeff: %.2f\n", keyTimeIndex, interval_duration, interpolation_coefficient);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Anim] Using Key Times: index %d, interval duration %.2f, coeff: %.2f\n", keyTimeIndex, interval_duration, interpolation_coefficient));
 	} else {
 		if (real_calcMode) {
 			Fixed tmp = normalized_simple_time*nbValues;
@@ -169,7 +169,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 			}
 			interpolation_coefficient = tmp - INT2FIX(keyValueIndex);
 		}
-		//fprintf(stdout, "No KeyTimes: key index %d, coeff: %.2f\n", keyValueIndex, FIX2FLT(interpolation_coefficient));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Anim] No KeyTimes: key index %d, coeff: %.2f\n", keyValueIndex, FIX2FLT(interpolation_coefficient)));
 	}
 
 	if (gf_node_get_tag((GF_Node *)rai->anim_elt) == TAG_SVG_animateMotion) {
@@ -177,7 +177,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 		if (gf_list_count(am->keyPoints)) {
 			interpolation_coefficient = *(Fixed *)gf_list_get(am->keyPoints, keyValueIndex);
 			keyValueIndex = 0;
-//			fprintf(stdout, "Using Key Points: key Value Index %d, coeff: %.2f\n", keyValueIndex, interpolation_coefficient);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Anim] Using Key Points: key Value Index %d, coeff: %.2f\n", keyValueIndex, interpolation_coefficient));
 		}
 	}
 
@@ -353,7 +353,7 @@ static Bool gf_svg_compute_path_anim(SMIL_Anim_RTI *rai, GF_Matrix2D *m, Fixed n
 	offset = gf_mulfix(normalized_simple_time, rai->length);
 	gf_mx2d_init(*m);
 	res = gf_path_iterator_get_transform(rai->path_iterator, offset, 1, m, 1, 0);
-//	fprintf(stdout, "Time: %f - Offset: %f, Position: %f, %f\n", normalized_simple_time, offset, ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[2], ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[5]);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Anim] Time: %f - Offset: %f, Position: %f, %f\n", normalized_simple_time, offset, ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[2], ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[5]));
 	switch (rai->rotate) {
 	case SVG_NUMBER_AUTO:
 		break;

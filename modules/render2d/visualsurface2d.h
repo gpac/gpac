@@ -263,7 +263,7 @@ void VS2D_RemoveLastContext(VisualSurface2D *surf);
 void VS2D_DrawableDeleted(VisualSurface2D *surf, Drawable *node);
 
 /*inits rendering cycle - called at each cycle start regardless of rendering mode*/
-void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff);
+GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff);
 /*terminates rendering cycle - called at each cycle end regardless of rendering mode
 if rendering is indirect, actual drawing is performed here. Returns 1 if the surface has been modified*/
 Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff);

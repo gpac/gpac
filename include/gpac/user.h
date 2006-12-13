@@ -46,21 +46,21 @@ enum
 	GF_TERM_INIT_HIDE = 1,
 	/*no audio renderer will be created*/
 	GF_TERM_NO_AUDIO = 1<<1,
-	/*terminal is used to extract content: 
-		* audio render is disabled
+	/*terminal is used without visual threading: 
 		* media codecs are not threaded
 		* all composition memories are filled before rendering
 		* rendering is done after media decoding
-		* frame-rate regulation is disabled (no sleep)
 		* the user is responsible for updating the terminal
 	*/
-	GF_TERM_NOT_THREADED = 1<<2,
+	GF_TERM_NO_VISUAL_THREAD = 1<<2,
+	/*disables frame-rate regulation (used when dumping content)*/
+	GF_TERM_NO_REGULATION = 1<<3,
 	/*forces 2D renderer, regardless of config file*/
-	GF_TERM_FORCE_2D = 1<<3,
+	GF_TERM_FORCE_2D = 1<<4,
 	/*forces 3D renderer, regardless of config file*/
-	GF_TERM_FORCE_3D = 1<<4,
+	GF_TERM_FORCE_3D = 1<<5,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<5
+	GF_TERM_WINDOWLESS = 1<<6
 };
 
 /*user object for all callbacks*/

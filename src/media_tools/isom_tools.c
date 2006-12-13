@@ -981,6 +981,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		return gf_isom_get_esd(mp4, track, 1);
 
 	if ((subtype == GF_ISOM_SUBTYPE_3GP_AMR) || (subtype == GF_ISOM_SUBTYPE_3GP_AMR_WB)) {
+		GF_3GPConfig *gpc = gf_isom_3gp_config_get(mp4, track, 1);
 		esd = gf_odf_desc_esd_new(0);
 		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
 		esd->ESID = gf_isom_get_track_id(mp4, track);
@@ -991,8 +992,12 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*format ext*/
 		gf_bs_write_u32(bs, subtype);
-		/*ignore the rest*/
-		gf_bs_write_int(bs, subtype, 5*8);
+		gf_bs_write_u16(bs, (subtype == GF_ISOM_SUBTYPE_3GP_AMR) ? 8000 : 16000);
+		gf_bs_write_u16(bs, (subtype == GF_ISOM_SUBTYPE_3GP_AMR) ? 160 : 320);
+		gf_bs_write_u8(bs, 1);
+		gf_bs_write_u8(bs, 16);
+		gf_bs_write_u8(bs, gpc ? gpc->frames_per_sample : 0);
+		if (gpc) free(gpc);
 		gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 		return esd;
@@ -1033,6 +1038,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	if (type==GF_ISOM_MEDIA_AUDIO) {
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		gf_bs_write_u16(bs, udesc->samplerate);
+		gf_bs_write_u16(bs, 0);
 		gf_bs_write_u8(bs, udesc->nb_channels);
 		gf_bs_write_u8(bs, udesc->bits_per_sample);
 		gf_bs_write_u8(bs, 0);

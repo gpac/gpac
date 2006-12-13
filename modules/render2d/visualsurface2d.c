@@ -68,7 +68,7 @@ void DeleteVisualSurface2D(VisualSurface2D *surf)
 }
 
 
-#ifdef _WIN32_WCE
+#if defined(_WIN32_WCE) || defined(__SYMBIAN32__)
 #define CONTEXT_ALLOC_STEP	1
 #else
 #define CONTEXT_ALLOC_STEP	20
@@ -132,8 +132,9 @@ void VS2D_DrawableDeleted(struct _visual_surface_2D *surf, struct _drawable *nod
 }
 
 
-void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
+GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 {
+	GF_Err e;
 	u32 i, count;
 	GF_Rect rc;
 	DrawableContext *ctx;
@@ -166,8 +167,11 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 
 	surf->surf_rect = gf_rect_pixelize(&rc);
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Top surface rectangle setup - width %d height %d\n", surf->surf_rect.width, surf->surf_rect.height));
+
 	/*setup surface, brush and pen */
-	VS2D_InitSurface(surf);
+	e = VS2D_InitSurface(surf);
+	if (e) return e;
 
 	/*setup top clipper*/
 	if (surf->center_coords) {
@@ -189,6 +193,8 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	}
 
 	surf->top_clipper = gf_rect_pixelize(&rc);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Top surface cliper setup - %d:%d@%dx%d\n", surf->top_clipper.x, surf->top_clipper.y, surf->top_clipper.width, surf->top_clipper.height));
+
 	/*if we're requested to invalidate everything, switch to direct render but still request bounds storage*/
 	if (eff->invalidate_all) {
 		eff->trav_flags |= TF_RENDER_DIRECT | TF_RENDER_STORE_BOUNDS;
@@ -215,7 +221,7 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 			drawable_flush_bounds(dr, surf->render->frame_num);
 		}
 	}
-	if (!direct_render) return;
+	if (!direct_render) return GF_OK;
 
 	/*direct mode, draw background*/
 	bck = (M_Background2D*) gf_list_get(surf->back_stack, 0);
@@ -229,6 +235,7 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	} else {
 		VS2D_Clear(surf, NULL, 0);
 	}
+	return GF_OK;
 }
 
 void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx)
@@ -405,6 +412,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	for (i=0; i<count; i++) {
 		ctx = surf->contexts[i];
 		if (gf_rect_is_empty(ctx->clip)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] node bounds empty - skipping (uncliped: %d:%d@%dx%d - local %g:%g@%gx%g)\n", ctx->unclip_pix.x, ctx->unclip_pix.y, ctx->unclip_pix.width, ctx->unclip_pix.height, FIX2FLT(ctx->original.x), FIX2FLT(ctx->original.y), FIX2FLT(ctx->original.width), FIX2FLT(ctx->original.height)));
 			ctx->invalid = 1;
 			continue;
 		}

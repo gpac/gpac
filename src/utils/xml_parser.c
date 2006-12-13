@@ -29,7 +29,6 @@
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
 #include <zlib.h>
 
-
 static char *xml_translate_xml_string(char *str)
 {
 	char *value;
@@ -98,10 +97,10 @@ static char *xml_translate_xml_string(char *str)
 
 enum
 {
-	SAX_STATE_ELEMENT,
-	SAX_STATE_COMMENT,
 	SAX_STATE_ATT_NAME,
 	SAX_STATE_ATT_VALUE,
+	SAX_STATE_ELEMENT,
+	SAX_STATE_COMMENT,
 	SAX_STATE_TEXT_CONTENT,
 	SAX_STATE_ENTITY,
 	SAX_STATE_SKIP_DOCTYPE,
@@ -111,19 +110,21 @@ enum
 	SAX_STATE_SYNTAX_ERROR,
 };
 
+typedef struct
+{
+	u32 name_start, name_end;
+	u32 val_start, val_end;
+} GF_XMLSaxAttribute;
 
 struct _tag_sax_parser
 {
 	/*0: UTF-8, 1: UTF-16 BE, 2: UTF-16 LE. String input is always converted back to utf8*/
 	s32 unicode_type;
-	char *buffer, *orig_buffer;
-	/*name buffer for elements and attributes*/
-	char node_name[1000];
-
-	/*dynamic buffer for attribute values*/
-	char *value_buffer;
-	/*line size and current position*/
-	u32 line_size, current_pos;
+	char *buffer;
+	/*alloc size, line size and current position*/
+	u32 alloc_size, line_size, current_pos;
+	/*current node depth*/
+	u32 node_depth;
 
 	/*gz input file*/
 	gzFile gz_in;
@@ -139,8 +140,6 @@ struct _tag_sax_parser
 
 	u32 sax_state;
 	u32 init_state;
-	GF_List *attributes;
-	GF_List *nodes;
 	GF_List *entities;
 	char att_sep;
 	Bool in_entity, suspended;
@@ -150,282 +149,280 @@ struct _tag_sax_parser
 
 	/*last error found*/
 	char err_msg[1000];
+
+	u32 att_name_start, elt_name_start, elt_name_end, text_start, text_end;
+
+	GF_XMLAttribute *attrs;
+	GF_XMLSaxAttribute *sax_attrs;
+	u32 nb_attrs, nb_alloc_attrs;
 };
+
+static GF_XMLSaxAttribute *xml_get_sax_attribute(GF_SAXParser *parser)
+{
+	if (parser->nb_attrs==parser->nb_alloc_attrs) {
+		parser->nb_alloc_attrs++;
+		parser->sax_attrs = (GF_XMLSaxAttribute *)realloc(parser->sax_attrs, sizeof(GF_XMLSaxAttribute)*parser->nb_alloc_attrs);
+		parser->attrs = (GF_XMLAttribute *)realloc(parser->attrs, sizeof(GF_XMLAttribute)*parser->nb_alloc_attrs);
+	}
+	return &parser->sax_attrs[parser->nb_attrs++];
+}
 
 static void xml_sax_swap(GF_SAXParser *parser)
 {
-	if (parser->current_pos) {
-		char *new_buf = strdup(parser->buffer + parser->current_pos);
-		free(parser->orig_buffer);
-		parser->orig_buffer = parser->buffer = new_buf;
-		parser->line_size = strlen(new_buf);
+	if (parser->current_pos && (parser->sax_state==SAX_STATE_TEXT_CONTENT)) {
+		assert(parser->line_size >= parser->current_pos);
+		parser->line_size -= parser->current_pos;
 		parser->file_pos += parser->current_pos;
+		if (parser->line_size) memmove(parser->buffer, parser->buffer + parser->current_pos, sizeof(char)*parser->line_size); 
+		parser->buffer[parser->line_size] = 0;
 		parser->current_pos = 0;
 	}
 }
 
 static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 {
-	char *name, *sep;
-	name = (char *)gf_list_last(parser->nodes);
-	assert(name);
+	char *name, *sep, c;
 
-	if (had_children) {
-		if (strcmp(parser->node_name+1, name)) {
-			parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-			sprintf(parser->err_msg, "Closing element \"%s\" doesn't match opening element \"%s\"", parser->node_name+1, name);
-			return;
-		}
-	}
-	gf_list_rem_last(parser->nodes);
+	assert(parser->elt_name_start && parser->elt_name_end && parser->node_depth);
+	c = parser->buffer[parser->elt_name_end - 1];
+	parser->buffer[parser->elt_name_end - 1] = 0;
+	name = parser->buffer + parser->elt_name_start - 1;
+	
 	if (parser->sax_node_end) {
 		sep = strchr(name, ':');
 		if (sep) {
-			char szName[1024], szNS[1024];
-			strcpy(szName, sep+1);
 			sep[0] = 0;
-			strcpy(szNS, name);
+			parser->sax_node_end(parser->sax_cbck, sep+1, name);
 			sep[0] = ':';
-			parser->sax_node_end(parser->sax_cbck, szName, szNS);
 		} else {
 			parser->sax_node_end(parser->sax_cbck, name, NULL);
 		}
 	}
-	free(name);
-	if (!parser->init_state && !gf_list_count(parser->nodes)) parser->sax_state = SAX_STATE_DONE;
-}
-
-static void xml_sax_reset_attributes(GF_SAXParser *parser)
-{
-	/*destroy attributes*/
-	u32 i=0;
-	GF_XMLAttribute *att;
-	while ((att = (GF_XMLAttribute *)gf_list_enum(parser->attributes, &i)) ) {
-		if (att->name) free(att->name);
-		if (att->value) free(att->value);
-		free(att);
-	}
-	gf_list_reset(parser->attributes);
+	parser->buffer[parser->elt_name_end - 1] = c;
+	parser->node_depth--;
+	if (!parser->init_state && !parser->node_depth) parser->sax_state = SAX_STATE_DONE;
+	xml_sax_swap(parser);
+	parser->text_start = parser->text_end = 0;
 }
 
 static void xml_sax_node_start(GF_SAXParser *parser)
 {
-	char *sep;
-	char *name = (char *)gf_list_last(parser->nodes);
-		
+	u32 i;
+	char *sep, c, *name;
+
+	assert(parser->elt_name_start && parser->elt_name_end);
+	c = parser->buffer[parser->elt_name_end - 1];
+	parser->buffer[parser->elt_name_end - 1] = 0;
+	name = parser->buffer + parser->elt_name_start - 1;
+
+	for (i=0;i<parser->nb_attrs; i++) {
+		parser->attrs[i].name = parser->buffer + parser->sax_attrs[i].name_start - 1;
+		parser->buffer[parser->sax_attrs[i].name_end-1] = 0;
+		parser->attrs[i].value = parser->buffer + parser->sax_attrs[i].val_start - 1;
+		parser->buffer[parser->sax_attrs[i].val_end-1] = 0;
+		//fprintf(stdout, "%s.%s=\"%s\"\n", name, parser->attrs[i].name, parser->attrs[i].value);
+	}
+
 	if (parser->sax_node_start) {
 		sep = strchr(name, ':');
 		if (sep) {
-			char szName[1024], szNS[1024];
-			strcpy(szName, sep+1);
+			char szNS[1024];
 			sep[0] = 0;
 			strcpy(szNS, name);
 			sep[0] = ':';
-			parser->sax_node_start(parser->sax_cbck, szName, szNS, parser->attributes);
+
+			parser->sax_node_start(parser->sax_cbck, sep+1, szNS, parser->attrs, parser->nb_attrs);
 		} else {
-			parser->sax_node_start(parser->sax_cbck, name, NULL, parser->attributes);
+			parser->sax_node_start(parser->sax_cbck, name, NULL, parser->attrs, parser->nb_attrs);
 		}
 	}
-	xml_sax_reset_attributes(parser);
+	parser->buffer[parser->elt_name_end - 1] = c;
+	parser->node_depth++;
+	parser->nb_attrs = 0;
+	xml_sax_swap(parser);
+	parser->text_start = parser->text_end = 0;
 }
-
-#define XML_ATT_SIZE 1024
 
 static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 {
-	char szVal[XML_ATT_SIZE], *skip_chars;
-	u32 i, offset;
-	GF_XMLAttribute *att = NULL;
+	char *sep;
+	GF_XMLSaxAttribute *att = NULL;
 
+	/*looking for attribute name*/
 	if (parser->sax_state==SAX_STATE_ATT_NAME) {
-		skip_chars = " \t\n\r";
-	} else {
-		skip_chars = "\t\n\r";
-		if (parser->att_sep) att = (GF_XMLAttribute *)gf_list_last(parser->attributes);
-	}
-	offset=0;
-	i=0;
-	while (parser->current_pos+i+offset < parser->line_size) {
-		u8 c = parser->buffer[parser->current_pos+offset+i];
-		if (strchr(skip_chars, c)) {
-			if (c=='\n') parser->line++;
-			/*parsing an attribute name*/
-			if (parser->sax_state==SAX_STATE_ATT_NAME) {
-				/*skip spaces at end of attName but don't move current buffer*/
-				if (i) offset++;
-				/*drop spaces at begining of attName*/
-				else parser->current_pos++;
-				continue;
-			} 
-			/*waiting for attribute value start*/
-			else if (!parser->att_sep) {
-				/*drop spaces until delimiter is found*/
-				parser->current_pos++;
-				continue;
-			}
-			/*replace all chars by ' '*/
-			else {
-				c=' ';
-			}
-		}
-		if (parser->sax_state==SAX_STATE_ATT_NAME) {
-			if ( (c=='/') || ((parser->init_state==1) && (c=='?')) ) {
-				if (parser->current_pos+i+1 == parser->line_size) return 1;
-
-				if (parser->buffer[parser->current_pos+i+1]=='>') {
-					parser->current_pos+=i+2;
-					parser->elt_end_pos = parser->file_pos + parser->current_pos;
-					parser->sax_state = (parser->init_state) ? SAX_STATE_ELEMENT : SAX_STATE_TEXT_CONTENT;
-					/*done parsing attr AND elements*/
-					if (!parser->init_state) {
-						xml_sax_node_start(parser);
-						xml_sax_node_end(parser, 0);
-					} else {
-						xml_sax_reset_attributes(parser);
+		/*looking for start*/
+		if (!parser->att_name_start) {
+			while (parser->current_pos < parser->line_size) {
+				u8 c = parser->buffer[parser->current_pos];
+				switch (c) {
+				case '\n':
+					parser->line++;
+				case ' ':
+				case '\r':
+				case '\t':
+					parser->current_pos++;
+					continue;
+				/*end of element*/
+				case '?':
+					if (parser->init_state!=1) break;
+				case '/':
+					/*not enough data*/
+					if (parser->current_pos+1 == parser->line_size) return 1;
+					if (parser->buffer[parser->current_pos+1]=='>') {
+						parser->current_pos+=2;
+						parser->elt_end_pos = parser->file_pos + parser->current_pos - 1;
+						/*done parsing attr AND elements*/
+						if (!parser->init_state) {
+							xml_sax_node_start(parser);
+							xml_sax_node_end(parser, 0);
+						} else {
+							parser->nb_attrs = 0;
+						}
+						parser->sax_state = (parser->init_state) ? SAX_STATE_ELEMENT : SAX_STATE_TEXT_CONTENT;
+						parser->text_start = parser->text_end = 0;
+						return 0;
 					}
-					return 0;
-				}
-				if (!parser->in_quote && (c=='/')) {
-					if (!parser->init_state) {
+					if (!parser->in_quote && (c=='/')) {
+						if (!parser->init_state) {
+							parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+							sprintf(parser->err_msg, "Markup error");
+							return 1;
+						}
+					}
+					break;
+				case '"':
+					if (parser->sax_state==SAX_STATE_ATT_VALUE) break;
+					if (parser->in_quote && (parser->in_quote!=c) ) {
 						parser->sax_state = SAX_STATE_SYNTAX_ERROR;
 						sprintf(parser->err_msg, "Markup error");
 						return 1;
 					}
-				}
-			}
-			else if ((parser->sax_state!=SAX_STATE_ATT_VALUE) && (c=='"')) {
-				if (parser->in_quote && (parser->in_quote!=c) ) {
-					parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-					sprintf(parser->err_msg, "Markup error");
-					return 1;
-				}
-				if (parser->in_quote) parser->in_quote = 0;
-				else parser->in_quote = c;
-			}
-			else if (c=='>') {
-				parser->current_pos+=i+1;
-				/*end of <!DOCTYPE>*/
-				if (parser->init_state) {
-					if (parser->init_state==1) {
-						parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-						sprintf(parser->err_msg, "Invalid DOCTYPE");
-						return 1;
-					}
-					parser->sax_state = SAX_STATE_ELEMENT;
-					return 0;
-				}
-				/*done parsing attr*/
-				xml_sax_node_start(parser);
-				parser->sax_state = SAX_STATE_TEXT_CONTENT;
-				return 0;
-			}
-			else if (parser->init_state && (c=='[')) {
-				parser->current_pos+=i+1;
-				if (parser->init_state==1) {
-					parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-					sprintf(parser->err_msg, "Invalid DOCTYPE");
-					return 1;
-				}
-				parser->sax_state = SAX_STATE_ELEMENT;
-				return 0;
-			}
-
-			if (c=='=') {
-				parser->sax_state = SAX_STATE_ATT_VALUE;
-				szVal[i] = 0;
-				GF_SAFEALLOC(att, GF_XMLAttribute);
-				att->name = strdup(szVal);
-				gf_list_add(parser->attributes, att);
-				parser->current_pos+=i+1;
-				i=0;
-				offset=0;
-				att = NULL;
-				parser->att_sep = 0;
-			} else {
-				szVal[i] = c;
-				i++;
-			}
-		} else if (parser->sax_state==SAX_STATE_ATT_VALUE) {
-
-			if ( (!parser->att_sep && ((c=='\"') || (c=='\'')) ) || (c==parser->att_sep) ) {
-				if (!parser->att_sep) {
-					parser->att_sep = c;
-					att = (GF_XMLAttribute *)gf_list_last(parser->attributes);
-					if (!att || att->value) {
-						parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-						sprintf(parser->err_msg, "Missing attribute name");
-						return 1;
-					}
-					skip_chars = "\t\n\r";
-					parser->current_pos++;
-					i=0;
-				} else {
-					assert(att);
-
-					szVal[i] = 0;
-					if (!att->value) {
-						att->value = strdup(szVal);
-					} else {
-						u32 len = strlen(att->value);
-						att->value = (char *)realloc(att->value, sizeof(char)* (i+len+1));
-						memcpy(att->value + len, szVal, i);
-						att->value[len+i] = 0;
-					}
-					parser->current_pos+=i+1;
-					xml_sax_swap(parser);
-
-					/*"style" always at the begining of the attributes*/
-					if (!strcmp(att->name, "style")) {
-						gf_list_rem_last(parser->attributes);
-						gf_list_insert(parser->attributes, att, 0);
-					}
-
-					parser->sax_state = SAX_STATE_ATT_NAME;
-					/*solve XML built-in entities*/
-					if (strchr(att->value, '&') && strchr(att->value, ';')) {
-						char *xml_text = xml_translate_xml_string(att->value);
-						if (xml_text) {
-							free(att->value);
-							att->value = xml_text;
+					if (parser->in_quote) parser->in_quote = 0;
+					else parser->in_quote = c;
+					break;
+				case '>':
+					parser->current_pos+=1;
+					/*end of <!DOCTYPE>*/
+					if (parser->init_state) {
+						if (parser->init_state==1) {
+							parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+							sprintf(parser->err_msg, "Invalid DOCTYPE");
+							return 1;
 						}
+						parser->sax_state = SAX_STATE_ELEMENT;
+						return 0;
 					}
+					/*done parsing attr*/
+					parser->sax_state = SAX_STATE_TEXT_CONTENT;
+					xml_sax_node_start(parser);
 					return 0;
+				case '[':
+					if (parser->init_state) {
+						parser->current_pos+=1;
+						if (parser->init_state==1) {
+							parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+							sprintf(parser->err_msg, "Invalid DOCTYPE");
+							return 1;
+						}
+						parser->sax_state = SAX_STATE_ELEMENT;
+						return 0;
+					}
+					break;
+				/*first char of attr name*/
+				default:
+					parser->att_name_start = parser->current_pos + 1;
+					break;
 				}
-			} else if (parser->att_sep) {
-				//if (!att) att = gf_list_last(parser->attributes);
-				assert(att);
-				if (!att) {
-					parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-					sprintf(parser->err_msg, "Missing attribute");
-					return 1;
-				}
-				szVal[i] = c;
-				i++;
-				/*handle large attribute values !!*/
-				if (i+1 == XML_ATT_SIZE) {
-					u32 len = att->value ? strlen(att->value) : 0;
-					att->value = (char *)realloc(att->value, sizeof(char)* (i+len+1));
-					memcpy(att->value + len, szVal, i);
-					att->value[len+i] = 0;
-					parser->current_pos += i;
-					i=0;
-				}
-			} else {
 				parser->current_pos++;
+				if (parser->att_name_start) break;
 			}
-		} else {
-			i++;
+			if (parser->current_pos == parser->line_size) return 1;
+		}
+
+		/*looking for '"'*/
+		if (parser->att_name_start) {
+			sep = strchr(parser->buffer + parser->att_name_start - 1, '"');
+			/*not enough data*/
+			if (!sep) return 1;
+
+			parser->current_pos = sep - parser->buffer;
+			att = xml_get_sax_attribute(parser);
+			att->name_start = parser->att_name_start;
+			att->name_end = parser->current_pos;
+			while (strchr(" \n\t", parser->buffer[att->name_end - 2])) {
+				assert(att->name_end);
+				att->name_end --;
+			}
+			parser->att_name_start = 0;
+			parser->sax_state = SAX_STATE_ATT_VALUE;
 		}
 	}
-	if (att && i) {
-		u32 len = att->value ? strlen(att->value) : 0;
-		att->value = (char *)realloc(att->value, sizeof(char)* (i+len+1));
-		memcpy(att->value + len, szVal, i);
-		att->value[len+i] = 0;
-		parser->current_pos += i;
+	
+	if (parser->sax_state == SAX_STATE_ATT_VALUE) {
+		att = &parser->sax_attrs[parser->nb_attrs-1];
+		/*looking for first delimiter*/
+		if (!parser->att_sep) {
+			while (parser->current_pos < parser->line_size) {
+				u8 c = parser->buffer[parser->current_pos];
+				switch (c) {
+				case '\n':
+					parser->line++;
+				case ' ':
+				case '\r':
+				case '\t':
+					parser->current_pos++;
+					continue;
+				case '\'':
+				case '"':
+					parser->att_sep = c;
+					att->val_start = parser->current_pos + 2;
+					break;
+				default:
+					break;
+				}
+				parser->current_pos++;
+				if (parser->att_sep) break;
+			}
+			if (parser->current_pos == parser->line_size) return 1;
+		} 
+
+		assert(parser->att_sep);
+		sep = strchr(parser->buffer + parser->current_pos, parser->att_sep);
+		if (!sep) {
+			//fprintf(stdout, "XML: sep not found, waiting for more data\n");
+			return 1;
+		}
+
+		parser->current_pos = sep - parser->buffer;
+		att->val_end = parser->current_pos + 1;
+		parser->current_pos++;
+
+		/*"style" always at the begining of the attributes for ease of parsing*/
+		if (!strncmp(parser->buffer + att->name_start-1, "style", 5)) {
+			GF_XMLSaxAttribute prev = parser->sax_attrs[0];
+			parser->sax_attrs[0] = *att;
+			*att = prev;
+		}
+		parser->att_sep = 0;
+		parser->sax_state = SAX_STATE_ATT_NAME;
+		parser->att_name_start = 0;
+
+#if FIXME
+		/*solve XML built-in entities*/
+		if (strchr(att->value, '&') && strchr(att->value, ';')) {
+			char *xml_text = xml_translate_xml_string(att->value);
+			if (xml_text) {
+				free(att->value);
+				att->value = xml_text;
+			}
+		}
+#endif
+		return 0;
 	}
 	return 1;
 }
+
+
 typedef struct
 {
 	char *name;
@@ -433,46 +430,69 @@ typedef struct
 	u8 sep;
 } XML_Entity;
 
-static void xml_sax_store_text(GF_SAXParser *parser, u32 txt_len)
-{
-	u32 len;
-	char *txt;
-	if (!txt_len) return;
-
-	txt = parser->buffer + parser->current_pos;
-	len = 0;
-	if (parser->value_buffer) len = strlen(parser->value_buffer);
-	parser->value_buffer = (char *)realloc(parser->value_buffer, sizeof(char)*(len+txt_len+1) );
-	strncpy(parser->value_buffer+len, txt, txt_len);
-	parser->value_buffer[txt_len+len] = 0;
-	parser->current_pos += txt_len;
-	txt = parser->value_buffer+len;
-	while (txt) {
-		txt = strchr(txt, '\n');
-		if (!txt) break;
-		parser->line++;
-		txt += 1;
-	}
-}
-
 static void xml_sax_flush_text(GF_SAXParser *parser)
 {
-	if (parser->value_buffer) {
+	if (parser->text_start) {
 		if (!parser->init_state && parser->sax_text_content) {
+			char *text, c;
+			c = parser->buffer[parser->text_end-1];
+			parser->buffer[parser->text_end-1] = 0;
+			text = parser->buffer + parser->text_start-1;
+
 			/*solve XML built-in entities*/
-			if (strchr(parser->value_buffer, '&') && strchr(parser->value_buffer, ';')) {
-				char *xml_text = xml_translate_xml_string(parser->value_buffer);
+			if (strchr(text, '&') && strchr(text, ';')) {
+				char *xml_text = xml_translate_xml_string(text);
 				if (xml_text) {
 					parser->sax_text_content(parser->sax_cbck, xml_text, (parser->sax_state==SAX_STATE_CDATA) ? 1 : 0);
 					free(xml_text);
 				}
 			} else {
-				parser->sax_text_content(parser->sax_cbck, parser->value_buffer, (parser->sax_state==SAX_STATE_CDATA) ? 1 : 0);
+				parser->sax_text_content(parser->sax_cbck, text, (parser->sax_state==SAX_STATE_CDATA) ? 1 : 0);
 			}
+			parser->buffer[parser->text_end-1] = c;
 		}
-		free(parser->value_buffer);
-		parser->value_buffer = NULL;
+		parser->text_start = parser->text_end = 0;
 	}
+}
+
+static void xml_sax_store_text(GF_SAXParser *parser, u32 txt_len)
+{
+	if (!txt_len) return;
+
+	if (!parser->text_start) {
+		parser->text_start = parser->current_pos + 1;
+		parser->text_end = parser->text_start + txt_len;
+		parser->current_pos += txt_len;
+		assert(parser->current_pos < parser->line_size);
+		return;
+	}
+	/*contiguous text*/
+	if (parser->text_end && (parser->text_end-1 == parser->current_pos)) {
+		parser->text_end += txt_len;
+		parser->current_pos += txt_len;
+		assert(parser->current_pos < parser->line_size);
+		return;
+	}
+	/*need to flush*/
+	xml_sax_flush_text(parser);
+
+	parser->text_start = parser->current_pos + 1;
+	parser->text_end = parser->text_start + txt_len;
+	parser->current_pos += txt_len;
+	assert(parser->current_pos < parser->line_size);
+}
+
+static char *xml_get_current_text(GF_SAXParser *parser)
+{
+	char *text, c;
+	if (!parser->elt_name_start) return NULL;
+
+	c = parser->buffer[parser->elt_name_end-1];
+	parser->buffer[parser->elt_name_end-1] = 0;
+	text = strdup(parser->buffer + parser->elt_name_start-1);
+	parser->buffer[parser->elt_name_end-1] = c;
+	parser->text_start = parser->text_end = 0;
+	return text;
 }
 
 static void xml_sax_skip_doctype(GF_SAXParser *parser)
@@ -530,19 +550,19 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 			ent->name = strdup(szName);
 			ent->sep = c;
 			parser->current_pos += 1+i;
+			assert(parser->current_pos < parser->line_size);
 			xml_sax_swap(parser);
 			i=0;
 			gf_list_add(parser->entities, ent);
 			skip_chars = NULL;
 		} else if (ent && c==ent->sep) {
 			xml_sax_store_text(parser, i);
-			if (parser->value_buffer) {
-				ent->value = parser->value_buffer;
-				parser->value_buffer = NULL;
-			} else {
-				ent->value = strdup("");
-			}
+
+			ent->value = xml_get_current_text(parser);
+			if (!ent->value) ent->value = strdup("");
+
 			parser->current_pos += 1;
+			assert(parser->current_pos < parser->line_size);
 			xml_sax_swap(parser);
 			parser->sax_state = SAX_STATE_SKIP_DOCTYPE;
 			return;
@@ -566,6 +586,7 @@ static void xml_sax_cdata(GF_SAXParser *parser)
 		xml_sax_store_text(parser, size);
 		xml_sax_flush_text(parser);
 		parser->current_pos += 3;
+		assert(parser->current_pos < parser->line_size);
 		parser->sax_state = SAX_STATE_TEXT_CONTENT;
 	}
 }
@@ -576,7 +597,9 @@ static Bool xml_sax_parse_comments(GF_SAXParser *parser)
 	if (!end) return 0;
 
 	parser->current_pos += 3 + (u32) (end - (parser->buffer + parser->current_pos) );
+	assert(parser->current_pos < parser->line_size);
 	parser->sax_state = SAX_STATE_TEXT_CONTENT;
+	parser->text_start = parser->text_end = 0;
 	return 1;
 }
 
@@ -587,7 +610,7 @@ static GF_Err xml_sax_parse(GF_SAXParser *parser, Bool force_parse)
 	u32 i = 0;
 	Bool is_text, is_end;
 	u8 c;
-	char *elt;
+	char *elt, sep;
 
 	parser->line_size = strlen(parser->buffer);
 
@@ -619,6 +642,7 @@ restart:
 				is_text = 0;
 			} else if (i) {
 				parser->current_pos += i;
+				assert(parser->current_pos < parser->line_size);
 			}
 			is_end = 0;
 			i = 0;
@@ -633,26 +657,30 @@ restart:
 					break;
 				}
 				else if (c=='/') is_end = !i ? 1 : 2;
-				parser->node_name[i] = c;
+
 				i++;
-				if ((c=='[') && (parser->node_name[i-2]=='A') ) 
+				if ((c=='[') && (parser->buffer[parser->elt_name_start-1 + i-2]=='A') ) 
 					break;
 				if (parser->current_pos+1+i==parser->line_size) {
 					i=0;
 					goto exit;
 				}
 			}
-			parser->node_name[i] = 0;
+			if (i) {
+				parser->elt_name_start = parser->current_pos+1 + 1;
+				if (is_end==1) parser->elt_name_start ++;
+				if (is_end==2) parser->elt_name_end = parser->current_pos+1+i;
+				else parser->elt_name_end = parser->current_pos+1+i + 1;
+			} 
 			if (is_end) {
 				xml_sax_flush_text(parser);
 				parser->elt_end_pos = parser->file_pos + parser->current_pos + i;
 				if (is_end==2) {
-					parser->node_name[i-1] = 0;
-					gf_list_add(parser->nodes, strdup(parser->node_name));
+					parser->sax_state = SAX_STATE_ELEMENT;
 					xml_sax_node_start(parser);
 					xml_sax_node_end(parser, 0);
 				} else {
-					parser->elt_end_pos += strlen(parser->node_name);
+					parser->elt_end_pos += parser->elt_name_end - parser->elt_name_start;
 					xml_sax_node_end(parser, 1);
 				}
 				if (parser->sax_state == SAX_STATE_SYNTAX_ERROR) break;
@@ -660,25 +688,28 @@ restart:
 				parser->sax_state = SAX_STATE_TEXT_CONTENT;
 				break;
 			}
+			sep = parser->buffer[parser->elt_name_end-1];
+			parser->buffer[parser->elt_name_end-1] = 0;
+			elt = parser->buffer + parser->elt_name_start-1;
+
 			parser->sax_state = SAX_STATE_ATT_NAME;
 			parser->elt_start_pos = parser->file_pos + parser->current_pos;
 			parser->current_pos+=1+i;
-			if (!strncmp(parser->node_name, "!--", 3)) { 
+			if (!strncmp(elt, "!--", 3)) { 
 				parser->sax_state = SAX_STATE_COMMENT;
 				if (i>3) parser->current_pos -= (i-3);
 			}
-			else if (!strcmp(parser->node_name, "?xml")) parser->init_state = 1;
-			else if (!strcmp(parser->node_name, "!DOCTYPE")) 
-				parser->init_state = 2;
-			else if (!strcmp(parser->node_name, "!ENTITY")) parser->sax_state = SAX_STATE_ENTITY;
-			else if (!strcmp(parser->node_name, "![CDATA[")) parser->sax_state = SAX_STATE_CDATA;
-			else if (parser->node_name[0]=='?') parser->sax_state = SAX_STATE_XML_PROC;
+			else if (!strcmp(elt, "?xml")) parser->init_state = 1;
+			else if (!strcmp(elt, "!DOCTYPE")) parser->init_state = 2;
+			else if (!strcmp(elt, "!ENTITY")) parser->sax_state = SAX_STATE_ENTITY;
+			else if (!strcmp(elt, "![CDATA[")) parser->sax_state = SAX_STATE_CDATA;
+			else if (elt[0]=='?') parser->sax_state = SAX_STATE_XML_PROC;
 			/*node found*/
 			else {
 				xml_sax_flush_text(parser);
 				parser->init_state = 0;
-				gf_list_add(parser->nodes, strdup(parser->node_name));
 			}
+			parser->buffer[parser->elt_name_end-1] = sep;
 			break;
 		case SAX_STATE_COMMENT:
 			if (!xml_sax_parse_comments(parser)) {
@@ -710,29 +741,31 @@ restart:
 		}
 	}
 exit:
+#if 0
 	if (is_text) {
 		if (i) xml_sax_store_text(parser, i);
 		/*DON'T FLUSH TEXT YET, wait for next '<' to do so otherwise we may corrupt xml base entities (&apos;, ...)*/
 	}
+#endif
 	xml_sax_swap(parser);
 	return GF_OK;
 }
 
 static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 {
-	if (!parser->orig_buffer) {
-		parser->orig_buffer = strdup(string);
-		if (!parser->orig_buffer) return GF_OUT_OF_MEM;
-		parser->buffer = parser->orig_buffer;
-		parser->current_pos = 0;
-	} else {
-		u32 l1 = strlen(parser->orig_buffer);
-		u32 l2 = strlen(string);
-		parser->orig_buffer = (char *)realloc(parser->orig_buffer, sizeof(char) * (l1+l2+1));
-		memcpy(parser->orig_buffer + l1, string, l2);
-		parser->orig_buffer[l1+l2] = 0;		
-		parser->buffer = parser->orig_buffer + parser->current_pos;
+	u32 size = parser->line_size;
+	u32 nl_size = strlen(string);
+	
+	if (parser->alloc_size < size+nl_size+1) {
+		parser->buffer = realloc(parser->buffer, sizeof(char) * (size+nl_size+1) );
+		if (!parser->buffer ) return GF_OUT_OF_MEM;
+		parser->alloc_size = size+nl_size+1;
+
+		//fprintf(stdout, "reallocating xml buffer to %d bytes\n", parser->alloc_size);
 	}
+	memcpy(parser->buffer+size, string, sizeof(char)*nl_size);
+	parser->buffer[size+nl_size] = 0;
+	parser->line_size = size+nl_size;
 	return GF_OK;
 }
 
@@ -848,20 +881,6 @@ GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM)
 static void xml_sax_reset(GF_SAXParser *parser)
 {
 	while (1) {
-		GF_XMLAttribute * att = (GF_XMLAttribute *)gf_list_last(parser->attributes);
-		if (!att) break;
-		gf_list_rem_last(parser->attributes);
-		if (att->name) free(att->name);
-		if (att->value) free(att->value);
-		free(att);
-	}
-	while (1) {
-		char *name = (char *)gf_list_last(parser->nodes);
-		if (!name) break;
-		gf_list_rem_last(parser->nodes);
-		free(name);
-	}
-	while (1) {
 		XML_Entity *ent = (XML_Entity *)gf_list_last(parser->entities);
 		if (!ent) break;
 		gf_list_rem_last(parser->entities);
@@ -869,17 +888,21 @@ static void xml_sax_reset(GF_SAXParser *parser)
 		if (ent->value) free(ent->value);
 		free(ent);
 	}
-	if (parser->value_buffer) free(parser->value_buffer);
-	parser->value_buffer = NULL;
-	if (parser->orig_buffer) free(parser->orig_buffer);
-	parser->orig_buffer = parser->buffer = NULL;
+	if (parser->buffer) free(parser->buffer);
+	parser->buffer = NULL;
 	parser->current_pos = 0;
+	free(parser->attrs);
+	parser->attrs = NULL;
+	free(parser->sax_attrs);
+	parser->sax_attrs = NULL;
+	parser->nb_alloc_attrs = parser->nb_attrs = 0;
 }
 
-#define XML_INPUT_SIZE	1024
+#define XML_INPUT_SIZE	4096
 
 static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 {
+	u32 in_time = gf_sys_clock();
 	GF_Err e = GF_EOS;
 	unsigned char szLine[XML_INPUT_SIZE+2];
 	if (!parser->gz_in) return GF_BAD_PARAM;
@@ -904,6 +927,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 		gzclose(parser->gz_in);
 		parser->gz_in = 0;
 	}
+	fprintf(stdout, "XML parsed in %d ms\n", gf_sys_clock() - in_time);
 	return e;
 }
 
@@ -951,8 +975,6 @@ GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start,
 	GF_SAXParser *parser;
 	GF_SAFEALLOC(parser, GF_SAXParser);
 
-	parser->attributes = gf_list_new();
-	parser->nodes = gf_list_new();
 	parser->entities = gf_list_new();
 	parser->unicode_type = -1;
 	parser->sax_node_start = on_node_start;
@@ -966,8 +988,6 @@ GF_EXPORT
 void gf_xml_sax_del(GF_SAXParser *parser)
 {
 	xml_sax_reset(parser);
-	gf_list_del(parser->attributes);
-	gf_list_del(parser->nodes);
 	gf_list_del(parser->entities);
 	if (parser->gz_in) gzclose(parser->gz_in);
 	free(parser);
@@ -1110,7 +1130,7 @@ struct _peek_type
 	char *res;
 };
 
-static void on_peek_node_start(void *cbk, const char *name, const char *ns, GF_List *atts)
+static void on_peek_node_start(void *cbk, const char *name, const char *ns, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	struct _peek_type *pt = (struct _peek_type*)cbk;
 	pt->res = strdup(name);
@@ -1177,8 +1197,9 @@ static void gf_xml_dom_node_del(GF_XMLNode *node)
 	free(node);
 }
 
-static void on_dom_node_start(void *cbk, const char *name, const char *ns, GF_List *atts)
+static void on_dom_node_start(void *cbk, const char *name, const char *ns, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
+	u32 i;
 	GF_DOMParser *par = (GF_DOMParser *) cbk;
 	GF_XMLNode *node;
 
@@ -1190,9 +1211,11 @@ static void on_dom_node_start(void *cbk, const char *name, const char *ns, GF_Li
 
 	GF_SAFEALLOC(node, GF_XMLNode);
 	node->attributes = gf_list_new();
-	while (gf_list_count(atts)) {
-		GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_last(atts);
-		gf_list_rem_last(atts);
+	for (i=0; i<nb_attributes; i++) {
+		GF_XMLAttribute *att;
+		GF_SAFEALLOC(att, GF_XMLAttribute);
+		att->name = strdup(attributes[i].name);
+		att->value = strdup(attributes[i].value);
 		gf_list_add(node->attributes, att);
 	}
 	node->content = gf_list_new();

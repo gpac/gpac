@@ -49,14 +49,10 @@ typedef struct
 	Bool is_amr_wb;
 	u32 sample_rate, out_size, num_samples;
 	u8 num_channels;
-	/*no support for scalability in AMR*/
-	u16 ES_ID;
-	u32 cb_size, cb_trig;
 
 	/*AMR NB state vars*/
 	int *nb_destate;
     void *wb_destate;
-	u32 frame_count;
 } AMRFTDec;
 
 #define AMRFTCTX() AMRFTDec *ctx = (AMRFTDec *) ifcg->privateStack
@@ -65,25 +61,27 @@ typedef struct
 static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	GF_BitStream *bs;
-	char name[5];
-	u32 codec_4cc;
+	u32 packed;
 	AMRFTCTX();
-	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
-
-	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
-	codec_4cc = gf_bs_read_u32(bs);
-	gf_bs_del(bs);
-	strcpy(name, gf_4cc_to_str(codec_4cc));
-	
+	if (DependsOnES_ID) return GF_NOT_SUPPORTED;	
 
 	/*AMRWB dec is another module*/
-	if (!stricmp(name, "sawb")) ctx->is_amr_wb = 1;
-	else if (!stricmp(name, "samr") || !stricmp(name, "amr ")) ctx->is_amr_wb = 0;
+	if (!strnicmp(decSpecInfo, "sawb", 4)) ctx->is_amr_wb = 1;
+	else if (!strnicmp(decSpecInfo, "samr", 4) || !strnicmp(decSpecInfo, "amr ", 4)) ctx->is_amr_wb = 0;
 	else return GF_NOT_SUPPORTED;
 
-	ctx->frame_count=0;
 
-	ctx->num_channels = 1;
+	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+	gf_bs_read_u32(bs);
+	gf_bs_read_u16(bs);
+	gf_bs_read_u16(bs);
+	ctx->num_channels = gf_bs_read_u8(bs);
+	gf_bs_read_u8(bs);
+	packed = gf_bs_read_u8(bs);
+	gf_bs_del(bs);
+	/*max possible frames in a sample are seen in MP4, that's 15*/
+	if (!packed) packed = 15;
+
 	if (ctx->is_amr_wb) {
 #ifdef GPAC_HAS_AMR_FT_WB
 		ctx->wb_destate = D_IF_init();
@@ -104,17 +102,14 @@ static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInf
 		ctx->sample_rate = 8000;
 	}
 
-	/*max possible frames in a sample are seen in MP4, that's 15*/
-	ctx->out_size = 15 * 2 * ctx->num_samples * ctx->num_channels;
-	ctx->ES_ID = ES_ID;
-
+	ctx->out_size = packed * 2 * ctx->num_samples * ctx->num_channels;
 	return GF_OK;
 }
 
 static GF_Err AMR_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
 	AMRFTCTX();
-	if (ES_ID != ctx->ES_ID) return GF_BAD_PARAM;
+
 #ifdef GPAC_HAS_AMR_FT
 	if (ctx->nb_destate) Decoder_Interface_exit(ctx->nb_destate);
 #endif
@@ -123,7 +118,6 @@ static GF_Err AMR_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 	if (ctx->wb_destate) D_IF_exit(ctx->wb_destate);
 #endif
 	ctx->wb_destate = NULL;
-	ctx->ES_ID = 0;
 	ctx->sample_rate = ctx->out_size = ctx->num_samples = 0;
 	ctx->num_channels = 0;
 	return GF_OK;
@@ -149,10 +143,10 @@ static GF_Err AMR_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capa
 		capability->cap.valueInt = 16;
 		break;
 	case GF_CODEC_BUFFER_MIN:
-		capability->cap.valueInt = ctx->cb_trig;
+		capability->cap.valueInt = DEFAULT_AUDIO_CM_TRIGGER;
 		break;
 	case GF_CODEC_BUFFER_MAX:
-		capability->cap.valueInt = ctx->cb_size;
+		capability->cap.valueInt = DEFAULT_AUDIO_CM_SIZE;
 		break;
 	/*FIXME: get exact sampling window*/
 	case GF_CODEC_CU_DURATION:
@@ -191,9 +185,6 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
     u32 offset;
     u8 toc, ft;
 	AMRFTCTX();
-
-	/*not using scalabilty*/
-	assert(ctx->ES_ID == ES_ID);
 
 	/*if late or seeking don't decode (each frame is a RAP)*/
 	/*	switch (mmlevel) {
@@ -236,8 +227,6 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
 		if (inBufferLength<offset) return GF_OK;
 		inBuffer += offset;
 		inBufferLength -= offset;
-
-		ctx->frame_count++;
 	}
 	return GF_OK;
 }
@@ -245,25 +234,18 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
 
 static u32 AMR_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
-	GF_BitStream *bs;
-	char name[5];
-	u32 codec_4cc;
-
 	/*we handle audio only*/
 	if (!ObjectType) return (StreamType==GF_STREAM_AUDIO) ? 1 : 0;
 
 	/*audio dec*/
 	if (!decSpecInfo || (StreamType != GF_STREAM_AUDIO) || (ObjectType != GPAC_EXTRA_CODECS_OTI)) return 0;
-	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
-	codec_4cc = gf_bs_read_u32(bs);
-	gf_bs_del(bs);
+	if (decSpecInfoSize<4) return 0;
 
-	strcpy(name, gf_4cc_to_str(codec_4cc));
 #ifdef GPAC_HAS_AMR_FT
-	if (!stricmp(name, "samr") || !stricmp(name, "amr ")) return 1;
+	if (!strnicmp(decSpecInfo, "samr", 4) || !strnicmp(decSpecInfo, "amr ", 4)) return 1;
 #endif
 #ifdef GPAC_HAS_AMR_FT_WB
-	if (!stricmp(name, "sawb")) return 1;
+	if (!strnicmp(decSpecInfo, "sawb", 4)) return 1;
 #endif
 	return 0;
 }
@@ -285,9 +267,6 @@ GF_MediaDecoder *NewAMRFTDecoder()
 	memset(dec, 0, sizeof(AMRFTDec));
 	ifce->privateStack = dec;
 	ifce->CanHandleStream = AMR_CanHandleStream;
-
-	dec->cb_size = DEFAULT_AUDIO_CM_SIZE;
-	dec->cb_trig = DEFAULT_AUDIO_CM_TRIGGER;
 
 	/*setup our own interface*/	
 	ifce->AttachStream = AMR_AttachStream;

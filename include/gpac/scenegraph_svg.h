@@ -1100,13 +1100,15 @@ typedef struct _svg_element {
 	BASE_SVG_ELEMENT
 } SVGElement;
 
-typedef struct _svg_transformable_element {
-	BASE_SVG_ELEMENT
-	Bool is_ref_transform;
-	SVG_Matrix transform;
-	/* motionTransform is a pseudo-attribute which holds the supplemental transform 
-   computed by animateMotions elements */
+#define TRANSFORMABLE_SVG_ELEMENT	\
+	BASE_SVG_ELEMENT	\
+	Bool is_ref_transform;	\
+	SVG_Matrix transform;	\
 	SVG_Matrix *motionTransform;
+
+
+typedef struct _svg_transformable_element {
+	TRANSFORMABLE_SVG_ELEMENT
 } SVGTransformableElement;
 
 typedef struct

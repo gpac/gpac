@@ -149,6 +149,8 @@ typedef enum
 	GF_PIXEL_GREYSCALE	=	GF_4CC('G','R','E','Y'),
 	/*!16 bit greyscale*/
 	GF_PIXEL_ALPHAGREY	=	GF_4CC('G','R','A','L'),
+	/*!12 bit RGB on 16 bits (4096 colors)*/
+	GF_PIXEL_RGB_444	=	GF_4CC('R','4','4','4'),
 	/*!15 bit RGB*/
 	GF_PIXEL_RGB_555	=	GF_4CC('R','5','5','5'),
 	/*!16 bit RGB*/
@@ -251,9 +253,10 @@ static const u32 GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60
  \code 
  *	u32 codec_four_cc: the codec 4CC reg code
  *	u16 sample_rate: sampling rate or 0 if unknown
+ *	u16 num_samples: num audio samples per frame or 0 if unknown
  *	u8 nb_channels: num channels or 0 if unknown
  *	u8 nb_bits_per_sample: nb bits or 0 if unknown
- *	u8 num_samples: num audio samples per frame or 0 if unknown
+ *	u8 num_frames_per_au: num audio frames per AU (used in 3GPP, max 15), 0 if unknown
  *	char *data: per-codec extensions till end of DSI bitstream
  \endcode
  \n

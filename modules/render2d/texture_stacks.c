@@ -130,7 +130,11 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 	Composite_CheckBindables(st->txh.owner, eff, st->first);
 	st->first = 0;
 	
-	VS2D_InitDraw(st->surf, eff);
+	e = VS2D_InitDraw(st->surf, eff);
+	if (e) {
+		effect_delete(eff);
+		return;
+	}
 
 	/*render children*/
 	count = gf_list_count(ct2D->children);

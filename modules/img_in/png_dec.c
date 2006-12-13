@@ -212,7 +212,7 @@ static const char *PNG_GetCodecName(GF_BaseDecoder *dec)
 	return "LibPNG " PNG_LIBPNG_VER_STRING;
 }
 
-u32 NewPNGDec(GF_BaseDecoder *ifcd)
+Bool NewPNGDec(GF_BaseDecoder *ifcd)
 {
 	IMGDec *wrap = (IMGDec *) ifcd->privateStack;
 	PNGDec *dec = (PNGDec *) malloc(sizeof(PNGDec));

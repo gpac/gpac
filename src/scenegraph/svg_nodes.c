@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Nov 09 12:07:36 2006
+	DO NOT MOFIFY - File generated on GMT Wed Dec 13 14:46:29 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -44,8 +44,8 @@ void *gf_svg_new_a()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "a";
-	((GF_Node *p)->sgprivate->node_del = SVG_a_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_a_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_a_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_a_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -418,6 +418,79 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_a_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("xlink:href", name)) return 54;
+	if(!strcmp("xlink:show", name)) return 55;
+	if(!strcmp("xlink:title", name)) return 56;
+	if(!strcmp("xlink:actuate", name)) return 57;
+	if(!strcmp("xlink:role", name)) return 58;
+	if(!strcmp("xlink:arcrole", name)) return 59;
+	if(!strcmp("xlink:type", name)) return 60;
+	if(!strcmp("requiredExtensions", name)) return 61;
+	if(!strcmp("requiredFeatures", name)) return 62;
+	if(!strcmp("requiredFonts", name)) return 63;
+	if(!strcmp("requiredFormats", name)) return 64;
+	if(!strcmp("systemLanguage", name)) return 65;
+	if(!strcmp("transform", name)) return 66;
+	if(!strcmp("target", name)) return 68;
+	return -1;
+}
+
 void *gf_svg_new_animate()
 {
 	SVGanimateElement *p;
@@ -427,8 +500,8 @@ void *gf_svg_new_animate()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "animate";
-	((GF_Node *p)->sgprivate->node_del = SVG_animate_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_animate_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_animate_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_animate_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
@@ -627,6 +700,49 @@ static GF_Err gf_svg_animate_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_animate_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("xlink:href", name)) return 7;
+	if(!strcmp("xlink:show", name)) return 8;
+	if(!strcmp("xlink:title", name)) return 9;
+	if(!strcmp("xlink:actuate", name)) return 10;
+	if(!strcmp("xlink:role", name)) return 11;
+	if(!strcmp("xlink:arcrole", name)) return 12;
+	if(!strcmp("xlink:type", name)) return 13;
+	if(!strcmp("begin", name)) return 14;
+	if(!strcmp("end", name)) return 15;
+	if(!strcmp("dur", name)) return 16;
+	if(!strcmp("repeatCount", name)) return 17;
+	if(!strcmp("repeatDur", name)) return 18;
+	if(!strcmp("restart", name)) return 19;
+	if(!strcmp("min", name)) return 20;
+	if(!strcmp("max", name)) return 21;
+	if(!strcmp("fill", name)) return 22;
+	if(!strcmp("clipBegin", name)) return 23;
+	if(!strcmp("clipEnd", name)) return 24;
+	if(!strcmp("attributeName", name)) return 25;
+	if(!strcmp("attributeType", name)) return 26;
+	if(!strcmp("to", name)) return 27;
+	if(!strcmp("from", name)) return 28;
+	if(!strcmp("by", name)) return 29;
+	if(!strcmp("values", name)) return 30;
+	if(!strcmp("type", name)) return 31;
+	if(!strcmp("calcMode", name)) return 32;
+	if(!strcmp("keySplines", name)) return 33;
+	if(!strcmp("keyTimes", name)) return 34;
+	if(!strcmp("accumulate", name)) return 35;
+	if(!strcmp("additive", name)) return 36;
+	if(!strcmp("lsr:enabled", name)) return 37;
+	return -1;
+}
+
 void *gf_svg_new_animateColor()
 {
 	SVGanimateColorElement *p;
@@ -636,8 +752,8 @@ void *gf_svg_new_animateColor()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "animateColor";
-	((GF_Node *p)->sgprivate->node_del = SVG_animateColor_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_animateColor_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_animateColor_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_animateColor_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
@@ -836,6 +952,49 @@ static GF_Err gf_svg_animateColor_get_attribute(GF_Node *node, GF_FieldInfo *inf
 	}
 }
 
+s32 gf_svg_animateColor_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("xlink:href", name)) return 7;
+	if(!strcmp("xlink:show", name)) return 8;
+	if(!strcmp("xlink:title", name)) return 9;
+	if(!strcmp("xlink:actuate", name)) return 10;
+	if(!strcmp("xlink:role", name)) return 11;
+	if(!strcmp("xlink:arcrole", name)) return 12;
+	if(!strcmp("xlink:type", name)) return 13;
+	if(!strcmp("begin", name)) return 14;
+	if(!strcmp("end", name)) return 15;
+	if(!strcmp("dur", name)) return 16;
+	if(!strcmp("repeatCount", name)) return 17;
+	if(!strcmp("repeatDur", name)) return 18;
+	if(!strcmp("restart", name)) return 19;
+	if(!strcmp("min", name)) return 20;
+	if(!strcmp("max", name)) return 21;
+	if(!strcmp("fill", name)) return 22;
+	if(!strcmp("clipBegin", name)) return 23;
+	if(!strcmp("clipEnd", name)) return 24;
+	if(!strcmp("attributeName", name)) return 25;
+	if(!strcmp("attributeType", name)) return 26;
+	if(!strcmp("to", name)) return 27;
+	if(!strcmp("from", name)) return 28;
+	if(!strcmp("by", name)) return 29;
+	if(!strcmp("values", name)) return 30;
+	if(!strcmp("type", name)) return 31;
+	if(!strcmp("calcMode", name)) return 32;
+	if(!strcmp("keySplines", name)) return 33;
+	if(!strcmp("keyTimes", name)) return 34;
+	if(!strcmp("accumulate", name)) return 35;
+	if(!strcmp("additive", name)) return 36;
+	if(!strcmp("lsr:enabled", name)) return 37;
+	return -1;
+}
+
 void *gf_svg_new_animateMotion()
 {
 	SVGanimateMotionElement *p;
@@ -845,8 +1004,8 @@ void *gf_svg_new_animateMotion()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "animateMotion";
-	((GF_Node *p)->sgprivate->node_del = SVG_animateMotion_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_animateMotion_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_animateMotion_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_animateMotion_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
@@ -1061,6 +1220,53 @@ static GF_Err gf_svg_animateMotion_get_attribute(GF_Node *node, GF_FieldInfo *in
 	}
 }
 
+s32 gf_svg_animateMotion_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("xlink:href", name)) return 7;
+	if(!strcmp("xlink:show", name)) return 8;
+	if(!strcmp("xlink:title", name)) return 9;
+	if(!strcmp("xlink:actuate", name)) return 10;
+	if(!strcmp("xlink:role", name)) return 11;
+	if(!strcmp("xlink:arcrole", name)) return 12;
+	if(!strcmp("xlink:type", name)) return 13;
+	if(!strcmp("begin", name)) return 14;
+	if(!strcmp("end", name)) return 15;
+	if(!strcmp("dur", name)) return 16;
+	if(!strcmp("repeatCount", name)) return 17;
+	if(!strcmp("repeatDur", name)) return 18;
+	if(!strcmp("restart", name)) return 19;
+	if(!strcmp("min", name)) return 20;
+	if(!strcmp("max", name)) return 21;
+	if(!strcmp("fill", name)) return 22;
+	if(!strcmp("clipBegin", name)) return 23;
+	if(!strcmp("clipEnd", name)) return 24;
+	if(!strcmp("attributeName", name)) return 25;
+	if(!strcmp("attributeType", name)) return 26;
+	if(!strcmp("to", name)) return 27;
+	if(!strcmp("from", name)) return 28;
+	if(!strcmp("by", name)) return 29;
+	if(!strcmp("values", name)) return 30;
+	if(!strcmp("type", name)) return 31;
+	if(!strcmp("calcMode", name)) return 32;
+	if(!strcmp("keySplines", name)) return 33;
+	if(!strcmp("keyTimes", name)) return 34;
+	if(!strcmp("accumulate", name)) return 35;
+	if(!strcmp("additive", name)) return 36;
+	if(!strcmp("lsr:enabled", name)) return 37;
+	if(!strcmp("path", name)) return 38;
+	if(!strcmp("keyPoints", name)) return 39;
+	if(!strcmp("rotate", name)) return 40;
+	if(!strcmp("origin", name)) return 41;
+	return -1;
+}
+
 void *gf_svg_new_animateTransform()
 {
 	SVGanimateTransformElement *p;
@@ -1070,8 +1276,8 @@ void *gf_svg_new_animateTransform()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "animateTransform";
-	((GF_Node *p)->sgprivate->node_del = SVG_animateTransform_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_animateTransform_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_animateTransform_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_animateTransform_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
@@ -1275,6 +1481,49 @@ static GF_Err gf_svg_animateTransform_get_attribute(GF_Node *node, GF_FieldInfo 
 	}
 }
 
+s32 gf_svg_animateTransform_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("xlink:href", name)) return 7;
+	if(!strcmp("xlink:show", name)) return 8;
+	if(!strcmp("xlink:title", name)) return 9;
+	if(!strcmp("xlink:actuate", name)) return 10;
+	if(!strcmp("xlink:role", name)) return 11;
+	if(!strcmp("xlink:arcrole", name)) return 12;
+	if(!strcmp("xlink:type", name)) return 13;
+	if(!strcmp("begin", name)) return 14;
+	if(!strcmp("end", name)) return 15;
+	if(!strcmp("dur", name)) return 16;
+	if(!strcmp("repeatCount", name)) return 17;
+	if(!strcmp("repeatDur", name)) return 18;
+	if(!strcmp("restart", name)) return 19;
+	if(!strcmp("min", name)) return 20;
+	if(!strcmp("max", name)) return 21;
+	if(!strcmp("fill", name)) return 22;
+	if(!strcmp("clipBegin", name)) return 23;
+	if(!strcmp("clipEnd", name)) return 24;
+	if(!strcmp("attributeName", name)) return 25;
+	if(!strcmp("attributeType", name)) return 26;
+	if(!strcmp("to", name)) return 27;
+	if(!strcmp("from", name)) return 28;
+	if(!strcmp("by", name)) return 29;
+	if(!strcmp("values", name)) return 30;
+	if(!strcmp("type", name)) return 31;
+	if(!strcmp("calcMode", name)) return 32;
+	if(!strcmp("keySplines", name)) return 33;
+	if(!strcmp("keyTimes", name)) return 34;
+	if(!strcmp("accumulate", name)) return 35;
+	if(!strcmp("additive", name)) return 36;
+	if(!strcmp("lsr:enabled", name)) return 37;
+	return -1;
+}
+
 void *gf_svg_new_animation()
 {
 	SVGanimationElement *p;
@@ -1284,8 +1533,8 @@ void *gf_svg_new_animation()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "animation";
-	((GF_Node *p)->sgprivate->node_del = SVG_animation_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_animation_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_animation_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_animation_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -1630,6 +1879,75 @@ static GF_Err gf_svg_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_animation_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("focusHighlight", name)) return 16;
+	if(!strcmp("focusable", name)) return 17;
+	if(!strcmp("nav-down", name)) return 18;
+	if(!strcmp("nav-down-left", name)) return 19;
+	if(!strcmp("nav-down-right", name)) return 20;
+	if(!strcmp("nav-left", name)) return 21;
+	if(!strcmp("nav-next", name)) return 22;
+	if(!strcmp("nav-prev", name)) return 23;
+	if(!strcmp("nav-right", name)) return 24;
+	if(!strcmp("nav-up", name)) return 25;
+	if(!strcmp("nav-up-left", name)) return 26;
+	if(!strcmp("nav-up-right", name)) return 27;
+	if(!strcmp("xlink:href", name)) return 28;
+	if(!strcmp("xlink:show", name)) return 29;
+	if(!strcmp("xlink:title", name)) return 30;
+	if(!strcmp("xlink:actuate", name)) return 31;
+	if(!strcmp("xlink:role", name)) return 32;
+	if(!strcmp("xlink:arcrole", name)) return 33;
+	if(!strcmp("xlink:type", name)) return 34;
+	if(!strcmp("begin", name)) return 35;
+	if(!strcmp("end", name)) return 36;
+	if(!strcmp("dur", name)) return 37;
+	if(!strcmp("repeatCount", name)) return 38;
+	if(!strcmp("repeatDur", name)) return 39;
+	if(!strcmp("restart", name)) return 40;
+	if(!strcmp("min", name)) return 41;
+	if(!strcmp("max", name)) return 42;
+	if(!strcmp("fill", name)) return 43;
+	if(!strcmp("clipBegin", name)) return 44;
+	if(!strcmp("clipEnd", name)) return 45;
+	if(!strcmp("syncBehavior", name)) return 46;
+	if(!strcmp("syncBehaviorDefault", name)) return 47;
+	if(!strcmp("syncTolerance", name)) return 48;
+	if(!strcmp("syncToleranceDefault", name)) return 49;
+	if(!strcmp("syncMaster", name)) return 50;
+	if(!strcmp("syncReference", name)) return 51;
+	if(!strcmp("requiredExtensions", name)) return 52;
+	if(!strcmp("requiredFeatures", name)) return 53;
+	if(!strcmp("requiredFonts", name)) return 54;
+	if(!strcmp("requiredFormats", name)) return 55;
+	if(!strcmp("systemLanguage", name)) return 56;
+	if(!strcmp("transform", name)) return 57;
+	if(!strcmp("x", name)) return 59;
+	if(!strcmp("y", name)) return 60;
+	if(!strcmp("width", name)) return 61;
+	if(!strcmp("height", name)) return 62;
+	if(!strcmp("preserveAspectRatio", name)) return 63;
+	if(!strcmp("initialVisibility", name)) return 64;
+	return -1;
+}
+
 void *gf_svg_new_audio()
 {
 	SVGaudioElement *p;
@@ -1639,8 +1957,8 @@ void *gf_svg_new_audio()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "audio";
-	((GF_Node *p)->sgprivate->node_del = SVG_audio_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_audio_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_audio_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_audio_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -1888,6 +2206,57 @@ static GF_Err gf_svg_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_audio_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("xlink:href", name)) return 16;
+	if(!strcmp("xlink:show", name)) return 17;
+	if(!strcmp("xlink:title", name)) return 18;
+	if(!strcmp("xlink:actuate", name)) return 19;
+	if(!strcmp("xlink:role", name)) return 20;
+	if(!strcmp("xlink:arcrole", name)) return 21;
+	if(!strcmp("xlink:type", name)) return 22;
+	if(!strcmp("begin", name)) return 23;
+	if(!strcmp("end", name)) return 24;
+	if(!strcmp("dur", name)) return 25;
+	if(!strcmp("repeatCount", name)) return 26;
+	if(!strcmp("repeatDur", name)) return 27;
+	if(!strcmp("restart", name)) return 28;
+	if(!strcmp("min", name)) return 29;
+	if(!strcmp("max", name)) return 30;
+	if(!strcmp("fill", name)) return 31;
+	if(!strcmp("clipBegin", name)) return 32;
+	if(!strcmp("clipEnd", name)) return 33;
+	if(!strcmp("syncBehavior", name)) return 34;
+	if(!strcmp("syncBehaviorDefault", name)) return 35;
+	if(!strcmp("syncTolerance", name)) return 36;
+	if(!strcmp("syncToleranceDefault", name)) return 37;
+	if(!strcmp("syncMaster", name)) return 38;
+	if(!strcmp("syncReference", name)) return 39;
+	if(!strcmp("requiredExtensions", name)) return 40;
+	if(!strcmp("requiredFeatures", name)) return 41;
+	if(!strcmp("requiredFonts", name)) return 42;
+	if(!strcmp("requiredFormats", name)) return 43;
+	if(!strcmp("systemLanguage", name)) return 44;
+	if(!strcmp("type", name)) return 45;
+	return -1;
+}
+
 void *gf_svg_new_circle()
 {
 	SVGcircleElement *p;
@@ -1897,8 +2266,8 @@ void *gf_svg_new_circle()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "circle";
-	((GF_Node *p)->sgprivate->node_del = SVG_circle_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_circle_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_circle_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_circle_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -2244,6 +2613,74 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_circle_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("cx", name)) return 61;
+	if(!strcmp("cy", name)) return 62;
+	if(!strcmp("r", name)) return 63;
+	return -1;
+}
+
 void *gf_svg_new_conditional()
 {
 	SVGconditionalElement *p;
@@ -2253,8 +2690,8 @@ void *gf_svg_new_conditional()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "conditional";
-	((GF_Node *p)->sgprivate->node_del = SVG_conditional_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_conditional_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_conditional_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_conditional_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_timing((SVGElement *)p);
@@ -2324,6 +2761,30 @@ static GF_Err gf_svg_conditional_get_attribute(GF_Node *node, GF_FieldInfo *info
 	}
 }
 
+s32 gf_svg_conditional_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("begin", name)) return 7;
+	if(!strcmp("end", name)) return 8;
+	if(!strcmp("dur", name)) return 9;
+	if(!strcmp("repeatCount", name)) return 10;
+	if(!strcmp("repeatDur", name)) return 11;
+	if(!strcmp("restart", name)) return 12;
+	if(!strcmp("min", name)) return 13;
+	if(!strcmp("max", name)) return 14;
+	if(!strcmp("fill", name)) return 15;
+	if(!strcmp("clipBegin", name)) return 16;
+	if(!strcmp("clipEnd", name)) return 17;
+	if(!strcmp("enabled", name)) return 18;
+	return -1;
+}
+
 void *gf_svg_new_cursorManager()
 {
 	SVGcursorManagerElement *p;
@@ -2333,8 +2794,8 @@ void *gf_svg_new_cursorManager()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "cursorManager";
-	((GF_Node *p)->sgprivate->node_del = SVG_cursorManager_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_cursorManager_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_cursorManager_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_cursorManager_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
@@ -2436,6 +2897,27 @@ static GF_Err gf_svg_cursorManager_get_attribute(GF_Node *node, GF_FieldInfo *in
 	}
 }
 
+s32 gf_svg_cursorManager_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("xlink:href", name)) return 7;
+	if(!strcmp("xlink:show", name)) return 8;
+	if(!strcmp("xlink:title", name)) return 9;
+	if(!strcmp("xlink:actuate", name)) return 10;
+	if(!strcmp("xlink:role", name)) return 11;
+	if(!strcmp("xlink:arcrole", name)) return 12;
+	if(!strcmp("xlink:type", name)) return 13;
+	if(!strcmp("x", name)) return 14;
+	if(!strcmp("y", name)) return 15;
+	return -1;
+}
+
 void *gf_svg_new_defs()
 {
 	SVGdefsElement *p;
@@ -2445,8 +2927,8 @@ void *gf_svg_new_defs()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "defs";
-	((GF_Node *p)->sgprivate->node_del = SVG_defs_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_defs_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_defs_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_defs_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -2678,6 +3160,53 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_defs_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	return -1;
+}
+
 void *gf_svg_new_desc()
 {
 	SVGdescElement *p;
@@ -2687,8 +3216,8 @@ void *gf_svg_new_desc()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "desc";
-	((GF_Node *p)->sgprivate->node_del = SVG_desc_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_desc_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_desc_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_desc_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	return p;
@@ -2744,6 +3273,18 @@ static GF_Err gf_svg_desc_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_desc_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	return -1;
+}
+
 void *gf_svg_new_discard()
 {
 	SVGdiscardElement *p;
@@ -2753,8 +3294,8 @@ void *gf_svg_new_discard()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "discard";
-	((GF_Node *p)->sgprivate->node_del = SVG_discard_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_discard_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_discard_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_discard_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
@@ -2878,6 +3419,41 @@ static GF_Err gf_svg_discard_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_discard_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("xlink:href", name)) return 7;
+	if(!strcmp("xlink:show", name)) return 8;
+	if(!strcmp("xlink:title", name)) return 9;
+	if(!strcmp("xlink:actuate", name)) return 10;
+	if(!strcmp("xlink:role", name)) return 11;
+	if(!strcmp("xlink:arcrole", name)) return 12;
+	if(!strcmp("xlink:type", name)) return 13;
+	if(!strcmp("begin", name)) return 14;
+	if(!strcmp("end", name)) return 15;
+	if(!strcmp("dur", name)) return 16;
+	if(!strcmp("repeatCount", name)) return 17;
+	if(!strcmp("repeatDur", name)) return 18;
+	if(!strcmp("restart", name)) return 19;
+	if(!strcmp("min", name)) return 20;
+	if(!strcmp("max", name)) return 21;
+	if(!strcmp("fill", name)) return 22;
+	if(!strcmp("clipBegin", name)) return 23;
+	if(!strcmp("clipEnd", name)) return 24;
+	if(!strcmp("requiredExtensions", name)) return 25;
+	if(!strcmp("requiredFeatures", name)) return 26;
+	if(!strcmp("requiredFonts", name)) return 27;
+	if(!strcmp("requiredFormats", name)) return 28;
+	if(!strcmp("systemLanguage", name)) return 29;
+	return -1;
+}
+
 void *gf_svg_new_ellipse()
 {
 	SVGellipseElement *p;
@@ -2887,8 +3463,8 @@ void *gf_svg_new_ellipse()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "ellipse";
-	((GF_Node *p)->sgprivate->node_del = SVG_ellipse_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_ellipse_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_ellipse_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_ellipse_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -3239,6 +3815,75 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_ellipse_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("rx", name)) return 61;
+	if(!strcmp("ry", name)) return 62;
+	if(!strcmp("cx", name)) return 63;
+	if(!strcmp("cy", name)) return 64;
+	return -1;
+}
+
 void *gf_svg_new_font()
 {
 	SVGfontElement *p;
@@ -3248,8 +3893,8 @@ void *gf_svg_new_font()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "font";
-	((GF_Node *p)->sgprivate->node_del = SVG_font_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_font_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_font_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_font_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	return p;
@@ -3302,17 +3947,31 @@ static GF_Err gf_svg_font_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->core->eRR;
 			return GF_OK;
 		case 7:
-			info->name = "horiz-origin-x";
-			info->fieldType = SVG_Number_datatype;
-			info->far_ptr = & ((SVGfontElement *)node)->horiz_origin_x;
-			return GF_OK;
-		case 8:
 			info->name = "horiz-adv-x";
 			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = & ((SVGfontElement *)node)->horiz_adv_x;
 			return GF_OK;
+		case 8:
+			info->name = "horiz-origin-x";
+			info->fieldType = SVG_Number_datatype;
+			info->far_ptr = & ((SVGfontElement *)node)->horiz_origin_x;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
+}
+
+s32 gf_svg_font_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("horiz-adv-x", name)) return 7;
+	if(!strcmp("horiz-origin-x", name)) return 8;
+	return -1;
 }
 
 void *gf_svg_new_font_face()
@@ -3324,8 +3983,8 @@ void *gf_svg_new_font_face()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "font_face";
-	((GF_Node *p)->sgprivate->node_del = SVG_font_face_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_font_face_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_font_face_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_font_face_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	return p;
@@ -3527,6 +4186,46 @@ static GF_Err gf_svg_font_face_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_font_face_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("font-family", name)) return 7;
+	if(!strcmp("font-style", name)) return 8;
+	if(!strcmp("font-weight", name)) return 9;
+	if(!strcmp("font-variant", name)) return 10;
+	if(!strcmp("font-stretch", name)) return 11;
+	if(!strcmp("unicode-range", name)) return 12;
+	if(!strcmp("panose-1", name)) return 13;
+	if(!strcmp("widths", name)) return 14;
+	if(!strcmp("bbox", name)) return 15;
+	if(!strcmp("units-per-em", name)) return 16;
+	if(!strcmp("stemv", name)) return 17;
+	if(!strcmp("stemh", name)) return 18;
+	if(!strcmp("slope", name)) return 19;
+	if(!strcmp("cap-height", name)) return 20;
+	if(!strcmp("x-height", name)) return 21;
+	if(!strcmp("accent-height", name)) return 22;
+	if(!strcmp("ascent", name)) return 23;
+	if(!strcmp("descent", name)) return 24;
+	if(!strcmp("ideographic", name)) return 25;
+	if(!strcmp("alphabetic", name)) return 26;
+	if(!strcmp("mathematical", name)) return 27;
+	if(!strcmp("hanging", name)) return 28;
+	if(!strcmp("underline-position", name)) return 29;
+	if(!strcmp("underline-thickness", name)) return 30;
+	if(!strcmp("strikethrough-position", name)) return 31;
+	if(!strcmp("strikethrough-thickness", name)) return 32;
+	if(!strcmp("overline-position", name)) return 33;
+	if(!strcmp("overline-thickness", name)) return 34;
+	return -1;
+}
+
 void *gf_svg_new_font_face_src()
 {
 	SVGfont_face_srcElement *p;
@@ -3536,8 +4235,8 @@ void *gf_svg_new_font_face_src()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "font_face_src";
-	((GF_Node *p)->sgprivate->node_del = SVG_font_face_src_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_font_face_src_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_font_face_src_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_font_face_src_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	return p;
@@ -3593,6 +4292,18 @@ static GF_Err gf_svg_font_face_src_get_attribute(GF_Node *node, GF_FieldInfo *in
 	}
 }
 
+s32 gf_svg_font_face_src_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	return -1;
+}
+
 void *gf_svg_new_font_face_uri()
 {
 	SVGfont_face_uriElement *p;
@@ -3602,8 +4313,8 @@ void *gf_svg_new_font_face_uri()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "font_face_uri";
-	((GF_Node *p)->sgprivate->node_del = SVG_font_face_uri_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_font_face_uri_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_font_face_uri_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_font_face_uri_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
@@ -3695,6 +4406,25 @@ static GF_Err gf_svg_font_face_uri_get_attribute(GF_Node *node, GF_FieldInfo *in
 	}
 }
 
+s32 gf_svg_font_face_uri_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("xlink:href", name)) return 7;
+	if(!strcmp("xlink:show", name)) return 8;
+	if(!strcmp("xlink:title", name)) return 9;
+	if(!strcmp("xlink:actuate", name)) return 10;
+	if(!strcmp("xlink:role", name)) return 11;
+	if(!strcmp("xlink:arcrole", name)) return 12;
+	if(!strcmp("xlink:type", name)) return 13;
+	return -1;
+}
+
 void *gf_svg_new_foreignObject()
 {
 	SVGforeignObjectElement *p;
@@ -3704,8 +4434,8 @@ void *gf_svg_new_foreignObject()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "foreignObject";
-	((GF_Node *p)->sgprivate->node_del = SVG_foreignObject_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_foreignObject_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_foreignObject_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_foreignObject_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -4092,6 +4822,82 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 	}
 }
 
+s32 gf_svg_foreignObject_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("xlink:href", name)) return 54;
+	if(!strcmp("xlink:show", name)) return 55;
+	if(!strcmp("xlink:title", name)) return 56;
+	if(!strcmp("xlink:actuate", name)) return 57;
+	if(!strcmp("xlink:role", name)) return 58;
+	if(!strcmp("xlink:arcrole", name)) return 59;
+	if(!strcmp("xlink:type", name)) return 60;
+	if(!strcmp("requiredExtensions", name)) return 61;
+	if(!strcmp("requiredFeatures", name)) return 62;
+	if(!strcmp("requiredFonts", name)) return 63;
+	if(!strcmp("requiredFormats", name)) return 64;
+	if(!strcmp("systemLanguage", name)) return 65;
+	if(!strcmp("transform", name)) return 66;
+	if(!strcmp("x", name)) return 68;
+	if(!strcmp("y", name)) return 69;
+	if(!strcmp("width", name)) return 70;
+	if(!strcmp("height", name)) return 71;
+	return -1;
+}
+
 void *gf_svg_new_g()
 {
 	SVGgElement *p;
@@ -4101,8 +4907,8 @@ void *gf_svg_new_g()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "g";
-	((GF_Node *p)->sgprivate->node_del = SVG_g_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_g_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_g_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_g_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -4433,6 +5239,71 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_g_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	return -1;
+}
+
 void *gf_svg_new_glyph()
 {
 	SVGglyphElement *p;
@@ -4442,8 +5313,8 @@ void *gf_svg_new_glyph()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "glyph";
-	((GF_Node *p)->sgprivate->node_del = SVG_glyph_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_glyph_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_glyph_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_glyph_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	p->d.commands = gf_list_new();
@@ -4455,10 +5326,10 @@ static void gf_svg_glyph_del(GF_Node *node)
 {
 	SVGglyphElement *p = (SVGglyphElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	gf_svg_reset_path(p->d);
 	free(p->unicode);
 	free(p->glyph_name);
 	free(p->arabic_form);
-	gf_svg_reset_path(p->d);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -4502,37 +5373,55 @@ static GF_Err gf_svg_glyph_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->core->eRR;
 			return GF_OK;
 		case 7:
-			info->name = "unicode";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGglyphElement *)node)->unicode;
-			return GF_OK;
-		case 8:
-			info->name = "glyph-name";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGglyphElement *)node)->glyph_name;
-			return GF_OK;
-		case 9:
-			info->name = "arabic-form";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGglyphElement *)node)->arabic_form;
-			return GF_OK;
-		case 10:
-			info->name = "lang";
-			info->fieldType = SVG_LanguageIDs_datatype;
-			info->far_ptr = & ((SVGglyphElement *)node)->lang;
-			return GF_OK;
-		case 11:
 			info->name = "horiz-adv-x";
 			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = & ((SVGglyphElement *)node)->horiz_adv_x;
 			return GF_OK;
-		case 12:
+		case 8:
 			info->name = "d";
 			info->fieldType = SVG_PathData_datatype;
 			info->far_ptr = & ((SVGglyphElement *)node)->d;
 			return GF_OK;
+		case 9:
+			info->name = "unicode";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = & ((SVGglyphElement *)node)->unicode;
+			return GF_OK;
+		case 10:
+			info->name = "glyph-name";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = & ((SVGglyphElement *)node)->glyph_name;
+			return GF_OK;
+		case 11:
+			info->name = "arabic-form";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = & ((SVGglyphElement *)node)->arabic_form;
+			return GF_OK;
+		case 12:
+			info->name = "lang";
+			info->fieldType = SVG_LanguageIDs_datatype;
+			info->far_ptr = & ((SVGglyphElement *)node)->lang;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
+}
+
+s32 gf_svg_glyph_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("horiz-adv-x", name)) return 7;
+	if(!strcmp("d", name)) return 8;
+	if(!strcmp("unicode", name)) return 9;
+	if(!strcmp("glyph-name", name)) return 10;
+	if(!strcmp("arabic-form", name)) return 11;
+	if(!strcmp("lang", name)) return 12;
+	return -1;
 }
 
 void *gf_svg_new_handler()
@@ -4544,8 +5433,8 @@ void *gf_svg_new_handler()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "handler";
-	((GF_Node *p)->sgprivate->node_del = SVG_handler_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_handler_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_handler_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_handler_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	return p;
@@ -4599,17 +5488,31 @@ static GF_Err gf_svg_handler_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->core->eRR;
 			return GF_OK;
 		case 7:
-			info->name = "ev:event";
-			info->fieldType = XMLEV_Event_datatype;
-			info->far_ptr = & ((SVGhandlerElement *)node)->ev_event;
-			return GF_OK;
-		case 8:
 			info->name = "type";
 			info->fieldType = SVG_ContentType_datatype;
 			info->far_ptr = & ((SVGhandlerElement *)node)->type;
 			return GF_OK;
+		case 8:
+			info->name = "ev:event";
+			info->fieldType = XMLEV_Event_datatype;
+			info->far_ptr = & ((SVGhandlerElement *)node)->ev_event;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
+}
+
+s32 gf_svg_handler_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("type", name)) return 7;
+	if(!strcmp("ev:event", name)) return 8;
+	return -1;
 }
 
 void *gf_svg_new_hkern()
@@ -4621,8 +5524,8 @@ void *gf_svg_new_hkern()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "hkern";
-	((GF_Node *p)->sgprivate->node_del = SVG_hkern_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_hkern_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_hkern_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_hkern_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	return p;
@@ -4707,6 +5610,23 @@ static GF_Err gf_svg_hkern_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_hkern_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("u1", name)) return 7;
+	if(!strcmp("g1", name)) return 8;
+	if(!strcmp("u2", name)) return 9;
+	if(!strcmp("g2", name)) return 10;
+	if(!strcmp("k", name)) return 11;
+	return -1;
+}
+
 void *gf_svg_new_image()
 {
 	SVGimageElement *p;
@@ -4716,8 +5636,8 @@ void *gf_svg_new_image()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "image";
-	((GF_Node *p)->sgprivate->node_del = SVG_image_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_image_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_image_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_image_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -4990,6 +5910,59 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_image_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("opacity", name)) return 16;
+	if(!strcmp("focusHighlight", name)) return 17;
+	if(!strcmp("focusable", name)) return 18;
+	if(!strcmp("nav-down", name)) return 19;
+	if(!strcmp("nav-down-left", name)) return 20;
+	if(!strcmp("nav-down-right", name)) return 21;
+	if(!strcmp("nav-left", name)) return 22;
+	if(!strcmp("nav-next", name)) return 23;
+	if(!strcmp("nav-prev", name)) return 24;
+	if(!strcmp("nav-right", name)) return 25;
+	if(!strcmp("nav-up", name)) return 26;
+	if(!strcmp("nav-up-left", name)) return 27;
+	if(!strcmp("nav-up-right", name)) return 28;
+	if(!strcmp("xlink:href", name)) return 29;
+	if(!strcmp("xlink:show", name)) return 30;
+	if(!strcmp("xlink:title", name)) return 31;
+	if(!strcmp("xlink:actuate", name)) return 32;
+	if(!strcmp("xlink:role", name)) return 33;
+	if(!strcmp("xlink:arcrole", name)) return 34;
+	if(!strcmp("xlink:type", name)) return 35;
+	if(!strcmp("requiredExtensions", name)) return 36;
+	if(!strcmp("requiredFeatures", name)) return 37;
+	if(!strcmp("requiredFonts", name)) return 38;
+	if(!strcmp("requiredFormats", name)) return 39;
+	if(!strcmp("systemLanguage", name)) return 40;
+	if(!strcmp("transform", name)) return 41;
+	if(!strcmp("x", name)) return 43;
+	if(!strcmp("y", name)) return 44;
+	if(!strcmp("width", name)) return 45;
+	if(!strcmp("height", name)) return 46;
+	if(!strcmp("preserveAspectRatio", name)) return 47;
+	if(!strcmp("type", name)) return 48;
+	return -1;
+}
+
 void *gf_svg_new_line()
 {
 	SVGlineElement *p;
@@ -4999,8 +5972,8 @@ void *gf_svg_new_line()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "line";
-	((GF_Node *p)->sgprivate->node_del = SVG_line_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_line_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_line_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_line_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -5351,6 +6324,75 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_line_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("x1", name)) return 61;
+	if(!strcmp("y1", name)) return 62;
+	if(!strcmp("x2", name)) return 63;
+	if(!strcmp("y2", name)) return 64;
+	return -1;
+}
+
 void *gf_svg_new_linearGradient()
 {
 	SVGlinearGradientElement *p;
@@ -5360,8 +6402,8 @@ void *gf_svg_new_linearGradient()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "linearGradient";
-	((GF_Node *p)->sgprivate->node_del = SVG_linearGradient_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_linearGradient_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_linearGradient_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_linearGradient_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -5666,6 +6708,67 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 	}
 }
 
+s32 gf_svg_linearGradient_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("xlink:href", name)) return 42;
+	if(!strcmp("xlink:show", name)) return 43;
+	if(!strcmp("xlink:title", name)) return 44;
+	if(!strcmp("xlink:actuate", name)) return 45;
+	if(!strcmp("xlink:role", name)) return 46;
+	if(!strcmp("xlink:arcrole", name)) return 47;
+	if(!strcmp("xlink:type", name)) return 48;
+	if(!strcmp("gradientUnits", name)) return 49;
+	if(!strcmp("spreadMethod", name)) return 50;
+	if(!strcmp("gradientTransform", name)) return 51;
+	if(!strcmp("x1", name)) return 52;
+	if(!strcmp("y1", name)) return 53;
+	if(!strcmp("x2", name)) return 54;
+	if(!strcmp("y2", name)) return 55;
+	return -1;
+}
+
 void *gf_svg_new_listener()
 {
 	SVGlistenerElement *p;
@@ -5675,8 +6778,8 @@ void *gf_svg_new_listener()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "listener";
-	((GF_Node *p)->sgprivate->node_del = SVG_listener_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_listener_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_listener_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_listener_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	return p;
@@ -5775,6 +6878,26 @@ static GF_Err gf_svg_listener_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_listener_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("event", name)) return 7;
+	if(!strcmp("phase", name)) return 8;
+	if(!strcmp("propagate", name)) return 9;
+	if(!strcmp("defaultAction", name)) return 10;
+	if(!strcmp("observer", name)) return 11;
+	if(!strcmp("target", name)) return 12;
+	if(!strcmp("handler", name)) return 13;
+	if(!strcmp("enabled", name)) return 14;
+	return -1;
+}
+
 void *gf_svg_new_metadata()
 {
 	SVGmetadataElement *p;
@@ -5784,8 +6907,8 @@ void *gf_svg_new_metadata()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "metadata";
-	((GF_Node *p)->sgprivate->node_del = SVG_metadata_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_metadata_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_metadata_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_metadata_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	return p;
@@ -5841,6 +6964,18 @@ static GF_Err gf_svg_metadata_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_metadata_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	return -1;
+}
+
 void *gf_svg_new_missing_glyph()
 {
 	SVGmissing_glyphElement *p;
@@ -5850,8 +6985,8 @@ void *gf_svg_new_missing_glyph()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "missing_glyph";
-	((GF_Node *p)->sgprivate->node_del = SVG_missing_glyph_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_missing_glyph_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_missing_glyph_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_missing_glyph_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	p->d.commands = gf_list_new();
@@ -5920,6 +7055,20 @@ static GF_Err gf_svg_missing_glyph_get_attribute(GF_Node *node, GF_FieldInfo *in
 	}
 }
 
+s32 gf_svg_missing_glyph_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("horiz-adv-x", name)) return 7;
+	if(!strcmp("d", name)) return 8;
+	return -1;
+}
+
 void *gf_svg_new_mpath()
 {
 	SVGmpathElement *p;
@@ -5929,8 +7078,8 @@ void *gf_svg_new_mpath()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "mpath";
-	((GF_Node *p)->sgprivate->node_del = SVG_mpath_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_mpath_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_mpath_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_mpath_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
@@ -6022,6 +7171,25 @@ static GF_Err gf_svg_mpath_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_mpath_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("xlink:href", name)) return 7;
+	if(!strcmp("xlink:show", name)) return 8;
+	if(!strcmp("xlink:title", name)) return 9;
+	if(!strcmp("xlink:actuate", name)) return 10;
+	if(!strcmp("xlink:role", name)) return 11;
+	if(!strcmp("xlink:arcrole", name)) return 12;
+	if(!strcmp("xlink:type", name)) return 13;
+	return -1;
+}
+
 void *gf_svg_new_path()
 {
 	SVGpathElement *p;
@@ -6031,8 +7199,8 @@ void *gf_svg_new_path()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "path";
-	((GF_Node *p)->sgprivate->node_del = SVG_path_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_path_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_path_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_path_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -6363,17 +7531,84 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
-			info->name = "pathLength";
-			info->fieldType = SVG_Number_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->pathLength;
-			return GF_OK;
-		case 62:
 			info->name = "d";
 			info->fieldType = SVG_PathData_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->d;
 			return GF_OK;
+		case 62:
+			info->name = "pathLength";
+			info->fieldType = SVG_Number_datatype;
+			info->far_ptr = & ((SVGpathElement *)node)->pathLength;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
+}
+
+s32 gf_svg_path_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("d", name)) return 61;
+	if(!strcmp("pathLength", name)) return 62;
+	return -1;
 }
 
 void *gf_svg_new_polygon()
@@ -6385,8 +7620,8 @@ void *gf_svg_new_polygon()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "polygon";
-	((GF_Node *p)->sgprivate->node_del = SVG_polygon_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_polygon_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_polygon_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_polygon_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -6724,6 +7959,72 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_polygon_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("points", name)) return 61;
+	return -1;
+}
+
 void *gf_svg_new_polyline()
 {
 	SVGpolylineElement *p;
@@ -6733,8 +8034,8 @@ void *gf_svg_new_polyline()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "polyline";
-	((GF_Node *p)->sgprivate->node_del = SVG_polyline_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_polyline_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_polyline_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_polyline_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -7072,6 +8373,72 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_polyline_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("points", name)) return 61;
+	return -1;
+}
+
 void *gf_svg_new_prefetch()
 {
 	SVGprefetchElement *p;
@@ -7081,8 +8448,8 @@ void *gf_svg_new_prefetch()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "prefetch";
-	((GF_Node *p)->sgprivate->node_del = SVG_prefetch_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_prefetch_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_prefetch_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_prefetch_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
@@ -7202,6 +8569,30 @@ static GF_Err gf_svg_prefetch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_prefetch_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("xlink:href", name)) return 7;
+	if(!strcmp("xlink:show", name)) return 8;
+	if(!strcmp("xlink:title", name)) return 9;
+	if(!strcmp("xlink:actuate", name)) return 10;
+	if(!strcmp("xlink:role", name)) return 11;
+	if(!strcmp("xlink:arcrole", name)) return 12;
+	if(!strcmp("xlink:type", name)) return 13;
+	if(!strcmp("mediaSize", name)) return 14;
+	if(!strcmp("mediaTime", name)) return 15;
+	if(!strcmp("mediaCharacterEncoding", name)) return 16;
+	if(!strcmp("mediaContentEncodings", name)) return 17;
+	if(!strcmp("bandwidth", name)) return 18;
+	return -1;
+}
+
 void *gf_svg_new_radialGradient()
 {
 	SVGradialGradientElement *p;
@@ -7211,8 +8602,8 @@ void *gf_svg_new_radialGradient()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "radialGradient";
-	((GF_Node *p)->sgprivate->node_del = SVG_radialGradient_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_radialGradient_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_radialGradient_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_radialGradient_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -7483,47 +8874,109 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			info->far_ptr = &((SVGElement *)node)->xlink->type;
 			return GF_OK;
 		case 49:
-			info->name = "fx";
-			info->fieldType = SVG_Coordinate_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->fx;
-			return GF_OK;
-		case 50:
-			info->name = "fy";
-			info->fieldType = SVG_Coordinate_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->fy;
-			return GF_OK;
-		case 51:
 			info->name = "gradientUnits";
 			info->fieldType = SVG_GradientUnit_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->gradientUnits;
 			return GF_OK;
-		case 52:
+		case 50:
 			info->name = "spreadMethod";
 			info->fieldType = SVG_SpreadMethod_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->spreadMethod;
 			return GF_OK;
-		case 53:
+		case 51:
 			info->name = "gradientTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->gradientTransform;
 			return GF_OK;
-		case 54:
+		case 52:
 			info->name = "cx";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->cx;
 			return GF_OK;
-		case 55:
+		case 53:
 			info->name = "cy";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->cy;
 			return GF_OK;
-		case 56:
+		case 54:
 			info->name = "r";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->r;
 			return GF_OK;
+		case 55:
+			info->name = "fx";
+			info->fieldType = SVG_Coordinate_datatype;
+			info->far_ptr = & ((SVGradialGradientElement *)node)->fx;
+			return GF_OK;
+		case 56:
+			info->name = "fy";
+			info->fieldType = SVG_Coordinate_datatype;
+			info->far_ptr = & ((SVGradialGradientElement *)node)->fy;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
+}
+
+s32 gf_svg_radialGradient_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("xlink:href", name)) return 42;
+	if(!strcmp("xlink:show", name)) return 43;
+	if(!strcmp("xlink:title", name)) return 44;
+	if(!strcmp("xlink:actuate", name)) return 45;
+	if(!strcmp("xlink:role", name)) return 46;
+	if(!strcmp("xlink:arcrole", name)) return 47;
+	if(!strcmp("xlink:type", name)) return 48;
+	if(!strcmp("gradientUnits", name)) return 49;
+	if(!strcmp("spreadMethod", name)) return 50;
+	if(!strcmp("gradientTransform", name)) return 51;
+	if(!strcmp("cx", name)) return 52;
+	if(!strcmp("cy", name)) return 53;
+	if(!strcmp("r", name)) return 54;
+	if(!strcmp("fx", name)) return 55;
+	if(!strcmp("fy", name)) return 56;
+	return -1;
 }
 
 void *gf_svg_new_rect()
@@ -7535,8 +8988,8 @@ void *gf_svg_new_rect()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "rect";
-	((GF_Node *p)->sgprivate->node_del = SVG_rect_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_rect_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_rect_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_rect_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -7897,6 +9350,77 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_rect_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("x", name)) return 61;
+	if(!strcmp("y", name)) return 62;
+	if(!strcmp("width", name)) return 63;
+	if(!strcmp("height", name)) return 64;
+	if(!strcmp("rx", name)) return 65;
+	if(!strcmp("ry", name)) return 66;
+	return -1;
+}
+
 void *gf_svg_new_rectClip()
 {
 	SVGrectClipElement *p;
@@ -7906,8 +9430,8 @@ void *gf_svg_new_rectClip()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "rectClip";
-	((GF_Node *p)->sgprivate->node_del = SVG_rectClip_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_rectClip_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_rectClip_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_rectClip_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -8243,6 +9767,72 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_rectClip_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("size", name)) return 61;
+	return -1;
+}
+
 void *gf_svg_new_script()
 {
 	SVGscriptElement *p;
@@ -8252,8 +9842,8 @@ void *gf_svg_new_script()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "script";
-	((GF_Node *p)->sgprivate->node_del = SVG_script_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_script_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_script_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_script_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	return p;
@@ -8315,6 +9905,19 @@ static GF_Err gf_svg_script_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_script_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("type", name)) return 7;
+	return -1;
+}
+
 void *gf_svg_new_selector()
 {
 	SVGselectorElement *p;
@@ -8324,8 +9927,8 @@ void *gf_svg_new_selector()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "selector";
-	((GF_Node *p)->sgprivate->node_del = SVG_selector_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_selector_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_selector_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_selector_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -8661,6 +10264,72 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_selector_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("choice", name)) return 61;
+	return -1;
+}
+
 void *gf_svg_new_set()
 {
 	SVGsetElement *p;
@@ -8670,8 +10339,8 @@ void *gf_svg_new_set()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "set";
-	((GF_Node *p)->sgprivate->node_del = SVG_set_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_set_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_set_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_set_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
@@ -8830,6 +10499,49 @@ static GF_Err gf_svg_set_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_set_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("xlink:href", name)) return 7;
+	if(!strcmp("xlink:show", name)) return 8;
+	if(!strcmp("xlink:title", name)) return 9;
+	if(!strcmp("xlink:actuate", name)) return 10;
+	if(!strcmp("xlink:role", name)) return 11;
+	if(!strcmp("xlink:arcrole", name)) return 12;
+	if(!strcmp("xlink:type", name)) return 13;
+	if(!strcmp("begin", name)) return 14;
+	if(!strcmp("end", name)) return 15;
+	if(!strcmp("dur", name)) return 16;
+	if(!strcmp("repeatCount", name)) return 17;
+	if(!strcmp("repeatDur", name)) return 18;
+	if(!strcmp("restart", name)) return 19;
+	if(!strcmp("min", name)) return 20;
+	if(!strcmp("max", name)) return 21;
+	if(!strcmp("fill", name)) return 22;
+	if(!strcmp("clipBegin", name)) return 23;
+	if(!strcmp("clipEnd", name)) return 24;
+	if(!strcmp("attributeName", name)) return 25;
+	if(!strcmp("attributeType", name)) return 26;
+	if(!strcmp("to", name)) return 27;
+	if(!strcmp("from", name)) return 28;
+	if(!strcmp("by", name)) return 29;
+	if(!strcmp("values", name)) return 30;
+	if(!strcmp("type", name)) return 31;
+	if(!strcmp("calcMode", name)) return 32;
+	if(!strcmp("keySplines", name)) return 33;
+	if(!strcmp("keyTimes", name)) return 34;
+	if(!strcmp("accumulate", name)) return 35;
+	if(!strcmp("additive", name)) return 36;
+	if(!strcmp("lsr:enabled", name)) return 37;
+	return -1;
+}
+
 void *gf_svg_new_simpleLayout()
 {
 	SVGsimpleLayoutElement *p;
@@ -8839,8 +10551,8 @@ void *gf_svg_new_simpleLayout()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "simpleLayout";
-	((GF_Node *p)->sgprivate->node_del = SVG_simpleLayout_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_simpleLayout_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_simpleLayout_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_simpleLayout_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -9176,6 +10888,72 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 	}
 }
 
+s32 gf_svg_simpleLayout_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("delta", name)) return 61;
+	return -1;
+}
+
 void *gf_svg_new_solidColor()
 {
 	SVGsolidColorElement *p;
@@ -9185,8 +10963,8 @@ void *gf_svg_new_solidColor()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "solidColor";
-	((GF_Node *p)->sgprivate->node_del = SVG_solidColor_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_solidColor_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_solidColor_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_solidColor_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -9419,6 +11197,53 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_solidColor_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	return -1;
+}
+
 void *gf_svg_new_stop()
 {
 	SVGstopElement *p;
@@ -9428,8 +11253,8 @@ void *gf_svg_new_stop()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "stop";
-	((GF_Node *p)->sgprivate->node_del = SVG_stop_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_stop_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_stop_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_stop_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -9667,6 +11492,54 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_stop_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("offset", name)) return 42;
+	return -1;
+}
+
 void *gf_svg_new_svg()
 {
 	SVGsvgElement *p;
@@ -9676,8 +11549,8 @@ void *gf_svg_new_svg()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "svg";
-	((GF_Node *p)->sgprivate->node_del = SVG_svg_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_svg_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_svg_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_svg_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -9985,72 +11858,150 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->sync->syncToleranceDefault;
 			return GF_OK;
 		case 56:
-			info->name = "viewBox";
-			info->fieldType = SVG_ViewBox_datatype;
-			info->far_ptr = & ((SVGsvgElement *)node)->viewBox;
-			return GF_OK;
-		case 57:
-			info->name = "zoomAndPan";
-			info->fieldType = SVG_ZoomAndPan_datatype;
-			info->far_ptr = & ((SVGsvgElement *)node)->zoomAndPan;
-			return GF_OK;
-		case 58:
-			info->name = "version";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGsvgElement *)node)->version;
-			return GF_OK;
-		case 59:
-			info->name = "baseProfile";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGsvgElement *)node)->baseProfile;
-			return GF_OK;
-		case 60:
-			info->name = "contentScriptType";
-			info->fieldType = SVG_ContentType_datatype;
-			info->far_ptr = & ((SVGsvgElement *)node)->contentScriptType;
-			return GF_OK;
-		case 61:
-			info->name = "snapshotTime";
-			info->fieldType = SVG_Clock_datatype;
-			info->far_ptr = & ((SVGsvgElement *)node)->snapshotTime;
-			return GF_OK;
-		case 62:
-			info->name = "timelineBegin";
-			info->fieldType = SVG_TimelineBegin_datatype;
-			info->far_ptr = & ((SVGsvgElement *)node)->timelineBegin;
-			return GF_OK;
-		case 63:
-			info->name = "playbackOrder";
-			info->fieldType = SVG_PlaybackOrder_datatype;
-			info->far_ptr = & ((SVGsvgElement *)node)->playbackOrder;
-			return GF_OK;
-		case 64:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->x;
 			return GF_OK;
-		case 65:
+		case 57:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->y;
 			return GF_OK;
-		case 66:
+		case 58:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->width;
 			return GF_OK;
-		case 67:
+		case 59:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->height;
 			return GF_OK;
-		case 68:
+		case 60:
 			info->name = "preserveAspectRatio";
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->preserveAspectRatio;
 			return GF_OK;
+		case 61:
+			info->name = "viewBox";
+			info->fieldType = SVG_ViewBox_datatype;
+			info->far_ptr = & ((SVGsvgElement *)node)->viewBox;
+			return GF_OK;
+		case 62:
+			info->name = "zoomAndPan";
+			info->fieldType = SVG_ZoomAndPan_datatype;
+			info->far_ptr = & ((SVGsvgElement *)node)->zoomAndPan;
+			return GF_OK;
+		case 63:
+			info->name = "version";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = & ((SVGsvgElement *)node)->version;
+			return GF_OK;
+		case 64:
+			info->name = "baseProfile";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = & ((SVGsvgElement *)node)->baseProfile;
+			return GF_OK;
+		case 65:
+			info->name = "contentScriptType";
+			info->fieldType = SVG_ContentType_datatype;
+			info->far_ptr = & ((SVGsvgElement *)node)->contentScriptType;
+			return GF_OK;
+		case 66:
+			info->name = "snapshotTime";
+			info->fieldType = SVG_Clock_datatype;
+			info->far_ptr = & ((SVGsvgElement *)node)->snapshotTime;
+			return GF_OK;
+		case 67:
+			info->name = "timelineBegin";
+			info->fieldType = SVG_TimelineBegin_datatype;
+			info->far_ptr = & ((SVGsvgElement *)node)->timelineBegin;
+			return GF_OK;
+		case 68:
+			info->name = "playbackOrder";
+			info->fieldType = SVG_PlaybackOrder_datatype;
+			info->far_ptr = & ((SVGsvgElement *)node)->playbackOrder;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
+}
+
+s32 gf_svg_svg_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("syncBehavior", name)) return 54;
+	if(!strcmp("syncBehaviorDefault", name)) return 55;
+	if(!strcmp("syncTolerance", name)) return 56;
+	if(!strcmp("syncToleranceDefault", name)) return 57;
+	if(!strcmp("syncMaster", name)) return 58;
+	if(!strcmp("syncReference", name)) return 59;
+	if(!strcmp("x", name)) return 60;
+	if(!strcmp("y", name)) return 61;
+	if(!strcmp("width", name)) return 62;
+	if(!strcmp("height", name)) return 63;
+	if(!strcmp("preserveAspectRatio", name)) return 64;
+	if(!strcmp("viewBox", name)) return 65;
+	if(!strcmp("zoomAndPan", name)) return 66;
+	if(!strcmp("version", name)) return 67;
+	if(!strcmp("baseProfile", name)) return 68;
+	if(!strcmp("contentScriptType", name)) return 69;
+	if(!strcmp("snapshotTime", name)) return 70;
+	if(!strcmp("timelineBegin", name)) return 71;
+	if(!strcmp("playbackOrder", name)) return 72;
+	return -1;
 }
 
 void *gf_svg_new_switch()
@@ -10062,8 +12013,8 @@ void *gf_svg_new_switch()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "switch";
-	((GF_Node *p)->sgprivate->node_del = SVG_switch_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_switch_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_switch_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_switch_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -10394,6 +12345,71 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_switch_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	return -1;
+}
+
 void *gf_svg_new_tbreak()
 {
 	SVGtbreakElement *p;
@@ -10403,8 +12419,8 @@ void *gf_svg_new_tbreak()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "tbreak";
-	((GF_Node *p)->sgprivate->node_del = SVG_tbreak_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_tbreak_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_tbreak_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_tbreak_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	return p;
@@ -10460,6 +12476,18 @@ static GF_Err gf_svg_tbreak_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_tbreak_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	return -1;
+}
+
 void *gf_svg_new_text()
 {
 	SVGtextElement *p;
@@ -10469,8 +12497,8 @@ void *gf_svg_new_text()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "text";
-	((GF_Node *p)->sgprivate->node_del = SVG_text_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_text_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_text_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_text_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -10802,27 +12830,96 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
-			info->name = "x";
-			info->fieldType = SVG_Coordinates_datatype;
-			info->far_ptr = & ((SVGtextElement *)node)->x;
-			return GF_OK;
-		case 62:
-			info->name = "y";
-			info->fieldType = SVG_Coordinates_datatype;
-			info->far_ptr = & ((SVGtextElement *)node)->y;
-			return GF_OK;
-		case 63:
-			info->name = "rotate";
-			info->fieldType = SVG_Numbers_datatype;
-			info->far_ptr = & ((SVGtextElement *)node)->rotate;
-			return GF_OK;
-		case 64:
 			info->name = "editable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->editable;
 			return GF_OK;
+		case 62:
+			info->name = "x";
+			info->fieldType = SVG_Coordinates_datatype;
+			info->far_ptr = & ((SVGtextElement *)node)->x;
+			return GF_OK;
+		case 63:
+			info->name = "y";
+			info->fieldType = SVG_Coordinates_datatype;
+			info->far_ptr = & ((SVGtextElement *)node)->y;
+			return GF_OK;
+		case 64:
+			info->name = "rotate";
+			info->fieldType = SVG_Numbers_datatype;
+			info->far_ptr = & ((SVGtextElement *)node)->rotate;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
+}
+
+s32 gf_svg_text_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("editable", name)) return 61;
+	if(!strcmp("x", name)) return 62;
+	if(!strcmp("y", name)) return 63;
+	if(!strcmp("rotate", name)) return 64;
+	return -1;
 }
 
 void *gf_svg_new_textArea()
@@ -10834,8 +12931,8 @@ void *gf_svg_new_textArea()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "textArea";
-	((GF_Node *p)->sgprivate->node_del = SVG_textArea_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_textArea_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_textArea_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_textArea_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -11163,32 +13260,102 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
-			info->name = "width";
-			info->fieldType = SVG_Length_datatype;
-			info->far_ptr = & ((SVGtextAreaElement *)node)->width;
-			return GF_OK;
-		case 62:
-			info->name = "height";
-			info->fieldType = SVG_Length_datatype;
-			info->far_ptr = & ((SVGtextAreaElement *)node)->height;
-			return GF_OK;
-		case 63:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->x;
 			return GF_OK;
-		case 64:
+		case 62:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->y;
 			return GF_OK;
-		case 65:
+		case 63:
 			info->name = "editable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->editable;
 			return GF_OK;
+		case 64:
+			info->name = "width";
+			info->fieldType = SVG_Length_datatype;
+			info->far_ptr = & ((SVGtextAreaElement *)node)->width;
+			return GF_OK;
+		case 65:
+			info->name = "height";
+			info->fieldType = SVG_Length_datatype;
+			info->far_ptr = & ((SVGtextAreaElement *)node)->height;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
+}
+
+s32 gf_svg_textArea_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("x", name)) return 61;
+	if(!strcmp("y", name)) return 62;
+	if(!strcmp("editable", name)) return 63;
+	if(!strcmp("width", name)) return 64;
+	if(!strcmp("height", name)) return 65;
+	return -1;
 }
 
 void *gf_svg_new_title()
@@ -11200,8 +13367,8 @@ void *gf_svg_new_title()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "title";
-	((GF_Node *p)->sgprivate->node_del = SVG_title_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_title_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_title_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_title_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	return p;
@@ -11257,6 +13424,18 @@ static GF_Err gf_svg_title_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_title_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	return -1;
+}
+
 void *gf_svg_new_tspan()
 {
 	SVGtspanElement *p;
@@ -11266,8 +13445,8 @@ void *gf_svg_new_tspan()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "tspan";
-	((GF_Node *p)->sgprivate->node_del = SVG_tspan_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_tspan_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_tspan_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_tspan_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -11586,6 +13765,70 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_tspan_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("requiredExtensions", name)) return 54;
+	if(!strcmp("requiredFeatures", name)) return 55;
+	if(!strcmp("requiredFonts", name)) return 56;
+	if(!strcmp("requiredFormats", name)) return 57;
+	if(!strcmp("systemLanguage", name)) return 58;
+	return -1;
+}
+
 void *gf_svg_new_use()
 {
 	SVGuseElement *p;
@@ -11595,8 +13838,8 @@ void *gf_svg_new_use()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "use";
-	((GF_Node *p)->sgprivate->node_del = SVG_use_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_use_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_use_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_use_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -11973,6 +14216,80 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+s32 gf_svg_use_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("color", name)) return 16;
+	if(!strcmp("color-rendering", name)) return 17;
+	if(!strcmp("display-align", name)) return 18;
+	if(!strcmp("fill", name)) return 19;
+	if(!strcmp("fill-opacity", name)) return 20;
+	if(!strcmp("fill-rule", name)) return 21;
+	if(!strcmp("font-family", name)) return 22;
+	if(!strcmp("font-size", name)) return 23;
+	if(!strcmp("font-style", name)) return 24;
+	if(!strcmp("font-weight", name)) return 25;
+	if(!strcmp("line-increment", name)) return 26;
+	if(!strcmp("solid-color", name)) return 27;
+	if(!strcmp("solid-opacity", name)) return 28;
+	if(!strcmp("stop-color", name)) return 29;
+	if(!strcmp("stop-opacity", name)) return 30;
+	if(!strcmp("stroke", name)) return 31;
+	if(!strcmp("stroke-dasharray", name)) return 32;
+	if(!strcmp("stroke-dashoffset", name)) return 33;
+	if(!strcmp("stroke-linecap", name)) return 34;
+	if(!strcmp("stroke-linejoin", name)) return 35;
+	if(!strcmp("stroke-miterlimit", name)) return 36;
+	if(!strcmp("stroke-opacity", name)) return 37;
+	if(!strcmp("stroke-width", name)) return 38;
+	if(!strcmp("text-align", name)) return 39;
+	if(!strcmp("text-anchor", name)) return 40;
+	if(!strcmp("vector-effect", name)) return 41;
+	if(!strcmp("focusHighlight", name)) return 42;
+	if(!strcmp("focusable", name)) return 43;
+	if(!strcmp("nav-down", name)) return 44;
+	if(!strcmp("nav-down-left", name)) return 45;
+	if(!strcmp("nav-down-right", name)) return 46;
+	if(!strcmp("nav-left", name)) return 47;
+	if(!strcmp("nav-next", name)) return 48;
+	if(!strcmp("nav-prev", name)) return 49;
+	if(!strcmp("nav-right", name)) return 50;
+	if(!strcmp("nav-up", name)) return 51;
+	if(!strcmp("nav-up-left", name)) return 52;
+	if(!strcmp("nav-up-right", name)) return 53;
+	if(!strcmp("xlink:href", name)) return 54;
+	if(!strcmp("xlink:show", name)) return 55;
+	if(!strcmp("xlink:title", name)) return 56;
+	if(!strcmp("xlink:actuate", name)) return 57;
+	if(!strcmp("xlink:role", name)) return 58;
+	if(!strcmp("xlink:arcrole", name)) return 59;
+	if(!strcmp("xlink:type", name)) return 60;
+	if(!strcmp("requiredExtensions", name)) return 61;
+	if(!strcmp("requiredFeatures", name)) return 62;
+	if(!strcmp("requiredFonts", name)) return 63;
+	if(!strcmp("requiredFormats", name)) return 64;
+	if(!strcmp("systemLanguage", name)) return 65;
+	if(!strcmp("transform", name)) return 66;
+	if(!strcmp("x", name)) return 68;
+	if(!strcmp("y", name)) return 69;
+	return -1;
+}
+
 void *gf_svg_new_video()
 {
 	SVGvideoElement *p;
@@ -11982,8 +14299,8 @@ void *gf_svg_new_video()
 	gf_sg_parent_setup((GF_Node *) p);
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *p)->sgprivate->name = "video";
-	((GF_Node *p)->sgprivate->node_del = SVG_video_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_video_get_attribute;
+	((GF_Node *p)->sgprivate->node_del = gf_svg_video_del;
+	((GF_Node *p)->sgprivate->get_field = gf_svg_video_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
@@ -12296,52 +14613,124 @@ static GF_Err gf_svg_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 57:
-			info->name = "transformBehavior";
-			info->fieldType = SVG_TransformBehavior_datatype;
-			info->far_ptr = & ((SVGvideoElement *)node)->transformBehavior;
-			return GF_OK;
-		case 58:
-			info->name = "overlay";
-			info->fieldType = SVG_Overlay_datatype;
-			info->far_ptr = & ((SVGvideoElement *)node)->overlay;
-			return GF_OK;
-		case 59:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->x;
 			return GF_OK;
-		case 60:
+		case 58:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->y;
 			return GF_OK;
-		case 61:
+		case 59:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->width;
 			return GF_OK;
-		case 62:
+		case 60:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->height;
 			return GF_OK;
-		case 63:
+		case 61:
 			info->name = "preserveAspectRatio";
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->preserveAspectRatio;
 			return GF_OK;
-		case 64:
+		case 62:
 			info->name = "type";
 			info->fieldType = SVG_ContentType_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->type;
 			return GF_OK;
-		case 65:
+		case 63:
 			info->name = "initialVisibility";
 			info->fieldType = SVG_InitialVisibility_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->initialVisibility;
 			return GF_OK;
+		case 64:
+			info->name = "transformBehavior";
+			info->fieldType = SVG_TransformBehavior_datatype;
+			info->far_ptr = & ((SVGvideoElement *)node)->transformBehavior;
+			return GF_OK;
+		case 65:
+			info->name = "overlay";
+			info->fieldType = SVG_Overlay_datatype;
+			info->far_ptr = & ((SVGvideoElement *)node)->overlay;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
+}
+
+s32 gf_svg_video_get_attribute_index_from_name(char *name)
+{
+	if(!strcmp("id", name)) return 0;
+	if(!strcmp("xml:id", name)) return 1;
+	if(!strcmp("class", name)) return 2;
+	if(!strcmp("xml:lang", name)) return 3;
+	if(!strcmp("xml:base", name)) return 4;
+	if(!strcmp("xml:space", name)) return 5;
+	if(!strcmp("externalResourcesRequired", name)) return 6;
+	if(!strcmp("audio-level", name)) return 7;
+	if(!strcmp("display", name)) return 8;
+	if(!strcmp("image-rendering", name)) return 9;
+	if(!strcmp("pointer-events", name)) return 10;
+	if(!strcmp("shape-rendering", name)) return 11;
+	if(!strcmp("text-rendering", name)) return 12;
+	if(!strcmp("viewport-fill", name)) return 13;
+	if(!strcmp("viewport-fill-opacity", name)) return 14;
+	if(!strcmp("visibility", name)) return 15;
+	if(!strcmp("focusHighlight", name)) return 16;
+	if(!strcmp("focusable", name)) return 17;
+	if(!strcmp("nav-down", name)) return 18;
+	if(!strcmp("nav-down-left", name)) return 19;
+	if(!strcmp("nav-down-right", name)) return 20;
+	if(!strcmp("nav-left", name)) return 21;
+	if(!strcmp("nav-next", name)) return 22;
+	if(!strcmp("nav-prev", name)) return 23;
+	if(!strcmp("nav-right", name)) return 24;
+	if(!strcmp("nav-up", name)) return 25;
+	if(!strcmp("nav-up-left", name)) return 26;
+	if(!strcmp("nav-up-right", name)) return 27;
+	if(!strcmp("xlink:href", name)) return 28;
+	if(!strcmp("xlink:show", name)) return 29;
+	if(!strcmp("xlink:title", name)) return 30;
+	if(!strcmp("xlink:actuate", name)) return 31;
+	if(!strcmp("xlink:role", name)) return 32;
+	if(!strcmp("xlink:arcrole", name)) return 33;
+	if(!strcmp("xlink:type", name)) return 34;
+	if(!strcmp("begin", name)) return 35;
+	if(!strcmp("end", name)) return 36;
+	if(!strcmp("dur", name)) return 37;
+	if(!strcmp("repeatCount", name)) return 38;
+	if(!strcmp("repeatDur", name)) return 39;
+	if(!strcmp("restart", name)) return 40;
+	if(!strcmp("min", name)) return 41;
+	if(!strcmp("max", name)) return 42;
+	if(!strcmp("fill", name)) return 43;
+	if(!strcmp("clipBegin", name)) return 44;
+	if(!strcmp("clipEnd", name)) return 45;
+	if(!strcmp("syncBehavior", name)) return 46;
+	if(!strcmp("syncBehaviorDefault", name)) return 47;
+	if(!strcmp("syncTolerance", name)) return 48;
+	if(!strcmp("syncToleranceDefault", name)) return 49;
+	if(!strcmp("syncMaster", name)) return 50;
+	if(!strcmp("syncReference", name)) return 51;
+	if(!strcmp("requiredExtensions", name)) return 52;
+	if(!strcmp("requiredFeatures", name)) return 53;
+	if(!strcmp("requiredFonts", name)) return 54;
+	if(!strcmp("requiredFormats", name)) return 55;
+	if(!strcmp("systemLanguage", name)) return 56;
+	if(!strcmp("transform", name)) return 57;
+	if(!strcmp("x", name)) return 59;
+	if(!strcmp("y", name)) return 60;
+	if(!strcmp("width", name)) return 61;
+	if(!strcmp("height", name)) return 62;
+	if(!strcmp("preserveAspectRatio", name)) return 63;
+	if(!strcmp("type", name)) return 64;
+	if(!strcmp("initialVisibility", name)) return 65;
+	if(!strcmp("transformBehavior", name)) return 66;
+	if(!strcmp("overlay", name)) return 67;
+	return -1;
 }
 
 SVGElement *gf_svg_create_node(u32 ElementTag)
@@ -12695,6 +15084,65 @@ const char *gf_svg_get_element_name(u32 tag)
 	case TAG_SVG_use: return "use";
 	case TAG_SVG_video: return "video";
 	default: return "UndefinedNode";
+	}
+}
+
+s32 gf_svg_get_attribute_index_by_name(GF_Node *node, char *name)
+{
+	switch(node->sgprivate->tag) {
+	case TAG_SVG_a: return gf_svg_a_get_attribute_index_from_name(name);
+	case TAG_SVG_animate: return gf_svg_animate_get_attribute_index_from_name(name);
+	case TAG_SVG_animateColor: return gf_svg_animateColor_get_attribute_index_from_name(name);
+	case TAG_SVG_animateMotion: return gf_svg_animateMotion_get_attribute_index_from_name(name);
+	case TAG_SVG_animateTransform: return gf_svg_animateTransform_get_attribute_index_from_name(name);
+	case TAG_SVG_animation: return gf_svg_animation_get_attribute_index_from_name(name);
+	case TAG_SVG_audio: return gf_svg_audio_get_attribute_index_from_name(name);
+	case TAG_SVG_circle: return gf_svg_circle_get_attribute_index_from_name(name);
+	case TAG_SVG_conditional: return gf_svg_conditional_get_attribute_index_from_name(name);
+	case TAG_SVG_cursorManager: return gf_svg_cursorManager_get_attribute_index_from_name(name);
+	case TAG_SVG_defs: return gf_svg_defs_get_attribute_index_from_name(name);
+	case TAG_SVG_desc: return gf_svg_desc_get_attribute_index_from_name(name);
+	case TAG_SVG_discard: return gf_svg_discard_get_attribute_index_from_name(name);
+	case TAG_SVG_ellipse: return gf_svg_ellipse_get_attribute_index_from_name(name);
+	case TAG_SVG_font: return gf_svg_font_get_attribute_index_from_name(name);
+	case TAG_SVG_font_face: return gf_svg_font_face_get_attribute_index_from_name(name);
+	case TAG_SVG_font_face_src: return gf_svg_font_face_src_get_attribute_index_from_name(name);
+	case TAG_SVG_font_face_uri: return gf_svg_font_face_uri_get_attribute_index_from_name(name);
+	case TAG_SVG_foreignObject: return gf_svg_foreignObject_get_attribute_index_from_name(name);
+	case TAG_SVG_g: return gf_svg_g_get_attribute_index_from_name(name);
+	case TAG_SVG_glyph: return gf_svg_glyph_get_attribute_index_from_name(name);
+	case TAG_SVG_handler: return gf_svg_handler_get_attribute_index_from_name(name);
+	case TAG_SVG_hkern: return gf_svg_hkern_get_attribute_index_from_name(name);
+	case TAG_SVG_image: return gf_svg_image_get_attribute_index_from_name(name);
+	case TAG_SVG_line: return gf_svg_line_get_attribute_index_from_name(name);
+	case TAG_SVG_linearGradient: return gf_svg_linearGradient_get_attribute_index_from_name(name);
+	case TAG_SVG_listener: return gf_svg_listener_get_attribute_index_from_name(name);
+	case TAG_SVG_metadata: return gf_svg_metadata_get_attribute_index_from_name(name);
+	case TAG_SVG_missing_glyph: return gf_svg_missing_glyph_get_attribute_index_from_name(name);
+	case TAG_SVG_mpath: return gf_svg_mpath_get_attribute_index_from_name(name);
+	case TAG_SVG_path: return gf_svg_path_get_attribute_index_from_name(name);
+	case TAG_SVG_polygon: return gf_svg_polygon_get_attribute_index_from_name(name);
+	case TAG_SVG_polyline: return gf_svg_polyline_get_attribute_index_from_name(name);
+	case TAG_SVG_prefetch: return gf_svg_prefetch_get_attribute_index_from_name(name);
+	case TAG_SVG_radialGradient: return gf_svg_radialGradient_get_attribute_index_from_name(name);
+	case TAG_SVG_rect: return gf_svg_rect_get_attribute_index_from_name(name);
+	case TAG_SVG_rectClip: return gf_svg_rectClip_get_attribute_index_from_name(name);
+	case TAG_SVG_script: return gf_svg_script_get_attribute_index_from_name(name);
+	case TAG_SVG_selector: return gf_svg_selector_get_attribute_index_from_name(name);
+	case TAG_SVG_set: return gf_svg_set_get_attribute_index_from_name(name);
+	case TAG_SVG_simpleLayout: return gf_svg_simpleLayout_get_attribute_index_from_name(name);
+	case TAG_SVG_solidColor: return gf_svg_solidColor_get_attribute_index_from_name(name);
+	case TAG_SVG_stop: return gf_svg_stop_get_attribute_index_from_name(name);
+	case TAG_SVG_svg: return gf_svg_svg_get_attribute_index_from_name(name);
+	case TAG_SVG_switch: return gf_svg_switch_get_attribute_index_from_name(name);
+	case TAG_SVG_tbreak: return gf_svg_tbreak_get_attribute_index_from_name(name);
+	case TAG_SVG_text: return gf_svg_text_get_attribute_index_from_name(name);
+	case TAG_SVG_textArea: return gf_svg_textArea_get_attribute_index_from_name(name);
+	case TAG_SVG_title: return gf_svg_title_get_attribute_index_from_name(name);
+	case TAG_SVG_tspan: return gf_svg_tspan_get_attribute_index_from_name(name);
+	case TAG_SVG_use: return gf_svg_use_get_attribute_index_from_name(name);
+	case TAG_SVG_video: return gf_svg_video_get_attribute_index_from_name(name);
+	default: return -1;
 	}
 }
 

@@ -90,8 +90,8 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 	GF_Event evt;
 	u32 width,height;
 	
-	/*reconfig audio if needed*/
-	if (sr->audio_renderer) gf_sr_ar_reconfig(sr->audio_renderer);
+	/*reconfig audio if needed (non-threaded renderers)*/
+	if (sr->audio_renderer && !sr->audio_renderer->th) gf_sr_ar_reconfig(sr->audio_renderer);
 
 	if (sr->msg_type) {
 		/*scene size has been overriden*/
@@ -108,6 +108,7 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 		if (sr->msg_type & GF_SR_CFG_SET_SIZE) {
 			u32 fs_width, fs_height;
 			Bool restore_fs = sr->fullscreen;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Changing display size to %d x %d\n", sr->new_width, sr->new_height));
 			fs_width = fs_height = 0;
 			if (restore_fs) {
 				//gf_sr_set_fullscreen(sr);
@@ -250,6 +251,7 @@ static GF_Renderer *SR_New(GF_User *user)
 				if ((tmp->visual_renderer->bNeedsGL && (user->init_flags & GF_TERM_FORCE_2D)) 
 					|| (!tmp->visual_renderer->bNeedsGL && (user->init_flags & GF_TERM_FORCE_3D)) ) {
 
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Renderer %s loaded but not matching init flags %08x\n", tmp->visual_renderer->module_name, user->init_flags));
 					gf_modules_close_interface((GF_BaseInterface *)tmp->visual_renderer);
 					tmp->visual_renderer = NULL;
 					continue;
@@ -261,6 +263,7 @@ static GF_Renderer *SR_New(GF_User *user)
 	}
 
 	if (!tmp->visual_renderer) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RENDER, ("[Renderer] Cannot load any visual renderer - aborting\n"));
 		free(tmp);
 		return NULL;
 	}
@@ -350,8 +353,10 @@ static GF_Renderer *SR_New(GF_User *user)
 	tmp->frame_rate = 30.0;	
 	tmp->frame_duration = 33;
 	tmp->time_nodes = gf_list_new();
+#ifdef GF_SR_EVENT_QUEUE
 	tmp->events = gf_list_new();
 	tmp->ev_mx = gf_mx_new();
+#endif
 	
 	SR_ResetFrameRate(tmp);	
 	/*set font engine if any*/
@@ -403,6 +408,7 @@ void gf_sr_del(GF_Renderer *sr)
 {
 	if (!sr) return;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Destroying Renderer\n"));
 	gf_sr_lock(sr, 1);
 
 	if (sr->VisualThread) {
@@ -411,25 +417,33 @@ void gf_sr_del(GF_Renderer *sr)
 		gf_th_del(sr->VisualThread);
 	}
 	if (sr->video_out) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Closing video output\n"));
 		sr->video_out->Shutdown(sr->video_out);
 		gf_modules_close_interface((GF_BaseInterface *)sr->video_out);
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Closing visual renderer\n"));
 	sr->visual_renderer->UnloadRenderer(sr->visual_renderer);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Unloading visual renderer module\n"));
 	gf_modules_close_interface((GF_BaseInterface *)sr->visual_renderer);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] visual renderer module unloaded\n"));
 
 	if (sr->audio_renderer) gf_sr_ar_del(sr->audio_renderer);
 
+#ifdef GF_SR_EVENT_QUEUE
 	gf_mx_p(sr->ev_mx);
 	while (gf_list_count(sr->events)) {
-		GF_UserEvent *ev = (GF_UserEvent *)gf_list_get(sr->events, 0);
+		GF_Event *ev = (GF_Event *)gf_list_get(sr->events, 0);
 		gf_list_rem(sr->events, 0);
 		free(ev);
 	}
 	gf_mx_v(sr->ev_mx);
 	gf_mx_del(sr->ev_mx);
 	gf_list_del(sr->events);
+#endif
+
 
 	if (sr->font_engine) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Closing font engine\n"));
 		sr->font_engine->shutdown_font_engine(sr->font_engine);
 		gf_modules_close_interface((GF_BaseInterface *)sr->font_engine);
 	}
@@ -439,6 +453,7 @@ void gf_sr_del(GF_Renderer *sr)
 	gf_sr_lock(sr, 0);
 	gf_mx_del(sr->mx);
 	free(sr);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Renderer destroyed\n"));
 }
 
 void gf_sr_set_fps(GF_Renderer *sr, Double fps)
@@ -489,8 +504,8 @@ static GF_Err SR_SetSceneSize(GF_Renderer *sr, u32 Width, u32 Height)
 			sr->scene_width = 320;
 		} else {
 			/*use current res*/
-			sr->scene_width = sr->width;
-			sr->scene_height = (sr->height==20) ? 240 : sr->height;
+			sr->scene_width = sr->width ? sr->width : sr->new_width;
+			sr->scene_height = (sr->height==20) ? 240 : (sr->height ? sr->height : sr->new_height);
 		}
 	} else {
 		sr->has_size_info = 1;
@@ -552,15 +567,19 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	if (sr->audio_renderer && (sr->scene != scene_graph)) 
 		gf_sr_ar_reset(sr->audio_renderer);
 
+#ifdef GF_SR_EVENT_QUEUE
 	gf_mx_p(sr->ev_mx);
 	while (gf_list_count(sr->events)) {
-		GF_UserEvent *ev = (GF_UserEvent *)gf_list_get(sr->events, 0);
+		GF_Event *ev = (GF_Event*)gf_list_get(sr->events, 0);
 		gf_list_rem(sr->events, 0);
 		free(ev);
 	}
+#endif
 	
 	/*reset main surface*/
 	sr->visual_renderer->SceneReset(sr->visual_renderer);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, (scene_graph ? "[Render] Attaching new scene\n" : "[Render] Detaching scene\n"));
 
 	/*set current graph*/
 	sr->scene = scene_graph;
@@ -640,7 +659,10 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	}
 
 	SR_ResetFrameRate(sr);	
+#ifdef GF_SR_EVENT_QUEUE
 	gf_mx_v(sr->ev_mx);
+#endif
+	
 	gf_sr_lock(sr, 0);
 	/*here's a nasty trick: the app may respond to this by calling a gf_sr_set_size from a different
 	thread, but in an atomic way (typically happen on Win32 when changing the window size). WE MUST
@@ -957,51 +979,6 @@ void gf_sr_unregister_time_node(GF_Renderer *sr, GF_TimeNode *tn)
 }
 
 
-static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event)
-{
-	GF_UserEvent *ev;
-
-	if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVENT_MOUSEWHEEL))
-		gf_term_mouse_input(sr->term, &event->mouse);
-
-	if (!sr->interaction_level || (sr->interaction_level==GF_INTERACT_INPUT_SENSOR) ) {
-		GF_USER_SENDEVENT(sr->user, event);
-		return;
-	}
-
-	switch (event->type) {
-	case GF_EVENT_MOUSEMOVE:
-	{
-		u32 i, count;
-		gf_mx_p(sr->ev_mx);
-		count = gf_list_count(sr->events);
-		for (i=0; i<count; i++) {
-			ev = (GF_UserEvent *)gf_list_get(sr->events, i);
-			if (ev->event_type == GF_EVENT_MOUSEMOVE) {
-				ev->mouse =  event->mouse;
-				gf_mx_v(sr->ev_mx);
-				return;
-			}
-		}
-		gf_mx_v(sr->ev_mx);
-	}
-	default:
-		ev = (GF_UserEvent *)malloc(sizeof(GF_UserEvent));
-		ev->event_type = event->type;
-		if (event->type<=GF_EVENT_MOUSEWHEEL) {
-			ev->mouse = event->mouse;
-		} else if (event->type==GF_EVENT_TEXTINPUT) {
-			ev->character = event->character;
-		} else {
-			ev->key = event->key;
-		}
-		gf_mx_p(sr->ev_mx);
-		gf_list_add(sr->events, ev);
-		gf_mx_v(sr->ev_mx);
-		break;
-	}
-}
-
 
 GF_Node *gf_sr_pick_node(GF_Renderer *sr, s32 X, s32 Y)
 {
@@ -1010,20 +987,13 @@ GF_Node *gf_sr_pick_node(GF_Renderer *sr, s32 X, s32 Y)
 
 static u32 last_lclick_time = 0;
 
-static void SR_ForwardUserEvent(GF_Renderer *sr, GF_UserEvent *ev)
+static void SR_ForwardUserEvent(GF_Renderer *sr, GF_Event *ev)
 {
-	GF_Event event;
+	GF_USER_SENDEVENT(sr->user, ev);
 
-	event.type = ev->event_type;
-	if (ev->event_type<=GF_EVENT_MOUSEWHEEL) {
-		event.mouse = ev->mouse;
-	} else {
-		event.key = ev->key;
-	}
-	GF_USER_SENDEVENT(sr->user, &event);
-
-	if ((ev->event_type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		u32 now;
+		GF_Event event;
 		/*emulate doubleclick*/
 		now = gf_sys_clock();
 		if (now - last_lclick_time < 250) {
@@ -1043,6 +1013,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 
 	/*lock renderer for the whole render cycle*/
 	gf_sr_lock(sr, 1);
+
 	/*first thing to do, let the video output handle user event if it is not threaded*/
 	sr->video_out->ProcessEvent(sr->video_out, NULL);
 
@@ -1067,10 +1038,11 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	in_time = gf_sys_clock();
 	if (sr->reset_graphics) sr->draw_next_frame = 1;
 
+#ifdef GF_SR_EVENT_QUEUE
 	/*process pending user events*/
 	gf_mx_p(sr->ev_mx);
 	while (gf_list_count(sr->events)) {
-		GF_UserEvent *ev = (GF_UserEvent *)gf_list_get(sr->events, 0);
+		GF_Event *ev = (GF_Event*)gf_list_get(sr->events, 0);
 		gf_list_rem(sr->events, 0);
 		if (!sr->visual_renderer->ExecuteEvent(sr->visual_renderer, ev)) {
 			SR_ForwardUserEvent(sr, ev);
@@ -1078,6 +1050,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		free(ev);
 	}
 	gf_mx_v(sr->ev_mx);
+#endif
 
 
 #if 0
@@ -1144,8 +1117,9 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	/*if invalidated, draw*/
 	if (sr->draw_next_frame) {
 		sr->draw_next_frame = 0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Redrawing scene\n"));
 		sr->visual_renderer->DrawScene(sr->visual_renderer);
-#if 1
+#if 0
 		if (sr->frame_number == 0 && sr->user->EventProc) {
 			GF_Event evt;
 			evt.type = GF_EVENT_UPDATE_RTI;
@@ -1189,7 +1163,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	sr->frame_time[sr->current_frame] = end_time;
 
 	sr->frame_number++;
-#if 1
+#if 0
 	if (sr->user->EventProc) {
 		char legend[100];
 		GF_Event evt;
@@ -1207,14 +1181,14 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		return;
 	}
 	/*not threaded, let the owner decide*/
-	if (!sr->VisualThread || !sr->frame_duration) return;
+	if ((sr->user->init_flags & GF_TERM_NO_VISUAL_THREAD) || !sr->frame_duration) return;
 
 	/*compute sleep time till next frame, otherwise we'll kill the CPU*/
 	i=1;
 	while (i * sr->frame_duration < end_time) i++;
 	in_time = i * sr->frame_duration - end_time;
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Sleeping for %d ms\n", in_time));
 	gf_sleep(in_time);
-
 }
 
 GF_Err gf_sr_get_viewpoint(GF_Renderer *sr, u32 viewpoint_idx, const char **outName, Bool *is_bound)
@@ -1233,11 +1207,74 @@ void gf_sr_render_inline(GF_Renderer *sr, GF_Node *inline_parent, GF_Node *inlin
 	if (sr->visual_renderer->RenderInline) sr->visual_renderer->RenderInline(sr->visual_renderer, inline_parent, inline_root, rs);
 }
 
-static void gf_sr_on_event(void *cbck, GF_Event *event)
+
+static Bool SR_UserInputIntern(GF_Renderer *sr, GF_Event *event, Bool from_user)
 {
-	GF_Renderer *sr = (GF_Renderer *)cbck;
+#ifdef GF_SR_EVENT_QUEUE
+	GF_Event *ev;
+#else
+	Bool ret;
+#endif
+
+	if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVENT_MOUSEWHEEL))
+		gf_term_mouse_input(sr->term, &event->mouse);
+
+	if (!sr->interaction_level || (sr->interaction_level==GF_INTERACT_INPUT_SENSOR) ) {
+		if (!from_user) {
+			GF_USER_SENDEVENT(sr->user, event);
+		}
+		return 0;
+	}
+
+#ifdef GF_SR_EVENT_QUEUE
+	switch (event->type) {
+	case GF_EVENT_MOUSEMOVE:
+	{
+		u32 i, count;
+		gf_mx_p(sr->ev_mx);
+		count = gf_list_count(sr->events);
+		for (i=0; i<count; i++) {
+			ev = (GF_Event *)gf_list_get(sr->events, i);
+			if (ev->type == GF_EVENT_MOUSEMOVE) {
+				ev->mouse =  event->mouse;
+				gf_mx_v(sr->ev_mx);
+				return 1;
+			}
+		}
+		gf_mx_v(sr->ev_mx);
+	}
+	default:
+		ev = (GF_Event *)malloc(sizeof(GF_Event));
+		ev->type = event->type;
+		if (event->type<=GF_EVENT_MOUSEWHEEL) {
+			ev->mouse = event->mouse;
+		} else if (event->type==GF_EVENT_TEXTINPUT) {
+			ev->character = event->character;
+		} else {
+			ev->key = event->key;
+		}
+		gf_mx_p(sr->ev_mx);
+		gf_list_add(sr->events, ev);
+		gf_mx_v(sr->ev_mx);
+		break;
+	}
+	return 0;
+#else
+	gf_mx_p(sr->mx);
+	ret = sr->visual_renderer->ExecuteEvent(sr->visual_renderer, event);
+	gf_mx_v(sr->mx);
+	if (!ret && !from_user) {
+		SR_ForwardUserEvent(sr, event);
+	}
+	return ret;
+#endif
+}
+
+
+static Bool gf_sr_on_event_ex(GF_Renderer *sr , GF_Event *event, Bool from_user)
+{
 	/*not assigned yet*/
-	if (!sr || !sr->visual_renderer) return;
+	if (!sr || !sr->visual_renderer) return 0;
 
 	switch (event->type) {
 	case GF_EVENT_REFRESH:
@@ -1294,14 +1331,12 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) ) {
 			gf_term_keyboard_input(sr->term, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYUP) ? 1 : 0);
 		}		
-		SR_UserInputIntern(sr, event);
-		break;
+		return SR_UserInputIntern(sr, event, from_user);
 
 	case GF_EVENT_TEXTINPUT:
 		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) )
 			gf_term_string_input(sr->term , event->character.unicode_char);
-		SR_UserInputIntern(sr, event);
-		break;
+		return SR_UserInputIntern(sr, event, from_user);
 	/*switch fullscreen off!!!*/
 	case GF_EVENT_SHOWHIDE:
 		gf_sr_set_option(sr, GF_OPT_FULLSCREEN, !sr->fullscreen);
@@ -1317,27 +1352,31 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 	case GF_EVENT_MOUSEUP:
 	case GF_EVENT_MOUSEWHEEL:
 		event->mouse.key_states = sr->key_states;
-		SR_UserInputIntern(sr, event);
-		break;
+		return SR_UserInputIntern(sr, event, from_user);
 
 	/*when we process events we don't forward them to the user*/
 	default:
 		GF_USER_SENDEVENT(sr->user, event);
 		break;
 	}
+	return 1;
 }
 
+static void gf_sr_on_event(void *cbck, GF_Event *event)
+{
+	gf_sr_on_event_ex((GF_Renderer *)cbck, event, 0);
+}
 
-void gf_sr_user_event(GF_Renderer *sr, GF_Event *event)
+Bool gf_sr_user_event(GF_Renderer *sr, GF_Event *event)
 {
 	switch (event->type) {
 	case GF_EVENT_SHOWHIDE:
 	case GF_EVENT_MOVE:
 	case GF_EVENT_SET_CAPTION:
 		sr->video_out->ProcessEvent(sr->video_out, event);
-		break;
+		return 0;
 	default:
-		gf_sr_on_event(sr, event);
+		return gf_sr_on_event_ex(sr, event, 1);
 	}
 }
 

@@ -38,18 +38,19 @@ typedef struct
 	Bool has_common_key;
 } ISMACrypInfo; 
 
-void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_space, GF_List *attributes)
+void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	GF_XMLAttribute *att;
 	GF_TrackCryptInfo *tkc;
-	u32 i=0;
+	u32 i;
 	ISMACrypInfo *info = (ISMACrypInfo *)sax_cbck;
 	if (stricmp(node_name, "ISMACrypTrack")) return;
 
 	GF_SAFEALLOC(tkc, GF_TrackCryptInfo);
 	gf_list_add(info->tcis, tkc);
 
-	while ( (att = (GF_XMLAttribute *) gf_list_enum(attributes, &i))) {
+	for (i=0; i<nb_attributes; i++) {
+		att = (GF_XMLAttribute *) &attributes[i];
 		if (!stricmp(att->name, "trackID") || !stricmp(att->name, "ID")) {
 			if (!strcmp(att->value, "*")) info->has_common_key = 1;
 			else tkc->trackID = atoi(att->value);

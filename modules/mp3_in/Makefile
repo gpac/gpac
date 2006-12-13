@@ -27,7 +27,7 @@ CFLAGS+=-DGPAC_HAS_MAD
 #local mad lib
 ifeq ($(CONFIG_MAD), local)
 EXTRALIBS+=-L../../extra_lib/lib/gcc
-CFLAGS+= -I../../extra_lib/include/mad
+CFLAGS+= -I$(LOCAL_INC_PATH)/mad
 endif
 EXTRALIBS+= -lmad
 endif
