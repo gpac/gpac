@@ -240,6 +240,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 	cfg_changed = 0;
 	ch_cfg = 0;
 
+	max_sample_rate = 0,
 
 	count = gf_list_count(am->sources);
 	assert(count);
@@ -256,10 +257,10 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 		} else continue;
 		/*update out cfg*/
 		if ((count==1) && (max_sample_rate != in->src->sr)) {
-			cfg_changed = 1;
+//			cfg_changed = 1;
 			max_sample_rate = in->src->sr;
 		} else if (max_sample_rate<in->src->sr) {
-			cfg_changed = 1;
+//			cfg_changed = 1;
 			max_sample_rate = in->src->sr;
 		}
 		if ((count==1) && (max_bps!=in->src->bps)) {
@@ -284,12 +285,13 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 		numInit++;
 		in->bytes_per_sec = in->src->sr * in->src->chan * in->src->bps / 8;
 		/*cfg has changed, we must reconfig everything*/
-		if (cfg_changed) continue;
-		in->has_prev = 0;
-		memset(&in->last_channels, 0, sizeof(s16)*GF_SR_MAX_CHANNELS);
+		if (cfg_changed || (max_sample_rate != am->sample_rate) ) {
+			in->has_prev = 0;
+			memset(&in->last_channels, 0, sizeof(s16)*GF_SR_MAX_CHANNELS);
+		}
 	}
 	
-	if (cfg_changed) {
+	if (cfg_changed || (max_sample_rate && (max_sample_rate != am->sample_rate)) ) {
 		if (max_channels>2) {
 			if (ch_cfg != am->channel_cfg) {
 				/*recompute num channel based on all input channels*/
@@ -465,12 +467,23 @@ static void AM_GetInputData(GF_AudioMixer *am, MixerInput *in, u32 audio_delay)
 		return;
 	}
 
+#if 0
+	for (i=0;i<src_samp; i++) {
+		*(in->ch_buf[0] + in->out_samples_written) = (s32) (in_s16[2*i]);
+		*(in->ch_buf[1] + in->out_samples_written) = (s32) (in_s16[2*i+1]);
+		in->out_samples_written ++;
+		if (in->out_samples_written == in->out_samples_to_write) break;
+	}
+	in->in_bytes_used = i*in->src->bps * in->src->chan / 8 + 1;
+	return;
+#endif
+
 	/*while space to fill and input data, convert*/
 	use_prev = in->has_prev;
 	i = 0;
 	next = prev = 0;
 	while (1) {
-		prev = (u32) (i*ratio) / 255;
+		prev = (u32) (i*ratio + 1) / 255;
 		if (prev>=src_samp) break;
 
 		next = prev+1;
@@ -495,7 +508,7 @@ static void AM_GetInputData(GF_AudioMixer *am, MixerInput *in, u32 audio_delay)
 		am_map_channels(inChan, in_ch, in->src->ch_cfg, out_ch, am->channel_cfg);
 
 		for (j=0; j<out_ch ; j++) {
-			in->ch_buf[j][in->out_samples_written] = (s32) (inChan[j] * FIX2INT(100*in->pan[j]) / 100 );
+			*(in->ch_buf[j] + in->out_samples_written) = (s32) (inChan[j] * FIX2INT(100*in->pan[j]) / 100 );
 		}
 
 		in->out_samples_written ++;
@@ -535,8 +548,8 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size)
 	MixerInput *in, *single_source;
 	Fixed pan[6];
 	Bool is_muted;
-	u32 i, j, count, size, in_size, nb_samples, delay, nb_written, nb_act_src;
-	s32 *out_mix;
+	u32 i, j, count, size, in_size, nb_samples, delay, nb_written;
+	s32 *out_mix, nb_act_src;
 	char *data, *ptr;
 
 	/*the config has changed we don't write to output since settings change*/
@@ -571,7 +584,6 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size)
 	if (single_source->src->chan != am->nb_channels) goto do_mix;
 	if (single_source->src->GetSpeed(single_source->src->callback)!=FIX_ONE) goto do_mix;
 	if (single_source->src->GetChannelVolume(single_source->src->callback, pan)) goto do_mix;
-
 
 single_source_mix:
 
@@ -703,8 +715,8 @@ do_mix:
 				(*out_mix) += * (in->ch_buf[k] + j);
 				out_mix += 1;
 			}
-			if (nb_written < in->out_samples_written) nb_written = in->out_samples_written;
 		}
+		if (nb_written < in->out_samples_written) nb_written = in->out_samples_written;
 	}
 
 	out_mix = am->output;
@@ -735,7 +747,7 @@ do_mix:
 	}
 
 	nb_written *= am->nb_channels*am->bits_per_sample/8;
-	if (am->ar && (buffer_size > nb_written)) memset((char *)buffer + nb_written, 0, sizeof(char)*(buffer_size-nb_written));
+//	if (am->ar && (buffer_size > nb_written)) memset((char *)buffer + nb_written, 0, sizeof(char)*(buffer_size-nb_written));
 	gf_mixer_lock(am, 0);
 	return nb_written;
 }

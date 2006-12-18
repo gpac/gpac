@@ -96,7 +96,7 @@ typedef struct _media_sensor
 void InitMediaSensor(GF_InlineScene *is, GF_Node *node);
 void MS_Modified(GF_Node *node);
 
-void MS_UpdateTiming(GF_ObjectManager *odm);
+void MS_UpdateTiming(GF_ObjectManager *odm, Bool is_eos);
 void MS_Stop(MediaSensorStack *st);
 
 

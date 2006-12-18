@@ -219,14 +219,12 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		break;
 
 	case GF_EVENT_SCENE_SIZE:
-		gpac->orig_width = evt->size.width;
-		gpac->orig_height = evt->size.height;
-#if 0
-		if (gpac->m_term && !pFrame->m_bFullScreen) 
-			pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
-#else
-			gf_term_set_size(gpac->m_term, 240, 234);
-#endif
+		if (evt->size.width && evt->size.height) {
+			gpac->orig_width = evt->size.width;
+			gpac->orig_height = evt->size.height;
+			if (gpac->m_term && !pFrame->m_bFullScreen) 
+				pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
+		}
 		break;
 	/*don't resize on win32 msg notif*/
 	case GF_EVENT_SIZE:
@@ -708,6 +706,11 @@ void WinGPAC::ReloadTerminal()
 	pFrame->console_message = "GPAC Terminal reloaded";
 	m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
 	UpdateRenderSwitch();
+
+	RECT rc;
+	((CMainFrame *) m_pMainWnd)->m_pWndView->GetClientRect(&rc);
+	gf_term_set_size(m_term, rc.right - rc.left, rc.bottom - rc.top);
+
 	if (reconnect) m_pMainWnd->PostMessage(WM_OPENURL);
 	else {
 		const char *sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "StartupFile");

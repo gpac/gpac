@@ -52,6 +52,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	GF_FontRaster *ft_dr = eff->surface->render->compositor->font_engine;
   
 	if (!ft_dr) return;
+	return;
 
 	SVG_Render_base(node, eff, &backup_props);
 

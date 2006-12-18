@@ -35,7 +35,7 @@
 #include <gpac/scenegraph_svg.h>
 
 
-//#define GF_CYCLIC_RENDER_ON
+#define GF_CYCLIC_RENDER_ON
 
 //#define GF_ARRAY_PARENT_NODES
 

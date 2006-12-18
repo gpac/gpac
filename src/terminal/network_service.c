@@ -239,6 +239,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	root = service->owner;
 	is = root->subscene ? root->subscene : root->parentscene;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[Service %s] %s\n", service->url, media_desc ? "Adding new media object" : "Regenerating scene graph"));
 	if (!media_desc) {
 		if (!no_scene_check) gf_is_regenerate(is);
 		return;
@@ -442,7 +443,8 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	/*path absolute*/
 	if (!sURL) {
 		char *tmp = (char *) url;
-		if (!strnicmp(url, "file://", 7)) tmp += 7;
+		if (!strnicmp(url, "file:///", 8)) tmp += 8;
+		else if (!strnicmp(url, "file://", 7)) tmp += 7;
 		if ((tmp[0]=='/') && (tmp[2]==':')) tmp += 1;
 		sURL = strdup(tmp);
 	}

@@ -31,6 +31,7 @@
 
 /*GPAC memory tracking*/
 size_t gpac_allocated_memory = 0;
+size_t gpac_nb_alloc_blocs = 0;
 void *gf_malloc(size_t size)
 {
 	void *ptr;
@@ -38,6 +39,7 @@ void *gf_malloc(size_t size)
 	ptr = malloc(size_g);
 	*(size_t *)ptr = size;
 	gpac_allocated_memory += size;
+	gpac_nb_alloc_blocs++;
 	return (void *) ( (char *)ptr + sizeof(size_t) );
 }
 void *gf_realloc(void *ptr, size_t size)
@@ -65,6 +67,7 @@ void gf_free(void *ptr)
 		assert(gpac_allocated_memory >= size_g);
 #endif
 		gpac_allocated_memory -= size_g;
+		gpac_nb_alloc_blocs--;
 		free(ptr_g);
 	}
 }

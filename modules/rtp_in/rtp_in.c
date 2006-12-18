@@ -200,6 +200,7 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 	if (priv->dnload) gf_term_download_del(priv->dnload);
 	priv->dnload = NULL;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[RTP] Opening service %s\n", url));
 
 	/*load preferences*/
 	RT_LoadPrefs(plug, priv);
@@ -240,8 +241,10 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 static GF_Err RP_CloseService(GF_InputService *plug)
 {
 	RTPClient *rtp = (RTPClient *)plug->priv;
-	RP_close_service_thread(rtp);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[RTP] Closing service\n"));
+//	RP_close_service_thread(rtp);
 	if (rtp->th_state==1) rtp->th_state = 0;
+	gf_term_on_disconnect(rtp->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -250,6 +253,7 @@ static GF_Descriptor *RP_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 	GF_Descriptor *desc;
 	RTPClient *priv = (RTPClient *)plug->priv;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[RTP] Fetching service descriptor\n"));
 	if ((expect_type!=GF_MEDIA_OBJECT_UNDEF) && (expect_type!=GF_MEDIA_OBJECT_SCENE)) {
 		/*ignore the SDP IOD and regenerate one*/
 		if (priv->session_desc) gf_odf_desc_del(priv->session_desc);
@@ -272,6 +276,8 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 	RTPClient *priv = (RTPClient *)plug->priv;
 	if (upstream) return GF_NOT_SUPPORTED;
 
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[RTP] Connecting channel @%08x - %s\n", channel, url));
 
 	ch = RP_FindChannel(priv, channel, 0, (char *) url, 0);
 	if (ch && (ch->status != RTP_Disconnected) ) return GF_SERVICE_ERROR;
@@ -327,6 +333,8 @@ static GF_Err RP_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	RTPStream *ch;
 	RTPClient *priv = (RTPClient *)plug->priv;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[RTP] Disconnecting channel @%08x\n", channel));
 
 	ch = RP_FindChannel(priv, channel, 0, NULL, 0);
 	if (!ch) return GF_STREAM_NOT_FOUND;
@@ -395,6 +403,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 
 	case GF_NET_CHAN_PLAY:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[RTP] Processing play on channel @%08x - %s\n", ch, ch->rtsp ? "RTSP control" : "No control (RTP)" ));
 		/*is this RTSP or direct RTP?*/
 		ch->flags &= ~RTP_EOS;
 		if (ch->rtsp) {

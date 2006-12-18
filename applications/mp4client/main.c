@@ -1057,9 +1057,14 @@ int main (int argc, char **argv)
 		case 'N':
 			if (playlist) {
 				gf_term_disconnect(term);
-				fscanf(playlist, "%s", the_url);
-				fprintf(stdout, "Opening URL %s\n", the_url);
-				gf_term_connect(term, the_url);
+
+				if (fscanf(playlist, "%s", the_url) == EOF) {
+					fprintf(stdout, "No more items - exiting\n", the_url);
+					Run = 0;
+				} else {
+					fprintf(stdout, "Opening URL %s\n", the_url);
+					gf_term_connect(term, the_url);
+				}
 			}
 			break;
 		case 'P':

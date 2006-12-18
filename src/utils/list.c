@@ -46,7 +46,8 @@
 //#define GF_LIST_ARRAY
 #endif
 
-#define GF_LIST_STEP_ALLOC	10
+//#define GF_LIST_STEP_ALLOC	10
+#define GF_LIST_STEP_ALLOC	1
 
 
 #if defined(GF_LIST_LINKED)

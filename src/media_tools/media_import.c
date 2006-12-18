@@ -67,7 +67,8 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 		s32 par_n, par_d;
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
 		GF_AVCConfigSlot *slc = (GF_AVCConfigSlot *)gf_list_get(avcc->sequenceParameterSets, 0);
-		gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
+		par_n = par_d = 1;
+		if (slc) gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
 		gf_odf_avc_cfg_del(avcc);
 
 		if ((par_n>1) && (par_d>1)) 
@@ -3488,6 +3489,9 @@ restart_import:
 			break;
 		case -1:
 			gf_import_message(import, GF_OK, "Waring: Error parsing NAL unit");
+			skip_nal = 1;
+			break;
+		case -2:
 			skip_nal = 1;
 			break;
 		default:

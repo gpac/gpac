@@ -141,17 +141,18 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 	}
 	gf_list_del(proto->proto_fields);
 
+	while (gf_list_count(proto->instances)) {
+		GF_ProtoInstance *p = (GF_ProtoInstance *)gf_list_get(proto->instances, 0);
+		gf_list_rem(proto->instances, 0);
+		p->proto_interface = NULL;
+	}
+
 	/*delete sub graph*/
 	gf_sg_del(proto->sub_graph);
 
 
 	if (proto->Name) free(proto->Name);
 	gf_sg_mfurl_del(proto->ExternProto);
-	while (gf_list_count(proto->instances)) {
-		GF_ProtoInstance *p = (GF_ProtoInstance *)gf_list_get(proto->instances, 0);
-		gf_list_rem(proto->instances, 0);
-		p->proto_interface = NULL;
-	}
 	gf_list_del(proto->instances);	
 	free(proto);
 	return GF_OK;

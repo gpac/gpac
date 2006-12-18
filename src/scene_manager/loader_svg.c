@@ -888,6 +888,8 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 				return;
 			}
 		}
+		/*error*/
+		return;
 	}
 	/*only remove created nodes ... */
 	end_tag = gf_node_svg_type_by_class_name(name);
@@ -941,6 +943,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	node_core = node;
 	if (!node) node_core = (SVGElement *)parser->command->node;
 	if (!node_core) return;
+	if (!node_core->core) return;
 
 	result = strdup(text_content);
 	len = strlen(text_content);

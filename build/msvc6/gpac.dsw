@@ -84,9 +84,6 @@ Package=<4>
     Project_Dep_Name soft_raster
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name timedtext
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name wav_out
     End Project Dependency
     Begin Project Dependency
@@ -106,6 +103,12 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name saf_in
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name amr_dec
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name timedtext
     End Project Dependency
 }}}
 

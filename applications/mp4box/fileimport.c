@@ -1457,8 +1457,9 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir)
 	Bool ascii;
 	char *isom_src = NULL;
 	u32 i, count, mtype;
+	char *type;
 
-	char *type = gf_xml_get_root_type(file_name);
+	type = gf_xml_get_root_type(file_name);
 	if (!type) {
 		fprintf(stdout, "File %s is not a valid XML file\n", file_name);
 		return NULL;

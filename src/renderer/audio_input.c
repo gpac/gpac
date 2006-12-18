@@ -49,7 +49,8 @@ static char *AI_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 	
 	gf_mo_get_object_time(ai->stream, &obj_time);
 	obj_time += audio_delay_ms;
-	drift = obj_time - ts;
+	drift = (s32)obj_time;
+	drift -= (s32)ts;
 
 	/*too early (silence insertions), don't render*/
 	if (drift + (s32) audio_delay_ms + MIN_RESYNC_TIME < 0) {

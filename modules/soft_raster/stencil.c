@@ -822,6 +822,7 @@ GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_Pixel
 
 	if (_this->pixels) free(_this->pixels);
 	_this->pixels = (char *) malloc(sizeof(char) * _this->stride * _this->height);
+	memset(_this->pixels, 0, sizeof(char) * _this->stride * _this->height);
 	_this->owns_texture = 1;
 	gf_sr_texture_set_callback(_this);
 	return GF_OK;
