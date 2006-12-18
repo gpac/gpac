@@ -42,7 +42,8 @@
 #ifdef _WIN32_WCE
 #define GF_LIST_LINKED
 #else
-#define GF_LIST_ARRAY
+#define GF_LIST_LINKED
+//#define GF_LIST_ARRAY
 #endif
 
 #define GF_LIST_STEP_ALLOC	10

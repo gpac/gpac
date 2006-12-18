@@ -42,7 +42,7 @@ void generateNode(FILE *output, SVGGenElement* svg_elt)
 
 	/*special case for handler node*/
 	if (!strcmp(svg_elt->implementation_name, "handler")) {
-		fprintf(output, "\tvoid (*handle_event)(GF_Node *hdl, GF_DOM_Event *event);\n");
+		fprintf(output, "\tvoid (*handle_event)(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);\n");
 	}
 	fprintf(output, "} SVG%sElement;\n\n\n", svg_elt->implementation_name);
 }
@@ -266,11 +266,19 @@ void generateNodeImpl(FILE *output, SVGGenElement* svg_elt)
 			 !strcmp("SMIL_KeyPoints", att->impl_type)) {
 			fprintf(output, "\tp->%s = gf_list_new();\n", att->implementation_name);
 		} else if (!strcmp("SVG_PathData", att->impl_type) && !strcmp(svg_elt->svg_name, "animateMotion")) {
+			fprintf(output, "#ifdef USE_GF_PATH\n");
+			fprintf(output, "\tgf_path_reset(&p->path);\n");
+			fprintf(output, "#else\n");
 			fprintf(output, "\tp->path.commands = gf_list_new();\n");
 			fprintf(output, "\tp->path.points = gf_list_new();\n");
+			fprintf(output, "#endif\n");
 		} else if (!strcmp("SVG_PathData", att->impl_type)) {
+			fprintf(output, "#ifdef USE_GF_PATH\n");
+			fprintf(output, "\tgf_path_reset(&p->d);\n");
+			fprintf(output, "#else\n");
 			fprintf(output, "\tp->d.commands = gf_list_new();\n");
 			fprintf(output, "\tp->d.points = gf_list_new();\n");
+			fprintf(output, "#endif\n");
 		} else if (!strcmp(att->svg_name, "lsr:enabled")) {
 			fprintf(output, "\tp->lsr_enabled = 1;\n");
 		} 

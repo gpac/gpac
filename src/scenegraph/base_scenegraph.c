@@ -755,7 +755,8 @@ static GFINLINE void insert_node_def(GF_SceneGraph *sg, GF_Node *def)
 	u32 i, remain;
 
 	if (sg->node_reg_alloc==sg->node_reg_size) {
-		sg->node_reg_alloc+=NODEREG_STEP_ALLOC;
+//		sg->node_reg_alloc+=NODEREG_STEP_ALLOC;
+		sg->node_reg_alloc*= 2;
 		sg->node_registry = (GF_Node **)realloc(sg->node_registry, sg->node_reg_alloc * sizeof(GF_Node *));
 	}
 

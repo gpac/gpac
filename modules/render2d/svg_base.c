@@ -34,6 +34,7 @@
 void svg_render_node(GF_Node *node, RenderEffect2D *eff)
 {
 	Bool has_listener = gf_dom_listener_count(node);
+//	fprintf(stdout, "rendering %s of type %s\n", gf_node_get_name(node), gf_node_get_class_name(node));
 	if (has_listener) {
 		eff->nb_listeners++;
 		gf_node_render(node, eff);
@@ -734,20 +735,34 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		
+#if USE_GF_PATH
+		cs->path = &path->d;
+#else
 		drawable_reset_path(cs);
-		if (*(eff->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 		gf_svg_path_build(cs->path, path->d.commands, path->d.points);
-
+#endif
+		if (*(eff->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
 	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)path, eff, 0, (path->pathLength.type==SVG_NUMBER_VALUE) ? path->pathLength.value : 0);
 }
 
+static void SVG_Destroy_path(GF_Node *node)
+{
+	Drawable *dr = gf_node_get_private(node);
+#if USE_GF_PATH
+	/* The path is the same as the one in the SVG node, don't delete it here */
+	dr->path = NULL;
+#endif
+	drawable_del(dr);
+}
+
 void SVG_Init_path(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_path);
+	gf_node_set_predestroy_function(node, SVG_Destroy_path);
 }
 
 /* end of rendering of basic shapes */

@@ -243,12 +243,15 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 	switch (field->fieldType) {
 	case SVG_PathData_datatype:
 		{
+#if USE_GF_PATH
+#else
 			SVG_PathData *d = (SVG_PathData *)field->far_ptr;
 			for (i=0; i<gf_list_count(d->points); i++) {
 				SVG_Point *p = (SVG_Point *)gf_list_get(d->points, i);
 				StatSFVec2f(stat, (SFVec2f *)p);
 				stat->count_2d ++;
 			}
+#endif
 		}
 		break;
 	case SVG_Points_datatype:

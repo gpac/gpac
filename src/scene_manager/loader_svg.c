@@ -848,7 +848,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	stack->node = (GF_Node *) elt;
 	gf_list_add(parser->node_stack, stack);
 
-	if (!strcmp(name, "svg") && !parser->has_root) 
+	if (gf_node_get_tag((GF_Node *)elt) == TAG_SVG_svg && !parser->has_root) 
 		svg_init_root_element(parser, (SVGsvgElement *)elt);
 	else if (!parent && parser->has_root) {
 		GF_CommandField *field = (GF_CommandField *)gf_list_get(parser->command->command_fields, 0);
@@ -872,6 +872,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 static void svg_node_end(void *sax_cbck, const char *name, const char *name_space)
 {
+	u32 end_tag;
 	GF_SVGParser *parser = (GF_SVGParser *)sax_cbck;
 	SVGNodeStack *top = (SVGNodeStack *)gf_list_last(parser->node_stack);
 
@@ -889,12 +890,10 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		}
 	}
 	/*only remove created nodes ... */
-	if (gf_node_svg_type_by_class_name(name) != TAG_UndefinedNode) {
-		const char *the_name;
+	end_tag = gf_node_svg_type_by_class_name(name);
+	if (end_tag != TAG_UndefinedNode) {
 		GF_Node *node = top->node;
-		/*check node name...*/
-		the_name = gf_node_get_class_name(node);
-		if (strcmp(the_name, name)) {
+		if (node->sgprivate->tag != end_tag) {
 			if (top->unknown_depth) {
 				top->unknown_depth--;
 				return;

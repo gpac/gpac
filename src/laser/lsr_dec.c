@@ -604,19 +604,14 @@ static void lsr_read_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *nam
 				iri.type = 0xFF;
 				lsr_read_any_uri(lsr, &iri, name);
 				gf_svg_unregister_iri(lsr->sg, &iri);
+				paint->type = SVG_PAINT_URI;
 				if (iri.iri) {
-					paint->uri = iri.iri;
 					paint->type = SVG_PAINT_URI;
+					paint->iri.type = SVG_IRI_IRI;
+					paint->iri.iri = iri.iri;
 				} else if (iri.target) {
-					char szN[1024];
-					const char *n = gf_node_get_name((GF_Node*)iri.target);
-					if (n) {
-						sprintf(szN, "#%s", n);
-					} else {
-						sprintf(szN, "#N%d", gf_node_get_id((GF_Node*) iri.target) - 1);
-					}
-					paint->uri = strdup(szN);
-					paint->type = SVG_PAINT_URI;
+					paint->iri.type = SVG_IRI_ELEMENTID;
+					paint->iri.target = iri.target;
 				}
 			} else {
 				lsr_read_extension(lsr, name);
@@ -825,9 +820,9 @@ static void lsr_restore_base(GF_LASeRCodec *lsr, SVGElement *elt, SVGElement *ba
 			memcpy(elt->properties->stroke_dasharray.array.vals, base->properties->stroke_dasharray.array.vals, size);
 		}
 		if (reset_fill) memset(&elt->properties->fill, 0, sizeof(SVG_Paint));
-		else if (base->properties->fill.uri) elt->properties->fill.uri = strdup(base->properties->fill.uri);
+		else if (base->properties->fill.type == SVG_PAINT_URI) elt->properties->fill.iri.iri = strdup(base->properties->fill.iri.iri);
 		if (reset_stroke) memset(&elt->properties->stroke, 0, sizeof(SVG_Paint));
-		else if (base->properties->stroke.uri) elt->properties->stroke.uri = strdup(base->properties->stroke.uri);
+		else if (base->properties->stroke.type == SVG_PAINT_URI) elt->properties->stroke.iri.iri = strdup(base->properties->stroke.iri.iri);
 	}
 }
 
@@ -1856,6 +1851,8 @@ static void lsr_read_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const char
 }
 static void lsr_read_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const char *name)
 {
+#if USE_GF_PATH    
+#else
 	u32 i, count, c;
 	u8 *type;
 	lsr_read_point_sequence(lsr, path->points, "seq");
@@ -1865,7 +1862,7 @@ static void lsr_read_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const cha
 		free(v);
 	}
 
-    type = (u8 *)malloc(sizeof(u8));
+	type = (u8 *)malloc(sizeof(u8));
 	*type = SVG_PATHCOMMAND_M;
 	gf_list_add(path->commands, type);
 
@@ -1910,6 +1907,7 @@ static void lsr_read_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const cha
 		}
 		gf_list_add(path->commands, type);
     }
+#endif
 }
 
 static void lsr_read_rotate_type(GF_LASeRCodec *lsr, SVG_Number *rotate, const char *name)

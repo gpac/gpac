@@ -700,6 +700,8 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 
 		rai->rotate = am->rotate.type;
 		if (e->anim->to.type == 0 && e->anim->by.type == 0 && e->anim->values.type == 0) {
+#if USE_GF_PATH
+#else
 			rai->path = gf_path_new();
 			if (gf_list_count(am->path.points)) {
 				gf_svg_path_build(rai->path, am->path.commands, am->path.points);
@@ -725,6 +727,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 					}
 				}
 			}
+#endif
 		}
 	}
 
@@ -926,8 +929,8 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			tmp = (SVG_Point*)gf_list_get(points, j);
 			end = *tmp;
 			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);
-			orig = end;
-			j++;
+				orig = end;
+				j++;
 			break;
 		case SVG_PATHCOMMAND_Z: /* Close */
 			gf_path_close(path);
