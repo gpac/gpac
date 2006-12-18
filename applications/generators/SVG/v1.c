@@ -193,14 +193,17 @@ u32 generateGenericInfo(FILE *output, SVGGenElement *elt, u32 index, char *point
 	return i;
 }
 
-u32 generateIndexInfo(FILE *output, u32 index, u32 start)
+u32 generateIndexInfo(FILE *output, SVGGenElement *elt, u32 index, u32 start)
 {
 	u32 i = start;
 	int k;
 	for (k=0; k < generic_attributes[index].array_length; k++) {
 		char *att_name = generic_attributes[index].array[k];
-		fprintf(output, "\tif(!strcmp(\"%s\", name)) return %d;\n", att_name, i); 
-		i++;
+		SVGGenAttribute *a = findAttribute(elt, att_name);
+		if (a) {
+			fprintf(output, "\tif(!strcmp(\"%s\", name)) return %d;\n", att_name, i); 
+			i++;
+		}
 	}
 	return i;
 }
@@ -407,23 +410,23 @@ void generateNodeImpl(FILE *output, SVGGenElement* svg_elt)
 		fprintf(output, "\tif(!strcmp(\"externalResourcesRequired\", name)) return %d;\n", att_index); 
 		att_index++;
 		if (svg_elt->has_media_properties) 
-			att_index = generateIndexInfo(output, 2, att_index);
+			att_index = generateIndexInfo(output, svg_elt, 2, att_index);
 		if (svg_elt->has_properties) 
-			att_index = generateIndexInfo(output, 1, att_index);
+			att_index = generateIndexInfo(output, svg_elt, 1, att_index);
 		if (svg_elt->has_opacity_properties) 
-			att_index = generateIndexInfo(output, 3, att_index);
+			att_index = generateIndexInfo(output, svg_elt, 3, att_index);
 		if (svg_elt->has_focus) 
-			att_index = generateIndexInfo(output, 4, att_index);
+			att_index = generateIndexInfo(output, svg_elt, 4, att_index);
 		if (svg_elt->has_xlink) 
-			att_index = generateIndexInfo(output, 5, att_index);
+			att_index = generateIndexInfo(output, svg_elt, 5, att_index);
 		if (svg_elt->has_timing) 
-			att_index = generateIndexInfo(output, 6, att_index);
+			att_index = generateIndexInfo(output, svg_elt, 6, att_index);
 		if (svg_elt->has_sync) 
-			att_index = generateIndexInfo(output, 7, att_index);
+			att_index = generateIndexInfo(output, svg_elt, 7, att_index);
 		if (svg_elt->has_animation) 
-			att_index = generateIndexInfo(output, 8, att_index);
+			att_index = generateIndexInfo(output, svg_elt, 8, att_index);
 		if (svg_elt->has_conditional) 
-			att_index = generateIndexInfo(output, 9, att_index);
+			att_index = generateIndexInfo(output, svg_elt, 9, att_index);
 		if (svg_elt->has_transform) {
 			fprintf(output, "\tif(!strcmp(\"transform\", name)) return %d;\n", att_index); 
 			att_index++;
