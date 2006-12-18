@@ -33,6 +33,7 @@
 	  -	If a property is not inheritable by default ('inherit: no' in the property definition), 
 		it should have the initial value.
 */
+#if 1
 void gf_svg_init_properties(SVGElement *p) 
 {
 	GF_SAFEALLOC(p->properties, SVGProperties)
@@ -143,6 +144,9 @@ void gf_svg_init_properties(SVGElement *p)
 */
 }
 
+#else
+void gf_svg_init_properties(SVGElement *p) { }
+#endif
 /* 
 	Initialization of properties at the top level before any rendering 
 	The value shall not use the 'inherit' value, it uses the initial value.

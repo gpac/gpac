@@ -428,7 +428,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 			cb->Status = CB_STOP;
 			cb->odm->current_time = (u32) cb->odm->media_stop_time;
 			/*force update of media time*/
-			MS_UpdateTiming(cb->odm);
+			MS_UpdateTiming(cb->odm, 1);
 		}
 		goto exit;
 	}
@@ -443,7 +443,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 			cb->Status = CB_STOP;
 			cb->odm->current_time = (u32) cb->odm->media_stop_time;
 			/*force update of media time*/
-			MS_UpdateTiming(cb->odm);
+			//MS_UpdateTiming(cb->odm, 1);
 		}
 	}
 	out = cb->output;

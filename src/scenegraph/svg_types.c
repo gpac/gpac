@@ -169,6 +169,7 @@ void gf_smil_delete_key_types(GF_List *l)
 	gf_list_del(l);
 }
 
+#if 1
 void gf_svg_init_core(SVGElement *p) 
 {
 	GF_SAFEALLOC(p->core, XMLCoreAttributes)
@@ -218,6 +219,25 @@ void gf_svg_init_conditional(SVGElement *p)
 	p->conditional->requiredFormats = gf_list_new();
 	p->conditional->systemLanguage = gf_list_new();
 }
+
+#else
+
+void gf_svg_init_core(SVGElement *p) {}
+
+void gf_svg_init_focus(SVGElement *p) {}
+
+void gf_svg_init_xlink(SVGElement *p) {}
+
+void gf_svg_init_timing(SVGElement *p) {}
+
+void gf_svg_init_sync(SVGElement *p) {}
+
+void gf_svg_init_anim(SVGElement *p) {}
+
+void gf_svg_init_conditional(SVGElement *p) {}
+
+#endif
+
 
 void gf_svg_delete_core(SVGElement *elt, XMLCoreAttributes *p) 
 {

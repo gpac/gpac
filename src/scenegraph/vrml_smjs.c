@@ -606,8 +606,10 @@ static GFINLINE void sffield_toString(char *str, void *f_ptr, u32 fieldType)
 static void JS_ObjectDestroyed(JSContext *c, JSObject *obj)
 {
 	GF_ScriptPriv *priv = JS_GetScriptStack(c);
+
 	JS_SetPrivate(c, obj, 0);
-	if (priv->js_cache) gf_list_del_item(priv->js_cache, obj);
+	if (priv->js_cache) 
+		gf_list_del_item(priv->js_cache, obj);
 }
 
 
@@ -755,7 +757,7 @@ static void node_finalize(JSContext *c, JSObject *obj)
 	JS_ObjectDestroyed(c, obj);
 	if (ptr) {
 		if (ptr->temp_node) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[vrml script] unregistering node %s\n", gf_node_get_class_name(ptr->temp_node)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering node %s\n", gf_node_get_class_name(ptr->temp_node)));
 			gf_node_unregister(ptr->temp_node, ptr->owner);
 		}
 		free(ptr);
@@ -1688,7 +1690,7 @@ static void array_finalize(JSContext *c, JSObject *obj)
 	GF_JSField *ptr = (GF_JSField *) JS_GetPrivate(c, obj);
 	JS_ObjectDestroyed(c, obj);
 	if (!ptr) return;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[vrml script] unregistering MFField %s\n", ptr->field.name));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering MFField %s\n", ptr->field.name));
 
 	/*MFNode*/
 	if (ptr->temp_list) {
@@ -2769,13 +2771,13 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 					}
 					break;
 				}
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[vrml script] found cached jsobj %s.%s in script bank\n", gf_node_get_name(parent), field->name) );
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] found cached jsobj 0x%08x (field %s) in script bank 0x%08x\n", obj, field->name, priv->js_cache) );
 				return OBJECT_TO_JSVAL(obj);
 			}
 		}
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[vrml script] creating jsobj %s.%s\n", gf_node_get_name(parent), field->name) );
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] creating jsobj %s.%s\n", gf_node_get_name(parent), field->name) );
 
 	switch (field->fieldType) {
     case GF_SG_VRML_SFVEC2F:
@@ -2980,7 +2982,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 	//store field associated with object if needed
 	if (jsf) {
 		JS_SetPrivate(priv->js_ctx, obj, jsf);
-		/*if this is the obj corresponding to an existing node, store it*/
+		/*if this is the obj corresponding to an existing field/node, store it and prevent GC on object*/
 		if (parent && !skip_cache && priv->js_cache) {
 			jsf->obj = obj;
 			JS_AddRoot(priv->js_ctx, &jsf->obj);
@@ -2996,8 +2998,9 @@ static void JS_Protect(GF_ScriptPriv *priv)
 	if (priv->js_cache) {
 		u32 i, count = gf_list_count(priv->js_cache);
 		for (i=0; i<count; i++) {
+			GF_JSField *jsf;
 			JSObject *obj = gf_list_get(priv->js_cache, i);
-			GF_JSField *jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);
+			jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);
 			if (!jsf->obj) {
 				jsf->obj = obj;
 				JS_AddRoot(priv->js_ctx, &jsf->obj);
@@ -3015,8 +3018,9 @@ static void JS_Unprotect(GF_ScriptPriv *priv)
 	if (priv->js_cache) {
 		u32 i, count = gf_list_count(priv->js_cache);
 		for (i=0; i<count; i++) {
+			GF_JSField *jsf;
 			JSObject *obj = gf_list_get(priv->js_cache, i);
-			GF_JSField *jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);
+			jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);
 			if (jsf->obj) {
 				JS_RemoveRoot(priv->js_ctx, &jsf->obj);
 				jsf->obj = NULL;
@@ -3035,7 +3039,7 @@ static void JS_PreDestroy(GF_Node *node)
 		if (! JSVAL_IS_VOID(fval))
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 
-	/*unlock any object in JS root*/
+	/*unprotect all cached objects from GC*/
 	JS_Unprotect(priv);
 	gf_sg_ecmascript_del(priv->js_ctx);
 	if (priv->js_cache) gf_list_del(priv->js_cache);
@@ -3124,9 +3128,6 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	t_info.name = "timestamp";
 	argv[1] = gf_sg_script_to_smjs_field(priv, &t_info, node, 0);
 
-	/*protect object cache*/
-	JS_Protect(priv);
-
 	/*protect args*/
 	if (JSVAL_IS_GCTHING(argv[0])) JS_AddRoot(priv->js_ctx, &argv[0]);
 	if (JSVAL_IS_GCTHING(argv[1])) JS_AddRoot(priv->js_ctx, &argv[1]);
@@ -3138,9 +3139,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	if (JSVAL_IS_GCTHING(argv[1])) JS_RemoveRoot(priv->js_ctx, &argv[1]);
 	
 	flush_event_out(node, priv);
-
-	/*unprotect object cache*/
-	JS_Unprotect(priv);
+//	JS_MaybeGC(priv->js_ctx);
 }
 
 void JSScriptFromFile(GF_Node *node);
@@ -3254,7 +3253,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 
 	priv->js_ctx = gf_sg_ecmascript_new();
 	if (!priv->js_ctx) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[SceneGraph] Cannot allocate ECMAScript context for node\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Cannot allocate ECMAScript context for node\n"));
 		return;
 	}
 
@@ -3274,7 +3273,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 		return;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[SceneGraph] Evaluating script %s\n", str));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Evaluating script %s\n", str));
 
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, str, strlen(str), 0, 0, &rval);
 	if (ret==JS_FALSE) {
@@ -3312,7 +3311,7 @@ static void JSScript_Load(GF_Node *node)
 #ifdef __SYMBIAN32__
 const long MAX_HEAP_BYTES = 256 * 1024L;
 #else
-const long MAX_HEAP_BYTES = 1024 * 1024L;
+const long MAX_HEAP_BYTES = 4*1024 * 1024L;
 #endif
 const long STACK_CHUNK_BYTES = 8*1024L;
 
@@ -3321,12 +3320,12 @@ JSContext *gf_sg_ecmascript_new()
 	if (!js_rt) {
 		JSRuntime *js_runtime = JS_NewRuntime(MAX_HEAP_BYTES);
 		if (!js_runtime) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[SceneGraph] Cannot allocate ECMAScript runtime\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[ECMAScript] Cannot allocate ECMAScript runtime\n"));
 			return NULL;
 		}
 		GF_SAFEALLOC(js_rt, GF_JSRuntime);
 		js_rt->js_runtime = js_runtime;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[SceneGraph] ECMAScript runtime allocated 0x%08x\n", js_runtime));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated 0x%08x\n", js_runtime));
 	}
 	js_rt->nb_inst++;
 	return JS_NewContext(js_rt->js_runtime, STACK_CHUNK_BYTES);

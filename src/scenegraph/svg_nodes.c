@@ -7184,6 +7184,7 @@ void *gf_svg_new_path()
 	gf_mx2d_init(p->transform);
 #ifdef USE_GF_PATH
 	gf_path_reset(&p->d);
+	p->d.fineness = FIX_ONE;
 #else
 	p->d.commands = gf_list_new();
 	p->d.points = gf_list_new();

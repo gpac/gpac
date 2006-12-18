@@ -653,12 +653,12 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_Node *top_node = gf_sg_get_root_node(sr->compositor->scene);
 
-	if (!top_node /*|| !sr->out_width*/) {
+	if (!top_node && !sr->surface->num_contexts && !sr->surface->last_had_back /*|| !sr->out_width*/) {
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Scene has no root node, nothing to draw\n"));
 		return;
 	}
 
-	if (!sr->main_surface_setup) {
+	if (top_node && !sr->main_surface_setup) {
 		sr->use_dom_events = 0;
 		sr->main_surface_setup = 1;
 		sr->surface->center_coords = 1;
@@ -690,7 +690,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	e = VS2D_InitDraw(sr->surface, sr->top_effect);
 	if (e) return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] primary surface initialized - traversing scene tree (top node %s)\n", gf_node_get_class_name(top_node) ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] primary surface initialized - traversing scene tree (top node %s)\n", top_node ? gf_node_get_class_name(top_node) : "none"));
 	gf_node_render(top_node, sr->top_effect);
 
 	i=0;

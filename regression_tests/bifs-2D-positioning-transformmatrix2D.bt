@@ -27,6 +27,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
+   info [
     "This test shows how to apply affine transformations on a rectangle."
     "The TransformMatrix2D works like the Transform2D node, but it requires giving the coefficients of a 3x2 matrix."
     "It allows for skewing and for simple animations of skewing." 

@@ -85,10 +85,11 @@ static GF_Err payt_set_param(RTPStream *ch, char *param_name, char *param_val)
 	}
 	/*decoder specific info (not needed when IOD is here)*/
 	else if (!stricmp(param_name, "config")) {
+		u32 len = strlen(param_val);
 		//decode the buffer - the string buffer is MSB hexadecimal
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		valS[2] = 0;
-		for (i=0; i<strlen(param_val);i+=2) {
+		for (i=0; i<len;i+=2) {
 			valS[0] = param_val[i];
 			valS[1] = param_val[i+1];
 			sscanf(valS, "%x", &val);

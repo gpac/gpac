@@ -52,7 +52,7 @@ AT 0 {
    ObjectDescriptor {
     objectDescriptorID 8
 #    URLstring "rtsp://a1749.q.kamai.net/7/1749/1416/3c964c64/neo.qtv.apple.com/secure/may/preview/civ3_700.mp4"
-     URLstring "rtsp://tasmanie/bhusa.mp4"
+     URLstring "rtsp://kara/bhusa.mp4"
    }
   ]
 }

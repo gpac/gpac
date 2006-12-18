@@ -1546,9 +1546,9 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si)
     pps_id = avc_get_ue(bs);
     if (pps_id>255) return -1;
     si->pps = &avc->pps[pps_id];
-    if (!si->pps->slice_group_count) return -1;
+    if (!si->pps->slice_group_count) return -2;
     si->sps = &avc->sps[si->pps->sps_id];
-    if (!si->sps->log2_max_frame_num) return -1;
+    if (!si->sps->log2_max_frame_num) return -2;
 
     si->frame_num = gf_bs_read_int(bs, si->sps->log2_max_frame_num);
 
@@ -1709,10 +1709,9 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 	case GF_AVC_NALU_IDR_SLICE:
 		slice = 1;
 		/* slice buffer - read the info and compare.*/
-		if (avc_parse_slice(bs, avc, &n_state) < 0) {
-			/*need more memory*/
-			return -1;
-		}
+		ret = avc_parse_slice(bs, avc, &n_state);
+		if (ret<0) return ret;
+		ret = 0;
 		if ((avc->s_info.nal_unit_type > GF_AVC_NALU_IDR_SLICE)
 			|| (avc->s_info.nal_unit_type < GF_AVC_NALU_NON_IDR_SLICE)) {
 			break;

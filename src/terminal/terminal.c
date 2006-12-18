@@ -720,6 +720,9 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	GF_Err e;
 	gf_term_lock_net(term, 1);
 
+	if (!strnicmp(serviceURL, "file:///", 8)) serviceURL += 8;
+	else if (!strnicmp(serviceURL, "file://", 7)) serviceURL += 7;
+
 	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
 	i=0;
 	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {

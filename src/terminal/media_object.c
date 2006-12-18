@@ -189,6 +189,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	/*if frame locked return it*/
 	if (mo->nb_fetch) {
 		*eos = 0;
+		*timestamp = mo->timestamp;
+		*size = mo->framesize;
 		mo->nb_fetch ++;
 		gf_cm_lock(mo->odm->codec->CB, 0);
 		return mo->frame;
@@ -214,7 +216,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		while (CU->TS < obj_time) {
 			if (!CU->next->dataLength) break;
 			/*figure out closest time*/
-			if (CU->next->TS > obj_time) break;
+			if (CU->next->TS > obj_time) {
+				*eos = 0;
+				break;
+			}
 			nb_droped ++;
 			if (nb_droped>1) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At OTB %d dropped frame TS %d\n", obj_time, mo->odm->OD->objectDescriptorID, CU->TS));
@@ -225,14 +230,17 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 			gf_cm_drop_output(mo->odm->codec->CB);
 			/*get next*/
 			CU = gf_cm_get_output(mo->odm->codec->CB);
+			*eos = gf_cm_is_eos(mo->odm->codec->CB);
 		}
 	}	
 	mo->framesize = CU->dataLength - CU->RenderedLength;
 	mo->frame = CU->data + CU->RenderedLength;
 	if (mo->timestamp != CU->TS) {
-		MS_UpdateTiming(mo->odm);
+		MS_UpdateTiming(mo->odm, *eos);
 		mo->timestamp = CU->TS;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %d fetch frame TS %d size %d - %d unit in CB\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp, mo->framesize, mo->odm->codec->CB->UnitCount));
+		/*signal EOS after rendering last frame, not while rendering it*/
+		*eos = 0;
 	}
 
 	/*also adjust CU time based on consummed bytes in input, since some codecs output very large audio chunks*/

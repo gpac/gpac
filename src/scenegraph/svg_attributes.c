@@ -1489,10 +1489,10 @@ static void svg_parse_iri(SVGElement *elt, SVG_IRI *iri, char *attribute_content
 {
 	/* TODO: Handle xpointer(id()) syntax */
 	if (attribute_content[0] == '#') {
+		iri->iri = strdup(attribute_content);
 		iri->target = (SVGElement *)gf_sg_find_node_by_name(elt->sgprivate->scenegraph, attribute_content + 1);
 		if (!iri->target) {
 			iri->type = SVG_IRI_IRI;
-			iri->iri = strdup(attribute_content);
 		} else {
 			iri->type = SVG_IRI_ELEMENTID;
 			gf_svg_register_iri(elt->sgprivate->scenegraph, iri);
@@ -2412,9 +2412,8 @@ void svg_parse_one_anim_value(SVGElement *elt, SMIL_AnimateValue *anim_value, ch
 
 void svg_parse_anim_values(SVGElement *elt, SMIL_AnimateValues *anim_values, char *anim_values_string, u8 anim_value_type, u8 transform_type)
 {
-	u32 len, i = 0;
+	u32 i = 0;
 	char *str;
-	char *value_string;
 	s32 psemi = -1;
 	GF_FieldInfo info;
 	info.fieldType = anim_value_type;
@@ -2423,24 +2422,22 @@ void svg_parse_anim_values(SVGElement *elt, SMIL_AnimateValues *anim_values, cha
 	anim_values->type = anim_value_type;
 	anim_values->transform_type = transform_type;
 	
-	len = strlen(anim_values_string);
 	str = anim_values_string;
-	for (i = 0; i < len+1; i++) {
+	while (1) {
 		if (str[i] == ';' || str[i] == 0) {
 			u32 single_value_len = 0;
+			char c;
 			single_value_len = i - (psemi+1);
-			value_string = (char *) malloc(sizeof(char)*(single_value_len+1));
-			memcpy(value_string, str + (psemi+1), single_value_len);
-			value_string[single_value_len] = 0;
-			psemi = i;
-
+			c = str [ (psemi+1) + single_value_len];
+			str [ (psemi+1) + single_value_len] = 0;
 			info.far_ptr = gf_svg_create_attribute_value(anim_value_type, transform_type);
 			if (info.far_ptr) {
-				gf_svg_parse_attribute(elt, &info, value_string, anim_value_type, transform_type);
+				gf_svg_parse_attribute(elt, &info, str + (psemi+1), anim_value_type, transform_type);
 				gf_list_add(anim_values->values, info.far_ptr);
 			}
-
-			free(value_string);
+			str [ (psemi+1) + single_value_len] = c;
+			psemi = i;
+			if (!str[i]) return;
 		}
 	}
 }
@@ -2727,6 +2724,7 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		break;
 
 	case SVG_PathData_datatype:
+		//return GF_OK;
 		svg_parse_path((SVG_PathData*)info->far_ptr, attribute_content);
 		break;
 	case SVG_Points_datatype:
@@ -2839,47 +2837,44 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 void svg_parse_one_style(SVGElement *elt, char *one_style) 
 {
 	GF_FieldInfo info;
-	char *c;
+	char *c, sep;
 	u32 attributeNameLen;
-	char *attributeName;
 
 	while (*one_style == ' ') one_style++;
 	c = strchr(one_style, ':');
 	if (!c) return;
 	attributeNameLen = (c - one_style);
-	attributeName = (char*)malloc(attributeNameLen+1);
-	memcpy(attributeName, one_style, attributeNameLen);
-	attributeName[attributeNameLen] = 0;
-	if (!gf_node_get_field_by_name((GF_Node *)elt, attributeName, &info)) {
+	sep = one_style[attributeNameLen];
+	one_style[attributeNameLen] = 0;
+	if (!gf_node_get_field_by_name((GF_Node *)elt, one_style, &info)) {
 		c++;
 		gf_svg_parse_attribute(elt, &info, c, 0, 0);
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Attribute %s does not belong to element %s.\n", attributeName, gf_svg_get_element_name(gf_node_get_tag((GF_Node*)elt))));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Attribute %s does not belong to element %s.\n", one_style, gf_svg_get_element_name(gf_node_get_tag((GF_Node*)elt))));
 	}
-	free(attributeName);
+	one_style[attributeNameLen] = sep;
 }
 
 void gf_svg_parse_style(SVGElement *elt, char *style) 
 {
 	u32 i = 0;
-	u32 len = strlen(style);
 	char *str = style;
 	s32 psemi = -1;
 	
-	for (i = 0; i < len+1; i++) {
+	while (1) {
 		if (str[i] == ';' || str[i] == 0) {
-			char *value_string;
 			u32 single_value_len = 0;
 			single_value_len = i - (psemi+1);
 			if (single_value_len) {
-				value_string = (char *) malloc(sizeof(char)*(single_value_len+1));
-				memcpy(value_string, str + (psemi+1), single_value_len);
-				value_string[single_value_len] = 0;
+				char c = str[psemi+1 + single_value_len];
+				str[psemi+1 + single_value_len] = 0;
+				svg_parse_one_style(elt, str + psemi+1);
+				str[psemi+1 + single_value_len] = c;
 				psemi = i;
-				svg_parse_one_style(elt, value_string);
-				free(value_string);
 			}
+			if (!str[i]) return;
 		}
+		i++;
 	}
 
 }
@@ -3067,6 +3062,8 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 		{
 			SVG_PathData *path = (SVG_PathData *)malloc(sizeof(SVG_PathData));
 #if USE_GF_PATH
+			gf_path_reset(path);
+			path->fineness = FIX_ONE;
 #else 
 			path->commands = gf_list_new();
 			path->points = gf_list_new();

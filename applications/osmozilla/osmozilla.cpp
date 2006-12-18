@@ -214,7 +214,7 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	gpac_cfg = "GPAC.cfg";
 #ifdef _DEBUG
 //#if 0
-	strcpy((char *) config_path, "c:\\Temp");
+	strcpy((char *) config_path, "D:\\CVS\\gpac\\bin\\w32_deb");
 #else
 	HKEY hKey = NULL;
 	DWORD dwSize;
