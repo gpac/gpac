@@ -619,25 +619,45 @@ static void svg_parse_color(SVG_Color *col, char *attribute_content)
 */
 static u32 svg_parse_float(char *d, Fixed *f, Bool is_angle) 
 {
-	Float _val;
+	Bool is_negative = 0;
+	Float _val = 0;
 	u32 i = 0;
 	while (d[i] != 0 && (d[i] == ' ' || d[i] == ',' || d[i] == ';')) i++;
 	if (!d[i]) goto end;
-	if (d[i] == '+' || d[i] == '-') i++;
-	while (d[i] >= '0' && d[i] <= '9' && d[i] != 0) i++;
+	if (d[i] == '+') i++;
+	if (d[i] == '-') {
+		is_negative = 1;
+		i++;
+	}
+	while (d[i] >= '0' && d[i] <= '9' && d[i] != 0) {
+		_val = _val*10 + (d[i]-'0');
+		i++;
+	}
 	if (!d[i]) goto end;
 	if (d[i] == '.') {
+		u32 nb_digit_after = 0;
 		i++;
-		while (d[i] >= '0' && d[i] <= '9' && d[i] != 0) i++;
+		while (d[i] >= '0' && d[i] <= '9' && d[i] != 0) {
+			_val = _val*10 + (d[i]-'0');
+			nb_digit_after++;
+			i++;
+		}
+		_val /= (Float)pow(10,nb_digit_after);
 		if (!d[i]) goto end;
 	}
 	if (d[i] == 'e' || d[i] == 'E') {
+		u32 exp = 0;
 		i++;
 		if (d[i] == '+' || d[i] == '-') i++;
-		while (d[i] >= '0' && d[i] <= '9' && d[i] != 0) i++;
+		while (d[i] >= '0' && d[i] <= '9' && d[i] != 0) {
+			exp = exp*10 + (d[i]-'0');
+			i++;
+		}
+		_val *= (Float)pow(10, exp);
 	}
 end:
-	sscanf(d,"%f", &_val);
+	if (is_negative) _val *= -1;
+	//_val = atof(d);
 	if (is_angle) {
 		_val/=180;
 		(*f) = gf_mulfix(FLT2FIX(_val), GF_PI);
@@ -968,6 +988,237 @@ err_ref:
 	return 0;
 }
 
+#undef REMOVE_ALLOC
+
+#if USE_GF_PATH    
+static void svg_parse_path(SVG_PathData *path, char *attribute_content) 
+{
+	char *d = attribute_content;
+	
+	/* Point used to start a new subpath when the previous subpath is closed */
+	SVG_Point prev_m_pt;
+	/* Point used to convert relative 'lower-case commands' into absolute */
+	SVG_Point rel_ref_pt;
+	/* Points used to convert S, T commands into C, Q */
+	SVG_Point orig, ct_orig, ct_end, end;
+	/* Used by elliptical arcs */
+	Fixed x_axis_rotation, large_arc_flag, sweep_flag;
+
+	char c, prev_c;
+	u32 i;
+
+	if (*d == 0) return;
+
+	i = 0;
+	prev_c = 'M';
+	orig.x = orig.y = ct_orig.x = ct_orig.y = prev_m_pt.x = prev_m_pt.y = rel_ref_pt.x = rel_ref_pt.y = 0;
+	while(1) {
+		while ( (d[i]==' ') || (d[i] =='\t') ) i++;			
+		c = d[i];
+		if (! c) break;
+next_command:
+		switch (c) {
+		case 'm':
+		case 'M':
+			i++;
+			i += svg_parse_float(&(d[i]), &(orig.x), 0);
+			i += svg_parse_float(&(d[i]), &(orig.y), 0);				
+			if (c == 'm') {
+				orig.x += rel_ref_pt.x;
+				orig.y += rel_ref_pt.y;
+			}
+			gf_path_add_move_to(path, orig.x, orig.y);
+			rel_ref_pt = orig;
+			prev_m_pt = orig;
+			/*provision for nextCurveTo when no curve is specified:
+				"If there is no previous command or if the previous command was not an C, c, S or s, 
+				assume the first control point is coincident with the current point.
+			*/
+			ct_orig = orig;
+			prev_c = c;
+			break;
+		case 'L':
+		case 'l':
+			i++;
+			i += svg_parse_float(&(d[i]), &(orig.x), 0);
+			i += svg_parse_float(&(d[i]), &(orig.y), 0);				
+			if (c == 'l') {
+				orig.x += rel_ref_pt.x;
+				orig.y += rel_ref_pt.y;
+			}
+			gf_path_add_line_to(path, orig.x, orig.y);
+			rel_ref_pt = orig;
+			orig = end;
+			/*cf above*/
+			ct_orig = orig;
+			prev_c = c;
+			break;
+		case 'H':
+		case 'h':
+			i++;				
+			i += svg_parse_float(&(d[i]), &(orig.x), 0);
+			if (c == 'h') {
+				orig.x += rel_ref_pt.x;
+			}
+			orig.y = rel_ref_pt.y;
+			gf_path_add_line_to(path, orig.x, orig.y);			
+			rel_ref_pt.x = orig.x;
+			orig = end;
+			/*cf above*/
+			ct_orig = orig;
+			prev_c = c;
+			break;
+		case 'V':
+		case 'v':
+			i++;				
+			i += svg_parse_float(&(d[i]), &(orig.y), 0);
+			if (c == 'v') {
+				orig.y += rel_ref_pt.y;
+			}
+			orig.x = rel_ref_pt.x;
+			gf_path_add_line_to(path, orig.x, orig.y);			
+			rel_ref_pt.y = orig.y;
+			orig = end;
+			/*cf above*/
+			ct_orig = orig;
+			prev_c = c;
+			break;
+		case 'C':
+		case 'c':
+			i++;				
+			i += svg_parse_float(&(d[i]), &(ct_orig.x), 0);
+			i += svg_parse_float(&(d[i]), &(ct_orig.y), 0);
+			if (c == 'c') {
+				ct_orig.x += rel_ref_pt.x;
+				ct_orig.y += rel_ref_pt.y;
+			}
+			i += svg_parse_float(&(d[i]), &(ct_end.x), 0);
+			i += svg_parse_float(&(d[i]), &(ct_end.y), 0);
+			if (c == 'c') {
+				ct_end.x += rel_ref_pt.x;
+				ct_end.y += rel_ref_pt.y;
+			}
+			i += svg_parse_float(&(d[i]), &(end.x), 0);
+			i += svg_parse_float(&(d[i]), &(end.y), 0);
+			if (c == 'c') {
+				end.x += rel_ref_pt.x;
+				end.y += rel_ref_pt.y;
+			}
+			gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
+			rel_ref_pt = end;
+			ct_orig = ct_end;
+			orig = end;
+			prev_c = c;
+			break;
+		case 'S':
+		case 's':
+			i++;				
+			ct_orig.x = 2*orig.x - ct_orig.x;
+			ct_orig.y = 2*orig.y - ct_orig.y;
+			i += svg_parse_float(&(d[i]), &(ct_end.x), 0);
+			i += svg_parse_float(&(d[i]), &(ct_end.y), 0);
+			if (c == 's') {
+				ct_end.x += rel_ref_pt.x;
+				ct_end.y += rel_ref_pt.y;
+			}
+			i += svg_parse_float(&(d[i]), &(end.x), 0);
+			i += svg_parse_float(&(d[i]), &(end.y), 0);
+			if (c == 's') {
+				end.x += rel_ref_pt.x;
+				end.y += rel_ref_pt.y;
+			}
+			gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
+			rel_ref_pt = end;
+			ct_orig = ct_end;
+			orig = end;
+			prev_c = c;
+			break;
+		case 'Q':
+		case 'q':
+			i++;				
+			i += svg_parse_float(&(d[i]), &(ct_orig.x), 0);
+			i += svg_parse_float(&(d[i]), &(ct_orig.y), 0);				
+			if (c == 'q') {
+				ct_orig.x += rel_ref_pt.x;
+				ct_orig.y += rel_ref_pt.y;
+			}
+			i += svg_parse_float(&(d[i]), &(end.x), 0);
+			i += svg_parse_float(&(d[i]), &(end.y), 0);				
+			if (c == 'q') {
+				end.x += rel_ref_pt.x;
+				end.y += rel_ref_pt.y;
+			}
+			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);			
+			rel_ref_pt = end;
+			orig = end;
+			prev_c = c;
+			break;
+		case 'T':
+		case 't':
+			i++;				
+			ct_orig.x = 2*orig.x - ct_orig.x;
+			ct_orig.y = 2*orig.y - ct_orig.y;
+			i += svg_parse_float(&(d[i]), &(end.x), 0);
+			i += svg_parse_float(&(d[i]), &(end.y), 0);				
+			if (c == 't') {
+				end.x += rel_ref_pt.x;
+				end.y += rel_ref_pt.y;
+			}
+			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);
+			rel_ref_pt = end;
+			orig = end;
+			prev_c = c;
+			break;
+		case 'A':
+		case 'a':
+			i++;				
+
+			i += svg_parse_float(&(d[i]), &(orig.x), 0);	
+			i += svg_parse_float(&(d[i]), &(orig.y), 0);				
+			if (c == 'a') {
+				orig.x += rel_ref_pt.x;
+				orig.y += rel_ref_pt.y;
+			}
+
+			i += svg_parse_float(&(d[i]), &(x_axis_rotation), 0);	
+			i += svg_parse_float(&(d[i]), &(large_arc_flag), 0);				
+			i += svg_parse_float(&(d[i]), &(sweep_flag), 0);	
+			
+			i += svg_parse_float(&(d[i]), &(end.x), 0);	
+			i += svg_parse_float(&(d[i]), &(end.y), 0);				
+			if (c == 'a') {
+				end.x += rel_ref_pt.x;
+				end.y += rel_ref_pt.y;
+			}
+			//gf_path_add_svg_arc_to(path, orig.x, orig.y, x_axis_rotation, large_arc_flag, sweep_flag, end.x, end.y);
+			rel_ref_pt = end;
+			ct_orig = end;
+			prev_c = c;
+			break;
+		case 'Z':
+		case 'z':
+			i++;				
+			gf_path_close(path);
+			prev_c = c;
+			rel_ref_pt = prev_m_pt;
+			break;
+		default:
+			i--;
+			switch (prev_c) {
+			case 'M':
+				c = 'L';
+				break;
+			case 'm':
+				c = 'l';
+				break;
+			default:
+				c = prev_c;
+			}
+			goto next_command;
+		}
+	}
+}
+#else
 /* TODO: Change the function to handle elliptical arcs, requires changing data structure */
 static void svg_parse_path(SVG_PathData *d_attribute, char *attribute_content) 
 {
@@ -980,6 +1231,9 @@ static void svg_parse_path(SVG_PathData *d_attribute, char *attribute_content)
 		u8 *command;
 		u32 i, k;
 		char c, prev_c = 'M';
+#ifdef REMOVE_ALLOC
+		GF_SAFEALLOC(pt, SVG_Point)
+#endif
 		i = 0;
 		cur_pt.x = cur_pt.y = 0;
 		prev_m_pt.x = prev_m_pt.y = 0;
@@ -992,12 +1246,14 @@ next_command:
 			case 'm':
 			case 'M':
 				i++;
+#ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_M;
 
 				GF_SAFEALLOC(pt, SVG_Point)
 				gf_list_add(d_points, pt);
+#endif
 				i += svg_parse_float(&(d[i]), &(pt->x), 0);
 				i += svg_parse_float(&(d[i]), &(pt->y), 0);				
 				if (c == 'm') {
@@ -1012,12 +1268,14 @@ next_command:
 			case 'L':
 			case 'l':
 				i++;
+#ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_L;
 				
 				GF_SAFEALLOC(pt, SVG_Point)
 				gf_list_add(d_points, pt);
+#endif
 				i += svg_parse_float(&(d[i]), &(pt->x), 0);
 				i += svg_parse_float(&(d[i]), &(pt->y), 0);				
 				if (c == 'l') {
@@ -1031,12 +1289,14 @@ next_command:
 			case 'H':
 			case 'h':
 				i++;				
+#ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_L;
 
 				GF_SAFEALLOC(pt, SVG_Point)
 				gf_list_add(d_points, pt);
+#endif
 				i += svg_parse_float(&(d[i]), &(pt->x), 0);
 				if (c == 'h') {
 					pt->x += cur_pt.x;
@@ -1048,12 +1308,14 @@ next_command:
 			case 'V':
 			case 'v':
 				i++;				
+#ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_L;
 
 				GF_SAFEALLOC(pt, SVG_Point)
 				gf_list_add(d_points, pt);
+#endif
 				i += svg_parse_float(&(d[i]), &(pt->y), 0);
 				if (c == 'v') {
 					pt->y += cur_pt.y;
@@ -1065,13 +1327,17 @@ next_command:
 			case 'C':
 			case 'c':
 				i++;				
+#ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_C;
+#endif
 				
 				for (k=0; k<3; k++) {
+#ifndef REMOVE_ALLOC
 					GF_SAFEALLOC(pt, SVG_Point)
 					gf_list_add(d_points, pt);
+#endif
 					i += svg_parse_float(&(d[i]), &(pt->x), 0);
 					i += svg_parse_float(&(d[i]), &(pt->y), 0);				
 					if (c == 'c') {
@@ -1086,13 +1352,17 @@ next_command:
 			case 'S':
 			case 's':
 				i++;				
+#ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_S;
+#endif
 				
 				for (k=0; k<2; k++) {
+#ifndef REMOVE_ALLOC
 					GF_SAFEALLOC(pt, SVG_Point)
 					gf_list_add(d_points, pt);
+#endif
 					i += svg_parse_float(&(d[i]), &(pt->x), 0);
 					i += svg_parse_float(&(d[i]), &(pt->y), 0);				
 					if (c == 's') {
@@ -1107,13 +1377,17 @@ next_command:
 			case 'Q':
 			case 'q':
 				i++;				
+#ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_Q;
+#endif
 				
 				for (k=0; k<2; k++) {
+#ifndef REMOVE_ALLOC
 					GF_SAFEALLOC(pt, SVG_Point)
 					gf_list_add(d_points, pt);
+#endif
 					i += svg_parse_float(&(d[i]), &(pt->x), 0);
 					i += svg_parse_float(&(d[i]), &(pt->y), 0);				
 					if (c == 'q') {
@@ -1128,12 +1402,14 @@ next_command:
 			case 'T':
 			case 't':
 				i++;				
+#ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_T;
 				
 				GF_SAFEALLOC(pt, SVG_Point)
 				gf_list_add(d_points, pt);
+#endif
 				i += svg_parse_float(&(d[i]), &(pt->x), 0);
 				i += svg_parse_float(&(d[i]), &(pt->y), 0);				
 				if (c == 't') {
@@ -1149,12 +1425,14 @@ next_command:
 				{
 					Fixed tmp;
 					i++;				
+#ifndef REMOVE_ALLOC
 					GF_SAFEALLOC(command, u8)
 					gf_list_add(d_commands, command);
 					*command = SVG_PATHCOMMAND_A;
 	
 					GF_SAFEALLOC(pt, SVG_Point)
 					gf_list_add(d_points, pt);
+#endif
 					i += svg_parse_float(&(d[i]), &(pt->x), 0);	
 					i += svg_parse_float(&(d[i]), &(pt->y), 0);				
 
@@ -1162,8 +1440,10 @@ next_command:
 					i += svg_parse_float(&(d[i]), &(tmp), 0);				
 					i += svg_parse_float(&(d[i]), &(tmp), 0);	
 					
+#ifndef REMOVE_ALLOC
 					GF_SAFEALLOC(pt, SVG_Point)
 					gf_list_add(d_points, pt);
+#endif
 					i += svg_parse_float(&(d[i]), &(pt->x), 0);	
 					i += svg_parse_float(&(d[i]), &(pt->y), 0);				
 					if (c == 'a') {
@@ -1178,9 +1458,11 @@ next_command:
 			case 'Z':
 			case 'z':
 				i++;				
+#ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_Z;
+#endif
 				prev_c = c;
 				cur_pt = prev_m_pt;
 				break;
@@ -1201,18 +1483,39 @@ next_command:
 		}
 	}
 }
+#endif
+
+static void svg_parse_iri(SVGElement *elt, SVG_IRI *iri, char *attribute_content)
+{
+	/* TODO: Handle xpointer(id()) syntax */
+	if (attribute_content[0] == '#') {
+		iri->target = (SVGElement *)gf_sg_find_node_by_name(elt->sgprivate->scenegraph, attribute_content + 1);
+		if (!iri->target) {
+			iri->type = SVG_IRI_IRI;
+			iri->iri = strdup(attribute_content);
+		} else {
+			iri->type = SVG_IRI_ELEMENTID;
+			gf_svg_register_iri(elt->sgprivate->scenegraph, iri);
+		}
+	} else {
+		iri->type = SVG_IRI_IRI;
+		iri->iri = strdup(attribute_content);
+	}
+}
 
 /* Parses a paint attribute: none, inherit or color */
-static void svg_parse_paint(SVG_Paint *paint, char *attribute_content)
+static void svg_parse_paint(SVGElement *elt, SVG_Paint *paint, char *attribute_content)
 {
 	if (!strcmp(attribute_content, "none")) {
 		paint->type = SVG_PAINT_NONE;
 	} else if (!strcmp(attribute_content, "inherit")) {
 		paint->type = SVG_PAINT_INHERIT;
 	} else if (!strncmp(attribute_content, "url(", 4) ) {
+		u32 len = strlen(attribute_content);
 		paint->type = SVG_PAINT_URI;
-		paint->uri = strdup(attribute_content+4);
-		paint->uri[strlen(paint->uri)-1] = 0;
+		attribute_content[len-1] = 0;
+		svg_parse_iri(elt, &paint->iri, attribute_content+4);
+		attribute_content[len-1] = ')';
 	} else {
 		paint->type = SVG_PAINT_COLOR;
 		svg_parse_color(&paint->color, attribute_content);
@@ -1932,20 +2235,6 @@ static void svg_parse_strokedasharray(SVG_StrokeDashArray *value, char *value_st
 	}
 }
 
-static void svg_parse_iri(SVGElement *elt, SVG_IRI *iri, char *attribute_content)
-{
-	/* TODO: Handle xpointer(id()) syntax */
-	if (attribute_content[0] == '#') {
-		iri->type = SVG_IRI_ELEMENTID;
-		iri->target = (SVGElement *)gf_sg_find_node_by_name(elt->sgprivate->scenegraph, attribute_content + 1);
-		if (!iri->target) iri->iri = strdup(attribute_content);
-		gf_svg_register_iri(elt->sgprivate->scenegraph, iri);
-	} else {
-		iri->type = SVG_IRI_IRI;
-		iri->iri = strdup(attribute_content);
-	}
-}
-
 static void svg_parse_zoomandpan(SVG_ZoomAndPan *value, char *value_string)
 {
 	if (!strcmp(value_string, "disable")) {
@@ -2230,8 +2519,9 @@ GF_Err laser_parse_size(LASeR_Size *size, char *attribute_content)
 
 GF_Err gf_svg_parse_element_id(SVGElement *elt, const char *nodename, Bool warning_if_defined)
 {
-	SVGElement *unided_elt;
 	GF_SceneGraph *sg = gf_node_get_graph((GF_Node *)elt);
+#if 0
+	SVGElement *unided_elt;
 
 	unided_elt = (SVGElement *)gf_sg_find_node_by_name(sg, (char *) nodename);
 	if (unided_elt) {
@@ -2257,15 +2547,22 @@ GF_Err gf_svg_parse_element_id(SVGElement *elt, const char *nodename, Bool warni
 		} else {
 			id = gf_sg_get_next_available_node_id(sg);
 		}
+		id = gf_sg_get_max_node_id(sg) + 1;
 		gf_node_set_id((GF_Node *)elt, id, nodename);
 	}
+#else
+	u32 id;
+	id = gf_sg_get_max_node_id(sg) + 1;
+	gf_node_set_id((GF_Node *)elt, id, nodename);
+#endif
 	return GF_OK;
 }
 
 /* Parse an SVG attribute */
 GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type)
 {
-	u32 len = strlen(attribute_content);
+	u32 len;
+	len = strlen(attribute_content);
 	while (*attribute_content == ' ') attribute_content++;
 	while (attribute_content[len-1] == ' ') { attribute_content[len-1] = 0; len--; }
 
@@ -2277,7 +2574,7 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		svg_parse_color((SVG_Color *)info->far_ptr, attribute_content);
 	    break;
 	case SVG_Paint_datatype:
-		svg_parse_paint((SVG_Paint *)info->far_ptr, attribute_content);
+		svg_parse_paint(elt, (SVG_Paint *)info->far_ptr, attribute_content);
 		break;
 
 /* beginning of keyword type parsing */
@@ -2769,8 +3066,11 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 	case SVG_PathData_datatype:
 		{
 			SVG_PathData *path = (SVG_PathData *)malloc(sizeof(SVG_PathData));
+#if USE_GF_PATH
+#else 
 			path->commands = gf_list_new();
 			path->points = gf_list_new();
+#endif
 			return path;
 		}
 		break;
@@ -2865,6 +3165,12 @@ static void svg_dump_point(SVG_Point *pt, char *attValue)
 	if (pt) sprintf(attValue, "%g %g ", FIX2FLT(pt->x), FIX2FLT(pt->y) );
 }
 
+#if USE_GF_PATH
+static void svg_dump_path(SVG_PathData *path, char *attValue)
+{
+	strcpy(attValue, "");
+}
+#else
 static void svg_dump_path(SVG_PathData *path, char *attValue)
 {
 	char szT[1000];
@@ -2942,6 +3248,7 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 		}
 	}
 }
+#endif
 
 static void svg_dump_access_key(XMLEV_Event *evt, char *attValue)
 {
@@ -3001,8 +3308,11 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		SVG_Paint *paint = (SVG_Paint *)info->far_ptr;
 		if (paint->type == SVG_PAINT_NONE) strcpy(attValue, "none");
 		else if (paint->type == SVG_PAINT_INHERIT) strcpy(attValue, "inherit");
-		else if (paint->type == SVG_PAINT_URI) sprintf(attValue, "url(#%s)", paint->uri);
-		else svg_dump_color(&paint->color, attValue);
+		else if (paint->type == SVG_PAINT_URI) {
+			strcat(attValue, "url(#");
+			svg_dump_iri(&paint->iri, attValue);
+			strcat(attValue, ")");
+		} else svg_dump_color(&paint->color, attValue);
 	}
 		break;
 
@@ -3890,7 +4200,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		SVG_Paint *p2 = (SVG_Paint *)f2->far_ptr;
 		if (p1->type != p2->type) return 0;
 		if (p1->type==SVG_PAINT_COLOR) return svg_colors_equal(&p1->color, &p2->color);
-		else if (p1->type==SVG_PAINT_URI) return (p1->uri && p2->uri && !strcmp(p1->uri, p2->uri)) ? 1 : 0;
+		else if (p1->type==SVG_PAINT_URI) return svg_iris_equal(&p1->iri, &p2->iri);
 		return 1;
 	}
 		break;
@@ -3919,8 +4229,12 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	{
 		SVG_PathData *d1 = (SVG_PathData *)f1->far_ptr;
 		SVG_PathData *d2 = (SVG_PathData *)f2->far_ptr;
-		if (!gf_list_count(d1->commands) && !gf_list_count(d2->commands)) return 1;
 		/*FIXME - be less lazy..*/
+#if USE_GF_PATH
+		return 1;
+#else
+		if (!gf_list_count(d1->commands) && !gf_list_count(d2->commands)) return 1;
+#endif
 		return 0;
 	}
 	case SVG_Points_datatype:
@@ -4286,6 +4600,12 @@ static GF_Err svg_numbers_copy(SVG_Numbers *a, SVG_Numbers *b)
 	return GF_OK;
 }
 
+#if USE_GF_PATH
+static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_PathData *b, SVG_PathData *c)
+{
+	return GF_OK;
+}
+#else
 static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_PathData *b, SVG_PathData *c)
 {
 	u32 i, ccount, pcount;
@@ -4330,7 +4650,14 @@ static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_Path
 	}
 	return GF_OK;
 }
+#endif
 
+#if USE_GF_PATH
+static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
+{
+	return GF_OK;
+}
+#else
 static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
 {
 	u32 i, count;
@@ -4362,6 +4689,7 @@ static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
 	}
 	return GF_OK;
 }
+#endif
 
 static GF_Err svg_dasharray_muladd(Fixed alpha, SVG_StrokeDashArray *a, Fixed beta, SVG_StrokeDashArray *b, SVG_StrokeDashArray *c)
 {
@@ -4631,7 +4959,9 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 			SVG_Paint *pb = (SVG_Paint *)b->far_ptr;
 			pa->type = pb->type;
 			if (pb->type == SVG_PAINT_URI) {
-				strcpy(pa->uri, pb->uri);
+				GF_FieldInfo tmp_a, tmp_b;
+				tmp_a.fieldType = tmp_b.fieldType = SVG_IRI_datatype;
+				gf_svg_attributes_copy(&tmp_a, &tmp_b, 0);
 			} else {
 				pa->color = pb->color;
 			}

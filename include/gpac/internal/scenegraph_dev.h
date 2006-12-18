@@ -307,7 +307,7 @@ void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, 
 void gf_svg_reset_path(SVG_PathData path);
 void gf_svg_reset_iri(GF_SceneGraph *sg, SVG_IRI*iri);
 /* delete functions for SVG types */
-void gf_svg_delete_paint		(SVG_Paint *paint);
+void gf_svg_delete_paint		(GF_SceneGraph *sg, SVG_Paint *paint);
 void gf_smil_delete_times		(GF_List *l);
 void gf_svg_delete_points		(GF_List *l);
 void gf_svg_delete_coordinates	(GF_List *l);

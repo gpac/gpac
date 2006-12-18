@@ -30,6 +30,9 @@
 
 void gf_svg_reset_path(SVG_PathData d) 
 {
+#if USE_GF_PATH
+	gf_path_reset(&d);
+#else
 	u32 i, count;
 	count = gf_list_count(d.commands);
 	for (i = 0; i < count; i++) {
@@ -43,6 +46,7 @@ void gf_svg_reset_path(SVG_PathData d)
 		free(pt);
 	}
 	gf_list_del(d.points);
+#endif
 }
 
 void gf_smil_delete_times(GF_List *list)
@@ -77,17 +81,18 @@ void gf_svg_delete_coordinates(GF_List *list)
 	gf_list_del(list);
 }
 
-void gf_svg_delete_paint(SVG_Paint *paint) 
-{
-	if (!paint) return;
-	free(paint);
-}
-
 void gf_svg_reset_iri(GF_SceneGraph *sg, SVG_IRI *iri) 
 {
 	if (!iri) return;
 	if (iri->iri) free(iri->iri);
-	gf_list_del_item(sg->xlink_hrefs, iri);
+	gf_svg_unregister_iri(sg, iri);
+}
+
+void gf_svg_delete_paint(GF_SceneGraph *sg, SVG_Paint *paint) 
+{
+	if (!paint) return;
+	if (paint->type == SVG_PAINT_URI && sg) gf_svg_reset_iri(sg, &paint->iri);
+	free(paint);
 }
 
 void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
@@ -95,7 +100,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	GF_List *l;
 	switch (type) {
 	case SVG_Paint_datatype:
-		gf_svg_delete_paint((SVG_Paint *)value);
+		gf_svg_delete_paint(sg, (SVG_Paint *)value);
 		break;
 	case SVG_IRI_datatype:
 		gf_svg_reset_iri(sg, (SVG_IRI *)value);
@@ -222,11 +227,11 @@ void gf_svg_delete_core(SVGElement *elt, XMLCoreAttributes *p)
 	free(p);
 }
 
-void gf_svg_delete_properties(SVGProperties *p) 
+void gf_svg_delete_properties(SVGElement *elt,SVGProperties *p) 
 {
 	free(p->font_family.value);
-	if (p->fill.uri) free(p->fill.uri);
-	if (p->stroke.uri) free(p->stroke.uri);
+	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->fill.iri);
+	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->stroke.iri);
 	free(p->stroke_dasharray.array.vals);
 	free(p);
 }
@@ -327,7 +332,7 @@ void gf_svg_reset_base_element(SVGElement *p)
 {
 	if (p->textContent) free(p->textContent);
 	if (p->core)		gf_svg_delete_core(p, p->core);
-	if (p->properties)	gf_svg_delete_properties(p->properties);
+	if (p->properties)	gf_svg_delete_properties(p, p->properties);
 	if (p->focus)		gf_svg_delete_focus(p, p->focus);
 	if (p->conditional) gf_svg_delete_conditional(p->conditional);
 	if (p->sync)		gf_svg_delete_sync(p->sync);

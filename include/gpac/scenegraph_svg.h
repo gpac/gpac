@@ -352,10 +352,16 @@ enum {
 	SVG_PATHCOMMAND_Z = 8
 };
 
+#define USE_GF_PATH 1
+
+#if USE_GF_PATH
+typedef GF_Path SVG_PathData;
+#else
 typedef struct {
 	GF_List *commands;
 	GF_List *points;
 } SVG_PathData;
+#endif
 
 typedef struct {
 	Fixed x, y;
@@ -455,7 +461,7 @@ enum {
 typedef struct {
 	u8 type;
 	SVG_Color color;
-	DOM_String uri;
+	SVG_IRI iri;
 } SVG_Paint, SVG_SVGColor;
 
 enum {

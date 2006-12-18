@@ -421,11 +421,8 @@ static void lsr_write_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *na
 		if (paint->type==SVG_PAINT_URI) {
 			GF_LSR_WRITE_INT(lsr, 0, 1, "isEnum");
 			if (1) {
-				SVG_IRI iri;
 				GF_LSR_WRITE_INT(lsr, 1, 1, "isURI");
-				iri.type = SVG_IRI_IRI;
-				iri.iri = paint->uri;
-				lsr_write_any_uri(lsr, &iri, "uri");
+				lsr_write_any_uri(lsr, &paint->iri, "uri");
 			} else {
 				GF_LSR_WRITE_INT(lsr, 0, 1, "isURI");
 				lsr_write_extension(lsr, "ERROR", 5, "colorExType0");
@@ -1619,6 +1616,8 @@ static void lsr_write_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const cha
 }
 static void lsr_write_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const char *name)
 {
+#if USE_GF_PATH    
+#else
 	u32 i, count;
 	lsr_write_point_sequence(lsr, path->points, "seq");
 	/*initial move is not coded*/
@@ -1628,6 +1627,7 @@ static void lsr_write_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const ch
         u8 type = *(u8 *) gf_list_get(path->commands, i);
 		GF_LSR_WRITE_INT(lsr, type, 5, name);
     }
+#endif
 }
 
 static void lsr_write_rotate_type(GF_LASeRCodec *lsr, SVG_Rotate rotate, const char *name)
@@ -1875,12 +1875,16 @@ static void lsr_write_animateMotion(GF_LASeRCodec *lsr, SVGanimateMotionElement 
 	lsr_write_anim_value(lsr, &elt->anim->to, "to");
 
 	lsr_write_float_list(lsr, elt->keyPoints, "keyPoints");
+#if USE_GF_PATH
+		GF_LSR_WRITE_INT(lsr, 0, 1, "hasPath");
+#else
 	if (gf_list_count(elt->path.commands)) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "hasPath");
 		lsr_write_path_type(lsr, &elt->path, "path");
 	} else {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "hasPath");
 	}
+#endif
 	lsr_write_rotate_type(lsr, elt->rotate, "rotate");
 
 	lsr_write_href_anim(lsr, & elt->xlink->href, parent);

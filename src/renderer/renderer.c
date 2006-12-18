@@ -674,7 +674,8 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 		evt.size.height = height;
 		sr->user->EventProc(sr->user->opaque, &evt);
 	}
-	sr->draw_next_frame = 1;
+	if (scene_graph)
+		sr->draw_next_frame = 1;
 	return GF_OK;
 }
 

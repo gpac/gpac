@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Dec 13 14:46:29 2006
+	DO NOT MOFIFY - File generated on GMT Mon Dec 18 13:01:17 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -725,21 +725,18 @@ s32 gf_svg_animate_get_attribute_index_from_name(char *name)
 	if(!strcmp("min", name)) return 20;
 	if(!strcmp("max", name)) return 21;
 	if(!strcmp("fill", name)) return 22;
-	if(!strcmp("clipBegin", name)) return 23;
-	if(!strcmp("clipEnd", name)) return 24;
-	if(!strcmp("attributeName", name)) return 25;
-	if(!strcmp("attributeType", name)) return 26;
-	if(!strcmp("to", name)) return 27;
-	if(!strcmp("from", name)) return 28;
-	if(!strcmp("by", name)) return 29;
-	if(!strcmp("values", name)) return 30;
-	if(!strcmp("type", name)) return 31;
-	if(!strcmp("calcMode", name)) return 32;
-	if(!strcmp("keySplines", name)) return 33;
-	if(!strcmp("keyTimes", name)) return 34;
-	if(!strcmp("accumulate", name)) return 35;
-	if(!strcmp("additive", name)) return 36;
-	if(!strcmp("lsr:enabled", name)) return 37;
+	if(!strcmp("attributeName", name)) return 23;
+	if(!strcmp("attributeType", name)) return 24;
+	if(!strcmp("to", name)) return 25;
+	if(!strcmp("from", name)) return 26;
+	if(!strcmp("by", name)) return 27;
+	if(!strcmp("values", name)) return 28;
+	if(!strcmp("calcMode", name)) return 29;
+	if(!strcmp("keySplines", name)) return 30;
+	if(!strcmp("keyTimes", name)) return 31;
+	if(!strcmp("accumulate", name)) return 32;
+	if(!strcmp("additive", name)) return 33;
+	if(!strcmp("lsr:enabled", name)) return 34;
 	return -1;
 }
 
@@ -977,21 +974,18 @@ s32 gf_svg_animateColor_get_attribute_index_from_name(char *name)
 	if(!strcmp("min", name)) return 20;
 	if(!strcmp("max", name)) return 21;
 	if(!strcmp("fill", name)) return 22;
-	if(!strcmp("clipBegin", name)) return 23;
-	if(!strcmp("clipEnd", name)) return 24;
-	if(!strcmp("attributeName", name)) return 25;
-	if(!strcmp("attributeType", name)) return 26;
-	if(!strcmp("to", name)) return 27;
-	if(!strcmp("from", name)) return 28;
-	if(!strcmp("by", name)) return 29;
-	if(!strcmp("values", name)) return 30;
-	if(!strcmp("type", name)) return 31;
-	if(!strcmp("calcMode", name)) return 32;
-	if(!strcmp("keySplines", name)) return 33;
-	if(!strcmp("keyTimes", name)) return 34;
-	if(!strcmp("accumulate", name)) return 35;
-	if(!strcmp("additive", name)) return 36;
-	if(!strcmp("lsr:enabled", name)) return 37;
+	if(!strcmp("attributeName", name)) return 23;
+	if(!strcmp("attributeType", name)) return 24;
+	if(!strcmp("to", name)) return 25;
+	if(!strcmp("from", name)) return 26;
+	if(!strcmp("by", name)) return 27;
+	if(!strcmp("values", name)) return 28;
+	if(!strcmp("calcMode", name)) return 29;
+	if(!strcmp("keySplines", name)) return 30;
+	if(!strcmp("keyTimes", name)) return 31;
+	if(!strcmp("accumulate", name)) return 32;
+	if(!strcmp("additive", name)) return 33;
+	if(!strcmp("lsr:enabled", name)) return 34;
 	return -1;
 }
 
@@ -1011,8 +1005,12 @@ void *gf_svg_new_animateMotion()
 	gf_svg_init_xlink((SVGElement *)p);
 	gf_svg_init_timing((SVGElement *)p);
 	gf_svg_init_anim((SVGElement *)p);
+#ifdef USE_GF_PATH
+	gf_path_reset(&p->path);
+#else
 	p->path.commands = gf_list_new();
 	p->path.points = gf_list_new();
+#endif
 	p->keyPoints = gf_list_new();
 	return p;
 }
@@ -1245,25 +1243,20 @@ s32 gf_svg_animateMotion_get_attribute_index_from_name(char *name)
 	if(!strcmp("min", name)) return 20;
 	if(!strcmp("max", name)) return 21;
 	if(!strcmp("fill", name)) return 22;
-	if(!strcmp("clipBegin", name)) return 23;
-	if(!strcmp("clipEnd", name)) return 24;
-	if(!strcmp("attributeName", name)) return 25;
-	if(!strcmp("attributeType", name)) return 26;
-	if(!strcmp("to", name)) return 27;
-	if(!strcmp("from", name)) return 28;
-	if(!strcmp("by", name)) return 29;
-	if(!strcmp("values", name)) return 30;
-	if(!strcmp("type", name)) return 31;
-	if(!strcmp("calcMode", name)) return 32;
-	if(!strcmp("keySplines", name)) return 33;
-	if(!strcmp("keyTimes", name)) return 34;
-	if(!strcmp("accumulate", name)) return 35;
-	if(!strcmp("additive", name)) return 36;
-	if(!strcmp("lsr:enabled", name)) return 37;
-	if(!strcmp("path", name)) return 38;
-	if(!strcmp("keyPoints", name)) return 39;
-	if(!strcmp("rotate", name)) return 40;
-	if(!strcmp("origin", name)) return 41;
+	if(!strcmp("to", name)) return 23;
+	if(!strcmp("from", name)) return 24;
+	if(!strcmp("by", name)) return 25;
+	if(!strcmp("values", name)) return 26;
+	if(!strcmp("calcMode", name)) return 27;
+	if(!strcmp("keySplines", name)) return 28;
+	if(!strcmp("keyTimes", name)) return 29;
+	if(!strcmp("accumulate", name)) return 30;
+	if(!strcmp("additive", name)) return 31;
+	if(!strcmp("lsr:enabled", name)) return 32;
+	if(!strcmp("path", name)) return 33;
+	if(!strcmp("keyPoints", name)) return 34;
+	if(!strcmp("rotate", name)) return 35;
+	if(!strcmp("origin", name)) return 36;
 	return -1;
 }
 
@@ -1506,21 +1499,19 @@ s32 gf_svg_animateTransform_get_attribute_index_from_name(char *name)
 	if(!strcmp("min", name)) return 20;
 	if(!strcmp("max", name)) return 21;
 	if(!strcmp("fill", name)) return 22;
-	if(!strcmp("clipBegin", name)) return 23;
-	if(!strcmp("clipEnd", name)) return 24;
-	if(!strcmp("attributeName", name)) return 25;
-	if(!strcmp("attributeType", name)) return 26;
-	if(!strcmp("to", name)) return 27;
-	if(!strcmp("from", name)) return 28;
-	if(!strcmp("by", name)) return 29;
-	if(!strcmp("values", name)) return 30;
-	if(!strcmp("type", name)) return 31;
-	if(!strcmp("calcMode", name)) return 32;
-	if(!strcmp("keySplines", name)) return 33;
-	if(!strcmp("keyTimes", name)) return 34;
-	if(!strcmp("accumulate", name)) return 35;
-	if(!strcmp("additive", name)) return 36;
-	if(!strcmp("lsr:enabled", name)) return 37;
+	if(!strcmp("attributeName", name)) return 23;
+	if(!strcmp("attributeType", name)) return 24;
+	if(!strcmp("to", name)) return 25;
+	if(!strcmp("from", name)) return 26;
+	if(!strcmp("by", name)) return 27;
+	if(!strcmp("values", name)) return 28;
+	if(!strcmp("type", name)) return 29;
+	if(!strcmp("calcMode", name)) return 30;
+	if(!strcmp("keySplines", name)) return 31;
+	if(!strcmp("keyTimes", name)) return 32;
+	if(!strcmp("accumulate", name)) return 33;
+	if(!strcmp("additive", name)) return 34;
+	if(!strcmp("lsr:enabled", name)) return 35;
 	return -1;
 }
 
@@ -1928,23 +1919,21 @@ s32 gf_svg_animation_get_attribute_index_from_name(char *name)
 	if(!strcmp("clipBegin", name)) return 44;
 	if(!strcmp("clipEnd", name)) return 45;
 	if(!strcmp("syncBehavior", name)) return 46;
-	if(!strcmp("syncBehaviorDefault", name)) return 47;
-	if(!strcmp("syncTolerance", name)) return 48;
-	if(!strcmp("syncToleranceDefault", name)) return 49;
-	if(!strcmp("syncMaster", name)) return 50;
-	if(!strcmp("syncReference", name)) return 51;
-	if(!strcmp("requiredExtensions", name)) return 52;
-	if(!strcmp("requiredFeatures", name)) return 53;
-	if(!strcmp("requiredFonts", name)) return 54;
-	if(!strcmp("requiredFormats", name)) return 55;
-	if(!strcmp("systemLanguage", name)) return 56;
-	if(!strcmp("transform", name)) return 57;
-	if(!strcmp("x", name)) return 59;
-	if(!strcmp("y", name)) return 60;
-	if(!strcmp("width", name)) return 61;
-	if(!strcmp("height", name)) return 62;
-	if(!strcmp("preserveAspectRatio", name)) return 63;
-	if(!strcmp("initialVisibility", name)) return 64;
+	if(!strcmp("syncTolerance", name)) return 47;
+	if(!strcmp("syncMaster", name)) return 48;
+	if(!strcmp("syncReference", name)) return 49;
+	if(!strcmp("requiredExtensions", name)) return 50;
+	if(!strcmp("requiredFeatures", name)) return 51;
+	if(!strcmp("requiredFonts", name)) return 52;
+	if(!strcmp("requiredFormats", name)) return 53;
+	if(!strcmp("systemLanguage", name)) return 54;
+	if(!strcmp("transform", name)) return 55;
+	if(!strcmp("x", name)) return 57;
+	if(!strcmp("y", name)) return 58;
+	if(!strcmp("width", name)) return 59;
+	if(!strcmp("height", name)) return 60;
+	if(!strcmp("preserveAspectRatio", name)) return 61;
+	if(!strcmp("initialVisibility", name)) return 62;
 	return -1;
 }
 
@@ -2243,17 +2232,15 @@ s32 gf_svg_audio_get_attribute_index_from_name(char *name)
 	if(!strcmp("clipBegin", name)) return 32;
 	if(!strcmp("clipEnd", name)) return 33;
 	if(!strcmp("syncBehavior", name)) return 34;
-	if(!strcmp("syncBehaviorDefault", name)) return 35;
-	if(!strcmp("syncTolerance", name)) return 36;
-	if(!strcmp("syncToleranceDefault", name)) return 37;
-	if(!strcmp("syncMaster", name)) return 38;
-	if(!strcmp("syncReference", name)) return 39;
-	if(!strcmp("requiredExtensions", name)) return 40;
-	if(!strcmp("requiredFeatures", name)) return 41;
-	if(!strcmp("requiredFonts", name)) return 42;
-	if(!strcmp("requiredFormats", name)) return 43;
-	if(!strcmp("systemLanguage", name)) return 44;
-	if(!strcmp("type", name)) return 45;
+	if(!strcmp("syncTolerance", name)) return 35;
+	if(!strcmp("syncMaster", name)) return 36;
+	if(!strcmp("syncReference", name)) return 37;
+	if(!strcmp("requiredExtensions", name)) return 38;
+	if(!strcmp("requiredFeatures", name)) return 39;
+	if(!strcmp("requiredFonts", name)) return 40;
+	if(!strcmp("requiredFormats", name)) return 41;
+	if(!strcmp("systemLanguage", name)) return 42;
+	if(!strcmp("type", name)) return 43;
 	return -1;
 }
 
@@ -2771,17 +2758,7 @@ s32 gf_svg_conditional_get_attribute_index_from_name(char *name)
 	if(!strcmp("xml:space", name)) return 5;
 	if(!strcmp("externalResourcesRequired", name)) return 6;
 	if(!strcmp("begin", name)) return 7;
-	if(!strcmp("end", name)) return 8;
-	if(!strcmp("dur", name)) return 9;
-	if(!strcmp("repeatCount", name)) return 10;
-	if(!strcmp("repeatDur", name)) return 11;
-	if(!strcmp("restart", name)) return 12;
-	if(!strcmp("min", name)) return 13;
-	if(!strcmp("max", name)) return 14;
-	if(!strcmp("fill", name)) return 15;
-	if(!strcmp("clipBegin", name)) return 16;
-	if(!strcmp("clipEnd", name)) return 17;
-	if(!strcmp("enabled", name)) return 18;
+	if(!strcmp("enabled", name)) return 8;
 	return -1;
 }
 
@@ -3436,21 +3413,11 @@ s32 gf_svg_discard_get_attribute_index_from_name(char *name)
 	if(!strcmp("xlink:arcrole", name)) return 12;
 	if(!strcmp("xlink:type", name)) return 13;
 	if(!strcmp("begin", name)) return 14;
-	if(!strcmp("end", name)) return 15;
-	if(!strcmp("dur", name)) return 16;
-	if(!strcmp("repeatCount", name)) return 17;
-	if(!strcmp("repeatDur", name)) return 18;
-	if(!strcmp("restart", name)) return 19;
-	if(!strcmp("min", name)) return 20;
-	if(!strcmp("max", name)) return 21;
-	if(!strcmp("fill", name)) return 22;
-	if(!strcmp("clipBegin", name)) return 23;
-	if(!strcmp("clipEnd", name)) return 24;
-	if(!strcmp("requiredExtensions", name)) return 25;
-	if(!strcmp("requiredFeatures", name)) return 26;
-	if(!strcmp("requiredFonts", name)) return 27;
-	if(!strcmp("requiredFormats", name)) return 28;
-	if(!strcmp("systemLanguage", name)) return 29;
+	if(!strcmp("requiredExtensions", name)) return 15;
+	if(!strcmp("requiredFeatures", name)) return 16;
+	if(!strcmp("requiredFonts", name)) return 17;
+	if(!strcmp("requiredFormats", name)) return 18;
+	if(!strcmp("systemLanguage", name)) return 19;
 	return -1;
 }
 
@@ -5317,8 +5284,12 @@ void *gf_svg_new_glyph()
 	((GF_Node *p)->sgprivate->get_field = gf_svg_glyph_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
+#ifdef USE_GF_PATH
+	gf_path_reset(&p->d);
+#else
 	p->d.commands = gf_list_new();
 	p->d.points = gf_list_new();
+#endif
 	return p;
 }
 
@@ -6989,8 +6960,12 @@ void *gf_svg_new_missing_glyph()
 	((GF_Node *p)->sgprivate->get_field = gf_svg_missing_glyph_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
+#ifdef USE_GF_PATH
+	gf_path_reset(&p->d);
+#else
 	p->d.commands = gf_list_new();
 	p->d.points = gf_list_new();
+#endif
 	return p;
 }
 
@@ -7207,8 +7182,12 @@ void *gf_svg_new_path()
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
 	gf_mx2d_init(p->transform);
+#ifdef USE_GF_PATH
+	gf_path_reset(&p->d);
+#else
 	p->d.commands = gf_list_new();
 	p->d.points = gf_list_new();
+#endif
 	return p;
 }
 
@@ -10524,21 +10503,10 @@ s32 gf_svg_set_get_attribute_index_from_name(char *name)
 	if(!strcmp("min", name)) return 20;
 	if(!strcmp("max", name)) return 21;
 	if(!strcmp("fill", name)) return 22;
-	if(!strcmp("clipBegin", name)) return 23;
-	if(!strcmp("clipEnd", name)) return 24;
-	if(!strcmp("attributeName", name)) return 25;
-	if(!strcmp("attributeType", name)) return 26;
-	if(!strcmp("to", name)) return 27;
-	if(!strcmp("from", name)) return 28;
-	if(!strcmp("by", name)) return 29;
-	if(!strcmp("values", name)) return 30;
-	if(!strcmp("type", name)) return 31;
-	if(!strcmp("calcMode", name)) return 32;
-	if(!strcmp("keySplines", name)) return 33;
-	if(!strcmp("keyTimes", name)) return 34;
-	if(!strcmp("accumulate", name)) return 35;
-	if(!strcmp("additive", name)) return 36;
-	if(!strcmp("lsr:enabled", name)) return 37;
+	if(!strcmp("attributeName", name)) return 23;
+	if(!strcmp("attributeType", name)) return 24;
+	if(!strcmp("to", name)) return 25;
+	if(!strcmp("lsr:enabled", name)) return 26;
 	return -1;
 }
 
@@ -11982,25 +11950,21 @@ s32 gf_svg_svg_get_attribute_index_from_name(char *name)
 	if(!strcmp("nav-up", name)) return 51;
 	if(!strcmp("nav-up-left", name)) return 52;
 	if(!strcmp("nav-up-right", name)) return 53;
-	if(!strcmp("syncBehavior", name)) return 54;
-	if(!strcmp("syncBehaviorDefault", name)) return 55;
-	if(!strcmp("syncTolerance", name)) return 56;
-	if(!strcmp("syncToleranceDefault", name)) return 57;
-	if(!strcmp("syncMaster", name)) return 58;
-	if(!strcmp("syncReference", name)) return 59;
-	if(!strcmp("x", name)) return 60;
-	if(!strcmp("y", name)) return 61;
-	if(!strcmp("width", name)) return 62;
-	if(!strcmp("height", name)) return 63;
-	if(!strcmp("preserveAspectRatio", name)) return 64;
-	if(!strcmp("viewBox", name)) return 65;
-	if(!strcmp("zoomAndPan", name)) return 66;
-	if(!strcmp("version", name)) return 67;
-	if(!strcmp("baseProfile", name)) return 68;
-	if(!strcmp("contentScriptType", name)) return 69;
-	if(!strcmp("snapshotTime", name)) return 70;
-	if(!strcmp("timelineBegin", name)) return 71;
-	if(!strcmp("playbackOrder", name)) return 72;
+	if(!strcmp("syncBehaviorDefault", name)) return 54;
+	if(!strcmp("syncToleranceDefault", name)) return 55;
+	if(!strcmp("x", name)) return 56;
+	if(!strcmp("y", name)) return 57;
+	if(!strcmp("width", name)) return 58;
+	if(!strcmp("height", name)) return 59;
+	if(!strcmp("preserveAspectRatio", name)) return 60;
+	if(!strcmp("viewBox", name)) return 61;
+	if(!strcmp("zoomAndPan", name)) return 62;
+	if(!strcmp("version", name)) return 63;
+	if(!strcmp("baseProfile", name)) return 64;
+	if(!strcmp("contentScriptType", name)) return 65;
+	if(!strcmp("snapshotTime", name)) return 66;
+	if(!strcmp("timelineBegin", name)) return 67;
+	if(!strcmp("playbackOrder", name)) return 68;
 	return -1;
 }
 
@@ -14710,26 +14674,24 @@ s32 gf_svg_video_get_attribute_index_from_name(char *name)
 	if(!strcmp("clipBegin", name)) return 44;
 	if(!strcmp("clipEnd", name)) return 45;
 	if(!strcmp("syncBehavior", name)) return 46;
-	if(!strcmp("syncBehaviorDefault", name)) return 47;
-	if(!strcmp("syncTolerance", name)) return 48;
-	if(!strcmp("syncToleranceDefault", name)) return 49;
-	if(!strcmp("syncMaster", name)) return 50;
-	if(!strcmp("syncReference", name)) return 51;
-	if(!strcmp("requiredExtensions", name)) return 52;
-	if(!strcmp("requiredFeatures", name)) return 53;
-	if(!strcmp("requiredFonts", name)) return 54;
-	if(!strcmp("requiredFormats", name)) return 55;
-	if(!strcmp("systemLanguage", name)) return 56;
-	if(!strcmp("transform", name)) return 57;
-	if(!strcmp("x", name)) return 59;
-	if(!strcmp("y", name)) return 60;
-	if(!strcmp("width", name)) return 61;
-	if(!strcmp("height", name)) return 62;
-	if(!strcmp("preserveAspectRatio", name)) return 63;
-	if(!strcmp("type", name)) return 64;
-	if(!strcmp("initialVisibility", name)) return 65;
-	if(!strcmp("transformBehavior", name)) return 66;
-	if(!strcmp("overlay", name)) return 67;
+	if(!strcmp("syncTolerance", name)) return 47;
+	if(!strcmp("syncMaster", name)) return 48;
+	if(!strcmp("syncReference", name)) return 49;
+	if(!strcmp("requiredExtensions", name)) return 50;
+	if(!strcmp("requiredFeatures", name)) return 51;
+	if(!strcmp("requiredFonts", name)) return 52;
+	if(!strcmp("requiredFormats", name)) return 53;
+	if(!strcmp("systemLanguage", name)) return 54;
+	if(!strcmp("transform", name)) return 55;
+	if(!strcmp("x", name)) return 57;
+	if(!strcmp("y", name)) return 58;
+	if(!strcmp("width", name)) return 59;
+	if(!strcmp("height", name)) return 60;
+	if(!strcmp("preserveAspectRatio", name)) return 61;
+	if(!strcmp("type", name)) return 62;
+	if(!strcmp("initialVisibility", name)) return 63;
+	if(!strcmp("transformBehavior", name)) return 64;
+	if(!strcmp("overlay", name)) return 65;
 	return -1;
 }
 

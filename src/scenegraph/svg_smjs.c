@@ -1228,6 +1228,8 @@ static JSBool udom_set_path_trait(JSContext *c, JSObject *obj, uintN argc, jsval
 	if (gf_node_get_field_by_name(n, JS_GetStringBytes(JSVAL_TO_STRING(argv[0])), &info) != GF_OK) return JS_FALSE;
 
 	if (info.fieldType==SVG_PathData_datatype) {
+#if USE_GF_PATH
+#else
 		u32 i;
 		u32 nb_pts;
 		SVG_PathData *d = (SVG_PathData *)info.far_ptr;
@@ -1261,6 +1263,7 @@ static JSBool udom_set_path_trait(JSContext *c, JSObject *obj, uintN argc, jsval
 		}
 		svg_node_changed(n, NULL);
 		return JS_TRUE;
+#endif
 	}
 	return JS_FALSE;
 }
@@ -2195,6 +2198,9 @@ static JSPropertySpec pointClassProps[] = {
 
 static JSObject *svg_new_path_object(JSContext *c, SVG_PathData *d)
 {
+#if USE_GF_PATH
+	return NULL;
+#else
 	JSObject *obj;
 	pathCI *p;
 	GF_SAFEALLOC(p, pathCI);
@@ -2214,6 +2220,7 @@ static JSObject *svg_new_path_object(JSContext *c, SVG_PathData *d)
 	obj = JS_NewObject(c, &pathClass, 0, 0);
 	JS_SetPrivate(c, obj, p);
 	return obj;
+#endif
 }
 
 static JSBool pathCI_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)

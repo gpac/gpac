@@ -294,11 +294,11 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 {
 	if (!svg_props) return;
 	if(svg_props->audio_level) free(svg_props->audio_level);
-	gf_svg_delete_paint(svg_props->color);
+	gf_svg_delete_paint(NULL, svg_props->color);
 	if(svg_props->color_rendering) free(svg_props->color_rendering);
 	if(svg_props->display) free(svg_props->display);
 	if(svg_props->display_align) free(svg_props->display_align);
-	gf_svg_delete_paint(svg_props->fill);
+	gf_svg_delete_paint(NULL, svg_props->fill);
 	if(svg_props->fill_opacity) free(svg_props->fill_opacity);
 	if(svg_props->fill_rule) free(svg_props->fill_rule);
 	if(svg_props->font_family) {
@@ -314,11 +314,11 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 	if(svg_props->opacity) free(svg_props->opacity);
 	if(svg_props->pointer_events) free(svg_props->pointer_events);
 	if(svg_props->shape_rendering) free(svg_props->shape_rendering);
-	gf_svg_delete_paint(svg_props->solid_color);
+	gf_svg_delete_paint(NULL, svg_props->solid_color);
 	if(svg_props->solid_opacity) free(svg_props->solid_opacity);
-	gf_svg_delete_paint(svg_props->stop_color);
+	gf_svg_delete_paint(NULL, svg_props->stop_color);
 	if(svg_props->stop_opacity) free(svg_props->stop_opacity);
-	gf_svg_delete_paint(svg_props->stroke);
+	gf_svg_delete_paint(NULL, svg_props->stroke);
 	if(svg_props->stroke_dasharray) {
 		if (svg_props->stroke_dasharray->array.count) free(svg_props->stroke_dasharray->array.vals);
 		free(svg_props->stroke_dasharray);
@@ -333,7 +333,7 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 	if(svg_props->text_anchor) free(svg_props->text_anchor);
 	if(svg_props->text_rendering) free(svg_props->text_rendering);
 	if(svg_props->vector_effect) free(svg_props->vector_effect);
-	gf_svg_delete_paint(svg_props->viewport_fill);
+	gf_svg_delete_paint(NULL, svg_props->viewport_fill);
 	if(svg_props->viewport_fill_opacity) free(svg_props->viewport_fill_opacity);
 	if(svg_props->visibility) free(svg_props->visibility);
 	memset(svg_props, 0, sizeof(SVGPropertiesPointers));

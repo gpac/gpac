@@ -772,33 +772,6 @@ static GF_Node *svg_get_texture_target(GF_Node *node, DOM_String uri)
 	return target;
 }
 
-static u32 svg_get_texture_type(GF_Node *node, DOM_String uri)
-{
-	GF_Node *target = NULL;
-	if (uri[0]=='#') target = gf_sg_find_node_by_name(gf_node_get_graph(node), uri+1);
-
-	if (!target) return TAG_SVG_UndefinedElement;
-	return gf_node_get_tag(target);
-}
-
-static GF_TextureHandler *svg_get_texture_handle(GF_Node *node, DOM_String uri)
-{
-	GF_Node *target = NULL;
-	if (uri[0]=='#') {
-		target = gf_sg_find_node_by_name(gf_node_get_graph(node), uri+1);
-		if (!target && (uri[1]=='N')) target = gf_sg_find_node(gf_node_get_graph(node), atoi(uri+2)+1);
-	}
-
-	if (!target) return NULL;
-	switch (gf_node_get_tag(target)) {
-	case TAG_SVG_linearGradient: 
-	case TAG_SVG_radialGradient: 
-		return svg_gradient_get_texture(target);
-	default: 
-		return NULL;
-	}
-}
-
 static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointers props)
 {
 	Fixed clamped_solid_opacity = FIX_ONE;
@@ -809,13 +782,39 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 	ctx->aspect.filled = (props.fill->type != SVG_PAINT_NONE);
 
 	if (props.fill->type==SVG_PAINT_URI) {
-		if (svg_get_texture_type(ctx->node->owner, props.fill->uri) == TAG_SVG_solidColor) {
-			SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)svg_get_texture_target(ctx->node->owner, props.fill->uri);
-			if (solidColorElt) clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
-			ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
-		} else {
-			ctx->h_texture = svg_get_texture_handle(ctx->node->owner, props.fill->uri);
+		if (props.fill->iri.type != SVG_IRI_ELEMENTID) {
+			/* trying to resolve the IRI to the Paint Server */
+			SVG_IRI *iri = &props.fill->iri;
+			GF_SceneGraph *sg = gf_node_get_graph(ctx->node->owner);
+			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
+			if (n) {
+				iri->type = SVG_IRI_ELEMENTID;
+				iri->target = (SVGElement *) n;
+				gf_svg_register_iri(sg, iri);
+				free(iri->iri);
+				iri->iri = NULL;
+			}
+		}		
+		if (props.fill->iri.type != SVG_IRI_ELEMENTID) {
+			/* Paint server not found, paint is equivalent to none */
 			ctx->aspect.filled = 0;
+		} else {
+			switch (gf_node_get_tag((GF_Node *)props.fill->iri.target)) {
+			case TAG_SVG_solidColor:
+				{
+					SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)props.fill->iri.target;
+					clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
+					ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
+				}
+				break;
+			case TAG_SVG_linearGradient: 
+			case TAG_SVG_radialGradient: 
+				ctx->h_texture = svg_gradient_get_texture((GF_Node *)props.fill->iri.target);
+				ctx->aspect.filled = 0;
+				break;
+			default: 
+				ctx->aspect.filled = 0;
+			}
 		}
 	}
 	else if (props.fill->color.type == SVG_COLOR_CURRENTCOLOR) {
@@ -829,12 +828,38 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 
 	ctx->aspect.has_line = (props.stroke->type != SVG_PAINT_NONE);
 	if (props.stroke->type==SVG_PAINT_URI) {
-		if (svg_get_texture_type(ctx->node->owner, props.stroke->uri) == TAG_SVG_solidColor) {
-			SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)svg_get_texture_target(ctx->node->owner, props.stroke->uri);
-			if (solidColorElt) clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
-			ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);
+		if (props.stroke->iri.type != SVG_IRI_ELEMENTID) {
+			/* trying to resolve the IRI to the Paint Server */
+			SVG_IRI *iri = &props.stroke->iri;
+			GF_SceneGraph *sg = gf_node_get_graph(ctx->node->owner);
+			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
+			if (n) {
+				iri->type = SVG_IRI_ELEMENTID;
+				iri->target = (SVGElement *) n;
+				gf_svg_register_iri(sg, iri);
+				free(iri->iri);
+				iri->iri = NULL;
+			}
+		}		
+		if (props.stroke->iri.type != SVG_IRI_ELEMENTID) {
+			/* Paint server not found, stroke is equivalent to none */
+			ctx->aspect.pen_props.width = 0;
 		} else {
-			ctx->aspect.line_texture = svg_get_texture_handle(ctx->node->owner, props.stroke->uri);
+			switch (gf_node_get_tag((GF_Node *)props.stroke->iri.target)) {
+			case TAG_SVG_solidColor:
+				{
+					SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)props.stroke->iri.target;
+					clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
+					ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
+				}
+				break;
+			case TAG_SVG_linearGradient: 
+			case TAG_SVG_radialGradient: 
+				ctx->aspect.line_texture = svg_gradient_get_texture((GF_Node*)props.stroke->iri.target);
+				break;
+			default: 
+				ctx->aspect.pen_props.width = 0;
+			}
 		}
 	}
 	else if (props.stroke->color.type == SVG_COLOR_CURRENTCOLOR) {
