@@ -228,6 +228,7 @@ Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char 
 	return 1;
 }
 
+GF_EXPORT
 void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *target)
 {
 	if (gf_list_find(sg->xlink_hrefs, target)<0) {

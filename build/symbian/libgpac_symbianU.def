@@ -817,4 +817,5 @@ EXPORTS
 	gf_term_get_url @ 816 NONAME ; CODE
 	my_str_lwr @ 817 NONAME ; CODE
 	my_str_upr @ 818 NONAME ; CODE
+	gf_svg_register_iri @ 819 NONAME ; CODE
 

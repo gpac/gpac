@@ -2270,7 +2270,7 @@ int main(int argc, char **argv)
 				memset(_t, 0, sizeof(char)*8);
 				tlen = (itag==GF_ISOM_ITUNE_DISK) ? 6 : 8;
 				if (sscanf(val, "%d/%d", &n, &t) == 2) { _t[3]=n; _t[5]=t;}
-				else if (sscanf(val, "%d/%d", &n) == 1) { _t[3]=n;}
+				else if (sscanf(val, "%d", &n) == 1) { _t[3]=n;}
 				else tlen = 0;
 				if (tlen) gf_isom_apple_set_tag(file, itag, _t, tlen);
 			}
