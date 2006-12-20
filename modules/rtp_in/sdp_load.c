@@ -54,7 +54,7 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 		End = range->end;
 		gf_rtsp_range_del(range);
 	}
-	
+
 	//setup all streams
 	i=0;
 	while ((media = (GF_SDPMedia*)gf_list_enum(sdp->media_desc, &i))) {

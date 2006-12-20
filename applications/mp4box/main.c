@@ -201,6 +201,8 @@ void PrintImportUsage()
 			" \":sbr\":              same as -sbr option\n"
 			" \":sbrx\":             same as -sbrx option\n"
 			" \":mpeg4\":            same as -mpeg4 option\n"
+			" \":font=name\":        specifies font name for text import (default \"Serif\")\n"
+			" \":size=s\":           specifies font size for text import (default 18)\n"
 			"\n"
 			" -add file:           add file tracks to (new) output file\n"
 			" -cat file:           concatenates file samples to (new) output file\n"

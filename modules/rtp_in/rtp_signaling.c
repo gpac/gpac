@@ -225,7 +225,7 @@ Bool RP_PreprocessDescribe(RTSPSession *sess, GF_RTSPCommand *com)
 }
 
 /*process describe reply*/
-Bool RP_ProcessDescribe(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
+GF_Err RP_ProcessDescribe(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
 	RTPStream *ch;
 	ChannelDescribe *ch_desc;
@@ -271,9 +271,7 @@ exit:
 	com->user_data = NULL;
 	if (e) {
 		if (!ch_desc) {
-			/*THIS MAY DESTROY THE WHOLE PLUGIN*/
-			gf_term_on_connect(sess->owner->service, NULL, e);
-			return 0;
+			return e;
 		} else if (ch) {
 			RP_ConfirmChannelConnect(ch, e);
 		} else {
@@ -281,7 +279,7 @@ exit:
 		}
 	}
 	if (ch_desc) free(ch_desc);
-	return 1;
+	return GF_OK;
 }
 
 /*send describe*/

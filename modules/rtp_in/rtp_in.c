@@ -98,7 +98,7 @@ static void RP_cleanup(RTPClient *rtp)
 
 	while ( (sess = (RTSPSession *)gf_list_last(rtp->sessions)) ) {
 		gf_list_rem_last(rtp->sessions);
-		RP_RemoveSession(sess, 1);
+		RP_DelSession(sess);
 	}
 
 	if (rtp->session_desc) gf_odf_desc_del(rtp->session_desc);
@@ -109,17 +109,6 @@ static void RP_cleanup(RTPClient *rtp)
 		free(rtp->sdp_temp);
 	}
 	rtp->sdp_temp = NULL;
-}
-
-static void RP_close_service_thread(RTPClient *rtp)
-{
-	gf_mx_p(rtp->mx);
-
-	RP_cleanup(rtp);
-
-	gf_term_on_disconnect(rtp->service, NULL, GF_OK);
-
-	gf_mx_v(rtp->mx);
 }
 
 u32 RP_Thread(void *param)
@@ -238,12 +227,41 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 	return GF_OK;
 }
 
+static void RP_FlushCommands(RTPClient *rtp)
+{
+	u32 i, nb_com;
+	RTSPSession *sess;
+	/*process teardown on all sessions*/
+	while (1) {
+		nb_com = 0;
+		i=0;
+		while ((sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i))) {
+			nb_com += gf_list_count(sess->rtsp_commands);
+		}
+		if (!nb_com) break;
+		gf_sleep(10);
+	}
+}
+
 static GF_Err RP_CloseService(GF_InputService *plug)
 {
+	u32 i;
+	RTSPSession *sess;
 	RTPClient *rtp = (RTPClient *)plug->priv;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[RTP] Closing service\n"));
-//	RP_close_service_thread(rtp);
+
+	RP_FlushCommands(rtp);
+	/*send teardown on all sessions*/
+	i=0;
+	while ((sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i))) {
+		RP_Teardown(sess, NULL);
+	}
+	RP_FlushCommands(rtp);
+
+	/*shutdown thread*/
 	if (rtp->th_state==1) rtp->th_state = 0;
+
+	/*confirm close*/
 	gf_term_on_disconnect(rtp->service, NULL, GF_OK);
 	return GF_OK;
 }
@@ -585,26 +603,29 @@ GF_InputService *RTP_Load()
 	return plug;
 }
 
+
 void RTP_Delete(GF_BaseInterface *bi)
 {
-	RTPClient *priv;
+	RTPClient *rtp;
 	u32 retry;
 	GF_InputService *plug = (GF_InputService *) bi;
-	priv = (RTPClient *)plug->priv;
+	rtp = (RTPClient *)plug->priv;
 
+	/*shutdown thread*/
+	if (rtp->th_state==1) rtp->th_state = 0;
 	retry = 20;
-	while ((priv->th_state==1) && retry) {
+	while ((rtp->th_state==1) && retry) {
 		gf_sleep(10);
 		retry--;
 	}
 	assert(retry);
 
-	RP_cleanup(priv);
-	gf_th_del(priv->th);
-	gf_mx_del(priv->mx);
-	gf_list_del(priv->sessions);
-	gf_list_del(priv->channels);
-	free(priv);
+	RP_cleanup(rtp);
+	gf_th_del(rtp->th);
+	gf_mx_del(rtp->mx);
+	gf_list_del(rtp->sessions);
+	gf_list_del(rtp->channels);
+	free(rtp);
 	free(bi);
 }
 

@@ -134,7 +134,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
-	char *ext, szName[1000], *handler_name, *fmt;
+	char *ext, szName[1000], *handler_name;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
@@ -153,7 +153,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
 
 	handler_name = NULL;
-	fmt = NULL;
 	while (ext) {
 		char *ext2 = strchr(ext+1, ':');
 		if (ext2 && !strncmp(ext2, "://", 3)) ext2 = strchr(ext2+1, ':');
@@ -182,8 +181,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				sscanf(ext+5, "%d:%d", &par_n, &par_d);
 			}
 		}
-		else if (!strnicmp(ext+1, "name=", 5)) handler_name = ext+6;
-		else if (!strnicmp(ext+1, "fmt=", 4)) fmt = strdup(ext+5);
+		else if (!strnicmp(ext+1, "name=", 5)) handler_name = strdup(ext+6);
+		else if (!strnicmp(ext+1, "font=", 5)) import.fontName = strdup(ext+6);
+		else if (!strnicmp(ext+1, "size=", 5)) import.fontSize = atoi(ext+6);
+		else if (!strnicmp(ext+1, "fmt=", 4)) import.streamFormat = strdup(ext+5);
 		/*unrecognized, assume name has colon in it*/
 		else {
 		 ext = ext2;
@@ -212,7 +213,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 	import.in_name = szName;
 	import.flags = GF_IMPORT_PROBE_ONLY;
-	import.streamFormat = fmt;
 	e = gf_media_import(&import);
 	if (e) goto exit;
 
@@ -305,8 +305,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	}
 
 exit:
-//	if (handler_name) free(handler_name);
-	if (fmt) free(fmt);
+	if (handler_name) free(handler_name);
+	if (import.fontName) free(import.fontName);
+	if (import.streamFormat) free(import.streamFormat);
 	return e;
 }
 

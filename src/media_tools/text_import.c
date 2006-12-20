@@ -331,10 +331,10 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		sd->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
 		sd->font_count = 1;
 		sd->fonts[0].fontID = 1;
-		sd->fonts[0].fontName = strdup("Serif");
+		sd->fonts[0].fontName = strdup(import->fontName ? import->fontName : "Serif");
 		sd->back_color = 0x00000000;	/*transparent*/
 		sd->default_style.fontID = 1;
-		sd->default_style.font_size = TTXT_DEFAULT_FONT_SIZE;
+		sd->default_style.font_size = import->fontSize ? import->fontSize : TTXT_DEFAULT_FONT_SIZE;
 		sd->default_style.text_color = 0xFFFFFFFF;	/*white*/
 		sd->default_style.style_flags = 0;
 		sd->horiz_justif = 1; /*center of scene*/

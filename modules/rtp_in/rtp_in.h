@@ -119,7 +119,7 @@ typedef struct _rtp_session
 /*creates new RTSP session handler*/
 RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control);
 /*disconnects and destroy RTSP session handler - if immediate_shutdown do not wait for response*/
-void RP_RemoveSession(RTSPSession *sess, Bool immediate_shutdown);
+void RP_DelSession(RTSPSession *sess);
 /*check session by control string*/
 RTSPSession *RP_CheckSession(RTPClient *rtp, char *control);
 
@@ -320,7 +320,7 @@ typedef struct
 
 /*RTSP signaling */
 Bool RP_PreprocessDescribe(RTSPSession *sess, GF_RTSPCommand *com);
-Bool RP_ProcessDescribe(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
+GF_Err RP_ProcessDescribe(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
 void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
 void RP_ProcessTeardown(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
 Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com);
