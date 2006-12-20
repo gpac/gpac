@@ -2475,7 +2475,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 #endif
 			last_DTS = (u32) trak->Media->mediaHeader->duration;
 		} else {
-			s16 utf16Line[10000];
+			unsigned short utf16Line[10000];
 			last_DTS = s->DTS;
 			/*UTF16*/
 			if ((txt->len>2) && ((unsigned char) txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) txt->text[1] == (unsigned char) 0xFF)) {

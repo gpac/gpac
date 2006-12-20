@@ -151,6 +151,10 @@ typedef struct __track_import
 	/*for MP4 import only*/
 	GF_ISOFile *orig;
 
+	/*for text import*/
+	u32 fontSize;
+	char *fontName;
+
 	/*number of tracks after probing - may be set to 0, in which case no track 
 	selection can be performed. It may also be inaccurate if probing doesn't
 	detect all available tracks (cf ogg import)*/

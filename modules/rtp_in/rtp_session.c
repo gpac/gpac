@@ -41,7 +41,7 @@ Bool RP_ProcessResponse(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 		RP_ProcessTeardown(sess, com, e);
 	else if (!strcmp(com->method, GF_RTSP_PLAY) || !strcmp(com->method, GF_RTSP_PAUSE)) 
 		RP_ProcessUserCommand(sess, com, e);
-	return 1;
+	return GF_OK;
 }
 
 /*access to command list is protected bymutex, BUT ONLY ACCESS - this way we're sure that command queueing
@@ -84,8 +84,14 @@ void RP_ProcessCommands(RTSPSession *sess)
 	if ( (com && (sess->flags & RTSP_WAIT_REPLY) ) /*|| (!com && sess->owner->handle_announce)*/) {
 		e = gf_rtsp_get_response(sess->session, sess->rtsp_rsp);
 		if (e!= GF_IP_NETWORK_EMPTY) {
-			/*if 0, this is a service connect error -> plugin may be discarded */
-			if (!RP_ProcessResponse(sess, com, e)) return;
+			e = RP_ProcessResponse(sess, com, e);
+			/*this is a service connect error -> plugin may be discarded */
+			if (e!=GF_OK) {
+				RP_RemoveCommand(sess);
+				gf_rtsp_command_del(com);
+				gf_term_on_connect(sess->owner->service, NULL, e);
+				return;
+			}
 
 			RP_RemoveCommand(sess);
 			gf_rtsp_command_del(com);
@@ -273,12 +279,11 @@ GF_Err RP_AddStream(RTPClient *rtp, RTPStream *stream, char *session_control)
 
 	/*setup through SDP with control - assume this is RTSP and try to create a session*/
 	if (stream->control) {
-		/*no session control, use stream control*/
-		if (!session_control) session_control = stream->control;
 		/*stream control is relative to main session*/
 		if (strnicmp(stream->control, "rtsp://", 7) && strnicmp(stream->control, "rtspu://", 7)) {
-			/*locate session by control*/
-			if (!in_session) in_session = RP_CheckSession(rtp, session_control);
+			/*locate session by control - if no control was provided for the session, use default
+			session*/
+			if (!in_session) in_session = RP_CheckSession(rtp, session_control ? session_control : "*");
 			/*none found, try to create one*/
 			if (!in_session) in_session = RP_NewSession(rtp, session_control);
 			/*cannot add an RTSP session for this channel, check if multicast*/
@@ -357,18 +362,9 @@ void RP_ResetSession(RTSPSession *sess, GF_Err e)
 }
 
 
-void RP_RemoveSession(RTSPSession *sess, Bool immediate_shutdown)
+void RP_DelSession(RTSPSession *sess)
 {
-	/*shutdown session*/
-	RP_Teardown(sess, NULL);
-	/*wait for ack*/
-	if (!immediate_shutdown ) {
-		while (gf_list_count(sess->rtsp_commands)) 
-			gf_sleep(10);
-	}
-
 	RP_ResetSession(sess, GF_OK);
-
 	gf_list_del(sess->rtsp_commands);
 	gf_rtsp_response_del(sess->rtsp_rsp);
 	gf_rtsp_session_del(sess->session);

@@ -43,6 +43,8 @@ GF_Err RTSP_UnpackURL(char *sURL, char *Server, u16 *Port, char *Service, Bool *
 	strcpy(Service, "");
 	*Port = *useTCP =0;
 	
+	if (!strchr(sURL, ':')) return GF_BAD_PARAM;
+
 	//extract the schema
 	i = 0;
 	while (i<=strlen(sURL)) {

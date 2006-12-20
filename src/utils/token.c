@@ -51,7 +51,7 @@ s32 gf_token_get(char *Buffer, s32 Start,  char *Separator,  char *Container, s3
 	}
 	end = i-1;
 
-	for (i=start; ((i<=end) && (i< (ContainerSize-1))); i++) {
+	for (i=start; ((i<=end) && (i< start+(ContainerSize-1))); i++) {
 		Container[i-start] = Buffer[i];
 	}
 	Container[i-start] = 0;
