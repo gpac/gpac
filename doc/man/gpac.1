@@ -1,4 +1,4 @@
-.TH "GPAC" 1 "July 2005" "GPAC Configuration" "GPAC Configuration"
+.TH "GPAC" 1 "December 2006" "GPAC Configuration" "GPAC Configuration"
 .
 .SH NAME
 .LP
@@ -6,7 +6,7 @@ GPAC	\- MPEG-4 Systems Framework and Software Development Kit
 .SH "DESCRIPTION"
 .LP
 GPAC stands (does it ?) for GPAC Project on Advanced Content. It is an implementation of the MPEG-4 Systems standard written in ANSI C. GPAC provides tools for media playback, vector graphics and 3D rendering, MPEG-4 authoring and distribution.
-This man page is about configuration of the GPAC framework version 0.4.2.
+This man page is about configuration of the GPAC framework version 0.4.3.
 .
 .SH INTRODUCTION
 Some applications in the GPAC framework use a configuration file shared among modules and reloadable at run time. This file is located in the user home directory and called ".gpacrc".
@@ -52,8 +52,52 @@ specifies if Osmo4 shall look for subtitle files when opening a presentation.
 .B PLEntry (value: unsigned int)
 indicates active playlist entry when player was last closed. Playlist backup is ".gpac_pl.m3u", stored in user home directory.
 .TP
-.B last_file_XX (value: string)
-indicates last URL played (XX is from 0 to 10 when storing URLs to cfg file, but not limited when reading them).
+.B StartupFile value: filename)
+specifies file to load upon startup of osmo4/MP4Client. If not specified, no file is loaded.
+.TP
+.B NoMIMETypeFetch (value: yes, no)
+specifies if the player has to check for mime type when following hyperlinks, or only follow links of known extensions.
+.TP
+.B LogFile (value: filename)
+specifies where to output GPAC's log. By default, the logs are written to stdout. Note that GPAC may be compiled without log support. This is not used by MP4Client.
+.TP
+.B LogLevel (value: none, error, warning, info, debug)
+specifies the level of the log. By default, no log is performed.
+.TP
+.B LogTools (value: a ':'-separated list of the following values)
+specifies which set of tools from GPAC should be logged. Available tools are:
+.br
+core: libgpac core events.
+.br
+coding: bitstream formats (audio, video, scene).
+.br
+container: container formats (ISO File, MPEG-2 TS, AVI, ...).
+.br
+network: network data exept RTP trafic.
+.br
+rtp: rtp, rtcp and rtsp trafic.
+.br
+author : authoring tools (hint, import, export).
+.br
+sync: terminal sync layer.
+.br
+codec: terminal codec messages.
+.br
+parser: scene parsers (svg, xmt, bt) and other.
+.br
+media: terminal media object management.
+.br
+scene: scene graph and scene manager.
+.br
+script: scripting engine messages.
+.br
+compose: composition engine (events, etc).
+.br
+render: renderng engine (2D, 3D, etc).
+.br
+service: network service management.
+.br
+mmio: Audio/Video HW I/O management.
 .
 .SH SECTION "RecentFiles"
 .LP
@@ -275,16 +319,34 @@ specifies default FIXED font.
 The freetype plugin uses this section to maintain associations between font names and truetype font file names. This greatly speeds up font selection at run-time.
 .
 .SH SECTION "Downloader"
-The "Downloader" section holds all configuration options for file downloading and caching. This is a plugin configuration section. The following options are defined:
+The "Downloader" section holds all configuration options for file downloading and caching.
 .TP
 .B CleanCache (value: yes, no)
 specifies whether downloaded files shall be removed once used.
 .TP
 .B RestartFiles (value: yes, no)
 specifies whether incompletely downloaded files shall be removed before redownloading.
+.TP
+.B MaxRate (value: positive integer)
+specifies a maximum data rate in kilo bits per seconds for file downloading. This is used for simulation purposes. A value of 0 means no rate restriction.
+.TP
+.B UserAgent (value: string)
+specifies an alternate user agent (default one is "GPAC $VERSION").
+.
+.SH SECTION "HTTPProxy"
+The "HTTPProxy" section of the config file holds configuration option for HTTP proxy adressing. Currently only one proxy can be enabled, and no URI selection is done
+.TP
+.B Enabled (value: yes, no)
+specifies whether the proxy should be used or not when downloading files.
+.TP
+.B Name (value: string)
+specifies the proxy name (IP address or resolved name) without protocol identifier (eg, no "http://"). If not present, the proxy is disabled.
+.TP
+.B Port (value: positive integer)
+Specifies the port to use with the proxy. If no port is specified, the default HTTP port (80) is used.
 .
 .SH SECTION "Streaming"
-The "Streaming" section holds all configuration options for real-time streaming using IETF SDP/RTSP/RTP/RTCP protocols. This is a plugin configuration section. The following options are defined:
+The "Streaming" section holds all configuration options for real-time streaming using IETF SDP/RTSP/RTP/RTCP protocols. 
 .TP
 .B DefaultPort (value: unsigned short)
 specifies the default port to use when connecting to a server (ignored if a port is specified in the url). If the port is 80 or 8080 (HTTP), the client will connect to the RTSP server through an HTTP tunnel, and transport will take place on the RTSP connection.
@@ -303,9 +365,6 @@ specifies the first SL packet to be droped - 0 means no packet drop. Used for pa
 .TP
 .B PacketDropFrequency (value: unsigned int)
 specifies the frequency at which SL packets are droped. If value is 20, one packet every 20 recieved packets will be droped. Used for packet drop simulation tests.
-.TP
-.B LogFile (value: path_and_filename)
-if set specifies a file where RTSP traffic is logged (must have write access to the file), "stdout" for stdout.
 .
 .SH SECTION "MimeTypes"
 This section is used to keep MIME types and file associations for GPAC plugins. The format of the key is:
@@ -328,23 +387,23 @@ specifies the base name for recorded files. If not present in configuration file
 specifies if cached files with same name should be kept or not. If not, an integer number is added to the cached file name, the higest number for the latest file.
 .TP
 .
-.SH SECTION "SVGLoader"
-The "SVGLoader" section holds all configuration options for the SVG file loader. This is a plugin configuration section. The following options are defined:
+.SH SECTION "SAXLoader"
+The "SAXLoader" section holds all configuration options for XML SAX parsing of SVG, XMT and X3D files.
 .TP
-.SH LoadType (value: string)
+.SH Progressive (value: string)
 specifies XML parsing mode used by the loader. Supported modes are:
 .br
-DOM: DOM parsing is used (document will first be completely downloaded).
+yes: SAX parsing is used with progressive loading of the document.
 .br
-SAX: SAX parsing is used.
+no: SAX parsing is used, document will first be completely downloaded.
 .br
-SAX Progressive: SAX parsing is used with progressive loading of the document.
+DOM: DOM parsing is used, document will first be completely downloaded. Only supported by libXML2 plugin, otherwise handled as "no".
 .TP
-.B SAXMaxDuration (value positive integer)
+.B MaxDuration (value positive integer)
 specifies the maximum amount of time the SAX parser should spent loading a portion of the document. Only used in SAX Progressive mode.
 .
 .SH SECTION "XviD"
-The "XviD" section holds all configuration options for the XviD codec. This is a plugin configuration section. The following options are defined:
+The "XviD" section holds all configuration options for the XviD codec. 
 .TP
 .SH PostProc (value: string)
 specifies filters to apply when decoding video. The string is a list of filters separated with a space character. Filters supported are:
@@ -359,13 +418,16 @@ Deblock_UV: UV plane deblocking filter.
 specifies whether the decoder should run in its own thread or not.
 .
 .SH Section "FFMPEG"
-The "FFMPEG" section holds all configuration options for the FFMPEG demuxer and codec. This is a plugin configuration section. The following options are defined:
+The "FFMPEG" section holds all configuration options for the FFMPEG demuxer and codec. 
 .TP
 .SH DataBufferMS (value: unsigned int)
 specifies the amount of video/audio data (in milliseconds) to be bufferer before starting decoding. For developpers only.
+.
+.SH Section "ISOReader"
+The "ISOReader" section holds all configuration options for the ISO Media file demuxer.
 .TP
-.SH EnablePixelAspectRatio (value: yes, no)
-specifies if pixel aspect ratio should be kept if indicated. Default is no due to bugs and lack of optimizations.
+.SH IgnoreMPEG-4ForBrands (value: Full 4CC or 4CC pattern (abc* ab*))
+ignores all MPEG-4 systems tracks and IOD for files showing the listed brands in their compatible brand list.
 .
 .SH CREATING THE CONFIGURATION FILE
 .TP
