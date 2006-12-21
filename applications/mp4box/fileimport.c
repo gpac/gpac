@@ -162,7 +162,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		/*all extensions for track-based importing*/
 		if (!strnicmp(ext+1, "lang=", 5)) szLan = GetLanguageCode(ext+6);
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
-		else if (!strnicmp(ext+1, "fps=", 4)) force_fps = atof(ext+5);
+		else if (!strnicmp(ext+1, "fps=", 4)) {
+			if (!strcmp(ext+5, "auto")) force_fps = 10000.0;
+			else force_fps = atof(ext+5);
+		}
 		else if (!stricmp(ext+1, "dref")) import_flags |= GF_IMPORT_USE_DATAREF;
 		else if (!stricmp(ext+1, "nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
 		else if (!stricmp(ext+1, "packed")) import_flags |= GF_IMPORT_FORCE_PACKED;

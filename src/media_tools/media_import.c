@@ -687,6 +687,8 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	samp = gf_isom_sample_new();
 	max_size = 4096;
 	samp->data = (char*)malloc(sizeof(char)*max_size);
+	/*no auto frame-rate detection*/
+	if (import->video_fps == 10000.0) import->video_fps = 25.0;
 
 	PL = dsi.VideoPL;
 	if (!PL) {
@@ -980,6 +982,8 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 		e = GF_NOT_SUPPORTED;
 		goto exit;
 	}
+	/*no auto frame-rate detection*/
+	if (import->video_fps == 10000.0) import->video_fps = 25.0;
 
 	FPS = AVI_frame_rate(in);
 	if (import->video_fps) FPS = (Double) import->video_fps;
@@ -1649,6 +1653,9 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 
 	if (import->flags & GF_IMPORT_USE_DATAREF) 
 		return gf_import_message(import, GF_NOT_SUPPORTED, "Cannot use data referencing with MPEG-1/2 files");
+
+	/*no auto frame-rate detection*/
+	if (import->video_fps == 10000.0) import->video_fps = 25.0;
 
 	ps = mpeg2ps_init(import->in_name);
 	if (!ps) return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Failed to open MPEG file %s", import->in_name);
@@ -3240,6 +3247,9 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Cannot find H263 Picture Start Code");
 		goto exit;
 	}
+	/*no auto frame-rate detection*/
+	if (import->video_fps == 10000.0) import->video_fps = 25.0;
+
 	FPS = (Double) import->video_fps;
 	/*for H263 we use 15 fps by default!!*/
 	if (!FPS) FPS = 15;
@@ -3390,7 +3400,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	GF_AVCConfig *avccfg;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset;
+	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset, detect_fps;
 	u32 b_frames, ref_frame, pred_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Double FPS;
@@ -3407,6 +3417,12 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 
 	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
+
+	detect_fps = 0;
+	if (import->video_fps == 10000.0) {
+		import->video_fps = 25.0;
+		detect_fps = 1;
+	}
 	
 	FPS = (Double) import->video_fps;
 	if (!FPS) FPS = GF_IMPORT_DEFAULT_FPS;
@@ -3529,10 +3545,14 @@ restart_import:
 					memcpy(slc->data, buffer, sizeof(char)*slc->size);
 					gf_list_add(avccfg->sequenceParameterSets, slc);
 					/*disable frame rate scan, most bitstreams have wrong values there*/
-					if (0 && !import->video_fps && avc.sps[idx].timing_info_present_flag && avc.sps[idx].fixed_frame_rate_flag) {
+					if (detect_fps && avc.sps[idx].timing_info_present_flag && avc.sps[idx].fixed_frame_rate_flag
+						/*if detected FPS is greater than 50, assume wrong timing info*/
+						&& (avc.sps[idx].time_scale <= 50*avc.sps[idx].num_units_in_tick)
+						) {
 						timescale = avc.sps[idx].time_scale;
 						dts_inc = avc.sps[idx].num_units_in_tick;
-						FPS = import->video_fps = (Double)timescale / dts_inc;
+						FPS = (Double)timescale / dts_inc;
+						detect_fps = 0;
 						gf_isom_remove_track(import->dest, track);
 						if (sample_data) gf_bs_del(sample_data);
 						gf_odf_avc_cfg_del(avccfg);
@@ -3545,7 +3565,7 @@ restart_import:
 						goto restart_import;
 					}
 					if (!idx) {
-						gf_import_message(import, GF_OK, "AVC-H264 import - frame size %d x %d at %02.4f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
+						gf_import_message(import, GF_OK, "AVC-H264 import - frame size %d x %d at %02.3f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
 					}
 					if ((max_w <= avc.sps[idx].width) && (max_h <= avc.sps[idx].height)) {
 						max_w = avc.sps[idx].width;
@@ -3932,6 +3952,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 	FILE *f_in;
 	GF_ISOSample *samp;
 
+
 	dts_inc = 0;
 	/*assume audio or simple AV file*/
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
@@ -4051,6 +4072,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 			gf_bs_del(bs);
 
 		    FPS = ((Double)fps_num) / fps_den;
+
 			/*note that we don't rewrite theora headers (just like in MPEG-4 video, systems timing overrides stream one)*/
 			if (import->video_fps) FPS = import->video_fps;
 			num_headers = 0;
