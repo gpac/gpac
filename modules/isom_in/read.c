@@ -225,6 +225,68 @@ GF_Err ISOR_CloseService(GF_InputService *plug)
 	return GF_OK;
 }
 
+static Bool check_mpeg4_systems(GF_InputService *plug, GF_ISOFile *mov)
+{
+	char *opt, *bname, *br, *next;
+	u32 i, count, brand, has_mpeg4;
+	GF_Err e;
+	e = gf_isom_get_brand_info(mov, &brand, &i, &count);
+	/*no brand == MP4 v1*/
+	if (e) return 1;
+
+	has_mpeg4 = 0;
+	if ((brand==GF_ISOM_BRAND_MP41) || (brand==GF_ISOM_BRAND_MP42)) has_mpeg4 = 1;
+
+	opt = (char*) gf_modules_get_option((GF_BaseInterface *)plug, "ISOReader", "IgnoreMPEG-4ForBrands");
+	if (!opt) {
+		gf_modules_set_option((GF_BaseInterface *)plug, "ISOReader", "IgnoreMPEG-4ForBrands", "nd*");
+		opt = (char*) gf_modules_get_option((GF_BaseInterface *)plug, "ISOReader", "IgnoreMPEG-4ForBrands");
+	}
+
+	for (i=0; i<count; i++) {
+		e = gf_isom_get_alternate_brand(mov, i+1, &brand);
+		if (e) return 0;
+		if ((brand==GF_ISOM_BRAND_MP41) || (brand==GF_ISOM_BRAND_MP42)) {
+			has_mpeg4 = 1;
+			continue;
+		}
+		bname = (char*)gf_4cc_to_str(brand);
+		br = opt;
+		while (br) {
+			Bool ignore = 0;
+			u32 orig_len, len;
+			next = strchr(br, ' ');
+			if (next) next[0] = 0;
+			len = orig_len = strlen(br);
+
+			while (len) {
+				if (br[len-1]=='*') {
+					br[len-1]=0;
+					len--;
+				} else {
+					break;
+				}
+			}
+			/*ignor all brands*/
+			if (!len) ignore = 1;
+			else if (!strncmp(bname, br, len)) ignore = 1;
+
+			while (len<orig_len) {
+				br[len] = '*';
+				len++;
+			}
+			if (next) {
+				next[0] = ' ';
+				br = next + 1;
+			} else {
+				br = NULL;
+			}
+			if (ignore) return 0;
+		}
+	}
+	return has_mpeg4;
+}
+
 /*fixme, this doesn't work properly with respect to @expect_type*/
 static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
@@ -286,18 +348,21 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		return (GF_Descriptor *) iod;
 	}
 
-	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(read->mov);
-	if (!iod) {
+	iod = NULL;
+	if (check_mpeg4_systems(plug, read->mov)) {
+		iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(read->mov);
+		if (!iod) {
 #ifndef GPAC_DISABLE_LOG
-		GF_Err e = gf_isom_last_error(read->mov);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SERVICE, ("[IsoMedia] Cannot fetch MPEG-4 IOD (error %s) - generating one\n", gf_error_to_string(e) ));
-		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[IsoMedia] No MPEG-4 IOD found in file - generating one\n"));
-		}
+			GF_Err e = gf_isom_last_error(read->mov);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SERVICE, ("[IsoMedia] Cannot fetch MPEG-4 IOD (error %s) - generating one\n", gf_error_to_string(e) ));
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[IsoMedia] No MPEG-4 IOD found in file - generating one\n"));
+			}
 #endif
-		return isor_emulate_iod(read);
+		}
 	}
+	if (!iod) return isor_emulate_iod(read);
 
 	count = gf_list_count(iod->ESDescriptors);
 	if (!count) {
