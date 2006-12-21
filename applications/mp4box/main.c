@@ -1337,7 +1337,12 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
 		else if (!stricmp(arg, "-sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
 		else if (!stricmp(arg, "-sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
-		else if (!stricmp(arg, "-fps")) { CHECK_NEXT_ARG import_fps = atof(argv[i+1]); i++; }
+		else if (!stricmp(arg, "-fps")) { 
+			CHECK_NEXT_ARG 
+			if (!strcmp(argv[i+1], "auto")) import_fps = 10000.0;
+			else import_fps = atof(argv[i+1]);
+			i++; 
+		}
 		else if (!stricmp(arg, "-agg")) { CHECK_NEXT_ARG agg_samples = atoi(argv[i+1]); i++; }
 		else if (!stricmp(arg, "-keep-sys") || !stricmp(arg, "-keepsys")) keep_sys_tracks = 1;
 		else if (!stricmp(arg, "-keep-all") || !stricmp(arg, "-keepall")) import_flags |= GF_IMPORT_KEEP_ALL_TRACKS;
