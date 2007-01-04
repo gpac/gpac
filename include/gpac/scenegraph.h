@@ -45,8 +45,9 @@ enum {
 	TAG_UndefinedNode = 1,
 	/*all proto instances have this tag*/
 	TAG_ProtoNode,
-	/*DOM text node: the sgprivate structure is NULL for all these nodes, and they don't have children !!*/
-	TAG_TextNode,
+	/*DOM text node*/
+	TAG_DOMText,
+	TAG_DOMCDATA,
 
 	/*reserved TAG ranges per standard*/
 
@@ -67,17 +68,25 @@ enum {
 #define BASE_NODE	struct _nodepriv *sgprivate;
 
 /*base node type*/
-typedef struct _sfNode
+typedef struct _base_node
 {
 	BASE_NODE
 } GF_Node;
+
+/*child storage - this is not integrated in the base node, because of VRML/MPEG-4 USE: a node
+may be present at different places in the tree, hence have different "next" siblings.*/
+typedef struct _child_node
+{
+	struct _child_node *next;
+	GF_Node *node;
+} GF_ChildNodeItem;
 
 /*grouping nodes macro :
 	children: list of children SFNodes
 */
 
 #define CHILDREN									\
-	GF_List *children;
+	struct _child_node *children;
 
 typedef struct
 {
@@ -85,11 +94,49 @@ typedef struct
 	CHILDREN
 } GF_ParentNode;
 
+/*adds a child to a given container*/
+GF_Err gf_node_list_add_child(GF_ChildNodeItem **list, GF_Node *n);
+/*adds a child to a given container, updating last position*/
+GF_Err gf_node_list_add_child_last(GF_ChildNodeItem **list, GF_Node *n, GF_ChildNodeItem **last_child);
+/*inserts a child to a given container - if pos doesn't match, append the child*/
+GF_Err gf_node_list_insert_child(GF_ChildNodeItem **list, GF_Node *n, u32 pos);
+/*removes a child to a given container - return 0 if child not found*/
+Bool gf_node_list_del_child(GF_ChildNodeItem **list, GF_Node *n);
+/*finds a child in a given container, returning its 0-based index if found, -1 otherwise*/
+s32 gf_node_list_find_child(GF_ChildNodeItem *list, GF_Node *n);
+/*finds a child in a given container given its index, returning the child or NULL if not found*/
+GF_Node *gf_node_list_get_child(GF_ChildNodeItem *list, s32 pos);
+/*gets the number of children in a given container*/
+u32 gf_node_list_get_count(GF_ChildNodeItem *list);
+/*deletes node entry at given idx, returning node if found, NULL otherwise*/
+GF_Node *gf_node_list_del_child_idx(GF_ChildNodeItem **list, u32 pos);
+
+
+#define GF_DOM_BASE_ATTRIBUTE	\
+	u16 id;	/*attribute identifier*/	\
+	u16 type; /*attribute datatype*/	  \
+	struct __dom_attribute *next; /*next attribute*/
+
+typedef struct __dom_attribute
+{
+	GF_DOM_BASE_ATTRIBUTE
+} GF_DOMBaseAttribute;
+
 typedef struct
 {
 	BASE_NODE
-	char *textContent;
-} GF_TextNode;
+	CHILDREN
+	GF_DOMBaseAttribute *attribute;
+} GF_DOMNode;
+
+typedef struct
+{
+	BASE_NODE
+	CHILDREN
+	GF_DOMBaseAttribute *attribute;
+	char *name;
+	char *ns;
+} GF_DOMNodeFull;
 
 /*tag is set upon creation and cannot be modified*/
 u32 gf_node_get_tag(GF_Node*);
@@ -115,10 +162,9 @@ void gf_node_set_private(GF_Node*, void *);
 through the graph without being touched. If a node has no associated RenderNode(), the traversing of the 
 graph won't propagate below it. It is the app responsability to setup traversing functions as needed
 VRML/MPEG4:  Instanciated Protos are handled internally as well as interpolators, valuators and scripts
+@is_destroy: set when the node is about to be destroyed
 */
-GF_Err gf_node_set_render_function(GF_Node *, void (*RenderNode)(GF_Node *node, void *render_stack) );
-/*set pre-destroy function in order to delete any private data*/
-GF_Err gf_node_set_predestroy_function(GF_Node *, void (*PreDestroyNode)(struct _sfNode *node) );
+GF_Err gf_node_set_callback_function(GF_Node *, void (*NodeFunction)(GF_Node *node, void *render_stack, Bool is_destroy) );
 
 /*register a node (DEFed or not), specifying parent if any.
 A node must be registered whenever used by something (a parent node, a command, whatever) to prevent its 
@@ -135,7 +181,7 @@ being destroyed
 */
 GF_Err gf_node_unregister(GF_Node *node, GF_Node *parent_node);
 /*deletes all node instances in the given list*/
-void gf_node_unregister_children(GF_Node *node, GF_List *childrenlist);
+void gf_node_unregister_children(GF_Node *node, GF_ChildNodeItem *childrenlist);
 
 /*get all parents of the node and replace the old_node by the new node in all parents
 Note: if the new node is not DEFed, only the first instance of "old_node" will be replaced, the other ones deleted*/
@@ -147,6 +193,10 @@ u32 gf_node_get_num_instances(GF_Node *node);
 
 /*calls RenderNode on this node*/
 void gf_node_render(GF_Node *node, void *renderStack);
+/*allows a node to be re-rendered - by default a node in its render phase will never be rendered a second time. 
+Use this function to enable a second render for this node - this must be called while node is being rendered*/
+void gf_node_allow_cyclic_render(GF_Node *node);
+
 /*blindly calls RenderNode on all nodes in the "children" list*/
 void gf_node_render_children(GF_Node *node, void *renderStack);;
 /*returns number of parent for this node (parent are kept regardless of DEF state)*/
@@ -317,11 +367,7 @@ u32 gf_sg_get_next_available_node_id(GF_SceneGraph *sg);
 /*retuns max ID used in graph*/
 u32 gf_sg_get_max_node_id(GF_SceneGraph *sg);
 
-/*set max number of self-traversing per node for cyclic graphs: 0 or 1 means one traverse only
-this value is used for all nodes in the graph*/
-void gf_sg_set_max_render_cycle(GF_SceneGraph *sg, u16 max_cycle);
-/*returns TRUE if this node is traversed for the first time in a cyclic subtree*/
-Bool gf_sg_is_first_render_cycle(GF_Node *n);
+const char *gf_node_get_name_and_id(GF_Node*node, u32 *id);
 
 
 enum
@@ -520,7 +566,7 @@ typedef struct
 	/*Whenever field pointer is of type GF_Node, store the node here and set the far pointer to this address.*/
 	GF_Node *new_node;
 	/*Whenever field pointer is of type MFNode, store the node list here and set the far pointer to this address.*/
-	GF_List *node_list;
+	GF_ChildNodeItem *node_list;
 } GF_CommandField;
 
 typedef struct

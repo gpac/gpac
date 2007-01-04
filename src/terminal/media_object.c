@@ -177,15 +177,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 
 	gf_cm_lock(mo->odm->codec->CB, 1);
 
-	/*end of stream */
-	*eos = gf_cm_is_eos(mo->odm->codec->CB);
-	/*not running and no resync (ie audio)*/
-	if (!resync && !gf_cm_is_running(mo->odm->codec->CB)) {
-		gf_cm_lock(mo->odm->codec->CB, 0);
-		return NULL;
-	}
-	/*if not running but resync (video, image), try to load the composition memory anyway*/
-
 	/*if frame locked return it*/
 	if (mo->nb_fetch) {
 		*eos = 0;
@@ -196,6 +187,12 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		return mo->frame;
 	}
 
+	/*not running and no resync (ie audio)*/
+	if (!resync && !gf_cm_is_running(mo->odm->codec->CB)) {
+		gf_cm_lock(mo->odm->codec->CB, 0);
+		return NULL;
+	}
+
 	/*new frame to fetch, lock*/
 	CU = gf_cm_get_output(mo->odm->codec->CB);
 	/*no output*/
@@ -203,6 +200,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		gf_cm_lock(mo->odm->codec->CB, 0);
 		return NULL;
 	}
+	/*end of stream */
+	*eos = gf_cm_is_eos(mo->odm->codec->CB);
 
 	/*note this assert is NOT true when recomputing DTS from CTS on the fly (MPEG1/2 RTP and H264/AVC RTP)*/
 	//assert(CU->TS >= mo->odm->codec->CB->LastRenderedTS);

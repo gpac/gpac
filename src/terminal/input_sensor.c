@@ -453,26 +453,25 @@ static void IS_Register(GF_Node *n)
 	gf_term_rem_render_node(odm->term, n);
 }
 
-static void RenderInputSensor(GF_Node *node, void *rs)
+static void RenderInputSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
 	ISStack *st = (ISStack*)gf_node_get_private(node);
 	M_InputSensor *is = (M_InputSensor *)node;
 
-	/*get decoder object */
-	if (!st->mo) st->mo = gf_mo_find(node, &is->url, 0);
-	/*register with decoder*/
-	if (st->mo && !st->registered) IS_Register(node);
+	if (is_destroy) {
+		GF_InlineScene *is;
+		if (st->registered) IS_Unregister(st);
+		is = (GF_InlineScene*)gf_sg_get_private(gf_node_get_graph(node));
+		gf_term_rem_render_node(is->root_od->term, node);
+		free(st);
+	} else {
+		/*get decoder object */
+		if (!st->mo) st->mo = gf_mo_find(node, &is->url, 0);
+		/*register with decoder*/
+		if (st->mo && !st->registered) IS_Register(node);
+	}
 }
 
-void DestroyInputSensor(GF_Node *node)
-{
-	GF_InlineScene *is;
-	ISStack *st = (ISStack *)gf_node_get_private(node);
-	if (st->registered) IS_Unregister(st);
-	is = (GF_InlineScene*)gf_sg_get_private(gf_node_get_graph(node));
-	gf_term_rem_render_node(is->root_od->term, node);
-	free(st);
-}
 
 void InitInputSensor(GF_InlineScene *is, GF_Node *node)
 {
@@ -480,8 +479,7 @@ void InitInputSensor(GF_InlineScene *is, GF_Node *node)
 	GF_SAFEALLOC(stack, ISStack);
 	stack->is = (M_InputSensor *) node;
 	gf_node_set_private(node, stack);
-	gf_node_set_render_function(node, RenderInputSensor);
-	gf_node_set_predestroy_function(node, DestroyInputSensor);
+	gf_node_set_callback_function(node, RenderInputSensor);
 	gf_term_add_render_node(is->root_od->term, node);
 }
 
@@ -873,23 +871,27 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 	}
 }
 
-void DestroyKeySensor(GF_Node *node)
+void DestroyKeySensor(GF_Node *node, void *rs, Bool is_destroy)
 {
-	GF_Terminal *term = (GF_Terminal *) gf_node_get_private(node);
-	gf_list_del_item(term->x3d_sensors, node);
+	if (is_destroy) {
+		GF_Terminal *term = (GF_Terminal *) gf_node_get_private(node);
+		gf_list_del_item(term->x3d_sensors, node);
+	}
 }
 void InitKeySensor(GF_InlineScene *is, GF_Node *node)
 {
 	gf_node_set_private(node, is->root_od->term);
-	gf_node_set_predestroy_function(node, DestroyKeySensor);
+	gf_node_set_callback_function(node, DestroyKeySensor);
 	gf_list_add(is->root_od->term->x3d_sensors, node);
 }
 
-void DestroyStringSensor(GF_Node *node)
+void DestroyStringSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
-	StringSensorStack *st = (StringSensorStack *) gf_node_get_private(node);
-	gf_list_del_item(st->term->x3d_sensors, node);
-	free(st);
+	if (is_destroy) {
+		StringSensorStack *st = (StringSensorStack *) gf_node_get_private(node);
+		gf_list_del_item(st->term->x3d_sensors, node);
+		free(st);
+	}
 }
 void InitStringSensor(GF_InlineScene *is, GF_Node *node)
 {
@@ -897,7 +899,7 @@ void InitStringSensor(GF_InlineScene *is, GF_Node *node)
 	GF_SAFEALLOC(st, StringSensorStack)
 	st->term = is->root_od->term;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyStringSensor);
+	gf_node_set_callback_function(node, DestroyStringSensor);
 	gf_list_add(is->root_od->term->x3d_sensors, node);
 }
 

@@ -154,7 +154,7 @@ static GFINLINE M_Script *JS_GetScript(JSContext *c)
 static GFINLINE GF_ScriptPriv *JS_GetScriptStack(JSContext *c)
 {
 	M_Script *script = (M_Script *) JS_GetContextPrivate(c);
-	return script->sgprivate->privateStack;
+	return script->sgprivate->UserPrivate;
 }
 
 static void script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
@@ -288,7 +288,7 @@ static JSBool deleteRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsva
 	n2 = * ((GF_Node **)ptr->field.far_ptr);
 		
 	if (!n1 || !n2) return JS_FALSE;
-	if (!n1->sgprivate->events) return JS_TRUE;
+	if (!n1->sgprivate->interact) return JS_TRUE;
 
 	f1 = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 	f2 = JS_GetStringBytes(JSVAL_TO_STRING(argv[3]));
@@ -310,7 +310,7 @@ static JSBool deleteRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsva
 	}
 
 	i=0;
-	while ((r = gf_list_enum(n1->sgprivate->events, &i))) {
+	while ((r = gf_list_enum(n1->sgprivate->interact->events, &i))) {
 		if (r->FromField.fieldIndex != f_id1) continue;
 		if (r->ToNode != n2) continue;
 		if (r->ToField.fieldIndex != f_id2) continue;
@@ -508,7 +508,7 @@ void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner
 	}
 	/*otherwise mark field if eventOut*/
 	if (parent_owner || parent) {
-		priv = parent ? parent->sgprivate->privateStack : parent_owner->owner->sgprivate->privateStack;
+		priv = parent ? parent->sgprivate->UserPrivate : parent_owner->owner->sgprivate->UserPrivate;
 		i=0;
 		while ((sf = gf_list_enum(priv->fields, &i))) {
 			if (sf->ALL_index == field->fieldIndex) {
@@ -829,20 +829,24 @@ static JSBool node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 static JSBool node_toString(JSContext *c, JSObject *obj, uintN i, jsval *v, jsval *rval)
 {
 	char str[1000];
+	u32 id;
 	GF_Node *n;
 	JSString *s;
 	GF_JSField *f;
+	const char *name;
 	if (! JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
 	f = (GF_JSField *) JS_GetPrivate(c, obj);
 	if (!f) return JS_FALSE;
 
 	str[0] = 0;
 	n = * ((GF_Node **)f->field.far_ptr);
-	if (n->sgprivate->NodeID) {
-		if (n->sgprivate->NodeName) {
-			sprintf(str , "DEF %s ", n->sgprivate->NodeName);
+
+	name = gf_node_get_name_and_id(n, &id);
+	if (id) {
+		if (name) {
+			sprintf(str , "DEF %s ", name);
 		} else {
-			sprintf(str , "DEF %d ", n->sgprivate->NodeID - 1);
+			sprintf(str , "DEF %d ", id - 1);
 		}
 	}
 	strcat(str, gf_node_get_class_name(n));
@@ -1694,12 +1698,7 @@ static void array_finalize(JSContext *c, JSObject *obj)
 
 	/*MFNode*/
 	if (ptr->temp_list) {
-		while (gf_list_count(ptr->temp_list)) {
-			GF_Node *n = gf_list_get(ptr->temp_list, 0);
-			gf_list_rem(ptr->temp_list, 0);
-			gf_node_unregister(n, ptr->owner);
-		}
-		gf_list_del(ptr->temp_list);
+		gf_node_unregister_children(ptr->owner, ptr->temp_list);
 	} 
 	if (ptr->field_ptr) {
 		gf_sg_vrml_field_pointer_del(ptr->field_ptr, ptr->field.fieldType);
@@ -1811,15 +1810,14 @@ JSBool array_setElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 	/*rewrite MFNode entry*/
 	if (ptr->field.fieldType==GF_SG_VRML_MFNODE) {
 		GF_Node *prev_n, *new_n;
-		GF_List *nlist = *(GF_List**)ptr->field.far_ptr;
-		/*get previous node if any, but unregister later*/
-		prev_n = gf_list_get(nlist, ind);
-		if (prev_n) gf_list_rem(nlist, ind);
+		/*get and delete previous node if any, but unregister later*/
+		prev_n = gf_node_list_del_child_idx( (GF_ChildNodeItem **)ptr->field.far_ptr, ind);
+
 		/*get new node*/
 		from = (GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(*rval));
 		new_n = *(GF_Node**)from->field.far_ptr;
 		if (new_n) {
-			gf_list_insert(nlist, new_n, ind);
+			gf_node_list_insert_child( (GF_ChildNodeItem **)ptr->field.far_ptr , new_n, ind);
 			gf_node_register(new_n, ptr->owner);
 		}
 		/*unregister previous node*/
@@ -2491,12 +2489,9 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 	/*special handling for MF node, reset list first*/
 	if (JS_InstanceOf(c, obj, &js_rt->MFNodeClass, NULL)) {
 		GF_Node *child;
-		GF_List *list = * (GF_List **) field->far_ptr;
-		while (gf_list_count(list)) {
-			child = gf_list_get(list, 0);
-			gf_list_rem(list, 0);
-			gf_node_unregister(child, owner);
-		}
+		GF_ChildNodeItem *last = NULL;
+		gf_node_unregister_children(owner, * (GF_ChildNodeItem **) field->far_ptr);
+		* (GF_ChildNodeItem **) field->far_ptr = NULL;
 	
 		for (i=0; i<len; i++) {
 			JSObject *node_obj;
@@ -2509,7 +2504,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 
 			child = * ((GF_Node**)from->field.far_ptr);
 
-			gf_list_add(list, child);
+			gf_node_list_add_child_last( (GF_ChildNodeItem **) field->far_ptr , child, &last);
 			gf_node_register(child, owner);
 		}
 		Script_FieldChanged(c, owner, parent, field);
@@ -2748,25 +2743,30 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 				case GF_SG_VRML_MFNODE:
 					/*for eventIn fields, rebuild node list*/
 					if (field->fieldType == GF_SG_EVENT_IN) {
-						GF_List *f = *(GF_List **) field->far_ptr;
-						u32 count = gf_list_count(f);
-
+						GF_ChildNodeItem *f = *(GF_ChildNodeItem **) field->far_ptr;
+						u32 count = 0;
+						while (f) {
+							count++;
+							f = f->next;
+						}
 						JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
 						JS_SetArrayLength(priv->js_ctx, jsf->js_list, count);
 
-						for (i=0; i<count; i++) {
+						f = *(GF_ChildNodeItem **) field->far_ptr;
+						while (f) {
 							JSObject *pf = JS_NewObject(priv->js_ctx, &js_rt->SFNodeClass, 0, obj);
-							n = gf_list_get(f, i);
 							slot = NewJSField();
 							slot->owner = parent;
-							slot->temp_node = n;
+							slot->temp_node = f->node;
 							slot->field.far_ptr = & slot->temp_node;
 							slot->field.fieldType = GF_SG_VRML_SFNODE;
-							gf_node_register(n, parent);
+							gf_node_register(f->node, parent);
 							JS_SetPrivate(priv->js_ctx, pf, slot);
 
 							newVal = OBJECT_TO_JSVAL(pf);
 							JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+
+							f = f->next;
 						}
 					}
 					break;
@@ -2941,14 +2941,16 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 	case GF_SG_VRML_MFNODE:
 	{
 		u32 size;
-		GF_List *f = * ((GF_List**)field->far_ptr);
+		GF_ChildNodeItem *f = * ((GF_ChildNodeItem **)field->far_ptr);
 		obj = JS_ConstructObject(priv->js_ctx, &js_rt->MFNodeClass, 0, priv->js_obj);
 		SETUP_MF_FIELD
-		size = gf_list_count(f);
+		size = gf_node_list_get_count(f);
+
 		if (JS_SetArrayLength(priv->js_ctx, jsf->js_list, size) != JS_TRUE) return JSVAL_NULL;
-		for (i=0; i<size; i++) {
+		i=0;
+		while (f) {
 			JSObject *pf = JS_NewObject(priv->js_ctx, &js_rt->SFNodeClass, 0, obj);
-			n = gf_list_get(f, i);
+			n = f->node;
 			if (n->sgprivate->tag == TAG_ProtoNode) {
 				GF_ProtoInstance *proto_inst = (GF_ProtoInstance *) n;
 				if (!proto_inst->RenderingNode) 
@@ -2969,6 +2971,8 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 			newVal = OBJECT_TO_JSVAL(pf);
 			JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+			f = f->next;
+			i++;
 		}
 		break;
 	}
@@ -3032,7 +3036,7 @@ static void JS_Unprotect(GF_ScriptPriv *priv)
 static void JS_PreDestroy(GF_Node *node)
 {
 	jsval fval, rval;
-	GF_ScriptPriv *priv = node->sgprivate->privateStack;
+	GF_ScriptPriv *priv = node->sgprivate->UserPrivate;
 	if (!priv) return;
 	
 	if (JS_LookupProperty(priv->js_ctx, priv->js_obj, "shutdown", &fval))
@@ -3101,7 +3105,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	GF_FieldInfo t_info;
 	GF_ScriptPriv *priv;
 	u32 i;	
-	priv = node->sgprivate->privateStack;
+	priv = node->sgprivate->UserPrivate;
 
 	/*no support for change of static fields*/
 	if (in_field->fieldIndex<3) return;
@@ -3152,7 +3156,7 @@ static Bool js_load_script(M_Script *script, char *file)
 	Bool success = 1;
 	JSBool ret;
 	jsval rval, fval;
-	GF_ScriptPriv *priv = (GF_ScriptPriv *) script->sgprivate->privateStack;
+	GF_ScriptPriv *priv = (GF_ScriptPriv *) script->sgprivate->UserPrivate;
 
 	jsf = fopen(file, "rb");
 	if (!jsf) return 0;
@@ -3231,7 +3235,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	Bool local_script;
 	jsval rval, fval;
 	M_Script *script = (M_Script *)node;
-	GF_ScriptPriv *priv = (GF_ScriptPriv *) node->sgprivate->privateStack;
+	GF_ScriptPriv *priv = (GF_ScriptPriv *) node->sgprivate->UserPrivate;
 
 	if (!priv || priv->is_loaded) return;
 	if (!script->url.count) return;

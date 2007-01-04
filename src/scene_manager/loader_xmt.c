@@ -37,6 +37,7 @@ typedef struct
 {
 	GF_Node *node;
 	GF_FieldInfo container_field;
+	GF_ChildNodeItem *last;
 } XMTNodeStack;
 
 typedef struct
@@ -560,8 +561,8 @@ static u32 xmt_get_node_id(GF_XMTParser *parser, char *name)
 		n = gf_sg_find_node(parser->load->scene_graph, ID);
 		if (n) {
 			u32 nID = xmt_get_next_node_id(parser);
-			xmt_report(parser, GF_OK, "WARNING: changing node \"%s\" ID from %d to %d", n->sgprivate->NodeName, n->sgprivate->NodeID-1, nID-1);
-			gf_node_set_id(n, nID, n->sgprivate->NodeName);
+			xmt_report(parser, GF_OK, "WARNING: changing node \"%s\" ID from %d to %d", gf_node_get_name(n), gf_node_get_id(n)-1, nID-1);
+			gf_node_set_id(n, nID, gf_node_get_name(n));
 		}
 		if (parser->load->ctx && (parser->load->ctx->max_node_id<ID)) parser->load->ctx->max_node_id=ID;
 	} else {
@@ -596,7 +597,7 @@ static GF_Node *xmt_find_node(GF_XMTParser *parser, char *ID)
 	count = gf_list_count(parser->peeked_nodes);
 	for (i=0; i<count; i++) {
 		n = (GF_Node*)gf_list_get(parser->peeked_nodes, i);
-		if (!strcmp(n->sgprivate->NodeName, ID)) return n;
+		if (!strcmp(gf_node_get_name(n), ID)) return n;
 	}
 	node_class = gf_xml_sax_peek_node(parser->sax_parser, "DEF", ID, "ProtoInstance", "name", "<par", &is_proto);
 	if (!node_class) return NULL;
@@ -958,7 +959,7 @@ static Bool xmt_has_been_def(GF_XMTParser *parser, char *node_name)
 	count = gf_list_count(parser->def_nodes);
 	for (i=0; i<count; i++) {
 		GF_Node *n = (GF_Node *)gf_list_get(parser->def_nodes, i);
-		if (!strcmp(n->sgprivate->NodeName, node_name)) return 1;
+		if (!strcmp(gf_node_get_name(n), node_name)) return 1;
 	}
 	return 0;
 }
@@ -1095,9 +1096,9 @@ static void xmt_parse_route(GF_XMTParser *parser, const GF_XMLAttribute *attribu
 			if (rID>parser->load->ctx->max_route_id) parser->load->ctx->max_route_id = rID;
 
 		}
-		com->fromNodeID = orig->sgprivate->NodeID;
+		com->fromNodeID = gf_node_get_id(orig);
 		com->fromFieldIndex = orig_field.fieldIndex;
-		com->toNodeID = dest->sgprivate->NodeID;
+		com->toNodeID = gf_node_get_id(dest);
 		com->toFieldIndex = dest_field.fieldIndex;
 		return;
 	}
@@ -1406,8 +1407,8 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			} 
 			/*SF/MFNode proto field: push node stack with container info but no parent*/
 			else {
-				XMTNodeStack *pf_stack = (XMTNodeStack *)malloc(sizeof(XMTNodeStack));
-				pf_stack->node = NULL;
+				XMTNodeStack *pf_stack;
+				GF_SAFEALLOC(pf_stack, XMTNodeStack);
 				gf_sg_proto_field_get_field(parser->proto_field, &pf_stack->container_field);
 				gf_list_add(parser->nodes, pf_stack);
 			}
@@ -1530,6 +1531,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			gf_sg_proto_mark_field_loaded(parent->node, &info);
 		} else if (gf_sg_vrml_get_sf_type(info.fieldType) == GF_SG_VRML_SFNODE) {
 			parent->container_field = info;
+			parent->last = NULL;
 		}
 		return NULL;
 	}
@@ -1579,6 +1581,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			/*XMT-A weird syntax*/
 			if (parent) {
 				if (gf_node_get_field_by_name(parent->node, name, &parent->container_field)==GF_OK) {
+					parent->last = NULL;
 					if (parent->container_field.fieldType==GF_SG_VRML_SFCOMMANDBUFFER) {
 						parser->command_buffer = (SFCommandBuffer*)parent->container_field.far_ptr;
 						/*store command*/
@@ -1625,7 +1628,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			register_def = 1;
 			if (undef_node) {
 				gf_list_del_item(parser->peeked_nodes, undef_node);
-				ID = undef_node->sgprivate->NodeID;
+				ID = gf_node_get_id(undef_node);
 				/*if we see twice a DEF N1 then force creation of a new node*/
 				if (xmt_has_been_def(parser, att->value)) {
 					ID = xmt_get_node_id(parser, att->value);
@@ -1704,17 +1707,24 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 
 	if (parent) {
 		if (!container.far_ptr) {
-			if (parser->doc_type==2) x3d_get_default_container(parent->node, node, &container);
-			if (!container.far_ptr) gf_node_get_field_by_name(parent->node, "children", &container);
+			if (parser->doc_type==2) {
+				x3d_get_default_container(parent->node, node, &container);
+				parent->last = NULL;
+			}
+			if (!container.far_ptr) {
+				gf_node_get_field_by_name(parent->node, "children", &container);
+				parent->last = NULL;
+			}
+
 		}
 		if (container.fieldType == GF_SG_VRML_SFNODE) {
 			if (* ((GF_Node **)container.far_ptr) ) gf_node_unregister(* ((GF_Node **)container.far_ptr) , parent->node);
 			* ((GF_Node **)container.far_ptr) = node;
 			gf_node_register(node, parent->node);
 			parent->container_field.far_ptr = NULL;
+			parent->last = NULL;
 		} else if (container.fieldType == GF_SG_VRML_MFNODE) {
-			GF_List *l = * ((GF_List **)container.far_ptr);
-			gf_list_add(l, node);
+			gf_node_list_add_child_last( (GF_ChildNodeItem **)container.far_ptr, node, &parent->last);
 			gf_node_register(node, parent->node);
 		}
 		gf_node_changed(parent->node, NULL);
@@ -2502,6 +2512,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			}
 			top->container_field.far_ptr = NULL;
 			top->container_field.name = NULL;
+			top->last = NULL;
 		}
 		/*SF/MFNode proto field, just pop node stack*/
 		else if (!top->node && !strcmp(name, "field")) {
@@ -2511,6 +2522,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			if (!strcmp(name, "node") || !strcmp(name, "nodes")) {
 				top->container_field.far_ptr = NULL;
 				top->container_field.name = NULL;
+				top->last = NULL;
 			} else if (!strcmp(name, "ProtoInstance")) {
 				gf_list_rem_last(parser->nodes);
 				node = top->node;
@@ -2559,10 +2571,9 @@ attach_node:
 						inf->fieldType = GF_SG_VRML_SFNODE;
 					}
 					if ((inf->fieldType==GF_SG_VRML_MFNODE) && !inf->node_list) {
-						inf->node_list = gf_list_new();
 						inf->field_ptr = &inf->node_list;
 						if (inf->new_node) {
-							gf_list_add(inf->node_list, inf->new_node);
+							gf_node_list_add_child(& inf->node_list, inf->new_node);
 							inf->new_node = NULL;
 						}
 					}
@@ -2571,16 +2582,15 @@ attach_node:
 						if (single_node) {
 							gf_node_unregister(inf->new_node, NULL);
 						} else {
-							inf->node_list = gf_list_new();
 							inf->field_ptr = &inf->node_list;
-							gf_list_add(inf->node_list, inf->new_node);
+							gf_node_list_add_child(& inf->node_list, inf->new_node);
 							inf->fieldType = GF_SG_VRML_MFNODE;
 						}
 						inf->new_node = NULL;
 					}
 					gf_node_register(node, NULL);
 					if (inf->node_list) {
-						gf_list_add(inf->node_list, node);
+						gf_node_list_add_child(& inf->node_list, node);
 					} else {
 						inf->new_node = node;
 						inf->field_ptr = &inf->new_node;
@@ -2612,7 +2622,7 @@ attach_node:
 						gf_node_register(node, NULL);
 						gf_node_unregister(node, NULL);
 					} else {
-						gf_list_add(gr->children, node);
+						gf_node_list_add_child(& gr->children, node);
 						gf_node_register(node, NULL);
 					}
 				}
@@ -2669,35 +2679,6 @@ static void xmt_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	buf = text_content;
 	len = strlen(buf);
 
-#if 0
-	if (!node_core->core->space || (node_core->core->space != XML_SPACE_PRESERVE)) {
-		Bool go = 1;;
-		while (go) {
-			switch (buf[0]) {
-			case '\n': case '\r': case ' ':
-				buf ++;
-				break;
-			default:
-				go = 0;
-				break;
-			}
-		}
-		len = strlen(buf);
-		if (!len) return;
-		go = 1;
-		while (go) {
-			if (!len) break;
-			switch (buf[len-1]) {
-			case '\n': case '\r': case ' ':
-				len--;
-				break;
-			default:
-				go = 0;
-				break;
-			}
-		}
-	}
-#endif
 	if (!len) return;
 
 	switch (gf_node_get_tag((GF_Node *)node)) {

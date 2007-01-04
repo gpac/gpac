@@ -176,13 +176,15 @@ GF_Node *R3D_PickNode(GF_VisualRenderer *vr, s32 X, s32 Y)
 	return NULL;
 }
 
-static void DestroyLineProps(GF_Node *n)
+static void DestroyLineProps(GF_Node *n, void *rs, Bool is_destroy)
 {
 	StrikeInfo *si;
 	u32 i;
 	LinePropStack *st = (LinePropStack *)gf_node_get_private(n);
 	Render3D *sr = (Render3D *)st->sr;
 	
+	if (!is_destroy) return;
+
 	i=0;
 	while ((si = (StrikeInfo*)gf_list_enum(sr->strike_bank, &i))) {
 		if (si->lineProps == n) {
@@ -205,7 +207,7 @@ void R3D_InitLineProps(Render3D *sr, GF_Node *node)
 	st->sr = sr;
 	st->last_mod_time = 1;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyLineProps);
+	gf_node_set_callback_function(node, DestroyLineProps);
 }
 
 u32 R3D_LP_GetLastUpdateTime(GF_Node *node)

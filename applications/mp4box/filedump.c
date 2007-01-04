@@ -958,10 +958,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	gf_isom_get_media_language(file, trackNum, sType);
 	fprintf(stdout, "Media Info: Language \"%s\" - ", GetLanguage(sType) );
 	mtype = gf_isom_get_media_type(file, trackNum);
-	fprintf(stdout, "Type \"%s\" - ", gf_4cc_to_str(mtype));
+	fprintf(stdout, "Type \"%s:", gf_4cc_to_str(mtype));
 	msub_type = gf_isom_get_mpeg4_subtype(file, trackNum, 1);
 	if (!msub_type) msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
-	fprintf(stdout, "Sub Type \"%s\" - %d samples\n", gf_4cc_to_str(msub_type), gf_isom_get_sample_count(file, trackNum));
+	fprintf(stdout, "%s\" - %d samples\n", gf_4cc_to_str(msub_type), gf_isom_get_sample_count(file, trackNum));
 	
 	if (!gf_isom_is_self_contained(file, trackNum, 1)) {
 		const char *url, *urn;
@@ -1149,19 +1149,34 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				u32 scheme_type, version;
 				u8 IV_size;
 				Bool use_sel_enc;
-				gf_isom_get_ismacryp_info(file, trackNum, 1, NULL, &scheme_type, &version, &scheme_URI, &KMS_URI, &use_sel_enc, &IV_size, NULL);
 
 				if (gf_isom_is_ismacryp_media(file, trackNum, 1)) {
+					gf_isom_get_ismacryp_info(file, trackNum, 1, NULL, &scheme_type, &version, &scheme_URI, &KMS_URI, &use_sel_enc, &IV_size, NULL);
 					fprintf(stdout, "\n*Encrypted stream - ISMA scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
 					if (scheme_URI) fprintf(stdout, "scheme location: %s\n", scheme_URI);
 					if (KMS_URI) {
 						if (!strnicmp(KMS_URI, "(key)", 5)) fprintf(stdout, "KMS location: key in file\n");
 						else fprintf(stdout, "KMS location: %s\n", KMS_URI);
 					}
-					fprintf(stdout, "ISMA Config: IV length: %d - Selective Encryption: %s\n", IV_size, use_sel_enc ? "Yes" : "No");
+					fprintf(stdout, "Selective Encryption: %s\n", use_sel_enc ? "Yes" : "No");
+					if (IV_size) fprintf(stdout, "Initialization Vector size: %d bits\n", IV_size*8);
+				} else if (gf_isom_is_omadrm_media(file, trackNum, 1)) {
+					char *textHdrs;
+					u8 enc_type;
+					u64 orig_len;
+					fprintf(stdout, "\n*Encrypted stream - OMA DRM\n");
+					gf_isom_get_omadrm_info(file, trackNum, 1, NULL, &scheme_URI, &KMS_URI, &textHdrs, &orig_len, &enc_type, &use_sel_enc, &IV_size, NULL);
+					fprintf(stdout, "Rights Issuer: %s\n", KMS_URI);
+					fprintf(stdout, "Content ID: %s\n", scheme_URI);
+					if (textHdrs) fprintf(stdout, "Extra headers: %s\n", textHdrs);
+					if (orig_len) fprintf(stdout, "Original media size "LLD"\n", LLD_CAST orig_len);
+					fprintf(stdout, "Encryption algorithm %s\n", (enc_type==1) ? "AEA 128 CBC" : (enc_type ? "AEA 128 CTR" : "None"));
+
+
+					fprintf(stdout, "Selective Encryption: %s\n", use_sel_enc ? "Yes" : "No");
+					if (IV_size) fprintf(stdout, "Initialization Vector size: %d bits\n", IV_size*8);
 				} else {
-					fprintf(stdout, "\n*Encrypted stream - unknown scheme %s\n", gf_4cc_to_str(scheme_type));
-					if (scheme_URI) fprintf(stdout, "scheme location: %s\n", scheme_URI);
+					fprintf(stdout, "\n*Encrypted stream - unknown scheme %s\n", gf_4cc_to_str(gf_isom_is_media_encrypted(file, trackNum, 1) ));
 				}
 			}
 
@@ -1182,7 +1197,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		u32 refTrack;
 		s32 i, refCount = gf_isom_get_reference_count(file, trackNum, GF_ISOM_REF_HINT);
 		if (refCount) {
-			fprintf(stdout, "\tStreaming Hint Track for track%s ", (refCount>1) ? "s" :"");
+			fprintf(stdout, "Streaming Hint Track for track%s ", (refCount>1) ? "s" :"");
 			for (i=0; i<refCount; i++) {
 				gf_isom_get_reference(file, trackNum, GF_ISOM_REF_HINT, i+1, &refTrack);
 				if (i) fprintf(stdout, " - ");
@@ -1190,7 +1205,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 			}
 			fprintf(stdout, "\n");
 		} else {
-			fprintf(stdout, "\tStreaming Hint Track (no refs)\n");
+			fprintf(stdout, "Streaming Hint Track (no refs)\n");
+		}
+		refCount = gf_isom_get_payt_count(file, trackNum);
+		for (i=0;i<refCount;i++) {
+			const char *name = gf_isom_get_payt_info(file, trackNum, i+1, &refTrack);
+			fprintf(stdout, "\tPayload ID %d: type %s\n", refTrack, name);
 		}
 	} else if (mtype==GF_ISOM_MEDIA_FLASH) {
 		fprintf(stdout, "Macromedia Flash Movie\n");

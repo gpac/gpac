@@ -121,7 +121,7 @@ GF_Err gf_sm_load_init_QT(GF_SceneLoader *load)
 	com->node = (GF_Node *)gr;
 
 	back = (M_Background *) gf_node_new(sg, TAG_MPEG4_Background);
-	gf_list_add(gr->children, back);
+	gf_node_list_add_child( &gr->children, (GF_Node*)back);
 	gf_node_register((GF_Node *)back, (GF_Node *)gr);
 
 	gf_sg_vrml_mf_alloc(&back->leftUrl, GF_SG_VRML_MFURL, 1);
@@ -138,7 +138,7 @@ GF_Err gf_sm_load_init_QT(GF_SceneLoader *load)
 	back->bottomUrl.vals[0].OD_ID = 7;
 
 	ni = (M_NavigationInfo *) gf_node_new(sg, TAG_MPEG4_NavigationInfo);
-	gf_list_add(gr->children, ni);
+	gf_node_list_add_child(&gr->children, (GF_Node*)ni);
 	gf_node_register((GF_Node *)ni, (GF_Node *)gr);
 	gf_sg_vrml_mf_reset(&ni->type, GF_SG_VRML_MFSTRING);
 	gf_sg_vrml_mf_alloc(&ni->type, GF_SG_VRML_MFSTRING, 1);

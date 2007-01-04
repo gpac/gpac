@@ -36,15 +36,7 @@ typedef struct
 } PathLayoutStack;
 
 
-static void DestroyPathLayout(GF_Node *node)
-{
-	PathLayoutStack *st = (PathLayoutStack*)gf_node_get_private(node);
-	DeleteGroupingNode((GroupingNode *)st);
-	if (st->iter) gf_path_iterator_del(st->iter);
-	free(st);
-}
-
-static void RenderPathLayout(GF_Node *node, void *rs)
+static void RenderPathLayout(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 i, count, minor, major, int_bck;
 	Fixed length, offset, length_after_point;
@@ -58,6 +50,12 @@ static void RenderPathLayout(GF_Node *node, void *rs)
 	M_PathLayout *pl = (M_PathLayout *)node;
 	RenderEffect3D *eff = (RenderEffect3D *) rs;
 	
+	if (is_destroy) {
+		DeleteGroupingNode((GroupingNode *)gr);
+		if (gr->iter) gf_path_iterator_del(gr->iter);
+		free(gr);
+		return;
+	}
 	if (!pl->geometry) return;
 	
 	/*only low-level primitives allowed*/
@@ -239,9 +237,8 @@ void R3D_InitPathLayout(Render3D *sr, GF_Node *node)
 	PathLayoutStack *stack;
 	GF_SAFEALLOC(stack, PathLayoutStack);
 
-	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, ((M_PathLayout *)node)->children);
+	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, & ((M_PathLayout *)node)->children);
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyPathLayout);
-	gf_node_set_render_function(node, RenderPathLayout);
+	gf_node_set_callback_function(node, RenderPathLayout);
 }
 

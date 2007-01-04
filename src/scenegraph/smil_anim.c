@@ -29,34 +29,35 @@
 GF_Err gf_node_animation_add(GF_Node *node, void *animation)
 {
 	if (!node || !animation) return GF_BAD_PARAM;
-	if (!node->sgprivate->animations) node->sgprivate->animations = gf_list_new();
-	return gf_list_add(node->sgprivate->animations, animation);
+	if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+	if (!node->sgprivate->interact->animations) node->sgprivate->interact->animations = gf_list_new();
+	return gf_list_add(node->sgprivate->interact->animations, animation);
 }
 
 GF_Err gf_node_animation_del(GF_Node *node)
 {
-	if (!node || !node->sgprivate->animations) return GF_BAD_PARAM;
-	gf_list_del(node->sgprivate->animations);
-	node->sgprivate->animations = NULL;
+	if (!node || !node->sgprivate->interact || !node->sgprivate->interact->animations) return GF_BAD_PARAM;
+	gf_list_del(node->sgprivate->interact->animations);
+	node->sgprivate->interact->animations = NULL;
 	return GF_OK;
 }
 
 u32 gf_node_animation_count(GF_Node *node)
 {
-	if (!node || !node->sgprivate->animations) return 0;
-	return gf_list_count(node->sgprivate->animations);
+	if (!node || !node->sgprivate->interact|| !node->sgprivate->interact->animations) return 0;
+	return gf_list_count(node->sgprivate->interact->animations);
 }
 
 void *gf_node_animation_get(GF_Node *node, u32 i)
 {
-	if (!node || !node->sgprivate->animations) return 0;
-	return gf_list_get(node->sgprivate->animations, i);
+	if (!node || !node->sgprivate->interact || !node->sgprivate->interact->animations) return 0;
+	return gf_list_get(node->sgprivate->interact->animations, i);
 }
 
 GF_Err gf_node_animation_rem(GF_Node *node, u32 i)
 {
-	if (!node || !node->sgprivate->animations) return GF_OK;
-	return gf_list_rem(node->sgprivate->animations, i);
+	if (!node || !node->sgprivate->interact || !node->sgprivate->interact->animations) return GF_OK;
+	return gf_list_rem(node->sgprivate->interact->animations, i);
 }
 
 void gf_svg_attributes_resolve_unspecified(GF_FieldInfo *in, GF_FieldInfo *p, GF_FieldInfo *t)
@@ -670,7 +671,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 			}
 			gf_node_get_field_by_name((GF_Node *)tr_e, "motionTransform", &target_attribute);
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SMIL Animation] Missing attributeName attribute on %s\n", e->sgprivate->NodeName));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SMIL Animation] Missing attributeName attribute on %s\n", gf_node_get_name((GF_Node*)e) ));
 			return;
 		}
 	}

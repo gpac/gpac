@@ -72,7 +72,7 @@ void VS3D_Setup(VisualSurface *surf)
 
     glShadeModel(GL_SMOOTH);
 	glGetIntegerv(GL_MAX_LIGHTS, (GLint*)&surf->max_lights);
-#ifdef GF_MAX_CLIP_PLANES
+#ifdef GL_MAX_CLIP_PLANES
 	glGetIntegerv(GL_MAX_CLIP_PLANES, &surf->max_clips);
 #endif
 
@@ -888,7 +888,7 @@ void VS3D_LoadMatrix(VisualSurface *surf, Fixed *mat)
 
 void VS3D_SetClipper2D(VisualSurface *surf, GF_Rect clip)
 {
-#ifdef GF_MAX_CLIP_PLANES
+#ifdef GL_MAX_CLIP_PLANES
 
 #ifdef GPAC_USE_OGL_ES
 
@@ -933,7 +933,7 @@ void VS3D_SetClipper2D(VisualSurface *surf, GF_Rect clip)
 
 void VS3D_ResetClipper2D(VisualSurface *surf)
 {
-#ifdef GF_MAX_CLIP_PLANES
+#ifdef GL_MAX_CLIP_PLANES
 	u32 cp;
 	if (surf->num_clips < 4) return;
 	cp = surf->num_clips - 4;
@@ -947,7 +947,7 @@ void VS3D_ResetClipper2D(VisualSurface *surf)
 
 void VS3D_SetClipPlane(VisualSurface *surf, GF_Plane p)
 {
-#ifdef GF_MAX_CLIP_PLANES
+#ifdef GL_MAX_CLIP_PLANES
 
 #ifdef GPAC_USE_OGL_ES
 	Fixed g[4];
@@ -976,7 +976,7 @@ void VS3D_SetClipPlane(VisualSurface *surf, GF_Plane p)
 
 void VS3D_ResetClipPlane(VisualSurface *surf)
 {
-#ifdef GF_MAX_CLIP_PLANES
+#ifdef GL_MAX_CLIP_PLANES
 	if (!surf->num_clips) return;
 	glDisable(GL_CLIP_PLANE0 + surf->num_clips-1);
 	surf->num_clips -= 1;

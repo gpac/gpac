@@ -83,6 +83,7 @@ typedef struct
 	GF_List *text_lines;
 	GF_Rect bounds;
 	Bool texture_text_flag;
+	GF_Renderer *compositor;
 } TextStack2D;
 
 void R2D_InitText(Render2D *sr, GF_Node *node);

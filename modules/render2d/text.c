@@ -199,15 +199,6 @@ void TextStack2D_clean_paths(TextStack2D *stack)
 	drawable_reset_path(stack->graph);
 }
 
-static void DestroyText(GF_Node *node)
-{
-	TextStack2D *stack = (TextStack2D *) gf_node_get_private(node);
-	TextStack2D_clean_paths(stack);
-	drawable_del(stack->graph);
-	gf_list_del(stack->text_lines);
-	free(stack);
-}
-
 
 static void split_text_letters(TextStack2D *st, M_Text *txt, RenderEffect2D *eff)
 {
@@ -217,7 +208,7 @@ static void split_text_letters(TextStack2D *st, M_Text *txt, RenderEffect2D *eff
 	TextLineEntry2D *tl;
 	u32 i, j, len;
 	Fixed fontSize, start_y, font_height, line_spacing;
-	GF_Rect rc;
+	GF_Rect rc, bounds;
 	GF_FontRaster *ft_dr = eff->surface->render->compositor->font_engine;
 	M_FontStyle *fs = (M_FontStyle *)txt->fontStyle;
 
@@ -270,7 +261,7 @@ static void split_text_letters(TextStack2D *st, M_Text *txt, RenderEffect2D *eff
 			ctx = drawable_init_context(st->graph, eff);
 			if (!ctx) return;
 
-			ctx->is_text = 1;
+			ctx->flags |= CTX_IS_TEXT;
 
 			tl = NewTextLine2D(eff->surface->render);
 
@@ -278,14 +269,15 @@ static void split_text_letters(TextStack2D *st, M_Text *txt, RenderEffect2D *eff
 			ctx->sub_path_index = gf_list_count(st->text_lines);
 
 			ft_dr->add_text_to_path(ft_dr, tl->path, 1, letter, 0, start_y, FIX_ONE, FIX_ONE, st->ascent, &rc);
-			ctx->original.width = rc.width;
-			ctx->original.x = rc.x;
-			ctx->original.height = MAX(st->ascent + st->descent, rc.height);
-			ctx->original.y = start_y;
+
+			bounds.width = rc.width;
+			bounds.x = rc.x;
+			bounds.height = MAX(st->ascent + st->descent, rc.height);
+			bounds.y = start_y;
 
 			TextLine_StoreBounds(tl);
 
-			drawable_finalize_render(ctx, eff);
+			drawable_finalize_render(ctx, eff, &bounds);
 			group2d_end_child(eff->parent);
 		}
 	}
@@ -299,7 +291,7 @@ static void split_text_words(TextStack2D *st, M_Text *txt, RenderEffect2D *eff)
 	TextLineEntry2D *tl;
 	u32 i, j, len, k, first_char;
 	Fixed fontSize, font_height, line_spacing;
-	GF_Rect rc;
+	GF_Rect rc, bounds;
 	GF_FontRaster *ft_dr = eff->surface->render->compositor->font_engine;
 	M_FontStyle *fs = (M_FontStyle *)txt->fontStyle;
 
@@ -343,7 +335,7 @@ static void split_text_words(TextStack2D *st, M_Text *txt, RenderEffect2D *eff)
 			ctx = drawable_init_context(st->graph, eff);
 			if (!ctx) return;
 
-			ctx->is_text = 1;
+			ctx->flags |= CTX_IS_TEXT;
 			tl = NewTextLine2D(eff->surface->render);
 
 			gf_list_add(st->text_lines, tl);
@@ -351,15 +343,14 @@ static void split_text_words(TextStack2D *st, M_Text *txt, RenderEffect2D *eff)
 
 			/*word splitting only happen in layout, so we don't need top/left anchors*/
 			ft_dr->add_text_to_path(ft_dr, tl->path, 1, letter, 0, 0, FIX_ONE, FIX_ONE, st->ascent, &rc);
-			gf_path_get_bounds(tl->path, &ctx->original);
-			ctx->original.width = rc.width;
-			ctx->original.height = st->ascent + st->descent;
-			ctx->original.x = ctx->original.y = 0;
 
-			//TextLine_StoreBounds(tl);
-			tl->bounds = ctx->original;
+			bounds.width = rc.width;
+			bounds.height = st->ascent + st->descent;
+			bounds.x = bounds.y = 0;
 
-			drawable_finalize_render(ctx, eff);
+			tl->bounds = bounds;
+
+			drawable_finalize_render(ctx, eff, &bounds);
 			group2d_end_child(eff->parent);
 
 			first_char = j+1;
@@ -796,7 +787,7 @@ void Text2D_Draw(DrawableContext *ctx)
 	}
 
 	can_texture_text = 0;
-	if ((st->graph->compositor->texture_text_mode==GF_TEXTURE_TEXT_ALWAYS) || st->texture_text_flag) {
+	if ((st->compositor->texture_text_mode==GF_TEXTURE_TEXT_ALWAYS) || st->texture_text_flag) {
 		can_texture_text = !ctx->h_texture && !ctx->aspect.pen_props.width;
 	}
 
@@ -811,11 +802,12 @@ void Text2D_Draw(DrawableContext *ctx)
 			VS2D_DrawPath(ctx->surface, tl->path, ctx, NULL, NULL);
 		}
 		/*reset fill/strike flags since we perform several draw per context*/
-		ctx->path_filled = ctx->path_stroke = 0;
+		ctx->flags &= ~CTX_PATH_FILLED;
+		ctx->flags &= ~CTX_PATH_STROKE;
 	}
 }
 
-Bool Text2D_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
+static Bool Text2D_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
 {
 	GF_Matrix2D inv;
 	u32 i;
@@ -847,14 +839,30 @@ Bool Text2D_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
 }
 
 
-static void Text_Render(GF_Node *n, void *rs)
+static void Text_Render(GF_Node *n, void *rs, Bool is_destroy)
 {
 	DrawableContext *ctx;
 	M_Text *txt = (M_Text *) n;
 	TextStack2D *st = (TextStack2D *) gf_node_get_private(n);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
-	if (!st->graph->compositor->font_engine) return;
+	if (is_destroy) {
+		TextStack2D_clean_paths(st);
+		drawable_del(st->graph);
+		gf_list_del(st->text_lines);
+		free(st);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		Text2D_Draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		eff->is_over = Text2D_PointOver(eff->ctx, eff->x, eff->y, eff->pick_type);
+		return;
+	}
+
+	if (!st->compositor->font_engine) return;
 
 	if (!txt->string.count) return;
 
@@ -872,23 +880,20 @@ static void Text_Render(GF_Node *n, void *rs)
 		TextStack2D_clean_paths(st);
 		BuildTextGraph(st, txt, eff);
 		gf_node_dirty_clear(n, 0);
-		st->graph->node_changed = 1;
+		st->graph->flags |= DRAWABLE_HAS_CHANGED;
 	}
 
 	/*get the text bounds*/
 	ctx = drawable_init_context(st->graph, eff);
 	if (!ctx) return;
 
-	/*store bounds*/
-	ctx->original = st->bounds;
-
-	ctx->is_text = 1;
+	ctx->flags |= CTX_IS_TEXT;
 	if (!ctx->aspect.filled) {
 		/*override line join*/
 		ctx->aspect.pen_props.join = GF_LINE_JOIN_MITER;
 		ctx->aspect.pen_props.cap = GF_LINE_CAP_FLAT;
 	}
-	drawable_finalize_render(ctx, eff);
+	drawable_finalize_render(ctx, eff, &st->bounds);
 }
 
 
@@ -897,24 +902,23 @@ void R2D_InitText(Render2D *sr, GF_Node *node)
 	TextStack2D *stack = (TextStack2D *)malloc(sizeof(TextStack2D));
 	stack->graph = drawable_new();
 	/*override all funct*/
-	stack->graph->Draw = Text2D_Draw;
-	stack->graph->IsPointOver = Text2D_PointOver;
+	stack->graph->owner = node;
 	stack->ascent = stack->descent = 0;
 	stack->text_lines = gf_list_new();
 	stack->texture_text_flag = 0;
-	
-	gf_sr_traversable_setup(stack->graph, node, sr->compositor);
+
+	stack->compositor = sr->compositor;
 	gf_node_set_private(node, stack);
-	gf_node_set_render_function(node, Text_Render);
-	gf_node_set_predestroy_function(node, DestroyText);
+	gf_node_set_callback_function(node, Text_Render);
 }
 
 
-static void RenderTextureText(GF_Node *node, void *rs)
+static void RenderTextureText(GF_Node *node, void *rs, Bool is_destroy)
 {
 	TextStack2D *stack;
 	GF_Node *text;
 	GF_FieldInfo field;
+	if (is_destroy) return;
 	if (gf_node_get_field(node, 0, &field) != GF_OK) return;
 	if (field.fieldType != GF_SG_VRML_SFNODE) return;
 	text = *(GF_Node **)field.far_ptr;
@@ -931,6 +935,6 @@ static void RenderTextureText(GF_Node *node, void *rs)
 
 void R2D_InitTextureText(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, RenderTextureText);
+	gf_node_set_callback_function(node, RenderTextureText);
 }
 

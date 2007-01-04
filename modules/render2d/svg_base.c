@@ -43,38 +43,35 @@ void svg_render_node(GF_Node *node, RenderEffect2D *eff)
 		gf_node_render(node, eff);
 	}
 }
-void svg_render_node_list(GF_List *children, RenderEffect2D *eff)
+void svg_render_node_list(GF_ChildNodeItem *children, RenderEffect2D *eff)
 {
-	GF_Node *node;
-	u32 i, count = gf_list_count(children);
-	for (i=0; i<count; i++) {
-		node = (GF_Node*)gf_list_get(children, i);
-		svg_render_node(node, eff);
+	while (children) {
+		svg_render_node(children->node, eff);
+		children = children->next;
 	}
 }
 
-void svg_get_nodes_bounds(GF_Node *self, GF_List *children, RenderEffect2D *eff)
+void svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, RenderEffect2D *eff)
 {
 	GF_Rect rc;
 	GF_Matrix2D cur_mx;
-	GF_Node *node;
-	u32 i, count = gf_list_count(children);
 
 	if (!eff->for_node) return;
 
 	gf_mx2d_copy(cur_mx, eff->transform);
 	rc = gf_rect_center(0,0);
-	for (i=0; i<count; i++) {
+	while (children) {
 		gf_mx2d_init(eff->transform);
 		eff->bounds = gf_rect_center(0,0);
-		node = (GF_Node*)gf_list_get(children, i);
-		gf_node_render(node, eff);
+
+		gf_node_render(children->node, eff);
 		/*we hit the target node*/
-		if (node == eff->for_node) eff->for_node = NULL;
+		if (children->node == eff->for_node) eff->for_node = NULL;
 		if (!eff->for_node) return;
 
 		gf_mx2d_apply_rect(&eff->transform, &eff->bounds);
 		gf_rect_union(&rc, &eff->bounds);
+		children = children->next;
 	}
 	gf_mx2d_copy(eff->transform, cur_mx);
 	eff->bounds = rc;
@@ -288,7 +285,7 @@ static void gf_svg_set_viewport_transformation(RenderEffect2D *eff, SVGsvgElemen
 	* Restore coordinate system
 	* Restore styling properties
  */
-static void SVG_Render_svg(GF_Node *node, void *rs)
+static void SVG_Render_svg(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 viewport_color;
 	GF_Matrix2D backup_matrix;
@@ -298,6 +295,15 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGsvgElement *svg = (SVGsvgElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
+
+	if (is_destroy) {
+		SVGPropertiesPointers *svgp = (SVGPropertiesPointers *) gf_node_get_private(node);
+		if (svgp) {
+			gf_svg_properties_reset_pointers(svgp);
+			free(svgp);
+		}
+		return;
+	}
 
 	/*enable or disable navigation*/
 	eff->surface->render->navigation_disabled = (svg->zoomAndPan == SVG_ZOOMANDPAN_DISABLE) ? 1 : 0;
@@ -342,13 +348,6 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	eff->surface->top_clipper = top_clip;
 }
 
-void SVG_Destroy_svg(GF_Node *node)
-{
-	SVGPropertiesPointers *svgp = (SVGPropertiesPointers *) gf_node_get_private(node);
-	gf_svg_properties_reset_pointers(svgp);
-	free(svgp);
-}
-
 void SVG_Init_svg(Render2D *sr, GF_Node *node)
 {
 	SVGPropertiesPointers *svgp;
@@ -357,18 +356,17 @@ void SVG_Init_svg(Render2D *sr, GF_Node *node)
 	gf_svg_properties_init_pointers(svgp);
 	gf_node_set_private(node, svgp);
 
-	gf_node_set_render_function(node, SVG_Render_svg);
-	gf_node_set_predestroy_function(node, SVG_Destroy_svg);
+	gf_node_set_callback_function(node, SVG_Render_svg);
 }
 
-static void SVG_Render_g(GF_Node *node, void *rs)
+static void SVG_Render_g(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
 	SVGPropertiesPointers backup_props;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
-
 	SVGgElement *g = (SVGgElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
+	if (is_destroy) return;
 
 	SVG_Render_base(node, eff, &backup_props);
 
@@ -394,7 +392,7 @@ static void SVG_Render_g(GF_Node *node, void *rs)
 
 void SVG_Init_g(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, SVG_Render_g);
+	gf_node_set_callback_function(node, SVG_Render_g);
 }
 
 static Bool eval_conditional(GF_Renderer *sr, SVGElement *elt)
@@ -444,16 +442,14 @@ static Bool eval_conditional(GF_Renderer *sr, SVGElement *elt)
 }
 
 
-static void SVG_Render_switch(GF_Node *node, void *rs)
+static void SVG_Render_switch(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
 	SVGPropertiesPointers backup_props;
-	u32 i, count;
-	SVGElement *child;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
-
 	SVGswitchElement *s = (SVGswitchElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
+	if (is_destroy) return;
 
 	SVG_Render_base(node, eff, &backup_props);
 
@@ -467,13 +463,13 @@ static void SVG_Render_switch(GF_Node *node, void *rs)
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		svg_get_nodes_bounds(node, s->children, eff);
 	} else {
-		count = gf_list_count(s->children);
-		for (i=0; i<count; i++) {
-			child = (SVGElement*)gf_list_get(s->children, i);
-			if (eval_conditional(eff->surface->render->compositor, child)) {
-				svg_render_node((GF_Node*)child, eff);
+		GF_ChildNodeItem *l = s->children;
+		while (l) {
+			if (eval_conditional(eff->surface->render->compositor, (SVGElement*)l->node)) {
+				svg_render_node((GF_Node*)l->node, eff);
 				break;
 			}
+			l = l->next;
 		}
 	}
 	gf_svg_restore_parent_transformation(eff, &backup_matrix);
@@ -482,7 +478,7 @@ static void SVG_Render_switch(GF_Node *node, void *rs)
 
 void SVG_Init_switch(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, SVG_Render_switch);
+	gf_node_set_callback_function(node, SVG_Render_switch);
 }
 
 
@@ -511,15 +507,16 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_p
 	ctx = SVG_drawable_init_context(cs, eff);
 	if (ctx) {
 		if (rectangular) {
-			ctx->transparent = 0;
-			if (ctx->h_texture && ctx->h_texture->transparent) ctx->transparent = 1;
-			else if (!ctx->aspect.filled) ctx->transparent = 1;
-			else if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) ctx->transparent = 1;
-			else if (ctx->transform.m[1] || ctx->transform.m[3]) ctx->transparent = 1;
+			if (ctx->h_texture && ctx->h_texture->transparent) {}
+			else if (!ctx->aspect.filled) {}
+			else if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) {}
+			else if (ctx->transform.m[1] || ctx->transform.m[3]) {}
+			else {
+				ctx->flags &= ~CTX_IS_TRANSPARENT;
+			}
 		}
 		if (path_length) ctx->aspect.pen_props.path_length = path_length;
-		drawctx_store_original_bounds(ctx);
-		drawable_finalize_render(ctx, eff);
+		drawable_finalize_render(ctx, eff, NULL);
 	}
 
 	gf_svg_restore_parent_transformation(eff, &backup_matrix);
@@ -527,14 +524,27 @@ end:
 	memcpy(eff->svg_props, backup_props, sizeof(SVGPropertiesPointers));
 }
 
-static void SVG_Render_rect(GF_Node *node, void *rs)
+static void SVG_Render_rect(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGPropertiesPointers backup_props;
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	SVGrectElement *rect = (SVGrectElement *)node;
 
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		drawable_draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
 
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	SVG_Render_base(node, eff, &backup_props);
 	
 	/* 3) for a leaf node
 	   Recreates the path (i.e the shape) only if the node is dirty 
@@ -571,95 +581,151 @@ static void SVG_Render_rect(GF_Node *node, void *rs)
 			gf_path_close(cs->path);		
 		}
 		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
+		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)rect, (RenderEffect2D *)rs, 1, 0);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)rect, eff, 1, 0);
 }
 
 void SVG_Init_rect(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_render_function(node, SVG_Render_rect);
+	gf_node_set_callback_function(node, SVG_Render_rect);
 }
 
-static void SVG_Render_circle(GF_Node *node, void *rs)
+static void SVG_Render_circle(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGcircleElement *circle = (SVGcircleElement *)node;
 	SVGPropertiesPointers backup_props;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		drawable_draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
+
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		Fixed r = 2*circle->r.value;
 		drawable_reset_path(cs);
 		gf_path_add_ellipse(cs->path, circle->cx.value, circle->cy.value, r, r);
 		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
+		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)circle, (RenderEffect2D *)rs, 0, 0);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)circle, eff, 0, 0);
 }
 
 void SVG_Init_circle(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_render_function(node, SVG_Render_circle);
+	gf_node_set_callback_function(node, SVG_Render_circle);
 }
 
-static void SVG_Render_ellipse(GF_Node *node, void *rs)
+static void SVG_Render_ellipse(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGellipseElement *ellipse = (SVGellipseElement *)node;
 	SVGPropertiesPointers backup_props;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		drawable_draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
+
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		drawable_reset_path(cs);
 		gf_path_add_ellipse(cs->path, ellipse->cx.value, ellipse->cy.value, 2*ellipse->rx.value, 2*ellipse->ry.value);
 		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
+		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)ellipse, (RenderEffect2D *)rs, 0, 0);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)ellipse, eff, 0, 0);
 }
 
 void SVG_Init_ellipse(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_render_function(node, SVG_Render_ellipse);
+	gf_node_set_callback_function(node, SVG_Render_ellipse);
 }
 
-static void SVG_Render_line(GF_Node *node, void *rs)
+static void SVG_Render_line(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGlineElement *line = (SVGlineElement *)node;
 	SVGPropertiesPointers backup_props;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		drawable_draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
+
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		drawable_reset_path(cs);
 		gf_path_add_move_to(cs->path, line->x1.value, line->y1.value);
 		gf_path_add_line_to(cs->path, line->x2.value, line->y2.value);
 		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
+		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)line, (RenderEffect2D *)rs, 0, 0);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)line, eff, 0, 0);
 }
 
 void SVG_Init_line(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_render_function(node, SVG_Render_line);
+	gf_node_set_callback_function(node, SVG_Render_line);
 }
 
-static void SVG_Render_polyline(GF_Node *node, void *rs)
+static void SVG_Render_polyline(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGpolylineElement *polyline = (SVGpolylineElement *)node;
 	SVGPropertiesPointers backup_props;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		drawable_draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
+
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		u32 i;
@@ -672,27 +738,40 @@ static void SVG_Render_polyline(GF_Node *node, void *rs)
 				p = (SVG_Point *)gf_list_get(polyline->points, i);
 				gf_path_add_line_to(cs->path, p->x, p->y);
 			}
-			cs->node_changed = 1;
 		} else {
 			gf_path_add_move_to(cs->path, 0, 0);
 		}
 		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
+		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polyline, (RenderEffect2D *)rs, 0, 0);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polyline, eff, 0, 0);
 }
 
 void SVG_Init_polyline(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_render_function(node, SVG_Render_polyline);
+	gf_node_set_callback_function(node, SVG_Render_polyline);
 }
 
-static void SVG_Render_polygon(GF_Node *node, void *rs)
+static void SVG_Render_polygon(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGpolygonElement *polygon = (SVGpolygonElement *)node;
 	SVGPropertiesPointers backup_props;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
+
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		drawable_draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
 
 	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
@@ -708,12 +787,11 @@ static void SVG_Render_polygon(GF_Node *node, void *rs)
 				gf_path_add_line_to(cs->path, p->x, p->y);
 			}
 			gf_path_close(cs->path);
-			cs->node_changed = 1;
 		} else {
 			gf_path_add_move_to(cs->path, 0, 0);
 		}
 		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
+		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
 	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polygon, (RenderEffect2D *)rs, 0, 0);
 }
@@ -721,15 +799,37 @@ static void SVG_Render_polygon(GF_Node *node, void *rs)
 void SVG_Init_polygon(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_render_function(node, SVG_Render_polygon);
+	gf_node_set_callback_function(node, SVG_Render_polygon);
 }
 
-static void SVG_Render_path(GF_Node *node, void *rs)
+static void SVG_Destroy_path(GF_Node *node)
+{
+	Drawable *dr = gf_node_get_private(node);
+#if USE_GF_PATH
+	/* The path is the same as the one in the SVG node, don't delete it here */
+	dr->path = NULL;
+#endif
+	drawable_del(dr);
+}
+
+static void SVG_Render_path(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGpathElement *path = (SVGpathElement *)node;
 	SVGPropertiesPointers backup_props;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
+	if (is_destroy) {
+		SVG_Destroy_path(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		drawable_draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
 
 	SVG_Render_base(node, eff, &backup_props);
 
@@ -743,38 +843,29 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 #endif
 		if (*(eff->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
+		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
 	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)path, eff, 0, (path->pathLength.type==SVG_NUMBER_VALUE) ? path->pathLength.value : 0);
 }
 
-static void SVG_Destroy_path(GF_Node *node)
-{
-	Drawable *dr = gf_node_get_private(node);
-#if USE_GF_PATH
-	/* The path is the same as the one in the SVG node, don't delete it here */
-	dr->path = NULL;
-#endif
-	drawable_del(dr);
-}
 
 void SVG_Init_path(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_render_function(node, SVG_Render_path);
-	gf_node_set_predestroy_function(node, SVG_Destroy_path);
+	gf_node_set_callback_function(node, SVG_Render_path);
 }
 
 /* end of rendering of basic shapes */
 
 
-static void SVG_Render_a(GF_Node *node, void *rs)
+static void SVG_Render_a(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
 	SVGPropertiesPointers backup_props;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGaElement *a = (SVGaElement *) node;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
+	if (is_destroy) return;
 
 	SVG_Render_base(node, eff, &backup_props);
 
@@ -886,7 +977,7 @@ void SVG_Init_a(Render2D *sr, GF_Node *node)
 {
 	XMLEV_Event evt;
 	SVGhandlerElement *handler;
-	gf_node_set_render_function(node, SVG_Render_a);
+	gf_node_set_callback_function(node, SVG_Render_a);
 
 	/*listener for onClick event*/
 	evt.parameter = 0;
@@ -925,18 +1016,20 @@ typedef struct
 	u32 nb_col;
 } SVG_GradientStack;
 
-static void SVG_DestroyGradient(GF_Node *node)
+static void SVG_DestroyPaintServer(GF_Node *node)
 {
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(node);
-	gf_sr_texture_destroy(&st->txh);
-	if (st->cols) free(st->cols);
-	if (st->keys) free(st->keys);
-	free(st);
+	if (st) {
+		gf_sr_texture_destroy(&st->txh);
+		if (st->cols) free(st->cols);
+		if (st->keys) free(st->keys);
+		free(st);
+	}
 }
 
-static void SVG_UpdateGradient(SVG_GradientStack *st, GF_List *children)
+static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children)
 {
-	u32 i, count;
+	u32 count;
 	Fixed alpha, max_offset;
 
 	if (!gf_node_dirty_get(st->txh.owner)) return;
@@ -944,15 +1037,16 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_List *children)
 
 	st->txh.needs_refresh = 1;
 	st->txh.transparent = 0;
-	count = gf_list_count(children);
+	count = gf_node_list_get_count(children);
 	st->nb_col = 0;
 	st->cols = (u32*)realloc(st->cols, sizeof(u32)*count);
 	st->keys = (Fixed*)realloc(st->keys, sizeof(Fixed)*count);
 
 	max_offset = 0;
-	for (i=0; i<count; i++) {
+	while (children) {
 		Fixed key;
-		SVGstopElement *gstop = (SVGstopElement *)gf_list_get(children, i);
+		SVGstopElement *gstop = (SVGstopElement *) children->node;
+		children = children->next;
 		if (gf_node_get_tag((GF_Node *)gstop) != TAG_SVG_stop) continue;
 
 		if (gstop->properties->stop_opacity.type==SVG_NUMBER_VALUE) alpha = gstop->properties->stop_opacity.value;
@@ -971,13 +1065,17 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_List *children)
 	st->txh.compositor->r2d->stencil_set_gradient_mode(st->txh.hwtx, /*lg->spreadMethod*/ GF_GRADIENT_MODE_PAD);
 }
 
-static void SVG_Render_PaintServer(GF_Node *node, void *rs)
+static void SVG_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGPropertiesPointers backup_props;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGElement *elt = (SVGElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
+	if (is_destroy) {
+		SVG_DestroyPaintServer(node);
+		return;
+	}
 	SVG_Render_base(node, eff, &backup_props);
 	
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
@@ -1039,8 +1137,7 @@ void SVG_Init_linearGradient(Render2D *sr, GF_Node *node)
 
 	st->txh.compute_gradient_matrix = SVG_LG_ComputeMatrix;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, SVG_DestroyGradient);
-	gf_node_set_render_function(node, SVG_Render_PaintServer);
+	gf_node_set_callback_function(node, SVG_Render_PaintServer);
 }
 
 /* radial gradient */
@@ -1098,18 +1195,17 @@ void SVG_Init_radialGradient(Render2D *sr, GF_Node *node)
 	st->txh.update_texture_fcnt = SVG_UpdateRadialGradient;
 	st->txh.compute_gradient_matrix = SVG_RG_ComputeMatrix;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, SVG_DestroyGradient);
-	gf_node_set_render_function(node, SVG_Render_PaintServer);
+	gf_node_set_callback_function(node, SVG_Render_PaintServer);
 }
 
 void SVG_Init_solidColor(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, SVG_Render_PaintServer);
+	gf_node_set_callback_function(node, SVG_Render_PaintServer);
 }
 
 void SVG_Init_stop(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, SVG_Render_PaintServer);
+	gf_node_set_callback_function(node, SVG_Render_PaintServer);
 }
 
 GF_TextureHandler *svg_gradient_get_texture(GF_Node *node)

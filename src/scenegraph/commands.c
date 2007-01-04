@@ -41,7 +41,6 @@ GF_Command *gf_sg_command_new(GF_SceneGraph *graph, u32 tag)
 }
 static void SG_CheckNodeUnregister(GF_Command *com)
 {
-	u32 i;
 	switch (com->tag) {
 	case GF_SG_SCENE_REPLACE:
 	case GF_SG_LSR_NEW_SCENE:
@@ -49,10 +48,14 @@ static void SG_CheckNodeUnregister(GF_Command *com)
 		gf_node_unregister(com->node, NULL);
 		break;
 	default:
-		for (i=0; i<com->in_scene->node_reg_size; i++) {
-			if (com->in_scene->node_registry[i] == com->node) {
-				gf_node_unregister(com->node, NULL);
-				return;
+		if (com->node->sgprivate->flags & GF_NODE_IS_DEF) {
+			NodeIDedItem *reg_node = com->in_scene->id_node;
+			while (reg_node) {
+				if (reg_node->node == com->node) {
+					gf_node_unregister(com->node, NULL);
+					return;
+				}
+				reg_node = reg_node->next;
 			}
 		}
 		break;
@@ -77,12 +80,14 @@ void gf_sg_command_del(GF_Command *com)
 				break;
 			case GF_SG_VRML_MFNODE:
 				if (inf->field_ptr) {
-					while (gf_list_count(inf->node_list)) {
-						GF_Node *n = (GF_Node *)gf_list_last(inf->node_list);
-						gf_list_rem_last(inf->node_list);
-						gf_node_unregister(n, com->node);
+					GF_ChildNodeItem *cur, *child;
+					child = inf->node_list;
+					while (child) {
+						cur = child;
+						gf_node_unregister(child->node, com->node);
+						child = child->next;
+						free(cur);
 					}
-					gf_list_del(inf->node_list);
 				}
 				break;
 			default:
@@ -100,7 +105,6 @@ void gf_sg_command_del(GF_Command *com)
 			if (inf->new_node) gf_node_unregister(inf->new_node, com->node);
 			else if (inf->node_list) {
 				gf_node_unregister_children(com->node, inf->node_list);
-				gf_list_del(inf->node_list);
 			} else if (inf->field_ptr) {
 				gf_svg_delete_attribute_value(inf->fieldType, inf->field_ptr, com->in_scene);
 			}
@@ -199,8 +203,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	case GF_SG_MULTIPLE_REPLACE:
 	case GF_SG_FIELD_REPLACE:
 	{
-		u32 i, j;
-		GF_List *container, *list;
+		u32 j;
+		GF_ChildNodeItem *list, *cur, *prev;
 		j=0;
 		while ((inf = (GF_CommandField*)gf_list_enum(com->command_fields, &j))) {
 			e = gf_node_get_field(com->node, inf->fieldIndex, &field);
@@ -216,14 +220,23 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				break;
 			}
 			case GF_SG_VRML_MFNODE:
-				container = * ((GF_List **) field.far_ptr);
-				list = * ((GF_List **) inf->field_ptr);
-				gf_node_unregister_children(com->node, container);
+				gf_node_unregister_children(com->node, * ((GF_ChildNodeItem **) field.far_ptr));
+				* ((GF_ChildNodeItem **) field.far_ptr) = NULL;
 
-				i=0;
-				while ((node = (GF_Node*)gf_list_enum(list, &i))) {
-					gf_list_add(container, node);
-					if (!e) gf_node_register(node, com->node);
+				list = * ((GF_ChildNodeItem **) inf->field_ptr);
+				prev=NULL;
+				while (list) {
+					cur = malloc(sizeof(GF_ChildNodeItem));
+					cur->next = NULL;
+					cur->node = list->node;
+					if (prev) {
+						prev->next = cur;
+					} else {
+						* ((GF_ChildNodeItem **) field.far_ptr) = cur;
+					}
+					gf_node_register(list->node, com->node);
+					prev = cur;
+					list = list->next;
 				}
 				break;
 			default:
@@ -254,7 +267,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			if (field.fieldType == GF_SG_VRML_MFNODE) {
 				/*we must remove the node before in case the new node uses the same ID (not forbidden) and this
 				command removes the last instance of the node with the same ID*/
-				gf_node_replace_child(com->node, *((GF_List**) field.far_ptr), inf->pos, inf->new_node);
+				gf_node_replace_child(com->node, (GF_ChildNodeItem**) field.far_ptr, inf->pos, inf->new_node);
 				if (inf->new_node) gf_node_register(inf->new_node, NULL);
 			}
 			/*erase the field item*/
@@ -320,7 +333,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 
 		/*then we need special handling in case of a node*/
 		if (gf_sg_vrml_get_sf_type(field.fieldType) == GF_SG_VRML_SFNODE) {
-			e = gf_node_replace_child(com->node, * ((GF_List **) field.far_ptr), inf->pos, NULL);
+			e = gf_node_replace_child(com->node, (GF_ChildNodeItem **) field.far_ptr, inf->pos, NULL);
 		} else {
 			if ((inf->pos < 0) || ((u32) inf->pos >= ((GenMFField *) field.far_ptr)->count) ) {
 				inf->pos = ((GenMFField *)field.far_ptr)->count - 1;
@@ -378,13 +391,11 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			gf_sg_vrml_field_copy(slot_ptr, inf->field_ptr, sftype);
 		} else {
 			if (inf->new_node) {
-				GF_List *list = *(GF_List **) field.far_ptr;
 				if (inf->pos == -1) {
-					e = gf_list_add(list, inf->new_node);
+					gf_node_list_add_child( (GF_ChildNodeItem **) field.far_ptr, inf->new_node);
 				} else {
-					e = gf_list_insert(list, inf->new_node, inf->pos);
+					gf_node_list_insert_child((GF_ChildNodeItem **) field.far_ptr, inf->new_node, inf->pos);
 				}
-				if (e) return e;
 				gf_node_register(inf->new_node, com->node);
 			}
 		}
@@ -441,17 +452,29 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			return GF_OK;
 		}
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
-		e = gf_node_replace_child(com->node, ((SVGElement *)com->node)->children, inf->pos, NULL);
+		e = gf_node_replace_child(com->node, &((SVGElement *)com->node)->children, inf->pos, NULL);
 		break;
 	case GF_SG_LSR_INSERT:
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 		if (!com->node || !inf) return GF_NON_COMPLIANT_BITSTREAM;
 		if (inf->new_node) {
-			e = gf_list_insert(((SVGElement *)com->node)->children, inf->new_node, inf->pos);
-			if (!e) {
-				gf_node_register(inf->new_node, com->node);
-				gf_node_event_out(com->node, inf->fieldIndex);
+			u32 pos = 0;
+			GF_ChildNodeItem *child, *prev;
+			child = ((SVGElement *)com->node)->children;
+			while (child) {
+				if ((inf->pos<0) || (pos!=(u32)inf->pos)) {
+					prev = child;
+					child = child->next;
+				}
+				break;
 			}
+			child = (GF_ChildNodeItem *)malloc(sizeof(GF_ChildNodeItem));
+			child->node = inf->new_node;
+			child->next = NULL;
+			if (prev) prev->next = child;
+			else ((SVGElement *)com->node)->children = child;
+
+			gf_node_register(inf->new_node, com->node);
 		} else {
 			/*NOT SUPPORTED*/
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[LASeR] VALUE INSERTION NOT SUPPORTED\n"));
@@ -466,21 +489,28 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				e = gf_node_replace(com->node, inf->new_node, 0);
 				if (inf->new_node) gf_node_register(inf->new_node, NULL);
 			} else {
-				gf_node_replace_child(com->node, ((SVGElement *)com->node)->children, inf->pos, inf->new_node);
+				gf_node_replace_child(com->node, & ((SVGElement *)com->node)->children, inf->pos, inf->new_node);
 				if (inf->new_node) gf_node_register(inf->new_node, com->node);
 			}
 			/*signal node modif*/
 			gf_node_changed(com->node, NULL);
 			return e;
 		} else if (inf->node_list) {
-			u32 i, count;
-			GF_List *container = ((SVGElement *)com->node)->children;
-			gf_node_unregister_children(com->node, container);
-			count = gf_list_count(inf->node_list);
-			for (i=0; i<count; i++) {
-				node = (GF_Node*)gf_list_get(inf->node_list, i);
-				gf_list_add(container, node);
-				gf_node_register(node, com->node);
+			GF_ChildNodeItem *child, *cur, *prev;
+			gf_node_unregister_children(com->node, ((SVGElement *)com->node)->children);
+			((SVGElement *)com->node)->children = NULL;
+
+			prev = NULL;
+			child = inf->node_list;
+			while (child) {
+				cur = (GF_ChildNodeItem*)malloc(sizeof(GF_ChildNodeItem));
+				cur->next = NULL;
+				cur->node = child->node;
+				gf_node_register(child->node, com->node);
+				if (prev) prev->next = cur;
+				else ((SVGElement *)com->node)->children = cur;
+				prev = cur;
+				child = child->next;
 			}
 			/*signal node modif*/
 			gf_node_changed(com->node, NULL);
@@ -638,13 +668,17 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
 			fd->field_ptr = &fd->new_node;
 		}
 		if (fo->node_list) {
-			u32 j, count;
-			fd->node_list = gf_list_new();
-			count = gf_list_count(fo->node_list);
-			for (j=0; j<count; j++) {
-				GF_Node *co = (GF_Node *)gf_list_get(fo->node_list, j);
-				GF_Node *cd = (GF_Node *)gf_node_clone(inGraph, co, dest->node);
-				gf_list_add(fd->node_list, cd);
+			GF_ChildNodeItem *child, *cur, *prev;
+			prev = NULL;
+			child = fo->node_list;
+			while (child) {
+				cur = (GF_ChildNodeItem*) malloc(sizeof(GF_ChildNodeItem));
+				cur->node = gf_node_clone(inGraph, child->node, dest->node);
+				cur->next = NULL;
+				if (prev) prev->next = cur;
+				else fd->node_list = cur;
+				prev = cur;
+				child = child->next;
 			}
 			fd->field_ptr = &fd->node_list;
 		}

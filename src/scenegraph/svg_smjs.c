@@ -280,9 +280,9 @@ static JSBool udom_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *
 	listener = (SVGlistenerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
 	handler = (SVGhandlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_handler);
 	gf_node_register((GF_Node *)listener, node);
-	gf_list_add( ((GF_ParentNode *)node)->children, listener);
+	gf_node_list_add_child(& ((GF_ParentNode *)node)->children, (GF_Node*)listener);
 	gf_node_register((GF_Node *)handler, node);
-	gf_list_add(((GF_ParentNode *)node)->children, handler);
+	gf_node_list_add_child(& ((GF_ParentNode *)node)->children, (GF_Node*)handler);
 	handler->ev_event.type = listener->event.type = evtType;
 	listener->handler.target = (SVGElement *) handler;
 	listener->target.target = (SVGElement *)node;
@@ -306,7 +306,7 @@ static JSBool udom_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 		node = sg->RootNode;
 	} else if (JS_InstanceOf(c, obj, &connectionClass, NULL) ) {
 	}
-	if (!node || !node->sgprivate->events) return JS_FALSE;
+	if (!node || !node->sgprivate->interact || !node->sgprivate->interact->events) return JS_FALSE;
 
 	if (argc==4) {
 		if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
@@ -329,7 +329,7 @@ static JSBool udom_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 	evtType = gf_dom_event_type_by_name(type);
 	if (evtType==GF_EVENT_UNKNOWN) return JS_FALSE;
 	
-	count = gf_list_count(node->sgprivate->events);
+	count = gf_list_count(node->sgprivate->interact->events);
 	for (i=0; i<count; i++) {
 		SVGhandlerElement *hdl;
 		SVGlistenerElement *el = (SVGlistenerElement*)gf_dom_listener_get(node, i);
@@ -337,9 +337,9 @@ static JSBool udom_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 		hdl = (SVGhandlerElement *)el->handler.target;
 		if (!hdl->textContent || strcmp(hdl->textContent, callback)) continue;
 		gf_dom_listener_del(node, (GF_Node *) el);
-		gf_list_del_item( ((GF_ParentNode *)node)->children, (GF_Node *) hdl);
+		gf_node_list_del_child( & ((GF_ParentNode *)node)->children, (GF_Node *) hdl);
 		gf_node_unregister((GF_Node *) hdl, node);
-		gf_list_del_item( ((GF_ParentNode *)node)->children, (GF_Node *) el);
+		gf_node_list_del_child( & ((GF_ParentNode *)node)->children, (GF_Node *) el);
 		gf_node_unregister((GF_Node *) el, node);
 		return JS_TRUE;
 	}
@@ -514,14 +514,16 @@ static void svg_elt_finalize(JSContext *c, JSObject *obj)
 static void svg_elt_add(JSContext *c, GF_Node *par, GF_Node *n, s32 pos) 
 {
 	Bool do_init = n->sgprivate->num_instances ? 0 : 1;
-	if (pos<0) gf_list_add( ((GF_ParentNode *)par)->children, n);
-	else gf_list_insert( ((GF_ParentNode *)par)->children, n, (u32) pos);
+
+
+	if (pos<0) gf_node_list_add_child( & ((GF_ParentNode *)par)->children, n);
+	else gf_node_list_insert_child( & ((GF_ParentNode *)par)->children, n, (u32) pos);
 	gf_node_register(n, par);
 
-	if (do_init && !n->sgprivate->PreDestroyNode && !n->sgprivate->RenderNode) {
+	if (do_init && !n->sgprivate->UserCallback) {
 		gf_node_init(n);
 
-		if (n->sgprivate->events) {
+		if (n->sgprivate->interact && n->sgprivate->interact->events) {
 			GF_DOM_Event evt;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.type = GF_EVENT_LOAD;
@@ -565,7 +567,7 @@ static JSBool svg_elt_insert(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	if (!JS_InstanceOf(c, newObj, &svgClass, NULL) ) return JS_FALSE;
 	next = JS_GetPrivate(c, newObj);
 	if (!next) return JS_FALSE;
-	pos = gf_list_find(((GF_ParentNode *)par)->children, next);
+	pos = gf_node_list_find_child(((GF_ParentNode *)par)->children, next);
 	if (pos<0) return JS_FALSE;
 	svg_elt_add(c, par, n, pos);
 	return JS_TRUE;
@@ -574,7 +576,7 @@ static JSBool svg_elt_remove(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 {
 	GF_Node *par, *n;
 	JSObject *newObj;
-	s32 i;
+	Bool i;
 	if (!argc || !JS_InstanceOf(c, obj, &svgClass, NULL) ) return JS_FALSE;
 	par = JS_GetPrivate(c, obj);
 	if (!par) return JS_FALSE;
@@ -584,8 +586,8 @@ static JSBool svg_elt_remove(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	n = JS_GetPrivate(c, newObj);
 	if (!n) return JS_FALSE;
 
-	i = gf_list_del_item( ((GF_ParentNode *)par)->children, n);
-	if (i<0) return JS_FALSE;
+	i = gf_node_list_del_child( & ((GF_ParentNode *)par)->children, n);
+	if (!i) return JS_FALSE;
 	if (n->sgprivate->num_instances==1) {
 		gf_node_register(n, NULL);
 		gf_node_unregister(n, par);
@@ -669,10 +671,10 @@ static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	if (evt.type == GF_EVENT_UNKNOWN) return JS_FALSE;
 
 	/*check if we're modifying an existing listener*/
-	count = gf_list_count(elt->sgprivate->events);
+	count = (elt->sgprivate->interact && elt->sgprivate->interact->events) ? gf_list_count(elt->sgprivate->interact->events) : 0;
 	for (i=0;i<count; i++) {
 		SVGhandlerElement *handler;
-		SVGlistenerElement *listen = gf_list_get(elt->sgprivate->events, i);
+		SVGlistenerElement *listen = gf_list_get(elt->sgprivate->interact->events, i);
 		if (listen->event.type != evt.type) continue;
 		assert(listen->handler.target);
 		handler = (SVGhandlerElement *)listen->handler.target;
@@ -1493,7 +1495,6 @@ static JSBool svg_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	if (!JS_InstanceOf(c, obj, &svgClass, NULL) ) return JS_FALSE;
 	if (JSVAL_IS_INT(id)) {
-		u32 count;
 		GF_JSAPIParam par;
 		jsdouble *d;
 		JSString *s;
@@ -1540,18 +1541,19 @@ static JSBool svg_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 			return JS_TRUE;
 		/*firstElementChild*/
 		case 6: 
-			a_node = gf_list_get(n->children, 0);
+			a_node = n->children ? n->children->node : NULL;
 			if (a_node) {
 				*vp = OBJECT_TO_JSVAL(svg_elt_construct(c, a_node, 1));
 			}
 			return JS_TRUE;
 		/*lastElementChild*/
 		case 7:
-			count = gf_list_count(n->children);
-			a_node = count ? gf_list_get(n->children, count-1) : NULL;
-			if (a_node) {
-				*vp = OBJECT_TO_JSVAL(svg_elt_construct(c, a_node, 1) );
-			}
+		{
+			GF_ChildNodeItem *list=n->children;
+			if (!list) return JS_FALSE;
+			while (list->next) list = list->next;
+			*vp = OBJECT_TO_JSVAL(svg_elt_construct(c, list->node, 1) );
+		}
 			return JS_TRUE;
 		/*nextElementSibling - NOT SUPPORTED*/
 		case 8: return JS_TRUE;
@@ -1559,11 +1561,15 @@ static JSBool svg_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		case 9: return JS_TRUE;
 		/*id*/
 		case 10: 
-			if (n->sgprivate->NodeID) {
-				s = JS_NewStringCopyZ(c, n->sgprivate->NodeName);
+		{
+			const char *node_name = gf_node_get_name((GF_Node*)n);
+			if (node_name) {
+				s = JS_NewStringCopyZ(c, node_name);
 				*vp = STRING_TO_JSVAL( s );
+				return JS_TRUE;
 			}
-			return JS_TRUE;
+			return JS_FALSE;
+		}
 		/*currentScale*/
 		case 11:
 			if (n->sgprivate->tag!=TAG_SVG_svg) return JS_FALSE;
@@ -2672,16 +2678,18 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 	return 1;
 }
 
-static void svg_script_predestroy(GF_Node *n)
+static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 {
-	GF_SVGJS *svg_js = n->sgprivate->scenegraph->svg_js;
-	if (svg_js->nb_scripts) {
-		svg_js->nb_scripts--;
-		if (!svg_js->nb_scripts) {
-			gf_sg_ecmascript_del(svg_js->js_ctx);
-			gf_list_del(svg_js->node_bank);
-			free(svg_js);
-			n->sgprivate->scenegraph->svg_js = NULL;
+	if (is_destroy) {
+		GF_SVGJS *svg_js = n->sgprivate->scenegraph->svg_js;
+		if (svg_js->nb_scripts) {
+			svg_js->nb_scripts--;
+			if (!svg_js->nb_scripts) {
+				gf_sg_ecmascript_del(svg_js->js_ctx);
+				gf_list_del(svg_js->node_bank);
+				free(svg_js);
+				n->sgprivate->scenegraph->svg_js = NULL;
+			}
 		}
 	}
 }
@@ -2732,9 +2740,9 @@ void JSScript_LoadSVG(GF_Node *node)
 		if (JSScript_CreateSVGContext(node->sgprivate->scenegraph) != GF_OK) return;
 	}
 	svg_js = node->sgprivate->scenegraph->svg_js;
-	if (!node->sgprivate->PreDestroyNode ) {
+	if (!node->sgprivate->UserCallback) {
 		svg_js->nb_scripts++;
-		node->sgprivate->PreDestroyNode = svg_script_predestroy;
+		node->sgprivate->UserCallback = svg_script_predestroy;
 	}
 
 	if (node->sgprivate->tag == TAG_SVG_handler) return;

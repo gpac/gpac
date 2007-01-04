@@ -843,7 +843,7 @@ u32 gf_term_get_time_in_ms(GF_Terminal *term)
 {
 	if (!term || !term->root_scene) return 0;
 	if (term->root_scene->scene_codec) return gf_clock_time(term->root_scene->scene_codec->ck);
-	else if (term->root_scene->is_dynamic_scene) return gf_clock_time(term->root_scene->dyn_ck);
+	else if (term->root_scene->dyn_ck) return gf_clock_time(term->root_scene->dyn_ck);
 	return 0;
 }
 

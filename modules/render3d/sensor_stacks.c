@@ -39,18 +39,17 @@ typedef struct
 	SensorHandler hdl;
 } AnchorStack;
 
-static void DestroyAnchor(GF_Node *n)
-{
-	AnchorStack *st = (AnchorStack*)gf_node_get_private(n);
-	R3D_SensorDeleted(st->compositor, &st->hdl);
-	DeleteGroupingNode((GroupingNode *)st);
-	free(st);
-}
-
-static void RenderAnchor(GF_Node *node, void *rs)
+static void RenderAnchor(GF_Node *node, void *rs, Bool is_destroy)
 {
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
+
+	if (is_destroy) {
+		R3D_SensorDeleted(st->compositor, &st->hdl);
+		DeleteGroupingNode((GroupingNode *)st);
+		free(st);
+		return;
+	}
 
 	if (!st->compositor->user->EventProc) {
 		st->enabled = 0;
@@ -157,7 +156,6 @@ SensorHandler *r3d_anchor_get_handler(GF_Node *n)
 
 void R3D_InitAnchor(Render3D *sr, GF_Node *node)
 {
-	GF_List *children;
 	AnchorStack *stack;
 	GF_SAFEALLOC(stack, AnchorStack);
 
@@ -166,15 +164,13 @@ void R3D_InitAnchor(Render3D *sr, GF_Node *node)
 	stack->hdl.owner = node;
 	if (gf_node_get_tag(node)==TAG_MPEG4_Anchor) {
 		((M_Anchor *)node)->on_activate = on_activate_anchor;
-		children = ((M_Anchor *)node)->children;
+		SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, & ((M_Anchor *)node)->children);
 	} else {
-		children = ((X_Anchor *)node)->children;
+		SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, & ((X_Anchor *)node)->children);
 	}
-	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, children);
 	sr->compositor->interaction_sensors++;
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyAnchor);
-	gf_node_set_render_function(node, RenderAnchor);
+	gf_node_set_callback_function(node, RenderAnchor);
 }
 
 
@@ -186,11 +182,13 @@ typedef struct
 	GF_Matrix initial_matrix;
 } DiscSensorStack;
 
-static void DestroyDiscSensor(GF_Node *node)
+static void DestroyDiscSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
-	DiscSensorStack *st = (DiscSensorStack *) gf_node_get_private(node);
-	R3D_SensorDeleted(st->compositor, &st->hdl);
-	free(st);
+	if (is_destroy) {
+		DiscSensorStack *st = (DiscSensorStack *) gf_node_get_private(node);
+		R3D_SensorDeleted(st->compositor, &st->hdl);
+		free(st);
+	}
 }
 
 static Bool ds_is_enabled(GF_Node *n)
@@ -262,7 +260,7 @@ void R3D_InitDiscSensor(Render3D *sr, GF_Node *node)
 	st->compositor = sr->compositor;
 	sr->compositor->interaction_sensors++;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyDiscSensor);
+	gf_node_set_callback_function(node, DestroyDiscSensor);
 }
 
 
@@ -274,11 +272,13 @@ typedef struct
 	SensorHandler hdl;
 } PS2DStack;
 
-static void DestroyPlaneSensor2D(GF_Node *node)
+static void DestroyPlaneSensor2D(GF_Node *node, void *rs, Bool is_destroy)
 {
-	PS2DStack *st = (PS2DStack *) gf_node_get_private(node);
-	R3D_SensorDeleted(st->compositor, &st->hdl);
-	free(st);
+	if (is_destroy) {
+		PS2DStack *st = (PS2DStack *) gf_node_get_private(node);
+		R3D_SensorDeleted(st->compositor, &st->hdl);
+		free(st);
+	}
 }
 
 static Bool ps2D_is_enabled(GF_Node *n)
@@ -352,7 +352,7 @@ void R3D_InitPlaneSensor2D(Render3D *sr, GF_Node *node)
 	st->compositor = sr->compositor;
 	st->compositor->interaction_sensors++;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyPlaneSensor2D);
+	gf_node_set_callback_function(node, DestroyPlaneSensor2D);
 }
 
 
@@ -363,11 +363,13 @@ typedef struct
 	SensorHandler hdl;
 } Prox2DStack;
 
-static void DestroyProximitySensor2D(GF_Node *node)
+static void DestroyProximitySensor2D(GF_Node *node, void *rs, Bool is_destroy)
 {
-	Prox2DStack *st = (Prox2DStack *) gf_node_get_private(node);
-	R3D_SensorDeleted(st->compositor, &st->hdl);
-	free(st);
+	if (is_destroy) {
+		Prox2DStack *st = (Prox2DStack *) gf_node_get_private(node);
+		R3D_SensorDeleted(st->compositor, &st->hdl);
+		free(st);
+	}
 }
 
 static Bool prox2D_is_enabled(GF_Node *n)
@@ -434,7 +436,7 @@ void R3D_InitProximitySensor2D(Render3D *sr, GF_Node *node)
 	st->compositor = sr->compositor;
 	st->compositor->interaction_sensors++;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyProximitySensor2D);
+	gf_node_set_callback_function(node, DestroyProximitySensor2D);
 }
 
 typedef struct 
@@ -444,11 +446,13 @@ typedef struct
 	GF_Renderer *compositor;
 } TouchSensorStack;
 
-static void DestroyTouchSensor(GF_Node *node)
+static void DestroyTouchSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
-	TouchSensorStack *st = (TouchSensorStack *) gf_node_get_private(node);
-	R3D_SensorDeleted(st->compositor, &st->hdl);
-	free(st);
+	if (is_destroy) {
+		TouchSensorStack *st = (TouchSensorStack *) gf_node_get_private(node);
+		R3D_SensorDeleted(st->compositor, &st->hdl);
+		free(st);
+	}
 }
 
 static Bool ts_is_enabled(GF_Node *n)
@@ -507,16 +511,17 @@ void R3D_InitTouchSensor(Render3D *sr, GF_Node *node)
 	st->compositor = sr->compositor;
 	st->compositor->interaction_sensors++;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyTouchSensor);
+	gf_node_set_callback_function(node, DestroyTouchSensor);
 }
 
-void RenderProximitySensor(GF_Node *node, void *rs)
+void RenderProximitySensor(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SFVec3f user_pos, dist, up;
 	SFRotation ori;
 	GF_Matrix mx;
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	M_ProximitySensor *ps = (M_ProximitySensor *)node;
+	if (is_destroy) return;
 
 	if (eff->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		/*work with twice bigger bbox to get sure we're notify when culled out*/
@@ -577,7 +582,7 @@ void RenderProximitySensor(GF_Node *node, void *rs)
 
 void R3D_InitProximitySensor(Render3D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, RenderProximitySensor);
+	gf_node_set_callback_function(node, RenderProximitySensor);
 }
 
 
@@ -590,11 +595,13 @@ typedef struct
 	SensorHandler hdl;
 } PSStack;
 
-static void DestroyPlaneSensor(GF_Node *node)
+static void DestroyPlaneSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
-	PSStack *st = (PSStack *) gf_node_get_private(node);
-	R3D_SensorDeleted(st->compositor, &st->hdl);
-	free(st);
+	if (is_destroy) {
+		PSStack *st = (PSStack *) gf_node_get_private(node);
+		R3D_SensorDeleted(st->compositor, &st->hdl);
+		free(st);
+	}
 }
 
 static Bool ps_is_enabled(GF_Node *n)
@@ -668,7 +675,7 @@ void R3D_InitPlaneSensor(Render3D *sr, GF_Node *node)
 	st->compositor = sr->compositor;
 	st->compositor->interaction_sensors++;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyPlaneSensor);
+	gf_node_set_callback_function(node, DestroyPlaneSensor);
 }
 
 typedef struct 
@@ -681,11 +688,13 @@ typedef struct
 	GF_Plane yplane, zplane, xplane;
 } CylinderSensorStack;
 
-static void DestroyCylinderSensor(GF_Node *node)
+static void DestroyCylinderSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
-	CylinderSensorStack *st = (CylinderSensorStack *) gf_node_get_private(node);
-	R3D_SensorDeleted(st->compositor, &st->hdl);
-	free(st);
+	if (is_destroy) {
+		CylinderSensorStack *st = (CylinderSensorStack *) gf_node_get_private(node);
+		R3D_SensorDeleted(st->compositor, &st->hdl);
+		free(st);
+	}
 }
 
 static Bool cs_is_enabled(GF_Node *n)
@@ -811,7 +820,7 @@ void R3D_InitCylinderSensor(Render3D *sr, GF_Node *node)
 	st->compositor = sr->compositor;
 	st->compositor->interaction_sensors++;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyCylinderSensor);
+	gf_node_set_callback_function(node, DestroyCylinderSensor);
 }
 
 
@@ -824,11 +833,13 @@ typedef struct
 	SFVec3f grab_vec, center;
 } SphereSensorStack;
 
-static void DestroySphereSensor(GF_Node *node)
+static void DestroySphereSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SphereSensorStack *st = (SphereSensorStack *) gf_node_get_private(node);
-	R3D_SensorDeleted(st->compositor, &st->hdl);
-	free(st);
+	if (is_destroy) {
+		SphereSensorStack *st = (SphereSensorStack *) gf_node_get_private(node);
+		R3D_SensorDeleted(st->compositor, &st->hdl);
+		free(st);
+	}
 }
 
 static Bool sphere_is_enabled(GF_Node *n)
@@ -919,15 +930,15 @@ void R3D_InitSphereSensor(Render3D *sr, GF_Node *node)
 	st->compositor = sr->compositor;
 	st->compositor->interaction_sensors++;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroySphereSensor);
+	gf_node_set_callback_function(node, DestroySphereSensor);
 }
 
-void RenderVisibilitySensor(GF_Node *node, void *rs)
+void RenderVisibilitySensor(GF_Node *node, void *rs, Bool is_destroy)
 {
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	M_VisibilitySensor *vs = (M_VisibilitySensor *)node;
-
-	if (!vs->enabled) return;
+	
+	if (is_destroy || !vs->enabled) return;
 
 	if (eff->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		/*work with twice bigger bbox to get sure we're notify when culled out*/
@@ -967,5 +978,5 @@ void RenderVisibilitySensor(GF_Node *node, void *rs)
 
 void R3D_InitVisibilitySensor(Render3D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, RenderVisibilitySensor);
+	gf_node_set_callback_function(node, RenderVisibilitySensor);
 }

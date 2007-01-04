@@ -546,10 +546,33 @@ static void IS_CheckMediaRestart(GF_InlineScene *is)
 }
 
 
-void gf_is_render(GF_Node *n, void *render_stack)
+void gf_is_render(GF_Node *n, void *render_stack, Bool is_destroy)
 {
 	GF_Node *root;
 	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(n);
+
+	if (is_destroy) {
+		GF_MediaObject *mo = (is && is->root_od) ? is->root_od->mo : NULL;
+
+		if (!mo) return;
+		/*disconnect current inline if we're the last one using it (same as regular OD session leave/join)*/
+		if (mo->num_open) {
+			mo->num_open --;
+			if (!mo->num_open) {
+				/*this is unspecified in the spec: whenever an inline not using the 
+				OD framework is destroyed, destroy the associated resource*/
+				if (mo->OD_ID == GF_ESM_DYNAMIC_OD_ID) {
+					gf_odm_disconnect(is->root_od, 1);
+				} else {
+					gf_odm_stop(is->root_od, 1);
+					gf_is_disconnect(is, 1);
+					assert(gf_list_count(is->ODlist) == 0);
+				}
+			}
+		}
+		return;
+	}
+
 
 	//if no private scene is associated	get the node parent graph, retrieve the IS and find the OD
 	if (!is) {
@@ -1082,7 +1105,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 	gf_node_register(n1, NULL);
 
 	n2 = is_create_node(is->graph, TAG_MPEG4_Sound2D, NULL);
-	gf_list_add(((GF_ParentNode *)n1)->children, n2);
+	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 	gf_node_register(n2, n1);
 
 	ac = (M_AudioClip *) is_create_node(is->graph, TAG_MPEG4_AudioClip, "DYN_AUDIO");
@@ -1121,12 +1144,12 @@ void gf_is_regenerate(GF_InlineScene *is)
 
 	/*transform for any translation due to scene resize (3GPP)*/
 	n2 = is_create_node(is->graph, TAG_MPEG4_Transform2D, "DYN_TRANS");
-	gf_list_add(((GF_ParentNode *)n1)->children, n2);
+	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 	gf_node_register(n2, n1);
 	n1 = n2;
 
 	n2 = is_create_node(is->graph, TAG_MPEG4_Shape, NULL);
-	gf_list_add(((GF_ParentNode *)n1)->children, n2);
+	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 	gf_node_register(n2, n1);
 	n1 = n2;
 	n2 = is_create_node(is->graph, TAG_MPEG4_Appearance, NULL);
@@ -1185,7 +1208,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 	/*text streams controlled through AnimationStream*/
 	n1 = gf_sg_get_root_node(is->graph);
 	as = (M_AnimationStream *) is_create_node(is->graph, TAG_MPEG4_AnimationStream, "DYN_TEXT");
-	gf_list_add(((GF_ParentNode *)n1)->children, as);
+	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)as);
 	gf_node_register((GF_Node *)as, n1);
 
 	first_odm = NULL;
@@ -1413,32 +1436,20 @@ Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt)
 	return 1;
 }
 
-/*inline node is destroyed: clear URL to force a disconnect*/
-void gf_is_predestroy(GF_Node *node)
+GF_EXPORT
+GF_Renderer *gf_sr_get_renderer(GF_Node *node)
 {
-	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
-	GF_MediaObject *mo = (is && is->root_od) ? is->root_od->mo : NULL;
-
-	if (!mo) return;
-	/*disconnect current inline if we're the last one using it (same as regular OD session leave/join)*/
-	if (mo->num_open) {
-		mo->num_open --;
-		if (!mo->num_open) {
-			/*this is unspecified in the spec: whenever an inline not using the 
-			OD framework is destroyed, destroy the associated resource*/
-			if (mo->OD_ID == GF_ESM_DYNAMIC_OD_ID) {
-				gf_odm_disconnect(is->root_od, 1);
-			} else {
-				gf_odm_stop(is->root_od, 1);
-				gf_is_disconnect(is, 1);
-				assert(gf_list_count(is->ODlist) == 0);
-			}
-		}
-	}
+	GF_InlineScene *is;
+	GF_SceneGraph *sg = gf_node_get_graph(node);
+	if (!sg) return NULL;
+	is = (GF_InlineScene *)gf_sg_get_private(sg);
+	if (!is) return NULL;
+	return is->root_od->term->renderer;
 }
+
 
 void InitInline(GF_InlineScene *is, GF_Node *node)
 {
-	gf_node_set_render_function(node, gf_is_render);
-	gf_node_set_predestroy_function(node, gf_is_predestroy);
+	gf_node_set_callback_function(node, gf_is_render);
 }
+

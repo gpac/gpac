@@ -232,7 +232,7 @@ static Bool check_mpeg4_systems(GF_InputService *plug, GF_ISOFile *mov)
 	GF_Err e;
 	e = gf_isom_get_brand_info(mov, &brand, &i, &count);
 	/*no brand == MP4 v1*/
-	if (e) return 1;
+	if (e || !brand) return 1;
 
 	has_mpeg4 = 0;
 	if ((brand==GF_ISOM_BRAND_MP41) || (brand==GF_ISOM_BRAND_MP42)) has_mpeg4 = 1;

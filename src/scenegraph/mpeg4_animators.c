@@ -264,12 +264,13 @@ typedef struct
 	anim_nurbs anurbs;
 } AnimatorStack;
 
-static void Anim_Destroy(GF_Node *node)
+static void Anim_Destroy(GF_Node *node, void *rs, Bool is_destroy)
 {
-	AnimatorStack *stack = (AnimatorStack *)gf_node_get_private(node);
-
-	anurbs_reset(&stack->anurbs);
-	free(stack);
+	if (is_destroy) {
+		AnimatorStack *stack = (AnimatorStack *)gf_node_get_private(node);
+		anurbs_reset(&stack->anurbs);
+		free(stack);
+	}
 }
 
 static void Animator_Update(AnimatorStack *stack, u32 keyValueType, u32 nCtrl, MFVec2f *keySpline, u32 nWeight, Fixed *weights)
@@ -466,7 +467,7 @@ void PA_Init(GF_Node *n)
 	GF_SAFEALLOC(stack, AnimatorStack);
 	stack->is_dirty = 1;
 	gf_node_set_private(n, stack);
-	gf_node_set_predestroy_function(n, Anim_Destroy);
+	gf_node_set_callback_function(n, Anim_Destroy);
 	sa->on_set_fraction = PA_SetFraction;
 }
 
@@ -623,7 +624,7 @@ void PA2D_Init(GF_Node *n)
 	GF_SAFEALLOC(stack, AnimatorStack);
 	stack->is_dirty = 1;
 	gf_node_set_private(n, stack);
-	gf_node_set_predestroy_function(n, Anim_Destroy);
+	gf_node_set_callback_function(n, Anim_Destroy);
 	sa->on_set_fraction = PA2D_SetFraction;
 }
 
@@ -775,7 +776,7 @@ void SA_Init(GF_Node *n)
 	GF_SAFEALLOC(stack, AnimatorStack);
 	stack->is_dirty = 1;
 	gf_node_set_private(n, stack);
-	gf_node_set_predestroy_function(n, Anim_Destroy);
+	gf_node_set_callback_function(n, Anim_Destroy);
 	sa->on_set_fraction = SA_SetFraction;
 }
 

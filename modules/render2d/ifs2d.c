@@ -62,28 +62,6 @@ static void build_graph(Drawable *cs, M_IndexedFaceSet2D *ifs2D)
 	}
 }
 
-static void RenderIFS2D(GF_Node *node, void *rs)
-{
-	DrawableContext *ctx;
-	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
-	Drawable *cs = (Drawable *)gf_node_get_private(node);
-	RenderEffect2D *eff = (RenderEffect2D *)rs;
-
-	if (!ifs2D->coord) return;
-
-	if (gf_node_dirty_get(node)) {
-		drawable_reset_path(cs);
-		build_graph(cs, ifs2D);
-		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
-	}
-	
-	ctx = drawable_init_context(cs, eff);
-	if (!ctx) return;
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
-}
-
 
 static void IFS2D_Draw(DrawableContext *ctx)
 {
@@ -166,7 +144,8 @@ static void IFS2D_Draw(DrawableContext *ctx)
 			count++;
 			i++;
 			if (i >= ci_count) break;
-			ctx->path_filled = ctx->path_stroke = 0;
+			ctx->flags &= ~CTX_PATH_FILLED;
+			ctx->flags &= ~CTX_PATH_STROKE;
 		}
 		gf_path_del(path);
 		return;
@@ -257,9 +236,44 @@ static void IFS2D_Draw(DrawableContext *ctx)
 		ind_col += num_col + 1;	
 		if (i >= ci_count) break;
 		grad = r2d->stencil_new(r2d, GF_STENCIL_VERTEX_GRADIENT);
-		ctx->path_filled = ctx->path_stroke = 0;
+		ctx->flags &= ~CTX_PATH_FILLED;
+		ctx->flags &= ~CTX_PATH_STROKE;
 	}
 	gf_path_del(path);
+}
+
+static void RenderIFS2D(GF_Node *node, void *rs, Bool is_destroy)
+{
+	DrawableContext *ctx;
+	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
+
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		IFS2D_Draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
+
+	if (!ifs2D->coord) return;
+
+	if (gf_node_dirty_get(node)) {
+		drawable_reset_path(cs);
+		build_graph(cs, ifs2D);
+		gf_node_dirty_clear(node, 0);
+		cs->flags |= DRAWABLE_HAS_CHANGED;
+	}
+	
+	ctx = drawable_init_context(cs, eff);
+	if (!ctx) return;
+	drawable_finalize_render(ctx, eff, NULL);
 }
 
 static void IFS2D_SetColorIndex(GF_Node *node)
@@ -280,9 +294,7 @@ void R2D_InitIFS2D(Render2D *sr, GF_Node *node)
 {
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
 	Drawable * stack = drawable_stack_new(sr, node);
-	/*override draw*/
-	stack->Draw = IFS2D_Draw;
-	gf_node_set_render_function(node, RenderIFS2D);
+	gf_node_set_callback_function(node, RenderIFS2D);
 	ifs2D->on_set_colorIndex = IFS2D_SetColorIndex;
 	ifs2D->on_set_coordIndex = IFS2D_SetCoordIndex;
 }

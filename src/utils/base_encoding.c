@@ -28,10 +28,13 @@
 static char base_64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 GF_EXPORT
-u32 gf_base64_encode(char *in, u32 inSize, char *out, u32 outSize)
+u32 gf_base64_encode(char *_in, u32 inSize, char *_out, u32 outSize)
 {
-	u32 i = 0, j = 0, padding;
-
+	s32 padding;
+	u32 i = 0, j = 0;
+	unsigned char *in = (unsigned char *)_in;
+	unsigned char *out = (unsigned char *)_out;
+	
 	if (outSize < (inSize * 4 / 3)) return 0;
 
 	while (i < inSize) {
@@ -137,9 +140,11 @@ u32 gf_base64_decode(char *in_buf, u32 inSize, char *out, u32 outSize)
 static char base_16[] = "0123456789abcdef";
 
 GF_EXPORT
-u32 gf_base16_encode(char *in, u32 inSize, char *out, u32 outSize)
+u32 gf_base16_encode(char *_in, u32 inSize, char *_out, u32 outSize)
 {
 	u32 i = 0;
+	unsigned char *in = (unsigned char *)_in;
+	unsigned char *out = (unsigned char *)_out;
 
 	if (outSize < (inSize * 2)+1) return 0;
 

@@ -29,25 +29,29 @@
 #include <gpac/nodes_x3d.h>
 
 /*this is not a NodeReplace, thus only the given container is updated - pos is 0-based*/
-GF_Err gf_node_replace_child(GF_Node *node, GF_List *container, s32 pos, GF_Node *newNode)
+GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 pos, GF_Node *newNode)
 {
-	u32 count;
-	GF_Node *n;
-	
-	count = gf_list_count(container);
-	if (!count) return GF_OK;
-	/*last item*/
-	if ( (pos == -1) || ((u32) pos >= count) ) pos = count - 1;
-	n = (GF_Node*)gf_list_get(container, (u32) pos);
+	GF_ChildNodeItem *child, *prev;
+	u32 cur_pos = 0;
 
-	/*delete node*/
-
-	if (n) gf_node_unregister(n, node);
-
-	/*delete entry*/
-	gf_list_rem(container, (u32) pos);
-
-	if (newNode) gf_list_insert(container, newNode, pos);
+	child = *container;
+	prev = NULL;
+	while (child->next) {
+		if ((pos<0) || (cur_pos!=(u32)pos)) {
+			prev = child;
+			child = child->next;
+			continue;
+		}
+		break;
+	}
+	gf_node_unregister(child->node, node);
+	if (newNode) {
+		child->node = newNode;
+	} else {
+		if (prev) prev->next = child->next;
+		else *container = child->next;
+		free(child);
+	}
 	return GF_OK;
 }
 
@@ -109,72 +113,74 @@ void gf_sg_route_unqueue(GF_SceneGraph *sg, GF_Route *r)
 
 static void Node_on_add_children(GF_Node *node)
 {
-	GF_Node *child;
-	s32 i;
+	GF_ChildNodeItem *list;
 	GF_FieldInfo field;
 	GF_VRMLParent *n = (GF_VRMLParent *)node;
 
-	
-	gf_node_get_field(node, 2, &field);
-
-	/*for each node in input*/
-	while (gf_list_count(n->addChildren)) {
-		child = (GF_Node*)gf_list_get(n->addChildren, 0);
-		/*nothing in VRML stops from adding twice the same node but we don't allow that*/
-		i = gf_list_find(n->children, child);
-		if (i<0) {
-			gf_node_register(child, node);
-			gf_list_add(n->children, child);
-		}
-		gf_list_rem(n->addChildren, 0);
-		gf_node_unregister(child, node);
+	if (n->children) {
+		list = n->children;
+		while (list->next) list = list->next;
+		list->next = n->addChildren;
+	} else {
+		n->children = n->addChildren;
 	}
+	n->addChildren = NULL;
+
 	/*signal children field is modified*/
+	field.name = "children";
+	field.eventType = GF_SG_EVENT_EXPOSED_FIELD;
+	field.fieldType = GF_SG_VRML_MFNODE;
+	field.NDTtype = 0;
+	field.fieldIndex = 2;
+	field.far_ptr = & n->children;
 	gf_node_changed(node, &field);
 }
 
 static void Node_on_remove_children(GF_Node *node)
 {
-	GF_Node *child;
+	GF_ChildNodeItem *list;
 	GF_FieldInfo field;
-	s32 i;
 	GF_VRMLParent *n = (GF_VRMLParent *)node;
-	gf_node_get_field(node, 2, &field);
 
-	/*for each node in input*/
-	while (gf_list_count(n->removeChildren)) {
-		child = (GF_Node*)gf_list_get(n->removeChildren, 0);
-		/*remove from children*/
-		i = gf_list_find(n->children, child);
-		if (i>=0) {
-			gf_list_rem(n->children, i);
-			gf_node_unregister(child, node);
+	if (!n->removeChildren) return;
+
+	list = n->removeChildren;
+	while (list) {
+		if (gf_node_list_del_child(& n->children, list->node)) {
+			gf_node_unregister(list->node, node);
 		}
-
-		gf_list_rem(n->removeChildren, 0);
-		gf_node_unregister(child, node);
+		list = list->next;
 	}
+	gf_node_unregister_children(node, n->removeChildren);
+	n->removeChildren = NULL;
+
 	/*signal children field is modified*/
+	field.name = "children";
+	field.eventType = GF_SG_EVENT_EXPOSED_FIELD;
+	field.fieldType = GF_SG_VRML_MFNODE;
+	field.NDTtype = 0;
+	field.fieldIndex = 2;
+	field.far_ptr = & n->children;
 	gf_node_changed(node, &field);
 }
 
 void gf_sg_vrml_parent_setup(GF_Node *pNode)
 {
 	GF_VRMLParent *par = (GF_VRMLParent *)pNode;
-	par->children = gf_list_new();
-	par->addChildren = gf_list_new();
+	par->children = NULL;
+	par->addChildren = NULL;
 	par->on_addChildren = Node_on_add_children;
-	par->removeChildren = gf_list_new();
+	par->removeChildren = NULL;
 	par->on_removeChildren = Node_on_remove_children;
-	pNode->sgprivate->is_dirty |= GF_SG_CHILD_DIRTY;
+	pNode->sgprivate->flags |= GF_SG_CHILD_DIRTY;
 }
 
-void gf_sg_vrml_parent_reset(GF_Node *pNode)
+void gf_sg_vrml_parent_destroy(GF_Node *pNode)
 {
 	GF_VRMLParent *par = (GF_VRMLParent *)pNode;
-	gf_node_list_del(par->children, pNode);
-	gf_node_list_del(par->addChildren, pNode);
-	gf_node_list_del(par->removeChildren, pNode);
+	gf_node_unregister_children(pNode, par->children);
+	gf_node_unregister_children(pNode, par->addChildren);
+	gf_node_unregister_children(pNode, par->removeChildren);
 }
 
 GF_Err gf_sg_delete_all_protos(GF_SceneGraph *scene)
@@ -242,20 +248,17 @@ GF_Err gf_node_insert_child(GF_Node *parent, GF_Node *new_child, s32 Position)
 {
 	GF_ParentNode *node = (GF_ParentNode *) parent;
 	if (Position == -1) {
-		return gf_list_add(node->children, new_child);
+		gf_node_list_add_child(& node->children, new_child);
 	} else {
-		return gf_list_insert(node->children, new_child, Position);
+		gf_node_list_insert_child(& node->children, new_child, Position);
 	}
+	return GF_OK;
 }
 
 /*for V4Studio...*/
 GF_Err gf_node_remove_child(GF_Node *parent, GF_Node *toremove_child) 
 {
-	s32 ind;
-	GF_ParentNode *node = (GF_ParentNode *) parent;
-
-	ind = gf_list_del_item(node->children, toremove_child);
-	if (ind<0) return GF_BAD_PARAM;
+	if (!gf_node_list_del_child(& ((GF_ParentNode *) parent)->children, toremove_child)) return GF_BAD_PARAM;
 	/*V4Studio doesn't handle DEF/USE properly yet...*/
 	/*gf_node_unregister(toremove_child, parent);*/
 	return GF_OK;
@@ -543,11 +546,6 @@ void *gf_sg_vrml_field_pointer_new(u32 FieldType)
 	case GF_SG_VRML_MFCOLORRGBA: return NewMFColorRGBA();
 	case GF_SG_VRML_MFROTATION: return NewMFRotation();
 
-	//used in proto and script 
-	case GF_SG_VRML_MFNODE: 
-	{
-		return gf_list_new();
-	}
 	//used in commands
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 		return NewSFCommandBuffer();
@@ -703,12 +701,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 		break;		
 	//used only in proto since this field is created by default for regular nodes
 	case GF_SG_VRML_MFNODE: 
-		while (gf_list_count((GF_List *)field)) {
-			node = (GF_Node*)gf_list_get((GF_List *)field, 0);
-			gf_node_del(node);
-			gf_list_rem((GF_List *)field, 0);
-		}
-		gf_list_del((GF_List *)field);
+		assert(0);
 		return;
 	case GF_SG_VRML_MFSCRIPT:
 		gf_sg_mfscript_del( * ((MFScript *) field));
@@ -1527,7 +1520,7 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field)
 	switch (node->sgprivate->tag) {
 	case TAG_ProtoNode:
 		/*hardcoded protos need modification notifs*/
-		if (node->sgprivate->RenderNode) return 0;
+		if (node->sgprivate->UserCallback) return 0;
 	case TAG_MPEG4_ColorInterpolator: 
 	case TAG_X3D_ColorInterpolator:
 	case TAG_MPEG4_CoordinateInterpolator: 

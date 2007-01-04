@@ -150,6 +150,38 @@ u32 gf_crypt_str_module_get_algo_block_size(const char *algorithm);
 u32 gf_crypt_str_module_get_algo_key_size(const char *algorithm);
 u32 gf_crypt_str_get_algo_supported_key_sizes(const char *algorithm, int *keys);
 
+
+
+/*SHA1 from Christophe Devine*/
+typedef struct
+{
+    u32 total[2];
+    u32 state[5];
+    u8 buffer[64];
+} GF_SHA1Context;
+
+/*
+ * Core SHA-1 functions
+ */
+void gf_sha1_starts(GF_SHA1Context *ctx );
+void gf_sha1_update(GF_SHA1Context *ctx, u8 *input, u32 length);
+void gf_sha1_finish(GF_SHA1Context *ctx, u8 digest[20] );
+
+/*
+ * Output SHA-1(file contents), returns 0 if successful.
+ */
+int gf_sha1_file(char *filename, u8 digest[20]);
+
+/*
+ * Output SHA-1(buf)
+ */
+void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[20]);
+
+/*
+ * Output HMAC-SHA-1(key,buf)
+ */
+void gf_sha1_hmac(u8 *key, u32 keylen, u8 *buf, u32 buflen, u8 digest[20]);
+
 #ifdef __cplusplus
 }
 #endif

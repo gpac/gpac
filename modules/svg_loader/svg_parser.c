@@ -473,7 +473,7 @@ void svg_parse_dom_children(SVGParser *parser, xmlNodePtr node, SVGElement *elt)
 		SVGElement *child;
 		if (children->type == XML_ELEMENT_NODE) {
 			child = svg_parse_dom_element(parser, children, elt);
-			if (child) gf_list_add(elt->children, child);
+			if (child) gf_node_list_add_child(&elt->children, (GF_Node*)child);
 		} else if ((children->type == XML_TEXT_NODE) && (tag == TAG_SVG_text)) {
 			SVGtextElement *text = (SVGtextElement *)elt;
 			if (text->core->space && text->core->space == XML_SPACE_PRESERVE) {
@@ -780,7 +780,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 		return NULL;
 	}
 	gf_node_register((GF_Node *)elt, (GF_Node *)parent);
-	if (parent && elt) gf_list_add(parent->children, elt);
+	if (parent && elt) gf_node_list_add_child(&parent->children, (GF_Node*)elt);
 
 	/* Parsing the style attribute */
 	attribute_index=0;

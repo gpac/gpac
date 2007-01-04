@@ -1290,6 +1290,8 @@ GF_Err gf_isom_sdp_get(GF_ISOFile *the_file, const char **sdp, u32 *length);
 /*Get SDP info at the track level*/
 GF_Err gf_isom_sdp_track_get(GF_ISOFile *the_file, u32 trackNumber, const char **sdp, u32 *length);
 
+u32 gf_isom_get_payt_count(GF_ISOFile *the_file, u32 trackNumber);
+const char *gf_isom_get_payt_info(GF_ISOFile *the_file, u32 trackNumber, u32 index, u32 *payID);
 
 /*dumps file structures into XML trace file */
 GF_Err gf_isom_dump(GF_ISOFile *file, FILE *trace);
@@ -1524,12 +1526,17 @@ GF_Err gf_isom_ismacryp_sample_to_sample(GF_ISMASample *s, GF_ISOSample *dest);
 Note: input sample is NOT destroyed*/
 GF_ISMASample *gf_isom_get_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, GF_ISOSample *samp, u32 sampleDescriptionIndex);
 
-/*returns whether the given media is a protected one or not (checks for protection box, but not sub-boxes)*/
-Bool gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex);
+/*returns whether the given media is a protected one or not - return scheme protection 4CC*/
+u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
 /*returns whether the given media is a protected ISMACryp one or not*/
 Bool gf_isom_is_ismacryp_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
+/*returns whether the given media is a protected ISMACryp one or not*/
+Bool gf_isom_is_omadrm_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
+GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, 
+							   const char **outContentID, const char **outRightsIssuerURL, const char **outTextualHeaders, u64 *outPlaintextLength, u8 *outEncryptionType, Bool *outSelectiveEncryption, u8 *outIVLength, u8 *outKeyIndicationLength);
 /*retrieves ISMACryp info for the given track & SDI - all output parameters are optional - URIs SHALL NOT BE MODIFIED BY USER
 	@outOriginalFormat: retrieves orginal protected media format - usually GF_ISOM_SUBTYPE_MPEG4
 	@outSchemeType: retrieves 4CC of protection scheme (GF_ISOM_ISMACRYP_SCHEME = iAEC in ISMACryp 1.0)
@@ -1560,6 +1567,11 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	@kms_uri: new KMS URI, or NULL to keep previous
 */
 GF_Err gf_isom_change_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, char *scheme_uri, char *kms_uri);
+
+
+GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index,
+						   char *contentID, char *kms_URI, u32 encryption_type, u64 plainTextLength, char *textual_headers,
+						   Bool selective_encryption, u32 KI_length, u32 IV_length);
 
 #endif
 

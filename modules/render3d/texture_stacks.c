@@ -38,13 +38,15 @@ typedef struct _composite_texture
 } CompositeTextureStack;
 
 
-static void DestroyCompositeTexture(GF_Node *node)
+static void DestroyCompositeTexture(GF_Node *node, void *rs, Bool is_destroy)
 {
-	CompositeTextureStack *st = (CompositeTextureStack *) gf_node_get_private(node);
-	assert(!st->txh.data);
-	gf_sr_texture_destroy(&st->txh);
-	VS_Delete(st->surface);
-	free(st);
+	if (is_destroy) {
+		CompositeTextureStack *st = (CompositeTextureStack *) gf_node_get_private(node);
+		assert(!st->txh.data);
+		gf_sr_texture_destroy(&st->txh);
+		VS_Delete(st->surface);
+		free(st);
+	}
 }
 
 static void Composite_GetPixelSize(GF_Node *n, s32 *pw, s32 *ph)
@@ -159,7 +161,7 @@ static Bool Composite_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force
 
 
 
-static GF_List *Composite_GetChildren(GF_Node *n)
+static GF_ChildNodeItem *Composite_GetChildren(GF_Node *n)
 {
 	switch (gf_node_get_tag(n)) {
 	case TAG_MPEG4_CompositeTexture3D: return ((M_CompositeTexture3D*)n)->children;
@@ -172,10 +174,8 @@ static void UpdateCompositeTexture(GF_TextureHandler *txh)
 {
 	s32 w, h;
 	GF_BBox box;
-	u32 i, count;
-	GF_Node *child;
 	RenderEffect3D *eff;
-	GF_List *children;
+	GF_ChildNodeItem *children, *l;
 	Bool is_dirty;
 
 	CompositeTextureStack *st = (CompositeTextureStack *) gf_node_get_private(txh->owner);
@@ -220,6 +220,7 @@ static void UpdateCompositeTexture(GF_TextureHandler *txh)
 		tx_allocate(&st->txh);
 		
 		st->txh.data = (char*)malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
+		memset(st->txh.data, 0, sizeof(unsigned char) * st->txh.stride * st->txh.height);
 		tx_setup_format(&st->txh);
 		tx_set_image(&st->txh, 0);
 		free(st->txh.data);
@@ -230,13 +231,13 @@ static void UpdateCompositeTexture(GF_TextureHandler *txh)
 	/*note: we never clear the dirty state of the composite texture, so that any child invalidated
 	doesn't invalidate the parent graph*/
 	is_dirty = 0;
-	count = gf_list_count(children);
-	for (i=0; i<count; i++) {
-		child = (GF_Node*)gf_list_get(children, i);
-		if (gf_node_dirty_get(child)) {
+	l = children;
+	while (l) {
+		if (gf_node_dirty_get(l->node)) {
 			is_dirty = 1;
 			break;
 		}
+		l = l->next;
 	}
 	if (st->first) st->is_pm = gf_sg_use_pixel_metrics(gf_node_get_graph(txh->owner));
 
@@ -250,11 +251,12 @@ static void UpdateCompositeTexture(GF_TextureHandler *txh)
 
 	/*children dirty, get bounds*/
 	if (is_dirty) {
+		l = children;
 		/*store bbox for background2D*/
 		box = eff->bbox;
-		for (i=0; i<count; i++) {
-			child = (GF_Node*)gf_list_get(children, i);
-			gf_node_render(child, eff);
+		while (l) {
+			gf_node_render(l->node, eff);
+			l = l->next;
 		}
 		eff->bbox = box;
 	}
@@ -338,7 +340,7 @@ void R3D_InitCompositeTexture3D(Render3D *sr, GF_Node *node)
 	st->surface->render = sr;
 	st->txh.update_texture_fcnt = UpdateCompositeTexture;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyCompositeTexture);
+	gf_node_set_callback_function(node, DestroyCompositeTexture);
 }
 
 
@@ -360,7 +362,7 @@ void R3D_InitCompositeTexture2D(Render3D *sr, GF_Node *node)
 	st->surface->render = sr;
 	st->txh.update_texture_fcnt = UpdateCompositeTexture;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyCompositeTexture);
+	gf_node_set_callback_function(node, DestroyCompositeTexture);
 }
 
 
@@ -368,11 +370,9 @@ Bool r3d_handle_composite_event(Render3D *sr, GF_Event *ev)
 {
 	CompositeTextureStack *st;
 	GF_Matrix mx;
-	GF_Node *child;
 	RenderEffect3D *eff;
-	GF_List *children;
+	GF_ChildNodeItem *children, *l;
 	Bool res;
-	u32 i;
 	SFVec3f txcoord;
 	M_Appearance *ap = (M_Appearance *)sr->hit_info.appear;
 	assert(ap && ap->texture);
@@ -403,11 +403,11 @@ Bool r3d_handle_composite_event(Render3D *sr, GF_Event *ev)
 	eff->is_pixel_metrics = st->is_pm;
 	VS_SetupEffects(st->surface, eff);
 
-	children = Composite_GetChildren(st->txh.owner);
-	i=0;
-	while ((child = (GF_Node*)gf_list_enum(children, &i))) {
-		SensorHandler *hsens = r3d_get_sensor_handler(child);
+	l = children = Composite_GetChildren(st->txh.owner);
+	while (l) {
+		SensorHandler *hsens = r3d_get_sensor_handler(l->node);
 		if (hsens) gf_list_add(eff->sensors, hsens);
+		l = l->next;
 	}
 	res = VS_ExecuteEvent(st->surface, eff, ev, children);
 	effect3d_delete(eff);
@@ -418,13 +418,15 @@ static void UpdateMatteTexture(GF_TextureHandler *txh)
 {
 	/*nothing to do*/
 }
-static void DestroyMatteTexture(GF_Node *node)
+static void DestroyMatteTexture(GF_Node *node, void *rs, Bool is_destroy)
 {
-	MatteTextureStack *st = (MatteTextureStack *) gf_node_get_private(node);
-	/*prevent destroying of sub textures*/
-	st->txh.hwtx = NULL;
-	gf_sr_texture_destroy(&st->txh);
-	free(st);
+	if (is_destroy) {
+		MatteTextureStack *st = (MatteTextureStack *) gf_node_get_private(node);
+		/*prevent destroying of sub textures*/
+		st->txh.hwtx = NULL;
+		gf_sr_texture_destroy(&st->txh);
+		free(st);
+	}
 }
 
 void R3D_InitMatteTexture(Render3D *sr, GF_Node *node)
@@ -436,7 +438,7 @@ void R3D_InitMatteTexture(Render3D *sr, GF_Node *node)
 	st->txh.flags = GF_SR_TEXTURE_MATTE;
 	st->txh.update_texture_fcnt = UpdateMatteTexture;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyMatteTexture);
+	gf_node_set_callback_function(node, DestroyMatteTexture);
 }
 
 GF_TextureHandler *r3d_matte_get_texture(GF_Node *node)

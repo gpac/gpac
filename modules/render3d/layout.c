@@ -66,15 +66,6 @@ static GFINLINE LineInfo *get_line_info(LayoutStack *st, u32 i)
 	return (LineInfo *) gf_list_get(st->lines, i);
 }
 
-static void DestroyLayout(GF_Node *node)
-{
-	LayoutStack *st = (LayoutStack *)gf_node_get_private(node);
-	layout_reset_lines(st);
-	DeleteGroupingNode((GroupingNode *)st);
-	gf_list_del(st->lines);
-	free(st);
-}
-
 
 enum
 {
@@ -533,7 +524,7 @@ static void layout_scroll(LayoutStack *st, M_Layout *l)
 }
 
 
-static void RenderLayout(GF_Node *node, void *rs)
+static void RenderLayout(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 i;
 	ChildGroup *cg;
@@ -544,6 +535,13 @@ static void RenderLayout(GF_Node *node, void *rs)
 	LayoutStack *st = (LayoutStack *) gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
+	if (is_destroy) {
+		layout_reset_lines(st);
+		DeleteGroupingNode((GroupingNode *)st);
+		gf_list_del(st->lines);
+		free(st);
+		return;
+	}
 	/*note we don't clear dirty flag, this is done in traversing*/
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 
@@ -615,12 +613,11 @@ void R3D_InitLayout(Render3D *sr, GF_Node *node)
 	LayoutStack *stack;
 	GF_SAFEALLOC(stack, LayoutStack);
 
-	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, ((M_Layout *)node)->children);
+	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, & ((M_Layout *)node)->children);
 	stack->lines = gf_list_new();
 
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyLayout);
-	gf_node_set_render_function(node, RenderLayout);
+	gf_node_set_callback_function(node, RenderLayout);
 }
 
 void R3D_LayoutModified(GF_Node *node)

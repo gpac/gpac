@@ -73,7 +73,7 @@ extern "C" {
  *
  *	Macro allocating memory and zero-ing it
 */
-#define GF_SAFEALLOC(__ptr, __struct) __ptr = (__struct *) malloc(sizeof(__struct)); if (__ptr) memset((void *) __ptr, 0, sizeof(__struct));
+#define GF_SAFEALLOC(__ptr, __struct) { __ptr = (__struct *) malloc(sizeof(__struct)); if (__ptr) memset((void *) __ptr, 0, sizeof(__struct)); }
 
 /*!
  *	\brief 4CC Formatting

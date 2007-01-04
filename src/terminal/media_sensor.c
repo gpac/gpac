@@ -26,23 +26,21 @@
 #include "media_control.h"
 #include <gpac/constants.h>
 
-static void DestroyMediaSensor(GF_Node *node)
-{
-	MediaSensorStack *st = (MediaSensorStack *)gf_node_get_private(node);
-
-	/*unlink from OD*/
-	if (st->stream && st->stream->odm) 
-		gf_list_del_item(st->stream->odm->ms_stack, st);
-
-	gf_list_del(st->seg);
-	free(st);
-}
-
 /*render : setup media sensor and update timing in case of inline scenes*/
-void RenderMediaSensor(GF_Node *node, void *rs)
+void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Clock *ck;
 	MediaSensorStack *st = (MediaSensorStack *)gf_node_get_private(node);
+
+	if (is_destroy) {
+		/*unlink from OD*/
+		if (st->stream && st->stream->odm) 
+			gf_list_del_item(st->stream->odm->ms_stack, st);
+
+		gf_list_del(st->seg);
+		free(st);
+		return;
+	}
 
 	if (!st->stream) st->stream = gf_mo_find(node, &st->sensor->url, 0);
 	if (!st->stream || !st->stream->odm) return;
@@ -86,8 +84,7 @@ void InitMediaSensor(GF_InlineScene *is, GF_Node *node)
 	st->parent = is;
 	st->sensor = (M_MediaSensor *)node;
 	st->seg = gf_list_new();
-	gf_node_set_render_function(node, RenderMediaSensor);
-	gf_node_set_predestroy_function(node, DestroyMediaSensor);
+	gf_node_set_callback_function(node, RenderMediaSensor);
 	gf_node_set_private(node, st);
 
 }

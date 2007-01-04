@@ -2196,3 +2196,4 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, u32 tag, const char **data, u32 *d
 	if ((tag==GF_ISOM_ITUNE_COVER_ART) && (info->data->flags==14)) *data_len |= (1<<31);
 	return GF_OK;
 }
+

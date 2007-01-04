@@ -37,10 +37,12 @@ typedef struct
 	BIFSStreamInfo *info;
 } ConditionalStack;
 
-void Conditional_PreDestroy(GF_Node *n)
+void Conditional_PreDestroy(GF_Node *n, void *eff, Bool is_destroy)
 {
-	ConditionalStack *priv = (ConditionalStack*)gf_node_get_private(n);
-	if (priv) free(priv);
+	if (is_destroy) {
+		ConditionalStack *priv = (ConditionalStack*)gf_node_get_private(n);
+		if (priv) free(priv);
+	}
 }
 
 void Conditional_BufferReplaced(GF_BifsDecoder *codec, GF_Node *n)
@@ -114,7 +116,7 @@ void SetupConditional(GF_BifsDecoder *codec, GF_Node *node)
 
 	priv->info = codec->info;
 	priv->codec = codec;
-	gf_node_set_predestroy_function(node, Conditional_PreDestroy);
+	gf_node_set_callback_function(node, Conditional_PreDestroy);
 	gf_node_set_private(node, priv);
 	((M_Conditional *)node)->on_activate = Conditional_OnActivate;
 	((M_Conditional *)node)->on_reverseActivate = Conditional_OnReverseActivate;
@@ -145,7 +147,7 @@ void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig)
 	priv = (ConditionalStack*)malloc(sizeof(ConditionalStack));
 	priv->codec = priv_orig->codec;
 	priv->info = priv_orig->info;
-	gf_node_set_predestroy_function(node, Conditional_PreDestroy);
+	gf_node_set_callback_function(node, Conditional_PreDestroy);
 	gf_node_set_private(node, priv);
 	ptr = (M_Conditional *)node;
 	ptr->on_activate = Conditional_OnActivate;

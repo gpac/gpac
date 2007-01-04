@@ -84,7 +84,7 @@ static void DestroyBackground2D(GF_Node *node)
 	mesh_free(ptr->mesh);
 	free(ptr);
 }
-static void RenderBackground2D(GF_Node *node, void *rs)
+static void RenderBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	M_Background2D *bck;
 	Bool use_texture;
@@ -93,6 +93,11 @@ static void RenderBackground2D(GF_Node *node, void *rs)
 	Bool is_layer;
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	Render3D *sr;
+
+	if (is_destroy) {
+		DestroyBackground2D(node);
+		return;
+	}
 
 	gf_node_dirty_clear(node, 0);
 	bck = (M_Background2D *)node;
@@ -206,8 +211,7 @@ void R3D_InitBackground2D(Render3D *sr, GF_Node *node)
 	gf_sr_texture_setup(&ptr->txh, sr->compositor, node);
 	ptr->txh.update_texture_fcnt = UpdateBackgroundTexture;
 	gf_node_set_private(node, ptr);
-	gf_node_set_predestroy_function(node, DestroyBackground2D);
-	gf_node_set_render_function(node, RenderBackground2D);
+	gf_node_set_callback_function(node, RenderBackground2D);
 
 	ptr->mesh = new_mesh();
 	mesh_set_vertex(ptr->mesh, -PLANE_HSIZE, -PLANE_HSIZE, 0,  0,  0,  FIX_ONE, 0, 0);
@@ -400,7 +404,7 @@ static void back_draw_texture(RenderEffect3D *eff, GF_TextureHandler *txh, GF_Me
 	}
 }
 
-static void RenderBackground(GF_Node *node, void *rs)
+static void RenderBackground(GF_Node *node, void *rs, Bool is_destroy)
 {
 	M_Background *bck;
 	BackgroundStack *st;
@@ -412,6 +416,10 @@ static void RenderBackground(GF_Node *node, void *rs)
 	Render3D *sr;
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
+	if (is_destroy) {
+		DestroyBackground(node);
+		return;
+	}
 	gf_node_dirty_clear(node, 0);
 	bck = (M_Background *)node;
 	st = (BackgroundStack *) gf_node_get_private(node);
@@ -627,8 +635,7 @@ void R3D_InitBackground(Render3D *sr, GF_Node *node)
 	ptr->txh_right.update_texture_fcnt = UpdateBackgroundTexture;
 
 	gf_node_set_private(node, ptr);
-	gf_node_set_predestroy_function(node, DestroyBackground);
-	gf_node_set_render_function(node, RenderBackground);
+	gf_node_set_callback_function(node, RenderBackground);
 
 }
 

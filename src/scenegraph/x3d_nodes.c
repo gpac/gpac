@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Dec 13 14:37:26 2006
+	DO NOT MOFIFY - File generated on GMT Fri Dec 22 19:22:55 2006
 
 	BY X3DGen for GPAC Version 0.4.3-DEV
 */
@@ -44,7 +44,7 @@
 static void Anchor_Del(GF_Node *node)
 {
 	X_Anchor *p = (X_Anchor *) node;
-	gf_sg_vrml_parent_reset(node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_sg_sfstring_del(p->description);
 	gf_sg_mfstring_del(p->parameter);
 	gf_sg_mfurl_del(p->url);
@@ -769,7 +769,7 @@ static GF_Node *Background_Create()
 static void Billboard_Del(GF_Node *node)
 {
 	X_Billboard *p = (X_Billboard *) node;
-	gf_sg_vrml_parent_reset(node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
 }
@@ -1365,7 +1365,7 @@ static GF_Node *Circle2D_Create()
 static void Collision_Del(GF_Node *node)
 {
 	X_Collision *p = (X_Collision *) node;
-	gf_sg_vrml_parent_reset(node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->proxy, node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
@@ -1812,7 +1812,7 @@ static GF_Node *Cone_Create()
 static void Contour2D_Del(GF_Node *node)
 {
 	X_Contour2D *p = (X_Contour2D *) node;
-	gf_sg_vrml_parent_reset(node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
 }
@@ -3531,7 +3531,7 @@ static GF_Node *FontStyle_Create()
 static void Group_Del(GF_Node *node)
 {
 	X_Group *p = (X_Group *) node;
-	gf_sg_vrml_parent_reset(node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
 }
@@ -5058,7 +5058,7 @@ static GF_Node *LineSet_Create()
 static void LOD_Del(GF_Node *node)
 {
 	X_LOD *p = (X_LOD *) node;
-	gf_sg_vrml_parent_reset(node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_sg_mffloat_del(p->range);
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
@@ -5542,7 +5542,7 @@ static void MetadataSet_Del(GF_Node *node)
 	X_MetadataSet *p = (X_MetadataSet *) node;
 	gf_sg_sfstring_del(p->name);
 	gf_sg_sfstring_del(p->reference);
-	gf_node_list_del((GF_List *) p->value, node);	
+	gf_node_unregister_children(node, p->value);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
 }
@@ -5604,7 +5604,6 @@ static GF_Node *MetadataSet_Create()
 	GF_SAFEALLOC(p, X_MetadataSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MetadataSet);
-	p->value = gf_list_new();	
 
 #ifdef GF_NODE_USE_POINTERS
 
@@ -5878,7 +5877,7 @@ static void MultiTexture_Del(GF_Node *node)
 	gf_sg_mfstring_del(p->function);
 	gf_sg_mfstring_del(p->mode);
 	gf_sg_mfstring_del(p->source);
-	gf_node_list_del((GF_List *) p->texture, node);	
+	gf_node_unregister_children(node, p->texture);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
 }
@@ -5961,7 +5960,6 @@ static GF_Node *MultiTexture_Create()
 	GF_SAFEALLOC(p, X_MultiTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MultiTexture);
-	p->texture = gf_list_new();	
 
 #ifdef GF_NODE_USE_POINTERS
 
@@ -5989,7 +5987,7 @@ static GF_Node *MultiTexture_Create()
 static void MultiTextureCoordinate_Del(GF_Node *node)
 {
 	X_MultiTextureCoordinate *p = (X_MultiTextureCoordinate *) node;
-	gf_node_list_del((GF_List *) p->texCoord, node);	
+	gf_node_unregister_children(node, p->texCoord);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
 }
@@ -6037,7 +6035,6 @@ static GF_Node *MultiTextureCoordinate_Create()
 	GF_SAFEALLOC(p, X_MultiTextureCoordinate);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MultiTextureCoordinate);
-	p->texCoord = gf_list_new();	
 
 #ifdef GF_NODE_USE_POINTERS
 
@@ -6061,7 +6058,7 @@ static GF_Node *MultiTextureCoordinate_Create()
 static void MultiTextureTransform_Del(GF_Node *node)
 {
 	X_MultiTextureTransform *p = (X_MultiTextureTransform *) node;
-	gf_node_list_del((GF_List *) p->textureTransform, node);	
+	gf_node_unregister_children(node, p->textureTransform);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
 }
@@ -6109,7 +6106,6 @@ static GF_Node *MultiTextureTransform_Create()
 	GF_SAFEALLOC(p, X_MultiTextureTransform);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MultiTextureTransform);
-	p->textureTransform = gf_list_new();	
 
 #ifdef GF_NODE_USE_POINTERS
 
@@ -8249,7 +8245,7 @@ static GF_Node *SpotLight_Create()
 static void StaticGroup_Del(GF_Node *node)
 {
 	X_StaticGroup *p = (X_StaticGroup *) node;
-	gf_sg_vrml_parent_reset(node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
 }
@@ -8422,7 +8418,7 @@ static GF_Node *StringSensor_Create()
 static void Switch_Del(GF_Node *node)
 {
 	X_Switch *p = (X_Switch *) node;
-	gf_sg_vrml_parent_reset(node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
 }
@@ -9404,7 +9400,7 @@ static GF_Node *TouchSensor_Create()
 static void Transform_Del(GF_Node *node)
 {
 	X_Transform *p = (X_Transform *) node;
-	gf_sg_vrml_parent_reset(node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
 	gf_node_free((GF_Node *)p);
 }

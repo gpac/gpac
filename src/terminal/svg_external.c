@@ -201,10 +201,15 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 	}
 }
 
-void SVG_Render_animation(GF_Node *n, void *rs)
+void SVG_Render_animation(GF_Node *n, void *rs, Bool is_destroy)
 {
 	GF_Node *sub_root;
-	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(n);
+	GF_InlineScene *is;
+	
+	if (is_destroy) return;
+
+
+	is = (GF_InlineScene *)gf_node_get_private(n);
 	if (!is || !is->graph_attached) return;
 
 	if (is->needs_restart) {
@@ -243,14 +248,16 @@ void SVG_Init_animation(GF_InlineScene *is, GF_Node *node)
 		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
 		rti->evaluate = svg_animation_smil_evaluate;
 	}
-	gf_node_set_render_function(node, SVG_Render_animation);
+	gf_node_set_callback_function(node, SVG_Render_animation);
 }
 
 
 
-static void SVG_Render_use(GF_Node *node, void *rs)
+static void SVG_Render_use(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGuseElement *use = (SVGuseElement *)node;
+
+	if (is_destroy) return;
 
 	if (use->xlink->href.type == SVG_IRI_ELEMENTID) {
 		GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) node));
@@ -286,7 +293,7 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 
 void SVG_Init_use(GF_InlineScene *is, GF_Node *node)
 {
-	gf_node_set_render_function(node, SVG_Render_use);
+	gf_node_set_callback_function(node, SVG_Render_use);
 }
 
 #endif //GPAC_DISABLE_SVG

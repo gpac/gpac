@@ -108,22 +108,6 @@ void MC_Restart(GF_ObjectManager *odm)
 	gf_list_del(to_restart);
 }
 
-void DestroyMediaControl(GF_Node *node)
-{
-	GF_ObjectManager *odm;
-	MediaControlStack *stack = (MediaControlStack *) gf_node_get_private(node);
-
-	/*reset ODM using this control*/
-	if (stack->stream && stack->stream->odm) {
-		odm = stack->stream->odm;
-		ODM_RemoveMediaControl(odm, stack);
-	}
-
-	gf_list_del(stack->seg);
-	gf_sg_vrml_mf_reset(&stack->url, GF_SG_VRML_MFURL);
-	free(stack);
-}
-
 
 /*resume all objects*/
 void MC_Resume(GF_ObjectManager *odm)
@@ -259,12 +243,28 @@ void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range
 }
 
 
-void RenderMediaControl(GF_Node *node, void *rs)
+void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 {
 	Bool shall_restart, need_restart;
 	GF_MediaObject *prev;
 	GF_ObjectManager *odm;
 	MediaControlStack *stack =(MediaControlStack *) gf_node_get_private(node);
+
+	if (is_destroy) {
+		GF_ObjectManager *odm;
+		MediaControlStack *stack = (MediaControlStack *) gf_node_get_private(node);
+
+		/*reset ODM using this control*/
+		if (stack->stream && stack->stream->odm) {
+			odm = stack->stream->odm;
+			ODM_RemoveMediaControl(odm, stack);
+		}
+
+		gf_list_del(stack->seg);
+		gf_sg_vrml_mf_reset(&stack->url, GF_SG_VRML_MFURL);
+		free(stack);
+		return;
+	}
 
 	/*not changed nothing to do - note we need to register with stream yet for control switching...*/
 	if (stack->stream && (!stack->changed || !stack->control->enabled)) return;
@@ -403,9 +403,7 @@ void InitMediaControl(GF_InlineScene *is, GF_Node *node)
 	stack->seg = gf_list_new();
 
 	/*default values are stored on first render*/
-
-	gf_node_set_predestroy_function(node, DestroyMediaControl);
-	gf_node_set_render_function(node, RenderMediaControl);
+	gf_node_set_callback_function(node, RenderMediaControl);
 	gf_node_set_private(node, stack);
 }
 

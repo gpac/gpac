@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Dec 13 14:37:48 2006
+	DO NOT MOFIFY - File generated on GMT Fri Dec 22 19:18:45 2006
 
 	BY MPEG4Gen for GPAC Version 0.4.3-DEV
 */
@@ -256,7 +256,7 @@ typedef struct _tagAudioBuffer
 	SFFloat pitch;	/*exposedField*/
 	SFTime startTime;	/*exposedField*/
 	SFTime stopTime;	/*exposedField*/
-	GF_List *children;	/*exposedField*/
+	GF_ChildNodeItem *children;	/*exposedField*/
 	SFInt32 numChan;	/*exposedField*/
 	MFInt32 phaseGroup;	/*exposedField*/
 	SFFloat length;	/*exposedField*/
@@ -755,7 +755,7 @@ typedef struct _tagInline
 typedef struct _tagLOD
 {
 	BASE_NODE
-	GF_List *level;	/*exposedField*/
+	GF_ChildNodeItem *level;	/*exposedField*/
 	SFVec3f center;	/*field*/
 	MFFloat range;	/*field*/
 } M_LOD;
@@ -1174,7 +1174,7 @@ typedef struct _tagSpotLight
 typedef struct _tagSwitch
 {
 	BASE_NODE
-	GF_List *choice;	/*exposedField*/
+	GF_ChildNodeItem *choice;	/*exposedField*/
 	SFInt32 whichChoice;	/*exposedField*/
 } M_Switch;
 

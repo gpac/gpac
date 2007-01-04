@@ -147,7 +147,7 @@ proceed_box:
 		gf_bs_seek(bs, start+size);
 	} else if (end-start < size) {
 		u32 to_skip = (u32) (size-(end-start));
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box has %d extra bytes\n", to_skip));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" has %d extra bytes\n", gf_4cc_to_str(type), to_skip));
 		gf_bs_skip_bytes(bs, to_skip);
 	}
 	*outBox = newBox;
@@ -507,6 +507,17 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_COVR: return ListItem_New(boxType);
 
 	case GF_ISOM_BOX_TYPE_DATA: return data_New();
+	
+	case GF_ISOM_BOX_TYPE_OHDR: return ohdr_New();
+	case GF_ISOM_BOX_TYPE_GRPI: return grpi_New();
+	case GF_ISOM_BOX_TYPE_MDRI: return mdri_New();
+	case GF_ISOM_BOX_TYPE_ODTT: return odtt_New();
+	case GF_ISOM_BOX_TYPE_ODRB: return odrb_New();
+	case GF_ISOM_BOX_TYPE_ODKM: return odkm_New();
+	case GF_ISOM_BOX_TYPE_ODAF: 
+		a = iSFM_New();
+		a->type = GF_ISOM_BOX_TYPE_ODAF;
+		return a;
 
 	default:
 		a = defa_New();
@@ -714,6 +725,14 @@ void gf_isom_box_del(GF_Box *a)
 
 	case GF_ISOM_BOX_TYPE_DATA: data_del(a); return;
 
+	case GF_ISOM_BOX_TYPE_OHDR: ohdr_del(a); return;
+	case GF_ISOM_BOX_TYPE_GRPI: grpi_del(a); return;
+	case GF_ISOM_BOX_TYPE_MDRI: mdri_del(a); return;
+	case GF_ISOM_BOX_TYPE_ODTT: odtt_del(a); return;
+	case GF_ISOM_BOX_TYPE_ODRB: odrb_del(a); return;
+	case GF_ISOM_BOX_TYPE_ODKM: odkm_del(a); return;
+	case GF_ISOM_BOX_TYPE_ODAF: iSFM_del(a); return;
+
 	default:
 		defa_del(a);
 		return;
@@ -906,6 +925,14 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_COVR: return ListItem_Read(a, bs);
 
 	case GF_ISOM_BOX_TYPE_DATA: return data_Read(a, bs);
+
+	case GF_ISOM_BOX_TYPE_OHDR: return ohdr_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_GRPI: return grpi_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MDRI: return mdri_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ODTT: return odtt_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ODRB: return odrb_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ODKM: return odkm_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ODAF: return iSFM_Read(a, bs);
 
 	default:
 		return defa_Read(a, bs);
@@ -1102,6 +1129,14 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 
 	case GF_ISOM_BOX_TYPE_DATA: return data_Write(a, bs);
 
+	case GF_ISOM_BOX_TYPE_OHDR: return ohdr_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_GRPI: return grpi_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_MDRI: return mdri_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_ODTT: return odtt_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_ODRB: return odrb_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_ODKM: return odkm_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_ODAF: return iSFM_Write(a, bs);
+
 	default:
 		return defa_Write(a, bs);
 	}
@@ -1292,6 +1327,14 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_COVR: return ListItem_Size(a);
 
 	case GF_ISOM_BOX_TYPE_DATA: return data_Size(a);
+
+	case GF_ISOM_BOX_TYPE_OHDR: return ohdr_Size(a);
+	case GF_ISOM_BOX_TYPE_GRPI: return grpi_Size(a);
+	case GF_ISOM_BOX_TYPE_MDRI: return mdri_Size(a);
+	case GF_ISOM_BOX_TYPE_ODTT: return odtt_Size(a);
+	case GF_ISOM_BOX_TYPE_ODRB: return odrb_Size(a);
+	case GF_ISOM_BOX_TYPE_ODKM: return odkm_Size(a);
+	case GF_ISOM_BOX_TYPE_ODAF: return iSFM_Size(a);
 
 	default: return defa_Size(a);
 	}

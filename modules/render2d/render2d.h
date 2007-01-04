@@ -115,8 +115,9 @@ void R2D_RegisterSensor(GF_Renderer *sr, SensorHandler *sh);
 void R2D_UnregisterSensor(GF_Renderer *sr, SensorHandler *sh);
 
 /*sensor context is needed for DEF/USE of a sensor over several shapes*/
-typedef struct
+typedef struct __sensor_ctx
 {
+	struct __sensor_ctx *next;
 	SensorHandler *h_node;
 	GF_Matrix2D matrix;
 } SensorContext;
@@ -138,11 +139,34 @@ enum
 	TF_RENDER_STORE_BOUNDS	= (1<<4),
 };
 
+/*picking modes*/
+enum
+{
+	/*check point is over path, regardless of visual settings*/
+	PICK_PATH = 0,
+	/*check point is over path and outline, regardless of visual settings*/
+	PICK_PATH_AND_OUTLINE, 
+	/*check point is over path and/or outline, with respect to visual settings*/
+	PICK_FULL
+};
+
+/*rendering modes*/
+enum
+{
+	/*regular traversin mode*/
+	TRAVERSE_RENDER = 0,
+	/*draw routine*/
+	TRAVERSE_DRAW,
+	/*pick routine*/
+	TRAVERSE_PICK,
+};
 
 /*the traversing context: set_up at top-level and passed through SFNode_Render*/
 typedef struct _render2d_effect
 {
 	BASE_EFFECT_CLASS
+	
+	u32 traversing_mode;
 
 	/*current graph traversed is in pixel metrics*/
 	Bool is_pixel_metrics;
@@ -187,7 +211,13 @@ typedef struct _render2d_effect
 	/*number of listeners in the current tree branch*/
 	u32 nb_listeners;
 #endif
-
+	/*set when drawing/picking*/
+	struct _drawable_context *ctx;
+	/*picking info*/
+	Fixed x, y;
+	u8 pick_type;
+	/*pick result*/
+	u8 is_over;
 } RenderEffect2D;
 
 void effect_reset(RenderEffect2D *eff);

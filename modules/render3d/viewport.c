@@ -108,7 +108,7 @@ static void viewport_set_bind(GF_Node *node)
 	gf_node_dirty_set(node, 0, 0);
 }
 
-static void RenderViewport(GF_Node *node, void *rs)
+static void RenderViewport(GF_Node *node, void *rs, Bool is_destroy)
 {
 	Fixed ar, sx, sy, w, h, tx, ty;
 	GF_Matrix2D mat;
@@ -119,6 +119,10 @@ static void RenderViewport(GF_Node *node, void *rs)
 	M_Viewport *vp = (M_Viewport*) node;
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
 
+	if (is_destroy) {
+		DestroyViewStack(node);
+		return;
+	}
 	assert(eff->viewpoints);
 	if (eff->camera->is_3D) return;
 
@@ -231,8 +235,7 @@ void R3D_InitViewport(Render3D *sr, GF_Node *node)
 	st->reg_stacks = gf_list_new();
 	gf_sr_traversable_setup(st, node, sr->compositor);
 	gf_node_set_private(node, st);
-	gf_node_set_render_function(node, RenderViewport);
-	gf_node_set_predestroy_function(node, DestroyViewStack);
+	gf_node_set_callback_function(node, RenderViewport);
 	((M_Viewport*)node)->on_set_bind = viewport_set_bind;
 }
 
@@ -250,7 +253,7 @@ static void viewpoint_set_bind(GF_Node *node)
 	gf_node_dirty_set(node, 0, 0);
 }
 
-static void RenderViewpoint(GF_Node *node, void *rs)
+static void RenderViewpoint(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SFVec3f pos, v1, v2;
 	SFRotation ori;
@@ -258,6 +261,11 @@ static void RenderViewpoint(GF_Node *node, void *rs)
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	M_Viewpoint *vp = (M_Viewpoint*) node;
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
+
+	if (is_destroy) {
+		DestroyViewStack(node);
+		return;
+	}
 
 	assert(eff->viewpoints);
 //	if (!eff->camera->is_3D) return;
@@ -322,8 +330,7 @@ void R3D_InitViewpoint(Render3D *sr, GF_Node *node)
 	gf_mx_init(st->world_view_mx);
 	gf_sr_traversable_setup(st, node, sr->compositor);
 	gf_node_set_private(node, st);
-	gf_node_set_render_function(node, RenderViewpoint);
-	gf_node_set_predestroy_function(node, DestroyViewStack);
+	gf_node_set_callback_function(node, RenderViewpoint);
 	((M_Viewpoint*)node)->on_set_bind = viewpoint_set_bind;
 }
 
@@ -335,7 +342,7 @@ static void navinfo_set_bind(GF_Node *node)
 	gf_sr_invalidate(st->compositor, NULL);
 }
 
-static void RenderNavigationInfo(GF_Node *node, void *rs)
+static void RenderNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 i;
 	SFVec3f start, end;
@@ -343,6 +350,11 @@ static void RenderNavigationInfo(GF_Node *node, void *rs)
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	M_NavigationInfo *ni = (M_NavigationInfo *) node;
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
+
+	if (is_destroy) {
+		DestroyViewStack(node);
+		return;
+	}
 
 	if (!eff->navigations) return;
 
@@ -421,8 +433,7 @@ void R3D_InitNavigationInfo(Render3D *sr, GF_Node *node)
 	st->reg_stacks = gf_list_new();
 	gf_sr_traversable_setup(st, node, sr->compositor);
 	gf_node_set_private(node, st);
-	gf_node_set_render_function(node, RenderNavigationInfo);
-	gf_node_set_predestroy_function(node, DestroyViewStack);
+	gf_node_set_callback_function(node, RenderNavigationInfo);
 	((M_NavigationInfo*)node)->on_set_bind = navinfo_set_bind;
 }
 
@@ -434,7 +445,7 @@ static void fog_set_bind(GF_Node *node)
 	gf_sr_invalidate(st->compositor, NULL);
 }
 
-static void RenderFog(GF_Node *node, void *rs)
+static void RenderFog(GF_Node *node, void *rs, Bool is_destroy)
 {
 	Fixed density, vrange;
 	SFVec3f start, end;
@@ -443,6 +454,11 @@ static void RenderFog(GF_Node *node, void *rs)
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	M_Fog *fog = (M_Fog *) node;
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
+
+	if (is_destroy) {
+		DestroyViewStack(node);
+		return;
+	}
 
 	if (!eff->fogs) return;
 
@@ -497,8 +513,7 @@ void R3D_InitFog(Render3D *sr, GF_Node *node)
 	st->reg_stacks = gf_list_new();
 	gf_sr_traversable_setup(st, node, sr->compositor);
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyViewStack);
-	gf_node_set_render_function(node, RenderFog);
+	gf_node_set_callback_function(node, RenderFog);
 	((M_Fog*)node)->on_set_bind = fog_set_bind;
 }
 

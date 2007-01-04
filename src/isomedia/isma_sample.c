@@ -121,6 +121,7 @@ GF_EXPORT
 GF_ISMASample *gf_isom_get_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, GF_ISOSample *samp, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
+	GF_ISMASampleFormatBox *fmt;
 	GF_SampleEntryBox *sea;
 	
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -130,20 +131,33 @@ GF_ISMASample *gf_isom_get_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber
 	/*non-encrypted or non-ISMA*/
 	if (!sea || !sea->protection_info 
 		|| !sea->protection_info->scheme_type 
-		|| (sea->protection_info->scheme_type->scheme_type != GF_ISOM_ISMACRYP_SCHEME)
 		|| !sea->protection_info->info
-		|| !sea->protection_info->info->ikms
-		|| !sea->protection_info->info->isfm
 		) {
 		return NULL;
 	}
-	/*OK*/
-	return gf_isom_ismacryp_sample_from_data(samp->data, samp->dataLength, sea->protection_info->info->isfm->selective_encryption, sea->protection_info->info->isfm->key_indicator_length, sea->protection_info->info->isfm->IV_length);
+	/*ISMA*/
+	if (sea->protection_info->scheme_type->scheme_type == GF_ISOM_ISMACRYP_SCHEME) {
+		fmt = sea->protection_info->info->isfm;
+		if (!fmt) return NULL;
+		return gf_isom_ismacryp_sample_from_data(samp->data, samp->dataLength, sea->protection_info->info->isfm->selective_encryption, sea->protection_info->info->isfm->key_indicator_length, sea->protection_info->info->isfm->IV_length);
+	}
+	/*OMA*/
+	else if (sea->protection_info->scheme_type->scheme_type == GF_4CC('o','d','k','m') ) {
+		if (!sea->protection_info->info->okms) return NULL;
+		fmt = sea->protection_info->info->okms->fmt;
+
+		if (fmt) {
+			return gf_isom_ismacryp_sample_from_data(samp->data, samp->dataLength, fmt->selective_encryption, fmt->key_indicator_length, fmt->IV_length);
+		}
+		/*OMA default: no selective encryption, one key, 128 bit IV*/
+		return gf_isom_ismacryp_sample_from_data(samp->data, samp->dataLength, 0, 0, 128);
+	}
+	return NULL;
 }
 
 
 GF_EXPORT
-Bool gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
+u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *sea;
@@ -153,8 +167,8 @@ Bool gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sampl
 
 	Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);
 	/*non-encrypted or non-ISMA*/
-	if (!sea || !sea->protection_info) return 0;
-	return 1;
+	if (!sea || !sea->protection_info || !sea->protection_info->scheme_type) return 0;
+	return sea->protection_info->scheme_type->scheme_type;
 }
 
 GF_EXPORT
@@ -175,6 +189,30 @@ Bool gf_isom_is_ismacryp_media(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 		|| !sea->protection_info->info
 		|| !sea->protection_info->info->ikms
 		|| !sea->protection_info->info->isfm
+		) 
+		return 0;
+
+	return 1;
+}
+
+GF_EXPORT
+Bool gf_isom_is_omadrm_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_SampleEntryBox *sea;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return 0;
+
+	Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);
+	/*non-encrypted or non-ISMA*/
+	if (!sea 
+		|| !sea->protection_info 
+		|| !sea->protection_info->scheme_type 
+		|| (sea->protection_info->scheme_type->scheme_type != GF_4CC('o','d','k','m') )
+		|| !sea->protection_info->info
+		|| !sea->protection_info->info->okms
+		|| !sea->protection_info->info->okms->hdr
 		) 
 		return 0;
 
@@ -213,6 +251,46 @@ GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 		if (outSelectiveEncryption) *outSelectiveEncryption = sea->protection_info->info->isfm->selective_encryption;
 		if (outIVLength) *outIVLength = sea->protection_info->info->isfm->IV_length;
 		if (outKeyIndicationLength) *outKeyIndicationLength = sea->protection_info->info->isfm->key_indicator_length;
+	} else {
+		if (outSelectiveEncryption) *outSelectiveEncryption = 0;
+		if (outIVLength) *outIVLength = 0;
+		if (outKeyIndicationLength) *outKeyIndicationLength = 0;
+	}
+	return GF_OK;
+}
+
+
+/*retrieves ISMACryp info for the given track & SDI*/
+GF_EXPORT
+GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, 
+							   const char **outContentID, const char **outRightsIssuerURL, const char **outTextualHeaders, u64 *outPlaintextLength, u8 *outEncryptionType, Bool *outSelectiveEncryption, u8 *outIVLength, u8 *outKeyIndicationLength)
+{
+	GF_TrackBox *trak;
+	GF_SampleEntryBox *sea;
+	
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);
+	/*non-encrypted or non-ISMA*/
+	if (!sea || !sea->protection_info) return GF_BAD_PARAM;
+	if (!sea->protection_info->scheme_type || !sea->protection_info->original_format) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!sea->protection_info->info || !sea->protection_info->info->okms || !sea->protection_info->info->okms->hdr) return GF_NON_COMPLIANT_BITSTREAM;
+
+	if (outOriginalFormat) {
+		*outOriginalFormat = sea->protection_info->original_format->data_format;
+		if (IsMP4Description(sea->protection_info->original_format->data_format)) *outOriginalFormat = GF_ISOM_SUBTYPE_MPEG4;
+	}
+	if (outContentID) *outContentID = sea->protection_info->info->okms->hdr->ContentID;
+	if (outRightsIssuerURL) *outRightsIssuerURL = sea->protection_info->info->okms->hdr->RightsIssuerURL;
+	if (outTextualHeaders) *outTextualHeaders = sea->protection_info->info->okms->hdr->TextualHeaders;
+	if (outPlaintextLength) *outPlaintextLength = sea->protection_info->info->okms->hdr->PlaintextLength;
+	if (outEncryptionType) *outEncryptionType = sea->protection_info->info->okms->hdr->EncryptionMethod;
+
+	if (sea->protection_info->info && sea->protection_info->info->okms  && sea->protection_info->info->okms->fmt) {
+		if (outSelectiveEncryption) *outSelectiveEncryption = sea->protection_info->info->okms->fmt->selective_encryption;
+		if (outIVLength) *outIVLength = sea->protection_info->info->okms->fmt->IV_length;
+		if (outKeyIndicationLength) *outKeyIndicationLength = sea->protection_info->info->okms->fmt->key_indicator_length;
 	} else {
 		if (outSelectiveEncryption) *outSelectiveEncryption = 0;
 		if (outIVLength) *outIVLength = 0;
@@ -331,6 +409,68 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	sea->protection_info->info->isfm->selective_encryption = selective_encryption;
 	sea->protection_info->info->isfm->key_indicator_length = KI_length;
 	sea->protection_info->info->isfm->IV_length = IV_length;
+	return GF_OK;
+}
+
+GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index,
+						   char *contentID, char *kms_URI, u32 encryption_type, u64 plainTextLength, char *textual_headers,
+						   Bool selective_encryption, u32 KI_length, u32 IV_length)
+{
+	u32 original_format;
+	GF_Err e;
+	GF_SampleEntryBox *sea;
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	e = Media_GetSampleDesc(trak->Media, desc_index, &sea, NULL);
+	if (e) return e;
+
+	/* Replacing the Media Type */
+	switch (sea->type) {
+	case GF_ISOM_BOX_TYPE_MP4A:
+	case GF_ISOM_BOX_TYPE_DAMR:
+	case GF_ISOM_BOX_TYPE_DEVC:
+	case GF_ISOM_BOX_TYPE_DQCP:
+	case GF_ISOM_BOX_TYPE_DSMV:
+		original_format = sea->type;
+		sea->type = GF_ISOM_BOX_TYPE_ENCA;
+		break;
+	case GF_ISOM_BOX_TYPE_MP4V:
+	case GF_ISOM_BOX_TYPE_AVC1:
+	case GF_ISOM_BOX_TYPE_D263:
+		original_format = sea->type;
+		sea->type = GF_ISOM_BOX_TYPE_ENCV;
+		break;
+	case GF_ISOM_BOX_TYPE_MP4S:
+		original_format = sea->type;
+		sea->type = GF_ISOM_BOX_TYPE_ENCS;
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
+	
+	sea->protection_info = (GF_ProtectionInfoBox *)sinf_New();
+	sea->protection_info->scheme_type = (GF_SchemeTypeBox *)schm_New();
+	sea->protection_info->scheme_type->scheme_type = GF_4CC('o','d','k','m');
+	sea->protection_info->scheme_type->scheme_version = 0x00000200;
+
+	sea->protection_info->original_format = (GF_OriginalFormatBox *)frma_New();
+	sea->protection_info->original_format->data_format = original_format;
+	sea->protection_info->info = (GF_SchemeInformationBox *)schi_New();
+
+	sea->protection_info->info->okms = (GF_OMADRMKMSBox *)odkm_New();
+	sea->protection_info->info->okms->fmt = (GF_OMADRMAUFormatBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_ODAF);
+	sea->protection_info->info->okms->fmt->selective_encryption = selective_encryption;
+	sea->protection_info->info->okms->fmt->key_indicator_length = KI_length;
+	sea->protection_info->info->okms->fmt->IV_length = IV_length;
+
+	sea->protection_info->info->okms->hdr = (GF_OMADRMCommonHeaderBox*)ohdr_New();
+	sea->protection_info->info->okms->hdr->EncryptionMethod = encryption_type;
+	sea->protection_info->info->okms->hdr->PaddingScheme = (encryption_type==0x01) ? 1 : 0;
+	sea->protection_info->info->okms->hdr->PlaintextLength = plainTextLength;
+	if (contentID) sea->protection_info->info->okms->hdr->ContentID = strdup(contentID);
+	if (kms_URI) sea->protection_info->info->okms->hdr->RightsIssuerURL = strdup(kms_URI);
+	if (textual_headers) sea->protection_info->info->okms->hdr->TextualHeaders = strdup(textual_headers);
 	return GF_OK;
 }
 

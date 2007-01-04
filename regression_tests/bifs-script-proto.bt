@@ -58,7 +58,22 @@ PROTO P0 [
   field SFNode tim USE TIMER
   field SFNode line USE LP
   eventOut SFFloat frac_changed
-  url ["javascript: function set_active(value, timestamp) {line.width = value ? 2 : 0;}function set_over(value, timestamp) {is_over = value;if (!tim.isActive) tim.startTime = timestamp;}function set_fraction(value, timestamp) {if (is_over) {frac_changed = value;} else {frac_changed = 1 - value;}}"  ]
+  url ["javascript: 
+  function set_active(value, timestamp) {
+   line.width = value ? 2 : 0;
+  }
+  function set_over(value, timestamp) {
+   is_over = value;
+   if (!tim.isActive) tim.startTime = timestamp;
+  }
+  function set_fraction(value, timestamp) {
+   if (is_over) {
+    frac_changed = value;
+   } else {
+    frac_changed = 1 - value;
+   }
+  }
+  "  ]
  }
  DEF PI PositionInterpolator2D {
   key [0 1]

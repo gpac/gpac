@@ -1055,7 +1055,7 @@ GF_Err SWF_InsertNode(SWFReader *read, GF_Node *n)
 
 	if (read->flags & GF_SM_SWF_STATIC_DICT) {
 		M_Switch *par = (M_Switch *)gf_sg_find_node_by_name(read->load->scene_graph, "DICTIONARY");
-		gf_list_add(par->choice, n);
+		gf_node_list_add_child(&par->choice, n);
 		gf_node_register((GF_Node *)n, (GF_Node *)par);
 	} else {
 		com = gf_sg_command_new(read->load->scene_graph, GF_SG_INDEXED_INSERT);
@@ -1155,7 +1155,7 @@ GF_Err swf_def_button(SWFReader *read, u32 revision)
 	for (i=0; i<nb_but_rec; i++) {
 		GF_Node *character = SWF_GetNode(read, recs[i].character_id);
 		if (character) {
-			gf_list_add(button->choice, character);
+			gf_node_list_add_child(&button->choice, character);
 			gf_node_register(character, (GF_Node *)button);
 		}
 	}
@@ -1864,7 +1864,7 @@ GF_Err swf_def_sprite(SWFReader *read)
 	gf_node_set_id(n, ID, szDEF);
 	par = gf_sg_find_node_by_name(read->load->scene_graph, "DICTIONARY");
 	assert(par);
-	gf_list_add(((M_Switch *)par)->choice, n);
+	gf_node_list_add_child(&((M_Switch *)par)->choice, n);
 	gf_node_register(n, par);
 	par = gf_sg_find_node_by_name(read->load->scene_graph, "EMPTYSHAPE");
 	gf_node_insert_child(n, par, -1);
@@ -2492,7 +2492,7 @@ GF_Err SWF_InitContext(SWFReader *read)
 	/*empty shape to fill depth levels & sprites roots*/
 	n2 = SWF_NewNode(read, TAG_MPEG4_Shape);
 	gf_node_set_id(n2, 3, "EMPTYSHAPE");
-	gf_list_add( ((M_Switch *)n)->choice, n2);
+	gf_node_list_add_child( &((M_Switch *)n)->choice, n2);
 	gf_node_register(n2, n);
 
 	/*display list*/

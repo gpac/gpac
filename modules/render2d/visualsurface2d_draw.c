@@ -86,16 +86,16 @@ static void draw_clipper(VisualSurface2D *surf, struct _drawable_context *ctx)
 	GF_Path *clippath, *cliper;
 	GF_Raster2D *r2d = surf->render->compositor->r2d;
 
-	if (ctx->is_background) return;
+	if (ctx->flags & CTX_IS_BACKGROUND) return;
 
 	memset(&clipset, 0, sizeof(GF_PenSettings));
 	clipset.width = 2*FIX_ONE;
 
 	clippath = gf_path_new();
-	gf_path_add_rect_center(clippath, ctx->original.x + ctx->original.width/2, ctx->original.y - ctx->original.height/2, ctx->original.width, ctx->original.height);
+	gf_path_add_rect_center(clippath, ctx->unclip.x + ctx->unclip.width/2, ctx->unclip.y - ctx->unclip.height/2, ctx->unclip.width, ctx->unclip.height);
 	cliper = gf_path_get_outline(clippath, clipset);
 	gf_path_del(clippath);
-	r2d->surface_set_matrix(surf->the_surface, &ctx->transform);
+	r2d->surface_set_matrix(surf->the_surface, NULL);
 	r2d->surface_set_clipper(surf->the_surface, NULL);
 	r2d->surface_set_path(surf->the_surface, cliper);
 	r2d->stencil_set_brush_color(surf->the_pen, 0xFF000000);
@@ -109,7 +109,7 @@ static void VS2D_DoFill(VisualSurface2D *surf, DrawableContext *ctx, GF_STENCIL 
 	GF_Raster2D *r2d = surf->render->compositor->r2d;
 
 	/*background rendering - direct rendering: use ctx clip*/
-	if (ctx->is_background || (surf->render->top_effect->trav_flags & TF_RENDER_DIRECT)) {
+	if ((ctx->flags & CTX_IS_BACKGROUND) || (surf->render->top_effect->trav_flags & TF_RENDER_DIRECT)) {
 		if (ctx->clip.width && ctx->clip.height) {
 			r2d->surface_set_clipper(surf->the_surface, &ctx->clip);
 			r2d->surface_fill(surf->the_surface, stencil);
@@ -239,7 +239,7 @@ static void VS2D_DrawGradient(VisualSurface2D *surf, GF_Path *path, GF_TextureHa
 	r2d->surface_set_path(surf->the_surface, NULL);
 
 	ctx->aspect.filled = fill;
-	ctx->path_filled = 1;
+	ctx->flags |= CTX_PATH_FILLED;
 }
 
 
@@ -301,7 +301,7 @@ void VS2D_TexturePathText(VisualSurface2D *surf, DrawableContext *txt_ctx, GF_Pa
 
 	VS2D_DoFill(surf, txt_ctx, hwtx);
 	r2d->surface_set_path(surf->the_surface, NULL);
-	txt_ctx->path_filled = 1;
+	txt_ctx->flags |= CTX_PATH_FILLED;
 }
 
 void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx)
@@ -322,10 +322,9 @@ void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHand
 	}
 
 	/*setup quality even for background (since quality concerns images)*/
-	VS2D_SetOptions(surf->render, surf->the_surface, ctx->is_text, ctx->no_antialias);
+	VS2D_SetOptions(surf->render, surf->the_surface, ctx->flags & CTX_IS_TEXT, ctx->flags & CTX_NO_ANTIALIAS);
 
 	/*get original bounds*/
-//	orig_rc = ctx->original;
 	gf_path_get_bounds(path, &orig_rc);
 
 	/*get active texture window in pixels*/
@@ -346,7 +345,7 @@ void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHand
 	gf_mx2d_add_translation(&gf_mx2d_txt, (orig_rc.x), (orig_rc.y - orig_rc.height));
 
 	/*move to final coordinate system (except background which is built directly in final coord system)*/	
-	if (!ctx->is_background) gf_mx2d_add_matrix(&gf_mx2d_txt, &ctx->transform);
+	if (!(ctx->flags & CTX_IS_BACKGROUND) ) gf_mx2d_add_matrix(&gf_mx2d_txt, &ctx->transform);
 
 	/*set path transform, except for background2D node which is directly build in the final coord system*/
 	r2d->stencil_set_matrix(txh->hwtx, &gf_mx2d_txt);
@@ -357,7 +356,7 @@ void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHand
 	if (txh->flags & GF_SR_TEXTURE_REPEAT_T) tx_tile |= GF_TEXTURE_REPEAT_T;
 	r2d->stencil_set_tiling(txh->hwtx, (GF_TextureTiling) tx_tile);
 
-	if (!ctx->is_background) {
+	if (!(ctx->flags & CTX_IS_BACKGROUND) ) {
 		/*texture alpha scale is the original material transparency, NOT the one after color transform*/
 		r2d->stencil_set_gf_sr_texture_alpha(txh->hwtx, ctx->aspect.fill_alpha);
 		if (!ctx->cmat.identity) r2d->stencil_set_color_matrix(txh->hwtx, &ctx->cmat);
@@ -372,7 +371,7 @@ void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHand
 	r2d->surface_set_path(surf->the_surface, path);
 	VS2D_DoFill(surf, ctx, txh->hwtx);
 	r2d->surface_set_path(surf->the_surface, NULL);
-	ctx->path_filled = 1;
+	ctx->flags |= CTX_PATH_FILLED;
 }
 
 void VS2D_TexturePath(VisualSurface2D *surf, GF_Path *path, struct _drawable_context *ctx)
@@ -380,13 +379,13 @@ void VS2D_TexturePath(VisualSurface2D *surf, GF_Path *path, struct _drawable_con
 #ifdef SKIP_DRAW
 	return;
 #endif
-	if (!surf->the_surface || ctx->path_filled || !ctx->h_texture || surf->render->compositor->is_hidden) return;
+	if (!surf->the_surface || (ctx->flags & CTX_PATH_FILLED) || !ctx->h_texture || surf->render->compositor->is_hidden) return;
 
 	/*this is ambiguous in the spec, what if the material is filled and the texture is transparent ?
 	let's draw, it's nicer */
 	if (ctx->aspect.filled && ctx->h_texture->transparent) {
 		VS2D_DrawPath(surf, path, ctx, NULL, NULL);
-		ctx->path_filled = 0;
+		ctx->flags &= ~CTX_PATH_FILLED;
 	}
 
 	VS2D_TexturePathIntern(surf, path, NULL, ctx);
@@ -404,15 +403,15 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 	
 	assert(surf->the_surface);
 
-	if (ctx->path_filled && ctx->path_stroke) {
+	if ((ctx->flags & CTX_PATH_FILLED) && (ctx->flags & CTX_PATH_STROKE) ) {
 		if (surf->render->compositor->draw_bvol) draw_clipper(surf, ctx);
 		return;
 	}
 
-	if (!ctx->is_background) VS2D_SetOptions(surf->render, surf->the_surface, ctx->is_text, 0);
+	if (! (ctx->flags & CTX_IS_BACKGROUND) ) VS2D_SetOptions(surf->render, surf->the_surface, ctx->flags & CTX_IS_TEXT, 0);
 
 	dofill = dostrike = 0;
-	if (!ctx->path_filled && ctx->aspect.filled) {
+	if (!(ctx->flags & CTX_PATH_FILLED) && ctx->aspect.filled) {
 		dofill = 1;
 		if (!brush) {
 			brush = surf->the_brush;
@@ -422,7 +421,7 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 
 
 	/*compute width based on transform and top_level transform*/
-	if (!ctx->path_stroke && ctx->aspect.pen_props.width) {
+	if (!(ctx->flags & CTX_PATH_STROKE) && ctx->aspect.pen_props.width) {
 		dostrike = 1;
 		if (!pen) {
 			pen = surf->the_pen;
@@ -433,7 +432,7 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 	}
 
 	/*set path transform, except for background2D node which is directly build in the final coord system*/
-	r2d->surface_set_matrix(surf->the_surface, ctx->is_background ? NULL : &ctx->transform);
+	r2d->surface_set_matrix(surf->the_surface, (ctx->flags & CTX_IS_BACKGROUND) ? NULL : &ctx->transform);
 
 	/*fill path*/
 	if (dofill) {
@@ -465,7 +464,7 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 					VS2D_DoFill(surf, ctx, pen);
 				}
 				/*that's ugly, but we cannot cache path outline for IFS2D/ILS2D*/
-				if (path && !ctx->is_text && (path!=ctx->node->path) ) {
+				if (path && !(ctx->flags & CTX_IS_TEXT) && (path!=ctx->node->path) ) {
 					gf_path_del(si->outline);
 					si->outline = NULL;
 				}
@@ -485,7 +484,7 @@ void VS2D_FillRect(VisualSurface2D *surf, DrawableContext *ctx, GF_Rect rc, u32 
 #endif
 
 	if (!surf->the_surface) return;
-	if (ctx->path_filled && ctx->path_stroke) {
+	if ((ctx->flags & CTX_PATH_FILLED) && (ctx->flags & CTX_PATH_STROKE) ) {
 		if (surf->render->compositor->draw_bvol) draw_clipper(surf, ctx);
 		return;
 	}

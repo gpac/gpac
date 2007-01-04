@@ -34,19 +34,8 @@ VisualSurface2D *NewVisualSurface2D()
 	ra_init(&tmp->to_redraw);
 	tmp->back_stack = gf_list_new();
 	tmp->view_stack = gf_list_new();
-	tmp->sensors = gf_list_new();
 	tmp->prev_nodes_drawn = gf_list_new();
 	return tmp;
-}
-
-void VS2D_ResetSensors(VisualSurface2D *surf)
-{
-	while (gf_list_count(surf->sensors)) {
-		SensorInfo *ptr = (SensorInfo *)gf_list_get(surf->sensors, 0);
-		gf_list_rem(surf->sensors, 0);
-		gf_list_del(ptr->nodes_on_top);
-		free(ptr);
-	}
 }
 
 void DeleteVisualSurface2D(VisualSurface2D *surf)
@@ -62,8 +51,6 @@ void DeleteVisualSurface2D(VisualSurface2D *surf)
 	gf_list_del(surf->back_stack);
 	gf_list_del(surf->view_stack);
 	gf_list_del(surf->prev_nodes_drawn);
-	VS2D_ResetSensors(surf);
-	gf_list_del(surf->sensors);
 	free(surf);
 }
 
@@ -101,28 +88,8 @@ void VS2D_RemoveLastContext(VisualSurface2D *surf)
 
 void VS2D_DrawableDeleted(struct _visual_surface_2D *surf, struct _drawable *node)
 {
-	u32 i, j;
-	SensorInfo *si;
 	gf_list_del_item(surf->prev_nodes_drawn, node);
 
-	i=0;
-	while ((si = (SensorInfo *)gf_list_enum(surf->sensors, &i))) {
-		if (si->ctx->node==node) {
-			i--;
-			gf_list_rem(surf->sensors, i);
-			gf_list_del(si->nodes_on_top);
-			free(si);
-		} else {
-			DrawableContext *ctx;
-			j=0; 
-			while ((ctx = (DrawableContext*)gf_list_enum(si->nodes_on_top, &j))) {
-				if (ctx->node==node) {
-					j--;
-					gf_list_rem(si->nodes_on_top, j);
-				}
-			}
-		}
-	}
 	/*check node isn't being tracked*/
 	if (surf->render->grab_node==node) {
 		surf->render->grab_ctx = NULL;
@@ -204,7 +171,7 @@ GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	}
 
 	/*reset sensors*/
-	VS2D_ResetSensors(surf);
+	surf->has_sensors = 0;
 
 	/*reset prev nodes if any (previous render was indirect)*/
 	count = gf_list_count(surf->prev_nodes_drawn);
@@ -216,9 +183,8 @@ GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 			gf_list_rem(surf->prev_nodes_drawn, i);
 			i--;
 			count--;
-			drawable_unregister_from_surface(dr, surf);
 		} else {
-			drawable_flush_bounds(dr, surf->render->frame_num);
+			drawable_flush_bounds(dr, surf);
 		}
 	}
 	if (!direct_render) return GF_OK;
@@ -240,58 +206,24 @@ GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 
 void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx)
 {
-	u32 i, len;
-	SensorInfo *si;
-
-	while ((si = (SensorInfo *)gf_list_enum(surf->sensors, &i))) {
-		if (gf_rect_overlaps(si->ctx->unclip, ctx->unclip)) {
-			gf_list_add(si->nodes_on_top, ctx);
-		}
-	}
+	SensorContext *sc;
 	
-	len = gf_list_count(ctx->sensors);
-	if (len) {
+	sc = ctx->sensor;
+	while (sc) {
 		/*if any of the attached sensor is active, register*/
-		for (i=0; i<len; i++) {
-			SensorContext *sc = (SensorContext *)gf_list_get(ctx->sensors, i);
-			if (sc->h_node->IsEnabled(sc->h_node)) goto register_sensor;
+		if (sc->h_node->IsEnabled(sc->h_node)) {
+			surf->has_sensors = 1;
+			return;
 		}
-		/*disable all sensors*/
-		drawctx_reset_sensors(ctx);
 	}
+	/*disable all sensors*/
+	drawctx_reset_sensors(ctx);
+	
 	/*check for composite texture*/
 	if (!ctx->h_texture || !(ctx->h_texture->flags & GF_SR_TEXTURE_COMPOSITE) ) return;
 
-	
-register_sensor:
-	si = (SensorInfo *)malloc(sizeof(SensorInfo));
-	si->ctx = ctx;
-	si->nodes_on_top = gf_list_new();
-	gf_list_add(surf->sensors, si);
+	surf->has_sensors = 1;
 }
-
-#if 0
-static void remove_hidden_sensors(VisualSurface2D *surf, u32 nodes_to_draw, DrawableContext *under_ctx)
-{
-	u32 i, k;
-
-	for (i=0; i<nodes_to_draw - 1; i++) {
-		if (! gf_irect_inside(under_ctx->clip, surf->contexts[surf->nodes_to_draw[i]]->clip) ) continue;
-		if (! gf_list_count(surf->contexts[surf->nodes_to_draw[i]]->sensors) ) continue;
-
-		for (k=0; k< gf_list_count(surf->sensors); k++) {
-			SensorInfo *si= gf_list_get(surf->sensors, k);
-			if (si->ctx == surf->contexts[surf->nodes_to_draw[i]] ) {
-				gf_list_rem(surf->sensors, k);
-				gf_list_del(si->nodes_on_top);
-				free(si);
-				break;
-			}
-		}
-	}
-}
-#endif
-
 
 #define CHECK_UNCHANGED		0
 
@@ -313,7 +245,6 @@ static void mark_opaque_areas(VisualSurface2D *surf)
 
 		for (i=surf->num_contexts; i>0; i--) {
 			DrawableContext *ctx = surf->contexts[i-1];
-			if (ctx->invalid) continue;
 
 			if (!gf_irect_inside(ctx->clip, ra->list[k]) ) {
 #if CHECK_UNCHANGED
@@ -325,7 +256,7 @@ static void mark_opaque_areas(VisualSurface2D *surf)
 			}
 
 			/*which opaquely covers the given area */
-			if (!ctx->transparent) {
+			if (! (ctx->flags & CTX_IS_TRANSPARENT) ) {
 #if CHECK_UNCHANGED
 				/*the opaque area has nothing changed above, remove the dirty rect*/
 				if (remove && !ctx->need_redraw) {
@@ -400,7 +331,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 			if (!surf->last_had_back) redraw_all = 1;
 			surf->last_had_back = 1;
 			bck_ctx = b2D_GetContext(bck, surf->back_stack);
-			if (bck_ctx->redraw_flags) redraw_all = 1;
+			if (bck_ctx->flags & CTX_REDRAW_MASK) redraw_all = 1;
 		}
 	} else if (surf->last_had_back) {
 		surf->last_had_back = 0;
@@ -411,19 +342,16 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	count = surf->num_contexts;
 	for (i=0; i<count; i++) {
 		ctx = surf->contexts[i];
-		if (gf_rect_is_empty(ctx->clip)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] node bounds empty - skipping (uncliped: %d:%d@%dx%d - local %g:%g@%gx%g)\n", ctx->unclip_pix.x, ctx->unclip_pix.y, ctx->unclip_pix.width, ctx->unclip_pix.height, FIX2FLT(ctx->original.x), FIX2FLT(ctx->original.y), FIX2FLT(ctx->original.width), FIX2FLT(ctx->original.height)));
-			ctx->invalid = 1;
-			continue;
-		}
 
 		drawctx_update_info(ctx);
-		if (ctx->redraw_flags) num_changed ++;
+		if (ctx->flags & CTX_REDRAW_MASK) {
+			num_changed ++;
 
-		/*node has changed, add to redraw area*/
-		if (!redraw_all && ctx->redraw_flags) {
-			ra_union_rect(&surf->to_redraw, ctx->clip);
-//			CHECK_MAX_NODE
+			/*node has changed, add to redraw area*/
+			if (!redraw_all) {
+				ra_union_rect(&surf->to_redraw, ctx->clip);
+//				CHECK_MAX_NODE
+			}
 		}
 		/*otherwise try to remove any sensor hidden below*/
 		//if (!ctx->transparent) remove_hidden_sensors(surf, num_to_draw, ctx);
@@ -442,12 +370,11 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 			}
 		}
 		/*if node is marked as undrawn, remove from surface*/
-		if (!n->node_was_drawn) {
-			drawable_flush_bounds(n, surf->render->frame_num);
+		if (!(n->flags & DRAWABLE_DRAWN_ON_SURFACE)) {
+			drawable_flush_bounds(n, surf);
 			gf_list_rem(surf->prev_nodes_drawn, j);
 			j--;
 			count--;
-			drawable_unregister_from_surface(n, surf);
 		}
 	}
 	/*no visual rendering*/
@@ -467,13 +394,15 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	/*nothing to redraw*/
 	if (ra_is_empty(&surf->to_redraw) ) goto exit;
 	has_changed = 1;
+	eff->traversing_mode = TRAVERSE_DRAW;
 
 	/*redraw everything*/
 	if (bck_ctx) {
+		eff->ctx = bck_ctx;
 		surf->draw_node_index = 0;
 		bck_ctx->unclip = gf_rect_ft(&surf->surf_rect);
 		bck_ctx->clip = surf->surf_rect;
-		bck_ctx->node->Draw(bck_ctx);
+		gf_node_render(bck_ctx->node->owner, eff);
 	} else {
 		count = surf->to_redraw.count;
 		if (bck_ctx) bck_ctx->unclip = gf_rect_ft(&surf->surf_rect);
@@ -500,13 +429,14 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	refreshRect = surf->to_redraw.list[0];
 	for (i=0; i<surf->num_contexts; i++) {
 		ctx = surf->contexts[i];
-		if (ctx->invalid) continue;
-
 		if ((surf->to_redraw.count>1) || gf_irect_overlaps(ctx->clip, refreshRect)) {
 			surf->draw_node_index = i+1;
-			ctx->node->Draw(ctx);
+			eff->ctx = ctx;
+			gf_node_render(ctx->node->owner, eff);
 		}
-		drawable_register_on_surface(ctx->node, surf);
+		/*keep track of node drawn*/
+		if (gf_list_find(surf->prev_nodes_drawn, ctx->node)<0) 
+			gf_list_add(surf->prev_nodes_drawn, ctx->node);
 	}
 
 exit:
@@ -518,64 +448,30 @@ exit:
 	return has_changed;
 }
 
-DrawableContext *VS2D_PickSensitiveNode(VisualSurface2D *surf, Fixed X, Fixed Y)
+DrawableContext *VS2D_PickSensitiveNode(VisualSurface2D *surf, Fixed x, Fixed y)
 {
-	u32 i, k, count;
-	Fixed x, y;
-	DrawableContext *ctx;
-
-	count = gf_list_count(surf->sensors);
-	if (!count) return NULL;
-
-	if (!surf->center_coords) {
-		x = X + INT2FIX(surf->width>>1);
-		y = INT2FIX(surf->height>>1) - Y;
-	} else {
-		x = X;
-		y = Y;
-	}
-
-
-	i = count;
-restart:
+	RenderEffect2D eff;
+	u32 i;
+	eff.pick_type = PICK_PATH;
+	eff.traversing_mode = TRAVERSE_PICK;
+	eff.x = x;
+	eff.y = y;
+	i = surf->num_contexts;
 	for (; i > 0; i--) {
-		SensorInfo *si = (SensorInfo *)gf_list_get(surf->sensors, i-1);
-
+		DrawableContext *ctx = surf->contexts[i-1];
 		/*check over bounds*/
-		if (! gf_point_in_rect(si->ctx->clip, x, y)) continue;
-
-		/*check over covering node for non-SVG*/
-		if (surf->render->main_surface_setup==1) {
-			for (k=gf_list_count(si->nodes_on_top); k>0; k--) {
-				ctx = (DrawableContext *)gf_list_get(si->nodes_on_top, k-1);
-				if (! gf_point_in_rect(ctx->clip, x, y) ) continue;
-				if (! ctx->node->IsPointOver(ctx, x, y, 0) ) continue;
-
-				/*we're over another node*/
-				if (!gf_list_count(ctx->sensors)) return NULL;
-				if (i) i--;
-				goto restart;
-			}
-		}
-		/*SVG like, depends on sensitivity of node*/
-		/* else { } */
-
-		/*check over shape*/
-		if (! si->ctx->node->IsPointOver(si->ctx, x, y, 0) ) continue;
-
+		if (!ctx->node || ! gf_point_in_rect(ctx->clip, x, y)) continue;
+		eff.ctx = ctx;
+		eff.is_over = 0;
+		gf_node_render(ctx->node->owner, &eff);
+		if (!eff.is_over) continue;
 		/*check if has sensors */
-		if (gf_list_count(si->ctx->sensors)) return si->ctx;
+		if (ctx->sensor) return ctx;
 
 		/*check for composite texture*/
-		if (si->ctx->h_texture && (si->ctx->h_texture->flags & GF_SR_TEXTURE_COMPOSITE) ) {
-			return CT2D_FindNode(si->ctx->h_texture, si->ctx, x, y);
+		if (ctx->h_texture && (ctx->h_texture->flags & GF_SR_TEXTURE_COMPOSITE) ) {
+			return CT2D_FindNode(ctx->h_texture, ctx, x, y);
 		}
-/*this is correct but VRML/MPEG-4 forbids picking on lines*/
-#if 0
-		else if (si->ctx->aspect.line_texture && (si->ctx->aspect.line_texture->flags & GF_SR_TEXTURE_COMPOSITE) ) {
-			return CT2D_FindNode(si->ctx->aspect.line_texture, si->ctx, x, y);
-		}
-#endif
 		return NULL;
     }
 	return NULL;
@@ -583,16 +479,20 @@ restart:
 
 DrawableContext *VS2D_PickContext(VisualSurface2D *surf, Fixed x, Fixed y)
 {
+	RenderEffect2D eff;
 	u32 i;
+	eff.pick_type = PICK_FULL;
+	eff.x = x;
+	eff.y = y;
 	i = surf->num_contexts;
 	for (; i > 0; i--) {
 		DrawableContext *ctx = surf->contexts[i-1];
 		/*check over bounds*/
 		if (!ctx->node || ! gf_point_in_rect(ctx->clip, x, y)) continue;
-		/*check over shape*/
-		if (!ctx->node->IsPointOver(ctx, x, y, 2) ) continue;
-
-		return ctx;
+		eff.ctx = ctx;
+		eff.is_over = 0;
+		gf_node_render(ctx->node->owner, &eff);
+		if (eff.is_over) return ctx;
     }
 	return NULL;
 }
@@ -601,6 +501,7 @@ DrawableContext *VS2D_PickContext(VisualSurface2D *surf, Fixed x, Fixed y)
 GF_Node *VS2D_PickNode(VisualSurface2D *surf, Fixed x, Fixed y)
 {
 	u32 i;
+	RenderEffect2D eff;
 	GF_Node *back;
 	M_Background2D *bck;
 	bck = NULL;
@@ -609,13 +510,17 @@ GF_Node *VS2D_PickNode(VisualSurface2D *surf, Fixed x, Fixed y)
 	if (bck && bck->isBound) back = (GF_Node *) bck;
 
 	i = surf->num_contexts;
-
+	eff.pick_type = PICK_PATH_AND_OUTLINE;
+	eff.x = x;
+	eff.y = y;
 	for (; i > 0; i--) {
 		DrawableContext *ctx = surf->contexts[i-1];
 		/*check over bounds*/
 		if (!ctx->node || ! gf_point_in_rect(ctx->clip, x, y)) continue;
 		/*check over shape*/
-		if (!ctx->node->IsPointOver(ctx, x, y, 1) ) continue;
+		eff.is_over = 0;
+		gf_node_render(ctx->node->owner, &eff);
+		if (!eff.is_over) continue;
 
 		/*check for composite texture*/
 		if (!ctx->h_texture && !ctx->aspect.line_texture) return ctx->node->owner;

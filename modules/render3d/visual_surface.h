@@ -70,7 +70,7 @@ void VS_SetupProjection(RenderEffect3D *eff);
 /*shortcut to render the root node: inits render, performs collision, draw and clear lights*/
 void VS_NodeRender(RenderEffect3D *eff, GF_Node *root_node);
 /*shortcut to render composite surfaces: inits render, draw and clear lights*/
-void VS_RootRenderChildren(RenderEffect3D *eff, GF_List *children);
+void VS_RootRenderChildren(RenderEffect3D *eff, GF_ChildNodeItem *children);
 
 /*called only by viewpoints to setup navigation modes - if vp is given the pixel_metrics flag is taken from the node
 parent graph, otherwise from the render effect*/
@@ -80,10 +80,10 @@ void VS_RegisterContext(RenderEffect3D *eff, GF_Node *shape, GF_BBox *bounds, Bo
 /*draws all nodes registered on the surface - this assumes modelview/projection has been setup before*/
 void VS_FlushContexts(VisualSurface *surf, RenderEffect3D *eff);
 /*main picker function: @node_list: if specified uses nodes in this list, otherwise uses scenegraph root*/
-Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_Event *event, GF_List *node_list);
+Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_Event *event, GF_ChildNodeItem *node_list);
 /*handle user collisions
 @node_list: list of node to perform collision. If null, collision is done on scenegraph root*/
-void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list);
+void VS_DoCollisions(RenderEffect3D *eff, GF_ChildNodeItem *node_list);
 
 
 /*base drawable stack:
@@ -121,6 +121,8 @@ void delete_drawable(DrawableStack *d);
 void drawable_Node_PreDestroy(GF_Node *n);
 /*default setup for box/cylinder... - returns stack*/
 DrawableStack *BaseDrawableStack(GF_Renderer *sr, GF_Node *node);
+
+void drawable_node_destroy(GF_Node *n);
 
 /*returns 1 if node is (partially) in view frustrum, false otherwise, and update effect cull flag
 skip_near: if set doesn't cull against near plane (for collision detection)*/
@@ -188,7 +190,7 @@ Bool VS_GetAspect2D(RenderEffect3D *eff, Aspect2D *asp);
 Fixed Aspect_GetLineWidth(Aspect2D *asp);
 
 /*setup strike (check for texture)*/
-void VS_Set2DStrikeAspect(VisualSurface *surf, Aspect2D *asp);
+void VS_Set2DStrikeAspect(RenderEffect3D *eff, Aspect2D *asp);
 
 /*get strike info - recomputes outline if needed*/
 StrikeInfo *VS_GetStrikeInfo(stack2D *st, Aspect2D *asp, RenderEffect3D *eff);
@@ -215,10 +217,10 @@ void VS_DrawMesh(RenderEffect3D *eff, GF_Mesh *mesh);
 /*setup appearance return 0 if material is fully transparent - exported for text only*/
 Bool VS_SetupAppearance(RenderEffect3D *eff);
 
+void stack2D_node_predestroy(GF_Node *n);
+
 /*setup texture - return 0 if texture could not be setup (not available or error)*/
 Bool VS_setup_texture(RenderEffect3D *eff);
-/*setup texture in 2D nodes taking care of Material2D fill & transparency - returns NULL if texture not setup*/
-GF_TextureHandler *VS_setup_texture_2d(RenderEffect3D *eff, Aspect2D *asp);
 /*disable effect texture*/
 void VS_disable_texture(RenderEffect3D *eff);
 

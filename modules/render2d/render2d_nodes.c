@@ -70,7 +70,7 @@ void R2D_InitHardcodedProto(Render2D *sr, GF_Node *node)
 void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 {
 	Render2D *sr = (Render2D *)vr->user_priv;
-
+	//return;
 	switch (gf_node_get_tag(node)) {
 	case TAG_MPEG4_Background2D: R2D_InitBackground2D(sr, node); break;
 	case TAG_MPEG4_Bitmap: R2D_InitBitmap(sr, node); break;

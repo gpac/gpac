@@ -135,7 +135,6 @@ void R2D_ResetSurfaces(Render2D *sr)
 		//while (gf_list_count(surf->prev_nodes_drawn)) gf_list_rem(surf->prev_nodes_drawn, 0);
 		gf_list_reset(surf->prev_nodes_drawn);
 		surf->to_redraw.count = 0;
-		VS2D_ResetSensors(surf);
 	}
 }
 
@@ -352,7 +351,7 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 					}
 					/*mouse over*/
 					evt.type = GF_EVENT_MOUSEOVER;
-					ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
+					ret += gf_dom_event_fire(ctx->node->owner, ctx->appear, &evt);
 
 					/*send focus out event*/
 					if (sr->grab_node || sr->focus_node) {
@@ -369,26 +368,26 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 					sr->focus_node = ctx->node->owner;
 				} else {
 					evt.type = GF_EVENT_MOUSEMOVE;
-					ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
+					ret += gf_dom_event_fire(ctx->node->owner, ctx->appear, &evt);
 				}
 				break;
 			case GF_EVENT_MOUSEDOWN:
 				if ((sr->last_click_x!=evt.screenX) || (sr->last_click_y!=evt.screenY)) sr->num_clicks = 0;
 				evt.type = GF_EVENT_MOUSEDOWN;
 				evt.detail = event->mouse.button;
-				ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
+				ret += gf_dom_event_fire(ctx->node->owner, ctx->appear, &evt);
 				sr->last_click_x = evt.screenX;
 				sr->last_click_y = evt.screenY;
 				break;
 			case GF_EVENT_MOUSEUP:
 				evt.type = GF_EVENT_MOUSEUP;
 				evt.detail = event->mouse.button;
-				ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
+				ret += gf_dom_event_fire(ctx->node->owner, ctx->appear, &evt);
 				if ((sr->last_click_x==evt.screenX) || (sr->last_click_y==evt.screenY)) {
 					sr->num_clicks ++;
 					evt.type = GF_EVENT_CLICK;
 					evt.detail = sr->num_clicks;
-					ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
+					ret += gf_dom_event_fire(ctx->node->owner, ctx->appear, &evt);
 				}
 				break;
 			}
@@ -452,6 +451,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_Event *event)
 	s32 key_inv;
 	Fixed key_trans;
 	GF_Event evt;
+	SensorContext *sc;
 	DrawableContext *ctx, *prev_ctx;
 	Render2D *sr = (Render2D *)vr->user_priv;
 
@@ -493,27 +493,27 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_Event *event)
 
 	//3- mark all sensors of the context to skip deactivation
 	if (ctx) {	
-		SensorContext *sc;
-		count = gf_list_count(ctx->sensors);
-		for (i=0; i<count; i++) {
-			SensorContext *sc = (SensorContext *)gf_list_get(ctx->sensors, i);
-			sc->h_node->skip_second_pass = 1;
-		}
-
-		sc = (SensorContext *)gf_list_get(ctx->sensors, count-1);
-		//also notify the app we're above a sensor
+		SensorContext *sc = ctx->sensor;
 		type = GF_CURSOR_NORMAL;
-		switch (gf_node_get_tag(sc->h_node->owner)) {
-		case TAG_MPEG4_Anchor: type = GF_CURSOR_ANCHOR; break;
-		case TAG_MPEG4_PlaneSensor2D: type = GF_CURSOR_PLANE; break;
-		case TAG_MPEG4_DiscSensor: type = GF_CURSOR_ROTATE; break;
-		case TAG_MPEG4_ProximitySensor2D: type = GF_CURSOR_PROXIMITY; break;
-		case TAG_MPEG4_TouchSensor: type = GF_CURSOR_TOUCH; break;
+		
+		while (sc) {
+			sc->h_node->skip_second_pass = 1;
+			if (!sc->next) {
+				switch (gf_node_get_tag(sc->h_node->owner)) {
+				case TAG_MPEG4_Anchor: type = GF_CURSOR_ANCHOR; break;
+				case TAG_MPEG4_PlaneSensor2D: type = GF_CURSOR_PLANE; break;
+				case TAG_MPEG4_DiscSensor: type = GF_CURSOR_ROTATE; break;
+				case TAG_MPEG4_ProximitySensor2D: type = GF_CURSOR_PROXIMITY; break;
+				case TAG_MPEG4_TouchSensor: type = GF_CURSOR_TOUCH; break;
 #ifndef GPAC_DISABLE_SVG
-		case TAG_SVG_a: type = GF_CURSOR_ANCHOR; break;
+				case TAG_SVG_a: type = GF_CURSOR_ANCHOR; break;
 #endif
-		default: type = GF_CURSOR_TOUCH; break;
+				default: type = GF_CURSOR_TOUCH; break;
+				}
+			}
+			sc = sc->next;
 		}
+		//also notify the app we're above a sensor
 		if (type != GF_CURSOR_NORMAL) {
 			if (sr->last_sensor != type) {
 				GF_Event evt;
@@ -545,21 +545,21 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_Event *event)
 	}
 	/*some sensors may not register with us, we still call them*/
 	if (prev_ctx && (prev_ctx != ctx)) {
-		count = gf_list_count(prev_ctx->sensors);
-		for (i=count; i>0; i--) {
-			SensorContext *sc = (SensorContext *)gf_list_get(prev_ctx->sensors, i-1);
+		sc = prev_ctx->sensor;
+		while (sc) {
 			sc->h_node->OnUserEvent(sc->h_node, &evt, NULL, NULL);
+			sc = sc->next;
 		}
 	}
 
 	/*activate current one if any*/
 	if (ctx) {
-		count = gf_list_count(ctx->sensors);
-		for (i=count; i>0; i--) {
-			SensorContext *sc = (SensorContext *)gf_list_get(ctx->sensors, i-1);
+		sc = ctx->sensor;
+		while (sc) {
 			sc->h_node->skip_second_pass = 0;
 			if (sc->h_node->OnUserEvent(sc->h_node, &evt, ctx, &sc->matrix)) 
 				break;
+			sc = sc->next;
 		}
 		return 1;
 	}

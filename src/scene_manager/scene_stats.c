@@ -311,7 +311,7 @@ Bool StatIsUSE(GF_StatManager *st, GF_Node *n)
 {
 	u32 i;
 	GF_Node *ptr;
-	if (!n || !n->sgprivate->NodeID) return 0;
+	if (!n || !gf_node_get_id(n) ) return 0;
 	i=0;
 	while ((ptr = (GF_Node*)gf_list_enum(st->def_nodes, &i))) {
 		if (ptr == n) return 1;
@@ -323,12 +323,9 @@ Bool StatIsUSE(GF_StatManager *st, GF_Node *n)
 static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 {
 	GF_Node *child, *clone;
-	GF_List *list;
-	u32 i, count, j;
+	GF_ChildNodeItem *list;
+	u32 i, count;
 	GF_FieldInfo field, clone_field;
-#ifndef GPAC_DISABLE_SVG
-	SVGElement *svge;
-#endif
 
 	if (!n) return GF_OK;
 	StatNode(st->stats, n, StatIsUSE(st, n), 0, NULL);
@@ -342,17 +339,16 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 
 #ifndef GPAC_DISABLE_SVG
 	if ((n->sgprivate->tag>= GF_NODE_RANGE_FIRST_SVG) && (n->sgprivate->tag<= GF_NODE_RANGE_LAST_SVG)) {
-		svge = (SVGElement *)n;
+		GF_ChildNodeItem *list = ((SVGElement *)n)->children;;
 		count = gf_svg_get_attribute_count(n);
 		for (i=0; i<count; i++) {
 			gf_node_get_field(n, i, &field);
 			StatSVGAttribute(st->stats, &field);
 		}
-		j=0;
-		while ((child = (GF_Node*)gf_list_enum(svge->children, &j))) {
-			StatNodeGraph(st, child);
+		while (list) {
+			StatNodeGraph(st, list->node);
+			list = list->next;
 		}
-		
 	} else 
 #endif
 	{
@@ -369,10 +365,10 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 				StatNodeGraph(st, child);
 				break;
 			case GF_SG_VRML_MFNODE:
-				list = *((GF_List **)field.far_ptr);
-				j=0;
-				while ((child = (GF_Node*)gf_list_enum(list, &j))) {
-					StatNodeGraph(st, child);
+				list = *((GF_ChildNodeItem **)field.far_ptr);
+				while (list) {
+					StatNodeGraph(st, list->node);
+					list = list->next;
 				}
 				break;
 			default:
@@ -393,9 +389,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 {
 	GF_FieldInfo field;
 	GF_Err e;
-	u32 i;
-	GF_Node *node;
-	GF_List *list;
+	GF_ChildNodeItem *list;
 	GF_CommandField *inf = NULL;
 	if (gf_list_count(com->command_fields)) 
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
@@ -418,10 +412,10 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 			if (inf->new_node) StatNodeGraph(stat, inf->new_node);
 			break;
 		case GF_SG_VRML_MFNODE:
-			list = * ((GF_List **) inf->field_ptr);
-			i=0;
-			while ((node = (GF_Node*)gf_list_enum(list, &i))) {
-				StatNodeGraph(stat, node);
+			list = * ((GF_ChildNodeItem**) inf->field_ptr);
+			while (list) {
+				StatNodeGraph(stat, list->node);
+				list = list->next;
 			}
 			break;
 		default:
@@ -453,7 +447,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 
 		/*then we need special handling in case of a node*/
 		if (gf_sg_vrml_get_sf_type(field.fieldType) == GF_SG_VRML_SFNODE) {
-			GF_Node *n = (GF_Node*)gf_list_get(* ((GF_List **) field.far_ptr), inf->pos);
+			GF_Node *n = gf_node_list_get_child( * (GF_ChildNodeItem **) field.far_ptr, inf->pos);
 			if (n) StatNode(stat->stats, n, 0, 1, NULL);
 		} else {
 			StatRemField(stat->stats, inf->fieldType, NULL);

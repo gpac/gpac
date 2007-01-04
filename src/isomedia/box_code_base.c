@@ -2569,10 +2569,12 @@ GF_Err payt_Read(GF_Box *s, GF_BitStream *bs)
 	GF_PAYTBox *ptr = (GF_PAYTBox *)s;
 
 	ptr->payloadCode = gf_bs_read_u32(bs);
-	length = (u32) (ptr->size);
-	ptr->payloadString = (char*)malloc(sizeof(char) * length);
+	length = gf_bs_read_u8(bs);
+	ptr->payloadString = (char*)malloc(sizeof(char) * (length+1) );
 	if (! ptr->payloadString) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->payloadString, length);
+	ptr->payloadString[length] = 0;
+	ptr->size -= 4+length+1;
 	return GF_OK;
 }
 GF_Box *payt_New()
@@ -2587,15 +2589,16 @@ GF_Box *payt_New()
 #ifndef GPAC_READ_ONLY
 GF_Err payt_Write(GF_Box *s, GF_BitStream *bs)
 {
+	u32 len;
 	GF_Err e;
 	GF_PAYTBox *ptr = (GF_PAYTBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_bs_write_u32(bs, ptr->payloadCode);
-	if (ptr->payloadString) {
-		gf_bs_write_data(bs, ptr->payloadString, strlen(ptr->payloadString) + 1);
-	}
+	len = strlen(ptr->payloadString);
+	gf_bs_write_u8(bs, len);
+	if (len) gf_bs_write_data(bs, ptr->payloadString, len);
 	return GF_OK;
 }
 GF_Err payt_Size(GF_Box *s)

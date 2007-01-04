@@ -96,16 +96,6 @@ static void fg_update_bounds(FormGroup *fg)
 }
 
 
-static void DestroyForm(GF_Node *n)
-{
-	FormStack *st = (FormStack *)gf_node_get_private(n);
-	DeleteGroupingNode2D((GroupingNode2D *)st);
-
-	form_reset(st);
-	gf_list_del(st->grouplist);
-	free(st);
-}
-
 static void shin_apply(FormStack *st, u32 *group_idx, u32 count);
 static void sh_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count);
 static void svin_apply(FormStack *st, u32 *group_idx, u32 count);
@@ -203,7 +193,7 @@ static void form_apply(FormStack *st, const char *constraint, u32 *group_idx, u3
 #define MAX_FORM_GROUP_INDEX	100
 #endif
 
-static void RenderForm(GF_Node *n, void *rs)
+static void RenderForm(GF_Node *n, void *rs, Bool is_destroy)
 {
 	u32 idx[MAX_FORM_GROUP_INDEX];
 	u32 i, index, last_ind, j;
@@ -215,6 +205,13 @@ static void RenderForm(GF_Node *n, void *rs)
 	FormStack *st = (FormStack *)gf_node_get_private(n);
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
+	if (is_destroy) {
+		DeleteGroupingNode2D((GroupingNode2D *)st);
+		form_reset(st);
+		gf_list_del(st->grouplist);
+		free(st);
+		return;
+	}
 	/*init effect*/
 	gf_mx2d_copy(gf_mx2d_bck, eff->transform);
 	parent_bck = eff->parent;
@@ -298,8 +295,7 @@ void R2D_InitForm(Render2D *sr, GF_Node *node)
 	stack->grouplist = gf_list_new();
 
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyForm);
-	gf_node_set_render_function(node, RenderForm);
+	gf_node_set_callback_function(node, RenderForm);
 }
 
 

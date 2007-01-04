@@ -42,11 +42,14 @@ Bool gf_sg_has_scripting()
 #endif
 }
 
-void Script_PreDestroy(GF_Node *node)
+void Script_PreDestroy(GF_Node *node, void *eff, Bool is_destroy)
 {
 	GF_ScriptPriv *priv;
 	GF_ScriptField *field;
-	priv = (GF_ScriptPriv *)node->sgprivate->privateStack;
+	
+	if (!is_destroy) return;
+
+	priv = (GF_ScriptPriv *)node->sgprivate->UserPrivate;
 	
 	if (priv->JS_PreDestroy) priv->JS_PreDestroy(node);
 
@@ -62,8 +65,7 @@ void Script_PreDestroy(GF_Node *node)
 				gf_node_unregister((GF_Node *) field->pField, node);
 				break;
 			case GF_SG_VRML_MFNODE:
-				gf_node_unregister_children(node, (GF_List*) field->pField);
-				gf_list_del((GF_List*)field->pField);
+				gf_node_unregister_children(node, (GF_ChildNodeItem*) field->pField);
 				break;
 			default:
 				gf_sg_vrml_field_pointer_del(field->pField, field->fieldType);
@@ -80,7 +82,7 @@ void Script_PreDestroy(GF_Node *node)
 u32 gf_sg_script_get_num_fields(GF_Node *node, u8 IndexMode)
 {
 	u32 nb_static;
-	GF_ScriptPriv *priv = (GF_ScriptPriv *)node->sgprivate->privateStack;
+	GF_ScriptPriv *priv = (GF_ScriptPriv *)node->sgprivate->UserPrivate;
 	switch (IndexMode) {
 	case GF_SG_FIELD_CODING_IN:
 		return priv->numIn;
@@ -101,7 +103,7 @@ GF_Err gf_sg_script_get_field_index(GF_Node *node, u32 inField, u8 IndexMode, u3
 	u32 i;
 	GF_ScriptField *sf;
 	u32 nb_static = script_get_nb_static_field(node);
-	GF_ScriptPriv *priv = (GF_ScriptPriv *)node->sgprivate->privateStack;
+	GF_ScriptPriv *priv = (GF_ScriptPriv *)node->sgprivate->UserPrivate;
 	i=0;
 	while ((sf = (GF_ScriptField *)gf_list_enum(priv->fields, &i))) {
 		*allField = i-1+nb_static;
@@ -185,7 +187,7 @@ void gf_sg_script_init(GF_Node *node)
 	priv->fields = gf_list_new();
 
 	gf_node_set_private(node, priv);
-	node->sgprivate->PreDestroyNode = Script_PreDestroy;
+	node->sgprivate->UserCallback = Script_PreDestroy;
 
 #ifdef GF_NODE_USE_POINTERS
 	/*store original table and provide replacement */
@@ -238,7 +240,7 @@ GF_ScriptField *gf_sg_script_field_new(GF_Node *node, u32 eventType, u32 fieldTy
 	gf_list_add(priv->fields, field);
 
 	//create field entry
-	if (fieldType != GF_SG_VRML_SFNODE) {
+	if ((fieldType != GF_SG_VRML_SFNODE) && (fieldType != GF_SG_VRML_MFNODE) ) {
 		field->pField = gf_sg_vrml_field_pointer_new(fieldType);
 	}
 	
@@ -251,8 +253,8 @@ GF_Err gf_sg_script_prepare_clone(GF_Node *dest, GF_Node *orig)
 	u32 i, type;
 	GF_ScriptField *sf;
 	GF_ScriptPriv *dest_priv, *orig_priv;
-	orig_priv = (GF_ScriptPriv *)orig->sgprivate->privateStack;
-	dest_priv = (GF_ScriptPriv *)dest->sgprivate->privateStack;
+	orig_priv = (GF_ScriptPriv *)orig->sgprivate->UserPrivate;
+	dest_priv = (GF_ScriptPriv *)dest->sgprivate->UserPrivate;
 	if (!orig_priv || !dest_priv) return GF_BAD_PARAM;
 
 	i=0;
@@ -301,7 +303,7 @@ GF_Err gf_sg_script_field_get_info(GF_ScriptField *field, GF_FieldInfo *info)
 
 void gf_sg_script_event_in(GF_Node *node, GF_FieldInfo *in_field)
 {
-	GF_ScriptPriv *priv = (GF_ScriptPriv *)node->sgprivate->privateStack;
+	GF_ScriptPriv *priv = (GF_ScriptPriv *)node->sgprivate->UserPrivate;
 	if (priv->JS_EventIn) priv->JS_EventIn(node, in_field);
 }
 

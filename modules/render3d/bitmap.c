@@ -60,7 +60,7 @@ static Bool BitmapIntersectWithRay(GF_Node *owner, GF_Ray *ray, SFVec3f *outPoin
 }
 
 
-static void RenderBitmap(GF_Node *node, void *rs)
+static void RenderBitmap(GF_Node *node, void *rs, Bool is_destroy)
 {
 	Aspect2D asp;
 #ifndef GPAC_USE_OGL_ES
@@ -76,6 +76,11 @@ static void RenderBitmap(GF_Node *node, void *rs)
 	M_Bitmap *bmp = (M_Bitmap *)st->owner;
 	Render3D *sr = (Render3D*)st->compositor->visual_renderer->user_priv;
 
+	if (is_destroy) {
+		mesh_free(st->mesh);
+		free(st);
+		return;
+	}
 	if (!eff->appear) return;
 	if (! ((M_Appearance *)eff->appear)->texture) return;
 	txh = R3D_GetTextureHandler(((M_Appearance *)eff->appear)->texture);
@@ -170,20 +175,12 @@ static void RenderBitmap(GF_Node *node, void *rs)
 #endif
 }
 
-
-static void Bitmap_PreDestroy(GF_Node *n)
-{
-	BitmapStack *st = (BitmapStack *)gf_node_get_private(n);
-	mesh_free(st->mesh);
-	free(st);
-}
-
 void R3D_InitBitmap(Render3D *sr, GF_Node *node)
 {
-	BitmapStack *st = GF_SAFEALLOC(st, BitmapStack);
+	BitmapStack *st;
+	GF_SAFEALLOC(st, BitmapStack);
 	stack_setup(st, node, sr->compositor);
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, Bitmap_PreDestroy);
-	gf_node_set_render_function(node, RenderBitmap);
+	gf_node_set_callback_function(node, RenderBitmap);
 	st->IntersectWithRay = BitmapIntersectWithRay;
 }

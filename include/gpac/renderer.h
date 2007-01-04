@@ -147,6 +147,8 @@ u32 gf_sr_get_audio_buffer_length(GF_Renderer *sr);
 
 void *gf_sr_get_visual_renderer(GF_Renderer *sr);
 
+GF_Renderer *gf_sr_get_renderer(GF_Node *node);
+
 #ifdef __cplusplus
 }
 #endif

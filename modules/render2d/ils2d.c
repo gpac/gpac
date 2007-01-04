@@ -57,31 +57,6 @@ static void build_graph(Drawable *cs, M_IndexedLineSet2D *ils2D)
 	cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 }
 
-
-static void RenderILS2D(GF_Node *node, void *rs)
-{
-	DrawableContext *ctx;
-	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
-	Drawable *cs = (Drawable *)gf_node_get_private(node);
-	RenderEffect2D *eff = (RenderEffect2D *)rs;
-
-	if (!ils2D->coord) return;
-
-	if (gf_node_dirty_get(node)) {
-		drawable_reset_path(cs);
-		build_graph(cs, ils2D);
-		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
-	}
-
-	ctx = drawable_init_context(cs, eff);
-	if (!ctx) return;
-	/*ILS2D are NEVER filled*/
-	ctx->aspect.filled = 0;
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
-}
-
 static void ILS2D_Draw(DrawableContext *ctx)
 {
 	GF_Path *path;
@@ -232,9 +207,45 @@ static void ILS2D_Draw(DrawableContext *ctx)
 		i ++;
 		col_ind += num_col + 1;
 		if (i >= ils2D->coordIndex.count) break;
-		ctx->path_stroke = 0;
+		ctx->flags &= ~CTX_PATH_STROKE;
 	}
 	gf_path_del(path);
+}
+
+
+static void RenderILS2D(GF_Node *node, void *rs, Bool is_destroy)
+{
+	DrawableContext *ctx;
+	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
+
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		ILS2D_Draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		return;
+	}
+
+	if (!ils2D->coord) return;
+
+	if (gf_node_dirty_get(node)) {
+		drawable_reset_path(cs);
+		build_graph(cs, ils2D);
+		gf_node_dirty_clear(node, 0);
+		cs->flags |= DRAWABLE_HAS_CHANGED;
+	}
+
+	ctx = drawable_init_context(cs, eff);
+	if (!ctx) return;
+	/*ILS2D are NEVER filled*/
+	ctx->aspect.filled = 0;
+	drawable_finalize_render(ctx, eff, NULL);
 }
 
 static void ILS2D_SetColorIndex(GF_Node *node)
@@ -255,9 +266,7 @@ void R2D_InitILS2D(Render2D *sr, GF_Node *node)
 {
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
 	Drawable * stack = drawable_stack_new(sr, node);
-	/*override draw*/
-	stack->Draw = ILS2D_Draw;
-	gf_node_set_render_function(node, RenderILS2D);
+	gf_node_set_callback_function(node, RenderILS2D);
 	ils2D->on_set_colorIndex = ILS2D_SetColorIndex;
 	ils2D->on_set_coordIndex = ILS2D_SetCoordIndex;
 }

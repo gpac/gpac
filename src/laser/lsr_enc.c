@@ -2933,10 +2933,13 @@ static void lsr_write_update_content_model(GF_LASeRCodec *lsr, SVGElement *paren
 
 static void lsr_write_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool skip_object_content)
 {
-	u32 i, count;
+	GF_ChildNodeItem *l;
+	u32 count;
 	if (!skip_object_content) lsr_write_private_attributes(lsr, elt);
 
-	count = gf_list_count(elt->children);
+	count = gf_node_list_get_count(elt->children);
+	l = elt->children;
+
 	if (elt->textContent) count++;
 	if (!count) {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");
@@ -2950,10 +2953,10 @@ static void lsr_write_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool sk
 		lsr_write_byte_align_string(lsr, elt->textContent, "textContent");
 		count--;
 	}
-	for (i=0; i<count; i++) {
-		void *n = gf_list_get(elt->children, i);
-		lsr_write_scene_content_model(lsr, elt, n);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] ############## end %s ###########\n", gf_node_get_class_name((GF_Node*)n)));
+	while (l) {
+		lsr_write_scene_content_model(lsr, elt, l->node);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] ############## end %s ###########\n", gf_node_get_class_name((GF_Node*)l->node)));
+		l = l->next;
 	}
 }
 
@@ -3186,11 +3189,13 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 	/*if not add*/
 	if (type!=LSR_UPDATE_ADD) {
 		if (field && field->node_list && !com->fromNodeID) {
-			u32 i, count = gf_list_count(field->node_list);
+			GF_ChildNodeItem *l = field->node_list;
+			u32 count = gf_node_list_get_count(l);
 			GF_LSR_WRITE_INT(lsr, 1, 1, "opt_group");
 			lsr_write_vluimsbf5(lsr, count, "count");
-			for (i=0; i<count; i++) {
-				lsr_write_update_content_model(lsr, (SVGElement *) com->node, gf_list_get(field->node_list, i));
+			while (l) {
+				lsr_write_update_content_model(lsr, (SVGElement *) com->node, l->node);
+				l = l->next;
 			}
 		} else {
 			GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");
@@ -3338,6 +3343,7 @@ static void lsr_check_font_index(GF_LASeRCodec *lsr, SVG_FontFamily *font)
 
 static void lsr_check_font_and_color(GF_LASeRCodec *lsr, SVGElement *elt)
 {
+	GF_ChildNodeItem *l;
 	u32 i, count;
 	if (elt->properties) {
 		lsr_check_col_index(lsr, NULL, &elt->properties->color);
@@ -3371,10 +3377,10 @@ static void lsr_check_font_and_color(GF_LASeRCodec *lsr, SVGElement *elt)
 			}
 		}
 	}
-	count = gf_list_count(elt->children);
-	for (i=0; i<count; i++) {
-		SVGElement *c = (SVGElement *)gf_list_get(elt->children, i);
-		lsr_check_font_and_color(lsr, c);
+	l = elt->children;
+	while (l) {
+		lsr_check_font_and_color(lsr, (SVGElement*)l->node);
+		l = l->next;
 	}
 }
 
@@ -3424,8 +3430,11 @@ static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool r
 				else if (field->fieldType==SVG_FontFamily_datatype) lsr_check_font_index(lsr, (SVG_FontFamily*)field->field_ptr);
 				else if (field->new_node) lsr_check_font_and_color(lsr, (SVGElement*)field->new_node);
 				else if (field->node_list) {
-					count = gf_list_count(field->node_list);
-					for (i=0; i<count; i++) lsr_check_font_and_color(lsr, (SVGElement*)gf_list_get(field->node_list, i) );
+					GF_ChildNodeItem *l = field->node_list;
+					while (l) {
+						lsr_check_font_and_color(lsr, (SVGElement*)l->node);
+						l = l->next;
+					}
 				}
 			} else if (com->node && (com->tag!=GF_SG_LSR_DELETE) ) {
 				lsr_check_font_and_color(lsr, (SVGElement *)com->node);

@@ -32,18 +32,17 @@ typedef struct
 	SFVec2f pos;
 } Sound2DStack;
 
-static void DestroySound2D(GF_Node *node)
-{
-	Sound2DStack *st = (Sound2DStack *)gf_node_get_private(node);
-	free(st);
-}
-
 /*sound2D wraper - spacialization is not supported yet*/
-static void RenderSound2D(GF_Node *node, void *rs)
+static void RenderSound2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	RenderEffect2D *eff = (RenderEffect2D*) rs;
 	M_Sound2D *snd = (M_Sound2D *)node;
 	Sound2DStack *st = (Sound2DStack *)gf_node_get_private(node);
+
+	if (is_destroy) {
+		free(st);
+		return;
+	}
 
 	if (!snd->source) return;
 
@@ -73,6 +72,5 @@ void R2D_InitSound2D(Render2D *sr, GF_Node *node)
 	snd->snd_ifce.GetPriority = SND2D_GetPriority;
 	snd->snd_ifce.owner = node;
 	gf_node_set_private(node, snd);
-	gf_node_set_render_function(node, RenderSound2D);
-	gf_node_set_predestroy_function(node, DestroySound2D);
+	gf_node_set_callback_function(node, RenderSound2D);
 }

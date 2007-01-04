@@ -78,7 +78,7 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 	case TAG_SVG_video: 
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
-		return (node->sgprivate->privateStack || node->sgprivate->RenderNode) ? 1 : 0;
+		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
 	/*discard is implemented as a special animation element */
 	case TAG_SVG_discard: 
 		gf_smil_anim_init_discard(node);

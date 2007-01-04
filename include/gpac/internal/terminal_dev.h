@@ -154,8 +154,6 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown);
 void gf_is_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for_shutdown);
 /*browse all (media) channels and send buffering info to the app*/
 void gf_is_buffering_info(GF_InlineScene *is);
-/*the inline rendering function*/
-void gf_is_render(GF_Node *pInline, void *render_stack);
 void gf_is_attach_to_renderer(GF_InlineScene *is);
 struct _mediaobj *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
 void gf_is_setup_object(GF_InlineScene *is, GF_ObjectManager *odm);

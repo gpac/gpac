@@ -368,9 +368,9 @@ children: list of children SFNodes
 
 #define VRML_CHILDREN							\
 	CHILDREN									\
-	GF_List *addChildren;							\
+	GF_ChildNodeItem *addChildren;							\
 	void (*on_addChildren)(GF_Node *pNode);		\
-	GF_List *removeChildren;						\
+	GF_ChildNodeItem *removeChildren;						\
 	void (*on_removeChildren)(GF_Node *pNode);		\
 
 typedef struct
@@ -380,7 +380,7 @@ typedef struct
 } GF_VRMLParent;
 
 void gf_sg_vrml_parent_setup(GF_Node *pNode);
-void gf_sg_vrml_parent_reset(GF_Node *pNode);
+void gf_sg_vrml_parent_destroy(GF_Node *pNode);
 
 
 /*set proto loader - callback is the same as simulation time callback
@@ -595,7 +595,7 @@ GF_Err gf_node_remove_child(GF_Node *parent, GF_Node *toremove_child);
 position is the 0-BASED index in the list of children, -1 means end of list (append)
 DOES NOT CHECK CHILD/PARENT type compatibility
 */
-GF_Err gf_node_replace_child(GF_Node *node, GF_List *container, s32 pos, GF_Node *newNode);
+GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 pos, GF_Node *newNode);
 
 /*signals eventOut has been set. FieldIndex/eventName identify the eventOut field. Routes are automatically triggered
 when the event is signaled*/

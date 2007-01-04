@@ -147,9 +147,6 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node);
 GF_Err gf_bifs_dec_node_mask(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node);
 
-
-GF_Node *gf_bifs_dec_find_node(GF_BifsDecoder * codec, u32 NodeID);
-
 /*called once a field has been modified through a command, send eventOut or propagate eventIn if needed*/
 void gf_bifs_check_field_change(GF_Node *node, GF_FieldInfo *field);
 
@@ -225,9 +222,6 @@ u32 gf_bifs_ndt_get_node_type(u32 NDT_Tag, u32 NodeType, u32 Version);
 
 /*set QP and anim info for a proto field (BIFS allows for that in proto coding)*/
 GF_Err gf_bifs_proto_field_set_aq_info(GF_ProtoFieldInterface *field, u32 QP_Type, u32 hasMinMax, u32 QPSFType, void *qp_min_value, void *qp_max_value, u32 QP13_NumBits);
-
-
-GF_Err gf_bifs_insert_sf_node(void *mfnode_far_ptr, GF_Node *new_child, s32 Position);
 
 #endif	//_GF_BIFS_DEV_H_
 

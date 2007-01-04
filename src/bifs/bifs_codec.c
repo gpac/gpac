@@ -252,14 +252,6 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_l
 }
 	
 
-GF_Node *gf_bifs_dec_find_node(GF_BifsDecoder * codec, u32 NodeID)
-{	
-	assert(codec->current_graph);
-	return gf_sg_find_node(codec->current_graph, NodeID);
-}
-
-
-
 void gf_bifs_decoder_set_time_offset(GF_BifsDecoder *codec, Double ts)
 {
 	codec->cts_offset = ts;

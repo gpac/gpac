@@ -985,9 +985,11 @@ u32 gf_bt_get_def_id(GF_BTParser *parser, char *defName)
 		n = gf_sg_find_node(parser->load->scene_graph, ID);
 		/*if an existing node use*/
 		if (n) {
+			u32 id;
 			u32 nID = gf_bt_get_next_node_id(parser);
-			gf_bt_report(parser, GF_OK, "changing node \"%s\" ID from %d to %d", n->sgprivate->NodeName, n->sgprivate->NodeID-1, nID-1);
-			gf_node_set_id(n, nID, n->sgprivate->NodeName);
+			const char *name = gf_node_get_name_and_id(n, &id);
+			gf_bt_report(parser, GF_OK, "changing node \"%s\" ID from %d to %d", name, id -1, nID-1);
+			gf_node_set_id(n, nID, name);
 		}
 		if (parser->load->ctx && (parser->load->ctx->max_node_id<ID)) parser->load->ctx->max_node_id=ID;
 	} else {
@@ -1030,8 +1032,7 @@ void gf_bt_check_unresolved_nodes(GF_BTParser *parser)
 	if (!count) return;
 	for (i=0; i<count; i++) {
 		GF_Node *n = (GF_Node *)gf_list_get(parser->undef_nodes, i);
-		assert(n->sgprivate->NodeName);
-		gf_bt_report(parser, GF_BAD_PARAM, "Cannot find node %s\n", n->sgprivate->NodeName);
+		gf_bt_report(parser, GF_BAD_PARAM, "Cannot find node %s\n", gf_node_get_name(n) );
 	}
 	parser->last_error = GF_BAD_PARAM;
 }
@@ -1042,7 +1043,7 @@ Bool gf_bt_has_been_def(GF_BTParser *parser, char *node_name)
 	count = gf_list_count(parser->def_nodes);
 	for (i=0; i<count; i++) {
 		GF_Node *n = (GF_Node *) gf_list_get(parser->def_nodes, i);
-		if (!strcmp(n->sgprivate->NodeName, node_name)) return 1;
+		if (!strcmp(gf_node_get_name(n), node_name)) return 1;
 	}
 	return 0;
 }
@@ -1106,7 +1107,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 		undef_node = gf_sg_find_node_by_name(parser->load->scene_graph, name);
 		if (undef_node) {
 			gf_list_del_item(parser->peeked_nodes, undef_node);
-			ID = undef_node->sgprivate->NodeID;
+			ID = gf_node_get_id(undef_node);
 			/*if we see twice a DEF N1 then force creation of a new node*/
 			if (gf_bt_has_been_def(parser, name)) {
 				undef_node = NULL;
@@ -1315,6 +1316,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 				break;
 			case GF_SG_VRML_MFNODE:
 			{
+				GF_ChildNodeItem *last = NULL;
 				Bool single_child = 0;
 				if (!gf_bt_check_code(parser, '[')) {
 					if (parser->is_wrl) single_child = 1;
@@ -1323,12 +1325,8 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 
 				/*if redefining node reset it - this happens with CreateVrmlFromString*/
 				if (undef_node==node) {
-					GF_List *l = *(GF_List **)info.far_ptr;
-					while (gf_list_count(l)) {
-						GF_Node *tmp = (GF_Node *)gf_list_get(l, 0);
-						gf_node_unregister(tmp, node);
-						gf_list_rem(l, 0);
-					}
+					gf_node_unregister_children(node, *(GF_ChildNodeItem **)info.far_ptr);
+					*(GF_ChildNodeItem **)info.far_ptr = NULL;
 				}
 
 				while (single_child || !gf_bt_check_code(parser, ']')) {
@@ -1338,7 +1336,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 					if (!newnode && parser->last_error) goto err;
 					if (newnode) {
 						if (!gf_bt_check_ndt(parser, &info, newnode, node)) goto err;
-						gf_list_add(*(GF_List **)info.far_ptr, newnode);
+						gf_node_list_add_child_last( (GF_ChildNodeItem **)info.far_ptr, newnode, &last);
 					}
 					if (single_child) break;
 				}
@@ -1400,14 +1398,12 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 	u32 pos, line, line_pos, i, count;
 	
 	n = gf_sg_find_node_by_name(parser->load->scene_graph, defID);
-	if (n) {
-		assert(!parser->load->ctx || (n->sgprivate->NodeID <= parser->load->ctx->max_node_id));
-		return n;
-	}
+	if (n) return n;
+
 	count = gf_list_count(parser->peeked_nodes);
 	for (i=0; i<count; i++) {
 		n = (GF_Node *)gf_list_get(parser->peeked_nodes, i);
-		if (!strcmp(n->sgprivate->NodeName, defID)) return n;
+		if (!strcmp(gf_node_get_name(n), defID)) return n;
 	}
 
 	the_node = NULL;
@@ -1594,12 +1590,13 @@ next_field:
 				pfield->def_sfnode_value = gf_bt_sf_node(parser, str, NULL, NULL);
 			}
 		} else if (fType==GF_SG_VRML_MFNODE) {
+			GF_ChildNodeItem *last = NULL;
 			if (gf_bt_check_code(parser, '[')) {
 				while (1) {
 					GF_Node *pf_node;
 					if (gf_bt_check_code(parser, ']')) break;
 					pf_node = gf_bt_sf_node(parser, NULL, NULL, NULL);
-					if (pf_node) gf_list_add(pfield->def_mfnode_value, pf_node);
+					if (pf_node) gf_node_list_add_child_last( &pfield->def_mfnode_value, pf_node, &last);
 				}
 			}
 		} else if (gf_sg_vrml_is_sf_field(fType)) {
@@ -1790,7 +1787,7 @@ GF_Route *gf_bt_parse_route(GF_BTParser *parser, Bool skip_def, Bool is_insert, 
 	}
 
 	if (e != GF_OK) {
-		gf_bt_report(parser, GF_BAD_PARAM, "%s not a field of node %s (%s)", str, orig->sgprivate->NodeName, gf_node_get_class_name(orig));
+		gf_bt_report(parser, GF_BAD_PARAM, "%s not a field of node %s (%s)", str, gf_node_get_name(orig), gf_node_get_class_name(orig));
 		return NULL;
 	}
 	str = gf_bt_get_next(parser, 0);
@@ -1822,13 +1819,13 @@ GF_Route *gf_bt_parse_route(GF_BTParser *parser, Bool skip_def, Bool is_insert, 
 	}
 
 	if (e != GF_OK) {
-		gf_bt_report(parser, GF_BAD_PARAM, "%s not a field of node %s (%s)", str, dest->sgprivate->NodeName, gf_node_get_class_name(dest));
+		gf_bt_report(parser, GF_BAD_PARAM, "%s not a field of node %s (%s)", str, gf_node_get_name(dest), gf_node_get_class_name(dest));
 		return NULL;
 	}
 	if (com) {
-		com->fromNodeID = orig->sgprivate->NodeID;
+		com->fromNodeID = gf_node_get_id(orig);
 		com->fromFieldIndex = orig_field.fieldIndex;
-		com->toNodeID = dest->sgprivate->NodeID;
+		com->toNodeID = gf_node_get_id(dest);
 		com->toFieldIndex = dest_field.fieldIndex;
 		if (rID) {
 			com->RouteID = rID;
@@ -1986,16 +1983,18 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 				if (!gf_bt_check_ndt(parser, &info, inf->new_node, n)) goto err;
 				break;
 			case GF_SG_VRML_MFNODE:
+			{
+				GF_ChildNodeItem *last = NULL;
 				if (!gf_bt_check_code(parser, '[')) break;
-				inf->node_list = gf_list_new();
 				inf->field_ptr = &inf->node_list;
 				while (!gf_bt_check_code(parser, ']')) {
 					newnode = gf_bt_sf_node(parser, NULL, NULL, NULL);
 					if (!newnode) goto err;
 					if (parser->last_error!=GF_OK) goto err;
 					if (!gf_bt_check_ndt(parser, &info, newnode, n)) goto err;
-					gf_list_add(inf->node_list, newnode);
+					gf_node_list_add_child_last(& inf->node_list, newnode, &last);
 				}
+			}
 				break;
 			default:
 				inf->field_ptr = gf_sg_vrml_field_pointer_new(info.fieldType);
@@ -2231,18 +2230,20 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 				inf->field_ptr = &inf->new_node;
 				break;
 			case GF_SG_VRML_MFNODE:
+			{
+				GF_ChildNodeItem *last = NULL;
 				if (!gf_bt_check_code(parser, '[')) {
 					gf_bt_report(parser, GF_BAD_PARAM, "[ expected");
 					goto err;
 				}
-				inf->node_list = gf_list_new();
 				info.far_ptr = inf->field_ptr = &inf->node_list;
 				while (!gf_bt_check_code(parser, ']')) {
 					newnode = gf_bt_sf_node(parser, NULL, NULL, NULL);
 					if (parser->last_error!=GF_OK) goto err;
 					if (!gf_bt_check_ndt(parser, &info, newnode, n)) goto err;
-					gf_list_add(inf->node_list, newnode);
+					gf_node_list_add_child_last( & inf->node_list, newnode, &last);
 				}
+			}
 				break;
 			default:
 				info.far_ptr = inf->field_ptr = gf_sg_vrml_field_pointer_new(inf->fieldType);

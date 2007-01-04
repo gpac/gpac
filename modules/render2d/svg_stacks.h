@@ -36,8 +36,8 @@
 
 void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *backup_props);
 void svg_render_node(GF_Node *node, RenderEffect2D *eff);
-void svg_render_node_list(GF_List *children, RenderEffect2D *eff);
-void svg_get_nodes_bounds(GF_Node *self, GF_List *children, RenderEffect2D *eff);
+void svg_render_node_list(GF_ChildNodeItem *children, RenderEffect2D *eff);
+void svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, RenderEffect2D *eff);
 
 
 /* Creates a rendering context and Translates the SVG Styling properties into a context

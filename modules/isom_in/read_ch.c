@@ -151,14 +151,18 @@ fetch_next:
 
 	if (ch->is_encrypted) {
 		GF_ISMASample *ismasamp = gf_isom_get_ismacryp_sample(ch->owner->mov, ch->track, ch->sample, 1);
-		free(ch->sample->data);
-		ch->sample->data = ismasamp->data;
-		ch->sample->dataLength = ismasamp->dataLength;
-		ismasamp->data = NULL;
-		ismasamp->dataLength = 0;
-		ch->current_slh.isma_encrypted = (ismasamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0;
-		ch->current_slh.isma_BSO = ismasamp->IV;
-		gf_isom_ismacryp_delete_sample(ismasamp);
+		if (ismasamp) {
+			free(ch->sample->data);
+			ch->sample->data = ismasamp->data;
+			ch->sample->dataLength = ismasamp->dataLength;
+			ismasamp->data = NULL;
+			ismasamp->dataLength = 0;
+			ch->current_slh.isma_encrypted = (ismasamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0;
+			ch->current_slh.isma_BSO = ismasamp->IV;
+			gf_isom_ismacryp_delete_sample(ismasamp);
+		} else {
+			ch->current_slh.isma_encrypted = 0;
+		}
 	}
 }
 

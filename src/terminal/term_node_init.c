@@ -43,26 +43,16 @@ void SVG_Init_animation(GF_InlineScene *is, GF_Node *node);
 void SVG_Init_use(GF_InlineScene *is, GF_Node *node);
 #endif
 
-void Destroy_WorldInfo(GF_Node *node)
+void Render_WorldInfo(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
-	is->world_info = NULL;
-}
-void Render_WorldInfo(GF_Node *node, void *rs)
-{
-	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
-	is->world_info = (M_WorldInfo *) node;
+	is->world_info = is_destroy ? NULL : (M_WorldInfo *) node;
 }
 
-void Destroy_SVGtitle(GF_Node *node)
+void Render_SVGtitle(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
-	is->world_info = (M_WorldInfo *) node;
-}
-void Render_SVGtitle(GF_Node *node, void *rs)
-{
-	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
-	is->world_info = (M_WorldInfo *) node;
+	is->world_info = is_destroy ? NULL : (M_WorldInfo *) node;
 }
 
 void gf_term_on_node_init(void *_is, GF_Node *node)
@@ -85,8 +75,7 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 	/*world info is stored at the inline scene level*/
 	case TAG_MPEG4_WorldInfo:
 	case TAG_X3D_WorldInfo:
-		gf_node_set_predestroy_function(node, Destroy_WorldInfo);
-		gf_node_set_render_function(node, Render_WorldInfo);
+		gf_node_set_callback_function(node, Render_WorldInfo);
 		gf_node_set_private(node, is);
 		break;
 
@@ -95,8 +84,7 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_title: 
-		gf_node_set_predestroy_function(node, Destroy_SVGtitle);
-		gf_node_set_render_function(node, Render_SVGtitle);
+		gf_node_set_callback_function(node, Render_SVGtitle);
 		gf_node_set_private(node, is);
 		break;
 
