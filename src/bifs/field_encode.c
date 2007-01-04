@@ -190,8 +190,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 
 GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field)
 {
-	GF_Node *child;
-	GF_List *list = NULL;
+	GF_ChildNodeItem *list = NULL;
 	GF_Err e;
 	u32 nbBits;
 	Bool use_list;
@@ -205,8 +204,8 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		if (!nbF && (field->fieldType == GF_SG_VRML_MFSCRIPT))
 			nbF = 1;
 	} else if (field->far_ptr) {
-		list = *((GF_List **)field->far_ptr);
-		nbF = gf_list_count(list);
+		list = *((GF_ChildNodeItem **)field->far_ptr);
+		nbF = gf_node_list_get_count(list);
 	}
 	/*reserved*/
 	GF_BIFS_WRITE_INT(codec, bs, 0, 1, "reserved", NULL);
@@ -244,18 +243,19 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			gf_sg_vrml_mf_get_item(field->far_ptr, field->fieldType, &sffield.far_ptr, i);
 			e = gf_bifs_enc_sf_field(codec, bs, node, &sffield);
 		} else {
-			child = (GF_Node*)gf_list_get(list, i);
-			e = gf_bifs_enc_node(codec, child, field->NDTtype, bs);
+			assert(list);
+			e = gf_bifs_enc_node(codec, list->node, field->NDTtype, bs);
 
 			/*activate QP*/
-			if (child->sgprivate->tag == TAG_MPEG4_QuantizationParameter) {
-				qp_local = ((M_QuantizationParameter *)child)->isLocal;
+			if (list->node->sgprivate->tag == TAG_MPEG4_QuantizationParameter) {
+				qp_local = ((M_QuantizationParameter *)list->node)->isLocal;
 				if (qp_on) gf_bifs_enc_qp_remove(codec, 0);
-				e = gf_bifs_enc_qp_set(codec, child);
+				e = gf_bifs_enc_qp_set(codec, list->node);
 				if (e) return e;
 				qp_on = 1;
 				if (qp_local) qp_local = 2;
 			}
+			list = list->next;
 		}
 		
 		if (e) return e;
@@ -302,9 +302,9 @@ GF_Route *gf_bifs_enc_is_field_ised(GF_BifsEncoder *codec, GF_Node *node, u32 fi
 	u32 i;
 	if (!codec->encoding_proto) return NULL;
 
-	if (node->sgprivate->events) {
+	if (node->sgprivate->interact && node->sgprivate->interact->events) {
 		i=0;
-		while ((r = (GF_Route*)gf_list_enum(node->sgprivate->events, &i))) {
+		while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->events, &i))) {
 			if (!r->IS_route) continue;
 			if ((r->ToNode == node) && (r->ToField.fieldIndex==fieldIndex)) return r;
 			else if ((r->FromNode == node) && (r->FromField.fieldIndex==fieldIndex)) return r;
@@ -392,7 +392,7 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 			if (* (GF_Node **) field.far_ptr) { enc_fields[i] = allInd; nbFinal++; }
 			break;
 		case GF_SG_VRML_MFNODE:
-			if (gf_list_count(* (GF_List **) field.far_ptr) ) { enc_fields[i] = allInd; nbFinal++; }
+			if (* (GF_ChildNodeItem **) field.far_ptr) { enc_fields[i] = allInd; nbFinal++; }
 			break;
 		case GF_SG_VRML_SFCOMMANDBUFFER:
 		{
@@ -489,7 +489,7 @@ exit:
 Bool BE_NodeIsUSE(GF_BifsEncoder * codec, GF_Node *node)
 {
 	u32 i, count;
-	if (!node || !node->sgprivate->NodeID) return 0;
+	if (!node || !gf_node_get_id(node) ) return 0;
 	count = gf_list_count(codec->encoded_nodes);
 	for (i=0; i<count; i++) {
 		if (gf_list_get(codec->encoded_nodes, i) == node) return 1;
@@ -500,7 +500,8 @@ Bool BE_NodeIsUSE(GF_BifsEncoder * codec, GF_Node *node)
 
 GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_BitStream *bs)
 {
-	u32 NDTBits, node_type, node_tag, BVersion;
+	u32 NDTBits, node_type, node_tag, BVersion, node_id;
+	const char *node_name;
 	Bool flag;
 	GF_Node *new_node;
 	GF_Err e;
@@ -518,8 +519,8 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	GF_BIFS_WRITE_INT(codec, bs, flag ? 1 : 0, 1, "USE", (char*)gf_node_get_class_name(node));
 
 	if (flag) {
-		gf_bs_write_int(bs, node->sgprivate->NodeID - 1, codec->info->config.NodeIDBits);
-		new_node = gf_bifs_enc_find_node(codec, node->sgprivate->NodeID);
+		gf_bs_write_int(bs, gf_node_get_id(node) - 1, codec->info->config.NodeIDBits);
+		new_node = gf_bifs_enc_find_node(codec, gf_node_get_id(node) );
 		if (!new_node) return codec->LastError = GF_SG_UNKNOWN_NODE;
 		
 		/*restore QP14 length*/
@@ -564,10 +565,11 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	/*special handling of 3D mesh*/
 
 	/*DEF'd node*/
-	GF_BIFS_WRITE_INT(codec, bs, node->sgprivate->NodeID ? 1 : 0, 1, "DEF", NULL);
-	if (node->sgprivate->NodeID) {
-		GF_BIFS_WRITE_INT(codec, bs, node->sgprivate->NodeID - 1, codec->info->config.NodeIDBits, "NodeID", NULL);
-		if (codec->info->UseName) gf_bifs_enc_name(codec, bs, node->sgprivate->NodeName);
+	node_name = gf_node_get_name_and_id(node, &node_id);
+	GF_BIFS_WRITE_INT(codec, bs, node_id ? 1 : 0, 1, "DEF", NULL);
+	if (node_id) {
+		GF_BIFS_WRITE_INT(codec, bs, node_id - 1, codec->info->config.NodeIDBits, "NodeID", NULL);
+		if (codec->info->UseName) gf_bifs_enc_name(codec, bs, (char*) node_name );
 	}
 
 	/*no updates of time fields for now - NEEDED FOR A LIVE ENCODER*/

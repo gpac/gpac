@@ -882,10 +882,10 @@ EXPORTS
 	gf_node_set_id
 	gf_node_get_name
 	gf_node_get_id
+	gf_node_get_name_and_id
 	gf_node_get_private
 	gf_node_set_private
-	gf_node_set_render_function
-	gf_node_set_predestroy_function
+	gf_node_set_callback_function
 	gf_node_register
 	gf_node_unregister
 	gf_node_replace
@@ -896,6 +896,7 @@ EXPORTS
 	gf_node_event_out
 	gf_node_event_out_str
 	gf_node_render
+	gf_node_allow_cyclic_render
 	gf_node_render_children
 	gf_node_get_parent_count
 	gf_node_get_parent
@@ -928,8 +929,6 @@ EXPORTS
 	gf_node_changed
 	gf_node_new
 	gf_node_clone
-	gf_sg_set_max_render_cycle
-	gf_sg_is_first_render_cycle
 	gf_sg_vrml_get_event_type_name
 	gf_sg_vrml_get_field_type_by_name
 	gf_sg_vrml_field_pointer_new
@@ -1004,6 +1003,12 @@ EXPORTS
 	gf_node_x3d_type_by_class_name
 	gf_sg_mfurl_del
 	gf_sg_sfcolor_to_rgba
+	gf_node_list_add_child
+	gf_node_list_insert_child
+	gf_node_list_del_child
+	gf_node_list_find_child
+	gf_node_list_get_child
+	gf_node_list_get_count
 
 
 ;terminal.h exports
@@ -1091,6 +1096,7 @@ EXPORTS
 	gf_sr_audio_open
 	gf_sr_audio_stop
 	gf_sr_audio_restart
+	gf_sr_get_renderer
 
 ;terminal_dev exports
 	gf_is_new

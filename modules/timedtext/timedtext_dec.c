@@ -221,7 +221,7 @@ GF_Err TTD_ReleaseScene(GF_SceneDecoder *plug)
 
 static GFINLINE void add_child(GF_Node *n1, GF_Node *par)
 {
-	gf_list_add(((GF_ParentNode *)par)->children, n1);
+	gf_node_list_add_child( & ((GF_ParentNode *)par)->children, n1);
 	gf_node_register(n1, par);
 }
 
@@ -448,11 +448,8 @@ static void ttd_set_scroll_fraction(GF_Node *node)
 static void TTD_ResetDisplay(TTDPriv *priv)
 {
 	gf_list_reset(priv->blink_nodes);
-	while (gf_list_count(priv->dlist->children)) {
-		GF_Node *n = (GF_Node *)gf_list_get(priv->dlist->children, 0);
-		gf_list_rem(priv->dlist->children, 0);
-		gf_node_unregister(n, (GF_Node *)priv->dlist);
-	}
+	gf_node_unregister_children((GF_Node*)priv->dlist, priv->dlist->children);
+	priv->dlist->children = NULL;
 	gf_node_changed((GF_Node *) priv->dlist, NULL);
 	priv->tr_scroll = NULL;
 }
@@ -470,12 +467,12 @@ static void ttd_add_item(M_Form *form)
 {
 	s32 *new_gr;
 	gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &new_gr);
-	(*new_gr) = gf_list_count(form->children);
+	(*new_gr) = gf_node_list_get_count(form->children);
 	gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &new_gr);
 	(*new_gr) = -1;
 	/*store line info*/
 	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &new_gr);
-	(*new_gr) = gf_list_count(form->children);
+	(*new_gr) = gf_node_list_get_count(form->children);
 }
 
 static void ttd_add_line(M_Form *form)
@@ -592,7 +589,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 		s->OD_ID = 0; 
 		s->url = strdup(tc->hlink->URL);
 		if (tc->hlink->URL_hint) anc->description.buffer = strdup(tc->hlink->URL_hint);
-		gf_list_add(anc->children, txt_model);
+		gf_node_list_add_child(& anc->children, txt_model);
 		gf_node_register(txt_model, (GF_Node *)anc);
 		txt_model = (GF_Node *)anc;
 		gf_node_register((GF_Node *)anc, NULL);
@@ -617,7 +614,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 
 				n2 = gf_node_clone(priv->sg, txt_model, NULL);
 				if (tc->hlink && tc->hlink->URL) {
-					GF_Node *t = (GF_Node *)gf_list_get(((M_Anchor *)n2)->children, 0);
+					GF_Node *t = ((M_Anchor *)n2)->children->node;
 					text = (M_Text *) ((M_Shape *)t)->geometry;
 					txt_material = ((M_Appearance *) ((M_Shape *)t)->appearance)->material;
 				} else {
@@ -625,7 +622,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 					txt_material = ((M_Appearance *) ((M_Shape *)n2)->appearance)->material;
 				}
 				gf_sg_vrml_mf_reset(&text->string, GF_SG_VRML_MFSTRING);
-				gf_list_add(form->children, n2);
+				gf_node_list_add_child( &form->children, n2);
 				gf_node_register(n2, (GF_Node *) form);
 				ttd_add_item(form);
 				/*clone node always register by default*/
@@ -842,9 +839,9 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 
 	if (priv->scroll_type) {
 		priv->tr_scroll = (M_Transform2D *) ttd_create_node(priv, TAG_MPEG4_Transform2D, NULL);
-		gf_list_add(priv->dlist->children, priv->tr_scroll);
+		gf_node_list_add_child( &priv->dlist->children, (GF_Node*)priv->tr_scroll);
 		gf_node_register((GF_Node *) priv->tr_scroll, (GF_Node *) priv->dlist);
-		gf_list_add(priv->tr_scroll->children, form);
+		gf_node_list_add_child( &priv->tr_scroll->children, (GF_Node*)form);
 		gf_node_register((GF_Node *) form, (GF_Node *) priv->tr_scroll);
 		priv->tr_scroll->translation.x = priv->tr_scroll->translation.y = (priv->scroll_mode & GF_TXT_SCROLL_IN) ? -INT2FIX(1000) : 0;
 		/*if no delay, text is in motion for the duration of the sample*/
@@ -860,7 +857,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		if ((priv->scroll_mode & GF_TXT_SCROLL_IN) && (priv->scroll_mode & GF_TXT_SCROLL_OUT)) priv->scroll_time /= 2;
 
 	} else {
-		gf_list_add(priv->dlist->children, form);
+		gf_node_list_add_child( &priv->dlist->children, (GF_Node*)form);
 		gf_node_register((GF_Node *) form, (GF_Node *) priv->dlist);
 		priv->tr_scroll = NULL;
 	}
@@ -964,7 +961,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	free(idx.vals);
 
 	/*finally add constraints on lines*/
-	start_idx = gf_list_count(form->children) + 1;
+	start_idx = gf_node_list_get_count(form->children) + 1;
 	/*horizontal alignment*/
 	gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s);
 	if (vertical) {
@@ -996,7 +993,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = -1;
 
 	/*define a group with every item drawn*/
-	count = gf_list_count(form->children);
+	count = gf_node_list_get_count(form->children);
 	for (i=0; i<count; i++) {
 		gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id); (*id) = i+1;
 	}

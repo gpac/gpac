@@ -268,14 +268,6 @@ static void clean_paths(TextStack *stack)
 	stack->bounds.width = stack->bounds.height = 0;
 }
 
-static void DestroyText(GF_Node *node)
-{
-	TextStack *stack = (TextStack *) gf_node_get_private(node);
-	clean_paths(stack);
-	stack2D_predestroy((stack2D *)stack);
-	gf_list_del(stack->text_lines);
-	free(stack);
-}
 
 static Fixed get_font_size(M_FontStyle *fs, RenderEffect3D *eff)
 {
@@ -941,7 +933,7 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 	if (!draw3D && asp.pen_props.width) {
 		Fixed w = asp.pen_props.width;
 		asp.pen_props.width = gf_divfix(asp.pen_props.width, asp.line_scale);
-		VS_Set2DStrikeAspect(eff->surface, &asp);
+		VS_Set2DStrikeAspect(eff, &asp);
 
 		if (eff->split_text_idx) {
 			tl = (CachedTextLine *)gf_list_get(st->text_lines, eff->split_text_idx-1);
@@ -956,12 +948,19 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 	}
 }
 
-static void Text_Render(GF_Node *n, void *rs)
+static void Text_Render(GF_Node *n, void *rs, Bool is_destroy)
 {
 	M_Text *txt = (M_Text *) n;
 	TextStack *st = (TextStack *) gf_node_get_private(n);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
+	if (is_destroy) {
+		clean_paths(st);
+		stack2D_predestroy((stack2D *)st);
+		gf_list_del(st->text_lines);
+		free(st);
+		return;
+	}
 	if (!st->compositor->font_engine) return;
 	if (!txt->string.count) return;
 
@@ -1020,8 +1019,7 @@ void R3D_InitText(Render3D *sr, GF_Node *node)
 	stack->ascent = stack->descent = 0;
 	stack->text_lines = gf_list_new();
 	gf_node_set_private(node, stack);
-	gf_node_set_render_function(node, Text_Render);
-	gf_node_set_predestroy_function(node, DestroyText);
+	gf_node_set_callback_function(node, Text_Render);
 	stack->IntersectWithRay = TextIntersectWithRay;
 }
 
@@ -1059,12 +1057,13 @@ void Text_Extrude(GF_Node *node, RenderEffect3D *eff, GF_Mesh *mesh, MFVec3f *th
 	gf_mesh_build_aabbtree(mesh);
 }
 
-static void RenderTextureText(GF_Node *node, void *rs)
+static void RenderTextureText(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 ntag;
 	TextStack *stack;
 	GF_Node *text;
 	GF_FieldInfo field;
+	if (is_destroy) return;
 	if (gf_node_get_field(node, 0, &field) != GF_OK) return;
 	if (field.fieldType != GF_SG_VRML_SFNODE) return;
 	text = *(GF_Node **)field.far_ptr;
@@ -1081,5 +1080,5 @@ static void RenderTextureText(GF_Node *node, void *rs)
 
 void R3D_InitTextureText(Render3D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, RenderTextureText);
+	gf_node_set_callback_function(node, RenderTextureText);
 }

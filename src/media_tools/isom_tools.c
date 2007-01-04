@@ -378,7 +378,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 GF_EXPORT
 GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 {
-	u32 Tracks, i, mType, nb_vid, nb_avc, nb_aud, nb_txt, nb_non_mp4;
+	u32 Tracks, i, mType, stype, nb_vid, nb_avc, nb_aud, nb_txt, nb_non_mp4;
 	Bool is_3g2 = 0;
 
 	switch (gf_isom_get_mode(mp4file)) {
@@ -405,7 +405,10 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 				goto remove_track;
 			}
 
-			switch (gf_isom_get_media_subtype(mp4file, i+1, 1)) {
+			stype = gf_isom_get_media_subtype(mp4file, i+1, 1);
+			if (stype == GF_ISOM_SUBTYPE_MPEG4_CRYP) gf_isom_get_ismacryp_info(mp4file, i+1, 1, &stype, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+			switch (stype) {
 			case GF_ISOM_SUBTYPE_3GP_H263:
 				nb_vid++;
 				nb_non_mp4 ++;
@@ -433,7 +436,9 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 			}
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
-			switch (gf_isom_get_media_subtype(mp4file, i+1, 1)) {
+			stype = gf_isom_get_media_subtype(mp4file, i+1, 1);
+			if (stype == GF_ISOM_SUBTYPE_MPEG4_CRYP) gf_isom_get_ismacryp_info(mp4file, i+1, 1, &stype, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+			switch (stype) {
 			case GF_ISOM_SUBTYPE_3GP_EVRC:
 			case GF_ISOM_SUBTYPE_3GP_QCELP:
 			case GF_ISOM_SUBTYPE_3GP_SMV:

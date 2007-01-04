@@ -71,14 +71,17 @@ static Bool PathExtrusion_GetNode(GF_Node *node, PathExtrusion *path_ext)
 	return 1;
 }
 
-static void RenderPathExtrusion(GF_Node *node, void *rs)
+static void RenderPathExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 {
 	PathExtrusion path_ext;
 	stack2D *st2D;
-
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
-
+	
+	if (is_destroy) {
+		drawable_node_destroy(node);
+		return;
+	}
 	if (!PathExtrusion_GetNode(node, &path_ext)) return;
 	if (!path_ext.geometry) return;
 
@@ -114,7 +117,7 @@ static void RenderPathExtrusion(GF_Node *node, void *rs)
 void R3D_InitPathExtrusion(Render3D *sr, GF_Node *node)
 {
 	BaseDrawableStack(sr->compositor, node);
-	gf_node_set_render_function(node, RenderPathExtrusion);
+	gf_node_set_callback_function(node, RenderPathExtrusion);
 }
 
 
@@ -170,7 +173,7 @@ static Bool PlanarExtrusion_GetNode(GF_Node *node, PlanarExtrusion *path_ext)
 	return 1;
 }
 
-static void RenderPlanarExtrusion(GF_Node *node, void *rs)
+static void RenderPlanarExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 {
 	PlanarExtrusion plane_ext;
 	stack2D *st2D;
@@ -180,9 +183,13 @@ static void RenderPlanarExtrusion(GF_Node *node, void *rs)
 	Fixed spine_len;
 	GF_Rect bounds;
 	GF_Path *geo, *spine;
-
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
+
+	if (is_destroy) {
+		drawable_node_destroy(node);
+		return;
+	}
 
 	if (!PlanarExtrusion_GetNode(node, &plane_ext)) return;
 	if (!plane_ext.geometry || !plane_ext.spine) return;
@@ -333,7 +340,7 @@ static void RenderPlanarExtrusion(GF_Node *node, void *rs)
 void R3D_InitPlanarExtrusion(Render3D *sr, GF_Node *node)
 {
 	BaseDrawableStack(sr->compositor, node);
-	gf_node_set_render_function(node, RenderPlanarExtrusion);
+	gf_node_set_callback_function(node, RenderPlanarExtrusion);
 }
 
 /*PlaneClipper hardcoded proto*/
@@ -341,7 +348,7 @@ typedef struct
 {
     SFVec3f normal;
     Fixed dist;
-	GF_List *children;
+	GF_ChildNodeItem *children;
 } PlaneClipper;
 
 static Bool PlaneClipper_GetNode(GF_Node *node, PlaneClipper *pc)
@@ -356,16 +363,22 @@ static Bool PlaneClipper_GetNode(GF_Node *node, PlaneClipper *pc)
 	pc->dist = * (SFFloat *) field.far_ptr;
 	if (gf_node_get_field(node, 2, &field) != GF_OK) return 0;
 	if (field.fieldType != GF_SG_VRML_MFNODE) return 0;
-	pc->children = *(GF_List **) field.far_ptr;
+	pc->children = *(GF_ChildNodeItem **) field.far_ptr;
 	return 1;
 }
 
-static void RenderPlaneClipper(GF_Node *node, void *rs)
+static void RenderPlaneClipper(GF_Node *node, void *rs, Bool is_destroy)
 {
 	PlaneClipper pc;
 	GF_Plane p;
 	GroupingNode *st = (GroupingNode *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *) rs;
+
+	if (is_destroy) {
+		DeleteGroupingNode(st);
+		return;
+	}
+
 	if (!PlaneClipper_GetNode(node, &pc)) return;
 
 	if (eff->num_clip_planes==MAX_USER_CLIP_PLANES) {
@@ -398,10 +411,9 @@ void R3D_InitPlaneClipper(Render3D *sr, GF_Node *node)
 	PlaneClipper pc;
 	if (PlaneClipper_GetNode(node, &pc)) {
 		GroupingNode *stack = (GroupingNode *)malloc(sizeof(GroupingNode));
-		SetupGroupingNode(stack, sr->compositor, node, pc.children);
+		SetupGroupingNode(stack, sr->compositor, node, & pc.children);
 		gf_node_set_private(node, stack);
-		gf_node_set_predestroy_function(node, DestroyBaseGrouping);
-		gf_node_set_render_function(node, RenderPlaneClipper);
+		gf_node_set_callback_function(node, RenderPlaneClipper);
 		/*we're a grouping node, force bounds rebuild as soon as loaded*/
 		gf_node_dirty_set(node, GF_SG_CHILD_DIRTY, 0);
 	}

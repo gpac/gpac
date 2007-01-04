@@ -40,15 +40,6 @@ typedef struct
 } Layer2DStack;
 
 
-static void DestroyLayer2D(GF_Node *node)
-{
-	Layer2DStack *st = (Layer2DStack *) gf_node_get_private(node);
-	DeleteGroupingNode((GroupingNode *)st);
-	gf_list_del(st->backs);
-	gf_list_del(st->views);
-	free(st);
-}
-
 
 static void l2d_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force_render)
 {
@@ -73,7 +64,7 @@ static void l2d_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force_rende
 	}
 }
 
-static void RenderLayer2D(GF_Node *node, void *rs)
+static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_List *oldb, *oldv, *oldf, *oldn;
 	GF_Node *viewport;
@@ -82,6 +73,14 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 	M_Layer2D *l = (M_Layer2D *)node;
 	Layer2DStack *st = (Layer2DStack *) gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *) rs;
+	
+	if (is_destroy) {
+		DeleteGroupingNode((GroupingNode *)st);
+		gf_list_del(st->backs);
+		gf_list_del(st->views);
+		free(st);
+		return;
+	}
 
 	/*layers can only be rendered in a 2D context*/
 	if (eff->camera->is_3D) return;
@@ -198,14 +197,13 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 void R3D_InitLayer2D(Render3D *sr, GF_Node *node)
 {
 	Layer2DStack *stack = (Layer2DStack *)malloc(sizeof(Layer2DStack));
-	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, ((M_Layer2D *)node)->children);
+	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, & ((M_Layer2D *)node)->children);
 	stack->backs = gf_list_new();
 	stack->views = gf_list_new();
 	stack->first = 1;
 
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyLayer2D);
-	gf_node_set_render_function(node, RenderLayer2D);
+	gf_node_set_callback_function(node, RenderLayer2D);
 }
 
 
@@ -284,7 +282,7 @@ static void l3d_CheckBindables(GF_Node *n, RenderEffect3D *eff, Bool force_rende
 }
 
 
-static void RenderLayer3D(GF_Node *node, void *rs)
+static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_List *oldb, *oldv, *oldf, *oldn;
 	GF_Rect rc;
@@ -297,7 +295,11 @@ static void RenderLayer3D(GF_Node *node, void *rs)
 	M_Layer3D *l = (M_Layer3D *)node;
 	Layer3DStack *st = (Layer3DStack *) gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *) rs;
-
+	
+	if (is_destroy) {
+		DestroyLayer3D(node);
+		return;
+	}
 	/*layers can only be rendered in a 2D context*/
 	if (eff->camera->is_3D) return;
 
@@ -523,7 +525,7 @@ void R3D_InitLayer3D(Render3D *sr, GF_Node *node)
 {
 	Layer3DStack *stack;
 	GF_SAFEALLOC(stack, Layer3DStack);
-	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, ((M_Layer3D *)node)->children);
+	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, & ((M_Layer3D *)node)->children);
 	stack->backs = gf_list_new();
 	stack->views = gf_list_new();
 	stack->fogs = gf_list_new();
@@ -534,8 +536,7 @@ void R3D_InitLayer3D(Render3D *sr, GF_Node *node)
 
 
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyLayer3D);
-	gf_node_set_render_function(node, RenderLayer3D);
+	gf_node_set_callback_function(node, RenderLayer3D);
 }
 
 GF_Camera *l3d_get_camera(GF_Node *node)

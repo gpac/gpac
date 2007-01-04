@@ -121,7 +121,7 @@ static void SVG_BuildGraph_image(SVG_image_stack *st)
 	gf_path_add_rect_center(st->graph->path, img->x.value+img->width.value/2, img->y.value+img->height.value/2, img->width.value, img->height.value);
 	gf_path_get_bounds(st->graph->path, &new_rc);
 	/*change in visual aspect*/
-	if (!gf_rect_equal(rc, new_rc)) st->graph->node_changed = 1;
+	if (!gf_rect_equal(rc, new_rc)) st->graph->flags |= DRAWABLE_HAS_CHANGED;
 	gf_node_dirty_clear(st->graph->owner, GF_SG_SVG_GEOMETRY_DIRTY);
 }
 
@@ -135,7 +135,7 @@ static void SVG_BuildGraph_video(SVG_video_stack *st)
 	gf_path_add_rect_center(st->graph->path, video->x.value+video->width.value/2, video->y.value+video->height.value/2, video->width.value, video->height.value);
 	gf_path_get_bounds(st->graph->path, &new_rc);
 	/*change in visual aspect*/
-	if (!gf_rect_equal(rc, new_rc)) st->graph->node_changed = 1;
+	if (!gf_rect_equal(rc, new_rc)) st->graph->flags |= DRAWABLE_HAS_CHANGED;
 	gf_node_dirty_clear(st->graph->owner, GF_SG_SVG_GEOMETRY_DIRTY);
 }
 
@@ -149,7 +149,16 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	SVG_Matrix *m;
 	DrawableContext *ctx;
 
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		SVG_Draw_bitmap(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		eff->is_over = 1;
+		return;
+	}
+
+	SVG_Render_base(node, eff, &backup_props);
 
 	if (gf_node_dirty_get(node)) {
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("xlink:href is %s\n", ((SVGElement *)node)->xlink->href.iri));
@@ -203,39 +212,32 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 
 	ctx = SVG_drawable_init_context(st->graph, eff);
 	if (!ctx || !ctx->h_texture ) return;
-	/*store bounds*/
-	gf_path_get_bounds(ctx->node->path, &ctx->original);
 
 	/*even if set this is not true*/
 	ctx->aspect.has_line = 0;
 	/*this is to make sure we don't fill the path if the texture is transparent*/
 	ctx->aspect.filled = 0;
 	ctx->aspect.pen_props.width = 0;
-	ctx->no_antialias = 1;
+	ctx->flags |= CTX_NO_ANTIALIAS;
 
 	/*if rotation, transparent*/
-	ctx->transparent = 0;
+	ctx->flags &= ~CTX_IS_TRANSPARENT;
 	if (ctx->transform.m[1] || ctx->transform.m[3]) {
-		ctx->transparent = 1;
-		ctx->no_antialias = 0;
+		ctx->flags |= CTX_IS_TRANSPARENT;
+		ctx->flags &= ~CTX_NO_ANTIALIAS;
 	}
 	else if (ctx->h_texture->transparent) 
-		ctx->transparent = 1;
+		ctx->flags |= CTX_IS_TRANSPARENT;
 	else if (eff->svg_props->opacity && (eff->svg_props->opacity->type==SVG_NUMBER_VALUE) && (eff->svg_props->opacity->value!=FIX_ONE)) {
-		ctx->transparent = 1;
+		ctx->flags = CTX_IS_TRANSPARENT;
 		ctx->aspect.fill_alpha = FIX2INT(0xFF * eff->svg_props->opacity->value);
 		ctx->aspect.fill_color = ctx->aspect.fill_alpha << 24;
 	}
 
 	/*bounds are stored when building graph*/	
-	drawable_finalize_render(ctx, eff);
+	drawable_finalize_render(ctx, eff, NULL);
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-}
-
-static Bool SVG_PointOver_bitmap(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
-{
-	return 1;
 }
 
 
@@ -257,15 +259,17 @@ static void SVG_Update_image(GF_TextureHandler *txh)
 	if (txh->stream && !txh->hwtx) gf_sr_invalidate(txh->compositor, NULL);
 }
 
-static void SVG_Destroy_image(GF_Node *node)
+static void SVG_Render_image(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SVG_image_stack *st = (SVG_image_stack *)gf_node_get_private(node);
-
-	gf_sr_texture_destroy(&st->txh);
-	gf_sg_mfurl_del(st->txurl);
-
-	drawable_del(st->graph);
-	free(st);
+	if (is_destroy) {
+		SVG_image_stack *st = (SVG_image_stack *)gf_node_get_private(node);
+		gf_sr_texture_destroy(&st->txh);
+		gf_sg_mfurl_del(st->txurl);
+		drawable_del(st->graph);
+		free(st);
+	} else {
+		SVG_Render_bitmap(node, rs);
+	}
 }
 
 void SVG_Init_image(Render2D *sr, GF_Node *node)
@@ -274,9 +278,7 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 	GF_SAFEALLOC(st, SVG_image_stack)
 	st->graph = drawable_new();
 
-	gf_sr_traversable_setup(st->graph, node, sr->compositor);
-	st->graph->Draw = SVG_Draw_bitmap;
-	st->graph->IsPointOver = SVG_PointOver_bitmap;
+	st->graph->owner = node;
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = SVG_Update_image;
@@ -286,9 +288,7 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 	gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVGimageElement*)node)->xlink->href);
 
 	gf_node_set_private(node, st);
-	gf_node_set_render_function(node, SVG_Render_bitmap);
-	gf_node_set_predestroy_function(node, SVG_Destroy_image);
-
+	gf_node_set_callback_function(node, SVG_Render_image);
 }
 
 /*********************/
@@ -353,14 +353,18 @@ static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 	}
 }
 
-static void SVG_Destroy_video(GF_Node *node)
+static void SVG_Render_video(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SVG_video_stack *st = (SVG_video_stack *)gf_node_get_private(node);
-	gf_sr_texture_destroy(&st->txh);
-	gf_sg_mfurl_del(st->txurl);
+	if (is_destroy) {
+		SVG_video_stack *st = (SVG_video_stack *)gf_node_get_private(node);
+		gf_sr_texture_destroy(&st->txh);
+		gf_sg_mfurl_del(st->txurl);
 
-	drawable_del(st->graph);
-	free(st);
+		drawable_del(st->graph);
+		free(st);
+	} else {
+		SVG_Render_bitmap(node, rs);
+	}
 }
 
 void SVG_Init_video(Render2D *sr, GF_Node *node)
@@ -369,9 +373,7 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 	GF_SAFEALLOC(st, SVG_video_stack)
 	st->graph = drawable_new();
 
-	gf_sr_traversable_setup(st->graph, node, sr->compositor);
-	st->graph->Draw = SVG_Draw_bitmap;
-	st->graph->IsPointOver = SVG_PointOver_bitmap;
+	st->graph->owner = node;
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = SVG_Update_video;
@@ -387,10 +389,7 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 	}
 	
 	gf_node_set_private(node, st);
-	gf_node_set_render_function(node, SVG_Render_bitmap);
-	gf_node_set_predestroy_function(node, SVG_Destroy_video);
-
-
+	gf_node_set_callback_function(node, SVG_Render_video);
 }
 
 /*********************/
@@ -423,12 +422,19 @@ static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 	}
 }
 
-static void SVG_Render_audio(GF_Node *node, void *rs)
+static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGPropertiesPointers backup_props;
 	RenderEffect2D *eff = (RenderEffect2D*)rs;
 	SVG_audio_stack *st = (SVG_audio_stack *)gf_node_get_private(node);
 
+	if (is_destroy) {
+		gf_sr_audio_stop(&st->input);
+		gf_sr_audio_unregister(&st->input);
+		gf_sg_mfurl_del(st->aurl);
+		free(st);
+		return;
+	}
 	if (st->is_active) {
 		gf_sr_audio_register(&st->input, (GF_BaseEffect*)rs);
 	}
@@ -448,15 +454,6 @@ static void SVG_Render_audio(GF_Node *node, void *rs)
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 }
 
-static void SVG_Destroy_audio(GF_Node *node)
-{
-	SVG_audio_stack *st = (SVG_audio_stack *)gf_node_get_private(node);
-	gf_sr_audio_stop(&st->input);
-	gf_sr_audio_unregister(&st->input);
-	gf_sg_mfurl_del(st->aurl);
-	free(st);
-}
-
 void SVG_Init_audio(Render2D *sr, GF_Node *node)
 {
 	SVG_audio_stack *st;
@@ -474,8 +471,7 @@ void SVG_Init_audio(Render2D *sr, GF_Node *node)
 	}
 	
 	gf_node_set_private(node, st);
-	gf_node_set_render_function(node, SVG_Render_audio);
-	gf_node_set_predestroy_function(node, SVG_Destroy_audio);
+	gf_node_set_callback_function(node, SVG_Render_audio);
 }
 
 

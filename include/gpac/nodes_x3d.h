@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Dec 13 14:37:26 2006
+	DO NOT MOFIFY - File generated on GMT Fri Dec 22 19:22:55 2006
 
 	BY X3DGen for GPAC Version 0.4.3-DEV
 */
@@ -829,7 +829,7 @@ typedef struct _tagX3DMetadataSet
 	BASE_NODE
 	SFString name;	/*exposedField*/
 	SFString reference;	/*exposedField*/
-	GF_List *value;	/*exposedField*/
+	GF_ChildNodeItem *value;	/*exposedField*/
 	GF_Node *metadata;	/*exposedField*/
 } X_MetadataSet;
 
@@ -872,7 +872,7 @@ typedef struct _tagX3DMultiTexture
 	MFString function;	/*exposedField*/
 	MFString mode;	/*exposedField*/
 	MFString source;	/*exposedField*/
-	GF_List *texture;	/*exposedField*/
+	GF_ChildNodeItem *texture;	/*exposedField*/
 	GF_Node *metadata;	/*exposedField*/
 } X_MultiTexture;
 
@@ -880,7 +880,7 @@ typedef struct _tagX3DMultiTexture
 typedef struct _tagX3DMultiTextureCoordinate
 {
 	BASE_NODE
-	GF_List *texCoord;	/*MultiTextureCoordinate*/
+	GF_ChildNodeItem *texCoord;	/*MultiTextureCoordinate*/
 	GF_Node *metadata;	/*exposedField*/
 } X_MultiTextureCoordinate;
 
@@ -888,7 +888,7 @@ typedef struct _tagX3DMultiTextureCoordinate
 typedef struct _tagX3DMultiTextureTransform
 {
 	BASE_NODE
-	GF_List *textureTransform;	/*exposedField*/
+	GF_ChildNodeItem *textureTransform;	/*exposedField*/
 	GF_Node *metadata;	/*exposedField*/
 } X_MultiTextureTransform;
 

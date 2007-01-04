@@ -51,8 +51,8 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 	u32 count, num_out;
 	Bool do_sum;
 
-	if (!p->sgprivate->NodeID && !p->sgprivate->scenegraph->pOwningProto) return;
-	if (!p->sgprivate->events) return;
+	if (!gf_node_get_id((GF_Node*)p) && !p->sgprivate->scenegraph->pOwningProto) return;
+	if (!p->sgprivate->interact) return;
 
 	do_sum = p->Sum;
 	num_out = 1;
@@ -266,7 +266,7 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 
 	/*valuator is a special case, all routes are triggered*/
 	i=0;
-	while ((r = (GF_Route*)gf_list_enum(p->sgprivate->events, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(p->sgprivate->interact->events, &i))) {
 		if (r->FromNode != (GF_Node *)p) continue;
 
 		if (r->IS_route) {

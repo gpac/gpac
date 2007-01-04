@@ -65,14 +65,6 @@ static GFINLINE LineInfo *get_line_info(LayoutStack *st, u32 i)
 {
 	return (LineInfo *) gf_list_get(st->lines, i);
 }
-static void DestroyLayout(GF_Node *node)
-{
-	LayoutStack *st = (LayoutStack *)gf_node_get_private(node);
-	layout_reset_lines(st);
-	DeleteGroupingNode2D((GroupingNode2D *)st);
-	gf_list_del(st->lines);
-	free(st);
-}
 
 
 
@@ -545,7 +537,7 @@ static void layout_scroll(LayoutStack *st, M_Layout *l)
 }
 
 
-static void RenderLayout(GF_Node *node, void *rs)
+static void RenderLayout(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 i;
 	GF_Matrix2D gf_mx2d_bck;
@@ -555,6 +547,13 @@ static void RenderLayout(GF_Node *node, void *rs)
 	LayoutStack *st = (LayoutStack *) gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
+	if (is_destroy) {
+		layout_reset_lines(st);
+		DeleteGroupingNode2D((GroupingNode2D *)st);
+		gf_list_del(st->lines);
+		free(st);
+		return;
+	}
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		/*TO CHANGE IN BIFS - scroll_rate is quite unusable*/
 		st->scale_scroll = st->scroll_rate = l->scrollRate;
@@ -614,8 +613,7 @@ void R2D_InitLayout(Render2D *sr, GF_Node *node)
 	stack->lines = gf_list_new();
 
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyLayout);
-	gf_node_set_render_function(node, RenderLayout);
+	gf_node_set_callback_function(node, RenderLayout);
 }
 
 void R2D_LayoutModified(GF_Node *node)

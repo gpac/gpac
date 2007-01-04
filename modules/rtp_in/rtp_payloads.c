@@ -436,7 +436,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 			if (fmtp->PayloadType != map->PayloadType) continue;
 			j=0;
 			while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
-				char *nal_ptr;
+				char *nal_ptr, *sep;
 				if (stricmp(att->Name, "sprop-parameter-sets")) continue;
 
 				nal_ptr = att->Value;
@@ -444,20 +444,14 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 					u32 nalt, b64size, ret, idx = 0;
 					char *b64_d;
 
-					while (nal_ptr[idx]) {
-						if (nal_ptr[idx]==',') break;
-						idx++;
-					}
-					if (!nal_ptr[idx]) {
-						idx = 0;
-						b64size = strlen(nal_ptr);
-					} else {
-						assert(idx);
-						b64size = idx;
-					}
+					sep = strchr(nal_ptr, ',');
+					if (sep) sep[0] = 0;
+
+					b64size = strlen(nal_ptr);
 					b64_d = (char*)malloc(sizeof(char)*b64size);
 					ret = gf_base64_decode(nal_ptr, b64size, b64_d, b64size); 
 					b64_d[ret] = 0;
+
 					nalt = b64_d[0] & 0x1F;
 					if (/*SPS*/(nalt==0x07) || /*PPS*/(nalt==0x08)) {
 						GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
@@ -469,10 +463,15 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 						} else {
 							gf_list_add(avcc->pictureParameterSets, sl);
 						}
-					}
+					} 
 					free(b64_d);
-					if (!idx) break;
-					nal_ptr += idx+1;
+
+					if (sep) {
+						sep[0] = ',';
+						nal_ptr = sep+1;
+					} else {
+						break;
+					}
 				}
 			}
 		}

@@ -35,17 +35,6 @@ typedef struct
 	Bool set_duration;
 } AudioClipStack;
 
-static void DestroyAudioClip(GF_Node *node)
-{
-	AudioClipStack *st = (AudioClipStack *)gf_node_get_private(node);
-	gf_sr_audio_stop(&st->input);
-	gf_sr_audio_unregister(&st->input);
-	if (st->time_handle.is_registered) {
-		gf_sr_unregister_time_node(st->input.compositor, &st->time_handle);
-	}
-	free(st);
-}
-
 
 static void AC_Activate(AudioClipStack *st, M_AudioClip *ac)
 {
@@ -67,11 +56,22 @@ static void AC_Deactivate(AudioClipStack *st, M_AudioClip *ac)
 	st->time_handle.needs_unregister = 1;
 }
 
-static void RenderAudioClip(GF_Node *node, void *rs)
+static void RenderAudioClip(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_BaseEffect *eff = (GF_BaseEffect *)rs;
 	M_AudioClip *ac = (M_AudioClip *)node;
 	AudioClipStack *st = (AudioClipStack *)gf_node_get_private(node);
+
+	if (is_destroy) {
+		gf_sr_audio_stop(&st->input);
+		gf_sr_audio_unregister(&st->input);
+		if (st->time_handle.is_registered) {
+			gf_sr_unregister_time_node(st->input.compositor, &st->time_handle);
+		}
+		free(st);
+		return;
+	}
+	
 	/*check end of stream*/
 	if (st->input.stream && st->input.stream_finished) {
 		if (gf_mo_get_loop(st->input.stream, ac->loop)) {
@@ -128,9 +128,7 @@ void InitAudioClip(GF_Renderer *sr, GF_Node *node)
 	st->set_duration = 1;
 
 	gf_node_set_private(node, st);
-	gf_node_set_render_function(node, RenderAudioClip);
-	gf_node_set_predestroy_function(node, DestroyAudioClip);
-
+	gf_node_set_callback_function(node, RenderAudioClip);
 	gf_sr_register_time_node(sr, &st->time_handle);
 }
 
@@ -175,18 +173,6 @@ typedef struct
 	Double start_time;
 } AudioSourceStack;
 
-static void DestroyAudioSource(GF_Node *node)
-{
-	AudioSourceStack *st = (AudioSourceStack *)gf_node_get_private(node);
-	gf_sr_audio_stop(&st->input);
-	gf_sr_audio_unregister(&st->input);
-	if (st->time_handle.is_registered) {
-		gf_sr_unregister_time_node(st->input.compositor, &st->time_handle);
-	}
-	free(st);
-}
-
-
 static void AS_Activate(AudioSourceStack *st, M_AudioSource *as)
 {
 	gf_sr_audio_open(&st->input, &as->url);
@@ -203,11 +189,24 @@ static void AS_Deactivate(AudioSourceStack *st, M_AudioSource *as)
 	st->time_handle.needs_unregister = 1;
 }
 
-static void RenderAudioSource(GF_Node *node, void *rs)
+static void RenderAudioSource(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_BaseEffect*eff = (GF_BaseEffect*)rs;
 	M_AudioSource *as = (M_AudioSource *)node;
 	AudioSourceStack *st = (AudioSourceStack *)gf_node_get_private(node);
+
+
+	if (is_destroy) {
+		gf_sr_audio_stop(&st->input);
+		gf_sr_audio_unregister(&st->input);
+		if (st->time_handle.is_registered) {
+			gf_sr_unregister_time_node(st->input.compositor, &st->time_handle);
+		}
+		free(st);
+		return;
+	}
+	
+
 	/*check end of stream*/
 	if (st->input.stream && st->input.stream_finished) {
 		if (gf_mo_get_loop(st->input.stream, 0)) {
@@ -258,9 +257,7 @@ void InitAudioSource(GF_Renderer *sr, GF_Node *node)
 	st->time_handle.obj = node;
 
 	gf_node_set_private(node, st);
-	gf_node_set_render_function(node, RenderAudioSource);
-	gf_node_set_predestroy_function(node, DestroyAudioSource);
-
+	gf_node_set_callback_function(node, RenderAudioSource);
 	gf_sr_register_time_node(sr, &st->time_handle);
 }
 
@@ -317,39 +314,38 @@ typedef struct
 	GF_List *new_inputs;
 } AudioBufferStack;
 
-static void DestroyAudioBuffer(GF_Node *node)
-{
-	AudioBufferStack *st = (AudioBufferStack *)gf_node_get_private(node);
-
-	gf_sr_audio_unregister(&st->output);
-	if (st->time_handle.is_registered) 
-		gf_sr_unregister_time_node(st->output.compositor, &st->time_handle);
-
-	gf_mixer_del(st->am);
-	if (st->buffer) free(st->buffer);
-	gf_list_del(st->new_inputs);
-	free(st);
-}
 
 
 /*we have no choice but always browsing the children, since a src can be replaced by a new one
 without the parent being modified. We just collect the src and check against the current mixer inputs
 to reset the mixer or not - the spec is not clear about that btw, shall rebuffering happen if a source is modified or not ...*/
-static void RenderAudioBuffer(GF_Node *node, void *rs)
+static void RenderAudioBuffer(GF_Node *node, void *rs, Bool is_destroy)
 {
-	u32 count, i, j;
+	u32 j;
 	Bool update_mixer;
+	GF_ChildNodeItem *l;
 	GF_AudioGroup *parent;
 	AudioBufferStack *st = (AudioBufferStack *)gf_node_get_private(node);
 	M_AudioBuffer *ab = (M_AudioBuffer *)node;
 	GF_BaseEffect*eff = (GF_BaseEffect*) rs;
 
+	if (is_destroy) {
+		gf_sr_audio_unregister(&st->output);
+		if (st->time_handle.is_registered) 
+			gf_sr_unregister_time_node(st->output.compositor, &st->time_handle);
+
+		gf_mixer_del(st->am);
+		if (st->buffer) free(st->buffer);
+		gf_list_del(st->new_inputs);
+		free(st);
+		return;
+	}
 	parent = eff->audio_parent;
 	eff->audio_parent = (GF_AudioGroup *) st;
-	count = gf_list_count(ab->children);
-	for (i=0; i<count; i++) {
-		GF_Node *ptr = (GF_Node *)gf_list_get(ab->children, i);
-		gf_node_render(ptr, eff);
+	l = ab->children;
+	while (l) {
+		gf_node_render(l->node, eff);
+		l = l->next;
 	}
 
 	gf_mixer_lock(st->am, 1);
@@ -584,8 +580,7 @@ void InitAudioBuffer(GF_Renderer *sr, GF_Node *node)
 	st->new_inputs = gf_list_new();
 
 	gf_node_set_private(node, st);
-	gf_node_set_render_function(node, RenderAudioBuffer);
-	gf_node_set_predestroy_function(node, DestroyAudioBuffer);
+	gf_node_set_callback_function(node, RenderAudioBuffer);
 	gf_sr_register_time_node(sr, &st->time_handle);
 }
 

@@ -37,16 +37,18 @@ typedef struct _composite_2D
 	Bool first;
 } Composite2DStack;
 
-static void DestroyComposite2D(GF_Node *node)
+static void DestroyComposite2D(GF_Node *node, void *rs, Bool is_destroy)
 {
-	Composite2DStack *st = (Composite2DStack *) gf_node_get_private(node);
-	/*unregister surface*/
-	R2D_UnregisterSurface(st->surf->render, st->surf);
-	DeleteVisualSurface2D(st->surf);
-	gf_list_del(st->sensors);
-	/*destroy texture*/
-	gf_sr_texture_destroy(&st->txh);
-	free(st);
+	if (is_destroy) {
+		Composite2DStack *st = (Composite2DStack *) gf_node_get_private(node);
+		/*unregister surface*/
+		R2D_UnregisterSurface(st->surf->render, st->surf);
+		DeleteVisualSurface2D(st->surf);
+		gf_list_del(st->sensors);
+		/*destroy texture*/
+		gf_sr_texture_destroy(&st->txh);
+		free(st);
+	}
 }
 
 
@@ -80,10 +82,8 @@ static Bool Composite_CheckBindables(GF_Node *n, RenderEffect2D *eff, Bool force
 static void UpdateComposite2D(GF_TextureHandler *txh)
 {
 	GF_Err e;
-	u32 count;
 	u32 i;
 	SensorHandler *hsens;
-	GF_Node *child;
 	RenderEffect2D *eff;
 
 	M_CompositeTexture2D *ct2D = (M_CompositeTexture2D *)txh->owner;
@@ -137,18 +137,19 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 	}
 
 	/*render children*/
-	count = gf_list_count(ct2D->children);
 	if (gf_node_dirty_get(st->txh.owner) & GF_SG_NODE_DIRTY) {
+		GF_ChildNodeItem *l = ct2D->children;
 		/*rebuild sensor list */
 		if (gf_list_count(st->sensors)) {
 			gf_list_del(st->sensors);
 			st->sensors = gf_list_new();
 		}
-		for (i=0; i<count; i++) {
-			child = (GF_Node*)gf_list_get(ct2D->children, i);
-			if (!child || !is_sensor_node(child) ) continue;
-			hsens = get_sensor_handler(child);
-			if (hsens) gf_list_add(st->sensors, hsens);
+		while (l) {
+			if (l->node && is_sensor_node(l->node) ) {
+				hsens = get_sensor_handler(l->node);
+				if (hsens) gf_list_add(st->sensors, hsens);
+			}
+			l = l->next;
 		}
 
 		/*if we have an active sensor at this level discard all sensors in current render context (cf VRML)*/
@@ -245,7 +246,7 @@ void R2D_InitCompositeTexture2D(Render2D *sr, GF_Node *node)
 	st->surf->render = sr;
 	st->sensors = gf_list_new();
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyComposite2D);
+	gf_node_set_callback_function(node, DestroyComposite2D);
 	R2D_RegisterSurface(sr, st->surf);
 
 }
@@ -261,26 +262,29 @@ Bool CT2D_has_sensors(GF_TextureHandler *txh)
 {
 	Composite2DStack *st = (Composite2DStack *) gf_node_get_private(txh->owner);
 	assert(st->surf);
-	return gf_list_count(st->surf->sensors) ? 1 : 0;
+	return st->surf->has_sensors ? 1 : 0;
 }
 
 void get_gf_sr_texture_transform(GF_Node *__appear, GF_TextureHandler *txh, GF_Matrix2D *mat, Bool line_texture, Fixed final_width, Fixed final_height);
 
 DrawableContext *CT2D_FindNode(GF_TextureHandler *txh, DrawableContext *ctx, Fixed x, Fixed y)
 {
-	GF_Rect rc;
+	GF_Rect orig;
 	GF_Matrix2D mat, tx_trans;
 	Fixed width, height;
 	Composite2DStack *st = (Composite2DStack *) gf_node_get_private(txh->owner);
 	assert(st->surf);
 
-	rc = ctx->original;
+	orig = ctx->unclip;
+	gf_mx2d_copy(mat, ctx->transform);
+	gf_mx2d_inverse(&mat);
+	gf_mx2d_apply_rect(&mat, &orig);
 
 	gf_mx2d_init(mat);
-	gf_mx2d_add_scale(&mat, rc.width / st->width, rc.height / st->height);
-	get_gf_sr_texture_transform(ctx->appear, &st->txh, &tx_trans, (ctx->h_texture==&st->txh) ? 0 : 1, INT2FIX(ctx->original.width), INT2FIX(ctx->original.height));
+	gf_mx2d_add_scale(&mat, orig.width / st->width, orig.height / st->height);
+	get_gf_sr_texture_transform(ctx->appear, &st->txh, &tx_trans, (ctx->h_texture==&st->txh) ? 0 : 1, INT2FIX(orig.width), INT2FIX(orig.height));
 	gf_mx2d_add_matrix(&mat, &tx_trans);
-	gf_mx2d_add_translation(&mat, (rc.x), (rc.y - rc.height));
+	gf_mx2d_add_translation(&mat, (orig.x), (orig.y - orig.height));
 	gf_mx2d_add_matrix(&mat, &ctx->transform);
 
 	gf_mx2d_inverse(&mat);
@@ -301,19 +305,22 @@ DrawableContext *CT2D_FindNode(GF_TextureHandler *txh, DrawableContext *ctx, Fix
 
 GF_Node *CT2D_PickNode(GF_TextureHandler *txh, DrawableContext *ctx, Fixed x, Fixed y)
 {
-	GF_Rect rc;
+	GF_Rect orig;
 	GF_Matrix2D mat, tx_trans;
 	Fixed width, height;
 	Composite2DStack *st = (Composite2DStack *) gf_node_get_private(txh->owner);
 	assert(st->surf);
 
-	rc = ctx->original;
+	orig = ctx->unclip;
+	gf_mx2d_copy(mat, ctx->transform);
+	gf_mx2d_inverse(&mat);
+	gf_mx2d_apply_rect(&mat, &orig);
 
 	gf_mx2d_init(mat);
-	gf_mx2d_add_scale(&mat, rc.width / st->width, rc.height / st->height);
-	get_gf_sr_texture_transform(ctx->appear, &st->txh, &tx_trans, (ctx->h_texture==&st->txh) ? 0 : 1, INT2FIX(ctx->original.width), INT2FIX(ctx->original.height));
+	gf_mx2d_add_scale(&mat, orig.width / st->width, orig.height / st->height);
+	get_gf_sr_texture_transform(ctx->appear, &st->txh, &tx_trans, (ctx->h_texture==&st->txh) ? 0 : 1, INT2FIX(orig.width), INT2FIX(orig.height));
 	gf_mx2d_add_matrix(&mat, &tx_trans);
-	gf_mx2d_add_translation(&mat, (rc.x), (rc.y - rc.height));
+	gf_mx2d_add_translation(&mat, (orig.x), (orig.y - orig.height));
 	gf_mx2d_add_matrix(&mat, &ctx->transform);
 
 	gf_mx2d_inverse(&mat);
@@ -364,11 +371,13 @@ typedef struct
 		linear gradient
 */
 
-static void DestroyLinearGradient(GF_Node *node)
+static void DestroyLinearGradient(GF_Node *node, void *rs, Bool is_destroy)
 {
-	GradientStack *st = (GradientStack *) gf_node_get_private(node);
-	gf_sr_texture_destroy(&st->txh);
-	free(st);
+	if (is_destroy) {
+		GradientStack *st = (GradientStack *) gf_node_get_private(node);
+		gf_sr_texture_destroy(&st->txh);
+		free(st);
+	}
 }
 
 static void UpdateLinearGradient(GF_TextureHandler *txh)
@@ -443,7 +452,7 @@ void R2D_InitLinearGradient(Render2D *sr, GF_Node *node)
 
 	st->txh.compute_gradient_matrix = LG_ComputeMatrix;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyLinearGradient);
+	gf_node_set_callback_function(node, DestroyLinearGradient);
 }
 
 GF_TextureHandler *r2d_lg_get_texture(GF_Node *node)
@@ -458,11 +467,13 @@ GF_TextureHandler *r2d_lg_get_texture(GF_Node *node)
 */
 
 
-static void DestroyRadialGradient(GF_Node *node)
+static void DestroyRadialGradient(GF_Node *node, void *rs, Bool is_destroy)
 {
-	GradientStack *st = (GradientStack *) gf_node_get_private(node);
-	gf_sr_texture_destroy(&st->txh);
-	free(st);
+	if (is_destroy) {
+		GradientStack *st = (GradientStack *) gf_node_get_private(node);
+		gf_sr_texture_destroy(&st->txh);
+		free(st);
+	}
 }
 
 static void UpdateRadialGradient(GF_TextureHandler *txh)
@@ -543,7 +554,7 @@ void R2D_InitRadialGradient(Render2D *sr, GF_Node *node)
 	st->txh.compute_gradient_matrix = RG_ComputeMatrix;
 
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyRadialGradient);
+	gf_node_set_callback_function(node, DestroyRadialGradient);
 }
 
 GF_TextureHandler *r2d_rg_get_texture(GF_Node *node)

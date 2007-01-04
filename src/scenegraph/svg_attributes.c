@@ -991,6 +991,9 @@ err_ref:
 #undef REMOVE_ALLOC
 
 #if USE_GF_PATH    
+
+//#define PARSE_PATH_ONLY
+
 static void svg_parse_path(SVG_PathData *path, char *attribute_content) 
 {
 	char *d = attribute_content;
@@ -1027,7 +1030,9 @@ next_command:
 				orig.x += rel_ref_pt.x;
 				orig.y += rel_ref_pt.y;
 			}
+#ifndef PARSE_PATH_ONLY
 			gf_path_add_move_to(path, orig.x, orig.y);
+#endif
 			rel_ref_pt = orig;
 			prev_m_pt = orig;
 			/*provision for nextCurveTo when no curve is specified:
@@ -1046,7 +1051,9 @@ next_command:
 				orig.x += rel_ref_pt.x;
 				orig.y += rel_ref_pt.y;
 			}
+#ifndef PARSE_PATH_ONLY
 			gf_path_add_line_to(path, orig.x, orig.y);
+#endif
 			rel_ref_pt = orig;
 			orig = end;
 			/*cf above*/
@@ -1061,7 +1068,9 @@ next_command:
 				orig.x += rel_ref_pt.x;
 			}
 			orig.y = rel_ref_pt.y;
+#ifndef PARSE_PATH_ONLY
 			gf_path_add_line_to(path, orig.x, orig.y);			
+#endif
 			rel_ref_pt.x = orig.x;
 			orig = end;
 			/*cf above*/
@@ -1076,7 +1085,9 @@ next_command:
 				orig.y += rel_ref_pt.y;
 			}
 			orig.x = rel_ref_pt.x;
+#ifndef PARSE_PATH_ONLY
 			gf_path_add_line_to(path, orig.x, orig.y);			
+#endif
 			rel_ref_pt.y = orig.y;
 			orig = end;
 			/*cf above*/
@@ -1104,7 +1115,9 @@ next_command:
 				end.x += rel_ref_pt.x;
 				end.y += rel_ref_pt.y;
 			}
+#ifndef PARSE_PATH_ONLY
 			gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
+#endif
 			rel_ref_pt = end;
 			ct_orig = ct_end;
 			orig = end;
@@ -1127,7 +1140,9 @@ next_command:
 				end.x += rel_ref_pt.x;
 				end.y += rel_ref_pt.y;
 			}
+#ifndef PARSE_PATH_ONLY
 			gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
+#endif
 			rel_ref_pt = end;
 			ct_orig = ct_end;
 			orig = end;
@@ -1148,7 +1163,9 @@ next_command:
 				end.x += rel_ref_pt.x;
 				end.y += rel_ref_pt.y;
 			}
+#ifndef PARSE_PATH_ONLY
 			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);			
+#endif
 			rel_ref_pt = end;
 			orig = end;
 			prev_c = c;
@@ -1164,7 +1181,9 @@ next_command:
 				end.x += rel_ref_pt.x;
 				end.y += rel_ref_pt.y;
 			}
+#ifndef PARSE_PATH_ONLY
 			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);
+#endif
 			rel_ref_pt = end;
 			orig = end;
 			prev_c = c;
@@ -1198,7 +1217,9 @@ next_command:
 		case 'Z':
 		case 'z':
 			i++;				
+#ifndef PARSE_PATH_ONLY
 			gf_path_close(path);
+#endif
 			prev_c = c;
 			rel_ref_pt = prev_m_pt;
 			break;

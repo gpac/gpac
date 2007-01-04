@@ -254,6 +254,10 @@ GF_Err schi_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->isfm) return GF_ISOM_INVALID_FILE;
 		ptr->isfm = (GF_ISMASampleFormatBox*)a;
 		return GF_OK;
+	case GF_ISOM_BOX_TYPE_ODKM:
+		if (ptr->okms) return GF_ISOM_INVALID_FILE;
+		ptr->okms = (GF_OMADRMKMSBox*)a;
+		return GF_OK;
 	default:
 		gf_isom_box_del(a);
 		return GF_OK;
@@ -282,6 +286,10 @@ GF_Err schi_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->isfm, bs);
 		if (e) return e;
 	}
+	if (ptr->okms) {
+		e = gf_isom_box_write((GF_Box *) ptr->okms, bs);
+		if (e) return e;
+	}
 	return GF_OK;
 }
 
@@ -302,6 +310,11 @@ GF_Err schi_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->isfm);
 		if (e) return e;
 		ptr->size += ptr->isfm->size;
+	}
+	if (ptr->okms) {
+		e = gf_isom_box_size((GF_Box *) ptr->okms);
+		if (e) return e;
+		ptr->size += ptr->okms->size;
 	}
 	return GF_OK;
 }
@@ -425,3 +438,449 @@ GF_Err iSFM_Size(GF_Box *s)
 	return GF_OK;
 }
 #endif //GPAC_READ_ONLY
+
+
+
+/* OMADRMCommonHeader Box */
+GF_Box *ohdr_New()
+{
+	GF_OMADRMCommonHeaderBox *tmp;
+	GF_SAFEALLOC(tmp, GF_OMADRMCommonHeaderBox);
+	if (tmp == NULL) return NULL;
+	gf_isom_full_box_init((GF_Box *)tmp);
+	tmp->type = GF_ISOM_BOX_TYPE_OHDR;
+	tmp->ExtendedHeaders = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+void ohdr_del(GF_Box *s)
+{
+	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox*)s;
+	if (ptr == NULL) return;
+	gf_isom_box_array_del(ptr->ExtendedHeaders);
+	if (ptr->ContentID) free(ptr->ContentID);
+	if (ptr->RightsIssuerURL) free(ptr->RightsIssuerURL);
+	if (ptr->TextualHeaders) free(ptr->TextualHeaders);
+	free(ptr);
+}
+
+GF_Err ohdr_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox*)s;
+	return gf_list_add(ptr->ExtendedHeaders, a);
+}
+
+GF_Err ohdr_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u16 cid_len, ri_len, txt_len;
+	GF_Err e;
+	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox*)s;
+	if (ptr == NULL) return GF_BAD_PARAM;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	ptr->EncryptionMethod = gf_bs_read_u8(bs);
+	ptr->PaddingScheme = gf_bs_read_u8(bs);
+	ptr->PlaintextLength = gf_bs_read_u64(bs);
+	cid_len = gf_bs_read_u16(bs);
+	ri_len = gf_bs_read_u16(bs);
+	txt_len = gf_bs_read_u16(bs);
+	ptr->size -= 1+1+8+2+2+2;
+	if (ptr->size<cid_len+ri_len+txt_len) return GF_ISOM_INVALID_FILE;
+
+	if (cid_len) {
+		ptr->ContentID = (char *)malloc(sizeof(char)*(cid_len+1));
+		gf_bs_read_data(bs, ptr->ContentID, cid_len);
+		ptr->ContentID[cid_len]=0;
+	}
+
+	if (ri_len) {
+		ptr->RightsIssuerURL = (char *)malloc(sizeof(char)*(ri_len+1));
+		gf_bs_read_data(bs, ptr->RightsIssuerURL, ri_len);
+		ptr->RightsIssuerURL[ri_len]=0;
+	}
+	
+	if (txt_len) {
+		ptr->TextualHeaders = (char *)malloc(sizeof(char)*(txt_len+1));
+		gf_bs_read_data(bs, ptr->TextualHeaders, txt_len);
+		ptr->TextualHeaders[txt_len]=0;
+	}
+
+	ptr->size -= cid_len+ri_len+txt_len;
+
+	return gf_isom_read_box_list(s, bs, ohdr_AddBox);
+}
+
+#ifndef GPAC_READ_ONLY
+GF_Err ohdr_Write(GF_Box *s, GF_BitStream *bs)
+{
+	u16 cid_len, ri_len, txt_len;
+	GF_Err e;
+	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, ptr->EncryptionMethod);
+	gf_bs_write_u8(bs, ptr->PaddingScheme);
+	gf_bs_write_u64(bs, ptr->PlaintextLength);
+	
+	cid_len = ptr->ContentID ? strlen(ptr->ContentID) : 0;
+	gf_bs_write_u16(bs, cid_len);
+	ri_len = ptr->RightsIssuerURL ? strlen(ptr->RightsIssuerURL) : 0;
+	gf_bs_write_u16(bs, ri_len);
+	txt_len = ptr->TextualHeaders ? strlen(ptr->TextualHeaders) : 0;
+	gf_bs_write_u16(bs, txt_len);
+
+	if (cid_len) gf_bs_write_data(bs, ptr->ContentID, strlen(ptr->ContentID));
+	if (ri_len) gf_bs_write_data(bs, ptr->RightsIssuerURL, strlen(ptr->RightsIssuerURL));
+	if (txt_len) gf_bs_write_data(bs, ptr->TextualHeaders, strlen(ptr->TextualHeaders));
+	ptr->size -= cid_len+ri_len+txt_len;
+	return gf_isom_box_array_write(s, ptr->ExtendedHeaders, bs);
+}
+
+GF_Err ohdr_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size += 1+1+8+2+2+2;
+	if (ptr->ContentID) ptr->size += strlen(ptr->ContentID);
+	if (ptr->RightsIssuerURL) ptr->size += strlen(ptr->RightsIssuerURL);
+	if (ptr->TextualHeaders) ptr->size += strlen(ptr->TextualHeaders);
+	return gf_isom_box_array_size(s, ptr->ExtendedHeaders);
+}
+#endif //GPAC_READ_ONLY
+
+
+/* OMADRMGroupID Box */
+GF_Box *grpi_New()
+{
+	GF_OMADRMGroupIDBox *tmp;
+	GF_SAFEALLOC(tmp, GF_OMADRMGroupIDBox);
+	if (tmp == NULL) return NULL;
+	gf_isom_full_box_init((GF_Box *)tmp);
+	tmp->type = GF_ISOM_BOX_TYPE_GRPI;
+	return (GF_Box *)tmp;
+}
+
+void grpi_del(GF_Box *s)
+{
+	GF_OMADRMGroupIDBox *ptr = (GF_OMADRMGroupIDBox *)s;
+	if (ptr == NULL) return;
+	if (ptr->GroupID) free(ptr->GroupID);
+	if (ptr->GroupKey) free(ptr->GroupKey);
+	free(ptr);
+}
+
+GF_Err grpi_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u16 gid_len;
+	GF_Err e;
+	GF_OMADRMGroupIDBox *ptr = (GF_OMADRMGroupIDBox*)s;
+	if (ptr == NULL) return GF_BAD_PARAM;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	gid_len = gf_bs_read_u16(bs);
+	ptr->GKEncryptionMethod = gf_bs_read_u8(bs);
+	ptr->GKLength = gf_bs_read_u16(bs);
+
+	ptr->size -= 1+2+2;
+	if (ptr->size<gid_len+ptr->GKLength) return GF_ISOM_INVALID_FILE;
+
+	ptr->GroupID = malloc(sizeof(char)*(gid_len+1));
+	gf_bs_read_data(bs, ptr->GroupID, gid_len);
+	ptr->GroupID[gid_len]=0;
+	
+	ptr->GroupKey = (char *)malloc(sizeof(char)*ptr->GKLength);
+	gf_bs_read_data(bs, ptr->GroupKey, ptr->GKLength);
+	ptr->size -= gid_len+ptr->GKLength;
+	return GF_OK;
+}
+
+#ifndef GPAC_READ_ONLY
+GF_Err grpi_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u16 gid_len;
+	GF_OMADRMGroupIDBox *ptr = (GF_OMADRMGroupIDBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gid_len = ptr->GroupID ? strlen(ptr->GroupID) : 0;
+	gf_bs_write_u16(bs, gid_len);
+	gf_bs_write_u8(bs, ptr->GKEncryptionMethod);
+	gf_bs_write_u16(bs, ptr->GKLength);
+	gf_bs_write_data(bs, ptr->GroupID, gid_len);
+	gf_bs_write_data(bs, ptr->GroupKey, ptr->GKLength);
+	return GF_OK;
+}
+
+GF_Err grpi_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_OMADRMGroupIDBox *ptr = (GF_OMADRMGroupIDBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size += 2+2+1 + ptr->GKLength;
+	if (ptr->GroupID) ptr->size += strlen(ptr->GroupID);
+	return GF_OK;
+}
+#endif //GPAC_READ_ONLY
+
+
+
+
+/* OMADRMMutableInformation Box */
+GF_Box *mdri_New()
+{
+	GF_OMADRMMutableInformationBox *tmp;
+	GF_SAFEALLOC(tmp, GF_OMADRMMutableInformationBox);
+	if (tmp == NULL) return NULL;
+	tmp->type = GF_ISOM_BOX_TYPE_MDRI;
+	tmp->boxes = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+void mdri_del(GF_Box *s)
+{
+	GF_OMADRMMutableInformationBox*ptr = (GF_OMADRMMutableInformationBox*)s;
+	if (ptr == NULL) return;
+	gf_isom_box_array_del(ptr->boxes);
+	free(ptr);
+}
+
+GF_Err mdri_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_OMADRMMutableInformationBox *ptr = (GF_OMADRMMutableInformationBox *)s;
+	return gf_list_add(ptr->boxes, a);
+}
+
+GF_Err mdri_Read(GF_Box *s, GF_BitStream *bs)
+{
+	return gf_isom_read_box_list(s, bs, mdri_AddBox);
+}
+
+#ifndef GPAC_READ_ONLY
+GF_Err mdri_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_OMADRMMutableInformationBox*ptr = (GF_OMADRMMutableInformationBox*)s;
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	return gf_isom_box_array_write(s, ptr->boxes, bs);
+}
+
+GF_Err mdri_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_OMADRMMutableInformationBox *ptr = (GF_OMADRMMutableInformationBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+
+	return gf_isom_box_array_size(s, ptr->boxes);
+}
+#endif //GPAC_READ_ONLY
+
+
+/* OMADRMTransactionTracking Box */
+GF_Box *odtt_New()
+{
+	GF_OMADRMTransactionTrackingBox *tmp;
+	GF_SAFEALLOC(tmp, GF_OMADRMTransactionTrackingBox);
+	if (tmp == NULL) return NULL;
+	gf_isom_full_box_init((GF_Box *)tmp);
+	tmp->type = GF_ISOM_BOX_TYPE_ODTT;
+	return (GF_Box *)tmp;
+}
+
+void odtt_del(GF_Box *s)
+{
+	GF_OMADRMTransactionTrackingBox *ptr = (GF_OMADRMTransactionTrackingBox*)s;
+	free(ptr);
+}
+
+GF_Err odtt_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_OMADRMTransactionTrackingBox *ptr = (GF_OMADRMTransactionTrackingBox *)s;
+	if (ptr == NULL) return GF_BAD_PARAM;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	gf_bs_read_data(bs, ptr->TransactionID, 16);
+	ptr->size -= 16;
+	return GF_OK;
+}
+
+#ifndef GPAC_READ_ONLY
+GF_Err odtt_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_OMADRMTransactionTrackingBox *ptr = (GF_OMADRMTransactionTrackingBox*)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_data(bs, ptr->TransactionID, 16);
+	return GF_OK;
+}
+
+GF_Err odtt_Size(GF_Box *s)
+{
+	GF_Err e;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	s->size += 16;
+	return GF_OK;
+}
+#endif //GPAC_READ_ONLY
+
+
+
+/* OMADRMRightsObject Box */
+GF_Box *odrb_New()
+{
+	GF_OMADRMRightsObjectBox *tmp;
+	GF_SAFEALLOC(tmp, GF_OMADRMRightsObjectBox);
+	if (tmp == NULL) return NULL;
+	gf_isom_full_box_init((GF_Box *)tmp);
+	tmp->type = GF_ISOM_BOX_TYPE_ODRB;
+	return (GF_Box *)tmp;
+}
+
+void odrb_del(GF_Box *s)
+{
+	GF_OMADRMRightsObjectBox *ptr = (GF_OMADRMRightsObjectBox*)s;
+	if (ptr->oma_ro) free(ptr->oma_ro);
+	free(ptr);
+}
+
+GF_Err odrb_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_OMADRMRightsObjectBox *ptr = (GF_OMADRMRightsObjectBox *)s;
+	if (ptr == NULL) return GF_BAD_PARAM;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	ptr->oma_ro_size = (u32) ptr->size;
+	ptr->oma_ro = (char*) malloc(sizeof(char)*ptr->oma_ro_size);
+	gf_bs_read_data(bs, ptr->oma_ro, ptr->oma_ro_size);
+	ptr->size = 0;
+	return GF_OK;
+}
+
+#ifndef GPAC_READ_ONLY
+GF_Err odrb_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_OMADRMRightsObjectBox *ptr = (GF_OMADRMRightsObjectBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_data(bs, ptr->oma_ro, ptr->oma_ro_size);
+	return GF_OK;
+}
+
+GF_Err odrb_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_OMADRMRightsObjectBox *ptr = (GF_OMADRMRightsObjectBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	s->size += ptr->oma_ro_size;
+	return GF_OK;
+}
+#endif //GPAC_READ_ONLY
+
+
+
+
+/* OMADRMKMS Box */
+GF_Box *odkm_New()
+{
+	GF_OMADRMKMSBox *tmp;
+	GF_SAFEALLOC(tmp, GF_OMADRMKMSBox);
+	if (tmp == NULL) return NULL;
+	gf_isom_full_box_init((GF_Box *)tmp);
+	tmp->type = GF_ISOM_BOX_TYPE_ODKM;
+	return (GF_Box *)tmp;
+}
+
+void odkm_del(GF_Box *s)
+{
+	GF_OMADRMKMSBox *ptr = (GF_OMADRMKMSBox *)s;
+	if (ptr->hdr) gf_isom_box_del((GF_Box*)ptr->hdr);
+	if (ptr->fmt) gf_isom_box_del((GF_Box*)ptr->fmt);
+	free(ptr);
+}
+
+GF_Err odkm_Add(GF_Box *s, GF_Box *a)
+{
+	GF_OMADRMKMSBox *ptr = (GF_OMADRMKMSBox *)s;
+	switch (a->type) {
+	case GF_ISOM_BOX_TYPE_OHDR:
+		if (ptr->hdr) gf_isom_box_del((GF_Box*)ptr->hdr);
+		ptr->hdr = (GF_OMADRMCommonHeaderBox *)a;
+		return GF_OK;
+	case GF_ISOM_BOX_TYPE_ODAF:
+		if (ptr->fmt) gf_isom_box_del((GF_Box*)ptr->fmt);
+		ptr->fmt = (GF_OMADRMAUFormatBox*)a;
+		return GF_OK;
+	default:
+		gf_isom_box_del(a);
+		return GF_OK;
+	}
+}
+
+GF_Err odkm_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	if (s == NULL) return GF_BAD_PARAM;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	return gf_isom_read_box_list(s, bs, odkm_Add);
+}
+
+#ifndef GPAC_READ_ONLY
+GF_Err odkm_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_OMADRMKMSBox *ptr = (GF_OMADRMKMSBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	if (ptr->hdr) {
+		e = gf_isom_box_write((GF_Box*)ptr->hdr, bs);
+		if (e) return e;
+	}
+	if (ptr->fmt) {
+		e = gf_isom_box_write((GF_Box*)ptr->fmt, bs);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
+GF_Err odkm_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_OMADRMKMSBox *ptr = (GF_OMADRMKMSBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	if (ptr->hdr) {
+		e = gf_isom_box_size((GF_Box*)ptr->hdr);
+		if (e) return e;
+		ptr->size += ptr->hdr->size;
+	}
+	if (ptr->fmt) {
+		e = gf_isom_box_size((GF_Box*)ptr->fmt);
+		if (e) return e;
+		ptr->size += ptr->fmt->size;
+	}
+	return GF_OK;
+}
+#endif //GPAC_READ_ONLY
+
+

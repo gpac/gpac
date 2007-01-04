@@ -92,8 +92,8 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 		if (!strcmp(at_att, "children")) {
 			SVGElement *n = svg_parse_dom_element(parser, lsr_toElement(com->children), at_node);
 			if (n) {
-				if (pos == -1) gf_list_add(at_node->children, n);
-				else gf_list_insert(at_node->children, n, (u32) pos);
+				if (pos == -1) gf_node_list_add_child( &at_node->children, (GF_Node*)n);
+				else gf_node_list_insert_child( &at_node->children, (GF_Node*)n, (u32) pos);
 			}
 			gf_node_dirty_set((GF_Node *) at_node, GF_SG_CHILD_DIRTY, 0);
 		} else {
@@ -126,11 +126,13 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 		if (!at_att) {
 			GF_Node *old;
 			SVGElement *n = svg_parse_dom_element(parser, lsr_toElement(com->children), at_node);
-			if (pos<0) pos = gf_list_count(at_node->children) - 1;
-			old = gf_list_get(at_node->children, pos);
-			gf_list_rem(at_node->children, pos);
-			gf_node_unregister(old, (GF_Node *) at_node);
-			if (n) gf_list_insert(at_node->children, n, pos);
+			if (pos<0) pos = gf_node_list_get_count(at_node->children) - 1;
+			old = gf_node_list_get_child(at_node->children, pos);
+			if (old) {
+				gf_node_list_del_child(&at_node->children, old);
+				gf_node_unregister(old, (GF_Node *) at_node);
+			}
+			if (n) gf_node_list_insert_child(&at_node->children, (GF_Node*)n, pos);
 			gf_node_dirty_set((GF_Node *) at_node, GF_SG_CHILD_DIRTY, 0);
 		} else {
 			if (!gf_node_get_field_by_name((GF_Node *)at_node, at_att, &info)) {
@@ -162,10 +164,12 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 
 		if (!strcmp(at_att, "children")) {
 			GF_Node *old;
-			if (pos<0) pos = gf_list_count(at_node->children) - 1;
-			old = gf_list_get(at_node->children, pos);
-			gf_list_rem(at_node->children, pos);
-			gf_node_unregister(old, (GF_Node *) at_node);
+			if (pos<0) pos = gf_node_list_get_count(at_node->children) - 1;
+			old = gf_node_list_get_child(at_node->children, pos);
+			if (old) {
+				gf_node_list_del_child(&at_node->children, (GF_Node*)old);
+				gf_node_unregister(old, (GF_Node *) at_node);
+			}
 			gf_node_dirty_set((GF_Node *) at_node, GF_SG_CHILD_DIRTY, 0);
 		} else {
 			fprintf(stdout, "WARNING: point delete not supported\n");

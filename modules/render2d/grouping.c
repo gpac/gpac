@@ -44,7 +44,7 @@ void child2d_compute_bounds(ChildGroup2D *cg)
 		DrawableContext *ctx = (DrawableContext *)gf_list_get(cg->contexts, i);
 		gf_rect_union(&cg->original, &ctx->unclip);
 		if (!cg->is_text_group) continue;
-		if (!ctx->is_text) {
+		if (! (ctx->flags & CTX_IS_TEXT) ) {
 			cg->is_text_group = 0;
 			continue;
 		}
@@ -101,15 +101,13 @@ void group2d_add_to_context_list(GroupingNode2D *group, DrawableContext *ctx)
 /*
 	This is the generic routine for child traversing - note we are not duplicating the effect
 */
-void group2d_traverse(GroupingNode2D *group, GF_List *children, RenderEffect2D *eff)
+void group2d_traverse(GroupingNode2D *group, GF_ChildNodeItem *children, RenderEffect2D *eff)
 {
-	u32 i, count;
+	GF_ChildNodeItem *l;
 	Bool split_text_backup;
-	GF_Node *child;
-	u32 count2;
+	u32 i, count2;
 	SensorHandler *hsens;
 	GF_List *sensors_backup = NULL;
-	count = gf_list_count(children);
 
 	/*rebuild sensor list */
 	if (gf_node_dirty_get(group->owner) & GF_SG_CHILD_DIRTY) {
@@ -122,12 +120,14 @@ void group2d_traverse(GroupingNode2D *group, GF_List *children, RenderEffect2D *
 			hsens = r2d_anchor_get_handler(group->owner);
 			if (hsens) gf_list_add(group->sensors, hsens);
 		}
-		for (i=0; i<count; i++) {
-			child = (GF_Node*)gf_list_get(children, i);
-			if (!child || !is_sensor_node(child) ) continue;
-			hsens = get_sensor_handler(child);
-			/*only keep track of locally enabled sensors*/
-			if (hsens) gf_list_add(group->sensors, hsens);
+		l = children;
+		while (l) {
+			if (l->node && is_sensor_node(l->node) ) {
+				hsens = get_sensor_handler(l->node);
+				/*only keep track of locally enabled sensors*/
+				if (hsens) gf_list_add(group->sensors, hsens);
+			}
+			l = l->next;
 		}
 	}
 
@@ -147,18 +147,20 @@ void group2d_traverse(GroupingNode2D *group, GF_List *children, RenderEffect2D *
 	gf_node_dirty_clear(group->owner, 0);
 
 	if (eff->parent == group) {
-		for (i=0; i<count; i++) {
+		l = children;
+		while (l) {
 			group2d_start_child(group);
-			child = (GF_Node*)gf_list_get(children, i);
-			gf_node_render(child, eff);
+			gf_node_render(l->node, eff);
 			group2d_end_child(group);
+			l = l->next;
 		}
 	} else {
 		split_text_backup = eff->text_split_mode;
-		if (count>1) eff->text_split_mode = 0;
-		for (i=0; i<count; i++) {
-			child = (GF_Node*)gf_list_get(children, i);
-			gf_node_render(child, eff);
+		l = children;
+		if (l && l->next) eff->text_split_mode = 0;
+		while (l) {
+			gf_node_render(l->node, eff);
+			l = l->next;
 		}
 		eff->text_split_mode = split_text_backup;
 	}
@@ -182,7 +184,6 @@ void child2d_render_done(ChildGroup2D *cg, RenderEffect2D *eff, GF_Rect *par_cli
 	GF_Matrix2D mat, loc_mx;
 	Fixed x, y, inv_min_hsize;
 	u32 i, count;
-	u32 j, scount;
 	GF_Rect _clip;
 	GF_IRect clipper;
 
@@ -197,6 +198,7 @@ void child2d_render_done(ChildGroup2D *cg, RenderEffect2D *eff, GF_Rect *par_cli
 
 	count = gf_list_count(cg->contexts);
 	for (i=0; i<count; i++) {
+		SensorContext *sc;
 		DrawableContext *ctx = (DrawableContext *)gf_list_get(cg->contexts, i);
 
 		gf_mx2d_apply_coords(&mat, &ctx->unclip.x, &ctx->unclip.y);
@@ -209,12 +211,11 @@ void child2d_render_done(ChildGroup2D *cg, RenderEffect2D *eff, GF_Rect *par_cli
 		if (!eff->is_pixel_metrics) gf_mx2d_add_scale(&ctx->transform, inv_min_hsize, inv_min_hsize);
 		gf_mx2d_add_matrix(&ctx->transform, &eff->transform);
 
-		scount = gf_list_count(ctx->sensors);
-		for (j=0; j<scount; j++) {
-			SensorContext *sc = (SensorContext *)gf_list_get(ctx->sensors, j);
-
+		sc = ctx->sensor;
+		while (sc) {
 			if (!eff->is_pixel_metrics) gf_mx2d_add_scale(&sc->matrix, inv_min_hsize, inv_min_hsize);
 			gf_mx2d_add_matrix(&sc->matrix, &eff->transform);
+			sc = sc->next;
 		}
 		gf_mx2d_init(loc_mx);
 		if (!eff->is_pixel_metrics) gf_mx2d_add_scale(&loc_mx, inv_min_hsize, inv_min_hsize);
@@ -232,10 +233,10 @@ void child2d_render_done(ChildGroup2D *cg, RenderEffect2D *eff, GF_Rect *par_cli
 void child2d_render_done_complex(ChildGroup2D *cg, RenderEffect2D *eff, GF_Matrix2D *mat)
 {
 	u32 i, count;
-	u32 j, scount;
-	
+
 	count = gf_list_count(cg->contexts);
 	for (i=0; i<count; i++) {
+		SensorContext *sc;
 		DrawableContext *ctx = (DrawableContext *)gf_list_get(cg->contexts, i);
 		if (!mat) {
 			gf_rect_reset(&ctx->clip);
@@ -245,10 +246,10 @@ void child2d_render_done_complex(ChildGroup2D *cg, RenderEffect2D *eff, GF_Matri
 		gf_mx2d_add_matrix(&ctx->transform, mat);
 		gf_mx2d_add_matrix(&ctx->transform, &eff->transform);
 
-		scount = gf_list_count(ctx->sensors);
-		for (j=0; j<scount; j++) {
-			SensorContext *sc = (SensorContext *)gf_list_get(ctx->sensors, j);
+		sc = ctx->sensor;
+		while (sc) {
 			gf_mx2d_add_matrix(&sc->matrix, &eff->transform);
+			sc = sc->next;
 		}
 		gf_mx2d_apply_rect(&ctx->transform, &ctx->unclip);
 		ctx->unclip_pix = gf_rect_pixelize(&ctx->unclip);

@@ -95,15 +95,6 @@ static void fg_update_bounds(FormGroup *fg)
 }
 
 
-static void DestroyForm(GF_Node *n)
-{
-	FormStack *st = (FormStack *)gf_node_get_private(n);
-	DeleteGroupingNode((GroupingNode *)st);
-	form_reset(st);
-	gf_list_del(st->grouplist);
-	free(st);
-}
-
 static void shin_apply(FormStack *st, u32 *group_idx, u32 count);
 static void sh_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count);
 static void svin_apply(FormStack *st, u32 *group_idx, u32 count);
@@ -204,7 +195,7 @@ static void form_apply(FormStack *st, const char *constraint, u32 *group_idx, u3
 /*define to 1 to let the form object clip its children (not specified in spec)*/
 #define FORM_CLIPS	0
 
-static void RenderForm(GF_Node *n, void *rs)
+static void RenderForm(GF_Node *n, void *rs, Bool is_destroy)
 {
 #if FORM_CLIPS
 	GF_Rect clip, prev_clipper;
@@ -220,6 +211,13 @@ static void RenderForm(GF_Node *n, void *rs)
 	FormStack *st = (FormStack *)gf_node_get_private(n);
 	RenderEffect3D *eff = (RenderEffect3D *) rs;
 
+	if (is_destroy) {
+		DeleteGroupingNode((GroupingNode *)st);
+		form_reset(st);
+		gf_list_del(st->grouplist);
+		free(st);
+		return;
+	}
 	/*update cliper*/
 	if ((gf_node_dirty_get(n) & GF_SG_NODE_DIRTY)) {
 		/*get surface size*/
@@ -335,12 +333,11 @@ void R3D_InitForm(Render3D *sr, GF_Node *node)
 	FormStack *stack;
 	GF_SAFEALLOC(stack, FormStack);
 
-	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, ((M_Form *)node)->children);
+	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, & ((M_Form *)node)->children);
 	stack->grouplist = gf_list_new();
 
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyForm);
-	gf_node_set_render_function(node, RenderForm);
+	gf_node_set_callback_function(node, RenderForm);
 }
 
 

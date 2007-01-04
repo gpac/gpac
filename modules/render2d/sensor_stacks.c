@@ -40,11 +40,13 @@ typedef struct
 	GF_Renderer *compositor;
 } DiscSensorStack;
 
-static void DestroyDiscSensor(GF_Node *node)
+static void DestroyDiscSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
-	DiscSensorStack *st = (DiscSensorStack *) gf_node_get_private(node);
-	unregister_sensor(st->compositor, &st->hdl);
-	free(st);
+	if (is_destroy) {
+		DiscSensorStack *st = (DiscSensorStack *) gf_node_get_private(node);
+		unregister_sensor(st->compositor, &st->hdl);
+		free(st);
+	}
 }
 
 static Bool ds_is_enabled(SensorHandler *sh)
@@ -151,7 +153,7 @@ void R2D_InitDiscSensor(Render2D *sr, GF_Node *node)
 	st->compositor = sr->compositor;
 	sr->compositor->interaction_sensors++;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyDiscSensor);
+	gf_node_set_callback_function(node, DestroyDiscSensor);
 }
 
 
@@ -165,11 +167,13 @@ typedef struct
 	GF_Renderer *compositor;
 } PS2DStack;
 
-static void DestroyPlaneSensor2D(GF_Node *node)
+static void DestroyPlaneSensor2D(GF_Node *node, void *rs, Bool is_destroy)
 {
-	PS2DStack *st = (PS2DStack *) gf_node_get_private(node);
-	unregister_sensor(st->compositor, &st->hdl);
-	free(st);
+	if (is_destroy) {
+		PS2DStack *st = (PS2DStack *) gf_node_get_private(node);
+		unregister_sensor(st->compositor, &st->hdl);
+		free(st);
+	}
 }
 
 static Bool ps2D_is_enabled(SensorHandler *sh)
@@ -297,7 +301,7 @@ void R2D_InitPlaneSensor2D(Render2D *sr, GF_Node *node)
 	st->compositor = sr->compositor;
 	st->compositor->interaction_sensors++;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyPlaneSensor2D);
+	gf_node_set_callback_function(node, DestroyPlaneSensor2D);
 }
 
 
@@ -310,11 +314,13 @@ typedef struct
 	GF_Renderer *compositor;
 } Prox2DStack;
 
-static void DestroyProximitySensor2D(GF_Node *node)
+static void DestroyProximitySensor2D(GF_Node *node, void *rs, Bool is_destroy)
 {
-	Prox2DStack *st = (Prox2DStack *) gf_node_get_private(node);
-	unregister_sensor(st->compositor, &st->hdl);
-	free(st);
+	if (is_destroy) {
+		Prox2DStack *st = (Prox2DStack *) gf_node_get_private(node);
+		unregister_sensor(st->compositor, &st->hdl);
+		free(st);
+	}
 }
 
 static Bool prox2D_is_enabled(SensorHandler *sh)
@@ -401,7 +407,7 @@ void R2D_InitProximitySensor2D(Render2D *sr, GF_Node *node)
 	st->compositor = sr->compositor;
 	st->compositor->interaction_sensors++;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyProximitySensor2D);
+	gf_node_set_callback_function(node, DestroyProximitySensor2D);
 }
 
 
@@ -412,11 +418,13 @@ typedef struct
 	GF_Renderer *compositor;
 } TouchSensorStack;
 
-static void DestroyTouchSensor(GF_Node *node)
+static void DestroyTouchSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
-	TouchSensorStack *st = (TouchSensorStack *) gf_node_get_private(node);
-	unregister_sensor(st->compositor, &st->hdl);
-	free(st);
+	if (is_destroy) {
+		TouchSensorStack *st = (TouchSensorStack *) gf_node_get_private(node);
+		unregister_sensor(st->compositor, &st->hdl);
+		free(st);
+	}
 }
 
 static Bool ts_is_enabled(SensorHandler *sh)
@@ -521,5 +529,5 @@ void R2D_InitTouchSensor(Render2D *sr, GF_Node *node)
 	st->compositor = sr->compositor;
 	st->compositor->interaction_sensors++;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyTouchSensor);
+	gf_node_set_callback_function(node, DestroyTouchSensor);
 }

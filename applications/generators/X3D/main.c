@@ -266,7 +266,7 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs)
 					fprintf(f, "\tGF_Node *%s;\t/*%s*/\n", bf->name, bf->type);
 				} else {
 					//this is a POINTER to a chain
-					fprintf(f, "\tGF_List *%s;\t/*%s*/\n", bf->name, bf->type);
+					fprintf(f, "\tGF_ChildNodeItem *%s;\t/*%s*/\n", bf->name, bf->type);
 				}
 			} else {
 				fprintf(f, "\t%s %s;\t/*%s*/\n", bf->familly, bf->name, bf->type);
@@ -365,7 +365,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 			
 			//delete all children node
 			if (strcmp(bf->type, "eventOut") && !strcmp(bf->name, "children")) {
-				fprintf(vrml_code, "\tgf_sg_vrml_parent_reset(node);\t\n");
+				fprintf(vrml_code, "\tgf_sg_vrml_parent_destroy(node);\t\n");
 				continue;
 			}
 
@@ -402,7 +402,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 					fprintf(vrml_code, "\tgf_node_unregister((GF_Node *) p->%s, node);\t\n", bf->name);
 				} else {
 					//this is a POINTER to a chain
-					fprintf(vrml_code, "\tgf_node_list_del((GF_List *) p->%s, node);\t\n", bf->name);
+					fprintf(vrml_code, "\tgf_node_unregister_children(node, p->%s);\t\n", bf->name);
 				}
 			}
 		}
@@ -431,7 +431,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				//this is a POINTER to a node 
 				if (strstr(bf->familly, "MF")) {
 					//this is a POINTER to a chain
-					fprintf(vrml_code, "\tp->%s = gf_list_new();\t\n", bf->name);
+					//fprintf(vrml_code, "\tp->%s = gf_list_new();\t\n", bf->name);
 				}
 			}
 			/*special case for SFCommandBuffer: we also create a command list*/

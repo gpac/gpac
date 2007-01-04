@@ -1059,7 +1059,7 @@ int main (int argc, char **argv)
 				gf_term_disconnect(term);
 
 				if (fscanf(playlist, "%s", the_url) == EOF) {
-					fprintf(stdout, "No more items - exiting\n", the_url);
+					fprintf(stdout, "No more items - exiting\n");
 					Run = 0;
 				} else {
 					fprintf(stdout, "Opening URL %s\n", the_url);
@@ -1286,6 +1286,14 @@ int main (int argc, char **argv)
 			gf_log_set_tools(parse_log_tools(szLog));
 		}
 			break;
+		case 'g':
+		{
+			GF_SystemRTInfo rti;
+			gf_sys_get_rti(RTI_UPDATE_TIME_MS, &rti, 0);
+			fprintf(stdout, "GPAC allocated memory %d\n", rti.gpac_memory);
+		}
+			break;
+
 		case 'h':
 			PrintHelp();
 			break;

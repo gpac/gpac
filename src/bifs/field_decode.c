@@ -30,15 +30,6 @@
 #include "script.h" 
 
 
-GF_Err gf_bifs_insert_sf_node(void *mfnode_far_ptr, GF_Node *new_child, s32 Position)
-{
-	GF_List *list = *(GF_List **) mfnode_far_ptr;
-	if (Position == -1) {
-		return gf_list_add(list, new_child);
-	} 
-	return gf_list_insert(list, new_child, Position);
-}
-
 void SFCommandBufferChanged(GF_BifsDecoder * codec, GF_Node *node)
 {
 	void Conditional_BufferReplaced(GF_BifsDecoder * codec, GF_Node *node);
@@ -257,6 +248,7 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 	GF_Node *new_node;
 	GF_Err e;
 	u8 endFlag, qp_local, qp_on, initial_qp;
+	GF_ChildNodeItem *last = NULL;
 	u32 nbF;
 
 	GF_FieldInfo sffield;
@@ -295,20 +287,20 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 						qp_on = 1;
 						if (qp_local) qp_local = 2;
 						if (codec->force_keep_qp) {
-							e = gf_bifs_insert_sf_node(field->far_ptr, new_node, -1);
+							e = gf_node_list_add_child_last( field->far_ptr, new_node, &last);
 						} else {
 							gf_node_register(new_node, NULL);
 							gf_node_unregister(new_node, node);
 						}
 					} else 
 						//this is generic MFNode container
-						e = gf_bifs_insert_sf_node(field->far_ptr, new_node, -1);
+						e = gf_node_list_add_child_last(field->far_ptr, new_node, &last);
 					
 				}
 				//proto coding: directly add the child
 				else if (codec->pCurrentProto) {
 					//TO DO: what happens if this is a QP node on the interface ?
-					gf_list_add(*(GF_List **)field->far_ptr, new_node);
+					e = gf_node_list_add_child_last( (GF_ChildNodeItem **)field->far_ptr, new_node, &last);
 				}
 			} else {
 				return codec->LastError;
@@ -345,6 +337,7 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 	GF_Err e;
 	u32 NbBits, nbFields;
 	u32 i;
+	GF_ChildNodeItem *last;
 	u8 qp_local, qp_on, initial_qp;
 	GF_Node *new_node;
 	GF_FieldInfo sffield;
@@ -376,6 +369,7 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 			e = gf_bifs_dec_sf_field(codec, bs, node, &sffield);
 		}
 	} else {
+		last = NULL;
 		for (i=0;i<nbFields; i++) {
 			new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
 			if (new_node) {
@@ -396,18 +390,19 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 						qp_on = 1;
 						if (qp_local) qp_local = 2;
 						if (codec->force_keep_qp) {
-							e = gf_bifs_insert_sf_node(field->far_ptr, new_node, -1);
+							e = gf_node_list_add_child_last(field->far_ptr, new_node, &last);
 						} else {
 							gf_node_register(new_node, NULL);
 							gf_node_unregister(new_node, node);
 						}
-					} else
-						e = gf_bifs_insert_sf_node(field->far_ptr, new_node, -1);
+					} else {
+						e = gf_node_list_add_child_last(field->far_ptr, new_node, &last);
+					}
 				} 
 				/*proto coding*/
 				else if (codec->pCurrentProto) {
 					/*TO DO: what happens if this is a QP node on the interface ?*/
-					gf_list_add(*(GF_List **)field->far_ptr, new_node);
+					e = gf_node_list_add_child_last( (GF_ChildNodeItem **)field->far_ptr, new_node, &last);
 				}
 			} else {
 				return codec->LastError ? codec->LastError : GF_NON_COMPLIANT_BITSTREAM;
@@ -433,7 +428,7 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 
 void gf_bifs_check_field_change(GF_Node *node, GF_FieldInfo *field)
 {
-	if ((field->fieldType==GF_SG_VRML_MFNODE) || (field->fieldType==GF_SG_VRML_MFNODE)) node->sgprivate->is_dirty |= GF_SG_CHILD_DIRTY;
+	if ((field->fieldType==GF_SG_VRML_MFNODE) || (field->fieldType==GF_SG_VRML_MFNODE)) node->sgprivate->flags |= GF_SG_CHILD_DIRTY;
 	/*signal node modif*/
 	gf_node_changed(node, field);
 	/*Notify eventOut in all cases to handle protos*/
@@ -464,7 +459,8 @@ GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 		/*clean up the eventIn field if not done*/
 		if (field->eventType == GF_SG_EVENT_IN) {
 			if (field->fieldType == GF_SG_VRML_MFNODE) {
-				gf_node_unregister_children(node, * (GF_List **)field->far_ptr);
+				gf_node_unregister_children(node, * (GF_ChildNodeItem **)field->far_ptr);
+				* (GF_ChildNodeItem **)field->far_ptr = NULL;
 			} else {
 				//remove all items of the MFField
 				gf_sg_vrml_mf_reset(field->far_ptr, field->fieldType);
@@ -684,7 +680,7 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 		if (nodeID == (u32) (1<<codec->info->config.NodeIDBits))
 			return NULL;
 		//find node and return it
-		new_node = gf_bifs_dec_find_node(codec, nodeID);
+		new_node = gf_sg_find_node(codec->current_graph, nodeID);
 
 		if (!new_node) {
 			codec->LastError = GF_SG_UNKNOWN_NODE;
@@ -782,12 +778,15 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 
 	new_node = NULL;
 	skip_init = 0;
+
+	/*don't check node IDs duplicate since VRML may use them...*/
+#if 0
 	/*if a node with same DEF is already in the scene, use it
 	we don't do that in memory mode because commands may force replacement
 	of a node with a new node with same ID, and we want to be able to dump it (otherwise we would
 	dump a USE)*/
 	if (nodeID && !codec->dec_memory_mode) {
-		new_node = gf_bifs_dec_find_node(codec, nodeID);
+		new_node = gf_sg_find_node(codec->current_graph, nodeID);
 		if (new_node) {
 			if (proto) {
 				if ((gf_node_get_tag(new_node) != TAG_ProtoNode) || (gf_node_get_proto(new_node) != proto)) {
@@ -804,6 +803,8 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 			}
 		}
 	}
+#endif
+	
 	if (!new_node) {
 		if (proto) {
 			/*create proto interface*/

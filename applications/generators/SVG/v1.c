@@ -64,14 +64,14 @@ u32 generateCoreInfo(FILE *output, SVGGenElement *elt, u32 start)
 	fprintf(output, "\t\tcase %d:\n", i);
 	fprintf(output, "\t\t\tinfo->name = \"id\";\n");
 	fprintf(output, "\t\t\tinfo->fieldType = SVG_ID_datatype;\n");
-	fprintf(output, "\t\t\tinfo->far_ptr = &node->sgprivate->NodeName;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = gf_node_get_name_address(node);\n");
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 	i++;
 
 	fprintf(output, "\t\tcase %d:\n", i);
 	fprintf(output, "\t\t\tinfo->name = \"xml:id\";\n");
 	fprintf(output, "\t\t\tinfo->fieldType = SVG_ID_datatype;\n");
-	fprintf(output, "\t\t\tinfo->far_ptr = &node->sgprivate->NodeName;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = gf_node_get_name_address(node);\n");
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 	i++;
 

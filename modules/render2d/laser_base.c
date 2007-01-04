@@ -28,13 +28,14 @@
 #ifndef GPAC_DISABLE_SVG
 #include "laser_stacks.h"
 
-static void LASeR_Render_selector(GF_Node *node, void *rs)
+static void LASeR_Render_selector(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
 	SVGPropertiesPointers backup_props;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGselectorElement *sel = (SVGselectorElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
+	if (is_destroy) return;
 
 	SVG_Render_base(node, eff, &backup_props);
 
@@ -67,7 +68,7 @@ static void LASeR_Render_selector(GF_Node *node, void *rs)
 		svg_render_node_list(sel->children, eff);
 		break;
 	case LASeR_CHOICE_N:
-		svg_render_node((GF_Node*)gf_list_get(sel->children, sel->choice.choice_index), eff);
+		svg_render_node( gf_node_list_get_child(sel->children, sel->choice.choice_index), eff);
 		break;
 	}
 
@@ -77,17 +78,18 @@ static void LASeR_Render_selector(GF_Node *node, void *rs)
 
 void LASeR_Init_selector(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, LASeR_Render_selector);
+	gf_node_set_callback_function(node, LASeR_Render_selector);
 }
 
 
-static void LASeR_Render_simpleLayout(GF_Node *node, void *rs)
+static void LASeR_Render_simpleLayout(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
 	SVGPropertiesPointers backup_props;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGsimpleLayoutElement *sl = (SVGsimpleLayoutElement*)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
+	if (is_destroy) return;
 
 	SVG_Render_base(node, eff, &backup_props);
 
@@ -128,16 +130,17 @@ static void LASeR_Render_simpleLayout(GF_Node *node, void *rs)
 
 void LASeR_Init_simpleLayout(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, LASeR_Render_simpleLayout);
+	gf_node_set_callback_function(node, LASeR_Render_simpleLayout);
 }
 
-static void LASeR_Render_rectClip(GF_Node *node, void *rs)
+static void LASeR_Render_rectClip(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
 	SVGPropertiesPointers backup_props;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGrectClipElement *rc = (SVGrectClipElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
+	if (is_destroy) return;
 
 	SVG_Render_base(node, eff, &backup_props);
 
@@ -182,7 +185,7 @@ static void LASeR_Render_rectClip(GF_Node *node, void *rs)
 
 void LASeR_Init_rectClip(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, LASeR_Render_rectClip);
+	gf_node_set_callback_function(node, LASeR_Render_rectClip);
 }
 
 #endif //GPAC_DISABLE_SVG

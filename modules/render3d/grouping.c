@@ -81,9 +81,9 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 	GF_List *sensor_backup;
 	GF_Node *child;
 	SensorHandler *hsens;
+	GF_ChildNodeItem *l;
 
 	is_parent = (eff->parent == group) ? 1 : 0;
-	count = gf_list_count(group->children);
 
 	if (gf_node_dirty_get(group->owner) & GF_SG_CHILD_DIRTY) {
 		/*need to recompute bounds*/
@@ -109,11 +109,23 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 				hsens = r3d_anchor_get_handler(group->owner);
 				if (hsens) gf_list_add(group->sensors, hsens);
 			}
-			for (i=0; i<count; i++) {
-				child = (GF_Node*)gf_list_get(group->children, positions ? positions[i] : i);
-				hsens = r3d_get_sensor_handler(child);
-				if (hsens) gf_list_add(group->sensors, hsens);
-				else if (r3d_is_light(child, 0)) gf_list_add(group->lights, child);
+
+			l = *group->children;
+			if (positions) {
+				count = gf_node_list_get_count(l);
+				for (i=0; i<count; i++) {
+					child = gf_node_list_get_child(l, positions[i]);
+					hsens = r3d_get_sensor_handler(child);
+					if (hsens) gf_list_add(group->sensors, hsens);
+					else if (r3d_is_light(child, 0)) gf_list_add(group->lights, child);
+				}
+			} else {
+				while (l) {
+					hsens = r3d_get_sensor_handler(l->node);
+					if (hsens) gf_list_add(group->sensors, hsens);
+					else if (r3d_is_light(l->node, 0)) gf_list_add(group->lights, l->node);
+					l = l->next;
+				}
 			}	
 
 			if (!gf_list_count(group->sensors)) {
@@ -133,7 +145,7 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 		}
 	}
 	/*not parent (eg form, layout...) sub-tree not dirty and getting bounds, direct copy */
-	else if (!is_parent && (eff->traversing_mode==TRAVERSE_GET_BOUNDS) && gf_sg_is_first_render_cycle(group->owner)) {
+	else if (!is_parent && (eff->traversing_mode==TRAVERSE_GET_BOUNDS) ) {
 		eff->bbox = group->bbox;
 		gf_node_dirty_clear(group->owner, 0);
 		return;
@@ -212,35 +224,59 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 		if (!is_parent && (count>1)) eff->text_split_mode = 0;
 		group->dont_cull = group->bbox.is_set = eff->bbox.is_set = 0;
 		
-		for (i=0; i<count; i++) {
-			child = (GF_Node*)gf_list_get(group->children, positions ? positions[i] : i);
-			if (is_parent) group_start_child(group, child);
-			gf_node_render(child, eff);
-			if (is_parent) group_end_child(group, &eff->bbox);
-			else if (get_bounds) {
-				if (eff->trav_flags & TF_DONT_CULL) {
-					group->dont_cull = 1;
-					eff->trav_flags &= ~TF_DONT_CULL;
-				} 
-				if (eff->bbox.is_set) {
-					gf_bbox_union(&group->bbox, &eff->bbox);
+		l = *group->children;
+		if (positions) {
+			count = gf_node_list_get_count(l);
+			for (i=0; i<count; i++) {
+				child = gf_node_list_get_child(l, positions[i]);
+				if (is_parent) group_start_child(group, child);
+				gf_node_render(child, eff);
+				if (is_parent) group_end_child(group, &eff->bbox);
+				else if (get_bounds) {
+					if (eff->trav_flags & TF_DONT_CULL) {
+						group->dont_cull = 1;
+						eff->trav_flags &= ~TF_DONT_CULL;
+					} 
+					if (eff->bbox.is_set) {
+						gf_bbox_union(&group->bbox, &eff->bbox);
+					}
+					eff->bbox.is_set = 0;
 				}
-				eff->bbox.is_set = 0;
 			}
-		} 
+		} else {
+			while (l) {
+				if (is_parent) group_start_child(group, l->node);
+				gf_node_render(l->node, eff);
+				if (is_parent) group_end_child(group, &eff->bbox);
+				else if (get_bounds) {
+					if (eff->trav_flags & TF_DONT_CULL) {
+						group->dont_cull = 1;
+						eff->trav_flags &= ~TF_DONT_CULL;
+					} 
+					if (eff->bbox.is_set) {
+						gf_bbox_union(&group->bbox, &eff->bbox);
+					}
+					eff->bbox.is_set = 0;
+				}
+				l = l->next;
+			}
+		}
+
 		eff->bbox = group->bbox;
 		if (group->dont_cull) eff->trav_flags |= TF_DONT_CULL;
 		eff->text_split_mode = split_text_backup;
 	} else {
+		l = *group->children;
 		if (positions) {
+			count = gf_node_list_get_count(l);
 			for (i=0; i<count; i++) {
-				child = (GF_Node*)gf_list_get(group->children, positions[i]);
+				child = gf_node_list_get_child(l, positions[i]);
 				gf_node_render(child, eff);
 			} 
 		} else {
-			for (i=0; i<count; i++) {
-				child = (GF_Node*)gf_list_get(group->children, i);
-				gf_node_render(child, eff);
+			while (l) {
+				gf_node_render(l->node, eff);
+				l = l->next;
 			} 
 		}
 	}
@@ -308,7 +344,7 @@ void child_render_done_complex(ChildGroup *cg, RenderEffect3D *eff, GF_Matrix2D 
 }
 
 
-void SetupGroupingNode(GroupingNode *group, GF_Renderer *sr, GF_Node *node, GF_List *children)
+void SetupGroupingNode(GroupingNode *group, GF_Renderer *sr, GF_Node *node, GF_ChildNodeItem **children)
 {
 	memset(group, 0, sizeof(GroupingNode));
 	gf_sr_traversable_setup(group, node, sr);
@@ -334,12 +370,11 @@ void DestroyBaseGrouping(GF_Node *node)
 	free(group);
 }
 
-void NewGroupingNodeStack(GF_Renderer *sr, GF_Node *node, GF_List *children)
+void NewGroupingNodeStack(GF_Renderer *sr, GF_Node *node, GF_ChildNodeItem **children)
 {
 	GroupingNode *st = (GroupingNode *)malloc(sizeof(GroupingNode));
 	if (!st) return;
 	SetupGroupingNode(st, sr, node, children);
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyBaseGrouping);
 }
 

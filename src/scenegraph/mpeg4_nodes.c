@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Dec 13 14:37:48 2006
+	DO NOT MOFIFY - File generated on GMT Fri Dec 22 19:18:45 2006
 
 	BY MPEG4Gen for GPAC Version 0.4.3-DEV
 */
@@ -41,7 +41,7 @@
 static void Anchor_Del(GF_Node *node)
 {
 	M_Anchor *p = (M_Anchor *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_sg_sfstring_del(p->description);
 	gf_sg_mfstring_del(p->parameter);
 	gf_sg_mfurl_del(p->url);
@@ -446,7 +446,7 @@ GF_Node *Appearance_Create()
 static void AudioBuffer_Del(GF_Node *node)
 {
 	M_AudioBuffer *p = (M_AudioBuffer *) node;
-	gf_node_list_del((GF_List *) p->children, (GF_Node *) p);	
+	gf_node_unregister_children((GF_Node *) p, p->children);	
 	gf_sg_mfint32_del(p->phaseGroup);
 	gf_node_free((GF_Node *) p);
 }
@@ -618,7 +618,6 @@ GF_Node *AudioBuffer_Create()
 	GF_SAFEALLOC(p, M_AudioBuffer);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioBuffer);
-	p->children = gf_list_new();	
 
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *)p)->sgprivate->name = "AudioBuffer";
@@ -804,7 +803,7 @@ GF_Node *AudioClip_Create()
 static void AudioDelay_Del(GF_Node *node)
 {
 	M_AudioDelay *p = (M_AudioDelay *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_sg_mfint32_del(p->phaseGroup);
 	gf_node_free((GF_Node *) p);
 }
@@ -955,7 +954,7 @@ GF_Node *AudioDelay_Create()
 static void AudioFX_Del(GF_Node *node)
 {
 	M_AudioFX *p = (M_AudioFX *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_sg_sfstring_del(p->orch);
 	gf_sg_sfstring_del(p->score);
 	gf_sg_mffloat_del(p->params);
@@ -1132,7 +1131,7 @@ GF_Node *AudioFX_Create()
 static void AudioMix_Del(GF_Node *node)
 {
 	M_AudioMix *p = (M_AudioMix *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_sg_mffloat_del(p->matrix);
 	gf_sg_mfint32_del(p->phaseGroup);
 	gf_node_free((GF_Node *) p);
@@ -1308,7 +1307,7 @@ GF_Node *AudioMix_Create()
 static void AudioSource_Del(GF_Node *node)
 {
 	M_AudioSource *p = (M_AudioSource *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_sg_mfurl_del(p->url);
 	gf_sg_mfint32_del(p->phaseGroup);
 	gf_node_free((GF_Node *) p);
@@ -1507,7 +1506,7 @@ GF_Node *AudioSource_Create()
 static void AudioSwitch_Del(GF_Node *node)
 {
 	M_AudioSwitch *p = (M_AudioSwitch *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_sg_mfint32_del(p->whichChoice);
 	gf_sg_mfint32_del(p->phaseGroup);
 	gf_node_free((GF_Node *) p);
@@ -2006,7 +2005,7 @@ GF_Node *Background2D_Create()
 static void Billboard_Del(GF_Node *node)
 {
 	M_Billboard *p = (M_Billboard *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_free((GF_Node *) p);
 }
 
@@ -2437,7 +2436,7 @@ GF_Node *Circle_Create()
 static void Collision_Del(GF_Node *node)
 {
 	M_Collision *p = (M_Collision *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->proxy, (GF_Node *) p);	
 	gf_node_free((GF_Node *) p);
 }
@@ -2805,7 +2804,7 @@ GF_Node *ColorInterpolator_Create()
 static void CompositeTexture2D_Del(GF_Node *node)
 {
 	M_CompositeTexture2D *p = (M_CompositeTexture2D *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->viewport, (GF_Node *) p);	
 	gf_node_free((GF_Node *) p);
@@ -2981,7 +2980,7 @@ GF_Node *CompositeTexture2D_Create()
 static void CompositeTexture3D_Del(GF_Node *node)
 {
 	M_CompositeTexture3D *p = (M_CompositeTexture3D *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->fog, (GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->navigationInfo, (GF_Node *) p);	
@@ -5448,7 +5447,7 @@ GF_Node *FontStyle_Create()
 static void Form_Del(GF_Node *node)
 {
 	M_Form *p = (M_Form *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_sg_mfint32_del(p->groups);
 	gf_sg_mfstring_del(p->constraints);
 	gf_sg_mfint32_del(p->groupsIndex);
@@ -5618,7 +5617,7 @@ GF_Node *Form_Create()
 static void Group_Del(GF_Node *node)
 {
 	M_Group *p = (M_Group *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_free((GF_Node *) p);
 }
 
@@ -6711,7 +6710,7 @@ GF_Node *Inline_Create()
 static void LOD_Del(GF_Node *node)
 {
 	M_LOD *p = (M_LOD *) node;
-	gf_node_list_del((GF_List *) p->level, (GF_Node *) p);	
+	gf_node_unregister_children((GF_Node *) p, p->level);	
 	gf_sg_mffloat_del(p->range);
 	gf_node_free((GF_Node *) p);
 }
@@ -6811,7 +6810,6 @@ GF_Node *LOD_Create()
 	GF_SAFEALLOC(p, M_LOD);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_LOD);
-	p->level = gf_list_new();	
 
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *)p)->sgprivate->name = "LOD";
@@ -6836,7 +6834,7 @@ GF_Node *LOD_Create()
 static void Layer2D_Del(GF_Node *node)
 {
 	M_Layer2D *p = (M_Layer2D *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->viewport, (GF_Node *) p);	
 	gf_node_free((GF_Node *) p);
@@ -6986,7 +6984,7 @@ GF_Node *Layer2D_Create()
 static void Layer3D_Del(GF_Node *node)
 {
 	M_Layer3D *p = (M_Layer3D *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->fog, (GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->navigationInfo, (GF_Node *) p);	
@@ -7154,7 +7152,7 @@ GF_Node *Layer3D_Create()
 static void Layout_Del(GF_Node *node)
 {
 	M_Layout *p = (M_Layout *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_sg_mfstring_del(p->justify);
 	gf_node_free((GF_Node *) p);
 }
@@ -8567,7 +8565,7 @@ GF_Node *NormalInterpolator_Create()
 static void OrderedGroup_Del(GF_Node *node)
 {
 	M_OrderedGroup *p = (M_OrderedGroup *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_sg_mffloat_del(p->order);
 	gf_node_free((GF_Node *) p);
 }
@@ -12071,7 +12069,7 @@ GF_Node *SpotLight_Create()
 static void Switch_Del(GF_Node *node)
 {
 	M_Switch *p = (M_Switch *) node;
-	gf_node_list_del((GF_List *) p->choice, (GF_Node *) p);	
+	gf_node_unregister_children((GF_Node *) p, p->choice);	
 	gf_node_free((GF_Node *) p);
 }
 
@@ -12158,7 +12156,6 @@ GF_Node *Switch_Create()
 	GF_SAFEALLOC(p, M_Switch);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Switch);
-	p->choice = gf_list_new();	
 
 #ifdef GF_NODE_USE_POINTERS
 	((GF_Node *)p)->sgprivate->name = "Switch";
@@ -12975,7 +12972,7 @@ GF_Node *TouchSensor_Create()
 static void Transform_Del(GF_Node *node)
 {
 	M_Transform *p = (M_Transform *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_free((GF_Node *) p);
 }
 
@@ -13170,7 +13167,7 @@ GF_Node *Transform_Create()
 static void Transform2D_Del(GF_Node *node)
 {
 	M_Transform2D *p = (M_Transform2D *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_free((GF_Node *) p);
 }
 
@@ -15738,7 +15735,7 @@ GF_Node *PerceptualParameters_Create()
 static void TemporalTransform_Del(GF_Node *node)
 {
 	M_TemporalTransform *p = (M_TemporalTransform *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_sg_mfurl_del(p->url);
 	gf_sg_mfint32_del(p->stretchMode);
 	gf_sg_mfint32_del(p->shrinkMode);
@@ -15966,7 +15963,7 @@ GF_Node *TemporalTransform_Create()
 static void TemporalGroup_Del(GF_Node *node)
 {
 	M_TemporalGroup *p = (M_TemporalGroup *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_sg_mffloat_del(p->priority);
 	gf_node_free((GF_Node *) p);
 }
@@ -17935,7 +17932,7 @@ GF_Node *ScalarAnimator_Create()
 static void Clipper2D_Del(GF_Node *node)
 {
 	M_Clipper2D *p = (M_Clipper2D *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->transform, (GF_Node *) p);	
 	gf_node_free((GF_Node *) p);
@@ -18081,7 +18078,7 @@ GF_Node *Clipper2D_Create()
 static void ColorTransform_Del(GF_Node *node)
 {
 	M_ColorTransform *p = (M_ColorTransform *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_free((GF_Node *) p);
 }
 
@@ -18770,7 +18767,7 @@ GF_Node *LinearGradient_Create()
 static void PathLayout_Del(GF_Node *node)
 {
 	M_PathLayout *p = (M_PathLayout *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);	
 	gf_sg_mfint32_del(p->alignment);
 	gf_node_free((GF_Node *) p);
@@ -19174,7 +19171,7 @@ GF_Node *RadialGradient_Create()
 static void TransformMatrix2D_Del(GF_Node *node)
 {
 	M_TransformMatrix2D *p = (M_TransformMatrix2D *) node;
-	gf_sg_vrml_parent_reset((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
 	gf_node_free((GF_Node *) p);
 }
 

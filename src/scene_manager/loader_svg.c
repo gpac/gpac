@@ -60,9 +60,11 @@ typedef struct
 typedef struct
 {
 	/*top of parsed sub-tree*/
-	GF_Node *node;
+	SVGElement *node;
 	/*depth of unknown elements being skipped*/
 	u32 unknown_depth;
+	/*last child added, used to speed-up parsing*/
+	GF_ChildNodeItem *last_child;
 } SVGNodeStack;
 
 
@@ -238,7 +240,7 @@ static Bool svg_parse_animation(GF_SVGParser *parser, GF_SceneGraph *sg, Defered
 				anim->resolve_stage = 1;
 				return svg_parse_animation(parser, sg, anim, nodeID);
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] missing attributeName attribute on %s\n", anim->animation_elt->sgprivate->NodeName));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] missing attributeName attribute on %s\n", gf_node_get_name((GF_Node*)anim->animation_elt) ));
 			}
 		}
 
@@ -358,12 +360,12 @@ static void svg_resolved_refs(GF_SVGParser *parser, GF_SceneGraph *sg, const cha
 	}
 }
 
-static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes, SVGElement *parent)
+static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes, SVGNodeStack *parent)
 {
 	u32	tag, i;
 	SVGElement *elt;
 	GF_FieldInfo info;
-	Bool ided = 0;
+	const char *node_name = NULL;
 	DeferedAnimation *anim = NULL;
 
 	/* Translates the node type (called name) from a String into a unique numeric identifier in GPAC */
@@ -380,21 +382,22 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 		return NULL;
 	}
 	gf_node_register((GF_Node *)elt, (GF_Node *)parent);
-	if (parent && elt) gf_list_add(parent->children, elt);
+	if (parent && elt) gf_node_list_add_child_last( & parent->node->children, (GF_Node*)elt, & parent->last_child);
+
 
 	if (is_svg_animation_tag(tag)) {
 		GF_SAFEALLOC(anim, DeferedAnimation);
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
-		anim->target = parent;
-		anim->anim_parent = parent;
+		anim->target = parent->node;
+		anim->anim_parent = parent->node;
 	} else if (tag == TAG_SVG_video || tag == TAG_SVG_audio || tag == TAG_SVG_animation || tag == TAG_SVG_conditional) {
 		/* warning: we use the DeferedAnimation structure for some timing nodes which are not 
 		   animations, but we put the parse stage at 1 (timing) see svg_parse_animation. */
 		GF_SAFEALLOC(anim, DeferedAnimation);
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
-		anim->anim_parent = parent;
+		anim->anim_parent = parent->node;
 		anim->resolve_stage = 1;
 	}
 
@@ -408,7 +411,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 			gf_svg_parse_style(elt, att->value);
 		} else if (!stricmp(att->name, "id") || !stricmp(att->name, "xml:id")) {
 			gf_svg_parse_element_id(elt, att->value, parser->command_depth ? 1 : 0);
-			ided = 1;
+			node_name = att->value;
 		} else if (anim && !stricmp(att->name, "attributeName")) {
 			anim->attributeName = strdup(att->value);
 		} else if (anim && !stricmp(att->name, "to")) {
@@ -446,13 +449,13 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 			SVGlistenerElement *listener;
 			listener = (SVGlistenerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
 			gf_node_register((GF_Node *)listener, node);
-			gf_list_add( ((GF_ParentNode *)node)->children, listener);
+			gf_node_list_add_child( & ((GF_ParentNode *)node)->children, (GF_Node*) listener);
 			/* this listener listens to the given type of event */
 			((SVGhandlerElement *)node)->ev_event.type = listener->event.type = gf_dom_event_type_by_name(att->value);
 			listener->handler.target = (SVGElement *)node;
 			/* this listener listens with the parent of the handler as the event target */
-			listener->target.target = parent;
-			gf_dom_listener_add((GF_Node *) parent, (GF_Node *) listener);
+			listener->target.target = parent->node;
+			gf_dom_listener_add((GF_Node *) parent->node, (GF_Node *) listener);
 		} else {
 			u32 evtType = GF_EVENT_UNKNOWN;
 			if (!strncmp(att->name, "on", 2)) evtType = gf_dom_event_type_by_name(att->name + 2);
@@ -498,8 +501,8 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	}
 
 	/* if the new element has an id, we try to resolve defered references */
-	if (ided) {
-		svg_resolved_refs(parser, parser->load->scene_graph, gf_node_get_name((GF_Node *)elt));
+	if (node_name) {
+		svg_resolved_refs(parser, parser->load->scene_graph, node_name);
 	}
 
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
@@ -520,12 +523,12 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 			else par = listener->target.target;
 		}
 
-		if (!listener->handler.target) listener->handler.target = parent;
+		if (!listener->handler.target) listener->handler.target = parent->node;
 		
 		if (post_pone) {
 			gf_list_add(parser->defered_listeners, listener);
 		} else {
-			if (!par) par = parent;
+			if (!par) par = parent->node;
 			gf_dom_listener_add((GF_Node *)par, (GF_Node *) listener);
 		}
 	}
@@ -677,7 +680,7 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, const GF_XMLAttribute *att
 			GF_FieldInfo op_field;
 			if (gf_node_get_field_by_name(opNode, atOperandAtt, &op_field) != GF_OK)
 				return svg_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atOperandAtt, atOperandNode);
-			parser->command->fromNodeID = opNode->sgprivate->NodeID;
+			parser->command->fromNodeID = gf_node_get_id(opNode);
 			parser->command->fromFieldIndex = op_field.fieldIndex;
 		}
 		gf_node_register(parser->command->node, NULL);
@@ -839,13 +842,13 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	if (parser->has_root) {
 		assert(parent || parser->command);
 	}
-	elt = svg_parse_element(parser, name, name_space, attributes, nb_attributes, parent ? (SVGElement *) parent->node : NULL);
+	elt = svg_parse_element(parser, name, name_space, attributes, nb_attributes, parent);
 	if (!elt) {
 		if (parent) parent->unknown_depth++;
 		return;
 	}
 	GF_SAFEALLOC(stack, SVGNodeStack);
-	stack->node = (GF_Node *) elt;
+	stack->node = elt;
 	gf_list_add(parser->node_stack, stack);
 
 	if (gf_node_get_tag((GF_Node *)elt) == TAG_SVG_svg && !parser->has_root) 
@@ -856,13 +859,12 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		/*either not assigned or textContent*/
 		assert(!field->fieldType || (field->fieldType==SVG_String_datatype));
 		if (field->new_node) {
-			field->node_list = gf_list_new();
 			field->field_ptr = &field->node_list;
-			gf_list_add(field->node_list, field->new_node);
+			gf_node_list_add_child(& field->node_list, field->new_node);
 			field->new_node = NULL;
-			gf_list_add(field->node_list, elt);
+			gf_node_list_add_child( & field->node_list, (GF_Node*) elt);
 		} else if (field->node_list) {
-			gf_list_add(field->node_list, elt);
+			gf_node_list_add_child(& field->node_list, (GF_Node*) elt);
 		} else if (!field->new_node) {
 			field->new_node = (GF_Node*)elt;
 			field->field_ptr = &field->new_node;
@@ -894,7 +896,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 	/*only remove created nodes ... */
 	end_tag = gf_node_svg_type_by_class_name(name);
 	if (end_tag != TAG_UndefinedNode) {
-		GF_Node *node = top->node;
+		GF_Node *node = (GF_Node *) top->node;
 		if (node->sgprivate->tag != end_tag) {
 			if (top->unknown_depth) {
 				top->unknown_depth--;
@@ -1090,6 +1092,8 @@ static GF_SVGParser *svg_new_parser(GF_SceneLoader *load)
 	return parser;
 }
 
+extern size_t gpac_allocated_memory;
+
 GF_Err gf_sm_load_init_SVG(GF_SceneLoader *load)
 {
 	GF_Err e;
@@ -1103,6 +1107,7 @@ GF_Err gf_sm_load_init_SVG(GF_SceneLoader *load)
 
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, svg_progress);
 	if (e<0) return svg_report(parser, e, "Unable to parse file %s: %s", load->fileName, gf_xml_sax_get_error(parser->sax_parser) );
+	fprintf(stdout, "total allocated memory %d\n", gpac_allocated_memory);
 	return parser->last_error;
 }
 

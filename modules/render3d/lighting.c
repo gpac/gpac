@@ -41,12 +41,12 @@ Bool r3d_is_light(GF_Node *n, Bool local_only)
 }
 
 
-static void RenderSpotLight(GF_Node *n, void *rs)
+static void RenderSpotLight(GF_Node *n, void *rs, Bool is_destroy)
 {
 	M_SpotLight *sl = (M_SpotLight *)n;
 	RenderEffect3D *eff = (RenderEffect3D *) rs;
 
-	if (!sl->on) return;
+	if (is_destroy || !sl->on) return;
 
 	/*store local bounds for culling*/
 	if (eff->traversing_mode==TRAVERSE_GET_BOUNDS) {
@@ -72,15 +72,15 @@ static void RenderSpotLight(GF_Node *n, void *rs)
 void R3D_InitSpotLight(Render3D *sr, GF_Node *node)
 {
 	/*no need for a stck*/
-	gf_node_set_render_function(node, RenderSpotLight);
+	gf_node_set_callback_function(node, RenderSpotLight);
 }
 
-static void RenderPointLight(GF_Node *n, void *rs)
+static void RenderPointLight(GF_Node *n, void *rs, Bool is_destroy)
 {
 	M_PointLight *pl = (M_PointLight *)n;
 	RenderEffect3D *eff = (RenderEffect3D *) rs;
 
-	if (!pl->on) return;
+	if (is_destroy || !pl->on) return;
 
 	/*store local bounds for culling*/
 	if (eff->traversing_mode==TRAVERSE_GET_BOUNDS) {
@@ -105,24 +105,20 @@ static void RenderPointLight(GF_Node *n, void *rs)
 void R3D_InitPointLight(Render3D *sr, GF_Node *node)
 {
 	/*no need for a stck*/
-	gf_node_set_render_function(node, RenderPointLight);
+	gf_node_set_callback_function(node, RenderPointLight);
 }
 
 
-
-
-static void DestroyDirectionalLight(GF_Node *n)
-{
-	Bool *stack = (Bool*)gf_node_get_private(n);
-	free(stack);
-}
-
-static void RenderDirectionalLight(GF_Node *n, void *rs)
+static void RenderDirectionalLight(GF_Node *n, void *rs, Bool is_destroy)
 {
 	Bool *stack = (Bool*)gf_node_get_private(n);
 	M_DirectionalLight *dl = (M_DirectionalLight *)n;
 	RenderEffect3D *eff = (RenderEffect3D *) rs;
 
+	if (is_destroy) {
+		free(stack);
+		return;
+	}
 	if ((eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF) || !dl->on) return;
 
 	/*1- DL only lights the parent group, no need for culling it*/
@@ -143,7 +139,6 @@ void R3D_InitDirectionalLight(Render3D *sr, GF_Node *node)
 	Bool *stack = (Bool*)malloc(sizeof(Bool));
 	*stack = 0;
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyDirectionalLight);
-	gf_node_set_render_function(node, RenderDirectionalLight);
+	gf_node_set_callback_function(node, RenderDirectionalLight);
 }
 

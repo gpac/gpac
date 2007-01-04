@@ -3344,12 +3344,13 @@ static void lsr_read_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool ski
 
 	GF_LSR_READ_INT(lsr, count, 1, "opt_group");
 	if (count) {
+		GF_ChildNodeItem *last = NULL;
 		count = lsr_read_vluimsbf5(lsr, "occ0");
 		for (i=0; i<count; i++) {
 			GF_Node *n = lsr_read_scene_content_model(lsr, elt);
 			if (n) {
 				gf_node_register(n, (GF_Node *)elt);
-				gf_list_add(elt->children, n);
+				gf_node_list_add_child_last(& elt->children, n, &last);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] ############## end %s ###########\n", gf_node_get_class_name(n)));
 			} else {
 				/*either error or text content*/
@@ -3367,12 +3368,13 @@ static void lsr_read_group_content_post_init(GF_LASeRCodec *lsr, SVGElement *elt
 
 	GF_LSR_READ_INT(lsr, count, 1, "opt_group");
 	if (count) {
+		GF_ChildNodeItem *last = NULL;
 		count = lsr_read_vluimsbf5(lsr, "occ0");
 		for (i=0; i<count; i++) {
 			GF_Node *n = lsr_read_scene_content_model(lsr, elt);
 			if (n) {
 				gf_node_register(n, (GF_Node *)elt);
-				gf_list_add(elt->children, n);
+				gf_node_list_add_child_last(&elt->children, n, &last);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] ############## end %s ###########\n", gf_node_get_class_name(n)));
 			} else {
 				/*either error or text content*/
@@ -3703,16 +3705,16 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				if (new_node) gf_node_register(new_node, NULL);
 				gf_node_register(new_node, NULL);
 			} else if (com_type==3) {
-				gf_list_insert(((SVGElement *)n)->children, new_node, idx);
+				gf_node_list_insert_child(& ((SVGElement *)n)->children, new_node, idx);
 				gf_node_register(new_node, n);
 			} else {
 				/*child replacement*/
 				if (idx!=-1) {
-					GF_Node *old = (GF_Node *)gf_list_get( ((SVGElement *)n)->children, idx);
+					GF_Node *old = gf_node_list_get_child( ((SVGElement *)n)->children, idx);
 					if (old)
 						gf_node_replace(old, new_node, 0);
 					else {
-						gf_list_add(((SVGElement *)n)->children, new_node);
+						gf_node_list_add_child( & ((SVGElement *)n)->children, new_node);
 						gf_node_register(new_node, n);
 					}
 				} else {
@@ -3897,37 +3899,38 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				field->pos = idx;
 			} else {
 				u32 count;
-				field->node_list = gf_list_new();
+				GF_ChildNodeItem *last = NULL;
 				field->field_ptr = &field->node_list;
 				count = lsr_read_vluimsbf5(lsr, "count");
 				while (count) {
 					GF_Node *new_node = lsr_read_update_content_model(lsr, (SVGElement *) n);
 					gf_node_register(new_node, n);
-					gf_list_add(field->node_list, new_node);
+					gf_node_list_add_child_last(& field->node_list, new_node, &last);
 					count--;
 				}
 			}
 		} else {
 			if (com_type==LSR_UPDATE_INSERT) {
-				GF_Node *rem = (GF_Node *)gf_list_get(((SVGElement*)n)->children, idx);
+				GF_Node *rem = (GF_Node *)gf_node_list_get_child(((SVGElement*)n)->children, idx);
 				if (rem) {
-					gf_list_rem(((SVGElement*)n)->children, idx);
+					gf_node_list_del_child( & ((SVGElement*)n)->children, rem);
 					gf_node_unregister(rem, n);
 				}
 				new_node = lsr_read_update_content_model(lsr, (SVGElement *) n);
 				if (new_node) {
-					gf_list_insert(((SVGElement*)n)->children, new_node, idx);
+					gf_node_list_insert_child( & ((SVGElement*)n)->children, new_node, idx);
 					gf_node_register(new_node, n);
 				}
 				gf_node_changed(n, NULL);
 			}
 			/*replace all children*/
 			else {
+				GF_ChildNodeItem *last = NULL;
 				u32 count = lsr_read_vluimsbf5(lsr, "count");
 				gf_node_unregister_children(n, ((SVGElement*)n)->children);
 				while (count) {
 					GF_Node *new_node = lsr_read_update_content_model(lsr, (SVGElement *) n);
-					gf_list_add(((SVGElement*)n)->children, new_node);
+					gf_node_list_add_child_last( & ((SVGElement*)n)->children, new_node, &last);
 					gf_node_register(new_node, n);
 					count--;
 				}
@@ -3983,9 +3986,9 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 		}
 		/*node deletion*/
 		else if (idx>=0) {
-			GF_Node *c = (GF_Node *)gf_list_get(elt->children, idx);
+			GF_Node *c = (GF_Node *)gf_node_list_get_child(elt->children, idx);
 			if (c) {
-				GF_Err e = gf_list_rem(elt->children, idx);
+				GF_Err e = gf_node_list_del_child( & elt->children, c);
 				if (e) 
 					return e;
 				gf_node_unregister(c, (GF_Node*)elt);

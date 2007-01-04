@@ -82,20 +82,22 @@ typedef struct
 	MFURL current_url;
 } AnimationStreamStack;
 
-static void DestroyAnimationStream(GF_Node *node)
+static void DestroyAnimationStream(GF_Node *node, void *rs, Bool is_destroy)
 {
-	M_AnimationStream *as = (M_AnimationStream *)node;
-	AnimationStreamStack *st = (AnimationStreamStack *) gf_node_get_private(node);
+	if (is_destroy) {
+		M_AnimationStream *as = (M_AnimationStream *)node;
+		AnimationStreamStack *st = (AnimationStreamStack *) gf_node_get_private(node);
 
-	if (st->time_handle.is_registered) {
-		gf_sr_unregister_time_node(st->compositor, &st->time_handle);
+		if (st->time_handle.is_registered) {
+			gf_sr_unregister_time_node(st->compositor, &st->time_handle);
+		}
+		if (st->stream && as->isActive) {
+			gf_mo_set_flag(st->stream, GF_MO_DISPLAY_REMOVE, 1);
+			gf_mo_stop(st->stream);
+		}
+		gf_sg_vrml_mf_reset(&st->current_url, GF_SG_VRML_MFURL);
+		free(st);
 	}
-	if (st->stream && as->isActive) {
-		gf_mo_set_flag(st->stream, GF_MO_DISPLAY_REMOVE, 1);
-		gf_mo_stop(st->stream);
-	}
-	gf_sg_vrml_mf_reset(&st->current_url, GF_SG_VRML_MFURL);
-	free(st);
 }
 
 
@@ -212,7 +214,7 @@ void InitAnimationStream(GF_Renderer *sr, GF_Node *node)
 	st->time_handle.obj = node;
 	
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyAnimationStream);
+	gf_node_set_callback_function(node, DestroyAnimationStream);
 	
 	gf_sr_register_time_node(sr, &st->time_handle);
 }
@@ -249,13 +251,15 @@ typedef struct
 } TimeSensorStack;
 
 static
-void DestroyTimeSensor(GF_Node *ts)
+void DestroyTimeSensor(GF_Node *ts, void *rs, Bool is_destroy)
 {
-	TimeSensorStack *st = (TimeSensorStack *)gf_node_get_private(ts);
-	if (st->time_handle.is_registered) {
-		gf_sr_unregister_time_node(st->compositor, &st->time_handle);
+	if (is_destroy) {
+		TimeSensorStack *st = (TimeSensorStack *)gf_node_get_private(ts);
+		if (st->time_handle.is_registered) {
+			gf_sr_unregister_time_node(st->compositor, &st->time_handle);
+		}
+		free(st);
 	}
-	free(st);
 }
 
 
@@ -377,7 +381,7 @@ void InitTimeSensor(GF_Renderer *sr, GF_Node *node)
 	st->compositor = sr;
 	st->is_x3d = (gf_node_get_tag(node)==TAG_X3D_TimeSensor) ? 1 : 0;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyTimeSensor);
+	gf_node_set_callback_function(node, DestroyTimeSensor);
 	/*time sensor needs to be run only if def'ed, otherwise it doesn't impact scene*/
 	if (gf_node_get_id(node)) gf_sr_register_time_node(sr, &st->time_handle);
 }

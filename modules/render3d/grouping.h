@@ -61,7 +61,7 @@ typedef struct
 */
 
 #define GROUPINGNODESTACK	\
-	GF_List *children;		\
+	GF_ChildNodeItem **children;		\
 	GF_List *groups;			\
 	GF_List *sensors;			\
 	GF_List *lights;			\
@@ -76,12 +76,12 @@ typedef struct _parent_group
 } GroupingNode;
 
 /*performs stack init/destroy - doesn't free stack*/
-void SetupGroupingNode(GroupingNode *ptr, GF_Renderer *sr, GF_Node *node, GF_List *children);
+void SetupGroupingNode(GroupingNode *ptr, GF_Renderer *sr, GF_Node *node, GF_ChildNodeItem **children);
 void DeleteGroupingNode(GroupingNode *gr);
 /*destroy base stack*/
 void DestroyBaseGrouping(GF_Node *node);
 /*creates grouping stack and register callbacks*/
-void NewGroupingNodeStack(GF_Renderer *sr, GF_Node *node, GF_List *children);
+void NewGroupingNodeStack(GF_Renderer *sr, GF_Node *node, GF_ChildNodeItem **children);
 
 
 /*traverse all children of the node @alt_positions: alternate order for children - MUST HAVE THE EXACT 

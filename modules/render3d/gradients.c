@@ -64,12 +64,14 @@ void GradientGetMatrix(GF_Node *transform, GF_Matrix2D *mat)
 	}
 }
 
-static void DestroyLinearGradient(GF_Node *node)
+static void DestroyGradient(GF_Node *node, void *rs, Bool is_destroy)
 {
-	GradientStack *st = (GradientStack *) gf_node_get_private(node);
-	gf_sr_texture_destroy(&st->txh);
-	if (st->tx_data) free(st->tx_data);
-	free(st);
+	if (is_destroy) {
+		GradientStack *st = (GradientStack *) gf_node_get_private(node);
+		gf_sr_texture_destroy(&st->txh);
+		if (st->tx_data) free(st->tx_data);
+		free(st);
+	}
 }
 
 static void UpdateLinearGradient(GF_TextureHandler *txh)
@@ -244,7 +246,7 @@ void R3D_InitLinearGradient(Render3D *sr, GF_Node *node)
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = UpdateLinearGradient;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyLinearGradient);
+	gf_node_set_callback_function(node, DestroyGradient);
 }
 
 GF_TextureHandler *r3d_lg_get_texture(GF_Node *node)
@@ -253,14 +255,6 @@ GF_TextureHandler *r3d_lg_get_texture(GF_Node *node)
 	return &st->txh;
 }
 
-
-static void DestroyRadialGradient(GF_Node *node)
-{
-	GradientStack *st = (GradientStack *) gf_node_get_private(node);
-	gf_sr_texture_destroy(&st->txh);
-	if (st->tx_data) free(st->tx_data);
-	free(st);
-}
 
 static void UpdateRadialGradient(GF_TextureHandler *txh)
 {
@@ -441,7 +435,7 @@ void R3D_InitRadialGradient(Render3D *sr, GF_Node *node)
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = UpdateRadialGradient;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyRadialGradient);
+	gf_node_set_callback_function(node, DestroyGradient);
 }
 
 GF_TextureHandler *r3d_rg_get_texture(GF_Node *node)

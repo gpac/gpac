@@ -32,19 +32,17 @@ typedef struct
 	SFVec3f pos;
 } Sound2DStack;
 
-static void DestroySound2D(GF_Node *node)
-{
-	Sound2DStack *st = (Sound2DStack *)gf_node_get_private(node);
-	free(st);
-}
-
 /*sound2D wraper - spacialization is not supported yet*/
-static void RenderSound2D(GF_Node *node, void *rs)
+static void RenderSound2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	RenderEffect3D *eff = (RenderEffect3D*) rs;
 	M_Sound2D *snd = (M_Sound2D *)node;
 	Sound2DStack *st = (Sound2DStack *)gf_node_get_private(node);
-
+	
+	if (is_destroy) {
+		free(st);
+		return;
+	}
 	if (!snd->source) return;
 
 	/*this implies no DEF/USE for real location...*/
@@ -79,8 +77,7 @@ void R3D_InitSound2D(Render3D *sr, GF_Node *node)
 	snd->snd_ifce.GetChannelVolume = SND2D_GetChannelVolume;
 	snd->snd_ifce.owner = node;
 	gf_node_set_private(node, snd);
-	gf_node_set_render_function(node, RenderSound2D);
-	gf_node_set_predestroy_function(node, DestroySound2D);
+	gf_node_set_callback_function(node, RenderSound2D);
 }
 
 
@@ -160,18 +157,16 @@ typedef struct
 	Fixed lgain, rgain;
 } SoundStack;
 
-static void DestroySound(GF_Node *node)
-{
-	SoundStack *st = (SoundStack *)gf_node_get_private(node);
-	free(st);
-}
-
-static void RenderSound(GF_Node *node, void *rs)
+static void RenderSound(GF_Node *node, void *rs, Bool is_destroy)
 {
 	RenderEffect3D *eff = (RenderEffect3D*) rs;
 	M_Sound *snd = (M_Sound *)node;
 	SoundStack *st = (SoundStack *)gf_node_get_private(node);
 
+	if (is_destroy) {
+		free(st);
+		return;
+	}
 	if (!snd->source) return;
 
 	eff->sound_holder = &st->snd_ifce;
@@ -273,7 +268,6 @@ void R3D_InitSound(Render3D *sr, GF_Node *node)
 	snd->snd_ifce.GetPriority = SND_GetPriority;
 	snd->snd_ifce.owner = node;
 	gf_node_set_private(node, snd);
-	gf_node_set_render_function(node, RenderSound);
-	gf_node_set_predestroy_function(node, DestroySound);
+	gf_node_set_callback_function(node, RenderSound);
 }
 

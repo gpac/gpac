@@ -48,7 +48,8 @@ Group {
   	children [
      Shape {
      	appearance Appearance {
-				material USE MAT
+#				material USE MAT
+				material Material { diffuseColor 1.0 0.0 1.0}
      	}
       geometry Cone {height 150 bottomRadius 25 bottom FALSE}
      }

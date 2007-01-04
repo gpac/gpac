@@ -29,92 +29,88 @@
 
 //#define GF_NODE_USE_POINTERS
 
+#define GF_CYCLIC_RENDER_ON
+
 /*for vrml base types, ROUTEs and PROTOs*/
 #include <gpac/scenegraph_vrml.h>
 
 #include <gpac/scenegraph_svg.h>
 
-
-#define GF_CYCLIC_RENDER_ON
-
-//#define GF_ARRAY_PARENT_NODES
-
 void gf_node_setup(GF_Node *p, u32 tag);
 
-typedef struct _node_list
+typedef struct _parent_list
 {
-	struct _node_list *next;
+	struct _parent_list *next;
 	GF_Node *node;
-} GF_NodeList;
+} GF_ParentList;
 
+
+/*internal flag reserved for NodeID*/
+#define GF_NODE_IS_DEF	0x80000000
+
+#ifdef GF_CYCLIC_RENDER_ON
+#define GF_NODE_IN_RENDER	0x40000000
+#define GF_NODE_INTERNAL_FLAGS 0xC0000000
+#else
+#define GF_NODE_INTERNAL_FLAGS 0x80000000
+#endif
+
+struct _node_interactive_ext
+{
+	/*routes on eventOut, ISed routes, ... for VRML-based scene graphs
+	event listeners for all others - THIS IS DYNAMICALLY CREATED*/
+	GF_List *events;
+
+	/* SVG animations are registered in the target node  - THIS IS DYNAMICALLY CREATED*/
+	GF_List *animations;
+};
 
 typedef struct _nodepriv
 {
 	/*node type*/
-	u32 tag;
-	/*node ID or 0*/
-	u32 NodeID;
-	u16 is_dirty;
-
-#ifdef GF_NODE_USE_POINTERS
-	const char *name;
-	u32 (*get_field_count)(struct _sfNode *node, u8 IndexMode);
-	void (*node_del)(struct _sfNode *node);
-	GF_Err (*get_field) (struct _sfNode *node, GF_FieldInfo *info);
-#endif
-
-	/*node def name (MPEGJ interfaces, VRML/X3D)*/
-	char *NodeName;
+	u16 tag;
+	/*number of instances of this node in the graph (VRML/MPEG-4 only*/
+	u16 num_instances;
+	/*node flags*/
+	u32 flags;
 	/*scenegraph holding the node*/
 	struct __tag_scene_graph *scenegraph;
 
-	/*user defined rendering function */
-	void (*RenderNode)(struct _sfNode *node, void *render_stack);
-	/*user defined pre-destroy function */
-	void (*PreDestroyNode)(struct _sfNode *node);
+#ifdef GF_NODE_USE_POINTERS
+	const char *name;
+	u32 (*get_field_count)(struct _base_node *node, u8 IndexMode);
+	void (*node_del)(struct _base_node *node);
+	GF_Err (*get_field) (struct _base_node *node, GF_FieldInfo *info);
+#endif
+
+	/*user defined callback function */
+	void (*UserCallback)(struct _base_node *node, void *render_stack, Bool node_destroy);
 	/*user defined stack*/
-	void *privateStack;
+	void *UserPrivate;
 
-	/*
-		DEF/USE (implicit or explicit) handling - implicit DEF do NOT use the parentNodes list
-		
-		NOTE on DEF/USE: in VRML a node is DEF and then USE, but in MPEG4 a node can be deleted, replaced,
-		a USE can be inserted before (in scene graph depth) the DEF, etc.
-		this library considers that a DEF node is valid until all instances are deleted. If so the node is removed
-		from the scene graph manager
-	*/
-
-	/*number of instances of this node in the graph*/
-	u32 num_instances;
 	/*list of all parent nodes (whether DEF or not, needed to invalidate parent tree)*/
-#ifdef GF_ARRAY_PARENT_NODES
-	GF_List *parentNodes;
-#else
-	GF_NodeList *parents;
-#endif
-	/*routes on eventOut, ISed routes, ... for VRML-based scene graphs
-	event listeners for all others
-	THIS IS DYNAMICALLY CREATED*/
-	GF_List *events;
-
-	/* SVG animations are registered in the target node */
-	GF_List *animations;
-
-#ifdef GF_CYCLIC_RENDER_ON
-	u32 render_pass;
-#endif
+	GF_ParentList *parents;
+	
+	/*holder for all interactive stuff - THIS IS DYNAMICALLY CREATED*/
+	struct _node_interactive_ext *interact;
 } NodePriv;
 
 
-#ifndef NODEREG_STEP_ALLOC
-#define NODEREG_STEP_ALLOC	50
-#endif
+typedef struct __tag_node_id
+{
+	struct __tag_node_id *next;
+	GF_Node *node;
+
+	/*node ID*/
+	u32 NodeID;
+	/*node def name*/
+	char *NodeName;
+} NodeIDedItem;
 
 struct __tag_scene_graph 
 {
 	/*all DEF nodes (explicit)*/
-	GF_Node **node_registry;
-	u32 node_reg_alloc, node_reg_size;
+	NodeIDedItem *id_node, *id_node_last;
 
 	/*all routes available*/
 	GF_List *Routes;
@@ -168,11 +164,6 @@ struct __tag_scene_graph
 
 	u32 max_defined_route_id;
 
-#ifdef GF_CYCLIC_RENDER_ON
-	/*max number of render() for cyclic graphs*/
-	u32 max_cyclic_render;
-#endif
-
 #ifndef GPAC_DISABLE_SVG
 	GF_List *xlink_hrefs;
 	GF_List *smil_timed_elements;
@@ -185,6 +176,9 @@ struct __tag_scene_graph
 
 void gf_sg_parent_setup(GF_Node *pNode);
 void gf_sg_parent_reset(GF_Node *pNode);
+
+void *gf_node_get_name_address(GF_Node*node);
+
 
 struct _route
 {
@@ -487,11 +481,6 @@ void gf_node_free(GF_Node *node);
 /*node destructor dispatcher: redirects destruction for each graph type: VRML/MPEG4, X3D, SVG...)*/
 void gf_node_del(GF_Node *node);
 
-//these 2 functions are used when deleting the nodes (DESTRUCTORS ONLY), because the 
-//info about DEF ? USE is stored somewhere else (usually, BIFS codec or XMT parser)
-//the parent node is used to determined the acyclic portions of the scene graph
-void gf_node_list_del(GF_List *children, GF_Node *parent);
-
 /*creates an undefined GF_Node - for parsing only*/
 GF_Node *gf_sg_new_base_node();
 
@@ -518,7 +507,7 @@ struct _protofield
 	void *def_value;
 	
 	GF_Node *def_sfnode_value;
-	GF_List *def_mfnode_value;
+	GF_ChildNodeItem *def_mfnode_value;
 
 	/*for instanciation - if externProto dit not specify field val*/
 	u8 val_not_loaded;
@@ -739,15 +728,13 @@ typedef struct
 
 	/*when creating SFnode from inside the script, the node is stored here untill attached to an object*/
 	GF_Node *temp_node;
-	GF_List *temp_list;
+	GF_ChildNodeItem *temp_list;
 	/*when not owned by a node*/
 	void *field_ptr;
 } GF_JSField;
 
 void gf_sg_script_to_node_field(JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
 jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool no_cache);
-
-
 
 
 #ifndef GPAC_DISABLE_SVG

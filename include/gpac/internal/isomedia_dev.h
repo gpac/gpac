@@ -260,6 +260,16 @@ enum
 
 	GF_ISOM_HANDLER_TYPE_MDIR	= GF_4CC( 'm', 'd', 'i', 'r' ),
 	
+	/*OMA (P)DCF boxes*/
+	GF_ISOM_BOX_TYPE_OHDR	= GF_4CC( 'o', 'h', 'd', 'r' ),
+	GF_ISOM_BOX_TYPE_GRPI	= GF_4CC( 'g', 'r', 'p', 'i' ),
+	GF_ISOM_BOX_TYPE_MDRI	= GF_4CC( 'm', 'd', 'r', 'i' ),
+	GF_ISOM_BOX_TYPE_ODTT	= GF_4CC( 'o', 'd', 't', 't' ),
+	GF_ISOM_BOX_TYPE_ODRB	= GF_4CC( 'o', 'd', 'r', 'b' ),
+	GF_ISOM_BOX_TYPE_ODKM	= GF_4CC( 'o', 'd', 'k', 'm' ),
+	GF_ISOM_BOX_TYPE_ODAF	= GF_4CC( 'o', 'd', 'a', 'f' ),
+
+
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
@@ -1181,7 +1191,7 @@ typedef struct
 } GF_ISMAKMSBox;
 
 /*ISMACryp specific*/
-typedef struct
+typedef struct __isma_format_box
 {
 	GF_ISOM_FULL_BOX
 	u8 selective_encryption;
@@ -1194,6 +1204,7 @@ typedef struct
 	GF_ISOM_BOX
 	GF_ISMAKMSBox *ikms;
 	GF_ISMASampleFormatBox *isfm;
+	struct __oma_kms_box *okms;
 } GF_SchemeInformationBox;
 
 typedef struct __tag_protect_box
@@ -1594,6 +1605,59 @@ typedef struct
 	GF_ListItemBox *group;
 	GF_ListItemBox *iTunesSpecificInfo;
 } GF_ItemListBox;
+
+/*OMA (P)DCF extensions*/
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 EncryptionMethod;
+	u8 PaddingScheme;
+	u64 PlaintextLength;
+	char *ContentID;
+	char *RightsIssuerURL;
+	char *TextualHeaders;
+	GF_List *ExtendedHeaders;
+} GF_OMADRMCommonHeaderBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 GKEncryptionMethod;
+	char *GroupID;
+	u16 GKLength;
+	char *GroupKey;
+} GF_OMADRMGroupIDBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_List *boxes;
+} GF_OMADRMMutableInformationBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	char TransactionID[16];
+} GF_OMADRMTransactionTrackingBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	char *oma_ro;
+	u32 oma_ro_size;
+} GF_OMADRMRightsObjectBox;
+
+/*identical*/
+typedef struct __isma_format_box GF_OMADRMAUFormatBox;
+
+typedef struct __oma_kms_box
+{
+	GF_ISOM_FULL_BOX
+	GF_OMADRMCommonHeaderBox *hdr;
+	GF_OMADRMAUFormatBox *fmt;
+} GF_OMADRMKMSBox;
+
+
 
 /*
 		Data Map (media storage) stuff
@@ -2909,6 +2973,45 @@ GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov);
 #ifndef GPAC_READ_ONLY
 GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov);
 #endif //GPAC_READ_ONLY
+
+/*OMA extensions*/
+GF_Box *ohdr_New();
+void ohdr_del(GF_Box *s);
+GF_Err ohdr_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ohdr_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err ohdr_Size(GF_Box *s);
+GF_Err ohdr_dump(GF_Box *a, FILE * trace);
+GF_Box *grpi_New();
+void grpi_del(GF_Box *s);
+GF_Err grpi_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err grpi_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err grpi_Size(GF_Box *s);
+GF_Err grpi_dump(GF_Box *a, FILE * trace);
+GF_Box *mdri_New();
+void mdri_del(GF_Box *s);
+GF_Err mdri_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err mdri_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err mdri_Size(GF_Box *s);
+GF_Err mdri_dump(GF_Box *a, FILE * trace);
+GF_Box *odtt_New();
+void odtt_del(GF_Box *s);
+GF_Err odtt_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err odtt_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err odtt_Size(GF_Box *s);
+GF_Err odtt_dump(GF_Box *a, FILE * trace);
+GF_Box *odrb_New();
+void odrb_del(GF_Box *s);
+GF_Err odrb_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err odrb_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err odrb_Size(GF_Box *s);
+GF_Err odrb_dump(GF_Box *a, FILE * trace);
+GF_Box *odkm_New();
+void odkm_del(GF_Box *s);
+GF_Err odkm_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err odkm_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err odkm_Size(GF_Box *s);
+GF_Err odkm_dump(GF_Box *a, FILE * trace);
+
 
 #ifdef __cplusplus
 }

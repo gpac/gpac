@@ -31,9 +31,10 @@
 	here.
 */
 
-static s32
+static GFINLINE s32
 mul255(s32 a, s32 b)
 {
+//	return (a * b) >> 8;
 	return ((a+1) * b) >> 8;
 }
 

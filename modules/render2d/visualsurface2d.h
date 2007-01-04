@@ -28,13 +28,6 @@
 #include "render2d.h"
 #include "drawable.h"
 
-/*sensors info*/
-typedef struct 
-{
-	struct _drawable_context *ctx;
-	GF_List *nodes_on_top;
-} SensorInfo;
-
 
 static GFINLINE Bool gf_irect_overlaps(GF_IRect rc1, GF_IRect rc2)
 {
@@ -66,7 +59,8 @@ static GFINLINE void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2)
 /*@rc1 equales @rc2*/
 static GFINLINE Bool gf_irect_equal(GF_IRect rc1, GF_IRect rc2) 
 { 
-	if ( (rc1.x == rc2.x)  && (rc1.y == rc2.y) && (rc1.width == rc2.width) && (rc1.height == rc2.height) )
+	/*test width first, since w=0 is used to discard bounds from previous rendering step*/
+	if ((rc1.width == rc2.width) && (rc1.height == rc2.height) && (rc1.x == rc2.x)  && (rc1.y == rc2.y))
 		return 1;
 	return 0;
 }
@@ -222,9 +216,9 @@ typedef struct _visual_surface_2D
 
 	/*keeps track of nodes drawn last frame*/
 	GF_List *prev_nodes_drawn;
-	/*currently active sensors*/
-	GF_List *sensors;	
+
 	Bool last_had_back;
+	Bool has_sensors;
 
 	/*signals that the surface is attached to buffer/device/stencil*/
 	Bool is_attached;
@@ -254,7 +248,7 @@ typedef struct _visual_surface_2D
 /*constructor/destructor*/
 VisualSurface2D *NewVisualSurface2D();
 void DeleteVisualSurface2D(VisualSurface2D *);
-void VS2D_ResetSensors(VisualSurface2D *surf);
+
 /*gets a drawable context on this surface*/
 struct _drawable_context *VS2D_GetDrawableContext(VisualSurface2D *surf);
 /*remove last drawable context*/

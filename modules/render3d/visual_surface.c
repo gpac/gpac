@@ -61,7 +61,7 @@ void delete_drawable(DrawableStack*d)
 	free(d);
 }
 
-void drawable_Node_PreDestroy(GF_Node *n)
+void drawable_node_destroy(GF_Node *n)
 {
 	DrawableStack *d = (DrawableStack *)gf_node_get_private(n);
 	if (d) delete_drawable(d);
@@ -71,7 +71,6 @@ DrawableStack *BaseDrawableStack(GF_Renderer *sr, GF_Node *node)
 {
 	DrawableStack *st = new_drawable(node, sr);
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, drawable_Node_PreDestroy);
 	return st;
 }
 
@@ -125,7 +124,6 @@ stack2D *BaseStack2D(GF_Renderer *sr, GF_Node *node)
 {
 	stack2D *st = new_stack2D(node, sr);
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, stack2D_node_predestroy);
 	return st;
 }
 
@@ -376,14 +374,28 @@ Fixed Aspect_GetLineWidth(Aspect2D *asp)
 	return width;
 }
 
-void VS_Set2DStrikeAspect(VisualSurface *surf, Aspect2D *asp)
+void VS_Set2DStrikeAspect(RenderEffect3D *eff, Aspect2D *asp)
 {
-	if (asp->txh && tx_enable(asp->txh, asp->tx_trans)) return;
+	if (asp->txh) {
+		/*We forgot to specify this in the spec ...*/
+		tx_set_blend_mode(asp->txh, TX_REPLACE);
+#if 0
+		if (asp->line_alpha != FIX_ONE) {
+			VS3D_SetMaterial2D(eff->surface, asp->line_color, asp->line_alpha);
+			tx_set_blend_mode(asp->txh, TX_MODULATE);
+		} else {
+			VS3D_SetState(eff->surface, F3D_BLEND, 0);
+			tx_set_blend_mode(asp->txh, TX_REPLACE);
+		}
+#endif
+		eff->mesh_has_texture = tx_enable(asp->txh, asp->tx_trans);
+		if (eff->mesh_has_texture) return;
+	}
 	/*no texture or not ready, use color*/
-	VS3D_SetMaterial2D(surf, asp->line_color, asp->line_alpha);
+	VS3D_SetMaterial2D(eff->surface, asp->line_color, asp->line_alpha);
 }
 
-GF_TextureHandler *VS_setup_texture_2d(RenderEffect3D *eff, Aspect2D *asp)
+static GF_TextureHandler *VS_setup_texture_2d(RenderEffect3D *eff, Aspect2D *asp)
 {
 	GF_TextureHandler *txh;
 	if (!eff->appear) return NULL;
@@ -431,8 +443,8 @@ void stack2D_draw(stack2D *st, RenderEffect3D *eff)
 	if (!asp.line_alpha) return;
 	si = VS_GetStrikeInfo(st, &asp, eff);
 	if (si) {
-		VS_Set2DStrikeAspect(eff->surface, &asp);
-		if (asp.txh) eff->mesh_has_texture = 1;
+		VS_Set2DStrikeAspect(eff, &asp);
+//		if (asp.txh) eff->mesh_has_texture = 1;
 		if (!si->is_vectorial) {
 			VS3D_StrikeMesh(eff, si->outline, Aspect_GetLineWidth(&asp), asp.pen_props.dash);
 		} else {
@@ -977,9 +989,9 @@ void VS_NodeRender(RenderEffect3D *eff, GF_Node *root_node)
 }
 
 
-void VS_RootRenderChildren(RenderEffect3D *eff, GF_List *children)
+void VS_RootRenderChildren(RenderEffect3D *eff, GF_ChildNodeItem *children)
 {
-	u32 i, count;
+	GF_ChildNodeItem *l;
 	GF_Matrix mx;
 	GF_Node *child;
 
@@ -994,18 +1006,18 @@ void VS_RootRenderChildren(RenderEffect3D *eff, GF_List *children)
 	gf_mx_copy(eff->model_matrix, mx);
 	VS3D_MultMatrix(eff->surface, mx.m);
 
-	count = gf_list_count(children);
-
+	l = children;
 	eff->traversing_mode = TRAVERSE_LIGHTING;
-	for (i=0; i<count; i++) {
-		child = (GF_Node*) gf_list_get(children, i);
-		gf_node_render(child, eff);
+	while (l) {
+		gf_node_render(l->node, eff);
+		l = l->next;
 	}
 
+	l = children;
 	eff->traversing_mode = TRAVERSE_SORT;
-	for (i=0; i<count; i++) {
-		child = (GF_Node*) gf_list_get(children, i);
-		gf_node_render(child, eff);
+	while (l) {
+		gf_node_render(l->node, eff);
+		l = l->next;
 	}
 	/*setup fog*/
 	child = (GF_Node*) gf_list_get(eff->fogs, 0);
@@ -1213,7 +1225,7 @@ static void reset_collide_cursor(Render3D *sr)
 	}
 }
 
-Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_Event *ev, GF_List *node_list)
+Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_Event *ev, GF_ChildNodeItem *node_list)
 {
 	Fixed x, y;
 	SFVec3f start, end;
@@ -1294,10 +1306,9 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_Event *ev, GF_
 	if (!node_list) {
 		gf_node_render(gf_sg_get_root_node(sr->compositor->scene), eff);
 	} else {
-		GF_Node *child;
-		i=0;
-		while ((child = (GF_Node*)gf_list_enum(node_list, &i))) {
-			gf_node_render(child, eff);
+		while (node_list) {
+			gf_node_render(node_list->node, eff);
+			node_list = node_list->next;
 		}
 	}
 	gf_list_reset(eff->sensors);
@@ -1479,11 +1490,10 @@ void drawable_do_pick(GF_Node *n, RenderEffect3D *eff)
 			FIX2FLT(world_pt.x), FIX2FLT(world_pt.y), FIX2FLT(world_pt.z)));
 }
 
-void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list)
+void VS_DoCollisions(RenderEffect3D *eff, GF_ChildNodeItem *node_list)
 {
 	SFVec3f n, pos, dir;
 	Bool go;
-	u32 i;
 	Fixed diff, pos_diff;
 
 	assert(eff->surface && eff->camera);
@@ -1531,10 +1541,9 @@ void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list)
 		if (!node_list) {
 			gf_node_render(gf_sg_get_root_node(eff->surface->render->compositor->scene), eff);
 		} else {
-			GF_Node *child;
-			i=0;
-			while ((child = (GF_Node*)gf_list_enum(node_list, &i))) {
-				gf_node_render(child, eff);
+			while (node_list) {
+				gf_node_render(node_list->node, eff);
+				node_list = node_list->next;
 			}
 		}
 		if (eff->camera->collide_flags & CF_COLLISION) break;

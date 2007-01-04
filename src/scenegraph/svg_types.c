@@ -357,7 +357,7 @@ void gf_svg_reset_base_element(SVGElement *p)
 	if (p->conditional) gf_svg_delete_conditional(p->conditional);
 	if (p->sync)		gf_svg_delete_sync(p->sync);
 
-	if (p->sgprivate->animations) gf_smil_anim_delete_animations(p);
+	if (p->sgprivate->interact && p->sgprivate->interact->animations) gf_smil_anim_delete_animations(p);
 	if (p->anim)		{
 		gf_svg_delete_anim(p->anim, p->sgprivate->scenegraph);
 		gf_smil_anim_remove_from_target(p, p->xlink->href.target);

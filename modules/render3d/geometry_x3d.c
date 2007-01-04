@@ -55,10 +55,15 @@ static Bool Disk2DIntersectWithRay(GF_Node *owner, GF_Ray *ray, SFVec3f *outPoin
 	return 1;
 }
 
-static void RenderDisk2D(GF_Node *node, void *rs)
+static void RenderDisk2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	stack2D *st = (stack2D *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
+
+	if (is_destroy) {
+		stack2D_node_predestroy(node);
+		return;
+	}
 
 	if (gf_node_dirty_get(node)) {
 		Fixed a = ((X_Disk2D *) node)->outerRadius * 2;
@@ -79,14 +84,18 @@ static void RenderDisk2D(GF_Node *node, void *rs)
 void R3D_InitDisk2D(Render3D *sr, GF_Node *node)
 {
 	stack2D *st = BaseStack2D(sr->compositor, node);
-	gf_node_set_render_function(node, RenderDisk2D);
+	gf_node_set_callback_function(node, RenderDisk2D);
 	st->IntersectWithRay = Disk2DIntersectWithRay;
 }
 
-static void RenderArc2D(GF_Node *node, void *rs)
+static void RenderArc2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	stack2D *st = (stack2D *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
+	if (is_destroy) {
+		stack2D_node_predestroy(node);
+		return;
+	}
 
 	if (gf_node_dirty_get(node)) {
 		stack2D_reset(st);
@@ -110,7 +119,7 @@ static void RenderArc2D(GF_Node *node, void *rs)
 void R3D_InitArc2D(Render3D *sr, GF_Node *node)
 {
 	stack2D *st = BaseStack2D(sr->compositor, node);
-	gf_node_set_render_function(node, RenderArc2D);
+	gf_node_set_callback_function(node, RenderArc2D);
 	if (gf_node_get_tag(node)==TAG_X3D_Arc2D) {
 		st->IntersectWithRay = R3D_NoIntersectionWithRay;
 	} else {
@@ -118,10 +127,14 @@ void R3D_InitArc2D(Render3D *sr, GF_Node *node)
 	}
 }
 
-static void RenderPolyline2D(GF_Node *node, void *rs)
+static void RenderPolyline2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	stack2D *st = (stack2D *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
+	if (is_destroy) {
+		stack2D_node_predestroy(node);
+		return;
+	}
 
 	if (gf_node_dirty_get(node)) {
 		u32 i;
@@ -146,16 +159,20 @@ static void RenderPolyline2D(GF_Node *node, void *rs)
 void R3D_InitPolyline2D(Render3D *sr, GF_Node *node)
 {
 	stack2D *st = BaseStack2D(sr->compositor, node);
-	gf_node_set_render_function(node, RenderPolyline2D);
+	gf_node_set_callback_function(node, RenderPolyline2D);
 	st->IntersectWithRay = R3D_NoIntersectionWithRay;
 }
 
-static void RenderPolypoint2D(GF_Node *node, void *rs)
+static void RenderPolypoint2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SFColorRGBA col;
 	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
+	if (is_destroy) {
+		drawable_node_destroy(node);
+		return;
+	}
 	if (gf_node_dirty_get(node)) {
 		u32 i;
 		X_Polypoint2D *p = (X_Polypoint2D *)node;
@@ -177,14 +194,18 @@ static void RenderPolypoint2D(GF_Node *node, void *rs)
 void R3D_InitPolypoint2D(Render3D *sr, GF_Node *node)
 {
 	DrawableStack *st = BaseDrawableStack(sr->compositor, node);
-	gf_node_set_render_function(node, RenderPolypoint2D);
+	gf_node_set_callback_function(node, RenderPolypoint2D);
 	st->IntersectWithRay = R3D_NoIntersectionWithRay;
 }
 
-static void RenderLineSet(GF_Node *node, void *rs)
+static void RenderLineSet(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
+	if (is_destroy) {
+		drawable_node_destroy(node);
+		return;
+	}
 
 	if (gf_node_dirty_get(node)) {
 		u32 i, j, c_idx;
@@ -244,14 +265,19 @@ static void RenderLineSet(GF_Node *node, void *rs)
 void R3D_InitLineSet(Render3D *sr, GF_Node *node)
 {
 	DrawableStack *st = BaseDrawableStack(sr->compositor, node);
-	gf_node_set_render_function(node, RenderLineSet);
+	gf_node_set_callback_function(node, RenderLineSet);
 	st->IntersectWithRay = R3D_NoIntersectionWithRay;
 }
 
-static void RenderTriangleSet2D(GF_Node *node, void *rs)
+static void RenderTriangleSet2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
+
+	if (is_destroy) {
+		drawable_node_destroy(node);
+		return;
+	}
 
 	if (gf_node_dirty_get(node)) {
 		u32 i, count, idx;
@@ -298,7 +324,7 @@ static void RenderTriangleSet2D(GF_Node *node, void *rs)
 void R3D_InitTriangleSet2D(Render3D *sr, GF_Node *node)
 {
 	BaseDrawableStack(sr->compositor, node);
-	gf_node_set_render_function(node, RenderTriangleSet2D);
+	gf_node_set_callback_function(node, RenderTriangleSet2D);
 }
 
 static void BuildTriangleSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color, GF_Node *_txcoords, GF_Node *_normal, MFInt32 *indices, Bool normalPerVertex, Bool ccw, Bool solid)
@@ -394,11 +420,14 @@ static void BuildTriangleSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color, G
 	gf_mesh_build_aabbtree(mesh);
 }
 
-static void RenderTriangleSet(GF_Node *node, void *rs)
+static void RenderTriangleSet(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
-
+	if (is_destroy) {
+		drawable_node_destroy(node);
+		return;
+	}
 
 	if (gf_node_dirty_get(node)) {
 		X_TriangleSet *ts = (X_TriangleSet *)node;
@@ -416,15 +445,19 @@ static void RenderTriangleSet(GF_Node *node, void *rs)
 void R3D_InitTriangleSet(Render3D *sr, GF_Node *node)
 {
 	BaseDrawableStack(sr->compositor, node);
-	gf_node_set_render_function(node, RenderTriangleSet);
+	gf_node_set_callback_function(node, RenderTriangleSet);
 }
 
 
-static void RenderIndexedTriangleSet(GF_Node *node, void *rs)
+static void RenderIndexedTriangleSet(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 
+	if (is_destroy) {
+		drawable_node_destroy(node);
+		return;
+	}
 
 	if (gf_node_dirty_get(node)) {
 		X_IndexedTriangleSet *its = (X_IndexedTriangleSet *)node;
@@ -450,7 +483,7 @@ void R3D_InitIndexedTriangleSet(Render3D *sr, GF_Node *node)
 {
 	X_IndexedTriangleSet *its = (X_IndexedTriangleSet*)node;
 	BaseDrawableStack(sr->compositor, node);
-	gf_node_set_render_function(node, RenderIndexedTriangleSet);
+	gf_node_set_callback_function(node, RenderIndexedTriangleSet);
 	its->on_set_index = ITS_SetIndex;
 }
 
@@ -624,11 +657,16 @@ static void BuildTriangleStripSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_col
 	gf_mesh_build_aabbtree(mesh);
 }
 
-static void RenderTriangleStripSet(GF_Node *node, void *rs)
+static void RenderTriangleStripSet(GF_Node *node, void *rs, Bool is_destroy)
 {
 	X_TriangleStripSet *tss = (X_TriangleStripSet *)node;
 	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
+
+	if (is_destroy) {
+		drawable_node_destroy(node);
+		return;
+	}
 
 	if (!tss->coord) return;
 
@@ -646,13 +684,17 @@ static void RenderTriangleStripSet(GF_Node *node, void *rs)
 void R3D_InitTriangleStripSet(Render3D *sr, GF_Node *node)
 {
 	BaseDrawableStack(sr->compositor, node);
-	gf_node_set_render_function(node, RenderTriangleStripSet);
+	gf_node_set_callback_function(node, RenderTriangleStripSet);
 }
 
-static void RenderIndexedTriangleStripSet(GF_Node *node, void *rs)
+static void RenderIndexedTriangleStripSet(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
+	if (is_destroy) {
+		drawable_node_destroy(node);
+		return;
+	}
 
 	if (gf_node_dirty_get(node)) {
 		MFInt32 stripList;
@@ -701,7 +743,7 @@ void R3D_InitIndexedTriangleStripSet(Render3D *sr, GF_Node *node)
 {
 	X_IndexedTriangleStripSet *itss = (X_IndexedTriangleStripSet*)node;
 	BaseDrawableStack(sr->compositor, node);
-	gf_node_set_render_function(node, RenderIndexedTriangleStripSet);
+	gf_node_set_callback_function(node, RenderIndexedTriangleStripSet);
 	itss->on_set_index = ITSS_SetIndex;
 }
 
@@ -849,10 +891,14 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 	gf_mesh_build_aabbtree(mesh);
 }
 
-static void RenderTriangleFanSet(GF_Node *node, void *rs)
+static void RenderTriangleFanSet(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
+	if (is_destroy) {
+		drawable_node_destroy(node);
+		return;
+	}
 
 	if (gf_node_dirty_get(node)) {
 		X_TriangleFanSet *tfs = (X_TriangleFanSet *)node;
@@ -870,13 +916,17 @@ static void RenderTriangleFanSet(GF_Node *node, void *rs)
 void R3D_InitTriangleFanSet(Render3D *sr, GF_Node *node)
 {
 	BaseDrawableStack(sr->compositor, node);
-	gf_node_set_render_function(node, RenderTriangleFanSet);
+	gf_node_set_callback_function(node, RenderTriangleFanSet);
 }
 
-static void RenderIndexedTriangleFanSet(GF_Node *node, void *rs)
+static void RenderIndexedTriangleFanSet(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableStack *st = (DrawableStack *)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
+	if (is_destroy) {
+		drawable_node_destroy(node);
+		return;
+	}
 
 	if (gf_node_dirty_get(node)) {
 		MFInt32 fanList;
@@ -925,7 +975,7 @@ void R3D_InitIndexedTriangleFanSet(Render3D *sr, GF_Node *node)
 {
 	X_IndexedTriangleFanSet *itfs = (X_IndexedTriangleFanSet *)node;
 	BaseDrawableStack(sr->compositor, node);
-	gf_node_set_render_function(node, RenderIndexedTriangleFanSet);
+	gf_node_set_callback_function(node, RenderIndexedTriangleFanSet);
 	itfs->on_set_index = ITFS_SetIndex;
 }
 

@@ -116,6 +116,7 @@ typedef struct
 {
 	u32 name_start, name_end;
 	u32 val_start, val_end;
+	Bool has_entities;
 } GF_XMLSaxAttribute;
 
 struct _tag_sax_parser
@@ -209,6 +210,7 @@ static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 
 static void xml_sax_node_start(GF_SAXParser *parser)
 {
+	Bool has_entities = 0;
 	u32 i;
 	char *sep, c, *name;
 
@@ -222,7 +224,14 @@ static void xml_sax_node_start(GF_SAXParser *parser)
 		parser->buffer[parser->sax_attrs[i].name_end-1] = 0;
 		parser->attrs[i].value = parser->buffer + parser->sax_attrs[i].val_start - 1;
 		parser->buffer[parser->sax_attrs[i].val_end-1] = 0;
-		//fprintf(stdout, "%s.%s=\"%s\"\n", name, parser->attrs[i].name, parser->attrs[i].value);
+
+		if (strchr(parser->attrs[i].value, '&')) {
+			parser->sax_attrs[i].has_entities = 1;
+			has_entities = 1;
+			parser->attrs[i].value = xml_translate_xml_string(parser->attrs[i].value);
+		}
+		/*store first char pos after current attrib for node peeking*/
+		parser->att_name_start = parser->sax_attrs[i].val_end;
 	}
 
 	if (parser->sax_node_start) {
@@ -235,8 +244,17 @@ static void xml_sax_node_start(GF_SAXParser *parser)
 			parser->sax_node_start(parser->sax_cbck, name, NULL, parser->attrs, parser->nb_attrs);
 		}
 	}
+	parser->att_name_start = 0;
 	parser->buffer[parser->elt_name_end - 1] = c;
 	parser->node_depth++;
+	if (has_entities) {
+		for (i=0;i<parser->nb_attrs; i++) {
+			if (parser->sax_attrs[i].has_entities) {
+				parser->sax_attrs[i].has_entities = 0;
+				free(parser->attrs[i].value);
+			}
+		}
+	}
 	parser->nb_attrs = 0;
 	xml_sax_swap(parser);
 	parser->text_start = parser->text_end = 0;
@@ -327,6 +345,10 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 						return 0;
 					}
 					break;
+				case '<':
+					parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+					sprintf(parser->err_msg, "Invalid character");
+					return 0;
 				/*first char of attr name*/
 				default:
 					parser->att_name_start = parser->current_pos + 1;
@@ -365,6 +387,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 				assert(att->name_end);
 				att->name_end --;
 			}
+			att->has_entities = 0;
 			parser->att_name_start = 0;
 			parser->current_pos++;
 			parser->sax_state = SAX_STATE_ATT_VALUE;
@@ -420,17 +443,6 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 		parser->att_sep = 0;
 		parser->sax_state = SAX_STATE_ATT_NAME;
 		parser->att_name_start = 0;
-
-#if FIXME
-		/*solve XML built-in entities*/
-		if (strchr(att->value, '&') && strchr(att->value, ';')) {
-			char *xml_text = xml_translate_xml_string(att->value);
-			if (xml_text) {
-				free(att->value);
-				att->value = xml_text;
-			}
-		}
-#endif
 		return 0;
 	}
 	return 1;
@@ -834,8 +846,6 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 		parser->buffer = realloc(parser->buffer, sizeof(char) * (size+nl_size+1) );
 		if (!parser->buffer ) return GF_OUT_OF_MEM;
 		parser->alloc_size = size+nl_size+1;
-
-		//fprintf(stdout, "reallocating xml buffer to %d bytes\n", parser->alloc_size);
 	}
 	memcpy(parser->buffer+size, string, sizeof(char)*nl_size);
 	parser->buffer[size+nl_size] = 0;
@@ -1105,10 +1115,10 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 
 	szLine1[0] = szLine2[0] = 0;
 	pos = gztell(parser->gz_in);
-	att_len = strlen(parser->buffer);
+	att_len = strlen(parser->buffer + parser->att_name_start);
 	if (att_len<2*XML_INPUT_SIZE) att_len = 2*XML_INPUT_SIZE;
 	szLine = (char *) malloc(sizeof(char)*att_len);
-	strcpy(szLine, parser->buffer);
+	strcpy(szLine, parser->buffer + parser->att_name_start);
 	cur_line = szLine;
 	att_len = strlen(att_value);
 	state = 0;

@@ -29,149 +29,127 @@
 #include "svg_stacks.h"
 #endif
 
-#define BOUNDSINFO_STEPALLOC		1
-
-static Bool check_bounds_size(Drawable *node)
-{
-	u32 i;
-	BoundsInfo **new_bounds;
-	if (node->current_count < node->bounds_size) return 1;
-	new_bounds = (BoundsInfo **)realloc(node->previous_bounds, sizeof(BoundsInfo *) * (node->bounds_size + BOUNDSINFO_STEPALLOC));
-	if (!new_bounds) return 0;
-	node->previous_bounds = new_bounds;
-	new_bounds = (BoundsInfo **)realloc(node->current_bounds, sizeof(BoundsInfo *) * (node->bounds_size + BOUNDSINFO_STEPALLOC));
-	if (!new_bounds) return 0;
-	node->current_bounds = new_bounds;
-	
-	for (i=node->bounds_size; i<node->bounds_size + BOUNDSINFO_STEPALLOC; i++) {
-		node->current_bounds[i] = (BoundsInfo *)malloc(sizeof(BoundsInfo));
-		node->previous_bounds[i] = (BoundsInfo *)malloc(sizeof(BoundsInfo));
-	}
-	node->bounds_size += BOUNDSINFO_STEPALLOC;
-	return 1;
-}
-
-static void bounds_remove_prev_item(Drawable *node, u32 pos)
-{
-	BoundsInfo *bi = node->previous_bounds[pos];
-	u32 count = node->previous_count - pos - 1;
-	if (count) {
-		memmove(&node->previous_bounds[pos], &node->previous_bounds[pos+1], sizeof(BoundsInfo *)*count);
-		node->previous_bounds[node->previous_count-1] = bi;
-	}
-	node->previous_count--; 
-}
-
 
 /*default rendering routine*/
-static void drawable_draw(DrawableContext *ctx) 
+void drawable_draw(DrawableContext *ctx) 
 {
 	VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
 	VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
 }
 
 /*default point_over routine*/
-static Bool drawable_point_over(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
+void drawable_pick(RenderEffect2D *eff)
 {
 	GF_Matrix2D inv;
 	StrikeInfo2D *si;
-	if (!ctx || !ctx->node->path) return 0;
+	Fixed x, y;
+	if (!eff->ctx || !eff->ctx->node->path) return;
 
-	assert(ctx->surface);
-	gf_mx2d_copy(inv, ctx->transform);
+	assert(eff->ctx->surface);
+	gf_mx2d_copy(inv, eff->ctx->transform);
 	gf_mx2d_inverse(&inv);
+	x = eff->x;
+	y = eff->y;
+
 	gf_mx2d_apply_coords(&inv, &x, &y);
-	if (ctx->aspect.filled || ctx->h_texture || (check_type<2) )
-		if (gf_path_point_over(ctx->node->path, x, y)) return 1;
-
-	if (ctx->aspect.pen_props.width || ctx->aspect.line_texture || check_type) {
-		si = drawctx_get_strikeinfo(ctx, NULL);
-		if (si && si->outline && gf_path_point_over(si->outline, x, y)) return 1;
+	if (eff->ctx->aspect.filled || eff->ctx->h_texture || (eff->pick_type<PICK_FULL) ) {
+		if (gf_path_point_over(eff->ctx->node->path, x, y)) {
+			eff->is_over = 1;
+			return;
+		}
 	}
-	return 0;
-}
 
-/*get the orignal path without transform*/
-void drawctx_store_original_bounds(struct _drawable_context *ctx)
-{
-	gf_path_get_bounds(ctx->node->path, &ctx->original);
+	if (eff->ctx->aspect.pen_props.width || eff->ctx->aspect.line_texture || (eff->pick_type!=PICK_PATH)) {
+		si = drawctx_get_strikeinfo(eff->ctx, NULL);
+		if (si && si->outline && gf_path_point_over(si->outline, x, y)) {
+			eff->is_over = 1;
+		}
+	}
 }
 
 Drawable *drawable_new()
 {
 	Drawable *tmp;
 	GF_SAFEALLOC(tmp, Drawable)
-	tmp->on_surfaces = gf_list_new();
 	tmp->path = gf_path_new();
-	/*init with default*/
-	tmp->Draw = drawable_draw;
-	tmp->IsPointOver = drawable_point_over;
-	tmp->strike_list = gf_list_new();
-
-	/*alloc bounds storage*/
-	check_bounds_size(tmp);	
 	return tmp;
 }
 
 void drawable_reset_bounds(Drawable *dr)
 {
-	u32 i;
-	/*destroy bounds storage*/
-	for (i=0; i<dr->bounds_size; i++) {
-		free(dr->current_bounds[i]);
-		free(dr->previous_bounds[i]);
+	DRInfo *dri, *cur;
+	BoundInfo *bi, *_cur;
+
+	dri = dr->dri;
+	while (dri) {
+		bi = dri->current_bounds;
+		while (bi) {
+			_cur = bi;
+			bi = bi->next;
+			free(_cur);
+		}
+		bi = dri->previous_bounds;
+		while (bi) {
+			_cur = bi;
+			bi = bi->next;
+			free(_cur);
+		}
+		cur = dri;
+		dri = dri->next;
+		free(cur);
 	}
-	free(dr->current_bounds);
-	free(dr->previous_bounds);
-	dr->previous_count = dr->current_count = 0;
-	dr->previous_bounds = dr->current_bounds = NULL;
-	dr->bounds_size = 0;
+	dr->dri = NULL;
 }
 
 void drawable_del(Drawable *dr)
 {
-	u32 i;
+	StrikeInfo2D *si;
+	Bool is_reg = 0;
+	DRInfo *dri, *cur;
+	BoundInfo *bi, *_cur;
+	Render2D *r2d = gf_sr_get_renderer(dr->owner) ? gf_sr_get_renderer(dr->owner)->visual_renderer->user_priv : NULL; 
 
-	/*garbage collection*/
-	for (i=0; i<dr->current_count; i++) {
-		if (R2D_IsSurfaceRegistered((Render2D*)dr->compositor->visual_renderer->user_priv, dr->current_bounds[i]->surface)) 
-			ra_add(&dr->current_bounds[i]->surface->to_redraw, dr->current_bounds[i]->clip);
-	}
-	for (i=0; i<dr->previous_count; i++) {
-		if (R2D_IsSurfaceRegistered((Render2D*)dr->compositor->visual_renderer->user_priv, dr->previous_bounds[i]->surface)) 
-			ra_add(&dr->previous_bounds[i]->surface->to_redraw, dr->previous_bounds[i]->clip);
-	}
-
-
-	drawable_reset_previous_bounds(dr);
-	
-	dr->compositor->draw_next_frame = 1;
 	/*remove node from all surfaces it's on*/
-	while (gf_list_count(dr->on_surfaces)) {
-		VisualSurface2D *surf = (VisualSurface2D *)gf_list_get(dr->on_surfaces, 0);
-		gf_list_rem(dr->on_surfaces, 0);
-		if (R2D_IsSurfaceRegistered((Render2D *)dr->compositor->visual_renderer->user_priv, surf)) 
-			VS2D_DrawableDeleted(surf, dr);
+	dri = dr->dri;
+	while (dri) {
+		is_reg = R2D_IsSurfaceRegistered(r2d, dri->surface);
+	
+		bi = dri->current_bounds;
+		while (bi) {
+			_cur = bi;
+			if (is_reg) ra_add(&dri->surface->to_redraw, bi->clip);
+			bi = bi->next;
+			free(_cur);
+		}
+		bi = dri->previous_bounds;
+		while (bi) {
+			_cur = bi;
+			if (is_reg) ra_add(&dri->surface->to_redraw, bi->clip);
+			bi = bi->next;
+			free(_cur);
+		}
+		if (is_reg) VS2D_DrawableDeleted(dri->surface, dr);
+		cur = dri;
+		dri = dri->next;
+		free(cur);
 	}
-	gf_list_del(dr->on_surfaces);
+	r2d->compositor->draw_next_frame = 1;
 
 	/*remove path object*/
 	if (dr->path) gf_path_del(dr->path);
 
-	while (gf_list_count(dr->strike_list)) {
-		StrikeInfo2D *si = (StrikeInfo2D *)gf_list_get(dr->strike_list, 0);
-		gf_list_rem(dr->strike_list, 0);
+	si = dr->outline;
+	while (si) {
+		StrikeInfo2D *next = si->next;
 		/*remove from main strike list*/
-		gf_list_del_item(((Render2D *)dr->compositor->visual_renderer->user_priv)->strike_bank, si);
+		if (r2d) gf_list_del_item(r2d->strike_bank, si);
 		delete_strikeinfo2d(si);
+		si = next;
 	}
-	gf_list_del(dr->strike_list);
-	
-	drawable_reset_bounds(dr);
 	free(dr);
 }
 
-static void DestroyDrawableNode(GF_Node *node)
+void DestroyDrawableNode(GF_Node *node)
 {
 	drawable_del( (Drawable *)gf_node_get_private(node) );
 }
@@ -179,42 +157,81 @@ static void DestroyDrawableNode(GF_Node *node)
 Drawable *drawable_stack_new(Render2D *sr, GF_Node *node)
 {
 	Drawable *stack = drawable_new();
-	gf_sr_traversable_setup(stack, node, sr->compositor);
+	stack->owner = node;
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyDrawableNode);
 	return stack;
 }
 
 /*store ctx bounds in current bounds*/
 void drawable_store_bounds(struct _drawable_context *ctx)
 {
-	BoundsInfo *bi;
+	DRInfo *dri, *prev;
+	BoundInfo *bi, *_prev;
 	Drawable *node = ctx->node;
-	if (!check_bounds_size(ctx->node)) return;
-	bi = node->current_bounds[node->current_count];
-	node->current_count++;
-	bi->appear = (M_Appearance *) ctx->appear;
-	bi->clip = ctx->clip;
+
+	/*get bounds info for this surface*/
+	prev = NULL;
+	dri = node->dri;
+	while (dri) {
+		if (dri->surface == ctx->surface) break;
+		prev = dri;
+		dri = dri->next;
+	}
+	if (!dri) {
+		GF_SAFEALLOC(dri, DRInfo);
+		dri->surface = ctx->surface;
+		if (prev) prev->next = dri;
+		else node->dri = dri;
+	}
+	
+	/*get available bound info slot*/
+	_prev = NULL;
+	bi = dri->current_bounds;
+	while (bi) {
+		if (!bi->clip.width) break;
+		_prev = bi;
+		bi = bi->next;
+	}
+	if (!bi) {
+		GF_SAFEALLOC(bi, BoundInfo);
+		if (_prev) {
+			assert(!_prev->next);
+			_prev->next = bi;
+		}
+		else {
+			dri->current_bounds = bi;
+		}
+	}
+	bi->extra_check = ctx->appear;
 	bi->unclip = ctx->unclip_pix;
-	bi->surface = ctx->surface;
+	bi->clip = ctx->clip;
 }
 
 /*move current bounds to previous bounds*/
-void drawable_flush_bounds(Drawable *node, u32 frame_num)
+void drawable_flush_bounds(Drawable *node, struct _visual_surface_2D *on_surface)
 {
-	BoundsInfo **tmp;
-	if (node->first_ctx_update) return;
-	if (node->last_bound_flush_frame==frame_num) 
-		return;
-	/*reset previous bounds on this surface*/
-	tmp = node->previous_bounds;
-	node->previous_bounds = node->current_bounds;
-	node->previous_count = node->current_count;
-	node->current_bounds = tmp;
-	node->current_count = 0;
-	node->first_ctx_update = 1;
-	node->node_was_drawn = 0;
-	node->last_bound_flush_frame = frame_num;
+	DRInfo *dri;
+	BoundInfo *tmp;
+
+	dri = node->dri;
+	while (dri) {
+		if (dri->surface == on_surface) break;
+		dri = dri->next;
+	}
+	if (!dri) return;
+
+	tmp = dri->previous_bounds;
+	dri->previous_bounds = dri->current_bounds;
+	dri->current_bounds = tmp;
+	/*reset allocated bounds*/
+	tmp = dri->current_bounds;
+	while (tmp) {
+		tmp->clip.width = 0;
+		tmp = tmp->next;
+	}
+
+	node->flags |= DRAWABLE_FIRST_CTX_UPDATE;
+	node->flags &= ~DRAWABLE_DRAWN_ON_SURFACE;
 }	
 
 /*
@@ -223,18 +240,28 @@ void drawable_flush_bounds(Drawable *node, u32 frame_num)
 */
 Bool drawable_has_same_bounds(struct _drawable_context *ctx)
 {
-	u32 i;
+	DRInfo *dri;
+	BoundInfo *bi;
 	Drawable *node = ctx->node;
 	
-	for(i=0; i<node->previous_count; i++) {
-		BoundsInfo *bi = node->previous_bounds[i];
-		if (bi->surface != ctx->surface) continue;
-		if (bi->appear != (M_Appearance *) ctx->appear) continue;
-		/*bounds shall match for unclip (large object pan) and clip */
-		if (gf_irect_equal(bi->unclip, ctx->unclip_pix) && gf_irect_equal(bi->clip, ctx->clip)) {
-			bounds_remove_prev_item(node, i);
+	dri = node->dri;
+	while (dri) {
+		if (dri->surface == ctx->surface) break;
+		dri = dri->next;
+	}
+	if (!dri) return 0;
+
+	bi = dri->previous_bounds;
+	while (bi) {
+		if ((bi->extra_check == ctx->appear) 
+			&& gf_irect_equal(bi->clip, ctx->clip)
+			&& gf_irect_equal(bi->unclip, ctx->unclip_pix)
+			) {
+			/*remove*/
+			bi->clip.width = 0;
 			return 1;
 		}
+		bi = bi->next;
 	}
 	return 0;
 }
@@ -245,39 +272,26 @@ Bool drawable_has_same_bounds(struct _drawable_context *ctx)
 */
 Bool drawable_get_previous_bound(Drawable *node, GF_IRect *rc, struct _visual_surface_2D *surf)
 {
-	u32 i;
-	for (i=0; i<node->previous_count; i++) {
-		BoundsInfo *bi = node->previous_bounds[i];
-		if (bi->surface != surf) continue;
-		*rc = bi->clip;
-		bounds_remove_prev_item(node, i);
-		return 1;
+	DRInfo *dri;
+	BoundInfo *bi;
+
+	dri = node->dri;
+	while (dri) {
+		if (dri->surface == surf) break;
+		dri = dri->next;
+	}
+	if (!dri) return 0;
+
+	bi = dri->previous_bounds;
+	while (bi) {
+		if (bi->clip.width) {
+			*rc = bi->clip;
+			bi->clip.width = 0;
+			return 1;
+		}
+		bi = bi->next;
 	}
 	return 0;
-}
-
-/*reset content of previous bounds list*/
-void drawable_reset_previous_bounds(Drawable *node)
-{
-	node->previous_count = 0;
-}
-
-
-void drawable_register_on_surface(Drawable *node, struct _visual_surface_2D *surf)
-{
-	/*reset the draw state check in case the node is being rendered on several surfaces (in which case it
-	may not be drawn on one but drawn on the other)*/
-	node->first_ctx_update = 0;
-
-	if (gf_list_find(node->on_surfaces, surf)>=0) return;
-	gf_list_add(node->on_surfaces, surf);
-	gf_list_add(surf->prev_nodes_drawn, node);
-}
-void drawable_unregister_from_surface(Drawable *node, struct _visual_surface_2D *surf)
-{
-	gf_list_del_item(node->on_surfaces, surf);
-	/*no longer registered, remove bounds*/
-	if (!gf_list_count(node->on_surfaces)) drawable_reset_bounds(node);
 }
 
 
@@ -286,26 +300,21 @@ DrawableContext *NewDrawableContext()
 {
 	DrawableContext *tmp;
 	GF_SAFEALLOC(tmp, DrawableContext);
-	tmp->sensors = gf_list_new();
 	return tmp;
 }
 void DeleteDrawableContext(DrawableContext *ctx)
 {
 	drawctx_reset(ctx);
-	if (ctx->sensors) gf_list_del(ctx->sensors);
 	free(ctx);
 }
 void drawctx_reset(DrawableContext *ctx)
 {
-	GF_List *bckup;
 	drawctx_reset_sensors(ctx);
-	bckup = ctx->sensors;
 	memset(ctx, 0, sizeof(DrawableContext));
-	ctx->sensors = bckup;
 	gf_cmx_init(&ctx->cmat);
 
 	/*by default all nodes are transparent*/
-	ctx->transparent = 1;
+	ctx->flags |= CTX_IS_TRANSPARENT;
 
 	/*BIFS has default value for 2D appearance ...*/
 	ctx->aspect.fill_alpha  = 0xFF;
@@ -320,38 +329,54 @@ void drawctx_reset(DrawableContext *ctx)
 
 void drawctx_reset_sensors(DrawableContext *ctx)
 {
-	while (gf_list_count(ctx->sensors)) {
-		SensorContext *ptr = (SensorContext *)gf_list_get(ctx->sensors, 0);
-		gf_list_rem(ctx->sensors, 0);
-		free(ptr);
+	SensorContext *sc = ctx->sensor;
+	while (sc) {
+		SensorContext *cur = sc;
+		sc = sc->next;
+		free(cur);
 	}
+	ctx->sensor = NULL;
 }
 static void drawctx_add_sensor(DrawableContext *ctx, SensorContext *handler)
 {
-	SensorContext *pNew = (SensorContext *)malloc(sizeof(SensorContext));
-	pNew->h_node = handler->h_node;
-	gf_mx2d_copy(pNew->matrix, handler->matrix);
-	gf_list_add(ctx->sensors, pNew);
+	SensorContext *sc = (SensorContext *)malloc(sizeof(SensorContext));
+	sc->h_node = handler->h_node;
+	sc->next = NULL;
+	gf_mx2d_copy(sc->matrix, handler->matrix);
+	if (!ctx->sensor) {
+		ctx->sensor = sc;
+	} else {
+		SensorContext *cur = ctx->sensor;
+		while (cur->next) cur = cur->next;
+		cur->next = sc;
+	}
 }
 
 void drawctx_update_info(DrawableContext *ctx)
 {
 	Bool moved, need_redraw;
 	Drawable *node = ctx->node;
-	need_redraw = ctx->redraw_flags ? 1 : 0;
+	need_redraw = (ctx->flags & CTX_REDRAW_MASK) ? 1 : 0;
 
-	node->node_changed = 0;
+	node->flags &= ~ DRAWABLE_HAS_CHANGED;
 	/*first update, remove all bounds*/
-	if (node->first_ctx_update) {
-		node->node_was_drawn = node->current_count; 
-		node->first_ctx_update = 0;
+	if (node->flags & DRAWABLE_FIRST_CTX_UPDATE) {
+		DRInfo *dri = node->dri;
+		while (dri) {
+			if (dri->surface==ctx->surface) {
+				if (dri->current_bounds && dri->current_bounds->clip.width) node->flags |= DRAWABLE_DRAWN_ON_SURFACE; 
+				break;
+			}
+			dri = dri->next;
+		}
+		node->flags &= ~DRAWABLE_FIRST_CTX_UPDATE;
 	}
 	/*only checked if node is not marked as dirty (otherwise we assume bounds have changed)*/
-	if (! (ctx->redraw_flags & CTX_NODE_DIRTY) ) {
+	if (! (ctx->flags & CTX_NODE_DIRTY) ) {
 		moved = !drawable_has_same_bounds(ctx);
 		if (!need_redraw) need_redraw = moved;
 	}
-	ctx->redraw_flags = need_redraw;
+	if (need_redraw) ctx->flags |= CTX_REDRAW_MASK;
 
 	/*in all cases reset dirty flag of appearance and its sub-nodes*/
 	gf_node_dirty_reset(ctx->appear);
@@ -416,7 +441,7 @@ check_default:
 		return;
 	}
 	ctx->aspect.has_line = 1;
-	if (m->lineProps && gf_node_dirty_get(m->lineProps)) ctx->redraw_flags |= CTX_APP_DIRTY;
+	if (m->lineProps && gf_node_dirty_get(m->lineProps)) ctx->flags |= CTX_APP_DIRTY;
 
 	if (LP) {
 		ctx->aspect.pen_props.dash = (GF_DashStyle)LP->lineStyle;
@@ -450,7 +475,7 @@ check_default:
 static Bool check_transparent_skip(DrawableContext *ctx, Bool skipFill)
 {
 	/*if sensor cannot skip*/
-	if (gf_list_count(ctx->sensors)) return 0;
+	if (ctx->sensor) return 0;
 	/*if texture, cannot skip*/
 	if (ctx->h_texture) return 0;
 	if (! GF_COL_A(ctx->aspect.fill_color) && !GF_COL_A(ctx->aspect.line_color) ) return 1;
@@ -487,13 +512,14 @@ DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *eff)
 
 	gf_mx2d_copy(ctx->transform, eff->transform);
 	ctx->node = node;
-	if (eff->invalidate_all || node->node_changed) 
-		ctx->redraw_flags |= CTX_NODE_DIRTY;
+	if (node->flags & DRAWABLE_HAS_CHANGED) ctx->flags |= CTX_NODE_DIRTY;
+	/*usually set by colorTransform or changes in OrderedGroup*/
+	if (eff->invalidate_all) ctx->flags |= CTX_APP_DIRTY;
 
 	ctx->h_texture = NULL;
 	if (eff->appear) {
 		ctx->appear = eff->appear;
-		if (gf_node_dirty_get(eff->appear)) ctx->redraw_flags |= CTX_APP_DIRTY;
+		if (gf_node_dirty_get(eff->appear)) ctx->flags |= CTX_APP_DIRTY;
 	}
 #ifndef FIXME
 	/*todo cliper*/
@@ -529,7 +555,7 @@ DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	setup_drawable_context(ctx, eff);
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
-	if (ctx->h_texture && ctx->h_texture->needs_refresh) ctx->redraw_flags |= CTX_TEXTURE_DIRTY;
+	if (ctx->h_texture && ctx->h_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
 
 	/*not clear in the spec: what happens when a transparent node is in form/layout ?? this may 
 	completely break layout of children. We consider the node should be drawn*/
@@ -557,20 +583,32 @@ void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff)
 			/*full frame redraw in indirect mode: store bounds for next pass*/
 			if (eff->trav_flags & TF_RENDER_STORE_BOUNDS) {
 				drawable_store_bounds(ctx);
-				drawable_register_on_surface(ctx->node, eff->surface);
+				/*keep track of node drawn*/
+				if (gf_list_find(eff->surface->prev_nodes_drawn, ctx->node)<0) 
+					gf_list_add(eff->surface->prev_nodes_drawn, ctx->node);
 			}
-			ctx->node->Draw(ctx);
+			assert(!eff->traversing_mode);
+			eff->traversing_mode = TRAVERSE_DRAW;
+			eff->ctx = ctx;
+			gf_node_allow_cyclic_render(ctx->node->owner);
+			gf_node_render(ctx->node->owner, eff);
+			eff->ctx = NULL;
+			eff->traversing_mode = 0;
 		}
 		else drawable_store_bounds(ctx);
 	}
 }
 
-void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff)
+void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff, GF_Rect *orig_bounds)
 {
 	Fixed pw;
 	GF_Rect unclip;
 
-	ctx->unclip = ctx->original;
+	if (orig_bounds) {
+		ctx->unclip = *orig_bounds;
+	} else {
+		gf_path_get_bounds(ctx->node->path, &ctx->unclip);
+	}
 	gf_mx2d_apply_rect(&eff->transform, &ctx->unclip);
 
 	/*apply pen width*/
@@ -602,7 +640,7 @@ void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff
 	}
 	unclip = ctx->unclip;
 
-	if (!ctx->no_antialias) {
+	if (! (ctx->flags & CTX_NO_ANTIALIAS) ) {
 		/*grow of 2 pixels (-1 and +1) to handle AA, but ONLY on cliper otherwise we will modify layout/form */
 		pw = (eff->is_pixel_metrics) ? FIX_ONE : 2*FIX_ONE/eff->surface->width;
 		unclip.x -= pw;
@@ -626,9 +664,9 @@ void delete_strikeinfo2d(StrikeInfo2D *info)
 
 StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 {
-	StrikeInfo2D *si;
+	StrikeInfo2D *si, *prev;
 	GF_Node *lp;
-	u32 now, i;
+	u32 now;
 	if (ctx->appear && !ctx->aspect.pen_props.width) return NULL;
 	if (path && !path->n_points) return NULL;
 
@@ -638,28 +676,38 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 		if (lp) lp = ((M_Material2D *) lp)->lineProps;
 	}
 
-	si = NULL;
-	i=0;
-	while ((si = (StrikeInfo2D*)gf_list_enum(ctx->node->strike_list, &i))) {
+	prev = NULL;
+	si = ctx->node->outline;
+	while (si) {
 		/*note this includes default LP (NULL)*/
 		if ((si->lineProps == lp) && (!path || (path==si->original)) ) break;
 		if (!si->lineProps) {
-			i--;
-			gf_list_rem(ctx->node->strike_list, i);
-
-			gf_list_del_item(((Render2D *)ctx->node->compositor->visual_renderer->user_priv)->strike_bank, si);
+			Render2D *r2d = gf_sr_get_renderer(ctx->node->owner) ? gf_sr_get_renderer(ctx->node->owner)->visual_renderer->user_priv : NULL; 
+			gf_list_del_item(r2d->strike_bank, si);
 			if (si->outline) gf_path_del(si->outline);
+			if (prev) prev->next = si->next;
+			else ctx->node->outline = si->next;
 			free(si);
+			si = prev ? prev->next : ctx->node->outline;
+			continue;
 		}
-		si = NULL;
+		prev = si;
+		si = si->next;
 	}
 	/*not found, add*/
 	if (!si) {
+		Render2D *r2d = gf_sr_get_renderer(ctx->node->owner) ? gf_sr_get_renderer(ctx->node->owner)->visual_renderer->user_priv : NULL; 
 		GF_SAFEALLOC(si, StrikeInfo2D);
 		si->lineProps = lp;
 		si->node = ctx->node->owner;
-		gf_list_add(ctx->node->strike_list, si);
-		gf_list_add(((Render2D *)ctx->node->compositor->visual_renderer->user_priv)->strike_bank, si);
+		if (ctx->node->outline) {
+			prev = ctx->node->outline;
+			while (prev->next) prev = prev->next;
+			prev->next = si;
+		} else {
+			ctx->node->outline = si;
+		}
+		gf_list_add(r2d->strike_bank, si);
 	}
 
 	/*node changed or outline not build*/
@@ -702,12 +750,12 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 
 void drawable_reset_path(Drawable *st)
 {
-	StrikeInfo2D *si;
-	u32 i=0;
-	while ((si = (StrikeInfo2D*)gf_list_enum(st->strike_list, &i))) {
+	StrikeInfo2D *si = st->outline;
+	while (si) {
 		if (si->outline) gf_path_del(si->outline);
 		si->outline = NULL;
 		si->original = NULL;
+		si = si->next;
 	}
 	if (st->path) gf_path_reset(st->path);
 }
@@ -715,20 +763,29 @@ void drawable_reset_path(Drawable *st)
 
 void R2D_LinePropsRemoved(Render2D *sr, GF_Node *n)
 {
-	StrikeInfo2D *si;
+	StrikeInfo2D *si, *cur, *prev;
 	u32 i = 0;
 	while ((si = (StrikeInfo2D*)gf_list_enum(sr->strike_bank, &i))) {
 		if (si->lineProps == n) {
 			/*remove from node*/
 			if (si->node) {
-				s32 res;
 				Drawable *st = (Drawable *) gf_node_get_private(si->node);
 				/*yerk this is ugly, but text is not a regular drawable and adding a fct just to get
 				the drawable would be just pain*/
 				if (gf_node_get_tag(si->node)==TAG_MPEG4_Text) st = ((TextStack2D*)st)->graph;
-				assert(st && st->strike_list);
-				res = gf_list_del_item(st->strike_list, si);
-				assert(res>=0);
+				assert(st && st->outline);
+				cur = st->outline;
+				prev = NULL;
+				while (cur) {
+					if (cur!=si) {
+						prev = cur;
+						cur = cur->next;
+						continue;
+					}
+					if (prev) prev->next = cur->next;
+					else st->outline = cur->next;
+					break;
+				}
 			}
 			i--;
 			gf_list_rem(sr->strike_bank, i);
@@ -737,11 +794,13 @@ void R2D_LinePropsRemoved(Render2D *sr, GF_Node *n)
 	}
 }
 
-static void DestroyLineProps(GF_Node *n)
+static void DestroyLineProps(GF_Node *n, void *rs, Bool is_destroy)
 {
-	LinePropStack *st = (LinePropStack *)gf_node_get_private(n);
-	R2D_LinePropsRemoved(st->sr, n);
-	free(st);
+	if (is_destroy) {
+		LinePropStack *st = (LinePropStack *)gf_node_get_private(n);
+		R2D_LinePropsRemoved(st->sr, n);
+		free(st);
+	}
 }
 void R2D_InitLineProps(Render2D *sr, GF_Node *node)
 {
@@ -749,7 +808,7 @@ void R2D_InitLineProps(Render2D *sr, GF_Node *node)
 	st->sr = sr;
 	st->last_mod_time = 1;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyLineProps);
+	gf_node_set_callback_function(node, DestroyLineProps);
 }
 
 u32 R2D_LP_GetLastUpdateTime(GF_Node *node)
@@ -891,19 +950,19 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)
 
 	/*switched-off geometry nodes are not rendered*/
 	if (eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF) return NULL;
-	
+
 	//Get a empty context from the current surface
 	ctx = VS2D_GetDrawableContext(eff->surface);
 
 	gf_mx2d_copy(ctx->transform, eff->transform);
 
 	ctx->node = node;
-	ctx->parent_use = eff->parent_use;
-	if (eff->invalidate_all || node->node_changed) ctx->redraw_flags |= CTX_NODE_DIRTY;
-	else if (gf_node_dirty_get(node->owner) & GF_SG_SVG_APPEARANCE_DIRTY) ctx->redraw_flags |= CTX_NODE_DIRTY;
-	else if (ctx->parent_use && (gf_node_dirty_get(ctx->parent_use) & GF_SG_SVG_APPEARANCE_DIRTY)) {
-		ctx->redraw_flags |= CTX_NODE_DIRTY;
-		gf_node_dirty_clear(ctx->parent_use, GF_SG_SVG_APPEARANCE_DIRTY);
+	ctx->appear = eff->parent_use;
+	if (eff->invalidate_all || (node->flags & DRAWABLE_HAS_CHANGED) ) ctx->flags |= CTX_NODE_DIRTY;
+	else if (gf_node_dirty_get(node->owner) & GF_SG_SVG_APPEARANCE_DIRTY) ctx->flags |= CTX_NODE_DIRTY;
+	else if (ctx->appear && (gf_node_dirty_get(ctx->appear) & GF_SG_SVG_APPEARANCE_DIRTY)) {
+		ctx->flags |= CTX_NODE_DIRTY;
+		gf_node_dirty_clear(ctx->appear, GF_SG_SVG_APPEARANCE_DIRTY);
 	}
 
 	ctx->h_texture = NULL;
@@ -931,13 +990,13 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	setup_SVG_drawable_context(ctx, *(eff->svg_props));
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
-	if (ctx->h_texture && ctx->h_texture->needs_refresh) ctx->redraw_flags |= CTX_TEXTURE_DIRTY;
+	if (ctx->h_texture && ctx->h_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
 
 	if (check_transparent_skip(ctx, skipFill)) {
 		VS2D_RemoveLastContext(eff->surface);
 		return NULL;
 	}
-	ctx->num_listeners = eff->nb_listeners;
+	//ctx->flags |= CTX_HAS_LISTENERS;
 	return ctx;
 }
 

@@ -40,7 +40,7 @@ typedef struct
 
 /* TODO: implement all the missing features: horizontal/vertical, ltr/rtl, tspan, tref ... */
 
-static void SVG_Render_text(GF_Node *node, void *rs)
+static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGPropertiesPointers backup_props;
 	GF_Matrix2D backup_matrix;
@@ -51,9 +51,25 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	SVGtextElement *text = (SVGtextElement *)node;
 	GF_FontRaster *ft_dr = eff->surface->render->compositor->font_engine;
   
-	if (!ft_dr) return;
-	return;
+	if (is_destroy) {
+		drawable_del(st->draw);
+		free(st);
+		return;
+	}
 
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		drawable_draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		eff->is_over = 1;
+		//drawable_pick(eff);
+		return;
+	}
+
+	if (!ft_dr) return;
+
+	
 	SVG_Render_base(node, eff, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
@@ -142,46 +158,27 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 			free(wcText);
 		}
 		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
+		cs->flags |= DRAWABLE_HAS_CHANGED;
 		st->prev_size = eff->svg_props->font_size->value;
 		st->prev_flags = *eff->svg_props->font_style;
 		st->prev_anchor = *eff->svg_props->text_anchor;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);
-	if (ctx) {
-		drawctx_store_original_bounds(ctx);
-		drawable_finalize_render(ctx, eff);
-	}
+	if (ctx) drawable_finalize_render(ctx, eff, NULL);
+
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 }
 
-Bool SVG_text_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
-{
-	/*this is not documented anywhere but it speeds things up*/
-	if (!check_type || ctx->aspect.filled) return 1;
-	/*FIXME*/
-	return 1;
-}
-
-
-void SVG_DestroyText(GF_Node *node)
-{
-	SVG_TextStack *stack = (SVG_TextStack *) gf_node_get_private(node);
-	drawable_del(stack->draw);
-	free(stack);
-}
 
 void SVG_Init_text(Render2D *sr, GF_Node *node)
 {
 	SVG_TextStack *stack;
 	GF_SAFEALLOC(stack, SVG_TextStack);
 	stack->draw = drawable_new();
-	stack->draw->IsPointOver = SVG_text_PointOver;
-	gf_sr_traversable_setup(stack->draw, node, sr->compositor);
+	stack->draw->owner = node;
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, SVG_DestroyText);
-	gf_node_set_render_function(node, SVG_Render_text);
+	gf_node_set_callback_function(node, SVG_Render_text);
 }
 
 

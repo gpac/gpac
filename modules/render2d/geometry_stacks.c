@@ -31,11 +31,11 @@
 /*
 		Shape 
 */
-static void RenderShape(GF_Node *node, void *rs)
+static void RenderShape(GF_Node *node, void *rs, Bool is_destroy)
 {
 	RenderEffect2D *eff;
 	M_Shape *shape = (M_Shape *) node;
-	if (!shape->geometry) return;
+	if (is_destroy || !shape->geometry) return;
 	eff = (RenderEffect2D *)rs;
 
 	if (eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF) return;
@@ -47,97 +47,84 @@ static void RenderShape(GF_Node *node, void *rs)
 
 void R2D_InitShape(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, RenderShape);
+	gf_node_set_callback_function(node, RenderShape);
 }
 
 
-static void RenderCircle(GF_Node *node, void *rs)
+static void RenderCircle(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableContext *ctx;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		drawable_draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
+	
 	if (gf_node_dirty_get(node)) {
 		drawable_reset_path(cs);
 		gf_path_add_ellipse(cs->path, 0, 0, ((M_Circle *) node)->radius * 2, ((M_Circle *) node)->radius * 2);
 		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
+		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
 	ctx = drawable_init_context(cs, eff);
 	if (!ctx) return;
 	
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
+	drawable_finalize_render(ctx, eff, NULL);
 }
 
 void R2D_InitCircle(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_render_function(node, RenderCircle);
+	gf_node_set_callback_function(node, RenderCircle);
 }
 
-static void RenderEllipse(GF_Node *node, void *rs)
+static void RenderEllipse(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableContext *ctx;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		drawable_draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
+
 	if (gf_node_dirty_get(node)) {
 		drawable_reset_path(cs);
 		gf_path_add_ellipse(cs->path, 0, 0, ((M_Ellipse *) node)->radius.x, ((M_Ellipse *) node)->radius.y);
 		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
+		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
 	ctx = drawable_init_context(cs, eff);
 	if (!ctx) return;
 	
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
+	drawable_finalize_render(ctx, eff, NULL);
 }
 
 void R2D_InitEllipse(Render2D  *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_render_function(node, RenderEllipse);
+	gf_node_set_callback_function(node, RenderEllipse);
 }
 
-static void RenderRectangle(GF_Node *node, void *reff)
-{
-	DrawableContext *ctx;
-	Drawable *rs = (Drawable *)gf_node_get_private(node);
-	RenderEffect2D *eff = (RenderEffect2D *)reff;
-
-	if (gf_node_dirty_get(node)) {
-		drawable_reset_path(rs);
-		gf_path_add_rect_center(rs->path, 0, 0, ((M_Rectangle *) node)->size.x, ((M_Rectangle *) node)->size.y);
-		gf_node_dirty_clear(node, 0);
-		rs->node_changed = 1;
-	}
-	ctx = drawable_init_context(rs, eff);
-	if (!ctx) return;
-	
-	ctx->transparent = 0;
-	/*if not filled, transparent*/
-	if (!ctx->aspect.filled && !ctx->h_texture) {
-		ctx->transparent = 1;
-	} 
-	else if (ctx->h_texture && ctx->h_texture->transparent) {
-		ctx->transparent = 1;
-	} 
-	/*if alpha, transparent*/
-	else if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) {
-		ctx->transparent = 1;
-	} 
-	/*if rotated, transparent (doesn't fill bounds)*/
-	else if (ctx->transform.m[1] || ctx->transform.m[3]) {
-		ctx->transparent = 1;
-	}
-	else if (!eff->color_mat.identity) 
-		ctx->transparent = 1;	
-
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
-}
 
 static Bool txtrans_identity(GF_Node *appear)
 {
@@ -159,7 +146,7 @@ void R2D_DrawRectangle(DrawableContext *ctx)
 		if (!ctx->cmat.identity) cmat = &ctx->cmat;
 
 		/*get image size WITHOUT line size*/
-		unclip = ctx->original;
+		gf_path_get_bounds(ctx->node->path, &unclip);
 		gf_mx2d_apply_rect(&ctx->transform, &unclip);
 		unclip_pix = clip = gf_rect_pixelize(&unclip);
 		gf_irect_intersect(&clip, &ctx->clip);
@@ -182,16 +169,66 @@ void R2D_DrawRectangle(DrawableContext *ctx)
 				}
 			}
 		}
-		ctx->path_filled = 1;
+		ctx->flags |= CTX_PATH_FILLED;
 		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
 	}
+}
+
+static void RenderRectangle(GF_Node *node, void *reff, Bool is_destroy)
+{
+	DrawableContext *ctx;
+	Drawable *rs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)reff;
+
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		R2D_DrawRectangle(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
+
+	if (gf_node_dirty_get(node)) {
+		drawable_reset_path(rs);
+		gf_path_add_rect_center(rs->path, 0, 0, ((M_Rectangle *) node)->size.x, ((M_Rectangle *) node)->size.y);
+		gf_node_dirty_clear(node, 0);
+		rs->flags |= DRAWABLE_HAS_CHANGED;
+	}
+	ctx = drawable_init_context(rs, eff);
+	if (!ctx) return;
+	
+	/*if not filled, transparent*/
+	if (!ctx->aspect.filled && !ctx->h_texture) {
+	} 
+	/*if texture transparent, transparent*/
+	else if (ctx->h_texture && ctx->h_texture->transparent) {
+	} 
+	/*if alpha, transparent*/
+	else if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) {
+	} 
+	/*if rotated, transparent (doesn't fill bounds)*/
+	else if (ctx->transform.m[1] || ctx->transform.m[3]) {
+	}
+	/*TODO check matrix for alpha*/
+	else if (!eff->color_mat.identity) {
+	}
+	/*otherwsie, not transparent*/
+	else {
+		ctx->flags &= ~CTX_IS_TRANSPARENT;	
+	}
+
+	drawable_finalize_render(ctx, eff, NULL);
 }
 
 void R2D_InitRectangle(Render2D  *sr, GF_Node *node)
 {
 	Drawable *d = drawable_stack_new(sr, node);
-	d->Draw = R2D_DrawRectangle;
-	gf_node_set_render_function(node, RenderRectangle);
+	gf_node_set_callback_function(node, RenderRectangle);
 }
 
 
@@ -307,12 +344,25 @@ static void build_curve2D(Drawable *cs, M_Curve2D *c2D)
 	}
 }
 
-static void RenderCurve2D(GF_Node *node, void *rs)
+static void RenderCurve2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableContext *ctx;
 	M_Curve2D *c2D = (M_Curve2D *)node;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
+
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		drawable_draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
 
 	if (!c2D->point) return;
 
@@ -323,19 +373,18 @@ static void RenderCurve2D(GF_Node *node, void *rs)
 		if (eff->surface->render->compositor->high_speed)  cs->path->fineness /= 2;
 		build_curve2D(cs, c2D);
 		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
+		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
 
 	ctx = drawable_init_context(cs, eff);
 	if (!ctx) return;
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
+	drawable_finalize_render(ctx, eff, NULL);
 }
 
 void R2D_InitCurve2D(Render2D  *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_render_function(node, RenderCurve2D);
+	gf_node_set_callback_function(node, RenderCurve2D);
 }
 
 
@@ -345,22 +394,11 @@ typedef struct _bitmap_stack
 	Drawable *graph;
 } BitmapStack;
 
-static void DestroyBitmap(GF_Node *n)
+
+static void Bitmap_BuildGraph(BitmapStack *st, DrawableContext *ctx, RenderEffect2D *eff, GF_Rect *out_rc)
 {
-	BitmapStack *st = (BitmapStack *)gf_node_get_private(n);
-
-	drawable_del(st->graph);
-
-	/*destroy hw surface if any*/
-
-	free(st);
-}
-
-static void Bitmap_BuildGraph(BitmapStack *st, DrawableContext *ctx, RenderEffect2D *eff)
-{
-	M_Bitmap *bmp = (M_Bitmap *)st->graph->owner;
-	GF_Matrix2D mat;
 	Fixed w, h;
+	M_Bitmap *bmp = (M_Bitmap *)ctx->node->owner;
 
 	w = INT2FIX(ctx->h_texture->width);
 	/*if we have a PAR update it!!*/
@@ -371,57 +409,20 @@ static void Bitmap_BuildGraph(BitmapStack *st, DrawableContext *ctx, RenderEffec
 	}
 	h = INT2FIX(ctx->h_texture->height);
 
-	/*get size with scale*/
-	drawable_reset_path(st->graph);
-	/*reverse meterMetrics conversion*/
-	gf_mx2d_init(mat);
-	if (!eff->is_pixel_metrics) gf_mx2d_add_scale(&mat, eff->min_hsize, eff->min_hsize);
-	gf_mx2d_inverse(&mat);
 	/*the spec says STRICTLY positive or -1, but some content use 0...*/
-	gf_mx2d_add_scale(&mat, (bmp->scale.x>=0) ? bmp->scale.x : FIX_ONE, (bmp->scale.y>=0) ? bmp->scale.y : FIX_ONE);
-	gf_mx2d_apply_coords(&mat, &w, &h);
-	gf_path_add_rect_center(st->graph->path, 0, 0, w, h);
-
-	ctx->original = gf_rect_center(w, h);
-}
-
-static void RenderBitmap(GF_Node *node, void *rs)
-{
-	DrawableContext *ctx;
-	BitmapStack *st = (BitmapStack *)gf_node_get_private(node);
-	RenderEffect2D *eff = (RenderEffect2D *)rs;
-
-	/*we never cache anything with bitmap...*/
-	gf_node_dirty_clear(node, 0);
-
-	ctx = drawable_init_context(st->graph, eff);
-	if (!ctx || !ctx->h_texture ) return;
-	/*always build the path*/
-	Bitmap_BuildGraph(st, ctx, eff);
-	/*even if set this is not true*/
-	ctx->aspect.has_line = 0;
-	/*this is to make sure we don't fill the path if the texture is transparent*/
-	ctx->aspect.filled = 0;
-	ctx->aspect.pen_props.width = 0;
-	ctx->no_antialias = 1;
-
-	ctx->transparent = 0;
-	/*if clipper then transparent*/
-
-	if (ctx->h_texture->transparent) {
-		ctx->transparent = 1;
-	} else {
-		M_Appearance *app = (M_Appearance *)ctx->appear;
-		if ( app->material && (gf_node_get_tag((GF_Node *)app->material)==TAG_MPEG4_MaterialKey) ) {
-			if (((M_MaterialKey*)app->material)->isKeyed && ((M_MaterialKey*)app->material)->transparency)
-				ctx->transparent = 1;
-		} 
-		else if (!eff->color_mat.identity || (GF_COL_A(ctx->aspect.fill_color) < 0xFF))
-			ctx->transparent = 1;
+	w = gf_mulfix(w, ((bmp->scale.x>=0) ? bmp->scale.x : FIX_ONE) );
+	h = gf_mulfix(h, ((bmp->scale.y>=0) ? bmp->scale.y : FIX_ONE) );
+	/*reverse meterMetrics conversion*/
+	if (!eff->is_pixel_metrics) {
+		w = gf_divfix(w, eff->min_hsize);
+		h = gf_divfix(h, eff->min_hsize);
 	}
 
-	/*bounds are stored when building graph*/	
-	drawable_finalize_render(ctx, eff);
+	/*get size with scale*/
+	drawable_reset_path(st->graph);
+	gf_path_add_rect_center(st->graph->path, 0, 0, w, h);
+
+	*out_rc = gf_rect_center(w, h);
 }
 
 static void DrawBitmap(DrawableContext *ctx)
@@ -471,9 +472,17 @@ static void DrawBitmap(DrawableContext *ctx)
 
 	/*no HW, fall back to the graphics driver*/
 	if (!use_blit) {
+		Fixed w, h;
+		GF_Matrix2D _mat;
+		w = ctx->unclip.width;
+		h = ctx->unclip.height;
+		gf_mx2d_copy(_mat, ctx->transform);
+		gf_mx2d_inverse(&_mat);
+		gf_mx2d_apply_coords(&_mat, &w, &h);
+
 		drawable_reset_path(st->graph);
-		gf_path_add_rect_center(st->graph->path, 0, 0, ctx->original.width, ctx->original.height);
-		ctx->no_antialias = 1;
+		gf_path_add_rect_center(st->graph->path, 0, 0, w, h);
+		ctx->flags |= CTX_NO_ANTIALIAS;
 		VS2D_TexturePath(ctx->surface, st->graph->path, ctx);
 		return;
 	}
@@ -498,22 +507,68 @@ static void DrawBitmap(DrawableContext *ctx)
 	}
 }
 
-static Bool Bitmap_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
+static void RenderBitmap(GF_Node *node, void *rs, Bool is_destroy)
 {
-	return 1;
+	GF_Rect rc;
+	DrawableContext *ctx;
+	BitmapStack *st = (BitmapStack *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
+
+	if (is_destroy) {
+		drawable_del(st->graph);
+		free(st);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		DrawBitmap(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		eff->is_over = 1;
+		return;
+	}
+
+	/*we never cache anything with bitmap...*/
+	gf_node_dirty_clear(node, 0);
+
+	ctx = drawable_init_context(st->graph, eff);
+	if (!ctx || !ctx->h_texture ) return;
+	/*always build the path*/
+	Bitmap_BuildGraph(st, ctx, eff, &rc);
+	/*even if set this is not true*/
+	ctx->aspect.has_line = 0;
+	/*this is to make sure we don't fill the path if the texture is transparent*/
+	ctx->aspect.filled = 0;
+	ctx->aspect.pen_props.width = 0;
+	ctx->flags |= CTX_NO_ANTIALIAS;
+
+	ctx->flags &= ~CTX_IS_TRANSPARENT;
+	/*if clipper then transparent*/
+
+	if (ctx->h_texture->transparent) {
+		ctx->flags |= CTX_IS_TRANSPARENT;
+	} else {
+		M_Appearance *app = (M_Appearance *)ctx->appear;
+		if ( app->material && (gf_node_get_tag((GF_Node *)app->material)==TAG_MPEG4_MaterialKey) ) {
+			if (((M_MaterialKey*)app->material)->isKeyed && ((M_MaterialKey*)app->material)->transparency)
+				ctx->flags |= CTX_IS_TRANSPARENT;
+		} 
+		else if (!eff->color_mat.identity || (GF_COL_A(ctx->aspect.fill_color) < 0xFF))
+			ctx->flags |= CTX_IS_TRANSPARENT;
+	}
+
+	/*bounds are stored when building graph*/	
+	drawable_finalize_render(ctx, eff, &rc);
 }
+
 
 void R2D_InitBitmap(Render2D  *sr, GF_Node *node)
 {
 	BitmapStack *st = (BitmapStack *)malloc(sizeof(BitmapStack));
 	st->graph = drawable_new();
-
-	gf_sr_traversable_setup(st->graph, node, sr->compositor);
-	st->graph->Draw = DrawBitmap;
-	st->graph->IsPointOver = Bitmap_PointOver;
+	st->graph->owner = node;
 	gf_node_set_private(node, st);
-	gf_node_set_render_function(node, RenderBitmap);
-	gf_node_set_predestroy_function(node, DestroyBitmap);
+	gf_node_set_callback_function(node, RenderBitmap);
 }
 
 /*
@@ -544,30 +599,6 @@ static void build_graph(Drawable *cs, GF_Matrix2D *mat, M_PointSet2D *ps2D)
 	cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 }
 
-static void RenderPointSet2D(GF_Node *node, void *rs)
-{
-	DrawableContext *ctx;
-	M_PointSet2D *ps2D = (M_PointSet2D *)node;
-	Drawable *cs = (Drawable *)gf_node_get_private(node);
-	RenderEffect2D *eff = (RenderEffect2D *)rs;
-
-	if (!ps2D->coord) return;
-
-	if (gf_node_dirty_get(node)) {
-		drawable_reset_path(cs);
-		build_graph(cs, &eff->transform, ps2D);
-		gf_node_dirty_clear(node, 0);
-		cs->node_changed = 1;
-	}
-
-	ctx = drawable_init_context(cs, eff);
-	if (!ctx) return;
-	ctx->aspect.filled = 1;
-	ctx->aspect.has_line = 0;
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
-}
-
 static void PointSet2D_Draw(DrawableContext *ctx)
 {
 	GF_Path *path;
@@ -579,7 +610,7 @@ static void PointSet2D_Draw(DrawableContext *ctx)
 	M_Color *color = (M_Color *) ps2D->color;
 
 	/*never outline PS2D*/
-	ctx->path_stroke = 1;
+	ctx->flags |= CTX_PATH_STROKE;
 	if (!color || color->color.count<coord->point.count) {
 		/*no texturing*/
 		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
@@ -596,23 +627,59 @@ static void PointSet2D_Draw(DrawableContext *ctx)
 		gf_path_add_rect_center(path, coord->point.vals[i].x, coord->point.vals[i].y, w, h);
 		VS2D_DrawPath(ctx->surface, path, ctx, NULL, NULL);
 		gf_path_reset(path);
-		ctx->path_filled = 0;
+		ctx->flags &= ~CTX_PATH_FILLED;
 	}
 	gf_path_del(path);
 }
 
+static void RenderPointSet2D(GF_Node *node, void *rs, Bool is_destroy)
+{
+	DrawableContext *ctx;
+	M_PointSet2D *ps2D = (M_PointSet2D *)node;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
+	
+	if (is_destroy) {
+		DestroyDrawableNode(node);
+		return;
+	}
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		PointSet2D_Draw(eff->ctx);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		return;
+	}
+
+	if (!ps2D->coord) return;
+
+	if (gf_node_dirty_get(node)) {
+		drawable_reset_path(cs);
+		build_graph(cs, &eff->transform, ps2D);
+		gf_node_dirty_clear(node, 0);
+		cs->flags |= DRAWABLE_HAS_CHANGED;
+	}
+
+	ctx = drawable_init_context(cs, eff);
+	if (!ctx) return;
+	ctx->aspect.filled = 1;
+	ctx->aspect.has_line = 0;
+	drawable_finalize_render(ctx, eff, NULL);
+}
+
+
 void R2D_InitPointSet2D(Render2D  *sr, GF_Node *node)
 {
 	Drawable *stack = drawable_stack_new(sr, node);
-	/*override draw*/
-	stack->Draw = PointSet2D_Draw;
-	gf_node_set_render_function(node, RenderPointSet2D);
+	gf_node_set_callback_function(node, RenderPointSet2D);
 }
 
-static void RenderPathExtrusion(GF_Node *node, void *rs)
+static void RenderPathExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_FieldInfo field;
 	GF_Node *geom;
+	if (is_destroy) return;
+	
 	if (gf_node_get_field(node, 0, &field) != GF_OK) return;
 	if (field.fieldType != GF_SG_VRML_SFNODE) return;
 	geom = * (GF_Node **) field.far_ptr;
@@ -621,5 +688,5 @@ static void RenderPathExtrusion(GF_Node *node, void *rs)
 
 void R2D_InitPathExtrusion(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, RenderPathExtrusion);
+	gf_node_set_callback_function(node, RenderPathExtrusion);
 }

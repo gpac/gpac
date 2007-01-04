@@ -44,70 +44,82 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 	GF_TrackCryptInfo *tkc;
 	u32 i;
 	ISMACrypInfo *info = (ISMACrypInfo *)sax_cbck;
-	if (stricmp(node_name, "ISMACrypTrack")) return;
+	
+	if (!strcmp(node_name, "ISMACrypTrack") || !strcmp(node_name, "OMATrack")) {
+		GF_SAFEALLOC(tkc, GF_TrackCryptInfo);
+		gf_list_add(info->tcis, tkc);
 
-	GF_SAFEALLOC(tkc, GF_TrackCryptInfo);
-	gf_list_add(info->tcis, tkc);
+		if (!strcmp(node_name, "OMATrack")) tkc->enc_type = 1;
 
-	for (i=0; i<nb_attributes; i++) {
-		att = (GF_XMLAttribute *) &attributes[i];
-		if (!stricmp(att->name, "trackID") || !stricmp(att->name, "ID")) {
-			if (!strcmp(att->value, "*")) info->has_common_key = 1;
-			else tkc->trackID = atoi(att->value);
-		}
-		else if (!stricmp(att->name, "key")) {
-			char *sKey = att->value;
-			if (!strnicmp(sKey, "0x", 2)) sKey += 2;
-			if (strlen(sKey) == 32) {
-				u32 j;
-				for (j=0; j<32; j+=2) {
-					u32 v;
-					char szV[5];
-					sprintf(szV, "%c%c", sKey[j], sKey[j+1]);
-					sscanf(szV, "%x", &v);
-					tkc->key[j/2] = v;
-				}
-			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] Key is not 16-bytes long - skipping\n"));
+		for (i=0; i<nb_attributes; i++) {
+			att = (GF_XMLAttribute *) &attributes[i];
+			if (!stricmp(att->name, "trackID") || !stricmp(att->name, "ID")) {
+				if (!strcmp(att->value, "*")) info->has_common_key = 1;
+				else tkc->trackID = atoi(att->value);
 			}
-		}
-		else if (!stricmp(att->name, "salt")) {
-			char *sKey = att->value;
-			if (!strnicmp(sKey, "0x", 2)) sKey += 2;
-			if (strlen(sKey) != 8) {
-				u32 j;
-				for (j=0; j<16; j+=2) {
+			else if (!stricmp(att->name, "key")) {
+				char *sKey = att->value;
+				if (!strnicmp(sKey, "0x", 2)) sKey += 2;
+				if (strlen(sKey) == 32) {
+					u32 j;
+					for (j=0; j<32; j+=2) {
+						u32 v;
+						char szV[5];
+						sprintf(szV, "%c%c", sKey[j], sKey[j+1]);
+						sscanf(szV, "%x", &v);
+						tkc->key[j/2] = v;
+					}
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] Key is not 16-bytes long - skipping\n"));
+				}
+			}
+			else if (!stricmp(att->name, "salt")) {
+				u32 len, j;
+				char *sKey = att->value;
+				if (!strnicmp(sKey, "0x", 2)) sKey += 2;
+				len = strlen(sKey);
+				for (j=0; j<len; j+=2) {
 					char szV[5];
 					u32 v;
 					sprintf(szV, "%c%c", sKey[j], sKey[j+1]);
 					sscanf(szV, "%x", &v);
 					tkc->salt[j/2] = v;
 				}
-			} else {
-				memcpy(tkc->salt, sKey, 8);
+			}
+			else if (!stricmp(att->name, "kms_URI")) strcpy(tkc->KMS_URI, att->value);
+			else if (!stricmp(att->name, "scheme_URI")) strcpy(tkc->Scheme_URI, att->value);
+			else if (!stricmp(att->name, "selectiveType")) {
+				if (!stricmp(att->value, "Rap")) tkc->sel_enc_type = GF_ISMACRYP_SELENC_RAP;
+				else if (!stricmp(att->value, "Non-Rap")) tkc->sel_enc_type = GF_ISMACRYP_SELENC_NON_RAP;
+				else if (!stricmp(att->value, "Rand")) tkc->sel_enc_type = GF_ISMACRYP_SELENC_RAND;
+				else if (!strnicmp(att->value, "Rand", 4)) {
+					tkc->sel_enc_type = GF_ISMACRYP_SELENC_RAND_RANGE;
+					tkc->sel_enc_range = atoi(&att->value[4]);
+				}
+				else if (sscanf(att->value, "%d", &tkc->sel_enc_range)==1) {
+					if (tkc->sel_enc_range==1) tkc->sel_enc_range = 0;
+					else tkc->sel_enc_type = GF_ISMACRYP_SELENC_RANGE;
+				}
+			}
+			else if (!stricmp(att->name, "ipmpType")) {
+				if (!stricmp(att->value, "None")) tkc->ipmp_type = 0;
+				else if (!stricmp(att->value, "IPMP")) tkc->sel_enc_type = 1;
+				else if (!stricmp(att->value, "IPMPX")) tkc->sel_enc_type = 2;
+			}
+			else if (!stricmp(att->name, "ipmpDescriptorID")) tkc->ipmp_desc_id = atoi(att->value);
+			else if (!stricmp(att->name, "encryptionMethod")) {
+				if (!strcmp(att->value, "AES_128_CBC")) tkc->encryption = 1;
+				else if (!strcmp(att->value, "AES_128_CTR") || !strcmp(att->value, "default")) tkc->encryption = 2;
+				else  tkc->encryption = 0;
+			}
+			else if (!stricmp(att->name, "contentID")) strcpy(tkc->Scheme_URI, att->value);
+			else if (!stricmp(att->name, "rightsIssuerURL")) strcpy(tkc->KMS_URI, att->value);
+			else if (!stricmp(att->name, "transactionID")) {
+				if (strlen(att->value)<=16) strcpy(tkc->TransactionID, att->value);
+			}
+			else if (!stricmp(att->name, "textualHeaders")) {
 			}
 		}
-		else if (!stricmp(att->name, "kms_URI")) strcpy(tkc->KMS_URI, att->value);
-		else if (!stricmp(att->name, "scheme_URI")) strcpy(tkc->Scheme_URI, att->value);
-		else if (!stricmp(att->name, "selectiveType")) {
-			if (!stricmp(att->value, "Rap")) tkc->sel_enc_type = GF_ISMACRYP_SELENC_RAP;
-			else if (!stricmp(att->value, "Non-Rap")) tkc->sel_enc_type = GF_ISMACRYP_SELENC_NON_RAP;
-			else if (!stricmp(att->value, "Rand")) tkc->sel_enc_type = GF_ISMACRYP_SELENC_RAND;
-			else if (!strnicmp(att->value, "Rand", 4)) {
-				tkc->sel_enc_type = GF_ISMACRYP_SELENC_RAND_RANGE;
-				tkc->sel_enc_range = atoi(&att->value[4]);
-			}
-			else if (sscanf(att->value, "%d", &tkc->sel_enc_range)==1) {
-				if (tkc->sel_enc_range==1) tkc->sel_enc_range = 0;
-				else tkc->sel_enc_type = GF_ISMACRYP_SELENC_RANGE;
-			}
-		}
-		else if (!stricmp(att->name, "ipmpType")) {
-			if (!stricmp(att->value, "None")) tkc->ipmp_type = 0;
-			else if (!stricmp(att->value, "IPMP")) tkc->sel_enc_type = 1;
-			else if (!stricmp(att->value, "IPMPX")) tkc->sel_enc_type = 2;
-		}
-		else if (!stricmp(att->name, "ipmpDescriptorID")) tkc->ipmp_desc_id = atoi(att->value);
 	}
 }
 
@@ -347,7 +359,6 @@ GF_EXPORT
 GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 {
 	GF_Err e;
-	Bool is_ismacryp;
 	u32 i, idx, count, common_idx, nb_tracks, scheme_type, cur_tk;
 	const char *scheme_URI, *KMS_URI;
 	ISMACrypInfo *info;
@@ -377,7 +388,8 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 	e = GF_OK;
 	for (i=0; i<nb_tracks; i++) {
 		u32 trackID = gf_isom_get_track_id(mp4, i+1);
-		if (!gf_isom_is_media_encrypted(mp4, i+1, 1)) continue;
+		scheme_type = gf_isom_is_media_encrypted(mp4, i+1, 1);
+		if (!scheme_type) continue;
 
 		for (idx=0; idx<count; idx++) {
 			a_tci = (GF_TrackCryptInfo *)gf_list_get(info->tcis, idx);
@@ -396,18 +408,16 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			tci.trackID = trackID;
 		}
 
-		is_ismacryp = gf_isom_is_ismacryp_media(mp4, i+1, 1);
-		e = gf_isom_get_ismacryp_info(mp4, i+1, 1, NULL, &scheme_type, NULL, &scheme_URI, &KMS_URI, NULL, NULL, NULL);
-
-		if (!e && (scheme_type != GF_ISOM_ISMACRYP_SCHEME)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA E&A] Encrypted track #%d uses an unsupported encryption scheme: %s - skipping\n", trackID, gf_4cc_to_str(scheme_type)));
-			if (scheme_URI) GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISMA E&A] scheme defined at %s\n", scheme_URI));
-			continue;
-		} else if (!is_ismacryp) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA E&A] TrackID %d not crypted with ISMACrypt - skipping\n", trackID));
-			continue;
-		} else if (e) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] TrackID %d not compliant with ISMACrypt - skipping\n", trackID));
+		if (gf_isom_is_ismacryp_media(mp4, i+1, 1)) {
+			e = gf_isom_get_ismacryp_info(mp4, i+1, 1, NULL, &scheme_type, NULL, &scheme_URI, &KMS_URI, NULL, NULL, NULL);
+		} else if (gf_isom_is_omadrm_media(mp4, i+1, 1)) {
+			if (!drm_file) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Cannot decrypt OMA (P)DCF file without GPAC's DRM file & keys\n"));
+				continue;
+			}
+			KMS_URI = "OMA DRM";
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] TrackID %d encrypted with unknown scheme %s - skipping\n", trackID, gf_4cc_to_str(scheme_type) ));
 			continue;
 		}
 		/*get key and salt from KMS*/
@@ -439,11 +449,11 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			}
 		}
 
-		if (strlen(tci.KMS_URI) && strcmp(KMS_URI, tci.KMS_URI) )
+		if (KMS_URI && strlen(tci.KMS_URI) && strcmp(KMS_URI, tci.KMS_URI) )
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] KMS URI for trackID %d Mismatch\n", trackID));
 
 		if (drm_file || (KMS_URI && strncmp(KMS_URI, "(key)", 5)) ) {
-			strcpy(tci.KMS_URI, KMS_URI);
+			strcpy(tci.KMS_URI, KMS_URI ? KMS_URI : "");
 		} else {
 			strcpy(tci.KMS_URI, "self-contained");
 		}
@@ -484,7 +494,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	}
 	if (esd) gf_odf_desc_del((GF_Descriptor*) esd);
 
-	if (!strlen(tci->Scheme_URI)) strcpy(tci->Scheme_URI, "urn:gpac:isma:encryption_scheme");
+	if (!tci->enc_type && !strlen(tci->Scheme_URI)) strcpy(tci->Scheme_URI, "urn:gpac:isma:encryption_scheme");
 
 	if (!gf_isom_has_sync_points(mp4, track) &&
 	((tci->sel_enc_type==GF_ISMACRYP_SELENC_RAP) || (tci->sel_enc_type==GF_ISMACRYP_SELENC_NON_RAP)) ) {
@@ -496,9 +506,14 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	}
 
 	BSO = gf_isom_get_media_data_size(mp4, track);
-	if (BSO<0xFFFF) IV_size = 2;
-	else if (BSO<0xFFFFFFFF) IV_size = 4;
-	else IV_size = 8;
+	if (tci->enc_type==0) {
+		if (BSO<0xFFFF) IV_size = 2;
+		else if (BSO<0xFFFFFFFF) IV_size = 4;
+		else IV_size = 8;
+	} else {
+		/*128 bit IV in OMA*/
+		IV_size = 16;
+	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA E&A] Encrypting track ID %d - KMS: %s%s\n", tci->trackID, tci->KMS_URI, tci->sel_enc_type ? " - Selective Encryption" : ""));
 
@@ -528,8 +543,17 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	}
 
 	/*create ISMA protection*/
-	e = gf_isom_set_ismacryp_protection(mp4, track, 1, GF_ISOM_ISMACRYP_SCHEME, 1, 
-		tci->Scheme_URI, tci->KMS_URI, (tci->sel_enc_type!=0) ? 1 : 0, 0, IV_size);	 
+	if (tci->enc_type==0) {
+		e = gf_isom_set_ismacryp_protection(mp4, track, 1, GF_ISOM_ISMACRYP_SCHEME, 1, 
+			tci->Scheme_URI, tci->KMS_URI, (tci->sel_enc_type!=0) ? 1 : 0, 0, IV_size);	 
+	} else {
+		e = gf_isom_set_oma_protection(mp4, track, 1, 
+			strlen(tci->Scheme_URI) ? tci->Scheme_URI : NULL,
+			tci->KMS_URI, 
+			tci->encryption, BSO, 
+			strlen(tci->TextualHeaders) ? tci->TextualHeaders : NULL, 
+			(tci->sel_enc_type!=0) ? 1 : 0, 0, IV_size);
+	}
 	if (e) return e;
 
 	has_crypted_samp = 0;

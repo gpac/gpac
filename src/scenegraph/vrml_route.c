@@ -42,8 +42,9 @@ GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, G
 	r->ToField.fieldIndex = toField;
 	r->graph = sg;
 
-	if (!fromNode->sgprivate->events) fromNode->sgprivate->events = gf_list_new();
-	gf_list_add(fromNode->sgprivate->events, r);
+	if (!fromNode->sgprivate->interact) GF_SAFEALLOC(fromNode->sgprivate->interact, struct _node_interactive_ext);
+	if (!fromNode->sgprivate->interact->events) fromNode->sgprivate->interact->events = gf_list_new();
+	gf_list_add(fromNode->sgprivate->interact->events, r);
 	gf_list_add(sg->Routes, r);
 	return r;
 }
@@ -58,11 +59,11 @@ void gf_sg_route_del(GF_Route *r)
 	/*remove declared routes*/
 	ind = gf_list_del_item(r->graph->Routes, r);
 	/*remove route from node*/
-	if (r->FromNode && r->FromNode->sgprivate->events) {
-		gf_list_del_item(r->FromNode->sgprivate->events, r);
-		if (!gf_list_count(r->FromNode->sgprivate->events)) {
-			gf_list_del(r->FromNode->sgprivate->events);
-			r->FromNode->sgprivate->events = NULL;
+	if (r->FromNode && r->FromNode->sgprivate->interact && r->FromNode->sgprivate->interact->events) {
+		gf_list_del_item(r->FromNode->sgprivate->interact->events, r);
+		if (!gf_list_count(r->FromNode->sgprivate->interact->events)) {
+			gf_list_del(r->FromNode->sgprivate->interact->events);
+			r->FromNode->sgprivate->interact->events = NULL;
 		}
 	}
 	r->is_setup = 0;
@@ -158,9 +159,9 @@ Bool gf_sg_route_activate(GF_Route *r)
 	}
 #ifndef GPAC_DISABLE_LOG
 	if (r->IS_route) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[VRML Event] executing %s.%s IS %s.%s\n", r->FromNode->sgprivate->NodeName, r->FromField.name, r->ToNode->sgprivate->NodeName, r->ToField.name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[VRML Event] executing %s.%s IS %s.%s\n", gf_node_get_name(r->FromNode), r->FromField.name, gf_node_get_name(r->ToNode), r->ToField.name));
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[VRML Event] executing ROUTE %s.%s TO %s.%s\n", r->FromNode->sgprivate->NodeName, r->FromField.name, r->ToNode->sgprivate->NodeName, r->ToField.name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[VRML Event] executing ROUTE %s.%s TO %s.%s\n", gf_node_get_name(r->FromNode), r->FromField.name, gf_node_get_name(r->ToNode), r->ToField.name));
 	}
 #endif
 
@@ -181,22 +182,17 @@ Bool gf_sg_route_activate(GF_Route *r)
 	/*move all pointers to dest*/
 	case GF_SG_VRML_MFNODE:
 	{
-		u32 i;
-		GF_Node *p;
-		GF_List *orig = *(GF_List**)r->FromField.far_ptr;
-		GF_List *dest = *(GF_List**)r->ToField.far_ptr;
+		GF_ChildNodeItem *last = NULL;
+		GF_ChildNodeItem *orig = *(GF_ChildNodeItem **)r->FromField.far_ptr;
 
 		/*empty list*/
-		while (gf_list_count(dest)){
-			p = (GF_Node*)gf_list_get(dest, 0);
-			gf_list_rem(dest, 0);
-			gf_node_unregister(p, r->ToNode);
-		}
+		gf_node_unregister_children(r->ToNode, *(GF_ChildNodeItem **)r->ToField.far_ptr );
+		*(GF_ChildNodeItem **)r->ToField.far_ptr = NULL;
 
-		i=0;
-		while ((p = (GF_Node*)gf_list_enum(orig, &i))) {
-			gf_list_add(dest, p);
-			gf_node_register(p, r->ToNode);
+		while (orig) {
+			gf_node_list_add_child_last( (GF_ChildNodeItem **)r->ToField.far_ptr, orig->node, &last);
+			gf_node_register(orig->node, r->ToNode);
+			orig = orig->next;
 		}
 	}
 		break;
@@ -248,12 +244,12 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 	if (!node) return;
 	
 	//this is not an ISed
-	if (!node->sgprivate->NodeID && !node->sgprivate->scenegraph->pOwningProto) return;
-	if (!node->sgprivate->events) return;
+	if (!(node->sgprivate->flags & GF_NODE_IS_DEF) && !node->sgprivate->scenegraph->pOwningProto) return;
+	if (!node->sgprivate->interact) return;
 	
 	//search for routes to activate in the order they where declared
 	i=0;
-	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->events, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->events, &i))) {
 		if (r->FromNode != node) continue;
 		if (r->FromField.fieldIndex != FieldIndex) continue;
 
@@ -276,14 +272,14 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName)
 	GF_Route *r;
 
 	/*node is being deleted ignore event*/
-	if (!node->sgprivate->events) return;
+	if (!node->sgprivate->interact) return;
 
 	//this is not an ISed
-	if (!node->sgprivate->NodeID && !node->sgprivate->scenegraph->pOwningProto) return;
+	if (!(node->sgprivate->flags & GF_NODE_IS_DEF) && !node->sgprivate->scenegraph->pOwningProto) return;
 	
 	//search for routes to activate in the order they where declared
 	i=0;
-	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->events, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->events, &i))) {
 		if (!r->is_setup) gf_sg_route_setup(r);
 		if (stricmp(r->FromField.name, eventName)) continue;
 

@@ -569,7 +569,7 @@ static void BooleanSequencer_setNext(GF_Node *n)
 	X_BooleanSequencer *bs = (X_BooleanSequencer*)n;
 	if (!bs->next) return;
 
-	prev_val = (s32 *)n->sgprivate->privateStack;
+	prev_val = (s32 *)n->sgprivate->UserPrivate;
 	val = (*prev_val + 1) % bs->keyValue.count;
 	*prev_val = val;
 	bs->value_changed = bs->keyValue.vals[val];
@@ -582,7 +582,7 @@ static void BooleanSequencer_setPrevious(GF_Node *n)
 	X_BooleanSequencer *bs = (X_BooleanSequencer*)n;
 	if (!bs->previous) return;
 
-	prev_val = (s32 *)n->sgprivate->privateStack;
+	prev_val = (s32 *)n->sgprivate->UserPrivate;
 	val = (*prev_val - 1);
 	if (val<0) val += bs->keyValue.count;
 	val %= bs->keyValue.count;
@@ -590,10 +590,12 @@ static void BooleanSequencer_setPrevious(GF_Node *n)
 	bs->value_changed = bs->keyValue.vals[val];
 	gf_node_event_out_str(n, "value_changed");
 }
-static void DestroyBooleanSequencer(GF_Node *n)
+static void DestroyBooleanSequencer(GF_Node *n, void *eff, Bool is_destroy)
 {
-	s32 *st = (s32 *) gf_node_get_private(n);
-	free(st);
+	if (is_destroy) {
+		s32 *st = (s32 *) gf_node_get_private(n);
+		free(st);
+	}
 }
 void InitBooleanSequencer(GF_Node *n)
 {
@@ -601,9 +603,9 @@ void InitBooleanSequencer(GF_Node *n)
 	bs->on_next = BooleanSequencer_setNext;
 	bs->on_previous = BooleanSequencer_setPrevious;
 	bs->on_set_fraction = BooleanSequencer_setFraction;
-	n->sgprivate->privateStack = malloc(sizeof(s32));
-	*(s32 *)n->sgprivate->privateStack = 0;
-	n->sgprivate->PreDestroyNode = DestroyBooleanSequencer;
+	n->sgprivate->UserPrivate = malloc(sizeof(s32));
+	*(s32 *)n->sgprivate->UserPrivate = 0;
+	n->sgprivate->UserCallback = DestroyBooleanSequencer;
 }
 
 static void BooleanToggle_setValue(GF_Node *n)
@@ -660,7 +662,7 @@ static void IntegerSequencer_setNext(GF_Node *n)
 	X_IntegerSequencer *is = (X_IntegerSequencer*)n;
 	if (!is->next) return;
 
-	prev_val = (s32 *)n->sgprivate->privateStack;
+	prev_val = (s32 *)n->sgprivate->UserPrivate;
 	val = (*prev_val + 1) % is->keyValue.count;
 	*prev_val = val;
 	is->value_changed = is->keyValue.vals[val];
@@ -673,7 +675,7 @@ static void IntegerSequencer_setPrevious(GF_Node *n)
 	X_IntegerSequencer *is = (X_IntegerSequencer *)n;
 	if (!is->previous) return;
 
-	prev_val = (s32 *)n->sgprivate->privateStack;
+	prev_val = (s32 *)n->sgprivate->UserPrivate;
 	val = (*prev_val - 1);
 	if (val<0) val += is->keyValue.count;
 	val %= is->keyValue.count;
@@ -681,10 +683,12 @@ static void IntegerSequencer_setPrevious(GF_Node *n)
 	is->value_changed = is->keyValue.vals[val];
 	gf_node_event_out_str(n, "value_changed");
 }
-static void DestroyIntegerSequencer(GF_Node *n)
+static void DestroyIntegerSequencer(GF_Node *n, void *eff, Bool is_destroy)
 {
-	s32 *st = (s32 *)gf_node_get_private(n);
-	free(st);
+	if (is_destroy) {
+		s32 *st = (s32 *)gf_node_get_private(n);
+		free(st);
+	}
 }
 void InitIntegerSequencer(GF_Node *n)
 {
@@ -692,9 +696,9 @@ void InitIntegerSequencer(GF_Node *n)
 	bs->on_next = IntegerSequencer_setNext;
 	bs->on_previous = IntegerSequencer_setPrevious;
 	bs->on_set_fraction = IntegerSequencer_setFraction;
-	n->sgprivate->privateStack = malloc(sizeof(s32));
-	*(s32 *)n->sgprivate->privateStack = 0;
-	n->sgprivate->PreDestroyNode = DestroyIntegerSequencer;
+	n->sgprivate->UserPrivate = malloc(sizeof(s32));
+	*(s32 *)n->sgprivate->UserPrivate = 0;
+	n->sgprivate->UserCallback = DestroyIntegerSequencer;
 }
 
 static void IntegerTrigger_setTrigger(GF_Node *n)

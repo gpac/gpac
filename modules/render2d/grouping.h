@@ -87,7 +87,7 @@ void DestroyBaseGrouping2D(GF_Node *node);
 
 
 /*traverse all children of the node - the children field is passed for security reasons...*/
-void group2d_traverse(GroupingNode2D *group, GF_List *children, RenderEffect2D *effects);
+void group2d_traverse(GroupingNode2D *group, GF_ChildNodeItem *children, RenderEffect2D *effects);
 
 void group2d_start_child(GroupingNode2D *group);
 void group2d_end_child(GroupingNode2D *group);

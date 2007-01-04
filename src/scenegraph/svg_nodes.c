@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Mon Dec 18 13:01:17 2006
+	DO NOT MOFIFY - File generated on GMT Thu Dec 21 19:30:10 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -72,12 +72,12 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -524,12 +524,12 @@ static GF_Err gf_svg_animate_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -773,12 +773,12 @@ static GF_Err gf_svg_animateColor_get_attribute(GF_Node *node, GF_FieldInfo *inf
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -1032,12 +1032,12 @@ static GF_Err gf_svg_animateMotion_get_attribute(GF_Node *node, GF_FieldInfo *in
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -1293,12 +1293,12 @@ static GF_Err gf_svg_animateTransform_get_attribute(GF_Node *node, GF_FieldInfo 
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -1554,12 +1554,12 @@ static GF_Err gf_svg_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -1974,12 +1974,12 @@ static GF_Err gf_svg_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -2279,12 +2279,12 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -2702,12 +2702,12 @@ static GF_Err gf_svg_conditional_get_attribute(GF_Node *node, GF_FieldInfo *info
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -2793,12 +2793,12 @@ static GF_Err gf_svg_cursorManager_get_attribute(GF_Node *node, GF_FieldInfo *in
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -2926,12 +2926,12 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -3214,12 +3214,12 @@ static GF_Err gf_svg_desc_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -3295,12 +3295,12 @@ static GF_Err gf_svg_discard_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -3456,12 +3456,12 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -3881,12 +3881,12 @@ static GF_Err gf_svg_font_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -3977,12 +3977,12 @@ static GF_Err gf_svg_font_face_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -4223,12 +4223,12 @@ static GF_Err gf_svg_font_face_src_get_attribute(GF_Node *node, GF_FieldInfo *in
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -4302,12 +4302,12 @@ static GF_Err gf_svg_font_face_uri_get_attribute(GF_Node *node, GF_FieldInfo *in
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -4428,12 +4428,12 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -4900,12 +4900,12 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -5311,12 +5311,12 @@ static GF_Err gf_svg_glyph_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -5426,12 +5426,12 @@ static GF_Err gf_svg_handler_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -5520,12 +5520,12 @@ static GF_Err gf_svg_hkern_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -5635,12 +5635,12 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -5969,12 +5969,12 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -6398,12 +6398,12 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -6773,12 +6773,12 @@ static GF_Err gf_svg_listener_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -6899,12 +6899,12 @@ static GF_Err gf_svg_metadata_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -6984,12 +6984,12 @@ static GF_Err gf_svg_missing_glyph_get_attribute(GF_Node *node, GF_FieldInfo *in
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -7075,12 +7075,12 @@ static GF_Err gf_svg_mpath_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -7184,7 +7184,6 @@ void *gf_svg_new_path()
 	gf_mx2d_init(p->transform);
 #ifdef USE_GF_PATH
 	gf_path_reset(&p->d);
-	p->d.fineness = FIX_ONE;
 #else
 	p->d.commands = gf_list_new();
 	p->d.points = gf_list_new();
@@ -7208,12 +7207,12 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -7628,12 +7627,12 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -8042,12 +8041,12 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -8453,12 +8452,12 @@ static GF_Err gf_svg_prefetch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -8611,12 +8610,12 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -8994,12 +8993,12 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -9436,12 +9435,12 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -9844,12 +9843,12 @@ static GF_Err gf_svg_script_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -9933,12 +9932,12 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -10343,12 +10342,12 @@ static GF_Err gf_svg_set_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -10546,12 +10545,12 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -10955,12 +10954,12 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -11245,12 +11244,12 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -11549,12 +11548,12 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -12004,12 +12003,12 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -12405,12 +12404,12 @@ static GF_Err gf_svg_tbreak_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -12492,12 +12491,12 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -12922,12 +12921,12 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -13353,12 +13352,12 @@ static GF_Err gf_svg_title_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -13434,12 +13433,12 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -13830,12 +13829,12 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";
@@ -14295,12 +14294,12 @@ static GF_Err gf_svg_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 		case 0:
 			info->name = "id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 1:
 			info->name = "xml:id";
 			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
+			info->far_ptr = gf_node_get_name_address(node);
 			return GF_OK;
 		case 2:
 			info->name = "class";

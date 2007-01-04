@@ -50,9 +50,11 @@ enum
 
 typedef struct
 {
+	/*0: ISMACryp - 1: OMA DRM*/
+	u32 enc_type;
 	u32 trackID;
-	char key[16];
-	char salt[8];
+	unsigned char key[16];
+	unsigned char salt[16];
 
 	/*the rest is only used for encryption*/
 	char KMS_URI[5000];
@@ -66,6 +68,13 @@ typedef struct
 	u32 ipmp_type;
 	/*if not set and IPMP enabled, defaults to TrackID*/
 	u32 ipmp_desc_id;
+
+	/*OMA extensions*/
+	/*0: none, 1: AES CBC, 2: AES CTR*/
+	u8 encryption;
+	char TextualHeaders[5000];
+	char TransactionID[17];
+
 } GF_TrackCryptInfo;
 
 /*encrypts track - logs, progress: info callbacks, NULL for stdout*/

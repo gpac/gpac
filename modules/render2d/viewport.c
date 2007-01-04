@@ -186,11 +186,15 @@ static GF_List *vp_get_stack(ViewportStack *vp, RenderEffect2D *eff)
 	return eff->view_stack;
 }
 
-static void RenderViewport(GF_Node *node, void *rs)
+static void RenderViewport(GF_Node *node, void *rs, Bool is_destroy)
 {
 	ViewportStack *st = (ViewportStack *) gf_node_get_private(node);
 	M_Viewport *vp = (M_Viewport *) st->owner;
-
+	
+	if (is_destroy) {
+		DestroyViewport(node);
+		return;
+	}
 	if (st->first_time) {
 		GF_List *stack = vp_get_stack(st, (RenderEffect2D *)rs);
 
@@ -222,8 +226,7 @@ void R2D_InitViewport(Render2D *sr, GF_Node *node)
 
 	gf_sr_traversable_setup(ptr, node, sr->compositor);
 	gf_node_set_private(node, ptr);
-	gf_node_set_render_function(node, RenderViewport);
-	gf_node_set_predestroy_function(node, DestroyViewport);
+	gf_node_set_callback_function(node, RenderViewport);
 	((M_Viewport*)node)->on_set_bind = viewport_set_bind;
 }
 
@@ -339,11 +342,12 @@ void vp_setup(GF_Node *n, RenderEffect2D *eff, GF_Rect *surf_clip)
 }
 
 
-static void RenderNavigationInfo(GF_Node *node, void *rs)
+static void RenderNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 i;
 	M_NavigationInfo *ni = (M_NavigationInfo *) node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
+	if (is_destroy) return;
 
 	/*FIXME, we only deal with one node, no bind stack for the current time*/
 	for (i=0; i<ni->type.count; i++) {
@@ -355,6 +359,6 @@ static void RenderNavigationInfo(GF_Node *node, void *rs)
 
 void R2D_InitNavigationInfo(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_render_function(node, RenderNavigationInfo);
+	gf_node_set_callback_function(node, RenderNavigationInfo);
 }
 

@@ -118,6 +118,7 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 			evt.type = GF_EVENT_SIZE;
 			evt.size.width = sr->new_width;
 			evt.size.height = sr->new_height;
+			sr->new_width = sr->new_height = 0;
 			/*send resize event*/
 			if (!(sr->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF)) {
 				sr->video_out->ProcessEvent(sr->video_out, &evt);
@@ -129,9 +130,8 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 				sr->visual_renderer->RecomputeAR(sr->visual_renderer);
 				sr->reset_graphics = 1;
 			} else {
-				gf_sr_set_output_size(sr, sr->new_width, sr->new_height);
+				gf_sr_set_output_size(sr, evt.size.width, evt.size.height);
 			}
-			sr->new_width = sr->new_height = 0;
 			
 //			if (!sr->user->os_window_handler) 
 //				GF_USER_SENDEVENT(sr->user, &evt);
@@ -1034,7 +1034,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		return;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[General] Time %f - Composing new frame #%d\n", gf_node_get_scene_time(gf_sg_get_root_node(sr->scene)), sr->frame_number));
+//	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[General] Time %f - Composing new frame #%d\n", gf_node_get_scene_time(gf_sg_get_root_node(sr->scene)), sr->frame_number));
 
 	in_time = gf_sys_clock();
 	if (sr->reset_graphics) sr->draw_next_frame = 1;
@@ -1117,17 +1117,27 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 
 	/*if invalidated, draw*/
 	if (sr->draw_next_frame) {
-		sr->draw_next_frame = 0;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Redrawing scene\n"));
-		sr->visual_renderer->DrawScene(sr->visual_renderer);
+		/*video flush only*/
+		if (sr->draw_next_frame==2) {
+			GF_Window rc;
+			rc.x = rc.y = 0; 
+			rc.w = sr->width;	
+			rc.h = sr->height;		
+			sr->draw_next_frame = 0;
+			sr->video_out->Flush(sr->video_out, &rc);
+		} else {
+			sr->draw_next_frame = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Redrawing scene\n"));
+			sr->visual_renderer->DrawScene(sr->visual_renderer);
 #if 0
-		if (sr->frame_number == 0 && sr->user->EventProc) {
-			GF_Event evt;
-			evt.type = GF_EVENT_UPDATE_RTI;
-			evt.caption.caption = "Before first call to draw scene";
-			sr->user->EventProc(sr->user->opaque, &evt);
-		}
+			if (sr->frame_number == 0 && sr->user->EventProc) {
+				GF_Event evt;
+				evt.type = GF_EVENT_UPDATE_RTI;
+				evt.caption.caption = "Before first call to draw scene";
+				sr->user->EventProc(sr->user->opaque, &evt);
+			}
 #endif
+		}
 		sr->reset_graphics = 0;
 
 		if (sr->stress_mode) {
@@ -1279,7 +1289,7 @@ static Bool gf_sr_on_event_ex(GF_Renderer *sr , GF_Event *event, Bool from_user)
 
 	switch (event->type) {
 	case GF_EVENT_REFRESH:
-		sr->draw_next_frame = 1;
+		if (!sr->draw_next_frame) sr->draw_next_frame = 2;
 		break;
 	case GF_EVENT_VIDEO_SETUP:
 		gf_sr_reset_graphics(sr);

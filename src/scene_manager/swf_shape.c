@@ -446,15 +446,16 @@ void SWFShape_InsertBIFSShape(M_OrderedGroup *og, M_Shape *n)
 {
 #if 1
 	M_Shape *prev;
-	u32 i;
-	i=0;
-	while ((prev = (M_Shape*)gf_list_enum(og->children, &i))) {
+	GF_ChildNodeItem *l = og->children;
+	while (l) {
+		prev = (M_Shape*)l->node;
 		if (prev->appearance == n->appearance) {
 			SWF_MergeCurve2D( (M_Curve2D *)prev->geometry, (M_Curve2D *)n->geometry);
 			gf_node_register((GF_Node *)n, NULL);
 			gf_node_unregister((GF_Node *)n, NULL);
 			return;
 		}
+		l = l->next;
 	}
 #endif
 	gf_node_insert_child((GF_Node *)og, (GF_Node *)n, -1);

@@ -32,22 +32,23 @@ typedef struct
 	s32 last_switch;
 } SwitchStack;
 
-static void DestroySwitch(GF_Node *node)
+static void RenderSwitch(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SwitchStack *st = (SwitchStack *)gf_node_get_private(node);
-	free(st);
-}
-static void RenderSwitch(GF_Node *node, void *rs)
-{
+	GF_ChildNodeItem *l;
 	u32 i, count;
 	Bool prev_switch;
-	GF_List *children;
+	GF_ChildNodeItem *children;
 	s32 whichChoice;
 	GF_Node *child;
 	SwitchStack *st = (SwitchStack *)gf_node_get_private(node);
 	RenderEffect2D *eff; 
 	eff = (RenderEffect2D *)rs;
 
+	if (is_destroy) {
+		free(st);
+		return;
+	}
+	
 
 	if (gf_node_get_name(node)) {
 		node = node;
@@ -60,17 +61,19 @@ static void RenderSwitch(GF_Node *node, void *rs)
 		children = ((X_Switch *)node)->children;
 		whichChoice = ((X_Switch *)node)->whichChoice;
 	}
-	count = gf_list_count(children);
+	count = gf_node_list_get_count(children);
 
 	prev_switch = eff->trav_flags;
 	/*check changes in choice field*/
 	if ((gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) || (st->last_switch != whichChoice) ) {
 		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
-		/*deactivation must be signaled because switch may contain audio nodes...*/
-		for (i=0; i<count; i++) {
-			if ((s32) i==whichChoice) continue;
-			child = (GF_Node*)gf_list_get(children, i);
-			gf_node_render(child, eff);
+		i=0;
+		l = children;
+		while (l) {
+//			if ((s32) i!=whichChoice) gf_node_render(l->node, eff);
+			if ((s32) i == st->last_switch) gf_node_render(l->node, eff);
+			l = l->next;
+			i++;
 		}
 		eff->trav_flags &= ~GF_SR_TRAV_SWITCHED_OFF;
 		st->last_switch = whichChoice;
@@ -83,7 +86,7 @@ static void RenderSwitch(GF_Node *node, void *rs)
 	eff->trav_flags = prev_switch;
 
 	if (whichChoice>=0) {
-		child = (GF_Node*)gf_list_get(children, whichChoice);
+		child = (GF_Node*)gf_node_list_get_child(children, whichChoice);
 		gf_node_render(child, eff);
 	}
 }
@@ -93,26 +96,25 @@ void R2D_InitSwitch(Render2D *sr, GF_Node *node)
 	SwitchStack *st = (SwitchStack *)malloc(sizeof(SwitchStack));
 	st->last_switch = -1;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroySwitch);
-	gf_node_set_render_function(node, RenderSwitch);
+	gf_node_set_callback_function(node, RenderSwitch);
 }
 
 
 /*transform2D*/
-static void DestroyTransform2D(GF_Node *n)
-{
-	Transform2DStack *ptr = (Transform2DStack *)gf_node_get_private(n);
-	DeleteGroupingNode2D((GroupingNode2D *)ptr);
-	free(ptr);
-}
 
-static void RenderTransform2D(GF_Node *node, void *rs)
+static void RenderTransform2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D bckup;
 	M_Transform2D *tr = (M_Transform2D *)node;
 	Transform2DStack *ptr = (Transform2DStack *)gf_node_get_private(node);
 	RenderEffect2D *eff;
 	
+	if (is_destroy) {
+		DeleteGroupingNode2D((GroupingNode2D *)ptr);
+		free(ptr);
+		return;
+	}
+
 	eff = (RenderEffect2D *) rs;
 
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
@@ -151,8 +153,7 @@ void R2D_InitTransform2D(Render2D *sr, GF_Node *node)
 	gf_mx2d_init(stack->mat);
 	stack->is_identity = 1;
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyTransform2D);
-	gf_node_set_render_function(node, RenderTransform2D);
+	gf_node_set_callback_function(node, RenderTransform2D);
 }
 
 void TM2D_GetMatrix(GF_Node *n, GF_Matrix2D *mat)
@@ -169,12 +170,18 @@ void TM2D_GetMatrix(GF_Node *n, GF_Matrix2D *mat)
 
 
 /*TransformMatrix2D*/
-static void RenderTransformMatrix2D(GF_Node *node, void *rs)
+static void RenderTransformMatrix2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D bckup;
 	M_TransformMatrix2D *tr = (M_TransformMatrix2D*)node;
 	Transform2DStack *ptr = (Transform2DStack *) gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
+
+	if (is_destroy) {
+		DeleteGroupingNode2D((GroupingNode2D *)ptr);
+		free(ptr);
+		return;
+	}
 
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		TM2D_GetMatrix(node, &ptr->mat);
@@ -204,8 +211,7 @@ void R2D_InitTransformMatrix2D(Render2D *sr, GF_Node *node)
 	SetupGroupingNode2D((GroupingNode2D *)stack, sr, node);
 	gf_mx2d_init(stack->mat);
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyTransform2D);
-	gf_node_set_render_function(node, RenderTransformMatrix2D);
+	gf_node_set_callback_function(node, RenderTransformMatrix2D);
 }
 
 
@@ -217,21 +223,20 @@ typedef struct
 	GF_ColorMatrix cmat;
 } ColorTransformStack;
 
-static void DestroyColorTransform(GF_Node *n)
-{
-	ColorTransformStack *ptr = (ColorTransformStack *)gf_node_get_private(n);
-	DeleteGroupingNode2D((GroupingNode2D *)ptr);
-	free(ptr);
-}
-
 /*ColorTransform*/
-static void RenderColorTransform(GF_Node *node, void *rs)
+static void RenderColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 {
 	Bool c_changed;
 	M_ColorTransform *tr = (M_ColorTransform *)node;
 	ColorTransformStack *ptr = (ColorTransformStack  *)gf_node_get_private(node);
 	RenderEffect2D *eff;
 	eff = (RenderEffect2D *) rs;
+
+	if (is_destroy) {
+		DeleteGroupingNode2D((GroupingNode2D *)ptr);
+		free(ptr);
+		return;
+	}
 
 	c_changed = 0;
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
@@ -265,13 +270,17 @@ void R2D_InitColorTransform(Render2D *sr, GF_Node *node)
 	SetupGroupingNode2D((GroupingNode2D *)stack, sr, node);
 	gf_cmx_init(&stack->cmat);
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyColorTransform);
-	gf_node_set_render_function(node, RenderColorTransform);
+	gf_node_set_callback_function(node, RenderColorTransform);
 }
 
-static void RenderGroup(GF_Node *node, void *rs)
+static void RenderGroup(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GroupingNode2D *group = (GroupingNode2D *) gf_node_get_private(node);
+	if (is_destroy) {
+		DeleteGroupingNode2D(group);
+		free(group);
+		return;
+	}
 	group2d_traverse(group, ((M_Group *)node)->children, (RenderEffect2D*)rs);
 }
 
@@ -280,8 +289,7 @@ void R2D_InitGroup(Render2D *sr, GF_Node *node)
 	GroupingNode2D *stack = (GroupingNode2D *)malloc(sizeof(GroupingNode2D));
 	SetupGroupingNode2D(stack, sr, node);
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyBaseGrouping2D);
-	gf_node_set_render_function(node, RenderGroup);
+	gf_node_set_callback_function(node, RenderGroup);
 }
 
 
@@ -294,20 +302,20 @@ typedef struct
 	SensorHandler hdl;
 } AnchorStack;
 
-static void DestroyAnchor(GF_Node *n)
-{
-	AnchorStack *st = (AnchorStack*)gf_node_get_private(n);
-	R2D_UnregisterSensor(st->compositor, &st->hdl);
-	if (st->compositor->interaction_sensors) st->compositor->interaction_sensors--;
-	DeleteGroupingNode2D((GroupingNode2D *)st);
-	free(st);
-}
 
-static void RenderAnchor(GF_Node *node, void *rs)
+static void RenderAnchor(GF_Node *node, void *rs, Bool is_destroy)
 {
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(node);
 	M_Anchor *an = (M_Anchor *) node;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
+
+	if (is_destroy) {
+		R2D_UnregisterSensor(st->compositor, &st->hdl);
+		if (st->compositor->interaction_sensors) st->compositor->interaction_sensors--;
+		DeleteGroupingNode2D((GroupingNode2D *)st);
+		free(st);
+		return;
+	}
 
 	/*update enabled state*/
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
@@ -420,8 +428,7 @@ void R2D_InitAnchor(Render2D *sr, GF_Node *node)
 	stack->hdl.OnUserEvent = OnAnchor;
 	stack->hdl.owner = node;
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyAnchor);
-	gf_node_set_render_function(node, RenderAnchor);
+	gf_node_set_callback_function(node, RenderAnchor);
 }
 
 struct og_pos
@@ -439,13 +446,6 @@ typedef struct
 	u32 count;
 } OrderedGroupStack;
 
-static void DestroyOrderedGroup(GF_Node *node)
-{
-	OrderedGroupStack *ptr = (OrderedGroupStack *) gf_node_get_private(node);
-	DeleteGroupingNode2D((GroupingNode2D *)ptr);
-	if (ptr->priorities) free(ptr->priorities);
-	free(ptr);
-}
 
 static s32 compare_priority(const void* elem1, const void* elem2)
 {
@@ -458,7 +458,7 @@ static s32 compare_priority(const void* elem1, const void* elem2)
 }
 
 
-static void RenderOrderedGroup(GF_Node *node, void *rs)
+static void RenderOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 i, count;
 	GF_Node *child;
@@ -467,17 +467,22 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 	u32 count2;
 	GF_List *sensor_backup;
 	SensorHandler *hsens;
-	
 	OrderedGroupStack *ogs = (OrderedGroupStack *) gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
+	if (is_destroy) {
+		DeleteGroupingNode2D((GroupingNode2D *)ogs);
+		if (ogs->priorities) free(ogs->priorities);
+		free(ogs);
+		return;
+	}
 	og = (M_OrderedGroup *) ogs->owner;
 
 	if (!og->order.count) {
 		group2d_traverse((GroupingNode2D*)ogs, og->children, eff);
 		return;
 	}
-	count = gf_list_count(og->children);
+	count = gf_node_list_get_count(og->children);
 	invalidate_backup = eff->invalidate_all;
 
 	/*check whether the OrderedGroup node has changed*/
@@ -502,7 +507,7 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 		}
 
 		for (i=0; i<count; i++) {
-			child = (GF_Node*)gf_list_get(og->children, ogs->priorities[i].position);
+			child = (GF_Node*)gf_node_list_get_child(og->children, ogs->priorities[i].position);
 			if (!child || !is_sensor_node(child) ) continue;
 			hsens = get_sensor_handler(child);
 			if (hsens) gf_list_add(ogs->sensors, hsens);
@@ -525,7 +530,7 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 	if (eff->parent == (GroupingNode2D *) ogs) {
 		for (i=0; i<count; i++) {
 			group2d_start_child((GroupingNode2D *) ogs);
-			child = (GF_Node*)gf_list_get(og->children, ogs->priorities[i].position);
+			child = (GF_Node*)gf_node_list_get_child(og->children, ogs->priorities[i].position);
 			gf_node_render(child, eff);
 			group2d_end_child((GroupingNode2D *) ogs);
 		}
@@ -533,7 +538,7 @@ static void RenderOrderedGroup(GF_Node *node, void *rs)
 		split_text_backup = eff->text_split_mode;
 		if (count>1) eff->text_split_mode = 0;
 		for (i=0; i<count; i++) {
-			child = (GF_Node*)gf_list_get(og->children, ogs->priorities[i].position);
+			child = (GF_Node*)gf_node_list_get_child(og->children, ogs->priorities[i].position);
 			gf_node_render(child, eff);
 		}
 		eff->text_split_mode = split_text_backup;
@@ -557,8 +562,7 @@ void R2D_InitOrderedGroup(Render2D *sr, GF_Node *node)
 	SetupGroupingNode2D((GroupingNode2D*)ptr, sr, node);
 	
 	gf_node_set_private(node, ptr);
-	gf_node_set_predestroy_function(node, DestroyOrderedGroup);
-	gf_node_set_render_function(node, RenderOrderedGroup);
+	gf_node_set_callback_function(node, RenderOrderedGroup);
 }
 
 typedef struct
@@ -573,16 +577,7 @@ typedef struct
 	GF_Rect clip;
 } Layer2DStack;
 
-static void DestroyLayer2D(GF_Node *node)
-{
-	Layer2DStack *l2D = (Layer2DStack *) gf_node_get_private(node);
-	DeleteGroupingNode2D((GroupingNode2D *)l2D);
-	gf_list_del(l2D->backs);
-	gf_list_del(l2D->views);
-	free(l2D);
-}
-
-static void RenderLayer2D(GF_Node *node, void *rs)
+static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 i;
 	GF_List *prevback, *prevviews;
@@ -599,6 +594,13 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 	Layer2DStack *l2D = (Layer2DStack *) gf_node_get_private(node);
 	RenderEffect2D *eff;
 
+	if (is_destroy) {
+		DeleteGroupingNode2D((GroupingNode2D *)l2D);
+		gf_list_del(l2D->backs);
+		gf_list_del(l2D->views);
+		free(l2D);
+		return;
+	}
 
 	eff = (RenderEffect2D *) rs;
 	gf_mx2d_copy(gf_mx2d_bck, eff->transform);
@@ -672,9 +674,9 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 			back_ctx->unclip = ctx->unclip;
 			back_ctx->clip = ctx->clip;
 			back_ctx->h_texture = ctx->h_texture;
-			back_ctx->transparent = 0;
-			back_ctx->redraw_flags = ctx->redraw_flags;
-			back_ctx->is_background = 1;
+			back_ctx->flags = ctx->flags;
+			back_ctx->flags &= ~CTX_IS_TRANSPARENT;
+			back_ctx->flags |= CTX_IS_BACKGROUND;
 			back_ctx->aspect = ctx->aspect;
 			back_ctx->node = ctx->node;
 		}
@@ -722,7 +724,6 @@ void R2D_InitLayer2D(Render2D *sr, GF_Node *node)
 	stack->first = 1;
 
 	gf_node_set_private(node, stack);
-	gf_node_set_predestroy_function(node, DestroyLayer2D);
-	gf_node_set_render_function(node, RenderLayer2D);
+	gf_node_set_callback_function(node, RenderLayer2D);
 }
 

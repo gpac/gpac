@@ -36,12 +36,14 @@ typedef struct
 	Double start_time;
 } MovieTextureStack;
 
-static void DestroyMovieTexture(GF_Node *node)
+static void DestroyMovieTexture(GF_Node *node, void *rs, Bool is_destroy)
 {
-	MovieTextureStack *st = (MovieTextureStack *) gf_node_get_private(node);
-	gf_sr_texture_destroy(&st->txh);
-	if (st->time_handle.is_registered) gf_sr_unregister_time_node(st->txh.compositor, &st->time_handle);
-	free(st);
+	if (is_destroy) {
+		MovieTextureStack *st = (MovieTextureStack *) gf_node_get_private(node);
+		gf_sr_texture_destroy(&st->txh);
+		if (st->time_handle.is_registered) gf_sr_unregister_time_node(st->txh.compositor, &st->time_handle);
+		free(st);
+	}
 }
 static Fixed MT_GetSpeed(MovieTextureStack *stack, M_MovieTexture *mt)
 {
@@ -165,7 +167,7 @@ void InitMovieTexture(GF_Renderer *sr, GF_Node *node)
 	st->is_vrml = (gf_node_get_tag(node)==TAG_X3D_MovieTexture) ? 1 : 0;
 
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyMovieTexture);
+	gf_node_set_callback_function(node, DestroyMovieTexture);
 	
 	gf_sr_register_time_node(sr, &st->time_handle);
 }
@@ -202,11 +204,13 @@ typedef struct
 	GF_TextureHandler txh;
 } ImageTextureStack;
 
-static void DestroyImageTexture(GF_Node *node)
+static void DestroyImageTexture(GF_Node *node, void *rs, Bool is_destroy)
 {
-	ImageTextureStack *st = (ImageTextureStack *) gf_node_get_private(node);
-	gf_sr_texture_destroy(&st->txh);
-	free(st);
+	if (is_destroy) {
+		ImageTextureStack *st = (ImageTextureStack *) gf_node_get_private(node);
+		gf_sr_texture_destroy(&st->txh);
+		free(st);
+	}
 }
 static void UpdateImageTexture(GF_TextureHandler *txh)
 {
@@ -228,7 +232,7 @@ void InitImageTexture(GF_Renderer *sr, GF_Node *node)
 	gf_sr_texture_setup(&st->txh, sr, node);
 	st->txh.update_texture_fcnt = UpdateImageTexture;
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyImageTexture);
+	gf_node_set_callback_function(node, DestroyImageTexture);
 	st->txh.flags = 0;
 	if (((M_ImageTexture*)node)->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (((M_ImageTexture*)node)->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
@@ -265,12 +269,14 @@ typedef struct
 	char *pixels;
 } PixelTextureStack;
 
-static void DestroyPixelTexture(GF_Node *node)
+static void DestroyPixelTexture(GF_Node *node, void *rs, Bool is_destroy)
 {
-	PixelTextureStack *st = (PixelTextureStack *) gf_node_get_private(node);
-	if (st->pixels) free(st->pixels);
-	gf_sr_texture_destroy(&st->txh);
-	free(st);
+	if (is_destroy) {
+		PixelTextureStack *st = (PixelTextureStack *) gf_node_get_private(node);
+		if (st->pixels) free(st->pixels);
+		gf_sr_texture_destroy(&st->txh);
+		free(st);
+	}
 }
 static void UpdatePixelTexture(GF_TextureHandler *txh)
 {
@@ -345,7 +351,7 @@ void InitPixelTexture(GF_Renderer *sr, GF_Node *node)
 	st->txh.update_texture_fcnt = UpdatePixelTexture;
 
 	gf_node_set_private(node, st);
-	gf_node_set_predestroy_function(node, DestroyPixelTexture);
+	gf_node_set_callback_function(node, DestroyPixelTexture);
 	st->txh.flags = 0;
 	if (((M_PixelTexture*)node)->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (((M_PixelTexture*)node)->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
