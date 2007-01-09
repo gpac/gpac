@@ -43,7 +43,7 @@ void gf_path_reset(GF_Path *gp)
 	if (gp->contours) free(gp->contours);
 	if (gp->tags) free(gp->tags);
 	if (gp->points) free(gp->points);
-	fineness = gp->fineness;
+	fineness = gp->fineness ? gp->fineness : FIX_ONE;
 	flags = gp->flags;
 	memset(gp, 0, sizeof(GF_Path));
 	gp->flags = flags | GF_PATH_FLATTENED | GF_PATH_BBOX_DIRTY;
@@ -86,8 +86,8 @@ void gf_path_del(GF_Path *gp)
 #define PATH_POINT_ALLOC_STEP	3
 
 #define GF_2D_REALLOC_POINT(_gp, _nb)	\
-	if (_gp->n_alloc_points < _gp->n_points+_nb) {	\
-		_gp->n_alloc_points = _gp->n_points+_nb;	\
+	if (_gp->n_alloc_points < _gp->n_points+_nb+1) {	\
+		_gp->n_alloc_points = _gp->n_points+_nb+1;	\
 		_gp->points = (GF_Point2D *)realloc(_gp->points, sizeof(GF_Point2D)*(_gp->n_alloc_points));	\
 		_gp->tags = (u8 *) realloc(_gp->tags, sizeof(u8)*(_gp->n_alloc_points));	\
 	}	\
@@ -940,7 +940,12 @@ Bool gf_path_point_over(GF_Path *gp, Fixed x, Fixed y)
 	return wn%2 ? 1 : 0;
 }
 
-
+GF_EXPORT
+Bool gf_path_is_empty(GF_Path *gp)
+{
+	if (gp && gp->contours) return 0;
+	return 1;
+}
 
 /*iteration info*/	
 typedef struct 

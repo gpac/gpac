@@ -284,9 +284,9 @@ static GF_Err gdip_set_font(GF_FontRaster *dr, const char *fontName, const char 
 	if (fontName && strlen(fontName) >= GDIP_MAX_STRING_SIZE) fontName = NULL;
 
 	if (!fontName || !strlen(fontName) ) fontName = ctx->font_serif;
-	else if (!stricmp(fontName, "SANS")) fontName = ctx->font_sans;
+	else if (!stricmp(fontName, "SANS") || !stricmp(fontName, "sans-serif")) fontName = ctx->font_sans;
 	else if (!stricmp(fontName, "SERIF")) fontName = ctx->font_serif;
-	else if (!stricmp(fontName, "TYPEWRITER")) fontName = ctx->font_fixed;
+	else if (!stricmp(fontName, "TYPEWRITER") || !stricmp(fontName, "monospace")) fontName = ctx->font_fixed;
 
 	MultiByteToWideChar(CP_ACP, 0, fontName, strlen(fontName)+1, 
 						wcFontName, sizeof(wcFontName)/sizeof(wcFontName[0]) );

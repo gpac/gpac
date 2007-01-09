@@ -50,7 +50,9 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 	Drawable *cs = st->draw;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 	SVGtextElement *text = (SVGtextElement *)node;
-	GF_FontRaster *ft_dr = eff->surface->render->compositor->font_engine;
+	GF_FontRaster *ft_dr;
+	char *a_font;
+	Bool font_set;
   
 	if (is_destroy) {
 		drawable_del(st->draw);
@@ -59,7 +61,7 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		drawable_draw(eff->ctx);
+		drawable_draw(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -68,6 +70,7 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
+	ft_dr = eff->surface->render->compositor->font_engine;
 	if (!ft_dr) return;
 
 	SVG_Render_base(node, eff, &backup_props, &backup_flags);
@@ -126,12 +129,45 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 				break;
 			}
 
-			if (ft_dr->set_font(ft_dr, eff->svg_props->font_family->value, styles) != GF_OK) {
+			font_set = 0;
+			a_font = eff->svg_props->font_family->value;
+			while (a_font && !font_set) {
+				char *sep;
+				while (strchr("\t\r\n ", a_font[0])) a_font++;
+
+				sep = strchr(a_font, ',');
+				if (sep) sep[0] = 0;
+
+				if (a_font[0] == '\'') {
+					char *sep_end = strchr(a_font+1, '\'');
+					if (sep_end) sep_end[0] = 0;
+					if (ft_dr->set_font(ft_dr, a_font+1, styles) == GF_OK) 
+						font_set = 1;
+					if (sep_end) sep_end[0] = '\'';
+				} else {
+					u32 skip, len = strlen(a_font)-1;
+					skip = 0;
+					while (a_font[len-skip] == ' ') skip++;
+					if (skip) a_font[len-skip+1] = 0;
+					if (ft_dr->set_font(ft_dr, a_font, styles) == GF_OK) 
+						font_set = 1;
+					if (skip) a_font[len-skip+1] = ' ';
+				}
+				
+				if (sep) {
+					sep[0] = ',';
+					a_font = sep+1;
+				} else {
+					a_font = NULL;
+				}
+			}
+			if (!font_set) {
 				if (ft_dr->set_font(ft_dr, NULL, styles) != GF_OK) {
 					free(wcText);
 					return;
 				}
 			}
+
 			ft_dr->set_font_size(ft_dr, eff->svg_props->font_size->value);
 			ft_dr->get_font_metrics(ft_dr, &ascent, &descent, &font_height);
 

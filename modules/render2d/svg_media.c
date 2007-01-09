@@ -62,51 +62,49 @@ static void SVG_ComputeAR(Fixed objw, Fixed objh, Fixed viewportw, Fixed viewpor
 	}
 }
 #endif
-static void SVG_Draw_bitmap(DrawableContext *ctx)
+static void SVG_Draw_bitmap(RenderEffect2D *eff)
 {
-	GF_ColorMatrix *cmat;
 	u8 alpha;
 	Render2D *sr;
 	Bool use_blit;
-	sr = ctx->surface->render;
+	DrawableContext *ctx = eff->ctx;
+	sr = eff->surface->render;
 
 	use_blit = 1;
 	alpha = GF_COL_A(ctx->aspect.fill_color);
-
-	cmat = NULL;
-	if (!ctx->cmat.identity) cmat = &ctx->cmat;
-	//else if (ctx->h_texture->has_cmat) cmat = NULL;
 
 	/*this is not a native texture, use graphics*/
 	if (!ctx->h_texture->data || ctx->transform.m[1] || ctx->transform.m[3]) {
 		use_blit = 0;
 	} else {
-		if (!ctx->surface->SupportsFormat || !ctx->surface->DrawBitmap ) use_blit = 0;
+		if (!eff->surface->SupportsFormat || !eff->surface->DrawBitmap ) use_blit = 0;
 		/*format not supported directly, try with brush*/
-		else if (!ctx->surface->SupportsFormat(ctx->surface, ctx->h_texture->pixelformat) ) use_blit = 0;
+		else if (!eff->surface->SupportsFormat(eff->surface, ctx->h_texture->pixelformat) ) use_blit = 0;
 	}
 
 	/*no HW, fall back to the graphics driver*/
 	if (!use_blit) {
-		VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
+		VS2D_TexturePath(eff->surface, ctx->node->path, ctx);
 		return;
 	}
 
 	/*direct rendering, render without clippers */
-	if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
-		ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &ctx->clip, &ctx->unclip, alpha, NULL, cmat);
+	if (eff->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
+		eff->surface->DrawBitmap(eff->surface, ctx->h_texture, &ctx->bi->clip, &ctx->bi->unclip, alpha, NULL, ctx->col_mat);
 	}
 	/*render bitmap for all dirty rects*/
 	else {
 		u32 i;
 		GF_IRect clip;
-		for (i=0; i<ctx->surface->to_redraw.count; i++) {
+		for (i=0; i<eff->surface->to_redraw.count; i++) {
 			/*there's an opaque region above, don't draw*/
-			if (ctx->surface->draw_node_index<ctx->surface->to_redraw.opaque_node_index[i]) continue;
-			clip = ctx->clip;
-			gf_irect_intersect(&clip, &ctx->surface->to_redraw.list[i]);
+#ifdef TRACK_OPAQUE_REGIONS
+			if (eff->surface->draw_node_index < eff->surface->to_redraw.opaque_node_index[i]) continue;
+#endif
+			clip = ctx->bi->clip;
+			gf_irect_intersect(&clip, &eff->surface->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &ctx->unclip, alpha, NULL, cmat);
+				eff->surface->DrawBitmap(eff->surface, ctx->h_texture, &clip, &ctx->bi->unclip, alpha, NULL, ctx->col_mat);
 			}
 		}
 	}
@@ -151,7 +149,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	DrawableContext *ctx;
 
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		SVG_Draw_bitmap(eff->ctx);
+		SVG_Draw_bitmap(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {

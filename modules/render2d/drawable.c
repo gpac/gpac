@@ -27,15 +27,14 @@
 #include "stacks2d.h"
 #ifndef GPAC_DISABLE_SVG
 #include "svg_stacks.h"
-#include "svg_stacks2.h"
 #endif
 
 
 /*default rendering routine*/
-void drawable_draw(DrawableContext *ctx) 
+void drawable_draw(RenderEffect2D *eff) 
 {
-	VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
-	VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
+	VS2D_TexturePath(eff->surface, eff->ctx->node->path, eff->ctx);
+	VS2D_DrawPath(eff->surface, eff->ctx->node->path, eff->ctx, NULL, NULL);
 }
 
 /*default point_over routine*/
@@ -46,7 +45,7 @@ void drawable_pick(RenderEffect2D *eff)
 	Fixed x, y;
 	if (!eff->ctx || !eff->ctx->node->path) return;
 
-	assert(eff->ctx->surface);
+	assert(eff->surface);
 	gf_mx2d_copy(inv, eff->ctx->transform);
 	gf_mx2d_inverse(&inv);
 	x = eff->x;
@@ -118,14 +117,14 @@ void drawable_del(Drawable *dr)
 		bi = dri->current_bounds;
 		while (bi) {
 			_cur = bi;
-			if (is_reg) ra_add(&dri->surface->to_redraw, bi->clip);
+			if (is_reg) ra_add(&dri->surface->to_redraw, &bi->clip);
 			bi = bi->next;
 			free(_cur);
 		}
 		bi = dri->previous_bounds;
 		while (bi) {
 			_cur = bi;
-			if (is_reg) ra_add(&dri->surface->to_redraw, bi->clip);
+			if (is_reg) ra_add(&dri->surface->to_redraw, &bi->clip);
 			bi = bi->next;
 			free(_cur);
 		}
@@ -163,8 +162,7 @@ Drawable *drawable_stack_new(Render2D *sr, GF_Node *node)
 	return stack;
 }
 
-/*store ctx bounds in current bounds*/
-void drawable_store_bounds(struct _drawable_context *ctx)
+static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, VisualSurface2D *surf)
 {
 	DRInfo *dri, *prev;
 	BoundInfo *bi, *_prev;
@@ -174,13 +172,13 @@ void drawable_store_bounds(struct _drawable_context *ctx)
 	prev = NULL;
 	dri = node->dri;
 	while (dri) {
-		if (dri->surface == ctx->surface) break;
+		if (dri->surface == surf) break;
 		prev = dri;
 		dri = dri->next;
 	}
 	if (!dri) {
 		GF_SAFEALLOC(dri, DRInfo);
-		dri->surface = ctx->surface;
+		dri->surface = surf;
 		if (prev) prev->next = dri;
 		else node->dri = dri;
 	}
@@ -203,9 +201,7 @@ void drawable_store_bounds(struct _drawable_context *ctx)
 			dri->current_bounds = bi;
 		}
 	}
-	bi->extra_check = ctx->appear;
-	bi->unclip = ctx->unclip_pix;
-	bi->clip = ctx->clip;
+	return bi;
 }
 
 /*move current bounds to previous bounds*/
@@ -239,7 +235,12 @@ void drawable_flush_bounds(Drawable *node, struct _visual_surface_2D *on_surface
 	return 1 if same bound is found in previous list (and remove it from the list)
 	return 0 otherwise
 */
-Bool drawable_has_same_bounds(struct _drawable_context *ctx)
+
+/*@rc1 equales @rc2*/
+/*test width first, since w=0 is used to discard bounds from previous rendering step*/
+#define GF_IRECT_EQUAL(rc1, rc2) ((rc1->width == rc2->width) && (rc1->height == rc2->height) && (rc1->x == rc2->x)  && (rc1->y == rc2->y)) 
+
+Bool drawable_has_same_bounds(struct _drawable_context *ctx, struct _visual_surface_2D *surf)
 {
 	DRInfo *dri;
 	BoundInfo *bi;
@@ -247,7 +248,7 @@ Bool drawable_has_same_bounds(struct _drawable_context *ctx)
 	
 	dri = node->dri;
 	while (dri) {
-		if (dri->surface == ctx->surface) break;
+		if (dri->surface == surf) break;
 		dri = dri->next;
 	}
 	if (!dri) return 0;
@@ -255,8 +256,9 @@ Bool drawable_has_same_bounds(struct _drawable_context *ctx)
 	bi = dri->previous_bounds;
 	while (bi) {
 		if ((bi->extra_check == ctx->appear) 
-			&& gf_irect_equal(bi->clip, ctx->clip)
-			&& gf_irect_equal(bi->unclip, ctx->unclip_pix)
+			&& GF_IRECT_EQUAL( (&bi->clip), (&ctx->bi->clip) )
+			/*only check x and y (if w or h have changed, object has changed -> fct doesn't even get called*/
+			&& (bi->unclip.width==ctx->bi->unclip.width) && (bi->unclip.height==ctx->bi->unclip.height)
 			) {
 			/*remove*/
 			bi->clip.width = 0;
@@ -311,8 +313,8 @@ void DeleteDrawableContext(DrawableContext *ctx)
 void drawctx_reset(DrawableContext *ctx)
 {
 	drawctx_reset_sensors(ctx);
+	if (ctx->col_mat) free(ctx->col_mat);
 	memset(ctx, 0, sizeof(DrawableContext));
-	gf_cmx_init(&ctx->cmat);
 
 	/*by default all nodes are transparent*/
 	ctx->flags |= CTX_IS_TRANSPARENT;
@@ -353,7 +355,7 @@ static void drawctx_add_sensor(DrawableContext *ctx, SensorContext *handler)
 	}
 }
 
-void drawctx_update_info(DrawableContext *ctx)
+void drawctx_update_info(DrawableContext *ctx, struct _visual_surface_2D *surf)
 {
 	Bool moved, need_redraw;
 	Drawable *node = ctx->node;
@@ -364,7 +366,7 @@ void drawctx_update_info(DrawableContext *ctx)
 	if (node->flags & DRAWABLE_FIRST_CTX_UPDATE) {
 		DRInfo *dri = node->dri;
 		while (dri) {
-			if (dri->surface==ctx->surface) {
+			if (dri->surface==surf) {
 				if (dri->current_bounds && dri->current_bounds->clip.width) node->flags |= DRAWABLE_DRAWN_ON_SURFACE; 
 				break;
 			}
@@ -374,13 +376,14 @@ void drawctx_update_info(DrawableContext *ctx)
 	}
 	/*only checked if node is not marked as dirty (otherwise we assume bounds have changed)*/
 	if (! (ctx->flags & CTX_NODE_DIRTY) ) {
-		moved = !drawable_has_same_bounds(ctx);
+		moved = !drawable_has_same_bounds(ctx, surf);
 		if (!need_redraw) need_redraw = moved;
 	}
 	if (need_redraw) ctx->flags |= CTX_REDRAW_MASK;
 
 	/*in all cases reset dirty flag of appearance and its sub-nodes*/
-	gf_node_dirty_reset(ctx->appear);
+	if (ctx->flags & CTX_HAS_APPEARANCE)
+		gf_node_dirty_reset(ctx->appear);
 }
 
 
@@ -398,7 +401,8 @@ static void setup_drawable_context(DrawableContext *ctx, RenderEffect2D *eff)
 	/*store alpha*/
 	ctx->aspect.fill_alpha = (u8) FIX2INT(255*(FIX_ONE - m->transparency));
 	ctx->aspect.fill_color = GF_COL_ARGB_FIXED(FIX_ONE-m->transparency, m->emissiveColor.red, m->emissiveColor.green, m->emissiveColor.blue);
-	ctx->aspect.fill_color = gf_cmx_apply(&ctx->cmat, ctx->aspect.fill_color);
+	if (ctx->col_mat) 
+		ctx->aspect.fill_color = gf_cmx_apply(ctx->col_mat, ctx->aspect.fill_color);
 
 	ctx->aspect.line_color = ctx->aspect.fill_color;
 	ctx->aspect.filled = m->filled;
@@ -445,22 +449,26 @@ check_default:
 	if (m->lineProps && gf_node_dirty_get(m->lineProps)) ctx->flags |= CTX_APP_DIRTY;
 
 	if (LP) {
-		ctx->aspect.pen_props.dash = (GF_DashStyle)LP->lineStyle;
+		ctx->aspect.pen_props.dash = (u8) LP->lineStyle;
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(FIX_ONE-m->transparency, LP->lineColor.red, LP->lineColor.green, LP->lineColor.blue);
 		ctx->aspect.pen_props.width = LP->width;
-		ctx->aspect.line_color = gf_cmx_apply(&ctx->cmat, ctx->aspect.line_color);
+		if (ctx->col_mat) {
+			ctx->aspect.line_color = gf_cmx_apply(ctx->col_mat, ctx->aspect.line_color);
+		}
 		return;
 	} 
 
-	ctx->aspect.pen_props.dash = (GF_DashStyle)XLP->lineStyle;
+	ctx->aspect.pen_props.dash = (u8) XLP->lineStyle;
 	ctx->aspect.line_color = GF_COL_ARGB_FIXED(FIX_ONE-XLP->transparency, XLP->lineColor.red, XLP->lineColor.green, XLP->lineColor.blue);
 	ctx->aspect.pen_props.width = XLP->width;
-	ctx->aspect.line_color = gf_cmx_apply(&ctx->cmat, ctx->aspect.line_color);
+	if (ctx->col_mat) {
+		ctx->aspect.line_color = gf_cmx_apply(ctx->col_mat, ctx->aspect.line_color);
+	}
 	
 	ctx->aspect.is_scalable = XLP->isScalable;
 	ctx->aspect.pen_props.align = XLP->isCenterAligned ? GF_PATH_LINE_CENTER : GF_PATH_LINE_INSIDE;
-	ctx->aspect.pen_props.cap = (GF_LineCap) XLP->lineCap;
-	ctx->aspect.pen_props.join = (GF_LineJoin) XLP->lineJoin;
+	ctx->aspect.pen_props.cap = (u8) XLP->lineCap;
+	ctx->aspect.pen_props.join = (u8) XLP->lineJoin;
 	ctx->aspect.pen_props.miterLimit = XLP->miterLimit;
 	ctx->aspect.pen_props.dash_offset = XLP->dashOffset;
 
@@ -532,7 +540,10 @@ DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *eff)
 #endif
 
 	/*FIXME - only needed for texture*/
-	gf_cmx_copy(&ctx->cmat, &eff->color_mat);
+	if (!eff->color_mat.identity) {
+		GF_SAFEALLOC(ctx->col_mat, GF_ColorMatrix);
+		gf_cmx_copy(ctx->col_mat, &eff->color_mat);
+	}
 
 	/*IndexedLineSet2D and PointSet2D ignores fill flag and texturing*/
 	skipFill = 0;
@@ -565,7 +576,7 @@ DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *eff)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render2D] Drawable is fully transparent - skipping\n"));
 		return NULL;
 	}
-
+	ctx->flags |= CTX_HAS_APPEARANCE;
 	//setup clipper if needed
 	return ctx;
 }
@@ -576,14 +587,13 @@ void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff)
 		group2d_add_to_context_list(eff->parent, ctx);
 	} else {
 		/*setup clipper and register bounds & sensors*/
-		gf_irect_intersect(&ctx->clip, &eff->surface->top_clipper);
-		if (gf_rect_is_empty(ctx->clip) ) return;
+		gf_irect_intersect(&ctx->bi->clip, &eff->surface->top_clipper);
+		if (!ctx->bi->clip.width && !ctx->bi->clip.height) return;
 		VS2D_RegisterSensor(eff->surface, ctx);
 	
 		if (eff->trav_flags & TF_RENDER_DIRECT) {
 			/*full frame redraw in indirect mode: store bounds for next pass*/
 			if (eff->trav_flags & TF_RENDER_STORE_BOUNDS) {
-				drawable_store_bounds(ctx);
 				/*keep track of node drawn*/
 				if (gf_list_find(eff->surface->prev_nodes_drawn, ctx->node)<0) 
 					gf_list_add(eff->surface->prev_nodes_drawn, ctx->node);
@@ -596,7 +606,15 @@ void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff)
 			eff->ctx = NULL;
 			eff->traversing_mode = 0;
 		}
-		else drawable_store_bounds(ctx);
+	}
+}
+
+void drawable_check_bounds(struct _drawable_context *ctx, VisualSurface2D *surf)
+{
+	if (!ctx->bi) {
+		ctx->bi = drawable_check_alloc_bounds(ctx, surf);
+		assert(ctx->bi);
+		ctx->bi->extra_check = ctx->appear;
 	}
 }
 
@@ -605,12 +623,14 @@ void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff
 	Fixed pw;
 	GF_Rect unclip;
 
+	drawable_check_bounds(ctx, eff->surface);
+
 	if (orig_bounds) {
-		ctx->unclip = *orig_bounds;
+		ctx->bi->unclip = *orig_bounds;
 	} else {
-		gf_path_get_bounds(ctx->node->path, &ctx->unclip);
+		gf_path_get_bounds(ctx->node->path, &ctx->bi->unclip);
 	}
-	gf_mx2d_apply_rect(&eff->transform, &ctx->unclip);
+	gf_mx2d_apply_rect(&eff->transform, &ctx->bi->unclip);
 
 	/*apply pen width*/
 	if (ctx->aspect.has_line && ctx->aspect.pen_props.width ) {
@@ -629,17 +649,17 @@ void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff
 		/*get strike info & outline for exact bounds compute. If failure use default offset*/
 		si = drawctx_get_strikeinfo(ctx, ctx->node->path);
 		if (si && si->outline) {
-			gf_path_get_bounds(si->outline, &ctx->unclip);
-			gf_mx2d_apply_rect(&eff->transform, &ctx->unclip);
+			gf_path_get_bounds(si->outline, &ctx->bi->unclip);
+			gf_mx2d_apply_rect(&eff->transform, &ctx->bi->unclip);
 		} else {
 			pw = gf_mulfix(ctx->aspect.pen_props.width, ctx->aspect.line_scale);
-			ctx->unclip.x -= pw/2;
-			ctx->unclip.y += pw/2;
-			ctx->unclip.width += pw;
-			ctx->unclip.height += pw;
+			ctx->bi->unclip.x -= pw/2;
+			ctx->bi->unclip.y += pw/2;
+			ctx->bi->unclip.width += pw;
+			ctx->bi->unclip.height += pw;
 		}
 	}
-	unclip = ctx->unclip;
+	unclip = ctx->bi->unclip;
 
 	if (! (ctx->flags & CTX_NO_ANTIALIAS) ) {
 		/*grow of 2 pixels (-1 and +1) to handle AA, but ONLY on cliper otherwise we will modify layout/form */
@@ -650,9 +670,7 @@ void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff
 		unclip.height += 2*pw;
 	}
 
-	ctx->clip = gf_rect_pixelize(&unclip);
-	ctx->unclip_pix = ctx->clip;
-
+	ctx->bi->clip = gf_rect_pixelize(&unclip);
 	drawable_finalize_end(ctx, eff);
 }
 
@@ -672,7 +690,7 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 	if (path && !path->n_points) return NULL;
 
 	lp = NULL;
-	if (ctx->appear) {
+	if (ctx->appear && (gf_node_get_tag(ctx->appear) <GF_NODE_RANGE_FIRST_SVG) ) {
 		lp = ((M_Appearance *)ctx->appear)->material;
 		if (lp) lp = ((M_Material2D *) lp)->lineProps;
 	}
@@ -832,7 +850,7 @@ static GF_Node *svg_get_texture_target(GF_Node *node, DOM_String uri)
 	return target;
 }
 
-static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointers props)
+static void setup_SVG_drawable_context(DrawableContext *ctx, struct _visual_surface_2D *surf, SVGPropertiesPointers props)
 {
 	Fixed clamped_solid_opacity = FIX_ONE;
 	Fixed clamped_fill_opacity = (props.fill_opacity->value < 0 ? 0 : (props.fill_opacity->value > FIX_ONE ? FIX_ONE : props.fill_opacity->value));
@@ -882,7 +900,7 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 	} else if (props.fill->color.type == SVG_COLOR_RGBCOLOR) {
 		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_fill_opacity, props.fill->color.red, props.fill->color.green, props.fill->color.blue);
 	} else if (props.fill->color.type >= SVG_COLOR_ACTIVE_BORDER) {
-		ctx->aspect.fill_color = ctx->surface->render->compositor->sys_colors[props.fill->color.type - 3];
+		ctx->aspect.fill_color = surf->render->compositor->sys_colors[props.fill->color.type - 3];
 		ctx->aspect.fill_color |= ((u32) (clamped_fill_opacity*255) ) << 24;
 	}
 
@@ -927,7 +945,7 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 	} else if (props.stroke->color.type == SVG_COLOR_RGBCOLOR) {
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_stroke_opacity, props.stroke->color.red, props.stroke->color.green, props.stroke->color.blue);
 	} else if (props.stroke->color.type >= SVG_COLOR_ACTIVE_BORDER) {
-		ctx->aspect.line_color = ctx->surface->render->compositor->sys_colors[SVG_COLOR_ACTIVE_BORDER - 3];
+		ctx->aspect.line_color = surf->render->compositor->sys_colors[SVG_COLOR_ACTIVE_BORDER - 3];
 		ctx->aspect.line_color |= ((u32) (clamped_stroke_opacity*255)) << 24;
 	}
 	if (props.stroke_dasharray->type != SVG_STROKEDASHARRAY_NONE) {
@@ -937,8 +955,8 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 	}
 	ctx->aspect.is_scalable = (*props.vector_effect == SVG_VECTOREFFECT_NONSCALINGSTROKE)?0:1;
 	
-	ctx->aspect.pen_props.cap = (GF_LineCap) *props.stroke_linecap;
-	ctx->aspect.pen_props.join = (GF_LineJoin) *props.stroke_linejoin;
+	ctx->aspect.pen_props.cap = (u8) *props.stroke_linecap;
+	ctx->aspect.pen_props.join = (u8) *props.stroke_linejoin;
 	ctx->aspect.pen_props.width = (ctx->aspect.has_line?props.stroke_width->value:0);
 	ctx->aspect.pen_props.miterLimit = props.stroke_miterlimit->value;
 }
@@ -965,7 +983,10 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	ctx->h_texture = NULL;
 
 	/*FIXME - only needed for texture*/
-	gf_cmx_copy(&ctx->cmat, &eff->color_mat);
+	if (!eff->color_mat.identity) {
+		GF_SAFEALLOC(ctx->col_mat, GF_ColorMatrix);
+		gf_cmx_copy(ctx->col_mat, &eff->color_mat);
+	}
 	
 	switch (gf_node_get_tag(ctx->node->owner) ) {
 	case TAG_SVG_image:
@@ -984,7 +1005,7 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)
 		break;
 	}
 
-	setup_SVG_drawable_context(ctx, *(eff->svg_props));
+	setup_SVG_drawable_context(ctx, eff->surface, *(eff->svg_props));
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
 	if (ctx->h_texture && ctx->h_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
@@ -997,152 +1018,6 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	return ctx;
 }
 
-static void setup_svg2_drawable_context(DrawableContext *ctx)
-{
-	SVG2pathElement *path = (SVG2pathElement *)ctx->node->owner;
-	Fixed clamped_solid_opacity = FIX_ONE;
-	Fixed clamped_fill_opacity = (path->fill_opacity.value < 0 ? 0 : (path->fill_opacity.value > FIX_ONE ? FIX_ONE : path->fill_opacity.value));
-	Fixed clamped_stroke_opacity = (path->stroke_opacity.value < 0 ? 0 : (path->stroke_opacity.value > FIX_ONE ? FIX_ONE : path->stroke_opacity.value));	
 
-	ctx->aspect.fill_alpha = 255;
-	ctx->aspect.filled = (path->fill.type != SVG_PAINT_NONE);
-
-	if (path->fill.type==SVG_PAINT_URI) {
-		if (path->fill.iri.type != SVG_IRI_ELEMENTID) {
-			/* trying to resolve the IRI to the Paint Server */
-			SVG_IRI *iri = &path->fill.iri;
-			GF_SceneGraph *sg = gf_node_get_graph(ctx->node->owner);
-			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
-			if (n) {
-				iri->type = SVG_IRI_ELEMENTID;
-				iri->target = (SVGElement *) n;
-				gf_svg_register_iri(sg, iri);
-				free(iri->iri);
-				iri->iri = NULL;
-			}
-		}		
-		if (path->fill.iri.type != SVG_IRI_ELEMENTID) {
-			/* Paint server not found, paint is equivalent to none */
-			ctx->aspect.filled = 0;
-		} else {
-			switch (gf_node_get_tag((GF_Node *)path->fill.iri.target)) {
-			case TAG_SVG_solidColor:
-				{
-					SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)path->fill.iri.target;
-					clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
-					ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
-				}
-				break;
-			case TAG_SVG_linearGradient: 
-			case TAG_SVG_radialGradient: 
-				ctx->h_texture = svg_gradient_get_texture((GF_Node *)path->fill.iri.target);
-				ctx->aspect.filled = 0;
-				break;
-			default: 
-				ctx->aspect.filled = 0;
-			}
-		}
-	}
-	else if (path->fill.color.type == SVG_COLOR_RGBCOLOR) {
-		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_fill_opacity, path->fill.color.red, path->fill.color.green, path->fill.color.blue);
-	} else if (path->fill.color.type >= SVG_COLOR_ACTIVE_BORDER) {
-		ctx->aspect.fill_color = ctx->surface->render->compositor->sys_colors[path->fill.color.type - 3];
-		ctx->aspect.fill_color |= ((u32) (clamped_fill_opacity*255) ) << 24;
-	}
-
-	ctx->aspect.has_line = (path->stroke.type != SVG_PAINT_NONE);
-	if (path->stroke.type==SVG_PAINT_URI) {
-		if (path->stroke.iri.type != SVG_IRI_ELEMENTID) {
-			/* trying to resolve the IRI to the Paint Server */
-			SVG_IRI *iri = &path->stroke.iri;
-			GF_SceneGraph *sg = gf_node_get_graph(ctx->node->owner);
-			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
-			if (n) {
-				iri->type = SVG_IRI_ELEMENTID;
-				iri->target = (SVGElement *) n;
-				gf_svg_register_iri(sg, iri);
-				free(iri->iri);
-				iri->iri = NULL;
-			}
-		}		
-		if (path->stroke.iri.type != SVG_IRI_ELEMENTID) {
-			/* Paint server not found, stroke is equivalent to none */
-			ctx->aspect.pen_props.width = 0;
-		} else {
-			switch (gf_node_get_tag((GF_Node *)path->stroke.iri.target)) {
-			case TAG_SVG_solidColor:
-				{
-					SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)path->stroke.iri.target;
-					clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
-					ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
-				}
-				break;
-			case TAG_SVG_linearGradient: 
-			case TAG_SVG_radialGradient: 
-				ctx->aspect.line_texture = svg_gradient_get_texture((GF_Node*)path->stroke.iri.target);
-				break;
-			default: 
-				ctx->aspect.pen_props.width = 0;
-			}
-		}
-	}
-	else if (path->stroke.color.type == SVG_COLOR_RGBCOLOR) {
-		ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_stroke_opacity, path->stroke.color.red, path->stroke.color.green, path->stroke.color.blue);
-	} else if (path->stroke.color.type >= SVG_COLOR_ACTIVE_BORDER) {
-		ctx->aspect.line_color = ctx->surface->render->compositor->sys_colors[SVG_COLOR_ACTIVE_BORDER - 3];
-		ctx->aspect.line_color |= ((u32) (clamped_stroke_opacity*255)) << 24;
-	}
-	if (path->stroke_dasharray.type != SVG_STROKEDASHARRAY_NONE) {
-		ctx->aspect.pen_props.dash = GF_DASH_STYLE_CUSTOM_ABS;
-		ctx->aspect.pen_props.dash_offset = path->stroke_dashoffset.value;
-		ctx->aspect.pen_props.dash_set = (GF_DashSettings *) &(path->stroke_dasharray.array);
-	}
-	ctx->aspect.is_scalable = (path->vector_effect == SVG_VECTOREFFECT_NONSCALINGSTROKE)?0:1;
-	
-	ctx->aspect.pen_props.cap = path->stroke_linecap;
-	ctx->aspect.pen_props.join = path->stroke_linejoin;
-	ctx->aspect.pen_props.width = (ctx->aspect.has_line?path->stroke_width.value:0);
-	ctx->aspect.pen_props.miterLimit = path->stroke_miterlimit.value;
-}
-
-DrawableContext *svg2_drawable_init_context(Drawable *node, RenderEffect2D *eff)
-{
-	DrawableContext *ctx;
-	Bool skipFill = 0;
-	assert(eff->surface);
-
-	/*switched-off geometry nodes are not rendered*/
-	if (eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF) return NULL;
-	
-	//Get a empty context from the current surface
-	ctx = VS2D_GetDrawableContext(eff->surface);
-
-	gf_mx2d_copy(ctx->transform, eff->transform);
-
-	ctx->node = node;
-	ctx->appear = eff->parent_use;
-	if (eff->invalidate_all || (node->flags & DRAWABLE_HAS_CHANGED) ) {
-		ctx->flags |= CTX_NODE_DIRTY;
-	} else if (gf_svg_has_appearance_flag_dirty(gf_node_dirty_get(node->owner))) {
-		ctx->flags |= CTX_NODE_DIRTY;
-	}
-
-	ctx->h_texture = NULL;
-
-	/*FIXME - only needed for texture*/
-	gf_cmx_copy(&ctx->cmat, &eff->color_mat);
-	
-	setup_svg2_drawable_context(ctx);
-
-	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
-	if (ctx->h_texture && ctx->h_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
-
-	if (check_transparent_skip(ctx, skipFill)) {
-		VS2D_RemoveLastContext(eff->surface);
-		return NULL;
-	}
-	//ctx->flags |= CTX_HAS_LISTENERS;
-	return ctx;
-}
 
 #endif	//SVG

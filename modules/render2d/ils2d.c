@@ -57,7 +57,7 @@ static void build_graph(Drawable *cs, M_IndexedLineSet2D *ils2D)
 	cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 }
 
-static void ILS2D_Draw(DrawableContext *ctx)
+static void ILS2D_Draw(GF_Node *node, RenderEffect2D *eff)
 {
 	GF_Path *path;
 	SFVec2f *pts;
@@ -69,7 +69,8 @@ static void ILS2D_Draw(DrawableContext *ctx)
 	u32 j, num_col;
 	GF_STENCIL grad;
 	GF_Raster2D *r2d;
-	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)ctx->node->owner;
+	DrawableContext *ctx = eff->ctx;
+	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
 	M_Coordinate2D *coord = (M_Coordinate2D*) ils2D->coord;
 	M_Color *color = (M_Color *) ils2D->color;
 
@@ -78,7 +79,7 @@ static void ILS2D_Draw(DrawableContext *ctx)
 
 	if (! ils2D->color) {
 		/*no texturing*/
-		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
 		return;
 	}
 	
@@ -103,7 +104,7 @@ static void ILS2D_Draw(DrawableContext *ctx)
 				col = color->color.vals[col_ind];
 				ctx->aspect.line_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 
-				VS2D_DrawPath(ctx->surface, path, ctx, NULL, NULL);
+				VS2D_DrawPath(eff->surface, path, ctx, NULL, NULL);
 
 				i++;
 				if (i>=end_at) break;
@@ -156,7 +157,7 @@ static void ILS2D_Draw(DrawableContext *ctx)
 			}
 		}
 
-		r2d = ctx->surface->render->compositor->r2d;
+		r2d = eff->surface->render->compositor->r2d;
 		/*use linear gradient*/
 		if (num_col==2) {
 			Fixed pos[2];
@@ -201,7 +202,7 @@ static void ILS2D_Draw(DrawableContext *ctx)
 			}
 		}
 		r2d->stencil_set_matrix(grad, &ctx->transform);
-		VS2D_DrawPath(ctx->surface, path, ctx, NULL, grad);
+		VS2D_DrawPath(eff->surface, path, ctx, NULL, grad);
 		if (grad) r2d->stencil_delete(grad);
 
 		i ++;
@@ -225,7 +226,7 @@ static void RenderILS2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		ILS2D_Draw(eff->ctx);
+		ILS2D_Draw(node, eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {

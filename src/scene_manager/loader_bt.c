@@ -313,18 +313,23 @@ next_line:
 		if (parser->line_pos < parser->line_size) {
 			u32 i, count;
 			count = gf_list_count(parser->def_symbols);
-			for (i=0; i<count; i++) {
-				u32 symb_len, val_len, copy_len;
-				BTDefSymbol *def = (BTDefSymbol *)gf_list_get(parser->def_symbols, i);
-				char *start = strstr(parser->line_buffer, def->name);
-				if (!start) continue;
-				symb_len = strlen(def->name);
-				if (!strchr(" \n\r\t", start[symb_len])) continue;
-				val_len = strlen(def->value);
-				copy_len = strlen(start + symb_len) + 1;
-				memmove(start + val_len, start + symb_len, sizeof(char)*copy_len);
-				memcpy(start, def->value, sizeof(char)*val_len);
-				parser->line_size = strlen(parser->line_buffer);
+			while (1) {
+				Bool found = 0;
+				for (i=0; i<count; i++) {
+					u32 symb_len, val_len, copy_len;
+					BTDefSymbol *def = (BTDefSymbol *)gf_list_get(parser->def_symbols, i);
+					char *start = strstr(parser->line_buffer, def->name);
+					if (!start) continue;
+					symb_len = strlen(def->name);
+					if (!strchr(" \n\r\t,[]{}\'\"", start[symb_len])) continue;
+					val_len = strlen(def->value);
+					copy_len = strlen(start + symb_len) + 1;
+					memmove(start + val_len, start + symb_len, sizeof(char)*copy_len);
+					memcpy(start, def->value, sizeof(char)*val_len);
+					parser->line_size = strlen(parser->line_buffer);
+					found = 1;
+				}
+				if (!found) break;
 			}
 		}
 	}

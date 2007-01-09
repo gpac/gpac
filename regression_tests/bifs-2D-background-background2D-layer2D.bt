@@ -46,6 +46,7 @@ OrderedGroup {
        appearance Appearance {
         material Material2D {
          filled TRUE
+         transparency 1
         }
        }
        geometry DEF RC Rectangle {

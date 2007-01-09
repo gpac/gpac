@@ -1120,7 +1120,6 @@ u16 gf_mp3_bit_rate(u32 hdr)
 }
 
 
-
 GF_EXPORT
 u32 gf_mp3_get_next_header(FILE* in)
 {
@@ -1159,13 +1158,15 @@ u32 gf_mp3_get_next_header(FILE* in)
 				bytes[state] = b;
 				state = 1;
 			} else {
-				if ((dropped == 0) && ((b & 0xE0) == 0xE0) && ((b & 0x18) != 0x08) && ((b & 0x06) != 0)) {
+/*				if ((dropped == 0) && ((b & 0xE0) == 0xE0) && ((b & 0x18) != 0x08) && ((b & 0x06) != 0)) {
 					bytes[0] = (u8) 0xFF;
 					bytes[1] = b;
 					state = 2;
 				} else {
 					dropped++;
 				}
+*/
+				dropped++;
 			}
 		}
 	}
@@ -1178,7 +1179,7 @@ u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos)
 	u32 cur;
 	u8 b, state = 0;
 	u32 dropped = 0;
-	u8 bytes[4];
+	unsigned char bytes[4];
 	bytes[0] = bytes[1] = bytes[2] = bytes[3] = 0;
 
 	cur = 0;
@@ -1188,9 +1189,15 @@ u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos)
 		cur++;
 
 		if (state==3) {
+			u32 val;
 			bytes[state] = b; 
-			*pos = dropped;
-			return GF_4CC(bytes[0], bytes[1], bytes[2], bytes[3]);;
+			val = GF_4CC(bytes[0], bytes[1], bytes[2], bytes[3]);
+			if (gf_mp3_frame_size(val)) {
+				*pos = dropped;
+				return val;
+			}
+			state = 0;
+			dropped = cur;
 		}
 		if (state==2) {
 			if (((b & 0xF0) == 0) || ((b & 0xF0) == 0xF0) || ((b & 0x0C) == 0x0C)) {
@@ -1199,7 +1206,7 @@ u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos)
 					dropped+=1;
 				} else {
 					state = 0;
-					dropped+=2;
+					dropped = cur;
 				}
 			} else {
 				bytes[state] = b;
@@ -1212,7 +1219,7 @@ u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos)
 				state = 2;
 			} else {
 				state = 0;
-				dropped++;
+				dropped = cur;
 			}
 		}
 
@@ -1221,13 +1228,7 @@ u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos)
 				bytes[state] = b;
 				state = 1;
 			} else {
-				if ((dropped == 0) && ((b & 0xE0) == 0xE0) && ((b & 0x18) != 0x08) && ((b & 0x06) != 0)) {
-					bytes[0] = (u8) 0xFF;
-					bytes[1] = b;
-					state = 2;
-				} else {
-					dropped++;
-				}
+				dropped++;
 			}
 		}
 	}

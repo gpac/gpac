@@ -128,7 +128,7 @@ static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 	if (handler->sgprivate->tag != TAG_SVG_handler) return;
 	if (!handler->handle_event) return;
 	if (handler->ev_event.type != event->type) return;
-	handler->handle_event(handler, event);
+	handler->handle_event((GF_Node*)handler, event);
 }
 
 static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)

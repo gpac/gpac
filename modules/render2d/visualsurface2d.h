@@ -29,13 +29,13 @@
 #include "drawable.h"
 
 
-static GFINLINE Bool gf_irect_overlaps(GF_IRect rc1, GF_IRect rc2)
+static GFINLINE Bool gf_irect_overlaps(GF_IRect *rc1, GF_IRect *rc2)
 {
-	if (! rc2.height || !rc2.width || !rc1.height || !rc1.width) return 0;
-	if (rc2.x+rc2.width<=rc1.x) return 0;
-	if (rc2.x>=rc1.x+rc1.width) return 0;
-	if (rc2.y-rc2.height>=rc1.y) return 0;
-	if (rc2.y<=rc1.y-rc1.height) return 0;
+	if (! rc2->height || !rc2->width || !rc1->height || !rc1->width) return 0;
+	if (rc2->x+rc2->width<=rc1->x) return 0;
+	if (rc2->x>=rc1->x+rc1->width) return 0;
+	if (rc2->y-rc2->height>=rc1->y) return 0;
+	if (rc2->y<=rc1->y-rc1->height) return 0;
 	return 1;
 }
 
@@ -56,15 +56,6 @@ static GFINLINE void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2)
 	if (rc2->y - rc2->height < rc1->y - rc1->height) rc1->height = rc1->y - rc2->y + rc2->height;
 }
 
-/*@rc1 equales @rc2*/
-static GFINLINE Bool gf_irect_equal(GF_IRect rc1, GF_IRect rc2) 
-{ 
-	/*test width first, since w=0 is used to discard bounds from previous rendering step*/
-	if ((rc1.width == rc2.width) && (rc1.height == rc2.height) && (rc1.x == rc2.x)  && (rc1.y == rc2.y))
-		return 1;
-	return 0;
-}
-
 /*makes @rc empty*/
 #define gf_rect_reset(rc)  { (rc)->x = (rc)->y = (rc)->width = (rc)->height = 0; }
 
@@ -74,7 +65,7 @@ static GFINLINE Bool gf_irect_equal(GF_IRect rc1, GF_IRect rc2)
 /*intersects @rc1 with @rc2 - the new @rc1 is the intersection*/
 static GFINLINE void gf_irect_intersect(GF_IRect *rc1, GF_IRect *rc2)
 {
-	if (! gf_irect_overlaps(*rc1, *rc2)) {
+	if (! gf_irect_overlaps(rc1, rc2)) {
 		gf_rect_reset(rc1); 
 		return;
 	}
@@ -95,15 +86,13 @@ static GFINLINE void gf_irect_intersect(GF_IRect *rc1, GF_IRect *rc2)
 }
 
 /*@rc2 fully contained in @rc1*/
-static GFINLINE Bool gf_irect_inside(GF_IRect rc1, GF_IRect rc2) 
+static GFINLINE Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2) 
 {
-	if (!rc1.width || !rc1.height) return 0;
-	if ( (rc1.x <= rc2.x)  && (rc1.y >= rc2.y)  && (rc1.x + rc1.width >= rc2.x + rc2.width) && (rc1.y - rc1.height <= rc2.y - rc2.height) )
+	if (!rc1->width || !rc1->height) return 0;
+	if ( (rc1->x <= rc2->x)  && (rc1->y >= rc2->y)  && (rc1->x + rc1->width >= rc2->x + rc2->width) && (rc1->y - rc1->height <= rc2->y - rc2->height) )
 		return 1;
 	return 0;
 }
-
-GF_IRect gf_rect_pixelize(GF_Rect *r);
 
 static GFINLINE GF_Rect gf_rect_ft(GF_IRect *rc)
 {
@@ -113,33 +102,45 @@ static GFINLINE GF_Rect gf_rect_ft(GF_IRect *rc)
 }
 
 /*@x, y in @rc*/
-static GFINLINE Bool gf_point_in_rect(GF_IRect _rc, Fixed x, Fixed y) 
+static GFINLINE Bool gf_point_in_rect(GF_IRect *_rc, Fixed x, Fixed y) 
 {
-	GF_Rect rc = gf_rect_ft(&_rc);
+	GF_Rect rc = gf_rect_ft(_rc);
 	if ( (x >= rc.x) && (y <= rc.y) && (x <= rc.x + rc.width) && (y >= rc.y - rc.height) )
 		return 1;
 	return 0;
 }
 
+
+//#define TRACK_OPAQUE_REGIONS
+
 /*ra_: rectangle array macros to speed dirty rects*/
-#define RA_DEFAULT_STEP	50
+#define RA_DEFAULT_STEP	10
 
 typedef struct
 {	
 	GF_IRect *list;
 	u32 count, alloc;
+#ifdef TRACK_OPAQUE_REGIONS
 	/*list of nodes covering (no transparency) each rect, or 0 otherwise.*/
 	u32 *opaque_node_index;
+#endif
 } GF_RectArray;
 
+#ifdef TRACK_OPAQUE_REGIONS
 /*inits structure - called as a constructor*/
 #define ra_init(ra) { (ra)->count = 0; (ra)->alloc = 1; (ra)->list = (GF_IRect*)malloc(sizeof(GF_IRect)); (ra)->opaque_node_index = NULL;}
 /*deletes structure - called as a destructor*/
 #define ra_del(ra) { free((ra)->list); if ((ra)->opaque_node_index) free((ra)->opaque_node_index); }
+#else
+#define ra_init(ra) { (ra)->count = 0; (ra)->alloc = 1; (ra)->list = (GF_IRect*)malloc(sizeof(GF_IRect));}
+/*deletes structure - called as a destructor*/
+#define ra_del(ra) { free((ra)->list); }
+#endif
+
 /*adds rect to list - expand if needed*/
 #define ra_add(ra, rc) {	\
 	if ((ra)->count==(ra)->alloc) { (ra)->alloc += RA_DEFAULT_STEP; (ra)->list = (GF_IRect*)realloc((ra)->list, sizeof(GF_IRect) * (ra)->alloc); }	\
-	(ra)->list[(ra)->count] = rc; (ra)->count++;	}
+	(ra)->list[(ra)->count] = *rc; (ra)->count++;	}
 /*clears list*/
 #define ra_clear(ra) { (ra)->count = 0; }
 /*is list empty*/
@@ -147,13 +148,13 @@ typedef struct
 
 
 /*adds rectangle to the list performing union test*/
-static GFINLINE void ra_union_rect(GF_RectArray *ra, GF_IRect rc) 
+static GFINLINE void ra_union_rect(GF_RectArray *ra, GF_IRect *rc) 
 {
 	u32 i;
 
 	for (i=0; i<ra->count; i++) { 
-		if (gf_irect_overlaps(ra->list[i], rc)) { 
-			gf_irect_union(&ra->list[i], &rc); 
+		if (gf_irect_overlaps(&ra->list[i], rc)) { 
+			gf_irect_union(&ra->list[i], rc); 
 			return; 
 		} 
 	}
@@ -165,7 +166,7 @@ static GFINLINE void ra_merge(GF_RectArray *ra1, GF_RectArray *ra2)
 {
 	u32 i;
 	for (i=0; i<ra2->count; i++) {
-		ra_union_rect(ra1, ra2->list[i]);
+		ra_union_rect(ra1, &ra2->list[i]);
 	}
 }
 
@@ -175,7 +176,7 @@ static GFINLINE void ra_refresh(GF_RectArray *ra)
 	u32 i, j, k;
 	for (i=0; i<ra->count; i++) {
 		for (j=i+1; j<ra->count; j++) {
-			if (gf_irect_overlaps(ra->list[i], ra->list[j])) {
+			if (gf_irect_overlaps(&ra->list[i], &ra->list[j])) {
 				gf_irect_union(&ra->list[i], &ra->list[j]);
 
 				/*remove rect*/
@@ -197,7 +198,9 @@ typedef struct _visual_surface_2D
 	
 	/*the one and only dirty rect collector*/
 	GF_RectArray to_redraw;
+#ifdef TRACK_OPAQUE_REGIONS
 	u32 draw_node_index;
+#endif
 
 	/*static list of context*/
 	struct _drawable_context **contexts;

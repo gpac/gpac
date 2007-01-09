@@ -166,15 +166,6 @@ SOURCE=..\..\src\utils\utf.c
 # Begin Source File
 
 SOURCE=..\..\src\utils\xml_parser.c
-
-!IF  "$(CFG)" == "libgpac - Win32 Release"
-
-# SUBTRACT CPP /FA<none>
-
-!ELSEIF  "$(CFG)" == "libgpac - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # End Group
 # Begin Group "odf"
@@ -619,6 +610,15 @@ SOURCE=..\..\src\media_tools\mpeg2_ps.h
 # Begin Source File
 
 SOURCE=..\..\src\media_tools\mpegts.c
+
+!IF  "$(CFG)" == "libgpac - Win32 Release"
+
+# SUBTRACT CPP /FA<none>
+
+!ELSEIF  "$(CFG)" == "libgpac - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 

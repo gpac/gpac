@@ -722,20 +722,13 @@ GF_Err evg_stencil_set_filter(GF_STENCIL st, GF_TextureFilter filter_mode)
 GF_Err evg_stencil_set_color_matrix(GF_STENCIL st, GF_ColorMatrix *cmat)
 {
 	EVG_Texture *_this = (EVG_Texture *)st;
-	if (!_this || !cmat) return GF_BAD_PARAM;
-	gf_cmx_copy(&_this->cmat, cmat);
-	return GF_OK;
-}
-
-GF_Err evg_stencil_reset_color_matrix(GF_STENCIL st)
-{
-	EVG_Texture *_this = (EVG_Texture *)st;
 	if (!_this) return GF_BAD_PARAM;
-	gf_cmx_init(&_this->cmat);
+	if (!!cmat) gf_cmx_init(&_this->cmat);
+	else gf_cmx_copy(&_this->cmat, cmat);
 	return GF_OK;
 }
 
-GF_Err evg_stencil_set_gf_sr_texture_alpha(GF_STENCIL st, u8 alpha)
+GF_Err evg_stencil_set_texture_alpha(GF_STENCIL st, u8 alpha)
 {
 	EVG_Texture *_this = (EVG_Texture *)st;
 	if (!_this || (_this->type!=GF_STENCIL_TEXTURE)) return GF_BAD_PARAM;

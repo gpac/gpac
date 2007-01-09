@@ -872,8 +872,7 @@ EXPORTS
 	gf_node_get_id
 	gf_node_get_private
 	gf_node_set_private
-	gf_node_set_render_function
-	gf_node_set_predestroy_function
+	gf_node_set_callback_function
 	gf_node_register
 	gf_node_unregister
 	gf_node_replace
@@ -897,6 +896,9 @@ EXPORTS
 	gf_node_get_graph
 	gf_node_init
 	gf_node_get_scene_time
+	gf_node_list_get_child
+	gf_node_list_get_count
+	gf_node_list_add_child
 	gf_sg_new
 	gf_sg_new_subscene
 	gf_sg_set_scene_time_callback
@@ -916,8 +918,7 @@ EXPORTS
 	gf_node_changed
 	gf_node_new
 	gf_node_clone
-	gf_sg_set_max_render_cycle
-	gf_sg_is_first_render_cycle
+	gf_node_allow_cyclic_render
 	gf_sg_vrml_get_event_type_name
 	gf_sg_vrml_get_field_type_by_name
 	gf_sg_vrml_field_pointer_new
@@ -1055,6 +1056,7 @@ EXPORTS
 	gf_sr_render_inline
 	gf_sr_set_size
 	gf_sr_register_extra_graph
+	gf_sr_get_renderer
 
 ;render_dev.h exports
 	gf_sr_register_time_node

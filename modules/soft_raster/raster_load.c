@@ -45,10 +45,9 @@ GF_Raster2D *EVG_LoadRenderer()
 	dr->stencil_set_tiling = evg_stencil_set_tiling;
 	dr->stencil_set_filter = evg_stencil_set_filter;
 	dr->stencil_set_color_matrix = evg_stencil_set_color_matrix;
-	dr->stencil_reset_color_matrix = evg_stencil_reset_color_matrix;
-	dr->stencil_set_gf_sr_texture_alpha = evg_stencil_set_gf_sr_texture_alpha;
+	dr->stencil_set_texture_alpha = evg_stencil_set_texture_alpha;
 	dr->stencil_create_texture = evg_stencil_create_texture;
-	dr->stencil_gf_sr_texture_modified = NULL;
+	dr->stencil_texture_modified = NULL;
 
 	dr->surface_new = evg_surface_new;
 	dr->surface_delete = evg_surface_delete;

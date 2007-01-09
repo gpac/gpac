@@ -200,7 +200,7 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 		}
 	} 
 
-	if (txh->needs_refresh && r2d->stencil_gf_sr_texture_modified) r2d->stencil_gf_sr_texture_modified(st->txh.hwtx); 
+	if (txh->needs_refresh && r2d->stencil_texture_modified) r2d->stencil_texture_modified(st->txh.hwtx); 
 	/*always invalidate to make sure the frame counter is incremented, otherwise we will
 	break bounds tracking*/
 	gf_sr_invalidate(st->txh.compositor, NULL);
@@ -275,7 +275,7 @@ DrawableContext *CT2D_FindNode(GF_TextureHandler *txh, DrawableContext *ctx, Fix
 	Composite2DStack *st = (Composite2DStack *) gf_node_get_private(txh->owner);
 	assert(st->surf);
 
-	orig = ctx->unclip;
+	orig = ctx->bi->unclip;
 	gf_mx2d_copy(mat, ctx->transform);
 	gf_mx2d_inverse(&mat);
 	gf_mx2d_apply_rect(&mat, &orig);
@@ -311,7 +311,7 @@ GF_Node *CT2D_PickNode(GF_TextureHandler *txh, DrawableContext *ctx, Fixed x, Fi
 	Composite2DStack *st = (Composite2DStack *) gf_node_get_private(txh->owner);
 	assert(st->surf);
 
-	orig = ctx->unclip;
+	orig = ctx->bi->unclip;
 	gf_mx2d_copy(mat, ctx->transform);
 	gf_mx2d_inverse(&mat);
 	gf_mx2d_apply_rect(&mat, &orig);

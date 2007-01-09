@@ -318,6 +318,15 @@ GF_Path *gf_path_get_flatten(GF_Path *gp);
 Bool gf_path_point_over(GF_Path *gp, Fixed x, Fixed y);
 
 /*!
+ *	\brief path init testing
+ *
+ *	Tests if the path is empty or not.
+ *	\param gp the target path
+ *	\return 1 if the path is empty, 0 otherwise.
+ */
+Bool gf_path_is_empty(GF_Path *gp);
+
+/*!
  *	\brief path iterator 
  *
  *	The path iterator object is used to compute the length of a given path as well
@@ -447,7 +456,7 @@ enum
  * Stencil alignment type for outlining
  *	\hideinitializer
  */
-typedef enum
+enum
 {	
 	/*! outline is centered on the path (default)*/
 	GF_PATH_LINE_CENTER = 0,
@@ -455,13 +464,13 @@ typedef enum
 	GF_PATH_LINE_INSIDE,
 	/*! outline is outside the path*/
 	GF_PATH_LINE_OUTSIDE,
-} GF_LineAlignement;
+};
 
 /*!
  * Line cap type for outlining
  *	\hideinitializer
  */
-typedef enum
+enum
 {
 	/*! End of line is flat (default)*/
 	GF_LINE_CAP_FLAT = 0,
@@ -471,13 +480,13 @@ typedef enum
 	GF_LINE_CAP_SQUARE,
 	/*! End of line is triangle*/
 	GF_LINE_CAP_TRIANGLE,
-} GF_LineCap;
+};
 
 /*!
  * Line join type for outlining
  *	\hideinitializer
  */
-typedef enum
+enum
 {
 	/*! Line join is a miter join (default)*/
 	GF_LINE_JOIN_MITER = 0,
@@ -487,13 +496,13 @@ typedef enum
 	GF_LINE_JOIN_BEVEL,
 	/*! Line join is a miter then bevel join*/
 	GF_LINE_JOIN_MITER_SVG
-} GF_LineJoin;
+};
 
 /*!
  * Dash types for outlining
  *	\hideinitializer
  */
-typedef enum
+enum
 {
 	/*! No dashing is used (default)*/
 	GF_DASH_STYLE_PLAIN = 0,
@@ -511,7 +520,7 @@ typedef enum
 	GF_DASH_STYLE_CUSTOM,
 	/*! Custom pattern is used. Dash lengths are given in the same unit as the pen width*/
 	GF_DASH_STYLE_CUSTOM_ABS,
-} GF_DashStyle;
+};
 
 
 /*!\brief Custom dash pattern
@@ -536,15 +545,15 @@ typedef struct
 	/*! The width of the outline*/
 	Fixed width;
 	/*! The style of the lines ends*/
-	GF_LineCap cap;
+	u8 cap;
 	/*! The style of the lines joins*/
-	GF_LineJoin join;
+	u8 join;
 	/*! The alignment of the outline with regard to the path*/
-	GF_LineAlignement align;
+	u8 align;
+	/*! The dash style of the line*/
+	u8 dash;
 	/*! The miter limit of the line joins*/
 	Fixed miterLimit;
-	/*! The dash style of the line*/
-	GF_DashStyle dash;
 	/*! The initial dash offset in the outline. All points before this offset will be 
 	* ignored when building the outline*/
 	Fixed dash_offset;

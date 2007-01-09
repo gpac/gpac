@@ -113,7 +113,7 @@ enum
 	GF_M2TS_EVT_SL_PCK,
 };
 
-typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pes, char *data, u32 data_size, Bool is_repeated); 
+typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pes, unsigned char *data, u32 data_size, Bool is_repeated); 
 
 /*MPEG-2 TS section object (PAT, PMT, etc..)*/
 typedef struct GF_M2TS_SectionFilter
@@ -141,7 +141,7 @@ typedef struct GF_M2TS_SectionFilter
 	u8 last_version_number;
 
 	/*section aggregator*/
-	char *data;
+	unsigned char *data;
 	u32 data_size;
 
 	gf_m2ts_section_callback process_section; 
@@ -191,14 +191,14 @@ typedef struct tag_m2ts_pes
 
 	/*mpegts lib private - do not touch :)*/
 	/*PES re-assembler*/
-	char *data;
+	unsigned char *data;
 	u32 data_len;
 	Bool rap;
 	u64 PTS, DTS;
 	
 	/*PES reframer - if NULL, pes processing is skiped*/
 	u32 frame_state;
-	void (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, char *data, u32 data_len);
+	void (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, unsigned char *data, u32 data_len);
 
 	u64 first_dts;
 

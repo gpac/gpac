@@ -1151,7 +1151,7 @@ GF_Err gf_isom_make_interleave(GF_ISOFile *mp4file, Double TimeInSec);
 /*supported hint formats - ONLY RTP now*/
 enum
 {
-	GF_ISOM_HINT_RTP = GF_4CC( 'r', 't', 'p', ' ' )
+	GF_ISOM_HINT_RTP = GF_4CC('r', 't', 'p', ' '),
 };
 
 

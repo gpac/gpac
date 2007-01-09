@@ -34,8 +34,8 @@ typedef struct _bound_info
 {
 	/*cliped bounds in pixels - needed to track static objects with animated cliping*/
 	GF_IRect clip;
-	/*uncliped bounds in pixels - needed to track moving objects fully contained in surface*/
-	GF_IRect unclip;
+	/*uncliped bounds - needed to track moving objects fully contained in surface and for image bliting*/
+	GF_Rect unclip;
 	/* extra_check: 
 		for MPEG-4: pointer to appearance node (due to DEF/USE) in order to detect same bounds and appearance node change
 		for SVG: currently not used, should be needed for <use>
@@ -90,8 +90,6 @@ typedef struct _drawable
 /*construction destruction*/
 Drawable *drawable_new();
 void drawable_del(Drawable *);
-/*store ctx bounds in current bounds*/
-void drawable_store_bounds(struct _drawable_context *ctx);
 
 void DestroyDrawableNode(GF_Node *node);
 
@@ -102,7 +100,7 @@ void drawable_flush_bounds(Drawable *node, struct _visual_surface_2D *on_surface
 	return 1 if same bound is found in previous list (and remove it from the list)
 	return 0 otherwise
 */
-Bool drawable_has_same_bounds(struct _drawable_context *ctx);
+Bool drawable_has_same_bounds(struct _drawable_context *ctx, struct _visual_surface_2D *surf);
 
 /*
 	return any previous bounds related to the same surface in @rc if any
@@ -128,18 +126,20 @@ void drawable_reset_path(Drawable *st);
 
 /*reset bounds array (current and previous) - used when turning direct rendering on, to release some memory*/
 void drawable_reset_bounds(Drawable *dr);
+/*setup clip/uncli pointers for the drawable context*/
+void drawable_check_bounds(struct _drawable_context *ctx, struct _visual_surface_2D *surf);
 
 typedef struct
 {
 	/*including alpha*/
 	GF_Color fill_color, line_color;
-	Bool filled, has_line, is_scalable;
 	Fixed line_scale;
 	GF_PenSettings pen_props;
 	/*texture fill handler*/
 	struct _gf_sr_texture_handler *line_texture;
 	/*original alpha without color transforms*/
 	u8 fill_alpha;
+	u8 filled, has_line, is_scalable;
 } DrawAspect2D;
 
 enum
@@ -163,6 +163,8 @@ enum
 	CTX_PATH_FILLED = 1<<7,
 	/*indicates path outline has been textured, in which case STRIKE is skiped*/
 	CTX_PATH_STROKE = 1<<8,
+	/*set when context is an MPEG-4/VRML node*/
+	CTX_HAS_APPEARANCE = 1<<9,
 };
 
 #define CTX_REDRAW_MASK	0x00000007
@@ -176,19 +178,16 @@ typedef struct _drawable_context
 
 	/*drawable using this context*/
 	Drawable *node;
-	/*visual surface of this context*/
-	struct _visual_surface_2D *surface;
 
-	/*clipped (drawned) and uncliped (for sensors) rect in pixels*/
-	GF_IRect clip, unclip_pix;
-	/*exact unclipped rect for sensors*/
-	GF_Rect unclip;
+	/*pointer to clipped and uncliped (for sensors) rect in pixels.*/
+	BoundInfo *bi;
+
 	/*draw info*/
 	DrawAspect2D aspect;
 	/*transform matrix from top*/
 	GF_Matrix2D transform;
-	/*color matrix*/
-	GF_ColorMatrix cmat;
+	/*color matrix, NULL if none/identity*/
+	GF_ColorMatrix *col_mat;
 	/*sensors attached to this context*/
 	struct __sensor_ctx *sensor;
 
@@ -205,14 +204,14 @@ typedef struct _drawable_context
 DrawableContext *NewDrawableContext();
 void DeleteDrawableContext(DrawableContext *);
 void drawctx_reset(DrawableContext *ctx);
-void drawctx_update_info(DrawableContext *ctx);
+void drawctx_update_info(DrawableContext *ctx, struct _visual_surface_2D *surf);
 void drawctx_reset_sensors(DrawableContext *ctx);
 
 /*inits context - may return NULL if the node doesn't have to be drawn*/
 DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *effects);
 
 /*base draw function (texturing, fill and strike)*/
-void drawable_draw(DrawableContext *ctx);
+void drawable_draw(RenderEffect2D *effects);
 /*base draw function (texturing, fill and strike)*/
 void drawable_pick(RenderEffect2D *effects);
 

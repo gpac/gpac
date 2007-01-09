@@ -504,8 +504,8 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_p
 		goto end;
 	}
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
-		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
+	if ((*(eff->svg_props->display) == SVG_DISPLAY_NONE) ||
+		(*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) ) {
 		goto end;
 	}
 
@@ -548,7 +548,7 @@ static void SVG_Render_rect(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		drawable_draw(eff->ctx);
+		drawable_draw(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -618,7 +618,7 @@ static void SVG_Render_circle(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		drawable_draw(eff->ctx);
+		drawable_draw(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -657,7 +657,7 @@ static void SVG_Render_ellipse(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		drawable_draw(eff->ctx);
+		drawable_draw(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -695,7 +695,7 @@ static void SVG_Render_line(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		drawable_draw(eff->ctx);
+		drawable_draw(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -734,7 +734,7 @@ static void SVG_Render_polyline(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		drawable_draw(eff->ctx);
+		drawable_draw(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -783,7 +783,7 @@ static void SVG_Render_polygon(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		drawable_draw(eff->ctx);
+		drawable_draw(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -842,7 +842,7 @@ static void SVG_Render_path(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		drawable_draw(eff->ctx);
+		drawable_draw(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -870,7 +870,11 @@ static void SVG_Render_path(GF_Node *node, void *rs, Bool is_destroy)
 
 void SVG_Init_path(Render2D *sr, GF_Node *node)
 {
-	drawable_stack_new(sr, node);
+	Drawable *st = drawable_stack_new(sr, node);
+#if USE_GF_PATH
+	gf_path_del(st->path);
+	st->path = NULL;
+#endif
 	gf_node_set_callback_function(node, SVG_Render_path);
 }
 
@@ -1241,12 +1245,16 @@ void SVG_Render_base(GF_Node *node, RenderEffect2D *eff,
 	memcpy(backup_props, eff->svg_props, sizeof(SVGPropertiesPointers));
 	*backup_flags = eff->svg_flags;
 
-	// applying inheritance and determining which group of properties are being inherited
-	inherited_flags_mask = gf_svg_apply_inheritance((SVGElement *)node, eff->svg_props);
+	/*following has been checked against animate-elem-84-t.svg and animate-elem-78-t.svg (and others)*/
 	
+	/*first apply animations - all inherit values used during interpolation are resolved against the current 
+	property context (ie parent one) during this step*/
+	gf_svg_apply_animations(node, eff->svg_props);
+	
+	/*then apply inheritance now that all animated attributes are set (potentially to 'inherit')
+	and store groups of inherited properties for dirty rect algo*/
+	inherited_flags_mask = gf_svg_apply_inheritance((SVGElement *)node, eff->svg_props);	
 	eff->svg_flags &= inherited_flags_mask;
-
-	gf_svg_apply_animations(node, eff->svg_props); // including again inheritance if values are 'inherit'
 
 	eff->svg_flags |= gf_node_dirty_get(node);
 }

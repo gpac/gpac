@@ -29,7 +29,7 @@
 #include "svg_stacks.h"
 #endif
 
-void child2d_compute_bounds(ChildGroup2D *cg)
+static void child2d_compute_bounds(ChildGroup2D *cg)
 {
 	u32 i, count;
 	Fixed a, d;
@@ -42,7 +42,7 @@ void child2d_compute_bounds(ChildGroup2D *cg)
 	for (i=0; i<count; i++) {
 		void text2D_get_ascent_descent(DrawableContext *ctx, Fixed *a, Fixed *d);
 		DrawableContext *ctx = (DrawableContext *)gf_list_get(cg->contexts, i);
-		gf_rect_union(&cg->original, &ctx->unclip);
+		gf_rect_union(&cg->original, &ctx->bi->unclip);
 		if (!cg->is_text_group) continue;
 		if (! (ctx->flags & CTX_IS_TEXT) ) {
 			cg->is_text_group = 0;
@@ -201,11 +201,14 @@ void child2d_render_done(ChildGroup2D *cg, RenderEffect2D *eff, GF_Rect *par_cli
 		SensorContext *sc;
 		DrawableContext *ctx = (DrawableContext *)gf_list_get(cg->contexts, i);
 
-		gf_mx2d_apply_coords(&mat, &ctx->unclip.x, &ctx->unclip.y);
-		x = INT2FIX(ctx->clip.x); y = INT2FIX(ctx->clip.y);
+		drawable_check_bounds(ctx, eff->surface);
+
+		gf_mx2d_apply_coords(&mat, &ctx->bi->unclip.x, &ctx->bi->unclip.y);
+		x = INT2FIX(ctx->bi->clip.x);
+		y = INT2FIX(ctx->bi->clip.y);
 		gf_mx2d_apply_coords(&mat, &x, &y);
-		ctx->clip.x = FIX2INT(gf_floor(x));
-		ctx->clip.y = FIX2INT(gf_ceil(y));
+		ctx->bi->clip.x = FIX2INT(gf_floor(x));
+		ctx->bi->clip.y = FIX2INT(gf_ceil(y));
 
 		gf_mx2d_add_matrix(&ctx->transform, &mat);
 		if (!eff->is_pixel_metrics) gf_mx2d_add_scale(&ctx->transform, inv_min_hsize, inv_min_hsize);
@@ -221,11 +224,10 @@ void child2d_render_done(ChildGroup2D *cg, RenderEffect2D *eff, GF_Rect *par_cli
 		if (!eff->is_pixel_metrics) gf_mx2d_add_scale(&loc_mx, inv_min_hsize, inv_min_hsize);
 		gf_mx2d_add_matrix(&loc_mx, &eff->transform);
 
-		gf_mx2d_apply_rect(&loc_mx, &ctx->unclip);
-		ctx->unclip_pix = gf_rect_pixelize(&ctx->unclip);
+		gf_mx2d_apply_rect(&loc_mx, &ctx->bi->unclip);
 
-		gf_mx2d_apply_rect_int(&loc_mx, &ctx->clip);
-		gf_irect_intersect(&ctx->clip, &clipper);
+		gf_mx2d_apply_rect_int(&loc_mx, &ctx->bi->clip);
+		gf_irect_intersect(&ctx->bi->clip, &clipper);
 
 		drawable_finalize_end(ctx, eff);
 	}
@@ -238,9 +240,12 @@ void child2d_render_done_complex(ChildGroup2D *cg, RenderEffect2D *eff, GF_Matri
 	for (i=0; i<count; i++) {
 		SensorContext *sc;
 		DrawableContext *ctx = (DrawableContext *)gf_list_get(cg->contexts, i);
+
+		drawable_check_bounds(ctx, eff->surface);
+
 		if (!mat) {
-			gf_rect_reset(&ctx->clip);
-			gf_rect_reset(&ctx->unclip);
+			gf_rect_reset(&ctx->bi->clip);
+			gf_rect_reset(&ctx->bi->unclip);
 			continue;
 		}
 		gf_mx2d_add_matrix(&ctx->transform, mat);
@@ -251,9 +256,9 @@ void child2d_render_done_complex(ChildGroup2D *cg, RenderEffect2D *eff, GF_Matri
 			gf_mx2d_add_matrix(&sc->matrix, &eff->transform);
 			sc = sc->next;
 		}
-		gf_mx2d_apply_rect(&ctx->transform, &ctx->unclip);
-		ctx->unclip_pix = gf_rect_pixelize(&ctx->unclip);
-		gf_mx2d_apply_rect_int(&ctx->transform, &ctx->clip);
+		gf_mx2d_apply_rect(&ctx->transform, &ctx->bi->unclip);
+
+		gf_mx2d_apply_rect_int(&ctx->transform, &ctx->bi->clip);
 
 		drawable_finalize_end(ctx, eff);
 	}

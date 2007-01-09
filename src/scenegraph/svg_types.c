@@ -106,6 +106,13 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_svg_reset_iri(sg, (SVG_IRI *)value);
 		free(value);
 		break;
+	case SVG_PathData_datatype:
+#if USE_GF_PATH
+		gf_path_del((GF_Path *)value);
+#else
+		free(value);
+#endif
+		break;
 	case SVG_String_datatype:
 		if (*(SVG_String *)value) free(*(SVG_String *)value);
 		free(value);
@@ -124,6 +131,13 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		}
 		gf_list_del(l);
 		free(value);
+		break;
+	case SVG_FontFamily_datatype:
+	{
+		SVG_FontFamily *ff = (SVG_FontFamily *)value;
+		if (ff->value) free(ff->value);
+		free(value);
+	}
 		break;
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
@@ -357,7 +371,7 @@ void gf_svg_reset_base_element(SVGElement *p)
 	if (p->conditional) gf_svg_delete_conditional(p->conditional);
 	if (p->sync)		gf_svg_delete_sync(p->sync);
 
-	if (p->sgprivate->interact && p->sgprivate->interact->animations) gf_smil_anim_delete_animations(p);
+	if (p->sgprivate->interact && p->sgprivate->interact->animations) gf_smil_anim_delete_animations((GF_Node*)p);
 	if (p->anim)		{
 		gf_svg_delete_anim(p->anim, p->sgprivate->scenegraph);
 		gf_smil_anim_remove_from_target((GF_Node *)p, (GF_Node *)p->xlink->href.target);

@@ -35,8 +35,6 @@
 #include <gpac/scenegraph_vrml.h>
 
 #include <gpac/scenegraph_svg.h>
-#include <gpac/scenegraph_svg2.h>
-#include <gpac/scenegraph_svg3.h>
 
 void gf_node_setup(GF_Node *p, u32 tag);
 
@@ -291,39 +289,8 @@ void gf_svg_init_xlink(SVGElement *p);
 void gf_svg_delete_xlink(SVGElement *elt, XLinkAttributes *p);
 
 void gf_svg_init_focus(SVGElement *p);
-void gf_svg2_delete_focus(SVG2Element *elt, SVGFocusAttributes *p);
 
 void gf_svg_init_properties(SVGElement *p);
-
-/* SVG 2 related functions */
-SVG2Element *gf_svg2_create_node(u32 ElementTag);
-const char *gf_svg2_get_element_name(u32 tag);
-Bool gf_sg_svg2_node_init(GF_Node *node);
-Bool gf_sg_svg2_node_changed(GF_Node *node, GF_FieldInfo *field);
-
-void gf_svg2_element_del(GF_Node *node);
-
-u32 gf_svg2_get_attribute_count(GF_Node *node);
-GF_Err gf_svg2_get_attribute_info(GF_Node *node, GF_FieldInfo *info);
-
-void gf_svg2_init_core(SVG2Element *p);
-void gf_svg2_init_focus(SVG2Element *p);
-void gf_svg2_init_xlink(SVG2Element *p);
-void gf_svg2_init_conditional(SVG2Element *p);
-void gf_svg2_init_timing(SVG2Element *p);
-void gf_svg2_init_anim(SVG2Element *p);
-void gf_svg2_init_sync(SVG2Element *p);
-void gf_svg2_reset_base_element(SVG2Element *p);
-
-/* SVG 3 related functions */
-SVG3Element *gf_svg3_create_node(u32 tag);
-const char *gf_svg3_get_element_name(u32 tag);
-void gf_svg3_node_del(GF_Node *node);
-u16 gf_svg3_get_attribute_tag(u32 element_tag, const char *attribute_name);
-SVG3Attribute *gf_svg3_create_attribute(GF_Node *node, u16 attribute_tag);
-SVG3Attribute *gf_svg3_create_attribute_from_datatype(u16 datatype, u16 attribute_tag);
-GF_Err gf_svg3_get_attribute_by_tag(GF_Node *node, u16 attribute_tag, Bool create_if_not_found, GF_FieldInfo *field);
-GF_Err gf_svg3_get_attribute_by_name(GF_Node *node, char *name, Bool create_if_not_found, GF_FieldInfo *field);
 
 /* animations */
 GF_Err gf_node_animation_add(GF_Node *node, void *animation);
@@ -339,7 +306,6 @@ void *gf_svg_get_property_pointer(SVGPropertiesPointers *rendering_property_cont
 void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, SVGElement*elt, void *orig_dom_ptr, SVGPropertiesPointers *inherited_props);
 
 u32 gf_svg_get_rendering_flag_if_modified(SVGElement *n, GF_FieldInfo *info);
-u32 gf_svg2_get_rendering_flag_if_modified(SVG2Element *n, GF_FieldInfo *info);
 
 
 /* reset functions for SVG types */
