@@ -58,7 +58,7 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 			node->sgprivate->scenegraph->script_load(node);
 		return 1;
 	case TAG_SVG_conditional:
-		gf_smil_timing_init_runtime_info((SVGElement *)node);
+		gf_smil_timing_init_runtime_info(node);
 		((SVGElement *)node)->timing->runtime->evaluate = lsr_conditional_evaluate;
 		gf_smil_setup_events(node);
 		return 1;

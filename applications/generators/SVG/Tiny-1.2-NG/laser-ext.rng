@@ -80,9 +80,9 @@
 
   <define name='rectClip.AT' combine='interleave'>
     <!-- no AT in AT for our code generator -->
+    <ref name='svg.Core.attr'/>
     <ref name='svg.Properties.attr'/>
     <ref name='svg.FocusHighlight.attr'/>
-    <ref name='svg.Core.attr'/>
     <ref name='svg.External.attr'/>
     <ref name='svg.Conditional.attr'/>
     <ref name='svg.Focus.attr'/>
@@ -104,9 +104,9 @@
 
   <define name='simpleLayout.AT' combine='interleave'>
     <!-- no AT in AT for our code generator -->
+    <ref name='svg.Core.attr'/>
     <ref name='svg.Properties.attr'/>
     <ref name='svg.FocusHighlight.attr'/>
-    <ref name='svg.Core.attr'/>
     <ref name='svg.External.attr'/>
     <ref name='svg.Conditional.attr'/>
     <ref name='svg.Focus.attr'/>
@@ -128,9 +128,9 @@
 
   <define name='selector.AT' combine='interleave'>
     <!-- no AT in AT for our code generator -->
+    <ref name='svg.Core.attr'/>
     <ref name='svg.Properties.attr'/>
     <ref name='svg.FocusHighlight.attr'/>
-    <ref name='svg.Core.attr'/>
     <ref name='svg.External.attr'/>
     <ref name='svg.Conditional.attr'/>
     <ref name='svg.Focus.attr'/>

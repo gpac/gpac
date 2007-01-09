@@ -725,7 +725,7 @@ static void svg_parse_clock_value(char *d, Double *clock_value)
 	  events, 
 	  clock value.
  */
-static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d) 
+static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d) 
 {
 	char *tmp;
 
@@ -1506,12 +1506,12 @@ next_command:
 }
 #endif
 
-static void svg_parse_iri(SVGElement *elt, SVG_IRI *iri, char *attribute_content)
+static void svg_parse_iri(GF_Node *elt, SVG_IRI *iri, char *attribute_content)
 {
 	/* TODO: Handle xpointer(id()) syntax */
 	if (attribute_content[0] == '#') {
 		iri->iri = strdup(attribute_content);
-		iri->target = (SVGElement *)gf_sg_find_node_by_name(elt->sgprivate->scenegraph, attribute_content + 1);
+		iri->target = gf_sg_find_node_by_name(elt->sgprivate->scenegraph, attribute_content + 1);
 		if (!iri->target) {
 			iri->type = SVG_IRI_IRI;
 		} else {
@@ -1525,7 +1525,7 @@ static void svg_parse_iri(SVGElement *elt, SVG_IRI *iri, char *attribute_content
 }
 
 /* Parses a paint attribute: none, inherit or color */
-static void svg_parse_paint(SVGElement *elt, SVG_Paint *paint, char *attribute_content)
+static void svg_parse_paint(GF_Node *n, SVG_Paint *paint, char *attribute_content)
 {
 	if (!strcmp(attribute_content, "none")) {
 		paint->type = SVG_PAINT_NONE;
@@ -1535,7 +1535,7 @@ static void svg_parse_paint(SVGElement *elt, SVG_Paint *paint, char *attribute_c
 		u32 len = strlen(attribute_content);
 		paint->type = SVG_PAINT_URI;
 		attribute_content[len-1] = 0;
-		svg_parse_iri(elt, &paint->iri, attribute_content+4);
+		svg_parse_iri(n, &paint->iri, attribute_content+4);
 		attribute_content[len-1] = ')';
 	} else {
 		paint->type = SVG_PAINT_COLOR;
@@ -1917,7 +1917,7 @@ static void svg_parse_boolean(SVG_Boolean *value, char *value_string)
 }
 
 
-static void smil_parse_time_list(SVGElement *e, GF_List *values, char *begin_or_end_list)
+static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end_list)
 {
 	SMIL_Time *value;
 	char value_string[500];
@@ -2374,7 +2374,7 @@ static void svg_parse_transformbehavior(SVG_TransformBehavior *tb, char *attribu
 	}
 }
 
-static void svg_parse_focus(SVGElement *elt,  SVG_Focus *o, char *attribute_content)
+static void svg_parse_focus(GF_Node *e,  SVG_Focus *o, char *attribute_content)
 {
 	if (o->target.iri) free(o->target.iri);
 	o->target.iri = NULL;
@@ -2384,13 +2384,13 @@ static void svg_parse_focus(SVGElement *elt,  SVG_Focus *o, char *attribute_cont
 	else if (!strcmp(attribute_content, "auto")) o->type = SVG_FOCUS_AUTO;
 	else {
 		o->type = SVG_FOCUS_IRI;
-		svg_parse_iri(elt, &o->target, attribute_content);
+		svg_parse_iri(e, &o->target, attribute_content);
 	}
 }
 
 /* end of Basic SVG datatype parsing functions */
 
-void svg_parse_one_anim_value(SVGElement *elt, SMIL_AnimateValue *anim_value, char *attribute_content, u8 anim_value_type, u8 transform_type)
+void svg_parse_one_anim_value(GF_Node *n, SMIL_AnimateValue *anim_value, char *attribute_content, u8 anim_value_type, u8 transform_type)
 {
 	GF_FieldInfo info;
 	info.fieldType = anim_value_type;
@@ -2425,13 +2425,13 @@ void svg_parse_one_anim_value(SVGElement *elt, SMIL_AnimateValue *anim_value, ch
 		}
 	}
 	info.far_ptr = gf_svg_create_attribute_value(anim_value_type, transform_type);
-	if (info.far_ptr) gf_svg_parse_attribute(elt, &info, attribute_content, anim_value_type, transform_type);
+	if (info.far_ptr) gf_svg_parse_attribute(n, &info, attribute_content, anim_value_type, transform_type);
 	anim_value->value = info.far_ptr;
 	anim_value->type = anim_value_type;
 	anim_value->transform_type = transform_type;
 }
 
-void svg_parse_anim_values(SVGElement *elt, SMIL_AnimateValues *anim_values, char *anim_values_string, u8 anim_value_type, u8 transform_type)
+void svg_parse_anim_values(GF_Node *n, SMIL_AnimateValues *anim_values, char *anim_values_string, u8 anim_value_type, u8 transform_type)
 {
 	u32 i = 0;
 	char *str;
@@ -2453,7 +2453,7 @@ void svg_parse_anim_values(SVGElement *elt, SMIL_AnimateValues *anim_values, cha
 			str [ (psemi+1) + single_value_len] = 0;
 			info.far_ptr = gf_svg_create_attribute_value(anim_value_type, transform_type);
 			if (info.far_ptr) {
-				gf_svg_parse_attribute(elt, &info, str + (psemi+1), anim_value_type, transform_type);
+				gf_svg_parse_attribute(n, &info, str + (psemi+1), anim_value_type, transform_type);
 				gf_list_add(anim_values->values, info.far_ptr);
 			}
 			str [ (psemi+1) + single_value_len] = c;
@@ -2463,7 +2463,7 @@ void svg_parse_anim_values(SVGElement *elt, SMIL_AnimateValues *anim_values, cha
 	}
 }
 
-void svg_parse_transform_animation_value(SVGElement *elt, void *transform, char *value_string, u8 transform_type) 
+void svg_parse_transform_animation_value(GF_Node *n, void *transform, char *value_string, u8 transform_type) 
 {
 	u32 i = 0;
 	switch(transform_type) {
@@ -2535,11 +2535,12 @@ GF_Err laser_parse_size(LASeR_Size *size, char *attribute_content)
 	return GF_OK;
 }
 
-GF_Err gf_svg_parse_element_id(SVGElement *elt, const char *nodename, Bool warning_if_defined)
+GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if_defined)
 {
-	GF_SceneGraph *sg = gf_node_get_graph((GF_Node *)elt);
+	GF_SceneGraph *sg = gf_node_get_graph((GF_Node *)n);
 #if 0
 	SVGElement *unided_elt;
+	GF_SceneGraph *sg = gf_node_get_graph(n);
 
 	unided_elt = (SVGElement *)gf_sg_find_node_by_name(sg, (char *) nodename);
 	if (unided_elt) {
@@ -2549,7 +2550,7 @@ GF_Err gf_svg_parse_element_id(SVGElement *elt, const char *nodename, Bool warni
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] element with id='%s' already defined in document.\n", nodename));
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] element with id='%s' already defined in document.\n", nodename));
-			gf_node_set_id((GF_Node *)elt, gf_node_get_id((GF_Node*)unided_elt), nodename);
+			gf_node_set_id(n, gf_node_get_id((GF_Node*)unided_elt), nodename);
 		}
 	} else {
 		u32 id;
@@ -2565,19 +2566,18 @@ GF_Err gf_svg_parse_element_id(SVGElement *elt, const char *nodename, Bool warni
 		} else {
 			id = gf_sg_get_next_available_node_id(sg);
 		}
-		id = gf_sg_get_max_node_id(sg) + 1;
-		gf_node_set_id((GF_Node *)elt, id, nodename);
+		gf_node_set_id(n, id, nodename);
 	}
 #else
 	u32 id;
 	id = gf_sg_get_max_node_id(sg) + 1;
-	gf_node_set_id((GF_Node *)elt, id, nodename);
+	gf_node_set_id(n, id, nodename);
 #endif
 	return GF_OK;
 }
 
 /* Parse an SVG attribute */
-GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type)
+GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type)
 {
 	u32 len;
 	len = strlen(attribute_content);
@@ -2592,7 +2592,7 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		svg_parse_color((SVG_Color *)info->far_ptr, attribute_content);
 	    break;
 	case SVG_Paint_datatype:
-		svg_parse_paint(elt, (SVG_Paint *)info->far_ptr, attribute_content);
+		svg_parse_paint(n, (SVG_Paint *)info->far_ptr, attribute_content);
 		break;
 
 /* beginning of keyword type parsing */
@@ -2723,19 +2723,19 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		break;
 
 	case SMIL_AnimateValue_datatype:
-		svg_parse_one_anim_value(elt, (SMIL_AnimateValue*)info->far_ptr, attribute_content, anim_value_type, transform_type);
+		svg_parse_one_anim_value(n, (SMIL_AnimateValue*)info->far_ptr, attribute_content, anim_value_type, transform_type);
 		break;
 	case SMIL_AnimateValues_datatype:
-		svg_parse_anim_values(elt, (SMIL_AnimateValues*)info->far_ptr, attribute_content, anim_value_type, transform_type);
+		svg_parse_anim_values(n, (SMIL_AnimateValues*)info->far_ptr, attribute_content, anim_value_type, transform_type);
 		break;
 	case SVG_IRI_datatype:
-		svg_parse_iri(elt, (SVG_IRI*)info->far_ptr, attribute_content);
+		svg_parse_iri(n, (SVG_IRI*)info->far_ptr, attribute_content);
 		break;
 	case SMIL_AttributeName_datatype:
 		/* Should be not called here but directly */
 		break;
 	case SMIL_Times_datatype:
-		smil_parse_time_list(elt, *(GF_List **)info->far_ptr, attribute_content);
+		smil_parse_time_list(n, *(GF_List **)info->far_ptr, attribute_content);
 		break;
 	case SMIL_Duration_datatype:
 		smil_parse_min_max_dur_repeatdur((SMIL_Duration*)info->far_ptr, attribute_content);
@@ -2743,9 +2743,7 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 	case SMIL_RepeatCount_datatype:
 		smil_parse_repeatcount((SMIL_RepeatCount*)info->far_ptr, attribute_content);
 		break;
-
 	case SVG_PathData_datatype:
-		//return GF_OK;
 		svg_parse_path((SVG_PathData*)info->far_ptr, attribute_content);
 		break;
 	case SVG_Points_datatype:
@@ -2771,10 +2769,11 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 	case SVG_Matrix_datatype:
 		if (transform_type == SVG_TRANSFORM_MATRIX) {
 			Bool is_ref = svg_parse_transform((SVG_Matrix*)info->far_ptr, attribute_content);
-			if (gf_svg_is_element_transformable(gf_node_get_tag((GF_Node *)elt)))
-				((SVGTransformableElement *)elt)->is_ref_transform = is_ref;
+			if (gf_svg_is_element_transformable(gf_node_get_tag(n)))
+				((SVGTransformableElement *)n)->is_ref_transform = is_ref;
+			/* TODO: FIXME ref will not work in SVG2 */
 		} else 
-			svg_parse_transform_animation_value(elt, info->far_ptr, attribute_content, transform_type);
+			svg_parse_transform_animation_value(n, info->far_ptr, attribute_content, transform_type);
 		break;
 	case SVG_PreserveAspectRatio_datatype:
 		svg_parse_preserveaspectratio((SVG_PreserveAspectRatio*)info->far_ptr, attribute_content);
@@ -2789,7 +2788,7 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 	case SVG_ID_datatype:
 		/* This should not be use when parsing a LASeR update */
 		/* If an ID is parsed outside from the parser (e.g. script), we may try to resolve animations ... */
-		gf_svg_parse_element_id(elt, attribute_content, 0);
+		gf_svg_parse_element_id(n, attribute_content, 0);
 		break;
 
 	case SVG_String_datatype:
@@ -2833,7 +2832,7 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		break;
 
 	case SVG_Focus_datatype:
-		svg_parse_focus(elt, (SVG_Focus*)info->far_ptr, attribute_content);
+		svg_parse_focus(n, (SVG_Focus*)info->far_ptr, attribute_content);
 		break;
 	case LASeR_Choice_datatype:
 		laser_parse_choice((LASeR_Choice*)info->far_ptr, attribute_content);
@@ -2855,7 +2854,7 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 	return GF_OK;
 }
 
-void svg_parse_one_style(SVGElement *elt, char *one_style) 
+void svg_parse_one_style(GF_Node *n, char *one_style) 
 {
 	GF_FieldInfo info;
 	char *c, sep;
@@ -2867,16 +2866,16 @@ void svg_parse_one_style(SVGElement *elt, char *one_style)
 	attributeNameLen = (c - one_style);
 	sep = one_style[attributeNameLen];
 	one_style[attributeNameLen] = 0;
-	if (!gf_node_get_field_by_name((GF_Node *)elt, one_style, &info)) {
+	if (!gf_node_get_field_by_name(n, one_style, &info)) {
 		c++;
-		gf_svg_parse_attribute(elt, &info, c, 0, 0);
+		gf_svg_parse_attribute(n, &info, c, 0, 0);
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Attribute %s does not belong to element %s.\n", one_style, gf_svg_get_element_name(gf_node_get_tag((GF_Node*)elt))));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Attribute %s does not belong to element %s.\n", one_style, gf_svg_get_element_name(gf_node_get_tag(n))));
 	}
 	one_style[attributeNameLen] = sep;
 }
 
-void gf_svg_parse_style(SVGElement *elt, char *style) 
+void gf_svg_parse_style(GF_Node *n, char *style) 
 {
 	u32 i = 0;
 	char *str = style;
@@ -2889,7 +2888,7 @@ void gf_svg_parse_style(SVGElement *elt, char *style)
 			if (single_value_len) {
 				char c = str[psemi+1 + single_value_len];
 				str[psemi+1 + single_value_len] = 0;
-				svg_parse_one_style(elt, str + psemi+1);
+				svg_parse_one_style(n, str + psemi+1);
 				str[psemi+1 + single_value_len] = c;
 				psemi = i;
 			}
@@ -3079,9 +3078,17 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 			return coords;
 		}
 		break;
+	case SVG_PreserveAspectRatio_datatype:
+		{
+			SVG_PreserveAspectRatio *par;
+			GF_SAFEALLOC(par, SVG_PreserveAspectRatio)
+			return par;
+		}
+		break;
 	case SVG_PathData_datatype:
 		{
-			SVG_PathData *path = (SVG_PathData *)malloc(sizeof(SVG_PathData));
+			SVG_PathData *path;
+			GF_SAFEALLOC(path, SVG_PathData);
 #if USE_GF_PATH
 			gf_path_reset(path);
 			path->fineness = FIX_ONE;

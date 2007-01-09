@@ -1215,7 +1215,7 @@ static void dirty_parents(GF_Node *node)
 }
 
 GF_EXPORT
-void gf_node_dirty_set(GF_Node *node, u16 flags, Bool and_dirty_parents)
+void gf_node_dirty_set(GF_Node *node, u32 flags, Bool and_dirty_parents)
 {
 	if (!node) return;
 	
@@ -1226,7 +1226,7 @@ void gf_node_dirty_set(GF_Node *node, u16 flags, Bool and_dirty_parents)
 }
 
 GF_EXPORT
-void gf_node_dirty_clear(GF_Node *node, u16 flag_to_remove)
+void gf_node_dirty_clear(GF_Node *node, u32 flag_to_remove)
 {
 	if (!node) return;
 	if (flag_to_remove) node->sgprivate->flags &= ~ (flag_to_remove & ~GF_NODE_INTERNAL_FLAGS);
@@ -1234,7 +1234,7 @@ void gf_node_dirty_clear(GF_Node *node, u16 flag_to_remove)
 }
 
 GF_EXPORT
-u16 gf_node_dirty_get(GF_Node *node)
+u32 gf_node_dirty_get(GF_Node *node)
 {
 	if (node) return (node->sgprivate->flags & ~GF_NODE_INTERNAL_FLAGS);
 	return 0;

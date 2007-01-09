@@ -43,6 +43,7 @@ typedef struct
 static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGPropertiesPointers backup_props;
+	u32 backup_flags;
 	GF_Matrix2D backup_matrix;
 	DrawableContext *ctx;
 	SVG_TextStack *st = (SVG_TextStack *)gf_node_get_private(node);
@@ -69,12 +70,12 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (!ft_dr) return;
 
-	
-	SVG_Render_base(node, eff, &backup_props);
+	SVG_Render_base(node, eff, &backup_props, &backup_flags);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
 		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+		eff->svg_flags = backup_flags;
 		return;
 	}
 	gf_mx2d_copy(backup_matrix, eff->transform);
@@ -168,6 +169,7 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+	eff->svg_flags = backup_flags;
 }
 
 

@@ -304,7 +304,7 @@ void gf_svg_delete_sync(SMILSyncAttributes *p)
 	free(p);
 }
 
-static void gf_svg_delete_anim(SMILAnimationAttributes *p, GF_SceneGraph *sg)
+void gf_svg_delete_anim(SMILAnimationAttributes *p, GF_SceneGraph *sg)
 {
 	gf_smil_delete_key_types(p->keySplines);
 	gf_smil_delete_key_types(p->keyTimes);
@@ -360,11 +360,12 @@ void gf_svg_reset_base_element(SVGElement *p)
 	if (p->sgprivate->interact && p->sgprivate->interact->animations) gf_smil_anim_delete_animations(p);
 	if (p->anim)		{
 		gf_svg_delete_anim(p->anim, p->sgprivate->scenegraph);
-		gf_smil_anim_remove_from_target(p, p->xlink->href.target);
+		gf_smil_anim_remove_from_target((GF_Node *)p, (GF_Node *)p->xlink->href.target);
 	}
 	
 	if (p->timing)		{
-		gf_smil_timing_delete_runtime_info(p);
+		gf_smil_timing_delete_runtime_info((GF_Node *)p, p->timing->runtime);
+		p->timing->runtime = NULL;
 		gf_svg_delete_timing(p->timing);
 	}
 	

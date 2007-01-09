@@ -145,6 +145,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	SVG_image_stack *st = (SVG_image_stack*)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 	SVGPropertiesPointers backup_props;
+	u32 backup_flags;
 	GF_Matrix2D backup_matrix;
 	SVG_Matrix *m;
 	DrawableContext *ctx;
@@ -158,7 +159,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 		return;
 	}
 
-	SVG_Render_base(node, eff, &backup_props);
+	SVG_Render_base(node, eff, &backup_props, &backup_flags);
 
 	if (gf_node_dirty_get(node)) {
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("xlink:href is %s\n", ((SVGElement *)node)->xlink->href.iri));
@@ -181,7 +182,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 				gf_sr_texture_play(&st->txh, &st->txurl);
 			}
 		} 
-		gf_node_dirty_clear(node, 0);
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	} else {
 		if (gf_node_get_tag(node)==TAG_SVG_image) {
 			m = &((SVGimageElement *)node)->transform;
@@ -198,12 +199,14 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 			gf_path_get_bounds(st->graph->path, &eff->bounds);
 		}
 		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+		eff->svg_flags = backup_flags;
 		return;
 	}
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
 		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+		eff->svg_flags = backup_flags;
 		return;
 	}
 
@@ -238,6 +241,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	drawable_finalize_render(ctx, eff, NULL);
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+	eff->svg_flags = backup_flags;
 }
 
 
@@ -382,7 +386,7 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 	/* create an MFURL from the SVG iri */
 	gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVGvideoElement *)node)->xlink->href);
 
-	gf_smil_timing_init_runtime_info((SVGElement *)node);
+	gf_smil_timing_init_runtime_info(node);
 	if (((SVGElement *)node)->timing->runtime) {
 		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
 		rti->evaluate = svg_video_smil_evaluate;
@@ -425,6 +429,7 @@ static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGPropertiesPointers backup_props;
+	u32 backup_flags;
 	RenderEffect2D *eff = (RenderEffect2D*)rs;
 	SVG_audio_stack *st = (SVG_audio_stack *)gf_node_get_private(node);
 
@@ -440,7 +445,7 @@ static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	/*for heritage and anims*/
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props, &backup_flags);
 
 	/*store mute flag*/
 	st->input.is_muted = 0;
@@ -452,6 +457,7 @@ static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+	eff->svg_flags = backup_flags;
 }
 
 void SVG_Init_audio(Render2D *sr, GF_Node *node)
@@ -464,7 +470,7 @@ void SVG_Init_audio(Render2D *sr, GF_Node *node)
 	/* creates an MFURL from the URI of the SVG element */
 	gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), & ((SVGaudioElement *)node)->xlink->href);
 
-	gf_smil_timing_init_runtime_info((SVGElement *)node);
+	gf_smil_timing_init_runtime_info(node);
 	if (((SVGElement *)node)->timing->runtime) {
 		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
 		rti->evaluate = svg_audio_smil_evaluate;
@@ -485,8 +491,9 @@ void R2D_RenderUse(GF_Node *node, GF_Node *sub_root, void *rs)
 	GF_Node *prev_use;
 	SVGuseElement *use = (SVGuseElement *)node;
 	SVGPropertiesPointers backup_props;
+	u32 backup_flags;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
-	SVG_Render_base(node, eff, &backup_props);
+	SVG_Render_base(node, eff, &backup_props, &backup_flags);
 
 	gf_mx2d_init(translate);
 	translate.m[2] = use->x.value;
@@ -518,6 +525,7 @@ void R2D_RenderUse(GF_Node *node, GF_Node *sub_root, void *rs)
 
 end:
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+	eff->svg_flags = backup_flags;
 }
 
 
@@ -525,6 +533,7 @@ void R2D_RenderInlineAnimation(GF_Node *anim, GF_Node *sub_root, void *rs)
 {
 	GF_Matrix2D backup_matrix;
 	SVGPropertiesPointers backup_props;
+	u32 backup_flags;
 	RenderEffect2D *eff = (RenderEffect2D*)rs;
 	SVGanimationElement *a = (SVGanimationElement*)anim;
   	GF_Matrix2D translate;
@@ -533,7 +542,7 @@ void R2D_RenderInlineAnimation(GF_Node *anim, GF_Node *sub_root, void *rs)
 	memset(&new_props, 0, sizeof(SVGPropertiesPointers));
 
 	/*for heritage and anims*/
-	SVG_Render_base(anim, (RenderEffect2D *)rs, &backup_props);
+	SVG_Render_base(anim, (RenderEffect2D *)rs, &backup_props, &backup_flags);
 
 
 	gf_mx2d_init(translate);
@@ -572,10 +581,9 @@ void R2D_RenderInlineAnimation(GF_Node *anim, GF_Node *sub_root, void *rs)
 	gf_svg_properties_reset_pointers(&new_props);
 
 	gf_svg_restore_parent_transformation(eff, &backup_matrix);  
-	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-
 end:
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+	eff->svg_flags = backup_flags;
 }
 
 #endif //GPAC_DISABLE_SVG

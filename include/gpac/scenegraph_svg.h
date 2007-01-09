@@ -38,7 +38,6 @@ enum {
 
 	/* keyword enum types */
 	SVG_FillRule_datatype					= 1,
-//	SVG_Clip_datatype = SVG_FillRule_datatype,
 	SVG_StrokeLineJoin_datatype				= 2,
 	SVG_StrokeLineCap_datatype				= 3,
 	SVG_FontStyle_datatype					= 4,
@@ -78,14 +77,7 @@ enum {
 
 	/* SVG Number */
 	SVG_Number_datatype						= 50,
-//	SVG_NumberOrPercentage_datatype			= 51,
-//	SVG_Opacity_datatype					= 52,
-//	SVG_StrokeMiterLimit_datatype			= 53,
 	SVG_FontSize_datatype					= 54,
-//	SVG_StrokeDashOffset_datatype			= 55,
-//	SVG_AudioLevel_datatype					= 56,
-//	SVG_LineIncrement_datatype				= 57,
-//	SVG_StrokeWidth_datatype				= 58,
 	SVG_Length_datatype						= 59,
 	SVG_Coordinate_datatype					= 60,
 	SVG_Rotate_datatype						= 61,
@@ -306,7 +298,7 @@ enum {
 typedef struct {
 	u8 type;
 	char *iri;
-	struct _svg_element *target;
+	void *target;
 } SVG_IRI;
 
 enum
@@ -1089,6 +1081,7 @@ typedef struct {
 	SVG_LanguageIDs systemLanguage;
 } SVGConditionalAttributes;
 
+/* Common structure for all SVG elements */
 #define BASE_SVG_ELEMENT \
 	BASE_NODE \
 	CHILDREN \
@@ -1106,12 +1099,15 @@ typedef struct _svg_element {
 	BASE_SVG_ELEMENT
 } SVGElement;
 
-#define TRANSFORMABLE_SVG_ELEMENT	\
-	BASE_SVG_ELEMENT	\
-	Bool is_ref_transform;	\
-	SVG_Matrix transform;	\
-	SVG_Matrix *motionTransform;
-
+/* 
+	Common structure for all SVG elements potentially transformable 
+	they have a transform attribute split in two: boolean to indicate if transform is ref + matrix
+	they have an implicit pseudo-attribute which holds the supplemental transform computed by animateMotions elements */	
+#define TRANSFORMABLE_SVG_ELEMENT \
+	BASE_SVG_ELEMENT \
+	Bool is_ref_transform; \
+	SVG_Matrix transform; \
+	SVG_Matrix *motionTransform; 
 
 typedef struct _svg_transformable_element {
 	TRANSFORMABLE_SVG_ELEMENT
@@ -1128,15 +1124,15 @@ typedef struct
 /*************************************
  * Generic SVG element functions     *
  *************************************/
-
 /*the exported functions used by the scene graph*/
 u32 gf_node_svg_type_by_class_name(const char *element_name);
 
 void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props);
 void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props);
 
-void gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_props);
+u32 gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_props);
 void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props);
+Bool gf_svg_has_appearance_flag_dirty(u32 flags);
 
 Bool is_svg_animation_tag(u32 tag);
 Bool gf_svg_is_element_transformable(u32 tag);
@@ -1157,8 +1153,8 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a, Fixed beta, GF_Fie
 
 
 
-GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type);
-void gf_svg_parse_style(SVGElement *elt, char *style);
+GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type);
+void gf_svg_parse_style(GF_Node *n, char *style);
 GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue);
 GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *attValue);
 
@@ -1167,7 +1163,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points);
 void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *iri);
 void gf_svg_unregister_iri(GF_SceneGraph *sg, SVG_IRI *iri);
 
-GF_Err gf_svg_parse_element_id(SVGElement *elt, const char *nodename, Bool warning_if_defined);
+GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if_defined);
 
 
 /* 
@@ -1228,7 +1224,7 @@ struct _tagSVGlistenerElement *gf_dom_listener_get(GF_Node *node, u32 i);
 
 /*creates a default listener/handler for the given event on the given node, and return the 
 handler element to allow for handler function override*/
-struct _tagSVGhandlerElement *gf_dom_listener_build(GF_Node *node, XMLEV_Event event);
+void *gf_dom_listener_build(GF_Node *node, XMLEV_Event event);
 
 Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg);
 

@@ -99,7 +99,7 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 		} else {
 			gf_node_get_field_by_name((GF_Node *)at_node, at_att, &info);
 			fprintf(stdout, "WARNING: point insert not supported\n");
-			gf_node_dirty_set((GF_Node *) at_node, GF_SG_SVG_GEOMETRY_DIRTY|GF_SG_SVG_APPEARANCE_DIRTY, 0);
+			gf_node_dirty_set((GF_Node *) at_node, GF_SG_SVG_GEOMETRY_DIRTY, 0);
 		}
 
 		return GF_OK;
@@ -139,9 +139,9 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 				if (pos>=0) 
 					fprintf(stdout, "WARNING: point replace not supported\n");
 				else
-					gf_svg_parse_attribute(at_node, &info, value, 0, 0);
+					gf_svg_parse_attribute((GF_Node *)at_node, &info, value, 0, 0);
 
-				gf_node_dirty_set((GF_Node *) at_node, GF_SG_SVG_GEOMETRY_DIRTY|GF_SG_SVG_APPEARANCE_DIRTY, 0);
+				gf_node_dirty_set((GF_Node *) at_node, GF_SG_SVG_GEOMETRY_DIRTY, 0);
 			}
 		}
 		return GF_OK;

@@ -58,8 +58,8 @@
   </define>
 
   <define name='solidColor.AT' combine='interleave'>
-    <ref name='svg.Properties.attr'/>
     <ref name='svg.Core.attr'/>
+    <ref name='svg.Properties.attr'/>
   </define>
 
 </grammar>

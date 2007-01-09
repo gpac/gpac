@@ -42,8 +42,8 @@
 
   <!-- ... *Gradient .............................................. -->
   <define name='svg.GradientCommon.attr' combine='interleave'>
-    <ref name='svg.Properties.attr'/>
     <ref name='svg.Core.attr'/>
+    <ref name='svg.Properties.attr'/>
     <optional>
       <attribute name='gradientUnits' svg:animatable='true' svg:inheritable='false'>
         <choice>
@@ -95,9 +95,7 @@
   </define>
 
   <define name='linearGradient.AT' combine='interleave'>
-    <ref name='svg.Properties.attr'/>
     <ref name='svg.GradientCommon.attr'/>
-    <ref name='svg.Core.attr'/>
     <ref name='svg.X12Y12.attr'/>
   </define>
 
@@ -111,9 +109,7 @@
   </define>
 
   <define name='radialGradient.AT' combine='interleave'>
-    <ref name='svg.Properties.attr'/>
     <ref name='svg.GradientCommon.attr'/>
-    <ref name='svg.Core.attr'/>
     <ref name='svg.CxCy.attr'/>
     <ref name='svg.R.attr'/>
 
