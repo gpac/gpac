@@ -44,7 +44,7 @@
    - 2 means static allocation of attributes (only useful properties on nodes, use Tiny-1.2-NG-noproperties)
    - 3 means dynamic allocation of attributes (including properties)
 */
-static u32 generation_mode = 1;
+static u32 generation_mode = 2;
 
 #define RNG_NS "http://relaxng.org/ns/structure/1.0"
 #define RNGA_NS "http://relaxng.org/ns/compatibility/annotations/1.0"

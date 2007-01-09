@@ -59,7 +59,13 @@ enum {
 	GF_NODE_RANGE_LAST_X3D = GF_NODE_RANGE_FIRST_X3D+512,
 	/*range for SVG*/
 	GF_NODE_RANGE_FIRST_SVG, 
-	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+512
+	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+512,
+	/*range for SVG2*/
+	GF_NODE_RANGE_FIRST_SVG2, 
+	GF_NODE_RANGE_LAST_SVG2 = GF_NODE_RANGE_FIRST_SVG2+512,
+	/*range for SVG3*/
+	GF_NODE_RANGE_FIRST_SVG3, 
+	GF_NODE_RANGE_LAST_SVG3 = GF_NODE_RANGE_FIRST_SVG3+512,
 };
 
 
@@ -218,9 +224,36 @@ enum
 
 	/*SVG-specific flags due to mix of geometry and appearance & co attributes*/
 	/*SVG geometry changed is the same as base flag*/
-	GF_SG_SVG_GEOMETRY_DIRTY = GF_SG_NODE_DIRTY,
-	/*SVG fill&stroke attribute changed*/
-	GF_SG_SVG_APPEARANCE_DIRTY = 1<<2,
+	GF_SG_SVG_GEOMETRY_DIRTY		= GF_SG_NODE_DIRTY,
+	GF_SG_SVG_COLOR_DIRTY			= 1<<2,
+	GF_SG_SVG_DISPLAYALIGN_DIRTY	= 1<<3,
+	GF_SG_SVG_FILL_DIRTY			= 1<<4,
+	GF_SG_SVG_FILLOPACITY_DIRTY		= 1<<5,
+	GF_SG_SVG_FILLRULE_DIRTY		= 1<<6,
+	GF_SG_SVG_FONTFAMILY_DIRTY		= 1<<7,
+	GF_SG_SVG_FONTSIZE_DIRTY		= 1<<8,
+	GF_SG_SVG_FONTSTYLE_DIRTY		= 1<<9,
+	GF_SG_SVG_FONTVARIANT_DIRTY		= 1<<10,
+	GF_SG_SVG_FONTWEIGHT_DIRTY		= 1<<11,
+	GF_SG_SVG_LINEINCREMENT_DIRTY	= 1<<12,
+	GF_SG_SVG_OPACITY_DIRTY			= 1<<13,
+	GF_SG_SVG_SOLIDCOLOR_DIRTY		= 1<<14,
+	GF_SG_SVG_SOLIDOPACITY_DIRTY	= 1<<15,
+	GF_SG_SVG_STOPCOLOR_DIRTY		= 1<<16,
+	GF_SG_SVG_STOPOPACITY_DIRTY		= 1<<17,
+	GF_SG_SVG_STROKE_DIRTY			= 1<<18,
+	GF_SG_SVG_STROKEDASHARRAY_DIRTY	= 1<<19,
+	GF_SG_SVG_STROKEDASHOFFSET_DIRTY= 1<<20,
+	GF_SG_SVG_STROKELINECAP_DIRTY	= 1<<21,
+	GF_SG_SVG_STROKELINEJOIN_DIRTY	= 1<<22,
+	GF_SG_SVG_STROKEMITERLIMIT_DIRTY= 1<<23,
+	GF_SG_SVG_STROKEOPACITY_DIRTY	= 1<<24,
+	GF_SG_SVG_STROKEWIDTH_DIRTY		= 1<<25,
+	GF_SG_SVG_TEXTALIGN_DIRTY		= 1<<26,
+	GF_SG_SVG_TEXTANCHOR_DIRTY		= 1<<27,
+	GF_SG_SVG_VECTOREFFECT_DIRTY	= 1<<28,
+	GF_SG_SVG_VIEWPORTFILL_DIRTY		= 1<<29,
+	GF_SG_SVG_VIEWPORTFILLOPACITY_DIRTY	= 1<<30,
 };
 
 /*set dirty flags.
@@ -231,20 +264,20 @@ If @invalidate_parents is set, all parent subtrees for this node are marked as G
 Note: parent subtree marking aborts if a node in the subtree is already marked with GF_SG_CHILD_DIRTY
 which means tat if you never clean the dirty flags, no propagation will take place
 */
-void gf_node_dirty_set(GF_Node *node, u16 flags, Bool dirty_parents);
+void gf_node_dirty_set(GF_Node *node, u32 flags, Bool dirty_parents);
 
 
 /*set dirty flag off. It is the user responsability to clear dirty flags
 if @flags is 0, all flags are set off
 if @flags is not 0, removes the indicated flags from the node dirty state
 */
-void gf_node_dirty_clear(GF_Node *node, u16 flags);
+void gf_node_dirty_clear(GF_Node *node, u32 flags);
 
 /*if the node is in a dirty state, resets it and the state of all its children*/
 void gf_node_dirty_reset(GF_Node *node);
 
 /*get dirty flag value*/
-u16 gf_node_dirty_get(GF_Node *node);
+u32 gf_node_dirty_get(GF_Node *node);
 
 /*Notes on GF_FieldInfo
 all scene graph implementations should answer node field query with this interface. 

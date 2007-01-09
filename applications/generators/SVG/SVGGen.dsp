@@ -113,6 +113,10 @@ SOURCE=.\v1.c
 
 SOURCE=.\v2.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\v3.c
+# End Source File
 # End Group
 # Begin Source File
 

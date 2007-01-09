@@ -347,87 +347,204 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 	TODO: Check if all properties are implemented 
 */
 GF_EXPORT
-void gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_props) 
+u32 gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_props) 
 {
-	if (!elt || !render_svg_props) return;
+	u32 inherited_flags_mask = GF_SG_NODE_DIRTY | GF_SG_CHILD_DIRTY;
+	if(!elt || !render_svg_props) return ~inherited_flags_mask;
 
 	/* Perform inheritance of all the properties */
 	if (render_svg_props && elt->properties) {
 		if (elt->properties->audio_level.type != SVG_NUMBER_INHERIT)
-			render_svg_props->audio_level = &elt->properties->audio_level;		
-		if (elt->properties->color.color.type != SVG_COLOR_INHERIT) 
+			render_svg_props->audio_level = &elt->properties->audio_level;	
+		
+		if (elt->properties->color.color.type != SVG_COLOR_INHERIT) {
 			render_svg_props->color = &elt->properties->color;
-		if (elt->properties->color_rendering != SVG_RENDERINGHINT_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_COLOR_DIRTY;
+		}
+		if (elt->properties->color_rendering != SVG_RENDERINGHINT_INHERIT) {
 			render_svg_props->color_rendering = &elt->properties->color_rendering;
-		if (elt->properties->display != SVG_DISPLAY_INHERIT)
+		}
+		if (elt->properties->display != SVG_DISPLAY_INHERIT) {
 			render_svg_props->display = &elt->properties->display;
-		if (elt->properties->display_align != SVG_DISPLAYALIGN_INHERIT)
+		}
+		if (elt->properties->display_align != SVG_DISPLAYALIGN_INHERIT) {
 			render_svg_props->display_align = &elt->properties->display_align;
-		if (elt->properties->fill.type != SVG_PAINT_INHERIT) 
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_DISPLAYALIGN_DIRTY;
+		}
+		if (elt->properties->fill.type != SVG_PAINT_INHERIT) {
 			render_svg_props->fill = &(elt->properties->fill);
-		if (elt->properties->fill_opacity.type != SVG_NUMBER_INHERIT)
+			if (elt->properties->fill.type == SVG_PAINT_COLOR && 
+				elt->properties->fill.color.type == SVG_COLOR_CURRENTCOLOR &&
+				(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
+				inherited_flags_mask |= GF_SG_SVG_FILL_DIRTY;
+			}
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_FILL_DIRTY;
+		}
+		if (elt->properties->fill_opacity.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->fill_opacity = &elt->properties->fill_opacity;
-		if (elt->properties->fill_rule != SVG_FILLRULE_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_FILLOPACITY_DIRTY;
+		}
+		if (elt->properties->fill_rule != SVG_FILLRULE_INHERIT) {
 			render_svg_props->fill_rule = &elt->properties->fill_rule;
-		if (elt->properties->font_family.type != SVG_FONTFAMILY_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_FILLRULE_DIRTY;
+		}
+		if (elt->properties->font_family.type != SVG_FONTFAMILY_INHERIT) {
 			render_svg_props->font_family = &elt->properties->font_family;
-		if (elt->properties->font_size.type != SVG_NUMBER_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_FONTFAMILY_DIRTY;
+		}
+		if (elt->properties->font_size.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->font_size = &elt->properties->font_size;
-		if (elt->properties->font_style != SVG_FONTSTYLE_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_FONTSIZE_DIRTY;
+		}
+		if (elt->properties->font_style != SVG_FONTSTYLE_INHERIT) {
 			render_svg_props->font_style = &elt->properties->font_style;
-		if (elt->properties->font_variant != SVG_FONTVARIANT_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_FONTSTYLE_DIRTY;
+		}
+		if (elt->properties->font_variant != SVG_FONTVARIANT_INHERIT) {
 			render_svg_props->font_variant = &elt->properties->font_variant;
-		if (elt->properties->font_weight!= SVG_FONTWEIGHT_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_FONTVARIANT_DIRTY;
+		}
+		if (elt->properties->font_weight!= SVG_FONTWEIGHT_INHERIT) {
 			render_svg_props->font_weight = &elt->properties->font_weight;
-		if (elt->properties->image_rendering != SVG_RENDERINGHINT_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_FONTWEIGHT_DIRTY;
+		}
+		if (elt->properties->image_rendering != SVG_RENDERINGHINT_INHERIT) {
 			render_svg_props->image_rendering = &elt->properties->image_rendering;
-		if (elt->properties->line_increment.type != SVG_NUMBER_INHERIT)
+		}
+		if (elt->properties->line_increment.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->line_increment = &elt->properties->line_increment;
-		if (elt->properties->opacity.type != SVG_NUMBER_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_LINEINCREMENT_DIRTY;
+		}
+		if (elt->properties->opacity.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->opacity = &elt->properties->opacity;
-		if (elt->properties->pointer_events != SVG_POINTEREVENTS_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_OPACITY_DIRTY;
+		}
+		if (elt->properties->pointer_events != SVG_POINTEREVENTS_INHERIT) {
 			render_svg_props->pointer_events = &elt->properties->pointer_events;
-		if (elt->properties->shape_rendering != SVG_RENDERINGHINT_INHERIT)
+		}
+		if (elt->properties->shape_rendering != SVG_RENDERINGHINT_INHERIT) {
 			render_svg_props->shape_rendering = &elt->properties->shape_rendering;
-		if (elt->properties->solid_color.type != SVG_PAINT_INHERIT)
+		}
+		if (elt->properties->solid_color.type != SVG_PAINT_INHERIT) {
 			render_svg_props->solid_color = &(elt->properties->solid_color);		
-		if (elt->properties->solid_opacity.type != SVG_NUMBER_INHERIT)
+			if (elt->properties->solid_color.type == SVG_PAINT_COLOR && 
+				elt->properties->solid_color.color.type == SVG_COLOR_CURRENTCOLOR &&
+				(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
+				inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_DIRTY;
+			}
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_DIRTY;
+		}
+		if (elt->properties->solid_opacity.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->solid_opacity = &elt->properties->solid_opacity;
-		if (elt->properties->stop_color.type != SVG_PAINT_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_SOLIDOPACITY_DIRTY;
+		}
+		if (elt->properties->stop_color.type != SVG_PAINT_INHERIT) {
 			render_svg_props->stop_color = &(elt->properties->stop_color);
-		if (elt->properties->stop_opacity.type != SVG_NUMBER_INHERIT)
+			if (elt->properties->stop_color.type == SVG_PAINT_COLOR && 
+				elt->properties->stop_color.color.type == SVG_COLOR_CURRENTCOLOR &&
+				(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
+				inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_DIRTY;
+			}
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_DIRTY;
+		}
+		if (elt->properties->stop_opacity.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->stop_opacity = &elt->properties->stop_opacity;
-		if (elt->properties->stroke.type != SVG_PAINT_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_STOPOPACITY_DIRTY;
+		}
+		if (elt->properties->stroke.type != SVG_PAINT_INHERIT) {
 			render_svg_props->stroke = &elt->properties->stroke;
-		if (elt->properties->stroke_dasharray.type != SVG_STROKEDASHARRAY_INHERIT)
+			if (elt->properties->stroke.type == SVG_PAINT_COLOR && 
+				elt->properties->stroke.color.type == SVG_COLOR_CURRENTCOLOR &&
+				(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
+				inherited_flags_mask |= GF_SG_SVG_STROKE_DIRTY;
+			}
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_STROKE_DIRTY;
+		}
+		if (elt->properties->stroke_dasharray.type != SVG_STROKEDASHARRAY_INHERIT) {
 			render_svg_props->stroke_dasharray = &elt->properties->stroke_dasharray;
-		if (elt->properties->stroke_dashoffset.type != SVG_NUMBER_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_STROKEDASHARRAY_DIRTY;
+		}
+		if (elt->properties->stroke_dashoffset.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->stroke_dashoffset = &elt->properties->stroke_dashoffset;
-		if (elt->properties->stroke_linecap != SVG_STROKELINECAP_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_STROKEDASHOFFSET_DIRTY;
+		}
+		if (elt->properties->stroke_linecap != SVG_STROKELINECAP_INHERIT) {
 			render_svg_props->stroke_linecap = &elt->properties->stroke_linecap;
-		if (elt->properties->stroke_linejoin != SVG_STROKELINEJOIN_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_STROKELINECAP_DIRTY;
+		}
+		if (elt->properties->stroke_linejoin != SVG_STROKELINEJOIN_INHERIT) {
 			render_svg_props->stroke_linejoin = &elt->properties->stroke_linejoin;
-		if (elt->properties->stroke_miterlimit.type != SVG_NUMBER_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_STROKELINEJOIN_DIRTY;
+		}
+		if (elt->properties->stroke_miterlimit.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->stroke_miterlimit = &elt->properties->stroke_miterlimit;
-		if (elt->properties->stroke_opacity.type != SVG_NUMBER_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_STROKEMITERLIMIT_DIRTY;
+		}
+		if (elt->properties->stroke_opacity.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->stroke_opacity = &elt->properties->stroke_opacity;
-		if (elt->properties->stroke_width.type != SVG_NUMBER_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_STROKEOPACITY_DIRTY;
+		}
+		if (elt->properties->stroke_width.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->stroke_width = &elt->properties->stroke_width;
-		if (elt->properties->text_align != SVG_TEXTALIGN_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_STROKEWIDTH_DIRTY;
+		}
+		if (elt->properties->text_align != SVG_TEXTALIGN_INHERIT) {
 			render_svg_props->text_align = &elt->properties->text_align;
-		if (elt->properties->text_anchor != SVG_TEXTANCHOR_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_TEXTALIGN_DIRTY;
+		}
+		if (elt->properties->text_anchor != SVG_TEXTANCHOR_INHERIT) {
 			render_svg_props->text_anchor = &elt->properties->text_anchor;
-		if (elt->properties->text_rendering != SVG_RENDERINGHINT_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_TEXTANCHOR_DIRTY;
+		}
+		if (elt->properties->text_rendering != SVG_RENDERINGHINT_INHERIT) {
 			render_svg_props->text_rendering = &elt->properties->text_rendering;
-		if (elt->properties->vector_effect != SVG_VECTOREFFECT_INHERIT)
+		}
+		if (elt->properties->vector_effect != SVG_VECTOREFFECT_INHERIT) {
 			render_svg_props->vector_effect = &elt->properties->vector_effect;
-		if (elt->properties->viewport_fill.type != SVG_PAINT_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_VECTOREFFECT_DIRTY;
+		}
+		if (elt->properties->viewport_fill.type != SVG_PAINT_INHERIT) {
 			render_svg_props->viewport_fill = &elt->properties->viewport_fill;		
-		if (elt->properties->viewport_fill_opacity.type != SVG_NUMBER_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_VIEWPORTFILL_DIRTY;
+		}
+		if (elt->properties->viewport_fill_opacity.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->viewport_fill_opacity = &elt->properties->viewport_fill_opacity;
-		if (elt->properties->visibility != SVG_VISIBILITY_INHERIT)
+		} else {
+			inherited_flags_mask |= GF_SG_SVG_VIEWPORTFILLOPACITY_DIRTY;
+		}
+		if (elt->properties->visibility != SVG_VISIBILITY_INHERIT) {
 			render_svg_props->visibility = &elt->properties->visibility;
+		}
 	}
+	return inherited_flags_mask;
 }
 
 /* Equivalent to "get_property_pointer_by_name" but without string comparison
@@ -459,6 +576,7 @@ void *gf_svg_get_property_pointer(SVGPropertiesPointers *output_property_context
 	else if (input_attribute == &input_property_context->font_family) return output_property_context->font_family;
 	else if (input_attribute == &input_property_context->font_size) return output_property_context->font_size;
 	else if (input_attribute == &input_property_context->font_style) return output_property_context->font_style;
+	else if (input_attribute == &input_property_context->font_variant) return output_property_context->font_variant;
 	else if (input_attribute == &input_property_context->font_weight) return output_property_context->font_weight;
 	else if (input_attribute == &input_property_context->image_rendering) return output_property_context->image_rendering;
 	else if (input_attribute == &input_property_context->line_increment) return output_property_context->line_increment;
@@ -556,3 +674,100 @@ Bool gf_svg_is_inherit(GF_FieldInfo *a)
 	}
 }
 
+u32 gf_svg_get_rendering_flag_if_modified(SVGElement *n, GF_FieldInfo *info)
+{
+	if (n->properties) {		
+		if      (&n->properties->audio_level == info->far_ptr)			return 0;
+		else if (&n->properties->color == info->far_ptr)				return GF_SG_SVG_COLOR_DIRTY;
+		else if (&n->properties->color_rendering == info->far_ptr)		return 0;
+		else if (&n->properties->display == info->far_ptr)				return 0;
+		else if (&n->properties->display_align == info->far_ptr)		return GF_SG_SVG_DISPLAYALIGN_DIRTY;
+		else if (&n->properties->fill == info->far_ptr)					return GF_SG_SVG_FILL_DIRTY;
+		else if (&n->properties->fill_opacity == info->far_ptr)			return GF_SG_SVG_FILLOPACITY_DIRTY;
+		else if (&n->properties->fill_rule == info->far_ptr)			return GF_SG_SVG_FILLRULE_DIRTY;
+		else if (&n->properties->font_family == info->far_ptr)			return GF_SG_SVG_FONTFAMILY_DIRTY;
+		else if (&n->properties->font_size == info->far_ptr)			return GF_SG_SVG_FONTSIZE_DIRTY;
+		else if (&n->properties->font_style == info->far_ptr)			return GF_SG_SVG_FONTSTYLE_DIRTY;
+		else if (&n->properties->font_variant == info->far_ptr)			return GF_SG_SVG_FONTVARIANT_DIRTY;
+		else if (&n->properties->font_weight == info->far_ptr)			return GF_SG_SVG_FONTWEIGHT_DIRTY;		
+		else if (&n->properties->image_rendering == info->far_ptr)		return 0;
+		else if (&n->properties->line_increment == info->far_ptr)		return GF_SG_SVG_LINEINCREMENT_DIRTY;
+		else if (&n->properties->opacity == info->far_ptr)				return GF_SG_SVG_OPACITY_DIRTY;
+		else if (&n->properties->pointer_events == info->far_ptr)		return 0;
+		else if (&n->properties->shape_rendering == info->far_ptr)		return 0;
+		else if (&n->properties->solid_color == info->far_ptr)			return GF_SG_SVG_SOLIDCOLOR_DIRTY;
+		else if (&n->properties->solid_opacity == info->far_ptr)		return GF_SG_SVG_SOLIDOPACITY_DIRTY;
+		else if (&n->properties->stop_color == info->far_ptr)			return GF_SG_SVG_STOPCOLOR_DIRTY;
+		else if (&n->properties->stop_opacity == info->far_ptr)			return GF_SG_SVG_STOPOPACITY_DIRTY;
+		else if (&n->properties->stroke == info->far_ptr)				return GF_SG_SVG_STROKE_DIRTY;
+		else if (&n->properties->stroke_dasharray == info->far_ptr)		return GF_SG_SVG_STROKEDASHARRAY_DIRTY;
+		else if (&n->properties->stroke_dashoffset == info->far_ptr)	return GF_SG_SVG_STROKEDASHOFFSET_DIRTY;
+		else if (&n->properties->stroke_linecap == info->far_ptr)		return GF_SG_SVG_STROKELINECAP_DIRTY;
+		else if (&n->properties->stroke_linejoin == info->far_ptr)		return GF_SG_SVG_STROKELINEJOIN_DIRTY;
+		else if (&n->properties->stroke_miterlimit == info->far_ptr)	return GF_SG_SVG_STROKEMITERLIMIT_DIRTY;
+		else if (&n->properties->stroke_opacity == info->far_ptr)		return GF_SG_SVG_STROKEOPACITY_DIRTY;
+		else if (&n->properties->stroke_width == info->far_ptr)			return GF_SG_SVG_STROKEWIDTH_DIRTY;
+		else if (&n->properties->text_align == info->far_ptr)			return GF_SG_SVG_TEXTALIGN_DIRTY;
+		else if (&n->properties->text_anchor == info->far_ptr)			return GF_SG_SVG_TEXTANCHOR_DIRTY;
+		else if (&n->properties->text_rendering == info->far_ptr)		return 0;
+		else if (&n->properties->vector_effect == info->far_ptr)		return GF_SG_SVG_VECTOREFFECT_DIRTY;
+		else if (&n->properties->viewport_fill == info->far_ptr)		return GF_SG_SVG_VIEWPORTFILL_DIRTY;
+		else if (&n->properties->viewport_fill_opacity == info->far_ptr)return GF_SG_SVG_VIEWPORTFILLOPACITY_DIRTY;
+		else if (&n->properties->visibility == info->far_ptr)			return 0;
+	}
+	
+	/* this is not a property but a regular attribute, the animatable attributes are at the moment:
+		focusable, focusHighlight, gradientUnits, nav-*, target, xlink:href, xlink:type, 
+
+
+		the following affect the geometry of the element (some affect the positioning):
+		cx, cy, d, height, offset, pathLength, points, r, rx, ry, width, x, x1, x2, y, y1, y2, rotate
+
+		the following affect the positioning and are computed at each frame:
+		transform, viewBox, preserveAspectRatio
+	*/
+	switch (info->fieldType) {
+		case SVG_Number_datatype:
+		case SVG_Length_datatype:
+		case SVG_Coordinate_datatype:
+		case SVG_Numbers_datatype:
+		case SVG_Points_datatype:
+		case SVG_Coordinates_datatype:
+		case SVG_PathData_datatype:
+		case SVG_Rotate_datatype:
+			return GF_SG_SVG_GEOMETRY_DIRTY;
+
+		case SVG_IRI_datatype:
+			return GF_SG_NODE_DIRTY;
+
+		//case SVG_Matrix_datatype:
+		//case SVG_Motion_datatype:
+		//case SVG_ViewBox_datatype:
+
+		default:
+			return 0;
+	}
+}
+
+GF_EXPORT
+Bool gf_svg_has_appearance_flag_dirty(u32 flags)
+{
+	/* fill-related */
+	if (flags & GF_SG_SVG_FILL_DIRTY)				return 1;
+	if (flags & GF_SG_SVG_FILLOPACITY_DIRTY)		return 1;
+	if (flags & GF_SG_SVG_FILLRULE_DIRTY)			return 1;
+
+	/* stroke-related */
+	if (flags & GF_SG_SVG_STROKE_DIRTY)				return 1;
+	if (flags & GF_SG_SVG_STROKEDASHARRAY_DIRTY)	return 1;
+	if (flags & GF_SG_SVG_STROKEDASHOFFSET_DIRTY)	return 1;
+	if (flags & GF_SG_SVG_STROKELINECAP_DIRTY)		return 1;
+	if (flags & GF_SG_SVG_STROKELINEJOIN_DIRTY)		return 1;
+	if (flags & GF_SG_SVG_STROKEMITERLIMIT_DIRTY)	return 1;
+	if (flags & GF_SG_SVG_STROKEOPACITY_DIRTY)		return 1;
+	if (flags & GF_SG_SVG_STROKEWIDTH_DIRTY)		return 1;
+	if (flags & GF_SG_SVG_VECTOREFFECT_DIRTY)		return 1;
+
+	/* gradients stops and solidcolor do not affect appearance directly */
+	return 0;
+}

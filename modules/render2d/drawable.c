@@ -27,6 +27,7 @@
 #include "stacks2d.h"
 #ifndef GPAC_DISABLE_SVG
 #include "svg_stacks.h"
+#include "svg_stacks2.h"
 #endif
 
 
@@ -959,12 +960,8 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	ctx->node = node;
 	ctx->appear = eff->parent_use;
 	if (eff->invalidate_all || (node->flags & DRAWABLE_HAS_CHANGED) ) ctx->flags |= CTX_NODE_DIRTY;
-	else if (gf_node_dirty_get(node->owner) & GF_SG_SVG_APPEARANCE_DIRTY) ctx->flags |= CTX_NODE_DIRTY;
-	else if (ctx->appear && (gf_node_dirty_get(ctx->appear) & GF_SG_SVG_APPEARANCE_DIRTY)) {
-		ctx->flags |= CTX_NODE_DIRTY;
-		gf_node_dirty_clear(ctx->appear, GF_SG_SVG_APPEARANCE_DIRTY);
-	}
-
+	else if (gf_svg_has_appearance_flag_dirty(eff->svg_flags)) ctx->flags |= CTX_NODE_DIRTY;
+	
 	ctx->h_texture = NULL;
 
 	/*FIXME - only needed for texture*/
@@ -988,6 +985,154 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	}
 
 	setup_SVG_drawable_context(ctx, *(eff->svg_props));
+
+	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
+	if (ctx->h_texture && ctx->h_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
+
+	if (check_transparent_skip(ctx, skipFill)) {
+		VS2D_RemoveLastContext(eff->surface);
+		return NULL;
+	}
+	//ctx->flags |= CTX_HAS_LISTENERS;
+	return ctx;
+}
+
+static void setup_svg2_drawable_context(DrawableContext *ctx)
+{
+	SVG2pathElement *path = (SVG2pathElement *)ctx->node->owner;
+	Fixed clamped_solid_opacity = FIX_ONE;
+	Fixed clamped_fill_opacity = (path->fill_opacity.value < 0 ? 0 : (path->fill_opacity.value > FIX_ONE ? FIX_ONE : path->fill_opacity.value));
+	Fixed clamped_stroke_opacity = (path->stroke_opacity.value < 0 ? 0 : (path->stroke_opacity.value > FIX_ONE ? FIX_ONE : path->stroke_opacity.value));	
+
+	ctx->aspect.fill_alpha = 255;
+	ctx->aspect.filled = (path->fill.type != SVG_PAINT_NONE);
+
+	if (path->fill.type==SVG_PAINT_URI) {
+		if (path->fill.iri.type != SVG_IRI_ELEMENTID) {
+			/* trying to resolve the IRI to the Paint Server */
+			SVG_IRI *iri = &path->fill.iri;
+			GF_SceneGraph *sg = gf_node_get_graph(ctx->node->owner);
+			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
+			if (n) {
+				iri->type = SVG_IRI_ELEMENTID;
+				iri->target = (SVGElement *) n;
+				gf_svg_register_iri(sg, iri);
+				free(iri->iri);
+				iri->iri = NULL;
+			}
+		}		
+		if (path->fill.iri.type != SVG_IRI_ELEMENTID) {
+			/* Paint server not found, paint is equivalent to none */
+			ctx->aspect.filled = 0;
+		} else {
+			switch (gf_node_get_tag((GF_Node *)path->fill.iri.target)) {
+			case TAG_SVG_solidColor:
+				{
+					SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)path->fill.iri.target;
+					clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
+					ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
+				}
+				break;
+			case TAG_SVG_linearGradient: 
+			case TAG_SVG_radialGradient: 
+				ctx->h_texture = svg_gradient_get_texture((GF_Node *)path->fill.iri.target);
+				ctx->aspect.filled = 0;
+				break;
+			default: 
+				ctx->aspect.filled = 0;
+			}
+		}
+	}
+	else if (path->fill.color.type == SVG_COLOR_RGBCOLOR) {
+		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_fill_opacity, path->fill.color.red, path->fill.color.green, path->fill.color.blue);
+	} else if (path->fill.color.type >= SVG_COLOR_ACTIVE_BORDER) {
+		ctx->aspect.fill_color = ctx->surface->render->compositor->sys_colors[path->fill.color.type - 3];
+		ctx->aspect.fill_color |= ((u32) (clamped_fill_opacity*255) ) << 24;
+	}
+
+	ctx->aspect.has_line = (path->stroke.type != SVG_PAINT_NONE);
+	if (path->stroke.type==SVG_PAINT_URI) {
+		if (path->stroke.iri.type != SVG_IRI_ELEMENTID) {
+			/* trying to resolve the IRI to the Paint Server */
+			SVG_IRI *iri = &path->stroke.iri;
+			GF_SceneGraph *sg = gf_node_get_graph(ctx->node->owner);
+			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
+			if (n) {
+				iri->type = SVG_IRI_ELEMENTID;
+				iri->target = (SVGElement *) n;
+				gf_svg_register_iri(sg, iri);
+				free(iri->iri);
+				iri->iri = NULL;
+			}
+		}		
+		if (path->stroke.iri.type != SVG_IRI_ELEMENTID) {
+			/* Paint server not found, stroke is equivalent to none */
+			ctx->aspect.pen_props.width = 0;
+		} else {
+			switch (gf_node_get_tag((GF_Node *)path->stroke.iri.target)) {
+			case TAG_SVG_solidColor:
+				{
+					SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)path->stroke.iri.target;
+					clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
+					ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
+				}
+				break;
+			case TAG_SVG_linearGradient: 
+			case TAG_SVG_radialGradient: 
+				ctx->aspect.line_texture = svg_gradient_get_texture((GF_Node*)path->stroke.iri.target);
+				break;
+			default: 
+				ctx->aspect.pen_props.width = 0;
+			}
+		}
+	}
+	else if (path->stroke.color.type == SVG_COLOR_RGBCOLOR) {
+		ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_stroke_opacity, path->stroke.color.red, path->stroke.color.green, path->stroke.color.blue);
+	} else if (path->stroke.color.type >= SVG_COLOR_ACTIVE_BORDER) {
+		ctx->aspect.line_color = ctx->surface->render->compositor->sys_colors[SVG_COLOR_ACTIVE_BORDER - 3];
+		ctx->aspect.line_color |= ((u32) (clamped_stroke_opacity*255)) << 24;
+	}
+	if (path->stroke_dasharray.type != SVG_STROKEDASHARRAY_NONE) {
+		ctx->aspect.pen_props.dash = GF_DASH_STYLE_CUSTOM_ABS;
+		ctx->aspect.pen_props.dash_offset = path->stroke_dashoffset.value;
+		ctx->aspect.pen_props.dash_set = (GF_DashSettings *) &(path->stroke_dasharray.array);
+	}
+	ctx->aspect.is_scalable = (path->vector_effect == SVG_VECTOREFFECT_NONSCALINGSTROKE)?0:1;
+	
+	ctx->aspect.pen_props.cap = path->stroke_linecap;
+	ctx->aspect.pen_props.join = path->stroke_linejoin;
+	ctx->aspect.pen_props.width = (ctx->aspect.has_line?path->stroke_width.value:0);
+	ctx->aspect.pen_props.miterLimit = path->stroke_miterlimit.value;
+}
+
+DrawableContext *svg2_drawable_init_context(Drawable *node, RenderEffect2D *eff)
+{
+	DrawableContext *ctx;
+	Bool skipFill = 0;
+	assert(eff->surface);
+
+	/*switched-off geometry nodes are not rendered*/
+	if (eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF) return NULL;
+	
+	//Get a empty context from the current surface
+	ctx = VS2D_GetDrawableContext(eff->surface);
+
+	gf_mx2d_copy(ctx->transform, eff->transform);
+
+	ctx->node = node;
+	ctx->appear = eff->parent_use;
+	if (eff->invalidate_all || (node->flags & DRAWABLE_HAS_CHANGED) ) {
+		ctx->flags |= CTX_NODE_DIRTY;
+	} else if (gf_svg_has_appearance_flag_dirty(gf_node_dirty_get(node->owner))) {
+		ctx->flags |= CTX_NODE_DIRTY;
+	}
+
+	ctx->h_texture = NULL;
+
+	/*FIXME - only needed for texture*/
+	gf_cmx_copy(&ctx->cmat, &eff->color_mat);
+	
+	setup_svg2_drawable_context(ctx);
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
 	if (ctx->h_texture && ctx->h_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;

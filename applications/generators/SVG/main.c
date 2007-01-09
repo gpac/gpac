@@ -894,11 +894,6 @@ void generateGenericAttrib(FILE *output, SVGGenElement *elt, u32 index)
 	}
 }
 
-void generateSVGCode_V3(GF_List *svg_elements)
-{
-	/* TODO */
-}
-
 int main(int argc, char **argv)
 {
 	xmlDocPtr doc = NULL;

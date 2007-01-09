@@ -166,9 +166,9 @@
   </define>
 
   <define name='g.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
     <ref name='svg.Properties.attr'/>
     <ref name='svg.FocusHighlight.attr'/>
-    <ref name='svg.Core.attr'/>
     <ref name='svg.External.attr'/>
     <ref name='svg.Conditional.attr'/>
     <ref name='svg.Focus.attr'/>
@@ -186,8 +186,8 @@
   </define>
 
   <define name='defs.AT' combine='interleave'>
-    <ref name='svg.Properties.attr'/>
     <ref name='svg.Core.attr'/>
+    <ref name='svg.Properties.attr'/>
   </define>
 
 

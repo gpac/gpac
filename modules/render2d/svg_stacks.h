@@ -34,7 +34,7 @@
 /* Reusing generic 2D stacks for rendering */
 #include "stacks2d.h"
 
-void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *backup_props);
+void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *backup_props, u32 *backup_flags);
 void svg_render_node(GF_Node *node, RenderEffect2D *eff);
 void svg_render_node_list(GF_ChildNodeItem *children, RenderEffect2D *eff);
 void svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, RenderEffect2D *eff);
@@ -61,8 +61,6 @@ void SVG_Init_line(Render2D *sr, GF_Node *node);
 void SVG_Init_polyline(Render2D *sr, GF_Node *node);
 void SVG_Init_polygon(Render2D *sr, GF_Node *node);
 void SVG_Init_path(Render2D *sr, GF_Node *node);
-
-void SVG_Init_use(Render2D *se, GF_Node *node);
 
 /* Text rendering functions */
 void SVG_Init_text(Render2D *sr, GF_Node *node);

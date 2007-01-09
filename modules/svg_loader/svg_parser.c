@@ -791,7 +791,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 			xmlChar *style= svg_expand_entities(parser, (xmlChar *)attrs[attribute_index+1]);
 			if (style)
 			{
-				gf_svg_parse_style(elt, style);
+				gf_svg_parse_style((GF_Node *)elt, style);
 				free(style);
 			}
 			break;

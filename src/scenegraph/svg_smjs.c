@@ -65,30 +65,8 @@ static void svg_node_changed(GF_Node *n, GF_FieldInfo *info)
 	if (!info) {
 		gf_node_changed(n, NULL);
 	} else {
-		switch (info->fieldType) {
-		case SVG_Color_datatype:
-		case SVG_Paint_datatype:
-		case SVG_FillRule_datatype:
-//		case SVG_Opacity_datatype:
-		case SVG_StrokeLineJoin_datatype:
-		case SVG_StrokeLineCap_datatype:
-		case SVG_StrokeDashArray_datatype:
-			gf_node_dirty_set(n, GF_SG_SVG_APPEARANCE_DIRTY, 0);
-			break;
-
-		case SVG_FontStyle_datatype:
-		case SVG_FontWeight_datatype:
-		case SVG_FontSize_datatype:
-		case SVG_TextAnchor_datatype:
-		case SVG_Length_datatype:
-		case SVG_PathData_datatype:
-		case SVG_FontFamily_datatype:
-		case SVG_Coordinate_datatype:
-			gf_node_dirty_set(n, 0, 0);
-			break;
-		default:
-			break;
-		}
+		u32 flag = gf_svg_get_rendering_flag_if_modified((SVGElement *)n, info);
+		gf_node_dirty_set(n, flag, 0);
 	}
 	/*trigger rendering*/
 	if (n->sgprivate->scenegraph->NodeCallback)
@@ -233,7 +211,7 @@ static JSFunctionSpec globalClassFuncs[] = {
 };
 
 Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event);
-void gf_sg_handle_dom_event(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);
+void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event);
 
 /*eventListeners routines used by document, element anbd connection interfaces*/
 static JSBool udom_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -661,7 +639,7 @@ static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 
 	*rval = JSVAL_VOID;
 	if (gf_node_get_field_by_name((GF_Node *)elt, attName, &info) == GF_OK) {
-		gf_svg_parse_attribute(elt, &info, attValue, 0, 0);
+		gf_svg_parse_attribute((GF_Node *)elt, &info, attValue, 0, 0);
 		svg_node_changed((GF_Node *)elt, &info);
 		return JS_TRUE;
 	}
@@ -1082,7 +1060,7 @@ static JSBool udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
 /*end of DOM string traits*/
-		gf_svg_parse_attribute((SVGElement *) n, &info, val, 0, 0);
+		gf_svg_parse_attribute(n, &info, val, 0, 0);
 		break;
 
 #if 0
@@ -1709,7 +1687,7 @@ static JSBool svg_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 
 		if (JSVAL_IS_STRING(*vp)) {
 			char *str = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
-			gf_svg_parse_attribute(n, &info, str, 0, 0);
+			gf_svg_parse_attribute((GF_Node *)n, &info, str, 0, 0);
 		} else {
 			switch (info.fieldType) {
 			case SVG_Length_datatype:

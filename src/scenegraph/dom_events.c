@@ -59,11 +59,11 @@ SVGlistenerElement *gf_dom_listener_get(GF_Node *node, u32 i)
 	return (SVGlistenerElement *)gf_list_get(node->sgprivate->interact->events, i);
 }
 
-void gf_sg_handle_dom_event(SVGhandlerElement *hdl, GF_DOM_Event *event)
+void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
 	if (hdl->sgprivate->scenegraph->svg_js) 
-		if (hdl->sgprivate->scenegraph->svg_js->handler_execute((GF_Node *)hdl, event)) return;
+		if (hdl->sgprivate->scenegraph->svg_js->handler_execute(hdl, event)) return;
 #endif
 	/*no clue what this is*/
 	GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[DOM Events] Unknown event handler\n"));
@@ -218,7 +218,7 @@ Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 }
 
 GF_EXPORT
-SVGhandlerElement *gf_dom_listener_build(GF_Node *node, XMLEV_Event event)
+void *gf_dom_listener_build(GF_Node *node, XMLEV_Event event)
 {
 	GF_ChildNodeItem *last = NULL;
 	SVGlistenerElement *listener;
@@ -291,10 +291,10 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 	if (found) gf_node_changed(timed_elt, info);
 }
 
-static void gf_smil_handle_event_begin(SVGhandlerElement *hdl, GF_DOM_Event *evt)
+static void gf_smil_handle_event_begin(GF_Node *hdl, GF_DOM_Event *evt)
 {
 	GF_FieldInfo info;
-	SVGElement *timed_elt = (SVGElement *)gf_node_get_private((GF_Node *)hdl);
+	SVGElement *timed_elt = (SVGElement *)gf_node_get_private(hdl);
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "begin";
 	info.far_ptr = &timed_elt->timing->begin;
@@ -302,10 +302,10 @@ static void gf_smil_handle_event_begin(SVGhandlerElement *hdl, GF_DOM_Event *evt
 	gf_smil_handle_event((GF_Node*)timed_elt, &info, evt, 0);
 }
 
-static void gf_smil_handle_event_end(SVGhandlerElement *hdl, GF_DOM_Event *evt)
+static void gf_smil_handle_event_end(GF_Node *hdl, GF_DOM_Event *evt)
 {
 	GF_FieldInfo info;
-	SVGElement *timed_elt = (SVGElement *)gf_node_get_private((GF_Node *)hdl);
+	SVGElement *timed_elt = (SVGElement *)gf_node_get_private(hdl);
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "end";
 	info.far_ptr = &timed_elt->timing->end;

@@ -551,6 +551,7 @@ rend_flag (needed for audio): one of the above*/
 	GF_SoundInterface *sound_holder;	\
 	u32 trav_flags;	\
 	SVGPropertiesPointers *svg_props;	\
+	u32 svg_flags; \
 
 #endif
 

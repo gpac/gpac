@@ -247,7 +247,7 @@ static Bool svg_parse_animation(GF_SVGParser *parser, GF_SceneGraph *sg, Defered
 		if (anim->type && (tag== TAG_SVG_animateTransform) ) {
 			/* determine the transform_type in case of animateTransform attribute */
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "type", &info);
-			gf_svg_parse_attribute(anim->animation_elt, &info, anim->type, 0, 0);
+			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->type, 0, 0);
 			anim_transform_type = *(SVG_TransformType *) info.far_ptr;
 			anim_value_type = SVG_Matrix_datatype;
 		}
@@ -255,22 +255,22 @@ static Bool svg_parse_animation(GF_SVGParser *parser, GF_SceneGraph *sg, Defered
 		/* Parsing of to / from / by / values */
 		if (anim->to) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "to", &info);
-			gf_svg_parse_attribute(anim->animation_elt, &info, anim->to, anim_value_type, anim_transform_type);
+			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->to, anim_value_type, anim_transform_type);
 			if (anim_value_type==SVG_IRI_datatype) svg_post_process_href(parser, (SVG_IRI*)anim->animation_elt->anim->to.value);
 		} 
 		if (anim->from) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "from", &info);
-			gf_svg_parse_attribute(anim->animation_elt, &info, anim->from, anim_value_type, anim_transform_type);
+			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->from, anim_value_type, anim_transform_type);
 			if (anim_value_type==SVG_IRI_datatype) svg_post_process_href(parser, (SVG_IRI*)anim->animation_elt->anim->from.value);
 		} 
 		if (anim->by) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "by", &info);
-			gf_svg_parse_attribute(anim->animation_elt, &info, anim->by, anim_value_type, anim_transform_type);
+			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->by, anim_value_type, anim_transform_type);
 			if (anim_value_type==SVG_IRI_datatype) svg_post_process_href(parser, (SVG_IRI*)anim->animation_elt->anim->by.value);
 		} 
 		if (anim->values) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "values", &info);
-			gf_svg_parse_attribute(anim->animation_elt, &info, anim->values, anim_value_type, anim_transform_type);
+			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->values, anim_value_type, anim_transform_type);
 			if (anim_value_type==SVG_IRI_datatype) {
 				u32 i, count = gf_list_count(anim->animation_elt->anim->values.values);
 				for (i=0; i<count; i++) {
@@ -360,7 +360,9 @@ static void svg_resolved_refs(GF_SVGParser *parser, GF_SceneGraph *sg, const cha
 	}
 }
 
-static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes, SVGNodeStack *parent)
+static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, const char *name_space, 
+									 const GF_XMLAttribute *attributes, u32 nb_attributes, 
+									 SVGNodeStack *parent)
 {
 	u32	tag, i;
 	SVGElement *elt;
@@ -381,7 +383,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 		parser->last_error = GF_SG_UNKNOWN_NODE;
 		return NULL;
 	}
-	gf_node_register((GF_Node *)elt, (GF_Node *)parent);
+	gf_node_register((GF_Node *)elt, (parent ? (GF_Node *)parent->node : NULL));
 	if (parent && elt) gf_node_list_add_child_last( & parent->node->children, (GF_Node*)elt, & parent->last_child);
 
 
@@ -408,7 +410,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 
 		if (!stricmp(att->name, "style")) {
 			/* Special case: style if present will always be first in the list */
-			gf_svg_parse_style(elt, att->value);
+			gf_svg_parse_style((GF_Node *)elt, att->value);
 		} else if (!stricmp(att->name, "id") || !stricmp(att->name, "xml:id")) {
 			gf_svg_parse_element_id(elt, att->value, parser->command_depth ? 1 : 0);
 			node_name = att->value;
@@ -438,7 +440,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 				info.far_ptr = & elt->xlink->href;
 				info.fieldType = SVG_IRI_datatype;
 				info.name = "xlink:href";
-				gf_svg_parse_attribute(elt, &info, att->value, 0, 0);
+				gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0, 0);
 
 				svg_post_process_href(parser, iri);
 			}
@@ -471,7 +473,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 				handler->textContent = strdup(att->value);
 				gf_node_init((GF_Node *)handler);
 			} else if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {
-				gf_svg_parse_attribute(elt, &info, att->value, 0, 0);
+				gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0, 0);
 				if (info.fieldType== SVG_IRI_datatype) {
 					SVG_IRI *iri = (SVG_IRI *)info.far_ptr;
 					if ((iri->type==SVG_IRI_ELEMENTID) && !iri->target && iri->iri)
@@ -671,7 +673,7 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, const GF_XMLAttribute *att
 			nf.fieldType = info.fieldType;
 
 			field->field_ptr = nf.far_ptr = gf_svg_create_attribute_value(info.fieldType, (u8) info.eventType);
-			gf_svg_parse_attribute((SVGElement *)parser->command->node, &nf, atValue, (u8) info.fieldType, (u8) info.eventType);
+			gf_svg_parse_attribute(parser->command->node, &nf, atValue, (u8) info.fieldType, (u8) info.eventType);
 			if (info.eventType) {
 				field->fieldIndex = (u32) -2;
 				field->fieldType = info.eventType;
