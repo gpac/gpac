@@ -412,7 +412,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 			/* Special case: style if present will always be first in the list */
 			gf_svg_parse_style((GF_Node *)elt, att->value);
 		} else if (!stricmp(att->name, "id") || !stricmp(att->name, "xml:id")) {
-			gf_svg_parse_element_id(elt, att->value, parser->command_depth ? 1 : 0);
+			gf_svg_parse_element_id((GF_Node *)elt, att->value, parser->command_depth ? 1 : 0);
 			node_name = att->value;
 		} else if (anim && !stricmp(att->name, "attributeName")) {
 			anim->attributeName = strdup(att->value);
@@ -424,7 +424,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 			anim->by = strdup(att->value);
 		} else if (anim && !stricmp(att->name, "values")) {
 			anim->values = strdup(att->value);
-		} else if (&anim && (tag == TAG_SVG_animateTransform) && !stricmp(att->name, "type")) {
+		} else if (anim && (tag == TAG_SVG_animateTransform) && !stricmp(att->name, "type")) {
 			anim->type = strdup(att->value);
 		} else if (!stricmp(att->name, "xlink:href") ) {
 			if (!elt->xlink) {
@@ -489,7 +489,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 				}
 			}
 			else {
-				svg_report(parser, GF_OK, "Unknown attribute %s on element %s - skipping\n", (char *)att->name, gf_node_get_class_name((GF_Node *)elt));
+				svg_report(parser, GF_OK, "Unknown attribute %s on element %s - skipping\n", (char *)att->name, name);
 			}
 		}
 	}

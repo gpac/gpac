@@ -734,7 +734,7 @@ static void BuildTextGraph(TextStack2D *st, M_Text *txt, RenderEffect2D *eff)
 }
 
 
-void Text2D_Draw(DrawableContext *ctx)
+void Text2D_Draw(GF_Node *node, RenderEffect2D *eff)
 {
 	u32 i;
 	Bool can_texture_text;
@@ -742,8 +742,9 @@ void Text2D_Draw(DrawableContext *ctx)
 	const char *fs_style;
 	char *hlight;
 	u32 hl_color;
+	DrawableContext *ctx = eff->ctx;
 	TextStack2D *st = (TextStack2D *) gf_node_get_private((GF_Node *) ctx->node->owner);
-	M_FontStyle *fs = (M_FontStyle *) ((M_Text *) ctx->node->owner)->fontStyle;
+	M_FontStyle *fs = (M_FontStyle *) ((M_Text *) node)->fontStyle;
 
 	if (!ctx->aspect.filled && !ctx->aspect.pen_props.width) return;
 
@@ -779,10 +780,10 @@ void Text2D_Draw(DrawableContext *ctx)
 	if (ctx->sub_path_index > 0) {
 		tl = (TextLineEntry2D*)gf_list_get(st->text_lines, ctx->sub_path_index - 1);
 		if (!tl || !tl->path) return;
-		if (hl_color) VS2D_FillRect(ctx->surface, ctx, tl->bounds, hl_color);
+		if (hl_color) VS2D_FillRect(eff->surface, ctx, tl->bounds, hl_color);
 
-		VS2D_TexturePath(ctx->surface, tl->path, ctx);
-		VS2D_DrawPath(ctx->surface, tl->path, ctx, NULL, NULL);
+		VS2D_TexturePath(eff->surface, tl->path, ctx);
+		VS2D_DrawPath(eff->surface, tl->path, ctx, NULL, NULL);
 		return;
 	}
 
@@ -793,13 +794,13 @@ void Text2D_Draw(DrawableContext *ctx)
 
 	i=0;
 	while ((tl = (TextLineEntry2D*)gf_list_enum(st->text_lines, &i))) {
-		if (hl_color) VS2D_FillRect(ctx->surface, ctx, tl->bounds, hl_color);
+		if (hl_color) VS2D_FillRect(eff->surface, ctx, tl->bounds, hl_color);
 
 		if (can_texture_text && TextLine2D_TextureIsReady(tl)) {
-			VS2D_TexturePathText(ctx->surface, ctx, tl->tx_path, &tl->bounds, tl->hwtx, &tl->tx_bounds);
+			VS2D_TexturePathText(eff->surface, ctx, tl->tx_path, &tl->bounds, tl->hwtx, &tl->tx_bounds);
 		} else {
-			VS2D_TexturePath(ctx->surface, tl->path, ctx);
-			VS2D_DrawPath(ctx->surface, tl->path, ctx, NULL, NULL);
+			VS2D_TexturePath(eff->surface, tl->path, ctx);
+			VS2D_DrawPath(eff->surface, tl->path, ctx, NULL, NULL);
 		}
 		/*reset fill/strike flags since we perform several draw per context*/
 		ctx->flags &= ~CTX_PATH_FILLED;
@@ -854,7 +855,7 @@ static void Text_Render(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		Text2D_Draw(eff->ctx);
+		Text2D_Draw(n, eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {

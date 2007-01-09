@@ -60,9 +60,9 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, Bool from_ff_demux)
 
 	/*demuxer is ffmpeg, extra data can be copied directly*/
 	if (from_ff_demux) {
-		av_free(ffd->ctx->extradata);
+		free(ffd->ctx->extradata);
 		ffd->ctx->extradata_size = dsi_size;
-		ffd->ctx->extradata = (uint8_t*) av_mallocz(ffd->ctx->extradata_size);
+		ffd->ctx->extradata = (uint8_t*) malloc(sizeof(char)*ffd->ctx->extradata_size);
 		gf_bs_read_data(bs, ffd->ctx->extradata, ffd->ctx->extradata_size);
 		return;
 	}
@@ -75,18 +75,18 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, Bool from_ff_demux)
 		/*there should be an 'SMI' entry*/
 		at_type = gf_bs_read_u32(bs);
 		if (at_type == GF_4CC('S', 'M', 'I', ' ')) {
-			av_free(ffd->ctx->extradata);
+			free(ffd->ctx->extradata);
 			ffd->ctx->extradata_size = 0x5a + size;
-			ffd->ctx->extradata = (uint8_t*) av_mallocz(ffd->ctx->extradata_size);
+			ffd->ctx->extradata = (uint8_t*) malloc(sizeof(char)*ffd->ctx->extradata_size);
 			strcpy(ffd->ctx->extradata, "SVQ3");
 			gf_bs_read_data(bs, (unsigned char *)ffd->ctx->extradata + 0x5a, size);
 		}
 	}
 		break;
 	default:
-		av_free(ffd->ctx->extradata);
+		free(ffd->ctx->extradata);
 		ffd->ctx->extradata_size = dsi_size;
-		ffd->ctx->extradata = (uint8_t*) av_mallocz(ffd->ctx->extradata_size);
+		ffd->ctx->extradata = (uint8_t*) malloc(sizeof(char)*ffd->ctx->extradata_size);
 		gf_bs_read_data(bs, ffd->ctx->extradata, ffd->ctx->extradata_size);
 		break;
 	}
@@ -224,7 +224,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 			}
 
 			/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
-			ffd->ctx->extradata = av_mallocz(decSpecInfoSize);
+			ffd->ctx->extradata = malloc(sizeof(char)*decSpecInfoSize);
 			memcpy(ffd->ctx->extradata, decSpecInfo, decSpecInfoSize);
 			ffd->ctx->extradata_size = decSpecInfoSize;
 		}
@@ -276,6 +276,7 @@ static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	ffd->ES_ID = 0;
 
 	if (ffd->ctx) {
+		if (ffd->ctx->extradata) free(ffd->ctx->extradata);
 		avcodec_close(ffd->ctx);
 		ffd->ctx = NULL;
 	}
@@ -525,7 +526,8 @@ redecode:
 		if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
 
 		if (gotpic) {
-#ifdef _WIN32_WCE
+//#ifdef _WIN32_WCE
+#if 1
 			if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
 				memcpy(outBuffer, ffd->frame->data[0], sizeof(char)*3*ffd->ctx->width);
 			} else {

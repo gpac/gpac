@@ -42,6 +42,7 @@ typedef struct
 typedef struct
 {
 	DrawableContext ctx;
+	BoundInfo bi;
 	GF_List *bind_stack;
 } BackgroundStatus;
 
@@ -94,11 +95,11 @@ static BackgroundStatus *b2D_GetStatus(GF_Node *node, Background2DStack *bck, Re
 
 	GF_SAFEALLOC(status, BackgroundStatus);
 	gf_mx2d_init(status->ctx.transform);
-	status->ctx.surface = eff->surface;
 	status->ctx.aspect.filled = 1;
 	status->ctx.node = bck->node;
 	status->ctx.h_texture = &bck->txh;
 	status->ctx.flags = CTX_IS_BACKGROUND;
+	status->ctx.bi = &status->bi;
 
 	status->bind_stack = stack;
 	status->ctx.aspect.fill_color = GF_COL_ARGB(0, 0, 0, 0);
@@ -116,45 +117,47 @@ static Bool back_use_texture(M_Background2D *bck)
 	return 0;
 }
 
-static void DrawBackground(DrawableContext *ctx)
+static void DrawBackground(DrawableContext *ctx, RenderEffect2D *eff)
 {
 	Background2DStack *bcks = (Background2DStack *) gf_node_get_private(ctx->node->owner);
 
-	if (gf_rect_is_empty(ctx->clip) ) return;
+	if (!ctx->bi->clip.width || !ctx->bi->clip.height) return;
 
 	ctx->flags &= ~CTX_PATH_FILLED;
 
 	if ( back_use_texture((M_Background2D *)ctx->node->owner)) {
 
-		if (!ctx->surface->DrawBitmap) {
+		if (!eff->surface->DrawBitmap) {
 			/*set target rect*/
 			gf_path_reset(bcks->node->path);
 			gf_path_add_rect_center(bcks->node->path, 
-								ctx->unclip.x + ctx->unclip.width/2,
-								ctx->unclip.y - ctx->unclip.height/2,
-								ctx->unclip.width, ctx->unclip.height);
+								ctx->bi->unclip.x + ctx->bi->unclip.width/2,
+								ctx->bi->unclip.y - ctx->bi->unclip.height/2,
+								ctx->bi->unclip.width, ctx->bi->unclip.height);
 
 			/*draw texture*/
-			VS2D_TexturePath(ctx->surface, bcks->node->path, ctx);
+			VS2D_TexturePath(eff->surface, bcks->node->path, ctx);
 
 		} else {
-			ctx->clip = gf_rect_pixelize(&ctx->unclip);
+			ctx->bi->clip = gf_rect_pixelize(&ctx->bi->unclip);
 
 			/*direct rendering, render without clippers */
-			if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
-				ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &ctx->clip, &ctx->unclip, 0xFF, NULL, NULL);
+			if (eff->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
+				eff->surface->DrawBitmap(eff->surface, ctx->h_texture, &ctx->bi->clip, &ctx->bi->unclip, 0xFF, NULL, NULL);
 			}
 			/*render bitmap for all dirty rects*/
 			else {
 				u32 i;
 				GF_IRect clip;
-				for (i=0; i<ctx->surface->to_redraw.count; i++) {
+				for (i=0; i<eff->surface->to_redraw.count; i++) {
 					/*there's an opaque region above, don't draw*/
-					if (ctx->surface->draw_node_index<ctx->surface->to_redraw.opaque_node_index[i]) continue;
-					clip = ctx->clip;
-					gf_irect_intersect(&clip, &ctx->surface->to_redraw.list[i]);
+#ifdef TRACK_OPAQUE_REGIONS
+					if (eff->surface->draw_node_index < eff->surface->to_redraw.opaque_node_index[i]) continue;
+#endif
+					clip = ctx->bi->clip;
+					gf_irect_intersect(&clip, &eff->surface->to_redraw.list[i]);
 					if (clip.width && clip.height) {
-						ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &ctx->unclip, 0xFF, NULL, NULL);
+						eff->surface->DrawBitmap(eff->surface, ctx->h_texture, &clip, &ctx->bi->unclip, 0xFF, NULL, NULL);
 					}
 				}
 			}
@@ -163,19 +166,21 @@ static void DrawBackground(DrawableContext *ctx)
 		else ctx->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
 	} else {
 		/*direct rendering, render without clippers */
-		if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
+		if (eff->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
 			/*directly clear with specified color*/
-			VS2D_Clear(ctx->surface, &ctx->clip, ctx->aspect.fill_color);
+			VS2D_Clear(eff->surface, &ctx->bi->clip, ctx->aspect.fill_color);
 		} else {
 			u32 i;
 			GF_IRect clip;
-			for (i=0; i<ctx->surface->to_redraw.count; i++) {
+			for (i=0; i<eff->surface->to_redraw.count; i++) {
 				/*there's an opaque region above, don't draw*/
-				if (ctx->surface->draw_node_index<ctx->surface->to_redraw.opaque_node_index[i]) continue;
-				clip = ctx->clip;
-				gf_irect_intersect(&clip, &ctx->surface->to_redraw.list[i]);
+#ifdef TRACK_OPAQUE_REGIONS
+				if (eff->surface->draw_node_index<eff->surface->to_redraw.opaque_node_index[i]) continue;
+#endif
+				clip = ctx->bi->clip;
+				gf_irect_intersect(&clip, &eff->surface->to_redraw.list[i]);
 				if (clip.width && clip.height) {
-					VS2D_Clear(ctx->surface, &clip, ctx->aspect.fill_color);
+					VS2D_Clear(eff->surface, &clip, ctx->aspect.fill_color);
 				}
 			}
 		}
@@ -196,7 +201,7 @@ static void RenderBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		DrawBackground(eff->ctx);
+		DrawBackground(eff->ctx, eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -256,7 +261,7 @@ static void RenderBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 	if (eff->parent) {
 		group2d_add_to_context_list(eff->parent, &status->ctx);
 	} else if (eff->trav_flags & TF_RENDER_DIRECT) {
-		DrawBackground(&status->ctx);
+		DrawBackground(&status->ctx, eff);
 	}
 }
 
@@ -316,7 +321,10 @@ DrawableContext *b2D_GetContext(M_Background2D *n, GF_List *from_stack)
 	Background2DStack *ptr = (Background2DStack *)gf_node_get_private((GF_Node *)n);
 	i=0;
 	while ((status = (BackgroundStatus *)gf_list_enum(ptr->surfaces_links, &i))) {
-		if (status->bind_stack == from_stack) return &status->ctx;
+		if (status->bind_stack == from_stack) {
+			status->ctx.bi = &status->bi;
+			return &status->ctx;
+		}
 	}
 	return NULL;
 }

@@ -1048,6 +1048,7 @@ GF_Err gf_node_list_add_child_last(GF_ChildNodeItem **list, GF_Node *n, GF_Child
 	cur->next = NULL;
 	if (child) {
 		if (last_child && (*last_child) ) {
+			while ((*last_child)->next) (*last_child) = (*last_child)->next;
 			(*last_child)->next = cur;
 			(*last_child) = (*last_child)->next;
 		} else {
@@ -1185,15 +1186,23 @@ static GFINLINE void dirty_children(GF_Node *node, u16 val)
 	if (!node) return;
 	
 	node->sgprivate->flags |= val;
-	count = gf_node_get_field_count(node);
-	for (i=0; i<count; i++) {
-		gf_node_get_field(node, i, &info);
-		if (info.fieldType==GF_SG_VRML_SFNODE) dirty_children(*(GF_Node **)info.far_ptr, val);
-		else if (info.fieldType==GF_SG_VRML_MFNODE) {
-			GF_ChildNodeItem *list = *(GF_ChildNodeItem **) info.far_ptr;
-			while (list) {
-				dirty_children(list->node, val);
-				list = list->next;
+	if (node->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) {
+		GF_ChildNodeItem *child = ((GF_ParentNode*)node)->children;
+		while (child) {
+			dirty_children(child->node, val);
+			child = child->next;
+		}
+	} else {
+		count = gf_node_get_field_count(node);
+		for (i=0; i<count; i++) {
+			gf_node_get_field(node, i, &info);
+			if (info.fieldType==GF_SG_VRML_SFNODE) dirty_children(*(GF_Node **)info.far_ptr, val);
+			else if (info.fieldType==GF_SG_VRML_MFNODE) {
+				GF_ChildNodeItem *list = *(GF_ChildNodeItem **) info.far_ptr;
+				while (list) {
+					dirty_children(list->node, val);
+					list = list->next;
+				}
 			}
 		}
 	}

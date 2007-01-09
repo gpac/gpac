@@ -174,8 +174,8 @@ static void svg_animation_smil_update(SMIL_Timing_RTI *rti, Fixed normalized_sce
 
 	/*play*/
 	if (!is->root_od->mo->num_open) {	
-		if (rti->timed_elt->timing->clipEnd>0) is->root_od->media_stop_time = (u64) (1000*rti->timed_elt->timing->clipEnd);
-		gf_mo_play(is->root_od->mo, rti->timed_elt->timing->clipBegin, 0);
+		if (((SVGElement *)rti->timed_elt)->timing->clipEnd>0) is->root_od->media_stop_time = (u64) (1000*((SVGElement *)rti->timed_elt)->timing->clipEnd);
+		gf_mo_play(is->root_od->mo, ((SVGElement *)rti->timed_elt)->timing->clipBegin, 0);
 	}
 }
 
@@ -243,7 +243,7 @@ void SVG_Render_animation(GF_Node *n, void *rs, Bool is_destroy)
 
 void SVG_Init_animation(GF_InlineScene *is, GF_Node *node)
 {
-	gf_smil_timing_init_runtime_info((SVGElement *)node);
+	gf_smil_timing_init_runtime_info(node);
 	if (((SVGElement *)node)->timing->runtime) {
 		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
 		rti->evaluate = svg_animation_smil_evaluate;

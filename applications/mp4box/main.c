@@ -930,7 +930,7 @@ int main(int argc, char **argv)
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, remove_root_od;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart;
-	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itune_tags, *pack_file, *raw_cat;
+	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat;
 	GF_ISOFile *file;
 
 	if (argc < 2) {
@@ -953,7 +953,7 @@ int main(int argc, char **argv)
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
-	itune_tags = pes_dump = NULL;
+	itunes_tags = pes_dump = NULL;
 	memset(&opts, 0, sizeof(opts));
 	
 	trackID = stat_level = hint_flags = 0;
@@ -1134,7 +1134,7 @@ int main(int argc, char **argv)
 			i++;
 			Frag = 1;
 		} 
-		else if (!stricmp(arg, "-itags")) { CHECK_NEXT_ARG itune_tags = argv[i+1]; i++; open_edit = 1; }
+		else if (!stricmp(arg, "-itags")) { CHECK_NEXT_ARG itunes_tags = argv[i+1]; i++; open_edit = 1; }
 		else if (!stricmp(arg, "-hint")) { open_edit = 1; HintIt = 1; }
 		else if (!stricmp(arg, "-unhint")) { open_edit = 1; remove_hint = 1; }
 		else if (!stricmp(arg, "-copy")) HintCopy = 1;
@@ -2078,7 +2078,7 @@ int main(int argc, char **argv)
 		if (conv_type == GF_ISOM_CONV_TYPE_IPOD) {
 			u32 major_brand = 0;
 
-			fprintf(stdout, "Setting up iTune/iPod file...\n");
+			fprintf(stdout, "Setting up iTunes/iPod file...\n");
 
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				u32 mType = gf_isom_get_media_type(file, i+1);
@@ -2178,8 +2178,8 @@ int main(int argc, char **argv)
 		if (e) goto err_exit;
 	}
 
-	if (itune_tags) {
-		char *tags = itune_tags;
+	if (itunes_tags) {
+		char *tags = itunes_tags;
 		while (tags) {
 			char *val;
 			char *sep = strchr(tags, ':');

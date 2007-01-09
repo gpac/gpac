@@ -940,7 +940,7 @@ u32 gf_isom_get_payt_count(GF_ISOFile *the_file, u32 trackNumber)
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
 
-	if (!CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return 0;
+	if (!CheckHintFormat(trak, GF_4CC('r', 't', 'p', ' '))) return 0;
 	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_HINF, NULL);
 	if (!map) return 0;
 	if (gf_list_count(map->boxList) != 1) return 0;
@@ -966,7 +966,7 @@ const char *gf_isom_get_payt_info(GF_ISOFile *the_file, u32 trackNumber, u32 ind
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !index) return NULL;
 
-	if (!CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return NULL;
+	if (!CheckHintFormat(trak, GF_4CC('r', 't', 'p', ' '))) return NULL;
 	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_HINF, NULL);
 	if (!map) return NULL;
 	if (gf_list_count(map->boxList) != 1) return NULL;

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Dec 21 19:30:10 2006
+	DO NOT MOFIFY - File generated on GMT Mon Jan 08 16:22:29 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -487,6 +487,7 @@ s32 gf_svg_a_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 64;
 	if(!strcmp("systemLanguage", name)) return 65;
 	if(!strcmp("transform", name)) return 66;
+	if(!strcmp("motionTransform", name)) return 67;
 	if(!strcmp("target", name)) return 68;
 	return -1;
 }
@@ -1928,6 +1929,7 @@ s32 gf_svg_animation_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 53;
 	if(!strcmp("systemLanguage", name)) return 54;
 	if(!strcmp("transform", name)) return 55;
+	if(!strcmp("motionTransform", name)) return 56;
 	if(!strcmp("x", name)) return 57;
 	if(!strcmp("y", name)) return 58;
 	if(!strcmp("width", name)) return 59;
@@ -2662,6 +2664,7 @@ s32 gf_svg_circle_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("cx", name)) return 61;
 	if(!strcmp("cy", name)) return 62;
 	if(!strcmp("r", name)) return 63;
@@ -3844,6 +3847,7 @@ s32 gf_svg_ellipse_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("rx", name)) return 61;
 	if(!strcmp("ry", name)) return 62;
 	if(!strcmp("cx", name)) return 63;
@@ -4858,6 +4862,7 @@ s32 gf_svg_foreignObject_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 64;
 	if(!strcmp("systemLanguage", name)) return 65;
 	if(!strcmp("transform", name)) return 66;
+	if(!strcmp("motionTransform", name)) return 67;
 	if(!strcmp("x", name)) return 68;
 	if(!strcmp("y", name)) return 69;
 	if(!strcmp("width", name)) return 70;
@@ -5268,6 +5273,7 @@ s32 gf_svg_g_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	return -1;
 }
 
@@ -5925,6 +5931,7 @@ s32 gf_svg_image_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 39;
 	if(!strcmp("systemLanguage", name)) return 40;
 	if(!strcmp("transform", name)) return 41;
+	if(!strcmp("motionTransform", name)) return 42;
 	if(!strcmp("x", name)) return 43;
 	if(!strcmp("y", name)) return 44;
 	if(!strcmp("width", name)) return 45;
@@ -6357,6 +6364,7 @@ s32 gf_svg_line_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("x1", name)) return 61;
 	if(!strcmp("y1", name)) return 62;
 	if(!strcmp("x2", name)) return 63;
@@ -7585,6 +7593,7 @@ s32 gf_svg_path_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("d", name)) return 61;
 	if(!strcmp("pathLength", name)) return 62;
 	return -1;
@@ -8000,6 +8009,7 @@ s32 gf_svg_polygon_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("points", name)) return 61;
 	return -1;
 }
@@ -8414,6 +8424,7 @@ s32 gf_svg_polyline_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("points", name)) return 61;
 	return -1;
 }
@@ -9391,6 +9402,7 @@ s32 gf_svg_rect_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("x", name)) return 61;
 	if(!strcmp("y", name)) return 62;
 	if(!strcmp("width", name)) return 63;
@@ -9808,6 +9820,7 @@ s32 gf_svg_rectClip_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("size", name)) return 61;
 	return -1;
 }
@@ -10305,6 +10318,7 @@ s32 gf_svg_selector_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("choice", name)) return 61;
 	return -1;
 }
@@ -10918,6 +10932,7 @@ s32 gf_svg_simpleLayout_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("delta", name)) return 61;
 	return -1;
 }
@@ -12371,6 +12386,7 @@ s32 gf_svg_switch_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	return -1;
 }
 
@@ -12879,6 +12895,7 @@ s32 gf_svg_text_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("editable", name)) return 61;
 	if(!strcmp("x", name)) return 62;
 	if(!strcmp("y", name)) return 63;
@@ -13314,6 +13331,7 @@ s32 gf_svg_textArea_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 57;
 	if(!strcmp("systemLanguage", name)) return 58;
 	if(!strcmp("transform", name)) return 59;
+	if(!strcmp("motionTransform", name)) return 60;
 	if(!strcmp("x", name)) return 61;
 	if(!strcmp("y", name)) return 62;
 	if(!strcmp("editable", name)) return 63;
@@ -14249,6 +14267,7 @@ s32 gf_svg_use_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 64;
 	if(!strcmp("systemLanguage", name)) return 65;
 	if(!strcmp("transform", name)) return 66;
+	if(!strcmp("motionTransform", name)) return 67;
 	if(!strcmp("x", name)) return 68;
 	if(!strcmp("y", name)) return 69;
 	return -1;
@@ -14683,6 +14702,7 @@ s32 gf_svg_video_get_attribute_index_from_name(char *name)
 	if(!strcmp("requiredFormats", name)) return 53;
 	if(!strcmp("systemLanguage", name)) return 54;
 	if(!strcmp("transform", name)) return 55;
+	if(!strcmp("motionTransform", name)) return 56;
 	if(!strcmp("x", name)) return 57;
 	if(!strcmp("y", name)) return 58;
 	if(!strcmp("width", name)) return 59;

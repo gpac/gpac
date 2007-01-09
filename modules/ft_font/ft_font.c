@@ -270,11 +270,11 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 		fontName = ftpriv->font_serif;
 		check_def_fonts = 1;
 	}
-	else if (!stricmp(fontName, "SANS")) {
+	else if (!stricmp(fontName, "SANS") || !stricmp(fontName, "sans-serif")) {
 		fontName = ftpriv->font_sans;
 		check_def_fonts = 1;
 	}
-	else if (!stricmp(fontName, "TYPEWRITER")) {
+	else if (!stricmp(fontName, "TYPEWRITER") || !stricmp(fontName, "monospace")) {
 		fontName = ftpriv->font_fixed;
 		check_def_fonts = 1;
 	}

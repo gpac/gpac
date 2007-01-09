@@ -438,7 +438,8 @@ void generateNodeImpl(FILE *output, SVGGenElement* svg_elt)
 		if (svg_elt->has_transform) {
 			fprintf(output, "\tif(!strcmp(\"transform\", name)) return %d;\n", att_index); 
 			att_index++;
-			/*motionTransform : add 1 */
+			/*motionTransform*/
+			fprintf(output, "\tif(!strcmp(\"motionTransform\", name)) return %d;\n", att_index); 
 			att_index++;
 		}
 		if (svg_elt->has_xy) {

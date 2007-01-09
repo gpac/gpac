@@ -1016,7 +1016,7 @@ static void svg_parse_path(SVG_PathData *path, char *attribute_content)
 	prev_c = 'M';
 	orig.x = orig.y = ct_orig.x = ct_orig.y = prev_m_pt.x = prev_m_pt.y = rel_ref_pt.x = rel_ref_pt.y = 0;
 	while(1) {
-		while ( (d[i]==' ') || (d[i] =='\t') ) i++;			
+		while ( (d[i]==' ') || (d[i] =='\t') || (d[i] =='\r') || (d[i] =='\n') ) i++;			
 		c = d[i];
 		if (! c) break;
 next_command:
@@ -2460,6 +2460,7 @@ void svg_parse_anim_values(GF_Node *n, SMIL_AnimateValues *anim_values, char *an
 			psemi = i;
 			if (!str[i]) return;
 		}
+		i++;
 	}
 }
 
@@ -4549,7 +4550,11 @@ static GF_Err svg_points_muladd(Fixed alpha, SVG_Points *a, Fixed beta, SVG_Poin
 
 	if (a_count != gf_list_count(*b)) return GF_BAD_PARAM;
 
-	gf_list_reset(*c);
+	while (gf_list_count(*c)) {
+		SVG_Point *ptc = (SVG_Point *)gf_list_get(*c, 0);
+		gf_list_rem(*c, 0);
+		free(ptc);
+	}
 	for (i = 0; i < a_count; i ++) {
 		SVG_Point *ptc;
 		SVG_Point *pta = (SVG_Point *)gf_list_get(*a, i);
@@ -4628,6 +4633,19 @@ static GF_Err svg_numbers_copy(SVG_Numbers *a, SVG_Numbers *b)
 #if USE_GF_PATH
 static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_PathData *b, SVG_PathData *c)
 {
+	GF_Path *clone;
+	u32 i;
+
+	if (a->n_points != b->n_points) return GF_BAD_PARAM;
+	gf_path_reset(c);
+	clone = gf_path_clone(a);
+	clone->fineness = c->fineness;
+	memcpy(c, clone, sizeof(GF_Path));
+	free(clone);
+
+	for (i=0; i<a->n_points; i++) {
+		svg_point_muladd(alpha, (SVG_Point *) &a->points[i], beta, (SVG_Point *) &b->points[i], (SVG_Point *) &c->points[i]);
+	}
 	return GF_OK;
 }
 #else
@@ -5105,6 +5123,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 
 	case SVG_FontFamily_datatype:
 		((SVG_FontFamily *)a->far_ptr)->type = ((SVG_FontFamily *)b->far_ptr)->type;
+		if ( ((SVG_FontFamily *)a->far_ptr)->value) free( ((SVG_FontFamily *)a->far_ptr)->value );
 		((SVG_FontFamily *)a->far_ptr)->value = strdup(((SVG_FontFamily *)b->far_ptr)->value);
 		return GF_OK;
 

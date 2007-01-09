@@ -63,7 +63,7 @@ static void build_graph(Drawable *cs, M_IndexedFaceSet2D *ifs2D)
 }
 
 
-static void IFS2D_Draw(DrawableContext *ctx)
+static void IFS2D_Draw(GF_Node *node, RenderEffect2D *eff)
 {
 	u32 i, count, ci_count;
 	u32 start_pts, j, ind_col, num_col;
@@ -77,15 +77,16 @@ static void IFS2D_Draw(DrawableContext *ctx)
 	SFColor col;
 	Fixed alpha;
 	GF_Raster2D *r2d;
-	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)ctx->node->owner;
+	DrawableContext *ctx = eff->ctx;
+	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
 	M_Coordinate2D *coord = (M_Coordinate2D*) ifs2D->coord;
 	M_Color *color = (M_Color *) ifs2D->color;
 		
 	col.red = col.green = col.blue = 0;
 	/*simple case, no color specified*/
 	if (!ifs2D->color) {
-		VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
-		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_TexturePath(eff->surface, ctx->node->path, ctx);
+		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
 		return;
 	}
 
@@ -103,8 +104,8 @@ static void IFS2D_Draw(DrawableContext *ctx)
 			alpha = INT2FIX(GF_COL_A(ctx->aspect.fill_color)) / 255;
 			ctx->aspect.fill_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 		}
-		VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
-		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_TexturePath(eff->surface, ctx->node->path, ctx);
+		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
 		return;
 	}
 
@@ -139,8 +140,8 @@ static void IFS2D_Draw(DrawableContext *ctx)
 				ctx->aspect.fill_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 			}
 
-			VS2D_TexturePath(ctx->surface, path, ctx);
-			VS2D_DrawPath(ctx->surface, path, ctx, NULL, NULL);
+			VS2D_TexturePath(eff->surface, path, ctx);
+			VS2D_DrawPath(eff->surface, path, ctx, NULL, NULL);
 			count++;
 			i++;
 			if (i >= ci_count) break;
@@ -152,12 +153,12 @@ static void IFS2D_Draw(DrawableContext *ctx)
 	}
 
 	/*final case, color per vertex means gradient fill/strike*/
-	r2d = ctx->surface->render->compositor->r2d;
+	r2d = eff->surface->render->compositor->r2d;
 	grad = r2d->stencil_new(r2d, GF_STENCIL_VERTEX_GRADIENT);
 	/*not supported, fill default*/
 	if (!grad) {
-		VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
-		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_TexturePath(eff->surface, ctx->node->path, ctx);
+		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
 		return;
 	}
 
@@ -227,7 +228,7 @@ static void IFS2D_Draw(DrawableContext *ctx)
 		r2d->stencil_set_matrix(grad, &ctx->transform);
 
 		/*draw*/
-		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, grad, grad);
+		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, grad, grad);
 
 		r2d->stencil_delete(grad);
 
@@ -254,7 +255,7 @@ static void RenderIFS2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		IFS2D_Draw(eff->ctx);
+		IFS2D_Draw(node, eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {

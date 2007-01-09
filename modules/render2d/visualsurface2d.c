@@ -76,7 +76,6 @@ DrawableContext *VS2D_GetDrawableContext(VisualSurface2D *surf)
 	i = surf->num_contexts;
 	surf->num_contexts++;
 	drawctx_reset(surf->contexts[i]);
-	surf->contexts[i]->surface = surf;
 	return surf->contexts[i];
 
 }
@@ -193,11 +192,15 @@ GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	bck = (M_Background2D*) gf_list_get(surf->back_stack, 0);
 	if (bck && bck->isBound) {
 		ctx = b2D_GetContext(bck, surf->back_stack);
-		ctx->clip = surf->surf_rect;
-		ctx->unclip = gf_rect_ft(&ctx->clip);
-		eff->draw_background = 1;
-		gf_node_render((GF_Node *) bck, eff);
-		eff->draw_background = 0;
+		if (ctx) {
+			ctx->bi->clip = surf->surf_rect;
+			ctx->bi->unclip = gf_rect_ft(&surf->surf_rect);
+			eff->draw_background = 1;
+			gf_node_render((GF_Node *) bck, eff);
+			eff->draw_background = 0;
+		} else {
+			VS2D_Clear(surf, NULL, 0);
+		}
 	} else {
 		VS2D_Clear(surf, NULL, 0);
 	}
@@ -225,6 +228,8 @@ void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx)
 	surf->has_sensors = 1;
 }
 
+#ifdef TRACK_OPAQUE_REGIONS
+
 #define CHECK_UNCHANGED		0
 
 static void mark_opaque_areas(VisualSurface2D *surf)
@@ -246,9 +251,9 @@ static void mark_opaque_areas(VisualSurface2D *surf)
 		for (i=surf->num_contexts; i>0; i--) {
 			DrawableContext *ctx = surf->contexts[i-1];
 
-			if (!gf_irect_inside(ctx->clip, ra->list[k]) ) {
+			if (!gf_irect_inside(&ctx->bi->clip, &ra->list[k]) ) {
 #if CHECK_UNCHANGED
-				if (remove && gf_rect_overlaps(ctx->clip, ra->list[k])) {
+				if (remove && gf_rect_overlaps(&ctx->bi->clip, ra->list[k])) {
 					if (ctx->need_redraw) remove = 0;
 				}
 #endif
@@ -283,6 +288,7 @@ static void mark_opaque_areas(VisualSurface2D *surf)
 		}
 	}
 }
+#endif
 
 
 /*this defines a partition of the rendering area in small squares of the given width. If the number of nodes
@@ -343,13 +349,13 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	for (i=0; i<count; i++) {
 		ctx = surf->contexts[i];
 
-		drawctx_update_info(ctx);
+		drawctx_update_info(ctx, surf);
 		if (ctx->flags & CTX_REDRAW_MASK) {
 			num_changed ++;
 
 			/*node has changed, add to redraw area*/
 			if (!redraw_all) {
-				ra_union_rect(&surf->to_redraw, ctx->clip);
+				ra_union_rect(&surf->to_redraw, &ctx->bi->clip);
 //				CHECK_MAX_NODE
 			}
 		}
@@ -365,7 +371,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		Drawable *n = (Drawable *)gf_list_get(surf->prev_nodes_drawn, j);
 		while (drawable_get_previous_bound(n, &refreshRect, surf)) {
 			if (!redraw_all) {
-				ra_union_rect(&surf->to_redraw, refreshRect);
+				ra_union_rect(&surf->to_redraw, &refreshRect);
 //				CHECK_MAX_NODE
 			}
 		}
@@ -384,12 +390,14 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 
 	if (redraw_all) {
 		ra_clear(&surf->to_redraw);
-		ra_add(&surf->to_redraw, surf->surf_rect);
+		ra_add(&surf->to_redraw, &surf->surf_rect);
 	} else {
 		ra_refresh(&surf->to_redraw);
 	}
+#ifdef TRACK_OPAQUE_REGIONS
 	/*mark opaque areas to speed up*/
 	mark_opaque_areas(surf);
+#endif
 
 	/*nothing to redraw*/
 	if (ra_is_empty(&surf->to_redraw) ) goto exit;
@@ -398,18 +406,23 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 
 	/*redraw everything*/
 	if (bck_ctx) {
+		drawable_check_bounds(bck_ctx, surf);
 		eff->ctx = bck_ctx;
+#ifdef TRACK_OPAQUE_REGIONS
 		surf->draw_node_index = 0;
-		bck_ctx->unclip = gf_rect_ft(&surf->surf_rect);
-		bck_ctx->clip = surf->surf_rect;
+#endif
+		bck_ctx->bi->unclip = gf_rect_ft(&surf->surf_rect);
+		bck_ctx->bi->clip = surf->surf_rect;
 		gf_node_render(bck_ctx->node->owner, eff);
 	} else {
 		count = surf->to_redraw.count;
-		if (bck_ctx) bck_ctx->unclip = gf_rect_ft(&surf->surf_rect);
+		if (bck_ctx) bck_ctx->bi->unclip = gf_rect_ft(&surf->surf_rect);
 		for (k=0; k<count; k++) {
 			GF_IRect rc;
 			/*opaque area, skip*/
+#ifdef TRACK_OPAQUE_REGIONS
 			if (surf->to_redraw.opaque_node_index[k] > 0) continue;
+#endif
 			rc = surf->to_redraw.list[k];
 			gf_irect_intersect(&rc, &surf->top_clipper);
 			VS2D_Clear(surf, &rc, 0);
@@ -429,8 +442,10 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	refreshRect = surf->to_redraw.list[0];
 	for (i=0; i<surf->num_contexts; i++) {
 		ctx = surf->contexts[i];
-		if ((surf->to_redraw.count>1) || gf_irect_overlaps(ctx->clip, refreshRect)) {
+		if ((surf->to_redraw.count>1) || gf_irect_overlaps(&ctx->bi->clip, &refreshRect)) {
+#ifdef TRACK_OPAQUE_REGIONS
 			surf->draw_node_index = i+1;
+#endif
 			eff->ctx = ctx;
 			gf_node_render(ctx->node->owner, eff);
 		}
@@ -452,15 +467,16 @@ DrawableContext *VS2D_PickSensitiveNode(VisualSurface2D *surf, Fixed x, Fixed y)
 {
 	RenderEffect2D eff;
 	u32 i;
-	eff.pick_type = PICK_PATH;
+	eff.surface = surf;
 	eff.traversing_mode = TRAVERSE_PICK;
+	eff.pick_type = PICK_PATH;
 	eff.x = x;
 	eff.y = y;
 	i = surf->num_contexts;
 	for (; i > 0; i--) {
 		DrawableContext *ctx = surf->contexts[i-1];
 		/*check over bounds*/
-		if (!ctx->node || ! gf_point_in_rect(ctx->clip, x, y)) continue;
+		if (!ctx->node || ! gf_point_in_rect(&ctx->bi->clip, x, y)) continue;
 		eff.ctx = ctx;
 		eff.is_over = 0;
 		gf_node_render(ctx->node->owner, &eff);
@@ -481,6 +497,8 @@ DrawableContext *VS2D_PickContext(VisualSurface2D *surf, Fixed x, Fixed y)
 {
 	RenderEffect2D eff;
 	u32 i;
+	eff.surface = surf;
+	eff.traversing_mode = TRAVERSE_PICK;
 	eff.pick_type = PICK_FULL;
 	eff.x = x;
 	eff.y = y;
@@ -488,7 +506,7 @@ DrawableContext *VS2D_PickContext(VisualSurface2D *surf, Fixed x, Fixed y)
 	for (; i > 0; i--) {
 		DrawableContext *ctx = surf->contexts[i-1];
 		/*check over bounds*/
-		if (!ctx->node || ! gf_point_in_rect(ctx->clip, x, y)) continue;
+		if (!ctx->node || ! gf_point_in_rect(&ctx->bi->clip, x, y)) continue;
 		eff.ctx = ctx;
 		eff.is_over = 0;
 		gf_node_render(ctx->node->owner, &eff);
@@ -510,13 +528,15 @@ GF_Node *VS2D_PickNode(VisualSurface2D *surf, Fixed x, Fixed y)
 	if (bck && bck->isBound) back = (GF_Node *) bck;
 
 	i = surf->num_contexts;
+	eff.surface = surf;
+	eff.traversing_mode = TRAVERSE_PICK;
 	eff.pick_type = PICK_PATH_AND_OUTLINE;
 	eff.x = x;
 	eff.y = y;
 	for (; i > 0; i--) {
 		DrawableContext *ctx = surf->contexts[i-1];
 		/*check over bounds*/
-		if (!ctx->node || ! gf_point_in_rect(ctx->clip, x, y)) continue;
+		if (!ctx->node || ! gf_point_in_rect(&ctx->bi->clip, x, y)) continue;
 		/*check over shape*/
 		eff.is_over = 0;
 		gf_node_render(ctx->node->owner, &eff);

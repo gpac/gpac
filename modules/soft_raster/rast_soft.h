@@ -279,7 +279,7 @@ GF_Err evg_stencil_set_tiling(GF_STENCIL st, GF_TextureTiling mode);
 GF_Err evg_stencil_set_filter(GF_STENCIL st, GF_TextureFilter filter_mode);
 GF_Err evg_stencil_set_color_matrix(GF_STENCIL st, GF_ColorMatrix *cmat);
 GF_Err evg_stencil_reset_color_matrix(GF_STENCIL st);
-GF_Err evg_stencil_set_gf_sr_texture_alpha(GF_STENCIL st, u8 alpha);
+GF_Err evg_stencil_set_texture_alpha(GF_STENCIL st, u8 alpha);
 GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_PixelFormat pixelFormat);
 
 

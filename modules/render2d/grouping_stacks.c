@@ -658,8 +658,8 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		
 		eff->draw_background = 1;
 		ctx = b2D_GetContext(back, l2D->backs);
-		ctx->unclip = l2D->clip;
-		ctx->clip = gf_rect_pixelize(&ctx->unclip);
+		ctx->bi->unclip = l2D->clip;
+		ctx->bi->clip = gf_rect_pixelize(&ctx->bi->unclip);
 		gf_mx2d_init(ctx->transform);
 		gf_node_render((GF_Node *) back, eff);
 		eff->draw_background = 0;
@@ -671,14 +671,15 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			back_ctx = VS2D_GetDrawableContext(eff->surface);
 			gf_list_rem(cg->contexts, 0);
 			gf_list_add(cg->contexts, back_ctx);
-			back_ctx->unclip = ctx->unclip;
-			back_ctx->clip = ctx->clip;
 			back_ctx->h_texture = ctx->h_texture;
 			back_ctx->flags = ctx->flags;
 			back_ctx->flags &= ~CTX_IS_TRANSPARENT;
 			back_ctx->flags |= CTX_IS_BACKGROUND;
 			back_ctx->aspect = ctx->aspect;
 			back_ctx->node = ctx->node;
+			drawable_check_bounds(back_ctx, eff->surface);
+			back_ctx->bi->clip = ctx->bi->clip;
+			back_ctx->bi->unclip = ctx->bi->unclip;
 		}
 		group2d_end_child((GroupingNode2D *)l2D);
 	}

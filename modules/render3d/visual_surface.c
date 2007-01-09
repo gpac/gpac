@@ -197,21 +197,21 @@ Bool VS_GetAspect2D(RenderEffect3D *eff, Aspect2D *asp)
 		{
 			M_LineProperties *lp = (M_LineProperties *)mat->lineProps;
 			asp->pen_props.width = lp->width;
-			asp->pen_props.dash = (GF_DashStyle) lp->lineStyle;
+			asp->pen_props.dash = (u8) lp->lineStyle;
 			asp->line_color = lp->lineColor;
 		}
 			break;
 		case TAG_MPEG4_XLineProperties:
 		{
 			M_XLineProperties *xlp = (M_XLineProperties *)mat->lineProps;
-			asp->pen_props.dash = (GF_DashStyle) xlp->lineStyle;
+			asp->pen_props.dash = (u8) xlp->lineStyle;
 			asp->line_color = xlp->lineColor;
 			asp->line_alpha = FIX_ONE - xlp->transparency;
 			asp->pen_props.width = xlp->width;
 			asp->is_scalable = xlp->isScalable;
 			asp->pen_props.align = xlp->isCenterAligned ? GF_PATH_LINE_CENTER : GF_PATH_LINE_INSIDE;
-			asp->pen_props.cap = (GF_LineCap) xlp->lineCap;
-			asp->pen_props.join = (GF_LineJoin) xlp->lineJoin;
+			asp->pen_props.cap = (u8) xlp->lineCap;
+			asp->pen_props.join = (u8) xlp->lineJoin;
 			asp->pen_props.miterLimit = xlp->miterLimit;
 			asp->pen_props.dash_offset = xlp->dashOffset;
 			/*dash settings strutc is the same as MFFloat from XLP, typecast without storing*/

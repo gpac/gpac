@@ -317,16 +317,6 @@ GF_Err gf_stencil_set_color_matrix(GF_STENCIL _this, GF_ColorMatrix *cmat)
 	_sten->gf_sr_texture_invalid = 1;
 	return GF_OK;
 }
-static
-GF_Err gf_stencil_reset_color_matrix(GF_STENCIL _this)
-{
-	GPSTEN();
-	if (_sten->has_cmat) {
-		_sten->has_cmat = 0;
-		_sten->gf_sr_texture_invalid = 1;
-	}
-	return GF_OK;
-}
 
 static
 GF_Err gf_set_gf_sr_texture_alpha(GF_STENCIL _this, u8 alpha)
@@ -421,7 +411,7 @@ GF_Err gf_get_texture(GF_STENCIL _this, unsigned char **pixels, u32 *width, u32 
 #endif
 
 
-void gf_stencil_gf_sr_texture_modified(GF_STENCIL _this)
+void gf_stencil_texture_modified(GF_STENCIL _this)
 {
 	GPSTEN();
 	_sten->gf_sr_texture_invalid = 1;
@@ -433,10 +423,9 @@ void gf_init_driver_texture(GF_Raster2D *driver)
 	driver->stencil_set_tiling = gf_set_gf_sr_texture_repeat_mode;
 	driver->stencil_set_filter = gf_set_gf_sr_texture_filter;
 	driver->stencil_set_color_matrix = gf_stencil_set_color_matrix;
-	driver->stencil_reset_color_matrix = gf_stencil_reset_color_matrix;
-	driver->stencil_set_gf_sr_texture_alpha = gf_set_gf_sr_texture_alpha;
+	driver->stencil_set_texture_alpha = gf_set_gf_sr_texture_alpha;
 	driver->stencil_create_texture = gf_stencil_create_texture;
-	driver->stencil_gf_sr_texture_modified = gf_stencil_gf_sr_texture_modified;
+	driver->stencil_texture_modified = gf_stencil_texture_modified;
 }
 
 

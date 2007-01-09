@@ -62,7 +62,7 @@ static void RenderCircle(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		drawable_draw(eff->ctx);
+		drawable_draw(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -99,7 +99,7 @@ static void RenderEllipse(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		drawable_draw(eff->ctx);
+		drawable_draw(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -133,44 +133,45 @@ static Bool txtrans_identity(GF_Node *appear)
 	return 0;
 }
 
-void R2D_DrawRectangle(DrawableContext *ctx)
+void R2D_DrawRectangle(RenderEffect2D *eff)
 {
+	DrawableContext *ctx = eff->ctx;
 	if (!ctx->h_texture || !ctx->h_texture->stream || ctx->transform.m[1] || ctx->transform.m[3] || !txtrans_identity(ctx->appear) ) {
-		VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
-		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_TexturePath(eff->surface, ctx->node->path, ctx);
+		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
 	} else {
 		GF_Rect unclip;
 		GF_IRect clip, unclip_pix;
 		u8 alpha = GF_COL_A(ctx->aspect.fill_color);
-		GF_ColorMatrix *cmat = NULL;
-		if (!ctx->cmat.identity) cmat = &ctx->cmat;
 
 		/*get image size WITHOUT line size*/
 		gf_path_get_bounds(ctx->node->path, &unclip);
 		gf_mx2d_apply_rect(&ctx->transform, &unclip);
 		unclip_pix = clip = gf_rect_pixelize(&unclip);
-		gf_irect_intersect(&clip, &ctx->clip);
+		gf_irect_intersect(&clip, &ctx->bi->clip);
 
 		/*direct rendering, render without clippers */
-		if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
-			ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &unclip, alpha, NULL, cmat);
+		if (eff->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
+			eff->surface->DrawBitmap(eff->surface, ctx->h_texture, &clip, &unclip, alpha, NULL, ctx->col_mat);
 		}
 		/*render bitmap for all dirty rects*/
 		else {
 			u32 i;
 			GF_IRect a_clip;
-			for (i=0; i<ctx->surface->to_redraw.count; i++) {
+			for (i=0; i<eff->surface->to_redraw.count; i++) {
 				/*there's an opaque region above, don't draw*/
-				if (ctx->surface->draw_node_index<ctx->surface->to_redraw.opaque_node_index[i]) continue;
+#ifdef TRACK_OPAQUE_REGIONS
+				if (eff->surface->draw_node_index < eff->surface->to_redraw.opaque_node_index[i]) continue;
+#endif
 				a_clip = clip;
-				gf_irect_intersect(&a_clip, &ctx->surface->to_redraw.list[i]);
+				gf_irect_intersect(&a_clip, &eff->surface->to_redraw.list[i]);
 				if (a_clip.width && a_clip.height) {
-					ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &a_clip, &unclip, alpha, NULL, cmat);
+					eff->surface->DrawBitmap(eff->surface, ctx->h_texture, &a_clip, &unclip, alpha, NULL, ctx->col_mat);
 				}
 			}
 		}
 		ctx->flags |= CTX_PATH_FILLED;
-		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
 	}
 }
 
@@ -185,7 +186,7 @@ static void RenderRectangle(GF_Node *node, void *reff, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		R2D_DrawRectangle(eff->ctx);
+		R2D_DrawRectangle(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -356,7 +357,7 @@ static void RenderCurve2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		drawable_draw(eff->ctx);
+		drawable_draw(eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -425,26 +426,22 @@ static void Bitmap_BuildGraph(BitmapStack *st, DrawableContext *ctx, RenderEffec
 	*out_rc = gf_rect_center(w, h);
 }
 
-static void DrawBitmap(DrawableContext *ctx)
+static void DrawBitmap(GF_Node *node, RenderEffect2D *eff)
 {
 	u8 alpha;
 	u32 keyColor;
-	GF_ColorMatrix *cmat;
 	Render2D *sr;
 	Bool use_blit, has_key;
-	BitmapStack *st = (BitmapStack *) gf_node_get_private(ctx->node->owner);
+	DrawableContext *ctx = eff->ctx;
+	BitmapStack *st = (BitmapStack *) gf_node_get_private(node);
 
 
-	sr = ctx->surface->render;
+	sr = eff->surface->render;
 	/*bitmaps are NEVER rotated (forbidden in spec). In case a rotation was done we still display (reset the skew components)*/
 	ctx->transform.m[1] = ctx->transform.m[3] = 0;
 
 	use_blit = 1;
 	alpha = GF_COL_A(ctx->aspect.fill_color);
-
-	cmat = NULL;
-	if (!ctx->cmat.identity) cmat = &ctx->cmat;
-	//else if (ctx->h_texture->has_cmat) cmat = NULL;
 
 	/*materialKey*/
 	has_key = 0;
@@ -465,17 +462,17 @@ static void DrawBitmap(DrawableContext *ctx)
 	if (!ctx->h_texture->data) {
 		use_blit = 0;
 	} else {
-		if (!ctx->surface->SupportsFormat || !ctx->surface->DrawBitmap ) use_blit = 0;
+		if (!eff->surface->SupportsFormat || !eff->surface->DrawBitmap ) use_blit = 0;
 		/*format not supported directly, try with brush*/
-		else if (!ctx->surface->SupportsFormat(ctx->surface, ctx->h_texture->pixelformat) ) use_blit = 0;
+		else if (!eff->surface->SupportsFormat(eff->surface, ctx->h_texture->pixelformat) ) use_blit = 0;
 	}
 
 	/*no HW, fall back to the graphics driver*/
 	if (!use_blit) {
 		Fixed w, h;
 		GF_Matrix2D _mat;
-		w = ctx->unclip.width;
-		h = ctx->unclip.height;
+		w = ctx->bi->unclip.width;
+		h = ctx->bi->unclip.height;
 		gf_mx2d_copy(_mat, ctx->transform);
 		gf_mx2d_inverse(&_mat);
 		gf_mx2d_apply_coords(&_mat, &w, &h);
@@ -483,25 +480,27 @@ static void DrawBitmap(DrawableContext *ctx)
 		drawable_reset_path(st->graph);
 		gf_path_add_rect_center(st->graph->path, 0, 0, w, h);
 		ctx->flags |= CTX_NO_ANTIALIAS;
-		VS2D_TexturePath(ctx->surface, st->graph->path, ctx);
+		VS2D_TexturePath(eff->surface, st->graph->path, ctx);
 		return;
 	}
 
 	/*direct rendering, render without clippers */
-	if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
-		ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &ctx->clip, &ctx->unclip, alpha, has_key ? &keyColor : NULL, cmat);
+	if (eff->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
+		eff->surface->DrawBitmap(eff->surface, ctx->h_texture, &ctx->bi->clip, &ctx->bi->unclip, alpha, has_key ? &keyColor : NULL, ctx->col_mat);
 	}
 	/*render bitmap for all dirty rects*/
 	else {
 		u32 i;
 		GF_IRect clip;
-		for (i=0; i<ctx->surface->to_redraw.count; i++) {
+		for (i=0; i<eff->surface->to_redraw.count; i++) {
 			/*there's an opaque region above, don't draw*/
-			if (ctx->surface->draw_node_index<ctx->surface->to_redraw.opaque_node_index[i]) continue;
-			clip = ctx->clip;
-			gf_irect_intersect(&clip, &ctx->surface->to_redraw.list[i]);
+#ifdef TRACK_OPAQUE_REGIONS
+			if (eff->surface->draw_node_index < eff->surface->to_redraw.opaque_node_index[i]) continue;
+#endif
+			clip = ctx->bi->clip;
+			gf_irect_intersect(&clip, &eff->surface->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &ctx->unclip, alpha, has_key ? &keyColor : NULL, cmat);
+				eff->surface->DrawBitmap(eff->surface, ctx->h_texture, &clip, &ctx->bi->unclip, alpha, has_key ? &keyColor : NULL, ctx->col_mat);
 			}
 		}
 	}
@@ -520,7 +519,7 @@ static void RenderBitmap(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		DrawBitmap(eff->ctx);
+		DrawBitmap(node, eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {
@@ -532,7 +531,10 @@ static void RenderBitmap(GF_Node *node, void *rs, Bool is_destroy)
 	gf_node_dirty_clear(node, 0);
 
 	ctx = drawable_init_context(st->graph, eff);
-	if (!ctx || !ctx->h_texture ) return;
+	if (!ctx || !ctx->h_texture ) {
+		VS2D_RemoveLastContext(eff->surface);
+		return;
+	}
 	/*always build the path*/
 	Bitmap_BuildGraph(st, ctx, eff, &rc);
 	/*even if set this is not true*/
@@ -599,13 +601,14 @@ static void build_graph(Drawable *cs, GF_Matrix2D *mat, M_PointSet2D *ps2D)
 	cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 }
 
-static void PointSet2D_Draw(DrawableContext *ctx)
+static void PointSet2D_Draw(GF_Node *node, RenderEffect2D *eff)
 {
 	GF_Path *path;
 	Fixed alpha, w, h;
 	u32 i;
 	SFColor col;
-	M_PointSet2D *ps2D = (M_PointSet2D *)ctx->node->owner;
+	DrawableContext *ctx = eff->ctx;
+	M_PointSet2D *ps2D = (M_PointSet2D *)node;
 	M_Coordinate2D *coord = (M_Coordinate2D*) ps2D->coord;
 	M_Color *color = (M_Color *) ps2D->color;
 
@@ -613,7 +616,7 @@ static void PointSet2D_Draw(DrawableContext *ctx)
 	ctx->flags |= CTX_PATH_STROKE;
 	if (!color || color->color.count<coord->point.count) {
 		/*no texturing*/
-		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
 		return;
 	}
 
@@ -625,7 +628,7 @@ static void PointSet2D_Draw(DrawableContext *ctx)
 		col = color->color.vals[i];
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 		gf_path_add_rect_center(path, coord->point.vals[i].x, coord->point.vals[i].y, w, h);
-		VS2D_DrawPath(ctx->surface, path, ctx, NULL, NULL);
+		VS2D_DrawPath(eff->surface, path, ctx, NULL, NULL);
 		gf_path_reset(path);
 		ctx->flags &= ~CTX_PATH_FILLED;
 	}
@@ -644,7 +647,7 @@ static void RenderPointSet2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
-		PointSet2D_Draw(eff->ctx);
+		PointSet2D_Draw(node, eff);
 		return;
 	}
 	else if (eff->traversing_mode==TRAVERSE_PICK) {

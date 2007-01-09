@@ -181,18 +181,16 @@ typedef struct _raster2d_interface
 	be respected as far as Alpha is concerned (eg alpha info shall be kept and used in blit) */
 	GF_Err (*stencil_create_texture) (GF_STENCIL _this, u32 width, u32 height, GF_PixelFormat pixelFormat);
 	/*signals the texture has been modified (internal texture only)*/
-	void (*stencil_gf_sr_texture_modified) (GF_STENCIL _this);
+	void (*stencil_texture_modified) (GF_STENCIL _this);
 
 	/*sets alpha blending level for texture - the alpha channel shall be combined with the color matrix if any*/
-	GF_Err (*stencil_set_gf_sr_texture_alpha) (GF_STENCIL _this, u8 alpha);
+	GF_Err (*stencil_set_texture_alpha) (GF_STENCIL _this, u8 alpha);
 	/*sets texture tile mode*/
 	GF_Err (*stencil_set_tiling) (GF_STENCIL _this, GF_TextureTiling mode);
 	/*sets texture filtering mode*/
 	GF_Err (*stencil_set_filter) (GF_STENCIL _this, GF_TextureFilter filter_mode);
-	/*set stencil color matrix - texture stencils only*/
+	/*set stencil color matrix - texture stencils only. If matrix is NULL, resets current color matrix*/
 	GF_Err (*stencil_set_color_matrix) (GF_STENCIL _this, GF_ColorMatrix *cmat);
-	/*reset stencil color matrix - texture stencils only*/
-	GF_Err (*stencil_reset_color_matrix) (GF_STENCIL _this);
 
 	/*creates surface object*/
 	/* @center_coords: true indicates mathematical-like coord system, 

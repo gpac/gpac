@@ -349,8 +349,8 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 GF_EXPORT
 u32 gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_props) 
 {
-	u32 inherited_flags_mask = GF_SG_NODE_DIRTY | GF_SG_CHILD_DIRTY;
-	if(!elt || !render_svg_props) return ~inherited_flags_mask;
+	u32 inherited_flags_mask = 0;
+	if(!elt || !render_svg_props) return 0;
 
 	/* Perform inheritance of all the properties */
 	if (render_svg_props && elt->properties) {
@@ -532,13 +532,9 @@ u32 gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_
 		}
 		if (elt->properties->viewport_fill.type != SVG_PAINT_INHERIT) {
 			render_svg_props->viewport_fill = &elt->properties->viewport_fill;		
-		} else {
-			inherited_flags_mask |= GF_SG_SVG_VIEWPORTFILL_DIRTY;
 		}
 		if (elt->properties->viewport_fill_opacity.type != SVG_NUMBER_INHERIT) {
 			render_svg_props->viewport_fill_opacity = &elt->properties->viewport_fill_opacity;
-		} else {
-			inherited_flags_mask |= GF_SG_SVG_VIEWPORTFILLOPACITY_DIRTY;
 		}
 		if (elt->properties->visibility != SVG_VISIBILITY_INHERIT) {
 			render_svg_props->visibility = &elt->properties->visibility;
@@ -711,8 +707,8 @@ u32 gf_svg_get_rendering_flag_if_modified(SVGElement *n, GF_FieldInfo *info)
 		else if (&n->properties->text_anchor == info->far_ptr)			return GF_SG_SVG_TEXTANCHOR_DIRTY;
 		else if (&n->properties->text_rendering == info->far_ptr)		return 0;
 		else if (&n->properties->vector_effect == info->far_ptr)		return GF_SG_SVG_VECTOREFFECT_DIRTY;
-		else if (&n->properties->viewport_fill == info->far_ptr)		return GF_SG_SVG_VIEWPORTFILL_DIRTY;
-		else if (&n->properties->viewport_fill_opacity == info->far_ptr)return GF_SG_SVG_VIEWPORTFILLOPACITY_DIRTY;
+		else if (&n->properties->viewport_fill == info->far_ptr)		return 0;
+		else if (&n->properties->viewport_fill_opacity == info->far_ptr)return 0;
 		else if (&n->properties->visibility == info->far_ptr)			return 0;
 	}
 	
@@ -752,6 +748,7 @@ u32 gf_svg_get_rendering_flag_if_modified(SVGElement *n, GF_FieldInfo *info)
 GF_EXPORT
 Bool gf_svg_has_appearance_flag_dirty(u32 flags)
 {
+#if 0
 	/* fill-related */
 	if (flags & GF_SG_SVG_FILL_DIRTY)				return 1;
 	if (flags & GF_SG_SVG_FILLOPACITY_DIRTY)		return 1;
@@ -770,4 +767,15 @@ Bool gf_svg_has_appearance_flag_dirty(u32 flags)
 
 	/* gradients stops and solidcolor do not affect appearance directly */
 	return 0;
+#else
+	if (flags & 
+		(GF_SG_SVG_FILL_DIRTY | GF_SG_SVG_FILLOPACITY_DIRTY | GF_SG_SVG_FILLRULE_DIRTY
+		| GF_SG_SVG_STROKE_DIRTY | GF_SG_SVG_STROKEDASHARRAY_DIRTY
+		| GF_SG_SVG_STROKEDASHOFFSET_DIRTY | GF_SG_SVG_STROKELINECAP_DIRTY
+		| GF_SG_SVG_STROKELINEJOIN_DIRTY | GF_SG_SVG_STROKEMITERLIMIT_DIRTY
+		| GF_SG_SVG_STROKEOPACITY_DIRTY | GF_SG_SVG_STROKEWIDTH_DIRTY
+		| GF_SG_SVG_VECTOREFFECT_DIRTY) )
+			return 1;
+	return 0;
+#endif
 }

@@ -92,7 +92,7 @@ static void draw_clipper(VisualSurface2D *surf, struct _drawable_context *ctx)
 	clipset.width = 2*FIX_ONE;
 
 	clippath = gf_path_new();
-	gf_path_add_rect_center(clippath, ctx->unclip.x + ctx->unclip.width/2, ctx->unclip.y - ctx->unclip.height/2, ctx->unclip.width, ctx->unclip.height);
+	gf_path_add_rect_center(clippath, ctx->bi->unclip.x + ctx->bi->unclip.width/2, ctx->bi->unclip.y - ctx->bi->unclip.height/2, ctx->bi->unclip.width, ctx->bi->unclip.height);
 	cliper = gf_path_get_outline(clippath, clipset);
 	gf_path_del(clippath);
 	r2d->surface_set_matrix(surf->the_surface, NULL);
@@ -110,8 +110,8 @@ static void VS2D_DoFill(VisualSurface2D *surf, DrawableContext *ctx, GF_STENCIL 
 
 	/*background rendering - direct rendering: use ctx clip*/
 	if ((ctx->flags & CTX_IS_BACKGROUND) || (surf->render->top_effect->trav_flags & TF_RENDER_DIRECT)) {
-		if (ctx->clip.width && ctx->clip.height) {
-			r2d->surface_set_clipper(surf->the_surface, &ctx->clip);
+		if (ctx->bi->clip.width && ctx->bi->clip.height) {
+			r2d->surface_set_clipper(surf->the_surface, &ctx->bi->clip);
 			r2d->surface_fill(surf->the_surface, stencil);
 		}
 	} 
@@ -120,11 +120,14 @@ static void VS2D_DoFill(VisualSurface2D *surf, DrawableContext *ctx, GF_STENCIL 
 		u32 i;
 		for (i=0; i<surf->to_redraw.count; i++) {
 			/*there's an opaque region above, don't draw*/
+#ifdef TRACK_OPAQUE_REGIONS
 			if (surf->draw_node_index<surf->to_redraw.opaque_node_index[i]) continue;
-			clip = ctx->clip;
+#endif
+			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &surf->to_redraw.list[i]);
 			if (clip.width && clip.height) {
 				r2d->surface_set_clipper(surf->the_surface, &clip);
+				r2d->surface_set_clipper(surf->the_surface, NULL);
 				r2d->surface_fill(surf->the_surface, stencil);
 //			} else {
 //				fprintf(stdout, "node outside clipper\n");
@@ -227,7 +230,7 @@ static void VS2D_DrawGradient(VisualSurface2D *surf, GF_Path *path, GF_TextureHa
 	gf_mx2d_add_matrix(&g_mat, &ctx->transform);
 
 	r2d->stencil_set_matrix(txh->hwtx, &g_mat);
-	r2d->stencil_set_color_matrix(txh->hwtx, &ctx->cmat);
+	r2d->stencil_set_color_matrix(txh->hwtx, ctx->col_mat);
 
 	fill = ctx->aspect.filled;
 	ctx->aspect.filled = 1;
@@ -282,9 +285,9 @@ void VS2D_TexturePathText(VisualSurface2D *surf, DrawableContext *txt_ctx, GF_Pa
 
 	/*if col do a cxmatrix*/
 	if (!r && !g && !b) {
-		r2d->stencil_set_gf_sr_texture_alpha(hwtx, alpha);
+		r2d->stencil_set_texture_alpha(hwtx, alpha);
 	} else {
-		r2d->stencil_set_gf_sr_texture_alpha(hwtx, 0xFF);
+		r2d->stencil_set_texture_alpha(hwtx, 0xFF);
 		memset(cmat.m, 0, sizeof(Fixed) * 20);
 		cmat.m[4] = INT2FIX(r)/255;
 		cmat.m[9] = INT2FIX(g)/255;
@@ -358,9 +361,8 @@ void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHand
 
 	if (!(ctx->flags & CTX_IS_BACKGROUND) ) {
 		/*texture alpha scale is the original material transparency, NOT the one after color transform*/
-		r2d->stencil_set_gf_sr_texture_alpha(txh->hwtx, ctx->aspect.fill_alpha);
-		if (!ctx->cmat.identity) r2d->stencil_set_color_matrix(txh->hwtx, &ctx->cmat);
-		else r2d->stencil_reset_color_matrix(txh->hwtx);
+		r2d->stencil_set_texture_alpha(txh->hwtx, ctx->aspect.fill_alpha);
+		r2d->stencil_set_color_matrix(txh->hwtx, ctx->col_mat);
 
 		r2d->surface_set_matrix(surf->the_surface, &ctx->transform);
 	} else {

@@ -344,6 +344,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 
 		offset = ftell(in) - 4;
 		size = gf_mp3_frame_size(hdr);
+		assert(size);
 		if (size>max_size) {
 			samp->data = (char*)realloc(samp->data, sizeof(char) * size);
 			max_size = size;
@@ -4600,8 +4601,8 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	GF_MediaImporter *import= (GF_MediaImporter *)tsimp->import;
 
 	switch (evt_type) {
-//	case GF_M2TS_EVT_PAT_REPEAT:
-//	case GF_M2TS_EVT_PMT_REPEAT:
+	case GF_M2TS_EVT_PAT_REPEAT:
+	case GF_M2TS_EVT_PMT_REPEAT:
 	case GF_M2TS_EVT_SDT_REPEAT:
 		if (import->flags & GF_IMPORT_PROBE_ONLY) import->flags |= GF_IMPORT_DO_ABORT;
 		break;
