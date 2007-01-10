@@ -746,7 +746,7 @@ void Text2D_Draw(GF_Node *node, RenderEffect2D *eff)
 	TextStack2D *st = (TextStack2D *) gf_node_get_private((GF_Node *) ctx->node->owner);
 	M_FontStyle *fs = (M_FontStyle *) ((M_Text *) node)->fontStyle;
 
-	if (!ctx->aspect.filled && !ctx->aspect.pen_props.width) return;
+	if (!GF_COL_A(ctx->aspect.fill_color) && !ctx->aspect.pen_props.width) return;
 
 	hl_color = 0;
 	fs_style = FSSTYLE;
@@ -816,7 +816,7 @@ static Bool Text2D_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_t
 	TextStack2D *st;
 
 	/*this is not documented anywhere but it speeds things up*/
-	if (!check_type || ctx->aspect.filled) return 1;
+	if (!check_type || GF_COL_A(ctx->aspect.fill_color) ) return 1;
 	
 	st = (TextStack2D *) gf_node_get_private((GF_Node *) ctx->node->owner);
 	
@@ -889,7 +889,7 @@ static void Text_Render(GF_Node *n, void *rs, Bool is_destroy)
 	if (!ctx) return;
 
 	ctx->flags |= CTX_IS_TEXT;
-	if (!ctx->aspect.filled) {
+	if (!GF_COL_A(ctx->aspect.fill_color)) {
 		/*override line join*/
 		ctx->aspect.pen_props.join = GF_LINE_JOIN_MITER;
 		ctx->aspect.pen_props.cap = GF_LINE_CAP_FLAT;

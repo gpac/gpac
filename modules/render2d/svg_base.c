@@ -518,7 +518,6 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_p
 	if (ctx) {
 		if (rectangular) {
 			if (ctx->h_texture && ctx->h_texture->transparent) {}
-			else if (!ctx->aspect.filled) {}
 			else if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) {}
 			else if (ctx->transform.m[1] || ctx->transform.m[3]) {}
 			else {

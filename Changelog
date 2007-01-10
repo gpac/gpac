@@ -1,4 +1,8 @@
-Latest CVS changes: 13/12/06
+Latest CVS changes: 09/01/07
+  - moved ffmpeg headers to latest CVS version (05/01/2007).
+  - fixes in MPEG2 TS import
+  - large code rewrite in scenegraph and 2D renderer to lower memory usage
+  - added support for OMA DRM2 packaging in MP4Box (doc to come)
   - initial commit of symbian version. Build instructions are in doc/INSTALL.symbian.
   - Speedup of XML SAX parser
   - addded unthreaded mode in MP4Client (-no-thread switch) to test behavior on symbian

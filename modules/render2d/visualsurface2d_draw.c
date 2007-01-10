@@ -127,7 +127,6 @@ static void VS2D_DoFill(VisualSurface2D *surf, DrawableContext *ctx, GF_STENCIL 
 			gf_irect_intersect(&clip, &surf->to_redraw.list[i]);
 			if (clip.width && clip.height) {
 				r2d->surface_set_clipper(surf->the_surface, &clip);
-				r2d->surface_set_clipper(surf->the_surface, NULL);
 				r2d->surface_fill(surf->the_surface, stencil);
 //			} else {
 //				fprintf(stdout, "node outside clipper\n");
@@ -216,7 +215,6 @@ void get_gf_sr_texture_transform(GF_Node *__appear, GF_TextureHandler *txh, GF_M
 static void VS2D_DrawGradient(VisualSurface2D *surf, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx)
 {
 	GF_Rect rc;
-	Bool fill;
 	GF_Matrix2D g_mat, txt_mat;
 	GF_Raster2D *r2d = surf->render->compositor->r2d;
 
@@ -232,16 +230,12 @@ static void VS2D_DrawGradient(VisualSurface2D *surf, GF_Path *path, GF_TextureHa
 	r2d->stencil_set_matrix(txh->hwtx, &g_mat);
 	r2d->stencil_set_color_matrix(txh->hwtx, ctx->col_mat);
 
-	fill = ctx->aspect.filled;
-	ctx->aspect.filled = 1;
-
 	r2d->surface_set_matrix(surf->the_surface, &ctx->transform);
 
 	r2d->surface_set_path(surf->the_surface, path);
 	VS2D_DoFill(surf, ctx, txh->hwtx);
 	r2d->surface_set_path(surf->the_surface, NULL);
 
-	ctx->aspect.filled = fill;
 	ctx->flags |= CTX_PATH_FILLED;
 }
 
@@ -360,8 +354,10 @@ void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHand
 	r2d->stencil_set_tiling(txh->hwtx, (GF_TextureTiling) tx_tile);
 
 	if (!(ctx->flags & CTX_IS_BACKGROUND) ) {
+		u8 a = GF_COL_A(ctx->aspect.fill_color);
+		if (!a) a = GF_COL_A(ctx->aspect.line_color);
 		/*texture alpha scale is the original material transparency, NOT the one after color transform*/
-		r2d->stencil_set_texture_alpha(txh->hwtx, ctx->aspect.fill_alpha);
+		r2d->stencil_set_texture_alpha(txh->hwtx, a );
 		r2d->stencil_set_color_matrix(txh->hwtx, ctx->col_mat);
 
 		r2d->surface_set_matrix(surf->the_surface, &ctx->transform);
@@ -385,7 +381,7 @@ void VS2D_TexturePath(VisualSurface2D *surf, GF_Path *path, struct _drawable_con
 
 	/*this is ambiguous in the spec, what if the material is filled and the texture is transparent ?
 	let's draw, it's nicer */
-	if (ctx->aspect.filled && ctx->h_texture->transparent) {
+	if (GF_COL_A(ctx->aspect.fill_color) && ctx->h_texture->transparent) {
 		VS2D_DrawPath(surf, path, ctx, NULL, NULL);
 		ctx->flags &= ~CTX_PATH_FILLED;
 	}
@@ -413,7 +409,7 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 	if (! (ctx->flags & CTX_IS_BACKGROUND) ) VS2D_SetOptions(surf->render, surf->the_surface, ctx->flags & CTX_IS_TEXT, 0);
 
 	dofill = dostrike = 0;
-	if (!(ctx->flags & CTX_PATH_FILLED) && ctx->aspect.filled) {
+	if (!(ctx->flags & CTX_PATH_FILLED) && GF_COL_A(ctx->aspect.fill_color) ) {
 		dofill = 1;
 		if (!brush) {
 			brush = surf->the_brush;

@@ -245,7 +245,7 @@ static void RenderILS2D(GF_Node *node, void *rs, Bool is_destroy)
 	ctx = drawable_init_context(cs, eff);
 	if (!ctx) return;
 	/*ILS2D are NEVER filled*/
-	ctx->aspect.filled = 0;
+	ctx->aspect.fill_color &= 0x00FFFFFF;
 	drawable_finalize_render(ctx, eff, NULL);
 }
 
