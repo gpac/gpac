@@ -67,7 +67,9 @@ enum {
 	/*flag set if node has been drawn for the current surface*/
 	DRAWABLE_DRAWN_ON_SURFACE = 1<<1,
 	/*flag set when geometry's node has been modified (eg, skips bounds checking)*/
-	DRAWABLE_HAS_CHANGED = 1<<2
+	DRAWABLE_HAS_CHANGED = 1<<2,
+	/*set if node already registered in previous node drawn list of the current surface*/
+	DRAWABLE_REG_WITH_SURFACE = 1<<3,
 };
 
 typedef struct _drawable
@@ -137,9 +139,6 @@ typedef struct
 	GF_PenSettings pen_props;
 	/*texture fill handler*/
 	struct _gf_sr_texture_handler *line_texture;
-	/*original alpha without color transforms*/
-	u8 fill_alpha;
-	u8 filled, has_line, is_scalable;
 } DrawAspect2D;
 
 enum

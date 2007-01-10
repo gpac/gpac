@@ -215,9 +215,6 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	if (!ctx || !ctx->h_texture ) return;
 
 	/*even if set this is not true*/
-	ctx->aspect.has_line = 0;
-	/*this is to make sure we don't fill the path if the texture is transparent*/
-	ctx->aspect.filled = 0;
 	ctx->aspect.pen_props.width = 0;
 	ctx->flags |= CTX_NO_ANTIALIAS;
 
@@ -231,8 +228,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 		ctx->flags |= CTX_IS_TRANSPARENT;
 	else if (eff->svg_props->opacity && (eff->svg_props->opacity->type==SVG_NUMBER_VALUE) && (eff->svg_props->opacity->value!=FIX_ONE)) {
 		ctx->flags = CTX_IS_TRANSPARENT;
-		ctx->aspect.fill_alpha = FIX2INT(0xFF * eff->svg_props->opacity->value);
-		ctx->aspect.fill_color = ctx->aspect.fill_alpha << 24;
+		ctx->aspect.fill_color = GF_COL_ARGB(FIX2INT(0xFF * eff->svg_props->opacity->value), 0, 0, 0);
 	}
 
 	/*bounds are stored when building graph*/	

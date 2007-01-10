@@ -180,9 +180,11 @@ GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 			/*direct rendering mode, remove all bounds info and unreg node */
 			drawable_reset_bounds(dr);
 			gf_list_rem(surf->prev_nodes_drawn, i);
+			dr->flags &= ~DRAWABLE_REG_WITH_SURFACE;
 			i--;
 			count--;
 		} else {
+			assert(dr->flags & DRAWABLE_REG_WITH_SURFACE);
 			drawable_flush_bounds(dr, surf);
 		}
 	}
@@ -378,6 +380,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		/*if node is marked as undrawn, remove from surface*/
 		if (!(n->flags & DRAWABLE_DRAWN_ON_SURFACE)) {
 			drawable_flush_bounds(n, surf);
+			n->flags &= ~DRAWABLE_REG_WITH_SURFACE;
 			gf_list_rem(surf->prev_nodes_drawn, j);
 			j--;
 			count--;
@@ -450,8 +453,10 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 			gf_node_render(ctx->node->owner, eff);
 		}
 		/*keep track of node drawn*/
-		if (gf_list_find(surf->prev_nodes_drawn, ctx->node)<0) 
-			gf_list_add(surf->prev_nodes_drawn, ctx->node);
+		if (!(ctx->node->flags & DRAWABLE_REG_WITH_SURFACE)) {
+			gf_list_add(eff->surface->prev_nodes_drawn, ctx->node);
+			ctx->node->flags |= DRAWABLE_REG_WITH_SURFACE;
+		}
 	}
 
 exit:

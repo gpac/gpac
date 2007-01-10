@@ -97,11 +97,11 @@ static void IFS2D_Draw(GF_Node *node, RenderEffect2D *eff)
 	if (ci_count == 0) {
 		col = (ifs2D->colorIndex.count > 0) ? color->color.vals[ifs2D->colorIndex.vals[0]] : color->color.vals[0];
 
-		if (!ctx->aspect.filled || !ctx->aspect.has_line) {
+		alpha = INT2FIX(GF_COL_A(ctx->aspect.fill_color)) / 255;
+		if (!alpha || !ctx->aspect.pen_props.width) {
 			alpha = INT2FIX(GF_COL_A(ctx->aspect.line_color)) / 255;
 			ctx->aspect.line_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 		} else {
-			alpha = INT2FIX(GF_COL_A(ctx->aspect.fill_color)) / 255;
 			ctx->aspect.fill_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 		}
 		VS2D_TexturePath(eff->surface, ctx->node->path, ctx);
@@ -132,11 +132,11 @@ static void IFS2D_Draw(GF_Node *node, RenderEffect2D *eff)
 
 			col = (ifs2D->colorIndex.count > 0) ? color->color.vals[ifs2D->colorIndex.vals[count]] : color->color.vals[count];
 
-			if (!ctx->aspect.filled) {
+			alpha = INT2FIX(GF_COL_A(ctx->aspect.fill_color)) / 255;
+			if (!alpha) {
 				alpha = INT2FIX(GF_COL_A(ctx->aspect.line_color)) / 255;
 				ctx->aspect.line_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 			} else {
-				alpha = INT2FIX(GF_COL_A(ctx->aspect.fill_color)) / 255;
 				ctx->aspect.fill_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 			}
 

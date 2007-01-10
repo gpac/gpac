@@ -825,4 +825,13 @@ EXPORTS
 	gzread @ 824 NONAME ; CODE
 	my_str_lwr @ 825 NONAME ; CODE
 	my_str_upr @ 826 NONAME ; CODE
+	gf_isom_get_omadrm_info @ 827 NONAME ; CODE
+	gf_isom_get_payt_count @ 828 NONAME ; CODE
+	gf_isom_get_payt_info @ 829 NONAME ; CODE
+	gf_isom_is_omadrm_media @ 830 NONAME ; CODE
+	gf_node_list_add_child_last @ 831 NONAME ; CODE
+	gf_node_list_del_child_idx @ 832 NONAME ; CODE
+	gf_path_is_empty @ 833 NONAME ; CODE
+	gf_sr_get_renderer @ 834 NONAME ; CODE
+	gf_svg_has_appearance_flag_dirty @ 835 NONAME ; CODE
 

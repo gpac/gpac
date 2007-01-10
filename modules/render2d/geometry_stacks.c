@@ -143,6 +143,8 @@ void R2D_DrawRectangle(RenderEffect2D *eff)
 		GF_Rect unclip;
 		GF_IRect clip, unclip_pix;
 		u8 alpha = GF_COL_A(ctx->aspect.fill_color);
+		/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
+		if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
 
 		/*get image size WITHOUT line size*/
 		gf_path_get_bounds(ctx->node->path, &unclip);
@@ -203,14 +205,11 @@ static void RenderRectangle(GF_Node *node, void *reff, Bool is_destroy)
 	ctx = drawable_init_context(rs, eff);
 	if (!ctx) return;
 	
-	/*if not filled, transparent*/
-	if (!ctx->aspect.filled && !ctx->h_texture) {
+	/*if alpha or not filled, transparent*/
+	if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) {
 	} 
 	/*if texture transparent, transparent*/
 	else if (ctx->h_texture && ctx->h_texture->transparent) {
-	} 
-	/*if alpha, transparent*/
-	else if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) {
 	} 
 	/*if rotated, transparent (doesn't fill bounds)*/
 	else if (ctx->transform.m[1] || ctx->transform.m[3]) {
@@ -442,6 +441,8 @@ static void DrawBitmap(GF_Node *node, RenderEffect2D *eff)
 
 	use_blit = 1;
 	alpha = GF_COL_A(ctx->aspect.fill_color);
+	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
+	if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
 
 	/*materialKey*/
 	has_key = 0;
@@ -538,9 +539,6 @@ static void RenderBitmap(GF_Node *node, void *rs, Bool is_destroy)
 	/*always build the path*/
 	Bitmap_BuildGraph(st, ctx, eff, &rc);
 	/*even if set this is not true*/
-	ctx->aspect.has_line = 0;
-	/*this is to make sure we don't fill the path if the texture is transparent*/
-	ctx->aspect.filled = 0;
 	ctx->aspect.pen_props.width = 0;
 	ctx->flags |= CTX_NO_ANTIALIAS;
 
@@ -665,8 +663,6 @@ static void RenderPointSet2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	ctx = drawable_init_context(cs, eff);
 	if (!ctx) return;
-	ctx->aspect.filled = 1;
-	ctx->aspect.has_line = 0;
 	drawable_finalize_render(ctx, eff, NULL);
 }
 

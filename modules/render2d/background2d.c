@@ -60,7 +60,9 @@ static void DestroyBackground2D(GF_Node *node)
 	while (gf_list_count(ptr->surfaces_links)) {
 		status = (BackgroundStatus *)gf_list_get(ptr->surfaces_links, 0);
 		gf_list_rem(ptr->surfaces_links, 0);
-		gf_list_del_item(status->bind_stack, node);
+		if (gf_list_del_item(status->bind_stack, node)<0) {
+			assert(0);
+		}
 
 		/*force bind - bindable nodes are the only cases where we generate eventIn in the scene graph*/
 		if (gf_list_count(status->bind_stack)) {
@@ -95,7 +97,6 @@ static BackgroundStatus *b2D_GetStatus(GF_Node *node, Background2DStack *bck, Re
 
 	GF_SAFEALLOC(status, BackgroundStatus);
 	gf_mx2d_init(status->ctx.transform);
-	status->ctx.aspect.filled = 1;
 	status->ctx.node = bck->node;
 	status->ctx.h_texture = &bck->txh;
 	status->ctx.flags = CTX_IS_BACKGROUND;

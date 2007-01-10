@@ -307,15 +307,12 @@ Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
 	SMIL_Timing_RTI *rti;
 	u32 active_count = 0, i = 0;
 	s32 ret;
-	Double scene_time;
 	if (!sg) return 0;
 
-	
-	scene_time = sg->GetSceneTime(sg->userpriv);
 	sg->update_smil_timing = 0;
 	while((rti = (SMIL_Timing_RTI *)gf_list_enum(sg->smil_timed_elements, &i))) {
 		//scene_time = rti->timed_elt->sgprivate->scenegraph->GetSceneTime(rti->timed_elt->sgprivate->scenegraph->userpriv);
-		ret = gf_smil_timing_notify_time(rti, scene_time/* gf_node_get_scene_time((GF_Node*)rti->timed_elt) */);
+		ret = gf_smil_timing_notify_time(rti, gf_node_get_scene_time((GF_Node*)rti->timed_elt));
 		if (ret == -1) // special case for discard element
 			i--;
 		else 
@@ -323,7 +320,7 @@ Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
 	}
 	/*in case an anim triggers another one previously inactivated...
 	TODO FIXME: it would be much better to stack anim as active/inactive*/
-	while (0&&sg->update_smil_timing) {
+	while (sg->update_smil_timing) {
 		sg->update_smil_timing = 0;
 		i = 0;
 		while((rti = (SMIL_Timing_RTI *)gf_list_enum(sg->smil_timed_elements, &i))) {
