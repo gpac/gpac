@@ -76,6 +76,17 @@ static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty, B
 		sr->trans_x = gf_mulfix(sr->trans_x, ratio);
 		sr->trans_y = gf_mulfix(sr->trans_y, ratio);
 		sr->zoom = zoom;
+
+		/*recenter surface*/
+		if (!sr->surface->center_coords) {
+			Fixed c_x, c_y, nc_x, nc_y;
+			c_x = INT2FIX(sr->compositor->width/2);
+			nc_y = c_y = INT2FIX(sr->compositor->height/2);
+			nc_x = gf_mulfix(c_x, ratio);
+			nc_y = gf_mulfix(c_y, ratio);
+			sr->trans_x -= (nc_x-c_x);
+			sr->trans_y -= (nc_y-c_y);
+		}
 	}
 	gf_mx2d_init(sr->top_effect->transform);
 	gf_mx2d_add_scale(&sr->top_effect->transform, gf_mulfix(sr->zoom,sr->scale_x), gf_mulfix(sr->zoom,sr->scale_y));
@@ -83,8 +94,12 @@ static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty, B
 	gf_mx2d_add_translation(&sr->top_effect->transform, sr->trans_x, sr->trans_y);
 	if (sr->rotation) gf_mx2d_add_rotation(&sr->top_effect->transform, 0, 0, sr->rotation);
 
-	if (!sr->surface->center_coords) 
+	if (!sr->surface->center_coords) {
 		gf_mx2d_add_translation(&sr->top_effect->transform, INT2FIX(sr->offset_x), INT2FIX(sr->offset_y));
+	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Changing Zoom (%g) and Pan (%g %g)\n", FIX2FLT(sr->zoom), FIX2FLT(sr->trans_x) , FIX2FLT(sr->trans_y)));
+
 
 	sr->compositor->draw_next_frame = 1;
 	sr->top_effect->invalidate_all = 1;
@@ -131,9 +146,15 @@ void R2D_ResetSurfaces(Render2D *sr)
 	VisualSurface2D *surf;
 	u32 i=0;
 	while ((surf = (VisualSurface2D *)gf_list_enum(sr->surfaces_2D, &i))) {
-		surf->num_contexts = 0;
-		//while (gf_list_count(surf->prev_nodes_drawn)) gf_list_rem(surf->prev_nodes_drawn, 0);
-		gf_list_reset(surf->prev_nodes_drawn);
+		/*reset display list*/
+		surf->cur_context = surf->context;
+		if (surf->cur_context) surf->cur_context->drawable = NULL;
+		while (surf->prev_nodes) {
+			struct _drawable_store *cur = surf->prev_nodes;
+			surf->prev_nodes = cur->next;
+			free(cur);
+		}
+		surf->last_prev_entry = NULL;
 		surf->to_redraw.count = 0;
 	}
 }
@@ -340,54 +361,54 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 			switch (event->type) {
 			case GF_EVENT_MOUSEMOVE:
 				evt.cancelable = 0;
-				if (sr->grab_node != ctx->node) {
+				if (sr->grab_node != ctx->drawable) {
 					/*mouse out*/
 					if (sr->grab_node) {
-						evt.relatedTarget = ctx->node->owner;
+						evt.relatedTarget = ctx->drawable->node;
 						evt.type = GF_EVENT_MOUSEOUT;
-						ret += gf_dom_event_fire(sr->grab_node->owner, NULL, &evt);
+						ret += gf_dom_event_fire(sr->grab_node->node, NULL, &evt);
 						/*prepare mouseOver*/
-						evt.relatedTarget = sr->grab_node->owner;
+						evt.relatedTarget = sr->grab_node->node;
 					}
 					/*mouse over*/
 					evt.type = GF_EVENT_MOUSEOVER;
-					ret += gf_dom_event_fire(ctx->node->owner, ctx->appear, &evt);
+					ret += gf_dom_event_fire(ctx->drawable->node, ctx->appear, &evt);
 
 					/*send focus out event*/
 					if (sr->grab_node || sr->focus_node) {
-						evt.relatedTarget = sr->grab_node ? sr->grab_node->owner: sr->focus_node;
+						evt.relatedTarget = sr->grab_node ? sr->grab_node->node: sr->focus_node;
 						evt.type = GF_EVENT_FOCUSOUT;
 						ret += gf_dom_event_fire(evt.relatedTarget, NULL, &evt);
 					}
-					evt.relatedTarget = ctx->node->owner;
+					evt.relatedTarget = ctx->drawable->node;
 					evt.type = GF_EVENT_FOCUSIN;
 					ret += gf_dom_event_fire(evt.relatedTarget, NULL, &evt);
 
 					sr->grab_ctx = ctx;
-					sr->grab_node = ctx->node;
-					sr->focus_node = ctx->node->owner;
+					sr->grab_node = ctx->drawable;
+					sr->focus_node = ctx->drawable->node;
 				} else {
 					evt.type = GF_EVENT_MOUSEMOVE;
-					ret += gf_dom_event_fire(ctx->node->owner, ctx->appear, &evt);
+					ret += gf_dom_event_fire(ctx->drawable->node, ctx->appear, &evt);
 				}
 				break;
 			case GF_EVENT_MOUSEDOWN:
 				if ((sr->last_click_x!=evt.screenX) || (sr->last_click_y!=evt.screenY)) sr->num_clicks = 0;
 				evt.type = GF_EVENT_MOUSEDOWN;
 				evt.detail = event->mouse.button;
-				ret += gf_dom_event_fire(ctx->node->owner, ctx->appear, &evt);
+				ret += gf_dom_event_fire(ctx->drawable->node, ctx->appear, &evt);
 				sr->last_click_x = evt.screenX;
 				sr->last_click_y = evt.screenY;
 				break;
 			case GF_EVENT_MOUSEUP:
 				evt.type = GF_EVENT_MOUSEUP;
 				evt.detail = event->mouse.button;
-				ret += gf_dom_event_fire(ctx->node->owner, ctx->appear, &evt);
+				ret += gf_dom_event_fire(ctx->drawable->node, ctx->appear, &evt);
 				if ((sr->last_click_x==evt.screenX) || (sr->last_click_y==evt.screenY)) {
 					sr->num_clicks ++;
 					evt.type = GF_EVENT_CLICK;
 					evt.detail = sr->num_clicks;
-					ret += gf_dom_event_fire(ctx->node->owner, ctx->appear, &evt);
+					ret += gf_dom_event_fire(ctx->drawable->node, ctx->appear, &evt);
 				}
 				break;
 			}
@@ -402,8 +423,8 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 				evt.cancelable = 1;
 				evt.key_flags = sr->compositor->key_states;
 				evt.type = GF_EVENT_MOUSEOUT;
-				ret += gf_dom_event_fire(sr->grab_node->owner, NULL, &evt);
-				if (sr->grab_node->owner == sr->focus_node) sr->focus_node = NULL;
+				ret += gf_dom_event_fire(sr->grab_node->node, NULL, &evt);
+				if (sr->grab_node->node == sr->focus_node) sr->focus_node = NULL;
 			}
 			sr->grab_node = NULL;
 			sr->grab_ctx = NULL;
@@ -476,9 +497,10 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_Event *event)
 	
 	if (sr->is_tracking) {
 		/*in case a node is inserted at the depth level of a node previously tracked (rrrhhhaaaa...) */
-		if (sr->grab_ctx && sr->grab_ctx->node != sr->grab_node) {
+		if (sr->grab_ctx && sr->grab_ctx->drawable != sr->grab_node) {
 			sr->is_tracking = 0;
 			sr->grab_ctx = NULL;
+			fprintf(stdout, "reseting tracking\n");
 		}
 	}
 	
@@ -486,7 +508,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_Event *event)
 	if (!sr->is_tracking) {
 		ctx = VS2D_PickSensitiveNode(sr->surface, INT2FIX(evt.mouse.x), INT2FIX(evt.mouse.y) );
 		sr->grab_ctx = ctx;
-		if (ctx) sr->grab_node = ctx->node;
+		if (ctx) sr->grab_node = ctx->drawable;
 	} else {
 		ctx = sr->grab_ctx;
 	}
@@ -592,11 +614,15 @@ browser_event:
 				dx /= sr->cur_width;
 				dy /= sr->cur_height;
 			}
+			if (sr->compositor->key_states & GF_KEY_MOD_SHIFT) {
+				dx *= 2;
+				dy *= 2;
+			}
 			/*set zoom*/
 			if (sr->compositor->key_states & GF_KEY_MOD_CTRL) {
 				Fixed new_zoom = sr->zoom;
-				if (new_zoom > FIX_ONE) new_zoom += dy/10;
-				else new_zoom += dy/40;
+				if (new_zoom > FIX_ONE/2) new_zoom += dy/10;
+				else new_zoom += dy*new_zoom/10;
 				R2D_SetUserTransform(sr, new_zoom, sr->trans_x, sr->trans_y, 0);
 			}
 			/*set pan*/
@@ -653,7 +679,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_Node *top_node = gf_sg_get_root_node(sr->compositor->scene);
 
-	if (!top_node && !sr->surface->num_contexts && !sr->surface->last_had_back /*|| !sr->out_width*/) {
+	if (!top_node && !sr->surface->last_had_back /*|| !sr->out_width*/) {
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Scene has no root node, nothing to draw\n"));
 		return;
 	}
@@ -690,8 +716,13 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	e = VS2D_InitDraw(sr->surface, sr->top_effect);
 	if (e) return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] primary surface initialized - traversing scene tree (top node %s)\n", top_node ? gf_node_get_class_name(top_node) : "none"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Traversing scene tree (top node %s)\n", top_node ? gf_node_get_class_name(top_node) : "none"));
+
+#ifndef GPAC_DISABLE_SVG
+	i = gf_sys_clock();
+#endif
 	gf_node_render(top_node, sr->top_effect);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Traversing scene done in %d ms\n", gf_sys_clock() - i));
 
 	i=0;
 	while ((sg = (GF_SceneGraph*)gf_list_enum(sr->compositor->extra_scenes, &i))) {
@@ -1362,7 +1393,7 @@ static Bool R2D_ScriptAction(GF_VisualRenderer *vr, u32 type, GF_Node *n, GF_JSA
 	{
 		RenderEffect2D eff;
 		memset(&eff, 0, sizeof(eff));
-		eff.trav_flags = TF_RENDER_GET_BOUNDS;
+		eff.traversing_mode = TRAVERSE_GET_BOUNDS;
 		eff.surface = sr->surface;
 		eff.for_node = n;
 		gf_mx2d_init(eff.transform);

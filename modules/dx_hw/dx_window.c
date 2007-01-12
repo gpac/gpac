@@ -474,7 +474,11 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 
 #ifndef WS_EX_LAYERED
 #define WS_EX_LAYERED 0x80000 
+#endif
+#ifndef LWA_COLORKEY
 #define LWA_COLORKEY   0x00000001
+#endif
+#ifndef LWA_ALPHA
 #define LWA_ALPHA      0x00000002
 #endif
 typedef BOOL (WINAPI* typSetLayeredWindowAttributes)(HWND,COLORREF,BYTE,DWORD);

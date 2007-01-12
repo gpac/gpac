@@ -79,7 +79,7 @@ static void ILS2D_Draw(GF_Node *node, RenderEffect2D *eff)
 
 	if (! ils2D->color) {
 		/*no texturing*/
-		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_DrawPath(eff->surface, ctx->drawable->path, ctx, NULL, NULL);
 		return;
 	}
 	
@@ -266,7 +266,6 @@ static void ILS2D_SetCoordIndex(GF_Node *node)
 void R2D_InitILS2D(Render2D *sr, GF_Node *node)
 {
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
-	Drawable * stack = drawable_stack_new(sr, node);
 	gf_node_set_callback_function(node, RenderILS2D);
 	ils2D->on_set_colorIndex = ILS2D_SetColorIndex;
 	ils2D->on_set_coordIndex = ILS2D_SetCoordIndex;

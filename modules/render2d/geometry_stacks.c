@@ -137,8 +137,8 @@ void R2D_DrawRectangle(RenderEffect2D *eff)
 {
 	DrawableContext *ctx = eff->ctx;
 	if (!ctx->h_texture || !ctx->h_texture->stream || ctx->transform.m[1] || ctx->transform.m[3] || !txtrans_identity(ctx->appear) ) {
-		VS2D_TexturePath(eff->surface, ctx->node->path, ctx);
-		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_TexturePath(eff->surface, ctx->drawable->path, ctx);
+		VS2D_DrawPath(eff->surface, ctx->drawable->path, ctx, NULL, NULL);
 	} else {
 		GF_Rect unclip;
 		GF_IRect clip, unclip_pix;
@@ -147,7 +147,7 @@ void R2D_DrawRectangle(RenderEffect2D *eff)
 		if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
 
 		/*get image size WITHOUT line size*/
-		gf_path_get_bounds(ctx->node->path, &unclip);
+		gf_path_get_bounds(ctx->drawable->path, &unclip);
 		gf_mx2d_apply_rect(&ctx->transform, &unclip);
 		unclip_pix = clip = gf_rect_pixelize(&unclip);
 		gf_irect_intersect(&clip, &ctx->bi->clip);
@@ -173,7 +173,7 @@ void R2D_DrawRectangle(RenderEffect2D *eff)
 			}
 		}
 		ctx->flags |= CTX_PATH_FILLED;
-		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_DrawPath(eff->surface, ctx->drawable->path, ctx, NULL, NULL);
 	}
 }
 
@@ -227,7 +227,6 @@ static void RenderRectangle(GF_Node *node, void *reff, Bool is_destroy)
 
 void R2D_InitRectangle(Render2D  *sr, GF_Node *node)
 {
-	Drawable *d = drawable_stack_new(sr, node);
 	gf_node_set_callback_function(node, RenderRectangle);
 }
 
@@ -398,7 +397,7 @@ typedef struct _bitmap_stack
 static void Bitmap_BuildGraph(BitmapStack *st, DrawableContext *ctx, RenderEffect2D *eff, GF_Rect *out_rc)
 {
 	Fixed w, h;
-	M_Bitmap *bmp = (M_Bitmap *)ctx->node->owner;
+	M_Bitmap *bmp = (M_Bitmap *)ctx->drawable->node;
 
 	w = INT2FIX(ctx->h_texture->width);
 	/*if we have a PAR update it!!*/
@@ -553,8 +552,14 @@ static void RenderBitmap(GF_Node *node, void *rs, Bool is_destroy)
 			if (((M_MaterialKey*)app->material)->isKeyed && ((M_MaterialKey*)app->material)->transparency)
 				ctx->flags |= CTX_IS_TRANSPARENT;
 		} 
-		else if (!eff->color_mat.identity || (GF_COL_A(ctx->aspect.fill_color) < 0xFF))
+		else if (!eff->color_mat.identity) {
 			ctx->flags |= CTX_IS_TRANSPARENT;
+		} else {
+			u8 alpha = GF_COL_A(ctx->aspect.fill_color);
+			/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
+			if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
+			if (alpha < 0xFF) ctx->flags |= CTX_IS_TRANSPARENT;
+		}
 	}
 
 	/*bounds are stored when building graph*/	
@@ -566,7 +571,7 @@ void R2D_InitBitmap(Render2D  *sr, GF_Node *node)
 {
 	BitmapStack *st = (BitmapStack *)malloc(sizeof(BitmapStack));
 	st->graph = drawable_new();
-	st->graph->owner = node;
+	st->graph->node = node;
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, RenderBitmap);
 }
@@ -614,7 +619,7 @@ static void PointSet2D_Draw(GF_Node *node, RenderEffect2D *eff)
 	ctx->flags |= CTX_PATH_STROKE;
 	if (!color || color->color.count<coord->point.count) {
 		/*no texturing*/
-		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_DrawPath(eff->surface, ctx->drawable->path, ctx, NULL, NULL);
 		return;
 	}
 
@@ -669,7 +674,6 @@ static void RenderPointSet2D(GF_Node *node, void *rs, Bool is_destroy)
 
 void R2D_InitPointSet2D(Render2D  *sr, GF_Node *node)
 {
-	Drawable *stack = drawable_stack_new(sr, node);
 	gf_node_set_callback_function(node, RenderPointSet2D);
 }
 

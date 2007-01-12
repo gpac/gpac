@@ -214,7 +214,7 @@ void SVG_Init_text(Render2D *sr, GF_Node *node)
 	SVG_TextStack *stack;
 	GF_SAFEALLOC(stack, SVG_TextStack);
 	stack->draw = drawable_new();
-	stack->draw->owner = node;
+	stack->draw->node = node;
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, SVG_Render_text);
 }

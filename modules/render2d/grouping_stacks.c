@@ -676,7 +676,7 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			back_ctx->flags &= ~CTX_IS_TRANSPARENT;
 			back_ctx->flags |= CTX_IS_BACKGROUND;
 			back_ctx->aspect = ctx->aspect;
-			back_ctx->node = ctx->node;
+			back_ctx->drawable = ctx->drawable;
 			drawable_check_bounds(back_ctx, eff->surface);
 			back_ctx->bi->clip = ctx->bi->clip;
 			back_ctx->bi->unclip = ctx->bi->unclip;

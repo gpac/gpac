@@ -84,7 +84,7 @@ static void SVG_Draw_bitmap(RenderEffect2D *eff)
 
 	/*no HW, fall back to the graphics driver*/
 	if (!use_blit) {
-		VS2D_TexturePath(eff->surface, ctx->node->path, ctx);
+		VS2D_TexturePath(eff->surface, ctx->drawable->path, ctx);
 		return;
 	}
 
@@ -113,28 +113,28 @@ static void SVG_Draw_bitmap(RenderEffect2D *eff)
 static void SVG_BuildGraph_image(SVG_image_stack *st)
 {
 	GF_Rect rc, new_rc;
-	SVGimageElement *img = (SVGimageElement *)st->graph->owner;
+	SVGimageElement *img = (SVGimageElement *)st->graph->node;
 	gf_path_get_bounds(st->graph->path, &rc);
 	drawable_reset_path(st->graph);
 	gf_path_add_rect_center(st->graph->path, img->x.value+img->width.value/2, img->y.value+img->height.value/2, img->width.value, img->height.value);
 	gf_path_get_bounds(st->graph->path, &new_rc);
 	/*change in visual aspect*/
 	if (!gf_rect_equal(rc, new_rc)) st->graph->flags |= DRAWABLE_HAS_CHANGED;
-	gf_node_dirty_clear(st->graph->owner, GF_SG_SVG_GEOMETRY_DIRTY);
+	gf_node_dirty_clear(st->graph->node, GF_SG_SVG_GEOMETRY_DIRTY);
 }
 
 
 static void SVG_BuildGraph_video(SVG_video_stack *st)
 {
 	GF_Rect rc, new_rc;
-	SVGvideoElement *video = (SVGvideoElement *)st->graph->owner;
+	SVGvideoElement *video = (SVGvideoElement *)st->graph->node;
 	gf_path_get_bounds(st->graph->path, &rc);
 	drawable_reset_path(st->graph);
 	gf_path_add_rect_center(st->graph->path, video->x.value+video->width.value/2, video->y.value+video->height.value/2, video->width.value, video->height.value);
 	gf_path_get_bounds(st->graph->path, &new_rc);
 	/*change in visual aspect*/
 	if (!gf_rect_equal(rc, new_rc)) st->graph->flags |= DRAWABLE_HAS_CHANGED;
-	gf_node_dirty_clear(st->graph->owner, GF_SG_SVG_GEOMETRY_DIRTY);
+	gf_node_dirty_clear(st->graph->node, GF_SG_SVG_GEOMETRY_DIRTY);
 }
 
 static void SVG_Render_bitmap(GF_Node *node, void *rs)
@@ -191,7 +191,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 
 	/*FIXME: setup aspect ratio*/
 
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_mx2d_pre_multiply(&eff->transform, m);
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
 			gf_path_get_bounds(st->graph->path, &eff->bounds);
@@ -276,7 +276,7 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 	GF_SAFEALLOC(st, SVG_image_stack)
 	st->graph = drawable_new();
 
-	st->graph->owner = node;
+	st->graph->node = node;
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = SVG_Update_image;
@@ -371,7 +371,7 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 	GF_SAFEALLOC(st, SVG_video_stack)
 	st->graph = drawable_new();
 
-	st->graph->owner = node;
+	st->graph->node = node;
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = SVG_Update_video;
@@ -487,13 +487,16 @@ void R2D_RenderUse(GF_Node *node, GF_Node *sub_root, void *rs)
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
+
+	return;
+
 	SVG_Render_base(node, eff, &backup_props, &backup_flags);
 
 	gf_mx2d_init(translate);
 	translate.m[2] = use->x.value;
 	translate.m[5] = use->y.value;
 
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_svg_apply_local_transformation(eff, node, &backup_matrix);
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
 			gf_node_render((GF_Node*)use->xlink->href.target, eff);

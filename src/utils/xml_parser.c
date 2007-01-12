@@ -660,7 +660,7 @@ static Bool xml_sax_parse_comments(GF_SAXParser *parser)
 	}
 
 	parser->current_pos += 3 + (u32) (end - (parser->buffer + parser->current_pos) );
-	assert(parser->current_pos < parser->line_size);
+	assert(parser->current_pos <= parser->line_size);
 	parser->sax_state = SAX_STATE_TEXT_CONTENT;
 	parser->text_start = parser->text_end = 0;
 	xml_sax_swap(parser);

@@ -403,7 +403,7 @@ void svg_parse_dom_attributes(SVGParser *parser,
 	tag = gf_node_get_tag((GF_Node*)elt);
 
 	/* Parsing the style attribute */
-	if ((style = xmlGetProp(node, "style"))) gf_svg_parse_style(elt, style);
+	if ((style = xmlGetProp(node, "style"))) gf_svg_parse_style((GF_Node *)elt, style);
 
 	/* Parsing all the other attributes, with a special case for the id attribute */
 	attributes = node->properties;
@@ -419,7 +419,7 @@ void svg_parse_dom_attributes(SVGParser *parser,
 				} else {
 					GF_FieldInfo info;
 					if (!gf_node_get_field_by_name((GF_Node *)elt, "type", &info)) {
-						gf_svg_parse_attribute(elt, &info, attributes->children->content, 0, 0);
+						gf_svg_parse_attribute((GF_Node *)elt, &info, attributes->children->content, 0, 0);
 					}
 				}
 			} else if (!stricmp(attributes->name, "href")) {
@@ -433,7 +433,7 @@ void svg_parse_dom_attributes(SVGParser *parser,
 				} else {
 					GF_FieldInfo info;
 					if (!gf_node_get_field_by_name((GF_Node *)elt, "xlink:href", &info)) {
-						gf_svg_parse_attribute(elt, &info, attributes->children->content, 0, 0);
+						gf_svg_parse_attribute((GF_Node *)elt, &info, attributes->children->content, 0, 0);
 						/*try to store base-coded data*/
 						gf_svg_store_embedded_data(info.far_ptr, parser->temp_dir, parser->file_name);
 					}
@@ -450,7 +450,7 @@ void svg_parse_dom_attributes(SVGParser *parser,
 					handler->textContent = strdup(attributes->children->content);
 					gf_node_init((GF_Node *)handler);
 				} else if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attributes->name, &info)) {
-					gf_svg_parse_attribute(elt, &info, attributes->children->content, anim_value_type, anim_transform_type);
+					gf_svg_parse_attribute((GF_Node *)elt, &info, attributes->children->content, anim_value_type, anim_transform_type);
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG] Unknown attribute %s on element %s\n", attributes->name, gf_node_get_class_name((GF_Node *)elt) ));
 				}
@@ -542,7 +542,7 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 	if (!gf_node_get_field_by_name((GF_Node *)elt, "xlink:href", &xlink_href)) {
 		char *href;
 		if ((href = xmlGetProp(node, "href"))) {
-			gf_svg_parse_attribute(elt,&xlink_href,  href, 0, 0);
+			gf_svg_parse_attribute((GF_Node *)elt,&xlink_href,  href, 0, 0);
 		} else {
 			/* default is the parent element */
 			elt->xlink->href.type = SVG_IRI_ELEMENTID;
@@ -565,7 +565,7 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 					/* parsing the type attribute of the animateTransform node,
 					   so we set the value of anim_transform_type to be able to parse 
 					   the animation values appropriately */
-					gf_svg_parse_attribute(elt, &type_info, type, 0, 0);
+					gf_svg_parse_attribute((GF_Node *)elt, &type_info, type, 0, 0);
 					anim_value_type		= SVG_Matrix_datatype;
 					anim_transform_type = *(SVG_TransformType*)type_info.far_ptr;
 				} else {
@@ -670,7 +670,7 @@ void svg_parse_sax_defered_anchor(SVGParser *parser, SVGElement *anchor_elt, def
 	GF_FieldInfo xlink_href_info;
 	gf_node_get_field_by_name((GF_Node *)anchor_elt, "xlink:href", &xlink_href_info);
 	if (local_de.target_id) 
-		gf_svg_parse_attribute(anchor_elt, &xlink_href_info, local_de.target_id, 0, 0);
+		gf_svg_parse_attribute((GF_Node *)anchor_elt, &xlink_href_info, local_de.target_id, 0, 0);
 	else {
 		/* default is the parent element */
 		local_de.animation_elt->xlink->href.type = SVG_IRI_ELEMENTID;
@@ -687,7 +687,7 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 	GF_FieldInfo xlink_href_info;
 	gf_node_get_field_by_name((GF_Node *)animation_elt, "xlink:href", &xlink_href_info);
 	if (local_de.target_id) {
-		gf_svg_parse_attribute(animation_elt, &xlink_href_info, local_de.target_id, 0, 0);
+		gf_svg_parse_attribute((GF_Node *)animation_elt, &xlink_href_info, local_de.target_id, 0, 0);
 		free(local_de.target_id);
 	} else {
 		/* default is the parent element */
@@ -718,7 +718,7 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 		/* determine the transform_type in case of animateTransform attribute */
 		GF_FieldInfo type_info;
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "type", &type_info);
-		gf_svg_parse_attribute(animation_elt, &type_info, local_de.type, 0, 0);
+		gf_svg_parse_attribute((GF_Node *)animation_elt, &type_info, local_de.type, 0, 0);
 		anim_value_type = SVG_Matrix_datatype;
 		anim_transform_type = *(SVG_TransformType*)type_info.far_ptr;
 	} 
@@ -726,22 +726,22 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 	/* Parsing of to / from / by / values */
 	if (local_de.to) {
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "to", &info);
-		gf_svg_parse_attribute(animation_elt, &info, local_de.to, anim_value_type, anim_transform_type);
+		gf_svg_parse_attribute((GF_Node *)animation_elt, &info, local_de.to, anim_value_type, anim_transform_type);
 		free(local_de.to);
 	} 
 	if (local_de.from) {
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "from", &info);
-		gf_svg_parse_attribute(animation_elt, &info, local_de.from, anim_value_type, anim_transform_type);
+		gf_svg_parse_attribute((GF_Node *)animation_elt, &info, local_de.from, anim_value_type, anim_transform_type);
 		free(local_de.from);
 	} 
 	if (local_de.by) {
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "by", &info);
-		gf_svg_parse_attribute(animation_elt, &info, local_de.by, anim_value_type, anim_transform_type);
+		gf_svg_parse_attribute((GF_Node *)animation_elt, &info, local_de.by, anim_value_type, anim_transform_type);
 		free(local_de.by);
 	} 
 	if (local_de.values) {
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "values", &info);
-		gf_svg_parse_attribute(animation_elt, &info, local_de.values, anim_value_type, anim_transform_type);
+		gf_svg_parse_attribute((GF_Node *)animation_elt, &info, local_de.values, anim_value_type, anim_transform_type);
 		free(local_de.values);
 	} 
 	/*OK init the anim*/
@@ -866,7 +866,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 			if (stricmp(attrs[attribute_index],"xlink:href")==0) {
 				GF_FieldInfo xlink_href_info;
 				gf_node_get_field_by_name((GF_Node *)elt, "xlink:href", &xlink_href_info);
-				gf_svg_parse_attribute(elt, &xlink_href_info, (char *)attrs[attribute_index+1], 0, 0);
+				gf_svg_parse_attribute((GF_Node *)elt, &xlink_href_info, (char *)attrs[attribute_index+1], 0, 0);
 				break;
 			} 
 			attribute_index+=2;
@@ -905,7 +905,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 			} else {
 				GF_FieldInfo info;
 				if (!gf_node_get_field_by_name((GF_Node *)elt, "type", &info)) {
-					gf_svg_parse_attribute(elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
+					gf_svg_parse_attribute((GF_Node *)elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
 				}
 			}
 		} else if (!stricmp(attrs[attribute_index], "language")) {
@@ -916,7 +916,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 			} else {
 				GF_FieldInfo info;
 				if (!gf_node_get_field_by_name((GF_Node *)elt, "xlink:href", &info)) {
-					gf_svg_parse_attribute(elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
+					gf_svg_parse_attribute((GF_Node *)elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
 				}
 			}
 		} else {
@@ -931,7 +931,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 				handler->textContent = strdup((char *)attrs[attribute_index+1]);
 				gf_node_init((GF_Node *)handler);
 			} else if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attrs[attribute_index], &info)) {
-				gf_svg_parse_attribute(elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
+				gf_svg_parse_attribute((GF_Node *)elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG] Unknown attribute %s on element %s\n", (char *)attrs[attribute_index], gf_node_get_class_name((GF_Node *)elt) ));
 			}

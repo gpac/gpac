@@ -531,7 +531,7 @@ redecode:
 			if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
 				memcpy(outBuffer, ffd->frame->data[0], sizeof(char)*3*ffd->ctx->width);
 			} else {
-				u32 i;
+				s32 i;
 				char *pYO, *pUO, *pVO;
 				unsigned char *pYD, *pUD, *pVD;
 				pYO = ffd->frame->data[0];

@@ -46,7 +46,7 @@
 
 void text2D_get_ascent_descent(DrawableContext *ctx, Fixed *a, Fixed *d)
 {
-	TextStack2D *stack = (TextStack2D *) gf_node_get_private(ctx->node->owner);
+	TextStack2D *stack = (TextStack2D *) gf_node_get_private(ctx->drawable->node);
 	*a = stack->ascent;
 	*d = stack->descent;
 }
@@ -743,7 +743,7 @@ void Text2D_Draw(GF_Node *node, RenderEffect2D *eff)
 	char *hlight;
 	u32 hl_color;
 	DrawableContext *ctx = eff->ctx;
-	TextStack2D *st = (TextStack2D *) gf_node_get_private((GF_Node *) ctx->node->owner);
+	TextStack2D *st = (TextStack2D *) gf_node_get_private((GF_Node *) ctx->drawable->node);
 	M_FontStyle *fs = (M_FontStyle *) ((M_Text *) node)->fontStyle;
 
 	if (!GF_COL_A(ctx->aspect.fill_color) && !ctx->aspect.pen_props.width) return;
@@ -818,7 +818,7 @@ static Bool Text2D_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_t
 	/*this is not documented anywhere but it speeds things up*/
 	if (!check_type || GF_COL_A(ctx->aspect.fill_color) ) return 1;
 	
-	st = (TextStack2D *) gf_node_get_private((GF_Node *) ctx->node->owner);
+	st = (TextStack2D *) gf_node_get_private((GF_Node *) ctx->drawable->node);
 	
 	gf_mx2d_copy(inv, ctx->transform);
 	gf_mx2d_inverse(&inv);
@@ -903,7 +903,7 @@ void R2D_InitText(Render2D *sr, GF_Node *node)
 	TextStack2D *stack = (TextStack2D *)malloc(sizeof(TextStack2D));
 	stack->graph = drawable_new();
 	/*override all funct*/
-	stack->graph->owner = node;
+	stack->graph->node = node;
 	stack->ascent = stack->descent = 0;
 	stack->text_lines = gf_list_new();
 	stack->texture_text_flag = 0;

@@ -146,13 +146,17 @@ GF_Err gf_path_add_line_to_vec(GF_Path *gp, GF_Point2D *pt) { return gf_path_add
 GF_EXPORT
 GF_Err gf_path_close(GF_Path *gp)
 {
+	Fixed diff;
 	GF_Point2D start, end;
 	if (!gp || !gp->n_contours) return GF_BAD_PARAM;
 	
 	if (gp->n_contours<=1) start = gp->points[0];
 	else start = gp->points[gp->contours[gp->n_contours-2] + 1];
 	end = gp->points[gp->n_points-1];
-	if ((start.x!=end.x) || (start.y!=end.y)) {
+	end.x -= start.x;
+	end.y -= start.y;
+	diff = gf_mulfix(end.x, end.x) + gf_mulfix(end.y, end.y);
+	if (900*diff > FIX_ONE) {
 		GF_Err e = gf_path_add_line_to(gp, start.x, start.y);
 		if (e) return e;
 	}
