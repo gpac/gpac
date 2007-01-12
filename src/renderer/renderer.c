@@ -793,25 +793,49 @@ GF_Err gf_sr_set_option(GF_Renderer *sr, u32 type, u32 value)
 
 	e = GF_OK;
 	switch (type) {
-	case GF_OPT_PLAY_STATE: gf_sr_pause(sr, value); break;
+	case GF_OPT_PLAY_STATE: 
+		gf_sr_pause(sr, value); 
+		break;
 	case GF_OPT_AUDIO_VOLUME: gf_sr_ar_set_volume(sr->audio_renderer, value); break;
 	case GF_OPT_AUDIO_PAN: gf_sr_ar_set_pan(sr->audio_renderer, value); break;
 	case GF_OPT_OVERRIDE_SIZE:
 		sr->override_size_flags = value ? 1 : 0;
+		sr->draw_next_frame = 1; 
 		break;
-	case GF_OPT_STRESS_MODE: sr->stress_mode = value; break;
-	case GF_OPT_ANTIALIAS: sr->antiAlias = value; break;
-	case GF_OPT_HIGHSPEED: sr->high_speed = value; break;
-	case GF_OPT_DRAW_BOUNDS: sr->draw_bvol = value; break;
-	case GF_OPT_TEXTURE_TEXT: sr->texture_text_mode = value; break;
+	case GF_OPT_STRESS_MODE: 
+		sr->stress_mode = value; 
+		break;
+	case GF_OPT_ANTIALIAS: 
+		sr->antiAlias = value; 
+		sr->draw_next_frame = 1; 
+		break;
+	case GF_OPT_HIGHSPEED: 
+		sr->high_speed = value; 
+		sr->draw_next_frame = 1; 
+		break;
+	case GF_OPT_DRAW_BOUNDS: 
+		sr->draw_bvol = value; 
+		sr->draw_next_frame = 1; 
+		break;
+	case GF_OPT_TEXTURE_TEXT: 
+		sr->texture_text_mode = value; 
+		sr->draw_next_frame = 1; 
+		break;
 	case GF_OPT_ASPECT_RATIO: 
 		sr->aspect_ratio = value; 
 		sr->msg_type |= GF_SR_CFG_AR;
 		break;
-	case GF_OPT_INTERACTION_LEVEL: sr->interaction_level = value; break;
-	case GF_OPT_REFRESH: sr->reset_graphics = value; break;
+	case GF_OPT_INTERACTION_LEVEL: 
+		sr->interaction_level = value; 
+		sr->draw_next_frame = 1; 
+		break;
+	case GF_OPT_REFRESH: 
+		sr->reset_graphics = value; 
+		break;
 	case GF_OPT_FULLSCREEN:
-		if (sr->fullscreen != value) sr->msg_type |= GF_SR_CFG_FULLSCREEN; break;
+		if (sr->fullscreen != value) sr->msg_type |= GF_SR_CFG_FULLSCREEN; 
+		sr->draw_next_frame = 1;
+		break;
 	case GF_OPT_ORIGINAL_VIEW:
 		e = sr->visual_renderer->SetOption(sr->visual_renderer, type, value);
 		gf_sr_set_size(sr, sr->scene_width, sr->scene_height);
@@ -824,15 +848,18 @@ GF_Err gf_sr_set_option(GF_Renderer *sr, u32 type, u32 value)
 			evt.show.show_type = value ? 1 : 0;
 			e = sr->video_out->ProcessEvent(sr->video_out, &evt);
 		}
+		sr->draw_next_frame = 1; 
 		break;
 	case GF_OPT_FREEZE_DISPLAY: 
 		sr->freeze_display = value;
 		break;
 	case GF_OPT_RELOAD_CONFIG: 
 		SR_ReloadConfig(sr);
-	default: e = sr->visual_renderer->SetOption(sr->visual_renderer, type, value);
+		sr->draw_next_frame = 1; 
+	default: 
+		e = sr->visual_renderer->SetOption(sr->visual_renderer, type, value);
+		break;
 	}
-	sr->draw_next_frame = 1; 
 	gf_sr_lock(sr, 0);
 	return e;
 }
@@ -1140,6 +1167,8 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		}
 		sr->reset_graphics = 0;
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Scene drawn in %d ms\n", gf_sys_clock() - in_time));
+
 		if (sr->stress_mode) {
 			sr->draw_next_frame = 1;
 			sr->reset_graphics = 1;
@@ -1152,8 +1181,6 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		GF_TextureHandler *st = (GF_TextureHandler *)gf_list_get(sr->textures, i);
 		gf_sr_texture_release_stream(st);
 	}
-	end_time = gf_sys_clock() - in_time;
-
 
 	/*update all timed nodes */
 	for (i=0; i<gf_list_count(sr->time_nodes); i++) {
@@ -1167,6 +1194,8 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 			continue;
 		}
 	}
+
+	end_time = gf_sys_clock() - in_time;
 
 	gf_sr_lock(sr, 0);
 
@@ -1198,7 +1227,6 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	i=1;
 	while (i * sr->frame_duration < end_time) i++;
 	in_time = i * sr->frame_duration - end_time;
-	//GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Sleeping for %d ms\n", in_time));
 	gf_sleep(in_time);
 }
 

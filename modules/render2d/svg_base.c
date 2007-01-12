@@ -33,6 +33,7 @@
 */
 void svg_render_node(GF_Node *node, RenderEffect2D *eff)
 {
+#if 0
 	Bool has_listener = gf_dom_listener_count(node);
 //	fprintf(stdout, "rendering %s of type %s\n", gf_node_get_name(node), gf_node_get_class_name(node));
 	if (has_listener) {
@@ -42,6 +43,9 @@ void svg_render_node(GF_Node *node, RenderEffect2D *eff)
 	} else {
 		gf_node_render(node, eff);
 	}
+#else
+	gf_node_render(node, eff);
+#endif
 }
 void svg_render_node_list(GF_ChildNodeItem *children, RenderEffect2D *eff)
 {
@@ -56,8 +60,6 @@ void svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, RenderEffec
 	GF_Rect rc;
 	GF_Matrix2D cur_mx;
 
-	if (!eff->for_node) return;
-
 	gf_mx2d_copy(cur_mx, eff->transform);
 	rc = gf_rect_center(0,0);
 	while (children) {
@@ -66,8 +68,10 @@ void svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, RenderEffec
 
 		gf_node_render(children->node, eff);
 		/*we hit the target node*/
-		if (children->node == eff->for_node) eff->for_node = NULL;
-		if (!eff->for_node) return;
+		if (children->node == eff->for_node) {
+			eff->for_node = NULL;
+			return;
+		}
 
 		gf_mx2d_apply_rect(&eff->transform, &eff->bounds);
 		gf_rect_union(&rc, &eff->bounds);
@@ -339,7 +343,7 @@ static void SVG_Render_svg(GF_Node *node, void *rs, Bool is_destroy)
 			eff->surface->render->compositor->back_color = viewport_color;
 		}
 	}
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		svg_get_nodes_bounds(node, svg->children, eff);
 	} else {
 		svg_render_node_list(svg->children, eff);
@@ -362,6 +366,30 @@ void SVG_Init_svg(Render2D *sr, GF_Node *node)
 	gf_node_set_callback_function(node, SVG_Render_svg);
 }
 
+#define ENABLE_CULLING
+
+#ifdef ENABLE_CULLING
+static GFINLINE Bool rect_over_cliper(GF_Rect *r, GF_IRect *cliper)
+{
+	if (cliper->x+cliper->width<=r->x) return 0;
+	if (cliper->x>=r->x+r->width) return 0;
+	if (cliper->y-cliper->height>=r->y) return 0;
+	if (cliper->y<=r->y-r->height) return 0;
+	return 1;
+}
+
+/*@rc2 fully contained in @rc1*/
+static GFINLINE Bool rect_inside_cliper(GF_IRect *cliper, GF_Rect *r) 
+{
+	if ( (cliper->x <= r->x) 
+		&& (cliper->y >= r->y) 
+		&& (cliper->x + cliper->width >= r->x + r->width) 
+		&& (cliper->y - cliper->height <= r->y - r->height) )
+		return 1;
+	return 0;
+}
+#endif
+
 static void SVG_Render_g(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
@@ -370,7 +398,15 @@ static void SVG_Render_g(GF_Node *node, void *rs, Bool is_destroy)
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGgElement *g = (SVGgElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
-	if (is_destroy) return;
+#ifdef ENABLE_CULLING	
+	GF_Rect *bounds	= gf_node_get_private(node);
+#endif
+	if (is_destroy) {
+#ifdef ENABLE_CULLING
+		free(bounds);
+#endif
+		return;
+	}
 
 	SVG_Render_base(node, eff, &backup_props, &backup_flags);
 
@@ -384,12 +420,41 @@ static void SVG_Render_g(GF_Node *node, void *rs, Bool is_destroy)
 		eff->svg_flags = backup_flags;
 		return;
 	}	
-	
+#ifdef ENABLE_CULLING
+	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
+		u32 prev_mode = eff->traversing_mode;
+		eff->traversing_mode = TRAVERSE_GET_BOUNDS;
+
+		svg_get_nodes_bounds(node, g->children, eff);
+		*bounds = eff->bounds;
+
+		gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
+		eff->traversing_mode = prev_mode;
+	}
+#endif
 	gf_svg_apply_local_transformation(eff, node, &backup_matrix);
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		svg_get_nodes_bounds(node, g->children, eff);
 	} else {
+#ifdef ENABLE_CULLING
+		if (bounds->width && bounds->height) {
+			if (eff->inside_cliper) {
+				svg_render_node_list(g->children, eff);
+			} else {
+				GF_Rect rc = *bounds;
+				gf_mx2d_apply_rect(&eff->transform, &rc);
+				if (rect_inside_cliper(&eff->surface->top_clipper, &rc)) {
+					eff->inside_cliper = 1;
+					svg_render_node_list(g->children, eff);
+				} else if (rect_over_cliper(&rc, &eff->surface->top_clipper)) {
+					svg_render_node_list(g->children, eff);
+				}
+				eff->inside_cliper = 0;
+			}
+		}
+#else
 		svg_render_node_list(g->children, eff);
+#endif
 	}
 	gf_svg_restore_parent_transformation(eff, &backup_matrix);
 	memcpy(eff->svg_props, &backup_props, styling_size);
@@ -399,6 +464,11 @@ static void SVG_Render_g(GF_Node *node, void *rs, Bool is_destroy)
 
 void SVG_Init_g(Render2D *sr, GF_Node *node)
 {
+#ifdef ENABLE_CULLING
+	GF_Rect *bounds;
+	GF_SAFEALLOC(bounds, GF_Rect);
+	gf_node_set_private(node, bounds);
+#endif
 	gf_node_set_callback_function(node, SVG_Render_g);
 }
 
@@ -469,7 +539,7 @@ static void SVG_Render_switch(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	
 	gf_svg_apply_local_transformation(eff, node, &backup_matrix);
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		svg_get_nodes_bounds(node, s->children, eff);
 	} else {
 		GF_ChildNodeItem *l = s->children;
@@ -498,7 +568,7 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_p
 	GF_Matrix2D backup_matrix;
 	DrawableContext *ctx;
 
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) 
 			gf_path_get_bounds(cs->path, &eff->bounds);
 		goto end;
@@ -892,7 +962,7 @@ static void SVG_Render_a(GF_Node *node, void *rs, Bool is_destroy)
 
 	SVG_Render_base(node, eff, &backup_props, &backup_flags);
 
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_svg_apply_local_transformation(eff, node, &backup_matrix);
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) 
 			svg_get_nodes_bounds(node, a->children, eff);
@@ -1096,7 +1166,7 @@ static void SVG_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	SVG_Render_base(node, eff, &backup_props, &backup_flags);
 	
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		return;
 	} else {
 		svg_render_node_list(elt->children, eff);

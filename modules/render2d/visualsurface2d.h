@@ -62,6 +62,9 @@ static GFINLINE void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2)
 /*is @rc empty*/
 #define gf_rect_is_empty(rc) ( ((rc).width && (rc).height) ? 0 : 1 )
 
+/*@rc1 equales @rc2*/
+#define gf_rect_equal(rc1, rc2) ((rc1.width == rc2.width) && (rc1.height == rc2.height) && (rc1.x == rc2.x)  && (rc1.y == rc2.y)) 
+
 /*intersects @rc1 with @rc2 - the new @rc1 is the intersection*/
 static GFINLINE void gf_irect_intersect(GF_IRect *rc1, GF_IRect *rc2)
 {
@@ -191,6 +194,11 @@ static GFINLINE void ra_refresh(GF_RectArray *ra)
 	}
 }
 
+struct _drawable_store
+{
+	struct _drawable *drawable;
+	struct _drawable_store *next;
+};
 
 typedef struct _visual_surface_2D 
 {
@@ -203,8 +211,10 @@ typedef struct _visual_surface_2D
 #endif
 
 	/*static list of context*/
-	struct _drawable_context **contexts;
-	u32 num_contexts, alloc_contexts;
+	struct _drawable_context *context, *cur_context;
+
+	/*keeps track of nodes drawn last frame*/
+	struct _drawable_store *prev_nodes, *last_prev_entry;
 
 	/*background and viewport stacks*/
 	GF_List *back_stack;
@@ -216,9 +226,6 @@ typedef struct _visual_surface_2D
 	GF_IRect surf_rect;
 	/*top clipper (may be different than surf_rect when a viewport is active)*/
 	GF_IRect top_clipper;
-
-	/*keeps track of nodes drawn last frame*/
-	GF_List *prev_nodes_drawn;
 
 	Bool last_had_back;
 	Bool has_sensors;

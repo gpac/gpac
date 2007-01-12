@@ -85,8 +85,8 @@ static void IFS2D_Draw(GF_Node *node, RenderEffect2D *eff)
 	col.red = col.green = col.blue = 0;
 	/*simple case, no color specified*/
 	if (!ifs2D->color) {
-		VS2D_TexturePath(eff->surface, ctx->node->path, ctx);
-		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_TexturePath(eff->surface, ctx->drawable->path, ctx);
+		VS2D_DrawPath(eff->surface, ctx->drawable->path, ctx, NULL, NULL);
 		return;
 	}
 
@@ -104,8 +104,8 @@ static void IFS2D_Draw(GF_Node *node, RenderEffect2D *eff)
 		} else {
 			ctx->aspect.fill_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 		}
-		VS2D_TexturePath(eff->surface, ctx->node->path, ctx);
-		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_TexturePath(eff->surface, ctx->drawable->path, ctx);
+		VS2D_DrawPath(eff->surface, ctx->drawable->path, ctx, NULL, NULL);
 		return;
 	}
 
@@ -157,8 +157,8 @@ static void IFS2D_Draw(GF_Node *node, RenderEffect2D *eff)
 	grad = r2d->stencil_new(r2d, GF_STENCIL_VERTEX_GRADIENT);
 	/*not supported, fill default*/
 	if (!grad) {
-		VS2D_TexturePath(eff->surface, ctx->node->path, ctx);
-		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, NULL, NULL);
+		VS2D_TexturePath(eff->surface, ctx->drawable->path, ctx);
+		VS2D_DrawPath(eff->surface, ctx->drawable->path, ctx, NULL, NULL);
 		return;
 	}
 
@@ -228,7 +228,7 @@ static void IFS2D_Draw(GF_Node *node, RenderEffect2D *eff)
 		r2d->stencil_set_matrix(grad, &ctx->transform);
 
 		/*draw*/
-		VS2D_DrawPath(eff->surface, ctx->node->path, ctx, grad, grad);
+		VS2D_DrawPath(eff->surface, ctx->drawable->path, ctx, grad, grad);
 
 		r2d->stencil_delete(grad);
 
@@ -294,7 +294,6 @@ static void IFS2D_SetCoordIndex(GF_Node *node)
 void R2D_InitIFS2D(Render2D *sr, GF_Node *node)
 {
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
-	Drawable * stack = drawable_stack_new(sr, node);
 	gf_node_set_callback_function(node, RenderIFS2D);
 	ifs2D->on_set_colorIndex = IFS2D_SetColorIndex;
 	ifs2D->on_set_coordIndex = IFS2D_SetCoordIndex;

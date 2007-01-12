@@ -622,7 +622,7 @@ static u32 svg_parse_float(char *d, Fixed *f, Bool is_angle)
 	Bool is_negative = 0;
 	Float _val = 0;
 	u32 i = 0;
-	while (d[i] != 0 && (d[i] == ' ' || d[i] == ',' || d[i] == ';')) i++;
+	while ((d[i] != 0) && strchr(" ,;\r\n", d[i])) i++;
 	if (!d[i]) goto end;
 	if (d[i] == '+') i++;
 	if (d[i] == '-') {
@@ -4255,8 +4255,21 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	{
 		SVG_PathData *d1 = (SVG_PathData *)f1->far_ptr;
 		SVG_PathData *d2 = (SVG_PathData *)f2->far_ptr;
+		u32 i;
 		/*FIXME - be less lazy..*/
 #if USE_GF_PATH
+		if (d1->n_points != d2->n_points) return 0;
+		if (d1->n_contours != d2->n_contours) return 0;
+		for (i=0; i<d1->n_points; i++) {
+			if (d1->points[i].x != d2->points[i].x) return 0;
+			if (d1->points[i].y != d2->points[i].y) return 0;
+		}
+		for (i=0; i<d1->n_points; i++) {
+			if (d1->tags[i] != d2->tags[i]) return 0;
+		}
+		for (i=0; i<d1->n_contours; i++) {
+			if (d1->contours[i] != d2->contours[i]) return 0;
+		}
 		return 1;
 #else
 		if (!gf_list_count(d1->commands) && !gf_list_count(d2->commands)) return 1;

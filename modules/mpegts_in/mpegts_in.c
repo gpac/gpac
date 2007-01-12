@@ -412,10 +412,11 @@ exit:
 
 void M2TS_SetupFile(M2TSIn *read, char *url)
 {
+#if 0
 	char data[188];
 	u32 size, fsize;
 	s32 nb_rwd;
-
+#endif
 	read->file = fopen(url, "rb");
 	if (!read->file) {
 		gf_term_on_connect(read->service, NULL, GF_URL_ERROR);

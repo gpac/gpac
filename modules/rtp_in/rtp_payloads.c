@@ -441,7 +441,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 
 				nal_ptr = att->Value;
 				while (nal_ptr) {
-					u32 nalt, b64size, ret, idx = 0;
+					u32 nalt, b64size, ret;
 					char *b64_d;
 
 					sep = strchr(nal_ptr, ',');

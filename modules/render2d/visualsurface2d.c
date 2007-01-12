@@ -34,61 +34,87 @@ VisualSurface2D *NewVisualSurface2D()
 	ra_init(&tmp->to_redraw);
 	tmp->back_stack = gf_list_new();
 	tmp->view_stack = gf_list_new();
-	tmp->prev_nodes_drawn = gf_list_new();
 	return tmp;
 }
 
 void DeleteVisualSurface2D(VisualSurface2D *surf)
 {
-	u32 i;
 	ra_del(&surf->to_redraw);
 	VS2D_ResetGraphics(surf);
 
-	for (i=0; i<surf->alloc_contexts; i++)
-		DeleteDrawableContext(surf->contexts[i]);
-	
-	free(surf->contexts);
+	while (surf->context) {
+		DrawableContext *ctx = surf->context;
+		surf->context = ctx->next;
+		DeleteDrawableContext(ctx);
+	}
+	while (surf->prev_nodes) {
+		struct _drawable_store *cur = surf->prev_nodes;
+		surf->prev_nodes = cur->next;
+		free(cur);
+	}
+
 	gf_list_del(surf->back_stack);
 	gf_list_del(surf->view_stack);
-	gf_list_del(surf->prev_nodes_drawn);
 	free(surf);
 }
 
-
-#if defined(_WIN32_WCE) || defined(__SYMBIAN32__)
-#define CONTEXT_ALLOC_STEP	1
-#else
-#define CONTEXT_ALLOC_STEP	20
-#endif
-
 DrawableContext *VS2D_GetDrawableContext(VisualSurface2D *surf)
 {
-	u32 i;
-	if (surf->alloc_contexts==surf->num_contexts) {
-		DrawableContext **newctx;
-		surf->alloc_contexts += CONTEXT_ALLOC_STEP;
-		newctx = (DrawableContext **) malloc(surf->alloc_contexts * sizeof(DrawableContext *) );
-		for (i=0; i<surf->num_contexts; i++) newctx[i] = surf->contexts[i];
-		for (i=surf->num_contexts; i<surf->alloc_contexts; i++) newctx[i] = NewDrawableContext();
-		free(surf->contexts);
-		surf->contexts = newctx;
+	if (!surf->context) {
+		surf->context = NewDrawableContext();
+		surf->cur_context = surf->context;
+		drawctx_reset(surf->context);
+		return surf->context;
 	}
-	i = surf->num_contexts;
-	surf->num_contexts++;
-	drawctx_reset(surf->contexts[i]);
-	return surf->contexts[i];
-
+	assert(surf->cur_context);
+	/*current context is OK*/
+	if (!surf->cur_context->drawable) {
+		/*reset next context in display list for next call*/
+		if (surf->cur_context->next) surf->cur_context->next->drawable = NULL;
+		drawctx_reset(surf->cur_context);
+		return surf->cur_context;
+	}
+	/*need a new context and next one is OK*/
+	if (surf->cur_context->next) {
+		surf->cur_context = surf->cur_context->next;
+		assert(surf->cur_context->drawable == NULL);
+		/*reset next context in display list for next call*/
+		if (surf->cur_context->next) surf->cur_context->next->drawable = NULL;
+		drawctx_reset(surf->cur_context);
+		return surf->cur_context;
+	}
+	/*need to create a new context*/
+	surf->cur_context->next = NewDrawableContext();
+	surf->cur_context = surf->cur_context->next;
+	drawctx_reset(surf->cur_context);
+	return surf->cur_context;
 }
+
 void VS2D_RemoveLastContext(VisualSurface2D *surf)
 {
-	if (surf->num_contexts) surf->num_contexts--;
+	assert(surf->cur_context);
+	surf->cur_context->drawable = NULL;
 }
 
 
 void VS2D_DrawableDeleted(struct _visual_surface_2D *surf, struct _drawable *node)
 {
-	gf_list_del_item(surf->prev_nodes_drawn, node);
-
+	if (node->flags & DRAWABLE_REG_WITH_SURFACE) {
+		struct _drawable_store *it = surf->prev_nodes;
+		struct _drawable_store *prev = NULL;
+		while (it) {
+			if (it->drawable != node) {
+				prev = it;
+				it = prev->next;
+				continue;
+			}
+			if (prev) prev->next = it->next;
+			else surf->prev_nodes = it->next;
+			if (!it->next) surf->last_prev_entry = prev;
+			free(it);
+			break;
+		}
+	}
 	/*check node isn't being tracked*/
 	if (surf->render->grab_node==node) {
 		surf->render->grab_ctx = NULL;
@@ -101,12 +127,18 @@ void VS2D_DrawableDeleted(struct _visual_surface_2D *surf, struct _drawable *nod
 GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 {
 	GF_Err e;
-	u32 i, count;
+	u32 rem, count;
 	GF_Rect rc;
+	struct _drawable_store *it, *prev;
 	DrawableContext *ctx;
 	M_Background2D *bck;
-	Bool direct_render;
-	surf->num_contexts = 0;
+	u32 render_mode;
+	u32 time;
+	
+	/*reset display list*/
+	surf->cur_context = surf->context;
+	if (surf->context) surf->context->drawable = NULL;
+
 	eff->surface = surf;
 	eff->draw_background = 0;
 	gf_mx2d_copy(surf->top_transform, eff->transform);
@@ -137,7 +169,8 @@ GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 
 	/*setup surface, brush and pen */
 	e = VS2D_InitSurface(surf);
-	if (e) return e;
+	if (e) 
+		return e;
 
 	/*setup top clipper*/
 	if (surf->center_coords) {
@@ -161,34 +194,46 @@ GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	surf->top_clipper = gf_rect_pixelize(&rc);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Top surface cliper setup - %d:%d@%dx%d\n", surf->top_clipper.x, surf->top_clipper.y, surf->top_clipper.width, surf->top_clipper.height));
 
-	/*if we're requested to invalidate everything, switch to direct render but still request bounds storage*/
-	if (eff->invalidate_all) {
-		eff->trav_flags |= TF_RENDER_DIRECT | TF_RENDER_STORE_BOUNDS;
-		direct_render = 2;
-	} else {
-		direct_render = (eff->trav_flags & TF_RENDER_DIRECT) ? 1 : 0;
-	}
-
 	/*reset sensors*/
 	surf->has_sensors = 0;
 
+	render_mode = 0;
+	if (eff->trav_flags & TF_RENDER_DIRECT) render_mode = 1;
+	/*if we're requested to invalidate everything, switch to direct render but don't reset bounds*/
+	else if (eff->invalidate_all) {
+		eff->trav_flags |= TF_RENDER_DIRECT;
+		render_mode = 2;
+	}
+
+	time = gf_sys_clock();
 	/*reset prev nodes if any (previous render was indirect)*/
-	count = gf_list_count(surf->prev_nodes_drawn);
-	for (i=0; i<count; i++) {
-		Drawable *dr = (Drawable *)gf_list_get(surf->prev_nodes_drawn, i);
-		if (direct_render) {
+	rem = count = 0;
+	prev = NULL;
+	it = surf->prev_nodes;
+	while (it) {
+		assert(it->drawable->flags & DRAWABLE_REG_WITH_SURFACE);
+
+		/*node was not drawn on this surface*/
+		if (!drawable_flush_bounds(it->drawable, surf, render_mode)) {
+			//GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Unregistering previously drawn node %s from surface\n", gf_node_get_class_name(it->drawable->node)));
 			/*direct rendering mode, remove all bounds info and unreg node */
-			drawable_reset_bounds(dr);
-			gf_list_rem(surf->prev_nodes_drawn, i);
-			dr->flags &= ~DRAWABLE_REG_WITH_SURFACE;
-			i--;
-			count--;
+			drawable_reset_bounds(it->drawable, surf);
+			it->drawable->flags &= ~DRAWABLE_REG_WITH_SURFACE;
+			if (prev) prev->next = it->next;
+			else surf->prev_nodes = it->next;
+			if (!it->next) surf->last_prev_entry = prev;
+			rem++;
+			free(it);
+			it = prev ? prev->next : surf->prev_nodes;
 		} else {
-			assert(dr->flags & DRAWABLE_REG_WITH_SURFACE);
-			drawable_flush_bounds(dr, surf);
+			prev = it;
+			it = it->next;
+			count++;
 		}
 	}
-	if (!direct_render) return GF_OK;
+	fprintf(stdout, "init done in %d ms\n", gf_sys_clock() - time);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Top surface initialized - %d nodes registered and %d removed - using %s rendering\n", count, rem, render_mode ? "direct" : "dirty-rect"));
+	if (!render_mode) return GF_OK;
 
 	/*direct mode, draw background*/
 	bck = (M_Background2D*) gf_list_get(surf->back_stack, 0);
@@ -229,6 +274,48 @@ void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx)
 
 	surf->has_sensors = 1;
 }
+
+static void VS2D_ReverseContexts(VisualSurface2D *surf)
+{
+	u32 i, depth;
+	DrawableContext *ctx, *prev, *tmp;
+
+	i = depth = 0;
+	/*reverse all contexts used to front->back order for picking*/
+	prev = NULL;
+	ctx = surf->context;
+
+	if (surf->render->grab_ctx) {
+		while (ctx && ctx->drawable) {
+			tmp = ctx->next;
+			ctx->next = prev;
+			prev = ctx;
+			i++;
+			if (surf->render->grab_ctx == ctx) depth = i;
+			ctx = tmp;
+		}
+	} else {
+		while (ctx && ctx->drawable) {
+			tmp = ctx->next;
+			ctx->next = prev;
+			prev = ctx;
+			ctx = tmp;
+		}
+	} 
+	if (prev) {
+		surf->context->next = ctx;
+		surf->context = surf->cur_context = prev;
+
+		if (surf->render->grab_ctx) {
+			surf->render->grab_ctx = surf->context;
+			while (depth>1) {
+				surf->render->grab_ctx = surf->render->grab_ctx->next;
+				depth--;
+			}
+		}
+	}
+}
+
 
 #ifdef TRACK_OPAQUE_REGIONS
 
@@ -307,17 +394,21 @@ dirty rects algo when a lot of small shapes are moving*/
 
 Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 {
-	u32 j, k, i, count, max_nodes_allowed, num_changed;
-	GF_IRect refreshRect;
+	u32 k, i, count, max_nodes_allowed, num_nodes, num_changed;
+	GF_IRect refreshRect, *check_rect;
 	Bool redraw_all;
 	M_Background2D *bck;
-	DrawableContext *bck_ctx;
-	DrawableContext *ctx;
+	DrawableContext *bck_ctx, *ctx;
+	struct _drawable_store *it, *prev;
+#ifndef TRACK_OPAQUE_REGIONS
+	DrawableContext *first_opaque = NULL;
+#endif
 	Bool has_changed = 0;
 
 	/*in direct mode the surface is always redrawn*/
 	if (eff->trav_flags & TF_RENDER_DIRECT) {
 		VS2D_TerminateSurface(surf);
+		VS2D_ReverseContexts(surf);
 		return 1;
 	}
 
@@ -347,43 +438,53 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	}
 	
 	max_nodes_allowed = (u32) ((surf->top_clipper.width / MIN_BBOX_SIZE) * (surf->top_clipper.height / MIN_BBOX_SIZE));
-	count = surf->num_contexts;
-	for (i=0; i<count; i++) {
-		ctx = surf->contexts[i];
+	num_nodes = 0;
+	ctx = surf->context;
+	while (ctx && ctx->drawable) {
+		num_nodes++;
 
 		drawctx_update_info(ctx, surf);
 		if (ctx->flags & CTX_REDRAW_MASK) {
 			num_changed ++;
 
+#ifndef TRACK_OPAQUE_REGIONS
+			if (!first_opaque && !(ctx->flags & CTX_IS_TRANSPARENT) && (ctx->flags & CTX_NO_ANTIALIAS)) 
+				first_opaque = ctx;
+#endif
 			/*node has changed, add to redraw area*/
 			if (!redraw_all) {
 				ra_union_rect(&surf->to_redraw, &ctx->bi->clip);
 //				CHECK_MAX_NODE
 			}
 		}
-		/*otherwise try to remove any sensor hidden below*/
-		//if (!ctx->transparent) remove_hidden_sensors(surf, num_to_draw, ctx);
+		ctx = ctx->next;
 	}
 
 	/*garbage collection*/
 
 	/*clear all remaining bounds since last frames (the ones that moved or that are not drawn this frame)*/
-	count = gf_list_count(surf->prev_nodes_drawn);
-	for (j=0; j<count; j++) {
-		Drawable *n = (Drawable *)gf_list_get(surf->prev_nodes_drawn, j);
-		while (drawable_get_previous_bound(n, &refreshRect, surf)) {
+	prev = NULL;
+	it = surf->prev_nodes;
+	while (it) {
+		while (drawable_get_previous_bound(it->drawable, &refreshRect, surf)) {
 			if (!redraw_all) {
 				ra_union_rect(&surf->to_redraw, &refreshRect);
 //				CHECK_MAX_NODE
 			}
 		}
 		/*if node is marked as undrawn, remove from surface*/
-		if (!(n->flags & DRAWABLE_DRAWN_ON_SURFACE)) {
-			drawable_flush_bounds(n, surf);
-			n->flags &= ~DRAWABLE_REG_WITH_SURFACE;
-			gf_list_rem(surf->prev_nodes_drawn, j);
-			j--;
-			count--;
+		if (!(it->drawable->flags & DRAWABLE_DRAWN_ON_SURFACE)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Node %s no longer on surface - unregistering it\n", gf_node_get_class_name(it->drawable->node)));
+			it->drawable->flags &= ~DRAWABLE_REG_WITH_SURFACE;
+
+			if (prev) prev->next = it->next;
+			else surf->prev_nodes = it->next;
+			if (!it->next) surf->last_prev_entry = prev;
+			free(it);
+			it = prev ? prev->next : surf->prev_nodes;
+		} else {
+			prev = it;
+			it = it->next;
 		}
 	}
 	/*no visual rendering*/
@@ -403,9 +504,17 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 #endif
 
 	/*nothing to redraw*/
-	if (ra_is_empty(&surf->to_redraw) ) goto exit;
+	if (ra_is_empty(&surf->to_redraw) ) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] No changes found since last frame - skipping redraw\n"));
+		goto exit;
+	}
 	has_changed = 1;
 	eff->traversing_mode = TRAVERSE_DRAW;
+
+#ifndef TRACK_OPAQUE_REGIONS
+	if (first_opaque && (surf->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, surf->to_redraw.list[0]))
+		goto skip_background;
+#endif
 
 	/*redraw everything*/
 	if (bck_ctx) {
@@ -416,7 +525,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 #endif
 		bck_ctx->bi->unclip = gf_rect_ft(&surf->surf_rect);
 		bck_ctx->bi->clip = surf->surf_rect;
-		gf_node_render(bck_ctx->node->owner, eff);
+		gf_node_render(bck_ctx->drawable->node, eff);
 	} else {
 		count = surf->to_redraw.count;
 		if (bck_ctx) bck_ctx->bi->unclip = gf_rect_ft(&surf->surf_rect);
@@ -432,9 +541,13 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		}
 	}
 
+#ifndef TRACK_OPAQUE_REGIONS
+skip_background:
+#endif
+
 #ifndef GPAC_DISABLE_LOG
 	if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RENDER)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Redraw %d / %d nodes (all: %s)", num_changed, surf->num_contexts, redraw_all ? "yes" : "no"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Redraw %d / %d nodes (all: %s)", num_changed, num_nodes, redraw_all ? "yes" : "no"));
 		if (surf->to_redraw.count>1) GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("\n"));
 
 		for (i=0; i<surf->to_redraw.count; i++)
@@ -442,21 +555,26 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	}
 #endif
 	
-	refreshRect = surf->to_redraw.list[0];
-	for (i=0; i<surf->num_contexts; i++) {
-		ctx = surf->contexts[i];
-		if ((surf->to_redraw.count>1) || gf_irect_overlaps(&ctx->bi->clip, &refreshRect)) {
 #ifdef TRACK_OPAQUE_REGIONS
-			surf->draw_node_index = i+1;
+	i=0;
+#endif
+	check_rect = (surf->to_redraw.count>1) ? NULL : &surf->to_redraw.list[0];
+	ctx = surf->context;
+	while (ctx && ctx->drawable) {
+		if (!check_rect || gf_irect_overlaps(&ctx->bi->clip, check_rect)) {
+#ifdef TRACK_OPAQUE_REGIONS
+			i++;
+			surf->draw_node_index = i;
 #endif
 			eff->ctx = ctx;
-			gf_node_render(ctx->node->owner, eff);
+			gf_node_render(ctx->drawable->node, eff);
 		}
-		/*keep track of node drawn*/
-		if (!(ctx->node->flags & DRAWABLE_REG_WITH_SURFACE)) {
-			gf_list_add(eff->surface->prev_nodes_drawn, ctx->node);
-			ctx->node->flags |= DRAWABLE_REG_WITH_SURFACE;
+		/*node no longer register with this surface, destroy its bounds*/
+		if (!(ctx->drawable->flags & DRAWABLE_REG_WITH_SURFACE)) {
+			drawable_reset_bounds(ctx->drawable, surf);
 		}
+
+		ctx = ctx->next;
 	}
 
 exit:
@@ -465,27 +583,35 @@ exit:
 	
 	/*terminate surface*/
 	VS2D_TerminateSurface(surf);
+	VS2D_ReverseContexts(surf);
 	return has_changed;
 }
 
 DrawableContext *VS2D_PickSensitiveNode(VisualSurface2D *surf, Fixed x, Fixed y)
 {
 	RenderEffect2D eff;
-	u32 i;
+	DrawableContext *ctx;
+
 	eff.surface = surf;
 	eff.traversing_mode = TRAVERSE_PICK;
 	eff.pick_type = PICK_PATH;
 	eff.x = x;
 	eff.y = y;
-	i = surf->num_contexts;
-	for (; i > 0; i--) {
-		DrawableContext *ctx = surf->contexts[i-1];
+	
+	ctx = surf->context;
+	while (ctx && ctx->drawable) {
 		/*check over bounds*/
-		if (!ctx->node || ! gf_point_in_rect(&ctx->bi->clip, x, y)) continue;
+		if (!ctx->drawable || ! gf_point_in_rect(&ctx->bi->clip, x, y)) {
+			ctx = ctx->next;
+			continue;
+		}
 		eff.ctx = ctx;
 		eff.is_over = 0;
-		gf_node_render(ctx->node->owner, &eff);
-		if (!eff.is_over) continue;
+		gf_node_render(ctx->drawable->node, &eff);
+		if (!eff.is_over) {
+			ctx = ctx->next;
+			continue;
+		}
 		/*check if has sensors */
 		if (ctx->sensor) return ctx;
 
@@ -501,21 +627,24 @@ DrawableContext *VS2D_PickSensitiveNode(VisualSurface2D *surf, Fixed x, Fixed y)
 DrawableContext *VS2D_PickContext(VisualSurface2D *surf, Fixed x, Fixed y)
 {
 	RenderEffect2D eff;
-	u32 i;
+	DrawableContext *ctx;
+
 	eff.surface = surf;
 	eff.traversing_mode = TRAVERSE_PICK;
 	eff.pick_type = PICK_FULL;
 	eff.x = x;
 	eff.y = y;
-	i = surf->num_contexts;
-	for (; i > 0; i--) {
-		DrawableContext *ctx = surf->contexts[i-1];
+
+	ctx = surf->context;
+	while (ctx && ctx->drawable) {
 		/*check over bounds*/
-		if (!ctx->node || ! gf_point_in_rect(&ctx->bi->clip, x, y)) continue;
-		eff.ctx = ctx;
-		eff.is_over = 0;
-		gf_node_render(ctx->node->owner, &eff);
-		if (eff.is_over) return ctx;
+		if (ctx->drawable && gf_point_in_rect(&ctx->bi->clip, x, y)) {
+			eff.ctx = ctx;
+			eff.is_over = 0;
+			gf_node_render(ctx->drawable->node, &eff);
+			if (eff.is_over) return ctx;
+		}
+		ctx = ctx->next;
     }
 	return NULL;
 }
@@ -523,32 +652,38 @@ DrawableContext *VS2D_PickContext(VisualSurface2D *surf, Fixed x, Fixed y)
 /* this is to use carefully: picks a node based on the PREVIOUS frame state (no traversing)*/
 GF_Node *VS2D_PickNode(VisualSurface2D *surf, Fixed x, Fixed y)
 {
-	u32 i;
 	RenderEffect2D eff;
 	GF_Node *back;
 	M_Background2D *bck;
+	DrawableContext *ctx;
+
 	bck = NULL;
 	back = NULL;
 	bck = (M_Background2D *) gf_list_get(surf->back_stack, 0);
 	if (bck && bck->isBound) back = (GF_Node *) bck;
 
-	i = surf->num_contexts;
 	eff.surface = surf;
 	eff.traversing_mode = TRAVERSE_PICK;
 	eff.pick_type = PICK_PATH_AND_OUTLINE;
 	eff.x = x;
 	eff.y = y;
-	for (; i > 0; i--) {
-		DrawableContext *ctx = surf->contexts[i-1];
+	ctx = surf->context;
+	while (ctx && ctx->drawable) {
 		/*check over bounds*/
-		if (!ctx->node || ! gf_point_in_rect(&ctx->bi->clip, x, y)) continue;
+		if (!ctx->drawable || ! gf_point_in_rect(&ctx->bi->clip, x, y)) {
+			ctx = ctx->next;
+			continue;
+		}
 		/*check over shape*/
 		eff.is_over = 0;
-		gf_node_render(ctx->node->owner, &eff);
-		if (!eff.is_over) continue;
+		gf_node_render(ctx->drawable->node, &eff);
+		if (!eff.is_over) {
+			ctx = ctx->next;
+			continue;
+		}
 
 		/*check for composite texture*/
-		if (!ctx->h_texture && !ctx->aspect.line_texture) return ctx->node->owner;
+		if (!ctx->h_texture && !ctx->aspect.line_texture) return ctx->drawable->node;
 
 		if (ctx->h_texture && (ctx->h_texture->flags & GF_SR_TEXTURE_COMPOSITE)) {
 			return CT2D_PickNode(ctx->h_texture, ctx, x, y);
@@ -556,7 +691,7 @@ GF_Node *VS2D_PickNode(VisualSurface2D *surf, Fixed x, Fixed y)
 		else if (ctx->aspect.line_texture && (gf_node_get_tag(ctx->aspect.line_texture->owner)==TAG_MPEG4_CompositeTexture2D)) {
 			return CT2D_PickNode(ctx->aspect.line_texture, ctx, x, y);
 		}
-		return ctx->node->owner;
+		return ctx->drawable->node;
     }
 	return back;
 }

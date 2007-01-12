@@ -49,7 +49,7 @@ static void LASeR_Render_selector(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}	
 	
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (((SVGTransformableElement *)node)->motionTransform) 
 			gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
 		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
@@ -105,7 +105,7 @@ static void LASeR_Render_simpleLayout(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}	
 	
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (((SVGTransformableElement *)node)->motionTransform) 
 			gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
 		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
@@ -158,7 +158,7 @@ static void LASeR_Render_rectClip(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}	
 	
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (((SVGTransformableElement *)node)->motionTransform) 
 			gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
 		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);

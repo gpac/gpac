@@ -296,13 +296,12 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	GF_DBUnit *AU;
 	GF_Channel *ch;
 	u32 now, obj_time, mm_level, au_time;
-	Bool scene_locked, invalidate_scene;
+	Bool scene_locked;
 	Bool check_next_unit;
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)codec->decio;
 	GF_Err e = GF_OK;
 
 	scene_locked = 0;
-	invalidate_scene = 0;
 	
 	/*for resync, if needed - the logic behind this is that there is no composition memory on sytems codecs so
 	"frame dropping" is done by preventing the renderer from redrawing after an update and decoding following AU
@@ -421,15 +420,11 @@ check_unit:
 		}
 	}
 
-	/*always force redraw for system codecs*/
-	invalidate_scene = 1;
-
 	/*if no release restart*/
 	if (check_next_unit) goto check_unit;
 	
 exit:
 	if (scene_locked) gf_term_lock_renderer(codec->odm->term, 0);
-	if (invalidate_scene) gf_term_invalidate_renderer(codec->odm->term);
 	return e;
 }
 
@@ -487,7 +482,6 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	codec_update_stats(codec, 0, now);
 
 	gf_term_lock_renderer(codec->odm->term, 0);
-	gf_term_invalidate_renderer(codec->odm->term);
 
 	if (e==GF_EOS) {
 		/*first end of stream, evaluate duration*/

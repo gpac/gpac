@@ -133,10 +133,6 @@ enum
 {
 	/*when set objects are drawn as soon as traversed, at each frame*/
 	TF_RENDER_DIRECT		= (1<<2),
-	/*when set, render pass only gets bounds and transform matrix*/
-	TF_RENDER_GET_BOUNDS	= (1<<3),
-	/*forces bound storing in direct rendering*/
-	TF_RENDER_STORE_BOUNDS	= (1<<4),
 };
 
 /*picking modes*/
@@ -159,6 +155,8 @@ enum
 	TRAVERSE_DRAW,
 	/*pick routine*/
 	TRAVERSE_PICK,
+	/*get bounds routine: returns bounds in local coord system (including node transform if any)*/
+	TRAVERSE_GET_BOUNDS,
 };
 
 /*the traversing context: set_up at top-level and passed through SFNode_Render*/
@@ -215,9 +213,11 @@ typedef struct _render2d_effect
 	struct _drawable_context *ctx;
 	/*picking info*/
 	Fixed x, y;
-	u8 pick_type;
+	u32 pick_type;
 	/*pick result*/
-	u8 is_over;
+	Bool is_over;
+
+	Bool inside_cliper;
 } RenderEffect2D;
 
 void effect_reset(RenderEffect2D *eff);

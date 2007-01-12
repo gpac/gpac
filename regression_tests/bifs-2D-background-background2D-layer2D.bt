@@ -46,7 +46,7 @@ OrderedGroup {
        appearance Appearance {
         material Material2D {
          filled TRUE
-         transparency 1
+         transparency 0
         }
        }
        geometry DEF RC Rectangle {
@@ -65,8 +65,8 @@ OrderedGroup {
    loop TRUE
   }
   DEF PI PositionInterpolator2D {
-   key [0 1]
-   keyValue [400 300 0 0]
+   key [0 0.75 1]
+   keyValue [400 300 0 0 0 0]
   }
  ]
 }

@@ -2782,7 +2782,7 @@ GF_Err schm_dump(GF_Box *a, FILE * trace)
 {
 	GF_SchemeTypeBox *p;
 	p = (GF_SchemeTypeBox *)a;
-	fprintf(trace, "<SchemeTypeBox scheme_type=\"%s\" scheme_version=\"%d\" ", gf_4cc_to_str(p->scheme_type), p->scheme_version, p->URI);
+	fprintf(trace, "<SchemeTypeBox scheme_type=\"%s\" scheme_version=\"%d\" ", gf_4cc_to_str(p->scheme_type), p->scheme_version);
 	if (p->URI) fprintf(trace, "scheme_uri=\"%s\"", p->URI);
 	fprintf(trace, ">\n");
 

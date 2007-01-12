@@ -484,8 +484,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		case GF_KEY_T:
 			fprintf(stdout, "Scene Time: %f \n", gf_term_get_time_in_ms(term)/1000.0);
 			break;
-		case GF_KEY_R:
-//			gf_term_set_option(term, GF_OPT_REFRESH, 1);
+		case GF_KEY_D:
 			gf_term_set_option(term, GF_OPT_DIRECT_RENDER, !gf_term_get_option(term, GF_OPT_DIRECT_RENDER) );
 			break;
 		case GF_KEY_4: gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3); break;

@@ -29,11 +29,10 @@
 
 typedef struct
 {
-	GF_Node *owner;
 	GF_List *surfaces_links;
 	Bool first_render;
 
-	Drawable *node;
+	Drawable *drawable;
 
 	/*for image background*/
 	GF_TextureHandler txh;
@@ -54,7 +53,7 @@ static void DestroyBackground2D(GF_Node *node)
 	
 	ptr = (Background2DStack *) gf_node_get_private(node);
 
-	drawable_del(ptr->node);
+	drawable_del(ptr->drawable);
 
 
 	while (gf_list_count(ptr->surfaces_links)) {
@@ -97,7 +96,7 @@ static BackgroundStatus *b2D_GetStatus(GF_Node *node, Background2DStack *bck, Re
 
 	GF_SAFEALLOC(status, BackgroundStatus);
 	gf_mx2d_init(status->ctx.transform);
-	status->ctx.node = bck->node;
+	status->ctx.drawable = bck->drawable;
 	status->ctx.h_texture = &bck->txh;
 	status->ctx.flags = CTX_IS_BACKGROUND;
 	status->ctx.bi = &status->bi;
@@ -120,24 +119,24 @@ static Bool back_use_texture(M_Background2D *bck)
 
 static void DrawBackground(DrawableContext *ctx, RenderEffect2D *eff)
 {
-	Background2DStack *bcks = (Background2DStack *) gf_node_get_private(ctx->node->owner);
+	Background2DStack *bcks = (Background2DStack *) gf_node_get_private(ctx->drawable->node);
 
 	if (!ctx->bi->clip.width || !ctx->bi->clip.height) return;
 
 	ctx->flags &= ~CTX_PATH_FILLED;
 
-	if ( back_use_texture((M_Background2D *)ctx->node->owner)) {
+	if ( back_use_texture((M_Background2D *)ctx->drawable->node)) {
 
 		if (!eff->surface->DrawBitmap) {
 			/*set target rect*/
-			gf_path_reset(bcks->node->path);
-			gf_path_add_rect_center(bcks->node->path, 
+			gf_path_reset(bcks->drawable->path);
+			gf_path_add_rect_center(bcks->drawable->path, 
 								ctx->bi->unclip.x + ctx->bi->unclip.width/2,
 								ctx->bi->unclip.y - ctx->bi->unclip.height/2,
 								ctx->bi->unclip.width, ctx->bi->unclip.height);
 
 			/*draw texture*/
-			VS2D_TexturePath(eff->surface, bcks->node->path, ctx);
+			VS2D_TexturePath(eff->surface, bcks->drawable->path, ctx);
 
 		} else {
 			ctx->bi->clip = gf_rect_pixelize(&ctx->bi->unclip);
@@ -312,9 +311,6 @@ static void b2D_set_bind(GF_Node *node)
 	gf_sr_invalidate(gf_sr_get_renderer(node), NULL);
 }
 
-static Bool b2D_point_over(struct _drawable_context *ctx, Fixed x, Fixed y, u32 check_type) { return 0; }
-
-
 DrawableContext *b2D_GetContext(M_Background2D *n, GF_List *from_stack)
 {
 	u32 i;
@@ -344,11 +340,10 @@ void R2D_InitBackground2D(Render2D *sr, GF_Node *node)
 	Background2DStack *ptr;
 	GF_SAFEALLOC(ptr, Background2DStack);
 
-	ptr->owner = node;
 	ptr->surfaces_links = gf_list_new();
 	ptr->first_render = 1;
 	/*setup rendering object for background*/
-	ptr->node = drawable_stack_new(sr, node);
+	ptr->drawable = drawable_stack_new(sr, node);
 	((M_Background2D *)node)->on_set_bind = b2D_set_bind;
 
 

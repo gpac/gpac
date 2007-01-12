@@ -36,9 +36,7 @@ OrderedGroup {
      emissiveColor 0 0 0
     }
    }
-   geometry Rectangle {
-    size 300 200
-   }
+   geometry Rectangle { size 300 200 }
   }
   Layout {
    size 300 200
@@ -55,9 +53,7 @@ OrderedGroup {
          emissiveColor 0 0 0
         }
        }
-       geometry Rectangle {
-        size 100 200
-       }
+       geometry Rectangle { size 100 200 }
       }
       Layout {
        wrap TRUE

@@ -60,16 +60,12 @@ typedef struct _dirty_rect_info
 } DRInfo;
 
 enum {
-	/*frame number checker (from compositor.current_frame) used to skip bounds flushing on nodes present on main surface and
-	composite textures, otherwise the scene would be constantly redrawn
-	we need 2 flags because we're not sure if the first draw will be on odd or even frame*/
-	DRAWABLE_FIRST_CTX_UPDATE = 1,
 	/*flag set if node has been drawn for the current surface*/
-	DRAWABLE_DRAWN_ON_SURFACE = 1<<1,
+	DRAWABLE_DRAWN_ON_SURFACE = 1,
 	/*flag set when geometry's node has been modified (eg, skips bounds checking)*/
-	DRAWABLE_HAS_CHANGED = 1<<2,
+	DRAWABLE_HAS_CHANGED = 1<<1,
 	/*set if node already registered in previous node drawn list of the current surface*/
-	DRAWABLE_REG_WITH_SURFACE = 1<<3,
+	DRAWABLE_REG_WITH_SURFACE = 1<<2,
 };
 
 typedef struct _drawable
@@ -77,7 +73,7 @@ typedef struct _drawable
 	/*set of above flags*/
 	u32 flags;
 	/*node owning the drawable*/
-	GF_Node *owner;
+	GF_Node *node;
 
 	/*graphic path - !! CREATED BY DEFAULT !! */
 	GF_Path *path;
@@ -95,8 +91,9 @@ void drawable_del(Drawable *);
 
 void DestroyDrawableNode(GF_Node *node);
 
-/*move current bounds to previous bounds for given target surface - called before updating a surface*/
-void drawable_flush_bounds(Drawable *node, struct _visual_surface_2D *on_surface);
+/*move current bounds to previous bounds for given target surface - called before updating a surface
+returns 1 if nod was draw last frame on this surface, 0 otherwise*/
+Bool drawable_flush_bounds(Drawable *node, struct _visual_surface_2D *on_surface, u32 render_mode);
 
 /*
 	return 1 if same bound is found in previous list (and remove it from the list)
@@ -126,8 +123,8 @@ Drawable *drawable_stack_new(Render2D *sr, GF_Node *node);
 /*reset all paths (main path and any outline) of the stack*/
 void drawable_reset_path(Drawable *st);
 
-/*reset bounds array (current and previous) - used when turning direct rendering on, to release some memory*/
-void drawable_reset_bounds(Drawable *dr);
+/*reset bounds array (current and previous) on the given surface*/
+void drawable_reset_bounds(Drawable *dr, struct _visual_surface_2D *surf);
 /*setup clip/uncli pointers for the drawable context*/
 void drawable_check_bounds(struct _drawable_context *ctx, struct _visual_surface_2D *surf);
 
@@ -143,13 +140,13 @@ typedef struct
 
 enum
 {
-	/*set whenever geometry node changed*/
-	CTX_NODE_DIRTY = 1,
 	/*set whenever appearance changed*/
-	CTX_APP_DIRTY = 1<<1,
+	CTX_APP_DIRTY = 1,
 	/*set whenever texture data changed*/
-	CTX_TEXTURE_DIRTY = 1<<2,
+	CTX_TEXTURE_DIRTY = 1<<1,
 
+	/*set when context is an MPEG-4/VRML node*/
+	CTX_HAS_APPEARANCE = 1<<2,
 	/*set if node completely fits its bounds (flat rect and bitmap) then non transparent*/
 	CTX_IS_TRANSPARENT = 1<<3,
 	/*set if node is text data*/
@@ -162,21 +159,22 @@ enum
 	CTX_PATH_FILLED = 1<<7,
 	/*indicates path outline has been textured, in which case STRIKE is skiped*/
 	CTX_PATH_STROKE = 1<<8,
-	/*set when context is an MPEG-4/VRML node*/
-	CTX_HAS_APPEARANCE = 1<<9,
 };
 
-#define CTX_REDRAW_MASK	0x00000007
+#define CTX_REDRAW_MASK	0x00000003
 
 typedef struct _drawable_context
 {
+	/*next context allocated, or NULL*/
+	struct _drawable_context *next;
+
 	/*any of the above flags*/
 	u16 flags;
 	/*only used by text when splitting strings into chars / substrings*/
 	s16 sub_path_index;
 
 	/*drawable using this context*/
-	Drawable *node;
+	Drawable *drawable;
 
 	/*pointer to clipped and uncliped (for sensors) rect in pixels.*/
 	BoundInfo *bi;

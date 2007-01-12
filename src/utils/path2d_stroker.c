@@ -179,14 +179,9 @@ typedef struct  FT_StrokeBorderRec_
 
 static s32 ft_stroke_border_grow(FT_StrokeBorder  border, u32 new_points)
 {
-	u32 old_max = border->max_points;
 	u32 new_max = border->num_points + new_points;
-	if ( new_max > old_max ) {
-		u32 cur_max = old_max;
-
-		while ( cur_max < new_max )
-			cur_max += ( cur_max >> 1 ) + 16;
-		
+	if (new_max > border->max_points) {
+		u32 cur_max = new_max*2;
 		border->points = (GF_Point2D *) realloc(border->points, sizeof(GF_Point2D)*cur_max);
 		border->tags = (u8 *) realloc(border->tags, sizeof(u8)*cur_max);
 		if (!border->points || !border->tags) return -1;

@@ -811,7 +811,6 @@ void gf_smil_anim_remove_from_target(GF_Node *_anim, GF_Node *_target)
 {
 	u32 i, j;
 	SVGElement *target = (SVGElement *) _target;
-	SVGElement *anim = (SVGElement *) _anim;
 	if (!target) return;
 	for (i = 0; i < gf_node_animation_count((GF_Node *)target); i ++) {
 		SMIL_Anim_RTI *rai;

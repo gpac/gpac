@@ -435,8 +435,8 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 	/*fill path*/
 	if (dofill) {
 #if ADAPTATION_SIZE
-		if ((ctx->clip.width<ADAPTATION_SIZE) && (ctx->clip.height<ADAPTATION_SIZE)) {
-			r2d->surface_clear(surf->the_surface, &ctx->clip, ctx->aspect.fill_color);
+		if ((ctx->bi->clip.width<ADAPTATION_SIZE) && (ctx->bi->clip.height<ADAPTATION_SIZE)) {
+			r2d->surface_clear(surf->the_surface, &ctx->bi->clip, ctx->aspect.fill_color);
 		} else 
 #endif
 		{
@@ -449,7 +449,7 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 
 	if (dostrike) {
 #if ADAPTATION_SIZE
-		if ((ctx->clip.width<ADAPTATION_SIZE) && (ctx->clip.height<ADAPTATION_SIZE)) {
+		if ((ctx->bi->clip.width<ADAPTATION_SIZE) && (ctx->bi->clip.height<ADAPTATION_SIZE)) {
 		} else 
 #endif
 		{
@@ -462,7 +462,7 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 					VS2D_DoFill(surf, ctx, pen);
 				}
 				/*that's ugly, but we cannot cache path outline for IFS2D/ILS2D*/
-				if (path && !(ctx->flags & CTX_IS_TEXT) && (path!=ctx->node->path) ) {
+				if (path && !(ctx->flags & CTX_IS_TEXT) && (path!=ctx->drawable->path) ) {
 					gf_path_del(si->outline);
 					si->outline = NULL;
 				}
