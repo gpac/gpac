@@ -3185,7 +3185,7 @@ Bool H263_IsStartCode(GF_BitStream *bs)
 u32 H263_NextStartCode(GF_BitStream *bs)
 {
 	u32 v, bpos;
-	char h263_cache[H263_CACHE_SIZE];
+	unsigned char h263_cache[H263_CACHE_SIZE];
 	u64 end, cache_start, load_size;
 	u64 start = gf_bs_get_position(bs);
 	

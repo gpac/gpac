@@ -1,4 +1,5 @@
-Latest CVS changes: 09/01/07
+Latest CVS changes: 14/01/07
+  - Fixed handling of negative delays when adding/appending media tracks with MP4Box
   - moved ffmpeg headers to latest CVS version (05/01/2007).
   - fixes in MPEG2 TS import
   - large code rewrite in scenegraph and 2D renderer to lower memory usage
