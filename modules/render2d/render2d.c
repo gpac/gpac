@@ -500,7 +500,6 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_Event *event)
 		if (sr->grab_ctx && sr->grab_ctx->drawable != sr->grab_node) {
 			sr->is_tracking = 0;
 			sr->grab_ctx = NULL;
-			fprintf(stdout, "reseting tracking\n");
 		}
 	}
 	

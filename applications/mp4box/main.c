@@ -900,7 +900,7 @@ typedef struct
 	/*track ID*/
 	u32 trackID;
 	char lang[4];
-	u32 delay_ms;
+	s32 delay_ms;
 	const char *kms;
 	const char *hdl_name;
 	s32 par_num, par_den;
@@ -2148,9 +2148,19 @@ int main(int argc, char **argv)
 				u64 tk_dur;
 				gf_isom_remove_edit_segments(file, track);
 				tk_dur = gf_isom_get_track_duration(file, track);
-				gf_isom_append_edit_segment(file, track, (timescale*tka->delay_ms)/1000, 0, GF_ISOM_EDIT_EMPTY);
-				gf_isom_append_edit_segment(file, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
-				needSave = 1;
+				if (tka->delay_ms>0) {
+					gf_isom_append_edit_segment(file, track, (timescale*tka->delay_ms)/1000, 0, GF_ISOM_EDIT_EMPTY);
+					gf_isom_append_edit_segment(file, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+					needSave = 1;
+				} else {
+					u64 to_skip = (timescale*(-tka->delay_ms))/1000;
+					if (to_skip<tk_dur) {
+						u64 seg_dur = (-tka->delay_ms)*gf_isom_get_media_timescale(file, track) / 1000;
+						gf_isom_append_edit_segment(file, track, tk_dur-to_skip, seg_dur, GF_ISOM_EDIT_NORMAL);
+					} else {
+						fprintf(stdout, "Warning: request negative delay longer than track duration - ignoring\n");
+					}
+				}
 			} else if (gf_isom_get_edit_segment_count(file, track)) {
 				gf_isom_remove_edit_segments(file, track);
 				needSave = 1;
