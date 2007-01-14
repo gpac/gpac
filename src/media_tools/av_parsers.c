@@ -883,7 +883,7 @@ static GFINLINE u32 get_MP3SamplingRates(u32 version, u32 idx)
 		switch (idx) {
 		case 0: return 22050;
 		case 1: return 24000;
-		case 3: return 16000;
+		case 2: return 16000;
 		default: return 0;
 		}
 		break;
@@ -891,7 +891,7 @@ static GFINLINE u32 get_MP3SamplingRates(u32 version, u32 idx)
 		switch (idx) {
 		case 0: return 44100;
 		case 1: return 48000;
-		case 3: return 32000;
+		case 2: return 32000;
 		default: return 0;
 		}
 		break;
@@ -1158,15 +1158,13 @@ u32 gf_mp3_get_next_header(FILE* in)
 				bytes[state] = b;
 				state = 1;
 			} else {
-/*				if ((dropped == 0) && ((b & 0xE0) == 0xE0) && ((b & 0x18) != 0x08) && ((b & 0x06) != 0)) {
+				if ((dropped == 0) && ((b & 0xE0) == 0xE0) && ((b & 0x18) != 0x08) && ((b & 0x06) != 0)) {
 					bytes[0] = (u8) 0xFF;
 					bytes[1] = b;
 					state = 2;
 				} else {
 					dropped++;
 				}
-*/
-				dropped++;
 			}
 		}
 	}

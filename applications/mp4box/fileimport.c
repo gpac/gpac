@@ -128,8 +128,8 @@ void convert_file_info(char *inName, u32 trackID)
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
-	u32 track_id, i, delay, timescale, track;
-	s32 par_d, par_n, prog_id;
+	u32 track_id, i, timescale, track;
+	s32 par_d, par_n, prog_id, delay;
 	Bool do_audio, do_video, do_all;
 	const char *szLan;
 	GF_Err e;
@@ -256,8 +256,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				u64 tk_dur;
 				gf_isom_remove_edit_segments(import.dest, i+1);
 				tk_dur = gf_isom_get_track_duration(import.dest, i+1);
-				gf_isom_append_edit_segment(import.dest, i+1, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
-				gf_isom_append_edit_segment(import.dest, i+1, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+				if (delay>0) {
+					gf_isom_append_edit_segment(import.dest, i+1, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
+					gf_isom_append_edit_segment(import.dest, i+1, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+				} else {
+					u64 to_skip = (timescale*(-delay))/1000;
+					gf_isom_append_edit_segment(import.dest, i+1, tk_dur-to_skip, to_skip, GF_ISOM_EDIT_NORMAL);
+				}
 			}
 			if ((par_n>=0) && (par_d>=0)) {
 				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
@@ -294,8 +299,17 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				u64 tk_dur;
 				gf_isom_remove_edit_segments(import.dest, track);
 				tk_dur = gf_isom_get_track_duration(import.dest, track);
-				gf_isom_append_edit_segment(import.dest, track, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
-				gf_isom_append_edit_segment(import.dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+				if (delay>0) {
+					gf_isom_append_edit_segment(import.dest, track, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
+					gf_isom_append_edit_segment(import.dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+				} else {
+					u64 to_skip = (timescale*(-delay))/1000;
+					if (to_skip<tk_dur) {
+						gf_isom_append_edit_segment(import.dest, i+1, tk_dur-to_skip, to_skip, GF_ISOM_EDIT_NORMAL);
+					} else {
+						fprintf(stdout, "Warning: request negative delay longer than track duration - ignoring\n");
+					}
+				}
 			}
 			if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) && (par_n>=-1) && (par_d>=-1)) {
 				e = gf_media_change_par(import.dest, track, par_n, par_d);

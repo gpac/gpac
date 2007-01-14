@@ -479,10 +479,10 @@ void vobsub_free(vobsub_file *vobsub)
 	}
 }
 
-GF_Err vobsub_get_subpic_duration(char *data, u32 psize, u32 dsize, u32 *duration)
+GF_Err vobsub_get_subpic_duration(char *_data, u32 psize, u32 dsize, u32 *duration)
 {
 	u32 i, dcsq_stm, nxt_dcsq, start_stm, stop_stm;
-
+	unsigned char *data = (unsigned char *)_data;
 	start_stm = 0;
 	stop_stm  = 0;
 	nxt_dcsq  = dsize;
