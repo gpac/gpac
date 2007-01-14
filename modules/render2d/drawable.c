@@ -215,7 +215,6 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, Vis
 		bi = bi->next;
 	}
 	if (!bi) {
-		assert(0);
 		GF_SAFEALLOC(bi, BoundInfo);
 		if (_prev) {
 			assert(!_prev->next);
