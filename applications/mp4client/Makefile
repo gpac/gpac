@@ -50,7 +50,7 @@ clean:
 
 install: clean
 	make -override BUILD_INSTALL=yes all
-	install -c -s -m 755 ../../bin/gcc/MP4Client "$(prefix)/bin"
+	install -c -s -m 755 ../../bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin"
 
 uninstall:
 	rm -rf $(prefix)/bin/MP4Client
