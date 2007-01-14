@@ -853,7 +853,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	Float ts_scale;
 	Double dest_orig_dur;
 	u32 dst_tk, tk_id, mtype;
-	u64 insert_dts;
+	u64 insert_dts, skip_until_dts;
 	GF_ISOSample *samp;
 
 	if (strchr(fileName, '*')) return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir);
@@ -966,6 +966,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			e = gf_isom_clone_track(orig, i+1, dest, 1, &dst_tk);
 			if (e) goto err_exit;
 			gf_isom_clone_pl_indications(orig, dest);
+			/*remove any edit stuff that could have been copied over*/
+			gf_isom_remove_edit_segments(dest, dst_tk);
 		}
 		count = gf_isom_get_sample_count(dest, dst_tk);
 		if (use_ts_dur && (count>1)) {
@@ -977,7 +979,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 
 		ts_scale = (Float) gf_isom_get_media_timescale(dest, dst_tk);
 		ts_scale /= gf_isom_get_media_timescale(orig, i+1);
-
+		skip_until_dts = 0;
 		if (gf_isom_get_edit_segment_count(orig, i+1)) { 
 			u64 editTime, segmentDuration, mediaTime;
 			u8 editMode;
@@ -987,6 +989,9 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				offset /= gf_isom_get_timescale(orig);
 				insert_dts += (u64) (offset*ts_scale);
 			}
+			else if (editMode == GF_ISOM_EDIT_NORMAL) {
+				skip_until_dts = mediaTime;
+			}
 		}
 
 		last_DTS = 0;
@@ -994,6 +999,13 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		for (j=0; j<count; j++) {
 			u32 di;
 			samp = gf_isom_get_sample(orig, i+1, j+1, &di);
+			if (skip_until_dts) {
+				if (skip_until_dts > samp->DTS) {
+					gf_isom_sample_del(&samp);
+					continue;
+				}
+				samp->DTS -= skip_until_dts;
+			}
 
 			last_DTS = samp->DTS;
 			samp->DTS =  (u64) (ts_scale * (s64)samp->DTS) + insert_dts;
