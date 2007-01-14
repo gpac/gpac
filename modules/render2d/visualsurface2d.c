@@ -231,7 +231,6 @@ GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 			count++;
 		}
 	}
-	fprintf(stdout, "init done in %d ms\n", gf_sys_clock() - time);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Top surface initialized - %d nodes registered and %d removed - using %s rendering\n", count, rem, render_mode ? "direct" : "dirty-rect"));
 	if (!render_mode) return GF_OK;
 

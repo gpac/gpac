@@ -180,6 +180,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 
 		/*note we forbid ffmpeg to handle files we support*/
 		if (!strcmp(szExt, "mp4") || !strcmp(szExt, "mpg4") || !strcmp(szExt, "m4a") || !strcmp(szExt, "m21") 
+			|| !strcmp(szExt, "m4v") || !strcmp(szExt, "m4a") 
 			|| !strcmp(szExt, "3gp") || !strcmp(szExt, "3gpp") || !strcmp(szExt, "3gp2") || !strcmp(szExt, "3g2") 
 			|| !strcmp(szExt, "mp3") 
 			|| !strcmp(szExt, "amr") 
@@ -198,7 +199,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		if (gf_term_check_extension(plug, "video/avi", "avi", "AVI Movies", ext)) return 1;
 		if (gf_term_check_extension(plug, "video/H263", "h263 263", "H263 Video", ext)) return 1;
 		if (gf_term_check_extension(plug, "video/H264", "h264 264", "H264 Video", ext)) return 1;
-		if (gf_term_check_extension(plug, "video/MPEG4", "cmp m4v", "MPEG-4 Video", ext)) return 1;
+		if (gf_term_check_extension(plug, "video/MPEG4", "cmp", "MPEG-4 Video", ext)) return 1;
 		/*we let ffmpeg handle mov because some QT files with uncompressed or adpcm audio use 1 audio sample 
 		per MP4 sample which is a killer for our MP4 lib, whereas ffmpeg handles these as complete audio chunks 
 		moreover ffmpeg handles cmov, we don't*/
