@@ -294,6 +294,7 @@ static void IFS2D_SetCoordIndex(GF_Node *node)
 void R2D_InitIFS2D(Render2D *sr, GF_Node *node)
 {
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
+	drawable_stack_new(sr, node);
 	gf_node_set_callback_function(node, RenderIFS2D);
 	ifs2D->on_set_colorIndex = IFS2D_SetColorIndex;
 	ifs2D->on_set_coordIndex = IFS2D_SetCoordIndex;

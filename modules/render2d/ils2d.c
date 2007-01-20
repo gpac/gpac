@@ -266,6 +266,7 @@ static void ILS2D_SetCoordIndex(GF_Node *node)
 void R2D_InitILS2D(Render2D *sr, GF_Node *node)
 {
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
+	drawable_stack_new(sr, node);
 	gf_node_set_callback_function(node, RenderILS2D);
 	ils2D->on_set_colorIndex = ILS2D_SetColorIndex;
 	ils2D->on_set_coordIndex = ILS2D_SetCoordIndex;
