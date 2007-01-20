@@ -227,6 +227,7 @@ static void RenderRectangle(GF_Node *node, void *reff, Bool is_destroy)
 
 void R2D_InitRectangle(Render2D  *sr, GF_Node *node)
 {
+	drawable_stack_new(sr, node);
 	gf_node_set_callback_function(node, RenderRectangle);
 }
 
@@ -674,6 +675,7 @@ static void RenderPointSet2D(GF_Node *node, void *rs, Bool is_destroy)
 
 void R2D_InitPointSet2D(Render2D  *sr, GF_Node *node)
 {
+	drawable_stack_new(sr, node);
 	gf_node_set_callback_function(node, RenderPointSet2D);
 }
 
