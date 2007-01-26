@@ -135,7 +135,8 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
     s32 pixelformat; 
 
 	/*already setup*/
-	if (dd->gl_HRC) return GF_OK;
+//	if (dd->gl_HRC) return GF_OK;
+	DestroyObjects(dd);
 
 	dd->gl_HDC = GetDC(dd->cur_hwnd);
 	if (!dd->gl_HDC) return GF_IO_ERR;

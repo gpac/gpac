@@ -23,6 +23,7 @@
  */
 
 #include "img_in.h"
+#include <gpac/avparse.h>
 
 enum
 {
@@ -60,10 +61,18 @@ GF_ESD *IMG_GetESD(IMGLoader *read)
 	GF_ESD *esd = gf_odf_desc_esd_new(0);
 	esd->slConfig->timestampResolution = 1000;
 	esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-	if (read->img_type == IMG_JPEG) esd->decoderConfig->objectTypeIndication = 0x6c;
-	else if (read->img_type == IMG_PNG) esd->decoderConfig->objectTypeIndication = 0x6d;
-	else if (read->img_type == IMG_BMP) esd->decoderConfig->objectTypeIndication = GPAC_BMP_OTI;
 	esd->ESID = 1;
+
+	if (read->img_type == IMG_BMP) 
+		esd->decoderConfig->objectTypeIndication = GPAC_BMP_OTI;
+	else {
+		u8 OTI;
+		u32 mtype, w, h;
+		GF_BitStream *bs = gf_bs_from_file(read->stream, GF_BITSTREAM_READ);
+		gf_img_parse(bs, &OTI, &mtype, &w, &h, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+		esd->decoderConfig->objectTypeIndication = OTI;
+		gf_bs_del(bs);
+	}
 	return esd;
 }
 
@@ -73,6 +82,7 @@ static Bool IMG_CanHandleURL(GF_InputService *plug, const char *url)
 	sExt = strrchr(url, '.');
 	if (!sExt) return 0;
 	if (gf_term_check_extension(plug, "image/jpeg", "jpeg jpg", "JPEG Images", sExt)) return 1;
+	if (gf_term_check_extension(plug, "image/jp2", "jp2", "JPEG2000 Images", sExt)) return 1;
 	if (gf_term_check_extension(plug, "image/png", "png", "PNG Images", sExt)) return 1;
 	if (gf_term_check_extension(plug, "image/bmp", "bmp", "MS Bitmap Images", sExt)) return 1;
 	return 0;

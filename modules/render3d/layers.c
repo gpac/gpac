@@ -169,6 +169,7 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		}
 
 	} else if (eff->traversing_mode==TRAVERSE_SORT) {
+		gf_node_allow_cyclic_render(node);
 		VS_RegisterContext(eff, node, &st->bbox, 0);
 	}
 	/*check picking - we must fall in our 2D clipper*/
@@ -321,6 +322,7 @@ static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 	switch (eff->traversing_mode) {
 	case TRAVERSE_SORT:
+		gf_node_allow_cyclic_render(node);
 		VS_RegisterContext(eff, node, &st->bbox, 0);
 		return;
 	case TRAVERSE_GET_BOUNDS:
@@ -352,6 +354,8 @@ static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	/*compute viewport in surface coordinate*/
 	rc = st->clip;
 	gf_mx_apply_rect(&prev_cam->modelview, &rc);
+	if (eff->camera->flags & CAM_HAS_VIEWPORT)
+		gf_mx_apply_rect(&prev_cam->viewport, &rc);
 	gf_mx_apply_rect(&eff->model_matrix, &rc);
 	if (eff->surface->render->surface==eff->surface) {
 		gf_mx_init(model_backup);

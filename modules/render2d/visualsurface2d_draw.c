@@ -381,10 +381,12 @@ void VS2D_TexturePath(VisualSurface2D *surf, GF_Path *path, struct _drawable_con
 
 	/*this is ambiguous in the spec, what if the material is filled and the texture is transparent ?
 	let's draw, it's nicer */
+#if 0
 	if (GF_COL_A(ctx->aspect.fill_color) && ctx->h_texture->transparent) {
 		VS2D_DrawPath(surf, path, ctx, NULL, NULL);
 		ctx->flags &= ~CTX_PATH_FILLED;
 	}
+#endif
 
 	VS2D_TexturePathIntern(surf, path, NULL, ctx);
 }

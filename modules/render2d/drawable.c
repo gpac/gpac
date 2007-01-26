@@ -102,25 +102,6 @@ void drawable_reset_bounds(Drawable *dr, VisualSurface2D *surf)
 	}
 }
 
-static void drawable_reinit_bounds(Drawable *dr)
-{
-	DRInfo *dri = dr->dri;
-	while (dri) {
-		BoundInfo *bi = dri->current_bounds;
-		while (bi) {
-			bi->clip.width = 0;
-			bi = bi->next;
-		}
-		bi = dri->previous_bounds;
-		while (bi) {
-			bi->clip.width = 0;
-			bi = bi->next;
-		}
-
-		dri = dri->next;
-	}
-}
-
 void drawable_del(Drawable *dr)
 {
 	StrikeInfo2D *si;
@@ -237,6 +218,9 @@ Bool drawable_flush_bounds(Drawable *drawable, struct _visual_surface_2D *on_sur
 	Bool was_drawn;
 	DRInfo *dri;
 	BoundInfo *tmp;
+
+	/*reset node modified flag*/
+	drawable->flags &= ~DRAWABLE_HAS_CHANGED;
 
 	dri = drawable->dri;
 	while (dri) {
@@ -416,11 +400,14 @@ void drawctx_update_info(DrawableContext *ctx, struct _visual_surface_2D *surf)
 	}
 	if (drawn) {
 		ctx->drawable->flags |= DRAWABLE_DRAWN_ON_SURFACE; 
-		/*check if same bounds are used*/
-		moved = !drawable_has_same_bounds(ctx, surf);
-		if (!need_redraw) need_redraw = moved;
-		
-		if (need_redraw) ctx->flags |= CTX_REDRAW_MASK;
+		/*node has been modified, do not check bounds, just assumed it moved*/
+		if (ctx->drawable->flags & DRAWABLE_HAS_CHANGED) {
+			moved = 1;
+		} else {
+			/*check if same bounds are used*/
+			moved = !drawable_has_same_bounds(ctx, surf);
+		}
+		if (need_redraw || moved) ctx->flags |= CTX_REDRAW_MASK;
 	}
 
 	/*in all cases reset dirty flag of appearance and its sub-nodes*/
@@ -565,11 +552,6 @@ DrawableContext *drawable_init_context(Drawable *drawable, RenderEffect2D *eff)
 	gf_mx2d_copy(ctx->transform, eff->transform);
 	ctx->drawable = drawable;
 
-	/*node modified, reset all bounds (previous and current)*/
-	if (drawable->flags & DRAWABLE_HAS_CHANGED) {
-		drawable->flags &= ~DRAWABLE_HAS_CHANGED;
-		drawable_reinit_bounds(ctx->drawable);
-	}
 	/*usually set by colorTransform or changes in OrderedGroup*/
 	if (eff->invalidate_all) ctx->flags |= CTX_APP_DIRTY;
 
@@ -1036,10 +1018,6 @@ DrawableContext *SVG_drawable_init_context(Drawable *drawable, RenderEffect2D *e
 	ctx->drawable = drawable;
 	ctx->appear = eff->parent_use;
 
-	if (drawable->flags & DRAWABLE_HAS_CHANGED) {
-		drawable->flags &= ~DRAWABLE_HAS_CHANGED;
-		drawable_reinit_bounds(ctx->drawable);
-	}
 	if (eff->invalidate_all || gf_svg_has_appearance_flag_dirty(eff->svg_flags)) ctx->flags |= CTX_APP_DIRTY;
 	
 	ctx->h_texture = NULL;

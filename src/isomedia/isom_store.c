@@ -608,6 +608,13 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 			totSize = gf_isom_datamap_get_offset(movie->editFileMap);
 			/*start boxes have not been written yet, do it*/
 			if (!totSize) {
+				if (movie->is_jp2) {
+					gf_bs_write_u32(movie->editFileMap->bs, 12);
+					gf_bs_write_u32(movie->editFileMap->bs, GF_4CC('j','P',' ',' '));
+					gf_bs_write_u32(movie->editFileMap->bs, 0x0D0A870A);
+					totSize += 12;
+					begin += 12;
+				}
 				if (movie->brand) {
 					e = gf_isom_box_size((GF_Box *)movie->brand); if (e) goto exit;
 					e = gf_isom_box_write((GF_Box *)movie->brand, movie->editFileMap->bs); if (e) goto exit;
@@ -621,12 +628,17 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 					begin += movie->pdin->size;
 				}
 			} else {
+				if (movie->is_jp2) begin += 12;
 				if (movie->brand) begin += movie->brand->size;
 				if (movie->pdin) begin += movie->pdin->size;
 			}
 			totSize -= begin;
 		} else {
-			//the brand box is always first no matter what
+			if (movie->is_jp2) {
+				gf_bs_write_u32(bs, 12);
+				gf_bs_write_u32(bs, GF_4CC('j','P',' ',' '));
+				gf_bs_write_u32(bs, 0x0D0A870A);
+			}
 			if (movie->brand) {
 				e = gf_isom_box_size((GF_Box *)movie->brand);
 				if (e) goto exit;
@@ -704,7 +716,11 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 	//2 - we don't know the ofset at which the mdat will start...
 	//3 - once the mdat is written, the chunkOffset table can have changed...
 	
-	//the brand box is always first no matter what
+	if (movie->is_jp2) {
+		gf_bs_write_u32(bs, 12);
+		gf_bs_write_u32(bs, GF_4CC('j','P',' ',' '));
+		gf_bs_write_u32(bs, 0x0D0A870A);
+	}
 	if (movie->brand) {
 		e = gf_isom_box_size((GF_Box *)movie->brand);
 		if (e) goto exit;
@@ -1114,6 +1130,11 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	if (e) goto exit;
 
 
+	if (movie->is_jp2) {
+		gf_bs_write_u32(bs, 12);
+		gf_bs_write_u32(bs, GF_4CC('j','P',' ',' '));
+		gf_bs_write_u32(bs, 0x0D0A870A);
+	}
 	if (movie->brand) {
 		e = gf_isom_box_size((GF_Box *)movie->brand);
 		if (e) goto exit;

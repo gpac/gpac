@@ -200,9 +200,16 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 		st->prev_flags = *eff->svg_props->font_style;
 		st->prev_anchor = *eff->svg_props->text_anchor;
 	}
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
+		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) 
+			gf_path_get_bounds(cs->path, &eff->bounds);
+		goto end;
+	}
+
 	ctx = SVG_drawable_init_context(cs, eff);
 	if (ctx) drawable_finalize_render(ctx, eff, NULL);
 
+end:
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	eff->svg_flags = backup_flags;

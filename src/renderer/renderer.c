@@ -118,7 +118,6 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 			evt.type = GF_EVENT_SIZE;
 			evt.size.width = sr->new_width;
 			evt.size.height = sr->new_height;
-			sr->new_width = sr->new_height = 0;
 			/*send resize event*/
 			if (!(sr->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF)) {
 				sr->video_out->ProcessEvent(sr->video_out, &evt);
@@ -146,6 +145,7 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 			gf_sr_set_fullscreen(sr);
 			sr->draw_next_frame = 1;
 		}
+		sr->new_width = sr->new_height = 0;
 		sr->msg_type = 0;
 	}
 

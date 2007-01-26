@@ -723,7 +723,7 @@ GF_Err evg_stencil_set_color_matrix(GF_STENCIL st, GF_ColorMatrix *cmat)
 {
 	EVG_Texture *_this = (EVG_Texture *)st;
 	if (!_this) return GF_BAD_PARAM;
-	if (!!cmat) gf_cmx_init(&_this->cmat);
+	if (!cmat) gf_cmx_init(&_this->cmat);
 	else gf_cmx_copy(&_this->cmat, cmat);
 	return GF_OK;
 }

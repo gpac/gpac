@@ -105,9 +105,6 @@ Package=<4>
     Project_Dep_Name saf_in
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name amr_dec
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name timedtext
     End Project Dependency
 }}}

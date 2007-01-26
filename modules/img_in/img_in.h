@@ -36,6 +36,7 @@ enum
 	DEC_RESERVED = 0,
 	DEC_PNG,
 	DEC_JPEG,
+	DEC_JP2,
 	DEC_BMP,
 };
 
@@ -57,6 +58,11 @@ void DeletePNGDec(GF_BaseDecoder *dec);
 #ifdef GPAC_HAS_JPEG
 Bool NewJPEGDec(GF_BaseDecoder *dec);
 void DeleteJPEGDec(GF_BaseDecoder *dec);
+#endif
+
+#ifdef GPAC_HAS_JP2
+Bool NewJP2Dec(GF_BaseDecoder *dec);
+void DeleteJP2Dec(GF_BaseDecoder *dec);
 #endif
 
 

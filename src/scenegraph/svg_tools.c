@@ -219,6 +219,7 @@ Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char 
 
 	if (!existing) {
 		f = fopen(szFile, "wb");
+		if (!f) return 0;
 		fwrite(data, data_size, 1, f);
 		fclose(f);
 	}

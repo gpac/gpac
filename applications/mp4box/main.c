@@ -765,6 +765,7 @@ u32 get_file_type_by_ext(char *inName)
 		else if (!stricmp(ext, "xsr")) type = 4;
 		else if (!stricmp(ext, "xml")) type = 4;
 		else if (!stricmp(ext, "swf")) type = 5;
+		else if (!stricmp(ext, "jp2")) return 0;
 		else type = 0;
 	}
 
@@ -1845,7 +1846,7 @@ int main(int argc, char **argv)
 			if (!open_edit && file_exists && !gf_isom_probe_file(inName) && track_dump_type) {
 			} 
 #ifndef GPAC_READ_ONLY
-			else if (!open_edit && file_exists && !gf_isom_probe_file(inName) && !dump_mode) {
+			else if (!open_edit && file_exists /* && !gf_isom_probe_file(inName) */ && !dump_mode) {
 				if (dump_m2ts) {
 					dump_mpeg2_ts(inName, pes_dump);
 				} else {

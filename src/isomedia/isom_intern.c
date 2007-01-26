@@ -204,6 +204,17 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 			}
 			break;
 #endif
+		case GF_4CC('j','P',' ',' '):
+		{
+			GF_UnknownBox *box = (GF_UnknownBox*)a;
+			u8 *c = box->data;
+			if ((box->dataSize==4) 
+				&& (GF_4CC(c[0],c[1],c[2],c[3])==(u32)0x0D0A870A)) 
+				 mov->is_jp2 = 1;
+
+			gf_isom_box_del(a);
+		}
+			break;
 
 		default:
 			totSize += a->size;
