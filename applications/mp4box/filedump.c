@@ -1185,6 +1185,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		u32 w, h;
 		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 		fprintf(stdout, "\t3GPP H263 stream - Resolution %d x %d\n", w, h);
+	} else if (msub_type == GF_4CC('m','j','p','2')) {
+		u32 w, h;
+		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+		fprintf(stdout, "\tMotionJPEG2000 stream - Resolution %d x %d\n", w, h);
 	} else if ((msub_type == GF_ISOM_SUBTYPE_3GP_AMR) || (msub_type == GF_ISOM_SUBTYPE_3GP_AMR_WB)) {
 		fprintf(stdout, "\t3GPP AMR%s stream - Sample Rate %d - %d channel(s) %d bits per samples\n", (msub_type == GF_ISOM_SUBTYPE_3GP_AMR_WB) ? " Wide Band" : "", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_EVRC) {
@@ -1375,6 +1379,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	} else {
 		fprintf(stdout, "File has no MPEG4 IOD/OD\n");
 	}
+	if (gf_isom_is_JPEG2000(file)) fprintf(stdout, "File is JPEG 2000\n");
 
 	count = gf_isom_get_copyright_count(file);
 	if (count) {

@@ -208,14 +208,30 @@ GF_Err gf_export_hint(GF_MediaExporter *dumper)
 	return GF_OK;
 }
 
+static void write_jp2_file(GF_BitStream *bs, char *data, u32 data_size, char *dsi, u32 dsi_size)
+{
+	gf_bs_write_u32(bs, 12);
+	gf_bs_write_u32(bs, GF_4CC('j','P',' ',' '));
+	gf_bs_write_u32(bs, 0x0D0A870A);
+
+	gf_bs_write_u32(bs, 20);
+	gf_bs_write_u32(bs, GF_4CC('f','t','y','p'));
+	gf_bs_write_u32(bs, GF_4CC('j','p','2',' '));
+	gf_bs_write_u32(bs, 0);
+	gf_bs_write_u32(bs, GF_4CC('j','p','2',' '));
+
+	gf_bs_write_data(bs, dsi, dsi_size);
+	gf_bs_write_data(bs, data, data_size);
+}
+
 GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 {
 	GF_DecoderConfig *dcfg;
 	GF_GenericSampleDescription *udesc;
-	char szName[1000], szEXT[10], szNum[1000];
+	char szName[1000], szEXT[10], szNum[1000], *dsi;
 	FILE *out;
 	GF_BitStream *bs;
-	u32 track, i, di, count, m_type, m_stype;
+	u32 track, i, di, count, m_type, m_stype, dsi_size, is_mj2k;
 
 	track = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
 	m_type = gf_isom_get_media_type(dumper->file, track);
@@ -224,6 +240,8 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	if (dumper->sample_num) sprintf(szNum, " %d", dumper->sample_num);
 	else strcpy(szNum, "s");
 
+	is_mj2k = 0;
+	dsi = NULL;
 	udesc = NULL;
 	dcfg = NULL;
 	if ((m_stype==GF_ISOM_SUBTYPE_MPEG4) || (m_stype==GF_ISOM_SUBTYPE_MPEG4_CRYP)) 
@@ -249,6 +267,10 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 			case 0x6D:
 				strcpy(szEXT, ".png");
 				gf_export_message(dumper, GF_OK, "Dumping PNG image%s", szNum);
+				break;
+			case 0x6E:
+				strcpy(szEXT, ".jp2");
+				gf_export_message(dumper, GF_OK, "Dumping JPEG 2000 image%s", szNum);
 				break;
 			case GPAC_OGG_MEDIA_OTI:
 				strcpy(szEXT, ".theo");
@@ -324,6 +346,14 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		strcpy(szEXT, ".swf");
 	} else if (m_type==GF_ISOM_MEDIA_HINT) {
 		return gf_export_hint(dumper);
+	} else if (m_stype==GF_4CC('m','j','p','2')) {
+		strcpy(szEXT, ".jp2");
+		gf_export_message(dumper, GF_OK, "Dumping JPEG 2000 sample%s", szNum);
+		udesc = gf_isom_get_generic_sample_description(dumper->file, track, 1);
+		dsi = udesc->extension_buf;
+		dsi_size = udesc->extension_buf_size;
+		free(udesc);
+		is_mj2k = 1;
 	} else {
 		strcpy(szEXT, ".");
 		strcat(szEXT, gf_4cc_to_str(m_stype));
@@ -335,6 +365,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s sample%s", szEXT, gf_4cc_to_str(m_type), udesc ? udesc->compressor_name : "Unknown", szNum);
 			break;
 		}
+		if (udesc->extension_buf) free(udesc->extension_buf);
 		if (udesc) free(udesc);
 	}
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
@@ -345,10 +376,14 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, szEXT);
 		out = fopen(szName, "wb");
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
-		gf_bs_write_data(bs, samp->data, samp->dataLength);
+		if (is_mj2k) 
+			write_jp2_file(bs, samp->data, samp->dataLength, dsi, dsi_size);
+		else
+			gf_bs_write_data(bs, samp->data, samp->dataLength);
 		gf_isom_sample_del(&samp);
 		gf_bs_del(bs);
 		fclose(out);
+		if (dsi) free(dsi);
 		return GF_OK;
 	}
 
@@ -364,13 +399,18 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		}
 		out = fopen(szName, "wb");
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
-		gf_bs_write_data(bs, samp->data, samp->dataLength);
+		if (dsi) gf_bs_write_data(bs, dsi, dsi_size);
+		if (is_mj2k) 
+			write_jp2_file(bs, samp->data, samp->dataLength, dsi, dsi_size);
+		else
+			gf_bs_write_data(bs, samp->data, samp->dataLength);
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Media Export", i+1, count);
 		gf_bs_del(bs);
 		fclose(out);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
+	if (dsi) free(dsi);
 	return GF_OK;
 }
 

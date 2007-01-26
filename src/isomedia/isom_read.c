@@ -99,6 +99,7 @@ Bool gf_isom_probe_file(const char *fileName)
 	case GF_ISOM_BOX_TYPE_UDTA:
 	case GF_ISOM_BOX_TYPE_META:
 	case GF_ISOM_BOX_TYPE_VOID:
+	case GF_4CC('j','P',' ',' '):
 	case GF_4CC('w','i','d','e'):
 		return 1;
 	default:
@@ -2012,6 +2013,11 @@ Bool gf_isom_is_single_av(GF_ISOFile *file)
 	return 0;
 }
 
+GF_EXPORT
+Bool gf_isom_is_JPEG2000(GF_ISOFile *mov)
+{
+	return (mov && mov->is_jp2) ? 1 : 0;
+}
 
 GF_EXPORT
 u32 gf_isom_guess_specification(GF_ISOFile *file)
@@ -2020,6 +2026,10 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 
 	nb_m4s = nb_a = nb_v = nb_any = nb_scene = nb_od = nb_mp3 = nb_aac = nb_m4v = nb_avc = nb_amr = nb_h263 = nb_qcelp = nb_evrc = nb_smv = nb_text = 0;
 
+	if (file->is_jp2) {
+		if (file->moov) return GF_4CC('m','j','p','2');
+		return GF_4CC('j','p','2',' ');
+	}
 	if (!file->moov) {
 		if (!file->meta || !file->meta->handler) return 0;
 		return file->meta->handler->handlerType;

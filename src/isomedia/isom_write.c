@@ -3325,6 +3325,14 @@ GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output)
 }
 
 
+GF_EXPORT
+GF_Err gf_isom_set_JPEG2000(GF_ISOFile *mov, Bool set_on)
+{
+	if (!mov) return GF_BAD_PARAM;
+	mov->is_jp2 = set_on;
+	return GF_OK;
+}
+
 GF_Err gf_isom_remove_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID)
 {
 	u32 i, count;

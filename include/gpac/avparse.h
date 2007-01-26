@@ -174,7 +174,7 @@ Bool gf_ac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Header *out_hdr)
 /*gets image size (bs must contain the whole image) 
 @OTI: image type (JPEG=0x6C, PNG=0x6D)
 @width, height: image resolution - for jpeg max size if thumbnail included*/
-void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *width, u32 *height);
+void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height, char **dsi, u32 *dsi_len);
 
 GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 

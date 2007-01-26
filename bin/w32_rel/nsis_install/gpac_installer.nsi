@@ -207,23 +207,23 @@ SectionEnd
 ;
 ;	Full install mode
 ;
-Section "3GPP AMR Fixed-point Speech Decoder"
-  SectionIn 2
-  File "..\gm_amr_dec.dll"
-SectionEnd
+;Section "3GPP AMR Fixed-point Speech Decoder"
+;  SectionIn 2
+;  File "..\gm_amr_dec.dll"
+;SectionEnd
 
 Section "Xiph Ogg Reader - Vorbis and Theora Decoders"
   SectionIn 2
   File "..\gm_ogg_xiph.dll"
 SectionEnd
 
-Section "SVG LibXML Loader"
-  SectionIn 2
-  File "..\gm_svg_loader.dll"
-  File ".\libxml2.dll"
-  File ".\zlib1.dll"
-  File ".\iconv.dll"
-SectionEnd
+;Section "SVG LibXML Loader"
+;  SectionIn 2
+;  File "..\gm_svg_loader.dll"
+;  File ".\libxml2.dll"
+;  File ".\zlib1.dll"
+;  File ".\iconv.dll"
+;SectionEnd
 
 
 SubSectionEnd

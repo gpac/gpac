@@ -164,19 +164,12 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import)
 	GF_BitStream *bs;
 	GF_Err e;
 	Bool destroy_esd;
-	u32 size, track, di, w, h;
+	u32 size, track, di, w, h, dsi_len, mtype;
 	GF_ISOSample *samp;
 	u8 OTI;
-	char *data;
+	char *dsi, *data;
 	FILE *src;
 
-	if (import->flags & GF_IMPORT_PROBE_ONLY) {
-		import->tk_info[0].track_num = 1;
-		import->tk_info[0].type = GF_ISOM_MEDIA_VISUAL;
-		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_NO_DURATION;
-		import->nb_tracks = 1;
-		return GF_OK;
-	}
 
 	src = fopen(import->in_name, "rb");
 	if (!src) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
@@ -190,12 +183,31 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import)
 
 	/*get image size*/
 	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-	gf_img_parse(bs, &OTI, &w, &h);
+	gf_img_parse(bs, &OTI, &mtype, &w, &h, &dsi, &dsi_len);
 	gf_bs_del(bs);
+
+	if (!OTI) {
+		free(data);
+		return gf_import_message(import, GF_NOT_SUPPORTED, "Unrecognized file %s", import->in_name);
+	}
 
 	if (!w || !h) {
 		free(data);
-		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Invalid %s file", (OTI==0x6C) ? "JPEG" : "PNG");
+		if (dsi) free(dsi);
+		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Invalid %s file", (OTI==0x6C) ? "JPEG" : (OTI==0x6D) ? "PNG" : "JPEG2000");
+	}
+
+
+	if (import->flags & GF_IMPORT_PROBE_ONLY) {
+		import->tk_info[0].track_num = 1;
+		import->tk_info[0].type = GF_ISOM_MEDIA_VISUAL;
+		import->tk_info[0].media_type = mtype;
+		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_NO_DURATION;
+		import->tk_info[0].video_info.width = w;
+		import->tk_info[0].video_info.height = h;
+		import->nb_tracks = 1;
+		if (dsi) free(dsi);
+		return GF_OK;
 	}
 
 	e = GF_OK;
@@ -213,6 +225,13 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import)
 	import->esd->decoderConfig->avgBitrate = 8*size;
 	import->esd->decoderConfig->maxBitrate = 8*size;
 	import->esd->slConfig->timestampResolution = 1000;
+
+	if (dsi) {
+		if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+		if (import->esd->decoderConfig->decoderSpecificInfo->data) free(import->esd->decoderConfig->decoderSpecificInfo->data);
+		import->esd->decoderConfig->decoderSpecificInfo->data = dsi;
+		import->esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_len;
+	}
 	
 	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_VISUAL, 1000);
 	if (!track) {
@@ -230,7 +249,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import)
 	samp->IsRAP = 1;
 	samp->dataLength = size;
 
-	gf_import_message(import, GF_OK, "%s import - size %d x %d", (OTI==0x6C) ? "JPEG" : "PNG", w, h);
+	gf_import_message(import, GF_OK, "%s import - size %d x %d", (OTI==0x6C) ? "JPEG" : (OTI==0x6C) ? "PNG" : "JPEG2000", w, h);
 
 	gf_set_progress("Importing Image", 0, 1);
 	if (import->flags & GF_IMPORT_USE_DATAREF) {
@@ -5284,11 +5303,12 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	/*always try with MP4 - this allows using .m4v extension for both raw CMP and iPod's files*/
 	if (gf_isom_probe_file(importer->in_name)) {
 		importer->orig = gf_isom_open(importer->in_name, GF_ISOM_OPEN_READ, NULL);
-		if (!importer->orig) return gf_isom_last_error(NULL);
-		e = gf_import_isomedia(importer);
-		gf_isom_delete(importer->orig);
-		importer->orig = NULL;
-		return e;
+		if (importer->orig) {
+			e = gf_import_isomedia(importer);
+			gf_isom_delete(importer->orig);
+			importer->orig = NULL;
+			return e;
+		}
 	}
 
 	/*AVI audio/video*/
@@ -5331,8 +5351,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	/*NHML*/
 	if (!strnicmp(ext, ".nhml", 5) || !stricmp(fmt, "NHML") )
 		return gf_import_nhml(importer);
-	/*jpg & png*/
-	if (!strnicmp(ext, ".jpg", 4) || !strnicmp(ext, ".jpeg", 5) || !strnicmp(ext, ".png", 4) || !stricmp(fmt, "JPEG") || !stricmp(fmt, "PNG") ) 
+	/*jpg & png & jp2*/
+	if (!strnicmp(ext, ".jpg", 4) || !strnicmp(ext, ".jpeg", 5) || !strnicmp(ext, ".jp2", 4) || !strnicmp(ext, ".png", 4) || !stricmp(fmt, "JPEG") || !stricmp(fmt, "PNG") || !stricmp(fmt, "JP2") ) 
 		return gf_import_still_image(importer);
 	/*MPEG-2/4 AAC*/
 	if (!strnicmp(ext, ".aac", 4) || !stricmp(fmt, "AAC") || !stricmp(fmt, "MPEG4-AUDIO") ) 

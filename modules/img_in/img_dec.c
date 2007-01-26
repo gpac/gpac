@@ -37,11 +37,19 @@ static Bool DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectT
 #ifdef GPAC_HAS_JPEG
 	case 0x6C: return NewJPEGDec(dec);
 #endif
-	case GPAC_BMP_OTI: 
-	  return NewBMPDec(dec);
-	case 0: 
-	  return 1;/*query for types*/
- 	default: return 0;
+#ifdef GPAC_HAS_JP2
+	case 0x6E: return NewJP2Dec(dec);
+#endif
+	case GPAC_BMP_OTI:
+		return NewBMPDec(dec);
+	case 0:
+		return 1;/*query for types*/
+ 	default: 
+#ifdef GPAC_HAS_JP2
+		if ((decSpecInfoSize>=4) && (decSpecInfo[0]=='m') && (decSpecInfo[1]=='j') && (decSpecInfo[2]=='p') && (decSpecInfo[3]=='2')) 
+			return NewJP2Dec(dec);
+#endif
+		return 0;
 	}
 	return 0;
 }
@@ -80,6 +88,11 @@ void DeleteBaseDecoder(GF_BaseDecoder *ifcd)
 #ifdef GPAC_HAS_JPEG
 	case DEC_JPEG:
 		DeleteJPEGDec(ifcd);
+		break;
+#endif
+#ifdef GPAC_HAS_JP2
+	case DEC_JP2:
+		DeleteJP2Dec(ifcd);
 		break;
 #endif
 	case DEC_BMP:

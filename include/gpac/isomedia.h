@@ -300,6 +300,8 @@ void gf_isom_delete(GF_ISOFile *the_file);
 /*Get the mode of an open file*/
 u8 gf_isom_get_mode(GF_ISOFile *the_file);
 
+Bool gf_isom_is_JPEG2000(GF_ISOFile *mov);
+
 /********************************************************************
 				STREAMING API FUNCTIONS
 ********************************************************************/
@@ -989,6 +991,8 @@ GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output);
 and reserved flags. The specific media cfg (DSI & co) is not analysed, only
 a brutal memory comparaison is done*/
 Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, GF_ISOFile *f2, u32 tk2);
+
+GF_Err gf_isom_set_JPEG2000(GF_ISOFile *mov, Bool set_on);
 
 /*
 			Movie Fragments Writing API

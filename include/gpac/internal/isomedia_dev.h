@@ -1787,6 +1787,9 @@ struct __tag_isom {
 
 	u8 openMode;
 	u8 storageMode;
+	/*if true 3GPP text streams are read as MPEG-4 StreamingText*/
+	u8 convert_streaming_text;
+	u8 is_jp2;
 
 	/*main boxes for fast access*/
 	/*moov*/
@@ -1814,8 +1817,6 @@ struct __tag_isom {
 
 	/*default track for sync of MPEG4 streams - this is the first accessed stream without OCR info - only set in READ mode*/
 	s32 es_id_default_sync;
-	/*if true 3GPP text streams are read as MPEG-4 StreamingText*/
-	Bool convert_streaming_text;
 };
 
 /*time function*/
