@@ -639,7 +639,7 @@ GF_Err dpin_dump(GF_Box *a, FILE * trace)
 GF_Err hdlr_dump(GF_Box *a, FILE * trace)
 {
 	GF_HandlerBox *p = (GF_HandlerBox *)a;
-	if ((u32) p->nameUTF8[0] == strlen(p->nameUTF8+1)) {
+	if (p->nameUTF8 && (u32) p->nameUTF8[0] == strlen(p->nameUTF8+1)) {
 		fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"%s\" ", gf_4cc_to_str(p->handlerType), p->nameUTF8+1);
 	} else {
 		fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"%s\" ", gf_4cc_to_str(p->handlerType), p->nameUTF8);
