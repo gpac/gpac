@@ -718,7 +718,7 @@ int checkConfig(RTP_Caller *ap_caller)
 	lv_physicalBitRate = (lv_burstDuration * lv_peakRate)/(lv_delay_offtime + lv_burstDuration); // kbps
 
 	lv_trackNumber = lp_caller->global->sop_trackNbTable[lp_caller->id -1]; 
-	lv_mediaDuration = gf_isom_get_track_duration(lp_caller->mp4File, lv_trackNumber); // 
+	lv_mediaDuration = gf_isom_get_track_duration(lp_caller->mp4File, lv_trackNumber)/gf_isom_get_timescale(lp_caller->mp4File)*1000; // ms
 	lv_mediasize = gf_isom_get_media_data_size(lp_caller->mp4File, lv_trackNumber) * 8; // (gf_isom_get_media_data_size en octets)
 	
 	lp_caller->mediaSize = (u32)lv_mediasize; // in bits
@@ -878,7 +878,7 @@ int main(int argc, char **argv)
 
 	fprintf(stdout, "mp4 streamer: _______________________check config________________________ \n");
 	// nb_service * burst duration <= off time
-	if(lv_global.sov_nbSessions * lv_global.sov_burstDuration > lv_global.sov_delay_offtime )
+	if((lv_global.sov_nbSessions -1) * lv_global.sov_burstDuration > lv_global.sov_delay_offtime )
 	{
 		fprintf(stderr, "mp4 streamer CFG ERROR: nb service * burst duration > off time\n");
 		fprintf(stderr, "mp4 streamer CFG ERROR: please reconfigure your cfg file\n");
