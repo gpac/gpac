@@ -243,10 +243,13 @@ static void OnPacketDone(void *cbk, GF_RTPHeader *header)
 		else
 		{
 			for (i=0; i<lv_packetCount; i++) 
-			{			
+			{	
+				GF_Err e;
 				RTP_Packet *rtp = gf_list_get(caller->packets_to_send, i);
 				caller->totalLengthSent += (rtp->payload_len)*8; // update the total length					
-				gf_rtp_send_packet(caller->channel, &rtp->header, 0, 0, rtp->payload, rtp->payload_len);
+				e = gf_rtp_send_packet(caller->channel, &rtp->header, 0, 0, rtp->payload, rtp->payload_len);
+				if (e) 
+					fprintf(stdout, "Error sending packet %s\n", gf_error_to_string(e));
 				free(rtp->payload);	
 			}			
 			gf_list_reset(caller->packets_to_send);
@@ -296,7 +299,7 @@ GF_Err rtp_init_packetizer(RTP_Caller *caller)
 
 	caller->packetizer = gf_rtp_packetizer_create_and_init_from_file(caller->mp4File, caller->trackNum, caller,
 											OnNewPacket, OnPacketDone, NULL, OnData,
-											1500, 0, 0, GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_FORCE_MPEG4, 
+											1500-12, 0, 0, GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_FORCE_MPEG4, 
 											BASE_PAYT + caller->id - 1,
 											0, 0, 0);
 
@@ -498,12 +501,16 @@ void paquetisation(RTP_Caller *ap_caller, GF_ISOFile *ap_mp4)
 	u32 lv_sampleDescIndex;
 	u64 lv_ts;
 	u32 lv_auCount;
+	Double ts_scale;
 		
 	lv_accesUnitLength = 0;
 	lv_totalLengthFilled = 0;
 	lv_timescale = gf_isom_get_media_timescale(ap_mp4, ap_caller->trackNum);
 	lv_auCount= gf_isom_get_sample_count(ap_mp4, ap_caller->trackNum);
 		
+	ts_scale = ap_caller->packetizer->sl_config.timestampResolution;
+	ts_scale /= lv_timescale;
+
 	while (lv_totalLengthFilled <= ap_caller->maxSizeBurst)
 	{			
 		if(ap_caller->accessUnitProcess + 1 <= lv_auCount) // attention overflow acceUnit number <= get_sample_count
@@ -519,10 +526,10 @@ void paquetisation(RTP_Caller *ap_caller, GF_ISOFile *ap_mp4)
 				ap_caller->accessUnitProcess ++;
 				lv_sampleDuration = gf_isom_get_sample_duration(ap_mp4, ap_caller->trackNum, ap_caller->accessUnitProcess + 1);
 					
-				lv_ts = (u64) ((1000 * (s64) (ap_caller->accessUnit->DTS + ap_caller->accessUnit->CTS_Offset)) / lv_timescale);
+				lv_ts = (u64) (ts_scale * (s64) (ap_caller->accessUnit->DTS+ap_caller->accessUnit->CTS_Offset));
 				ap_caller->packetizer->sl_header.compositionTimeStamp = lv_ts;
-								
-				lv_ts = (u64) ((1000 * ap_caller->accessUnit->DTS) / lv_timescale);
+				
+				lv_ts = (u64) (ts_scale * (s64) (ap_caller->accessUnit->DTS));
 				ap_caller->packetizer->sl_header.decodingTimeStamp = lv_ts;
 									
 				ap_caller->packetizer->sl_header.randomAccessPointFlag = ap_caller->accessUnit->IsRAP;
