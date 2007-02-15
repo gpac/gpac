@@ -12,8 +12,8 @@ a=mpeg4-iod:"data:application/mpeg4-iod;base64,AoNzAA8BAP4AAAOBQwACYJxkYXRhOmFwc
 m=audio 7000 RTP/AVP 96
 a=rtpmap:96 mpeg4-generic/1000
 a=fmtp:96 streamType=5; mode=generic; objectType=107
-a=mpeg4-esid:20
+a=mpeg4-esid:10
 m=audio 7002 RTP/AVP 97
 a=rtpmap:97 mpeg4-generic/1000
 a=fmtp:97 streamType=5; mode=generic; objectType=107
-a=mpeg4-esid:10
+a=mpeg4-esid:20
