@@ -173,14 +173,21 @@ static void OnPacketDone(void *cbk, GF_RTPHeader *header)
 		
 		if (caller->global->log_level == 1) fprintf(stdout, "  RTP SN %u - TS %u - M %u - Size %u\n", caller->packet.header.SequenceNumber, caller->packet.header.TimeStamp/90, caller->packet.header.Marker, currentPacketSize);
 		
+		if (caller->nextBurstTime + caller->global->burstDuration + caller->global->offDuration < caller->packet.header.TimeStamp/caller->packetizer->sl_config.timestampResolution*1000) {
+			caller->processAU = 0;
+		}
+#if 0
 		if (caller->drift < -3000) {
 			if (caller->dataLengthInBurst > caller->minBurstSize) caller->processAU = 0;
 		} else {
 			if (caller->dataLengthInBurst > caller->minBurstSize 
 				+ 0.1*(caller->global->burstSize - caller->minBurstSize)) caller->processAU = 0;
 		}
+#endif
 
 	} else {
+		fprintf(stdout, "Packet delayed - Buffer overflow - wrong configuration:\nsend %d ms data - should have sent %d \n", caller->nextBurstTime + caller->global->burstDuration + caller->global->offDuration, caller->packet.header.TimeStamp/caller->packetizer->sl_config.timestampResolution*1000);
+
 		memcpy(&caller->prev_packet.header, header, sizeof(GF_RTPHeader));
 		caller->prev_packet.payload = caller->packet.payload;
 		caller->prev_packet.payload_len = caller->packet.payload_len;
@@ -434,12 +441,13 @@ void sendBurst(RTP_Caller *rtp)
 		}
 	}
 
-	rtp->drift = ((s32)(gf_sys_clock()-rtp->global->timelineOrigin)*90-(s32)rtp->next_ts)/90;
+	timescale = gf_isom_get_media_timescale(rtp->mp4File, rtp->trackNum);
+
+	rtp->drift = (s32)(gf_sys_clock()-rtp->global->timelineOrigin) - (s32) (rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution);
 
 	fprintf(stdout, "Time %u - Burst %u - Session %u - Drift %d ms\n", (gf_sys_clock()-rtp->global->timelineOrigin), rtp->global->nbBurstSent, rtp->id, rtp->drift);
 
-	timescale = gf_isom_get_media_timescale(rtp->mp4File, rtp->trackNum);
-		
+	
 	ts_scale = rtp->packetizer->sl_config.timestampResolution;
 	ts_scale /= timescale;
 	
