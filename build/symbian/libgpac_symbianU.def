@@ -1,837 +1,834 @@
 EXPORTS
-	AVI_close @ 1 NONAME ; CODE
-	AVI_open_output_file @ 2 NONAME ; CODE
-	AVI_set_video @ 3 NONAME ; CODE
-	AVI_write_frame @ 4 NONAME ; CODE
-	gf_4cc_to_str @ 5 NONAME ; CODE
-	gf_acos @ 6 NONAME ; CODE
-	gf_angle_diff @ 7 NONAME ; CODE
-	gf_asin @ 8 NONAME ; CODE
-	gf_atan2 @ 9 NONAME ; CODE
-	gf_avc_get_profile_name @ 10 NONAME ; CODE
-	gf_avc_get_sps_info @ 11 NONAME ; CODE
-	gf_base16_decode @ 12 NONAME ; CODE
-	gf_base16_encode @ 13 NONAME ; CODE
-	gf_base64_decode @ 14 NONAME ; CODE
-	gf_base64_encode @ 15 NONAME ; CODE
-	gf_bbox_equal @ 16 NONAME ; CODE
-	gf_bbox_from_rect @ 17 NONAME ; CODE
-	gf_bbox_get_vertices @ 18 NONAME ; CODE
-	gf_bbox_grow_point @ 19 NONAME ; CODE
-	gf_bbox_plane_relation @ 20 NONAME ; CODE
-	gf_bbox_point_inside @ 21 NONAME ; CODE
-	gf_bbox_refresh @ 22 NONAME ; CODE
-	gf_bbox_union @ 23 NONAME ; CODE
-	gf_beng_aggregate_context @ 24 NONAME ; CODE
-	gf_beng_encode_context @ 25 NONAME ; CODE
-	gf_beng_encode_from_file @ 26 NONAME ; CODE
-	gf_beng_encode_from_string @ 27 NONAME ; CODE
-	gf_beng_get_stream_config @ 28 NONAME ; CODE
-	gf_beng_init @ 29 NONAME ; CODE
-	gf_beng_init_from_string @ 30 NONAME ; CODE
-	gf_beng_save_context @ 31 NONAME ; CODE
-	gf_beng_terminate @ 32 NONAME ; CODE
-	gf_bifs_decode_au @ 33 NONAME ; CODE
-	gf_bifs_decode_command_list @ 34 NONAME ; CODE
-	gf_bifs_decoder_configure_stream @ 35 NONAME ; CODE
-	gf_bifs_decoder_del @ 36 NONAME ; CODE
-	gf_bifs_decoder_ignore_size_info @ 37 NONAME ; CODE
-	gf_bifs_decoder_new @ 38 NONAME ; CODE
-	gf_bifs_decoder_remove_stream @ 39 NONAME ; CODE
-	gf_bifs_encode_au @ 40 NONAME ; CODE
-	gf_bifs_encoder_del @ 41 NONAME ; CODE
-	gf_bifs_encoder_get_config @ 42 NONAME ; CODE
-	gf_bifs_encoder_get_rap @ 43 NONAME ; CODE
-	gf_bifs_encoder_get_version @ 44 NONAME ; CODE
-	gf_bifs_encoder_new @ 45 NONAME ; CODE
-	gf_bifs_encoder_new_stream @ 46 NONAME ; CODE
-	gf_bifs_get_aq_info @ 47 NONAME ; CODE
-	gf_bs_align @ 48 NONAME ; CODE
-	gf_bs_available @ 49 NONAME ; CODE
-	gf_bs_bits_available @ 50 NONAME ; CODE
-	gf_bs_del @ 51 NONAME ; CODE
-	gf_bs_from_file @ 52 NONAME ; CODE
-	gf_bs_get_bit_offset @ 53 NONAME ; CODE
-	gf_bs_get_content @ 54 NONAME ; CODE
-	gf_bs_get_position @ 55 NONAME ; CODE
-	gf_bs_get_refreshed_size @ 56 NONAME ; CODE
-	gf_bs_get_size @ 57 NONAME ; CODE
-	gf_bs_new @ 58 NONAME ; CODE
-	gf_bs_peek_bits @ 59 NONAME ; CODE
-	gf_bs_read_bit @ 60 NONAME ; CODE
-	gf_bs_read_data @ 61 NONAME ; CODE
-	gf_bs_read_double @ 62 NONAME ; CODE
-	gf_bs_read_float @ 63 NONAME ; CODE
-	gf_bs_read_int @ 64 NONAME ; CODE
-	gf_bs_read_long_int @ 65 NONAME ; CODE
-	gf_bs_read_u16 @ 66 NONAME ; CODE
-	gf_bs_read_u16_le @ 67 NONAME ; CODE
-	gf_bs_read_u24 @ 68 NONAME ; CODE
-	gf_bs_read_u32 @ 69 NONAME ; CODE
-	gf_bs_read_u32_le @ 70 NONAME ; CODE
-	gf_bs_read_u64 @ 71 NONAME ; CODE
-	gf_bs_read_u8 @ 72 NONAME ; CODE
-	gf_bs_rewind_bits @ 73 NONAME ; CODE
-	gf_bs_seek @ 74 NONAME ; CODE
-	gf_bs_set_eos_callback @ 75 NONAME ; CODE
-	gf_bs_skip_bytes @ 76 NONAME ; CODE
-	gf_bs_write_data @ 77 NONAME ; CODE
-	gf_bs_write_double @ 78 NONAME ; CODE
-	gf_bs_write_float @ 79 NONAME ; CODE
-	gf_bs_write_int @ 80 NONAME ; CODE
-	gf_bs_write_long_int @ 81 NONAME ; CODE
-	gf_bs_write_u16 @ 82 NONAME ; CODE
-	gf_bs_write_u16_le @ 83 NONAME ; CODE
-	gf_bs_write_u24 @ 84 NONAME ; CODE
-	gf_bs_write_u32 @ 85 NONAME ; CODE
-	gf_bs_write_u32_le @ 86 NONAME ; CODE
-	gf_bs_write_u64 @ 87 NONAME ; CODE
-	gf_bs_write_u8 @ 88 NONAME ; CODE
-	gf_ceil @ 89 NONAME ; CODE
-	gf_cfg_del @ 90 NONAME ; CODE
-	gf_cfg_get_key @ 91 NONAME ; CODE
-	gf_cfg_get_key_count @ 92 NONAME ; CODE
-	gf_cfg_get_key_name @ 93 NONAME ; CODE
-	gf_cfg_get_section_count @ 94 NONAME ; CODE
-	gf_cfg_get_section_name @ 95 NONAME ; CODE
-	gf_cfg_insert_key @ 96 NONAME ; CODE
-	gf_cfg_new @ 97 NONAME ; CODE
-	gf_cfg_set_key @ 98 NONAME ; CODE
-	gf_closest_point_to_line @ 99 NONAME ; CODE
-	gf_cmx_apply @ 100 NONAME ; CODE
-	gf_cmx_apply_fixed @ 101 NONAME ; CODE
-	gf_cmx_copy @ 102 NONAME ; CODE
-	gf_cmx_init @ 103 NONAME ; CODE
-	gf_cmx_multiply @ 104 NONAME ; CODE
-	gf_cmx_set @ 105 NONAME ; CODE
-	gf_cmx_set_all @ 106 NONAME ; CODE
-	gf_cos @ 107 NONAME ; CODE
-	gf_delete_file @ 108 NONAME ; CODE
-	gf_divfix @ 109 NONAME ; CODE
-	gf_dm_sess_fetch_data @ 110 NONAME ; CODE
-	gf_dm_sess_get_cache_name @ 111 NONAME ; CODE
-	gf_dm_sess_get_stats @ 112 NONAME ; CODE
-	gf_dom_event_fire @ 113 NONAME ; CODE
-	gf_dom_listener_build @ 114 NONAME ; CODE
-	gf_dom_listener_count @ 115 NONAME ; CODE
-	gf_enum_directory @ 116 NONAME ; CODE
-	gf_error_to_string @ 117 NONAME ; CODE
-	gf_f64_open @ 118 NONAME ; CODE
-	gf_f64_seek @ 119 NONAME ; CODE
-	gf_f64_tell @ 120 NONAME ; CODE
-	gf_floor @ 121 NONAME ; CODE
-	gf_get_user_name @ 122 NONAME ; CODE
-	gf_gpac_version @ 123 NONAME ; CODE
-	gf_hinter_can_embbed_data @ 124 NONAME ; CODE
-	gf_hinter_finalize @ 125 NONAME ; CODE
-	gf_hinter_track_del @ 126 NONAME ; CODE
-	gf_hinter_track_finalize @ 127 NONAME ; CODE
-	gf_hinter_track_get_bandwidth @ 128 NONAME ; CODE
-	gf_hinter_track_get_flags @ 129 NONAME ; CODE
-	gf_hinter_track_get_payload_name @ 130 NONAME ; CODE
-	gf_hinter_track_new @ 131 NONAME ; CODE
-	gf_hinter_track_process @ 132 NONAME ; CODE
-	gf_img_parse @ 133 NONAME ; CODE
-	gf_invfix @ 134 NONAME ; CODE
-	gf_is_attach_to_renderer @ 135 NONAME ; CODE
-	gf_is_default_scene_viewpoint @ 136 NONAME ; CODE
-	gf_is_find_odm @ 137 NONAME ; CODE
-	gf_is_force_scene_size @ 138 NONAME ; CODE
-	gf_is_get_proto_lib @ 139 NONAME ; CODE
-	gf_is_get_time @ 140 NONAME ; CODE
-	gf_is_process_anchor @ 141 NONAME ; CODE
-	gf_is_register_extra_graph @ 142 NONAME ; CODE
-	gf_is_set_duration @ 143 NONAME ; CODE
-	gf_is_setup_object @ 144 NONAME ; CODE
-	gf_ismacryp_crypt_file @ 145 NONAME ; CODE
-	gf_ismacryp_decrypt_file @ 146 NONAME ; CODE
-	gf_ismacryp_decrypt_track @ 147 NONAME ; CODE
-	gf_ismacryp_encrypt_track @ 148 NONAME ; CODE
-	gf_ismacryp_gpac_get_info @ 149 NONAME ; CODE
-	gf_ismacryp_mpeg4ip_get_info @ 150 NONAME ; CODE
-	gf_isom_3gp_config_get @ 151 NONAME ; CODE
-	gf_isom_3gp_config_new @ 152 NONAME ; CODE
-	gf_isom_add_sample @ 153 NONAME ; CODE
-	gf_isom_add_track_to_root_od @ 154 NONAME ; CODE
-	gf_isom_apple_get_tag @ 155 NONAME ; CODE
-	gf_isom_avc_config_get @ 156 NONAME ; CODE
-	gf_isom_check_data_reference @ 157 NONAME ; CODE
-	gf_isom_close @ 158 NONAME ; CODE
-	gf_isom_delete @ 159 NONAME ; CODE
-	gf_isom_delete_text_sample @ 160 NONAME ; CODE
-	gf_isom_dump @ 161 NONAME ; CODE
-	gf_isom_dump_hint_sample @ 162 NONAME ; CODE
-	gf_isom_find_od_for_track @ 163 NONAME ; CODE
-	gf_isom_get_alternate_brand @ 164 NONAME ; CODE
-	gf_isom_get_audio_info @ 165 NONAME ; CODE
-	gf_isom_get_brand_info @ 166 NONAME ; CODE
-	gf_isom_get_chapter @ 167 NONAME ; CODE
-	gf_isom_get_chapter_count @ 168 NONAME ; CODE
-	gf_isom_get_copyright @ 169 NONAME ; CODE
-	gf_isom_get_copyright_count @ 170 NONAME ; CODE
-	gf_isom_get_creation_time @ 171 NONAME ; CODE
-	gf_isom_get_data_reference @ 172 NONAME ; CODE
-	gf_isom_get_decoder_config @ 173 NONAME ; CODE
-	gf_isom_get_duration @ 174 NONAME ; CODE
-	gf_isom_get_edit_segment @ 175 NONAME ; CODE
-	gf_isom_get_edit_segment_count @ 176 NONAME ; CODE
-	gf_isom_get_esd @ 177 NONAME ; CODE
-	gf_isom_get_filename @ 178 NONAME ; CODE
-	gf_isom_get_fragment_defaults @ 179 NONAME ; CODE
-	gf_isom_get_generic_sample_description @ 180 NONAME ; CODE
-	gf_isom_get_handler_name @ 181 NONAME ; CODE
-	gf_isom_get_ismacryp_info @ 182 NONAME ; CODE
-	gf_isom_get_ismacryp_sample @ 183 NONAME ; CODE
-	gf_isom_get_max_chunk_duration @ 184 NONAME ; CODE
-	gf_isom_get_media_duration @ 185 NONAME ; CODE
-	gf_isom_get_media_language @ 186 NONAME ; CODE
-	gf_isom_get_media_subtype @ 187 NONAME ; CODE
-	gf_isom_get_media_time @ 188 NONAME ; CODE
-	gf_isom_get_media_timescale @ 189 NONAME ; CODE
-	gf_isom_get_media_type @ 190 NONAME ; CODE
-	gf_isom_get_meta_item_by_id @ 191 NONAME ; CODE
-	gf_isom_get_meta_item_count @ 192 NONAME ; CODE
-	gf_isom_get_meta_item_info @ 193 NONAME ; CODE
-	gf_isom_get_meta_type @ 194 NONAME ; CODE
-	gf_isom_get_missing_bytes @ 195 NONAME ; CODE
-	gf_isom_get_mode @ 196 NONAME ; CODE
-	gf_isom_get_mpeg4_subtype @ 197 NONAME ; CODE
-	gf_isom_get_pl_indication @ 198 NONAME ; CODE
-	gf_isom_get_reference @ 199 NONAME ; CODE
-	gf_isom_get_reference_count @ 200 NONAME ; CODE
-	gf_isom_get_root_od @ 201 NONAME ; CODE
-	gf_isom_get_sample @ 202 NONAME ; CODE
-	gf_isom_get_sample_count @ 203 NONAME ; CODE
-	gf_isom_get_sample_description_count @ 204 NONAME ; CODE
-	gf_isom_get_sample_description_index @ 205 NONAME ; CODE
-	gf_isom_get_sample_dts @ 206 NONAME ; CODE
-	gf_isom_get_sample_duration @ 207 NONAME ; CODE
-	gf_isom_get_sample_for_media_time @ 208 NONAME ; CODE
-	gf_isom_get_sample_for_movie_time @ 209 NONAME ; CODE
-	gf_isom_get_sample_fragment_count @ 210 NONAME ; CODE
-	gf_isom_get_sample_fragment_size @ 211 NONAME ; CODE
-	gf_isom_get_sample_info @ 212 NONAME ; CODE
-	gf_isom_get_sync_point_count @ 213 NONAME ; CODE
-	gf_isom_get_timescale @ 214 NONAME ; CODE
-	gf_isom_get_track_by_id @ 215 NONAME ; CODE
-	gf_isom_get_track_count @ 216 NONAME ; CODE
-	gf_isom_get_track_duration @ 217 NONAME ; CODE
-	gf_isom_get_track_id @ 218 NONAME ; CODE
-	gf_isom_get_track_layout_info @ 219 NONAME ; CODE
-	gf_isom_get_user_data @ 220 NONAME ; CODE
-	gf_isom_get_user_data_count @ 221 NONAME ; CODE
-	gf_isom_get_visual_info @ 222 NONAME ; CODE
-	gf_isom_get_watermark @ 223 NONAME ; CODE
-	gf_isom_guess_specification @ 224 NONAME ; CODE
-	gf_isom_has_meta_xml @ 225 NONAME ; CODE
-	gf_isom_has_movie @ 226 NONAME ; CODE
-	gf_isom_has_padding_bits @ 227 NONAME ; CODE
-	gf_isom_has_root_od @ 228 NONAME ; CODE
-	gf_isom_has_sync_points @ 229 NONAME ; CODE
-	gf_isom_has_sync_shadows @ 230 NONAME ; CODE
-	gf_isom_has_time_offset @ 231 NONAME ; CODE
-	gf_isom_is_fragmented @ 232 NONAME ; CODE
-	gf_isom_is_ismacryp_media @ 233 NONAME ; CODE
-	gf_isom_is_media_encrypted @ 234 NONAME ; CODE
-	gf_isom_is_self_contained @ 235 NONAME ; CODE
-	gf_isom_is_single_av @ 236 NONAME ; CODE
-	gf_isom_is_track_enabled @ 237 NONAME ; CODE
-	gf_isom_is_track_encrypted @ 238 NONAME ; CODE
-	gf_isom_is_track_fragmented @ 239 NONAME ; CODE
-	gf_isom_is_track_in_root_od @ 240 NONAME ; CODE
-	gf_isom_ismacryp_delete_sample @ 241 NONAME ; CODE
-	gf_isom_last_error @ 242 NONAME ; CODE
-	gf_isom_modify_cts_offset @ 243 NONAME ; CODE
-	gf_isom_new_mpeg4_description @ 244 NONAME ; CODE
-	gf_isom_new_track @ 245 NONAME ; CODE
-	gf_isom_next_hint_packet @ 246 NONAME ; CODE
-	gf_isom_open @ 247 NONAME ; CODE
-	gf_isom_open_progressive @ 248 NONAME ; CODE
-	gf_isom_parse_texte_sample @ 249 NONAME ; CODE
-	gf_isom_probe_file @ 250 NONAME ; CODE
-	gf_isom_refresh_fragmented @ 251 NONAME ; CODE
-	gf_isom_reset_hint_reader @ 252 NONAME ; CODE
-	gf_isom_sample_del @ 253 NONAME ; CODE
-	gf_isom_sample_new @ 254 NONAME ; CODE
-	gf_isom_sdp_get @ 255 NONAME ; CODE
-	gf_isom_sdp_track_get @ 256 NONAME ; CODE
-	gf_isom_set_default_sync_track @ 257 NONAME ; CODE
-	gf_isom_set_sample_padding @ 258 NONAME ; CODE
-	gf_isom_set_track_enabled @ 259 NONAME ; CODE
-	gf_isom_text_dump @ 260 NONAME ; CODE
-	gf_isom_text_set_streaming_mode @ 261 NONAME ; CODE
-	gf_laser_decode_au @ 262 NONAME ; CODE
-	gf_laser_decoder_configure_stream @ 263 NONAME ; CODE
-	gf_laser_decoder_del @ 264 NONAME ; CODE
-	gf_laser_decoder_new @ 265 NONAME ; CODE
-	gf_laser_decoder_remove_stream @ 266 NONAME ; CODE
-	gf_laser_decoder_set_clock @ 267 NONAME ; CODE
-	gf_list_add @ 268 NONAME ; CODE
-	gf_list_count @ 269 NONAME ; CODE
-	gf_list_del @ 270 NONAME ; CODE
-	gf_list_del_item @ 271 NONAME ; CODE
-	gf_list_enum @ 272 NONAME ; CODE
-	gf_list_find @ 273 NONAME ; CODE
-	gf_list_get @ 274 NONAME ; CODE
-	gf_list_insert @ 275 NONAME ; CODE
-	gf_list_last @ 276 NONAME ; CODE
-	gf_list_new @ 277 NONAME ; CODE
-	gf_list_rem @ 278 NONAME ; CODE
-	gf_list_rem_last @ 279 NONAME ; CODE
-	gf_list_reset @ 280 NONAME ; CODE
-	gf_log @ 281 NONAME ; CODE
-	gf_log_get_level @ 282 NONAME ; CODE
-	gf_log_get_tools @ 283 NONAME ; CODE
-	gf_log_lt @ 284 NONAME ; CODE
-	gf_log_set_callback @ 285 NONAME ; CODE
-	gf_log_set_level @ 286 NONAME ; CODE
-	gf_log_set_tools @ 287 NONAME ; CODE
-	gf_m4a_get_config @ 288 NONAME ; CODE
-	gf_m4a_get_profile_name @ 289 NONAME ; CODE
-	gf_m4a_object_type_name @ 290 NONAME ; CODE
-	gf_m4v_get_config @ 291 NONAME ; CODE
-	gf_m4v_get_object_start @ 292 NONAME ; CODE
-	gf_m4v_get_profile_name @ 293 NONAME ; CODE
-	gf_m4v_is_valid_object_type @ 294 NONAME ; CODE
-	gf_m4v_parse_config @ 295 NONAME ; CODE
-	gf_m4v_parse_frame @ 296 NONAME ; CODE
-	gf_m4v_parser_del @ 297 NONAME ; CODE
-	gf_m4v_parser_new @ 298 NONAME ; CODE
-	gf_m4v_rewrite_pl @ 299 NONAME ; CODE
-	gf_media_change_par @ 300 NONAME ; CODE
-	gf_media_export @ 301 NONAME ; CODE
-	gf_media_fragment_file @ 302 NONAME ; CODE
-	gf_media_import @ 303 NONAME ; CODE
-	gf_media_import_chapters @ 304 NONAME ; CODE
-	gf_media_make_3gpp @ 305 NONAME ; CODE
-	gf_media_make_isma @ 306 NONAME ; CODE
-	gf_media_map_esd @ 307 NONAME ; CODE
-	gf_mo_adjust_clock @ 308 NONAME ; CODE
-	gf_mo_fetch_data @ 309 NONAME ; CODE
-	gf_mo_find @ 310 NONAME ; CODE
-	gf_mo_get_audio_info @ 311 NONAME ; CODE
-	gf_mo_get_duration @ 312 NONAME ; CODE
-	gf_mo_get_flags @ 313 NONAME ; CODE
-	gf_mo_get_loop @ 314 NONAME ; CODE
-	gf_mo_get_object_time @ 315 NONAME ; CODE
-	gf_mo_get_speed @ 316 NONAME ; CODE
-	gf_mo_get_visual_info @ 317 NONAME ; CODE
-	gf_mo_is_done @ 318 NONAME ; CODE
-	gf_mo_is_muted @ 319 NONAME ; CODE
-	gf_mo_play @ 320 NONAME ; CODE
-	gf_mo_release_data @ 321 NONAME ; CODE
-	gf_mo_restart @ 322 NONAME ; CODE
-	gf_mo_set_flag @ 323 NONAME ; CODE
-	gf_mo_set_speed @ 324 NONAME ; CODE
-	gf_mo_should_deactivate @ 325 NONAME ; CODE
-	gf_mo_stop @ 326 NONAME ; CODE
-	gf_mo_url_changed @ 327 NONAME ; CODE
-	gf_modules_close_interface @ 328 NONAME ; CODE
-	gf_modules_del @ 329 NONAME ; CODE
-	gf_modules_get_count @ 330 NONAME ; CODE
-	gf_modules_get_file_name @ 331 NONAME ; CODE
-	gf_modules_get_option @ 332 NONAME ; CODE
-	gf_modules_load_interface @ 333 NONAME ; CODE
-	gf_modules_load_interface_by_name @ 334 NONAME ; CODE
-	gf_modules_new @ 335 NONAME ; CODE
-	gf_modules_refresh @ 336 NONAME ; CODE
-	gf_modules_set_option @ 337 NONAME ; CODE
-	gf_mp3_frame_size @ 338 NONAME ; CODE
-	gf_mp3_get_next_header @ 339 NONAME ; CODE
-	gf_mp3_get_next_header_mem @ 340 NONAME ; CODE
-	gf_mp3_layer @ 341 NONAME ; CODE
-	gf_mp3_num_channels @ 342 NONAME ; CODE
-	gf_mp3_object_type_indication @ 343 NONAME ; CODE
-	gf_mp3_sampling_rate @ 344 NONAME ; CODE
-	gf_mp3_version @ 345 NONAME ; CODE
-	gf_mp3_version_name @ 346 NONAME ; CODE
-	gf_mp3_window_size @ 347 NONAME ; CODE
-	gf_muldiv @ 348 NONAME ; CODE
-	gf_mulfix @ 349 NONAME ; CODE
-	gf_mx2d_add_matrix @ 350 NONAME ; CODE
-	gf_mx2d_add_rotation @ 351 NONAME ; CODE
-	gf_mx2d_add_scale @ 352 NONAME ; CODE
-	gf_mx2d_add_scale_at @ 353 NONAME ; CODE
-	gf_mx2d_add_skew @ 354 NONAME ; CODE
-	gf_mx2d_add_skew_x @ 355 NONAME ; CODE
-	gf_mx2d_add_skew_y @ 356 NONAME ; CODE
-	gf_mx2d_add_translation @ 357 NONAME ; CODE
-	gf_mx2d_apply_coords @ 358 NONAME ; CODE
-	gf_mx2d_apply_point @ 359 NONAME ; CODE
-	gf_mx2d_apply_rect @ 360 NONAME ; CODE
-	gf_mx2d_from_mx @ 361 NONAME ; CODE
-	gf_mx2d_inverse @ 362 NONAME ; CODE
-	gf_mx2d_pre_multiply @ 363 NONAME ; CODE
-	gf_mx_add_matrix @ 364 NONAME ; CODE
-	gf_mx_add_matrix_4x4 @ 365 NONAME ; CODE
-	gf_mx_add_rotation @ 366 NONAME ; CODE
-	gf_mx_add_scale @ 367 NONAME ; CODE
-	gf_mx_add_translation @ 368 NONAME ; CODE
-	gf_mx_apply_bbox @ 369 NONAME ; CODE
-	gf_mx_apply_plane @ 370 NONAME ; CODE
-	gf_mx_apply_ray @ 371 NONAME ; CODE
-	gf_mx_apply_rect @ 372 NONAME ; CODE
-	gf_mx_apply_vec @ 373 NONAME ; CODE
-	gf_mx_apply_vec_4x4 @ 374 NONAME ; CODE
-	gf_mx_decompose @ 375 NONAME ; CODE
-	gf_mx_del @ 376 NONAME ; CODE
-	gf_mx_equal @ 377 NONAME ; CODE
-	gf_mx_from_mx2d @ 378 NONAME ; CODE
-	gf_mx_inverse @ 379 NONAME ; CODE
-	gf_mx_inverse_4x4 @ 380 NONAME ; CODE
-	gf_mx_lookat @ 381 NONAME ; CODE
-	gf_mx_new @ 382 NONAME ; CODE
-	gf_mx_ortho @ 383 NONAME ; CODE
-	gf_mx_p @ 384 NONAME ; CODE
-	gf_mx_perspective @ 385 NONAME ; CODE
-	gf_mx_rotate_vector @ 386 NONAME ; CODE
-	gf_mx_rotation_matrix_from_vectors @ 387 NONAME ; CODE
-	gf_mx_try_lock @ 388 NONAME ; CODE
-	gf_mx_v @ 389 NONAME ; CODE
-	gf_node_allow_cyclic_render @ 390 NONAME ; CODE
-	gf_node_changed @ 391 NONAME ; CODE
-	gf_node_clone @ 392 NONAME ; CODE
-	gf_node_dirty_clear @ 393 NONAME ; CODE
-	gf_node_dirty_get @ 394 NONAME ; CODE
-	gf_node_dirty_reset @ 395 NONAME ; CODE
-	gf_node_dirty_set @ 396 NONAME ; CODE
-	gf_node_event_out_str @ 397 NONAME ; CODE
-	gf_node_get_class_name @ 398 NONAME ; CODE
-	gf_node_get_field @ 399 NONAME ; CODE
-	gf_node_get_field_count @ 400 NONAME ; CODE
-	gf_node_get_graph @ 401 NONAME ; CODE
-	gf_node_get_id @ 402 NONAME ; CODE
-	gf_node_get_name @ 403 NONAME ; CODE
-	gf_node_get_name_and_id @ 404 NONAME ; CODE
-	gf_node_get_parent @ 405 NONAME ; CODE
-	gf_node_get_parent_count @ 406 NONAME ; CODE
-	gf_node_get_private @ 407 NONAME ; CODE
-	gf_node_get_proto @ 408 NONAME ; CODE
-	gf_node_get_scene_time @ 409 NONAME ; CODE
-	gf_node_get_tag @ 410 NONAME ; CODE
-	gf_node_init @ 411 NONAME ; CODE
-	gf_node_list_add_child @ 412 NONAME ; CODE
-	gf_node_list_del_child @ 413 NONAME ; CODE
-	gf_node_list_find_child @ 414 NONAME ; CODE
-	gf_node_list_get_child @ 415 NONAME ; CODE
-	gf_node_list_get_count @ 416 NONAME ; CODE
-	gf_node_list_insert_child @ 417 NONAME ; CODE
-	gf_node_new @ 418 NONAME ; CODE
-	gf_node_register @ 419 NONAME ; CODE
-	gf_node_render @ 420 NONAME ; CODE
-	gf_node_render_children @ 421 NONAME ; CODE
-	gf_node_set_callback_function @ 422 NONAME ; CODE
-	gf_node_set_id @ 423 NONAME ; CODE
-	gf_node_set_private @ 424 NONAME ; CODE
-	gf_node_unregister @ 425 NONAME ; CODE
-	gf_node_unregister_children @ 426 NONAME ; CODE
-	gf_oci_codec_add_event @ 427 NONAME ; CODE
-	gf_oci_codec_decode @ 428 NONAME ; CODE
-	gf_oci_codec_del @ 429 NONAME ; CODE
-	gf_oci_codec_encode @ 430 NONAME ; CODE
-	gf_oci_codec_get_event @ 431 NONAME ; CODE
-	gf_oci_codec_new @ 432 NONAME ; CODE
-	gf_oci_dump_au @ 433 NONAME ; CODE
-	gf_oci_dump_event @ 434 NONAME ; CODE
-	gf_oci_event_add_desc @ 435 NONAME ; CODE
-	gf_oci_event_del @ 436 NONAME ; CODE
-	gf_oci_event_get_desc @ 437 NONAME ; CODE
-	gf_oci_event_get_desc_count @ 438 NONAME ; CODE
-	gf_oci_event_get_duration @ 439 NONAME ; CODE
-	gf_oci_event_get_id @ 440 NONAME ; CODE
-	gf_oci_event_get_start_time @ 441 NONAME ; CODE
-	gf_oci_event_new @ 442 NONAME ; CODE
-	gf_oci_event_rem_desc @ 443 NONAME ; CODE
-	gf_oci_event_set_duration @ 444 NONAME ; CODE
-	gf_oci_event_set_start_time @ 445 NONAME ; CODE
-	gf_odf_avc_cfg_del @ 446 NONAME ; CODE
-	gf_odf_avc_cfg_new @ 447 NONAME ; CODE
-	gf_odf_avc_cfg_read @ 448 NONAME ; CODE
-	gf_odf_avc_cfg_write @ 449 NONAME ; CODE
-	gf_odf_codec_add_com @ 450 NONAME ; CODE
-	gf_odf_codec_decode @ 451 NONAME ; CODE
-	gf_odf_codec_del @ 452 NONAME ; CODE
-	gf_odf_codec_encode @ 453 NONAME ; CODE
-	gf_odf_codec_get_au @ 454 NONAME ; CODE
-	gf_odf_codec_get_com @ 455 NONAME ; CODE
-	gf_odf_codec_new @ 456 NONAME ; CODE
-	gf_odf_codec_set_au @ 457 NONAME ; CODE
-	gf_odf_com_del @ 458 NONAME ; CODE
-	gf_odf_com_new @ 459 NONAME ; CODE
-	gf_odf_desc_add_desc @ 460 NONAME ; CODE
-	gf_odf_desc_copy @ 461 NONAME ; CODE
-	gf_odf_desc_del @ 462 NONAME ; CODE
-	gf_odf_desc_esd_new @ 463 NONAME ; CODE
-	gf_odf_desc_list_del @ 464 NONAME ; CODE
-	gf_odf_desc_list_read @ 465 NONAME ; CODE
-	gf_odf_desc_list_size @ 466 NONAME ; CODE
-	gf_odf_desc_list_write @ 467 NONAME ; CODE
-	gf_odf_desc_new @ 468 NONAME ; CODE
-	gf_odf_desc_read @ 469 NONAME ; CODE
-	gf_odf_desc_size @ 470 NONAME ; CODE
-	gf_odf_desc_write @ 471 NONAME ; CODE
-	gf_odf_dump_au @ 472 NONAME ; CODE
-	gf_odf_dump_com @ 473 NONAME ; CODE
-	gf_odf_dump_com_list @ 474 NONAME ; CODE
-	gf_odf_dump_desc @ 475 NONAME ; CODE
-	gf_odf_encode_ui_config @ 476 NONAME ; CODE
-	gf_odf_get_bifs_config @ 477 NONAME ; CODE
-	gf_odf_get_laser_config @ 478 NONAME ; CODE
-	gf_odf_get_text_config @ 479 NONAME ; CODE
-	gf_odf_get_ui_config @ 480 NONAME ; CODE
-	gf_odf_parse_descriptor @ 481 NONAME ; CODE
-	gf_odf_qos_add_qualif @ 482 NONAME ; CODE
-	gf_odf_qos_del @ 483 NONAME ; CODE
-	gf_odf_qos_new @ 484 NONAME ; CODE
-	gf_odf_slc_set_pref @ 485 NONAME ; CODE
-	gf_odf_stream_type_by_name @ 486 NONAME ; CODE
-	gf_odf_stream_type_name @ 487 NONAME ; CODE
-	gf_odm_disconnect @ 488 NONAME ; CODE
-	gf_odm_new @ 489 NONAME ; CODE
-	gf_odm_remove_es @ 490 NONAME ; CODE
-	gf_odm_setup_es @ 491 NONAME ; CODE
-	gf_odm_setup_object @ 492 NONAME ; CODE
-	gf_path_add_arc @ 493 NONAME ; CODE
-	gf_path_add_arc_to @ 494 NONAME ; CODE
-	gf_path_add_bezier @ 495 NONAME ; CODE
-	gf_path_add_cubic_to @ 496 NONAME ; CODE
-	gf_path_add_cubic_to_vec @ 497 NONAME ; CODE
-	gf_path_add_ellipse @ 498 NONAME ; CODE
-	gf_path_add_line_to @ 499 NONAME ; CODE
-	gf_path_add_line_to_vec @ 500 NONAME ; CODE
-	gf_path_add_move_to @ 501 NONAME ; CODE
-	gf_path_add_move_to_vec @ 502 NONAME ; CODE
-	gf_path_add_quadratic_to @ 503 NONAME ; CODE
-	gf_path_add_quadratic_to_vec @ 504 NONAME ; CODE
-	gf_path_add_rect @ 505 NONAME ; CODE
-	gf_path_add_rect_center @ 506 NONAME ; CODE
-	gf_path_clone @ 507 NONAME ; CODE
-	gf_path_close @ 508 NONAME ; CODE
-	gf_path_del @ 509 NONAME ; CODE
-	gf_path_flatten @ 510 NONAME ; CODE
-	gf_path_get_bounds @ 511 NONAME ; CODE
-	gf_path_get_control_bounds @ 512 NONAME ; CODE
-	gf_path_get_flatten @ 513 NONAME ; CODE
-	gf_path_get_outline @ 514 NONAME ; CODE
-	gf_path_iterator_del @ 515 NONAME ; CODE
-	gf_path_iterator_get_length @ 516 NONAME ; CODE
-	gf_path_iterator_get_transform @ 517 NONAME ; CODE
-	gf_path_iterator_new @ 518 NONAME ; CODE
-	gf_path_new @ 519 NONAME ; CODE
-	gf_path_point_over @ 520 NONAME ; CODE
-	gf_path_reset @ 521 NONAME ; CODE
-	gf_plane_exists_intersection @ 522 NONAME ; CODE
-	gf_plane_get_distance @ 523 NONAME ; CODE
-	gf_plane_get_p_vertex_idx @ 524 NONAME ; CODE
-	gf_plane_intersect_line @ 525 NONAME ; CODE
-	gf_plane_intersect_plane @ 526 NONAME ; CODE
-	gf_plane_intersect_planes @ 527 NONAME ; CODE
-	gf_polygone2d_get_convexity @ 528 NONAME ; CODE
-	gf_quat_from_axis_cos @ 529 NONAME ; CODE
-	gf_quat_from_matrix @ 530 NONAME ; CODE
-	gf_quat_from_rotation @ 531 NONAME ; CODE
-	gf_quat_get_inv @ 532 NONAME ; CODE
-	gf_quat_multiply @ 533 NONAME ; CODE
-	gf_quat_rotate @ 534 NONAME ; CODE
-	gf_quat_slerp @ 535 NONAME ; CODE
-	gf_quat_to_rotation @ 536 NONAME ; CODE
-	gf_rand @ 537 NONAME ; CODE
-	gf_rand_init @ 538 NONAME ; CODE
-	gf_ray @ 539 NONAME ; CODE
-	gf_ray_hit_box @ 540 NONAME ; CODE
-	gf_ray_hit_sphere @ 541 NONAME ; CODE
-	gf_ray_hit_triangle @ 542 NONAME ; CODE
-	gf_ray_hit_triangle_backcull @ 543 NONAME ; CODE
-	gf_rect_center @ 544 NONAME ; CODE
-	gf_rect_equal @ 545 NONAME ; CODE
-	gf_rect_from_bbox @ 546 NONAME ; CODE
-	gf_rect_overlaps @ 547 NONAME ; CODE
-	gf_rect_pixelize @ 548 NONAME ; CODE
-	gf_rect_union @ 549 NONAME ; CODE
-	gf_rtp_builder_del @ 550 NONAME ; CODE
-	gf_rtp_builder_format_sdp @ 551 NONAME ; CODE
-	gf_rtp_builder_get_payload_name @ 552 NONAME ; CODE
-	gf_rtp_builder_init @ 553 NONAME ; CODE
-	gf_rtp_builder_new @ 554 NONAME ; CODE
-	gf_rtp_builder_process @ 555 NONAME ; CODE
-	gf_rtp_decode_rtcp @ 556 NONAME ; CODE
-	gf_rtp_decode_rtp @ 557 NONAME ; CODE
-	gf_rtp_del @ 558 NONAME ; CODE
-	gf_rtp_get_clockrate @ 559 NONAME ; CODE
-	gf_rtp_get_current_time @ 560 NONAME ; CODE
-	gf_rtp_get_hight_interleave_id @ 561 NONAME ; CODE
-	gf_rtp_get_local_ssrc @ 562 NONAME ; CODE
-	gf_rtp_get_loss @ 563 NONAME ; CODE
-	gf_rtp_get_low_interleave_id @ 564 NONAME ; CODE
-	gf_rtp_get_ports @ 565 NONAME ; CODE
-	gf_rtp_get_tcp_bytes_sent @ 566 NONAME ; CODE
-	gf_rtp_get_transport @ 567 NONAME ; CODE
-	gf_rtp_initialize @ 568 NONAME ; CODE
-	gf_rtp_is_active @ 569 NONAME ; CODE
-	gf_rtp_is_interleaved @ 570 NONAME ; CODE
-	gf_rtp_is_unicast @ 571 NONAME ; CODE
-	gf_rtp_new @ 572 NONAME ; CODE
-	gf_rtp_read_rtcp @ 573 NONAME ; CODE
-	gf_rtp_read_rtp @ 574 NONAME ; CODE
-	gf_rtp_reset_buffers @ 575 NONAME ; CODE
-	gf_rtp_send_bye @ 576 NONAME ; CODE
-	gf_rtp_send_packet @ 577 NONAME ; CODE
-	gf_rtp_send_rtcp_report @ 578 NONAME ; CODE
-	gf_rtp_set_info_rtcp @ 579 NONAME ; CODE
-	gf_rtp_set_info_rtp @ 580 NONAME ; CODE
-	gf_rtp_set_ports @ 581 NONAME ; CODE
-	gf_rtp_setup_payload @ 582 NONAME ; CODE
-	gf_rtp_setup_transport @ 583 NONAME ; CODE
-	gf_rtsp_command_del @ 584 NONAME ; CODE
-	gf_rtsp_command_new @ 585 NONAME ; CODE
-	gf_rtsp_command_reset @ 586 NONAME ; CODE
-	gf_rtsp_get_command @ 587 NONAME ; CODE
-	gf_rtsp_get_last_request @ 588 NONAME ; CODE
-	gf_rtsp_get_next_interleave_id @ 589 NONAME ; CODE
-	gf_rtsp_get_remote_address @ 590 NONAME ; CODE
-	gf_rtsp_get_response @ 591 NONAME ; CODE
-	gf_rtsp_get_server_name @ 592 NONAME ; CODE
-	gf_rtsp_get_service_name @ 593 NONAME ; CODE
-	gf_rtsp_get_session_id @ 594 NONAME ; CODE
-	gf_rtsp_get_session_ip @ 595 NONAME ; CODE
-	gf_rtsp_get_session_port @ 596 NONAME ; CODE
-	gf_rtsp_get_session_state @ 597 NONAME ; CODE
-	gf_rtsp_is_my_session @ 598 NONAME ; CODE
-	gf_rtsp_load_service_name @ 599 NONAME ; CODE
-	gf_rtsp_nc_to_string @ 600 NONAME ; CODE
-	gf_rtsp_range_del @ 601 NONAME ; CODE
-	gf_rtsp_range_new @ 602 NONAME ; CODE
-	gf_rtsp_range_parse @ 603 NONAME ; CODE
-	gf_rtsp_register_interleave @ 604 NONAME ; CODE
-	gf_rtsp_reset_aggregation @ 605 NONAME ; CODE
-	gf_rtsp_response_del @ 606 NONAME ; CODE
-	gf_rtsp_response_new @ 607 NONAME ; CODE
-	gf_rtsp_response_reset @ 608 NONAME ; CODE
-	gf_rtsp_send_command @ 609 NONAME ; CODE
-	gf_rtsp_send_response @ 610 NONAME ; CODE
-	gf_rtsp_session_del @ 611 NONAME ; CODE
-	gf_rtsp_session_new @ 612 NONAME ; CODE
-	gf_rtsp_session_new_server @ 613 NONAME ; CODE
-	gf_rtsp_session_read @ 614 NONAME ; CODE
-	gf_rtsp_session_reset @ 615 NONAME ; CODE
-	gf_rtsp_set_buffer_size @ 616 NONAME ; CODE
-	gf_rtsp_set_interleave_callback @ 617 NONAME ; CODE
-	gf_rtsp_set_session_id @ 618 NONAME ; CODE
-	gf_rtsp_transport_clone @ 619 NONAME ; CODE
-	gf_rtsp_transport_del @ 620 NONAME ; CODE
-	gf_rtsp_unregister_interleave @ 621 NONAME ; CODE
-	gf_sdp_conn_del @ 622 NONAME ; CODE
-	gf_sdp_conn_new @ 623 NONAME ; CODE
-	gf_sdp_fmtp_del @ 624 NONAME ; CODE
-	gf_sdp_fmtp_new @ 625 NONAME ; CODE
-	gf_sdp_info_check @ 626 NONAME ; CODE
-	gf_sdp_info_del @ 627 NONAME ; CODE
-	gf_sdp_info_new @ 628 NONAME ; CODE
-	gf_sdp_info_parse @ 629 NONAME ; CODE
-	gf_sdp_info_reset @ 630 NONAME ; CODE
-	gf_sdp_info_write @ 631 NONAME ; CODE
-	gf_sdp_media_del @ 632 NONAME ; CODE
-	gf_sdp_media_new @ 633 NONAME ; CODE
-	gf_sema_del @ 634 NONAME ; CODE
-	gf_sema_new @ 635 NONAME ; CODE
-	gf_sema_notify @ 636 NONAME ; CODE
-	gf_sema_wait @ 637 NONAME ; CODE
-	gf_sema_wait_for @ 638 NONAME ; CODE
-	gf_set_progress @ 639 NONAME ; CODE
-	gf_set_progress_callback @ 640 NONAME ; CODE
-	gf_sg_activate_routes @ 641 NONAME ; CODE
-	gf_sg_command_apply @ 642 NONAME ; CODE
-	gf_sg_command_apply_list @ 643 NONAME ; CODE
-	gf_sg_command_del @ 644 NONAME ; CODE
-	gf_sg_del @ 645 NONAME ; CODE
-	gf_sg_find_node @ 646 NONAME ; CODE
-	gf_sg_find_node_by_name @ 647 NONAME ; CODE
-	gf_sg_get_next_available_node_id @ 648 NONAME ; CODE
-	gf_sg_get_root_node @ 649 NONAME ; CODE
-	gf_sg_get_scene_size_info @ 650 NONAME ; CODE
-	gf_sg_mfurl_del @ 651 NONAME ; CODE
-	gf_sg_new_subscene @ 652 NONAME ; CODE
-	gf_sg_proto_get_extern_url @ 653 NONAME ; CODE
-	gf_sg_reset @ 654 NONAME ; CODE
-	gf_sg_route_new @ 655 NONAME ; CODE
-	gf_sg_set_node_callback @ 656 NONAME ; CODE
-	gf_sg_set_proto_loader @ 657 NONAME ; CODE
-	gf_sg_set_root_node @ 658 NONAME ; CODE
-	gf_sg_set_scene_size_info @ 659 NONAME ; CODE
-	gf_sg_set_scene_time_callback @ 660 NONAME ; CODE
-	gf_sg_sfcolor_to_rgba @ 661 NONAME ; CODE
-	gf_sg_sfrotation_interpolate @ 662 NONAME ; CODE
-	gf_sg_use_pixel_metrics @ 663 NONAME ; CODE
-	gf_sg_vrml_field_copy @ 664 NONAME ; CODE
-	gf_sg_vrml_field_equal @ 665 NONAME ; CODE
-	gf_sg_vrml_mf_alloc @ 666 NONAME ; CODE
-	gf_sg_vrml_mf_append @ 667 NONAME ; CODE
-	gf_sg_vrml_mf_reset @ 668 NONAME ; CODE
-	gf_sin @ 669 NONAME ; CODE
-	gf_sk_is_multicast_address @ 670 NONAME ; CODE
-	gf_sl_depacketize @ 671 NONAME ; CODE
-	gf_sl_packetize @ 672 NONAME ; CODE
-	gf_sleep @ 673 NONAME ; CODE
-	gf_sm_del @ 674 NONAME ; CODE
-	gf_sm_dump @ 675 NONAME ; CODE
-	gf_sm_dump_command_list @ 676 NONAME ; CODE
-	gf_sm_dump_graph @ 677 NONAME ; CODE
-	gf_sm_dumper_del @ 678 NONAME ; CODE
-	gf_sm_dumper_new @ 679 NONAME ; CODE
-	gf_sm_encode_to_file @ 680 NONAME ; CODE
-	gf_sm_import_bifs_subtitle @ 681 NONAME ; CODE
-	gf_sm_load_done @ 682 NONAME ; CODE
-	gf_sm_load_init @ 683 NONAME ; CODE
-	gf_sm_load_run @ 684 NONAME ; CODE
-	gf_sm_load_string @ 685 NONAME ; CODE
-	gf_sm_make_random_access @ 686 NONAME ; CODE
-	gf_sm_new @ 687 NONAME ; CODE
-	gf_sm_stats_del @ 688 NONAME ; CODE
-	gf_sm_stats_for_command @ 689 NONAME ; CODE
-	gf_sm_stats_for_graph @ 690 NONAME ; CODE
-	gf_sm_stats_for_scene @ 691 NONAME ; CODE
-	gf_sm_stats_get @ 692 NONAME ; CODE
-	gf_sm_stats_new @ 693 NONAME ; CODE
-	gf_sm_stats_reset @ 694 NONAME ; CODE
-	gf_sm_stream_au_new @ 695 NONAME ; CODE
-	gf_sm_stream_del @ 696 NONAME ; CODE
-	gf_sm_stream_new @ 697 NONAME ; CODE
-	gf_smil_timing_init_runtime_info @ 698 NONAME ; CODE
-	gf_smil_timing_is_active @ 699 NONAME ; CODE
-	gf_sqrt @ 700 NONAME ; CODE
-	gf_sr_audio_check_url @ 701 NONAME ; CODE
-	gf_sr_audio_open @ 702 NONAME ; CODE
-	gf_sr_audio_register @ 703 NONAME ; CODE
-	gf_sr_audio_restart @ 704 NONAME ; CODE
-	gf_sr_audio_setup @ 705 NONAME ; CODE
-	gf_sr_audio_stop @ 706 NONAME ; CODE
-	gf_sr_audio_unregister @ 707 NONAME ; CODE
-	gf_sr_invalidate @ 708 NONAME ; CODE
-	gf_sr_lock @ 709 NONAME ; CODE
-	gf_sr_reset_graphics @ 710 NONAME ; CODE
-	gf_sr_texture_check_url_change @ 711 NONAME ; CODE
-	gf_sr_texture_destroy @ 712 NONAME ; CODE
-	gf_sr_texture_get_handler @ 713 NONAME ; CODE
-	gf_sr_texture_play @ 714 NONAME ; CODE
-	gf_sr_texture_play_from @ 715 NONAME ; CODE
-	gf_sr_texture_release_stream @ 716 NONAME ; CODE
-	gf_sr_texture_restart @ 717 NONAME ; CODE
-	gf_sr_texture_setup @ 718 NONAME ; CODE
-	gf_sr_texture_stop @ 719 NONAME ; CODE
-	gf_sr_texture_update_frame @ 720 NONAME ; CODE
-	gf_stretch_bits @ 721 NONAME ; CODE
-	gf_svg_apply_animations @ 722 NONAME ; CODE
-	gf_svg_apply_inheritance @ 723 NONAME ; CODE
-	gf_svg_path_build @ 724 NONAME ; CODE
-	gf_svg_properties_init_pointers @ 725 NONAME ; CODE
-	gf_svg_properties_reset_pointers @ 726 NONAME ; CODE
-	gf_svg_register_iri @ 727 NONAME ; CODE
-	gf_svg_store_embedded_data @ 728 NONAME ; CODE
-	gf_sys_clock @ 729 NONAME ; CODE
-	gf_sys_close @ 730 NONAME ; CODE
-	gf_sys_get_battery_state @ 731 NONAME ; CODE
-	gf_sys_get_rti @ 732 NONAME ; CODE
-	gf_sys_init @ 733 NONAME ; CODE
-	gf_tan @ 734 NONAME ; CODE
-	gf_temp_file_new @ 735 NONAME ; CODE
-	gf_term_add_media @ 736 NONAME ; CODE
-	gf_term_add_object @ 737 NONAME ; CODE
-	gf_term_check_extension @ 738 NONAME ; CODE
-	gf_term_check_iri_change @ 739 NONAME ; CODE
-	gf_term_connect @ 740 NONAME ; CODE
-	gf_term_connect_from_time @ 741 NONAME ; CODE
-	gf_term_del @ 742 NONAME ; CODE
-	gf_term_disconnect @ 743 NONAME ; CODE
-	gf_term_download_del @ 744 NONAME ; CODE
-	gf_term_download_new @ 745 NONAME ; CODE
-	gf_term_download_update_stats @ 746 NONAME ; CODE
-	gf_term_get_framerate @ 747 NONAME ; CODE
-	gf_term_get_option @ 748 NONAME ; CODE
-	gf_term_get_service_interface @ 749 NONAME ; CODE
-	gf_term_get_service_url @ 750 NONAME ; CODE
-	gf_term_get_simulation_frame_rate @ 751 NONAME ; CODE
-	gf_term_get_time_in_ms @ 752 NONAME ; CODE
-	gf_term_get_url @ 753 NONAME ; CODE
-	gf_term_get_viewpoint @ 754 NONAME ; CODE
-	gf_term_navigate_to @ 755 NONAME ; CODE
-	gf_term_new @ 756 NONAME ; CODE
-	gf_term_node_callback @ 757 NONAME ; CODE
-	gf_term_on_command @ 758 NONAME ; CODE
-	gf_term_on_connect @ 759 NONAME ; CODE
-	gf_term_on_disconnect @ 760 NONAME ; CODE
-	gf_term_on_message @ 761 NONAME ; CODE
-	gf_term_on_sl_packet @ 762 NONAME ; CODE
-	gf_term_play_from_time @ 763 NONAME ; CODE
-	gf_term_process_flush @ 764 NONAME ; CODE
-	gf_term_process_step @ 765 NONAME ; CODE
-	gf_term_register_mime_type @ 766 NONAME ; CODE
-	gf_term_scene_update @ 767 NONAME ; CODE
-	gf_term_set_mfurl_from_uri @ 768 NONAME ; CODE
-	gf_term_set_option @ 769 NONAME ; CODE
-	gf_term_set_simulation_frame_rate @ 770 NONAME ; CODE
-	gf_term_set_size @ 771 NONAME ; CODE
-	gf_term_set_viewpoint @ 772 NONAME ; CODE
-	gf_term_user_event @ 773 NONAME ; CODE
-	gf_th_del @ 774 NONAME ; CODE
-	gf_th_id @ 775 NONAME ; CODE
-	gf_th_new @ 776 NONAME ; CODE
-	gf_th_run @ 777 NONAME ; CODE
-	gf_th_set_priority @ 778 NONAME ; CODE
-	gf_th_status @ 779 NONAME ; CODE
-	gf_th_stop @ 780 NONAME ; CODE
-	gf_token_find @ 781 NONAME ; CODE
-	gf_token_get @ 782 NONAME ; CODE
-	gf_token_get_line @ 783 NONAME ; CODE
-	gf_utc_time_since_1970 @ 784 NONAME ; CODE
-	gf_utf8_mbstowcs @ 785 NONAME ; CODE
-	gf_utf8_wcslen @ 786 NONAME ; CODE
-	gf_utf8_wcstombs @ 787 NONAME ; CODE
-	gf_v2d_from_polar @ 788 NONAME ; CODE
-	gf_v2d_len @ 789 NONAME ; CODE
-	gf_v2d_polarize @ 790 NONAME ; CODE
-	gf_vec_cross @ 791 NONAME ; CODE
-	gf_vec_dot @ 792 NONAME ; CODE
-	gf_vec_len @ 793 NONAME ; CODE
-	gf_vec_lensq @ 794 NONAME ; CODE
-	gf_vec_norm @ 795 NONAME ; CODE
-	gf_vec_scale @ 796 NONAME ; CODE
-	gf_vorbis_check_frame @ 797 NONAME ; CODE
-	gf_vorbis_parse_header @ 798 NONAME ; CODE
-	gf_xml_dom_del @ 799 NONAME ; CODE
-	gf_xml_dom_get_error @ 800 NONAME ; CODE
-	gf_xml_dom_get_line @ 801 NONAME ; CODE
-	gf_xml_dom_get_root @ 802 NONAME ; CODE
-	gf_xml_dom_new @ 803 NONAME ; CODE
-	gf_xml_dom_parse @ 804 NONAME ; CODE
-	gf_xml_get_root_type @ 805 NONAME ; CODE
-	gf_xml_sax_binary_file @ 806 NONAME ; CODE
-	gf_xml_sax_del @ 807 NONAME ; CODE
-	gf_xml_sax_get_error @ 808 NONAME ; CODE
-	gf_xml_sax_get_file_pos @ 809 NONAME ; CODE
-	gf_xml_sax_get_file_size @ 810 NONAME ; CODE
-	gf_xml_sax_get_line @ 811 NONAME ; CODE
-	gf_xml_sax_get_node_end_pos @ 812 NONAME ; CODE
-	gf_xml_sax_get_node_start_pos @ 813 NONAME ; CODE
-	gf_xml_sax_init @ 814 NONAME ; CODE
-	gf_xml_sax_new @ 815 NONAME ; CODE
-	gf_xml_sax_parse @ 816 NONAME ; CODE
-	gf_xml_sax_parse_file @ 817 NONAME ; CODE
-	gf_xml_sax_peek_node @ 818 NONAME ; CODE
-	gf_xml_sax_suspend @ 819 NONAME ; CODE
-	gzclose @ 820 NONAME ; CODE
-	gzdopen @ 821 NONAME ; CODE
-	gzeof @ 822 NONAME ; CODE
-	gzopen @ 823 NONAME ; CODE
-	gzread @ 824 NONAME ; CODE
-	my_str_lwr @ 825 NONAME ; CODE
-	my_str_upr @ 826 NONAME ; CODE
-	gf_isom_get_omadrm_info @ 827 NONAME ; CODE
-	gf_isom_get_payt_count @ 828 NONAME ; CODE
-	gf_isom_get_payt_info @ 829 NONAME ; CODE
-	gf_isom_is_omadrm_media @ 830 NONAME ; CODE
-	gf_node_list_add_child_last @ 831 NONAME ; CODE
-	gf_node_list_del_child_idx @ 832 NONAME ; CODE
-	gf_path_is_empty @ 833 NONAME ; CODE
-	gf_sr_get_renderer @ 834 NONAME ; CODE
-	gf_svg_has_appearance_flag_dirty @ 835 NONAME ; CODE
+	AVI_close @ 1 NONAME
+	AVI_open_output_file @ 2 NONAME
+	AVI_set_video @ 3 NONAME
+	AVI_write_frame @ 4 NONAME
+	gf_4cc_to_str @ 5 NONAME
+	gf_acos @ 6 NONAME
+	gf_angle_diff @ 7 NONAME
+	gf_asin @ 8 NONAME
+	gf_atan2 @ 9 NONAME
+	gf_avc_get_profile_name @ 10 NONAME
+	gf_avc_get_sps_info @ 11 NONAME
+	gf_base16_decode @ 12 NONAME
+	gf_base16_encode @ 13 NONAME
+	gf_base64_decode @ 14 NONAME
+	gf_base64_encode @ 15 NONAME
+	gf_bbox_equal @ 16 NONAME
+	gf_bbox_from_rect @ 17 NONAME
+	gf_bbox_get_vertices @ 18 NONAME
+	gf_bbox_grow_point @ 19 NONAME
+	gf_bbox_plane_relation @ 20 NONAME
+	gf_bbox_point_inside @ 21 NONAME
+	gf_bbox_refresh @ 22 NONAME
+	gf_bbox_union @ 23 NONAME
+	gf_beng_aggregate_context @ 24 NONAME
+	gf_beng_encode_context @ 25 NONAME
+	gf_beng_encode_from_file @ 26 NONAME
+	gf_beng_encode_from_string @ 27 NONAME
+	gf_beng_get_stream_config @ 28 NONAME
+	gf_beng_init @ 29 NONAME
+	gf_beng_init_from_string @ 30 NONAME
+	gf_beng_save_context @ 31 NONAME
+	gf_beng_terminate @ 32 NONAME
+	gf_bifs_decode_au @ 33 NONAME
+	gf_bifs_decode_command_list @ 34 NONAME
+	gf_bifs_decoder_configure_stream @ 35 NONAME
+	gf_bifs_decoder_del @ 36 NONAME
+	gf_bifs_decoder_ignore_size_info @ 37 NONAME
+	gf_bifs_decoder_new @ 38 NONAME
+	gf_bifs_decoder_remove_stream @ 39 NONAME
+	gf_bifs_encode_au @ 40 NONAME
+	gf_bifs_encoder_del @ 41 NONAME
+	gf_bifs_encoder_get_config @ 42 NONAME
+	gf_bifs_encoder_get_rap @ 43 NONAME
+	gf_bifs_encoder_get_version @ 44 NONAME
+	gf_bifs_encoder_new @ 45 NONAME
+	gf_bifs_encoder_new_stream @ 46 NONAME
+	gf_bifs_get_aq_info @ 47 NONAME
+	gf_bs_align @ 48 NONAME
+	gf_bs_available @ 49 NONAME
+	gf_bs_bits_available @ 50 NONAME
+	gf_bs_del @ 51 NONAME
+	gf_bs_from_file @ 52 NONAME
+	gf_bs_get_bit_offset @ 53 NONAME
+	gf_bs_get_content @ 54 NONAME
+	gf_bs_get_position @ 55 NONAME
+	gf_bs_get_refreshed_size @ 56 NONAME
+	gf_bs_get_size @ 57 NONAME
+	gf_bs_new @ 58 NONAME
+	gf_bs_peek_bits @ 59 NONAME
+	gf_bs_read_bit @ 60 NONAME
+	gf_bs_read_data @ 61 NONAME
+	gf_bs_read_double @ 62 NONAME
+	gf_bs_read_float @ 63 NONAME
+	gf_bs_read_int @ 64 NONAME
+	gf_bs_read_long_int @ 65 NONAME
+	gf_bs_read_u16 @ 66 NONAME
+	gf_bs_read_u16_le @ 67 NONAME
+	gf_bs_read_u24 @ 68 NONAME
+	gf_bs_read_u32 @ 69 NONAME
+	gf_bs_read_u32_le @ 70 NONAME
+	gf_bs_read_u64 @ 71 NONAME
+	gf_bs_read_u8 @ 72 NONAME
+	gf_bs_rewind_bits @ 73 NONAME
+	gf_bs_seek @ 74 NONAME
+	gf_bs_set_eos_callback @ 75 NONAME
+	gf_bs_skip_bytes @ 76 NONAME
+	gf_bs_write_data @ 77 NONAME
+	gf_bs_write_double @ 78 NONAME
+	gf_bs_write_float @ 79 NONAME
+	gf_bs_write_int @ 80 NONAME
+	gf_bs_write_long_int @ 81 NONAME
+	gf_bs_write_u16 @ 82 NONAME
+	gf_bs_write_u16_le @ 83 NONAME
+	gf_bs_write_u24 @ 84 NONAME
+	gf_bs_write_u32 @ 85 NONAME
+	gf_bs_write_u32_le @ 86 NONAME
+	gf_bs_write_u64 @ 87 NONAME
+	gf_bs_write_u8 @ 88 NONAME
+	gf_ceil @ 89 NONAME
+	gf_cfg_del @ 90 NONAME
+	gf_cfg_get_key @ 91 NONAME
+	gf_cfg_get_key_count @ 92 NONAME
+	gf_cfg_get_key_name @ 93 NONAME
+	gf_cfg_get_section_count @ 94 NONAME
+	gf_cfg_get_section_name @ 95 NONAME
+	gf_cfg_insert_key @ 96 NONAME
+	gf_cfg_new @ 97 NONAME
+	gf_cfg_set_key @ 98 NONAME
+	gf_closest_point_to_line @ 99 NONAME
+	gf_cmx_apply @ 100 NONAME
+	gf_cmx_apply_fixed @ 101 NONAME
+	gf_cmx_copy @ 102 NONAME
+	gf_cmx_init @ 103 NONAME
+	gf_cmx_multiply @ 104 NONAME
+	gf_cmx_set @ 105 NONAME
+	gf_cmx_set_all @ 106 NONAME
+	gf_cos @ 107 NONAME
+	gf_delete_file @ 108 NONAME
+	gf_divfix @ 109 NONAME
+	gf_dm_sess_fetch_data @ 110 NONAME
+	gf_dm_sess_get_cache_name @ 111 NONAME
+	gf_dm_sess_get_stats @ 112 NONAME
+	gf_dom_event_fire @ 113 NONAME
+	gf_dom_listener_build @ 114 NONAME
+	gf_dom_listener_count @ 115 NONAME
+	gf_enum_directory @ 116 NONAME
+	gf_error_to_string @ 117 NONAME
+	gf_f64_open @ 118 NONAME
+	gf_f64_seek @ 119 NONAME
+	gf_f64_tell @ 120 NONAME
+	gf_floor @ 121 NONAME
+	gf_get_user_name @ 122 NONAME
+	gf_gpac_version @ 123 NONAME
+	gf_hinter_can_embbed_data @ 124 NONAME
+	gf_hinter_finalize @ 125 NONAME
+	gf_hinter_track_del @ 126 NONAME
+	gf_hinter_track_finalize @ 127 NONAME
+	gf_hinter_track_get_bandwidth @ 128 NONAME
+	gf_hinter_track_get_flags @ 129 NONAME
+	gf_hinter_track_get_payload_name @ 130 NONAME
+	gf_hinter_track_new @ 131 NONAME
+	gf_hinter_track_process @ 132 NONAME
+	gf_img_parse @ 133 NONAME
+	gf_invfix @ 134 NONAME
+	gf_is_attach_to_renderer @ 135 NONAME
+	gf_is_default_scene_viewpoint @ 136 NONAME
+	gf_is_find_odm @ 137 NONAME
+	gf_is_force_scene_size @ 138 NONAME
+	gf_is_get_proto_lib @ 139 NONAME
+	gf_is_get_time @ 140 NONAME
+	gf_is_process_anchor @ 141 NONAME
+	gf_is_register_extra_graph @ 142 NONAME
+	gf_is_set_duration @ 143 NONAME
+	gf_is_setup_object @ 144 NONAME
+	gf_ismacryp_crypt_file @ 145 NONAME
+	gf_ismacryp_decrypt_file @ 146 NONAME
+	gf_ismacryp_decrypt_track @ 147 NONAME
+	gf_ismacryp_encrypt_track @ 148 NONAME
+	gf_ismacryp_gpac_get_info @ 149 NONAME
+	gf_ismacryp_mpeg4ip_get_info @ 150 NONAME
+	gf_isom_3gp_config_get @ 151 NONAME
+	gf_isom_3gp_config_new @ 152 NONAME
+	gf_isom_add_sample @ 153 NONAME
+	gf_isom_add_track_to_root_od @ 154 NONAME
+	gf_isom_apple_get_tag @ 155 NONAME
+	gf_isom_avc_config_get @ 156 NONAME
+	gf_isom_check_data_reference @ 157 NONAME
+	gf_isom_close @ 158 NONAME
+	gf_isom_delete @ 159 NONAME
+	gf_isom_delete_text_sample @ 160 NONAME
+	gf_isom_dump @ 161 NONAME
+	gf_isom_dump_hint_sample @ 162 NONAME
+	gf_isom_find_od_for_track @ 163 NONAME
+	gf_isom_get_alternate_brand @ 164 NONAME
+	gf_isom_get_audio_info @ 165 NONAME
+	gf_isom_get_brand_info @ 166 NONAME
+	gf_isom_get_chapter @ 167 NONAME
+	gf_isom_get_chapter_count @ 168 NONAME
+	gf_isom_get_copyright @ 169 NONAME
+	gf_isom_get_copyright_count @ 170 NONAME
+	gf_isom_get_creation_time @ 171 NONAME
+	gf_isom_get_data_reference @ 172 NONAME
+	gf_isom_get_decoder_config @ 173 NONAME
+	gf_isom_get_duration @ 174 NONAME
+	gf_isom_get_edit_segment @ 175 NONAME
+	gf_isom_get_edit_segment_count @ 176 NONAME
+	gf_isom_get_esd @ 177 NONAME
+	gf_isom_get_filename @ 178 NONAME
+	gf_isom_get_fragment_defaults @ 179 NONAME
+	gf_isom_get_generic_sample_description @ 180 NONAME
+	gf_isom_get_handler_name @ 181 NONAME
+	gf_isom_get_ismacryp_info @ 182 NONAME
+	gf_isom_get_ismacryp_sample @ 183 NONAME
+	gf_isom_get_max_chunk_duration @ 184 NONAME
+	gf_isom_get_media_duration @ 185 NONAME
+	gf_isom_get_media_language @ 186 NONAME
+	gf_isom_get_media_subtype @ 187 NONAME
+	gf_isom_get_media_time @ 188 NONAME
+	gf_isom_get_media_timescale @ 189 NONAME
+	gf_isom_get_media_type @ 190 NONAME
+	gf_isom_get_meta_item_by_id @ 191 NONAME
+	gf_isom_get_meta_item_count @ 192 NONAME
+	gf_isom_get_meta_item_info @ 193 NONAME
+	gf_isom_get_meta_type @ 194 NONAME
+	gf_isom_get_missing_bytes @ 195 NONAME
+	gf_isom_get_mode @ 196 NONAME
+	gf_isom_get_mpeg4_subtype @ 197 NONAME
+	gf_isom_get_omadrm_info @ 198 NONAME
+	gf_isom_get_payt_count @ 199 NONAME
+	gf_isom_get_payt_info @ 200 NONAME
+	gf_isom_get_pl_indication @ 201 NONAME
+	gf_isom_get_reference @ 202 NONAME
+	gf_isom_get_reference_count @ 203 NONAME
+	gf_isom_get_root_od @ 204 NONAME
+	gf_isom_get_sample @ 205 NONAME
+	gf_isom_get_sample_count @ 206 NONAME
+	gf_isom_get_sample_description_count @ 207 NONAME
+	gf_isom_get_sample_description_index @ 208 NONAME
+	gf_isom_get_sample_dts @ 209 NONAME
+	gf_isom_get_sample_duration @ 210 NONAME
+	gf_isom_get_sample_for_media_time @ 211 NONAME
+	gf_isom_get_sample_for_movie_time @ 212 NONAME
+	gf_isom_get_sample_fragment_count @ 213 NONAME
+	gf_isom_get_sample_fragment_size @ 214 NONAME
+	gf_isom_get_sample_info @ 215 NONAME
+	gf_isom_get_sync_point_count @ 216 NONAME
+	gf_isom_get_timescale @ 217 NONAME
+	gf_isom_get_track_by_id @ 218 NONAME
+	gf_isom_get_track_count @ 219 NONAME
+	gf_isom_get_track_duration @ 220 NONAME
+	gf_isom_get_track_id @ 221 NONAME
+	gf_isom_get_track_layout_info @ 222 NONAME
+	gf_isom_get_user_data @ 223 NONAME
+	gf_isom_get_user_data_count @ 224 NONAME
+	gf_isom_get_visual_info @ 225 NONAME
+	gf_isom_get_watermark @ 226 NONAME
+	gf_isom_guess_specification @ 227 NONAME
+	gf_isom_has_meta_xml @ 228 NONAME
+	gf_isom_has_movie @ 229 NONAME
+	gf_isom_has_padding_bits @ 230 NONAME
+	gf_isom_has_root_od @ 231 NONAME
+	gf_isom_has_sync_points @ 232 NONAME
+	gf_isom_has_sync_shadows @ 233 NONAME
+	gf_isom_has_time_offset @ 234 NONAME
+	gf_isom_is_JPEG2000 @ 235 NONAME
+	gf_isom_is_fragmented @ 236 NONAME
+	gf_isom_is_ismacryp_media @ 237 NONAME
+	gf_isom_is_media_encrypted @ 238 NONAME
+	gf_isom_is_omadrm_media @ 239 NONAME
+	gf_isom_is_self_contained @ 240 NONAME
+	gf_isom_is_single_av @ 241 NONAME
+	gf_isom_is_track_enabled @ 242 NONAME
+	gf_isom_is_track_encrypted @ 243 NONAME
+	gf_isom_is_track_fragmented @ 244 NONAME
+	gf_isom_is_track_in_root_od @ 245 NONAME
+	gf_isom_ismacryp_delete_sample @ 246 NONAME
+	gf_isom_last_error @ 247 NONAME
+	gf_isom_modify_cts_offset @ 248 NONAME
+	gf_isom_new_mpeg4_description @ 249 NONAME
+	gf_isom_new_track @ 250 NONAME
+	gf_isom_next_hint_packet @ 251 NONAME
+	gf_isom_open @ 252 NONAME
+	gf_isom_open_progressive @ 253 NONAME
+	gf_isom_parse_texte_sample @ 254 NONAME
+	gf_isom_probe_file @ 255 NONAME
+	gf_isom_refresh_fragmented @ 256 NONAME
+	gf_isom_reset_hint_reader @ 257 NONAME
+	gf_isom_sample_del @ 258 NONAME
+	gf_isom_sample_new @ 259 NONAME
+	gf_isom_sdp_get @ 260 NONAME
+	gf_isom_sdp_track_get @ 261 NONAME
+	gf_isom_set_JPEG2000 @ 262 NONAME
+	gf_isom_set_default_sync_track @ 263 NONAME
+	gf_isom_set_sample_padding @ 264 NONAME
+	gf_isom_set_track_enabled @ 265 NONAME
+	gf_isom_text_dump @ 266 NONAME
+	gf_isom_text_set_streaming_mode @ 267 NONAME
+	gf_laser_decode_au @ 268 NONAME
+	gf_laser_decoder_configure_stream @ 269 NONAME
+	gf_laser_decoder_del @ 270 NONAME
+	gf_laser_decoder_new @ 271 NONAME
+	gf_laser_decoder_remove_stream @ 272 NONAME
+	gf_laser_decoder_set_clock @ 273 NONAME
+	gf_list_add @ 274 NONAME
+	gf_list_count @ 275 NONAME
+	gf_list_del @ 276 NONAME
+	gf_list_del_item @ 277 NONAME
+	gf_list_enum @ 278 NONAME
+	gf_list_find @ 279 NONAME
+	gf_list_get @ 280 NONAME
+	gf_list_insert @ 281 NONAME
+	gf_list_last @ 282 NONAME
+	gf_list_new @ 283 NONAME
+	gf_list_rem @ 284 NONAME
+	gf_list_rem_last @ 285 NONAME
+	gf_list_reset @ 286 NONAME
+	gf_log @ 287 NONAME
+	gf_log_get_level @ 288 NONAME
+	gf_log_get_tools @ 289 NONAME
+	gf_log_lt @ 290 NONAME
+	gf_log_set_callback @ 291 NONAME
+	gf_log_set_level @ 292 NONAME
+	gf_log_set_tools @ 293 NONAME
+	gf_m4a_get_config @ 294 NONAME
+	gf_m4a_get_profile_name @ 295 NONAME
+	gf_m4a_object_type_name @ 296 NONAME
+	gf_m4v_get_config @ 297 NONAME
+	gf_m4v_get_object_start @ 298 NONAME
+	gf_m4v_get_profile_name @ 299 NONAME
+	gf_m4v_is_valid_object_type @ 300 NONAME
+	gf_m4v_parse_config @ 301 NONAME
+	gf_m4v_parse_frame @ 302 NONAME
+	gf_m4v_parser_del @ 303 NONAME
+	gf_m4v_parser_new @ 304 NONAME
+	gf_m4v_rewrite_pl @ 305 NONAME
+	gf_media_change_par @ 306 NONAME
+	gf_media_export @ 307 NONAME
+	gf_media_fragment_file @ 308 NONAME
+	gf_media_import @ 309 NONAME
+	gf_media_import_chapters @ 310 NONAME
+	gf_media_make_3gpp @ 311 NONAME
+	gf_media_make_isma @ 312 NONAME
+	gf_media_map_esd @ 313 NONAME
+	gf_mo_adjust_clock @ 314 NONAME
+	gf_mo_fetch_data @ 315 NONAME
+	gf_mo_find @ 316 NONAME
+	gf_mo_get_audio_info @ 317 NONAME
+	gf_mo_get_duration @ 318 NONAME
+	gf_mo_get_flags @ 319 NONAME
+	gf_mo_get_loop @ 320 NONAME
+	gf_mo_get_object_time @ 321 NONAME
+	gf_mo_get_speed @ 322 NONAME
+	gf_mo_get_visual_info @ 323 NONAME
+	gf_mo_is_done @ 324 NONAME
+	gf_mo_is_muted @ 325 NONAME
+	gf_mo_play @ 326 NONAME
+	gf_mo_release_data @ 327 NONAME
+	gf_mo_restart @ 328 NONAME
+	gf_mo_set_flag @ 329 NONAME
+	gf_mo_set_speed @ 330 NONAME
+	gf_mo_should_deactivate @ 331 NONAME
+	gf_mo_stop @ 332 NONAME
+	gf_mo_url_changed @ 333 NONAME
+	gf_modules_close_interface @ 334 NONAME
+	gf_modules_del @ 335 NONAME
+	gf_modules_get_count @ 336 NONAME
+	gf_modules_get_file_name @ 337 NONAME
+	gf_modules_get_option @ 338 NONAME
+	gf_modules_load_interface @ 339 NONAME
+	gf_modules_load_interface_by_name @ 340 NONAME
+	gf_modules_new @ 341 NONAME
+	gf_modules_refresh @ 342 NONAME
+	gf_modules_set_option @ 343 NONAME
+	gf_mp3_frame_size @ 344 NONAME
+	gf_mp3_get_next_header @ 345 NONAME
+	gf_mp3_get_next_header_mem @ 346 NONAME
+	gf_mp3_layer @ 347 NONAME
+	gf_mp3_num_channels @ 348 NONAME
+	gf_mp3_object_type_indication @ 349 NONAME
+	gf_mp3_sampling_rate @ 350 NONAME
+	gf_mp3_version @ 351 NONAME
+	gf_mp3_version_name @ 352 NONAME
+	gf_mp3_window_size @ 353 NONAME
+	gf_muldiv @ 354 NONAME
+	gf_mulfix @ 355 NONAME
+	gf_mx2d_add_matrix @ 356 NONAME
+	gf_mx2d_add_rotation @ 357 NONAME
+	gf_mx2d_add_scale @ 358 NONAME
+	gf_mx2d_add_scale_at @ 359 NONAME
+	gf_mx2d_add_skew @ 360 NONAME
+	gf_mx2d_add_skew_x @ 361 NONAME
+	gf_mx2d_add_skew_y @ 362 NONAME
+	gf_mx2d_add_translation @ 363 NONAME
+	gf_mx2d_apply_coords @ 364 NONAME
+	gf_mx2d_apply_point @ 365 NONAME
+	gf_mx2d_apply_rect @ 366 NONAME
+	gf_mx2d_from_mx @ 367 NONAME
+	gf_mx2d_inverse @ 368 NONAME
+	gf_mx2d_pre_multiply @ 369 NONAME
+	gf_mx_add_matrix @ 370 NONAME
+	gf_mx_add_matrix_4x4 @ 371 NONAME
+	gf_mx_add_rotation @ 372 NONAME
+	gf_mx_add_scale @ 373 NONAME
+	gf_mx_add_translation @ 374 NONAME
+	gf_mx_apply_bbox @ 375 NONAME
+	gf_mx_apply_plane @ 376 NONAME
+	gf_mx_apply_ray @ 377 NONAME
+	gf_mx_apply_rect @ 378 NONAME
+	gf_mx_apply_vec @ 379 NONAME
+	gf_mx_apply_vec_4x4 @ 380 NONAME
+	gf_mx_decompose @ 381 NONAME
+	gf_mx_del @ 382 NONAME
+	gf_mx_equal @ 383 NONAME
+	gf_mx_from_mx2d @ 384 NONAME
+	gf_mx_inverse @ 385 NONAME
+	gf_mx_inverse_4x4 @ 386 NONAME
+	gf_mx_lookat @ 387 NONAME
+	gf_mx_new @ 388 NONAME
+	gf_mx_ortho @ 389 NONAME
+	gf_mx_p @ 390 NONAME
+	gf_mx_perspective @ 391 NONAME
+	gf_mx_rotate_vector @ 392 NONAME
+	gf_mx_rotation_matrix_from_vectors @ 393 NONAME
+	gf_mx_try_lock @ 394 NONAME
+	gf_mx_v @ 395 NONAME
+	gf_node_allow_cyclic_render @ 396 NONAME
+	gf_node_changed @ 397 NONAME
+	gf_node_clone @ 398 NONAME
+	gf_node_dirty_clear @ 399 NONAME
+	gf_node_dirty_get @ 400 NONAME
+	gf_node_dirty_reset @ 401 NONAME
+	gf_node_dirty_set @ 402 NONAME
+	gf_node_event_out_str @ 403 NONAME
+	gf_node_get_class_name @ 404 NONAME
+	gf_node_get_field @ 405 NONAME
+	gf_node_get_field_count @ 406 NONAME
+	gf_node_get_graph @ 407 NONAME
+	gf_node_get_id @ 408 NONAME
+	gf_node_get_name @ 409 NONAME
+	gf_node_get_name_and_id @ 410 NONAME
+	gf_node_get_parent @ 411 NONAME
+	gf_node_get_parent_count @ 412 NONAME
+	gf_node_get_private @ 413 NONAME
+	gf_node_get_proto @ 414 NONAME
+	gf_node_get_scene_time @ 415 NONAME
+	gf_node_get_tag @ 416 NONAME
+	gf_node_init @ 417 NONAME
+	gf_node_list_add_child @ 418 NONAME
+	gf_node_list_add_child_last @ 419 NONAME
+	gf_node_list_del_child @ 420 NONAME
+	gf_node_list_del_child_idx @ 421 NONAME
+	gf_node_list_find_child @ 422 NONAME
+	gf_node_list_get_child @ 423 NONAME
+	gf_node_list_get_count @ 424 NONAME
+	gf_node_list_insert_child @ 425 NONAME
+	gf_node_new @ 426 NONAME
+	gf_node_register @ 427 NONAME
+	gf_node_render @ 428 NONAME
+	gf_node_render_children @ 429 NONAME
+	gf_node_set_callback_function @ 430 NONAME
+	gf_node_set_id @ 431 NONAME
+	gf_node_set_private @ 432 NONAME
+	gf_node_unregister @ 433 NONAME
+	gf_node_unregister_children @ 434 NONAME
+	gf_oci_codec_add_event @ 435 NONAME
+	gf_oci_codec_decode @ 436 NONAME
+	gf_oci_codec_del @ 437 NONAME
+	gf_oci_codec_encode @ 438 NONAME
+	gf_oci_codec_get_event @ 439 NONAME
+	gf_oci_codec_new @ 440 NONAME
+	gf_oci_dump_au @ 441 NONAME
+	gf_oci_dump_event @ 442 NONAME
+	gf_oci_event_add_desc @ 443 NONAME
+	gf_oci_event_del @ 444 NONAME
+	gf_oci_event_get_desc @ 445 NONAME
+	gf_oci_event_get_desc_count @ 446 NONAME
+	gf_oci_event_get_duration @ 447 NONAME
+	gf_oci_event_get_id @ 448 NONAME
+	gf_oci_event_get_start_time @ 449 NONAME
+	gf_oci_event_new @ 450 NONAME
+	gf_oci_event_rem_desc @ 451 NONAME
+	gf_oci_event_set_duration @ 452 NONAME
+	gf_oci_event_set_start_time @ 453 NONAME
+	gf_odf_avc_cfg_del @ 454 NONAME
+	gf_odf_avc_cfg_new @ 455 NONAME
+	gf_odf_avc_cfg_read @ 456 NONAME
+	gf_odf_avc_cfg_write @ 457 NONAME
+	gf_odf_codec_add_com @ 458 NONAME
+	gf_odf_codec_decode @ 459 NONAME
+	gf_odf_codec_del @ 460 NONAME
+	gf_odf_codec_encode @ 461 NONAME
+	gf_odf_codec_get_au @ 462 NONAME
+	gf_odf_codec_get_com @ 463 NONAME
+	gf_odf_codec_new @ 464 NONAME
+	gf_odf_codec_set_au @ 465 NONAME
+	gf_odf_com_del @ 466 NONAME
+	gf_odf_com_new @ 467 NONAME
+	gf_odf_desc_add_desc @ 468 NONAME
+	gf_odf_desc_copy @ 469 NONAME
+	gf_odf_desc_del @ 470 NONAME
+	gf_odf_desc_esd_new @ 471 NONAME
+	gf_odf_desc_list_del @ 472 NONAME
+	gf_odf_desc_list_read @ 473 NONAME
+	gf_odf_desc_list_size @ 474 NONAME
+	gf_odf_desc_list_write @ 475 NONAME
+	gf_odf_desc_new @ 476 NONAME
+	gf_odf_desc_read @ 477 NONAME
+	gf_odf_desc_size @ 478 NONAME
+	gf_odf_desc_write @ 479 NONAME
+	gf_odf_dump_au @ 480 NONAME
+	gf_odf_dump_com @ 481 NONAME
+	gf_odf_dump_com_list @ 482 NONAME
+	gf_odf_dump_desc @ 483 NONAME
+	gf_odf_encode_ui_config @ 484 NONAME
+	gf_odf_get_bifs_config @ 485 NONAME
+	gf_odf_get_laser_config @ 486 NONAME
+	gf_odf_get_text_config @ 487 NONAME
+	gf_odf_get_ui_config @ 488 NONAME
+	gf_odf_parse_descriptor @ 489 NONAME
+	gf_odf_qos_add_qualif @ 490 NONAME
+	gf_odf_qos_del @ 491 NONAME
+	gf_odf_qos_new @ 492 NONAME
+	gf_odf_slc_set_pref @ 493 NONAME
+	gf_odf_stream_type_by_name @ 494 NONAME
+	gf_odf_stream_type_name @ 495 NONAME
+	gf_odm_disconnect @ 496 NONAME
+	gf_odm_new @ 497 NONAME
+	gf_odm_remove_es @ 498 NONAME
+	gf_odm_setup_es @ 499 NONAME
+	gf_odm_setup_object @ 500 NONAME
+	gf_path_add_arc @ 501 NONAME
+	gf_path_add_arc_to @ 502 NONAME
+	gf_path_add_bezier @ 503 NONAME
+	gf_path_add_cubic_to @ 504 NONAME
+	gf_path_add_cubic_to_vec @ 505 NONAME
+	gf_path_add_ellipse @ 506 NONAME
+	gf_path_add_line_to @ 507 NONAME
+	gf_path_add_line_to_vec @ 508 NONAME
+	gf_path_add_move_to @ 509 NONAME
+	gf_path_add_move_to_vec @ 510 NONAME
+	gf_path_add_quadratic_to @ 511 NONAME
+	gf_path_add_quadratic_to_vec @ 512 NONAME
+	gf_path_add_rect @ 513 NONAME
+	gf_path_add_rect_center @ 514 NONAME
+	gf_path_clone @ 515 NONAME
+	gf_path_close @ 516 NONAME
+	gf_path_del @ 517 NONAME
+	gf_path_flatten @ 518 NONAME
+	gf_path_get_bounds @ 519 NONAME
+	gf_path_get_control_bounds @ 520 NONAME
+	gf_path_get_flatten @ 521 NONAME
+	gf_path_get_outline @ 522 NONAME
+	gf_path_is_empty @ 523 NONAME
+	gf_path_iterator_del @ 524 NONAME
+	gf_path_iterator_get_length @ 525 NONAME
+	gf_path_iterator_get_transform @ 526 NONAME
+	gf_path_iterator_new @ 527 NONAME
+	gf_path_new @ 528 NONAME
+	gf_path_point_over @ 529 NONAME
+	gf_path_reset @ 530 NONAME
+	gf_plane_exists_intersection @ 531 NONAME
+	gf_plane_get_distance @ 532 NONAME
+	gf_plane_get_p_vertex_idx @ 533 NONAME
+	gf_plane_intersect_line @ 534 NONAME
+	gf_plane_intersect_plane @ 535 NONAME
+	gf_plane_intersect_planes @ 536 NONAME
+	gf_polygone2d_get_convexity @ 537 NONAME
+	gf_quat_from_axis_cos @ 538 NONAME
+	gf_quat_from_matrix @ 539 NONAME
+	gf_quat_from_rotation @ 540 NONAME
+	gf_quat_get_inv @ 541 NONAME
+	gf_quat_multiply @ 542 NONAME
+	gf_quat_rotate @ 543 NONAME
+	gf_quat_slerp @ 544 NONAME
+	gf_quat_to_rotation @ 545 NONAME
+	gf_rand @ 546 NONAME
+	gf_rand_init @ 547 NONAME
+	gf_ray @ 548 NONAME
+	gf_ray_hit_box @ 549 NONAME
+	gf_ray_hit_sphere @ 550 NONAME
+	gf_ray_hit_triangle @ 551 NONAME
+	gf_ray_hit_triangle_backcull @ 552 NONAME
+	gf_rect_center @ 553 NONAME
+	gf_rect_equal @ 554 NONAME
+	gf_rect_from_bbox @ 555 NONAME
+	gf_rect_overlaps @ 556 NONAME
+	gf_rect_pixelize @ 557 NONAME
+	gf_rect_union @ 558 NONAME
+	gf_rtp_builder_del @ 559 NONAME
+	gf_rtp_builder_format_sdp @ 560 NONAME
+	gf_rtp_builder_get_payload_name @ 561 NONAME
+	gf_rtp_builder_init @ 562 NONAME
+	gf_rtp_builder_new @ 563 NONAME
+	gf_rtp_builder_process @ 564 NONAME
+	gf_rtp_decode_rtcp @ 565 NONAME
+	gf_rtp_decode_rtp @ 566 NONAME
+	gf_rtp_del @ 567 NONAME
+	gf_rtp_get_clockrate @ 568 NONAME
+	gf_rtp_get_current_time @ 569 NONAME
+	gf_rtp_get_hight_interleave_id @ 570 NONAME
+	gf_rtp_get_local_ssrc @ 571 NONAME
+	gf_rtp_get_loss @ 572 NONAME
+	gf_rtp_get_low_interleave_id @ 573 NONAME
+	gf_rtp_get_ports @ 574 NONAME
+	gf_rtp_get_tcp_bytes_sent @ 575 NONAME
+	gf_rtp_get_transport @ 576 NONAME
+	gf_rtp_initialize @ 577 NONAME
+	gf_rtp_is_active @ 578 NONAME
+	gf_rtp_is_interleaved @ 579 NONAME
+	gf_rtp_is_unicast @ 580 NONAME
+	gf_rtp_new @ 581 NONAME
+	gf_rtp_read_rtcp @ 582 NONAME
+	gf_rtp_read_rtp @ 583 NONAME
+	gf_rtp_reset_buffers @ 584 NONAME
+	gf_rtp_send_bye @ 585 NONAME
+	gf_rtp_send_packet @ 586 NONAME
+	gf_rtp_send_rtcp_report @ 587 NONAME
+	gf_rtp_set_info_rtcp @ 588 NONAME
+	gf_rtp_set_info_rtp @ 589 NONAME
+	gf_rtp_set_ports @ 590 NONAME
+	gf_rtp_setup_payload @ 591 NONAME
+	gf_rtp_setup_transport @ 592 NONAME
+	gf_rtsp_command_del @ 593 NONAME
+	gf_rtsp_command_new @ 594 NONAME
+	gf_rtsp_command_reset @ 595 NONAME
+	gf_rtsp_get_command @ 596 NONAME
+	gf_rtsp_get_last_request @ 597 NONAME
+	gf_rtsp_get_next_interleave_id @ 598 NONAME
+	gf_rtsp_get_remote_address @ 599 NONAME
+	gf_rtsp_get_response @ 600 NONAME
+	gf_rtsp_get_server_name @ 601 NONAME
+	gf_rtsp_get_service_name @ 602 NONAME
+	gf_rtsp_get_session_id @ 603 NONAME
+	gf_rtsp_get_session_ip @ 604 NONAME
+	gf_rtsp_get_session_port @ 605 NONAME
+	gf_rtsp_get_session_state @ 606 NONAME
+	gf_rtsp_is_my_session @ 607 NONAME
+	gf_rtsp_load_service_name @ 608 NONAME
+	gf_rtsp_nc_to_string @ 609 NONAME
+	gf_rtsp_range_del @ 610 NONAME
+	gf_rtsp_range_new @ 611 NONAME
+	gf_rtsp_range_parse @ 612 NONAME
+	gf_rtsp_register_interleave @ 613 NONAME
+	gf_rtsp_reset_aggregation @ 614 NONAME
+	gf_rtsp_response_del @ 615 NONAME
+	gf_rtsp_response_new @ 616 NONAME
+	gf_rtsp_response_reset @ 617 NONAME
+	gf_rtsp_send_command @ 618 NONAME
+	gf_rtsp_send_response @ 619 NONAME
+	gf_rtsp_session_del @ 620 NONAME
+	gf_rtsp_session_new @ 621 NONAME
+	gf_rtsp_session_new_server @ 622 NONAME
+	gf_rtsp_session_read @ 623 NONAME
+	gf_rtsp_session_reset @ 624 NONAME
+	gf_rtsp_set_buffer_size @ 625 NONAME
+	gf_rtsp_set_interleave_callback @ 626 NONAME
+	gf_rtsp_set_session_id @ 627 NONAME
+	gf_rtsp_transport_clone @ 628 NONAME
+	gf_rtsp_transport_del @ 629 NONAME
+	gf_rtsp_unregister_interleave @ 630 NONAME
+	gf_sdp_conn_del @ 631 NONAME
+	gf_sdp_conn_new @ 632 NONAME
+	gf_sdp_fmtp_del @ 633 NONAME
+	gf_sdp_fmtp_new @ 634 NONAME
+	gf_sdp_info_check @ 635 NONAME
+	gf_sdp_info_del @ 636 NONAME
+	gf_sdp_info_new @ 637 NONAME
+	gf_sdp_info_parse @ 638 NONAME
+	gf_sdp_info_reset @ 639 NONAME
+	gf_sdp_info_write @ 640 NONAME
+	gf_sdp_media_del @ 641 NONAME
+	gf_sdp_media_new @ 642 NONAME
+	gf_sema_del @ 643 NONAME
+	gf_sema_new @ 644 NONAME
+	gf_sema_notify @ 645 NONAME
+	gf_sema_wait @ 646 NONAME
+	gf_sema_wait_for @ 647 NONAME
+	gf_set_progress @ 648 NONAME
+	gf_set_progress_callback @ 649 NONAME
+	gf_sg_activate_routes @ 650 NONAME
+	gf_sg_command_apply @ 651 NONAME
+	gf_sg_command_apply_list @ 652 NONAME
+	gf_sg_command_del @ 653 NONAME
+	gf_sg_del @ 654 NONAME
+	gf_sg_find_node @ 655 NONAME
+	gf_sg_find_node_by_name @ 656 NONAME
+	gf_sg_get_next_available_node_id @ 657 NONAME
+	gf_sg_get_root_node @ 658 NONAME
+	gf_sg_get_scene_size_info @ 659 NONAME
+	gf_sg_mfurl_del @ 660 NONAME
+	gf_sg_new_subscene @ 661 NONAME
+	gf_sg_proto_get_extern_url @ 662 NONAME
+	gf_sg_reset @ 663 NONAME
+	gf_sg_route_new @ 664 NONAME
+	gf_sg_set_node_callback @ 665 NONAME
+	gf_sg_set_proto_loader @ 666 NONAME
+	gf_sg_set_root_node @ 667 NONAME
+	gf_sg_set_scene_size_info @ 668 NONAME
+	gf_sg_set_scene_time_callback @ 669 NONAME
+	gf_sg_sfcolor_to_rgba @ 670 NONAME
+	gf_sg_sfrotation_interpolate @ 671 NONAME
+	gf_sg_use_pixel_metrics @ 672 NONAME
+	gf_sg_vrml_field_copy @ 673 NONAME
+	gf_sg_vrml_field_equal @ 674 NONAME
+	gf_sg_vrml_mf_alloc @ 675 NONAME
+	gf_sg_vrml_mf_append @ 676 NONAME
+	gf_sg_vrml_mf_reset @ 677 NONAME
+	gf_sin @ 678 NONAME
+	gf_sk_is_multicast_address @ 679 NONAME
+	gf_sl_depacketize @ 680 NONAME
+	gf_sl_packetize @ 681 NONAME
+	gf_sleep @ 682 NONAME
+	gf_sm_del @ 683 NONAME
+	gf_sm_dump @ 684 NONAME
+	gf_sm_dump_command_list @ 685 NONAME
+	gf_sm_dump_graph @ 686 NONAME
+	gf_sm_dumper_del @ 687 NONAME
+	gf_sm_dumper_new @ 688 NONAME
+	gf_sm_encode_to_file @ 689 NONAME
+	gf_sm_import_bifs_subtitle @ 690 NONAME
+	gf_sm_load_done @ 691 NONAME
+	gf_sm_load_init @ 692 NONAME
+	gf_sm_load_run @ 693 NONAME
+	gf_sm_load_string @ 694 NONAME
+	gf_sm_make_random_access @ 695 NONAME
+	gf_sm_new @ 696 NONAME
+	gf_sm_stats_del @ 697 NONAME
+	gf_sm_stats_for_command @ 698 NONAME
+	gf_sm_stats_for_graph @ 699 NONAME
+	gf_sm_stats_for_scene @ 700 NONAME
+	gf_sm_stats_get @ 701 NONAME
+	gf_sm_stats_new @ 702 NONAME
+	gf_sm_stats_reset @ 703 NONAME
+	gf_sm_stream_au_new @ 704 NONAME
+	gf_sm_stream_del @ 705 NONAME
+	gf_sm_stream_new @ 706 NONAME
+	gf_smil_timing_init_runtime_info @ 707 NONAME
+	gf_smil_timing_is_active @ 708 NONAME
+	gf_sqrt @ 709 NONAME
+	gf_sr_audio_check_url @ 710 NONAME
+	gf_sr_audio_open @ 711 NONAME
+	gf_sr_audio_register @ 712 NONAME
+	gf_sr_audio_restart @ 713 NONAME
+	gf_sr_audio_setup @ 714 NONAME
+	gf_sr_audio_stop @ 715 NONAME
+	gf_sr_audio_unregister @ 716 NONAME
+	gf_sr_get_renderer @ 717 NONAME
+	gf_sr_invalidate @ 718 NONAME
+	gf_sr_lock @ 719 NONAME
+	gf_sr_reset_graphics @ 720 NONAME
+	gf_sr_texture_check_url_change @ 721 NONAME
+	gf_sr_texture_destroy @ 722 NONAME
+	gf_sr_texture_get_handler @ 723 NONAME
+	gf_sr_texture_play @ 724 NONAME
+	gf_sr_texture_play_from @ 725 NONAME
+	gf_sr_texture_release_stream @ 726 NONAME
+	gf_sr_texture_restart @ 727 NONAME
+	gf_sr_texture_setup @ 728 NONAME
+	gf_sr_texture_stop @ 729 NONAME
+	gf_sr_texture_update_frame @ 730 NONAME
+	gf_stretch_bits @ 731 NONAME
+	gf_svg_apply_animations @ 732 NONAME
+	gf_svg_apply_inheritance @ 733 NONAME
+	gf_svg_has_appearance_flag_dirty @ 734 NONAME
+	gf_svg_path_build @ 735 NONAME
+	gf_svg_properties_init_pointers @ 736 NONAME
+	gf_svg_properties_reset_pointers @ 737 NONAME
+	gf_svg_register_iri @ 738 NONAME
+	gf_svg_store_embedded_data @ 739 NONAME
+	gf_sys_clock @ 740 NONAME
+	gf_sys_close @ 741 NONAME
+	gf_sys_get_battery_state @ 742 NONAME
+	gf_sys_get_rti @ 743 NONAME
+	gf_sys_init @ 744 NONAME
+	gf_tan @ 745 NONAME
+	gf_temp_file_new @ 746 NONAME
+	gf_term_add_media @ 747 NONAME
+	gf_term_add_object @ 748 NONAME
+	gf_term_check_extension @ 749 NONAME
+	gf_term_check_iri_change @ 750 NONAME
+	gf_term_connect @ 751 NONAME
+	gf_term_connect_from_time @ 752 NONAME
+	gf_term_del @ 753 NONAME
+	gf_term_disconnect @ 754 NONAME
+	gf_term_download_del @ 755 NONAME
+	gf_term_download_new @ 756 NONAME
+	gf_term_download_update_stats @ 757 NONAME
+	gf_term_get_framerate @ 758 NONAME
+	gf_term_get_option @ 759 NONAME
+	gf_term_get_service_interface @ 760 NONAME
+	gf_term_get_service_url @ 761 NONAME
+	gf_term_get_simulation_frame_rate @ 762 NONAME
+	gf_term_get_time_in_ms @ 763 NONAME
+	gf_term_get_url @ 764 NONAME
+	gf_term_get_viewpoint @ 765 NONAME
+	gf_term_navigate_to @ 766 NONAME
+	gf_term_new @ 767 NONAME
+	gf_term_node_callback @ 768 NONAME
+	gf_term_on_command @ 769 NONAME
+	gf_term_on_connect @ 770 NONAME
+	gf_term_on_disconnect @ 771 NONAME
+	gf_term_on_message @ 772 NONAME
+	gf_term_on_sl_packet @ 773 NONAME
+	gf_term_play_from_time @ 774 NONAME
+	gf_term_process_flush @ 775 NONAME
+	gf_term_process_step @ 776 NONAME
+	gf_term_register_mime_type @ 777 NONAME
+	gf_term_scene_update @ 778 NONAME
+	gf_term_set_mfurl_from_uri @ 779 NONAME
+	gf_term_set_option @ 780 NONAME
+	gf_term_set_simulation_frame_rate @ 781 NONAME
+	gf_term_set_size @ 782 NONAME
+	gf_term_set_viewpoint @ 783 NONAME
+	gf_term_user_event @ 784 NONAME
+	gf_th_del @ 785 NONAME
+	gf_th_id @ 786 NONAME
+	gf_th_new @ 787 NONAME
+	gf_th_run @ 788 NONAME
+	gf_th_set_priority @ 789 NONAME
+	gf_th_status @ 790 NONAME
+	gf_th_stop @ 791 NONAME
+	gf_token_find @ 792 NONAME
+	gf_token_get @ 793 NONAME
+	gf_token_get_line @ 794 NONAME
+	gf_utc_time_since_1970 @ 795 NONAME
+	gf_utf8_mbstowcs @ 796 NONAME
+	gf_utf8_wcslen @ 797 NONAME
+	gf_utf8_wcstombs @ 798 NONAME
+	gf_v2d_from_polar @ 799 NONAME
+	gf_v2d_len @ 800 NONAME
+	gf_v2d_polarize @ 801 NONAME
+	gf_vec_cross @ 802 NONAME
+	gf_vec_dot @ 803 NONAME
+	gf_vec_len @ 804 NONAME
+	gf_vec_lensq @ 805 NONAME
+	gf_vec_norm @ 806 NONAME
+	gf_vec_scale @ 807 NONAME
+	gf_vorbis_check_frame @ 808 NONAME
+	gf_vorbis_parse_header @ 809 NONAME
+	gf_xml_dom_del @ 810 NONAME
+	gf_xml_dom_get_error @ 811 NONAME
+	gf_xml_dom_get_line @ 812 NONAME
+	gf_xml_dom_get_root @ 813 NONAME
+	gf_xml_dom_new @ 814 NONAME
+	gf_xml_dom_parse @ 815 NONAME
+	gf_xml_get_root_type @ 816 NONAME
+	gf_xml_sax_binary_file @ 817 NONAME
+	gf_xml_sax_del @ 818 NONAME
+	gf_xml_sax_get_error @ 819 NONAME
+	gf_xml_sax_get_file_pos @ 820 NONAME
+	gf_xml_sax_get_file_size @ 821 NONAME
+	gf_xml_sax_get_line @ 822 NONAME
+	gf_xml_sax_get_node_end_pos @ 823 NONAME
+	gf_xml_sax_get_node_start_pos @ 824 NONAME
+	gf_xml_sax_init @ 825 NONAME
+	gf_xml_sax_new @ 826 NONAME
+	gf_xml_sax_parse @ 827 NONAME
+	gf_xml_sax_parse_file @ 828 NONAME
+	gf_xml_sax_peek_node @ 829 NONAME
+	gf_xml_sax_suspend @ 830 NONAME
+	my_str_lwr @ 831 NONAME
+	my_str_upr @ 832 NONAME
 
