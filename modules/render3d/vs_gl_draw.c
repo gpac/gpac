@@ -27,7 +27,14 @@
 
 #include "gl_inc.h"
 
+/*!! HORRIBLE HACK, but on my test devices, it seems that glClipPlanex is missing on the device but not in the SDK lib !!*/
+#if defined(GL_MAX_CLIP_PLANES) && defined(__SYMBIAN32__)
+#undef GL_MAX_CLIP_PLANES
+#endif
+
+
 #define CHECK_GL_EXT(name) ((strstr(ext, name) != NULL) ? 1 : 0)
+
 void R3D_LoadExtensions(Render3D *sr)
 {
 	const char *ext = (const char *) glGetString(GL_EXTENSIONS);
