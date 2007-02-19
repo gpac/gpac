@@ -40,7 +40,7 @@
 #include <e32base.h> 
 /*hardware abstraction layer*/
 #include <hal.h>
-
+ 
 /*gpac module internals*/
 #include "module_wrap.h"
 #include <gpac/thread.h> 
@@ -583,7 +583,7 @@ u32 gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 	u32 prevCount;
 	if (!sm) return 0;
 	sm->hSemaphore->Signal(NbRelease);
-#ifdef __SERIES60_30__
+#ifdef __SERIES60_3X__
 	prevCount = 0;
 #else
 	prevCount = sm->hSemaphore->Count();
