@@ -73,6 +73,7 @@ else
 	ldconfig || true
 endif
 endif
+	install -d "$(DESTDIR)$(mandir)"
 	install -d "$(DESTDIR)$(mandir)/man1"
 	install -m 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/
 	install -m 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/
