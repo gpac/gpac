@@ -116,6 +116,9 @@ TERMINAL_CFLAGS=
 ifeq ($(GPACREADONLY), yes)
 TERMINAL_CFLAGS+=-DGPAC_READ_ONLY
 endif
+ifeq ($(DISABLE_SVG), yes)
+TERMINAL_CFLAGS+=-DGPAC_DISABLE_SVG
+endif
 
 ## libgpac renderer compilation options
 RENDERER_CFLAGS=
