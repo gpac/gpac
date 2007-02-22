@@ -497,6 +497,12 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		case GF_KEY_S:
 			gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 			break;
+		case GF_KEY_B:
+			if (is_connected) ViewODs(term, 1);
+			break;
+		case GF_KEY_M:
+			if (is_connected) ViewODs(term, 0);
+			break;
 		}
 		break;
 

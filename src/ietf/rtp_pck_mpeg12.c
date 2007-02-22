@@ -46,6 +46,7 @@ static void mpa12_do_flush(GP_RTPPacketizer *builder, Bool start_new)
 		gf_bs_del(builder->payload);
 		builder->pck_hdr = NULL;
 		builder->payload = NULL;
+		builder->bytesInPacket = 0;
 	}
 	if (!start_new) return;
 
@@ -98,7 +99,7 @@ static GF_Err gp_rtp_builder_do_mpeg12Audio(GP_RTPPacketizer *builder, char *dat
 		}
 	}
 	/*if offset or no aggregation*/
-	if (offset || !(builder->flags & GP_RTP_PCK_USE_MULTI) ) mpa12_do_flush(builder, 1);
+	if (offset || !(builder->flags & GP_RTP_PCK_USE_MULTI) ) mpa12_do_flush(builder, 0);
 
 	return GF_OK;
 }

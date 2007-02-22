@@ -135,6 +135,7 @@ EXPORTS
 	gf_utc_time_since_1970
 	gf_net_get_ntp
 	gf_net_has_ipv6
+	gf_net_is_ipv6
 
 
 ;base_coding.h exports

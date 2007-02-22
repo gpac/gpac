@@ -69,6 +69,7 @@ public:
 	CString GetFileFilter();
 
 	void SetBacklightState(Bool disable);
+	void EnableLogs(Bool turn_on);
 
 private:
 	Bool m_DoResume;
@@ -79,6 +80,7 @@ private:
 	u32 m_prev_batt_bl, m_prev_ac_bl;
 
 	void ReloadTerminal();
+	FILE *m_logs;
 
 // Overrides
 	// ClassWizard generated virtual function overrides

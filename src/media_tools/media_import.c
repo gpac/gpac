@@ -466,7 +466,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	Bool destroy_esd;
 	GF_Err e;
 	Bool sync_frame;
-	u16 sr, sbr_sr, sbr_sr_idx;
+	u16 sr, sbr_sr, sbr_sr_idx, dts_inc;
 	GF_BitStream *bs, *dsi;
 	ADTSHeader hdr;
 	GF_M4ADecSpecInfo acfg;
@@ -521,6 +521,8 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 		}
 	}
 
+	dts_inc = 1024;
+
 	memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
 	acfg.base_object_type = hdr.profile;
 	acfg.base_sr = sr;
@@ -530,6 +532,10 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 		acfg.has_sbr = 1;
 		acfg.base_object_type = 5;
 		acfg.sbr_object_type = hdr.profile;
+
+		/*for better interop, always store using full SR when using explict signaling*/
+		dts_inc = 2048;
+		sr = sbr_sr;
 	} else if (import->flags & GF_IMPORT_SBR_IMPLICIT) {
 		acfg.has_sbr = 1;
 	}
@@ -606,7 +612,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	} else {
 		gf_isom_add_sample(import->dest, track, di, samp);
 	}
-	samp->DTS+=1024;
+	samp->DTS+=dts_inc;
 
 	duration = import->duration*sr;
 	duration /= 1000;
@@ -631,7 +637,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 		}
 
 		gf_set_progress("Importing AAC", done, tot_size);
-		samp->DTS += 1024;
+		samp->DTS += dts_inc;
 		done += samp->dataLength;
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
@@ -1507,7 +1513,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			if (dsi.has_sbr) sbr_sr = dsi.sbr_sr;
 			ch = dsi.nb_chan;
 			PL = dsi.audioPL;
-			sbr = dsi.has_sbr;
+			sbr = dsi.has_sbr ? ((dsi.base_object_type==GF_M4A_AAC_SBR) ? 2 : 1) : 0;
 		}
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, PL);
 	} 
@@ -1592,7 +1598,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		break;
 	case GF_ISOM_MEDIA_AUDIO:
 	{
-		if (!is_clone) gf_isom_set_audio_info(import->dest, track, di, sr, (ch>1) ? 2 : 1, bps);
+		if (!is_clone) gf_isom_set_audio_info(import->dest, track, di, (sbr==2) ? sbr_sr : sr, (ch>1) ? 2 : 1, bps);
 		if (sbr) {
 			gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - HE-AAC (SR %d - SBR-SR %d - %d channels)", trackID, sr, sbr_sr, ch);
 		} else {
@@ -2832,7 +2838,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		e = gf_isom_3gp_config_new(import->dest, track, &gpp_cfg, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
 		if (e) goto exit;
 	}
-	gf_isom_set_audio_info(import->dest, track, di, sample_rate, 1, 8);
+	gf_isom_set_audio_info(import->dest, track, di, sample_rate, 1, 16);
 	duration = import->duration * sample_rate;
 	duration /= 1000;
 

@@ -1,34 +1,7 @@
 // bld.inf
 PRJ_MMPFILES
 
-//-- osmo4 icon
-gnumakefile icons.mk
-
-//-- libghpac & osmo4
-libgpac.mmp
-osmo4.mmp
-
-//-- all modules --
-aac_in.mmp
-amr_in.mmp
-bifs_dec.mmp
-ctx_load.mmp
-dummy_in.mmp
-epoc_hw.mmp
-ft_font.mmp
-img_in.mmp
-isom_in.mmp
-laser_dec.mmp
-mp3_in.mmp
-odf_dec.mmp
-render2d.mmp
-render3d.mmp
-rtp_in.mmp
-saf_in.mmp
-soft_raster.mmp
-svg_in.mmp
-timedtext.mmp
-xvid_dec.mmp
+ffmpeg_in.mmp
 
 
 PRJ_PLATFORMS

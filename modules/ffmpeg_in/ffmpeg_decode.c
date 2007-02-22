@@ -25,6 +25,14 @@
 #include "ffmpeg_in.h"
 #include <gpac/avparse.h>
 
+static void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl)
+{
+	char szMsg[1024];
+	vsprintf(szMsg, fmt, vl);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, (szMsg));
+}
+
+
 static AVCodec *ffmpeg_get_codec(u32 codec_4cc)
 {
 	char name[5];
@@ -265,7 +273,9 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 
 #if 0
 	ffd->ctx->debug = FF_DEBUG_PICT_INFO | FF_DEBUG_BITSTREAM | FF_DEBUG_STARTCODE;
+	ffd->ctx->debug = 0xFFFFFFFF;
 	av_log_set_level(AV_LOG_DEBUG);
+	av_log_set_callback(gf_av_vlog);
 #endif
 	return GF_OK;
 }
@@ -482,7 +492,9 @@ redecode:
 		s32 h = ffd->ctx->height;
 
 		if (avcodec_decode_video(ffd->ctx, ffd->frame, &gotpic, inBuffer, inBufferLength) < 0) {
-			if (!ffd->check_short_header) return GF_NON_COMPLIANT_BITSTREAM;
+			if (!ffd->check_short_header) {
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 
 			/*switch to H263 (ffmpeg MPEG-4 codec doesn't understand short headers)*/
 			{
@@ -526,7 +538,7 @@ redecode:
 		if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
 
 		if (gotpic) {
-//#ifdef _WIN32_WCE
+//#if defined(_WIN32_WCE) ||  defined(__SYMBIAN32__)
 #if 1
 			if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
 				memcpy(outBuffer, ffd->frame->data[0], sizeof(char)*3*ffd->ctx->width);

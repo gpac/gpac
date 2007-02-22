@@ -133,6 +133,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(bs, entry->type);
 	gf_bs_write_u16(bs, entry->samplerate_hi);
+	gf_bs_write_u16(bs, (entry->type == GF_ISOM_SUBTYPE_3GP_AMR) ? 160 : 320);
 	gf_bs_write_u8(bs, entry->channel_count);
 	gf_bs_write_u8(bs, entry->bitspersample);
 	gf_bs_write_u8(bs, 0);

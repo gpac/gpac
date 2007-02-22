@@ -25,7 +25,7 @@
 #include "ffmpeg_in.h"
 
 
-
+GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
@@ -33,6 +33,7 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
+GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return FFDEC_Load();
@@ -40,6 +41,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	return NULL;
 }
 
+GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {

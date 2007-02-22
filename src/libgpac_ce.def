@@ -133,6 +133,7 @@ EXPORTS
 	gf_sk_receive_wait
 	gf_net_get_ntp
 	gf_net_has_ipv6
+	gf_net_is_ipv6
 
 	gf_url_is_local
 	gf_url_get_absolute_path
@@ -899,6 +900,8 @@ EXPORTS
 	gf_node_list_get_child
 	gf_node_list_get_count
 	gf_node_list_add_child
+	gf_node_list_del_child
+	gf_node_list_insert_child
 	gf_sg_new
 	gf_sg_new_subscene
 	gf_sg_set_scene_time_callback
@@ -1138,6 +1141,7 @@ EXPORTS
 	gf_svg_unregister_iri
 	gf_svg_path_build
 	gf_svg_store_embedded_data
+	gf_svg_has_appearance_flag_dirty
 	gf_dom_listener_build
 	gf_dom_listener_add
 	gf_dom_listener_del

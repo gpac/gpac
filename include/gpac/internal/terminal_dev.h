@@ -615,6 +615,8 @@ enum
 	GF_ODM_HAS_PROFILES = (1<<4),
 	/*flag set if object governs profile of inline subscenes*/
 	GF_ODM_INLINE_PROFILES = (1<<5),
+	/*flag set if object declared by network service, not from OD stream*/
+	GF_ODM_NOT_IN_OD_STREAM = (1<<6),
 };
 
 struct _od_manager

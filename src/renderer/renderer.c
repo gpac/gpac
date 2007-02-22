@@ -852,6 +852,7 @@ GF_Err gf_sr_set_option(GF_Renderer *sr, u32 type, u32 value)
 		break;
 	case GF_OPT_FREEZE_DISPLAY: 
 		sr->freeze_display = value;
+		sr->draw_next_frame = 1; 
 		break;
 	case GF_OPT_RELOAD_CONFIG: 
 		SR_ReloadConfig(sr);

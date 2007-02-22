@@ -100,8 +100,8 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			dsi = ch->esd->decoderConfig->decoderSpecificInfo->data;
 			dsiSize = ch->esd->decoderConfig->decoderSpecificInfo->dataLength;
 		} 
-		/*ALWAYS override with network DSI if any*/
-		if (ch->service) {
+		/*For objects declared in OD stream, override with network DSI if any*/
+		if (ch->service && !(ch->odm->flags & GF_ODM_NOT_IN_OD_STREAM) ) {
 			com.command_type = GF_NET_CHAN_GET_DSI;
 			com.base.on_channel = ch;
 			e = gf_term_service_command(ch->service, &com);
@@ -541,7 +541,8 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 		for composition, we may get into cases where there will never be enough data for high speeds...
 		FIXME - WE WILL NEED TO MOVE TO DYNAMIC CU BLOCKS IN ORDER TO SUPPORT ANY SPEED, BUT WHAT IS THE IMPACT
 		FOR LOW RESOURCES DEVICES ??*/
-		audio_buf_len = 1000;
+//		audio_buf_len = 1000;
+		audio_buf_len = 200;
 
 		cap.CapCode = GF_CODEC_BUFFER_MAX;
 		gf_codec_get_capability(dec, &cap);

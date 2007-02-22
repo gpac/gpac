@@ -486,7 +486,7 @@ BOOL WinGPAC::InitInstance()
 			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) szAppPath);
 
 			sOpt = gf_cfg_get_key(m_user.config, "Rendering", "Raster2D");
-			if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "gdip_rend");
+			if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "GPAC 2D Raster");
 
 			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
 			if (!sOpt) {

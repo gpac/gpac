@@ -24,7 +24,7 @@ InitialObjectDescriptor {
 OrderedGroup {
  children [
   DEF B1 Background2D {
-   backColor 1 1 1
+   backColor $FFFFFF
   }
   DEF B2 Background2D {
    backColor 1 0 0

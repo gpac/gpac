@@ -187,10 +187,11 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 
 	if (!conn) {
 		/*RTSP RFC recommends an empty "c= " line but some server don't send it. Use session info (o=)*/
-		if (!sdp->o_net_type || !sdp->o_add_type || 
-			strcmp(sdp->o_net_type, "IN") || strcmp(sdp->o_add_type, "IP4")) return NULL;
+		if (!sdp->o_net_type || !sdp->o_add_type || strcmp(sdp->o_net_type, "IN")) return NULL;
+		if (strcmp(sdp->o_add_type, "IP4") && strcmp(sdp->o_add_type, "IP6")) return NULL;
 	} else {
-		if (strcmp(conn->net_type, "IN") || strcmp(conn->add_type, "IP4")) return NULL;
+		if (strcmp(conn->net_type, "IN")) return NULL;
+		if (strcmp(conn->add_type, "IP4") && strcmp(conn->add_type, "IP6")) return NULL;
 	}
 	/*do we support transport*/
 	if (strcmp(media->Profile, "RTP/AVP") && strcmp(media->Profile, "RTP/AVP/TCP")
@@ -236,14 +237,24 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		trans.Profile = media->Profile;
 	} else {
 		trans.source = conn? conn->host : sdp->o_address;
-		trans.IsUnicast = 1;
-		trans.client_port_first = media->PortNumber;
-		trans.client_port_last = media->PortNumber + 1;
-		/*we should take care of AVP vs SAVP however most servers don't understand RTP/SAVP client requests*/
-		if (rtp->transport_mode==1) trans.Profile = GF_RTSP_PROFILE_RTP_AVP_TCP;
-		else trans.Profile = media->Profile;
+		trans.IsUnicast = gf_sk_is_multicast_address(trans.source) ? 0 : 1;
+		if (!trans.IsUnicast) {
+			trans.port_first = media->PortNumber;
+			trans.port_last = media->PortNumber + 1;
+			trans.Profile = media->Profile;
+		} else {
+			trans.client_port_first = media->PortNumber;
+			trans.client_port_last = media->PortNumber + 1;
+	
+			/*we should take care of AVP vs SAVP however most servers don't understand RTP/SAVP client requests*/
+			if (rtp->transport_mode==1) trans.Profile = GF_RTSP_PROFILE_RTP_AVP_TCP;
+			else trans.Profile = media->Profile;
+		}
 	}
-	gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL);
+	if (gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL) != GF_OK) {
+		RP_DeleteStream(tmp);
+		return NULL;
+	}
 
 	//setup our RTP map
 	if (! payt_setup(tmp, map, media)) {
@@ -259,6 +270,8 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	tmp->range_start = Start;
 	tmp->range_end = End;
 	if (End != -1.0) tmp->flags |= RTP_HAS_RANGE;
+
+	tmp->clock_rate = gf_rtp_get_clockrate(tmp->rtp_ch); 
 
 	if (force_bcast) tmp->flags |= RTP_FORCE_BROADCAST;
 	return tmp;

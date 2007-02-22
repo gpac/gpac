@@ -43,6 +43,11 @@
 #define inline __inline
 #endif
 
+#if defined(__SYMBIAN32__)
+#define EMULATE_INTTYPES
+#endif
+
+
 #ifndef __MINGW32__
 #define __attribute__(s)
 #endif

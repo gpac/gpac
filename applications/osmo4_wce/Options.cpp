@@ -471,6 +471,7 @@ void COptGen::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_NO_BACKLIGHT, m_NoBacklight);
 	DDX_Control(pDX, IDC_FILL_SCREEN, m_Fill);
 	DDX_Control(pDX, IDC_LOOP, m_Loop);
+	DDX_Control(pDX, IDC_ENABLE_LOGS, m_Logs);
 	//}}AFX_DATA_MAP
 }
 
@@ -502,6 +503,9 @@ BOOL COptGen::OnInitDialog()
 	m_Fill.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "DisableBackLight");
 	m_NoBacklight.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "LogLevel");
+	m_Logs.SetCheck((sOpt && !stricmp(sOpt, "debug")) ? 1 : 0);
 	return TRUE; 
 }
 
@@ -515,6 +519,8 @@ void COptGen::SaveOptions()
 	gf_cfg_set_key(gpac->m_user.config, "General", "FillScreen", gpac->m_fit_screen ? "yes" : "no");
 	gpac->m_disable_backlight = m_NoBacklight.GetCheck();
 	gf_cfg_set_key(gpac->m_user.config, "General", "DisableBackLight", gpac->m_disable_backlight ? "yes" : "no");
+
+	gpac->EnableLogs(m_Logs.GetCheck() ? 1 : 0);
 }
 
 void COptGen::OnFileassoc() 
