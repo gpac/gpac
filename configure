@@ -64,6 +64,7 @@ use_memory_tracking="no"
 has_opengl="no"
 has_ssl="no"
 has_ipv6="no"
+has_openjpeg="no"
 gprof_build="no"
 
 win32="no"
@@ -487,6 +488,23 @@ elif test "$alt_macosx_dir" != "" ; then
  fi
 elif $cc -o $TMPO $TMPC -I$local_inc/jpeg -L$local_lib -ljpeg 2> /dev/null  ; then
 has_jpeg="local"
+fi
+
+#look for OpenJPEG support
+cat > $TMPC << EOF
+#include <stdio.h>
+#include <openjpeg.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -lopenjpeg 2> /dev/null  ; then
+has_openjpeg="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -ljpeg 2> /dev/null ; then
+ has_openjpeg="system"
+ fi
+elif $cc -o $TMPO $TMPC -I$local_inc/openjpeg -L$local_lib -lopenjpeg 2> /dev/null  ; then
+has_openjpeg="local"
 fi
 
 #look for PNG support
@@ -1011,6 +1029,7 @@ echo "** Extra Libraries used **"
 echo "SpiderMonkey: $has_js"
 echo "FreeType: $has_ft"
 echo "JPEG: $has_jpeg"
+echo "OpenJPEG: $has_openjpeg"
 echo "PNG: $has_png"
 echo "MAD: $has_mad"
 echo "FAAD: $has_faad"
@@ -1151,6 +1170,7 @@ fi
 echo "CONFIG_ZLIB=$has_zlib" >> config.mak
 echo "CONFIG_FT=$has_ft" >> config.mak
 echo "CONFIG_JPEG=$has_jpeg" >> config.mak
+echo "CONFIG_JP2=$has_openjpeg" >> config.mak
 echo "CONFIG_PNG=$has_png" >> config.mak
 echo "CONFIG_FAAD=$has_faad" >> config.mak
 echo "CONFIG_MAD=$has_mad" >> config.mak
