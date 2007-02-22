@@ -93,6 +93,7 @@
 #define IDC_VIEW_FPS                    1064
 #define IDC_NO_BACKLIGHT                1065
 #define IDC_SAX_PROGRESSIVE             1066
+#define IDC_ENABLE_LOGS                 1067
 #define IDS_CAP_FILE                    32772
 #define ID_FILE_RESTART                 32773
 #define ID_FPS_DISP                     32774

@@ -16,11 +16,11 @@
 [0x101F7961], 0, 0, 0, {"Series60ProductID"}
 
 ;Files to install
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\osmo4.exe"                 -"c:\sys\bin\Osmo4.exe"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\libgpac.dll"                 -"c:\sys\bin\libgpac.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\Data\z\resource\apps\osmo4.rsc"              -"c:\resource\apps\Osmo4.rsc"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\Data\z\private\10003a3f\import\apps\Osmo4_reg.rsc"  -"c:\private\10003a3f\import\apps\Osmo4_reg.rsc"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\Data\z\resource\apps\osmo4_aif.mif"		-"c:\resource\apps\Osmo4_aif.mif"
+"D:\Symbian\9.2\S60_3rd_FP1\Epoc32\release\GCCE\UREL\osmo4.exe"                 -"c:\sys\bin\Osmo4.exe"
+"D:\Symbian\9.2\S60_3rd_FP1\Epoc32\release\GCCE\UREL\libgpac.dll"                 -"c:\sys\bin\libgpac.dll"
+"D:\Symbian\9.2\S60_3rd_FP1\Epoc32\Data\z\resource\apps\osmo4.rsc"              -"c:\resource\apps\Osmo4.rsc"
+"D:\Symbian\9.2\S60_3rd_FP1\Epoc32\Data\z\private\10003a3f\import\apps\Osmo4_reg.rsc"  -"c:\private\10003a3f\import\apps\Osmo4_reg.rsc"
+"D:\Symbian\9.2\S60_3rd_FP1\Epoc32\Data\z\resource\apps\osmo4_aif.mif"		-"c:\resource\apps\Osmo4_aif.mif"
 ;config file
 "GPAC.cfg"        		-"c:\private\F01F9075\GPAC.cfg"
 ;startup file
@@ -28,26 +28,11 @@
 ;cache setup
 ""        		-"c:\private\F01F9075\cache\", FN
 ;modules: on S60, librairies shall be in /sys/bin to load ...
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_aac_in.dll"           -"c:\sys\bin\gm_aac_in.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_amr_in.dll"           -"c:\sys\bin\gm_amr_in.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_bifs_dec.dll"           -"c:\sys\bin\gm_bifs_dec.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_ctx_load.dll"           -"c:\sys\bin\gm_ctx_load.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_dummy_in.dll"           -"c:\sys\bin\gm_dummy_in.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_epoc_hw.dll"           -"c:\sys\bin\gm_epoc_hw.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_ft_font.dll"           -"c:\sys\bin\gm_ft_font.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_img_in.dll"           -"c:\sys\bin\gm_img_in.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_isom_in.dll"           -"c:\sys\bin\gm_isom_in.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_laser_dec.dll"           -"c:\sys\bin\gm_laser_dec.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_mp3_in.dll"           -"c:\sys\bin\gm_mp3_in.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_odf_dec.dll"           -"c:\sys\bin\gm_odf_dec.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_render2d.dll"           -"c:\sys\bin\gm_render2d.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_render3d.dll"           -"c:\sys\bin\gm_render3d.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_rtp_in.dll"           -"c:\sys\bin\gm_rtp_in.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_saf_in.dll"           -"c:\sys\bin\gm_saf_in.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_soft_raster.dll"           -"c:\sys\bin\gm_soft_raster.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_svg_in.dll"           -"c:\sys\bin\gm_svg_in.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_timedtext.dll"           -"c:\sys\bin\gm_timedtext.dll"
-"D:\Symbian\S60_3rd_MR_2\Epoc32\release\GCCE\UREL\gm_xvid_dec.dll"           -"c:\sys\bin\gm_xvid_dec.dll"
+"D:\Symbian\9.2\S60_3rd_FP1\Epoc32\release\GCCE\UREL\gm_epoc_hw.dll"           -"c:\sys\bin\gm_epoc_hw.dll"
+"D:\Symbian\9.2\S60_3rd_FP1\Epoc32\release\GCCE\UREL\gm_ffmpeg_in.dll"           -"c:\sys\bin\gm_ffmpeg_in.dll"
+"D:\Symbian\9.2\S60_3rd_FP1\Epoc32\release\GCCE\UREL\gm_isom_in.dll"           -"c:\sys\bin\gm_isom_in.dll"
+"D:\Symbian\9.2\S60_3rd_FP1\Epoc32\release\GCCE\UREL\gm_render2d.dll"           -"c:\sys\bin\gm_render2d.dll"
+"D:\Symbian\9.2\S60_3rd_FP1\Epoc32\release\GCCE\UREL\gm_soft_raster.dll"           -"c:\sys\bin\gm_soft_raster.dll"
 
 
 ;required for application to be covered by backup/restore facility 

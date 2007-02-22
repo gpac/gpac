@@ -14,6 +14,11 @@ MACRO GPAC_HAS_JPEG
 SYSTEMINCLUDE ..\..\extra_lib\include\jpeg
 STATICLIBRARY libjpeg.lib 
 
+//comment if you don't have libopenjpeg
+MACRO GPAC_HAS_JP2
+SYSTEMINCLUDE ..\..\extra_lib\include\openjpeg
+STATICLIBRARY libopenjpeg.lib 
+
 //Common tools
 SOURCEPATH ..\..\modules\img_in
 SOURCE img_dec.c
@@ -21,6 +26,7 @@ SOURCE img_in.c
 SOURCE bmp_dec.c
 SOURCE png_dec.c
 SOURCE jpeg_dec.c
+SOURCE jp2_dec.c
 
 SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
 

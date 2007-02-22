@@ -400,12 +400,14 @@ FONT 8, "System"
 BEGIN
     CONTROL         "Loop at end",IDC_LOOP,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,6,28,54,10
-    PUSHBUTTON      "Make Default MPEG-4 Player",IDC_FILEASSOC,5,75,124,26,
+    PUSHBUTTON      "Make Default MPEG-4 Player",IDC_FILEASSOC,5,90,124,20,
                     BS_MULTILINE
     CONTROL         "Stretch display to fill screen",IDC_FILL_SCREEN,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,6,45,104,10
     CONTROL         "Disable Backlight while playing",IDC_NO_BACKLIGHT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,61,111,10
+    CONTROL         "Enable logs",IDC_ENABLE_LOGS,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,6,74,52,10
 END
 
 IDD_OPT_RENDER DIALOG DISCARDABLE  0, 20, 133, 121

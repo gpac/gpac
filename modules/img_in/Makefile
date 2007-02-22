@@ -57,6 +57,21 @@ ifeq ($(IS_BIGENDIAN), yes)
 CFLAGS+=-DGPAC_BIG_ENDIAN
 endif
 
+
+#png config
+ifeq ($(CONFIG_JP2), no)
+else
+OBJS+=jp2_dec.o
+LINKLIBS+= -lopenjpeg
+CFLAGS+=-DGPAC_HAS_JP2
+#local openjpeg lib
+ifeq ($(CONFIG_JP2), local)
+NEED_LOCAL_LIB="yes"
+CFLAGS+= -I$(LOCAL_INC_PATH)/openjpeg
+endif
+endif
+
+
 #add local lib path
 ifeq ($(NEED_LOCAL_LIB), "yes")
 LOCAL_LIB+=-L../../extra_lib/lib/gcc

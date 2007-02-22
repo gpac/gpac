@@ -354,6 +354,15 @@ s32 gf_sk_get_handle(GF_Socket *sock);
 u32 gf_net_has_ipv6();
 
 
+/*!
+ *\brief checks address type
+ *
+ *Checks if an address is an IPV6 or IPV4 one.
+ *\true 1 if address is IPV6 one, 0 otherwise
+ */
+Bool gf_net_is_ipv6(char *address);
+
+
 /*! @} */
 
 #ifdef __cplusplus

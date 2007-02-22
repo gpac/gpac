@@ -21,7 +21,11 @@ last modified: December 2006
     * networking 
     * AVC/H264 video decoding
     * H263 video decoding        
-	
+
+  TIP:
+    Global compiler options are located in SDKRoot\Epoc32\tools\compilation_config\ - you may edit the default C++ rules to remove some 
+    warnings during C compil. 
+
 I Extra lib installation
 	Currently no extra libs are available for GPAC on symbian, the package will be updated soon
 

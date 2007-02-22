@@ -591,7 +591,7 @@ GF_Err gf_bt_parse_color(GF_BTParser *parser, const char *name, SFColor *col)
 	/*HTML code*/
 	if (str[0]=='$') {
 		u32 val;
-		sscanf(str, "%x", &val);
+		sscanf(str+1, "%x", &val);
 		col->red = INT2FIX((val>>16) & 0xFF) / 255;
 		col->green = INT2FIX((val>>8) & 0xFF) / 255;
 		col->blue = INT2FIX(val & 0xFF) / 255;

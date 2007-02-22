@@ -151,6 +151,7 @@ static void OnNewPacket(void *cbk, GF_RTPHeader *header)
 static void OnPacketDone(void *cbk, GF_RTPHeader *header) 
 {
 	GF_Err e;
+	s64 burst_time, rtp_ts;
 	RTP_Caller *rtp = cbk;
 	u32 currentPacketSize; // in bits
 
@@ -167,13 +168,17 @@ static void OnPacketDone(void *cbk, GF_RTPHeader *header)
 	}
 
 	currentPacketSize = (rtp->packet.payload_len + RTP_HEADER_SIZE) * 8; // in bits
+	burst_time = (s64) rtp->packetizer->sl_config.timestampResolution * (rtp->nextBurstTime + rtp->global->cycleDuration);
+	rtp_ts = (s64) rtp->next_ts*1000;
+
 	if (rtp->dataLengthInBurst + currentPacketSize < rtp->global->burstSize 
-		&& (rtp->nextBurstTime + rtp->global->cycleDuration)*rtp->packetizer->sl_config.timestampResolution > rtp->next_ts*1000) { 
+		&& (burst_time - rtp_ts > 0) ) { 
 		
 		if (rtp->nbBurstSent == 0 && rtp->dataLengthInBurst == 0) rtp->timelineOrigin = gf_sys_clock();
 
 		e = gf_rtp_send_packet(rtp->channel, header, 0, 0, rtp->packet.payload, rtp->packet.payload_len);
-		if (e) fprintf(stdout, "Error %s sending RTP packet\n", gf_error_to_string(e));
+		if (e) 
+			fprintf(stdout, "Error %s sending RTP packet\n", gf_error_to_string(e));
 		rtp->dataLengthInBurst += currentPacketSize; 
 		free(rtp->packet.payload);				
 		rtp->packet.payload = NULL;
@@ -183,9 +188,11 @@ static void OnPacketDone(void *cbk, GF_RTPHeader *header)
 
 	} else {
 		if (rtp->dataLengthInBurst + currentPacketSize > rtp->global->burstSize) {
-			if (rtp->global->log_level >= LOG_BURST) fprintf(stdout, "  Packet (%u ms) delayed due to buffer overflow\n", rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution);
+			if (rtp->global->log_level >= LOG_BURST) 
+				fprintf(stdout, "  Packet (TS %u) delayed due to buffer overflow\n", rtp->next_ts);
 		} else {
-			if (rtp->global->log_level==LOG_PACKET)fprintf(stdout, "  Packet (%u ms) delayed to avoid drift\n", rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution);
+			if (rtp->global->log_level==LOG_PACKET)
+				fprintf(stdout, "  Packet (TS %u) delayed to avoid drift\n", rtp->next_ts);
 		}
 
 		memcpy(&rtp->prev_packet.header, header, sizeof(GF_RTPHeader));
@@ -245,7 +252,7 @@ GF_Err rtp_init_packetizer(RTP_Caller *rtp)
 	if (sdp_out) {
 		sprintf(sdpLine, "v=0");
 		fprintf(sdp_out, "%s\n", sdpLine);
-		sprintf(sdpLine, "o=MP4Streamer 3357474383 1148485440000 IN IP4 %s", rtp->global->dest_ip);
+		sprintf(sdpLine, "o=MP4Streamer 3357474383 1148485440000 IN IP%d %s", gf_net_is_ipv6(rtp->global->dest_ip) ? 6 : 4, rtp->global->dest_ip);
 		fprintf(sdp_out, "%s\n", sdpLine);
 		sprintf(sdpLine, "s=livesession");
 		fprintf(sdp_out, "%s\n", sdpLine);
@@ -255,7 +262,7 @@ GF_Err rtp_init_packetizer(RTP_Caller *rtp)
 		fprintf(sdp_out, "%s\n", sdpLine);
 		sprintf(sdpLine, "e=admin@");
 		fprintf(sdp_out, "%s\n", sdpLine);
-		sprintf(sdpLine, "c=IN IP4 %s", rtp->global->dest_ip);
+		sprintf(sdpLine, "c=IN IP%d %s", gf_net_is_ipv6(rtp->global->dest_ip) ? 6 : 4, rtp->global->dest_ip);
 		fprintf(sdp_out, "%s\n", sdpLine);
 		sprintf(sdpLine, "t=0 0");
 		fprintf(sdp_out, "%s\n", sdpLine);
@@ -403,15 +410,12 @@ GF_Err rtp_init_channel(RTP_Caller *rtp, u32 path_mtu, char * dest, int port)
 	tr.Append = 0;
 	tr.SSRC = rand();
 
+	tr.port_first        = port;
+	tr.port_last         = port+1;
 	if (tr.IsUnicast) {
-		tr.client_port_first = port; //RTP
-		tr.client_port_last  = port+1; //RTCP (not used a priori)
-
-		tr.port_first        = rtp->channel->net_info.port_first; //RTP other end 
-		tr.port_last         = rtp->channel->net_info.port_last; //RTCP other end (not used a priori)
+		tr.client_port_first = port;
+		tr.client_port_last  = port+1;
 	} else {
-		tr.port_first        = port;
-		tr.port_last         = port+1;
 		tr.source = dest;
 	}
 
@@ -452,10 +456,10 @@ void sendBurst(RTP_Caller *rtp)
 	}
 
 	time = gf_sys_clock();
-	rtp->drift = (s32)(time -rtp->timelineOrigin) - (s32) (rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution);
+	rtp->drift = (s32) ((s64)(time -rtp->timelineOrigin) - ((s64) rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution));
 
-	if (rtp->global->log_level >= LOG_BURST) fprintf(stdout, "Time %u - Burst %u - Session %u - Session Time %u - TS %d - Drift %d ms\n", time, rtp->global->nbBurstSent, rtp->id, time-rtp->timelineOrigin, rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution, rtp->drift);
-	else fprintf(stdout, "Time %u - Burst %u - Session %u (Time %u) - TS %d - Drift %d ms\r", time, rtp->global->nbBurstSent, rtp->id, time-rtp->timelineOrigin, rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution, rtp->drift);
+	if (rtp->global->log_level >= LOG_BURST) fprintf(stdout, "Time %u - Burst %u - Session %u (Time %u) - TS %d - Drift %d ms\n", time, rtp->global->nbBurstSent, rtp->id, time-rtp->timelineOrigin, rtp->next_ts, rtp->drift);
+	else fprintf(stdout, "Time %u - Burst %u - Session %u (Time %u) - TS %d - Drift %d ms\r", time, rtp->global->nbBurstSent, rtp->id, time-rtp->timelineOrigin, rtp->next_ts, rtp->drift);
 
 	
 	ts_scale = rtp->packetizer->sl_config.timestampResolution;
@@ -511,7 +515,7 @@ void sendBurst(RTP_Caller *rtp)
  *
  */
 
-int configuration(Simulator *av_simulator, char *av_argv1)
+GF_Err configuration(Simulator *av_simulator, char *av_argv1)
 {
 	GF_Err e;
 	const char *opt;
@@ -605,11 +609,13 @@ int configuration(Simulator *av_simulator, char *av_argv1)
 	
 		e = rtp_init_channel(rtp, av_simulator->path_mtu+12, av_simulator->dest_ip, rtp->port);
 		if (e) {
-			fprintf(stderr, "Could not initialize RTP Channel\n");
+			fprintf(stderr, "Could not initialize RTP Channel: %s\n", gf_error_to_string(e));
+			goto exit;
 		}			
 		e = rtp_init_packetizer(&av_simulator->rtps[i]);
 		if (e) {
-			fprintf(stderr, "Could not initialize Packetizer \n");
+			fprintf(stderr, "Could not initialize Packetizer: %s\n", gf_error_to_string(e));
+			goto exit;
 		}
 
 		fprintf(stdout, " Session %u:\n", rtp->id);
@@ -620,8 +626,9 @@ int configuration(Simulator *av_simulator, char *av_argv1)
 	}
 	fprintf(stdout, "\n");
 
+exit:
 	gf_cfg_del(configFile);
-	return 1;
+	return e;
 } /* configuration */
 
 // ---------------------------------------------------------------------------------------------------
@@ -732,10 +739,9 @@ int main(int argc, char **argv)
 	 *
 	 */
 	gf_sys_init();
-	configuration(&global, cfg);
-	  
-
-	handleSessions(&global);
+	if (configuration(&global, cfg) == GF_OK) {
+		handleSessions(&global);
+	}
 
 	/*
 	 * Desallocation 

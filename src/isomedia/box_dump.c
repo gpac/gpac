@@ -1331,9 +1331,8 @@ GF_Err gppv_dump(GF_Box *a, FILE * trace)
 
 GF_Err gppc_dump(GF_Box *a, FILE * trace)
 {
-	char name[5];
 	GF_3GPPConfigBox *p = (GF_3GPPConfigBox *)a;
-	gf_4cc_to_str(p->cfg.vendor);
+	const char *name = gf_4cc_to_str(p->cfg.vendor);
 	switch (p->cfg.type) {
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:

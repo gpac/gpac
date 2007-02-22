@@ -265,6 +265,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	odm->OD = od;
 	odm->term = term;
 	odm->parentscene = is;
+	odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
 	gf_list_add(is->ODlist, odm);
 	gf_term_lock_net(term, 0);
 

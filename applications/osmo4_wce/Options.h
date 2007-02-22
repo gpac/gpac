@@ -171,6 +171,7 @@ public:
 	CButton	m_NoBacklight;
 	CButton	m_Fill;
 	CButton	m_Loop;
+	CButton	m_Logs;
 	//}}AFX_DATA
 
 	void SaveOptions();

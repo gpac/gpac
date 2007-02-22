@@ -740,9 +740,9 @@ typedef struct
 {
 	/*only "IN" currently defined*/
 	char *net_type;
-	/*only "IP4" currently defined*/
+	/*"IP4","IP6"*/
 	char *add_type;
-	/*doted IP address*/
+	/*hex IPv6 address or doted IPv4 address*/
 	char *host;
 	/*TTL - MUST BE PRESENT if IP is multicast - -1 otherwise*/
 	s32 TTL;

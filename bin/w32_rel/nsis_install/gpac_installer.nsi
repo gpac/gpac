@@ -145,8 +145,8 @@ SectionEnd
 Section "FFMPEG Reader and Decoder"
   SectionIn 1 2
   File "..\gm_ffmpeg_in.dll"
-  File "..\avcodec.dll"
-  File "..\avformat.dll"
+  File "..\avcodec-51.dll"
+  File "..\avformat-51.dll"
 SectionEnd
 
 Section "XviD Video Decoder"

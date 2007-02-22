@@ -145,12 +145,49 @@ COsmo4::COsmo4()
 {
 	// TODO: add construction code here,
 	// Place all significant initialization in InitInstance
+	m_logs = NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////
 // The one and only COsmo4 object
 
 COsmo4 theApp;
+
+static void osmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
+{
+	FILE *logs = (FILE *) cbk;
+	if (logs) {
+	    vfprintf(logs, fmt, list);
+		fflush(logs);
+	}
+}
+
+void COsmo4::EnableLogs(Bool turn_on)
+{
+	if (turn_on) {
+		m_logs = fopen("\\gpac_logs.txt", "wt");
+		if (!m_logs) {
+			MessageBox(NULL, _T("Couldn't open log files at file system root"), _T("Disabling logs"), MB_OK);
+			turn_on = 0;
+		} else {
+			gf_log_set_level(GF_LOG_DEBUG);
+//			gf_log_set_tools(0xFFFFFFFF);
+			gf_log_set_tools(GF_LOG_CORE|GF_LOG_NETWORK|GF_LOG_RTP|GF_LOG_SYNC|GF_LOG_CODEC|GF_LOG_MEDIA|GF_LOG_SERVICE);
+			gf_log_set_callback(m_logs, osmo4_do_log);
+			gf_cfg_set_key(m_user.config, "General", "LogLevel", "debug");
+		}
+	} 
+	if (!turn_on) {
+		if (m_logs) {
+			fclose(m_logs);
+			m_logs = 0;
+		}
+		gf_log_set_level(0);
+		gf_log_set_tools(0);
+		gf_log_set_callback(NULL, NULL);
+		gf_cfg_set_key(m_user.config, "General", "LogLevel", "none");
+	}
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // COsmo4 initialization
@@ -205,7 +242,12 @@ BOOL COsmo4::InitInstance()
 			m_pMainWnd->PostMessage(WM_CLOSE);
 		}
 	}
-	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+
+	const char *str = gf_cfg_get_key(m_user.config, "General", "LogLevel");
+	EnableLogs((str && !strcmp(str, "debug")) ? 1 : 0);
+
+
+	str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	m_user.modules = gf_modules_new(str, m_user.config);
 	if (!m_user.modules) {
 		unsigned char str_path[MAX_PATH];
@@ -405,6 +447,7 @@ int COsmo4::ExitInstance()
 	gf_cfg_del(m_user.config);
 	ShowTaskBar(1);
 	gf_sys_close();
+	if (m_logs) fclose(m_logs);
 	return CWinApp::ExitInstance();
 }
 

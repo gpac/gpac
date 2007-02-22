@@ -102,7 +102,7 @@ static GF_Err ft_init_font_engine(GF_FontRaster *dr)
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed");
 	if (sOpt) strcpy(ftpriv->font_fixed, sOpt);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Init OK - font directpry %s\n", ftpriv->font_dir));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Init OK - font directory %s\n", ftpriv->font_dir));
 	
 	return GF_OK;
 }
