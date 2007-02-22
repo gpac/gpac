@@ -459,7 +459,10 @@ void sendBurst(RTP_Caller *rtp)
 	rtp->drift = (s32) ((s64)(time -rtp->timelineOrigin) - ((s64) rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution));
 
 	if (rtp->global->log_level >= LOG_BURST) fprintf(stdout, "Time %u - Burst %u - Session %u (Time %u) - TS %d - Drift %d ms\n", time, rtp->global->nbBurstSent, rtp->id, time-rtp->timelineOrigin, rtp->next_ts, rtp->drift);
-	else fprintf(stdout, "Time %u - Burst %u - Session %u (Time %u) - TS %d - Drift %d ms\r", time, rtp->global->nbBurstSent, rtp->id, time-rtp->timelineOrigin, rtp->next_ts, rtp->drift);
+	else {
+ 		fprintf(stdout, "Time %u - Burst %u - Session %u (Time %u) - TS %d - Drift %d ms\r", time, rtp->global->nbBurstSent, rtp->id, time-rtp->timelineOrigin, rtp->next_ts, rtp->drift);
+		fflush(stdout);
+	}
 
 	
 	ts_scale = rtp->packetizer->sl_config.timestampResolution;
