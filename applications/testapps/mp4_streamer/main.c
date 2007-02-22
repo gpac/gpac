@@ -159,7 +159,7 @@ static void OnPacketDone(void *cbk, GF_RTPHeader *header)
 
 	currentPacketSize = (rtp->packet.payload_len + RTP_HEADER_SIZE) * 8; // in bits
 	if (rtp->dataLengthInBurst + currentPacketSize < rtp->global->burstSize 
-		&& rtp->nextBurstTime + rtp->global->cycleDuration > rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution) { 
+		&& (rtp->nextBurstTime + rtp->global->cycleDuration)*rtp->packetizer->sl_config.timestampResolution > rtp->next_ts*1000) { 
 		
 		if (rtp->nbBurstSent == 0 && rtp->dataLengthInBurst == 0) rtp->timelineOrigin = gf_sys_clock();
 
@@ -173,9 +173,9 @@ static void OnPacketDone(void *cbk, GF_RTPHeader *header)
 
 	} else {
 		if (rtp->dataLengthInBurst + currentPacketSize > rtp->global->burstSize) {
-			fprintf(stdout, "  Packet (%u ms) delayed due to buffer overflow\n", rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution);
+			fprintf(stdout, "  Packet delayed due to buffer overflow\n");
 		} else {
-			if (rtp->global->log_level==1)fprintf(stdout, "  Packet (%u ms) delayed to avoid drift\n", rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution);
+			if (rtp->global->log_level==1)fprintf(stdout, "  Packet delayed to avoid drift\n");
 		}
 
 		memcpy(&rtp->prev_packet.header, header, sizeof(GF_RTPHeader));
@@ -454,7 +454,7 @@ void sendBurst(RTP_Caller *rtp)
 				
 			rtp->packetizer->sl_header.randomAccessPointFlag = rtp->accessUnit->IsRAP;
 						
-			if (rtp->global->log_level == 1) fprintf(stdout, "Processing AU %d - DTS %u - CTS %u\n", rtp->accessUnitProcess, rtp->packetizer->sl_header.decodingTimeStamp*1000/rtp->packetizer->sl_config.timestampResolution, rtp->packetizer->sl_header.compositionTimeStamp*1000/rtp->packetizer->sl_config.timestampResolution);
+			if (rtp->global->log_level == 1) fprintf(stdout, "Processing AU %d - DTS %u - CTS %u\n", rtp->accessUnitProcess, rtp->packetizer->sl_header.decodingTimeStamp, rtp->packetizer->sl_header.compositionTimeStamp);
 
 			gf_rtp_builder_process(rtp->packetizer, rtp->accessUnit->data, rtp->accessUnit->dataLength, 1, 
 								   rtp->accessUnit->dataLength, sampleDuration, sampleDescIndex);
