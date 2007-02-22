@@ -1,6 +1,6 @@
 include ../../../config.mak
 
-vpath %.c $(SRC_PATH)/applications/testapps/mp4_streamer
+vpath %.c $(SRC_PATH)/applications/test_apps/mp4_streamer
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
@@ -29,12 +29,12 @@ OBJS= main.o
 LINKFLAGS=-L../../../bin/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
-PROG=mp4streamer$(EXE)
+PROG=mp4_streamer$(EXE)
 #LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
 LINKFLAGS+=-lgpac
 else
 EXT=
-PROG=LoadCompare
+PROG=mp4_streamer
 #LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz
 LINKFLAGS+=-lgpac -lz
 endif
