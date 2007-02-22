@@ -47,7 +47,13 @@
 //------------------------------------------------------------
 // Typedef
 //------------------------------------------------------------
-
+enum
+{
+	LOG_NONE = 0,
+	LOG_BURST,
+	LOG_AU,
+	LOG_PACKET,
+};
 typedef struct {	
 	u32 burstDuration;
 	u32 burstBitRate;
@@ -66,6 +72,7 @@ typedef struct {
 	Bool run;
 
 	u32 log_level;
+	u32 path_mtu;
 } Simulator;
 
 typedef struct {
@@ -108,6 +115,7 @@ typedef struct _rtp_caller {
 	u32 ts_offset;
 	u32 next_ts;
 
+	Bool force_mpeg4_generic;
 
 	/* Management */
 	Simulator *global;
@@ -142,6 +150,7 @@ static void OnNewPacket(void *cbk, GF_RTPHeader *header)
  */
 static void OnPacketDone(void *cbk, GF_RTPHeader *header) 
 {
+	GF_Err e;
 	RTP_Caller *rtp = cbk;
 	u32 currentPacketSize; // in bits
 
@@ -154,7 +163,7 @@ static void OnPacketDone(void *cbk, GF_RTPHeader *header)
 		free(rtp->prev_packet.payload);				
 		rtp->prev_packet.payload = NULL;
 
-		if (rtp->global->log_level == 1) fprintf(stdout, "  RTP SN %u - TS %u - M %u - Size %u\n", rtp->prev_packet.header.SequenceNumber, rtp->prev_packet.header.TimeStamp, rtp->prev_packet.header.Marker, currentPacketSize);
+		if (rtp->global->log_level == LOG_PACKET) fprintf(stdout, "  RTP SN %u - TS %u - M %u - Size %u\n", rtp->prev_packet.header.SequenceNumber, rtp->prev_packet.header.TimeStamp, rtp->prev_packet.header.Marker, currentPacketSize);
 	}
 
 	currentPacketSize = (rtp->packet.payload_len + RTP_HEADER_SIZE) * 8; // in bits
@@ -163,19 +172,20 @@ static void OnPacketDone(void *cbk, GF_RTPHeader *header)
 		
 		if (rtp->nbBurstSent == 0 && rtp->dataLengthInBurst == 0) rtp->timelineOrigin = gf_sys_clock();
 
-		gf_rtp_send_packet(rtp->channel, header, 0, 0, rtp->packet.payload, rtp->packet.payload_len);
+		e = gf_rtp_send_packet(rtp->channel, header, 0, 0, rtp->packet.payload, rtp->packet.payload_len);
+		if (e) fprintf(stdout, "Error %s sending RTP packet\n", gf_error_to_string(e));
 		rtp->dataLengthInBurst += currentPacketSize; 
 		free(rtp->packet.payload);				
 		rtp->packet.payload = NULL;
 		rtp->packet.payload_len = 0;
 		
-		if (rtp->global->log_level == 1) fprintf(stdout, "  RTP SN %u - TS %u - M %u - Size %u\n", rtp->packet.header.SequenceNumber, rtp->packet.header.TimeStamp, rtp->packet.header.Marker, currentPacketSize);		
+		if (rtp->global->log_level == LOG_PACKET) fprintf(stdout, "  RTP SN %u - TS %u - M %u - Size %u\n", rtp->packet.header.SequenceNumber, rtp->packet.header.TimeStamp, rtp->packet.header.Marker, currentPacketSize);		
 
 	} else {
 		if (rtp->dataLengthInBurst + currentPacketSize > rtp->global->burstSize) {
-			fprintf(stdout, "  Packet delayed due to buffer overflow\n");
+			if (rtp->global->log_level >= LOG_BURST) fprintf(stdout, "  Packet (%u ms) delayed due to buffer overflow\n", rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution);
 		} else {
-			if (rtp->global->log_level==1)fprintf(stdout, "  Packet delayed to avoid drift\n");
+			if (rtp->global->log_level==LOG_PACKET)fprintf(stdout, "  Packet (%u ms) delayed to avoid drift\n", rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution);
 		}
 
 		memcpy(&rtp->prev_packet.header, header, sizeof(GF_RTPHeader));
@@ -215,14 +225,16 @@ static void OnData(void *cbk, char *data, u32 data_size, Bool is_head)
 
 GF_Err rtp_init_packetizer(RTP_Caller *rtp)
 {	
+	u32 flags = 0;
 	FILE *sdp_out;
 	char filename[30];
 	char mediaName[30], payloadName[30];
 	char sdpLine[20000];
 
+	if (rtp->force_mpeg4_generic) flags = GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_FORCE_MPEG4;
 	rtp->packetizer = gf_rtp_packetizer_create_and_init_from_file(rtp->mp4File, rtp->trackNum, rtp,
 											OnNewPacket, OnPacketDone, NULL, OnData,
-											1500-12, 0, 0, GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_FORCE_MPEG4, 
+											rtp->global->path_mtu, 0, 0, flags, 
 											BASE_PAYT + rtp->id - 1,
 											0, 0, 0);
 
@@ -375,34 +387,45 @@ GF_Err rtp_init_packetizer(RTP_Caller *rtp)
 	return GF_OK;
 } /* rtp_init_packetizer */
 
-GF_Err rtp_init_channel(GF_RTPChannel **chan, char * dest, int port)
+GF_Err rtp_init_channel(RTP_Caller *rtp, u32 path_mtu, char * dest, int port)
 {
-
 	GF_RTSPTransport tr;
 	GF_Err res;
 
-	*chan = gf_rtp_new();
-	gf_rtp_set_ports(*chan);
+	rtp->channel = gf_rtp_new();
+	gf_rtp_set_ports(rtp->channel);
 
-	tr.IsUnicast=1;
-	tr.Profile="RTP/AVP";//RTSP_PROFILE_RTP_AVP;
+	tr.IsUnicast = gf_sk_is_multicast_address(dest) ? 0 : 1;
+	tr.Profile="RTP/AVP";
 	tr.destination = dest;
 	tr.source = "0.0.0.0";
 	tr.IsRecord = 0;
 	tr.Append = 0;
 	tr.SSRC = rand();
-	
-	tr.client_port_first = port; //RTP
-	tr.client_port_last  = port+1; //RTCP (not used a priori)
 
-	tr.port_first        = (*chan)->net_info.port_first; //RTP other end 
-	tr.port_last         = (*chan)->net_info.port_last; //RTCP other end (not used a priori)
+	if (tr.IsUnicast) {
+		tr.client_port_first = port; //RTP
+		tr.client_port_last  = port+1; //RTCP (not used a priori)
 
-	res = gf_rtp_setup_transport(*chan, &tr, dest);
-	if (res !=0) return res;
+		tr.port_first        = rtp->channel->net_info.port_first; //RTP other end 
+		tr.port_last         = rtp->channel->net_info.port_last; //RTCP other end (not used a priori)
+	} else {
+		tr.port_first        = port;
+		tr.port_last         = port+1;
+		tr.source = dest;
+	}
 
-	gf_rtp_initialize(*chan, 0, 1, 1500, 0, 0, NULL);
-	if (res !=0) return res;	
+	res = gf_rtp_setup_transport(rtp->channel, &tr, dest);
+	if (res !=0) {
+		fprintf(stdout, "Cannot setup RTP transport info\n");
+		return res;
+	}
+
+	res = gf_rtp_initialize(rtp->channel, 0, 1, 1500, 0, 0, NULL);
+	if (res !=0) {
+		fprintf(stdout, "Cannot initialize RTP sockets\n");
+		return res;
+	}
 
 	return GF_OK;
 } /* rtp_init_channel */
@@ -431,7 +454,8 @@ void sendBurst(RTP_Caller *rtp)
 	time = gf_sys_clock();
 	rtp->drift = (s32)(time -rtp->timelineOrigin) - (s32) (rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution);
 
-	fprintf(stdout, "Time %u - Burst %u - Session %u - Session Time %u - TS %d - Drift %d ms\n", time, rtp->global->nbBurstSent, rtp->id, time-rtp->timelineOrigin, rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution, rtp->drift);
+	if (rtp->global->log_level >= LOG_BURST) fprintf(stdout, "Time %u - Burst %u - Session %u - Session Time %u - TS %d - Drift %d ms\n", time, rtp->global->nbBurstSent, rtp->id, time-rtp->timelineOrigin, rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution, rtp->drift);
+	else fprintf(stdout, "Time %u - Burst %u - Session %u (Time %u) - TS %d - Drift %d ms\r", time, rtp->global->nbBurstSent, rtp->id, time-rtp->timelineOrigin, rtp->next_ts*1000/rtp->packetizer->sl_config.timestampResolution, rtp->drift);
 
 	
 	ts_scale = rtp->packetizer->sl_config.timestampResolution;
@@ -454,7 +478,7 @@ void sendBurst(RTP_Caller *rtp)
 				
 			rtp->packetizer->sl_header.randomAccessPointFlag = rtp->accessUnit->IsRAP;
 						
-			if (rtp->global->log_level == 1) fprintf(stdout, "Processing AU %d - DTS %u - CTS %u\n", rtp->accessUnitProcess, rtp->packetizer->sl_header.decodingTimeStamp, rtp->packetizer->sl_header.compositionTimeStamp);
+			if (rtp->global->log_level >= LOG_AU) fprintf(stdout, "Processing AU %d - DTS %u - CTS %u\n", rtp->accessUnitProcess, rtp->packetizer->sl_header.decodingTimeStamp, rtp->packetizer->sl_header.compositionTimeStamp);
 
 			gf_rtp_builder_process(rtp->packetizer, rtp->accessUnit->data, rtp->accessUnit->dataLength, 1, 
 								   rtp->accessUnit->dataLength, sampleDuration, sampleDescIndex);
@@ -473,7 +497,7 @@ void sendBurst(RTP_Caller *rtp)
 
 		}
 	} 
-	fprintf(stdout, "  Actual Burst Size %d bits - Actual Bit Rate %d kbps\n", rtp->dataLengthInBurst, rtp->dataLengthInBurst/(rtp->global->burstDuration+rtp->global->offDuration));
+	if (rtp->global->log_level >= LOG_BURST) fprintf(stdout, "  Actual Burst Size %d bits - Actual Bit Rate %d kbps\n", rtp->dataLengthInBurst, rtp->dataLengthInBurst/(rtp->global->burstDuration+rtp->global->offDuration));
 	rtp->nbBurstSent++;
 	rtp->global->nbBurstSent++;
 	
@@ -490,6 +514,7 @@ void sendBurst(RTP_Caller *rtp)
 int configuration(Simulator *av_simulator, char *av_argv1)
 {
 	GF_Err e;
+	const char *opt;
 	char config[1024];		
 	GF_Config *configFile;	
 	u32 i;					
@@ -504,20 +529,30 @@ int configuration(Simulator *av_simulator, char *av_argv1)
 		return GF_IO_ERR;
 	}
 
-	av_simulator->nbSessions = atoi(gf_cfg_get_key(configFile, "GLOBAL", "nbSession"));
+	opt = gf_cfg_get_key(configFile, "GLOBAL", "nbSession");
+	av_simulator->nbSessions = opt ? atoi(opt) : 0;
 	fprintf(stdout, " Number of sessions: %u \n", av_simulator->nbSessions);
 
-	av_simulator->dest_ip = strdup(gf_cfg_get_key(configFile, "GLOBAL", "IP_dest"));
+	opt = gf_cfg_get_key(configFile, "GLOBAL", "IP_dest");
+	av_simulator->dest_ip = strdup(opt ? opt : "127.0.0.1");
 	fprintf(stdout, " Destination IP: %s \n", av_simulator->dest_ip);	
-	
-	av_simulator->offDuration = atoi(gf_cfg_get_key(configFile, "GLOBAL", "off_duration"));
+
+	opt = gf_cfg_get_key(configFile, "GLOBAL", "off_duration");
+	av_simulator->offDuration = opt ? atoi(opt) : 0;
 	fprintf(stdout, " Offtime duration: %u ms \n", av_simulator->offDuration);
 
-	av_simulator->burstDuration = atoi(gf_cfg_get_key(configFile, "GLOBAL", "burst_duration"));
+	opt = gf_cfg_get_key(configFile, "GLOBAL", "burst_duration");
+	av_simulator->burstDuration = opt ? atoi(opt) : 1000;
 	fprintf(stdout, " Burst duration: %u ms \n", av_simulator->burstDuration);
 
-	av_simulator->burstBitRate = atoi(gf_cfg_get_key(configFile, "GLOBAL", "burst_bitrate"));
+	opt = gf_cfg_get_key(configFile, "GLOBAL", "burst_bitrate");
+	av_simulator->burstBitRate = opt ? atoi(opt) : 500;
 	fprintf(stdout, " Burst bit rate: %u kbps \n", av_simulator->burstBitRate);
+
+	opt = gf_cfg_get_key(configFile, "GLOBAL", "path_mtu");
+	if (opt) av_simulator->path_mtu = atoi(opt);
+	if (!av_simulator->path_mtu) av_simulator->path_mtu = 1450;
+	fprintf(stdout, " Path MTU: %u bytes \n", av_simulator->path_mtu);
 
 	av_simulator->burstSize = av_simulator->burstBitRate*av_simulator->burstDuration;
 	fprintf(stdout, " Burst size: %u bits \n", av_simulator->burstSize);
@@ -539,13 +574,24 @@ int configuration(Simulator *av_simulator, char *av_argv1)
 		rtp->id = i+1;	
 
 		// retrieve parameters in cfg file
-		rtp->filename = strdup(gf_cfg_get_key(configFile, sessionName, "file"));		
+		opt = gf_cfg_get_key(configFile, sessionName, "file");
+		rtp->filename = opt ? strdup(opt) : NULL;	
+
+		opt = gf_cfg_get_key(configFile, sessionName, "track_nb");
+		rtp->trackNum = opt ? atoi(opt) : 0;
+		opt = gf_cfg_get_key(configFile, sessionName, "port");
+		rtp->port = opt ? atoi(opt) : 7000+2*i;
+		opt = gf_cfg_get_key(configFile, sessionName, "looping");
+		rtp->looping = opt ? atoi(opt) : 1;
+
+		opt = gf_cfg_get_key(configFile, sessionName, "force_mpeg4-generic");
+		rtp->force_mpeg4_generic = opt ? atoi(opt) : 0;
+
 		rtp->mp4File = gf_isom_open(rtp->filename, GF_ISOM_OPEN_READ, NULL);
 		if (!rtp->mp4File) {
-			fprintf(stderr, "ERROR: Could not open input MP4 file of session %u\n", i);
+			fprintf(stderr, "ERROR: Could not open input MP4 file %s of session %u\n", rtp->filename, i);
 			return GF_IO_ERR;
-		} 
-		rtp->trackNum = atoi(gf_cfg_get_key(configFile, sessionName, "track_nb"));
+		}
 		if (rtp->trackNum > gf_isom_get_track_count(rtp->mp4File)) {
 			fprintf(stderr, "ERROR: session %u: Track > track count \n", i);
 		}				
@@ -557,13 +603,7 @@ int configuration(Simulator *av_simulator, char *av_argv1)
 		rtp->mediaBitRate =  rtp->mediaSize / rtp->mediaDuration; // in bps
 		rtp->minBurstSize = rtp->mediaBitRate * (rtp->global->burstDuration+rtp->global->offDuration); // bps * ms ==> bits
 	
-		fprintf(stdout, " Session %u:\n", rtp->id);
-		fprintf(stdout, "  File %s - Track %u - Destination Port %u \n", rtp->filename, rtp->trackNum, rtp->port);
-		fprintf(stdout, "  Size %u bits - Duration %u ms - Bit Rate %u kbps\n", rtp->mediaSize, rtp->mediaDuration, rtp->mediaBitRate);
-		fprintf(stdout, "  Min Burst Size %u bits\n", rtp->minBurstSize);
-			
-		rtp->port = atoi(gf_cfg_get_key(configFile, sessionName, "port"));
-		e = rtp_init_channel(&rtp->channel, av_simulator->dest_ip, rtp->port);
+		e = rtp_init_channel(rtp, av_simulator->path_mtu+12, av_simulator->dest_ip, rtp->port);
 		if (e) {
 			fprintf(stderr, "Could not initialize RTP Channel\n");
 		}			
@@ -572,7 +612,11 @@ int configuration(Simulator *av_simulator, char *av_argv1)
 			fprintf(stderr, "Could not initialize Packetizer \n");
 		}
 
-		rtp->looping = atoi(gf_cfg_get_key(configFile, sessionName, "looping"));
+		fprintf(stdout, " Session %u:\n", rtp->id);
+		fprintf(stdout, "  File %s - Track %u - Destination Port %u \n", rtp->filename, rtp->trackNum, rtp->port);
+		fprintf(stdout, "  Size %u bits - Duration %u ms - Bit Rate %u kbps\n", rtp->mediaSize, rtp->mediaDuration, rtp->mediaBitRate);
+		fprintf(stdout, "  Min Burst Size %u bits\n", rtp->minBurstSize);
+
 	}
 	fprintf(stdout, "\n");
 
@@ -644,11 +688,37 @@ int main(int argc, char **argv)
 {
 	Simulator global;		/* Simulator metadata (from cfg file) */
 	GF_Err e = GF_OK;			/* Error Message */	
+	char *cfg = NULL;
 	u32 i;						
 
 	if (argc < 2) {
 		usage(argv[0]);
-		return GF_IO_ERR;
+		return 0;
+	}
+
+	memset(&global, 0, sizeof(Simulator));
+	global.log_level = LOG_BURST;
+	global.path_mtu = 1450;
+
+	for (i=1; i<argc; i++) {
+		if (argv[i][0]=='-') {
+			if (!stricmp(argv[i], "-q") || !stricmp(argv[i], "--quiet")) global.log_level = LOG_NONE;
+			else if (!strnicmp(argv[i], "-v=", 3)) {
+				if (!stricmp(argv[i]+3, "au")) global.log_level = LOG_AU;
+				else if (!stricmp(argv[i]+3, "rtp")) global.log_level = LOG_PACKET;
+			}
+			else if (!strnicmp(argv[i], "--verbose=", 10)) {
+				if (!stricmp(argv[i]+10, "au")) global.log_level = LOG_AU;
+				else if (!stricmp(argv[i]+10, "rtp")) global.log_level = LOG_PACKET;
+			}
+		} else {
+			cfg = argv[i];
+		}
+	}
+
+	if (!cfg) {
+		usage(argv[0]);
+		return 0;
 	}
 
 	fprintf(stdout, "Time-sliced MP4 Streamer - (c) ENST 2006-200X\n");
@@ -662,12 +732,9 @@ int main(int argc, char **argv)
 	 *
 	 */
 	gf_sys_init();
-	memset(&global, 0, sizeof(Simulator));
-	configuration(&global, argv[1]);
+	configuration(&global, cfg);
 	  
 
-	global.log_level = 0;
-		
 	handleSessions(&global);
 
 	/*
