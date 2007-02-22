@@ -745,10 +745,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
         M_req.imr_multiaddr.s_addr = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
         M_req.imr_interface.s_addr = INADDR_ANY;
 		ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
-		if (ret == SOCKET_ERROR) {
-			ret = WSAGetLastError();
-			return GF_IP_CONNECTION_FAILURE;
-		}
+		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		/*set TTL*/
 		ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &TTL, sizeof(TTL));
 		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
@@ -773,10 +770,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
         
 		ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &M_reqV6, sizeof(M_reqV6));
-		if (ret == SOCKET_ERROR) {
-			ret = WSAGetLastError();
-			return GF_IP_CONNECTION_FAILURE;
-		}
+		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 	} 
 #else
 
@@ -804,10 +798,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 			local_address.sin_addr.s_addr = local_add_id = htonl(INADDR_ANY);
 			local_interface_ip = NULL;
 			ret = bind(sock->socket, (struct sockaddr *) &local_address, sizeof(local_address));
-			if (ret == SOCKET_ERROR) {
-				ret = WSAGetLastError();
-				return GF_IP_CONNECTION_FAILURE;
-			}
+			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		}
 		/*setup local interface*/
 		if (local_interface_ip) {
