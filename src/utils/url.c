@@ -145,6 +145,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 		goto check_spaces;
 	}
 
+	prot_type = URL_GetProtocolType(parentName);
 	psep = (prot_type == GF_URL_TYPE_FILE) ? GF_PATH_SEPARATOR : '/';
 
 	outPath = (char *) malloc(strlen(tmp) + strlen(name) + 2);
