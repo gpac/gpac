@@ -164,6 +164,9 @@ struct __tag_scene_graph
 
 	u32 max_defined_route_id;
 
+	/*to detect replace scene from within conditionals*/
+	Bool graph_has_been_reset;
+
 #ifndef GPAC_DISABLE_SVG
 	GF_List *xlink_hrefs;
 	GF_List *smil_timed_elements;

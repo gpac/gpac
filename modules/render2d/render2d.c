@@ -678,7 +678,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_Node *top_node = gf_sg_get_root_node(sr->compositor->scene);
 
-	if (!top_node && !sr->surface->last_had_back /*|| !sr->out_width*/) {
+	if (!top_node && !sr->surface->last_had_back && !sr->surface->cur_context) {
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Scene has no root node, nothing to draw\n"));
 		return;
 	}

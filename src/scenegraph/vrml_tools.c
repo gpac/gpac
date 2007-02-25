@@ -96,8 +96,13 @@ void gf_sg_activate_routes(GF_SceneGraph *sg)
 		gf_list_rem(sg->routes_to_activate, 0);
 		if (r) {
 			targ = r->ToNode;
-			if (gf_sg_route_activate(r))
+			if (gf_sg_route_activate(r)) {
+				if (sg->graph_has_been_reset) {
+					sg->graph_has_been_reset = 0;
+					return;
+				}
 				if (r->is_setup) gf_node_changed(targ, &r->ToField);
+			}
 		}
 	}
 	gf_sg_destroy_routes(sg);
