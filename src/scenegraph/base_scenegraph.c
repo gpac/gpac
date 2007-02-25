@@ -249,10 +249,14 @@ restart:
 			type = 0;
 		while (nlist) {
 			GF_ParentList *next = nlist->next;
+#if 0
+			/*parent is a DEF'ed node, try to clean-up properly?*/
 			if ((nlist->node!=node) && SG_SearchForNode(sg, nlist->node) != NULL) {
 				ignore = 1;
 				break;
 			}
+#endif
+
 #ifndef GPAC_DISABLE_SVG
 			if (type) {
 				ReplaceIRINode(nlist->node, node, NULL);
@@ -297,8 +301,8 @@ restart:
 
 	/*last destroy all routes*/
 	gf_sg_destroy_routes(sg);
-
 	sg->simulation_tick = 0;
+	sg->graph_has_been_reset = 1;
 }
 
 

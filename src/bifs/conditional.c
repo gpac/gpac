@@ -55,16 +55,18 @@ void Conditional_BufferReplaced(GF_BifsDecoder *codec, GF_Node *n)
 static void Conditional_execute(M_Conditional *node)
 {
 	GF_Err e;
+	char *buffer;
+	u32 len;
 	GF_BitStream *bs;
 	GF_BifsDecoder *codec;
 	GF_Proto *prevproto;
-	GF_SceneGraph *prev_graph;
+	GF_SceneGraph *prev_graph, *cur_graph;
 	ConditionalStack *priv = (ConditionalStack*)gf_node_get_private((GF_Node*)node);
 	if (!priv) return;
 
 	/*set the codec working graph to the node one (to handle conditional in protos)*/
 	prev_graph = priv->codec->current_graph;
-	priv->codec->current_graph = gf_node_get_graph((GF_Node*)node);
+	cur_graph = priv->codec->current_graph = gf_node_get_graph((GF_Node*)node);
 	assert(priv->codec->current_graph);
 
 	priv->codec->info = priv->info;
@@ -77,17 +79,35 @@ static void Conditional_execute(M_Conditional *node)
 	gf_node_event_out_str((GF_Node *)node, "isActive");
 	if (!node->buffer.bufferSize) return;
 
-	bs = gf_bs_new((char*)node->buffer.buffer, node->buffer.bufferSize, GF_BITSTREAM_READ);
+	/*we may replace ourselves*/
+	buffer = (char*)node->buffer.buffer;
+	len = node->buffer.bufferSize;
+	node->buffer.buffer = NULL;
+	node->buffer.bufferSize = 0;
+	bs = gf_bs_new(buffer, len, GF_BITSTREAM_READ);
 	codec = priv->codec;
 	codec->cts_offset = gf_node_get_scene_time((GF_Node*)node);
-	/*this may destroy the conditional...*/
+	/*a conditional may destroy/replace itself - to prevent that, protect node by a register/unregister ...*/
+	gf_node_register((GF_Node*)node, NULL);
+	/*and a conditional may destroy the entire scene!*/
+	cur_graph->graph_has_been_reset = 0;
 	e = gf_bifs_dec_command(codec, bs);
 	gf_bs_del(bs);
+	if (cur_graph->graph_has_been_reset) {
+		return;
+	}
+	if (node->buffer.buffer) {
+		free(buffer);
+	} else {
+		node->buffer.buffer = buffer;
+		node->buffer.bufferSize = len;
+	}
+	//set isActive - to clarify in the specs
+//	node->isActive = 0;
+	gf_node_unregister((GF_Node*)node, NULL);
 	codec->cts_offset = 0;
 	codec->pCurrentProto = prevproto;
 	codec->current_graph = prev_graph;
-	//set isActive - to clarify in the specs
-//	node->isActive = 0;
 }
 
 void Conditional_OnActivate(GF_Node *n)
