@@ -74,6 +74,7 @@ typedef struct tcp_input
 	// GF_Socket *socket;	// socket tcp pour l'interface
 	u32 *RAPtimer;
 	CONF_Data *config;
+	u32 status;
 } TCP_Input;
 
 typedef struct rap_input
@@ -81,6 +82,7 @@ typedef struct rap_input
 	GF_Mutex *carrousel_mutex;
 	u32 *RAPtimer;
 	PNC_CallbackData *data;
+	u32 status;
 } RAP_Input;
 	
 void command_line_parsing(int* argc, char** argv, int *tcp_port, char *config_file, int *config_flag);

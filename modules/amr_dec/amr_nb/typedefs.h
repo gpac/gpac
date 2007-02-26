@@ -156,10 +156,15 @@ typedef unsigned long UWord32;
 #define PC
 #define PLATFORM "PC"
 #define LSBFIRST
+
 #elif defined(WIN32)
+
 #define PC
 #define PLATFORM "PC"
 #define LSBFIRST
+/*FIX for VC6 + WinXP PlatformSDK*/
+#include <windows.h>
+
 #else
 #error "can't determine architecture; adapt typedefs.h to your platform"
 #endif

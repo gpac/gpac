@@ -1,6 +1,6 @@
 #include "sdp_generator.h"
 
-int sdp_generator(PNC_CallbackData * data, char *sdp_fmt)
+int sdp_generator(PNC_CallbackData * data, char *ip_dest, char *sdp_fmt)
 {
 	GF_BifsEngine *codec;
 	GF_ESD *esd;
@@ -12,13 +12,11 @@ int sdp_generator(PNC_CallbackData * data, char *sdp_fmt)
 	char temp[5000];
 	u16 port;
 	u32 socket_type;
-	char ip_adresse[50];
 		
 	// fonctions necessaires pour recuperer les informations necessaires a la construction du fichier
 	gf_sk_get_local_info(data->chan->rtp, &port, &socket_type);
-	gf_sk_get_local_ip(data->chan->rtp, ip_adresse);
+
 	// fprintf(stdout, "%s --------- %d\n", ip_adresse, port);
-	
 	fp = fopen("broadcaster.sdp", "w+");
 	if(fp == NULL)
 	{
@@ -28,12 +26,12 @@ int sdp_generator(PNC_CallbackData * data, char *sdp_fmt)
 	// ecriture du fichier SDP
 	ret = fwrite("v=0\n", 1, 4, fp);
 	
-	sprintf(temp, "o=GpacBroadcaster 3326096807 1117107880000 IN IP4 %s\n", ip_adresse);
+	sprintf(temp, "o=GpacBroadcaster 3326096807 1117107880000 IN IP%d %s\n", gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
 	ret = fwrite(temp, 1, strlen(temp), fp);
 	
 	ret = fwrite("s=MPEG4Broadcaster\n", 1, 19, fp);
 	
-	sprintf(temp, "c=IN IP4 %s\n", ip_adresse);
+	sprintf(temp, "c=IN IP%d %s\n", gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
 	ret = fwrite(temp, 1, strlen(temp), fp);
 	
 	ret = fwrite("t=0 0\n", 1, 6, fp);

@@ -229,28 +229,18 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	tmp->ES_ID = ESID;
 
 	memset(&trans, 0, sizeof(GF_RTSPTransport));
-	if (conn && gf_sk_is_multicast_address(conn->host)) {
-		trans.source = conn->host;
-		trans.TTL = conn->TTL;
+	trans.Profile = media->Profile;
+	trans.source = conn ? conn->host : sdp->o_address;
+	trans.IsUnicast = gf_sk_is_multicast_address(trans.source) ? 0 : 1;
+	if (!trans.IsUnicast) {
 		trans.port_first = media->PortNumber;
 		trans.port_last = media->PortNumber + 1;
-		trans.Profile = media->Profile;
+		trans.TTL = conn ? conn->TTL : 0;
 	} else {
-		trans.source = conn? conn->host : sdp->o_address;
-		trans.IsUnicast = gf_sk_is_multicast_address(trans.source) ? 0 : 1;
-		if (!trans.IsUnicast) {
-			trans.port_first = media->PortNumber;
-			trans.port_last = media->PortNumber + 1;
-			trans.Profile = media->Profile;
-		} else {
-			trans.client_port_first = media->PortNumber;
-			trans.client_port_last = media->PortNumber + 1;
-	
-			/*we should take care of AVP vs SAVP however most servers don't understand RTP/SAVP client requests*/
-			if (rtp->transport_mode==1) trans.Profile = GF_RTSP_PROFILE_RTP_AVP_TCP;
-			else trans.Profile = media->Profile;
-		}
+		trans.client_port_first = media->PortNumber;
+		trans.client_port_last = media->PortNumber + 1;
 	}
+
 	if (gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL) != GF_OK) {
 		RP_DeleteStream(tmp);
 		return NULL;

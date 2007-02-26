@@ -302,7 +302,9 @@ restart:
 	/*last destroy all routes*/
 	gf_sg_destroy_routes(sg);
 	sg->simulation_tick = 0;
+#ifdef GF_SELF_REPLACE_ENABLE
 	sg->graph_has_been_reset = 1;
+#endif
 }
 
 

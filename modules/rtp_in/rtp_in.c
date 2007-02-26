@@ -307,7 +307,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 		/*first case: simple URL (same namespace)*/
 		ch = RP_FindChannel(priv, NULL, ESID, NULL, 0);
 		/*this should not happen, the sdp must describe all streams in the service*/
-		if (!ch) return GF_SERVICE_ERROR;
+		if (!ch) return GF_STREAM_NOT_FOUND;
 		
 		/*assign app channel*/
 		ch->channel = channel;

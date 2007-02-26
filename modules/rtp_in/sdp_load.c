@@ -76,14 +76,18 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 			if (End > 0) ch->flags |= RTP_HAS_RANGE;
 		}
 
-		/*force interleaving*/	
-		if (ch->rtsp && (rtp->transport_mode==2)) {
+		/*force interleaving whenever needed*/	
+		if (ch->rtsp) {
 			switch (ch->sl_map.StreamType) {
 			case GF_STREAM_VISUAL:
 			case GF_STREAM_AUDIO:
+				if ((rtp->transport_mode==1) && ! (ch->rtsp->flags & RTSP_FORCE_INTER) ) {
+					gf_rtsp_set_buffer_size(ch->rtsp->session, RTSP_TCP_BUFFER_SIZE);
+					ch->rtsp->flags |= RTSP_FORCE_INTER;
+				}
 				break;
 			default:
-				if (! (ch->rtsp->flags & RTSP_FORCE_INTER) ) {
+				if ((rtp->transport_mode==2) && ! (ch->rtsp->flags & RTSP_FORCE_INTER) ) {
 					gf_rtsp_set_buffer_size(ch->rtsp->session, RTSP_TCP_BUFFER_SIZE);
 					ch->rtsp->flags |= RTSP_FORCE_INTER;
 				}

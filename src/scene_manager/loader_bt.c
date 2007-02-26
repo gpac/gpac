@@ -262,7 +262,7 @@ next_line:
 			u32 pos = gztell(parser->gz_in);
 			if (pos>=parser->file_pos) {
 				parser->file_pos = pos;
-				gf_set_progress("BT Parsing", pos, parser->file_size);
+				if (parser->line>1) gf_set_progress("BT Parsing", pos, parser->file_size);
 			}
 		}
 

@@ -97,10 +97,12 @@ void gf_sg_activate_routes(GF_SceneGraph *sg)
 		if (r) {
 			targ = r->ToNode;
 			if (gf_sg_route_activate(r)) {
+#ifdef GF_SELF_REPLACE_ENABLE
 				if (sg->graph_has_been_reset) {
 					sg->graph_has_been_reset = 0;
 					return;
 				}
+#endif
 				if (r->is_setup) gf_node_changed(targ, &r->ToField);
 			}
 		}

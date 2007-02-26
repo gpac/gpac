@@ -6,7 +6,7 @@
  * the License at http://www.mozilla.org/NPL/
  *
  * Software distributed under the License is distributed on an "AS
- * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express oqr
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
  * implied. See the License for the specific language governing
  * rights and limitations under the License.
  *
@@ -44,7 +44,7 @@
 
 #ifdef XP_PC
 
-#if defined(_WIN32) || defined (XP_OS2)
+#if defined(_WIN32) || defined (XP_OS2) || defined (__SYMBIAN32__)
 #define JS_HAVE_LONG_LONG
 #else
 #undef JS_HAVE_LONG_LONG
