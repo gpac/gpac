@@ -26,4 +26,4 @@ struct __tag_bifs_engine
 	u32 encoded_bifs_config_size;
 };
 
-int sdp_generator(PNC_CallbackData * data, char *sdp_fmt);
+int sdp_generator(PNC_CallbackData * data, char *ip_dest, char *sdp_fmt);

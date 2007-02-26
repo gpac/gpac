@@ -29,7 +29,11 @@
 
 //#define GF_NODE_USE_POINTERS
 
+/*defined this macro to enable cyclic render*/
 #define GF_CYCLIC_RENDER_ON
+
+/*defined this macro to enable scene replacement from inside (through conditional)*/
+//#define GF_SELF_REPLACE_ENABLE
 
 /*for vrml base types, ROUTEs and PROTOs*/
 #include <gpac/scenegraph_vrml.h>
@@ -164,8 +168,10 @@ struct __tag_scene_graph
 
 	u32 max_defined_route_id;
 
+#ifdef GF_SELF_REPLACE_ENABLE
 	/*to detect replace scene from within conditionals*/
 	Bool graph_has_been_reset;
+#endif
 
 #ifndef GPAC_DISABLE_SVG
 	GF_List *xlink_hrefs;

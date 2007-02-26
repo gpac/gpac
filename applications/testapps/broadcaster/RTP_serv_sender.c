@@ -2,115 +2,6 @@
 #include <gpac/internal/ietf_dev.h>
 #include <gpac/ietf.h>
 
-GF_Err my_RTP_Initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u32 PathMTU, u32 ReorederingSize, u32 MaxReorderDelay)
-{
-  GF_Err e;
-
-  if (IsSource && !PathMTU) return GF_BAD_PARAM;
-
-  if (ch->rtp) gf_sk_del(ch->rtp);
-  if (ch->rtcp) gf_sk_del(ch->rtcp);
-  if (ch->po) gf_rtp_reorderer_del(ch->po);
-
-  ch->CurrentTime = 0;
-  ch->rtp_time = 0;
-
-  //create sockets for RTP/AVP profile only
-  if (ch->net_info.Profile &&
-      ( !stricmp(ch->net_info.Profile, GF_RTSP_PROFILE_RTP_AVP) || !stricmp(ch->net_info.Profile, "RTP/AVP/UDP"))
-      ) {
-    //destination MUST be specified for unicast
-    if (IsSource && ch->net_info.IsUnicast && !ch->net_info.destination) return GF_BAD_PARAM;
-
-    //
-    //    RTP
-    //
-    ch->rtp = gf_sk_new(GF_SOCK_TYPE_UDP);
-    if (!ch->rtp) return GF_IP_NETWORK_FAILURE;
-    if (ch->net_info.IsUnicast) {
-      //if client, bind and connect the socket
-
-      if (!IsSource) {
-
-	e = gf_sk_bind(ch->rtp, ch->net_info.client_port_first, ch->net_info.source, ch->net_info.port_first, GF_SOCK_REUSE_PORT);
-	if (e) return e;
-      }
-      //else bind and set remote destination
-      else {
-
-	e = gf_sk_bind(ch->rtp, ch->net_info.port_first, ch->net_info.destination, ch->net_info.client_port_first, GF_SOCK_REUSE_PORT);
-	if (e) return e;
-      }
-    } else {
-      //Bind to multicast (auto-join the group).
-      //we do not bind the socket if this is a source-only channel because some servers
-      //don't like that on local loop ...
-      e = gf_sk_setup_multicast(ch->rtp, ch->net_info.source, ch->net_info.port_first, ch->net_info.TTL, (IsSource==2), NULL);
-      if (e) return e;
-
-      //destination is used for multicast interface addressing - TO DO
-
-    }
-
-    if (UDPBufferSize) gf_sk_set_buffer_size(ch->rtp, IsSource, UDPBufferSize);
-
-    if (IsSource) {
-      if (ch->send_buffer) free(ch->send_buffer);
-      ch->send_buffer = malloc(sizeof(char) * PathMTU);
-      ch->send_buffer_size = PathMTU;
-
-    }
-
-
-    //Create re-ordering queue for UDP only, and recieve
-    if (ReorederingSize && !IsSource) {
-      if (!MaxReorderDelay) MaxReorderDelay = 200;
-      ch->po = gf_rtp_reorderer_new(ReorederingSize, MaxReorderDelay);
-
-    }
-
-    //
-    //      RTCP
-    //
-    ch->rtcp = gf_sk_new(GF_SOCK_TYPE_UDP);
-    if (!ch->rtcp) return GF_IP_NETWORK_FAILURE;
-    if (ch->net_info.IsUnicast) {
-      if (!IsSource) {
-
-	e = gf_sk_bind(ch->rtcp, ch->net_info.client_port_last, ch->net_info.source, ch->net_info.port_last, GF_SOCK_REUSE_PORT);
-	if (e) return e;
-      } else {
-	e = gf_sk_bind(ch->rtcp, ch->net_info.port_last, ch->net_info.destination, ch->net_info.client_port_last, GF_SOCK_REUSE_PORT); /// PATCH
-	if (e) return e;
-      }
-    } else {
-      //Bind to multicast (auto-join the group)
-      e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, (IsSource==2), NULL);
-      if (e) return e;
-      //destination is used for multicast interface addressing - TO DO
-    }
-  }
-
-  //format CNAME if not done yet
-  if (!ch->CName) {
-    //this is the real CName setup
-    if (!ch->rtp) {
-      ch->CName = strdup("mpeg4rtp");
-    } else {
-      char name[GF_MAX_IP_NAME_LEN];
-      s32 start;
-      //gf_get_user_name(name, 1024);
-	  strcpy(name, "gpac");
-      if (strlen(name)) strcat(name, "@");
-      start = strlen(name);
-      //get host IP or loopback if error
-      if (gf_sk_get_local_ip(ch->rtp, name+start) != GF_OK) strcpy(name+start, "127.0.0.1");
-      ch->CName = strdup(name);
-    }
-  }
-
-  return GF_OK;
-}
 
 GF_Err PNC_InitRTP(GF_RTPChannel **chan, char * dest, int port){
 	GF_Err res;
@@ -119,25 +10,27 @@ GF_Err PNC_InitRTP(GF_RTPChannel **chan, char * dest, int port){
 	*chan = gf_rtp_new();
 	printf("[carrousel] : RTP_SetupPorts=%d\n", gf_rtp_set_ports(*chan));  
 
-	tr.IsUnicast=1;
-	tr.Profile="RTP/AVP";//RTSP_PROFILE_RTP_AVP;
 	tr.destination = dest;
-	tr.source = "0.0.0.0";
+	tr.IsUnicast = gf_sk_is_multicast_address(dest) ? 0 : 1;
+	tr.Profile="RTP/AVP";//RTSP_PROFILE_RTP_AVP;
 	tr.IsRecord = 0;
 	tr.Append = 0;
+	tr.source = "0.0.0.0";
 	tr.SSRC=rand();
 
-	tr.client_port_first = port;   //RTP
-	tr.client_port_last  = port+1; //RTCP (not used a priori)
-	tr.port_first        = port; //RTP other end 
-	tr.port_last         = port+1; //RTCP other end (not used a priori)
-
+	tr.port_first        = port;
+	tr.port_last         = port+1;
+	if (tr.IsUnicast) {
+		tr.client_port_first = port;
+		tr.client_port_last  = port+1;
+	} else {
+		tr.source = dest;
+	}
 	res = gf_rtp_setup_transport(*chan, &tr, dest);
 	printf("[carrousel] : RTP_SetupTransport=%d\n", res);
 	if (res !=0) return res;
 
 	res = gf_rtp_initialize(*chan, 0, 1, 1500, 0, 0, NULL);
-	//res = my_RTP_Initialize(*chan, 0, 1, 1500, 0, 0);
 	printf("[carrousel] : RTP_Initialize=%d\n", res);
 	if (res !=0) return res;
 	return GF_OK;

@@ -1417,6 +1417,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 		fprintf(stdout, "Cannot load chunk context %s - %s\n", chunkFile, gf_error_to_string(e));
 		goto exit;
 	}
+	fprintf(stdout, "Context and chunks loaded\n");
 
 	/* Assumes that the first AU contains only one command a SceneReplace and 
 	   that is not part of the current chunk */

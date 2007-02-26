@@ -178,10 +178,14 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 		gf_list_rem(is->inline_nodes, 0);
 		gf_node_set_private(n, NULL);
 	}
+	gf_term_lock_renderer(is->root_od->term, 1);
+
 	/*release the scene*/
 	if (dec && dec->ReleaseScene) dec->ReleaseScene(dec);
 	gf_sg_reset(is->graph);
 	is->graph_attached = 0;
+	
+	gf_term_lock_renderer(is->root_od->term, 0);
 
 
 	assert(!gf_list_count(is->extra_scenes) );

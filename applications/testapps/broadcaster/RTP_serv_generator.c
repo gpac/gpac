@@ -57,6 +57,8 @@ void PNC_Close_SceneGenerator(PNC_CallbackData * data) {
 	// terminer
 	if (data->extension) free(data->extension);
 	gf_beng_terminate(data->codec);
+	gf_rtp_del(data->chan);
+	PNC_ClosePacketizer(data);
 	free(data);
 }
 
@@ -153,17 +155,14 @@ GF_Err PNC_processBIFSGenerator(PNC_CallbackData * data) {
 		switch (e) 
 		{
 			case GF_IP_NETWORK_EMPTY:
-				gf_sleep(1000);
-				// printf("M4NetworkEmpty\n");
-				break;
+				gf_bs_del(bs);
+				return GF_OK;
 			case GF_OK:
-	  			//      usleep(100);
-	  			//      printf("M4OK\n");
 	  			break;
 			default:
 	  			fprintf(stdout, "[carrousel] : erreur de socket : %d\n", e);
-	  			exit(1);
-	  			//sleep(2);
+				gf_bs_del(bs);
+				return e;
 		}
 		// if (byteRead > 0) printf("Octets recus: %d \n", byteRead);
 		gf_bs_write_data(bs, buffer, byteRead);

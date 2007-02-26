@@ -73,8 +73,8 @@ u32 RAP_send(void *par)
 	PNC_CallbackData *data = input->data;
 	u32 *timer;
 	
-	while(1)
-	{
+	input->status = 1;
+	while(input->status==1) {
 		// mutex avec le thread qui envoie les RAP pour l'envoi avec carrousel
 		while(gf_mx_try_lock(input->carrousel_mutex) == 0)
 		{ 
@@ -96,7 +96,7 @@ u32 RAP_send(void *par)
 		// gf_sleep(input->RAPtimer);
 		gf_sleep(*timer*1000);
 	}
-
+	input->status = 2;
 	return GF_OK;
 }
 
@@ -123,6 +123,8 @@ u32 tcp_server(void *par)
 	GF_Err e;
 #endif	
 	
+	input->status = 1;
+
 #ifdef USE_TCP_STANDARD	// STANDARD
 	fd = socket(AF_INET, SOCK_STREAM, 0);
 	bzero(&servaddr, sizeof(servaddr));
@@ -144,7 +146,7 @@ u32 tcp_server(void *par)
 	
 	// ouvrir fichier temp pour avoir scene init	
 	/* boucle serveur tcp */
-	while(1)
+	while(input->status == 1)
 	{	
 		memset(buffer, 0, sizeof(buffer));
 #ifdef USE_TCP_STANDARD		// STANDARD
@@ -348,12 +350,17 @@ u32 tcp_server(void *par)
 
 //#endif
 
+	input->status = 2;
 	return GF_OK;
 }
 	
+u8 get_a_char();
+Bool has_input();
+
 int main (int argc, char** argv)
 {
 	GF_Err e;
+	Bool run;
 	int tcp_port; 
 	u32 config_flag;	// pour savoir s'il faut lire la configuration du fichier ou de l'interface
 	char config_file[MAX_BUF];
@@ -458,9 +465,9 @@ int main (int argc, char** argv)
 	
 	// preparation du socket pour envoyer le données de débit à l'interface
 	UDP_feedback_socket = gf_sk_new(GF_SOCK_TYPE_UDP);
-	// e = gf_sk_bind(UDP_feedback_socket, (u16) atoi(conf->port_feedback),  (char *) conf->ip_feedback, (u16) atoi(conf->port_feedback), 0);
+	e = gf_sk_bind(UDP_feedback_socket, (u16) atoi(conf->feedback_port),  (char *) conf->feedback_ip, (u16) atoi(conf->feedback_port), 0);
 	// fprintf(stdout, "[broadcaster] : bind udp for feedback : %d, port : %d\n", e, atoi(port_feedback));
-	e = gf_sk_connect(UDP_feedback_socket, (char *) conf->feedback_ip, (u16) atoi(conf->feedback_port));
+	//e = gf_sk_connect(UDP_feedback_socket, (char *) conf->feedback_ip, (u16) atoi(conf->feedback_port));
 	// fprintf(stdout, "[broadcaster] : connect udp feedback socket : %d, host : %s\n", e, ip_feedback);
 	gf_sk_set_block_mode(UDP_feedback_socket, 0);
 	data->feedback_socket = UDP_feedback_socket;
@@ -476,17 +483,36 @@ int main (int argc, char** argv)
 	th_err_rap = gf_th_run(rap_thread, RAP_send, rap_conf);
 
 	// generation du fichier SDP
-	sdp_generator(data, sdp_fmt);
+	sdp_generator(data, conf->dest_ip, sdp_fmt);
 	
 	// udp boucle pour les données de modification
-	while(1)
-	{
+	run = 1;
+	while (run) {
+
 		// cette fonction est modifié par rapport à la fonction du carrousel normale
 		// car elle integre le control sur la variable mutex pour envoyer en exclusion
 		// avec le thread des RAP
-		PNC_processBIFSGenerator(data); 
+		GF_Err e = PNC_processBIFSGenerator(data); 
+		if (e) break;
+
+		if (has_input()) {
+			char c = get_a_char();
+			switch (c) {
+			case 'q':
+				run = 0;
+				break;
+			}
+		}
+		gf_sleep(10);
 	}
-	
+	rap_conf->status = 0;
+	while (rap_conf->status != 2)
+		gf_sleep(0);
+
+	tcp_conf->status = 0;
+	while (tcp_conf->status != 2)
+		gf_sleep(0);
+
 	/* nettoyage final */
 	PNC_Close_SceneGenerator(data);
 	
@@ -498,7 +524,97 @@ int main (int argc, char** argv)
 	gf_cfg_del(gf_config_file);
 	gf_th_del(tcp_thread);
 	gf_th_del(rap_thread);
+
 	gf_mx_del(carrousel_mutex);
 	gf_sys_close();
 	return 0;
 }
+	/*seems OK under mingw also*/
+#ifdef WIN32
+#include <conio.h>
+#include <windows.h>
+Bool has_input()
+{
+	return kbhit();
+}
+u8 get_a_char()
+{
+	return getchar();
+}
+void set_echo_off(Bool echo_off) 
+{
+	DWORD flags;
+	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+	GetConsoleMode(hStdin, &flags);
+	if (echo_off) flags &= ~ENABLE_ECHO_INPUT;
+	else flags |= ENABLE_ECHO_INPUT;
+	SetConsoleMode(hStdin, flags);
+}
+#else
+/*linux kbhit/getchar- borrowed on debian mailing lists, (author Mike Brownlow)*/
+#include <termios.h>
+
+static struct termios t_orig, t_new;
+static s32 ch_peek = -1;
+
+void init_keyboard()
+{
+	tcgetattr(0, &t_orig);
+	t_new = t_orig;
+	t_new.c_lflag &= ~ICANON;
+	t_new.c_lflag &= ~ECHO;
+	t_new.c_lflag &= ~ISIG;
+	t_new.c_cc[VMIN] = 1;
+	t_new.c_cc[VTIME] = 0;
+	tcsetattr(0, TCSANOW, &t_new);
+}
+void close_keyboard(Bool new_line)
+{
+	tcsetattr(0,TCSANOW, &t_orig);
+	if (new_line) fprintf(stdout, "\n");
+}
+
+void set_echo_off(Bool echo_off) 
+{ 
+	init_keyboard();
+	if (echo_off) t_orig.c_lflag &= ~ECHO;
+	else t_orig.c_lflag |= ECHO;
+	close_keyboard(0);
+}
+
+Bool has_input()
+{
+	u8 ch;
+	s32 nread;
+
+	init_keyboard();
+	if (ch_peek != -1) return 1;
+	t_new.c_cc[VMIN]=0;
+	tcsetattr(0, TCSANOW, &t_new);
+	nread = read(0, &ch, 1);
+	t_new.c_cc[VMIN]=1;
+	tcsetattr(0, TCSANOW, &t_new);
+	if(nread == 1) {
+		ch_peek = ch;
+		return 1;
+	}
+	close_keyboard(0);
+	return 0;
+}
+
+u8 get_a_char()
+{
+	u8 ch;
+	if (ch_peek != -1) {
+		ch = ch_peek;
+		ch_peek = -1;
+		close_keyboard(1);
+		return ch;
+	}
+	read(0,&ch,1);
+	close_keyboard(1);
+	return ch;
+}
+
+#endif
+

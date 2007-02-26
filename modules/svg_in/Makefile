@@ -14,6 +14,11 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
+ifeq ($(CONFIG_ZLIB), local)
+CFLAGS+= -I$(LOCAL_INC_PATH)/zlib
+EXTRALIBS+=-L../extra_lib/lib/gcc
+endif
+
 #common obj
 OBJS= svg_in.o
 

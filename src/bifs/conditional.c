@@ -89,13 +89,17 @@ static void Conditional_execute(M_Conditional *node)
 	codec->cts_offset = gf_node_get_scene_time((GF_Node*)node);
 	/*a conditional may destroy/replace itself - to prevent that, protect node by a register/unregister ...*/
 	gf_node_register((GF_Node*)node, NULL);
+#ifdef GF_SELF_REPLACE_ENABLE
 	/*and a conditional may destroy the entire scene!*/
 	cur_graph->graph_has_been_reset = 0;
+#endif
 	e = gf_bifs_dec_command(codec, bs);
 	gf_bs_del(bs);
+#ifdef GF_SELF_REPLACE_ENABLE
 	if (cur_graph->graph_has_been_reset) {
 		return;
 	}
+#endif
 	if (node->buffer.buffer) {
 		free(buffer);
 	} else {

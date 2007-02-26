@@ -87,6 +87,12 @@ void PNC_InitPacketiser(PNC_CallbackData * data, char *sdp_fmt){
   data->formatedPacketLength = 0;
 }
 
+void PNC_ClosePacketizer(PNC_CallbackData *data)
+{
+	free(data->formatedPacket);
+	gf_rtp_builder_del(data->rtpBuilder);
+}
+
 GF_Err PNC_ProcessData(PNC_CallbackData * data, char *au, u32 size, u64 ts) {
   /* Prepare le paquet en mettant à jour le hdr qui contiendra le numero de sequence courant,
      le timestamp correct ...*/
