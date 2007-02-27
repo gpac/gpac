@@ -1295,7 +1295,7 @@ int main (int argc, char **argv)
 		{
 			GF_SystemRTInfo rti;
 			gf_sys_get_rti(RTI_UPDATE_TIME_MS, &rti, 0);
-			fprintf(stdout, "GPAC allocated memory %d\n", rti.gpac_memory);
+			fprintf(stdout, "GPAC allocated memory "LLD"\n", rti.gpac_memory);
 		}
 			break;
 

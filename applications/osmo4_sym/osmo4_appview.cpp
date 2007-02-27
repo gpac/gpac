@@ -388,8 +388,8 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 	m_pTimer = CPeriodic::NewL(CActive::EPriorityStandard);
 	m_pTimer->Start(KTickInterval, KTickInterval, TCallBack(myTick, this));
 
-//	opt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
-//	if (opt) gf_term_connect(m_term, opt);
+	opt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+	if (opt) gf_term_connect(m_term, opt);
 }
 
 

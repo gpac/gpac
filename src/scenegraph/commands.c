@@ -462,6 +462,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		if (inf->new_node) {
 			u32 pos = 0;
 			GF_ChildNodeItem *child, *prev;
+			prev = NULL;
 			child = ((SVGElement *)com->node)->children;
 			while (child) {
 				if ((inf->pos<0) || (pos!=(u32)inf->pos)) {

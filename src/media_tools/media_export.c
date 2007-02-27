@@ -236,6 +236,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	track = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
 	m_type = gf_isom_get_media_type(dumper->file, track);
 	m_stype = gf_isom_get_media_subtype(dumper->file, track, 1);
+	dsi_size = 0;
 
 	if (dumper->sample_num) sprintf(szNum, " %d", dumper->sample_num);
 	else strcpy(szNum, "s");

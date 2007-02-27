@@ -1161,7 +1161,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					fprintf(stdout, "Selective Encryption: %s\n", use_sel_enc ? "Yes" : "No");
 					if (IV_size) fprintf(stdout, "Initialization Vector size: %d bits\n", IV_size*8);
 				} else if (gf_isom_is_omadrm_media(file, trackNum, 1)) {
-					char *textHdrs;
+					const char *textHdrs;
 					u8 enc_type;
 					u64 orig_len;
 					fprintf(stdout, "\n*Encrypted stream - OMA DRM\n");

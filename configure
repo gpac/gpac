@@ -338,6 +338,21 @@ local_inc=$source_path/extra_lib/include
 local_lib=extra_lib/lib/gcc
 
 
+#check GCC flags support
+cat > $TMPC << EOF
+#include <stdio.h>
+int main( void ) { return 0; }
+EOF
+if $cc -o $TMPO $TMPC -fno-strict-aliasing 2> /dev/null  ; then
+CFLAGS="$CFLAGS -fno-strict-aliasing"
+fi
+CPPFLAGS="$CFLAGS"
+
+if $cc -o $TMPO $TMPC -lz -Wno-pointer-sign 2> /dev/null  ; then
+CFLAGS="$CFLAGS -Wno-pointer-sign"
+fi
+
+
 #look for zlib
 cat > $TMPC << EOF
 #include <zlib.h>
@@ -352,16 +367,6 @@ has_zlib="local"
 else
   echo "error: zlib not found on system or in local libs"
   exit 1
-fi
-
-#check GCC flags support
-if $cc -o $TMPO $TMPC -lz -fno-strict-aliasing 2> /dev/null  ; then
-CFLAGS="$CFLAGS -fno-strict-aliasing"
-fi
-CPPFLAGS="$CFLAGS"
-
-if $cc -o $TMPO $TMPC -lz -Wno-pointer-sign 2> /dev/null  ; then
-CFLAGS="$CFLAGS -Wno-pointer-sign"
 fi
 
 
