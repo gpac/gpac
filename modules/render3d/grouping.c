@@ -221,7 +221,7 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 
 	if (get_bounds || is_parent) {
 		split_text_backup = eff->text_split_mode;
-		if (!is_parent && (count>1)) eff->text_split_mode = 0;
+		if (!is_parent && eff->text_split_mode && (gf_node_list_get_count(l)>1) ) eff->text_split_mode = 0;
 		group->dont_cull = group->bbox.is_set = eff->bbox.is_set = 0;
 		
 		l = *group->children;

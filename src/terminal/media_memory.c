@@ -377,7 +377,7 @@ void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity)
 	cb->input->prev->next = NULL;
 	gf_cm_unit_del(cb->input);
 
-
+	cu = NULL;
 	cb->Capacity = Capacity;
 	cb->UnitSize = UnitSize;
 
