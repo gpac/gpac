@@ -27,6 +27,10 @@
 /*default buffer is 200 ms per channel*/
 #define FFD_DATA_BUFFER		800
 
+#if defined(__DARWIN__) || defined(__APPLE__)
+#include <errno.h>
+#endif
+
 static u32 FFDemux_Run(void *par)
 {
 	AVPacket pkt;

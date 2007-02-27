@@ -23,6 +23,17 @@
  */
 
 
+#if defined(__DARWIN__) || defined(__APPLE__)
+#include <soundcard.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <string.h>
+
+#else
+
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -31,6 +42,8 @@
 #include <soundcard.h>
 #else
 #include <sys/soundcard.h>
+#endif
+
 #endif
 
 #include <gpac/modules/audio_out.h>
@@ -59,8 +72,11 @@ static GF_Err OSS_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u32
 	if (opt) ctx->force_sr = atoi(opt);
 
 	/*open OSS in non-blocking mode*/
-	if((audio=open(OSS_AUDIO_DEVICE,O_WRONLY|O_NONBLOCK))==-1) 
+	audio = open(OSS_AUDIO_DEVICE, 0);
+	if (audio < 0) {
+	  GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[OSS] Cannot open audio device\n"));
 	  return GF_NOT_SUPPORTED;
+	}
 
 	/*set blocking mode back*/
 	//fcntl(audio, F_SETFL, fcntl(audio, F_GETFL) & ~FNDELAY);

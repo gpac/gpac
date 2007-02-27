@@ -357,7 +357,7 @@ struct __tag_semaphore
 #else
 	sem_t *hSemaphore;
 	sem_t SemaData;
-#ifdef __Darwin__
+#if defined(__DARWIN__) || defined(__APPLE__)
 	const char *SemName;
 #endif
 #endif
@@ -371,7 +371,7 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 	if (!tmp) return NULL;
 #if defined(WIN32)
 	tmp->hSemaphore = CreateSemaphore(NULL, InitCount, MaxCount, NULL);
-#elif defined(__DARWIN__)
+#elif defined(__DARWIN__) || defined(__APPLE__)
 	/* sem_init isn't supported on Mac OS X 10.3 & 10.4; it returns ENOSYS
 	To get around this, a NAMED semaphore needs to be used
 	sem_t *sem_open(const char *name, int oflag, ...);
@@ -402,10 +402,10 @@ void gf_sema_del(GF_Semaphore *sm)
 {
 #if defined(WIN32)
 	CloseHandle(sm->hSemaphore);
-#elif defined(__DARWIN__)
+#elif defined(__DARWIN__) || defined(__APPLE__)
 	sem_t *sema = sem_open(sm->SemName, 0);
 	sem_destroy(sema);
-	free(tmp->SemName);
+	free(sm->SemName);
 #else
 	sem_destroy(sm->hSemaphore);
 #endif
@@ -425,7 +425,7 @@ u32 gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 	ReleaseSemaphore(sm->hSemaphore, NbRelease, (LPLONG) &prevCount);
 #else
 
-#if defined(__DARWIN__)
+#if defined(__DARWIN__) || defined(__APPLE__)
 	hSem = sem_open(sm->SemName, 0);
 #else
 	hSem = sm->hSemaphore;
@@ -445,7 +445,7 @@ void gf_sema_wait(GF_Semaphore *sm)
 	WaitForSingleObject(sm->hSemaphore, INFINITE);
 #else
 	sem_t *hSem;
-#ifdef __DARWIN__
+#if defined(__DARWIN__) || defined(__APPLE__)
 	hSem = sem_open(sm->SemName, 0);
 #else
 	hSem = sm->hSemaphore;
@@ -461,7 +461,7 @@ Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 	return 1;
 #else
 	sem_t *hSem;
-#ifdef __DARWIN__
+#if defined(__DARWIN__) || defined(__APPLE__)
 	hSem = sem_open(sm->SemName, 0);
 #else
 	hSem = sm->hSemaphore;

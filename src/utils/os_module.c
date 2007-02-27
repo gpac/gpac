@@ -77,7 +77,10 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	
 #ifdef WIN32
 	inst->lib_handle = LoadLibrary(path);
-	if (!inst->lib_handle) return 0;
+	if (!inst->lib_handle) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s\n", path));
+		return 0;
+	}
 #if defined(_WIN32_WCE)
 	inst->query_func = (QueryInterface) GetProcAddress(inst->lib_handle, _T("QueryInterface"));
 	inst->load_func = (LoadInterface) GetProcAddress(inst->lib_handle, _T("LoadInterface"));
@@ -96,7 +99,10 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	_flags =RTLD_LAZY;
 #endif
 	inst->lib_handle = dlopen(path, _flags);
-	if (!inst->lib_handle) return 0;
+	if (!inst->lib_handle) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s\n", path));
+		return 0;
+	}
 	inst->query_func = (QueryInterface) dlsym(inst->lib_handle, "QueryInterface");
 	inst->load_func = (LoadInterface) dlsym(inst->lib_handle, "LoadInterface");
 	inst->destroy_func = (ShutdownInterface) dlsym(inst->lib_handle, "ShutdownInterface");
@@ -191,9 +197,10 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 u32 gf_modules_refresh(GF_ModuleManager *pm)
 {
 	if (!pm) return 0;
+
 #ifdef WIN32
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".dll");
-#elif defined(__DARWIN__)
+#elif defined(__APPLE__)
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".dylib");
 #else
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".so");
