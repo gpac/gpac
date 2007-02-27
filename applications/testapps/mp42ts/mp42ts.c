@@ -377,7 +377,6 @@ void CreateTSPacketsForPMTs(M2TS_muxer *muxer)
 		for (j = 0; j < gf_list_count(muxer->streams); j++) {
 			stream = gf_list_get(muxer->streams, j);						
 			stream->mpeg2_es_pid = 100*(i+1)+10*(j+1);			
-			get_mux_stream_sample(muxer->mp4_in, stream);
 			gf_list_add(program->streams, stream);
 		}
 
@@ -567,6 +566,7 @@ void add_pes_header(GF_BitStream *bs, M2TS_mux_stream *stream)
 	use_dts = 1;
 	pes_header_data_length = 10;
 
+	if (stream->muxer->log_level == LOG_PES) fprintf(stdout, "PID %d - Starting PES for AU %d - DTS "LLD" - PTS "LLD" - RAP %d\n", stream->mpeg2_es_pid, stream->sample_number, stream->sample->DTS, stream->sample->DTS+stream->sample->CTS_Offset, stream->sample->IsRAP);
 	gf_bs_write_int(bs,	0x1, 24);//packet start code
 	gf_bs_write_int(bs,	stream->mpeg2_pes_streamid, 8);// stream id 
 
@@ -625,7 +625,8 @@ enum {
 	M2TS_ADAPTATION_AND_PAYLOAD = 3,
 };
 
-u32 add_adaptation(GF_BitStream *bs, u32 *continuity_counter, Bool has_pcr, u64 time, u32 payload_length)
+u32 add_adaptation(GF_BitStream *bs, u32 *continuity_counter, 
+				   Bool has_pcr, u64 time, Bool is_rap, u32 payload_length)
 {
 	u32 tmp_length;
 	u32 adaptation_field_control;
@@ -643,7 +644,7 @@ u32 add_adaptation(GF_BitStream *bs, u32 *continuity_counter, Bool has_pcr, u64 
 	   - to write the PCR
 	   - or because we need padding */
 	tmp_length = adaptation_length_length + adaptation_flags_length + has_pcr*pcr_length;
-	if (has_pcr || payload_length < (184 - tmp_length)) {
+	if (is_rap || has_pcr || payload_length < (184 - tmp_length)) {
 		if (payload_length >= (184 - tmp_length)) {
 			/* we have enough data remaining in the payload, 
 			   the TS packet will have adaptation and payload (no padding) */
@@ -688,7 +689,7 @@ u32 add_adaptation(GF_BitStream *bs, u32 *continuity_counter, Bool has_pcr, u64 
 		   but in the bitstream we write the number of bytes, excluding the length field */
 		gf_bs_write_int(bs,	adaptation_lengh - adaptation_length_length, 8);
 		gf_bs_write_int(bs,	0, 1); // discontinuity indicator
-		gf_bs_write_int(bs,	0, 1); // random access indicator
+		gf_bs_write_int(bs,	is_rap, 1); // random access indicator
 		gf_bs_write_int(bs,	0, 1); // es priority indicator
 		gf_bs_write_int(bs,	has_pcr, 1); // PCR_flag 
 		gf_bs_write_int(bs,	0, 1); // OPCR flag
@@ -723,6 +724,7 @@ u8 *encode_ts(M2TS_muxer *muxer, M2TS_mux_stream *stream)
 	Bool PUSI;
 	u32 adaptation_length;
 	u32 payload_length;
+	Bool is_rap;
 	
 	bs = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
 
@@ -741,9 +743,13 @@ u8 *encode_ts(M2TS_muxer *muxer, M2TS_mux_stream *stream)
 
 	remain = stream->sample->dataLength + pes_header_length*PUSI - stream->nb_bytes_written;
 
+	if (stream->MP2_type == GF_M2TS_VIDEO_MPEG2 && stream->sample->IsRAP) is_rap=1;
+	else is_rap = 0;
+
 	adaptation_length = add_adaptation(bs, &stream->continuity_counter, 
 										   stream->PCR, 
-										   stream->stream_time, 
+										   stream->stream_time,
+										   is_rap,
 										   remain);
 
 	payload_length = 184 - adaptation_length;
@@ -766,17 +772,23 @@ u8 *encode_ts(M2TS_muxer *muxer, M2TS_mux_stream *stream)
 	return ts_data;
 }
 
-void create_one_ts(GF_ISOFile *mp4_in, M2TS_mux_stream *stream, M2TS_muxer *muxer)
+void create_one_ts(M2TS_muxer *muxer, M2TS_mux_stream *stream)
 {
 	u8 *data;	
-	data = encode_ts(muxer, stream);
-	fwrite(data, 1, 188, muxer->ts_out);
-//	fwrite(data+4, 1, 184, stream->pes_out);
-	if (stream->nb_bytes_written >= stream->sample->dataLength){		
+
+	if (!stream->sample || stream->nb_bytes_written >= stream->sample->dataLength){		
+		u32 tmp;
 		/* TODO free sample ? */
 		stream->sample = NULL;
-		get_mux_stream_sample(mp4_in, stream);
-		stream->nb_bytes_written = 0;
 		stream->sample_number ++;
+		stream->sample = gf_isom_get_sample(muxer->mp4_in, stream->track_number, stream->sample_number, &tmp);
+		if (stream->sample) stream->stream_time = stream->sample->DTS;
+		stream->nb_bytes_written = 0;
+	}
+
+	if (stream->sample) {
+		data = encode_ts(muxer, stream);
+		fwrite(data, 1, 188, muxer->ts_out);
+		//fwrite(data+4, 1, 184, stream->pes_out);
 	}
 }
