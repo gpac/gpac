@@ -26,6 +26,13 @@
 #include <gpac/mpegts.h>
 #include <gpac/avparse.h>
 
+enum {
+	LOG_NO_LOG = 0,
+	LOG_PES = 1,
+	LOG_SECTION = 2,
+	LOG_TS = 3
+};
+
 /* max size includes first header, second header, payload and CRC */
 enum {
 	GF_M2TS_TABLE_ID_PAT			= 0x00,
@@ -37,7 +44,9 @@ enum {
 	GF_M2TS_TABLE_ID_METADATA		= 0x06, 
 	GF_M2TS_TABLE_ID_IPMP_CONTROL	= 0x07, 
 	/* 0x08 - 0x37 reserved */
-	/* 0x38 - 0x3F DSM-CC defined */
+	/* 0x38 - 0x3D DSM-CC defined */
+	GF_M2TS_TABLE_ID_DSM_CC_PRIVATE	= 0x3E, /* used for MPE (only, not MPE-FEC) */
+	/* 0x3F DSM-CC defined */
 	GF_M2TS_TABLE_ID_NIT_ACTUAL		= 0x40, /* max size for section 1024 */
 	GF_M2TS_TABLE_ID_NIT_OTHER		= 0x41,
 	GF_M2TS_TABLE_ID_SDT_ACTUAL		= 0x42, /* max size for section 1024 */
@@ -119,6 +128,8 @@ typedef struct M2TS_mux_stream
 	FILE *pes_out;
 
 	Bool PCR;
+
+	struct M2TS_muxer *muxer;
 } M2TS_mux_stream;
 
 typedef struct M2TS_muxer
@@ -127,6 +138,9 @@ typedef struct M2TS_muxer
 	float PAT_interval; // s
 	float PMT_interval; // s
 	float SI_interval; //s
+	
+	u32 send_pat, send_pmt;
+
 	/* ~ PCR */
 	u64 muxer_time;
 	
@@ -151,6 +165,8 @@ typedef struct M2TS_muxer
 	Bool end;
 
 	Bool use_sl;
+
+	u32 log_level;
 } M2TS_muxer;
 
 typedef struct
