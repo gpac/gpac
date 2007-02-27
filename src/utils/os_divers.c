@@ -329,8 +329,10 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #else
 
 	the_dir = opendir(path);
-	if (the_dir == NULL) return GF_IO_ERR;
-
+	if (the_dir == NULL) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot open directory %s for enumeration\n", path));
+		return GF_IO_ERR;
+	}
 	the_file = readdir(the_dir);
 	while (the_file) {
 
@@ -388,6 +390,8 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #else
 		strcpy(item_path, path);
 		strcat(item_path, the_file->d_name);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Checking file %s for enum\n", item_path));
+		
 		if (stat( item_path, &st ) != 0) goto next;
 		if (enum_directory && ( (st.st_mode & S_IFMT) != S_IFDIR)) goto next;
 		if (!enum_directory && ((st.st_mode & S_IFMT) == S_IFDIR)) goto next;

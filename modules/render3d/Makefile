@@ -21,6 +21,21 @@ OBJS= background.o bindable.o bitmap.o camera.o form.o geometry_stacks.o geometr
 
 LINKFLAGS=-L../../bin/gcc -lgpac
 
+#update for MacOSX, needs path to X11 
+ifeq ($(CONFIG_DARWIN),yes)
+
+ifeq ($(X11_INC_PATH), )
+else
+CFLAGS+=-I$(X11_INC_PATH)
+endif
+
+ifeq ($(X11_LIB_PATH), )
+else
+LDFLAGS+=-L$(X11_LIB_PATH)
+endif
+
+endif
+
 SRCS := $(OBJS:.o=.c) 
 
 LIB=gm_render3d.$(DYN_LIB_SUFFIX)

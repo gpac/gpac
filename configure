@@ -37,7 +37,7 @@ sdl_static="no"
 
 #GPAC module config
 js_flags="XP_UNIX"
-js_lib="js"
+js_lib="-ljs"
 iso_fragments="yes"
 make_readonly="no"
 has_mingw_directx="no"
@@ -56,6 +56,7 @@ has_ogg="no"
 has_vorbis="no"
 has_theora="no"
 has_oss_audio="no"
+has_x11="no"
 has_x11_shm="no"
 disable_svg="no"
 no_gcc_opt="no"
@@ -85,6 +86,8 @@ CPPFLAGS=""
 GPAC_SH_FLAGS=-lpthread
 DYN_LIB_SUFFIX="so"
 X11_PATH="/usr/X11R6"
+OSS_CFLAGS=""
+OSS_LDFLAGS=""
 is_64="no"
 
 #Configure Usage
@@ -390,12 +393,18 @@ EOF
 #regular spidermonkey
 if $cc -o $TMPO $TMPC $js_flags -ljs 2> /dev/null  ; then
 has_js="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if cc -o $TMPO $TMPC -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib -ljs 2> /dev/null ; then
+  has_js="system"
+  js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
+  js_lib="-L$alt_macosx_dir/lib -ljs"
+ fi
 else
 #debian spidermonkey (smjs)
 js_flags="-DXP_UNIX -I/usr/include/smjs"
 if $cc -o $TMPO $TMPC $js_flags -lsmjs 2> /dev/null  ; then
 has_js="system"
-js_lib="smjs"
+js_lib="-lsmjs"
 else
 #try local
 js_flags="-DXP_UNIX -I$local_inc/js"
@@ -445,11 +454,15 @@ EOF
 
 if test "$win32" = "yes" ; then
 LINK3D="-lopengl32 -lglu32"
+elif test "$darwin" = "yes" ; then
+LINK3D="-lgl -lglu"
 else
-LINK3D="-lGL -lGLU"
+LINK3D="-lgl -lglut"
 fi
 
 if $cc -o $TMPO $TMPC $LINK3D 2> /dev/null  ; then
+has_opengl="yes"
+elif $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
 has_opengl="yes"
 fi
 
@@ -643,6 +656,21 @@ fi
 
 
 #look for OSS support
+
+if test "$darwin" = "yes" ; then
+
+cat > $TMPC << EOF
+#include <soundcard.h>
+int main( void ) { return 0; }
+EOF
+if $cc -o $TMPO $TMPC -DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss -L$alt_macosx_dir/lib -loss 2> /dev/null ; then
+has_oss_audio="SYS"
+OSS_CFLAGS="-DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss"
+OSS_LDFLAGS="-L$alt_macosx_dir/lib"
+fi
+
+else
+
 cat > $TMPC << EOF
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -666,6 +694,9 @@ has_oss_audio="YES"
 fi
 fi
 
+fi
+
+
 #look for wxWidgets support
 has_wx="no"
 wx_too_old="no"
@@ -681,7 +712,7 @@ else
 if test "$wx_version" -lt 260 ; then
 has_wx="yes"
 wx_cflags=`wx-config --cppflags`
-wx_lflags=`wx-config --libs=core`
+wx_lflags=`wx-config --libs`
 else
 has_wx="yes"
 wx_cflags=`wx-config --cppflags core, base`
@@ -808,6 +839,14 @@ done
 #look for X11 shared memory support
 cat > $TMPC << EOF
 #include <X11/Xlib.h>
+int main( void ) { return 0; }
+EOF
+if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
+has_x11="yes"
+
+#look for X11 shared memory support
+cat > $TMPC << EOF
+#include <X11/Xlib.h>
 #include <X11/extensions/XShm.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -817,6 +856,9 @@ EOF
 if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
 has_x11_shm="yes"
 fi
+
+fi
+
 
 #GCC opt
 if test "$no_gcc_opt" = "no"; then
@@ -1235,8 +1277,11 @@ echo "MOZILLA_DIR=$moz_path" >> config.mak
 
 if test "$has_oss_audio" != "no"; then
 echo "OSS_INC_TYPE=$has_oss_audio" >> config.mak
+echo "OSS_CFLAGS=$OSS_CFLAGS" >> config.mak
+echo "OSS_LDFLAGS=$OSS_LDFLAGS" >> config.mak
 fi
 
+echo "CONFIG_X11=$has_x11" >> config.mak
 if test "$has_x11_shm" = "yes"; then
 echo "USE_X11_SHM=$has_x11_shm" >> config.mak
 fi

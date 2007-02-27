@@ -6,7 +6,7 @@ PLUGDIRS=aac_in bifs_dec ctx_load dummy_in soft_raster mp3_in isom_in odf_dec rt
 ifeq ($(DISABLE_SVG), no)
 PLUGDIRS+=laser_dec svg_in
 ifeq ($(HAS_LIBXML2), yes)
-PLUGDIRS+=svg_loader
+#PLUGDIRS+=svg_loader
 endif
 endif
 
@@ -55,7 +55,7 @@ ifeq ($(HAS_OPENGL),yes)
 PLUGDIRS+=render3d
 endif
 
-ifeq ($(CONFIG_LINUX),yes)
+ifeq ($(CONFIG_X11),yes)
 PLUGDIRS+=x11_out
 endif
 

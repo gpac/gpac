@@ -95,7 +95,7 @@ SCENEGRAPH_CFLAGS+=-DGPAC_HAS_SPIDERMONKEY $(JS_FLAGS)
 ifeq ($(CONFIG_JS),local)
 EXTRALIBS+= -L../extra_lib/lib/gcc
 endif
-EXTRALIBS+= -l$(JS_LIBS)
+EXTRALIBS+= $(JS_LIBS)
 endif
 
 ifeq ($(DISABLE_SVG), yes)

@@ -2,7 +2,8 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/oss_audio
 
-CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include $(OSS_CFLAGS)
+LDFLAGS+=$(OSS_LDFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -33,7 +34,7 @@ LIB=gm_oss_audio.$(DYN_LIB_SUFFIX)
 all: $(LIB)
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac $(OSS_LDFLAGS) -loss
 
 
 %.o: %.c
