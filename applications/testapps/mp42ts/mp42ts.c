@@ -27,203 +27,9 @@
 #include <gpac/avparse.h>
 #include "mp42ts.h"
 
-void add_ts_header(GF_BitStream *bs, u32 PUSI, u32 pid);
-u8 *encode_ts(M2TS_muxer *muxer, M2TS_mux_stream *stream, u32 PUSI);
-void get_mux_stream_sample(GF_ISOFile *mp4_in, M2TS_mux_stream *stream);
-
-void SLpacket_in_pes(M2TS_mux_stream *stream, char *Packet, u32 Size)
-{
-	config_sample_hdr(stream);
-	gf_sl_packetize(stream->SLConfig, stream->SLHeader, stream->sample->data, stream->sample->dataLength, &stream->sl_packet, &stream->sl_packet_len);
-}
-
-GF_List *CreateTSPacketsFromSLPacket(M2TS_mux_stream *stream, char *SLPacket, u32 SL_Size)
-{
-	u8 table_id;
-	u16 table_id_extension;
-	MP42TS_Buffer *B;
-	GF_List *sections, *ts_packet;
-		
-	if (stream->MP4_type == GF_ISOM_MEDIA_SCENE){
-		table_id = GF_M2TS_TABLE_ID_MPEG4_BIFS;
-	}else if (stream->MP4_type == GF_ISOM_MEDIA_OD){
-		table_id = GF_M2TS_TABLE_ID_MPEG4_OD;
-	}
-	table_id_extension = 0;
-
-	GF_SAFEALLOC(B, MP42TS_Buffer);
-	B->length = SL_Size;
-	B->data = SLPacket;
-	sections = CreateSections(B, table_id, table_id_extension, stream->SL_section_version_number);	
-	B = EncodeSections(sections);
-	ts_packet = CreateTSPacketsFromSections(B, stream->mpeg2_es_pid, &stream->continuity_counter);	
-
-	free(B);
-	stream->SL_section_version_number ++;
-	if (stream->SL_section_version_number > 32) stream->SL_section_version_number = 0;
-
-	return ts_packet;
-}
-
-void config_sample_hdr(M2TS_mux_stream *stream)
-{
-	GF_SAFEALLOC(stream->SLHeader, GF_SLHeader);
-	if (stream->sample){
-		stream->SLHeader->accessUnitStartFlag = 1;
-		stream->SLHeader->accessUnitEndFlag = 1;
-		stream->SLHeader->accessUnitLength = stream->sample->dataLength;
-		stream->SLHeader->randomAccessPointFlag = stream->sample->IsRAP;
-		stream->SLHeader->compositionTimeStampFlag = 1;
-		stream->SLHeader->compositionTimeStamp = (stream->sample->CTS_Offset+stream->sample->DTS)*90000/1000;
-		stream->SLHeader->decodingTimeStampFlag = 1;
-		stream->SLHeader->decodingTimeStamp = stream->sample->DTS*90000/1000;
-		printf("SL Header: DTS "LLD", CTS "LLD"\n", stream->SLHeader->decodingTimeStamp, stream->SLHeader->compositionTimeStamp);
-	}
-}
-
-MP42TS_Buffer *get_iod(GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_InitialObjectDescriptor *iod;
-	u32 DescSize =0;
-	GF_BitStream *bs_out;
-	MP42TS_Buffer *B;
-	iod = (GF_InitialObjectDescriptor *)gf_odf_new_iod();
-		
-	e = gf_odf_read_iod(bs, iod, DescSize);
-	
-	bs_out = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
-	e = gf_odf_write_iod(bs_out, iod);
-
-	GF_SAFEALLOC(B, MP42TS_Buffer);
-	B->data = malloc(DescSize);
-	gf_bs_get_content(bs_out, &B->data, &B->length); 
-	gf_bs_del(bs);
-	
-	return B;
-}
-
-
-/* ********************************************************************************
-   ******************************************************************************** */
-
-void InitializePMT(GF_M2TS_Program *program)
-{
-	u32 i;
-	
-	program->pcr_pid = 0;
-	for (i = 0; i<gf_list_count(program->streams); i++) {
-		M2TS_mux_stream *stream = (M2TS_mux_stream *)gf_list_get(program->streams, i);
-		if (stream->MP2_type == GF_M2TS_VIDEO_MPEG2) {
-			program->pcr_pid = stream->mpeg2_es_pid;
-		} else if (!program->pcr_pid) {
-			program->pcr_pid = stream->mpeg2_es_pid;
-		}
-	}
-}
-
-MP42TS_Buffer *EncodePMT(GF_M2TS_Program *program, MP42TS_Buffer *iod)
-{
-	u32 i;
-	MP42TS_Buffer *B;
-	GF_BitStream *bs;
-	GF_SAFEALLOC(B, MP42TS_Buffer);
-	bs = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
-
-	gf_bs_write_int(bs,	1, 3); // reserved
-	gf_bs_write_int(bs,	program->pcr_pid, 13);
-	gf_bs_write_int(bs,	1, 4); // reserved
-	
-	if (!iod) {
-		gf_bs_write_int(bs,	0, 12); // program info length =0
-	} else {
-		u32 len;
-		len = iod->length + 4;
-		gf_bs_write_int(bs,	len, 12); // program info length = iod len
-		/*for (i =0; i< gf_list_count(program->desc); i++)
-		{
-			// program descriptors
-			// IOD
-		}*/
-		gf_bs_write_int(bs,	29, 8); // tag
-		len = iod->length + 2;
-		gf_bs_write_int(bs,	len, 8); // length
-		gf_bs_write_int(bs,	2, 8);  // Scope_of_IOD_label : 0x10 iod unique a l'intérieur de programme
-												// 0x11 iod unoque dans la flux ts
-		gf_bs_write_int(bs,	2, 8);  // IOD_label
-
-		gf_bs_write_data(bs, iod->data, iod->length);  // IOD
-	}	
-
-	for (i =0; i < gf_list_count(program->streams); i++) {
-		M2TS_mux_stream *es;
-		es = gf_list_get(program->streams, i);
-		gf_bs_write_int(bs,	es->MP2_type, 8);
-		gf_bs_write_int(bs,	1, 3); // reserved
-		gf_bs_write_int(bs,	es->mpeg2_es_pid, 13);
-		gf_bs_write_int(bs,	1, 4); // reserved
-		
-		/* Second Loop Descriptor */
-		if (iod) {
-			gf_bs_write_int(bs,	4, 12); // ES info length = 4 :only SL Descriptor
-			gf_bs_write_int(bs,	30, 8); // tag
-			gf_bs_write_int(bs,	1, 8); // length
-			gf_bs_write_int(bs,	es->mpeg4_es_id, 16);  // mpeg4_esid
-		} else {
-			gf_bs_write_int(bs,	0, 12);
-		}
-						
-	}
-	
-	gf_bs_get_content(bs, &B->data, &B->length);
-	
-	gf_bs_del(bs);
-	return B;
-}
-
-GF_List *InitializePAT(u32 nb_prog) {
-	GF_List *pat_table;
-	GF_M2TS_Program *program;
-	u32 i;
-
-	pat_table = gf_list_new();
-	for (i= 1; i<= nb_prog; i++) {
-		GF_SAFEALLOC(program, GF_M2TS_Program);
-		program->number= i*10;
-		program->pmt_pid= i*100;
-		gf_list_add(pat_table, program);
-	}
-	return pat_table;
-}
-
-MP42TS_Buffer *EncodePAT(GF_List *pat_table) {
-
-	u32 i;
-	MP42TS_Buffer *B_pat;
-	GF_M2TS_Program *program;
-	u32 nb_programs;
-	
-	nb_programs = gf_list_count(pat_table);
-
-	GF_SAFEALLOC(B_pat, MP42TS_Buffer);
-	B_pat->data = malloc(nb_programs * 4);
-
-	for (i=0; i < nb_programs ;i++) {
-		program = gf_list_get(pat_table, i);
-
-		//program number
-		B_pat->data[4*i] = program->number >> 8;
-		B_pat->data[4*i+1] = program->number;
-
-		// program pid < 2^13-1
-		B_pat->data[4*i+2] = program->pmt_pid>> 8 | 0xe0;
-		B_pat->data[4*i+3] = program->pmt_pid;
-	}
-	B_pat->length = i*4;
-
-	return B_pat;	
-}
-
+/************************************
+ * Section-related functions 
+ ************************************/
 GF_List *CreateSections(MP42TS_Buffer *B, u8 table_id, u16 sec_id, u32 version_number) {
 	u32 maxSectionLength;
 	u32 remain;
@@ -398,366 +204,297 @@ GF_List *CreateTSPacketsFromSections(MP42TS_Buffer *sec_B, u32 pid, u32 *continu
 	return ts_packet;
 }
 
-
-void initialize_muxer( M2TS_muxer *muxer)
+/************************************************************
+ * SL-Packetized Stream related functions 
+ ************************************************************/
+void config_sample_hdr(M2TS_mux_stream *stream)
 {
-	muxer->muxer_time = 0;
-	muxer->streams = gf_list_new();
-	muxer->pmt_ts_packet = gf_list_new();
-}
-
-void initialize_mux_stream(GF_ISOFile *mp4_in, M2TS_mux_stream *stream)
-{
-	get_mux_stream_sample(mp4_in, stream);
-}
-
-void add_stream_to_muxer(M2TS_muxer *muxer, M2TS_mux_stream *stream)
-{	
-	if (stream->stream_time < muxer->muxer_time ) muxer->muxer_time = stream->stream_time;
-	gf_list_add(muxer->streams, stream);
-}
-
-M2TS_mux_stream *compare_muxer_time_with_stream_time(M2TS_muxer *muxer)
-{
-	M2TS_mux_stream *stream;
-	u32 i, k, count;
-	u64 inf_time = 0xffffffffffffffff;
-	u32 stream_with_inf_time = 0;
-
-	k=0;
-	count = gf_list_count(muxer->streams);
-	for(i = 0; i < count; i++) {
-		stream = gf_list_get(muxer->streams, i);
-		if (stream->sample) {
-			if (stream->stream_time < inf_time) {
-				inf_time = stream->stream_time;
-				stream_with_inf_time = i; 
-			}
-		} else {
-			u32 SI_index = (u32)(muxer->TS_Rate * muxer->SI_interval / 188);
-			if (stream->SL_in_section && stream->repeat_section && 
-				muxer->insert_SI == SI_index){
-				// par exemple pour qu'une image soit retransmise
-				stream->nb_bits_written_from_sample = 0;  
-				update_muxer(muxer, muxer->mp4_in, stream);
-			}
-			k++;
-		}
+	GF_SAFEALLOC(stream->SLHeader, GF_SLHeader);
+	if (stream->sample){
+		stream->SLHeader->accessUnitStartFlag = 1;
+		stream->SLHeader->accessUnitEndFlag = 1;
+		stream->SLHeader->accessUnitLength = stream->sample->dataLength;
+		stream->SLHeader->randomAccessPointFlag = stream->sample->IsRAP;
+		stream->SLHeader->compositionTimeStampFlag = 1;
+		stream->SLHeader->compositionTimeStamp = (stream->sample->CTS_Offset+stream->sample->DTS)*90000/1000;
+		stream->SLHeader->decodingTimeStampFlag = 1;
+		stream->SLHeader->decodingTimeStamp = stream->sample->DTS*90000/1000;
+		printf("SL Header: DTS "LLD", CTS "LLD"\n", stream->SLHeader->decodingTimeStamp, stream->SLHeader->compositionTimeStamp);
 	}
-
-	if (k == i) muxer->end = 1;
-	stream = gf_list_get(muxer->streams, stream_with_inf_time);
-	muxer->muxer_time = stream->stream_time;
-	return stream; 
 }
 
-void get_mux_stream_sample(GF_ISOFile *mp4_in, M2TS_mux_stream *stream)
+void SLpacket_in_pes(M2TS_mux_stream *stream, char *Packet, u32 Size)
+{
+	config_sample_hdr(stream);
+	gf_sl_packetize(stream->SLConfig, stream->SLHeader, stream->sample->data, stream->sample->dataLength, &stream->sl_packet, &stream->sl_packet_len);
+}
+
+GF_List *CreateTSPacketsFromSLPacket(M2TS_mux_stream *stream, char *SLPacket, u32 SL_Size)
+{
+	u8 table_id;
+	u16 table_id_extension;
+	MP42TS_Buffer *B;
+	GF_List *sections, *ts_packet;
+		
+	if (stream->MP4_type == GF_ISOM_MEDIA_SCENE){
+		table_id = GF_M2TS_TABLE_ID_MPEG4_BIFS;
+	}else if (stream->MP4_type == GF_ISOM_MEDIA_OD){
+		table_id = GF_M2TS_TABLE_ID_MPEG4_OD;
+	}
+	table_id_extension = 0;
+
+	GF_SAFEALLOC(B, MP42TS_Buffer);
+	B->length = SL_Size;
+	B->data = SLPacket;
+	sections = CreateSections(B, table_id, table_id_extension, stream->SL_section_version_number);	
+	B = EncodeSections(sections);
+	ts_packet = CreateTSPacketsFromSections(B, stream->mpeg2_es_pid, &stream->continuity_counter);	
+
+	free(B);
+	stream->SL_section_version_number ++;
+	if (stream->SL_section_version_number > 32) stream->SL_section_version_number = 0;
+
+	return ts_packet;
+}
+
+MP42TS_Buffer *get_iod(GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 ivar;
-	u32 isn;	
-
-	if (!stream->is_time_initialized) {
-		e = gf_isom_get_sample_for_movie_time(mp4_in, stream->track_number, 0, &ivar, GF_ISOM_SEARCH_FORWARD, &stream->sample, &isn);		
-		stream->is_time_initialized = 1;
-		stream->sample_number ++;	
-	} else {
-		e = gf_isom_get_sample_for_media_time(mp4_in, stream->track_number, stream->stream_time + 1, &ivar, GF_ISOM_SEARCH_FORWARD, &stream->sample, &isn);
-	}
-	
-	if (!stream->sample) {
-		/* fin du flux */
-		printf("fin track number %d sample_count %d \n", stream->track_number, stream->sample_number);
-	} else {
-		stream->stream_time = stream->sample->DTS;
-	}
-}
-
-void create_one_ts(GF_ISOFile *mp4_in, M2TS_mux_stream *stream, M2TS_muxer *muxer)
-{
-	u32 PUSI;
-	u8 *data;
-	
-	if (stream->nb_bits_written_from_sample == 0){
-		PUSI = 1;
-	} else {
-		PUSI = 0;
-	}
-	data = encode_ts(muxer, stream, PUSI);
-	fwrite(data, 1, 188, muxer->ts_out);
-	update_muxer(muxer, mp4_in, stream);
-}
-
-void add_ts_header(GF_BitStream *bs, u32 PUSI, u32 pid)
-{
-	gf_bs_write_int(bs,	0x47, 8); // sync byte
-	gf_bs_write_int(bs,	0, 1); // error indicator
-	gf_bs_write_int(bs,	PUSI, 1); // start ind
-	gf_bs_write_int(bs,	0, 1); // transport priority
-	gf_bs_write_int(bs,	pid, 13); // pid
-	gf_bs_write_int(bs,	0, 2); // scrambling
-}
-
-void add_pes_header(GF_BitStream *bs, M2TS_mux_stream *stream)
-{
-	u32 tmp;
-	u32 pes_len;
-
-	gf_bs_write_int(bs,	0x1, 24); //packet start code
-	gf_bs_write_int(bs,	0xe0, 8);// stream id 
-	pes_len = stream->sample->dataLength + 13; // 13 = header until PTS/DTS
-	gf_bs_write_int(bs, pes_len, 16); // pes packet length
-	gf_bs_write_int(bs,0x2 , 2); // reserved
-	gf_bs_write_int(bs, 0x0, 2); // scrambling
-	gf_bs_write_int(bs, 0x0, 1); // priority
-	gf_bs_write_int(bs, 0x0, 1); // alignment indicator
-	gf_bs_write_int(bs, 0x0, 1); // copyright
-	gf_bs_write_int(bs, 0x0, 1); // original or copy
-	// 7 flags
-	if (stream->sample->DTS !=0){
-		gf_bs_write_int(bs, 0x1, 1);
-		tmp = 5;
-	}else {
-		gf_bs_write_int(bs, 0x0, 1);
-		tmp = 0;
-	}
-	if (stream->sample->CTS_Offset !=0){
-		gf_bs_write_int(bs, 0x1, 1);
-		tmp = 10;
-	}else {
-		gf_bs_write_int(bs, 0x0, 1);
-	}
-	gf_bs_write_int(bs, 0x0, 6);//6 flags =0
-	tmp = 10; // longeur PTS/DTS
-	gf_bs_write_int(bs, tmp, 8);// pes header data length
-	
-	if ( tmp == 5 || tmp == 10){
-		// PTS sur 5 octet
-		u64 t;
-		u64 cts = stream->sample->DTS + stream->sample->CTS_Offset;
-		gf_bs_write_int(bs, 0x2, 4); // reserved '0010'
-		t = ((cts >> 30) & 0x7);
-		gf_bs_write_long_int(bs, t, 3);
-		gf_bs_write_int(bs, 0, 1);
-		t = ((cts >> 15) & 0x7fff);
-		gf_bs_write_long_int(bs, t, 15);
-		gf_bs_write_int(bs, 0, 1);
-		t = cts & 0x7fff;
-		gf_bs_write_long_int(bs, t, 15);
-		gf_bs_write_int(bs, 0, 1);
-		/*printf("streamid\t%d\tdts\t"LLD"\tdcts\t%d\tcts\t"LLD"\n",										stream->track_number, 
-										stream->sample->DTS, 
-										stream->sample->CTS_Offset, 
-										(stream->sample->DTS+stream->sample->CTS_Offset));
-										*/
-	}
-	if( tmp == 10){ // DTS 5 octet
-		u64 t;
-		u64 dts = stream->sample->DTS;
-
-		gf_bs_write_int(bs, 0x2, 4); // reserved '0010'
-		t = ((dts >> 30) & 0x7);
-		gf_bs_write_long_int(bs, t, 3);
-		gf_bs_write_int(bs, 0, 1);
-		t = ((dts >> 15) & 0x7fff);
-		gf_bs_write_long_int(bs, t, 15);
-		gf_bs_write_int(bs, 0, 1);
-		t = dts & 0x7fff;
-		gf_bs_write_long_int(bs, t, 15);
-		gf_bs_write_int(bs, 0, 1);
-	}
-
-}
-
-void add_adaptation(GF_BitStream *bs, M2TS_muxer *muxer, M2TS_mux_stream *stream, u32 *ts_payload_len, u32 PUSI)
-{
-	u32 remain, adaptation_lengh, j, adaptation_field_control;
-
-	remain = stream->sample->dataLength - stream->nb_bits_written_from_sample;		
-	//printf("stream %d , DTS "LLD" \n", stream->track_number, stream->sample->DTS);
-	if (PUSI == 1) {
-		if (remain >= (184 - 19)) {  // 19 = pes header, PTS/DTS
-			if (stream->PCR == 1){
-				u64 PCR_base, PCR_ext;
-
-				adaptation_field_control = 3;
-				gf_bs_write_int(bs,	3, 2); // adaptation + payload
-				gf_bs_write_int(bs,	stream->continuity_counter, 4); // continiuty counter
-				adaptation_lengh = 7; // 7 = flags + PCR
-				gf_bs_write_int(bs,	adaptation_lengh, 8); // 0 < adaptation field length < 182
-				gf_bs_write_int(bs,	0, 1); // discontinuity indicator
-				gf_bs_write_int(bs,	0, 1); // random access indicator
-				gf_bs_write_int(bs,	0, 1); // es priority indicator
-				gf_bs_write_int(bs,	1, 1); // PCR_flag 
-				gf_bs_write_int(bs,	0, 4); // flag
-				// PCR
-				PCR_base = stream->stream_time;//muxer->muxer_time;
-				//printf("PCR "LLD" \n",PCR_base);
-				gf_bs_write_long_int(bs,	PCR_base , 33); /*  *///  muxer->muxer_time +=1;
-				gf_bs_write_int(bs,	1 , 6); // reserved
-				PCR_ext = 0;
-				gf_bs_write_long_int(bs,	PCR_ext, 9);
-				*ts_payload_len = 176;
-			} else {
-				adaptation_field_control = 1;
-				gf_bs_write_int(bs,	1, 2); // pas d'adaptation
-				gf_bs_write_int(bs,	stream->continuity_counter, 4); // continiuty counter
-				*ts_payload_len = 184;
-			}
-		} else if (remain < (184 - 19 - 2) && remain > 0 ) { 
-			// 19 PES heaer , 2 = adaptation field length + discontinuty, random access...
-			adaptation_field_control = 3;
-			gf_bs_write_int(bs,	3, 2); // adaptation + payload
-			gf_bs_write_int(bs,	stream->continuity_counter, 4); // continiuty counter
-			adaptation_lengh = (184 - 19) - remain - 2; // 2 = adaptation field length + disconinuoty, random access...
-			gf_bs_write_int(bs,	adaptation_lengh, 8); // 0 < adaptation field length < 182
-			gf_bs_write_int(bs,	0, 1); // discontinuity indicator
-			gf_bs_write_int(bs,	0, 1); // random access indicator
-			gf_bs_write_int(bs,	0, 1); // es priority indicator
-			gf_bs_write_int(bs,	0, 1); // PCR_flag 
-			gf_bs_write_int(bs,	0, 4); // flag
-			for (j = 0; j < (adaptation_lengh-1); j++) {
-				gf_bs_write_int(bs,	0xff, 8); // stuffing byte
-			}
-			adaptation_lengh +=1;
-			*ts_payload_len = 184 - adaptation_lengh;			
-		} else {
-			adaptation_field_control = 3;
-			gf_bs_write_int(bs,	3, 2); // adaptation + payload
-			gf_bs_write_int(bs,	stream->continuity_counter, 4); // continiuty counter
-			adaptation_lengh = 1; 
-			gf_bs_write_int(bs,	adaptation_lengh, 8); // 0 < adaptation field length < 182
-			gf_bs_write_int(bs,	0, 1); // discontinuity indicator
-			gf_bs_write_int(bs,	0, 1); // random access indicator
-			gf_bs_write_int(bs,	0, 1); // es priority indicator
-			gf_bs_write_int(bs,	0, 1); // PCR_flag 
-			gf_bs_write_int(bs,	0, 4); // flag
-			for (j = 0; j < (adaptation_lengh-1); j++){
-				gf_bs_write_int(bs,	0xff, 8); // stuffing byte
-			}
-			adaptation_lengh +=1;
-			*ts_payload_len = 184 - adaptation_lengh;
-		}
-	} else { //PUSI = 0		
-		if (remain >= 184) {  // PCR seulement
-			if (stream->PCR == 1) {
-				u64 PCR_base, PCR_ext;
-				adaptation_field_control = 3;
-				gf_bs_write_int(bs,	3, 2); // adaptation + payload
-				gf_bs_write_int(bs,	stream->continuity_counter, 4); // continiuty counter
-				adaptation_lengh = 7; // 7 = flags + PCR
-				gf_bs_write_int(bs,	adaptation_lengh, 8); // 0 < adaptation field length < 182
-				gf_bs_write_int(bs,	0, 1); // discontinuity indicator
-				gf_bs_write_int(bs,	0, 1); // random access indicator
-				gf_bs_write_int(bs,	0, 1); // es priority indicator
-				gf_bs_write_int(bs,	1, 1); // PCR_flag 
-				gf_bs_write_int(bs,	0, 4); // flag
-				// PCR
-				PCR_base = stream->stream_time; //muxer->muxer_time;
-				//("PCR "LLD" \n",PCR_base);
-				gf_bs_write_long_int(bs,	PCR_base , 33);//muxer->muxer_time +=1;
-				gf_bs_write_int(bs,	1 , 6); // reserved
-				PCR_ext = 0;
-				gf_bs_write_long_int(bs,	PCR_ext, 9);
-				*ts_payload_len = 176;
-			}else{
-				adaptation_field_control = 1;
-				gf_bs_write_int(bs,	1, 2); // pas d'adaptation
-				gf_bs_write_int(bs,	stream->continuity_counter, 4); // continiuty counter
-				*ts_payload_len = 184;
-			}
-		} else if(remain < 184 && remain > 0 ) { //PCR + padding dernier fragment		
-			if (0/*stream->PCR == 1*/){
-				u64 PCR_base, PCR_ext;
-				adaptation_field_control = 3;
-				gf_bs_write_int(bs,	3, 2); // adaptation + payload
-				gf_bs_write_int(bs,	stream->continuity_counter, 4); // continiuty counter
-				adaptation_lengh = 7; // 7 = flags + PCR
-				gf_bs_write_int(bs,	adaptation_lengh, 8); // 0 < adaptation field length < 182
-				gf_bs_write_int(bs,	0, 1); // discontinuity indicator
-				gf_bs_write_int(bs,	0, 1); // random access indicator
-				gf_bs_write_int(bs,	0, 1); // es priority indicator
-				gf_bs_write_int(bs,	1, 1); // PCR_flag 
-				gf_bs_write_int(bs,	0, 4); // flag
-				// PCR
-				PCR_base = stream->stream_time;//muxer->muxer_time;
-				gf_bs_write_long_int(bs,	PCR_base , 33);
-				gf_bs_write_int(bs,	1 , 6); // reserved
-				PCR_ext = 0;
-				gf_bs_write_long_int(bs,	PCR_ext, 9);				
-				adaptation_lengh = 177 - remain - 1; // 1 = adaptation field length + disconinuoty, random access...
-				for (j = 0; j < (adaptation_lengh-1); j++) {
-					gf_bs_write_int(bs,	0xff, 8); // stuffing byte
-				}
-				adaptation_lengh +=1;
-				*ts_payload_len = 177 - adaptation_lengh;		
-			} else {				
-				adaptation_field_control = 3;
-				gf_bs_write_int(bs,	3, 2); // adaptation + payload
-				gf_bs_write_int(bs,	stream->continuity_counter, 4); // continiuty counter
-				adaptation_lengh = 184 - remain - 1; // 1 = adaptation field length + disconinuoty, random access...
-				gf_bs_write_int(bs,	adaptation_lengh, 8); // 0 < adaptation field length < 182
-				gf_bs_write_int(bs,	0, 1); // discontinuity indicator
-				gf_bs_write_int(bs,	0, 1); // random access indicator
-				gf_bs_write_int(bs,	0, 1); // es priority indicator
-				gf_bs_write_int(bs,	0, 1); // PCR_flag 
-				gf_bs_write_int(bs,	0, 4); // flag
-				for (j = 0; j < (adaptation_lengh); j++) {
-					gf_bs_write_int(bs,	0xff, 8); // stuffing byte
-				}
-				adaptation_lengh +=1;
-				*ts_payload_len = 184 - adaptation_lengh;
-			}		
-		}
-	}
-	
+	GF_InitialObjectDescriptor *iod;
+	u32 DescSize =0;
+	GF_BitStream *bs_out;
+	MP42TS_Buffer *B;
+	iod = (GF_InitialObjectDescriptor *)gf_odf_new_iod();
 		
-	if(stream->continuity_counter < 15 && 
-	   adaptation_field_control != 0 && 
-	   adaptation_field_control != 2) {
-		stream->continuity_counter ++;
-	} else 
-		stream->continuity_counter = 0;
-}
+	e = gf_odf_read_iod(bs, iod, DescSize);
+	
+	bs_out = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
+	e = gf_odf_write_iod(bs_out, iod);
 
-u8 *encode_ts(M2TS_muxer *muxer, M2TS_mux_stream *stream, u32 PUSI)
-{
-	u8 *data;
-	u32 data_len;
-	u32 ts_payload_len;
-	GF_BitStream *bs;
-	
-	bs = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
-	
-	add_ts_header(bs, PUSI, stream->mpeg2_es_pid);
-	add_adaptation(bs, muxer, stream, &ts_payload_len, PUSI);
-	if (PUSI == 1){
-		u32 PES_payload_len_in_tspacket;
-		PES_payload_len_in_tspacket = ts_payload_len - 19; /* PES header = 19 octet */
-		add_pes_header(bs, stream);
-		gf_bs_write_data(bs, stream->sample->data, PES_payload_len_in_tspacket);
-		stream->nb_bits_written_from_sample += PES_payload_len_in_tspacket;
-	} else {
-		gf_bs_write_data(bs, stream->sample->data+stream->nb_bits_written_from_sample, ts_payload_len);
-		stream->nb_bits_written_from_sample += ts_payload_len;
-	}
-	gf_bs_get_content(bs, &data, &data_len);
+	GF_SAFEALLOC(B, MP42TS_Buffer);
+	B->data = malloc(DescSize);
+	gf_bs_get_content(bs_out, &B->data, &B->length); 
 	gf_bs_del(bs);
-	return data;
+	
+	return B;
 }
 
-void update_muxer(M2TS_muxer *muxer, GF_ISOFile *mp4_in, M2TS_mux_stream *stream)
+/**********************************************************************************
+ * PSI related functions
+ **********************************************************************************/
+
+/*************************** PMT *****************************/
+void InitializePMT(GF_M2TS_Program *program)
 {
-	if (stream->nb_bits_written_from_sample >= stream->sample->dataLength){		
-		/* TODO free sample ? */
-		stream->sample = NULL;
-		get_mux_stream_sample(mp4_in, stream);
-		stream->nb_bits_written_from_sample = 0;
-		stream->sample_number ++;
+	u32 i;
+	
+	program->pcr_pid = 0;
+	for (i = 0; i<gf_list_count(program->streams); i++) {
+		M2TS_mux_stream *stream = (M2TS_mux_stream *)gf_list_get(program->streams, i);
+		if (stream->MP2_type == GF_M2TS_VIDEO_MPEG2) {
+			program->pcr_pid = stream->mpeg2_es_pid;
+		} else if (!program->pcr_pid) {
+			program->pcr_pid = stream->mpeg2_es_pid;
+		}
 	}
-	muxer->insert_SI ++;
 }
 
+MP42TS_Buffer *EncodePMT(GF_M2TS_Program *program, MP42TS_Buffer *iod)
+{
+	u32 i;
+	MP42TS_Buffer *B;
+	GF_BitStream *bs;
+	GF_SAFEALLOC(B, MP42TS_Buffer);
+	bs = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
+
+	gf_bs_write_int(bs,	0, 3); // reserved
+	gf_bs_write_int(bs,	program->pcr_pid, 13);
+	gf_bs_write_int(bs,	0, 4); // reserved
+	
+	if (!iod) {
+		gf_bs_write_int(bs,	0, 12); // program info length =0
+	} else {
+		u32 len;
+		len = iod->length + 4;
+		gf_bs_write_int(bs,	len, 12); // program info length = iod len
+		/*for (i =0; i< gf_list_count(program->desc); i++)
+		{
+			// program descriptors
+			// IOD
+		}*/
+		gf_bs_write_int(bs,	29, 8); // tag
+		len = iod->length + 2;
+		gf_bs_write_int(bs,	len, 8); // length
+		gf_bs_write_int(bs,	2, 8);  // Scope_of_IOD_label : 0x10 iod unique a l'intérieur de programme
+												// 0x11 iod unoque dans la flux ts
+		gf_bs_write_int(bs,	2, 8);  // IOD_label
+
+		gf_bs_write_data(bs, iod->data, iod->length);  // IOD
+	}	
+
+	for (i =0; i < gf_list_count(program->streams); i++) {
+		M2TS_mux_stream *es;
+		es = gf_list_get(program->streams, i);
+		gf_bs_write_int(bs,	es->MP2_type, 8);
+		gf_bs_write_int(bs,	0, 3); // reserved
+		gf_bs_write_int(bs,	es->mpeg2_es_pid, 13);
+		gf_bs_write_int(bs,	0, 4); // reserved
+		
+		/* Second Loop Descriptor */
+		if (iod) {
+			gf_bs_write_int(bs,	4, 12); // ES info length = 4 :only SL Descriptor
+			gf_bs_write_int(bs,	30, 8); // tag
+			gf_bs_write_int(bs,	1, 8); // length
+			gf_bs_write_int(bs,	es->mpeg4_es_id, 16);  // mpeg4_esid
+		} else {
+			gf_bs_write_int(bs,	0, 12);
+		}
+						
+	}
+	
+	gf_bs_get_content(bs, &B->data, &B->length);
+	
+	gf_bs_del(bs);
+	return B;
+}
+
+void CreateTSPacketsForPMTs(M2TS_muxer *muxer)
+{
+	u32 i, j, nb_progs;
+	GF_M2TS_Program *program;
+	M2TS_mux_stream *stream;
+	MP42TS_Buffer *B;
+	GF_List *sections;
+	Bool use_iod = 0;
+	MP42TS_Buffer *B_iod;
+	
+	muxer->pmt_ts_packet = gf_list_new();
+	nb_progs = gf_list_count(muxer->pat_table);
+	for (i= 0; i<nb_progs ;i++) {
+		program = gf_list_get(muxer->pat_table,i);
+		program->streams = gf_list_new();
+
+		for (j = 0; j < gf_list_count(muxer->streams); j++) {
+			stream = gf_list_get(muxer->streams, j);						
+			stream->mpeg2_es_pid = 100*(i+1)+10*(j+1);			
+			get_mux_stream_sample(muxer->mp4_in, stream);
+			gf_list_add(program->streams, stream);
+		}
+
+		InitializePMT(program);
+
+		if (use_iod) {
+			GF_ObjectDescriptor *iod;
+			GF_BitStream *bs_iod;
+
+				/* iod */
+				iod = (GF_ObjectDescriptor *)gf_isom_get_root_od(muxer->mp4_in);
+				/* Mise à jour des SLConfigDescriptor à la façon MPEG-2 (timestamp_length = 33 ...) */
+				if (iod->tag == GF_ODF_OD_TAG || iod->tag == GF_ODF_IOD_TAG) {
+					GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)iod;
+					u32 i, count = gf_list_count(od->ESDescriptors);
+					for (i = 0; i < count; i++ ){
+						GF_ESD * esd = gf_list_get(od->ESDescriptors, i);
+						esd->slConfig->AUDuration = 0;
+						esd->slConfig->AULength = 0;
+						esd->slConfig->AUSeqNumLength = 0;
+						esd->slConfig->CUDuration = 0;
+						esd->slConfig->degradationPriorityLength = 0;
+						esd->slConfig->durationFlag = 0;
+						esd->slConfig->hasRandomAccessUnitsOnlyFlag = 0;
+						esd->slConfig->instantBitrateLength = 32;
+						esd->slConfig->OCRLength = 0;
+						esd->slConfig->OCRResolution = 90000;
+						esd->slConfig->packetSeqNumLength = 0;
+						esd->slConfig->predefined = 0;
+						esd->slConfig->startCTS = 0;
+						esd->slConfig->startDTS = 0;
+						esd->slConfig->timeScale = 0;
+						esd->slConfig->timestampLength = 33;
+						esd->slConfig->timestampResolution = 90000;
+						esd->slConfig->useAccessUnitEndFlag = 1;
+						esd->slConfig->useAccessUnitStartFlag = 1;
+						esd->slConfig->useIdleFlag = 1;
+						esd->slConfig->usePaddingFlag = 0;
+						esd->slConfig->useRandomAccessPointFlag = 0;
+						esd->slConfig->useTimestampsFlag = 1;
+					}
+				}
+				bs_iod = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
+
+				gf_odf_write_od(bs_iod, iod);
+				gf_odf_desc_del((GF_Descriptor *)iod);
+			
+				GF_SAFEALLOC(B_iod, MP42TS_Buffer);
+				gf_bs_get_content(bs_iod, &B_iod->data, &B_iod->length); 
+				gf_bs_del(bs_iod);
+		}
+
+		B = EncodePMT(program, (use_iod ? B_iod: NULL));
+		sections = CreateSections(B, GF_M2TS_TABLE_ID_PMT, program->number, 1);
+		B = EncodeSections(sections);		
+		gf_list_add(muxer->pmt_ts_packet, CreateTSPacketsFromSections(B, program->pmt_pid, NULL));
+	}
+}
+
+/*************************** PAT *****************************/
+GF_List *InitializePAT(u32 nb_prog) {
+	GF_List *pat_table;
+	GF_M2TS_Program *program;
+	u32 i;
+
+	pat_table = gf_list_new();
+	for (i= 1; i<= nb_prog; i++) {
+		GF_SAFEALLOC(program, GF_M2TS_Program);
+		program->number= i*10;
+		program->pmt_pid= i*100;
+		gf_list_add(pat_table, program);
+	}
+	return pat_table;
+}
+
+MP42TS_Buffer *EncodePAT(GF_List *pat_table) {
+
+	u32 i;
+	MP42TS_Buffer *B_pat;
+	GF_M2TS_Program *program;
+	u32 nb_programs;
+	
+	nb_programs = gf_list_count(pat_table);
+
+	GF_SAFEALLOC(B_pat, MP42TS_Buffer);
+	B_pat->data = malloc(nb_programs * 4);
+
+	for (i=0; i < nb_programs ;i++) {
+		program = gf_list_get(pat_table, i);
+
+		//program number
+		B_pat->data[4*i] = program->number >> 8;
+		B_pat->data[4*i+1] = program->number;
+
+		// program pid < 2^13-1
+		B_pat->data[4*i+2] = program->pmt_pid>> 8 | 0xe0;
+		B_pat->data[4*i+3] = program->pmt_pid;
+	}
+	B_pat->length = i*4;
+
+	return B_pat;	
+}
+
+
+void CreateTSPacketsForPAT(M2TS_muxer *muxer)
+{
+	MP42TS_Buffer *B;
+	GF_List *sections;
+	
+	muxer->pat_table = InitializePAT(1 /*nb_progs*/);
+	B = EncodePAT(muxer->pat_table);
+	sections = CreateSections(B, GF_M2TS_TABLE_ID_PAT, 1/*transport stream id*/, 1);
+	B = EncodeSections(sections);
+	muxer->pat_ts_packet = CreateTSPacketsFromSections(B, 0, NULL);
+}
+
+/*************************** SDT *****************************/
 MP42TS_Buffer *encodeSDT(GF_List *prog_list, char *provider_name, u32 provider_name_lenth, char *service_name, u32 service_name_lenth)
 {
 	u32 i, j, k, CRC;
@@ -804,4 +541,242 @@ MP42TS_Buffer *encodeSDT(GF_List *prog_list, char *provider_name, u32 provider_n
 	B->data[B->length-1] = CRC & 0xFF;
 
 	return B;
+}
+
+void CreateTSPacketsForSDT(M2TS_muxer *muxer, char *provider_name, char *service_name)
+{
+	MP42TS_Buffer *B;
+	GF_List *sections;
+	B = encodeSDT(muxer->pat_table, provider_name, 4, service_name, 8);
+	sections = CreateSections(B, GF_M2TS_TABLE_ID_SDT_ACTUAL, 1, 1);
+	B = EncodeSections(sections);
+	muxer->sdt_ts_packet = CreateTSPacketsFromSections(B, 0x11, NULL);
+}
+
+
+/*************************************************************************************
+ * PES related functions 
+ ************************************************************************************/
+void add_pes_header(GF_BitStream *bs, M2TS_mux_stream *stream)
+{
+	u32 pes_len;
+	u32 pes_header_data_length;
+	Bool use_pts, use_dts;
+
+	use_pts = 1;
+	use_dts = 1;
+	pes_header_data_length = 10;
+
+	gf_bs_write_int(bs,	0x1, 24);//packet start code
+	gf_bs_write_int(bs,	stream->mpeg2_pes_streamid, 8);// stream id 
+
+	pes_len = stream->sample->dataLength + 13; // 13 = header size (including PTS/DTS)
+	gf_bs_write_int(bs, pes_len, 16); // pes packet length
+	
+	gf_bs_write_int(bs, 0x2, 2); // reserved
+	gf_bs_write_int(bs, 0x0, 2); // scrambling
+	gf_bs_write_int(bs, 0x0, 1); // priority
+	gf_bs_write_int(bs, 0x1, 1); // alignment indicator
+	gf_bs_write_int(bs, 0x0, 1); // copyright
+	gf_bs_write_int(bs, 0x0, 1); // original or copy
+	
+	gf_bs_write_int(bs, use_pts, 1);
+	gf_bs_write_int(bs, use_dts, 1);
+	gf_bs_write_int(bs, 0x0, 6); //6 flags = 0 (ESCR, ES_rate, DSM_trick, additional_copy, PES_CRC, PES_extension)
+
+	gf_bs_write_int(bs, pes_header_data_length, 8);
+	
+	if (use_pts && use_dts){
+		u64 cts, dts, t;
+		
+		cts = stream->sample->DTS + stream->sample->CTS_Offset;
+		
+		gf_bs_write_int(bs, 0x2, 4); // reserved '0010'
+		t = ((cts >> 30) & 0x7);
+		gf_bs_write_long_int(bs, t, 3);
+		gf_bs_write_int(bs, 1, 1); // marker bit
+		t = ((cts >> 15) & 0x7fff);
+		gf_bs_write_long_int(bs, t, 15);
+		gf_bs_write_int(bs, 1, 1); // marker bit
+		t = cts & 0x7fff;
+		gf_bs_write_long_int(bs, t, 15);
+		gf_bs_write_int(bs, 1, 1); // marker bit
+
+		dts = stream->sample->DTS;
+
+		gf_bs_write_int(bs, 0x1, 4); // reserved '0001'
+		t = ((dts >> 30) & 0x7);
+		gf_bs_write_long_int(bs, t, 3);
+		gf_bs_write_int(bs, 1, 1); // marker bit
+		t = ((dts >> 15) & 0x7fff);
+		gf_bs_write_long_int(bs, t, 15);
+		gf_bs_write_int(bs, 1, 1); // marker bit
+		t = dts & 0x7fff;
+		gf_bs_write_long_int(bs, t, 15);
+		gf_bs_write_int(bs, 1, 1); // marker bit
+	}
+
+}
+
+enum {
+	M2TS_ADAPTATION_RESERVED	= 0,
+	M2TS_ADAPTATION_NONE		= 1,
+	M2TS_ADAPTATION_ONLY		= 2,
+	M2TS_ADAPTATION_AND_PAYLOAD = 3,
+};
+
+u32 add_adaptation(GF_BitStream *bs, u32 *continuity_counter, Bool has_pcr, u64 time, u32 payload_length)
+{
+	u32 tmp_length;
+	u32 adaptation_field_control;
+	u32 adaptation_lengh;
+	u32 adaptation_padding_length;
+
+	/* length of adaptation_field_length; */ 
+	u32 adaptation_length_length = 1; 
+	/* discontinuty flag, random access flag ... */
+	u32 adaptation_flags_length = 1; 
+	/* length of encoded pcr */
+	u32 pcr_length = 6;
+
+	/* we have to write an adaptation field:
+	   - to write the PCR
+	   - or because we need padding */
+	tmp_length = adaptation_length_length + adaptation_flags_length + has_pcr*pcr_length;
+	if (has_pcr || payload_length < (184 - tmp_length)) {
+		if (payload_length >= (184 - tmp_length)) {
+			/* we have enough data remaining in the payload, 
+			   the TS packet will have adaptation and payload (no padding) */
+			adaptation_field_control = M2TS_ADAPTATION_AND_PAYLOAD;
+			adaptation_lengh = tmp_length;
+			adaptation_padding_length = 0;
+		} else { /* padding is needed */
+			if (payload_length == 0) {
+				/* the TS packet will have adaptation only and padding, no payload */
+				adaptation_field_control = M2TS_ADAPTATION_ONLY;
+			} else {
+				/* the TS packet will hava adaptation, padding and payload */
+				adaptation_field_control = M2TS_ADAPTATION_AND_PAYLOAD;
+			}
+			adaptation_lengh = 184 - payload_length;
+			adaptation_padding_length = adaptation_lengh - tmp_length;
+		}
+	} else {
+		adaptation_field_control = M2TS_ADAPTATION_NONE;
+		adaptation_lengh = 0;
+		adaptation_padding_length = 0;	
+	}
+
+	gf_bs_write_int(bs,	adaptation_field_control, 2); 
+	gf_bs_write_int(bs,	*continuity_counter, 4);
+	if(*continuity_counter < 15 && 
+		adaptation_field_control != M2TS_ADAPTATION_RESERVED && 
+		adaptation_field_control != M2TS_ADAPTATION_ONLY) { 
+		/* continuity counter is increased only when there is payload ? */
+		*continuity_counter++;
+	} else {
+		*continuity_counter = 0;
+	}
+
+	if (adaptation_field_control == M2TS_ADAPTATION_ONLY || 
+		adaptation_field_control == M2TS_ADAPTATION_AND_PAYLOAD) {
+		u32 j;
+
+		assert(adaptation_lengh > adaptation_length_length);
+
+		/* the function returns the real number of bytes written, 
+		   but in the bitstream we write the number of bytes, excluding the length field */
+		gf_bs_write_int(bs,	adaptation_lengh - adaptation_length_length, 8);
+		gf_bs_write_int(bs,	0, 1); // discontinuity indicator
+		gf_bs_write_int(bs,	0, 1); // random access indicator
+		gf_bs_write_int(bs,	0, 1); // es priority indicator
+		gf_bs_write_int(bs,	has_pcr, 1); // PCR_flag 
+		gf_bs_write_int(bs,	0, 1); // OPCR flag
+		gf_bs_write_int(bs,	0, 1); // splicing point flag
+		gf_bs_write_int(bs,	0, 1); // transport private data flag
+		gf_bs_write_int(bs,	0, 1); // adaptation field extension flag
+		if (has_pcr) {
+			u64 PCR_base, PCR_ext;
+			PCR_base = time;
+			gf_bs_write_long_int(bs, PCR_base, 33); 
+			gf_bs_write_int(bs,	0, 6); // reserved
+			PCR_ext = 0;
+			gf_bs_write_long_int(bs, PCR_ext, 9);
+		}
+		for (j=0; j<adaptation_padding_length; j++) {
+			gf_bs_write_int(bs,	0xff, 8); // stuffing byte
+		}
+	}
+
+	return adaptation_lengh;
+}
+
+u8 *encode_ts(M2TS_muxer *muxer, M2TS_mux_stream *stream)
+{
+	GF_BitStream *bs;
+	u8 *ts_data;
+	u32 ts_data_len;
+
+	/* length of the header from start of pes header to start of payload (including PTS/DTS) */
+	u32 pes_header_length = 19; 
+	u32 remain;
+	Bool PUSI;
+	u32 adaptation_length;
+	u32 payload_length;
+	
+	bs = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
+
+	if (stream->nb_bytes_written == 0){
+		PUSI = 1;
+	} else {
+		PUSI = 0;
+	}
+
+	gf_bs_write_int(bs,	0x47, 8); // sync byte
+	gf_bs_write_int(bs,	0, 1);    // error indicator
+	gf_bs_write_int(bs,	PUSI, 1); // start ind
+	gf_bs_write_int(bs,	0, 1);	  // transport priority
+	gf_bs_write_int(bs,	stream->mpeg2_es_pid, 13); // pid
+	gf_bs_write_int(bs,	0, 2);    // scrambling
+
+	remain = stream->sample->dataLength + pes_header_length*PUSI - stream->nb_bytes_written;
+
+	adaptation_length = add_adaptation(bs, &stream->continuity_counter, 
+										   stream->PCR, 
+										   stream->stream_time, 
+										   remain);
+
+	payload_length = 184 - adaptation_length;
+
+	if (PUSI){
+		u32 pes_payload_length;
+		
+		add_pes_header(bs, stream);
+		pes_payload_length = payload_length - pes_header_length;
+		gf_bs_write_data(bs, stream->sample->data, pes_payload_length);
+		stream->nb_bytes_written += pes_payload_length;
+//		fprintf(stdout, "TS payload length %d - total %d\n", pes_payload_length, stream->nb_bytes_written);
+	} else {
+		gf_bs_write_data(bs, stream->sample->data+stream->nb_bytes_written, payload_length);
+		stream->nb_bytes_written += payload_length;
+//		fprintf(stdout, "TS payload length %d - total %d \n", payload_length, stream->nb_bytes_written);
+	}
+	gf_bs_get_content(bs, &ts_data, &ts_data_len);
+	gf_bs_del(bs);
+	return ts_data;
+}
+
+void create_one_ts(GF_ISOFile *mp4_in, M2TS_mux_stream *stream, M2TS_muxer *muxer)
+{
+	u8 *data;	
+	data = encode_ts(muxer, stream);
+	fwrite(data, 1, 188, muxer->ts_out);
+//	fwrite(data+4, 1, 184, stream->pes_out);
+	if (stream->nb_bytes_written >= stream->sample->dataLength){		
+		/* TODO free sample ? */
+		stream->sample = NULL;
+		get_mux_stream_sample(mp4_in, stream);
+		stream->nb_bytes_written = 0;
+		stream->sample_number ++;
+	}
 }
