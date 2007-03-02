@@ -75,102 +75,70 @@ enum {
 	/* 0xff reserved */
 };
 
-/*Events used by the MPEGTS muxer*/
-enum
-{
-	GF_M2TS_EVT_PAT = 0,
-	GF_M2TS_EVT_PMT,		
-	GF_M2TS_EVT_SDT,		
-	GF_M2TS_EVT_ES,
-	GF_M2TS_EVT_SL_SECTION,
-	/* Data from demuxer */
-	GF_M2TS_EVT_DEMUX_DATA,
+enum {
+	M2TS_ADAPTATION_RESERVED	= 0,
+	M2TS_ADAPTATION_NONE		= 1,
+	M2TS_ADAPTATION_ONLY		= 2,
+	M2TS_ADAPTATION_AND_PAYLOAD = 3,
 };
 
-typedef struct
-{
+
+typedef struct {
 	u8 *data;
 	u32 length;
-} MP42TS_Buffer;
+} M2TS_Mux_Section;
 
-typedef struct M2TS_mux_stream
-{
-	u32 track_number;
-	u32 mpeg2_es_pid;
-	u32 mpeg2_pes_streamid;
-	u32 mpeg4_es_id;
+typedef struct {
+	u8 table_id;
+	u8 version_number;
+	GF_List *sections;
+} M2TS_Mux_Table;
 
-	u32 sample_number;
-	u32 nb_samples;
-	u32 nb_bytes_written;
-	u32 continuity_counter;
+typedef struct __m2ts_mux_stream {
+	u32 pid;
+	u8 continuity_counter;
+	u32 time;
 
-	GF_ISOSample *sample;
-	GF_SLConfig *SLConfig;
-	GF_SLHeader *SLHeader;
+	Bool table_needs_update;
+	GF_List *tables;
+	/* used for on-the-fly packetization of sections */
+	u32 current_table;
+	u32 current_section;
+	u32 current_section_offset;
 	
-	Bool SL_in_pes;
-	u8 *sl_packet;
-	u32 sl_packet_len;
-	Bool SL_in_section;
-	Bool repeat_section;
-	u32 SL_section_version_number;
-	GF_List *sl_section_ts_packets;
-	
-	GF_M2TS_PES *PES;
+	struct __m2ts_mux_program *program;
+	void *pes_packetizer;
 
-	u8 is_time_initialized;
-	u64 stream_time;
-	
-	u32 MP2_type;
-	u32 MP4_type;
+	s32 (*process)(struct __m2ts_mux *muxer, struct __m2ts_mux_stream *stream);
 
-	FILE *pes_out;
+	u32 mpeg2_stream_type;
+	u32 mpeg2_stream_id;
 
-	Bool PCR;
+	u8 *au;
+	u32 au_size;
+	u32 au_offset;
 
-	struct M2TS_muxer *muxer;
-} M2TS_mux_stream;
+} M2TS_Mux_Stream;
 
-typedef struct M2TS_muxer
-{
-	u32 TS_Rate;  // bps
-	float PAT_interval; // s
-	float PMT_interval; // s
-	float SI_interval; //s
-	
-	u32 send_pat, send_pmt;
-
-	/* ~ PCR */
-	u64 muxer_time;
-	
-	/* M2TS_mux_stream List*/
+typedef struct __m2ts_mux_program {
+	struct __m2ts_mux *mux;
+	u32 number;
+	M2TS_Mux_Stream *pcr;
+	M2TS_Mux_Stream *pmt;
 	GF_List *streams;
 
-	GF_List *pat_table; /* List of GF_M2TS_Program */
+} M2TS_Mux_Program;
 
-	GF_List *pat_ts_packet; /* List of Encoded TS packets corresponding to PAT */
-	GF_List *sdt_ts_packet; /* List of Encoded TS packets corresponding to SDT */
-	GF_List *pmt_ts_packet; /* List of List of Encoded TS packets corresponding to each PMT */
-
-	/*user callback - MUST NOT BE NULL*/
-	void (*on_event)(struct M2TS_muxer *muxer, u32 evt_type, void *par);
-	/*private user data*/
-	void *user;
-
-	GF_ISOFile *mp4_in;
+typedef struct __m2ts_mux {
+	GF_List *programs;
+	M2TS_Mux_Stream *pat;
 	FILE *ts_out;
+	u64 time;
+	u32 ts_id;
 
-	u32 insert_SI;
-	Bool end;
+} M2TS_Mux;
 
-	Bool use_sl;
+#define SECTION_HEADER_LENGTH 3 /* header till the last bit of the section_length field */
+#define SECTION_ADDITIONAL_HEADER_LENGTH 5 /* header from the last bit of the section_length field to the payload */
+#define	CRC_LENGTH 4
 
-	u32 log_level;
-} M2TS_muxer;
-
-typedef struct
-{
-	u32 *pid;
-	u32 length;
-} M2TS_pid_list;
