@@ -319,8 +319,8 @@ win32="yes"
 
 Linux)
 js_flags="-DXP_UNIX -I/usr/include/js"
+OSS_LDFLAGS="-laoss"
 linux="yes"
-#LDFLAGS="$LDFLAGS -rdynamic"
 ;;
 *) ;;
 esac
@@ -462,7 +462,7 @@ LINK3D="-lopengl32 -lglu32"
 elif test "$darwin" = "yes" ; then
 LINK3D="-lgl -lglu"
 else
-LINK3D="-lgl -lglut"
+LINK3D="-lGL -lglut"
 fi
 
 if $cc -o $TMPO $TMPC $LINK3D 2> /dev/null  ; then
@@ -671,7 +671,7 @@ EOF
 if $cc -o $TMPO $TMPC -DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss -L$alt_macosx_dir/lib -loss 2> /dev/null ; then
 has_oss_audio="SYS"
 OSS_CFLAGS="-DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss"
-OSS_LDFLAGS="-L$alt_macosx_dir/lib"
+OSS_LDFLAGS="-L$alt_macosx_dir/lib -loss"
 fi
 
 else
