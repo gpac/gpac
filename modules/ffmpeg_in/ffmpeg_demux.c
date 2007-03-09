@@ -27,7 +27,8 @@
 /*default buffer is 200 ms per channel*/
 #define FFD_DATA_BUFFER		800
 
-#if defined(__DARWIN__) || defined(__APPLE__)
+//#if defined(__DARWIN__) || defined(__APPLE__)
+#if !defined(WIN32) && !defined(_WIN32_WCE) && !defined(__SYMBIAN32__)
 #include <errno.h>
 #endif
 
@@ -290,7 +291,6 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 		case CODEC_ID_MP3:
 			esd->decoderConfig->objectTypeIndication = 0x69;
 			break;
-		case CODEC_ID_MPEG4AAC:
 		case CODEC_ID_AAC:
 			if (!dec->extradata_size) goto opaque_audio;
 			esd->decoderConfig->objectTypeIndication = 0x40;
