@@ -945,8 +945,10 @@ static void gf_m2ts_pes_header(unsigned char *data, u32 data_size, GF_M2TS_PESHe
 	}
 }
 
+
 static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size, GF_M2TS_AdaptationField *paf)
 {
+	Bool flush_pes;
 	if (pes->stream_type == 0x13) { 		
 		gf_m2ts_gather_section(ts, pes->sec, (GF_M2TS_ES *)pes, hdr, data, data_size);
 		return;
@@ -954,9 +956,22 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 //	else if (pes->stream_type == 0x12) { }
 
 	if (!pes->reframe) return;
+	
+	if (hdr->payload_start)
+		flush_pes = 1;
+	/*reassemble pes*/
+	else if (pes->pes_len && (pes->data_len + data_size  == pes->pes_len + 6/*startcode+stream_id+length field*/)) {
+		if (pes->data) pes->data = (char*)realloc(pes->data, pes->data_len+data_size);
+		else pes->data = (char*)malloc(data_size);
+		memcpy(pes->data+pes->data_len, data, data_size);
+		pes->data_len += data_size;
+		/*force discard*/
+		data_size = 0;
+	} else
+		flush_pes = 0;
 
 	/*PES first fragment: flush previous packet*/
-	if (hdr->payload_start && pes->data) {
+	if (flush_pes && pes->data) {
 		GF_M2TS_PESHeader pesh;
 
 		/*we need at least a full, valid start code !!*/
@@ -994,8 +1009,10 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 			free(pes->data);
 			pes->data = NULL;
 			pes->data_len = 0;
+			pes->pes_len = 0;
 		}
 		pes->rap = 0;
+		if (!data_size) return;
 	}
 
 	/*reassemble*/
@@ -1005,6 +1022,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	pes->data_len += data_size;
 
 	if (paf && paf->random_access_indicator) pes->rap = 1; 
+	if (!pes->pes_len && (pes->data_len>=6)) pes->pes_len = (pes->data[4]<<8) | pes->data[5];
 }
 
 

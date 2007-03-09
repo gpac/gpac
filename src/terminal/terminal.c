@@ -288,10 +288,6 @@ GF_Err gf_term_del(GF_Terminal * term)
 	if (!term) return GF_BAD_PARAM;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Destroying terminal\n"));
-	/*disconnect main scene from the renderer*/
-	gf_sr_set_scene(term->renderer, NULL);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] scene graph detached\n"));
-
 	/*close main service*/
 	gf_term_disconnect(term);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] main service disconnected\n"));
@@ -457,7 +453,6 @@ void gf_term_disconnect(GF_Terminal *term)
 	/*resume*/
 	if (term->play_state) gf_term_set_play_state(term, GF_STATE_PLAYING, 1, 1);
 
-	gf_sr_set_scene(term->renderer, NULL);
 	gf_odm_disconnect(term->root_scene->root_od, 1);
 	while (term->root_scene || gf_list_count(term->net_services_to_remove)) {
 		gf_term_handle_services(term);
@@ -806,9 +801,6 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, Bool pause_at_first
 
 	/*pause everything*/
 	gf_term_set_play_state(term, GF_STATE_PAUSED, 0, 1);
-	gf_sr_lock(term->renderer, 1);
-	gf_sr_set_scene(term->renderer, NULL);
-	gf_sr_lock(term->renderer, 0);
 	/*stop root*/
 	gf_odm_stop(term->root_scene->root_od, 1);
 	gf_is_disconnect(term->root_scene, 0);

@@ -1314,6 +1314,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 		AVI_close(in);
 		return gf_import_message(import, GF_OK, "No audio track found");
 	}
+
 	hdr = GF_4CC(temp[0], temp[1], temp[2], temp[3]);
 	if ((hdr &0xFFE00000) != 0xFFE00000) {
 		AVI_close(in);
@@ -1377,7 +1378,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 	while (1) {
 		if (AVI_read_audio(in, frame, 4, (int*)&continuous) != 4) break;
 		offset = gf_f64_tell(in->fdes) - 4;
-		hdr = GF_4CC(frame[0], frame[1], frame[2], frame[3]);
+		hdr = GF_4CC((u8) frame[0], (u8) frame[1], (u8) frame[2], (u8) frame[3]);
 
 		size = gf_mp3_frame_size(hdr);
 		if (size>max_size) {
@@ -1385,7 +1386,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 			if (max_size) is_cbr = 0;
 			max_size = size;
 		}
-		size = 4 + AVI_read_audio(in, (char*) &frame[4], size - 4, &continuous);
+		size = 4 + AVI_read_audio(in, &frame[4], size - 4, &continuous);
 
 		if ((import->flags & GF_IMPORT_USE_DATAREF) && !continuous) {
 			gf_import_message(import, GF_IO_ERR, "Cannot use media references, splited input audio frame found");

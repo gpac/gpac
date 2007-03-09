@@ -256,7 +256,6 @@ static u32 MM_SimulationStep(GF_Terminal *term, u32 *last_dec)
 		time_taken = gf_sys_clock();
 
 		e = gf_codec_process(ce->dec, time_slice);
-		gf_mx_v(ce->mx);
 
 		/*avoid signaling errors too often...*/
 #ifndef GPAC_DISABLE_LOG

@@ -180,6 +180,9 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	}
 	gf_term_lock_renderer(is->root_od->term, 1);
 
+	if (is->graph_attached && (is->root_od->term->root_scene == is)) {
+		gf_sr_set_scene(is->root_od->term->renderer, NULL);
+	}
 	/*release the scene*/
 	if (dec && dec->ReleaseScene) dec->ReleaseScene(dec);
 	gf_sg_reset(is->graph);

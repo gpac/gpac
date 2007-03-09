@@ -36,7 +36,8 @@ GOTO DONE
 :REGCLEAN
 DEL /S *.mp4
 DEL /S *.xmt
-DEL /S *.html
+DEL /S bifs*.html
+DEL /S x3d*.html
 GOTO DONE
 
 :GETHELP

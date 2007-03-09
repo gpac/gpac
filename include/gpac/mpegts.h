@@ -192,7 +192,7 @@ typedef struct tag_m2ts_pes
 	/*mpegts lib private - do not touch :)*/
 	/*PES re-assembler*/
 	unsigned char *data;
-	u32 data_len;
+	u32 data_len, pes_len;
 	Bool rap;
 	u64 PTS, DTS;
 	
