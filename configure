@@ -319,7 +319,7 @@ win32="yes"
 
 Linux)
 js_flags="-DXP_UNIX -I/usr/include/js"
-OSS_LDFLAGS="-laoss"
+#OSS_LDFLAGS="-laoss"
 linux="yes"
 ;;
 *) ;;
