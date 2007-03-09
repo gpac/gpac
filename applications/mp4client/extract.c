@@ -76,6 +76,52 @@ static GFINLINE u8 colmask(s32 a, s32 n)
     return (u8) (a & (0xff & ~mask)) | ((-((a >> n) & 1)) & mask);
 }
 
+static u32 put_pixel(FILE *fout, u32 type, u32 pf, char *ptr)
+{
+	u16 col;
+	switch (pf) {
+	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_ARGB:
+		fputc(ptr[0], fout);
+		fputc(ptr[1], fout);
+		fputc(ptr[2], fout);
+		return 4;
+
+	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_RGBA:
+		fputc(ptr[3], fout);
+		fputc(ptr[2], fout);
+		fputc(ptr[1], fout);
+		return 4;
+
+	case GF_PIXEL_RGB_24:
+		fputc(ptr[2], fout);
+		fputc(ptr[1], fout);
+		fputc(ptr[0], fout);
+		return 3;
+
+	case GF_PIXEL_BGR_24:
+		fputc(ptr[2], fout);
+		fputc(ptr[1], fout);
+		fputc(ptr[0], fout);
+		return 3;
+	case GF_PIXEL_RGB_565:
+		col = * (u16 *)ptr;
+		fputc(colmask(col << 3, 3), fout);
+		fputc(colmask(col >> (5 - 2), 2), fout);
+		fputc(colmask(col >> (11 - 3), 3), fout);
+		return 2;
+
+	case GF_PIXEL_RGB_555:
+		col = * (u16 *)ptr;
+		fputc(colmask(col << 3, 3), fout);
+		fputc(colmask(col >> (5 - 3), 3), fout);
+		fputc(colmask(col >> (10 - 3), 3), fout);
+		return 2;
+	}
+	return 0;
+}
+
 void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 {
 	char str[GF_MAX_PATH];
@@ -83,7 +129,6 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	BITMAPINFOHEADER fi;
 	FILE *fout;
 	u32 j, i;
-	u16 col;
 	char *ptr;
 
 	sprintf(str, "%s_%d.bmp", rad_name, img_num);
@@ -116,57 +161,19 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	for (j=fb->height; j>0; j--) {
 		ptr = fb->video_buffer + (j-1)*fb->pitch;
 		for (i=0;i<fb->width; i++) {
-			switch (fb->pixel_format) {
-			case GF_PIXEL_RGB_32:
-			case GF_PIXEL_ARGB:
-				fputc(ptr[0], fout);
-				fputc(ptr[1], fout);
-				fputc(ptr[2], fout);
-				ptr+=4;
-				break;
-			case GF_PIXEL_BGR_32:
-			case GF_PIXEL_RGBA:
-				fputc(ptr[3], fout);
-				fputc(ptr[2], fout);
-				fputc(ptr[1], fout);
-				ptr+=4;
-				break;
-			case GF_PIXEL_RGB_24:
-				fputc(ptr[2], fout);
-				fputc(ptr[1], fout);
-				fputc(ptr[0], fout);
-				ptr+=3;
-				break;
-			case GF_PIXEL_BGR_24:
-				fputc(ptr[2], fout);
-				fputc(ptr[1], fout);
-				fputc(ptr[0], fout);
-				ptr+=3;
-				break;
-			case GF_PIXEL_RGB_565:
-				col = * (u16 *)ptr;
-				fputc(colmask(col << 3, 3), fout);
-				fputc(colmask(col >> (5 - 2), 2), fout);
-				fputc(colmask(col >> (11 - 3), 3), fout);
-				ptr+=2;
-				break;
-			case GF_PIXEL_RGB_555:
-				col = * (u16 *)ptr;
-				fputc(colmask(col << 3, 3), fout);
-				fputc(colmask(col >> (5 - 3), 3), fout);
-				fputc(colmask(col >> (10 - 3), 3), fout);
-				ptr+=2;
-				break;
-			}
+			u32 res = put_pixel(fout, 0, fb->pixel_format, ptr);
+			assert(res);
+			ptr += res;
 		}
 	}
-
 	fclose(fout);
 }
 
 
 void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 {
+	u32 j, i;
+	char *ptr;
 	char str[GF_MAX_PATH];
 	FILE *fout;
 	if (img_num<10) {
@@ -179,7 +186,16 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 
 	fout = fopen(str, "wb");
 	if (!fout) return;
-	fwrite(fb->video_buffer , fb->height*fb->pitch, 1, fout);
+
+	
+	for (j=0;j<fb->height; j++) {
+		ptr = fb->video_buffer + j*fb->pitch;
+		for (i=0;i<fb->width; i++) {
+			u32 res = put_pixel(fout, 0, fb->pixel_format, ptr);
+			assert(res);
+			ptr += res;
+		}
+	}
 	fclose(fout);
 }
 

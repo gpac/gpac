@@ -458,6 +458,8 @@ check_default:
 				break;
 			default:
 				if (GF_COL_A(ctx->aspect.fill_color)) ctx->aspect.pen_props.width = 0;
+				/*spec is unclear about that*/
+				else if (!m && ctx->h_texture) ctx->aspect.pen_props.width = 0;
 				break;
 			}
 		}

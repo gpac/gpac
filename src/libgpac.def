@@ -508,6 +508,7 @@ EXPORTS
 	gf_isom_has_sync_shadows
 	gf_isom_find_od_for_track
 	gf_isom_apple_get_tag
+	gf_isom_get_media_data_size
 
 
 ;NON-READ-ONLY exports
@@ -777,6 +778,7 @@ EXPORTS
 	gf_hinter_track_get_flags
 	gf_hinter_track_get_payload_name
 	gf_hinter_can_embbed_data
+	gf_hinter_format_ttxt_sdp
 	gf_media_make_isma
 	gf_media_make_3gpp
 	gf_media_map_esd
@@ -785,6 +787,7 @@ EXPORTS
 	gf_media_fragment_file
 	gf_media_import_chapters
 	gf_media_change_par
+	gf_rtp_packetizer_create_and_init_from_file
 
 ;parsers_av.h exports
 	gf_m4v_parser_new

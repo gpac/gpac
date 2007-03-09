@@ -1779,6 +1779,7 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		} else {
 			gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 		}
+		break;
 	}
 	if (!stream) {
 		fclose(src);
