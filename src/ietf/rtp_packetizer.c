@@ -85,24 +85,26 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 	if (!builder) return GF_BAD_PARAM;
 
 	switch (builder->rtp_payt) {
-	case GP_RTP_PAYT_MPEG4:
+	case GF_RTP_PAYT_MPEG4:
 		return gp_rtp_builder_do_mpeg4(builder, data, data_size, IsAUEnd, FullAUSize);
-	case GP_RTP_PAYT_MPEG12:
-		return gp_rtp_builder_do_mpeg12(builder, data, data_size, IsAUEnd, FullAUSize);
-	case GP_RTP_PAYT_H263:
+	case GF_RTP_PAYT_MPEG12_VIDEO:
+		return gp_rtp_builder_do_mpeg12_video(builder, data, data_size, IsAUEnd, FullAUSize);
+	case GF_RTP_PAYT_MPEG12_AUDIO:
+		return gp_rtp_builder_do_mpeg12_audio(builder, data, data_size, IsAUEnd, FullAUSize);
+	case GF_RTP_PAYT_H263:
 		return gp_rtp_builder_do_h264(builder, data, data_size, IsAUEnd, FullAUSize);
-	case GP_RTP_PAYT_AMR:
-	case GP_RTP_PAYT_AMR_WB:
+	case GF_RTP_PAYT_AMR:
+	case GF_RTP_PAYT_AMR_WB:
 		return gp_rtp_builder_do_amr(builder, data, data_size, IsAUEnd, FullAUSize);
-	case GP_RTP_PAYT_3GPP_TEXT:
+	case GF_RTP_PAYT_3GPP_TEXT:
 		return gp_rtp_builder_do_tx3g(builder, data, data_size, IsAUEnd, FullAUSize, duration, descIndex);
-	case GP_RTP_PAYT_H264_AVC:
+	case GF_RTP_PAYT_H264_AVC:
 		return gp_rtp_builder_do_avc(builder, data, data_size, IsAUEnd, FullAUSize);
-	case GP_RTP_PAYT_QCELP:
+	case GF_RTP_PAYT_QCELP:
 		return gp_rtp_builder_do_qcelp(builder, data, data_size, IsAUEnd, FullAUSize);
-	case GP_RTP_PAYT_EVRC_SMV:
+	case GF_RTP_PAYT_EVRC_SMV:
 		return gp_rtp_builder_do_smv(builder, data, data_size, IsAUEnd, FullAUSize);
-	case GP_RTP_PAYT_LATM: 
+	case GF_RTP_PAYT_LATM: 
 		return gp_rtp_builder_do_latm(builder, data, data_size, IsAUEnd, FullAUSize, duration); 
  	default:
 		return GF_BAD_PARAM;
@@ -143,24 +145,24 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 
 	/*just compute max aggregation size*/
 	switch (builder->rtp_payt) {
-	case GP_RTP_PAYT_QCELP:
-	case GP_RTP_PAYT_EVRC_SMV:
-	case GP_RTP_PAYT_AMR:
-	case GP_RTP_PAYT_AMR_WB:
+	case GF_RTP_PAYT_QCELP:
+	case GF_RTP_PAYT_EVRC_SMV:
+	case GF_RTP_PAYT_AMR:
+	case GF_RTP_PAYT_AMR_WB:
 	{
 		u32 nb_pck = 1;
 		u32 block_size = 160;
 		/*compute max frames per packet - if no avg size, use max size per codec*/
 		if (builder->flags & GP_RTP_PCK_USE_MULTI) {
-			if (builder->rtp_payt == GP_RTP_PAYT_QCELP) {
+			if (builder->rtp_payt == GF_RTP_PAYT_QCELP) {
 				if (!avgSize) avgSize = 35;
 				nb_pck = (PathMTU-1) / avgSize;	/*one-byte header*/
 				if (nb_pck>10) nb_pck=10;	/*cf RFC2658*/
-			} else if (builder->rtp_payt == GP_RTP_PAYT_EVRC_SMV) {
+			} else if (builder->rtp_payt == GF_RTP_PAYT_EVRC_SMV) {
 				if (!avgSize) avgSize = 23;
 				nb_pck = (PathMTU) / avgSize;
 				if (nb_pck>32) nb_pck=32;	/*cf RFC3558*/
-			} else if (builder->rtp_payt == GP_RTP_PAYT_AMR_WB) {
+			} else if (builder->rtp_payt == GF_RTP_PAYT_AMR_WB) {
 				if (!avgSize) avgSize = 61;
 				nb_pck = (PathMTU-1) / avgSize;
 				block_size = 320;
@@ -183,8 +185,8 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		builder->flags &= 0x07;
 	}
 		return;
-	case GP_RTP_PAYT_LATM: 
-	case GP_RTP_PAYT_MPEG4:
+	case GF_RTP_PAYT_LATM: 
+	case GF_RTP_PAYT_MPEG4:
 		break;
 	default:
 		/*remove all MPEG-4 and ISMA flags */
@@ -406,7 +408,7 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 	u32 flags = rtpb->flags;
 
 	switch (rtpb->rtp_payt) {
-	case GP_RTP_PAYT_MPEG4:
+	case GF_RTP_PAYT_MPEG4:
 		if ((rtpb->slMap.StreamType==GF_STREAM_VISUAL) && (rtpb->slMap.ObjectTypeIndication==0x20)) {
 			strcpy(szMediaName, "video");
 			/*ISMACryp video*/
@@ -434,48 +436,45 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 		else strcpy(szMediaName, "video");
 		strcpy(szPayloadName, rtpb->slMap.IV_length ? "enc-mpeg4-generic" : "mpeg4-generic");
 		return 1;
-	case GP_RTP_PAYT_MPEG12:
-		if (rtpb->slMap.StreamType==GF_STREAM_VISUAL) {
-			strcpy(szMediaName, "video");
-			strcpy(szPayloadName, "MPV");
-			return 1;
-		} else if (rtpb->slMap.StreamType==GF_STREAM_AUDIO) {
-			strcpy(szMediaName, "audio");
-			strcpy(szPayloadName, "MPA");
-			return 1;
-		} 
-		return 0;
-	case GP_RTP_PAYT_H263:
+	case GF_RTP_PAYT_MPEG12_VIDEO:
+		strcpy(szMediaName, "video");
+		strcpy(szPayloadName, "MPV");
+		return 1;
+	case GF_RTP_PAYT_MPEG12_AUDIO:
+		strcpy(szMediaName, "audio");
+		strcpy(szPayloadName, "MPA");
+		return 1;
+	case GF_RTP_PAYT_H263:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "H263-1998");
 		return 1;
-	case GP_RTP_PAYT_AMR:
+	case GF_RTP_PAYT_AMR:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "AMR");
 		return 1;
-	case GP_RTP_PAYT_AMR_WB:
+	case GF_RTP_PAYT_AMR_WB:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "AMR-WB");
 		return 1;
-	case GP_RTP_PAYT_3GPP_TEXT:
+	case GF_RTP_PAYT_3GPP_TEXT:
 		strcpy(szMediaName, "text");
 		strcpy(szPayloadName, "3gpp-tt");
 		return 1;
-	case GP_RTP_PAYT_H264_AVC:
+	case GF_RTP_PAYT_H264_AVC:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "H264");
 		return 1;
-	case GP_RTP_PAYT_QCELP:
+	case GF_RTP_PAYT_QCELP:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "QCELP");
 		return 1;
-	case GP_RTP_PAYT_EVRC_SMV:
+	case GF_RTP_PAYT_EVRC_SMV:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, (rtpb->slMap.ObjectTypeIndication==0xA0) ? "EVRC" : "SMV");
 		/*header-free version*/
 		if (rtpb->auh_size<=1) strcat(szPayloadName, "0");
 		return 1;
-	case GP_RTP_PAYT_LATM: 
+	case GF_RTP_PAYT_LATM: 
 		strcpy(szMediaName, "audio"); 
 		strcpy(szPayloadName, "MP4A-LATM"); 
 		return 1; 
@@ -495,7 +494,7 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	u32 i, k;
 	Bool is_first = 1;
 
-	if ((builder->rtp_payt!=GP_RTP_PAYT_MPEG4) && (builder->rtp_payt!=GP_RTP_PAYT_LATM) ) return GF_BAD_PARAM;
+	if ((builder->rtp_payt!=GF_RTP_PAYT_MPEG4) && (builder->rtp_payt!=GF_RTP_PAYT_LATM) ) return GF_BAD_PARAM;
 	
 #define SDP_ADD_INT(_name, _val) { if (!is_first) strcat(sdpLine, "; "); sprintf(buffer, "%s=%d", _name, _val); strcat(sdpLine, buffer); is_first = 0;}
 #define SDP_ADD_STR(_name, _val) { if (!is_first) strcat(sdpLine, "; "); sprintf(buffer, "%s=%s", _name, _val); strcat(sdpLine, buffer); is_first = 0;}
@@ -505,7 +504,7 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	/*mandatory fields*/
 	if (builder->slMap.PL_ID) SDP_ADD_INT("profile-level-id", builder->slMap.PL_ID);
 
-	if (builder->rtp_payt == GP_RTP_PAYT_LATM) SDP_ADD_INT("cpresent", 0); 
+	if (builder->rtp_payt == GF_RTP_PAYT_LATM) SDP_ADD_INT("cpresent", 0); 
 	
 	if (dsi && dsi_size) {
 		k = 0;
@@ -516,7 +515,7 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 		dsiString[k] = 0;
 		SDP_ADD_STR("config", dsiString);
 	}
-	if (!strcmp(payload_name, "MP4V-ES") || (builder->rtp_payt == GP_RTP_PAYT_LATM) ) return GF_OK;
+	if (!strcmp(payload_name, "MP4V-ES") || (builder->rtp_payt == GF_RTP_PAYT_LATM) ) return GF_OK;
 
 	SDP_ADD_INT("streamType", builder->slMap.StreamType);
 	if (strcmp(builder->slMap.mode, "") && strcmp(builder->slMap.mode, "default")) {

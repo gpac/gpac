@@ -112,6 +112,7 @@ void gf_cm_del(GF_CompositionMemory *cb)
 	/*may happen when CB is destroyed right after creation in case*/
 	if (cb->Status == CB_BUFFER) {
 		gf_clock_buffer_off(cb->odm->codec->ck);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 	}
 	
 	/*break the loop and destroy*/
@@ -303,6 +304,7 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, u32 TS, u32 NbBytes)
 			/*done with buffering, signal to the clock (ONLY ONCE !)*/
 			cb->Status = CB_BUFFER_DONE;
 			gf_clock_buffer_off(cb->odm->codec->ck);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 		} 
 
 		/*since a new CU is here notify the renderer*/
@@ -505,6 +507,7 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 		cb->LastRenderedTS = 0;
 		if (cb->Status == CB_BUFFER) {
 			gf_clock_buffer_off(cb->odm->codec->ck);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 		}
 		if (Status == CB_STOP) {
 			gf_cm_reset(cb);
@@ -525,6 +528,7 @@ void gf_cm_set_eos(GF_CompositionMemory *cb)
 	if (cb->Status == CB_BUFFER) {
 		cb->Status = CB_BUFFER_DONE;
 		gf_clock_buffer_off(cb->odm->codec->ck);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 	}
 	cb->HasSeenEOS = 1;
 	gf_term_invalidate_renderer(cb->odm->term);
@@ -560,5 +564,6 @@ void gf_cm_abort_buffering(GF_CompositionMemory *cb)
 	if (cb->Status == CB_BUFFER) {
 		cb->Status = CB_BUFFER_DONE;
 		gf_clock_buffer_off(cb->odm->codec->ck);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 	}
 }

@@ -41,51 +41,20 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 	com.command_type = GF_NET_CHAN_RECONFIG;
 	com.base.on_channel = ch->channel;
 
-	com.cfg.sl_config.tag = GF_ODF_SLC_TAG;
-	
-	com.cfg.sl_config.AULength = ch->sl_map.ConstantSize;
-	if (ch->sl_map.ConstantDuration) {
-		com.cfg.sl_config.CUDuration = com.cfg.sl_config.AUDuration = ch->sl_map.ConstantDuration;
-	} else {
-		com.cfg.sl_config.CUDuration = com.cfg.sl_config.AUDuration = ch->unit_duration;
-	}
-	com.cfg.sl_config.AUSeqNumLength = ch->sl_map.StreamStateIndication;
-
-	/*RTP SN is on 16 bits*/
-	com.cfg.sl_config.packetSeqNumLength = 0;
-	/*RTP TS is on 32 bits*/
-	com.cfg.sl_config.timestampLength = 32;
-	ch->clock_rate = gf_rtp_get_clockrate(ch->rtp_ch);
-	com.cfg.sl_config.timeScale = com.cfg.sl_config.timestampResolution = ch->clock_rate;
-	com.cfg.sl_config.useTimestampsFlag = 1;
-
-	/*we override these flags because we emulate the flags through the marker bit */
-	com.cfg.sl_config.useAccessUnitEndFlag = com.cfg.sl_config.useAccessUnitStartFlag = 1;
-	com.cfg.sl_config.useRandomAccessPointFlag = ch->sl_map.RandomAccessIndication;
-	/*by default all packets are RAP if not signaled. This is true for audio
-	shoud NEVER be seen with systems streams and is overriden for video (cf below)*/
-	com.cfg.sl_config.hasRandomAccessUnitsOnlyFlag = ch->sl_map.RandomAccessIndication ? 0 : 1;
-	/*checking RAP for video*/
-	if (ch->flags & RTP_M4V_CHECK_RAP) {
-		com.cfg.sl_config.useRandomAccessPointFlag = 1;
-		com.cfg.sl_config.hasRandomAccessUnitsOnlyFlag = 0;
-	}
-	/*should work for simple carsousel without streamState indicated*/
-	com.cfg.sl_config.AUSeqNumLength = ch->sl_map.IndexLength;
-
+	gf_rtp_depacketizer_get_slconfig(ch->depacketizer, &com.cfg.sl_config);
 	/*reconfig*/
 	gf_term_on_command(ch->owner->service, &com, GF_OK);
 
 	/*ISMACryp config*/
-	if (ch->flags & RTP_HAS_ISMACRYP) {
+	if (ch->depacketizer->flags & GF_RTP_HAS_ISMACRYP) {
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.on_channel = ch->channel;
 		com.command_type = GF_NET_CHAN_ISMACRYP_CFG;
-		com.isma_cryp.scheme_type = ch->isma_scheme;
+		com.isma_cryp.scheme_type = ch->depacketizer->isma_scheme;
 		com.isma_cryp.scheme_version = 1;
 		/*not transported in SDP!!!*/
 		com.isma_cryp.scheme_uri = NULL;
-		com.isma_cryp.kms_uri = ch->key;
+		com.isma_cryp.kms_uri = ch->depacketizer->key;
 		gf_term_on_command(ch->owner->service, &com, GF_OK);
 	}
 }
@@ -93,10 +62,7 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 
 GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 {
-	ch->flags |= RTP_NEW_AU;
-	/*reassembler cleanup*/
-	if (ch->inter_bs) gf_bs_del(ch->inter_bs);
-	ch->inter_bs = NULL;
+	gf_rtp_depacketizer_reset(ch->depacketizer, !ResetOnly);
 
 	if (!ResetOnly) {
 		const char *mcast_ifce = NULL;
@@ -109,8 +75,6 @@ GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 		
 			mcast_ifce = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "DefaultMCastInterface");
 		}
-
-		memset(&ch->sl_hdr, 0, sizeof(GF_SLHeader));
 		return gf_rtp_initialize(ch->rtp_ch, RTP_BUFFER_SIZE, 0, 0, reorder_size, 200, (char *)mcast_ifce);
 	}
 	//just reset the sockets
@@ -140,20 +104,31 @@ void RP_DeleteStream(RTPStream *ch)
 		RP_FindChannel(ch->owner, ch->channel, 0, NULL, 1);
 	}
 
-	if (ch->sl_map.config) free(ch->sl_map.config);
+	if (ch->depacketizer) gf_rtp_depacketizer_del(ch->depacketizer);
 	if (ch->rtp_ch) gf_rtp_del(ch->rtp_ch);
 	if (ch->control) free(ch->control);
-	if (ch->inter_bs) gf_bs_del(ch->inter_bs);
-	if (ch->key) free(ch->key);
 	free(ch);
 }
+
+
+static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e)
+{
+	RTPStream *ch = (RTPStream *)udta;
+	if (ch->owner->first_packet_drop && (hdr->packetSequenceNumber >= ch->owner->first_packet_drop) ) {
+		if ( (hdr->packetSequenceNumber - ch->owner->first_packet_drop) % ch->owner->frequency_drop)
+			gf_term_on_sl_packet(ch->owner->service, ch->channel, payload, size, hdr, e);
+	} else {
+		gf_term_on_sl_packet(ch->owner->service, ch->channel, payload, size, hdr, e);
+	}
+}
+
 
 RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTPStream *input_stream)
 {
 	GF_RTSPRange *range;
 	RTPStream *tmp;
 	GF_RTPMap *map;
-	u32 i, ESID, rtp_format;
+	u32 i, ESID;
 	Bool force_bcast = 0;
 	Double Start, End;
 	GF_X_Attribute *att;
@@ -204,10 +179,6 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	/*check payload type*/
 	map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
 
-	rtp_format = payt_get_type(rtp, map, media);
-	if (!rtp_format) return NULL;
-
-
 	/*this is an ESD-URL setup, we likely have namespace conflicts so overwrite given ES_ID
 	by the app one (client side), but keep control (server side) if provided*/
 	if (input_stream) {
@@ -221,7 +192,6 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		GF_SAFEALLOC(tmp, RTPStream);
 		tmp->owner = rtp;
 	}
-	tmp->rtptype = rtp_format;
 
 	/*create an RTP channel*/
 	tmp->rtp_ch = gf_rtp_new();
@@ -245,12 +215,14 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		RP_DeleteStream(tmp);
 		return NULL;
 	}
-
-	//setup our RTP map
-	if (! payt_setup(tmp, map, media)) {
+	/*setup depacketizer*/
+	tmp->depacketizer = gf_rtp_depacketizer_new(media, rtp_sl_packet_cbk, tmp);
+	if (!tmp->depacketizer) {
 		RP_DeleteStream(tmp);
 		return NULL;
 	}
+	/*setup channel*/
+	gf_rtp_setup_payload(tmp->rtp_ch, map);
 
 //	tmp->status = NM_Disconnected;
 
@@ -260,8 +232,6 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	tmp->range_start = Start;
 	tmp->range_end = End;
 	if (End != -1.0) tmp->flags |= RTP_HAS_RANGE;
-
-	tmp->clock_rate = gf_rtp_get_clockrate(tmp->rtp_ch); 
 
 	if (force_bcast) tmp->flags |= RTP_FORCE_BROADCAST;
 	return tmp;
@@ -308,7 +278,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 			com.map_time.reset_buffers = 1;
 			gf_term_on_command(ch->owner->service, &com, GF_OK);
 
-			if (ch->rtptype==GP_RTP_PAYT_H264_AVC) ch->flags |= RTP_AVC_WAIT_RAP;
+			if (ch->depacketizer->payt==GF_RTP_PAYT_H264_AVC) ch->depacketizer->flags |= GF_RTP_AVC_WAIT_RAP;
 		}
 		/*this is RESUME on channel, filter packet based on time (darwin seems to send
 		couple of packet before)
@@ -319,36 +289,14 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 		}
 		ch->check_rtp_time = 0;
 	}
-	switch (ch->rtptype) {
-	case GP_RTP_PAYT_MPEG4:
-		RP_ParsePayloadMPEG4(ch, &hdr, pck + PayloadStart, size - PayloadStart);
-		break;
-	case GP_RTP_PAYT_MPEG12:
-		RP_ParsePayloadMPEG12(ch, &hdr, pck + PayloadStart, size - PayloadStart);
-		break;
-	case GP_RTP_PAYT_AMR:
-	case GP_RTP_PAYT_AMR_WB:
-		RP_ParsePayloadAMR(ch, &hdr, pck + PayloadStart, size - PayloadStart);
-		break;
-	case GP_RTP_PAYT_H263:
-		RP_ParsePayloadH263(ch, &hdr, pck + PayloadStart, size - PayloadStart);
-		break;
-	case GP_RTP_PAYT_3GPP_TEXT:
-		RP_ParsePayloadText(ch, &hdr, pck + PayloadStart, size - PayloadStart);
-		break;
-	case GP_RTP_PAYT_H264_AVC:
-		RP_ParsePayloadH264(ch, &hdr, pck + PayloadStart, size - PayloadStart);
-		break;
-	case GP_RTP_PAYT_LATM:
-		RP_ParsePayloadLATM(ch, &hdr, pck + PayloadStart, size - PayloadStart);
-		break;
-	}
+	
+	gf_rtp_depacketizer_process(ch->depacketizer, &hdr, pck + PayloadStart, size - PayloadStart);
 
 	/*last check: signal EOS if we're close to end range in case the server do not send RTCP BYE*/
 	if ((ch->flags & RTP_HAS_RANGE) && !(ch->flags & RTP_EOS) ) {
 		/*also check last CTS*/
-		Double ts = (Double) ((u32) ch->sl_hdr.compositionTimeStamp - hdr.TimeStamp);
-		ts /= ch->clock_rate;
+		Double ts = (Double) ((u32) ch->depacketizer->sl_hdr.compositionTimeStamp - hdr.TimeStamp);
+		ts /= gf_rtp_get_clockrate(ch->rtp_ch);
 		if (ABSDIFF(ch->range_end, (ts + ch->current_start + gf_rtp_get_current_time(ch->rtp_ch)) ) < 0.2) {
 			ch->flags |= RTP_EOS;
 			ch->stat_stop_time = gf_sys_clock();

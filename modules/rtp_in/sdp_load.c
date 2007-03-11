@@ -78,7 +78,7 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 
 		/*force interleaving whenever needed*/	
 		if (ch->rtsp) {
-			switch (ch->sl_map.StreamType) {
+			switch (ch->depacketizer->sl_map.StreamType) {
 			case GF_STREAM_VISUAL:
 			case GF_STREAM_AUDIO:
 				if ((rtp->transport_mode==1) && ! (ch->rtsp->flags & RTSP_FORCE_INTER) ) {
@@ -157,17 +157,17 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u16 OCR_ES_ID, u32 ch
 	if (!ch->ES_ID) ch->ES_ID = ch_idx + 1;
 	od->objectDescriptorID = ch->ES_ID;
 	esd = gf_odf_desc_esd_new(0);
-	esd->slConfig->timestampResolution = ch->clock_rate;
+	esd->slConfig->timestampResolution = gf_rtp_get_clockrate(ch->rtp_ch);
 	esd->slConfig->useRandomAccessPointFlag = 1;
 	esd->slConfig->useTimestampsFlag = 1;
 	esd->ESID = ch->ES_ID;
 	esd->OCRESID = OCR_ES_ID;
-	esd->decoderConfig->streamType = ch->sl_map.StreamType;
-	esd->decoderConfig->objectTypeIndication = ch->sl_map.ObjectTypeIndication;
-	if (ch->sl_map.config) {
-		esd->decoderConfig->decoderSpecificInfo->data = (char*)malloc(sizeof(char) * ch->sl_map.configSize);
-		memcpy(esd->decoderConfig->decoderSpecificInfo->data, ch->sl_map.config, sizeof(char) * ch->sl_map.configSize);
-		esd->decoderConfig->decoderSpecificInfo->dataLength = ch->sl_map.configSize;
+	esd->decoderConfig->streamType = ch->depacketizer->sl_map.StreamType;
+	esd->decoderConfig->objectTypeIndication = ch->depacketizer->sl_map.ObjectTypeIndication;
+	if (ch->depacketizer->sl_map.config) {
+		esd->decoderConfig->decoderSpecificInfo->data = (char*)malloc(sizeof(char) * ch->depacketizer->sl_map.configSize);
+		memcpy(esd->decoderConfig->decoderSpecificInfo->data, ch->depacketizer->sl_map.config, sizeof(char) * ch->depacketizer->sl_map.configSize);
+		esd->decoderConfig->decoderSpecificInfo->dataLength = ch->depacketizer->sl_map.configSize;
 	}
 	gf_list_add(od->ESDescriptors, esd);
 	return od;
@@ -187,7 +187,7 @@ GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, const char *sub_url)
 	if (sub_url || ((rtp->media_type != GF_MEDIA_OBJECT_SCENE) && (rtp->media_type != GF_MEDIA_OBJECT_UNDEF)) ) {
 		i=0;
 		while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
-			if (ch->sl_map.StreamType != get_stream_type_from_hint(rtp->media_type)) continue;
+			if (ch->depacketizer->sl_map.StreamType != get_stream_type_from_hint(rtp->media_type)) continue;
 
 			if (!sub_url || strstr(sub_url, ch->control)) {
 				the_od = RP_GetChannelOD(ch, 0, i);
@@ -221,7 +221,7 @@ void RP_SetupObjects(RTPClient *rtp)
 			od = RP_GetChannelOD(ch, 0, i);
 			if (!od) continue;
 			gf_term_add_media(rtp->service, (GF_Descriptor*)od, 1);
-		} else if (rtp->media_type==ch->sl_map.StreamType) {
+		} else if (rtp->media_type==ch->depacketizer->sl_map.StreamType) {
 			od = RP_GetChannelOD(ch, 0, i);
 			if (!od) continue;
 			gf_term_add_media(rtp->service, (GF_Descriptor*)od, 1);
@@ -269,7 +269,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 				RTPStream *ch;
 				i=0;
 				while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
-					if ((ch->rtptype==GP_RTP_PAYT_AMR) || (ch->rtptype==GP_RTP_PAYT_AMR_WB) ) {
+					if ((ch->depacketizer->payt==GF_RTP_PAYT_AMR) || (ch->depacketizer->payt==GF_RTP_PAYT_AMR_WB) ) {
 						iod_str = NULL;
 						break;
 					}
@@ -280,7 +280,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 				Bool needs_iod = 0;
 				i=0;
 				while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
-					if ((ch->rtptype==GP_RTP_PAYT_MPEG4) && (ch->sl_map.StreamType==GF_STREAM_SCENE) ) {
+					if ((ch->depacketizer->payt==GF_RTP_PAYT_MPEG4) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE) ) {
 						needs_iod = 1;
 						break;
 					}

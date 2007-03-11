@@ -415,9 +415,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	/*RTP channel config is done upon connection, once the complete SL mapping is known
 	however we must store some info not carried in SDP*/
 	case GF_NET_CHAN_CONFIG:
-		ch->clock_rate = com->cfg.sample_rate ? com->cfg.sample_rate : com->cfg.sl_config.timestampResolution;
-		if (!ch->clock_rate) ch->clock_rate = 1000;
-		if (com->cfg.frame_duration) ch->unit_duration = com->cfg.frame_duration;
+		if (com->cfg.frame_duration) ch->depacketizer->sl_hdr.au_duration = com->cfg.frame_duration;
 		return GF_OK;
 
 	case GF_NET_CHAN_PLAY:
@@ -437,7 +435,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			} else {
 				/*direct channel, store current start*/
 				ch->current_start = com->play.start_range;
-				ch->flags |= RTP_NEW_AU;
+				gf_rtp_depacketizer_reset(ch->depacketizer, 0);
 			}
 		}
 		return GF_OK;
@@ -457,10 +455,10 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 
 	case GF_NET_CHAN_GET_DSI:
-		if (ch->sl_map.configSize) {
-			com->get_dsi.dsi_len = ch->sl_map.configSize;
+		if (ch->depacketizer->sl_map.configSize) {
+			com->get_dsi.dsi_len = ch->depacketizer->sl_map.configSize;
 			com->get_dsi.dsi = (char*)malloc(sizeof(char)*com->get_dsi.dsi_len);
-			memcpy(com->get_dsi.dsi, ch->sl_map.config, sizeof(char)*com->get_dsi.dsi_len);
+			memcpy(com->get_dsi.dsi, ch->depacketizer->sl_map.config, sizeof(char)*com->get_dsi.dsi_len);
 		} else {
 			com->get_dsi.dsi = NULL;
 			com->get_dsi.dsi_len = 0;
@@ -514,11 +512,11 @@ static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char
 		memset(out_sl_hdr, 0, sizeof(GF_SLHeader));
 		out_sl_hdr->accessUnitEndFlag = 1;
 		out_sl_hdr->accessUnitStartFlag = 1;
-		out_sl_hdr->compositionTimeStamp = (u64) (ch->current_start * ch->clock_rate);
+		out_sl_hdr->compositionTimeStamp = (u64) (ch->current_start * 1000);
 		out_sl_hdr->compositionTimeStampFlag = 1;
 		out_sl_hdr->randomAccessPointFlag = 1;
 		*out_reception_status = GF_OK;
-		*is_new_data = (ch->flags & RTP_NEW_AU) ? 1 : 0;
+		*is_new_data = (ch->flags & GF_RTP_NEW_AU) ? 1 : 0;
 
 		/*decode data*/
 		data = strstr(data, ",");
@@ -526,7 +524,7 @@ static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char
 		*out_data_size = gf_base64_decode(data, strlen(data), ch->buffer, RTP_BUFFER_SIZE);
 		/*FIXME - currently only support for empty SL header*/
 		*out_data_ptr = ch->buffer;
-		ch->flags &= ~RTP_NEW_AU;
+		ch->flags &= ~GF_RTP_NEW_AU;
 	} else {
 		*out_data_ptr = NULL;
 		*out_data_size = 0;

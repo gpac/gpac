@@ -72,10 +72,12 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 	return 0;
 }
 
-#define REGULATE_TIME_SLOT	400
+#define REGULATE_TIME_SLOT	200
 
+/*!! FIXME - THIS IS PLAIN WRONG AND UGLY - WE NEED TO ESTIMATE THE TS BITRATE AND REGULATE BASED ON THAT !!!*/
 static void M2TS_Regulate(M2TSIn *read)
 {
+	u32 to_sleep;
 	GF_NetworkCommand com;
 
 	com.command_type = GF_NET_BUFFER_QUERY;
@@ -87,10 +89,16 @@ static void M2TS_Regulate(M2TSIn *read)
 			gf_sleep(50);
 		} else {
 			gf_term_on_command(read->service, &com, GF_OK);
-			if (com.buffer.occupancy < REGULATE_TIME_SLOT) return;
-			fprintf(stdout, "MPEG-2 TS regulate: %d ms in buffers\n", com.buffer.occupancy );
-			//gf_sleep((com.buffer.occupancy  - REGULATE_TIME_SLOT) / 2);
-			gf_sleep(REGULATE_TIME_SLOT);
+			if (com.buffer.occupancy * 2 < REGULATE_TIME_SLOT) {
+				gf_sleep(1);
+				return;
+			}
+			to_sleep = com.buffer.occupancy  - REGULATE_TIME_SLOT;
+			//fprintf(stdout, "MPEG-2 TS regulate: %d ms in buffers - sleeping %d ms\n", com.buffer.occupancy, to_sleep);
+			while (read->run_state && (to_sleep>REGULATE_TIME_SLOT)) {
+				gf_sleep(REGULATE_TIME_SLOT);
+				to_sleep -= REGULATE_TIME_SLOT;
+			}
 		}
 	}
 }

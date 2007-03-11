@@ -1021,27 +1021,29 @@ enum
 enum 
 {
 	/*not defined*/
-	GP_RTP_PAYT_UNKNOWN,
+	GF_RTP_PAYT_UNKNOWN,
 	/*use generic MPEG-4 transport - RFC 3016 and RFC 3640*/
-	GP_RTP_PAYT_MPEG4,
-	/*use generic MPEG-1/2 audio and video transport - RFC 2250*/
-	GP_RTP_PAYT_MPEG12,
+	GF_RTP_PAYT_MPEG4,
+	/*use generic MPEG-1/2 video transport - RFC 2250*/
+	GF_RTP_PAYT_MPEG12_VIDEO,
+	/*use generic MPEG-1/2 audio transport - RFC 2250*/
+	GF_RTP_PAYT_MPEG12_AUDIO,
 	/*use H263 transport - RFC 2429*/
-	GP_RTP_PAYT_H263,
+	GF_RTP_PAYT_H263,
 	/*use AMR transport - RFC 3267*/
-	GP_RTP_PAYT_AMR,
+	GF_RTP_PAYT_AMR,
 	/*use AMR-WB transport - RFC 3267*/
-	GP_RTP_PAYT_AMR_WB,
+	GF_RTP_PAYT_AMR_WB,
 	/*use QCELP transport - RFC 2658*/
-	GP_RTP_PAYT_QCELP,
+	GF_RTP_PAYT_QCELP,
 	/*use EVRC/SMV transport - RFC 3558*/
-	GP_RTP_PAYT_EVRC_SMV,
+	GF_RTP_PAYT_EVRC_SMV,
 	/*use 3GPP Text transport - no RFC yet, only draft*/
-	GP_RTP_PAYT_3GPP_TEXT,
+	GF_RTP_PAYT_3GPP_TEXT,
 	/*use H264 transport - no RFC yet, only draft*/
-	GP_RTP_PAYT_H264_AVC,
+	GF_RTP_PAYT_H264_AVC,
 	/*use LATM for AAC-LC*/
-	GP_RTP_PAYT_LATM,
+	GF_RTP_PAYT_LATM,
 };
 
 
@@ -1065,7 +1067,7 @@ enum
 */
 struct __tag_rtp_packetizer
 {
-	/*input packet sl header cfg. modify oly if needed*/
+	/*input packet sl header cfg. modify only if needed*/
 	GF_SLHeader sl_header;
 
 	/*
@@ -1207,6 +1209,76 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, char *dsi, u32 dsi_size);
 /*formats SDP payload name and media name - both MUST be at least 20 bytes*/
 Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *builder, char *szPayloadName, char *szMediaName);
+
+
+
+
+
+/*rtp payload flags*/
+enum
+{
+	/*AU end was detected (eg next packet is AU start)*/
+	GF_RTP_NEW_AU = (1),
+	/*AMR config*/
+	GF_RTP_AMR_ALIGN = (1<<1),
+	/*for RFC3016, signals bitstream inspection for RAP discovery*/
+	GF_RTP_M4V_CHECK_RAP = (1<<2),
+	/*AWFULL hack at rtp level to cope with ffmpeg h264 crashes when jumping in stream without IDR*/
+	GF_RTP_AVC_WAIT_RAP = (1<<3),
+	/*ISMACryp stuff*/
+	GF_RTP_HAS_ISMACRYP = (1<<4),
+	GF_RTP_ISMA_SEL_ENC = (1<<5),
+	GF_RTP_ISMA_HAS_KEY_IDX = (1<<6)
+};
+
+/*
+		SL -> RTP packetization tool
+
+*/
+struct __tag_rtp_depacketizer
+{
+	/*depacketize routine*/
+	void (*depacketize)(struct __tag_rtp_depacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size);
+
+	/*output packet sl header cfg*/
+	GF_SLHeader sl_hdr;
+
+	/*RTP payload type (RFC type, NOT the RTP hdr payT)*/
+	u32 payt;
+	/*depacketization flags*/
+	u32 flags;
+
+	/*callback routine*/
+	void (*on_sl_packet)(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e);
+	void *udta;
+
+	/*SL <-> RTP map*/
+	GP_RTPSLMap sl_map;
+	u32 clock_rate;
+
+	/*inter-packet reconstruction bitstream (for 3GP text and H264)*/
+	GF_BitStream *inter_bs;
+
+	/*H264/AVC config*/
+	u32 h264_pck_mode;
+	
+	/*3GP text reassembler state*/
+	u8 nb_txt_frag, cur_txt_frag, sidx, txt_len, nb_mod_frag;
+
+	/*ISMACryp*/
+	u32 isma_scheme;
+	char *key;
+};
+
+/*generic rtp builder (packetizer)*/
+typedef struct __tag_rtp_depacketizer GF_RTPDepacketizer;
+
+GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet_cbk)(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e), void *udta);
+void gf_rtp_depacketizer_del(GF_RTPDepacketizer *rtp);
+void gf_rtp_depacketizer_reset(GF_RTPDepacketizer *rtp, Bool full_reset);
+void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size);
+
+void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *sl);
 
 
 #ifdef __cplusplus

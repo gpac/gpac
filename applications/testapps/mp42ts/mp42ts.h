@@ -23,121 +23,11 @@
  */
 #include <gpac/isomedia.h>
 #include <gpac/bifs.h>
+#include <gpac/esi.h>
 #include <gpac/mpegts.h>
 #include <gpac/avparse.h>
+#include <gpac/thread.h>
 
-
-/* ESI input control commands*/
-enum
-{
-	/*forces a data flush from interface to dest (caller) - used for non-threaded interfaces
-		corresponding parameter: unused
-	*/
-	GF_ESI_INPUT_DATA_FLUSH,
-	/*pulls a COMPLETE AU from the stream
-		corresponding parameter: pointer to a GF_ESIPacket to fill. The indut data_len in the packet is used to indicate any padding in bytes
-	*/
-	GF_ESI_INPUT_DATA_PULL,
-	/*releases the currently pulled AU from the stream - AU cannot be pulled after that, unless seek happens
-		corresponding parameter: unused
-	*/
-	GF_ESI_INPUT_DATA_RELEASE,
-};
-	
-/*
-	data packet flags
-*/
-enum
-{
-	/*data can be pulled from this stream*/
-	GF_ESI_DATA_AU_START	=	1,
-	GF_ESI_DATA_AU_END		=	1<<1,
-	GF_ESI_DATA_AU_RAP		=	1<<2,
-};
-
-typedef struct __data_packet_ifce
-{
-	u32 flags;
-	char *data;
-	u32 data_len;
-	/*DTS, CTS/PTS and duration expressed in media timescale*/
-	u64 dts, cts;
-	u32 duration;
-} GF_ESIPacket;
-
-struct __esi_video_info
-{
-	u32 width, height, par;
-	Double FPS;
-};
-struct __esi_audio_info
-{
-	u32 sample_rate, nb_channels;
-};
-
-enum
-{
-	/*data can be pulled from this stream*/
-	GF_ESI_AU_PULL_CAP	=	1,
-	GF_ESI_STERAM_IS_OVER	=	1<<1,
-};
-
-typedef struct __elementary_stream_ifce 
-{
-	/*misc caps of the stream*/
-	u32 caps;
-	/*matches PID for MPEG2, ES_ID for MPEG-4*/
-	u32 stream_id;
-	/*MPEG-TS program number if any*/
-	u16 program_number;
-	/*MPEG-4 ST/OTIs*/
-	u8 stream_type;
-	u8 object_type_indication;
-	/*stream 4CC for non-mpeg codecs, 0 otherwise (stream is identified through StreamType/ObjectType)*/
-	u32 fourcc;
-	/*packed 3-char language code (4CC with last byte ' ')*/
-	u32 lang;
-	/*media timescale*/
-	u32 timescale;
-	/*duration in ms - 0 if unknown*/
-	Double duration;
-	/*average bit rate in bit/sec - 0 if unknown*/
-	u32 bit_rate;
-
-	union {
-		struct __esi_video_info video_info;
-		struct __esi_audio_info audio_info;
-	};
-
-	/*input ES control from caller*/
-	GF_Err (*input_ctrl)(struct __elementary_stream_ifce *_self, u32 ctrl_type, void *param);
-	/*input user data of interface - usually set by interface owner*/
-	void *input_udta;
-
-	/*output ES control of destination*/
-	GF_Err (*output_ctrl)(struct __elementary_stream_ifce *_self, u32 ctrl_type, void *param);
-	/*output user data of interface - usually set during interface setup*/
-	void *output_udta;
-
-} GF_ESInterface;
-
-typedef struct __service_ifce
-{
-	u32 type;
-
-	/*input service control from caller*/
-	GF_Err (*input_ctrl)(struct __service_ifce *_self, u32 ctrl_type, void *param);
-	/*input user data of interface - usually set by interface owner*/
-	void *input_udta;
-
-	/*output service control of destination*/
-	GF_Err (*output_ctrl)(struct __service_ifce *_self, u32 ctrl_type, void *param);
-	/*output user data of interface - usually set during interface setup*/
-	void *output_udta;
-
-	GF_ESInterface **streams;
-	u32 nb_streams;
-} GF_ServiceInterface;
 
 enum {
 	LOG_NO_LOG = 0,
@@ -221,6 +111,16 @@ typedef struct
 	u32 nanosec;
 } M2TS_Time;
 
+
+typedef struct __m2ts_mux_pck
+{
+	struct __m2ts_mux_pck *next;
+	char *data;
+	u32 data_len;
+	u32 flags;
+	u64 cts, dts;
+} M2TS_Packet;
+
 typedef struct __m2ts_mux_stream {
 	struct __m2ts_mux_stream *next;
 
@@ -256,6 +156,14 @@ typedef struct __m2ts_mux_stream {
 	u32 pck_offset;
 
 	struct __elementary_stream_ifce *ifce;
+	Double ts_scale;
+
+	/*packet fifo*/
+	M2TS_Packet *pck_first, *pck_last;
+	GF_Mutex *mx;
+	/*avg bitrate compute*/
+	u64 last_br_time;
+	u32 bytes_since_last_time;
 } M2TS_Mux_Stream;
 
 
@@ -285,6 +193,9 @@ typedef struct __m2ts_mux {
 	u16 ts_id;
 
 	Bool needs_reconfig;
+	Bool real_time;
+	/*if set bit-rate won't be re-estimated*/
+	Bool fixed_rate;
 
 	/*output bit-rate in bit/sec*/
 	u32 bit_rate;

@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS= rtp_in.o rtp_payloads.o rtp_session.o rtp_signaling.o rtp_stream.o sdp_fetch.o sdp_load.o
+OBJS= rtp_in.o rtp_session.o rtp_signaling.o rtp_stream.o sdp_fetch.o sdp_load.o
 
 
 SRCS := $(OBJS:.o=.c) 

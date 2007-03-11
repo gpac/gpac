@@ -101,10 +101,6 @@ SOURCE=..\..\modules\rtp_in\rtp_in.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\rtp_in\rtp_payloads.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\rtp_in\rtp_session.c
 # End Source File
 # Begin Source File
