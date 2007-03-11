@@ -282,7 +282,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 
 	/*timed-text is a bit special, we support multiple stream descriptions & co*/
 	if (TrackMediaType==GF_ISOM_MEDIA_TEXT) {
-		hintType = GP_RTP_PAYT_3GPP_TEXT;
+		hintType = GF_RTP_PAYT_3GPP_TEXT;
 		oti = 0x08;
 		streamType = GF_STREAM_TEXT;
 		/*fixme - this works cos there's only one PL for text in mpeg4 at the current time*/
@@ -296,7 +296,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 			is_crypted = 1;
 		case GF_ISOM_SUBTYPE_MPEG4:
 			esd = gf_isom_get_esd(file, TrackNum, 1);
-			hintType = GP_RTP_PAYT_MPEG4;
+			hintType = GF_RTP_PAYT_MPEG4;
 			if (esd) {
 				streamType = esd->decoderConfig->streamType;
 				oti = esd->decoderConfig->objectTypeIndication;
@@ -316,7 +316,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 					case GF_M4A_AAC_MAIN:
 					case GF_M4A_AAC_LC:
 						if (flags & GP_RTP_PCK_USE_LATM_AAC) {
-							hintType = GP_RTP_PAYT_LATM;
+							hintType = GF_RTP_PAYT_LATM;
 							break;
 						}
 					case GF_M4A_AAC_SBR:
@@ -343,7 +343,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 						nb_ch = gf_mp3_num_channels(hdr);
 						sample_rate = gf_mp3_sampling_rate(hdr);
 						gf_isom_sample_del(&samp);
-						hintType = GP_RTP_PAYT_MPEG12;
+						hintType = GF_RTP_PAYT_MPEG12_AUDIO;
 						/*use official RTP/AVP payload type*/
 						OfficialPayloadID = 14;
 						required_rate = 90000;
@@ -357,7 +357,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 				}
 				/*QCELP audio*/
 				else if ((streamType==GF_STREAM_AUDIO) && (oti==0xE1)) {
-					hintType = GP_RTP_PAYT_QCELP;
+					hintType = GF_RTP_PAYT_QCELP;
 					OfficialPayloadID = 12;
 					required_rate = 8000;
 					streamType = GF_STREAM_AUDIO;
@@ -365,7 +365,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 				}
 				/*EVRC/SVM audio*/
 				else if ((streamType==GF_STREAM_AUDIO) && ((oti==0xA0) || (oti==0xA1)) ) {
-					hintType = GP_RTP_PAYT_EVRC_SMV;
+					hintType = GF_RTP_PAYT_EVRC_SMV;
 					required_rate = 8000;
 					streamType = GF_STREAM_AUDIO;
 					nb_ch = 1;
@@ -380,7 +380,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 					/*MPEG1/2 video*/
 					if ( ((oti>=0x60) && (oti<=0x65)) || (oti==0x6A)) {
 						if (!is_crypted) {
-							hintType = GP_RTP_PAYT_MPEG12;
+							hintType = GF_RTP_PAYT_MPEG12_VIDEO;
 							OfficialPayloadID = 32;
 						}
 					}
@@ -401,7 +401,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 			}
 			break;
 		case GF_ISOM_SUBTYPE_3GP_H263:
-			hintType = GP_RTP_PAYT_H263;
+			hintType = GF_RTP_PAYT_H263;
 			required_rate = 90000;
 			streamType = GF_STREAM_VISUAL;
 			OfficialPayloadID = 34;
@@ -411,14 +411,14 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 			break;
 		case GF_ISOM_SUBTYPE_3GP_AMR:
 			required_rate = 8000;
-			hintType = GP_RTP_PAYT_AMR;
+			hintType = GF_RTP_PAYT_AMR;
 			streamType = GF_STREAM_AUDIO;
 			has_mpeg4_mapping = 0;
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 			required_rate = 16000;
-			hintType = GP_RTP_PAYT_AMR_WB;
+			hintType = GF_RTP_PAYT_AMR_WB;
 			streamType = GF_STREAM_AUDIO;
 			has_mpeg4_mapping = 0;
 			nb_ch = 1;
@@ -427,7 +427,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 		{
 			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, TrackNum, 1);
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
-			hintType = GP_RTP_PAYT_H264_AVC;
+			hintType = GF_RTP_PAYT_H264_AVC;
 			streamType = GF_STREAM_VISUAL;
 			avc_nalu_size = avcc->nal_unit_size;
 			oti = 0x21;
@@ -437,7 +437,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 			break;
 		case GF_ISOM_SUBTYPE_3GP_QCELP:
 			required_rate = 8000;
-			hintType = GP_RTP_PAYT_QCELP;
+			hintType = GF_RTP_PAYT_QCELP;
 			streamType = GF_STREAM_AUDIO;
 			oti = 0xE1;
 			OfficialPayloadID = 12;
@@ -446,7 +446,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 		case GF_ISOM_SUBTYPE_3GP_EVRC:
 		case GF_ISOM_SUBTYPE_3GP_SMV:
 			required_rate = 8000;
-			hintType = GP_RTP_PAYT_EVRC_SMV;
+			hintType = GF_RTP_PAYT_EVRC_SMV;
 			streamType = GF_STREAM_AUDIO;
 			oti = (TrackMediaSubType==GF_ISOM_SUBTYPE_3GP_EVRC) ? 0xA0 : 0xA1;
 			nb_ch = 1;
@@ -466,7 +466,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 	
 	/*override hinter type if requested and possible*/
 	if (has_mpeg4_mapping && (flags & GP_RTP_PCK_FORCE_MPEG4)) {
-		hintType = GP_RTP_PAYT_MPEG4;
+		hintType = GF_RTP_PAYT_MPEG4;
 		avc_nalu_size = 0;
 	}
 	/*use static payload ID if enabled*/
@@ -602,7 +602,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 
 	/*timed-text is a bit special, we support multiple stream descriptions & co*/
 	if (TrackMediaType==GF_ISOM_MEDIA_TEXT) {
-		hintType = GP_RTP_PAYT_3GPP_TEXT;
+		hintType = GF_RTP_PAYT_3GPP_TEXT;
 		oti = 0x08;
 		streamType = GF_STREAM_TEXT;
 		/*fixme - this works cos there's only one PL for text in mpeg4 at the current time*/
@@ -616,7 +616,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			is_crypted = 1;
 		case GF_ISOM_SUBTYPE_MPEG4:
 			esd = gf_isom_get_esd(file, TrackNum, 1);
-			hintType = GP_RTP_PAYT_MPEG4;
+			hintType = GF_RTP_PAYT_MPEG4;
 			if (esd) {
 				streamType = esd->decoderConfig->streamType;
 				oti = esd->decoderConfig->objectTypeIndication;
@@ -636,7 +636,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					case GF_M4A_AAC_MAIN:
 					case GF_M4A_AAC_LC:
 						if (flags & GP_RTP_PCK_USE_LATM_AAC) {
-							hintType = GP_RTP_PAYT_LATM;
+							hintType = GF_RTP_PAYT_LATM;
 							break;
 						}
 					case GF_M4A_AAC_SBR:
@@ -663,7 +663,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 						nb_ch = gf_mp3_num_channels(hdr);
 						sample_rate = gf_mp3_sampling_rate(hdr);
 						gf_isom_sample_del(&samp);
-						hintType = GP_RTP_PAYT_MPEG12;
+						hintType = GF_RTP_PAYT_MPEG12_AUDIO;
 						/*use official RTP/AVP payload type*/
 						OfficialPayloadID = 14;
 						required_rate = 90000;
@@ -677,7 +677,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 				}
 				/*QCELP audio*/
 				else if ((streamType==GF_STREAM_AUDIO) && (oti==0xE1)) {
-					hintType = GP_RTP_PAYT_QCELP;
+					hintType = GF_RTP_PAYT_QCELP;
 					OfficialPayloadID = 12;
 					required_rate = 8000;
 					streamType = GF_STREAM_AUDIO;
@@ -685,7 +685,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 				}
 				/*EVRC/SVM audio*/
 				else if ((streamType==GF_STREAM_AUDIO) && ((oti==0xA0) || (oti==0xA1)) ) {
-					hintType = GP_RTP_PAYT_EVRC_SMV;
+					hintType = GF_RTP_PAYT_EVRC_SMV;
 					required_rate = 8000;
 					streamType = GF_STREAM_AUDIO;
 					nb_ch = 1;
@@ -700,7 +700,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					/*MPEG1/2 video*/
 					if ( ((oti>=0x60) && (oti<=0x65)) || (oti==0x6A)) {
 						if (!is_crypted) {
-							hintType = GP_RTP_PAYT_MPEG12;
+							hintType = GF_RTP_PAYT_MPEG12_VIDEO;
 							OfficialPayloadID = 32;
 						}
 					}
@@ -721,7 +721,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			}
 			break;
 		case GF_ISOM_SUBTYPE_3GP_H263:
-			hintType = GP_RTP_PAYT_H263;
+			hintType = GF_RTP_PAYT_H263;
 			required_rate = 90000;
 			streamType = GF_STREAM_VISUAL;
 			OfficialPayloadID = 34;
@@ -731,14 +731,14 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			break;
 		case GF_ISOM_SUBTYPE_3GP_AMR:
 			required_rate = 8000;
-			hintType = GP_RTP_PAYT_AMR;
+			hintType = GF_RTP_PAYT_AMR;
 			streamType = GF_STREAM_AUDIO;
 			has_mpeg4_mapping = 0;
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 			required_rate = 16000;
-			hintType = GP_RTP_PAYT_AMR_WB;
+			hintType = GF_RTP_PAYT_AMR_WB;
 			streamType = GF_STREAM_AUDIO;
 			has_mpeg4_mapping = 0;
 			nb_ch = 1;
@@ -747,7 +747,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		{
 			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, TrackNum, 1);
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
-			hintType = GP_RTP_PAYT_H264_AVC;
+			hintType = GF_RTP_PAYT_H264_AVC;
 			streamType = GF_STREAM_VISUAL;
 			avc_nalu_size = avcc->nal_unit_size;
 			oti = 0x21;
@@ -757,7 +757,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			break;
 		case GF_ISOM_SUBTYPE_3GP_QCELP:
 			required_rate = 8000;
-			hintType = GP_RTP_PAYT_QCELP;
+			hintType = GF_RTP_PAYT_QCELP;
 			streamType = GF_STREAM_AUDIO;
 			oti = 0xE1;
 			OfficialPayloadID = 12;
@@ -766,7 +766,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		case GF_ISOM_SUBTYPE_3GP_EVRC:
 		case GF_ISOM_SUBTYPE_3GP_SMV:
 			required_rate = 8000;
-			hintType = GP_RTP_PAYT_EVRC_SMV;
+			hintType = GF_RTP_PAYT_EVRC_SMV;
 			streamType = GF_STREAM_AUDIO;
 			oti = (TrackMediaSubType==GF_ISOM_SUBTYPE_3GP_EVRC) ? 0xA0 : 0xA1;
 			nb_ch = 1;
@@ -790,7 +790,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 
 	/*override hinter type if requested and possible*/
 	if (has_mpeg4_mapping && (flags & GP_RTP_PCK_FORCE_MPEG4)) {
-		hintType = GP_RTP_PAYT_MPEG4;
+		hintType = GF_RTP_PAYT_MPEG4;
 		avc_nalu_size = 0;
 	}
 	/*use static payload ID if enabled*/
@@ -878,7 +878,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	gf_isom_new_hint_description(file, tmp->HintTrack, -1, -1, 0, &descIndex);
 	gf_isom_rtp_set_timescale(file, tmp->HintTrack, descIndex, my_sl.timestampResolution);
 
-	if (hintType==GP_RTP_PAYT_MPEG4) {
+	if (hintType==GF_RTP_PAYT_MPEG4) {
 		tmp->rtp_p->slMap.ObjectTypeIndication = oti;
 		/*set this SL for extraction.*/
 		gf_isom_set_extraction_slc(file, TrackNum, 1, &my_sl);
@@ -1119,27 +1119,27 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 
 	/*H263 extensions*/
-	if (tkHint->rtp_p->rtp_payt == GP_RTP_PAYT_H263) {
+	if (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_H263) {
 		sprintf(sdpLine, "a=cliprect:0,0,%d,%d", Height, Width);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
 	/*AMR*/
-	else if ((tkHint->rtp_p->rtp_payt == GP_RTP_PAYT_AMR) || (tkHint->rtp_p->rtp_payt == GP_RTP_PAYT_AMR_WB)) {
+	else if ((tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_AMR) || (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_AMR_WB)) {
 		sprintf(sdpLine, "a=fmtp:%d octet-align", tkHint->rtp_p->PayloadType);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
 	/*Text*/
-	else if (tkHint->rtp_p->rtp_payt == GP_RTP_PAYT_3GPP_TEXT) {
+	else if (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_3GPP_TEXT) {
 		gf_hinter_format_ttxt_sdp(tkHint->rtp_p, payloadName, sdpLine, tkHint->file, tkHint->TrackNum);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
 	/*EVRC/SMV in non header-free mode*/
-	else if ((tkHint->rtp_p->rtp_payt == GP_RTP_PAYT_EVRC_SMV) && (tkHint->rtp_p->auh_size>1)) {
+	else if ((tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_EVRC_SMV) && (tkHint->rtp_p->auh_size>1)) {
 		sprintf(sdpLine, "a=fmtp:%d maxptime=%d", tkHint->rtp_p->PayloadType, tkHint->rtp_p->auh_size*20);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
 	/*H264/AVC*/
-	else if (tkHint->rtp_p->rtp_payt == GP_RTP_PAYT_H264_AVC) {
+	else if (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_H264_AVC) {
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(tkHint->file, tkHint->TrackNum, 1);
 		sprintf(sdpLine, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", tkHint->rtp_p->PayloadType, avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 		if (gf_list_count(avcc->pictureParameterSets) || gf_list_count(avcc->sequenceParameterSets)) {
@@ -1168,7 +1168,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_odf_avc_cfg_del(avcc);
 	}
 	/*MPEG-4 decoder config*/
-	else if (tkHint->rtp_p->rtp_payt==GP_RTP_PAYT_MPEG4) {
+	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_MPEG4) {
 		dcd = gf_isom_get_decoder_config(tkHint->file, tkHint->TrackNum, 1);
 
 		if (dcd && dcd->decoderSpecificInfo && dcd->decoderSpecificInfo->data) {
@@ -1192,7 +1192,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
 	/*MPEG-4 Audio LATM*/
-	else if (tkHint->rtp_p->rtp_payt==GP_RTP_PAYT_LATM) { 
+	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_LATM) { 
 		GF_BitStream *bs; 
 		char *config_bytes; 
 		u32 config_size; 

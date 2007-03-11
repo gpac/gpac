@@ -484,7 +484,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 	s32 optval;
 
 	if (!sock || sock->socket) return GF_BAD_PARAM;
-	
+
 #ifdef GPAC_IPV6
 	type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
 	af = (options & GF_SOCK_FORCE_IPV6) ? PF_INET6 : PF_UNSPEC;
@@ -597,7 +597,11 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 		sock->flags |= GF_SOCK_HAS_PEER;
 	}
 #endif
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[socket] socket bound to %s - port %d\n", peer_name, peer_port));
+	if (sock->flags & GF_SOCK_HAS_PEER) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[socket] socket bound to port %d - remote peer: %s:%d\n", port, peer_name, peer_port));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[socket] socket bound to port %d\n", port));
+	}
 	return GF_OK;
 }
 

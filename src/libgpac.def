@@ -761,6 +761,11 @@ EXPORTS
 	gf_rtp_builder_process
 	gf_rtp_builder_format_sdp
 	gf_rtp_builder_get_payload_name
+	gf_rtp_depacketizer_new
+	gf_rtp_depacketizer_del
+	gf_rtp_depacketizer_reset
+	gf_rtp_depacketizer_process
+	gf_rtp_depacketizer_get_slconfig
 
 ;avilib exports
 	AVI_write_frame
@@ -1137,6 +1142,7 @@ EXPORTS
 	gf_m2ts_reset_parsers
 	gf_m2ts_set_pes_framing
 	gf_m2ts_get_stream_name
+	gf_m2ts_crc32
 
 
 ;laser.h exports

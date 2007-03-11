@@ -23,6 +23,7 @@
  */
 #include <gpac/media_tools.h>
 #include <gpac/constants.h>
+#include <gpac/ietf.h>
 #include "mp42ts.h"
 
 void usage() 
@@ -41,7 +42,12 @@ static GFINLINE void m2ts_dump_time(M2TS_Time *time, char *name)
 static GFINLINE void m2ts_time_inc(M2TS_Time *time, u32 delta_inc_num, u32 delta_inc_den)
 {
 	u64 n_sec;
-	u32 sec = delta_inc_num / delta_inc_den;
+	u32 sec;
+
+	/*couldn't compute bitrate - we need to have more info*/
+	if (!delta_inc_den) return;
+
+	sec = delta_inc_num / delta_inc_den;
 
 	if (sec) {
 		time->sec += sec;
@@ -505,8 +511,33 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 			/*EOF*/
 			if (stream->ifce->caps & GF_ESI_STERAM_IS_OVER) return 0;
 			stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_PULL, &stream->pck);
+		} else {
+			M2TS_Packet *pck;
+			/*flush input pipe*/
+			stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_FLUSH, NULL);
+			gf_mx_p(stream->mx);
+			/*discard first packet*/
+			if (stream->pck_offset) {
+				pck = stream->pck_first;
+				stream->pck_first = pck->next;
+				free(pck->data);
+				free(pck);
+			}
+			/*fill pck*/
+			pck = stream->pck_first;
+			stream->pck.cts = pck->cts;
+			stream->pck.data = pck->data;
+			stream->pck.data_len = pck->data_len;
+			stream->pck.dts = pck->dts;
+			stream->pck.flags = pck->flags;
+			gf_mx_v(stream->mx);
 		}
 		stream->pck_offset = 0;
+		/*!! watchout !!*/
+		if (stream->ts_scale) {
+			stream->pck.cts = (u64) (stream->ts_scale * (s64) stream->pck.cts);
+			stream->pck.dts = (u64) (stream->ts_scale * (s64) stream->pck.dts);
+		}
 
 		/*initializing the PCR*/
 		if (!stream->program->pcr_init) {
@@ -522,6 +553,23 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 		/*move to current time in TS unit*/
 		stream->time = stream->program->pcr_init_ts_time;
 		m2ts_time_inc(&stream->time, (u32) (stream->pck.dts - stream->program->pcr_init_time), 90000);
+
+		/*compute bitrate if needed*/
+		if (!stream->bit_rate) {
+			if (!stream->last_br_time) {
+				stream->last_br_time = stream->pck.dts + 1;
+				stream->bytes_since_last_time = stream->pck.data_len;
+			} else {
+				if (stream->pck.dts - stream->last_br_time - 1 >= 90000) {
+					u64 r = 8*stream->bytes_since_last_time;
+					r*=90000;
+					stream->bit_rate = (u32) (r / (stream->pck.dts - stream->last_br_time - 1));
+					stream->program->mux->needs_reconfig = 1;
+				} else {
+					stream->bytes_since_last_time += stream->pck.data_len;
+				}
+			}
+		}
 	}
 	return 1;
 }
@@ -603,6 +651,36 @@ M2TS_Mux_Stream *m2ts_stream_new(u32 pid) {
 	return stream;
 }
 
+GF_Err m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
+{
+	GF_ESIPacket *esi_pck;
+	M2TS_Packet *pck;
+	M2TS_Mux_Stream *stream = (M2TS_Mux_Stream *)_self->output_udta;
+	switch (ctrl_type) {
+	case GF_ESI_OUTPUT_DATA_DISPATCH:
+		GF_SAFEALLOC(pck, M2TS_Packet);
+		esi_pck = (GF_ESIPacket *)param;
+		pck->data_len = esi_pck->data_len;
+		pck->data = malloc(sizeof(char)*pck->data_len);
+		memcpy(pck->data, esi_pck->data, pck->data_len);
+		pck->flags = esi_pck->flags;
+		pck->cts = esi_pck->cts;
+		pck->dts = esi_pck->dts;
+		gf_mx_p(stream->mx);
+		if (!stream->pck_first) {
+			stream->pck_first = stream->pck_last = pck;
+		} else {
+			stream->pck_last->next = pck;
+			stream->pck_last = pck;
+		}
+		gf_mx_v(stream->mx);
+		break;
+	}
+	return GF_OK;
+}
+
+
+
 M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __elementary_stream_ifce *ifce, u32 pid, Bool is_pcr)
 {
 	M2TS_Mux_Stream *stream, *st;
@@ -663,6 +741,10 @@ M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __ele
 		stream->mpeg2_stream_id = 0xC0;
 		break;
 	}
+	stream->ifce->output_ctrl = m2ts_output_ctrl;
+	stream->ifce->output_udta = stream;
+	stream->mx = gf_mx_new();
+	if (ifce->timescale != 90000) stream->ts_scale = 90000.0 / ifce->timescale;
 	return stream;
 }
 
@@ -690,7 +772,7 @@ M2TS_Mux_Program *m2ts_mux_program_add(M2TS_Mux *muxer, u32 program_number, u32 
 	return program;
 }
 
-M2TS_Mux *m2ts_mux_new()
+M2TS_Mux *m2ts_mux_new(u32 mux_rate, Bool real_time)
 {
 	GF_BitStream *bs;
 	M2TS_Mux *muxer;
@@ -698,6 +780,9 @@ M2TS_Mux *m2ts_mux_new()
 	muxer->pat = m2ts_stream_new(0); /* 0 = PAT_PID */
 	muxer->pat->process = m2ts_stream_process_pat;
 	muxer->pat->refresh_rate_ms = M2TS_PSI_REFRESH_RATE;
+	muxer->real_time = real_time;
+	muxer->bit_rate = mux_rate;
+	if (mux_rate) muxer->fixed_rate = 1;
 
 	/*format NULL packet*/
 	bs = gf_bs_new(muxer->null_pck, 188, GF_BITSTREAM_WRITE);
@@ -726,6 +811,7 @@ void m2ts_mux_stream_del(M2TS_Mux_Stream *st)
 		free(st->tables);
 		st->tables = tab;
 	}
+	if (st->mx) gf_mx_del(st->mx);
 	free(st);
 }
 
@@ -751,36 +837,42 @@ void m2ts_mux_del(M2TS_Mux *mux)
 	free(mux);
 }
 
-void m2ts_mux_update_config(M2TS_Mux *mux)
+void m2ts_mux_update_config(M2TS_Mux *mux, Bool reset_time)
 {
 	M2TS_Mux_Program *prog;
 
-	mux->bit_rate = 0;
+	if (!mux->fixed_rate) {
+		mux->bit_rate = 0;
 
-	/*get PAT bitrate*/
-	m2ts_mux_table_update_bitrate(mux, mux->pat);
-	mux->bit_rate += mux->pat->bit_rate;
+		/*get PAT bitrate*/
+		m2ts_mux_table_update_bitrate(mux, mux->pat);
+		mux->bit_rate += mux->pat->bit_rate;
+	}
 
 	prog = mux->programs;
 	while (prog) {
 		M2TS_Mux_Stream *stream = prog->streams;
 		while (stream) {
 			/*!! WATCHOUT - this is raw bitrate without PES header overhead !!*/
-			mux->bit_rate += stream->bit_rate;
-			/*update PCR every 100ms - we need at least 8 bytes without padding*/
-			if (stream == prog->pcr) mux->bit_rate += 8*8*10;
+			if (!mux->fixed_rate) {
+				mux->bit_rate += stream->bit_rate;
+				/*update PCR every 100ms - we need at least 8 bytes without padding*/
+				if (stream == prog->pcr) mux->bit_rate += 8*8*10;
+			}
 
 			/*reset mux time*/
-			stream->time.sec = stream->time.nanosec = 0;
+			if (reset_time) stream->time.sec = stream->time.nanosec = 0;
 			stream = stream->next;
 		}
 		/*get PMT bitrate*/
-		m2ts_mux_table_update_bitrate(mux, prog->pmt);
-		mux->bit_rate += prog->pmt->bit_rate;
+		if (!mux->fixed_rate) {
+			m2ts_mux_table_update_bitrate(mux, prog->pmt);
+			mux->bit_rate += prog->pmt->bit_rate;
+		}
 		prog = prog->next;
 	}
 	/*reset mux time*/
-	mux->time.sec = mux->time.nanosec = 0;
+	if (reset_time) mux->time.sec = mux->time.nanosec = 0;
 }
 
 
@@ -794,7 +886,9 @@ Bool m2ts_mux_process(M2TS_Mux *muxer)
 
 	stream_to_process = NULL;
 	time = muxer->time;
-	
+
+	if (muxer->needs_reconfig) m2ts_mux_update_config(muxer, 0);
+
 	is_over = 1;
 
 	res = muxer->pat->process(muxer, muxer->pat);
@@ -885,7 +979,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	}
 }
 
-static void fill_es_ifce(GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_num)
+static void fill_isom_es_ifce(GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_num)
 {
 	GF_ESIMP4 *priv;
 	char _lan[4];
@@ -913,7 +1007,8 @@ static void fill_es_ifce(GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_num)
 	avg_rate = gf_isom_get_media_data_size(mp4, track_num);
 	avg_rate *= ifce->timescale * 8;
 	avg_rate /= gf_isom_get_media_duration(mp4, track_num);
-	ifce->bit_rate = (u32) avg_rate;
+
+//	ifce->bit_rate = (u32) avg_rate;
 	ifce->duration = (Double) (s64) gf_isom_get_media_duration(mp4, track_num);
 	ifce->duration /= ifce->timescale;
 
@@ -921,16 +1016,136 @@ static void fill_es_ifce(GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_num)
 	ifce->input_udta = priv;
 }
 
-void main(int argc, char **argv)
+typedef struct
+{
+	/*RTP channel*/
+	GF_RTPChannel *rtp_ch;
+
+	/*depacketizer*/
+	GF_RTPDepacketizer *depacketizer;
+
+	GF_ESIPacket pck;
+
+	GF_ESInterface *ifce;
+} GF_ESIRTP;
+
+static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
+{
+	u32 size, PayloadStart;
+	GF_Err e;
+	GF_RTPHeader hdr;
+	char buffer[8000];
+	GF_ESIRTP *rtp = (GF_ESIRTP*)ifce->input_udta;
+
+	switch (act_type) {
+	case GF_ESI_INPUT_DATA_FLUSH:
+		/*flush rtp channel*/
+		while (1) {
+			size = gf_rtp_read_rtp(rtp->rtp_ch, buffer, 8000);
+			if (!size) break;
+			e = gf_rtp_decode_rtp(rtp->rtp_ch, buffer, size, &hdr, &PayloadStart);
+			if (e) return e;
+			gf_rtp_depacketizer_process(rtp->depacketizer, &hdr, buffer + PayloadStart, size - PayloadStart);
+		}
+		/*flush rtcp channel*/
+		while (1) {
+			size = gf_rtp_read_rtcp(rtp->rtp_ch, buffer, 8000);
+			if (!size) break;
+			e = gf_rtp_decode_rtcp(rtp->rtp_ch, buffer, size);
+			if (e == GF_EOS) ifce->caps |= GF_ESI_STERAM_IS_OVER;
+		}
+		return GF_OK;
+	}
+	return GF_OK;
+}
+
+static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e)
+{
+	GF_ESIRTP *rtp = (GF_ESIRTP*)udta;
+	rtp->pck.data = payload;
+	rtp->pck.data_len = size;
+	rtp->pck.dts = hdr->decodingTimeStamp;
+	rtp->pck.cts = hdr->compositionTimeStamp;
+	rtp->pck.flags = 0;
+	if (hdr->compositionTimeStampFlag) rtp->pck.flags |= GF_ESI_DATA_HAS_CTS;
+	if (hdr->decodingTimeStampFlag) rtp->pck.flags |= GF_ESI_DATA_HAS_DTS;
+	if (hdr->randomAccessPointFlag) rtp->pck.flags |= GF_ESI_DATA_AU_RAP;
+	if (hdr->accessUnitStartFlag) rtp->pck.flags |= GF_ESI_DATA_AU_START;
+	if (hdr->accessUnitEndFlag) rtp->pck.flags |= GF_ESI_DATA_AU_END;
+	rtp->ifce->output_ctrl(rtp->ifce->output_udta, GF_ESI_OUTPUT_DATA_DISPATCH, &rtp->pck);
+}
+
+void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInfo *sdp)
 {
 	u32 i;
+	GF_X_Attribute*att;
+	GF_ESIRTP *rtp;
+	GF_RTPMap*map;
+	GF_SDPConnection *conn;
+	GF_RTSPTransport trans;
+
+	/*check connection*/
+	conn = sdp->c_connection;
+	if (!conn) conn = (GF_SDPConnection*)gf_list_get(media->Connections, 0);
+
+	/*check payload type*/
+	map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
+	GF_SAFEALLOC(rtp, GF_ESIRTP);
+
+	memset(ifce, 0, sizeof(GF_ESInterface));
+	rtp->rtp_ch = gf_rtp_new();
+	i=0;
+	while ((att = (GF_X_Attribute*)gf_list_enum(media->Attributes, &i))) {
+		if (!stricmp(att->Name, "mpeg4-esid") && att->Value) ifce->stream_id = atoi(att->Value);
+	}
+
+	memset(&trans, 0, sizeof(GF_RTSPTransport));
+	trans.Profile = media->Profile;
+	trans.source = conn ? conn->host : sdp->o_address;
+	trans.IsUnicast = gf_sk_is_multicast_address(trans.source) ? 0 : 1;
+	if (!trans.IsUnicast) {
+		trans.port_first = media->PortNumber;
+		trans.port_last = media->PortNumber + 1;
+		trans.TTL = conn ? conn->TTL : 0;
+	} else {
+		trans.client_port_first = media->PortNumber;
+		trans.client_port_last = media->PortNumber + 1;
+	}
+
+	if (gf_rtp_setup_transport(rtp->rtp_ch, &trans, NULL) != GF_OK) {
+		gf_rtp_del(rtp->rtp_ch);
+		return;
+	}
+	/*setup depacketizer*/
+	rtp->depacketizer = gf_rtp_depacketizer_new(media, rtp_sl_packet_cbk, rtp);
+	if (!rtp->depacketizer) {
+		gf_rtp_del(rtp->rtp_ch);
+		return;
+	}
+	/*setup channel*/
+	gf_rtp_setup_payload(rtp->rtp_ch, map);
+	ifce->input_udta = rtp;
+	ifce->input_ctrl = rtp_input_ctrl;
+	rtp->ifce = ifce;
+
+	ifce->object_type_indication = rtp->depacketizer->sl_map.ObjectTypeIndication;
+	ifce->stream_type = rtp->depacketizer->sl_map.StreamType;
+	ifce->timescale = gf_rtp_get_clockrate(rtp->rtp_ch);
+
+	gf_rtp_depacketizer_reset(rtp->depacketizer, 1);
+	gf_rtp_initialize(rtp->rtp_ch, 0x100000ul, 0, 0, 10, 200, NULL);
+}
+
+void main(int argc, char **argv)
+{
+	GF_Err e;
+	Bool real_time=0;
 	M2TS_Mux *muxer;
 	M2TS_Mux_Program *program;
-	M2TS_Mux_Stream *stream;
-	static u32 track_number, sample_number, sample_count; 
-	static GF_ISOFile *mp4; /* berk!!!*/
-
-	GF_ESInterface st1, st2;
+	u32 i, nb_streams, pcr_idx, mux_rate;
+	GF_ESInterface streams[40];
+	GF_ISOFile *mp4 = NULL;
+	GF_SDPInfo *sdp = NULL;
 
 	if (argc < 2) {
 		usage();
@@ -939,41 +1154,92 @@ void main(int argc, char **argv)
 
 	gf_sys_init();
 
-	muxer = m2ts_mux_new();
-	
+	mux_rate = 0;
+	nb_streams = 0;
+	pcr_idx = 0;
+
+	/* Open ISO file  */
+	if (gf_isom_probe_file(argv[1])) {
+		mp4 = gf_isom_open(argv[1], GF_ISOM_OPEN_READ, 0);
+		nb_streams = gf_isom_get_track_count(mp4); 
+		for (i=0; i<nb_streams; i++) {
+			fill_isom_es_ifce(&streams[i], mp4, i+1);
+			/*get first visual stream as PCR*/
+			if (!pcr_idx && (gf_isom_get_media_type(mp4, i+1) == GF_ISOM_MEDIA_VISUAL) && (gf_isom_get_sample_count(mp4, i+1)>1) ) {
+				pcr_idx = i+1;
+			}
+		}
+		if (pcr_idx) pcr_idx-=1;
+	}
+	/*open SDP file*/
+	else if (strstr(argv[1], ".sdp")) {
+		char *sdp_buf;
+		u32 sdp_size;
+		FILE *_sdp = fopen(argv[1], "rt");
+		if (!_sdp) {
+			fprintf(stderr, "Error opening %s - no such file\n", argv[1]);
+			return;
+		}
+		fseek(_sdp, 0, SEEK_END);
+		sdp_size = ftell(_sdp);
+		fseek(_sdp, 0, SEEK_SET);
+		sdp_buf = (char*)malloc(sdp_size);
+		fread(sdp_buf, sdp_size, 1, _sdp);
+		fclose(_sdp);
+
+		sdp = gf_sdp_info_new();
+		e = gf_sdp_info_parse(sdp, sdp_buf, sdp_size);
+		free(sdp_buf);
+		if (e) {
+			fprintf(stderr, "Error opening %s : %s\n", argv[1], gf_error_to_string(e));
+			gf_sdp_info_del(sdp);
+			return;
+		}
+		nb_streams = gf_list_count(sdp->media_desc);
+		for (i=0; i<nb_streams; i++) {
+			GF_SDPMedia *media = gf_list_get(sdp->media_desc, i);
+			fill_rtp_es_ifce(&streams[i], media, sdp);
+			if (!pcr_idx && (streams[i].stream_type == GF_STREAM_VISUAL)) {
+				pcr_idx = i+1;
+			}
+		}
+		if (pcr_idx) pcr_idx-=1;
+		real_time = 1;
+	} else {
+		fprintf(stderr, "Error opening %s - not a supported input media\n", argv[1]);
+		return;
+	}
+
+	muxer = m2ts_mux_new(mux_rate, real_time);
 	/* Open mpeg2ts file*/
 	muxer->ts_out = fopen(argv[2], "wb");
 	if (!muxer->ts_out) {
 		fprintf(stderr, "Error opening %s\n", argv[2]);
-		return;
+		goto exit;
 	}
 	
-	/* Open ISO file  */
-	if (gf_isom_probe_file(argv[1])) 
-		mp4 = gf_isom_open(argv[1], GF_ISOM_OPEN_READ, 0);
-	else {
-		fprintf(stderr, "Error opening %s - not an ISO media file\n", argv[1]);
-		return;
-	}
-
-	fill_es_ifce(&st1, mp4, 1);
-	fill_es_ifce(&st2, mp4, 2);
 
 	program = m2ts_mux_program_add(muxer, 10, 100);
-	m2ts_program_stream_add(program, &st1, 110, 1);
-	m2ts_program_stream_add(program, &st2, 111, 1);
+	for (i=0; i<nb_streams; i++) {
+		m2ts_program_stream_add(program, &streams[i], 110+i, (i==pcr_idx) ? 1 : 0);
+	}
 
-	m2ts_mux_update_config(muxer);
+	m2ts_mux_update_config(muxer, 1);
+//	muxer->bit_rate *= 2;
 
+	gf_log_set_level(GF_LOG_DEBUG);
+	gf_log_set_tools(GF_LOG_CONTAINER);
 	while (!m2ts_mux_process(muxer)) {}
 
+exit:
 	if (muxer->ts_out) fclose(muxer->ts_out);
 	m2ts_mux_del(muxer);
-	gf_isom_close(mp4);
 	
-	free(st1.input_udta);
-	free(st2.input_udta);
-
+	for (i=0; i<nb_streams; i++) {
+		free(streams[i].input_udta);
+	}
+	if (mp4) gf_isom_close(mp4);
+	if (sdp) gf_sdp_info_del(sdp);
 	gf_sys_close();
 }
 

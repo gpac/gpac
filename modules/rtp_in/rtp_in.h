@@ -159,31 +159,15 @@ enum
 	/*broadcast emultaion is on (no time control for stream)*/
 	RTP_FORCE_BROADCAST = (1<<3),
 	
-	/*RTP payload flags*/
-
-	/*AWFULL hack at rtp level to cope with ffmpeg h264 crashes when jumping in stream without IDR*/
-	RTP_AVC_WAIT_RAP = (1<<10),
-	/*AMR config*/
-	RTP_AMR_ALIGN = (1<<11),
-	/*for RFC3016, signals bitstream inspection for RAP discovery*/
-	RTP_M4V_CHECK_RAP = (1<<12),
-	/*ISMACryp stuff*/
-	RTP_HAS_ISMACRYP = (1<<13),
-	RTP_ISMA_SEL_ENC = (1<<14),
-	RTP_ISMA_HAS_KEY_IDX = (1<<15),
-	
-
 	/*RTP channel runtime flags*/
 
 	/*set if next command (PLAY/PAUSE) is to be skipped (aggregation control)*/
-	RTP_SKIP_NEXT_COM = (1<<20),
-	/*AU end was detected (eg next packet is AU start)*/
-	RTP_NEW_AU = (1<<21),
+	RTP_SKIP_NEXT_COM = (1<<4),
 	/*indicates whether channel creation has been acknowledged or not
 	this is needed to filter real channel_connect calls from RTSP re-setup (after STOP) ones*/
-	RTP_CONNECTED = (1<<22),
+	RTP_CONNECTED = (1<<5),
 	/*EOS signaled (RTCP or range-based)*/
-	RTP_EOS = (1<<23),
+	RTP_EOS = (1<<6),
 };
 
 /*rtp channel*/
@@ -191,27 +175,25 @@ typedef struct
 {
 	/*module*/
 	RTPClient *owner;
-	/*payloat type*/
-	u32 rtptype;
+	
 	/*channel flags*/
 	u32 flags;
 
 	/*control session (may be null)*/
 	RTSPSession *rtsp;
 
+	/*RTP channel*/
+	GF_RTPChannel *rtp_ch;
+
+	/*depacketizer*/
+	GF_RTPDepacketizer *depacketizer;
+
 	/*logical app channel*/
 	LPNETCHANNEL channel;
 	u32 status;
-
-	/*RTP channel*/
-	GF_RTPChannel *rtp_ch;
 	
 	u32 ES_ID;
 	char *control;
-
-	/*depacketizer config*/
-	GP_RTPSLMap sl_map;
-	GF_SLHeader sl_hdr;
 
 	/*rtp recieve buffer*/
 	char buffer[RTP_BUFFER_SIZE];
@@ -220,34 +202,13 @@ typedef struct
 
 	/*can we control the stream ?*/
 	Double range_start, range_end;
-
-	/*RTSP control aggregation state*/
-
 	/*current start time in npt (for pause/resume)*/
 	Double current_start;
-	u32 clock_rate;
-	/*needed for DTS/CTS compute with some payloads type*/
-	u32 unit_duration;
 
-	/*UDP detection*/
+	/*UDP time-out detection*/
 	u32 last_udp_time;
-
-	/*stats*/
+	/*RTP stats*/
 	u32 rtp_bytes, rtcp_bytes, stat_start_time, stat_stop_time;
-
-	/*inter-packet reconstruction bitstream (for 3GP text and H264)*/
-	GF_BitStream *inter_bs;
-
-	/*H264/AVC config*/
-	u32 packetization_mode;
-	
-	/*3GP text reassembler state*/
-	u8 nb_txt_frag, cur_txt_frag, sidx, txt_len, nb_mod_frag;
-	u32 au_dur;
-	
-	/*ISMACryp*/
-	u32 isma_scheme;
-	char *key;
 } RTPStream;
 
 /*creates new RTP stream from SDP info*/

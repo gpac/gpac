@@ -429,6 +429,10 @@ SOURCE=..\..\src\ietf\rtp.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\ietf\rtp_depacketizer.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\ietf\rtp_packetizer.c
 # End Source File
 # Begin Source File
@@ -610,15 +614,6 @@ SOURCE=..\..\src\media_tools\mpeg2_ps.h
 # Begin Source File
 
 SOURCE=..\..\src\media_tools\mpegts.c
-
-!IF  "$(CFG)" == "libgpac - Win32 Release"
-
-# SUBTRACT CPP /FA<none>
-
-!ELSEIF  "$(CFG)" == "libgpac - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -1117,5 +1112,9 @@ SOURCE=..\..\include\gpac\xml.h
 SOURCE=..\..\include\gpac\yuv.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=..\..\include\gpac\esi.h
+# End Source File
 # End Target
 # End Project

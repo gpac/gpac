@@ -58,7 +58,7 @@ GF_Err gp_rtp_builder_do_amr(GP_RTPPacketizer *builder, char *data, u32 data_siz
 		u8 ft = (data[offset] & 0x78) >> 3;
 		u8 size;
 
-		if (builder->rtp_payt == GP_RTP_PAYT_AMR_WB) {
+		if (builder->rtp_payt == GF_RTP_PAYT_AMR_WB) {
 			size = GF_AMR_WB_FRAME_SIZE[ft];
 			block_size = 320;
 		} else {

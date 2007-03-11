@@ -277,29 +277,29 @@ GF_Err rtp_init_packetizer(RTP_Caller *rtp)
 			u32 w, h;
 			w = h = 0;
 			gf_isom_get_visual_info(rtp->mp4File, rtp->trackNum, 1, &w, &h);
-			if (rtp->packetizer->rtp_payt == GP_RTP_PAYT_H263) {
+			if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_H263) {
 				sprintf(sdpLine, "a=cliprect:0,0,%d,%d", h, w);
 			}
 			/*extensions for some mobile phones*/
 			sprintf(sdpLine, "a=framesize:%d %d-%d", rtp->packetizer->PayloadType, w, h);
 		}
 		/*AMR*/
-		if ((rtp->packetizer->rtp_payt == GP_RTP_PAYT_AMR) || (rtp->packetizer->rtp_payt == GP_RTP_PAYT_AMR_WB)) {
+		if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_AMR) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_AMR_WB)) {
 			sprintf(sdpLine, "a=fmtp:%d octet-align", rtp->packetizer->PayloadType);
 			fprintf(sdp_out, "%s\n", sdpLine);
 		}
 		/*Text*/
-		else if (rtp->packetizer->rtp_payt == GP_RTP_PAYT_3GPP_TEXT) {
+		else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_3GPP_TEXT) {
 			gf_hinter_format_ttxt_sdp(rtp->packetizer, payloadName, sdpLine, rtp->mp4File, rtp->trackNum);
 			fprintf(sdp_out, "%s\n", sdpLine);
 		}
 		/*EVRC/SMV in non header-free mode*/
-		else if ((rtp->packetizer->rtp_payt == GP_RTP_PAYT_EVRC_SMV) && (rtp->packetizer->auh_size>1)) {
+		else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_EVRC_SMV) && (rtp->packetizer->auh_size>1)) {
 			sprintf(sdpLine, "a=fmtp:%d maxptime=%d", rtp->packetizer->PayloadType, rtp->packetizer->auh_size*20);
 			fprintf(sdp_out, "%s\n", sdpLine);
 		}
 		/*H264/AVC*/
-		else if (rtp->packetizer->rtp_payt == GP_RTP_PAYT_H264_AVC) {
+		else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_AVC) {
 			GF_AVCConfig *avcc = gf_isom_avc_config_get(rtp->mp4File, rtp->trackNum, 1);
 			sprintf(sdpLine, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", rtp->packetizer->PayloadType, avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 			if (gf_list_count(avcc->pictureParameterSets) || gf_list_count(avcc->sequenceParameterSets)) {
@@ -328,7 +328,7 @@ GF_Err rtp_init_packetizer(RTP_Caller *rtp)
 			gf_odf_avc_cfg_del(avcc);
 		}
 		/*MPEG-4 decoder config*/
-		else if (rtp->packetizer->rtp_payt==GP_RTP_PAYT_MPEG4) {
+		else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_MPEG4) {
 			GF_DecoderConfig *dcd;
 			dcd = gf_isom_get_decoder_config(rtp->mp4File, rtp->trackNum, 1);
 
@@ -353,7 +353,7 @@ GF_Err rtp_init_packetizer(RTP_Caller *rtp)
 			fprintf(sdp_out, "%s\n", sdpLine);
 		}
 		/*MPEG-4 Audio LATM*/
-		else if (rtp->packetizer->rtp_payt==GP_RTP_PAYT_LATM) { 
+		else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_LATM) { 
 			GF_DecoderConfig *dcd;
 			GF_BitStream *bs; 
 			char *config_bytes; 

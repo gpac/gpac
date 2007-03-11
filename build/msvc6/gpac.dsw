@@ -48,9 +48,6 @@ Package=<4>
     Project_Dep_Name dx_hw
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name ffmpeg_in
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name ft_font
     End Project Dependency
     Begin Project Dependency
@@ -67,9 +64,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name odf_dec
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name ogg
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name render2d
@@ -94,9 +88,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name laser_dec
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name svg_loader
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name mpegts_in
@@ -349,6 +340,36 @@ Package=<4>
 ###############################################################################
 
 Project: "mp3_in"=.\mp3_in.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "mp42ts"=..\..\applications\testapps\mp42ts\mp42ts.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "mp4_streamer"=..\..\applications\testapps\mp4_streamer\mp4_streamer.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
