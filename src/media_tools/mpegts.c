@@ -890,7 +890,7 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned ch
 		pmt->sec = gf_m2ts_section_filter_new(gf_m2ts_process_pmt);
 	}
 
-	evt_type = ts->pas->section_init ? GF_M2TS_EVT_PAT_UPDATE : GF_M2TS_EVT_PAT_FOUND;
+	evt_type = ts->pat->section_init ? GF_M2TS_EVT_PAT_UPDATE : GF_M2TS_EVT_PAT_FOUND;
 	if (ts->on_event) ts->on_event(ts, evt_type, NULL);
 }
 
@@ -1119,7 +1119,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 
 	/*PAT*/
 	if (hdr.pid == 0) {
-		gf_m2ts_gather_section(ts, ts->pas, NULL, &hdr, data, payload_size);
+		gf_m2ts_gather_section(ts, ts->pat, NULL, &hdr, data, payload_size);
 		return;
 	}
 	/*SDT*/
@@ -1264,7 +1264,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->programs = gf_list_new();
 	ts->SDTs = gf_list_new();
 
-	ts->pas = gf_m2ts_section_filter_new(gf_m2ts_process_pat);
+	ts->pat = gf_m2ts_section_filter_new(gf_m2ts_process_pat);
 	ts->sdt = gf_m2ts_section_filter_new(gf_m2ts_process_sdt);
 	return ts;
 }
@@ -1272,7 +1272,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 {
 	u32 i;
-	if (ts->pas) gf_m2ts_section_filter_del(ts->pas);
+	if (ts->pat) gf_m2ts_section_filter_del(ts->pat);
 	if (ts->sdt) gf_m2ts_section_filter_del(ts->sdt);
 	if (ts->nit) gf_m2ts_section_filter_del(ts->nit);
 

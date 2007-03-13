@@ -266,7 +266,7 @@ struct tag_m2ts_demux
 	char *buffer;
 	u32 buffer_size, alloc_size;
 	/*default transport PID filters*/
-	GF_M2TS_SectionFilter *pas, *nit, *sdt;
+	GF_M2TS_SectionFilter *pat, *nit, *sdt;
 	
 	/* analyser */
 	FILE *pes_out;
