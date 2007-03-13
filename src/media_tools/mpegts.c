@@ -237,7 +237,8 @@ void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, 
 				pes->frame_state = data[3];
 				if (new_au) {
 					pck.flags = GF_M2TS_PES_PCK_AU_START;
-					if (pes->rap) pck.flags |= GF_M2TS_PES_PCK_RAP;
+					if (pes->rap) 
+						pck.flags |= GF_M2TS_PES_PCK_RAP;
 				}
 
 				if (!pes->vid_h && (pes->frame_state==0xb3)) {
@@ -488,7 +489,6 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 	data = sec->section;
 	sec->table_id = data[0]; 
 	sec->syntax_indicator = (data[1] & 0x80) ? 1 : 0;
-	/* pas->length = ((data[1]<<8) | data[2]) & 0x3ff; */
 	if (sec->syntax_indicator) {
 		/*remove crc32*/
 		sec->length -= 4;
@@ -517,7 +517,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 	/*process section*/
 	if (section_valid) {
 		Bool is_repeated;
-		/*table spread across several sections, gather*/
+		/*table is spread across several sections, gather*/
 		if (sec->last_section_number) {
 			u32 pay_size = sec->data_size + sec->length - sec->start;
 			sec->data = (char*)realloc(sec->data, sizeof(char)*pay_size);
@@ -576,7 +576,9 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 	Bool disc = (expect_cc == hdr->continuity_counter) ? 0 : 1;
 	sec->cc = expect_cc;
 
-	if (hdr->error || (hdr->adaptation_field==2)) return;
+	if (hdr->error || 
+		(hdr->adaptation_field==2)) /* 2 = no payload in TS packet */
+		return; 
 
 	if (hdr->payload_start) {
 		u32 ptr_field;
@@ -809,7 +811,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 		pes->stream_type = data[0];
 
 		/* carriage of ISO_IEC_14496 data in sections */
-		if (pes->stream_type==0x13) {
+		if (pes->stream_type == GF_M2TS_SYSTEMS_MPEG4_SECTIONS) {
 			pes->sec = gf_m2ts_section_filter_new(gf_m2ts_process_mpeg4section);
 		}
 
@@ -949,26 +951,30 @@ static void gf_m2ts_pes_header(unsigned char *data, u32 data_size, GF_M2TS_PESHe
 static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size, GF_M2TS_AdaptationField *paf)
 {
 	Bool flush_pes;
-	if (pes->stream_type == 0x13) { 		
+#if 0
+	if (pes->stream_type == GF_M2TS_SYSTEMS_MPEG4_SECTIONS) { 		
 		gf_m2ts_gather_section(ts, pes->sec, (GF_M2TS_ES *)pes, hdr, data, data_size);
 		return;
 	} 
 //	else if (pes->stream_type == 0x12) { }
+#endif
 
 	if (!pes->reframe) return;
 	
-	if (hdr->payload_start)
+	if (hdr->payload_start) {
 		flush_pes = 1;
-	/*reassemble pes*/
-	else if (pes->pes_len && (pes->data_len + data_size  == pes->pes_len + 6/*startcode+stream_id+length field*/)) {
+	} else if (pes->pes_len && (pes->data_len + data_size  == pes->pes_len + 6)) { 
+		/* 6 = startcode+stream_id+length*/
+		/*reassemble pes*/
 		if (pes->data) pes->data = (char*)realloc(pes->data, pes->data_len+data_size);
 		else pes->data = (char*)malloc(data_size);
 		memcpy(pes->data+pes->data_len, data, data_size);
 		pes->data_len += data_size;
 		/*force discard*/
 		data_size = 0;
-	} else
+	} else {
 		flush_pes = 0;
+	}
 
 	/*PES first fragment: flush previous packet*/
 	if (flush_pes && pes->data) {
@@ -1059,7 +1065,8 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	GF_M2TS_AdaptationField af, *paf;
 	u32 payload_size, af_size;
 	u32 pos = 0;
-	/*process header*/
+	
+	/* read TS packet header*/
 	hdr.sync = data[0];
 	hdr.error = (data[1] & 0x80) ? 1 : 0;
 	hdr.payload_start = (data[1] & 0x40) ? 1 : 0;
@@ -1122,30 +1129,30 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		return;
 	}
 	/*NIT*/
-	if (hdr.pid == 0x0010) {
+	else if (hdr.pid == 0x0010) {
 		/*ignore them, unused at application level*/
 		//if (!hdr.error) gf_m2ts_gather_section(ts, ts->nit, NULL, &hdr, data, payload_size);
 		return;
-	}
-	/*EIT*/
-
-	es = ts->ess[hdr.pid];
-	if (!es) return;
-
-	/*pmt and others*/
-	if (es->sec) {
-		gf_m2ts_gather_section(ts, es->sec, es, &hdr, data, payload_size);
-	}
-	/*regular es - let the pes reassembler decide if packets with error shall be discarded*/
+	} 	
 	else {
-		gf_m2ts_process_pes(ts, (GF_M2TS_PES *)es, &hdr, data, payload_size, paf);
 
-		if (paf && paf->PCR_flag) {
-			GF_M2TS_PES_PCK pck;
-			memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
-			pck.PTS = paf->PCR_base * 300 + paf->PCR_ext; // ???
-			pck.stream = (GF_M2TS_PES *)es;
-			if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
+		es = ts->ess[hdr.pid];
+		if (!es) return;
+
+		if (es->sec) { 	/* The stream uses sections to carry its payload */
+			gf_m2ts_gather_section(ts, es->sec, es, &hdr, data, payload_size);
+		} else {
+			/* regular stream using PES packets */
+			/* let the pes reassembler decide if packets with error shall be discarded*/
+			gf_m2ts_process_pes(ts, (GF_M2TS_PES *)es, &hdr, data, payload_size, paf);
+
+			if (paf && paf->PCR_flag) {
+				GF_M2TS_PES_PCK pck;
+				memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
+				pck.PTS = paf->PCR_base * 300 + paf->PCR_ext; // ???
+				pck.stream = (GF_M2TS_PES *)es;
+				if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
+			}
 		}
 
 	}

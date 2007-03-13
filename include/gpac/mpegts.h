@@ -39,23 +39,23 @@ typedef struct tag_m2ts_es GF_M2TS_ES;
 /*MPEG-2 TS Media types*/
 enum
 {
-	GF_M2TS_VIDEO_MPEG1 = 0x01,
-	GF_M2TS_VIDEO_MPEG2 = 0x02,
-	GF_M2TS_AUDIO_MPEG1 = 0x03,
-	GF_M2TS_AUDIO_MPEG2 = 0x04, 
-	GF_M2TS_PRIVATE_SECTION = 0x05,
-	GF_M2TS_PRIVATE_DATA  = 0x06,
-	GF_M2TS_AUDIO_AAC = 0x0f,
-	GF_M2TS_VIDEO_MPEG4 = 0x10,
+	GF_M2TS_VIDEO_MPEG1				= 0x01,
+	GF_M2TS_VIDEO_MPEG2				= 0x02,
+	GF_M2TS_AUDIO_MPEG1				= 0x03,
+	GF_M2TS_AUDIO_MPEG2				= 0x04, 
+	GF_M2TS_PRIVATE_SECTION			= 0x05,
+	GF_M2TS_PRIVATE_DATA			= 0x06,
+	GF_M2TS_AUDIO_AAC				= 0x0f,
+	GF_M2TS_VIDEO_MPEG4				= 0x10,
 
-	GF_M2TS_SYSTEMS_MPEG4_PES = 0x12,
-	GF_M2TS_SYSTEMS_MPEG4_SECTIONS = 0x13,
+	GF_M2TS_SYSTEMS_MPEG4_PES		= 0x12,
+	GF_M2TS_SYSTEMS_MPEG4_SECTIONS	= 0x13,
 
-	GF_M2TS_VIDEO_H264 = 0x1b,
+	GF_M2TS_VIDEO_H264				= 0x1b,
 
-	GF_M2TS_AUDIO_AC3 = 0x81,
-	GF_M2TS_AUDIO_DTS = 0x8a,
-	GF_M2TS_SUBTITLE_DVB = 0x100,
+	GF_M2TS_AUDIO_AC3				= 0x81,
+	GF_M2TS_AUDIO_DTS				= 0x8a,
+	GF_M2TS_SUBTITLE_DVB			= 0x100,
 };
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);
@@ -105,12 +105,20 @@ enum
 	GF_M2TS_EVT_SDT_REPEAT,
 	/*SDT has been received - assoctiated parameter: none*/
 	GF_M2TS_EVT_SDT_UPDATE,
+	/*INT has been received - assoctiated parameter: none*/
+	GF_M2TS_EVT_INT_FOUND,
+	/*repeated INT has been found (carousel) - assoctiated parameter: none*/
+	GF_M2TS_EVT_INT_REPEAT,
+	/*INT has been received - assoctiated parameter: none*/
+	GF_M2TS_EVT_INT_UPDATE,
 	/*PES packet has been received - assoctiated parameter: PES packet*/
 	GF_M2TS_EVT_PES_PCK,
 	/*PCR has been received - assoctiated parameter: PES packet with no data*/
 	GF_M2TS_EVT_PES_PCR,
 	/*An MPEG-4 SL Packet has been received in a section - assoctiated parameter: SL packet */
 	GF_M2TS_EVT_SL_PCK,
+	/*An IP datagram has been received in a section - assoctiated parameter: IP datagram */
+	GF_M2TS_EVT_IP_DATAGRAM,
 };
 
 typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pes, unsigned char *data, u32 data_size, Bool is_repeated); 
