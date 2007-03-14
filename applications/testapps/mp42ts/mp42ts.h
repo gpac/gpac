@@ -36,61 +36,6 @@ enum {
 	LOG_TS = 3
 };
 
-/* max size includes first header, second header, payload and CRC */
-enum {
-	GF_M2TS_TABLE_ID_PAT			= 0x00,
-	GF_M2TS_TABLE_ID_CAT			= 0x01, 
-	GF_M2TS_TABLE_ID_PMT			= 0x02, 
-	GF_M2TS_TABLE_ID_TSDT			= 0x03, /* max size for section 1024 */
-	GF_M2TS_TABLE_ID_MPEG4_BIFS		= 0x04, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_MPEG4_OD		= 0x05, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_METADATA		= 0x06, 
-	GF_M2TS_TABLE_ID_IPMP_CONTROL	= 0x07, 
-	/* 0x08 - 0x37 reserved */
-	/* 0x38 - 0x3D DSM-CC defined */
-	GF_M2TS_TABLE_ID_DSM_CC_PRIVATE	= 0x3E, /* used for MPE (only, not MPE-FEC) */
-	/* 0x3F DSM-CC defined */
-	GF_M2TS_TABLE_ID_NIT_ACTUAL		= 0x40, /* max size for section 1024 */
-	GF_M2TS_TABLE_ID_NIT_OTHER		= 0x41,
-	GF_M2TS_TABLE_ID_SDT_ACTUAL		= 0x42, /* max size for section 1024 */
-	/* 0x43 - 0x45 reserved */
-	GF_M2TS_TABLE_ID_SDT_OTHER		= 0x46, /* max size for section 1024 */
-	/* 0x47 - 0x49 reserved */
-	GF_M2TS_TABLE_ID_BAT			= 0x4a, /* max size for section 1024 */
-	/* 0x4b - 0x4d reserved */
-	GF_M2TS_TABLE_ID_EIT_ACTUAL_PF	= 0x4E, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_EIT_OTHER_PF	= 0x4F,
-	/* 0x50 - 0x6f EIT SCHEDULE */
-	GF_M2TS_TABLE_ID_TDT			= 0x70,
-	GF_M2TS_TABLE_ID_RST			= 0x71, /* max size for section 1024 */
-	GF_M2TS_TABLE_ID_ST 			= 0x72, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_TOT			= 0x73,
-	GF_M2TS_TABLE_ID_AI				= 0x74,
-	GF_M2TS_TABLE_ID_CONT			= 0x75,
-	GF_M2TS_TABLE_ID_RC				= 0x76,
-	GF_M2TS_TABLE_ID_CID			= 0x77,
-	GF_M2TS_TABLE_ID_MPE_FEC		= 0x78,
-	GF_M2TS_TABLE_ID_RES_NOT		= 0x79,
-	/* 0x7A - 0x7D reserved */
-	GF_M2TS_TABLE_ID_DIT			= 0x7E,
-	GF_M2TS_TABLE_ID_SIT			= 0x7F, /* max size for section 4096 */
-	/* 0x80 - 0xfe reserved */
-	/* 0xff reserved */
-};
-
-enum {
-	M2TS_ADAPTATION_RESERVED	= 0,
-	M2TS_ADAPTATION_NONE		= 1,
-	M2TS_ADAPTATION_ONLY		= 2,
-	M2TS_ADAPTATION_AND_PAYLOAD = 3,
-};
-
-
-#define SECTION_HEADER_LENGTH 3 /* header till the last bit of the section_length field */
-#define SECTION_ADDITIONAL_HEADER_LENGTH 5 /* header from the last bit of the section_length field to the payload */
-#define	CRC_LENGTH 4
-
-
 
 typedef struct __m2ts_section {
 	struct __m2ts_section *next;

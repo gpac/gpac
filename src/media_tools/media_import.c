@@ -4851,23 +4851,24 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	case GF_M2TS_EVT_SL_PCK:
 		{
 			GF_M2TS_SL_PCK *sl_pck = (GF_M2TS_SL_PCK *)par;
+			GF_M2TS_PES *pes = (GF_M2TS_PES *)sl_pck->stream;
 			if (import->flags & GF_IMPORT_PROBE_ONLY) {
 				for (i=0; i<import->nb_tracks; i++) {
 					if (import->tk_info[i].track_num == sl_pck->stream->pid) {
-						if (sl_pck->stream->aud_sr) {
-							import->tk_info[i].audio_info.sample_rate = sl_pck->stream->aud_sr;
-							import->tk_info[i].audio_info.nb_channels = sl_pck->stream->aud_nb_ch;
+						if (pes->aud_sr) {
+							import->tk_info[i].audio_info.sample_rate = pes->aud_sr;
+							import->tk_info[i].audio_info.nb_channels = pes->aud_nb_ch;
 						} else {
-							import->tk_info[i].video_info.width = sl_pck->stream->vid_w;
-							import->tk_info[i].video_info.height = sl_pck->stream->vid_h;
+							import->tk_info[i].video_info.width = pes->vid_w;
+							import->tk_info[i].video_info.height = pes->vid_h;
 						}
 						break;
 					}
 				}
 				return;
 			}
-			if (sl_pck->stream->pid != import->trackID) return;
-			if (sl_pck->stream->vid_h || sl_pck->stream->aud_sr) import->flags |= GF_IMPORT_DO_ABORT;
+			if (pes->pid != import->trackID) return;
+			if (pes->vid_h || pes->aud_sr) import->flags |= GF_IMPORT_DO_ABORT;
 		}
 		break;
 	}
