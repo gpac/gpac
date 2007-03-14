@@ -30,19 +30,22 @@ LINKFLAGS=-L../../../bin/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=mpedemux$(EXE)
-#LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
-LINKFLAGS+=-lgpac
+LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
+#LINKFLAGS+=-lgpac
 else
 EXT=
 PROG=mpedemux
-#LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz
-LINKFLAGS+=-lgpac -lz
+LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz
+#LINKFLAGS+=-lgpac -lz
 endif
 
 
 SRCS := $(OBJS:.o=.c) 
 
-all: $(PROG)
+all: LIBGPAC $(PROG)
+
+LIBGPAC: 
+	$(MAKE) -C ../../../src
 
 $(PROG): $(OBJS)
 	$(CC) $(LDFLAGS) -o ../../../bin/gcc/$@ $(OBJS) $(LINKFLAGS)

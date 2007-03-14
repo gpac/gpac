@@ -65,11 +65,21 @@ static void mpedemux_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	}
 }
 
+static void usage() 
+{
+		fprintf(stdout, "mpedemux input.ts\n");
+}
+
 int main(int argc, char **argv)
 {
 	u8 data[188];
 	u32 size;
 	MPEDemux *mpedemux;
+
+	if (argc < 2) {
+		usage();
+		return GF_OK;
+	}
 
 	GF_SAFEALLOC(mpedemux, MPEDemux);
 	mpedemux->ts_demux = gf_m2ts_demux_new();
@@ -88,5 +98,5 @@ int main(int argc, char **argv)
 
 	gf_m2ts_demux_del(mpedemux->ts_demux);
 	free(mpedemux);
-
+	return GF_OK;
 }
