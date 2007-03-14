@@ -550,16 +550,20 @@ u8 gf_rtp_get_hight_interleave_id(GF_RTPChannel *ch)
 
 #define RTP_DEFAULT_FIRSTPORT		7040
 
-static u16 NextAvailablePort = RTP_DEFAULT_FIRSTPORT;
+static u16 NextAvailablePort = 0;
 
 GF_EXPORT
-GF_Err gf_rtp_set_ports(GF_RTPChannel *ch)
+GF_Err gf_rtp_set_ports(GF_RTPChannel *ch, u16 first_port)
 {
 	u32 retry;
-	u16 p = NextAvailablePort;
+	u16 p;
 	GF_Socket *sock;
 	if (!ch) return GF_BAD_PARAM;
 
+	if (!NextAvailablePort) {
+		NextAvailablePort = first_port ? first_port : RTP_DEFAULT_FIRSTPORT;
+	}
+	p = NextAvailablePort;
 	if (ch->net_info.client_port_first) return GF_OK;
 
 	sock = gf_sk_new(GF_SOCK_TYPE_UDP);

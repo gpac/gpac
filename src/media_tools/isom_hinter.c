@@ -708,6 +708,10 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					if (is_crypted) {
 						/*that's another pain with ISMACryp, even if no B-frames the DTS is signaled...*/
 						if (oti==0x20) force_dts_delta = 22;
+						else if (oti==0x21) {
+							flags &= ~GP_RTP_PCK_USE_MULTI;
+							force_dts_delta = 22;
+						}
 						flags |= GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_TS;
 					}
 

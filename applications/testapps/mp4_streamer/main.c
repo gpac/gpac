@@ -400,7 +400,7 @@ GF_Err rtp_init_channel(RTP_Caller *rtp, u32 path_mtu, char * dest, int port)
 	GF_Err res;
 
 	rtp->channel = gf_rtp_new();
-	gf_rtp_set_ports(rtp->channel);
+	gf_rtp_set_ports(rtp->channel, 0);
 
 	tr.IsUnicast = gf_sk_is_multicast_address(dest) ? 0 : 1;
 	tr.Profile="RTP/AVP";

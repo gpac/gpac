@@ -229,6 +229,8 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 				if (!dsi.width && !dsi.height) ffd->check_short_header = 1;
 				ffd->previous_par = (dsi.par_num<<16) | dsi.par_den;
 				ffd->no_par_update = 1;
+			} else if (ffd->oti==0x21) {
+				ffd->check_h264_isma = 1;
 			}
 
 			/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
@@ -491,6 +493,42 @@ redecode:
 		s32 w = ffd->ctx->width;
 		s32 h = ffd->ctx->height;
 
+		if (ffd->check_h264_isma) {
+			/*for AVC bitstreams after ISMA decryption, in case (as we do) the decryption DRM tool 
+			doesn't put back nalu size, do it ourselves...*/
+			if (!inBuffer[0] && !inBuffer[1] && !inBuffer[2] && (inBuffer[3]==0x01)) {
+				u32 nalu_size;
+				u32 remain = inBufferLength;
+				char *start, *end;
+				start = inBuffer;
+				end = inBuffer + 4;
+				while (remain>4) {
+					if (!end[0] && !end[1] && !end[2] && (end[3]==0x01)) {
+						nalu_size = end - start - 4;
+						start[0] = (nalu_size>>24)&0xFF;
+						start[1] = (nalu_size>>16)&0xFF;
+						start[2] = (nalu_size>>8)&0xFF;
+						start[3] = (nalu_size)&0xFF;
+						start = end;
+						end = start+4;
+						continue;
+					}
+					end++;
+					remain--;
+				}
+				nalu_size = end - start - 4;
+				start[0] = (nalu_size>>24)&0xFF;
+				start[1] = (nalu_size>>16)&0xFF;
+				start[2] = (nalu_size>>8)&0xFF;
+				start[3] = (nalu_size)&0xFF;
+				ffd->check_h264_isma = 2;
+			}
+			/*if we had ISMA E&A and lost it this is likely due to a pck loss - do NOT switch back to regular*/
+			else if (ffd->check_h264_isma == 1) {
+				ffd->check_h264_isma = 0;
+			}
+		}
+
 		if (avcodec_decode_video(ffd->ctx, ffd->frame, &gotpic, inBuffer, inBufferLength) < 0) {
 			if (!ffd->check_short_header) {
 				return GF_NON_COMPLIANT_BITSTREAM;
@@ -522,6 +560,10 @@ redecode:
 			if (ffd->pix_fmt!=GF_PIXEL_RGB_24) outsize /= 2;
 			ffd->out_size = outsize;
 			*outBufferLength = ffd->out_size;
+			if (ffd->check_h264_isma) {
+				inBuffer[0] = inBuffer[1] = inBuffer[2] = 0;
+				inBuffer[3] = 1;
+			}
 			return GF_BUFFER_TOO_SMALL;
 		}
 		/*check PAR in case on-the-fly change*/

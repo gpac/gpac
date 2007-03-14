@@ -565,7 +565,10 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_IODS: iods_del(a); return;
 	case GF_ISOM_BOX_TYPE_TRAK: trak_del(a); return;
 	case GF_ISOM_BOX_TYPE_MP4S: mp4s_del(a); return;
-	case GF_ISOM_BOX_TYPE_MP4V: mp4v_del(a); return;
+	case GF_4CC('2','6','4','b'): 
+	case GF_ISOM_BOX_TYPE_MP4V: 
+		mp4v_del(a); 
+		return;
 	case GF_ISOM_BOX_TYPE_MP4A: mp4a_del(a); return;
 	case GF_ISOM_BOX_TYPE_GNRM: gnrm_del(a); return;
 	case GF_ISOM_BOX_TYPE_GNRV: gnrv_del(a); return;
@@ -655,7 +658,7 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_AVCC: avcc_del(a); return;
 	case GF_ISOM_BOX_TYPE_BTRT: btrt_del(a); return;
 	case GF_ISOM_BOX_TYPE_M4DS: m4ds_del(a); return;
-	case GF_ISOM_BOX_TYPE_AVC1: avc1_del(a); return;
+	case GF_ISOM_BOX_TYPE_AVC1: mp4v_del(a); return;
 
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB: ftab_del(a); return;
@@ -862,7 +865,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_AVCC: return avcc_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_BTRT: return btrt_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_Read(a, bs);
-	case GF_ISOM_BOX_TYPE_AVC1: return avc1_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_AVC1: return mp4v_Read(a, bs);
 
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_Read(a, bs);
@@ -1065,7 +1068,7 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_AVCC: return avcc_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_BTRT: return btrt_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_Write(a, bs);
-	case GF_ISOM_BOX_TYPE_AVC1: return avc1_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_AVC1: return mp4v_Write(a, bs);
 
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_Write(a, bs);
@@ -1264,7 +1267,7 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_AVCC: return avcc_Size(a);
 	case GF_ISOM_BOX_TYPE_BTRT: return btrt_Size(a);
 	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_Size(a);
-	case GF_ISOM_BOX_TYPE_AVC1: return avc1_Size(a);
+	case GF_ISOM_BOX_TYPE_AVC1: return mp4v_Size(a);
 
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_Size(a);

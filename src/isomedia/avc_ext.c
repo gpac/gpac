@@ -26,17 +26,17 @@
 #include <gpac/constants.h>
 
 
-void AVC_RewriteESDescriptor(GF_AVCSampleEntryBox *avc)
+void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc)
 {
-	if (avc->esd) gf_odf_desc_del((GF_Descriptor *)avc->esd);
-	avc->esd = gf_odf_desc_esd_new(2);
-	avc->esd->decoderConfig->streamType = GF_STREAM_VISUAL;
+	if (avc->emul_esd) gf_odf_desc_del((GF_Descriptor *)avc->emul_esd);
+	avc->emul_esd = gf_odf_desc_esd_new(2);
+	avc->emul_esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 	/*AVC OTI is 0x21, AVC parameter set stream OTI (not supported in gpac) is 0x22*/
-	avc->esd->decoderConfig->objectTypeIndication = 0x21;
+	avc->emul_esd->decoderConfig->objectTypeIndication = 0x21;
 	if (avc->bitrate) {
-		avc->esd->decoderConfig->bufferSizeDB = avc->bitrate->bufferSizeDB;
-		avc->esd->decoderConfig->avgBitrate = avc->bitrate->avgBitrate;
-		avc->esd->decoderConfig->maxBitrate = avc->bitrate->maxBitrate;
+		avc->emul_esd->decoderConfig->bufferSizeDB = avc->bitrate->bufferSizeDB;
+		avc->emul_esd->decoderConfig->avgBitrate = avc->bitrate->avgBitrate;
+		avc->emul_esd->decoderConfig->maxBitrate = avc->bitrate->maxBitrate;
 	}
 	if (avc->descr) {
 		u32 i=0; 
@@ -45,16 +45,16 @@ void AVC_RewriteESDescriptor(GF_AVCSampleEntryBox *avc)
 		while ((desc = (GF_Descriptor *)gf_list_enum(avc->descr->descriptors, &i))) {
 			clone = NULL;
 			gf_odf_desc_copy(desc, &clone);
-			if (gf_odf_desc_add_desc((GF_Descriptor *)avc->esd, clone) != GF_OK) 
+			if (gf_odf_desc_add_desc((GF_Descriptor *)avc->emul_esd, clone) != GF_OK) 
 				gf_odf_desc_del(clone);
 		}
 	}
 	if (avc->avc_config && avc->avc_config->config) {
-		gf_odf_avc_cfg_write(avc->avc_config->config, &avc->esd->decoderConfig->decoderSpecificInfo->data, &avc->esd->decoderConfig->decoderSpecificInfo->dataLength);
+		gf_odf_avc_cfg_write(avc->avc_config->config, &avc->emul_esd->decoderConfig->decoderSpecificInfo->data, &avc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
 	}
 }
 
-GF_Err AVC_UpdateESD(GF_AVCSampleEntryBox *avc, GF_ESD *esd)
+GF_Err AVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 {
 	if (!avc->bitrate) avc->bitrate = (GF_MPEG4BitRateBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_BTRT);
 	if (avc->descr) gf_isom_box_del((GF_Box *) avc->descr);
@@ -147,7 +147,7 @@ GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfi
 	u32 dataRefIndex;
 	GF_TrackReferenceTypeBox *dpnd;
 	GF_TrackReferenceBox *tref;
-	GF_AVCSampleEntryBox *entry;
+	GF_MPEGVisualSampleEntryBox *entry;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -168,7 +168,7 @@ GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfi
 	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	//create a new entry
-	entry = (GF_AVCSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVC1);
+	entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVC1);
 	if (!entry) return GF_OUT_OF_MEM;
 	entry->avc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
 	entry->avc_config->config = AVC_DuplicateConfig(cfg);
@@ -183,13 +183,13 @@ GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Desc
 {
 	GF_TrackBox *trak;
 	GF_Err e;
-	GF_AVCSampleEntryBox *entry;
+	GF_MPEGVisualSampleEntryBox *entry;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !cfg || !DescriptionIndex) return GF_BAD_PARAM;
-	entry = (GF_AVCSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
+	entry = (GF_MPEGVisualSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
 	if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return GF_BAD_PARAM;
 
@@ -204,13 +204,13 @@ GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber)
 	static u8 ipod_ext[][16] = { { 0x6B, 0x68, 0x40, 0xF2, 0x5F, 0x24, 0x4F, 0xC5, 0xBA, 0x39, 0xA5, 0x1B, 0xCF, 0x03, 0x23, 0xF3} };
 	GF_TrackBox *trak;
 	GF_Err e;
-	GF_AVCSampleEntryBox *entry;
+	GF_MPEGVisualSampleEntryBox *entry;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
-	entry = (GF_AVCSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
 	if (!entry) return GF_OK;
 	if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return GF_OK;
 
@@ -226,12 +226,12 @@ GF_EXPORT
 GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
 {
 	GF_TrackBox *trak;
-	GF_AVCSampleEntryBox *entry;
+	GF_MPEGVisualSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
-	entry = (GF_AVCSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
 	if (!entry) return NULL;
-	if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return NULL;
+	//if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return NULL;
 	if (!entry->avc_config) return NULL;
 	return AVC_DuplicateConfig(entry->avc_config->config);
 }
@@ -451,130 +451,4 @@ GF_Err avcc_Size(GF_Box *s)
 }
 #endif
 
-
-
-void avc1_del(GF_Box *s)
-{
-	GF_AVCSampleEntryBox *ptr = (GF_AVCSampleEntryBox *)s;
-	if (ptr == NULL) return;
-	if (ptr->avc_config) gf_isom_box_del((GF_Box *) ptr->avc_config);
-	if (ptr->bitrate) gf_isom_box_del((GF_Box *) ptr->bitrate);
-	if (ptr->descr) gf_isom_box_del((GF_Box *) ptr->descr);
-	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
-	if (ptr->ipod_ext) gf_isom_box_del((GF_Box *)ptr->ipod_ext);
-	/*for publishing*/
-	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
-	if (ptr->esd) gf_odf_desc_del((GF_Descriptor *)ptr->esd);
-	free(ptr);
-}
-
-GF_Err avc1_AddBox(GF_Box *s, GF_Box *a)
-{
-	GF_AVCSampleEntryBox *ptr = (GF_AVCSampleEntryBox *)s;
-	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_AVCC:
-		if (ptr->avc_config) return GF_ISOM_INVALID_FILE;
-		ptr->avc_config = (GF_AVCConfigurationBox *)a;
-		break;
-	case GF_ISOM_BOX_TYPE_BTRT:
-		if (ptr->bitrate) return GF_ISOM_INVALID_FILE;
-		ptr->bitrate = (GF_MPEG4BitRateBox *)a;
-		break;
-	case GF_ISOM_BOX_TYPE_M4DS:
-		if (ptr->descr) return GF_ISOM_INVALID_FILE;
-		ptr->descr = (GF_MPEG4ExtensionDescriptorsBox *)a;
-		break;
-	case GF_ISOM_BOX_TYPE_UUID:
-		if (ptr->ipod_ext) return GF_ISOM_INVALID_FILE;
-		ptr->ipod_ext = (GF_UnknownUUIDBox *)a;
-		break;
-	default:
-		gf_isom_box_del(a);
-	}
-	return GF_OK;
-}
-GF_Err avc1_Read(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_AVCSampleEntryBox *ptr = (GF_AVCSampleEntryBox *)s;
-
-	e = gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *)ptr, bs);
-	if (e) return e;
-	e = gf_isom_read_box_list(s, bs, avc1_AddBox);
-	AVC_RewriteESDescriptor(ptr);
-	return e;
-}
-
-GF_Box *avc1_New()
-{
-	GF_AVCSampleEntryBox *tmp = (GF_AVCSampleEntryBox *) malloc(sizeof(GF_AVCSampleEntryBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_AVCSampleEntryBox));
-
-	gf_isom_video_sample_entry_init((GF_VisualSampleEntryBox *)tmp);
-	tmp->type = GF_ISOM_BOX_TYPE_AVC1;
-	return (GF_Box *)tmp;
-}
-
-#ifndef GPAC_READ_ONLY
-GF_Err avc1_Write(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_AVCSampleEntryBox *ptr = (GF_AVCSampleEntryBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	gf_isom_video_sample_entry_write((GF_VisualSampleEntryBox *)s, bs);
-	if (ptr->avc_config && ptr->avc_config->config) {
-		e = gf_isom_box_write((GF_Box *) ptr->avc_config, bs);
-		if (e) return e;
-	}
-	if (ptr->ipod_ext)	{
-		e = gf_isom_box_write((GF_Box *) ptr->ipod_ext, bs);
-		if (e) return e;
-	}
-	if (ptr->bitrate) {
-		e = gf_isom_box_write((GF_Box *) ptr->bitrate, bs);
-		if (e) return e;
-	}
-	if (ptr->descr)	{
-		e = gf_isom_box_write((GF_Box *) ptr->descr, bs);
-		if (e) return e;
-	}
-	return GF_OK;
-}
-
-GF_Err avc1_Size(GF_Box *s)
-{
-	GF_Err e;
-	GF_AVCSampleEntryBox *ptr = (GF_AVCSampleEntryBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-
-	gf_isom_video_sample_entry_size((GF_VisualSampleEntryBox *)s);
-
-	if (ptr->avc_config && ptr->avc_config->config) {
-		e = gf_isom_box_size((GF_Box *) ptr->avc_config); 
-		if (e) return e;
-		ptr->size += ptr->avc_config->size;
-	}
-	if (ptr->ipod_ext) {
-		e = gf_isom_box_size((GF_Box *) ptr->ipod_ext);
-		if (e) return e;
-		ptr->size += ptr->ipod_ext->size;
-	}
-	if (ptr->bitrate) {
-		e = gf_isom_box_size((GF_Box *) ptr->bitrate);
-		if (e) return e;
-		ptr->size += ptr->bitrate->size;
-	}
-	if (ptr->descr) {
-		e = gf_isom_box_size((GF_Box *) ptr->descr);
-		if (e) return e;
-		ptr->size += ptr->descr->size;
-	}
-	return GF_OK;
-}
-#endif 
 

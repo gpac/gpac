@@ -356,6 +356,15 @@ check_header:
 	) {
 		strcpy(builder->slMap.mode, "mpeg4-video");
 	}
+	/*ISMACryp AVC video mode*/
+	else if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==0x21)
+		&& (builder->flags & GP_RTP_PCK_SIGNAL_RAP) && builder->slMap.IV_length 
+		&& !(builder->flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(builder->flags & GP_RTP_PCK_SIGNAL_SIZE)
+		/*shall have SignalTS*/
+		&& (builder->flags & GP_RTP_PCK_SIGNAL_TS) && !(builder->flags & GP_RTP_PCK_USE_MULTI)
+	) {
+		strcpy(builder->slMap.mode, "avc-video");
+	}
 
 	/*check if we use AU header or not*/
 	if (!builder->slMap.SizeLength 

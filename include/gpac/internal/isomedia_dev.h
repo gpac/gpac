@@ -684,27 +684,6 @@ void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ent, GF_BitStream
 void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent);
 #endif
 
-
-typedef struct
-{
-	GF_ISOM_VISUAL_SAMPLE_ENTRY
-	GF_ESDBox *esd;
-	GF_SLConfig *slc;
-} GF_MPEGVisualSampleEntryBox;
-
-
-/*this is the default visual sdst (to handle unknown media)*/
-typedef struct
-{
-	GF_ISOM_VISUAL_SAMPLE_ENTRY
-	/*box type as specified in the file (not this box's type!!)*/
-	u32 EntryType;
-	/*opaque description data (ESDS in MP4, SMI in SVQ3, ...)*/
-	char *data;
-	u32 data_size;
-} GF_GenericVisualSampleEntryBox;
-
-
 typedef struct
 {
 	GF_ISOM_BOX
@@ -728,18 +707,33 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_VISUAL_SAMPLE_ENTRY
+	GF_ESDBox *esd;
+	/*used for Publishing*/
+	GF_SLConfig *slc;
 
+	/*avc extensions - we merged with regular 'mp4v' box to handle isma E&A signaling of AVC*/
 	GF_AVCConfigurationBox *avc_config;
 	GF_MPEG4BitRateBox *bitrate;
 	/*ext descriptors*/
 	GF_MPEG4ExtensionDescriptorsBox *descr;
-	/*used for Publishing*/
-	GF_SLConfig *slc;
 	/*internally emulated esd*/
-	GF_ESD *esd;
+	GF_ESD *emul_esd;
 	/*iPod's hack*/
 	GF_UnknownUUIDBox *ipod_ext;
-} GF_AVCSampleEntryBox;
+
+} GF_MPEGVisualSampleEntryBox;
+
+
+/*this is the default visual sdst (to handle unknown media)*/
+typedef struct
+{
+	GF_ISOM_VISUAL_SAMPLE_ENTRY
+	/*box type as specified in the file (not this box's type!!)*/
+	u32 EntryType;
+	/*opaque description data (ESDS in MP4, SMI in SVQ3, ...)*/
+	char *data;
+	u32 data_size;
+} GF_GenericVisualSampleEntryBox;
 
 
 #define GF_ISOM_AUDIO_SAMPLE_ENTRY	\
@@ -1979,7 +1973,8 @@ GF_Err minf_AddBox(GF_Box *s, GF_Box *a);
 GF_Err mdia_AddBox(GF_Box *s, GF_Box *a);
 GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a);
 
-GF_Err AVC_UpdateESD(GF_AVCSampleEntryBox *avc, GF_ESD *esd);
+GF_Err AVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd);
+void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
 
 
@@ -2631,10 +2626,6 @@ GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err avcc_Size(GF_Box *s);
 
 GF_Box *avc1_New();
-void avc1_del(GF_Box *s);
-GF_Err avc1_Read(GF_Box *s, GF_BitStream *bs);
-GF_Err avc1_Write(GF_Box *s, GF_BitStream *bs);
-GF_Err avc1_Size(GF_Box *s);
 
 GF_Box *m4ds_New();
 void m4ds_del(GF_Box *s);

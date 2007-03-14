@@ -75,8 +75,12 @@ void RP_Setup(RTPStream *ch)
 	com->method = strdup(GF_RTSP_SETUP);
 
 	//setup ports if unicast non interleaved
-	if (gf_rtp_is_unicast(ch->rtp_ch) && (ch->owner->transport_mode != 1) && !gf_rtp_is_interleaved(ch->rtp_ch) )
-		gf_rtp_set_ports(ch->rtp_ch);
+	if (gf_rtp_is_unicast(ch->rtp_ch) && (ch->owner->transport_mode != 1) && !gf_rtp_is_interleaved(ch->rtp_ch) ) {
+		u16 def_first_port = 0;
+		const char *opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceFirstPort");
+		if (opt) def_first_port = atoi(opt);
+		gf_rtp_set_ports(ch->rtp_ch, def_first_port);
+	}
 
 	trans = gf_rtsp_transport_clone(gf_rtp_get_transport(ch->rtp_ch));
 
