@@ -81,10 +81,12 @@ void m2ts_mux_table_update(M2TS_Mux_Stream *stream, u8 table_id, u16 table_id_ex
 	M2TS_Mux_Section *section, *prev_sec;
 	GF_BitStream *bs;
 
+	/* check if there is already a table with that id */
 	prev_table = NULL;
 	table = stream->tables;
 	while (table) {
 		if (table->table_id == table_id) {
+			/* if yes, we need to flush the table and increase the version number */
 			M2TS_Mux_Section *sec = table->section;
 			while (sec) {
 				M2TS_Mux_Section *sec2 = sec->next;
@@ -100,6 +102,7 @@ void m2ts_mux_table_update(M2TS_Mux_Stream *stream, u8 table_id, u16 table_id_ex
 	}
 
 	if (!table) {
+		/* if no, the table is created */
 		GF_SAFEALLOC(table, M2TS_Mux_Table);
 		table->table_id = table_id;
 		if (prev_table) prev_table->next = table;
@@ -1227,8 +1230,8 @@ void main(int argc, char **argv)
 	m2ts_mux_update_config(muxer, 1);
 //	muxer->bit_rate *= 2;
 
-	gf_log_set_level(GF_LOG_DEBUG);
-	gf_log_set_tools(GF_LOG_CONTAINER);
+//	gf_log_set_level(GF_LOG_DEBUG);
+//	gf_log_set_tools(GF_LOG_CONTAINER);
 	while (!m2ts_mux_process(muxer)) {}
 
 exit:
