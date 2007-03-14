@@ -1532,19 +1532,20 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			if (dumper->pes_out && (dumper->dump_pid == sl_pck->stream->pid)) {
 				GF_SLHeader header;
 				u32 header_len;
-				if (sl_pck->stream->esd) {
+				if (((GF_M2TS_PES*)sl_pck->stream)->esd) {
+					GF_ESD *esd = ((GF_M2TS_PES*)sl_pck->stream)->esd;
 					if (!dumper->is_info_dumped) {
-						if (sl_pck->stream->esd->decoderConfig->decoderSpecificInfo) fwrite(sl_pck->stream->esd->decoderConfig->decoderSpecificInfo->data, sl_pck->stream->esd->decoderConfig->decoderSpecificInfo->dataLength, 1, dumper->pes_out_info);
+						if (esd->decoderConfig->decoderSpecificInfo) fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, dumper->pes_out_info);
 						dumper->is_info_dumped = 1;
 						fprintf(dumper->pes_out_nhml, "<NHNTStream version=\"1.0\" ");
-						fprintf(dumper->pes_out_nhml, "timeScale=\"%d\" ", sl_pck->stream->esd->slConfig->timestampResolution);
-						fprintf(dumper->pes_out_nhml, "streamType=\"%d\" ", sl_pck->stream->esd->decoderConfig->streamType);
-						fprintf(dumper->pes_out_nhml, "objectTypeIndication=\"%d\" ", sl_pck->stream->esd->decoderConfig->objectTypeIndication);
-						if (sl_pck->stream->esd->decoderConfig->decoderSpecificInfo) fprintf(dumper->pes_out_nhml, "specificInfoFile=\"%s\" ", dumper->info);
+						fprintf(dumper->pes_out_nhml, "timeScale=\"%d\" ", esd->slConfig->timestampResolution);
+						fprintf(dumper->pes_out_nhml, "streamType=\"%d\" ", esd->decoderConfig->streamType);
+						fprintf(dumper->pes_out_nhml, "objectTypeIndication=\"%d\" ", esd->decoderConfig->objectTypeIndication);
+						if (esd->decoderConfig->decoderSpecificInfo) fprintf(dumper->pes_out_nhml, "specificInfoFile=\"%s\" ", dumper->info);
 						fprintf(dumper->pes_out_nhml, "baseMediaFile=\"%s\" ", dumper->dump);
 						fprintf(dumper->pes_out_nhml, "inRootOD=\"yes\">\n");
 					}
-					gf_sl_depacketize(sl_pck->stream->esd->slConfig, &header, sl_pck->data, sl_pck->data_len, &header_len);
+					gf_sl_depacketize(esd->slConfig, &header, sl_pck->data, sl_pck->data_len, &header_len);
 					fwrite(sl_pck->data+header_len, sl_pck->data_len-header_len, 1, dumper->pes_out);
 					fprintf(dumper->pes_out_nhml, "<NHNTSample DTS=\""LLD"\" dataLength=\"%d\" isRAP=\"%s\"/>\n", LLD_CAST header.decodingTimeStamp, sl_pck->data_len-header_len, (header.randomAccessPointFlag?"yes":"no"));
 				}
