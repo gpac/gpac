@@ -164,6 +164,11 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_BOX_TYPE_ENCV:
 		ESDa = ((GF_MPEGVisualSampleEntryBox*)entry)->esd;
 		if (ESDa) esd = (GF_ESD *) ESDa->desc;
+		/*avc1 encrypted*/
+		else esd = ((GF_MPEGVisualSampleEntryBox*) entry)->emul_esd;
+		break;
+	case GF_ISOM_BOX_TYPE_AVC1:
+		esd = ((GF_MPEGVisualSampleEntryBox*) entry)->emul_esd;
 		break;
 	case GF_ISOM_BOX_TYPE_MP4A:
 	case GF_ISOM_BOX_TYPE_ENCA:
@@ -174,9 +179,6 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_BOX_TYPE_ENCS:
 		ESDa = entry->esd;
 		if (ESDa) esd = (GF_ESD *) ESDa->desc;
-		break;
-	case GF_ISOM_BOX_TYPE_AVC1:
-		esd = ((GF_AVCSampleEntryBox *) entry)->esd;
 		break;
 	case GF_ISOM_BOX_TYPE_TX3G:
 		if (!true_desc_only && mdia->mediaTrack->moov->mov->convert_streaming_text) {

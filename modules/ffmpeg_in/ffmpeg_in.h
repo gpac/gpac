@@ -76,6 +76,7 @@ typedef struct
 	/*for audio packed frames*/
 	u32 frame_start;
 	char audio_buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
+	Bool check_h264_isma;
 } FFDec;
 
 void *FFDEC_Load();

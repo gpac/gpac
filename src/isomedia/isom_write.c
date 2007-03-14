@@ -2937,8 +2937,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, GF_ISOFile *f2,
 			break;
 		case GF_ISOM_BOX_TYPE_AVC1:
 		{
-			GF_AVCSampleEntryBox *avc1 = (GF_AVCSampleEntryBox *)ent1;
-			GF_AVCSampleEntryBox *avc2 = (GF_AVCSampleEntryBox *)ent2;
+			GF_MPEGVisualSampleEntryBox *avc1 = (GF_MPEGVisualSampleEntryBox *)ent1;
+			GF_MPEGVisualSampleEntryBox *avc2 = (GF_MPEGVisualSampleEntryBox *)ent2;
 			data1 = data2 = NULL;
 
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);

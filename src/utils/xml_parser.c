@@ -992,7 +992,6 @@ static void xml_sax_reset(GF_SAXParser *parser)
 
 static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 {
-	u32 in_time = gf_sys_clock();
 	GF_Err e = GF_EOS;
 	unsigned char szLine[XML_INPUT_SIZE+2];
 	if (!parser->gz_in) return GF_BAD_PARAM;
@@ -1001,6 +1000,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 
 	while (!gzeof(parser->gz_in) && !parser->suspended) {
 		u32 read = gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
+		if (!read) break;
 		szLine[read] = 0;
 		szLine[read+1] = 0;
 		e = gf_xml_sax_parse(parser, szLine);
@@ -1017,7 +1017,6 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 		gzclose(parser->gz_in);
 		parser->gz_in = 0;
 	}
-	fprintf(stdout, "XML parsed in %d ms\n", gf_sys_clock() - in_time);
 	return e;
 }
 

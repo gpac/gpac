@@ -241,7 +241,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 {
 	GF_Err e;
 	Bool use_sel_enc;
-	u32 track, count, i, j, si;
+	u32 track, count, i, j, si, is_avc;
 	GF_ISOSample *samp;
 	GF_ISMASample *ismasamp;
 	GF_Crypt *mc;
@@ -251,7 +251,9 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	GF_ESD *esd;
 
 	track = gf_isom_get_track_by_id(mp4, tci->trackID);
-	e = gf_isom_get_ismacryp_info(mp4, track, 1, NULL, NULL, NULL, NULL, NULL, &use_sel_enc, &IV_size, NULL);
+	e = gf_isom_get_ismacryp_info(mp4, track, 1, &is_avc, NULL, NULL, NULL, NULL, &use_sel_enc, &IV_size, NULL);
+	is_avc = (is_avc==GF_4CC('2','6','4','b')) ? 1 : 0;
+		
 
 	mc = gf_crypt_open("AES-128", "CTR");
 	if (!mc) {
@@ -292,6 +294,34 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		}
 		prev_sample_encrypted = (ismasamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED);
 		gf_isom_ismacryp_delete_sample(ismasamp);
+
+		/*replace AVC start codes (0x00000001) by nalu size*/
+		if (is_avc) {
+			u32 nalu_size;
+			u32 remain = samp->dataLength;
+			char *start, *end;
+			start = samp->data;
+			end = start + 4;
+			while (remain>4) {
+				if (!end[0] && !end[1] && !end[2] && (end[3]==0x01)) {
+					nalu_size = end - start - 4;
+					start[0] = (nalu_size>>24)&0xFF;
+					start[1] = (nalu_size>>16)&0xFF;
+					start[2] = (nalu_size>>8)&0xFF;
+					start[3] = (nalu_size)&0xFF;
+					start = end;
+					end = start+4;
+					continue;
+				}
+				end++;
+				remain--;
+			}
+			nalu_size = end - start - 4;
+			start[0] = (nalu_size>>24)&0xFF;
+			start[1] = (nalu_size>>16)&0xFF;
+			start[2] = (nalu_size>>8)&0xFF;
+			start[3] = (nalu_size)&0xFF;
+		}
 
 		gf_isom_update_sample(mp4, track, i+1, samp, 1);
 		gf_isom_sample_del(&samp);
@@ -471,7 +501,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	GF_ISOSample *samp;
 	GF_ISMASample *isamp;
 	GF_Crypt *mc;
-	u32 i, count, di, track, IV_size, rand;
+	u32 i, count, di, track, IV_size, rand, avc_size_length;
 	u64 BSO;
 	GF_ESD *esd;
 	GF_IPMPPtr *ipmpdp;
@@ -481,6 +511,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	GF_Err e;
 	Bool prev_sample_encryped, has_crypted_samp;
 
+	avc_size_length = 0;
 	track = gf_isom_get_track_by_id(mp4, tci->trackID);
 	if (!track) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Cannot find TrackID %d in input file - skipping\n", tci->trackID));
@@ -492,7 +523,19 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Cannot encrypt OD tracks - skipping"));
 		return GF_NOT_SUPPORTED;
 	}
-	if (esd) gf_odf_desc_del((GF_Descriptor*) esd);
+	if (esd) {
+		if (esd->decoderConfig->objectTypeIndication==0x21) avc_size_length = 1;
+		gf_odf_desc_del((GF_Descriptor*) esd);
+	}
+	if (avc_size_length) {
+		GF_AVCConfig *avccfg = gf_isom_avc_config_get(mp4, track, 1);
+		avc_size_length = avccfg->nal_unit_size;
+		gf_odf_avc_cfg_del(avccfg);
+		if (avc_size_length != 4) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Cannot encrypt AVC/H264 track with %d size_length field - onmy 4 supported\n", avc_size_length));
+			return GF_NOT_SUPPORTED;
+		}
+	}
 
 	if (!tci->enc_type && !strlen(tci->Scheme_URI)) strcpy(tci->Scheme_URI, "urn:gpac:isma:encryption_scheme");
 
@@ -605,6 +648,18 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 			break;
 		}
 		if (tci->sel_enc_type) isamp->flags |= GF_ISOM_ISMA_USE_SEL_ENC;
+
+		/*isma e&a stores AVC1 in AVC/H264 annex B bitstream fashion, with 0x00000001 start codes*/
+		if (avc_size_length) {
+			u32 done = 0;
+			u8 *d = samp->data;
+			while (done < samp->dataLength) {
+				u32 nal_size = GF_4CC(d[0], d[1], d[2], d[3]);
+				d[0] = d[1] = d[2] = 0; d[3] = 1;
+				d += 4 + nal_size;
+				done += 4 + nal_size;
+			}
+		}
 
 		if (isamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
 			/*resync IV*/

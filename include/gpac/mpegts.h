@@ -181,6 +181,7 @@ typedef struct
 			u32 pid; \
 			u32 stream_type; \
 			Bool is_section; \
+			void *user;
 
 struct tag_m2ts_es
 {
@@ -212,7 +213,6 @@ typedef struct tag_m2ts_pes
 	/*object info*/
 	u32 vid_w, vid_h, vid_par, aud_sr, aud_nb_ch;
 	/*user private*/
-	void *user;
 
 
 	/*mpegts lib private - do not touch :)*/

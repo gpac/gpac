@@ -717,7 +717,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			entry_a->esd->desc = esd;
 			break;
 		case GF_ISOM_BOX_TYPE_AVC1:
-			e = AVC_UpdateESD((GF_AVCSampleEntryBox*)entry, esd);
+			e = AVC_UpdateESD((GF_MPEGVisualSampleEntryBox*)entry, esd);
 			if (e) return e;
 			break;
 		default:
@@ -739,7 +739,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			if (esd->decoderConfig->objectTypeIndication==0x21) {
 				entry_v = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVC1);
 				if (!entry_v) return GF_OUT_OF_MEM;
-				e = AVC_UpdateESD((GF_AVCSampleEntryBox*)entry_v, esd);
+				e = AVC_UpdateESD((GF_MPEGVisualSampleEntryBox*)entry_v, esd);
 			} else {
 				entry_v = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4V);
 				if (!entry_v) return GF_OUT_OF_MEM;

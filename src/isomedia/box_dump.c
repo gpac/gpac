@@ -201,7 +201,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_AVCC: return avcc_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_BTRT: return btrt_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_AVC1: return avc1_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_AVC1: return mp4v_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_TX3G: return tx3g_dump(a, trace);
@@ -728,25 +728,29 @@ void base_visual_entry_dump(GF_VisualSampleEntryBox *p, FILE * trace)
 
 GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 {
-	GF_MPEGVisualSampleEntryBox *p;
+	GF_MPEGVisualSampleEntryBox *p = (GF_MPEGVisualSampleEntryBox *)a;
+	const char *name = p->avc_config ? "AVCSampleEntryBox" : "MPEGVisualSampleDescriptionBox";
 
-	p = (GF_MPEGVisualSampleEntryBox *)a;
-	fprintf(trace, "<MPEGVisualSampleDescriptionBox");
+	fprintf(trace, "<%s", name);
 	base_visual_entry_dump((GF_VisualSampleEntryBox *)p, trace);
 	fprintf(trace, ">\n");
-	DumpBox(a, trace);
 
-	
 	if (p->esd) {
 		gf_box_dump(p->esd, trace);
+	} else if (p->avc_config) {
+		if (p->avc_config) gf_box_dump(p->avc_config, trace);
+		if (p->ipod_ext) gf_box_dump(p->ipod_ext, trace);
+		if (p->descr) gf_box_dump(p->descr, trace);
+		if (p->bitrate) gf_box_dump(p->bitrate, trace);
 	} else {
 		fprintf(trace, "<!--INVALID MP4 FILE: ESDBox not present in MPEG Sample Description or corrupted-->\n");
 	}
 	if (a->type == GF_ISOM_BOX_TYPE_ENCV) {
 		gf_box_dump(p->protection_info, trace);
 	}
+	DumpBox(a, trace);
 
-	fprintf(trace, "</MPEGVisualSampleDescriptionBox>\n");
+	fprintf(trace, "</%s>\n", name);
 	return GF_OK;
 }
 
@@ -1423,23 +1427,6 @@ GF_Err btrt_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<MPEG4BitRateBox BufferSizeDB=\"%d\" avgBitRate=\"%d\" maxBitRate=\"%d\">\n", p->bufferSizeDB, p->avgBitrate, p->maxBitrate);
 	DumpBox(a, trace);
 	fprintf(trace, "</MPEG4BitRateBox>\n");
-	return GF_OK;
-}
-
-GF_Err avc1_dump(GF_Box *a, FILE * trace)
-{
-	GF_AVCSampleEntryBox *p = (GF_AVCSampleEntryBox *)a;
-
-	fprintf(trace, "<AVCSampleEntryBox ");
-	base_visual_entry_dump((GF_VisualSampleEntryBox *)p, trace);
-	fprintf(trace, ">\n");
-
-	if (p->avc_config) gf_box_dump(p->avc_config, trace);
-	if (p->ipod_ext) gf_box_dump(p->ipod_ext, trace);
-	if (p->descr) gf_box_dump(p->descr, trace);
-	if (p->bitrate) gf_box_dump(p->bitrate, trace);
-	DumpBox(a, trace);
-	fprintf(trace, "</AVCSampleEntryBox>\n");
 	return GF_OK;
 }
 

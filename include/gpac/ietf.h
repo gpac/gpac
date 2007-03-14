@@ -540,7 +540,7 @@ GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, c
 /*auto-setup of rtp/rtcp transport ports - only effective in unicast, non interleaved cases. 
 for multicast port setup MUST be done through the above gf_rtp_setup_transport function
 this will take care of port reuse*/
-GF_Err gf_rtp_set_ports(GF_RTPChannel *ch);
+GF_Err gf_rtp_set_ports(GF_RTPChannel *ch, u16 first_port);
 
 /*init of payload information. only ONE payload per sync source is supported in this
 version of the library (a sender cannot switch payload types on a single media)*/
