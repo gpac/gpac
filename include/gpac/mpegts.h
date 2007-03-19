@@ -276,9 +276,6 @@ struct tag_m2ts_demux
 	/*keep it seperate for now - TODO check if we're sure of the order*/
 	GF_List *SDTs;
 
-	/* Structure to hold all the INT tables if the TS contains IP streams */
-	GF_List *ip_mac_not_tables;
-
 	/*user callback - MUST NOT BE NULL*/
 	void (*on_event)(struct tag_m2ts_demux *ts, u32 evt_type, void *par);
 	/*private user data*/
@@ -289,6 +286,9 @@ struct tag_m2ts_demux
 	u32 buffer_size, alloc_size;
 	/*default transport PID filters*/
 	GF_M2TS_SectionFilter *pat, *nit, *sdt;
+
+	/* Structure to hold all the INT tables if the TS contains IP streams */
+	GF_List *ip_mac_not_tables;
 	
 	/* analyser */
 	FILE *pes_out;

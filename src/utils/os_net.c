@@ -849,7 +849,10 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 	M_req.imr_interface.s_addr = local_add_id;
 
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
-	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+	if (ret == SOCKET_ERROR) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] cannot join multicast: error %d\n", LASTSOCKERROR));
+		return GF_IP_CONNECTION_FAILURE;
+	}
 	/*set the Time To Live*/
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&TTL, sizeof(TTL));
 	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;

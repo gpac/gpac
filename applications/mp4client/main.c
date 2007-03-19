@@ -46,10 +46,6 @@ void ViewOD(GF_Terminal *term, u32 OD_ID);
 void PrintODList(GF_Terminal *term);
 void ViewODs(GF_Terminal *term, Bool show_timing);
 void PrintGPACConfig();
-/*console handling*/
-Bool has_input();
-u8 get_a_char();
-void set_echo_off(Bool echo_off);
 
 static Bool not_threaded = 0;
 Bool is_connected = 0;
@@ -558,9 +554,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			fprintf(stdout, "Authorization required for %s@%s\n", evt->auth.user, evt->auth.site_url);
 		}
 		fprintf(stdout, "password: ");
-		set_echo_off(1);
+		gf_prompt_set_echo_off(1);
 		scanf("%s", evt->auth.password);
-		set_echo_off(0);
+		gf_prompt_set_echo_off(0);
 		return 1;
 	case GF_EVENT_SYS_COLORS:
 #ifdef WIN32
@@ -1027,7 +1023,7 @@ int main (int argc, char **argv)
 		char c;
 		
 		/*we don't want getchar to block*/
-		if (!has_input()) {
+		if (!gf_prompt_has_input()) {
 //			UpdateRTInfo("");
 			if (not_threaded) {
 				gf_term_process_step(term);
@@ -1036,7 +1032,7 @@ int main (int argc, char **argv)
 			}
 			continue;
 		}
-		c = get_a_char();
+		c = gf_prompt_get_char();
 
 		switch (c) {
 		case 'q':
@@ -1778,93 +1774,4 @@ void PrintGPACConfig()
 		fprintf(stdout, "\n");
 	}
 }
-
-/*seems OK under mingw also*/
-#ifdef WIN32
-#include <conio.h>
-#include <windows.h>
-Bool has_input()
-{
-	return kbhit();
-}
-u8 get_a_char()
-{
-	return getchar();
-}
-void set_echo_off(Bool echo_off) 
-{
-	DWORD flags;
-	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
-	GetConsoleMode(hStdin, &flags);
-	if (echo_off) flags &= ~ENABLE_ECHO_INPUT;
-	else flags |= ENABLE_ECHO_INPUT;
-	SetConsoleMode(hStdin, flags);
-}
-#else
-/*linux kbhit/getchar- borrowed on debian mailing lists, (author Mike Brownlow)*/
-#include <termios.h>
-
-static struct termios t_orig, t_new;
-static s32 ch_peek = -1;
-
-void init_keyboard()
-{
-	tcgetattr(0, &t_orig);
-	t_new = t_orig;
-	t_new.c_lflag &= ~ICANON;
-	t_new.c_lflag &= ~ECHO;
-	t_new.c_lflag &= ~ISIG;
-	t_new.c_cc[VMIN] = 1;
-	t_new.c_cc[VTIME] = 0;
-	tcsetattr(0, TCSANOW, &t_new);
-}
-void close_keyboard(Bool new_line)
-{
-	tcsetattr(0,TCSANOW, &t_orig);
-	if (new_line) fprintf(stdout, "\n");
-}
-
-void set_echo_off(Bool echo_off) 
-{ 
-	init_keyboard();
-	if (echo_off) t_orig.c_lflag &= ~ECHO;
-	else t_orig.c_lflag |= ECHO;
-	close_keyboard(0);
-}
-
-Bool has_input()
-{
-	u8 ch;
-	s32 nread;
-
-	init_keyboard();
-	if (ch_peek != -1) return 1;
-	t_new.c_cc[VMIN]=0;
-	tcsetattr(0, TCSANOW, &t_new);
-	nread = read(0, &ch, 1);
-	t_new.c_cc[VMIN]=1;
-	tcsetattr(0, TCSANOW, &t_new);
-	if(nread == 1) {
-		ch_peek = ch;
-		return 1;
-	}
-	close_keyboard(0);
-	return 0;
-}
-
-u8 get_a_char()
-{
-	u8 ch;
-	if (ch_peek != -1) {
-		ch = ch_peek;
-		ch_peek = -1;
-		close_keyboard(1);
-		return ch;
-	}
-	read(0,&ch,1);
-	close_keyboard(1);
-	return ch;
-}
-
-#endif
 

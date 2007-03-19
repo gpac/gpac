@@ -478,7 +478,34 @@ typedef void (*gf_on_progress_cbk)(void *cbck, char *title, u32 done, u32 total)
  */
 void gf_set_progress_callback(void *user_cbk, gf_on_progress_cbk prog_cbk);
 
-const char* gf_gpac_version();
+
+/*!
+ *	\brief Prompt checking 
+ *
+ *	Checks if a character is pending in the prompt buffer.
+ *	\return 1 if a character is ready to be fetched, 0 otherwise.
+ *	\note Function not available under WindowsCE nor SymbianOS
+*/
+Bool gf_prompt_has_input();
+
+/*!
+ *	\brief Prompt character flush
+ *
+ *	Returns the current character entered at prompt if any.
+ *	\return value of the character.
+ *	\note Function not available under WindowsCE nor SymbianOS
+*/
+char gf_prompt_get_char();
+
+
+/*!
+ *	\brief turns prompt echo on/off
+ *
+ *	Turns the prompt character echo on/off - this is usefull when entering passwords.
+ *	\param echo_off indicates whether echo should be turned on or off.
+ *	\note Function not available under WindowsCE nor SymbianOS
+*/
+void gf_prompt_set_echo_off(Bool echo_off);
 
 /*!
  *\addtogroup cpu_grp Time tools
