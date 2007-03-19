@@ -64,9 +64,6 @@ EXPORT_C TInt E32Dll(TDllReason /*aReason*/)
 static u32 sys_start_time = 0;
 
 GF_EXPORT
-const char* gf_gpac_version() { return GPAC_VERSION; }
-
-GF_EXPORT
 u32 gf_sys_clock()
 {
 	struct timeval now;

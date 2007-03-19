@@ -211,8 +211,8 @@ void m2ts_mux_table_update_bitrate(M2TS_Mux *mux, M2TS_Mux_Stream *stream)
 	M2TS_Mux_Table *table;
 	
 	/*update PMT*/
-	stream->table_needs_update = 1;
-	stream->process(mux, stream);
+	if (stream->table_needs_update) 
+		stream->process(mux, stream);
 
 	stream->bit_rate = 0;
 	table = stream->tables;
@@ -885,14 +885,17 @@ Bool m2ts_mux_process(M2TS_Mux *muxer)
 	M2TS_Mux_Stream *stream, *stream_to_process;
 	u8 packet[188];
 	M2TS_Time time;
-	Bool res, is_over;
+	Bool res, no_data;
 
 	stream_to_process = NULL;
 	time = muxer->time;
 
-	if (muxer->needs_reconfig) m2ts_mux_update_config(muxer, 0);
+	if (muxer->needs_reconfig) {
+		m2ts_mux_update_config(muxer, 0);
+		muxer->needs_reconfig = 0;
+	}
 
-	is_over = 1;
+	no_data = 1;
 
 	res = muxer->pat->process(muxer, muxer->pat);
 	if (res && m2ts_time_less_or_equal(muxer->pat->time, time) ) {
@@ -911,7 +914,7 @@ Bool m2ts_mux_process(M2TS_Mux *muxer)
 		while (stream) {
 			res = stream->process(muxer, stream);
 			if (res) {
-				is_over = 0;
+				no_data = 0;
 				if (m2ts_time_less(stream->time, time)) {
 					time = stream->time;
 					stream_to_process = stream;
@@ -938,7 +941,7 @@ Bool m2ts_mux_process(M2TS_Mux *muxer)
 		fwrite(packet, 1, 188, muxer->ts_out); 
 	}
 	m2ts_time_inc(&muxer->time, 1504/*188*8*/, muxer->bit_rate);
-	return is_over;
+	return no_data;
 }
 
 typedef struct
@@ -1011,7 +1014,7 @@ static void fill_isom_es_ifce(GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_n
 	avg_rate *= ifce->timescale * 8;
 	avg_rate /= gf_isom_get_media_duration(mp4, track_num);
 
-//	ifce->bit_rate = (u32) avg_rate;
+	ifce->bit_rate = (u32) avg_rate;
 	ifce->duration = (Double) (s64) gf_isom_get_media_duration(mp4, track_num);
 	ifce->duration /= ifce->timescale;
 
@@ -1232,7 +1235,21 @@ void main(int argc, char **argv)
 
 //	gf_log_set_level(GF_LOG_DEBUG);
 //	gf_log_set_tools(GF_LOG_CONTAINER);
-	while (!m2ts_mux_process(muxer)) {}
+
+	if (real_time) {
+		while (1) {
+			/*flush all packets*/
+			while (m2ts_mux_process(muxer)) {
+			}
+			/*abort*/
+			if (gf_prompt_has_input()) {
+				char c = gf_prompt_get_char();
+				if (c == 'q') break;
+			}
+		}
+	} else {
+		while (!m2ts_mux_process(muxer)) {}
+	}
 
 exit:
 	if (muxer->ts_out) fclose(muxer->ts_out);

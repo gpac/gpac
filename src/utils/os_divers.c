@@ -497,6 +497,99 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 }
 
 
+/*seems OK under mingw also*/
+#ifdef WIN32
+#include <conio.h>
+#include <windows.h>
+
+Bool gf_prompt_has_input()
+{
+	return kbhit();
+}
+char gf_prompt_get_char()
+{
+	return getchar();
+}
+void gf_prompt_set_echo_off(Bool echo_off) 
+{
+	DWORD flags;
+	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+	GetConsoleMode(hStdin, &flags);
+	if (echo_off) flags &= ~ENABLE_ECHO_INPUT;
+	else flags |= ENABLE_ECHO_INPUT;
+	SetConsoleMode(hStdin, flags);
+}
+#else
+/*linux kbhit/getchar- borrowed on debian mailing lists, (author Mike Brownlow)*/
+#include <termios.h>
+
+static struct termios t_orig, t_new;
+static s32 ch_peek = -1;
+
+static void init_keyboard()
+{
+	tcgetattr(0, &t_orig);
+	t_new = t_orig;
+	t_new.c_lflag &= ~ICANON;
+	t_new.c_lflag &= ~ECHO;
+	t_new.c_lflag &= ~ISIG;
+	t_new.c_cc[VMIN] = 1;
+	t_new.c_cc[VTIME] = 0;
+	tcsetattr(0, TCSANOW, &t_new);
+}
+static void close_keyboard(Bool new_line)
+{
+	tcsetattr(0,TCSANOW, &t_orig);
+	if (new_line) fprintf(stdout, "\n");
+}
+
+void gf_prompt_set_echo_off(Bool echo_off) 
+{ 
+	init_keyboard();
+	if (echo_off) t_orig.c_lflag &= ~ECHO;
+	else t_orig.c_lflag |= ECHO;
+	close_keyboard(0);
+}
+
+Bool gf_prompt_has_input()
+{
+	u8 ch;
+	s32 nread;
+
+	init_keyboard();
+	if (ch_peek != -1) return 1;
+	t_new.c_cc[VMIN]=0;
+	tcsetattr(0, TCSANOW, &t_new);
+	nread = read(0, &ch, 1);
+	t_new.c_cc[VMIN]=1;
+	tcsetattr(0, TCSANOW, &t_new);
+	if(nread == 1) {
+		ch_peek = ch;
+		return 1;
+	}
+	close_keyboard(0);
+	return 0;
+}
+
+char gf_prompt_get_char()
+{
+	char ch;
+	if (ch_peek != -1) {
+		ch = ch_peek;
+		ch_peek = -1;
+		close_keyboard(1);
+		return ch;
+	}
+	read(0,&ch,1);
+	close_keyboard(1);
+	return ch;
+}
+
+#endif
+
+
+
+
 static u32 sys_init = 0;
 static u32 last_update_time = 0;
 static u64 last_process_k_u_time = 0;

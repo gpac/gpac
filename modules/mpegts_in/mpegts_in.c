@@ -90,11 +90,11 @@ static void M2TS_Regulate(M2TSIn *read)
 		} else {
 			gf_term_on_command(read->service, &com, GF_OK);
 			if (com.buffer.occupancy * 2 < REGULATE_TIME_SLOT) {
-				gf_sleep(1);
+				//gf_sleep(1);
 				return;
 			}
 			to_sleep = com.buffer.occupancy  - REGULATE_TIME_SLOT;
-			//fprintf(stdout, "MPEG-2 TS regulate: %d ms in buffers - sleeping %d ms\n", com.buffer.occupancy, to_sleep);
+			fprintf(stdout, "MPEG-2 TS regulate: %d ms in buffers - sleeping %d ms\n", com.buffer.occupancy, to_sleep);
 			while (read->run_state && (to_sleep>REGULATE_TIME_SLOT)) {
 				gf_sleep(REGULATE_TIME_SLOT);
 				to_sleep -= REGULATE_TIME_SLOT;

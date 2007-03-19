@@ -35,6 +35,9 @@ EXPORTS
 	gf_f64_open
 	gf_f64_seek
 	gf_f64_tell
+	gf_prompt_has_input
+	gf_prompt_get_char
+	gf_prompt_set_echo_off
 
 ;array.h exports
 	gf_list_new
