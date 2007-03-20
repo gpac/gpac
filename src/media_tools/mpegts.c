@@ -697,6 +697,10 @@ static void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *mpe, un
 	fprintf(stdout, "Processing MPE Datagram (PID %d)\n", mpe->pid);
 }
 
+static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *mpe, unsigned char *data, u32 data_size, Bool is_repeated)
+{
+}
+
 static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, unsigned char *data, u32 data_size, Bool is_repeated)
 {
 	u32 info_length, pos, desc_len, evt_type;
@@ -862,19 +866,28 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, un
 	nb_progs = data_size / 4;
 
 	for (i=0; i<nb_progs; i++) {
-		GF_SAFEALLOC(prog, GF_M2TS_Program);
-		prog->streams = gf_list_new();
-		gf_list_add(ts->programs, prog);
-		prog->number = (data[0]<<8) | data[1];
-		prog->pmt_pid = (data[2]&0x1f)<<8 | data[3];
+		u16 number, pid;
+		number = (data[0]<<8) | data[1];
+		pid = (data[2]&0x1f)<<8 | data[3];
 		data += 4;
-		GF_SAFEALLOC(pmt, GF_M2TS_SECTION_ES);
-		pmt->is_section = 1;
-		gf_list_add(prog->streams, pmt);
-		pmt->pid = prog->pmt_pid;
-		pmt->program = prog;
-		ts->ess[pmt->pid] = (GF_M2TS_ES *)pmt;
-		pmt->sec = gf_m2ts_section_filter_new(gf_m2ts_process_pmt);
+		if (number==0) {
+			if (!ts->nit) {
+				ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit);
+			}
+		} else {
+			GF_SAFEALLOC(prog, GF_M2TS_Program);
+			prog->streams = gf_list_new();
+			prog->pmt_pid = pid;
+			prog->number = number;
+			gf_list_add(ts->programs, prog);
+			GF_SAFEALLOC(pmt, GF_M2TS_SECTION_ES);
+			pmt->is_section = 1;
+			gf_list_add(prog->streams, pmt);
+			pmt->pid = prog->pmt_pid;
+			pmt->program = prog;
+			ts->ess[pmt->pid] = (GF_M2TS_ES *)pmt;
+			pmt->sec = gf_m2ts_section_filter_new(gf_m2ts_process_pmt);
+		}
 	}
 
 	evt_type = ts->pat->section_init ? GF_M2TS_EVT_PAT_UPDATE : GF_M2TS_EVT_PAT_FOUND;
@@ -1102,22 +1115,24 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		gf_m2ts_gather_section(ts, ts->pat, NULL, &hdr, data, payload_size);
 		return;
 	}
-	/*SDT*/
-	else if (hdr.pid == 0x0011) {
-		
-		gf_m2ts_gather_section(ts, ts->sdt, NULL, &hdr, data, payload_size);
-		return;
-	}
-	/*NIT*/
-	else if (hdr.pid == 0x0010) {
-		/*ignore them, unused at application level*/
-		//if (!hdr.error) gf_m2ts_gather_section(ts, ts->nit, NULL, &hdr, data, payload_size);
-		return;
-	} 	
 	else {
-
 		es = ts->ess[hdr.pid];
-		if (!es) return;
+
+		/*check for DVB reserved PIDs*/
+		if (!es) {
+			/*SDT*/
+			if (hdr.pid == 0x0011) {
+				gf_m2ts_gather_section(ts, ts->sdt, NULL, &hdr, data, payload_size);
+				return;
+			}
+			/*NIT for DVB*/
+			else if (hdr.pid == 0x0010) {
+				/*ignore them, unused at application level*/
+				//if (!hdr.error) gf_m2ts_gather_section(ts, ts->nit, NULL, &hdr, data, payload_size);
+				return;
+			} 
+			return;
+		}
 
 		if (es->is_section) { 	/* The stream uses sections to carry its payload */
 			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
