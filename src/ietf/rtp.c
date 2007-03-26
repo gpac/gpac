@@ -110,6 +110,17 @@ void gf_rtp_reset_buffers(GF_RTPChannel *ch)
 
 
 GF_EXPORT
+void gf_rtp_enable_nat_keepalive(GF_RTPChannel *ch, u32 nat_timeout)
+{
+	if (ch) {
+		ch->nat_keepalive_time_period = nat_timeout;
+		ch->last_nat_keepalive_time = 0;
+	}
+}
+
+
+
+GF_EXPORT
 GF_Err gf_rtp_set_info_rtp(GF_RTPChannel *ch, u32 seq_num, u32 rtp_time, u32 ssrc)
 {
 	if (!ch) return GF_BAD_PARAM;
@@ -298,6 +309,38 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 		if (pck) {
 			memcpy(buffer, pck, res);
 			free(pck);
+		}
+	}
+	/*monitor keep-alive period*/
+	if (ch->nat_keepalive_time_period) {
+		u32 now = gf_sys_clock();
+		if (res) {
+			ch->last_nat_keepalive_time = now; 
+		} else {
+			if (now - ch->last_nat_keepalive_time >= ch->nat_keepalive_time_period) {
+				char rtp_nat[12];
+				rtp_nat[0] = (u8) 0xC0;
+				rtp_nat[1] = ch->PayloadType;
+				rtp_nat[2] = (ch->last_pck_sn>>8)&0xFF;
+				rtp_nat[3] = (ch->last_pck_sn)&0xFF;
+				rtp_nat[4] = (ch->last_pck_ts>>24)&0xFF;
+				rtp_nat[5] = (ch->last_pck_ts>>16)&0xFF;
+				rtp_nat[6] = (ch->last_pck_ts>>8)&0xFF;
+				rtp_nat[7] = (ch->last_pck_ts)&0xFF;
+				rtp_nat[8] = (ch->SenderSSRC>>24)&0xFF;
+				rtp_nat[9] = (ch->SenderSSRC>>16)&0xFF;
+				rtp_nat[10] = (ch->SenderSSRC>>8)&0xFF;
+				rtp_nat[11] = (ch->SenderSSRC)&0xFF;
+
+				e = gf_sk_send(ch->rtp, buffer, 12);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Error sending NAT keep-alive packet: %s - disabling NAT\n", gf_error_to_string(e) ));
+					ch->nat_keepalive_time_period = 0;
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Sending NAT keep-alive packet - response %s\n", gf_error_to_string(e) ));
+				}
+				ch->last_nat_keepalive_time = now;
+			}
 		}
 	}
 	return res;

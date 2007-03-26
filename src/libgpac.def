@@ -723,6 +723,7 @@ EXPORTS
 	gf_rtp_setup_transport
 	gf_rtp_set_ports
 	gf_rtp_setup_payload
+	gf_rtp_enable_nat_keepalive
 	gf_rtp_initialize
 	gf_rtp_set_info_rtp
 	gf_rtp_get_current_time

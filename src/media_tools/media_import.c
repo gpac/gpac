@@ -4708,7 +4708,7 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						u32 k, esd_count = gf_list_count(prog->pmt_iod->ESDescriptors);
 						for (k = 0; k < esd_count; k++) {
 							GF_ESD *esd = (GF_ESD *)gf_list_get(prog->pmt_iod->ESDescriptors, k);
-							if (esd->ESID != pes->ES_ID) continue;
+							if (esd->ESID != pes->mpeg4_es_id) continue;
 							switch (esd->decoderConfig->streamType) {
 							case GF_STREAM_SCENE:
 								import->tk_info[idx].type = GF_ISOM_MEDIA_SCENE;
