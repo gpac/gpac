@@ -122,41 +122,55 @@ enum
 	GF_M2TS_EVT_IP_DATAGRAM,
 };
 
-typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, unsigned char *data, u32 data_size, Bool is_repeated); 
-
-/*MPEG-2 TS section object (PAT, PMT, etc..)*/
-typedef struct GF_M2TS_SectionFilter
+enum
 {
-	/*set to 1 once the section has been parsed and loaded - used to discard carousel'ed data*/
-	u8 section_init;
+	GF_M2TS_TABLE_FOUND,
+	GF_M2TS_TABLE_UPDATE,
+	GF_M2TS_TABLE_REPEAT
+};
 
-	/*section reassembler*/
-	s16 cc;
-	char *section;
-	u16 received;
-	/*section header*/
+typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u32 status); 
+
+
+typedef struct __m2ts_demux_table
+{
+	struct __m2ts_demux_table *next;
+	/*table id*/
 	u8 table_id;
-	u8 syntax_indicator;
-	u16 length;
-	u16 sec_id;
+	/*reconstructed table*/
+	unsigned char *data;
+	u32 data_size;
+
+	/*reassembler state*/
 	u8 version_number;
 	u8 current_next_indicator;
 	u8 section_number;
 	u8 last_section_number;
-	/*start offset in reconstructed section*/
-	u8 start;
-	/*error indiator*/
-	u8 had_error;
-	u8 last_version_number;
 
-	/*section aggregator*/
-	unsigned char *data;
-	u32 data_size;
+	/*set to 1 once the section has been parsed and loaded - used to discard carousel'ed data*/
+	u8 is_init;
+	u8 last_version_number;
+} GF_M2TS_Table;
+
+
+/*MPEG-2 TS section object (PAT, PMT, etc..)*/
+typedef struct GF_M2TS_SectionFilter
+{
+	/*section reassembler*/
+	s16 cc;
+	/*section buffer (max 4096)*/
+	char *section;
+	/*current section length as indicated in section header*/
+	u16 length;
+	/*number of bytes received from current section*/
+	u16 received;
+	/*error indiator when reaggregating sections*/
+	u8 had_error;
+
+	/*section->table aggregator*/
+	GF_M2TS_Table *table;
 
 	gf_m2ts_section_callback process_section; 
-
-	/* section interleaved */
-	struct GF_M2TS_SectionFilter *sub_section;
 } GF_M2TS_SectionFilter;
 
 
@@ -175,12 +189,24 @@ typedef struct
 	u64 first_dts;
 } GF_M2TS_Program;
 
+/*ES flags*/
+enum
+{
+	/*ES is a section stream*/
+	GF_M2TS_ES_IS_SECTION = 1,
+	/*ES is an mpeg-4 flexmux stream*/
+	GF_M2TS_ES_IS_FMC = 1<<1,
+	/*ES is an mpeg-4 SL-packetized stream*/
+	GF_M2TS_ES_IS_SL = 1<<2,
+};
+
 /*Abstract Section/PES stream object, only used for type casting*/
 #define ABSTRACT_ES		\
 			GF_M2TS_Program *program; \
+			u32 flags; \
 			u32 pid; \
 			u32 stream_type; \
-			Bool is_section; \
+			u32 mpeg4_es_id; \
 			void *user;
 
 struct tag_m2ts_es
@@ -228,12 +254,6 @@ typedef struct tag_m2ts_pes
 
 	u64 first_dts;
 
-	/* MPEG-4 Streams carried in MPEG-2 data */
-	Bool has_SL; 
-	GF_ESD *esd;
-	Bool has_FMC;
-	u32 ES_ID;
-
 } GF_M2TS_PES;
 
 /*SDT information object*/
@@ -264,7 +284,7 @@ typedef struct
 {
 	char *data;
 	u32 data_len;
-	/*parent stream*/
+	/*parent stream */
 	GF_M2TS_ES *stream;
 } GF_M2TS_SL_PCK;
 

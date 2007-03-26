@@ -546,6 +546,12 @@ GF_Err gf_rtp_set_ports(GF_RTPChannel *ch, u16 first_port);
 version of the library (a sender cannot switch payload types on a single media)*/
 GF_Err gf_rtp_setup_payload(GF_RTPChannel *ch, GF_RTPMap *map);
 
+/*enables sending of NAT keep-alive packets for NAT traversal
+	@nat_timeout: specifies the inactivity period in ms after which NAT keepalive packets are sent. 
+	If 0, disables NAT keep-alive packets 
+*/
+void gf_rtp_enable_nat_keepalive(GF_RTPChannel *ch, u32 nat_timeout);
+
 
 /*initialize the RTP channel.
 

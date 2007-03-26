@@ -572,7 +572,7 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 				for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 					GF_M2TS_PES *pes = (GF_M2TS_PES *)read->ts->ess[i];
 					if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
-					if (pes->ES_ID == ES_ID) {
+					if (pes->mpeg4_es_id == ES_ID) {
 						if (pes->user) {
 							e = GF_SERVICE_ERROR;
 							gf_term_on_connect(read->service, channel, e);

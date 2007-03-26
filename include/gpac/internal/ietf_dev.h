@@ -103,6 +103,10 @@ struct __tag_rtp_channel
 	/*RTCP report times*/
 	u32 last_report_time;
 	u32 next_report_time;
+
+	/*NAT keep-alive*/
+	u32 last_nat_keepalive_time, nat_keepalive_time_period;
+
 	
 	/*the seq number of the first packet as signaled by the server if any, or first
 	RTP SN recieved (RTP multicast)*/

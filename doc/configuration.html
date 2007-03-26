@@ -495,6 +495,9 @@ Specifies connection timeout with the server: an RTSP request is considered as f
 <b>ForceFirstPort</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 Specifies first port for RTP channels. If not set, the default first port used by GPAC is 7040.</p>
+<b>NATKeepAlive</b> [value: <i>positive integer</i>]
+<p style="text-indent: 5%">
+Specifies the maximum inactivity period in milliseconds for RTP sockets. If no data is received after this period, an empty RTP packet will be sent in order to keep any NAT alive. If 0 (default), disables NAT keep-alive packets.</p>
 <b>FirstPacketDrop</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 Specifies the sequence number of the first RTP packet to be droped - 0 means no packet drop. Used for packet drop simulation tests.</p>

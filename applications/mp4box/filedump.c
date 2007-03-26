@@ -1489,7 +1489,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			else {
 				GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 				fprintf(stdout, "\tPID %d: %s ", pes->pid, gf_m2ts_get_stream_name(pes->stream_type) );
-				if (pes->ES_ID) fprintf(stdout, " - MPEG-4 ES ID %d", pes->ES_ID);
+				if (pes->mpeg4_es_id) fprintf(stdout, " - MPEG-4 ES ID %d", pes->mpeg4_es_id);
 				fprintf(stdout, "\n");
 			}
 		}
@@ -1527,12 +1527,13 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		}
 		break;
 	case GF_M2TS_EVT_SL_PCK:
+#if 0
 		{
 			GF_M2TS_SL_PCK *sl_pck = par;
 			if (dumper->pes_out && (dumper->dump_pid == sl_pck->stream->pid)) {
 				GF_SLHeader header;
 				u32 header_len;
-				if (((GF_M2TS_PES*)sl_pck->stream)->esd) {
+				if (sl_pck->stream->mpeg4_es_id) {
 					GF_ESD *esd = ((GF_M2TS_PES*)sl_pck->stream)->esd;
 					if (!dumper->is_info_dumped) {
 						if (esd->decoderConfig->decoderSpecificInfo) fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, dumper->pes_out_info);
@@ -1551,6 +1552,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				}
 			}
 		}
+#endif
 		break;
 	}
 }
