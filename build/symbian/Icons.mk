@@ -23,8 +23,7 @@ LIB : do_nothing
 CLEANLIB : do_nothing
 
 RESOURCE :	
-	mifconv $(ICONTARGETFILENAME) \
-		/c32 $(ICONDIR)\osmo4.svg
+	mifconv $(ICONTARGETFILENAME) /X $(ICONDIR)\osmo4.svg
 		
 FREEZE : do_nothing
 
