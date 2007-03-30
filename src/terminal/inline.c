@@ -1178,8 +1178,8 @@ void gf_is_regenerate(GF_InlineScene *is)
 			gf_sg_vrml_mf_append(&mt->url, GF_SG_VRML_MFURL, (void **) &sfu);
 			sfu->OD_ID = is->visual_url.OD_ID;
 			if (is->visual_url.url) sfu->url = strdup(is->visual_url.url);
-			if (first_odm->mo) {
-				gf_is_get_video_size(first_odm->mo, &w, &h);
+			if (odm->mo) {
+				gf_is_get_video_size(odm->mo, &w, &h);
 				gf_sg_set_scene_size_info(is->graph, w, h, 1);
 			}
 			first_odm = NULL;

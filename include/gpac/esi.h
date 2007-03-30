@@ -47,6 +47,9 @@ enum
 		corresponding parameter: unused
 	*/
 	GF_ESI_INPUT_DATA_RELEASE,
+
+	/*destroys any allocated resource by the stream interface*/
+	GF_ESI_INPUT_DESTROY,
 };
 
 /* ESI output control commands*/
@@ -100,7 +103,10 @@ enum
 {
 	/*data can be pulled from this stream*/
 	GF_ESI_AU_PULL_CAP	=	1,
-	GF_ESI_STERAM_IS_OVER	=	1<<1,
+	/*DTS is signaled for this stream*/
+	GF_ESI_SIGNAL_DTS =	1<<1,
+	/*no more data to expect from this stream*/
+	GF_ESI_STREAM_IS_OVER	=	1<<2,
 };
 
 typedef struct __elementary_stream_ifce 

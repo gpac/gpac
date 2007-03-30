@@ -7,6 +7,12 @@ last modified: December 2006
   - the complete S60 3rd edition SDK (maintainance release) 
   - the MMF SDK update
 	
+	IMPORTANT NOTE:
+	 You must install the SDK and the code you will compile with it (be it GPAC or anything else) 
+        !! ON THE SAME LOGICAL DRIVE !!
+   If you do not do so, compilation will simply fail due to some misbehavior of the SDK's environment variables.
+           
+	
 	What is currently supported on symbian:
     * all GPAC core, with audio and video output
     * MP4 demux, AAC demux, MP3 demux, AMR demux
