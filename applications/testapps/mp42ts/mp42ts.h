@@ -133,7 +133,6 @@ typedef struct __m2ts_mux_program {
 typedef struct __m2ts_mux {
 	M2TS_Mux_Program *programs;
 	M2TS_Mux_Stream *pat;
-	FILE *ts_out;
 
 	u16 ts_id;
 
@@ -145,10 +144,22 @@ typedef struct __m2ts_mux {
 	/*output bit-rate in bit/sec*/
 	u32 bit_rate;
 
-	char null_pck[188];
+	char dst_pck[188], null_pck[188];
 
 	/*multiplexer time in micro-sec*/
-	M2TS_Time time;
+	M2TS_Time time, init_ts_time;
+	u32 init_sys_time;
+
+	Bool eos_found;
+	u32 tot_pck_sent, pck_sent, last_br_time, avg_br;
 } M2TS_Mux;
 
+
+enum
+{
+	GF_M2TS_STATE_IDLE,
+	GF_M2TS_STATE_DATA,
+	GF_M2TS_STATE_PADDING,
+	GF_M2TS_STATE_EOS,
+};
 

@@ -587,6 +587,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 		sec->received = sec->length = 0;
 		return;
 	} else if (!sec->section) {
+
 		return;
 	} else {
 		if (sec->received+data_size > sec->length) {

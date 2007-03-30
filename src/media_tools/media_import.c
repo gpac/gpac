@@ -4879,14 +4879,16 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	GF_Err e;
 	GF_M2TS_PES_PCK *pck;
 	GF_ISOSample *samp;
+	Bool is_au_start;
 	GF_TSImport *tsimp = (GF_TSImport *)ts->user;
 	GF_MediaImporter *import= tsimp->import;
 
 	if (evt_type != GF_M2TS_EVT_PES_PCK) return;
 	pck = (GF_M2TS_PES_PCK *)par;
+	is_au_start = (pck->flags & GF_M2TS_PES_PCK_AU_START);
 
 	/* Even if we don't import this stream we need to check the first dts of the program */
-	if (!pck->stream->first_dts) {
+	if (!pck->stream->first_dts && is_au_start) {
 		pck->stream->first_dts = (pck->DTS?pck->DTS:pck->PTS);
 		if (!pck->stream->program->first_dts || 
 			pck->stream->program->first_dts > pck->stream->first_dts) {
@@ -4896,7 +4898,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 	if (pck->stream->pid != import->trackID) return;
 
-	if (!(pck->flags & GF_M2TS_PES_PCK_AU_START)) {
+	if (!is_au_start) {
 		e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error appending sample data\n"));
