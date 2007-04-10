@@ -137,6 +137,9 @@ void RP_ProcessCommands(RTSPSession *sess)
 	/*process*/
 	com->User_Agent = RTSP_CLIENTNAME;
 	com->Accept_Language = RTSP_LANGUAGE;
+	/*if no session assigned and a session ID is valid, use it*/
+	if ((sess->owner->stream_control_type!=RTSP_CONTROL_INDEPENDENT) && sess->session_id && !com->Session)
+		com->Session = sess->session_id;
 
 	e = GF_OK;
 	/*preprocess describe before sending (always the ESD url thing)*/
