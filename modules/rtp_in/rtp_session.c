@@ -137,7 +137,6 @@ void RP_ProcessCommands(RTSPSession *sess)
 	/*process*/
 	com->User_Agent = RTSP_CLIENTNAME;
 	com->Accept_Language = RTSP_LANGUAGE;
-	com->Session = gf_rtsp_get_session_id(sess->session);
 
 	e = GF_OK;
 	/*preprocess describe before sending (always the ESD url thing)*/
@@ -369,6 +368,7 @@ void RP_DelSession(RTSPSession *sess)
 	gf_rtsp_response_del(sess->rtsp_rsp);
 	gf_rtsp_session_del(sess->session);
 	if (sess->control) free(sess->control);
+	if (sess->session_id) free(sess->session_id);
 	free(sess);
 }
 

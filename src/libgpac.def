@@ -697,7 +697,7 @@ EXPORTS
 	gf_rtsp_set_buffer_size
 	gf_rtsp_session_reset
 	gf_rtsp_is_my_session
-	gf_rtsp_get_session_id
+	gf_rtsp_get_last_session_id
 	gf_rtsp_get_server_name
 	gf_rtsp_get_service_name
 	gf_rtsp_get_response
@@ -712,7 +712,7 @@ EXPORTS
 	gf_rtsp_session_new_server
 	gf_rtsp_get_command
 	gf_rtsp_load_service_name
-	gf_rtsp_set_session_id
+	gf_rtsp_generate_session_id
 	gf_rtsp_send_response
 	gf_rtsp_get_session_ip
 	gf_rtsp_get_next_interleave_id

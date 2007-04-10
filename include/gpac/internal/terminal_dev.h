@@ -641,6 +641,9 @@ struct _od_manager
 	/*MPEG-4 object descriptor*/
 	GF_ObjectDescriptor *OD;
 
+	/*exclusive access is required since rendering and media management don't always take place in the same thread*/
+	GF_Mutex *mx;
+
 	u32 flags;
 
 	/*PLs*/
@@ -673,6 +676,7 @@ struct _od_manager
 
 GF_ObjectManager *gf_odm_new();
 void gf_odm_del(GF_ObjectManager *ODMan);
+void gf_odm_lock(GF_ObjectManager *odm, u32 LockIt);
 /*setup service entry point*/
 void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *sub_url);
 /*setup OD*/

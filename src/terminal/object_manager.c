@@ -48,6 +48,7 @@ GF_ObjectManager *gf_odm_new()
 	tmp->Visual_PL = (u8) -1;
 	tmp->ms_stack = gf_list_new();
 	tmp->mc_stack = gf_list_new();
+	tmp->mx = gf_mx_new();
 	return tmp;
 }
 
@@ -55,6 +56,8 @@ void gf_odm_del(GF_ObjectManager *odm)
 {
 	u32 i;
 	MediaSensorStack *media_sens;
+
+	gf_mx_p(odm->mx);
 	i=0;
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i))) {
 		MS_Stop(media_sens);
@@ -68,7 +71,18 @@ void gf_odm_del(GF_ObjectManager *odm)
 	gf_list_del(odm->mc_stack);
 	gf_odf_desc_del((GF_Descriptor *)odm->OD);
 	assert (!odm->net_service);
+	gf_mx_v(odm->mx);
+	gf_mx_del(odm->mx);
 	free(odm);
+}
+
+
+void gf_odm_lock(GF_ObjectManager *odm, u32 LockIt)
+{
+	if (LockIt) 
+		gf_mx_p(odm->mx);
+	else
+		gf_mx_v(odm->mx);
 }
 
 GF_EXPORT
@@ -83,6 +97,8 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 
 	/*no destroy*/
 	if (!do_remove) return;
+
+	gf_odm_lock(odm, 1);
 
 	/*unload the decoders before deleting the channels to prevent any access fault*/
 	if (odm->codec) gf_term_remove_codec(odm->term, odm->codec);
@@ -102,9 +118,18 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	}
 
 	/*delete the decoders*/
-	if (odm->codec) gf_codec_del(odm->codec);
-	if (odm->ocr_codec) gf_codec_del(odm->ocr_codec);
-	if (odm->oci_codec) gf_codec_del(odm->oci_codec);
+	if (odm->codec) {
+		gf_codec_del(odm->codec);
+		odm->codec = NULL;
+	}
+	if (odm->ocr_codec) {
+		gf_codec_del(odm->ocr_codec);
+		odm->ocr_codec = NULL;
+	}
+	if (odm->oci_codec) {
+		gf_codec_del(odm->oci_codec);
+		odm->oci_codec = NULL;
+	}
 
 	/*then detach from network service*/
 	if (odm->net_service) {
@@ -127,6 +152,8 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 		if (!odm->net_service->nb_odm_users) gf_term_close_services(odm->term, odm->net_service);
 		odm->net_service = NULL;
 	}
+
+	gf_odm_lock(odm, 0);
 
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
@@ -631,7 +658,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	ck_namespace = odm->net_service->Clocks;
 	/*little trick for non-OD addressing: if object is a remote one, and service owner already has clocks, 
 	override OCR. This will solve addressing like file.avi#audio and file.avi#video*/
-	if ((odm->flags & GF_ODM_REMOTE_OD) && (gf_list_count(ck_namespace)==1) ) {
+	if (!esd->OCRESID && (odm->flags & GF_ODM_REMOTE_OD) && (gf_list_count(ck_namespace)==1) ) {
 		ck = (GF_Clock*)gf_list_get(ck_namespace, 0);
 		esd->OCRESID = ck->clockID;
 	}

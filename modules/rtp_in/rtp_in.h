@@ -41,6 +41,13 @@
 #define RTSP_LANGUAGE		"English"
 
 
+enum
+{
+	RTSP_CONTROL_AGGREGATE = 0,
+	RTSP_CONTROL_INDEPENDENT,
+	RTSP_CONTROL_RTSP_V2,
+};
+
 /*the rtsp/rtp client*/
 typedef struct
 {
@@ -82,6 +89,8 @@ typedef struct
 	/*for single-object control*/
 	u32 media_type;
 
+	u32 stream_control_type;
+
 	/*if set ANNOUNCE (sent by server) will be handled*/
 //	Bool handle_announce;
 } RTPClient;
@@ -104,6 +113,8 @@ typedef struct _rtp_session
 
 	/*RTSP session object*/
 	GF_RTSPSession *session;
+	/*session ID for aggregated stream control*/
+	char *session_id;
 	
 	/*session control string*/
 	char *control;
@@ -181,6 +192,8 @@ typedef struct
 
 	/*control session (may be null)*/
 	RTSPSession *rtsp;
+	/*session ID for independent stream control*/
+	char *session_id;
 
 	/*RTP channel*/
 	GF_RTPChannel *rtp_ch;

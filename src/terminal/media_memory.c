@@ -77,7 +77,6 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
 
 	tmp->Capacity = capacity;
 	tmp->UnitSize = UnitSize;
-	tmp->mx = gf_mx_new();
 
 	prev = NULL;
 	i = 1;
@@ -108,7 +107,7 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
 
 void gf_cm_del(GF_CompositionMemory *cb)
 {
-	gf_cm_lock(cb, 1);
+	gf_odm_lock(cb->odm, 1);
 	/*may happen when CB is destroyed right after creation in case*/
 	if (cb->Status == CB_BUFFER) {
 		gf_clock_buffer_off(cb->odm->codec->ck);
@@ -118,17 +117,8 @@ void gf_cm_del(GF_CompositionMemory *cb)
 	/*break the loop and destroy*/
 	cb->input->prev->next = NULL;
 	gf_cm_unit_del(cb->input);
-	gf_cm_lock(cb, 0);
-	gf_mx_del(cb->mx);
+	gf_odm_lock(cb->odm, 0);
 	free(cb);
-}
-
-void gf_cm_lock(GF_CompositionMemory *cb, u32 LockIt)
-{
-	if (LockIt) 
-		gf_mx_p(cb->mx);
-	else
-		gf_mx_v(cb->mx);
 }
 
 void gf_cm_rewind_input(GF_CompositionMemory *cb)
@@ -287,7 +277,7 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, u32 TS, u32 NbBytes)
 
 	/*nothing dispatched, ignore*/
 	if (!NbBytes) return;
-	gf_cm_lock(cb, 1);
+	gf_odm_lock(cb->odm, 1);
 
 	/*insert/swap this CU*/
 	cu = LocateAndOrderUnit(cb, TS);
@@ -312,7 +302,7 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, u32 TS, u32 NbBytes)
 			gf_term_invalidate_renderer(cb->odm->term);
 		}
 	}
-	gf_cm_lock(cb, 0);
+	gf_odm_lock(cb->odm, 0);
 }
 
 
@@ -322,7 +312,7 @@ void gf_cm_reset(GF_CompositionMemory *cb)
 {
 	GF_CMUnit *cu;
 
-	gf_cm_lock(cb, 1);
+	gf_odm_lock(cb->odm, 1);
 
 	cu = cb->input;
 	cu->RenderedLength = 0;
@@ -340,7 +330,7 @@ void gf_cm_reset(GF_CompositionMemory *cb)
 	cb->HasSeenEOS = 0;
 
 	if (cb->odm->mo) cb->odm->mo->timestamp = 0;
-	gf_cm_lock(cb, 0);
+	gf_odm_lock(cb->odm, 0);
 }
 
 /*resize buffers (blocking)*/
@@ -350,7 +340,7 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 	if (!newCapacity) return;
 
 	/*lock buffer*/
-	gf_cm_lock(cb, 1);
+	gf_odm_lock(cb->odm, 1);
 	cu = cb->input;
 
 	cb->UnitSize = newCapacity;
@@ -362,7 +352,7 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 		cu = cu->next;
 	}
 
-	gf_cm_lock(cb, 0);
+	gf_odm_lock(cb->odm, 0);
 }
 
 
@@ -374,7 +364,7 @@ void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity)
 	u32 i;
 	if (!Capacity || !UnitSize) return;
 
-	gf_cm_lock(cb, 1);
+	gf_odm_lock(cb->odm, 1);
 	/*break the loop and destroy*/
 	cb->input->prev->next = NULL;
 	gf_cm_unit_del(cb->input);
@@ -402,7 +392,7 @@ void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity)
 	cu->next = cb->input;
 	cb->input->prev = cu;
 	cb->output = cb->input;
-	gf_cm_lock(cb, 0);
+	gf_odm_lock(cb->odm, 0);
 }
 
 /*access to the first available CU for rendering
@@ -484,7 +474,7 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 
 void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 {
-	gf_cm_lock(cb, 1);
+	gf_odm_lock(cb->odm, 1);
 	/*if we're asked for play, trigger on buffering*/
 	if (Status == CB_PLAY) {
 		switch (cb->Status) {
@@ -515,13 +505,13 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 		cb->Status = Status;
 	}
 
-	gf_cm_lock(cb, 0);
+	gf_odm_lock(cb->odm, 0);
 
 }
 
 void gf_cm_set_eos(GF_CompositionMemory *cb)
 {
-	gf_cm_lock(cb, 1);
+	gf_odm_lock(cb->odm, 1);
 	/*we may have a pb if the stream is so short that the EOS is signaled 
 	while we're buffering. In this case we shall turn the clock on and 
 	keep a trace of the EOS notif*/
@@ -532,7 +522,7 @@ void gf_cm_set_eos(GF_CompositionMemory *cb)
 	}
 	cb->HasSeenEOS = 1;
 	gf_term_invalidate_renderer(cb->odm->term);
-	gf_cm_lock(cb, 0);
+	gf_odm_lock(cb->odm, 0);
 }
 
 

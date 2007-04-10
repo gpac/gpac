@@ -431,20 +431,16 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 		goto exit;
 	}
 
-	//now extract / check sessionID if specified
-	if (rsp->Session) {
-		if (!sess->SessionID) 
-			sess->SessionID = strdup(rsp->Session);
-		else if (strcmp(sess->SessionID, rsp->Session)) {
-			e = GF_REMOTE_SERVICE_ERROR;
-			goto exit;
-		}
+	/*check session ID*/
+	if (rsp->Session && sess->last_session_id && strcmp(sess->last_session_id, rsp->Session)) {
+		e = GF_REMOTE_SERVICE_ERROR;
+		goto exit;
 	}
+
 	//destroy sessionID if needed - real doesn't close the connection when destroying
 	//session
 	if (!strcmp(sess->RTSPLastRequest, GF_RTSP_TEARDOWN)) {
-		free(sess->SessionID);
-		sess->SessionID = NULL;
+		sess->last_session_id = NULL;
 	}
 
 	if (rsp->Connection && !stricmp(rsp->Connection, "Close")) {
