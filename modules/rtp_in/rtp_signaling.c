@@ -750,36 +750,38 @@ void RP_ProcessTeardown(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 
 void RP_Teardown(RTSPSession *sess, RTPStream *ch)
 {
+	char *ctrl = NULL;
 	GF_RTSPCommand *com;
 
 	switch (sess->owner->stream_control_type) {
 	case RTSP_CONTROL_AGGREGATE:
 		/*we need a session id*/
 		if (!sess->session_id) return;
-		/*ignore teardown on channels*/
-		if ((sess->flags & RTSP_AGG_CONTROL) && ch) return;
+
+		if (sess->flags & RTSP_AGG_CONTROL) {
+			/*ignore teardown on channels in aggregated control*/
+			if (ch) return;
+		} else {
+			if (ch && ch->control) ctrl = strdup(ch->control);
+		}
 		break;
 	case RTSP_CONTROL_RTSP_V2:
 		/*we need a session id*/
 		if (!sess->session_id) return;
 		/*do not ignore teardown on channels*/
+		if (ch && ch->control) ctrl = strdup(ch->control);
 		break;
 	case RTSP_CONTROL_INDEPENDENT:
-		/*todo*/
+		/*DO NOT USE CONTROL - we only have 1 stream per session, and using ctrl on teardown 
+		is not supported by most servers*/
+		ctrl = NULL;
 		break;
 	}
 
 	com = gf_rtsp_command_new();
 	com->method = strdup(GF_RTSP_TEARDOWN);
-	
-	if (ch) {
-		if (ch->owner->stream_control_type) {
-			com->ControlString = strdup(ch->control);
-		} else {
-			if (! (sess->flags & RTSP_AGG_CONTROL) && ch->control) com->ControlString = strdup(ch->control);
-		}
-		com->user_data = ch;
-	}
+	com->ControlString = ctrl;
+	com->user_data = ch;
 
 	RP_QueueCommand(sess, ch, com, 1);
 }
