@@ -544,7 +544,7 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	//
 	//if a connection closed is signal, check this is the good session
 	// and reset it (the client is no longer connected)
-	if (sess->SessionID && com->Session && !strcmp(com->Session, sess->SessionID) 
+	if (sess->last_session_id && com->Session && !strcmp(com->Session, sess->last_session_id) 
 		&& com->Connection && !stricmp(com->Connection, "Close")) {
 
 		gf_rtsp_session_reset(sess, 0);

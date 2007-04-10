@@ -251,7 +251,7 @@ struct _tag_rtsp_session
 	u32 NbPending;
 
 	/*RTSP sessionID, arbitrary length, alpha-numeric*/
-	char *SessionID;
+	const char *last_session_id;
 
 	/*RTSP STATE machine*/
 	u32 RTSP_State;

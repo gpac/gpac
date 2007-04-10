@@ -149,7 +149,7 @@ static u32 get_stream_type_from_hint(u32 ht)
 	}
 }
 
-static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u16 OCR_ES_ID, u32 ch_idx)
+static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 {
 	GF_ESD *esd;
 	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
@@ -161,7 +161,13 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u16 OCR_ES_ID, u32 ch
 	esd->slConfig->useRandomAccessPointFlag = 1;
 	esd->slConfig->useTimestampsFlag = 1;
 	esd->ESID = ch->ES_ID;
-	esd->OCRESID = OCR_ES_ID;
+	/*if independent control, force each channel to be its own clock*/
+	if (ch->owner->stream_control_type==RTSP_CONTROL_INDEPENDENT) {
+		esd->OCRESID = ch->ES_ID;
+	} else {
+		/*otherwise let the app decide...*/
+		esd->OCRESID = 0;
+	}
 	esd->decoderConfig->streamType = ch->depacketizer->sl_map.StreamType;
 	esd->decoderConfig->objectTypeIndication = ch->depacketizer->sl_map.ObjectTypeIndication;
 	if (ch->depacketizer->sl_map.config) {
@@ -190,14 +196,14 @@ GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, const char *sub_url)
 			if (ch->depacketizer->sl_map.StreamType != get_stream_type_from_hint(rtp->media_type)) continue;
 
 			if (!sub_url || strstr(sub_url, ch->control)) {
-				the_od = RP_GetChannelOD(ch, 0, i);
+				the_od = RP_GetChannelOD(ch, i-1);
 				if (!the_od) continue;
 				return (GF_Descriptor *) the_od;
 			}
 			if (!a_str) a_str = ch;
 		}
 		if (a_str) {
-			the_od = RP_GetChannelOD(a_str, 0, gf_list_find(rtp->channels, a_str) );
+			the_od = RP_GetChannelOD(a_str, gf_list_find(rtp->channels, a_str) );
 			return (GF_Descriptor *) the_od;
 		}
 		return NULL;
@@ -218,11 +224,11 @@ void RP_SetupObjects(RTPClient *rtp)
 		if (ch->control && !strnicmp(ch->control, "data:", 5)) continue;
 
 		if (!rtp->media_type) {
-			od = RP_GetChannelOD(ch, 0, i);
+			od = RP_GetChannelOD(ch, i);
 			if (!od) continue;
 			gf_term_add_media(rtp->service, (GF_Descriptor*)od, 1);
 		} else if (rtp->media_type==ch->depacketizer->sl_map.StreamType) {
-			od = RP_GetChannelOD(ch, 0, i);
+			od = RP_GetChannelOD(ch, i);
 			if (!od) continue;
 			gf_term_add_media(rtp->service, (GF_Descriptor*)od, 1);
 			rtp->media_type = 0;
@@ -286,7 +292,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 					}
 				}
 				if (needs_iod) {
-					rtp->session_desc = (GF_Descriptor *)RP_GetChannelOD(ch, 0, 0);
+					rtp->session_desc = (GF_Descriptor *)RP_GetChannelOD(ch, 0);
 				}
 			}
 			

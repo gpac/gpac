@@ -107,6 +107,7 @@ void RP_DeleteStream(RTPStream *ch)
 	if (ch->depacketizer) gf_rtp_depacketizer_del(ch->depacketizer);
 	if (ch->rtp_ch) gf_rtp_del(ch->rtp_ch);
 	if (ch->control) free(ch->control);
+	if (ch->session_id) free(ch->session_id);
 	free(ch);
 }
 

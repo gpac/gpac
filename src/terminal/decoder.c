@@ -634,9 +634,9 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		}
 		/*only perform drop in normal playback*/
 		else if (codec->CB->Status == CB_PLAY) {
-			if (!ch->skip_sl && (AU->CTS < obj_time) ) {
-				/*extremely late, even if we decode the renderer will drop the frame 
-				so set the level to drop*/
+			/*extremely late, set the level to drop
+			 NOTE: the 100 ms safety gard is to avoid discarding audio*/
+			if (!ch->skip_sl && (AU->CTS + 100 < obj_time) ) {
 				mmlevel = GF_CODEC_LEVEL_DROP;
 				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Decoder] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
 			}

@@ -120,7 +120,7 @@ GF_EXPORT
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config)
 {
 	GF_CodecCapability cap;
-	if (!mo->odm || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return 0;
+	if (!mo->odm || !mo->odm->codec || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return 0;
 
 	if (sample_rate) {
 		cap.CapCode = GF_CODEC_SAMPLERATE;
@@ -175,7 +175,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 
 	if (!mo->odm || !mo->odm->codec || !mo->odm->codec->CB) return NULL;
 
-	gf_cm_lock(mo->odm->codec->CB, 1);
+	gf_odm_lock(mo->odm, 1);
 
 	/*if frame locked return it*/
 	if (mo->nb_fetch) {
@@ -183,13 +183,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		*timestamp = mo->timestamp;
 		*size = mo->framesize;
 		mo->nb_fetch ++;
-		gf_cm_lock(mo->odm->codec->CB, 0);
+		gf_odm_lock(mo->odm, 0);
 		return mo->frame;
 	}
 
 	/*not running and no resync (ie audio)*/
 	if (!resync && !gf_cm_is_running(mo->odm->codec->CB)) {
-		gf_cm_lock(mo->odm->codec->CB, 0);
+		gf_odm_lock(mo->odm, 0);
 		return NULL;
 	}
 
@@ -197,7 +197,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	CU = gf_cm_get_output(mo->odm->codec->CB);
 	/*no output*/
 	if (!CU || (CU->RenderedLength == CU->dataLength)) {
-		gf_cm_lock(mo->odm->codec->CB, 0);
+		gf_odm_lock(mo->odm, 0);
 		return NULL;
 	}
 	/*end of stream */
@@ -249,7 +249,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	*timestamp = mo->timestamp;
 	*size = mo->framesize;
 
-	gf_cm_lock(mo->odm->codec->CB, 0);
+	gf_odm_lock(mo->odm, 0);
 	return mo->frame;
 }
 
@@ -262,7 +262,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop)
 	mo->nb_fetch--;
 	if (mo->nb_fetch) return;
 
-	gf_cm_lock(mo->odm->codec->CB, 1);
+	gf_odm_lock(mo->odm, 1);
 
 	/*perform a sanity check on TS since the CB may have changed status - this may happen in 
 	temporal scalability only*/
@@ -294,7 +294,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop)
 			}
 		}
 	}
-	gf_cm_lock(mo->odm->codec->CB, 0);
+	gf_odm_lock(mo->odm, 0);
 }
 
 GF_EXPORT
@@ -446,11 +446,15 @@ void gf_mo_set_speed(GF_MediaObject *mo, Fixed speed)
 GF_EXPORT
 Fixed gf_mo_get_speed(GF_MediaObject *mo, Fixed in_speed)
 {
+	Fixed res;
 	MediaControlStack *ctrl;
 	if (!mo || !mo->odm) return in_speed;
+	gf_odm_lock(mo->odm, 1);
 	/*get control*/
 	ctrl = ODM_GetMediaControl(mo->odm);
-	return ctrl ? ctrl->control->mediaSpeed : in_speed;
+	res = ctrl ? ctrl->control->mediaSpeed : in_speed;
+	gf_odm_lock(mo->odm, 0);
+	return res;
 }
 
 GF_EXPORT
@@ -460,13 +464,15 @@ Bool gf_mo_get_loop(GF_MediaObject *mo, Bool in_loop)
 	MediaControlStack *ctrl;
 	if (!mo || !mo->odm) return in_loop;
 	
+	gf_odm_lock(mo->odm, 1);
 	/*get control*/
 	ctrl = ODM_GetMediaControl(mo->odm);
 	if (ctrl) in_loop = ctrl->control->loop;
 
 	/*otherwise looping is only accepted if not sharing parent scene clock*/
 	ck = gf_odm_get_media_clock(mo->odm->parentscene->root_od);
-	if (gf_odm_shares_clock(mo->odm, ck)) return 0;
+	if (gf_odm_shares_clock(mo->odm, ck)) in_loop = 0;
+	gf_odm_lock(mo->odm, 0);
 	return in_loop;
 }
 
@@ -480,54 +486,72 @@ Double gf_mo_get_duration(GF_MediaObject *mo)
 GF_EXPORT
 Bool gf_mo_should_deactivate(GF_MediaObject *mo)
 {
+	Bool res = 0;
 	MediaControlStack *ctrl;
 	
 	if (!mo || !mo->odm) return 0;
 	/*not running*/
 	if (!mo->odm->is_open) return 0;
 
+	gf_odm_lock(mo->odm, 1);
+
 	/*get media control and see if object owning control is running*/
 	ctrl = ODM_GetMediaControl(mo->odm);
-	if (!ctrl) return 1;
+	if (!ctrl) res = 1;
 	/*if ctrl and ctrl not ruling this mediaObject, deny deactivation*/
-	if (ctrl->stream->odm != mo->odm) return 0;
+	else if (ctrl->stream->odm != mo->odm) res = 0;
 	/*this is currently under discussion in MPEG. for now we deny deactivation as soon as a mediaControl is here*/
-	if (ctrl->stream->odm->is_open) return 0;
+	else if (ctrl->stream->odm->is_open) res = 0;
 	/*otherwise allow*/	
-	return 1;
+	else res = 1;
+
+	gf_odm_lock(mo->odm, 0);
+	return res;
 }
 
 GF_EXPORT
 Bool gf_mo_is_muted(GF_MediaObject *mo)
 {
+	Bool res = 0;
 	if (!mo->odm) return 1;
-	return mo->odm->media_ctrl ? mo->odm->media_ctrl->control->mute : 0;
+	gf_odm_lock(mo->odm, 1);
+	res = mo->odm->media_ctrl ? mo->odm->media_ctrl->control->mute : 0;
+	gf_odm_lock(mo->odm, 0);
+	return res;
 }
 
 GF_EXPORT
 Bool gf_mo_is_done(GF_MediaObject *mo)
 {
+	Bool res = 0;
 	GF_Codec *codec;
 	u64 dur;
 	if (!mo || !mo->odm) return 0;
 
+	gf_odm_lock(mo->odm, 1);
 	/*for natural media use composition buffer*/
-	if (mo->odm->codec && mo->odm->codec->CB) return (mo->odm->codec->CB->Status==CB_STOP) ? 1 : 0;
+	if (mo->odm->codec && mo->odm->codec->CB) 
+		res = (mo->odm->codec->CB->Status==CB_STOP) ? 1 : 0;
 
 	/*otherwise check EOS and time*/
-	codec = mo->odm->codec;
-	dur = mo->odm->duration;
-	if (!mo->odm->codec) {
-		if (!mo->odm->subscene) return 0;
-		codec = mo->odm->subscene->scene_codec;
-		dur = mo->odm->subscene->duration;
+	else {
+		codec = mo->odm->codec;
+		dur = mo->odm->duration;
+		if (!mo->odm->codec) {
+			if (!mo->odm->subscene) res = 0;
+			else {
+				codec = mo->odm->subscene->scene_codec;
+				dur = mo->odm->subscene->duration;
+			}
+		}
+		if (codec && (codec->Status==GF_ESM_CODEC_STOP)) {
+			/*codec is done, check by duration*/
+			GF_Clock *ck = gf_odm_get_media_clock(mo->odm);
+			if (gf_clock_time(ck) > dur) res = 1;
+		}
 	}
-	if (codec->Status==GF_ESM_CODEC_STOP) {
-		/*codec is done, check by duration*/
-		GF_Clock *ck = gf_odm_get_media_clock(mo->odm);
-		if (gf_clock_time(ck) > dur) return 1;
-	}
-	return 0;
+	gf_odm_lock(mo->odm, 0);
+	return res;
 }
 
 /*resyncs clock - only audio objects are allowed to use this*/

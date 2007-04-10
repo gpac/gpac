@@ -723,12 +723,13 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
 		if (gf_term_service_can_handle_url(ns, serviceURL)) {
 			odm->net_service = ns;
+			gf_term_lock_net(term, 0);
+
 			/*service not yet setup !!*/
 			while (!ns->owner->OD) {
 				gf_sleep(5);
 			}
 			gf_odm_setup_entry_point(odm, serviceURL);
-			gf_term_lock_net(term, 0);
 			return;
 		}
 	}

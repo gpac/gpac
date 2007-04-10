@@ -180,8 +180,8 @@ GF_EXPORT
 void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 {
 	gf_mx_p(sess->mx);
-	if (sess->SessionID) free(sess->SessionID);
-	sess->SessionID = NULL;
+
+	sess->last_session_id = NULL;
 	sess->NeedConnection = 1;
 
 	if (ResetConnection) {
@@ -194,7 +194,7 @@ void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 	}
 	
 	sess->RTSP_State = GF_RTSP_STATE_INIT;
-	sess->CSeq = sess->NbPending = 0;
+//	sess->CSeq = sess->NbPending = 0;
 	sess->InterID = (u8) -1;
 	sess->pck_start = sess->payloadSize = 0;
 	sess->CurrentPos = sess->CurrentSize = 0;
@@ -257,14 +257,10 @@ u32 gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url)
 }
 
 GF_EXPORT
-char *gf_rtsp_get_session_id(GF_RTSPSession *sess)
+const char *gf_rtsp_get_last_session_id(GF_RTSPSession *sess)
 {
-	char *sessID;
 	if (!sess) return NULL;
-	gf_mx_p(sess->mx);
-	sessID = sess->SessionID;
-	gf_mx_v(sess->mx);
-	return sessID;
+	return sess->last_session_id;
 }
 
 GF_EXPORT
@@ -715,33 +711,26 @@ GF_Err gf_rtsp_load_service_name(GF_RTSPSession *sess, char *URL)
 
 
 GF_EXPORT
-GF_Err gf_rtsp_set_session_id(GF_RTSPSession *sess, char *your_custom_id)
+char *gf_rtsp_generate_session_id(GF_RTSPSession *sess)
 {
 	u32 one, two;
 	u64 res;
 	char buffer[30];
 
-	if (!sess) return GF_BAD_PARAM;
-	if (sess->SessionID) free(sess->SessionID);
-	sess->SessionID = NULL;
+	if (!sess) return NULL;
 
-	if (your_custom_id) {
-		sess->SessionID = strdup(your_custom_id);
-	} else {
-		if (!SessionID_RandInit) {
-			SessionID_RandInit = 1;
-			gf_rand_init(0);
-		}
-		one = gf_rand();
-		//try to be as random as possible. if we had some global stats that'd be better
-		two = (u32) sess + sess->CurrentPos + sess->CurrentSize;
-		res = one;
-		res <<= 32;
-		res += two;
-		sprintf(buffer, "%llu", res);
-		sess->SessionID = strdup(buffer);
+	if (!SessionID_RandInit) {
+		SessionID_RandInit = 1;
+		gf_rand_init(0);
 	}
-	return GF_OK;
+	one = gf_rand();
+	//try to be as random as possible. if we had some global stats that'd be better
+	two = (u32) sess + sess->CurrentPos + sess->CurrentSize;
+	res = one;
+	res <<= 32;
+	res += two;
+	sprintf(buffer, "%llu", res);
+	return strdup(buffer);
 }
 
 

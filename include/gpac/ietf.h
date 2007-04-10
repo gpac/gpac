@@ -392,7 +392,7 @@ some servers do not restart with the right CSeq...*/
 void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection);
 
 u32 gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url);
-char *gf_rtsp_get_session_id(GF_RTSPSession *sess);
+const char *gf_rtsp_get_last_session_id(GF_RTSPSession *sess);
 char *gf_rtsp_get_server_name(GF_RTSPSession *sess);
 char *gf_rtsp_get_service_name(GF_RTSPSession *sess);
 u16 gf_rtsp_get_session_port(GF_RTSPSession *sess);
@@ -460,9 +460,8 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com);
 or services available are unknown here.*/
 GF_Err gf_rtsp_load_service_name(GF_RTSPSession *sess, char *URL);
 
-/*assign a given sessionID to a session, or let the lib generate a new one
-by specifying a NULL session ID*/
-GF_Err gf_rtsp_set_session_id(GF_RTSPSession *sess, char *custom_id);
+/*geenrates a session ID fpor the given session*/
+char *gf_rtsp_generate_session_id(GF_RTSPSession *sess);
 
 /*send the RTSP response*/
 GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp);

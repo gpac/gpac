@@ -151,6 +151,8 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	GF_ObjectManager *odm;
 	GF_SceneDecoder *dec = NULL;
 	if (is->scene_codec) dec = (GF_SceneDecoder *)is->scene_codec->decio;
+
+	gf_term_lock_renderer(is->root_od->term, 1);
 	
 	/*disconnect / kill all objects BEFORE reseting the scene graph since we have 
 	potentially registered Inline nodes of the graph with the sub-scene*/
@@ -178,7 +180,6 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 		gf_list_rem(is->inline_nodes, 0);
 		gf_node_set_private(n, NULL);
 	}
-	gf_term_lock_renderer(is->root_od->term, 1);
 
 	if (is->graph_attached && (is->root_od->term->root_scene == is)) {
 		gf_sr_set_scene(is->root_od->term->renderer, NULL);
@@ -296,6 +297,7 @@ void gf_is_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for_shu
 			/*dynamic OD*/
 			(obj->URLs.count && odm->OD && odm->OD->URLString && !stricmp(obj->URLs.vals[0].url, odm->OD->URLString)) 
 		) {
+			gf_odm_lock(odm, 1);
 			obj->flags = 0;
 			if (obj->odm) obj->odm->mo = NULL;
 			odm->mo = NULL;
@@ -303,6 +305,8 @@ void gf_is_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for_shu
 
 			obj->frame = NULL;
 			obj->framesize = obj->timestamp = 0;
+
+			gf_odm_lock(odm, 0);
 
 			/*if graph not attached we can remove the link (this is likely scene shutdown for some error)*/
 			if (!is->graph_attached) {

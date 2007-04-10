@@ -113,9 +113,6 @@ struct _composition_memory
 
 	/*trick for temporal scalability: this is the last rendered CTS*/
 	u32 LastRenderedTS;
-
-	/*exclusive access is required since rendering and decoding don't take place in the same thread*/
-	GF_Mutex *mx;
 };
 
 /*a composition buffer only has fixed-size unit*/
@@ -123,9 +120,6 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity);
 void gf_cm_del(GF_CompositionMemory *cb);
 /*re-inits complete cb*/
 void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity);
-
-/*get exclusive access to CB*/
-void gf_cm_lock(GF_CompositionMemory *cb, u32 LockIt);
 
 /*locks available input for desired TS (needed for scalability) - return NULL if no 
 input is available (buffer full)*/
