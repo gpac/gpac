@@ -264,6 +264,7 @@ public:
 
 	FILE *m_logs;
 	u32 m_log_level, m_log_tools;
+	u32 m_LastStatusTime;
 
 protected:
 
@@ -362,7 +363,6 @@ private:
 	wxMenu *chap_menu;
 	void Stop();
 
-	u32 m_LastStatusTime;
 	s32 nb_viewpoints;
 
 	void UpdateRenderSwitch();
