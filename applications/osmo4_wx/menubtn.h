@@ -179,7 +179,7 @@ protected:
 
     virtual void CalcLayout(bool refresh);
 
-    int m_down;         // toggle state if m_down%2 then depressed
+    long m_down;         // toggle state if m_down%2 then depressed
     bool m_focused;     // mouse in window
     long m_button_style;
 

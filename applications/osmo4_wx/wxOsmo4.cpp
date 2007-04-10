@@ -163,10 +163,15 @@ static void wxOsmo4_progress_cbk(void *usr, char *title, u32 done, u32 total)
 	s32 prog = (s32) ( (100 * (u64)done) / total);
 	if (app->m_last_prog < prog) {
 		app->m_last_prog = prog;
+
 		if (prog<100) {
-			app->SetStatus(wxString::Format(wxT("%s %02d %%"), title, prog));
+			/*appears to crash wxWidgets / X11 when refreshing the text too often*/
+			if (app->m_LastStatusTime + 200 > gf_sys_clock()) return;
+			char msg[1024];
+			sprintf(msg, "%s %02d %%)", title, prog);
+			app->SetStatus(wxString(msg, wxConvUTF8));
 		} else {
-			app->SetStatus(wxT(""));
+			app->SetStatus(wxT("Ready"));
 			app->m_last_prog = -1;
 		}
 	}
@@ -1284,7 +1289,7 @@ wxString wxOsmo4Frame::GetFileFilter()
 
 void wxOsmo4Frame::OnFileOpen(wxCommandEvent & WXUNUSED(event))
 {
-	wxFileDialog dlg(this, wxT("Select file(s)"), wxT(""), wxT(""), GetFileFilter(), wxOPEN | wxMULTIPLE | wxCHANGE_DIR | wxHIDE_READONLY);
+	wxFileDialog dlg(this, wxT("Select file(s)"), wxT(""), wxT(""), GetFileFilter(), wxOPEN | wxMULTIPLE | wxCHANGE_DIR /*| wxHIDE_READONLY*/);
 
 	if (dlg.ShowModal() != wxID_OK) return;
 
@@ -2307,7 +2312,7 @@ void wxOsmo4Frame::OnUpdateStreamMenu(wxUpdateUIEvent & event)
 
 void wxOsmo4Frame::OnAddSub(wxCommandEvent &WXUNUSED(event))
 {
-	wxFileDialog dlg(this, wxT("Add Subtitle"), wxT(""), wxT(""), wxT("All Subtitles|*.srt;*.ttxt|SRT Subtitles|*.srt|3GPP TimedText|*.ttxt|"), wxOPEN | wxCHANGE_DIR | wxHIDE_READONLY);
+	wxFileDialog dlg(this, wxT("Add Subtitle"), wxT(""), wxT(""), wxT("All Subtitles|*.srt;*.ttxt|SRT Subtitles|*.srt|3GPP TimedText|*.ttxt|"), wxOPEN | wxCHANGE_DIR /* | wxHIDE_READONLY*/);
 
 	if (dlg.ShowModal() == wxID_OK) {
 		AddSubtitle(dlg.GetPath().mb_str(wxConvUTF8), 1);

@@ -86,7 +86,11 @@ bool wxCustomButton::Create(wxWindow* parent, wxWindowID id,
 
     wxSize bestSize = DoGetBestSize();
     SetSize(wxSize(size.x<0 ? bestSize.x:size.x, size.y<0 ? bestSize.y:size.y));
+#if (wxMINOR_VERSION<8) 
     SetBestSize(GetSize());
+#else
+    SetInitialSize(GetSize());
+#endif
     
     CalcLayout(TRUE);
     return TRUE;
@@ -94,7 +98,7 @@ bool wxCustomButton::Create(wxWindow* parent, wxWindowID id,
 
 void wxCustomButton::SetValue(bool depressed)
 {
-    wxCHECK_RET(!(m_button_style & wxCUSTBUT_NOTOGGLE), wxT("can't set button state"))
+    wxCHECK_RET(!(m_button_style & wxCUSTBUT_NOTOGGLE), wxT("can't set button state"));
     m_down = depressed ? 1 : 0;
     Refresh(FALSE);
 }
@@ -106,7 +110,7 @@ bool wxCustomButton::SetButtonStyle(long style)
     if ((style & wxCUSTBUT_RIGHT) != 0)  n_styles++;
     if ((style & wxCUSTBUT_TOP) != 0)    n_styles++;
     if ((style & wxCUSTBUT_BOTTOM) != 0) n_styles++;
-    wxCHECK_MSG(n_styles < 2, FALSE, wxT("Only one wxCustomButton label position allowed"))
+    wxCHECK_MSG(n_styles < 2, FALSE, wxT("Only one wxCustomButton label position allowed"));
     
     n_styles = 0;
     if ((style & wxCUSTBUT_NOTOGGLE) != 0)       n_styles++;
@@ -114,7 +118,7 @@ bool wxCustomButton::SetButtonStyle(long style)
     if ((style & wxCUSTBUT_TOGGLE) != 0)         n_styles++;
     if ((style & wxCUSTBUT_BUT_DCLICK_TOG) != 0) n_styles++;
     if ((style & wxCUSTBUT_TOG_DCLICK_BUT) != 0) n_styles++;
-    wxCHECK_MSG(n_styles < 2, FALSE, wxT("Only one wxCustomButton style allowed"))
+    wxCHECK_MSG(n_styles < 2, FALSE, wxT("Only one wxCustomButton style allowed"));
 
     m_button_style = style;
     
@@ -157,7 +161,11 @@ void wxCustomButton::OnMouseEvents(wxMouseEvent& event)
         
         m_eventType = wxEVT_LEFT_UP;
         
+#if (wxMINOR_VERSION<8) 
         if (wxRect(wxPoint(0,0), GetSize()).Inside(event.GetPosition()))
+#else
+        if (wxRect(wxPoint(0,0), GetSize()).Contains(event.GetPosition()))
+#endif
         {
             if ((m_button_style & wxCUSTBUT_BUTTON) && (m_down > 0))
             {
@@ -192,7 +200,11 @@ void wxCustomButton::OnMouseEvents(wxMouseEvent& event)
         
         m_eventType = wxEVT_RIGHT_UP;
 
+#if (wxMINOR_VERSION<8) 
         if (wxRect(wxPoint(0,0), GetSize()).Inside(event.GetPosition()))
+#else
+        if (wxRect(wxPoint(0,0), GetSize()).Contains(event.GetPosition()))
+#endif
         {
             if ((m_button_style & wxCUSTBUT_BUTTON) && (m_down > 0))
             {
@@ -307,7 +319,9 @@ void wxCustomButton::Redraw()
 
 void wxCustomButton::Paint( wxDC &dc )
 {
+#if (wxMINOR_VERSION<8) 
     dc.BeginDrawing();
+#endif
 
     int w, h;
     GetSize(&w,&h);
@@ -387,7 +401,9 @@ void wxCustomButton::Paint( wxDC &dc )
     dc.SetBackground(wxNullBrush);
     dc.SetBrush(wxNullBrush);
     dc.SetPen(wxNullPen);
+#if (wxMINOR_VERSION<8) 
     dc.EndDrawing();
+#endif
 }
 
 void wxCustomButton::OnSize( wxSizeEvent &event )
@@ -557,7 +573,11 @@ public:
         {
             wxPoint p = GetParent()->ScreenToClient(wxGetMousePosition());
         
+#if (wxMINOR_VERSION<8) 
             if (GetRect().Inside(p) || labelBut->GetRect().Inside(p))
+#else
+            if (GetRect().Contains(p) || labelBut->GetRect().Contains(p))
+#endif
             {
                 m_focused = TRUE;
                 
@@ -601,7 +621,11 @@ public:
         {
             wxPoint p = GetParent()->ScreenToClient(wxGetMousePosition());
         
+#if (wxMINOR_VERSION<8) 
             if (GetRect().Inside(p) || dropBut->GetRect().Inside(p))
+#else
+            if (GetRect().Contains(p) || dropBut->GetRect().Contains(p))
+#endif
             {
                 m_focused = TRUE;
                 
@@ -675,7 +699,11 @@ bool wxMenuButton::Create( wxWindow* parent, wxWindowID id,
     SetSize( wxSize(size.x < 0 ? bestSize.x : size.x, 
                     size.y < 0 ? bestSize.y : size.y) );
    
+#if (wxMINOR_VERSION<8) 
     SetBestSize(GetSize());
+#else
+    SetInitialSize(GetSize());
+#endif
     
     return TRUE;
 }

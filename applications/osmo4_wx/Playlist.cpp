@@ -293,7 +293,7 @@ void wxPlaylist::RefreshList()
 
 void wxPlaylist::OnAddFile(wxCommandEvent &WXUNUSED(event)) 
 {
-	wxFileDialog dlg(this, wxT("Select file(s)"), wxT(""), wxT(""), m_pApp->GetFileFilter(), wxOPEN | wxCHANGE_DIR | wxHIDE_READONLY | wxMULTIPLE);
+	wxFileDialog dlg(this, wxT("Select file(s)"), wxT(""), wxT(""), m_pApp->GetFileFilter(), wxOPEN | wxCHANGE_DIR | /*wxHIDE_READONLY |*/ wxMULTIPLE);
 
 	if (dlg.ShowModal() == wxID_OK) {
 		wxArrayString stra;
@@ -498,7 +498,7 @@ void wxPlaylist::Save(char *szPath, Bool save_m3u)
 
 void wxPlaylist::OnOpen(wxCommandEvent & WXUNUSED(event)) 
 {
-	wxFileDialog dlg(this, wxT("Select file(s)"), wxT(""), wxT(""), wxT("M3U & PLS Playlists|*.m3u;*.pls|M3U Playlists|*.m3u|ShoutCast Playlists|*.pls|"), wxOPEN | wxCHANGE_DIR | wxHIDE_READONLY);
+	wxFileDialog dlg(this, wxT("Select file(s)"), wxT(""), wxT(""), wxT("M3U & PLS Playlists|*.m3u;*.pls|M3U Playlists|*.m3u|ShoutCast Playlists|*.pls|"), wxOPEN | wxCHANGE_DIR/* | wxHIDE_READONLY*/);
 	if (dlg.ShowModal() != wxID_OK) return;
 
 	Clear();
