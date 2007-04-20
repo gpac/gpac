@@ -1,4 +1,9 @@
-Latest CVS changes: 22/02/07
+Latest CVS changes: 20/04/07
+  - Initial commit of DVB support for Linux - connection URL is dvb://ChannelName, cf doc/configuration.html
+  - Fixed handling of QT V1 and V2 audio descriptions
+  - Moved ISMA decryption to run-time module for basic DRM tests
+  - Added support for NAT Keep Alive (RTP streaming only)
+  - Misc source code reorganization for RTP (depacketizers now in libgpac, no longer in plugins)
   - Fixed support for IPV6 and for multicast (IPV4 and IPV6)
   - Changed default behavior in MP4Box when adding AAC-SBR with explicit signaling: full SBR Samplerate is now used in media track.
   - Added JP2 and MJP2 support for mux/demux and playback - latest version of openjpeg (1.1) used for decoding (Win32 only).
