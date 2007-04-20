@@ -169,7 +169,7 @@ static void wxOsmo4_progress_cbk(void *usr, char *title, u32 done, u32 total)
 			if (app->m_LastStatusTime + 200 > gf_sys_clock()) return;
 			char msg[1024];
 			sprintf(msg, "%s %02d %%)", title, prog);
-			app->SetStatus(wxString(msg, wxConvUTF8));
+			//app->SetStatus(wxString(msg, wxConvUTF8));
 		} else {
 			app->SetStatus(wxT("Ready"));
 			app->m_last_prog = -1;
@@ -1649,7 +1649,7 @@ static wxString format_time(u32 duration, u32 timescale)
 
 void wxOsmo4Frame::SetStatus(wxString str)
 {
-	m_pStatusbar->SetStatusText(str, 2); 
+	//m_pStatusbar->SetStatusText(str, 2); 
 	m_LastStatusTime = gf_sys_clock();
 }
 
