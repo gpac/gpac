@@ -512,6 +512,8 @@ EXPORTS
 	gf_isom_find_od_for_track
 	gf_isom_apple_get_tag
 	gf_isom_get_media_data_size
+	gf_isom_get_omadrm_info
+	gf_isom_is_omadrm_media
 
 
 ;NON-READ-ONLY exports
@@ -796,7 +798,16 @@ EXPORTS
 	gf_media_fragment_file
 	gf_media_import_chapters
 	gf_media_change_par
+	gf_media_get_file_hash
 	gf_rtp_packetizer_create_and_init_from_file
+
+
+;mcrypt exports
+	gf_crypt_open
+	gf_crypt_close
+	gf_crypt_init
+	gf_crypt_decrypt
+	gf_crypt_set_state
 
 ;parsers_av.h exports
 	gf_m4v_parser_new

@@ -525,7 +525,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		odm->subscene->is_dynamic_scene = 1;
 	} else {
 		/*avoid channels PLAY request when confirming connection (sync network service)*/
-		odm->is_open = 2;
+		odm->state = GF_ODM_STATE_IN_SETUP;
 
 		i=0;
 		while ((esd = (GF_ESD *)gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
@@ -537,7 +537,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 				gf_term_message(odm->term, odm->net_service->url, "Stream Setup Failure", e);
 			}
 		}
-		odm->is_open = 0;
+		odm->state = GF_ODM_STATE_STOP;
 	}
 
 	/*special case for ODs only having OCRs: force a START since they're never refered to by media nodes*/
@@ -954,7 +954,7 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 	}
 
 	/*in case a channel is inserted in a running OD, open and play if not in queue*/
-	if ( (ch->odm->is_open==1) 
+	if ( (ch->odm->state==GF_ODM_STATE_PLAY) 
 		/*HACK: special case when OD resources are statically described in the ESD itself (ISMA streaming)*/
 //		|| 	(dec && (dec->flags & GF_ESM_CODEC_IS_STATIC_OD)) 
 	) {
@@ -1067,10 +1067,10 @@ void gf_odm_start(GF_ObjectManager *odm)
 	gf_term_lock_net(odm->term, 1);
 
 	/*only if not open & ready (not waiting for ACK on channel setup)*/
-	if (!odm->is_open && !odm->pending_channels) {
+	if (!odm->state && !odm->pending_channels) {
 		GF_Channel *ch;
 		u32 i = 0;
-		odm->is_open = 1;
+		odm->state = GF_ODM_STATE_PLAY;
 
 		/*look for a given segment name to play*/
 		if (odm->subscene) {
@@ -1103,6 +1103,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 {
 	GF_Channel *ch;
 	u32 i;
+	u32 nb_failure;
 	u64 range_end;
 	Bool skip_od_st;
 	GF_NetworkCommand com;
@@ -1118,11 +1119,29 @@ void gf_odm_play(GF_ObjectManager *odm)
 	range_end = odm->media_stop_time;
 	odm->media_stop_time = 0;
 
+	nb_failure = gf_list_count(odm->channels);
+
 	/*send play command*/
 	com.command_type = GF_NET_CHAN_PLAY;
 	i=0;
 	while ( (ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
 		Double ck_time;
+
+
+		if (ch->ipmp_tool) {
+			GF_IPMPEvent evt;
+			GF_Err e;
+			memset(&evt, 0, sizeof(evt));
+			evt.event_type=GF_IPMP_TOOL_GRANT_ACCESS;
+			evt.channel = ch;
+			e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
+			if (e) {
+				gf_term_message(odm->term, NULL, "PLAY access is not granted on channel - please check your license", e);
+				gf_es_stop(ch);
+				continue;
+			}
+		}
+		nb_failure --;
 
 		com.base.on_channel = ch;
 		com.play.speed = 1.0;
@@ -1207,6 +1226,12 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 	odm->media_start_time = 0;
 
+	if (nb_failure) {
+		odm->state = GF_ODM_STATE_BLOCKED;
+		return;
+	}
+
+
 	/*start codecs last (otherwise we end up pulling data from channels not yet connected->pbs when seeking)*/
 	if (odm->codec) {
 		/*reset*/
@@ -1232,7 +1257,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	MediaSensorStack *media_sens;
 	GF_NetworkCommand com;
 	
-	if (!odm->is_open) return;
+	if (!odm->state) return;
 
 #if 0
 	/*Handle broadcast environment, do not stop the object if no time control and instruction
@@ -1251,6 +1276,12 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	/*little opt for image codecs: don't actually stop the OD*/
 	if (!force_close && odm->codec && odm->codec->CB) {
 		if (odm->codec->CB->Capacity==1) return;
+	}
+
+	/*object was not unlocked, decoders were not started*/
+	if (odm->state==GF_ODM_STATE_BLOCKED) {
+		odm->current_time = 0;
+		return;
 	}
 
 	/*stop codecs*/
@@ -1276,6 +1307,15 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	com.command_type = GF_NET_CHAN_STOP;
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
+
+		if (ch->ipmp_tool) {
+			GF_IPMPEvent evt;
+			memset(&evt, 0, sizeof(evt));
+			evt.event_type=GF_IPMP_TOOL_RELEASE_ACCESS;
+			evt.channel = ch;
+			ch->ipmp_tool->process(ch->ipmp_tool, &evt);
+		}
+		
 		if (ch->service) {
 			com.base.on_channel = ch;
 			gf_term_service_command(ch->service, &com);
@@ -1293,7 +1333,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 
 	gf_term_lock_net(odm->term, 0);
 
-	odm->is_open = 0;
+	odm->state = GF_ODM_STATE_STOP;
 	odm->current_time = 0;
 
 	/*reset media sensor(s)*/

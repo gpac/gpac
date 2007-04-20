@@ -73,7 +73,7 @@ enum
 	if it differs from the one specified at config*/
 	GF_NET_CHAN_RECONFIG,
 	/*signal channel is ISMACryp'ted (net->term only)*/
-	GF_NET_CHAN_ISMACRYP_CFG,
+	GF_NET_CHAN_DRM_CFG,
 	
 	/*retrieves ESD for channel - net->term only, for cache configuration*/
 	GF_NET_CHAN_GET_ESD,
@@ -191,11 +191,23 @@ typedef struct
 {
 	u32 command_type;
 	LPNETCHANNEL on_channel;
+
+
+	/*per channel, regardless of DRM schemes (ISMA, OMA, )*/
 	u32 scheme_version;
 	u32 scheme_type;
 	const char *scheme_uri;
 	const char *kms_uri;
-} GF_NetComISMACryp;
+	/*OMA DRM info*/
+	const char *contentID;
+	u32 oma_drm_crypt_type;
+	Bool oma_drm_use_pad, oma_drm_use_hdr;
+	const char *oma_drm_textual_headers;
+	u32 oma_drm_textual_headers_len;
+
+	/*SHA-1 file hash*/
+	u8 hash[20];
+} GF_NetComDRMConfig;
 
 /*GF_NET_CHAN_GET_ESD*/
 typedef struct
@@ -261,7 +273,7 @@ typedef union __netcommand
 	GF_NetComPadding pad;
 	GF_NetComMapTime map_time;
 	GF_NetComStats net_stats;
-	GF_NetComISMACryp isma_cryp;
+	GF_NetComDRMConfig drm_cfg;
 	GF_NetComGetESD cache_esd;
 	GF_NetComInfo info;
 } GF_NetworkCommand;

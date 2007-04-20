@@ -1539,8 +1539,9 @@ Bool gf_isom_is_ismacryp_media(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 /*returns whether the given media is a protected ISMACryp one or not*/
 Bool gf_isom_is_omadrm_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
-GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, 
-							   const char **outContentID, const char **outRightsIssuerURL, const char **outTextualHeaders, u64 *outPlaintextLength, u8 *outEncryptionType, Bool *outSelectiveEncryption, u8 *outIVLength, u8 *outKeyIndicationLength);
+GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat,
+							   u32 *outSchemeType, u32 *outSchemeVersion,
+							   const char **outContentID, const char **outRightsIssuerURL, const char **outTextualHeaders, u32 *outTextualHeadersLen, u64 *outPlaintextLength, u32 *outEncryptionType, Bool *outSelectiveEncryption, u32 *outIVLength, u32 *outKeyIndicationLength);
 /*retrieves ISMACryp info for the given track & SDI - all output parameters are optional - URIs SHALL NOT BE MODIFIED BY USER
 	@outOriginalFormat: retrieves orginal protected media format - usually GF_ISOM_SUBTYPE_MPEG4
 	@outSchemeType: retrieves 4CC of protection scheme (GF_ISOM_ISMACRYP_SCHEME = iAEC in ISMACryp 1.0)
@@ -1554,7 +1555,7 @@ GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample
   outSelectiveEncryption, outIVLength and outKeyIndicationLength are usually not needed to decode an 
   ISMA sample when using gf_isom_get_ismacryp_sample fct above
 */
-GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, const char **outSchemeURI, const char **outKMS_URI, Bool *outSelectiveEncryption, u8 *outIVLength, u8 *outKeyIndicationLength);
+GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, const char **outSchemeURI, const char **outKMS_URI, Bool *outSelectiveEncryption, u32 *outIVLength, u32 *outKeyIndicationLength);
 
 
 #ifndef GPAC_READ_ONLY
@@ -1574,7 +1575,7 @@ GF_Err gf_isom_change_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber,
 
 
 GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index,
-						   char *contentID, char *kms_URI, u32 encryption_type, u64 plainTextLength, char *textual_headers,
+						   char *contentID, char *kms_URI, u32 encryption_type, u64 plainTextLength, char *textual_headers, u32 textual_headers_len,
 						   Bool selective_encryption, u32 KI_length, u32 IV_length);
 
 #endif

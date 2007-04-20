@@ -3470,6 +3470,27 @@ GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->protection_info) return GF_ISOM_INVALID_FILE;
 		ptr->protection_info = (GF_ProtectionInfoBox*)a;
 		break;
+	case GF_4CC('w','a','v','e'):
+		if (ptr->esd) return GF_ISOM_INVALID_FILE;
+		/*HACK for QT files: get the esds box from the track*/
+		{
+			GF_UnknownBox *wave = (GF_UnknownBox *)a;
+			u32 offset = 0;
+			while ((wave->data[offset+4]!='e') && (wave->data[offset+5]!='s')) {
+				offset++;
+				if (offset == wave->dataSize) break;
+			}
+			if (offset < wave->dataSize) {
+				GF_Box *a;
+				GF_Err e;
+				GF_BitStream *bs = gf_bs_new(wave->data+offset, wave->dataSize-offset, GF_BITSTREAM_READ);
+				e = gf_isom_parse_box(&a, bs);
+				gf_bs_del(bs);
+				ptr->esd = (GF_ESDBox *)a;
+			}
+			gf_isom_box_del(a);
+		}
+		break;
 	default:
 		gf_isom_box_del(a);
 		break;
@@ -3483,6 +3504,7 @@ GF_Err mp4a_Read(GF_Box *s, GF_BitStream *bs)
 	u32 i, size;
 	GF_Err e;
 	u64 pos;
+
 	e = gf_isom_audio_sample_entry_read((GF_AudioSampleEntryBox*)s, bs);
 	if (e) return e;
 	pos = gf_bs_get_position(bs);

@@ -164,6 +164,7 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 	/*if independent control, force each channel to be its own clock*/
 	if (ch->owner->stream_control_type==RTSP_CONTROL_INDEPENDENT) {
 		esd->OCRESID = ch->ES_ID;
+		esd->OCRESID = 0;
 	} else {
 		/*otherwise let the app decide...*/
 		esd->OCRESID = 0;

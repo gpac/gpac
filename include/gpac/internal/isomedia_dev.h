@@ -748,6 +748,7 @@ typedef struct
 	u16 samplerate_hi;				\
 	u16 samplerate_lo;
 
+
 typedef struct 
 {
 	GF_ISOM_AUDIO_SAMPLE_ENTRY
@@ -1610,6 +1611,7 @@ typedef struct
 	char *ContentID;
 	char *RightsIssuerURL;
 	char *TextualHeaders;
+	u32 TextualHeadersLen;
 	GF_List *ExtendedHeaders;
 } GF_OMADRMCommonHeaderBox;
 

@@ -350,6 +350,8 @@ const char *gf_error_to_string(GF_Err e)
 		return "Connection to server closed";
 	case GF_IP_UDP_TIMEOUT:
 		return "UDP traffic timeout";
+	case GF_AUTHENTICATION_FAILURE:
+		return "Authentication failure";
 
 	default:
 		return "Unknown Error";

@@ -349,9 +349,9 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 			com->buffer.occupancy = ch->BufferTime;
 		}
 		break;
-	case GF_NET_CHAN_ISMACRYP_CFG:
+	case GF_NET_CHAN_DRM_CFG:
 		gf_term_lock_net(term, 1);
-		gf_es_config_ismacryp(ch, &com->isma_cryp);
+		gf_es_config_drm(ch, &com->drm_cfg);
 		gf_term_lock_net(term, 0);
 		return;
 	case GF_NET_CHAN_GET_ESD:
@@ -378,17 +378,19 @@ Bool net_check_interface(GF_InputService *ifce)
 	return 1;
 }
 
-void NM_OnMimeData(void *dnld, char *data, u32 size, u32 state, GF_Err e)
+static void on_mime_data(void *dnld, char *data, u32 size, u32 state, GF_Err e)
 {
 }
 
-char *NM_GetMimeType(GF_Terminal *term, const char *url, GF_Err *ret_code)
+static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
 {
 	char *mime_type;
 	GF_DownloadSession * sess;
 
 	(*ret_code) = GF_OK;
-	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_DOWNLOAD_SESSION_NOT_THREADED, NM_OnMimeData, NULL, NULL, ret_code);
+	if (strnicmp(url, "http", 4)) return NULL;
+
+	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_DOWNLOAD_SESSION_NOT_THREADED, on_mime_data, NULL, NULL, ret_code);
 	if (!sess) {
 		if (strstr(url, "rtsp://") || strstr(url, "rtp://") || strstr(url, "udp://") || strstr(url, "tcp://") ) (*ret_code) = GF_OK;
 		return NULL;
@@ -454,7 +456,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		mime_type = NULL;
 	} else {
 		/*fetch a mime type if any. If error don't even attempt to open the service*/
-		mime_type = NM_GetMimeType(term, sURL, &e);
+		mime_type = get_mime_type(term, sURL, &e);
 		if (e) {
 			free(sURL);
 			(*ret_code) = e;

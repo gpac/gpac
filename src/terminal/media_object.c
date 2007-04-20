@@ -491,7 +491,7 @@ Bool gf_mo_should_deactivate(GF_MediaObject *mo)
 	
 	if (!mo || !mo->odm) return 0;
 	/*not running*/
-	if (!mo->odm->is_open) return 0;
+	if (!mo->odm->state) return 0;
 
 	gf_odm_lock(mo->odm, 1);
 
@@ -501,7 +501,7 @@ Bool gf_mo_should_deactivate(GF_MediaObject *mo)
 	/*if ctrl and ctrl not ruling this mediaObject, deny deactivation*/
 	else if (ctrl->stream->odm != mo->odm) res = 0;
 	/*this is currently under discussion in MPEG. for now we deny deactivation as soon as a mediaControl is here*/
-	else if (ctrl->stream->odm->is_open) res = 0;
+	else if (ctrl->stream->odm->state) res = 0;
 	/*otherwise allow*/	
 	else res = 1;
 

@@ -3065,7 +3065,20 @@ GF_Err ohdr_dump(GF_Box *a, FILE * trace)
 						ptr->EncryptionMethod, ptr->PaddingScheme, ptr->PlaintextLength);
 	if (ptr->RightsIssuerURL) fprintf(trace, "RightsIssuerURL=\"%s\" ", ptr->RightsIssuerURL);
 	if (ptr->ContentID) fprintf(trace, "ContentID=\"%s\" ", ptr->ContentID);
-	if (ptr->TextualHeaders) fprintf(trace, "TextualHeaders=\"%s\" ", ptr->TextualHeaders);
+	if (ptr->TextualHeaders) {
+		u32 i, offset;
+		char *start = ptr->TextualHeaders;
+		fprintf(trace, "TextualHeaders=\"");
+		i=offset=0;
+		while (i<ptr->TextualHeadersLen) {
+			if (start[i]==0) {
+				fprintf(trace, "%s ", start+offset);
+				offset=i+1;
+			}
+			i++;
+		}
+		fprintf(trace, "%s\"  ", start+offset);
+	}
 
 	fprintf(trace, ">\n");
 	gf_full_box_dump((GF_Box *)a, trace);

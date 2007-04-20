@@ -404,6 +404,12 @@ char *gf_bt_get_string(GF_BTParser *parser)
 	char *res;
 	s32 i, size;
 
+#define	BT_STR_CHECK_ALLOC	\
+		if (i==size) {		\
+			res = (char*)realloc(res, sizeof(char) * (size+500));	\
+			size += 500;	\
+		}	\
+
 	res = (char*)malloc(sizeof(char) * 500);
 	size = 500;
 	while (parser->line_buffer[parser->line_pos]==' ') parser->line_pos++;
@@ -417,10 +423,8 @@ char *gf_bt_get_string(GF_BTParser *parser)
 	while (1) {
 		if (parser->line_buffer[parser->line_pos] == '\"') 
 			if (parser->line_buffer[parser->line_pos-1] != '\\') break;
-		if (i==size) {
-			res = (char*)realloc(res, sizeof(char) * (size+500));
-			size += 500;
-		}
+
+		BT_STR_CHECK_ALLOC
 
 		if ((parser->line_buffer[parser->line_pos]=='/') && (parser->line_buffer[parser->line_pos+1]=='/') && (parser->line_buffer[parser->line_pos-1]!=':') ) {
 			/*this looks like a comment*/
@@ -437,24 +441,32 @@ char *gf_bt_get_string(GF_BTParser *parser)
 				if ( (parser->line_buffer[parser->line_pos+1] & 0xc0) != 0x80) {
 					res[i] = 0xc0 | ( (parser->line_buffer[parser->line_pos] >> 6) & 0x3 );
 					i++;
+					BT_STR_CHECK_ALLOC
 					parser->line_buffer[parser->line_pos] &= 0xbf;
 				}
 				/*UTF8 2 bytes char*/
 				else if ( (c & 0xe0) == 0xc0) {
 					res[i] = parser->line_buffer[parser->line_pos]; parser->line_pos++; i++;
+					BT_STR_CHECK_ALLOC
 				}
 				/*UTF8 3 bytes char*/
 				else if ( (c & 0xf0) == 0xe0) {
 					res[i] = parser->line_buffer[parser->line_pos]; parser->line_pos++; i++;
+					BT_STR_CHECK_ALLOC
 					res[i] = parser->line_buffer[parser->line_pos]; parser->line_pos++; i++;
+					BT_STR_CHECK_ALLOC
 				}
 				/*UTF8 4 bytes char*/
 				else if ( (c & 0xf8) == 0xf0) {
 					res[i] = parser->line_buffer[parser->line_pos]; parser->line_pos++; i++;
+					BT_STR_CHECK_ALLOC
 					res[i] = parser->line_buffer[parser->line_pos]; parser->line_pos++; i++;
+					BT_STR_CHECK_ALLOC
 					res[i] = parser->line_buffer[parser->line_pos]; parser->line_pos++; i++;
+					BT_STR_CHECK_ALLOC
 				}
 			}
+
 			res[i] = parser->line_buffer[parser->line_pos];
 			i++;
 		}
@@ -464,6 +476,9 @@ char *gf_bt_get_string(GF_BTParser *parser)
 		}
 
 	}
+
+#undef	BT_STR_CHECK_ALLOC
+
 	res[i] = 0;
 	parser->line_pos += 1;
 	return res;

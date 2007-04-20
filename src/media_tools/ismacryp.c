@@ -36,6 +36,7 @@ typedef struct
 {
 	GF_List *tcis;
 	Bool has_common_key;
+	Bool in_text_header;
 } ISMACrypInfo; 
 
 void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
@@ -45,11 +46,19 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 	u32 i;
 	ISMACrypInfo *info = (ISMACrypInfo *)sax_cbck;
 	
+	if (!strcmp(node_name, "OMATextHeader")) {
+		info->in_text_header = 1;
+		return;
+	}
 	if (!strcmp(node_name, "ISMACrypTrack") || !strcmp(node_name, "OMATrack")) {
 		GF_SAFEALLOC(tkc, GF_TrackCryptInfo);
 		gf_list_add(info->tcis, tkc);
 
-		if (!strcmp(node_name, "OMATrack")) tkc->enc_type = 1;
+		if (!strcmp(node_name, "OMATrack")) {
+			tkc->enc_type = 1;
+			/*default to AES 128 in OMA*/
+			tkc->encryption = 2;
+		}
 
 		for (i=0; i<nb_attributes; i++) {
 			att = (GF_XMLAttribute *) &attributes[i];
@@ -87,6 +96,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				}
 			}
 			else if (!stricmp(att->name, "kms_URI")) strcpy(tkc->KMS_URI, att->value);
+			else if (!stricmp(att->name, "rightsIssuerURL")) strcpy(tkc->KMS_URI, att->value);
 			else if (!stricmp(att->name, "scheme_URI")) strcpy(tkc->Scheme_URI, att->value);
 			else if (!stricmp(att->name, "selectiveType")) {
 				if (!stricmp(att->value, "Rap")) tkc->sel_enc_type = GF_ISMACRYP_SELENC_RAP;
@@ -109,8 +119,8 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			else if (!stricmp(att->name, "ipmpDescriptorID")) tkc->ipmp_desc_id = atoi(att->value);
 			else if (!stricmp(att->name, "encryptionMethod")) {
 				if (!strcmp(att->value, "AES_128_CBC")) tkc->encryption = 1;
+				else if (!strcmp(att->value, "None")) tkc->encryption = 0;
 				else if (!strcmp(att->value, "AES_128_CTR") || !strcmp(att->value, "default")) tkc->encryption = 2;
-				else  tkc->encryption = 0;
 			}
 			else if (!stricmp(att->name, "contentID")) strcpy(tkc->Scheme_URI, att->value);
 			else if (!stricmp(att->name, "rightsIssuerURL")) strcpy(tkc->KMS_URI, att->value);
@@ -123,6 +133,36 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 	}
 }
 
+void isma_ea_node_end(void *sax_cbck, const char *node_name, const char *name_space)
+{
+	ISMACrypInfo *info = (ISMACrypInfo *)sax_cbck;
+	if (!strcmp(node_name, "OMATextHeader")) {
+		info->in_text_header = 0;
+		return;
+	}
+}
+
+void isma_ea_text(void *sax_cbck, const char *text, Bool is_cdata)
+{
+	u32 len;
+	GF_TrackCryptInfo *tkc;
+	ISMACrypInfo *info = (ISMACrypInfo *)sax_cbck;
+
+	if (!info->in_text_header) return;
+
+	tkc = (GF_TrackCryptInfo *) gf_list_last(info->tcis);
+	len = strlen(text);
+	if (len+tkc->TextualHeadersLen > 5000) return;
+
+	if (tkc->TextualHeadersLen) {
+		tkc->TextualHeadersLen ++;
+		tkc->TextualHeaders[tkc->TextualHeadersLen] = 0;
+	}
+
+	memcpy(tkc->TextualHeaders + tkc->TextualHeadersLen, text, sizeof(char)*len);
+	tkc->TextualHeadersLen += len;
+	tkc->TextualHeaders[tkc->TextualHeadersLen] = 0;
+}
 
 static void del_crypt_info(ISMACrypInfo *info)
 {
@@ -142,7 +182,7 @@ static ISMACrypInfo *load_crypt_file(const char *file)
 	GF_SAXParser *sax;
 	GF_SAFEALLOC(info, ISMACrypInfo);
 	info->tcis = gf_list_new();
-	sax = gf_xml_sax_new(isma_ea_node_start, NULL, NULL, info);
+	sax = gf_xml_sax_new(isma_ea_node_start, isma_ea_node_end, isma_ea_text, info);
 	e = gf_xml_sax_parse_file(sax, file, NULL);
 	gf_xml_sax_del(sax);
 	if (e<0) {
@@ -179,7 +219,7 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 }
 
 GF_EXPORT
-Bool gf_ismacryp_mpeg4ip_get_info(u32 stream_id, char *kms_uri, char *key, char *salt)
+Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 {
 	char szPath[1024], catKey[24];
 	u32 i, x;
@@ -246,7 +286,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	GF_ISMASample *ismasamp;
 	GF_Crypt *mc;
 	unsigned char IV[17];
-	u8 IV_size;
+	u32 IV_size;
 	Bool prev_sample_encrypted;
 	GF_ESD *esd;
 
@@ -460,7 +500,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		}
 		/*MPEG4IP*/
 		else if (!stricmp(KMS_URI, "AudioKey") || !stricmp(KMS_URI, "VideoKey")) {
-			if (!gf_ismacryp_mpeg4ip_get_info(trackID, (char *) KMS_URI, tci.key, tci.salt)) {
+			if (!gf_ismacryp_mpeg4ip_get_info((char *) KMS_URI, tci.key, tci.salt)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Couldn't load MPEG4IP ISMACryp keys for TrackID %d\n", trackID));
 				continue;
 			}
@@ -594,7 +634,8 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 			strlen(tci->Scheme_URI) ? tci->Scheme_URI : NULL,
 			tci->KMS_URI, 
 			tci->encryption, BSO, 
-			strlen(tci->TextualHeaders) ? tci->TextualHeaders : NULL, 
+			tci->TextualHeadersLen ? tci->TextualHeaders : NULL, 
+			tci->TextualHeadersLen,
 			(tci->sel_enc_type!=0) ? 1 : 0, 0, IV_size);
 	}
 	if (e) return e;
@@ -804,4 +845,59 @@ GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 }
 
 #endif
+
+GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]) 
+{
+	u8 block[1024];
+	u32 read;
+	u64 size, tot;
+	FILE *in;
+	GF_BitStream *bs = NULL;
+	GF_SHA1Context ctx;
+	Bool is_isom = gf_isom_probe_file(file);
+
+	in = fopen(file, "rb");
+	gf_f64_seek(in, 0, SEEK_END);
+	size = gf_f64_tell(in);
+	gf_f64_seek(in, 0, SEEK_SET);
+
+	gf_sha1_starts(&ctx);
+	tot = 0;
+	if (is_isom) bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
+
+	while (tot<size) {
+		if (is_isom) {
+			u64 box_size = gf_bs_peek_bits(bs, 32, 0);
+			u32 box_type = gf_bs_peek_bits(bs, 32, 4);
+
+			/*till end of file*/
+			if (!box_size) box_size = size-tot;
+			/*64-bit size*/
+			else if (box_size==1) box_size = gf_bs_peek_bits(bs, 64, 8);
+
+			/*skip all MutableDRMInformation*/
+			if (box_type==GF_4CC('m','d','r','i')) {
+				gf_bs_skip_bytes(bs, box_size);
+				tot += box_size;
+			} else {
+				u32 bsize = 0;
+				while (bsize<box_size) {
+					u32 to_read = (u32) ((box_size-bsize<1024) ? (box_size-bsize) : 1024);
+					gf_bs_read_data(bs, block, to_read);
+					gf_sha1_update(&ctx, block, to_read);
+					bsize += to_read;
+				}
+				tot += box_size;
+			}
+		} else {
+			read = fread(block, 1, 1024, in);
+			gf_sha1_update(&ctx, block, read);
+			tot += read;
+		}
+	}
+	gf_sha1_finish(&ctx, hash);
+	if (bs) gf_bs_del(bs);
+	fclose(in);
+	return GF_OK;
+}
 

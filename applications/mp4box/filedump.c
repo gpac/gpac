@@ -1147,7 +1147,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 			if (msub_type == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
 				const char *scheme_URI, *KMS_URI;
 				u32 scheme_type, version;
-				u8 IV_size;
+				u32 IV_size;
 				Bool use_sel_enc;
 
 				if (gf_isom_is_ismacryp_media(file, trackNum, 1)) {
@@ -1162,13 +1162,26 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					if (IV_size) fprintf(stdout, "Initialization Vector size: %d bits\n", IV_size*8);
 				} else if (gf_isom_is_omadrm_media(file, trackNum, 1)) {
 					const char *textHdrs;
-					u8 enc_type;
+					u32 enc_type, hdr_len;
 					u64 orig_len;
 					fprintf(stdout, "\n*Encrypted stream - OMA DRM\n");
-					gf_isom_get_omadrm_info(file, trackNum, 1, NULL, &scheme_URI, &KMS_URI, &textHdrs, &orig_len, &enc_type, &use_sel_enc, &IV_size, NULL);
+					gf_isom_get_omadrm_info(file, trackNum, 1, NULL, NULL, NULL, &scheme_URI, &KMS_URI, &textHdrs, &hdr_len, &orig_len, &enc_type, &use_sel_enc, &IV_size, NULL);
 					fprintf(stdout, "Rights Issuer: %s\n", KMS_URI);
 					fprintf(stdout, "Content ID: %s\n", scheme_URI);
-					if (textHdrs) fprintf(stdout, "Extra headers: %s\n", textHdrs);
+					if (textHdrs) {
+						u32 i, offset;
+						const char *start = textHdrs;
+						fprintf(stdout, "OMA Textual Headers:\n");
+						i=offset=0;
+						while (i<hdr_len) {
+							if (start[i]==0) {
+								fprintf(stdout, "\t%s\n", start+offset);
+								offset=i+1;
+							}
+							i++;
+						}
+						fprintf(stdout, "\t%s\n", start+offset);
+					}
 					if (orig_len) fprintf(stdout, "Original media size "LLD"\n", LLD_CAST orig_len);
 					fprintf(stdout, "Encryption algorithm %s\n", (enc_type==1) ? "AEA 128 CBC" : (enc_type ? "AEA 128 CTR" : "None"));
 

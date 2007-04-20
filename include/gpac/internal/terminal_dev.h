@@ -35,8 +35,8 @@ extern "C" {
 
 #include <gpac/modules/service.h>
 #include <gpac/modules/codec.h>
+#include <gpac/modules/ipmp.h>
 #include <gpac/mediaobject.h>
-#include <gpac/crypt.h>
 #include <gpac/thread.h>
 
 typedef struct _inline_scene GF_InlineScene;
@@ -467,11 +467,9 @@ struct _es_channel
 	u32 au_duration;
 	Bool skip_sl;
 
-	/*ISMACryp stuff*/
-	GF_Crypt *crypt;
-	char key[16], salt[8];
-	u64 last_IV;
 	Bool is_protected;
+
+	GF_IPMPTool *ipmp_tool;
 
 	/*TSs as recieved from network - these are used for cache storage*/
 	u64 net_dts, net_cts;
@@ -505,8 +503,8 @@ void gf_es_map_time(GF_Channel *ch, Bool reset);
 /*dummy channels are used by scene decoders which don't use ESM but load directly the scene graph themselves
 these channels are ALWAYS pulling ones, and this function will init the channel clock if needed*/
 void gf_es_init_dummy(GF_Channel *ch);
-/*setup ISMACryp*/
-void gf_es_config_ismacryp(GF_Channel *ch, GF_NetComISMACryp *isma_cryp);
+/*setup DRM info*/
+void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *isma_cryp);
 
 /*
 		decoder stuff
@@ -619,6 +617,14 @@ enum
 	GF_ODM_NOT_IN_OD_STREAM = (1<<6),
 };
 
+enum
+{
+	GF_ODM_STATE_STOP,
+	GF_ODM_STATE_PLAY,
+	GF_ODM_STATE_IN_SETUP,
+	GF_ODM_STATE_BLOCKED,
+};
+
 struct _od_manager
 {
 	/*pointer to terminal*/
@@ -654,7 +660,7 @@ struct _od_manager
 	
 	/*number of channels with connection not yet acknowledge*/
 	u32 pending_channels;
-	Bool is_open;
+	u32 state;
 	/* during playback: timing as evaluated by the composition memory or the scene codec */
 	u32 current_time;
 	/*full object duration 0 if unknown*/

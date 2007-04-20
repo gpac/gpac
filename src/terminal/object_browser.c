@@ -144,9 +144,12 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 	info->db_unit_count = 0;
 
 	/*Warning: is_open==2 means object setup, don't check then*/
-	if (odm->is_open==2) {
+	if (odm->state==GF_ODM_STATE_IN_SETUP) {
 		info->status = 3;
-	} else if (odm->is_open) {
+	} else if (odm->state==GF_ODM_STATE_BLOCKED) {
+		info->status = 0;
+		info->protection = 2;
+	} else if (odm->state) {
 		u32 i, buf;
 		GF_Clock *ck;
 		
@@ -168,7 +171,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 					if (ch->MaxBuffer) info->buffer = 0;
 					buf += ch->BufferTime;
 				}
-				if (ch->is_protected) info->protection = ch->crypt ? 1 : 2;
+				if (ch->is_protected) info->protection = ch->ipmp_tool ? 1 : 2;
 			}
 			if (buf) info->buffer = (s32) buf;
 		}

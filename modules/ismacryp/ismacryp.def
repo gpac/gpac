@@ -1,0 +1,6 @@
+LIBRARY     gm_ismacryp.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

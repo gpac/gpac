@@ -973,6 +973,10 @@ SOURCE=..\..\include\gpac\ietf.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\gpac\modules\ipmp.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\gpac\ismacryp.h
 # End Source File
 # Begin Source File
