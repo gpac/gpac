@@ -30,6 +30,10 @@
 #include <gpac/network.h>
 #include <gpac/constants.h>
 
+// DVB Lib 
+#include "dvb.h"
+
+#define DVB_BUFFER_SIZE 3760							// DVB buffer size 188x20
 
 #define UDP_BUFFER_SIZE	0x40000
 
@@ -48,6 +52,9 @@ typedef struct
 	/*net playing*/
 	GF_Socket *sock;
 	
+	/*dvb playing*/
+	GF_Tuner *tuner;
+	
 	/*local file playing*/
 	FILE *file;
 	u32 start_range, end_range;
@@ -62,7 +69,8 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 	
 	if (!strnicmp(url, "udp://", 6) 
 		|| !strnicmp(url, "mpegts-udp://", 13) 
-		|| !strnicmp(url, "mpegts-tcp://", 13) ) {
+		|| !strnicmp(url, "mpegts-tcp://", 13) 
+		|| !strnicmp(url, "dvb://", 6) ) {
 		return 1;
 	}
 	
@@ -72,10 +80,10 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 	return 0;
 }
 
-#define REGULATE_TIME_SLOT	400
+#define REGULATE_TIME_SLOT	200
 
 /*!! FIXME - THIS IS PLAIN WRONG AND UGLY - WE NEED TO ESTIMATE THE TS BITRATE AND REGULATE BASED ON THAT !!!*/
-static void M2TS_Regulate(M2TSIn *read)
+static void M2TS_Regulate(M2TSIn *m2ts)
 {
 	u32 to_sleep;
 	GF_NetworkCommand com;
@@ -83,19 +91,19 @@ static void M2TS_Regulate(M2TSIn *read)
 	com.command_type = GF_NET_BUFFER_QUERY;
 	/*sleep untill the buffer occupancy is too low - note that this work because all streams in this
 	demuxer are synchronized*/
-	while (read->run_state) {
+	while (m2ts->run_state) {
 		/*wait for a connected channel !!*/
-		if (!read->nb_playing && read->do_regulate) {
+		if (!m2ts->nb_playing && m2ts->do_regulate) {
 			gf_sleep(50);
 		} else {
-			gf_term_on_command(read->service, &com, GF_OK);
+			gf_term_on_command(m2ts->service, &com, GF_OK);
 			if (com.buffer.occupancy < REGULATE_TIME_SLOT) {
 				//gf_sleep(1);
 				return;
 			}
 			to_sleep = com.buffer.occupancy  - REGULATE_TIME_SLOT;
-			fprintf(stdout, "MPEG-2 TS regulate: %d ms in buffers - sleeping %d ms\n", com.buffer.occupancy, to_sleep);
-			while (read->run_state && (to_sleep>REGULATE_TIME_SLOT)) {
+			//fprintf(stdout, "MPEG-2 TS regulate: %d ms in buffers - sleeping %d ms\n", com.buffer.occupancy, to_sleep);
+			while (m2ts->run_state && (to_sleep>REGULATE_TIME_SLOT)) {
 				gf_sleep(REGULATE_TIME_SLOT);
 				to_sleep -= REGULATE_TIME_SLOT;
 			}
@@ -103,7 +111,7 @@ static void M2TS_Regulate(M2TSIn *read)
 	}
 }
 
-static void MP2TS_DeclareStream(M2TSIn *read, GF_M2TS_PES *stream)
+static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream)
 {
 	GF_ObjectDescriptor *od;
 	GF_ESD *esd;
@@ -165,35 +173,46 @@ static void MP2TS_DeclareStream(M2TSIn *read, GF_M2TS_PES *stream)
 	gf_list_add(od->ESDescriptors, esd);
 	od->objectDescriptorID = stream->pid;	
 	/*declare but don't regenerate scene*/
-	gf_term_add_media(read->service, (GF_Descriptor*)od, 1);
-	read->do_regulate = 1;
+	gf_term_add_media(m2ts->service, (GF_Descriptor*)od, 1);
+	m2ts->do_regulate = 1;
 	/*wait for connection*/
 	while (!stream->user) gf_sleep(0);
 }
 
-static void MP2TS_SetupProgram(M2TSIn *read, GF_M2TS_Program *prog)
+static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog)
 {
 	u32 i, count;
+
 	count = gf_list_count(prog->streams);
+	if (m2ts->tuner) {
+		Bool found = 0;
+		for (i=0; i<count; i++) {
+			GF_M2TS_PES *pes = gf_list_get(prog->streams, i);
+			if (pes->pid==m2ts->tuner->vpid) found = 1;
+			else if (pes->pid==m2ts->tuner->apid) found = 1;
+		}
+		if (!found) return;
+	}
+	
 	for (i=0; i<count; i++) {
 		GF_M2TS_PES *pes = gf_list_get(prog->streams, i);
 		if (pes->pid==prog->pmt_pid) continue;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
-		MP2TS_DeclareStream(read, pes);
+		MP2TS_DeclareStream(m2ts, pes);
 	}
 	/*force scene regeneration*/
-	gf_term_add_media(read->service, NULL, 0);
+	gf_term_add_media(m2ts->service, NULL, 0);
 }
 
-static void MP2TS_SendPacket(M2TSIn *read, GF_M2TS_PES_PCK *pck)
+static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 {
 	GF_SLHeader slh;
 
 	if (!pck->stream->user) return;
-	
+
 
 	if (!pck->stream->program->first_dts && pck->PTS) {
-		pck->stream->program->first_dts = (pck->DTS ? pck->DTS : pck->PTS) - read->start_range * 90;
+		pck->stream->program->first_dts = (pck->DTS ? pck->DTS : pck->PTS) - m2ts->start_range * 90;
 	}
 
 	memset(&slh, 0, sizeof(GF_SLHeader));
@@ -208,53 +227,53 @@ static void MP2TS_SendPacket(M2TSIn *read, GF_M2TS_PES_PCK *pck)
 		}
 		slh.randomAccessPointFlag = (pck->flags & GF_M2TS_PES_PCK_RAP) ? 1 : 0;
 	}
-	gf_term_on_sl_packet(read->service, pck->stream->user, pck->data, pck->data_len, &slh, GF_OK);
+	gf_term_on_sl_packet(m2ts->service, pck->stream->user, pck->data, pck->data_len, &slh, GF_OK);
 }
 
-static GFINLINE void MP2TS_SendSLPacket(M2TSIn *read, GF_M2TS_SL_PCK *pck)
+static GFINLINE void MP2TS_SendSLPacket(M2TSIn *m2ts, GF_M2TS_SL_PCK *pck)
 {
-	gf_term_on_sl_packet(read->service, pck->stream->user, pck->data, pck->data_len, NULL, GF_OK);
+	gf_term_on_sl_packet(m2ts->service, pck->stream->user, pck->data, pck->data_len, NULL, GF_OK);
 }
 
 static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
-	M2TSIn *read = (M2TSIn *) ts->user;
+	M2TSIn *m2ts = (M2TSIn *) ts->user;
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_FOUND:
 		/* In case the TS has one program, wait for the PMT to send connect, in case of IOD in PMT */
-		if (gf_list_count(read->ts->programs) != 1)
-			gf_term_on_connect(read->service, NULL, GF_OK);
+		if (gf_list_count(m2ts->ts->programs) != 1)
+			gf_term_on_connect(m2ts->service, NULL, GF_OK);
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
-		if (gf_list_count(read->ts->programs) == 1)
-			gf_term_on_connect(read->service, NULL, GF_OK);
+		if (gf_list_count(m2ts->ts->programs) == 1)
+			gf_term_on_connect(m2ts->service, NULL, GF_OK);
 		
 		/*do not setup if we've been asked for a dedicated program*/
-		if (!read->program) MP2TS_SetupProgram(read, param);
+		if (!m2ts->program) MP2TS_SetupProgram(m2ts, param);
 		break;
 	case GF_M2TS_EVT_PAT_UPDATE:
 	case GF_M2TS_EVT_PMT_UPDATE:
 	case GF_M2TS_EVT_SDT_UPDATE:
 		break;
 	case GF_M2TS_EVT_SDT_FOUND:
-		if (read->program) {
+		if (m2ts->program) {
 			u32 i, count, prog_id;
-			prog_id = atoi(read->program);
+			prog_id = atoi(m2ts->program);
 			count = gf_list_count(ts->SDTs);
 			for (i=0; i<count; i++) {
 				GF_M2TS_SDT *sdt = gf_list_get(ts->SDTs, i);
-				if (!stricmp(sdt->service, read->program)) read->prog_id = sdt->service_id;
-				else if (sdt->service_id==prog_id)  read->prog_id = sdt->service_id;
+				if (!stricmp(sdt->service, m2ts->program)) m2ts->prog_id = sdt->service_id;
+				else if (sdt->service_id==prog_id)  m2ts->prog_id = sdt->service_id;
 			}
-			if (read->prog_id) {
+			if (m2ts->prog_id) {
 				GF_M2TS_Program *prog;
-				free(read->program);
-				read->program = NULL;
+				free(m2ts->program);
+				m2ts->program = NULL;
 				count = gf_list_count(ts->programs);
 				for (i=0; i<count; i++) {
 					prog = gf_list_get(ts->programs, i);
-					if (prog->number==read->prog_id) {
-						MP2TS_SetupProgram(read, prog);
+					if (prog->number==m2ts->prog_id) {
+						MP2TS_SetupProgram(m2ts, prog);
 						break;
 					}
 				}
@@ -262,10 +281,10 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 		break;
 	case GF_M2TS_EVT_PES_PCK:
-		MP2TS_SendPacket(read, param);
+		MP2TS_SendPacket(m2ts, param);
 		break;
 	case GF_M2TS_EVT_SL_PCK:
-		MP2TS_SendSLPacket(read, param);
+		MP2TS_SendSLPacket(m2ts, param);
 		break;
 	}
 }
@@ -273,23 +292,42 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 
 u32 M2TS_Run(void *_p)
 {
+	GF_Err e;
 	char data[UDP_BUFFER_SIZE];
+	char dvbts[DVB_BUFFER_SIZE];
 	u32 size, i;
-	M2TSIn *read = _p;
+	M2TSIn *m2ts = _p;
 
-	read->run_state = 1;
-	read->ts->on_event = M2TS_OnEvent;
-	gf_m2ts_reset_parsers(read->ts);
+	m2ts->run_state = 1;
+	m2ts->ts->on_event = M2TS_OnEvent;
+	gf_m2ts_reset_parsers(m2ts->ts);
 
-	if (read->sock) {
+	if (m2ts->tuner) {
+		// in case of DVB
+		while (m2ts->run_state) {
+#if 0
+			GF_Err e;
+			size = 0;
+			e = gf_dvb_receive(m2ts->tuner, dvbts, DVB_BUFFER_SIZE, &size);
+			if (!size || e != GF_OK) {
+				continue;
+			}
+			gf_m2ts_process_data(m2ts->ts, dvbts, size);
+#else
+			s32 ts_size = read(m2ts->tuner->ts_fd, dvbts, DVB_BUFFER_SIZE);
+			if (ts_size>0) gf_m2ts_process_data(m2ts->ts, dvbts, (u32) ts_size);
+#endif
+		}	
+	}
+	else if (m2ts->sock) {
 		Bool first_run, is_rtp;
 		first_run = 1;
 		is_rtp = 0;
-		while (read->run_state) {
+		while (m2ts->run_state) {
 			GF_Err e;
 			size = 0;
-			/*read chunks by chunks*/
-			e = gf_sk_receive(read->sock, data, UDP_BUFFER_SIZE, 0, &size);
+			/*m2ts chunks by chunks*/
+			e = gf_sk_receive(m2ts->sock, data, UDP_BUFFER_SIZE, 0, &size);
 			if (!size || e) {
 				gf_sleep(1);
 				continue;
@@ -304,65 +342,92 @@ u32 M2TS_Run(void *_p)
 			}
 			/*process chunk*/
 			if (is_rtp) {
-				gf_m2ts_process_data(read->ts, data+12, size-12);
+				gf_m2ts_process_data(m2ts->ts, data+12, size-12);
 			} else {
-				gf_m2ts_process_data(read->ts, data, size);
+				gf_m2ts_process_data(m2ts->ts, data, size);
 			}
 		}
 	} else {
 		u32 pos = 0;
-		if (read->start_range && read->duration) {
-			Double perc = read->start_range / (1000 * read->duration);
-			pos = (u32) (s64) (perc * read->file_size);
+		if (m2ts->start_range && m2ts->duration) {
+			Double perc = m2ts->start_range / (1000 * m2ts->duration);
+			pos = (u32) (s64) (perc * m2ts->file_size);
 			/*align to TS packet size*/
 			while (pos%188) pos++;
-			if (pos>=read->file_size) {
-				read->start_range = 0;
+			if (pos>=m2ts->file_size) {
+				m2ts->start_range = 0;
 				pos = 0;
 			}
 		}
-		fseek(read->file, pos, SEEK_SET);
-		while (read->run_state && !feof(read->file) ) {
-			/*read chunks by chunks*/
-			size = fread(data, 1, 188, read->file);
+		fseek(m2ts->file, pos, SEEK_SET);
+		while (m2ts->run_state && !feof(m2ts->file) ) {
+			/*m2ts chunks by chunks*/
+			size = fread(data, 1, 188, m2ts->file);
 			if (!size) break;
 			/*process chunk*/
-			gf_m2ts_process_data(read->ts, data, size);
+			gf_m2ts_process_data(m2ts->ts, data, size);
 		
 			/*regulate file reading*/
-			M2TS_Regulate(read);
+			M2TS_Regulate(m2ts);
 		}
 		fprintf(stdout, "\nEOS reached\n");
-		if (read->nb_playing) {
+		if (m2ts->nb_playing) {
 			for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-				GF_M2TS_PES *pes = (GF_M2TS_PES *)read->ts->ess[i];
+				GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];
 				if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
 				if (!pes->user || !pes->reframe) continue;
-				gf_term_on_sl_packet(read->service, pes->user, NULL, 0, NULL, GF_EOS);
+				gf_term_on_sl_packet(m2ts->service, pes->user, NULL, 0, NULL, GF_EOS);
 				gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 			}
 		}
 
 	}
-	read->run_state = 2;
+	m2ts->run_state = 2;
 	return 0;
 }
 
 static void M2TS_OnEventPCR(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
 	if (evt_type==GF_M2TS_EVT_PES_PCR) {
-		M2TSIn *read = ts->user;
+		M2TSIn *m2ts = ts->user;
 		GF_M2TS_PES_PCK *pck = param;
-		if (!read->nb_playing) {
-			read->nb_playing = pck->stream->pid;
-			read->end_range = (u32) (pck->PTS / 90);
-		} else if (read->nb_playing == pck->stream->pid) {
-			read->start_range = (u32) (pck->PTS / 90);
+		if (!m2ts->nb_playing) {
+			m2ts->nb_playing = pck->stream->pid;
+			m2ts->end_range = (u32) (pck->PTS / 90);
+		} else if (m2ts->nb_playing == pck->stream->pid) {
+			m2ts->start_range = (u32) (pck->PTS / 90);
 		}
 	}
 }
 
-void M2TS_SetupLive(M2TSIn *read, char *url)
+void M2TS_SetupDVB(M2TSIn *m2ts, char *url)
+{
+	GF_Err e = GF_OK;
+	char *str;
+
+	if (strnicmp(url, "dvb://", 6)) {
+		e = GF_NOT_SUPPORTED;
+		goto exit;
+	}
+	
+	if (m2ts->tuner == NULL) { 
+		m2ts->tuner = malloc(sizeof(GF_Tuner));
+	}
+
+	e = gf_dvb_tune(m2ts->tuner,url);
+	if (e) goto exit;
+
+	m2ts->th = gf_th_new();
+	/*start playing for tune-in*/
+	gf_th_run(m2ts->th, M2TS_Run, m2ts);
+
+exit:
+	if (e) {
+		gf_term_on_connect(m2ts->service, NULL, e);
+	}
+}
+
+void M2TS_SetupLive(M2TSIn *m2ts, char *url)
 {
 	GF_Err e = GF_OK;
 	char *str;
@@ -381,8 +446,8 @@ void M2TS_SetupLive(M2TSIn *read, char *url)
 	url = strchr(url, ':');
 	url += 3;
 
-	read->sock = gf_sk_new(sock_type);
-	if (!read->sock) { e = GF_IO_ERR; goto exit; }
+	m2ts->sock = gf_sk_new(sock_type);
+	if (!m2ts->sock) { e = GF_IO_ERR; goto exit; }
 
 	/*setup port and src*/
 	port = 1234;
@@ -397,153 +462,157 @@ void M2TS_SetupLive(M2TSIn *read, char *url)
 	/*do we have a source ?*/
 	if (strlen(url) && strcmp(url, "localhost") ) {
 		if (gf_sk_is_multicast_address(url)) {
-			gf_sk_setup_multicast(read->sock, url, port, 0, 0, NULL);
+			gf_sk_setup_multicast(m2ts->sock, url, port, 0, 0, NULL);
 		} else {
-			gf_sk_bind(read->sock, port, url, 0, GF_SOCK_REUSE_PORT);
+			gf_sk_bind(m2ts->sock, port, url, 0, GF_SOCK_REUSE_PORT);
 		}
 	}
 	if (str) str[0] = ':';
 
-	gf_sk_set_buffer_size(read->sock, 0, UDP_BUFFER_SIZE);
-	gf_sk_set_block_mode(read->sock, 0);
+	gf_sk_set_buffer_size(m2ts->sock, 0, UDP_BUFFER_SIZE);
+	gf_sk_set_block_mode(m2ts->sock, 0);
 
-	read->th = gf_th_new();
-	gf_th_set_priority(read->th, GF_THREAD_PRIORITY_HIGHEST);
+	m2ts->th = gf_th_new();
+	gf_th_set_priority(m2ts->th, GF_THREAD_PRIORITY_HIGHEST);
 	/*start playing for tune-in*/
-	gf_th_run(read->th, M2TS_Run, read);
+	gf_th_run(m2ts->th, M2TS_Run, m2ts);
 
 exit:
 	if (e) {
-		gf_term_on_connect(read->service, NULL, e);
+		gf_term_on_connect(m2ts->service, NULL, e);
 	}
 }
 
-void M2TS_SetupFile(M2TSIn *read, char *url)
+void M2TS_SetupFile(M2TSIn *m2ts, char *url)
 {
 #if 0
 	char data[188];
 	u32 size, fsize;
 	s32 nb_rwd;
 #endif
-	read->file = fopen(url, "rb");
-	if (!read->file) {
-		gf_term_on_connect(read->service, NULL, GF_URL_ERROR);
+	m2ts->file = fopen(url, "rb");
+	if (!m2ts->file) {
+		gf_term_on_connect(m2ts->service, NULL, GF_URL_ERROR);
 	}
 
-	fseek(read->file, 0, SEEK_END);
-	read->file_size = ftell(read->file);
+	fseek(m2ts->file, 0, SEEK_END);
+	m2ts->file_size = ftell(m2ts->file);
 	
 #if 0
 	/* 
 		estimate duration by reading the end of the file
-		read->end_range is initialized to the PTS of the last TS packet
-		read->nb_playing is initialized to the PID of the last TS packet
+		m2ts->end_range is initialized to the PTS of the last TS packet
+		m2ts->nb_playing is initialized to the PID of the last TS packet
 	*/
-	read->nb_playing = 0;
-	read->ts->on_event = M2TS_OnEventPCR;
-	read->end_range = 0;
+	m2ts->nb_playing = 0;
+	m2ts->ts->on_event = M2TS_OnEventPCR;
+	m2ts->end_range = 0;
 	nb_rwd = 1;
-	fsize = read->file_size;
+	fsize = m2ts->file_size;
 	while (fsize % 188) fsize--;
 	while (1) {
-		fseek(read->file, fsize - 188 * nb_rwd, SEEK_SET);
-		/*read chunks by chunks*/
-		size = fread(data, 1, 188, read->file);
+		fseek(m2ts->file, fsize - 188 * nb_rwd, SEEK_SET);
+		/*m2ts chunks by chunks*/
+		size = fread(data, 1, 188, m2ts->file);
 		if (!size) break;
 		/*process chunk*/
-		gf_m2ts_process_data(read->ts, data, size);
-		if (read->nb_playing) break;
+		gf_m2ts_process_data(m2ts->ts, data, size);
+		if (m2ts->nb_playing) break;
 		nb_rwd ++;
 	}
 
 	/* 
 	   reset of the file 
-	   initialization of read->start_range to the PTS of the first TS packet with PID = read->nb_playing 
+	   initialization of m2ts->start_range to the PTS of the first TS packet with PID = m2ts->nb_playing 
 	*/
-	fseek(read->file, 0, SEEK_SET);
-	gf_m2ts_reset_parsers(read->ts);
-	read->start_range = 0;
+	fseek(m2ts->file, 0, SEEK_SET);
+	gf_m2ts_reset_parsers(m2ts->ts);
+	m2ts->start_range = 0;
 	while (1) {
-		/*read chunks by chunks*/
-		size = fread(data, 1, 188, read->file);
+		/*m2ts chunks by chunks*/
+		size = fread(data, 1, 188, m2ts->file);
 		if (!size) break;
 		/*process chunk*/
-		gf_m2ts_process_data(read->ts, data, size);
-		if (read->start_range) break;
+		gf_m2ts_process_data(m2ts->ts, data, size);
+		if (m2ts->start_range) break;
 	}
-	read->duration = (read->end_range - read->start_range) / 300000.0;
-	gf_m2ts_demux_del(read->ts);
+	m2ts->duration = (m2ts->end_range - m2ts->start_range) / 300000.0;
+	gf_m2ts_demux_del(m2ts->ts);
 
 	/* Creation of the real demuxer for playback */
-	read->ts = gf_m2ts_demux_new();
-	read->ts->user = read;
+	m2ts->ts = gf_m2ts_demux_new();
+	m2ts->ts->user = m2ts;
 #endif
 
 	/* reinitialization for seek */
-	read->end_range = read->start_range = 0;
-	read->nb_playing = 0;
+	m2ts->end_range = m2ts->start_range = 0;
+	m2ts->nb_playing = 0;
 
-	read->th = gf_th_new();
+	m2ts->th = gf_th_new();
 	/*start playing for tune-in*/
-	gf_th_run(read->th, M2TS_Run, read);
+	gf_th_run(m2ts->th, M2TS_Run, m2ts);
 }
 
 static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	char szURL[2048];
 	char *ext;
-	M2TSIn *read = plug->priv;
-	read->service = serv;
+	M2TSIn *m2ts = plug->priv;
+	m2ts->service = serv;
 
-	if (read->program) free(read->program);
-	read->program = NULL;
-	read->prog_id = 0;
+	if (m2ts->program) free(m2ts->program);
+	m2ts->program = NULL;
+	m2ts->prog_id = 0;
 	strcpy(szURL, url);
 	ext = strrchr(szURL, '#');
 	if (ext) {
-		read->program = strdup(ext+1);
+		m2ts->program = strdup(ext+1);
 		ext[0] = 0;
 	}
 
-	read->do_regulate = 0;
-	read->duration = 0;
+	m2ts->do_regulate = 0;
+	m2ts->duration = 0;
 
 	if (strstr(url, "udp://") || strstr(url, "tcp://") ) {
-		M2TS_SetupLive(read, (char *) szURL);
-	} else {
-		M2TS_SetupFile(read, (char *) szURL);
+		M2TS_SetupLive(m2ts, (char *) szURL);
+	} else if (strstr(url, "dvb://")) {
+		// DVB Setup
+		M2TS_SetupDVB(m2ts, (char *) szURL);
+		}
+		else {
+		M2TS_SetupFile(m2ts, (char *) szURL);
 	}
 	return GF_OK;
 }
 
 static GF_Err M2TS_CloseService(GF_InputService *plug)
 {
-	M2TSIn *read = plug->priv;
+	M2TSIn *m2ts = plug->priv;
 
-	if (read->th) {
-		if (read->run_state == 1) {
-			read->run_state = 0;
-			while (read->run_state!=2) gf_sleep(0);
+	if (m2ts->th) {
+		if (m2ts->run_state == 1) {
+			m2ts->run_state = 0;
+			while (m2ts->run_state!=2) gf_sleep(0);
 		}
-		gf_th_del(read->th);
-		read->th = NULL;
+		gf_th_del(m2ts->th);
+		m2ts->th = NULL;
 	}
 
-	if (read->file) fclose(read->file);
-	read->file = NULL;
-	gf_term_on_disconnect(read->service, NULL, GF_OK);
+	if (m2ts->file) fclose(m2ts->file);
+	m2ts->file = NULL;
+	gf_term_on_disconnect(m2ts->service, NULL, GF_OK);
 	return GF_OK;
 }
 
 static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
 	u32 i=0;
-	M2TSIn *read = plug->priv;
+	M2TSIn *m2ts = plug->priv;
 	GF_Descriptor *desc;
-	if (gf_list_count(read->ts->programs) == 1) {
-		GF_M2TS_Program *prog = gf_list_get(read->ts->programs, 0);
+	if (gf_list_count(m2ts->ts->programs) == 1) {
+		GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, 0);
 		if (prog->pmt_iod) {
-			read->do_regulate = 1;
+			m2ts->do_regulate = 1;
 			gf_odf_desc_copy((GF_Descriptor *)prog->pmt_iod, &desc);
 			return desc;
 		}
@@ -558,29 +627,29 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 {
 	u32 ES_ID;
 	GF_Err e;
-	M2TSIn *read = plug->priv;
+	M2TSIn *m2ts = plug->priv;
 
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
 		sscanf(url, "ES_ID=%d", &ES_ID);
-
+		
 		/* In case there is a real IOD, we need to translate PID into ESID */
-		if (gf_list_count(read->ts->programs) == 1) {
-			GF_M2TS_Program *prog = gf_list_get(read->ts->programs, 0);
+		if (gf_list_count(m2ts->ts->programs) == 1) {
+			GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, 0);
 			if (prog->pmt_iod) {
 				u32 i;
 				for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-					GF_M2TS_PES *pes = (GF_M2TS_PES *)read->ts->ess[i];
+					GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];
 					if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
 					if (pes->mpeg4_es_id == ES_ID) {
 						if (pes->user) {
 							e = GF_SERVICE_ERROR;
-							gf_term_on_connect(read->service, channel, e);
+							gf_term_on_connect(m2ts->service, channel, e);
 							return e;
 						} else {
 							pes->user = channel;
 							e = GF_OK;
-							gf_term_on_connect(read->service, channel, e);
+							gf_term_on_connect(m2ts->service, channel, e);
 							return e;
 						}
 					}
@@ -588,8 +657,8 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 			}
 		} 
 
-		if ((ES_ID<GF_M2TS_MAX_STREAMS) && read->ts->ess[ES_ID]) {
-			GF_M2TS_PES *pes = (GF_M2TS_PES *)read->ts->ess[ES_ID];
+		if ((ES_ID<GF_M2TS_MAX_STREAMS) && m2ts->ts->ess[ES_ID]) {
+			GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[ES_ID];
 			if (pes->user) e = GF_SERVICE_ERROR;
 			else {
 				pes->user = channel;
@@ -597,15 +666,15 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 			}
 		}
 	}
-	gf_term_on_connect(read->service, channel, e);
+	gf_term_on_connect(m2ts->service, channel, e);
 	return e;
 }
 
-static GF_M2TS_PES *M2TS_GetChannel(M2TSIn *read, LPNETCHANNEL channel)
+static GF_M2TS_PES *M2TS_GetChannel(M2TSIn *m2ts, LPNETCHANNEL channel)
 {
 	u32 i;
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-		GF_M2TS_PES *pes = (GF_M2TS_PES *)read->ts->ess[i];
+		GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];
 		if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
 		if (pes->user == channel) return pes;
 	}
@@ -613,21 +682,21 @@ static GF_M2TS_PES *M2TS_GetChannel(M2TSIn *read, LPNETCHANNEL channel)
 }
 static GF_Err M2TS_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	M2TSIn *read = plug->priv;
+	M2TSIn *m2ts = plug->priv;
 	GF_Err e = GF_STREAM_NOT_FOUND;
-	GF_M2TS_PES *pes = M2TS_GetChannel(read, channel);
+	GF_M2TS_PES *pes = M2TS_GetChannel(m2ts, channel);
 	if (pes) {
 		pes->user = NULL;
 		e = GF_OK;
 	}
-	gf_term_on_disconnect(read->service, channel, e);
+	gf_term_on_disconnect(m2ts->service, channel, e);
 	return GF_OK;
 }
 
 static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	GF_M2TS_PES *pes;
-	M2TSIn *read = plug->priv;
+	M2TSIn *m2ts = plug->priv;
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 	switch (com->command_type) {
@@ -642,34 +711,35 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		com->buffer.min = 0;
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
-		com->duration.duration = read->duration;
+		com->duration.duration = m2ts->duration;
 		return GF_OK;
 	case GF_NET_CHAN_PLAY:
-		pes = M2TS_GetChannel(read, com->base.on_channel);
+		pes = M2TS_GetChannel(m2ts, com->base.on_channel);
 		if (!pes) return GF_STREAM_NOT_FOUND;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
 		/*this is a multplex, only trigger the play command for the first stream activated*/
-		if (!read->nb_playing) {
-			read->start_range = (u32) (com->play.start_range*1000);
-			read->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
+		if (!m2ts->nb_playing) {
+			m2ts->start_range = (u32) (com->play.start_range*1000);
+			m2ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
 			/*start demuxer*/
-			if (read->run_state!=1) {
-				gf_th_run(read->th, M2TS_Run, read);
+			if (m2ts->run_state!=1) {
+				gf_th_run(m2ts->th, M2TS_Run, m2ts);
 			}
 		}
-		read->nb_playing++;
+		m2ts->nb_playing++;
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
-		pes = M2TS_GetChannel(read, com->base.on_channel);
+		pes = M2TS_GetChannel(m2ts, com->base.on_channel);
 		if (!pes) return GF_STREAM_NOT_FOUND;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
-
-		assert(read->nb_playing);
-		read->nb_playing--;
+		/*FIXME HOORIBLE HACK*/
+		return GF_OK;
+		assert(m2ts->nb_playing);
+		m2ts->nb_playing--;
 		/*stop demuxer*/
-		if (!read->nb_playing && (read->run_state==1)) {
-			read->run_state=0;
-			while (read->run_state!=2) gf_sleep(2);
+		if (!m2ts->nb_playing && (m2ts->run_state==1)) {
+			m2ts->run_state=0;
+			while (m2ts->run_state!=2) gf_sleep(2);
 		}
 		return GF_OK;
 	default:
@@ -705,9 +775,9 @@ GF_InputService *NewM2TSReader()
 void DeleteM2TSReader(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
-	M2TSIn *read = plug->priv;
-	gf_m2ts_demux_del(read->ts);
-	free(read);
+	M2TSIn *m2ts = plug->priv;
+	gf_m2ts_demux_del(m2ts->ts);
+	free(m2ts);
 	free(plug);
 }
 
@@ -733,4 +803,167 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	switch (ifce->InterfaceType) {
 	case GF_NET_CLIENT_INTERFACE:  DeleteM2TSReader(ifce); break;
 	}
+}
+
+static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url) {
+	struct dmx_pes_filter_params pesFilterParams;
+    struct dvb_frontend_parameters frp;
+    int demux1, front1;
+    FILE *chanfile;
+    char line[255], chan_name_t[255];
+	char freq_str[255], inv[255], bw[255], lcr[255], hier[255], cr[255], mod[255], transm[255], gi[255], apid_str[255], vpid_str[255];
+    const char *chan_path = "/home/lefeuvre/channels.conf";
+    const char *chan_conf = ":%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:";
+    char *chan_name;
+	
+    if((chanfile=fopen(chan_path, "r"))==NULL) {
+		return GF_BAD_PARAM;
+	}
+	chan_name=url+6;
+	while(!feof(chanfile)) {
+		if ( fgets(line, 255, chanfile) != NULL) {
+			strncpy(chan_name_t, line, index(line, ':')-line); 
+			if (strncmp(chan_name,chan_name_t,strlen(chan_name))==0) {
+				sscanf(strstr(line,":"), chan_conf, freq_str, inv, bw, lcr, cr, mod, transm, gi, hier, apid_str, vpid_str);
+				tuner->freq = (uint32_t) atoi(freq_str);
+				tuner->apid = (uint16_t) atoi(apid_str);
+				tuner->vpid = (uint16_t) atoi(vpid_str);
+//				Inversion
+				if(! strcmp(inv, "INVERSION_ON"))
+					tuner->specInv = INVERSION_ON;
+				else if(! strcmp(inv, "INVERSION_OFF"))
+					tuner->specInv = INVERSION_OFF;
+				else
+					tuner->specInv = INVERSION_AUTO;
+//				LP Code Rate
+				if(! strcmp(lcr, "FEC_1_2"))
+					tuner->LP_CodeRate =FEC_1_2;
+				else if(! strcmp(lcr, "FEC_2_3"))
+					tuner->LP_CodeRate =FEC_2_3;
+				else if(! strcmp(lcr, "FEC_3_4"))
+					tuner->LP_CodeRate =FEC_3_4;
+				else if(! strcmp(lcr, "FEC_4_5"))
+					tuner->LP_CodeRate =FEC_4_5;
+				else if(! strcmp(lcr, "FEC_6_7"))
+					tuner->LP_CodeRate =FEC_6_7;
+				else if(! strcmp(lcr, "FEC_8_9"))
+					tuner->LP_CodeRate =FEC_8_9;
+				else if(! strcmp(lcr, "FEC_5_6"))
+					tuner->LP_CodeRate =FEC_5_6;
+				else if(! strcmp(lcr, "FEC_7_8"))
+					tuner->LP_CodeRate =FEC_7_8;
+				else if(! strcmp(lcr, "FEC_NONE"))
+					tuner->LP_CodeRate =FEC_NONE;
+				else tuner->LP_CodeRate =FEC_AUTO;
+//				HP Code Rate	
+				if(! strcmp(cr, "FEC_1_2"))
+					tuner->HP_CodeRate =FEC_1_2;
+				else if(! strcmp(cr, "FEC_2_3"))
+					tuner->HP_CodeRate =FEC_2_3;
+				else if(! strcmp(cr, "FEC_3_4"))
+					tuner->HP_CodeRate =FEC_3_4;
+				else if(! strcmp(cr, "FEC_4_5"))
+					tuner->HP_CodeRate =FEC_4_5;
+				else if(! strcmp(cr, "FEC_6_7"))
+					tuner->HP_CodeRate =FEC_6_7;
+				else if(! strcmp(cr, "FEC_8_9"))
+					tuner->HP_CodeRate =FEC_8_9;
+				else if(! strcmp(cr, "FEC_5_6"))
+					tuner->HP_CodeRate =FEC_5_6;
+				else if(! strcmp(cr, "FEC_7_8"))
+					tuner->HP_CodeRate =FEC_7_8;
+				else if(! strcmp(cr, "FEC_NONE"))
+					tuner->HP_CodeRate =FEC_NONE;
+				else tuner->HP_CodeRate =FEC_AUTO;
+//				Modulation			
+				if(! strcmp(mod, "QAM_128"))
+					tuner->modulation = QAM_128;
+				else if(! strcmp(mod, "QAM_256"))
+					tuner->modulation = QAM_256;
+				else if(! strcmp(mod, "QAM_64"))
+					tuner->modulation = QAM_64;
+				else if(! strcmp(mod, "QAM_32"))
+					tuner->modulation = QAM_32;
+				else if(! strcmp(mod, "QAM_16"))
+					tuner->modulation = QAM_16;
+//				Bandwidth				
+				if(! strcmp(bw, "BANDWIDTH_6_MHZ"))
+					tuner->bandwidth = BANDWIDTH_6_MHZ;
+				else if(! strcmp(bw, "BANDWIDTH_7_MHZ"))
+					tuner->bandwidth = BANDWIDTH_7_MHZ;
+				else if(! strcmp(bw, "BANDWIDTH_8_MHZ"))
+					tuner->bandwidth = BANDWIDTH_8_MHZ;
+//				Transmission Mode
+				if(! strcmp(transm, "TRANSMISSION_MODE_2K"))
+					tuner->TransmissionMode = TRANSMISSION_MODE_2K;
+				else if(! strcmp(transm, "TRANSMISSION_MODE_8K"))
+					tuner->TransmissionMode = TRANSMISSION_MODE_8K;
+//				Guard Interval
+				if(! strcmp(gi, "GUARD_INTERVAL_1_32"))
+					tuner->guardInterval = GUARD_INTERVAL_1_32;
+				else if(! strcmp(gi, "GUARD_INTERVAL_1_16"))
+					tuner->guardInterval = GUARD_INTERVAL_1_16;
+				else if(! strcmp(gi, "GUARD_INTERVAL_1_8"))
+					tuner->guardInterval = GUARD_INTERVAL_1_8;
+				else tuner->guardInterval = GUARD_INTERVAL_1_4;
+//				Hierarchy			
+				if(! strcmp(hier, "HIERARCHY_1"))
+					tuner->hierarchy = HIERARCHY_1;
+				else if(! strcmp(hier, "HIERARCHY_2"))
+					tuner->hierarchy = HIERARCHY_2;
+				else if(! strcmp(hier, "HIERARCHY_4"))
+					tuner->hierarchy = HIERARCHY_4;				
+				else if(! strcmp(hier, "HIERARCHY_AUTO"))
+					tuner->hierarchy = HIERARCHY_AUTO;
+				else tuner->hierarchy = HIERARCHY_NONE;
+				
+				break;
+			}
+		}
+	}
+    fclose(chanfile);
+        
+    // Open frontend
+    if((front1 = open(FRONT,O_RDWR)) < 0){
+    	return GF_IO_ERR;
+    }
+    // Open demuxes
+    if ((demux1=open(DMX, O_RDWR|O_NONBLOCK)) < 0){
+        return GF_IO_ERR;
+    }
+	// Set FrontendParameters - DVB-T
+    frp.frequency = tuner->freq;
+	frp.inversion = tuner->specInv;
+	frp.u.ofdm.bandwidth = tuner->bandwidth;
+	frp.u.ofdm.code_rate_HP = tuner->HP_CodeRate;
+	frp.u.ofdm.code_rate_LP = tuner->LP_CodeRate;
+	frp.u.ofdm.constellation = tuner->modulation;
+	frp.u.ofdm.transmission_mode = tuner->TransmissionMode;
+	frp.u.ofdm.guard_interval = tuner->guardInterval;
+	frp.u.ofdm.hierarchy_information = tuner->hierarchy;
+    // Set frontend
+    if (ioctl(front1, FE_SET_FRONTEND, &frp) < 0){
+   		return GF_IO_ERR;
+	}
+	// Set dumex
+	pesFilterParams.pid      = 0x2000;				// Linux-DVB API take PID=2000 for FULL/RAW TS flag
+	pesFilterParams.input    = DMX_IN_FRONTEND;
+	pesFilterParams.output   = DMX_OUT_TS_TAP;
+	pesFilterParams.pes_type = DMX_PES_OTHER;
+	pesFilterParams.flags    = DMX_IMMEDIATE_START;
+	if (ioctl(demux1, DMX_SET_PES_FILTER, &pesFilterParams) < 0){
+  		return GF_IO_ERR;
+	}
+	if ((tuner->ts_fd = open(DVR, O_RDONLY/*|O_NONBLOCK*/)) < 0){
+        return GF_IO_ERR;
+  	}	
+	return GF_OK;
+}
+
+static GF_Err gf_dvb_receive(GF_Tuner *tuner, char *buffer, u32 length, u32 *readsize) {
+
+	int tsize = read(tuner->ts_fd, buffer, length);
+   	if (tsize<0) return GF_IO_ERR;
+   	*readsize = tsize;
+  	return GF_OK;
 }
