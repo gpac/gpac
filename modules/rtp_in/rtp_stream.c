@@ -49,12 +49,12 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 	if (ch->depacketizer->flags & GF_RTP_HAS_ISMACRYP) {
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.on_channel = ch->channel;
-		com.command_type = GF_NET_CHAN_ISMACRYP_CFG;
-		com.isma_cryp.scheme_type = ch->depacketizer->isma_scheme;
-		com.isma_cryp.scheme_version = 1;
+		com.command_type = GF_NET_CHAN_DRM_CFG;
+		com.drm_cfg.scheme_type = ch->depacketizer->isma_scheme;
+		com.drm_cfg.scheme_version = 1;
 		/*not transported in SDP!!!*/
-		com.isma_cryp.scheme_uri = NULL;
-		com.isma_cryp.kms_uri = ch->depacketizer->key;
+		com.drm_cfg.scheme_uri = NULL;
+		com.drm_cfg.kms_uri = ch->depacketizer->key;
 		gf_term_on_command(ch->owner->service, &com, GF_OK);
 	}
 }
