@@ -38,7 +38,7 @@ endif
 
 
 ## libgpac objects gathering: src/mcrypt
-LIBGPAC_MCRYPT=mcrypt/cbc.o mcrypt/cfb.o mcrypt/ctr.o mcrypt/des.o mcrypt/ecb.o mcrypt/g_crypt.o mcrypt/ncfb.o mcrypt/nofb.o mcrypt/ofb.o mcrypt/rijndael-128.o mcrypt/rijndael-192.o mcrypt/rijndael-256.o mcrypt/stream.o mcrypt/tripledes.o 
+LIBGPAC_MCRYPT=mcrypt/cbc.o mcrypt/cfb.o mcrypt/ctr.o mcrypt/des.o mcrypt/ecb.o mcrypt/g_crypt.o mcrypt/ncfb.o mcrypt/nofb.o mcrypt/ofb.o mcrypt/rijndael-128.o mcrypt/rijndael-192.o mcrypt/rijndael-256.o mcrypt/stream.o mcrypt/tripledes.o mcrypt/sha1.o 
 
 ## libgpac objects gathering: src/media tools
 LIBGPAC_MEDIATOOLS=media_tools/av_parsers.o media_tools/avilib.o media_tools/gpac_ogg.o media_tools/ismacryp.o media_tools/isom_hinter.o media_tools/isom_tools.o media_tools/media_export.o media_tools/media_import.o media_tools/mpeg2_ps.o media_tools/text_import.o media_tools/saf.o media_tools/mpegts.o media_tools/vobsub.o
