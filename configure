@@ -65,6 +65,7 @@ use_memory_tracking="no"
 has_opengl="no"
 has_ssl="no"
 has_ipv6="no"
+has_dvb4linux="no"
 has_openjpeg="no"
 gprof_build="no"
 
@@ -767,6 +768,20 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_ipv6="yes"
 fi
 
+# look for DVB4linux
+cat > $TMPC << EOF
+#include <linux/dvb/dmx.h>
+#include <linux/dvb/frontend.h>
+int main( void ) {
+}
+EOF
+
+if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+has_dvb4linux="yes"
+fi
+
+
+
 
 
 for opt do
@@ -1059,6 +1074,10 @@ echo "OpenSSL support: $has_ssl"
 if test "$win32" = "yes" ; then
 echo "DirectX Support: $has_mingw_directx"
 fi
+if test "$linux" = "yes" ; then
+echo "DVB Support: $has_dvb4linux"
+fi
+
 
 if test "$wx_too_old" = "yes" ; then
 has_wx="no"
@@ -1278,6 +1297,9 @@ echo "XML2_LFLAGS=$xml2_lflags" >> config.mak
 fi
 
 echo "MOZILLA_DIR=$moz_path" >> config.mak
+
+echo "LINUX_DVB=$has_dvb4linux" >> config.mak
+
 
 
 if test "$has_oss_audio" != "no"; then

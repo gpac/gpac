@@ -30,10 +30,38 @@
 #include <gpac/network.h>
 #include <gpac/constants.h>
 
-// DVB Lib 
-#include "dvb.h"
+#ifdef GPAC_HAS_LINUX_DVB
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <linux/dvb/dmx.h>
+#include <linux/dvb/frontend.h>
+
+// DVB devices definition
+// TODO: using adapter0/..0 by default; multi-frontend to be done
+#define DMX   "/dev/dvb/adapter0/demux0"
+#define FRONT "/dev/dvb/adapter0/frontend0"
+#define DVR   "/dev/dvb/adapter0/dvr0"
+
+typedef struct {
+	u32 freq;
+	u16 vpid;
+	u16 apid; 
+    fe_spectral_inversion_t specInv;
+    fe_modulation_t modulation;
+    fe_bandwidth_t bandwidth;
+    fe_transmit_mode_t TransmissionMode;
+    fe_guard_interval_t guardInterval;
+    fe_code_rate_t HP_CodeRate;
+    fe_code_rate_t LP_CodeRate;
+    fe_hierarchy_t hierarchy;
+    
+    int ts_fd;
+} GF_Tuner;
 
 #define DVB_BUFFER_SIZE 3760							// DVB buffer size 188x20
+
+#endif
 
 #define UDP_BUFFER_SIZE	0x40000
 
@@ -52,9 +80,10 @@ typedef struct
 	/*net playing*/
 	GF_Socket *sock;
 	
+#ifdef GPAC_HAS_LINUX_DVB
 	/*dvb playing*/
 	GF_Tuner *tuner;
-	
+#endif	
 	/*local file playing*/
 	FILE *file;
 	u32 start_range, end_range;
@@ -63,6 +92,131 @@ typedef struct
 	u32 nb_playing;
 } M2TSIn;
 
+
+
+#ifdef GPAC_HAS_LINUX_DVB
+
+static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
+	struct dmx_pes_filter_params pesFilterParams;
+    struct dvb_frontend_parameters frp;
+    int demux1, front1;
+    FILE *chanfile;
+    char line[255], chan_name_t[255];
+	char freq_str[255], inv[255], bw[255], lcr[255], hier[255], cr[255], mod[255], transm[255], gi[255], apid_str[255], vpid_str[255];
+    const char *chan_conf = ":%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:";
+    char *chan_name;
+	
+    if((chanfile=fopen(chan_path, "r"))==NULL) {
+		return GF_BAD_PARAM;
+	}
+	chan_name=url+6;
+	while(!feof(chanfile)) {
+		if ( fgets(line, 255, chanfile) != NULL) {
+			if (line[0]=='#') continue;
+			if (line[0]=='\r') continue;
+			if (line[0]=='\n') continue;
+
+			strncpy(chan_name_t, line, index(line, ':')-line); 
+			if (strncmp(chan_name,chan_name_t,strlen(chan_name))==0) {
+				sscanf(strstr(line,":"), chan_conf, freq_str, inv, bw, lcr, cr, mod, transm, gi, hier, apid_str, vpid_str);
+				tuner->freq = (uint32_t) atoi(freq_str);
+				tuner->apid = (uint16_t) atoi(apid_str);
+				tuner->vpid = (uint16_t) atoi(vpid_str);
+				//Inversion
+				if(! strcmp(inv, "INVERSION_ON")) tuner->specInv = INVERSION_ON;
+				else if(! strcmp(inv, "INVERSION_OFF")) tuner->specInv = INVERSION_OFF;
+				else tuner->specInv = INVERSION_AUTO;
+				//LP Code Rate
+				if(! strcmp(lcr, "FEC_1_2")) tuner->LP_CodeRate =FEC_1_2;
+				else if(! strcmp(lcr, "FEC_2_3")) tuner->LP_CodeRate =FEC_2_3;
+				else if(! strcmp(lcr, "FEC_3_4")) tuner->LP_CodeRate =FEC_3_4;
+				else if(! strcmp(lcr, "FEC_4_5")) tuner->LP_CodeRate =FEC_4_5;
+				else if(! strcmp(lcr, "FEC_6_7")) tuner->LP_CodeRate =FEC_6_7;
+				else if(! strcmp(lcr, "FEC_8_9")) tuner->LP_CodeRate =FEC_8_9;
+				else if(! strcmp(lcr, "FEC_5_6")) tuner->LP_CodeRate =FEC_5_6;
+				else if(! strcmp(lcr, "FEC_7_8")) tuner->LP_CodeRate =FEC_7_8;
+				else if(! strcmp(lcr, "FEC_NONE")) tuner->LP_CodeRate =FEC_NONE;
+				else tuner->LP_CodeRate =FEC_AUTO;
+				//HP Code Rate
+				if(! strcmp(cr, "FEC_1_2")) tuner->HP_CodeRate =FEC_1_2;
+				else if(! strcmp(cr, "FEC_2_3")) tuner->HP_CodeRate =FEC_2_3;
+				else if(! strcmp(cr, "FEC_3_4")) tuner->HP_CodeRate =FEC_3_4;
+				else if(! strcmp(cr, "FEC_4_5")) tuner->HP_CodeRate =FEC_4_5;
+				else if(! strcmp(cr, "FEC_6_7")) tuner->HP_CodeRate =FEC_6_7;
+				else if(! strcmp(cr, "FEC_8_9")) tuner->HP_CodeRate =FEC_8_9;
+				else if(! strcmp(cr, "FEC_5_6")) tuner->HP_CodeRate =FEC_5_6;
+				else if(! strcmp(cr, "FEC_7_8")) tuner->HP_CodeRate =FEC_7_8;
+				else if(! strcmp(cr, "FEC_NONE")) tuner->HP_CodeRate =FEC_NONE;
+				else tuner->HP_CodeRate =FEC_AUTO;
+				//Modulation			
+				if(! strcmp(mod, "QAM_128")) tuner->modulation = QAM_128;
+				else if(! strcmp(mod, "QAM_256")) tuner->modulation = QAM_256;
+				else if(! strcmp(mod, "QAM_64")) tuner->modulation = QAM_64;
+				else if(! strcmp(mod, "QAM_32")) tuner->modulation = QAM_32;
+				else if(! strcmp(mod, "QAM_16")) tuner->modulation = QAM_16;
+				//Bandwidth				
+				if(! strcmp(bw, "BANDWIDTH_6_MHZ")) tuner->bandwidth = BANDWIDTH_6_MHZ;
+				else if(! strcmp(bw, "BANDWIDTH_7_MHZ")) tuner->bandwidth = BANDWIDTH_7_MHZ;
+				else if(! strcmp(bw, "BANDWIDTH_8_MHZ")) tuner->bandwidth = BANDWIDTH_8_MHZ;
+				//Transmission Mode
+				if(! strcmp(transm, "TRANSMISSION_MODE_2K")) tuner->TransmissionMode = TRANSMISSION_MODE_2K;
+				else if(! strcmp(transm, "TRANSMISSION_MODE_8K")) tuner->TransmissionMode = TRANSMISSION_MODE_8K;
+				//Guard Interval
+				if(! strcmp(gi, "GUARD_INTERVAL_1_32")) tuner->guardInterval = GUARD_INTERVAL_1_32;
+				else if(! strcmp(gi, "GUARD_INTERVAL_1_16")) tuner->guardInterval = GUARD_INTERVAL_1_16;
+				else if(! strcmp(gi, "GUARD_INTERVAL_1_8")) tuner->guardInterval = GUARD_INTERVAL_1_8;
+				else tuner->guardInterval = GUARD_INTERVAL_1_4;
+				//Hierarchy			
+				if(! strcmp(hier, "HIERARCHY_1")) tuner->hierarchy = HIERARCHY_1;
+				else if(! strcmp(hier, "HIERARCHY_2")) tuner->hierarchy = HIERARCHY_2;
+				else if(! strcmp(hier, "HIERARCHY_4")) tuner->hierarchy = HIERARCHY_4;				
+				else if(! strcmp(hier, "HIERARCHY_AUTO")) tuner->hierarchy = HIERARCHY_AUTO;
+				else tuner->hierarchy = HIERARCHY_NONE;
+				
+				break;
+			}
+		}
+	}
+    fclose(chanfile);
+        
+    // Open frontend
+    if((front1 = open(FRONT,O_RDWR)) < 0){
+    	return GF_IO_ERR;
+    }
+    // Open demuxes
+    if ((demux1=open(DMX, O_RDWR|O_NONBLOCK)) < 0){
+        return GF_IO_ERR;
+    }
+	// Set FrontendParameters - DVB-T
+    frp.frequency = tuner->freq;
+	frp.inversion = tuner->specInv;
+	frp.u.ofdm.bandwidth = tuner->bandwidth;
+	frp.u.ofdm.code_rate_HP = tuner->HP_CodeRate;
+	frp.u.ofdm.code_rate_LP = tuner->LP_CodeRate;
+	frp.u.ofdm.constellation = tuner->modulation;
+	frp.u.ofdm.transmission_mode = tuner->TransmissionMode;
+	frp.u.ofdm.guard_interval = tuner->guardInterval;
+	frp.u.ofdm.hierarchy_information = tuner->hierarchy;
+    // Set frontend
+    if (ioctl(front1, FE_SET_FRONTEND, &frp) < 0){
+   		return GF_IO_ERR;
+	}
+	// Set dumex
+	pesFilterParams.pid      = 0x2000;				// Linux-DVB API take PID=2000 for FULL/RAW TS flag
+	pesFilterParams.input    = DMX_IN_FRONTEND;
+	pesFilterParams.output   = DMX_OUT_TS_TAP;
+	pesFilterParams.pes_type = DMX_PES_OTHER;
+	pesFilterParams.flags    = DMX_IMMEDIATE_START;
+	if (ioctl(demux1, DMX_SET_PES_FILTER, &pesFilterParams) < 0){
+  		return GF_IO_ERR;
+	}
+	if ((tuner->ts_fd = open(DVR, O_RDONLY/*|O_NONBLOCK*/)) < 0){
+	        return GF_IO_ERR;
+  	}	
+	return GF_OK;
+}
+#endif
+
 static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
@@ -70,7 +224,10 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 	if (!strnicmp(url, "udp://", 6) 
 		|| !strnicmp(url, "mpegts-udp://", 13) 
 		|| !strnicmp(url, "mpegts-tcp://", 13) 
-		|| !strnicmp(url, "dvb://", 6) ) {
+#ifdef GPAC_HAS_LINUX_DVB
+		|| !strnicmp(url, "dvb://", 6) 
+#endif
+	) {
 		return 1;
 	}
 	
@@ -184,6 +341,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog)
 	u32 i, count;
 
 	count = gf_list_count(prog->streams);
+#ifdef GPAC_HAS_LINUX_DVB
 	if (m2ts->tuner) {
 		Bool found = 0;
 		for (i=0; i<count; i++) {
@@ -193,7 +351,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog)
 		}
 		if (!found) return;
 	}
-	
+#endif	
 	for (i=0; i<count; i++) {
 		GF_M2TS_PES *pes = gf_list_get(prog->streams, i);
 		if (pes->pid==prog->pmt_pid) continue;
@@ -294,7 +452,9 @@ u32 M2TS_Run(void *_p)
 {
 	GF_Err e;
 	char data[UDP_BUFFER_SIZE];
+#ifdef GPAC_HAS_LINUX_DVB
 	char dvbts[DVB_BUFFER_SIZE];
+#endif
 	u32 size, i;
 	M2TSIn *m2ts = _p;
 
@@ -302,24 +462,16 @@ u32 M2TS_Run(void *_p)
 	m2ts->ts->on_event = M2TS_OnEvent;
 	gf_m2ts_reset_parsers(m2ts->ts);
 
+#ifdef GPAC_HAS_LINUX_DVB
 	if (m2ts->tuner) {
 		// in case of DVB
 		while (m2ts->run_state) {
-#if 0
-			GF_Err e;
-			size = 0;
-			e = gf_dvb_receive(m2ts->tuner, dvbts, DVB_BUFFER_SIZE, &size);
-			if (!size || e != GF_OK) {
-				continue;
-			}
-			gf_m2ts_process_data(m2ts->ts, dvbts, size);
-#else
 			s32 ts_size = read(m2ts->tuner->ts_fd, dvbts, DVB_BUFFER_SIZE);
 			if (ts_size>0) gf_m2ts_process_data(m2ts->ts, dvbts, (u32) ts_size);
-#endif
 		}	
-	}
-	else if (m2ts->sock) {
+	} else
+#endif
+	 if (m2ts->sock) {
 		Bool first_run, is_rtp;
 		first_run = 1;
 		is_rtp = 0;
@@ -400,13 +552,21 @@ static void M2TS_OnEventPCR(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	}
 }
 
-void M2TS_SetupDVB(M2TSIn *m2ts, char *url)
+#ifdef GPAC_HAS_LINUX_DVB
+void M2TS_SetupDVB(GF_InputService *plug, M2TSIn *m2ts, char *url)
 {
 	GF_Err e = GF_OK;
 	char *str;
+	const char *chan_conf;
 
 	if (strnicmp(url, "dvb://", 6)) {
 		e = GF_NOT_SUPPORTED;
+		goto exit;
+	}
+	chan_conf = gf_modules_get_option((GF_BaseInterface *)plug, "DVB", "ChannelsFile");
+	if (!chan_conf) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[DVBIn] Cannot locate channel configuration file\n"));
+		e = GF_SERVICE_ERROR;
 		goto exit;
 	}
 	
@@ -414,7 +574,7 @@ void M2TS_SetupDVB(M2TSIn *m2ts, char *url)
 		m2ts->tuner = malloc(sizeof(GF_Tuner));
 	}
 
-	e = gf_dvb_tune(m2ts->tuner,url);
+	e = gf_dvb_tune(m2ts->tuner, url, chan_conf);
 	if (e) goto exit;
 
 	m2ts->th = gf_th_new();
@@ -426,6 +586,7 @@ exit:
 		gf_term_on_connect(m2ts->service, NULL, e);
 	}
 }
+#endif
 
 void M2TS_SetupLive(M2TSIn *m2ts, char *url)
 {
@@ -573,13 +734,19 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	m2ts->do_regulate = 0;
 	m2ts->duration = 0;
 
-	if (strstr(url, "udp://") || strstr(url, "tcp://") ) {
+	if (!strnicmp(url, "udp://", 6)
+		|| !strnicmp(url, "mpegts-udp://", 13) 
+		|| !strnicmp(url, "mpegts-tcp://", 13) 
+		) {
 		M2TS_SetupLive(m2ts, (char *) szURL);
-	} else if (strstr(url, "dvb://")) {
+	} 
+#ifdef GPAC_HAS_LINUX_DVB
+	else if (!strnicmp(url, "dvb://", 6)) {
 		// DVB Setup
-		M2TS_SetupDVB(m2ts, (char *) szURL);
-		}
-		else {
+		M2TS_SetupDVB(plug, m2ts, (char *) szURL);
+	} 
+#endif
+	else {
 		M2TS_SetupFile(m2ts, (char *) szURL);
 	}
 	return GF_OK;
@@ -805,165 +972,3 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url) {
-	struct dmx_pes_filter_params pesFilterParams;
-    struct dvb_frontend_parameters frp;
-    int demux1, front1;
-    FILE *chanfile;
-    char line[255], chan_name_t[255];
-	char freq_str[255], inv[255], bw[255], lcr[255], hier[255], cr[255], mod[255], transm[255], gi[255], apid_str[255], vpid_str[255];
-    const char *chan_path = "/home/lefeuvre/channels.conf";
-    const char *chan_conf = ":%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:";
-    char *chan_name;
-	
-    if((chanfile=fopen(chan_path, "r"))==NULL) {
-		return GF_BAD_PARAM;
-	}
-	chan_name=url+6;
-	while(!feof(chanfile)) {
-		if ( fgets(line, 255, chanfile) != NULL) {
-			strncpy(chan_name_t, line, index(line, ':')-line); 
-			if (strncmp(chan_name,chan_name_t,strlen(chan_name))==0) {
-				sscanf(strstr(line,":"), chan_conf, freq_str, inv, bw, lcr, cr, mod, transm, gi, hier, apid_str, vpid_str);
-				tuner->freq = (uint32_t) atoi(freq_str);
-				tuner->apid = (uint16_t) atoi(apid_str);
-				tuner->vpid = (uint16_t) atoi(vpid_str);
-//				Inversion
-				if(! strcmp(inv, "INVERSION_ON"))
-					tuner->specInv = INVERSION_ON;
-				else if(! strcmp(inv, "INVERSION_OFF"))
-					tuner->specInv = INVERSION_OFF;
-				else
-					tuner->specInv = INVERSION_AUTO;
-//				LP Code Rate
-				if(! strcmp(lcr, "FEC_1_2"))
-					tuner->LP_CodeRate =FEC_1_2;
-				else if(! strcmp(lcr, "FEC_2_3"))
-					tuner->LP_CodeRate =FEC_2_3;
-				else if(! strcmp(lcr, "FEC_3_4"))
-					tuner->LP_CodeRate =FEC_3_4;
-				else if(! strcmp(lcr, "FEC_4_5"))
-					tuner->LP_CodeRate =FEC_4_5;
-				else if(! strcmp(lcr, "FEC_6_7"))
-					tuner->LP_CodeRate =FEC_6_7;
-				else if(! strcmp(lcr, "FEC_8_9"))
-					tuner->LP_CodeRate =FEC_8_9;
-				else if(! strcmp(lcr, "FEC_5_6"))
-					tuner->LP_CodeRate =FEC_5_6;
-				else if(! strcmp(lcr, "FEC_7_8"))
-					tuner->LP_CodeRate =FEC_7_8;
-				else if(! strcmp(lcr, "FEC_NONE"))
-					tuner->LP_CodeRate =FEC_NONE;
-				else tuner->LP_CodeRate =FEC_AUTO;
-//				HP Code Rate	
-				if(! strcmp(cr, "FEC_1_2"))
-					tuner->HP_CodeRate =FEC_1_2;
-				else if(! strcmp(cr, "FEC_2_3"))
-					tuner->HP_CodeRate =FEC_2_3;
-				else if(! strcmp(cr, "FEC_3_4"))
-					tuner->HP_CodeRate =FEC_3_4;
-				else if(! strcmp(cr, "FEC_4_5"))
-					tuner->HP_CodeRate =FEC_4_5;
-				else if(! strcmp(cr, "FEC_6_7"))
-					tuner->HP_CodeRate =FEC_6_7;
-				else if(! strcmp(cr, "FEC_8_9"))
-					tuner->HP_CodeRate =FEC_8_9;
-				else if(! strcmp(cr, "FEC_5_6"))
-					tuner->HP_CodeRate =FEC_5_6;
-				else if(! strcmp(cr, "FEC_7_8"))
-					tuner->HP_CodeRate =FEC_7_8;
-				else if(! strcmp(cr, "FEC_NONE"))
-					tuner->HP_CodeRate =FEC_NONE;
-				else tuner->HP_CodeRate =FEC_AUTO;
-//				Modulation			
-				if(! strcmp(mod, "QAM_128"))
-					tuner->modulation = QAM_128;
-				else if(! strcmp(mod, "QAM_256"))
-					tuner->modulation = QAM_256;
-				else if(! strcmp(mod, "QAM_64"))
-					tuner->modulation = QAM_64;
-				else if(! strcmp(mod, "QAM_32"))
-					tuner->modulation = QAM_32;
-				else if(! strcmp(mod, "QAM_16"))
-					tuner->modulation = QAM_16;
-//				Bandwidth				
-				if(! strcmp(bw, "BANDWIDTH_6_MHZ"))
-					tuner->bandwidth = BANDWIDTH_6_MHZ;
-				else if(! strcmp(bw, "BANDWIDTH_7_MHZ"))
-					tuner->bandwidth = BANDWIDTH_7_MHZ;
-				else if(! strcmp(bw, "BANDWIDTH_8_MHZ"))
-					tuner->bandwidth = BANDWIDTH_8_MHZ;
-//				Transmission Mode
-				if(! strcmp(transm, "TRANSMISSION_MODE_2K"))
-					tuner->TransmissionMode = TRANSMISSION_MODE_2K;
-				else if(! strcmp(transm, "TRANSMISSION_MODE_8K"))
-					tuner->TransmissionMode = TRANSMISSION_MODE_8K;
-//				Guard Interval
-				if(! strcmp(gi, "GUARD_INTERVAL_1_32"))
-					tuner->guardInterval = GUARD_INTERVAL_1_32;
-				else if(! strcmp(gi, "GUARD_INTERVAL_1_16"))
-					tuner->guardInterval = GUARD_INTERVAL_1_16;
-				else if(! strcmp(gi, "GUARD_INTERVAL_1_8"))
-					tuner->guardInterval = GUARD_INTERVAL_1_8;
-				else tuner->guardInterval = GUARD_INTERVAL_1_4;
-//				Hierarchy			
-				if(! strcmp(hier, "HIERARCHY_1"))
-					tuner->hierarchy = HIERARCHY_1;
-				else if(! strcmp(hier, "HIERARCHY_2"))
-					tuner->hierarchy = HIERARCHY_2;
-				else if(! strcmp(hier, "HIERARCHY_4"))
-					tuner->hierarchy = HIERARCHY_4;				
-				else if(! strcmp(hier, "HIERARCHY_AUTO"))
-					tuner->hierarchy = HIERARCHY_AUTO;
-				else tuner->hierarchy = HIERARCHY_NONE;
-				
-				break;
-			}
-		}
-	}
-    fclose(chanfile);
-        
-    // Open frontend
-    if((front1 = open(FRONT,O_RDWR)) < 0){
-    	return GF_IO_ERR;
-    }
-    // Open demuxes
-    if ((demux1=open(DMX, O_RDWR|O_NONBLOCK)) < 0){
-        return GF_IO_ERR;
-    }
-	// Set FrontendParameters - DVB-T
-    frp.frequency = tuner->freq;
-	frp.inversion = tuner->specInv;
-	frp.u.ofdm.bandwidth = tuner->bandwidth;
-	frp.u.ofdm.code_rate_HP = tuner->HP_CodeRate;
-	frp.u.ofdm.code_rate_LP = tuner->LP_CodeRate;
-	frp.u.ofdm.constellation = tuner->modulation;
-	frp.u.ofdm.transmission_mode = tuner->TransmissionMode;
-	frp.u.ofdm.guard_interval = tuner->guardInterval;
-	frp.u.ofdm.hierarchy_information = tuner->hierarchy;
-    // Set frontend
-    if (ioctl(front1, FE_SET_FRONTEND, &frp) < 0){
-   		return GF_IO_ERR;
-	}
-	// Set dumex
-	pesFilterParams.pid      = 0x2000;				// Linux-DVB API take PID=2000 for FULL/RAW TS flag
-	pesFilterParams.input    = DMX_IN_FRONTEND;
-	pesFilterParams.output   = DMX_OUT_TS_TAP;
-	pesFilterParams.pes_type = DMX_PES_OTHER;
-	pesFilterParams.flags    = DMX_IMMEDIATE_START;
-	if (ioctl(demux1, DMX_SET_PES_FILTER, &pesFilterParams) < 0){
-  		return GF_IO_ERR;
-	}
-	if ((tuner->ts_fd = open(DVR, O_RDONLY/*|O_NONBLOCK*/)) < 0){
-        return GF_IO_ERR;
-  	}	
-	return GF_OK;
-}
-
-static GF_Err gf_dvb_receive(GF_Tuner *tuner, char *buffer, u32 length, u32 *readsize) {
-
-	int tsize = read(tuner->ts_fd, buffer, length);
-   	if (tsize<0) return GF_IO_ERR;
-   	*readsize = tsize;
-  	return GF_OK;
-}
