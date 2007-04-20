@@ -15,6 +15,10 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
+ifeq ($(LINUX_DVB), yes)
+CFLAGS+=-DGPAC_HAS_LINUX_DVB
+endif
+
 #common obj
 OBJS=mpegts_in.o
 
