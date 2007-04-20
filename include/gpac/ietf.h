@@ -1196,7 +1196,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 					   u32 StreamType, u32 OTI, u32 PL_ID,
 					   u32 avgSize, u32 maxSize, 
 					   u32 avgTS, u32 maxDTS,
-					   u8 IV_length, u8 KI_length,
+					   u32 IV_length, u32 KI_length,
 					   char *pref_mode);
 
 /*set frame crypto info*/

@@ -221,7 +221,7 @@ Bool gf_isom_is_omadrm_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 
 /*retrieves ISMACryp info for the given track & SDI*/
 GF_EXPORT
-GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, const char **outSchemeURI, const char **outKMS_URI, Bool *outSelectiveEncryption, u8 *outIVLength, u8 *outKeyIndicationLength)
+GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, const char **outSchemeURI, const char **outKMS_URI, Bool *outSelectiveEncryption, u32 *outIVLength, u32 *outKeyIndicationLength)
 {
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *sea;
@@ -262,8 +262,9 @@ GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 
 /*retrieves ISMACryp info for the given track & SDI*/
 GF_EXPORT
-GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, 
-							   const char **outContentID, const char **outRightsIssuerURL, const char **outTextualHeaders, u64 *outPlaintextLength, u8 *outEncryptionType, Bool *outSelectiveEncryption, u8 *outIVLength, u8 *outKeyIndicationLength)
+GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat,
+							   u32 *outSchemeType, u32 *outSchemeVersion,
+							   const char **outContentID, const char **outRightsIssuerURL, const char **outTextualHeaders, u32 *outTextualHeadersLen, u64 *outPlaintextLength, u32 *outEncryptionType, Bool *outSelectiveEncryption, u32 *outIVLength, u32 *outKeyIndicationLength)
 {
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *sea;
@@ -281,9 +282,14 @@ GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 		*outOriginalFormat = sea->protection_info->original_format->data_format;
 		if (IsMP4Description(sea->protection_info->original_format->data_format)) *outOriginalFormat = GF_ISOM_SUBTYPE_MPEG4;
 	}
+	if (outSchemeType) *outSchemeType = sea->protection_info->scheme_type->scheme_type;
+	if (outSchemeVersion) *outSchemeVersion = sea->protection_info->scheme_type->scheme_version;
 	if (outContentID) *outContentID = sea->protection_info->info->okms->hdr->ContentID;
 	if (outRightsIssuerURL) *outRightsIssuerURL = sea->protection_info->info->okms->hdr->RightsIssuerURL;
-	if (outTextualHeaders) *outTextualHeaders = sea->protection_info->info->okms->hdr->TextualHeaders;
+	if (outTextualHeaders) {
+		*outTextualHeaders = sea->protection_info->info->okms->hdr->TextualHeaders;
+		if (outTextualHeadersLen) *outTextualHeadersLen = sea->protection_info->info->okms->hdr->TextualHeadersLen;
+	}
 	if (outPlaintextLength) *outPlaintextLength = sea->protection_info->info->okms->hdr->PlaintextLength;
 	if (outEncryptionType) *outEncryptionType = sea->protection_info->info->okms->hdr->EncryptionMethod;
 
@@ -418,7 +424,7 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 }
 
 GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index,
-						   char *contentID, char *kms_URI, u32 encryption_type, u64 plainTextLength, char *textual_headers,
+						   char *contentID, char *kms_URI, u32 encryption_type, u64 plainTextLength, char *textual_headers, u32 textual_headers_len,
 						   Bool selective_encryption, u32 KI_length, u32 IV_length)
 {
 	u32 original_format;
@@ -475,7 +481,11 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 	sea->protection_info->info->okms->hdr->PlaintextLength = plainTextLength;
 	if (contentID) sea->protection_info->info->okms->hdr->ContentID = strdup(contentID);
 	if (kms_URI) sea->protection_info->info->okms->hdr->RightsIssuerURL = strdup(kms_URI);
-	if (textual_headers) sea->protection_info->info->okms->hdr->TextualHeaders = strdup(textual_headers);
+	if (textual_headers) {
+		sea->protection_info->info->okms->hdr->TextualHeaders = malloc(sizeof(char)*textual_headers_len);
+		memcpy(sea->protection_info->info->okms->hdr->TextualHeaders, textual_headers, sizeof(char)*textual_headers_len);
+		sea->protection_info->info->okms->hdr->TextualHeadersLen = textual_headers_len;
+	}
 	return GF_OK;
 }
 

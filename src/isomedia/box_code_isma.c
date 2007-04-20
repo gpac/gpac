@@ -472,7 +472,7 @@ GF_Err ohdr_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err ohdr_Read(GF_Box *s, GF_BitStream *bs)
 {
-	u16 cid_len, ri_len, txt_len;
+	u16 cid_len, ri_len;
 	GF_Err e;
 	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox*)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
@@ -483,9 +483,9 @@ GF_Err ohdr_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->PlaintextLength = gf_bs_read_u64(bs);
 	cid_len = gf_bs_read_u16(bs);
 	ri_len = gf_bs_read_u16(bs);
-	txt_len = gf_bs_read_u16(bs);
+	ptr->TextualHeadersLen = gf_bs_read_u16(bs);
 	ptr->size -= 1+1+8+2+2+2;
-	if (ptr->size<cid_len+ri_len+txt_len) return GF_ISOM_INVALID_FILE;
+	if (ptr->size<cid_len+ri_len+ptr->TextualHeadersLen) return GF_ISOM_INVALID_FILE;
 
 	if (cid_len) {
 		ptr->ContentID = (char *)malloc(sizeof(char)*(cid_len+1));
@@ -499,13 +499,13 @@ GF_Err ohdr_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->RightsIssuerURL[ri_len]=0;
 	}
 	
-	if (txt_len) {
-		ptr->TextualHeaders = (char *)malloc(sizeof(char)*(txt_len+1));
-		gf_bs_read_data(bs, ptr->TextualHeaders, txt_len);
-		ptr->TextualHeaders[txt_len]=0;
+	if (ptr->TextualHeadersLen) {
+		ptr->TextualHeaders = (char *)malloc(sizeof(char)*(ptr->TextualHeadersLen+1));
+		gf_bs_read_data(bs, ptr->TextualHeaders, ptr->TextualHeadersLen);
+		ptr->TextualHeaders[ptr->TextualHeadersLen] = 0;
 	}
 
-	ptr->size -= cid_len+ri_len+txt_len;
+	ptr->size -= cid_len+ri_len+ptr->TextualHeadersLen;
 
 	return gf_isom_read_box_list(s, bs, ohdr_AddBox);
 }
@@ -513,7 +513,7 @@ GF_Err ohdr_Read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_READ_ONLY
 GF_Err ohdr_Write(GF_Box *s, GF_BitStream *bs)
 {
-	u16 cid_len, ri_len, txt_len;
+	u16 cid_len, ri_len;
 	GF_Err e;
 	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox *)s;
 	if (!s) return GF_BAD_PARAM;
@@ -527,13 +527,12 @@ GF_Err ohdr_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, cid_len);
 	ri_len = ptr->RightsIssuerURL ? strlen(ptr->RightsIssuerURL) : 0;
 	gf_bs_write_u16(bs, ri_len);
-	txt_len = ptr->TextualHeaders ? strlen(ptr->TextualHeaders) : 0;
-	gf_bs_write_u16(bs, txt_len);
+	gf_bs_write_u16(bs, ptr->TextualHeadersLen);
 
 	if (cid_len) gf_bs_write_data(bs, ptr->ContentID, strlen(ptr->ContentID));
 	if (ri_len) gf_bs_write_data(bs, ptr->RightsIssuerURL, strlen(ptr->RightsIssuerURL));
-	if (txt_len) gf_bs_write_data(bs, ptr->TextualHeaders, strlen(ptr->TextualHeaders));
-	ptr->size -= cid_len+ri_len+txt_len;
+	if (ptr->TextualHeadersLen) gf_bs_write_data(bs, ptr->TextualHeaders, ptr->TextualHeadersLen);
+	ptr->size -= cid_len+ri_len+ptr->TextualHeadersLen;
 	return gf_isom_box_array_write(s, ptr->ExtendedHeaders, bs);
 }
 
@@ -547,7 +546,7 @@ GF_Err ohdr_Size(GF_Box *s)
 	ptr->size += 1+1+8+2+2+2;
 	if (ptr->ContentID) ptr->size += strlen(ptr->ContentID);
 	if (ptr->RightsIssuerURL) ptr->size += strlen(ptr->RightsIssuerURL);
-	if (ptr->TextualHeaders) ptr->size += strlen(ptr->TextualHeaders);
+	if (ptr->TextualHeadersLen) ptr->size += ptr->TextualHeadersLen;
 	return gf_isom_box_array_size(s, ptr->ExtendedHeaders);
 }
 #endif //GPAC_READ_ONLY

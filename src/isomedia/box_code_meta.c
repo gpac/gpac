@@ -98,8 +98,13 @@ GF_Err meta_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err meta_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
+	u32 next_size = gf_bs_peek_bits(bs, 32, 4);
+	GF_Err e;
+	/*try to hack around QT files which don't use a full box for meta*/
+	if (next_size<s->size) {
+		e = gf_isom_full_box_read(s, bs);
+		if (e) return e;
+	}
 	return gf_isom_read_box_list(s, bs, meta_AddBox);
 }
 

@@ -253,8 +253,8 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 {
 	GF_SLConfig my_sl;
 	u32 MinSize, MaxSize, avgTS, streamType, oti, const_dur, nb_ch, maxDTSDelta;
-	u8 IV_length, KI_length, OfficialPayloadID;
-	u32 TrackMediaSubType, TrackMediaType, hintType, required_rate, force_dts_delta, avc_nalu_size, PL_ID, bandwidth;
+	u8 OfficialPayloadID;
+	u32 TrackMediaSubType, TrackMediaType, hintType, required_rate, force_dts_delta, avc_nalu_size, PL_ID, bandwidth, IV_length, KI_length;
 	const char *url, *urn;
 	char *mpeg4mode;
 	Bool is_crypted, has_mpeg4_mapping;
@@ -551,8 +551,8 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 
 	GF_SLConfig my_sl;
 	u32 descIndex, MinSize, MaxSize, avgTS, streamType, oti, const_dur, nb_ch, maxDTSDelta;
-	u8 IV_length, KI_length, OfficialPayloadID;
-	u32 TrackMediaSubType, TrackMediaType, hintType, nbEdts, required_rate, force_dts_delta, avc_nalu_size, PL_ID, bandwidth;
+	u8 OfficialPayloadID;
+	u32 TrackMediaSubType, TrackMediaType, hintType, nbEdts, required_rate, force_dts_delta, avc_nalu_size, PL_ID, bandwidth, IV_length, KI_length;
 	const char *url, *urn;
 	char *mpeg4mode;
 	Bool is_crypted, has_mpeg4_mapping;

@@ -512,12 +512,20 @@ exit:
 		gf_term_on_command(read->service, &com, GF_OK);
 	}
 	if (!e && track && gf_isom_is_track_encrypted(read->mov, track)) {
-		ch->is_encrypted = 1;
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.on_channel = channel;
-		com.command_type = GF_NET_CHAN_ISMACRYP_CFG;
-		gf_isom_get_ismacryp_info(read->mov, track, 1, NULL, &com.isma_cryp.scheme_type, &com.isma_cryp.scheme_version, &com.isma_cryp.scheme_uri, &com.isma_cryp.kms_uri, NULL, NULL, NULL);
-		gf_term_on_command(read->service, &com, GF_OK);
+		com.command_type = GF_NET_CHAN_DRM_CFG;
+		ch->is_encrypted = 1;
+		if (gf_isom_is_ismacryp_media(read->mov, track, 1)) {
+			gf_isom_get_ismacryp_info(read->mov, track, 1, NULL, &com.drm_cfg.scheme_type, &com.drm_cfg.scheme_version, &com.drm_cfg.scheme_uri, &com.drm_cfg.kms_uri, NULL, NULL, NULL);
+			gf_term_on_command(read->service, &com, GF_OK);
+		} else if (gf_isom_is_omadrm_media(read->mov, track, 1)) {
+			gf_isom_get_omadrm_info(read->mov, track, 1, NULL, &com.drm_cfg.scheme_type, &com.drm_cfg.scheme_version, &com.drm_cfg.contentID, &com.drm_cfg.kms_uri, &com.drm_cfg.oma_drm_textual_headers, &com.drm_cfg.oma_drm_textual_headers_len, NULL, &com.drm_cfg.oma_drm_crypt_type, NULL, NULL, NULL);
+
+			gf_media_get_file_hash(gf_isom_get_filename(read->mov), com.drm_cfg.hash);
+			gf_term_on_command(read->service, &com, GF_OK);
+
+		}
 	}
 	return e;
 }

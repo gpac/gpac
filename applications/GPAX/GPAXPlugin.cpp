@@ -236,7 +236,35 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
     memset(&m_user, 0, sizeof(m_user));
 
     m_user.config = gf_cfg_new((const char*) config_path, gpac_cfg);
-    if(!m_user.config) goto err_exit;
+    if(!m_user.config) {
+		char cfg_file[MAX_PATH];
+		/*create a blank config*/
+		sprintf(cfg_file, "%s\\%s", config_path, gpac_cfg);
+		FILE *test = fopen(cfg_file, "wt");
+		if (test) fclose(test);
+		m_user.config = gf_cfg_new((const char *) config_path, gpac_cfg);
+	    if(!m_user.config) {
+			::MessageBox(NULL, "GPAC Configuration file not found", "Fatal Error", MB_OK);
+			goto err_exit;
+		}
+		gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) config_path);
+		gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "GPAC 2D Raster");
+		sprintf((char *) cfg_file, "%s\\cache", config_path);
+		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) cfg_file);
+		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "no");
+		gf_cfg_set_key(m_user.config, "Network", "UDPNotAvailable", "no");
+		gf_cfg_set_key(m_user.config, "Network", "BufferLength", "200");
+		gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "yes");
+		gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");
+		gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
+		gf_cfg_set_key(m_user.config, "Video", "DriverName", "dx_hw");
+		gf_cfg_set_key(m_user.config, "Video", "UseHardwareMemory", "yes");
+
+		::GetWindowsDirectory((char*)cfg_file, MAX_PATH);
+		if (cfg_file[strlen((char*)cfg_file)-1] != '\\') strcat((char*)cfg_file, "\\");
+		strcat((char *)cfg_file, "Fonts");
+		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) cfg_file);
+	}
 
     str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
     m_user.modules = gf_modules_new(str, m_user.config);

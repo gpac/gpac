@@ -63,7 +63,7 @@ OrderedGroup {
 				children [
 						DEF TR Transform {
 	  					children [
-								DEF NEF Inline { url "./auxiliary_files/nefertiti.wrl" }
+								DEF NEF Inline { url "D:\CVS\gpac\regression_tests\auxiliary_files\nefertiti.wrl" }
 							]
 						}
 				]

@@ -160,7 +160,7 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 		u32 i=0;
 		/*stop all objects but DON'T DESTROY THEM*/
 		while ((odm = (GF_ObjectManager *)gf_list_enum(is->ODlist, &i))) {
-			if (odm->is_open) gf_odm_disconnect(odm, 0);
+			if (odm->state) gf_odm_disconnect(odm, 0);
 		}
 		/*reset all stream associations*/
 		i=0;
@@ -737,6 +737,7 @@ GF_MediaObject *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_t
 				break;
 			}
 		}
+#if 0
 		if (obj_type_hint==GF_MEDIA_OBJECT_AUDIO) {
 			/*since we modify the URL the above check is not enough*/
 			old_obj = IS_CheckExistingObject(is, &obj->URLs);
@@ -747,6 +748,7 @@ GF_MediaObject *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_t
 				return old_obj;
 			}
 		}
+#endif
 
 		IS_InsertObject(is, obj, lock_timelines);
 		/*safety check!!!*/
@@ -800,7 +802,7 @@ existing:
 	/*update info*/
 	MO_UpdateCaps(odm->mo);
 	/*media object playback has already been requested by the scene, trigger media start*/
-	if (odm->mo->num_open && !odm->is_open) {
+	if (odm->mo->num_open && !odm->state) {
 		gf_odm_start(odm);
 		if (odm->mo->speed != FIX_ONE) gf_odm_set_speed(odm, odm->mo->speed);
 	}
@@ -1292,7 +1294,7 @@ void gf_is_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 	
 	if (!odm->codec) return;
 
-	if (odm->is_open) {
+	if (odm->state) {
 		if (check_odm_deactivate(&is->audio_url, odm, gf_sg_find_node_by_name(is->graph, "DYN_AUDIO")) ) return;
 		if (check_odm_deactivate(&is->visual_url, odm, gf_sg_find_node_by_name(is->graph, "DYN_VIDEO") )) return;
 		if (check_odm_deactivate(&is->text_url, odm, gf_sg_find_node_by_name(is->graph, "DYN_TEXT") )) return;
@@ -1378,7 +1380,7 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 	to_restart = gf_list_new();
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(is->ODlist, &i))) {
-		if (odm->is_open) {
+		if (odm->state) {
 			gf_list_add(to_restart, odm);
 			gf_odm_stop(odm, 1);
 		}

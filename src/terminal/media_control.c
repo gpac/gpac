@@ -91,7 +91,7 @@ void MC_Restart(GF_ObjectManager *odm)
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(odm->parentscene->ODlist, &i))) {
 		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
 		/*if running, stop and collect for restart*/
-		if (ctrl_od->is_open) {
+		if (ctrl_od->state) {
 			gf_odm_stop(ctrl_od, 1);
 			gf_list_add(to_restart, ctrl_od);
 		}

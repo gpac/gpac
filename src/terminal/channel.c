@@ -25,9 +25,6 @@
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/sync_layer.h>
-
-#include <gpac/ismacryp.h>
-#include <gpac/base_coding.h>
 #include <gpac/constants.h>
 
 #include "media_memory.h"
@@ -86,7 +83,6 @@ static void Channel_Reset(GF_Channel *ch, Bool for_start)
 	ch->NextIsAUStart = 1;
 
 	ch->first_au_fetched = 0;
-	ch->last_IV = 0;
 	if (ch->AU_buffer_pull) {
 		ch->AU_buffer_pull->data = NULL;
 		gf_db_unit_del(ch->AU_buffer_pull);
@@ -168,7 +164,9 @@ void gf_es_del(GF_Channel *ch)
 		ch->AU_buffer_pull->data = NULL;
 		gf_db_unit_del(ch->AU_buffer_pull);
 	}
-	if (ch->crypt) gf_crypt_close(ch->crypt);
+	if (ch->ipmp_tool)
+		gf_modules_close_interface((GF_BaseInterface *) ch->ipmp_tool);
+
 	if (ch->mx) gf_mx_del(ch->mx);
 	free(ch);
 }
@@ -540,37 +538,6 @@ void Channel_RecieveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamB
 	gf_es_lock(ch, 0);
 }
 
-void Channel_DecryptISMA(GF_Channel *ch, char *data, u32 dataLength, GF_SLHeader *slh)
-{
-	if (!ch->crypt) return;
-	/*resync IV*/
-	if (!ch->last_IV || (ch->last_IV!=slh->isma_BSO)) {
-		char IV[17];
-		u64 count;
-		u32 remain;
-		GF_BitStream *bs;
-		count = slh->isma_BSO / 16;
-		remain = (u32) (slh->isma_BSO % 16);
-
-		/*format IV to begin of counter*/
-		bs = gf_bs_new(IV, 17, GF_BITSTREAM_WRITE);
-		gf_bs_write_u8(bs, 0);	/*begin of counter*/
-		gf_bs_write_data(bs, ch->salt, 8);
-		gf_bs_write_u64(bs, (s64) count);
-		gf_bs_del(bs);
-		gf_crypt_set_state(ch->crypt, IV, 17);
-
-		/*decrypt remain bytes*/
-		if (remain) {
-			char dummy[20];
-			gf_crypt_decrypt(ch->crypt, dummy, remain);
-		}
-		ch->last_IV = slh->isma_BSO;
-	}
-	/*decrypt*/
-	gf_crypt_decrypt(ch->crypt, data, dataLength);
-	ch->last_IV += dataLength;
-}
 
 /*handles reception of an SL-PDU, logical or physical*/
 void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength, GF_SLHeader *header, GF_Err reception_status)
@@ -843,9 +810,16 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		return;
 	}
 	
-	if (ch->crypt) {
-		if (hdr.isma_encrypted) Channel_DecryptISMA(ch, payload, StreamLength, &hdr);
-		else ch->last_IV = 0;
+	if (ch->ipmp_tool) {
+		GF_IPMPEvent evt;
+		memset(&evt, 0, sizeof(evt));
+		evt.event_type=GF_IPMP_TOOL_PROCESS_DATA;
+		evt.channel = ch;
+		evt.data = payload;
+		evt.data_size = StreamLength;
+		evt.is_encrypted = hdr.isma_encrypted;
+		evt.isma_BSO = hdr.isma_BSO;
+		ch->ipmp_tool->process(ch->ipmp_tool, &evt);
 	}
 
 	if (hdr.paddingFlag && !EndAU) {	
@@ -921,10 +895,20 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	/*update timing if new stream data but send no data*/
 	if (is_new_data) {
 		gf_es_receive_sl_packet(ch->service, ch, NULL, 0, &slh, GF_OK);
-		if (ch->crypt) {
-			if (slh.isma_encrypted) Channel_DecryptISMA(ch, ch->AU_buffer_pull->data, ch->AU_buffer_pull->dataLength, &slh);
-			/*otherwise RESET IV to force resync on next AU*/
-			else ch->last_IV = 0;
+		if (ch->ipmp_tool) {
+			GF_IPMPEvent evt;
+			memset(&evt, 0, sizeof(evt));
+			evt.event_type=GF_IPMP_TOOL_PROCESS_DATA;
+			evt.data = ch->AU_buffer_pull->data;
+			evt.data_size = ch->AU_buffer_pull->dataLength;
+			evt.is_encrypted = slh.isma_encrypted;
+			evt.isma_BSO = slh.isma_BSO;
+			evt.channel = ch;
+			e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
+			if (e && 0) {
+				gf_term_channel_release_sl_packet(ch->service, ch);
+				return NULL;
+			}
 		}
 	}
 
@@ -1080,143 +1064,72 @@ void gf_es_on_connect(GF_Channel *ch)
 		gf_odm_set_duration(ch->odm, ch, (u64) (1000*com.duration.duration));
 }
 
-static void KMS_OnData(void *cbck, char *data, u32 size, u32 state, GF_Err e)
+void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 {
-}
-
-GF_Err Channel_GetGPAC_KMS(GF_Channel *ch, char *kms_url)
-{
+	GF_Terminal *term = ch->odm->term;
+	u32 i, count;
 	GF_Err e;
-	FILE *t;
-	GF_DownloadSession * sess;
-	if (!strnicmp(kms_url, "(ipmp)", 6)) return GF_NOT_SUPPORTED;
-	else if (!strnicmp(kms_url, "(uri)", 5)) kms_url += 5;
-	else if (!strnicmp(kms_url, "file://", 7)) kms_url += 7;
-
-	e = GF_OK;
-	/*try local*/
-	t = (strstr(kms_url, "://") == NULL) ? fopen(kms_url, "r") : NULL;
-	if (t) {
-		fclose(t);
-		return gf_ismacryp_gpac_get_info(ch->esd->ESID, kms_url, ch->key, ch->salt);
-	}
-	/*note that gpac doesn't have TLS support -> not really usefull. As a general remark, ISMACryp
-	is supported as a proof of concept, crypto and IPMP being the last priority on gpac...*/
-	gf_term_message(ch->odm->term, kms_url, "Fetching ISMACryp key", GF_OK);
-	sess = gf_term_download_new(ch->service, kms_url, 0, KMS_OnData, ch);
-	if (!sess) goto err_exit;
-
-	while (1) {
-		e = gf_dm_sess_get_stats(sess, NULL, NULL, NULL, NULL, NULL, NULL);
-		if (e) break;
-	}
-	if (e!= GF_EOS) goto err_exit;
-	e = gf_ismacryp_gpac_get_info(ch->esd->ESID, (char *) gf_dm_sess_get_cache_name(sess), ch->key, ch->salt);
-
-err_exit:
-	gf_term_download_del(sess);
-	return e;
-}
-
-void gf_es_config_ismacryp(GF_Channel *ch, GF_NetComISMACryp *isma_cryp)
-{
-	char IV[16];
-	GF_Err e;
+	GF_IPMPEvent evt;
+	GF_OMADRM2Config cfg;
+	GF_OMADRM2Config isma_cfg;
 
 	/*always buffer when fetching keys*/
 	ch_buffer_on(ch);
-
 	ch->is_protected = 1;
-	e = GF_OK;
-	if ((isma_cryp->scheme_version != 1) || (isma_cryp->scheme_type != GF_4CC('i','A','E','C')) ) {
-		gf_term_message(ch->odm->term, ch->service->url, "Unknown ISMACryp scheme and version", GF_NOT_SUPPORTED);
-		goto exit;
-	}
-	if (!isma_cryp->kms_uri) {
-		gf_term_message(ch->odm->term, ch->service->url, "ISMACryp: Missing URI for KMS", GF_NON_COMPLIANT_BITSTREAM);
-		goto exit;
-	}
-	if (ch->crypt) gf_crypt_close(ch->crypt);
-	ch->crypt = gf_crypt_open("AES-128", "CTR");
-	if (!ch->crypt) {
-		gf_term_message(ch->odm->term, ch->service->url, "ISMACryp: cannot open AES-128 CTR decryption", GF_IO_ERR);
-		goto exit;
-	}
-	/*fetch keys*/
 
-	/*base64 inband encoding*/
-	if (!strnicmp(isma_cryp->kms_uri, "(key)", 5)) {
-		char data[100];
-		gf_base64_decode((char*)isma_cryp->kms_uri+5, strlen(isma_cryp->kms_uri)-5, data, 100);
-		memcpy(ch->key, data, sizeof(char)*16);
-		memcpy(ch->salt, data+16, sizeof(char)*8);
-	}
-	/*hexadecimal inband encoding*/
-	else if (!strnicmp(isma_cryp->kms_uri, "(key-hexa)", 10)) {
-		u32 v;
-		char szT[3], *k;
-		u32 i;
-		szT[2] = 0;
-		if (strlen(isma_cryp->kms_uri) < 10+32+16) {
-			gf_term_message(ch->odm->term, ch->service->url, "ISMACryp: Unable to fetch hexadecimal keys", GF_BAD_PARAM);
-			goto exit;
-		}
-		k = (char *)isma_cryp->kms_uri + 10;
-		for (i=0; i<16; i++) { 
-			szT[0] = k[2*i]; szT[1] = k[2*i + 1];
-			sscanf(szT, "%X", &v); 
-			ch->key[i] = v;
-		}
-		k = (char *)isma_cryp->kms_uri + 10 + 32;
-		for (i=0; i<8; i++) { 
-			szT[0] = k[2*i]; szT[1] = k[2*i + 1];
-			sscanf(szT, "%X", &v); 
-			ch->salt[i] = v;
-		}
-	}
-	/*MPEG4-IP KMS*/
-	else if (!stricmp(isma_cryp->kms_uri, "AudioKey") || !stricmp(isma_cryp->kms_uri, "VideoKey")) {
-		if (!gf_ismacryp_mpeg4ip_get_info(ch->esd->ESID, (char *) isma_cryp->kms_uri, ch->key, ch->salt)) {
-			gf_term_message(ch->odm->term, ch->service->url, "ISMACryp: Unable to retrieve keys from ~./kms_data file", GF_BAD_PARAM);
-			goto exit;
-		}
-	}
-	/*gpac default scheme is used, fetch file from KMS and load keys*/
-	else if (isma_cryp->scheme_uri && !stricmp(isma_cryp->scheme_uri, "urn:gpac:isma:encryption_scheme")) {
-		e = Channel_GetGPAC_KMS(ch, (char *) isma_cryp->kms_uri);
-		if (e) {
-			if (ch->crypt) {
-				gf_crypt_close(ch->crypt);
-				ch->crypt = NULL;
-			}
-			gf_term_message(ch->odm->term, isma_cryp->kms_uri, "ISMACryp: cannot load KMS file", e);
-			goto exit;
-		}
-	}
-	/*hardcoded keys*/
-	else {
-		static u8 mysalt[] = { 8,7,6,5,4,3,2,1, 0,0,0,0,0,0,0,0 };
-		static u8 mykey[][16]  = {
-	{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-	  0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 } };
-		memcpy(ch->salt, mysalt, sizeof(char)*8);
-		memcpy(ch->key, mykey, sizeof(char)*16);
+	memset(&evt, 0, sizeof(GF_IPMPEvent));
+	evt.event_type = GF_IPMP_TOOL_SETUP;
+	evt.channel = ch;
+
+	/*push all cfg data*/
+	if (drm_cfg->contentID) {
+		evt.config_data_code = GF_4CC('o','d','r','m');
+		memset(&cfg, 0, sizeof(cfg));
+		cfg.scheme_version = drm_cfg->scheme_version;
+		cfg.scheme_type = drm_cfg->scheme_type;
+		cfg.scheme_uri = drm_cfg->scheme_uri;
+		cfg.kms_uri = drm_cfg->kms_uri;
+		memcpy(cfg.hash, drm_cfg->hash, sizeof(char)*20);
+		cfg.contentID = drm_cfg->contentID;
+		cfg.oma_drm_crypt_type = drm_cfg->oma_drm_crypt_type;
+		cfg.oma_drm_use_pad = drm_cfg->oma_drm_use_pad;
+		cfg.oma_drm_use_hdr = drm_cfg->oma_drm_use_hdr;
+		cfg.oma_drm_textual_headers = drm_cfg->oma_drm_textual_headers;
+		cfg.oma_drm_textual_headers_len = drm_cfg->oma_drm_textual_headers_len;
+		evt.config_data = &cfg;
+	} else {
+		evt.config_data_code = GF_4CC('i','s','m','a');
+		memset(&isma_cfg, 0, sizeof(isma_cfg));
+		isma_cfg.scheme_version = drm_cfg->scheme_version;
+		isma_cfg.scheme_type = drm_cfg->scheme_type;
+		isma_cfg.scheme_uri = drm_cfg->scheme_uri;
+		isma_cfg.kms_uri = drm_cfg->kms_uri;
+		evt.config_data = &isma_cfg;		
 	}
 
-	/*init decrypter*/
-	memset(IV, 0, sizeof(char)*16);
-	memcpy(IV, ch->salt, sizeof(char)*8);
-	e = gf_crypt_init(ch->crypt, ch->key, 16, IV);
-	if (e) {
-		gf_term_message(ch->odm->term, ch->service->url, "ISMACryp: cannot initialize AES-128 CTR decryption", e);
-		goto exit;
+	if (ch->ipmp_tool) {
+		e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
+		if (e) gf_term_message(ch->odm->term, ch->service->url, "Error setting up DRM tool", e);
+		ch_buffer_off(ch);
+		return;
 	}
 
-exit:
+	/*browse all available tools*/
+	count = gf_modules_get_count(term->user->modules);
+	for (i=0; i< count; i++) {
+		ch->ipmp_tool = (GF_IPMPTool *) gf_modules_load_interface(term->user->modules, i, GF_IPMP_TOOL_INTERFACE);
+		if (!ch->ipmp_tool) continue;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[IPMP] Checking if IPMP tool %s can handle channel protection scheme\n", ch->ipmp_tool->module_name));
+		e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
+		if (e==GF_OK) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[IPMP] Associating IPMP tool %s to channel %d\n", ch->ipmp_tool->module_name, ch->esd->ESID));
+			ch_buffer_off(ch);
+			return;
+		}
+		gf_modules_close_interface((GF_BaseInterface *) ch->ipmp_tool);
+		ch->ipmp_tool = NULL;
+	}
+	gf_term_message(ch->odm->term, ch->service->url, "No IPMP tool suitable to handle channel protection", GF_NOT_SUPPORTED);
 	ch_buffer_off(ch);
-	if (e && ch->crypt) {
-		gf_crypt_close(ch->crypt);
-		ch->crypt = NULL;
-	}
 }
 
