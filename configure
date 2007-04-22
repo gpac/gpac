@@ -56,6 +56,7 @@ has_ogg="no"
 has_vorbis="no"
 has_theora="no"
 has_oss_audio="no"
+has_alsa="no"
 has_x11="no"
 has_x11_shm="no"
 disable_svg="no"
@@ -780,6 +781,17 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_dvb4linux="yes"
 fi
 
+# look for alsa
+cat > $TMPC << EOF
+#include <alsa/asoundlib.h>	      
+int main( void ) {
+}
+EOF
+
+if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+has_alsa="yes"
+fi
+
 
 
 
@@ -1057,6 +1069,7 @@ echo "OSS Audio: no"
 else
 echo "OSS Audio: yes"
 fi
+echo "ALSA Audio: $has_alsa"
 echo "X11 Shared Memory support: $has_x11_shm (path: $X11_PATH)"
 fi
 
@@ -1246,6 +1259,7 @@ echo "CONFIG_VORBIS=$has_vorbis" >> config.mak
 echo "CONFIG_THEORA=$has_theora" >> config.mak
 echo "CONFIG_FFMPEG=$has_ffmpeg" >> config.mak
 echo "CONFIG_OSS_AUDIO=$has_oss_audio" >> config.mak
+echo "CONFIG_ALSA=$has_alsa" >> config.mak
 echo "DISABLE_SVG=$disable_svg" >> config.mak
 echo "HAS_OPENGL=$has_opengl" >> config.mak
 if test "$has_opengl" = "yes" ; then

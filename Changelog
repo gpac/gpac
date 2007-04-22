@@ -1,4 +1,5 @@
-Latest CVS changes: 20/04/07
+Latest CVS changes: 22/04/07
+  - Initial commit of ALSA output module
   - Initial commit of DVB support for Linux - connection URL is dvb://ChannelName, cf doc/configuration.html
   - Fixed handling of QT V1 and V2 audio descriptions
   - Moved ISMA decryption to run-time module for basic DRM tests
