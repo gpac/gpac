@@ -42,6 +42,7 @@ The config file is based on the win32 .ini file model, thus is ordered by sectio
 <b><a href="#FFMPEG" style="text-decoration: underline;">FFMPEG</a></b>
 <b><a href="#ISOReader" style="text-decoration: underline;">ISOReader</a></b>
 <b><a href="#DVB" style="text-decoration: underline;">DVB</a></b>
+<b><a href="#ALSA" style="text-decoration: underline;">ALSA</a></b>
 
 </p>
 <br/><br/>
@@ -603,6 +604,15 @@ Ignores all MPEG-4 systems tracks and IOD for files showing the listed brands in
 <b>ChannelsFile</b> [value: <i>Absolute file path</i>]
 <p style="text-indent: 5%">
 Specifies the DVB channels configuration file as produced by dvbtools' scan util.</p>
+
+<br/><br/>
+
+<a name="ALSA"></a>
+<span style="text-decoration: underline;"><b>Section "ALSA"</b></span> <i><a href="#Overview">Back to top</a></i>
+<p>The "ALSA" section of the config file holds all configuration options of the ALSA audio output module on GNU/Linux systems.</p>
+<b>DeviceName</b> [value: <i>string</i>]
+<p style="text-indent: 5%">
+Specifies the ALSA device to use. Default device is "hw:0,0".</p>
 
 <br/><br/>
 
