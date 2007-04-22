@@ -1,8 +1,9 @@
 include ../../config.mak
 
-vpath %.c $(SRC_PATH)/src/laser
+vpath %.c $(SRC_PATH)/modules/alsa
 
-CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include $(OSS_CFLAGS)
+LDFLAGS+=$(OSS_LDFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -15,38 +16,30 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS=lsr_enc.o lsr_dec.o lsr_tables.o
-
+OBJS= alsa.o
 
 SRCS := $(OBJS:.o=.c) 
 
-
-LIB=../../bin/gcc/temp/libgpac_laser.a
+LIB=gm_alsa.$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 
-
 $(LIB): $(OBJS)
-	$(AR) rc $@ $(OBJS)
-	$(RANLIB) $@
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac -lasound
 
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 
 
 
+clean: 
+	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 
 dep: depend
 
 depend:
-	rm -f .depend
+	rm -f .depend	
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
-
-
-clean: 
-	rm -f *.o $(LIB)
-
-
 
 distclean: clean
 	rm -f Makefile.bak .depend
@@ -58,3 +51,4 @@ distclean: clean
 ifneq ($(wildcard .depend),)
 include .depend
 endif
+

@@ -23,6 +23,7 @@
  */
 
 #include "isom_in.h"
+#include <gpac/ismacryp.h>
 
 ISOMChannel *isor_get_channel(ISOMReader *reader, LPNETCHANNEL channel)
 {

@@ -69,7 +69,7 @@ u32 AR_MainLoop(void *p)
 
 	while (ar->audio_th_state == 1) {
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] Audio simulation step\n"));
-		gf_sleep(0);
+		//gf_sleep(0);
 		gf_mixer_lock(ar->mixer, 1);
 		if (ar->Frozen) {
 			gf_mixer_lock(ar->mixer, 0);
