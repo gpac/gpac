@@ -174,7 +174,15 @@ SOURCE=..\..\modules\render2d\stacks2d.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\render2d\svg_base.c
+SOURCE=..\..\modules\render2d\svg_base_da.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\svg_base_sa.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\svg_base_sani.c
 # End Source File
 # Begin Source File
 
@@ -186,7 +194,11 @@ SOURCE=..\..\modules\render2d\svg_stacks.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\render2d\svg_text.c
+SOURCE=..\..\modules\render2d\svg_text_da.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\svg_text_sa.c
 # End Source File
 # Begin Source File
 

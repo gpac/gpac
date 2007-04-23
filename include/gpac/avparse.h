@@ -133,7 +133,14 @@ enum
     GF_M4A_ER_CELP = 24,
     GF_M4A_ER_HVXC = 25,
     GF_M4A_ER_HILN = 26,
-    GF_M4A_ER_PARAMETRIC = 27
+    GF_M4A_ER_PARAMETRIC = 27,
+    GF_M4A_SSC = 28,
+    GF_M4A_PS = 29,
+    GF_M4A_LAYER1 = 32,
+    GF_M4A_LAYER2 = 33,
+    GF_M4A_LAYER3 = 34,
+    GF_M4A_DST = 35,
+    GF_M4A_ALS = 36,
 };
 
 static const u32 GF_M4ASampleRates[] =

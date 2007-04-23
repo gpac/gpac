@@ -8,7 +8,7 @@ GF_Err PNC_InitRTP(GF_RTPChannel **chan, char * dest, int port){
 	GF_RTSPTransport tr;
 
 	*chan = gf_rtp_new();
-	printf("[carrousel] : RTP_SetupPorts=%d\n", gf_rtp_set_ports(*chan));  
+	printf("[carrousel] : RTP_SetupPorts=%d\n", gf_rtp_set_ports(*chan, 0));  
 
 	tr.destination = dest;
 	tr.IsUnicast = gf_sk_is_multicast_address(dest) ? 0 : 1;

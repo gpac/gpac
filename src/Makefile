@@ -33,7 +33,9 @@ LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/ipmpx_code.o odf/ipmpx_dump
 LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o 
 
 ifeq ($(DISABLE_SVG), no)
-LIBGPAC_SCENE+=scenegraph/svg_attributes.o scenegraph/svg_nodes.o scenegraph/svg_tools.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o
+LIBGPAC_SCENE+=scenegraph/svg_attributes.o scenegraph/svg_nodes_da.o scenegraph/svg_tools_da.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o
+LIBGPAC_SCENE+=scenegraph/svg_nodes_sa.o scenegraph/svg_tools_sa.o
+LIBGPAC_SCENE+=scenegraph/svg_nodes_sani.o scenegraph/svg_tools_sani.o
 endif
 
 
@@ -46,7 +48,9 @@ LIBGPAC_MEDIATOOLS=media_tools/av_parsers.o media_tools/avilib.o media_tools/gpa
 ## libgpac objects gathering: src/scene_manager
 LIBGPAC_SCENEMANAGER=scene_manager/loader_bt.o scene_manager/loader_isom.o scene_manager/loader_qt.o scene_manager/loader_xmt.o scene_manager/scene_dump.o scene_manager/scene_manager.o scene_manager/scene_stats.o scene_manager/swf_parse.o scene_manager/swf_shape.o scene_manager/text_to_bifs.o scene_manager/encode_cbk.o scene_manager/encode_isom.o 
 ifeq ($(DISABLE_SVG), no)
-LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg.o
+LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg_da.o
+LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg_sa.o
+LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg_sani.o
 endif
 
 ## libgpac objects gathering: src/terminal

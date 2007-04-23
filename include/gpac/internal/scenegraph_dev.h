@@ -797,4 +797,10 @@ typedef struct __tag_svg_script_ctx
 
 #endif
 
+
+
+SVG3Attribute *gf_svg3_create_attribute_from_datatype(u32 data_type, u32 attribute_tag);
+
+
 #endif	/*_GF_SCENEGRAPH_DEV_H_*/
+

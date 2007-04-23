@@ -63,7 +63,7 @@ void PNC_InitPacketiser(PNC_CallbackData * data, char *sdp_fmt){
   // PIPOCANAJA
   
 
-  p = gf_rtp_builder_new(GP_RTP_PAYT_MPEG4,
+  p = gf_rtp_builder_new(GF_RTP_PAYT_MPEG4,
 				   &sl,
 				   GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_AU_IDX,
 				   data,

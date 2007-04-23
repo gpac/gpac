@@ -167,14 +167,14 @@ Bool gf_sg_svg3_node_changed(GF_Node *node, GF_FieldInfo *field)
 	return 0;
 }
 
-SVG3Attribute *gf_svg3_create_attribute_from_datatype(u16 data_type, u16 attribute_tag)
+SVG3Attribute *gf_svg3_create_attribute_from_datatype(u32 data_type, u32 attribute_tag)
 {
 	SVG3Attribute *att;
 	if (!data_type) return NULL;
 
 	GF_SAFEALLOC(att, SVG3Attribute);
-	att->data_type = data_type;
-	att->tag = attribute_tag;
+	att->data_type = (u16) data_type;
+	att->tag = (u16) attribute_tag;
 	att->data = gf_svg_create_attribute_value(att->data_type);
 	return att;
 }
