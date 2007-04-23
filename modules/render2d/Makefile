@@ -21,7 +21,7 @@ OBJS= background2d.o drawable.o form.o geometry_stacks.o grouping.o grouping_sta
 ifeq ($(DISABLE_SVG), no)
 OBJS+=svg_base_da.o svg_text_da.o svg_media.o laser_base.o
 OBJS+=svg_base_sa.o svg_text_sa.o
-OBJS+=svg_base_sani.o svg_text_sani.o
+OBJS+=svg_base_sani.o
 endif
 
 LINKFLAGS=-L../../bin/gcc -lgpac

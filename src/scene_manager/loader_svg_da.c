@@ -166,7 +166,7 @@ static Bool svg3_parse_animation(GF_SVG3Parser *parser, GF_SceneGraph *sg, Defer
 				anim->resolve_stage = 1;
 				return svg3_parse_animation(parser, sg, anim, nodeID);
 			} else {
-				svg3_report(parser, "Missing attributeName attribute on %s", gf_node_get_name((GF_Node *)anim->animation_elt));
+				svg3_report(parser, GF_OK, "Missing attributeName attribute on %s", gf_node_get_name((GF_Node *)anim->animation_elt));
 				return 0;
 			}
 		}
