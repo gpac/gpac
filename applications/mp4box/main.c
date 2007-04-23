@@ -74,6 +74,32 @@ Float swf_flatten_angle = 0;
 s32 laser_resolution = 0;
 
 
+typedef struct { u32 code; const char *name; const char *comment; } itunes_tag;
+static const itunes_tag itags[] = {
+	{GF_ISOM_ITUNE_ALBUM_ARTIST, "album_artist", "usage: album_artist=album artist"},
+	{GF_ISOM_ITUNE_ALBUM, "album", "usage: album=name" },
+	{GF_ISOM_ITUNE_TRACKNUMBER, "tracknum", "usage: track=x/N"},
+	{GF_ISOM_ITUNE_TRACK, "track", "usage: track=name"},
+	{GF_ISOM_ITUNE_ARTIST, "artist", "usage: artist=name"},
+	{GF_ISOM_ITUNE_COMMENT, "comment", "usage: comment=any comment"},
+	{GF_ISOM_ITUNE_COMPILATION, "compilation", "usage: compilation=yes,no"},
+	{GF_ISOM_ITUNE_COMPOSER, "composer", "usage: composer=name"},
+	{GF_ISOM_ITUNE_CREATED, "created", ""},
+	{GF_ISOM_ITUNE_DISK, "disk", "usage: disk=x/N"},
+	{GF_ISOM_ITUNE_TOOL, "tool", "usage: tool=name"},
+	{GF_ISOM_ITUNE_GENRE, "genre", "usage: genre=name"},
+	{GF_ISOM_ITUNE_NAME, "name", "usage: name=name"},
+	{GF_ISOM_ITUNE_TEMPO, "tempo", "usage: tempo=integer"},
+	{GF_ISOM_ITUNE_WRITER, "writer", "usage: writer=name"},
+	{GF_ISOM_ITUNE_GROUP, "group", "usage: group=name"},
+	{GF_ISOM_ITUNE_COVER_ART, "cover", "usage: covber=file.jpg,file.png"},
+	{GF_ISOM_ITUNE_ENCODER, "encoder", "usage: encoder=name"},
+	{GF_ISOM_ITUNE_GAPELESS, "gapeless", "usage: artist=yes,no"},
+};
+
+u32 nb_itunes_tags = sizeof(itags) / sizeof(itunes_tag);
+
+
 void PrintVersion()
 {
 	fprintf(stdout, "MP4Box - GPAC version " GPAC_VERSION "\n"
@@ -125,11 +151,7 @@ void PrintGeneralUsage()
 			" -par tkID=PAR:       sets visual track pixel aspect ratio (PAR=N:D or \"none\")\n"
 			" -name tkID=NAME:     sets track handler name\n"
 			"                       * NAME can indicate a UTF-8 file (\"file://file name\"\n"
-			" -itags tag1[:tag2]:  sets iTunes tags to file\n"
-			"                       tags are formatted as name=value. Possible tag names are:\n"
-			"                        album, artist, comment, compilation, composer, created,\n"
-			"                        disk, encoder, genre, name, tempo, track, tracknum, writer,\n"
-			"                        group, cover (takes a jpeg or png file as argument)\n"    
+			" -itags tag1[:tag2]:  sets iTunes tags to file - more info: MP4Box -tag-list.\n"
 			" -split time_sec      splits in files of time_sec max duration\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
 			" -split-size size     splits in files of max filesize kB.\n"
@@ -458,6 +480,8 @@ void PrintUsage()
 			" -snode NodeName:     gets SVG node syntax\n"
 			" -languages:              lists supported ISO 639 languages\n"
 			"\n"
+			"-quiet:               quiet mode\n"
+			" -v:                  verbose mode\n"
 			" -version:            gets build version\n"
 			);
 }
@@ -932,7 +956,7 @@ int main(int argc, char **argv)
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, remove_root_od;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat;
 	GF_ISOFile *file;
 
@@ -951,7 +975,7 @@ int main(int argc, char **argv)
 	import_flags = 0;
 	split_size = 0;
 	MTUSize = 1450;
-	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = 0;
+	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
 	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = 0;
 	track_dump_type = 0;
@@ -1592,6 +1616,14 @@ int main(int argc, char **argv)
 			}
 			else PrintUsage();
 			return 0;
+		}
+		else if (!stricmp(arg, "-v")) verbose = 1;
+		else if (!stricmp(arg, "-tag-list")) {
+			fprintf(stdout, "Supported iTunes tag modifiers:\n");
+			for (i=0; i<nb_itunes_tags; i++) {
+				fprintf(stdout, "\t%s\t%s\n", itags[i].name, itags[i].comment);
+			}
+			return 0;
 		} else {
 			fprintf(stdout, "Option %s unknown. Please check usage\n", arg);
 			return 1;
@@ -1629,7 +1661,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	gf_log_set_level(GF_LOG_INFO);
+	gf_log_set_level(verbose ? GF_LOG_DEBUG : GF_LOG_INFO);
 	gf_log_set_tools(GF_LOG_CONTAINER|GF_LOG_SCENE|GF_LOG_PARSER|GF_LOG_AUTHOR);
 	if (quiet) {
 		gf_log_set_level(0);
@@ -2203,47 +2235,37 @@ int main(int argc, char **argv)
 
 	if (itunes_tags) {
 		char *tags = itunes_tags;
+
 		while (tags) {
 			char *val;
 			char *sep = strchr(tags, ':');
 			u32 tlen, itag = 0;
-			while (sep) {
-				if (!strnicmp(sep+1, "album=", 6)) break;
-				if (!strnicmp(sep+1, "artist=", 7)) break;
-				if (!strnicmp(sep+1, "comment=", 8)) break;
-				if (!strnicmp(sep+1, "compilation=", 12)) break;
-				if (!strnicmp(sep+1, "composer=", 8)) break;
-				if (!strnicmp(sep+1, "created=", 8)) break;
-				if (!strnicmp(sep+1, "disk=", 5)) break;
-				if (!strnicmp(sep+1, "encoder=", 8)) break;
-				if (!strnicmp(sep+1, "genre=", 6)) break;
-				if (!strnicmp(sep+1, "name=", 5)) break;
-				if (!strnicmp(sep+1, "tempo=", 6)) break;
-				if (!strnicmp(sep+1, "track=", 6)) break;
-				if (!strnicmp(sep+1, "tracknum=", 9)) break;
-				if (!strnicmp(sep+1, "writer=", 7)) break;
-				if (!strnicmp(sep+1, "cover=", 6)) break;
-				sep = strchr(sep+1, ':');
+			if (sep) {
+				while (sep) {
+					for (itag=0; itag<nb_itunes_tags;itag++) {
+						if (!strnicmp(sep+1, itags[itag].name, strlen(itags[itag].name))) break;
+					}
+					if (itag<nb_itunes_tags) {
+						break;
+					}
+					sep = strchr(sep+1, ':');
+				}
+				if (sep) sep[0] = 0;
+			} 
+			for (itag=0; itag<nb_itunes_tags;itag++) {
+				if (!strnicmp(tags, itags[itag].name, strlen(itags[itag].name))) {
+					break;
+				}
 			}
-			if (sep) sep[0] = 0;
-			if (!strnicmp(tags, "album=", 6)) itag = GF_ISOM_ITUNE_ALBUM;
-			else if (!strnicmp(tags, "artist=", 7)) itag = GF_ISOM_ITUNE_ARTIST;
-			else if (!strnicmp(tags, "comment=", 8)) itag = GF_ISOM_ITUNE_COMMENT;
-			else if (!strnicmp(tags, "compilation", 11)) itag = GF_ISOM_ITUNE_COMPILATION;
-			else if (!strnicmp(tags, "composer=", 8)) itag = GF_ISOM_ITUNE_COMPOSER;
-			else if (!strnicmp(tags, "created=", 8)) itag = GF_ISOM_ITUNE_CREATED;
-			else if (!strnicmp(tags, "disk=", 5)) itag = GF_ISOM_ITUNE_DISK;
-			else if (!strnicmp(tags, "encoder=", 8)) itag = GF_ISOM_ITUNE_ENCODER;
-			else if (!strnicmp(tags, "genre=", 6)) itag = GF_ISOM_ITUNE_GENRE;
-			else if (!strnicmp(tags, "name=", 5)) itag = GF_ISOM_ITUNE_NAME;
-			else if (!strnicmp(tags, "tempo=", 6)) itag = GF_ISOM_ITUNE_TEMPO;
-			else if (!strnicmp(tags, "track=", 6)) itag = GF_ISOM_ITUNE_TRACK;
-			else if (!strnicmp(tags, "tracknum=", 9)) itag = GF_ISOM_ITUNE_TRACKNUMBER;
-			else if (!strnicmp(tags, "writer=", 7)) itag = GF_ISOM_ITUNE_WRITER;
-			else if (!strnicmp(tags, "group=", 6)) itag = GF_ISOM_ITUNE_GROUP;
-			else if (!strnicmp(tags, "cover=", 6)) itag = GF_ISOM_ITUNE_COVER_ART;
+			if (itag==nb_itunes_tags) {
+				fprintf(stdout, "Invalid iTune tag format \"%s\" - ignoring\n", tags);
+				tags = NULL;
+				continue;
+			}
+			itag = itags[itag].code;
+
 			val = strchr(tags, '=');
-			if (!val && strnicmp(tags, "compilation", 11) ) {
+			if (!val) {
 				fprintf(stdout, "Invalid iTune tag format \"%s\" (expecting '=') - ignoring\n", tags);
 				tags = NULL;
 				continue;
@@ -2254,10 +2276,6 @@ int main(int argc, char **argv)
 			}
 
 			tlen = val ? strlen(val) : 0;
-			if (!strnicmp(tags, "compilation", 11)) {
-				val = NULL;
-				tlen = 1;
-			}
 			switch (itag) {
 			case GF_ISOM_ITUNE_COVER_ART:
 			{
@@ -2301,6 +2319,15 @@ int main(int argc, char **argv)
 				else if (sscanf(val, "%d", &n) == 1) { _t[3]=n;}
 				else tlen = 0;
 				if (tlen) gf_isom_apple_set_tag(file, itag, _t, tlen);
+			}
+				break;
+			case GF_ISOM_ITUNE_GAPELESS:
+			case GF_ISOM_ITUNE_COMPILATION:
+			{
+				char _t[1];
+				if (!stricmp(val, "yes")) _t[0] = 1;
+				else  _t[0] = 0;
+				gf_isom_apple_set_tag(file, itag, _t, 1);
 			}
 				break;
 			default:

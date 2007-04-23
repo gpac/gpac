@@ -249,6 +249,9 @@ enum
 	GF_ISOM_BOX_TYPE_0xA9DES	= GF_4CC( 0xA9, 'd', 'e', 's' ),
 	GF_ISOM_BOX_TYPE_0xA9GEN	= GF_4CC( 0xA9, 'g', 'e', 'n' ),
 	GF_ISOM_BOX_TYPE_0xA9GRP	= GF_4CC( 0xA9, 'g', 'r', 'p' ),
+	GF_ISOM_BOX_TYPE_0xA9ENC	= GF_4CC( 0xA9, 'e', 'n', 'c' ),
+	GF_ISOM_BOX_TYPE_aART		= GF_4CC( 'a', 'A', 'R', 'T' ),
+	GF_ISOM_BOX_TYPE_PGAP = GF_4CC( 'p', 'g', 'a', 'p' ),
 	GF_ISOM_BOX_TYPE_GNRE	= GF_4CC( 'g', 'n', 'r', 'e' ),
 	GF_ISOM_BOX_TYPE_DISK	= GF_4CC( 'd', 'i', 's', 'k' ),
 	GF_ISOM_BOX_TYPE_TRKN	= GF_4CC( 't', 'r', 'k', 'n' ),
@@ -1582,23 +1585,7 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
-	GF_ListItemBox *name;
-	GF_ListItemBox *comment;
-	GF_ListItemBox *created;
-	GF_ListItemBox *artist;
-	GF_ListItemBox *track;
-	GF_ListItemBox *album;
-	GF_ListItemBox *composer;
-	GF_ListItemBox *writer;
-	GF_ListItemBox *encoder;
-	GF_ListItemBox *genre;
-	GF_ListItemBox *disk;
-	GF_ListItemBox *trackNumber;
-	GF_ListItemBox *tempo;
-	GF_ListItemBox *compilation;
-	GF_ListItemBox *coverArt;
-	GF_ListItemBox *group;
-	GF_ListItemBox *iTunesSpecificInfo;
+	GF_List *tags;
 } GF_ItemListBox;
 
 /*OMA (P)DCF extensions*/
