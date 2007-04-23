@@ -24,7 +24,7 @@
 
 #include <gpac/scene_manager.h>
 #include <gpac/nodes_x3d.h>
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/constants.h>
 #include <gpac/avparse.h>

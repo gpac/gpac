@@ -1376,7 +1376,6 @@ typedef struct _svg3_timing_animation_base_element {
 
 typedef struct _all_atts SVG3AllAttributes;
 
-SVG3Attribute *gf_svg3_create_attribute_from_datatype(u16 datatype, u16 attribute_tag);
 void gf_svg3_fill_all_attributes(SVG3AllAttributes *all_atts, SVG3Element *e);
 const char *gf_svg3_get_attribute_name_from_tag(u32 tag);
 

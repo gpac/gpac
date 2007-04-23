@@ -16,8 +16,13 @@ endif
 
 #common obj
 OBJS= background2d.o drawable.o form.o geometry_stacks.o grouping.o grouping_stacks.o ifs2d.o ils2d.o layout.o path_layout.o render2d.o \
-  render2d_nodes.o sensor_stacks.o sound.o text.o texture_stacks.o viewport.o visualsurface2d.o visualsurface2d_draw.o \
-  svg_base.o svg_text.o svg_media.o laser_base.o
+  render2d_nodes.o sensor_stacks.o sound.o text.o texture_stacks.o viewport.o visualsurface2d.o visualsurface2d_draw.o
+
+ifeq ($(DISABLE_SVG), no)
+OBJS+=svg_base_da.o svg_text_da.o svg_media.o laser_base.o
+OBJS+=svg_base_sa.o svg_text_sa.o
+OBJS+=svg_base_sani.o svg_text_sani.o
+endif
 
 LINKFLAGS=-L../../bin/gcc -lgpac
 

@@ -706,10 +706,15 @@ const char *gf_m4a_object_type_name(u32 objectType)
 	case 25: return "ER HVXC";
 	case 26: return "ER HILN";
 	case 27: return "ER Parametric";
-	case 28: return "(Reserved)";
-	case 29: return "(Reserved)";
+	case 28: return "SSC";
+	case 29: return "ParametricStereo";
 	case 30: return "(Reserved)";
 	case 31: return "(Reserved)";
+	case 32: return "Layer-1";
+	case 33: return "Layer-2";
+	case 34: return "Layer-3";
+	case 35: return "DST";
+	case 36: return "ALS";
 	default: return "Unknown";
 	}
 }
@@ -797,6 +802,10 @@ GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
 	bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
 
 	cfg->base_object_type = gf_bs_read_int(bs, 5);
+	/*extended object type*/
+	if (cfg->base_object_type==31) {
+		cfg->base_object_type = 32 + gf_bs_read_int(bs, 6);
+	}
 	cfg->base_sr_index = gf_bs_read_int(bs, 4);
 	if (cfg->base_sr_index == 0x0F) {
 		cfg->base_sr = gf_bs_read_int(bs, 24);
@@ -804,6 +813,9 @@ GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
 		cfg->base_sr = GF_M4ASampleRates[cfg->base_sr_index];
 	}
 	cfg->nb_chan = gf_bs_read_int(bs, 4);
+	/*this is 7+1 channels*/
+	if (cfg->nb_chan==7) cfg->nb_chan=8;
+
 	if (cfg->base_object_type==5) {
 		cfg->has_sbr = 1;
 		cfg->sbr_sr_index = gf_bs_read_int(bs, 4);

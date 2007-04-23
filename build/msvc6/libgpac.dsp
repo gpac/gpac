@@ -513,7 +513,15 @@ SOURCE=..\..\src\scenegraph\svg_attributes.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scenegraph\svg_nodes.c
+SOURCE=..\..\src\scenegraph\svg_nodes_da.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\svg_nodes_sa.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\svg_nodes_sani.c
 # End Source File
 # Begin Source File
 
@@ -525,7 +533,15 @@ SOURCE=..\..\src\scenegraph\svg_smjs.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scenegraph\svg_tools.c
+SOURCE=..\..\src\scenegraph\svg_tools_da.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\svg_tools_sa.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\svg_tools_sani.c
 # End Source File
 # Begin Source File
 
@@ -661,7 +677,15 @@ SOURCE=..\..\src\scene_manager\loader_qt.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scene_manager\loader_svg.c
+SOURCE=..\..\src\scene_manager\loader_svg_da.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scene_manager\loader_svg_sa.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scene_manager\loader_svg_sani.c
 # End Source File
 # Begin Source File
 
@@ -750,6 +774,10 @@ SOURCE="..\..\src\mcrypt\rijndael-192.c"
 # Begin Source File
 
 SOURCE="..\..\src\mcrypt\rijndael-256.c"
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\mcrypt\sha1.c
 # End Source File
 # Begin Source File
 
@@ -1025,7 +1053,15 @@ SOURCE=..\..\include\gpac\nodes_mpeg4.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\include\gpac\nodes_svg.h
+SOURCE=..\..\include\gpac\nodes_svg_da.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\nodes_svg_sa.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\nodes_svg_sani.h
 # End Source File
 # Begin Source File
 
