@@ -25,7 +25,7 @@
 
 #include <gpac/scenegraph_svg.h>
 #include <gpac/internal/scenegraph_dev.h>
-#include <gpac/nodes_svg3.h>
+#include <gpac/nodes_svg_da.h>
 
 /* 
 	Initialization of properties at the element level 

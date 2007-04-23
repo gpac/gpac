@@ -409,7 +409,7 @@ GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char * inputContex
 	codec->load.flags = GF_SM_LOAD_MPEG4_STRICT;
 
 	if (inputContext[0] == '<') {
-		if (strstr(inputContext, "<svg ")) codec->load.type = GF_SM_LOAD_SVG;
+		if (strstr(inputContext, "<svg ")) codec->load.type = GF_SM_LOAD_SVG_DA;
 		else if (strstr(inputContext, "<saf ")) codec->load.type = GF_SM_LOAD_XSR;
 		else if (strstr(inputContext, "XMT-A") || strstr(inputContext, "X3D")) codec->load.type = GF_SM_LOAD_XMTA;
 	} else {

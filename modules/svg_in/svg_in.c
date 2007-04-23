@@ -189,7 +189,8 @@ static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool
 	svgin->inline_scene = scene;
 	svgin->loader.scene_graph = scene->graph;
 	svgin->loader.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
-	svgin->loader.type = GF_SM_LOAD_SVG;
+	/*Warning: svgin->loader.type may be overriden in attach stream */
+	svgin->loader.type = GF_SM_LOAD_SVG_DA;
 	svgin->loader.flags = GF_SM_LOAD_FOR_PLAYBACK;
 	return GF_OK;
 }
@@ -230,6 +231,7 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 		break;
 	}
 	svgin->oti = objectTypeIndication;
+
 	if (!DependsOnES_ID) svgin->base_es_id = ES_ID;
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "Progressive");
@@ -240,6 +242,19 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 	} else {
 		svgin->sax_max_duration = (u32) -1;
 	}
+
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "Version");
+	if (sOpt && !strcmp(sOpt, "static_allocation")) {
+		svgin->loader.type = GF_SM_LOAD_SVG_SA;
+		fprintf(stdout, "Using SVG Scene Graph with static allocation of attributes\n");
+	} else if (sOpt && !strcmp(sOpt, "no_inheritance")) {
+		svgin->loader.type = GF_SM_LOAD_SVG_SANI;
+		fprintf(stdout, "Using SVG Scene Graph with static allocation of attributes and no inheritance\n");
+	} else { /* dynamic allocation */
+		svgin->loader.type = GF_SM_LOAD_SVG_DA;
+		fprintf(stdout, "Using SVG Scene Graph with dynamic allocation of attributes\n");
+	}
+	
 	return GF_OK;
 }
 

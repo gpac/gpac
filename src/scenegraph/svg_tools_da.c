@@ -26,7 +26,7 @@
 #ifndef GPAC_DISABLE_SVG
 
 #include <gpac/internal/scenegraph_dev.h>
-#include <gpac/nodes_svg3.h>
+#include <gpac/nodes_svg_da.h>
 
 Bool is_svg3_animation_tag(u32 tag)
 {

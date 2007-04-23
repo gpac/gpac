@@ -32,7 +32,7 @@
 /*WorldInfo node*/
 #include <gpac/nodes_mpeg4.h>
 /*title node*/
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 
 
 static Bool check_in_scene(GF_InlineScene *scene, GF_ObjectManager *odm)

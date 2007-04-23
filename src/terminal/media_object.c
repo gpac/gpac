@@ -27,7 +27,9 @@
 #include <gpac/nodes_x3d.h>
 #include "media_memory.h"
 #include "media_control.h"
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
+#include <gpac/nodes_svg_sani.h>
+#include <gpac/nodes_svg_da.h>
 
 
 GF_EXPORT
@@ -57,8 +59,14 @@ GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 	
 	/*SVG*/
 	case TAG_SVG_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
+	case TAG_SVG2_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
+	case TAG_SVG3_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
 	case TAG_SVG_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
+	case TAG_SVG2_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
+	case TAG_SVG3_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
 	case TAG_SVG_audio: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
+	case TAG_SVG2_audio: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
+	case TAG_SVG3_audio: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
 
 	default: obj_type = GF_MEDIA_OBJECT_UNDEF; break;
 	}
