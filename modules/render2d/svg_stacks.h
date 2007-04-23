@@ -26,19 +26,45 @@
 
 #include "render2d.h"
 
-#ifndef GPAC_DISABLE_SVG
-#include <gpac/nodes_svg.h>
-
-/* Common stack for Textures */
-
 /* Reusing generic 2D stacks for rendering */
 #include "stacks2d.h"
 
-void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *backup_props, u32 *backup_flags);
+#define BASE_IMAGE_STACK 	\
+	GF_TextureHandler txh; \
+	Drawable *graph; \
+	MFURL txurl;
+
+typedef struct {
+	BASE_IMAGE_STACK
+} SVG_image_stack;
+
+typedef struct
+{
+	BASE_IMAGE_STACK
+	Bool first_frame_fetched;
+} SVG_video_stack;
+
+typedef struct
+{
+	GF_AudioInput input;
+	Bool is_active;
+	MFURL aurl;
+} SVG_audio_stack;
+
+typedef struct
+{
+	GF_TextureHandler txh;
+	u32 *cols;
+	Fixed *keys;
+	u32 nb_col;
+} SVG_GradientStack;
+
+#ifndef GPAC_DISABLE_SVG
+#include <gpac/nodes_svg.h>
+
 void svg_render_node(GF_Node *node, RenderEffect2D *eff);
 void svg_render_node_list(GF_ChildNodeItem *children, RenderEffect2D *eff);
 void svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, RenderEffect2D *eff);
-
 
 /* Creates a rendering context and Translates the SVG Styling properties into a context
    that the renderer can understand */
@@ -50,7 +76,8 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff);
    This function implements inheritance. */
 void SVGApplyProperties(SVGPropertiesPointers *render_svg_props, SVGProperties *current_svg_props);
 
-/* Basic shapes rendering functions */
+void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *backup_props, u32 *backup_flags);
+
 void SVG_Init_svg(Render2D *sr, GF_Node *node);
 void SVG_Init_g(Render2D *sr, GF_Node *node);
 void SVG_Init_switch(Render2D *sr, GF_Node *node);
@@ -61,49 +88,70 @@ void SVG_Init_line(Render2D *sr, GF_Node *node);
 void SVG_Init_polyline(Render2D *sr, GF_Node *node);
 void SVG_Init_polygon(Render2D *sr, GF_Node *node);
 void SVG_Init_path(Render2D *sr, GF_Node *node);
-
-/* Text rendering functions */
 void SVG_Init_text(Render2D *sr, GF_Node *node);
-
-/* Interactive functions */
 void SVG_Init_a(Render2D *se, GF_Node *node);
-
-#define BASE_IMAGE_STACK 	\
-	GF_TextureHandler txh; \
-	Drawable *graph; \
-	MFURL txurl;
-
-typedef struct {
-	BASE_IMAGE_STACK
-} SVG_image_stack;
 void SVG_Init_image(Render2D *se, GF_Node *node);
-
-typedef struct
-{
-	BASE_IMAGE_STACK
-	Bool first_frame_fetched;
-} SVG_video_stack;
 void SVG_Init_video(Render2D *se, GF_Node *node);
-
-
-typedef struct
-{
-	GF_AudioInput input;
-	Bool is_active;
-	MFURL aurl;
-} SVG_audio_stack;
 void SVG_Init_audio(Render2D *se, GF_Node *node);
-
 void SVG_Init_linearGradient(Render2D *sr, GF_Node *node);
 void SVG_Init_radialGradient(Render2D *sr, GF_Node *node);
 GF_TextureHandler *svg_gradient_get_texture(GF_Node *node);
-
-
 void SVG_Init_solidColor(Render2D *sr, GF_Node *node);
 void SVG_Init_stop(Render2D *sr, GF_Node *node);
 
 void gf_svg_apply_local_transformation(RenderEffect2D *eff, GF_Node *node, GF_Matrix2D *backup_matrix);
 void gf_svg_restore_parent_transformation(RenderEffect2D *eff, GF_Matrix2D *backup_matrix);
+
+
+#include <gpac/nodes_svg2.h>
+
+void svg2_render_base(GF_Node *node, RenderEffect2D *eff);
+void svg2_render_node(GF_Node *node, RenderEffect2D *eff);
+void svg2_render_node_list(GF_List *children, RenderEffect2D *eff);
+void svg2_get_nodes_bounds(GF_Node *self, GF_List *children, RenderEffect2D *eff);
+
+/* Creates a rendering context and Translates the SVG Styling properties into a context
+   that the renderer can understand */
+DrawableContext *svg2_drawable_init_context(Drawable *node, RenderEffect2D *eff);
+
+void svg2_Init_svg(Render2D *sr, GF_Node *node);
+void svg2_Init_g(Render2D *sr, GF_Node *node);
+void svg2_Init_switch(Render2D *sr, GF_Node *node);
+void svg2_Init_rect(Render2D *sr, GF_Node *node);
+void svg2_Init_circle(Render2D *sr, GF_Node *node);
+void svg2_Init_ellipse(Render2D *sr, GF_Node *node);
+void svg2_Init_line(Render2D *sr, GF_Node *node);
+void svg2_Init_polyline(Render2D *sr, GF_Node *node);
+void svg2_Init_polygon(Render2D *sr, GF_Node *node);
+void svg2_Init_path(Render2D *sr, GF_Node *node);
+void svg2_Init_a(Render2D *se, GF_Node *node);
+void svg2_Init_linearGradient(Render2D *sr, GF_Node *node);
+void svg2_Init_radialGradient(Render2D *sr, GF_Node *node);
+GF_TextureHandler *svg2_gradient_get_texture(GF_Node *node);
+void svg2_Init_solidColor(Render2D *sr, GF_Node *node);
+void svg2_Init_stop(Render2D *sr, GF_Node *node);
+
+void gf_svg2_apply_local_transformation(RenderEffect2D *eff, GF_Node *node, GF_Matrix2D *backup_matrix);
+void gf_svg2_restore_parent_transformation(RenderEffect2D *eff, GF_Matrix2D *backup_matrix);
+
+#include <gpac/nodes_svg3.h>
+
+void SVG3_Init_svg(Render2D *sr, GF_Node *node);
+void SVG3_Init_g(Render2D *sr, GF_Node *node);
+void SVG3_Init_switch(Render2D *sr, GF_Node *node);
+void SVG3_Init_rect(Render2D *sr, GF_Node *node);
+void SVG3_Init_circle(Render2D *sr, GF_Node *node);
+void SVG3_Init_ellipse(Render2D *sr, GF_Node *node);
+void SVG3_Init_line(Render2D *sr, GF_Node *node);
+void SVG3_Init_polyline(Render2D *sr, GF_Node *node);
+void SVG3_Init_polygon(Render2D *sr, GF_Node *node);
+void SVG3_Init_path(Render2D *sr, GF_Node *node);
+void SVG3_Init_text(Render2D *sr, GF_Node *node);
+void SVG3_Init_a(Render2D *se, GF_Node *node);
+
+void SVG3_Render_base(GF_Node *node, SVG3AllAttributes *all_atts, RenderEffect2D *eff, 
+					 SVGPropertiesPointers *backup_props, u32 *backup_flags);
+void gf_svg3_apply_local_transformation(RenderEffect2D *eff, SVG3AllAttributes *atts, GF_Matrix2D *backup_matrix);
 
 #endif //GPAC_DISABLE_SVG
 

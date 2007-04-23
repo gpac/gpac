@@ -232,7 +232,7 @@ static void RenderBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 		}
 
 		/*we're in direct rendering and we missed background drawing - reset*/
-		if (bck->isBound && (eff->trav_flags & TF_RENDER_DIRECT) && !eff->draw_background) {
+		if (bck->isBound && (eff->trav_flags & TF_RENDER_DIRECT) && !eff->draw_background ) {
 			gf_sr_invalidate(eff->surface->render->compositor, NULL);
 			return;
 		}

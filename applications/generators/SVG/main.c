@@ -505,7 +505,7 @@ void setAttributeType(SVGGenAttribute *att)
 		} else if (!strcmp(att->svg_name, "spreadMethod")) {
 			strcpy(att->impl_type, "SVG_SpreadMethod");
 		} else if (!strcmp(att->svg_name, "gradientTransform")) {
-			strcpy(att->impl_type, "SVG_Matrix");
+			strcpy(att->impl_type, "SVG_Transform_Full");
 		} else if (!strcmp(att->svg_name, "editable")) {
 			strcpy(att->impl_type, "SVG_Boolean");
 		} else {
@@ -523,11 +523,11 @@ void setAttributeType(SVGGenAttribute *att)
 		} else if (!strcmp(att->svg_name, "syncToleranceDefault")) {
 			strcpy(att->impl_type, "SMIL_SyncTolerance");
 		} else if (!strcmp(att->svg_name, "transform")) {
-			strcpy(att->impl_type, "SVG_Matrix");
+			strcpy(att->impl_type, "SVG_Transform");
+		} else if (!strcmp(att->svg_name, "gradientTransform")) {
+			strcpy(att->impl_type, "SVG_Transform");
 		} else if (!strcmp(att->svg_name, "event") || !strcmp(att->svg_name, "ev:event")) {
 			strcpy(att->impl_type, "XMLEV_Event");
-		} else if (!strcmp(att->svg_name, "gradientTransform")) {
-			strcpy(att->impl_type, "SVG_Matrix");
 		} else if (strstr(att->svg_type, "datatype")) {
 			char *tmp;
 			sprintf(att->impl_type, "SVG_%s", att->svg_type);
@@ -749,11 +749,11 @@ FILE *BeginFile(u32 type)
 		sprintf(sPath, "nodes_svg.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 #else
 		if (generation_mode == 1) 
-			sprintf(sPath, "..%c..%c..%c..%cinclude%cgpac%cnodes_svg.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+			sprintf(sPath, "..%c..%c..%c..%cinclude%cgpac%cnodes_svg_sa.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		else if (generation_mode == 2) 
-			sprintf(sPath, "..%c..%c..%c..%cinclude%cgpac%cnodes_svg2.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+			sprintf(sPath, "..%c..%c..%c..%cinclude%cgpac%cnodes_svg_sani.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		else if (generation_mode == 3)
-			sprintf(sPath, "..%c..%c..%c..%cinclude%cgpac%cnodes_svg3.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+			sprintf(sPath, "..%c..%c..%c..%cinclude%cgpac%cnodes_svg_da.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		
 #endif
 	} else if (type==1) {
@@ -761,22 +761,22 @@ FILE *BeginFile(u32 type)
 		sprintf(sPath, "svg_nodes.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 #else
 		if (generation_mode == 1) 
-			sprintf(sPath, "..%c..%c..%c..%csrc%cscenegraph%csvg_nodes.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+			sprintf(sPath, "..%c..%c..%c..%csrc%cscenegraph%csvg_nodes_sa.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		else if (generation_mode == 2) 
-			sprintf(sPath, "..%c..%c..%c..%csrc%cscenegraph%csvg_nodes2.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+			sprintf(sPath, "..%c..%c..%c..%csrc%cscenegraph%csvg_nodes_sani.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		else if (generation_mode == 3)
-			sprintf(sPath, "..%c..%c..%c..%csrc%cscenegraph%csvg_nodes3.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+			sprintf(sPath, "..%c..%c..%c..%csrc%cscenegraph%csvg_nodes_da.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 #endif
 	} else {
 #ifdef LOCAL_SVG_NODES
 		sprintf(sPath, "lsr_tables.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 #else
 		if (generation_mode == 1) 
-			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables_sa.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		else if (generation_mode == 2) 
-			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables2.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables_sani.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		else if (generation_mode == 3) 
-			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables3.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables_da.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 
 #endif
 	}

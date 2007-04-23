@@ -110,11 +110,11 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_MPEG4_Text: case TAG_X3D_Text: R2D_InitText(sr, node); break;
 	case TAG_MPEG4_TouchSensor: case TAG_X3D_TouchSensor: R2D_InitTouchSensor(sr, node); break;
 
-
 	case TAG_ProtoNode: R2D_InitHardcodedProto(sr, node); break;
 		
 #ifndef GPAC_DISABLE_SVG
-	/*SVG part*/
+
+		/*SVG part*/
 	case TAG_SVG_svg:				SVG_Init_svg(sr, node); break;
 	case TAG_SVG_g:					SVG_Init_g(sr, node); break;
 	case TAG_SVG_switch:			SVG_Init_switch(sr, node); break;
@@ -126,9 +126,7 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_SVG_polygon:			SVG_Init_polygon(sr, node); break;
 	case TAG_SVG_text:				SVG_Init_text(sr, node); break;
 	case TAG_SVG_path:				SVG_Init_path(sr, node); break;
-
 	case TAG_SVG_a:					SVG_Init_a(sr, node); break;
-
 	case TAG_SVG_image:				SVG_Init_image(sr, node); break;
 	case TAG_SVG_video:				SVG_Init_video(sr, node); break;
 	case TAG_SVG_audio:				SVG_Init_audio(sr, node); break;
@@ -136,13 +134,57 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_SVG_radialGradient:	SVG_Init_radialGradient(sr, node); break;
 	case TAG_SVG_solidColor:		SVG_Init_solidColor(sr, node); break;
 	case TAG_SVG_stop:				SVG_Init_stop(sr, node); break;
-
 	case TAG_SVG_rectClip:			LASeR_Init_rectClip(sr, node); break;
 	case TAG_SVG_selector:			LASeR_Init_selector(sr, node); break;
 	case TAG_SVG_simpleLayout:		LASeR_Init_simpleLayout(sr, node); break;
 
+		/*SVG2 part*/
+	case TAG_SVG2_svg:				svg2_Init_svg(sr, node); break;
+	case TAG_SVG2_g:				svg2_Init_g(sr, node); break;
+	case TAG_SVG2_switch:			svg2_Init_switch(sr, node); break;
+	case TAG_SVG2_rect:				svg2_Init_rect(sr, node); break;
+	case TAG_SVG2_circle:			svg2_Init_circle(sr, node); break;
+	case TAG_SVG2_ellipse:			svg2_Init_ellipse(sr, node); break;
+	case TAG_SVG2_line:				svg2_Init_line(sr, node); break;
+	case TAG_SVG2_polyline:			svg2_Init_polyline(sr, node); break;
+	case TAG_SVG2_polygon:			svg2_Init_polygon(sr, node); break;
+	//case TAG_SVG2_text:				SVG2_Init_text(sr, node); break;
+	case TAG_SVG2_path:				svg2_Init_path(sr, node); break;
+	case TAG_SVG2_a:				svg2_Init_a(sr, node); break;
+	//case TAG_SVG2_image:			SVG2_Init_image(sr, node); break;
+	//case TAG_SVG2_video:			SVG2_Init_video(sr, node); break;
+	//case TAG_SVG2_audio:			SVG2_Init_audio(sr, node); break;
+	case TAG_SVG2_linearGradient:	svg2_Init_linearGradient(sr, node); break;
+	case TAG_SVG2_radialGradient:	svg2_Init_radialGradient(sr, node); break;
+	case TAG_SVG2_solidColor:		svg2_Init_solidColor(sr, node); break;
+	case TAG_SVG2_stop:				svg2_Init_stop(sr, node); break;
+
+		/* SVG3 Part */
+	case TAG_SVG3_svg:				SVG3_Init_svg(sr, node); break;
+	case TAG_SVG3_g:				SVG3_Init_g(sr, node); break;
+	case TAG_SVG3_switch:			SVG3_Init_switch(sr, node); break;
+	case TAG_SVG3_rect:				SVG3_Init_rect(sr, node); break;
+	case TAG_SVG3_path:				SVG3_Init_path(sr, node); break;
+	case TAG_SVG3_circle:			SVG3_Init_circle(sr, node); break;
+	case TAG_SVG3_ellipse:			SVG3_Init_ellipse(sr, node); break;
+	case TAG_SVG3_line:				SVG3_Init_line(sr, node); break;
+	case TAG_SVG3_polyline:			SVG3_Init_polyline(sr, node); break;
+	case TAG_SVG3_polygon:			SVG3_Init_polygon(sr, node); break;
+	case TAG_SVG3_text:				SVG3_Init_text(sr, node); break;
+	case TAG_SVG3_a:				SVG3_Init_a(sr, node); break;
+	case TAG_SVG3_image:			SVG_Init_image(sr, node); break; /* Warning: using the same call as for TAG_SVG_image */
+	case TAG_SVG3_video:			SVG_Init_video(sr, node); break; /* Warning: using the same call as for TAG_SVG_video */
+	case TAG_SVG3_audio:			SVG_Init_audio(sr, node); break; /* Warning: using the same call as for TAG_SVG_audio */
+/*
+	case TAG_SVG3_linearGradient:	SVG3_Init_linearGradient(sr, node); break;
+	case TAG_SVG3_radialGradient:	SVG3_Init_radialGradient(sr, node); break;
+	case TAG_SVG3_solidColor:		SVG3_Init_solidColor(sr, node); break;
+	case TAG_SVG3_stop:				SVG3_Init_stop(sr, node); break;
+*/
 #endif
-	default: break;
+	default: 
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RENDER, ("[Render2D] node %s will not be rendered\n", gf_node_get_class_name(node)));
+		break;
 	}
 }
 
@@ -170,13 +212,6 @@ Bool R2D_NodeChanged(GF_VisualRenderer *vr, GF_Node *byObj)
 		return 1;
 		
 #ifndef GPAC_DISABLE_SVG
-	case TAG_SVG_animateMotion:
-	case TAG_SVG_set: 
-	case TAG_SVG_animate: 
-	case TAG_SVG_animateColor: 
-	case TAG_SVG_animateTransform: 
-		//SMIL_Modified_Animation(byObj); return 1;
-		return 0;
 	case TAG_SVG_a:
 	{
 		/*mark node as dirty - since a acts as a sensor, mark it as dirty as a parent node*/

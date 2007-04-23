@@ -23,45 +23,13 @@
  *
  */
 
-#include "svg_stacks.h"
 #include "visualsurface2d.h"
 
 #ifndef GPAC_DISABLE_SVG
+#include "svg_stacks.h"
 
 #include <gpac/internal/scenegraph_dev.h>
 
-#if 0
-static void SVG_ComputeAR(Fixed objw, Fixed objh, Fixed viewportw, Fixed viewporth,
-						  SVG_PreserveAspectRatio *par, GF_Matrix2D *par_mat)
-{
-	gf_mx2d_init(*par_mat);
-	if (par->meetOrSlice == SVG_MEETORSLICE_MEET) {
-		switch(par->align) {
-			case SVG_PRESERVEASPECTRATIO_NONE:
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMINYMIN:
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMIDYMIN:
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMAXYMIN:
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMINYMID:
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMIDYMID:
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMAXYMID:
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMINYMAX:
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMIDYMAX:
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMAXYMAX:
-				break;
-		}
-	} else {
-	}
-}
-#endif
 static void SVG_Draw_bitmap(RenderEffect2D *eff)
 {
 	u8 alpha;
@@ -110,29 +78,66 @@ static void SVG_Draw_bitmap(RenderEffect2D *eff)
 	}
 }
 
-static void SVG_BuildGraph_image(SVG_image_stack *st)
+static void SVG_Build_Bitmap_Graph(SVG_image_stack *st)
 {
 	GF_Rect rc, new_rc;
-	SVGimageElement *img = (SVGimageElement *)st->graph->node;
+	Fixed x, y, width, height;
+	u32 tag = gf_node_get_tag(st->graph->node);
+	switch (tag) {
+	case TAG_SVG_image:
+		{
+			SVGimageElement *img = (SVGimageElement *)st->graph->node;
+			x = img->x.value;
+			y = img->y.value;
+			width = img->width.value;
+			height = img->height.value;
+		}
+		break;
+	case TAG_SVG_video:
+		{
+			SVGvideoElement *video = (SVGvideoElement *)st->graph->node;
+			x = video->x.value;
+			y = video->y.value;
+			width = video->width.value;
+			height = video->height.value;
+		}
+		break;
+	case TAG_SVG2_image:
+		{
+			SVG2imageElement *img = (SVG2imageElement *)st->graph->node;
+			x = img->x.value;
+			y = img->y.value;
+			width = img->width.value;
+			height = img->height.value;
+		}
+		break;
+	case TAG_SVG2_video:
+		{
+			SVG2videoElement *video = (SVG2videoElement *)st->graph->node;
+			x = video->x.value;
+			y = video->y.value;
+			width = video->width.value;
+			height = video->height.value;
+		}
+		break;
+	case TAG_SVG3_image:
+	case TAG_SVG3_video:
+		{
+			SVG3Element *e = (SVG3Element *)st->graph->node;
+			SVG3AllAttributes atts;
+			gf_svg3_fill_all_attributes(&atts, e);
+			x = (atts.x ? atts.x->value : 0);
+			y = (atts.y ? atts.y->value : 0);
+			width = (atts.width ? atts.width->value : 0);
+			height = (atts.height ? atts.height->value : 0);
+		}
+		break;
+	}
+
 	gf_path_get_bounds(st->graph->path, &rc);
 	drawable_reset_path(st->graph);
-	gf_path_add_rect_center(st->graph->path, img->x.value+img->width.value/2, img->y.value+img->height.value/2, img->width.value, img->height.value);
+	gf_path_add_rect_center(st->graph->path, x+width/2, y+height/2, width, height);
 	gf_path_get_bounds(st->graph->path, &new_rc);
-	/*change in visual aspect*/
-	if (!gf_rect_equal(rc, new_rc)) st->graph->flags |= DRAWABLE_HAS_CHANGED;
-	gf_node_dirty_clear(st->graph->node, GF_SG_SVG_GEOMETRY_DIRTY);
-}
-
-
-static void SVG_BuildGraph_video(SVG_video_stack *st)
-{
-	GF_Rect rc, new_rc;
-	SVGvideoElement *video = (SVGvideoElement *)st->graph->node;
-	gf_path_get_bounds(st->graph->path, &rc);
-	drawable_reset_path(st->graph);
-	gf_path_add_rect_center(st->graph->path, video->x.value+video->width.value/2, video->y.value+video->height.value/2, video->width.value, video->height.value);
-	gf_path_get_bounds(st->graph->path, &new_rc);
-	/*change in visual aspect*/
 	if (!gf_rect_equal(rc, new_rc)) st->graph->flags |= DRAWABLE_HAS_CHANGED;
 	gf_node_dirty_clear(st->graph->node, GF_SG_SVG_GEOMETRY_DIRTY);
 }
@@ -145,7 +150,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	GF_Matrix2D backup_matrix;
-	SVG_Matrix *m;
+	GF_Matrix2D *m;
 	DrawableContext *ctx;
 
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
@@ -160,15 +165,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	SVG_Render_base(node, eff, &backup_props, &backup_flags);
 
 	if (gf_node_dirty_get(node)) {
-		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("xlink:href is %s\n", ((SVGElement *)node)->xlink->href.iri));
-		if (gf_node_get_tag(node)==TAG_SVG_image) {
-			SVG_BuildGraph_image((SVG_image_stack*)gf_node_get_private(node));
-			m = &((SVGimageElement *)node)->transform;
-		} else {
-			SVG_BuildGraph_video((SVG_video_stack*)gf_node_get_private(node));
-			m = &((SVGvideoElement *)node)->transform;
-		}
-
+		SVG_Build_Bitmap_Graph((SVG_image_stack*)gf_node_get_private(node));
 		/*if open and changed, stop and play*/
 		if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, & ((SVGElement *)node)->xlink->href)) {
 			const char *cache_dir = gf_cfg_get_key(st->txh.compositor->user->config, "General", "CacheDirectory");
@@ -181,12 +178,12 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 			}
 		} 
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
+	} 
+	
+	if (gf_node_get_tag(node)==TAG_SVG_image) {
+		m = &((SVGimageElement *)node)->transform.mat;
 	} else {
-		if (gf_node_get_tag(node)==TAG_SVG_image) {
-			m = &((SVGimageElement *)node)->transform;
-		} else {
-			m = &((SVGvideoElement *)node)->transform;
-		}
+		m = &((SVGvideoElement *)node)->transform.mat;
 	}
 
 	/*FIXME: setup aspect ratio*/
@@ -238,15 +235,108 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	eff->svg_flags = backup_flags;
 }
 
+static void SVG3_Render_bitmap(GF_Node *node, void *rs)
+{
+	/*video stack is just an extension of image stack, type-casting is OK*/
+	SVG_image_stack *st = (SVG_image_stack*)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
+	SVGPropertiesPointers backup_props;
+	u32 backup_flags;
+	GF_Matrix2D backup_matrix;
+	DrawableContext *ctx;
+	SVG3AllAttributes all_atts;
+
+	if (eff->traversing_mode==TRAVERSE_DRAW) {
+		SVG_Draw_bitmap(eff);
+		return;
+	}
+	else if (eff->traversing_mode==TRAVERSE_PICK) {
+		drawable_pick(eff);
+		return;
+	}
+
+
+	memset(&all_atts, 0, sizeof(SVG3AllAttributes));
+	gf_svg3_fill_all_attributes(&all_atts, (SVG3Element *)node);
+
+	SVG3_Render_base(node, &all_atts, (RenderEffect2D *)rs, &backup_props, &backup_flags);
+
+	if (gf_node_dirty_get(node)) {
+		GF_FieldInfo href_info;
+		SVG_Build_Bitmap_Graph((SVG_image_stack*)gf_node_get_private(node));
+		/*if open and changed, stop and play*/
+		if (gf_svg3_get_attribute_by_tag(node, TAG_SVG3_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
+			if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, href_info.far_ptr)) {
+				const char *cache_dir = gf_cfg_get_key(st->txh.compositor->user->config, "General", "CacheDirectory");
+				gf_svg_store_embedded_data(href_info.far_ptr, cache_dir, "embedded_");
+
+				if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, href_info.far_ptr) == GF_OK) {
+					gf_term_set_mfurl_from_uri(st->txh.compositor->term, &(st->txurl), href_info.far_ptr);
+					if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
+					gf_sr_texture_play(&st->txh, &st->txurl);
+				}
+			} 
+		}
+
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
+	} 
+	
+	
+	/*FIXME: setup aspect ratio*/
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
+		gf_svg3_apply_local_transformation(eff, &all_atts, &backup_matrix);
+		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
+			gf_path_get_bounds(st->graph->path, &eff->bounds);
+		}
+		gf_svg_restore_parent_transformation(eff, &backup_matrix);
+		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+		eff->svg_flags = backup_flags;
+		return;
+	}
+
+	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
+		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
+		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+		eff->svg_flags = backup_flags;
+		return;
+	}
+
+	gf_svg3_apply_local_transformation(eff, &all_atts, &backup_matrix);
+
+	ctx = SVG_drawable_init_context(st->graph, eff);
+	if (!ctx || !ctx->h_texture ) return;
+
+	/*even if set this is not true*/
+	ctx->aspect.pen_props.width = 0;
+	ctx->flags |= CTX_NO_ANTIALIAS;
+
+	/*if rotation, transparent*/
+	ctx->flags &= ~CTX_IS_TRANSPARENT;
+	if (ctx->transform.m[1] || ctx->transform.m[3]) {
+		ctx->flags |= CTX_IS_TRANSPARENT;
+		ctx->flags &= ~CTX_NO_ANTIALIAS;
+	}
+	else if (ctx->h_texture->transparent) 
+		ctx->flags |= CTX_IS_TRANSPARENT;
+	else if (eff->svg_props->opacity && (eff->svg_props->opacity->type==SVG_NUMBER_VALUE) && (eff->svg_props->opacity->value!=FIX_ONE)) {
+		ctx->flags = CTX_IS_TRANSPARENT;
+		ctx->aspect.fill_color = GF_COL_ARGB(FIX2INT(0xFF * eff->svg_props->opacity->value), 0, 0, 0);
+	}
+
+	/*bounds are stored when building graph*/	
+	drawable_finalize_render(ctx, eff, NULL);
+	gf_svg_restore_parent_transformation(eff, &backup_matrix);
+	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+	eff->svg_flags = backup_flags;
+}
 
 /*********************/
 /* SVG image element */
 /*********************/
 
 static void SVG_Update_image(GF_TextureHandler *txh)
-{
-	SVGimageElement *txnode = (SVGimageElement *) txh->owner;
-	MFURL *txurl = &(((SVG_image_stack *)gf_node_get_private((GF_Node *)txnode))->txurl);
+{	
+	MFURL *txurl = &(((SVG_image_stack *)gf_node_get_private(txh->owner))->txurl);
 
 	/*setup texture if needed*/
 	if (!txh->is_open && txurl->count) {
@@ -266,12 +356,18 @@ static void SVG_Render_image(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_del(st->graph);
 		free(st);
 	} else {
-		SVG_Render_bitmap(node, rs);
+		u32 tag = gf_node_get_tag(node);
+		if (tag == TAG_SVG_image) {
+			SVG_Render_bitmap(node, rs);
+		} else if (tag == TAG_SVG3_image) {
+			SVG3_Render_bitmap(node, rs);
+		}
 	}
 }
 
 void SVG_Init_image(Render2D *sr, GF_Node *node)
 {
+	u32 tag;
 	SVG_image_stack *st;
 	GF_SAFEALLOC(st, SVG_image_stack)
 	st->graph = drawable_new();
@@ -282,8 +378,16 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 	st->txh.update_texture_fcnt = SVG_Update_image;
 	st->txh.flags = 0;
 
+	tag = gf_node_get_tag(node);
 	/* builds the MFURL to be used by the texture */
-	gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVGimageElement*)node)->xlink->href);
+	if (tag == TAG_SVG_image) {
+		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVGimageElement*)node)->xlink->href);
+	} else if (tag == TAG_SVG3_image) {
+		GF_FieldInfo href_info;
+		if (gf_svg3_get_attribute_by_tag(node, TAG_SVG3_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
+			gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), href_info.far_ptr);
+		}
+	}
 
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, SVG_Render_image);
@@ -295,11 +399,23 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 static void SVG_Update_video(GF_TextureHandler *txh)
 {
 	SVG_video_stack *st = (SVG_video_stack *) gf_node_get_private(txh->owner);
+	u32 tag = gf_node_get_tag(txh->owner);
+	SVG_InitialVisibility init_vis;
+
+	if (tag == TAG_SVG_video) {
+		init_vis = ((SVGvideoElement *)txh->owner)->initialVisibility;
+	} else if (tag == TAG_SVG3_video) {
+		GF_FieldInfo init_vis_info;
+		if (gf_svg3_get_attribute_by_tag(txh->owner, TAG_SVG3_ATT_initialVisibility, 0, 0, &init_vis_info) == GF_OK) {
+			init_vis = *(SVG_InitialVisibility *)init_vis_info.far_ptr;
+		} else {
+			init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
+		}
+	}
 
 	if (!txh->is_open) {
 		/*opens stream only at first access to fetch first frame if needed*/
-		if (!st->first_frame_fetched &&
-			(((SVGvideoElement *)txh->owner)->initialVisibility == SVG_INITIALVISIBILTY_ALWAYS)) {
+		if (!st->first_frame_fetched && (init_vis == SVG_INITIALVISIBILTY_ALWAYS)) {
 			gf_sr_texture_play(txh, &st->txurl);
 			gf_sr_invalidate(txh->compositor, NULL);
 			return;
@@ -361,12 +477,18 @@ static void SVG_Render_video(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_del(st->graph);
 		free(st);
 	} else {
-		SVG_Render_bitmap(node, rs);
+		u32 tag = gf_node_get_tag(node);
+		if (tag == TAG_SVG_video) {
+			SVG_Render_bitmap(node, rs);
+		} else if (tag == TAG_SVG3_video) {
+			SVG3_Render_bitmap(node, rs);
+		}
 	}
 }
 
 void SVG_Init_video(Render2D *sr, GF_Node *node)
 {
+	u32 tag;
 	SVG_video_stack *st;
 	GF_SAFEALLOC(st, SVG_video_stack)
 	st->graph = drawable_new();
@@ -378,14 +500,29 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 	st->txh.flags = 0;
 
 	/* create an MFURL from the SVG iri */
-	gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVGvideoElement *)node)->xlink->href);
-
-	gf_smil_timing_init_runtime_info(node);
-	if (((SVGElement *)node)->timing->runtime) {
-		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
-		rti->evaluate = svg_video_smil_evaluate;
+	tag = gf_node_get_tag(node);
+	if (tag == TAG_SVG_video) {
+		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVGvideoElement *)node)->xlink->href);
+	} else if (tag == TAG_SVG3_video) {
+		GF_FieldInfo href_info;
+		if (gf_svg3_get_attribute_by_tag(node, TAG_SVG3_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
+			gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), href_info.far_ptr);
+		}
 	}
 	
+	gf_smil_timing_init_runtime_info(node);
+	if (tag == TAG_SVG_video) {
+		if (((SVGElement *)node)->timing->runtime) {
+			SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
+			rti->evaluate = svg_video_smil_evaluate;
+		}
+	} else if (tag == TAG_SVG3_video) {
+		if (((SVG3TimedAnimBaseElement *)node)->timingp->runtime) {
+			SMIL_Timing_RTI *rti = ((SVG3TimedAnimBaseElement *)node)->timingp->runtime;
+			rti->evaluate = svg_video_smil_evaluate;
+		}
+	}
+
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, SVG_Render_video);
 }
@@ -422,6 +559,8 @@ static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 
 static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 {
+	u32 tag;
+	SVG3AllAttributes all_atts;
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	RenderEffect2D *eff = (RenderEffect2D*)rs;
@@ -438,8 +577,15 @@ static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 		gf_sr_audio_register(&st->input, (GF_BaseEffect*)rs);
 	}
 
-	/*for heritage and anims*/
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props, &backup_flags);
+	tag = gf_node_get_tag(node);
+	if (tag == TAG_SVG_audio) {
+		/*for heritage and anims*/
+		SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props, &backup_flags);
+	} else if (tag == TAG_SVG3_audio) {
+		memset(&all_atts, 0, sizeof(SVG3AllAttributes));
+		gf_svg3_fill_all_attributes(&all_atts, (SVG3Element *)node);
+		SVG3_Render_base(node, &all_atts, (RenderEffect2D *)rs, &backup_props, &backup_flags);
+	}
 
 	/*store mute flag*/
 	st->input.is_muted = 0;
@@ -456,18 +602,34 @@ static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 
 void SVG_Init_audio(Render2D *sr, GF_Node *node)
 {
+	u32 tag;
 	SVG_audio_stack *st;
 	GF_SAFEALLOC(st, SVG_audio_stack)
 
 	gf_sr_audio_setup(&st->input, sr->compositor, node);
 
-	/* creates an MFURL from the URI of the SVG element */
-	gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), & ((SVGaudioElement *)node)->xlink->href);
+	/* create an MFURL from the SVG iri */
+	tag = gf_node_get_tag(node);
+	if (tag == TAG_SVG_audio) {
+		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), & ((SVGaudioElement *)node)->xlink->href);
+	} else if (tag == TAG_SVG3_audio) {
+		GF_FieldInfo href_info;
+		if (gf_svg3_get_attribute_by_tag(node, TAG_SVG3_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
+			gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), href_info.far_ptr);
+		}
+	}
 
 	gf_smil_timing_init_runtime_info(node);
-	if (((SVGElement *)node)->timing->runtime) {
-		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
-		rti->evaluate = svg_audio_smil_evaluate;
+	if (tag == TAG_SVG_audio) {
+		if (((SVGElement *)node)->timing->runtime) {
+			SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
+			rti->evaluate = svg_audio_smil_evaluate;
+		}
+	} else if (tag == TAG_SVG3_audio) {
+		if (((SVG3TimedAnimBaseElement *)node)->timingp->runtime) {
+			SMIL_Timing_RTI *rti = ((SVG3TimedAnimBaseElement *)node)->timingp->runtime;
+			rti->evaluate = svg_audio_smil_evaluate;
+		}
 	}
 	
 	gf_node_set_private(node, st);
@@ -487,8 +649,6 @@ void R2D_RenderUse(GF_Node *node, GF_Node *sub_root, void *rs)
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
-
-	return;
 
 	SVG_Render_base(node, eff, &backup_props, &backup_flags);
 

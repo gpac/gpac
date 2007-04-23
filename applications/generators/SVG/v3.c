@@ -116,7 +116,7 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	GF_List *all_atts = gf_list_new();
 
 	output = BeginFile(0);
-	fprintf(output, "#include <gpac/scenegraph_svg3.h>\n\n\n");
+	fprintf(output, "#include <gpac/scenegraph_svg.h>\n\n\n");
 
 	/* ELEMENT tags */
 	fprintf(output, "/* Definition of SVG 3 Alternate element internal tags */\n");
@@ -164,7 +164,7 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	output = BeginFile(1);	
 	fprintf(output, "#ifndef GPAC_DISABLE_SVG\n\n");
 	fprintf(output, "#include <gpac/internal/scenegraph_dev.h>\n\n");
-	fprintf(output, "#include <gpac/nodes_svg3.h>\n\n");
+	fprintf(output, "#include <gpac/nodes_svg_da.h>\n\n");
 
 	
 	fprintf(output, "u32 gf_svg3_get_attribute_tag(u32 element_tag, const char *attribute_name)\n{\n\tif (!attribute_name) return TAG_SVG3_ATT_Unknown;\n");

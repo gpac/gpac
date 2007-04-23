@@ -72,7 +72,7 @@ u32 generateTransformInfo2(FILE *output, SVGGenElement *elt, u32 start)
 
 	fprintf(output, "\t\tcase %d:\n", i);
 	fprintf(output, "\t\t\tinfo->name = \"transform\";\n");
-	fprintf(output, "\t\t\tinfo->fieldType = SVG_Matrix_datatype;\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_Transform_datatype;\n");
 	fprintf(output, "\t\t\tinfo->far_ptr = &((SVG2TransformableElement *)node)->transform;\n");
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 	i++;
@@ -85,7 +85,7 @@ u32 generateMotionTransformInfo2(FILE *output, SVGGenElement *elt, u32 start)
 
 	fprintf(output, "\t\tcase %d:\n", i);
 	fprintf(output, "\t\t\tinfo->name = \"motionTransform\";\n");
-	fprintf(output, "\t\t\tinfo->fieldType = SVG_Matrix_datatype;\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_Transform_datatype;\n");
 	fprintf(output, "\t\t\tinfo->far_ptr = ((SVG2TransformableElement *)node)->motionTransform;\n");
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 	i++;
@@ -146,7 +146,7 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 	} 
 
 	if (svg_elt->has_transform) {
-		fprintf(output, "\tgf_mx2d_init(p->transform);\n");
+		fprintf(output, "\tgf_mx2d_init(p->transform.mat);\n");
 	} 
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
@@ -245,11 +245,19 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 			 !strcmp("SMIL_KeyPoints", att->impl_type)) {
 			fprintf(output, "\tp->%s = gf_list_new();\n", att->implementation_name);
 		} else if (!strcmp("SVG_PathData", att->impl_type) && !strcmp(svg_elt->svg_name, "animateMotion")) {
+			fprintf(output, "#ifdef USE_GF_PATH\n");
+			fprintf(output, "\tgf_path_reset(&p->path);\n");
+			fprintf(output, "#else\n");
 			fprintf(output, "\tp->path.commands = gf_list_new();\n");
 			fprintf(output, "\tp->path.points = gf_list_new();\n");
+			fprintf(output, "#endif\n");
 		} else if (!strcmp("SVG_PathData", att->impl_type)) {
+			fprintf(output, "#ifdef USE_GF_PATH\n");
+			fprintf(output, "\tgf_path_reset(&p->d);\n");
+			fprintf(output, "#else\n");
 			fprintf(output, "\tp->d.commands = gf_list_new();\n");
 			fprintf(output, "\tp->d.points = gf_list_new();\n");
+			fprintf(output, "#endif\n");
 		} else if (!strcmp(att->svg_name, "lsr:enabled")) {
 			fprintf(output, "\tp->lsr_enabled = 1;\n");
 		} 
@@ -263,13 +271,13 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 	}
 	else if (!strcmp(svg_elt->svg_name, "linearGradient")) {
 		fprintf(output, "\tp->x2.value = FIX_ONE;\n");
-		fprintf(output, "\tgf_mx2d_init(p->gradientTransform);\n");
+		fprintf(output, "\tgf_mx2d_init(p->gradientTransform.mat);\n");
 	}
 	else if (!strcmp(svg_elt->svg_name, "radialGradient")) {
 		fprintf(output, "\tp->cx.value = FIX_ONE/2;\n");
 		fprintf(output, "\tp->cy.value = FIX_ONE/2;\n");
 		fprintf(output, "\tp->r.value = FIX_ONE/2;\n");
-		fprintf(output, "\tgf_mx2d_init(p->gradientTransform);\n");
+		fprintf(output, "\tgf_mx2d_init(p->gradientTransform.mat);\n");
 		fprintf(output, "\tp->fx.value = FIX_ONE/2;\n");
 		fprintf(output, "\tp->fy.value = FIX_ONE/2;\n");
 	}
@@ -359,7 +367,7 @@ void generateSVGCode_V2(GF_List *svg_elements)
 	u32 i;
 
 	output = BeginFile(0);
-	fprintf(output, "#include <gpac/scenegraph_svg2.h>\n\n\n");
+	fprintf(output, "#include <gpac/scenegraph_svg.h>\n\n\n");
 	fprintf(output, "/* Definition of SVG 2 Alternate element internal tags */\n");
 	fprintf(output, "/* TAG names are made of \"TAG_SVG2\" + SVG element name (with - replaced by _) */\n");
 
@@ -386,7 +394,7 @@ void generateSVGCode_V2(GF_List *svg_elements)
 	EndFile(output, 0);
 
 	output = BeginFile(1);
-	fprintf(output, "#include <gpac/nodes_svg2.h>\n\n");
+	fprintf(output, "#include <gpac/nodes_svg_sani.h>\n\n");
 
 	fprintf(output, "#ifndef GPAC_DISABLE_SVG\n\n");
 	fprintf(output, "#include <gpac/internal/scenegraph_dev.h>\n\n");

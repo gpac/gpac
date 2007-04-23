@@ -83,15 +83,16 @@ void svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, RenderEffec
 
 void gf_svg_apply_local_transformation(RenderEffect2D *eff, GF_Node *node, GF_Matrix2D *backup_matrix)
 {
+	SVGTransformableElement *tr = (SVGTransformableElement *)node;
 	gf_mx2d_copy(*backup_matrix, eff->transform);
 
-	if (((SVGTransformableElement *)node)->is_ref_transform) 
+	if (tr->transform.is_ref) 
 		gf_mx2d_copy(eff->transform, eff->vb_transform);
 
-	if (((SVGTransformableElement *)node)->motionTransform) 
-		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
+	if (tr->motionTransform) 
+		gf_mx2d_pre_multiply(&eff->transform, tr->motionTransform);
 
-	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
+	gf_mx2d_pre_multiply(&eff->transform, &tr->transform.mat);
 }
 
 void gf_svg_restore_parent_transformation(RenderEffect2D *eff, GF_Matrix2D *backup_matrix)
@@ -366,7 +367,7 @@ void SVG_Init_svg(Render2D *sr, GF_Node *node)
 	gf_node_set_callback_function(node, SVG_Render_svg);
 }
 
-#define ENABLE_CULLING
+#undef ENABLE_CULLING
 
 #ifdef ENABLE_CULLING
 static GFINLINE Bool rect_over_cliper(GF_Rect *r, GF_IRect *cliper)
@@ -580,9 +581,6 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_p
 	}
 
 	gf_svg_apply_local_transformation(eff, (GF_Node *)elt, &backup_matrix);
-
-	if (*(eff->svg_props->fill_rule)==SVG_FILLRULE_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
-	else cs->path->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
 
 	ctx = SVG_drawable_init_context(cs, eff);
 	if (ctx) {
@@ -1030,7 +1028,7 @@ static void SVG_a_HandleEvent(GF_Node *handler, GF_DOM_Event *event)
 			SVGsetElement *set = (SVGsetElement *)a->xlink->href.target;
 			SMIL_Time *begin;
 			GF_SAFEALLOC(begin, SMIL_Time);
-			begin->type = GF_SMIL_TIME_EVENT_RESLOVED;
+			begin->type = GF_SMIL_TIME_EVENT_RESOLVED;
 			begin->clock = gf_node_get_scene_time((GF_Node *)set);
 
 			found = 0;
@@ -1038,7 +1036,7 @@ static void SVG_a_HandleEvent(GF_Node *handler, GF_DOM_Event *event)
 			for (i=0; i<count; i++) {
 				SMIL_Time *first = (SMIL_Time *)gf_list_get(set->timing->begin, i);
 				/*remove past instanciations*/
-				if ((first->type==GF_SMIL_TIME_EVENT_RESLOVED) && (first->clock < begin->clock)) {
+				if ((first->type==GF_SMIL_TIME_EVENT_RESOLVED) && (first->clock < begin->clock)) {
 					gf_list_rem(set->timing->begin, i);
 					free(first);
 					i--;
@@ -1093,17 +1091,7 @@ void SVG_Init_a(Render2D *sr, GF_Node *node)
 
 /* end of Interactive SVG elements */
 
-
-/*SVG gradient common stuff*/
-typedef struct
-{
-	GF_TextureHandler txh;
-	u32 *cols;
-	Fixed *keys;
-	u32 nb_col;
-} SVG_GradientStack;
-
-static void SVG_DestroyPaintServer(GF_Node *node)
+void SVG_DestroyPaintServer(GF_Node *node)
 {
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(node);
 	if (st) {
@@ -1206,7 +1194,7 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 
 	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, (GF_GradientMode) lg->spreadMethod);
 
-	gf_mx2d_copy(*mat, lg->gradientTransform);
+	gf_mx2d_copy(*mat, lg->gradientTransform.mat);
 
 	if (lg->gradientUnits==SVG_GRADIENTUNITS_OBJECT) {
 		/*move to local coord system - cf SVG spec*/
@@ -1248,7 +1236,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	/*create gradient brush if needed*/
 	if (!txh->hwtx) return;
 
-	gf_mx2d_copy(*mat, rg->gradientTransform);
+	gf_mx2d_copy(*mat, rg->gradientTransform.mat);
 
 	radius = rg->r.value;
 	if (rg->r.type==SVG_NUMBER_PERCENTAGE) radius /= 100;
