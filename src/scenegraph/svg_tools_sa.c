@@ -25,7 +25,7 @@
 
 #ifndef GPAC_DISABLE_SVG
 
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 #include <gpac/internal/renderer_dev.h>
 
 #if 1

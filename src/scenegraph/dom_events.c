@@ -25,15 +25,20 @@
 
 #ifndef GPAC_DISABLE_SVG
 
+#include <gpac/scenegraph_svg.h>
 #include <gpac/events.h>
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
+#include <gpac/nodes_svg_sani.h>
+#include <gpac/nodes_svg_da.h>
 
 static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event *evt, Bool is_end);
 
 GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener)
 {
 	if (!node || !listener) return GF_BAD_PARAM;
-	if (listener->sgprivate->tag!=TAG_SVG_listener) return GF_BAD_PARAM;
+	if (listener->sgprivate->tag!=TAG_SVG_listener &&
+		listener->sgprivate->tag!=TAG_SVG2_listener &&
+		listener->sgprivate->tag!=TAG_SVG3_listener) return GF_BAD_PARAM;
 
 	if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
 	if (!node->sgprivate->interact->events) node->sgprivate->interact->events = gf_list_new();
@@ -53,10 +58,10 @@ u32 gf_dom_listener_count(GF_Node *node)
 	return gf_list_count(node->sgprivate->interact->events);
 }
 
-SVGlistenerElement *gf_dom_listener_get(GF_Node *node, u32 i)
+GF_Node *gf_dom_listener_get(GF_Node *node, u32 i)
 {
 	if (!node || !node->sgprivate->interact) return 0;
-	return (SVGlistenerElement *)gf_list_get(node->sgprivate->interact->events, i);
+	return (GF_Node *)gf_list_get(node->sgprivate->interact->events, i);
 }
 
 void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event)
@@ -69,66 +74,97 @@ void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event)
 	GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[DOM Events] Unknown event handler\n"));
 }
 
-static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
+static void svg_process_event(GF_Node *listen, GF_DOM_Event *event)
 {
-	SVGhandlerElement *handler = (SVGhandlerElement *) listen->handler.target;
-	if (!handler) return;
+	GF_Node *hdl_node;
+
+	if (listen->sgprivate->tag == TAG_SVG_listener || listen->sgprivate->tag == TAG_SVG2_listener) {
+		hdl_node = ((SVGlistenerElement *)listen)->handler.target;
+	} else if (listen->sgprivate->tag == TAG_SVG3_listener) {
+		GF_FieldInfo info;
+		if (gf_svg3_get_attribute_by_tag(listen, TAG_SVG3_ATT_handler, 0, 0, &info) == GF_OK) {
+			hdl_node = ((SVG_IRI *)info.far_ptr)->target;
+		} else {
+			return;
+		}
+	} else {
+		return;
+	}
+	if (!hdl_node) return;
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Time %f - Processing event type: %s\n", gf_node_get_scene_time((GF_Node *)listen), gf_dom_event_get_name(event->type)));
 
-	if (is_svg_animation_tag(handler->sgprivate->tag) && handler->anim && handler->timing->runtime) {
-		if (event->type == GF_EVENT_BATTERY) {
-			handler->timing->runtime->fraction = gf_divfix(INT2FIX(event->batteryLevel), INT2FIX(100));
-		} else if (event->type == GF_EVENT_CPU) {
-			handler->timing->runtime->fraction = gf_divfix(INT2FIX(event->cpu_percentage), INT2FIX(100));
-		}
-		switch (handler->timing->runtime->evaluate_status) {
-		case SMIL_TIMING_EVAL_NONE:
-			handler->timing->runtime->evaluate_status = SMIL_TIMING_EVAL_FRACTION;
-		case SMIL_TIMING_EVAL_FRACTION:
-			handler->timing->runtime->fraction = (handler->timing->runtime->fraction>FIX_ONE?FIX_ONE:handler->timing->runtime->fraction);
-			handler->timing->runtime->fraction = (handler->timing->runtime->fraction<0?0:handler->timing->runtime->fraction);
-			handler->timing->runtime->evaluate_status = SMIL_TIMING_EVAL_FRACTION;
-			break;
-		}
-//		printf("event handled %f\n",FLT2FIX(handler->timing->runtime->fraction));
-		return;
-	}
-#if 0
-	/*laser-like handling*/
-	if (handler->timing) {
-		u32 i, count;
-		GF_List *times;
-		SMIL_Time *resolved;
-		GF_FieldInfo info;
-
-		if (listen->lsr_timeAttribute==LASeR_TIMEATTRIBUTE_END) times = handler->timing->end;
-		else times = handler->timing->begin;
-
-		/*solve*/
-		GF_SAFEALLOC(resolved, SMIL_Time);
-		resolved->type = SMIL_TIME_CLOCK;
-		resolved->clock = gf_node_get_scene_time((GF_Node *)handler) + listen->lsr_delay;
-		resolved->dynamic_type=2;
-		count = gf_list_count(times);
-		for (i=0; i<count; i++) {
-			SMIL_Time *proto = gf_list_get(times, i);
-			if ( (proto->type == SMIL_TIME_INDEFINITE) 
-				|| ( (proto->type == SMIL_TIME_CLOCK) && (proto->clock > resolved->clock) ) 
-				) 
+	if (hdl_node->sgprivate->tag == TAG_SVG_handler || hdl_node->sgprivate->tag == TAG_SVG2_handler) {
+		SVGhandlerElement *handler = (SVGhandlerElement *) hdl_node;
+		if (is_svg_animation_tag(handler->sgprivate->tag) && handler->anim && handler->timing->runtime) {
+			if (event->type == GF_EVENT_BATTERY) {
+				handler->timing->runtime->fraction = gf_divfix(INT2FIX(event->batteryLevel), INT2FIX(100));
+			} else if (event->type == GF_EVENT_CPU) {
+				handler->timing->runtime->fraction = gf_divfix(INT2FIX(event->cpu_percentage), INT2FIX(100));
+			}
+			switch (handler->timing->runtime->evaluate_status) {
+			case SMIL_TIMING_EVAL_NONE:
+				handler->timing->runtime->evaluate_status = SMIL_TIMING_EVAL_FRACTION;
+			case SMIL_TIMING_EVAL_FRACTION:
+				handler->timing->runtime->fraction = (handler->timing->runtime->fraction>FIX_ONE?FIX_ONE:handler->timing->runtime->fraction);
+				handler->timing->runtime->fraction = (handler->timing->runtime->fraction<0?0:handler->timing->runtime->fraction);
+				handler->timing->runtime->evaluate_status = SMIL_TIMING_EVAL_FRACTION;
 				break;
+			}
+	//		printf("event handled %f\n",FLT2FIX(handler->timing->runtime->fraction));
+			return;
 		}
-		gf_list_insert(times, resolved, i);
-		memset(&info , 0, sizeof(GF_FieldInfo));
-		info.fieldType = SMIL_Times_datatype;
-		info.far_ptr = &times;
-		gf_node_changed((GF_Node*)handler, &info);
+#if 0
+		/*laser-like handling*/
+		if (handler->timing) {
+			u32 i, count;
+			GF_List *times;
+			SMIL_Time *resolved;
+			GF_FieldInfo info;
+
+			if (listen->lsr_timeAttribute==LASeR_TIMEATTRIBUTE_END) times = handler->timing->end;
+			else times = handler->timing->begin;
+
+			/*solve*/
+			GF_SAFEALLOC(resolved, SMIL_Time);
+			resolved->type = SMIL_TIME_CLOCK;
+			resolved->clock = gf_node_get_scene_time((GF_Node *)handler) + listen->lsr_delay;
+			resolved->dynamic_type=2;
+			count = gf_list_count(times);
+			for (i=0; i<count; i++) {
+				SMIL_Time *proto = gf_list_get(times, i);
+				if ( (proto->type == SMIL_TIME_INDEFINITE) 
+					|| ( (proto->type == SMIL_TIME_CLOCK) && (proto->clock > resolved->clock) ) 
+					) 
+					break;
+			}
+			gf_list_insert(times, resolved, i);
+			memset(&info , 0, sizeof(GF_FieldInfo));
+			info.fieldType = SMIL_Times_datatype;
+			info.far_ptr = &times;
+			gf_node_changed((GF_Node*)handler, &info);
+			return;
+		}
+#endif
+		if (!handler->handle_event) return;
+		if (handler->ev_event.type != event->type) return;
+		handler->handle_event((GF_Node*)handler, event);
+
+	} else if (hdl_node->sgprivate->tag == TAG_SVG3_handler) {
+		GF_FieldInfo info;
+		SVG3handlerElement *handler = (SVG3handlerElement *) hdl_node;
+		if (!handler->handle_event) return;
+
+		if (gf_svg3_get_attribute_by_tag(hdl_node, TAG_SVG3_ATT_ev_event, 0, 0, &info) == GF_OK) {
+			XMLEV_Event *ev_event = (XMLEV_Event *)info.far_ptr;
+			if (ev_event->type != event->type) return;
+			handler->handle_event(hdl_node, event);
+		} else {
+			return;
+		}
+	} else {
 		return;
 	}
-#endif
-	if (handler->sgprivate->tag != TAG_SVG_handler) return;
-	if (!handler->handle_event) return;
-	if (handler->ev_event.type != event->type) return;
-	handler->handle_event((GF_Node*)handler, event);
 }
 
 static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
@@ -139,9 +175,28 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 		u32 i, count;
 		count = gf_list_count(node->sgprivate->interact->events);
 		for (i=0; i<count; i++) {
-			SVGlistenerElement *listen = (SVGlistenerElement *)gf_list_get(node->sgprivate->interact->events, i);
-			if (listen->event.type <= GF_EVENT_MOUSEMOVE) event->has_ui_events=1;
-			if (listen->event.type != event->type) continue;
+			GF_Node *handler = NULL;
+			XMLEV_Event *listened_event;
+			GF_Node *listen = (GF_Node *)gf_list_get(node->sgprivate->interact->events, i);
+			if (listen->sgprivate->tag == TAG_SVG_listener ||
+				listen->sgprivate->tag == TAG_SVG2_listener) {
+				listened_event = &((SVGlistenerElement *)listen)->event;
+				handler = ((SVGlistenerElement *)listen)->handler.target;
+			} else if (listen->sgprivate->tag == TAG_SVG3_listener) {
+				GF_FieldInfo info;
+				if (gf_svg3_get_attribute_by_tag(listen, TAG_SVG3_ATT_event, 0, 0, &info) == GF_OK) {
+					listened_event = (XMLEV_Event *)info.far_ptr;
+					if (gf_svg3_get_attribute_by_tag(listen, TAG_SVG3_ATT_handler, 0, 0, &info) == GF_OK) {
+						handler = ((SVG_IRI*)info.far_ptr)->target;
+					}
+				} else {
+					continue;
+				}
+			} else {
+				continue;
+			}
+			if (listened_event->type <= GF_EVENT_MOUSEMOVE) event->has_ui_events=1;
+			if (listened_event->type != event->type) continue;
 			event->currentTarget = node;
 			/*process event*/
 			svg_process_event(listen, event);
@@ -152,7 +207,7 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 				gf_list_rem(node->sgprivate->interact->events, i);
 				count--;
 				i--;
-				if (listen->handler.target) gf_node_replace((GF_Node *) listen->handler.target, NULL, 0);
+				if (handler) gf_node_replace(handler, NULL, 0);
 				gf_node_replace((GF_Node *) listen, NULL, 0);
 			}
 			/*canceled*/
@@ -220,24 +275,60 @@ Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 GF_EXPORT
 void *gf_dom_listener_build(GF_Node *node, XMLEV_Event event)
 {
+	u32 tag;
 	GF_ChildNodeItem *last = NULL;
-	SVGlistenerElement *listener;
-	SVGhandlerElement *handler;
 
-	/*emulate a listener for onClick event*/
-	listener = (SVGlistenerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
-	handler = (SVGhandlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_handler);
-	gf_node_register((GF_Node *)listener, node);
-	gf_node_list_add_child_last( & ((GF_ParentNode *)node)->children, (GF_Node*)listener, &last);
-	gf_node_register((GF_Node *)handler, node);
-	gf_node_list_add_child_last(& ((GF_ParentNode *)node)->children, (GF_Node*)handler, &last);
-	handler->ev_event = listener->event = event;
-	listener->handler.target = (SVGElement *) handler;
-	listener->target.target = (SVGElement *)node;
-	gf_dom_listener_add((GF_Node *) node, (GF_Node *) listener);
-	/*set default handler*/
-	handler->handle_event = gf_sg_handle_dom_event;
-	return handler;
+	tag = gf_node_get_tag(node);
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG) ||
+		(tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
+		SVGlistenerElement *listener;
+		SVGhandlerElement *handler;
+		/*emulate a listener for onClick event*/
+		listener = (SVGlistenerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
+		handler = (SVGhandlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_handler);
+		gf_node_register((GF_Node *)listener, node);
+		gf_node_list_add_child_last( & ((GF_ParentNode *)node)->children, (GF_Node*)listener, &last);
+		gf_node_register((GF_Node *)handler, node);
+		gf_node_list_add_child_last(& ((GF_ParentNode *)node)->children, (GF_Node*)handler, &last);
+		handler->ev_event = listener->event = event;
+		listener->handler.target = (SVGElement *) handler;
+		listener->target.target = (SVGElement *)node;
+		gf_dom_listener_add((GF_Node *) node, (GF_Node *) listener);
+		/*set default handler*/
+		handler->handle_event = gf_sg_handle_dom_event;
+		return handler;
+	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
+		SVG3Element *listener;
+		SVG3handlerElement *handler;
+		GF_FieldInfo info;
+
+		listener = (SVG3Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG3_listener);
+		handler = (SVG3handlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG3_handler);
+		gf_node_register((GF_Node *)listener, node);
+		gf_node_list_add_child_last( & ((GF_ParentNode *)node)->children, (GF_Node*)listener, &last);
+		gf_node_register((GF_Node *)handler, node);
+		gf_node_list_add_child_last(& ((GF_ParentNode *)node)->children, (GF_Node*)handler, &last);
+
+		gf_svg3_get_attribute_by_tag(handler, TAG_SVG3_ATT_ev_event, 1, 0, &info);
+		*(XMLEV_Event *)info.far_ptr = event;
+		
+		gf_svg3_get_attribute_by_tag(listener, TAG_SVG3_ATT_event, 1, 0, &info);
+		*(XMLEV_Event *)info.far_ptr = event;
+
+		gf_svg3_get_attribute_by_tag(listener, TAG_SVG3_ATT_handler, 1, 0, &info);
+		((SVG_IRI *)info.far_ptr)->target = handler;
+
+		gf_svg3_get_attribute_by_tag(listener, TAG_SVG3_ATT_listener_target, 1, 0, &info);
+		((SVG_IRI *)info.far_ptr)->target = node;
+		
+		gf_dom_listener_add((GF_Node *) node, (GF_Node *) listener);
+
+		/*set default handler*/
+		handler->handle_event = gf_sg_handle_dom_event;
+		return handler;
+	} else {
+		return NULL;
+	}
 }
 
 static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_Event *evt, Bool is_end)
@@ -252,7 +343,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 	TODO FIXME: this is not 100% correct, a begin val in the past can be interpreted!!*/
 	for (i=0; i<count; i++) {
 		proto = (SMIL_Time*)gf_list_get(times, i);
-		if ((proto->type == GF_SMIL_TIME_EVENT_RESLOVED) && (proto->clock<scene_time) ) {
+		if ((proto->type == GF_SMIL_TIME_EVENT_RESOLVED) && (proto->clock<scene_time) ) {
 			free(proto);
 			gf_list_rem(times, i);
 			i--;
@@ -269,14 +360,14 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 		}
 		/*solve*/
 		GF_SAFEALLOC(resolved, SMIL_Time);
-		resolved->type = GF_SMIL_TIME_EVENT_RESLOVED;
+		resolved->type = GF_SMIL_TIME_EVENT_RESOLVED;
 		resolved->clock = scene_time + proto->clock;
 
 		/*insert in sorted order*/
 		for (j=0; j<count; j++) {
 			proto = (SMIL_Time*)gf_list_get(times, j);
 
-			if ( GF_SMIL_TIME_IS_SPECIFIED_CLOCK(proto->type) ) {
+			if ( GF_SMIL_TIME_IS_CLOCK(proto->type) ) {
 				if (proto->clock > resolved->clock) break;
 			} else {
 				break;
@@ -294,29 +385,46 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 static void gf_smil_handle_event_begin(GF_Node *hdl, GF_DOM_Event *evt)
 {
 	GF_FieldInfo info;
-	SVGElement *timed_elt = (SVGElement *)gf_node_get_private(hdl);
+	GF_Node *timed_elt = (GF_Node *)gf_node_get_private(hdl);
+	u32 tag = timed_elt->sgprivate->tag;
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "begin";
-	info.far_ptr = &timed_elt->timing->begin;
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG) ||
+		(tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
+		info.far_ptr = &((SVGElement *)timed_elt)->timing->begin;
+	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
+		info.far_ptr = ((SVG3TimedAnimBaseElement *)timed_elt)->timingp->begin;
+	} else {
+		return; 
+	}
 	info.fieldType = SMIL_Times_datatype;
-	gf_smil_handle_event((GF_Node*)timed_elt, &info, evt, 0);
+	gf_smil_handle_event(timed_elt, &info, evt, 0);
 }
 
 static void gf_smil_handle_event_end(GF_Node *hdl, GF_DOM_Event *evt)
 {
 	GF_FieldInfo info;
-	SVGElement *timed_elt = (SVGElement *)gf_node_get_private(hdl);
+	GF_Node *timed_elt = (GF_Node *)gf_node_get_private(hdl);
+	u32 tag = timed_elt->sgprivate->tag;
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "end";
-	info.far_ptr = &timed_elt->timing->end;
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG) ||
+		(tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
+		info.far_ptr = &((SVGElement *)timed_elt)->timing->end;
+	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
+		info.far_ptr = ((SVG3TimedAnimBaseElement *)timed_elt)->timingp->end;
+	} else {
+		return; 
+	}
 	info.fieldType = SMIL_Times_datatype;
 	gf_smil_handle_event((GF_Node *)timed_elt, &info, evt, 1);
 }
 
 static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 {
-	SVGhandlerElement *hdl;
+	void *hdl;
 	u32 i, count;
+	u32 tag = node->sgprivate->tag;
 	count = gf_list_count(l);
 	for (i=0; i<count; i++) {
 		SMIL_Time *t = (SMIL_Time*)gf_list_get(l, i);
@@ -324,7 +432,14 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 		/*not resolved yet*/
 		if (!t->element && t->element_id) continue;
 		hdl = gf_dom_listener_build(t->element, t->event);
-		hdl->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
+		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG) ||
+			(tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
+			((SVGhandlerElement *)hdl)->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
+		} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
+			((SVG3handlerElement *)hdl)->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
+		} else {
+			continue;
+		}
 		gf_node_set_private((GF_Node *)hdl, node);
 		t->element = NULL;
 	}

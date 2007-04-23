@@ -789,10 +789,18 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 		sep = strchr(d, ')');
 		sep[0] = 0;
 		gf_dom_parse_key_identifier(&v->event.parameter, tmp);
+		sep++;
+		if ((tmp = strchr(sep, '+')) || (tmp = strchr(sep, '-'))) {
+			char c = *tmp;
+			tmp++;
+			svg_parse_clock_value(tmp, &(v->clock));
+			if (c == '-') v->clock *= -1;
+		} 
 		return;
 	} 
 
 	else {
+		Bool had_param = 0;
 		char *tmp2;
 		v->type = GF_SMIL_TIME_EVENT;
 		if ((tmp = strchr(d, '.'))) {
@@ -808,6 +816,7 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 			v->event.type = gf_dom_event_type_by_name(tmp);
 			tmp2[0] = '(';
 			tmp2++;
+			had_param = 1;
 			v->event.parameter = atoi(tmp2);
 			tmp = strchr(tmp2, ')');
 			if (!tmp) {
@@ -815,31 +824,30 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 				return;
 			}			
 			tmp++;
+		} 
+		if ((tmp2 = strchr(tmp, '+')) || (tmp2 = strchr(tmp, '-'))) {
+			char c = *tmp2;
+			char *tmp3 = tmp2;
+			tmp2[0] = 0;
+			tmp3--;
+			while (*tmp3==' ') { *tmp3=0; tmp3--; }
+			if (v->event.type == 0) v->event.type = gf_dom_event_type_by_name(tmp);
+			if (!had_param && v->event.type == GF_EVENT_REPEAT) v->event.parameter = 1;
+			tmp2[0] = c;
+			tmp2++;
+			svg_parse_clock_value(tmp2, &(v->clock));
+			if (c == '-') v->clock *= -1;
 		} else {
-			if ((tmp2 = strchr(tmp, '+')) || (tmp2 = strchr(tmp, '-'))) {
-				char c = *tmp2;
-				char *tmp3 = tmp2;
-				tmp2[0] = 0;
-				tmp3--;
-				while (*tmp3==' ') { *tmp3=0; tmp3--; }
-				v->event.type = gf_dom_event_type_by_name(tmp);
-				if (v->event.type == GF_EVENT_REPEAT) v->event.parameter = 1;
-				tmp2[0] = c;
-				tmp2++;
-				svg_parse_clock_value(tmp2, &(v->clock));
-				if (c == '-') v->clock *= -1;
-			} else {
-				v->event.type = gf_dom_event_type_by_name(tmp);
-				if (v->event.type == GF_EVENT_REPEAT) v->event.parameter = 1;
-			}
+			if (v->event.type == 0) v->event.type = gf_dom_event_type_by_name(tmp);
+			if (!had_param && v->event.type == GF_EVENT_REPEAT) v->event.parameter = 1;
 		}
 	}
 }
 
-/* Parses an SVG transform attribute and collapses all in the given matrix */
-static Bool svg_parse_transform(SVG_Matrix *mat, char *attribute_content) 
+/* Parses a list of SVG transformations and collapses them in the given matrix */
+static void svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content) 
 {
-	SVG_Matrix tmp;
+	GF_Matrix2D tmp;
 
 	char *str;
 	u32 i;
@@ -955,37 +963,47 @@ static Bool svg_parse_transform(SVG_Matrix *mat, char *attribute_content)
 			gf_mx2d_copy(*mat, tmp);
 			while(str[i] != 0 && str[i] == ' ') i++;
 			if (str[i] == ')') i++;
-		} else if (strstr(str+i, "ref")==str+i) {
-			i+=3;
-			while(str[i] != 0 && str[i] == ' ') i++;
-			if (str[i] == '(') {
-				i++;
-				while(str[i] != 0 && str[i] == ' ') i++;
-				if (str[i] == 's' && str[i+1] == 'v' && str[i+2] == 'g') {
-					i+=3;
-					while(str[i] != 0 && str[i] == ' ') i++;					
-					if (str[i] == ',') i++;
-					else if (str[i] == ')') {
-						i++;
-						return 1;
-					} else goto err_ref;
-					i+=svg_parse_float(&(str[i]), &(mat->m[2]), 0);
-					i+=svg_parse_float(&(str[i]), &(mat->m[5]), 0);
-					while(str[i] != 0 && str[i] == ' ') i++;
-					if (str[i] == ')')  i++;
-				} else {
-					goto err_ref;
-				}
-				return 1;
-			} else {
-err_ref:
-			/* erroneous syntax, looking for closing parenthesis */
-				while(str[i] != 0 && str[i] != ')') i++;
-				i++;
-			}
-		}
+		} 
 	}
-	return 0;
+}
+
+/* Parses an SVG transform attribute and collapses all in the given matrix */
+static Bool svg_parse_transform(SVG_Transform *t, char *attribute_content) 
+{
+	char *str;
+	u32 i;
+	str = attribute_content;
+	i = 0;
+
+	if (str = strstr(attribute_content, "ref(")) {
+		t->is_ref = 1;
+		gf_mx2d_init(t->mat);
+		str+=3;
+		while(str[i] != 0 && str[i] == ' ') i++;
+		if (str[i] == 's' && str[i+1] == 'v' && str[i+2] == 'g') {
+			i+=3;
+			while(str[i] != 0 && str[i] == ' ') i++;					
+			if (str[i] == ',') i++;
+			else if (str[i] == ')') {
+				i++;
+				return GF_OK;
+			}
+			i+=svg_parse_float(&(str[i]), &(t->mat.m[2]), 0);
+			i+=svg_parse_float(&(str[i]), &(t->mat.m[5]), 0);
+			while(str[i] != 0 && str[i] == ' ') i++;
+			if (str[i] == ')')  i++;
+			i++;
+			return GF_OK;
+		} else {
+			while(str[i] != 0 && str[i] != ')') i++;
+			i++;
+			return GF_NOT_SUPPORTED;
+		}
+		
+	} else {
+		svg_parse_transformlist(&t->mat, attribute_content);
+	}
+	return GF_OK;
 }
 
 #undef REMOVE_ALLOC
@@ -2150,7 +2168,7 @@ static u32 svg_parse_point(SVG_Point *p, char *value_string)
 	return i;
 }
 
-static u32 svg_parse_point_into_matrix(SVG_Matrix *p, char *value_string)
+static u32 svg_parse_point_into_matrix(GF_Matrix2D *p, char *value_string)
 {
 	u32 i = 0;
 	gf_mx2d_init(*p);
@@ -2390,58 +2408,25 @@ static void svg_parse_focus(GF_Node *e,  SVG_Focus *o, char *attribute_content)
 
 /* end of Basic SVG datatype parsing functions */
 
-void svg_parse_one_anim_value(GF_Node *n, SMIL_AnimateValue *anim_value, char *attribute_content, u8 anim_value_type, u8 transform_type)
+void svg_parse_one_anim_value(GF_Node *n, SMIL_AnimateValue *anim_value, char *attribute_content, u8 anim_value_type)
 {
 	GF_FieldInfo info;
 	info.fieldType = anim_value_type;
-	info.name = "animation value";
-	/*figure out transform animation type if not known - this is needed for laser which cannot animate matrices */
-	if ( (anim_value_type==SVG_Matrix_datatype) && !transform_type) {
-		char *sep = strchr(attribute_content, '(');
-		if (sep) {
-			sep = strchr(sep+1, '(');
-			if (!sep) {
-				if (!strncmp(attribute_content, "translate(", 10)) {
-					transform_type = SVG_TRANSFORM_TRANSLATE;
-					attribute_content+=10;
-				}
-				else if (!strncmp(attribute_content, "scale(", 6)) {
-					transform_type = SVG_TRANSFORM_SCALE;
-					attribute_content+=6;
-				}
-				else if (!strncmp(attribute_content, "rotate(", 7)) {
-					transform_type = SVG_TRANSFORM_ROTATE;
-					attribute_content+=7;
-				}
-				else if (!strncmp(attribute_content, "skewX(", 6)) {
-					transform_type = SVG_TRANSFORM_SKEWX;
-					attribute_content+=6;
-				}
-				else if (!strncmp(attribute_content, "skewY(", 6)) {
-					transform_type = SVG_TRANSFORM_SKEWY;
-					attribute_content+=6;
-				}
-			}
-		}
-	}
-	info.far_ptr = gf_svg_create_attribute_value(anim_value_type, transform_type);
-	if (info.far_ptr) gf_svg_parse_attribute(n, &info, attribute_content, anim_value_type, transform_type);
+	info.far_ptr = gf_svg_create_attribute_value(anim_value_type);
+	if (info.far_ptr) gf_svg_parse_attribute(n, &info, attribute_content, 0);
+
 	anim_value->value = info.far_ptr;
 	anim_value->type = anim_value_type;
-	anim_value->transform_type = transform_type;
 }
 
-void svg_parse_anim_values(GF_Node *n, SMIL_AnimateValues *anim_values, char *anim_values_string, u8 anim_value_type, u8 transform_type)
+void svg_parse_anim_values(GF_Node *n, SMIL_AnimateValues *anim_values, char *anim_values_string, u8 anim_value_type)
 {
 	u32 i = 0;
 	char *str;
 	s32 psemi = -1;
 	GF_FieldInfo info;
 	info.fieldType = anim_value_type;
-	info.name = "animation values";
-
 	anim_values->type = anim_value_type;
-	anim_values->transform_type = transform_type;
 	
 	str = anim_values_string;
 	while (1) {
@@ -2451,9 +2436,9 @@ void svg_parse_anim_values(GF_Node *n, SMIL_AnimateValues *anim_values, char *an
 			single_value_len = i - (psemi+1);
 			c = str [ (psemi+1) + single_value_len];
 			str [ (psemi+1) + single_value_len] = 0;
-			info.far_ptr = gf_svg_create_attribute_value(anim_value_type, transform_type);
+			info.far_ptr = gf_svg_create_attribute_value(anim_value_type);
 			if (info.far_ptr) {
-				gf_svg_parse_attribute(n, &info, str + (psemi+1), anim_value_type, transform_type);
+				gf_svg_parse_attribute(n, &info, str + (psemi+1), anim_value_type);
 				gf_list_add(anim_values->values, info.far_ptr);
 			}
 			str [ (psemi+1) + single_value_len] = c;
@@ -2462,56 +2447,6 @@ void svg_parse_anim_values(GF_Node *n, SMIL_AnimateValues *anim_values, char *an
 		}
 		i++;
 	}
-}
-
-void svg_parse_transform_animation_value(GF_Node *n, void *transform, char *value_string, u8 transform_type) 
-{
-	u32 i = 0;
-	switch(transform_type) {
-	case SVG_TRANSFORM_TRANSLATE:
-		{
-			SVG_Point *p = (SVG_Point *)transform;
-			i+=svg_parse_float(&(value_string[i]), &(p->x), 0);
-			if (value_string[i] == 0) {
-				p->y = 0;
-			} else {
-				i+=svg_parse_float(&(value_string[i]), &(p->y), 0);
-			}
-		}
-		break;
-	case SVG_TRANSFORM_SCALE:
-		{
-			SVG_Point *p = (SVG_Point *)transform;;
-			i+=svg_parse_float(&(value_string[i]), &(p->x), 0);
-			if (value_string[i] == 0) {
-				p->y = p->x;
-			} else {
-				i+=svg_parse_float(&(value_string[i]), &(p->y), 0);
-			}
-		}
-		break;
-	case SVG_TRANSFORM_ROTATE:
-		{
-			SVG_Point_Angle *p = (SVG_Point_Angle *)transform;;
-			i+=svg_parse_float(&(value_string[i]), &(p->angle), 1);
-			if (value_string[i] == 0) {
-				p->y = p->x = 0;
-			} else {
-				i+=svg_parse_float(&(value_string[i]), &(p->x), 0);
-				i+=svg_parse_float(&(value_string[i]), &(p->y), 0);
-			}					
-		}
-		break;
-	case SVG_TRANSFORM_SKEWX:
-	case SVG_TRANSFORM_SKEWY:
-		{
-			Fixed *p = (Fixed *)transform;
-			i+=svg_parse_float(&(value_string[i]), p, 1);
-		}
-		break;
-	default:
-		svg_parse_transform((SVG_Matrix *)transform, value_string);
-	}	
 }
 
 GF_Err laser_parse_choice(LASeR_Choice *choice, char *attribute_content)
@@ -2578,7 +2513,7 @@ GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if
 }
 
 /* Parse an SVG attribute */
-GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type)
+GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type)
 {
 	u32 len;
 	len = strlen(attribute_content);
@@ -2710,11 +2645,6 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 /* end of keyword type parsing */
 
 	/* keyword | floats */
-/*	case SVG_Opacity_datatype:
-	case SVG_AudioLevel_datatype:
-		svg_parse_number(info->far_ptr, attribute_content, 1);
-		break;
-*/
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype: 
 	case SVG_FontSize_datatype:
@@ -2724,16 +2654,17 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		break;
 
 	case SMIL_AnimateValue_datatype:
-		svg_parse_one_anim_value(n, (SMIL_AnimateValue*)info->far_ptr, attribute_content, anim_value_type, transform_type);
+		svg_parse_one_anim_value(n, (SMIL_AnimateValue*)info->far_ptr, attribute_content, anim_value_type);
 		break;
 	case SMIL_AnimateValues_datatype:
-		svg_parse_anim_values(n, (SMIL_AnimateValues*)info->far_ptr, attribute_content, anim_value_type, transform_type);
+		svg_parse_anim_values(n, (SMIL_AnimateValues*)info->far_ptr, attribute_content, anim_value_type);
 		break;
+
 	case SVG_IRI_datatype:
 		svg_parse_iri(n, (SVG_IRI*)info->far_ptr, attribute_content);
 		break;
 	case SMIL_AttributeName_datatype:
-		/* Should be not called here but directly */
+		((SMIL_AttributeName *)info->far_ptr)->name = strdup(attribute_content);
 		break;
 	case SMIL_Times_datatype:
 		smil_parse_time_list(n, *(GF_List **)info->far_ptr, attribute_content);
@@ -2755,6 +2686,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SMIL_KeySplines_datatype:
 		svg_parse_floats(*(GF_List **)(info->far_ptr), attribute_content, 0);
 		break;
+	case SVG_Numbers_datatype:
 	case SVG_Coordinates_datatype:
 		svg_parse_coordinates(*(GF_List **)(info->far_ptr), attribute_content);
 		break;
@@ -2767,20 +2699,58 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SVG_FontFamily_datatype:
 		svg_parse_fontfamily((SVG_FontFamily*)info->far_ptr, attribute_content);
 		break;
-	case SVG_Matrix_datatype:
-		if (transform_type == SVG_TRANSFORM_MATRIX) {
-			Bool is_ref = svg_parse_transform((SVG_Matrix*)info->far_ptr, attribute_content);
-			if (gf_svg_is_element_transformable(gf_node_get_tag(n)))
-				((SVGTransformableElement *)n)->is_ref_transform = is_ref;
-			/* TODO: FIXME ref will not work in SVG2 */
-		} else 
-			svg_parse_transform_animation_value(n, info->far_ptr, attribute_content, transform_type);
+	case SVG_Motion_datatype:
+		svg_parse_point_into_matrix((GF_Matrix2D*)info->far_ptr, attribute_content);
+		break;
+	case SVG_Transform_datatype:
+		svg_parse_transform((SVG_Transform*)info->far_ptr, attribute_content);
+		break;
+	case SVG_Transform_Translate_datatype:
+		{
+			u32 i = 0;
+			SVG_Point *p = (SVG_Point *)info->far_ptr;;
+			i+=svg_parse_float(&(attribute_content[i]), &(p->x), 0);
+			if (attribute_content[i] == 0) {
+				p->y = 0;
+			} else {
+				i+=svg_parse_float(&(attribute_content[i]), &(p->y), 0);
+			}
+		}
+		break;
+	case SVG_Transform_Scale_datatype:
+		{
+			u32 i = 0;
+			SVG_Point *p = (SVG_Point *)info->far_ptr;;
+			i+=svg_parse_float(&(attribute_content[i]), &(p->x), 0);
+			if (attribute_content[i] == 0) {
+				p->y = p->x;
+			} else {
+				i+=svg_parse_float(&(attribute_content[i]), &(p->y), 0);
+			}
+		}
+		break;
+	case SVG_Transform_SkewX_datatype:
+	case SVG_Transform_SkewY_datatype:
+		{
+			Fixed *p = (Fixed *)info->far_ptr;
+			svg_parse_float(attribute_content, p, 1);
+		}
+		break;
+	case SVG_Transform_Rotate_datatype:
+		{
+			u32 i = 0;
+			SVG_Point_Angle *p = (SVG_Point_Angle *)info->far_ptr;;
+			i+=svg_parse_float(&(attribute_content[i]), &(p->angle), 1);
+			if (attribute_content[i] == 0) {
+				p->y = p->x = 0;
+			} else {
+				i+=svg_parse_float(&(attribute_content[i]), &(p->x), 0);
+				i+=svg_parse_float(&(attribute_content[i]), &(p->y), 0);
+			}					
+		}
 		break;
 	case SVG_PreserveAspectRatio_datatype:
 		svg_parse_preserveaspectratio((SVG_PreserveAspectRatio*)info->far_ptr, attribute_content);
-		break;
-	case SVG_Motion_datatype:
-		svg_parse_point_into_matrix((SVG_Matrix*)info->far_ptr, attribute_content);
 		break;
 	case SVG_TransformType_datatype:
 		svg_parse_animatetransform_type((SVG_TransformType*)info->far_ptr, attribute_content);
@@ -2849,7 +2819,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		svg_parse_clock_value(attribute_content, (SVG_Clock*)info->far_ptr);
 		break;
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] skipping unsupported attribute %s\n", info->name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] Cannot parse attribute %s\n", info->name, gf_svg_attribute_type_to_string(info->fieldType)));
 		break;
 	}
 	return GF_OK;
@@ -2869,7 +2839,7 @@ void svg_parse_one_style(GF_Node *n, char *one_style)
 	one_style[attributeNameLen] = 0;
 	if (!gf_node_get_field_by_name(n, one_style, &info)) {
 		c++;
-		gf_svg_parse_attribute(n, &info, c, 0, 0);
+		gf_svg_parse_attribute(n, &info, c, 0);
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Attribute %s does not belong to element %s.\n", one_style, gf_svg_get_element_name(gf_node_get_tag(n))));
 	}
@@ -2900,7 +2870,7 @@ void gf_svg_parse_style(GF_Node *n, char *style)
 
 }
 
-void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
+void *gf_svg_create_attribute_value(u32 attribute_type)
 {
 	switch (attribute_type) {
 	case SVG_Boolean_datatype:
@@ -2991,50 +2961,50 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 		}
 		break;
 
-	case SVG_Matrix_datatype:
-		{
-			switch(transform_type) {
-			case SVG_TRANSFORM_TRANSLATE:
-			case SVG_TRANSFORM_SCALE:
-				{
-					SVG_Point *p;
-					GF_SAFEALLOC(p, SVG_Point)
-					return p;
-				}
-				break;
-			case SVG_TRANSFORM_ROTATE:
-				{
-					SVG_Point_Angle *p;
-					GF_SAFEALLOC(p, SVG_Point_Angle)
-					return p;
-				}
-				break;
-			case SVG_TRANSFORM_SKEWX:
-			case SVG_TRANSFORM_SKEWY:
-				{
-					Fixed *p;
-					GF_SAFEALLOC(p, Fixed)
-					return p;
-				}
-				break;
-			default:
-				{
-					SVG_Matrix *m;
-					GF_SAFEALLOC(m, SVG_Matrix)
-					gf_mx2d_init(*m);
-					return m;
-				}
-			}
-		}
-		break;
 	case SVG_Motion_datatype:
 		{
-			SVG_Matrix *m;
-			GF_SAFEALLOC(m, SVG_Matrix)
-			gf_mx2d_init(*m);
-			return m;
+			GF_Matrix2D *p;
+			GF_SAFEALLOC(p, GF_Matrix2D)
+			gf_mx2d_init(*p);
+			return p;
 		}
 		break;
+
+	case SVG_Transform_datatype:
+		{
+			SVG_Transform *p;
+			GF_SAFEALLOC(p, SVG_Transform)
+			gf_mx2d_init(p->mat);
+			return p;
+		}
+		break;
+
+	case SVG_Transform_Translate_datatype:
+	case SVG_Transform_Scale_datatype:
+		{
+			SVG_Point *p;
+			GF_SAFEALLOC(p, SVG_Point)
+			return p;
+		}
+		break;
+
+	case SVG_Transform_SkewX_datatype:
+	case SVG_Transform_SkewY_datatype:
+		{
+			Fixed *p;
+			GF_SAFEALLOC(p, Fixed)
+			return p;
+		}
+		break;
+
+	case SVG_Transform_Rotate_datatype:
+		{
+			SVG_Point_Angle *p;
+			GF_SAFEALLOC(p, SVG_Point_Angle)
+			return p;
+		}
+		break;
+
 	case SVG_ViewBox_datatype:
 		{
 			SVG_ViewBox *viewbox;
@@ -3057,26 +3027,30 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 		}
 		break;
 	case SVG_String_datatype:
+	case SVG_ContentType_datatype:
+	case SVG_LanguageID_datatype:
 		{
 			SVG_String *string;
 			GF_SAFEALLOC(string, SVG_String)
 			return string;
 		}
 		break;
+	case SVG_FeatureList_datatype:
+	case SVG_ExtensionList_datatype:
+	case SVG_LanguageIDs_datatype:
+	case SVG_ListOfIRI_datatype:
 	case SVG_Points_datatype:
-		{
-			SVG_Points *points;
-			GF_SAFEALLOC(points, SVG_Points)
-			*points = gf_list_new();
-			return points;
-		}
-		break;
 	case SVG_Coordinates_datatype:
+	case SMIL_Times_datatype:
+	case SMIL_KeySplines_datatype:
+	case SMIL_KeyTimes_datatype:
+	case SMIL_KeyPoints_datatype:
+	case SVG_Numbers_datatype:
 		{
-			SVG_Coordinates *coords;
-			GF_SAFEALLOC(coords, SVG_Coordinates)
-			*coords = gf_list_new();
-			return coords;
+			ListOfXXX *list;
+			GF_SAFEALLOC(list, ListOfXXX)
+			*list = gf_list_new();
+			return list;
 		}
 		break;
 	case SVG_PreserveAspectRatio_datatype:
@@ -3101,19 +3075,59 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 		}
 		break;
 	case LASeR_Choice_datatype:
-	{
-		LASeR_Choice *ch;
-		GF_SAFEALLOC(ch, LASeR_Choice)
-		return ch;
-	}
+		{
+			LASeR_Choice *ch;
+			GF_SAFEALLOC(ch, LASeR_Choice)
+			return ch;
+		}
 	case SVG_Focus_datatype:
-	{
-		SVG_Focus *foc;
-		GF_SAFEALLOC(foc, SVG_Focus)
-		return foc;
-	}
+		{
+			SVG_Focus *foc;
+			GF_SAFEALLOC(foc, SVG_Focus)
+			return foc;
+		}
+	case SMIL_AttributeName_datatype:
+		{
+			SMIL_AttributeName *an;
+			GF_SAFEALLOC(an, SMIL_AttributeName)
+			return an;
+		}
+	case SMIL_RepeatCount_datatype:
+		{
+			SMIL_RepeatCount *rc;
+			GF_SAFEALLOC(rc, SMIL_RepeatCount)
+			return rc;
+		}
+	case SMIL_Duration_datatype:
+		{
+			SMIL_Duration *sd;
+			GF_SAFEALLOC(sd, SMIL_Duration)
+			return sd;
+		}
+	case SMIL_AnimateValue_datatype:
+		{
+			SMIL_AnimateValue *av;
+			GF_SAFEALLOC(av, SMIL_AnimateValue)
+			return av;
+		}
+		break;
+	case SMIL_AnimateValues_datatype:
+		{
+			SMIL_AnimateValues *av;
+			GF_SAFEALLOC(av, SMIL_AnimateValues)
+			av->values = gf_list_new();
+			return av;
+		}
+		break;
+	case XMLEV_Event_datatype:
+		{
+			XMLEV_Event *e;
+			GF_SAFEALLOC(e, XMLEV_Event);
+			return e;
+		}
+		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot create animatable attribute pointer %d - Type not supported.\n", attribute_type));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot create attribute value - Type %s not supported.\n", gf_svg_attribute_type_to_string(attribute_type)));
 		break;
 	} 
 	return NULL;
@@ -3312,6 +3326,44 @@ static void svg_dump_access_key(XMLEV_Event *evt, char *attValue)
 	case 57: strcat(attValue, "9"); break;
 	*/
 	strcat(attValue, ")");
+}
+
+static void gf_svg_dump_matrix(GF_Matrix2D *matrix, char *attValue)
+{
+	/*try to do a simple decomposition...*/
+	if (!matrix->m[1] && !matrix->m[3]) {
+		sprintf(attValue, "translate(%g,%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
+		if ((matrix->m[0]!=FIX_ONE) || (matrix->m[4]!=FIX_ONE)) {
+			char szT[1024];
+			if ((matrix->m[0]==-FIX_ONE) && (matrix->m[4]==-FIX_ONE)) {
+				strcpy(szT, " rotate(180)");
+			} else {
+				sprintf(szT, " scale(%g,%g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[4]) );
+			}
+			strcat(attValue, szT);
+		}
+	} else if (matrix->m[1] == - matrix->m[3]) {
+		Fixed angle = gf_asin(matrix->m[3]);
+		Fixed cos_a = gf_cos(angle);
+		if (ABS(cos_a)>FIX_EPSILON) {
+			Fixed sx, sy;
+			sx = gf_divfix(matrix->m[0], cos_a);
+			sy = gf_divfix(matrix->m[4], cos_a);
+			angle = gf_divfix(180*angle, GF_PI);
+			if ((sx==sy) && ( ABS(FIX_ONE - ABS(sx) ) < FIX_ONE/100)) {
+				sprintf(attValue, "translate(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(gf_divfix(angle*180, GF_PI) ) );
+			} else {
+				sprintf(attValue, "translate(%g,%g) scale(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(sx), FIX2FLT(sy), FIX2FLT(gf_divfix(angle*180, GF_PI) ) );
+			}
+		} else {
+			Fixed a = angle;
+			if (a<0) a += GF_2PI;
+			sprintf(attValue, "translate(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(gf_divfix(a*180, GF_PI) ) );
+		}
+	} 
+	/*default*/
+	if (!strlen(attValue))
+	sprintf(attValue, "matrix(%g %g %g %g %g %g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[3]), FIX2FLT(matrix->m[1]), FIX2FLT(matrix->m[4]), FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
 }
 
 GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
@@ -3727,15 +3779,6 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		sprintf(attValue, "%g", * (SVG_Clock *)info->far_ptr );
 		break;
 
-	/* required for animateMotion */
-	case SVG_Motion_datatype:
-	{
-#if DUMP_COORDINATES
-		SVG_Matrix *m = (SVG_Matrix *)info->far_ptr;
-		sprintf(attValue, "%g %g", FIX2FLT(m->m[2]), FIX2FLT(m->m[5]));
-#endif
-	}
-		break;
 	case SVG_ID_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_GradientOffset_datatype:
@@ -3784,71 +3827,70 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 #endif
 	}
 		break;
-	case SVG_Matrix_datatype:
+
+	case SVG_Motion_datatype:
+		{
 #if DUMP_COORDINATES
-		if (info->eventType==SVG_TRANSFORM_TRANSLATE) {
-			SVG_Point *pt = (SVG_Point *)info->far_ptr;
-			sprintf(attValue, "%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y) );
+			GF_Matrix2D *m = (GF_Matrix2D *)info->far_ptr;
+			sprintf(attValue, "%g %g", FIX2FLT(m->m[2]), FIX2FLT(m->m[5]));
+#endif
 		}
-		else if (info->eventType==SVG_TRANSFORM_SCALE) {
+		break;
+
+	case SVG_Transform_datatype:
+		{
+			SVG_Transform *t= (SVG_Transform *)info->far_ptr;
+			if (t->is_ref) {
+				sprintf(attValue, "ref(svg,%g,%g)", FIX2FLT(t->mat.m[2]), FIX2FLT(t->mat.m[5]) );
+			} else {
+				gf_svg_dump_matrix(&t->mat, attValue);
+			}
+		}
+		break;
+
+	case SVG_Transform_Translate_datatype:
+		{
 			SVG_Point *pt = (SVG_Point *)info->far_ptr;
+#if DUMP_COORDINATES
+			sprintf(attValue, "%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y) );
+#endif
+		}
+		break;
+
+	case SVG_Transform_Scale_datatype:
+		{
+			SVG_Point *pt = (SVG_Point *)info->far_ptr;
+#if DUMP_COORDINATES
 			if (pt->x == pt->y) {
 				sprintf(attValue, "%g", FIX2FLT(pt->x));
 			} else {
 				sprintf(attValue, "%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y) );
 			}
+#endif
 		}
-		else if (info->eventType==SVG_TRANSFORM_ROTATE) {
+		break;
+
+	case SVG_Transform_SkewX_datatype:
+	case SVG_Transform_SkewY_datatype:
+		{
+			Fixed *f = (Fixed *)info->far_ptr;
+#if DUMP_COORDINATES
+			sprintf(attValue, "%g", FIX2FLT( 180 * gf_divfix(*f, GF_PI) ));
+#endif
+		}
+		break;
+
+	case SVG_Transform_Rotate_datatype:
+		{
 			SVG_Point_Angle *pt = (SVG_Point_Angle *)info->far_ptr;
+#if DUMP_COORDINATES
 			if (pt->x || pt->y) {
 				sprintf(attValue, "%g %g %g", FIX2FLT( 180 * gf_divfix(pt->angle, GF_PI) ), FIX2FLT(pt->x), FIX2FLT(pt->y) );
 			} else {
 				sprintf(attValue, "%g", FIX2FLT(gf_divfix(180 * pt->angle, GF_PI) ));
 			}
-		} else if (info->eventType==SVG_TRANSFORM_SKEWX || 
-				   info->eventType==SVG_TRANSFORM_SKEWY) {
-			Fixed *f = (Fixed *)info->far_ptr;
-			sprintf(attValue, "%g", FIX2FLT( 180 * gf_divfix(*f, GF_PI) ));
-		} else {
-			SVG_Matrix *matrix = (SVG_Matrix *)info->far_ptr;
-#if 1
-			/*try to do a simple decomposition...*/
-			if (!matrix->m[1] && !matrix->m[3]) {
-				sprintf(attValue, "translate(%g,%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
-				if ((matrix->m[0]!=FIX_ONE) || (matrix->m[4]!=FIX_ONE)) {
-					char szT[1024];
-					if ((matrix->m[0]==-FIX_ONE) && (matrix->m[4]==-FIX_ONE)) {
-						strcpy(szT, " rotate(180)");
-					} else {
-						sprintf(szT, " scale(%g,%g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[4]) );
-					}
-					strcat(attValue, szT);
-				}
-			} else if (matrix->m[1] == - matrix->m[3]) {
-				Fixed angle = gf_asin(matrix->m[3]);
-				Fixed cos_a = gf_cos(angle);
-				if (ABS(cos_a)>FIX_EPSILON) {
-					Fixed sx, sy;
-					sx = gf_divfix(matrix->m[0], cos_a);
-					sy = gf_divfix(matrix->m[4], cos_a);
-					angle = gf_divfix(180*angle, GF_PI);
-					if ((sx==sy) && ( ABS(FIX_ONE - ABS(sx) ) < FIX_ONE/100)) {
-						sprintf(attValue, "translate(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(gf_divfix(angle*180, GF_PI) ) );
-					} else {
-						sprintf(attValue, "translate(%g,%g) scale(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(sx), FIX2FLT(sy), FIX2FLT(gf_divfix(angle*180, GF_PI) ) );
-					}
-				} else {
-					Fixed a = angle;
-					if (a<0) a += GF_2PI;
-					sprintf(attValue, "translate(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(gf_divfix(a*180, GF_PI) ) );
-				}
-			} 
-			/*default*/
-			if (!strlen(attValue))
 #endif
-			sprintf(attValue, "matrix(%g %g %g %g %g %g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[3]), FIX2FLT(matrix->m[1]), FIX2FLT(matrix->m[4]), FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
 		}
-#endif
 		break;
 
 	case SMIL_AttributeName_datatype:
@@ -3962,7 +4004,6 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		SMIL_AnimateValue*av = (SMIL_AnimateValue*)info->far_ptr;
 		a_fi.fieldIndex = 0;
 		a_fi.fieldType = av->type;
-		a_fi.eventType = av->transform_type;
 		a_fi.name = info->name;
 		a_fi.far_ptr = av->value;
 		gf_svg_dump_attribute(elt, &a_fi, attValue);
@@ -3977,7 +4018,6 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			count = gf_list_count(av->values);
 			a_fi.fieldIndex = 0;
 			a_fi.fieldType = av->type;
-			a_fi.eventType = av->transform_type;
 			a_fi.name = info->name;
 			for (i=0; i<count; i++) {
 				char szBuf[1024];
@@ -4001,7 +4041,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		break;
 	}
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] dumping for field %s not supported\n", info->name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] dumping for field %s of type %s not supported\n", info->name, gf_svg_attribute_type_to_string(info->fieldType)));
 		break;
 	}
 	return GF_OK;
@@ -4103,7 +4143,7 @@ GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *
 	}
 		break;
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] dumping for field %s not supported\n", info->name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] dumping for indexed field %s of type %s not supported\n", info->name, gf_svg_attribute_type_to_string(info->fieldType)));
 		break;
 	}
 	return GF_OK;
@@ -4153,7 +4193,7 @@ static Bool svg_iris_equal(SVG_IRI*iri1, SVG_IRI*iri2)
 	if (!iri1->iri && !iri2->iri) return 1;
 	return 0;
 }
-static Bool svg_matrices_equal(SVG_Matrix *m1, SVG_Matrix *m2)
+static Bool svg_matrices_equal(GF_Matrix2D *m1, GF_Matrix2D *m2)
 {
 	if (m1->m[0] != m2->m[0]) return 0;
 	if (m1->m[1] != m2->m[1]) return 0;
@@ -4355,8 +4395,46 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 
 	/* required for animateMotion */
 	case SVG_Motion_datatype:
-	case SVG_Matrix_datatype:
-		return svg_matrices_equal((SVG_Matrix*)f1->far_ptr, (SVG_Matrix*)f2->far_ptr);
+		return svg_matrices_equal((GF_Matrix2D*)f1->far_ptr, (GF_Matrix2D*)f2->far_ptr);
+
+	case SVG_Transform_datatype:
+		{
+			SVG_Transform *t1 = (SVG_Transform *)f1->far_ptr;
+			SVG_Transform *t2 = (SVG_Transform *)f2->far_ptr;
+			if (t1->is_ref == t2->is_ref)
+				return svg_matrices_equal(&t1->mat, &t2->mat);
+			else 
+				return 0;
+		}
+
+	case SVG_Transform_Translate_datatype:
+	case SVG_Transform_Scale_datatype:
+		{
+			SVG_Point *p1 = (SVG_Point *)f1->far_ptr;
+			SVG_Point *p2 = (SVG_Point *)f2->far_ptr;
+			if (p1->x != p2->x) return 0;
+			if (p1->y != p2->y) return 0;
+			return 1;
+		}
+
+	case SVG_Transform_SkewX_datatype:
+	case SVG_Transform_SkewY_datatype:
+		{
+			Fixed *p1 = (Fixed *)f1->far_ptr;
+			Fixed *p2 = (Fixed *)f2->far_ptr;
+			return (*p1 == *p2);
+		}
+
+	case SVG_Transform_Rotate_datatype:
+		{
+			SVG_Point_Angle *p1 = (SVG_Point_Angle *)f1->far_ptr;
+			SVG_Point_Angle *p2 = (SVG_Point_Angle *)f2->far_ptr;
+			if (p1->x != p2->x) return 0;
+			if (p1->y != p2->y) return 0;
+			if (p1->angle != p2->angle) return 0;
+			return 1;
+		}
+
 
 	case SVG_ID_datatype:
 	case SVG_LanguageID_datatype:
@@ -4491,7 +4569,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		return 1;
 	}
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING|GF_LOG_COMPOSE, ("[SVG Parsing] comparaison for field %s not supported\n", f1->name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING|GF_LOG_COMPOSE, ("[SVG Parsing] comparaison for field %s of type %s not supported\n", f1->name, gf_svg_attribute_type_to_string(f1->fieldType)));
 		return 0;
 	}
 }
@@ -4646,19 +4724,17 @@ static GF_Err svg_numbers_copy(SVG_Numbers *a, SVG_Numbers *b)
 #if USE_GF_PATH
 static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_PathData *b, SVG_PathData *c)
 {
-	GF_Path *clone;
 	u32 i;
 
 	if (a->n_points != b->n_points) return GF_BAD_PARAM;
 	gf_path_reset(c);
-	clone = gf_path_clone(a);
-	clone->fineness = c->fineness;
-	memcpy(c, clone, sizeof(GF_Path));
-	free(clone);
+	svg_path_copy(c, a);
 
 	for (i=0; i<a->n_points; i++) {
 		svg_point_muladd(alpha, (SVG_Point *) &a->points[i], beta, (SVG_Point *) &b->points[i], (SVG_Point *) &c->points[i]);
 	}
+	c->flags |= GF_PATH_BBOX_DIRTY;
+	c->flags &= ~GF_PATH_FLATTENED;
 	return GF_OK;
 }
 #else
@@ -4711,6 +4787,21 @@ static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_Path
 #if USE_GF_PATH
 static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
 {
+	if (a->contours) free(a->contours);
+	if (a->points) free(a->points); 
+	if (a->tags) free(a->tags);
+
+	a->contours = (u32 *)malloc(sizeof(u32)*b->n_contours);
+	a->points = (GF_Point2D *) malloc(sizeof(GF_Point2D)*b->n_points);
+	a->tags = (u8 *) malloc(sizeof(u8)*b->n_points);
+	memcpy(a->contours, b->contours, sizeof(u32)*b->n_contours);
+	a->n_contours = b->n_contours;
+	memcpy(a->points, b->points, sizeof(GF_Point2D)*b->n_points);
+	memcpy(a->tags, b->tags, sizeof(u8)*b->n_points);
+	a->n_alloc_points = a->n_points = b->n_points;
+	a->flags = b->flags;
+	a->bbox = b->bbox;
+	a->fineness = b->fineness;
 	return GF_OK;
 }
 #else
@@ -4771,10 +4862,10 @@ static GF_Err svg_dasharray_copy(SVG_StrokeDashArray *a, SVG_StrokeDashArray *b)
 	return GF_OK;
 }
 
-static GF_Err svg_matrix_muladd(Fixed alpha, SVG_Matrix *a, Fixed beta, SVG_Matrix *b, SVG_Matrix *c)
+static GF_Err svg_matrix_muladd(Fixed alpha, GF_Matrix2D *a, Fixed beta, GF_Matrix2D *b, GF_Matrix2D *c)
 {
 	if ((alpha == beta) && (alpha == FIX_ONE) ) {
-		SVG_Matrix tmp;
+		GF_Matrix2D tmp;
 		gf_mx2d_copy(tmp, *b);
 		gf_mx2d_add_matrix(&tmp, a);
 		gf_mx2d_copy(*c, tmp);
@@ -4802,11 +4893,21 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 							 GF_FieldInfo *c, 
 							 Bool clamp)
 {
-	if (a->fieldType!=b->fieldType) return GF_BAD_PARAM;
 	if (!a->far_ptr || !b->far_ptr || !c->far_ptr) return GF_BAD_PARAM;
 
+	if (a->fieldType != b->fieldType) {
+		if (a->fieldType != SVG_Transform_datatype &&
+			a->fieldType != SVG_Transform_Scale_datatype &&
+			a->fieldType != SVG_Transform_Translate_datatype &&
+			a->fieldType != SVG_Transform_Rotate_datatype &&
+			a->fieldType != SVG_Transform_SkewX_datatype &&
+			a->fieldType != SVG_Transform_SkewY_datatype &&
+			a->fieldType != SVG_Motion_datatype)
+		return GF_BAD_PARAM;
+	}
+
+	/* by default a and c are of the same type, except for matrix related types */
 	c->fieldType = a->fieldType;
-	c->eventType = a->eventType;
 
 	switch (a->fieldType) {
 
@@ -4850,64 +4951,97 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		return svg_dasharray_muladd(alpha, (SVG_StrokeDashArray*)a->far_ptr, beta, (SVG_StrokeDashArray*)b->far_ptr, (SVG_StrokeDashArray*)c->far_ptr);
 
 	case SVG_Motion_datatype:
-		return svg_matrix_muladd(alpha, (SVG_Matrix*)a->far_ptr, beta, (SVG_Matrix*)b->far_ptr, (SVG_Matrix*)c->far_ptr);
+		return svg_matrix_muladd(alpha, (GF_Matrix2D*)a->far_ptr, beta, (GF_Matrix2D*)b->far_ptr, (GF_Matrix2D*)c->far_ptr);
 
-	case SVG_Matrix_datatype:
-		if (!b->eventType) {
-			/* a, b and c are full matrices */
-			return svg_matrix_muladd(alpha, (SVG_Matrix*)a->far_ptr, beta, (SVG_Matrix*)b->far_ptr, (SVG_Matrix*)c->far_ptr);
-		} else {
-			if (a->eventType) {
-				/* a, b and c are not matrices */
-				switch (b->eventType) {
-				case SVG_TRANSFORM_TRANSLATE:
-				case SVG_TRANSFORM_SCALE:
-					svg_point_muladd(alpha, (SVG_Point*)a->far_ptr, beta, (SVG_Point*)b->far_ptr, (SVG_Point*)c->far_ptr);
-					break;
-				case SVG_TRANSFORM_ROTATE:
-					svg_point_angle_muladd(alpha, (SVG_Point_Angle*)a->far_ptr, beta, (SVG_Point_Angle*)b->far_ptr, (SVG_Point_Angle*)c->far_ptr);
-					break;
-				case SVG_TRANSFORM_SKEWX:
-				case SVG_TRANSFORM_SKEWY:
-					*(Fixed*)c->far_ptr = gf_mulfix(alpha, *(Fixed*)a->far_ptr) + gf_mulfix(beta, *(Fixed*)b->far_ptr);
-					break;
-				default:
-					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] copy of attributes %s not supported\n", a->name));
-					return GF_NOT_SUPPORTED;
-				}
+	case SVG_Transform_datatype:
+		if (b->fieldType == SVG_Transform_datatype) {
+			SVG_Transform *ta = (SVG_Transform *)a->far_ptr;
+			SVG_Transform *tb = (SVG_Transform *)b->far_ptr;
+			SVG_Transform *tc = (SVG_Transform *)c->far_ptr;
+			if (ta->is_ref == tb->is_ref) {
+				return svg_matrix_muladd(alpha, &ta->mat, beta, &tb->mat, &tc->mat);
 			} else {
-				/* a and c are matrices but b is not */
-				GF_Matrix2D tmp;
-				if (alpha != FIX_ONE) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] matrix operations not supported\n"));
-					return GF_NOT_SUPPORTED;
-				}
-				gf_mx2d_init(tmp);
-				switch (b->eventType) {
-				case SVG_TRANSFORM_TRANSLATE:
-					gf_mx2d_add_translation(&tmp, gf_mulfix(((SVG_Point *)b->far_ptr)->x, beta), gf_mulfix(((SVG_Point *)b->far_ptr)->y, beta));
-					break;
-				case SVG_TRANSFORM_SCALE:
-					gf_mx2d_add_scale(&tmp, gf_mulfix(((SVG_Point *)b->far_ptr)->x, beta), gf_mulfix(((SVG_Point *)b->far_ptr)->y, beta));
-					break;
-				case SVG_TRANSFORM_ROTATE:
-					gf_mx2d_add_rotation(&tmp, gf_mulfix(((SVG_Point_Angle *)b->far_ptr)->x, beta), gf_mulfix(((SVG_Point_Angle *)b->far_ptr)->y, beta), gf_mulfix(((SVG_Point_Angle *)b->far_ptr)->angle, beta));
-					break;
-				case SVG_TRANSFORM_SKEWX:
-					gf_mx2d_add_skew_x(&tmp, gf_mulfix(*(Fixed*)b->far_ptr, beta));
-					break;
-				case SVG_TRANSFORM_SKEWY:
-					gf_mx2d_add_skew_y(&tmp, gf_mulfix(*(Fixed*)b->far_ptr, beta));
-					break;
-				default:
-					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] copy of attributes %s not supported\n", a->name));
-					return GF_NOT_SUPPORTED;
-				}
-				gf_mx2d_add_matrix(&tmp, (GF_Matrix2D*)a->far_ptr);
-				gf_mx2d_copy(*(GF_Matrix2D *)c->far_ptr, tmp);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] matrix operations not supported\n"));
+				return GF_NOT_SUPPORTED;
 			}
+		} else {
+			/* a and c are matrices but b is not */
+			GF_Matrix2D tmp;
+			if (alpha != FIX_ONE) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] matrix operations not supported\n"));
+				return GF_NOT_SUPPORTED;
+			}
+			gf_mx2d_init(tmp);
+			switch (b->fieldType) {
+			case SVG_Transform_Translate_datatype:
+				gf_mx2d_add_translation(&tmp, gf_mulfix(((SVG_Point *)b->far_ptr)->x, beta), gf_mulfix(((SVG_Point *)b->far_ptr)->y, beta));
+				break;
+			case SVG_Transform_Scale_datatype:
+				gf_mx2d_add_scale(&tmp, gf_mulfix(((SVG_Point *)b->far_ptr)->x, beta), gf_mulfix(((SVG_Point *)b->far_ptr)->y, beta));
+				break;
+			case SVG_Transform_Rotate_datatype:
+				gf_mx2d_add_rotation(&tmp, gf_mulfix(((SVG_Point_Angle *)b->far_ptr)->x, beta), gf_mulfix(((SVG_Point_Angle *)b->far_ptr)->y, beta), gf_mulfix(((SVG_Point_Angle *)b->far_ptr)->angle, beta));
+				break;
+			case SVG_Transform_SkewX_datatype:
+				gf_mx2d_add_skew_x(&tmp, gf_mulfix(*(Fixed*)b->far_ptr, beta));
+				break;
+			case SVG_Transform_SkewY_datatype:
+				gf_mx2d_add_skew_y(&tmp, gf_mulfix(*(Fixed*)b->far_ptr, beta));
+				break;
+			default:
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] copy of attributes %s not supported\n", a->name));
+				return GF_NOT_SUPPORTED;
+			}
+			gf_mx2d_add_matrix(&tmp, &((SVG_Transform*)a->far_ptr)->mat);
+			gf_mx2d_copy(((SVG_Transform*)c->far_ptr)->mat, tmp);
 			return GF_OK;
 		}
+
+	case SVG_Transform_Translate_datatype:
+		if (b->fieldType == SVG_Transform_Translate_datatype) {
+			return svg_point_muladd(alpha, (SVG_Point*)a->far_ptr, beta, (SVG_Point*)b->far_ptr, (SVG_Point*)c->far_ptr);
+			return GF_OK;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] matrix operations not supported\n"));
+			return GF_NOT_SUPPORTED;
+		}
+
+	case SVG_Transform_Scale_datatype:
+		if (b->fieldType == SVG_Transform_Scale_datatype) {
+			return svg_point_muladd(alpha, (SVG_Point*)a->far_ptr, beta, (SVG_Point*)b->far_ptr, (SVG_Point*)c->far_ptr);
+			return GF_OK;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] matrix operations not supported\n"));
+			return GF_NOT_SUPPORTED;
+		}
+
+	case SVG_Transform_Rotate_datatype:
+		if (b->fieldType == SVG_Transform_Rotate_datatype) {
+			svg_point_angle_muladd(alpha, (SVG_Point_Angle*)a->far_ptr, beta, (SVG_Point_Angle*)b->far_ptr, (SVG_Point_Angle*)c->far_ptr);
+			return GF_OK;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] matrix operations not supported\n"));
+			return GF_NOT_SUPPORTED;
+		}
+
+	case SVG_Transform_SkewX_datatype:
+		if (b->fieldType == SVG_Transform_SkewX_datatype) {
+			*(Fixed*)c->far_ptr = gf_mulfix(alpha, *(Fixed*)a->far_ptr) + gf_mulfix(beta, *(Fixed*)b->far_ptr);
+			return GF_OK;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] matrix operations not supported\n"));
+			return GF_NOT_SUPPORTED;
+		}
+
+	case SVG_Transform_SkewY_datatype:
+		if (b->fieldType == SVG_Transform_SkewY_datatype) {
+			*(Fixed*)c->far_ptr = gf_mulfix(alpha, *(Fixed*)a->far_ptr) + gf_mulfix(beta, *(Fixed*)b->far_ptr);
+			return GF_OK;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] matrix operations not supported\n"));
+			return GF_NOT_SUPPORTED;
+		}
+
 	case SVG_String_datatype:
 	{
 		u32 len;
@@ -4992,7 +5126,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	case SMIL_Duration_datatype:
 	case SMIL_RepeatCount_datatype:
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG Parsing] addition for attributes %s not supported\n", a->name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG Parsing] addition for attributes %s of type %s not supported\n", a->name, gf_svg_attribute_type_to_string(a->fieldType)));
 		return GF_NOT_SUPPORTED;
 	}
 	return GF_OK;
@@ -5002,7 +5136,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 {
 	if (!a->far_ptr || !b->far_ptr) return GF_BAD_PARAM;
-	switch (b->fieldType) {
+	switch (a->fieldType) {
 	/* Numeric types */
 	case SVG_Color_datatype:
 		*((SVG_Color *)a->far_ptr) = *((SVG_Color *)b->far_ptr);
@@ -5050,42 +5184,37 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		return svg_dasharray_copy((SVG_StrokeDashArray*)a->far_ptr, (SVG_StrokeDashArray*)b->far_ptr);
 
 	case SVG_Motion_datatype:
-		gf_mx2d_copy(*(SVG_Matrix *)a->far_ptr, *(SVG_Matrix *)b->far_ptr);
+		gf_mx2d_copy(*(GF_Matrix2D *)a->far_ptr, *(GF_Matrix2D *)b->far_ptr);
 		return GF_OK;
 
-	case SVG_Matrix_datatype:
-		if (b->eventType) {
-			switch (b->eventType) {
-			case SVG_TRANSFORM_TRANSLATE:
-				gf_mx2d_init(*(SVG_Matrix *)a->far_ptr);
-				gf_mx2d_add_translation((SVG_Matrix *)a->far_ptr, ((SVG_Point*)b->far_ptr)->x, ((SVG_Point*)b->far_ptr)->y);
-				break;
-			case SVG_TRANSFORM_SCALE:
-				gf_mx2d_init(*(SVG_Matrix *)a->far_ptr);
-				gf_mx2d_add_scale((SVG_Matrix *)a->far_ptr, ((SVG_Point*)b->far_ptr)->x, ((SVG_Point*)b->far_ptr)->y);
-				break;
-			case SVG_TRANSFORM_ROTATE:
-				gf_mx2d_init(*(SVG_Matrix *)a->far_ptr);
-				gf_mx2d_add_rotation((SVG_Matrix *)a->far_ptr, ((SVG_Point_Angle*)b->far_ptr)->x, ((SVG_Point_Angle*)b->far_ptr)->y, ((SVG_Point_Angle*)b->far_ptr)->angle);
-				break;
-			case SVG_TRANSFORM_SKEWX:
-				gf_mx2d_init(*(SVG_Matrix *)a->far_ptr);
-				gf_mx2d_add_skew_x((SVG_Matrix *)a->far_ptr, *(Fixed *)b->far_ptr);
-				break;
-			case SVG_TRANSFORM_SKEWY:
-				gf_mx2d_init(*(SVG_Matrix *)a->far_ptr);
-				gf_mx2d_add_skew_y((SVG_Matrix *)a->far_ptr, *(Fixed *)b->far_ptr);
-				break;
-			case SVG_TRANSFORM_MATRIX:
-				gf_mx2d_copy(*(SVG_Matrix *)a->far_ptr, *(SVG_Matrix *)b->far_ptr);
-				break;
-			default:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] forbidden type of transform\n"));
-				return GF_NOT_SUPPORTED;
-			}
-			a->eventType = SVG_TRANSFORM_MATRIX;
-		} else {
-			gf_mx2d_copy(*(SVG_Matrix *)a->far_ptr, *(SVG_Matrix *)b->far_ptr);
+	case SVG_Transform_datatype:
+		switch (b->fieldType) {
+		case SVG_Transform_Translate_datatype:
+			gf_mx2d_init(((SVG_Transform *)a->far_ptr)->mat);
+			gf_mx2d_add_translation(&((SVG_Transform *)a->far_ptr)->mat, ((SVG_Point*)b->far_ptr)->x, ((SVG_Point*)b->far_ptr)->y);
+			break;
+		case SVG_Transform_Scale_datatype:
+			gf_mx2d_init(((SVG_Transform *)a->far_ptr)->mat);
+			gf_mx2d_add_scale(&((SVG_Transform *)a->far_ptr)->mat, ((SVG_Point*)b->far_ptr)->x, ((SVG_Point*)b->far_ptr)->y);
+			break;
+		case SVG_Transform_Rotate_datatype:
+			gf_mx2d_init(((SVG_Transform *)a->far_ptr)->mat);
+			gf_mx2d_add_rotation(&((SVG_Transform *)a->far_ptr)->mat, ((SVG_Point_Angle*)b->far_ptr)->x, ((SVG_Point_Angle*)b->far_ptr)->y, ((SVG_Point_Angle*)b->far_ptr)->angle);
+			break;
+		case SVG_Transform_SkewX_datatype:
+			gf_mx2d_init(((SVG_Transform *)a->far_ptr)->mat);
+			gf_mx2d_add_skew_x(&((SVG_Transform *)a->far_ptr)->mat, *(Fixed *)b->far_ptr);
+			break;
+		case SVG_Transform_SkewY_datatype:
+			gf_mx2d_init(((SVG_Transform *)a->far_ptr)->mat);
+			gf_mx2d_add_skew_y(&((SVG_Transform *)a->far_ptr)->mat, *(Fixed *)b->far_ptr);
+			break;
+		case SVG_Transform_datatype:
+			gf_mx2d_copy(((SVG_Transform *)a->far_ptr)->mat, ((SVG_Transform *)b->far_ptr)->mat);
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] forbidden type of transform\n"));
+			return GF_NOT_SUPPORTED;
 		}
 		return GF_OK;
 	
@@ -5182,7 +5311,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SMIL_Duration_datatype:
 	case SMIL_RepeatCount_datatype:
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG Parsing] copy of attributes %s not supported\n", a->name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG Parsing] copy of attributes %s of type %s not supported\n", a->name, gf_svg_attribute_type_to_string(a->fieldType)));
 		return GF_OK;
 	}
 	return GF_OK;
@@ -5210,7 +5339,12 @@ Bool gf_svg_attribute_is_interpolatable(u32 type)
 	case SVG_Coordinates_datatype:
 	case SVG_PathData_datatype:
 	case SVG_Motion_datatype:
-	case SVG_Matrix_datatype:
+	case SVG_Transform_datatype:
+	case SVG_Transform_Translate_datatype:
+	case SVG_Transform_Scale_datatype:
+	case SVG_Transform_Rotate_datatype:
+	case SVG_Transform_SkewX_datatype:
+	case SVG_Transform_SkewY_datatype:
 	case LASeR_Size_datatype:
 		return 1;
 	} 
@@ -5219,11 +5353,9 @@ Bool gf_svg_attribute_is_interpolatable(u32 type)
 
 GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo *c, Fixed coef, Bool clamp)
 {
-	if (a->fieldType!=b->fieldType) return GF_BAD_PARAM;
 	if (!a->far_ptr || !b->far_ptr || !c->far_ptr) return GF_BAD_PARAM;
 
 	c->fieldType = a->fieldType;
-	c->eventType = a->eventType;
 	
 	switch (a->fieldType) {
 
@@ -5240,7 +5372,12 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	case SVG_Coordinates_datatype:
 	case SVG_PathData_datatype:
 	case SVG_Motion_datatype:
-	case SVG_Matrix_datatype:
+	case SVG_Transform_datatype:
+	case SVG_Transform_Translate_datatype:
+	case SVG_Transform_Scale_datatype:
+	case SVG_Transform_Rotate_datatype:
+	case SVG_Transform_SkewX_datatype:
+	case SVG_Transform_SkewY_datatype:
 	case LASeR_Size_datatype:
 		return gf_svg_attributes_muladd(FIX_ONE-coef, a, coef, b, c, clamp);
 
@@ -5315,7 +5452,7 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	case SMIL_Duration_datatype:
 	case SMIL_RepeatCount_datatype:
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG Parsing] interpolation for attributes %s not supported\n", a->name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG Parsing] interpolation for attributes %s of type %s not supported\n", a->name, gf_svg_attribute_type_to_string(a->fieldType)));
 		return GF_OK;
 	}
 	return GF_OK;
@@ -5358,7 +5495,6 @@ void gf_svg_attributes_copy_computed_value(GF_FieldInfo *computed_field_info,
 	GF_FieldInfo prop, current_color;
 
 	prop.fieldType = specified_field_info->fieldType;
-	prop.eventType = specified_field_info->eventType;
 	prop.far_ptr = gf_svg_get_property_pointer(inherited_props, elt->properties, orig_dom_ptr);
 
 	current_color.fieldType = SVG_PAINT_COLOR;
@@ -5373,3 +5509,96 @@ void gf_svg_attributes_copy_computed_value(GF_FieldInfo *computed_field_info,
 	}
 }
 
+char *gf_svg_attribute_type_to_string(u32 att_type)
+{
+	switch (att_type) {
+	case SVG_FillRule_datatype:			return "FillRule"; 
+	case SVG_StrokeLineJoin_datatype:	return "StrokeLineJoin"; 
+	case SVG_StrokeLineCap_datatype:	return "StrokeLineCap"; 
+	case SVG_FontStyle_datatype:		return "FontStyle"; 
+	case SVG_FontWeight_datatype:		return "FontWeight"; 
+	case SVG_FontVariant_datatype:		return "FontVariant"; 
+	case SVG_TextAnchor_datatype:		return "TextAnchor"; 
+	case SVG_TransformType_datatype:	return "TransformType"; 
+	case SVG_Display_datatype:			return "Display"; 
+	case SVG_Visibility_datatype:		return "Visibility"; 
+	case SVG_Overflow_datatype:			return "Overflow"; 
+	case SVG_ZoomAndPan_datatype:		return "ZoomAndPan"; 
+	case SVG_DisplayAlign_datatype:		return "DisplayAlign"; 
+	case SVG_PointerEvents_datatype:	return "PointerEvents"; 
+	case SVG_RenderingHint_datatype:	return "RenderingHint"; 
+	case SVG_VectorEffect_datatype:		return "VectorEffect"; 
+	case SVG_PlaybackOrder_datatype:	return "PlaybackOrder"; 
+	case SVG_TimelineBegin_datatype:	return "TimelineBegin"; 
+	case XML_Space_datatype:			return "XML_Space"; 
+	case XMLEV_Propagate_datatype:		return "XMLEV_Propagate"; 
+	case XMLEV_DefaultAction_datatype:	return "XMLEV_DefaultAction"; 
+	case XMLEV_Phase_datatype:			return "XMLEV_Phase"; 
+	case SMIL_SyncBehavior_datatype:	return "SMIL_SyncBehavior"; 
+	case SMIL_SyncTolerance_datatype:	return "SMIL_SyncTolerance"; 
+	case SMIL_AttributeType_datatype:	return "SMIL_AttributeType"; 
+	case SMIL_CalcMode_datatype:		return "SMIL_CalcMode"; 
+	case SMIL_Additive_datatype:		return "SMIL_Additive"; 
+	case SMIL_Accumulate_datatype:		return "SMIL_Accumulate"; 
+	case SMIL_Restart_datatype:			return "SMIL_Restart"; 
+	case SMIL_Fill_datatype:			return "SMIL_Fill"; 
+	case SVG_GradientUnit_datatype:		return "GradientUnit"; 
+	case SVG_InitialVisibility_datatype:return "InitialVisibility"; 
+	case SVG_FocusHighlight_datatype:	return "FocusHighlight"; 
+	case SVG_Overlay_datatype:			return "Overlay"; 
+	case SVG_TransformBehavior_datatype:return "TransformBehavior"; 
+	case SVG_SpreadMethod_datatype:		return "SpreadMethod"; 
+	case SVG_TextAlign_datatype:		return "TextAlign"; 
+	case SVG_Number_datatype:			return "Number"; 
+	case SVG_FontSize_datatype:			return "FontSize"; 
+	case SVG_Length_datatype:			return "Length"; 
+	case SVG_Coordinate_datatype:		return "Coordinate"; 
+	case SVG_Rotate_datatype:			return "Rotate"; 
+	case SVG_Numbers_datatype:			return "Numbers"; 
+	case SVG_Points_datatype:			return "Points"; 
+	case SVG_Coordinates_datatype:		return "Coordinates"; 
+	case SVG_FeatureList_datatype:		return "FeatureList"; 
+	case SVG_ExtensionList_datatype:	return "ExtensionList"; 
+	case SVG_FormatList_datatype:		return "FormatList"; 
+	case SVG_FontList_datatype:			return "FontList"; 
+	case SVG_ListOfIRI_datatype:		return "ListOfIRI"; 
+	case SVG_LanguageIDs_datatype:		return "LanguageIDs"; 
+	case SMIL_KeyTimes_datatype:		return "SMIL_KeyTimes"; 
+	case SMIL_KeySplines_datatype:		return "SMIL_KeySplines"; 
+	case SMIL_KeyPoints_datatype:		return "SMIL_KeyPoints"; 
+	case SMIL_Times_datatype:			return "SMIL_Times"; 
+	case SMIL_AnimateValue_datatype:	return "SMIL_AnimateValue"; 
+	case SMIL_AnimateValues_datatype:	return "SMIL_AnimateValues"; 
+	case SMIL_Duration_datatype:		return "SMIL_Duration"; 
+	case SMIL_RepeatCount_datatype:		return "SMIL_RepeatCount"; 
+	case SMIL_AttributeName_datatype:	return "SMIL_AttributeName"; 
+	case SVG_Boolean_datatype:			return "Boolean"; 
+	case SVG_Color_datatype:			return "Color"; 
+	case SVG_Paint_datatype:			return "Paint"; 
+	case SVG_PathData_datatype:			return "PathData"; 
+	case SVG_FontFamily_datatype:		return "FontFamily"; 
+	case SVG_ID_datatype:				return "ID"; 
+	case SVG_IRI_datatype:				return "IRI"; 
+	case SVG_StrokeDashArray_datatype:	return "StrokeDashArray"; 
+	case SVG_PreserveAspectRatio_datatype:return "PreserveAspectRatio"; 
+	case SVG_ViewBox_datatype:			return "ViewBox"; 
+	case SVG_GradientOffset_datatype:	return "GradientOffset"; 
+	case SVG_Focus_datatype	:			return "Focus"; 
+	case SVG_Clock_datatype	:			return "Clock"; 
+	case SVG_String_datatype	:		return "String"; 
+	case SVG_ContentType_datatype:		return "ContentType"; 
+	case SVG_LanguageID_datatype:		return "LanguageID"; 
+	case XMLEV_Event_datatype:			return "XMLEV_Event"; 
+	case SVG_Motion_datatype:			return "Motion"; 
+	case SVG_Transform_datatype:		return "Transform"; 
+	case SVG_Transform_Translate_datatype:return "Translate"; 
+	case SVG_Transform_Scale_datatype:	return "Scale"; 
+	case SVG_Transform_SkewX_datatype:	return "SkewX"; 
+	case SVG_Transform_SkewY_datatype:	return "SkewY"; 
+	case SVG_Transform_Rotate_datatype:	return "Rotate"; 
+	case LASeR_Choice_datatype:			return "LASeR_Choice"; 
+	case LASeR_Size_datatype:			return "LASeR_Size"; 
+	case LASeR_TimeAttribute_datatype:	return "LASeR_TimeAttribute"; 
+	default:							return "UnknownType";
+	}
+}

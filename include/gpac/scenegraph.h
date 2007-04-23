@@ -144,6 +144,13 @@ typedef struct
 	char *ns;
 } GF_DOMNodeFull;
 
+typedef struct
+{
+	BASE_NODE
+	CHILDREN
+	char *textContent;
+} GF_DOMText;
+
 /*tag is set upon creation and cannot be modified*/
 u32 gf_node_get_tag(GF_Node*);
 /*set node def
