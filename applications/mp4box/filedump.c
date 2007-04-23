@@ -1425,17 +1425,22 @@ void DumpMovieInfo(GF_ISOFile *file)
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tTrack: %d / %d\n", tag[3], tag[5]);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPOSER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tComposer: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_WRITER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tWriter: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ALBUM_ARTIST, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tAlbum Artist: %s\n", tag);
+		
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GENRE, &tag, &tag_len)==GF_OK) {
 			if (tag[0]) {
 				fprintf(stdout, "\tGenre: %s\n", tag);
 			} else {
-				fprintf(stdout, "\tGenre: %s\n", id3_get_genre(tag[1]));
+				fprintf(stdout, "\tGenre: %s\n", id3_get_genre(((u8*)tag)[1]));
 			}
 		}
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPILATION, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tCompilation: %s\n", tag[0] ? "Yes" : "No");
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GAPELESS, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tGapeless album: %s\n", tag[0] ? "Yes" : "No");
+		
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_CREATED, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tCreated: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_DISK, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tDisk: %d / %d\n", tag[3], tag[5]);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ENCODER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tEncoder: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TOOL, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tEncoder Software: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ENCODER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tEncoded by: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TEMPO, &tag, &tag_len)==GF_OK) {
 			if (tag[0]) {
 				fprintf(stdout, "\tTempo (BPM): %s\n", tag);
@@ -1443,12 +1448,13 @@ void DumpMovieInfo(GF_ISOFile *file)
 				fprintf(stdout, "\tTempo (BPM): %d\n", tag[1]);
 			}
 		}
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACKNUMBER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tTrackNumber: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACKNUMBER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tTrackNumber: %d / %d\n", tag[3], tag[5]);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tTrack: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GROUP, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tGroup: %s\n", tag);
 
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COVER_ART, &tag, &tag_len)==GF_OK) {
 			if (tag_len>>31) fprintf(stdout, "\tCover Art: PNG File\n");
-			else fprintf(stdout, "\tCover Art: JPEC File\n");
+			else fprintf(stdout, "\tCover Art: JPEG File\n");
 		}
 	}
 

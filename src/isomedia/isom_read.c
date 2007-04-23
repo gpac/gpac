@@ -2157,6 +2157,7 @@ GF_ItemListBox *gf_ismo_locate_box(GF_List *list, u32 boxType, bin128 UUID)
 GF_EXPORT
 GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, u32 tag, const char **data, u32 *data_len)
 {
+	u32 i;
 	GF_ListItemBox *info;
 	GF_ItemListBox *ilst;
 	GF_MetaBox *meta;
@@ -2169,26 +2170,15 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, u32 tag, const char **data, u32 *d
 
 	ilst = gf_ismo_locate_box(meta->other_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
 	if (!ilst) return GF_URL_ERROR;
+	
+	if (tag==GF_ISOM_ITUNE_PROBE) return GF_OK;
 
-	switch (tag) {
-	case GF_ISOM_ITUNE_NAME: info = ilst->name; break;
-	case GF_ISOM_ITUNE_COMMENT: info = ilst->comment; break;
-	case GF_ISOM_ITUNE_CREATED: info = ilst->created; break;
-	case GF_ISOM_ITUNE_ARTIST: info = ilst->artist; break;
-	case GF_ISOM_ITUNE_TRACK: info = ilst->track; break;
-	case GF_ISOM_ITUNE_ALBUM: info = ilst->album; break;
-	case GF_ISOM_ITUNE_COMPOSER: info = ilst->composer; break;
-	case GF_ISOM_ITUNE_WRITER: info = ilst->writer; break;
-	case GF_ISOM_ITUNE_ENCODER: info = ilst->encoder; break;
-	case GF_ISOM_ITUNE_GENRE: info = ilst->genre; break;
-	case GF_ISOM_ITUNE_DISK: info = ilst->disk; break;
-	case GF_ISOM_ITUNE_TRACKNUMBER: info = ilst->trackNumber; break;
-	case GF_ISOM_ITUNE_TEMPO: info = ilst->tempo; break;
-	case GF_ISOM_ITUNE_COMPILATION: info = ilst->compilation; break;
-	case GF_ISOM_ITUNE_COVER_ART: info = ilst->coverArt; break;
-	case GF_ISOM_ITUNE_ITUNES_DATA: info = ilst->iTunesSpecificInfo; break;
-	case GF_ISOM_ITUNE_PROBE: return GF_OK;
-	default: return GF_BAD_PARAM;
+	i=0;
+	while ( (info=gf_list_enum(ilst->tags, &i))) {
+		if (info->type==tag) break;
+		/*special cases*/
+		if ((tag==GF_ISOM_ITUNE_GENRE) && (info->type==GF_ISOM_BOX_TYPE_0xA9GEN)) break;
+		info = NULL;
 	}
 	if (!info || !info->data || !info->data->data) return GF_URL_ERROR;
 

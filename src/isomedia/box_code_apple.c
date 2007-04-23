@@ -14,23 +14,7 @@ void ilst_del(GF_Box *s)
 {
 	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
 	if (ptr == NULL) return;
-	if(ptr->iTunesSpecificInfo != NULL) gf_isom_box_del((GF_Box *)ptr->iTunesSpecificInfo);
-	if(ptr->coverArt != NULL) gf_isom_box_del((GF_Box *)ptr->coverArt);
-	if(ptr->compilation != NULL) gf_isom_box_del((GF_Box *)ptr->compilation);
-	if(ptr->tempo != NULL) gf_isom_box_del((GF_Box *)ptr->tempo);
-	if(ptr->trackNumber != NULL) gf_isom_box_del((GF_Box *)ptr->trackNumber);
-	if(ptr->disk != NULL) gf_isom_box_del((GF_Box *)ptr->disk);
-	if(ptr->genre != NULL) gf_isom_box_del((GF_Box *)ptr->genre);
-	if(ptr->encoder != NULL) gf_isom_box_del((GF_Box *)ptr->encoder);
-	if(ptr->writer != NULL) gf_isom_box_del((GF_Box *)ptr->writer);
-	if(ptr->composer != NULL) gf_isom_box_del((GF_Box *)ptr->composer);
-	if(ptr->album != NULL) gf_isom_box_del((GF_Box *)ptr->album);
-	if(ptr->track != NULL) gf_isom_box_del((GF_Box *)ptr->track);
-	if(ptr->artist != NULL) gf_isom_box_del((GF_Box *)ptr->artist);
-	if(ptr->created != NULL) gf_isom_box_del((GF_Box *)ptr->created);
-	if(ptr->comment != NULL) gf_isom_box_del((GF_Box *)ptr->comment);
-	if(ptr->group != NULL) gf_isom_box_del((GF_Box *)ptr->group);
-	if(ptr->name != NULL) gf_isom_box_del((GF_Box *)ptr->name);
+	gf_isom_box_array_del(ptr->tags);
 	free(ptr);
 }
 
@@ -48,87 +32,7 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 			if (e) return e;
 			if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
 			ptr->size -= a->size;
-
-			switch(a->type){
-			case GF_ISOM_BOX_TYPE_0xA9NAM:
-				assert(ptr->name == NULL);
-				if(ptr->name != NULL) gf_isom_box_del((GF_Box *)ptr->name);
-				ptr->name = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_0xA9CMT:
-				assert(ptr->comment == NULL);
-				if(ptr->comment != NULL) gf_isom_box_del((GF_Box *)ptr->comment);
-				ptr->comment = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_0xA9DAY:
-				assert(ptr->created == NULL);
-				if(ptr->created != NULL) gf_isom_box_del((GF_Box *)ptr->created);
-				ptr->created = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_0xA9ART:
-				assert(ptr->artist == NULL);
-				if(ptr->artist != NULL) gf_isom_box_del((GF_Box *)ptr->artist);
-				ptr->artist = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_0xA9TRK:
-			case GF_ISOM_BOX_TYPE_TRKN:
-				if(ptr->track != NULL) gf_isom_box_del((GF_Box *)ptr->track);
-				ptr->track = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_0xA9ALB:
-				assert(ptr->album == NULL);
-				if(ptr->album != NULL) gf_isom_box_del((GF_Box *)ptr->album);
-				ptr->album = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_0xA9COM:
-				assert(ptr->composer == NULL);
-				if(ptr->composer != NULL) gf_isom_box_del((GF_Box *)ptr->composer);
-				ptr->composer = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_0xA9WRT:
-				assert(ptr->writer == NULL);
-				if(ptr->writer != NULL) gf_isom_box_del((GF_Box *)ptr->writer);
-				ptr->writer = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_0xA9TOO:
-				assert(ptr->encoder == NULL);
-				if(ptr->encoder != NULL) gf_isom_box_del((GF_Box *)ptr->encoder);
-				ptr->encoder = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_GNRE:
-			case GF_ISOM_BOX_TYPE_0xA9GEN:
-				if(ptr->genre != NULL) gf_isom_box_del((GF_Box *)ptr->genre);
-				ptr->genre = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_DISK:
-				assert(ptr->disk == NULL);
-				if(ptr->disk != NULL) gf_isom_box_del((GF_Box *)ptr->disk);
-				ptr->disk = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_TMPO:
-				assert(ptr->tempo == NULL);
-				if(ptr->tempo != NULL) gf_isom_box_del((GF_Box *)ptr->tempo);
-				ptr->tempo = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_CPIL:
-				assert(ptr->compilation == NULL);
-				if(ptr->compilation != NULL) gf_isom_box_del((GF_Box *)ptr->compilation);
-				ptr->compilation = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_COVR:
-				assert(ptr->coverArt == NULL);
-				if(ptr->coverArt != NULL) gf_isom_box_del((GF_Box *)ptr->coverArt);
-				ptr->coverArt = (GF_ListItemBox *)a;
-				break;
-			case GF_ISOM_BOX_TYPE_0xA9GRP:
-				assert(ptr->group == NULL);
-				if(ptr->group != NULL) gf_isom_box_del((GF_Box *)ptr->group);
-				ptr->group = (GF_ListItemBox *)a;
-				break;
-			default:
-				gf_isom_box_del(a);
-				a = NULL;
-			}
+			gf_list_add(ptr->tags, a);
 		} else {
 			gf_bs_read_u32(bs);
 			ptr->size -= 4;
@@ -143,6 +47,7 @@ GF_Box *ilst_New()
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_ItemListBox));
 	tmp->type = GF_ISOM_BOX_TYPE_ILST;
+	tmp->tags = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
@@ -156,76 +61,10 @@ GF_Err ilst_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	if(ptr->name != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->name, bs);
-		if(e) return e;
-	}
-	if(ptr->comment != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->comment, bs);
-		if(e) return e;
-	}
-	if(ptr->created != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->created, bs);
-		if(e) return e;
-	}
-	if(ptr->artist != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->artist, bs);
-		if(e) return e;
-	}
-	if(ptr->album != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->album, bs);
-		if(e) return e;
-	}
-	if(ptr->track != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->track, bs);
-		if(e) return e;
-	}
-	if(ptr->composer != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->composer, bs);
-		if(e) return e;
-	}
-	if(ptr->writer != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->writer, bs);
-		if(e) return e;
-	}
-	if(ptr->encoder != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->encoder, bs);
-		if(e) return e;
-	}
-	if(ptr->genre != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->genre, bs);
-		if(e) return e;
-	}
-	if(ptr->disk != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->disk, bs);
-		if(e) return e;
-	}
-	if(ptr->trackNumber != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->trackNumber, bs);
-		if(e) return e;
-	}
-	if(ptr->compilation != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->compilation, bs);
-		if(e) return e;
-	}
-	if(ptr->tempo != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->tempo, bs);
-		if(e) return e;
-	}
-	if(ptr->coverArt != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->coverArt, bs);
-		if(e) return e;
-	}
-	if(ptr->group != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->group, bs);
-		if(e) return e;
-	}
-	if(ptr->iTunesSpecificInfo != NULL){
-		e = gf_isom_box_write((GF_Box *)ptr->iTunesSpecificInfo, bs);
-		if(e) return e;
-	}
-	return GF_OK;
+
+	return gf_isom_box_array_write(s, ptr->tags, bs);
 }
+
 
 GF_Err ilst_Size(GF_Box *s)
 {
@@ -234,92 +73,8 @@ GF_Err ilst_Size(GF_Box *s)
 	
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
-	if(ptr->name != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->name);
-		if(e) return e;
-		ptr->size += ptr->name->size;
-	}
-	if(ptr->comment != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->comment);
-		if(e) return e;
-		ptr->size += ptr->comment->size;
-	}
-	if(ptr->created != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->created);
-		if(e) return e;
-		ptr->size += ptr->created->size;
-	}
-	if(ptr->artist != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->artist);
-		if(e) return e;
-		ptr->size += ptr->artist->size;
-	}
-	if(ptr->album != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->album);
-		if(e) return e;
-		ptr->size += ptr->album->size;
-	}
-	if(ptr->track != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->track);
-		if(e) return e;
-		ptr->size += ptr->track->size;
-	}
-	if(ptr->composer != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->composer);
-		if(e) return e;
-		ptr->size += ptr->composer->size;
-	}
-	if(ptr->writer != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->writer);
-		if(e) return e;
-		ptr->size += ptr->writer->size;
-	}
-	if(ptr->encoder != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->encoder);
-		if(e) return e;
-		ptr->size += ptr->encoder->size;
-	}
-	if(ptr->genre != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->genre);
-		if(e) return e;
-		ptr->size += ptr->genre->size;
-	}
-	if(ptr->disk != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->disk);
-		if(e) return e;
-		ptr->size += ptr->disk->size;
-	}
-	if(ptr->trackNumber != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->trackNumber);
-		if(e) return e;
-		ptr->size += ptr->trackNumber->size;
-	}
-	if(ptr->compilation != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->compilation);
-		if(e) return e;
-		ptr->size += ptr->compilation->size;
-	}
-	if(ptr->tempo != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->tempo);
-		if(e) return e;
-		ptr->size += ptr->tempo->size;
-	}
-	if(ptr->coverArt != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->coverArt);
-		if(e) return e;
-		ptr->size += ptr->coverArt->size;
-	}
-	if(ptr->group != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->group);
-		if(e) return e;
-		ptr->size += ptr->group->size;
-	}
-	if(ptr->iTunesSpecificInfo != NULL){
-		e = gf_isom_box_size((GF_Box *)ptr->iTunesSpecificInfo);
-		if(e) return e;
-		ptr->size += ptr->iTunesSpecificInfo->size;
-	}
-	return GF_OK;
+
+	return gf_isom_box_array_size(s, ptr->tags);
 }
 
 #endif //GPAC_READ_ONLY
