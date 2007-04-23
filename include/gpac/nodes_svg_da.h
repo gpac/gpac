@@ -302,7 +302,7 @@ enum {
 	TAG_SVG3_ATT_Unknown
 };
 
-typedef struct _all_atts {
+struct _all_atts {
 	SVG_ID *id;
 	SVG_String *_class;
 	SVG_ID *xml_id;
@@ -500,7 +500,8 @@ typedef struct _all_atts {
 	SVG_TransformBehavior *transformBehavior;
 	SVG_Overlay *overlay;
 	GF_Matrix2D *motionTransform;
-} SVG3AllAttributes;
+};
+
 #ifdef __cplusplus
 }
 #endif
