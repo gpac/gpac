@@ -365,6 +365,8 @@ enum
 typedef struct _smil_timing_rti
 {
 	GF_Node *timed_elt;
+	SMILTimingAttributesPointers *timingp;
+
 	Double scene_time;
 
 	/* SMIL element life-cycle status */
@@ -418,15 +420,19 @@ s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
     - the specified value before any inheritance has been applied nor any animation started 
 	    (as specified in the SVG document),
     - the presentation value passed from one animation to the next one, at the same level in the tree
+	- a boolean indicating if the animated attribute is in fact a property
+   
+   and if the attribute is a property:
 	- a pointer to presentation value passed from the previous level in the tree
 	- a pointer to the value of the color property (for handling of 'currentColor'), from previous level in the tree
 	- the location of the attribute in the elt structure when it was created 
-	   (used for fast comparison of SVG properties when animating from/to/by/values/... inherited values)
+	  (used for fast comparison of SVG properties when animating from/to/by/values/... inherited values)
 */
 typedef struct {
 	GF_List *anims;
 	GF_FieldInfo specified_value;
 	GF_FieldInfo presentation_value;
+	Bool is_property;
 	GF_FieldInfo parent_presentation_value;
 	GF_FieldInfo current_color_value;
 	void *orig_dom_ptr;
@@ -444,6 +450,9 @@ typedef struct {
 
 	/* animation element */
 	GF_Node *anim_elt;
+	SMILAnimationAttributesPointers *animp;
+	SMILTimingAttributesPointers *timingp;
+	XLinkAttributesPointers *xlinkp;
 
 	/* in case of animateTransform without from or to, the underlying value is the identity transform */
 	GF_Matrix2D identity;

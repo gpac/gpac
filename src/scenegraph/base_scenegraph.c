@@ -128,7 +128,8 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 	tag = node->sgprivate->tag;
 	count = gf_node_get_field_count(node);
 #ifndef GPAC_DISABLE_SVG
-	if ((tag>= GF_NODE_RANGE_FIRST_SVG) && (tag<= GF_NODE_RANGE_LAST_SVG)) {
+	if (((tag>= GF_NODE_RANGE_FIRST_SVG) && (tag<= GF_NODE_RANGE_LAST_SVG)) || 
+	    ((tag>= GF_NODE_RANGE_FIRST_SVG2) && (tag<= GF_NODE_RANGE_LAST_SVG2))) {
 		/* TODO */
 		tag = 0;
 	} else 
@@ -243,7 +244,8 @@ restart:
 		GF_ParentList *nlist = node->sgprivate->parents;
 		type = node->sgprivate->tag;
 #ifndef GPAC_DISABLE_SVG
-		if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) type = 1;
+		if (((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) ||
+			((type>= GF_NODE_RANGE_FIRST_SVG2) && (type<= GF_NODE_RANGE_LAST_SVG2))) type = 1;
 		else 
 #endif
 			type = 0;
@@ -618,7 +620,8 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 
 	type = node->sgprivate->tag;
 #ifndef GPAC_DISABLE_SVG
-	if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) {
+	if (((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) || 
+		((type>= GF_NODE_RANGE_FIRST_SVG2) && (type<= GF_NODE_RANGE_LAST_SVG2))) {
 		type = 1;
 		Replace_IRI(pSG, node, new_node);
 	} else 
@@ -1185,7 +1188,7 @@ GF_Node *gf_node_get_parent(GF_Node *node, u32 idx)
 	return nlist->node;
 }
 
-static GFINLINE void dirty_children(GF_Node *node, u16 val)
+static GFINLINE void dirty_children(GF_Node *node, u32 val)
 {
 	u32 i, count;
 	GF_FieldInfo info;
@@ -1280,6 +1283,8 @@ void gf_node_init(GF_Node *node)
 	if (gf_sg_vrml_node_init(node)) return;
 #ifndef GPAC_DISABLE_SVG
 	else if (gf_sg_svg_node_init(node)) return;
+	else if (gf_sg_svg2_node_init(node)) return;
+	else if (gf_sg_svg3_node_init(node)) return;
 #endif
 	/*user defined init*/
 	else pSG->NodeCallback(pSG->userpriv, GF_SG_CALLBACK_INIT, node, NULL);
@@ -1299,6 +1304,8 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 	if (gf_sg_vrml_node_changed(node, field)) return;
 #ifndef GPAC_DISABLE_SVG
 	else if (gf_sg_svg_node_changed(node, field)) return;
+	else if (gf_sg_svg2_node_changed(node, field)) return;
+	else if (gf_sg_svg3_node_changed(node, field)) return;
 #endif
 
 	/*force child dirty tag*/
@@ -1313,11 +1320,18 @@ void gf_node_del(GF_Node *node)
 #else
 
 	if (node->sgprivate->tag==TAG_UndefinedNode) gf_node_free(node);
-	else if (node->sgprivate->tag == TAG_ProtoNode) gf_sg_proto_del_instance((GF_ProtoInstance *)node);
+	else if (node->sgprivate->tag==TAG_DOMText) {
+		GF_DOMText *t = (GF_DOMText *)node;
+		if (t->textContent) free(t->textContent);
+		gf_sg_parent_reset(node);
+		gf_node_free(node);
+	} else if (node->sgprivate->tag == TAG_ProtoNode) gf_sg_proto_del_instance((GF_ProtoInstance *)node);
 	else if (node->sgprivate->tag<=GF_NODE_RANGE_LAST_MPEG4) gf_sg_mpeg4_node_del(node);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) gf_sg_x3d_node_del(node);
 #ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) gf_svg_element_del((SVGElement *) node);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG2) gf_svg2_element_del(node);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG3) gf_svg3_node_del(node);
 #endif
 	else gf_node_free(node);
 #endif
@@ -1332,6 +1346,8 @@ u32 gf_node_get_field_count(GF_Node *node)
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_ALL);
 #ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_count(node);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG2) return gf_svg2_get_attribute_count(node);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG3) return 0;
 #endif
 	return 0;
 }
@@ -1351,6 +1367,8 @@ const char *gf_node_get_class_name(GF_Node *node)
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(node->sgprivate->tag);
 #ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_element_name(node->sgprivate->tag);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG2) return gf_svg2_get_element_name(node->sgprivate->tag);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG3) return gf_svg3_get_element_name(node->sgprivate->tag);
 #endif
 	else return "UnsupportedNode";
 #endif
@@ -1368,6 +1386,8 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 	else if (tag <= GF_NODE_RANGE_LAST_X3D) node = gf_sg_x3d_node_new(tag);
 #ifndef GPAC_DISABLE_SVG
 	else if (tag <= GF_NODE_RANGE_LAST_SVG) node = (GF_Node *) gf_svg_create_node(tag);
+	else if (tag <= GF_NODE_RANGE_LAST_SVG2) node = (GF_Node *) gf_svg2_create_node(tag);
+	else if (tag <= GF_NODE_RANGE_LAST_SVG3) node = (GF_Node *) gf_svg3_create_node(tag);
 #endif
 	else node = NULL;
 
@@ -1397,6 +1417,8 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_field(node, info);
 #ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_info(node, info);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG2) return gf_svg2_get_attribute_info(node, info);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG3) return GF_NOT_SUPPORTED;
 #endif
 #endif
 	return GF_NOT_SUPPORTED;
@@ -1438,6 +1460,8 @@ GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) res = gf_sg_x3d_node_get_field_index_by_name(node, name);
 #ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) res = gf_svg_get_attribute_index_by_name(node, name);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG2) return gf_node_get_field_by_name_enum(node, name, field);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG3) return gf_svg3_get_attribute_by_name(node, name, 1, 0, field);
 #endif
 	if (res==-1) return GF_BAD_PARAM;
 	return gf_node_get_field(node, (u32) res, field);

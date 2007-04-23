@@ -109,13 +109,12 @@ enum {
 	SVG_Boolean_datatype					= 90,
 	SVG_Color_datatype						= 91,
 	SVG_Paint_datatype						= 92,
+	/* SVG_SVGColor_datatype: to be removed */
 	SVG_SVGColor_datatype = SVG_Paint_datatype,
 	SVG_PathData_datatype					= 93,
 	SVG_FontFamily_datatype					= 94,
 	SVG_ID_datatype							= 95,
 	SVG_IRI_datatype						= 96,
-	SVG_Matrix_datatype						= 97,
-	SVG_Motion_datatype						= 98, /* required for animateMotion */
 	SVG_StrokeDashArray_datatype			= 99,
 	SVG_PreserveAspectRatio_datatype		= 100,
 	SVG_ViewBox_datatype					= 101,
@@ -125,7 +124,16 @@ enum {
 	SVG_String_datatype						= 105,
 	SVG_ContentType_datatype				= 106,
 	SVG_LanguageID_datatype					= 107,
-	XMLEV_Event_datatype					= 130,
+	XMLEV_Event_datatype					= 108,
+
+	/* Matrix related types */
+	SVG_Transform_datatype					= 109,
+	SVG_Transform_Translate_datatype		= 110,
+	SVG_Transform_Scale_datatype			= 111,
+	SVG_Transform_SkewX_datatype			= 112,
+	SVG_Transform_SkewY_datatype			= 113,
+	SVG_Transform_Rotate_datatype			= 114,
+	SVG_Motion_datatype						= 116,
 
 	/*LASeR types*/
 	LASeR_Choice_datatype					= 135,
@@ -158,6 +166,7 @@ typedef DOM_String SVG_GradientOffset;
 
 typedef Double SVG_Clock;
 
+typedef GF_List *ListOfXXX;
 typedef GF_List *SVG_Numbers;
 typedef GF_List *SVG_Coordinates;
 typedef GF_List	*SVG_FeatureList;
@@ -178,30 +187,24 @@ typedef GF_List *SMIL_KeySplines;
 typedef struct {
 	char *name;
 	u32 type;
-	/* used in case type is SVG_Matrix_datatype, 
-	we need to precise the transformation type (see SVG_TRANSFORM_TRANSLATE...) */
-	u32 transform_type;
-
 	void *field_ptr;
 } SMIL_AttributeName;
 
 enum {
-	/*unspecified time*/
-	GF_SMIL_TIME_UNSPECIFIED   = 0,
 	/*clock time*/
-	GF_SMIL_TIME_CLOCK			= 1,
+	GF_SMIL_TIME_CLOCK			= 0,
 	/*wallclock time*/
-	GF_SMIL_TIME_WALLCLOCK		= 2,
+	GF_SMIL_TIME_WALLCLOCK		= 1,
 	/*resolved time of an event, discarded when restarting animation.*/
-	GF_SMIL_TIME_EVENT_RESLOVED	= 3,
+	GF_SMIL_TIME_EVENT_RESOLVED	= 2,
 	/*event time*/
-	GF_SMIL_TIME_EVENT			= 4,
+	GF_SMIL_TIME_EVENT			= 3,
 	/*indefinite time*/
-	GF_SMIL_TIME_INDEFINITE		= 5
+	GF_SMIL_TIME_INDEFINITE		= 4
 };
 
-#define GF_SMIL_TIME_IS_CLOCK(v) (v<=GF_SMIL_TIME_EVENT_RESLOVED)
-#define GF_SMIL_TIME_IS_SPECIFIED_CLOCK(v) ((v) && (v<=GF_SMIL_TIME_EVENT_RESLOVED) )
+#define GF_SMIL_TIME_IS_CLOCK(v) (v<=GF_SMIL_TIME_EVENT_RESOLVED)
+#define GF_SMIL_TIME_IS_SPECIFIED_CLOCK(v) (v<GF_SMIL_TIME_EVENT_RESOLVED)
 
 typedef struct
 {
@@ -225,10 +228,9 @@ typedef struct {
 } SMIL_Time;
 
 enum {
-	SMIL_DURATION_UNSPECIFIED = 0,
-	SMIL_DURATION_INDEFINITE  = 1,
-	SMIL_DURATION_DEFINED	  = 2,
-	SMIL_DURATION_MEDIA		  = 3
+	SMIL_DURATION_INDEFINITE  = 0,
+	SMIL_DURATION_DEFINED	  = 1,
+	SMIL_DURATION_MEDIA		  = 2
 };
 typedef struct {
 	u8 type;
@@ -249,9 +251,10 @@ enum {
 typedef u8 SMIL_Fill;
 
 enum {
-	SMIL_REPEATCOUNT_UNSPECIFIED = 0,
-	SMIL_REPEATCOUNT_INDEFINITE  = 1,
-	SMIL_REPEATCOUNT_DEFINED	 = 2
+	SMIL_REPEATCOUNT_INDEFINITE  = 0,
+	SMIL_REPEATCOUNT_DEFINED	 = 1,
+	/* used only for static allocation of SVG attributes */
+	SMIL_REPEATCOUNT_UNSPECIFIED = 2
 };
 typedef struct {
 	u8 type;
@@ -260,13 +263,11 @@ typedef struct {
 
 typedef struct {
 	u8 type;
-	u8 transform_type;
 	void *value;
 } SMIL_AnimateValue;
 
 typedef struct {
 	u8 type;
-	u8 transform_type;
 	GF_List *values;
 } SMIL_AnimateValues;
 
@@ -315,7 +316,7 @@ typedef struct
 } SVG_Focus;
 
 enum {
-	SVG_FONTFAMILY_INHERIT,
+	SVG_FONTFAMILY_INHERIT = 0,
 	SVG_FONTFAMILY_VALUE
 };
 
@@ -481,7 +482,10 @@ typedef struct {
   SVG_Coordinate, 
   SVG_Rotate;
 
-typedef GF_Matrix2D SVG_Matrix;
+typedef struct {
+	u8 is_ref;
+	GF_Matrix2D mat;
+} SVG_Transform;
 
 enum {
 	SVG_TRANSFORM_MATRIX	= 0,
@@ -489,8 +493,7 @@ enum {
 	SVG_TRANSFORM_SCALE		= 2,
 	SVG_TRANSFORM_ROTATE	= 3,
 	SVG_TRANSFORM_SKEWX		= 4,
-	SVG_TRANSFORM_SKEWY		= 5,
-	SVG_TRANSFORM_UNKNOWN	= 6
+	SVG_TRANSFORM_SKEWY		= 5
 };
 
 typedef u8 SVG_TransformType; 
@@ -584,24 +587,24 @@ typedef struct {
 } SVG_StrokeDashArray;
 
 enum {
-	SVG_TEXTANCHOR_END,
-	SVG_TEXTANCHOR_INHERIT,
-	SVG_TEXTANCHOR_MIDDLE,
-	SVG_TEXTANCHOR_START
+	SVG_TEXTANCHOR_INHERIT	= 0,
+	SVG_TEXTANCHOR_END		= 1,
+	SVG_TEXTANCHOR_MIDDLE	= 2,
+	SVG_TEXTANCHOR_START	= 3
 };
 typedef u8 SVG_TextAnchor;
 
 enum {
-	SVG_ANGLETYPE_UNKNOWN = 0,
-	SVG_ANGLETYPE_UNSPECIFIED = 1,
-	SVG_ANGLETYPE_DEG = 2,
-	SVG_ANGLETYPE_RAD = 3,
-	SVG_ANGLETYPE_GRAD = 4
+	SVG_ANGLETYPE_UNKNOWN		= 0,
+	SVG_ANGLETYPE_UNSPECIFIED	= 1,
+	SVG_ANGLETYPE_DEG			= 2,
+	SVG_ANGLETYPE_RAD			= 3,
+	SVG_ANGLETYPE_GRAD			= 4
 };
 
 enum {
-	SVG_UNIT_TYPE_UNKNOWN = 0,
-	SVG_UNIT_TYPE_USERSPACEONUSE = 1,
+	SVG_UNIT_TYPE_UNKNOWN			= 0,
+	SVG_UNIT_TYPE_USERSPACEONUSE	= 1,
 	SVG_UNIT_TYPE_OBJECTBOUNDINGBOX = 2
 };
 
@@ -1040,6 +1043,16 @@ typedef struct {
 } XLinkAttributes;
 
 typedef struct {
+	SVG_IRI *href;
+	SVG_ContentType *type;
+	SVG_String *title;
+	SVG_IRI *arcrole; 
+	SVG_IRI *role;
+	SVG_String *show;
+	SVG_String *actuate;
+} XLinkAttributesPointers;
+
+typedef struct {
 	SMIL_Times begin, end;
 	SVG_Clock clipBegin, clipEnd;
 	SMIL_Duration dur;
@@ -1053,11 +1066,31 @@ typedef struct {
 } SMILTimingAttributes;
 
 typedef struct {
+	SMIL_Times *begin, *end;
+	SVG_Clock *clipBegin, *clipEnd;
+	SMIL_Duration *dur;
+	SMIL_RepeatCount *repeatCount;
+	SMIL_Duration *repeatDur;
+	SMIL_Restart *restart;
+	SMIL_Fill *fill;
+	SMIL_Duration *max;
+	SMIL_Duration *min;
+	struct _smil_timing_rti *runtime; /* contains values for runtime handling of the SMIL timing */
+} SMILTimingAttributesPointers;
+
+typedef struct {
 	SMIL_SyncBehavior syncBehavior, syncBehaviorDefault;
 	SMIL_SyncTolerance syncTolerance, syncToleranceDefault;
 	SVG_Boolean syncMaster;
 	SVG_String syncReference;
 } SMILSyncAttributes;
+
+typedef struct {
+	SMIL_SyncBehavior *syncBehavior, *syncBehaviorDefault;
+	SMIL_SyncTolerance *syncTolerance, *syncToleranceDefault;
+	SVG_Boolean *syncMaster;
+	SVG_String *syncReference;
+} SMILSyncAttributesPointers;
 
 typedef struct {
 	SMIL_AttributeName attributeName; 
@@ -1072,6 +1105,20 @@ typedef struct {
 	SVG_TransformType type;
 	SVG_Boolean lsr_enabled;
 } SMILAnimationAttributes;
+
+typedef struct {
+	SMIL_AttributeName *attributeName; 
+	SMIL_AttributeType *attributeType;
+	SMIL_AnimateValue *to, *by, *from;
+	SMIL_AnimateValues *values;
+	SMIL_CalcMode *calcMode;
+	SMIL_Accumulate *accumulate;
+	SMIL_Additive *additive;
+	SMIL_KeySplines *keySplines;
+	SMIL_KeyTimes *keyTimes;
+	SVG_TransformType *type;
+	SVG_Boolean *lsr_enabled;
+} SMILAnimationAttributesPointers;
 
 typedef struct {
 	SVG_ListOfIRI requiredExtensions;
@@ -1091,9 +1138,12 @@ typedef struct {
 	SVGConditionalAttributes *conditional; \
 	SVGFocusAttributes *focus; \
 	SMILTimingAttributes *timing; \
+	SMILTimingAttributesPointers *timingp; \
 	SMILAnimationAttributes *anim; \
+	SMILAnimationAttributesPointers *animp; \
 	SMILSyncAttributes *sync; \
-	XLinkAttributes *xlink;
+	XLinkAttributes *xlink; \
+	XLinkAttributesPointers *xlinkp; \
 
 typedef struct _svg_element {
 	BASE_SVG_ELEMENT
@@ -1105,9 +1155,8 @@ typedef struct _svg_element {
 	they have an implicit pseudo-attribute which holds the supplemental transform computed by animateMotions elements */	
 #define TRANSFORMABLE_SVG_ELEMENT \
 	BASE_SVG_ELEMENT \
-	Bool is_ref_transform; \
-	SVG_Matrix transform; \
-	SVG_Matrix *motionTransform; 
+	SVG_Transform transform; \
+	GF_Matrix2D *motionTransform; 
 
 typedef struct _svg_transformable_element {
 	TRANSFORMABLE_SVG_ELEMENT
@@ -1137,7 +1186,7 @@ Bool gf_svg_has_appearance_flag_dirty(u32 flags);
 Bool is_svg_animation_tag(u32 tag);
 Bool gf_svg_is_element_transformable(u32 tag);
 
-void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type);
+void *gf_svg_create_attribute_value(u32 attribute_type);
 void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg);
 /* a == b */
 Bool gf_svg_attributes_equal(GF_FieldInfo *a, GF_FieldInfo *b);
@@ -1152,8 +1201,8 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a, Fixed beta, GF_FieldInfo *b, GF_FieldInfo *c, Bool clamp);
 
 
-
-GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type);
+char *gf_svg_attribute_type_to_string(u32 att_type);
+GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type);
 void gf_svg_parse_style(GF_Node *n, char *style);
 GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue);
 GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *attValue);
@@ -1220,7 +1269,7 @@ the listener node is NOT registered, it is the user responsability to delete it 
 GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener);
 GF_Err gf_dom_listener_del(GF_Node *node, GF_Node *listener);
 u32 gf_dom_listener_count(GF_Node *node);
-struct _tagSVGlistenerElement *gf_dom_listener_get(GF_Node *node, u32 i);
+GF_Node *gf_dom_listener_get(GF_Node *node, u32 i);
 
 /*creates a default listener/handler for the given event on the given node, and return the 
 handler element to allow for handler function override*/
@@ -1229,6 +1278,108 @@ void *gf_dom_listener_build(GF_Node *node, XMLEV_Event event);
 Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg);
 
 const char *gf_dom_get_key_name(u32 key_identifier);
+
+/*******************************************************************************
+ * 
+ *          SVG Scene Graph for static allocation and no inheritance           *
+ *
+ *******************************************************************************/
+#define BASE_SVG2_ELEMENT \
+	BASE_NODE \
+	CHILDREN \
+	SVG_String textContent; \
+	XMLCoreAttributes *core; \
+	SVGConditionalAttributes *conditional; \
+	SVGFocusAttributes *focus; \
+	SMILTimingAttributes *timing; \
+	SMILTimingAttributesPointers *timingp; \
+	SMILAnimationAttributes *anim; \
+	SMILAnimationAttributesPointers *animp; \
+	SMILSyncAttributes *sync; \
+	XLinkAttributes *xlink; \
+	XLinkAttributesPointers *xlinkp;
+
+typedef struct _svg2_element {
+	BASE_SVG2_ELEMENT
+} SVG2Element;
+
+/* 
+	Common structure for all SVG elements potentially transformable 
+	they have a transform attribute split in two: boolean to indicate if transform is ref + matrix
+	they have an implicit pseudo-attribute which holds the supplemental transform computed by animateMotions elements */	
+#define TRANSFORMABLE_SVG2_ELEMENT \
+	BASE_SVG2_ELEMENT \
+	SVG_Transform transform; \
+	GF_Matrix2D *motionTransform; 
+
+typedef struct _svg2_transformable_element {
+	TRANSFORMABLE_SVG2_ELEMENT
+} SVG2TransformableElement;
+
+/*************************************
+ * Generic SVG2 element functions     *
+ *************************************/
+
+/*the exported functions used by the scene graph*/
+
+void gf_svg2_apply_animations(GF_Node *node);
+Bool gf_svg2_has_appearance_flag_dirty(u32 flags);
+
+Bool is_svg2_animation_tag(u32 tag);
+Bool gf_svg2_is_element_transformable(u32 tag);
+
+
+/*******************************************************************************
+ * 
+ *          SVG Scene Graph for dynamic allocation of attributes	           *
+ *
+ *******************************************************************************/
+
+#define SVG3_BASE_ATTRIBUTE \
+	u16 tag; \
+	u16 data_type; \
+	void *data; \
+	struct _svg3_attribute *next;
+
+typedef struct _svg3_attribute {
+	SVG3_BASE_ATTRIBUTE
+} SVG3Attribute;
+
+typedef struct _svg3_extended_attribute {
+	SVG3_BASE_ATTRIBUTE
+	char *name;
+} SVG3ExtendedAttribute;
+
+typedef struct _svg3_element {
+	BASE_NODE
+	CHILDREN
+	SVG3Attribute *attributes;
+} SVG3Element;
+
+typedef struct {
+	BASE_NODE
+	CHILDREN
+	SVG3Attribute *attributes;
+
+	void (*handle_event)(GF_Node *hdl, GF_DOM_Event *event);
+} SVG3handlerElement;
+
+typedef struct _svg3_timing_animation_base_element {
+	BASE_NODE
+	CHILDREN
+	SVG3Attribute *attributes;
+	/*shortcuts for xlink, anim, timing attributes*/
+	XLinkAttributesPointers *xlinkp;
+	SMILAnimationAttributesPointers *animp;
+	SMILTimingAttributesPointers *timingp;
+} SVG3TimedAnimBaseElement;
+
+typedef struct _all_atts SVG3AllAttributes;
+
+SVG3Attribute *gf_svg3_create_attribute_from_datatype(u16 datatype, u16 attribute_tag);
+void gf_svg3_fill_all_attributes(SVG3AllAttributes *all_atts, SVG3Element *e);
+const char *gf_svg3_get_attribute_name_from_tag(u32 tag);
+
 
 #ifdef __cplusplus
 }

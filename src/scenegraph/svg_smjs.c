@@ -27,7 +27,7 @@
 
 #ifndef GPAC_DISABLE_SVG
 #include <gpac/events.h>
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 
 
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -639,7 +639,7 @@ static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 
 	*rval = JSVAL_VOID;
 	if (gf_node_get_field_by_name((GF_Node *)elt, attName, &info) == GF_OK) {
-		gf_svg_parse_attribute((GF_Node *)elt, &info, attValue, 0, 0);
+		gf_svg_parse_attribute((GF_Node *)elt, &info, attValue, 0);
 		svg_node_changed((GF_Node *)elt, &info);
 		return JS_TRUE;
 	}
@@ -879,11 +879,11 @@ static JSBool udom_get_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsv
 	*rval = JSVAL_VOID;
 	if (gf_node_get_field_by_name(n, szName, &info) != GF_OK) return JS_FALSE;
 
-	if (info.fieldType==SVG_Matrix_datatype) {
+	if (info.fieldType==SVG_Transform_datatype) {
 		GF_Matrix2D *mx = malloc(sizeof(GF_Matrix2D));
 		mO = JS_NewObject(c, &matrixClass, 0, 0);
 		gf_mx2d_init(*mx);
-		gf_mx2d_copy(*mx, *(SVG_Matrix*)info.far_ptr);
+		gf_mx2d_copy(*mx, ((SVG_Transform*)info.far_ptr)->mat);
 
 		JS_SetPrivate(c, mO, mx);
 		*rval = OBJECT_TO_JSVAL(mO);
@@ -1060,7 +1060,7 @@ static JSBool udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
 /*end of DOM string traits*/
-		gf_svg_parse_attribute(n, &info, val, 0, 0);
+		gf_svg_parse_attribute(n, &info, val, 0);
 		break;
 
 #if 0
@@ -1148,8 +1148,8 @@ static JSBool udom_set_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsv
 
 	if (gf_node_get_field_by_name(n, szName, &info) != GF_OK) return JS_FALSE;
 
-	if (info.fieldType==SVG_Matrix_datatype) {
-		gf_mx2d_copy(*(SVG_Matrix*)info.far_ptr, *mx);
+	if (info.fieldType==SVG_Transform_datatype) {
+		gf_mx2d_copy(((SVG_Transform*)info.far_ptr)->mat, *mx);
 		svg_node_changed(n, NULL);
 		return JS_TRUE;
 	}
@@ -1687,7 +1687,7 @@ static JSBool svg_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 
 		if (JSVAL_IS_STRING(*vp)) {
 			char *str = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
-			gf_svg_parse_attribute((GF_Node *)n, &info, str, 0, 0);
+			gf_svg_parse_attribute((GF_Node *)n, &info, str, 0);
 		} else {
 			switch (info.fieldType) {
 			case SVG_Length_datatype:

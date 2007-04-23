@@ -32,7 +32,7 @@
 
 #ifndef GPAC_DISABLE_SVG
 /*SVG tags for script handling*/
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 #endif
 
 #define GF_SETUP_JS(the_class, cname, flag, addp, delp, getp, setp, enump, resp, conv, fin)	\
