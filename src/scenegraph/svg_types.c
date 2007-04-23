@@ -95,6 +95,30 @@ void gf_svg_delete_paint(GF_SceneGraph *sg, SVG_Paint *paint)
 	free(paint);
 }
 
+static void svg_delete_one_anim_value(u8 anim_datatype, void *anim_value, GF_SceneGraph *sg)
+{
+	/* TODO: handle specific animation types : Motion, else ? */
+	gf_svg_delete_attribute_value(anim_datatype, anim_value, sg);
+}
+
+static void svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg)
+{
+	u32 i, count;
+	count = gf_list_count(anim_values.values);
+	for (i = 0; i < count; i++) {
+		void *value = gf_list_get(anim_values.values, i);
+		svg_delete_one_anim_value(anim_values.type, value, sg);
+	}
+	gf_list_del(anim_values.values);
+	anim_values.values = NULL;
+}
+
+static void svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg)
+{
+	svg_delete_one_anim_value(anim_value.type, anim_value.value, sg);
+	anim_value.value = NULL;
+}
+
 void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 {
 	GF_List *l;
@@ -133,12 +157,33 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		free(value);
 		break;
 	case SVG_FontFamily_datatype:
-	{
-		SVG_FontFamily *ff = (SVG_FontFamily *)value;
-		if (ff->value) free(ff->value);
-		free(value);
-	}
+		{
+			SVG_FontFamily *ff = (SVG_FontFamily *)value;
+			if (ff->value) free(ff->value);
+			free(value);
+		}
 		break;
+	case SMIL_AttributeName_datatype:
+		{
+			SMIL_AttributeName *an = (SMIL_AttributeName *)value;
+			if (an->name) free(an->name);
+			free(value);
+		}
+		break;
+	case SMIL_Times_datatype:
+		gf_smil_delete_times(*(SMIL_Times *)value);
+		free(value);
+		break;
+	case SMIL_AnimateValue_datatype:
+		svg_delete_one_anim_value(((SMIL_AnimateValue *)value)->type, ((SMIL_AnimateValue *)value)->value, sg);
+		free(value);
+		break;
+	case SMIL_AnimateValues_datatype:
+		svg_reset_animate_values(*((SMIL_AnimateValues *)value), sg);
+		free(value);
+		break;
+	case SMIL_RepeatCount_datatype:
+	case SMIL_Duration_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	case SVG_Visibility_datatype:
@@ -146,30 +191,6 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	default:
 		free(value);
 	} 
-}
-
-static void svg_delete_one_anim_value(u8 anim_datatype, void *anim_value, GF_SceneGraph *sg)
-{
-	/* TODO: handle specific animation types : Motion, else ? */
-	gf_svg_delete_attribute_value(anim_datatype, anim_value, sg);
-}
-
-static void svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg)
-{
-	u32 i, count;
-	count = gf_list_count(anim_values.values);
-	for (i = 0; i < count; i++) {
-		void *value = gf_list_get(anim_values.values, i);
-		svg_delete_one_anim_value(anim_values.type, value, sg);
-	}
-	gf_list_del(anim_values.values);
-	anim_values.values = NULL;
-}
-
-static void svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg)
-{
-	svg_delete_one_anim_value(anim_value.type, anim_value.value, sg);
-	anim_value.value = NULL;
 }
 
 
@@ -183,207 +204,5 @@ void gf_smil_delete_key_types(GF_List *l)
 	gf_list_del(l);
 }
 
-#if 1
-void gf_svg_init_core(SVGElement *p) 
-{
-	GF_SAFEALLOC(p->core, XMLCoreAttributes)
-}
-
-void gf_svg_init_focus(SVGElement *p)
-{
-	GF_SAFEALLOC(p->focus, SVGFocusAttributes)
-}
-
-void gf_svg_init_xlink(SVGElement *p)
-{
-	GF_SAFEALLOC(p->xlink, XLinkAttributes)
-}
-
-void gf_svg_init_timing(SVGElement *p)
-{
-	GF_SAFEALLOC(p->timing, SMILTimingAttributes)
-	p->timing->begin = gf_list_new();
-	p->timing->end = gf_list_new();
-	p->timing->min.type = SMIL_DURATION_DEFINED;
-	p->timing->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
-}
-
-void gf_svg_init_sync(SVGElement *p)
-{
-	GF_SAFEALLOC(p->sync, SMILSyncAttributes)
-}
-
-void gf_svg_init_anim(SVGElement *p)
-{
-	GF_SAFEALLOC(p->anim, SMILAnimationAttributes)
-	p->anim->lsr_enabled = 1;
-	p->anim->keySplines = gf_list_new();
-	p->anim->keyTimes = gf_list_new();
-	p->anim->values.values = gf_list_new();
-	if (gf_node_get_tag((GF_Node *)p) == TAG_SVG_animateMotion)
-		p->anim->calcMode = SMIL_CALCMODE_PACED;
-}
-
-void gf_svg_init_conditional(SVGElement *p)
-{
-	GF_SAFEALLOC(p->conditional, SVGConditionalAttributes)
-	p->conditional->requiredExtensions = gf_list_new();
-	p->conditional->requiredFeatures = gf_list_new();
-	p->conditional->requiredFonts = gf_list_new();
-	p->conditional->requiredFormats = gf_list_new();
-	p->conditional->systemLanguage = gf_list_new();
-}
-
-#else
-
-void gf_svg_init_core(SVGElement *p) {}
-
-void gf_svg_init_focus(SVGElement *p) {}
-
-void gf_svg_init_xlink(SVGElement *p) {}
-
-void gf_svg_init_timing(SVGElement *p) {}
-
-void gf_svg_init_sync(SVGElement *p) {}
-
-void gf_svg_init_anim(SVGElement *p) {}
-
-void gf_svg_init_conditional(SVGElement *p) {}
-
-#endif
-
-
-void gf_svg_delete_core(SVGElement *elt, XMLCoreAttributes *p) 
-{
-	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->base);
-	if (p->lang) free(p->lang);
-	if (p->_class) free(p->_class);
-	free(p);
-}
-
-void gf_svg_delete_properties(SVGElement *elt,SVGProperties *p) 
-{
-	free(p->font_family.value);
-	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->fill.iri);
-	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->stroke.iri);
-	free(p->stroke_dasharray.array.vals);
-	free(p);
-}
-
-static void svg_reset_focus(SVGElement *elt, SVG_Focus *focus) 
-{
-	if (focus->target.target) {
-		gf_svg_unregister_iri(elt->sgprivate->scenegraph, &focus->target);
-	}
-	if (focus->target.iri) free(focus->target.iri);
-}
-
-void gf_svg_delete_focus(SVGElement *elt, SVGFocusAttributes *p) 
-{
-	svg_reset_focus(elt, &p->nav_next);
-	svg_reset_focus(elt, &p->nav_prev);
-	svg_reset_focus(elt, &p->nav_down);
-	svg_reset_focus(elt, &p->nav_down_left);
-	svg_reset_focus(elt, &p->nav_down_right);
-	svg_reset_focus(elt, &p->nav_left);
-	svg_reset_focus(elt, &p->nav_right);
-	svg_reset_focus(elt, &p->nav_up);
-	svg_reset_focus(elt, &p->nav_up_left);
-	svg_reset_focus(elt, &p->nav_up_right);
-	free(p);		
-}
-
-void gf_svg_delete_xlink(SVGElement *elt, XLinkAttributes *p)
-{
-	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->href);
-	if (p->type) free(p->type);
-	if (p->title) free(p->title);
-	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->arcrole);
-	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->role);
-	if (p->show) free(p->show);
-	if (p->actuate) free(p->actuate);
-	free(p);		
-}
-
-void gf_svg_delete_timing(SMILTimingAttributes *p)
-{
-	gf_smil_delete_times(p->begin);
-	gf_smil_delete_times(p->end);
-	free(p);		
-}
-
-void gf_svg_delete_sync(SMILSyncAttributes *p)
-{
-	if (p->syncReference) free(p->syncReference);
-	free(p);
-}
-
-void gf_svg_delete_anim(SMILAnimationAttributes *p, GF_SceneGraph *sg)
-{
-	gf_smil_delete_key_types(p->keySplines);
-	gf_smil_delete_key_types(p->keyTimes);
-	svg_reset_animate_value(p->from, sg);
-	svg_reset_animate_value(p->by, sg);
-	svg_reset_animate_value(p->to, sg);
-	svg_reset_animate_values(p->values, sg);
-	free(p);		
-} 
-
-static void svg_delete_string_list(GF_List *l) 
-{
-	while (gf_list_count(l)) {
-		char *str = (char *)gf_list_last(l);
-		gf_list_rem_last(l);
-		free(str);
-	}
-	gf_list_del(l);
-}
-void gf_svg_delete_conditional(SVGConditionalAttributes *p)
-{
-	while (gf_list_count(p->requiredFeatures)) {
-		SVG_IRI *iri = (SVG_IRI *)gf_list_last(p->requiredFeatures);
-		gf_list_rem_last(p->requiredFeatures);
-		if (iri->iri) free(iri->iri);
-		free(iri);
-	}
-	gf_list_del(p->requiredFeatures);
-
-	while (gf_list_count(p->requiredExtensions)) {
-		SVG_IRI *iri = (SVG_IRI *)gf_list_last(p->requiredExtensions);
-		gf_list_rem_last(p->requiredExtensions);
-		if (iri->iri) free(iri->iri);
-		free(iri);
-	}
-	gf_list_del(p->requiredExtensions);
-
-	svg_delete_string_list(p->requiredFonts);
-	svg_delete_string_list(p->requiredFormats);
-	svg_delete_string_list(p->systemLanguage);
-	free(p);		
-} 
-
-void gf_svg_reset_base_element(SVGElement *p)
-{
-	if (p->textContent) free(p->textContent);
-	if (p->core)		gf_svg_delete_core(p, p->core);
-	if (p->properties)	gf_svg_delete_properties(p, p->properties);
-	if (p->focus)		gf_svg_delete_focus(p, p->focus);
-	if (p->conditional) gf_svg_delete_conditional(p->conditional);
-	if (p->sync)		gf_svg_delete_sync(p->sync);
-
-	if (p->sgprivate->interact && p->sgprivate->interact->animations) gf_smil_anim_delete_animations((GF_Node*)p);
-	if (p->anim)		{
-		gf_svg_delete_anim(p->anim, p->sgprivate->scenegraph);
-		gf_smil_anim_remove_from_target((GF_Node *)p, (GF_Node *)p->xlink->href.target);
-	}
-	
-	if (p->timing)		{
-		gf_smil_timing_delete_runtime_info((GF_Node *)p, p->timing->runtime);
-		p->timing->runtime = NULL;
-		gf_svg_delete_timing(p->timing);
-	}
-	
-	if (p->xlink)		gf_svg_delete_xlink(p, p->xlink);
-}
 
 #endif /*GPAC_DISABLE_SVG*/

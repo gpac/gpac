@@ -694,7 +694,9 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 #ifndef GPAC_DISABLE_SVG
 		{
 			u32 node_tag = gf_node_get_tag(top_node);
-			if ((node_tag>=GF_NODE_RANGE_FIRST_SVG) && (node_tag<=GF_NODE_RANGE_LAST_SVG)) {
+			if (((node_tag>=GF_NODE_RANGE_FIRST_SVG) && (node_tag<=GF_NODE_RANGE_LAST_SVG)) || 
+				((node_tag>=GF_NODE_RANGE_FIRST_SVG2) && (node_tag<=GF_NODE_RANGE_LAST_SVG2)) || 
+				((node_tag>=GF_NODE_RANGE_FIRST_SVG3) && (node_tag<=GF_NODE_RANGE_LAST_SVG3)) ) {
 				sr->surface->center_coords = 0;
 				sr->main_surface_setup = 2;
 				sr->use_dom_events = 1;
@@ -711,6 +713,14 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 
 	sr->surface->width = sr->cur_width;
 	sr->surface->height = sr->cur_height;
+
+#if 0
+	{
+		GF_SystemRTInfo rti;
+		gf_sys_get_rti(0, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
+		fprintf(stdout, "Memory usage before DrawScene: %d\n", rti.gpac_memory);
+	}
+#endif
 
 	e = VS2D_InitDraw(sr->surface, sr->top_effect);
 	if (e) return;
@@ -740,6 +750,13 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	rc.h = sr->compositor->height;		
 	sr->compositor->video_out->Flush(sr->compositor->video_out, &rc);
 	sr->frame_num++;
+#if 0
+	{
+		GF_SystemRTInfo rti;
+		gf_sys_get_rti(0, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
+		fprintf(stdout, "Memory usage after DrawScene: %d\n", rti.gpac_memory);
+	}
+#endif 
 }
 
 Bool R2D_IsPixelMetrics(GF_Node *n)
@@ -1342,6 +1359,12 @@ void R2D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *in
 		break;
 	case TAG_SVG_use:
 		R2D_RenderUse(inline_parent, inline_root, rs);
+		break;
+	case TAG_SVG2_use:
+		R2D_RenderUse2(inline_parent, inline_root, rs);
+		break;
+	case TAG_SVG3_use:
+		R2D_RenderUse3(inline_parent, inline_root, rs);
 		break;
 #endif
 	default:

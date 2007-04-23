@@ -23,12 +23,11 @@
  */
 
 
-#include "svg_stacks.h"
-
 #ifndef GPAC_DISABLE_SVG
 
 #include <gpac/utf.h>
 #include "visualsurface2d.h"
+#include "svg_stacks.h"
 
 typedef struct 
 {
@@ -85,7 +84,7 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (((SVGTransformableElement *)node)->motionTransform) 
 		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
+	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform.mat);
 
 	if ( (st->prev_size != eff->svg_props->font_size->value) || 
 		 (st->prev_flags != *eff->svg_props->font_style) || 

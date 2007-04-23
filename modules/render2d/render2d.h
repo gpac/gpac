@@ -248,6 +248,8 @@ GF_Rect R2D_ClipperToPixelMetrics(RenderEffect2D *eff, SFVec2f size);
 #ifndef GPAC_DISABLE_SVG
 void R2D_RenderInlineAnimation(GF_Node *anim, GF_Node *sub_root, void *rs);
 void R2D_RenderUse(GF_Node *anim, GF_Node *sub_root, void *rs);
+void R2D_RenderUse2(GF_Node *anim, GF_Node *sub_root, void *rs);
+void R2D_RenderUse3(GF_Node *anim, GF_Node *sub_root, void *rs);
 #endif
 
 #endif

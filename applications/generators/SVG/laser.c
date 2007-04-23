@@ -46,9 +46,9 @@ void generate_laser_tables(GF_List *svg_elements)
 	u32 special_cases;
 
 	output = BeginFile(2);
-	if (generation_mode	== 1) fprintf(output, "\n#include <gpac/nodes_svg.h>\n\n");
-	else if (generation_mode == 2) fprintf(output, "\n#include <gpac/nodes_svg2.h>\n\n");
-	else if (generation_mode == 3) fprintf(output, "\n#include <gpac/nodes_svg3.h>\n\n");
+	if (generation_mode	== 1) fprintf(output, "\n#include <gpac/nodes_svg_sa.h>\n\n");
+	else if (generation_mode == 2) fprintf(output, "\n#include <gpac/nodes_svg_sani.h>\n\n");
+	else if (generation_mode == 3) fprintf(output, "\n#include <gpac/nodes_svg_da.h>\n\n");
 
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		u32 j, fcount;

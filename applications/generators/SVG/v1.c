@@ -128,7 +128,7 @@ u32 generateTransformInfo(FILE *output, SVGGenElement *elt, u32 start)
 
 	fprintf(output, "\t\tcase %d:\n", i);
 	fprintf(output, "\t\t\tinfo->name = \"transform\";\n");
-	fprintf(output, "\t\t\tinfo->fieldType = SVG_Matrix_datatype;\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_Transform_datatype;\n");
 	fprintf(output, "\t\t\tinfo->far_ptr = &((SVGTransformableElement *)node)->transform;\n");
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 	i++;
@@ -141,7 +141,7 @@ u32 generateMotionTransformInfo(FILE *output, SVGGenElement *elt, u32 start)
 
 	fprintf(output, "\t\tcase %d:\n", i);
 	fprintf(output, "\t\t\tinfo->name = \"motionTransform\";\n");
-	fprintf(output, "\t\t\tinfo->fieldType = SVG_Matrix_datatype;\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_Motion_datatype;\n");
 	fprintf(output, "\t\t\tinfo->far_ptr = ((SVGTransformableElement *)node)->motionTransform;\n");
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 	i++;
@@ -249,7 +249,7 @@ void generateNodeImpl(FILE *output, SVGGenElement* svg_elt)
 	} 
 
 	if (svg_elt->has_transform) {
-		fprintf(output, "\tgf_mx2d_init(p->transform);\n");
+		fprintf(output, "\tgf_mx2d_init(p->transform.mat);\n");
 	} 
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
@@ -298,13 +298,13 @@ void generateNodeImpl(FILE *output, SVGGenElement* svg_elt)
 	}
 	else if (!strcmp(svg_elt->svg_name, "linearGradient")) {
 		fprintf(output, "\tp->x2.value = FIX_ONE;\n");
-		fprintf(output, "\tgf_mx2d_init(p->gradientTransform);\n");
+		fprintf(output, "\tgf_mx2d_init(p->gradientTransform.mat);\n");
 	}
 	else if (!strcmp(svg_elt->svg_name, "radialGradient")) {
 		fprintf(output, "\tp->cx.value = FIX_ONE/2;\n");
 		fprintf(output, "\tp->cy.value = FIX_ONE/2;\n");
 		fprintf(output, "\tp->r.value = FIX_ONE/2;\n");
-		fprintf(output, "\tgf_mx2d_init(p->gradientTransform);\n");
+		fprintf(output, "\tgf_mx2d_init(p->gradientTransform.mat);\n");
 		fprintf(output, "\tp->fx.value = FIX_ONE/2;\n");
 		fprintf(output, "\tp->fy.value = FIX_ONE/2;\n");
 	}
@@ -504,7 +504,7 @@ void generateSVGCode_V1(GF_List *svg_elements)
 	/***************************************************/	
 	/***************************************************/	
 	output = BeginFile(1);
-	fprintf(output, "#include <gpac/nodes_svg.h>\n\n");
+	fprintf(output, "#include <gpac/nodes_svg_sa.h>\n\n");
 	
 	fprintf(output, "#ifndef GPAC_DISABLE_SVG\n\n");
 	fprintf(output, "#include <gpac/internal/scenegraph_dev.h>\n\n");

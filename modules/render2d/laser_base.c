@@ -52,7 +52,7 @@ static void LASeR_Render_selector(GF_Node *node, void *rs, Bool is_destroy)
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (((SVGTransformableElement *)node)->motionTransform) 
 			gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
+		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform.mat);
 		svg_get_nodes_bounds(node, sel->children, eff);
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		return;
@@ -61,7 +61,7 @@ static void LASeR_Render_selector(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx2d_copy(backup_matrix, eff->transform);
 	if (((SVGTransformableElement *)node)->motionTransform) 
 		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
+	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform.mat);
 	switch (sel->choice.type) {
 	case LASeR_CHOICE_NONE:
 		break;
@@ -108,7 +108,7 @@ static void LASeR_Render_simpleLayout(GF_Node *node, void *rs, Bool is_destroy)
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (((SVGTransformableElement *)node)->motionTransform) 
 			gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
+		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform.mat);
 		if (sl->delta.enabled) {
 			/*TODO*/
 		} else {
@@ -121,7 +121,7 @@ static void LASeR_Render_simpleLayout(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx2d_copy(backup_matrix, eff->transform);
 	if (((SVGTransformableElement *)node)->motionTransform) 
 		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
+	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform.mat);
 	if (sl->delta.enabled) {
 		/*TODO*/
 	} else {
@@ -161,7 +161,7 @@ static void LASeR_Render_rectClip(GF_Node *node, void *rs, Bool is_destroy)
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (((SVGTransformableElement *)node)->motionTransform) 
 			gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
+		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform.mat);
 		if (rc->size.enabled) {
 			eff->bounds.width = rc->size.width;
 			eff->bounds.x = - rc->size.width / 2;
@@ -178,7 +178,7 @@ static void LASeR_Render_rectClip(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx2d_copy(backup_matrix, eff->transform);
 	if (((SVGTransformableElement *)node)->motionTransform) 
 		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
+	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform.mat);
 	/*setup cliper*/
 	if (rc->size.enabled) {
 		/*TODO*/

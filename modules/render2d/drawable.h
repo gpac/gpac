@@ -122,6 +122,8 @@ void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff);
 Drawable *drawable_stack_new(Render2D *sr, GF_Node *node);
 /*reset all paths (main path and any outline) of the stack*/
 void drawable_reset_path(Drawable *st);
+/*reset all paths outlines (only) of the stack*/
+void drawable_reset_path_outline(Drawable *st);
 
 /*reset bounds array (current and previous) on the given surface*/
 void drawable_reset_bounds(Drawable *dr, struct _visual_surface_2D *surf);
@@ -159,6 +161,8 @@ enum
 	CTX_PATH_FILLED = 1<<7,
 	/*indicates path outline has been textured, in which case STRIKE is skiped*/
 	CTX_PATH_STROKE = 1<<8,
+	/*indicates SVG path outline geometry has been modified*/
+	CTX_SVG_OUTLINE_GEOMETRY_DIRTY = 1<<9,
 };
 
 #define CTX_REDRAW_MASK	0x00000003

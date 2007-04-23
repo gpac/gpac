@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Mon Jan 08 16:22:29 2007
+	DO NOT MOFIFY - File generated on GMT Wed Feb 28 13:39:20 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -52,7 +52,7 @@ void *gf_svg_new_a()
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -401,12 +401,12 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 66:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 67:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 68:
@@ -1535,7 +1535,7 @@ void *gf_svg_new_animation()
 	gf_svg_init_timing((SVGElement *)p);
 	gf_svg_init_sync((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	p->timing->dur.type = SMIL_DURATION_MEDIA;
 	return p;
 }
@@ -1829,12 +1829,12 @@ static GF_Err gf_svg_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 55:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 56:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 57:
@@ -2262,7 +2262,7 @@ void *gf_svg_new_circle()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -2575,12 +2575,12 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -3440,7 +3440,7 @@ void *gf_svg_new_ellipse()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -3753,12 +3753,12 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -4413,7 +4413,7 @@ void *gf_svg_new_foreignObject()
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -4761,12 +4761,12 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 66:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 67:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 68:
@@ -4886,7 +4886,7 @@ void *gf_svg_new_g()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -5199,12 +5199,12 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
@@ -5621,7 +5621,7 @@ void *gf_svg_new_image()
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -5845,12 +5845,12 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 41:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 42:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 43:
@@ -5957,7 +5957,7 @@ void *gf_svg_new_line()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -6270,12 +6270,12 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -6388,7 +6388,7 @@ void *gf_svg_new_linearGradient()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
 	p->x2.value = FIX_ONE;
-	gf_mx2d_init(p->gradientTransform);
+	gf_mx2d_init(p->gradientTransform.mat);
 	return p;
 }
 
@@ -6660,7 +6660,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 51:
 			info->name = "gradientTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->gradientTransform;
 			return GF_OK;
 		case 52:
@@ -7189,7 +7189,7 @@ void *gf_svg_new_path()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 #ifdef USE_GF_PATH
 	gf_path_reset(&p->d);
 #else
@@ -7509,12 +7509,12 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -7615,7 +7615,7 @@ void *gf_svg_new_polygon()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	p->points = gf_list_new();
 	return p;
 }
@@ -7930,12 +7930,12 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -8030,7 +8030,7 @@ void *gf_svg_new_polyline()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	p->points = gf_list_new();
 	return p;
 }
@@ -8345,12 +8345,12 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -8601,7 +8601,7 @@ void *gf_svg_new_radialGradient()
 	p->cx.value = FIX_ONE/2;
 	p->cy.value = FIX_ONE/2;
 	p->r.value = FIX_ONE/2;
-	gf_mx2d_init(p->gradientTransform);
+	gf_mx2d_init(p->gradientTransform.mat);
 	p->fx.value = FIX_ONE/2;
 	p->fy.value = FIX_ONE/2;
 	return p;
@@ -8875,7 +8875,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 51:
 			info->name = "gradientTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->gradientTransform;
 			return GF_OK;
 		case 52:
@@ -8985,7 +8985,7 @@ void *gf_svg_new_rect()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -9298,12 +9298,12 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -9428,7 +9428,7 @@ void *gf_svg_new_rectClip()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -9741,12 +9741,12 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -9926,7 +9926,7 @@ void *gf_svg_new_selector()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -10239,12 +10239,12 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -10540,7 +10540,7 @@ void *gf_svg_new_simpleLayout()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -10853,12 +10853,12 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -11999,7 +11999,7 @@ void *gf_svg_new_switch()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -12312,12 +12312,12 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
@@ -12484,7 +12484,7 @@ void *gf_svg_new_text()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	p->x = gf_list_new();
 	p->y = gf_list_new();
 	return p;
@@ -12801,12 +12801,12 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -12919,7 +12919,7 @@ void *gf_svg_new_textArea()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -13232,12 +13232,12 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 60:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 61:
@@ -13828,7 +13828,7 @@ void *gf_svg_new_use()
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	return p;
 }
 
@@ -14176,12 +14176,12 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 66:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 67:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 68:
@@ -14292,7 +14292,7 @@ void *gf_svg_new_video()
 	gf_svg_init_timing((SVGElement *)p);
 	gf_svg_init_sync((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
-	gf_mx2d_init(p->transform);
+	gf_mx2d_init(p->transform.mat);
 	p->timing->dur.type = SMIL_DURATION_MEDIA;
 	return p;
 }
@@ -14587,12 +14587,12 @@ static GF_Err gf_svg_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 55:
 			info->name = "transform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Transform_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 56:
 			info->name = "motionTransform";
-			info->fieldType = SVG_Matrix_datatype;
+			info->fieldType = SVG_Motion_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
 		case 57:

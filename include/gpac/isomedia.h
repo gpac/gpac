@@ -132,7 +132,9 @@ enum
 	/*ref type for IPI (Intellectual Property Information) dependencies*/
 	GF_ISOM_REF_IPI				= GF_4CC( 'i', 'p', 'i', 'r' ),
 	/*ref type for Hint tracks*/
-	GF_ISOM_REF_HINT		= GF_4CC( 'h', 'i', 'n', 't' )
+	GF_ISOM_REF_HINT		= GF_4CC( 'h', 'i', 'n', 't' ),
+	/*ref type for QT Chapter tracks*/
+	GF_ISOM_REF_CHAP		= GF_4CC( 'c', 'h', 'a', 'p' )
 };
 
 /*Track Edition flag*/
