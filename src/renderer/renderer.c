@@ -28,7 +28,7 @@
 #include <gpac/options.h>
 
 #ifndef GPAC_DISABLE_SVG
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 #endif
 
 /*macro for size event format/send*/
@@ -600,28 +600,35 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 		{
 		SVGsvgElement *root = (SVGsvgElement *) gf_sg_get_root_node(sr->scene);
 		tag = root ? gf_node_get_tag((GF_Node*)root) : 0;
-		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+		if (((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) || 
+			((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) ||
+			((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3))) {
 
 			/*default back color is white*/
 			if (! (sr->user->init_flags & GF_TERM_WINDOWLESS)) sr->back_color = 0xFFFFFFFF;
 
-			/*hack for SVG where size is set in %*/
-			if (!sr->has_size_info) {
-				SVG_Length l;
-				sr->has_size_info = 1;
-				sr->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
-				l = root->width;
-				if (l.type!=SVG_NUMBER_PERCENTAGE) {
-					width = FIX2INT(convert_svg_length_to_user(sr, &l) );
-				} else {
-					width = 320; //FIX2INT(root->viewBox.width);
+			if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+				/*hack for SVG where size is set in %*/
+				if (!sr->has_size_info) {
+					SVG_Length l;
+					sr->has_size_info = 1;
+					sr->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
+					l = root->width;
+					if (l.type!=SVG_NUMBER_PERCENTAGE) {
+						width = FIX2INT(convert_svg_length_to_user(sr, &l) );
+					} else {
+						width = 320; //FIX2INT(root->viewBox.width);
+					}
+					l = ((SVGsvgElement*)root)->height;
+					if (l.type!=SVG_NUMBER_PERCENTAGE) {
+						height = FIX2INT(convert_svg_length_to_user(sr, &l) );
+					} else {
+						height = 240; //FIX2INT(root->viewBox.height);
+					}
 				}
-				l = ((SVGsvgElement*)root)->height;
-				if (l.type!=SVG_NUMBER_PERCENTAGE) {
-					height = FIX2INT(convert_svg_length_to_user(sr, &l) );
-				} else {
-					height = 240; //FIX2INT(root->viewBox.height);
-				}
+			} else {
+				width = 320; 
+				height = 240; 
 			}
 		}
 		}
@@ -1168,7 +1175,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		}
 		sr->reset_graphics = 0;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Scene drawn in %d ms\n", gf_sys_clock() - in_time));
+		GF_LOG(GF_LOG_INFO, GF_LOG_RENDER, ("[Render] Scene drawn in %d ms\n", gf_sys_clock() - in_time));
 
 		if (sr->stress_mode) {
 			sr->draw_next_frame = 1;

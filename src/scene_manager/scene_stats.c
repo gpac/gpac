@@ -266,7 +266,6 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 		}
 		break;
 	case SVG_Motion_datatype:
-	case SVG_Matrix_datatype:
 		{
 			GF_Matrix2D *mx = (GF_Matrix2D *)field->far_ptr;
 			if (!gf_mx2d_is_identity(*mx) && !(!mx->m[0] && !mx->m[1] && !mx->m[3] && !mx->m[4])) {

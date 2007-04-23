@@ -22,7 +22,7 @@
  *
  */
 
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 
 #ifndef GPAC_DISABLE_SVG
 
@@ -101,7 +101,7 @@ static void svg_delete_one_anim_value(u8 anim_datatype, void *anim_value, GF_Sce
 	gf_svg_delete_attribute_value(anim_datatype, anim_value, sg);
 }
 
-static void svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg)
+void svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg)
 {
 	u32 i, count;
 	count = gf_list_count(anim_values.values);
@@ -113,7 +113,7 @@ static void svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGra
 	anim_values.values = NULL;
 }
 
-static void svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg)
+void svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg)
 {
 	svg_delete_one_anim_value(anim_value.type, anim_value.value, sg);
 	anim_value.value = NULL;

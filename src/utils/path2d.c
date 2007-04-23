@@ -83,7 +83,7 @@ void gf_path_del(GF_Path *gp)
 	free(gp);
 }
 
-#define PATH_POINT_ALLOC_STEP	3
+#define PATH_POINT_ALLOC_STEP	10
 
 #define GF_2D_REALLOC_POINT(_gp, _nb)	\
 	if (_gp->n_alloc_points < _gp->n_points+_nb+1) {	\

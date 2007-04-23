@@ -84,6 +84,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_MPOD:
 	case GF_ISOM_BOX_TYPE_SYNC:
 	case GF_ISOM_BOX_TYPE_IPIR:
+	case GF_ISOM_BOX_TYPE_CHAP:
 		return reftype_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:
@@ -359,6 +360,9 @@ GF_Err reftype_dump(GF_Box *a, FILE * trace)
 		break;
 	case GF_ISOM_BOX_TYPE_SYNC:
 		s = "Sync";
+		break;
+	case GF_ISOM_BOX_TYPE_CHAP:
+		s = "Chapter";
 		break;
 	default:
 		s = "Unknown";

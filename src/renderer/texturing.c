@@ -26,7 +26,7 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/options.h>
 
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 
 #ifdef DANAE
 #pragma message("compiling DANAE Texture handling")

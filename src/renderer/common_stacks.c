@@ -26,7 +26,7 @@
 
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 
 void gf_sr_on_node_init(GF_Renderer *sr, GF_Node *node)
 {

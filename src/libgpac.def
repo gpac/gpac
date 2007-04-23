@@ -1209,4 +1209,6 @@ EXPORTS
 	gf_term_set_mfurl_from_uri
 	gf_term_check_iri_change
 	gf_svg_has_appearance_flag_dirty
-	
+	gf_svg2_apply_animations
+	gf_svg3_fill_all_attributes
+	gf_svg3_get_attribute_by_tag

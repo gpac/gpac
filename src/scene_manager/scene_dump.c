@@ -27,7 +27,7 @@
 #include <gpac/utf.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_x3d.h>
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 
 #ifndef GPAC_READ_ONLY
 
@@ -2272,12 +2272,11 @@ GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 				fprintf(sdump->trace, "\" ");
 			} else if (f->fieldIndex==(u32)-2) {
 				char *att_name = NULL;
-				info.fieldType = SVG_Matrix_datatype;
+				info.fieldType = SVG_Transform_datatype;
 				if (f->fieldType==SVG_TRANSFORM_SCALE) att_name = "scale";
 				else if (f->fieldType==SVG_TRANSFORM_TRANSLATE) att_name = "translation";
 				else if (f->fieldType==SVG_TRANSFORM_ROTATE) att_name = "rotate";
 				fprintf(sdump->trace, "attributeName=\"%s\" ", att_name);
-				info.eventType = f->fieldType;
 				info.far_ptr = f->field_ptr;
 				gf_svg_dump_attribute((SVGElement *)com->node, &info, szAtt);
 				fprintf(sdump->trace, "value=\"%s\" ", szAtt);

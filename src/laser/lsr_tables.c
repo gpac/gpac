@@ -24,13 +24,13 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Mon Jan 08 16:22:29 2007
+	DO NOT MOFIFY - File generated on GMT Wed Feb 28 13:39:20 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
 
 
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 
 static const s32 a_field_to_attrib_type[] = {
 -1, -1, -1, 125, 124, -1, 24, 4, 17, 37, 64, 79, 103, 110, 111, 112, 12, 13, 18, 25, 26, 27, 29, 30, 31, 33, 41, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, -1, 101, 108, -1, 28, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 119, 121, 122, 117, 120, 118, 123, 70, 71, -1, 72, 100, 105, 0

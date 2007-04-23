@@ -60,7 +60,7 @@ typedef struct
 } SVG_GradientStack;
 
 #ifndef GPAC_DISABLE_SVG
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 
 void svg_render_node(GF_Node *node, RenderEffect2D *eff);
 void svg_render_node_list(GF_ChildNodeItem *children, RenderEffect2D *eff);
@@ -103,7 +103,7 @@ void gf_svg_apply_local_transformation(RenderEffect2D *eff, GF_Node *node, GF_Ma
 void gf_svg_restore_parent_transformation(RenderEffect2D *eff, GF_Matrix2D *backup_matrix);
 
 
-#include <gpac/nodes_svg2.h>
+#include <gpac/nodes_svg_sani.h>
 
 void svg2_render_base(GF_Node *node, RenderEffect2D *eff);
 void svg2_render_node(GF_Node *node, RenderEffect2D *eff);
@@ -134,7 +134,7 @@ void svg2_Init_stop(Render2D *sr, GF_Node *node);
 void gf_svg2_apply_local_transformation(RenderEffect2D *eff, GF_Node *node, GF_Matrix2D *backup_matrix);
 void gf_svg2_restore_parent_transformation(RenderEffect2D *eff, GF_Matrix2D *backup_matrix);
 
-#include <gpac/nodes_svg3.h>
+#include <gpac/nodes_svg_da.h>
 
 void SVG3_Init_svg(Render2D *sr, GF_Node *node);
 void SVG3_Init_g(Render2D *sr, GF_Node *node);

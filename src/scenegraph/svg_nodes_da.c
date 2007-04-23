@@ -166,12 +166,12 @@ u32 gf_svg3_get_attribute_tag(u32 element_tag, const char *attribute_name)
 	if (!stricmp(attribute_name, "r")) return TAG_SVG3_ATT_r;
 	if (!stricmp(attribute_name, "enabled")) return TAG_SVG3_ATT_enabled;
 	if (!stricmp(attribute_name, "x")) {
-		if (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_cursorManager_x;
+		if (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_x;
 		else if (element_tag == TAG_SVG3_cursorManager) return TAG_SVG3_ATT_cursorManager_x;
 		else return TAG_SVG3_ATT_x;
 	}
 	if (!stricmp(attribute_name, "y")) {
-		if (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_cursorManager_y;
+		if (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_y;
 		else if (element_tag == TAG_SVG3_cursorManager) return TAG_SVG3_ATT_cursorManager_y;
 		else return TAG_SVG3_ATT_y;
 	}
@@ -253,17 +253,17 @@ u32 gf_svg3_get_attribute_tag(u32 element_tag, const char *attribute_name)
 	if (!stricmp(attribute_name, "playbackOrder")) return TAG_SVG3_ATT_playbackOrder;
 	if (!stricmp(attribute_name, "editable")) return TAG_SVG3_ATT_editable;
 	if (!stricmp(attribute_name, "x")) {
-		if (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_text_x;
+		if (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_x;
 		else if (element_tag == TAG_SVG3_cursorManager) return TAG_SVG3_ATT_cursorManager_x;
 		else return TAG_SVG3_ATT_x;
 	}
 	if (!stricmp(attribute_name, "y")) {
-		if (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_text_y;
+		if (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_y;
 		else if (element_tag == TAG_SVG3_cursorManager) return TAG_SVG3_ATT_cursorManager_y;
 		else return TAG_SVG3_ATT_y;
 	}
 	if (!stricmp(attribute_name, "rotate")) {
-		if (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_text_rotate;
+		if (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_rotate;
 		else return TAG_SVG3_ATT_rotate;
 	}
 	if (!stricmp(attribute_name, "transformBehavior")) return TAG_SVG3_ATT_transformBehavior;

@@ -30,7 +30,9 @@
 #ifndef GPAC_DISABLE_SVG
 
 #include <gpac/internal/scenegraph_dev.h>
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
+#include <gpac/nodes_svg_sani.h>
+#include <gpac/nodes_svg_da.h>
 #include <gpac/renderer.h>
 
 
@@ -66,26 +68,26 @@ Bool gf_term_check_iri_change(GF_Terminal *term, MFURL *url, SVG_IRI *iri)
 
 
 /* Creates a subscene from the xlink:href */
-static GF_InlineScene *gf_svg_get_subscene(SVGElement *elt, Bool use_sync)
+static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlinkp, SMILSyncAttributesPointers *syncp, Bool use_sync)
 {
 	MFURL url;
 	Bool lock_timelines = 0;
 	GF_MediaObject *mo;
-	GF_SceneGraph *graph = gf_node_get_graph((GF_Node *) elt);
+	GF_SceneGraph *graph = gf_node_get_graph(elt);
 	GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(graph);
 	if (!is) return NULL;
 
-	if (use_sync && elt->sync) {
-		switch (elt->sync->syncBehavior) {
+	if (use_sync && syncp) {
+		switch ((syncp->syncBehavior?*syncp->syncBehavior:SMIL_SYNCBEHAVIOR_DEFAULT)) {
 		case SMIL_SYNCBEHAVIOR_LOCKED:
 		case SMIL_SYNCBEHAVIOR_CANSLIP:
 			lock_timelines = 1;
 			break;
 		case SMIL_SYNCBEHAVIOR_DEFAULT:
 		{
-			SVGsvgElement *svg = (SVGsvgElement *) gf_sg_get_root_node(gf_node_get_graph((GF_Node*)elt));
-			if (svg && svg->sync) {
-				switch (svg->sync->syncBehaviorDefault) {
+			SVGsvgElement *svg = (SVGsvgElement *) gf_sg_get_root_node(gf_node_get_graph(elt));
+			if (svg && syncp) {
+				switch ((syncp->syncBehaviorDefault ? *syncp->syncBehaviorDefault : SMIL_SYNCBEHAVIOR_LOCKED)) {
 				case SMIL_SYNCBEHAVIOR_LOCKED:
 				case SMIL_SYNCBEHAVIOR_CANSLIP:
 					lock_timelines = 1;
@@ -100,7 +102,7 @@ static GF_InlineScene *gf_svg_get_subscene(SVGElement *elt, Bool use_sync)
 		}
 	}
 	memset(&url, 0, sizeof(MFURL));
-	gf_term_set_mfurl_from_uri(is->root_od->term, &url, &elt->xlink->href);
+	gf_term_set_mfurl_from_uri(is->root_od->term, &url, xlinkp->href);
 
 	/*
 		creates the media object if not already created at the InlineScene level
@@ -159,12 +161,70 @@ void gf_svg_subscene_stop(GF_InlineScene *is, Bool reset_ck)
 
 static void svg_animation_smil_update(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
 {
+	XLinkAttributesPointers xlinkp;
+	SMILSyncAttributesPointers syncp;
+	SVG_Clock *clipBegin, *clipEnd;
+
 	GF_InlineScene *is;
 	GF_Node *n = (GF_Node *)rti->timed_elt;
+	u32 tag = gf_node_get_tag(n);
 	is = (GF_InlineScene *)gf_node_get_private(n);
 
+
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+		xlinkp.actuate = &(((SVGanimationElement *)n)->xlink->actuate);
+		xlinkp.arcrole = &((SVGanimationElement *)n)->xlink->arcrole;
+		xlinkp.href = &((SVGanimationElement *)n)->xlink->href;
+		xlinkp.role = &((SVGanimationElement *)n)->xlink->role;
+		xlinkp.show = &((SVGanimationElement *)n)->xlink->show;
+		xlinkp.title = &((SVGanimationElement *)n)->xlink->title;
+		xlinkp.type = &((SVGanimationElement *)n)->xlink->type;
+		syncp.syncBehavior = &((SVGanimationElement *)n)->sync->syncBehavior;
+		syncp.syncBehaviorDefault = &((SVGanimationElement *)n)->sync->syncBehaviorDefault;
+		syncp.syncMaster = &((SVGanimationElement *)n)->sync->syncMaster;
+		syncp.syncReference = &((SVGanimationElement *)n)->sync->syncReference;
+		syncp.syncTolerance = &((SVGanimationElement *)n)->sync->syncTolerance;
+		syncp.syncToleranceDefault = &((SVGanimationElement *)n)->sync->syncToleranceDefault;
+		clipBegin = &((SVGanimationElement *)n)->timing->clipBegin;
+		clipEnd = &((SVGanimationElement *)n)->timing->clipEnd;
+	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
+		xlinkp.actuate = &((SVG2animationElement *)n)->xlink->actuate;
+		xlinkp.arcrole = &((SVG2animationElement *)n)->xlink->arcrole;
+		xlinkp.href = &((SVG2animationElement *)n)->xlink->href;
+		xlinkp.role = &((SVG2animationElement *)n)->xlink->role;
+		xlinkp.show = &((SVG2animationElement *)n)->xlink->show;
+		xlinkp.title = &((SVG2animationElement *)n)->xlink->title;
+		xlinkp.type = &((SVG2animationElement *)n)->xlink->type;
+		syncp.syncBehavior = &((SVG2animationElement *)n)->sync->syncBehavior;
+		syncp.syncBehaviorDefault = &((SVG2animationElement *)n)->sync->syncBehaviorDefault;
+		syncp.syncMaster = &((SVG2animationElement *)n)->sync->syncMaster;
+		syncp.syncReference = &((SVG2animationElement *)n)->sync->syncReference;
+		syncp.syncTolerance = &((SVG2animationElement *)n)->sync->syncTolerance;
+		syncp.syncToleranceDefault = &((SVG2animationElement *)n)->sync->syncToleranceDefault;
+		clipBegin = &((SVG2animationElement *)n)->timing->clipBegin;
+		clipEnd = &((SVG2animationElement *)n)->timing->clipEnd;
+	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
+		SVG3AllAttributes all_atts;
+		gf_svg3_fill_all_attributes(&all_atts, (SVG3Element *)n);
+		xlinkp.actuate = all_atts.xlink_actuate;
+		xlinkp.arcrole = all_atts.xlink_arcrole;
+		xlinkp.href = all_atts.xlink_href;
+		xlinkp.role = all_atts.xlink_role;
+		xlinkp.show = all_atts.xlink_show;
+		xlinkp.title = all_atts.xlink_title;
+		xlinkp.type = all_atts.xlink_type;
+		syncp.syncBehavior = all_atts.syncBehavior;
+		syncp.syncBehaviorDefault = all_atts.syncBehaviorDefault;
+		syncp.syncMaster = all_atts.syncMaster;
+		syncp.syncReference = all_atts.syncReference;
+		syncp.syncTolerance = all_atts.syncTolerance;
+		syncp.syncToleranceDefault = all_atts.syncToleranceDefault;
+		clipBegin = all_atts.clipBegin;
+		clipEnd = all_atts.clipEnd;
+	}
+
 	if (!is) {
-		is = gf_svg_get_subscene((SVGElement *)n, 1);
+		is = gf_svg_get_subscene(n, &xlinkp, &syncp, 1);
 		if (!is) return;
 
 		/*assign animation scene as private stack of inline node, and remember inline node for event propagation*/
@@ -174,8 +234,8 @@ static void svg_animation_smil_update(SMIL_Timing_RTI *rti, Fixed normalized_sce
 
 	/*play*/
 	if (!is->root_od->mo->num_open) {	
-		if (((SVGElement *)rti->timed_elt)->timing->clipEnd>0) is->root_od->media_stop_time = (u64) (1000*((SVGElement *)rti->timed_elt)->timing->clipEnd);
-		gf_mo_play(is->root_od->mo, ((SVGElement *)rti->timed_elt)->timing->clipBegin, 0);
+		if (clipEnd && clipEnd>0) is->root_od->media_stop_time = (u64) (1000*(*clipEnd));
+		gf_mo_play(is->root_od->mo, (clipBegin?*clipBegin:0), 0);
 	}
 }
 
@@ -255,24 +315,74 @@ void SVG_Init_animation(GF_InlineScene *is, GF_Node *node)
 
 static void SVG_Render_use(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SVGuseElement *use = (SVGuseElement *)node;
+	XLinkAttributesPointers xlinkp;
+	SMILSyncAttributesPointers syncp;
+	u32 tag = gf_node_get_tag(node);
 
 	if (is_destroy) return;
 
-	if (use->xlink->href.type == SVG_IRI_ELEMENTID) {
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+		xlinkp.actuate = &(((SVGuseElement *)node)->xlink->actuate);
+		xlinkp.arcrole = &((SVGuseElement *)node)->xlink->arcrole;
+		xlinkp.href = &((SVGuseElement *)node)->xlink->href;
+		xlinkp.role = &((SVGuseElement *)node)->xlink->role;
+		xlinkp.show = &((SVGuseElement *)node)->xlink->show;
+		xlinkp.title = &((SVGuseElement *)node)->xlink->title;
+		xlinkp.type = &((SVGuseElement *)node)->xlink->type;
+		syncp.syncBehavior = &((SVGuseElement *)node)->sync->syncBehavior;
+		syncp.syncBehaviorDefault = &((SVGuseElement *)node)->sync->syncBehaviorDefault;
+		syncp.syncMaster = &((SVGuseElement *)node)->sync->syncMaster;
+		syncp.syncReference = &((SVGuseElement *)node)->sync->syncReference;
+		syncp.syncTolerance = &((SVGuseElement *)node)->sync->syncTolerance;
+		syncp.syncToleranceDefault = &((SVGuseElement *)node)->sync->syncToleranceDefault;
+	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
+		xlinkp.actuate = &((SVG2useElement *)node)->xlink->actuate;
+		xlinkp.arcrole = &((SVG2useElement *)node)->xlink->arcrole;
+		xlinkp.href = &((SVG2useElement *)node)->xlink->href;
+		xlinkp.role = &((SVG2useElement *)node)->xlink->role;
+		xlinkp.show = &((SVG2useElement *)node)->xlink->show;
+		xlinkp.title = &((SVG2useElement *)node)->xlink->title;
+		xlinkp.type = &((SVG2useElement *)node)->xlink->type;
+		syncp.syncBehavior = &((SVG2useElement *)node)->sync->syncBehavior;
+		syncp.syncBehaviorDefault = &((SVG2useElement *)node)->sync->syncBehaviorDefault;
+		syncp.syncMaster = &((SVG2useElement *)node)->sync->syncMaster;
+		syncp.syncReference = &((SVG2useElement *)node)->sync->syncReference;
+		syncp.syncTolerance = &((SVG2useElement *)node)->sync->syncTolerance;
+		syncp.syncToleranceDefault = &((SVG2useElement *)node)->sync->syncToleranceDefault;
+	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
+		SVG3AllAttributes all_atts;
+		gf_svg3_fill_all_attributes(&all_atts, (SVG3Element *)node);
+		xlinkp.actuate = all_atts.xlink_actuate;
+		xlinkp.arcrole = all_atts.xlink_arcrole;
+		xlinkp.href = all_atts.xlink_href;
+		xlinkp.role = all_atts.xlink_role;
+		xlinkp.show = all_atts.xlink_show;
+		xlinkp.title = all_atts.xlink_title;
+		xlinkp.type = all_atts.xlink_type;
+		syncp.syncBehavior = all_atts.syncBehavior;
+		syncp.syncBehaviorDefault = all_atts.syncBehaviorDefault;
+		syncp.syncMaster = all_atts.syncMaster;
+		syncp.syncReference = all_atts.syncReference;
+		syncp.syncTolerance = all_atts.syncTolerance;
+		syncp.syncToleranceDefault = all_atts.syncToleranceDefault;
+	}
+
+	if (!xlinkp.href) return;
+
+	if (xlinkp.href->type == SVG_IRI_ELEMENTID) {
 		GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) node));
-		gf_sr_render_inline(is->root_od->term->renderer, node, (GF_Node *)use->xlink->href.target, rs);
+		gf_sr_render_inline(is->root_od->term->renderer, node, xlinkp.href->target, rs);
 	} else {
 		char *fragment;
 		GF_Node *shadow_root;
 		GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
 
 		if (!is) {
-			is = gf_svg_get_subscene((SVGElement *)node, 0);
+			is = gf_svg_get_subscene(node, &xlinkp, &syncp, 0);
 			if (!is) return;
 
 			/*assign animation scene as private stack of inline node, and remember inline node for event propagation*/
-			gf_node_set_private((GF_Node *)node, is);
+			gf_node_set_private(node, is);
 			gf_list_add(is->inline_nodes, node);
 
 			/*play*/
@@ -282,7 +392,7 @@ static void SVG_Render_use(GF_Node *node, void *rs, Bool is_destroy)
 		
 		shadow_root = gf_sg_get_root_node(is->graph);
 
-		if ((fragment = strchr(use->xlink->href.iri, '#')) ) {
+		if ((fragment = strchr(xlinkp.href->iri, '#')) ) {
 			shadow_root = gf_sg_find_node_by_name(is->graph, fragment+1);
 		}
 		if (shadow_root) {
@@ -292,6 +402,16 @@ static void SVG_Render_use(GF_Node *node, void *rs, Bool is_destroy)
 }
 
 void SVG_Init_use(GF_InlineScene *is, GF_Node *node)
+{
+	gf_node_set_callback_function(node, SVG_Render_use);
+}
+
+void SVG2_Init_use(GF_InlineScene *is, GF_Node *node)
+{
+	gf_node_set_callback_function(node, SVG_Render_use);
+}
+
+void SVG3_Init_use(GF_InlineScene *is, GF_Node *node)
 {
 	gf_node_set_callback_function(node, SVG_Render_use);
 }

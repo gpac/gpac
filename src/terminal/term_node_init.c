@@ -29,7 +29,9 @@
 #include "input_sensor.h"
 /*includes X3D nodes for WorldInfo, Inline and Key/String sensors*/
 #include <gpac/nodes_x3d.h>
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
+#include <gpac/nodes_svg_sani.h>
+#include <gpac/nodes_svg_da.h>
 
 void InitMediaControl(GF_InlineScene *is, GF_Node *node);
 void MC_Modified(GF_Node *node);
@@ -41,6 +43,8 @@ void InitInline(GF_InlineScene *is, GF_Node *node);
 #ifndef GPAC_DISABLE_SVG
 void SVG_Init_animation(GF_InlineScene *is, GF_Node *node);
 void SVG_Init_use(GF_InlineScene *is, GF_Node *node);
+void SVG2_Init_use(GF_InlineScene *is, GF_Node *node);
+void SVG3_Init_use(GF_InlineScene *is, GF_Node *node);
 #endif
 
 void Render_WorldInfo(GF_Node *node, void *rs, Bool is_destroy)
@@ -87,9 +91,10 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 		gf_node_set_callback_function(node, Render_SVGtitle);
 		gf_node_set_private(node, is);
 		break;
-
 	case TAG_SVG_animation:	SVG_Init_animation(is, node); break;
 	case TAG_SVG_use: SVG_Init_use(is, node); break;
+	case TAG_SVG2_use: SVG2_Init_use(is, node); break;
+	case TAG_SVG3_use: SVG3_Init_use(is, node); break;
 #endif
 
 	default: gf_sr_on_node_init(is->root_od->term->renderer, node); break;

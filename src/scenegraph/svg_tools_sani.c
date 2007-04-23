@@ -22,7 +22,7 @@
  *
  */
 
-#include <gpac/nodes_svg2.h>
+#include <gpac/nodes_svg_sani.h>
 
 #ifndef GPAC_DISABLE_SVG
 
