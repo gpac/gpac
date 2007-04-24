@@ -2475,10 +2475,10 @@ GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if
 {
 	GF_SceneGraph *sg = gf_node_get_graph((GF_Node *)n);
 #if 0
-	SVGElement *unided_elt;
+	SVG_SA_Element *unided_elt;
 	GF_SceneGraph *sg = gf_node_get_graph(n);
 
-	unided_elt = (SVGElement *)gf_sg_find_node_by_name(sg, (char *) nodename);
+	unided_elt = (SVG_SA_Element *)gf_sg_find_node_by_name(sg, (char *) nodename);
 	if (unided_elt) {
 		/* An element with the same id is already in the document
 		   Is it in an update, in which case it may be normal, otherwise it's an error.*/		
@@ -2841,7 +2841,7 @@ void svg_parse_one_style(GF_Node *n, char *one_style)
 		c++;
 		gf_svg_parse_attribute(n, &info, c, 0);
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Attribute %s does not belong to element %s.\n", one_style, gf_svg_get_element_name(gf_node_get_tag(n))));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Attribute %s does not belong to element %s.\n", one_style, gf_node_get_class_name(n)));
 	}
 	one_style[attributeNameLen] = sep;
 }
@@ -3366,7 +3366,7 @@ static void gf_svg_dump_matrix(GF_Matrix2D *matrix, char *attValue)
 	sprintf(attValue, "matrix(%g %g %g %g %g %g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[3]), FIX2FLT(matrix->m[1]), FIX2FLT(matrix->m[4]), FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
 }
 
-GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
+GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 {
 	u8 intVal = *(u8 *)info->far_ptr;
 	strcpy(attValue, "");
@@ -3895,11 +3895,13 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 
 	case SMIL_AttributeName_datatype:
 	{
-		GF_Node *t;
+		GF_Node *t=NULL;
 		u32 i, count;
 		SMIL_AttributeName *att_name = (SMIL_AttributeName *) info->far_ptr;
+#if SVG_FIXME
 		if (!elt->xlink) break;
 		t = (GF_Node *) elt->xlink->href.target;
+#endif
 		if (!t) break;
 		count = gf_node_get_field_count(t);
 		for (i=0; i<count; i++) {
@@ -4048,7 +4050,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 }
 
 
-GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *attValue)
+GF_Err gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 {
 	strcpy(attValue, "");
 	switch (info->fieldType) {
@@ -4722,6 +4724,60 @@ static GF_Err svg_numbers_copy(SVG_Numbers *a, SVG_Numbers *b)
 }
 
 #if USE_GF_PATH
+static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
+{
+	if (a->contours) free(a->contours);
+	if (a->points) free(a->points); 
+	if (a->tags) free(a->tags);
+
+	a->contours = (u32 *)malloc(sizeof(u32)*b->n_contours);
+	a->points = (GF_Point2D *) malloc(sizeof(GF_Point2D)*b->n_points);
+	a->tags = (u8 *) malloc(sizeof(u8)*b->n_points);
+	memcpy(a->contours, b->contours, sizeof(u32)*b->n_contours);
+	a->n_contours = b->n_contours;
+	memcpy(a->points, b->points, sizeof(GF_Point2D)*b->n_points);
+	memcpy(a->tags, b->tags, sizeof(u8)*b->n_points);
+	a->n_alloc_points = a->n_points = b->n_points;
+	a->flags = b->flags;
+	a->bbox = b->bbox;
+	a->fineness = b->fineness;
+	return GF_OK;
+}
+#else
+static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
+{
+	u32 i, count;
+	count = gf_list_count(a->commands);
+	for (i = 0; i < count; i++) {
+		u8 *command = (u8 *)gf_list_get(a->commands, i);
+		free(command);
+	}
+	gf_list_reset(a->commands);
+	count = gf_list_count(a->points);
+	for (i = 0; i < count; i++) {
+		SVG_Point *pt = (SVG_Point *)gf_list_get(a->points, i);
+		free(pt);
+	}
+	gf_list_reset(a->points);
+	
+	count = gf_list_count(b->commands);
+	for (i = 0; i < count; i ++) {
+		u8 *nc = (u8 *)malloc(sizeof(u8));
+		*nc = *(u8*)gf_list_get(b->commands, i);
+		gf_list_add(a->commands, nc);
+	}
+	count = gf_list_count(b->points);
+	for (i = 0; i < count; i ++) {
+		SVG_Point *pta;
+		GF_SAFEALLOC(pta, SVG_Point)
+		*pta = *(SVG_Point *)gf_list_get(b->points, i);
+		gf_list_add(a->points, pta);
+	}
+	return GF_OK;
+}
+#endif
+
+#if USE_GF_PATH
 static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_PathData *b, SVG_PathData *c)
 {
 	u32 i;
@@ -4784,59 +4840,6 @@ static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_Path
 }
 #endif
 
-#if USE_GF_PATH
-static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
-{
-	if (a->contours) free(a->contours);
-	if (a->points) free(a->points); 
-	if (a->tags) free(a->tags);
-
-	a->contours = (u32 *)malloc(sizeof(u32)*b->n_contours);
-	a->points = (GF_Point2D *) malloc(sizeof(GF_Point2D)*b->n_points);
-	a->tags = (u8 *) malloc(sizeof(u8)*b->n_points);
-	memcpy(a->contours, b->contours, sizeof(u32)*b->n_contours);
-	a->n_contours = b->n_contours;
-	memcpy(a->points, b->points, sizeof(GF_Point2D)*b->n_points);
-	memcpy(a->tags, b->tags, sizeof(u8)*b->n_points);
-	a->n_alloc_points = a->n_points = b->n_points;
-	a->flags = b->flags;
-	a->bbox = b->bbox;
-	a->fineness = b->fineness;
-	return GF_OK;
-}
-#else
-static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
-{
-	u32 i, count;
-	count = gf_list_count(a->commands);
-	for (i = 0; i < count; i++) {
-		u8 *command = (u8 *)gf_list_get(a->commands, i);
-		free(command);
-	}
-	gf_list_reset(a->commands);
-	count = gf_list_count(a->points);
-	for (i = 0; i < count; i++) {
-		SVG_Point *pt = (SVG_Point *)gf_list_get(a->points, i);
-		free(pt);
-	}
-	gf_list_reset(a->points);
-	
-	count = gf_list_count(b->commands);
-	for (i = 0; i < count; i ++) {
-		u8 *nc = (u8 *)malloc(sizeof(u8));
-		*nc = *(u8*)gf_list_get(b->commands, i);
-		gf_list_add(a->commands, nc);
-	}
-	count = gf_list_count(b->points);
-	for (i = 0; i < count; i ++) {
-		SVG_Point *pta;
-		GF_SAFEALLOC(pta, SVG_Point)
-		*pta = *(SVG_Point *)gf_list_get(b->points, i);
-		gf_list_add(a->points, pta);
-	}
-	return GF_OK;
-}
-#endif
 
 static GF_Err svg_dasharray_muladd(Fixed alpha, SVG_StrokeDashArray *a, Fixed beta, SVG_StrokeDashArray *b, SVG_StrokeDashArray *c)
 {
@@ -5477,37 +5480,6 @@ Bool gf_svg_is_current_color(GF_FieldInfo *a)
 }
 
 
-/* 
-	Returns the computed value based on the specified value, the element and the property context 
-	  computed_field_info: the far pointer in this struct is the computed value 
-	  specified_field_info: the far pointer in this struct is the specified value 
-	  elt: is the current SVG element to which attribute belongs
-	  orig_dom_ptr: is the address of the attribute created when creating the element 
-	                (before it was used as presentation value)
-	  inherited_props: the current context of properties (as pointers to where the real value is)
-*/
-void gf_svg_attributes_copy_computed_value(GF_FieldInfo *computed_field_info, 
-										   GF_FieldInfo *specified_field_info, 
-										   SVGElement *elt, 
-										   void *orig_dom_ptr, 
-										   SVGPropertiesPointers *inherited_props)
-{
-	GF_FieldInfo prop, current_color;
-
-	prop.fieldType = specified_field_info->fieldType;
-	prop.far_ptr = gf_svg_get_property_pointer(inherited_props, elt->properties, orig_dom_ptr);
-
-	current_color.fieldType = SVG_PAINT_COLOR;
-	current_color.far_ptr = inherited_props->color;
-
-	if (gf_svg_is_inherit(specified_field_info)) {
-		gf_svg_attributes_copy(computed_field_info, &prop, 0);
-	} else if (gf_svg_is_current_color(specified_field_info)) {
-		gf_svg_attributes_copy(computed_field_info, &current_color, 0);
-	} else {
-		gf_svg_attributes_copy(computed_field_info, specified_field_info, 0);
-	}
-}
 
 char *gf_svg_attribute_type_to_string(u32 att_type)
 {

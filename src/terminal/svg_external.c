@@ -85,7 +85,8 @@ static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers
 			break;
 		case SMIL_SYNCBEHAVIOR_DEFAULT:
 		{
-			SVGsvgElement *svg = (SVGsvgElement *) gf_sg_get_root_node(gf_node_get_graph(elt));
+#if SVG_FIXME
+			SVG_SA_svgElement *svg = (SVG_SA_svgElement *) gf_sg_get_root_node(gf_node_get_graph(elt));
 			if (svg && syncp) {
 				switch ((syncp->syncBehaviorDefault ? *syncp->syncBehaviorDefault : SMIL_SYNCBEHAVIOR_LOCKED)) {
 				case SMIL_SYNCBEHAVIOR_LOCKED:
@@ -96,6 +97,7 @@ static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers
 					break;
 				}
 			}
+#endif
 		}
 		default:
 			break;
@@ -170,42 +172,9 @@ static void svg_animation_smil_update(SMIL_Timing_RTI *rti, Fixed normalized_sce
 	u32 tag = gf_node_get_tag(n);
 	is = (GF_InlineScene *)gf_node_get_private(n);
 
-
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		xlinkp.actuate = &(((SVGanimationElement *)n)->xlink->actuate);
-		xlinkp.arcrole = &((SVGanimationElement *)n)->xlink->arcrole;
-		xlinkp.href = &((SVGanimationElement *)n)->xlink->href;
-		xlinkp.role = &((SVGanimationElement *)n)->xlink->role;
-		xlinkp.show = &((SVGanimationElement *)n)->xlink->show;
-		xlinkp.title = &((SVGanimationElement *)n)->xlink->title;
-		xlinkp.type = &((SVGanimationElement *)n)->xlink->type;
-		syncp.syncBehavior = &((SVGanimationElement *)n)->sync->syncBehavior;
-		syncp.syncBehaviorDefault = &((SVGanimationElement *)n)->sync->syncBehaviorDefault;
-		syncp.syncMaster = &((SVGanimationElement *)n)->sync->syncMaster;
-		syncp.syncReference = &((SVGanimationElement *)n)->sync->syncReference;
-		syncp.syncTolerance = &((SVGanimationElement *)n)->sync->syncTolerance;
-		syncp.syncToleranceDefault = &((SVGanimationElement *)n)->sync->syncToleranceDefault;
-		clipBegin = &((SVGanimationElement *)n)->timing->clipBegin;
-		clipEnd = &((SVGanimationElement *)n)->timing->clipEnd;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		xlinkp.actuate = &((SVG2animationElement *)n)->xlink->actuate;
-		xlinkp.arcrole = &((SVG2animationElement *)n)->xlink->arcrole;
-		xlinkp.href = &((SVG2animationElement *)n)->xlink->href;
-		xlinkp.role = &((SVG2animationElement *)n)->xlink->role;
-		xlinkp.show = &((SVG2animationElement *)n)->xlink->show;
-		xlinkp.title = &((SVG2animationElement *)n)->xlink->title;
-		xlinkp.type = &((SVG2animationElement *)n)->xlink->type;
-		syncp.syncBehavior = &((SVG2animationElement *)n)->sync->syncBehavior;
-		syncp.syncBehaviorDefault = &((SVG2animationElement *)n)->sync->syncBehaviorDefault;
-		syncp.syncMaster = &((SVG2animationElement *)n)->sync->syncMaster;
-		syncp.syncReference = &((SVG2animationElement *)n)->sync->syncReference;
-		syncp.syncTolerance = &((SVG2animationElement *)n)->sync->syncTolerance;
-		syncp.syncToleranceDefault = &((SVG2animationElement *)n)->sync->syncToleranceDefault;
-		clipBegin = &((SVG2animationElement *)n)->timing->clipBegin;
-		clipEnd = &((SVG2animationElement *)n)->timing->clipEnd;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		SVG3AllAttributes all_atts;
-		gf_svg3_fill_all_attributes(&all_atts, (SVG3Element *)n);
+		SVGAllAttributes all_atts;
+		gf_svg_flatten_attributes((SVG_Element *)n, &all_atts);
 		xlinkp.actuate = all_atts.xlink_actuate;
 		xlinkp.arcrole = all_atts.xlink_arcrole;
 		xlinkp.href = all_atts.xlink_href;
@@ -222,6 +191,44 @@ static void svg_animation_smil_update(SMIL_Timing_RTI *rti, Fixed normalized_sce
 		clipBegin = all_atts.clipBegin;
 		clipEnd = all_atts.clipEnd;
 	}
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		xlinkp.actuate = &(((SVG_SA_animationElement *)n)->xlink->actuate);
+		xlinkp.arcrole = &((SVG_SA_animationElement *)n)->xlink->arcrole;
+		xlinkp.href = &((SVG_SA_animationElement *)n)->xlink->href;
+		xlinkp.role = &((SVG_SA_animationElement *)n)->xlink->role;
+		xlinkp.show = &((SVG_SA_animationElement *)n)->xlink->show;
+		xlinkp.title = &((SVG_SA_animationElement *)n)->xlink->title;
+		xlinkp.type = &((SVG_SA_animationElement *)n)->xlink->type;
+		syncp.syncBehavior = &((SVG_SA_animationElement *)n)->sync->syncBehavior;
+		syncp.syncBehaviorDefault = &((SVG_SA_animationElement *)n)->sync->syncBehaviorDefault;
+		syncp.syncMaster = &((SVG_SA_animationElement *)n)->sync->syncMaster;
+		syncp.syncReference = &((SVG_SA_animationElement *)n)->sync->syncReference;
+		syncp.syncTolerance = &((SVG_SA_animationElement *)n)->sync->syncTolerance;
+		syncp.syncToleranceDefault = &((SVG_SA_animationElement *)n)->sync->syncToleranceDefault;
+		clipBegin = &((SVG_SA_animationElement *)n)->timing->clipBegin;
+		clipEnd = &((SVG_SA_animationElement *)n)->timing->clipEnd;
+	} 
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		xlinkp.actuate = &((SVG_SANI_animationElement *)n)->xlink->actuate;
+		xlinkp.arcrole = &((SVG_SANI_animationElement *)n)->xlink->arcrole;
+		xlinkp.href = &((SVG_SANI_animationElement *)n)->xlink->href;
+		xlinkp.role = &((SVG_SANI_animationElement *)n)->xlink->role;
+		xlinkp.show = &((SVG_SANI_animationElement *)n)->xlink->show;
+		xlinkp.title = &((SVG_SANI_animationElement *)n)->xlink->title;
+		xlinkp.type = &((SVG_SANI_animationElement *)n)->xlink->type;
+		syncp.syncBehavior = &((SVG_SANI_animationElement *)n)->sync->syncBehavior;
+		syncp.syncBehaviorDefault = &((SVG_SANI_animationElement *)n)->sync->syncBehaviorDefault;
+		syncp.syncMaster = &((SVG_SANI_animationElement *)n)->sync->syncMaster;
+		syncp.syncReference = &((SVG_SANI_animationElement *)n)->sync->syncReference;
+		syncp.syncTolerance = &((SVG_SANI_animationElement *)n)->sync->syncTolerance;
+		syncp.syncToleranceDefault = &((SVG_SANI_animationElement *)n)->sync->syncToleranceDefault;
+		clipBegin = &((SVG_SANI_animationElement *)n)->timing->clipBegin;
+		clipEnd = &((SVG_SANI_animationElement *)n)->timing->clipEnd;
+	}
+#endif
 
 	if (!is) {
 		is = gf_svg_get_subscene(n, &xlinkp, &syncp, 1);
@@ -301,11 +308,11 @@ void SVG_Render_animation(GF_Node *n, void *rs, Bool is_destroy)
 }
 
 
-void SVG_Init_animation(GF_InlineScene *is, GF_Node *node)
+void svg_sa_render_init_animation(GF_InlineScene *is, GF_Node *node)
 {
 	gf_smil_timing_init_runtime_info(node);
-	if (((SVGElement *)node)->timing->runtime) {
-		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
+	if (((SVG_SA_Element *)node)->timing->runtime) {
+		SMIL_Timing_RTI *rti = ((SVG_SA_Element *)node)->timing->runtime;
 		rti->evaluate = svg_animation_smil_evaluate;
 	}
 	gf_node_set_callback_function(node, SVG_Render_animation);
@@ -322,36 +329,8 @@ static void SVG_Render_use(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) return;
 
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		xlinkp.actuate = &(((SVGuseElement *)node)->xlink->actuate);
-		xlinkp.arcrole = &((SVGuseElement *)node)->xlink->arcrole;
-		xlinkp.href = &((SVGuseElement *)node)->xlink->href;
-		xlinkp.role = &((SVGuseElement *)node)->xlink->role;
-		xlinkp.show = &((SVGuseElement *)node)->xlink->show;
-		xlinkp.title = &((SVGuseElement *)node)->xlink->title;
-		xlinkp.type = &((SVGuseElement *)node)->xlink->type;
-		syncp.syncBehavior = &((SVGuseElement *)node)->sync->syncBehavior;
-		syncp.syncBehaviorDefault = &((SVGuseElement *)node)->sync->syncBehaviorDefault;
-		syncp.syncMaster = &((SVGuseElement *)node)->sync->syncMaster;
-		syncp.syncReference = &((SVGuseElement *)node)->sync->syncReference;
-		syncp.syncTolerance = &((SVGuseElement *)node)->sync->syncTolerance;
-		syncp.syncToleranceDefault = &((SVGuseElement *)node)->sync->syncToleranceDefault;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		xlinkp.actuate = &((SVG2useElement *)node)->xlink->actuate;
-		xlinkp.arcrole = &((SVG2useElement *)node)->xlink->arcrole;
-		xlinkp.href = &((SVG2useElement *)node)->xlink->href;
-		xlinkp.role = &((SVG2useElement *)node)->xlink->role;
-		xlinkp.show = &((SVG2useElement *)node)->xlink->show;
-		xlinkp.title = &((SVG2useElement *)node)->xlink->title;
-		xlinkp.type = &((SVG2useElement *)node)->xlink->type;
-		syncp.syncBehavior = &((SVG2useElement *)node)->sync->syncBehavior;
-		syncp.syncBehaviorDefault = &((SVG2useElement *)node)->sync->syncBehaviorDefault;
-		syncp.syncMaster = &((SVG2useElement *)node)->sync->syncMaster;
-		syncp.syncReference = &((SVG2useElement *)node)->sync->syncReference;
-		syncp.syncTolerance = &((SVG2useElement *)node)->sync->syncTolerance;
-		syncp.syncToleranceDefault = &((SVG2useElement *)node)->sync->syncToleranceDefault;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		SVG3AllAttributes all_atts;
-		gf_svg3_fill_all_attributes(&all_atts, (SVG3Element *)node);
+		SVGAllAttributes all_atts;
+		gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 		xlinkp.actuate = all_atts.xlink_actuate;
 		xlinkp.arcrole = all_atts.xlink_arcrole;
 		xlinkp.href = all_atts.xlink_href;
@@ -366,6 +345,40 @@ static void SVG_Render_use(GF_Node *node, void *rs, Bool is_destroy)
 		syncp.syncTolerance = all_atts.syncTolerance;
 		syncp.syncToleranceDefault = all_atts.syncToleranceDefault;
 	}
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		xlinkp.actuate = &(((SVG_SA_useElement *)node)->xlink->actuate);
+		xlinkp.arcrole = &((SVG_SA_useElement *)node)->xlink->arcrole;
+		xlinkp.href = &((SVG_SA_useElement *)node)->xlink->href;
+		xlinkp.role = &((SVG_SA_useElement *)node)->xlink->role;
+		xlinkp.show = &((SVG_SA_useElement *)node)->xlink->show;
+		xlinkp.title = &((SVG_SA_useElement *)node)->xlink->title;
+		xlinkp.type = &((SVG_SA_useElement *)node)->xlink->type;
+		syncp.syncBehavior = &((SVG_SA_useElement *)node)->sync->syncBehavior;
+		syncp.syncBehaviorDefault = &((SVG_SA_useElement *)node)->sync->syncBehaviorDefault;
+		syncp.syncMaster = &((SVG_SA_useElement *)node)->sync->syncMaster;
+		syncp.syncReference = &((SVG_SA_useElement *)node)->sync->syncReference;
+		syncp.syncTolerance = &((SVG_SA_useElement *)node)->sync->syncTolerance;
+		syncp.syncToleranceDefault = &((SVG_SA_useElement *)node)->sync->syncToleranceDefault;
+	}
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		xlinkp.actuate = &((SVG_SANI_useElement *)node)->xlink->actuate;
+		xlinkp.arcrole = &((SVG_SANI_useElement *)node)->xlink->arcrole;
+		xlinkp.href = &((SVG_SANI_useElement *)node)->xlink->href;
+		xlinkp.role = &((SVG_SANI_useElement *)node)->xlink->role;
+		xlinkp.show = &((SVG_SANI_useElement *)node)->xlink->show;
+		xlinkp.title = &((SVG_SANI_useElement *)node)->xlink->title;
+		xlinkp.type = &((SVG_SANI_useElement *)node)->xlink->type;
+		syncp.syncBehavior = &((SVG_SANI_useElement *)node)->sync->syncBehavior;
+		syncp.syncBehaviorDefault = &((SVG_SANI_useElement *)node)->sync->syncBehaviorDefault;
+		syncp.syncMaster = &((SVG_SANI_useElement *)node)->sync->syncMaster;
+		syncp.syncReference = &((SVG_SANI_useElement *)node)->sync->syncReference;
+		syncp.syncTolerance = &((SVG_SANI_useElement *)node)->sync->syncTolerance;
+		syncp.syncToleranceDefault = &((SVG_SANI_useElement *)node)->sync->syncToleranceDefault;
+	}
+#endif
 
 	if (!xlinkp.href) return;
 
@@ -401,17 +414,17 @@ static void SVG_Render_use(GF_Node *node, void *rs, Bool is_destroy)
 	}
 }
 
-void SVG_Init_use(GF_InlineScene *is, GF_Node *node)
+void svg_sa_init_use(GF_InlineScene *is, GF_Node *node)
 {
 	gf_node_set_callback_function(node, SVG_Render_use);
 }
 
-void SVG2_Init_use(GF_InlineScene *is, GF_Node *node)
+void svg_sani_render_init_use(GF_InlineScene *is, GF_Node *node)
 {
 	gf_node_set_callback_function(node, SVG_Render_use);
 }
 
-void SVG3_Init_use(GF_InlineScene *is, GF_Node *node)
+void svg_render_init_use(GF_InlineScene *is, GF_Node *node)
 {
 	gf_node_set_callback_function(node, SVG_Render_use);
 }

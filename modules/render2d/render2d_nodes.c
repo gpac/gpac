@@ -113,74 +113,79 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_ProtoNode: R2D_InitHardcodedProto(sr, node); break;
 		
 #ifndef GPAC_DISABLE_SVG
-
-		/*SVG part*/
-	case TAG_SVG_svg:				SVG_Init_svg(sr, node); break;
-	case TAG_SVG_g:					SVG_Init_g(sr, node); break;
-	case TAG_SVG_switch:			SVG_Init_switch(sr, node); break;
-	case TAG_SVG_rect:				SVG_Init_rect(sr, node); break;
-	case TAG_SVG_circle:			SVG_Init_circle(sr, node); break;
-	case TAG_SVG_ellipse:			SVG_Init_ellipse(sr, node); break;
-	case TAG_SVG_line:				SVG_Init_line(sr, node); break;
-	case TAG_SVG_polyline:			SVG_Init_polyline(sr, node); break;
-	case TAG_SVG_polygon:			SVG_Init_polygon(sr, node); break;
-	case TAG_SVG_text:				SVG_Init_text(sr, node); break;
-	case TAG_SVG_path:				SVG_Init_path(sr, node); break;
-	case TAG_SVG_a:					SVG_Init_a(sr, node); break;
-	case TAG_SVG_image:				SVG_Init_image(sr, node); break;
-	case TAG_SVG_video:				SVG_Init_video(sr, node); break;
-	case TAG_SVG_audio:				SVG_Init_audio(sr, node); break;
-	case TAG_SVG_linearGradient:	SVG_Init_linearGradient(sr, node); break;
-	case TAG_SVG_radialGradient:	SVG_Init_radialGradient(sr, node); break;
-	case TAG_SVG_solidColor:		SVG_Init_solidColor(sr, node); break;
-	case TAG_SVG_stop:				SVG_Init_stop(sr, node); break;
-	case TAG_SVG_rectClip:			LASeR_Init_rectClip(sr, node); break;
-	case TAG_SVG_selector:			LASeR_Init_selector(sr, node); break;
-	case TAG_SVG_simpleLayout:		LASeR_Init_simpleLayout(sr, node); break;
-
-		/*SVG2 part*/
-	case TAG_SVG2_svg:				svg2_Init_svg(sr, node); break;
-	case TAG_SVG2_g:				svg2_Init_g(sr, node); break;
-	case TAG_SVG2_switch:			svg2_Init_switch(sr, node); break;
-	case TAG_SVG2_rect:				svg2_Init_rect(sr, node); break;
-	case TAG_SVG2_circle:			svg2_Init_circle(sr, node); break;
-	case TAG_SVG2_ellipse:			svg2_Init_ellipse(sr, node); break;
-	case TAG_SVG2_line:				svg2_Init_line(sr, node); break;
-	case TAG_SVG2_polyline:			svg2_Init_polyline(sr, node); break;
-	case TAG_SVG2_polygon:			svg2_Init_polygon(sr, node); break;
-	//case TAG_SVG2_text:				SVG2_Init_text(sr, node); break;
-	case TAG_SVG2_path:				svg2_Init_path(sr, node); break;
-	case TAG_SVG2_a:				svg2_Init_a(sr, node); break;
-	//case TAG_SVG2_image:			SVG2_Init_image(sr, node); break;
-	//case TAG_SVG2_video:			SVG2_Init_video(sr, node); break;
-	//case TAG_SVG2_audio:			SVG2_Init_audio(sr, node); break;
-	case TAG_SVG2_linearGradient:	svg2_Init_linearGradient(sr, node); break;
-	case TAG_SVG2_radialGradient:	svg2_Init_radialGradient(sr, node); break;
-	case TAG_SVG2_solidColor:		svg2_Init_solidColor(sr, node); break;
-	case TAG_SVG2_stop:				svg2_Init_stop(sr, node); break;
-
-		/* SVG3 Part */
-	case TAG_SVG3_svg:				SVG3_Init_svg(sr, node); break;
-	case TAG_SVG3_g:				SVG3_Init_g(sr, node); break;
-	case TAG_SVG3_switch:			SVG3_Init_switch(sr, node); break;
-	case TAG_SVG3_rect:				SVG3_Init_rect(sr, node); break;
-	case TAG_SVG3_path:				SVG3_Init_path(sr, node); break;
-	case TAG_SVG3_circle:			SVG3_Init_circle(sr, node); break;
-	case TAG_SVG3_ellipse:			SVG3_Init_ellipse(sr, node); break;
-	case TAG_SVG3_line:				SVG3_Init_line(sr, node); break;
-	case TAG_SVG3_polyline:			SVG3_Init_polyline(sr, node); break;
-	case TAG_SVG3_polygon:			SVG3_Init_polygon(sr, node); break;
-	case TAG_SVG3_text:				SVG3_Init_text(sr, node); break;
-	case TAG_SVG3_a:				SVG3_Init_a(sr, node); break;
-	case TAG_SVG3_image:			SVG_Init_image(sr, node); break; /* Warning: using the same call as for TAG_SVG_image */
-	case TAG_SVG3_video:			SVG_Init_video(sr, node); break; /* Warning: using the same call as for TAG_SVG_video */
-	case TAG_SVG3_audio:			SVG_Init_audio(sr, node); break; /* Warning: using the same call as for TAG_SVG_audio */
+	/* SVG Part */
+	case TAG_SVG_svg:				svg_init_svg(sr, node); break;
+	case TAG_SVG_g:				svg_init_g(sr, node); break;
+	case TAG_SVG_switch:			svg_init_switch(sr, node); break;
+	case TAG_SVG_rect:				svg_init_rect(sr, node); break;
+	case TAG_SVG_path:				svg_init_path(sr, node); break;
+	case TAG_SVG_circle:			svg_init_circle(sr, node); break;
+	case TAG_SVG_ellipse:			svg_init_ellipse(sr, node); break;
+	case TAG_SVG_line:				svg_init_line(sr, node); break;
+	case TAG_SVG_polyline:			svg_init_polyline(sr, node); break;
+	case TAG_SVG_polygon:			svg_init_polygon(sr, node); break;
+	case TAG_SVG_text:				svg_init_text(sr, node); break;
+	case TAG_SVG_a:				svg_init_a(sr, node); break;
+	case TAG_SVG_image:			svg_init_image(sr, node); break; /* Warning: using the same call as for TAG_SVG_image */
+	case TAG_SVG_video:			svg_init_video(sr, node); break; /* Warning: using the same call as for TAG_SVG_video */
+	case TAG_SVG_audio:			svg_init_audio(sr, node); break; /* Warning: using the same call as for TAG_SVG_audio */
 /*
-	case TAG_SVG3_linearGradient:	SVG3_Init_linearGradient(sr, node); break;
-	case TAG_SVG3_radialGradient:	SVG3_Init_radialGradient(sr, node); break;
-	case TAG_SVG3_solidColor:		SVG3_Init_solidColor(sr, node); break;
-	case TAG_SVG3_stop:				SVG3_Init_stop(sr, node); break;
+	case TAG_SVG_linearGradient:	svg_init_linearGradient(sr, node); break;
+	case TAG_SVG_radialGradient:	svg_init_radialGradient(sr, node); break;
+	case TAG_SVG_solidColor:		svg_init_solidColor(sr, node); break;
+	case TAG_SVG_stop:				svg_init_stop(sr, node); break;
 */
+
+	/*SVG SA part*/
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_svg:				svg_sa_init_svg(sr, node); break;
+	case TAG_SVG_SA_g:					svg_sa_init_g(sr, node); break;
+	case TAG_SVG_SA_switch:			svg_sa_init_switch(sr, node); break;
+	case TAG_SVG_SA_rect:				svg_sa_init_rect(sr, node); break;
+	case TAG_SVG_SA_circle:			svg_sa_init_circle(sr, node); break;
+	case TAG_SVG_SA_ellipse:			svg_sa_init_ellipse(sr, node); break;
+	case TAG_SVG_SA_line:				svg_sa_init_line(sr, node); break;
+	case TAG_SVG_SA_polyline:			svg_sa_init_polyline(sr, node); break;
+	case TAG_SVG_SA_polygon:			svg_sa_init_polygon(sr, node); break;
+	case TAG_SVG_SA_text:				svg_sa_init_text(sr, node); break;
+	case TAG_SVG_SA_path:				svg_sa_init_path(sr, node); break;
+	case TAG_SVG_SA_a:					svg_sa_init_a(sr, node); break;
+	case TAG_SVG_SA_image:				svg_init_image(sr, node); break;
+	case TAG_SVG_SA_video:				svg_init_video(sr, node); break;
+	case TAG_SVG_SA_audio:				svg_init_audio(sr, node); break;
+	case TAG_SVG_SA_linearGradient:	svg_sa_init_linearGradient(sr, node); break;
+	case TAG_SVG_SA_radialGradient:	svg_sa_init_radialGradient(sr, node); break;
+	case TAG_SVG_SA_solidColor:		svg_sa_init_solidColor(sr, node); break;
+	case TAG_SVG_SA_stop:				svg_sa_init_stop(sr, node); break;
+	case TAG_SVG_SA_rectClip:			LASeR_Init_rectClip(sr, node); break;
+	case TAG_SVG_SA_selector:			LASeR_Init_selector(sr, node); break;
+	case TAG_SVG_SA_simpleLayout:		LASeR_Init_simpleLayout(sr, node); break;
+#endif
+
+
+#ifdef GPAC_ENABLE_SVG_SANI
+	/*SVG SANI part*/
+	case TAG_SVG_SANI_svg:				svg_sani_init_svg(sr, node); break;
+	case TAG_SVG_SANI_g:				svg_sani_init_g(sr, node); break;
+	case TAG_SVG_SANI_switch:			svg_sani_init_switch(sr, node); break;
+	case TAG_SVG_SANI_rect:				svg_sani_init_rect(sr, node); break;
+	case TAG_SVG_SANI_circle:			svg_sani_init_circle(sr, node); break;
+	case TAG_SVG_SANI_ellipse:			svg_sani_init_ellipse(sr, node); break;
+	case TAG_SVG_SANI_line:				svg_sani_init_line(sr, node); break;
+	case TAG_SVG_SANI_polyline:			svg_sani_init_polyline(sr, node); break;
+	case TAG_SVG_SANI_polygon:			svg_sani_init_polygon(sr, node); break;
+	//case TAG_SVG_SANI_text:				SVG_SANI_Init_text(sr, node); break;
+	case TAG_SVG_SANI_path:				svg_sani_init_path(sr, node); break;
+	case TAG_SVG_SANI_a:				svg_sani_init_a(sr, node); break;
+	//case TAG_SVG_SANI_image:			SVG_SANI_Init_image(sr, node); break;
+	//case TAG_SVG_SANI_video:			SVG_SANI_Init_video(sr, node); break;
+	//case TAG_SVG_SANI_audio:			SVG_SANI_Init_audio(sr, node); break;
+	case TAG_SVG_SANI_linearGradient:	svg_sani_init_linearGradient(sr, node); break;
+	case TAG_SVG_SANI_radialGradient:	svg_sani_init_radialGradient(sr, node); break;
+	case TAG_SVG_SANI_solidColor:		svg_sani_init_solidColor(sr, node); break;
+	case TAG_SVG_SANI_stop:				svg_sani_init_stop(sr, node); break;
+#endif
+
 #endif
 	default: 
 		GF_LOG(GF_LOG_WARNING, GF_LOG_RENDER, ("[Render2D] node %s will not be rendered\n", gf_node_get_class_name(node)));
@@ -212,8 +217,11 @@ Bool R2D_NodeChanged(GF_VisualRenderer *vr, GF_Node *byObj)
 		return 1;
 		
 #ifndef GPAC_DISABLE_SVG
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_a:
+#endif
 	case TAG_SVG_a:
-	{
+		{
 		/*mark node as dirty - since a acts as a sensor, mark it as dirty as a parent node*/
 		gf_node_dirty_set(byObj, GF_SG_NODE_DIRTY | GF_SG_CHILD_DIRTY, 0);
 		gf_sr_invalidate(sr->compositor, NULL);

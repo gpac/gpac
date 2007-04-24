@@ -28,6 +28,7 @@
 #include <gpac/bifs.h>
 #ifndef GPAC_DISABLE_SVG
 #include <gpac/laser.h>
+#include <gpac/nodes_svg_da.h>
 #endif
 #include <gpac/internal/scenegraph_dev.h>
 

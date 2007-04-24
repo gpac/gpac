@@ -24,6 +24,7 @@
 
 #include "svggen.h"
 
+
 void buildGlobalAttributeList(GF_List *svg_elements, GF_List *all_atts)
 {
 	u32 i, j, k;
@@ -84,6 +85,15 @@ void buildGlobalAttributeList(GF_List *svg_elements, GF_List *all_atts)
 			}
 		}	
 	}
+	/*motionTransform is not parsed in rng*/
+	{
+		SVGGenAttribute *att = NewSVGGenAttribute();
+		strcpy(att->implementation_name, "motionTransform");
+		strcpy(att->impl_type, "SVG_Motion");
+		att->svg_name = "motionTransform";
+		att->svg_type = "SVG_Motion";
+		gf_list_add(all_atts, att);
+	}
 }
 
 void generateSVGCode_V3(GF_List *svg_elements)
@@ -104,27 +114,27 @@ void generateSVGCode_V3(GF_List *svg_elements)
 
 	/* Generation of ELEMENT tags */
 	fprintf(output, "/* Definition of SVG 3 Alternate element internal tags */\n");
-	fprintf(output, "/* TAG names are made of \"TAG_SVG3\" + SVG element name (with - replaced by _) */\n");
+	fprintf(output, "/* TAG names are made of \"TAG_SVG\" + SVG element name (with - replaced by _) */\n");
 	fprintf(output, "enum {\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
 		if (i == 0) {
-			fprintf(output, "\tTAG_SVG3_%s = GF_NODE_RANGE_FIRST_SVG3", elt->implementation_name);
+			fprintf(output, "\tTAG_SVG_%s = GF_NODE_RANGE_FIRST_SVG", elt->implementation_name);
 		} else {
-			fprintf(output, ",\n\tTAG_SVG3_%s", elt->implementation_name);
+			fprintf(output, ",\n\tTAG_SVG_%s", elt->implementation_name);
 		}
 	}
-	fprintf(output, ",\n\t/*undefined elements (when parsing) use this tag*/\n\tTAG_SVG3_UndefinedElement\n};\n\n");
+	fprintf(output, ",\n\t/*undefined elements (when parsing) use this tag*/\n\tTAG_SVG_UndefinedElement\n};\n\n");
 
 	/* Generation of ATTRIBUTE tags */
 	fprintf(output, "/* Definition of SVG 3 attribute internal tags */\n");
-	fprintf(output, "/* TAG names are made of \"TAG_SVG3_ATT_\" + SVG attribute name (with - replaced by _) */\n");
+	fprintf(output, "/* TAG names are made of \"TAG_SVG_ATT_\" + SVG attribute name (with - replaced by _) */\n");
 	fprintf(output, "enum {\n");
 	for (i=0; i<gf_list_count(all_atts); i++) {
 		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
-		fprintf(output, "\tTAG_SVG3_ATT_%s,\n", att->implementation_name);
+		fprintf(output, "\tTAG_SVG_ATT_%s,\n", att->implementation_name);
 	}
-	fprintf(output, "\t/*undefined attributes (when parsing) use this tag*/\n\tTAG_SVG3_ATT_Unknown\n};\n\n");
+	fprintf(output, "\t/*undefined attributes (when parsing) use this tag*/\n\tTAG_SVG_ATT_Unknown\n};\n\n");
 
 	/* Generation of the flatten structure pointing to all possible attributes in SVG */
 	fprintf(output, "struct _all_atts {\n");
@@ -148,9 +158,9 @@ void generateSVGCode_V3(GF_List *svg_elements)
 
 	
 	/****************************************************************/	
-	/* u32 gf_svg3_get_attribute_tag(u32 element_tag, const char *attribute_name) */
+	/* u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name) */
 	/****************************************************************/	
-	fprintf(output, "u32 gf_svg3_get_attribute_tag(u32 element_tag, const char *attribute_name)\n{\n\tif (!attribute_name) return TAG_SVG3_ATT_Unknown;\n");
+	fprintf(output, "u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name)\n{\n\tif (!attribute_name) return TAG_SVG_ATT_Unknown;\n");
 	for (i=0; i<gf_list_count(all_atts); i++) {
 		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
 		
@@ -165,105 +175,106 @@ void generateSVGCode_V3(GF_List *svg_elements)
 		
 		if (!strcmp(att->svg_name, "x") || !strcmp(att->svg_name, "y")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
-			fprintf(output, "\t\tif (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_%s;\n", att->implementation_name);
-			fprintf(output, "\t\telse if (element_tag == TAG_SVG3_cursorManager) return TAG_SVG3_ATT_cursorManager_%s;\n", att->svg_name, att->implementation_name);
-			fprintf(output, "\t\telse return TAG_SVG3_ATT_%s;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\tif (element_tag == TAG_SVG_text) return TAG_SVG_ATT_text_%s;\n", att->implementation_name);
+			fprintf(output, "\t\telse if (element_tag == TAG_SVG_cursorManager) return TAG_SVG_ATT_cursorManager_%s;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
 			fprintf(output, "\t}\n");
 		} else if (!strcmp(att->svg_name, "rotate")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
-			fprintf(output, "\t\tif (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_%s;\n", att->implementation_name);
-			fprintf(output, "\t\telse return TAG_SVG3_ATT_%s;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\tif (element_tag == TAG_SVG_text) return TAG_SVG_ATT_text_%s;\n", att->implementation_name);
+			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
 			fprintf(output, "\t}\n");
 		} else if (!strcmp(att->svg_name, "type")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
-			fprintf(output, "\t\tif (element_tag == TAG_SVG3_handler || element_tag == TAG_SVG3_audio || element_tag == TAG_SVG3_video || element_tag == TAG_SVG3_image || element_tag == TAG_SVG3_script) return TAG_SVG3_ATT_content_type;\n", att->svg_name, att->implementation_name);
-			fprintf(output, "\t\telse return TAG_SVG3_ATT_%s;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\tif (element_tag == TAG_SVG_handler || element_tag == TAG_SVG_audio || element_tag == TAG_SVG_video || element_tag == TAG_SVG_image || element_tag == TAG_SVG_script) return TAG_SVG_ATT_content_type;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
 			fprintf(output, "\t}\n");
 		} else if (!strcmp(att->svg_name, "fill")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
-			fprintf(output, "\t\tif (element_tag == TAG_SVG3_animate || element_tag == TAG_SVG3_animateColor || element_tag == TAG_SVG3_animateMotion || element_tag == TAG_SVG3_animateTransform || element_tag == TAG_SVG3_animation || element_tag == TAG_SVG3_audio || element_tag == TAG_SVG3_video || element_tag == TAG_SVG3_set) return TAG_SVG3_ATT_smil_fill;\n", att->svg_name, att->implementation_name);
-			fprintf(output, "\t\telse return TAG_SVG3_ATT_%s;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\tif (element_tag == TAG_SVG_animate || element_tag == TAG_SVG_animateColor || element_tag == TAG_SVG_animateMotion || element_tag == TAG_SVG_animateTransform || element_tag == TAG_SVG_animation || element_tag == TAG_SVG_audio || element_tag == TAG_SVG_video || element_tag == TAG_SVG_set) return TAG_SVG_ATT_smil_fill;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
 			fprintf(output, "\t}\n");
 		} else {
-			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) return TAG_SVG3_ATT_%s;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
 		}
 	}
-	fprintf(output, "\treturn TAG_SVG3_ATT_Unknown;\n}\n\n");
+	fprintf(output, "\treturn TAG_SVG_ATT_Unknown;\n}\n\n");
 
 	/****************************************************************/	
-	/* u32 gf_svg3_get_attribute_type(u32 tag) */
+	/* u32 gf_svg_get_attribute_type(u32 tag) */
 	/****************************************************************/	
-	fprintf(output, "u32 gf_svg3_get_attribute_type(u32 tag)\n{\n");
+	fprintf(output, "u32 gf_svg_get_attribute_type(u32 tag)\n{\n");
 	fprintf(output, "\tswitch(tag) {\n");
 	for (i=0; i<gf_list_count(all_atts); i++) {
 		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
-		fprintf(output, "\t\tcase TAG_SVG3_ATT_%s: return %s_datatype;\n", att->implementation_name, att->impl_type);
+		fprintf(output, "\t\tcase TAG_SVG_ATT_%s: return %s_datatype;\n", att->implementation_name, att->impl_type);
 	}
 	fprintf(output, "\t\tdefault: return SVG_Unknown_datatype;\n");
 	fprintf(output, "\t}\n");
-	fprintf(output, "\treturn TAG_SVG3_ATT_Unknown;\n}\n\n");
+	fprintf(output, "\treturn TAG_SVG_ATT_Unknown;\n}\n\n");
 
 	/****************************************************************/	
-	/* const char* gf_svg3_get_attribute_name(u32 tag) */
+	/* const char* gf_svg_get_attribute_name(u32 tag) */
 	/****************************************************************/	
-	fprintf(output, "const char*gf_svg3_get_attribute_name(u32 tag)\n{\n");
+	fprintf(output, "const char*gf_svg_get_attribute_name(u32 tag)\n{\n");
 	fprintf(output, "\tswitch(tag) {\n");
 	for (i=0; i<gf_list_count(all_atts); i++) {
 		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
-		fprintf(output, "\t\tcase TAG_SVG3_ATT_%s: return \"%s\";\n", att->implementation_name, att->svg_name);
+		fprintf(output, "\t\tcase TAG_SVG_ATT_%s: return \"%s\";\n", att->implementation_name, att->svg_name);
 	}
 	fprintf(output, "\t\tdefault: return \"unknown\";\n");
 	fprintf(output, "\t}\n");
 	fprintf(output, "}\n\n");
 
 	/***************************************************/	
-	/* SVG3Attribute *gf_svg3_create_attribute(GF_Node *node, u32 tag) */
+	/* SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag) */
 	/***************************************************/	
-	fprintf(output, "SVG3Attribute *gf_svg3_create_attribute(GF_Node *node, u32 tag)\n{\n\tswitch(node->sgprivate->tag) {\n");
+	fprintf(output, "SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)\n{\n\tswitch(tag) {\n");
 	for (i=0; i<gf_list_count(all_atts); i++) {
 		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
-		fprintf(output, "\t\tcase TAG_SVG3_ATT_%s: return gf_svg3_create_attribute_from_datatype(%s_datatype, tag);\n", att->implementation_name, att->impl_type);
+		fprintf(output, "\tcase TAG_SVG_ATT_%s: return gf_svg_create_attribute_from_datatype(%s_datatype, tag);\n", att->implementation_name, att->impl_type);
 	}
 	fprintf(output, "\tdefault: return NULL;\n\t}\n}\n\n");
 
 	/****************************************************************/	
-	/* void gf_svg3_flatten_attributes(SVG3Element *e, SVG3AllAttributes *all_atts) */
+	/* void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts) */
 	/****************************************************************/	
-	fprintf(output, "void gf_svg3_flatten_attributes(SVG3Element *e, SVG3AllAttributes *all_atts)\n");
+	fprintf(output, "void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)\n");
+
 	fprintf(output, "{\n");
-	fprintf(output, "\tu32 i, count;\n");
-	fprintf(output, "\tcount = gf_list_count(e->attributes);\n");
-	fprintf(output, "\tfor (i=0; i<count; i++) {\n");
-	fprintf(output, "\t\tSVG3Attribute *att = gf_list_get(e->attributes, i);\n");
+	fprintf(output, "\tSVGAttribute *att = e->attributes;\n");
+	fprintf(output, "\tmemset(all_atts, 0, sizeof(SVGAllAttributes));\n");
+	fprintf(output, "\twhile (att) {\n");
 	fprintf(output, "\t\tswitch(att->tag) {\n");
 	for (i=0; i<gf_list_count(all_atts); i++) {
 		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
-		fprintf(output, "\t\tcase TAG_SVG3_ATT_%s: all_atts->%s = (%s *)att->data; break;\n", att->implementation_name, att->implementation_name, att->impl_type);
+		fprintf(output, "\t\tcase TAG_SVG_ATT_%s: all_atts->%s = (%s *)att->data; break;\n", att->implementation_name, att->implementation_name, att->impl_type);
 	}
 	fprintf(output, "\t\t}\n");
+	fprintf(output, "\tatt = att->next;\n");
 	fprintf(output, "\t}\n");
 	fprintf(output, "}\n");
 	fprintf(output, "\n");
 
 	/****************************************************************/	
-	/* u32 gf_svg3_get_element_tag(const char *element_name) */
+	/* u32 gf_svg_get_element_tag(const char *element_name) */
 	/****************************************************************/	
-	fprintf(output, "u32 gf_svg3_get_element_tag(const char *element_name)\n{\n\tif (!element_name) return TAG_UndefinedNode;\n");
+	fprintf(output, "u32 gf_svg_get_element_tag(const char *element_name)\n{\n\tif (!element_name) return TAG_UndefinedNode;\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
-		fprintf(output, "\tif (!stricmp(element_name, \"%s\")) return TAG_SVG3_%s;\n", elt->svg_name, elt->implementation_name);
+		fprintf(output, "\tif (!stricmp(element_name, \"%s\")) return TAG_SVG_%s;\n", elt->svg_name, elt->implementation_name);
 	}
 	fprintf(output, "\treturn TAG_UndefinedNode;\n}\n\n");
 
 	/***************************************************/	
-	/* const char *gf_svg3_get_element_name(u32 tag) */
+	/* const char *gf_svg_get_element_name(u32 tag) */
 	/***************************************************/	
-	fprintf(output, "const char *gf_svg3_get_element_name(u32 tag)\n{\n\tswitch(tag) {\n");
+	fprintf(output, "const char *gf_svg_get_element_name(u32 tag)\n{\n\tswitch(tag) {\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
-		fprintf(output, "\tcase TAG_SVG3_%s: return \"%s\";\n", elt->implementation_name, elt->svg_name);
+		fprintf(output, "\tcase TAG_SVG_%s: return \"%s\";\n", elt->implementation_name, elt->svg_name);
 	}
-	fprintf(output, "\tdefault: return \"TAG_SVG3_UndefinedNode\";\n\t}\n}\n\n");
+	fprintf(output, "\tdefault: return \"TAG_SVG_UndefinedNode\";\n\t}\n}\n\n");
 
 	fprintf(output, "#endif /*GPAC_DISABLE_SVG*/\n\n");
 	EndFile(output, 1); 

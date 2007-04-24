@@ -239,15 +239,29 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Anim] No KeyTimes: key index %d, coeff: %.2f\n", keyValueIndex, FIX2FLT(interpolation_coefficient)));
 	}
 
-	if (tag == TAG_SVG_animateMotion || tag == TAG_SVG2_animateMotion) {
-		SVGanimateMotionElement *am = (SVGanimateMotionElement *)rai->anim_elt;
+	switch (tag) {
+#ifdef GPAC_ENABLE_SVG_SA_BASE
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_animateMotion:
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_animateMotion:
+#endif
+	{
+		SVG_SA_animateMotionElement *am = (SVG_SA_animateMotionElement *)rai->anim_elt;
 		if (gf_list_count(am->keyPoints)) {
 			interpolation_coefficient = *(Fixed *)gf_list_get(am->keyPoints, keyValueIndex);
 			keyValueIndex = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Anim] Using Key Points: key Value Index %d, coeff: %.2f\n", keyValueIndex, interpolation_coefficient));
 		}
-	} else if (tag == TAG_SVG3_animateMotion) {
+	}
+		break;
+#endif
+	case TAG_SVG_animateMotion:
 		/* TODO */
+		break;
+	default:
+		break;
 	}
 
 	if (rai->previous_key_index == (s32)keyValueIndex &&
@@ -454,9 +468,16 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
 
 	if (rai->path) {
 		gf_smil_anim_animate_using_path(rai, normalized_simple_time);
-	} else if (tag == TAG_SVG_set || tag == TAG_SVG2_set || tag == TAG_SVG3_set) { 		
-		gf_smil_anim_set(rai);
-	} else if (animp->values && gf_list_count(animp->values->values)) {
+	} 
+#ifdef GPAC_ENABLE_SVG_SA
+	else if (tag == TAG_SVG_SA_set) gf_smil_anim_set(rai);
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if (tag == TAG_SVG_SANI_set) gf_smil_anim_set(rai);
+#endif
+	else if (tag == TAG_SVG_set) gf_smil_anim_set(rai);
+	
+	else if (animp->values && gf_list_count(animp->values->values)) {
 		/* Ignore 'from'/'to'/'by'*/
 		gf_smil_anim_animate_using_values(rai, normalized_simple_time);
 	} else if ((animp->by && animp->by->type) && (!animp->to || animp->to->type == 0)) {
@@ -476,12 +497,18 @@ static SMIL_Anim_RTI *gf_smil_anim_get_anim_runtime_from_timing(SMIL_Timing_RTI 
 
 	u32 tag = gf_node_get_tag(n);
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		target = ((SVGElement *)n)->xlinkp->href->target;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		target = ((SVG2Element *)n)->xlinkp->href->target;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		target = ((SVG3TimedAnimBaseElement *)n)->xlinkp->href->target;
+		target = ((SVGTimedAnimBaseElement *)n)->xlinkp->href->target;
 	}
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		target = ((SVG_SA_Element *)n)->xlinkp->href->target;
+	} 
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		target = ((SVG_SANI_Element *)n)->xlinkp->href->target;
+	}
+#endif
 
 	if (!target) return NULL;
 
@@ -510,9 +537,14 @@ static void gf_smil_anim_get_last_specified_value(SMIL_Anim_RTI *rai)
 //		if (!rai->last_specified_value.far_ptr) rai->last_specified_value.far_ptr = malloc(sizeof(GF_Matrix2D));
 //		gf_svg_compute_path_anim(rai, rai->last_specified_value.far_ptr, FIX_ONE);
 		return;
-	} else if (tag == TAG_SVG_set || 
-			   tag == TAG_SVG2_set || 
-			   tag == TAG_SVG3_set) { 		
+	} else if ((tag == TAG_SVG_set)
+#ifdef GPAC_ENABLE_SVG_SANI
+			|| (tag == TAG_SVG_SA_set)
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+			|| (tag == TAG_SVG_SANI_set)
+#endif
+		) { 		
 		if (animp->to) {
 			rai->last_specified_value.fieldType = animp->to->type;
 			rai->last_specified_value.far_ptr   = animp->to->value;
@@ -708,22 +740,28 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 			   i.e. the presentation value issued at the parent level in the tree */
 			aa->parent_presentation_value = aa->presentation_value;
 			if ((node->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (node->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG)) {
-				aa->parent_presentation_value.far_ptr = gf_svg_get_property_pointer(render_svg_props, 
-																					((SVGElement*)node)->properties,
-																					aa->orig_dom_ptr);
-			} else if ((node->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG3) && (node->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG3)) {
-				aa->parent_presentation_value.far_ptr = gf_svg3_get_property_pointer(node, aa->orig_dom_ptr, render_svg_props); 
+				aa->parent_presentation_value.far_ptr = gf_svg_get_property_pointer((SVG_Element *)node, aa->orig_dom_ptr, render_svg_props); 
 			} 
+#ifdef GPAC_ENABLE_SVG_SA
+			else if ((node->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (node->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+				aa->parent_presentation_value.far_ptr = gf_svg_sa_get_property_pointer(render_svg_props, 
+																					((SVG_SA_Element*)node)->properties,
+																					aa->orig_dom_ptr);
+			}
+#endif
 			/* Storing also the pointer to the presentation value of the color property 
 			   (special handling of the keyword 'currentColor' if used in animation values) */
 			aa->current_color_value.fieldType = SVG_Paint_datatype;
 			if ((node->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (node->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG)) {
-				aa->current_color_value.far_ptr = &((SVGElement*)node)->properties->color;
-			} else if ((node->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG3) && (node->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG3)) {
 				GF_FieldInfo info;
-				gf_svg3_get_attribute_by_tag(node, TAG_SVG3_ATT_color, 1, 1, &info);
+				gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_color, 1, 1, &info);
 				aa->current_color_value.far_ptr = info.far_ptr;
 			} 
+#ifdef GPAC_ENABLE_SVG_SA
+			else if ((node->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (node->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+				aa->current_color_value.far_ptr = &((SVG_SA_Element*)node)->properties->color;
+			} 
+#endif
 		}
 
 		/* Performing all the animations targetting the given attribute */
@@ -748,8 +786,10 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 
 }
 
+#ifdef GPAC_ENABLE_SVG_SANI
+
 GF_EXPORT
-void gf_svg2_apply_animations(GF_Node *node)
+void gf_svg_sani_apply_animations(GF_Node *node)
 {
 	u32 count_all, i;
 
@@ -771,7 +811,7 @@ void gf_svg2_apply_animations(GF_Node *node)
 
 		for (j = 0; j < count; j++) {
 			SMIL_Anim_RTI *rai = (SMIL_Anim_RTI *)gf_list_get(aa->anims, j);			
-			SMIL_Timing_RTI *rti = ((SVG2Element *)rai->anim_elt)->timingp->runtime;
+			SMIL_Timing_RTI *rti = ((SVG_SANI_Element *)rai->anim_elt)->timingp->runtime;
 			//Double scene_time = gf_node_get_scene_time(node);
 			Double scene_time = rti->scene_time;
 
@@ -786,6 +826,13 @@ void gf_svg2_apply_animations(GF_Node *node)
 		}
 	}
 }
+#else
+GF_EXPORT
+void gf_svg_sani_apply_animations(GF_Node *node)
+{
+}
+#endif
+
 
 void gf_smil_anim_init_runtime_info(GF_Node *e)
 {
@@ -802,18 +849,25 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 	/* Filling animation structures to be independent of the SVG Element structure */
 	tag = gf_node_get_tag(e);
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		animp = ((SVGElement *)e)->animp;
-		timingp = ((SVGElement *)e)->timingp;
-		xlinkp = ((SVGElement *)e)->xlinkp;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		animp = ((SVG2Element *)e)->animp;
-		timingp = ((SVG2Element *)e)->timingp;
-		xlinkp = ((SVG2Element *)e)->xlinkp;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		animp = ((SVG3TimedAnimBaseElement *)e)->animp;
-		timingp = ((SVG3TimedAnimBaseElement *)e)->timingp;
-		xlinkp = ((SVG3TimedAnimBaseElement *)e)->xlinkp;
-	} else {
+		animp = ((SVGTimedAnimBaseElement *)e)->animp;
+		timingp = ((SVGTimedAnimBaseElement *)e)->timingp;
+		xlinkp = ((SVGTimedAnimBaseElement *)e)->xlinkp;
+	} 
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		animp = ((SVG_SA_Element *)e)->animp;
+		timingp = ((SVG_SA_Element *)e)->timingp;
+		xlinkp = ((SVG_SA_Element *)e)->xlinkp;
+	} 
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		animp = ((SVG_SANI_Element *)e)->animp;
+		timingp = ((SVG_SANI_Element *)e)->timingp;
+		xlinkp = ((SVG_SANI_Element *)e)->xlinkp;
+	} 
+#endif
+	else {
 		return;
 	}
 	/* from this point, the animation node 'e' should not be used */
@@ -833,18 +887,30 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 		animateTransform requires specification of the attribute name and any attribute that is
 		a transform-like attribute can be a target, e.g. gradientTransform."*/
 
-		if (tag == TAG_SVG_animateMotion || tag == TAG_SVG2_animateMotion) {
+		switch (tag) {
+#ifdef GPAC_ENABLE_SVG_SA_BASE
+#ifdef GPAC_ENABLE_SVG_SA
+		case TAG_SVG_SA_animateMotion:
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+		case TAG_SVG_SANI_animateMotion:
+#endif
+		{
 			SVGTransformableElement *tr_e = (SVGTransformableElement *)target;
 			if (!tr_e->motionTransform) {
 				tr_e->motionTransform = (GF_Matrix2D*)malloc(sizeof(GF_Matrix2D));
 				gf_mx2d_init(*tr_e->motionTransform);
 			}
 			gf_node_get_field_by_name((GF_Node *)tr_e, "motionTransform", &target_attribute);
-		} else if (tag == TAG_SVG3_animateMotion) {
+		}
+			break;
+#endif
+		case TAG_SVG_animateMotion:
 			/* Explicit creation of the pseudo 'motionTransform' attribute since it cannot be specified */
-			gf_svg3_get_attribute_by_tag(target, TAG_SVG3_ATT_motionTransform, 1, 0, &target_attribute);
+			gf_svg_get_attribute_by_tag(target, TAG_SVG_ATT_motionTransform, 1, 0, &target_attribute);
 			gf_mx2d_init(*(GF_Matrix2D *)target_attribute.far_ptr);
-		} else {
+			break;
+		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SMIL Animation] Missing attributeName attribute on element %s\n", gf_node_get_name((GF_Node*)e) ));
 			return;
 		}
@@ -860,7 +926,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 		if (!animp->additive) { 
 			/* this case can only happen with dynamic allocation of attributes */
 			GF_FieldInfo info;
-			gf_svg3_get_attribute_by_tag(e, TAG_SVG3_ATT_additive, 1, 0, &info);
+			gf_svg_get_attribute_by_tag(e, TAG_SVG_ATT_additive, 1, 0, &info);
 			animp->additive = info.far_ptr;
 		}
 		*animp->additive = SMIL_ADDITIVE_SUM;
@@ -890,33 +956,44 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 
 	/* For animateMotion, we need to retrieve the value of the rotate attribute, retrieve the path either
 	from the 'path' attribute or from the 'mpath' element, and then initialize the path iterator*/
-	if (tag == TAG_SVG_animateMotion || 
-		tag == TAG_SVG2_animateMotion ||
-		tag == TAG_SVG3_animateMotion) {
+	if ((tag == TAG_SVG_animateMotion)
+#ifdef GPAC_ENABLE_SVG_SA
+		|| (tag == TAG_SVG_SA_animateMotion)
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+		|| (tag == TAG_SVG_SANI_animateMotion)
+#endif
+		) {
 		GF_Path *the_path = NULL;
 		GF_ChildNodeItem *child = NULL;
 
-		if (tag == TAG_SVG_animateMotion) {
-			SVGanimateMotionElement *am = (SVGanimateMotionElement *)e;
+#ifdef GPAC_ENABLE_SVG_SA
+		if (tag == TAG_SVG_SA_animateMotion) {
+			SVG_SA_animateMotionElement *am = (SVG_SA_animateMotionElement *)e;
 			rai->rotate = am->rotate.type;
 			the_path = &am->path;
 			child = am->children;
-		} else if (tag == TAG_SVG2_animateMotion) {
-			SVG2animateMotionElement *am = (SVG2animateMotionElement *)e;
+		} else 
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+		if (tag == TAG_SVG_SANI_animateMotion) {
+			SVG_SANI_animateMotionElement *am = (SVG_SANI_animateMotionElement *)e;
 			rai->rotate = am->rotate.type;
 			the_path = &am->path;
 			child = am->children;
-		} else {
+		} else 
+#endif
+		{
 			GF_FieldInfo info;
-			if (gf_svg3_get_attribute_by_tag(e, TAG_SVG3_ATT_rotate, 0, 0, &info) == GF_OK) {
+			if (gf_svg_get_attribute_by_tag(e, TAG_SVG_ATT_rotate, 0, 0, &info) == GF_OK) {
 				rai->rotate = ((SVG_Rotate *)info.far_ptr)->type;
 			} else {
 				rai->rotate = SVG_NUMBER_VALUE;
 			}
-			if (gf_svg3_get_attribute_by_tag(e, TAG_SVG3_ATT_path, 0, 0, &info) == GF_OK) {
+			if (gf_svg_get_attribute_by_tag(e, TAG_SVG_ATT_path, 0, 0, &info) == GF_OK) {
 				the_path = ((SVG_PathData *)info.far_ptr);
 			}
-			child = ((SVG3Element *)e)->children;
+			child = ((SVG_Element *)e)->children;
 		}
 
 		if ((!animp->to || animp->to->type == 0) && 
@@ -940,12 +1017,13 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 				while (child) {
 					GF_Node *used_path = NULL;
 					u32 child_tag = gf_node_get_tag(child->node);
-					if (child_tag == TAG_SVG_mpath) {
-						SVGmpathElement *mpath = (SVGmpathElement *)child->node;
+#ifdef GPAC_ENABLE_SVG_SA
+					if (child_tag == TAG_SVG_SA_mpath) {
+						SVG_SA_mpathElement *mpath = (SVG_SA_mpathElement *)child->node;
 						if (mpath->xlink->href.target) used_path = (GF_Node *)mpath->xlink->href.target;
 						else if (mpath->xlink->href.iri) used_path = (GF_Node *)gf_sg_find_node_by_name(gf_node_get_graph((GF_Node *)mpath), mpath->xlink->href.iri);
-						if (used_path && gf_node_get_tag(used_path) == TAG_SVG_path) {
-							SVGpathElement *used_path_elt = (SVGpathElement *)used_path;
+						if (used_path && gf_node_get_tag(used_path) == TAG_SVG_SA_path) {
+							SVG_SA_pathElement *used_path_elt = (SVG_SA_pathElement *)used_path;
 #if USE_GF_PATH
 							rai->path = &used_path_elt->d;
 #else
@@ -955,15 +1033,17 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 							rai->length = gf_path_iterator_get_length(rai->path_iterator);
 						}
 						break;
-					} else if (child_tag == TAG_SVG3_mpath) {
+					} else 
+#endif
+					if (child_tag == TAG_SVG_mpath) {
 						GF_FieldInfo info;
-						SVG3Element *mpath = (SVG3Element *)child->node;
-						if (gf_svg3_get_attribute_by_tag(child->node, TAG_SVG3_ATT_xlink_href, 0, 0, &info) == GF_OK) {
+						SVG_Element *mpath = (SVG_Element *)child->node;
+						if (gf_svg_get_attribute_by_tag(child->node, TAG_SVG_ATT_xlink_href, 0, 0, &info) == GF_OK) {
 							SVG_IRI *iri = (SVG_IRI *)info.far_ptr;
 							if (iri->target) used_path = iri->target;
 							else if (iri->iri) used_path = (GF_Node *)gf_sg_find_node_by_name(gf_node_get_graph(child->node), iri->iri);
-							if (used_path && gf_node_get_tag(used_path) == TAG_SVG3_path) {
-								gf_svg3_get_attribute_by_tag(used_path, TAG_SVG3_ATT_d, 1, 0, &info);
+							if (used_path && gf_node_get_tag(used_path) == TAG_SVG_path) {
+								gf_svg_get_attribute_by_tag(used_path, TAG_SVG_ATT_d, 1, 0, &info);
 #if USE_GF_PATH
 								rai->path = (SVG_PathData *)info.far_ptr;
 #else
@@ -1015,12 +1095,18 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 
 		/* determine what the rendering will need to do when the animation runs */
 		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-			aa->dirty_flags = gf_svg_get_rendering_flag_if_modified((SVGElement *)target, &target_attribute);
-		} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-			aa->dirty_flags = gf_svg2_get_rendering_flag_if_modified((SVG2Element *)target, &target_attribute);
-		} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-			aa->dirty_flags = gf_svg3_get_rendering_flag_if_modified((SVG3Element *)target, &target_attribute);
+			aa->dirty_flags = gf_svg_get_rendering_flag_if_modified((SVG_Element *)target, &target_attribute);
 		}
+#ifdef GPAC_ENABLE_SVG_SA
+		else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+			aa->dirty_flags = gf_svg_sa_get_rendering_flag_if_modified((SVG_SA_Element *)target, &target_attribute);
+		} 
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+		else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+			aa->dirty_flags = gf_svg_sani_get_rendering_flag_if_modified((SVG_SANI_Element *)target, &target_attribute);
+		}
+#endif
 	}
 	rai->owner = aa;
 	gf_smil_anim_get_last_specified_value(rai);
@@ -1093,13 +1179,20 @@ void gf_smil_anim_init_discard(GF_Node *node)
 {
 	u32 tag = gf_node_get_tag(node);
 	gf_smil_timing_init_runtime_info(node);
+	
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		((SVGElement *)node)->timingp->runtime->evaluate_status = SMIL_TIMING_EVAL_DISCARD;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		((SVG2Element *)node)->timingp->runtime->evaluate_status = SMIL_TIMING_EVAL_DISCARD;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		((SVG3TimedAnimBaseElement *)node)->timingp->runtime->evaluate_status = SMIL_TIMING_EVAL_DISCARD;
+		((SVGTimedAnimBaseElement *)node)->timingp->runtime->evaluate_status = SMIL_TIMING_EVAL_DISCARD;
 	}
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		((SVG_SA_Element *)node)->timingp->runtime->evaluate_status = SMIL_TIMING_EVAL_DISCARD;
+	}
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		((SVG_SANI_Element *)node)->timingp->runtime->evaluate_status = SMIL_TIMING_EVAL_DISCARD;
+	}
+#endif
 }
 
 void gf_smil_anim_init_node(GF_Node *node)
@@ -1108,54 +1201,11 @@ void gf_smil_anim_init_node(GF_Node *node)
 	SMILAnimationAttributesPointers *animp = NULL;
 
 	u32 tag = gf_node_get_tag(node);
+	
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		SVGElement *e = (SVGElement *)node;
-		e->xlinkp = malloc(sizeof(XLinkAttributesPointers));
-		e->xlinkp->href	= &e->xlink->href;
-		e->xlinkp->type = &e->xlink->type;
-		xlinkp = e->xlinkp;
-		
-		e->animp = malloc(sizeof(SMILAnimationAttributesPointers));
-		e->animp->accumulate	= &e->anim->accumulate;
-		e->animp->additive		= &e->anim->additive;
-		e->animp->attributeName = &e->anim->attributeName;
-		e->animp->attributeType = &e->anim->attributeType;
-		e->animp->by			= &e->anim->by;
-		e->animp->calcMode		= &e->anim->calcMode;
-		e->animp->from			= &e->anim->from;
-		e->animp->keySplines	= &e->anim->keySplines;
-		e->animp->keyTimes		= &e->anim->keyTimes;
-		e->animp->lsr_enabled	= &e->anim->lsr_enabled;
-		e->animp->to			= &e->anim->to;
-		e->animp->type			= &e->anim->type;
-		e->animp->values		= &e->anim->values;
-		animp = e->animp;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		SVG2Element *e = (SVG2Element *)node;
-		e->xlinkp = malloc(sizeof(XLinkAttributesPointers));
-		e->xlinkp->href	= &e->xlink->href;
-		e->xlinkp->type = &e->xlink->type;
-		xlinkp = e->xlinkp;
-		
-		e->animp = malloc(sizeof(SMILAnimationAttributesPointers));
-		e->animp->accumulate	= &e->anim->accumulate;
-		e->animp->additive		= &e->anim->additive;
-		e->animp->attributeName = &e->anim->attributeName;
-		e->animp->attributeType = &e->anim->attributeType;
-		e->animp->by			= &e->anim->by;
-		e->animp->calcMode		= &e->anim->calcMode;
-		e->animp->from			= &e->anim->from;
-		e->animp->keySplines	= &e->anim->keySplines;
-		e->animp->keyTimes		= &e->anim->keyTimes;
-		e->animp->lsr_enabled	= &e->anim->lsr_enabled;
-		e->animp->to			= &e->anim->to;
-		e->animp->type			= &e->anim->type;
-		e->animp->values		= &e->anim->values;
-		animp = e->animp;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		SVG3AllAttributes all_atts;
-		SVG3TimedAnimBaseElement *e = (SVG3TimedAnimBaseElement *)node;
-		gf_svg3_fill_all_attributes(&all_atts, e);
+		SVGAllAttributes all_atts;
+		SVGTimedAnimBaseElement *e = (SVGTimedAnimBaseElement *)node;
+		gf_svg_flatten_attributes((SVG_Element *)e, &all_atts);
 		e->xlinkp = malloc(sizeof(XLinkAttributesPointers));
 		xlinkp = e->xlinkp;
 		xlinkp->href = all_atts.xlink_href;
@@ -1176,7 +1226,58 @@ void gf_smil_anim_init_node(GF_Node *node)
 		animp->to			 = all_atts.to;
 		animp->type			 = all_atts.type;
 		animp->values		 = all_atts.values;
-	} else {
+	} 
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		SVG_SA_Element *e = (SVG_SA_Element *)node;
+		e->xlinkp = malloc(sizeof(XLinkAttributesPointers));
+		e->xlinkp->href	= &e->xlink->href;
+		e->xlinkp->type = &e->xlink->type;
+		xlinkp = e->xlinkp;
+		
+		e->animp = malloc(sizeof(SMILAnimationAttributesPointers));
+		e->animp->accumulate	= &e->anim->accumulate;
+		e->animp->additive		= &e->anim->additive;
+		e->animp->attributeName = &e->anim->attributeName;
+		e->animp->attributeType = &e->anim->attributeType;
+		e->animp->by			= &e->anim->by;
+		e->animp->calcMode		= &e->anim->calcMode;
+		e->animp->from			= &e->anim->from;
+		e->animp->keySplines	= &e->anim->keySplines;
+		e->animp->keyTimes		= &e->anim->keyTimes;
+		e->animp->lsr_enabled	= &e->anim->lsr_enabled;
+		e->animp->to			= &e->anim->to;
+		e->animp->type			= &e->anim->type;
+		e->animp->values		= &e->anim->values;
+		animp = e->animp;
+	}
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		SVG_SANI_Element *e = (SVG_SANI_Element *)node;
+		e->xlinkp = malloc(sizeof(XLinkAttributesPointers));
+		e->xlinkp->href	= &e->xlink->href;
+		e->xlinkp->type = &e->xlink->type;
+		xlinkp = e->xlinkp;
+		
+		e->animp = malloc(sizeof(SMILAnimationAttributesPointers));
+		e->animp->accumulate	= &e->anim->accumulate;
+		e->animp->additive		= &e->anim->additive;
+		e->animp->attributeName = &e->anim->attributeName;
+		e->animp->attributeType = &e->anim->attributeType;
+		e->animp->by			= &e->anim->by;
+		e->animp->calcMode		= &e->anim->calcMode;
+		e->animp->from			= &e->anim->from;
+		e->animp->keySplines	= &e->anim->keySplines;
+		e->animp->keyTimes		= &e->anim->keyTimes;
+		e->animp->lsr_enabled	= &e->anim->lsr_enabled;
+		e->animp->to			= &e->anim->to;
+		e->animp->type			= &e->anim->type;
+		e->animp->values		= &e->anim->values;
+		animp = e->animp;
+	}
+#endif
+	else {
 		return;
 	}
 	
@@ -1190,7 +1291,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 			n = (GF_Node*)gf_sg_find_node_by_name(gf_node_get_graph(node), xlinkp->href->iri);
 			if (n) {
 				xlinkp->href->type = SVG_IRI_ELEMENTID;
-				xlinkp->href->target = (SVGElement *)n;
+				xlinkp->href->target = n;
 				gf_svg_register_iri(node->sgprivate->scenegraph, xlinkp->href);
 			} else {
 				return;
@@ -1203,85 +1304,3 @@ void gf_smil_anim_init_node(GF_Node *node)
 	gf_smil_anim_init_runtime_info(node);
 }
 
-/* TODO: update for elliptical arcs */		
-GF_EXPORT
-void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
-{
-	u32 i, j, command_count, points_count;
-	SVG_Point orig, ct_orig, ct_end, end, *tmp;
-	command_count = gf_list_count(commands);
-	points_count = gf_list_count(points);
-	orig.x = orig.y = ct_orig.x = ct_orig.y = 0;
-
-	for (i=0, j=0; i<command_count; i++) {
-		u8 *command = (u8 *)gf_list_get(commands, i);
-		switch (*command) {
-		case SVG_PATHCOMMAND_M: /* Move To */
-			tmp = (SVG_Point*)gf_list_get(points, j);
-			orig = *tmp;
-			gf_path_add_move_to(path, orig.x, orig.y);
-			j++;
-			/*provision for nextCurveTo when no curve is specified:
-				"If there is no previous command or if the previous command was not an C, c, S or s, 
-				assume the first control point is coincident with the current point.
-			*/
-			ct_orig = orig;
-			break;
-		case SVG_PATHCOMMAND_L: /* Line To */
-			tmp = (SVG_Point*)gf_list_get(points, j);
-			end = *tmp;
-
-			gf_path_add_line_to(path, end.x, end.y);
-			j++;
-			orig = end;
-			/*cf above*/
-			ct_orig = orig;
-			break;
-		case SVG_PATHCOMMAND_C: /* Curve To */
-			tmp = (SVG_Point*)gf_list_get(points, j);
-			ct_orig = *tmp;
-			tmp = (SVG_Point*)gf_list_get(points, j+1);
-			ct_end = *tmp;
-			tmp = (SVG_Point*)gf_list_get(points, j+2);
-			end = *tmp;
-			gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
-			ct_orig = ct_end;
-			orig = end;
-			j+=3;
-			break;
-		case SVG_PATHCOMMAND_S: /* Next Curve To */
-			ct_orig.x = 2*orig.x - ct_orig.x;
-			ct_orig.y = 2*orig.y - ct_orig.y;
-			tmp = (SVG_Point*)gf_list_get(points, j);
-			ct_end = *tmp;
-			tmp = (SVG_Point*)gf_list_get(points, j+1);
-			end = *tmp;
-			gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
-			ct_orig = ct_end;
-			orig = end;
-			j+=2;
-			break;
-		case SVG_PATHCOMMAND_Q: /* Quadratic Curve To */
-			tmp = (SVG_Point*)gf_list_get(points, j);
-			ct_orig = *tmp;
-			tmp = (SVG_Point*)gf_list_get(points, j+1);
-			end = *tmp;
-			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);			
-			orig = end;
-			j+=2;
-			break;
-		case SVG_PATHCOMMAND_T: /* Next Quadratic Curve To */
-			ct_orig.x = 2*orig.x - ct_orig.x;
-			ct_orig.y = 2*orig.y - ct_orig.y;
-			tmp = (SVG_Point*)gf_list_get(points, j);
-			end = *tmp;
-			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);
-				orig = end;
-				j++;
-			break;
-		case SVG_PATHCOMMAND_Z: /* Close */
-			gf_path_close(path);
-			break;
-		}
-	}	
-}

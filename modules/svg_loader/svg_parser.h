@@ -204,15 +204,15 @@ typedef struct {
 	xmlNode *node;
 
 	/* Animation element being defered */
-	SVGElement *animation_elt;
+	SVG_SA_Element *animation_elt;
 	/* Parent of the animation element */
-	SVGElement *parent;
+	SVG_SA_Element *parent;
 
 	/* id of the target element */
 	char *		target_id;
 
 	/* target element in case of local defered element */
-	SVGElement *target;
+	SVG_SA_Element *target;
 
 	/* attributes which cannot be parsed until the type of the target attribute is known */
 	char *attributeName;
@@ -225,22 +225,22 @@ typedef struct {
 
 typedef struct {
 	SVG_IRI *iri;
-	SVGElement *elt;
+	SVG_SA_Element *elt;
 } href_instance;
 
 Bool		svg_has_been_IDed	(SVGParser *parser, xmlChar *node_name);
 u32			svg_get_node_id		(SVGParser *parser, xmlChar *nodename);
-void		svg_parse_element_id(SVGParser *parser, SVGElement *elt, char *nodename);
+void		svg_parse_element_id(SVGParser *parser, SVG_SA_Element *elt, char *nodename);
 
 /* DOM related functions */
-void		svg_parse_dom_attributes		(SVGParser *parser, xmlNodePtr node, SVGElement *elt, u8 anim_value_type, u8 anim_transform_type);
-void		svg_parse_dom_children          (SVGParser *parser, xmlNodePtr node, SVGElement *elt);
-void		svg_parse_dom_defered_animation (SVGParser *parser, xmlNodePtr node, SVGElement *animation_elt, SVGElement *parent);
-SVGElement *svg_parse_dom_element			(SVGParser *parser, xmlNodePtr node, SVGElement *parent);
+void		svg_parse_dom_attributes		(SVGParser *parser, xmlNodePtr node, SVG_SA_Element *elt, u8 anim_value_type, u8 anim_transform_type);
+void		svg_parse_dom_children          (SVGParser *parser, xmlNodePtr node, SVG_SA_Element *elt);
+void		svg_parse_dom_defered_animation (SVGParser *parser, xmlNodePtr node, SVG_SA_Element *animation_elt, SVG_SA_Element *parent);
+SVG_SA_Element *svg_parse_dom_element			(SVGParser *parser, xmlNodePtr node, SVG_SA_Element *parent);
 
 /*SAX related functions */
-void		svg_parse_sax_defered_animation	(SVGParser *parser, SVGElement *animation_elt, defered_element local_de);
-SVGElement *svg_parse_sax_element			(SVGParser *parser, const xmlChar *name, const xmlChar **attrs, SVGElement *parent);
+void		svg_parse_sax_defered_animation	(SVGParser *parser, SVG_SA_Element *animation_elt, defered_element local_de);
+SVG_SA_Element *svg_parse_sax_element			(SVGParser *parser, const xmlChar *name, const xmlChar **attrs, SVG_SA_Element *parent);
 
 #endif /*GPAC_DISABLE_SVG*/
 

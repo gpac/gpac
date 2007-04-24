@@ -260,20 +260,26 @@ void gf_sm_load_done_MP4(GF_SceneLoader *load);
 GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load);
 
 #ifndef GPAC_DISABLE_SVG
-GF_Err gf_sm_load_init_SVG(GF_SceneLoader *load);
-GF_Err gf_sm_load_done_SVG(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_SVG(GF_SceneLoader *load);
-GF_Err gf_sm_load_init_SVGString(GF_SceneLoader *load, char *str);
 
-GF_Err gf_sm_load_init_SVG2(GF_SceneLoader *load);
-GF_Err gf_sm_load_done_SVG2(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_SVG2(GF_SceneLoader *load);
-GF_Err gf_sm_load_init_SVG2String(GF_SceneLoader *load, char *str);
+#ifdef GPAC_ENABLE_SVG_SA
+GF_Err gf_sm_load_init_svg_sa(GF_SceneLoader *load);
+GF_Err gf_sm_load_done_svg_sa(GF_SceneLoader *load);
+GF_Err gf_sm_load_run_svg_sa(GF_SceneLoader *load);
+GF_Err gf_sm_load_init_svg_sa_string(GF_SceneLoader *load, char *str);
+#endif
 
-GF_Err gf_sm_load_init_SVG3(GF_SceneLoader *load);
-GF_Err gf_sm_load_done_SVG3(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_SVG3(GF_SceneLoader *load);
-GF_Err gf_sm_load_init_SVG3String(GF_SceneLoader *load, char *str);
+#ifdef GPAC_ENABLE_SVG_SANI
+GF_Err gf_sm_load_init_svg_sani(GF_SceneLoader *load);
+GF_Err gf_sm_load_done_svg_sani(GF_SceneLoader *load);
+GF_Err gf_sm_load_run_svg_sani(GF_SceneLoader *load);
+GF_Err gf_sm_load_init_svg_sani_string(GF_SceneLoader *load, char *str);
+#endif
+
+
+GF_Err gf_sm_load_init_svg(GF_SceneLoader *load);
+GF_Err gf_sm_load_done_svg(GF_SceneLoader *load);
+GF_Err gf_sm_load_run_svg(GF_SceneLoader *load);
+GF_Err gf_sm_load_init_svg_string(GF_SceneLoader *load, char *str);
 #endif
 
 
@@ -308,13 +314,17 @@ static GF_Err gf_sm_load_init_from_string(GF_SceneLoader *load, char *str)
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_init_xmt_string(load, str);
 #ifndef GPAC_DISABLE_SVG
+#ifdef GPAC_ENABLE_SVG_SA
 	case GF_SM_LOAD_SVG_SA: 
-	case GF_SM_LOAD_XSR: 
-		return gf_sm_load_init_SVGString(load, str);
+		return gf_sm_load_init_svg_sa_string(load, str);
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
 	case GF_SM_LOAD_SVG_SANI: 
-		return gf_sm_load_init_SVG2String(load, str);
+		return gf_sm_load_init_svg_sani_string(load, str);
+#endif
 	case GF_SM_LOAD_SVG_DA: 
-		return gf_sm_load_init_SVG3String(load, str);
+	case GF_SM_LOAD_XSR: 
+		return gf_sm_load_init_svg_string(load, str);
 #endif
 	case GF_SM_LOAD_SWF: 
 		return GF_NOT_SUPPORTED;
@@ -394,7 +404,8 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 			else if (strstr(szExt, "x3d")) load->type = GF_SM_LOAD_X3D;
 			else if (strstr(szExt, "swf")) load->type = GF_SM_LOAD_SWF;
 			else if (strstr(szExt, "mov")) load->type = GF_SM_LOAD_QT;
-			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG_DA;
+			/*FIXME - move default SVG scene graph to new one (dynamic alloc)*/
+			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG_SA;
 			else if (strstr(szExt, "xsr")) load->type = GF_SM_LOAD_XSR;
 			else if (strstr(szExt, "xml")) {
 				char *rtype = gf_xml_get_root_type(load->fileName);
@@ -421,13 +432,17 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_init_xmt(load);
 #ifndef GPAC_DISABLE_SVG
+#ifdef GPAC_ENABLE_SVG_SA
 	case GF_SM_LOAD_SVG_SA:
-	case GF_SM_LOAD_XSR:
-		return gf_sm_load_init_SVG(load);
+		return gf_sm_load_init_svg_sa(load);
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
 	case GF_SM_LOAD_SVG_SANI:
-		return gf_sm_load_init_SVG2(load);
+		return gf_sm_load_init_svg_sani(load);
+#endif
 	case GF_SM_LOAD_SVG_DA:
-		return gf_sm_load_init_SVG3(load);
+	case GF_SM_LOAD_XSR:
+		return gf_sm_load_init_svg(load);
 #endif
 #ifndef GPAC_READ_ONLY
 	case GF_SM_LOAD_SWF: 
@@ -455,15 +470,19 @@ void gf_sm_load_done(GF_SceneLoader *load)
 		gf_sm_load_done_xmt(load); 
 		break;
 #ifndef GPAC_DISABLE_SVG
+#ifdef GPAC_ENABLE_SVG_SA
 	case GF_SM_LOAD_SVG_SA:
-	case GF_SM_LOAD_XSR:
-		gf_sm_load_done_SVG(load);
+		gf_sm_load_done_svg_sa(load);
 		break;
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
 	case GF_SM_LOAD_SVG_SANI:
-		gf_sm_load_done_SVG2(load);
+		gf_sm_load_done_svg_sani(load);
 		break;
+#endif
+	case GF_SM_LOAD_XSR:
 	case GF_SM_LOAD_SVG_DA:
-		gf_sm_load_done_SVG3(load);
+		gf_sm_load_done_svg(load);
 		break;
 #endif
 #ifndef GPAC_READ_ONLY
@@ -492,13 +511,17 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_run_xmt(load);
 #ifndef GPAC_DISABLE_SVG
+#ifdef GPAC_ENABLE_SVG_SA
 	case GF_SM_LOAD_SVG_SA:
-	case GF_SM_LOAD_XSR:
-		return gf_sm_load_run_SVG(load);
+		return gf_sm_load_run_svg_sa(load);
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
 	case GF_SM_LOAD_SVG_SANI:
-		return gf_sm_load_run_SVG2(load);
+		return gf_sm_load_run_svg_sani(load);
+#endif
+	case GF_SM_LOAD_XSR:
 	case GF_SM_LOAD_SVG_DA:
-		return gf_sm_load_run_SVG3(load);
+		return gf_sm_load_run_svg(load);
 #endif
 
 #ifndef GPAC_READ_ONLY

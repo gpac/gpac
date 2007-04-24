@@ -58,9 +58,9 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 	if (!com) return GF_OK;
 
 	if (!strcmp(com->name, "NewScene")) {
-		SVGElement *n = svg_parse_dom_element(parser, lsr_toElement(com->children), NULL);
+		SVG_SA_Element *n = svg_parse_dom_element(parser, lsr_toElement(com->children), NULL);
 		if (n) {
-			SVGsvgElement *root_svg = (SVGsvgElement *)n;
+			SVG_SA_svgElement *root_svg = (SVG_SA_svgElement *)n;
 			if (root_svg->width.type == SVG_NUMBER_VALUE) {
 				parser->svg_w = FIX2INT(root_svg->width.value);
 				parser->svg_h = FIX2INT(root_svg->height.value);
@@ -76,13 +76,13 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 	if (!strcmp(com->name, "Insert")) {
 		s32 pos = -1;
 		char *at_att = "children";
-		SVGElement *at_node = NULL;
+		SVG_SA_Element *at_node = NULL;
 		attributes = com->properties;
 		while (attributes) {
 			if (attributes->type == XML_ATTRIBUTE_NODE) {
 				if (!stricmp(attributes->name, "index")) pos = atoi(attributes->children->content);
 				else if (!stricmp(attributes->name, "attributeName")) at_att = attributes->children->content;
-				else if (!stricmp(attributes->name, "ref")) at_node = (SVGElement *) gf_sg_find_node_by_name(parser->graph, attributes->children->content);
+				else if (!stricmp(attributes->name, "ref")) at_node = (SVG_SA_Element *) gf_sg_find_node_by_name(parser->graph, attributes->children->content);
 				else fprintf(stdout, "WARNING: LASeR.Insert %s attribute not handled\n", attributes->name);
 			}
 			attributes = attributes->next;
@@ -90,7 +90,7 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 		if (!at_node) return GF_SG_UNKNOWN_NODE;
 
 		if (!strcmp(at_att, "children")) {
-			SVGElement *n = svg_parse_dom_element(parser, lsr_toElement(com->children), at_node);
+			SVG_SA_Element *n = svg_parse_dom_element(parser, lsr_toElement(com->children), at_node);
 			if (n) {
 				if (pos == -1) gf_node_list_add_child( &at_node->children, (GF_Node*)n);
 				else gf_node_list_insert_child( &at_node->children, (GF_Node*)n, (u32) pos);
@@ -109,14 +109,14 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 		s32 pos = -1;
 		char *at_att = NULL;
 		char *value = NULL;
-		SVGElement *at_node = NULL;
+		SVG_SA_Element *at_node = NULL;
 		attributes = com->properties;
 		while (attributes) {
 			if (attributes->type == XML_ATTRIBUTE_NODE) {
 				if (!stricmp(attributes->name, "index")) pos = atoi(attributes->children->content);
 				else if (!stricmp(attributes->name, "attributeName")) at_att = attributes->children->content;
 				else if (!stricmp(attributes->name, "value")) value = attributes->children->content;
-				else if (!stricmp(attributes->name, "ref")) at_node = (SVGElement *) gf_sg_find_node_by_name(parser->graph, attributes->children->content);
+				else if (!stricmp(attributes->name, "ref")) at_node = (SVG_SA_Element *) gf_sg_find_node_by_name(parser->graph, attributes->children->content);
 				else fprintf(stdout, "WARNING: LASeR.Replace %s attribute not handled\n", attributes->name);
 			}
 			attributes = attributes->next;
@@ -125,7 +125,7 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 
 		if (!at_att) {
 			GF_Node *old;
-			SVGElement *n = svg_parse_dom_element(parser, lsr_toElement(com->children), at_node);
+			SVG_SA_Element *n = svg_parse_dom_element(parser, lsr_toElement(com->children), at_node);
 			if (pos<0) pos = gf_node_list_get_count(at_node->children) - 1;
 			old = gf_node_list_get_child(at_node->children, pos);
 			if (old) {
@@ -149,13 +149,13 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 	if (!strcmp(com->name, "Delete")) {
 		s32 pos = -1;
 		char *at_att = "children";
-		SVGElement *at_node = NULL;
+		SVG_SA_Element *at_node = NULL;
 		attributes = com->properties;
 		while (attributes) {
 			if (attributes->type == XML_ATTRIBUTE_NODE) {
 				if (!stricmp(attributes->name, "index")) pos = atoi(attributes->children->content);
 				else if (!stricmp(attributes->name, "attributeName")) at_att = attributes->children->content;
-				else if (!stricmp(attributes->name, "ref")) at_node = (SVGElement *) gf_sg_find_node_by_name(parser->graph, attributes->children->content);
+				else if (!stricmp(attributes->name, "ref")) at_node = (SVG_SA_Element *) gf_sg_find_node_by_name(parser->graph, attributes->children->content);
 				else fprintf(stdout, "WARNING: LASeR.Delete %s attribute not handled\n", attributes->name);
 			}
 			attributes = attributes->next;

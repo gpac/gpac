@@ -29,8 +29,8 @@
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
 
-#ifndef _GF_SVG2_NODES_H
-#define _GF_SVG2_NODES_H
+#ifndef _GF_SVG_SANI_NODES_H
+#define _GF_SVG_SANI_NODES_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,110 +38,111 @@ extern "C" {
 
 #include <gpac/scenegraph_svg.h>
 
+#ifdef GPAC_ENABLE_SVG_SANI
 
 /* Definition of SVG 2 Alternate element internal tags */
-/* TAG names are made of "TAG_SVG2" + SVG element name (with - replaced by _) */
+/* TAG names are made of "TAG_SVG_SANI_" + SVG element name (with - replaced by _) */
 enum {
-	TAG_SVG2_a = GF_NODE_RANGE_FIRST_SVG2,
-	TAG_SVG2_animate,
-	TAG_SVG2_animateColor,
-	TAG_SVG2_animateMotion,
-	TAG_SVG2_animateTransform,
-	TAG_SVG2_animation,
-	TAG_SVG2_audio,
-	TAG_SVG2_circle,
-	TAG_SVG2_conditional,
-	TAG_SVG2_cursorManager,
-	TAG_SVG2_defs,
-	TAG_SVG2_desc,
-	TAG_SVG2_discard,
-	TAG_SVG2_ellipse,
-	TAG_SVG2_font,
-	TAG_SVG2_font_face,
-	TAG_SVG2_font_face_src,
-	TAG_SVG2_font_face_uri,
-	TAG_SVG2_foreignObject,
-	TAG_SVG2_g,
-	TAG_SVG2_glyph,
-	TAG_SVG2_handler,
-	TAG_SVG2_hkern,
-	TAG_SVG2_image,
-	TAG_SVG2_line,
-	TAG_SVG2_linearGradient,
-	TAG_SVG2_listener,
-	TAG_SVG2_metadata,
-	TAG_SVG2_missing_glyph,
-	TAG_SVG2_mpath,
-	TAG_SVG2_path,
-	TAG_SVG2_polygon,
-	TAG_SVG2_polyline,
-	TAG_SVG2_prefetch,
-	TAG_SVG2_radialGradient,
-	TAG_SVG2_rect,
-	TAG_SVG2_rectClip,
-	TAG_SVG2_script,
-	TAG_SVG2_selector,
-	TAG_SVG2_set,
-	TAG_SVG2_simpleLayout,
-	TAG_SVG2_solidColor,
-	TAG_SVG2_stop,
-	TAG_SVG2_svg,
-	TAG_SVG2_switch,
-	TAG_SVG2_tbreak,
-	TAG_SVG2_text,
-	TAG_SVG2_textArea,
-	TAG_SVG2_title,
-	TAG_SVG2_tspan,
-	TAG_SVG2_use,
-	TAG_SVG2_video,
+	TAG_SVG_SANI_a = GF_NODE_RANGE_FIRST_SVG_SANI,
+	TAG_SVG_SANI_animate,
+	TAG_SVG_SANI_animateColor,
+	TAG_SVG_SANI_animateMotion,
+	TAG_SVG_SANI_animateTransform,
+	TAG_SVG_SANI_animation,
+	TAG_SVG_SANI_audio,
+	TAG_SVG_SANI_circle,
+	TAG_SVG_SANI_conditional,
+	TAG_SVG_SANI_cursorManager,
+	TAG_SVG_SANI_defs,
+	TAG_SVG_SANI_desc,
+	TAG_SVG_SANI_discard,
+	TAG_SVG_SANI_ellipse,
+	TAG_SVG_SANI_font,
+	TAG_SVG_SANI_font_face,
+	TAG_SVG_SANI_font_face_src,
+	TAG_SVG_SANI_font_face_uri,
+	TAG_SVG_SANI_foreignObject,
+	TAG_SVG_SANI_g,
+	TAG_SVG_SANI_glyph,
+	TAG_SVG_SANI_handler,
+	TAG_SVG_SANI_hkern,
+	TAG_SVG_SANI_image,
+	TAG_SVG_SANI_line,
+	TAG_SVG_SANI_linearGradient,
+	TAG_SVG_SANI_listener,
+	TAG_SVG_SANI_metadata,
+	TAG_SVG_SANI_missing_glyph,
+	TAG_SVG_SANI_mpath,
+	TAG_SVG_SANI_path,
+	TAG_SVG_SANI_polygon,
+	TAG_SVG_SANI_polyline,
+	TAG_SVG_SANI_prefetch,
+	TAG_SVG_SANI_radialGradient,
+	TAG_SVG_SANI_rect,
+	TAG_SVG_SANI_rectClip,
+	TAG_SVG_SANI_script,
+	TAG_SVG_SANI_selector,
+	TAG_SVG_SANI_set,
+	TAG_SVG_SANI_simpleLayout,
+	TAG_SVG_SANI_solidColor,
+	TAG_SVG_SANI_stop,
+	TAG_SVG_SANI_svg,
+	TAG_SVG_SANI_switch,
+	TAG_SVG_SANI_tbreak,
+	TAG_SVG_SANI_text,
+	TAG_SVG_SANI_textArea,
+	TAG_SVG_SANI_title,
+	TAG_SVG_SANI_tspan,
+	TAG_SVG_SANI_use,
+	TAG_SVG_SANI_video,
 	/*undefined elements (when parsing) use this tag*/
-	TAG_SVG2_UndefinedElement
+	TAG_SVG_SANI_UndefinedElement
 };
 
 /******************************************
-*   SVG2 Elements structure definitions    *
+*   SVG_SANI_ Elements structure definitions    *
 *******************************************/
-typedef struct _tagSVG2aElement
+typedef struct _tagSVG_SANI_aElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
 	SVG_PointerEvents pointer_events;
 	SVG_ID target;
-} SVG2aElement;
+} SVG_SANI_aElement;
 
 
-typedef struct _tagSVG2animateElement
+typedef struct _tagSVG_SANI_animateElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2animateElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_animateElement;
 
 
-typedef struct _tagSVG2animateColorElement
+typedef struct _tagSVG_SANI_animateColorElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2animateColorElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_animateColorElement;
 
 
-typedef struct _tagSVG2animateMotionElement
+typedef struct _tagSVG_SANI_animateMotionElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_PathData path;
 	SMIL_KeyPoints keyPoints;
 	SVG_Rotate rotate;
 	SVG_String origin;
-} SVG2animateMotionElement;
+} SVG_SANI_animateMotionElement;
 
 
-typedef struct _tagSVG2animateTransformElement
+typedef struct _tagSVG_SANI_animateTransformElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2animateTransformElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_animateTransformElement;
 
 
-typedef struct _tagSVG2animationElement
+typedef struct _tagSVG_SANI_animationElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -153,21 +154,21 @@ typedef struct _tagSVG2animationElement
 	SVG_Visibility visibility;
 	SVG_Paint viewport_fill;
 	SVG_Number viewport_fill_opacity;
-} SVG2animationElement;
+} SVG_SANI_animationElement;
 
 
-typedef struct _tagSVG2audioElement
+typedef struct _tagSVG_SANI_audioElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_ContentType type;
 	SVG_Number audio_level;
 	SVG_Display display;
-} SVG2audioElement;
+} SVG_SANI_audioElement;
 
 
-typedef struct _tagSVG2circleElement
+typedef struct _tagSVG_SANI_circleElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
 	SVG_PointerEvents pointer_events;
@@ -186,46 +187,46 @@ typedef struct _tagSVG2circleElement
 	SVG_Coordinate cx;
 	SVG_Coordinate cy;
 	SVG_Length r;
-} SVG2circleElement;
+} SVG_SANI_circleElement;
 
 
-typedef struct _tagSVG2conditionalElement
+typedef struct _tagSVG_SANI_conditionalElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVGCommandBuffer updates;
 	SVG_Boolean enabled;
-} SVG2conditionalElement;
+} SVG_SANI_conditionalElement;
 
 
-typedef struct _tagSVG2cursorManagerElement
+typedef struct _tagSVG_SANI_cursorManagerElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_Length x;
 	SVG_Length y;
-} SVG2cursorManagerElement;
+} SVG_SANI_cursorManagerElement;
 
 
-typedef struct _tagSVG2defsElement
+typedef struct _tagSVG_SANI_defsElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2defsElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_defsElement;
 
 
-typedef struct _tagSVG2descElement
+typedef struct _tagSVG_SANI_descElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2descElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_descElement;
 
 
-typedef struct _tagSVG2discardElement
+typedef struct _tagSVG_SANI_discardElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2discardElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_discardElement;
 
 
-typedef struct _tagSVG2ellipseElement
+typedef struct _tagSVG_SANI_ellipseElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
 	SVG_PointerEvents pointer_events;
@@ -245,20 +246,20 @@ typedef struct _tagSVG2ellipseElement
 	SVG_Length ry;
 	SVG_Coordinate cx;
 	SVG_Coordinate cy;
-} SVG2ellipseElement;
+} SVG_SANI_ellipseElement;
 
 
-typedef struct _tagSVG2fontElement
+typedef struct _tagSVG_SANI_fontElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_Number horiz_adv_x;
 	SVG_Number horiz_origin_x;
-} SVG2fontElement;
+} SVG_SANI_fontElement;
 
 
-typedef struct _tagSVG2font_faceElement
+typedef struct _tagSVG_SANI_font_faceElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_FontFamily font_family;
 	SVG_FontStyle font_style;
 	SVG_FontWeight font_weight;
@@ -287,76 +288,76 @@ typedef struct _tagSVG2font_faceElement
 	SVG_Number strikethrough_thickness;
 	SVG_Number overline_position;
 	SVG_Number overline_thickness;
-} SVG2font_faceElement;
+} SVG_SANI_font_faceElement;
 
 
-typedef struct _tagSVG2font_face_srcElement
+typedef struct _tagSVG_SANI_font_face_srcElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2font_face_srcElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_font_face_srcElement;
 
 
-typedef struct _tagSVG2font_face_uriElement
+typedef struct _tagSVG_SANI_font_face_uriElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2font_face_uriElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_font_face_uriElement;
 
 
-typedef struct _tagSVG2foreignObjectElement
+typedef struct _tagSVG_SANI_foreignObjectElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
 	SVG_Length height;
 	SVG_Display display;
 	SVG_Visibility visibility;
-} SVG2foreignObjectElement;
+} SVG_SANI_foreignObjectElement;
 
 
-typedef struct _tagSVG2gElement
+typedef struct _tagSVG_SANI_gElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
-} SVG2gElement;
+} SVG_SANI_gElement;
 
 
-typedef struct _tagSVG2glyphElement
+typedef struct _tagSVG_SANI_glyphElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_Number horiz_adv_x;
 	SVG_PathData d;
 	SVG_String unicode;
 	SVG_String glyph_name;
 	SVG_String arabic_form;
 	SVG_LanguageIDs lang;
-} SVG2glyphElement;
+} SVG_SANI_glyphElement;
 
 
-typedef struct _tagSVG2handlerElement
+typedef struct _tagSVG_SANI_handlerElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_ContentType type;
 	XMLEV_Event ev_event;
 	void (*handle_event)(GF_Node *hdl, GF_DOM_Event *event);
-} SVG2handlerElement;
+} SVG_SANI_handlerElement;
 
 
-typedef struct _tagSVG2hkernElement
+typedef struct _tagSVG_SANI_hkernElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_String u1;
 	SVG_String g1;
 	SVG_String u2;
 	SVG_String g2;
 	SVG_Number k;
-} SVG2hkernElement;
+} SVG_SANI_hkernElement;
 
 
-typedef struct _tagSVG2imageElement
+typedef struct _tagSVG_SANI_imageElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -367,12 +368,12 @@ typedef struct _tagSVG2imageElement
 	SVG_Visibility visibility;
 	SVG_RenderingHint image_rendering;
 	SVG_PointerEvents pointer_events;
-} SVG2imageElement;
+} SVG_SANI_imageElement;
 
 
-typedef struct _tagSVG2lineElement
+typedef struct _tagSVG_SANI_lineElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
 	SVG_PointerEvents pointer_events;
@@ -392,12 +393,12 @@ typedef struct _tagSVG2lineElement
 	SVG_Coordinate y1;
 	SVG_Coordinate x2;
 	SVG_Coordinate y2;
-} SVG2lineElement;
+} SVG_SANI_lineElement;
 
 
-typedef struct _tagSVG2linearGradientElement
+typedef struct _tagSVG_SANI_linearGradientElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_GradientUnit gradientUnits;
 	SVG_SpreadMethod spreadMethod;
 	SVG_Transform gradientTransform;
@@ -405,12 +406,12 @@ typedef struct _tagSVG2linearGradientElement
 	SVG_Coordinate y1;
 	SVG_Coordinate x2;
 	SVG_Coordinate y2;
-} SVG2linearGradientElement;
+} SVG_SANI_linearGradientElement;
 
 
-typedef struct _tagSVG2listenerElement
+typedef struct _tagSVG_SANI_listenerElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	XMLEV_Event event;
 	XMLEV_Phase phase;
 	XMLEV_Propagate propagate;
@@ -419,32 +420,32 @@ typedef struct _tagSVG2listenerElement
 	SVG_IRI target;
 	SVG_IRI handler;
 	SVG_Boolean enabled;
-} SVG2listenerElement;
+} SVG_SANI_listenerElement;
 
 
-typedef struct _tagSVG2metadataElement
+typedef struct _tagSVG_SANI_metadataElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2metadataElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_metadataElement;
 
 
-typedef struct _tagSVG2missing_glyphElement
+typedef struct _tagSVG_SANI_missing_glyphElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_Number horiz_adv_x;
 	SVG_PathData d;
-} SVG2missing_glyphElement;
+} SVG_SANI_missing_glyphElement;
 
 
-typedef struct _tagSVG2mpathElement
+typedef struct _tagSVG_SANI_mpathElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2mpathElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_mpathElement;
 
 
-typedef struct _tagSVG2pathElement
+typedef struct _tagSVG_SANI_pathElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
 	SVG_PointerEvents pointer_events;
@@ -462,12 +463,12 @@ typedef struct _tagSVG2pathElement
 	SVG_VectorEffect vector_effect;
 	SVG_PathData d;
 	SVG_Number pathLength;
-} SVG2pathElement;
+} SVG_SANI_pathElement;
 
 
-typedef struct _tagSVG2polygonElement
+typedef struct _tagSVG_SANI_polygonElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
 	SVG_PointerEvents pointer_events;
@@ -484,12 +485,12 @@ typedef struct _tagSVG2polygonElement
 	SVG_Length stroke_width;
 	SVG_VectorEffect vector_effect;
 	SVG_Points points;
-} SVG2polygonElement;
+} SVG_SANI_polygonElement;
 
 
-typedef struct _tagSVG2polylineElement
+typedef struct _tagSVG_SANI_polylineElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
 	SVG_PointerEvents pointer_events;
@@ -506,23 +507,23 @@ typedef struct _tagSVG2polylineElement
 	SVG_Length stroke_width;
 	SVG_VectorEffect vector_effect;
 	SVG_Points points;
-} SVG2polylineElement;
+} SVG_SANI_polylineElement;
 
 
-typedef struct _tagSVG2prefetchElement
+typedef struct _tagSVG_SANI_prefetchElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_Number mediaSize;
 	SVG_String mediaTime;
 	SVG_String mediaCharacterEncoding;
 	SVG_String mediaContentEncodings;
 	SVG_Number bandwidth;
-} SVG2prefetchElement;
+} SVG_SANI_prefetchElement;
 
 
-typedef struct _tagSVG2radialGradientElement
+typedef struct _tagSVG_SANI_radialGradientElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_GradientUnit gradientUnits;
 	SVG_SpreadMethod spreadMethod;
 	SVG_Transform gradientTransform;
@@ -531,12 +532,12 @@ typedef struct _tagSVG2radialGradientElement
 	SVG_Length r;
 	SVG_Coordinate fx;
 	SVG_Coordinate fy;
-} SVG2radialGradientElement;
+} SVG_SANI_radialGradientElement;
 
 
-typedef struct _tagSVG2rectElement
+typedef struct _tagSVG_SANI_rectElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
 	SVG_PointerEvents pointer_events;
@@ -558,68 +559,68 @@ typedef struct _tagSVG2rectElement
 	SVG_Length height;
 	SVG_Length rx;
 	SVG_Length ry;
-} SVG2rectElement;
+} SVG_SANI_rectElement;
 
 
-typedef struct _tagSVG2rectClipElement
+typedef struct _tagSVG_SANI_rectClipElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	LASeR_Size size;
-} SVG2rectClipElement;
+} SVG_SANI_rectClipElement;
 
 
-typedef struct _tagSVG2scriptElement
+typedef struct _tagSVG_SANI_scriptElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_ContentType type;
-} SVG2scriptElement;
+} SVG_SANI_scriptElement;
 
 
-typedef struct _tagSVG2selectorElement
+typedef struct _tagSVG_SANI_selectorElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
 	LASeR_Choice choice;
-} SVG2selectorElement;
+} SVG_SANI_selectorElement;
 
 
-typedef struct _tagSVG2setElement
+typedef struct _tagSVG_SANI_setElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2setElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_setElement;
 
 
-typedef struct _tagSVG2simpleLayoutElement
+typedef struct _tagSVG_SANI_simpleLayoutElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
 	LASeR_Size delta;
-} SVG2simpleLayoutElement;
+} SVG_SANI_simpleLayoutElement;
 
 
-typedef struct _tagSVG2solidColorElement
+typedef struct _tagSVG_SANI_solidColorElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_SVGColor solid_color;
 	SVG_Number solid_opacity;
-} SVG2solidColorElement;
+} SVG_SANI_solidColorElement;
 
 
-typedef struct _tagSVG2stopElement
+typedef struct _tagSVG_SANI_stopElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_RenderingHint color_rendering;
 	SVG_SVGColor stop_color;
 	SVG_Number stop_opacity;
 	SVG_Number offset;
-} SVG2stopElement;
+} SVG_SANI_stopElement;
 
 
-typedef struct _tagSVG2svgElement
+typedef struct _tagSVG_SANI_svgElement
 {
-	BASE_SVG2_ELEMENT
+	BASE_SVG_SANI_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -637,26 +638,26 @@ typedef struct _tagSVG2svgElement
 	SVG_Clock snapshotTime;
 	SVG_TimelineBegin timelineBegin;
 	SVG_PlaybackOrder playbackOrder;
-} SVG2svgElement;
+} SVG_SANI_svgElement;
 
 
-typedef struct _tagSVG2switchElement
+typedef struct _tagSVG_SANI_switchElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Display display;
 	SVG_Visibility visibility;
-} SVG2switchElement;
+} SVG_SANI_switchElement;
 
 
-typedef struct _tagSVG2tbreakElement
+typedef struct _tagSVG_SANI_tbreakElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2tbreakElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_tbreakElement;
 
 
-typedef struct _tagSVG2textElement
+typedef struct _tagSVG_SANI_textElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Boolean editable;
 	SVG_Display display;
 	SVG_Visibility visibility;
@@ -683,12 +684,12 @@ typedef struct _tagSVG2textElement
 	SVG_Coordinates x;
 	SVG_Coordinates y;
 	SVG_Numbers rotate;
-} SVG2textElement;
+} SVG_SANI_textElement;
 
 
-typedef struct _tagSVG2textAreaElement
+typedef struct _tagSVG_SANI_textAreaElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Boolean editable;
@@ -720,34 +721,34 @@ typedef struct _tagSVG2textAreaElement
 	SVG_VectorEffect vector_effect;
 	SVG_Length width;
 	SVG_Length height;
-} SVG2textAreaElement;
+} SVG_SANI_textAreaElement;
 
 
-typedef struct _tagSVG2titleElement
+typedef struct _tagSVG_SANI_titleElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2titleElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_titleElement;
 
 
-typedef struct _tagSVG2tspanElement
+typedef struct _tagSVG_SANI_tspanElement
 {
-	BASE_SVG2_ELEMENT
-} SVG2tspanElement;
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_tspanElement;
 
 
-typedef struct _tagSVG2useElement
+typedef struct _tagSVG_SANI_useElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Display display;
 	SVG_Visibility visibility;
-} SVG2useElement;
+} SVG_SANI_useElement;
 
 
-typedef struct _tagSVG2videoElement
+typedef struct _tagSVG_SANI_videoElement
 {
-	TRANSFORMABLE_SVG2_ELEMENT
+	TRANSFORMABLE_SVG_SANI_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -761,8 +762,10 @@ typedef struct _tagSVG2videoElement
 	SVG_PointerEvents pointer_events;
 	SVG_TransformBehavior transformBehavior;
 	SVG_Overlay overlay;
-} SVG2videoElement;
+} SVG_SANI_videoElement;
 
+
+#endif	/*GPAC_ENABLE_SVG_SANI*/
 
 #ifdef __cplusplus
 }
@@ -770,5 +773,5 @@ typedef struct _tagSVG2videoElement
 
 
 
-#endif		/*_GF_SVG2_NODES_H*/
+#endif		/*_GF_SVG_SANI_NODES_H*/
 

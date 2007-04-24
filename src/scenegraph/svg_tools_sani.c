@@ -25,25 +25,26 @@
 #include <gpac/nodes_svg_sani.h>
 
 #ifndef GPAC_DISABLE_SVG
+#ifdef GPAC_ENABLE_SVG_SANI
 
 #include <gpac/internal/scenegraph_dev.h>
 
-void gf_svg2_init_core(SVG2Element *p) 
+void gf_svg_sani_init_core(SVG_SANI_Element *p) 
 {
 	GF_SAFEALLOC(p->core, XMLCoreAttributes)
 }
 
-void gf_svg2_init_focus(SVG2Element *p)
+void gf_svg_sani_init_focus(SVG_SANI_Element *p)
 {
 	GF_SAFEALLOC(p->focus, SVGFocusAttributes)
 }
 
-void gf_svg2_init_xlink(SVG2Element *p)
+void gf_svg_sani_init_xlink(SVG_SANI_Element *p)
 {
 	GF_SAFEALLOC(p->xlink, XLinkAttributes)
 }
 
-void gf_svg2_init_timing(SVG2Element *p)
+void gf_svg_sani_init_timing(SVG_SANI_Element *p)
 {
 	GF_SAFEALLOC(p->timing, SMILTimingAttributes)
 	p->timing->begin = gf_list_new();
@@ -52,23 +53,23 @@ void gf_svg2_init_timing(SVG2Element *p)
 	p->timing->repeatDur.type = SMIL_DURATION_INDEFINITE;
 }
 
-void gf_svg2_init_sync(SVG2Element *p)
+void gf_svg_sani_init_sync(SVG_SANI_Element *p)
 {
 	GF_SAFEALLOC(p->sync, SMILSyncAttributes)
 }
 
-void gf_svg2_init_anim(SVG2Element *p)
+void gf_svg_sani_init_anim(SVG_SANI_Element *p)
 {
 	GF_SAFEALLOC(p->anim, SMILAnimationAttributes)
 	p->anim->lsr_enabled = 1;
 	p->anim->keySplines = gf_list_new();
 	p->anim->keyTimes = gf_list_new();
 	p->anim->values.values = gf_list_new();
-	if (gf_node_get_tag((GF_Node *)p) == TAG_SVG2_animateMotion)
+	if (gf_node_get_tag((GF_Node *)p) == TAG_SVG_SANI_animateMotion)
 		p->anim->calcMode = SMIL_CALCMODE_PACED;
 }
 
-void gf_svg2_init_conditional(SVG2Element *p)
+void gf_svg_sani_init_conditional(SVG_SANI_Element *p)
 {
 	GF_SAFEALLOC(p->conditional, SVGConditionalAttributes)
 	p->conditional->requiredExtensions = gf_list_new();
@@ -78,7 +79,7 @@ void gf_svg2_init_conditional(SVG2Element *p)
 	p->conditional->systemLanguage = gf_list_new();
 }
 
-void gf_svg2_delete_core(SVG2Element *elt, XMLCoreAttributes *p) 
+void gf_svg_sani_delete_core(SVG_SANI_Element *elt, XMLCoreAttributes *p) 
 {
 	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->base);
 	if (p->lang) free(p->lang);
@@ -86,7 +87,7 @@ void gf_svg2_delete_core(SVG2Element *elt, XMLCoreAttributes *p)
 	free(p);
 }
 
-static void svg2_reset_focus(SVG2Element *elt, SVG_Focus *focus) 
+static void svg_sani_reset_focus(SVG_SANI_Element *elt, SVG_Focus *focus) 
 {
 	if (focus->target.target) {
 		gf_svg_unregister_iri(elt->sgprivate->scenegraph, &focus->target);
@@ -94,22 +95,22 @@ static void svg2_reset_focus(SVG2Element *elt, SVG_Focus *focus)
 	if (focus->target.iri) free(focus->target.iri);
 }
 
-void gf_svg2_delete_focus(SVG2Element *elt, SVGFocusAttributes *p) 
+void gf_svg_sani_delete_focus(SVG_SANI_Element *elt, SVGFocusAttributes *p) 
 {
-	svg2_reset_focus(elt, &p->nav_next);
-	svg2_reset_focus(elt, &p->nav_prev);
-	svg2_reset_focus(elt, &p->nav_down);
-	svg2_reset_focus(elt, &p->nav_down_left);
-	svg2_reset_focus(elt, &p->nav_down_right);
-	svg2_reset_focus(elt, &p->nav_left);
-	svg2_reset_focus(elt, &p->nav_right);
-	svg2_reset_focus(elt, &p->nav_up);
-	svg2_reset_focus(elt, &p->nav_up_left);
-	svg2_reset_focus(elt, &p->nav_up_right);
+	svg_sani_reset_focus(elt, &p->nav_next);
+	svg_sani_reset_focus(elt, &p->nav_prev);
+	svg_sani_reset_focus(elt, &p->nav_down);
+	svg_sani_reset_focus(elt, &p->nav_down_left);
+	svg_sani_reset_focus(elt, &p->nav_down_right);
+	svg_sani_reset_focus(elt, &p->nav_left);
+	svg_sani_reset_focus(elt, &p->nav_right);
+	svg_sani_reset_focus(elt, &p->nav_up);
+	svg_sani_reset_focus(elt, &p->nav_up_left);
+	svg_sani_reset_focus(elt, &p->nav_up_right);
 	free(p);		
 }
 
-void gf_svg2_delete_xlink(SVG2Element *elt, XLinkAttributes *p)
+void gf_svg_sani_delete_xlink(SVG_SANI_Element *elt, XLinkAttributes *p)
 {
 	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->href);
 	if (p->type) free(p->type);
@@ -121,69 +122,69 @@ void gf_svg2_delete_xlink(SVG2Element *elt, XLinkAttributes *p)
 	free(p);		
 }
 
-void gf_svg2_reset_base_element(SVG2Element *p)
+void gf_svg_sani_reset_base_element(SVG_SANI_Element *p)
 {
 	if (p->textContent) free(p->textContent);
-	if (p->core)		gf_svg2_delete_core(p, p->core);
-	if (p->focus)		gf_svg2_delete_focus(p, p->focus);
-	if (p->conditional) gf_svg_delete_conditional(p->conditional);
-	if (p->sync)		gf_svg_delete_sync(p->sync);
+	if (p->core)		gf_svg_sani_delete_core(p, p->core);
+	if (p->focus)		gf_svg_sani_delete_focus(p, p->focus);
+	if (p->conditional) gf_svg_sa_delete_conditional(p->conditional);
+	if (p->sync)		gf_svg_sa_delete_sync(p->sync);
 
 	if (p->sgprivate->interact && p->sgprivate->interact->animations) gf_smil_anim_delete_animations((GF_Node *)p);
 	if (p->anim)		{
-		gf_svg_delete_anim(p->anim, p->sgprivate->scenegraph);
+		gf_svg_sa_delete_anim(p->anim, p->sgprivate->scenegraph);
 		gf_smil_anim_remove_from_target((GF_Node *)p, (GF_Node *)p->xlink->href.target);
 	}
 	
 	if (p->timing)		{
 		gf_smil_timing_delete_runtime_info((GF_Node *)p, p->timing->runtime);
-		gf_svg_delete_timing(p->timing);
+		gf_svg_sa_delete_timing(p->timing);
 	}
 	
-	if (p->xlink)		gf_svg2_delete_xlink(p, p->xlink);
+	if (p->xlink)		gf_svg_sani_delete_xlink(p, p->xlink);
 }
 
-Bool is_svg2_animation_tag(u32 tag)
+Bool is_svg_sani_animation_tag(u32 tag)
 {
-	return (tag == TAG_SVG2_set ||
-			tag == TAG_SVG2_animate ||
-			tag == TAG_SVG2_animateColor ||
-			tag == TAG_SVG2_animateTransform ||
-			tag == TAG_SVG2_animateMotion || 
-			tag == TAG_SVG2_discard)?1:0;
+	return (tag == TAG_SVG_SANI_set ||
+			tag == TAG_SVG_SANI_animate ||
+			tag == TAG_SVG_SANI_animateColor ||
+			tag == TAG_SVG_SANI_animateTransform ||
+			tag == TAG_SVG_SANI_animateMotion || 
+			tag == TAG_SVG_SANI_discard)?1:0;
 }
 
-Bool gf_sg_svg2_node_init(GF_Node *node)
+Bool gf_svg_sani_node_init(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
-	case TAG_SVG2_script:
+	case TAG_SVG_SANI_script:
 		if (node->sgprivate->scenegraph->script_load) 
 			node->sgprivate->scenegraph->script_load(node);
 		return 1;
-/*	case TAG_SVG2_conditional:
+/*	case TAG_SVG_SANI_conditional:
 		gf_smil_timing_init_runtime_info(node);
-		((SVGElement *)node)->timing->runtime->evaluate = lsr_conditional_evaluate;
+		((SVG_SA_Element *)node)->timing->runtime->evaluate = lsr_conditional_evaluate;
 		gf_smil_setup_events(node);
 		return 1;*/
-	case TAG_SVG2_handler:
+	case TAG_SVG_SANI_handler:
 		if (node->sgprivate->scenegraph->script_load) 
 			node->sgprivate->scenegraph->script_load(node);
 		if (node->sgprivate->scenegraph->js_ifce)
-			((SVG2handlerElement *)node)->handle_event = gf_sg_handle_dom_event;
+			((SVG_SANI_handlerElement *)node)->handle_event = gf_sg_handle_dom_event;
 		return 1;
-	case TAG_SVG2_animateMotion:
-	case TAG_SVG2_set: 
-	case TAG_SVG2_animate: 
-	case TAG_SVG2_animateColor: 
-	case TAG_SVG2_animateTransform: 
+	case TAG_SVG_SANI_animateMotion:
+	case TAG_SVG_SANI_set: 
+	case TAG_SVG_SANI_animate: 
+	case TAG_SVG_SANI_animateColor: 
+	case TAG_SVG_SANI_animateTransform: 
 		gf_smil_anim_init_node(node);
-	case TAG_SVG2_audio: 
-	case TAG_SVG2_video: 
+	case TAG_SVG_SANI_audio: 
+	case TAG_SVG_SANI_video: 
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
 		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
 	/*discard is implemented as a special animation element */
-	case TAG_SVG2_discard: 
+	case TAG_SVG_SANI_discard: 
 		gf_smil_anim_init_discard(node);
 		gf_smil_setup_events(node);
 		return 1;
@@ -193,19 +194,19 @@ Bool gf_sg_svg2_node_init(GF_Node *node)
 	return 0;
 }
 
-Bool gf_sg_svg2_node_changed(GF_Node *node, GF_FieldInfo *field)
+Bool gf_svg_sani_node_changed(GF_Node *node, GF_FieldInfo *field)
 {
 	switch (node->sgprivate->tag) {
-	case TAG_SVG2_animateMotion:
-	case TAG_SVG2_set: 
-	case TAG_SVG2_animate: 
-	case TAG_SVG2_animateColor: 
-	case TAG_SVG2_animateTransform: 
-	case TAG_SVG2_conditional: 
+	case TAG_SVG_SANI_animateMotion:
+	case TAG_SVG_SANI_set: 
+	case TAG_SVG_SANI_animate: 
+	case TAG_SVG_SANI_animateColor: 
+	case TAG_SVG_SANI_animateTransform: 
+	case TAG_SVG_SANI_conditional: 
 		gf_smil_timing_modified(node, field);
 		return 1;
-	case TAG_SVG2_audio: 
-	case TAG_SVG2_video: 
+	case TAG_SVG_SANI_audio: 
+	case TAG_SVG_SANI_video: 
 		gf_smil_timing_modified(node, field);
 		/*used by renderers*/
 		return 0;
@@ -213,7 +214,7 @@ Bool gf_sg_svg2_node_changed(GF_Node *node, GF_FieldInfo *field)
 	return 0;
 }
 
-u32 gf_svg2_get_rendering_flag_if_modified(SVG2Element *n, GF_FieldInfo *info)
+u32 gf_svg_sani_get_rendering_flag_if_modified(SVG_SANI_Element *n, GF_FieldInfo *info)
 {
 //	return 0xFFFFFFFF;
 	switch (info->fieldType) {
@@ -296,4 +297,5 @@ u32 gf_svg2_get_rendering_flag_if_modified(SVG2Element *n, GF_FieldInfo *info)
 			return 0;
 	}
 }
+#endif /*GPAC_ENABLE_SVG_SANI*/
 #endif /*GPAC_DISABLE_SVG*/

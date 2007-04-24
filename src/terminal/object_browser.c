@@ -32,7 +32,13 @@
 /*WorldInfo node*/
 #include <gpac/nodes_mpeg4.h>
 /*title node*/
+#include <gpac/nodes_svg_da.h>
+#ifdef GPAC_ENABLE_SVG_SA
 #include <gpac/nodes_svg_sa.h>
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+#include <gpac/nodes_svg_sani.h>
+#endif
 
 
 static Bool check_in_scene(GF_InlineScene *scene, GF_ObjectManager *odm)
@@ -303,8 +309,20 @@ const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od
 	}
 	if (!info) return NULL;
 	
+#ifdef GPAC_ENABLE_SVG_SA
+	if (gf_node_get_tag(info) == TAG_SVG_SA_title) {
+		return ((SVG_SA_titleElement *) info)->textContent;
+	} else 
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	if (gf_node_get_tag(info) == TAG_SVG_SANI_title) {
+		return ((SVG_SANI_titleElement *) info)->textContent;
+	} else 
+#endif
 	if (gf_node_get_tag(info) == TAG_SVG_title) {
-		return ((SVGtitleElement *) info)->textContent;
+		/*FIXME*/
+		//return ((SVG_titleElement *) info)->textContent;
+		return "TO FIX IN GPAC!!";
 	} else {
 		M_WorldInfo *wi = (M_WorldInfo *) info;
 		if (descriptions) {

@@ -244,109 +244,109 @@ s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex)
 {
 	if(!n) return -2;
 	switch (gf_node_get_tag(n)) {
-	case TAG_SVG_a:
+	case TAG_SVG_SA_a:
 		return a_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_animate:
+	case TAG_SVG_SA_animate:
 		return animate_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_animateColor:
+	case TAG_SVG_SA_animateColor:
 		return animateColor_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_animateMotion:
+	case TAG_SVG_SA_animateMotion:
 		return animateMotion_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_animateTransform:
+	case TAG_SVG_SA_animateTransform:
 		return animateTransform_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_animation:
+	case TAG_SVG_SA_animation:
 		return animation_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_audio:
+	case TAG_SVG_SA_audio:
 		return audio_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_circle:
+	case TAG_SVG_SA_circle:
 		return circle_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_conditional:
+	case TAG_SVG_SA_conditional:
 		return conditional_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_cursorManager:
+	case TAG_SVG_SA_cursorManager:
 		return cursorManager_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_defs:
+	case TAG_SVG_SA_defs:
 		return defs_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_desc:
+	case TAG_SVG_SA_desc:
 		return desc_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_discard:
+	case TAG_SVG_SA_discard:
 		return discard_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_ellipse:
+	case TAG_SVG_SA_ellipse:
 		return ellipse_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_font:
+	case TAG_SVG_SA_font:
 		return font_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_font_face:
+	case TAG_SVG_SA_font_face:
 		return font_face_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_font_face_src:
+	case TAG_SVG_SA_font_face_src:
 		return font_face_src_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_font_face_uri:
+	case TAG_SVG_SA_font_face_uri:
 		return font_face_uri_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_foreignObject:
+	case TAG_SVG_SA_foreignObject:
 		return foreignObject_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_g:
+	case TAG_SVG_SA_g:
 		return g_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_glyph:
+	case TAG_SVG_SA_glyph:
 		return glyph_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_handler:
+	case TAG_SVG_SA_handler:
 		return handler_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_hkern:
+	case TAG_SVG_SA_hkern:
 		return hkern_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_image:
+	case TAG_SVG_SA_image:
 		return image_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_line:
+	case TAG_SVG_SA_line:
 		return line_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_linearGradient:
+	case TAG_SVG_SA_linearGradient:
 		return linearGradient_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_listener:
+	case TAG_SVG_SA_listener:
 		return listener_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_metadata:
+	case TAG_SVG_SA_metadata:
 		return metadata_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_missing_glyph:
+	case TAG_SVG_SA_missing_glyph:
 		return missing_glyph_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_mpath:
+	case TAG_SVG_SA_mpath:
 		return mpath_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_path:
+	case TAG_SVG_SA_path:
 		return path_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_polygon:
+	case TAG_SVG_SA_polygon:
 		return polygon_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_polyline:
+	case TAG_SVG_SA_polyline:
 		return polyline_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_prefetch:
+	case TAG_SVG_SA_prefetch:
 		return prefetch_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_radialGradient:
+	case TAG_SVG_SA_radialGradient:
 		return radialGradient_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_rect:
+	case TAG_SVG_SA_rect:
 		return rect_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_rectClip:
+	case TAG_SVG_SA_rectClip:
 		return rectClip_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_script:
+	case TAG_SVG_SA_script:
 		return script_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_selector:
+	case TAG_SVG_SA_selector:
 		return selector_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_set:
+	case TAG_SVG_SA_set:
 		return set_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_simpleLayout:
+	case TAG_SVG_SA_simpleLayout:
 		return simpleLayout_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_solidColor:
+	case TAG_SVG_SA_solidColor:
 		return solidColor_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_stop:
+	case TAG_SVG_SA_stop:
 		return stop_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_svg:
+	case TAG_SVG_SA_svg:
 		return svg_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_switch:
+	case TAG_SVG_SA_switch:
 		return switch_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_tbreak:
+	case TAG_SVG_SA_tbreak:
 		return tbreak_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_text:
+	case TAG_SVG_SA_text:
 		return text_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_textArea:
+	case TAG_SVG_SA_textArea:
 		return textArea_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_title:
+	case TAG_SVG_SA_title:
 		return title_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_tspan:
+	case TAG_SVG_SA_tspan:
 		return tspan_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_use:
+	case TAG_SVG_SA_use:
 		return use_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_video:
+	case TAG_SVG_SA_video:
 		return video_field_to_attrib_type[fieldIndex];
 	default:
 		return -2;

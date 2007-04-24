@@ -28,7 +28,14 @@
 #include <gpac/options.h>
 
 #ifndef GPAC_DISABLE_SVG
+#include <gpac/nodes_svg_da.h>
+#include <gpac/scenegraph_svg.h>
+#ifdef GPAC_ENABLE_SVG_SA
 #include <gpac/nodes_svg_sa.h>
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+#include <gpac/nodes_svg_sani.h>
+#endif
 #endif
 
 /*macro for size event format/send*/
@@ -585,8 +592,13 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	sr->scene = scene_graph;
 	do_notif = 0;
 	if (scene_graph) {
+#ifndef GPAC_DISABLE_SVG
+		SVG_Length *w, *h;
+#endif
 		const char *opt;
+		Bool is_svg = 0;
 		u32 tag;
+		GF_Node *top_node;
 		Bool had_size_info = sr->has_size_info;
 		/*get pixel size if any*/
 		gf_sg_get_scene_size_info(sr->scene, &width, &height);
@@ -596,41 +608,52 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 		/*default back color is black*/
 		if (! (sr->user->init_flags & GF_TERM_WINDOWLESS)) sr->back_color = 0xFF000000;
 
+		top_node = gf_sg_get_root_node(sr->scene);
+		tag = gf_node_get_tag(top_node);
+
 #ifndef GPAC_DISABLE_SVG
-		{
-		SVGsvgElement *root = (SVGsvgElement *) gf_sg_get_root_node(sr->scene);
-		tag = root ? gf_node_get_tag((GF_Node*)root) : 0;
-		if (((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) || 
-			((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) ||
-			((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3))) {
-
-			/*default back color is white*/
-			if (! (sr->user->init_flags & GF_TERM_WINDOWLESS)) sr->back_color = 0xFFFFFFFF;
-
-			if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-				/*hack for SVG where size is set in %*/
-				if (!sr->has_size_info) {
-					SVG_Length l;
-					sr->has_size_info = 1;
-					sr->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
-					l = root->width;
-					if (l.type!=SVG_NUMBER_PERCENTAGE) {
-						width = FIX2INT(convert_svg_length_to_user(sr, &l) );
-					} else {
-						width = 320; //FIX2INT(root->viewBox.width);
-					}
-					l = ((SVGsvgElement*)root)->height;
-					if (l.type!=SVG_NUMBER_PERCENTAGE) {
-						height = FIX2INT(convert_svg_length_to_user(sr, &l) );
-					} else {
-						height = 240; //FIX2INT(root->viewBox.height);
-					}
-				}
-			} else {
-				width = 320; 
-				height = 240; 
-			}
+		w = h = NULL;
+		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+			GF_FieldInfo info;
+			is_svg = 1;
+			if (gf_svg_get_attribute_by_tag(top_node, TAG_SVG_ATT_width, 0, 0, &info)==GF_OK) 
+				w = info.far_ptr;
+			if (gf_svg_get_attribute_by_tag(top_node, TAG_SVG_ATT_height, 0, 0, &info)==GF_OK) 
+				h = info.far_ptr;
 		}
+#ifdef GPAC_ENABLE_SVG_SA
+		else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+			SVG_SA_svgElement *root = (SVG_SA_svgElement *) top_node;
+			is_svg = 1;
+			w = &root->width;
+			h = &root->height;
+		}
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+		else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+			SVG_SANI_svgElement *root = (SVG_SANI_svgElement*) top_node;
+			is_svg = 1;
+			w = &root->width;
+			h = &root->height;
+		}
+#endif
+		/*default back color is white*/
+		if (is_svg && ! (sr->user->init_flags & GF_TERM_WINDOWLESS)) sr->back_color = 0xFFFFFFFF;
+
+		/*hack for SVG where size is set in %*/
+		if (!sr->has_size_info && w && h) {
+			sr->has_size_info = 1;
+			sr->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
+			if (w->type!=SVG_NUMBER_PERCENTAGE) {
+				width = FIX2INT(convert_svg_length_to_user(sr, w) );
+			} else {
+				width = 320; //FIX2INT(root->viewBox.width);
+			}
+			if (h->type!=SVG_NUMBER_PERCENTAGE) {
+				height = FIX2INT(convert_svg_length_to_user(sr, h) );
+			} else {
+				height = 240; //FIX2INT(root->viewBox.height);
+			}
 		}
 #endif
 		/*default back color is key color*/
@@ -1103,6 +1126,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	gf_sg_activate_routes(sr->scene);
 
 #ifndef GPAC_DISABLE_SVG
+#if SVG_FIXME
 	{ /* Experimental (Not SVG compliant system events (i.e. battery, cpu ...) triggered to the root node)*/
 		GF_Node *root = gf_sg_get_root_node(sr->scene);
 		GF_DOM_Event evt;
@@ -1110,7 +1134,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 			u32 i, count;
 			count = gf_dom_listener_count(root);
 			for (i=0;i<count; i++) {
-				SVGlistenerElement *l = gf_dom_listener_get(root, i);
+				SVG_SA_listenerElement *l = gf_dom_listener_get(root, i);
 				if (l->event.type == GF_EVENT_CPU) {
 					GF_SystemRTInfo sys_rti;
 					if (gf_sys_get_rti(500, &sys_rti, GF_RTI_ALL_PROCESSES_TIMES)) {
@@ -1119,7 +1143,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 						//printf("%d\n",sys_rti.total_cpu_usage);
 						gf_dom_event_fire(root, NULL, &evt);
 					} 
-				} else if (l->event.type == GF_EVENT_BATTERY) { //&& l->observer.target == (SVGElement *)node) {
+				} else if (l->event.type == GF_EVENT_BATTERY) { //&& l->observer.target == (SVG_SA_Element *)node) {
 					evt.type = GF_EVENT_BATTERY;
 					gf_sys_get_battery_state(&evt.onBattery, &evt.batteryState, &evt.batteryLevel);
 					gf_dom_event_fire(root, NULL, &evt);
@@ -1127,6 +1151,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 			}
 		}
 	}
+#endif
 
 	if (gf_sg_notify_smil_timed_elements(sr->scene)) {
 		sr->draw_next_frame = 1;

@@ -28,31 +28,23 @@
 #include "visualsurface2d.h"
 #include "svg_stacks.h"
 
-typedef struct 
-{
-	Drawable *draw;
-	Fixed prev_size;
-	u32 prev_flags;
-	u32 prev_anchor;
-	char *textToRender;
-} SVG3_TextStack;
 
 /* TODO: implement all the missing features: horizontal/vertical, ltr/rtl, tspan, tref ... */
 
-static void SVG3_Render_text(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_render_text(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	GF_Matrix2D backup_matrix;
 	DrawableContext *ctx;
-	SVG3_TextStack *st = (SVG3_TextStack *)gf_node_get_private(node);
+	SVG_TextStack *st = (SVG_TextStack *)gf_node_get_private(node);
 	Drawable *cs = st->draw;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
-	SVG3Element *text = (SVG3Element *)node;
+	SVG_Element *text = (SVG_Element *)node;
 	GF_FontRaster *ft_dr;
 	char *a_font;
 	Bool font_set;
-	SVG3AllAttributes atts;
+	SVGAllAttributes atts;
   
 	if (is_destroy) {
 		if (st->textToRender) free(st->textToRender);
@@ -74,8 +66,8 @@ static void SVG3_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 	ft_dr = eff->surface->render->compositor->font_engine;
 	if (!ft_dr) return;
 
-	gf_svg3_fill_all_attributes(&atts, text);
-	SVG3_Render_base(node, &atts, eff, &backup_props, &backup_flags);
+	gf_svg_flatten_attributes(text, &atts);
+	svg_render_base(node, &atts, eff, &backup_props, &backup_flags);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
@@ -83,9 +75,8 @@ static void SVG3_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 		eff->svg_flags = backup_flags;
 		return;
 	}
-	gf_mx2d_copy(backup_matrix, eff->transform);
-
-	gf_svg3_apply_local_transformation(eff, &atts, &backup_matrix);
+	
+	svg_apply_local_transformation(eff, &atts, &backup_matrix);
 
 	if ( (st->prev_size != eff->svg_props->font_size->value) || 
 		 (st->prev_flags != *eff->svg_props->font_style) || 
@@ -248,14 +239,14 @@ end:
 }
 
 
-void SVG3_Init_text(Render2D *sr, GF_Node *node)
+void svg_init_text(Render2D *sr, GF_Node *node)
 {
-	SVG3_TextStack *stack;
-	GF_SAFEALLOC(stack, SVG3_TextStack);
+	SVG_TextStack *stack;
+	GF_SAFEALLOC(stack, SVG_TextStack);
 	stack->draw = drawable_new();
 	stack->draw->node = node;
 	gf_node_set_private(node, stack);
-	gf_node_set_callback_function(node, SVG3_Render_text);
+	gf_node_set_callback_function(node, svg_render_text);
 }
 
 

@@ -25,6 +25,7 @@
 #include "drawable.h"
 #include "visualsurface2d.h"
 #include "stacks2d.h"
+
 #ifndef GPAC_DISABLE_SVG
 #include "svg_stacks.h"
 #endif
@@ -735,7 +736,7 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 	if (path && !path->n_points) return NULL;
 
 	lp = NULL;
-	if (ctx->appear && (gf_node_get_tag(ctx->appear) <GF_NODE_RANGE_FIRST_SVG) ) {
+	if (ctx->appear && (gf_node_get_tag(ctx->appear) < GF_NODE_RANGE_LAST_X3D) ) {
 		lp = ((M_Appearance *)ctx->appear)->material;
 		if (lp) lp = ((M_Material2D *) lp)->lineProps;
 	}
@@ -900,7 +901,7 @@ static GF_Node *svg_get_texture_target(GF_Node *node, DOM_String uri)
 	return target;
 }
 
-static void setup_SVG_drawable_context(DrawableContext *ctx, struct _visual_surface_2D *surf, SVGPropertiesPointers *props)
+static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surface_2D *surf, SVGPropertiesPointers *props)
 {
 	Fixed clamped_solid_opacity = FIX_ONE;
 	Fixed clamped_fill_opacity = (props->fill_opacity->value < 0 ? 0 : (props->fill_opacity->value > FIX_ONE ? FIX_ONE : props->fill_opacity->value));
@@ -916,7 +917,7 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, struct _visual_surf
 			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
 			if (n) {
 				iri->type = SVG_IRI_ELEMENTID;
-				iri->target = (SVGElement *) n;
+				iri->target = (SVG_SA_Element *) n;
 				gf_svg_register_iri(sg, iri);
 				free(iri->iri);
 				iri->iri = NULL;
@@ -925,17 +926,20 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, struct _visual_surf
 		/* If paint server not found, paint is equivalent to none */
 		if (props->fill->iri.type == SVG_IRI_ELEMENTID) {
 			switch (gf_node_get_tag((GF_Node *)props->fill->iri.target)) {
-			case TAG_SVG_solidColor:
+#ifdef GPAC_ENABLE_SVG_SA
+			case TAG_SVG_SA_solidColor:
 				{
-					SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)props->fill->iri.target;
+					SVG_SA_solidColorElement *solidColorElt = (SVG_SA_solidColorElement *)props->fill->iri.target;
 					clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
 					ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
 				}
 				break;
-			case TAG_SVG_linearGradient: 
-			case TAG_SVG_radialGradient: 
+			case TAG_SVG_SA_linearGradient: 
+			case TAG_SVG_SA_radialGradient: 
 				ctx->h_texture = svg_gradient_get_texture((GF_Node *)props->fill->iri.target);
 				break;
+#endif
+			/*FIXME*/
 			default: 
 				break;
 			}
@@ -967,7 +971,7 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, struct _visual_surf
 			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
 			if (n) {
 				iri->type = SVG_IRI_ELEMENTID;
-				iri->target = (SVGElement *) n;
+				iri->target = (SVG_SA_Element *) n;
 				gf_svg_register_iri(sg, iri);
 				free(iri->iri);
 				iri->iri = NULL;
@@ -976,17 +980,19 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, struct _visual_surf
 		/* Paint server not found, stroke is equivalent to none */
 		if (props->stroke->iri.type == SVG_IRI_ELEMENTID) {
 			switch (gf_node_get_tag((GF_Node *)props->stroke->iri.target)) {
-			case TAG_SVG_solidColor:
+#ifdef GPAC_ENABLE_SVG_SA
+			case TAG_SVG_SA_solidColor:
 				{
-					SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)props->stroke->iri.target;
+					SVG_SA_solidColorElement *solidColorElt = (SVG_SA_solidColorElement *)props->stroke->iri.target;
 					clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
 					ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
 				}
 				break;
-			case TAG_SVG_linearGradient: 
-			case TAG_SVG_radialGradient: 
+			case TAG_SVG_SA_linearGradient: 
+			case TAG_SVG_SA_radialGradient: 
 				ctx->aspect.line_texture = svg_gradient_get_texture((GF_Node*)props->stroke->iri.target);
 				break;
+#endif
 			default: 
 				break;
 			}
@@ -1048,12 +1054,12 @@ DrawableContext *SVG_drawable_init_context(Drawable *drawable, RenderEffect2D *e
 	}
 	
 	switch (gf_node_get_tag(ctx->drawable->node) ) {
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_image:
+	case TAG_SVG_SA_video:
+#endif
 	case TAG_SVG_image:
 	case TAG_SVG_video:
-	case TAG_SVG2_image:
-	case TAG_SVG2_video:
-	case TAG_SVG3_image:
-	case TAG_SVG3_video:
 		{
 			SVG_image_stack *st = (SVG_image_stack*) gf_node_get_private(ctx->drawable->node);
 			ctx->h_texture = &(st->txh);
@@ -1063,7 +1069,7 @@ DrawableContext *SVG_drawable_init_context(Drawable *drawable, RenderEffect2D *e
 		break;
 	}
 
-	setup_SVG_drawable_context(ctx, eff->surface, eff->svg_props);
+	setup_svg_drawable_context(ctx, eff->surface, eff->svg_props);
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
 	if (ctx->h_texture && ctx->h_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
@@ -1076,9 +1082,12 @@ DrawableContext *SVG_drawable_init_context(Drawable *drawable, RenderEffect2D *e
 	return ctx;
 }
 
-static void setup_svg2_drawable_context(DrawableContext *ctx, struct _visual_surface_2D *surf)
+
+#ifdef GPAC_ENABLE_SVG_SANI
+
+static void setup_svg_sani_drawable_context(DrawableContext *ctx, struct _visual_surface_2D *surf)
 {
-	SVG2pathElement *path = (SVG2pathElement *)ctx->drawable->node;
+	SVG_SANI_pathElement *path = (SVG_SANI_pathElement *)ctx->drawable->node;
 	Fixed clamped_solid_opacity = FIX_ONE;
 	Fixed clamped_fill_opacity = (path->fill_opacity.value < 0 ? 0 : (path->fill_opacity.value > FIX_ONE ? FIX_ONE : path->fill_opacity.value));
 	Fixed clamped_stroke_opacity = (path->stroke_opacity.value < 0 ? 0 : (path->stroke_opacity.value > FIX_ONE ? FIX_ONE : path->stroke_opacity.value));	
@@ -1093,7 +1102,7 @@ static void setup_svg2_drawable_context(DrawableContext *ctx, struct _visual_sur
 			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
 			if (n) {
 				iri->type = SVG_IRI_ELEMENTID;
-				iri->target = (SVGElement *) n;
+				iri->target = (SVG_SA_Element *) n;
 				gf_svg_register_iri(sg, iri);
 				free(iri->iri);
 				iri->iri = NULL;
@@ -1102,15 +1111,15 @@ static void setup_svg2_drawable_context(DrawableContext *ctx, struct _visual_sur
 		/* Paint server not found, paint is equivalent to none */
 		if (path->fill.iri.type == SVG_IRI_ELEMENTID) {
 			switch (gf_node_get_tag((GF_Node *)path->fill.iri.target)) {
-			case TAG_SVG_solidColor:
+			case TAG_SVG_SA_solidColor:
 				{
-					SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)path->fill.iri.target;
+					SVG_SA_solidColorElement *solidColorElt = (SVG_SA_solidColorElement *)path->fill.iri.target;
 					clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
 					ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
 				}
 				break;
-			case TAG_SVG_linearGradient: 
-			case TAG_SVG_radialGradient: 
+			case TAG_SVG_SA_linearGradient: 
+			case TAG_SVG_SA_radialGradient: 
 				ctx->h_texture = svg_gradient_get_texture((GF_Node *)path->fill.iri.target);
 				break;
 			default: 
@@ -1134,7 +1143,7 @@ static void setup_svg2_drawable_context(DrawableContext *ctx, struct _visual_sur
 			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
 			if (n) {
 				iri->type = SVG_IRI_ELEMENTID;
-				iri->target = (SVGElement *) n;
+				iri->target = (SVG_SA_Element *) n;
 				gf_svg_register_iri(sg, iri);
 				free(iri->iri);
 				iri->iri = NULL;
@@ -1145,15 +1154,15 @@ static void setup_svg2_drawable_context(DrawableContext *ctx, struct _visual_sur
 			ctx->aspect.pen_props.width = 0;
 		} else {
 			switch (gf_node_get_tag((GF_Node *)path->stroke.iri.target)) {
-			case TAG_SVG_solidColor:
+			case TAG_SVG_SA_solidColor:
 				{
-					SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)path->stroke.iri.target;
+					SVG_SA_solidColorElement *solidColorElt = (SVG_SA_solidColorElement *)path->stroke.iri.target;
 					clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
 					ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
 				}
 				break;
-			case TAG_SVG_linearGradient: 
-			case TAG_SVG_radialGradient: 
+			case TAG_SVG_SA_linearGradient: 
+			case TAG_SVG_SA_radialGradient: 
 				ctx->aspect.line_texture = svg_gradient_get_texture((GF_Node*)path->stroke.iri.target);
 				break;
 			default: 
@@ -1179,7 +1188,7 @@ static void setup_svg2_drawable_context(DrawableContext *ctx, struct _visual_sur
 	ctx->aspect.pen_props.miterLimit = path->stroke_miterlimit.value;
 }
 
-DrawableContext *svg2_drawable_init_context(Drawable *drawable, RenderEffect2D *eff)
+DrawableContext *svg_sani_drawable_init_context(Drawable *drawable, RenderEffect2D *eff)
 {
 	DrawableContext *ctx;
 	Bool skipFill = 0;
@@ -1199,7 +1208,7 @@ DrawableContext *svg2_drawable_init_context(Drawable *drawable, RenderEffect2D *
 
 	ctx->h_texture = NULL;
 
-	setup_svg2_drawable_context(ctx, eff->surface);
+	setup_svg_sani_drawable_context(ctx, eff->surface);
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
 	if (ctx->h_texture && ctx->h_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
@@ -1211,5 +1220,8 @@ DrawableContext *svg2_drawable_init_context(Drawable *drawable, RenderEffect2D *
 	//ctx->flags |= CTX_HAS_LISTENERS;
 	return ctx;
 }
+
+#endif
+
 
 #endif	//SVG

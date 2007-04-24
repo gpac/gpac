@@ -29,13 +29,8 @@
 #include "visualsurface2d.h"
 #include "svg_stacks.h"
 
-typedef struct 
-{
-	Drawable *draw;
-	Fixed prev_size;
-	u32 prev_flags;
-	u32 prev_anchor;
-} SVG_TextStack;
+#ifdef GPAC_ENABLE_SVG_SA
+
 
 /* TODO: implement all the missing features: horizontal/vertical, ltr/rtl, tspan, tref ... */
 
@@ -48,7 +43,7 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 	SVG_TextStack *st = (SVG_TextStack *)gf_node_get_private(node);
 	Drawable *cs = st->draw;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
-	SVGtextElement *text = (SVGtextElement *)node;
+	SVG_SA_textElement *text = (SVG_SA_textElement *)node;
 	GF_FontRaster *ft_dr;
 	char *a_font;
 	Bool font_set;
@@ -72,7 +67,7 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 	ft_dr = eff->surface->render->compositor->font_engine;
 	if (!ft_dr) return;
 
-	SVG_Render_base(node, eff, &backup_props, &backup_flags);
+	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
@@ -80,11 +75,8 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 		eff->svg_flags = backup_flags;
 		return;
 	}
-	gf_mx2d_copy(backup_matrix, eff->transform);
 
-	if (((SVGTransformableElement *)node)->motionTransform) 
-		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform.mat);
+	svg_sa_apply_local_transformation(eff, node, &backup_matrix);
 
 	if ( (st->prev_size != eff->svg_props->font_size->value) || 
 		 (st->prev_flags != *eff->svg_props->font_style) || 
@@ -209,13 +201,13 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 	if (ctx) drawable_finalize_render(ctx, eff, NULL);
 
 end:
-	gf_mx2d_copy(eff->transform, backup_matrix);  
+	svg_sa_restore_parent_transformation(eff, &backup_matrix);
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	eff->svg_flags = backup_flags;
 }
 
 
-void SVG_Init_text(Render2D *sr, GF_Node *node)
+void svg_sa_init_text(Render2D *sr, GF_Node *node)
 {
 	SVG_TextStack *stack;
 	GF_SAFEALLOC(stack, SVG_TextStack);
@@ -225,5 +217,6 @@ void SVG_Init_text(Render2D *sr, GF_Node *node)
 	gf_node_set_callback_function(node, SVG_Render_text);
 }
 
+#endif
 
 #endif

@@ -49,6 +49,90 @@ void gf_svg_reset_path(SVG_PathData d)
 #endif
 }
 
+/* TODO: update for elliptical arcs */		
+GF_EXPORT
+void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
+{
+	u32 i, j, command_count, points_count;
+	SVG_Point orig, ct_orig, ct_end, end, *tmp;
+	command_count = gf_list_count(commands);
+	points_count = gf_list_count(points);
+	orig.x = orig.y = ct_orig.x = ct_orig.y = 0;
+
+	for (i=0, j=0; i<command_count; i++) {
+		u8 *command = (u8 *)gf_list_get(commands, i);
+		switch (*command) {
+		case SVG_PATHCOMMAND_M: /* Move To */
+			tmp = (SVG_Point*)gf_list_get(points, j);
+			orig = *tmp;
+			gf_path_add_move_to(path, orig.x, orig.y);
+			j++;
+			/*provision for nextCurveTo when no curve is specified:
+				"If there is no previous command or if the previous command was not an C, c, S or s, 
+				assume the first control point is coincident with the current point.
+			*/
+			ct_orig = orig;
+			break;
+		case SVG_PATHCOMMAND_L: /* Line To */
+			tmp = (SVG_Point*)gf_list_get(points, j);
+			end = *tmp;
+
+			gf_path_add_line_to(path, end.x, end.y);
+			j++;
+			orig = end;
+			/*cf above*/
+			ct_orig = orig;
+			break;
+		case SVG_PATHCOMMAND_C: /* Curve To */
+			tmp = (SVG_Point*)gf_list_get(points, j);
+			ct_orig = *tmp;
+			tmp = (SVG_Point*)gf_list_get(points, j+1);
+			ct_end = *tmp;
+			tmp = (SVG_Point*)gf_list_get(points, j+2);
+			end = *tmp;
+			gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
+			ct_orig = ct_end;
+			orig = end;
+			j+=3;
+			break;
+		case SVG_PATHCOMMAND_S: /* Next Curve To */
+			ct_orig.x = 2*orig.x - ct_orig.x;
+			ct_orig.y = 2*orig.y - ct_orig.y;
+			tmp = (SVG_Point*)gf_list_get(points, j);
+			ct_end = *tmp;
+			tmp = (SVG_Point*)gf_list_get(points, j+1);
+			end = *tmp;
+			gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
+			ct_orig = ct_end;
+			orig = end;
+			j+=2;
+			break;
+		case SVG_PATHCOMMAND_Q: /* Quadratic Curve To */
+			tmp = (SVG_Point*)gf_list_get(points, j);
+			ct_orig = *tmp;
+			tmp = (SVG_Point*)gf_list_get(points, j+1);
+			end = *tmp;
+			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);			
+			orig = end;
+			j+=2;
+			break;
+		case SVG_PATHCOMMAND_T: /* Next Quadratic Curve To */
+			ct_orig.x = 2*orig.x - ct_orig.x;
+			ct_orig.y = 2*orig.y - ct_orig.y;
+			tmp = (SVG_Point*)gf_list_get(points, j);
+			end = *tmp;
+			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);
+				orig = end;
+				j++;
+			break;
+		case SVG_PATHCOMMAND_Z: /* Close */
+			gf_path_close(path);
+			break;
+		}
+	}	
+}
+
+
 void gf_smil_delete_times(GF_List *list)
 {
 	u32 i, count;
@@ -101,7 +185,7 @@ static void svg_delete_one_anim_value(u8 anim_datatype, void *anim_value, GF_Sce
 	gf_svg_delete_attribute_value(anim_datatype, anim_value, sg);
 }
 
-void svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg)
+void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg)
 {
 	u32 i, count;
 	count = gf_list_count(anim_values.values);
@@ -113,7 +197,7 @@ void svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg)
 	anim_values.values = NULL;
 }
 
-void svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg)
+void gf_svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg)
 {
 	svg_delete_one_anim_value(anim_value.type, anim_value.value, sg);
 	anim_value.value = NULL;
@@ -179,7 +263,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		free(value);
 		break;
 	case SMIL_AnimateValues_datatype:
-		svg_reset_animate_values(*((SMIL_AnimateValues *)value), sg);
+		gf_svg_reset_animate_values(*((SMIL_AnimateValues *)value), sg);
 		free(value);
 		break;
 	case SMIL_RepeatCount_datatype:
@@ -204,5 +288,137 @@ void gf_smil_delete_key_types(GF_List *l)
 	gf_list_del(l);
 }
 
+
+GF_EXPORT
+void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *target)
+{
+	if (gf_list_find(sg->xlink_hrefs, target)<0) {
+		gf_list_add(sg->xlink_hrefs, target);
+	}
+}
+void gf_svg_unregister_iri(GF_SceneGraph *sg, SVG_IRI *target)
+{
+	gf_list_del_item(sg->xlink_hrefs, target);
+}
+
+/*TODO FIXME, this is ugly, add proper cache system*/
+#include <gpac/base_coding.h>
+
+
+static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_size, u32 idx)
+{
+	char szFile[GF_MAX_PATH];
+	u32 fsize;
+	FILE *f;
+	
+	sprintf(szFile, "%s%04X%s", base_file, idx, ext);
+	
+	f = fopen(szFile, "rb");
+	if (!f) return 0;
+
+	fseek(f, 0, SEEK_END);
+	fsize = ftell(f);
+	if (fsize==data_size) {
+		u32 offset=0;
+		char cache[1024];
+		fseek(f, 0, SEEK_SET);
+		while (fsize) {
+			u32 read = fread(cache, 1, 1024, f);
+			fsize -= read;
+			if (memcmp(cache, data+offset, sizeof(char)*read)) break;
+			offset+=read;
+		}
+		fclose(f);
+		/*same file*/
+		if (!fsize) return 2;
+	}
+	fclose(f);
+	return 1;
+}
+
+
+GF_EXPORT
+Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char *base_filename)
+{
+	char szFile[GF_MAX_PATH], buf[20], *sep, *data, *ext;
+	u32 data_size, idx;
+	Bool existing;
+	FILE *f;
+
+	if (!cache_dir || !base_filename || !iri || !iri->iri || strncmp(iri->iri, "data:", 5)) return 0;
+
+	/*handle "data:" scheme when cache is specified*/
+	strcpy(szFile, cache_dir);
+	data_size = strlen(szFile);
+	if (szFile[data_size-1] != GF_PATH_SEPARATOR) {
+		szFile[data_size] = GF_PATH_SEPARATOR;
+		szFile[data_size+1] = 0;
+	}
+	if (base_filename) {
+		sep = strrchr(base_filename, GF_PATH_SEPARATOR);
+#ifdef WIN32
+		if (!sep) sep = strrchr(base_filename, '/');
+#endif
+		if (!sep) sep = (char *) base_filename;
+		else sep += 1;
+		strcat(szFile, sep);
+	}
+	sep = strrchr(szFile, '.');
+	if (sep) sep[0] = 0;
+	strcat(szFile, "_img_");
+
+	/*get mime type*/
+	sep = (char *)iri->iri + 5;
+	if (!strncmp(sep, "image/jpg", 9) || !strncmp(sep, "image/jpeg", 10)) ext = ".jpg";
+	else if (!strncmp(sep, "image/png", 9)) ext = ".png";
+	else return 0;
+
+
+	data = NULL;
+	sep = strchr(iri->iri, ';');
+	if (!strncmp(sep, ";base64,", 8)) {
+		sep += 8;
+		data_size = 2*strlen(sep);
+		data = (char*)malloc(sizeof(char)*data_size);
+		if (!data) return 0;
+		data_size = gf_base64_decode(sep, strlen(sep), data, data_size);
+	}
+	else if (!strncmp(sep, ";base16,", 8)) {
+		data_size = 2*strlen(sep);
+		data = (char*)malloc(sizeof(char)*data_size);
+		if (!data) return 0;
+		sep += 8;
+		data_size = gf_base16_decode(sep, strlen(sep), data, data_size);
+	}
+	if (!data_size) return 0;
+	
+	iri->type = SVG_IRI_IRI;
+	
+	existing = 0;
+	idx = 0;
+	while (1) {
+		u32 res = check_existing_file(szFile, ext, data, data_size, idx);
+		if (!res) break;
+		if (res==2) {
+			existing = 1;
+			break;
+		}
+		idx++;
+	}
+	sprintf(buf, "%04X", idx);
+	strcat(szFile, buf);
+	strcat(szFile, ext);
+
+	if (!existing) {
+		f = fopen(szFile, "wb");
+		if (!f) return 0;
+		fwrite(data, data_size, 1, f);
+		fclose(f);
+	}
+	free(data);
+	free(iri->iri);
+	iri->iri = strdup(szFile);
+	return 1;
+}
 
 #endif /*GPAC_DISABLE_SVG*/

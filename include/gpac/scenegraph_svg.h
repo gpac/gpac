@@ -32,6 +32,15 @@ extern "C" {
 #include <gpac/scenegraph.h>
 #include <gpac/path2d.h>
 
+/*define to enable SVG test graph with static attribute allocation but no inheritance*/
+#define	GPAC_ENABLE_SVG_SA
+#define	GPAC_ENABLE_SVG_SANI
+
+#if defined(GPAC_ENABLE_SVG_SA) || defined(GPAC_ENABLE_SVG_SANI)
+#define	GPAC_ENABLE_SVG_SA_BASE
+#endif
+
+
 /* SVG attribute types */
 enum {
 	SVG_Unknown_datatype					= 0,
@@ -182,6 +191,8 @@ typedef GF_List *SMIL_KeyTimes;
 typedef GF_List *SMIL_KeyPoints;
 /* Fixed between 0 and 1 */
 typedef GF_List *SMIL_KeySplines;
+
+typedef GF_Matrix2D SVG_Motion;
 
 /* SMIL Anim types */
 typedef struct {
@@ -1014,6 +1025,135 @@ typedef struct {
 */
 } SVGProperties;
 
+typedef struct
+{
+	char *data;
+	u32 data_size;
+	GF_List *com_list;
+	void (*exec_command_list)(void *script);
+} SVGCommandBuffer;
+
+/*************************************
+ * Generic SVG element functions     *
+ *************************************/
+/*the exported functions used by the scene graph*/
+u32 gf_svg_sa_node_type_by_class_name(const char *element_name);
+
+void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props);
+void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props);
+
+void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props);
+Bool gf_svg_has_appearance_flag_dirty(u32 flags);
+
+Bool gf_svg_is_element_transformable(u32 tag);
+
+void *gf_svg_create_attribute_value(u32 attribute_type);
+void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg);
+/* a == b */
+Bool gf_svg_attributes_equal(GF_FieldInfo *a, GF_FieldInfo *b);
+/* a = b */
+GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp);
+/* c = a + b */
+GF_Err gf_svg_attributes_add(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo *c, Bool clamp);
+Bool gf_svg_attribute_is_interpolatable(u32 type) ;
+/* c = coef * a + (1 - coef) * b */
+GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo *c, Fixed coef, Bool clamp);
+/* c = alpha * a + beta * b */
+GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a, Fixed beta, GF_FieldInfo *b, GF_FieldInfo *c, Bool clamp);
+
+GF_Err gf_svg_get_attribute_by_tag(GF_Node *node, u16 attribute_tag, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
+
+char *gf_svg_attribute_type_to_string(u32 att_type);
+GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type);
+void gf_svg_parse_style(GF_Node *n, char *style);
+
+GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue);
+GF_Err gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info, char *attValue);
+
+Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char *base_filename);
+void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points);
+void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *iri);
+void gf_svg_unregister_iri(GF_SceneGraph *sg, SVG_IRI *iri);
+
+GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if_defined);
+
+
+/* 
+	basic DOM event handling
+DO NOT CHANGE THEIR POSITION IN THE LIST, USED TO SPEED UP USER INPUT EVENTS
+*/
+
+typedef struct
+{
+	/*event type*/
+	u32 type;
+	/*event phase type, READ-ONLY
+	0: at target, 1: bubbling, 2: capturing , 3: canceled
+	*/
+	u8 event_phase;
+	u8 bubbles;
+	u8 cancelable;
+	/*output only - indicates UI events (mouse) have been detected*/
+	u8 has_ui_events;
+	GF_Node *target;
+	GF_Node *currentTarget;
+	Double timestamp;
+	/*UIEvent extension. For mouse extensions, stores button type. For key event, the key code*/
+	u32 detail;
+	/*MouseEvent extension*/
+	s32 screenX, screenY;
+	s32 clientX, clientY;
+	/*key flags*/
+	u32 key_flags;
+	/*key hardware code*/
+	u32 key_hw_code;
+	GF_Node *relatedTarget;
+	/*Zoom event*/
+	GF_Rect screen_rect;
+	GF_Point2D prev_translate, new_translate;
+	Fixed prev_scale, new_scale;
+	/* CPU */
+	u32 cpu_percentage;
+	/* Battery */
+	Bool onBattery;
+	u32 batteryState, batteryLevel;
+} GF_DOM_Event;
+
+
+u32 gf_dom_event_type_by_name(const char *name);
+const char *gf_dom_event_get_name(u32 type);
+Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event);
+
+/*listener are simply nodes added to the node events list. 
+THIS SHALL NOT BE USED WITH VRML-BASED GRAPHS: either one uses listeners or one uses routes
+the listener node is NOT registered, it is the user responsability to delete it from its parent
+@listener is a listenerElement (XML event)
+*/
+GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener);
+GF_Err gf_dom_listener_del(GF_Node *node, GF_Node *listener);
+u32 gf_dom_listener_count(GF_Node *node);
+GF_Node *gf_dom_listener_get(GF_Node *node, u32 i);
+
+/*creates a default listener/handler for the given event on the given node, and return the 
+handler element to allow for handler function override*/
+void *gf_dom_listener_build(GF_Node *node, XMLEV_Event event);
+
+Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg);
+
+const char *gf_dom_get_key_name(u32 key_identifier);
+
+/*creates a new text node, assign string (does NOT duplicate it) and register node with parent*/
+GF_DOMText *gf_dom_add_text_node(GF_Node *parent, char *text_data);
+
+
+
+/*******************************************************************************
+ * 
+ *          Common part for SVG with static allocation 
+ *
+ *******************************************************************************/
+#ifdef GPAC_ENABLE_SVG_SA_BASE
+
 typedef struct {
 /*	SVG_ID id / xml_id; are actually nodeID in the sgprivate structure */
 	SVG_IRI base;
@@ -1128,6 +1268,17 @@ typedef struct {
 	SVG_LanguageIDs systemLanguage;
 } SVGConditionalAttributes;
 
+#endif
+
+
+
+/*******************************************************************************
+ * 
+ *          SVG Scene Graph for static allocation and inheritance           *
+ *
+ *******************************************************************************/
+#ifdef GPAC_ENABLE_SVG_SA
+
 /* Common structure for all SVG elements */
 #define BASE_SVG_ELEMENT \
 	BASE_NODE \
@@ -1145,9 +1296,9 @@ typedef struct {
 	XLinkAttributes *xlink; \
 	XLinkAttributesPointers *xlinkp; \
 
-typedef struct _svg_element {
+typedef struct {
 	BASE_SVG_ELEMENT
-} SVGElement;
+} SVG_SA_Element;
 
 /* 
 	Common structure for all SVG elements potentially transformable 
@@ -1162,129 +1313,21 @@ typedef struct _svg_transformable_element {
 	TRANSFORMABLE_SVG_ELEMENT
 } SVGTransformableElement;
 
-typedef struct
-{
-	char *data;
-	u32 data_size;
-	GF_List *com_list;
-	void (*exec_command_list)(void *script);
-} SVGCommandBuffer;
 
-/*************************************
- * Generic SVG element functions     *
- *************************************/
-/*the exported functions used by the scene graph*/
-u32 gf_node_svg_type_by_class_name(const char *element_name);
+u32 gf_svg_sa_apply_inheritance(SVG_SA_Element *elt, SVGPropertiesPointers *render_svg_props);
 
-void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props);
-void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props);
+#endif
 
-u32 gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_props);
-void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props);
-Bool gf_svg_has_appearance_flag_dirty(u32 flags);
-
-Bool is_svg_animation_tag(u32 tag);
-Bool gf_svg_is_element_transformable(u32 tag);
-
-void *gf_svg_create_attribute_value(u32 attribute_type);
-void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg);
-/* a == b */
-Bool gf_svg_attributes_equal(GF_FieldInfo *a, GF_FieldInfo *b);
-/* a = b */
-GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp);
-/* c = a + b */
-GF_Err gf_svg_attributes_add(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo *c, Bool clamp);
-Bool gf_svg_attribute_is_interpolatable(u32 type) ;
-/* c = coef * a + (1 - coef) * b */
-GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo *c, Fixed coef, Bool clamp);
-/* c = alpha * a + beta * b */
-GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a, Fixed beta, GF_FieldInfo *b, GF_FieldInfo *c, Bool clamp);
-
-
-char *gf_svg_attribute_type_to_string(u32 att_type);
-GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type);
-void gf_svg_parse_style(GF_Node *n, char *style);
-GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue);
-GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *attValue);
-
-Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char *base_filename);
-void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points);
-void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *iri);
-void gf_svg_unregister_iri(GF_SceneGraph *sg, SVG_IRI *iri);
-
-GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if_defined);
-
-
-/* 
-	basic DOM event handling
-DO NOT CHANGE THEIR POSITION IN THE LIST, USED TO SPEED UP USER INPUT EVENTS
-*/
-
-typedef struct
-{
-	/*event type*/
-	u32 type;
-	/*event phase type, READ-ONLY
-	0: at target, 1: bubbling, 2: capturing , 3: canceled
-	*/
-	u8 event_phase;
-	u8 bubbles;
-	u8 cancelable;
-	/*output only - indicates UI events (mouse) have been detected*/
-	u8 has_ui_events;
-	GF_Node *target;
-	GF_Node *currentTarget;
-	Double timestamp;
-	/*UIEvent extension. For mouse extensions, stores button type. For key event, the key code*/
-	u32 detail;
-	/*MouseEvent extension*/
-	s32 screenX, screenY;
-	s32 clientX, clientY;
-	/*key flags*/
-	u32 key_flags;
-	/*key hardware code*/
-	u32 key_hw_code;
-	GF_Node *relatedTarget;
-	/*Zoom event*/
-	GF_Rect screen_rect;
-	GF_Point2D prev_translate, new_translate;
-	Fixed prev_scale, new_scale;
-	/* CPU */
-	u32 cpu_percentage;
-	/* Battery */
-	Bool onBattery;
-	u32 batteryState, batteryLevel;
-} GF_DOM_Event;
-
-
-u32 gf_dom_event_type_by_name(const char *name);
-const char *gf_dom_event_get_name(u32 type);
-Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event);
-
-/*listener are simply nodes added to the node events list. 
-THIS SHALL NOT BE USED WITH VRML-BASED GRAPHS: either one uses listeners or one uses routes
-the listener node is NOT registered, it is the user responsability to delete it from its parent
-@listener is a listenerElement (XML event)
-*/
-GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener);
-GF_Err gf_dom_listener_del(GF_Node *node, GF_Node *listener);
-u32 gf_dom_listener_count(GF_Node *node);
-GF_Node *gf_dom_listener_get(GF_Node *node, u32 i);
-
-/*creates a default listener/handler for the given event on the given node, and return the 
-handler element to allow for handler function override*/
-void *gf_dom_listener_build(GF_Node *node, XMLEV_Event event);
-
-Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg);
-
-const char *gf_dom_get_key_name(u32 key_identifier);
 
 /*******************************************************************************
  * 
  *          SVG Scene Graph for static allocation and no inheritance           *
  *
  *******************************************************************************/
-#define BASE_SVG2_ELEMENT \
+#ifdef GPAC_ENABLE_SVG_SANI
+
+
+#define BASE_SVG_SANI_ELEMENT \
 	BASE_NODE \
 	CHILDREN \
 	SVG_String textContent; \
@@ -1299,34 +1342,37 @@ const char *gf_dom_get_key_name(u32 key_identifier);
 	XLinkAttributes *xlink; \
 	XLinkAttributesPointers *xlinkp;
 
-typedef struct _svg2_element {
-	BASE_SVG2_ELEMENT
-} SVG2Element;
+typedef struct _svg_sani_element {
+	BASE_SVG_SANI_ELEMENT
+} SVG_SANI_Element;
 
 /* 
 	Common structure for all SVG elements potentially transformable 
 	they have a transform attribute split in two: boolean to indicate if transform is ref + matrix
 	they have an implicit pseudo-attribute which holds the supplemental transform computed by animateMotions elements */	
-#define TRANSFORMABLE_SVG2_ELEMENT \
-	BASE_SVG2_ELEMENT \
+#define TRANSFORMABLE_SVG_SANI_ELEMENT \
+	BASE_SVG_SANI_ELEMENT \
 	SVG_Transform transform; \
 	GF_Matrix2D *motionTransform; 
 
-typedef struct _svg2_transformable_element {
-	TRANSFORMABLE_SVG2_ELEMENT
-} SVG2TransformableElement;
+typedef struct _svg_sani_transformable_element {
+	TRANSFORMABLE_SVG_SANI_ELEMENT
+} SVG_SANI_TransformableElement;
 
 /*************************************
- * Generic SVG2 element functions     *
+ * Generic SVG_SANI_ element functions     *
  *************************************/
 
 /*the exported functions used by the scene graph*/
 
-void gf_svg2_apply_animations(GF_Node *node);
-Bool gf_svg2_has_appearance_flag_dirty(u32 flags);
+void gf_svg_sani_apply_animations(GF_Node *node);
+Bool gf_svg_sani_has_appearance_flag_dirty(u32 flags);
 
-Bool is_svg2_animation_tag(u32 tag);
-Bool gf_svg2_is_element_transformable(u32 tag);
+Bool is_svg_sani_animation_tag(u32 tag);
+Bool gf_svg_sani_is_element_transformable(u32 tag);
+
+
+#endif	/*GPAC_ENABLE_SVG_SANI*/
 
 
 /*******************************************************************************
@@ -1335,49 +1381,50 @@ Bool gf_svg2_is_element_transformable(u32 tag);
  *
  *******************************************************************************/
 
-#define SVG3_BASE_ATTRIBUTE \
+#define SVG_BASE_ATTRIBUTE \
 	u16 tag; \
 	u16 data_type; \
 	void *data; \
-	struct _svg3_attribute *next;
+	struct _svg_attribute *next;
 
-typedef struct _svg3_attribute {
-	SVG3_BASE_ATTRIBUTE
-} SVG3Attribute;
+typedef struct _svg_attribute {
+	SVG_BASE_ATTRIBUTE
+} SVGAttribute;
 
-typedef struct _svg3_extended_attribute {
-	SVG3_BASE_ATTRIBUTE
+typedef struct _svg_extended_attribute {
+	SVG_BASE_ATTRIBUTE
 	char *name;
-} SVG3ExtendedAttribute;
+} SVGExtendedAttribute;
 
-typedef struct _svg3_element {
+typedef struct _svg_element {
 	BASE_NODE
 	CHILDREN
-	SVG3Attribute *attributes;
-} SVG3Element;
+	SVGAttribute *attributes;
+} SVG_Element;
 
 typedef struct {
 	BASE_NODE
 	CHILDREN
-	SVG3Attribute *attributes;
+	SVGAttribute *attributes;
 
 	void (*handle_event)(GF_Node *hdl, GF_DOM_Event *event);
-} SVG3handlerElement;
+} SVG_handlerElement;
 
-typedef struct _svg3_timing_animation_base_element {
+typedef struct {
 	BASE_NODE
 	CHILDREN
-	SVG3Attribute *attributes;
+	SVGAttribute *attributes;
 	/*shortcuts for xlink, anim, timing attributes*/
 	XLinkAttributesPointers *xlinkp;
 	SMILAnimationAttributesPointers *animp;
 	SMILTimingAttributesPointers *timingp;
-} SVG3TimedAnimBaseElement;
+} SVGTimedAnimBaseElement;
 
-typedef struct _all_atts SVG3AllAttributes;
+typedef struct _all_atts SVGAllAttributes;
 
-void gf_svg3_fill_all_attributes(SVG3AllAttributes *all_atts, SVG3Element *e);
-const char *gf_svg3_get_attribute_name_from_tag(u32 tag);
+void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts);
+const char *gf_svg_get_attribute_name(u32 tag);
+u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *render_svg_props) ;
 
 
 #ifdef __cplusplus

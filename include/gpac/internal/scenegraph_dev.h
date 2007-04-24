@@ -268,38 +268,6 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 
 #ifndef GPAC_DISABLE_SVG
 
-SVGElement *gf_svg_create_node(u32 ElementTag);
-Bool gf_sg_svg_node_init(GF_Node *node);
-const char *gf_svg_get_element_name(u32 tag);
-Bool gf_sg_svg_node_changed(GF_Node *node, GF_FieldInfo *field);
-
-void gf_svg_element_del(SVGElement *elt);
-void gf_svg_reset_base_element(SVGElement *p);
-
-GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info);
-u32 gf_svg_get_attribute_count(GF_Node *);
-
-void gf_svg_init_core(SVGElement *p);
-void gf_svg_delete_core(SVGElement *elt, XMLCoreAttributes *p) ;
-
-void gf_svg_init_conditional(SVGElement *p);
-void gf_svg_delete_conditional(SVGConditionalAttributes *p);
-
-void gf_svg_init_sync(SVGElement *p);
-void gf_svg_delete_sync(SMILSyncAttributes *p);
-
-void gf_svg_init_anim(SVGElement *p);
-void gf_svg_delete_anim(SMILAnimationAttributes *p, GF_SceneGraph *sg);
-
-void gf_svg_init_timing(SVGElement *p);
-void gf_svg_delete_timing(SMILTimingAttributes *p);
-
-void gf_svg_init_xlink(SVGElement *p);
-void gf_svg_delete_xlink(SVGElement *elt, XLinkAttributes *p);
-
-void gf_svg_init_focus(SVGElement *p);
-
-void gf_svg_init_properties(SVGElement *p);
 
 /* animations */
 GF_Err gf_node_animation_add(GF_Node *node, void *animation);
@@ -309,12 +277,6 @@ void *gf_node_animation_get(GF_Node *node, u32 i);
 
 Bool gf_svg_is_inherit(GF_FieldInfo *a);
 Bool gf_svg_is_current_color(GF_FieldInfo *a);
-void *gf_svg_get_property_pointer(SVGPropertiesPointers *rendering_property_context, 
-								  SVGProperties *elt_property_context, 
-								  void *input_attribute);
-void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, SVGElement*elt, void *orig_dom_ptr, SVGPropertiesPointers *inherited_props);
-
-u32 gf_svg_get_rendering_flag_if_modified(SVGElement *n, GF_FieldInfo *info);
 
 
 /* reset functions for SVG types */
@@ -489,13 +451,8 @@ void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai);
 void gf_smil_anim_delete_animations(GF_Node *e);
 void gf_smil_anim_remove_from_target(GF_Node *anim, GF_Node *target);
 
-void gf_svg_init_lsr_conditional(SVGCommandBuffer *script);
-void gf_svg_reset_lsr_conditional(SVGCommandBuffer *script);
-
 void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event);
 void gf_smil_setup_events(GF_Node *node);
-
-s32 gf_svg_get_attribute_index_by_name(GF_Node *node, char *name);
 
 #endif
 
@@ -798,8 +755,101 @@ typedef struct __tag_svg_script_ctx
 #endif
 
 
+/*SMIL anim tools*/
 
-SVG3Attribute *gf_svg3_create_attribute_from_datatype(u32 data_type, u32 attribute_tag);
+
+void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg);
+void gf_svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg);
+
+Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *anim_parent, GF_List *smil_times, Bool is_end, const char *node_name);
+
+
+
+SVGAttribute *gf_svg_create_attribute_from_datatype(u32 data_type, u32 attribute_tag);
+SVG_Element *gf_svg_create_node(u32 tag);
+Bool gf_svg_node_init(GF_Node *node);
+void gf_svg_node_del(GF_Node *node);
+Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field);
+
+GF_Err gf_svg_get_attribute_by_name(GF_Node *node, char *name, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
+const char *gf_svg_get_element_name(u32 tag);
+
+void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
+								   SVGPropertiesPointers *output_property_context);
+
+Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute);
+
+SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag);
+u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name);
+Bool gf_svg_is_animation_tag(u32 tag);
+u32 gf_svg_get_element_tag(const char *element_name);
+
+
+#ifdef GPAC_ENABLE_SVG_SA
+
+SVG_SA_Element *gf_svg_sa_create_node(u32 ElementTag);
+const char *gf_svg_sa_get_element_name(u32 tag);
+Bool gf_svg_sa_node_changed(GF_Node *node, GF_FieldInfo *field);
+void gf_svg_sa_element_del(SVG_SA_Element *elt);
+void gf_svg_sa_reset_base_element(SVG_SA_Element *p);
+GF_Err gf_svg_sa_get_attribute_info(GF_Node *node, GF_FieldInfo *info);
+u32 gf_svg_sa_get_attribute_count(GF_Node *);
+void gf_svg_sa_init_core(SVG_SA_Element *p);
+void gf_svg_sa_init_conditional(SVG_SA_Element *p);
+void gf_svg_sa_init_sync(SVG_SA_Element *p);
+void gf_svg_sa_init_anim(SVG_SA_Element *p);
+void gf_svg_sa_init_timing(SVG_SA_Element *p);
+void gf_svg_sa_init_focus(SVG_SA_Element *p);
+void gf_svg_sa_init_properties(SVG_SA_Element *p);
+void gf_svg_sa_init_xlink(SVG_SA_Element *p);
+void gf_svg_sa_delete_xlink(SVG_SA_Element *elt, XLinkAttributes *p);
+s32 gf_svg_sa_get_attribute_index_by_name(GF_Node *node, char *name);
+
+Bool gf_svg_sa_node_init(GF_Node *node);
+
+void *gf_svg_sa_get_property_pointer(SVGPropertiesPointers *rendering_property_context, 
+								  SVGProperties *elt_property_context, 
+								  void *input_attribute);
+
+u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info);
+
+#endif
+
+
+#ifdef GPAC_ENABLE_SVG_SANI
+Bool gf_svg_sani_node_init(GF_Node *node);
+Bool gf_svg_sani_node_changed(GF_Node *node, GF_FieldInfo *field);
+void gf_svg_sani_element_del(SVG_SANI_Element *elt);
+u32 gf_svg_sani_get_attribute_count(GF_Node *node);
+const char *gf_svg_sani_get_element_name(u32 tag);
+SVG_SANI_Element *gf_svg_sani_create_node(u32 ElementTag);
+GF_Err gf_svg_sani_get_attribute_info(GF_Node *node, GF_FieldInfo *info);
+u32 gf_svg_sani_get_rendering_flag_if_modified(SVG_SANI_Element *n, GF_FieldInfo *info);
+void gf_svg_sani_init_core(SVG_SANI_Element *p);
+void gf_svg_sani_init_focus(SVG_SANI_Element *p);
+void gf_svg_sani_init_xlink(SVG_SANI_Element *p);
+void gf_svg_sani_init_timing(SVG_SANI_Element *p);
+void gf_svg_sani_init_sync(SVG_SANI_Element *p);
+void gf_svg_sani_init_anim(SVG_SANI_Element *p);
+void gf_svg_sani_init_conditional(SVG_SANI_Element *p);
+void gf_svg_sani_reset_base_element(SVG_SANI_Element *p);
+u32 gf_svg_sani_type_by_class_name(const char *element_name);
+
+#endif
+
+
+
+#ifdef GPAC_ENABLE_SVG_SA_BASE
+void gf_svg_sa_delete_conditional(SVGConditionalAttributes *p);
+void gf_svg_sa_delete_sync(SMILSyncAttributes *p);
+void gf_svg_sa_delete_anim(SMILAnimationAttributes *p, GF_SceneGraph *sg);
+void gf_svg_sa_delete_timing(SMILTimingAttributes *p);
+void gf_svg_sa_init_lsr_conditional(SVGCommandBuffer *script);
+void gf_svg_sa_reset_lsr_conditional(SVGCommandBuffer *script);
+Bool gf_svg_sa_is_animation_tag(u32 tag);
+
+u32 gf_svg_sa_get_rendering_flag_if_modified(SVG_SA_Element *n, GF_FieldInfo *info);
+#endif
 
 
 #endif	/*_GF_SCENEGRAPH_DEV_H_*/

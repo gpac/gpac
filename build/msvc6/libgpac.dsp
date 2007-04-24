@@ -926,14 +926,35 @@ SOURCE=..\..\include\gpac\internal\laser_dev.h
 # Begin Source File
 
 SOURCE=..\..\src\laser\lsr_dec.c
+
+!IF  "$(CFG)" == "libgpac - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "libgpac - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\laser\lsr_enc.c
+
+!IF  "$(CFG)" == "libgpac - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "libgpac - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\laser\lsr_tables.c
+
+!IF  "$(CFG)" == "libgpac - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "libgpac - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # End Group
 # Begin Group "include"

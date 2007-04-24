@@ -29,8 +29,8 @@
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
 
-#ifndef _GF_SVG_NODES_H
-#define _GF_SVG_NODES_H
+#ifndef _GF_SVG_SA_NODES_H
+#define _GF_SVG_SA_NODES_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,105 +38,106 @@ extern "C" {
 
 #include <gpac/scenegraph_svg.h>
 
+#ifdef GPAC_ENABLE_SVG_SA
 
 /* Definition of SVG element internal tags */
 /* TAG names are made of "TAG_SVG" + SVG element name (with - replaced by _) */
 enum {
-	TAG_SVG_a = GF_NODE_RANGE_FIRST_SVG,
-	TAG_SVG_animate,
-	TAG_SVG_animateColor,
-	TAG_SVG_animateMotion,
-	TAG_SVG_animateTransform,
-	TAG_SVG_animation,
-	TAG_SVG_audio,
-	TAG_SVG_circle,
-	TAG_SVG_conditional,
-	TAG_SVG_cursorManager,
-	TAG_SVG_defs,
-	TAG_SVG_desc,
-	TAG_SVG_discard,
-	TAG_SVG_ellipse,
-	TAG_SVG_font,
-	TAG_SVG_font_face,
-	TAG_SVG_font_face_src,
-	TAG_SVG_font_face_uri,
-	TAG_SVG_foreignObject,
-	TAG_SVG_g,
-	TAG_SVG_glyph,
-	TAG_SVG_handler,
-	TAG_SVG_hkern,
-	TAG_SVG_image,
-	TAG_SVG_line,
-	TAG_SVG_linearGradient,
-	TAG_SVG_listener,
-	TAG_SVG_metadata,
-	TAG_SVG_missing_glyph,
-	TAG_SVG_mpath,
-	TAG_SVG_path,
-	TAG_SVG_polygon,
-	TAG_SVG_polyline,
-	TAG_SVG_prefetch,
-	TAG_SVG_radialGradient,
-	TAG_SVG_rect,
-	TAG_SVG_rectClip,
-	TAG_SVG_script,
-	TAG_SVG_selector,
-	TAG_SVG_set,
-	TAG_SVG_simpleLayout,
-	TAG_SVG_solidColor,
-	TAG_SVG_stop,
-	TAG_SVG_svg,
-	TAG_SVG_switch,
-	TAG_SVG_tbreak,
-	TAG_SVG_text,
-	TAG_SVG_textArea,
-	TAG_SVG_title,
-	TAG_SVG_tspan,
-	TAG_SVG_use,
-	TAG_SVG_video,
+	TAG_SVG_SA_a = GF_NODE_RANGE_FIRST_SVG_SA,
+	TAG_SVG_SA_animate,
+	TAG_SVG_SA_animateColor,
+	TAG_SVG_SA_animateMotion,
+	TAG_SVG_SA_animateTransform,
+	TAG_SVG_SA_animation,
+	TAG_SVG_SA_audio,
+	TAG_SVG_SA_circle,
+	TAG_SVG_SA_conditional,
+	TAG_SVG_SA_cursorManager,
+	TAG_SVG_SA_defs,
+	TAG_SVG_SA_desc,
+	TAG_SVG_SA_discard,
+	TAG_SVG_SA_ellipse,
+	TAG_SVG_SA_font,
+	TAG_SVG_SA_font_face,
+	TAG_SVG_SA_font_face_src,
+	TAG_SVG_SA_font_face_uri,
+	TAG_SVG_SA_foreignObject,
+	TAG_SVG_SA_g,
+	TAG_SVG_SA_glyph,
+	TAG_SVG_SA_handler,
+	TAG_SVG_SA_hkern,
+	TAG_SVG_SA_image,
+	TAG_SVG_SA_line,
+	TAG_SVG_SA_linearGradient,
+	TAG_SVG_SA_listener,
+	TAG_SVG_SA_metadata,
+	TAG_SVG_SA_missing_glyph,
+	TAG_SVG_SA_mpath,
+	TAG_SVG_SA_path,
+	TAG_SVG_SA_polygon,
+	TAG_SVG_SA_polyline,
+	TAG_SVG_SA_prefetch,
+	TAG_SVG_SA_radialGradient,
+	TAG_SVG_SA_rect,
+	TAG_SVG_SA_rectClip,
+	TAG_SVG_SA_script,
+	TAG_SVG_SA_selector,
+	TAG_SVG_SA_set,
+	TAG_SVG_SA_simpleLayout,
+	TAG_SVG_SA_solidColor,
+	TAG_SVG_SA_stop,
+	TAG_SVG_SA_svg,
+	TAG_SVG_SA_switch,
+	TAG_SVG_SA_tbreak,
+	TAG_SVG_SA_text,
+	TAG_SVG_SA_textArea,
+	TAG_SVG_SA_title,
+	TAG_SVG_SA_tspan,
+	TAG_SVG_SA_use,
+	TAG_SVG_SA_video,
 	/*undefined elements (when parsing) use this tag*/
-	TAG_SVG_UndefinedElement
+	TAG_SVG_SA_UndefinedElement
 };
 
 /******************************************
 *   SVG Elements structure definitions    *
 *******************************************/
-typedef struct _tagSVGaElement
+typedef struct _tagSVG_SA_aElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_ID target;
-} SVGaElement;
+} SVG_SA_aElement;
 
 
-typedef struct _tagSVGanimateElement
+typedef struct _tagSVG_SA_animateElement
 {
 	BASE_SVG_ELEMENT
-} SVGanimateElement;
+} SVG_SA_animateElement;
 
 
-typedef struct _tagSVGanimateColorElement
+typedef struct _tagSVG_SA_animateColorElement
 {
 	BASE_SVG_ELEMENT
-} SVGanimateColorElement;
+} SVG_SA_animateColorElement;
 
 
-typedef struct _tagSVGanimateMotionElement
+typedef struct _tagSVG_SA_animateMotionElement
 {
 	BASE_SVG_ELEMENT
 	SVG_PathData path;
 	SMIL_KeyPoints keyPoints;
 	SVG_Rotate rotate;
 	SVG_String origin;
-} SVGanimateMotionElement;
+} SVG_SA_animateMotionElement;
 
 
-typedef struct _tagSVGanimateTransformElement
+typedef struct _tagSVG_SA_animateTransformElement
 {
 	BASE_SVG_ELEMENT
-} SVGanimateTransformElement;
+} SVG_SA_animateTransformElement;
 
 
-typedef struct _tagSVGanimationElement
+typedef struct _tagSVG_SA_animationElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
@@ -145,78 +146,78 @@ typedef struct _tagSVGanimationElement
 	SVG_Length height;
 	SVG_PreserveAspectRatio preserveAspectRatio;
 	SVG_InitialVisibility initialVisibility;
-} SVGanimationElement;
+} SVG_SA_animationElement;
 
 
-typedef struct _tagSVGaudioElement
+typedef struct _tagSVG_SA_audioElement
 {
 	BASE_SVG_ELEMENT
 	SVG_ContentType type;
-} SVGaudioElement;
+} SVG_SA_audioElement;
 
 
-typedef struct _tagSVGcircleElement
+typedef struct _tagSVG_SA_circleElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate cx;
 	SVG_Coordinate cy;
 	SVG_Length r;
-} SVGcircleElement;
+} SVG_SA_circleElement;
 
 
-typedef struct _tagSVGconditionalElement
+typedef struct _tagSVG_SA_conditionalElement
 {
 	BASE_SVG_ELEMENT
 	SVGCommandBuffer updates;
 	SVG_Boolean enabled;
-} SVGconditionalElement;
+} SVG_SA_conditionalElement;
 
 
-typedef struct _tagSVGcursorManagerElement
+typedef struct _tagSVG_SA_cursorManagerElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Length x;
 	SVG_Length y;
-} SVGcursorManagerElement;
+} SVG_SA_cursorManagerElement;
 
 
-typedef struct _tagSVGdefsElement
+typedef struct _tagSVG_SA_defsElement
 {
 	BASE_SVG_ELEMENT
-} SVGdefsElement;
+} SVG_SA_defsElement;
 
 
-typedef struct _tagSVGdescElement
+typedef struct _tagSVG_SA_descElement
 {
 	BASE_SVG_ELEMENT
-} SVGdescElement;
+} SVG_SA_descElement;
 
 
-typedef struct _tagSVGdiscardElement
+typedef struct _tagSVG_SA_discardElement
 {
 	BASE_SVG_ELEMENT
-} SVGdiscardElement;
+} SVG_SA_discardElement;
 
 
-typedef struct _tagSVGellipseElement
+typedef struct _tagSVG_SA_ellipseElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Length rx;
 	SVG_Length ry;
 	SVG_Coordinate cx;
 	SVG_Coordinate cy;
-} SVGellipseElement;
+} SVG_SA_ellipseElement;
 
 
-typedef struct _tagSVGfontElement
+typedef struct _tagSVG_SA_fontElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Number horiz_adv_x;
 	SVG_Number horiz_origin_x;
-} SVGfontElement;
+} SVG_SA_fontElement;
 
 
-typedef struct _tagSVGfont_faceElement
+typedef struct _tagSVG_SA_font_faceElement
 {
 	BASE_SVG_ELEMENT
 	SVG_FontFamily font_family;
@@ -247,38 +248,38 @@ typedef struct _tagSVGfont_faceElement
 	SVG_Number strikethrough_thickness;
 	SVG_Number overline_position;
 	SVG_Number overline_thickness;
-} SVGfont_faceElement;
+} SVG_SA_font_faceElement;
 
 
-typedef struct _tagSVGfont_face_srcElement
+typedef struct _tagSVG_SA_font_face_srcElement
 {
 	BASE_SVG_ELEMENT
-} SVGfont_face_srcElement;
+} SVG_SA_font_face_srcElement;
 
 
-typedef struct _tagSVGfont_face_uriElement
+typedef struct _tagSVG_SA_font_face_uriElement
 {
 	BASE_SVG_ELEMENT
-} SVGfont_face_uriElement;
+} SVG_SA_font_face_uriElement;
 
 
-typedef struct _tagSVGforeignObjectElement
+typedef struct _tagSVG_SA_foreignObjectElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
 	SVG_Length height;
-} SVGforeignObjectElement;
+} SVG_SA_foreignObjectElement;
 
 
-typedef struct _tagSVGgElement
+typedef struct _tagSVG_SA_gElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
-} SVGgElement;
+} SVG_SA_gElement;
 
 
-typedef struct _tagSVGglyphElement
+typedef struct _tagSVG_SA_glyphElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Number horiz_adv_x;
@@ -287,19 +288,19 @@ typedef struct _tagSVGglyphElement
 	SVG_String glyph_name;
 	SVG_String arabic_form;
 	SVG_LanguageIDs lang;
-} SVGglyphElement;
+} SVG_SA_glyphElement;
 
 
-typedef struct _tagSVGhandlerElement
+typedef struct _tagSVG_SA_handlerElement
 {
 	BASE_SVG_ELEMENT
 	SVG_ContentType type;
 	XMLEV_Event ev_event;
-	void (*handle_event)(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);
-} SVGhandlerElement;
+	void (*handle_event)(GF_Node *hdl, GF_DOM_Event *event);
+} SVG_SA_handlerElement;
 
 
-typedef struct _tagSVGhkernElement
+typedef struct _tagSVG_SA_hkernElement
 {
 	BASE_SVG_ELEMENT
 	SVG_String u1;
@@ -307,10 +308,10 @@ typedef struct _tagSVGhkernElement
 	SVG_String u2;
 	SVG_String g2;
 	SVG_Number k;
-} SVGhkernElement;
+} SVG_SA_hkernElement;
 
 
-typedef struct _tagSVGimageElement
+typedef struct _tagSVG_SA_imageElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
@@ -319,20 +320,20 @@ typedef struct _tagSVGimageElement
 	SVG_Length height;
 	SVG_PreserveAspectRatio preserveAspectRatio;
 	SVG_ContentType type;
-} SVGimageElement;
+} SVG_SA_imageElement;
 
 
-typedef struct _tagSVGlineElement
+typedef struct _tagSVG_SA_lineElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x1;
 	SVG_Coordinate y1;
 	SVG_Coordinate x2;
 	SVG_Coordinate y2;
-} SVGlineElement;
+} SVG_SA_lineElement;
 
 
-typedef struct _tagSVGlinearGradientElement
+typedef struct _tagSVG_SA_linearGradientElement
 {
 	BASE_SVG_ELEMENT
 	SVG_GradientUnit gradientUnits;
@@ -342,10 +343,10 @@ typedef struct _tagSVGlinearGradientElement
 	SVG_Coordinate y1;
 	SVG_Coordinate x2;
 	SVG_Coordinate y2;
-} SVGlinearGradientElement;
+} SVG_SA_linearGradientElement;
 
 
-typedef struct _tagSVGlistenerElement
+typedef struct _tagSVG_SA_listenerElement
 {
 	BASE_SVG_ELEMENT
 	XMLEV_Event event;
@@ -356,52 +357,52 @@ typedef struct _tagSVGlistenerElement
 	SVG_IRI target;
 	SVG_IRI handler;
 	SVG_Boolean enabled;
-} SVGlistenerElement;
+} SVG_SA_listenerElement;
 
 
-typedef struct _tagSVGmetadataElement
+typedef struct _tagSVG_SA_metadataElement
 {
 	BASE_SVG_ELEMENT
-} SVGmetadataElement;
+} SVG_SA_metadataElement;
 
 
-typedef struct _tagSVGmissing_glyphElement
+typedef struct _tagSVG_SA_missing_glyphElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Number horiz_adv_x;
 	SVG_PathData d;
-} SVGmissing_glyphElement;
+} SVG_SA_missing_glyphElement;
 
 
-typedef struct _tagSVGmpathElement
+typedef struct _tagSVG_SA_mpathElement
 {
 	BASE_SVG_ELEMENT
-} SVGmpathElement;
+} SVG_SA_mpathElement;
 
 
-typedef struct _tagSVGpathElement
+typedef struct _tagSVG_SA_pathElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_PathData d;
 	SVG_Number pathLength;
-} SVGpathElement;
+} SVG_SA_pathElement;
 
 
-typedef struct _tagSVGpolygonElement
+typedef struct _tagSVG_SA_polygonElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Points points;
-} SVGpolygonElement;
+} SVG_SA_polygonElement;
 
 
-typedef struct _tagSVGpolylineElement
+typedef struct _tagSVG_SA_polylineElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Points points;
-} SVGpolylineElement;
+} SVG_SA_polylineElement;
 
 
-typedef struct _tagSVGprefetchElement
+typedef struct _tagSVG_SA_prefetchElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Number mediaSize;
@@ -409,10 +410,10 @@ typedef struct _tagSVGprefetchElement
 	SVG_String mediaCharacterEncoding;
 	SVG_String mediaContentEncodings;
 	SVG_Number bandwidth;
-} SVGprefetchElement;
+} SVG_SA_prefetchElement;
 
 
-typedef struct _tagSVGradialGradientElement
+typedef struct _tagSVG_SA_radialGradientElement
 {
 	BASE_SVG_ELEMENT
 	SVG_GradientUnit gradientUnits;
@@ -423,10 +424,10 @@ typedef struct _tagSVGradialGradientElement
 	SVG_Length r;
 	SVG_Coordinate fx;
 	SVG_Coordinate fy;
-} SVGradialGradientElement;
+} SVG_SA_radialGradientElement;
 
 
-typedef struct _tagSVGrectElement
+typedef struct _tagSVG_SA_rectElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
@@ -435,57 +436,57 @@ typedef struct _tagSVGrectElement
 	SVG_Length height;
 	SVG_Length rx;
 	SVG_Length ry;
-} SVGrectElement;
+} SVG_SA_rectElement;
 
 
-typedef struct _tagSVGrectClipElement
+typedef struct _tagSVG_SA_rectClipElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	LASeR_Size size;
-} SVGrectClipElement;
+} SVG_SA_rectClipElement;
 
 
-typedef struct _tagSVGscriptElement
+typedef struct _tagSVG_SA_scriptElement
 {
 	BASE_SVG_ELEMENT
 	SVG_ContentType type;
-} SVGscriptElement;
+} SVG_SA_scriptElement;
 
 
-typedef struct _tagSVGselectorElement
+typedef struct _tagSVG_SA_selectorElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	LASeR_Choice choice;
-} SVGselectorElement;
+} SVG_SA_selectorElement;
 
 
-typedef struct _tagSVGsetElement
+typedef struct _tagSVG_SA_setElement
 {
 	BASE_SVG_ELEMENT
-} SVGsetElement;
+} SVG_SA_setElement;
 
 
-typedef struct _tagSVGsimpleLayoutElement
+typedef struct _tagSVG_SA_simpleLayoutElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	LASeR_Size delta;
-} SVGsimpleLayoutElement;
+} SVG_SA_simpleLayoutElement;
 
 
-typedef struct _tagSVGsolidColorElement
+typedef struct _tagSVG_SA_solidColorElement
 {
 	BASE_SVG_ELEMENT
-} SVGsolidColorElement;
+} SVG_SA_solidColorElement;
 
 
-typedef struct _tagSVGstopElement
+typedef struct _tagSVG_SA_stopElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Number offset;
-} SVGstopElement;
+} SVG_SA_stopElement;
 
 
-typedef struct _tagSVGsvgElement
+typedef struct _tagSVG_SA_svgElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Coordinate x;
@@ -501,32 +502,32 @@ typedef struct _tagSVGsvgElement
 	SVG_Clock snapshotTime;
 	SVG_TimelineBegin timelineBegin;
 	SVG_PlaybackOrder playbackOrder;
-} SVGsvgElement;
+} SVG_SA_svgElement;
 
 
-typedef struct _tagSVGswitchElement
+typedef struct _tagSVG_SA_switchElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
-} SVGswitchElement;
+} SVG_SA_switchElement;
 
 
-typedef struct _tagSVGtbreakElement
+typedef struct _tagSVG_SA_tbreakElement
 {
 	BASE_SVG_ELEMENT
-} SVGtbreakElement;
+} SVG_SA_tbreakElement;
 
 
-typedef struct _tagSVGtextElement
+typedef struct _tagSVG_SA_textElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Boolean editable;
 	SVG_Coordinates x;
 	SVG_Coordinates y;
 	SVG_Numbers rotate;
-} SVGtextElement;
+} SVG_SA_textElement;
 
 
-typedef struct _tagSVGtextAreaElement
+typedef struct _tagSVG_SA_textAreaElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
@@ -534,30 +535,30 @@ typedef struct _tagSVGtextAreaElement
 	SVG_Boolean editable;
 	SVG_Length width;
 	SVG_Length height;
-} SVGtextAreaElement;
+} SVG_SA_textAreaElement;
 
 
-typedef struct _tagSVGtitleElement
+typedef struct _tagSVG_SA_titleElement
 {
 	BASE_SVG_ELEMENT
-} SVGtitleElement;
+} SVG_SA_titleElement;
 
 
-typedef struct _tagSVGtspanElement
+typedef struct _tagSVG_SA_tspanElement
 {
 	BASE_SVG_ELEMENT
-} SVGtspanElement;
+} SVG_SA_tspanElement;
 
 
-typedef struct _tagSVGuseElement
+typedef struct _tagSVG_SA_useElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
 	SVG_Coordinate y;
-} SVGuseElement;
+} SVG_SA_useElement;
 
 
-typedef struct _tagSVGvideoElement
+typedef struct _tagSVG_SA_videoElement
 {
 	TRANSFORMABLE_SVG_ELEMENT
 	SVG_Coordinate x;
@@ -569,17 +570,20 @@ typedef struct _tagSVGvideoElement
 	SVG_InitialVisibility initialVisibility;
 	SVG_TransformBehavior transformBehavior;
 	SVG_Overlay overlay;
-} SVGvideoElement;
+} SVG_SA_videoElement;
 
 
 /******************************************
 *  End SVG Elements structure definitions *
 *******************************************/
+
+#endif	/*GPAC_ENABLE_SVG_SA*/
+
 #ifdef __cplusplus
 }
 #endif
 
 
 
-#endif		/*_GF_SVG_NODES_H*/
+#endif		/*_GF_SVG_SA_NODES_H*/
 

@@ -36,9 +36,14 @@ static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event
 GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener)
 {
 	if (!node || !listener) return GF_BAD_PARAM;
-	if (listener->sgprivate->tag!=TAG_SVG_listener &&
-		listener->sgprivate->tag!=TAG_SVG2_listener &&
-		listener->sgprivate->tag!=TAG_SVG3_listener) return GF_BAD_PARAM;
+	if ((listener->sgprivate->tag!=TAG_SVG_listener)
+#ifdef GPAC_ENABLE_SVG_SANI
+		&& (listener->sgprivate->tag!=TAG_SVG_SA_listener)
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+		&& (listener->sgprivate->tag!=TAG_SVG_SANI_listener)
+#endif
+		) return GF_BAD_PARAM;
 
 	if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
 	if (!node->sgprivate->interact->events) node->sgprivate->interact->events = gf_list_new();
@@ -78,25 +83,45 @@ static void svg_process_event(GF_Node *listen, GF_DOM_Event *event)
 {
 	GF_Node *hdl_node;
 
-	if (listen->sgprivate->tag == TAG_SVG_listener || listen->sgprivate->tag == TAG_SVG2_listener) {
-		hdl_node = ((SVGlistenerElement *)listen)->handler.target;
-	} else if (listen->sgprivate->tag == TAG_SVG3_listener) {
+	switch (listen->sgprivate->tag) {
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_listener:
+		hdl_node = ((SVG_SA_listenerElement *)listen)->handler.target;
+		break;
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_listener:
+		hdl_node = ((SVG_SANI_listenerElement *)listen)->handler.target;
+		break;
+#endif
+	case TAG_SVG_listener:
+	{
 		GF_FieldInfo info;
-		if (gf_svg3_get_attribute_by_tag(listen, TAG_SVG3_ATT_handler, 0, 0, &info) == GF_OK) {
+		if (gf_svg_get_attribute_by_tag(listen, TAG_SVG_ATT_handler, 0, 0, &info) == GF_OK) {
 			hdl_node = ((SVG_IRI *)info.far_ptr)->target;
 		} else {
 			return;
 		}
-	} else {
+	}
+		break;
+	default:
 		return;
 	}
 	if (!hdl_node) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Time %f - Processing event type: %s\n", gf_node_get_scene_time((GF_Node *)listen), gf_dom_event_get_name(event->type)));
 
-	if (hdl_node->sgprivate->tag == TAG_SVG_handler || hdl_node->sgprivate->tag == TAG_SVG2_handler) {
-		SVGhandlerElement *handler = (SVGhandlerElement *) hdl_node;
-		if (is_svg_animation_tag(handler->sgprivate->tag) && handler->anim && handler->timing->runtime) {
+	switch (hdl_node->sgprivate->tag) {
+#ifdef GPAC_ENABLE_SVG_SA_BASE
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_handler:
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_handler:
+#endif
+	{
+		SVG_SA_handlerElement *handler = (SVG_SA_handlerElement *) hdl_node;
+		if (gf_svg_sa_is_animation_tag(handler->sgprivate->tag) && handler->anim && handler->timing->runtime) {
 			if (event->type == GF_EVENT_BATTERY) {
 				handler->timing->runtime->fraction = gf_divfix(INT2FIX(event->batteryLevel), INT2FIX(100));
 			} else if (event->type == GF_EVENT_CPU) {
@@ -150,19 +175,25 @@ static void svg_process_event(GF_Node *listen, GF_DOM_Event *event)
 		if (handler->ev_event.type != event->type) return;
 		handler->handle_event((GF_Node*)handler, event);
 
-	} else if (hdl_node->sgprivate->tag == TAG_SVG3_handler) {
+	} 
+		break;
+#endif	/*GPAC_ENABLE_SVG_SA_BASE*/
+	case TAG_SVG_handler:
+	{
 		GF_FieldInfo info;
-		SVG3handlerElement *handler = (SVG3handlerElement *) hdl_node;
+		SVG_handlerElement *handler = (SVG_handlerElement *) hdl_node;
 		if (!handler->handle_event) return;
 
-		if (gf_svg3_get_attribute_by_tag(hdl_node, TAG_SVG3_ATT_ev_event, 0, 0, &info) == GF_OK) {
+		if (gf_svg_get_attribute_by_tag(hdl_node, TAG_SVG_ATT_ev_event, 0, 0, &info) == GF_OK) {
 			XMLEV_Event *ev_event = (XMLEV_Event *)info.far_ptr;
 			if (ev_event->type != event->type) return;
 			handler->handle_event(hdl_node, event);
 		} else {
 			return;
 		}
-	} else {
+	}
+		break;
+	default:
 		return;
 	}
 }
@@ -178,21 +209,32 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 			GF_Node *handler = NULL;
 			XMLEV_Event *listened_event;
 			GF_Node *listen = (GF_Node *)gf_list_get(node->sgprivate->interact->events, i);
-			if (listen->sgprivate->tag == TAG_SVG_listener ||
-				listen->sgprivate->tag == TAG_SVG2_listener) {
-				listened_event = &((SVGlistenerElement *)listen)->event;
-				handler = ((SVGlistenerElement *)listen)->handler.target;
-			} else if (listen->sgprivate->tag == TAG_SVG3_listener) {
+			switch (listen->sgprivate->tag) {
+#ifdef GPAC_ENABLE_SVG_SA_BASE
+#ifdef GPAC_ENABLE_SVG_SA
+			case TAG_SVG_SA_listener:
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+			case TAG_SVG_SANI_listener:
+#endif
+				listened_event = &((SVG_SA_listenerElement *)listen)->event;
+				handler = ((SVG_SA_listenerElement *)listen)->handler.target;
+				break;
+#endif /*GPAC_ENABLE_SVG_SA_BASE*/
+			case TAG_SVG_listener:
+			{
 				GF_FieldInfo info;
-				if (gf_svg3_get_attribute_by_tag(listen, TAG_SVG3_ATT_event, 0, 0, &info) == GF_OK) {
+				if (gf_svg_get_attribute_by_tag(listen, TAG_SVG_ATT_event, 0, 0, &info) == GF_OK) {
 					listened_event = (XMLEV_Event *)info.far_ptr;
-					if (gf_svg3_get_attribute_by_tag(listen, TAG_SVG3_ATT_handler, 0, 0, &info) == GF_OK) {
+					if (gf_svg_get_attribute_by_tag(listen, TAG_SVG_ATT_handler, 0, 0, &info) == GF_OK) {
 						handler = ((SVG_IRI*)info.far_ptr)->target;
 					}
 				} else {
 					continue;
 				}
-			} else {
+			}
+				break;
+			default:
 				continue;
 			}
 			if (listened_event->type <= GF_EVENT_MOUSEMOVE) event->has_ui_events=1;
@@ -279,46 +321,68 @@ void *gf_dom_listener_build(GF_Node *node, XMLEV_Event event)
 	GF_ChildNodeItem *last = NULL;
 
 	tag = gf_node_get_tag(node);
-	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG) ||
-		(tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		SVGlistenerElement *listener;
-		SVGhandlerElement *handler;
+#ifdef GPAC_ENABLE_SVG_SA
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		SVG_SA_listenerElement *listener;
+		SVG_SA_handlerElement *handler;
 		/*emulate a listener for onClick event*/
-		listener = (SVGlistenerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
-		handler = (SVGhandlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_handler);
+		listener = (SVG_SA_listenerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_SA_listener);
+		handler = (SVG_SA_handlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_SA_handler);
 		gf_node_register((GF_Node *)listener, node);
 		gf_node_list_add_child_last( & ((GF_ParentNode *)node)->children, (GF_Node*)listener, &last);
 		gf_node_register((GF_Node *)handler, node);
 		gf_node_list_add_child_last(& ((GF_ParentNode *)node)->children, (GF_Node*)handler, &last);
 		handler->ev_event = listener->event = event;
-		listener->handler.target = (SVGElement *) handler;
-		listener->target.target = (SVGElement *)node;
+		listener->handler.target = (SVG_SA_Element *) handler;
+		listener->target.target = (SVG_SA_Element *)node;
 		gf_dom_listener_add((GF_Node *) node, (GF_Node *) listener);
 		/*set default handler*/
 		handler->handle_event = gf_sg_handle_dom_event;
 		return handler;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		SVG3Element *listener;
-		SVG3handlerElement *handler;
+	} else 
+#endif /*GPAC_ENABLE_SVG_SA*/
+#ifdef GPAC_ENABLE_SVG_SANI
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		SVG_SA_listenerElement *listener;
+		SVG_SA_handlerElement *handler;
+		/*emulate a listener for onClick event*/
+		listener = (SVG_SA_listenerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_SANI_listener);
+		handler = (SVG_SA_handlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_SANI_handler);
+		gf_node_register((GF_Node *)listener, node);
+		gf_node_list_add_child_last( & ((GF_ParentNode *)node)->children, (GF_Node*)listener, &last);
+		gf_node_register((GF_Node *)handler, node);
+		gf_node_list_add_child_last(& ((GF_ParentNode *)node)->children, (GF_Node*)handler, &last);
+		handler->ev_event = listener->event = event;
+		listener->handler.target = (SVG_SA_Element *) handler;
+		listener->target.target = (SVG_SA_Element *)node;
+		gf_dom_listener_add((GF_Node *) node, (GF_Node *) listener);
+		/*set default handler*/
+		handler->handle_event = gf_sg_handle_dom_event;
+		return handler;
+	} else 
+#endif /*GPAC_ENABLE_SVG_SANI*/
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+		SVG_Element *listener;
+		SVG_handlerElement *handler;
 		GF_FieldInfo info;
 
-		listener = (SVG3Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG3_listener);
-		handler = (SVG3handlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG3_handler);
+		listener = (SVG_Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
+		handler = (SVG_handlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_handler);
 		gf_node_register((GF_Node *)listener, node);
 		gf_node_list_add_child_last( & ((GF_ParentNode *)node)->children, (GF_Node*)listener, &last);
 		gf_node_register((GF_Node *)handler, node);
 		gf_node_list_add_child_last(& ((GF_ParentNode *)node)->children, (GF_Node*)handler, &last);
 
-		gf_svg3_get_attribute_by_tag(handler, TAG_SVG3_ATT_ev_event, 1, 0, &info);
+		gf_svg_get_attribute_by_tag((GF_Node*)handler, TAG_SVG_ATT_ev_event, 1, 0, &info);
 		*(XMLEV_Event *)info.far_ptr = event;
 		
-		gf_svg3_get_attribute_by_tag(listener, TAG_SVG3_ATT_event, 1, 0, &info);
+		gf_svg_get_attribute_by_tag((GF_Node*)listener, TAG_SVG_ATT_event, 1, 0, &info);
 		*(XMLEV_Event *)info.far_ptr = event;
 
-		gf_svg3_get_attribute_by_tag(listener, TAG_SVG3_ATT_handler, 1, 0, &info);
+		gf_svg_get_attribute_by_tag((GF_Node*)listener, TAG_SVG_ATT_handler, 1, 0, &info);
 		((SVG_IRI *)info.far_ptr)->target = handler;
 
-		gf_svg3_get_attribute_by_tag(listener, TAG_SVG3_ATT_listener_target, 1, 0, &info);
+		gf_svg_get_attribute_by_tag((GF_Node*)listener, TAG_SVG_ATT_listener_target, 1, 0, &info);
 		((SVG_IRI *)info.far_ptr)->target = node;
 		
 		gf_dom_listener_add((GF_Node *) node, (GF_Node *) listener);
@@ -389,11 +453,11 @@ static void gf_smil_handle_event_begin(GF_Node *hdl, GF_DOM_Event *evt)
 	u32 tag = timed_elt->sgprivate->tag;
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "begin";
-	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG) ||
-		(tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		info.far_ptr = &((SVGElement *)timed_elt)->timing->begin;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		info.far_ptr = ((SVG3TimedAnimBaseElement *)timed_elt)->timingp->begin;
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA) ||
+		(tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		info.far_ptr = &((SVG_SA_Element *)timed_elt)->timing->begin;
+	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+		info.far_ptr = ((SVGTimedAnimBaseElement *)timed_elt)->timingp->begin;
 	} else {
 		return; 
 	}
@@ -408,11 +472,11 @@ static void gf_smil_handle_event_end(GF_Node *hdl, GF_DOM_Event *evt)
 	u32 tag = timed_elt->sgprivate->tag;
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "end";
-	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG) ||
-		(tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		info.far_ptr = &((SVGElement *)timed_elt)->timing->end;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		info.far_ptr = ((SVG3TimedAnimBaseElement *)timed_elt)->timingp->end;
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA) ||
+		(tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		info.far_ptr = &((SVG_SA_Element *)timed_elt)->timing->end;
+	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+		info.far_ptr = ((SVGTimedAnimBaseElement *)timed_elt)->timingp->end;
 	} else {
 		return; 
 	}
@@ -432,12 +496,21 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 		/*not resolved yet*/
 		if (!t->element && t->element_id) continue;
 		hdl = gf_dom_listener_build(t->element, t->event);
-		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG) ||
-			(tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-			((SVGhandlerElement *)hdl)->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
-		} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-			((SVG3handlerElement *)hdl)->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
-		} else {
+		
+		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+			((SVG_handlerElement *)hdl)->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
+		}
+#ifdef GPAC_ENABLE_SVG_SA
+		else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+			((SVG_SA_handlerElement *)hdl)->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
+		}
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+		else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+			((SVG_SANI_handlerElement *)hdl)->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
+		}
+#endif
+		else {
 			continue;
 		}
 		gf_node_set_private((GF_Node *)hdl, node);
@@ -452,6 +525,20 @@ void gf_smil_setup_events(GF_Node *node)
 	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 1);
 	if (gf_node_get_field_by_name(node, "end", &info) != GF_OK) return;
 	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 0);
+}
+
+
+GF_DOMText *gf_dom_add_text_node(GF_Node *parent, char *text_data)
+{
+	GF_DOMText *text;
+	GF_SAFEALLOC(text, GF_DOMText);
+
+	gf_node_setup((GF_Node *)text, TAG_DOMText);
+	text->sgprivate->scenegraph = parent->sgprivate->scenegraph;
+	text->textContent = text_data;
+	gf_node_register((GF_Node *)text, parent);
+	gf_node_list_add_child_last(&((GF_ParentNode *)parent)->children, (GF_Node*)text, NULL);
+	return text;
 }
 
 #endif	//GPAC_DISABLE_SVG

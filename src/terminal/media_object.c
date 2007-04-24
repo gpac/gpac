@@ -58,15 +58,19 @@ GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 	case TAG_MPEG4_Inline: case TAG_X3D_Inline: obj_type = GF_MEDIA_OBJECT_SCENE; break;
 	
 	/*SVG*/
-	case TAG_SVG_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
-	case TAG_SVG2_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
-	case TAG_SVG3_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
-	case TAG_SVG_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
-	case TAG_SVG2_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
-	case TAG_SVG3_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_audio: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
+	case TAG_SVG_SA_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
+	case TAG_SVG_SA_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_audio: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
+	case TAG_SVG_SANI_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
+	case TAG_SVG_SANI_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
+#endif
 	case TAG_SVG_audio: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
-	case TAG_SVG2_audio: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
-	case TAG_SVG3_audio: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
+	case TAG_SVG_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
+	case TAG_SVG_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
 
 	default: obj_type = GF_MEDIA_OBJECT_UNDEF; break;
 	}
