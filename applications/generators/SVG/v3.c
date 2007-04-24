@@ -24,29 +24,6 @@
 
 #include "svggen.h"
 
-void generateNodeImpl3(FILE *output, SVGGenElement* svg_elt) 
-{
-	u32 i;	
-
-	fprintf(output, "SVG3Attribute *gf_svg3_%s_create_attribute(u32 tag)\n",svg_elt->implementation_name);
-	fprintf(output, "{\n");
-	fprintf(output, "\tswitch(tag) {\n");
-	for (i = 0; i < gf_list_count(svg_elt->generic_attributes); i++) {
-		SVGGenAttribute *att = gf_list_get(svg_elt->generic_attributes, i);
-		fprintf(output, "\t\tcase TAG_SVG3_ATT_%s: return gf_svg3_create_attribute_from_datatype(%s_datatype, tag);\n", att->implementation_name, att->impl_type);
-	}
-
-	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
-		SVGGenAttribute *att = gf_list_get(svg_elt->attributes, i);
-		fprintf(output, "\t\tcase TAG_SVG3_ATT_%s: return gf_svg3_create_attribute_from_datatype(%s_datatype, tag);\n", att->implementation_name, att->impl_type);
-	}
-
-	fprintf(output, "\t\tdefault: return NULL;\n");		
-	fprintf(output, "\t}\n");
-	fprintf(output, "}\n");		
-	fprintf(output, "\n");		
-}
-
 void buildGlobalAttributeList(GF_List *svg_elements, GF_List *all_atts)
 {
 	u32 i, j, k;
@@ -115,10 +92,17 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	u32 i;
 	GF_List *all_atts = gf_list_new();
 
+	buildGlobalAttributeList(svg_elements, all_atts);
+
+	/***************************************************/	
+	/***************************************************/	
+	/*************** Creating .h file ******************/	
+	/***************************************************/	
+	/***************************************************/	
 	output = BeginFile(0);
 	fprintf(output, "#include <gpac/scenegraph_svg.h>\n\n\n");
 
-	/* ELEMENT tags */
+	/* Generation of ELEMENT tags */
 	fprintf(output, "/* Definition of SVG 3 Alternate element internal tags */\n");
 	fprintf(output, "/* TAG names are made of \"TAG_SVG3\" + SVG element name (with - replaced by _) */\n");
 	fprintf(output, "enum {\n");
@@ -132,11 +116,7 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	}
 	fprintf(output, ",\n\t/*undefined elements (when parsing) use this tag*/\n\tTAG_SVG3_UndefinedElement\n};\n\n");
 
-
-
-	buildGlobalAttributeList(svg_elements, all_atts);
-
-	/* ATTRIBUTE tags */
+	/* Generation of ATTRIBUTE tags */
 	fprintf(output, "/* Definition of SVG 3 attribute internal tags */\n");
 	fprintf(output, "/* TAG names are made of \"TAG_SVG3_ATT_\" + SVG attribute name (with - replaced by _) */\n");
 	fprintf(output, "enum {\n");
@@ -146,13 +126,13 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	}
 	fprintf(output, "\t/*undefined attributes (when parsing) use this tag*/\n\tTAG_SVG3_ATT_Unknown\n};\n\n");
 
-	/* Structure pointing to all attributes tags */
-	fprintf(output, "typedef struct _all_atts {\n");
+	/* Generation of the flatten structure pointing to all possible attributes in SVG */
+	fprintf(output, "struct _all_atts {\n");
 	for (i=0; i<gf_list_count(all_atts); i++) {
 		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
 		fprintf(output, "\t%s *%s;\n", att->impl_type, att->implementation_name);
 	}
-	fprintf(output, "} SVG3AllAttributes;\n");
+	fprintf(output, "};\n");
 
 	EndFile(output, 0);
 
@@ -167,11 +147,22 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	fprintf(output, "#include <gpac/nodes_svg_da.h>\n\n");
 
 	
+	/****************************************************************/	
+	/* u32 gf_svg3_get_attribute_tag(u32 element_tag, const char *attribute_name) */
+	/****************************************************************/	
 	fprintf(output, "u32 gf_svg3_get_attribute_tag(u32 element_tag, const char *attribute_name)\n{\n\tif (!attribute_name) return TAG_SVG3_ATT_Unknown;\n");
 	for (i=0; i<gf_list_count(all_atts); i++) {
 		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
+		
+		/* get rid of duplicates */
 		if (!strcmp(att->impl_type, "SMIL_Fill")) continue; 
 		if (!strcmp(att->impl_type, "SVG_ContentType")) continue; 
+		if (!strcmp(att->implementation_name, "text_x")) continue; 
+		if (!strcmp(att->implementation_name, "text_y")) continue; 
+		if (!strcmp(att->implementation_name, "text_rotate")) continue; 
+		if (!strcmp(att->implementation_name, "cursorManager_x")) continue; 
+		if (!strcmp(att->implementation_name, "cursorManager_y")) continue; 
+		
 		if (!strcmp(att->svg_name, "x") || !strcmp(att->svg_name, "y")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
 			fprintf(output, "\t\tif (element_tag == TAG_SVG3_text) return TAG_SVG3_ATT_text_%s;\n", att->implementation_name);
@@ -199,7 +190,10 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	}
 	fprintf(output, "\treturn TAG_SVG3_ATT_Unknown;\n}\n\n");
 
-	fprintf(output, "u32 gf_svg3_get_attribute_type_from_tag(u32 tag)\n{\n");
+	/****************************************************************/	
+	/* u32 gf_svg3_get_attribute_type(u32 tag) */
+	/****************************************************************/	
+	fprintf(output, "u32 gf_svg3_get_attribute_type(u32 tag)\n{\n");
 	fprintf(output, "\tswitch(tag) {\n");
 	for (i=0; i<gf_list_count(all_atts); i++) {
 		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
@@ -209,7 +203,33 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	fprintf(output, "\t}\n");
 	fprintf(output, "\treturn TAG_SVG3_ATT_Unknown;\n}\n\n");
 
-	fprintf(output, "void gf_svg3_fill_all_attributes(SVG3AllAttributes *all_atts, SVG3Element *e)\n");
+	/****************************************************************/	
+	/* const char* gf_svg3_get_attribute_name(u32 tag) */
+	/****************************************************************/	
+	fprintf(output, "const char*gf_svg3_get_attribute_name(u32 tag)\n{\n");
+	fprintf(output, "\tswitch(tag) {\n");
+	for (i=0; i<gf_list_count(all_atts); i++) {
+		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
+		fprintf(output, "\t\tcase TAG_SVG3_ATT_%s: return \"%s\";\n", att->implementation_name, att->svg_name);
+	}
+	fprintf(output, "\t\tdefault: return \"unknown\";\n");
+	fprintf(output, "\t}\n");
+	fprintf(output, "}\n\n");
+
+	/***************************************************/	
+	/* SVG3Attribute *gf_svg3_create_attribute(GF_Node *node, u32 tag) */
+	/***************************************************/	
+	fprintf(output, "SVG3Attribute *gf_svg3_create_attribute(GF_Node *node, u32 tag)\n{\n\tswitch(node->sgprivate->tag) {\n");
+	for (i=0; i<gf_list_count(all_atts); i++) {
+		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
+		fprintf(output, "\t\tcase TAG_SVG3_ATT_%s: return gf_svg3_create_attribute_from_datatype(%s_datatype, tag);\n", att->implementation_name, att->impl_type);
+	}
+	fprintf(output, "\tdefault: return NULL;\n\t}\n}\n\n");
+
+	/****************************************************************/	
+	/* void gf_svg3_flatten_attributes(SVG3Element *e, SVG3AllAttributes *all_atts) */
+	/****************************************************************/	
+	fprintf(output, "void gf_svg3_flatten_attributes(SVG3Element *e, SVG3AllAttributes *all_atts)\n");
 	fprintf(output, "{\n");
 	fprintf(output, "\tu32 i, count;\n");
 	fprintf(output, "\tcount = gf_list_count(e->attributes);\n");
@@ -225,17 +245,10 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	fprintf(output, "}\n");
 	fprintf(output, "\n");
 
-	gf_list_del(all_atts);
-
-	for (i=0; i<gf_list_count(svg_elements); i++) {
-		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
-		generateNodeImpl3(output, elt);
-	}
-
 	/****************************************************************/	
-	/* u32 gf_node_svg3_type_by_class_name(const char *element_name) */
+	/* u32 gf_svg3_get_element_tag(const char *element_name) */
 	/****************************************************************/	
-	fprintf(output, "u32 gf_node_svg3_type_by_class_name(const char *element_name)\n{\n\tif (!element_name) return TAG_UndefinedNode;\n");
+	fprintf(output, "u32 gf_svg3_get_element_tag(const char *element_name)\n{\n\tif (!element_name) return TAG_UndefinedNode;\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
 		fprintf(output, "\tif (!stricmp(element_name, \"%s\")) return TAG_SVG3_%s;\n", elt->svg_name, elt->implementation_name);
@@ -252,15 +265,9 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	}
 	fprintf(output, "\tdefault: return \"TAG_SVG3_UndefinedNode\";\n\t}\n}\n\n");
 
-	fprintf(output, "SVG3Attribute *gf_svg3_create_attribute(GF_Node *node, u32 tag)\n{\n\tswitch(node->sgprivate->tag) {\n");
-	for (i=0; i<gf_list_count(svg_elements); i++) {
-		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
-		fprintf(output, "\tcase TAG_SVG3_%s: return gf_svg3_%s_create_attribute(tag);\n", elt->implementation_name, elt->implementation_name);
-	}
-	fprintf(output, "\tdefault: return NULL;\n\t}\n}\n\n");
-
 	fprintf(output, "#endif /*GPAC_DISABLE_SVG*/\n\n");
 	EndFile(output, 1); 
+	gf_list_del(all_atts);
 
 }
 
