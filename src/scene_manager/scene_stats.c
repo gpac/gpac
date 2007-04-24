@@ -337,9 +337,9 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 	gf_node_register(clone, NULL);
 
 #ifndef GPAC_DISABLE_SVG
-	if ((n->sgprivate->tag>= GF_NODE_RANGE_FIRST_SVG) && (n->sgprivate->tag<= GF_NODE_RANGE_LAST_SVG)) {
-		GF_ChildNodeItem *list = ((SVGElement *)n)->children;;
-		count = gf_svg_get_attribute_count(n);
+	if ((n->sgprivate->tag>= GF_NODE_RANGE_FIRST_SVG_SA) && (n->sgprivate->tag<= GF_NODE_RANGE_LAST_SVG_SA)) {
+		GF_ChildNodeItem *list = ((SVG_SA_Element *)n)->children;;
+		count = gf_node_get_field_count(n);
 		for (i=0; i<count; i++) {
 			gf_node_get_field(n, i, &field);
 			StatSVGAttribute(st->stats, &field);

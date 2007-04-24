@@ -792,14 +792,14 @@ FILE *BeginFile(u32 type)
 
 	if (!type) {
 		if (generation_mode == 1) {
+			fprintf(f, "#ifndef _GF_SVG_SA_NODES_H\n");
+			fprintf(f, "#define _GF_SVG_SA_NODES_H\n\n");
+		} else if (generation_mode == 2) {
+			fprintf(f, "#ifndef _GF_SVG_SANI_NODES_H\n");
+			fprintf(f, "#define _GF_SVG_SANI_NODES_H\n\n");
+		} else if (generation_mode == 3) {
 			fprintf(f, "#ifndef _GF_SVG_NODES_H\n");
 			fprintf(f, "#define _GF_SVG_NODES_H\n\n");
-		} else if (generation_mode == 2) {
-			fprintf(f, "#ifndef _GF_SVG2_NODES_H\n");
-			fprintf(f, "#define _GF_SVG2_NODES_H\n\n");
-		} else if (generation_mode == 3) {
-			fprintf(f, "#ifndef _GF_SVG3_NODES_H\n");
-			fprintf(f, "#define _GF_SVG3_NODES_H\n\n");
 		}
 		fprintf(f, "#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n");
 	}
@@ -810,9 +810,9 @@ void EndFile(FILE *f, u32 type)
 {
 	if (!type) {
 		fprintf(f, "#ifdef __cplusplus\n}\n#endif\n\n");
-		if (generation_mode == 1) fprintf(f, "\n\n#endif\t\t/*_GF_SVG_NODES_H*/\n\n");
-		if (generation_mode == 2) fprintf(f, "\n\n#endif\t\t/*_GF_SVG2_NODES_H*/\n\n");
-		if (generation_mode == 3) fprintf(f, "\n\n#endif\t\t/*_GF_SVG3_NODES_H*/\n\n");
+		if (generation_mode == 1) fprintf(f, "\n\n#endif\t\t/*_GF_SVG_SA_NODES_H*/\n\n");
+		if (generation_mode == 2) fprintf(f, "\n\n#endif\t\t/*_GF_SVG_SANI_NODES_H*/\n\n");
+		if (generation_mode == 3) fprintf(f, "\n\n#endif\t\t/*_GF_SVG_NODES_H*/\n\n");
 	} else {
 		fprintf(f, "\n");
 	}

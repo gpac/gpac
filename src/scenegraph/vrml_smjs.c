@@ -3301,10 +3301,12 @@ static void JSScript_Load(GF_Node *node)
 		JSScript_LoadVRML(node);
 		break;
 #ifndef GPAC_DISABLE_SVG
-	case TAG_SVG_script:
-	case TAG_SVG_handler:
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_script:
+	case TAG_SVG_SA_handler:
 		JSScript_LoadSVG(node);
 		break;
+#endif
 #endif
 	default:
 		break;

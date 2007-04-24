@@ -28,31 +28,34 @@
 #ifndef GPAC_DISABLE_SVG
 #include "svg_stacks.h"
 
+
+#ifdef GPAC_ENABLE_SVG_SANI
+
 /*
 	This is the generic routine for child traversing - note we are not duplicating the effect
 */
-void gf_svg2_apply_local_transformation(RenderEffect2D *eff, GF_Node *node, GF_Matrix2D *backup_matrix)
+void gf_svg_sani_apply_local_transformation(RenderEffect2D *eff, GF_Node *node, GF_Matrix2D *backup_matrix)
 {
 	gf_mx2d_copy(*backup_matrix, eff->transform);
 
-	if (((SVG2TransformableElement *)node)->transform.is_ref) 
+	if (((SVG_SANI_TransformableElement *)node)->transform.is_ref) 
 		gf_mx2d_copy(eff->transform, eff->vb_transform);
 
-	if (((SVG2TransformableElement *)node)->motionTransform) 
-		gf_mx2d_pre_multiply(&eff->transform, ((SVG2TransformableElement *)node)->motionTransform);
+	if (((SVG_SANI_TransformableElement *)node)->motionTransform) 
+		gf_mx2d_pre_multiply(&eff->transform, ((SVG_SANI_TransformableElement *)node)->motionTransform);
 
-	gf_mx2d_pre_multiply(&eff->transform, &((SVG2TransformableElement *)node)->transform.mat);
+	gf_mx2d_pre_multiply(&eff->transform, &((SVG_SANI_TransformableElement *)node)->transform.mat);
 }
 
-void gf_svg2_restore_parent_transformation(RenderEffect2D *eff, GF_Matrix2D *backup_matrix)
+void gf_svg_sani_restore_parent_transformation(RenderEffect2D *eff, GF_Matrix2D *backup_matrix)
 {
 	gf_mx2d_copy(eff->transform, *backup_matrix);  
 }
 
 /* Set the viewport of the renderer based on the element that contains a viewport 
-   TODO: change the SVG2svgElement into an element that has a viewport (more generic)
+   TODO: change the SVG_SANI_svgElement into an element that has a viewport (more generic)
 */
-static void gf_svg2_set_viewport_transformation(RenderEffect2D *eff, SVG2svgElement *svg, Bool is_root) 
+static void gf_svg_sani_set_viewport_transformation(RenderEffect2D *eff, SVG_SANI_svgElement *svg, Bool is_root) 
 {
 	GF_Matrix2D mat;
 	Fixed real_width, real_height;
@@ -237,13 +240,13 @@ static void gf_svg2_set_viewport_transformation(RenderEffect2D *eff, SVG2svgElem
 	* Render the children if any or the shape if leaf node
 	* Restore coordinate system
  */
-static void svg2_Render_svg(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_svg(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 viewport_color;
 	GF_Matrix2D backup_matrix;
 	GF_IRect top_clip;
 	Bool is_root_svg = 1;
-	SVG2svgElement *svg = (SVG2svgElement *)node;
+	SVG_SANI_svgElement *svg = (SVG_SANI_svgElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
 	if (is_destroy) return;
@@ -251,14 +254,14 @@ static void svg2_Render_svg(GF_Node *node, void *rs, Bool is_destroy)
 	/*enable or disable navigation*/
 	eff->surface->render->navigation_disabled = (svg->zoomAndPan == SVG_ZOOMANDPAN_DISABLE) ? 1 : 0;
 
-	svg2_render_base(node, eff);
+	svg_sani_render_base(node, eff);
 
 	if (svg->display == SVG_DISPLAY_NONE) return;
 
 	top_clip = eff->surface->top_clipper;
 	gf_mx2d_copy(backup_matrix, eff->transform);
 	gf_mx2d_init(eff->vb_transform);
-	gf_svg2_set_viewport_transformation(eff, svg, is_root_svg);
+	gf_svg_sani_set_viewport_transformation(eff, svg, is_root_svg);
 	gf_mx2d_pre_multiply(&eff->transform, &eff->vb_transform);
 
 	if (!is_root_svg && (svg->x.value || svg->y.value)) 
@@ -278,23 +281,23 @@ static void svg2_Render_svg(GF_Node *node, void *rs, Bool is_destroy)
 		svg_render_node_list(svg->children, eff);
 	}
 
-	gf_svg2_restore_parent_transformation(eff, &backup_matrix);
+	gf_svg_sani_restore_parent_transformation(eff, &backup_matrix);
 	eff->surface->top_clipper = top_clip;
 }
 
-void svg2_Init_svg(Render2D *sr, GF_Node *node)
+void svg_sani_init_svg(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_callback_function(node, svg2_Render_svg);
+	gf_node_set_callback_function(node, svg_sani_Render_svg);
 }
 
-static void svg2_Render_g(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_g(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
-	SVG2gElement *g = (SVG2gElement *)node;
+	SVG_SANI_gElement *g = (SVG_SANI_gElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 	if (is_destroy) return;
 
-	svg2_render_base(node, eff);
+	svg_sani_render_base(node, eff);
 
 	if (g->display == SVG_DISPLAY_NONE) {
 		u32 prev_flags = eff->trav_flags;
@@ -304,22 +307,22 @@ static void svg2_Render_g(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}	
 	
-	gf_svg2_apply_local_transformation(eff, node, &backup_matrix);
+	gf_svg_sani_apply_local_transformation(eff, node, &backup_matrix);
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		svg_get_nodes_bounds(node, g->children, eff);
 	} else {
 		svg_render_node_list(g->children, eff);
 	}
-	gf_svg2_restore_parent_transformation(eff, &backup_matrix);
+	gf_svg_sani_restore_parent_transformation(eff, &backup_matrix);
 }
 
 
-void svg2_Init_g(Render2D *sr, GF_Node *node)
+void svg_sani_init_g(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_callback_function(node, svg2_Render_g);
+	gf_node_set_callback_function(node, svg_sani_Render_g);
 }
 
-static Bool svg2_eval_conditional(GF_Renderer *sr, SVG2Element *elt)
+static Bool svg_sani_eval_conditional(GF_Renderer *sr, SVG_SANI_Element *elt)
 {
 	u32 i, count;
 	Bool found;
@@ -366,44 +369,44 @@ static Bool svg2_eval_conditional(GF_Renderer *sr, SVG2Element *elt)
 }
 
 
-static void svg2_Render_switch(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_switch(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
-	SVG2switchElement *s = (SVG2switchElement *)node;
+	SVG_SANI_switchElement *s = (SVG_SANI_switchElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
 	if (is_destroy) return;
 
-	svg2_render_base(node, eff);
+	svg_sani_render_base(node, eff);
 
 	if (s->display == SVG_DISPLAY_NONE) {
-		gf_svg2_restore_parent_transformation(eff, &backup_matrix);
+		gf_svg_sani_restore_parent_transformation(eff, &backup_matrix);
 		return;
 	}
 	
-	gf_svg2_apply_local_transformation(eff, node, &backup_matrix);
+	gf_svg_sani_apply_local_transformation(eff, node, &backup_matrix);
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		svg_get_nodes_bounds(node, s->children, eff);
 	} else {
 		GF_ChildNodeItem *l = s->children;
 		while (l) {
-			if (svg2_eval_conditional(eff->surface->render->compositor, (SVG2Element*)l->node)) {
+			if (svg_sani_eval_conditional(eff->surface->render->compositor, (SVG_SANI_Element*)l->node)) {
 				svg_render_node((GF_Node*)l->node, eff);
 				break;
 			}
 			l = l->next;
 		}
 	}
-	gf_svg2_restore_parent_transformation(eff, &backup_matrix);
+	gf_svg_sani_restore_parent_transformation(eff, &backup_matrix);
 }
 
-void svg2_Init_switch(Render2D *sr, GF_Node *node)
+void svg_sani_init_switch(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_callback_function(node, svg2_Render_switch);
+	gf_node_set_callback_function(node, svg_sani_Render_switch);
 }
 
 
-static void svg2_DrawablePostRender(Drawable *cs, SVG2TransformableElement *elt, RenderEffect2D *eff, 
+static void svg_sani_DrawablePostRender(Drawable *cs, SVG_SANI_TransformableElement *elt, RenderEffect2D *eff, 
 									Bool rectangular, Fixed path_length)
 {
 	GF_FieldInfo info;
@@ -422,7 +425,7 @@ static void svg2_DrawablePostRender(Drawable *cs, SVG2TransformableElement *elt,
 	gf_node_get_field_by_name(cs->node, "visibility", &info);
 	if (*(SVG_Visibility *)info.far_ptr == SVG_VISIBILITY_HIDDEN) return;
 
-	gf_svg2_apply_local_transformation(eff, (GF_Node *)elt, &backup_matrix);
+	gf_svg_sani_apply_local_transformation(eff, (GF_Node *)elt, &backup_matrix);
 
 	gf_node_get_field_by_name(cs->node, "fill-rule", &info);
 	if (*(SVG_FillRule *)info.far_ptr == SVG_FILLRULE_NONZERO)
@@ -430,7 +433,7 @@ static void svg2_DrawablePostRender(Drawable *cs, SVG2TransformableElement *elt,
 	else 
 		cs->path->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
 
-	ctx = svg2_drawable_init_context(cs, eff);
+	ctx = svg_sani_drawable_init_context(cs, eff);
 	if (ctx) {
 		if (rectangular) {
 			if (ctx->h_texture && ctx->h_texture->transparent) {}
@@ -444,13 +447,13 @@ static void svg2_DrawablePostRender(Drawable *cs, SVG2TransformableElement *elt,
 		drawable_finalize_render(ctx, eff, NULL);
 	}
 
-	gf_svg2_restore_parent_transformation(eff, &backup_matrix);
+	gf_svg_sani_restore_parent_transformation(eff, &backup_matrix);
 }
 
-static void svg2_Render_rect(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_rect(GF_Node *node, void *rs, Bool is_destroy)
 {
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
-	SVG2rectElement *rect = (SVG2rectElement *)node;
+	SVG_SANI_rectElement *rect = (SVG_SANI_rectElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
 	if (is_destroy) {
@@ -466,7 +469,7 @@ static void svg2_Render_rect(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
-	svg2_render_base(node, (RenderEffect2D *)rs);
+	svg_sani_render_base(node, (RenderEffect2D *)rs);
 	
 	/* 3) for a leaf node
 	   Recreates the path (i.e the shape) only if the node is dirty 
@@ -506,18 +509,18 @@ static void svg2_Render_rect(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_dirty_clear(node, GF_SG_SVG_GEOMETRY_DIRTY);
 		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	svg2_DrawablePostRender(cs, (SVG2TransformableElement *)rect, (RenderEffect2D *)rs, 1, 0);
+	svg_sani_DrawablePostRender(cs, (SVG_SANI_TransformableElement *)rect, (RenderEffect2D *)rs, 1, 0);
 }
 
-void svg2_Init_rect(Render2D *sr, GF_Node *node)
+void svg_sani_init_rect(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_callback_function(node, svg2_Render_rect);
+	gf_node_set_callback_function(node, svg_sani_Render_rect);
 }
 
-static void svg2_Render_circle(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_circle(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SVG2circleElement *circle = (SVG2circleElement *)node;
+	SVG_SANI_circleElement *circle = (SVG_SANI_circleElement *)node;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
@@ -533,7 +536,7 @@ static void svg2_Render_circle(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_pick(eff);
 		return;
 	}
-	svg2_render_base(node, (RenderEffect2D *)rs);
+	svg_sani_render_base(node, (RenderEffect2D *)rs);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		Fixed r = 2*circle->r.value;
@@ -542,18 +545,18 @@ static void svg2_Render_circle(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_dirty_clear(node, GF_SG_SVG_GEOMETRY_DIRTY);
 		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	svg2_DrawablePostRender(cs, (SVG2TransformableElement *)circle, (RenderEffect2D *)rs, 0, 0);
+	svg_sani_DrawablePostRender(cs, (SVG_SANI_TransformableElement *)circle, (RenderEffect2D *)rs, 0, 0);
 }
 
-void svg2_Init_circle(Render2D *sr, GF_Node *node)
+void svg_sani_init_circle(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_callback_function(node, svg2_Render_circle);
+	gf_node_set_callback_function(node, svg_sani_Render_circle);
 }
 
-static void svg2_Render_ellipse(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_ellipse(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SVG2ellipseElement *ellipse = (SVG2ellipseElement *)node;
+	SVG_SANI_ellipseElement *ellipse = (SVG_SANI_ellipseElement *)node;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
@@ -570,7 +573,7 @@ static void svg2_Render_ellipse(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
-	svg2_render_base(node, (RenderEffect2D *)rs);
+	svg_sani_render_base(node, (RenderEffect2D *)rs);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		drawable_reset_path(cs);
@@ -578,18 +581,18 @@ static void svg2_Render_ellipse(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_dirty_clear(node, GF_SG_SVG_GEOMETRY_DIRTY);
 		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	svg2_DrawablePostRender(cs, (SVG2TransformableElement *)ellipse, (RenderEffect2D *)rs, 0, 0);
+	svg_sani_DrawablePostRender(cs, (SVG_SANI_TransformableElement *)ellipse, (RenderEffect2D *)rs, 0, 0);
 }
 
-void svg2_Init_ellipse(Render2D *sr, GF_Node *node)
+void svg_sani_init_ellipse(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_callback_function(node, svg2_Render_ellipse);
+	gf_node_set_callback_function(node, svg_sani_Render_ellipse);
 }
 
-static void svg2_Render_line(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_line(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SVG2lineElement *line = (SVG2lineElement *)node;
+	SVG_SANI_lineElement *line = (SVG_SANI_lineElement *)node;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
@@ -606,7 +609,7 @@ static void svg2_Render_line(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
-	svg2_render_base(node, (RenderEffect2D *)rs);
+	svg_sani_render_base(node, (RenderEffect2D *)rs);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		drawable_reset_path(cs);
@@ -615,18 +618,18 @@ static void svg2_Render_line(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_dirty_clear(node, GF_SG_SVG_GEOMETRY_DIRTY);
 		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	svg2_DrawablePostRender(cs, (SVG2TransformableElement *)line, (RenderEffect2D *)rs, 0, 0);
+	svg_sani_DrawablePostRender(cs, (SVG_SANI_TransformableElement *)line, (RenderEffect2D *)rs, 0, 0);
 }
 
-void svg2_Init_line(Render2D *sr, GF_Node *node)
+void svg_sani_init_line(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_callback_function(node, svg2_Render_line);
+	gf_node_set_callback_function(node, svg_sani_Render_line);
 }
 
-static void svg2_Render_polyline(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_polyline(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SVG2polylineElement *polyline = (SVG2polylineElement *)node;
+	SVG_SANI_polylineElement *polyline = (SVG_SANI_polylineElement *)node;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
@@ -643,7 +646,7 @@ static void svg2_Render_polyline(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
-	svg2_render_base(node, (RenderEffect2D *)rs);
+	svg_sani_render_base(node, (RenderEffect2D *)rs);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		u32 i;
@@ -662,18 +665,18 @@ static void svg2_Render_polyline(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_dirty_clear(node, GF_SG_SVG_GEOMETRY_DIRTY);
 		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	svg2_DrawablePostRender(cs, (SVG2TransformableElement *)polyline, (RenderEffect2D *)rs, 0, 0);
+	svg_sani_DrawablePostRender(cs, (SVG_SANI_TransformableElement *)polyline, (RenderEffect2D *)rs, 0, 0);
 }
 
-void svg2_Init_polyline(Render2D *sr, GF_Node *node)
+void svg_sani_init_polyline(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_callback_function(node, svg2_Render_polyline);
+	gf_node_set_callback_function(node, svg_sani_Render_polyline);
 }
 
-static void svg2_Render_polygon(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_polygon(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SVG2polygonElement *polygon = (SVG2polygonElement *)node;
+	SVG_SANI_polygonElement *polygon = (SVG_SANI_polygonElement *)node;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
@@ -690,7 +693,7 @@ static void svg2_Render_polygon(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
-	svg2_render_base(node, (RenderEffect2D *)rs);
+	svg_sani_render_base(node, (RenderEffect2D *)rs);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		u32 i;
@@ -710,16 +713,16 @@ static void svg2_Render_polygon(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_dirty_clear(node, GF_SG_SVG_GEOMETRY_DIRTY);
 		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	svg2_DrawablePostRender(cs, (SVG2TransformableElement *)polygon, (RenderEffect2D *)rs, 0, 0);
+	svg_sani_DrawablePostRender(cs, (SVG_SANI_TransformableElement *)polygon, (RenderEffect2D *)rs, 0, 0);
 }
 
-void svg2_Init_polygon(Render2D *sr, GF_Node *node)
+void svg_sani_init_polygon(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_callback_function(node, svg2_Render_polygon);
+	gf_node_set_callback_function(node, svg_sani_Render_polygon);
 }
 
-static void svg2_destroy_path(GF_Node *node)
+static void svg_sani_destroy_path(GF_Node *node)
 {
 	Drawable *dr = gf_node_get_private(node);
 #if USE_GF_PATH
@@ -729,14 +732,14 @@ static void svg2_destroy_path(GF_Node *node)
 	drawable_del(dr);
 }
 
-static void svg2_Render_path(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_path(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SVG2pathElement *path = (SVG2pathElement *)node;
+	SVG_SANI_pathElement *path = (SVG_SANI_pathElement *)node;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
 	if (is_destroy) {
-		svg2_destroy_path(node);
+		svg_sani_destroy_path(node);
 		return;
 	}
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
@@ -748,7 +751,7 @@ static void svg2_Render_path(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
-	svg2_render_base(node, eff);
+	svg_sani_render_base(node, eff);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 #if USE_GF_PATH
@@ -762,51 +765,51 @@ static void svg2_Render_path(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_dirty_clear(node, GF_SG_SVG_GEOMETRY_DIRTY);
 		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
-	svg2_DrawablePostRender(cs, (SVG2TransformableElement *)path, eff, 0, (path->pathLength.type==SVG_NUMBER_VALUE) ? path->pathLength.value : 0);
+	svg_sani_DrawablePostRender(cs, (SVG_SANI_TransformableElement *)path, eff, 0, (path->pathLength.type==SVG_NUMBER_VALUE) ? path->pathLength.value : 0);
 }
 
-void svg2_Init_path(Render2D *sr, GF_Node *node)
+void svg_sani_init_path(Render2D *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
-	gf_node_set_callback_function(node, svg2_Render_path);
+	gf_node_set_callback_function(node, svg_sani_Render_path);
 }
 
 /* end of rendering of basic shapes */
 
 
-static void svg2_Render_a(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_a(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
-	SVG2aElement *a = (SVG2aElement *) node;
+	SVG_SANI_aElement *a = (SVG_SANI_aElement *) node;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
 	if (is_destroy) return;
 
-	svg2_render_base(node, eff);
+	svg_sani_render_base(node, eff);
 
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_svg2_apply_local_transformation(eff, node, &backup_matrix);
+		gf_svg_sani_apply_local_transformation(eff, node, &backup_matrix);
 		if (a->display != SVG_DISPLAY_NONE) svg_get_nodes_bounds(node, a->children, eff);
-		gf_svg2_restore_parent_transformation(eff, &backup_matrix);  
+		gf_svg_sani_restore_parent_transformation(eff, &backup_matrix);  
 		return;
 	}
 
 	if (a->display != SVG_DISPLAY_NONE && a->visibility != SVG_VISIBILITY_HIDDEN) {
-		gf_svg2_apply_local_transformation(eff, node, &backup_matrix);
+		gf_svg_sani_apply_local_transformation(eff, node, &backup_matrix);
 		svg_render_node_list(a->children, eff);
-		gf_svg2_restore_parent_transformation(eff, &backup_matrix);  
+		gf_svg_sani_restore_parent_transformation(eff, &backup_matrix);  
 	}
 }
 
-static void svg2_a_HandleEvent(GF_Node *handler, GF_DOM_Event *event)
+static void svg_sani_a_HandleEvent(GF_Node *handler, GF_DOM_Event *event)
 {
 	GF_Renderer *compositor;
 	GF_Event evt;
-	SVG2aElement *a;
+	SVG_SANI_aElement *a;
 
-	assert(gf_node_get_tag(event->currentTarget)==TAG_SVG2_a);
+	assert(gf_node_get_tag(event->currentTarget)==TAG_SVG_SANI_a);
 
-	a = (SVG2aElement *) event->currentTarget;
+	a = (SVG_SANI_aElement *) event->currentTarget;
 	compositor = (GF_Renderer *)gf_node_get_private(handler);
 
 	if (!compositor->user->EventProc) return;
@@ -827,14 +830,14 @@ static void svg2_a_HandleEvent(GF_Node *handler, GF_DOM_Event *event)
 			return;
 		} 
 		tag = gf_node_get_tag((GF_Node *)a->xlink->href.target);
-		if (tag == TAG_SVG2_set ||
-			tag == TAG_SVG2_animate ||
-			tag == TAG_SVG2_animateColor ||
-			tag == TAG_SVG2_animateTransform ||
-			tag == TAG_SVG2_animateMotion || 
-			tag == TAG_SVG2_discard) {
+		if (tag == TAG_SVG_SANI_set ||
+			tag == TAG_SVG_SANI_animate ||
+			tag == TAG_SVG_SANI_animateColor ||
+			tag == TAG_SVG_SANI_animateTransform ||
+			tag == TAG_SVG_SANI_animateMotion || 
+			tag == TAG_SVG_SANI_discard) {
 			u32 i, count, found;
-			SVG2setElement *set = (SVG2setElement *)a->xlink->href.target;
+			SVG_SANI_setElement *set = (SVG_SANI_setElement *)a->xlink->href.target;
 			SMIL_Time *begin;
 			GF_SAFEALLOC(begin, SMIL_Time);
 			begin->type = GF_SMIL_TIME_EVENT_RESOLVED;
@@ -867,32 +870,32 @@ static void svg2_a_HandleEvent(GF_Node *handler, GF_DOM_Event *event)
 	return;
 }
 
-void svg2_Init_a(Render2D *sr, GF_Node *node)
+void svg_sani_init_a(Render2D *sr, GF_Node *node)
 {
 	XMLEV_Event evt;
-	SVG2handlerElement *handler;
-	gf_node_set_callback_function(node, svg2_Render_a);
+	SVG_SANI_handlerElement *handler;
+	gf_node_set_callback_function(node, svg_sani_Render_a);
 
 	/*listener for onClick event*/
 	evt.parameter = 0;
 	evt.type = GF_EVENT_CLICK;
 	handler = gf_dom_listener_build(node, evt);
 	/*and overwrite handler*/
-	handler->handle_event = svg2_a_HandleEvent;
+	handler->handle_event = svg_sani_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for activate event*/
 	evt.type = GF_EVENT_ACTIVATE;
 	handler = gf_dom_listener_build(node, evt);
 	/*and overwrite handler*/
-	handler->handle_event = svg2_a_HandleEvent;
+	handler->handle_event = svg_sani_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for mouseover event*/
 	evt.type = GF_EVENT_MOUSEOVER;
 	handler = gf_dom_listener_build(node, evt);
 	/*and overwrite handler*/
-	handler->handle_event = svg2_a_HandleEvent;
+	handler->handle_event = svg_sani_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 }
 /* end of Interactive SVG elements */
@@ -905,18 +908,18 @@ typedef struct
 	u32 *cols;
 	Fixed *keys;
 	u32 nb_col;
-} SVG2_GradientStack;
+} SVG_SANI_GradientStack;
 
-static void svg2_DestroyGradient(GF_Node *node)
+static void svg_sani_DestroyGradient(GF_Node *node)
 {
-	SVG2_GradientStack *st = (SVG2_GradientStack *) gf_node_get_private(node);
+	SVG_SANI_GradientStack *st = (SVG_SANI_GradientStack *) gf_node_get_private(node);
 	gf_sr_texture_destroy(&st->txh);
 	if (st->cols) free(st->cols);
 	if (st->keys) free(st->keys);
 	free(st);
 }
 
-static void svg2_UpdateGradient(SVG2_GradientStack *st, GF_ChildNodeItem *children)
+static void svg_sani_UpdateGradient(SVG_SANI_GradientStack *st, GF_ChildNodeItem *children)
 {
 	u32 count;
 	Fixed alpha, max_offset;
@@ -934,9 +937,9 @@ static void svg2_UpdateGradient(SVG2_GradientStack *st, GF_ChildNodeItem *childr
 	max_offset = 0;
 	while (children) {
 		Fixed key;
-		SVG2stopElement *gstop = (SVG2stopElement *) children->node;
+		SVG_SANI_stopElement *gstop = (SVG_SANI_stopElement *) children->node;
 		children = children->next;
-		if (gf_node_get_tag((GF_Node *)gstop) != TAG_SVG2_stop) continue;
+		if (gf_node_get_tag((GF_Node *)gstop) != TAG_SVG_SANI_stop) continue;
 
 		if (gstop->stop_opacity.type==SVG_NUMBER_VALUE) alpha = gstop->stop_opacity.value;
 		else alpha = FIX_ONE;
@@ -954,17 +957,17 @@ static void svg2_UpdateGradient(SVG2_GradientStack *st, GF_ChildNodeItem *childr
 	st->txh.compositor->r2d->stencil_set_gradient_mode(st->txh.hwtx, /*lg->spreadMethod*/ GF_GRADIENT_MODE_PAD);
 }
 
-static void svg2_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_sani_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SVG2Element *elt = (SVG2Element *)node;
+	SVG_SANI_Element *elt = (SVG_SANI_Element *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
 	if (is_destroy) {
-		if (gf_node_get_private(node)) svg2_DestroyGradient(node);
+		if (gf_node_get_private(node)) svg_sani_DestroyGradient(node);
 		return;
 	}
 
-	svg2_render_base(node, eff);
+	svg_sani_render_base(node, eff);
 	
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		return;
@@ -975,19 +978,19 @@ static void svg2_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
 
 
 /* linear gradient */
-static void svg2_UpdateLinearGradient(GF_TextureHandler *txh)
+static void svg_sani_UpdateLinearGradient(GF_TextureHandler *txh)
 {
-	SVG2linearGradientElement *lg = (SVG2linearGradientElement *) txh->owner;
-	SVG2_GradientStack *st = (SVG2_GradientStack *) gf_node_get_private(txh->owner);
+	SVG_SANI_linearGradientElement *lg = (SVG_SANI_linearGradientElement *) txh->owner;
+	SVG_SANI_GradientStack *st = (SVG_SANI_GradientStack *) gf_node_get_private(txh->owner);
 	if (!txh->hwtx) txh->hwtx = txh->compositor->r2d->stencil_new(txh->compositor->r2d, GF_STENCIL_LINEAR_GRADIENT);
 
-	svg2_UpdateGradient(st, lg->children);
+	svg_sani_UpdateGradient(st, lg->children);
 }
 
-static void svg2_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+static void svg_sani_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
 {
 	SFVec2f start, end;
-	SVG2linearGradientElement *lg = (SVG2linearGradientElement *) txh->owner;
+	SVG_SANI_linearGradientElement *lg = (SVG_SANI_linearGradientElement *) txh->owner;
 
 	/*create gradient brush if needed*/
 	if (!txh->hwtx) return;
@@ -1013,34 +1016,34 @@ static void svg2_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Ma
 	txh->compositor->r2d->stencil_set_linear_gradient(txh->hwtx, start.x, start.y, end.x, end.y);
 }
 
-void svg2_Init_linearGradient(Render2D *sr, GF_Node *node)
+void svg_sani_init_linearGradient(Render2D *sr, GF_Node *node)
 {
-	SVG2_GradientStack *st;
-	GF_SAFEALLOC(st, SVG2_GradientStack);
+	SVG_SANI_GradientStack *st;
+	GF_SAFEALLOC(st, SVG_SANI_GradientStack);
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.update_texture_fcnt = svg2_UpdateLinearGradient;
+	st->txh.update_texture_fcnt = svg_sani_UpdateLinearGradient;
 
-	st->txh.compute_gradient_matrix = svg2_LG_ComputeMatrix;
+	st->txh.compute_gradient_matrix = svg_sani_LG_ComputeMatrix;
 	gf_node_set_private(node, st);
-	gf_node_set_callback_function(node, svg2_Render_PaintServer);
+	gf_node_set_callback_function(node, svg_sani_Render_PaintServer);
 }
 
 /* radial gradient */
 
-static void svg2_UpdateRadialGradient(GF_TextureHandler *txh)
+static void svg_sani_UpdateRadialGradient(GF_TextureHandler *txh)
 {
-	SVG2radialGradientElement *rg = (SVG2radialGradientElement *) txh->owner;
-	SVG2_GradientStack *st = (SVG2_GradientStack *) gf_node_get_private(txh->owner);
+	SVG_SANI_radialGradientElement *rg = (SVG_SANI_radialGradientElement *) txh->owner;
+	SVG_SANI_GradientStack *st = (SVG_SANI_GradientStack *) gf_node_get_private(txh->owner);
 	if (!txh->hwtx) txh->hwtx = txh->compositor->r2d->stencil_new(txh->compositor->r2d, GF_STENCIL_RADIAL_GRADIENT);
-	svg2_UpdateGradient(st, rg->children);
+	svg_sani_UpdateGradient(st, rg->children);
 }
 
-static void svg2_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+static void svg_sani_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
 {
 	SFVec2f center, focal;
 	Fixed radius;
-	SVG2radialGradientElement *rg = (SVG2radialGradientElement *) txh->owner;
+	SVG_SANI_radialGradientElement *rg = (SVG_SANI_radialGradientElement *) txh->owner;
 
 	/*create gradient brush if needed*/
 	if (!txh->hwtx) return;
@@ -1072,64 +1075,64 @@ static void svg2_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Ma
 	txh->compositor->r2d->stencil_set_radial_gradient(txh->hwtx, center.x, center.y, focal.x, focal.y, radius, radius);
 }
 
-void svg2_Init_radialGradient(Render2D *sr, GF_Node *node)
+void svg_sani_init_radialGradient(Render2D *sr, GF_Node *node)
 {
-	SVG2_GradientStack *st;
-	GF_SAFEALLOC(st, SVG2_GradientStack);
+	SVG_SANI_GradientStack *st;
+	GF_SAFEALLOC(st, SVG_SANI_GradientStack);
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.update_texture_fcnt = svg2_UpdateRadialGradient;
-	st->txh.compute_gradient_matrix = svg2_RG_ComputeMatrix;
+	st->txh.update_texture_fcnt = svg_sani_UpdateRadialGradient;
+	st->txh.compute_gradient_matrix = svg_sani_RG_ComputeMatrix;
 	gf_node_set_private(node, st);
-	gf_node_set_callback_function(node, svg2_Render_PaintServer);
+	gf_node_set_callback_function(node, svg_sani_Render_PaintServer);
 }
 
-void svg2_Init_solidColor(Render2D *sr, GF_Node *node)
+void svg_sani_init_solidColor(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_callback_function(node, svg2_Render_PaintServer);
+	gf_node_set_callback_function(node, svg_sani_Render_PaintServer);
 }
 
-void svg2_Init_stop(Render2D *sr, GF_Node *node)
+void svg_sani_init_stop(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_callback_function(node, svg2_Render_PaintServer);
+	gf_node_set_callback_function(node, svg_sani_Render_PaintServer);
 }
 
-GF_TextureHandler *svg2_gradient_get_texture(GF_Node *node)
+GF_TextureHandler *svg_sani_gradient_get_texture(GF_Node *node)
 {
-	SVG2Element *g = (SVG2Element *)node;
-	SVG2_GradientStack *st;
+	SVG_SANI_Element *g = (SVG_SANI_Element *)node;
+	SVG_SANI_GradientStack *st;
 	if (g->xlink->href.target) g = g->xlink->href.target;
-	st = (SVG2_GradientStack*) gf_node_get_private((GF_Node *)g);
+	st = (SVG_SANI_GradientStack*) gf_node_get_private((GF_Node *)g);
 	return st->nb_col ? &st->txh : NULL;
 }
 
-void svg2_render_base(GF_Node *node, RenderEffect2D *eff)
+void svg_sani_render_base(GF_Node *node, RenderEffect2D *eff)
 {	
-	gf_svg2_apply_animations(node);
+	gf_svg_sani_apply_animations(node);
 	eff->svg_flags |= gf_node_dirty_get(node);
 }
 
-void R2D_RenderUse2(GF_Node *node, GF_Node *sub_root, void *rs)
+void r2d_render_svg_sani_use(GF_Node *node, GF_Node *sub_root, void *rs)
 {
 	GF_Matrix2D backup_matrix;
   	GF_Matrix2D translate;
 	GF_Node *prev_use;
-	SVG2useElement *use = (SVG2useElement *)node;
+	SVG_SANI_useElement *use = (SVG_SANI_useElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
-	svg2_render_base(node, eff);
+	svg_sani_render_base(node, eff);
 
 	gf_mx2d_init(translate);
 	translate.m[2] = use->x.value;
 	translate.m[5] = use->y.value;
 
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_svg2_apply_local_transformation(eff, node, &backup_matrix);
+		gf_svg_sani_apply_local_transformation(eff, node, &backup_matrix);
 		if (use->display != SVG_DISPLAY_NONE) {
 			gf_node_render((GF_Node*)use->xlink->href.target, eff);
 			gf_mx2d_apply_rect(&translate, &eff->bounds);
 		} 
-		gf_svg2_restore_parent_transformation(eff, &backup_matrix);
+		gf_svg_sani_restore_parent_transformation(eff, &backup_matrix);
 		return;
 	}
 
@@ -1138,16 +1141,17 @@ void R2D_RenderUse2(GF_Node *node, GF_Node *sub_root, void *rs)
 		return;
 	}
 
-	gf_svg2_apply_local_transformation(eff, node, &backup_matrix);
+	gf_svg_sani_apply_local_transformation(eff, node, &backup_matrix);
 
 	gf_mx2d_pre_multiply(&eff->transform, &translate);
 	prev_use = eff->parent_use;
 	eff->parent_use = use->xlink->href.target;
 	gf_node_render(use->xlink->href.target, eff);
 	eff->parent_use = prev_use;
-	gf_svg2_restore_parent_transformation(eff, &backup_matrix);  
+	gf_svg_sani_restore_parent_transformation(eff, &backup_matrix);  
 }
 
 
+#endif	/*GPAC_ENABLE_SVG_SANI*/
 
 #endif //GPAC_DISABLE_SVG

@@ -61,7 +61,14 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 
 	if (!timingp) return;
 	
-	if (gf_node_get_tag((GF_Node *)rti->timed_elt) == TAG_SVG_discard) {
+	switch (gf_node_get_tag((GF_Node *)rti->timed_elt)) {
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_discard:
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_discard:
+#endif
+	case TAG_SVG_discard:
 		interval->active_duration = -1;
 		return;
 	}
@@ -220,39 +227,9 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 	u32 tag = gf_node_get_tag(timed_elt);
 
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		SVGElement *e = (SVGElement *)timed_elt;
-		e->timingp = malloc(sizeof(SMILTimingAttributesPointers));
-		e->timingp->begin		= &e->timing->begin;
-		e->timingp->clipBegin	= &e->timing->clipBegin;
-		e->timingp->clipEnd		= &e->timing->clipEnd;
-		e->timingp->dur			= &e->timing->dur;
-		e->timingp->end			= &e->timing->end;
-		e->timingp->fill		= &e->timing->fill;
-		e->timingp->max			= &e->timing->max;
-		e->timingp->min			= &e->timing->min;
-		e->timingp->repeatCount = &e->timing->repeatCount;
-		e->timingp->repeatDur	= &e->timing->repeatDur;
-		e->timingp->restart		= &e->timing->restart;
-		timingp = e->timingp;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		SVG2Element *e = (SVG2Element *)timed_elt;
-		e->timingp = malloc(sizeof(SMILTimingAttributesPointers));
-		e->timingp->begin		= &e->timing->begin;
-		e->timingp->clipBegin	= &e->timing->clipBegin;
-		e->timingp->clipEnd		= &e->timing->clipEnd;
-		e->timingp->dur			= &e->timing->dur;
-		e->timingp->end			= &e->timing->end;
-		e->timingp->fill		= &e->timing->fill;
-		e->timingp->max			= &e->timing->max;
-		e->timingp->min			= &e->timing->min;
-		e->timingp->repeatCount = &e->timing->repeatCount;
-		e->timingp->repeatDur	= &e->timing->repeatDur;
-		e->timingp->restart		= &e->timing->restart;
-		timingp = e->timingp;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		SVG3AllAttributes all_atts;
-		SVG3TimedAnimBaseElement *e = (SVG3TimedAnimBaseElement *)timed_elt;
-		gf_svg3_fill_all_attributes(&all_atts, e);
+		SVGAllAttributes all_atts;
+		SVGTimedAnimBaseElement *e = (SVGTimedAnimBaseElement *)timed_elt;
+		gf_svg_flatten_attributes((SVG_Element *)e, &all_atts);
 		e->timingp = malloc(sizeof(SMILTimingAttributesPointers));
 		e->timingp->begin		= all_atts.begin;
 		e->timingp->clipBegin	= all_atts.clipBegin;
@@ -266,7 +243,44 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 		e->timingp->repeatDur	= all_atts.repeatDur;
 		e->timingp->restart		= all_atts.restart;
 		timingp = e->timingp;
-	} else {
+	} 
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		SVG_SA_Element *e = (SVG_SA_Element *)timed_elt;
+		e->timingp = malloc(sizeof(SMILTimingAttributesPointers));
+		e->timingp->begin		= &e->timing->begin;
+		e->timingp->clipBegin	= &e->timing->clipBegin;
+		e->timingp->clipEnd		= &e->timing->clipEnd;
+		e->timingp->dur			= &e->timing->dur;
+		e->timingp->end			= &e->timing->end;
+		e->timingp->fill		= &e->timing->fill;
+		e->timingp->max			= &e->timing->max;
+		e->timingp->min			= &e->timing->min;
+		e->timingp->repeatCount = &e->timing->repeatCount;
+		e->timingp->repeatDur	= &e->timing->repeatDur;
+		e->timingp->restart		= &e->timing->restart;
+		timingp = e->timingp;
+	}
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		SVG_SANI_Element *e = (SVG_SANI_Element *)timed_elt;
+		e->timingp = malloc(sizeof(SMILTimingAttributesPointers));
+		e->timingp->begin		= &e->timing->begin;
+		e->timingp->clipBegin	= &e->timing->clipBegin;
+		e->timingp->clipEnd		= &e->timing->clipEnd;
+		e->timingp->dur			= &e->timing->dur;
+		e->timingp->end			= &e->timing->end;
+		e->timingp->fill		= &e->timing->fill;
+		e->timingp->max			= &e->timing->max;
+		e->timingp->min			= &e->timing->min;
+		e->timingp->repeatCount = &e->timing->repeatCount;
+		e->timingp->repeatDur	= &e->timing->repeatDur;
+		e->timingp->restart		= &e->timing->restart;
+		timingp = e->timingp;
+	}
+#endif
+	else {
 		return;
 	}
 
@@ -319,12 +333,19 @@ Bool gf_smil_timing_is_active(GF_Node *node)
 	u32 tag = gf_node_get_tag(node);
 
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		timingp = ((SVGElement *)node)->timingp;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		timingp = ((SVG2Element *)node)->timingp;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		timingp = ((SVG3TimedAnimBaseElement *)node)->timingp;
-	} else {
+		timingp = ((SVGTimedAnimBaseElement *)node)->timingp;
+	}
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		timingp = ((SVG_SA_Element *)node)->timingp;
+	}
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		timingp = ((SVG_SANI_Element *)node)->timingp;
+	}
+#endif
+	else {
 		return 0;
 	}
 
@@ -434,12 +455,19 @@ static Bool gf_smil_discard(SMIL_Timing_RTI *rti, Fixed scene_time)
 	if (!timingp) return 0;
 	
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		target = ((SVGElement *)rti->timed_elt)->xlinkp->href->target;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		target = ((SVG2Element *)rti->timed_elt)->xlinkp->href->target;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		target = ((SVG3TimedAnimBaseElement *)rti->timed_elt)->xlinkp->href->target;
-	} else {
+		target = ((SVGTimedAnimBaseElement *)rti->timed_elt)->xlinkp->href->target;
+	} 
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		target = ((SVG_SA_Element *)rti->timed_elt)->xlinkp->href->target;
+	} 
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		target = ((SVG_SANI_Element *)rti->timed_elt)->xlinkp->href->target;
+	}
+#endif
+	else {
 		return 0;
 	}
 	
@@ -639,12 +667,19 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 	u32 tag = gf_node_get_tag(node);
 	
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		timingp = ((SVGElement *)node)->timingp;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
-		timingp = ((SVG2Element *)node)->timingp;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		timingp = ((SVG3TimedAnimBaseElement *)node)->timingp;
-	} else {
+		timingp = ((SVGTimedAnimBaseElement *)node)->timingp;
+	} 
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		timingp = ((SVG_SA_Element *)node)->timingp;
+	}
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		timingp = ((SVG_SANI_Element *)node)->timingp;
+	}
+#endif
+	else {
 		return;
 	}
 	
@@ -669,7 +704,7 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 
 }
 
-Bool svg_resolve_smil_times(GF_SceneGraph *sg, void *anim_parent, 
+Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *anim_parent, 
 							GF_List *smil_times, Bool is_end, const char *node_name)
 {
 	u32 i, done, count;

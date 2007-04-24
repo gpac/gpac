@@ -43,7 +43,7 @@ enum {
 	TAG_ForbiddenZero = 0,
 	/*undefined node: just the base node class, used for parsing*/
 	TAG_UndefinedNode = 1,
-	/*all proto instances have this tag*/
+	/*all MPEG-4/VRML/X3D proto instances have this tag*/
 	TAG_ProtoNode,
 	/*DOM text node*/
 	TAG_DOMText,
@@ -54,18 +54,22 @@ enum {
 	/*range for MPEG4*/
 	GF_NODE_RANGE_FIRST_MPEG4,
 	GF_NODE_RANGE_LAST_MPEG4 = GF_NODE_RANGE_FIRST_MPEG4+512,
+
 	/*range for X3D*/
 	GF_NODE_RANGE_FIRST_X3D, 
 	GF_NODE_RANGE_LAST_X3D = GF_NODE_RANGE_FIRST_X3D+512,
+	
 	/*range for SVG*/
 	GF_NODE_RANGE_FIRST_SVG, 
 	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+512,
-	/*range for SVG2*/
-	GF_NODE_RANGE_FIRST_SVG2, 
-	GF_NODE_RANGE_LAST_SVG2 = GF_NODE_RANGE_FIRST_SVG2+512,
-	/*range for SVG3*/
-	GF_NODE_RANGE_FIRST_SVG3, 
-	GF_NODE_RANGE_LAST_SVG3 = GF_NODE_RANGE_FIRST_SVG3+512,
+
+	/*range for SVG / static alloc mode*/
+	GF_NODE_RANGE_FIRST_SVG_SA, 
+	GF_NODE_RANGE_LAST_SVG_SA = GF_NODE_RANGE_FIRST_SVG_SA+512,
+
+	/*range for SVG static alloc and no inheritance mode*/
+	GF_NODE_RANGE_FIRST_SVG_SANI, 
+	GF_NODE_RANGE_LAST_SVG_SANI = GF_NODE_RANGE_FIRST_SVG_SANI+512,
 };
 
 

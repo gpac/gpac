@@ -28,17 +28,19 @@
 #ifndef GPAC_DISABLE_SVG
 #include "laser_stacks.h"
 
+#ifdef GPAC_ENABLE_SVG_SA
+
 static void LASeR_Render_selector(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
-	SVGselectorElement *sel = (SVGselectorElement *)node;
+	SVG_SA_selectorElement *sel = (SVG_SA_selectorElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 	if (is_destroy) return;
 
-	SVG_Render_base(node, eff, &backup_props, &backup_flags);
+	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		u32 prev_flags = eff->trav_flags;
@@ -90,11 +92,11 @@ static void LASeR_Render_simpleLayout(GF_Node *node, void *rs, Bool is_destroy)
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
-	SVGsimpleLayoutElement *sl = (SVGsimpleLayoutElement*)node;
+	SVG_SA_simpleLayoutElement *sl = (SVG_SA_simpleLayoutElement*)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 	if (is_destroy) return;
 
-	SVG_Render_base(node, eff, &backup_props, &backup_flags);
+	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		u32 prev_flags = eff->trav_flags;
@@ -143,11 +145,11 @@ static void LASeR_Render_rectClip(GF_Node *node, void *rs, Bool is_destroy)
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
-	SVGrectClipElement *rc = (SVGrectClipElement *)node;
+	SVG_SA_rectClipElement *rc = (SVG_SA_rectClipElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 	if (is_destroy) return;
 
-	SVG_Render_base(node, eff, &backup_props, &backup_flags);
+	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		u32 prev_flags = eff->trav_flags;
@@ -193,5 +195,7 @@ void LASeR_Init_rectClip(Render2D *sr, GF_Node *node)
 {
 	gf_node_set_callback_function(node, LASeR_Render_rectClip);
 }
+
+#endif
 
 #endif //GPAC_DISABLE_SVG

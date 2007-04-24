@@ -836,7 +836,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, un
 
 		while (desc_len) {
 			u8 tag = data[0];
-			u8 len = data[1];
+			u32 len = data[1];
 			switch (tag) {
 			case GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR: 
 				pes->lang = GF_4CC(' ', data[2], data[3], data[4]);

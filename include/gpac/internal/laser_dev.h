@@ -73,13 +73,13 @@ struct __tag_laser_codec
 	void *cbk;
 
 	/*sameElement coding*/
-	SVGgElement *prev_g;
-	SVGlineElement *prev_line;
-	SVGpathElement *prev_path;
-	SVGpolygonElement *prev_polygon;
-	SVGrectElement *prev_rect;
-	SVGtextElement *prev_text;
-	SVGuseElement *prev_use;
+	SVG_SA_gElement *prev_g;
+	SVG_SA_lineElement *prev_line;
+	SVG_SA_pathElement *prev_path;
+	SVG_SA_polygonElement *prev_polygon;
+	SVG_SA_rectElement *prev_rect;
+	SVG_SA_textElement *prev_text;
+	SVG_SA_useElement *prev_use;
 	GF_Node *current_root;
 
 	/*0: normal playback, store script content

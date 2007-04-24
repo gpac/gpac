@@ -355,7 +355,7 @@ void gf_sha1_hmac( u8 *key, u32 keylen,
     memset( k_ipad, 0x36, 64 );
     memset( k_opad, 0x5C, 64 );
 
-    for( i = 0; i < keylen; i++ )
+    for( i = 0; i < (s32) keylen; i++ )
     {
         if( i >= 64 ) break;
 

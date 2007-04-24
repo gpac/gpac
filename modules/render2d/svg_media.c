@@ -84,48 +84,52 @@ static void SVG_Build_Bitmap_Graph(SVG_image_stack *st)
 	Fixed x, y, width, height;
 	u32 tag = gf_node_get_tag(st->graph->node);
 	switch (tag) {
-	case TAG_SVG_image:
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_image:
 		{
-			SVGimageElement *img = (SVGimageElement *)st->graph->node;
+			SVG_SA_imageElement *img = (SVG_SA_imageElement *)st->graph->node;
 			x = img->x.value;
 			y = img->y.value;
 			width = img->width.value;
 			height = img->height.value;
 		}
 		break;
+	case TAG_SVG_SA_video:
+		{
+			SVG_SA_videoElement *video = (SVG_SA_videoElement *)st->graph->node;
+			x = video->x.value;
+			y = video->y.value;
+			width = video->width.value;
+			height = video->height.value;
+		}
+		break;
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_image:
+		{
+			SVG_SANI_imageElement *img = (SVG_SANI_imageElement *)st->graph->node;
+			x = img->x.value;
+			y = img->y.value;
+			width = img->width.value;
+			height = img->height.value;
+		}
+		break;
+	case TAG_SVG_SANI_video:
+		{
+			SVG_SANI_videoElement *video = (SVG_SANI_videoElement *)st->graph->node;
+			x = video->x.value;
+			y = video->y.value;
+			width = video->width.value;
+			height = video->height.value;
+		}
+		break;
+#endif
+	case TAG_SVG_image:
 	case TAG_SVG_video:
 		{
-			SVGvideoElement *video = (SVGvideoElement *)st->graph->node;
-			x = video->x.value;
-			y = video->y.value;
-			width = video->width.value;
-			height = video->height.value;
-		}
-		break;
-	case TAG_SVG2_image:
-		{
-			SVG2imageElement *img = (SVG2imageElement *)st->graph->node;
-			x = img->x.value;
-			y = img->y.value;
-			width = img->width.value;
-			height = img->height.value;
-		}
-		break;
-	case TAG_SVG2_video:
-		{
-			SVG2videoElement *video = (SVG2videoElement *)st->graph->node;
-			x = video->x.value;
-			y = video->y.value;
-			width = video->width.value;
-			height = video->height.value;
-		}
-		break;
-	case TAG_SVG3_image:
-	case TAG_SVG3_video:
-		{
-			SVG3Element *e = (SVG3Element *)st->graph->node;
-			SVG3AllAttributes atts;
-			gf_svg3_fill_all_attributes(&atts, e);
+			SVG_Element *e = (SVG_Element *)st->graph->node;
+			SVGAllAttributes atts;
+			gf_svg_flatten_attributes(e, &atts);
 			x = (atts.x ? atts.x->value : 0);
 			y = (atts.y ? atts.y->value : 0);
 			width = (atts.width ? atts.width->value : 0);
@@ -142,7 +146,7 @@ static void SVG_Build_Bitmap_Graph(SVG_image_stack *st)
 	gf_node_dirty_clear(st->graph->node, GF_SG_SVG_GEOMETRY_DIRTY);
 }
 
-static void SVG_Render_bitmap(GF_Node *node, void *rs)
+static void svg_sa_render_bitmap(GF_Node *node, void *rs)
 {
 	/*video stack is just an extension of image stack, type-casting is OK*/
 	SVG_image_stack *st = (SVG_image_stack*)gf_node_get_private(node);
@@ -162,17 +166,17 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 		return;
 	}
 
-	SVG_Render_base(node, eff, &backup_props, &backup_flags);
+	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
 	if (gf_node_dirty_get(node)) {
 		SVG_Build_Bitmap_Graph((SVG_image_stack*)gf_node_get_private(node));
 		/*if open and changed, stop and play*/
-		if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, & ((SVGElement *)node)->xlink->href)) {
+		if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, & ((SVG_SA_Element *)node)->xlink->href)) {
 			const char *cache_dir = gf_cfg_get_key(st->txh.compositor->user->config, "General", "CacheDirectory");
-			gf_svg_store_embedded_data(& ((SVGElement *)node)->xlink->href, cache_dir, "embedded_");
+			gf_svg_store_embedded_data(& ((SVG_SA_Element *)node)->xlink->href, cache_dir, "embedded_");
 
-			if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, & ((SVGElement *)node)->xlink->href)) {
-				gf_term_set_mfurl_from_uri(st->txh.compositor->term, &(st->txurl), & ((SVGElement*)node)->xlink->href);
+			if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, & ((SVG_SA_Element *)node)->xlink->href)) {
+				gf_term_set_mfurl_from_uri(st->txh.compositor->term, &(st->txurl), & ((SVG_SA_Element*)node)->xlink->href);
 				if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
 				gf_sr_texture_play(&st->txh, &st->txurl);
 			}
@@ -180,20 +184,37 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	} 
 	
-	if (gf_node_get_tag(node)==TAG_SVG_image) {
-		m = &((SVGimageElement *)node)->transform.mat;
-	} else {
-		m = &((SVGvideoElement *)node)->transform.mat;
+	switch (gf_node_get_tag(node)) {
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_image:
+		m = &((SVG_SA_imageElement *)node)->transform.mat;
+		break;
+	case TAG_SVG_SA_video:
+		m = &((SVG_SA_videoElement *)node)->transform.mat;
+		break;
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_image:
+		m = &((SVG_SA_imageElement *)node)->transform.mat;
+		break;
+	case TAG_SVG_SANI_video:
+		m = &((SVG_SA_videoElement *)node)->transform.mat;
+		break;
+#endif
+	default:
+		/*SVG FIXME*/
+		m = NULL;
 	}
 
 	/*FIXME: setup aspect ratio*/
 
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_mx2d_pre_multiply(&eff->transform, m);
+		svg_sa_apply_local_transformation(eff, node, &backup_matrix);
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
 			gf_path_get_bounds(st->graph->path, &eff->bounds);
 		}
 		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+		svg_sa_restore_parent_transformation(eff, &backup_matrix);  
 		eff->svg_flags = backup_flags;
 		return;
 	}
@@ -205,8 +226,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 		return;
 	}
 
-	gf_mx2d_copy(backup_matrix, eff->transform);
-	gf_mx2d_pre_multiply(&eff->transform, m);
+	svg_sa_apply_local_transformation(eff, node, &backup_matrix);
 
 	ctx = SVG_drawable_init_context(st->graph, eff);
 	if (!ctx || !ctx->h_texture ) return;
@@ -230,12 +250,12 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 
 	/*bounds are stored when building graph*/	
 	drawable_finalize_render(ctx, eff, NULL);
-	gf_mx2d_copy(eff->transform, backup_matrix);  
+	svg_sa_restore_parent_transformation(eff, &backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	eff->svg_flags = backup_flags;
 }
 
-static void SVG3_Render_bitmap(GF_Node *node, void *rs)
+static void svg_render_bitmap(GF_Node *node, void *rs)
 {
 	/*video stack is just an extension of image stack, type-casting is OK*/
 	SVG_image_stack *st = (SVG_image_stack*)gf_node_get_private(node);
@@ -244,7 +264,7 @@ static void SVG3_Render_bitmap(GF_Node *node, void *rs)
 	u32 backup_flags;
 	GF_Matrix2D backup_matrix;
 	DrawableContext *ctx;
-	SVG3AllAttributes all_atts;
+	SVGAllAttributes all_atts;
 
 	if (eff->traversing_mode==TRAVERSE_DRAW) {
 		SVG_Draw_bitmap(eff);
@@ -256,16 +276,15 @@ static void SVG3_Render_bitmap(GF_Node *node, void *rs)
 	}
 
 
-	memset(&all_atts, 0, sizeof(SVG3AllAttributes));
-	gf_svg3_fill_all_attributes(&all_atts, (SVG3Element *)node);
+	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 
-	SVG3_Render_base(node, &all_atts, (RenderEffect2D *)rs, &backup_props, &backup_flags);
+	svg_render_base(node, &all_atts, (RenderEffect2D *)rs, &backup_props, &backup_flags);
 
 	if (gf_node_dirty_get(node)) {
 		GF_FieldInfo href_info;
 		SVG_Build_Bitmap_Graph((SVG_image_stack*)gf_node_get_private(node));
 		/*if open and changed, stop and play*/
-		if (gf_svg3_get_attribute_by_tag(node, TAG_SVG3_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
+		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
 			if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, href_info.far_ptr)) {
 				const char *cache_dir = gf_cfg_get_key(st->txh.compositor->user->config, "General", "CacheDirectory");
 				gf_svg_store_embedded_data(href_info.far_ptr, cache_dir, "embedded_");
@@ -284,11 +303,11 @@ static void SVG3_Render_bitmap(GF_Node *node, void *rs)
 	
 	/*FIXME: setup aspect ratio*/
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_svg3_apply_local_transformation(eff, &all_atts, &backup_matrix);
+		svg_apply_local_transformation(eff, &all_atts, &backup_matrix);
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
 			gf_path_get_bounds(st->graph->path, &eff->bounds);
 		}
-		gf_svg_restore_parent_transformation(eff, &backup_matrix);
+		svg_restore_parent_transformation(eff, &backup_matrix);
 		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		eff->svg_flags = backup_flags;
 		return;
@@ -301,7 +320,7 @@ static void SVG3_Render_bitmap(GF_Node *node, void *rs)
 		return;
 	}
 
-	gf_svg3_apply_local_transformation(eff, &all_atts, &backup_matrix);
+	svg_apply_local_transformation(eff, &all_atts, &backup_matrix);
 
 	ctx = SVG_drawable_init_context(st->graph, eff);
 	if (!ctx || !ctx->h_texture ) return;
@@ -325,7 +344,7 @@ static void SVG3_Render_bitmap(GF_Node *node, void *rs)
 
 	/*bounds are stored when building graph*/	
 	drawable_finalize_render(ctx, eff, NULL);
-	gf_svg_restore_parent_transformation(eff, &backup_matrix);
+	svg_restore_parent_transformation(eff, &backup_matrix);
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	eff->svg_flags = backup_flags;
 }
@@ -356,16 +375,25 @@ static void SVG_Render_image(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_del(st->graph);
 		free(st);
 	} else {
-		u32 tag = gf_node_get_tag(node);
-		if (tag == TAG_SVG_image) {
-			SVG_Render_bitmap(node, rs);
-		} else if (tag == TAG_SVG3_image) {
-			SVG3_Render_bitmap(node, rs);
+		switch (gf_node_get_tag(node)) {
+#ifdef GPAC_ENABLE_SVG_SA
+		case TAG_SVG_SA_image:
+			svg_sa_render_bitmap(node, rs);
+			break;
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+		case TAG_SVG_SANI_image:
+			svg_sa_render_bitmap(node, rs);
+			break;
+#endif
+		case TAG_SVG_image:
+			svg_render_bitmap(node, rs);
+			break;
 		}
 	}
 }
 
-void SVG_Init_image(Render2D *sr, GF_Node *node)
+void svg_init_image(Render2D *sr, GF_Node *node)
 {
 	u32 tag;
 	SVG_image_stack *st;
@@ -380,13 +408,25 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 
 	tag = gf_node_get_tag(node);
 	/* builds the MFURL to be used by the texture */
-	if (tag == TAG_SVG_image) {
-		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVGimageElement*)node)->xlink->href);
-	} else if (tag == TAG_SVG3_image) {
+	switch (tag) {
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_image:
+		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVG_SA_imageElement*)node)->xlink->href);
+		break;
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_image:
+		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVG_SA_imageElement*)node)->xlink->href);
+		break;
+#endif
+	case TAG_SVG_image:
+	{
 		GF_FieldInfo href_info;
-		if (gf_svg3_get_attribute_by_tag(node, TAG_SVG3_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
+		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
 			gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), href_info.far_ptr);
 		}
+	}
+		break;
 	}
 
 	gf_node_set_private(node, st);
@@ -402,17 +442,28 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 	u32 tag = gf_node_get_tag(txh->owner);
 	SVG_InitialVisibility init_vis;
 
-	if (tag == TAG_SVG_video) {
-		init_vis = ((SVGvideoElement *)txh->owner)->initialVisibility;
-	} else if (tag == TAG_SVG3_video) {
+	switch (tag) {
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_video:
+		init_vis = ((SVG_SA_videoElement *)txh->owner)->initialVisibility;
+		break;
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_video:
+		init_vis = ((SVG_SANI_videoElement *)txh->owner)->initialVisibility;
+		break;
+#endif
+	case TAG_SVG_video:
+	{
 		GF_FieldInfo init_vis_info;
-		if (gf_svg3_get_attribute_by_tag(txh->owner, TAG_SVG3_ATT_initialVisibility, 0, 0, &init_vis_info) == GF_OK) {
+		if (gf_svg_get_attribute_by_tag(txh->owner, TAG_SVG_ATT_initialVisibility, 0, 0, &init_vis_info) == GF_OK) {
 			init_vis = *(SVG_InitialVisibility *)init_vis_info.far_ptr;
 		} else {
 			init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
 		}
 	}
-
+		break;
+	}
 	if (!txh->is_open) {
 		/*opens stream only at first access to fetch first frame if needed*/
 		if (!st->first_frame_fetched && (init_vis == SVG_INITIALVISIBILTY_ALWAYS)) {
@@ -477,16 +528,25 @@ static void SVG_Render_video(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_del(st->graph);
 		free(st);
 	} else {
-		u32 tag = gf_node_get_tag(node);
-		if (tag == TAG_SVG_video) {
-			SVG_Render_bitmap(node, rs);
-		} else if (tag == TAG_SVG3_video) {
-			SVG3_Render_bitmap(node, rs);
+		switch (gf_node_get_tag(node)) {
+#ifdef GPAC_ENABLE_SVG_SA
+		case TAG_SVG_SA_video:
+			svg_sa_render_bitmap(node, rs);
+			break;
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+		case TAG_SVG_SANI_video:
+			svg_sa_render_bitmap(node, rs);
+			break;
+#endif
+		case TAG_SVG_video:
+			svg_render_bitmap(node, rs);
+			break;
 		}
 	}
 }
 
-void SVG_Init_video(Render2D *sr, GF_Node *node)
+void svg_init_video(Render2D *sr, GF_Node *node)
 {
 	u32 tag;
 	SVG_video_stack *st;
@@ -501,26 +561,35 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 
 	/* create an MFURL from the SVG iri */
 	tag = gf_node_get_tag(node);
-	if (tag == TAG_SVG_video) {
-		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVGvideoElement *)node)->xlink->href);
-	} else if (tag == TAG_SVG3_video) {
+	switch (tag) {
+#ifdef GPAC_ENABLE_SVG_SA_BASE
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_video:
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_video:
+#endif
+		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVG_SA_videoElement *)node)->xlink->href);
+		gf_smil_timing_init_runtime_info(node);
+		if (((SVG_SA_Element *)node)->timing->runtime) {
+			SMIL_Timing_RTI *rti = ((SVG_SA_Element *)node)->timing->runtime;
+			rti->evaluate = svg_video_smil_evaluate;
+		}
+		break;
+#endif
+
+	case TAG_SVG_video:
+	{
 		GF_FieldInfo href_info;
-		if (gf_svg3_get_attribute_by_tag(node, TAG_SVG3_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
+		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
 			gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), href_info.far_ptr);
 		}
-	}
-	
-	gf_smil_timing_init_runtime_info(node);
-	if (tag == TAG_SVG_video) {
-		if (((SVGElement *)node)->timing->runtime) {
-			SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
+		if (((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
+			SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
 			rti->evaluate = svg_video_smil_evaluate;
 		}
-	} else if (tag == TAG_SVG3_video) {
-		if (((SVG3TimedAnimBaseElement *)node)->timingp->runtime) {
-			SMIL_Timing_RTI *rti = ((SVG3TimedAnimBaseElement *)node)->timingp->runtime;
-			rti->evaluate = svg_video_smil_evaluate;
-		}
+	}	
+		break;
 	}
 
 	gf_node_set_private(node, st);
@@ -560,7 +629,7 @@ static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 tag;
-	SVG3AllAttributes all_atts;
+	SVGAllAttributes all_atts;
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	RenderEffect2D *eff = (RenderEffect2D*)rs;
@@ -578,13 +647,22 @@ static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	tag = gf_node_get_tag(node);
-	if (tag == TAG_SVG_audio) {
+	switch (tag) {
+#ifdef GPAC_ENABLE_SVG_SA_BASE
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_audio:
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_audio:
+#endif
 		/*for heritage and anims*/
-		SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props, &backup_flags);
-	} else if (tag == TAG_SVG3_audio) {
-		memset(&all_atts, 0, sizeof(SVG3AllAttributes));
-		gf_svg3_fill_all_attributes(&all_atts, (SVG3Element *)node);
-		SVG3_Render_base(node, &all_atts, (RenderEffect2D *)rs, &backup_props, &backup_flags);
+		svg_sa_render_base(node, (RenderEffect2D *)rs, &backup_props, &backup_flags);
+		break;
+#endif
+	case TAG_SVG_audio:
+		gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+		svg_render_base(node, &all_atts, (RenderEffect2D *)rs, &backup_props, &backup_flags);
+		break;
 	}
 
 	/*store mute flag*/
@@ -600,7 +678,7 @@ static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 	eff->svg_flags = backup_flags;
 }
 
-void SVG_Init_audio(Render2D *sr, GF_Node *node)
+void svg_init_audio(Render2D *sr, GF_Node *node)
 {
 	u32 tag;
 	SVG_audio_stack *st;
@@ -610,137 +688,38 @@ void SVG_Init_audio(Render2D *sr, GF_Node *node)
 
 	/* create an MFURL from the SVG iri */
 	tag = gf_node_get_tag(node);
-	if (tag == TAG_SVG_audio) {
-		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), & ((SVGaudioElement *)node)->xlink->href);
-	} else if (tag == TAG_SVG3_audio) {
+	switch (tag) {
+#ifdef GPAC_ENABLE_SVG_SA_BASE
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_audio:
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_audio:
+#endif
+		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), & ((SVG_SA_audioElement *)node)->xlink->href);
+		gf_smil_timing_init_runtime_info(node);
+		if (((SVG_SA_Element *)node)->timing->runtime) {
+			SMIL_Timing_RTI *rti = ((SVG_SA_Element *)node)->timing->runtime;
+			rti->evaluate = svg_audio_smil_evaluate;
+		}
+		break;
+#endif
+	case TAG_SVG_audio:
+	{
 		GF_FieldInfo href_info;
-		if (gf_svg3_get_attribute_by_tag(node, TAG_SVG3_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
+		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
 			gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), href_info.far_ptr);
 		}
-	}
-
-	gf_smil_timing_init_runtime_info(node);
-	if (tag == TAG_SVG_audio) {
-		if (((SVGElement *)node)->timing->runtime) {
-			SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
-			rti->evaluate = svg_audio_smil_evaluate;
-		}
-	} else if (tag == TAG_SVG3_audio) {
-		if (((SVG3TimedAnimBaseElement *)node)->timingp->runtime) {
-			SMIL_Timing_RTI *rti = ((SVG3TimedAnimBaseElement *)node)->timingp->runtime;
+		gf_smil_timing_init_runtime_info(node);
+		if (((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
+			SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
 			rti->evaluate = svg_audio_smil_evaluate;
 		}
 	}
-	
+		break;
+	}
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, SVG_Render_audio);
-}
-
-
-/* TODO: FIX ME we actually ignore the given sub_root since it is only valid 
-	     when animations have been performed,
-         animations evaluation (SVG_Render_base) should be part of the core renderer */
-void R2D_RenderUse(GF_Node *node, GF_Node *sub_root, void *rs)
-{
-	GF_Matrix2D backup_matrix;
-  	GF_Matrix2D translate;
-	GF_Node *prev_use;
-	SVGuseElement *use = (SVGuseElement *)node;
-	SVGPropertiesPointers backup_props;
-	u32 backup_flags;
-	RenderEffect2D *eff = (RenderEffect2D *)rs;
-
-	SVG_Render_base(node, eff, &backup_props, &backup_flags);
-
-	gf_mx2d_init(translate);
-	translate.m[2] = use->x.value;
-	translate.m[5] = use->y.value;
-
-	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_svg_apply_local_transformation(eff, node, &backup_matrix);
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
-			gf_node_render((GF_Node*)use->xlink->href.target, eff);
-			gf_mx2d_apply_rect(&translate, &eff->bounds);
-		} 
-		gf_svg_restore_parent_transformation(eff, &backup_matrix);
-		goto end;
-	}
-
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
-		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		goto end;
-	}
-
-	gf_svg_apply_local_transformation(eff, node, &backup_matrix);
-
-	gf_mx2d_pre_multiply(&eff->transform, &translate);
-	prev_use = eff->parent_use;
-	eff->parent_use = (GF_Node *)use->xlink->href.target;
-	gf_node_render((GF_Node *)use->xlink->href.target, eff);
-	eff->parent_use = prev_use;
-	gf_svg_restore_parent_transformation(eff, &backup_matrix);  
-
-end:
-	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-	eff->svg_flags = backup_flags;
-}
-
-
-void R2D_RenderInlineAnimation(GF_Node *anim, GF_Node *sub_root, void *rs)
-{
-	GF_Matrix2D backup_matrix;
-	SVGPropertiesPointers backup_props;
-	u32 backup_flags;
-	RenderEffect2D *eff = (RenderEffect2D*)rs;
-	SVGanimationElement *a = (SVGanimationElement*)anim;
-  	GF_Matrix2D translate;
-	SVGPropertiesPointers new_props, *old_props;
-
-	memset(&new_props, 0, sizeof(SVGPropertiesPointers));
-
-	/*for heritage and anims*/
-	SVG_Render_base(anim, (RenderEffect2D *)rs, &backup_props, &backup_flags);
-
-
-	gf_mx2d_init(translate);
-	translate.m[2] = a->x.value;
-	translate.m[5] = a->y.value;
-	
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
-		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		goto end;
-	}
-
-	gf_svg_apply_local_transformation(eff, anim, &backup_matrix);
-	gf_mx2d_pre_multiply(&eff->transform, &translate);
-
-#if 0
-	st = gf_node_get_private(n);
-	if (!st->is) return;
-	root = gf_sg_get_root_node(st->is->graph);
-	if (root) {
-		old_props = eff->svg_props;
-		eff->svg_props = &new_props;
-		gf_svg_properties_init_pointers(eff->svg_props);
-		//gf_sr_render_inline(st->is->root_od->term->renderer, root, rs);
-		gf_node_render(root, rs);
-		eff->svg_props = old_props;
-		gf_svg_properties_reset_pointers(&new_props);
-//	}
-#endif
-
-	old_props = eff->svg_props;
-	eff->svg_props = &new_props;
-	gf_svg_properties_init_pointers(eff->svg_props);
-
-	gf_node_render(sub_root, rs);
-	eff->svg_props = old_props;
-	gf_svg_properties_reset_pointers(&new_props);
-
-	gf_svg_restore_parent_transformation(eff, &backup_matrix);  
-end:
-	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-	eff->svg_flags = backup_flags;
 }
 
 #endif //GPAC_DISABLE_SVG

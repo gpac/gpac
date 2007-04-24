@@ -26,128 +26,6 @@
 #include <gpac/scenegraph_svg.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg_da.h>
-
-/* 
-	Initialization of properties at the element level 
-	  -	If a property is inheritable by default ('inherit: yes' in the property definition), 
-		the default value should be inherit.
-	  -	If a property is not inheritable by default ('inherit: no' in the property definition), 
-		it should have the initial value.
-*/
-#if 1
-void gf_svg_init_properties(SVGElement *p) 
-{
-	GF_SAFEALLOC(p->properties, SVGProperties)
-
-	p->properties->audio_level.type = SVG_NUMBER_VALUE;
-	p->properties->audio_level.value = FIX_ONE;
-	
-	p->properties->color.type = SVG_PAINT_COLOR;
-	p->properties->color.color.type = SVG_COLOR_INHERIT;
-
-	p->properties->color_rendering = SVG_RENDERINGHINT_INHERIT;
-
-	p->properties->display = SVG_DISPLAY_INLINE;
-
-	p->properties->display_align = SVG_DISPLAYALIGN_INHERIT;
-
-	p->properties->fill.type = SVG_PAINT_INHERIT;
-
-	p->properties->fill_opacity.type = SVG_NUMBER_INHERIT;
-	
-	p->properties->fill_rule = SVG_FILLRULE_INHERIT;
-
-	p->properties->font_family.type = SVG_FONTFAMILY_INHERIT;
-
-	p->properties->font_size.type = SVG_NUMBER_INHERIT;
-
-	p->properties->font_style = SVG_FONTSTYLE_INHERIT;
-
-	p->properties->font_variant = SVG_FONTVARIANT_INHERIT;
-
-	p->properties->font_weight = SVG_FONTWEIGHT_INHERIT;
-
-	p->properties->image_rendering = SVG_RENDERINGHINT_INHERIT;
-
-	p->properties->line_increment.type = SVG_NUMBER_INHERIT;
-
-	p->properties->opacity.type = SVG_NUMBER_VALUE;
-	p->properties->opacity.value = FIX_ONE;
-
-	p->properties->pointer_events = SVG_POINTEREVENTS_INHERIT;
-
-	p->properties->shape_rendering = SVG_RENDERINGHINT_INHERIT;
-
-	p->properties->solid_color.type = SVG_PAINT_COLOR;
-	p->properties->solid_color.color.type = SVG_COLOR_RGBCOLOR;
-	/*
-	p->properties->solid_color.color.red = 0;
-	p->properties->solid_color.color.green = 0;
-	p->properties->solid_color.color.blue = 0;
-	*/
-
-	p->properties->solid_opacity.type = SVG_NUMBER_VALUE;
-	p->properties->solid_opacity.value = FIX_ONE;
-
-	p->properties->stop_color.type = SVG_PAINT_COLOR;
-	p->properties->stop_color.color.type = SVG_COLOR_RGBCOLOR;
-	/*
-	p->properties->stop_color.color.red = 0;
-	p->properties->stop_color.color.green = 0;
-	p->properties->stop_color.color.blue = 0;
-	*/
-
-	p->properties->stop_opacity.type = SVG_NUMBER_VALUE;
-	p->properties->stop_opacity.value = FIX_ONE;
-
-	p->properties->stroke.type = SVG_PAINT_INHERIT;
-	
-	p->properties->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
-	
-	p->properties->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
-
-	p->properties->stroke_linecap = SVG_STROKELINECAP_INHERIT;
-	
-	p->properties->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
-	
-	p->properties->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
-	
-	p->properties->stroke_opacity.type = SVG_NUMBER_INHERIT;
-	
-	p->properties->stroke_width.type = SVG_NUMBER_INHERIT;
-	
-	p->properties->text_align = SVG_TEXTALIGN_INHERIT;
-	
-	p->properties->text_anchor = SVG_TEXTANCHOR_INHERIT;
-	
-	p->properties->text_rendering = SVG_RENDERINGHINT_INHERIT;
-
-	p->properties->vector_effect = SVG_VECTOREFFECT_NONE;
-
-	p->properties->viewport_fill.type = SVG_PAINT_NONE;
-	
-	p->properties->viewport_fill_opacity.type = SVG_NUMBER_VALUE;
-	p->properties->viewport_fill_opacity.value = FIX_ONE;
-	
-	p->properties->visibility = SVG_VISIBILITY_INHERIT;
-
-/*
-	This is the list of attributes which either inherit a value from the parent when not specified, 
-	or explicitely use an inherit value, even though they are not CSS properties:
-	contentScriptType
-	externalResourcesRequired
-	syncBehaviorDefault
-	syncToleranceDefault
-	xml:base
-	xml:lang
-	xml:space
-  
-*/
-}
-
-#else
-void gf_svg_init_properties(SVGElement *p) { }
-#endif
 /* 
 	Initialization of properties at the top level before any rendering 
 	The value shall not use the 'inherit' value, it uses the initial value.
@@ -344,11 +222,14 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 	memset(svg_props, 0, sizeof(SVGPropertiesPointers));
 }
 
+
+#ifdef GPAC_ENABLE_SVG_SA
+
 /* 
 	TODO: Check if all properties are implemented 
 */
 GF_EXPORT
-u32 gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_props) 
+u32 gf_svg_sa_apply_inheritance(SVG_SA_Element *elt, SVGPropertiesPointers *render_svg_props) 
 {
 	u32 inherited_flags_mask = 0;
 	if(!elt || !render_svg_props) return 0;
@@ -543,6 +424,61 @@ u32 gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_
 	}
 	return inherited_flags_mask;
 }
+#endif
+
+
+void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
+								   SVGPropertiesPointers *output_property_context)
+{
+	SVGAttribute *att = elt->attributes;
+	while (att) {
+		if (att->data == input_attribute) break;
+		att = att->next;
+	}
+	if (!att) return NULL;
+	switch (att->tag) {
+		case TAG_SVG_ATT_audio_level: return output_property_context->audio_level;
+		case TAG_SVG_ATT_color: return output_property_context->color;
+		case TAG_SVG_ATT_color_rendering: return output_property_context->color_rendering;
+		case TAG_SVG_ATT_display: return output_property_context->display;
+		case TAG_SVG_ATT_display_align: return output_property_context->display_align;
+		case TAG_SVG_ATT_fill: return output_property_context->fill;
+		case TAG_SVG_ATT_fill_opacity: return output_property_context->fill_opacity;
+		case TAG_SVG_ATT_fill_rule: return output_property_context->fill_rule;
+		case TAG_SVG_ATT_font_family: return output_property_context->font_family;
+		case TAG_SVG_ATT_font_size: return output_property_context->font_size;
+		case TAG_SVG_ATT_font_style: return output_property_context->font_style;
+		case TAG_SVG_ATT_font_variant: return output_property_context->font_variant;
+		case TAG_SVG_ATT_font_weight: return output_property_context->font_weight;
+		case TAG_SVG_ATT_image_rendering: return output_property_context->image_rendering;
+		case TAG_SVG_ATT_line_increment: return output_property_context->line_increment;
+		case TAG_SVG_ATT_opacity: return output_property_context->opacity;
+		case TAG_SVG_ATT_pointer_events: return output_property_context->pointer_events;
+		case TAG_SVG_ATT_shape_rendering: return output_property_context->shape_rendering;
+		case TAG_SVG_ATT_solid_color: return output_property_context->solid_color;
+		case TAG_SVG_ATT_solid_opacity: return output_property_context->solid_opacity;
+		case TAG_SVG_ATT_stop_color: return output_property_context->stop_color;
+		case TAG_SVG_ATT_stop_opacity: return output_property_context->stop_opacity;
+		case TAG_SVG_ATT_stroke: return output_property_context->stroke;
+		case TAG_SVG_ATT_stroke_dasharray: return output_property_context->stroke_dasharray;
+		case TAG_SVG_ATT_stroke_dashoffset: return output_property_context->stroke_dashoffset;
+		case TAG_SVG_ATT_stroke_linecap: return output_property_context->stroke_linecap;
+		case TAG_SVG_ATT_stroke_linejoin: return output_property_context->stroke_linejoin;
+		case TAG_SVG_ATT_stroke_miterlimit: return output_property_context->stroke_miterlimit;
+		case TAG_SVG_ATT_stroke_opacity: return output_property_context->stroke_opacity;
+		case TAG_SVG_ATT_stroke_width: return output_property_context->stroke_width;
+		case TAG_SVG_ATT_text_align: return output_property_context->text_align;
+		case TAG_SVG_ATT_text_anchor: return output_property_context->text_anchor;
+		case TAG_SVG_ATT_text_rendering: return output_property_context->text_rendering;
+		case TAG_SVG_ATT_vector_effect: return output_property_context->vector_effect;
+		case TAG_SVG_ATT_viewport_fill: return output_property_context->viewport_fill;
+		case TAG_SVG_ATT_viewport_fill_opacity: return output_property_context->viewport_fill_opacity;
+		case TAG_SVG_ATT_visibility: return output_property_context->visibility;
+		default:return NULL;
+	}
+}
+
+#ifdef GPAC_ENABLE_SVG_SA
 
 /* Equivalent to "get_property_pointer_by_name" but without string comparison
    Returns a pointer to the property in the given output property context based 
@@ -557,7 +493,7 @@ u32 gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_
 	then we return the property output_property_context->XXX 
 	(ie. output_property_context->XXX)
 */
-void *gf_svg_get_property_pointer(SVGPropertiesPointers *output_property_context, 
+void *gf_svg_sa_get_property_pointer(SVGPropertiesPointers *output_property_context, 
 								  SVGProperties *input_property_context, 
 								  void *input_attribute)
 {
@@ -602,62 +538,13 @@ void *gf_svg_get_property_pointer(SVGPropertiesPointers *output_property_context
 	else return NULL;
 }
 
-void *gf_svg3_get_property_pointer(SVG3Element *elt, void *input_attribute,
-								   SVGPropertiesPointers *output_property_context)
-{
-	SVG3Attribute *att = elt->attributes;
-	while (att) {
-		if (att->data == input_attribute) break;
-		att = att->next;
-	}
-	if (!att) return NULL;
-	switch (att->tag) {
-		case TAG_SVG3_ATT_audio_level: return output_property_context->audio_level;
-		case TAG_SVG3_ATT_color: return output_property_context->color;
-		case TAG_SVG3_ATT_color_rendering: return output_property_context->color_rendering;
-		case TAG_SVG3_ATT_display: return output_property_context->display;
-		case TAG_SVG3_ATT_display_align: return output_property_context->display_align;
-		case TAG_SVG3_ATT_fill: return output_property_context->fill;
-		case TAG_SVG3_ATT_fill_opacity: return output_property_context->fill_opacity;
-		case TAG_SVG3_ATT_fill_rule: return output_property_context->fill_rule;
-		case TAG_SVG3_ATT_font_family: return output_property_context->font_family;
-		case TAG_SVG3_ATT_font_size: return output_property_context->font_size;
-		case TAG_SVG3_ATT_font_style: return output_property_context->font_style;
-		case TAG_SVG3_ATT_font_variant: return output_property_context->font_variant;
-		case TAG_SVG3_ATT_font_weight: return output_property_context->font_weight;
-		case TAG_SVG3_ATT_image_rendering: return output_property_context->image_rendering;
-		case TAG_SVG3_ATT_line_increment: return output_property_context->line_increment;
-		case TAG_SVG3_ATT_opacity: return output_property_context->opacity;
-		case TAG_SVG3_ATT_pointer_events: return output_property_context->pointer_events;
-		case TAG_SVG3_ATT_shape_rendering: return output_property_context->shape_rendering;
-		case TAG_SVG3_ATT_solid_color: return output_property_context->solid_color;
-		case TAG_SVG3_ATT_solid_opacity: return output_property_context->solid_opacity;
-		case TAG_SVG3_ATT_stop_color: return output_property_context->stop_color;
-		case TAG_SVG3_ATT_stop_opacity: return output_property_context->stop_opacity;
-		case TAG_SVG3_ATT_stroke: return output_property_context->stroke;
-		case TAG_SVG3_ATT_stroke_dasharray: return output_property_context->stroke_dasharray;
-		case TAG_SVG3_ATT_stroke_dashoffset: return output_property_context->stroke_dashoffset;
-		case TAG_SVG3_ATT_stroke_linecap: return output_property_context->stroke_linecap;
-		case TAG_SVG3_ATT_stroke_linejoin: return output_property_context->stroke_linejoin;
-		case TAG_SVG3_ATT_stroke_miterlimit: return output_property_context->stroke_miterlimit;
-		case TAG_SVG3_ATT_stroke_opacity: return output_property_context->stroke_opacity;
-		case TAG_SVG3_ATT_stroke_width: return output_property_context->stroke_width;
-		case TAG_SVG3_ATT_text_align: return output_property_context->text_align;
-		case TAG_SVG3_ATT_text_anchor: return output_property_context->text_anchor;
-		case TAG_SVG3_ATT_text_rendering: return output_property_context->text_rendering;
-		case TAG_SVG3_ATT_vector_effect: return output_property_context->vector_effect;
-		case TAG_SVG3_ATT_viewport_fill: return output_property_context->viewport_fill;
-		case TAG_SVG3_ATT_viewport_fill_opacity: return output_property_context->viewport_fill_opacity;
-		case TAG_SVG3_ATT_visibility: return output_property_context->visibility;
-		default:return NULL;
-	}
-}
+#endif
 
 Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute)
 {
 	u32 tag = gf_node_get_tag(node);
-	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		SVGElement *e = (SVGElement *)node;
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		SVG_SA_Element *e = (SVG_SA_Element *)node;
 		if (target_attribute->far_ptr == &e->properties->audio_level) return 1;
 		else if (target_attribute->far_ptr == &e->properties->color) return 1;
 		else if (target_attribute->far_ptr == &e->properties->color_rendering) return 1;
@@ -696,54 +583,54 @@ Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute)
 		else if (target_attribute->far_ptr == &e->properties->viewport_fill_opacity) return 1;
 		else if (target_attribute->far_ptr == &e->properties->visibility) return 1;
 		else return 0;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG2) && (tag<=GF_NODE_RANGE_LAST_SVG2)) {
+	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
 		return 0;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG3) && (tag<=GF_NODE_RANGE_LAST_SVG3)) {
-		SVG3Element *e = (SVG3Element *)node;
-		SVG3Attribute *att = e->attributes;
+	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+		SVG_Element *e = (SVG_Element *)node;
+		SVGAttribute *att = e->attributes;
 		while (att) {
 			if (att->data == target_attribute->far_ptr) break;
 			att = att->next;
 		}
 		if (!att) return 0;
 		switch (att->tag) {
-			case TAG_SVG3_ATT_audio_level: 
-			case TAG_SVG3_ATT_color: 
-			case TAG_SVG3_ATT_color_rendering: 
-			case TAG_SVG3_ATT_display: 
-			case TAG_SVG3_ATT_display_align: 
-			case TAG_SVG3_ATT_fill: 
-			case TAG_SVG3_ATT_fill_opacity: 
-			case TAG_SVG3_ATT_fill_rule: 
-			case TAG_SVG3_ATT_font_family: 
-			case TAG_SVG3_ATT_font_size: 
-			case TAG_SVG3_ATT_font_style: 
-			case TAG_SVG3_ATT_font_variant: 
-			case TAG_SVG3_ATT_font_weight: 
-			case TAG_SVG3_ATT_image_rendering: 
-			case TAG_SVG3_ATT_line_increment: 
-			case TAG_SVG3_ATT_opacity: 
-			case TAG_SVG3_ATT_pointer_events: 
-			case TAG_SVG3_ATT_shape_rendering: 
-			case TAG_SVG3_ATT_solid_color: 
-			case TAG_SVG3_ATT_solid_opacity: 
-			case TAG_SVG3_ATT_stop_color: 
-			case TAG_SVG3_ATT_stop_opacity: 
-			case TAG_SVG3_ATT_stroke: 
-			case TAG_SVG3_ATT_stroke_dasharray: 
-			case TAG_SVG3_ATT_stroke_dashoffset: 
-			case TAG_SVG3_ATT_stroke_linecap: 
-			case TAG_SVG3_ATT_stroke_linejoin: 
-			case TAG_SVG3_ATT_stroke_miterlimit: 
-			case TAG_SVG3_ATT_stroke_opacity: 
-			case TAG_SVG3_ATT_stroke_width: 
-			case TAG_SVG3_ATT_text_align: 
-			case TAG_SVG3_ATT_text_anchor: 
-			case TAG_SVG3_ATT_text_rendering: 
-			case TAG_SVG3_ATT_vector_effect: 
-			case TAG_SVG3_ATT_viewport_fill: 
-			case TAG_SVG3_ATT_viewport_fill_opacity: 
-			case TAG_SVG3_ATT_visibility: 
+			case TAG_SVG_ATT_audio_level: 
+			case TAG_SVG_ATT_color: 
+			case TAG_SVG_ATT_color_rendering: 
+			case TAG_SVG_ATT_display: 
+			case TAG_SVG_ATT_display_align: 
+			case TAG_SVG_ATT_fill: 
+			case TAG_SVG_ATT_fill_opacity: 
+			case TAG_SVG_ATT_fill_rule: 
+			case TAG_SVG_ATT_font_family: 
+			case TAG_SVG_ATT_font_size: 
+			case TAG_SVG_ATT_font_style: 
+			case TAG_SVG_ATT_font_variant: 
+			case TAG_SVG_ATT_font_weight: 
+			case TAG_SVG_ATT_image_rendering: 
+			case TAG_SVG_ATT_line_increment: 
+			case TAG_SVG_ATT_opacity: 
+			case TAG_SVG_ATT_pointer_events: 
+			case TAG_SVG_ATT_shape_rendering: 
+			case TAG_SVG_ATT_solid_color: 
+			case TAG_SVG_ATT_solid_opacity: 
+			case TAG_SVG_ATT_stop_color: 
+			case TAG_SVG_ATT_stop_opacity: 
+			case TAG_SVG_ATT_stroke: 
+			case TAG_SVG_ATT_stroke_dasharray: 
+			case TAG_SVG_ATT_stroke_dashoffset: 
+			case TAG_SVG_ATT_stroke_linecap: 
+			case TAG_SVG_ATT_stroke_linejoin: 
+			case TAG_SVG_ATT_stroke_miterlimit: 
+			case TAG_SVG_ATT_stroke_opacity: 
+			case TAG_SVG_ATT_stroke_width: 
+			case TAG_SVG_ATT_text_align: 
+			case TAG_SVG_ATT_text_anchor: 
+			case TAG_SVG_ATT_text_rendering: 
+			case TAG_SVG_ATT_vector_effect: 
+			case TAG_SVG_ATT_viewport_fill: 
+			case TAG_SVG_ATT_viewport_fill_opacity: 
+			case TAG_SVG_ATT_visibility: 
 				return 1;
 			default:
 				return 0;
@@ -822,7 +709,8 @@ Bool gf_svg_is_inherit(GF_FieldInfo *a)
 	}
 }
 
-u32 gf_svg_get_rendering_flag_if_modified(SVGElement *n, GF_FieldInfo *info)
+#ifdef GPAC_ENABLE_SVG_SA
+u32 gf_svg_sa_get_rendering_flag_if_modified(SVG_SA_Element *n, GF_FieldInfo *info)
 {
 	if (n->properties) {		
 		if      (&n->properties->audio_level == info->far_ptr)			return 0;
@@ -896,6 +784,8 @@ u32 gf_svg_get_rendering_flag_if_modified(SVGElement *n, GF_FieldInfo *info)
 			return 0;
 	}
 }
+#endif
+
 
 GF_EXPORT
 Bool gf_svg_has_appearance_flag_dirty(u32 flags)

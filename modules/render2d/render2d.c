@@ -527,7 +527,12 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_Event *event)
 				case TAG_MPEG4_ProximitySensor2D: type = GF_CURSOR_PROXIMITY; break;
 				case TAG_MPEG4_TouchSensor: type = GF_CURSOR_TOUCH; break;
 #ifndef GPAC_DISABLE_SVG
-				case TAG_SVG_a: type = GF_CURSOR_ANCHOR; break;
+#ifdef GPAC_ENABLE_SVG_SA
+				case TAG_SVG_SA_a: 
+#endif
+				case TAG_SVG_a: 
+					type = GF_CURSOR_ANCHOR; 
+					break;
 #endif
 				default: type = GF_CURSOR_TOUCH; break;
 				}
@@ -694,9 +699,9 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 #ifndef GPAC_DISABLE_SVG
 		{
 			u32 node_tag = gf_node_get_tag(top_node);
-			if (((node_tag>=GF_NODE_RANGE_FIRST_SVG) && (node_tag<=GF_NODE_RANGE_LAST_SVG)) || 
-				((node_tag>=GF_NODE_RANGE_FIRST_SVG2) && (node_tag<=GF_NODE_RANGE_LAST_SVG2)) || 
-				((node_tag>=GF_NODE_RANGE_FIRST_SVG3) && (node_tag<=GF_NODE_RANGE_LAST_SVG3)) ) {
+			if (((node_tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (node_tag<=GF_NODE_RANGE_LAST_SVG_SA)) || 
+				((node_tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (node_tag<=GF_NODE_RANGE_LAST_SVG_SANI)) || 
+				((node_tag>=GF_NODE_RANGE_FIRST_SVG) && (node_tag<=GF_NODE_RANGE_LAST_SVG)) ) {
 				sr->surface->center_coords = 0;
 				sr->main_surface_setup = 2;
 				sr->use_dom_events = 1;
@@ -1334,14 +1339,15 @@ static void R2D_RenderInlineMPEG4(GF_VisualRenderer *vr, GF_Node *inline_parent,
 
 void R2D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *inline_root, void *rs)
 {
-	u32 tag;
-
 	switch (gf_node_get_tag(inline_parent)) {
 #ifndef GPAC_DISABLE_SVG
-	case TAG_SVG_animation:
-		tag = gf_node_get_tag(inline_root);
-		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-			R2D_RenderInlineAnimation(inline_parent, inline_root, rs);
+
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_animation:
+	{
+		u32 tag = gf_node_get_tag(inline_root);
+		if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+			R2D_render_svg_sa_animation(inline_parent, inline_root, rs);
 		} else {
 			RenderEffect2D *eff = (RenderEffect2D *)rs;
 			GF_Matrix2D mx, bck;
@@ -1356,14 +1362,19 @@ void R2D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *in
 			R2D_RenderInlineMPEG4(vr, inline_parent, inline_root, rs);
 			gf_mx2d_copy(eff->transform, bck);
 		}
+	}
 		break;
+	case TAG_SVG_SA_use:
+		R2D_render_svg_sa_use(inline_parent, inline_root, rs);
+		break;
+#endif
+
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_use:
+		r2d_render_svg_sani_use(inline_parent, inline_root, rs);
+		break;
+#endif
 	case TAG_SVG_use:
-		R2D_RenderUse(inline_parent, inline_root, rs);
-		break;
-	case TAG_SVG2_use:
-		R2D_RenderUse2(inline_parent, inline_root, rs);
-		break;
-	case TAG_SVG3_use:
 		R2D_RenderUse3(inline_parent, inline_root, rs);
 		break;
 #endif

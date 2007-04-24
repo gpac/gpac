@@ -29,9 +29,13 @@
 #include "input_sensor.h"
 /*includes X3D nodes for WorldInfo, Inline and Key/String sensors*/
 #include <gpac/nodes_x3d.h>
-#include <gpac/nodes_svg_sa.h>
-#include <gpac/nodes_svg_sani.h>
 #include <gpac/nodes_svg_da.h>
+#ifdef GPAC_ENABLE_SVG_SA
+#include <gpac/nodes_svg_sa.h>
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+#include <gpac/nodes_svg_sani.h>
+#endif
 
 void InitMediaControl(GF_InlineScene *is, GF_Node *node);
 void MC_Modified(GF_Node *node);
@@ -41,10 +45,10 @@ void InitInline(GF_InlineScene *is, GF_Node *node);
 
 
 #ifndef GPAC_DISABLE_SVG
-void SVG_Init_animation(GF_InlineScene *is, GF_Node *node);
-void SVG_Init_use(GF_InlineScene *is, GF_Node *node);
-void SVG2_Init_use(GF_InlineScene *is, GF_Node *node);
-void SVG3_Init_use(GF_InlineScene *is, GF_Node *node);
+void svg_sa_render_init_animation(GF_InlineScene *is, GF_Node *node);
+void svg_sa_init_use(GF_InlineScene *is, GF_Node *node);
+void svg_sani_render_init_use(GF_InlineScene *is, GF_Node *node);
+void svg_render_init_use(GF_InlineScene *is, GF_Node *node);
 #endif
 
 void Render_WorldInfo(GF_Node *node, void *rs, Bool is_destroy)
@@ -53,7 +57,7 @@ void Render_WorldInfo(GF_Node *node, void *rs, Bool is_destroy)
 	is->world_info = is_destroy ? NULL : (M_WorldInfo *) node;
 }
 
-void Render_SVGtitle(GF_Node *node, void *rs, Bool is_destroy)
+void svg_render_title(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
 	is->world_info = is_destroy ? NULL : (M_WorldInfo *) node;
@@ -87,14 +91,33 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 	case TAG_X3D_StringSensor: InitStringSensor(is, node); break;
 
 #ifndef GPAC_DISABLE_SVG
+
 	case TAG_SVG_title: 
-		gf_node_set_callback_function(node, Render_SVGtitle);
+		gf_node_set_callback_function(node, svg_render_title);
 		gf_node_set_private(node, is);
 		break;
-	case TAG_SVG_animation:	SVG_Init_animation(is, node); break;
-	case TAG_SVG_use: SVG_Init_use(is, node); break;
-	case TAG_SVG2_use: SVG2_Init_use(is, node); break;
-	case TAG_SVG3_use: SVG3_Init_use(is, node); break;
+	case TAG_SVG_use: 
+		svg_render_init_use(is, node); 
+		break;
+
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_title: 
+		gf_node_set_callback_function(node, svg_render_title);
+		gf_node_set_private(node, is);
+		break;
+	case TAG_SVG_SA_animation:	
+		svg_sa_render_init_animation(is, node); 
+		break;
+	case TAG_SVG_SA_use: 
+		svg_sa_init_use(is, node); 
+		break;
+#endif
+
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_use: 
+		svg_sani_render_init_use(is, node); 
+		break;
+#endif
 #endif
 
 	default: gf_sr_on_node_init(is->root_od->term->renderer, node); break;

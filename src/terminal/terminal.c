@@ -1012,7 +1012,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	else if (gf_sg_get_root_node(term->root_scene->graph)) {
 		tag = gf_node_get_tag(gf_sg_get_root_node(term->root_scene->graph));
 
-		if (tag >= GF_NODE_RANGE_FIRST_SVG) {
+		if (tag >= GF_NODE_RANGE_FIRST_SVG_SA) {
 			load.type = GF_SM_LOAD_XSR;
 			time = gf_is_get_time(term->root_scene);
 		} else if (tag>=GF_NODE_RANGE_FIRST_X3D) {

@@ -25,7 +25,7 @@
 #include <gpac/scene_manager.h>
 #include <gpac/xml.h>
 #include <gpac/internal/scenegraph_dev.h>
-#include <gpac/nodes_svg3.h>
+#include <gpac/nodes_svg_da.h>
 #include <gpac/nodes_mpeg4.h>
 
 typedef struct {
@@ -33,14 +33,14 @@ typedef struct {
 	
 	GF_SceneGraph *svg_sg;
 	GF_Node *svg_parent;
-	SVG3AllAttributes all_atts;
+	SVGAllAttributes all_atts;
 	SVGPropertiesPointers svg_props;
 
 	GF_SceneGraph *bifs_sg;
 	GF_Node *bifs_parent;
 	GF_Node *bifs_text_node;
 
-} SVG2BIFS_Converter;
+} SVG_SANI_BIFS_Converter;
 
 static GF_Node *create_appearance(SVGPropertiesPointers *svg_props, GF_SceneGraph *sg)
 {
@@ -117,200 +117,9 @@ static GF_Node *create_appearance(SVGPropertiesPointers *svg_props, GF_SceneGrap
 	return (GF_Node*)app;
 }
 
-u32 svg3_apply_inheritance(SVG3AllAttributes *all_atts, SVGPropertiesPointers *render_svg_props) 
-{
-	u32 inherited_flags_mask = GF_SG_NODE_DIRTY | GF_SG_CHILD_DIRTY;
-	if(!all_atts || !render_svg_props) return ~inherited_flags_mask;
 
-	if (all_atts->audio_level && all_atts->audio_level->type != SVG_NUMBER_INHERIT)
-		render_svg_props->audio_level = all_atts->audio_level;	
-	
-	if (all_atts->color && all_atts->color->color.type != SVG_COLOR_INHERIT) {
-		render_svg_props->color = all_atts->color;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_COLOR_DIRTY;
-	}
-	if (all_atts->color_rendering && *(all_atts->color_rendering) != SVG_RENDERINGHINT_INHERIT) {
-		render_svg_props->color_rendering = all_atts->color_rendering;
-	}
-	if (all_atts->display && *(all_atts->display) != SVG_DISPLAY_INHERIT) {
-		render_svg_props->display = all_atts->display;
-	}
-	if (all_atts->display_align && *(all_atts->display_align) != SVG_DISPLAYALIGN_INHERIT) {
-		render_svg_props->display_align = all_atts->display_align;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_DISPLAYALIGN_DIRTY;
-	}
-	if (all_atts->fill && all_atts->fill->type != SVG_PAINT_INHERIT) {
-		render_svg_props->fill = all_atts->fill;
-		if (all_atts->fill->type == SVG_PAINT_COLOR && 
-			all_atts->fill->color.type == SVG_COLOR_CURRENTCOLOR &&
-			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
-			inherited_flags_mask |= GF_SG_SVG_FILL_DIRTY;
-		}
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_FILL_DIRTY;
-	}
-	if (all_atts->fill_opacity && all_atts->fill_opacity->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->fill_opacity = all_atts->fill_opacity;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_FILLOPACITY_DIRTY;
-	}
-	if (all_atts->fill_rule && *(all_atts->fill_rule) != SVG_FILLRULE_INHERIT) {
-		render_svg_props->fill_rule = all_atts->fill_rule;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_FILLRULE_DIRTY;
-	}
-	if (all_atts->font_family && all_atts->font_family->type != SVG_FONTFAMILY_INHERIT) {
-		render_svg_props->font_family = all_atts->font_family;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_FONTFAMILY_DIRTY;
-	}
-	if (all_atts->font_size && all_atts->font_size->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->font_size = all_atts->font_size;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_FONTSIZE_DIRTY;
-	}
-	if (all_atts->font_style && *(all_atts->font_style) != SVG_FONTSTYLE_INHERIT) {
-		render_svg_props->font_style = all_atts->font_style;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_FONTSTYLE_DIRTY;
-	}
-	if (all_atts->font_variant && *(all_atts->font_variant) != SVG_FONTVARIANT_INHERIT) {
-		render_svg_props->font_variant = all_atts->font_variant;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_FONTVARIANT_DIRTY;
-	}
-	if (all_atts->font_weight && *(all_atts->font_weight) != SVG_FONTWEIGHT_INHERIT) {
-		render_svg_props->font_weight = all_atts->font_weight;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_FONTWEIGHT_DIRTY;
-	}
-	if (all_atts->image_rendering && *(all_atts->image_rendering) != SVG_RENDERINGHINT_INHERIT) {
-		render_svg_props->image_rendering = all_atts->image_rendering;
-	}
-	if (all_atts->line_increment && all_atts->line_increment->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->line_increment = all_atts->line_increment;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_LINEINCREMENT_DIRTY;
-	}
-	if (all_atts->opacity && all_atts->opacity->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->opacity = all_atts->opacity;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_OPACITY_DIRTY;
-	}
-	if (all_atts->pointer_events && *(all_atts->pointer_events) != SVG_POINTEREVENTS_INHERIT) {
-		render_svg_props->pointer_events = all_atts->pointer_events;
-	}
-	if (all_atts->shape_rendering && *(all_atts->shape_rendering) != SVG_RENDERINGHINT_INHERIT) {
-		render_svg_props->shape_rendering = all_atts->shape_rendering;
-	}
-	if (all_atts->solid_color && all_atts->solid_color->type != SVG_PAINT_INHERIT) {
-		render_svg_props->solid_color = all_atts->solid_color;		
-		if (all_atts->solid_color->type == SVG_PAINT_COLOR && 
-			all_atts->solid_color->color.type == SVG_COLOR_CURRENTCOLOR &&
-			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
-			inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_DIRTY;
-		}
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_DIRTY;
-	}
-	if (all_atts->solid_opacity && all_atts->solid_opacity->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->solid_opacity = all_atts->solid_opacity;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_SOLIDOPACITY_DIRTY;
-	}
-	if (all_atts->stop_color && all_atts->stop_color->type != SVG_PAINT_INHERIT) {
-		render_svg_props->stop_color = all_atts->stop_color;
-		if (all_atts->stop_color->type == SVG_PAINT_COLOR && 
-			all_atts->stop_color->color.type == SVG_COLOR_CURRENTCOLOR &&
-			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
-			inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_DIRTY;
-		}
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_DIRTY;
-	}
-	if (all_atts->stop_opacity && all_atts->stop_opacity->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stop_opacity = all_atts->stop_opacity;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_STOPOPACITY_DIRTY;
-	}
-	if (all_atts->stroke && all_atts->stroke->type != SVG_PAINT_INHERIT) {
-		render_svg_props->stroke = all_atts->stroke;
-		if (all_atts->stroke->type == SVG_PAINT_COLOR && 
-			all_atts->stroke->color.type == SVG_COLOR_CURRENTCOLOR &&
-			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
-			inherited_flags_mask |= GF_SG_SVG_STROKE_DIRTY;
-		}
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_STROKE_DIRTY;
-	}
-	if (all_atts->stroke_dasharray && all_atts->stroke_dasharray->type != SVG_STROKEDASHARRAY_INHERIT) {
-		render_svg_props->stroke_dasharray = all_atts->stroke_dasharray;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_STROKEDASHARRAY_DIRTY;
-	}
-	if (all_atts->stroke_dashoffset && all_atts->stroke_dashoffset->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_dashoffset = all_atts->stroke_dashoffset;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_STROKEDASHOFFSET_DIRTY;
-	}
-	if (all_atts->stroke_linecap && *(all_atts->stroke_linecap) != SVG_STROKELINECAP_INHERIT) {
-		render_svg_props->stroke_linecap = all_atts->stroke_linecap;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_STROKELINECAP_DIRTY;
-	}
-	if (all_atts->stroke_linejoin && *(all_atts->stroke_linejoin) != SVG_STROKELINEJOIN_INHERIT) {
-		render_svg_props->stroke_linejoin = all_atts->stroke_linejoin;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_STROKELINEJOIN_DIRTY;
-	}
-	if (all_atts->stroke_miterlimit && all_atts->stroke_miterlimit->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_miterlimit = all_atts->stroke_miterlimit;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_STROKEMITERLIMIT_DIRTY;
-	}
-	if (all_atts->stroke_opacity && all_atts->stroke_opacity->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_opacity = all_atts->stroke_opacity;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_STROKEOPACITY_DIRTY;
-	}
-	if (all_atts->stroke_width && all_atts->stroke_width->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_width = all_atts->stroke_width;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_STROKEWIDTH_DIRTY;
-	}
-	if (all_atts->text_align && *(all_atts->text_align) != SVG_TEXTALIGN_INHERIT) {
-		render_svg_props->text_align = all_atts->text_align;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_TEXTALIGN_DIRTY;
-	}
-	if (all_atts->text_anchor && *(all_atts->text_anchor) != SVG_TEXTANCHOR_INHERIT) {
-		render_svg_props->text_anchor = all_atts->text_anchor;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_TEXTANCHOR_DIRTY;
-	}
-	if (all_atts->text_rendering && *(all_atts->text_rendering) != SVG_RENDERINGHINT_INHERIT) {
-		render_svg_props->text_rendering = all_atts->text_rendering;
-	}
-	if (all_atts->vector_effect && *(all_atts->vector_effect) != SVG_VECTOREFFECT_INHERIT) {
-		render_svg_props->vector_effect = all_atts->vector_effect;
-	} else {
-		inherited_flags_mask |= GF_SG_SVG_VECTOREFFECT_DIRTY;
-	}
-	if (all_atts->viewport_fill && all_atts->viewport_fill->type != SVG_PAINT_INHERIT) {
-		render_svg_props->viewport_fill = all_atts->viewport_fill;		
-	}
-	if (all_atts->viewport_fill_opacity && all_atts->viewport_fill_opacity->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->viewport_fill_opacity = all_atts->viewport_fill_opacity;
-	}
-	if (all_atts->visibility && *(all_atts->visibility) != SVG_VISIBILITY_INHERIT) {
-		render_svg_props->visibility = all_atts->visibility;
-	}
-	return inherited_flags_mask;
-}
 
-static GF_Node *add_transform(SVG2BIFS_Converter *converter, GF_Node *node)
+static GF_Node *add_transform(SVG_SANI_BIFS_Converter *converter, GF_Node *node)
 {
 	M_TransformMatrix2D *tr = (M_TransformMatrix2D*)gf_node_new(converter->bifs_sg, TAG_MPEG4_TransformMatrix2D);
 	gf_node_register((GF_Node *)tr, node);
@@ -331,12 +140,12 @@ static GF_Node *add_transform(SVG2BIFS_Converter *converter, GF_Node *node)
 static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	u32 i;
-	SVG2BIFS_Converter *converter = (SVG2BIFS_Converter *)sax_cbck;
+	SVG_SANI_BIFS_Converter *converter = (SVG_SANI_BIFS_Converter *)sax_cbck;
 	SVGPropertiesPointers *backup_props;
 	char *id_string = NULL;
 
-	u32	tag = gf_node_svg3_type_by_class_name(name);
-	SVG3Element *elt = (SVG3Element*)gf_node_new(converter->svg_sg, tag);
+	u32	tag = gf_svg_get_element_tag(name);
+	SVG_Element *elt = (SVG_Element*)gf_node_new(converter->svg_sg, tag);
 	if (!gf_sg_get_root_node(converter->svg_sg)) {
 		gf_node_register((GF_Node *)elt, NULL);
 		gf_sg_set_root_node(converter->svg_sg, (GF_Node *)elt);
@@ -368,17 +177,17 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 		}
 	}
 
-	memset(&converter->all_atts, 0, sizeof(SVG3AllAttributes));
-	gf_svg3_fill_all_attributes(&converter->all_atts, elt);
+	memset(&converter->all_atts, 0, sizeof(SVGAllAttributes));
+	gf_svg_flatten_attributes(elt, &converter->all_atts);
 	
 	backup_props = gf_malloc(sizeof(SVGPropertiesPointers));
 	memcpy(backup_props, &converter->svg_props, sizeof(SVGPropertiesPointers));
 	gf_node_set_private((GF_Node *)elt, backup_props);
 
-	svg3_apply_inheritance(&converter->all_atts, &converter->svg_props);
+	gf_svg_apply_inheritance(&converter->all_atts, &converter->svg_props);
 
 	if (!gf_sg_get_root_node(converter->bifs_sg)) {
-		if (tag == TAG_SVG3_svg) {
+		if (tag == TAG_SVG_svg) {
 			GF_Node *node, *child;
 
 			converter->bifs_sg->usePixelMetrics = 1;
@@ -442,7 +251,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 		node = converter->bifs_parent;
 
 		switch(tag) {
-		case TAG_SVG3_g:
+		case TAG_SVG_g:
 			{
 				if (converter->all_atts.transform) {
 					node = add_transform(converter, node);
@@ -456,7 +265,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 				}
 			}
 			break;
-		case TAG_SVG3_rect:
+		case TAG_SVG_rect:
 			{
 				Bool is_parent_set = 0;
 				if (converter->all_atts.transform) {
@@ -501,7 +310,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 				}
 			}
 			break;
-		case TAG_SVG3_path:
+		case TAG_SVG_path:
 			{
 				Bool is_parent_set = 0;
 				if (converter->all_atts.transform) {
@@ -591,7 +400,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 				}
 			}
 			break;
-		case TAG_SVG3_polyline:
+		case TAG_SVG_polyline:
 			{
 				Bool is_parent_set = 0;
 				if (converter->all_atts.transform) {
@@ -632,7 +441,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 				}
 			}
 			break;
-		case TAG_SVG3_text:
+		case TAG_SVG_text:
 			{
 				Bool is_parent_set = 0;
 				if (converter->all_atts.transform) {
@@ -685,8 +494,8 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 				}
 			}
 			break;
-		case TAG_SVG3_ellipse:
-		case TAG_SVG3_circle:
+		case TAG_SVG_ellipse:
+		case TAG_SVG_circle:
 			{
 				Bool is_parent_set = 0;
 				if (converter->all_atts.transform) {
@@ -718,7 +527,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 				if (!is_parent_set) converter->bifs_parent = node;
 				{
 					M_Shape *shape = (M_Shape *)node;
-					if (tag == TAG_SVG3_ellipse) {
+					if (tag == TAG_SVG_ellipse) {
 						M_Ellipse *e = (M_Ellipse *)gf_node_new(converter->bifs_sg, TAG_MPEG4_Ellipse);
 						shape->geometry = (GF_Node *)e;
 						e->radius.x = converter->all_atts.rx->value;
@@ -736,7 +545,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 			}
 			break;
 
-		case TAG_SVG3_defs:
+		case TAG_SVG_defs:
 			{
 				child = gf_node_new(converter->bifs_sg, TAG_MPEG4_Switch);
 				gf_node_register(child, node);
@@ -750,7 +559,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 				converter->bifs_parent = node;
 			}
 			break;
-		case TAG_SVG3_solidColor:
+		case TAG_SVG_solidColor:
 			{
 				child = gf_node_new(converter->bifs_sg, TAG_MPEG4_Shape);
 				gf_node_register(child, node);
@@ -780,7 +589,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 
 static void svg2bifs_node_end(void *sax_cbck, const char *name, const char *name_space)
 {
-	SVG2BIFS_Converter *converter = (SVG2BIFS_Converter *)sax_cbck;
+	SVG_SANI_BIFS_Converter *converter = (SVG_SANI_BIFS_Converter *)sax_cbck;
 	GF_Node *parent;
 
 	SVGPropertiesPointers *backup_props = gf_node_get_private(converter->svg_parent);
@@ -798,7 +607,7 @@ static void svg2bifs_node_end(void *sax_cbck, const char *name, const char *name
 
 static void svg2bifs_text_content(void *sax_cbck, const char *text_content, Bool is_cdata)
 {
-	SVG2BIFS_Converter *converter = (SVG2BIFS_Converter *)sax_cbck;
+	SVG_SANI_BIFS_Converter *converter = (SVG_SANI_BIFS_Converter *)sax_cbck;
 	if (converter->bifs_text_node) {
 		M_Text *text = (M_Text *)converter->bifs_text_node;
 		gf_sg_vrml_mf_alloc(&text->string, GF_SG_VRML_MFSTRING, 1);
@@ -808,13 +617,13 @@ static void svg2bifs_text_content(void *sax_cbck, const char *text_content, Bool
 
 int main(int argc, char **argv)
 {
-	SVG2BIFS_Converter *converter;
+	SVG_SANI_BIFS_Converter *converter;
 	GF_SceneDumper *dump;
 	char *tmp;
 
 	gf_sys_init();
 
-	GF_SAFEALLOC(converter, SVG2BIFS_Converter);
+	GF_SAFEALLOC(converter, SVG_SANI_BIFS_Converter);
 
 	converter->sax_parser = gf_xml_sax_new(svg2bifs_node_start, svg2bifs_node_end, svg2bifs_text_content, converter);
 	

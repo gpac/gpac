@@ -36,12 +36,12 @@ void generateAttributes2(FILE *output, GF_List *attributes)
 
 void generateNode2(FILE *output, SVGGenElement* svg_elt) 
 {
-	fprintf(output, "typedef struct _tagSVG2%sElement\n{\n", svg_elt->implementation_name);
+	fprintf(output, "typedef struct _tagSVG_SANI_%sElement\n{\n", svg_elt->implementation_name);
 
 	if (svg_elt->has_transform) {
-		fprintf(output, "\tTRANSFORMABLE_SVG2_ELEMENT\n");
+		fprintf(output, "\tTRANSFORMABLE_SVG_SANI_ELEMENT\n");
 	} else {
-		fprintf(output, "\tBASE_SVG2_ELEMENT\n");
+		fprintf(output, "\tBASE_SVG_SANI_ELEMENT\n");
 	}
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
@@ -54,7 +54,7 @@ void generateNode2(FILE *output, SVGGenElement* svg_elt)
 	if (!strcmp(svg_elt->implementation_name, "handler")) {
 		fprintf(output, "\tvoid (*handle_event)(GF_Node *hdl, GF_DOM_Event *event);\n");
 	}
-	fprintf(output, "} SVG2%sElement;\n\n\n", svg_elt->implementation_name);
+	fprintf(output, "} SVG_SANI_%sElement;\n\n\n", svg_elt->implementation_name);
 }
 
 void generateAttributeInfo2(FILE *output, char * elt_imp_name, SVGGenAttribute *att, u32 i)
@@ -62,7 +62,7 @@ void generateAttributeInfo2(FILE *output, char * elt_imp_name, SVGGenAttribute *
 	fprintf(output, "\t\tcase %d:\n", i);
 	fprintf(output, "\t\t\tinfo->name = \"%s\";\n", att->svg_name);
 	fprintf(output, "\t\t\tinfo->fieldType = %s_datatype;\n", att->impl_type);
-	fprintf(output, "\t\t\tinfo->far_ptr = & ((SVG2%sElement *)node)->%s;\n", elt_imp_name, att->implementation_name);
+	fprintf(output, "\t\t\tinfo->far_ptr = & ((SVG_SANI_%sElement *)node)->%s;\n", elt_imp_name, att->implementation_name);
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 }
 
@@ -73,7 +73,7 @@ u32 generateTransformInfo2(FILE *output, SVGGenElement *elt, u32 start)
 	fprintf(output, "\t\tcase %d:\n", i);
 	fprintf(output, "\t\t\tinfo->name = \"transform\";\n");
 	fprintf(output, "\t\t\tinfo->fieldType = SVG_Transform_datatype;\n");
-	fprintf(output, "\t\t\tinfo->far_ptr = &((SVG2TransformableElement *)node)->transform;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &((SVG_SANI_TransformableElement *)node)->transform;\n");
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 	i++;
 	return i;
@@ -86,7 +86,7 @@ u32 generateMotionTransformInfo2(FILE *output, SVGGenElement *elt, u32 start)
 	fprintf(output, "\t\tcase %d:\n", i);
 	fprintf(output, "\t\t\tinfo->name = \"motionTransform\";\n");
 	fprintf(output, "\t\t\tinfo->fieldType = SVG_Transform_datatype;\n");
-	fprintf(output, "\t\t\tinfo->far_ptr = ((SVG2TransformableElement *)node)->motionTransform;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = ((SVG_SANI_TransformableElement *)node)->motionTransform;\n");
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 	i++;
 	return i;
@@ -99,14 +99,14 @@ u32 generateXYInfo2(FILE *output, SVGGenElement *elt, u32 start)
 	fprintf(output, "\t\tcase %d:\n", i);
 	fprintf(output, "\t\t\tinfo->name = \"x\";\n");
 	fprintf(output, "\t\t\tinfo->fieldType = SVG_Coordinate_datatype;\n");
-	fprintf(output, "\t\t\tinfo->far_ptr = &((SVG2TransformableElement *)node)->xy.x;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &((SVG_SANI_TransformableElement *)node)->xy.x;\n");
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 	i++;
 
 	fprintf(output, "\t\tcase %d:\n", i);
 	fprintf(output, "\t\t\tinfo->name = \"y\";\n");
 	fprintf(output, "\t\t\tinfo->fieldType = SVG_Coordinate_datatype;\n");
-	fprintf(output, "\t\t\tinfo->far_ptr = &((SVG2TransformableElement *)node)->xy.y;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &((SVG_SANI_TransformableElement *)node)->xy.y;\n");
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 	i++;
 	return i;
@@ -117,32 +117,32 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 	u32 i;	
 
 	/* Constructor */
-	fprintf(output, "void *gf_svg2_new_%s()\n{\n\tSVG2%sElement *p;\n", svg_elt->implementation_name,svg_elt->implementation_name);
-	fprintf(output, "\tGF_SAFEALLOC(p, SVG2%sElement);\n\tif (!p) return NULL;\n\tgf_node_setup((GF_Node *)p, TAG_SVG2_%s);\n\tgf_sg_parent_setup((GF_Node *) p);\n",svg_elt->implementation_name,svg_elt->implementation_name);
+	fprintf(output, "void *gf_svg_sani_new_%s()\n{\n\tSVG_SANI_%sElement *p;\n", svg_elt->implementation_name,svg_elt->implementation_name);
+	fprintf(output, "\tGF_SAFEALLOC(p, SVG_SANI_%sElement);\n\tif (!p) return NULL;\n\tgf_node_setup((GF_Node *)p, TAG_SVG_SANI_%s);\n\tgf_sg_parent_setup((GF_Node *) p);\n",svg_elt->implementation_name,svg_elt->implementation_name);
 	fprintf(output, "#ifdef GF_NODE_USE_POINTERS\n");
 	fprintf(output, "\t((GF_Node *p)->sgprivate->name = \"%s\";\n", svg_elt->implementation_name);
-	fprintf(output, "\t((GF_Node *p)->sgprivate->node_del = gf_svg2_%s_del;\n", svg_elt->implementation_name);
-	fprintf(output, "\t((GF_Node *p)->sgprivate->get_field = gf_svg2_%s_get_attribute;\n", svg_elt->implementation_name);
+	fprintf(output, "\t((GF_Node *p)->sgprivate->node_del = gf_svg_sani_%s_del;\n", svg_elt->implementation_name);
+	fprintf(output, "\t((GF_Node *p)->sgprivate->get_field = gf_svg_sani_%s_get_attribute;\n", svg_elt->implementation_name);
 	fprintf(output, "#endif\n");
 
-	fprintf(output, "\tgf_svg2_init_core((SVG2Element *)p);\n");		
+	fprintf(output, "\tgf_svg_sani_init_core((SVG_SANI_Element *)p);\n");		
 	if (svg_elt->has_focus) {
-		fprintf(output, "\tgf_svg2_init_focus((SVG2Element *)p);\n");		
+		fprintf(output, "\tgf_svg_sani_init_focus((SVG_SANI_Element *)p);\n");		
 	} 
 	if (svg_elt->has_xlink) {
-		fprintf(output, "\tgf_svg2_init_xlink((SVG2Element *)p);\n");		
+		fprintf(output, "\tgf_svg_sani_init_xlink((SVG_SANI_Element *)p);\n");		
 	} 
 	if (svg_elt->has_timing) {
-		fprintf(output, "\tgf_svg2_init_timing((SVG2Element *)p);\n");		
+		fprintf(output, "\tgf_svg_sani_init_timing((SVG_SANI_Element *)p);\n");		
 	} 
 	if (svg_elt->has_sync) {
-		fprintf(output, "\tgf_svg2_init_sync((SVG2Element *)p);\n");		
+		fprintf(output, "\tgf_svg_sani_init_sync((SVG_SANI_Element *)p);\n");		
 	}
 	if (svg_elt->has_animation){
-		fprintf(output, "\tgf_svg2_init_anim((SVG2Element *)p);\n");		
+		fprintf(output, "\tgf_svg_sani_init_anim((SVG_SANI_Element *)p);\n");		
 	} 
 	if (svg_elt->has_conditional) {
-		fprintf(output, "\tgf_svg2_init_conditional((SVG2Element *)p);\n");		
+		fprintf(output, "\tgf_svg_sani_init_conditional((SVG_SANI_Element *)p);\n");		
 	} 
 
 	if (svg_elt->has_transform) {
@@ -150,8 +150,8 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 	} 
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
-		fprintf(output, "\tgf_svg_init_lsr_conditional(&p->updates);\n");
-		fprintf(output, "\tgf_svg2_init_timing((SVG2Element *)p);\n");		
+		fprintf(output, "\tgf_svg_sa_init_lsr_conditional(&p->updates);\n");
+		fprintf(output, "\tgf_svg_sani_init_timing((SVG_SANI_Element *)p);\n");		
 
 	} 
 
@@ -287,12 +287,12 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 	fprintf(output, "\treturn p;\n}\n\n");
 
 	/* Destructor */
-	fprintf(output, "static void gf_svg2_%s_del(GF_Node *node)\n{\n", svg_elt->implementation_name);
-	fprintf(output, "\tSVG2%sElement *p = (SVG2%sElement *)node;\n", svg_elt->implementation_name, svg_elt->implementation_name);
-	fprintf(output, "\tgf_svg2_reset_base_element((SVG2Element *)p);\n");
+	fprintf(output, "static void gf_svg_sani_%s_del(GF_Node *node)\n{\n", svg_elt->implementation_name);
+	fprintf(output, "\tSVG_SANI_%sElement *p = (SVG_SANI_%sElement *)node;\n", svg_elt->implementation_name, svg_elt->implementation_name);
+	fprintf(output, "\tgf_svg_sani_reset_base_element((SVG_SANI_Element *)p);\n");
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
-		fprintf(output, "\tgf_svg_reset_lsr_conditional(&p->updates);\n");
+		fprintf(output, "\tgf_svg_sa_reset_lsr_conditional(&p->updates);\n");
 	} 
 	else if (!strcmp(svg_elt->implementation_name, "a")) {
 		fprintf(output, "\tif (p->target) free(p->target);\n");
@@ -329,23 +329,23 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 	fprintf(output, "}\n\n");
 
 	/* Attribute Access */
-	fprintf(output, "static GF_Err gf_svg2_%s_get_attribute(GF_Node *node, GF_FieldInfo *info)\n{\n", svg_elt->implementation_name);
+	fprintf(output, "static GF_Err gf_svg_sani_%s_get_attribute(GF_Node *node, GF_FieldInfo *info)\n{\n", svg_elt->implementation_name);
 	fprintf(output, "\tswitch (info->fieldIndex) {\n");
 	svg_elt->nb_atts = 0;
 	svg_elt->nb_atts = generateCoreInfo(output, svg_elt, svg_elt->nb_atts);
 
 	if (svg_elt->has_focus) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 4, "((SVG2Element *)node)->focus->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 4, "((SVG_SANI_Element *)node)->focus->", svg_elt->nb_atts);
 	if (svg_elt->has_xlink) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 5, "((SVG2Element *)node)->xlink->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 5, "((SVG_SANI_Element *)node)->xlink->", svg_elt->nb_atts);
 	if (svg_elt->has_timing) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 6, "((SVG2Element *)node)->timing->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 6, "((SVG_SANI_Element *)node)->timing->", svg_elt->nb_atts);
 	if (svg_elt->has_sync) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 7, "((SVG2Element *)node)->sync->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 7, "((SVG_SANI_Element *)node)->sync->", svg_elt->nb_atts);
 	if (svg_elt->has_animation) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 8, "((SVG2Element *)node)->anim->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 8, "((SVG_SANI_Element *)node)->anim->", svg_elt->nb_atts);
 	if (svg_elt->has_conditional) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 9, "((SVG2Element *)node)->conditional->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 9, "((SVG_SANI_Element *)node)->conditional->", svg_elt->nb_atts);
 	if (svg_elt->has_transform) {
 		svg_elt->nb_atts = generateTransformInfo2(output, svg_elt, svg_elt->nb_atts);
 		svg_elt->nb_atts = generateMotionTransformInfo2(output, svg_elt, svg_elt->nb_atts);
@@ -369,23 +369,23 @@ void generateSVGCode_V2(GF_List *svg_elements)
 	output = BeginFile(0);
 	fprintf(output, "#include <gpac/scenegraph_svg.h>\n\n\n");
 	fprintf(output, "/* Definition of SVG 2 Alternate element internal tags */\n");
-	fprintf(output, "/* TAG names are made of \"TAG_SVG2\" + SVG element name (with - replaced by _) */\n");
+	fprintf(output, "/* TAG names are made of \"TAG_SVG_SANI_\" + SVG element name (with - replaced by _) */\n");
 
 	/* write all tags */
 	fprintf(output, "enum {\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
 		if (i == 0) {
-			fprintf(output, "\tTAG_SVG2_%s = GF_NODE_RANGE_FIRST_SVG2", elt->implementation_name);
+			fprintf(output, "\tTAG_SVG_SANI_%s = GF_NODE_RANGE_FIRST_SVG_SANI", elt->implementation_name);
 		} else {
-			fprintf(output, ",\n\tTAG_SVG2_%s", elt->implementation_name);
+			fprintf(output, ",\n\tTAG_SVG_SANI_%s", elt->implementation_name);
 		}
 	}
 	
-	fprintf(output, ",\n\t/*undefined elements (when parsing) use this tag*/\n\tTAG_SVG2_UndefinedElement\n};\n\n");
+	fprintf(output, ",\n\t/*undefined elements (when parsing) use this tag*/\n\tTAG_SVG_SANI_UndefinedElement\n};\n\n");
 
 	fprintf(output, "/******************************************\n");
- 	fprintf(output, "*   SVG2 Elements structure definitions    *\n");
+ 	fprintf(output, "*   SVG_SANI_ Elements structure definitions    *\n");
  	fprintf(output, "*******************************************/\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
@@ -403,58 +403,58 @@ void generateSVGCode_V2(GF_List *svg_elements)
 		generateNodeImpl2(output, elt);
 	}
 
-	fprintf(output, "SVG2Element *gf_svg2_create_node(u32 ElementTag)\n");
+	fprintf(output, "SVG_SANI_Element *gf_svg_sani_create_node(u32 ElementTag)\n");
 	fprintf(output, "{\n");
 	fprintf(output, "\tswitch (ElementTag) {\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
-		fprintf(output, "\t\tcase TAG_SVG2_%s: return (SVG2Element*) gf_svg2_new_%s();\n",elt->implementation_name,elt->implementation_name);
+		fprintf(output, "\t\tcase TAG_SVG_SANI_%s: return (SVG_SANI_Element*) gf_svg_sani_new_%s();\n",elt->implementation_name,elt->implementation_name);
 	}
 	fprintf(output, "\t\tdefault: return NULL;\n\t}\n}\n\n");
 	
-	fprintf(output, "void gf_svg2_element_del(SVG2Element *elt)\n{\n");
+	fprintf(output, "void gf_svg_sani_element_del(SVG_SANI_Element *elt)\n{\n");
 	fprintf(output, "\tGF_Node *node = (GF_Node *)elt;\n");
 	fprintf(output, "\tswitch (node->sgprivate->tag) {\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
-		fprintf(output, "\t\tcase TAG_SVG2_%s: gf_svg2_%s_del(node); return;\n", elt->implementation_name, elt->implementation_name);
+		fprintf(output, "\t\tcase TAG_SVG_SANI_%s: gf_svg_sani_%s_del(node); return;\n", elt->implementation_name, elt->implementation_name);
 	}
 	fprintf(output, "\t\tdefault: return;\n\t}\n}\n\n");
 
-	fprintf(output, "u32 gf_svg2_get_attribute_count(GF_Node *node)\n{\n");
+	fprintf(output, "u32 gf_svg_sani_get_attribute_count(GF_Node *node)\n{\n");
 	fprintf(output, "\tswitch (node->sgprivate->tag) {\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
-		fprintf(output, "\t\tcase TAG_SVG2_%s: return %i;\n", elt->implementation_name, elt->nb_atts);
+		fprintf(output, "\t\tcase TAG_SVG_SANI_%s: return %i;\n", elt->implementation_name, elt->nb_atts);
 	}
 	fprintf(output, "\t\tdefault: return 0;\n\t}\n}\n\n");
 	
-	fprintf(output, "GF_Err gf_svg2_get_attribute_info(GF_Node *node, GF_FieldInfo *info)\n{\n");
+	fprintf(output, "GF_Err gf_svg_sani_get_attribute_info(GF_Node *node, GF_FieldInfo *info)\n{\n");
 	fprintf(output, "\tswitch (node->sgprivate->tag) {\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
-		fprintf(output, "\t\tcase TAG_SVG2_%s: return gf_svg2_%s_get_attribute(node, info);\n", elt->implementation_name, elt->implementation_name);
+		fprintf(output, "\t\tcase TAG_SVG_SANI_%s: return gf_svg_sani_%s_get_attribute(node, info);\n", elt->implementation_name, elt->implementation_name);
 	}
 	fprintf(output, "\t\tdefault: return GF_BAD_PARAM;\n\t}\n}\n\n");
 
-	fprintf(output, "u32 gf_node_svg2_type_by_class_name(const char *element_name)\n{\n\tif (!element_name) return TAG_UndefinedNode;\n");
+	fprintf(output, "u32 gf_svg_sani_type_by_class_name(const char *element_name)\n{\n\tif (!element_name) return TAG_UndefinedNode;\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
-		fprintf(output, "\tif (!stricmp(element_name, \"%s\")) return TAG_SVG2_%s;\n", elt->svg_name, elt->implementation_name);
+		fprintf(output, "\tif (!stricmp(element_name, \"%s\")) return TAG_SVG_SANI_%s;\n", elt->svg_name, elt->implementation_name);
 	}
 	fprintf(output, "\treturn TAG_UndefinedNode;\n}\n\n");
 
-	fprintf(output, "const char *gf_svg2_get_element_name(u32 tag)\n{\n\tswitch(tag) {\n");
+	fprintf(output, "const char *gf_svg_sani_get_element_name(u32 tag)\n{\n\tswitch(tag) {\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
-		fprintf(output, "\tcase TAG_SVG2_%s: return \"%s\";\n", elt->implementation_name, elt->svg_name);
+		fprintf(output, "\tcase TAG_SVG_SANI_%s: return \"%s\";\n", elt->implementation_name, elt->svg_name);
 	}
 	fprintf(output, "\tdefault: return \"UndefinedNode\";\n\t}\n}\n\n");
 
-	fprintf(output, "Bool gf_svg2_is_element_transformable(u32 tag)\n{\n\tswitch(tag) {\n");
+	fprintf(output, "Bool gf_svg_sani_is_element_transformable(u32 tag)\n{\n\tswitch(tag) {\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
-		fprintf(output, "\tcase TAG_SVG2_%s:", elt->implementation_name);
+		fprintf(output, "\tcase TAG_SVG_SANI_%s:", elt->implementation_name);
 		if (elt->has_transform) fprintf(output, "return 1;\n");
 		else fprintf(output, "return 0;\n");
 	}

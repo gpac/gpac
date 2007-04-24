@@ -246,9 +246,16 @@ GF_Rect R2D_ClipperToPixelMetrics(RenderEffect2D *eff, SFVec2f size);
 
 
 #ifndef GPAC_DISABLE_SVG
-void R2D_RenderInlineAnimation(GF_Node *anim, GF_Node *sub_root, void *rs);
-void R2D_RenderUse(GF_Node *anim, GF_Node *sub_root, void *rs);
-void R2D_RenderUse2(GF_Node *anim, GF_Node *sub_root, void *rs);
+
+#ifdef GPAC_ENABLE_SVG_SA
+void R2D_render_svg_sa_animation(GF_Node *anim, GF_Node *sub_root, void *rs);
+void R2D_render_svg_sa_use(GF_Node *anim, GF_Node *sub_root, void *rs);
+#endif
+
+
+#ifdef GPAC_ENABLE_SVG_SANI
+void r2d_render_svg_sani_use(GF_Node *anim, GF_Node *sub_root, void *rs);
+#endif
 void R2D_RenderUse3(GF_Node *anim, GF_Node *sub_root, void *rs);
 #endif
 
