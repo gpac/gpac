@@ -93,6 +93,7 @@ static void svg_sa_set_viewport_transformation(RenderEffect2D *eff, SVG_SA_svgEl
 			real_width = dpi/6 * svg->width.value;
 			break;
 		default:
+			real_width = INT2FIX(scene_width);
 			break;
 		}
 
@@ -120,6 +121,7 @@ static void svg_sa_set_viewport_transformation(RenderEffect2D *eff, SVG_SA_svgEl
 			real_height = dpi/6 * svg->height.value;
 			break;
 		default:
+			real_height = INT2FIX(scene_height);
 			break;
 		}
 	} else {

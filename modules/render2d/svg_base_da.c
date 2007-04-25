@@ -162,6 +162,7 @@ static void svg_set_viewport_transformation(RenderEffect2D *eff, SVGAllAttribute
 			real_width = dpi/6 * atts->width->value;
 			break;
 		default:
+			real_width = INT2FIX(scene_width);
 			break;
 		}
 	}
@@ -193,6 +194,7 @@ static void svg_set_viewport_transformation(RenderEffect2D *eff, SVGAllAttribute
 			real_height = dpi/6 * atts->height->value;
 			break;
 		default:
+			real_height = INT2FIX(scene_height);
 			break;
 		}
 	}
@@ -886,8 +888,6 @@ static void svg_render_a(GF_Node *node, void *rs, Bool is_destroy)
 	SVGPropertiesPointers backup_props;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	u32 backup_flags;
-
-	SVG_Element *a = (SVG_Element *) node;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 	SVGAllAttributes all_atts;
 
@@ -1031,7 +1031,6 @@ void R2D_RenderUse3(GF_Node *node, GF_Node *sub_root, void *rs)
 	GF_Matrix2D backup_matrix;
   	GF_Matrix2D translate;
 	GF_Node *prev_use;
-	SVG_Element *use = (SVG_Element *)node;
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
@@ -1077,3 +1076,5 @@ end:
 }
 
 #endif
+
+
