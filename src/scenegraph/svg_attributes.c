@@ -975,7 +975,7 @@ static Bool svg_parse_transform(SVG_Transform *t, char *attribute_content)
 	str = attribute_content;
 	i = 0;
 
-	if (str = strstr(attribute_content, "ref(")) {
+	if ((str = strstr(attribute_content, "ref("))) {
 		t->is_ref = 1;
 		gf_mx2d_init(t->mat);
 		str+=3;
@@ -3200,17 +3200,16 @@ static void svg_dump_iri(SVG_IRI*iri, char *attValue)
 	else strcpy(attValue, "");
 }
 
-static void svg_dump_point(SVG_Point *pt, char *attValue)
-{
-	if (pt) sprintf(attValue, "%g %g ", FIX2FLT(pt->x), FIX2FLT(pt->y) );
-}
-
 #if USE_GF_PATH
 static void svg_dump_path(SVG_PathData *path, char *attValue)
 {
 	strcpy(attValue, "");
 }
 #else
+static void svg_dump_point(SVG_Point *pt, char *attValue)
+{
+	if (pt) sprintf(attValue, "%g %g ", FIX2FLT(pt->x), FIX2FLT(pt->y) );
+}
 static void svg_dump_path(SVG_PathData *path, char *attValue)
 {
 	char szT[1000];

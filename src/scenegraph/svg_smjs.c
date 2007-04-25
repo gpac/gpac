@@ -2744,7 +2744,6 @@ void JSScript_LoadSVG(GF_Node *node)
 	GF_SVGJS *svg_js;
 	JSBool ret;
 	jsval rval;
-	SVG_Element *script = (SVG_Element *)node;
 
 	txt = (GF_DOMText*)((SVG_Element*)node)->children->node;
 	if (!txt || (txt->sgprivate->tag!=TAG_DOMText) || !txt->textContent) return;
@@ -2771,7 +2770,7 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 {
 	GF_DOMText *txt;
 	GF_SVGJS *svg_js;
-	JSBool ret;
+	JSBool ret = JS_FALSE;
 	GF_DOM_Event *prev_event = NULL;
 	jsval fval, rval;
 	SVG_handlerElement *handler = (SVG_handlerElement*)node;
@@ -2788,7 +2787,7 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
 
 	if (JS_LookupProperty(svg_js->js_ctx, svg_js->global, txt->textContent, &fval)) {
-		svg_script_execute(node->sgprivate->scenegraph, txt->textContent, event);
+		if (svg_script_execute(node->sgprivate->scenegraph, txt->textContent, event)) ret = JS_TRUE;
 		//JS_CallFunctionValue(svg_js->js_ctx, svg_js->global, fval, 0, 0, &fval);
 	} else {
 		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, strlen(txt->textContent), 0, 0, &rval);

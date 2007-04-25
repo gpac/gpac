@@ -57,7 +57,6 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 	Bool clamp_active_duration;
 	Bool isDurDefined, isRepeatCountDefined, isRepeatDurDefined, isMinDefined, isMaxDefined, isRepeatDurIndefinite, isRepeatCountIndefinite;
 	SMILTimingAttributesPointers *timingp = rti->timingp;
-	u32 tag = gf_node_get_tag(rti->timed_elt);
 
 	if (!timingp) return;
 	
@@ -152,7 +151,6 @@ static void gf_smil_timing_add_new_interval(SMIL_Timing_RTI *rti, SMIL_Interval 
 	u32 j, end_count;
 	SMIL_Time *end;
 	SMILTimingAttributesPointers *timingp = rti->timingp;
-	u32 tag = gf_node_get_tag(rti->timed_elt);
 
 	if (!timingp) return;
 
@@ -190,7 +188,6 @@ static void gf_smil_timing_init_interval_list(SMIL_Timing_RTI *rti)
 	u32 i, count;
 	SMIL_Time *begin;
 	SMILTimingAttributesPointers *timingp = rti->timingp;
-	u32 tag = gf_node_get_tag(rti->timed_elt);
 
 	if (!timingp) return;
 
@@ -368,7 +365,6 @@ static void gf_smil_timing_refresh_interval_list(SMIL_Timing_RTI *rti)
 	u32 i, count, j, count2;
 	SMIL_Time *begin;
 	SMILTimingAttributesPointers *timingp = rti->timingp;
-	u32 tag = gf_node_get_tag(rti->timed_elt);
 
 	if (!timingp) return;
 
@@ -505,7 +501,6 @@ s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 	s32 ret = 0;
 	GF_DOM_Event evt;
 	SMILTimingAttributesPointers *timingp = rti->timingp;
-	u32 tag = gf_node_get_tag(rti->timed_elt);
 
 	if (!timingp) return 0;
 	
