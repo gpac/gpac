@@ -68,7 +68,6 @@ SVG_Element *gf_svg_create_node(u32 ElementTag)
 
 static void gf_svg_delete_attributes(GF_SceneGraph *sg, SVGAttribute *attributes)
 {
-	u32 i = 0;
 	SVGAttribute *tmp;
 	SVGAttribute *att = attributes;
 	while(att) {
@@ -313,7 +312,6 @@ GF_Err gf_svg_get_attribute_by_tag(GF_Node *node, u16 attribute_tag, Bool create
 
 GF_Err gf_svg_get_attribute_by_name(GF_Node *node, char *name, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field)
 {
-	SVG_Element *elt = (SVG_Element *)node;
 	u32 attribute_tag = gf_svg_get_attribute_tag(node->sgprivate->tag, name);
 	if (attribute_tag == TAG_SVG_ATT_Unknown) {
 		memset(field, 0, sizeof(GF_FieldInfo));
@@ -599,6 +597,5 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 	return inherited_flags_mask;
 }
 
-
-
 #endif
+

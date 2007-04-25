@@ -453,12 +453,20 @@ static void gf_smil_handle_event_begin(GF_Node *hdl, GF_DOM_Event *evt)
 	u32 tag = timed_elt->sgprivate->tag;
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "begin";
-	if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA) ||
-		(tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
-		info.far_ptr = &((SVG_SA_Element *)timed_elt)->timing->begin;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
 		info.far_ptr = ((SVGTimedAnimBaseElement *)timed_elt)->timingp->begin;
-	} else {
+	}
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ( (tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA) ) {
+		info.far_ptr = &((SVG_SA_Element *)timed_elt)->timing->begin;
+	}
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ( (tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI) ) {
+		info.far_ptr = &((SVG_SA_Element *)timed_elt)->timing->begin;
+	}
+#endif
+	else {
 		return; 
 	}
 	info.fieldType = SMIL_Times_datatype;
@@ -472,12 +480,20 @@ static void gf_smil_handle_event_end(GF_Node *hdl, GF_DOM_Event *evt)
 	u32 tag = timed_elt->sgprivate->tag;
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "end";
-	if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA) ||
-		(tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
-		info.far_ptr = &((SVG_SA_Element *)timed_elt)->timing->end;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
 		info.far_ptr = ((SVGTimedAnimBaseElement *)timed_elt)->timingp->end;
-	} else {
+	} 
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA) ) {
+		info.far_ptr = &((SVG_SA_Element *)timed_elt)->timing->end;
+	} 
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+		info.far_ptr = &((SVG_SA_Element *)timed_elt)->timing->end;
+	} 
+#endif
+	else {
 		return; 
 	}
 	info.fieldType = SMIL_Times_datatype;

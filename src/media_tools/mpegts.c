@@ -722,10 +722,12 @@ static void gf_m2ts_process_int(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ip_not_
 	fprintf(stdout, "Processing IP/MAC Notification table (PID %d) %s\n", ip_not_table->pid, (status==GF_M2TS_TABLE_REPEAT)?"repeated":"");
 }
 
+#if 0
 static void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *mpe, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u32 status)
 {
 	fprintf(stdout, "Processing MPE Datagram (PID %d)\n", mpe->pid);
 }
+#endif
 
 static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *mpe, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u32 status)
 {
@@ -783,8 +785,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, un
 	pos = 0;
 
 	while (pos<data_size) {
-		GF_M2TS_PES *pes;
-		GF_M2TS_SECTION_ES *ses;
+		GF_M2TS_PES *pes = NULL;
+		GF_M2TS_SECTION_ES *ses = NULL;
 		GF_M2TS_ES *es;
 		u32 pid, stream_type;
 		
@@ -843,7 +845,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, un
 				break;
 			case GF_M2TS_MPEG4_SL_DESCRIPTOR: 
 			{
-				u32 esd_index = 0;
+				//u32 esd_index = 0;
 				pes->mpeg4_es_id = ((data[7] & 0x1f) << 8) | data[8];
 				pes->flags |= GF_M2TS_ES_IS_SL;
 /*
@@ -980,7 +982,7 @@ static void gf_m2ts_pes_header(unsigned char *data, u32 data_size, GF_M2TS_PESHe
 
 static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size, GF_M2TS_AdaptationField *paf)
 {
-	Bool flush_pes;
+	Bool flush_pes = 0;
 
 	if (!pes->reframe) return;
 	
@@ -995,8 +997,6 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		pes->data_len += data_size;
 		/*force discard*/
 		data_size = 0;
-	} else {
-		flush_pes = 0;
 	}
 
 	/*PES first fragment: flush previous packet*/

@@ -1037,7 +1037,6 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 #endif
 					if (child_tag == TAG_SVG_mpath) {
 						GF_FieldInfo info;
-						SVG_Element *mpath = (SVG_Element *)child->node;
 						if (gf_svg_get_attribute_by_tag(child->node, TAG_SVG_ATT_xlink_href, 0, 0, &info) == GF_OK) {
 							SVG_IRI *iri = (SVG_IRI *)info.far_ptr;
 							if (iri->target) used_path = iri->target;
