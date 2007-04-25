@@ -136,6 +136,8 @@ static void SVG_Build_Bitmap_Graph(SVG_image_stack *st)
 			height = (atts.height ? atts.height->value : 0);
 		}
 		break;
+	default:
+		return;
 	}
 
 	gf_path_get_bounds(st->graph->path, &rc);
@@ -440,7 +442,7 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 {
 	SVG_video_stack *st = (SVG_video_stack *) gf_node_get_private(txh->owner);
 	u32 tag = gf_node_get_tag(txh->owner);
-	SVG_InitialVisibility init_vis;
+	SVG_InitialVisibility init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
 
 	switch (tag) {
 #ifdef GPAC_ENABLE_SVG_SA
@@ -458,8 +460,6 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 		GF_FieldInfo init_vis_info;
 		if (gf_svg_get_attribute_by_tag(txh->owner, TAG_SVG_ATT_initialVisibility, 0, 0, &init_vis_info) == GF_OK) {
 			init_vis = *(SVG_InitialVisibility *)init_vis_info.far_ptr;
-		} else {
-			init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
 		}
 	}
 		break;
