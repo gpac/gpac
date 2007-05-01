@@ -45,10 +45,15 @@ void InitInline(GF_InlineScene *is, GF_Node *node);
 
 
 #ifndef GPAC_DISABLE_SVG
+#ifdef GPAC_ENABLE_SVG_SA
 void svg_sa_render_init_animation(GF_InlineScene *is, GF_Node *node);
 void svg_sa_init_use(GF_InlineScene *is, GF_Node *node);
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
 void svg_sani_render_init_use(GF_InlineScene *is, GF_Node *node);
+#endif
 void svg_render_init_use(GF_InlineScene *is, GF_Node *node);
+void svg_render_init_animation(GF_InlineScene *is, GF_Node *node);
 #endif
 
 void Render_WorldInfo(GF_Node *node, void *rs, Bool is_destroy)
@@ -98,6 +103,9 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 		break;
 	case TAG_SVG_use: 
 		svg_render_init_use(is, node); 
+		break;
+	case TAG_SVG_animation:	
+		svg_render_init_animation(is, node); 
 		break;
 
 #ifdef GPAC_ENABLE_SVG_SA

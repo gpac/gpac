@@ -209,7 +209,9 @@ static void gf_smil_timing_init_interval_list(SMIL_Timing_RTI *rti)
 				/* this is not an acceptable value for a begin */
 			}
 		} 
-	} else {
+	}
+	/*conditional has a default begin value of indefinite*/
+	else if (rti->timed_elt->sgprivate->tag != TAG_SVG_conditional) {
 		gf_smil_timing_add_new_interval(rti, NULL, 0, 0);
 	}
 }
@@ -526,8 +528,16 @@ waiting_to_begin:
 			rti->status = SMIL_STATUS_ACTIVE;
 
 			memset(&evt, 0, sizeof(evt));
-			evt.type = GF_EVENT_BEGIN;
+			evt.type = GF_EVENT_BEGIN_EVENT;
+			evt.smil_event_time = rti->current_interval->begin;
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
+
+			if (rti->timed_elt->sgprivate->tag==TAG_SVG_conditional) {
+				SVG_Element *e = (SVG_Element *)rti->timed_elt;
+				/*activate conditional*/
+				if (e->children) gf_node_render(e->children->node, NULL);
+				rti->status = SMIL_STATUS_DONE;
+			}
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Timing] Time %f - Evaluating timed element %s - Not starting\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_name((GF_Node *)rti->timed_elt)));
 			return ret;
@@ -542,7 +552,8 @@ waiting_to_begin:
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Timing] Time %f - Stopping timed element %s\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_name((GF_Node *)rti->timed_elt)));
 			memset(&evt, 0, sizeof(evt));
-			evt.type = GF_EVENT_END;
+			evt.type = GF_EVENT_END_EVENT;
+			evt.smil_event_time = rti->current_interval->begin + rti->current_interval->active_duration;
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 
 			ret = 1;
@@ -578,7 +589,8 @@ waiting_to_begin:
 					rti->current_interval = (SMIL_Interval*)gf_list_get(rti->intervals, rti->current_interval_index);
 				
 					memset(&evt, 0, sizeof(evt));
-					evt.type = GF_EVENT_BEGIN;
+					evt.type = GF_EVENT_BEGIN_EVENT;
+					evt.smil_event_time = rti->current_interval->begin;
 					gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 				} 
 			}
@@ -731,3 +743,41 @@ Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *anim_parent,
 	if (done!=count) return 0;
 	return 1;
 }
+
+void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock)
+{
+	u32 i, count, found;
+	SVGTimedAnimBaseElement *set = (SVGTimedAnimBaseElement*)elt;
+	SMIL_Time *begin;
+	GF_List *l;
+	GF_SAFEALLOC(begin, SMIL_Time);
+
+	begin->type = GF_SMIL_TIME_EVENT_RESOLVED;
+	begin->clock = clock;
+
+	l = is_end ? *set->timingp->end : *set->timingp->begin;
+
+	found = 0;
+	count = gf_list_count(l);
+	for (i=0; i<count; i++) {
+		SMIL_Time *first = (SMIL_Time *)gf_list_get(l, i);
+		/*remove past instanciations*/
+		if ((first->type==GF_SMIL_TIME_EVENT_RESOLVED) && (first->clock < begin->clock)) {
+			gf_list_rem(l, i);
+			free(first);
+			i--;
+			count--;
+			continue;
+		}
+		if ( (first->type == GF_SMIL_TIME_INDEFINITE) 
+			|| ( (first->type == GF_SMIL_TIME_CLOCK) && (first->clock > begin->clock) ) 
+		) {
+			gf_list_insert(l, begin, i);
+			found = 1;
+			break;
+		}
+	}
+	if (!found) gf_list_add(l, begin);
+	gf_node_changed(elt, NULL);
+}
+

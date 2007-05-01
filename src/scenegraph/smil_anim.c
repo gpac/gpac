@@ -875,11 +875,15 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 	target = xlinkp->href->target;
 
 	memset(&target_attribute, 0, sizeof(GF_FieldInfo));
-	if (animp->attributeName && animp->attributeName->name) {
+	if (animp->attributeName && (animp->attributeName->name || animp->attributeName->tag)) {
 		/* Filling the target_attribute structure with info on the animated attribute (type, pointer to data, ...)
 		NOTE: in the mode Dynamic Allocation of Attributes, this means that the animated 
 		attribute is created with a default value, if it was not specified on the target element */
-		gf_node_get_field_by_name(target, animp->attributeName->name, &target_attribute);
+		if (animp->attributeName->tag) {
+			gf_svg_get_attribute_by_tag(target, animp->attributeName->tag, 1, 1, &target_attribute);
+		} else {
+			gf_node_get_field_by_name(target, animp->attributeName->name, &target_attribute);
+		}
 	} else {
 		/* All animation elements should have a target attribute except for animateMotion
 		cf http://www.w3.org/mid/u403c21ajf1sjqtk58g0g38eaep9f9g2ss@hive.bjoern.hoehrmann.de
@@ -1302,4 +1306,6 @@ void gf_smil_anim_init_node(GF_Node *node)
 	gf_smil_timing_init_runtime_info(node);
 	gf_smil_anim_init_runtime_info(node);
 }
+
+
 

@@ -129,12 +129,11 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_SVG_image:			svg_init_image(sr, node); break; /* Warning: using the same call as for TAG_SVG_image */
 	case TAG_SVG_video:			svg_init_video(sr, node); break; /* Warning: using the same call as for TAG_SVG_video */
 	case TAG_SVG_audio:			svg_init_audio(sr, node); break; /* Warning: using the same call as for TAG_SVG_audio */
-/*
+
 	case TAG_SVG_linearGradient:	svg_init_linearGradient(sr, node); break;
 	case TAG_SVG_radialGradient:	svg_init_radialGradient(sr, node); break;
 	case TAG_SVG_solidColor:		svg_init_solidColor(sr, node); break;
 	case TAG_SVG_stop:				svg_init_stop(sr, node); break;
-*/
 
 	/*SVG SA part*/
 #ifdef GPAC_ENABLE_SVG_SA

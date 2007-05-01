@@ -29,7 +29,7 @@
   <define name='conditional.AT' combine='interleave'>
     <ref name='svg.AnimateBegin.attr'/>
     <optional>
-      <attribute name='enabled' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='lsr:enabled' svg:animatable='false' svg:inheritable='false'>
         <ref name='Boolean.datatype'/>
       </attribute>
     </optional>
@@ -88,7 +88,7 @@
     <ref name='svg.Focus.attr'/>
     <ref name='svg.Transform.attr'/>
     	<optional>
-      <attribute name='size' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='lsr:size' svg:animatable='true' svg:inheritable='false'>
         <data type='string'/>
       </attribute>
 	</optional>
@@ -112,7 +112,7 @@
     <ref name='svg.Focus.attr'/>
     <ref name='svg.Transform.attr'/>
     	<optional>
-      <attribute name='delta' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='lsr:delta' svg:animatable='true' svg:inheritable='false'>
         <data type='string'/>
       </attribute>
 	</optional>
@@ -136,7 +136,7 @@
     <ref name='svg.Focus.attr'/>
     <ref name='svg.Transform.attr'/>
     	<optional>
-      <attribute name='choice' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='lsr:choice' svg:animatable='true' svg:inheritable='false'>
         <data type='string'/>
       </attribute>
 	</optional>

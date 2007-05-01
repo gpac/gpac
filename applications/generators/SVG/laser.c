@@ -25,7 +25,25 @@
 #include "svggen.h"
 
 static char *laser_attribute_name_type_list[] = {
-	"a.target", "accumulate", "additive", "attributeName", "audio-level", "bandwidth", "begin", "calcMode", "children", "choice", "clipBegin", "clipEnd", "color", "color-rendering", "cx", "cy", "d", "display", "display-align", "dur", "editable", "enabled", "end", "event", "externalResourcesRequired", "fill", "fill-opacity", "fill-rule", "focusable", "font-family", "font-size", "font-style", "font-variant", "font-weight", "gradientUnits", "handler", "height", "image-rendering", "keyPoints", "keySplines", "keyTimes", "line-increment", "listener.target", "mediaCharacterEncoding", "mediaContentEncodings", "mediaSize", "mediaTime", "nav-down", "nav-down-left", "nav-down-right", "nav-left", "nav-next", "nav-prev", "nav-right", "nav-up", "nav-up-left", "nav-up-right", "observer", "offset", "opacity", "overflow", "overlay", "path", "pathLength", "pointer-events", "points", "preserveAspectRatio", "r", "repeatCount", "repeatDur", "requiredExtensions", "requiredFeatures", "requiredFormats", "restart", "rotate", "rotation", "rx", "ry", "scale", "shape-rendering", "size", "solid-color", "solid-opacity", "stop-color", "stop-opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "svg.height", "svg.width", "syncBehavior", "syncBehaviorDefault", "syncReference", "syncTolerance", "syncToleranceDefault", "systemLanguage", "text-anchor", "text-decoration", "text-rendering", "textContent", "transform", "transformBehavior", "translation", "vector-effect", "viewBox", "viewport-fill", "viewport-fill-opacity", "visibility", "width", "x", "x1", "x2", "xlink:actuate", "xlink:arcrole", "xlink:href", "xlink:role", "xlink:show", "xlink:title", "xlink:type", "xml:base", "xml:lang", "y", "y1", "y2", "zoomAndPan", NULL
+	"target", "accumulate", "additive", "audio_level", "bandwidth", "begin", "calcMode", "children", "lsr_choice", "clipBegin", "clipEnd", "color", "color_rendering", "cx", "cy", "d", "lsr_delta", "display", "display_align", "dur", "editable", "lsr_enabled", "end", "event", "externalResourcesRequired", "fill", "fill_opacity", "fill_rule", "focusable", "font_family", "font_size", "font_style", "font_variant", "font_weight", "fullscreen", "gradientUnits", "handler", "height", "image_rendering", "keyPoints", "keySplines", "keyTimes", "line_increment", "listener_target", "mediaCharacterEncoding", "mediaContentEncodings", "mediaSize", "mediaTime", "nav_down", "nav_down_left", "nav_down_right", "nav_left", "nav_next", "nav_prev", "nav_right", "nav_up", "nav_up_left", "nav_up_right", "observer", "offset", "opacity", "overflow", "overlay", "path", "pathLength", "pointer_events", "points", "preserveAspectRatio", "r", "repeatCount", "repeatDur", "requiredExtensions", "requiredFeatures", "requiredFormats", "restart", "rotate", "rotation", "rx", "ry", "scale", "shape_rendering", "lsr_size", "solid_color", "solid_opacity", "stop_color", "stop_opacity", "stroke", "stroke_dasharray", "stroke_dashoffset", "stroke_linecap", "stroke_linejoin", "stroke_miterlimit", "stroke_opacity", "stroke_width", "svg_height", "svg_width", "syncBehavior", "syncBehaviorDefault", "syncReference", "syncTolerance", "syncToleranceDefault", "systemLanguage", "text_align", "text_anchor", "text_decoration", "text_display", "text_rendering", "textContent", "transform", "transformBehavior", "translation", "vector_effect", "viewBox", "viewport_fill", "viewport_fill_opacity", "visibility", "width", "x", "x1", "x2", "xlink_actuate", "xlink_arcrole", "xlink_href", "xlink_role", "xlink_show", "xlink_title", "xlink_type", "xml_base", "xml_lang", "y", "y1", "y2", "zoomAndPan", NULL
+};
+
+
+
+static char *laser_attribute_rare_type_list[] = {
+	"_class", "audio_level", "color", "color_rendering", "display", "display_align", "fill_opacity", 
+	"fill_rule",  "image_rendering", "line_increment", "pointer_events", "shape_rendering", "solid_color", 
+	"solid_opacity", "stop_color", "stop_opacity", "stroke_dasharray", "stroke_dashoffset", "stroke_linecap", 
+	"stroke_linejoin", "stroke_miterlimit",	"stroke_opacity", "stroke_width", "text_anchor", "text_rendering", 
+	"viewport_fill", "viewport_fill_opacity", "vector_effect", "visibility", "requiredExtensions", 
+	"requiredFeatures", "requiredFormats", "systemLanguage", "xml_base", "xml_lang", "xml_space", 
+	"nav_next", "nav_up", "nav_up_left", "nav_up_right", "nav_prev", "nav_down", "nav_down_left", 
+	"nav_down_right", "nav_left", "focusable", "nav_right", "transform","text_decoration", 
+	"extension", /*LASER EXTENSIONS SVG*/
+
+	"font_variant", "font_family", "font_size", "font_style", "font_weight", "xlink_title", "xlink_type", 
+	"xlink_role", "xlink_arcrole", "xlink_actuate", "xlink_show", "end", "max", "min",
+	NULL
 };
 
 
@@ -37,6 +55,23 @@ s32 get_lsr_att_name_type(const char *name)
 		i++;
 	}
 	return -1;
+}
+
+void generateGenericAttrib(FILE *output, SVGGenElement *elt, u32 index)
+{
+	int k;
+	for (k=0; k < generic_attributes[index].array_length; k++) {
+		char *att_name = generic_attributes[index].array[k];
+		SVGGenAttribute *a = findAttribute(elt, att_name);
+		if (a) {
+			s32 type = get_lsr_att_name_type(att_name);
+			/*SMIL anim fill not updatable*/
+			if ((index==6) && !strcmp(att_name, "fill")) {
+				type = -1;
+			}
+			fprintf(output, ", %d", type);
+		}
+	}
 }
 
 void generate_laser_tables(GF_List *svg_elements)
@@ -106,3 +141,118 @@ void generate_laser_tables(GF_List *svg_elements)
 	fprintf(output, "\tdefault:\n\t\treturn -2;\n\t}\n}\n\n");
 }
 
+
+void generate_laser_tables_da(GF_List *atts)
+{
+	FILE *output;
+	u32 i, count, j, count2;
+
+	output = BeginFile(2);
+	
+	fprintf(output, "\n#include <gpac/internal/laser_dev.h>\n\n");
+	fprintf(output, "\n\ns32 gf_lsr_anim_type_from_attribute(u32 tag) {\n\tswitch(tag) {\n");
+
+	count = gf_list_count(atts);
+	j=0;
+	while (laser_attribute_name_type_list[j]) {
+		for (i=0; i<count; i++) {
+			SVGGenAttribute *att = gf_list_get(atts, i);
+
+			if (!strcmp(att->implementation_name, laser_attribute_name_type_list[j])) {
+				fprintf(output, "\tcase TAG_SVG_ATT_%s: return %d;\n", att->implementation_name, j);
+				break;
+			}
+		}
+		if (i==count) {
+			//fprintf(stdout, "Warning: Ignoring %s\n", laser_attribute_name_type_list[j]);
+			fprintf(output, "\tcase TAG_LSR_ATT_%s: return %d;\n", laser_attribute_name_type_list[j], j);
+		}
+		j++;
+	}
+	fprintf(output, "\tdefault: return -1;\n\t}\n}\n\n");
+
+	fprintf(output, "\n\ns32 gf_lsr_rare_type_from_attribute(u32 tag) {\n\tswitch(tag) {\n");
+	count = gf_list_count(atts);
+	j=0;
+	while (laser_attribute_rare_type_list[j]) {
+		for (i=0; i<count; i++) {
+			SVGGenAttribute *att = gf_list_get(atts, i);
+
+			if (!strcmp(att->implementation_name, laser_attribute_rare_type_list[j])) {
+				fprintf(output, "\tcase TAG_SVG_ATT_%s: return %d;\n", att->implementation_name, j);
+				break;
+			}
+		}
+		if (i==count) {
+			fprintf(stdout, "Warning: Ignoring %s\n", laser_attribute_rare_type_list[j]);
+		}
+		j++;
+	}
+	fprintf(output, "\tdefault: return -1;\n\t}\n}\n\n");
+
+
+
+	fprintf(output, "\n\ns32 gf_lsr_anim_type_to_attribute(u32 tag) {\n\tswitch(tag) {\n");
+	j=0;
+	while (laser_attribute_name_type_list[j]) {
+		for (i=0; i<count; i++) {
+			SVGGenAttribute *att = gf_list_get(atts, i);
+
+			if (!strcmp(att->implementation_name, laser_attribute_name_type_list[j])) {
+				fprintf(output, "\tcase %d: return TAG_SVG_ATT_%s;\n", j, att->implementation_name);
+				break;
+			}
+		}
+		if (i==count) {
+			fprintf(output, "\tcase %d: return TAG_LSR_ATT_%s;\n", j, laser_attribute_name_type_list[j]);
+		}
+		j++;
+	}
+	fprintf(output, "\tdefault: return -1;\n\t}\n}\n\n");
+
+	fprintf(output, "\n\ns32 gf_lsr_rare_type_to_attribute(u32 tag) {\n\tswitch(tag) {\n");
+	j=0;
+	while (laser_attribute_rare_type_list[j]) {
+		for (i=0; i<count; i++) {
+			SVGGenAttribute *att = gf_list_get(atts, i);
+
+			if (!strcmp(att->implementation_name, laser_attribute_rare_type_list[j])) {
+				fprintf(output, "\tcase %d: return TAG_SVG_ATT_%s;\n", j, att->implementation_name);
+				break;
+			}
+		}
+		j++;
+	}
+	fprintf(output, "\tdefault: return -1;\n\t}\n}\n\n");
+
+
+	fprintf(output, "\n\nu32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)\n{\n");
+	fprintf(output, "\tGF_FieldInfo f_elt, f_base;\n");
+
+	j=0;
+	while (laser_attribute_rare_type_list[j]) {
+		SVGGenAttribute *att = NULL;
+		if (!strcmp(laser_attribute_rare_type_list[j], "extension")) {
+			j++;
+			continue;
+		}
+		for (i=0; i<count; i++) {
+			att = gf_list_get(atts, i);
+			if (!strcmp(att->implementation_name, laser_attribute_rare_type_list[j])) 
+				break;
+			att = NULL;
+		}
+		assert(att);
+
+		fprintf(output, "\tf_elt.fieldType = f_base.fieldType = %s_datatype;\n", att->impl_type);
+		fprintf(output, "\tf_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_%s;\n", laser_attribute_rare_type_list[j]);
+		fprintf(output, "\tf_elt.far_ptr = elt_atts->%s;\n", laser_attribute_rare_type_list[j]);
+		fprintf(output, "\tf_base.far_ptr = base_atts->%s;\n", laser_attribute_rare_type_list[j]);
+		fprintf(output, "\tif (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;\n\n");
+
+		j++;
+	}
+	fprintf(output, "\treturn 1;\n}\n\n");
+	
+	fclose(output);
+}

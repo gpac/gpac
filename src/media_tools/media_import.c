@@ -2651,6 +2651,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 			if (strlen(szMediaTemp)) {
 				f = gf_f64_open(szMediaTemp, "rb");
 				close = 1;
+				if (offset) gf_f64_seek(f, offset, SEEK_SET);
 			} else {
 				if (!offset) offset = media_done;
 			}
@@ -2701,13 +2702,14 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
 	if (media_done!=media_size) gf_set_progress("Importing NHML", (u32) media_size, (u32) media_size);
-	gf_isom_sample_del(&samp);	
 	MP4T_RecomputeBitRate(import->dest, track);
 
 	if (inRootOD) gf_isom_add_track_to_root_od(import->dest, track);
 
 exit:
 	fclose(nhml);
+	samp->dataLength = 1;
+	gf_isom_sample_del(&samp);	
 	if (mdia) fclose(mdia);
 	if (import->esd && destroy_esd) {
 		gf_odf_desc_del((GF_Descriptor *) import->esd);

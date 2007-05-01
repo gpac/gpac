@@ -30,7 +30,8 @@
 extern "C" {
 #endif
 
-#include <gpac/nodes_svg_sa.h>
+#include <gpac/nodes_svg_da.h>
+
 /*for LASeRConfig*/
 #include <gpac/mpeg4_odf.h>
 

@@ -243,15 +243,23 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 		svgin->sax_max_duration = (u32) -1;
 	}
 
+	svgin->loader.type = GF_SM_LOAD_SVG_DA;
+
+
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "Version");
+#ifdef GPAC_ENABLE_SVG_SA
 	if (sOpt && !strcmp(sOpt, "static_allocation")) {
 		svgin->loader.type = GF_SM_LOAD_SVG_SA;
 		fprintf(stdout, "Using SVG Scene Graph with static allocation of attributes\n");
-	} else if (sOpt && !strcmp(sOpt, "no_inheritance")) {
+	}
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	if (sOpt && !strcmp(sOpt, "no_inheritance")) {
 		svgin->loader.type = GF_SM_LOAD_SVG_SANI;
 		fprintf(stdout, "Using SVG Scene Graph with static allocation of attributes and no inheritance\n");
-	} else { /* dynamic allocation */
-		svgin->loader.type = GF_SM_LOAD_SVG_DA;
+	} 
+#endif
+	if (svgin->loader.type == GF_SM_LOAD_SVG_DA) {
 		fprintf(stdout, "Using SVG Scene Graph with dynamic allocation of attributes\n");
 	}
 	

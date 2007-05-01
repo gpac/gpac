@@ -73,7 +73,7 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name="enabled" svg:animatable="false" svg:inheritable="false">
+      <attribute name="lsr:enabled" svg:animatable="false" svg:inheritable="false">
         <ref name="Boolean.datatype"/>
       </attribute>
     </optional>

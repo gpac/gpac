@@ -33,6 +33,16 @@ extern "C" {
 #include <gpac/list.h>
 #include <gpac/math.h>
 
+
+/*define to enable SVG test graph with static attribute allocation but no inheritance*/
+//#define	GPAC_ENABLE_SVG_SA
+//#define	GPAC_ENABLE_SVG_SANI
+
+#if defined(GPAC_ENABLE_SVG_SA) || defined(GPAC_ENABLE_SVG_SANI)
+#define	GPAC_ENABLE_SVG_SA_BASE
+#endif
+
+
 /*
 	TAG definitions are static, in order to be able to mix nodes from different standard
 	in a single scenegraph. These TAGs are only used internally (they do not match any
@@ -45,9 +55,6 @@ enum {
 	TAG_UndefinedNode = 1,
 	/*all MPEG-4/VRML/X3D proto instances have this tag*/
 	TAG_ProtoNode,
-	/*DOM text node*/
-	TAG_DOMText,
-	TAG_DOMCDATA,
 
 	/*reserved TAG ranges per standard*/
 
@@ -58,18 +65,37 @@ enum {
 	/*range for X3D*/
 	GF_NODE_RANGE_FIRST_X3D, 
 	GF_NODE_RANGE_LAST_X3D = GF_NODE_RANGE_FIRST_X3D+512,
-	
-	/*range for SVG*/
-	GF_NODE_RANGE_FIRST_SVG, 
-	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+512,
 
+	/*all nodes after this are always parent nodes*/
+	GF_NODE_RANGE_LAST_VRML,
+
+#ifdef GPAC_ENABLE_SVG_SA
 	/*range for SVG / static alloc mode*/
 	GF_NODE_RANGE_FIRST_SVG_SA, 
-	GF_NODE_RANGE_LAST_SVG_SA = GF_NODE_RANGE_FIRST_SVG_SA+512,
+	GF_NODE_RANGE_LAST_SVG_SA = GF_NODE_RANGE_FIRST_SVG_SA+100,
+#endif
 
+#ifdef GPAC_ENABLE_SVG_SANI
 	/*range for SVG static alloc and no inheritance mode*/
 	GF_NODE_RANGE_FIRST_SVG_SANI, 
-	GF_NODE_RANGE_LAST_SVG_SANI = GF_NODE_RANGE_FIRST_SVG_SANI+512,
+	GF_NODE_RANGE_LAST_SVG_SANI = GF_NODE_RANGE_FIRST_SVG_SANI+100,
+#endif
+
+	/*all nodes below use the base DOM structure (with dyn attribute list)*/
+	GF_NODE_FIRST_DOM_NODE_TAG,
+
+	/*a node with this tag is a full DOM node (GF_DOMFullNode)*/
+	TAG_DOMNode = GF_NODE_FIRST_DOM_NODE_TAG,
+
+	/*DOM text node*/
+	TAG_DOMText,
+	/*DOM container for BIFS/LASeR/etc updates*/
+	TAG_DOMUpdates,
+
+	/*range for SVG*/
+	GF_NODE_RANGE_FIRST_SVG, 
+	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+100,
+
 };
 
 
@@ -122,38 +148,6 @@ u32 gf_node_list_get_count(GF_ChildNodeItem *list);
 GF_Node *gf_node_list_del_child_idx(GF_ChildNodeItem **list, u32 pos);
 
 
-#define GF_DOM_BASE_ATTRIBUTE	\
-	u16 id;	/*attribute identifier*/	\
-	u16 type; /*attribute datatype*/	  \
-	struct __dom_attribute *next; /*next attribute*/
-
-typedef struct __dom_attribute
-{
-	GF_DOM_BASE_ATTRIBUTE
-} GF_DOMBaseAttribute;
-
-typedef struct
-{
-	BASE_NODE
-	CHILDREN
-	GF_DOMBaseAttribute *attribute;
-} GF_DOMNode;
-
-typedef struct
-{
-	BASE_NODE
-	CHILDREN
-	GF_DOMBaseAttribute *attribute;
-	char *name;
-	char *ns;
-} GF_DOMNodeFull;
-
-typedef struct
-{
-	BASE_NODE
-	CHILDREN
-	char *textContent;
-} GF_DOMText;
 
 /*tag is set upon creation and cannot be modified*/
 u32 gf_node_get_tag(GF_Node*);

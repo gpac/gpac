@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Apr 24 15:51:41 2007
+	DO NOT MOFIFY - File generated on GMT Tue May 01 16:32:36 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -58,6 +58,7 @@ u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name)
 	if (!stricmp(attribute_name, "audio-level")) return TAG_SVG_ATT_audio_level;
 	if (!stricmp(attribute_name, "viewport-fill")) return TAG_SVG_ATT_viewport_fill;
 	if (!stricmp(attribute_name, "viewport-fill-opacity")) return TAG_SVG_ATT_viewport_fill_opacity;
+	if (!stricmp(attribute_name, "overflow")) return TAG_SVG_ATT_overflow;
 	if (!stricmp(attribute_name, "fill-opacity")) return TAG_SVG_ATT_fill_opacity;
 	if (!stricmp(attribute_name, "stroke-opacity")) return TAG_SVG_ATT_stroke_opacity;
 	if (!stricmp(attribute_name, "fill")) {
@@ -88,6 +89,7 @@ u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name)
 	if (!stricmp(attribute_name, "font-weight")) return TAG_SVG_ATT_font_weight;
 	if (!stricmp(attribute_name, "text-anchor")) return TAG_SVG_ATT_text_anchor;
 	if (!stricmp(attribute_name, "text-align")) return TAG_SVG_ATT_text_align;
+	if (!stricmp(attribute_name, "text-decoration")) return TAG_SVG_ATT_text_decoration;
 	if (!stricmp(attribute_name, "focusHighlight")) return TAG_SVG_ATT_focusHighlight;
 	if (!stricmp(attribute_name, "externalResourcesRequired")) return TAG_SVG_ATT_externalResourcesRequired;
 	if (!stricmp(attribute_name, "focusable")) return TAG_SVG_ATT_focusable;
@@ -141,6 +143,7 @@ u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name)
 		if (element_tag == TAG_SVG_handler || element_tag == TAG_SVG_audio || element_tag == TAG_SVG_video || element_tag == TAG_SVG_image || element_tag == TAG_SVG_script) return TAG_SVG_ATT_content_type;
 		else return TAG_SVG_ATT_type;
 	}
+	if (!stricmp(attribute_name, "contentScriptType")) return TAG_SVG_ATT_content_type;
 	if (!stricmp(attribute_name, "clipBegin")) return TAG_SVG_ATT_clipBegin;
 	if (!stricmp(attribute_name, "clipEnd")) return TAG_SVG_ATT_clipEnd;
 	if (!stricmp(attribute_name, "syncBehavior")) return TAG_SVG_ATT_syncBehavior;
@@ -164,7 +167,6 @@ u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name)
 	if (!stricmp(attribute_name, "cx")) return TAG_SVG_ATT_cx;
 	if (!stricmp(attribute_name, "cy")) return TAG_SVG_ATT_cy;
 	if (!stricmp(attribute_name, "r")) return TAG_SVG_ATT_r;
-	if (!stricmp(attribute_name, "enabled")) return TAG_SVG_ATT_enabled;
 	if (!stricmp(attribute_name, "rx")) return TAG_SVG_ATT_rx;
 	if (!stricmp(attribute_name, "ry")) return TAG_SVG_ATT_ry;
 	if (!stricmp(attribute_name, "horiz-adv-x")) return TAG_SVG_ATT_horiz_adv_x;
@@ -228,9 +230,9 @@ u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name)
 	if (!stricmp(attribute_name, "bandwidth")) return TAG_SVG_ATT_bandwidth;
 	if (!stricmp(attribute_name, "fx")) return TAG_SVG_ATT_fx;
 	if (!stricmp(attribute_name, "fy")) return TAG_SVG_ATT_fy;
-	if (!stricmp(attribute_name, "size")) return TAG_SVG_ATT_size;
-	if (!stricmp(attribute_name, "choice")) return TAG_SVG_ATT_choice;
-	if (!stricmp(attribute_name, "delta")) return TAG_SVG_ATT_delta;
+	if (!stricmp(attribute_name, "lsr:size")) return TAG_SVG_ATT_lsr_size;
+	if (!stricmp(attribute_name, "lsr:choice")) return TAG_SVG_ATT_lsr_choice;
+	if (!stricmp(attribute_name, "lsr:delta")) return TAG_SVG_ATT_lsr_delta;
 	if (!stricmp(attribute_name, "offset")) return TAG_SVG_ATT_offset;
 	if (!stricmp(attribute_name, "syncBehaviorDefault")) return TAG_SVG_ATT_syncBehaviorDefault;
 	if (!stricmp(attribute_name, "syncToleranceDefault")) return TAG_SVG_ATT_syncToleranceDefault;
@@ -244,6 +246,7 @@ u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name)
 	if (!stricmp(attribute_name, "editable")) return TAG_SVG_ATT_editable;
 	if (!stricmp(attribute_name, "transformBehavior")) return TAG_SVG_ATT_transformBehavior;
 	if (!stricmp(attribute_name, "overlay")) return TAG_SVG_ATT_overlay;
+	if (!stricmp(attribute_name, "fullscreen")) return TAG_SVG_ATT_fullscreen;
 	if (!stricmp(attribute_name, "motionTransform")) return TAG_SVG_ATT_motionTransform;
 	return TAG_SVG_ATT_Unknown;
 }
@@ -271,6 +274,7 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_audio_level: return SVG_Number_datatype;
 		case TAG_SVG_ATT_viewport_fill: return SVG_Paint_datatype;
 		case TAG_SVG_ATT_viewport_fill_opacity: return SVG_Number_datatype;
+		case TAG_SVG_ATT_overflow: return SVG_String_datatype;
 		case TAG_SVG_ATT_fill_opacity: return SVG_Number_datatype;
 		case TAG_SVG_ATT_stroke_opacity: return SVG_Number_datatype;
 		case TAG_SVG_ATT_fill: return SVG_Paint_datatype;
@@ -298,9 +302,10 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_font_weight: return SVG_FontWeight_datatype;
 		case TAG_SVG_ATT_text_anchor: return SVG_TextAnchor_datatype;
 		case TAG_SVG_ATT_text_align: return SVG_TextAlign_datatype;
+		case TAG_SVG_ATT_text_decoration: return SVG_String_datatype;
 		case TAG_SVG_ATT_focusHighlight: return SVG_FocusHighlight_datatype;
 		case TAG_SVG_ATT_externalResourcesRequired: return SVG_Boolean_datatype;
-		case TAG_SVG_ATT_focusable: return SVG_Boolean_datatype;
+		case TAG_SVG_ATT_focusable: return SVG_Focusable_datatype;
 		case TAG_SVG_ATT_nav_next: return SVG_Focus_datatype;
 		case TAG_SVG_ATT_nav_prev: return SVG_Focus_datatype;
 		case TAG_SVG_ATT_nav_up: return SVG_Focus_datatype;
@@ -319,7 +324,7 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_xlink_href: return SVG_IRI_datatype;
 		case TAG_SVG_ATT_xlink_show: return SVG_String_datatype;
 		case TAG_SVG_ATT_xlink_actuate: return SVG_String_datatype;
-		case TAG_SVG_ATT_target: return SVG_ID_datatype;
+		case TAG_SVG_ATT_target: return SVG_String_datatype;
 		case TAG_SVG_ATT_attributeName: return SMIL_AttributeName_datatype;
 		case TAG_SVG_ATT_attributeType: return SMIL_AttributeType_datatype;
 		case TAG_SVG_ATT_begin: return SMIL_Times_datatype;
@@ -362,7 +367,6 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_cx: return SVG_Coordinate_datatype;
 		case TAG_SVG_ATT_cy: return SVG_Coordinate_datatype;
 		case TAG_SVG_ATT_r: return SVG_Length_datatype;
-		case TAG_SVG_ATT_enabled: return SVG_Boolean_datatype;
 		case TAG_SVG_ATT_cursorManager_x: return SVG_Length_datatype;
 		case TAG_SVG_ATT_cursorManager_y: return SVG_Length_datatype;
 		case TAG_SVG_ATT_rx: return SVG_Length_datatype;
@@ -428,9 +432,9 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_bandwidth: return SVG_Number_datatype;
 		case TAG_SVG_ATT_fx: return SVG_Coordinate_datatype;
 		case TAG_SVG_ATT_fy: return SVG_Coordinate_datatype;
-		case TAG_SVG_ATT_size: return LASeR_Size_datatype;
-		case TAG_SVG_ATT_choice: return LASeR_Choice_datatype;
-		case TAG_SVG_ATT_delta: return LASeR_Size_datatype;
+		case TAG_SVG_ATT_lsr_size: return LASeR_Size_datatype;
+		case TAG_SVG_ATT_lsr_choice: return LASeR_Choice_datatype;
+		case TAG_SVG_ATT_lsr_delta: return LASeR_Size_datatype;
 		case TAG_SVG_ATT_offset: return SVG_Number_datatype;
 		case TAG_SVG_ATT_syncBehaviorDefault: return SMIL_SyncBehavior_datatype;
 		case TAG_SVG_ATT_syncToleranceDefault: return SMIL_SyncTolerance_datatype;
@@ -447,6 +451,7 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_text_rotate: return SVG_Numbers_datatype;
 		case TAG_SVG_ATT_transformBehavior: return SVG_TransformBehavior_datatype;
 		case TAG_SVG_ATT_overlay: return SVG_Overlay_datatype;
+		case TAG_SVG_ATT_fullscreen: return SVG_Boolean_datatype;
 		case TAG_SVG_ATT_motionTransform: return SVG_Motion_datatype;
 		default: return SVG_Unknown_datatype;
 	}
@@ -476,6 +481,7 @@ const char*gf_svg_get_attribute_name(u32 tag)
 		case TAG_SVG_ATT_audio_level: return "audio-level";
 		case TAG_SVG_ATT_viewport_fill: return "viewport-fill";
 		case TAG_SVG_ATT_viewport_fill_opacity: return "viewport-fill-opacity";
+		case TAG_SVG_ATT_overflow: return "overflow";
 		case TAG_SVG_ATT_fill_opacity: return "fill-opacity";
 		case TAG_SVG_ATT_stroke_opacity: return "stroke-opacity";
 		case TAG_SVG_ATT_fill: return "fill";
@@ -503,6 +509,7 @@ const char*gf_svg_get_attribute_name(u32 tag)
 		case TAG_SVG_ATT_font_weight: return "font-weight";
 		case TAG_SVG_ATT_text_anchor: return "text-anchor";
 		case TAG_SVG_ATT_text_align: return "text-align";
+		case TAG_SVG_ATT_text_decoration: return "text-decoration";
 		case TAG_SVG_ATT_focusHighlight: return "focusHighlight";
 		case TAG_SVG_ATT_externalResourcesRequired: return "externalResourcesRequired";
 		case TAG_SVG_ATT_focusable: return "focusable";
@@ -567,7 +574,6 @@ const char*gf_svg_get_attribute_name(u32 tag)
 		case TAG_SVG_ATT_cx: return "cx";
 		case TAG_SVG_ATT_cy: return "cy";
 		case TAG_SVG_ATT_r: return "r";
-		case TAG_SVG_ATT_enabled: return "enabled";
 		case TAG_SVG_ATT_cursorManager_x: return "x";
 		case TAG_SVG_ATT_cursorManager_y: return "y";
 		case TAG_SVG_ATT_rx: return "rx";
@@ -633,9 +639,9 @@ const char*gf_svg_get_attribute_name(u32 tag)
 		case TAG_SVG_ATT_bandwidth: return "bandwidth";
 		case TAG_SVG_ATT_fx: return "fx";
 		case TAG_SVG_ATT_fy: return "fy";
-		case TAG_SVG_ATT_size: return "size";
-		case TAG_SVG_ATT_choice: return "choice";
-		case TAG_SVG_ATT_delta: return "delta";
+		case TAG_SVG_ATT_lsr_size: return "lsr:size";
+		case TAG_SVG_ATT_lsr_choice: return "lsr:choice";
+		case TAG_SVG_ATT_lsr_delta: return "lsr:delta";
 		case TAG_SVG_ATT_offset: return "offset";
 		case TAG_SVG_ATT_syncBehaviorDefault: return "syncBehaviorDefault";
 		case TAG_SVG_ATT_syncToleranceDefault: return "syncToleranceDefault";
@@ -652,6 +658,7 @@ const char*gf_svg_get_attribute_name(u32 tag)
 		case TAG_SVG_ATT_text_rotate: return "rotate";
 		case TAG_SVG_ATT_transformBehavior: return "transformBehavior";
 		case TAG_SVG_ATT_overlay: return "overlay";
+		case TAG_SVG_ATT_fullscreen: return "fullscreen";
 		case TAG_SVG_ATT_motionTransform: return "motionTransform";
 		default: return "unknown";
 	}
@@ -680,6 +687,7 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_audio_level: return gf_svg_create_attribute_from_datatype(SVG_Number_datatype, tag);
 	case TAG_SVG_ATT_viewport_fill: return gf_svg_create_attribute_from_datatype(SVG_Paint_datatype, tag);
 	case TAG_SVG_ATT_viewport_fill_opacity: return gf_svg_create_attribute_from_datatype(SVG_Number_datatype, tag);
+	case TAG_SVG_ATT_overflow: return gf_svg_create_attribute_from_datatype(SVG_String_datatype, tag);
 	case TAG_SVG_ATT_fill_opacity: return gf_svg_create_attribute_from_datatype(SVG_Number_datatype, tag);
 	case TAG_SVG_ATT_stroke_opacity: return gf_svg_create_attribute_from_datatype(SVG_Number_datatype, tag);
 	case TAG_SVG_ATT_fill: return gf_svg_create_attribute_from_datatype(SVG_Paint_datatype, tag);
@@ -707,9 +715,10 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_font_weight: return gf_svg_create_attribute_from_datatype(SVG_FontWeight_datatype, tag);
 	case TAG_SVG_ATT_text_anchor: return gf_svg_create_attribute_from_datatype(SVG_TextAnchor_datatype, tag);
 	case TAG_SVG_ATT_text_align: return gf_svg_create_attribute_from_datatype(SVG_TextAlign_datatype, tag);
+	case TAG_SVG_ATT_text_decoration: return gf_svg_create_attribute_from_datatype(SVG_String_datatype, tag);
 	case TAG_SVG_ATT_focusHighlight: return gf_svg_create_attribute_from_datatype(SVG_FocusHighlight_datatype, tag);
 	case TAG_SVG_ATT_externalResourcesRequired: return gf_svg_create_attribute_from_datatype(SVG_Boolean_datatype, tag);
-	case TAG_SVG_ATT_focusable: return gf_svg_create_attribute_from_datatype(SVG_Boolean_datatype, tag);
+	case TAG_SVG_ATT_focusable: return gf_svg_create_attribute_from_datatype(SVG_Focusable_datatype, tag);
 	case TAG_SVG_ATT_nav_next: return gf_svg_create_attribute_from_datatype(SVG_Focus_datatype, tag);
 	case TAG_SVG_ATT_nav_prev: return gf_svg_create_attribute_from_datatype(SVG_Focus_datatype, tag);
 	case TAG_SVG_ATT_nav_up: return gf_svg_create_attribute_from_datatype(SVG_Focus_datatype, tag);
@@ -728,7 +737,7 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_xlink_href: return gf_svg_create_attribute_from_datatype(SVG_IRI_datatype, tag);
 	case TAG_SVG_ATT_xlink_show: return gf_svg_create_attribute_from_datatype(SVG_String_datatype, tag);
 	case TAG_SVG_ATT_xlink_actuate: return gf_svg_create_attribute_from_datatype(SVG_String_datatype, tag);
-	case TAG_SVG_ATT_target: return gf_svg_create_attribute_from_datatype(SVG_ID_datatype, tag);
+	case TAG_SVG_ATT_target: return gf_svg_create_attribute_from_datatype(SVG_String_datatype, tag);
 	case TAG_SVG_ATT_attributeName: return gf_svg_create_attribute_from_datatype(SMIL_AttributeName_datatype, tag);
 	case TAG_SVG_ATT_attributeType: return gf_svg_create_attribute_from_datatype(SMIL_AttributeType_datatype, tag);
 	case TAG_SVG_ATT_begin: return gf_svg_create_attribute_from_datatype(SMIL_Times_datatype, tag);
@@ -771,7 +780,6 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_cx: return gf_svg_create_attribute_from_datatype(SVG_Coordinate_datatype, tag);
 	case TAG_SVG_ATT_cy: return gf_svg_create_attribute_from_datatype(SVG_Coordinate_datatype, tag);
 	case TAG_SVG_ATT_r: return gf_svg_create_attribute_from_datatype(SVG_Length_datatype, tag);
-	case TAG_SVG_ATT_enabled: return gf_svg_create_attribute_from_datatype(SVG_Boolean_datatype, tag);
 	case TAG_SVG_ATT_cursorManager_x: return gf_svg_create_attribute_from_datatype(SVG_Length_datatype, tag);
 	case TAG_SVG_ATT_cursorManager_y: return gf_svg_create_attribute_from_datatype(SVG_Length_datatype, tag);
 	case TAG_SVG_ATT_rx: return gf_svg_create_attribute_from_datatype(SVG_Length_datatype, tag);
@@ -837,9 +845,9 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_bandwidth: return gf_svg_create_attribute_from_datatype(SVG_Number_datatype, tag);
 	case TAG_SVG_ATT_fx: return gf_svg_create_attribute_from_datatype(SVG_Coordinate_datatype, tag);
 	case TAG_SVG_ATT_fy: return gf_svg_create_attribute_from_datatype(SVG_Coordinate_datatype, tag);
-	case TAG_SVG_ATT_size: return gf_svg_create_attribute_from_datatype(LASeR_Size_datatype, tag);
-	case TAG_SVG_ATT_choice: return gf_svg_create_attribute_from_datatype(LASeR_Choice_datatype, tag);
-	case TAG_SVG_ATT_delta: return gf_svg_create_attribute_from_datatype(LASeR_Size_datatype, tag);
+	case TAG_SVG_ATT_lsr_size: return gf_svg_create_attribute_from_datatype(LASeR_Size_datatype, tag);
+	case TAG_SVG_ATT_lsr_choice: return gf_svg_create_attribute_from_datatype(LASeR_Choice_datatype, tag);
+	case TAG_SVG_ATT_lsr_delta: return gf_svg_create_attribute_from_datatype(LASeR_Size_datatype, tag);
 	case TAG_SVG_ATT_offset: return gf_svg_create_attribute_from_datatype(SVG_Number_datatype, tag);
 	case TAG_SVG_ATT_syncBehaviorDefault: return gf_svg_create_attribute_from_datatype(SMIL_SyncBehavior_datatype, tag);
 	case TAG_SVG_ATT_syncToleranceDefault: return gf_svg_create_attribute_from_datatype(SMIL_SyncTolerance_datatype, tag);
@@ -856,6 +864,7 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_text_rotate: return gf_svg_create_attribute_from_datatype(SVG_Numbers_datatype, tag);
 	case TAG_SVG_ATT_transformBehavior: return gf_svg_create_attribute_from_datatype(SVG_TransformBehavior_datatype, tag);
 	case TAG_SVG_ATT_overlay: return gf_svg_create_attribute_from_datatype(SVG_Overlay_datatype, tag);
+	case TAG_SVG_ATT_fullscreen: return gf_svg_create_attribute_from_datatype(SVG_Boolean_datatype, tag);
 	case TAG_SVG_ATT_motionTransform: return gf_svg_create_attribute_from_datatype(SVG_Motion_datatype, tag);
 	default: return NULL;
 	}
@@ -887,6 +896,7 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_audio_level: all_atts->audio_level = (SVG_Number *)att->data; break;
 		case TAG_SVG_ATT_viewport_fill: all_atts->viewport_fill = (SVG_Paint *)att->data; break;
 		case TAG_SVG_ATT_viewport_fill_opacity: all_atts->viewport_fill_opacity = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_overflow: all_atts->overflow = (SVG_String *)att->data; break;
 		case TAG_SVG_ATT_fill_opacity: all_atts->fill_opacity = (SVG_Number *)att->data; break;
 		case TAG_SVG_ATT_stroke_opacity: all_atts->stroke_opacity = (SVG_Number *)att->data; break;
 		case TAG_SVG_ATT_fill: all_atts->fill = (SVG_Paint *)att->data; break;
@@ -914,9 +924,10 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_font_weight: all_atts->font_weight = (SVG_FontWeight *)att->data; break;
 		case TAG_SVG_ATT_text_anchor: all_atts->text_anchor = (SVG_TextAnchor *)att->data; break;
 		case TAG_SVG_ATT_text_align: all_atts->text_align = (SVG_TextAlign *)att->data; break;
+		case TAG_SVG_ATT_text_decoration: all_atts->text_decoration = (SVG_String *)att->data; break;
 		case TAG_SVG_ATT_focusHighlight: all_atts->focusHighlight = (SVG_FocusHighlight *)att->data; break;
 		case TAG_SVG_ATT_externalResourcesRequired: all_atts->externalResourcesRequired = (SVG_Boolean *)att->data; break;
-		case TAG_SVG_ATT_focusable: all_atts->focusable = (SVG_Boolean *)att->data; break;
+		case TAG_SVG_ATT_focusable: all_atts->focusable = (SVG_Focusable *)att->data; break;
 		case TAG_SVG_ATT_nav_next: all_atts->nav_next = (SVG_Focus *)att->data; break;
 		case TAG_SVG_ATT_nav_prev: all_atts->nav_prev = (SVG_Focus *)att->data; break;
 		case TAG_SVG_ATT_nav_up: all_atts->nav_up = (SVG_Focus *)att->data; break;
@@ -935,7 +946,7 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_xlink_href: all_atts->xlink_href = (SVG_IRI *)att->data; break;
 		case TAG_SVG_ATT_xlink_show: all_atts->xlink_show = (SVG_String *)att->data; break;
 		case TAG_SVG_ATT_xlink_actuate: all_atts->xlink_actuate = (SVG_String *)att->data; break;
-		case TAG_SVG_ATT_target: all_atts->target = (SVG_ID *)att->data; break;
+		case TAG_SVG_ATT_target: all_atts->target = (SVG_String *)att->data; break;
 		case TAG_SVG_ATT_attributeName: all_atts->attributeName = (SMIL_AttributeName *)att->data; break;
 		case TAG_SVG_ATT_attributeType: all_atts->attributeType = (SMIL_AttributeType *)att->data; break;
 		case TAG_SVG_ATT_begin: all_atts->begin = (SMIL_Times *)att->data; break;
@@ -978,7 +989,6 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_cx: all_atts->cx = (SVG_Coordinate *)att->data; break;
 		case TAG_SVG_ATT_cy: all_atts->cy = (SVG_Coordinate *)att->data; break;
 		case TAG_SVG_ATT_r: all_atts->r = (SVG_Length *)att->data; break;
-		case TAG_SVG_ATT_enabled: all_atts->enabled = (SVG_Boolean *)att->data; break;
 		case TAG_SVG_ATT_cursorManager_x: all_atts->cursorManager_x = (SVG_Length *)att->data; break;
 		case TAG_SVG_ATT_cursorManager_y: all_atts->cursorManager_y = (SVG_Length *)att->data; break;
 		case TAG_SVG_ATT_rx: all_atts->rx = (SVG_Length *)att->data; break;
@@ -1044,9 +1054,9 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_bandwidth: all_atts->bandwidth = (SVG_Number *)att->data; break;
 		case TAG_SVG_ATT_fx: all_atts->fx = (SVG_Coordinate *)att->data; break;
 		case TAG_SVG_ATT_fy: all_atts->fy = (SVG_Coordinate *)att->data; break;
-		case TAG_SVG_ATT_size: all_atts->size = (LASeR_Size *)att->data; break;
-		case TAG_SVG_ATT_choice: all_atts->choice = (LASeR_Choice *)att->data; break;
-		case TAG_SVG_ATT_delta: all_atts->delta = (LASeR_Size *)att->data; break;
+		case TAG_SVG_ATT_lsr_size: all_atts->lsr_size = (LASeR_Size *)att->data; break;
+		case TAG_SVG_ATT_lsr_choice: all_atts->lsr_choice = (LASeR_Choice *)att->data; break;
+		case TAG_SVG_ATT_lsr_delta: all_atts->lsr_delta = (LASeR_Size *)att->data; break;
 		case TAG_SVG_ATT_offset: all_atts->offset = (SVG_Number *)att->data; break;
 		case TAG_SVG_ATT_syncBehaviorDefault: all_atts->syncBehaviorDefault = (SMIL_SyncBehavior *)att->data; break;
 		case TAG_SVG_ATT_syncToleranceDefault: all_atts->syncToleranceDefault = (SMIL_SyncTolerance *)att->data; break;
@@ -1063,6 +1073,7 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_text_rotate: all_atts->text_rotate = (SVG_Numbers *)att->data; break;
 		case TAG_SVG_ATT_transformBehavior: all_atts->transformBehavior = (SVG_TransformBehavior *)att->data; break;
 		case TAG_SVG_ATT_overlay: all_atts->overlay = (SVG_Overlay *)att->data; break;
+		case TAG_SVG_ATT_fullscreen: all_atts->fullscreen = (SVG_Boolean *)att->data; break;
 		case TAG_SVG_ATT_motionTransform: all_atts->motionTransform = (SVG_Motion *)att->data; break;
 		}
 	att = att->next;

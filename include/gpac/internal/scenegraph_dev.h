@@ -269,16 +269,6 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 #ifndef GPAC_DISABLE_SVG
 
 
-/* animations */
-GF_Err gf_node_animation_add(GF_Node *node, void *animation);
-GF_Err gf_node_animation_del(GF_Node *node);
-u32 gf_node_animation_count(GF_Node *node);
-void *gf_node_animation_get(GF_Node *node, u32 i);
-
-Bool gf_svg_is_inherit(GF_FieldInfo *a);
-Bool gf_svg_is_current_color(GF_FieldInfo *a);
-
-
 /* reset functions for SVG types */
 void gf_svg_reset_path(SVG_PathData path);
 void gf_svg_reset_iri(GF_SceneGraph *sg, SVG_IRI*iri);
@@ -289,6 +279,78 @@ void gf_svg_delete_points		(GF_List *l);
 void gf_svg_delete_coordinates	(GF_List *l);
 /*for keyTimes, keyPoints and keySplines*/
 void gf_smil_delete_key_types	(GF_List *l);
+
+
+/*SMIL anim tools*/
+
+typedef struct __xlink_attrip_ptrs {
+	SVG_IRI *href;
+	SVG_ContentType *type;
+	SVG_String *title;
+	SVG_IRI *arcrole; 
+	SVG_IRI *role;
+	SVG_String *show;
+	SVG_String *actuate;
+} XLinkAttributesPointers;
+
+typedef struct __smil_time_attrip_ptrs {
+	SMIL_Times *begin, *end;
+	SVG_Clock *clipBegin, *clipEnd;
+	SMIL_Duration *dur;
+	SMIL_RepeatCount *repeatCount;
+	SMIL_Duration *repeatDur;
+	SMIL_Restart *restart;
+	SMIL_Fill *fill;
+	SMIL_Duration *max;
+	SMIL_Duration *min;
+	struct _smil_timing_rti *runtime; /* contains values for runtime handling of the SMIL timing */
+} SMILTimingAttributesPointers;
+
+typedef struct __smil_sync_attrip_ptrs {
+	SMIL_SyncBehavior *syncBehavior, *syncBehaviorDefault;
+	SMIL_SyncTolerance *syncTolerance, *syncToleranceDefault;
+	SVG_Boolean *syncMaster;
+	SVG_String *syncReference;
+} SMILSyncAttributesPointers;
+
+typedef struct __smil_anim_attrip_ptrs {
+	SMIL_AttributeName *attributeName; 
+	SMIL_AttributeType *attributeType;
+	SMIL_AnimateValue *to, *by, *from;
+	SMIL_AnimateValues *values;
+	SMIL_CalcMode *calcMode;
+	SMIL_Accumulate *accumulate;
+	SMIL_Additive *additive;
+	SMIL_KeySplines *keySplines;
+	SMIL_KeyTimes *keyTimes;
+	SVG_TransformType *type;
+	SVG_Boolean *lsr_enabled;
+} SMILAnimationAttributesPointers;
+
+
+typedef struct {
+	GF_DOM_BASE_NODE
+
+	/*shortcuts for xlink, anim, timing attributes*/
+	XLinkAttributesPointers *xlinkp;
+	SMILAnimationAttributesPointers *animp;
+	SMILTimingAttributesPointers *timingp;
+} SVGTimedAnimBaseElement;
+
+GF_Err gf_node_animation_add(GF_Node *node, void *animation);
+GF_Err gf_node_animation_del(GF_Node *node);
+u32 gf_node_animation_count(GF_Node *node);
+void *gf_node_animation_get(GF_Node *node, u32 i);
+Bool gf_svg_is_inherit(GF_FieldInfo *a);
+Bool gf_svg_is_current_color(GF_FieldInfo *a);
+
+void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg);
+void gf_svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg);
+
+Bool gf_svg_is_animation_tag(u32 tag);
+u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info);
+
+Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *anim_parent, GF_List *smil_times, Bool is_end, const char *node_name);
 
 
 /* SMIL Timing structures */
@@ -755,34 +817,22 @@ typedef struct __tag_svg_script_ctx
 #endif
 
 
-/*SMIL anim tools*/
-
-
-void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg);
-void gf_svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg);
-
-Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *anim_parent, GF_List *smil_times, Bool is_end, const char *node_name);
-
-
-
-SVGAttribute *gf_svg_create_attribute_from_datatype(u32 data_type, u32 attribute_tag);
 SVG_Element *gf_svg_create_node(u32 tag);
 Bool gf_svg_node_init(GF_Node *node);
 void gf_svg_node_del(GF_Node *node);
 Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field);
-
-GF_Err gf_svg_get_attribute_by_name(GF_Node *node, char *name, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
 const char *gf_svg_get_element_name(u32 tag);
 
+SVGAttribute *gf_svg_create_attribute_from_datatype(u32 data_type, u32 attribute_tag);
+
+GF_Err gf_svg_get_attribute_by_name(GF_Node *node, char *name, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
 void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
 								   SVGPropertiesPointers *output_property_context);
 
 Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute);
 
-SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag);
-u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name);
-Bool gf_svg_is_animation_tag(u32 tag);
-u32 gf_svg_get_element_tag(const char *element_name);
+/*exported for LASeR paring*/
+u32 svg_parse_point(SVG_Point *p, char *value_string);
 
 
 #ifdef GPAC_ENABLE_SVG_SA
@@ -810,8 +860,6 @@ Bool gf_svg_sa_node_init(GF_Node *node);
 void *gf_svg_sa_get_property_pointer(SVGPropertiesPointers *rendering_property_context, 
 								  SVGProperties *elt_property_context, 
 								  void *input_attribute);
-
-u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info);
 
 #endif
 

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Apr 24 15:51:41 2007
+	DO NOT MOFIFY - File generated on GMT Tue May 01 16:32:36 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -98,10 +98,10 @@ enum {
 	TAG_SVG_UndefinedElement
 };
 
-/* Definition of SVG 3 attribute internal tags */
+/* Definition of SVG 3 attribute internal tags - 199 defined */
 /* TAG names are made of "TAG_SVG_ATT_" + SVG attribute name (with - replaced by _) */
 enum {
-	TAG_SVG_ATT_id,
+	TAG_SVG_ATT_id = TAG_SVG_ATT_RANGE_FIRST,
 	TAG_SVG_ATT__class,
 	TAG_SVG_ATT_xml_id,
 	TAG_SVG_ATT_xml_base,
@@ -121,6 +121,7 @@ enum {
 	TAG_SVG_ATT_audio_level,
 	TAG_SVG_ATT_viewport_fill,
 	TAG_SVG_ATT_viewport_fill_opacity,
+	TAG_SVG_ATT_overflow,
 	TAG_SVG_ATT_fill_opacity,
 	TAG_SVG_ATT_stroke_opacity,
 	TAG_SVG_ATT_fill,
@@ -148,6 +149,7 @@ enum {
 	TAG_SVG_ATT_font_weight,
 	TAG_SVG_ATT_text_anchor,
 	TAG_SVG_ATT_text_align,
+	TAG_SVG_ATT_text_decoration,
 	TAG_SVG_ATT_focusHighlight,
 	TAG_SVG_ATT_externalResourcesRequired,
 	TAG_SVG_ATT_focusable,
@@ -212,7 +214,6 @@ enum {
 	TAG_SVG_ATT_cx,
 	TAG_SVG_ATT_cy,
 	TAG_SVG_ATT_r,
-	TAG_SVG_ATT_enabled,
 	TAG_SVG_ATT_cursorManager_x,
 	TAG_SVG_ATT_cursorManager_y,
 	TAG_SVG_ATT_rx,
@@ -278,9 +279,9 @@ enum {
 	TAG_SVG_ATT_bandwidth,
 	TAG_SVG_ATT_fx,
 	TAG_SVG_ATT_fy,
-	TAG_SVG_ATT_size,
-	TAG_SVG_ATT_choice,
-	TAG_SVG_ATT_delta,
+	TAG_SVG_ATT_lsr_size,
+	TAG_SVG_ATT_lsr_choice,
+	TAG_SVG_ATT_lsr_delta,
 	TAG_SVG_ATT_offset,
 	TAG_SVG_ATT_syncBehaviorDefault,
 	TAG_SVG_ATT_syncToleranceDefault,
@@ -297,6 +298,7 @@ enum {
 	TAG_SVG_ATT_text_rotate,
 	TAG_SVG_ATT_transformBehavior,
 	TAG_SVG_ATT_overlay,
+	TAG_SVG_ATT_fullscreen,
 	TAG_SVG_ATT_motionTransform,
 	/*undefined attributes (when parsing) use this tag*/
 	TAG_SVG_ATT_Unknown
@@ -323,6 +325,7 @@ struct _all_atts {
 	SVG_Number *audio_level;
 	SVG_Paint *viewport_fill;
 	SVG_Number *viewport_fill_opacity;
+	SVG_String *overflow;
 	SVG_Number *fill_opacity;
 	SVG_Number *stroke_opacity;
 	SVG_Paint *fill;
@@ -350,9 +353,10 @@ struct _all_atts {
 	SVG_FontWeight *font_weight;
 	SVG_TextAnchor *text_anchor;
 	SVG_TextAlign *text_align;
+	SVG_String *text_decoration;
 	SVG_FocusHighlight *focusHighlight;
 	SVG_Boolean *externalResourcesRequired;
-	SVG_Boolean *focusable;
+	SVG_Focusable *focusable;
 	SVG_Focus *nav_next;
 	SVG_Focus *nav_prev;
 	SVG_Focus *nav_up;
@@ -371,7 +375,7 @@ struct _all_atts {
 	SVG_IRI *xlink_href;
 	SVG_String *xlink_show;
 	SVG_String *xlink_actuate;
-	SVG_ID *target;
+	SVG_String *target;
 	SMIL_AttributeName *attributeName;
 	SMIL_AttributeType *attributeType;
 	SMIL_Times *begin;
@@ -414,7 +418,6 @@ struct _all_atts {
 	SVG_Coordinate *cx;
 	SVG_Coordinate *cy;
 	SVG_Length *r;
-	SVG_Boolean *enabled;
 	SVG_Length *cursorManager_x;
 	SVG_Length *cursorManager_y;
 	SVG_Length *rx;
@@ -480,9 +483,9 @@ struct _all_atts {
 	SVG_Number *bandwidth;
 	SVG_Coordinate *fx;
 	SVG_Coordinate *fy;
-	LASeR_Size *size;
-	LASeR_Choice *choice;
-	LASeR_Size *delta;
+	LASeR_Size *lsr_size;
+	LASeR_Choice *lsr_choice;
+	LASeR_Size *lsr_delta;
 	SVG_Number *offset;
 	SMIL_SyncBehavior *syncBehaviorDefault;
 	SMIL_SyncTolerance *syncToleranceDefault;
@@ -499,6 +502,7 @@ struct _all_atts {
 	SVG_Numbers *text_rotate;
 	SVG_TransformBehavior *transformBehavior;
 	SVG_Overlay *overlay;
+	SVG_Boolean *fullscreen;
 	SVG_Motion *motionTransform;
 };
 #ifdef __cplusplus

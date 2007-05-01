@@ -497,17 +497,17 @@ void setAttributeType(SVGGenAttribute *att)
 			strcpy(att->impl_type, "SVG_FontVariant");
 		} else if (!strcmp(att->svg_name, "lsr:enabled")) {
 			strcpy(att->impl_type, "SVG_Boolean");
-		} else if (!strcmp(att->svg_name, "choice")) {
-			strcpy(att->impl_type, "LASeR_Choice");
-		} else if (!strcmp(att->svg_name, "size") || 
-				   !strcmp(att->svg_name, "delta")) {
-			strcpy(att->impl_type, "LASeR_Size");
 		} else if (!strcmp(att->svg_name, "spreadMethod")) {
 			strcpy(att->impl_type, "SVG_SpreadMethod");
 		} else if (!strcmp(att->svg_name, "gradientTransform")) {
 			strcpy(att->impl_type, "SVG_Transform_Full");
 		} else if (!strcmp(att->svg_name, "editable")) {
 			strcpy(att->impl_type, "SVG_Boolean");
+		} else if (!strcmp(att->svg_name, "lsr:choice")) {
+			strcpy(att->impl_type, "LASeR_Choice");
+		} else if (!strcmp(att->svg_name, "lsr:size") || 
+				   !strcmp(att->svg_name, "lsr:delta")) {
+			strcpy(att->impl_type, "LASeR_Size");
 		} else {
 			/* For all other attributes, we use String as default type */
 			strcpy(att->impl_type, "SVG_String");
@@ -526,6 +526,8 @@ void setAttributeType(SVGGenAttribute *att)
 			strcpy(att->impl_type, "SVG_Transform");
 		} else if (!strcmp(att->svg_name, "gradientTransform")) {
 			strcpy(att->impl_type, "SVG_Transform");
+		} else if (!strcmp(att->svg_name, "focusable")) {
+			strcpy(att->impl_type, "SVG_Focusable");
 		} else if (!strcmp(att->svg_name, "event") || !strcmp(att->svg_name, "ev:event")) {
 			strcpy(att->impl_type, "XMLEV_Event");
 		} else if (strstr(att->svg_type, "datatype")) {
@@ -776,7 +778,7 @@ FILE *BeginFile(u32 type)
 		else if (generation_mode == 2) 
 			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables_sani.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		else if (generation_mode == 3) 
-			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables_da.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 
 #endif
 	}
@@ -875,23 +877,6 @@ void replaceIncludes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 		}
 	}
 	xmlXPathFreeObject(xpathObj);
-}
-
-void generateGenericAttrib(FILE *output, SVGGenElement *elt, u32 index)
-{
-	int k;
-	for (k=0; k < generic_attributes[index].array_length; k++) {
-		char *att_name = generic_attributes[index].array[k];
-		SVGGenAttribute *a = findAttribute(elt, att_name);
-		if (a) {
-			s32 type = get_lsr_att_name_type(att_name);
-			/*SMIL anim fill not updatable*/
-			if ((index==6) && !strcmp(att_name, "fill")) {
-				type = -1;
-			}
-			fprintf(output, ", %d", type);
-		}
-	}
 }
 
 int main(int argc, char **argv)

@@ -300,14 +300,15 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 	u32 backup_flags;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
+	SVG_SVGStack *stack = (SVG_SVGStack *) gf_node_get_private(node);
 	SVGAllAttributes all_atts;
 
 	if (is_destroy) {
-		SVGPropertiesPointers *svgp = (SVGPropertiesPointers *) gf_node_get_private(node);
-		if (svgp) {
-			gf_svg_properties_reset_pointers(svgp);
-			free(svgp);
-		}
+		gf_svg_properties_reset_pointers(stack->svgp);
+		free(stack->svgp);
+		/*reset focus node*/
+		if (stack->sr->focus_node == node) stack->sr->focus_node = NULL;
+		free(stack);
 		return;
 	}
 	
@@ -315,7 +316,7 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 	
 	if (!eff->svg_props) {
-		eff->svg_props = (SVGPropertiesPointers *) gf_node_get_private(node);
+		eff->svg_props = stack->svgp;
 		is_root_svg = 1;
 	}
 
@@ -344,8 +345,11 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_root_svg && eff->svg_props->viewport_fill->type != SVG_PAINT_NONE) {
 		viewport_color = GF_COL_ARGB_FIXED(eff->svg_props->viewport_fill_opacity->value, eff->svg_props->viewport_fill->color.red, eff->svg_props->viewport_fill->color.green, eff->svg_props->viewport_fill->color.blue);
 		if (eff->surface->render->compositor->back_color != viewport_color) {
-			eff->invalidate_all = 1;
 			eff->surface->render->compositor->back_color = viewport_color;
+			/*clear surface*/
+			VS2D_Clear(eff->surface, NULL, 0);
+			gf_sr_invalidate(eff->surface->render->compositor, NULL);
+			goto exit;
 		}
 	}
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
@@ -354,6 +358,7 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 		svg_render_node_list(((SVG_Element *)node)->children, eff);
 	}
 
+exit:
 	svg_restore_parent_transformation(eff, &backup_matrix);
 	memcpy(eff->svg_props, &backup_props, styling_size);
 	eff->svg_flags = backup_flags;
@@ -362,11 +367,12 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 void svg_init_svg(Render2D *sr, GF_Node *node)
 {
-	SVGPropertiesPointers *svgp;
-
-	GF_SAFEALLOC(svgp, SVGPropertiesPointers);
-	gf_svg_properties_init_pointers(svgp);
-	gf_node_set_private(node, svgp);
+	SVG_SVGStack *stack;
+	GF_SAFEALLOC(stack, SVG_SVGStack);
+	GF_SAFEALLOC(stack->svgp, SVGPropertiesPointers);
+	gf_svg_properties_init_pointers(stack->svgp);
+	stack->sr = sr;
+	gf_node_set_private(node, stack);
 
 	gf_node_set_callback_function(node, svg_render_svg);
 }
@@ -808,6 +814,9 @@ static void svg_render_polygon(GF_Node *node, void *rs, Bool is_destroy)
 		} else {
 			gf_path_add_move_to(cs->path, 0, 0);
 		}
+		/*according to the spec, the polygon path is closed*/
+		gf_path_close(cs->path);
+
 		gf_node_dirty_clear(node, GF_SG_SVG_GEOMETRY_DIRTY);
 		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
@@ -938,8 +947,14 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 
 	if (event->type==GF_EVENT_MOUSEOVER) {
 		evt.type = GF_EVENT_NAVIGATE_INFO;
-		evt.navigate.to_url = all_atts.xlink_href->iri;
+		
 		if (all_atts.xlink_title) evt.navigate.to_url = *all_atts.xlink_title;
+		else if (all_atts.xlink_href->iri) evt.navigate.to_url = all_atts.xlink_href->iri;
+		else {
+			evt.navigate.to_url = gf_node_get_name(all_atts.xlink_href->target);
+			if (!evt.navigate.to_url) evt.navigate.to_url = "document internal link";
+		}
+
 		compositor->user->EventProc(compositor->user->opaque, &evt);
 		return;
 	}
@@ -966,6 +981,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 			tag == TAG_SVG_animateTransform ||
 			tag == TAG_SVG_animateMotion || 
 			tag == TAG_SVG_discard) {
+#if 0
 			u32 i, count, found;
 			SVGTimedAnimBaseElement *set = (SVGTimedAnimBaseElement*)all_atts.xlink_href->target;
 			SMIL_Time *begin;
@@ -995,6 +1011,9 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 			}
 			if (!found) gf_list_add(*set->timingp->begin, begin);
 			gf_node_changed((GF_Node *)all_atts.xlink_href->target, NULL);
+#endif
+			gf_smil_timing_insert_clock(all_atts.xlink_href->target, 0, gf_node_get_scene_time((GF_Node *)handler) );
+
 		}
 	}
 	return;
@@ -1002,21 +1021,23 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 
 void svg_init_a(Render2D *sr, GF_Node *node)
 {
-	XMLEV_Event evt;
 	SVG_handlerElement *handler;
 	gf_node_set_callback_function(node, svg_render_a);
 
 	/*listener for onClick event*/
-	evt.parameter = 0;
-	evt.type = GF_EVENT_CLICK;
-	handler = gf_dom_listener_build(node, evt);
+	handler = gf_dom_listener_build(node, GF_EVENT_CLICK, 0);
 	/*and overwrite handler*/
 	handler->handle_event = svg_a_handle_event;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for activate event*/
-	evt.type = GF_EVENT_ACTIVATE;
-	handler = gf_dom_listener_build(node, evt);
+	handler = gf_dom_listener_build(node, GF_EVENT_ACTIVATE, 0);
+	/*and overwrite handler*/
+	handler->handle_event = svg_a_handle_event;
+	gf_node_set_private((GF_Node *)handler, sr->compositor);
+
+	/*listener for mousemove event*/
+	handler = gf_dom_listener_build(node, GF_EVENT_MOUSEOVER, 0);
 	/*and overwrite handler*/
 	handler->handle_event = svg_a_handle_event;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
@@ -1026,7 +1047,7 @@ void svg_init_a(Render2D *sr, GF_Node *node)
 /* TODO: FIX ME we actually ignore the given sub_root since it is only valid 
 	     when animations have been performed,
          animations evaluation (Render_base) should be part of the core renderer */
-void R2D_RenderUse3(GF_Node *node, GF_Node *sub_root, void *rs)
+void r2d_render_svg_use(GF_Node *node, GF_Node *sub_root, void *rs)
 {
 	GF_Matrix2D backup_matrix;
   	GF_Matrix2D translate;
@@ -1074,6 +1095,277 @@ end:
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	eff->svg_flags = backup_flags;
 }
+
+
+
+
+static void SVG_DestroyPaintServer(GF_Node *node)
+{
+	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(node);
+	if (st) {
+		gf_sr_texture_destroy(&st->txh);
+		if (st->cols) free(st->cols);
+		if (st->keys) free(st->keys);
+		free(st);
+	}
+}
+
+static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children)
+{
+	u32 count;
+	Fixed alpha, max_offset;
+	SVGAllAttributes all_atts;
+
+	if (!gf_node_dirty_get(st->txh.owner)) return;
+	gf_node_dirty_clear(st->txh.owner, 0);
+
+	st->txh.needs_refresh = 1;
+	st->txh.transparent = 0;
+	count = gf_node_list_get_count(children);
+	st->nb_col = 0;
+	st->cols = (u32*)realloc(st->cols, sizeof(u32)*count);
+	st->keys = (Fixed*)realloc(st->keys, sizeof(Fixed)*count);
+
+
+	max_offset = 0;
+	while (children) {
+		Fixed key;
+		GF_Node *stop = children->node;
+		children = children->next;
+		if (gf_node_get_tag((GF_Node *)stop) != TAG_SVG_stop) continue;
+
+		gf_svg_flatten_attributes((SVG_Element*)stop, &all_atts);
+
+		alpha = FIX_ONE;
+		if (all_atts.stop_opacity && (all_atts.stop_opacity->type==SVG_NUMBER_VALUE) )
+			alpha = all_atts.stop_opacity->value;
+
+		if (all_atts.stop_color)
+			st->cols[st->nb_col] = GF_COL_ARGB_FIXED(alpha, all_atts.stop_color->color.red, all_atts.stop_color->color.green, all_atts.stop_color->color.blue);
+
+		if (all_atts.offset) {
+			key = all_atts.offset->value;
+			if (all_atts.offset->type==SVG_NUMBER_PERCENTAGE) key/=100; 
+		} else {
+			key=0;
+		}
+		if (key>max_offset) max_offset=key;
+		else key = max_offset;
+		st->keys[st->nb_col] = key;
+
+		st->nb_col++;
+		if (alpha!=FIX_ONE) st->txh.transparent = 1;
+	}
+	st->txh.compositor->r2d->stencil_set_gradient_interpolation(st->txh.hwtx, st->keys, st->cols, st->nb_col);
+	st->txh.compositor->r2d->stencil_set_gradient_mode(st->txh.hwtx, /*lg->spreadMethod*/ GF_GRADIENT_MODE_PAD);
+}
+
+static void SVG_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
+{
+	SVGPropertiesPointers backup_props;
+	SVGAllAttributes all_atts;
+	u32 backup_flags;
+	u32 styling_size = sizeof(SVGPropertiesPointers);
+	SVG_Element *elt = (SVG_Element *)node;
+	RenderEffect2D *eff = (RenderEffect2D *) rs;
+
+	if (is_destroy) {
+		SVG_DestroyPaintServer(node);
+		return;
+	}
+
+	gf_svg_flatten_attributes(elt, &all_atts);
+	svg_render_base(node, &all_atts, eff, &backup_props, &backup_flags);
+	
+	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
+		return;
+	} else {
+		svg_render_node_list(elt->children, eff);
+	}
+	memcpy(eff->svg_props, &backup_props, styling_size);
+	eff->svg_flags = backup_flags;
+}
+
+
+/* linear gradient */
+
+static void SVG_UpdateLinearGradient(GF_TextureHandler *txh)
+{
+	SVG_Element *lg = (SVG_Element *) txh->owner;
+	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
+	if (!txh->hwtx) txh->hwtx = txh->compositor->r2d->stencil_new(txh->compositor->r2d, GF_STENCIL_LINEAR_GRADIENT);
+
+	SVG_UpdateGradient(st, lg->children);
+}
+
+static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+{
+	SFVec2f start, end;
+	SVGAllAttributes all_atts;
+
+	/*create gradient brush if needed*/
+	if (!txh->hwtx) return;
+
+	gf_svg_flatten_attributes((SVG_Element*)txh->owner, &all_atts);
+
+	if (all_atts.x1) {
+		start.x = all_atts.x1->value;
+		if (all_atts.x1->type==SVG_NUMBER_PERCENTAGE) start.x /= 100;
+	} else {
+		start.x = 0;
+	}
+	if (all_atts.y1) {
+		start.y = all_atts.y1->value;
+		if (all_atts.y1->type==SVG_NUMBER_PERCENTAGE) start.y /= 100;
+	} else {
+		start.y = 0;
+	}
+	if (all_atts.x2) {
+		end.x = all_atts.x2->value;
+		if (all_atts.x2->type==SVG_NUMBER_PERCENTAGE) end.x /= 100;
+	} else {
+		end.x = 1;
+	}
+	if (all_atts.y2) {
+		end.y = all_atts.y2->value;
+		if (all_atts.y2->type==SVG_NUMBER_PERCENTAGE) end.y /= 100;
+	} else {
+		end.y = 0;
+	}
+	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, (GF_GradientMode) all_atts.spreadMethod ? *(SVG_SpreadMethod*)all_atts.spreadMethod : 0);
+
+	if (all_atts.gradientTransform) {
+		gf_mx2d_copy(*mat, all_atts.gradientTransform->mat );
+	} else {
+		gf_mx2d_init(*mat);
+	}
+
+	if (all_atts.gradientUnits && (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT) ) {
+		/*move to local coord system - cf SVG spec*/
+		gf_mx2d_add_scale(mat, bounds->width, bounds->height);
+		gf_mx2d_add_translation(mat, bounds->x - 1, bounds->y  - bounds->height - 1);
+	}
+	txh->compositor->r2d->stencil_set_linear_gradient(txh->hwtx, start.x, start.y, end.x, end.y);
+}
+
+void svg_init_linearGradient(Render2D *sr, GF_Node *node)
+{
+	SVG_GradientStack *st;
+	GF_SAFEALLOC(st, SVG_GradientStack);
+
+	gf_sr_texture_setup(&st->txh, sr->compositor, node);
+	st->txh.update_texture_fcnt = SVG_UpdateLinearGradient;
+
+	st->txh.compute_gradient_matrix = SVG_LG_ComputeMatrix;
+	gf_node_set_private(node, st);
+	gf_node_set_callback_function(node, SVG_Render_PaintServer);
+}
+
+/* radial gradient */
+
+static void SVG_UpdateRadialGradient(GF_TextureHandler *txh)
+{
+	SVG_Element *rg = (SVG_Element *) txh->owner;
+	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
+	if (!txh->hwtx) txh->hwtx = txh->compositor->r2d->stencil_new(txh->compositor->r2d, GF_STENCIL_RADIAL_GRADIENT);
+	SVG_UpdateGradient(st, rg->children);
+}
+
+static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+{
+	SFVec2f center, focal;
+	Fixed radius;
+	SVG_Element *rg = (SVG_Element *) txh->owner;
+	SVGAllAttributes all_atts;
+
+	/*create gradient brush if needed*/
+	if (!txh->hwtx) return;
+
+	gf_svg_flatten_attributes((SVG_Element*)txh->owner, &all_atts);
+
+	if (all_atts.gradientTransform) 
+		gf_mx2d_copy(*mat, all_atts.gradientTransform->mat);
+	else
+		gf_mx2d_init(*mat);
+	
+	if (all_atts.r) {
+		radius = all_atts.r->value;
+		if (all_atts.r->type==SVG_NUMBER_PERCENTAGE) radius /= 100;
+	} else {
+		radius = FIX_ONE/2;
+	}
+	if (all_atts.cx) {
+		center.x = all_atts.cx->value;
+		if (all_atts.cx->type==SVG_NUMBER_PERCENTAGE) center.x /= 100;
+	} else {
+		center.x = FIX_ONE/2;
+	}
+	if (all_atts.cy) {
+		center.y = all_atts.cy->value;
+		if (all_atts.cy->type==SVG_NUMBER_PERCENTAGE) center.y /= 100;
+	} else {
+		center.y = FIX_ONE/2;
+	}
+
+	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, (GF_GradientMode) all_atts.spreadMethod ? *(SVG_SpreadMethod*)all_atts.spreadMethod : 0);
+
+	if (all_atts.fx) {
+		focal.x = all_atts.fx->value;
+		if (all_atts.fx->type==SVG_NUMBER_PERCENTAGE) focal.x /= 100;
+	} else {
+		focal.x = FIX_ONE/2;
+	}
+	if (all_atts.fy) {
+		focal.y = all_atts.fx->value;
+		if (all_atts.fy->type==SVG_NUMBER_PERCENTAGE) focal.y /= 100;
+	} else {
+		focal.y = FIX_ONE/2;
+	}
+
+	if (all_atts.gradientUnits && (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT) ) {
+		/*move to local coord system - cf SVG spec*/
+		gf_mx2d_add_scale(mat, bounds->width, bounds->height);
+		gf_mx2d_add_translation(mat, bounds->x, bounds->y  - bounds->height);
+	} 
+	txh->compositor->r2d->stencil_set_radial_gradient(txh->hwtx, center.x, center.y, focal.x, focal.y, radius, radius);
+}
+
+void svg_init_radialGradient(Render2D *sr, GF_Node *node)
+{
+	SVG_GradientStack *st;
+	GF_SAFEALLOC(st, SVG_GradientStack);
+
+	gf_sr_texture_setup(&st->txh, sr->compositor, node);
+	st->txh.update_texture_fcnt = SVG_UpdateRadialGradient;
+	st->txh.compute_gradient_matrix = SVG_RG_ComputeMatrix;
+	gf_node_set_private(node, st);
+	gf_node_set_callback_function(node, SVG_Render_PaintServer);
+}
+
+void svg_init_solidColor(Render2D *sr, GF_Node *node)
+{
+	gf_node_set_callback_function(node, SVG_Render_PaintServer);
+}
+
+void svg_init_stop(Render2D *sr, GF_Node *node)
+{
+	gf_node_set_callback_function(node, SVG_Render_PaintServer);
+}
+
+GF_TextureHandler *svg_gradient_get_texture(GF_Node *node)
+{
+	GF_FieldInfo info;
+	GF_Node *g = NULL;
+	SVG_GradientStack *st;
+	/*check gradient redirection ...*/
+	if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &info)==GF_OK) {
+		g = ((SVG_IRI*)info.far_ptr)->target;
+	}
+	if (!g) g = node;
+	st = (SVG_GradientStack*) gf_node_get_private((GF_Node *)g);
+	return st->nb_col ? &st->txh : NULL;
+}
+
 
 #endif
 

@@ -256,7 +256,9 @@ void R2D_render_svg_sa_use(GF_Node *anim, GF_Node *sub_root, void *rs);
 #ifdef GPAC_ENABLE_SVG_SANI
 void r2d_render_svg_sani_use(GF_Node *anim, GF_Node *sub_root, void *rs);
 #endif
-void R2D_RenderUse3(GF_Node *anim, GF_Node *sub_root, void *rs);
+
+void r2d_render_svg_use(GF_Node *anim, GF_Node *sub_root, void *rs);
+
 #endif
 
 #endif

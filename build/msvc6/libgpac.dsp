@@ -67,8 +67,8 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /FR /FD /GZ /c
-# SUBTRACT CPP /YX
+# ADD CPP /nologo /MDd /W3 /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /FD /GZ /c
+# SUBTRACT CPP /Fr /YX
 # ADD BASE RSC /l 0x40c /d "_DEBUG"
 # ADD RSC /l 0x40c /d "_DEBUG"
 BSC32=bscmake.exe
@@ -926,35 +926,14 @@ SOURCE=..\..\include\gpac\internal\laser_dev.h
 # Begin Source File
 
 SOURCE=..\..\src\laser\lsr_dec.c
-
-!IF  "$(CFG)" == "libgpac - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "libgpac - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\laser\lsr_enc.c
-
-!IF  "$(CFG)" == "libgpac - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "libgpac - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\laser\lsr_tables.c
-
-!IF  "$(CFG)" == "libgpac - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "libgpac - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # End Group
 # Begin Group "include"
@@ -1007,6 +986,10 @@ SOURCE=..\..\include\gpac\crypt.h
 # Begin Source File
 
 SOURCE=..\..\include\gpac\download.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\esi.h
 # End Source File
 # Begin Source File
 
@@ -1130,6 +1113,10 @@ SOURCE=..\..\include\gpac\setup.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\gpac\svg_types.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\gpac\sync_layer.h
 # End Source File
 # Begin Source File
@@ -1173,9 +1160,5 @@ SOURCE=..\..\include\gpac\xml.h
 SOURCE=..\..\include\gpac\yuv.h
 # End Source File
 # End Group
-# Begin Source File
-
-SOURCE=..\..\include\gpac\esi.h
-# End Source File
 # End Target
 # End Project

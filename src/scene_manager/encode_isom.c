@@ -641,12 +641,13 @@ force_scene_rap:
 			esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 
 			/*this is for safety, otherwise some players may not understand NULL node*/
-			if (flags & GF_SM_ENCODE_USE_NAMES) lsrcfg.has_string_ids = 1;
+			if (flags & GF_SM_ENCODE_USE_NAMES) lsrcfg.force_string_ids = 1;
 			/*override of default*/
 			if (opts) {
 				if (opts->resolution) lsrcfg.resolution = opts->resolution;
 				if (opts->coord_bits) lsrcfg.coord_bits = opts->coord_bits;
-				if (opts->scale_bits) lsrcfg.scale_bits_minus_coord_bits = opts->scale_bits;
+				/*by default use 2 extra bits for scale*/
+				lsrcfg.scale_bits_minus_coord_bits = opts->scale_bits ? opts->scale_bits : 2;
 			}
 
 			gf_laser_encoder_new_stream(lsr_enc, esd->ESID , &lsrcfg);

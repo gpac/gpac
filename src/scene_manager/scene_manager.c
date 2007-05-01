@@ -351,12 +351,17 @@ static void gf_sm_load_done_string(GF_SceneLoader *load, Bool do_clean)
 		break;
 #ifndef GPAC_DISABLE_SVG
 	/*we do not reset it here to enable SAX parsing*/
-	case GF_SM_LOAD_SVG_SA:
+	case GF_SM_LOAD_SVG_DA:
 	case GF_SM_LOAD_XSR:
 		break;
-	case GF_SM_LOAD_SVG_SANI:
-	case GF_SM_LOAD_SVG_DA:
+#ifdef GPAC_ENABLE_SVG_SA
+	case GF_SM_LOAD_SVG_SA:
 		break;
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case GF_SM_LOAD_SVG_SANI:
+		break;
+#endif
 #endif
 	default: 
 		break;
@@ -404,8 +409,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 			else if (strstr(szExt, "x3d")) load->type = GF_SM_LOAD_X3D;
 			else if (strstr(szExt, "swf")) load->type = GF_SM_LOAD_SWF;
 			else if (strstr(szExt, "mov")) load->type = GF_SM_LOAD_QT;
-			/*FIXME - move default SVG scene graph to new one (dynamic alloc)*/
-			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG_SA;
+			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG_DA;
 			else if (strstr(szExt, "xsr")) load->type = GF_SM_LOAD_XSR;
 			else if (strstr(szExt, "xml")) {
 				char *rtype = gf_xml_get_root_type(load->fileName);

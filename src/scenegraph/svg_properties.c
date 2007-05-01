@@ -543,49 +543,8 @@ void *gf_svg_sa_get_property_pointer(SVGPropertiesPointers *output_property_cont
 Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute)
 {
 	u32 tag = gf_node_get_tag(node);
-	if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
-		SVG_SA_Element *e = (SVG_SA_Element *)node;
-		if (target_attribute->far_ptr == &e->properties->audio_level) return 1;
-		else if (target_attribute->far_ptr == &e->properties->color) return 1;
-		else if (target_attribute->far_ptr == &e->properties->color_rendering) return 1;
-		else if (target_attribute->far_ptr == &e->properties->display) return 1;
-		else if (target_attribute->far_ptr == &e->properties->display_align) return 1;
-		else if (target_attribute->far_ptr == &e->properties->fill) return 1;
-		else if (target_attribute->far_ptr == &e->properties->fill_opacity) return 1;
-		else if (target_attribute->far_ptr == &e->properties->fill_rule) return 1;
-		else if (target_attribute->far_ptr == &e->properties->font_family) return 1;
-		else if (target_attribute->far_ptr == &e->properties->font_size) return 1;
-		else if (target_attribute->far_ptr == &e->properties->font_style) return 1;
-		else if (target_attribute->far_ptr == &e->properties->font_variant) return 1;
-		else if (target_attribute->far_ptr == &e->properties->font_weight) return 1;
-		else if (target_attribute->far_ptr == &e->properties->image_rendering) return 1;
-		else if (target_attribute->far_ptr == &e->properties->line_increment) return 1;
-		else if (target_attribute->far_ptr == &e->properties->opacity) return 1;
-		else if (target_attribute->far_ptr == &e->properties->pointer_events) return 1;
-		else if (target_attribute->far_ptr == &e->properties->shape_rendering) return 1;
-		else if (target_attribute->far_ptr == &e->properties->solid_color) return 1;
-		else if (target_attribute->far_ptr == &e->properties->solid_opacity) return 1;
-		else if (target_attribute->far_ptr == &e->properties->stop_color) return 1;
-		else if (target_attribute->far_ptr == &e->properties->stop_opacity) return 1;
-		else if (target_attribute->far_ptr == &e->properties->stroke) return 1;
-		else if (target_attribute->far_ptr == &e->properties->stroke_dasharray) return 1;
-		else if (target_attribute->far_ptr == &e->properties->stroke_dashoffset) return 1;
-		else if (target_attribute->far_ptr == &e->properties->stroke_linecap) return 1;
-		else if (target_attribute->far_ptr == &e->properties->stroke_linejoin) return 1;
-		else if (target_attribute->far_ptr == &e->properties->stroke_miterlimit) return 1;
-		else if (target_attribute->far_ptr == &e->properties->stroke_opacity) return 1;
-		else if (target_attribute->far_ptr == &e->properties->stroke_width) return 1;
-		else if (target_attribute->far_ptr == &e->properties->text_align) return 1;
-		else if (target_attribute->far_ptr == &e->properties->text_anchor) return 1;
-		else if (target_attribute->far_ptr == &e->properties->text_rendering) return 1;
-		else if (target_attribute->far_ptr == &e->properties->vector_effect) return 1;
-		else if (target_attribute->far_ptr == &e->properties->viewport_fill) return 1;
-		else if (target_attribute->far_ptr == &e->properties->viewport_fill_opacity) return 1;
-		else if (target_attribute->far_ptr == &e->properties->visibility) return 1;
-		else return 0;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
-		return 0;
-	} else if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+
+	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
 		SVG_Element *e = (SVG_Element *)node;
 		SVGAttribute *att = e->attributes;
 		while (att) {
@@ -635,7 +594,54 @@ Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute)
 			default:
 				return 0;
 		}
-	} else {
+	} 
+#ifdef GPAC_ENABLE_SVG_SA
+	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		SVG_SA_Element *e = (SVG_SA_Element *)node;
+		if (target_attribute->far_ptr == &e->properties->audio_level) return 1;
+		else if (target_attribute->far_ptr == &e->properties->color) return 1;
+		else if (target_attribute->far_ptr == &e->properties->color_rendering) return 1;
+		else if (target_attribute->far_ptr == &e->properties->display) return 1;
+		else if (target_attribute->far_ptr == &e->properties->display_align) return 1;
+		else if (target_attribute->far_ptr == &e->properties->fill) return 1;
+		else if (target_attribute->far_ptr == &e->properties->fill_opacity) return 1;
+		else if (target_attribute->far_ptr == &e->properties->fill_rule) return 1;
+		else if (target_attribute->far_ptr == &e->properties->font_family) return 1;
+		else if (target_attribute->far_ptr == &e->properties->font_size) return 1;
+		else if (target_attribute->far_ptr == &e->properties->font_style) return 1;
+		else if (target_attribute->far_ptr == &e->properties->font_variant) return 1;
+		else if (target_attribute->far_ptr == &e->properties->font_weight) return 1;
+		else if (target_attribute->far_ptr == &e->properties->image_rendering) return 1;
+		else if (target_attribute->far_ptr == &e->properties->line_increment) return 1;
+		else if (target_attribute->far_ptr == &e->properties->opacity) return 1;
+		else if (target_attribute->far_ptr == &e->properties->pointer_events) return 1;
+		else if (target_attribute->far_ptr == &e->properties->shape_rendering) return 1;
+		else if (target_attribute->far_ptr == &e->properties->solid_color) return 1;
+		else if (target_attribute->far_ptr == &e->properties->solid_opacity) return 1;
+		else if (target_attribute->far_ptr == &e->properties->stop_color) return 1;
+		else if (target_attribute->far_ptr == &e->properties->stop_opacity) return 1;
+		else if (target_attribute->far_ptr == &e->properties->stroke) return 1;
+		else if (target_attribute->far_ptr == &e->properties->stroke_dasharray) return 1;
+		else if (target_attribute->far_ptr == &e->properties->stroke_dashoffset) return 1;
+		else if (target_attribute->far_ptr == &e->properties->stroke_linecap) return 1;
+		else if (target_attribute->far_ptr == &e->properties->stroke_linejoin) return 1;
+		else if (target_attribute->far_ptr == &e->properties->stroke_miterlimit) return 1;
+		else if (target_attribute->far_ptr == &e->properties->stroke_opacity) return 1;
+		else if (target_attribute->far_ptr == &e->properties->stroke_width) return 1;
+		else if (target_attribute->far_ptr == &e->properties->text_align) return 1;
+		else if (target_attribute->far_ptr == &e->properties->text_anchor) return 1;
+		else if (target_attribute->far_ptr == &e->properties->text_rendering) return 1;
+		else if (target_attribute->far_ptr == &e->properties->vector_effect) return 1;
+		else if (target_attribute->far_ptr == &e->properties->viewport_fill) return 1;
+		else if (target_attribute->far_ptr == &e->properties->viewport_fill_opacity) return 1;
+		else if (target_attribute->far_ptr == &e->properties->visibility) return 1;
+		else return 0;
+	} 
+#endif
+//	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<=GF_NODE_RANGE_LAST_SVG_SANI)) {
+//		return 0;
+//	}
+	else {
 		return 0;
 	}
 }

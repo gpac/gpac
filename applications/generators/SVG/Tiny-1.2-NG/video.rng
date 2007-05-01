@@ -59,6 +59,11 @@
         </choice>
       </attribute>
     </optional>
+    <optional>
+      <attribute name='fullscreen' svg:animatable='no' svg:inheritable='false'>
+        <ref name='Boolean.datatype'/>
+      </attribute>
+    </optional>
   </define>
 
   <define name='video.CM'>

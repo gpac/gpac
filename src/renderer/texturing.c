@@ -214,8 +214,6 @@ void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	/*if no frame or muted don't draw*/
 	if (!txh->data || !size) return;
 
-	txh->needs_release = 1; 
-
 	/*if setup and same frame return*/
 	if (txh->hwtx && (txh->stream_finished || (txh->last_frame_time==ts)) ) {
 		if (txh->needs_release) {
@@ -224,6 +222,7 @@ void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		}
 		return;
 	}
+	txh->needs_release = 1; 
 	txh->last_frame_time = ts;
 	if (gf_mo_is_muted(txh->stream)) return;
 

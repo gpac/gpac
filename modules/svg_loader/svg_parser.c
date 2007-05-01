@@ -442,11 +442,8 @@ void svg_parse_dom_attributes(SVGParser *parser,
 				GF_FieldInfo info;
 				u32 evtType = gf_dom_event_type_by_name((char *) attributes->name + 2);
 				if (evtType != GF_EVENT_UNKNOWN) {
-					XMLEV_Event evt;
 					SVG_SA_handlerElement *handler;
-					evt.parameter = 0;
-					evt.type = evtType;
-					handler = gf_dom_listener_build((GF_Node *) elt, evt);
+					handler = gf_dom_listener_build((GF_Node *) elt, evtType, 0);
 					handler->textContent = strdup(attributes->children->content);
 					gf_node_init((GF_Node *)handler);
 				} else if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attributes->name, &info)) {
@@ -923,11 +920,8 @@ SVG_SA_Element *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, co
 			GF_FieldInfo info;
 			u32 evtType = gf_dom_event_type_by_name((char *) (char *)attrs[attribute_index] + 2);
 			if (evtType != GF_EVENT_UNKNOWN) {
-				XMLEV_Event evt;
 				SVG_SA_handlerElement *handler;
-				evt.parameter = 0;
-				evt.type = evtType;
-				handler = gf_dom_listener_build((GF_Node *) elt, evt);
+				handler = gf_dom_listener_build((GF_Node *) elt, evtType, 0);
 				handler->textContent = strdup((char *)attrs[attribute_index+1]);
 				gf_node_init((GF_Node *)handler);
 			} else if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attrs[attribute_index], &info)) {

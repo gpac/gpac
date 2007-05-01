@@ -367,6 +367,7 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 GF_EXPORT
 GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
 {
+	u32 to_skip;
 	GF_BitStream *bs;
 	if (!dsi || !dsi->data || !dsi->dataLength || !cfg) return GF_BAD_PARAM;
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
@@ -385,11 +386,25 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
 	if (cfg->resolution>7) cfg->resolution -= 16;
 	cfg->coord_bits = gf_bs_read_int(bs, 5);
 	cfg->scale_bits_minus_coord_bits = gf_bs_read_int(bs, 4);
-	cfg->append = gf_bs_read_int(bs, 1);
-	cfg->has_string_ids = gf_bs_read_int(bs, 1);
-	cfg->has_private_data = gf_bs_read_int(bs, 1);
-	cfg->hasExtendedAttributes = gf_bs_read_int(bs, 1);
+	cfg->newSceneIndicator = gf_bs_read_int(bs, 1);
+	/*reserved2*/ gf_bs_read_int(bs, 3);
 	cfg->extensionIDBits = gf_bs_read_int(bs, 4);
+	/*hasExtConfig - we just ignore it*/
+	if (gf_bs_read_int(bs, 1)) {
+		to_skip = gf_bs_read_vluimsbf5(bs);
+		while (to_skip) {
+			gf_bs_read_int(bs, 8);
+			to_skip--;
+		}
+	}
+	/*hasExtension - we just ignore it*/
+	if (gf_bs_read_int(bs, 1)) {
+		to_skip = gf_bs_read_vluimsbf5(bs);
+		while (to_skip) {
+			gf_bs_read_int(bs, 8);
+			to_skip--;
+		}
+	}
 	gf_bs_del(bs);
 	return GF_OK;
 }

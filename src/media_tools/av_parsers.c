@@ -1472,7 +1472,6 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 *vui_flag_pos)
     }
 
 	if (vui_flag_pos) {
-		u32 gf_bs_get_bit_offset(GF_BitStream *bs);
 		*vui_flag_pos = (u32) gf_bs_get_bit_offset(bs);
 	}
 

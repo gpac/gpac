@@ -196,6 +196,26 @@ u32 gf_bs_read_u32_le(GF_BitStream *bs);
  */
 u16 gf_bs_read_u16_le(GF_BitStream *bs);
 
+
+/*!
+ *	\brief variable length integer reading
+ *
+ *	Reads an integer coded on a variable number of 4-bits chunks. The number of chunks is given by the number of non-0 bits at the begining.
+ *	\param bs the target bitstream 
+ *	\return the integer value read.
+ */
+u32 gf_bs_read_vluimsbf5(GF_BitStream *bs);
+
+/*!
+ *	\brief bit position
+ *
+ *	Returns current bit position in the bitstream - only works in memory mode.
+ *	\param bs the target bitstream 
+ *	\return the integer value read.
+ */
+u32 gf_bs_get_bit_offset(GF_BitStream *bs);
+
+
 /*!
  *	\brief integer writing
  *

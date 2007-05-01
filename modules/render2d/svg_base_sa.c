@@ -1015,29 +1015,24 @@ static void SVG_a_HandleEvent(GF_Node *handler, GF_DOM_Event *event)
 
 void svg_sa_init_a(Render2D *sr, GF_Node *node)
 {
-	XMLEV_Event evt;
 	SVG_SA_handlerElement *handler;
 	gf_node_set_callback_function(node, SVG_Render_a);
 
 	/*listener for onClick event*/
-	evt.parameter = 0;
-	evt.type = GF_EVENT_CLICK;
-	handler = gf_dom_listener_build(node, evt);
+	handler = gf_dom_listener_build(node, GF_EVENT_CLICK, 0);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for activate event*/
-	evt.type = GF_EVENT_ACTIVATE;
-	handler = gf_dom_listener_build(node, evt);
+	handler = gf_dom_listener_build(node, GF_EVENT_ACTIVATE, 0);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 #ifndef DANAE
 	/*listener for mouseover event*/
-	evt.type = GF_EVENT_MOUSEOVER;
-	handler = gf_dom_listener_build(node, evt);
+	handler = gf_dom_listener_build(node, GF_EVENT_MOUSEOVER, 0);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
@@ -1046,7 +1041,7 @@ void svg_sa_init_a(Render2D *sr, GF_Node *node)
 
 /* end of Interactive SVG elements */
 
-static void SVG_DestroyPaintServer(GF_Node *node)
+static void SVG_SA_DestroyPaintServer(GF_Node *node)
 {
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(node);
 	if (st) {
@@ -1057,7 +1052,7 @@ static void SVG_DestroyPaintServer(GF_Node *node)
 	}
 }
 
-static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children)
+static void SVG_SA_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children)
 {
 	u32 count;
 	Fixed alpha, max_offset;
@@ -1095,7 +1090,7 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children
 	st->txh.compositor->r2d->stencil_set_gradient_mode(st->txh.hwtx, /*lg->spreadMethod*/ GF_GRADIENT_MODE_PAD);
 }
 
-static void SVG_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
+static void SVG_SA_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
@@ -1104,7 +1099,7 @@ static void SVG_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
 	if (is_destroy) {
-		SVG_DestroyPaintServer(node);
+		SVG_SA_DestroyPaintServer(node);
 		return;
 	}
 	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
@@ -1121,16 +1116,16 @@ static void SVG_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
 
 /* linear gradient */
 
-static void SVG_UpdateLinearGradient(GF_TextureHandler *txh)
+static void SVG_SA_UpdateLinearGradient(GF_TextureHandler *txh)
 {
 	SVG_SA_linearGradientElement *lg = (SVG_SA_linearGradientElement *) txh->owner;
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
 	if (!txh->hwtx) txh->hwtx = txh->compositor->r2d->stencil_new(txh->compositor->r2d, GF_STENCIL_LINEAR_GRADIENT);
 
-	SVG_UpdateGradient(st, lg->children);
+	SVG_SA_UpdateGradient(st, lg->children);
 }
 
-static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+static void SVG_SA_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
 {
 	SFVec2f start, end;
 	SVG_SA_linearGradientElement *lg = (SVG_SA_linearGradientElement *) txh->owner;
@@ -1165,24 +1160,24 @@ void svg_sa_init_linearGradient(Render2D *sr, GF_Node *node)
 	GF_SAFEALLOC(st, SVG_GradientStack);
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.update_texture_fcnt = SVG_UpdateLinearGradient;
+	st->txh.update_texture_fcnt = SVG_SA_UpdateLinearGradient;
 
-	st->txh.compute_gradient_matrix = SVG_LG_ComputeMatrix;
+	st->txh.compute_gradient_matrix = SVG_SA_LG_ComputeMatrix;
 	gf_node_set_private(node, st);
-	gf_node_set_callback_function(node, SVG_Render_PaintServer);
+	gf_node_set_callback_function(node, SVG_SA_Render_PaintServer);
 }
 
 /* radial gradient */
 
-static void SVG_UpdateRadialGradient(GF_TextureHandler *txh)
+static void SVG_SA_UpdateRadialGradient(GF_TextureHandler *txh)
 {
 	SVG_SA_radialGradientElement *rg = (SVG_SA_radialGradientElement *) txh->owner;
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
 	if (!txh->hwtx) txh->hwtx = txh->compositor->r2d->stencil_new(txh->compositor->r2d, GF_STENCIL_RADIAL_GRADIENT);
-	SVG_UpdateGradient(st, rg->children);
+	SVG_SA_UpdateGradient(st, rg->children);
 }
 
-static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+static void SVG_SA_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
 {
 	SFVec2f center, focal;
 	Fixed radius;
@@ -1224,23 +1219,23 @@ void svg_sa_init_radialGradient(Render2D *sr, GF_Node *node)
 	GF_SAFEALLOC(st, SVG_GradientStack);
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.update_texture_fcnt = SVG_UpdateRadialGradient;
-	st->txh.compute_gradient_matrix = SVG_RG_ComputeMatrix;
+	st->txh.update_texture_fcnt = SVG_SA_UpdateRadialGradient;
+	st->txh.compute_gradient_matrix = SVG_SA_RG_ComputeMatrix;
 	gf_node_set_private(node, st);
-	gf_node_set_callback_function(node, SVG_Render_PaintServer);
+	gf_node_set_callback_function(node, SVG_SA_Render_PaintServer);
 }
 
 void svg_sa_init_solidColor(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_callback_function(node, SVG_Render_PaintServer);
+	gf_node_set_callback_function(node, SVG_SA_Render_PaintServer);
 }
 
 void svg_sa_init_stop(Render2D *sr, GF_Node *node)
 {
-	gf_node_set_callback_function(node, SVG_Render_PaintServer);
+	gf_node_set_callback_function(node, SVG_SA_Render_PaintServer);
 }
 
-GF_TextureHandler *svg_gradient_get_texture(GF_Node *node)
+GF_TextureHandler *svg_sa_gradient_get_texture(GF_Node *node)
 {
 	SVG_SA_Element *g = (SVG_SA_Element *)node;
 	SVG_GradientStack *st;

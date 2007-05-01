@@ -63,6 +63,8 @@ void buildGlobalAttributeList(GF_List *svg_elements, GF_List *all_atts)
 				}
 			} else if (!strcmp(elt->svg_name, "listener") && !strcmp(att->implementation_name, "target")) {
 				strcpy(att->implementation_name, "listener_target");
+			} else if (!strcmp(elt->svg_name, "a") && !strcmp(att->implementation_name, "target")) {
+				strcpy(att->impl_type, "SVG_String");
 			} else if (!strcmp(elt->svg_name, "cursorManager")) {
 				if (!strcmp(att->implementation_name, "x")) {
 					strcpy(att->implementation_name, "cursorManager_x");
@@ -127,12 +129,14 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	fprintf(output, ",\n\t/*undefined elements (when parsing) use this tag*/\n\tTAG_SVG_UndefinedElement\n};\n\n");
 
 	/* Generation of ATTRIBUTE tags */
-	fprintf(output, "/* Definition of SVG 3 attribute internal tags */\n");
+	fprintf(output, "/* Definition of SVG 3 attribute internal tags - %d defined */\n", gf_list_count(all_atts));
 	fprintf(output, "/* TAG names are made of \"TAG_SVG_ATT_\" + SVG attribute name (with - replaced by _) */\n");
 	fprintf(output, "enum {\n");
+	
 	for (i=0; i<gf_list_count(all_atts); i++) {
 		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(all_atts, i);
-		fprintf(output, "\tTAG_SVG_ATT_%s,\n", att->implementation_name);
+		if (i) fprintf(output, "\tTAG_SVG_ATT_%s,\n", att->implementation_name);
+		else fprintf(output, "\tTAG_SVG_ATT_%s = TAG_SVG_ATT_RANGE_FIRST,\n", att->implementation_name);
 	}
 	fprintf(output, "\t/*undefined attributes (when parsing) use this tag*/\n\tTAG_SVG_ATT_Unknown\n};\n\n");
 
@@ -189,6 +193,8 @@ void generateSVGCode_V3(GF_List *svg_elements)
 			fprintf(output, "\t\tif (element_tag == TAG_SVG_handler || element_tag == TAG_SVG_audio || element_tag == TAG_SVG_video || element_tag == TAG_SVG_image || element_tag == TAG_SVG_script) return TAG_SVG_ATT_content_type;\n", att->svg_name, att->implementation_name);
 			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
 			fprintf(output, "\t}\n");
+			/*!! HACK !! add SVG contentScriptType*/
+			fprintf(output, "\tif (!stricmp(attribute_name, \"contentScriptType\")) return TAG_SVG_ATT_content_type;\n");
 		} else if (!strcmp(att->svg_name, "fill")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
 			fprintf(output, "\t\tif (element_tag == TAG_SVG_animate || element_tag == TAG_SVG_animateColor || element_tag == TAG_SVG_animateMotion || element_tag == TAG_SVG_animateTransform || element_tag == TAG_SVG_animation || element_tag == TAG_SVG_audio || element_tag == TAG_SVG_video || element_tag == TAG_SVG_set) return TAG_SVG_ATT_smil_fill;\n", att->svg_name, att->implementation_name);
@@ -278,6 +284,10 @@ void generateSVGCode_V3(GF_List *svg_elements)
 
 	fprintf(output, "#endif /*GPAC_DISABLE_SVG*/\n\n");
 	EndFile(output, 1); 
+
+	
+	generate_laser_tables_da(all_atts);
+	
 	gf_list_del(all_atts);
 
 }

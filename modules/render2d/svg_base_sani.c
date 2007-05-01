@@ -874,28 +874,23 @@ static void svg_sani_a_HandleEvent(GF_Node *handler, GF_DOM_Event *event)
 
 void svg_sani_init_a(Render2D *sr, GF_Node *node)
 {
-	XMLEV_Event evt;
 	SVG_SANI_handlerElement *handler;
 	gf_node_set_callback_function(node, svg_sani_Render_a);
 
 	/*listener for onClick event*/
-	evt.parameter = 0;
-	evt.type = GF_EVENT_CLICK;
-	handler = gf_dom_listener_build(node, evt);
+	handler = gf_dom_listener_build(node, GF_EVENT_CLICK, 0);
 	/*and overwrite handler*/
 	handler->handle_event = svg_sani_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for activate event*/
-	evt.type = GF_EVENT_ACTIVATE;
-	handler = gf_dom_listener_build(node, evt);
+	handler = gf_dom_listener_build(node, GF_EVENT_ACTIVATE, 0);
 	/*and overwrite handler*/
 	handler->handle_event = svg_sani_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for mouseover event*/
-	evt.type = GF_EVENT_MOUSEOVER;
-	handler = gf_dom_listener_build(node, evt);
+	handler = gf_dom_listener_build(node, GF_EVENT_MOUSEOVER, 0);
 	/*and overwrite handler*/
 	handler->handle_event = svg_sani_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);

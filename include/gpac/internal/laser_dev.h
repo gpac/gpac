@@ -73,13 +73,13 @@ struct __tag_laser_codec
 	void *cbk;
 
 	/*sameElement coding*/
-	SVG_SA_gElement *prev_g;
-	SVG_SA_lineElement *prev_line;
-	SVG_SA_pathElement *prev_path;
-	SVG_SA_polygonElement *prev_polygon;
-	SVG_SA_rectElement *prev_rect;
-	SVG_SA_textElement *prev_text;
-	SVG_SA_useElement *prev_use;
+	SVG_Element *prev_g;
+	SVG_Element *prev_line;
+	SVG_Element *prev_path;
+	SVG_Element *prev_polygon;
+	SVG_Element *prev_rect;
+	SVG_Element *prev_text;
+	SVG_Element *prev_use;
 	GF_Node *current_root;
 
 	/*0: normal playback, store script content
@@ -95,104 +95,89 @@ struct __tag_laser_codec
 	GF_List *unresolved_commands;
 };
 
+s32 gf_lsr_anim_type_from_attribute(u32 tag);
+s32 gf_lsr_anim_type_to_attribute(u32 tag);
+s32 gf_lsr_rare_type_from_attribute(u32 tag);
+s32 gf_lsr_rare_type_to_attribute(u32 tag);
+u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts);
 
-/*returns laser attributeName coding type based on field index, -1 if field cannot be animated*/
-s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex);
 
-
-/*start of RARE properties*/
-#define RARE_CLASS					0
-#define RARE_AUDIO_LEVEL			1
-#define RARE_COLOR					2
-#define RARE_COLOR_RENDERING		3
-#define RARE_DISPLAY				4
-#define RARE_DISPLAY_ALIGN			5
-#define RARE_FILL_OPACITY			6
-#define RARE_FILL_RULE				7
-#define RARE_IMAGE_RENDERING		8
-#define RARE_LINE_INCREMENT			9
-#define RARE_POINTER_EVENTS			10
-#define RARE_SHAPE_RENDERING		11
-#define RARE_SOLID_COLOR			12
-#define RARE_SOLID_OPACITY			13
-#define RARE_STOP_COLOR				14
-#define RARE_STOP_OPACITY			15
-#define RARE_STROKE_DASHARRAY		16
-#define RARE_STROKE_DASHOFFSET		17
-#define RARE_STROKE_LINECAP			18
-#define RARE_STROKE_LINEJOIN		19
-#define RARE_STROKE_MITERLIMIT		20
-#define RARE_STROKE_OPACITY			21
-#define RARE_STROKE_WIDTH			22
-#define RARE_TEXT_ANCHOR			23
-#define RARE_TEXT_RENDERING			24
-#define RARE_VIEWPORT_FILL			25
-#define RARE_VIEWPORT_FILL_OPACITY	26
-#define RARE_VECTOR_EFFECT			27
-#define RARE_VISIBILITY				28
-#define RARE_FONT_VARIANT			50
-#define RARE_FONT_FAMILY			51
-#define RARE_FONT_SIZE				52
-#define RARE_FONT_STYLE				53
-#define RARE_FONT_WEIGHT			54
-/*end of RARE properties*/
-/*conditional processing*/
-#define RARE_REQUIREDEXTENSIONS		29
-#define RARE_REQUIREDFEATURES		30
-#define RARE_REQUIREDFORMATS		31
-#define RARE_SYSTEMLANGUAGE			32
-/*XML*/
-#define RARE_XML_BASE				33
-#define RARE_XML_LANG				34
-#define RARE_XML_SPACE				35
-/*focus*/
-#define RARE_FOCUSNEXT				36
-#define RARE_FOCUSNORTH				37
-#define RARE_FOCUSNORTHEAST			38
-#define RARE_FOCUSNORTHWEST			39
-#define RARE_FOCUSPREV				40
-#define RARE_FOCUSSOUTH				41
-#define RARE_FOCUSSOUTHEAST			42
-#define RARE_FOCUSSOUTHWEST			43
-#define RARE_FOCUSWEST				44
-#define RARE_FOCUSABLE				45
-#define RARE_FOCUSEAST				46
-/*href*/
-#define RARE_HREF_TITLE				55
-#define RARE_HREF_TYPE				56
-#define RARE_HREF_ROLE				57
-#define RARE_HREF_ARCROLE			58
-#define RARE_HREF_ACTUATE			59
-#define RARE_HREF_SHOW				60
-/*timing*/
-#define RARE_END					61
-#define RARE_MAX					62
-#define RARE_MIN					63
 /*transform*/
 #define RARE_TRANSFORM				47
 
+enum {
+	TAG_LSR_ATT_children = TAG_SVG_ATT_Unknown+1,
+	TAG_LSR_ATT_overflow,
+	TAG_LSR_ATT_rotation,
+	TAG_LSR_ATT_scale,
+	TAG_LSR_ATT_translation,
+	TAG_LSR_ATT_svg_width,
+	TAG_LSR_ATT_svg_height,
+	TAG_LSR_ATT_textContent,
+	/*WHAT THE HECK IS THIS THING IN THE SDL BUT NOWHERE IN THE SPEC ?*/
+	TAG_LSR_ATT_text_display,
+};
+
+enum
+{
+	LSR_EVT_abort = 0,
+	LSR_EVT_accessKey = 1,
+	LSR_EVT_activate = 2,
+	LSR_EVT_activatedEvent = 3,
+	LSR_EVT_beginEvent = 4,
+	LSR_EVT_click = 5,
+	LSR_EVT_deactivatedEvent = 6,
+	LSR_EVT_endEvent = 7,
+	LSR_EVT_error = 8,
+	LSR_EVT_executionTime = 9,
+	LSR_EVT_focusin = 10,
+	LSR_EVT_focusout = 11,
+	LSR_EVT_keydown = 12,
+	LSR_EVT_keyup = 13,
+	LSR_EVT_load = 14,
+	LSR_EVT_longAccessKey = 15,
+	LSR_EVT_mousedown = 16,
+	LSR_EVT_mousemove = 17,
+	LSR_EVT_mouseout = 18,
+	LSR_EVT_mouseover = 19,
+	LSR_EVT_mouseup = 20,
+	LSR_EVT_pause = 21,
+	LSR_EVT_pausedEvent = 22,
+	LSR_EVT_play = 23,
+	LSR_EVT_repeatEvent = 24,
+	LSR_EVT_repeatKey = 25,
+	LSR_EVT_resize = 26,
+	LSR_EVT_resumedEvent = 27,
+	LSR_EVT_scroll = 28,
+	LSR_EVT_shortAccessKey = 29,
+	LSR_EVT_textinput = 30,
+	LSR_EVT_unload = 31,
+	LSR_EVT_zoom = 32
+};
+
+#define LSR_UPDATE_TYPE_ROTATE			76
+#define LSR_UPDATE_TYPE_SCALE			79
+#define LSR_UPDATE_TYPE_TEXT_CONTENT	107
+#define LSR_UPDATE_TYPE_TRANSFORM		108
+#define LSR_UPDATE_TYPE_TRANSLATION		110
 
 
-#define LSR_UPDATE_TYPE_SCALE			78
-#define LSR_UPDATE_TYPE_ROTATE			75
-#define LSR_UPDATE_TYPE_TRANSFORM		105
-#define LSR_UPDATE_TYPE_TRANSLATION		107
-#define LSR_UPDATE_TYPE_TEXT_CONTENT	104
-
-
-#define LSR_UPDATE_ADD				0
-#define LSR_UPDATE_CLEAN			1
-#define LSR_UPDATE_DELETE			2
-#define LSR_UPDATE_INSERT			3
-#define LSR_UPDATE_NEW_SCENE		4
-#define LSR_UPDATE_REFRESH_SCENE	5
-#define LSR_UPDATE_REPLACE			6
-#define LSR_UPDATE_RESTORE			7
-#define LSR_UPDATE_SAVE				8
-#define LSR_UPDATE_SEND_EVENT		9
-#define LSR_UPDATE_EXTEND			10
-#define LSR_UPDATE_TEXT_CONTENT		11
-
+/*LASeR commands code*/
+enum
+{
+	LSR_UPDATE_ADD = 0,
+	LSR_UPDATE_CLEAN,
+	LSR_UPDATE_DELETE,
+	LSR_UPDATE_INSERT,
+	LSR_UPDATE_NEW_SCENE,
+	LSR_UPDATE_REFRESH_SCENE,
+	LSR_UPDATE_REPLACE,
+	LSR_UPDATE_RESTORE,
+	LSR_UPDATE_SAVE,
+	LSR_UPDATE_SEND_EVENT,
+	LSR_UPDATE_EXTEND,
+	LSR_UPDATE_TEXT_CONTENT
+};
 
 /*Code point Path code*/
 enum
@@ -216,6 +201,9 @@ enum
 	LSR_PATH_COM_v,
 	LSR_PATH_COM_z
 };
+
+
+
 
 enum
 {
@@ -321,8 +309,37 @@ enum
 	LSR_UPDATE_CONTENT_MODEL2_extend,
 	LSR_UPDATE_CONTENT_MODEL2_private,
 	LSR_UPDATE_CONTENT_MODEL2_rectClip,
-	LSR_UPDATE_CONTENT_MODEL2_simpleLayout,
 	LSR_UPDATE_CONTENT_MODEL2_selector,
+	LSR_UPDATE_CONTENT_MODEL2_simpleLayout,
 };
+
+/*just to remember them, not implemented yet*/
+enum
+{
+	LSR_SVG12_EXT_animation = 0,
+	LSR_SVG12_EXT_discard,
+	LSR_SVG12_EXT_font,
+	LSR_SVG12_EXT_font_face,
+	LSR_SVG12_EXT_font_face_src,
+	LSR_SVG12_EXT_font_face_uri,
+	LSR_SVG12_EXT_glyph,
+	LSR_SVG12_EXT_handler,
+	LSR_SVG12_EXT_hkern,
+	LSR_SVG12_EXT_missingGlyph,
+	LSR_SVG12_EXT_prefetch,
+	LSR_SVG12_EXT_solidColor,
+	LSR_SVG12_EXT_tBreak,
+	LSR_SVG12_EXT_textArea,
+};
+
+/*just to remember them, not implemented yet*/
+enum
+{
+	LSR_AMD1_EXT_animateScroll = 0,
+	LSR_AMD1_EXT_setScroll,
+	LSR_AMD1_EXT_streamSource,
+	LSR_AMD1_EXT_updateSource,
+};
+
 #endif
 

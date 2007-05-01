@@ -1,4 +1,7 @@
-Latest CVS changes: 22/04/07
+Latest CVS changes: 01/05/07
+  - Updated LASeR to new SVG implementation and fixed many bugs in codec 
+      current LASeR version should now be in sync with the latest spec
+  - Moved default SVG implementation to dynamic attribute allocation
   - Initial commit of ALSA output module
   - Initial commit of DVB support for Linux - connection URL is dvb://ChannelName, cf doc/configuration.html
   - Fixed handling of QT V1 and V2 audio descriptions

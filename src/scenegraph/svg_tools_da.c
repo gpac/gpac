@@ -43,8 +43,8 @@ static Bool gf_svg_is_timing_tag(u32 tag)
 	if (gf_svg_is_animation_tag(tag)) return 1;
 	else return (tag == TAG_SVG_animation ||
 			tag == TAG_SVG_audio ||
+			tag == TAG_SVG_conditional ||
 			tag == TAG_SVG_video)?1:0;
-	/* Note: lsr:Conditional is also a timed element */
 }
 
 SVG_Element *gf_svg_create_node(u32 ElementTag)
@@ -85,6 +85,14 @@ void gf_svg_node_del(GF_Node *node)
 	if (p->sgprivate->interact && p->sgprivate->interact->animations) {
 		gf_smil_anim_delete_animations((GF_Node *)p);
 	}
+	if (p->sgprivate->tag==TAG_SVG_listener) {
+		/*remove from all registered parents' listener list*/
+		GF_Node *obs = node->sgprivate->UserPrivate;
+		node->sgprivate->UserPrivate = NULL;
+		if (obs && obs->sgprivate->interact && obs->sgprivate->interact->events) {
+			gf_list_del_item(obs->sgprivate->interact->events, node);
+		}
+	}
 
 	if (gf_svg_is_timing_tag(node->sgprivate->tag)) {
 		SVGTimedAnimBaseElement *tap = (SVGTimedAnimBaseElement *)node;
@@ -112,11 +120,6 @@ Bool gf_svg_node_init(GF_Node *node)
 			node->sgprivate->scenegraph->script_load(node);
 		return 1;
 /*
-	case TAG_SVG_conditional:
-		gf_smil_timing_init_runtime_info(node);
-		((SVG_Element *)node)->timingp->runtime->evaluate = lsr_conditional_evaluate;
-		gf_smil_setup_events(node);
-		return 1;
 	case TAG_SVG_handler:
 		if (node->sgprivate->scenegraph->script_load) 
 			node->sgprivate->scenegraph->script_load(node);
@@ -124,6 +127,10 @@ Bool gf_svg_node_init(GF_Node *node)
 			((SVG_SA_handlerElement *)node)->handle_event = gf_sg_handle_dom_event;
 		return 1;
 		*/
+	case TAG_SVG_conditional:
+		gf_smil_timing_init_runtime_info(node);
+		gf_smil_setup_events(node);
+		return 1;
 	case TAG_SVG_animateMotion:
 	case TAG_SVG_set: 
 	case TAG_SVG_animate: 
@@ -210,6 +217,9 @@ static void gf_svg_attributes_set_default_value(u32 node_tag, SVGAttribute *att)
 			node_tag == TAG_SVG_animation)
 		{
 			((SMIL_Duration *)att->data)->type = SMIL_DURATION_MEDIA;
+		} else {
+			/*is this correct?*/
+			((SMIL_Duration *)att->data)->type = SMIL_DURATION_INDEFINITE;
 		}
 		break;
 	case TAG_SVG_ATT_min:
@@ -221,6 +231,8 @@ static void gf_svg_attributes_set_default_value(u32 node_tag, SVGAttribute *att)
 	case TAG_SVG_ATT_calcMode:
 		if (node_tag == TAG_SVG_animateMotion)
 			*((SMIL_CalcMode *)att->data) = SMIL_CALCMODE_PACED;
+		else
+			*((SMIL_CalcMode *)att->data) = SMIL_CALCMODE_LINEAR;
 		break;
 	case TAG_SVG_ATT_color:
 		((SVG_Paint *)att->data)->type = SVG_PAINT_COLOR;
@@ -269,19 +281,48 @@ static void gf_svg_attributes_set_default_value(u32 node_tag, SVGAttribute *att)
 	case TAG_SVG_ATT_visibility:
 		*((SVG_Visibility *)att->data) = SVG_VISIBILITY_INHERIT;
 		break;
+	case TAG_SVG_ATT_smil_fill:
+		*((SMIL_Fill *)att->data) = SMIL_FILL_REMOVE;
+		break;
+	case TAG_SVG_ATT_defaultAction:
+		*((XMLEV_DefaultAction *)att->data) = XMLEVENT_DEFAULTACTION_PERFORM;
+		break;
+	case TAG_SVG_ATT_zoomAndPan:
+		*((SVG_ZoomAndPan *)att->data) = SVG_ZOOMANDPAN_MAGNIFY;
+		break;
+	case TAG_SVG_ATT_stroke_linecap: 
+		*(SVG_StrokeLineCap*)att->data = SVG_STROKELINECAP_INHERIT; 
+		break;
+	case TAG_SVG_ATT_stroke_linejoin: 
+		*(SVG_StrokeLineJoin*)att->data = SVG_STROKELINEJOIN_INHERIT; 
+		break;
+
+	case TAG_SVG_ATT_transform: 
+		gf_mx2d_init(((SVG_Transform*)att->data)->mat);
+		break;
+
+		
+	/*all default=0 values (don't need init)*/
+	case TAG_SVG_ATT_font_family:
+	case TAG_SVG_ATT_font_style:
+	case TAG_SVG_ATT_text_anchor:
+	case TAG_SVG_ATT_x:
+	case TAG_SVG_ATT_y:
+		break;
+
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene] Cannot create default value for SVG attribute %s\n", gf_svg_get_attribute_name(att->tag)));
 	}
 }
 
-GF_Err gf_svg_get_attribute_by_tag(GF_Node *node, u16 attribute_tag, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field)
+GF_Err gf_svg_get_attribute_by_tag(GF_Node *node, u32 attribute_tag, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field)
 {
 	SVG_Element *elt = (SVG_Element *)node;
 	SVGAttribute *att = elt->attributes;
 	SVGAttribute *last_att = NULL;
 
 	while (att) {
-		if (att->tag == attribute_tag) {
+		if ((u32) att->tag == attribute_tag) {
 			field->fieldIndex = att->tag;
 			field->fieldType = att->data_type;
 			field->far_ptr   = att->data;
@@ -317,7 +358,7 @@ GF_Err gf_svg_get_attribute_by_name(GF_Node *node, char *name, Bool create_if_no
 		memset(field, 0, sizeof(GF_FieldInfo));
 		return GF_NOT_SUPPORTED;
 	}
-	return gf_svg_get_attribute_by_tag(node, (u16) attribute_tag, create_if_not_found, set_default, field);
+	return gf_svg_get_attribute_by_tag(node, attribute_tag, create_if_not_found, set_default, field);
 }
 
 u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info)
