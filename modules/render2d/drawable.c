@@ -894,12 +894,14 @@ u32 R2D_LP_GetLastUpdateTime(GF_Node *node)
 
 #ifndef GPAC_DISABLE_SVG
 
+#if 0
 static GF_Node *svg_get_texture_target(GF_Node *node, DOM_String uri)
 {
 	GF_Node *target = NULL;
 	if (uri[0]=='#') target = gf_sg_find_node_by_name(gf_node_get_graph(node), uri+1);
 	return target;
 }
+#endif
 
 static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surface_2D *surf, SVGPropertiesPointers *props)
 {
