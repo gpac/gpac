@@ -574,10 +574,12 @@ void DD_InitYUV(GF_VideoOutput *dr)
 
 #ifdef USE_DX_3
 	IDirectDraw_GetFourCCCodes(dd->pDD, &numCodes, NULL);
+	if (!numCodes) return;
 	codes = (DWORD *)malloc(numCodes*sizeof(DWORD));
 	IDirectDraw_GetFourCCCodes(dd->pDD, &numCodes, codes);
 #else
 	IDirectDraw7_GetFourCCCodes(dd->pDD, &numCodes, NULL);
+	if (!numCodes) return;
 	codes = (DWORD *)malloc(numCodes*sizeof(DWORD));
 	IDirectDraw7_GetFourCCCodes(dd->pDD, &numCodes, codes);
 #endif

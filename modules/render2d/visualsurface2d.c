@@ -121,6 +121,7 @@ void VS2D_DrawableDeleted(struct _visual_surface_2D *surf, struct _drawable *nod
 		surf->render->grab_node = NULL;
 		surf->render->is_tracking = 0;
 	}
+	if (surf->render->focus_node==node->node) surf->render->focus_node = NULL;
 }
 
 

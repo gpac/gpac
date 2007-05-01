@@ -140,6 +140,9 @@ static void SVG_Build_Bitmap_Graph(SVG_image_stack *st)
 		return;
 	}
 
+	if (!width) width = INT2FIX(st->txh.width);
+	if (!height) height = INT2FIX(st->txh.height);
+
 	gf_path_get_bounds(st->graph->path, &rc);
 	drawable_reset_path(st->graph);
 	gf_path_add_rect_center(st->graph->path, x+width/2, y+height/2, width, height);
@@ -147,6 +150,8 @@ static void SVG_Build_Bitmap_Graph(SVG_image_stack *st)
 	if (!gf_rect_equal(rc, new_rc)) st->graph->flags |= DRAWABLE_HAS_CHANGED;
 	gf_node_dirty_clear(st->graph->node, GF_SG_SVG_GEOMETRY_DIRTY);
 }
+
+#ifdef GPAC_ENABLE_SVG_SA
 
 static void svg_sa_render_bitmap(GF_Node *node, void *rs)
 {
@@ -256,6 +261,7 @@ static void svg_sa_render_bitmap(GF_Node *node, void *rs)
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	eff->svg_flags = backup_flags;
 }
+#endif
 
 static void svg_render_bitmap(GF_Node *node, void *rs)
 {

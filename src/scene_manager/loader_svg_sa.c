@@ -41,7 +41,6 @@ typedef struct
 	GF_Err last_error;
 	GF_SAXParser *sax_parser;
 	Bool has_root;
-	u32 command_depth;
 	
 	/* stack of SVG nodes*/
 	GF_List *node_stack;
@@ -50,13 +49,6 @@ typedef struct
 	GF_List *defered_animations;
 	GF_List *defered_listeners;
 
-	/*LASeR parsing*/
-	GF_StreamContext *laser_es;
-	GF_AUContext *laser_au;
-	GF_Command *command;
-	/*SAF AU maps to OD AU and is used for each new media declaration*/
-	GF_AUContext *saf_au;
-	GF_StreamContext *saf_es;
 } GF_SVG_SA_Parser;
 
 typedef struct
@@ -126,13 +118,6 @@ static void svg_sa_init_root_element(GF_SVG_SA_Parser *parser, SVG_SA_svgElement
 	if (parser->load->ctx) {
 		parser->load->ctx->scene_width = svg_w;
 		parser->load->ctx->scene_height = svg_h;
-	}
-	if (parser->load->type == GF_SM_LOAD_XSR) {
-		assert(parser->command);
-		assert(parser->command->tag == GF_SG_LSR_NEW_SCENE);
-		parser->command->node = (GF_Node *)root_svg;
-	} else {
-		gf_sg_set_root_node(parser->load->scene_graph, (GF_Node *)root_svg);
 	}
 	parser->has_root = 1;
 }
@@ -406,7 +391,7 @@ static SVG_SA_Element *svg_sa_parse_element(GF_SVG_SA_Parser *parser, const char
 			/* Special case: style if present will always be first in the list */
 			gf_svg_parse_style((GF_Node *)elt, att->value);
 		} else if (!stricmp(att->name, "id") || !stricmp(att->name, "xml:id")) {
-			gf_svg_parse_element_id((GF_Node *)elt, att->value, parser->command_depth ? 1 : 0);
+			gf_svg_parse_element_id((GF_Node *)elt, att->value, 0);
 			node_name = att->value;
 		} else if (anim && !stricmp(att->name, "attributeName")) {
 			anim->attributeName = strdup(att->value);
@@ -461,9 +446,7 @@ static SVG_SA_Element *svg_sa_parse_element(GF_SVG_SA_Parser *parser, const char
 			if (evtType != GF_EVENT_UNKNOWN) {
 				XMLEV_Event evt;
 				SVG_SA_handlerElement *handler;
-				evt.type = evtType;
-				evt.parameter = 0;
-				handler = gf_dom_listener_build((GF_Node *) elt, evt);
+				handler = gf_dom_listener_build((GF_Node *) elt, evtType, 0);
 				handler->textContent = strdup(att->value);
 				gf_node_init((GF_Node *)handler);
 			} else if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {
@@ -531,308 +514,17 @@ static SVG_SA_Element *svg_sa_parse_element(GF_SVG_SA_Parser *parser, const char
 	return elt;
 }
 
-static GF_ESD *lsr_parse_header(GF_SVG_SA_Parser *parser, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
-{
-	GF_ESD *esd;
-	u32 i;
-	if (!strcmp(name, "LASeRHeader")) {
-		GF_LASERConfig *lsrc = (GF_LASERConfig *) gf_odf_desc_new(GF_ODF_LASER_CFG_TAG);
-		for (i=0; i<nb_attributes;i++) {
-			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
-			if (!strcmp(att->name, "profile")) lsrc->profile = !strcmp(att->value, "full") ? 1 : 0;
-			else if (!strcmp(att->name, "level")) lsrc->level = atoi(att->value);
-			else if (!strcmp(att->name, "resolution")) lsrc->resolution = atoi(att->value);
-			else if (!strcmp(att->name, "timeResolution")) lsrc->time_resolution = atoi(att->value);
-			else if (!strcmp(att->name, "coordBits")) lsrc->coord_bits = atoi(att->value);
-			else if (!strcmp(att->name, "scaleBits_minus_coordBits")) lsrc->scale_bits_minus_coord_bits = atoi(att->value);
-			else if (!strcmp(att->name, "colorComponentBits")) lsrc->colorComponentBits = atoi(att->value);
-			else if (!strcmp(att->name, "append")) lsrc->append = !strcmp(att->value, "yes") ? 1 : 0;
-			else if (!strcmp(att->name, "useFullRequestHost")) lsrc->fullRequestHost = !strcmp(att->value, "yes") ? 1 : 0;
-			else if (!strcmp(att->name, "pathComponents")) lsrc->fullRequestHost = atoi(att->value);
-			else if (!strcmp(att->name, "hasStringsIDs")) lsrc->has_string_ids = !strcmp(att->value, "yes") ? 1 : 0;
-			/*others are ignored in GPAC atm*/
-		}
-		esd = gf_odf_desc_esd_new(2);
-		gf_odf_desc_del((GF_Descriptor *)esd->decoderConfig->decoderSpecificInfo);
-		esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) lsrc;
-		esd->decoderConfig->streamType = GF_STREAM_SCENE;
-		esd->decoderConfig->objectTypeIndication = 0x09;
-		esd->slConfig->timestampResolution = lsrc->time_resolution ? lsrc->time_resolution : 1000;
-		return esd;
-	}
-	return NULL;
-}
-
-static GF_Err lsr_parse_command(GF_SVG_SA_Parser *parser, const GF_XMLAttribute *attributes, u32 nb_attributes)
-{
-	GF_FieldInfo info;
-	GF_Node *opNode;
-	GF_Err e;
-	Bool is_replace = 0;
-	char *atNode = NULL;
-	char *atAtt = NULL;
-	char *atOperandNode = NULL;
-	char *atOperandAtt = NULL;
-	char *atValue = NULL;
-	GF_CommandField *field;
-	s32 index = -1;
-	u32 i;
-	switch (parser->command->tag) {
-	case GF_SG_LSR_NEW_SCENE:
-		return GF_OK;
-	case GF_SG_LSR_DELETE:
-		for (i=0; i<nb_attributes; i++) {
-			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
-			if (!strcmp(att->name, "ref")) atNode = att->value;
-			else if (!strcmp(att->name, "attributeName")) atAtt = att->value;
-			else if (!strcmp(att->name, "index")) index = atoi(att->value);
-		}
-		if (!atNode) return svg_sa_report(parser, GF_BAD_PARAM, "Missing node ref for command");
-		parser->command->node = gf_sg_find_node_by_name(parser->load->scene_graph, atNode);
-		if (!parser->command->node) return svg_sa_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
-		if (atAtt || (index>=0) ) {
-			if (!strcmp(atAtt, "children")) atAtt = NULL;
-			if (atAtt && gf_node_get_field_by_name(parser->command->node, atAtt, &info) != GF_OK)
-				return svg_sa_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atAtt, atNode);
-
-			field = gf_sg_command_field_new(parser->command);
-			field->pos = index;
-			field->fieldIndex = atAtt ? info.fieldIndex : 0;
-			field->fieldType = atAtt ? info.fieldType : 0;
-		}
-		gf_node_register(parser->command->node, NULL);
-		return GF_OK;
-	case GF_SG_LSR_REPLACE:
-		is_replace = 1;
-	case GF_SG_LSR_ADD:
-	case GF_SG_LSR_INSERT:
-		for (i=0; i<nb_attributes; i++) {
-			GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
-			if (!strcmp(att->name, "ref")) atNode = att->value;
-			else if (!strcmp(att->name, "operandElementId")) atOperandNode = att->value;
-			else if (!strcmp(att->name, "operandAttributeName")) atOperandAtt = att->value;
-			else if (!strcmp(att->name, "value")) atValue = att->value;
-			else if (!strcmp(att->name, "attributeName")) atAtt = att->value;
-			/*replace only*/
-			else if (!strcmp(att->name, "index")) index = atoi(att->value);
-		}
-		if (!atNode) return svg_sa_report(parser, GF_BAD_PARAM, "Missing node ref for command");
-		parser->command->node = gf_sg_find_node_by_name(parser->load->scene_graph, atNode);
-		if (!parser->command->node) return svg_sa_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
-		/*child or node replacement*/
-		if ( (is_replace || (parser->command->tag==GF_SG_LSR_INSERT)) && (!atAtt || !strcmp(atAtt, "children")) ) {
-			field = gf_sg_command_field_new(parser->command);
-			field->pos = index;
-			gf_node_register(parser->command->node, NULL);
-			return GF_OK;
-		}
-		if (!atAtt) return svg_sa_report(parser, GF_BAD_PARAM, "Missing attribute name for command");
-		if (!strcmp(atAtt, "textContent")) {
-			field = gf_sg_command_field_new(parser->command);
-			field->pos = -1;
-			field->fieldIndex = (u32) -1;
-			field->fieldType = SVG_String_datatype;
-			gf_node_register(parser->command->node, NULL);
-			if (atValue) {
-				field->field_ptr = gf_svg_create_attribute_value(field->fieldType);
-				*(SVG_String *)field->field_ptr = strdup(atValue);
-			}
-			return GF_OK;
-		}
-		e = gf_node_get_field_by_name(parser->command->node, atAtt, &info);
-		if (e != GF_OK) {
-			if (!strcmp(atAtt, "scale") || !strcmp(atAtt, "translation") || !strcmp(atAtt, "rotation")) {
-				e = gf_node_get_field_by_name(parser->command->node, "transform", &info);
-				if (!e) {
-					if (!strcmp(atAtt, "scale")) info.fieldType = SVG_Transform_Scale_datatype;
-					else if (!strcmp(atAtt, "translation")) info.fieldType = SVG_Transform_Translate_datatype;
-					else if (!strcmp(atAtt, "rotation")) info.fieldType = SVG_Transform_Rotate_datatype;
-				}
-			}
-			if (e) return svg_sa_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atAtt, atNode);
-		}
-
-		opNode = NULL;
-		if (atOperandNode) {
-			opNode = gf_sg_find_node_by_name(parser->load->scene_graph, atOperandNode);
-			if (!opNode) return svg_sa_report(parser, GF_BAD_PARAM, "Cannot find operand element %s for command", atOperandNode);
-		}
-		if (!atValue && (!atOperandNode || !atOperandAtt) ) return svg_sa_report(parser, GF_BAD_PARAM, "Missing attribute value for command");
-		field = gf_sg_command_field_new(parser->command);
-		field->pos = index;
-		field->fieldIndex = info.fieldIndex;
-		field->fieldType = info.fieldType;
-		if (atValue) {
-			GF_FieldInfo nf;
-			nf.fieldType = info.fieldType;
-
-			field->field_ptr = nf.far_ptr = gf_svg_create_attribute_value(info.fieldType);
-			gf_svg_parse_attribute(parser->command->node, &nf, atValue, (u8) info.fieldType);
-		} else if (opNode) {
-			GF_FieldInfo op_field;
-			if (gf_node_get_field_by_name(opNode, atOperandAtt, &op_field) != GF_OK)
-				return svg_sa_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atOperandAtt, atOperandNode);
-			parser->command->fromNodeID = gf_node_get_id(opNode);
-			parser->command->fromFieldIndex = op_field.fieldIndex;
-		}
-		gf_node_register(parser->command->node, NULL);
-		return GF_OK;
-	default:
-		return GF_OK;
-	}
-}
-
-
-static u32 lsr_get_command_by_name(const char *name)
-{
-	if (!strcmp(name, "NewScene")) return GF_SG_LSR_NEW_SCENE;
-	else if (!strcmp(name, "RefreshScene")) return GF_SG_LSR_REFRESH_SCENE;
-	else if (!strcmp(name, "Add")) return GF_SG_LSR_ADD;
-	else if (!strcmp(name, "Clean")) return GF_SG_LSR_CLEAN;
-	else if (!strcmp(name, "Replace")) return GF_SG_LSR_REPLACE;
-	else if (!strcmp(name, "Delete")) return GF_SG_LSR_DELETE;
-	else if (!strcmp(name, "Insert")) return GF_SG_LSR_INSERT;
-	else if (!strcmp(name, "Restore")) return GF_SG_LSR_RESTORE;
-	else if (!strcmp(name, "Save")) return GF_SG_LSR_SAVE;
-	else if (!strcmp(name, "SendEvent")) return GF_SG_LSR_SEND_EVENT;
-	return GF_SG_UNDEFINED;
-}
 static void svg_sa_node_start(void *sax_cbck, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	SVG_SA_NodeStack *stack, *parent;
 	SVG_SA_Element *elt;
-	SVG_SA_conditionalElement *cond = NULL;
 	GF_SVG_SA_Parser *parser = (GF_SVG_SA_Parser *)sax_cbck;
 
 	parent = (SVG_SA_NodeStack *)gf_list_last(parser->node_stack);
-	if (parent && parent->node->sgprivate->tag==TAG_SVG_SA_conditional) {
-		cond = (SVG_SA_conditionalElement *)parent->node;
-		parent = NULL;
-	}
 
-	/*saf setup*/
-	if ((!parent && (parser->load->type==GF_SM_LOAD_XSR)) || cond) {
-		u32 com_type;
-		/*nothing to do, the context is already created*/
-		if (!strcmp(name, "SAFSession")) return;
-		/*nothing to do, wait for the laser (or other) header before creating stream)*/
-		if (!strcmp(name, "sceneHeader")) return;
-		/*nothing to do, wait for the laser (or other) header before creating stream)*/
-		if (!strcmp(name, "LASeRHeader")) {
-			GF_ESD *esd = lsr_parse_header(parser, name, name_space, attributes, nb_attributes);
-			if (!esd) svg_sa_report(parser, GF_BAD_PARAM, "Invalid LASER Header");
-			/*TODO find a better way of assigning an ID to the laser stream...*/
-			esd->ESID = 1;
-			parser->laser_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-			if (!parser->load->ctx->root_od) parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
-			gf_list_add(parser->load->ctx->root_od->ESDescriptors, esd);
-			parser->laser_es->timeScale = esd->slConfig->timestampResolution;
-			return;
-		}
-		if (!strcmp(name, "mediaUnit") || !strcmp(name, "imageUnit")) {
-			u32 time, startOffset, length, rap, i;
-			char *source = NULL;
-			time = startOffset = length = rap = 0;
-			for (i=0; i<nb_attributes;i++) {
-				GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
-				if (!strcmp(att->name, "time")) time = atoi(att->value);
-				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
-				else if (!strcmp(att->name, "startOffset")) startOffset = atoi(att->value);
-				else if (!strcmp(att->name, "length")) length = atoi(att->value);
-				else if (!strcmp(att->name, "source")) source = strdup(att->value); 
-			}
-			/*TODO build NHML on the fly for later import*/
-			if (source) free(source);
-			return;			
-		}
-		if (!strcmp(name, "sceneUnit") ) {
-			u32 time, rap, i;
-			time = rap = 0;
-			if (!gf_list_count(parser->laser_es->AUs)) rap = 1;
-			for (i=0; i<nb_attributes;i++) {
-				GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
-				if (!strcmp(att->name, "time")) time = atoi(att->value);
-				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
-			}
-			/*create new laser unit*/
-			parser->laser_au = gf_sm_stream_au_new(parser->laser_es, time, 0, rap);
-			return;			
-		}
-		if (!strcmp(name, "StreamHeader") || !strcmp(name, "RemoteStreamHeader")) {
-			char *url = NULL;
-			u32 time, ID, OTI, ST, i;
-			GF_ODUpdate *odU;
-			GF_ObjectDescriptor *od;
-			Bool rap;
-			/*create a SAF stream*/
-			if (!parser->saf_es) {
-				GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);
-				esd->ESID = 0xFFFE;
-				esd->decoderConfig->streamType = GF_STREAM_OD;
-				esd->decoderConfig->objectTypeIndication = 1;
-				parser->saf_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, GF_STREAM_OD, 1);
-				if (!parser->load->ctx->root_od) parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
-				parser->saf_es->timeScale = 1000;
-				gf_list_add(parser->load->ctx->root_od->ESDescriptors, esd);
-			}
-			time = 0;
-			rap = 0;
-			for (i=0; i<nb_attributes;i++) {
-				GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
-				if (!strcmp(att->name, "time")) time = atoi(att->value);
-				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
-				else if (!strcmp(att->name, "url")) url = strdup(att->value); 
-				else if (!strcmp(att->name, "streamID")) ID = atoi(att->value);
-				else if (!strcmp(att->name, "objectTypeIndication")) OTI = atoi(att->value);
-				else if (!strcmp(att->name, "streamType")) ST = atoi(att->value);
-			}
-			/*create new SAF unit*/
-			parser->saf_au = gf_sm_stream_au_new(parser->saf_es, time, 0, 0);
-			odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
-			gf_list_add(parser->saf_au->commands, odU);
-			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-			gf_list_add(odU->objectDescriptors, od);
-			if (url) od->URLString = url;
-			else {
-				GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);
-				gf_list_add(od->ESDescriptors, esd);
-			}
-			return;
-		}
-		if (!strcmp(name, "endOfSAFSession") ) {
-			return;
-		}
-		if (!parser->laser_au && !cond) {
-			svg_sa_report(parser, GF_BAD_PARAM, "LASeR Scene unit not defined for command %s", name);
-			return;
-		}
-		/*command parsing*/
-		com_type = lsr_get_command_by_name(name);
-		if (com_type != GF_SG_UNDEFINED) {
-			SVG_SA_NodeStack *top;
-			GF_Err e;
-			parser->command = gf_sg_command_new(parser->load->scene_graph, com_type);
-			if (cond) {
-				gf_list_add(cond->updates.com_list, parser->command);
-			} else {
-				gf_list_add(parser->laser_au->commands, parser->command);
-			}
-			/*this is likely a conditional start - update unknown depth level*/	
-			top = (SVG_SA_NodeStack*)gf_list_last(parser->node_stack);
-			if (top) {
-				top->unknown_depth ++;
-				parser->command_depth++;
-			}
-
-			e = lsr_parse_command(parser, attributes, nb_attributes);
-			if (e!= GF_OK) parser->command->node = NULL;
-
-			return;
-		}
-	}
 
 	if (parser->has_root) {
-		assert(parent || parser->command);
+		assert(parent);
 	}
 	elt = svg_sa_parse_element(parser, name, name_space, attributes, nb_attributes, parent);
 	if (!elt) {
@@ -845,23 +537,7 @@ static void svg_sa_node_start(void *sax_cbck, const char *name, const char *name
 
 	if (gf_node_get_tag((GF_Node *)elt) == TAG_SVG_SA_svg && !parser->has_root) 
 		svg_sa_init_root_element(parser, (SVG_SA_svgElement *)elt);
-	else if (!parent && parser->has_root) {
-		GF_CommandField *field = (GF_CommandField *)gf_list_get(parser->command->command_fields, 0);
-		assert(field);
-		/*either not assigned or textContent*/
-		assert(!field->fieldType || (field->fieldType==SVG_String_datatype));
-		if (field->new_node) {
-			field->field_ptr = &field->node_list;
-			gf_node_list_add_child(& field->node_list, field->new_node);
-			field->new_node = NULL;
-			gf_node_list_add_child( & field->node_list, (GF_Node*) elt);
-		} else if (field->node_list) {
-			gf_node_list_add_child(& field->node_list, (GF_Node*) elt);
-		} else if (!field->new_node) {
-			field->new_node = (GF_Node*)elt;
-			field->field_ptr = &field->new_node;
-		}
-	}
+
 }
 
 static void svg_sa_node_end(void *sax_cbck, const char *name, const char *name_space)
@@ -870,21 +546,6 @@ static void svg_sa_node_end(void *sax_cbck, const char *name, const char *name_s
 	GF_SVG_SA_Parser *parser = (GF_SVG_SA_Parser *)sax_cbck;
 	SVG_SA_NodeStack *top = (SVG_SA_NodeStack *)gf_list_last(parser->node_stack);
 
-	if (!top) {
-		if (parser->laser_au && !strcmp(name, "sceneUnit")) {
-			parser->laser_au = NULL;
-			return;
-		}
-		if (parser->command) {
-			u32 com_type = lsr_get_command_by_name(name);
-			if (com_type == parser->command->tag) {
-				parser->command = NULL;
-				return;
-			}
-		}
-		/*error*/
-		return;
-	}
 	/*only remove created nodes ... */
 	end_tag = gf_svg_sa_node_type_by_class_name(name);
 	if (end_tag != TAG_UndefinedNode) {
@@ -915,7 +576,6 @@ static void svg_sa_node_end(void *sax_cbck, const char *name, const char *name_s
 	} else if (top) {
 		if (top->unknown_depth) {
 			top->unknown_depth--;
-			if (!top->unknown_depth) parser->command_depth --;
 		} else {
 			svg_sa_report(parser, GF_BAD_PARAM, "SVG depth mismatch");
 		}
@@ -931,11 +591,10 @@ static void svg_sa_text_content(void *sax_cbck, const char *text_content, Bool i
 	SVG_SA_Element *node_core, *node;
 	SVG_SA_NodeStack *top = (SVG_SA_NodeStack *)gf_list_last(parser->node_stack);
 	node = top ? (SVG_SA_Element *) top->node : NULL;
-	if (!node && !parser->command) return;
+	if (!node) return;
 	if (top && top->unknown_depth) return;
 
 	node_core = node;
-	if (!node) node_core = (SVG_SA_Element *)parser->command->node;
 	if (!node_core) return;
 	if (!node_core->core) return;
 
@@ -1000,27 +659,6 @@ skip_xml_space:
 		return;
 	}
 
-	if (!node) {
-		GF_CommandField *field = (GF_CommandField *)gf_list_get(parser->command->command_fields, 0);
-
-		free(result);
-		return;
-		
-		
-		if (!field) {
-			field = gf_sg_command_field_new(parser->command);
-			field->pos = -1;
-			field->fieldIndex = (u32) -1;
-			field->fieldType = SVG_String_datatype;
-		} 
-		if (field->fieldType != SVG_String_datatype) return;
-		if (!field->field_ptr) 
-			field->field_ptr = gf_svg_create_attribute_value(field->fieldType);
-		if (*(SVG_String *)field->field_ptr) free(*(SVG_String *)field->field_ptr);
-
-		*(SVG_String *)field->field_ptr = result;
-		return;
-	}
 
 	switch (gf_node_get_tag((GF_Node *)node)) {
 	case TAG_SVG_SA_text:
@@ -1042,22 +680,6 @@ skip_xml_space:
 		free(result);
 		return;
 	}
-	case TAG_SVG_SA_script:
-	{
-		SVG_SA_scriptElement *sc = (SVG_SA_scriptElement*)node;
-		if (sc->textContent) free(sc->textContent);
-		sc->textContent = result;
-		gf_node_init((GF_Node *)node);
-		return;
-	}
-	case TAG_SVG_SA_handler:
-	{
-		SVG_SA_handlerElement *h = (SVG_SA_handlerElement*)node;
-		if (h->textContent) free(h->textContent);
-		h->textContent = result;
-		gf_node_init((GF_Node *)node);
-		return;
-	}
 	default:
 		if (node->textContent) free(node->textContent);
 		node->textContent = result;
@@ -1069,7 +691,6 @@ skip_xml_space:
 static GF_SVG_SA_Parser *svg_sa_new_parser(GF_SceneLoader *load)
 {
 	GF_SVG_SA_Parser *parser;
-	if ((load->type==GF_SM_LOAD_XSR) && !load->ctx) return NULL;
 	GF_SAFEALLOC(parser, GF_SVG_SA_Parser);
 	parser->node_stack = gf_list_new();
 	parser->defered_hrefs = gf_list_new();
@@ -1093,9 +714,6 @@ GF_Err gf_sm_load_init_svg_sa(GF_SceneLoader *load)
 
 	if (!load->fileName) return GF_BAD_PARAM;
 	parser = svg_sa_new_parser(load);
-
-
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ( (load->type==GF_SM_LOAD_XSR) ? "SVG: MPEG-4 (LASER) Scene Parsing\n" : "SVG: SVG Scene Parsing\n"));
 
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, svg_progress);
 	if (e<0) return svg_sa_report(parser, e, "Unable to parse file %s: %s", load->fileName, gf_xml_sax_get_error(parser->sax_parser) );

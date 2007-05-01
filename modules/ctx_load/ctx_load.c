@@ -627,9 +627,6 @@ const char *CTXLoad_GetName(struct _basedecoder *plug)
 	case GF_SM_LOAD_XMTA: return "XMT-A Parser";
 	case GF_SM_LOAD_X3D: return "X3D (XML Syntax) Parser";
 	case GF_SM_LOAD_SWF: return "Flash (SWF) Emulator";
-	case GF_SM_LOAD_SVG_SA: return "SVG Loader (Static Allocation)";
-	case GF_SM_LOAD_SVG_SANI: return "SVG Loader (Static Allocation, No Inheritance)";
-	case GF_SM_LOAD_SVG_DA: return "SVG Loader (Dynamic Allocation)";
 	case GF_SM_LOAD_XSR: return "LASeRML Loader";
 	case GF_SM_LOAD_MP4: return "MP4 Memory Loader";
 

@@ -699,9 +699,14 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 #ifndef GPAC_DISABLE_SVG
 		{
 			u32 node_tag = gf_node_get_tag(top_node);
-			if (((node_tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (node_tag<=GF_NODE_RANGE_LAST_SVG_SA)) || 
-				((node_tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (node_tag<=GF_NODE_RANGE_LAST_SVG_SANI)) || 
-				((node_tag>=GF_NODE_RANGE_FIRST_SVG) && (node_tag<=GF_NODE_RANGE_LAST_SVG)) ) {
+			if ( ((node_tag>=GF_NODE_RANGE_FIRST_SVG) && (node_tag<=GF_NODE_RANGE_LAST_SVG)) 
+#ifdef GPAC_ENABLE_SVG_SA
+				|| ((node_tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (node_tag<=GF_NODE_RANGE_LAST_SVG_SA))
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+				|| ((node_tag>=GF_NODE_RANGE_FIRST_SVG_SANI) && (node_tag<=GF_NODE_RANGE_LAST_SVG_SANI))
+#endif
+				) {
 				sr->surface->center_coords = 0;
 				sr->main_surface_setup = 2;
 				sr->use_dom_events = 1;
@@ -1375,7 +1380,7 @@ void R2D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *in
 		break;
 #endif
 	case TAG_SVG_use:
-		R2D_RenderUse3(inline_parent, inline_root, rs);
+		r2d_render_svg_use(inline_parent, inline_root, rs);
 		break;
 #endif
 	default:

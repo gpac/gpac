@@ -521,13 +521,13 @@ typedef struct __tag_laser_config
 	u16 time_resolution;
 	u8 colorComponentBits;
 	s8 resolution;
-	u8 scale_bits_minus_coord_bits;
 	u8 coord_bits;
-	u8 append;
-	u8 has_string_ids;
-	u8 has_private_data;
-	u8 hasExtendedAttributes;
+	u8 scale_bits_minus_coord_bits;
+	u8 newSceneIndicator;
 	u8 extensionIDBits;
+
+	/*the rest of the structure is never coded, only used for the config of GPAC...*/
+	Bool force_string_ids;/*forces all nodes to be defined with string IDs*/
 } GF_LASERConfig;
 
 

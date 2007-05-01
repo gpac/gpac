@@ -528,7 +528,7 @@ void PrintNode(const char *name, u32 graph_type)
 	tag = 0;
 	if (graph_type==2) {
 #ifndef GPAC_DISABLE_SVG
-		tag = gf_svg_sa_node_type_by_class_name(name);
+		tag = gf_svg_get_element_tag(name);
 #endif
 		std_name = "SVG";
 	} else if (graph_type==1) {
@@ -620,8 +620,8 @@ void PrintBuiltInNodes(u32 graph_type)
 		start_tag = GF_NODE_RANGE_FIRST_X3D;
 		end_tag = TAG_LastImplementedX3D;
 	} else if (graph_type==2) {
-		start_tag = GF_NODE_RANGE_FIRST_SVG_SA;
-		end_tag = GF_NODE_RANGE_LAST_SVG_SA;
+		start_tag = GF_NODE_RANGE_FIRST_SVG;
+		end_tag = GF_NODE_RANGE_LAST_SVG;
 	} else {
 		start_tag = GF_NODE_RANGE_FIRST_MPEG4;
 		end_tag = TAG_LastImplementedMPEG4;
@@ -1121,7 +1121,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				} else if (esd->decoderConfig->objectTypeIndication==0x09) {
 					GF_LASERConfig l_cfg;
 					gf_odf_get_laser_config(esd->decoderConfig->decoderSpecificInfo, &l_cfg);
-					fprintf(stdout, "LASER Stream - %s\n", l_cfg.append ? "Scene Segment" : "Full Scene"); 
+					fprintf(stdout, "LASER Stream - %s\n", l_cfg.newSceneIndicator ? "Full Scene" : "Scene Segment"); 
 				}
 			}
 

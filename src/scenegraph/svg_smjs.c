@@ -688,7 +688,7 @@ static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 		return JS_TRUE;
 	}
 	/*nope, create a listener*/
-	handler = gf_dom_listener_build((GF_Node *) elt, evt);
+	handler = gf_dom_listener_build((GF_Node *) elt, evt.type, evt.parameter);
 	gf_dom_add_text_node((GF_Node*)handler, strdup(attValue) );
 	return JS_TRUE;
 }

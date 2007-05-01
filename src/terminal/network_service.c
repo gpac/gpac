@@ -661,6 +661,9 @@ void NM_DeleteService(GF_ClientService *ns)
 	gf_modules_close_interface((GF_BaseInterface *)ns->ifce);
 	free(ns->url);
 
+	assert(!ns->nb_odm_users);
+	assert(!ns->nb_ch_users);
+
 	/*delete all the clocks*/
 	while (gf_list_count(ns->Clocks)) {
 		GF_Clock *ck = (GF_Clock *)gf_list_get(ns->Clocks, 0);

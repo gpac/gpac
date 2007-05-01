@@ -917,7 +917,7 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
 			if (n) {
 				iri->type = SVG_IRI_ELEMENTID;
-				iri->target = (SVG_SA_Element *) n;
+				iri->target = n;
 				gf_svg_register_iri(sg, iri);
 				free(iri->iri);
 				iri->iri = NULL;
@@ -926,6 +926,24 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 		/* If paint server not found, paint is equivalent to none */
 		if (props->fill->iri.type == SVG_IRI_ELEMENTID) {
 			switch (gf_node_get_tag((GF_Node *)props->fill->iri.target)) {
+			case TAG_SVG_solidColor:
+			{
+				SVGAllAttributes all_atts;
+				gf_svg_flatten_attributes((SVG_Element*)props->fill->iri.target, &all_atts);
+
+				if (all_atts.solid_color) {
+					if (all_atts.solid_opacity) {
+						Fixed val = all_atts.solid_opacity->value;
+						clamped_solid_opacity = MIN(FIX_ONE, MAX(0, val) );
+					}
+					ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, all_atts.solid_color->color.red, all_atts.solid_color->color.green, all_atts.solid_color->color.blue);
+				}
+			}
+				break;
+			case TAG_SVG_linearGradient: 
+			case TAG_SVG_radialGradient: 
+				ctx->h_texture = svg_gradient_get_texture((GF_Node *)props->fill->iri.target);
+				break;
 #ifdef GPAC_ENABLE_SVG_SA
 			case TAG_SVG_SA_solidColor:
 				{
@@ -936,7 +954,7 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 				break;
 			case TAG_SVG_SA_linearGradient: 
 			case TAG_SVG_SA_radialGradient: 
-				ctx->h_texture = svg_gradient_get_texture((GF_Node *)props->fill->iri.target);
+				ctx->h_texture = svg_sa_gradient_get_texture((GF_Node *)props->fill->iri.target);
 				break;
 #endif
 			/*FIXME*/
@@ -971,7 +989,7 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
 			if (n) {
 				iri->type = SVG_IRI_ELEMENTID;
-				iri->target = (SVG_SA_Element *) n;
+				iri->target = n;
 				gf_svg_register_iri(sg, iri);
 				free(iri->iri);
 				iri->iri = NULL;
@@ -980,6 +998,20 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 		/* Paint server not found, stroke is equivalent to none */
 		if (props->stroke->iri.type == SVG_IRI_ELEMENTID) {
 			switch (gf_node_get_tag((GF_Node *)props->stroke->iri.target)) {
+			case TAG_SVG_solidColor:
+			{
+				SVGAllAttributes all_atts;
+				gf_svg_flatten_attributes((SVG_Element*)props->fill->iri.target, &all_atts);
+
+				if (all_atts.solid_color) {
+					if (all_atts.solid_opacity) {
+						Fixed val = all_atts.solid_opacity->value;
+						clamped_solid_opacity = MIN(FIX_ONE, MAX(0, val) );
+					}
+					ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, all_atts.solid_color->color.red, all_atts.solid_color->color.green, all_atts.solid_color->color.blue);
+				}
+			}
+				break;
 #ifdef GPAC_ENABLE_SVG_SA
 			case TAG_SVG_SA_solidColor:
 				{
@@ -990,7 +1022,7 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 				break;
 			case TAG_SVG_SA_linearGradient: 
 			case TAG_SVG_SA_radialGradient: 
-				ctx->aspect.line_texture = svg_gradient_get_texture((GF_Node*)props->stroke->iri.target);
+				ctx->aspect.line_texture = svg_sa_gradient_get_texture((GF_Node*)props->stroke->iri.target);
 				break;
 #endif
 			default: 
@@ -1120,7 +1152,7 @@ static void setup_svg_sani_drawable_context(DrawableContext *ctx, struct _visual
 				break;
 			case TAG_SVG_SA_linearGradient: 
 			case TAG_SVG_SA_radialGradient: 
-				ctx->h_texture = svg_gradient_get_texture((GF_Node *)path->fill.iri.target);
+				ctx->h_texture = svg_sa_gradient_get_texture((GF_Node *)path->fill.iri.target);
 				break;
 			default: 
 				break;
@@ -1163,7 +1195,7 @@ static void setup_svg_sani_drawable_context(DrawableContext *ctx, struct _visual
 				break;
 			case TAG_SVG_SA_linearGradient: 
 			case TAG_SVG_SA_radialGradient: 
-				ctx->aspect.line_texture = svg_gradient_get_texture((GF_Node*)path->stroke.iri.target);
+				ctx->aspect.line_texture = svg_sa_gradient_get_texture((GF_Node*)path->stroke.iri.target);
 				break;
 			default: 
 				ctx->aspect.pen_props.width = 0;

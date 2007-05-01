@@ -85,8 +85,10 @@ enum {
 	GF_EVENT_RESIZE, 
 	GF_EVENT_SCROLL, 
 	GF_EVENT_ZOOM,
-	GF_EVENT_BEGIN,
-	GF_EVENT_END,
+	GF_EVENT_BEGIN, /*this is a fake event, it is NEVER fired, only used in SMIL begin/end*/
+	GF_EVENT_BEGIN_EVENT,
+	GF_EVENT_END, /*this is a fake event, it is NEVER fired, only used in SMIL begin/end*/
+	GF_EVENT_END_EVENT,
 	GF_EVENT_REPEAT,
 
 	/*DOM MutationEvents - NOT SUPPORTED YET*/
@@ -97,6 +99,19 @@ enum {
 	GF_EVENT_NODE_REMOVED_DOC,
 	GF_EVENT_ATTR_MODIFIED,
 	GF_EVENT_CHAR_DATA_MODIFIED,
+
+	/*LASeR events*/
+	GF_EVENT_ACTIVATED,
+	GF_EVENT_DEACTIVATED,
+	GF_EVENT_PAUSE,
+	GF_EVENT_PAUSED_EVENT,
+	GF_EVENT_PLAY,
+	GF_EVENT_REPEAT_KEY,
+	GF_EVENT_RESUME_EVENT,
+	GF_EVENT_SHORT_ACCESSKEY,
+
+	/*pseudo-event, only used in LASeR coding*/
+	GF_EVENT_EXECUTION_TIME,
 
 	GF_EVENT_BATTERY,
 	GF_EVENT_CPU,
@@ -357,6 +372,10 @@ enum {
 	GF_KEY_EURO, /*"U+20AC"    The Euro Currency Sign key (€).*/
 	GF_KEY_DEADVOICESOUND, /*"U+3099"    The Combining Katakana-Hiragana Voiced Sound Mark (Dead Voiced Sound) key.*/
 	GF_KEY_DEADSEMIVOICESOUND, /*"U+309A"    The Combining Katakana-Hiragana Semi-Voiced Sound Mark (Dead Semivoiced Sound) key. */
+
+	/*non-dom keys, used in LASeR*/
+	GF_KEY_CELL_SOFT1,	/*soft1 key of cell phones*/
+	GF_KEY_CELL_SOFT2,	/*soft2 key of cell phones*/
 };
 
 

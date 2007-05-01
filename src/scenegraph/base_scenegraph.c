@@ -128,8 +128,14 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 	tag = node->sgprivate->tag;
 	count = gf_node_get_field_count(node);
 #ifndef GPAC_DISABLE_SVG
-	if (((tag>= GF_NODE_RANGE_FIRST_SVG_SA) && (tag<= GF_NODE_RANGE_LAST_SVG_SA)) || 
-	    ((tag>= GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<= GF_NODE_RANGE_LAST_SVG_SANI))) {
+	if (((tag>= GF_NODE_RANGE_FIRST_SVG) && (tag<= GF_NODE_RANGE_LAST_SVG)) 
+#ifdef GPAC_ENABLE_SVG_SA
+		|| ((tag>= GF_NODE_RANGE_FIRST_SVG_SA) && (tag<= GF_NODE_RANGE_LAST_SVG_SA)) 
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+		|| ((tag>= GF_NODE_RANGE_FIRST_SVG_SANI) && (tag<= GF_NODE_RANGE_LAST_SVG_SANI))
+#endif
+		) {
 		/* TODO */
 		tag = 0;
 	} else 
@@ -244,11 +250,19 @@ restart:
 		GF_ParentList *nlist = node->sgprivate->parents;
 		type = node->sgprivate->tag;
 #ifndef GPAC_DISABLE_SVG
-		if (((type>= GF_NODE_RANGE_FIRST_SVG_SA) && (type<= GF_NODE_RANGE_LAST_SVG_SA)) ||
-			((type>= GF_NODE_RANGE_FIRST_SVG_SANI) && (type<= GF_NODE_RANGE_LAST_SVG_SANI))) type = 1;
+		if (((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) 
+#ifdef GPAC_ENABLE_SVG_SA
+			|| ((type>= GF_NODE_RANGE_FIRST_SVG_SA) && (type<= GF_NODE_RANGE_LAST_SVG_SA)) 
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+			|| ((type>= GF_NODE_RANGE_FIRST_SVG_SANI) && (type<= GF_NODE_RANGE_LAST_SVG_SANI))
+#endif
+		) 
+			type = 1;
 		else 
 #endif
 			type = 0;
+
 		while (nlist) {
 			GF_ParentList *next = nlist->next;
 #if 0
@@ -579,8 +593,8 @@ static void Replace_IRI(GF_SceneGraph *sg, GF_Node *old_node, GF_Node *newNode)
 	count = gf_list_count(sg->xlink_hrefs);
 	for (i=0; i<count; i++) {
 		SVG_IRI *iri = (SVG_IRI *)gf_list_get(sg->xlink_hrefs, i);
-		if (iri->target == (SVG_SA_Element *)old_node) {
-			iri->target = (SVG_SA_Element *)newNode;
+		if (iri->target == old_node) {
+			iri->target = newNode;
 			if (!newNode) {
 				gf_list_rem(sg->xlink_hrefs, i);
 				i--;
@@ -593,7 +607,7 @@ static void Replace_IRI(GF_SceneGraph *sg, GF_Node *old_node, GF_Node *newNode)
 /*replace or remove node instance in the given node (eg in all IRI)*/
 static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNode)
 {
-	GF_ChildNodeItem *child = ((SVG_SA_Element *)FromNode)->children;
+	GF_ChildNodeItem *child = ((SVG_Element *)FromNode)->children;
 	while (child) {
 		if (child->node != old_node) {
 			child = child->next;
@@ -620,8 +634,14 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 
 	type = node->sgprivate->tag;
 #ifndef GPAC_DISABLE_SVG
-	if (((type>= GF_NODE_RANGE_FIRST_SVG_SA) && (type<= GF_NODE_RANGE_LAST_SVG_SA)) || 
-		((type>= GF_NODE_RANGE_FIRST_SVG_SANI) && (type<= GF_NODE_RANGE_LAST_SVG_SANI))) {
+	if (((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) 
+#ifdef GPAC_ENABLE_SVG_SA
+		|| ((type>= GF_NODE_RANGE_FIRST_SVG_SA) && (type<= GF_NODE_RANGE_LAST_SVG_SA)) 
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+		|| ((type>= GF_NODE_RANGE_FIRST_SVG_SANI) && (type<= GF_NODE_RANGE_LAST_SVG_SANI))
+#endif
+		) {
 		type = 1;
 		Replace_IRI(pSG, node, new_node);
 	} else 
@@ -647,7 +667,11 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 		if (do_break) break;
 	}
 
-	if (replace_root && new_node) new_node->sgprivate->scenegraph->RootNode = new_node;
+	if (replace_root) {
+		pSG = node->sgprivate->scenegraph;
+		gf_node_unregister(node, NULL);
+		pSG->RootNode = new_node;
+	}
 	return GF_OK;
 }
 
@@ -1195,7 +1219,7 @@ static GFINLINE void dirty_children(GF_Node *node, u32 val)
 	if (!node) return;
 	
 	node->sgprivate->flags |= val;
-	if (node->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG_SA) {
+	if (node->sgprivate->tag>=GF_NODE_RANGE_LAST_VRML) {
 		GF_ChildNodeItem *child = ((GF_ParentNode*)node)->children;
 		while (child) {
 			dirty_children(child->node, val);
@@ -1331,6 +1355,18 @@ void gf_node_del(GF_Node *node)
 	else if (node->sgprivate->tag==TAG_DOMText) {
 		GF_DOMText *t = (GF_DOMText *)node;
 		if (t->textContent) free(t->textContent);
+		gf_sg_parent_reset(node);
+		gf_node_free(node);
+	} else if (node->sgprivate->tag==TAG_DOMUpdates) {
+		u32 i, count;
+		GF_DOMUpdates *up = (GF_DOMUpdates *)node;
+		if (up->data) free(up->data);
+		count = gf_list_count(up->updates);
+		for (i=0; i<count; i++) {
+			GF_Command *com = gf_list_get(up->updates, i);
+			gf_sg_command_del(com);
+		}
+		gf_list_del(up->updates);
 		gf_sg_parent_reset(node);
 		gf_node_free(node);
 	} else if (node->sgprivate->tag == TAG_ProtoNode) gf_sg_proto_del_instance((GF_ProtoInstance *)node);

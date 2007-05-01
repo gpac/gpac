@@ -88,11 +88,23 @@ typedef struct
 	char *textToRender;
 } SVG_TextStack;
 
+typedef struct
+{
+	Render2D *sr;
+	SVGPropertiesPointers *svgp;
+} SVG_SVGStack;
+
 
 /*regular SVG functions*/
 void svg_render_base(GF_Node *node, SVGAllAttributes *all_atts, RenderEffect2D *eff, SVGPropertiesPointers *backup_props, u32 *backup_flags);
 void svg_apply_local_transformation(RenderEffect2D *eff, SVGAllAttributes *atts, GF_Matrix2D *backup_matrix);
 void svg_restore_parent_transformation(RenderEffect2D *eff, GF_Matrix2D *backup_matrix);
+
+void svg_init_linearGradient(Render2D *sr, GF_Node *node);
+void svg_init_radialGradient(Render2D *sr, GF_Node *node);
+GF_TextureHandler *svg_gradient_get_texture(GF_Node *node);
+void svg_init_solidColor(Render2D *sr, GF_Node *node);
+void svg_init_stop(Render2D *sr, GF_Node *node);
 
 void svg_init_svg(Render2D *sr, GF_Node *node);
 void svg_init_g(Render2D *sr, GF_Node *node);
@@ -135,7 +147,7 @@ void svg_sa_init_text(Render2D *sr, GF_Node *node);
 void svg_sa_init_a(Render2D *se, GF_Node *node);
 void svg_sa_init_linearGradient(Render2D *sr, GF_Node *node);
 void svg_sa_init_radialGradient(Render2D *sr, GF_Node *node);
-GF_TextureHandler *svg_gradient_get_texture(GF_Node *node);
+GF_TextureHandler *svg_sa_gradient_get_texture(GF_Node *node);
 void svg_sa_init_solidColor(Render2D *sr, GF_Node *node);
 void svg_sa_init_stop(Render2D *sr, GF_Node *node);
 #endif

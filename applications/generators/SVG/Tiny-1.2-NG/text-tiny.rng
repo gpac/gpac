@@ -89,6 +89,18 @@
         </choice>
       </attribute>
     </optional>
+    <optional>
+      <attribute name='text-decoration' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>none</value>
+          <value>underline</value>
+          <value>overline</value>
+          <value>line-through</value>
+          <value>blink</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
   </define>
 
 

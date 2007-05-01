@@ -36,29 +36,45 @@
 */
 u32 gf_dom_event_type_by_name(const char *name)
 {
+	if (!strcmp(name, "abort"))	return GF_EVENT_ABORT;
+	if (!strcmp(name, "begin"))		return GF_EVENT_BEGIN;
+	if (!strcmp(name, "beginEvent"))	return GF_EVENT_BEGIN_EVENT;
+	if (!strcmp(name, "click"))		return GF_EVENT_CLICK;
+	if (!strcmp(name, "end"))		return GF_EVENT_END;
+	if (!strcmp(name, "endEvent"))	return GF_EVENT_END_EVENT;
+	if (!strcmp(name, "error"))		return GF_EVENT_ERROR;
 	if (!strcmp(name, "focusin"))	return GF_EVENT_FOCUSIN;
 	if (!strcmp(name, "focusout"))	return GF_EVENT_FOCUSOUT;
-	if (!strcmp(name, "activate"))	return GF_EVENT_ACTIVATE;
-	if (!strcmp(name, "click"))		return GF_EVENT_CLICK;
-	if (!strcmp(name, "mouseup"))	return GF_EVENT_MOUSEUP;
-	if (!strcmp(name, "mousedown")) return GF_EVENT_MOUSEDOWN;
-	if (!strcmp(name, "mouseover")) return GF_EVENT_MOUSEOVER;
-	if (!strcmp(name, "mouseout"))	return GF_EVENT_MOUSEOUT;
-	if (!strcmp(name, "mousemove")) return GF_EVENT_MOUSEMOVE;
-	if (!strcmp(name, "load"))		return GF_EVENT_LOAD;
-	if (!strcmp(name, "SVGLoad"))	return GF_EVENT_LOAD;
-	if (!strcmp(name, "unload"))	return GF_EVENT_UNLOAD;
-	if (!strcmp(name, "error"))		return GF_EVENT_ERROR;
-	if (!strcmp(name, "resize"))	return GF_EVENT_RESIZE;
-	if (!strcmp(name, "scroll"))	return GF_EVENT_SCROLL;
-	if (!strcmp(name, "zoom"))		return GF_EVENT_ZOOM;
-	if (!strcmp(name, "begin"))		return GF_EVENT_BEGIN;
-	if (!strcmp(name, "end"))		return GF_EVENT_END;
-	if (!strncmp(name, "repeat", 6))	return GF_EVENT_REPEAT;
-	if (!strcmp(name, "keyup"))		return GF_EVENT_KEYUP;
 	if (!strcmp(name, "keydown"))	return GF_EVENT_KEYDOWN;
 	if (!strcmp(name, "keypress") || !stricmp(name, "accesskey"))	return GF_EVENT_KEYDOWN;
+	if (!strcmp(name, "keyup"))		return GF_EVENT_KEYUP;
+	if (!strcmp(name, "load"))		return GF_EVENT_LOAD;
+	if (!strcmp(name, "SVGLoad"))	return GF_EVENT_LOAD;
 	if (!strcmp(name, "longkeypress") || !stricmp(name, "longaccesskey"))	return GF_EVENT_LONGKEYPRESS;
+	if (!strcmp(name, "mousedown")) return GF_EVENT_MOUSEDOWN;
+	if (!strcmp(name, "mousemove")) return GF_EVENT_MOUSEMOVE;
+	if (!strcmp(name, "mouseout"))	return GF_EVENT_MOUSEOUT;
+	if (!strcmp(name, "mouseover")) return GF_EVENT_MOUSEOVER;
+	if (!strcmp(name, "mouseup"))	return GF_EVENT_MOUSEUP;
+	if (!strcmp(name, "repeat"))	return GF_EVENT_REPEAT;
+	if (!strcmp(name, "repeatEvent"))	return GF_EVENT_REPEAT;
+	if (!strcmp(name, "resize"))	return GF_EVENT_RESIZE;
+	if (!strcmp(name, "scroll"))	return GF_EVENT_SCROLL;
+	if (!strcmp(name, "textInput"))	return GF_EVENT_TEXTINPUT;
+	if (!strcmp(name, "unload"))	return GF_EVENT_UNLOAD;
+	if (!strcmp(name, "zoom"))		return GF_EVENT_ZOOM;
+
+	/*LASeR events*/
+	if (!strcmp(name, "activatedEvent"))	return GF_EVENT_ACTIVATED;
+	if (!strcmp(name, "deactivatedEvent"))	return GF_EVENT_DEACTIVATED;
+	if (!strcmp(name, "executionTime"))	return GF_EVENT_EXECUTION_TIME;
+	if (!strcmp(name, "pause"))	return GF_EVENT_PAUSE;
+	if (!strcmp(name, "pausedEvent"))	return GF_EVENT_PAUSED_EVENT;
+	if (!strcmp(name, "play"))	return GF_EVENT_PLAY;
+	if (!strcmp(name, "repeatKey"))	return GF_EVENT_REPEAT_KEY;
+	if (!strcmp(name, "resumedEvent"))	return GF_EVENT_RESUME_EVENT;
+	if (!strcmp(name, "shortAccessKey"))	return GF_EVENT_SHORT_ACCESSKEY;
+	/*LASeR unofficial events*/
 	if (!strcmp(name, "battery"))		return GF_EVENT_BATTERY;
 	if (!strcmp(name, "cpu"))		return GF_EVENT_CPU;
 	GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[DOM Events] Unknown event found \"%s\"\n", name));
@@ -67,29 +83,49 @@ u32 gf_dom_event_type_by_name(const char *name)
 
 const char *gf_dom_event_get_name(u32 type)
 {
+
 	switch (type) {
+	case GF_EVENT_ABORT: return "abort";
+	case GF_EVENT_BEGIN: return "begin";
+	case GF_EVENT_BEGIN_EVENT: return "beginEvent";
+	case GF_EVENT_CLICK: return "click";
+	case GF_EVENT_END: return "end";
+	case GF_EVENT_END_EVENT: return "endEvent";
+	case GF_EVENT_ERROR: return "error";
 	case GF_EVENT_FOCUSIN: return "focusin";
 	case GF_EVENT_FOCUSOUT: return "focusout";
-	case GF_EVENT_ACTIVATE: return "activate";
-	case GF_EVENT_CLICK: return "click";
-	case GF_EVENT_MOUSEUP: return "mouseup";
-	case GF_EVENT_MOUSEDOWN: return "mousedown";
-	case GF_EVENT_MOUSEOVER: return "mouseover";
-	case GF_EVENT_MOUSEOUT: return "mouseout";
-	case GF_EVENT_MOUSEMOVE: return "mousemove";
+	case GF_EVENT_KEYDOWN: return "keydown";
+	case GF_EVENT_KEYUP: return "keyup";
 	case GF_EVENT_LOAD: return "load";
-	case GF_EVENT_UNLOAD: return "unload";
-	case GF_EVENT_ERROR: return "error";
+	case GF_EVENT_LONGKEYPRESS: return "longaccesskey";
+	case GF_EVENT_MOUSEDOWN: return "mousedown";
+	case GF_EVENT_MOUSEMOVE: return "mousemove";
+	case GF_EVENT_MOUSEOUT: return "mouseout";
+	case GF_EVENT_MOUSEOVER: return "mouseover";
+	case GF_EVENT_MOUSEUP: return "mouseup";
+	case GF_EVENT_REPEAT: return "repeat";
+	//case GF_EVENT_REPEAT: return "repeatEvent";
 	case GF_EVENT_RESIZE: return "resize";
 	case GF_EVENT_SCROLL: return "scroll";
+	case GF_EVENT_TEXTINPUT: return "textInput";
+	case GF_EVENT_UNLOAD: return "unload";
 	case GF_EVENT_ZOOM: return "zoom";
-	case GF_EVENT_BEGIN: return "begin";
-	case GF_EVENT_END: return "end";
-	case GF_EVENT_REPEAT: return "repeat";
-	case GF_EVENT_KEYUP: return "keyup";
-	case GF_EVENT_KEYDOWN: return "keydown";
-/*	case GF_EVENT_KEYPRESS: return "keypress";*/
-	case GF_EVENT_LONGKEYPRESS: return "longkeypress";
+
+	/*LASeR events*/
+	case GF_EVENT_ACTIVATED: return "activatedEvent";
+	case GF_EVENT_DEACTIVATED: return "deactivatedEvent";
+	case GF_EVENT_EXECUTION_TIME: return "executionTime";
+	case GF_EVENT_PAUSE: return "pause";
+	case GF_EVENT_PAUSED_EVENT: return "pausedEvent";
+	case GF_EVENT_PLAY: return "play";
+	case GF_EVENT_REPEAT_KEY: return "repeatKey";
+	case GF_EVENT_RESUME_EVENT: return "resumedEvent";
+	case GF_EVENT_SHORT_ACCESSKEY: return "shortAccessKey";
+	/*LASeR unofficial events*/
+	case GF_EVENT_BATTERY: return "battery";
+	case GF_EVENT_CPU: "cpu";
+	
+
 	default: return "unknown";
 	}
 }
@@ -301,32 +337,63 @@ const char *gf_dom_get_key_name(u32 key_identifier)
 }
 
 
-static void gf_dom_parse_key_identifier(u32 *key_identifier, char *attribute_content)
+u32 gf_dom_get_key_type(char *key_name)
 {
-	if (strlen(attribute_content) == 1) {
+	if (strlen(key_name) == 1) {
 		char c[2];
-		c[0] = attribute_content[0];
+		c[0] = key_name[0];
 		c[1] = 0;
 		strupr(c);
-		if (c[0] >= 'A' && c[0] <= 'Z') {
-			*key_identifier = GF_KEY_A + (c[0] - 'A');
-		} else if (c[0] >= '0' && c[0] <= '9') {
-			*key_identifier = GF_KEY_0 + (c[0] - '0');
-		} else if (c[0] == '@') {
-			*key_identifier = GF_KEY_AT;
-		} else {
-			*key_identifier = GF_KEY_UNIDENTIFIED;
+		if (c[0] >= 'A' && c[0] <= 'Z') 
+			return (GF_KEY_A + (c[0] - 'A') );
+		
+		if (c[0] >= '0' && c[0] <= '9')
+			return ( GF_KEY_0 + (c[0] - '0') );
+		
+		switch (c[0]) {
+		case '@': return GF_KEY_AT;
+		case '*': return GF_KEY_STAR;
+		case '#': return GF_KEY_NUMBER;
+		case ' ': return GF_KEY_SPACE;
+		case '!': return GF_KEY_EXCLAMATION;
+		case '"': return GF_KEY_QUOTATION;
+		case '$': return GF_KEY_DOLLAR;
+		case '&': return GF_KEY_AMPERSAND;
+		case '\'': return GF_KEY_APOSTROPHE;
+		case '(': return GF_KEY_LEFTPARENTHESIS;
+		case ')': return GF_KEY_RIGHTPARENTHESIS;
+		case '+': return GF_KEY_PLUS;
+		case ',': return GF_KEY_COMMA;
+		case '-': return GF_KEY_HYPHEN;
+		case '.': return GF_KEY_FULLSTOP;
+		case '/': return GF_KEY_SLASH;
+		case ':': return GF_KEY_COLON;
+		case ';': return GF_KEY_SEMICOLON;
+		case '<': return GF_KEY_LESSTHAN;
+		case '=': return GF_KEY_EQUALS;
+		case '>': return GF_KEY_GREATERTHAN;
+		case '?': return GF_KEY_QUESTION;
+		case '[': return GF_KEY_LEFTSQUAREBRACKET;
+		case '\\': return GF_KEY_BACKSLASH;
+		case ']': return GF_KEY_RIGHTSQUAREBRACKET;
+		case '^': return GF_KEY_CIRCUM;
+		case '_': return GF_KEY_UNDERSCORE;
+		case '`': return GF_KEY_GRAVEACCENT;
+		case '{': return GF_KEY_LEFTCURLYBRACKET;
+		case '|': return GF_KEY_PIPE;
+		case '}': return GF_KEY_RIGHTCURLYBRACKET;
+		case '¡': return GF_KEY_INVERTEXCLAMATION;
+		default: return GF_KEY_UNIDENTIFIED;
 		}
 	} else {
 		u32 i, count;
 		count = sizeof(predefined_key_identifiers) / sizeof(struct predef_keyid);
 		for (i=0; i<count; i++) {
-			if (!strcmp(attribute_content, predefined_key_identifiers[i].name)) {
-				*key_identifier = predefined_key_identifiers[i].key_code;
-				return;
+			if (!stricmp(key_name, predefined_key_identifiers[i].name)) {
+				return predefined_key_identifiers[i].key_code;
 			}
 		}
-		*key_identifier = GF_KEY_UNIDENTIFIED;
+		return GF_KEY_UNIDENTIFIED;
 	}
 }
 
@@ -538,6 +605,26 @@ static void svg_parse_named_color(SVG_Color *col, char *attribute_content)
 			return;
 		}
 	}
+}
+
+const char *gf_svg_get_system_paint_server_name(u32 paint_type)
+{
+	u32 i, count;
+	count = sizeof(system_colors) / sizeof(struct sys_col);
+	for (i=0; i<count; i++) {
+		if (paint_type == system_colors[i].type) return system_colors[i].name;
+	}
+	return "undefined";
+}
+
+u32 gf_svg_get_system_paint_server_type(const char *name)
+{
+	u32 i, count;
+	count = sizeof(system_colors) / sizeof(struct sys_col);
+	for (i=0; i<count; i++) {
+		if (!strcmp(name, system_colors[i].name)) return system_colors[i].type;
+	}
+	return 0;
 }
 
 /* Reads an SVG Color 
@@ -788,7 +875,7 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 		tmp+=10;
 		sep = strchr(d, ')');
 		sep[0] = 0;
-		gf_dom_parse_key_identifier(&v->event.parameter, tmp);
+		v->event.parameter = gf_dom_get_key_type(tmp);
 		sep++;
 		if ((tmp = strchr(sep, '+')) || (tmp = strchr(sep, '-'))) {
 			char c = *tmp;
@@ -2160,7 +2247,7 @@ static void svg_parse_coordinates(GF_List *values, char *value_string)
 	}
 }
 
-static u32 svg_parse_point(SVG_Point *p, char *value_string)
+u32 svg_parse_point(SVG_Point *p, char *value_string)
 {
 	u32 i = 0;
 	i+=svg_parse_float(&(value_string[i]), &(p->x), 0);
@@ -2792,7 +2879,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 			} else { /* key events ... */
 				char *sep2 = strchr(attribute_content, ')');
 				sep2[0] = 0;
-				gf_dom_parse_key_identifier(&xml_ev->parameter, sep++);
+				xml_ev->parameter = gf_dom_get_key_type(sep+1);
 				sep2[0] = ')';
 			}			
 		} else {
@@ -3126,6 +3213,14 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 			return e;
 		}
 		break;
+	case LASeR_Size_datatype:
+		{
+			LASeR_Size *s;
+			GF_SAFEALLOC(s, LASeR_Size);
+			return s;
+		}
+		break;
+
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot create attribute value - Type %s not supported.\n", gf_svg_attribute_type_to_string(attribute_type)));
 		break;
@@ -3203,7 +3298,51 @@ static void svg_dump_iri(SVG_IRI*iri, char *attValue)
 #if USE_GF_PATH
 static void svg_dump_path(SVG_PathData *path, char *attValue)
 {
+	char szT[1000];
+	GF_Point2D *pt, last_pt, *ct1, *ct2, *end;
+	u32 i, *contour;
 	strcpy(attValue, "");
+
+	contour = path->contours;
+
+	for (i=0; i<path->n_points; ) {
+		switch (path->tags[i]) {
+		case GF_PATH_CURVE_ON:
+		case GF_PATH_CLOSE:
+			pt = &path->points[i];
+			if (!i || (*contour == i-1) ) {
+				sprintf(szT, "M%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y));
+			} else if (path->tags[i]==GF_PATH_CLOSE) {
+				sprintf(szT, " z");
+			} else {
+				if (i && (last_pt.x==pt->x)) sprintf(szT, " V%g", FIX2FLT(pt->y));
+				else if (i && (last_pt.y==pt->y)) sprintf(szT, " H%g", FIX2FLT(pt->x));
+				sprintf(szT, " L%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y));
+			}
+			strcat(attValue, szT);
+			last_pt = *pt;
+			i++;
+			break;
+		case GF_PATH_CURVE_CONIC:
+			ct1 = &path->points[i];
+			end = &path->points[i+2];
+			sprintf(szT, " Q%g %g %g %g", FIX2FLT(ct1->x), FIX2FLT(ct1->y), FIX2FLT(end->x), FIX2FLT(end->y));
+			strcat(attValue, szT);
+			last_pt = *end;
+			i+=2;
+			break;
+		case GF_PATH_CURVE_CUBIC:
+			ct1 = &path->points[i];
+			ct2 = &path->points[i+1];
+			end = &path->points[i+2];
+			sprintf(szT, " C%g %g %g %g %g %g", FIX2FLT(ct1->x), FIX2FLT(ct1->y), FIX2FLT(ct2->x), FIX2FLT(ct2->y), FIX2FLT(end->x), FIX2FLT(end->y));
+			strcat(attValue, szT);
+			last_pt = *end;
+			i+=3;
+			break;
+		}
+	}
+
 }
 #else
 static void svg_dump_point(SVG_Point *pt, char *attValue)
@@ -3894,13 +4033,21 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 
 	case SMIL_AttributeName_datatype:
 	{
+		SMIL_AttributeName *att_name = (SMIL_AttributeName *) info->far_ptr;
+		if (att_name->name) {
+			strcpy(attValue, att_name->name);
+			return GF_OK;
+		}
+		if (att_name->tag) {
+			strcpy(attValue, gf_svg_get_attribute_name(att_name->tag));
+			return GF_OK;
+		}
+
+#if 0
 		GF_Node *t=NULL;
 		u32 i, count;
-		SMIL_AttributeName *att_name = (SMIL_AttributeName *) info->far_ptr;
-#if SVG_FIXME
 		if (!elt->xlink) break;
 		t = (GF_Node *) elt->xlink->href.target;
-#endif
 		if (!t) break;
 		count = gf_node_get_field_count(t);
 		for (i=0; i<count; i++) {
@@ -3911,6 +4058,7 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 				return GF_OK;
 			}
 		}
+#endif
 	}
 		break;
 	case SMIL_Times_datatype:
@@ -4047,7 +4195,6 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 	}
 	return GF_OK;
 }
-
 
 GF_Err gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 {
@@ -5153,6 +5300,8 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 			if (pb->type == SVG_PAINT_URI) {
 				GF_FieldInfo tmp_a, tmp_b;
 				tmp_a.fieldType = tmp_b.fieldType = SVG_IRI_datatype;
+				tmp_a.far_ptr = &pa->iri;
+				tmp_b.far_ptr = &pb->iri;
 				gf_svg_attributes_copy(&tmp_a, &tmp_b, 0);
 			} else {
 				pa->color = pb->color;

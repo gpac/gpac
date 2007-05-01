@@ -39,26 +39,36 @@
 GF_EXPORT
 Bool gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, SVG_IRI *iri)
 {
+	u32 stream_id = 0;
 	Bool ret = 1;
 	SFURL *sfurl = NULL;
-	if (!iri->iri) return 0;
+	if (iri->type==SVG_IRI_STREAMID) {
+		stream_id = iri->stream_id;
+	} else if (!iri->iri) return 0;
 
 	gf_sg_vrml_mf_reset(mfurl, GF_SG_VRML_MFURL);
 	mfurl->count = 1;
 	GF_SAFEALLOC(mfurl->vals, SFURL)
 	sfurl = mfurl->vals;
-	sfurl->OD_ID = 0;
-	if (term && !strncmp(iri->iri, "data:", 5)) {
-		const char *cache_dir = gf_cfg_get_key(term->user->config, "General", "CacheDirectory");
-		ret = gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
+	sfurl->OD_ID = stream_id;
+	if (!stream_id) {
+		if (term && !strncmp(iri->iri, "data:", 5)) {
+			const char *cache_dir = gf_cfg_get_key(term->user->config, "General", "CacheDirectory");
+			ret = gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
+		}
+		sfurl->url = strdup(iri->iri);
 	}
-	sfurl->url = strdup(iri->iri);
 	return ret;
 }
 
 GF_EXPORT
 Bool gf_term_check_iri_change(GF_Terminal *term, MFURL *url, SVG_IRI *iri)
 {
+	if (iri->type==SVG_IRI_STREAMID) {
+		if (!url->count) return 1;
+		if (url->vals[0].OD_ID!=iri->stream_id) return 1;
+		return 0;
+	}
 	if (url->count && !iri->iri) return 1;
 	if (!url->count && iri->iri) return 1;
 	if (!url->count) return 0;
@@ -307,7 +317,18 @@ void SVG_Render_animation(GF_Node *n, void *rs, Bool is_destroy)
 	}
 }
 
+void svg_render_init_animation(GF_InlineScene *is, GF_Node *node)
+{
+	SVGTimedAnimBaseElement *timed = (SVGTimedAnimBaseElement *)node;
+	gf_smil_timing_init_runtime_info(node);
+	if (timed->timingp && timed->timingp->runtime) {
+		timed->timingp->runtime->evaluate = svg_animation_smil_evaluate;
+	}
+	gf_node_set_callback_function(node, SVG_Render_animation);
+}
 
+
+#ifdef GPAC_ENABLE_SVG_SA
 void svg_sa_render_init_animation(GF_InlineScene *is, GF_Node *node)
 {
 	gf_smil_timing_init_runtime_info(node);
@@ -317,7 +338,7 @@ void svg_sa_render_init_animation(GF_InlineScene *is, GF_Node *node)
 	}
 	gf_node_set_callback_function(node, SVG_Render_animation);
 }
-
+#endif
 
 
 static void SVG_Render_use(GF_Node *node, void *rs, Bool is_destroy)

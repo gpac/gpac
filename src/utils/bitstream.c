@@ -814,5 +814,16 @@ void gf_bs_write_u16_le(GF_BitStream *bs, u32 val)
 GF_EXPORT
 u32 gf_bs_get_bit_offset(GF_BitStream *bs)
 {
-	return (u32) ( (bs->position - 1) * 8 + bs->nbBits);
+	if (bs->stream) return 0;
+	if (bs->bsmode==GF_BITSTREAM_READ) return (u32) ( (bs->position - 1) * 8 + bs->nbBits);
+	return (u32) ( (bs->position ) * 8 + bs->nbBits);
 }
+
+u32 gf_bs_read_vluimsbf5(GF_BitStream *bs)
+{
+	u32 nb_words = 0;
+	while (gf_bs_read_int(bs, 1)) nb_words++;
+	nb_words++;
+	return gf_bs_read_int(bs, 4*nb_words);
+}
+

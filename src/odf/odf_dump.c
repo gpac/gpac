@@ -717,10 +717,9 @@ GF_Err gf_odf_dump_laser_cfg(GF_LASERConfig *dsi, FILE *trace, u32 indent, Bool 
 		dsi->pointsCodec ? "Unknown" : "ExpGolombPointsCodec");
 
 	if (dsi->colorComponentBits) fprintf(trace, " colorComponentBits=\"%d\"", dsi->colorComponentBits);
-	if (dsi->append) fprintf(trace, " append=\"true\"");
+	if (dsi->newSceneIndicator) fprintf(trace, " newSceneIndicator=\"true\"");
 	if (dsi->coord_bits) fprintf(trace, " coordBits=\"%d\"", dsi->coord_bits);
 	if (dsi->fullRequestHost) fprintf(trace, " useFullRequestHost=\"true\"");
-	if (dsi->has_string_ids) fprintf(trace, " hasStringIDs=\"true\"");
 	if (dsi->pathComponents) fprintf(trace, " pathComponents=\"%d\"", dsi->pathComponents);
 	if (dsi->time_resolution && (dsi->time_resolution!=1000) ) fprintf(trace, " timeResolution=\"%d\"", dsi->time_resolution);
 	if (dsi->resolution) fprintf(trace, " resolution=\"%d\"", dsi->resolution);

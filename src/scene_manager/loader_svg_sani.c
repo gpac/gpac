@@ -494,9 +494,7 @@ static SVG_SANI_Element *svg_sani_parse_element(GF_SVG_SANI_Parser *parser, cons
 			if (evtType != GF_EVENT_UNKNOWN) {
 				XMLEV_Event evt;
 				SVG_SANI_handlerElement *handler;
-				evt.type = evtType;
-				evt.parameter = 0;
-				handler = gf_dom_listener_build((GF_Node *) elt, evt);
+				handler = gf_dom_listener_build((GF_Node *) elt, evtType, 0);
 				handler->textContent = att->value;
 				att->value = NULL;
 				gf_node_init((GF_Node *)handler);

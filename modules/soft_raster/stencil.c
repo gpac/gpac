@@ -530,6 +530,7 @@ static void bmp_fill_run_straight(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _
 	while (y<0) y += _fdim;
 
 	y0 = FIX2INT(y);
+	y0 = y0 % _this->height;
 	pix_line = _this->pixels + _this->stride*y0;
 
 	while (count) {
@@ -609,7 +610,7 @@ u32 get_pix_444(char *pix) { u16 val = *(u16*)pix; return GF_COL_ARGB(0xFF,  (u8
 u32 get_pix_555(char *pix) { u16 val = *(u16*)pix; return GF_COL_ARGB(0xFF, (u8) ( (val >> 7) & 0xf8), (u8) ( (val >> 2) & 0xf8), (u8) ( (val << 3) & 0xf8) ); }
 u32 get_pix_565(char *pix) { u16 val = *(u16*)pix; return GF_COL_ARGB(0xFF,  (u8) ( (val >> 8) & 0xf8), (u8) ( (val >> 3) & 0xfc),  (u8) ( (val << 3) & 0xf8)	); }
 u32 get_pix_grey(char *pix) { u8 val = *pix; return GF_COL_ARGB(0xFF, val, val, val); }
-u32 get_pix_alphagrey(char *pix) { return GF_COL_ARGB(*(pix+1), *pix, *pix, *pix); }
+u32 get_pix_alphagrey(char *pix) { return GF_COL_ARGB((u8) *(pix+1), (u8) *pix, (u8) *pix, (u8) *pix); }
 
 static void gf_sr_texture_set_callback(EVG_Texture *_this)
 {

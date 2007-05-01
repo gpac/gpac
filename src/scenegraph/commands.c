@@ -454,7 +454,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			return GF_OK;
 		}
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
-		e = gf_node_replace_child(com->node, &((SVG_SA_Element *)com->node)->children, inf->pos, NULL);
+		e = gf_node_replace_child(com->node, &((SVG_Element *)com->node)->children, inf->pos, NULL);
 		break;
 	case GF_SG_LSR_INSERT:
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
@@ -463,7 +463,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			u32 pos = 0;
 			GF_ChildNodeItem *child, *prev;
 			prev = NULL;
-			child = ((SVG_SA_Element *)com->node)->children;
+			child = ((SVG_Element *)com->node)->children;
 			while (child) {
 				if ((inf->pos<0) || (pos!=(u32)inf->pos)) {
 					prev = child;
@@ -475,7 +475,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			child->node = inf->new_node;
 			child->next = NULL;
 			if (prev) prev->next = child;
-			else ((SVG_SA_Element *)com->node)->children = child;
+			else ((SVG_Element *)com->node)->children = child;
 
 			gf_node_register(inf->new_node, com->node);
 		} else {
@@ -492,7 +492,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				e = gf_node_replace(com->node, inf->new_node, 0);
 				if (inf->new_node) gf_node_register(inf->new_node, NULL);
 			} else {
-				gf_node_replace_child(com->node, & ((SVG_SA_Element *)com->node)->children, inf->pos, inf->new_node);
+				gf_node_replace_child(com->node, & ((SVG_Element *)com->node)->children, inf->pos, inf->new_node);
 				if (inf->new_node) gf_node_register(inf->new_node, com->node);
 			}
 			/*signal node modif*/
@@ -500,8 +500,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			return e;
 		} else if (inf->node_list) {
 			GF_ChildNodeItem *child, *cur, *prev;
-			gf_node_unregister_children(com->node, ((SVG_SA_Element *)com->node)->children);
-			((SVG_SA_Element *)com->node)->children = NULL;
+			gf_node_unregister_children(com->node, ((SVG_Element *)com->node)->children);
+			((SVG_Element *)com->node)->children = NULL;
 
 			prev = NULL;
 			child = inf->node_list;
@@ -511,7 +511,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				cur->node = child->node;
 				gf_node_register(child->node, com->node);
 				if (prev) prev->next = cur;
-				else ((SVG_SA_Element *)com->node)->children = cur;
+				else ((SVG_Element *)com->node)->children = cur;
 				prev = cur;
 				child = child->next;
 			}
@@ -548,20 +548,30 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				}
 			} else {
 				if ((inf->fieldIndex==(u32) -1) && (inf->fieldType==SVG_String_datatype)) {
-					a.far_ptr = & ((SVG_SA_Element*)com->node)->textContent;
-					a.fieldType = SVG_String_datatype;
+					char *str = *(SVG_String*)inf->field_ptr;
+
+					if (com->tag == GF_SG_LSR_REPLACE) {
+						GF_DOMText *t = ((SVG_Element*)com->node)->children ? (GF_DOMText*) ((SVG_Element*)com->node)->children->node :NULL; 
+						if (t && (t->sgprivate->tag==TAG_DOMText)) {
+							if (t->textContent) free(t->textContent);
+							t->textContent = NULL;
+							if (str) t->textContent = strdup(str);
+						}
+					} else {
+						if (str) gf_dom_add_text_node(com->node, strdup(str));
+					}
 				} else {
 					gf_node_get_field(com->node, inf->fieldIndex, &a);
 					b = a;
 					b.far_ptr = inf->field_ptr;
+					if (com->tag == GF_SG_LSR_REPLACE) {
+						gf_svg_attributes_copy(&a, &b, 0);
+					} else {
+						gf_svg_attributes_add(&a, &b, &a, 0);
+					}
 				}
 				b = a;
 				b.far_ptr = inf->field_ptr;
-				if (com->tag == GF_SG_LSR_REPLACE) {
-					gf_svg_attributes_copy(&a, &b, 0);
-				} else {
-					gf_svg_attributes_add(&a, &b, &a, 0);
-				}
 			}
 			/*signal node modif*/
 			gf_node_changed(com->node, &a);
@@ -572,15 +582,25 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			if (gf_node_get_field(fromNode, com->fromFieldIndex, &b) != GF_OK) return GF_NON_COMPLIANT_BITSTREAM;
 
 			if ((inf->fieldIndex==(u32) -1) && (inf->fieldType==SVG_String_datatype)) {
-				a.far_ptr = & ((SVG_SA_Element*)com->node)->textContent;
-				a.fieldType = SVG_String_datatype;
+				char *str = *(SVG_String*)inf->field_ptr;
+
+				if (com->tag == GF_SG_LSR_REPLACE) {
+					GF_DOMText *t = ((SVG_Element*)com->node)->children ? (GF_DOMText*) ((SVG_Element*)com->node)->children->node :NULL; 
+					if (t && (t->sgprivate->tag==TAG_DOMText)) {
+						if (t->textContent) free(t->textContent);
+						t->textContent = NULL;
+						if (str) t->textContent = strdup(str);
+					}
+				} else {
+					if (str) gf_dom_add_text_node(com->node, strdup(str));
+				}
 			} else {
 				gf_node_get_field(com->node, inf->fieldIndex, &a);
-			}
-			if (com->tag == GF_SG_LSR_REPLACE) {
-				e = gf_svg_attributes_copy(&a, &b, 0);
-			} else {
-				e = gf_svg_attributes_add(&a, &b, &a, 0);
+				if (com->tag == GF_SG_LSR_REPLACE) {
+					e = gf_svg_attributes_copy(&a, &b, 0);
+				} else {
+					e = gf_svg_attributes_add(&a, &b, &a, 0);
+				}
 			}
 			gf_node_changed(com->node, &a);
 			return e;
