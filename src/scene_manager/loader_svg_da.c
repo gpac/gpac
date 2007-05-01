@@ -888,13 +888,12 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		) {
 			char *url = NULL;
 			char *src = NULL;
+			const char *ID = NULL;
 			u32 time, OTI, ST, i, ts_res;
 			GF_ODUpdate *odU;
 			GF_ObjectDescriptor *od;
 			Bool rap;
 			SVG_SAFExternalStream*st;
-			const char *source = NULL;
-			const char *ID = NULL;
 			/*create a SAF stream*/
 			if (!parser->saf_es) {
 				GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);

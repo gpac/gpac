@@ -4455,7 +4455,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 						if (com_type==LSR_UPDATE_INSERT) {
 							SVG_StrokeDashArray*da = (SVG_StrokeDashArray*)info.far_ptr;
 							/*use MFFloat for insert*/
-							if (gf_sg_vrml_mf_insert(&da->array, GF_SG_VRML_MFFLOAT, &v2, idx)==GF_OK)
+							if (gf_sg_vrml_mf_insert(&da->array, GF_SG_VRML_MFFLOAT, (void*) &v2, idx)==GF_OK)
 								*v2 = *v1;
 						} else {
 							SVG_StrokeDashArray*da = (SVG_StrokeDashArray*)info.far_ptr;
@@ -4562,7 +4562,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 					if (idx>=0) {
 						gf_node_list_insert_child(&elt->children, new_node, idx);
 					} else {
-						gf_node_list_add_child(&elt->children, new_node);
+						gf_node_list_add_child_last(&elt->children, new_node, &last);
 					}
 					gf_node_register(new_node, n);
 				}
@@ -4927,7 +4927,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 	 */
 	count = lsr_read_vluimsbf5(lsr, "countG");
 	for (i=0; i<count; i++) {
-		u32 locID = lsr_read_vluimsbf5(lsr, "binaryIdForThisStringID");
+		/*u32 locID = */lsr_read_vluimsbf5(lsr, "binaryIdForThisStringID");
 		lsr_read_byte_align_string(lsr, NULL, "stringID");
 	}
 	GF_LSR_READ_INT(lsr, flag, 1, "hasExtension");
@@ -4937,7 +4937,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 
 		count = lsr_read_vluimsbf5(lsr, "len");
 		for (i=0; i<count; i++) {
-			u32 locID = lsr_read_vluimsbf5(lsr, "localStreamIdForThisGlobal");
+			/*u32 locID = */lsr_read_vluimsbf5(lsr, "localStreamIdForThisGlobal");
 			lsr_read_byte_align_string(lsr, NULL, "globalName");
 		}
 		pos = gf_bs_get_bit_offset(lsr->bs) - pos;

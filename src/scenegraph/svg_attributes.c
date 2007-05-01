@@ -123,8 +123,7 @@ const char *gf_dom_event_get_name(u32 type)
 	case GF_EVENT_SHORT_ACCESSKEY: return "shortAccessKey";
 	/*LASeR unofficial events*/
 	case GF_EVENT_BATTERY: return "battery";
-	case GF_EVENT_CPU: "cpu";
-	
+	case GF_EVENT_CPU: return "cpu";
 
 	default: return "unknown";
 	}

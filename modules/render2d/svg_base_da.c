@@ -1275,7 +1275,6 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 {
 	SFVec2f center, focal;
 	Fixed radius;
-	SVG_Element *rg = (SVG_Element *) txh->owner;
 	SVGAllAttributes all_atts;
 
 	/*create gradient brush if needed*/
