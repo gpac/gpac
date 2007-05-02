@@ -445,13 +445,21 @@ u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info)
 	}
 }
 
+/* NOTE: Some properties (audio-level, display, opacity, solid*, stop*, vector-effect, viewport*) 
+         are inherited only when they are  specified with the value 'inherit'
+         otherwise they default to their initial value
+		 which for the function below means NULL, the renderer will take care of the rest
+ */
 u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *render_svg_props) 
 {
 	u32 inherited_flags_mask = GF_SG_NODE_DIRTY | GF_SG_CHILD_DIRTY;
 	if(!all_atts || !render_svg_props) return ~inherited_flags_mask;
 
-	if (all_atts->audio_level && all_atts->audio_level->type != SVG_NUMBER_INHERIT)
+	if (all_atts->audio_level && all_atts->audio_level->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->audio_level = all_atts->audio_level;	
+	} else if (!all_atts->audio_level) {
+		render_svg_props->audio_level = NULL;
+	}
 	
 	if (all_atts->color && all_atts->color->color.type != SVG_COLOR_INHERIT) {
 		render_svg_props->color = all_atts->color;
@@ -463,7 +471,10 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 	}
 	if (all_atts->display && *(all_atts->display) != SVG_DISPLAY_INHERIT) {
 		render_svg_props->display = all_atts->display;
+	} else if (!all_atts->display) {
+		render_svg_props->display = NULL;
 	}
+
 	if (all_atts->display_align && *(all_atts->display_align) != SVG_DISPLAYALIGN_INHERIT) {
 		render_svg_props->display_align = all_atts->display_align;
 	} else {
@@ -524,9 +535,12 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 	}
 	if (all_atts->opacity && all_atts->opacity->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->opacity = all_atts->opacity;
+	} else if (!all_atts->opacity) {
+		render_svg_props->opacity = NULL;
 	} else {
 		inherited_flags_mask |= GF_SG_SVG_OPACITY_DIRTY;
 	}
+
 	if (all_atts->pointer_events && *(all_atts->pointer_events) != SVG_POINTEREVENTS_INHERIT) {
 		render_svg_props->pointer_events = all_atts->pointer_events;
 	}
@@ -540,11 +554,15 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
 			inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_DIRTY;
 		}
+	} else if (!all_atts->solid_color) {
+		render_svg_props->solid_color = NULL;
 	} else {
 		inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_DIRTY;
 	}
 	if (all_atts->solid_opacity && all_atts->solid_opacity->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->solid_opacity = all_atts->solid_opacity;
+	} else if (!all_atts->solid_opacity) {
+		render_svg_props->solid_opacity = NULL;
 	} else {
 		inherited_flags_mask |= GF_SG_SVG_SOLIDOPACITY_DIRTY;
 	}
@@ -555,11 +573,15 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
 			inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_DIRTY;
 		}
+	} else if (!all_atts->stop_color) {
+		render_svg_props->stop_color = NULL;
 	} else {
 		inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_DIRTY;
 	}
 	if (all_atts->stop_opacity && all_atts->stop_opacity->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->stop_opacity = all_atts->stop_opacity;
+	} else if (!all_atts->stop_opacity) {
+		render_svg_props->stop_opacity = NULL;
 	} else {
 		inherited_flags_mask |= GF_SG_SVG_STOPOPACITY_DIRTY;
 	}
@@ -623,14 +645,20 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 	}
 	if (all_atts->vector_effect && *(all_atts->vector_effect) != SVG_VECTOREFFECT_INHERIT) {
 		render_svg_props->vector_effect = all_atts->vector_effect;
+	} else if (!all_atts->vector_effect) {
+		render_svg_props->vector_effect = NULL;
 	} else {
 		inherited_flags_mask |= GF_SG_SVG_VECTOREFFECT_DIRTY;
 	}
 	if (all_atts->viewport_fill && all_atts->viewport_fill->type != SVG_PAINT_INHERIT) {
 		render_svg_props->viewport_fill = all_atts->viewport_fill;		
-	}
+	} else if (!all_atts->viewport_fill) {
+		render_svg_props->viewport_fill = NULL;
+	} 
 	if (all_atts->viewport_fill_opacity && all_atts->viewport_fill_opacity->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->viewport_fill_opacity = all_atts->viewport_fill_opacity;
+	} else if (!all_atts->viewport_fill_opacity) {
+		render_svg_props->viewport_fill_opacity = NULL;
 	}
 	if (all_atts->visibility && *(all_atts->visibility) != SVG_VISIBILITY_INHERIT) {
 		render_svg_props->visibility = all_atts->visibility;
