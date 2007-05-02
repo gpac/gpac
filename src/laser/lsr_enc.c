@@ -243,7 +243,7 @@ static void lsr_write_extend_class(GF_LASeRCodec *lsr, char *data, u32 len, cons
 	}
 }
 
-static void lsr_write_codec_IDREF(GF_LASeRCodec *lsr, SVG_IRI *href, const char *name)
+static void lsr_write_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *name)
 {
 	u32 nID = 0;
 	if (href && href->target) nID = gf_node_get_id((GF_Node *)href->target);
@@ -251,7 +251,7 @@ static void lsr_write_codec_IDREF(GF_LASeRCodec *lsr, SVG_IRI *href, const char 
 		GF_Node *n = gf_sg_find_node_by_name(lsr->sg, (char *) name + 1);
 		if (n) nID = gf_node_get_id((GF_Node *)href->target);
 	}
-	else nID = 1+href->stream_id;
+	else nID = 1+href->lsr_stream_id;
 
 	assert(nID);
 
@@ -353,8 +353,8 @@ static void lsr_write_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, con
 	for (i=0; i<count; i++) {
 		char *str;
 		if (is_iri) {
-			SVG_IRI *iri = (SVG_IRI *)gf_list_get(l, i);
-			str = iri->iri;
+			XMLRI *iri = (XMLRI *)gf_list_get(l, i);
+			str = iri->string;
 		} else {
 			str = (char*)gf_list_get(l, i);
 		}
@@ -364,31 +364,31 @@ static void lsr_write_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, con
 	lsr_write_byte_align_string(lsr, text, name);
 }
 
-static void lsr_write_any_uri(GF_LASeRCodec *lsr, SVG_IRI *iri, const char *name)
+static void lsr_write_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 {
 	Bool is_iri = 0;
 
-	if (iri->type==SVG_IRI_IRI) {
+	if (iri->type==XMLRI_STRING) {
 		is_iri = 1;
-		if (iri->iri[0]=='#') {
-			iri->target = (SVG_Element*)gf_sg_find_node_by_name(lsr->sg, iri->iri+1);
+		if (iri->string[0]=='#') {
+			iri->target = (SVG_Element*)gf_sg_find_node_by_name(lsr->sg, iri->string+1);
 			if (iri->target) {
 				is_iri = 0;
-				iri->type = SVG_IRI_ELEMENTID;
+				iri->type = XMLRI_ELEMENTID;
 			}
 		}
 	}
 
 	GF_LSR_WRITE_INT(lsr, is_iri, 1, "hasUri");
 	if (is_iri) {
-		if (!iri->iri || strnicmp(iri->iri, "data:", 5)) {
-			lsr_write_byte_align_string(lsr, iri->iri, "uri");
+		if (!iri->string || strnicmp(iri->string, "data:", 5)) {
+			lsr_write_byte_align_string(lsr, iri->string, "uri");
 			GF_LSR_WRITE_INT(lsr, 0, 1, "hasData");
 		} else {
 			u32 len;
-			char *sep = strchr(iri->iri, ',');
+			char *sep = strchr(iri->string, ',');
 			sep[0] = 0;
-			lsr_write_byte_align_string(lsr, iri->iri, "uri");
+			lsr_write_byte_align_string(lsr, iri->string, "uri");
 			sep[0] = ',';
 			len = strlen(sep+1);
 			GF_LSR_WRITE_INT(lsr, 1, 1, "hasData");
@@ -396,18 +396,18 @@ static void lsr_write_any_uri(GF_LASeRCodec *lsr, SVG_IRI *iri, const char *name
 			gf_bs_write_data(lsr->bs, sep+1, len);
 		}
 	}
-	GF_LSR_WRITE_INT(lsr, (iri->type==SVG_IRI_ELEMENTID) ? 1 : 0, 1, "hasID");
-	if (iri->type==SVG_IRI_ELEMENTID) lsr_write_codec_IDREF(lsr, iri, "idref");
+	GF_LSR_WRITE_INT(lsr, (iri->type==XMLRI_ELEMENTID) ? 1 : 0, 1, "hasID");
+	if (iri->type==XMLRI_ELEMENTID) lsr_write_codec_IDREF(lsr, iri, "idref");
 
-	GF_LSR_WRITE_INT(lsr, (iri->type==SVG_IRI_STREAMID) ? 1 : 0, 1, "hasID");
-	if (iri->type==SVG_IRI_STREAMID) 
+	GF_LSR_WRITE_INT(lsr, (iri->type==XMLRI_STREAMID) ? 1 : 0, 1, "hasID");
+	if (iri->type==XMLRI_STREAMID) 
 		lsr_write_codec_IDREF(lsr, iri, "ref");
 }
 static void lsr_write_any_uri_string(GF_LASeRCodec *lsr, char *uri, const char *name)
 {
-	SVG_IRI iri;
-	iri.type = SVG_IRI_IRI;
-	iri.iri = uri;
+	XMLRI iri;
+	iri.type = XMLRI_STRING;
+	iri.string = uri;
 	lsr_write_any_uri(lsr, &iri, name);
 }
 
@@ -747,7 +747,7 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 			GF_LSR_WRITE_INT(lsr, LSR_EVT_pausedEvent, 6, "event"); break;
 		case GF_EVENT_PLAY: 
 			GF_LSR_WRITE_INT(lsr, LSR_EVT_play, 6, "event"); break;
-		case GF_EVENT_REPEAT: 
+		case GF_EVENT_REPEAT_EVENT: 
 			GF_LSR_WRITE_INT(lsr, LSR_EVT_repeatEvent, 6, "event"); break;
 		case GF_EVENT_REPEAT_KEY: 
 			GF_LSR_WRITE_INT(lsr, LSR_EVT_repeatKey, 6, "event"); break;
@@ -788,10 +788,10 @@ static void lsr_write_smil_time(GF_LASeRCodec *lsr, SMIL_Time *t)
 	if (t->type==GF_SMIL_TIME_EVENT) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "hasEvent");
 		if (t->element && gf_node_get_id((GF_Node*)t->element) ) {
-			SVG_IRI iri;
+			XMLRI iri;
 			GF_LSR_WRITE_INT(lsr, 1, 1, "hasIdentifier");
-			iri.iri = NULL;
-			iri.type = SVG_IRI_ELEMENTID;
+			iri.string = NULL;
+			iri.type = XMLRI_ELEMENTID;
 			iri.target =  t->element;
 			lsr_write_codec_IDREF(lsr, &iri, "idref");
 		} else {
@@ -1059,9 +1059,9 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 			tot_count = 0;
 			for (i=0; i<count; i++) {
 				char *ext;
-				SVG_IRI *iri = (SVG_IRI*)gf_list_get(l, i);
-				if (iri->type != SVG_IRI_IRI) continue;
-				ext = strchr(iri->iri, '#');
+				XMLRI *iri = (XMLRI*)gf_list_get(l, i);
+				if (iri->type != XMLRI_STRING) continue;
+				ext = strchr(iri->string, '#');
 				if (!ext) continue;
 				if (!stricmp(ext, "Animation")) { vals[tot_count] = 0; tot_count++; }
 				else if (!stricmp(ext, "Audio")) { vals[tot_count] = 1; tot_count++; }
@@ -1109,7 +1109,7 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 	    case TAG_SVG_ATT_systemLanguage: 
 			lsr_write_byte_align_string_list(lsr, *(GF_List **)att->data, "systemLanguage", 0); 
 			break;
-	    case TAG_SVG_ATT_xml_base: lsr_write_byte_align_string(lsr, ((SVG_IRI*)att->data)->iri, "xml:base"); break;
+	    case TAG_SVG_ATT_xml_base: lsr_write_byte_align_string(lsr, ((XMLRI*)att->data)->string, "xml:base"); break;
 	    case TAG_SVG_ATT_xml_lang: lsr_write_byte_align_string(lsr, *(SVG_String *)att->data, "xml:lang"); break;
 	    case TAG_SVG_ATT_xml_space: GF_LSR_WRITE_INT(lsr, *(XML_Space *)att->data, 1, "xml:space"); break;
 		case TAG_SVG_ATT_nav_next: lsr_write_focus(lsr, (SVG_Focus*)att->data, "focusNext"); break;
@@ -1142,8 +1142,8 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 		case TAG_SVG_ATT_xlink_title: lsr_write_byte_align_string(lsr, *(SVG_String *)att->data, "xlink:title"); break;
 		/*TODO FIXME*/
 		case TAG_SVG_ATT_xlink_type: GF_LSR_WRITE_INT(lsr, 0, 3, "xlink:type"); break;
-		case TAG_SVG_ATT_xlink_role: lsr_write_any_uri(lsr, (SVG_IRI*)att->data, "xlink:role"); break;
-		case TAG_SVG_ATT_xlink_arcrole: lsr_write_any_uri(lsr, (SVG_IRI*)att->data, "xlink:arcrole"); break;
+		case TAG_SVG_ATT_xlink_role: lsr_write_any_uri(lsr, (XMLRI*)att->data, "xlink:role"); break;
+		case TAG_SVG_ATT_xlink_arcrole: lsr_write_any_uri(lsr, (XMLRI*)att->data, "xlink:arcrole"); break;
 		/*TODO FIXME*/
 		case TAG_SVG_ATT_xlink_actuate: GF_LSR_WRITE_INT(lsr, 0, 2, "xlink:actuate"); break;
 		case TAG_SVG_ATT_xlink_show: GF_LSR_WRITE_INT(lsr, 0, 3, "xlink:show"); break;
@@ -1176,18 +1176,18 @@ static void lsr_write_stroke(GF_LASeRCodec *lsr, SVG_Element *n, SVGAllAttribute
 		GF_LSR_WRITE_INT(lsr, 0, 1, "has_stroke");
 	}
 }
-static void lsr_write_href(GF_LASeRCodec *lsr, SVG_IRI *iri)
+static void lsr_write_href(GF_LASeRCodec *lsr, XMLRI *iri)
 {
 	Bool has_href = iri ? 1 : 0;
 	if (iri) {
-		if (iri->type==SVG_IRI_ELEMENTID) {
-			if (!iri->target && iri->iri) iri->target = (SVG_Element *)gf_sg_find_node_by_name(lsr->sg, iri->iri+1);
+		if (iri->type==XMLRI_ELEMENTID) {
+			if (!iri->target && iri->string) iri->target = (SVG_Element *)gf_sg_find_node_by_name(lsr->sg, iri->string+1);
 			if (!iri->target || !gf_node_get_id((GF_Node *)iri->target)) has_href = 0;
 		} 
-		else if (iri->type==SVG_IRI_STREAMID) {
-			if (!iri->stream_id) has_href = 0;
+		else if (iri->type==XMLRI_STREAMID) {
+			if (!iri->lsr_stream_id) has_href = 0;
 		}
-		else if (!iri->iri) has_href = 0;
+		else if (!iri->string) has_href = 0;
 	}
 
 	GF_LSR_WRITE_INT(lsr, has_href, 1, "has_href");
@@ -1214,7 +1214,7 @@ static void lsr_write_calc_mode(GF_LASeRCodec *lsr, u8 *calc_mode)
 	}
 }
 
-static void lsr_write_animatable(GF_LASeRCodec *lsr, SMIL_AttributeName *anim_type, SVG_IRI *iri, const char *name)
+static void lsr_write_animatable(GF_LASeRCodec *lsr, SMIL_AttributeName *anim_type, XMLRI *iri, const char *name)
 {
 	s32 a_type = -1;
 
@@ -1331,7 +1331,7 @@ static u32 svg_type_to_lsr_anim(u32 svg_type, u32 transform_type, GF_List *vals,
 	/*ID (u32) types*/ //return 10;
 	case SVG_FontFamily_datatype:
 		return 11;
-	case SVG_IRI_datatype:
+	case XMLRI_datatype:
 		return 12;
 	case SVG_Motion_datatype:
 		return 9;
@@ -1427,7 +1427,7 @@ static void lsr_write_an_anim_value(GF_LASeRCodec *lsr, void *val, u32 lsr_type,
 			lsr_write_fixed_16_8(lsr, ((SVG_Number *) val)->value, name); 
 		}
 		break;
-    case 12: lsr_write_any_uri(lsr, (SVG_IRI*)val, name); break;
+    case 12: lsr_write_any_uri(lsr, (XMLRI*)val, name); break;
     case 2: lsr_write_path_type(lsr, (SVG_PathData*)val, name); break;
     case 3: lsr_write_point_sequence(lsr, (GF_List **)val, name); break;
     case 4: lsr_write_fixed_clamp(lsr, ((SVG_Number *) val)->value, name); break;
@@ -1872,7 +1872,7 @@ static void lsr_write_clip_time(GF_LASeRCodec *lsr, SVG_Clock *clock, const char
 	}
 }
 
-static void lsr_write_href_anim(GF_LASeRCodec *lsr, SVG_IRI *href, SVG_Element *parent)
+static void lsr_write_href_anim(GF_LASeRCodec *lsr, XMLRI *href, SVG_Element *parent)
 {
 	if (href->target && (href->target==parent)) {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "has_href");
@@ -2778,7 +2778,7 @@ static void lsr_write_listener(GF_LASeRCodec *lsr, SVG_Element *elt)
 	} else {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "hasEvent");
 	}
-	if (atts.handler && (atts.handler->iri || (atts.handler->target && gf_node_get_id((GF_Node *)atts.handler->target) ) )) {
+	if (atts.handler && (atts.handler->string || (atts.handler->target && gf_node_get_id((GF_Node *)atts.handler->target) ) )) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "hasHandler");
 		lsr_write_any_uri(lsr, atts.handler, "handler");
 	} else {
@@ -3221,8 +3221,8 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 			GF_LSR_WRITE_INT(lsr, 0, 1, "escapeFlag"); 
 			lsr_write_float_list(lsr, (GF_List **)val, "val");
 			break;
-		case SVG_IRI_datatype:
-			lsr_write_any_uri(lsr, (SVG_IRI*)val, "val");
+		case XMLRI_datatype:
+			lsr_write_any_uri(lsr, (XMLRI*)val, "val");
 			break;
 
 		case SVG_String_datatype:
@@ -3282,7 +3282,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 		}
 			break;
 		default:
-			if ((fieldType>=SVG_FillRule_datatype) && (fieldType<=SVG_LAST_DEFINE_PROPERTY)) {
+			if ((fieldType>=SVG_FillRule_datatype) && (fieldType<=SVG_LAST_U8_PROPERTY)) {
 				u8 v = *(u8 *)val;
 				/*TODO fixme, check inherit/default values*/
 				if (!v) {

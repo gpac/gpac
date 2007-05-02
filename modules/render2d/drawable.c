@@ -912,21 +912,21 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 	ctx->aspect.fill_color = 0;
 
 	if (props->fill->type==SVG_PAINT_URI) {
-		if (props->fill->iri.type != SVG_IRI_ELEMENTID) {
+		if (props->fill->iri.type != XMLRI_ELEMENTID) {
 			/* trying to resolve the IRI to the Paint Server */
-			SVG_IRI *iri = &props->fill->iri;
+			XMLRI *iri = &props->fill->iri;
 			GF_SceneGraph *sg = gf_node_get_graph(ctx->drawable->node);
-			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
+			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->string[1]));
 			if (n) {
-				iri->type = SVG_IRI_ELEMENTID;
+				iri->type = XMLRI_ELEMENTID;
 				iri->target = n;
 				gf_svg_register_iri(sg, iri);
-				free(iri->iri);
-				iri->iri = NULL;
+				free(iri->string);
+				iri->string = NULL;
 			}
 		}		
 		/* If paint server not found, paint is equivalent to none */
-		if (props->fill->iri.type == SVG_IRI_ELEMENTID) {
+		if (props->fill->iri.type == XMLRI_ELEMENTID) {
 			switch (gf_node_get_tag((GF_Node *)props->fill->iri.target)) {
 			case TAG_SVG_solidColor:
 			{
@@ -984,21 +984,21 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 	ctx->aspect.line_color = 0;
 	ctx->aspect.pen_props.width = (props->stroke->type != SVG_PAINT_NONE) ? props->stroke_width->value : 0;
 	if (props->stroke->type==SVG_PAINT_URI) {
-		if (props->stroke->iri.type != SVG_IRI_ELEMENTID) {
+		if (props->stroke->iri.type != XMLRI_ELEMENTID) {
 			/* trying to resolve the IRI to the Paint Server */
-			SVG_IRI *iri = &props->stroke->iri;
+			XMLRI *iri = &props->stroke->iri;
 			GF_SceneGraph *sg = gf_node_get_graph(ctx->drawable->node);
-			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
+			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->string[1]));
 			if (n) {
-				iri->type = SVG_IRI_ELEMENTID;
+				iri->type = XMLRI_ELEMENTID;
 				iri->target = n;
 				gf_svg_register_iri(sg, iri);
-				free(iri->iri);
-				iri->iri = NULL;
+				free(iri->string);
+				iri->string = NULL;
 			}
 		}		
 		/* Paint server not found, stroke is equivalent to none */
-		if (props->stroke->iri.type == SVG_IRI_ELEMENTID) {
+		if (props->stroke->iri.type == XMLRI_ELEMENTID) {
 			switch (gf_node_get_tag((GF_Node *)props->stroke->iri.target)) {
 			case TAG_SVG_solidColor:
 			{
@@ -1129,21 +1129,21 @@ static void setup_svg_sani_drawable_context(DrawableContext *ctx, struct _visual
 	ctx->aspect.fill_color = 0;
 
 	if (path->fill.type==SVG_PAINT_URI) {
-		if (path->fill.iri.type != SVG_IRI_ELEMENTID) {
+		if (path->fill.iri.type != XMLRI_ELEMENTID) {
 			/* trying to resolve the IRI to the Paint Server */
-			SVG_IRI *iri = &path->fill.iri;
+			XMLRI *iri = &path->fill.iri;
 			GF_SceneGraph *sg = gf_node_get_graph(ctx->drawable->node);
-			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
+			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->string[1]));
 			if (n) {
-				iri->type = SVG_IRI_ELEMENTID;
+				iri->type = XMLRI_ELEMENTID;
 				iri->target = (SVG_SA_Element *) n;
 				gf_svg_register_iri(sg, iri);
-				free(iri->iri);
-				iri->iri = NULL;
+				free(iri->string);
+				iri->string = NULL;
 			}
 		}		
 		/* Paint server not found, paint is equivalent to none */
-		if (path->fill.iri.type == SVG_IRI_ELEMENTID) {
+		if (path->fill.iri.type == XMLRI_ELEMENTID) {
 			switch (gf_node_get_tag((GF_Node *)path->fill.iri.target)) {
 			case TAG_SVG_SA_solidColor:
 				{
@@ -1170,20 +1170,20 @@ static void setup_svg_sani_drawable_context(DrawableContext *ctx, struct _visual
 
 	ctx->aspect.pen_props.width = (path->stroke.type != SVG_PAINT_NONE) ? path->stroke_width.value : 0;
 	if (path->stroke.type==SVG_PAINT_URI) {
-		if (path->stroke.iri.type != SVG_IRI_ELEMENTID) {
+		if (path->stroke.iri.type != XMLRI_ELEMENTID) {
 			/* trying to resolve the IRI to the Paint Server */
-			SVG_IRI *iri = &path->stroke.iri;
+			XMLRI *iri = &path->stroke.iri;
 			GF_SceneGraph *sg = gf_node_get_graph(ctx->drawable->node);
-			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->iri[1]));
+			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->string[1]));
 			if (n) {
-				iri->type = SVG_IRI_ELEMENTID;
+				iri->type = XMLRI_ELEMENTID;
 				iri->target = (SVG_SA_Element *) n;
 				gf_svg_register_iri(sg, iri);
-				free(iri->iri);
-				iri->iri = NULL;
+				free(iri->string);
+				iri->string = NULL;
 			}
 		}		
-		if (path->stroke.iri.type != SVG_IRI_ELEMENTID) {
+		if (path->stroke.iri.type != XMLRI_ELEMENTID) {
 			/* Paint server not found, stroke is equivalent to none */
 			ctx->aspect.pen_props.width = 0;
 		} else {

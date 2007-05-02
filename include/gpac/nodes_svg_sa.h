@@ -353,9 +353,9 @@ typedef struct _tagSVG_SA_listenerElement
 	XMLEV_Phase phase;
 	XMLEV_Propagate propagate;
 	XMLEV_DefaultAction defaultAction;
-	SVG_IRI observer;
-	SVG_IRI target;
-	SVG_IRI handler;
+	XMLRI observer;
+	XMLRI target;
+	XMLRI handler;
 	SVG_Boolean enabled;
 } SVG_SA_listenerElement;
 

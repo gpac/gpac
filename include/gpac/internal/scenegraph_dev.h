@@ -271,7 +271,7 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 
 /* reset functions for SVG types */
 void gf_svg_reset_path(SVG_PathData path);
-void gf_svg_reset_iri(GF_SceneGraph *sg, SVG_IRI*iri);
+void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI*iri);
 /* delete functions for SVG types */
 void gf_svg_delete_paint		(GF_SceneGraph *sg, SVG_Paint *paint);
 void gf_smil_delete_times		(GF_List *l);
@@ -284,11 +284,11 @@ void gf_smil_delete_key_types	(GF_List *l);
 /*SMIL anim tools*/
 
 typedef struct __xlink_attrip_ptrs {
-	SVG_IRI *href;
+	XMLRI *href;
 	SVG_ContentType *type;
 	SVG_String *title;
-	SVG_IRI *arcrole; 
-	SVG_IRI *role;
+	XMLRI *arcrole; 
+	XMLRI *role;
 	SVG_String *show;
 	SVG_String *actuate;
 } XLinkAttributesPointers;
@@ -325,6 +325,11 @@ typedef struct __smil_anim_attrip_ptrs {
 	SMIL_KeyTimes *keyTimes;
 	SVG_TransformType *type;
 	SVG_Boolean *lsr_enabled;
+
+	SMIL_KeyPoints *keyPoints;
+	SVG_String *origin;
+	SVG_Rotate *rotate;
+	SVG_PathData *path;
 } SMILAnimationAttributesPointers;
 
 
@@ -471,6 +476,8 @@ typedef struct {
    some info to make animation computation faster */
 typedef struct {
 	SMIL_AttributeAnimations *owner;
+
+	Bool is_first_anim;
 
 	/* animation element */
 	GF_Node *anim_elt;

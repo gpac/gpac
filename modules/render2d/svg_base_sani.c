@@ -333,11 +333,11 @@ static Bool svg_sani_eval_conditional(GF_Renderer *sr, SVG_SANI_Element *elt)
 
 	count = gf_list_count(elt->conditional->requiredFeatures);
 	for (i=0;i<count;i++) {
-		SVG_IRI *iri = (SVG_IRI *)gf_list_get(elt->conditional->requiredFeatures, i);
-		if (!iri->iri) continue;
+		XMLRI *iri = (XMLRI *)gf_list_get(elt->conditional->requiredFeatures, i);
+		if (!iri->string) continue;
 		/*TODO FIXME: be a bit more precise :)*/
-		if (!strnicmp(iri->iri, "http://www.w3.org/", 18)) {
-			char *feat = strrchr(iri->iri, '#');
+		if (!strnicmp(iri->string, "http://www.w3.org/", 18)) {
+			char *feat = strrchr(iri->string, '#');
 			if (!feat) continue;
 			feat++;
 			if (!strcmp(feat, "SVGDOM")) return 0;
@@ -818,7 +818,7 @@ static void svg_sani_a_HandleEvent(GF_Node *handler, GF_DOM_Event *event)
 
 	evt.type = GF_EVENT_NAVIGATE;
 	
-	if (a->xlink->href.type == SVG_IRI_IRI) {
+	if (a->xlink->href.type == XMLRI_STRING) {
 		evt.navigate.to_url = a->xlink->href.iri;
 		if (evt.navigate.to_url) {
 			evt.navigate.param_count = 1;

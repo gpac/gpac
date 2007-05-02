@@ -949,7 +949,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 		evt.type = GF_EVENT_NAVIGATE_INFO;
 		
 		if (all_atts.xlink_title) evt.navigate.to_url = *all_atts.xlink_title;
-		else if (all_atts.xlink_href->iri) evt.navigate.to_url = all_atts.xlink_href->iri;
+		else if (all_atts.xlink_href->string) evt.navigate.to_url = all_atts.xlink_href->string;
 		else {
 			evt.navigate.to_url = gf_node_get_name(all_atts.xlink_href->target);
 			if (!evt.navigate.to_url) evt.navigate.to_url = "document internal link";
@@ -961,8 +961,8 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 
 	evt.type = GF_EVENT_NAVIGATE;
 	
-	if (all_atts.xlink_href->type == SVG_IRI_IRI) {
-		evt.navigate.to_url = all_atts.xlink_href->iri;
+	if (all_atts.xlink_href->type == XMLRI_STRING) {
+		evt.navigate.to_url = all_atts.xlink_href->string;
 		if (evt.navigate.to_url) {
 			evt.navigate.param_count = 1;
 			evt.navigate.parameters = (const char **) &all_atts.target;
@@ -1358,7 +1358,7 @@ GF_TextureHandler *svg_gradient_get_texture(GF_Node *node)
 	SVG_GradientStack *st;
 	/*check gradient redirection ...*/
 	if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &info)==GF_OK) {
-		g = ((SVG_IRI*)info.far_ptr)->target;
+		g = ((XMLRI*)info.far_ptr)->target;
 	}
 	if (!g) g = node;
 	st = (SVG_GradientStack*) gf_node_get_private((GF_Node *)g);

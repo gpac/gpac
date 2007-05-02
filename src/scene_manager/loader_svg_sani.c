@@ -162,16 +162,16 @@ void svg_sani_reset_defered_animations(GF_List *l)
 	}
 }
 
-static void svg_sani_post_process_href(GF_SVG_SANI_Parser *parser, SVG_IRI *iri)
+static void svg_sani_post_process_href(GF_SVG_SANI_Parser *parser, XMLRI *iri)
 {
 	/*keep data when encoding*/
 	if ( !(parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK)) return;
 
 	/*unresolved, queue it...*/
-	if ((iri->type==SVG_IRI_ELEMENTID) && !iri->target && iri->iri) {
+	if ((iri->type==XMLRI_ELEMENTID) && !iri->target && iri->string) {
 		gf_list_add(parser->defered_hrefs, iri);
 	}
-	if (iri->type != SVG_IRI_IRI) return;
+	if (iri->type != XMLRI_STRING) return;
 	gf_svg_store_embedded_data(iri, parser->load->localPath, parser->load->fileName);
 }
 
@@ -215,7 +215,7 @@ static Bool svg_sani_parse_animation(GF_SVG_SANI_Parser *parser, GF_SceneGraph *
 		if (!anim->target) return 0;
 
 		/*setup IRI ptr*/
-		anim->animation_elt->xlink->href.type = SVG_IRI_ELEMENTID;
+		anim->animation_elt->xlink->href.type = XMLRI_ELEMENTID;
 		anim->animation_elt->xlink->href.target = anim->target;
 		gf_svg_register_iri(sg, &anim->animation_elt->xlink->href);
 
@@ -279,25 +279,25 @@ static Bool svg_sani_parse_animation(GF_SVG_SANI_Parser *parser, GF_SceneGraph *
 		if (anim->to) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "to", &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->to, anim_value_type);
-			if (anim_value_type==SVG_IRI_datatype) svg_sani_post_process_href(parser, (SVG_IRI*)anim->animation_elt->anim->to.value);
+			if (anim_value_type==XMLRI_datatype) svg_sani_post_process_href(parser, (XMLRI*)anim->animation_elt->anim->to.value);
 		} 
 		if (anim->from) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "from", &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->from, anim_value_type);
-			if (anim_value_type==SVG_IRI_datatype) svg_sani_post_process_href(parser, (SVG_IRI*)anim->animation_elt->anim->from.value);
+			if (anim_value_type==XMLRI_datatype) svg_sani_post_process_href(parser, (XMLRI*)anim->animation_elt->anim->from.value);
 		} 
 		if (anim->by) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "by", &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->by, anim_value_type);
-			if (anim_value_type==SVG_IRI_datatype) svg_sani_post_process_href(parser, (SVG_IRI*)anim->animation_elt->anim->by.value);
+			if (anim_value_type==XMLRI_datatype) svg_sani_post_process_href(parser, (XMLRI*)anim->animation_elt->anim->by.value);
 		} 
 		if (anim->values) {
 			gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "values", &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->values, anim_value_type);
-			if (anim_value_type==SVG_IRI_datatype) {
+			if (anim_value_type==XMLRI_datatype) {
 				u32 i, count = gf_list_count(anim->animation_elt->anim->values.values);
 				for (i=0; i<count; i++) {
-					SVG_IRI *iri = (SVG_IRI *)gf_list_get(anim->animation_elt->anim->values.values, i);
+					XMLRI *iri = (XMLRI *)gf_list_get(anim->animation_elt->anim->values.values, i);
 					svg_sani_post_process_href(parser, iri);
 				}
 			}
@@ -331,15 +331,15 @@ static void svg_sani_resolved_refs(GF_SVG_SANI_Parser *parser, GF_SceneGraph *sg
 	count = gf_list_count(parser->defered_hrefs);
 	for (i=0; i<count; i++) {
 		GF_Node *targ;
-		SVG_IRI *iri = (SVG_IRI *)gf_list_get(parser->defered_hrefs, i);
-		if (nodeID && strcmp(iri->iri + 1, nodeID)) continue;
-		targ = gf_sg_find_node_by_name(sg, iri->iri + 1);
+		XMLRI *iri = (XMLRI *)gf_list_get(parser->defered_hrefs, i);
+		if (nodeID && strcmp(iri->string + 1, nodeID)) continue;
+		targ = gf_sg_find_node_by_name(sg, iri->string + 1);
 		if (targ) {
-			iri->type = SVG_IRI_ELEMENTID;
+			iri->type = XMLRI_ELEMENTID;
 			iri->target = (SVG_SANI_Element *) targ;
 			gf_svg_register_iri(sg, iri);
-			free(iri->iri);
-			iri->iri = NULL;
+			free(iri->string);
+			iri->string = NULL;
 			gf_list_rem(parser->defered_hrefs, i);
 			i--;
 			count--;
@@ -353,11 +353,11 @@ static void svg_sani_resolved_refs(GF_SVG_SANI_Parser *parser, GF_SceneGraph *sg
 		SVG_SANI_listenerElement *listener = (SVG_SANI_listenerElement *)gf_list_get(parser->defered_listeners, i);
 
 		par = NULL;
-		if (listener->observer.type == SVG_IRI_ELEMENTID) {
+		if (listener->observer.type == XMLRI_ELEMENTID) {
 			if (!listener->observer.target) continue;
 			else par = (GF_Node*)listener->observer.target;
 		}
-		if (listener->target.type == SVG_IRI_ELEMENTID) {
+		if (listener->target.type == XMLRI_ELEMENTID) {
 			if (!listener->target.target) continue;
 			else {
 				if (!par) par = (GF_Node*)listener->target.target;
@@ -462,10 +462,10 @@ static SVG_SANI_Element *svg_sani_parse_element(GF_SVG_SANI_Parser *parser, cons
 				/*may be NULL*/
 				anim->target = (SVG_SANI_Element *) gf_sg_find_node_by_name(parser->load->scene_graph, anim->target_id + 1);
 			} else {
-				SVG_IRI *iri = & elt->xlink->href;
+				XMLRI *iri = & elt->xlink->href;
 				memset(&info, 0, sizeof(GF_FieldInfo));
 				info.far_ptr = & elt->xlink->href;
-				info.fieldType = SVG_IRI_datatype;
+				info.fieldType = XMLRI_datatype;
 				info.name = "xlink:href";
 				gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
 
@@ -500,9 +500,9 @@ static SVG_SANI_Element *svg_sani_parse_element(GF_SVG_SANI_Parser *parser, cons
 				gf_node_init((GF_Node *)handler);
 			} else if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {
 				gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
-				if (info.fieldType== SVG_IRI_datatype) {
-					SVG_IRI *iri = (SVG_IRI *)info.far_ptr;
-					if ((iri->type==SVG_IRI_ELEMENTID) && !iri->target && iri->iri)
+				if (info.fieldType== XMLRI_datatype) {
+					XMLRI *iri = (XMLRI *)info.far_ptr;
+					if ((iri->type==XMLRI_ELEMENTID) && !iri->target && iri->string)
 						gf_list_add(parser->defered_hrefs, iri);
 				}
 			}
@@ -542,11 +542,11 @@ static SVG_SANI_Element *svg_sani_parse_element(GF_SVG_SANI_Parser *parser, cons
 		Bool post_pone = 0;
 		SVG_SANI_Element *par = NULL;
 		SVG_SANI_listenerElement *listener = (SVG_SANI_listenerElement *)elt;
-		if (listener->observer.type == SVG_IRI_ELEMENTID) {
+		if (listener->observer.type == XMLRI_ELEMENTID) {
 			if (!listener->observer.target) post_pone = 1;
 			else par = listener->observer.target;
 		}
-		if (!par && (listener->target.type == SVG_IRI_ELEMENTID)) {
+		if (!par && (listener->target.type == XMLRI_ELEMENTID)) {
 			if (!listener->target.target) post_pone = 1;
 			else par = listener->target.target;
 		}

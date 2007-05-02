@@ -32,6 +32,25 @@ extern "C" {
 
 #include <gpac/path2d.h>
 
+
+
+/* Attributes in SVG can be accessed using a GF_FieldInfo structure 
+   like it is done in the BIFS part of the implementation:
+
+	fieldIndex:		attribute tag to identify the attribute in the element in the case of dynamic alloc (default)
+	             or index of the attribute in the element in the case of static allocation of attributes
+
+	fieldType:		attribute data type as in the enumeration below
+	
+	name:			attribute name (WARNING: this may be NULL)
+
+	far_ptr:		pointer to the actual data with one of the type given in this file
+
+	NDTType:		unused in SVG
+	eventType:		unused in SVG
+	on_event_in:	unused in SVG 
+*/
+
 /* SVG attribute types */
 enum {
 	SVG_Unknown_datatype					= 0,
@@ -76,7 +95,7 @@ enum {
 	SVG_TextAlign_datatype					= 37,
 	SVG_Focusable_datatype					= 38,
 
-	SVG_LAST_DEFINE_PROPERTY				= 49,
+	SVG_LAST_U8_PROPERTY					= 49,
 
 	/* SVG Number */
 	SVG_Number_datatype						= 50,
@@ -117,7 +136,7 @@ enum {
 	SVG_PathData_datatype					= 93,
 	SVG_FontFamily_datatype					= 94,
 	SVG_ID_datatype							= 95,
-	SVG_IRI_datatype						= 96,
+	XMLRI_datatype						= 96,
 	SVG_StrokeDashArray_datatype			= 99,
 	SVG_PreserveAspectRatio_datatype		= 100,
 	SVG_ViewBox_datatype					= 101,
@@ -143,17 +162,6 @@ enum {
 	LASeR_Size_datatype						= 136,
 	LASeR_TimeAttribute_datatype			= 137
 };
-
-/* Reusing BIFS structure:
-	fieldIndex:		index of the attribute in the element
-	fieldType:		attribute data type as in the above enumeration
-	name:			attribute name
-	far_ptr:		pointer to the actual data
-
-	NDTType:		unused in SVG
-	eventType:		unused in SVG
-	on_event_in:	unused in SVG */
-typedef GF_FieldInfo SVGAttributeInfo;
 
 /* Definition of SVG base data types */
 typedef char *DOM_String;
@@ -233,7 +241,10 @@ typedef struct {
 
 	/* event type and parameter */
 	XMLEV_Event event; 
-	/*set if event is begin rather than beginEvent or end rather than endEvent*/
+	/*set if event is 
+		begin rather than beginEvent,
+		end rather than endEvent,
+		repeat rather than repeatEvent */
 	Bool is_absolute_event;
 	/*clock offset (absolute or relative to event)*/
 	Double clock;
@@ -310,16 +321,16 @@ typedef u8 SMIL_CalcMode;
 /* end of SMIL Anim types */
 
 enum {
-	SVG_IRI_ELEMENTID = 0,
-	SVG_IRI_IRI,
-	SVG_IRI_STREAMID
+	XMLRI_ELEMENTID = 0,
+	XMLRI_STRING,
+	XMLRI_STREAMID
 };
 typedef struct {
 	u8 type;
-	char *iri;
+	char *string;
 	void *target;
-	u32 stream_id;
-} SVG_IRI;
+	u32 lsr_stream_id;
+} XMLRI;
 
 enum
 {
@@ -331,7 +342,7 @@ enum
 typedef struct
 {
 	u8 type;
-	SVG_IRI target;
+	XMLRI target;
 } SVG_Focus;
 
 enum {
@@ -473,7 +484,7 @@ enum {
 typedef struct {
 	u8 type;
 	SVG_Color color;
-	SVG_IRI iri;
+	XMLRI iri;
 } SVG_Paint, SVG_SVGColor;
 
 enum {

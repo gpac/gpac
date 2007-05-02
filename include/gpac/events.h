@@ -85,11 +85,12 @@ enum {
 	GF_EVENT_RESIZE, 
 	GF_EVENT_SCROLL, 
 	GF_EVENT_ZOOM,
-	GF_EVENT_BEGIN, /*this is a fake event, it is NEVER fired, only used in SMIL begin/end*/
+	GF_EVENT_BEGIN, /*this is a fake event, it is NEVER fired, only used in SMIL begin*/
 	GF_EVENT_BEGIN_EVENT,
-	GF_EVENT_END, /*this is a fake event, it is NEVER fired, only used in SMIL begin/end*/
+	GF_EVENT_END, /*this is a fake event, it is NEVER fired, only used in SMIL end*/
 	GF_EVENT_END_EVENT,
-	GF_EVENT_REPEAT,
+	GF_EVENT_REPEAT, /*this is a fake event, it is NEVER fired, only used in SMIL repeat*/
+	GF_EVENT_REPEAT_EVENT,
 
 	/*DOM MutationEvents - NOT SUPPORTED YET*/
 	GF_EVENT_TREE_MODIFIED,

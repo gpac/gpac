@@ -104,7 +104,7 @@ static void svg_process_event(GF_Node *listen, GF_DOM_Event *event)
 	{
 		GF_FieldInfo info;
 		if (gf_svg_get_attribute_by_tag(listen, TAG_SVG_ATT_handler, 0, 0, &info) == GF_OK) {
-			hdl_node = ((SVG_IRI *)info.far_ptr)->target;
+			hdl_node = ((XMLRI *)info.far_ptr)->target;
 		} else {
 			return;
 		}
@@ -348,10 +348,10 @@ GF_DOMHandler *gf_dom_listener_build(GF_Node *node, u32 event_type, u32 event_pa
 		((XMLEV_Event *)info.far_ptr)->parameter = event_parameter;
 
 		gf_svg_get_attribute_by_tag((GF_Node*)listener, TAG_SVG_ATT_handler, 1, 0, &info);
-		((SVG_IRI *)info.far_ptr)->target = handler;
+		((XMLRI *)info.far_ptr)->target = handler;
 
 		gf_svg_get_attribute_by_tag((GF_Node*)listener, TAG_SVG_ATT_listener_target, 1, 0, &info);
-		((SVG_IRI *)info.far_ptr)->target = node;
+		((XMLRI *)info.far_ptr)->target = node;
 		
 		gf_dom_listener_add((GF_Node *) node, (GF_Node *) listener);
 
@@ -432,7 +432,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 		proto = (SMIL_Time*)gf_list_get(times, i);
 		if (proto->type != GF_SMIL_TIME_EVENT) continue;
 		if (proto->event.type != evt->type) continue;
-		if ((evt->type == GF_EVENT_KEYDOWN) || (evt->type == GF_EVENT_REPEAT)) {
+		if ((evt->type == GF_EVENT_KEYDOWN) || (evt->type == GF_EVENT_REPEAT_EVENT)) {
 			if (proto->event.parameter!=evt->detail) continue;
 		}
 		/*solve*/
@@ -535,7 +535,10 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 		} else if (t->event.type==GF_EVENT_END) {
 			t->event.type=GF_EVENT_END_EVENT;
 			t->is_absolute_event = 1;
-		}
+		} else if (t->event.type==GF_EVENT_REPEAT) {
+			t->event.type=GF_EVENT_REPEAT_EVENT;
+			t->is_absolute_event = 1;
+		} 
 		hdl = gf_dom_listener_build(t->element, t->event.type, t->event.parameter);
 		
 		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {

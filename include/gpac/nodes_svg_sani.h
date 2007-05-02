@@ -416,9 +416,9 @@ typedef struct _tagSVG_SANI_listenerElement
 	XMLEV_Phase phase;
 	XMLEV_Propagate propagate;
 	XMLEV_DefaultAction defaultAction;
-	SVG_IRI observer;
-	SVG_IRI target;
-	SVG_IRI handler;
+	XMLRI observer;
+	XMLRI target;
+	XMLRI handler;
 	SVG_Boolean enabled;
 } SVG_SANI_listenerElement;
 

@@ -57,7 +57,7 @@ u32 gf_dom_event_type_by_name(const char *name)
 	if (!strcmp(name, "mouseover")) return GF_EVENT_MOUSEOVER;
 	if (!strcmp(name, "mouseup"))	return GF_EVENT_MOUSEUP;
 	if (!strcmp(name, "repeat"))	return GF_EVENT_REPEAT;
-	if (!strcmp(name, "repeatEvent"))	return GF_EVENT_REPEAT;
+	if (!strcmp(name, "repeatEvent"))	return GF_EVENT_REPEAT_EVENT;
 	if (!strcmp(name, "resize"))	return GF_EVENT_RESIZE;
 	if (!strcmp(name, "scroll"))	return GF_EVENT_SCROLL;
 	if (!strcmp(name, "textInput"))	return GF_EVENT_TEXTINPUT;
@@ -104,7 +104,7 @@ const char *gf_dom_event_get_name(u32 type)
 	case GF_EVENT_MOUSEOVER: return "mouseover";
 	case GF_EVENT_MOUSEUP: return "mouseup";
 	case GF_EVENT_REPEAT: return "repeat";
-	//case GF_EVENT_REPEAT: return "repeatEvent";
+	case GF_EVENT_REPEAT_EVENT: return "repeatEvent";
 	case GF_EVENT_RESIZE: return "resize";
 	case GF_EVENT_SCROLL: return "scroll";
 	case GF_EVENT_TEXTINPUT: return "textInput";
@@ -918,14 +918,16 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 			tmp3--;
 			while (*tmp3==' ') { *tmp3=0; tmp3--; }
 			if (v->event.type == 0) v->event.type = gf_dom_event_type_by_name(tmp);
-			if (!had_param && v->event.type == GF_EVENT_REPEAT) v->event.parameter = 1;
+			if (!had_param && (v->event.type == GF_EVENT_REPEAT || v->event.type == GF_EVENT_REPEAT_EVENT))
+				v->event.parameter = 1;
 			tmp2[0] = c;
 			tmp2++;
 			svg_parse_clock_value(tmp2, &(v->clock));
 			if (c == '-') v->clock *= -1;
 		} else {
 			if (v->event.type == 0) v->event.type = gf_dom_event_type_by_name(tmp);
-			if (!had_param && v->event.type == GF_EVENT_REPEAT) v->event.parameter = 1;
+			if (!had_param && (v->event.type == GF_EVENT_REPEAT || v->event.type == GF_EVENT_REPEAT_EVENT))
+				v->event.parameter = 1;
 		}
 	}
 }
@@ -1610,21 +1612,21 @@ next_command:
 }
 #endif
 
-static void svg_parse_iri(GF_Node *elt, SVG_IRI *iri, char *attribute_content)
+static void svg_parse_iri(GF_Node *elt, XMLRI *iri, char *attribute_content)
 {
 	/* TODO: Handle xpointer(id()) syntax */
 	if (attribute_content[0] == '#') {
-		iri->iri = strdup(attribute_content);
+		iri->string = strdup(attribute_content);
 		iri->target = gf_sg_find_node_by_name(elt->sgprivate->scenegraph, attribute_content + 1);
 		if (!iri->target) {
-			iri->type = SVG_IRI_IRI;
+			iri->type = XMLRI_STRING;
 		} else {
-			iri->type = SVG_IRI_ELEMENTID;
+			iri->type = XMLRI_ELEMENTID;
 			gf_svg_register_iri(elt->sgprivate->scenegraph, iri);
 		}
 	} else {
-		iri->type = SVG_IRI_IRI;
-		iri->iri = strdup(attribute_content);
+		iri->type = XMLRI_STRING;
+		iri->string = strdup(attribute_content);
 	}
 }
 
@@ -2291,12 +2293,12 @@ static void svg_parse_floats(GF_List *values, char *value_string, Bool is_angle)
 
 static void svg_string_list_add(GF_List *values, char *string, u32 string_type)
 {
-	SVG_IRI *iri;
+	XMLRI *iri;
 	switch (string_type) {
 	case 1:
-		iri = (SVG_IRI*)malloc(sizeof(SVG_IRI));
-		iri->type = SVG_IRI_IRI;
-		iri->iri = strdup(string);
+		iri = (XMLRI*)malloc(sizeof(XMLRI));
+		iri->type = XMLRI_STRING;
+		iri->string = strdup(string);
 		gf_list_add(values, iri);
 		break;
 	default:
@@ -2480,8 +2482,8 @@ static void svg_parse_transformbehavior(SVG_TransformBehavior *tb, char *attribu
 
 static void svg_parse_focus(GF_Node *e,  SVG_Focus *o, char *attribute_content)
 {
-	if (o->target.iri) free(o->target.iri);
-	o->target.iri = NULL;
+	if (o->target.string) free(o->target.string);
+	o->target.string = NULL;
 	o->target.target = NULL;
 
 	if (!strcmp(attribute_content, "self")) o->type = SVG_FOCUS_SELF;
@@ -2746,8 +2748,8 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		svg_parse_anim_values(n, (SMIL_AnimateValues*)info->far_ptr, attribute_content, anim_value_type);
 		break;
 
-	case SVG_IRI_datatype:
-		svg_parse_iri(n, (SVG_IRI*)info->far_ptr, attribute_content);
+	case XMLRI_datatype:
+		svg_parse_iri(n, (XMLRI*)info->far_ptr, attribute_content);
 		break;
 	case SMIL_AttributeName_datatype:
 		((SMIL_AttributeName *)info->far_ptr)->name = strdup(attribute_content);
@@ -2871,7 +2873,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 			sep[0] = 0;
 			xml_ev->type = gf_dom_event_type_by_name(attribute_content);
 			sep[0] = '(';
-			if (xml_ev->type == GF_EVENT_REPEAT) {
+			if ((xml_ev->type == GF_EVENT_REPEAT) || (xml_ev->type == GF_EVENT_REPEAT_EVENT)) {
 				char _v;
 				sscanf(sep, "(%c)", &_v);
 				xml_ev->parameter = _v;
@@ -3098,10 +3100,10 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 			return viewbox;
 		}
 		break;
-	case SVG_IRI_datatype:
+	case XMLRI_datatype:
 		{
-			SVG_IRI *iri;
-			GF_SAFEALLOC(iri, SVG_IRI)
+			XMLRI *iri;
+			GF_SAFEALLOC(iri, XMLRI)
 			return iri;
 		}
 		break;
@@ -3282,15 +3284,15 @@ static void svg_dump_number(SVG_Number *l, char *attValue)
 	}
 }
 
-static void svg_dump_iri(SVG_IRI*iri, char *attValue)
+static void svg_dump_iri(XMLRI*iri, char *attValue)
 {
-	if (iri->type == SVG_IRI_ELEMENTID) {
+	if (iri->type == XMLRI_ELEMENTID) {
 		const char *name;
 		name = gf_node_get_name((GF_Node *)iri->target);
 		if (name) sprintf(attValue, "#%s", gf_node_get_name((GF_Node *)iri->target));
 		else  sprintf(attValue, "#N%d", gf_node_get_id((GF_Node *)iri->target) - 1);
 	}
-	else if ((iri->type == SVG_IRI_IRI) && iri->iri) strcpy(attValue, iri->iri);
+	else if ((iri->type == XMLRI_STRING) && iri->string) strcpy(attValue, iri->string);
 	else strcpy(attValue, "");
 }
 
@@ -3789,8 +3791,8 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 #endif
 		break;
 
-	case SVG_IRI_datatype:
-		svg_dump_iri((SVG_IRI*)info->far_ptr, attValue);
+	case XMLRI_datatype:
+		svg_dump_iri((XMLRI*)info->far_ptr, attValue);
 		break;
 	case SVG_ListOfIRI_datatype:
 	{
@@ -3798,7 +3800,7 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 		u32 i, count = gf_list_count(l);
 		for (i=0; i<count; i++) {
 			char szT[1024];
-			SVG_IRI *iri = (SVG_IRI *)gf_list_get(l, i);
+			XMLRI *iri = (XMLRI *)gf_list_get(l, i);
 			svg_dump_iri(iri, szT);
 			if (strlen(szT)) {
 				if (strlen(attValue)) strcat(attValue, " ");
@@ -3929,7 +3931,7 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 		SVG_Focus *foc = (SVG_Focus *)info->far_ptr;
 		if (foc->type==SVG_FOCUS_SELF) strcpy(attValue, "self");
 		else if (foc->type==SVG_FOCUS_AUTO) strcpy(attValue, "auto");
-		else sprintf(attValue, "#%s", foc->target.iri);
+		else sprintf(attValue, "#%s", foc->target.string);
 	}
 		break;
 
@@ -4321,22 +4323,22 @@ static Bool svg_numbers_equal(SVG_Length *l1, SVG_Length *l2)
 	if (l1->type!=l2->type) return 0;
 	return (l1->value==l2->value) ? 1 : 0;
 }
-static Bool svg_iris_equal(SVG_IRI*iri1, SVG_IRI*iri2)
+static Bool svg_iris_equal(XMLRI*iri1, XMLRI*iri2)
 {
 	u32 type1, type2;
 	type1 = iri1->type;
 	type2 = iri2->type;
 	/*ignore undef hrefs, these are internall ones*/
-	if ((iri1->type == SVG_IRI_ELEMENTID) && iri1->target) {
+	if ((iri1->type == XMLRI_ELEMENTID) && iri1->target) {
 		if (!gf_node_get_id((GF_Node *)iri1->target)) type1 = 0;
 	}
-	if ((iri2->type == SVG_IRI_ELEMENTID) && iri2->target) {
+	if ((iri2->type == XMLRI_ELEMENTID) && iri2->target) {
 		if (!gf_node_get_id((GF_Node *)iri2->target)) type2 = 0;
 	}
 	if (type1 != type2) return 0;
-	if ((type1 == SVG_IRI_ELEMENTID) && (iri1->target == iri2->target) ) return 1;
-	if (iri1->iri && iri2->iri && !strcmp(iri1->iri, iri2->iri)) return 1;
-	if (!iri1->iri && !iri2->iri) return 1;
+	if ((type1 == XMLRI_ELEMENTID) && (iri1->target == iri2->target) ) return 1;
+	if (iri1->string && iri2->string && !strcmp(iri1->string, iri2->string)) return 1;
+	if (!iri1->string && !iri2->string) return 1;
 	return 0;
 }
 static Bool svg_matrices_equal(GF_Matrix2D *m1, GF_Matrix2D *m2)
@@ -4423,8 +4425,8 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_Rotate_datatype:
 	case SVG_Number_datatype:
 		return svg_numbers_equal((SVG_Number *)f1->far_ptr, (SVG_Number *)f2->far_ptr);
-	case SVG_IRI_datatype:
-		return svg_iris_equal((SVG_IRI*)f1->far_ptr, (SVG_IRI*)f2->far_ptr);
+	case XMLRI_datatype:
+		return svg_iris_equal((XMLRI*)f1->far_ptr, (XMLRI*)f2->far_ptr);
 	case SVG_ListOfIRI_datatype:
 	{
 		GF_List *l1 = *(GF_List **)f1->far_ptr;
@@ -4432,7 +4434,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		u32 i, count = gf_list_count(l1);
 		if (gf_list_count(l2)!=count) return 0;
 		for (i=0; i<count; i++) {
-			if (!svg_iris_equal((SVG_IRI*)gf_list_get(l1, i), (SVG_IRI*)gf_list_get(l2, i) )) return 0;
+			if (!svg_iris_equal((XMLRI*)gf_list_get(l1, i), (XMLRI*)gf_list_get(l2, i) )) return 0;
 		}
 		return 1;
 	}
@@ -4600,7 +4602,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		SVG_Focus *foc2 = (SVG_Focus *)f2->far_ptr;
 		if (foc1->type!=foc2->type) return 0;
 		if (foc1->type != SVG_FOCUS_IRI) return 1;
-		return (foc1->target.iri && foc2->target.iri && !strcmp(foc1->target.iri, foc2->target.iri)) ? 1 : 0;
+		return (foc1->target.string && foc2->target.string && !strcmp(foc1->target.string, foc2->target.string)) ? 1 : 0;
 	}
 		break;
 
@@ -5254,7 +5256,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_FontFamily_datatype:
-	case SVG_IRI_datatype:
+	case XMLRI_datatype:
 	case SVG_ListOfIRI_datatype:
 	case SVG_FormatList_datatype:
 	case SVG_LanguageIDs_datatype:
@@ -5297,7 +5299,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 			pa->type = pb->type;
 			if (pb->type == SVG_PAINT_URI) {
 				GF_FieldInfo tmp_a, tmp_b;
-				tmp_a.fieldType = tmp_b.fieldType = SVG_IRI_datatype;
+				tmp_a.fieldType = tmp_b.fieldType = XMLRI_datatype;
 				tmp_a.far_ptr = &pa->iri;
 				tmp_b.far_ptr = &pb->iri;
 				gf_svg_attributes_copy(&tmp_a, &tmp_b, 0);
@@ -5418,27 +5420,27 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		((SVG_FontFamily *)a->far_ptr)->value = strdup(((SVG_FontFamily *)b->far_ptr)->value);
 		return GF_OK;
 
-	case SVG_IRI_datatype:
-		((SVG_IRI *)a->far_ptr)->type = ((SVG_IRI *)b->far_ptr)->type;
-		if (((SVG_IRI *)a->far_ptr)->iri) free(((SVG_IRI *)a->far_ptr)->iri);
-		if (((SVG_IRI *)b->far_ptr)->iri) {
-			((SVG_IRI *)a->far_ptr)->iri = strdup(((SVG_IRI *)b->far_ptr)->iri);
+	case XMLRI_datatype:
+		((XMLRI *)a->far_ptr)->type = ((XMLRI *)b->far_ptr)->type;
+		if (((XMLRI *)a->far_ptr)->string) free(((XMLRI *)a->far_ptr)->string);
+		if (((XMLRI *)b->far_ptr)->string) {
+			((XMLRI *)a->far_ptr)->string = strdup(((XMLRI *)b->far_ptr)->string);
 		} else {
-			((SVG_IRI *)a->far_ptr)->iri = strdup("");
+			((XMLRI *)a->far_ptr)->string = strdup("");
 		}
-		((SVG_IRI *)a->far_ptr)->target = ((SVG_IRI *)b->far_ptr)->target;
-		if (((SVG_IRI *)a->far_ptr)->type == SVG_IRI_ELEMENTID) {
-			GF_Node *n = (GF_Node *) ((SVG_IRI *)b->far_ptr)->target;
+		((XMLRI *)a->far_ptr)->target = ((XMLRI *)b->far_ptr)->target;
+		if (((XMLRI *)a->far_ptr)->type == XMLRI_ELEMENTID) {
+			GF_Node *n = (GF_Node *) ((XMLRI *)b->far_ptr)->target;
 			/*TODO Check if assigning IRI from # scenegraph can happen*/
-			if (n) gf_svg_register_iri(gf_node_get_graph(n), (SVG_IRI*)a->far_ptr);
+			if (n) gf_svg_register_iri(gf_node_get_graph(n), (XMLRI*)a->far_ptr);
 		}
 		return GF_OK;
 	
 	case SVG_Focus_datatype:
 	{
 		((SVG_Focus *)a->far_ptr)->type = ((SVG_Focus *)b->far_ptr)->type;
-		if ( ((SVG_Focus *)b->far_ptr)->target.iri) 
-			((SVG_Focus *)a->far_ptr)->target.iri = strdup( ((SVG_Focus *)b->far_ptr)->target.iri);
+		if ( ((SVG_Focus *)b->far_ptr)->target.string) 
+			((SVG_Focus *)a->far_ptr)->target.string = strdup( ((SVG_Focus *)b->far_ptr)->target.string);
 	}
 		return GF_OK;
 
@@ -5573,7 +5575,7 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_FontFamily_datatype:
-	case SVG_IRI_datatype:
+	case XMLRI_datatype:
 	case SVG_ListOfIRI_datatype:
 	case SVG_FormatList_datatype:
 	case SVG_LanguageIDs_datatype:
@@ -5696,7 +5698,7 @@ char *gf_svg_attribute_type_to_string(u32 att_type)
 	case SVG_PathData_datatype:			return "PathData"; 
 	case SVG_FontFamily_datatype:		return "FontFamily"; 
 	case SVG_ID_datatype:				return "ID"; 
-	case SVG_IRI_datatype:				return "IRI"; 
+	case XMLRI_datatype:				return "IRI"; 
 	case SVG_StrokeDashArray_datatype:	return "StrokeDashArray"; 
 	case SVG_PreserveAspectRatio_datatype:return "PreserveAspectRatio"; 
 	case SVG_ViewBox_datatype:			return "ViewBox"; 

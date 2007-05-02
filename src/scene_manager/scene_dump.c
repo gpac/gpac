@@ -2518,7 +2518,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		switch (tag) {
 		case TAG_SVG_listener:
 			if (gf_svg_get_attribute_by_tag(n, TAG_SVG_ATT_handler, 0, 0, &info)==GF_OK) {
-				if (((SVG_IRI*)info.far_ptr)->target && !gf_node_get_id(((SVG_IRI*)info.far_ptr)->target) ) 
+				if (((XMLRI*)info.far_ptr)->target && !gf_node_get_id(((XMLRI*)info.far_ptr)->target) ) 
 					return;
 			}
 			break;
@@ -2558,9 +2558,9 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 			att = att->next;
 			continue;
 		} 
-		else if (att->data_type==SVG_IRI_datatype) {
-			SVG_IRI *xlink = (SVG_IRI *)att->data;
-			if (xlink->type==SVG_IRI_ELEMENTID) {
+		else if (att->data_type==XMLRI_datatype) {
+			XMLRI *xlink = (XMLRI *)att->data;
+			if (xlink->type==XMLRI_ELEMENTID) {
 				if (!xlink->target || !gf_node_get_id((GF_Node*)xlink->target) ) {
 					att = att->next;
 					continue;
@@ -2570,8 +2570,8 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 					continue;
 				}
 			}
-			else if (xlink->type==SVG_IRI_STREAMID) {
-				fprintf(sdump->trace, "xlink:href=\"#stream%d\" ", xlink->stream_id);
+			else if (xlink->type==XMLRI_STREAMID) {
+				fprintf(sdump->trace, "xlink:href=\"#stream%d\" ", xlink->lsr_stream_id);
 				att = att->next;
 				continue;
 			}
@@ -2595,7 +2595,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 			if (!(listener->sgprivate->flags & 0x7FFFFFFF) ) continue;
 			if (gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_handler, 0, 0, &info)==GF_OK) {
 				GF_DOMText *txt;
-				hdl = (SVG_handlerElement *) ((SVG_IRI*)info.far_ptr)->target;
+				hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 				if (!hdl) continue;
 				txt = hdl->children ? (GF_DOMText*)hdl->children->node : NULL;
 				if (!txt || (txt->sgprivate->tag!=TAG_DOMText) || !txt->textContent) continue;

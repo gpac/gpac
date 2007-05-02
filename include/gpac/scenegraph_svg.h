@@ -401,10 +401,10 @@ void gf_svg_parse_style(GF_Node *n, char *style);
 GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue);
 GF_Err gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info, char *attValue);
 
-Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char *base_filename);
+Bool gf_svg_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *base_filename);
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points);
-void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *iri);
-void gf_svg_unregister_iri(GF_SceneGraph *sg, SVG_IRI *iri);
+void gf_svg_register_iri(GF_SceneGraph *sg, XMLRI *iri);
+void gf_svg_unregister_iri(GF_SceneGraph *sg, XMLRI *iri);
 
 GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if_defined);
 
@@ -452,7 +452,7 @@ u32 gf_svg_get_element_tag(const char *element_name);
 
 typedef struct {
 /*	SVG_ID id / xml_id; are actually nodeID in the sgprivate structure */
-	SVG_IRI base;
+	XMLRI base;
 	SVG_LanguageID lang;
 	XML_Space space;
 	SVG_String _class;
@@ -469,11 +469,11 @@ typedef struct {
 } SVGFocusAttributes;
 
 typedef struct {
-	SVG_IRI href;
+	XMLRI href;
 	SVG_ContentType type;
 	SVG_String title;
-	SVG_IRI arcrole; 
-	SVG_IRI role;
+	XMLRI arcrole; 
+	XMLRI role;
 	SVG_String show;
 	SVG_String actuate;
 } XLinkAttributes;

@@ -169,7 +169,7 @@ static GF_Err gf_svg_sani_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 19:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 20:
@@ -189,12 +189,12 @@ static GF_Err gf_svg_sani_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 23:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 24:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 25:
@@ -328,7 +328,7 @@ static GF_Err gf_svg_sani_animate_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -348,12 +348,12 @@ static GF_Err gf_svg_sani_animate_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -537,7 +537,7 @@ static GF_Err gf_svg_sani_animateColor_get_attribute(GF_Node *node, GF_FieldInfo
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -557,12 +557,12 @@ static GF_Err gf_svg_sani_animateColor_get_attribute(GF_Node *node, GF_FieldInfo
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -756,7 +756,7 @@ static GF_Err gf_svg_sani_animateMotion_get_attribute(GF_Node *node, GF_FieldInf
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -776,12 +776,12 @@ static GF_Err gf_svg_sani_animateMotion_get_attribute(GF_Node *node, GF_FieldInf
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -975,7 +975,7 @@ static GF_Err gf_svg_sani_animateTransform_get_attribute(GF_Node *node, GF_Field
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -995,12 +995,12 @@ static GF_Err gf_svg_sani_animateTransform_get_attribute(GF_Node *node, GF_Field
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -1261,7 +1261,7 @@ static GF_Err gf_svg_sani_animation_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 19:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 20:
@@ -1281,12 +1281,12 @@ static GF_Err gf_svg_sani_animation_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 23:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 24:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 25:
@@ -1536,7 +1536,7 @@ static GF_Err gf_svg_sani_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -1556,12 +1556,12 @@ static GF_Err gf_svg_sani_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -2108,7 +2108,7 @@ static GF_Err gf_svg_sani_cursorManager_get_attribute(GF_Node *node, GF_FieldInf
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -2128,12 +2128,12 @@ static GF_Err gf_svg_sani_cursorManager_get_attribute(GF_Node *node, GF_FieldInf
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -2354,7 +2354,7 @@ static GF_Err gf_svg_sani_discard_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -2374,12 +2374,12 @@ static GF_Err gf_svg_sani_discard_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -3125,7 +3125,7 @@ static GF_Err gf_svg_sani_font_face_uri_get_attribute(GF_Node *node, GF_FieldInf
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -3145,12 +3145,12 @@ static GF_Err gf_svg_sani_font_face_uri_get_attribute(GF_Node *node, GF_FieldInf
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -3293,7 +3293,7 @@ static GF_Err gf_svg_sani_foreignObject_get_attribute(GF_Node *node, GF_FieldInf
 			return GF_OK;
 		case 19:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 20:
@@ -3313,12 +3313,12 @@ static GF_Err gf_svg_sani_foreignObject_get_attribute(GF_Node *node, GF_FieldInf
 			return GF_OK;
 		case 23:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 24:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 25:
@@ -3982,7 +3982,7 @@ static GF_Err gf_svg_sani_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 19:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 20:
@@ -4002,12 +4002,12 @@ static GF_Err gf_svg_sani_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 23:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 24:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 25:
@@ -4451,7 +4451,7 @@ static GF_Err gf_svg_sani_linearGradient_get_attribute(GF_Node *node, GF_FieldIn
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -4471,12 +4471,12 @@ static GF_Err gf_svg_sani_linearGradient_get_attribute(GF_Node *node, GF_FieldIn
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -4610,17 +4610,17 @@ static GF_Err gf_svg_sani_listener_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 11:
 			info->name = "observer";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = & ((SVG_SANI_listenerElement *)node)->observer;
 			return GF_OK;
 		case 12:
 			info->name = "target";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = & ((SVG_SANI_listenerElement *)node)->target;
 			return GF_OK;
 		case 13:
 			info->name = "handler";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = & ((SVG_SANI_listenerElement *)node)->handler;
 			return GF_OK;
 		case 14:
@@ -4846,7 +4846,7 @@ static GF_Err gf_svg_sani_mpath_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -4866,12 +4866,12 @@ static GF_Err gf_svg_sani_mpath_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -5762,7 +5762,7 @@ static GF_Err gf_svg_sani_prefetch_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -5782,12 +5782,12 @@ static GF_Err gf_svg_sani_prefetch_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -5895,7 +5895,7 @@ static GF_Err gf_svg_sani_radialGradient_get_attribute(GF_Node *node, GF_FieldIn
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -5915,12 +5915,12 @@ static GF_Err gf_svg_sani_radialGradient_get_attribute(GF_Node *node, GF_FieldIn
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -6753,7 +6753,7 @@ static GF_Err gf_svg_sani_set_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 8:
@@ -6773,12 +6773,12 @@ static GF_Err gf_svg_sani_set_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 11:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 12:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 13:
@@ -8715,7 +8715,7 @@ static GF_Err gf_svg_sani_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 19:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 20:
@@ -8735,12 +8735,12 @@ static GF_Err gf_svg_sani_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 23:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 24:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 25:
@@ -8944,7 +8944,7 @@ static GF_Err gf_svg_sani_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 19:
 			info->name = "xlink:href";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->href;
 			return GF_OK;
 		case 20:
@@ -8964,12 +8964,12 @@ static GF_Err gf_svg_sani_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 23:
 			info->name = "xlink:role";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->role;
 			return GF_OK;
 		case 24:
 			info->name = "xlink:arcrole";
-			info->fieldType = SVG_IRI_datatype;
+			info->fieldType = XMLRI_datatype;
 			info->far_ptr = &((SVG_SANI_Element *)node)->xlink->arcrole;
 			return GF_OK;
 		case 25:

@@ -1077,9 +1077,9 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 					if (child_tag == TAG_SVG_mpath) {
 						GF_FieldInfo info;
 						if (gf_svg_get_attribute_by_tag(child->node, TAG_SVG_ATT_xlink_href, 0, 0, &info) == GF_OK) {
-							SVG_IRI *iri = (SVG_IRI *)info.far_ptr;
+							XMLRI *iri = (XMLRI *)info.far_ptr;
 							if (iri->target) used_path = iri->target;
-							else if (iri->iri) used_path = (GF_Node *)gf_sg_find_node_by_name(gf_node_get_graph(child->node), iri->iri);
+							else if (iri->string) used_path = (GF_Node *)gf_sg_find_node_by_name(gf_node_get_graph(child->node), iri->string);
 							if (used_path && gf_node_get_tag(used_path) == TAG_SVG_path) {
 								gf_svg_get_attribute_by_tag(used_path, TAG_SVG_ATT_d, 1, 0, &info);
 #if USE_GF_PATH
@@ -1337,16 +1337,16 @@ void gf_smil_anim_init_node(GF_Node *node)
 		return;
 	}
 	
-	if (xlinkp->href->type == SVG_IRI_IRI) {
-		if (!xlinkp->href->iri) { 
+	if (xlinkp->href->type == XMLRI_STRING) {
+		if (!xlinkp->href->string) { 
 			fprintf(stderr, "Error: IRI not initialized\n");
 			return;
 		} else {
 			GF_Node *n;
 			
-			n = (GF_Node*)gf_sg_find_node_by_name(gf_node_get_graph(node), xlinkp->href->iri);
+			n = (GF_Node*)gf_sg_find_node_by_name(gf_node_get_graph(node), xlinkp->href->string);
 			if (n) {
-				xlinkp->href->type = SVG_IRI_ELEMENTID;
+				xlinkp->href->type = XMLRI_ELEMENTID;
 				xlinkp->href->target = n;
 				gf_svg_register_iri(node->sgprivate->scenegraph, xlinkp->href);
 			} else {

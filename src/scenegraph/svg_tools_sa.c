@@ -51,17 +51,17 @@ static void svg_delete_string_list(GF_List *l)
 void gf_svg_sa_delete_conditional(SVGConditionalAttributes *p)
 {
 	while (gf_list_count(p->requiredFeatures)) {
-		SVG_IRI *iri = (SVG_IRI *)gf_list_last(p->requiredFeatures);
+		XMLRI *iri = (XMLRI *)gf_list_last(p->requiredFeatures);
 		gf_list_rem_last(p->requiredFeatures);
-		if (iri->iri) free(iri->iri);
+		if (iri->string) free(iri->string);
 		free(iri);
 	}
 	gf_list_del(p->requiredFeatures);
 
 	while (gf_list_count(p->requiredExtensions)) {
-		SVG_IRI *iri = (SVG_IRI *)gf_list_last(p->requiredExtensions);
+		XMLRI *iri = (XMLRI *)gf_list_last(p->requiredExtensions);
 		gf_list_rem_last(p->requiredExtensions);
-		if (iri->iri) free(iri->iri);
+		if (iri->string) free(iri->string);
 		free(iri);
 	}
 	gf_list_del(p->requiredExtensions);
@@ -334,7 +334,7 @@ static void svg_reset_focus(SVG_SA_Element *elt, SVG_Focus *focus)
 	if (focus->target.target) {
 		gf_svg_unregister_iri(elt->sgprivate->scenegraph, &focus->target);
 	}
-	if (focus->target.iri) free(focus->target.iri);
+	if (focus->target.string) free(focus->target.string);
 }
 
 void gf_svg_delete_focus(SVG_SA_Element *elt, SVGFocusAttributes *p) 
