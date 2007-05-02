@@ -248,7 +248,7 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 		tag = gf_node_get_tag((GF_Node *)anim->animation_elt);
 		/* get the attribute name attribute if specified */
 		if (anim->type && (tag== TAG_SVG_animateTransform) ) {
-			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_type, 1, 0, &info);
+			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_transform_type, 1, 0, &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->type, 0);
 			switch(*(SVG_TransformType *) info.far_ptr) {
 			case SVG_TRANSFORM_TRANSLATE:
@@ -573,9 +573,9 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 
 	needs_init = 1;
 	if (anim) {
+		needs_init = 0;
 		if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL)) {
 			svg_delete_defered_anim(anim, NULL);
-			needs_init = 0;
 		} else {
 			gf_list_add(parser->defered_animations, anim);
 		}

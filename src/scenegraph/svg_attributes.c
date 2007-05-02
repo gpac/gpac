@@ -2602,8 +2602,8 @@ GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if
 GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type)
 {
 	u32 len;
-	len = strlen(attribute_content);
 	while (*attribute_content == ' ') attribute_content++;
+	len = strlen(attribute_content);
 	while (attribute_content[len-1] == ' ') { attribute_content[len-1] = 0; len--; }
 
 	switch (info->fieldType) {
@@ -4214,7 +4214,6 @@ GF_Err gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info, char *att
 	}
 		break;
 	case SMIL_KeyPoints_datatype:
-		break;
 	case SMIL_KeyTimes_datatype:
 	case SMIL_KeySplines_datatype:
 	{

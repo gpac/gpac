@@ -2630,7 +2630,7 @@ static void lsr_read_content_type(GF_LASeRCodec *lsr, GF_Node *n)
 	GF_LSR_READ_INT(lsr, flag, 1, "hasType");
 	if (flag) {
 		GF_FieldInfo info;
-		lsr->last_error = gf_svg_get_attribute_by_tag(n, TAG_SVG_ATT_content_type, 1, 0, &info);
+		lsr->last_error = gf_svg_get_attribute_by_tag(n, TAG_SVG_ATT_type, 1, 0, &info);
 		lsr_read_byte_align_string(lsr, info.far_ptr, "type");
 	}
 }
@@ -2873,7 +2873,7 @@ static GF_Node *lsr_read_animateTransform(GF_LASeRCodec *lsr, SVG_Element *paren
 	case 3: type = SVG_TRANSFORM_SKEWY; break;
 	case 4: type = SVG_TRANSFORM_TRANSLATE; break;
 	}
-	if (gf_svg_get_attribute_by_tag(elt, TAG_SVG_ATT_type, 1, 0, &info)==GF_OK) {
+	if (gf_svg_get_attribute_by_tag(elt, TAG_SVG_ATT_transform_type, 1, 0, &info)==GF_OK) {
 		*(SVG_TransformType *)info.far_ptr = type;
 	}
 
@@ -3279,7 +3279,7 @@ static GF_Node *lsr_read_rectClip(GF_LASeRCodec *lsr)
 	if (flag) {
 		SVG_Number num;
 		GF_FieldInfo info;
-		lsr->last_error = gf_svg_get_attribute_by_tag(elt, TAG_SVG_ATT_lsr_size, 1, 0, &info);
+		lsr->last_error = gf_svg_get_attribute_by_tag(elt, TAG_SVG_ATT_size, 1, 0, &info);
 		lsr_read_coordinate(lsr, & num, 0, "width");
 		((LASeR_Size*)info.far_ptr)->width = num.value;
 		lsr_read_coordinate(lsr, & num, 0, "height");
@@ -3315,7 +3315,7 @@ static GF_Node *lsr_read_selector(GF_LASeRCodec *lsr)
 	GF_LSR_READ_INT(lsr, flag, 1, "hasChoice");
 	if (flag) {
 		GF_FieldInfo info;
-		lsr->last_error = gf_svg_get_attribute_by_tag(elt, TAG_SVG_ATT_lsr_choice, 1, 0, &info);
+		lsr->last_error = gf_svg_get_attribute_by_tag(elt, TAG_SVG_ATT_choice, 1, 0, &info);
 		GF_LSR_READ_INT(lsr, flag, 1, "choice");
 		if (flag) {
 			GF_LSR_READ_INT(lsr, ((LASeR_Choice*)info.far_ptr)->type, 1, "type");
@@ -3369,7 +3369,7 @@ static GF_Node *lsr_read_simpleLayout(GF_LASeRCodec *lsr)
 	if (flag) {
 		SVG_Number num;
 		GF_FieldInfo info;
-		lsr->last_error = gf_svg_get_attribute_by_tag(elt, TAG_SVG_ATT_lsr_delta, 1, 0, &info);
+		lsr->last_error = gf_svg_get_attribute_by_tag(elt, TAG_SVG_ATT_delta, 1, 0, &info);
 		lsr_read_coordinate(lsr, & num, 0, "width");
 		((LASeR_Size*)info.far_ptr)->width = num.value;
 		lsr_read_coordinate(lsr, & num, 0, "height");
@@ -3407,7 +3407,7 @@ static GF_Node *lsr_read_svg(GF_LASeRCodec *lsr)
 	lsr_read_fill(lsr, elt);
 	lsr_read_stroke(lsr, elt);
 	lsr_read_string_attribute(lsr, elt, TAG_SVG_ATT_baseProfile, "baseProfile");
-	lsr_read_string_attribute(lsr, elt, TAG_SVG_ATT_content_type, "contentScriptType");
+	lsr_read_string_attribute(lsr, elt, TAG_SVG_ATT_contentScriptType, "contentScriptType");
 	lsr_read_eRR(lsr, elt);
 	lsr->last_error = gf_svg_get_attribute_by_tag(elt, TAG_SVG_ATT_height, 1, 0, &info);
 	lsr_read_value_with_units(lsr, info.far_ptr, "height");
