@@ -37,6 +37,8 @@ void buildGlobalAttributeList(GF_List *svg_elements, GF_List *all_atts)
 			added = 0;
 			if (!strcmp(att->impl_type, "SMIL_Fill")) {
 				strcpy(att->implementation_name, "smil_fill");
+			} else if (!strcmp(att->impl_type, "SVG_TransformType")) {
+				strcpy(att->implementation_name, "transform_type");
 			} 
 			for (k = 0; k < gf_list_count(all_atts); k++) {
 				SVGGenAttribute *a = gf_list_get(all_atts, k);
@@ -71,8 +73,6 @@ void buildGlobalAttributeList(GF_List *svg_elements, GF_List *all_atts)
 				} else if (!strcmp(att->implementation_name, "y")) {
 					strcpy(att->implementation_name, "cursorManager_y");
 				}
-			} else if (!strcmp(att->impl_type, "SVG_ContentType")) {
-				strcpy(att->implementation_name, "content_type");
 			}
 			for (k = 0; k < gf_list_count(all_atts); k++) {
 				SVGGenAttribute *a = gf_list_get(all_atts, k);
@@ -190,11 +190,9 @@ void generateSVGCode_V3(GF_List *svg_elements)
 			fprintf(output, "\t}\n");
 		} else if (!strcmp(att->svg_name, "type")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
-			fprintf(output, "\t\tif (element_tag == TAG_SVG_handler || element_tag == TAG_SVG_audio || element_tag == TAG_SVG_video || element_tag == TAG_SVG_image || element_tag == TAG_SVG_script) return TAG_SVG_ATT_content_type;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\tif (element_tag == TAG_SVG_animateTransform) return TAG_SVG_ATT_transform_type;\n");
 			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
 			fprintf(output, "\t}\n");
-			/*!! HACK !! add SVG contentScriptType*/
-			fprintf(output, "\tif (!stricmp(attribute_name, \"contentScriptType\")) return TAG_SVG_ATT_content_type;\n");
 		} else if (!strcmp(att->svg_name, "fill")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
 			fprintf(output, "\t\tif (element_tag == TAG_SVG_animate || element_tag == TAG_SVG_animateColor || element_tag == TAG_SVG_animateMotion || element_tag == TAG_SVG_animateTransform || element_tag == TAG_SVG_animation || element_tag == TAG_SVG_audio || element_tag == TAG_SVG_video || element_tag == TAG_SVG_set) return TAG_SVG_ATT_smil_fill;\n", att->svg_name, att->implementation_name);
