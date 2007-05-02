@@ -88,7 +88,7 @@
     <ref name='svg.Focus.attr'/>
     <ref name='svg.Transform.attr'/>
     	<optional>
-      <attribute name='lsr:size' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='size' svg:animatable='true' svg:inheritable='false'>
         <data type='string'/>
       </attribute>
 	</optional>
@@ -112,7 +112,7 @@
     <ref name='svg.Focus.attr'/>
     <ref name='svg.Transform.attr'/>
     	<optional>
-      <attribute name='lsr:delta' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='delta' svg:animatable='true' svg:inheritable='false'>
         <data type='string'/>
       </attribute>
 	</optional>
@@ -136,7 +136,7 @@
     <ref name='svg.Focus.attr'/>
     <ref name='svg.Transform.attr'/>
     	<optional>
-      <attribute name='lsr:choice' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='choice' svg:animatable='true' svg:inheritable='false'>
         <data type='string'/>
       </attribute>
 	</optional>
