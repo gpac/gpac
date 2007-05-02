@@ -2014,7 +2014,7 @@ static void lsr_write_animateTransform(GF_LASeRCodec *lsr, SVG_Element *elt, SVG
 	lsr_write_animatable(lsr, atts.attributeName, atts.xlink_href, "attributeName");
 
 	/*no default value for type or we MUST code it in LASeR ...*/
-	type = atts.type ? *atts.type : SVG_TRANSFORM_TRANSLATE;
+	type = atts.transform_type ? *atts.transform_type : SVG_TRANSFORM_TRANSLATE;
 	/*enumeration rotate{0} scale{1} skewX{2} skewY{3} translate{4}*/
 	switch (type) {
 	case SVG_TRANSFORM_ROTATE: GF_LSR_WRITE_INT(lsr, 0, 3, "rotscatra"); break;
@@ -2453,10 +2453,10 @@ static void lsr_write_rectClip(GF_LASeRCodec *lsr, SVG_Element *elt)
 	lsr_write_fill(lsr, (SVG_Element*)elt, &atts);
 	lsr_write_stroke(lsr, (SVG_Element*)elt, &atts);
 	GF_LSR_WRITE_INT(lsr, (atts.externalResourcesRequired && *atts.externalResourcesRequired) ? 1 : 0, 1, "externalResourcesRequired");
-	if (atts.lsr_size) {
+	if (atts.size) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "size");
-		lsr_write_coordinate(lsr, atts.lsr_size->width, 0, "width");
-		lsr_write_coordinate(lsr, atts.lsr_size->height, 0, "height");
+		lsr_write_coordinate(lsr, atts.size->width, 0, "width");
+		lsr_write_coordinate(lsr, atts.size->height, 0, "height");
 	} else {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "size");
 	}
@@ -2487,14 +2487,14 @@ static void lsr_write_selector(GF_LASeRCodec *lsr, SVG_Element *elt)
 	lsr_write_stroke(lsr, (SVG_Element*)elt, &atts);
 	GF_LSR_WRITE_INT(lsr, (atts.externalResourcesRequired && *atts.externalResourcesRequired) ? 1 : 0, 1, "externalResourcesRequired");
 
-	GF_LSR_WRITE_INT(lsr, atts.lsr_choice ? 1 : 0, 1, "hasChoice");
-	if (atts.lsr_choice) {
-		if (atts.lsr_choice->type==LASeR_CHOICE_N) {
+	GF_LSR_WRITE_INT(lsr, atts.choice ? 1 : 0, 1, "hasChoice");
+	if (atts.choice) {
+		if (atts.choice->type==LASeR_CHOICE_N) {
 			GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
-			GF_LSR_WRITE_INT(lsr, atts.lsr_choice->choice_index, 8, "value");
+			GF_LSR_WRITE_INT(lsr, atts.choice->choice_index, 8, "value");
 		} else {
 			GF_LSR_WRITE_INT(lsr, 1, 1, "choice");
-			GF_LSR_WRITE_INT(lsr, atts.lsr_choice->type, 1, "type");
+			GF_LSR_WRITE_INT(lsr, atts.choice->type, 1, "type");
 		}
 	}
 	lsr_write_any_attribute(lsr, elt, 1);
@@ -2532,10 +2532,10 @@ static void lsr_write_simpleLayout(GF_LASeRCodec *lsr, SVG_Element *elt)
 	lsr_write_rare(lsr, (GF_Node *) elt);
 	lsr_write_fill(lsr, (SVG_Element*)elt, &atts);
 	lsr_write_stroke(lsr, (SVG_Element*)elt, &atts);
-	if (atts.lsr_delta) {
+	if (atts.delta) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "delta");
-		lsr_write_coordinate(lsr, atts.lsr_delta->width, 0, "width");
-		lsr_write_coordinate(lsr, atts.lsr_delta->height, 0, "height");
+		lsr_write_coordinate(lsr, atts.delta->width, 0, "width");
+		lsr_write_coordinate(lsr, atts.delta->height, 0, "height");
 	} else {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "delta");
 	}
@@ -2569,7 +2569,7 @@ static void lsr_write_svg(GF_LASeRCodec *lsr, SVG_Element *elt)
 	lsr_write_fill(lsr,  elt, &atts);
 	lsr_write_stroke(lsr,  elt, &atts);
 	lsr_write_string_attribute(lsr, atts.baseProfile ? *atts.baseProfile : NULL, "baseProfile");
-	lsr_write_string_attribute(lsr, atts.content_type ? *atts.content_type : NULL, "contentScriptType");
+	lsr_write_string_attribute(lsr, atts.contentScriptType ? *atts.contentScriptType : NULL, "contentScriptType");
 	GF_LSR_WRITE_INT(lsr, (atts.externalResourcesRequired && *atts.externalResourcesRequired) ? 1 : 0, 1, "externalResourcesRequired");
 	lsr_write_value_with_units(lsr, atts.height, "height");
 

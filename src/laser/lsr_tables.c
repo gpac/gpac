@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue May 01 16:32:36 2007
+	DO NOT MOFIFY - File generated on GMT Wed May 02 08:17:35 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -44,7 +44,7 @@ s32 gf_lsr_anim_type_from_attribute(u32 tag) {
 	case TAG_SVG_ATT_begin: return 5;
 	case TAG_SVG_ATT_calcMode: return 6;
 	case TAG_LSR_ATT_children: return 7;
-	case TAG_SVG_ATT_lsr_choice: return 8;
+	case TAG_SVG_ATT_choice: return 8;
 	case TAG_SVG_ATT_clipBegin: return 9;
 	case TAG_SVG_ATT_clipEnd: return 10;
 	case TAG_SVG_ATT_color: return 11;
@@ -52,7 +52,7 @@ s32 gf_lsr_anim_type_from_attribute(u32 tag) {
 	case TAG_SVG_ATT_cx: return 13;
 	case TAG_SVG_ATT_cy: return 14;
 	case TAG_SVG_ATT_d: return 15;
-	case TAG_SVG_ATT_lsr_delta: return 16;
+	case TAG_SVG_ATT_delta: return 16;
 	case TAG_SVG_ATT_display: return 17;
 	case TAG_SVG_ATT_display_align: return 18;
 	case TAG_SVG_ATT_dur: return 19;
@@ -117,7 +117,7 @@ s32 gf_lsr_anim_type_from_attribute(u32 tag) {
 	case TAG_SVG_ATT_ry: return 78;
 	case TAG_LSR_ATT_scale: return 79;
 	case TAG_SVG_ATT_shape_rendering: return 80;
-	case TAG_SVG_ATT_lsr_size: return 81;
+	case TAG_SVG_ATT_size: return 81;
 	case TAG_SVG_ATT_solid_color: return 82;
 	case TAG_SVG_ATT_solid_opacity: return 83;
 	case TAG_SVG_ATT_stop_color: return 84;
@@ -256,7 +256,7 @@ s32 gf_lsr_anim_type_to_attribute(u32 tag) {
 	case 5: return TAG_SVG_ATT_begin;
 	case 6: return TAG_SVG_ATT_calcMode;
 	case 7: return TAG_LSR_ATT_children;
-	case 8: return TAG_SVG_ATT_lsr_choice;
+	case 8: return TAG_SVG_ATT_choice;
 	case 9: return TAG_SVG_ATT_clipBegin;
 	case 10: return TAG_SVG_ATT_clipEnd;
 	case 11: return TAG_SVG_ATT_color;
@@ -264,7 +264,7 @@ s32 gf_lsr_anim_type_to_attribute(u32 tag) {
 	case 13: return TAG_SVG_ATT_cx;
 	case 14: return TAG_SVG_ATT_cy;
 	case 15: return TAG_SVG_ATT_d;
-	case 16: return TAG_SVG_ATT_lsr_delta;
+	case 16: return TAG_SVG_ATT_delta;
 	case 17: return TAG_SVG_ATT_display;
 	case 18: return TAG_SVG_ATT_display_align;
 	case 19: return TAG_SVG_ATT_dur;
@@ -329,7 +329,7 @@ s32 gf_lsr_anim_type_to_attribute(u32 tag) {
 	case 78: return TAG_SVG_ATT_ry;
 	case 79: return TAG_LSR_ATT_scale;
 	case 80: return TAG_SVG_ATT_shape_rendering;
-	case 81: return TAG_SVG_ATT_lsr_size;
+	case 81: return TAG_SVG_ATT_size;
 	case 82: return TAG_SVG_ATT_solid_color;
 	case 83: return TAG_SVG_ATT_solid_opacity;
 	case 84: return TAG_SVG_ATT_stop_color;

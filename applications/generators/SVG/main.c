@@ -503,10 +503,10 @@ void setAttributeType(SVGGenAttribute *att)
 			strcpy(att->impl_type, "SVG_Transform_Full");
 		} else if (!strcmp(att->svg_name, "editable")) {
 			strcpy(att->impl_type, "SVG_Boolean");
-		} else if (!strcmp(att->svg_name, "lsr:choice")) {
+		} else if (!strcmp(att->svg_name, "choice")) {
 			strcpy(att->impl_type, "LASeR_Choice");
-		} else if (!strcmp(att->svg_name, "lsr:size") || 
-				   !strcmp(att->svg_name, "lsr:delta")) {
+		} else if (!strcmp(att->svg_name, "size") || 
+				   !strcmp(att->svg_name, "delta")) {
 			strcpy(att->impl_type, "LASeR_Size");
 		} else {
 			/* For all other attributes, we use String as default type */

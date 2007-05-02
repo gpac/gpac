@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue May 01 16:32:36 2007
+	DO NOT MOFIFY - File generated on GMT Wed May 02 08:17:35 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -140,10 +140,9 @@ u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name)
 	}
 	if (!stricmp(attribute_name, "origin")) return TAG_SVG_ATT_origin;
 	if (!stricmp(attribute_name, "type")) {
-		if (element_tag == TAG_SVG_handler || element_tag == TAG_SVG_audio || element_tag == TAG_SVG_video || element_tag == TAG_SVG_image || element_tag == TAG_SVG_script) return TAG_SVG_ATT_content_type;
+		if (element_tag == TAG_SVG_animateTransform) return TAG_SVG_ATT_transform_type;
 		else return TAG_SVG_ATT_type;
 	}
-	if (!stricmp(attribute_name, "contentScriptType")) return TAG_SVG_ATT_content_type;
 	if (!stricmp(attribute_name, "clipBegin")) return TAG_SVG_ATT_clipBegin;
 	if (!stricmp(attribute_name, "clipEnd")) return TAG_SVG_ATT_clipEnd;
 	if (!stricmp(attribute_name, "syncBehavior")) return TAG_SVG_ATT_syncBehavior;
@@ -230,9 +229,9 @@ u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name)
 	if (!stricmp(attribute_name, "bandwidth")) return TAG_SVG_ATT_bandwidth;
 	if (!stricmp(attribute_name, "fx")) return TAG_SVG_ATT_fx;
 	if (!stricmp(attribute_name, "fy")) return TAG_SVG_ATT_fy;
-	if (!stricmp(attribute_name, "lsr:size")) return TAG_SVG_ATT_lsr_size;
-	if (!stricmp(attribute_name, "lsr:choice")) return TAG_SVG_ATT_lsr_choice;
-	if (!stricmp(attribute_name, "lsr:delta")) return TAG_SVG_ATT_lsr_delta;
+	if (!stricmp(attribute_name, "size")) return TAG_SVG_ATT_size;
+	if (!stricmp(attribute_name, "choice")) return TAG_SVG_ATT_choice;
+	if (!stricmp(attribute_name, "delta")) return TAG_SVG_ATT_delta;
 	if (!stricmp(attribute_name, "offset")) return TAG_SVG_ATT_offset;
 	if (!stricmp(attribute_name, "syncBehaviorDefault")) return TAG_SVG_ATT_syncBehaviorDefault;
 	if (!stricmp(attribute_name, "syncToleranceDefault")) return TAG_SVG_ATT_syncToleranceDefault;
@@ -350,7 +349,7 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_keyPoints: return SMIL_KeyPoints_datatype;
 		case TAG_SVG_ATT_rotate: return SVG_Rotate_datatype;
 		case TAG_SVG_ATT_origin: return SVG_String_datatype;
-		case TAG_SVG_ATT_type: return SVG_TransformType_datatype;
+		case TAG_SVG_ATT_transform_type: return SVG_TransformType_datatype;
 		case TAG_SVG_ATT_clipBegin: return SVG_Clock_datatype;
 		case TAG_SVG_ATT_clipEnd: return SVG_Clock_datatype;
 		case TAG_SVG_ATT_syncBehavior: return SMIL_SyncBehavior_datatype;
@@ -363,7 +362,7 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_height: return SVG_Length_datatype;
 		case TAG_SVG_ATT_preserveAspectRatio: return SVG_PreserveAspectRatio_datatype;
 		case TAG_SVG_ATT_initialVisibility: return SVG_InitialVisibility_datatype;
-		case TAG_SVG_ATT_content_type: return SVG_ContentType_datatype;
+		case TAG_SVG_ATT_type: return SVG_ContentType_datatype;
 		case TAG_SVG_ATT_cx: return SVG_Coordinate_datatype;
 		case TAG_SVG_ATT_cy: return SVG_Coordinate_datatype;
 		case TAG_SVG_ATT_r: return SVG_Length_datatype;
@@ -432,9 +431,9 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_bandwidth: return SVG_Number_datatype;
 		case TAG_SVG_ATT_fx: return SVG_Coordinate_datatype;
 		case TAG_SVG_ATT_fy: return SVG_Coordinate_datatype;
-		case TAG_SVG_ATT_lsr_size: return LASeR_Size_datatype;
-		case TAG_SVG_ATT_lsr_choice: return LASeR_Choice_datatype;
-		case TAG_SVG_ATT_lsr_delta: return LASeR_Size_datatype;
+		case TAG_SVG_ATT_size: return LASeR_Size_datatype;
+		case TAG_SVG_ATT_choice: return LASeR_Choice_datatype;
+		case TAG_SVG_ATT_delta: return LASeR_Size_datatype;
 		case TAG_SVG_ATT_offset: return SVG_Number_datatype;
 		case TAG_SVG_ATT_syncBehaviorDefault: return SMIL_SyncBehavior_datatype;
 		case TAG_SVG_ATT_syncToleranceDefault: return SMIL_SyncTolerance_datatype;
@@ -442,6 +441,7 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_zoomAndPan: return SVG_ZoomAndPan_datatype;
 		case TAG_SVG_ATT_version: return SVG_String_datatype;
 		case TAG_SVG_ATT_baseProfile: return SVG_String_datatype;
+		case TAG_SVG_ATT_contentScriptType: return SVG_ContentType_datatype;
 		case TAG_SVG_ATT_snapshotTime: return SVG_Clock_datatype;
 		case TAG_SVG_ATT_timelineBegin: return SVG_TimelineBegin_datatype;
 		case TAG_SVG_ATT_playbackOrder: return SVG_PlaybackOrder_datatype;
@@ -557,7 +557,7 @@ const char*gf_svg_get_attribute_name(u32 tag)
 		case TAG_SVG_ATT_keyPoints: return "keyPoints";
 		case TAG_SVG_ATT_rotate: return "rotate";
 		case TAG_SVG_ATT_origin: return "origin";
-		case TAG_SVG_ATT_type: return "type";
+		case TAG_SVG_ATT_transform_type: return "type";
 		case TAG_SVG_ATT_clipBegin: return "clipBegin";
 		case TAG_SVG_ATT_clipEnd: return "clipEnd";
 		case TAG_SVG_ATT_syncBehavior: return "syncBehavior";
@@ -570,7 +570,7 @@ const char*gf_svg_get_attribute_name(u32 tag)
 		case TAG_SVG_ATT_height: return "height";
 		case TAG_SVG_ATT_preserveAspectRatio: return "preserveAspectRatio";
 		case TAG_SVG_ATT_initialVisibility: return "initialVisibility";
-		case TAG_SVG_ATT_content_type: return "type";
+		case TAG_SVG_ATT_type: return "type";
 		case TAG_SVG_ATT_cx: return "cx";
 		case TAG_SVG_ATT_cy: return "cy";
 		case TAG_SVG_ATT_r: return "r";
@@ -639,9 +639,9 @@ const char*gf_svg_get_attribute_name(u32 tag)
 		case TAG_SVG_ATT_bandwidth: return "bandwidth";
 		case TAG_SVG_ATT_fx: return "fx";
 		case TAG_SVG_ATT_fy: return "fy";
-		case TAG_SVG_ATT_lsr_size: return "lsr:size";
-		case TAG_SVG_ATT_lsr_choice: return "lsr:choice";
-		case TAG_SVG_ATT_lsr_delta: return "lsr:delta";
+		case TAG_SVG_ATT_size: return "size";
+		case TAG_SVG_ATT_choice: return "choice";
+		case TAG_SVG_ATT_delta: return "delta";
 		case TAG_SVG_ATT_offset: return "offset";
 		case TAG_SVG_ATT_syncBehaviorDefault: return "syncBehaviorDefault";
 		case TAG_SVG_ATT_syncToleranceDefault: return "syncToleranceDefault";
@@ -649,6 +649,7 @@ const char*gf_svg_get_attribute_name(u32 tag)
 		case TAG_SVG_ATT_zoomAndPan: return "zoomAndPan";
 		case TAG_SVG_ATT_version: return "version";
 		case TAG_SVG_ATT_baseProfile: return "baseProfile";
+		case TAG_SVG_ATT_contentScriptType: return "contentScriptType";
 		case TAG_SVG_ATT_snapshotTime: return "snapshotTime";
 		case TAG_SVG_ATT_timelineBegin: return "timelineBegin";
 		case TAG_SVG_ATT_playbackOrder: return "playbackOrder";
@@ -763,7 +764,7 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_keyPoints: return gf_svg_create_attribute_from_datatype(SMIL_KeyPoints_datatype, tag);
 	case TAG_SVG_ATT_rotate: return gf_svg_create_attribute_from_datatype(SVG_Rotate_datatype, tag);
 	case TAG_SVG_ATT_origin: return gf_svg_create_attribute_from_datatype(SVG_String_datatype, tag);
-	case TAG_SVG_ATT_type: return gf_svg_create_attribute_from_datatype(SVG_TransformType_datatype, tag);
+	case TAG_SVG_ATT_transform_type: return gf_svg_create_attribute_from_datatype(SVG_TransformType_datatype, tag);
 	case TAG_SVG_ATT_clipBegin: return gf_svg_create_attribute_from_datatype(SVG_Clock_datatype, tag);
 	case TAG_SVG_ATT_clipEnd: return gf_svg_create_attribute_from_datatype(SVG_Clock_datatype, tag);
 	case TAG_SVG_ATT_syncBehavior: return gf_svg_create_attribute_from_datatype(SMIL_SyncBehavior_datatype, tag);
@@ -776,7 +777,7 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_height: return gf_svg_create_attribute_from_datatype(SVG_Length_datatype, tag);
 	case TAG_SVG_ATT_preserveAspectRatio: return gf_svg_create_attribute_from_datatype(SVG_PreserveAspectRatio_datatype, tag);
 	case TAG_SVG_ATT_initialVisibility: return gf_svg_create_attribute_from_datatype(SVG_InitialVisibility_datatype, tag);
-	case TAG_SVG_ATT_content_type: return gf_svg_create_attribute_from_datatype(SVG_ContentType_datatype, tag);
+	case TAG_SVG_ATT_type: return gf_svg_create_attribute_from_datatype(SVG_ContentType_datatype, tag);
 	case TAG_SVG_ATT_cx: return gf_svg_create_attribute_from_datatype(SVG_Coordinate_datatype, tag);
 	case TAG_SVG_ATT_cy: return gf_svg_create_attribute_from_datatype(SVG_Coordinate_datatype, tag);
 	case TAG_SVG_ATT_r: return gf_svg_create_attribute_from_datatype(SVG_Length_datatype, tag);
@@ -845,9 +846,9 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_bandwidth: return gf_svg_create_attribute_from_datatype(SVG_Number_datatype, tag);
 	case TAG_SVG_ATT_fx: return gf_svg_create_attribute_from_datatype(SVG_Coordinate_datatype, tag);
 	case TAG_SVG_ATT_fy: return gf_svg_create_attribute_from_datatype(SVG_Coordinate_datatype, tag);
-	case TAG_SVG_ATT_lsr_size: return gf_svg_create_attribute_from_datatype(LASeR_Size_datatype, tag);
-	case TAG_SVG_ATT_lsr_choice: return gf_svg_create_attribute_from_datatype(LASeR_Choice_datatype, tag);
-	case TAG_SVG_ATT_lsr_delta: return gf_svg_create_attribute_from_datatype(LASeR_Size_datatype, tag);
+	case TAG_SVG_ATT_size: return gf_svg_create_attribute_from_datatype(LASeR_Size_datatype, tag);
+	case TAG_SVG_ATT_choice: return gf_svg_create_attribute_from_datatype(LASeR_Choice_datatype, tag);
+	case TAG_SVG_ATT_delta: return gf_svg_create_attribute_from_datatype(LASeR_Size_datatype, tag);
 	case TAG_SVG_ATT_offset: return gf_svg_create_attribute_from_datatype(SVG_Number_datatype, tag);
 	case TAG_SVG_ATT_syncBehaviorDefault: return gf_svg_create_attribute_from_datatype(SMIL_SyncBehavior_datatype, tag);
 	case TAG_SVG_ATT_syncToleranceDefault: return gf_svg_create_attribute_from_datatype(SMIL_SyncTolerance_datatype, tag);
@@ -855,6 +856,7 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_zoomAndPan: return gf_svg_create_attribute_from_datatype(SVG_ZoomAndPan_datatype, tag);
 	case TAG_SVG_ATT_version: return gf_svg_create_attribute_from_datatype(SVG_String_datatype, tag);
 	case TAG_SVG_ATT_baseProfile: return gf_svg_create_attribute_from_datatype(SVG_String_datatype, tag);
+	case TAG_SVG_ATT_contentScriptType: return gf_svg_create_attribute_from_datatype(SVG_ContentType_datatype, tag);
 	case TAG_SVG_ATT_snapshotTime: return gf_svg_create_attribute_from_datatype(SVG_Clock_datatype, tag);
 	case TAG_SVG_ATT_timelineBegin: return gf_svg_create_attribute_from_datatype(SVG_TimelineBegin_datatype, tag);
 	case TAG_SVG_ATT_playbackOrder: return gf_svg_create_attribute_from_datatype(SVG_PlaybackOrder_datatype, tag);
@@ -972,7 +974,7 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_keyPoints: all_atts->keyPoints = (SMIL_KeyPoints *)att->data; break;
 		case TAG_SVG_ATT_rotate: all_atts->rotate = (SVG_Rotate *)att->data; break;
 		case TAG_SVG_ATT_origin: all_atts->origin = (SVG_String *)att->data; break;
-		case TAG_SVG_ATT_type: all_atts->type = (SVG_TransformType *)att->data; break;
+		case TAG_SVG_ATT_transform_type: all_atts->transform_type = (SVG_TransformType *)att->data; break;
 		case TAG_SVG_ATT_clipBegin: all_atts->clipBegin = (SVG_Clock *)att->data; break;
 		case TAG_SVG_ATT_clipEnd: all_atts->clipEnd = (SVG_Clock *)att->data; break;
 		case TAG_SVG_ATT_syncBehavior: all_atts->syncBehavior = (SMIL_SyncBehavior *)att->data; break;
@@ -985,7 +987,7 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_height: all_atts->height = (SVG_Length *)att->data; break;
 		case TAG_SVG_ATT_preserveAspectRatio: all_atts->preserveAspectRatio = (SVG_PreserveAspectRatio *)att->data; break;
 		case TAG_SVG_ATT_initialVisibility: all_atts->initialVisibility = (SVG_InitialVisibility *)att->data; break;
-		case TAG_SVG_ATT_content_type: all_atts->content_type = (SVG_ContentType *)att->data; break;
+		case TAG_SVG_ATT_type: all_atts->type = (SVG_ContentType *)att->data; break;
 		case TAG_SVG_ATT_cx: all_atts->cx = (SVG_Coordinate *)att->data; break;
 		case TAG_SVG_ATT_cy: all_atts->cy = (SVG_Coordinate *)att->data; break;
 		case TAG_SVG_ATT_r: all_atts->r = (SVG_Length *)att->data; break;
@@ -1054,9 +1056,9 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_bandwidth: all_atts->bandwidth = (SVG_Number *)att->data; break;
 		case TAG_SVG_ATT_fx: all_atts->fx = (SVG_Coordinate *)att->data; break;
 		case TAG_SVG_ATT_fy: all_atts->fy = (SVG_Coordinate *)att->data; break;
-		case TAG_SVG_ATT_lsr_size: all_atts->lsr_size = (LASeR_Size *)att->data; break;
-		case TAG_SVG_ATT_lsr_choice: all_atts->lsr_choice = (LASeR_Choice *)att->data; break;
-		case TAG_SVG_ATT_lsr_delta: all_atts->lsr_delta = (LASeR_Size *)att->data; break;
+		case TAG_SVG_ATT_size: all_atts->size = (LASeR_Size *)att->data; break;
+		case TAG_SVG_ATT_choice: all_atts->choice = (LASeR_Choice *)att->data; break;
+		case TAG_SVG_ATT_delta: all_atts->delta = (LASeR_Size *)att->data; break;
 		case TAG_SVG_ATT_offset: all_atts->offset = (SVG_Number *)att->data; break;
 		case TAG_SVG_ATT_syncBehaviorDefault: all_atts->syncBehaviorDefault = (SMIL_SyncBehavior *)att->data; break;
 		case TAG_SVG_ATT_syncToleranceDefault: all_atts->syncToleranceDefault = (SMIL_SyncTolerance *)att->data; break;
@@ -1064,6 +1066,7 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_zoomAndPan: all_atts->zoomAndPan = (SVG_ZoomAndPan *)att->data; break;
 		case TAG_SVG_ATT_version: all_atts->version = (SVG_String *)att->data; break;
 		case TAG_SVG_ATT_baseProfile: all_atts->baseProfile = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_contentScriptType: all_atts->contentScriptType = (SVG_ContentType *)att->data; break;
 		case TAG_SVG_ATT_snapshotTime: all_atts->snapshotTime = (SVG_Clock *)att->data; break;
 		case TAG_SVG_ATT_timelineBegin: all_atts->timelineBegin = (SVG_TimelineBegin *)att->data; break;
 		case TAG_SVG_ATT_playbackOrder: all_atts->playbackOrder = (SVG_PlaybackOrder *)att->data; break;

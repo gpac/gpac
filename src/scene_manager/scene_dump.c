@@ -2578,11 +2578,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		}
 		info.fieldIndex = att->tag;
 		info.fieldType = att->data_type;
-		if (att->tag==TAG_SVG_ATT_content_type) {
-			info.name = (tag==TAG_SVG_svg) ? "contentScriptType" : "type";
-		} else {
-			info.name = gf_svg_get_attribute_name(att->tag);
-		}
+		info.name = gf_svg_get_attribute_name(att->tag);
 		info.far_ptr = att->data;
 		gf_svg_dump_attribute((GF_Node*)svg, &info, attValue);
 		if (strlen(attValue)) fprintf(sdump->trace, "%s=\"%s\" ", info.name, attValue);
