@@ -779,7 +779,7 @@ u32 gf_svg_sa_get_rendering_flag_if_modified(SVG_SA_Element *n, GF_FieldInfo *in
 		case SVG_Rotate_datatype:
 			return GF_SG_SVG_GEOMETRY_DIRTY;
 
-		case SVG_IRI_datatype:
+		case XMLRI_datatype:
 			return GF_SG_NODE_DIRTY;
 
 		//case SVG_Matrix_datatype:

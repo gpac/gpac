@@ -157,14 +157,14 @@ static SVG_SAFExternalStream *svg_saf_get_next_available_stream(GF_SVG_Parser *p
 	return st;
 }
 
-static void svg_process_media_href(GF_SVG_Parser *parser, SVG_IRI *iri)
+static void svg_process_media_href(GF_SVG_Parser *parser, XMLRI *iri)
 {
-	SVG_SAFExternalStream *st = svg_saf_get_stream(parser, 0, iri->iri+1);
+	SVG_SAFExternalStream *st = svg_saf_get_stream(parser, 0, iri->string+1);
 	if (st) {
-		free(iri->iri);
-		iri->iri = NULL;
-		iri->stream_id = st->id;
-		iri->type = SVG_IRI_STREAMID;
+		free(iri->string);
+		iri->string = NULL;
+		iri->lsr_stream_id = st->id;
+		iri->type = XMLRI_STREAMID;
 	}
 }
 
@@ -195,16 +195,16 @@ static GF_Node *svg_find_node(GF_SVG_Parser *parser, char *ID)
 	return n;
 }
 
-static void svg_post_process_href(GF_SVG_Parser *parser, SVG_IRI *iri)
+static void svg_post_process_href(GF_SVG_Parser *parser, XMLRI *iri)
 {
 	/*keep data when encoding*/
 	if ( !(parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK)) return;
 
 	/*unresolved, queue it...*/
-	if ((iri->type==SVG_IRI_ELEMENTID) && !iri->target && iri->iri) {
+	if ((iri->type==XMLRI_ELEMENTID) && !iri->target && iri->string) {
 		gf_list_add(parser->defered_hrefs, iri);
 	}
-	if (iri->type != SVG_IRI_IRI) return;
+	if (iri->type != XMLRI_STRING) return;
 	gf_svg_store_embedded_data(iri, parser->load->localPath, parser->load->fileName);
 }
 
@@ -237,10 +237,10 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 			/* the target is still not known stay in stage 0 */
 			return 0;
 		} else { 
-			SVG_IRI *iri;
+			XMLRI *iri;
 			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_xlink_href, 1, 0, &info);
-			iri = (SVG_IRI *)info.far_ptr;
-			iri->type = SVG_IRI_ELEMENTID;
+			iri = (XMLRI *)info.far_ptr;
+			iri->type = XMLRI_ELEMENTID;
 			iri->target = anim->target;
 			gf_svg_register_iri(sg, iri);
 		}
@@ -293,31 +293,31 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 		if (anim->to) {
 			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_to, 1, 0, &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->to, anim_value_type);
-			if (anim_value_type==SVG_IRI_datatype) 
-				svg_post_process_href(parser, (SVG_IRI*)((SMIL_AnimateValue *)info.far_ptr)->value);
+			if (anim_value_type==XMLRI_datatype) 
+				svg_post_process_href(parser, (XMLRI*)((SMIL_AnimateValue *)info.far_ptr)->value);
 		} 
 		if (anim->from) {
 			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_from, 1, 0, &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->from, anim_value_type);
-			if (anim_value_type==SVG_IRI_datatype) 
-				svg_post_process_href(parser, (SVG_IRI*)((SMIL_AnimateValue *)info.far_ptr)->value);
+			if (anim_value_type==XMLRI_datatype) 
+				svg_post_process_href(parser, (XMLRI*)((SMIL_AnimateValue *)info.far_ptr)->value);
 		} 
 		if (anim->by) {
 			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_by, 1, 0, &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->by, anim_value_type);
-			if (anim_value_type==SVG_IRI_datatype) 
-				svg_post_process_href(parser, (SVG_IRI*)((SMIL_AnimateValue *)info.far_ptr)->value);
+			if (anim_value_type==XMLRI_datatype) 
+				svg_post_process_href(parser, (XMLRI*)((SMIL_AnimateValue *)info.far_ptr)->value);
 		} 
 		if (anim->values) {
 			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_values, 1, 0, &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->values, anim_value_type);
-			if (anim_value_type==SVG_IRI_datatype) {
+			if (anim_value_type==XMLRI_datatype) {
 				u32 i, count;
 				SMIL_AnimateValues *anim_values;
 				anim_values = (SMIL_AnimateValues *)info.far_ptr;
 				count = gf_list_count(anim_values->values);
 				for (i=0; i<count; i++) {
-					SVG_IRI *iri = (SVG_IRI *)gf_list_get(anim_values->values, i);
+					XMLRI *iri = (XMLRI *)gf_list_get(anim_values->values, i);
 					svg_post_process_href(parser, iri);
 				}
 			}
@@ -354,15 +354,15 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 	count = gf_list_count(parser->defered_hrefs);
 	for (i=0; i<count; i++) {
 		GF_Node *targ;
-		SVG_IRI *iri = (SVG_IRI *)gf_list_get(parser->defered_hrefs, i);
-		if (nodeID && strcmp(iri->iri + 1, nodeID)) continue;
-		targ = gf_sg_find_node_by_name(sg, iri->iri + 1);
+		XMLRI *iri = (XMLRI *)gf_list_get(parser->defered_hrefs, i);
+		if (nodeID && strcmp(iri->string + 1, nodeID)) continue;
+		targ = gf_sg_find_node_by_name(sg, iri->string + 1);
 		if (targ) {
-			iri->type = SVG_IRI_ELEMENTID;
+			iri->type = XMLRI_ELEMENTID;
 			iri->target = targ;
 			gf_svg_register_iri(sg, iri);
-			free(iri->iri);
-			iri->iri = NULL;
+			free(iri->string);
+			iri->string = NULL;
 			gf_list_rem(parser->defered_hrefs, i);
 			i--;
 			count--;
@@ -378,15 +378,15 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 
 		par = NULL;
 		if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_observer, 0, 0, &info) == GF_OK) {
-			SVG_IRI *observer = info.far_ptr;
-			if (observer->type == SVG_IRI_ELEMENTID) {
+			XMLRI *observer = info.far_ptr;
+			if (observer->type == XMLRI_ELEMENTID) {
 				if (!observer->target) continue;
 				else par = observer->target;
 			}
 		}
 		if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_listener_target, 0, 0, &info) == GF_OK) {
-			SVG_IRI *target = info.far_ptr;
-			if (target->type == SVG_IRI_ELEMENTID) {
+			XMLRI *target = info.far_ptr;
+			if (target->type == XMLRI_ELEMENTID) {
 				if (!target->target) continue;
 				else {
 					if (!par) par = (GF_Node*)target->target;
@@ -512,7 +512,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 				anim->target = (SVG_Element *) gf_sg_find_node_by_name(parser->load->scene_graph, anim->target_id + 1);
 			} else {
 				GF_FieldInfo info;
-				SVG_IRI *iri = NULL;
+				XMLRI *iri = NULL;
 				if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {
 					gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
 					iri = info.far_ptr;
@@ -540,10 +540,10 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_event, 1, 0, &info);
 			((XMLEV_Event *)info.far_ptr)->type = type;
 			gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_handler, 1, 0, &info);
-			((SVG_IRI *)info.far_ptr)->target = node;
+			((XMLRI *)info.far_ptr)->target = node;
 			/* this listener listens with the parent of the handler as the event target */
 			gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_listener_target, 1, 0, &info);
-			((SVG_IRI *)info.far_ptr)->target = parent->node;
+			((XMLRI *)info.far_ptr)->target = parent->node;
 			gf_dom_listener_add((GF_Node *) parent->node, (GF_Node *) listener);
 		}
 		/*laser specific stuff*/
@@ -596,23 +596,23 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		SVG_Element *listener = (SVG_Element *)elt;
 
 		if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_observer, 0, 0, &info) == GF_OK) {
-			SVG_IRI *observer = info.far_ptr;
-			if (observer->type == SVG_IRI_ELEMENTID) {
+			XMLRI *observer = info.far_ptr;
+			if (observer->type == XMLRI_ELEMENTID) {
 				if (!observer->target) post_pone = 1;
 				else par = observer->target;
 			}
 		}
 
 		if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_listener_target, 0, 0, &info) == GF_OK) {
-			SVG_IRI *target = info.far_ptr;
-			if (!par && (target->type == SVG_IRI_ELEMENTID)) {
+			XMLRI *target = info.far_ptr;
+			if (!par && (target->type == XMLRI_ELEMENTID)) {
 				if (!target->target) post_pone = 1;
 				else par = target->target;
 			}
 		}
 
 		if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_handler, 1, 0, &info) == GF_OK) {
-			SVG_IRI *handler = info.far_ptr;
+			XMLRI *handler = info.far_ptr;
 			if (!handler->target) handler->target = parent->node;
 		}
 		

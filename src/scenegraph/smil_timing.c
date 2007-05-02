@@ -601,7 +601,8 @@ waiting_to_begin:
 			simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
 			if (cur_id < rti->current_interval->nb_iterations) {
 				memset(&evt, 0, sizeof(evt));
-				evt.type = GF_EVENT_REPEAT;
+				evt.type = GF_EVENT_REPEAT_EVENT;
+				evt.smil_event_time = rti->current_interval->begin + rti->current_interval->nb_iterations*rti->current_interval->simple_duration;
 				evt.detail = rti->current_interval->nb_iterations;
 				gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 

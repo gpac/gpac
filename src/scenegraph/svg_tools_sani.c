@@ -92,7 +92,7 @@ static void svg_sani_reset_focus(SVG_SANI_Element *elt, SVG_Focus *focus)
 	if (focus->target.target) {
 		gf_svg_unregister_iri(elt->sgprivate->scenegraph, &focus->target);
 	}
-	if (focus->target.iri) free(focus->target.iri);
+	if (focus->target.string) free(focus->target.string);
 }
 
 void gf_svg_sani_delete_focus(SVG_SANI_Element *elt, SVGFocusAttributes *p) 
@@ -286,7 +286,7 @@ u32 gf_svg_sani_get_rendering_flag_if_modified(SVG_SANI_Element *n, GF_FieldInfo
 		case SVG_Rotate_datatype:
 			return GF_SG_SVG_GEOMETRY_DIRTY;
 
-		case SVG_IRI_datatype:
+		case XMLRI_datatype:
 			return GF_SG_NODE_DIRTY;
 
 		//case SVG_Matrix_datatype:

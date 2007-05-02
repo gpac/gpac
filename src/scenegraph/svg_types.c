@@ -165,10 +165,10 @@ void gf_svg_delete_coordinates(GF_List *list)
 	gf_list_del(list);
 }
 
-void gf_svg_reset_iri(GF_SceneGraph *sg, SVG_IRI *iri) 
+void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI *iri) 
 {
 	if (!iri) return;
-	if (iri->iri) free(iri->iri);
+	if (iri->string) free(iri->string);
 	gf_svg_unregister_iri(sg, iri);
 }
 
@@ -210,8 +210,8 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	case SVG_Paint_datatype:
 		gf_svg_delete_paint(sg, (SVG_Paint *)value);
 		break;
-	case SVG_IRI_datatype:
-		gf_svg_reset_iri(sg, (SVG_IRI *)value);
+	case XMLRI_datatype:
+		gf_svg_reset_iri(sg, (XMLRI *)value);
 		free(value);
 		break;
 	case SVG_PathData_datatype:
@@ -290,13 +290,13 @@ void gf_smil_delete_key_types(GF_List *l)
 
 
 GF_EXPORT
-void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *target)
+void gf_svg_register_iri(GF_SceneGraph *sg, XMLRI *target)
 {
 	if (gf_list_find(sg->xlink_hrefs, target)<0) {
 		gf_list_add(sg->xlink_hrefs, target);
 	}
 }
-void gf_svg_unregister_iri(GF_SceneGraph *sg, SVG_IRI *target)
+void gf_svg_unregister_iri(GF_SceneGraph *sg, XMLRI *target)
 {
 	gf_list_del_item(sg->xlink_hrefs, target);
 }
@@ -338,14 +338,14 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 
 
 GF_EXPORT
-Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char *base_filename)
+Bool gf_svg_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *base_filename)
 {
 	char szFile[GF_MAX_PATH], buf[20], *sep, *data, *ext;
 	u32 data_size, idx;
 	Bool existing;
 	FILE *f;
 
-	if (!cache_dir || !base_filename || !iri || !iri->iri || strncmp(iri->iri, "data:", 5)) return 0;
+	if (!cache_dir || !base_filename || !iri || !iri->string || strncmp(iri->string, "data:", 5)) return 0;
 
 	/*handle "data:" scheme when cache is specified*/
 	strcpy(szFile, cache_dir);
@@ -368,14 +368,14 @@ Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char 
 	strcat(szFile, "_img_");
 
 	/*get mime type*/
-	sep = (char *)iri->iri + 5;
+	sep = (char *)iri->string + 5;
 	if (!strncmp(sep, "image/jpg", 9) || !strncmp(sep, "image/jpeg", 10)) ext = ".jpg";
 	else if (!strncmp(sep, "image/png", 9)) ext = ".png";
 	else return 0;
 
 
 	data = NULL;
-	sep = strchr(iri->iri, ';');
+	sep = strchr(iri->string, ';');
 	if (!strncmp(sep, ";base64,", 8)) {
 		sep += 8;
 		data_size = 2*strlen(sep);
@@ -392,7 +392,7 @@ Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char 
 	}
 	if (!data_size) return 0;
 	
-	iri->type = SVG_IRI_IRI;
+	iri->type = XMLRI_STRING;
 	
 	existing = 0;
 	idx = 0;
@@ -416,8 +416,8 @@ Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char 
 		fclose(f);
 	}
 	free(data);
-	free(iri->iri);
-	iri->iri = strdup(szFile);
+	free(iri->string);
+	iri->string = strdup(szFile);
 	return 1;
 }
 

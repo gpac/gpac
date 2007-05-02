@@ -312,7 +312,7 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 			} else {
 				fprintf(output, "\tgf_svg_reset_path(p->d);\n");
 			}
-		} else if (!strcmp("SVG_IRI", att->impl_type)) {
+		} else if (!strcmp("XMLRI", att->impl_type)) {
 			fprintf(output, "\tgf_svg_reset_iri(node->sgprivate->scenegraph, &p->%s);\n", att->implementation_name);
 		} else if (!strcmp("SVG_FontFamily", att->impl_type)) {
 			fprintf(output, "\tif (p->%s.value) free(p->%s.value);\n", att->implementation_name, att->implementation_name);

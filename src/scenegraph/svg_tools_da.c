@@ -433,7 +433,7 @@ u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info)
 		case SVG_Rotate_datatype:
 			return GF_SG_SVG_GEOMETRY_DIRTY;
 
-		case SVG_IRI_datatype:
+		case XMLRI_datatype:
 			return GF_SG_NODE_DIRTY;
 
 		//case SVG_Matrix_datatype:

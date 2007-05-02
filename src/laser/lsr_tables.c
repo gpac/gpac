@@ -659,7 +659,7 @@ u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 	f_base.far_ptr = base_atts->systemLanguage;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_IRI_datatype;
+	f_elt.fieldType = f_base.fieldType = XMLRI_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xml_base;
 	f_elt.far_ptr = elt_atts->xml_base;
 	f_base.far_ptr = base_atts->xml_base;
@@ -797,13 +797,13 @@ u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 	f_base.far_ptr = base_atts->xlink_type;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_IRI_datatype;
+	f_elt.fieldType = f_base.fieldType = XMLRI_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xlink_role;
 	f_elt.far_ptr = elt_atts->xlink_role;
 	f_base.far_ptr = base_atts->xlink_role;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_IRI_datatype;
+	f_elt.fieldType = f_base.fieldType = XMLRI_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xlink_arcrole;
 	f_elt.far_ptr = elt_atts->xlink_arcrole;
 	f_base.far_ptr = base_atts->xlink_arcrole;

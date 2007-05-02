@@ -266,9 +266,9 @@ static JSBool udom_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *
 	gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_event, 1, 0, &info);
 	((XMLEV_Event*)info.far_ptr)->type = evtType;
 	gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_handler, 1, 0, &info);
-	((SVG_IRI*)info.far_ptr)->target = (GF_Node*)handler;
+	((XMLRI*)info.far_ptr)->target = (GF_Node*)handler;
 	gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_target, 1, 0, &info);
-	((SVG_IRI*)info.far_ptr)->target = node;
+	((XMLRI*)info.far_ptr)->target = node;
 
 	gf_svg_get_attribute_by_tag((GF_Node*)handler, TAG_SVG_ATT_ev_event, 1, 0, &info);
 	((XMLEV_Event*)info.far_ptr)->type = evtType;
@@ -328,7 +328,7 @@ static JSBool udom_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 
 		gf_svg_get_attribute_by_tag(el, TAG_SVG_ATT_handler, 0, 0, &info);
 		if (!info.far_ptr) continue;
-		hdl = (SVG_handlerElement *) ((SVG_IRI*)info.far_ptr)->target;
+		hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 		if (!hdl) continue;
 		txt = (GF_DOMText *) hdl->children->node;
 		if (txt->sgprivate->tag != TAG_DOMText) continue;
@@ -679,7 +679,7 @@ static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 		if (!info.far_ptr || (((XMLEV_Event*)info.far_ptr)->type != evt.type)) continue;
 		gf_svg_get_attribute_by_tag(listen, TAG_SVG_ATT_handler, 0, 0, &info);
 		assert(info.far_ptr);
-		handler = (SVG_handlerElement *) ((SVG_IRI*)info.far_ptr)->target;
+		handler = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 		text = (GF_DOMText*)handler->children->node;
 		if (text->sgprivate->tag==TAG_DOMText) {
 			if (text->textContent) free(text->textContent);
@@ -816,7 +816,7 @@ static JSBool udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 /*end of string traits*/
 /*DOM string traits*/
 	case SVG_FontFamily_datatype:
-	case SVG_IRI_datatype:
+	case XMLRI_datatype:
 	case SVG_String_datatype:
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
@@ -1082,7 +1082,7 @@ static JSBool udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 /*end of string traits*/
 /*DOM string traits*/
 	case SVG_FontFamily_datatype:
-	case SVG_IRI_datatype:
+	case XMLRI_datatype:
 	case SVG_String_datatype:
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:

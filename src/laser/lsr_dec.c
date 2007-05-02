@@ -77,10 +77,10 @@ void gf_laser_decoder_del(GF_LASeRCodec *codec)
 	}
 	gf_list_del(codec->font_table);
 	while (gf_list_count(codec->defered_hrefs)) {
-		SVG_IRI *iri = (SVG_IRI *)gf_list_last(codec->defered_hrefs);
+		XMLRI *iri = (XMLRI *)gf_list_last(codec->defered_hrefs);
 		gf_list_rem_last(codec->defered_hrefs);
-		if (iri->iri) free(iri->iri);
-		iri->iri = NULL;
+		if (iri->string) free(iri->string);
+		iri->string = NULL;
 	}
 	gf_list_del(codec->defered_hrefs);
 	gf_list_del(codec->defered_anims);
@@ -360,7 +360,7 @@ static void lsr_read_extend_class(GF_LASeRCodec *lsr, char **out_data, u32 *out_
 	if (out_len) *out_len = 0;
 }
 
-static void lsr_read_codec_IDREF(GF_LASeRCodec *lsr, SVG_IRI *href, const char *name)
+static void lsr_read_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *name)
 {
 	GF_Node *n;
 	u32 flag;
@@ -376,14 +376,14 @@ static void lsr_read_codec_IDREF(GF_LASeRCodec *lsr, SVG_IRI *href, const char *
 	if (!n) {
 		char NodeID[1024];
 		sprintf(NodeID, "N%d", nID-1);
-		href->iri = strdup(NodeID);
+		href->string = strdup(NodeID);
 		if (href->type!=0xFF) 
 			gf_list_add(lsr->defered_hrefs, href);
-		href->type = SVG_IRI_ELEMENTID;
+		href->type = XMLRI_ELEMENTID;
 		return;
 	}
 	href->target = (SVG_Element *)n;
-	href->type = SVG_IRI_ELEMENTID;
+	href->type = XMLRI_ELEMENTID;
 	gf_svg_register_iri(lsr->sg, href);
 }
 
@@ -479,7 +479,7 @@ static void lsr_read_text_content(GF_LASeRCodec *lsr, GF_Node *elt)
 
 static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, const char *name, Bool is_iri)
 {
-	SVG_IRI *iri;
+	XMLRI *iri;
 	char *text, *sep, *sep2, *cur;
 	while (gf_list_count(l)) {
 		char *str = (char *)gf_list_last(l);
@@ -493,9 +493,9 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 		sep = strchr(cur, '\'');
 		if (!sep) {
 			if (is_iri) {
-				GF_SAFEALLOC(iri, SVG_IRI);
-				iri->iri = strdup(cur);
-				iri->type = SVG_IRI_IRI;
+				GF_SAFEALLOC(iri, XMLRI);
+				iri->string = strdup(cur);
+				iri->type = XMLRI_STRING;
 				gf_list_add(l, iri);
 			} else {
 				gf_list_add(l, strdup(cur));
@@ -505,9 +505,9 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 		sep2 = strchr(sep + 1, '\'');
 		if (!sep2) {
 			if (is_iri) {
-				GF_SAFEALLOC(iri, SVG_IRI);
-				iri->iri = strdup(cur);
-				iri->type = SVG_IRI_IRI;
+				GF_SAFEALLOC(iri, XMLRI);
+				iri->string = strdup(cur);
+				iri->type = XMLRI_STRING;
 				gf_list_add(l, iri);
 			} else {
 				gf_list_add(l, strdup(cur));
@@ -516,9 +516,9 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 		}
 		sep2[0] = 0;
 		if (is_iri) {
-			GF_SAFEALLOC(iri, SVG_IRI);
-			iri->iri = strdup(sep+1);
-			iri->type = SVG_IRI_IRI;
+			GF_SAFEALLOC(iri, XMLRI);
+			iri->string = strdup(sep+1);
+			iri->type = XMLRI_STRING;
 			gf_list_add(l, iri);
 		} else {
 			gf_list_add(l, strdup(sep+1));
@@ -529,34 +529,34 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 	free(text);
 }
 
-static void lsr_read_any_uri(GF_LASeRCodec *lsr, SVG_IRI *iri, const char *name)
+static void lsr_read_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 {
 	u32 val;
 	GF_LSR_READ_INT(lsr, val, 1, "hasUri");
 	if (val) {
 		char *s = NULL;
-		iri->type=SVG_IRI_IRI;
-		if (iri->iri) {
-			free(iri->iri);
-			iri->iri = NULL;
+		iri->type=XMLRI_STRING;
+		if (iri->string) {
+			free(iri->string);
+			iri->string = NULL;
 		}
 		lsr_read_byte_align_string(lsr, &s, "uri");
 		GF_LSR_READ_INT(lsr, val, 1, "hasData");
 		if (!val) {
-			iri->iri = s;
+			iri->string = s;
 		} else {
 			u32 len_rad, len;
 			len = lsr_read_vluimsbf5(lsr, "len");
 			len_rad = s ? strlen(s) : 0;
-			iri->iri = (char*)malloc(sizeof(char)*(len_rad+1+len+1));
-			iri->iri[0] = 0;
+			iri->string = (char*)malloc(sizeof(char)*(len_rad+1+len+1));
+			iri->string[0] = 0;
 			if (s) {
-				strcpy(iri->iri, s);
+				strcpy(iri->string, s);
 				free(s);
 			}
-			strcat(iri->iri, ",");
-			gf_bs_read_data(lsr->bs, iri->iri + len_rad + 1, len);
-			iri->iri[len_rad + 1 + len] = 0;
+			strcat(iri->string, ",");
+			gf_bs_read_data(lsr->bs, iri->string + len_rad + 1, len);
+			iri->string[len_rad + 1 + len] = 0;
 		}
     }
 	GF_LSR_READ_INT(lsr, val, 1, "hasID");
@@ -564,8 +564,8 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, SVG_IRI *iri, const char *name)
 
 	GF_LSR_READ_INT(lsr, val, 1, "hasStreamID");
 	if (val) {
-		iri->type = SVG_IRI_STREAMID;
-		iri->stream_id = lsr_read_vluimsbf5(lsr, name);
+		iri->type = XMLRI_STREAMID;
+		iri->lsr_stream_id = lsr_read_vluimsbf5(lsr, name);
 		GF_LSR_READ_INT(lsr, val, 1, "reserved");
 		if (val) {
 			u32 len = lsr_read_vluimsbf5(lsr, "len");
@@ -576,13 +576,13 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, SVG_IRI *iri, const char *name)
 
 static void lsr_read_any_uri_string(GF_LASeRCodec *lsr, char **str, const char *name)
 {
-	SVG_IRI iri;
+	XMLRI iri;
 	if (*str) free(*str);
 	*str = NULL;
-	memset(&iri, 0, sizeof(SVG_IRI));
+	memset(&iri, 0, sizeof(XMLRI));
 	iri.type = 0xFF;
 	lsr_read_any_uri(lsr, &iri, name);
-	*str = iri.iri;
+	*str = iri.string;
 }
 
 static void lsr_read_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *name)
@@ -607,18 +607,18 @@ static void lsr_read_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *nam
 			break;
 		case 1:
 		{
-			SVG_IRI iri;
-			memset(&iri, 0, sizeof(SVG_IRI));
+			XMLRI iri;
+			memset(&iri, 0, sizeof(XMLRI));
 			iri.type = 0xFF;
 			lsr_read_any_uri(lsr, &iri, name);
 			gf_svg_unregister_iri(lsr->sg, &iri);
 			paint->type = SVG_PAINT_URI;
-			if (iri.iri) {
+			if (iri.string) {
 				paint->type = SVG_PAINT_URI;
-				paint->iri.type = SVG_IRI_IRI;
-				paint->iri.iri = iri.iri;
+				paint->iri.type = XMLRI_STRING;
+				paint->iri.string = iri.string;
 			} else if (iri.target) {
-				paint->iri.type = SVG_IRI_ELEMENTID;
+				paint->iri.type = XMLRI_ELEMENTID;
 				paint->iri.target = iri.target;
 			}
 		}
@@ -673,15 +673,15 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 	/*update all pending HREFs*/
 	count = gf_list_count(lsr->defered_hrefs);
 	for (i=0; i<count; i++) {
-		SVG_IRI *href = (SVG_IRI *)gf_list_get(lsr->defered_hrefs, i);
-		char *str_id = href->iri;
+		XMLRI *href = (XMLRI *)gf_list_get(lsr->defered_hrefs, i);
+		char *str_id = href->string;
 		if (str_id[0] == '#') str_id++;
 		/*skip 'N'*/
 		str_id++;
 		if (id == (1 + (u32) atoi(str_id))) {
 			href->target = (SVG_Element*) n;
-			free(href->iri);
-			href->iri = NULL;
+			free(href->string);
+			href->string = NULL;
 			gf_list_rem(lsr->defered_hrefs, i);
 			i--;
 			count--;
@@ -696,15 +696,15 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 
 		par = NULL;
 		if (gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_observer, 0, 0, &info) == GF_OK) {
-			if (((SVG_IRI*)info.far_ptr)->type == SVG_IRI_ELEMENTID) {
-				if (!((SVG_IRI*)info.far_ptr)->target) continue;
-				else par = ((SVG_IRI*)info.far_ptr)->target;
+			if (((XMLRI*)info.far_ptr)->type == XMLRI_ELEMENTID) {
+				if (!((XMLRI*)info.far_ptr)->target) continue;
+				else par = ((XMLRI*)info.far_ptr)->target;
 			}
 		}
 		if (gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_listener_target, 0, 0, &info) == GF_OK) {
-			if (((SVG_IRI*)info.far_ptr)->type == SVG_IRI_ELEMENTID) {
-				if (!((SVG_IRI*)info.far_ptr)->target) continue;
-				else if (!par) par = ((SVG_IRI*)info.far_ptr)->target;
+			if (((XMLRI*)info.far_ptr)->type == XMLRI_ELEMENTID) {
+				if (!((XMLRI*)info.far_ptr)->target) continue;
+				else if (!par) par = ((XMLRI*)info.far_ptr)->target;
 			}
 		}
 		assert(par);
@@ -817,9 +817,9 @@ static void lsr_read_focus(GF_LASeRCodec *lsr, SVG_Focus *foc, const char *name)
 {
 	u32 flag;
 	
-	if (foc->target.iri) {
-		free(foc->target.iri);
-		foc->target.iri = NULL;
+	if (foc->target.string) {
+		free(foc->target.string);
+		foc->target.string = NULL;
 	}
 	if (foc->target.target) foc->target.target = NULL;
 	gf_svg_unregister_iri(lsr->sg, &foc->target);
@@ -936,12 +936,12 @@ static void lsr_restore_base(GF_LASeRCodec *lsr, SVG_Element *elt, SVG_Element *
 
 		if (is_fill && reset_fill) {
 			SVG_Paint*p = (SVG_Paint*)f_clone.far_ptr;
-			if (p->iri.iri) free(p->iri.iri);
+			if (p->iri.string) free(p->iri.string);
 			memset(p, 0, sizeof(SVG_Paint));
 		}
 		if (is_stroke && reset_stroke) {
 			SVG_Paint*p = (SVG_Paint*)f_clone.far_ptr;
-			if (p->iri.iri) free(p->iri.iri);
+			if (p->iri.string) free(p->iri.string);
 			memset(p, 0, sizeof(SVG_Paint));
 		}
 		att = att->next;
@@ -1040,7 +1040,7 @@ static void lsr_read_event_type(GF_LASeRCodec *lsr, XMLEV_Event *evtType)
 		case LSR_EVT_pause: evtType->type = GF_EVENT_PAUSE; break;
 		case LSR_EVT_pausedEvent: evtType->type = GF_EVENT_PAUSED_EVENT; break;
 		case LSR_EVT_play: evtType->type = GF_EVENT_PLAY; break;
-		case LSR_EVT_repeatEvent: evtType->type = GF_EVENT_REPEAT; break;
+		case LSR_EVT_repeatEvent: evtType->type = GF_EVENT_REPEAT_EVENT; break;
 		case LSR_EVT_repeatKey: evtType->type = GF_EVENT_REPEAT_KEY; break;
 		case LSR_EVT_resize: evtType->type = GF_EVENT_RESIZE; break;
 		case LSR_EVT_resumedEvent: evtType->type = GF_EVENT_RESUME_EVENT; break;
@@ -1078,13 +1078,13 @@ static SMIL_Time *lsr_read_smil_time(GF_LASeRCodec *lsr, GF_Node *n)
 		t->type = GF_SMIL_TIME_EVENT;
 		GF_LSR_READ_INT(lsr, val, 1, "hasIdentifier");
 		if (val) {
-			SVG_IRI iri;
+			XMLRI iri;
 			iri.type = 0xFF;
-			iri.iri = NULL;
+			iri.string = NULL;
 			lsr_read_codec_IDREF(lsr, &iri, "idref");
 			gf_svg_unregister_iri(lsr->sg, &iri);
-			if (iri.iri) {
-				t->element_id = iri.iri;
+			if (iri.string) {
+				t->element_id = iri.string;
 			} else {
 				t->element = (GF_Node *)iri.target;
 			}
@@ -1325,8 +1325,8 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 			lsr_read_byte_align_string_list(lsr, *(GF_List**)info.far_ptr, "systemLanguage", 0); 
 			break;
 	    case TAG_SVG_ATT_xml_base: 
-			lsr_read_byte_align_string(lsr, &((SVG_IRI*)info.far_ptr)->iri, "xml:base"); 
-			((SVG_IRI*)info.far_ptr)->type = SVG_IRI_IRI;
+			lsr_read_byte_align_string(lsr, &((XMLRI*)info.far_ptr)->string, "xml:base"); 
+			((XMLRI*)info.far_ptr)->type = XMLRI_STRING;
 			break;
 	    case TAG_SVG_ATT_xml_lang: 
 			lsr_read_byte_align_string(lsr, info.far_ptr, "xml:lang"); 
@@ -1733,7 +1733,7 @@ static Bool lsr_setup_smil_anim(GF_LASeRCodec *lsr, SVG_Element *anim, SVG_Eleme
 	u32 coded_type, not_res;
 	GF_Node *target;
 	Bool is_animateMotion, is_animateTransform;
-	SVG_IRI *xlink;
+	XMLRI *xlink;
 	SMIL_AttributeName *name;
 	SMIL_AnimateValue *value;
 
@@ -1757,7 +1757,7 @@ static Bool lsr_setup_smil_anim(GF_LASeRCodec *lsr, SVG_Element *anim, SVG_Eleme
 	/*setup target node*/
 	if (!xlink || !xlink->target) {
 		/*target not received*/
-		if (xlink && (xlink->type == SVG_IRI_ELEMENTID)) return 0;
+		if (xlink && (xlink->type == XMLRI_ELEMENTID)) return 0;
 	
 		if (!xlink) {
 			/*target is parent, initialize xlink (needed by anim module)*/
@@ -1768,7 +1768,7 @@ static Bool lsr_setup_smil_anim(GF_LASeRCodec *lsr, SVG_Element *anim, SVG_Eleme
 			}
 		}
 		
-		xlink->type = SVG_IRI_ELEMENTID;
+		xlink->type = XMLRI_ELEMENTID;
 		xlink->target = anim_parent;
 		gf_svg_register_iri(lsr->sg, xlink);
 		target = (GF_Node *)anim_parent;
@@ -1913,7 +1913,7 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, const ch
 	u32 *id_val;
 	char *string;
 	SVG_Number *num;
-	SVG_IRI *iri;
+	XMLRI *iri;
 	SVG_Point *pt;
 	SVG_Paint *paint;
 
@@ -2018,7 +2018,7 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, const ch
 		return ft;
 	}
     case 12: 
-		GF_SAFEALLOC(iri, SVG_IRI);
+		GF_SAFEALLOC(iri, XMLRI);
 		lsr_read_any_uri(lsr, iri, name); 
 		return iri;
     default:
@@ -3627,7 +3627,7 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVG_Element *parent)
 	u32 flag;
 	GF_FieldInfo info;
 	XMLEV_Event *ev = NULL;
-	SVG_IRI *observer, *target, *handler;
+	XMLRI *observer, *target, *handler;
 	GF_Node *elt = gf_node_new(lsr->sg, TAG_SVG_listener);
 
 	observer = target = handler = NULL;
@@ -3685,16 +3685,16 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVG_Element *parent)
 	{
 		Bool post_pone = 0;
 		SVG_Element *par = NULL;
-		if (observer && observer->type == SVG_IRI_ELEMENTID) {
+		if (observer && observer->type == XMLRI_ELEMENTID) {
 			if (!observer->target) post_pone = 1;
 			else par = observer->target;
 		}
-		if (!par && target && (target->type == SVG_IRI_ELEMENTID)) {
+		if (!par && target && (target->type == XMLRI_ELEMENTID)) {
 			if (!target->target) post_pone = 1;
 			else par = target->target;
 		}
 		if (!handler->target) {
-			handler->type = SVG_IRI_ELEMENTID;
+			handler->type = XMLRI_ELEMENTID;
 			handler->target = parent;
 		}
 		/*FIXME - double check with XML events*/
@@ -4068,8 +4068,8 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 coded_t
 		}
 	}
 		break;
-	case SVG_IRI_datatype:
-		lsr_read_any_uri(lsr, (SVG_IRI*)val, "val");
+	case XMLRI_datatype:
+		lsr_read_any_uri(lsr, (XMLRI*)val, "val");
 		break;
 
 	case SVG_String_datatype:
@@ -4125,7 +4125,7 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 coded_t
 		}
 		break;
 	default:
-		if ((fieldType>=SVG_FillRule_datatype) && (fieldType<=SVG_LAST_DEFINE_PROPERTY)) {
+		if ((fieldType>=SVG_FillRule_datatype) && (fieldType<=SVG_LAST_U8_PROPERTY)) {
 			/*TODO fixme, check inherit values*/
 			GF_LSR_READ_INT(lsr, is_default, 1, "isDefaultValue"); 
 			if (is_default) *(u8 *)val = 0;

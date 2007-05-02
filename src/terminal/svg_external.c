@@ -37,14 +37,14 @@
 
 
 GF_EXPORT
-Bool gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, SVG_IRI *iri)
+Bool gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, XMLRI *iri)
 {
 	u32 stream_id = 0;
 	Bool ret = 1;
 	SFURL *sfurl = NULL;
-	if (iri->type==SVG_IRI_STREAMID) {
-		stream_id = iri->stream_id;
-	} else if (!iri->iri) return 0;
+	if (iri->type==XMLRI_STREAMID) {
+		stream_id = iri->lsr_stream_id;
+	} else if (!iri->string) return 0;
 
 	gf_sg_vrml_mf_reset(mfurl, GF_SG_VRML_MFURL);
 	mfurl->count = 1;
@@ -52,27 +52,27 @@ Bool gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, SVG_IRI *iri)
 	sfurl = mfurl->vals;
 	sfurl->OD_ID = stream_id;
 	if (!stream_id) {
-		if (term && !strncmp(iri->iri, "data:", 5)) {
+		if (term && !strncmp(iri->string, "data:", 5)) {
 			const char *cache_dir = gf_cfg_get_key(term->user->config, "General", "CacheDirectory");
 			ret = gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
 		}
-		sfurl->url = strdup(iri->iri);
+		sfurl->url = strdup(iri->string);
 	}
 	return ret;
 }
 
 GF_EXPORT
-Bool gf_term_check_iri_change(GF_Terminal *term, MFURL *url, SVG_IRI *iri)
+Bool gf_term_check_iri_change(GF_Terminal *term, MFURL *url, XMLRI *iri)
 {
-	if (iri->type==SVG_IRI_STREAMID) {
+	if (iri->type==XMLRI_STREAMID) {
 		if (!url->count) return 1;
-		if (url->vals[0].OD_ID!=iri->stream_id) return 1;
+		if (url->vals[0].OD_ID!=iri->lsr_stream_id) return 1;
 		return 0;
 	}
-	if (url->count && !iri->iri) return 1;
-	if (!url->count && iri->iri) return 1;
+	if (url->count && !iri->string) return 1;
+	if (!url->count && iri->string) return 1;
 	if (!url->count) return 0;
-	if (!strcmp(url->vals[0].url, iri->iri)) return 0;
+	if (!strcmp(url->vals[0].url, iri->string)) return 0;
 	return 1;
 }
 
@@ -403,7 +403,7 @@ static void SVG_Render_use(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (!xlinkp.href) return;
 
-	if (xlinkp.href->type == SVG_IRI_ELEMENTID) {
+	if (xlinkp.href->type == XMLRI_ELEMENTID) {
 		GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) node));
 		gf_sr_render_inline(is->root_od->term->renderer, node, xlinkp.href->target, rs);
 	} else {
@@ -426,7 +426,7 @@ static void SVG_Render_use(GF_Node *node, void *rs, Bool is_destroy)
 		
 		shadow_root = gf_sg_get_root_node(is->graph);
 
-		if ((fragment = strchr(xlinkp.href->iri, '#')) ) {
+		if ((fragment = strchr(xlinkp.href->string, '#')) ) {
 			shadow_root = gf_sg_find_node_by_name(is->graph, fragment+1);
 		}
 		if (shadow_root) {

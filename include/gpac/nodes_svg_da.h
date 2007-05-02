@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue May 01 16:32:36 2007
+	DO NOT MOFIFY - File generated on GMT Wed May 02 08:17:35 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -98,7 +98,7 @@ enum {
 	TAG_SVG_UndefinedElement
 };
 
-/* Definition of SVG 3 attribute internal tags - 199 defined */
+/* Definition of SVG 3 attribute internal tags - 200 defined */
 /* TAG names are made of "TAG_SVG_ATT_" + SVG attribute name (with - replaced by _) */
 enum {
 	TAG_SVG_ATT_id = TAG_SVG_ATT_RANGE_FIRST,
@@ -197,7 +197,7 @@ enum {
 	TAG_SVG_ATT_keyPoints,
 	TAG_SVG_ATT_rotate,
 	TAG_SVG_ATT_origin,
-	TAG_SVG_ATT_type,
+	TAG_SVG_ATT_transform_type,
 	TAG_SVG_ATT_clipBegin,
 	TAG_SVG_ATT_clipEnd,
 	TAG_SVG_ATT_syncBehavior,
@@ -210,7 +210,7 @@ enum {
 	TAG_SVG_ATT_height,
 	TAG_SVG_ATT_preserveAspectRatio,
 	TAG_SVG_ATT_initialVisibility,
-	TAG_SVG_ATT_content_type,
+	TAG_SVG_ATT_type,
 	TAG_SVG_ATT_cx,
 	TAG_SVG_ATT_cy,
 	TAG_SVG_ATT_r,
@@ -279,9 +279,9 @@ enum {
 	TAG_SVG_ATT_bandwidth,
 	TAG_SVG_ATT_fx,
 	TAG_SVG_ATT_fy,
-	TAG_SVG_ATT_lsr_size,
-	TAG_SVG_ATT_lsr_choice,
-	TAG_SVG_ATT_lsr_delta,
+	TAG_SVG_ATT_size,
+	TAG_SVG_ATT_choice,
+	TAG_SVG_ATT_delta,
 	TAG_SVG_ATT_offset,
 	TAG_SVG_ATT_syncBehaviorDefault,
 	TAG_SVG_ATT_syncToleranceDefault,
@@ -289,6 +289,7 @@ enum {
 	TAG_SVG_ATT_zoomAndPan,
 	TAG_SVG_ATT_version,
 	TAG_SVG_ATT_baseProfile,
+	TAG_SVG_ATT_contentScriptType,
 	TAG_SVG_ATT_snapshotTime,
 	TAG_SVG_ATT_timelineBegin,
 	TAG_SVG_ATT_playbackOrder,
@@ -308,7 +309,7 @@ struct _all_atts {
 	SVG_ID *id;
 	SVG_String *_class;
 	SVG_ID *xml_id;
-	SVG_IRI *xml_base;
+	XMLRI *xml_base;
 	SVG_LanguageID *xml_lang;
 	XML_Space *xml_space;
 	SVG_ListOfIRI *requiredFeatures;
@@ -369,10 +370,10 @@ struct _all_atts {
 	SVG_Focus *nav_up_left;
 	SVG_Transform *transform;
 	SVG_String *xlink_type;
-	SVG_IRI *xlink_role;
-	SVG_IRI *xlink_arcrole;
+	XMLRI *xlink_role;
+	XMLRI *xlink_arcrole;
 	SVG_String *xlink_title;
-	SVG_IRI *xlink_href;
+	XMLRI *xlink_href;
 	SVG_String *xlink_show;
 	SVG_String *xlink_actuate;
 	SVG_String *target;
@@ -401,7 +402,7 @@ struct _all_atts {
 	SMIL_KeyPoints *keyPoints;
 	SVG_Rotate *rotate;
 	SVG_String *origin;
-	SVG_TransformType *type;
+	SVG_TransformType *transform_type;
 	SVG_Clock *clipBegin;
 	SVG_Clock *clipEnd;
 	SMIL_SyncBehavior *syncBehavior;
@@ -414,7 +415,7 @@ struct _all_atts {
 	SVG_Length *height;
 	SVG_PreserveAspectRatio *preserveAspectRatio;
 	SVG_InitialVisibility *initialVisibility;
-	SVG_ContentType *content_type;
+	SVG_ContentType *type;
 	SVG_Coordinate *cx;
 	SVG_Coordinate *cy;
 	SVG_Length *r;
@@ -471,9 +472,9 @@ struct _all_atts {
 	XMLEV_Phase *phase;
 	XMLEV_Propagate *propagate;
 	XMLEV_DefaultAction *defaultAction;
-	SVG_IRI *observer;
-	SVG_IRI *listener_target;
-	SVG_IRI *handler;
+	XMLRI *observer;
+	XMLRI *listener_target;
+	XMLRI *handler;
 	SVG_Number *pathLength;
 	SVG_Points *points;
 	SVG_Number *mediaSize;
@@ -483,9 +484,9 @@ struct _all_atts {
 	SVG_Number *bandwidth;
 	SVG_Coordinate *fx;
 	SVG_Coordinate *fy;
-	LASeR_Size *lsr_size;
-	LASeR_Choice *lsr_choice;
-	LASeR_Size *lsr_delta;
+	LASeR_Size *size;
+	LASeR_Choice *choice;
+	LASeR_Size *delta;
 	SVG_Number *offset;
 	SMIL_SyncBehavior *syncBehaviorDefault;
 	SMIL_SyncTolerance *syncToleranceDefault;
@@ -493,6 +494,7 @@ struct _all_atts {
 	SVG_ZoomAndPan *zoomAndPan;
 	SVG_String *version;
 	SVG_String *baseProfile;
+	SVG_ContentType *contentScriptType;
 	SVG_Clock *snapshotTime;
 	SVG_TimelineBegin *timelineBegin;
 	SVG_PlaybackOrder *playbackOrder;

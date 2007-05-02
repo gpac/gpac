@@ -592,7 +592,7 @@ static void Replace_IRI(GF_SceneGraph *sg, GF_Node *old_node, GF_Node *newNode)
 	u32 i, count;
 	count = gf_list_count(sg->xlink_hrefs);
 	for (i=0; i<count; i++) {
-		SVG_IRI *iri = (SVG_IRI *)gf_list_get(sg->xlink_hrefs, i);
+		XMLRI *iri = (XMLRI *)gf_list_get(sg->xlink_hrefs, i);
 		if (iri->target == old_node) {
 			iri->target = newNode;
 			if (!newNode) {
