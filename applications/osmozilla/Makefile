@@ -64,9 +64,11 @@ ifeq ($(CONFIG_WIN32),yes)
 	windres osmozilla.rc osmoz.o
 	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) osmoz.o $(LINKLIBS)
 	cp nsIOsmozilla.xpt_w32 ../../bin/gcc/nposmozilla.xpt
+	chmod +w ../../bin/gcc/nposmozilla.xpt
 else
 	$(CXX) $(SHFLAGS) $(LDFLAGS) $(OBJS) $(LINKLIBS) -o ../../bin/gcc/$@ 
 	cp nsIOsmozilla.xpt_linux ../../bin/gcc/nposmozilla.xpt
+	chmod +w ../../bin/gcc/nposmozilla.xpt
 endif
 	@echo $(USER_ROOT)
 
@@ -79,12 +81,13 @@ ifeq ($(CONFIG_WIN32),yes)
 	rm -f osmoz.o
 endif
 
-install: $(LIB)
+install: 
 ifeq ($(MOZILLA_DIR), local)
 ifeq ($(USER_NAME), root)
 	@echo "*** Root cannot install local mozilla plugins! ***"
 	@echo "*** Exit root mode and reinstall mozilla plugin! ***"
 else
+	$(MAKE) $(LIB)
 	install -D -m 755 ../../bin/gcc/$(LIB) "$(HOME)/.mozilla/plugins/$(LIB)"
 	install -D -m 755 ../../bin/gcc/nposmozilla.xpt "$(HOME)/.mozilla/components/nposmozilla.xpt"
 endif
