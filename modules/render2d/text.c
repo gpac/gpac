@@ -780,7 +780,7 @@ void Text2D_Draw(GF_Node *node, RenderEffect2D *eff)
 	if (ctx->sub_path_index > 0) {
 		tl = (TextLineEntry2D*)gf_list_get(st->text_lines, ctx->sub_path_index - 1);
 		if (!tl || !tl->path) return;
-		if (hl_color) VS2D_FillRect(eff->surface, ctx, tl->bounds, hl_color);
+		if (hl_color) VS2D_FillRect(eff->surface, ctx, &tl->bounds, hl_color, 0);
 
 		VS2D_TexturePath(eff->surface, tl->path, ctx);
 		VS2D_DrawPath(eff->surface, tl->path, ctx, NULL, NULL);
@@ -794,7 +794,7 @@ void Text2D_Draw(GF_Node *node, RenderEffect2D *eff)
 
 	i=0;
 	while ((tl = (TextLineEntry2D*)gf_list_enum(st->text_lines, &i))) {
-		if (hl_color) VS2D_FillRect(eff->surface, ctx, tl->bounds, hl_color);
+		if (hl_color) VS2D_FillRect(eff->surface, ctx, &tl->bounds, hl_color, 0);
 
 		if (can_texture_text && TextLine2D_TextureIsReady(tl)) {
 			VS2D_TexturePathText(eff->surface, ctx, tl->tx_path, &tl->bounds, tl->hwtx, &tl->tx_bounds);

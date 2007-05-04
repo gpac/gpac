@@ -72,6 +72,7 @@ static void gf_sr_set_fullscreen(GF_Renderer *sr)
 	GF_Err e;
 	if (!sr->video_out->SetFullScreen) return;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Switching fullscreen %s\n", sr->fullscreen ? "off" : "on"));
 	/*move to FS*/
 	sr->fullscreen = !sr->fullscreen;
 	e = sr->video_out->SetFullScreen(sr->video_out, sr->fullscreen, &sr->width, &sr->height);
@@ -80,6 +81,7 @@ static void gf_sr_set_fullscreen(GF_Renderer *sr)
 		sr->fullscreen = 0;
 		e = sr->video_out->SetFullScreen(sr->video_out, 0, &sr->width, &sr->height);
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] recomputing aspect ratio\n"));
 	e = sr->visual_renderer->RecomputeAR(sr->visual_renderer);
 	/*force signaling graphics reset*/
 	sr->reset_graphics = 1;
@@ -101,6 +103,9 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 	if (sr->audio_renderer && !sr->audio_renderer->th) gf_sr_ar_reconfig(sr->audio_renderer);
 
 	if (sr->msg_type) {
+
+		sr->msg_type |= GF_SR_IN_RECONFIG;
+
 		/*scene size has been overriden*/
 		if (sr->msg_type & GF_SR_CFG_OVERRIDE_SIZE) {
 			assert(!(sr->override_size_flags & 2));
@@ -181,6 +186,8 @@ u32 SR_RenderRun(void *par)
 {	
 	GF_Renderer *sr = (GF_Renderer *) par;
 	sr->video_th_state = 1;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Renderer] Entering thread ID %d\n", gf_th_id() ));
 
 	while (sr->video_th_state == 1) {
 		/*sleep or render*/
@@ -719,6 +726,7 @@ void gf_sr_lock_audio(GF_Renderer *sr, Bool doLock)
 GF_EXPORT
 void gf_sr_lock(GF_Renderer *sr, Bool doLock)
 {
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Render] Thread ID %d is %s the scene\n", gf_th_id(), doLock ? "locking" : "unlocking" ));
 	if (doLock)
 		gf_mx_p(sr->mx);
 	else {
@@ -1332,9 +1340,9 @@ static Bool SR_UserInputIntern(GF_Renderer *sr, GF_Event *event, Bool from_user)
 	}
 	return 0;
 #else
-	gf_mx_p(sr->mx);
+	gf_sr_lock(sr, 1);
 	ret = sr->visual_renderer->ExecuteEvent(sr->visual_renderer, event);
-	gf_mx_v(sr->mx);
+	gf_sr_lock(sr, 0);
 	if (!ret && !from_user) {
 		SR_ForwardUserEvent(sr, event);
 	}
@@ -1347,6 +1355,8 @@ static Bool gf_sr_on_event_ex(GF_Renderer *sr , GF_Event *event, Bool from_user)
 {
 	/*not assigned yet*/
 	if (!sr || !sr->visual_renderer) return 0;
+	/*we're reconfiguring the video output, cancel all messages*/
+	if (sr->msg_type & GF_SR_IN_RECONFIG) return 0;
 
 	switch (event->type) {
 	case GF_EVENT_REFRESH:

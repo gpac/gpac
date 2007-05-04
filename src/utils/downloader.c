@@ -421,6 +421,8 @@ static u32 gf_dm_session_thread(void *par)
 {
 	GF_DownloadSession *sess = (GF_DownloadSession *)par;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Downloader] Entering thread ID %d\n", gf_th_id() ));
+
 	sess->flags &= ~GF_DOWNLOAD_SESSION_THREAD_DEAD;
 	while (1) {
 		gf_mx_p(sess->mx);

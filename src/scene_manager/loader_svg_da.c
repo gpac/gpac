@@ -466,6 +466,8 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 	gf_node_register((GF_Node *)elt, (parent ? (GF_Node *)parent->node : NULL));
 	if (parent && elt) gf_node_list_add_child_last( & parent->node->children, (GF_Node*)elt, & parent->last_child);
 
+	needs_init = 1;
+
 	if (gf_svg_is_animation_tag(tag)) {
 		GF_SAFEALLOC(anim, SVG_DeferedAnimation);
 		/*default anim target is parent node*/
@@ -482,6 +484,8 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		anim->animation_elt = elt;
 		anim->anim_parent = parent->node;
 		anim->resolve_stage = 1;
+	} else if ((tag == TAG_SVG_script) || (tag==TAG_SVG_handler)) {
+		needs_init = 0;
 	}
 
 	/*parse all att*/
@@ -562,16 +566,23 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 				gf_mx2d_add_translation(&mat->mat, pt.x, pt.y);
 			}
 		} else if (!strncmp(att->name, "xmlns", 5)) {
-		} else {
-			if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {
-				gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
+
+		} else if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {
+			gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
+		} else if (!strncmp(att->name, "on", 2)) {
+			u32 evtType = gf_dom_event_type_by_name(att->name + 2);
+			if (evtType != GF_EVENT_UNKNOWN) {
+				SVG_handlerElement *handler = gf_dom_listener_build((GF_Node *) elt, evtType, 0);
+				gf_dom_add_text_node((GF_Node *)handler, strdup(att->value) );
+				gf_node_init((GF_Node *)handler);
 			} else {
-				svg_report(parser, GF_OK, "Skipping attribute %s on node %s", att->name, name);
+				svg_report(parser, GF_OK, "Skipping unknown event handler %s on node %s", att->name, name);
 			}
+		} else {
+			svg_report(parser, GF_OK, "Skipping attribute %s on node %s", att->name, name);
 		}
 	}
 
-	needs_init = 1;
 	if (anim) {
 		needs_init = 0;
 		if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL)) {
@@ -623,9 +634,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			gf_dom_listener_add((GF_Node *)par, (GF_Node *) listener);
 		}
 	}
-
 	return elt;
-
 }
 
 static void svg_init_root_element(GF_SVG_Parser *parser, SVG_Element *root_svg)
@@ -1149,9 +1158,14 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 			evt.type = GF_EVENT_LOAD;
 			gf_dom_event_fire((GF_Node*)node, NULL, &evt);
 
+			switch (node->sgprivate->tag) {
 			/*init animateMotion once all children have been parsed tomake sure we get the mpath child if any*/
-			if (node->sgprivate->tag == TAG_SVG_animateMotion) {
+			case TAG_SVG_animateMotion:
+			/*init script once text script is loaded*/
+			case TAG_SVG_script:
+			case TAG_SVG_handler:
 				gf_node_init((GF_Node *)node);
+				break;
 			}
 		}
 	} else if (top) {
@@ -1286,21 +1300,9 @@ skip_xml_space:
 		return;
 	}
 	tag = gf_node_get_tag((GF_Node *)elt);
-	switch (tag) {
-	case TAG_SVG_script:
-	case TAG_SVG_handler:
-		text = gf_dom_add_text_node((GF_Node *)elt, result);
-		text->is_cdata = is_cdata;
-		gf_node_init((GF_Node *)elt);
-		break;
-	case TAG_SVG_text:
-	default:
-		text = gf_dom_add_text_node((GF_Node *)elt, result);
-		text->is_cdata = is_cdata;
-		gf_node_changed((GF_Node *)text, NULL);
-		break;
-	}
-
+	text = gf_dom_add_text_node((GF_Node *)elt, result);
+	text->is_cdata = is_cdata;
+	gf_node_changed((GF_Node *)text, NULL);
 }
 
 static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)

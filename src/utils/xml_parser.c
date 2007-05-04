@@ -521,14 +521,14 @@ static void xml_sax_store_text(GF_SAXParser *parser, u32 txt_len)
 		parser->text_start = parser->current_pos + 1;
 		parser->text_end = parser->text_start + txt_len;
 		parser->current_pos += txt_len;
-		assert(parser->current_pos < parser->line_size);
+		assert(parser->current_pos <= parser->line_size);
 		return;
 	}
 	/*contiguous text*/
 	if (parser->text_end && (parser->text_end-1 == parser->current_pos)) {
 		parser->text_end += txt_len;
 		parser->current_pos += txt_len;
-		assert(parser->current_pos < parser->line_size);
+		assert(parser->current_pos <= parser->line_size);
 		return;
 	}
 	/*need to flush*/
@@ -727,8 +727,7 @@ restart:
 				else if (c=='/') is_end = !i ? 1 : 2;
 
 				i++;
-				if ((c=='[') && (parser->buffer[parser->elt_name_start-1 + i-2]=='A') ) 
-					break;
+//				if ((c=='[') && (parser->buffer[parser->elt_name_start-1 + i-2]=='A') ) break;
 				if (parser->current_pos+1+i==parser->line_size) {
 					i=0;
 					goto exit;
@@ -771,7 +770,8 @@ restart:
 			else if (!strcmp(elt, "!DOCTYPE")) parser->init_state = 2;
 			else if (!strcmp(elt, "!ENTITY")) parser->sax_state = SAX_STATE_ENTITY;
 			else if (!strcmp(elt, "!ATTLIST") || !strcmp(elt, "!ELEMENT")) parser->sax_state = SAX_STATE_SKIP_DOCTYPE;
-			else if (!strcmp(elt, "![CDATA[")) parser->sax_state = SAX_STATE_CDATA;
+			else if (!strcmp(elt, "![CDATA[")) 
+				parser->sax_state = SAX_STATE_CDATA;
 			else if (elt[0]=='?') parser->sax_state = SAX_STATE_XML_PROC;
 			/*node found*/
 			else {

@@ -216,10 +216,8 @@ void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 
 	/*if setup and same frame return*/
 	if (txh->hwtx && (txh->stream_finished || (txh->last_frame_time==ts)) ) {
-		if (txh->needs_release) {
-			gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
-			txh->needs_release = 0;
-		}
+		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
+		txh->needs_release = 0;
 		return;
 	}
 	txh->needs_release = 1; 

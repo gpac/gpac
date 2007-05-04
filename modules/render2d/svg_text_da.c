@@ -92,7 +92,7 @@ static void svg_render_text(GF_Node *node, void *rs, Bool is_destroy)
 				if (gf_node_get_tag(child->node) == TAG_DOMText) {
 					u32 baselen, len;
 					GF_DOMText *dom_text = (GF_DOMText *)child->node;
-					len = strlen(dom_text->textContent);
+					len = dom_text->textContent ? strlen(dom_text->textContent) : 0;
 					if (len) {
 						if (st->textToRender) baselen = strlen(st->textToRender);
 						else baselen = 0;

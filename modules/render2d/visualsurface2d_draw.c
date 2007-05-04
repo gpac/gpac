@@ -455,7 +455,7 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 		} else 
 #endif
 		{
-			StrikeInfo2D *si = drawctx_get_strikeinfo(ctx, path);
+			StrikeInfo2D *si = drawctx_get_strikeinfo(surf->render, ctx, path);
 			if (si && si->outline) {
 				if (ctx->aspect.line_texture) {
 					VS2D_TexturePathIntern(surf, si->outline, ctx->aspect.line_texture, ctx);
@@ -475,15 +475,18 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 	if (surf->render->compositor->draw_bvol) draw_clipper(surf, ctx);
 }
 
-void VS2D_FillRect(VisualSurface2D *surf, DrawableContext *ctx, GF_Rect rc, u32 color)
+void VS2D_FillRect(VisualSurface2D *surf, DrawableContext *ctx, GF_Rect *_rc, u32 color, u32 strike_color)
 {
 	GF_Path *path;
+	GF_Rect *rc;
 	GF_Raster2D *r2d = surf->render->compositor->r2d;
 #ifdef SKIP_DRAW
 	return;
 #endif
 
 	if (!surf->the_surface) return;
+	if (!color && !strike_color) return;
+
 	if ((ctx->flags & CTX_PATH_FILLED) && (ctx->flags & CTX_PATH_STROKE) ) {
 		if (surf->render->compositor->draw_bvol) draw_clipper(surf, ctx);
 		return;
@@ -491,19 +494,45 @@ void VS2D_FillRect(VisualSurface2D *surf, DrawableContext *ctx, GF_Rect rc, u32 
 
 	/*no aa*/
 	VS2D_SetOptions(surf->render, surf->the_surface, 0, 1);
+	if (_rc) {
+		rc = _rc;
+		r2d->surface_set_matrix(surf->the_surface, &ctx->transform);
+	}
+	else {
+		rc = &ctx->bi->unclip;
+		r2d->surface_set_matrix(surf->the_surface, NULL);
+	}
 
-	r2d->stencil_set_brush_color(surf->the_brush, color);
-	r2d->surface_set_matrix(surf->the_surface, &ctx->transform);
 	path = gf_path_new();
-	gf_path_add_move_to(path, rc.x, rc.y);
-	gf_path_add_line_to(path, rc.x+rc.width, rc.y);
-	gf_path_add_line_to(path, rc.x+rc.width, rc.y-rc.height);
-	gf_path_add_line_to(path, rc.x, rc.y-rc.height);
+	gf_path_add_move_to(path, rc->x, rc->y-rc->height);
+	gf_path_add_line_to(path, rc->x+rc->width, rc->y-rc->height);
+	gf_path_add_line_to(path, rc->x+rc->width, rc->y);
+	gf_path_add_line_to(path, rc->x, rc->y);
 	gf_path_close(path);
+	
 
-	/*push path*/
-	r2d->surface_set_path(surf->the_surface, path);
-	VS2D_DoFill(surf, ctx, surf->the_brush);
-	r2d->surface_set_path(surf->the_surface, NULL);
+	if (color) {
+		/*push path*/
+		r2d->surface_set_path(surf->the_surface, path);
+		r2d->stencil_set_brush_color(surf->the_brush, color);
+		VS2D_DoFill(surf, ctx, surf->the_brush);
+		r2d->surface_set_path(surf->the_surface, NULL);
+	}
+	if (strike_color) {
+		GF_Path *outline;
+		GF_PenSettings pen;
+		memset(&pen, 0, sizeof(GF_PenSettings));
+		pen.width = 1;
+		pen.join = GF_LINE_JOIN_BEVEL;
+		pen.dash = GF_DASH_STYLE_DOT;
+		r2d->stencil_set_brush_color(surf->the_brush, strike_color);
+		outline = gf_path_get_outline(path,  pen);	
+		outline->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
+		r2d->surface_set_path(surf->the_surface, outline);
+		VS2D_DoFill(surf, ctx, surf->the_brush);
+		r2d->surface_set_path(surf->the_surface, NULL);
+		gf_path_del(outline);
+	}
+
 	gf_path_del(path);
 }

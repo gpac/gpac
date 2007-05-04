@@ -61,7 +61,7 @@ void drawable_pick(RenderEffect2D *eff)
 	}
 
 	if (eff->ctx->aspect.pen_props.width || eff->ctx->aspect.line_texture || (eff->pick_type!=PICK_PATH)) {
-		si = drawctx_get_strikeinfo(eff->ctx, NULL);
+		si = drawctx_get_strikeinfo(eff->surface->render, eff->ctx, NULL);
 		if (si && si->outline && gf_path_point_over(si->outline, x, y)) {
 			eff->is_over = 1;
 		}
@@ -103,13 +103,12 @@ void drawable_reset_bounds(Drawable *dr, VisualSurface2D *surf)
 	}
 }
 
-void drawable_del(Drawable *dr)
+void drawable_del_ex(Drawable *dr, Render2D *r2d)
 {
 	StrikeInfo2D *si;
 	Bool is_reg = 0;
 	DRInfo *dri, *cur;
 	BoundInfo *bi, *_cur;
-	Render2D *r2d = gf_sr_get_renderer(dr->node) ? gf_sr_get_renderer(dr->node)->visual_renderer->user_priv : NULL; 
 
 	/*remove node from all surfaces it's on*/
 	dri = dr->dri;
@@ -151,6 +150,10 @@ void drawable_del(Drawable *dr)
 	free(dr);
 }
 
+void drawable_del(Drawable *dr)
+{
+	drawable_del_ex(dr, gf_sr_get_renderer(dr->node) ? gf_sr_get_renderer(dr->node)->visual_renderer->user_priv : NULL);
+}
 void DestroyDrawableNode(GF_Node *node)
 {
 	drawable_del( (Drawable *)gf_node_get_private(node) );
@@ -408,6 +411,7 @@ void drawctx_update_info(DrawableContext *ctx, struct _visual_surface_2D *surf)
 			/*check if same bounds are used*/
 			moved = !drawable_has_same_bounds(ctx, surf);
 		}
+
 		if (need_redraw || moved) ctx->flags |= CTX_REDRAW_MASK;
 	}
 
@@ -646,8 +650,10 @@ void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff)
 			assert(!eff->traversing_mode);
 			eff->traversing_mode = TRAVERSE_DRAW;
 			eff->ctx = ctx;
+
 			gf_node_allow_cyclic_render(ctx->drawable->node);
 			gf_node_render(ctx->drawable->node, eff);
+			
 			eff->ctx = NULL;
 			eff->traversing_mode = 0;
 		}
@@ -663,18 +669,19 @@ void drawable_check_bounds(struct _drawable_context *ctx, VisualSurface2D *surf)
 	}
 }
 
-void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff, GF_Rect *orig_bounds)
+static void drawable_finalize_render_ex(struct _drawable_context *ctx, RenderEffect2D *eff, GF_Rect *orig_bounds, Bool is_focus)
 {
 	Fixed pw;
-	GF_Rect unclip;
+	GF_Rect unclip, store_orig_bounds;
 
 	drawable_check_bounds(ctx, eff->surface);
 
 	if (orig_bounds) {
-		ctx->bi->unclip = *orig_bounds;
+		store_orig_bounds = *orig_bounds;
 	} else {
-		gf_path_get_bounds(ctx->drawable->path, &ctx->bi->unclip);
+		gf_path_get_bounds(ctx->drawable->path, &store_orig_bounds);
 	}
+	ctx->bi->unclip = store_orig_bounds;
 	gf_mx2d_apply_rect(&eff->transform, &ctx->bi->unclip);
 
 	/*apply pen width*/
@@ -690,7 +697,7 @@ void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff
 		}
 		
 		/*get strike info & outline for exact bounds compute. If failure use default offset*/
-		si = drawctx_get_strikeinfo(ctx, ctx->drawable->path);
+		si = drawctx_get_strikeinfo(eff->surface->render, ctx, ctx->drawable->path);
 		if (si && si->outline) {
 			gf_path_get_bounds(si->outline, &ctx->bi->unclip);
 			gf_mx2d_apply_rect(&eff->transform, &ctx->bi->unclip);
@@ -718,6 +725,67 @@ void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff
 		ctx->bi->clip.width = 0;
 	}
 	drawable_finalize_end(ctx, eff);
+	if (ctx->drawable && !is_focus) drawable_check_focus_highlight(ctx->drawable->node, eff, &store_orig_bounds);
+}
+
+void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff, GF_Rect *orig_bounds)
+{
+	drawable_finalize_render_ex(ctx, eff, orig_bounds, 0);
+}
+
+void drawable_check_focus_highlight(GF_Node *node, RenderEffect2D *eff, GF_Rect *orig_bounds)
+{
+	DrawableContext *hl;
+	GF_Node *prev_node;
+	u32 prev_mode;
+	GF_Rect *bounds;
+	GF_Matrix2D cur;
+	if (eff->surface->render->focus_node!=node) return;
+
+	if (!eff->surface->render->focus_highlight) return;
+
+	hl = VS2D_GetDrawableContext(eff->surface);
+	hl->drawable = eff->surface->render->focus_highlight;
+
+	/*check if focus node has changed*/
+	prev_node = gf_node_get_private(hl->drawable->node);
+	if (prev_node != node) {
+		if (!orig_bounds) {
+			gf_mx2d_copy(cur, eff->transform);
+			gf_mx2d_init(eff->transform);
+			prev_mode = eff->traversing_mode;
+			eff->traversing_mode = TRAVERSE_GET_BOUNDS;
+			eff->bounds.width = eff->bounds.height = 0;
+			eff->bounds.x = eff->bounds.y = 0;
+			svg_get_nodes_bounds(node, ((SVG_Element *)node)->children, eff);
+			eff->traversing_mode = prev_mode;
+			gf_mx2d_copy(eff->transform, cur);
+			bounds = &eff->bounds;
+		} else {
+			bounds = orig_bounds;
+		}
+		gf_node_set_private(hl->drawable->node, node);
+
+		drawable_reset_path(hl->drawable);
+		gf_path_reset(hl->drawable->path);
+		gf_path_add_rect(hl->drawable->path, bounds->x, bounds->y, bounds->width, bounds->height);
+	}
+	hl->aspect.fill_color = eff->surface->render->highlight_fill;
+	hl->aspect.line_color = eff->surface->render->highlight_stroke;
+	hl->aspect.line_scale = 0;
+	hl->aspect.pen_props.width = 1;
+	hl->aspect.pen_props.join = GF_LINE_JOIN_BEVEL;
+	hl->aspect.pen_props.dash = GF_DASH_STYLE_DOT;
+	gf_mx2d_copy(hl->transform, eff->transform);
+	drawable_finalize_render_ex(hl, eff, NULL, 1);
+}
+
+void drawable_render_focus(GF_Node *node, void *rs, Bool is_destroy) 
+{
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
+	if (is_destroy) return;
+	if (eff->traversing_mode == TRAVERSE_DRAW)
+		VS2D_DrawPath(eff->surface, eff->ctx->drawable->path, eff->ctx, NULL, NULL);
 }
 
 
@@ -727,7 +795,7 @@ void delete_strikeinfo2d(StrikeInfo2D *info)
 	free(info);
 }
 
-StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
+StrikeInfo2D *drawctx_get_strikeinfo(Render2D *sr, DrawableContext *ctx, GF_Path *path)
 {
 	StrikeInfo2D *si, *prev;
 	GF_Node *lp;
@@ -747,8 +815,7 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 		/*note this includes default LP (NULL)*/
 		if ((si->lineProps == lp) && (!path || (path==si->original)) ) break;
 		if (!si->lineProps) {
-			Render2D *r2d = gf_sr_get_renderer(ctx->drawable->node) ? gf_sr_get_renderer(ctx->drawable->node)->visual_renderer->user_priv : NULL; 
-			gf_list_del_item(r2d->strike_bank, si);
+			gf_list_del_item(sr->strike_bank, si);
 			if (si->outline) gf_path_del(si->outline);
 			if (prev) prev->next = si->next;
 			else ctx->drawable->outline = si->next;
@@ -761,7 +828,6 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 	}
 	/*not found, add*/
 	if (!si) {
-		Render2D *r2d = gf_sr_get_renderer(ctx->drawable->node) ? gf_sr_get_renderer(ctx->drawable->node)->visual_renderer->user_priv : NULL; 
 		GF_SAFEALLOC(si, StrikeInfo2D);
 		si->lineProps = lp;
 		si->node = ctx->drawable->node;
@@ -772,7 +838,7 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 		} else {
 			ctx->drawable->outline = si;
 		}
-		gf_list_add(r2d->strike_bank, si);
+		gf_list_add(sr->strike_bank, si);
 	}
 
 	/*node changed or outline not build*/
@@ -1098,6 +1164,9 @@ DrawableContext *SVG_drawable_init_context(Drawable *drawable, RenderEffect2D *e
 			SVG_image_stack *st = (SVG_image_stack*) gf_node_get_private(ctx->drawable->node);
 			ctx->h_texture = &(st->txh);
 		}
+		break;
+	case TAG_SVG_line:
+	case TAG_SVG_polyline:
 		break;
 	default:
 		break;

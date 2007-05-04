@@ -206,7 +206,6 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	if (bOn == dd->fullscreen) return GF_OK;
 	if (!dd->fs_hwnd) return GF_NOT_SUPPORTED;
 	dd->fullscreen = bOn;
-
 	
 	/*whenever changing card display mode relocate fastest YUV format for blit (since it depends
 	on the dest pixel format)*/

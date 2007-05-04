@@ -88,6 +88,7 @@ typedef struct _drawable
 /*construction destruction*/
 Drawable *drawable_new();
 void drawable_del(Drawable *);
+void drawable_del_ex(Drawable *dr, Render2D *r2d);
 
 void DestroyDrawableNode(GF_Node *node);
 
@@ -235,6 +236,9 @@ typedef struct _strikeinfo2d
 
 void delete_strikeinfo2d(StrikeInfo2D *info);
 /*get strike and manage any scale change&co. This avoids recomputing outline at each frame...*/
-StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *txt_path);
+StrikeInfo2D *drawctx_get_strikeinfo(Render2D *r2d, DrawableContext *ctx, GF_Path *txt_path);
+
+void drawable_render_focus(GF_Node *node, void *rs, Bool is_destroy);
+void drawable_check_focus_highlight(GF_Node *node, RenderEffect2D *eff, GF_Rect *orig_bounds);
 
 #endif

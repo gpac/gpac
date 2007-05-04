@@ -81,19 +81,16 @@ enum {
 	GF_NODE_RANGE_LAST_SVG_SANI = GF_NODE_RANGE_FIRST_SVG_SANI+100,
 #endif
 
-	/*all nodes below use the base DOM structure (with dyn attribute list)*/
-	GF_NODE_FIRST_DOM_NODE_TAG,
-
-	/*a node with this tag is a full DOM node (GF_DOMFullNode)*/
-	TAG_DOMNode = GF_NODE_FIRST_DOM_NODE_TAG,
-
 	/*DOM text node*/
 	TAG_DOMText,
 	/*DOM container for BIFS/LASeR/etc updates*/
 	TAG_DOMUpdates,
 
+	/*all nodes below MUST use the base DOM structure (with dyn attribute list)*/
+	GF_NODE_FIRST_DOM_NODE_TAG,
+
 	/*range for SVG*/
-	GF_NODE_RANGE_FIRST_SVG, 
+	GF_NODE_RANGE_FIRST_SVG = GF_NODE_FIRST_DOM_NODE_TAG, 
 	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+100,
 
 };
@@ -446,7 +443,7 @@ typedef union
 	GF_Matrix mx;
 	GF_JSAPIURI uri;
 	GF_JSAPIOPT gpac_cfg;
-	GF_Node *focused;
+	GF_Node *node;
 } GF_JSAPIParam;
 
 enum
