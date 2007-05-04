@@ -300,6 +300,7 @@ u32 MM_Loop(void *par)
 	GF_Terminal *term = (GF_Terminal *) par;
 
 	gf_th_set_priority(term->mm_thread, term->priority);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[MediaManager] Entering thread ID %d\n", gf_th_id() ));
 
 	current_dec = 0;
 	while (term->flags & GF_TERM_RUNNING) {
@@ -314,6 +315,8 @@ u32 RunSingleDec(void *ptr)
 	GF_Err e;
 	u32 time_left;
 	CodecEntry *ce = (CodecEntry *) ptr;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[MediaDecoder %d] Entering thread ID %d\n", ce->dec->odm->OD->objectDescriptorID, gf_th_id() ));
 
 	while (ce->flags & GF_MM_CE_RUNNING) {
 		time_left = gf_sys_clock();

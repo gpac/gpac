@@ -47,6 +47,7 @@
 
 static JSClass globalClass;
 static JSClass docClass;
+static JSClass textClass;
 static JSClass svgClass;
 static JSClass connectionClass;
 
@@ -191,7 +192,27 @@ static JSObject *svg_elt_construct(JSContext *c, GF_Node *n, Bool search_bank)
 /*TODO - try to be more precise...*/
 static JSBool dom_imp_has_feature(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	*rval = BOOLEAN_TO_JSVAL(1);
+	*rval = BOOLEAN_TO_JSVAL(0);
+	if (argc) {
+		u32 len;
+		char sep;
+		char *fname = JS_GetStringBytes(JS_ValueToString(c, argv[0]));
+		if (!fname) return JS_FALSE;
+		while (strchr(" \t\n\r", fname[0])) fname++;
+		len = strlen(fname);
+		while (len && strchr(" \t\n\r", fname[len-1])) len--;
+		sep = fname[len];
+		fname[len] = 0;
+		if (!stricmp(fname, "xml")) *rval = BOOLEAN_TO_JSVAL(1);
+		else if (!stricmp(fname, "core")) *rval = BOOLEAN_TO_JSVAL(1);
+		else if (!stricmp(fname, "traversal")) *rval = BOOLEAN_TO_JSVAL(1);
+		else if (!stricmp(fname, "uievents")) *rval = BOOLEAN_TO_JSVAL(1);
+		else if (!stricmp(fname, "mouseevents")) *rval = BOOLEAN_TO_JSVAL(1);
+		else if (!stricmp(fname, "mutationevents")) *rval = BOOLEAN_TO_JSVAL(1);
+		else if (!stricmp(fname, "events")) *rval = BOOLEAN_TO_JSVAL(1);
+		
+		fname[len] = sep;
+	}
 	return JS_TRUE;
 }
 
@@ -267,7 +288,7 @@ static JSBool udom_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *
 	((XMLEV_Event*)info.far_ptr)->type = evtType;
 	gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_handler, 1, 0, &info);
 	((XMLRI*)info.far_ptr)->target = (GF_Node*)handler;
-	gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_target, 1, 0, &info);
+	gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_listener_target, 1, 0, &info);
 	((XMLRI*)info.far_ptr)->target = node;
 
 	gf_svg_get_attribute_by_tag((GF_Node*)handler, TAG_SVG_ATT_ev_event, 1, 0, &info);
@@ -390,6 +411,28 @@ static JSBool doc_get_element_by_id(JSContext *c, JSObject *obj, uintN argc, jsv
 	}
 	return JS_FALSE;
 }
+/*this is DOM, not uDOM*/
+static JSBool doc_create_text_node(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_SceneGraph *sg;
+	char *new_text;
+	GF_DOMText *txt;
+	JSObject *new_obj;
+
+	if ((argc>1) || !JS_InstanceOf(c, obj, &docClass, NULL) ) return JS_FALSE;
+	sg = JS_GetPrivate(c, obj);
+	if (!sg) return JS_FALSE;
+	txt = gf_dom_new_text_node(sg);
+
+	if (argc) {
+		new_text = JS_GetStringBytes(JS_ValueToString(c, argv[0]));
+		if (new_text) txt->textContent = strdup(new_text);
+	}
+	new_obj = JS_NewObject(c, &textClass, 0, 0);
+	JS_SetPrivate(c, new_obj, txt);
+	*rval = OBJECT_TO_JSVAL(new_obj);
+	return JS_TRUE;
+}
 
 /*svgDocument (: node, : document, : eventTarget)*/
 static JSFunctionSpec docClassFuncs[] = {
@@ -405,6 +448,8 @@ static JSFunctionSpec docClassFuncs[] = {
 	{"removeEventListenerNS", udom_remove_listener, 4},
 	{"addEventListener", udom_add_listener, 3},
 	{"removeEventListener", udom_remove_listener, 3},
+	/**/
+	{"createTextNode", doc_create_text_node, 1},
 	{0}
 };
 static JSPropertySpec docClassProps[] = {
@@ -422,8 +467,6 @@ static JSPropertySpec docClassProps[] = {
 	{"global",			7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	{0}
 };
-
-
 
 static JSBool svg_doc_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
@@ -489,6 +532,57 @@ static JSBool svg_doc_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *
 	return JS_FALSE;
 }
 
+static JSBool dom_text_substring(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	return JS_FALSE;
+}
+static JSBool dom_text_append(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	return JS_FALSE;
+}
+static JSBool dom_text_insert(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	return JS_FALSE;
+}
+static JSBool dom_text_delete(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	return JS_FALSE;
+}
+static JSBool dom_text_split(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	return JS_FALSE;
+}
+
+/*textClass*/
+static JSFunctionSpec textClassFuncs[] = {
+	/*characterData*/
+	{"substringData", dom_text_substring, 2},
+	{"appendData", dom_text_append, 1},
+	{"insertData", dom_text_insert, 2},
+	{"deleteData", dom_text_delete, 2},
+	/*text*/
+	{"splitText", dom_text_split, 1},
+	{0}
+};
+static JSPropertySpec textClassProps[] = {
+	{"data",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{0}
+};
+
+static JSBool dom_text_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+{
+	if (!JS_InstanceOf(c, obj, &textClass, NULL) ) return JS_FALSE;
+	/*todo*/
+	return JS_FALSE;
+}
+static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+{
+	if (!JS_InstanceOf(c, obj, &textClass, NULL) ) return JS_FALSE;
+	/*todo*/
+	return JS_FALSE;
+}
+
+
 static void svg_elt_finalize(JSContext *c, JSObject *obj)
 {
 	s32 i;
@@ -541,8 +635,10 @@ static JSBool svg_elt_append(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	if (!par) return JS_FALSE;
 	if (!JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 	newObj = JSVAL_TO_OBJECT(argv[0]);
-	if (!JS_InstanceOf(c, newObj, &svgClass, NULL) ) return JS_FALSE;
-	n = JS_GetPrivate(c, newObj);
+	n = NULL;
+	if (JS_InstanceOf(c, newObj, &svgClass, NULL) ) n = JS_GetPrivate(c, newObj);
+	else if (JS_InstanceOf(c, newObj, &textClass, NULL) ) n = JS_GetPrivate(c, newObj);
+
 	if (!n) return JS_FALSE;
 	svg_elt_add(c, par, n, -1);
 	return JS_TRUE;
@@ -557,9 +653,11 @@ static JSBool svg_elt_insert(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	if (!par) return JS_FALSE;
 	if (!JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 	newObj = JSVAL_TO_OBJECT(argv[0]);
-	if (!JS_InstanceOf(c, newObj, &svgClass, NULL) ) return JS_FALSE;
-	n = JS_GetPrivate(c, newObj);
+	n = NULL;
+	if (JS_InstanceOf(c, newObj, &svgClass, NULL) ) n = JS_GetPrivate(c, newObj);
+	else if (JS_InstanceOf(c, newObj, &textClass, NULL) ) n = JS_GetPrivate(c, newObj);
 	if (!n) return JS_FALSE;
+
 	if (!JSVAL_IS_OBJECT(argv[1])) return JS_FALSE;
 	newObj = JSVAL_TO_OBJECT(argv[1]);
 	if (!JS_InstanceOf(c, newObj, &svgClass, NULL) ) return JS_FALSE;
@@ -580,8 +678,9 @@ static JSBool svg_elt_remove(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	if (!par) return JS_FALSE;
 	if (!JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 	newObj = JSVAL_TO_OBJECT(argv[0]);
-	if (!JS_InstanceOf(c, newObj, &svgClass, NULL) ) return JS_FALSE;
-	n = JS_GetPrivate(c, newObj);
+	n = NULL;
+	if (JS_InstanceOf(c, newObj, &svgClass, NULL) ) n = JS_GetPrivate(c, newObj);
+	else if (JS_InstanceOf(c, newObj, &textClass, NULL) ) n = JS_GetPrivate(c, newObj);
 	if (!n) return JS_FALSE;
 
 	i = gf_node_list_del_child( & ((GF_ParentNode *)par)->children, n);
@@ -1469,9 +1568,9 @@ static JSBool svg_set_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	if (!foc || !JS_InstanceOf(c, foc, &svgClass, NULL) ) return JS_FALSE;
 
 	ifce = n->sgprivate->scenegraph->js_ifce;
-	par.focused = JS_GetPrivate(c, foc);
+	par.node = JS_GetPrivate(c, foc);
 	/*NOT IN THE GRAPH*/
-	if (!par.focused->sgprivate->num_instances) return JS_FALSE;
+	if (!par.node->sgprivate->num_instances) return JS_FALSE;
 	if (ifce->ScriptAction(ifce->callback, GF_JSAPI_OP_SET_FOCUS, (GF_Node *)n, &par)) 
 		return JS_TRUE;
 	return JS_FALSE;
@@ -1490,8 +1589,8 @@ static JSBool svg_get_focused_object(JSContext *c, JSObject *obj, uintN argc, js
 	if (!ifce->ScriptAction(ifce->callback, GF_JSAPI_OP_GET_FOCUS, (GF_Node *)n, &par)) 
 		return JS_FALSE;
 
-	if (par.focused) {
-		*rval = OBJECT_TO_JSVAL(svg_elt_construct(c, par.focused, 1));
+	if (par.node) {
+		*rval = OBJECT_TO_JSVAL(svg_elt_construct(c, par.node, 1));
 	}
 	return JS_TRUE;
 }
@@ -2634,6 +2733,10 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &eventClass, 0, 0, eventProps, eventFuncs, 0, 0);
 	scene->svg_js->event = JS_DefineObject(scene->svg_js->js_ctx, scene->svg_js->global, "evt", &eventClass, 0, 0);
 
+	/*text class*/
+	uDOM_SETUP_CLASS(textClass , "Text", JSCLASS_HAS_PRIVATE, dom_text_getProperty, dom_text_setProperty, JS_FinalizeStub);
+	JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &textClass, 0, 0, textClassProps, textClassFuncs, 0, 0);
+
 	/*element class*/
 	uDOM_SETUP_CLASS(svgClass, "SVG_SA_Element", JSCLASS_HAS_PRIVATE, svg_getProperty, svg_setProperty, svg_elt_finalize);
 	JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svgClass, 0, 0, svgClassProps, svgClassFuncs, 0, 0);
@@ -2745,6 +2848,8 @@ void JSScript_LoadSVG(GF_Node *node)
 	JSBool ret;
 	jsval rval;
 
+	if (! ((SVG_Element*)node)->children) return;
+
 	txt = (GF_DOMText*)((SVG_Element*)node)->children->node;
 	if (!txt || (txt->sgprivate->tag!=TAG_DOMText) || !txt->textContent) return;
 
@@ -2775,6 +2880,7 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	jsval fval, rval;
 	SVG_handlerElement *handler = (SVG_handlerElement*)node;
 
+	if (!handler->children) return 0;
 	
 	txt = (GF_DOMText*) handler->children->node;
 	if (!txt || (txt->sgprivate->tag!=TAG_DOMText) || !txt->textContent) return 0;

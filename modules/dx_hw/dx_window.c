@@ -538,6 +538,8 @@ u32 DD_WindowThread(void *par)
 	GF_VideoOutput *vout = par;
 	DDContext *ctx = (DDContext *)vout->opaque;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[DirectXOutput] Entering thread ID %d\n", gf_th_id() ));
+
 	hInst = GetModuleHandle("gm_dx_hw.dll");
 	memset(&wc, 0, sizeof(WNDCLASS));
 	wc.style = CS_BYTEALIGNWINDOW;
@@ -615,9 +617,11 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 	DDContext *ctx = (DDContext *)dr->opaque;
 
 	if (ctx->os_hwnd) {
-		ctx->orig_wnd_proc = GetWindowLong(ctx->os_hwnd, GWL_WNDPROC);
 		/*override window proc*/
-		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
+		if (!(flags & GF_TERM_NO_WINDOWPROC_OVERRIDE) ) {
+			ctx->orig_wnd_proc = GetWindowLong(ctx->os_hwnd, GWL_WNDPROC);
+			SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
+		}
 	}
 	ctx->switch_res = flags;
 	/*create our event thread - since we always have a dedicated window for fullscreen, we need that
@@ -637,7 +641,7 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 		PostMessage(ctx->os_hwnd, WM_DESTROY, 0, 0);
 	} else if (ctx->orig_wnd_proc) {
 		/*restore window proc*/
-		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
+		//SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
 		ctx->orig_wnd_proc = 0L;
 	}
 	PostMessage(ctx->fs_hwnd, WM_DESTROY, 0, 0);

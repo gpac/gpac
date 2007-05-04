@@ -59,8 +59,10 @@ enum
 	GF_TERM_FORCE_2D = 1<<4,
 	/*forces 3D renderer, regardless of config file*/
 	GF_TERM_FORCE_3D = 1<<5,
+	/*lets the main user handle window events (neede for browser plugins)*/
+	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<6,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<6
+	GF_TERM_WINDOWLESS = 1<<7
 };
 
 /*user object for all callbacks*/

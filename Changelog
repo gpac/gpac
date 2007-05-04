@@ -1,4 +1,6 @@
-Latest CVS changes: 01/05/07
+Latest CVS changes: 04/05/07
+  - Added support for SVG focus&navigation in 2D renderer
+  - Added back script support for new SVG/LASeR implementation
   - Updated LASeR to new SVG implementation and fixed many bugs in codec 
       current LASeR version should now be in sync with the latest spec
   - Moved default SVG implementation to dynamic attribute allocation

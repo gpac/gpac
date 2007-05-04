@@ -567,6 +567,7 @@ skip_background:
 			surf->draw_node_index = i;
 #endif
 			eff->ctx = ctx;
+
 			gf_node_render(ctx->drawable->node, eff);
 		}
 		/*node no longer register with this surface, destroy its bounds*/

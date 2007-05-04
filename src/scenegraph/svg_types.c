@@ -214,6 +214,10 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_svg_reset_iri(sg, (XMLRI *)value);
 		free(value);
 		break;
+	case SVG_Focus_datatype:
+		gf_svg_reset_iri(sg, & ((SVG_Focus*)value)->target);
+		free(value);
+		break;
 	case SVG_PathData_datatype:
 #if USE_GF_PATH
 		gf_path_del((GF_Path *)value);
@@ -222,6 +226,8 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 #endif
 		break;
 	case SVG_String_datatype:
+	case SVG_ContentType_datatype:
+	case SVG_LanguageID_datatype:
 		if (*(SVG_String *)value) free(*(SVG_String *)value);
 		free(value);
 		break;

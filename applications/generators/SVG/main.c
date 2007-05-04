@@ -530,6 +530,8 @@ void setAttributeType(SVGGenAttribute *att)
 			strcpy(att->impl_type, "SVG_Focusable");
 		} else if (!strcmp(att->svg_name, "event") || !strcmp(att->svg_name, "ev:event")) {
 			strcpy(att->impl_type, "XMLEV_Event");
+		} else if (!strcmp(att->svg_type, "IRI.datatype")) {
+			strcpy(att->impl_type, "XMLRI");
 		} else if (strstr(att->svg_type, "datatype")) {
 			char *tmp;
 			sprintf(att->impl_type, "SVG_%s", att->svg_type);
@@ -542,7 +544,7 @@ void setAttributeType(SVGGenAttribute *att)
 				tmp--;
 				*tmp = 0;
 			} 
-		} 
+		}
 	}
 }
 

@@ -180,11 +180,13 @@ GF_Err gf_attach_surface_to_texture(GF_SURFACE _this, GF_STENCIL sten)
 
 	GdipGetImageGraphicsContext(_sten->pBitmap, &_graph->graph);
 
-	GdipCreateMatrix(&mat);
-	GdipScaleMatrix(mat, 1.0, -1.0, MatrixOrderAppend);
-	GdipTranslateMatrix(mat, (Float) _sten->width/2, (Float) _sten->height/2, MatrixOrderAppend);
-	GdipSetWorldTransform(_graph->graph, mat);
-	GdipDeleteMatrix(mat);
+	if (_graph->center_coords) {
+		GdipCreateMatrix(&mat);
+		GdipScaleMatrix(mat, 1.0, -1.0, MatrixOrderAppend);
+		GdipTranslateMatrix(mat, (Float) _sten->width/2, (Float) _sten->height/2, MatrixOrderAppend);
+		GdipSetWorldTransform(_graph->graph, mat);
+		GdipDeleteMatrix(mat);
+	}
 	_graph->w = _sten->width;
 	_graph->h = _sten->height;
 	GdipSetPixelOffsetMode(_graph->graph, GDIP_PIXEL_MODE);
@@ -224,11 +226,15 @@ GF_Err gf_attach_surface_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u3
 	GdipCreateBitmapFromScan0(width, height, stride, pFormat, (unsigned char*)pixels, &_graph->pBitmap);
 	GdipGetImageGraphicsContext(_graph->pBitmap, &_graph->graph);
 	
-	GdipCreateMatrix(&mat);
-	GdipScaleMatrix(mat, 1.0, -1.0, MatrixOrderAppend);
-	GdipTranslateMatrix(mat, (Float) width/2, (Float) height/2, MatrixOrderAppend);
-	GdipSetWorldTransform(_graph->graph, mat);
-	GdipDeleteMatrix(mat);
+	_graph->w = width;
+	_graph->h = height;
+	if (_graph->center_coords) {
+		GdipCreateMatrix(&mat);
+		GdipScaleMatrix(mat, 1.0, -1.0, MatrixOrderAppend);
+		GdipTranslateMatrix(mat, (Float) width/2, (Float) height/2, MatrixOrderAppend);
+		GdipSetWorldTransform(_graph->graph, mat);
+		GdipDeleteMatrix(mat);
+	}
 	GdipSetPixelOffsetMode(_graph->graph, GDIP_PIXEL_MODE);
 	return GF_OK;
 }
@@ -436,11 +442,11 @@ GF_Err gf_surface_clear(GF_SURFACE _this, GF_IRect *rc, u32 color)
 		/*luckily enough this maps well for both flipped and unflipped coords*/
 		GdipAddPathRectangleI(path, rc->x, rc->y - rc->height, rc->width, rc->height);
 	} else {
-		if (_graph->center_coords) {
+/*		if (_graph->center_coords) {
 			GdipAddPathRectangleI(path, -1 * (s32)_graph->w / 2, -1 * (s32)_graph->h / 2, _graph->w, _graph->h);
 		} else {
-			GdipAddPathRectangleI(path, 0, 0, _graph->w, _graph->h);
-		}
+*/			GdipAddPathRectangleI(path, 0, 0, _graph->w, _graph->h);
+//		}
 	}
 	/*we MUST use clear otherwise ARGB surfaces are not cleared correctly*/
 	GdipSetClipPath(_graph->graph, path, CombineModeReplace);

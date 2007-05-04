@@ -2060,6 +2060,7 @@ int main(int argc, char **argv)
 	}
 	if (!open_edit) {
 		if (file) gf_isom_delete(file);
+		gf_sys_close();
 		return 0;
 	}
 
@@ -2356,6 +2357,7 @@ int main(int argc, char **argv)
 			if (remove(inName)) fprintf(stdout, "Error removing file %s\n", inName);
 			else if (rename(outfile, inName)) fprintf(stdout, "Error renaming file %s\n", outfile);
 		}
+		gf_sys_close();
 		return (e!=GF_OK) ? 1 : 0;
 	}
 	

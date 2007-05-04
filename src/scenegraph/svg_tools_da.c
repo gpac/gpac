@@ -325,7 +325,7 @@ GF_Err gf_svg_get_attribute_by_tag(GF_Node *node, u32 attribute_tag, Bool create
 		if ((u32) att->tag == attribute_tag) {
 			field->fieldIndex = att->tag;
 			field->fieldType = att->data_type;
-			field->far_ptr   = att->data;
+			field->far_ptr  = att->data;
 			return GF_OK;
 		}
 		last_att = att;

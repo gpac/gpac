@@ -246,8 +246,10 @@ void generateSVGCode_V3(GF_List *svg_elements)
 	fprintf(output, "void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)\n");
 
 	fprintf(output, "{\n");
-	fprintf(output, "\tSVGAttribute *att = e->attributes;\n");
+	fprintf(output, "\tSVGAttribute *att;\n");
 	fprintf(output, "\tmemset(all_atts, 0, sizeof(SVGAllAttributes));\n");
+	fprintf(output, "\tif (e->sgprivate->tag <= GF_NODE_FIRST_DOM_NODE_TAG) return;\n");
+	fprintf(output, "\tatt = e->attributes;\n");
 	fprintf(output, "\twhile (att) {\n");
 	fprintf(output, "\t\tswitch(att->tag) {\n");
 	for (i=0; i<gf_list_count(all_atts); i++) {

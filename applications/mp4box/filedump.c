@@ -202,7 +202,12 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 		fclose(logs);
 	}
 	if (!e) {
-		fprintf(stdout, "Scene loaded - dumping %d systems streams\n", gf_list_count(ctx->streams));
+		u32 count = gf_list_count(ctx->streams);
+		if (count)
+			fprintf(stdout, "Scene loaded - dumping %d systems streams\n", count);
+		else
+			fprintf(stdout, "Scene loaded - dumping root scene\n");
+
 		e = gf_sm_dump(ctx, inName, dump_mode);
 	}
 

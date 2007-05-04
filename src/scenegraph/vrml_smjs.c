@@ -32,7 +32,7 @@
 
 #ifndef GPAC_DISABLE_SVG
 /*SVG tags for script handling*/
-#include <gpac/nodes_svg_sa.h>
+#include <gpac/nodes_svg_da.h>
 #endif
 
 #define GF_SETUP_JS(the_class, cname, flag, addp, delp, getp, setp, enump, resp, conv, fin)	\
@@ -3301,12 +3301,10 @@ static void JSScript_Load(GF_Node *node)
 		JSScript_LoadVRML(node);
 		break;
 #ifndef GPAC_DISABLE_SVG
-#ifdef GPAC_ENABLE_SVG_SA
-	case TAG_SVG_SA_script:
-	case TAG_SVG_SA_handler:
+	case TAG_SVG_script:
+	case TAG_SVG_handler:
 		JSScript_LoadSVG(node);
 		break;
-#endif
 #endif
 	default:
 		break;

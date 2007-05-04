@@ -37,6 +37,7 @@
 u32 gf_dom_event_type_by_name(const char *name)
 {
 	if (!strcmp(name, "abort"))	return GF_EVENT_ABORT;
+	if (!strcmp(name, "activate"))	return GF_EVENT_ACTIVATE;
 	if (!strcmp(name, "begin"))		return GF_EVENT_BEGIN;
 	if (!strcmp(name, "beginEvent"))	return GF_EVENT_BEGIN_EVENT;
 	if (!strcmp(name, "click"))		return GF_EVENT_CLICK;
@@ -86,6 +87,7 @@ const char *gf_dom_event_get_name(u32 type)
 
 	switch (type) {
 	case GF_EVENT_ABORT: return "abort";
+	case GF_EVENT_ACTIVATE: return "activate";
 	case GF_EVENT_BEGIN: return "begin";
 	case GF_EVENT_BEGIN_EVENT: return "beginEvent";
 	case GF_EVENT_CLICK: return "click";
@@ -2447,6 +2449,17 @@ static void svg_parse_focushighlight(SVG_FocusHighlight *fh, char *attribute_con
 	}
 }
 
+static void svg_parse_focusable(SVG_Focusable *f, char *attribute_content)
+{
+	if (!strcmp(attribute_content, "true")) {
+		*f = SVG_FOCUSABLE_TRUE;
+	} else if (!strcmp(attribute_content, "false")) {
+		*f = SVG_FOCUSABLE_FALSE;
+	} else {
+		*f = SVG_FOCUSABLE_AUTO;
+	}
+}
+
 static void svg_parse_initialvisibility(SVG_InitialVisibility *iv, char *attribute_content)
 {
 	if (!strcmp(attribute_content, "whenStarted")) {
@@ -2488,9 +2501,12 @@ static void svg_parse_focus(GF_Node *e,  SVG_Focus *o, char *attribute_content)
 
 	if (!strcmp(attribute_content, "self")) o->type = SVG_FOCUS_SELF;
 	else if (!strcmp(attribute_content, "auto")) o->type = SVG_FOCUS_AUTO;
-	else {
+	else if (!strnicmp(attribute_content, "url(", 4)) {
+		char *sep = strrchr(attribute_content, ')');
+		if (sep) sep[0] = 0;
 		o->type = SVG_FOCUS_IRI;
-		svg_parse_iri(e, &o->target, attribute_content);
+		svg_parse_iri(e, &o->target, attribute_content+4);
+		if (sep) sep[0] = ')';
 	}
 }
 
@@ -2716,6 +2732,10 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SVG_FocusHighlight_datatype:
 		svg_parse_focushighlight((SVG_FocusHighlight*)info->far_ptr, attribute_content);
 		break;
+	case SVG_Focusable_datatype:
+		svg_parse_focusable((SVG_Focusable*)info->far_ptr, attribute_content);
+		break;
+
 	case SVG_InitialVisibility_datatype:
 		svg_parse_initialvisibility((SVG_InitialVisibility*)info->far_ptr, attribute_content);
 		break;
@@ -3021,6 +3041,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 	case SVG_Overlay_datatype:
 	case SVG_TransformBehavior_datatype:
 	case SVG_SpreadMethod_datatype:
+	case SVG_Focusable_datatype:
 		{
 			u8 *keyword;
 			GF_SAFEALLOC(keyword, u8)

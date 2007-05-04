@@ -440,8 +440,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	if (!pNode) return GF_OK;
 	pSG = pNode->sgprivate->scenegraph;
 	/*if this is a proto its is registered in its parent graph, not the current*/
-	if (pNode == (GF_Node*)pSG->pOwningProto) pSG = pSG->parent_scene;
-	assert(pSG);
+	if (pSG && (pNode == (GF_Node*)pSG->pOwningProto)) pSG = pSG->parent_scene;
 
 	if (parentNode) {
 		GF_ParentList *nlist = pNode->sgprivate->parents;
@@ -473,23 +472,25 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	
 	assert(pNode->sgprivate->parents==NULL);
 
-	/*if def, remove from sg def table*/
-	if (pNode->sgprivate->flags & GF_NODE_IS_DEF) {
-		remove_node_id(pSG, pNode);
-	}
-
-	/*check all routes from or to this node and destroy them - cf spec*/
-	j=0;
-	while ((r = (GF_Route *)gf_list_enum(pSG->Routes, &j))) {
-		if ( (r->ToNode == pNode) || (r->FromNode == pNode)) {
-			gf_sg_route_del(r);
-			j--;
+	if (pSG) {
+		/*if def, remove from sg def table*/
+		if (pNode->sgprivate->flags & GF_NODE_IS_DEF) {
+			remove_node_id(pSG, pNode);
 		}
-	}
+
+		/*check all routes from or to this node and destroy them - cf spec*/
+		j=0;
+		while ((r = (GF_Route *)gf_list_enum(pSG->Routes, &j))) {
+			if ( (r->ToNode == pNode) || (r->FromNode == pNode)) {
+				gf_sg_route_del(r);
+				j--;
+			}
+		}
 #if defined(GPAC_HAS_SPIDERMONKEY) && !defined(GPAC_DISABLE_SVG)
-	/*for svg scripts*/
-	if (pSG->svg_js) pSG->svg_js->on_node_destroy(pSG, pNode);
+		/*for svg scripts*/
+		if (pSG->svg_js) pSG->svg_js->on_node_destroy(pSG, pNode);
 #endif
+	}
 
 	/*delete the node*/
 	gf_node_del(pNode);
@@ -504,8 +505,7 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 	
 	pSG = node->sgprivate->scenegraph;
 	/*if this is a proto register to the parent graph, not the current*/
-	if (node == (GF_Node*)pSG->pOwningProto) pSG = pSG->parent_scene;
-	assert(pSG);
+	if (pSG && (node == (GF_Node*)pSG->pOwningProto)) pSG = pSG->parent_scene;
 
 	node->sgprivate->num_instances ++;
 	/*parent may be NULL (top node and proto)*/
@@ -1434,7 +1434,7 @@ GF_EXPORT
 GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 {
 	GF_Node *node;
-	if (!inScene) return NULL;
+//	if (!inScene) return NULL;
 	/*cannot create proto this way*/
 	if (tag==TAG_ProtoNode) return NULL;
 	else if (tag==TAG_UndefinedNode) node = gf_sg_new_base_node();

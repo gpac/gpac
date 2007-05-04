@@ -442,6 +442,7 @@ Bool gf_svg_sa_node_init(GF_Node *node)
 
 Bool gf_svg_sa_node_changed(GF_Node *node, GF_FieldInfo *field)
 {
+	Bool ret = 0;
 	switch (node->sgprivate->tag) {
 	case TAG_SVG_SA_animateMotion:
 	case TAG_SVG_SA_set: 
@@ -450,14 +451,15 @@ Bool gf_svg_sa_node_changed(GF_Node *node, GF_FieldInfo *field)
 	case TAG_SVG_SA_animateTransform: 
 	case TAG_SVG_SA_conditional: 
 		gf_smil_timing_modified(node, field);
-		return 1;
+		ret = 1;
+		break;
 	case TAG_SVG_SA_audio: 
 	case TAG_SVG_SA_video: 
 		gf_smil_timing_modified(node, field);
 		/*used by renderers*/
-		return 0;
+		break;
 	}
-	return 0;
+	return ret;
 }
 
 

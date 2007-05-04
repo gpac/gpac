@@ -374,19 +374,8 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 					evt.type = GF_EVENT_MOUSEOVER;
 					ret += gf_dom_event_fire(ctx->drawable->node, ctx->appear, &evt);
 
-					/*send focus out event*/
-					if (sr->grab_node || sr->focus_node) {
-						evt.relatedTarget = sr->grab_node ? sr->grab_node->node: sr->focus_node;
-						evt.type = GF_EVENT_FOCUSOUT;
-						ret += gf_dom_event_fire(evt.relatedTarget, NULL, &evt);
-					}
-					evt.relatedTarget = ctx->drawable->node;
-					evt.type = GF_EVENT_FOCUSIN;
-					ret += gf_dom_event_fire(evt.relatedTarget, NULL, &evt);
-
 					sr->grab_ctx = ctx;
 					sr->grab_node = ctx->drawable;
-					sr->focus_node = ctx->drawable->node;
 				} else {
 					evt.type = GF_EVENT_MOUSEMOVE;
 					ret += gf_dom_event_fire(ctx->drawable->node, ctx->appear, &evt);
@@ -424,10 +413,19 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 				evt.key_flags = sr->compositor->key_states;
 				evt.type = GF_EVENT_MOUSEOUT;
 				ret += gf_dom_event_fire(sr->grab_node->node, NULL, &evt);
-				if (sr->grab_node->node == sr->focus_node) sr->focus_node = NULL;
 			}
 			sr->grab_node = NULL;
 			sr->grab_ctx = NULL;
+
+			/*dispatch event to root SVG*/
+			memset(&evt, 0, sizeof(GF_DOM_Event));
+			evt.clientX = evt.screenX = FIX2INT(X);
+			evt.clientY = evt.screenY = FIX2INT(Y);
+			evt.bubbles = 1;
+			evt.cancelable = 1;
+			evt.key_flags = sr->compositor->key_states;
+			evt.type = event->type;
+			ret += gf_dom_event_fire(gf_sg_get_root_node(sr->compositor->scene), NULL, &evt);
 		}
 		if (sr->last_sensor != cursor_type) {
 			R2DSETCURSOR(cursor_type);
@@ -446,10 +444,23 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 		evt.key_hw_code = event->key.hw_code;
 		ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
 
-		if ((event->type==GF_EVENT_KEYDOWN) && (event->key.key_code==GF_KEY_ENTER)) {
-			evt.type = GF_EVENT_ACTIVATE;
-			evt.detail = 0;
-			ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
+		if (event->type==GF_EVENT_KEYDOWN) {
+			switch (event->key.key_code) {
+			case GF_KEY_ENTER:
+				evt.type = GF_EVENT_ACTIVATE;
+				evt.detail = 0;
+				ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
+				break;
+			case GF_KEY_TAB:
+				ret += svg_focus_switch_ring(sr, (event->key.flags & GF_KEY_MOD_SHIFT) ? 1 : 0);
+				break;
+			case GF_KEY_UP:
+			case GF_KEY_DOWN:
+			case GF_KEY_LEFT:
+			case GF_KEY_RIGHT:
+				ret += svg_focus_navigate(sr, event->key.key_code);
+				break;
+			}
 		} 
 
 /*		else if (event->event_type==GF_EVENT_CHAR) {
@@ -609,6 +620,14 @@ browser_event:
 	case GF_EVENT_MOUSEUP:
 		if (event->mouse.button==GF_MOUSE_LEFT) sr->grabbed = 0;
 		break;
+	case GF_EVENT_MOUSEWHEEL:
+		if (sr->navigate_mode == GF_NAVIGATE_SLIDE) {
+			Fixed new_zoom = sr->zoom;
+			if (event->mouse.wheel_pos > 0) new_zoom += FIX_ONE/20;
+			else new_zoom -= FIX_ONE/20;
+			R2D_SetUserTransform(sr, new_zoom, sr->trans_x, sr->trans_y, 0);
+		}
+		break;
 	case GF_EVENT_MOUSEMOVE:
 		if (sr->grabbed && (sr->navigate_mode == GF_NAVIGATE_SLIDE)) {
 			Fixed dx, dy;
@@ -693,6 +712,8 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 		sr->main_surface_setup = 1;
 		sr->surface->center_coords = 1;
 
+		sr->focus_node = NULL;
+
 		sr->top_effect->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
 		sr->top_effect->min_hsize = INT2FIX(MIN(sr->compositor->scene_width, sr->compositor->scene_height)) / 2;
 
@@ -715,7 +736,6 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 		}
 #endif
 
-		sr->focus_node = top_node;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Main scene setup - Using DOM events: %d - pixel metrics %d - center coords %d\n", sr->use_dom_events, sr->top_effect->is_pixel_metrics, sr->surface->center_coords));
 	}
 
@@ -1161,6 +1181,19 @@ GF_Err R2D_LoadRenderer(GF_VisualRenderer *vr, GF_Renderer *compositor)
 	sr->zoom = sr->scale_x = sr->scale_y = FIX_ONE;
 	vr->user_priv = sr;
 
+	sOpt = gf_cfg_get_key(compositor->user->config, "Render2D", "FocusHighlightFill");
+	if (sOpt) sscanf(sOpt, "%x", &sr->highlight_fill);
+	sOpt = gf_cfg_get_key(compositor->user->config, "Render2D", "FocusHighlightStroke");
+	if (sOpt) sscanf(sOpt, "%x", &sr->highlight_stroke);
+	else sr->highlight_stroke = 0xFF000000;
+
+	/*create a drawable for focus highlight*/
+	sr->focus_highlight = drawable_new();
+	/*associate a dummy node for rendering*/
+	sr->focus_highlight->node = gf_node_new(NULL, TAG_UndefinedNode);
+	gf_node_register(sr->focus_highlight->node, NULL);
+	gf_node_set_callback_function(sr->focus_highlight->node, drawable_render_focus);
+
 	/*load options*/
 	sOpt = gf_cfg_get_key(compositor->user->config, "Render2D", "DirectRender");
 	if (sOpt && ! stricmp(sOpt, "yes")) 
@@ -1181,11 +1214,16 @@ void R2D_UnloadRenderer(GF_VisualRenderer *vr)
 {
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render2D] Destroying 2D renderer\n"));
+	
+	gf_node_unregister(sr->focus_highlight->node, NULL);
+	drawable_del_ex(sr->focus_highlight, sr);
+
 	DeleteVisualSurface2D(sr->surface);
 	gf_list_del(sr->sensors);
 	gf_list_del(sr->surfaces_2D);
 	gf_list_del(sr->strike_bank);
 	effect_delete(sr->top_effect);
+
 	free(sr);
 	vr->user_priv = NULL;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render2D] 2D renderer destroyed\n"));
@@ -1421,8 +1459,8 @@ static Bool R2D_ScriptAction(GF_VisualRenderer *vr, u32 type, GF_Node *n, GF_JSA
 		param->rc = gf_rect_ft(&sr->surface->top_clipper); 
 		if (!sr->surface->center_coords) param->rc.y = param->rc.height - param->rc.y;
 		return 1;
-	case GF_JSAPI_OP_SET_FOCUS: sr->focus_node = param->focused; return 1;
-	case GF_JSAPI_OP_GET_FOCUS: param->focused = sr->focus_node; return 1;
+	case GF_JSAPI_OP_SET_FOCUS: sr->focus_node = param->node; return 1;
+	case GF_JSAPI_OP_GET_FOCUS: param->node = sr->focus_node; return 1;
 
 	/*same routine: traverse tree from root to target, collecting both bounds and transform matrix*/
 	case GF_JSAPI_OP_GET_LOCAL_BBOX:

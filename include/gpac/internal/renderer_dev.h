@@ -52,7 +52,7 @@ void releaseDanaeMediaObject(void *dmo);
 void loadDanaeUrl(void *session, char *url);
 #endif
 
-#define GF_SR_EVENT_QUEUE	
+//#define GF_SR_EVENT_QUEUE	
 
 /*FPS computed on this number of frame*/
 #define GF_SR_FPS_COMPUTE_SIZE	30
@@ -63,6 +63,9 @@ enum
 	GF_SR_CFG_SET_SIZE = 1<<1,
 	GF_SR_CFG_AR = 1<<2,
 	GF_SR_CFG_FULLSCREEN = 1<<3,
+	/*flag is set whenever we're reconfiguring visual. This will discard all UI
+	messages during this phase in order to avoid any deadlocks*/
+	GF_SR_IN_RECONFIG = 1<<4,
 	/*special flag indicating the set size is actually due to a notif by the plugin*/
 	GF_SR_CFG_WINDOWSIZE_NOTIF = 1<<10,
 };

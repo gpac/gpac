@@ -254,6 +254,7 @@ typedef struct _visual_surface_2D
 	GF_SURFACE the_surface;
 	GF_STENCIL the_brush;
 	GF_STENCIL the_pen;
+
 } VisualSurface2D;
 /*constructor/destructor*/
 VisualSurface2D *NewVisualSurface2D();
@@ -304,8 +305,9 @@ void VS2D_ResetGraphics(VisualSurface2D *surf);
 /* this is to use carefully: picks a node based on the PREVIOUS frame state (no traversing)*/
 GF_Node *VS2D_PickNode(VisualSurface2D *surf, Fixed x, Fixed y);
 
-/*fill given rect with given color with given ctx transform and clipper (used for text hilighting only)*/
-void VS2D_FillRect(VisualSurface2D *surf, DrawableContext *ctx, GF_Rect rc, u32 color);
+/*fill given rect with given color with given ctx transform and clipper (used for text hilighting only)
+if rc is NULL, fills object bounds*/
+void VS2D_FillRect(VisualSurface2D *surf, DrawableContext *ctx, GF_Rect *rc, u32 color, u32 strike_color);
 
 #endif
 

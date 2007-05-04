@@ -83,6 +83,10 @@ typedef struct _render_2d
 	s32 last_click_x, last_click_y;
 	u32 num_clicks;
 #endif
+
+	/*a dedicated drawable for focus highlight */
+	struct _drawable *focus_highlight;
+	u32 highlight_fill, highlight_stroke;
 } Render2D;
 
 
@@ -218,6 +222,7 @@ typedef struct _render2d_effect
 	Bool is_over;
 
 	Bool inside_cliper;
+	Bool is_focus_group;
 } RenderEffect2D;
 
 void effect_reset(RenderEffect2D *eff);

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed May 02 08:17:35 2007
+	DO NOT MOFIFY - File generated on GMT Thu May 03 12:31:40 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -874,8 +874,10 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 
 void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 {
-	SVGAttribute *att = e->attributes;
+	SVGAttribute *att;
 	memset(all_atts, 0, sizeof(SVGAllAttributes));
+	if (e->sgprivate->tag <= GF_NODE_FIRST_DOM_NODE_TAG) return;
+	att = e->attributes;
 	while (att) {
 		switch(att->tag) {
 		case TAG_SVG_ATT_id: all_atts->id = (SVG_ID *)att->data; break;

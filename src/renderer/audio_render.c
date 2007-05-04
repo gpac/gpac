@@ -60,7 +60,7 @@ u32 AR_MainLoop(void *p)
 
 	ar->audio_th_state = 1;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] Entering audio thread\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[AudioRender] Entering audio thread ID %d\n", gf_th_id() ));
 
 	gf_mixer_lock(ar->mixer, 1);
 	ar->need_reconfig = 1;

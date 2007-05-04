@@ -607,5 +607,19 @@ GF_DOMUpdates *gf_dom_add_updates_node(GF_Node *parent)
 }
 
 
+GF_DOMUpdates *gf_dom_add_update_node(GF_Node *parent)
+{
+	GF_DOMUpdates *update;
+	GF_SAFEALLOC(update, GF_DOMUpdates);
+
+	gf_node_setup((GF_Node *)update, TAG_DOMUpdates);
+	update->sgprivate->scenegraph = parent->sgprivate->scenegraph;
+	update->updates = gf_list_new();
+	gf_node_register((GF_Node *)update, parent);
+	gf_node_list_add_child_last(&((GF_ParentNode *)parent)->children, (GF_Node*)update, NULL);
+	return update;
+}
+
+
 #endif	//GPAC_DISABLE_SVG
 
