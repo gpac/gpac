@@ -113,8 +113,8 @@ static Bool OGG_ReadPage(OGGReader *read, ogg_page *oggpage)
 		u32 total_size, status;
 		e = gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, &status);
 		/*not ready*/
-		if ((e<GF_OK) || (status > GF_DOWNLOAD_STATE_RUNNING)) return 0;
-		if (status == GF_DOWNLOAD_STATE_RUNNING) {
+		if ((e<GF_OK) || (status > GF_NETIO_DATA_EXCHANGE)) return 0;
+		if (status == GF_NETIO_DATA_EXCHANGE) {
 			if (!total_size && !read->is_live) {
 				read->is_live = 1;
 				read->tune_in_time = gf_sys_clock();
@@ -672,22 +672,23 @@ static Bool ogg_is_local(const char *url)
 	return 1;
 }
 
-void OGG_OnState(void *cbk, char *data, u32 size, u32 state, GF_Err e)
+void OGG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
 	OGGReader *read = (OGGReader *) cbk;
 
 	gf_term_download_update_stats(read->dnload);
 	
-	if ((e == GF_EOS) && read->ogfile) {
+	/*done*/
+	if ((param->msg_type==GF_NETIO_DATA_TRANSFERED) && read->ogfile) {
 		read->is_remote = 0;
 		/*reload file*/
 		OGG_CheckFile(read);
 		return;
 	}
-	if (e && read->needs_connection) {
+	if (param->error && read->needs_connection) {
 		read->needs_connection = 0;
 		read->kill_demux = 2;
-		gf_term_on_connect(read->service, NULL, e);
+		gf_term_on_connect(read->service, NULL, param->error);
 	}
 	/*we never receive data from here since the downloader is not threaded*/
 }
@@ -696,7 +697,7 @@ void OGG_DownloadFile(GF_InputService *plug, char *url)
 {
 	OGGReader *read = (OGGReader*) plug->priv;
 
-	read->dnload = gf_term_download_new(read->service, url, GF_DOWNLOAD_SESSION_NOT_THREADED, OGG_OnState, read);
+	read->dnload = gf_term_download_new(read->service, url, GF_NETIO_SESSION_NOT_THREADED, OGG_NetIO, read);
 	if (!read->dnload) {
 		read->kill_demux=2;
 		read->needs_connection = 0;
