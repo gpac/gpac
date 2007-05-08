@@ -584,7 +584,8 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 	/* TODO: FIX ME: this only works for single SVG element in the doc*/
 	if (is_root_svg && eff->svg_props->viewport_fill && eff->svg_props->viewport_fill->type != SVG_PAINT_NONE) {
-		viewport_color = GF_COL_ARGB_FIXED(eff->svg_props->viewport_fill_opacity->value, eff->svg_props->viewport_fill->color.red, eff->svg_props->viewport_fill->color.green, eff->svg_props->viewport_fill->color.blue);
+		Fixed vp_opacity = eff->svg_props->viewport_fill_opacity ? eff->svg_props->viewport_fill_opacity->value : FIX_ONE;
+		viewport_color = GF_COL_ARGB_FIXED(vp_opacity, eff->svg_props->viewport_fill->color.red, eff->svg_props->viewport_fill->color.green, eff->svg_props->viewport_fill->color.blue);
 		if (eff->surface->render->compositor->back_color != viewport_color) {
 			eff->surface->render->compositor->back_color = viewport_color;
 			/*clear surface*/

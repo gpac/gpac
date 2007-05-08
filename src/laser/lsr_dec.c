@@ -4533,6 +4533,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 			if (count==1) {
 				field->new_node = lsr_read_update_content_model(lsr, (SVG_Element *) n);
 				gf_node_register(field->new_node, n);
+				if (att_type>=0) field->fieldIndex = gf_lsr_anim_type_to_attribute(att_type);
 			} else {
 				field->field_ptr = &field->node_list;
 				while (count) {
@@ -4556,19 +4557,26 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 					elt->children = NULL;
 				}
 			}
-			while (count) {
-				new_node = lsr_read_update_content_model(lsr, elt);
-				if (new_node) {
-					if (idx>=0) {
-						gf_node_list_insert_child(&elt->children, new_node, idx);
-					} else {
-						gf_node_list_add_child_last(&elt->children, new_node, &last);
+			if (gf_lsr_anim_type_to_attribute(att_type) == TAG_LSR_ATT_children) {
+				while (count) {
+					new_node = lsr_read_update_content_model(lsr, elt);
+					if (new_node) {
+						if (idx>=0) {
+							gf_node_list_insert_child(&elt->children, new_node, idx);
+						} else {
+							gf_node_list_add_child_last(&elt->children, new_node, &last);
+						}
+						gf_node_register(new_node, n);
 					}
-					gf_node_register(new_node, n);
+					count--;
 				}
-				count--;
+				gf_node_changed(n, NULL);
 			}
-			gf_node_changed(n, NULL);
+			/*node replacement*/
+			else if ((att_type==-1) && (count==1)) {
+				new_node = lsr_read_update_content_model(lsr, elt);
+				gf_node_replace((GF_Node*)elt, new_node, 0);
+			}
 		}
 	}
 	return GF_OK;

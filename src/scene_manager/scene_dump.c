@@ -2304,6 +2304,9 @@ GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 		return GF_OK;
 	}
 	if (f->new_node && f->new_node->sgprivate->tag==TAG_DOMText) is_text = 1;
+	/*if fieldIndex (eg attributeName) is set, this is children replacement*/
+	if (f->fieldIndex>0) 
+		fprintf(sdump->trace, "attributeName=\"children\" ");
 
 	fprintf(sdump->trace, ">");
 	if (!is_text) {

@@ -712,7 +712,9 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 		sr->main_surface_setup = 1;
 		sr->surface->center_coords = 1;
 
-		sr->focus_node = NULL;
+		/*by default we set the focus on the content*/
+		//sr->focus_node = NULL;
+		svg_focus_switch_ring(sr, 0);
 
 		sr->top_effect->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
 		sr->top_effect->min_hsize = INT2FIX(MIN(sr->compositor->scene_width, sr->compositor->scene_height)) / 2;
