@@ -217,7 +217,7 @@ static void svg_sa_render_bitmap(GF_Node *node, void *rs)
 
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		svg_sa_apply_local_transformation(eff, node, &backup_matrix);
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
+		if (!svg_is_display_off(eff->svg_props)) {
 			gf_path_get_bounds(st->graph->path, &eff->bounds);
 		}
 		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
@@ -226,7 +226,7 @@ static void svg_sa_render_bitmap(GF_Node *node, void *rs)
 		return;
 	}
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
+	if (svg_is_display_off(eff->svg_props) ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
 		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		eff->svg_flags = backup_flags;
@@ -312,7 +312,7 @@ static void svg_render_bitmap(GF_Node *node, void *rs)
 	/*FIXME: setup aspect ratio*/
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		svg_apply_local_transformation(eff, &all_atts, &backup_matrix);
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
+		if (!svg_is_display_off(eff->svg_props)) {
 			gf_path_get_bounds(st->graph->path, &eff->bounds);
 		}
 		svg_restore_parent_transformation(eff, &backup_matrix);
@@ -321,7 +321,7 @@ static void svg_render_bitmap(GF_Node *node, void *rs)
 		return;
 	}
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
+	if (svg_is_display_off(eff->svg_props) ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
 		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		eff->svg_flags = backup_flags;
@@ -674,7 +674,7 @@ static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 	/*store mute flag*/
 	st->input.is_muted = 0;
 	if ((eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF)
-		|| (*(eff->svg_props->display) == SVG_DISPLAY_NONE) 
+		|| svg_is_display_off(eff->svg_props)
 		|| (*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) ) {
 	
 		st->input.is_muted = 1;

@@ -162,7 +162,9 @@ struct __tag_scene_graph
 	Bool usePixelMetrics;
 
 	/*application interface for javascript*/
-	GF_JSInterface *js_ifce;
+	gf_sg_script_action script_action;
+	void *script_action_cbck;
+
 	/*script loader*/
 	void (*script_load)(GF_Node *node);
 
@@ -180,6 +182,23 @@ struct __tag_scene_graph
 #ifdef GPAC_HAS_SPIDERMONKEY
 	struct __tag_svg_script_ctx *svg_js;
 #endif
+#endif
+
+#ifdef GPAC_HAS_SPIDERMONKEY
+	GF_List *scripts;
+	/*
+			Note about reference counter
+
+	  A DOM document (<=> scenegraph) may be created through javascript, and the JS object having created the 
+	  document may be destroyed while the document is still in use. Moreover with XMLHttpRequest, the
+	  "associated" doc is re-created at each request, but the script may still refer to the original document.
+	  Since the document doesn't have a fixed owner, a reference counter is use and the scenegraph is kept alive 
+	  until the last object using it is destroyed.
+
+	If this counter is set to 0 when creating DOM Elements/..., this means the scenegraph is hold by an external
+	entity (typically the player), and cannot be destroyed from the scripting engine
+	*/
+	u32 reference_count;
 #endif
 };
 
@@ -522,6 +541,7 @@ void gf_smil_anim_remove_from_target(GF_Node *anim, GF_Node *target);
 
 void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event);
 void gf_smil_setup_events(GF_Node *node);
+Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event);
 
 #endif
 
@@ -804,24 +824,34 @@ typedef struct __tag_svg_script_ctx
 {
 	Bool (*script_execute)(struct __tag_scene_graph *sg, char *utf8_script, GF_DOM_Event *event);
 	Bool (*handler_execute)(GF_Node *n, GF_DOM_Event *event);
-	void (*on_node_destroy)(struct __tag_scene_graph *sg, GF_Node *n);
-
-	JSContext *js_ctx;
 	u32 nb_scripts;
-
-	/*node bank*/
-	GF_List *node_bank;
+	/*global script context for the scene*/
+	JSContext *js_ctx;
 	/*global object*/
 	JSObject *global;
-	/*event object*/
+	/*global event object - used to update the associated DOMEvent (JS private stack) when dispatching events*/
 	JSObject *event;
-	/*document object*/
-	JSObject *document;
 } GF_SVGJS;
 
-#endif
+#endif	/*GPAC_DISABLE_SVG*/
 
-#endif
+/*initialize DOM Core (subset) + xmlHTTPRequest API. The global object MUST have private data storage
+and its private data MUST be a scenegraph. This scenegraph is only used to create new documents
+and setup the callback pointers*/
+void dom_js_load(JSContext *c, JSObject *global);
+
+/*defines a new global object "document" of type Document*/
+JSObject *dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc);
+/*defines a new global object "evt" of type Event*/
+JSObject *dom_js_define_event(JSContext *c, JSObject *global);
+
+jsval dom_element_construct(JSContext *c, GF_Node *n);
+GF_Node *dom_get_node(JSContext *c, JSObject *obj, Bool *is_doc);
+
+JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
+JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
+
+#endif	/*GPAC_HAS_SPIDERMONKEY*/
 
 
 SVG_Element *gf_svg_create_node(u32 tag);

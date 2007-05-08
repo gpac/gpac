@@ -221,8 +221,6 @@ struct _tag_terminal
 
 	/*callback to user application*/	
 	GF_User *user;
-	/*JavaScript browser API*/
-	GF_JSInterface js_ifce;
 	/*scene renderer*/
 	struct __tag_base_renderer *renderer;
 	/*file downloader*/

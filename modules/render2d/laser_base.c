@@ -42,7 +42,7 @@ static void LASeR_Render_selector(GF_Node *node, void *rs, Bool is_destroy)
 
 	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+	if (svg_is_display_off(eff->svg_props)) {
 		u32 prev_flags = eff->trav_flags;
 		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
 		svg_render_node_list(sel->children, eff);
@@ -98,7 +98,7 @@ static void LASeR_Render_simpleLayout(GF_Node *node, void *rs, Bool is_destroy)
 
 	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+	if (svg_is_display_off(eff->svg_props)) {
 		u32 prev_flags = eff->trav_flags;
 		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
 		svg_render_node_list(sl->children, eff);
@@ -151,7 +151,7 @@ static void LASeR_Render_rectClip(GF_Node *node, void *rs, Bool is_destroy)
 
 	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+	if (svg_is_display_off(eff->svg_props)) {
 		u32 prev_flags = eff->trav_flags;
 		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
 		svg_render_node_list(rc->children, eff);

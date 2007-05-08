@@ -113,15 +113,19 @@ void svg_init_path(Render2D *sr, GF_Node *node);
 void svg_init_text(Render2D *sr, GF_Node *node);
 void svg_init_a(Render2D *se, GF_Node *node);
 
-/*moves to next/prev in the focus list. The start/end of the focus list is NULL, ie UA focus*/
-u32 svg_focus_switch_ring(Render2D *sr, Bool move_prev);
-/*moves focus to indicated node in the given direction, if any*/
-u32 svg_focus_navigate(Render2D *sr, u32 key_code);
-
 /*WARNING - these are also used by SVG_SA and SVG_SANI*/
 void svg_init_image(Render2D *se, GF_Node *node);
 void svg_init_video(Render2D *se, GF_Node *node);
 void svg_init_audio(Render2D *se, GF_Node *node);
+
+/*moves to next/prev in the focus list. The start/end of the focus list is NULL, ie UA focus*/
+u32 svg_focus_switch_ring(Render2D *sr, Bool move_prev);
+/*moves focus to indicated node in the given direction, if any*/
+u32 svg_focus_navigate(Render2D *sr, u32 key_code);
+/*checks if the display is on or off*/
+Bool svg_is_display_off(SVGPropertiesPointers *props);
+
+
 
 /*common functions to SVG_SA and SVG_SANI*/
 #ifdef GPAC_ENABLE_SVG_SA_BASE

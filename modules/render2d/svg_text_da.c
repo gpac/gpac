@@ -69,7 +69,7 @@ static void svg_render_text(GF_Node *node, void *rs, Bool is_destroy)
 	gf_svg_flatten_attributes(text, &atts);
 	svg_render_base(node, &atts, eff, &backup_props, &backup_flags);
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
+	if (svg_is_display_off(eff->svg_props) ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
 		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		eff->svg_flags = backup_flags;
@@ -81,7 +81,7 @@ static void svg_render_text(GF_Node *node, void *rs, Bool is_destroy)
 	if ( (st->prev_size != eff->svg_props->font_size->value) || 
 		 (st->prev_flags != *eff->svg_props->font_style) || 
 		 (st->prev_anchor != *eff->svg_props->text_anchor) ||
-		 (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) 
+		 (gf_node_dirty_get(node) & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_CHILD_DIRTY) ) 
 	) {
 		/* Building Text String from DOM TEXT Node */
 		{
@@ -224,7 +224,7 @@ static void svg_render_text(GF_Node *node, void *rs, Bool is_destroy)
 		st->prev_anchor = *eff->svg_props->text_anchor;
 	}
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) 
+		if (!svg_is_display_off(eff->svg_props))
 			gf_path_get_bounds(cs->path, &eff->bounds);
 		goto end;
 	}

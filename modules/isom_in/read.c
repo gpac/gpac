@@ -81,19 +81,31 @@ Bool ISOR_CanHandleURL(GF_InputService *plug, const char *url)
 
 
 
-void isor_on_data(void *cbk, char *data, u32 size, u32 status, GF_Err e)
+void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 {
+	GF_Err e;
+	u32 size = 0;
 	char *local_name;
 	ISOMReader *read = (ISOMReader *) cbk;
 	
 	/*handle service message*/
 	gf_term_download_update_stats(read->dnload);
 
+	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
+		e = GF_EOS;
+	} else if (param->msg_type==GF_NETIO_DATA_EXCHANGE) {
+		e = GF_OK;
+		size = param->size;
+	} else {
+		e = param->error;
+	}
+
 	if (e<GF_OK) {
 		/*error opening service*/
 		if (!read->mov) gf_term_on_connect(read->service, NULL, e);
 		return;
 	}
+
 	/*open file if not done yet (bad interleaving)*/
 	if (e==GF_EOS) {
 		const char *local_name;
@@ -150,7 +162,7 @@ void isor_on_data(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 void isor_setup_download(GF_InputService *plug, const char *url)
 {
 	ISOMReader *read = (ISOMReader *) plug->priv;
-	read->dnload = gf_term_download_new(read->service, url, 0, isor_on_data, read);
+	read->dnload = gf_term_download_new(read->service, url, 0, isor_net_io, read);
 	if (!read->dnload) gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
 	/*service confirm is done once IOD can be fetched*/
 }

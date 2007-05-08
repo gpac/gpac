@@ -75,7 +75,7 @@ static void init_reader(ISOMChannel *ch)
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			u32 net_status;
 			gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
-			if (net_status == GF_DOWNLOAD_STATE_RUNNING) {
+			if (net_status == GF_NETIO_DATA_EXCHANGE) {
 				ch->last_state = GF_OK;
 				return;
 			}
@@ -119,7 +119,7 @@ fetch_next:
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			u32 net_status;
 			gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
-			if (net_status == GF_DOWNLOAD_STATE_RUNNING) {
+			if (net_status == GF_NETIO_DATA_EXCHANGE) {
 				ch->last_state = GF_OK;
 			} else {
 				ch->last_state = GF_ISOM_INCOMPLETE_FILE;

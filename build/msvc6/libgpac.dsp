@@ -485,6 +485,10 @@ SOURCE=..\..\src\scenegraph\dom_events.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\scenegraph\dom_smjs.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\scenegraph\mpeg4_animators.c
 # End Source File
 # Begin Source File

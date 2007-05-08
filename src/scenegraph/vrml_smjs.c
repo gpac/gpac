@@ -35,6 +35,28 @@
 #include <gpac/nodes_svg_da.h>
 #endif
 
+
+#define _ScriptMessage(_c, _e, _msg) {	\
+		GF_Node *_n = (GF_Node *) JS_GetContextPrivate(_c);	\
+		if (_n->sgprivate->scenegraph->script_action) {\
+			GF_JSAPIParam par;	\
+			par.info.e = (_e);			\
+			par.info.msg = (_msg);		\
+			_n->sgprivate->scenegraph->script_action(_n->sgprivate->scenegraph->script_action_cbck, GF_JSAPI_OP_MESSAGE, NULL, &par);\
+		}	\
+		}
+
+static GFINLINE Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
+{
+	if (!scene) {
+		GF_Node *n = (GF_Node *) JS_GetContextPrivate(c);
+		scene = n->sgprivate->scenegraph;
+	}
+	if (scene->script_action) 
+		return scene->script_action(scene->script_action_cbck, type, node, param);
+	return 0;
+}
+
 #define GF_SETUP_JS(the_class, cname, flag, addp, delp, getp, setp, enump, resp, conv, fin)	\
 	memset(&the_class, 0, sizeof(the_class));	\
 	the_class.name = cname;	\
@@ -133,13 +155,6 @@ void SFColor_toHSV(SFColor *col)
 	col->blue = _max;
 }
 
-
-static GFINLINE GF_JSInterface *JS_GetInterface(JSContext *c)
-{
-	GF_Node *n = JS_GetContextPrivate(c);
-	return n->sgprivate->scenegraph->js_ifce;
-}
-
 static GFINLINE GF_JSField *NewJSField()
 {
 	GF_JSField *ptr;
@@ -168,8 +183,6 @@ static JSBool JSPrint(JSContext *c, JSObject *p, uintN argc, jsval *argv, jsval 
 {
 	u32 i;
 	char buf[5000];
-	GF_JSInterface *ifce = JS_GetInterface(c);
-	if (!ifce) return JS_FALSE;
 
 	strcpy(buf, "");
 	for (i = 0; i < argc; i++) {
@@ -178,7 +191,7 @@ static JSBool JSPrint(JSContext *c, JSObject *p, uintN argc, jsval *argv, jsval 
 		if (i) strcat(buf, " ");
 		strcat(buf, JS_GetStringBytes(str));
 	}
-	ifce->ScriptMessage(ifce->callback, GF_SCRIPT_INFO, buf);
+	_ScriptMessage(c, GF_SCRIPT_INFO, buf);
 	return JS_TRUE;
 }
 
@@ -209,10 +222,8 @@ static JSBool getCurrentFrameRate(JSContext *c, JSObject*o, uintN n, jsval *v, j
 static JSBool getWorldURL(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *rval)
 {
 	GF_JSAPIParam par;
-	GF_JSInterface *ifce = JS_GetInterface(c);
 	GF_Node *node = JS_GetContextPrivate(c);
-	if (!ifce || !ifce->ScriptAction) return JS_FALSE;
-	if (ifce->ScriptAction(ifce->callback, GF_JSAPI_OP_GET_SCENE_URI, node->sgprivate->scenegraph->RootNode, &par)) {
+	if (ScriptAction(c, NULL, GF_JSAPI_OP_GET_SCENE_URI, node->sgprivate->scenegraph->RootNode, &par)) {
 		JSString *s = JS_NewStringCopyZ(c, par.uri.url);
 		if (!s) return JS_FALSE;
 		*rval = STRING_TO_JSVAL(s);
@@ -329,8 +340,7 @@ static JSBool loadURL(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval 
 	JSObject *p;
 	GF_JSField *f;
 	M_Script *script = (M_Script *) JS_GetContextPrivate(c);
-	GF_JSInterface *ifce = JS_GetInterface(c);
-	if (!ifce) return JS_FALSE;
+
 	if (argc < 1) return JS_FALSE;
 
 	if (JSVAL_IS_STRING(argv[0])) {
@@ -338,7 +348,7 @@ static JSBool loadURL(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval 
 		par.uri.url = JS_GetStringBytes(str);
 		/*TODO add support for params*/
 		par.uri.nb_params = 0;
-		if (ifce->ScriptAction(ifce->callback, GF_JSAPI_OP_LOAD_URL, (GF_Node *)script, &par))
+		if (ScriptAction(c, NULL, GF_JSAPI_OP_LOAD_URL, (GF_Node *)script, &par))
 			return JS_TRUE;
 		return JS_FALSE;
 	}
@@ -358,7 +368,7 @@ static JSBool loadURL(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval 
 			par.uri.url = JS_GetStringBytes(str);
 			/*TODO add support for params*/
 			par.uri.nb_params = 0;
-			if (ifce->ScriptAction(ifce->callback, GF_JSAPI_OP_LOAD_URL, (GF_Node*)script, &par) )
+			if (ScriptAction(c, NULL, GF_JSAPI_OP_LOAD_URL, (GF_Node*)script, &par) )
 				return JS_TRUE;
 		}
 	}
@@ -368,12 +378,6 @@ static JSBool loadURL(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval 
 static JSBool setDescription(JSContext*c, JSObject*o, uintN n, jsval *v, jsval *rv)
 {
 	return JS_TRUE;
-}
-
-void js_on_message(void *cbk, char *msg, GF_Err e)
-{
-	GF_JSInterface *ifce = (GF_JSInterface *) cbk;
-	ifce->ScriptMessage(ifce->callback, e, msg);
 }
 
 static JSBool createVrmlFromString(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval *rval)
@@ -386,8 +390,6 @@ static JSBool createVrmlFromString(JSContext*c, JSObject*obj, uintN argc, jsval 
 	char *str;
 	GF_List *nlist;
 	GF_Node *sc_node = JS_GetContextPrivate(c);
-	GF_JSInterface *ifce = JS_GetInterface(c);
-	if (!ifce) return JS_FALSE;
 	if (argc < 1) return JS_FALSE;
 
 	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
@@ -417,9 +419,7 @@ static JSBool getOption(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsva
 	JSString *s;
 	GF_JSAPIParam par;
 	GF_Node *sc_node = JS_GetContextPrivate(c);
-	GF_JSInterface *ifce = JS_GetInterface(c);
 	JSString *js_sec_name, *js_key_name;
-	if (!ifce) return JSVAL_FALSE;
 	if (argc < 2) return JSVAL_FALSE;
 	
 	if (!JSVAL_IS_STRING(argv[0])) return JSVAL_FALSE;
@@ -431,9 +431,7 @@ static JSBool getOption(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsva
 	par.gpac_cfg.key = JS_GetStringBytes(js_key_name);
 	par.gpac_cfg.key_val = NULL;
 
-	if (ifce->callback && ifce->ScriptAction)
-		ifce->ScriptAction(ifce->callback, GF_JSAPI_OP_GET_OPT, sc_node->sgprivate->scenegraph->RootNode, &par);
-	else 
+	if (!ScriptAction(c, NULL, GF_JSAPI_OP_GET_OPT, sc_node->sgprivate->scenegraph->RootNode, &par))
 		return JSVAL_FALSE;
 
 	s = JS_NewStringCopyZ(c, par.gpac_cfg.key_val ? (const char *)par.gpac_cfg.key_val : "");
@@ -446,9 +444,7 @@ static JSBool setOption(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsva
 {
 	GF_JSAPIParam par;
 	GF_Node *sc_node = JS_GetContextPrivate(c);
-	GF_JSInterface *ifce = JS_GetInterface(c);
 	JSString *js_sec_name, *js_key_name, *js_key_val;
-	if (!ifce) return JSVAL_FALSE;
 	if (argc < 3) return JSVAL_FALSE;
 	
 	if (!JSVAL_IS_STRING(argv[0])) return JSVAL_FALSE;
@@ -463,9 +459,7 @@ static JSBool setOption(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsva
 	js_key_val = JSVAL_TO_STRING(argv[2]);
 	par.gpac_cfg.key_val = JS_GetStringBytes(js_key_val);
 
-	if (ifce->callback && ifce->ScriptAction)
-		ifce->ScriptAction(ifce->callback, GF_JSAPI_OP_SET_OPT, sc_node->sgprivate->scenegraph->RootNode, &par);
-	else 
+	if (!ScriptAction(c, NULL, GF_JSAPI_OP_SET_OPT, sc_node->sgprivate->scenegraph->RootNode, &par))
 		return JSVAL_FALSE;
 
 	return JSVAL_TRUE;
@@ -2047,7 +2041,7 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 {
 	/*GCC port: classes are declared within code since JS_PropertyStub and co are exported symbols
 	from JS runtime lib, so with non-constant addresses*/
-	GF_SETUP_JS(js_rt->globalClass, "global", 0, 
+	GF_SETUP_JS(js_rt->globalClass, "global", JSCLASS_HAS_PRIVATE, 
 		JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, 
 		JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, JS_FinalizeStub);
 
@@ -2134,6 +2128,9 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 		};
 		JS_DefineFunctions(sc->js_ctx, sc->js_obj, globalFunctions );
 	}
+	/*remember pointer to scene graph!!*/
+	JS_SetPrivate(sc->js_ctx, sc->js_obj, script->sgprivate->scenegraph);
+
 
 	JS_DefineProperty(sc->js_ctx, sc->js_obj, "FALSE", BOOLEAN_TO_JSVAL(0), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT );
 	JS_DefineProperty(sc->js_ctx, sc->js_obj, "TRUE", BOOLEAN_TO_JSVAL(1), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT );
@@ -3048,6 +3045,8 @@ static void JS_PreDestroy(GF_Node *node)
 	gf_sg_ecmascript_del(priv->js_ctx);
 	if (priv->js_cache) gf_list_del(priv->js_cache);
 	priv->js_ctx = NULL;
+	/*unregister script from parent scene (cf base_scenegraph::sg_reset) */
+	gf_list_del_item(node->sgprivate->scenegraph->scripts, node);
 }
 
 
@@ -3182,30 +3181,58 @@ static Bool js_load_script(M_Script *script, char *file)
 	return success;
 }
 
-static void JSFileFetched(void *cbck, Bool success, const char *file_cached)
+
+#include <gpac/download.h>
+#include <gpac/network.h>
+
+typedef struct
 {
-	M_Script *script = (M_Script *)cbck;
-	
-	/*OK got the file*/
-	if (success) success = js_load_script(script, (char *) file_cached);
-	
-	if (!success) {
+	GF_Node *node;
+	GF_DownloadSession *sess;
+} JSFileDownload;
+
+
+static void JS_NetIO(void *cbck, GF_NETIO_Parameter *param)
+{
+	GF_Err e;
+	JSFileDownload *jsdnload = (JSFileDownload *)cbck;
+	M_Script *script = (M_Script *)jsdnload->node;
+
+	e = param->error;
+	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
+		const char *szCache = gf_dm_sess_get_cache_name(jsdnload->sess);
+		if (!js_load_script(script, (char *) szCache))
+			e = GF_SCRIPT_ERROR;
+		else
+			e = GF_OK;
+	} else if (!e) return;
+
+	/*destroy current download session (ie, destroy ourselves)*/
+	gf_dm_sess_del(jsdnload->sess);
+	free(jsdnload);
+
+	if (e) {
 		u32 i;
-		if (script->url.count<=1) return;
+		if (script->url.count<=1) {
+			GF_JSAPIParam par;
+			par.info.e = e;
+			par.info.msg = "Cannot fetch script";
+			ScriptAction(NULL, script->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
+			return;
+		}
 		free(script->url.vals[0].script_text);
 		for (i=0; i<script->url.count-1; i++) 
 			script->url.vals[i].script_text = script->url.vals[i+1].script_text;
 		script->url.vals[script->url.count-1].script_text = NULL;
 		script->url.count -= 1;
 		JSScriptFromFile((GF_Node *)script);
-		return;
 	}
 }
 
 void JSScriptFromFile(GF_Node *node)
 {
 	u32 i;
-	GF_JSInterface *ifce;
+	GF_Err e;
 	char szExt[50], *ext;
 	M_Script *script = (M_Script *)node;
 	Bool can_dnload = 0;
@@ -3221,9 +3248,50 @@ void JSScriptFromFile(GF_Node *node)
 	}
 	if (!can_dnload) return;
 
+	e = GF_SCRIPT_ERROR;
+
 	if (!js_load_script(script, script->url.vals[0].script_text)) {
-		ifce = node->sgprivate->scenegraph->js_ifce;
-		ifce->GetScriptFile(ifce->callback, node->sgprivate->scenegraph, script->url.vals[0].script_text, JSFileFetched, node);
+		GF_JSAPIParam par;
+		char *url;
+		GF_Err e;
+		JSFileDownload *jsdnload;
+
+		ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_SCENE_URI, node, &par);
+		url = NULL;
+		if (par.uri.url) url = gf_url_concatenate(par.uri.url, script->url.vals[0].script_text);
+		if (!url) url = strdup(script->url.vals[0].script_text);
+
+		par.dnld_man = NULL;
+		ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
+		if (!par.dnld_man) return;
+
+		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
+			free(url);
+
+retry:
+			if (script->url.count<=1) {
+				GF_JSAPIParam par;
+				par.info.e = e;
+				par.info.msg = "Cannot fetch script";
+				ScriptAction(NULL, script->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
+				return;
+			}
+			free(script->url.vals[0].script_text);
+			for (i=0; i<script->url.count-1; i++) 
+				script->url.vals[i].script_text = script->url.vals[i+1].script_text;
+			script->url.vals[script->url.count-1].script_text = NULL;
+			script->url.count -= 1;
+			JSScriptFromFile((GF_Node *)script);
+		} else {
+			GF_SAFEALLOC(jsdnload, JSFileDownload);
+			jsdnload->node = node;
+			jsdnload->sess = gf_dm_sess_new(par.dnld_man, script->url.vals[0].script_text, 0, JS_NetIO, jsdnload, &e);
+			free(url);
+			if (!jsdnload->sess) {
+				free(jsdnload);
+				goto retry;
+			}
+		}
 	}
 }
 
@@ -3240,6 +3308,9 @@ static void JSScript_LoadVRML(GF_Node *node)
 	if (!priv || priv->is_loaded) return;
 	if (!script->url.count) return;
 	priv->is_loaded = 1;
+
+	/*register script width parent scene (cf base_scenegraph::sg_reset) */
+	gf_list_add(node->sgprivate->scenegraph->scripts, node);
 
 	str = NULL;
 	for (i=0; i<script->url.count; i++) {
@@ -3263,6 +3334,8 @@ static void JSScript_LoadVRML(GF_Node *node)
 
 	JS_SetContextPrivate(priv->js_ctx, node);
 	gf_sg_script_init_sm_api(priv, node);
+	/*initialize DOM*/
+	dom_js_load(priv->js_ctx, priv->js_obj);
 
 	priv->js_cache = gf_list_new();
 
@@ -3353,10 +3426,11 @@ void gf_sg_ecmascript_del(JSContext *ctx)
 
 
 /*set JavaScript interface*/
-void gf_sg_set_javascript_api(GF_SceneGraph *scene, GF_JSInterface *ifce)
+void gf_sg_set_script_action(GF_SceneGraph *scene, gf_sg_script_action script_act, void *cbk)
 {
 	if (!scene) return;
-	scene->js_ifce = ifce;
+	scene->script_action = script_act;
+	scene->script_action_cbck = cbk;
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 	scene->script_load = JSScript_Load;

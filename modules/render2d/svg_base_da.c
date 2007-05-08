@@ -292,6 +292,11 @@ void svg_render_node_list(GF_ChildNodeItem *children, RenderEffect2D *eff)
 	}
 }
 
+Bool svg_is_display_off(SVGPropertiesPointers *props)
+{
+	return (props->display && (*(props->display) == SVG_DISPLAY_NONE)) ? 1 : 0;
+}
+
 void svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, RenderEffect2D *eff)
 {
 	GF_Rect rc;
@@ -561,7 +566,7 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 	/*enable or disable navigation*/
 	eff->surface->render->navigation_disabled = (all_atts.zoomAndPan && *all_atts.zoomAndPan == SVG_ZOOMANDPAN_DISABLE) ? 1 : 0;
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+	if (svg_is_display_off(eff->svg_props)) {
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		eff->svg_flags = backup_flags;
 		return;
@@ -578,7 +583,7 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 		gf_mx2d_add_translation(&eff->transform, all_atts.x->value, all_atts.y->value);
 
 	/* TODO: FIX ME: this only works for single SVG element in the doc*/
-	if (is_root_svg && eff->svg_props->viewport_fill->type != SVG_PAINT_NONE) {
+	if (is_root_svg && eff->svg_props->viewport_fill && eff->svg_props->viewport_fill->type != SVG_PAINT_NONE) {
 		viewport_color = GF_COL_ARGB_FIXED(eff->svg_props->viewport_fill_opacity->value, eff->svg_props->viewport_fill->color.red, eff->svg_props->viewport_fill->color.green, eff->svg_props->viewport_fill->color.blue);
 		if (eff->surface->render->compositor->back_color != viewport_color) {
 			eff->surface->render->compositor->back_color = viewport_color;
@@ -631,7 +636,7 @@ static void svg_render_g(GF_Node *node, void *rs, Bool is_destroy)
 
 	svg_render_base(node, &all_atts, eff, &backup_props, &backup_flags);
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+	if (svg_is_display_off(eff->svg_props)) {
 		u32 prev_flags = eff->trav_flags;
 		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
 		svg_render_node_list(((SVG_Element *)node)->children, eff);
@@ -679,7 +684,7 @@ static void svg_render_switch(GF_Node *node, void *rs, Bool is_destroy)
 
 	svg_render_base(node, &all_atts, eff, &backup_props, &backup_flags);
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+	if (svg_is_display_off(eff->svg_props)) {
 		svg_restore_parent_transformation(eff, &backup_matrix);
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		eff->svg_flags = backup_flags;
@@ -718,13 +723,13 @@ static void svg_drawable_post_render(Drawable *cs, SVGPropertiesPointers *backup
 	DrawableContext *ctx;
 
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) 
+		if (svg_is_display_off(eff->svg_props)) 
 			gf_path_get_bounds(cs->path, &eff->bounds);
 		goto end;
 	}
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
-		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
+	if (svg_is_display_off(eff->svg_props) ||
+		( *(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) ) {
 		goto end;
 	}
 
@@ -1153,7 +1158,7 @@ static void svg_render_a(GF_Node *node, void *rs, Bool is_destroy)
 
 	svg_render_base(node, &all_atts, eff, &backup_props, &backup_flags);
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+	if (svg_is_display_off(eff->svg_props)) {
 		u32 prev_flags = eff->trav_flags;
 		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
 		svg_render_node_list(((SVG_Element *)node)->children, eff);
@@ -1314,7 +1319,7 @@ void r2d_render_svg_use(GF_Node *node, GF_Node *sub_root, void *rs)
 
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		svg_apply_local_transformation(eff, &all_atts, &backup_matrix);
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
+		if (!svg_is_display_off(eff->svg_props)) {
 			if (all_atts.xlink_href) gf_node_render(all_atts.xlink_href->target, eff);
 			gf_mx2d_apply_rect(&translate, &eff->bounds);
 		} 
@@ -1322,8 +1327,8 @@ void r2d_render_svg_use(GF_Node *node, GF_Node *sub_root, void *rs)
 		goto end;
 	}
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
-		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
+	if (svg_is_display_off(eff->svg_props) ||
+		(*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN)) {
 		goto end;
 	}
 

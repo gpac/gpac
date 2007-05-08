@@ -476,7 +476,6 @@ u32 M2TS_Run(void *_p)
 		first_run = 1;
 		is_rtp = 0;
 		while (m2ts->run_state) {
-			GF_Err e;
 			size = 0;
 			/*m2ts chunks by chunks*/
 			e = gf_sk_receive(m2ts->sock, data, UDP_BUFFER_SIZE, 0, &size);

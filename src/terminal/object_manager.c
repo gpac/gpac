@@ -217,7 +217,6 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 			assert(odm->parentscene);
 			odm->subscene = gf_is_new(odm->parentscene);
 			odm->subscene->root_od = odm;
-			gf_sg_set_javascript_api(odm->subscene->graph, &odm->term->js_ifce);
 		}
 	}
 
@@ -505,7 +504,6 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	if (hasInline && !odm->subscene) {
 		odm->subscene = gf_is_new(odm->parentscene);
 		odm->subscene->root_od = odm;
-		gf_sg_set_javascript_api(odm->subscene->graph, &odm->term->js_ifce);
 	}
 
 	/*this is an inline OD using clocks in its subnamespace - this is NOT supported by gpac since it breaks

@@ -205,20 +205,27 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 	}
 }
 
-void MP3_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
+void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
+	GF_Err e;
 	const char *szCache;
 	u32 total_size, bytes_done;
 	MP3Reader *read = (MP3Reader *) cbk;
 
+	e = param->error;
 	/*done*/
-	if ((e == GF_EOS) && read->stream) {
-		read->is_remote = 0;
-		return;
+	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
+		if (read->stream) {
+			read->is_remote = 0;
+			e = GF_EOS;
+		} else {
+			return;
+		}
+	} else {
+		/*handle service message*/
+		gf_term_download_update_stats(read->dnload);
+		if (param->msg_type!=GF_NETIO_DATA_EXCHANGE) return;
 	}
-	/*handle service message*/
-	gf_term_download_update_stats(read->dnload);
-	if (!size) return;
 
 	if (e >= GF_OK) {
 		if (read->needs_connection) {
@@ -227,7 +234,7 @@ void MP3_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 		}
 		/*looks like a live stream*/
 		if (read->is_live) {
-			MP3_OnLiveData(read, data, size);
+			if (!e) MP3_OnLiveData(read, param->data, param->size);
 			return;
 		}
 
@@ -273,7 +280,7 @@ void mp3_download_file(GF_InputService *plug, char *url)
 
 	read->needs_connection = 1;
 
-	read->dnload = gf_term_download_new(read->service, url, 0, MP3_OnData, read);
+	read->dnload = gf_term_download_new(read->service, url, 0, MP3_NetIO, read);
 	if (!read->dnload) {
 		read->needs_connection = 0;
 		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);

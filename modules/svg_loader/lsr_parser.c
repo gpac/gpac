@@ -126,7 +126,6 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 		if (!at_att) {
 			GF_Node *old;
 			SVG_SA_Element *n = svg_parse_dom_element(parser, lsr_toElement(com->children), at_node);
-			if (pos<0) pos = gf_node_list_get_count(at_node->children) - 1;
 			old = gf_node_list_get_child(at_node->children, pos);
 			if (old) {
 				gf_node_list_del_child(&at_node->children, old);
@@ -164,7 +163,6 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 
 		if (!strcmp(at_att, "children")) {
 			GF_Node *old;
-			if (pos<0) pos = gf_node_list_get_count(at_node->children) - 1;
 			old = gf_node_list_get_child(at_node->children, pos);
 			if (old) {
 				gf_node_list_del_child(&at_node->children, (GF_Node*)old);

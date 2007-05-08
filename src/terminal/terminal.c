@@ -50,60 +50,25 @@ static Bool check_user(GF_User *user)
 	return 1;
 }
 
-/*script API*/
-typedef struct
-{
-	GF_DownloadSession * sess;
-	void (*OnDone)(void *cbck, Bool success, const char *the_file_path);
-	void *cbk;
-} JSDownload;
-
-static void JS_OnData(void *cbck, char *data, u32 data_size, u32 state, GF_Err e)
-{
-	JSDownload *jsdnload = (JSDownload *)cbck;
-	if (e<GF_OK) {
-		jsdnload->OnDone(jsdnload->cbk, 0, NULL);
-		gf_term_download_del(jsdnload->sess);
-		free(jsdnload);
-	}
-	else if (e==GF_EOS) {
-		const char *szCache = gf_dm_sess_get_cache_name(jsdnload->sess);
-		jsdnload->OnDone(jsdnload->cbk, 1, szCache);
-		gf_term_download_del(jsdnload->sess);
-		free(jsdnload);
-	}
-}
-
-static Bool OnJSGetScriptFile(void *opaque, GF_SceneGraph *parent_graph, const char *url, void (*OnDone)(void *cbck, Bool success, const char *the_file_path), void *cbk)
-{
-	JSDownload *jsdnload;
-	GF_InlineScene *is;
-	if (!parent_graph || !OnDone) return 0;
-	is = (GF_InlineScene *)gf_sg_get_private(parent_graph);
-	if (!is) return 0;
-	GF_SAFEALLOC(jsdnload, JSDownload)
-	jsdnload->OnDone = OnDone;
-	jsdnload->cbk = cbk;
-	jsdnload->sess = gf_term_download_new(is->root_od->net_service, url, 0, JS_OnData, jsdnload);
-	if (!jsdnload->sess) {
-		free(jsdnload);
-		OnDone(cbk, 0, NULL);
-		return 0;
-	}
-	return 1;
-}
-
-static Bool OnJSAction(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
+static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
 {
 	Bool ret;
 	GF_Terminal *term = (GF_Terminal *) opaque;
 
+	if (type==GF_JSAPI_OP_MESSAGE) {
+		gf_term_message(term, term->root_scene->root_od->net_service->url, param->info.msg, param->info.e);
+		return 1;
+	}
 	if (type==GF_JSAPI_OP_GET_OPT) {
 		param->gpac_cfg.key_val = gf_cfg_get_key(term->user->config, param->gpac_cfg.section, param->gpac_cfg.key);
 		return 1;
 	}
 	if (type==GF_JSAPI_OP_SET_OPT) {
 		gf_cfg_set_key(term->user->config, param->gpac_cfg.section, param->gpac_cfg.key, param->gpac_cfg.key_val);
+		return 1;
+	}
+	if (type==GF_JSAPI_OP_GET_DOWNLOAD_MANAGER) {
+		param->dnld_man = term->downloader;
 		return 1;
 	}
 
@@ -134,11 +99,7 @@ static Bool OnJSAction(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
 	}
 	return 0;
 }
-static void OnJSMessage(void *opaque, GF_Err e, const char *msg)
-{
-	GF_Terminal *term = (GF_Terminal *) opaque;
-	gf_term_message(term, term->root_scene->root_od->net_service->url, msg, e);
-}
+
 
 static void gf_term_reload_cfg(GF_Terminal *term)
 {
@@ -232,10 +193,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 	gf_sys_init();
 
 	tmp->user = user;
-	tmp->js_ifce.callback = tmp;
-	tmp->js_ifce.ScriptMessage = OnJSMessage;
-	tmp->js_ifce.ScriptAction = OnJSAction;
-	tmp->js_ifce.GetScriptFile = OnJSGetScriptFile;
 
 	/*this is not changeable at runtime*/
 	if (user->init_flags & GF_TERM_NO_VISUAL_THREAD) {
@@ -421,8 +378,8 @@ void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u64 startTim
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Creating new root scene\n", URL));
 	/*create a new scene*/
 	is = gf_is_new(NULL);
+	gf_sg_set_script_action(is->graph, term_script_action, term);
 	odm = gf_odm_new();
-	gf_sg_set_javascript_api(is->graph, &term->js_ifce);
 
 	is->root_od = odm;
 	term->root_scene = is;
@@ -917,7 +874,7 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 	/*create a new scene*/
 	is = gf_is_new(NULL);
 	odm = gf_odm_new();
-	gf_sg_set_javascript_api(is->graph, &term->js_ifce);
+	gf_sg_set_script_action(is->graph, term_script_action, term);
 
 	is->root_od = odm;
 	term->root_scene = is;
@@ -961,7 +918,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 		gf_term_lock_net(term, 1);
 		/*create a new scene*/
 		term->root_scene = gf_is_new(NULL);
-		gf_sg_set_javascript_api(term->root_scene->graph, &term->js_ifce);
+		gf_sg_set_script_action(term->root_scene->graph, term_script_action, term);
 		term->root_scene->root_od = gf_odm_new();
 		term->root_scene->root_od->parentscene = NULL;
 		term->root_scene->root_od->subscene = term->root_scene;

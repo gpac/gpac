@@ -122,23 +122,27 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	return e;
 }
 
-void TTIn_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
+void TTIn_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
+	GF_Err e;
 	const char *szCache;
 	GF_InputService *plug = (GF_InputService *)cbk;
 	TTIn *tti = (TTIn *) plug->priv;
 
 	gf_term_download_update_stats(tti->dnload);
 
-	/*wait to get the whole file*/
-	if (e == GF_OK) return;
-	else if (e==GF_EOS) {
+	e = param->error;
+	/*done*/
+	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 		szCache = gf_dm_sess_get_cache_name(tti->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
 			e = TTIn_LoadFile(plug, szCache, 1);
 		}
 	} 
+	else if (param->msg_type==GF_NETIO_DATA_EXCHANGE) 
+		return;
+
 	/*OK confirm*/
 	if (tti->needs_connection) {
 		tti->needs_connection = 0;
@@ -152,7 +156,7 @@ void TTIn_download_file(GF_InputService *plug, char *url)
 	TTIn *tti = (TTIn *) plug->priv;
 
 	tti->needs_connection = 1;
-	tti->dnload = gf_term_download_new(tti->service, url, 0, TTIn_OnData, plug);
+	tti->dnload = gf_term_download_new(tti->service, url, 0, TTIn_NetIO, plug);
 	if (!tti->dnload) {
 		tti->needs_connection = 0;
 		gf_term_on_connect(tti->service, NULL, GF_NOT_SUPPORTED);

@@ -71,15 +71,16 @@ void RP_SDPFromFile(RTPClient *rtp, char *file_name, RTPStream *stream)
 	free(sdp_buf);
 }
 
-void SDP_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
+void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
+	GF_Err e;
 	RTPClient *rtp = (RTPClient *)cbk;
 	SDPFetch *sdp = rtp->sdp_temp;
 
 	gf_term_download_update_stats(rtp->dnload);
 
-	if (e == GF_OK) return;
-	else if (e == GF_EOS) {
+	e = param->error;
+	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 		const char *szFile = gf_dm_sess_get_cache_name(rtp->dnload);
 		if (!szFile) {
 			e = GF_SERVICE_ERROR;
@@ -92,6 +93,8 @@ void SDP_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 			return;
 		}
 	}
+	else if (e == GF_OK) return;
+
 	/*error*/
 	if (sdp->chan) {
 		gf_term_on_connect(rtp->service, sdp->chan->channel, e);
@@ -128,7 +131,7 @@ void RP_FetchSDP(GF_InputService *plug, char *url, RTPStream *stream)
 	rtp->dnload = NULL;
 
 	rtp->sdp_temp = sdp;
-	rtp->dnload = gf_term_download_new(rtp->service, url, 0, SDP_OnData, rtp);
+	rtp->dnload = gf_term_download_new(rtp->service, url, 0, SDP_NetIO, rtp);
 	if (!rtp->dnload) gf_term_on_connect(rtp->service, NULL, GF_NOT_SUPPORTED);
 	/*service confirm is done once fetched*/
 }

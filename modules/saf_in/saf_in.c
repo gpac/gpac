@@ -109,8 +109,9 @@ static void SAF_Regulate(SAFIn *read)
 	}
 }
 
-static void SAF_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
+static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
+	GF_Err e;
 	Bool is_rap, go;
 	SAFChannel *ch;
 	u32 cts, au_sn, au_size, bs_pos, type, i, stream_id;
@@ -119,37 +120,40 @@ static void SAF_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 	
 	SAFIn *read = (SAFIn *) cbk;
 
+	e = param->error;
 	/*done*/
-	if ((e == GF_EOS) && read->stream) {
-		if (read->saf_type==SAF_FILE_REMOTE) read->saf_type = SAF_FILE_LOCAL;
+	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
+		if (read->stream && (read->saf_type==SAF_FILE_REMOTE)) read->saf_type = SAF_FILE_LOCAL;
 		return;
-	}
-	/*handle service message*/
-	if (read->dnload) {
+	} else {
+		/*handle service message*/
 		gf_term_download_update_stats(read->dnload);
-		if (read->needs_connection) {
-			u32 total_size;
-			gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, NULL);
-			if (!total_size) read->saf_type = SAF_LIVE_STREAM;
+		if (param->msg_type!=GF_NETIO_DATA_EXCHANGE) {
+			if (e<0) {
+				if (read->needs_connection) {
+					read->needs_connection = 0;
+					gf_term_on_connect(read->service, NULL, e);
+				}
+				return;
+			}
+			if (read->needs_connection) {
+				u32 total_size;
+				gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, NULL);
+				if (!total_size) read->saf_type = SAF_LIVE_STREAM;
+			}
+			return;
 		}
 	}
-	if (!size) return;
+	if (!param->size) return;
 
-	if (e<0) {
-		if (read->needs_connection) {
-			read->needs_connection = 0;
-			gf_term_on_connect(read->service, NULL, e);
-		}
-		return;
-	}
 	if (!read->run_state) return;
 
-	if (read->alloc_size < read->saf_size+size) {
-		read->saf_data = (char*)realloc(read->saf_data, sizeof(char)*(read->saf_size+size) );
-		read->alloc_size = read->saf_size+size;
+	if (read->alloc_size < read->saf_size + param->size) {
+		read->saf_data = (char*)realloc(read->saf_data, sizeof(char)*(read->saf_size + param->size) );
+		read->alloc_size = read->saf_size + param->size;
 	}
-	memcpy(read->saf_data + read->saf_size, data, sizeof(char)*size);
-	read->saf_size+=size;
+	memcpy(read->saf_data + read->saf_size, param->data, sizeof(char)*param->size);
+	read->saf_size += param->size;
 
 	/*first AU not complete yet*/
 	if (read->saf_size<10) return;
@@ -285,17 +289,20 @@ static void SAF_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 
 u32 SAF_Run(void *_p)
 {
+	GF_NETIO_Parameter par;
 	char data[1024];
-	u32 size;
 	SAFIn *read = (SAFIn *)_p;
+
+	par.msg_type = GF_NETIO_DATA_EXCHANGE;
+	par.data = data;
 
 	fseek(read->stream, 0, SEEK_SET);
 	read->saf_size=0;
 	read->run_state = 1;
 	while (read->run_state && !feof(read->stream) ) {
-		size = fread(data, 1, 1024, read->stream);
-		if (!size) break;
-		SAF_OnData(read, data, size, 0, GF_OK);
+		par.size = fread(data, 1, 1024, read->stream);
+		if (!par.size) break;
+		SAF_NetIO(read, &par);
 	}
 	read->run_state = 2;
 	return 0;
@@ -305,7 +312,7 @@ static void SAF_DownloadFile(GF_InputService *plug, char *url)
 {
 	SAFIn *read = (SAFIn*) plug->priv;
 
-	read->dnload = gf_term_download_new(read->service, url, 0, SAF_OnData, read);
+	read->dnload = gf_term_download_new(read->service, url, 0, SAF_NetIO, read);
 	if (!read->dnload) {
 		read->needs_connection = 0;
 		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
