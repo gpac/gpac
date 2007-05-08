@@ -1112,7 +1112,7 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 		ctx->aspect.pen_props.dash_offset = props->stroke_dashoffset->value;
 		ctx->aspect.pen_props.dash_set = (GF_DashSettings *) &(props->stroke_dasharray->array);
 	}
-	ctx->aspect.line_scale = (*props->vector_effect == SVG_VECTOREFFECT_NONSCALINGSTROKE) ? 0 : FIX_ONE;
+	ctx->aspect.line_scale = (props->vector_effect && (*props->vector_effect == SVG_VECTOREFFECT_NONSCALINGSTROKE)) ? 0 : FIX_ONE;
 	
 	ctx->aspect.pen_props.cap = (u8) *props->stroke_linecap;
 	ctx->aspect.pen_props.join = (u8) *props->stroke_linejoin;

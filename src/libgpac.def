@@ -1004,7 +1004,6 @@ EXPORTS
 	gf_sg_proto_instance_set_ised
 	gf_sg_script_field_new
 	gf_sg_script_field_get_info
-	gf_sg_set_javascript_api
 	gf_sg_script_load
 	gf_sg_script_event_in
 	gf_sg_has_scripting

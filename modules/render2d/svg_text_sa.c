@@ -69,7 +69,7 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 
 	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
+	if (svg_is_display_off(eff->svg_props) ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
 		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		eff->svg_flags = backup_flags;
@@ -192,7 +192,7 @@ static void SVG_Render_text(GF_Node *node, void *rs, Bool is_destroy)
 		st->prev_anchor = *eff->svg_props->text_anchor;
 	}
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) 
+		if (!svg_is_display_off(eff->svg_props)) 
 			gf_path_get_bounds(cs->path, &eff->bounds);
 		goto end;
 	}

@@ -276,7 +276,7 @@ static void SVG_Render_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+	if (svg_is_display_off(eff->svg_props)) {
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		eff->svg_flags = backup_flags;
 		return;
@@ -366,7 +366,7 @@ static void SVG_Render_g(GF_Node *node, void *rs, Bool is_destroy)
 
 	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+	if (svg_is_display_off(eff->svg_props)) {
 		u32 prev_flags = eff->trav_flags;
 		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
 		svg_render_node_list(g->children, eff);
@@ -487,7 +487,7 @@ static void SVG_Render_switch(GF_Node *node, void *rs, Bool is_destroy)
 
 	svg_sa_render_base(node, eff, &backup_props, &backup_flags);
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+	if (svg_is_display_off(eff->svg_props)) {
 		svg_sa_restore_parent_transformation(eff, &backup_matrix);
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		eff->svg_flags = backup_flags;
@@ -525,12 +525,12 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_p
 	DrawableContext *ctx;
 
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) 
+		if (svg_is_display_off(eff->svg_props)) 
 			gf_path_get_bounds(cs->path, &eff->bounds);
 		goto end;
 	}
 
-	if ((*(eff->svg_props->display) == SVG_DISPLAY_NONE) ||
+	if (svg_is_display_off(eff->svg_props) ||
 		(*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) ) {
 		goto end;
 	}
@@ -917,7 +917,7 @@ static void SVG_Render_a(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		svg_sa_apply_local_transformation(eff, node, &backup_matrix);
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) 
+		if (!svg_is_display_off(eff->svg_props) 
 			svg_get_nodes_bounds(node, a->children, eff);
 		svg_sa_restore_parent_transformation(eff, &backup_matrix);  
 		memcpy(eff->svg_props, &backup_props, styling_size);
@@ -925,7 +925,7 @@ static void SVG_Render_a(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
+	if (svg_is_display_off(eff->svg_props) ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
 	} else {
 		svg_sa_apply_local_transformation(eff, node, &backup_matrix);
@@ -1290,7 +1290,7 @@ void R2D_render_svg_sa_use(GF_Node *node, GF_Node *sub_root, void *rs)
 
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		svg_sa_apply_local_transformation(eff, node, &backup_matrix);
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
+		if (!svg_is_display_off(eff->svg_props)) {
 			gf_node_render((GF_Node*)use->xlink->href.target, eff);
 			gf_mx2d_apply_rect(&translate, &eff->bounds);
 		} 
@@ -1298,7 +1298,7 @@ void R2D_render_svg_sa_use(GF_Node *node, GF_Node *sub_root, void *rs)
 		goto end;
 	}
 
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
+	if (svg_is_display_off(eff->svg_props) ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
 		goto end;
 	}
@@ -1338,7 +1338,7 @@ void R2D_render_svg_sa_animation(GF_Node *anim, GF_Node *sub_root, void *rs)
 	translate.m[2] = a->x.value;
 	translate.m[5] = a->y.value;
 	
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
+	if (svg_is_display_off(eff->svg_props) ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
 		goto end;
 	}

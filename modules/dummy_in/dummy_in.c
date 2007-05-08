@@ -95,7 +95,6 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 	if (gf_term_check_extension(plug, "image/x-svgm", "svgm", "SVGM Document", sExt)) return 1;
 	if (gf_term_check_extension(plug, "application/x-LASeR+xml", "xsr", "LASeR Document", sExt)) return 1;
 
-#if 0
 	if (!strnicmp(url, "file://", 7) || !strstr(url, "://")) {
 		char *rtype = gf_xml_get_root_type(url);
 		if (rtype) {
@@ -108,23 +107,23 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 			return handled;
 		}
 	}
-#endif	
 	return 0;
 }
 
-void DC_OnData(void *cbk, char *data, u32 data_size, u32 status, GF_Err e)
+void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
+	GF_Err e;
 	DCReader *read = (DCReader *) cbk;
 
 	/*handle service message*/
 	gf_term_download_update_stats(read->dnload);
 
-	if (e == GF_OK) {
-		/*wait to be running*/
-		if (status!=GF_DOWNLOAD_STATE_RUNNING) return;
-	} else if (e==GF_EOS) {
-		e = GF_OK;
+	e = param->error;
+
+	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 	}
+	else if (!e && (param->msg_type!=GF_NETIO_DATA_EXCHANGE)) return;
+
 	/*OK confirm*/
 	if (!read->is_service_connected) {
 		if (!gf_dm_sess_get_cache_name(read->dnload)) e = GF_IO_ERR;
@@ -137,7 +136,7 @@ void DC_DownloadFile(GF_InputService *plug, char *url)
 {
 	DCReader *read = (DCReader *) plug->priv;
 
-	read->dnload = gf_term_download_new(read->service, url, 0, DC_OnData, read);
+	read->dnload = gf_term_download_new(read->service, url, 0, DC_NetIO, read);
 	if (!read->dnload) gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
 }
 

@@ -96,50 +96,74 @@ typedef Bool (*gf_dm_get_usr_pass)(void *usr_cbk, const char *site_url, char *us
  */
 void gf_dm_set_auth_callback(GF_DownloadManager *dm, gf_dm_get_usr_pass get_pass, void *usr_cbk);
 
-/*!downloader session status*/
+/*!downloader session message types*/
 enum
 {
-	/*!setup and waiting for connection request*/
-	GF_DOWNLOAD_STATE_SETUP = 0,
-	/*!connection is done*/
-	GF_DOWNLOAD_STATE_CONNECTED,
-	/*!waiting for server reply*/
-	GF_DOWNLOAD_STATE_WAIT_FOR_REPLY,
-	/*!data exchange on this downloader*/
-	GF_DOWNLOAD_STATE_RUNNING,
-	/*!deconnection OK */
-	GF_DOWNLOAD_STATE_DISCONNECTED,
-	/*!downloader session failed or destroyed*/
-	GF_DOWNLOAD_STATE_UNAVAILABLE
+	/*!signal that session is setup and waiting for connection request*/
+	GF_NETIO_SETUP = 0,
+	/*!signal that session connection is done*/
+	GF_NETIO_CONNECTED,
+	/*!request a protocol method from the user. Default value is "GET" for HTTP*/
+	GF_NETIO_GET_METHOD,
+	/*!request a header from the user. */
+	GF_NETIO_GET_HEADER,
+	/*!requesting content from the user, if any. Content is appended to the request*/
+	GF_NETIO_GET_CONTENT,
+	/*!signal that request is sent and waiting for server reply*/
+	GF_NETIO_WAIT_FOR_REPLY,
+	/*!signal a header to user. */
+	GF_NETIO_PARSE_HEADER,
+	/*!signal request reply to user. The reply is always sent after the headers*/
+	GF_NETIO_PARSE_REPLY,
+	/*!send data to the user*/
+	GF_NETIO_DATA_EXCHANGE,
+	/*!all data has been transfered*/
+	GF_NETIO_DATA_TRANSFERED,
+	/*!signal that the session has been deconnected*/
+	GF_NETIO_DISCONNECTED,
+	/*!downloader session failed (error code set) or done/destroyed (no error code)*/
+	GF_NETIO_STATE_ERROR
 };
 
 /*!session download flags*/
 enum
 {
-	/*!session is not threaded, the user must retrieve the data by hand*/
-	GF_DOWNLOAD_SESSION_NOT_THREADED	=	1,
+	/*!session is not threaded, the user must explicitely fetch the data */
+	GF_NETIO_SESSION_NOT_THREADED	=	1,
 	/*!session has no cache: data will be sent to the user if threaded mode (live streams like radios & co)*/
-	GF_DOWNLOAD_SESSION_NOT_CACHED	=	1<<1,
+	GF_NETIO_SESSION_NOT_CACHED	=	1<<1,
 };
 
+
+/*!protocol I/O parameter*/
+typedef struct
+{
+	/*!parameter message type*/
+	u32 msg_type;
+	/*error code if any. Valid for all message types.*/
+	GF_Err error;
+	/*!data received or data to send. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE (when no cache is setup) messages*/
+	char *data;
+	/*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages*/
+	u32 size;
+	/*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD*/
+	char *name;
+	/*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY*/
+	char *value;
+	/*response code - only valid for GF_NETIO_PARSE_REPLY*/
+	u32 reply;
+} GF_NETIO_Parameter;
 
 /*!
  *\brief callback function for data reception and state signaling
  *
- * The gf_dm_on_data_rcv type is the type for the data callback function of a download session
+ * The gf_dm_user_io type is the type for the data callback function of a download session
  *\param usr_cbk opaque user data
- *\param data 
-	- buffer just received if no cache is used
-	- NULL if cache is used
-	- NULL if session is not threaded
-	- NULL if message callback
- *\param data_size
-	- size of buffer just received
-	- 0 if message callback or if session is not threaded
- *\param dnload_status session state for message callback
- *\param dl_error session error if any
+ *\param parameter the input/output parameter structure 
 */
-typedef void (*gf_dm_on_data_rcv)(void *usr_cbk, char *data, u32 data_size, u32 dnload_status, GF_Err dl_error);
+typedef void (*gf_dm_user_io)(void *usr_cbk, GF_NETIO_Parameter *parameter);
+
+
 
 /*!
  *\brief download session constructor
@@ -148,17 +172,14 @@ typedef void (*gf_dm_on_data_rcv)(void *usr_cbk, char *data, u32 data_size, u32 
  *\param dm the download manager object
  *\param url file to retrieve (no PUT/POST yet, only downloading is supported)
  *\param dl_flags combination of session download flags
- *\param OnDataRcv \ref gf_dm_on_data_rcv callback function for data reception and service messages
+ *\param user_io \ref gf_dm_user_io callback function for data reception and service messages
  *\param usr_cbk opaque user data passed to callback function
- *\param private_data private data associated with session.
  *\param error error for failure cases 
  *\return the session object or NULL if error. If no error is indicated and a NULL session is returned, this means the file is local
- *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
  */
 GF_DownloadSession * gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_flags,
-									  gf_dm_on_data_rcv OnDataRcv,
+									  gf_dm_user_io user_io,
 									  void *usr_cbk,
-									  void *private_data,
 									  GF_Err *error);
 
 /*!
@@ -176,6 +197,16 @@ void gf_dm_sess_del(GF_DownloadSession * sess);
  */
 void gf_dm_sess_abort(GF_DownloadSession * sess);
 /*!
+ *\brief sets private data
+ *
+ *associate private data with the session.
+ *\param sess the download session
+ *\param private_data the private data
+ *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
+ */
+void gf_dm_sess_set_private(GF_DownloadSession * sess, void *private_data);
+
+/*!
  *\brief gets private data
  *
  *Gets private data associated with the session.
@@ -184,7 +215,6 @@ void gf_dm_sess_abort(GF_DownloadSession * sess);
  *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
  */
 void *gf_dm_sess_get_private(GF_DownloadSession * sess);
-
 /*!
  *\brief gets last session error 
  *

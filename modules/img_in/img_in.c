@@ -108,17 +108,20 @@ static void IMG_SetupObject(IMGLoader *read)
 }
 
 
-void IMG_OnData(void *cbk, char *data, u32 data_size, u32 status, GF_Err e)
+void IMG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
+	GF_Err e;
 	const char *szCache;
 	IMGLoader *read = (IMGLoader *) cbk;
 
 	/*handle service message*/
 	gf_term_download_update_stats(read->dnload);
 
+	e = param->error;
 	/*wait to get the whole file*/
-	if (e == GF_OK) return;
-	else if (e==GF_EOS) {
+	if (!e && (param->msg_type!=GF_NETIO_DATA_TRANSFERED)) return;
+
+	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
@@ -141,7 +144,7 @@ void jp_download_file(GF_InputService *plug, char *url)
 {
 	IMGLoader *read = (IMGLoader *) plug->priv;
 
-	read->dnload = gf_term_download_new(read->service, url, 0, IMG_OnData, read);
+	read->dnload = gf_term_download_new(read->service, url, 0, IMG_NetIO, read);
 	if (!read->dnload) gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
 	/*service confirm is done once fetched*/
 }

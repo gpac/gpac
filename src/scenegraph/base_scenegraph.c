@@ -53,6 +53,9 @@ GF_SceneGraph *gf_sg_new()
 	tmp->xlink_hrefs = gf_list_new();
 	tmp->smil_timed_elements = gf_list_new();
 #endif
+#ifdef GPAC_HAS_SPIDERMONKEY
+	tmp->scripts = gf_list_new();
+#endif
 	return tmp;
 }
 
@@ -64,7 +67,8 @@ GF_SceneGraph *gf_sg_new_subscene(GF_SceneGraph *scene)
 	tmp = gf_sg_new();
 	if (!tmp) return NULL;
 	tmp->parent_scene = scene;
-	tmp->js_ifce = scene->js_ifce;
+	tmp->script_action = scene->script_action;
+	tmp->script_action_cbck = scene->script_action_cbck;
 	tmp->script_load = scene->script_load;
 
 	/*by default use the same callbacks*/
@@ -107,6 +111,9 @@ void gf_sg_del(GF_SceneGraph *sg)
 #ifndef GPAC_DISABLE_SVG
 	gf_list_del(sg->xlink_hrefs);
 	gf_list_del(sg->smil_timed_elements);
+#endif
+#ifdef GPAC_HAS_SPIDERMONKEY
+	gf_list_del(sg->scripts);
 #endif
 	gf_list_del(sg->Routes);
 	gf_list_del(sg->protos);
@@ -213,6 +220,17 @@ void gf_sg_reset(GF_SceneGraph *sg)
 		while (par->parent_scene) par = par->parent_scene;
 		if (par->RootNode) SG_GraphRemoved(par->RootNode, sg);
 	}
+
+#ifdef GPAC_HAS_SPIDERMONKEY
+	/*scripts are the first source of cylic references in the graph. In order to clean properly
+	force a remove of all script nodes, this will release all references to nodes in JS*/
+	while (gf_list_count(sg->scripts)) {
+		GF_Node *n = gf_list_get(sg->scripts, 0);
+		gf_list_rem(sg->scripts, 0);
+		gf_node_replace(n, NULL, 0);
+	}
+#endif
+
 	if (sg->RootNode) gf_node_unregister(sg->RootNode, NULL);
 	sg->RootNode = NULL;
 
@@ -486,11 +504,9 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 				j--;
 			}
 		}
-#if defined(GPAC_HAS_SPIDERMONKEY) && !defined(GPAC_DISABLE_SVG)
-		/*for svg scripts*/
-		if (pSG->svg_js) pSG->svg_js->on_node_destroy(pSG, pNode);
-#endif
 	}
+	if (pNode->sgprivate->scenegraph && (pNode->sgprivate->scenegraph->RootNode==pNode))
+		pNode->sgprivate->scenegraph->RootNode = NULL;
 
 	/*delete the node*/
 	gf_node_del(pNode);
@@ -730,6 +746,25 @@ GF_Err gf_node_set_id(GF_Node *p, u32 ID, const char *name)
 	}
 	insert_node_def(pSG, p, ID, name);
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_node_remove_id(GF_Node *p)
+{
+	GF_SceneGraph *pSG; 
+	if (!p) return GF_BAD_PARAM;
+
+	pSG = p->sgprivate->scenegraph;
+	/*if this is a proto register to the parent graph, not the current*/
+	if (p == (GF_Node*)pSG->pOwningProto) pSG = pSG->parent_scene;
+
+	/*new DEF ID*/
+	if (p->sgprivate->flags & GF_NODE_IS_DEF) {
+		remove_node_id(pSG, p);
+		p->sgprivate->flags &= ~GF_NODE_IS_DEF;
+		return GF_OK;
+	} 
+	return GF_BAD_PARAM;
 }
 
 /*calls RenderNode on this node*/
@@ -1029,6 +1064,7 @@ GF_Node *gf_node_list_get_child(GF_ChildNodeItem *list, s32 pos)
 	s32 cur_pos = 0;
 	while (list) {
 		if (pos==cur_pos) return list->node;
+		if ((pos<0) && !list->next) return list->node;
 		list = list->next;
 		cur_pos++;
 	}
@@ -1357,7 +1393,8 @@ void gf_node_del(GF_Node *node)
 		if (t->textContent) free(t->textContent);
 		gf_sg_parent_reset(node);
 		gf_node_free(node);
-	} else if (node->sgprivate->tag==TAG_DOMUpdates) {
+	} 
+	else if (node->sgprivate->tag==TAG_DOMUpdates) {
 		u32 i, count;
 		GF_DOMUpdates *up = (GF_DOMUpdates *)node;
 		if (up->data) free(up->data);
@@ -1369,17 +1406,35 @@ void gf_node_del(GF_Node *node)
 		gf_list_del(up->updates);
 		gf_sg_parent_reset(node);
 		gf_node_free(node);
-	} else if (node->sgprivate->tag == TAG_ProtoNode) gf_sg_proto_del_instance((GF_ProtoInstance *)node);
+	} 
+	else if (node->sgprivate->tag == TAG_DOMFullNode) {
+		GF_DOMFullNode *n = (GF_DOMFullNode *)node;
+		while (n->attributes) {
+			GF_DOMAttribute *att = n->attributes;
+			n->attributes = att->next;
+			if (att->tag==TAG_DOM_ATTRIBUTE_FULL) {
+				GF_DOMFullAttribute *fa = (GF_DOMFullAttribute *)att;
+				free(fa->data);
+				free(fa->name);
+			}
+			free(att);
+		}
+		if (n->name) free(n->name);
+		if (n->ns) free(n->ns);
+		gf_sg_parent_reset(node);
+		gf_node_free(node);
+	}
+	else if (node->sgprivate->tag == TAG_ProtoNode) gf_sg_proto_del_instance((GF_ProtoInstance *)node);
 	else if (node->sgprivate->tag<=GF_NODE_RANGE_LAST_MPEG4) gf_sg_mpeg4_node_del(node);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) gf_sg_x3d_node_del(node);
 #ifndef GPAC_DISABLE_SVG
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) gf_svg_node_del(node);
 #ifdef GPAC_ENABLE_SVG_SA
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG_SA) gf_svg_sa_element_del((SVG_SA_Element *) node);
 #endif
 #ifdef GPAC_ENABLE_SVG_SANI
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG_SANI) gf_svg_sani_element_del((SVG_SANI_Element *) node);
 #endif
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) gf_svg_node_del(node);
 #endif
 	else gf_node_free(node);
 #endif
@@ -1393,13 +1448,13 @@ u32 gf_node_get_field_count(GF_Node *node)
 	/*for both MPEG4 & X3D*/
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_ALL);
 #ifndef GPAC_DISABLE_SVG
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return 0;
 #ifdef GPAC_ENABLE_SVG_SA
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG_SA) return gf_svg_sa_get_attribute_count(node);
 #endif
 #ifdef GPAC_ENABLE_SVG_SANI
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG_SANI) return gf_svg_sani_get_attribute_count(node);
 #endif
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return 0;
 #endif
 	return 0;
 }
@@ -1417,14 +1472,16 @@ const char *gf_node_get_class_name(GF_Node *node)
 	else if (node->sgprivate->tag==TAG_ProtoNode) return ((GF_ProtoInstance*)node)->proto_name;
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(node->sgprivate->tag);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(node->sgprivate->tag);
+	else if (node->sgprivate->tag==TAG_DOMText) return "";
+	else if (node->sgprivate->tag==TAG_DOMFullNode) return ((GF_DOMFullNode*)node)->name;
 #ifndef GPAC_DISABLE_SVG
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_element_name(node->sgprivate->tag);
 #ifdef GPAC_ENABLE_SVG_SA
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG_SA) return gf_svg_sa_get_element_name(node->sgprivate->tag);
 #endif
 #ifdef GPAC_ENABLE_SVG_SANI
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG_SANI) return gf_svg_sani_get_element_name(node->sgprivate->tag);
 #endif
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_element_name(node->sgprivate->tag);
 #endif
 	else return "UnsupportedNode";
 #endif
@@ -1440,14 +1497,26 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 	else if (tag==TAG_UndefinedNode) node = gf_sg_new_base_node();
 	else if (tag <= GF_NODE_RANGE_LAST_MPEG4) node = gf_sg_mpeg4_node_new(tag);
 	else if (tag <= GF_NODE_RANGE_LAST_X3D) node = gf_sg_x3d_node_new(tag);
+	else if (tag == TAG_DOMText) {
+		GF_DOMText *n;
+		GF_SAFEALLOC(n, GF_DOMText);
+		node = (GF_Node*)n;
+		gf_node_setup(node, TAG_DOMText);
+	}
+	else if (tag == TAG_DOMFullNode) {
+		GF_DOMFullNode*n;
+		GF_SAFEALLOC(n, GF_DOMFullNode);
+		node = (GF_Node*)n;
+		gf_node_setup(node, TAG_DOMFullNode);
+	}
 #ifndef GPAC_DISABLE_SVG
-	else if (tag <= GF_NODE_RANGE_LAST_SVG) node = (GF_Node *) gf_svg_create_node(tag);
 #ifdef GPAC_ENABLE_SVG_SA
 	else if (tag <= GF_NODE_RANGE_LAST_SVG_SA) node = (GF_Node *) gf_svg_sa_create_node(tag);
 #endif
 #ifdef GPAC_ENABLE_SVG_SANI
 	else if (tag <= GF_NODE_RANGE_LAST_SVG_SANI) node = (GF_Node *) gf_svg_sani_create_node(tag);
 #endif
+	else if (tag <= GF_NODE_RANGE_LAST_SVG) node = (GF_Node *) gf_svg_create_node(tag);
 #endif
 	else node = NULL;
 
@@ -1476,13 +1545,13 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_field(node, info);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_field(node, info);
 #ifndef GPAC_DISABLE_SVG
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return GF_NOT_SUPPORTED;
 #ifdef GPAC_ENABLE_SVG_SA
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG_SA) return gf_svg_sa_get_attribute_info(node, info);
 #endif
 #ifdef GPAC_ENABLE_SVG_SANI
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG_SANI) return gf_svg_sani_get_attribute_info(node, info);
 #endif
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return GF_NOT_SUPPORTED;
 #endif
 #endif
 	return GF_NOT_SUPPORTED;

@@ -382,7 +382,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			servName = evt->message.service;
 		}
 		if (!evt->message.message) return 0;
-		if (evt->message.error) {
+		if (evt->message.error==GF_SCRIPT_INFO) {
+			fprintf(stdout, "%s\n", evt->message.message);
+		} else if (evt->message.error) {
 			if (!is_connected) last_error = evt->message.error;
 			fprintf(stdout, "%s (%s): %s\n", evt->message.message, servName, gf_error_to_string(evt->message.error));
 		} else if (!be_quiet) 

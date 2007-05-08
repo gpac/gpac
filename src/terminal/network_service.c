@@ -378,8 +378,12 @@ Bool net_check_interface(GF_InputService *ifce)
 	return 1;
 }
 
-static void on_mime_data(void *dnld, char *data, u32 size, u32 state, GF_Err e)
+static void fetch_mime_io(void *dnld, GF_NETIO_Parameter *parameter)
 {
+	/*only get the content type*/
+	if (parameter->msg_type==GF_NETIO_GET_METHOD) {
+		parameter->name = "HEAD";
+	}
 }
 
 static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
@@ -390,7 +394,7 @@ static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
 	(*ret_code) = GF_OK;
 	if (strnicmp(url, "http", 4)) return NULL;
 
-	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_DOWNLOAD_SESSION_NOT_THREADED, on_mime_data, NULL, NULL, ret_code);
+	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_NETIO_SESSION_NOT_THREADED, fetch_mime_io, NULL, ret_code);
 	if (!sess) {
 		if (strstr(url, "rtsp://") || strstr(url, "rtp://") || strstr(url, "udp://") || strstr(url, "tcp://") ) (*ret_code) = GF_OK;
 		return NULL;
@@ -455,7 +459,10 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	if (no_mime_check) {
 		mime_type = NULL;
 	} else {
-		/*fetch a mime type if any. If error don't even attempt to open the service*/
+		/*fetch a mime type if any. If error don't even attempt to open the service
+		TRYTOFIXME: it would be nice to reuse the downloader created while fetching the mime type, however
+		we don't know if the plugin will want it threaded or not....
+		*/
 		mime_type = get_mime_type(term, sURL, &e);
 		if (e) {
 			free(sURL);
@@ -684,19 +691,20 @@ GF_InputService *gf_term_get_service_interface(GF_ClientService *serv)
 }
 
 GF_EXPORT
-GF_DownloadSession * gf_term_download_new(GF_ClientService *service, const char *url, u32 flags, void (*OnData)(void *cbk, char *data, u32 data_size, u32 state, GF_Err error), void *cbk)
+GF_DownloadSession *gf_term_download_new(GF_ClientService *service, const char *url, u32 flags, gf_dm_user_io user_io, void *cbk)
 {
 	GF_Err e;
 	GF_DownloadSession * sess;
 	char *sURL;
-	if (!service || !OnData) return NULL;
+	if (!service || !user_io) return NULL;
 
 	sURL = gf_url_concatenate(service->url, url);
 	/*path was absolute*/
 	if (!sURL) sURL = strdup(url);
-	sess = gf_dm_sess_new(service->term->downloader, sURL, flags, OnData, cbk, service, &e);
+	sess = gf_dm_sess_new(service->term->downloader, sURL, flags, user_io, cbk, &e);
 	free(sURL);
 	if (!sess) return NULL;
+	gf_dm_sess_set_private(sess, service);
 	gf_list_add(service->dnloads, sess);
 	return sess;
 }
@@ -728,16 +736,16 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 	gf_dm_sess_get_stats(sess, NULL, &szURI, &total_size, &bytes_done, &bytes_per_sec, &net_status);
 	serv = (GF_ClientService *)gf_dm_sess_get_private(sess);
 	switch (net_status) {
-	case GF_DOWNLOAD_STATE_SETUP:
+	case GF_NETIO_SETUP:
 		gf_term_on_message(serv, GF_OK, "Connecting");
 		break;
-	case GF_DOWNLOAD_STATE_CONNECTED:
+	case GF_NETIO_CONNECTED:
 		gf_term_on_message(serv, GF_OK, "Connected");
 		break;
-	case GF_DOWNLOAD_STATE_WAIT_FOR_REPLY:
+	case GF_NETIO_WAIT_FOR_REPLY:
 		gf_term_on_message(serv, GF_OK, "Waiting for reply...");
 		break;
-	case GF_DOWNLOAD_STATE_RUNNING:
+	case GF_NETIO_DATA_EXCHANGE:
 		/*notify some connection / ...*/
 		if (total_size) {
 			GF_Event evt;

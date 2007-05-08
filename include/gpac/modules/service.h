@@ -401,7 +401,7 @@ GF_InputService *gf_term_get_service_interface(GF_ClientService *service);
 with net management*/
 /*creates a new downloading session in the given service - if url is relative, it will be interpreted through
 the service URL*/
-GF_DownloadSession * gf_term_download_new(GF_ClientService *service, const char *url, u32 flags, void (*OnData)(void *cbk, char *data, u32 data_size, u32 state, GF_Err error), void *cbk);
+GF_DownloadSession * gf_term_download_new(GF_ClientService *service, const char *url, u32 flags, gf_dm_user_io user_io, void *cbk);
 /*closes the downloading session*/
 void gf_term_download_del(GF_DownloadSession * dnload);
 /*send progress and connection messages to user...*/

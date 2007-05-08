@@ -69,6 +69,12 @@ enum {
 	/*all nodes after this are always parent nodes*/
 	GF_NODE_RANGE_LAST_VRML,
 
+	/*DOM container for BIFS/LASeR/etc updates*/
+	TAG_DOMUpdates,
+
+	/*all nodes below MUST be parent nodes*/
+	GF_NODE_FIRST_PARENT_NODE_TAG,
+
 #ifdef GPAC_ENABLE_SVG_SA
 	/*range for SVG / static alloc mode*/
 	GF_NODE_RANGE_FIRST_SVG_SA, 
@@ -83,14 +89,13 @@ enum {
 
 	/*DOM text node*/
 	TAG_DOMText,
-	/*DOM container for BIFS/LASeR/etc updates*/
-	TAG_DOMUpdates,
-
 	/*all nodes below MUST use the base DOM structure (with dyn attribute list)*/
 	GF_NODE_FIRST_DOM_NODE_TAG,
-
+	
+	/*full node*/
+	TAG_DOMFullNode = GF_NODE_FIRST_DOM_NODE_TAG,
 	/*range for SVG*/
-	GF_NODE_RANGE_FIRST_SVG = GF_NODE_FIRST_DOM_NODE_TAG, 
+	GF_NODE_RANGE_FIRST_SVG, 
 	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+100,
 
 };
@@ -137,7 +142,8 @@ GF_Err gf_node_list_insert_child(GF_ChildNodeItem **list, GF_Node *n, u32 pos);
 Bool gf_node_list_del_child(GF_ChildNodeItem **list, GF_Node *n);
 /*finds a child in a given container, returning its 0-based index if found, -1 otherwise*/
 s32 gf_node_list_find_child(GF_ChildNodeItem *list, GF_Node *n);
-/*finds a child in a given container given its index, returning the child or NULL if not found*/
+/*finds a child in a given container given its index, returning the child or NULL if not found
+if pos is <0, returns the last child*/
 GF_Node *gf_node_list_get_child(GF_ChildNodeItem *list, s32 pos);
 /*gets the number of children in a given container*/
 u32 gf_node_list_get_count(GF_ChildNodeItem *list);
@@ -161,6 +167,9 @@ const char *gf_node_get_name(GF_Node*);
 u32 gf_node_get_id(GF_Node*);
 /* gets node built-in name (eg 'Appearance', ..) */
 const char *gf_node_get_class_name(GF_Node *Node);
+
+/*unset the node ID*/
+GF_Err gf_node_remove_id(GF_Node *p);
 
 /*get/set user private stack*/
 void *gf_node_get_private(GF_Node*);
@@ -432,6 +441,14 @@ typedef struct
 	const char *key_val;
 } GF_JSAPIOPT;
 
+	/*for script message option*/
+typedef struct
+{
+	GF_Err e;
+	const char *msg;
+} GF_JSAPIINFO;
+
+
 typedef union
 {
 	u32 opt;
@@ -444,10 +461,14 @@ typedef union
 	GF_JSAPIURI uri;
 	GF_JSAPIOPT gpac_cfg;
 	GF_Node *node;
+	struct __gf_download_manager *dnld_man;
+	GF_JSAPIINFO info;
 } GF_JSAPIParam;
 
 enum
 {
+	/*!push message from script engine.*/
+	GF_JSAPI_OP_MESSAGE,
 	/*!get scene URI.*/
 	GF_JSAPI_OP_GET_SCENE_URI,
 	/*!get current user agent scale.*/
@@ -488,30 +509,19 @@ enum
 	GF_JSAPI_OP_GET_OPT,
 	/*!get option by section and key*/
 	GF_JSAPI_OP_SET_OPT,
+	/*!retrieve download manager*/
+	GF_JSAPI_OP_GET_DOWNLOAD_MANAGER,
 };
-
-/*JavaScript interface with user*/
-typedef struct
-{
-	/*user defined callback*/
-	void *callback;
-	/*file loading callback*/
-	Bool (*GetScriptFile)(void *callback, GF_SceneGraph *parent_graph, const char *url, void (*OnDone)(void *cbck, Bool success, const char *file_cached), void *cbk);
-	/*signals message or error*/
-	void (*ScriptMessage)(void *callback, GF_Err e, const char *msg);
-
-	/*
-	interface to various get/set options:
-		type: operand type, one of the above
-		node: target node, scene root node or NULL
-		param: i/o param, depending on operand type
-	*/
-	Bool (*ScriptAction)(void *callback, u32 type, GF_Node *node, GF_JSAPIParam *param);
-
-} GF_JSInterface;
+/*
+interface to various get/set options:
+	type: operand type, one of the above
+	node: target node, scene root node or NULL
+	param: i/o param, depending on operand type
+*/
+typedef Bool (*gf_sg_script_action)(void *callback, u32 type, GF_Node *node, GF_JSAPIParam *param);
 
 /*assign API to scene graph - by default, sub-graphs inherits the API if set*/
-void gf_sg_set_javascript_api(GF_SceneGraph *scene, GF_JSInterface *ifce);
+void gf_sg_set_script_action(GF_SceneGraph *scene, gf_sg_script_action script_act, void *cbk);
 
 /*load script into engine - this should be called only for script in main scene, loading of scripts
 in protos is done internally when instanciating the proto*/
