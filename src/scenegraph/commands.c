@@ -28,6 +28,8 @@
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_svg_sa.h>
 
+#include <gpac/internal/laser_dev.h>
+
 GF_Command *gf_sg_command_new(GF_SceneGraph *graph, u32 tag)
 {
 	GF_Command *ptr;
@@ -450,7 +452,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	case GF_SG_LSR_DELETE:
 		if (!com->node) return GF_NON_COMPLIANT_BITSTREAM;
 		if (!gf_list_count(com->command_fields)) {
-			gf_node_replace(com->node, NULL, (com->tag==GF_SG_NODE_DELETE_EX) ? 1 : 0);
+			gf_node_replace(com->node, NULL, 0);
 			return GF_OK;
 		}
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
@@ -460,24 +462,13 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 		if (!com->node || !inf) return GF_NON_COMPLIANT_BITSTREAM;
 		if (inf->new_node) {
-			u32 pos = 0;
-			GF_ChildNodeItem *child, *prev;
-			prev = NULL;
-			child = ((SVG_Element *)com->node)->children;
-			while (child) {
-				if ((inf->pos<0) || (pos!=(u32)inf->pos)) {
-					prev = child;
-					child = child->next;
-				}
-				break;
-			}
-			child = (GF_ChildNodeItem *)malloc(sizeof(GF_ChildNodeItem));
-			child->node = inf->new_node;
-			child->next = NULL;
-			if (prev) prev->next = child;
-			else ((SVG_Element *)com->node)->children = child;
+			if (inf->pos<0) 
+				gf_node_list_add_child(& ((SVG_Element *)com->node)->children, inf->new_node);
+			else
+				gf_node_list_insert_child(& ((SVG_Element *)com->node)->children, inf->new_node, inf->pos);
 
 			gf_node_register(inf->new_node, com->node);
+			gf_node_changed(com->node, NULL);
 		} else {
 			/*NOT SUPPORTED*/
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[LASeR] VALUE INSERTION NOT SUPPORTED\n"));
@@ -489,11 +480,18 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		if (!com->node || !inf) return GF_NON_COMPLIANT_BITSTREAM;
 		if (inf->new_node) {
 			if (inf->pos<0) {
-				e = gf_node_replace(com->node, inf->new_node, 0);
-				if (inf->new_node) gf_node_register(inf->new_node, NULL);
+				/*if fieldIndex (eg attributeName) is set, this is children replacement*/
+				if (inf->fieldIndex>0) {
+					gf_node_unregister_children(com->node, ((SVG_Element *)com->node)->children);
+					((SVG_Element *)com->node)->children = NULL;
+					gf_node_list_add_child(& ((SVG_Element *)com->node)->children, inf->new_node);
+					gf_node_register(inf->new_node, com->node);
+				} else {
+					e = gf_node_replace(com->node, inf->new_node, 0);
+				}
 			} else {
 				gf_node_replace_child(com->node, & ((SVG_Element *)com->node)->children, inf->pos, inf->new_node);
-				if (inf->new_node) gf_node_register(inf->new_node, com->node);
+				gf_node_register(inf->new_node, com->node);
 			}
 			/*signal node modif*/
 			gf_node_changed(com->node, NULL);
@@ -560,8 +558,34 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					} else {
 						if (str) gf_dom_add_text_node(com->node, strdup(str));
 					}
-				} else {
-					gf_node_get_field(com->node, inf->fieldIndex, &a);
+				}
+				else if ((inf->fieldIndex==TAG_LSR_ATT_scale) 
+					|| (inf->fieldIndex==TAG_LSR_ATT_translation)
+					|| (inf->fieldIndex==TAG_LSR_ATT_rotation)
+				) {
+					SVG_Transform *mx;
+					gf_svg_get_attribute_by_tag(com->node, TAG_SVG_ATT_transform, 1, 0, &a);
+					mx = a.far_ptr;
+					if (com->tag == GF_SG_LSR_REPLACE) {
+						GF_Point2D scale, translate;
+						SVG_Point_Angle rotate;
+						if (gf_mx2d_decompose(&mx->mat, &scale, &rotate.angle, &translate)) {
+							gf_mx2d_init(mx->mat);
+							if (inf->fieldIndex==TAG_LSR_ATT_scale) scale = *(GF_Point2D *)inf->field_ptr;
+							else if (inf->fieldIndex==TAG_LSR_ATT_translation) translate = *(GF_Point2D *)inf->field_ptr;
+							else if (inf->fieldIndex==TAG_LSR_ATT_rotation) rotate = *(SVG_Point_Angle*)inf->field_ptr;
+
+							gf_mx2d_add_scale(&mx->mat, scale.x, scale.y);
+							gf_mx2d_add_rotation(&mx->mat, 0, 0, rotate.angle);
+							gf_mx2d_add_translation(&mx->mat, translate.x, translate.y);
+						}
+					} else {
+						if (inf->fieldIndex==TAG_LSR_ATT_scale) gf_mx2d_add_scale(&mx->mat, ((GF_Point2D*)inf->field_ptr)->x, ((GF_Point2D*)inf->field_ptr)->y);
+						if (inf->fieldIndex==TAG_LSR_ATT_translation) gf_mx2d_add_translation(&mx->mat, ((GF_Point2D*)inf->field_ptr)->x, ((GF_Point2D*)inf->field_ptr)->y);
+						if (inf->fieldIndex==TAG_LSR_ATT_rotation) gf_mx2d_add_rotation(&mx->mat, 0, 0, ((SVG_Point_Angle*)inf->field_ptr)->angle);
+					}
+				}
+				else if (gf_svg_get_attribute_by_tag(com->node, inf->fieldIndex, 1, 0, &a) == GF_OK) {
 					b = a;
 					b.far_ptr = inf->field_ptr;
 					if (com->tag == GF_SG_LSR_REPLACE) {

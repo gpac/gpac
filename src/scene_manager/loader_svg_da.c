@@ -168,6 +168,13 @@ static void svg_process_media_href(GF_SVG_Parser *parser, XMLRI *iri)
 	}
 }
 
+static void xsr_exec_command_list(GF_Node *node, void *par, Bool is_destroy)
+{
+	GF_DOMUpdates *up = (GF_DOMUpdates *)node;
+	if (is_destroy || !up || (up->sgprivate->tag!=TAG_DOMUpdates)) return;
+	gf_sg_command_apply_list(up->sgprivate->scenegraph, up->updates, 0);
+}
+
 static GF_Node *svg_find_node(GF_SVG_Parser *parser, char *ID)
 {
 	u32 i, count, tag;
@@ -621,11 +628,19 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 				else par = target->target;
 			}
 		}
-
+		/*check handler, create it if not specified*/
 		if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_handler, 1, 0, &info) == GF_OK) {
 			XMLRI *handler = info.far_ptr;
-			if (!handler->target) handler->target = parent->node;
+			if (!handler->target) {
+				if (!handler->string) handler->target = parent->node;
+			}
 		}
+		/*if event is a key event, register it with root*/
+		if (!par && gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_event, 0, 0, &info) == GF_OK) {
+			XMLEV_Event *ev = info.far_ptr;
+			if (ev->type>GF_EVENT_MOUSEWHEEL) par = (SVG_Element*) listener->sgprivate->scenegraph->RootNode;
+		}
+
 		
 		if (post_pone) {
 			gf_list_add(parser->defered_listeners, listener);
@@ -658,9 +673,8 @@ static void svg_init_root_element(GF_SVG_Parser *parser, SVG_Element *root_svg)
 		assert(parser->command);
 		assert(parser->command->tag == GF_SG_LSR_NEW_SCENE);
 		parser->command->node = (GF_Node *)root_svg;
-	} else {
-		gf_sg_set_root_node(parser->load->scene_graph, (GF_Node *)root_svg);
 	}
+	gf_sg_set_root_node(parser->load->scene_graph, (GF_Node *)root_svg);
 	parser->has_root = 1;
 }
 
@@ -732,6 +746,7 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 		if ( (is_replace || (parser->command->tag==GF_SG_LSR_INSERT)) && (!atAtt || !strcmp(atAtt, "children")) ) {
 			field = gf_sg_command_field_new(parser->command);
 			field->pos = index;
+			if (atAtt) field->fieldIndex = TAG_LSR_ATT_children;
 			gf_node_register(parser->command->node, NULL);
 			return GF_OK;
 		}
@@ -1046,7 +1061,13 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			parser->command = gf_sg_command_new(parser->load->scene_graph, com_type);
 			if (cond) {
 				GF_DOMUpdates *up = cond->children ? (GF_DOMUpdates *)cond->children->node : NULL;
-				if (!up) up = gf_dom_add_updates_node((GF_Node*)cond);
+				if (!up) {
+					up = gf_dom_add_updates_node((GF_Node*)cond);
+
+					if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
+						gf_node_set_callback_function((GF_Node*)up, xsr_exec_command_list);
+					}
+				}
 				gf_list_add(up->updates, parser->command);
 			} else {
 				gf_list_add(parser->laser_au->commands, parser->command);

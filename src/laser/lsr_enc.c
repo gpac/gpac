@@ -3312,7 +3312,7 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 	GF_LSR_WRITE_INT(lsr, type, 4, "ch4");
 	field = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 	field_type = 0;
-	if (field && !field->new_node && !field->node_list) {
+	if (field && ( !field->new_node || (field->fieldIndex==TAG_LSR_ATT_children) ) && !field->node_list) {
 		s32 attType = 0;
 		field_type = field->fieldType;
 		attType = gf_lsr_anim_type_from_attribute(field->fieldIndex);

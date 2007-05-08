@@ -104,7 +104,11 @@ static void svg_process_event(GF_Node *listen, GF_DOM_Event *event)
 	{
 		GF_FieldInfo info;
 		if (gf_svg_get_attribute_by_tag(listen, TAG_SVG_ATT_handler, 0, 0, &info) == GF_OK) {
-			hdl_node = ((XMLRI *)info.far_ptr)->target;
+			XMLRI *iri = (XMLRI *)info.far_ptr;
+			if (!iri->target && iri->string) {
+				iri->target = gf_sg_find_node_by_name(listen->sgprivate->scenegraph, iri->string+1);
+			}
+			hdl_node = iri->target;
 		} else {
 			return;
 		}
