@@ -185,7 +185,7 @@ static void svg_sa_render_bitmap(GF_Node *node, void *rs)
 			if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, & ((SVG_SA_Element *)node)->xlink->href)) {
 				gf_term_set_mfurl_from_uri(st->txh.compositor->term, &(st->txurl), & ((SVG_SA_Element*)node)->xlink->href);
 				if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
-				gf_sr_texture_play(&st->txh, &st->txurl);
+				gf_sr_texture_play_from(&st->txh, &st->txurl, 0, 0, 0, NULL);
 			}
 		} 
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
@@ -263,6 +263,24 @@ static void svg_sa_render_bitmap(GF_Node *node, void *rs)
 }
 #endif
 
+static void svg_play_texture(SVG_image_stack *st, SVGAllAttributes *atts)
+{
+	SVGAllAttributes all_atts;
+	Bool lock_scene = 0;
+	if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
+
+	if (!atts) {
+		gf_svg_flatten_attributes((SVG_Element*)st->txh.owner, &all_atts);
+		atts = &all_atts;
+	}
+	if (atts->syncBehavior) lock_scene = (*atts->syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? 1 : 0;
+	gf_sr_texture_play_from(&st->txh, &st->txurl, 
+		atts->clipBegin ? (*atts->clipBegin) : 0.0,
+		0, 
+		lock_scene,
+		NULL);
+}
+
 static void svg_render_bitmap(GF_Node *node, void *rs)
 {
 	/*video stack is just an extension of image stack, type-casting is OK*/
@@ -299,15 +317,12 @@ static void svg_render_bitmap(GF_Node *node, void *rs)
 
 				if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, href_info.far_ptr) == GF_OK) {
 					gf_term_set_mfurl_from_uri(st->txh.compositor->term, &(st->txurl), href_info.far_ptr);
-					if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
-					gf_sr_texture_play(&st->txh, &st->txurl);
+					svg_play_texture(st, &all_atts);
 				}
 			} 
 		}
-
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	} 
-	
 	
 	/*FIXME: setup aspect ratio*/
 	if (eff->traversing_mode == TRAVERSE_GET_BOUNDS) {
@@ -367,7 +382,7 @@ static void SVG_Update_image(GF_TextureHandler *txh)
 
 	/*setup texture if needed*/
 	if (!txh->is_open && txurl->count) {
-		gf_sr_texture_play(txh, txurl);
+		gf_sr_texture_play_from(txh, txurl, 0, 0, 0, NULL);
 	}
 	gf_sr_texture_update_frame(txh, 0);
 	/*URL is present but not opened - redraw till fetch*/
@@ -473,7 +488,7 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 	if (!txh->is_open) {
 		/*opens stream only at first access to fetch first frame if needed*/
 		if (!st->first_frame_fetched && (init_vis == SVG_INITIALVISIBILTY_ALWAYS)) {
-			gf_sr_texture_play(txh, &st->txurl);
+			//gf_sr_texture_play_from(txh, &st->txurl, 0, 0, 0, NULL);
 			gf_sr_invalidate(txh->compositor, NULL);
 			return;
 		} else {
@@ -507,7 +522,14 @@ static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
 		if (!stack->txh.is_open) { 
-			gf_sr_texture_play(&stack->txh, &stack->txurl);
+			svg_play_texture((SVG_image_stack*)stack, NULL);
+		}
+		else if (stack->txh.stream_finished && (rti->current_interval->simple_duration<0) ) { 
+			rti->current_interval->simple_duration = gf_mo_get_duration(stack->txh.stream);
+			if (rti->current_interval->simple_duration <= 0) {
+				rti->current_interval->simple_duration = stack->txh.last_frame_time;
+				rti->current_interval->simple_duration /= 1000;
+			}
 		}
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:
@@ -616,6 +638,13 @@ static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 			gf_sr_audio_open(&stack->input, &stack->aurl);
 			gf_mo_set_speed(stack->input.stream, FIX_ONE);
 			stack->is_active = 1;
+		}
+		else if (stack->input.stream_finished && (rti->current_interval->simple_duration<0) ) { 
+			rti->current_interval->simple_duration = gf_mo_get_duration(stack->input.stream);
+			if (rti->current_interval->simple_duration <= 0) {
+				rti->current_interval->simple_duration = gf_mo_get_last_frame_time(stack->input.stream);
+				rti->current_interval->simple_duration /= 1000;
+			}
 		}
 		break;
 	case SMIL_TIMING_EVAL_REPEAT:

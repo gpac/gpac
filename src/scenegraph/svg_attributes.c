@@ -1632,6 +1632,17 @@ static void svg_parse_iri(GF_Node *elt, XMLRI *iri, char *attribute_content)
 	}
 }
 
+static void svg_parse_idref(GF_Node *elt, XML_IDREF *iri, char *attribute_content)
+{
+	iri->type = XMLRI_ELEMENTID;
+	iri->target = gf_sg_find_node_by_name(elt->sgprivate->scenegraph, attribute_content);
+	if (!iri->target) {
+		iri->string = strdup(attribute_content);
+	} else {
+		gf_svg_register_iri(elt->sgprivate->scenegraph, iri);
+	}
+}
+
 /* Parses a paint attribute: none, inherit or color */
 static void svg_parse_paint(GF_Node *n, SVG_Paint *paint, char *attribute_content)
 {
@@ -2771,6 +2782,9 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case XMLRI_datatype:
 		svg_parse_iri(n, (XMLRI*)info->far_ptr, attribute_content);
 		break;
+	case XML_IDREF_datatype:
+		svg_parse_idref(n, (XMLRI*)info->far_ptr, attribute_content);
+		break;
 	case SMIL_AttributeName_datatype:
 		((SMIL_AttributeName *)info->far_ptr)->name = strdup(attribute_content);
 		break;
@@ -3122,6 +3136,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 		}
 		break;
 	case XMLRI_datatype:
+	case XML_IDREF_datatype:
 		{
 			XMLRI *iri;
 			GF_SAFEALLOC(iri, XMLRI)
@@ -3315,6 +3330,18 @@ static void svg_dump_iri(XMLRI*iri, char *attValue)
 	}
 	else if ((iri->type == XMLRI_STRING) && iri->string) strcpy(attValue, iri->string);
 	else strcpy(attValue, "");
+}
+
+static void svg_dump_idref(XMLRI*iri, char *attValue)
+{
+	const char *name;
+	if (iri->target) {
+		name = gf_node_get_name((GF_Node *)iri->target);
+		if (name) sprintf(attValue, "%s", gf_node_get_name((GF_Node *)iri->target));
+		else sprintf(attValue, "N%d", gf_node_get_id((GF_Node *)iri->target) - 1);
+		return;
+	}
+	if (iri->string) strcpy(attValue, iri->string);
 }
 
 #if USE_GF_PATH
@@ -3814,6 +3841,9 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 
 	case XMLRI_datatype:
 		svg_dump_iri((XMLRI*)info->far_ptr, attValue);
+		break;
+	case XML_IDREF_datatype:
+		svg_dump_idref((XMLRI*)info->far_ptr, attValue);
 		break;
 	case SVG_ListOfIRI_datatype:
 	{
@@ -5442,6 +5472,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		return GF_OK;
 
 	case XMLRI_datatype:
+	case XML_IDREF_datatype:
 		((XMLRI *)a->far_ptr)->type = ((XMLRI *)b->far_ptr)->type;
 		if (((XMLRI *)a->far_ptr)->string) free(((XMLRI *)a->far_ptr)->string);
 		if (((XMLRI *)b->far_ptr)->string) {
@@ -5720,6 +5751,7 @@ char *gf_svg_attribute_type_to_string(u32 att_type)
 	case SVG_FontFamily_datatype:		return "FontFamily"; 
 	case SVG_ID_datatype:				return "ID"; 
 	case XMLRI_datatype:				return "IRI"; 
+	case XML_IDREF_datatype:			return "IDREF"; 
 	case SVG_StrokeDashArray_datatype:	return "StrokeDashArray"; 
 	case SVG_PreserveAspectRatio_datatype:return "PreserveAspectRatio"; 
 	case SVG_ViewBox_datatype:			return "ViewBox"; 

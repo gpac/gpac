@@ -68,9 +68,15 @@ GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 	case TAG_SVG_SANI_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
 	case TAG_SVG_SANI_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
 #endif
-	case TAG_SVG_audio: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
-	case TAG_SVG_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
-	case TAG_SVG_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
+	case TAG_SVG_audio: 
+		obj_type = GF_MEDIA_OBJECT_AUDIO; 
+		break;
+	case TAG_SVG_image: 
+		obj_type = GF_MEDIA_OBJECT_VIDEO; 
+		break;
+	case TAG_SVG_video: 
+		obj_type = GF_MEDIA_OBJECT_VIDEO; 
+		break;
 
 	default: obj_type = GF_MEDIA_OBJECT_UNDEF; break;
 	}
@@ -199,6 +205,9 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		return mo->frame;
 	}
 
+	/*end of stream */
+	*eos = gf_cm_is_eos(mo->odm->codec->CB);
+
 	/*not running and no resync (ie audio)*/
 	if (!resync && !gf_cm_is_running(mo->odm->codec->CB)) {
 		gf_odm_lock(mo->odm, 0);
@@ -212,8 +221,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		gf_odm_lock(mo->odm, 0);
 		return NULL;
 	}
-	/*end of stream */
-	*eos = gf_cm_is_eos(mo->odm->codec->CB);
 
 	/*note this assert is NOT true when recomputing DTS from CTS on the fly (MPEG1/2 RTP and H264/AVC RTP)*/
 	//assert(CU->TS >= mo->odm->codec->CB->LastRenderedTS);
@@ -590,5 +597,10 @@ void gf_mo_set_flag(GF_MediaObject *mo, u32 flag, Bool set_on)
 		else
 			mo->flags &= ~flag;
 	}
+}
+
+u32 gf_mo_get_last_frame_time(GF_MediaObject *mo)
+{
+	return mo ? mo->timestamp : 0;
 }
 

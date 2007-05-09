@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu May 03 12:31:40 2007
+	DO NOT MOFIFY - File generated on GMT Wed May 09 09:48:35 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -419,8 +419,8 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_phase: return XMLEV_Phase_datatype;
 		case TAG_SVG_ATT_propagate: return XMLEV_Propagate_datatype;
 		case TAG_SVG_ATT_defaultAction: return XMLEV_DefaultAction_datatype;
-		case TAG_SVG_ATT_observer: return XMLRI_datatype;
-		case TAG_SVG_ATT_listener_target: return XMLRI_datatype;
+		case TAG_SVG_ATT_observer: return XML_IDREF_datatype;
+		case TAG_SVG_ATT_listener_target: return XML_IDREF_datatype;
 		case TAG_SVG_ATT_handler: return XMLRI_datatype;
 		case TAG_SVG_ATT_pathLength: return SVG_Number_datatype;
 		case TAG_SVG_ATT_points: return SVG_Points_datatype;
@@ -834,8 +834,8 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_phase: return gf_svg_create_attribute_from_datatype(XMLEV_Phase_datatype, tag);
 	case TAG_SVG_ATT_propagate: return gf_svg_create_attribute_from_datatype(XMLEV_Propagate_datatype, tag);
 	case TAG_SVG_ATT_defaultAction: return gf_svg_create_attribute_from_datatype(XMLEV_DefaultAction_datatype, tag);
-	case TAG_SVG_ATT_observer: return gf_svg_create_attribute_from_datatype(XMLRI_datatype, tag);
-	case TAG_SVG_ATT_listener_target: return gf_svg_create_attribute_from_datatype(XMLRI_datatype, tag);
+	case TAG_SVG_ATT_observer: return gf_svg_create_attribute_from_datatype(XML_IDREF_datatype, tag);
+	case TAG_SVG_ATT_listener_target: return gf_svg_create_attribute_from_datatype(XML_IDREF_datatype, tag);
 	case TAG_SVG_ATT_handler: return gf_svg_create_attribute_from_datatype(XMLRI_datatype, tag);
 	case TAG_SVG_ATT_pathLength: return gf_svg_create_attribute_from_datatype(SVG_Number_datatype, tag);
 	case TAG_SVG_ATT_points: return gf_svg_create_attribute_from_datatype(SVG_Points_datatype, tag);
@@ -1046,8 +1046,8 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_phase: all_atts->phase = (XMLEV_Phase *)att->data; break;
 		case TAG_SVG_ATT_propagate: all_atts->propagate = (XMLEV_Propagate *)att->data; break;
 		case TAG_SVG_ATT_defaultAction: all_atts->defaultAction = (XMLEV_DefaultAction *)att->data; break;
-		case TAG_SVG_ATT_observer: all_atts->observer = (XMLRI *)att->data; break;
-		case TAG_SVG_ATT_listener_target: all_atts->listener_target = (XMLRI *)att->data; break;
+		case TAG_SVG_ATT_observer: all_atts->observer = (XML_IDREF *)att->data; break;
+		case TAG_SVG_ATT_listener_target: all_atts->listener_target = (XML_IDREF *)att->data; break;
 		case TAG_SVG_ATT_handler: all_atts->handler = (XMLRI *)att->data; break;
 		case TAG_SVG_ATT_pathLength: all_atts->pathLength = (SVG_Number *)att->data; break;
 		case TAG_SVG_ATT_points: all_atts->points = (SVG_Points *)att->data; break;

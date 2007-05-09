@@ -1147,6 +1147,7 @@ EXPORTS
 	gf_mo_get_audio_info
 	gf_mo_get_flags
 	gf_mo_set_flag
+	gf_mo_get_last_frame_time
 	gf_term_node_callback
 
 ;mpegts.h exports

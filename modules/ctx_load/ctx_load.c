@@ -392,6 +392,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 		}
 
 		if (e) {
+			gf_sm_load_done(&priv->load);
 			gf_sm_del(priv->ctx);
 			priv->ctx = NULL;
 			priv->load_flags = 3;

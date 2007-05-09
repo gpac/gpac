@@ -383,6 +383,7 @@ GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str, Bool do_clean)
 GF_EXPORT
 GF_Err gf_sm_load_init(GF_SceneLoader *load)
 {
+	GF_Err e = GF_NOT_SUPPORTED;
 	char *ext, szExt[50];
 	/*we need at least a scene graph*/
 	if (!load || (!load->ctx && !load->scene_graph) || (!load->fileName && !load->isom)) return GF_BAD_PARAM;
@@ -412,7 +413,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG_DA;
 			else if (strstr(szExt, "xsr")) load->type = GF_SM_LOAD_XSR;
 			else if (strstr(szExt, "xml")) {
-				char *rtype = gf_xml_get_root_type(load->fileName);
+				char *rtype = gf_xml_get_root_type(load->fileName, &e);
 				if (rtype) {
 					if (!strcmp(rtype, "SAFSession")) load->type = GF_SM_LOAD_XSR;
 					else if (!strcmp(rtype, "XMT-A")) load->type = GF_SM_LOAD_XMTA;
@@ -423,7 +424,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 			}
 		}
 	}
-	if (!load->type) return GF_NOT_SUPPORTED;
+	if (!load->type) return e;
 
 	if (!load->scene_graph) load->scene_graph = load->ctx->scene_graph;
 

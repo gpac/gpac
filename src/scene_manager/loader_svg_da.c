@@ -386,10 +386,8 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 		par = NULL;
 		if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_observer, 0, 0, &info) == GF_OK) {
 			XMLRI *observer = info.far_ptr;
-			if (observer->type == XMLRI_ELEMENTID) {
-				if (!observer->target) continue;
-				else par = observer->target;
-			}
+			if (observer->type == XMLRI_ELEMENTID) par = observer->target;
+			if (!par) continue;
 		}
 		if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_listener_target, 0, 0, &info) == GF_OK) {
 			XMLRI *target = info.far_ptr;
@@ -479,8 +477,13 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		GF_SAFEALLOC(anim, SVG_DeferedAnimation);
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
-		anim->target = parent->node;
-		anim->anim_parent = parent->node;
+		if (!parent) {
+			if (parser->command) {
+				anim->target = anim->anim_parent = (SVG_Element*) parser->command->node;
+			}
+		} else {
+			anim->target = anim->anim_parent = parent->node;
+		}
 	} else if (tag == TAG_SVG_video || 
 			   tag == TAG_SVG_audio || 
 			   tag == TAG_SVG_animation) {
@@ -489,7 +492,13 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		GF_SAFEALLOC(anim, SVG_DeferedAnimation);
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
-		anim->anim_parent = parent->node;
+		if (!parent) {
+			if (parser->command) {
+				anim->anim_parent = (SVG_Element*) parser->command->node;
+			}
+		} else {
+			anim->anim_parent = parent->node;
+		}
 		anim->resolve_stage = 1;
 	} else if ((tag == TAG_SVG_script) || (tag==TAG_SVG_handler)) {
 		needs_init = 0;
@@ -590,7 +599,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		}
 	}
 
-	if (anim) {
+	if (anim && (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) ) {
 		needs_init = 0;
 		if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL)) {
 			svg_delete_defered_anim(anim, NULL);
@@ -607,14 +616,15 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 	if (needs_init) gf_node_init((GF_Node *)elt);
 
 	/*register listener element*/
-	if (elt && (tag==TAG_SVG_listener)) {
+	if ((parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) && elt && (tag==TAG_SVG_listener)) {
 		GF_FieldInfo info;
 		Bool post_pone = 0;
-		SVG_Element *par = NULL;
+		SVG_Element *par = parent->node;
 		SVG_Element *listener = (SVG_Element *)elt;
 
 		if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_observer, 0, 0, &info) == GF_OK) {
 			XMLRI *observer = info.far_ptr;
+			par = NULL;
 			if (observer->type == XMLRI_ELEMENTID) {
 				if (!observer->target) post_pone = 1;
 				else par = observer->target;
@@ -641,6 +651,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			if (ev->type>GF_EVENT_MOUSEWHEEL) par = (SVG_Element*) listener->sgprivate->scenegraph->RootNode;
 		}
 
+		if (!par) post_pone = 1;
 		
 		if (post_pone) {
 			gf_list_add(parser->defered_listeners, listener);
@@ -703,6 +714,9 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 			else if (!strcmp(att->name, "index")) index = atoi(att->value);
 		}
 		if (!atNode) return svg_report(parser, GF_BAD_PARAM, "Missing node ref for command");
+		/*should be a XML IDREF, not an XML IRI*/
+		if (atNode[0]=='#') atNode++;
+
 		parser->command->node = svg_find_node(parser, atNode);
 		if (!parser->command->node) return svg_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
 		if (atAtt) {
@@ -1420,6 +1434,8 @@ GF_Err gf_sm_load_done_svg(GF_SceneLoader *load)
 	}
 	gf_list_del(parser->node_stack);
 	gf_list_del(parser->defered_hrefs);
+	/*FIXME - if there still are som defered listeners, we should pass them to the scene graph
+	and wait for the parent to be defined*/
 	gf_list_del(parser->defered_listeners);
 	gf_list_del(parser->peeked_nodes);
 	/* reset animations */

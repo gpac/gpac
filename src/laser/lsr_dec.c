@@ -2918,6 +2918,7 @@ static GF_Node *lsr_read_audio(GF_LASeRCodec *lsr, SVG_Element *parent)
 	lsr_read_eRR(lsr, elt);
 	lsr_read_anim_repeatCount(lsr, elt);
 	lsr_read_repeat_duration(lsr, elt);
+	lsr_read_anim_restart(lsr, elt);
 	lsr_read_sync_behavior(lsr, elt);
 	lsr_read_sync_tolerance(lsr, elt);
 	lsr_read_content_type(lsr, elt);
@@ -3604,6 +3605,7 @@ static GF_Node *lsr_read_video(GF_LASeRCodec *lsr, SVG_Element *parent)
 	lsr_read_preserve_aspect_ratio(lsr, elt);
 	lsr_read_anim_repeatCount(lsr, elt);
 	lsr_read_repeat_duration(lsr, elt);
+	lsr_read_anim_restart(lsr, elt);
 	lsr_read_sync_behavior(lsr, elt);
 	lsr_read_sync_tolerance(lsr, elt);
 	lsr_read_transform_behavior(lsr, elt);
@@ -3686,8 +3688,7 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVG_Element *parent)
 		Bool post_pone = 0;
 		SVG_Element *par = NULL;
 		if (observer && observer->type == XMLRI_ELEMENTID) {
-			if (!observer->target) post_pone = 1;
-			else par = observer->target;
+			if (observer->target) par = observer->target;
 		}
 		if (!par && target && (target->type == XMLRI_ELEMENTID)) {
 			if (!target->target) post_pone = 1;
@@ -3698,7 +3699,7 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVG_Element *parent)
 			handler->target = parent;
 		}
 		/*FIXME - double check with XML events*/
-		if (!par) {
+		if (!par && !observer) {
 			/*all non-UI get attched to root*/
 			if (ev && (ev->type>GF_EVENT_MOUSEWHEEL)) {
 				par = (SVG_Element*) lsr->sg->RootNode;
@@ -3706,7 +3707,8 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVG_Element *parent)
 			else if (parent) par = parent;
 			else par = (SVG_Element*) lsr->sg->RootNode;
 		}
-		
+		if (!par) post_pone = 1;
+
 		if (post_pone) {
 			gf_list_add(lsr->defered_listeners, elt);
 		} else {
@@ -4557,7 +4559,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 					elt->children = NULL;
 				}
 			}
-			if (gf_lsr_anim_type_to_attribute(att_type) == TAG_LSR_ATT_children) {
+			if ((com_type==LSR_UPDATE_INSERT) || (gf_lsr_anim_type_to_attribute(att_type) == TAG_LSR_ATT_children)) {
 				while (count) {
 					new_node = lsr_read_update_content_model(lsr, elt);
 					if (new_node) {

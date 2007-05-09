@@ -211,6 +211,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_svg_delete_paint(sg, (SVG_Paint *)value);
 		break;
 	case XMLRI_datatype:
+	case XML_IDREF_datatype:
 		gf_svg_reset_iri(sg, (XMLRI *)value);
 		free(value);
 		break;

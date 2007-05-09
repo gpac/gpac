@@ -136,7 +136,9 @@ enum {
 	SVG_PathData_datatype					= 93,
 	SVG_FontFamily_datatype					= 94,
 	SVG_ID_datatype							= 95,
-	XMLRI_datatype						= 96,
+	XMLRI_datatype							= 96,
+	XML_IDREF_datatype						= 97,
+
 	SVG_StrokeDashArray_datatype			= 99,
 	SVG_PreserveAspectRatio_datatype		= 100,
 	SVG_ViewBox_datatype					= 101,
@@ -325,12 +327,16 @@ enum {
 	XMLRI_STRING,
 	XMLRI_STREAMID
 };
-typedef struct {
+typedef struct __xml_ri {
 	u8 type;
 	char *string;
 	void *target;
 	u32 lsr_stream_id;
 } XMLRI;
+
+/*the same structure is used to watch for IDREF changes (LASeR node replace)*/
+typedef struct __xml_ri XML_IDREF;
+
 
 enum
 {

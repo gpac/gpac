@@ -96,7 +96,7 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 	if (gf_term_check_extension(plug, "application/x-LASeR+xml", "xsr", "LASeR Document", sExt)) return 1;
 
 	if (!strnicmp(url, "file://", 7) || !strstr(url, "://")) {
-		char *rtype = gf_xml_get_root_type(url);
+		char *rtype = gf_xml_get_root_type(url, NULL);
 		if (rtype) {
 			Bool handled = 0;
 			if (!strcmp(rtype, "SAFSession")) handled = 1;
@@ -188,7 +188,7 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 	}
 
 	if (!read->oti && (!strnicmp(url, "file://", 7) || !strstr(url, "://"))) {
-		char *rtype = gf_xml_get_root_type(url);
+		char *rtype = gf_xml_get_root_type(url, NULL);
 		if (rtype) {
 			if (!strcmp(rtype, "SAFSession")) read->oti = 0x03;
 			else if (!strcmp(rtype, "svg")) read->oti = 0x02;

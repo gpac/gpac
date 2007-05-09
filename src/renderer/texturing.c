@@ -74,7 +74,7 @@ Bool gf_sr_texture_check_url_change(GF_TextureHandler *txh, MFURL *url)
 }
 
 GF_EXPORT
-GF_Err gf_sr_texture_play_from(GF_TextureHandler *txh, MFURL *url, Double media_offset, Bool can_loop)
+GF_Err gf_sr_texture_play_from(GF_TextureHandler *txh, MFURL *url, Double media_offset, Bool can_loop, Bool lock_scene_timeline, MFURL *sync_ref_url)
 {
 	if (txh->is_open) return GF_BAD_PARAM;
 
@@ -91,7 +91,7 @@ GF_Err gf_sr_texture_play_from(GF_TextureHandler *txh, MFURL *url, Double media_
 	txh->dmo = getDanaeMediaOjbectFromUrl(txh->compositor->danae_session, url->vals[0].url, (gf_node_get_tag(txh->owner)==TAG_SVG_video) ? 1 : 0);
 #else 
 	/*get media object*/
-	txh->stream = gf_mo_find(txh->owner, url, 0);
+	txh->stream = gf_mo_find(txh->owner, url, lock_scene_timeline);
 	/*bad/Empty URL*/
 	if (!txh->stream) return GF_NOT_SUPPORTED;
 	/*request play*/
@@ -113,7 +113,7 @@ GF_Err gf_sr_texture_play(GF_TextureHandler *txh, MFURL *url)
 		offset = gf_node_get_scene_time(txh->owner);
 		loop = gf_mo_get_loop(gf_mo_find(txh->owner, url, 0), 0);
 	}
-	return gf_sr_texture_play_from(txh, url, offset, loop);
+	return gf_sr_texture_play_from(txh, url, offset, loop, 0, NULL);
 }
 
 
