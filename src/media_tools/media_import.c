@@ -5406,7 +5406,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	}
 
 	/*try XML things*/
-	xml_type = gf_xml_get_root_type(importer->in_name);
+	xml_type = gf_xml_get_root_type(importer->in_name, &e);
 	if (xml_type) {
 		if (!stricmp(xml_type, "TextStream") || !stricmp(xml_type, "text3GTrack") ) {
 			free(xml_type);
@@ -5414,7 +5414,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 	}
 		
-	return gf_import_message(importer, GF_NOT_SUPPORTED, "Unknown input file type");
+	return gf_import_message(importer, e, "Unknown input file type");
 }
 
 GF_EXPORT

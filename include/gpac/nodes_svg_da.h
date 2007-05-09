@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu May 03 12:31:40 2007
+	DO NOT MOFIFY - File generated on GMT Wed May 09 09:48:35 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -472,8 +472,8 @@ struct _all_atts {
 	XMLEV_Phase *phase;
 	XMLEV_Propagate *propagate;
 	XMLEV_DefaultAction *defaultAction;
-	XMLRI *observer;
-	XMLRI *listener_target;
+	XML_IDREF *observer;
+	XML_IDREF *listener_target;
 	XMLRI *handler;
 	SVG_Number *pathLength;
 	SVG_Points *points;

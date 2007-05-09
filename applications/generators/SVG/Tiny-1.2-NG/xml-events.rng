@@ -19,69 +19,66 @@
   </define>
 
   <!-- ... listener ................................................ -->
-  <define name='listener'>
-    <element name='listener'>
-      <ref name='listener.AT'/>
-      <ref name='listener.CM'/>
-    </element>
-  </define>
+  <div xml:id='listener'>
+    <define name='listener'>
+      <element name='listener'>
+        <ref name='listener.AT'/>
+        <ref name='listener.CM'/>
+      </element>
+    </define>
 
-  <define name='listener.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <optional>
-      <attribute name='event' svg:animatable='false' svg:inheritable='false'>
-        <ref name='XSLT-QName.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='phase' svg:animatable='false' svg:inheritable='false'>
-        <choice>
-          <value>default</value>
-          <value>capture</value>
-        </choice>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='propagate' svg:animatable='false' svg:inheritable='false'>
-        <choice>
-          <value>continue</value>
-          <value>stop</value>
-        </choice>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='defaultAction' svg:animatable='false' svg:inheritable='false'>
-        <choice>
-          <value>perform</value>
-          <value>cancel</value>
-        </choice>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='observer' svg:animatable='false' svg:inheritable='false'>
-        <ref name='IRI.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='target' svg:animatable='false' svg:inheritable='false'>
-        <ref name='IRI.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='handler' svg:animatable='false' svg:inheritable='false'>
-        <ref name='IRI.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name="lsr:enabled" svg:animatable="false" svg:inheritable="false">
-        <ref name="Boolean.datatype"/>
-      </attribute>
-    </optional>
-  </define>
+    <define name='listener.AT' combine='interleave'>
+      <ref name='svg.Core.attr'/>
+      <optional>
+        <attribute name='event' svg:animatable='false' svg:inheritable='false'>
+          <ref name='XML-Name.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='phase' svg:animatable='false' svg:inheritable='false'>
+          <choice>
+            <value>default</value>
+            <value>capture</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='propagate' svg:animatable='false' svg:inheritable='false'>
+          <choice>
+            <value>continue</value>
+            <value>stop</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='defaultAction' svg:animatable='false' svg:inheritable='false'>
+          <choice>
+            <value>perform</value>
+            <value>cancel</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='observer' svg:animatable='false' svg:inheritable='false'>
+          <ref name='IDREF.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='target' svg:animatable='false' svg:inheritable='false'>
+          <ref name='IDREF.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='handler' svg:animatable='false' svg:inheritable='false'>
+          <ref name='IRI.datatype'/>
+        </attribute>
+      </optional>
+    </define>
 
 
-  <define name='listener.CM'>
-    <empty/>
-  </define>
+    <define name='listener.CM'>
+      <empty/>
+    </define>
+  </div>
 
 </grammar>

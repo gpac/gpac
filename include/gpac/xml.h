@@ -127,7 +127,7 @@ Bool gf_xml_sax_binary_file(GF_SAXParser *parser);
 
 const char *gf_xml_sax_get_error(GF_SAXParser *parser);
 
-char *gf_xml_get_root_type(const char *file);
+char *gf_xml_get_root_type(const char *file, GF_Err *ret_code);
 
 u32 gf_xml_sax_get_node_start_pos(GF_SAXParser *parser);
 u32 gf_xml_sax_get_node_end_pos(GF_SAXParser *parser);

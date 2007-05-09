@@ -52,7 +52,6 @@ GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener)
 	/*only one observer per listener*/
 	if(gf_node_get_private(listener)!=NULL) return GF_NOT_SUPPORTED;
 	gf_node_set_private(listener, node);
-
 	return gf_list_add(node->sgprivate->interact->events, listener);
 }
 
@@ -250,17 +249,31 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 			if (listened_event->type != event->type) continue;
 			if (listened_event->parameter && (listened_event->parameter != event->detail)) continue;
 			event->currentTarget = node;
-			/*process event*/
-			svg_process_event(listen, event);
 			
 			/*load event cannot bubble and can only be called once (on load :) ), remove it
 			to release some resources*/
 			if (event->type==GF_EVENT_LOAD) {
+				svg_process_event(listen, event);
+
 				gf_list_rem(node->sgprivate->interact->events, i);
 				count--;
 				i--;
 				if (handler) gf_node_replace(handler, NULL, 0);
 				gf_node_replace((GF_Node *) listen, NULL, 0);
+			} else {
+				assert(node->sgprivate->num_instances);
+				/*protect node*/
+				node->sgprivate->num_instances++;
+				/*exec event*/
+				svg_process_event(listen, event);
+				/*the event has destroyed ourselves, abort propagation
+				THIS IS NOT DOM compliant, the event should propagate on the original target+ancestor path*/
+				if (node->sgprivate->num_instances==1) {
+					/*unprotect node event*/
+					gf_node_unregister(node, NULL);
+					return 0;
+				}
+				node->sgprivate->num_instances--;
 			}
 			/*canceled*/
 			if (event->event_phase==4) return 0;

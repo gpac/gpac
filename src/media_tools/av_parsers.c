@@ -549,8 +549,12 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 
 		case M4V_VOS_START_CODE:
 		case M4V_VOL_START_CODE:
-			if (hasVOP) 
+			if (hasVOP) {
 				go = 0;
+			} else if (firstObj) {
+				*start = m4v->current_object_start;
+				firstObj = 0;
+			}
 			break;
 
 		case M4V_VO_START_CODE:

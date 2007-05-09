@@ -52,7 +52,7 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff);
 #define BASE_IMAGE_STACK 	\
 	GF_TextureHandler txh; \
 	Drawable *graph; \
-	MFURL txurl;
+	MFURL txurl;	
 
 typedef struct {
 	BASE_IMAGE_STACK

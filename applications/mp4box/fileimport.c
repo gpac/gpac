@@ -1500,9 +1500,9 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir)
 	u32 i, count, mtype;
 	char *type;
 
-	type = gf_xml_get_root_type(file_name);
+	type = gf_xml_get_root_type(file_name, &e);
 	if (!type) {
-		fprintf(stdout, "File %s is not a valid XML file\n", file_name);
+		fprintf(stdout, "Cannot process XML file %s: %s\n", file_name, gf_error_to_string(e) );
 		return NULL;
 	}
 

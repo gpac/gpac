@@ -59,7 +59,7 @@ static void MT_Activate(MovieTextureStack *stack, M_MovieTexture *mt, Double sce
 	gf_node_event_out_str((GF_Node*)mt, "isActive");
 	if (!stack->txh.is_open) {
 		scene_time -= mt->startTime;
-		gf_sr_texture_play_from(&stack->txh, &mt->url, scene_time, gf_mo_get_loop(stack->txh.stream, mt->loop));
+		gf_sr_texture_play_from(&stack->txh, &mt->url, scene_time, gf_mo_get_loop(stack->txh.stream, mt->loop), 0, NULL);
 	}
 	gf_mo_set_speed(stack->txh.stream, mt->speed);
 }

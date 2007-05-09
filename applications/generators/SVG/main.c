@@ -532,6 +532,8 @@ void setAttributeType(SVGGenAttribute *att)
 			strcpy(att->impl_type, "XMLEV_Event");
 		} else if (!strcmp(att->svg_type, "IRI.datatype")) {
 			strcpy(att->impl_type, "XMLRI");
+		} else if (!strcmp(att->svg_type, "IDREF.datatype")) {
+			strcpy(att->impl_type, "XML_IDREF");
 		} else if (strstr(att->svg_type, "datatype")) {
 			char *tmp;
 			sprintf(att->impl_type, "SVG_%s", att->svg_type);

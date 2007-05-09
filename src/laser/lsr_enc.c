@@ -2059,6 +2059,7 @@ static void lsr_write_audio(GF_LASeRCodec *lsr, SVG_Element *elt)
 	GF_LSR_WRITE_INT(lsr, atts.externalResourcesRequired ? *atts.externalResourcesRequired : 0, 1, "externalResourcesRequired");
 	lsr_write_anim_repeat(lsr, atts.repeatCount);
 	lsr_write_repeat_duration(lsr, atts.repeatDur);
+	lsr_write_anim_restart(lsr, atts.restart);
 	lsr_write_sync_behavior(lsr, atts.syncBehavior, "syncBehavior");
 	lsr_write_sync_tolerance(lsr, atts.syncTolerance, "syncBehavior");
 	lsr_write_content_type(lsr, atts.xlink_type, "type");
@@ -2744,6 +2745,7 @@ static void lsr_write_video(GF_LASeRCodec *lsr, SVG_Element *elt)
 
 	lsr_write_anim_repeat(lsr, atts.repeatCount);
 	lsr_write_repeat_duration(lsr, atts.repeatDur);
+	lsr_write_anim_restart(lsr, atts.restart);
 	lsr_write_sync_behavior(lsr, atts.syncBehavior, "syncBehavior");
 	lsr_write_sync_tolerance(lsr, atts.syncTolerance, "syncBehavior");
 	lsr_write_transform_behavior(lsr, atts.transformBehavior);
@@ -2788,6 +2790,9 @@ static void lsr_write_listener(GF_LASeRCodec *lsr, SVG_Element *elt)
 		GF_LSR_WRITE_INT(lsr, 1, 1, "hasObserver");
 		lsr_write_codec_IDREF(lsr, atts.observer, "observer");
 	} else {
+		if (atts.observer) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] listener.observer %s not found in scene - skipping it\n", atts.observer->string ));
+		}
 		GF_LSR_WRITE_INT(lsr, 0, 1, "hasObserver");
 	}
 

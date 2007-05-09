@@ -1227,12 +1227,14 @@ static void on_peek_node_start(void *cbk, const char *name, const char *ns, cons
 }
 
 GF_EXPORT
-char *gf_xml_get_root_type(const char *file)
+char *gf_xml_get_root_type(const char *file, GF_Err *ret)
 {
+	GF_Err e;
 	struct _peek_type pt;
 	pt.res = NULL;
 	pt.parser = gf_xml_sax_new(on_peek_node_start, NULL, NULL, &pt);
-	gf_xml_sax_parse_file(pt.parser, file, NULL);
+	e = gf_xml_sax_parse_file(pt.parser, file, NULL);
+	if (ret) *ret = e;
 	gf_xml_sax_del(pt.parser);
 	return pt.res;
 }

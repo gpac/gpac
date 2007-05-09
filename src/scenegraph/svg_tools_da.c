@@ -86,11 +86,23 @@ void gf_svg_node_del(GF_Node *node)
 		gf_smil_anim_delete_animations((GF_Node *)p);
 	}
 	if (p->sgprivate->tag==TAG_SVG_listener) {
-		/*remove from all registered parents' listener list*/
+		/*remove from parent's listener list*/
 		GF_Node *obs = node->sgprivate->UserPrivate;
 		node->sgprivate->UserPrivate = NULL;
-		if (obs && obs->sgprivate->interact && obs->sgprivate->interact->events) {
-			gf_list_del_item(obs->sgprivate->interact->events, node);
+		if (obs && obs->sgprivate->num_instances) {
+			if (obs->sgprivate->interact && obs->sgprivate->interact->events) {
+				gf_list_del_item(obs->sgprivate->interact->events, node);
+			}
+		}
+	}
+	/*remove this node from associated listeners*/
+	else if (node->sgprivate->interact && node->sgprivate->interact->events) {
+		u32 i, count;
+		count = gf_list_count(node->sgprivate->interact->events);
+		for (i=0; i<count; i++) {
+			GF_Node *listener = gf_list_get(node->sgprivate->interact->events, i);
+			assert(listener->sgprivate->UserPrivate==node);
+			listener->sgprivate->UserPrivate = NULL;
 		}
 	}
 
@@ -137,8 +149,12 @@ Bool gf_svg_node_init(GF_Node *node)
 	case TAG_SVG_animateColor: 
 	case TAG_SVG_animateTransform: 
 		gf_smil_anim_init_node(node);
+		gf_smil_setup_events(node);
+		/*we may get called several times depending on xlink:href resoling for events*/
+		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
 	case TAG_SVG_audio: 
 	case TAG_SVG_video: 
+		gf_smil_timing_init_runtime_info(node);
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
 		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
