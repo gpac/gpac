@@ -901,9 +901,9 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		/*reset all children*/
 		gf_node_unregister_children(n, par->children);
 		par->children = NULL;
-		gf_dom_add_text_node(n, JS_GetStringBytes(JSVAL_TO_STRING(*vp)) );
+		gf_dom_add_text_node(n, strdup( JS_GetStringBytes(JSVAL_TO_STRING(*vp)) ) );
 		dom_node_changed(n, 1, NULL);
-		break;
+		return JS_TRUE;
 	}
 	
 	/*not supported*/

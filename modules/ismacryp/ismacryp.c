@@ -52,7 +52,7 @@ typedef struct
 } ISMAEAPriv;
 
 
-static void ISMA_KMS_OnData(void *cbck, char *data, u32 size, u32 state, GF_Err e)
+static void ISMA_KMS_NetIO(void *cbck, GF_NETIO_Parameter *par)
 {
 }
 
@@ -76,7 +76,7 @@ static GF_Err ISMA_GetGPAC_KMS(ISMAEAPriv *priv, GF_Channel *ch, char *kms_url)
 	is supported as a proof of concept, crypto and IPMP being the last priority on gpac...*/
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ISMA E&A] Fetching ISMACryp key for channel %d\n", ch->esd->ESID) );
 
-	sess = gf_term_download_new(ch->service, kms_url, 0, ISMA_KMS_OnData, ch);
+	sess = gf_term_download_new(ch->service, kms_url, 0, ISMA_KMS_NetIO, ch);
 	if (!sess) return GF_IO_ERR;
 
 	while (1) {

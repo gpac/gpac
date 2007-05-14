@@ -198,7 +198,7 @@ static void svg_process_event(GF_Node *listen, GF_DOM_Event *event)
 			if (ev_event->type != event->type) return;
 			handler->handle_event(hdl_node, event);
 		} else {
-			return;
+			handler->handle_event(hdl_node, event);
 		}
 	}
 		break;
