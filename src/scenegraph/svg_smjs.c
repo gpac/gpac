@@ -1920,6 +1920,22 @@ static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 	return GF_OK;
 }
 
+GF_DOMText *svg_get_text_child(GF_Node *node)
+{
+	GF_ChildNodeItem *child;
+	GF_DOMText *txt;
+	txt = NULL;
+	child = ((SVG_Element*)node)->children;
+	if (! child) return NULL;
+	while (child) {
+		txt = (GF_DOMText*)child->node;
+		if ((txt->sgprivate->tag==TAG_DOMText) && txt->textContent) return txt;
+		txt = NULL;
+		child = child->next;
+	}
+	return NULL;
+}
+
 void JSScript_LoadSVG(GF_Node *node)
 {
 	GF_DOMText *txt;
@@ -1927,10 +1943,8 @@ void JSScript_LoadSVG(GF_Node *node)
 	JSBool ret;
 	jsval rval;
 
-	if (! ((SVG_Element*)node)->children) return;
-
-	txt = (GF_DOMText*)((SVG_Element*)node)->children->node;
-	if (!txt || (txt->sgprivate->tag!=TAG_DOMText) || !txt->textContent) return;
+	txt = svg_get_text_child(node);
+	if (!txt) return;
 
 	if (!node->sgprivate->scenegraph->svg_js) {
 		if (JSScript_CreateSVGContext(node->sgprivate->scenegraph) != GF_OK) return;
@@ -1962,11 +1976,9 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	jsval fval, rval;
 	SVG_handlerElement *handler = (SVG_handlerElement*)node;
 
-	if (!handler->children) return 0;
+	txt = svg_get_text_child(node);
+	if (!txt) return 0;
 	
-	txt = (GF_DOMText*) handler->children->node;
-	if (!txt || (txt->sgprivate->tag!=TAG_DOMText) || !txt->textContent) return 0;
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Executing script code from handler\n"));
 
 	svg_js = node->sgprivate->scenegraph->svg_js;
@@ -1974,9 +1986,9 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	prev_event = JS_GetPrivate(svg_js->js_ctx, svg_js->event);
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
 
-	if (JS_LookupProperty(svg_js->js_ctx, svg_js->global, txt->textContent, &fval)) {
-		if (svg_script_execute(node->sgprivate->scenegraph, txt->textContent, event)) ret = JS_TRUE;
-		//JS_CallFunctionValue(svg_js->js_ctx, svg_js->global, fval, 0, 0, &fval);
+	if (JS_LookupProperty(svg_js->js_ctx, svg_js->global, txt->textContent, &fval) && !JSVAL_IS_VOID(fval) ) {
+		if (svg_script_execute(node->sgprivate->scenegraph, txt->textContent, event)) 
+			ret = JS_TRUE;
 	} else {
 		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
 	}

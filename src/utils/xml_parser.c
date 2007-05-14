@@ -706,6 +706,10 @@ restart:
 				parser->current_pos += i;
 				assert(parser->current_pos < parser->line_size);
 			}
+			while (strchr(" \n\t\r", parser->buffer[parser->current_pos+1])) {
+				parser->current_pos++;
+				if (parser->current_pos==parser->line_size) goto exit;
+			}
 			is_end = 0;
 			i = 0;
 			while (1) {

@@ -131,14 +131,13 @@ Bool gf_svg_node_init(GF_Node *node)
 		if (node->sgprivate->scenegraph->script_load) 
 			node->sgprivate->scenegraph->script_load(node);
 		return 1;
-/*
+
 	case TAG_SVG_handler:
 		if (node->sgprivate->scenegraph->script_load) 
 			node->sgprivate->scenegraph->script_load(node);
-		if (node->sgprivate->scenegraph->js_ifce)
-			((SVG_SA_handlerElement *)node)->handle_event = gf_sg_handle_dom_event;
+		if (node->sgprivate->scenegraph->script_action)
+			((SVG_handlerElement*)node)->handle_event = gf_sg_handle_dom_event;
 		return 1;
-		*/
 	case TAG_SVG_conditional:
 		gf_smil_timing_init_runtime_info(node);
 		gf_smil_setup_events(node);

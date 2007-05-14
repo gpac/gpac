@@ -386,6 +386,11 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 		par = NULL;
 		if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_observer, 0, 0, &info) == GF_OK) {
 			XMLRI *observer = info.far_ptr;
+			if (observer->type == XMLRI_ELEMENTID) {
+				if (!observer->target && observer->string && !strcmp(observer->string, nodeID) ) {
+					observer->target = gf_sg_find_node_by_name(sg, (char*) nodeID);
+				}
+			}
 			if (observer->type == XMLRI_ELEMENTID) par = observer->target;
 			if (!par) continue;
 		}
@@ -1145,6 +1150,10 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			assert(!parser->command->node);
 			parser->command->node = (GF_Node *)elt;
 		}
+	} else if (!parser->has_root) {
+		gf_list_del_item(parser->node_stack, stack);
+		free(stack);
+		gf_node_unregister((GF_Node *)elt, NULL);
 	}
 }
 
