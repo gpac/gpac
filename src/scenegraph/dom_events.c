@@ -108,7 +108,7 @@ void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event)
 		if (hdl->sgprivate->scenegraph->svg_js->handler_execute(hdl, event)) return;
 #endif
 	/*no clue what this is*/
-	GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[DOM Events] Unknown event handler\n"));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[DOM Events    ] Unknown event handler\n"));
 }
 
 static void svg_process_event(GF_Node *listen, GF_DOM_Event *event)
@@ -145,7 +145,7 @@ static void svg_process_event(GF_Node *listen, GF_DOM_Event *event)
 	}
 	if (!hdl_node) return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Time %f - Processing event type: %s\n", gf_node_get_scene_time((GF_Node *)listen), gf_dom_event_get_name(event->type)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events    ] Time %f - Processing event type: %s\n", gf_node_get_scene_time((GF_Node *)listen), gf_dom_event_get_name(event->type)));
 
 	switch (hdl_node->sgprivate->tag) {
 #ifdef GPAC_ENABLE_SVG_SA_BASE
@@ -346,7 +346,7 @@ GF_EXPORT
 Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 {
 	if (!node || !event) return 0;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Time %f - Firing event %s.%s\n", gf_node_get_scene_time(node), gf_node_get_name(node), gf_dom_event_get_name(event->type)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events    ] Time %f - Firing event  %s.%s\n", gf_node_get_scene_time(node), gf_node_get_name(node), gf_dom_event_get_name(event->type)));
 
 	/*flush any pending add_listener*/
 	gf_dom_listener_process_add(node->sgprivate->scenegraph);
