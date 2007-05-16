@@ -496,7 +496,7 @@ redecode:
 		if (ffd->check_h264_isma) {
 			/*for AVC bitstreams after ISMA decryption, in case (as we do) the decryption DRM tool 
 			doesn't put back nalu size, do it ourselves...*/
-			if (!inBuffer[0] && !inBuffer[1] && !inBuffer[2] && (inBuffer[3]==0x01)) {
+			if (inBuffer && !inBuffer[0] && !inBuffer[1] && !inBuffer[2] && (inBuffer[3]==0x01)) {
 				u32 nalu_size;
 				u32 remain = inBufferLength;
 				char *start, *end;

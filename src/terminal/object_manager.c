@@ -1125,7 +1125,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 	skip_od_st = (odm->subscene && odm->subscene->static_media_ressources) ? 1 : 0;
 	range_end = odm->media_stop_time;
-	odm->media_stop_time = 0;
+//	odm->media_stop_time = 0;
 
 	nb_failure = gf_list_count(odm->channels);
 
@@ -1232,7 +1232,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %d requesting PLAY from %g to %g (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range, ch->clock->clock_init));
 		}
 	}
-	odm->media_start_time = 0;
+//	odm->media_start_time = 0;
 
 	if (nb_failure) {
 		odm->state = GF_ODM_STATE_BLOCKED;

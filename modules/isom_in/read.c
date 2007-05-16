@@ -657,6 +657,14 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 		return GF_OK;
 	}
+	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
+		u32 i, count;
+		count = gf_isom_get_track_count(read->mov);
+		for (i=0; i<count; i++) {
+			if (gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_AUDIO) return GF_OK;
+		}
+		return GF_NOT_SUPPORTED;
+	}
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 
@@ -751,6 +759,8 @@ static Bool ISOR_CanHandleURLInService(GF_InputService *plug, const char *url)
 	ISOMReader *read = (ISOMReader *)plug->priv;
 	const char *this_url = gf_term_get_service_url(read->service);
 	if (!this_url || !url) return 0;
+
+	if (!strcmp(this_url, url)) return 1;
 
 	strcpy(szURL, this_url);
 	sep = strrchr(szURL, '#');

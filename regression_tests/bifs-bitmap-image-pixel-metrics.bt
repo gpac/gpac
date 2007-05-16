@@ -48,11 +48,10 @@ OrderedGroup {
      children [
       Shape {
        appearance Appearance {
-        texture MovieTexture {
+        texture ImageTexture {
          url [od:10]
          repeatS FALSE
          repeatT FALSE
-         loop TRUE
         }
        }
        geometry Bitmap {

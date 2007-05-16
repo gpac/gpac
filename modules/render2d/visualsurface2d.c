@@ -99,22 +99,22 @@ void VS2D_RemoveLastContext(VisualSurface2D *surf)
 
 void VS2D_DrawableDeleted(struct _visual_surface_2D *surf, struct _drawable *node)
 {
-	if (node->flags & DRAWABLE_REG_WITH_SURFACE) {
-		struct _drawable_store *it = surf->prev_nodes;
-		struct _drawable_store *prev = NULL;
-		while (it) {
-			if (it->drawable != node) {
-				prev = it;
-				it = prev->next;
-				continue;
-			}
-			if (prev) prev->next = it->next;
-			else surf->prev_nodes = it->next;
-			if (!it->next) surf->last_prev_entry = prev;
-			free(it);
-			break;
+	/*remove drawable from surface list*/
+	struct _drawable_store *it = surf->prev_nodes;
+	struct _drawable_store *prev = NULL;
+	while (it) {
+		if (it->drawable != node) {
+			prev = it;
+			it = prev->next;
+			continue;
 		}
+		if (prev) prev->next = it->next;
+		else surf->prev_nodes = it->next;
+		if (!it->next) surf->last_prev_entry = prev;
+		free(it);
+		break;
 	}
+
 	/*check node isn't being tracked*/
 	if (surf->render->grab_node==node) {
 		surf->render->grab_ctx = NULL;
@@ -212,14 +212,13 @@ GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	prev = NULL;
 	it = surf->prev_nodes;
 	while (it) {
-		assert(it->drawable->flags & DRAWABLE_REG_WITH_SURFACE);
-
 		/*node was not drawn on this surface*/
 		if (!drawable_flush_bounds(it->drawable, surf, render_mode)) {
-			//GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Unregistering previously drawn node %s from surface\n", gf_node_get_class_name(it->drawable->node)));
-			/*direct rendering mode, remove all bounds info and unreg node */
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Unregistering previously drawn node %s from surface\n", gf_node_get_class_name(it->drawable->node)));
+			
+			/*remove all bounds info related to this surface and unreg node */
 			drawable_reset_bounds(it->drawable, surf);
-			it->drawable->flags &= ~DRAWABLE_REG_WITH_SURFACE;
+
 			if (prev) prev->next = it->next;
 			else surf->prev_nodes = it->next;
 			if (!it->next) surf->last_prev_entry = prev;
@@ -227,6 +226,8 @@ GF_Err VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 			free(it);
 			it = prev ? prev->next : surf->prev_nodes;
 		} else {
+			/*mark drawable as already registered with surface*/
+			it->drawable->flags |= DRAWABLE_REGISTERED_WITH_SURFACE;
 			prev = it;
 			it = it->next;
 			count++;
@@ -278,6 +279,7 @@ void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx)
 static void VS2D_ReverseContexts(VisualSurface2D *surf)
 {
 	u32 i, depth;
+	Bool is_root_surf = (surf->render->surface==surf) ? 1 : 0;
 	DrawableContext *ctx, *prev, *tmp;
 
 	i = depth = 0;
@@ -287,15 +289,31 @@ static void VS2D_ReverseContexts(VisualSurface2D *surf)
 
 	if (surf->render->grab_ctx) {
 		while (ctx && ctx->drawable) {
+			/*remove surface registration flag - this is required in case the node is drawn on 
+			several surfaces*/
+			ctx->drawable->flags &= ~DRAWABLE_REGISTERED_WITH_SURFACE;
+			if (is_root_surf) {
+				if (ctx->flags & CTX_HAS_APPEARANCE) 
+					gf_node_dirty_reset(ctx->appear);
+			}
 			tmp = ctx->next;
 			ctx->next = prev;
 			prev = ctx;
 			i++;
 			if (surf->render->grab_ctx == ctx) depth = i;
 			ctx = tmp;
+
 		}
 	} else {
 		while (ctx && ctx->drawable) {
+			/*remove surface registration flag*/
+			ctx->drawable->flags &= ~DRAWABLE_REGISTERED_WITH_SURFACE;
+
+			if (is_root_surf) {
+				if (ctx->flags & CTX_HAS_APPEARANCE) 
+					gf_node_dirty_reset(ctx->appear);
+			}
+
 			tmp = ctx->next;
 			ctx->next = prev;
 			prev = ctx;
@@ -475,7 +493,12 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		/*if node is marked as undrawn, remove from surface*/
 		if (!(it->drawable->flags & DRAWABLE_DRAWN_ON_SURFACE)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Node %s no longer on surface - unregistering it\n", gf_node_get_class_name(it->drawable->node)));
-			it->drawable->flags &= ~DRAWABLE_REG_WITH_SURFACE;
+
+			/*remove all bounds info related to this surface and unreg node */
+			drawable_reset_bounds(it->drawable, surf);
+
+			it->drawable->flags &= ~DRAWABLE_REGISTERED_WITH_SURFACE;
+
 
 			if (prev) prev->next = it->next;
 			else surf->prev_nodes = it->next;
@@ -570,11 +593,6 @@ skip_background:
 
 			gf_node_render(ctx->drawable->node, eff);
 		}
-		/*node no longer register with this surface, destroy its bounds*/
-		if (!(ctx->drawable->flags & DRAWABLE_REG_WITH_SURFACE)) {
-			drawable_reset_bounds(ctx->drawable, surf);
-		}
-
 		ctx = ctx->next;
 	}
 

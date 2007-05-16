@@ -74,7 +74,7 @@ Bool gf_sr_texture_check_url_change(GF_TextureHandler *txh, MFURL *url)
 }
 
 GF_EXPORT
-GF_Err gf_sr_texture_play_from(GF_TextureHandler *txh, MFURL *url, Double media_offset, Bool can_loop, Bool lock_scene_timeline, MFURL *sync_ref_url)
+GF_Err gf_sr_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double start_offset, Double end_offset, Bool can_loop, Bool lock_scene_timeline)
 {
 	if (txh->is_open) return GF_BAD_PARAM;
 
@@ -95,7 +95,7 @@ GF_Err gf_sr_texture_play_from(GF_TextureHandler *txh, MFURL *url, Double media_
 	/*bad/Empty URL*/
 	if (!txh->stream) return GF_NOT_SUPPORTED;
 	/*request play*/
-	gf_mo_play(txh->stream, media_offset, can_loop);
+	gf_mo_play(txh->stream, start_offset, end_offset, can_loop);
 #endif
 
 	txh->last_frame_time = (u32) (-1);
@@ -113,7 +113,7 @@ GF_Err gf_sr_texture_play(GF_TextureHandler *txh, MFURL *url)
 		offset = gf_node_get_scene_time(txh->owner);
 		loop = gf_mo_get_loop(gf_mo_find(txh->owner, url, 0), 0);
 	}
-	return gf_sr_texture_play_from(txh, url, offset, loop, 0, NULL);
+	return gf_sr_texture_play_from_to(txh, url, offset, -1, loop, 0);
 }
 
 
@@ -124,7 +124,11 @@ void gf_sr_texture_stop(GF_TextureHandler *txh)
 #ifdef DANAE
 	releaseDanaeMediaObject(txh->dmo);
 #else 
-	gf_sr_texture_release_stream(txh);
+	/*release texture WITHOUT droping frame*/
+	if (txh->needs_release) {
+		gf_mo_release_data(txh->stream, 0xFFFFFFFF, -1);
+		txh->needs_release = 0;
+	}
 	gf_sr_invalidate(txh->compositor, NULL);
 	gf_mo_stop(txh->stream);
 #endif

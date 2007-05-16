@@ -64,8 +64,9 @@ enum {
 	DRAWABLE_DRAWN_ON_SURFACE = 1,
 	/*flag set when geometry's node has been modified (eg, skips bounds checking)*/
 	DRAWABLE_HAS_CHANGED = 1<<1,
-	/*set if node already registered in previous node drawn list of the current surface*/
-	DRAWABLE_REG_WITH_SURFACE = 1<<2,
+	/*set if node is registered in previous node drawn list of the current surface
+	the flag is only set during a surface render*/
+	DRAWABLE_REGISTERED_WITH_SURFACE = 1<<2,
 };
 
 typedef struct _drawable

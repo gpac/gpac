@@ -53,7 +53,7 @@ URL cannot be handled - note that until the mediaObject.isInit member is true, t
 (and could actually never be) */
 GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines);
 /*opens media object*/
-void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop);
+void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_loop);
 /*stops media object - video memory is not reset, last frame is kept*/
 void gf_mo_stop(GF_MediaObject *mo);
 /*restarts media object - shall be used for all looping media instead of stop/play for mediaControl
@@ -93,7 +93,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 droped if all bytes are consumed, otherwise it will be droped based on object time - typically, video fetches with the resync
 flag set and release without forceDrop, while audio fetches without resync but forces buffer drop. If forceDrop is set to 2, 
 the frame will be stated as a discraded frame*/
-void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop);
+void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop);
 /*get media time*/
 void gf_mo_get_media_time(GF_MediaObject *mo, u32 *media_time, u32 *media_dur);
 /*get object clock*/
@@ -110,6 +110,9 @@ u32 gf_mo_get_last_frame_time(GF_MediaObject *mo);
 Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat);
 
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config);
+
+/*checks if the service associated withthis object has an audio stream*/
+Bool gf_mo_has_audio(GF_MediaObject *mo);
 
 enum
 {

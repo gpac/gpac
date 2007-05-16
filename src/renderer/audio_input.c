@@ -149,7 +149,7 @@ void gf_sr_audio_setup(GF_AudioInput *ai, GF_Renderer *sr, GF_Node *node)
 
 
 GF_EXPORT
-GF_Err gf_sr_audio_open(GF_AudioInput *ai, MFURL *url)
+GF_Err gf_sr_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double clipEnd)
 {
 	if (ai->is_open) return GF_BAD_PARAM;
 
@@ -162,7 +162,7 @@ GF_Err gf_sr_audio_open(GF_AudioInput *ai, MFURL *url)
 	gf_sg_vrml_field_copy(&ai->url, url, GF_SG_VRML_MFURL);
 
 	/*request play*/
-	gf_mo_play(ai->stream, 0, 0);
+	gf_mo_play(ai->stream, clipBegin, clipEnd, 0);
 
 	ai->stream_finished = 0;
 	ai->is_open = 1;

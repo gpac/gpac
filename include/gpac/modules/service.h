@@ -87,6 +87,8 @@ enum
 
 	/*sets info for service - net->term only*/
 	GF_NET_SERVICE_INFO,
+	/*checks if there is an audio stream in the service - term->net only*/
+	GF_NET_SERVICE_HAS_AUDIO,
 };
 
 /*channel command for all commands that don't need params:

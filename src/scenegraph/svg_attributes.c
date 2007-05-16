@@ -3245,6 +3245,14 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 			return av;
 		}
 		break;
+	case SVG_Clock_datatype:
+		{
+			SVG_Clock *ck;
+			GF_SAFEALLOC(ck, SVG_Clock)
+			return ck;
+		}
+		break;
+
 	case XMLEV_Event_datatype:
 		{
 			XMLEV_Event *e;

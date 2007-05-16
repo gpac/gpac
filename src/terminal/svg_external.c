@@ -131,7 +131,7 @@ void gf_svg_subscene_start(GF_InlineScene *is)
 {
 	GF_MediaObject *mo = is->root_od->mo;
 	if (!mo) return;
-	gf_mo_play(mo, 0, 0);
+	gf_mo_play(mo, 0, -1, 0);
 }
 
 void gf_svg_subscene_stop(GF_InlineScene *is, Bool reset_ck)
@@ -251,8 +251,7 @@ static void svg_animation_smil_update(SMIL_Timing_RTI *rti, Fixed normalized_sce
 
 	/*play*/
 	if (!is->root_od->mo->num_open) {	
-		if (clipEnd && clipEnd>0) is->root_od->media_stop_time = (u64) (1000*(*clipEnd));
-		gf_mo_play(is->root_od->mo, (clipBegin?*clipBegin:0), 0);
+		gf_mo_play(is->root_od->mo, (clipBegin?*clipBegin:0), (clipEnd ? *clipEnd : -1), 0);
 	}
 }
 
@@ -421,7 +420,7 @@ static void SVG_Render_use(GF_Node *node, void *rs, Bool is_destroy)
 
 			/*play*/
 			if (!is->root_od->mo->num_open) 
-				gf_mo_play(is->root_od->mo, 0, 0);
+				gf_mo_play(is->root_od->mo, 0, -1, 0);
 		}
 		
 		shadow_root = gf_sg_get_root_node(is->graph);

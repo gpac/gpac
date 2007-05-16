@@ -1108,7 +1108,7 @@ EXPORTS
 	gf_sr_texture_get_handler
 	gf_sr_texture_check_url_change
 	gf_sr_texture_play
-	gf_sr_texture_play_from
+	gf_sr_texture_play_from_to
 	gf_sr_texture_stop
 	gf_sr_texture_restart
 	gf_sr_texture_update_frame
@@ -1148,6 +1148,7 @@ EXPORTS
 	gf_mo_get_flags
 	gf_mo_set_flag
 	gf_mo_get_last_frame_time
+	gf_mo_has_audio
 	gf_term_node_callback
 
 ;mpegts.h exports

@@ -789,6 +789,18 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 		fprintf(stdout, "Memory usage after DrawScene: %d\n", rti.gpac_memory);
 	}
 #endif 
+
+	/*reset all flags of all nodes registered on all extra surfaces
+	this must be done once all surfaces have been drawn, otherwise we won't
+	detect the changes for nodes drawn on # surfaces*/
+	for (i=1; i<gf_list_count(sr->surfaces_2D); i++) {
+		VisualSurface2D *surf = gf_list_get(sr->surfaces_2D, i);
+		DrawableContext *ctx = surf->context;
+		while (ctx && ctx->drawable) {
+			if (ctx->flags & CTX_HAS_APPEARANCE) gf_node_dirty_reset(ctx->appear);
+			ctx = ctx->next;
+		}
+	}
 }
 
 Bool R2D_IsPixelMetrics(GF_Node *n)

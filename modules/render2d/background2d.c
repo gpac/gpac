@@ -360,6 +360,9 @@ void R2D_Background2DModified(GF_Node *node)
 	Background2DStack *st = (Background2DStack *) gf_node_get_private(node);
 	if (!st) return;
 
+	/*dirty node and parents in order to trigger top-level surface redraw*/
+	gf_node_dirty_set(node, 0, 1);
+
 	/*if open and changed, stop and play*/
 	if (st->txh.is_open) {
 		if (! gf_sr_texture_check_url_change(&st->txh, &bck->url)) return;
