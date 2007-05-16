@@ -55,7 +55,7 @@ static s32 gf_smil_timing_find_interval_index(SMIL_Timing_RTI *rti, Double scene
 static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_Interval *interval)
 {
 	Bool clamp_active_duration;
-	Bool isDurDefined, isRepeatCountDefined, isRepeatDurDefined, isMinDefined, isMaxDefined, isRepeatDurIndefinite, isRepeatCountIndefinite;
+	Bool isDurDefined, isRepeatCountDefined, isRepeatDurDefined, isMinDefined, isMaxDefined, isRepeatDurIndefinite, isRepeatCountIndefinite, isMediaDuration;
 	SMILTimingAttributesPointers *timingp = rti->timingp;
 
 	if (!timingp) return;
@@ -73,14 +73,15 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 	}
 
 	isDurDefined = (timingp->dur && timingp->dur->type == SMIL_DURATION_DEFINED);
+	isMediaDuration = (timingp->dur && (timingp->dur->type == SMIL_DURATION_MEDIA) && (rti->media_duration>=0) );
 	isRepeatCountDefined = (timingp->repeatCount && timingp->repeatCount->type == SMIL_REPEATCOUNT_DEFINED);
 	isRepeatCountIndefinite = (timingp->repeatCount && timingp->repeatCount->type == SMIL_REPEATCOUNT_INDEFINITE);
 	isRepeatDurDefined = (timingp->repeatDur && timingp->repeatDur->type == SMIL_DURATION_DEFINED);
 	isRepeatDurIndefinite = (timingp->repeatDur && timingp->repeatDur->type == SMIL_DURATION_INDEFINITE);
 
 	/* Step 1: Computing active duration using repeatDur and repeatCount */
-	if (isDurDefined) {
-		interval->simple_duration = timingp->dur->clock_value;
+	if (isDurDefined || isMediaDuration) {
+		interval->simple_duration = isMediaDuration ? rti->media_duration : timingp->dur->clock_value;
 
 		if (isRepeatCountDefined && !isRepeatDurDefined) {
 			interval->active_duration = FIX2FLT(timingp->repeatCount->count) * interval->simple_duration;
@@ -96,9 +97,7 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 			interval->active_duration = MIN(timingp->repeatDur->clock_value, 
 										FIX2FLT(timingp->repeatCount->count) * interval->simple_duration);
 		}			
-
 	} else {
-		/* TODO: handle the case of dur=media */
 
 		/* simple_duration is indefinite */
 		interval->simple_duration = -1;
@@ -145,6 +144,13 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 			interval->active_duration = interval->end - interval->begin;
 	}
 }
+
+void gf_smil_set_media_duration(SMIL_Timing_RTI *rti, Double media_duration)
+{
+	rti->media_duration = media_duration;
+	gf_smil_timing_compute_active_duration(rti, rti->current_interval);
+}
+
 
 static void gf_smil_timing_add_new_interval(SMIL_Timing_RTI *rti, SMIL_Interval *interval, Double begin, u32 index)
 {
@@ -300,7 +306,7 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 		rti->current_interval_index = interval_index;
 		rti->current_interval = (SMIL_Interval*)gf_list_get(rti->intervals, rti->current_interval_index);
 	} 
-	
+	rti->media_duration = -1;
 	timingp->runtime = rti;
 
 	sg = timed_elt->sgprivate->scenegraph;
@@ -493,6 +499,18 @@ static Bool gf_smil_discard(SMIL_Timing_RTI *rti, Fixed scene_time)
 	return 1;
 }
 
+/*Animations are apoplied in their begin order. Whenever an anim (re)starts, it is placed at the end of the queue 
+(potentially after frozen animations)*/
+static void gf_smil_reorder_anim(SMIL_Timing_RTI *rti)
+{
+	SMIL_Anim_RTI *rai = (SMIL_Anim_RTI *) gf_smil_anim_get_anim_runtime_from_timing(rti);
+	if (rai) {
+		gf_list_del_item(rai->owner->anims, rai);
+		gf_list_add(rai->owner->anims, rai);
+		gf_smil_anim_reset_variables(rai);
+	}
+}
+
 /* Returns:
 	0 if no rendering traversal is required, 
 	1 if a rendering traversal is required!!!,
@@ -537,6 +555,8 @@ waiting_to_begin:
 				/*activate conditional*/
 				if (e->children) gf_node_render(e->children->node, NULL);
 				rti->status = SMIL_STATUS_DONE;
+			} else {
+				gf_smil_reorder_anim(rti);
 			}
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Timing] Time %f - Evaluating timed element %s - Not starting\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_name((GF_Node *)rti->timed_elt)));
@@ -556,7 +576,7 @@ waiting_to_begin:
 			evt.smil_event_time = rti->current_interval->begin + rti->current_interval->active_duration;
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 
-			ret = 1;
+			ret = rti->postpone;
 
 			if (timingp->fill && *timingp->fill == SMIL_FILL_FREEZE) {
 				rti->status = SMIL_STATUS_FROZEN;
@@ -576,7 +596,21 @@ waiting_to_begin:
 				}
 			}
 
+		}
+		/*special case for unspecified simpleDur*/
+		else if (rti->current_interval->simple_duration==-1) {
+			ret = rti->postpone;
+			if (rti->current_interval->active_duration<=0) {
+				rti->status = SMIL_STATUS_FROZEN;
+				rti->first_frozen = rti->cycle_number;
+				rti->evaluate_status = SMIL_TIMING_EVAL_FREEZE;
+				if (!rti->postpone) {
+					Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
+					rti->evaluate(rti, simple_time, rti->evaluate_status);
+				}
+			}
 		} else { // the animation is still active 
+
 
 			if (!timingp->restart || *timingp->restart == SMIL_RESTART_ALWAYS) {
 				s32 interval_index;
@@ -588,14 +622,18 @@ waiting_to_begin:
 					rti->current_interval_index = interval_index;
 					rti->current_interval = (SMIL_Interval*)gf_list_get(rti->intervals, rti->current_interval_index);
 				
+					gf_smil_reorder_anim(rti);
+
 					memset(&evt, 0, sizeof(evt));
 					evt.type = GF_EVENT_BEGIN_EVENT;
 					evt.smil_event_time = rti->current_interval->begin;
 					gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
+
+				
 				} 
 			}
 
-			ret = 1;
+			ret = rti->postpone;
 			
 			cur_id = rti->current_interval->nb_iterations;
 			simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);

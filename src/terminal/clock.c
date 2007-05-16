@@ -241,7 +241,7 @@ void gf_clock_buffer_on(GF_Clock *ck)
 void gf_clock_buffer_off(GF_Clock *ck)
 {
 	gf_mx_p(ck->mx);
-	assert(ck->Buffering);
+	//assert(ck->Buffering);
 	if (ck->Buffering) {
 		ck->Buffering -= 1;
 		if (!ck->Buffering) gf_clock_resume(ck);

@@ -53,14 +53,22 @@ void drawable_pick(RenderEffect2D *eff)
 	y = eff->y;
 
 	gf_mx2d_apply_coords(&inv, &x, &y);
-	if (eff->ctx->h_texture || (eff->pick_type<PICK_FULL) || GF_COL_A(eff->ctx->aspect.fill_color) ) {
+	if (eff->ctx->h_texture 
+		|| (eff->pick_type<PICK_FULL) 
+		|| GF_COL_A(eff->ctx->aspect.fill_color)
+		|| (eff->ctx->flags & CTX_SVG_PICK_PATH)
+		) {
 		if (gf_path_point_over(eff->ctx->drawable->path, x, y)) {
 			eff->is_over = 1;
 			return;
 		}
 	}
 
-	if (eff->ctx->aspect.pen_props.width || eff->ctx->aspect.line_texture || (eff->pick_type!=PICK_PATH)) {
+	if (eff->ctx->aspect.pen_props.width 
+		|| eff->ctx->aspect.line_texture 
+		|| (eff->pick_type!=PICK_PATH)
+		|| (eff->ctx->flags & CTX_SVG_PICK_OUTLINE)
+		) {
 		si = drawctx_get_strikeinfo(eff->surface->render, eff->ctx, NULL);
 		if (si && si->outline && gf_path_point_over(si->outline, x, y)) {
 			eff->is_over = 1;
@@ -1178,8 +1186,25 @@ DrawableContext *SVG_drawable_init_context(Drawable *drawable, RenderEffect2D *e
 	if (ctx->h_texture && ctx->h_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
 
 	if (check_transparent_skip(ctx, skipFill)) {
-		VS2D_RemoveLastContext(eff->surface);
-		return NULL;
+		switch (*eff->svg_props->pointer_events) {
+		case SVG_POINTEREVENTS_NONE:
+			VS2D_RemoveLastContext(eff->surface);
+			return NULL;
+		case SVG_POINTEREVENTS_FILL:
+		case SVG_POINTEREVENTS_VISIBLEFILL:
+			ctx->flags |= CTX_SVG_PICK_PATH;
+			break;
+		case SVG_POINTEREVENTS_STROKE:
+		case SVG_POINTEREVENTS_VISIBLESTROKE:
+			ctx->flags |= CTX_SVG_PICK_OUTLINE;
+			break;
+		case SVG_POINTEREVENTS_BOUNDINGBOX:
+			ctx->flags |= CTX_SVG_PICK_BOUNDS;
+			break;
+		default:
+			ctx->flags |= CTX_SVG_PICK_PATH | CTX_SVG_PICK_OUTLINE;
+			break;
+		}
 	}
 	//ctx->flags |= CTX_HAS_LISTENERS;
 	return ctx;

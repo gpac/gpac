@@ -55,6 +55,7 @@ GF_SceneGraph *gf_sg_new()
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	tmp->scripts = gf_list_new();
+	tmp->listeners_to_add = gf_list_new();
 #endif
 	return tmp;
 }
@@ -111,6 +112,7 @@ void gf_sg_del(GF_SceneGraph *sg)
 #ifndef GPAC_DISABLE_SVG
 	gf_list_del(sg->xlink_hrefs);
 	gf_list_del(sg->smil_timed_elements);
+	gf_list_del(sg->listeners_to_add);
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	gf_list_del(sg->scripts);
@@ -229,6 +231,11 @@ void gf_sg_reset(GF_SceneGraph *sg)
 		gf_list_rem(sg->scripts, 0);
 		gf_node_replace(n, NULL, 0);
 	}
+#endif
+
+#ifndef GPAC_DISABLE_SVG
+	/*flush any pending add_listener*/
+	gf_dom_listener_process_add(sg);
 #endif
 
 	if (sg->RootNode) gf_node_unregister(sg->RootNode, NULL);
@@ -773,6 +780,8 @@ GF_EXPORT
 void gf_node_render(GF_Node *node, void *renderStack)
 {
 	if (!node || !node->sgprivate) return;
+
+	if (node->sgprivate->flags & GF_NODE_IS_DEACTIVATED) return;
 
 	if (node->sgprivate->tag != TAG_ProtoNode) {
 		if (node->sgprivate->UserCallback) { 
@@ -1605,4 +1614,3 @@ GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 	return gf_node_get_field(node, (u32) res, field);
 #endif
 }
-

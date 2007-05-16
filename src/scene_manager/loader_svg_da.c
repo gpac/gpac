@@ -157,6 +157,21 @@ static SVG_SAFExternalStream *svg_saf_get_next_available_stream(GF_SVG_Parser *p
 	return st;
 }
 
+static void svg_lsr_set_v2(GF_SVG_Parser *parser)
+{
+	u32 i;
+	for (i=0; i<gf_list_count(parser->load->ctx->root_od->ESDescriptors); i++) {
+		GF_ESD *esd = gf_list_get(parser->load->ctx->root_od->ESDescriptors, i);
+		if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
+			GF_LASERConfig *cfg = (GF_LASERConfig *)esd->decoderConfig->decoderSpecificInfo;
+			if (cfg && (cfg->tag==GF_ODF_LASER_CFG_TAG)) {
+				if (!cfg->extensionIDBits) cfg->extensionIDBits = 2;
+			}
+		}
+	}
+}
+
+
 static void svg_process_media_href(GF_SVG_Parser *parser, XMLRI *iri)
 {
 	SVG_SAFExternalStream *st = svg_saf_get_stream(parser, 0, iri->string+1);
@@ -590,6 +605,17 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 
 		} else if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {
 			gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
+
+			switch (info.fieldIndex) {
+			case TAG_SVG_ATT_syncMaster:
+			case TAG_SVG_ATT_focusHighlight: 
+			case TAG_SVG_ATT_initialVisibility: 
+			case TAG_SVG_ATT_fullscreen: 
+			case TAG_SVG_ATT_requiredFonts: 
+				/*switch to v2*/
+				svg_lsr_set_v2(parser);
+				break;
+			}
 		} else if (!strncmp(att->name, "on", 2)) {
 			u32 evtType = gf_dom_event_type_by_name(att->name + 2);
 			if (evtType != GF_EVENT_UNKNOWN) {
@@ -604,12 +630,16 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		}
 	}
 
-	if (anim && (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) ) {
-		needs_init = 0;
-		if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL)) {
-			svg_delete_defered_anim(anim, NULL);
+	if (anim) {
+		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
+			needs_init = 0;
+			if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL)) {
+				svg_delete_defered_anim(anim, NULL);
+			} else {
+				gf_list_add(parser->defered_animations, anim);
+			}
 		} else {
-			gf_list_add(parser->defered_animations, anim);
+			svg_delete_defered_anim(anim, NULL);
 		}
 	}
 
@@ -624,12 +654,11 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 	if ((parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) && elt && (tag==TAG_SVG_listener)) {
 		GF_FieldInfo info;
 		Bool post_pone = 0;
-		SVG_Element *par = parent->node;
+		SVG_Element *par = NULL;
 		SVG_Element *listener = (SVG_Element *)elt;
 
 		if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_observer, 0, 0, &info) == GF_OK) {
 			XMLRI *observer = info.far_ptr;
-			par = NULL;
 			if (observer->type == XMLRI_ELEMENTID) {
 				if (!observer->target) post_pone = 1;
 				else par = observer->target;
@@ -656,8 +685,6 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			if (ev->type>GF_EVENT_MOUSEWHEEL) par = (SVG_Element*) listener->sgprivate->scenegraph->RootNode;
 		}
 
-		if (!par) post_pone = 1;
-		
 		if (post_pone) {
 			gf_list_add(parser->defered_listeners, listener);
 		} else {
@@ -825,6 +852,23 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 		}
 		gf_node_register(parser->command->node, NULL);
 		return GF_OK;
+	case GF_SG_LSR_ACTIVATE:
+	case GF_SG_LSR_DEACTIVATE:
+		for (i=0; i<nb_attributes; i++) {
+			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
+			if (!strcmp(att->name, "ref")) atNode = att->value;
+		}
+		if (!atNode) return svg_report(parser, GF_BAD_PARAM, "Missing node ref for command");
+		/*should be a XML IDREF, not an XML IRI*/
+		if (atNode[0]=='#') atNode++;
+		parser->command->node = svg_find_node(parser, atNode);
+		if (!parser->command->node) return svg_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
+		gf_node_register(parser->command->node, NULL);
+
+		/*switch to V2*/
+		svg_lsr_set_v2(parser);
+
+		return GF_OK;
 	default:
 		return GF_OK;
 	}
@@ -843,6 +887,8 @@ static u32 lsr_get_command_by_name(const char *name)
 	else if (!strcmp(name, "Restore")) return GF_SG_LSR_RESTORE;
 	else if (!strcmp(name, "Save")) return GF_SG_LSR_SAVE;
 	else if (!strcmp(name, "SendEvent")) return GF_SG_LSR_SEND_EVENT;
+	else if (!strcmp(name, "Activate")) return GF_SG_LSR_ACTIVATE;
+	else if (!strcmp(name, "Deactivate")) return GF_SG_LSR_DEACTIVATE;
 	return GF_SG_UNDEFINED;
 }
 
@@ -864,6 +910,7 @@ static GF_ESD *lsr_parse_header(GF_SVG_Parser *parser, const char *name, const c
 			else if (!strcmp(att->name, "newSceneIndicator")) lsrc->newSceneIndicator = (!strcmp(att->value, "yes") || !strcmp(att->value, "true")) ? 1 : 0;
 			else if (!strcmp(att->name, "useFullRequestHost")) lsrc->fullRequestHost = (!strcmp(att->value, "yes") || !strcmp(att->value, "true")) ? 1 : 0;
 			else if (!strcmp(att->name, "pathComponents")) lsrc->fullRequestHost = atoi(att->value);
+			else if (!strcmp(att->name, "extensionIDBits")) lsrc->extensionIDBits = atoi(att->value);
 			/*others are ignored in GPAC atm*/
 		}
 		esd = gf_odf_desc_esd_new(2);
@@ -1112,6 +1159,8 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	elt = svg_parse_element(parser, name, name_space, attributes, nb_attributes, parent);
 	if (!elt) {
 		if (parent) parent->unknown_depth++;
+		else if (cond) parser->command_depth++;
+		svg_report(parser, GF_OK, "Ignoring unknown element %s", name);
 		return;
 	}
 	GF_SAFEALLOC(stack, SVG_NodeStack);
@@ -1216,6 +1265,8 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		if (top->unknown_depth) {
 			top->unknown_depth--;
 			if (!top->unknown_depth) parser->command_depth --;
+		} else if (parser->command_depth) {
+			parser->command_depth--;
 		} else {
 			svg_report(parser, GF_BAD_PARAM, "SVG depth mismatch");
 		}

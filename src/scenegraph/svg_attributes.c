@@ -1806,6 +1806,8 @@ static void svg_parse_pointerevents(SVG_PointerEvents *value, char *value_string
 		*value = SVG_POINTEREVENTS_STROKE;
 	} else if (!strcmp(value_string, "all")) {
 		*value = SVG_POINTEREVENTS_ALL;
+	} else if (!strcmp(value_string, "boundingBox")) {
+		*value = SVG_POINTEREVENTS_BOUNDINGBOX;
 	} else if (!strcmp(value_string, "none")) {
 		*value = SVG_POINTEREVENTS_NONE;
 	}
@@ -3694,6 +3696,7 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 		else if (intVal==SVG_POINTEREVENTS_STROKE) strcpy(attValue, "stroke");
 		else if (intVal==SVG_POINTEREVENTS_ALL) strcpy(attValue, "all");
 		else if (intVal==SVG_POINTEREVENTS_NONE) strcpy(attValue, "none");
+		else if (intVal==SVG_POINTEREVENTS_BOUNDINGBOX) strcpy(attValue, "boundingBox");
 		break;
 	case SVG_RenderingHint_datatype:
 		if (intVal==SVG_RENDERINGHINT_INHERIT) strcpy(attValue, "inherit");

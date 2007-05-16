@@ -121,7 +121,7 @@ static GF_Err ODS_UpdateESD(ODPriv *priv, GF_ESDUpdate *ESDs)
 		} else {
 			/*and register new stream*/
 			gf_list_add(odm->OD->ESDescriptors, esd);
-			gf_odm_setup_es(odm, esd, odm->net_service);
+			gf_odm_setup_es(odm, esd, odm->net_service, NULL);
 		}
 
 		/*remove the desc from the AU*/

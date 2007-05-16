@@ -206,7 +206,7 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	}
 }
 
-static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_timelines)
+static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref)
 {
 	GF_ObjectManager *root_od;
 	GF_ObjectManager *odm;
@@ -263,6 +263,9 @@ static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_ti
 		if (lock_timelines) odm->flags |= GF_ODM_INHERIT_TIMELINE;
 	}
 
+	/*HACK - temp storage of sync ref*/
+	if (sync_ref) odm->ocr_codec = (struct _generic_codec *)sync_ref;
+
 	gf_list_add(is->ODlist, odm);
 	gf_odm_setup_object(odm, root_od->net_service);
 }
@@ -275,7 +278,7 @@ static void IS_ReinsertObject(GF_InlineScene *is, GF_MediaObject *mo)
 	for (i=0; i<mo->URLs.count-1; i++) mo->URLs.vals[i].url = mo->URLs.vals[i+1].url;
 	mo->URLs.vals[mo->URLs.count-1].url = NULL;
 	mo->URLs.count-=1;
-	IS_InsertObject(is, mo, 0);
+	IS_InsertObject(is, mo, 0, NULL);
 }
 
 
@@ -682,7 +685,7 @@ static GFINLINE Bool is_match_obj_type(u32 type, u32 hint_type)
 	return 0;
 }
 
-GF_MediaObject *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines)
+GF_MediaObject *gf_is_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref)
 {
 	GF_MediaObject *obj, *old_obj;
 	u32 i, OD_ID;
@@ -750,12 +753,17 @@ GF_MediaObject *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_t
 		}
 #endif
 
-		IS_InsertObject(is, obj, lock_timelines);
+		IS_InsertObject(is, obj, lock_timelines, sync_ref);
 		/*safety check!!!*/
 		if (gf_list_find(is->media_objects, obj)<0) 
 			return NULL;
 	}
 	return obj;
+}
+
+GF_MediaObject *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines)
+{
+	return gf_is_get_media_object_ex(is, url, obj_type_hint, lock_timelines, NULL);
 }
 
 GF_EXPORT

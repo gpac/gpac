@@ -454,7 +454,6 @@ JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 	evtType = gf_dom_event_type_by_name(type);
 	if (evtType==GF_EVENT_UNKNOWN) return JS_FALSE;
 
-	/*emulate a listener for onClick event*/
 	listener = gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
 	handler = (SVG_handlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_handler);
 	gf_node_register(listener, node);
@@ -475,7 +474,8 @@ JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 
 	gf_dom_add_text_node((GF_Node *)handler, strdup(callback));
 	handler->handle_event = gf_sg_handle_dom_event;
-	gf_dom_listener_add((GF_Node *) node, listener);
+	/*don't add listener directly, post it and wait for event processing*/
+	gf_dom_listener_post_add((GF_Node *) node, listener);
 	return JS_TRUE;
 }
 JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -594,6 +594,9 @@ static void dom_node_inserted(GF_Node *par, GF_Node *n, s32 pos)
 			gf_dom_event_fire(n, NULL, &evt);
 		}
 	}
+	/*node is being re-inserted, activate it in case*/
+	if (!old_par) gf_node_activate(n);
+
 	dom_node_changed(par, 1, NULL);
 }
 
@@ -693,9 +696,13 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 	par = (GF_ParentNode*)n;
 
 	/*if node is present in parent, unregister*/
-	if (gf_node_list_del_child(&par->children, old_node))
+	if (gf_node_list_del_child(&par->children, old_node)) {
 		gf_node_unregister(old_node, n);
+	}
 	
+	/*deactivate node sub-tree*/
+	gf_node_deactivate(old_node);
+
 	*rval = argv[0];
 	dom_node_changed(n, 1, NULL);
 	return JS_TRUE;
@@ -970,7 +977,7 @@ static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, jsval id, js
 	/*"documentElement"*/
 	case JS_DOM3_NODE_LAST_PROP+3:
 		*vp = dom_element_construct(c, n);
-		break;
+		return JS_TRUE;
 	/*"inputEncoding"*/
 	case JS_DOM3_NODE_LAST_PROP+4:
 		/*NOT SUPPORTED YET*/

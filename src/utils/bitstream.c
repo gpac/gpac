@@ -819,6 +819,13 @@ u32 gf_bs_get_bit_offset(GF_BitStream *bs)
 	return (u32) ( (bs->position ) * 8 + bs->nbBits);
 }
 
+GF_EXPORT
+u32 gf_bs_get_bit_position(GF_BitStream *bs)
+{
+	if (bs->stream) return 0;
+	return bs->nbBits;
+}
+
 u32 gf_bs_read_vluimsbf5(GF_BitStream *bs)
 {
 	u32 nb_words = 0;

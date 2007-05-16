@@ -462,33 +462,36 @@ void svg_init_image(Render2D *sr, GF_Node *node)
 static void SVG_Update_video(GF_TextureHandler *txh)
 {
 	SVG_video_stack *st = (SVG_video_stack *) gf_node_get_private(txh->owner);
-	u32 tag = gf_node_get_tag(txh->owner);
-	SVG_InitialVisibility init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
+	
+	if (!txh->is_open) {
+		u32 tag = gf_node_get_tag(txh->owner);
+		SVG_InitialVisibility init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
 
-	switch (tag) {
+		switch (tag) {
 #ifdef GPAC_ENABLE_SVG_SA
-	case TAG_SVG_SA_video:
-		init_vis = ((SVG_SA_videoElement *)txh->owner)->initialVisibility;
-		break;
+		case TAG_SVG_SA_video:
+			init_vis = ((SVG_SA_videoElement *)txh->owner)->initialVisibility;
+			break;
 #endif
 #ifdef GPAC_ENABLE_SVG_SANI
-	case TAG_SVG_SANI_video:
-		init_vis = ((SVG_SANI_videoElement *)txh->owner)->initialVisibility;
-		break;
+		case TAG_SVG_SANI_video:
+			init_vis = ((SVG_SANI_videoElement *)txh->owner)->initialVisibility;
+			break;
 #endif
-	case TAG_SVG_video:
-	{
-		GF_FieldInfo init_vis_info;
-		if (gf_svg_get_attribute_by_tag(txh->owner, TAG_SVG_ATT_initialVisibility, 0, 0, &init_vis_info) == GF_OK) {
-			init_vis = *(SVG_InitialVisibility *)init_vis_info.far_ptr;
+		case TAG_SVG_video:
+		{
+			GF_FieldInfo init_vis_info;
+			if (gf_svg_get_attribute_by_tag(txh->owner, TAG_SVG_ATT_initialVisibility, 0, 0, &init_vis_info) == GF_OK) {
+				init_vis = *(SVG_InitialVisibility *)init_vis_info.far_ptr;
+			}
 		}
-	}
-		break;
-	}
-	if (!txh->is_open) {
+			break;
+		}
+
 		/*opens stream only at first access to fetch first frame if needed*/
 		if (!st->first_frame_fetched && (init_vis == SVG_INITIALVISIBILTY_ALWAYS)) {
 			//gf_sr_texture_play_from(txh, &st->txurl, 0, 0, 0, NULL);
+			svg_play_texture((SVG_image_stack*)st, NULL);
 			gf_sr_invalidate(txh->compositor, NULL);
 			return;
 		} else {
@@ -524,12 +527,13 @@ static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 		if (!stack->txh.is_open) { 
 			svg_play_texture((SVG_image_stack*)stack, NULL);
 		}
-		else if (stack->txh.stream_finished && (rti->current_interval->simple_duration<0) ) { 
-			rti->current_interval->simple_duration = gf_mo_get_duration(stack->txh.stream);
-			if (rti->current_interval->simple_duration <= 0) {
-				rti->current_interval->simple_duration = stack->txh.last_frame_time;
-				rti->current_interval->simple_duration /= 1000;
+		else if (stack->txh.stream_finished && (rti->media_duration<0) ) { 
+			Double dur = gf_mo_get_duration(stack->txh.stream);
+			if (dur <= 0) {
+				dur = stack->txh.last_frame_time;
+				dur /= 1000;
 			}
+			gf_smil_set_media_duration(rti, dur);
 		}
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:
@@ -635,20 +639,23 @@ static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
 		if (!stack->is_active) { 
-			gf_sr_audio_open(&stack->input, &stack->aurl);
-			gf_mo_set_speed(stack->input.stream, FIX_ONE);
-			stack->is_active = 1;
-		}
-		else if (stack->input.stream_finished && (rti->current_interval->simple_duration<0) ) { 
-			rti->current_interval->simple_duration = gf_mo_get_duration(stack->input.stream);
-			if (rti->current_interval->simple_duration <= 0) {
-				rti->current_interval->simple_duration = gf_mo_get_last_frame_time(stack->input.stream);
-				rti->current_interval->simple_duration /= 1000;
+			if (gf_sr_audio_open(&stack->input, &stack->aurl) == GF_OK) {
+				gf_mo_set_speed(stack->input.stream, FIX_ONE);
+				stack->is_active = 1;
 			}
+		}
+		else if (stack->input.stream_finished && (rti->media_duration < 0) ) { 
+			Double dur = gf_mo_get_duration(stack->input.stream);
+			if (dur <= 0) {
+				dur = gf_mo_get_last_frame_time(stack->input.stream);
+				dur /= 1000;
+			}
+			gf_smil_set_media_duration(rti, dur);
 		}
 		break;
 	case SMIL_TIMING_EVAL_REPEAT:
-		if (stack->is_active) gf_sr_audio_restart(&stack->input);
+		if (stack->is_active) 
+			gf_sr_audio_restart(&stack->input);
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:
 		gf_sr_audio_stop(&stack->input);
@@ -657,6 +664,13 @@ static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 	case SMIL_TIMING_EVAL_REMOVE:
 		gf_sr_audio_stop(&stack->input);
 		stack->is_active = 0;
+		break;
+	case SMIL_TIMING_EVAL_DEACTIVATE:
+		if (stack->is_active) {
+			gf_sr_audio_stop(&stack->input);
+			gf_sr_audio_unregister(&stack->input);
+			stack->is_active = 0;
+		}
 		break;
 	}
 }
@@ -709,6 +723,12 @@ static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 		st->input.is_muted = 1;
 	}
 
+	if (eff->svg_props->audio_level) {
+		st->input.intensity = eff->svg_props->audio_level->value;
+	} else {
+		st->input.intensity = FIX_ONE;
+	}
+
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	eff->svg_flags = backup_flags;
 }
@@ -732,7 +752,6 @@ void svg_init_audio(Render2D *sr, GF_Node *node)
 	case TAG_SVG_SANI_audio:
 #endif
 		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), & ((SVG_SA_audioElement *)node)->xlink->href);
-		gf_smil_timing_init_runtime_info(node);
 		if (((SVG_SA_Element *)node)->timing->runtime) {
 			SMIL_Timing_RTI *rti = ((SVG_SA_Element *)node)->timing->runtime;
 			rti->evaluate = svg_audio_smil_evaluate;
@@ -745,7 +764,6 @@ void svg_init_audio(Render2D *sr, GF_Node *node)
 		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
 			gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), href_info.far_ptr);
 		}
-		gf_smil_timing_init_runtime_info(node);
 		if (((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
 			SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
 			rti->evaluate = svg_audio_smil_evaluate;

@@ -640,6 +640,8 @@ DrawableContext *VS2D_PickContext(VisualSurface2D *surf, Fixed x, Fixed y)
 	while (ctx && ctx->drawable) {
 		/*check over bounds*/
 		if (ctx->drawable && gf_point_in_rect(&ctx->bi->clip, x, y)) {
+			if (ctx->flags & CTX_SVG_PICK_BOUNDS) return ctx;
+
 			eff.ctx = ctx;
 			eff.is_over = 0;
 			gf_node_render(ctx->drawable->node, &eff);

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed May 09 09:48:35 2007
+	DO NOT MOFIFY - File generated on GMT Tue May 15 11:18:46 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -226,6 +226,11 @@ s32 gf_lsr_rare_type_from_attribute(u32 tag) {
 	case TAG_SVG_ATT_nav_right: return 46;
 	case TAG_SVG_ATT_transform: return 47;
 	case TAG_SVG_ATT_text_decoration: return 48;
+	case TAG_SVG_ATT_syncMaster: return 49;
+	case TAG_SVG_ATT_focusHighlight: return 49;
+	case TAG_SVG_ATT_initialVisibility: return 49;
+	case TAG_SVG_ATT_fullscreen: return 49;
+	case TAG_SVG_ATT_requiredFonts: return 49;
 	case TAG_SVG_ATT_font_variant: return 50;
 	case TAG_SVG_ATT_font_family: return 51;
 	case TAG_SVG_ATT_font_size: return 52;

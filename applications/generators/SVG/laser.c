@@ -184,7 +184,15 @@ void generate_laser_tables_da(GF_List *atts)
 			}
 		}
 		if (i==count) {
-			fprintf(stdout, "Warning: Ignoring %s\n", laser_attribute_rare_type_list[j]);
+			if (!strcmp(laser_attribute_rare_type_list[j], "extension")) {
+				fprintf(output, "\tcase TAG_SVG_ATT_syncMaster: return %d;\n", j);
+				fprintf(output, "\tcase TAG_SVG_ATT_focusHighlight: return %d;\n", j);
+				fprintf(output, "\tcase TAG_SVG_ATT_initialVisibility: return %d;\n", j);
+				fprintf(output, "\tcase TAG_SVG_ATT_fullscreen: return %d;\n", j);
+				fprintf(output, "\tcase TAG_SVG_ATT_requiredFonts: return %d;\n", j);
+			} else {
+				fprintf(stdout, "Warning: Ignoring %s\n", laser_attribute_rare_type_list[j]);
+			}
 		}
 		j++;
 	}
