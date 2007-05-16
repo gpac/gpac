@@ -2335,6 +2335,7 @@ GF_Err DumpLSRDelete(GF_SceneDumper *sdump, GF_Command *com)
 {
 	char szID[1024];
 	GF_CommandField *f;
+	DUMP_IND(sdump);
 	fprintf(sdump->trace, "<lsr:Delete ref=\"%s\" ", lsr_format_node_id(com->node, com->RouteID, szID));
 	f = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 	if (f && (f->pos>=0) ) fprintf(sdump->trace, "index=\"%d\" ", f->pos);
@@ -2357,6 +2358,18 @@ GF_Err DumpLSRSendEvent(GF_SceneDumper *sdump, GF_Command *com)
 {
 	return GF_OK;
 }
+GF_Err DumpLSRActivate(GF_SceneDumper *sdump, GF_Command *com)
+{
+	char szID[1024];
+	DUMP_IND(sdump);
+	if (com->tag==GF_SG_LSR_ACTIVATE) {
+		fprintf(sdump->trace, "<lsr:Activate ref=\"%s\" />\n", lsr_format_node_id(com->node, com->RouteID, szID));
+	} else {
+		fprintf(sdump->trace, "<lsr:Deactivate ref=\"%s\" />\n", lsr_format_node_id(com->node, com->RouteID, szID));
+	}
+	return GF_OK;
+}
+
 #endif
 
 GF_EXPORT
@@ -2468,6 +2481,10 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 		case GF_SG_LSR_RESTORE: e = DumpLSRRestore(sdump, com); break;
 		case GF_SG_LSR_SAVE: e = DumpLSRSave(sdump, com); break;
 		case GF_SG_LSR_SEND_EVENT: e = DumpLSRSendEvent(sdump, com); break;
+		case GF_SG_LSR_ACTIVATE:
+		case GF_SG_LSR_DEACTIVATE:
+			e = DumpLSRActivate(sdump, com); 
+			break;
 #endif
 		}
 		if (e) break;

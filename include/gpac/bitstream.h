@@ -215,6 +215,15 @@ u32 gf_bs_read_vluimsbf5(GF_BitStream *bs);
  */
 u32 gf_bs_get_bit_offset(GF_BitStream *bs);
 
+/*!
+ *	\brief current bit position
+ *
+ *	Returns bit position in the current byte of the bitstream - only works in memory mode.
+ *	\param bs the target bitstream 
+ *	\return the integer value read.
+ */
+u32 gf_bs_get_bit_position(GF_BitStream *bs);
+
 
 /*!
  *	\brief integer writing

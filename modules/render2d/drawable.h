@@ -164,6 +164,10 @@ enum
 	CTX_PATH_STROKE = 1<<8,
 	/*indicates SVG path outline geometry has been modified*/
 	CTX_SVG_OUTLINE_GEOMETRY_DIRTY = 1<<9,
+
+	CTX_SVG_PICK_PATH = 1<<10,
+	CTX_SVG_PICK_OUTLINE = 1<<11,
+	CTX_SVG_PICK_BOUNDS = 1<<12,
 };
 
 #define CTX_REDRAW_MASK	0x00000003

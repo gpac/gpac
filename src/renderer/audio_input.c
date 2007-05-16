@@ -41,7 +41,7 @@ static char *AI_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 
 	/*no more data or not enough data, reset syncro drift*/
 	if (!frame) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Render] No data in audio aobject (eos %d)\n", ai->stream_finished));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Render] No data in audio object (eos %d)\n", ai->stream_finished));
 		gf_mo_adjust_clock(ai->stream, 0);
 		return NULL;
 	}
@@ -94,8 +94,8 @@ static Bool AI_GetChannelVolume(void *callback, Fixed *vol)
 	if (ai->snd && ai->snd->GetChannelVolume) {
 		return ai->snd->GetChannelVolume(ai->snd->owner, vol);
 	} else {
-		vol[0] = vol[1] = vol[2] = vol[3] = vol[4] = vol[5] = FIX_ONE;
-		return 0;
+		vol[0] = vol[1] = vol[2] = vol[3] = vol[4] = vol[5] = ai->intensity;
+		return (ai->intensity==FIX_ONE) ? 0 : 1;
 	}
 }
 
@@ -141,6 +141,7 @@ void gf_sr_audio_setup(GF_AudioInput *ai, GF_Renderer *sr, GF_Node *node)
 	ai->input_ifce.GetSpeed = AI_GetSpeed;
 	ai->input_ifce.IsMuted = AI_IsMuted;
 	ai->input_ifce.callback = ai;
+	ai->intensity = FIX_ONE;
 
 	ai->speed = FIX_ONE;
 }

@@ -24,6 +24,8 @@
 
 
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/renderer_dev.h>
+#include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_x3d.h>
 #include "media_memory.h"
 #include "media_control.h"
@@ -32,15 +34,71 @@
 #include <gpac/nodes_svg_da.h>
 
 
+static GF_MediaObject *get_sync_reference(GF_InlineScene *is, XMLRI *iri, u32 o_type, GF_Node *orig_ref, Bool *post_pone)
+{
+	MFURL mfurl;
+	SFURL sfurl;
+	GF_MediaObject *res;
+	GF_Node *ref = NULL;
+
+	u32 stream_id = 0;
+	if (iri->type==XMLRI_STREAMID) {
+		stream_id = iri->lsr_stream_id;
+	} else if (!iri->string) {
+		return NULL;
+	} else {
+		if (iri->target) ref = iri->target;
+		else if (iri->string[0]=='#') ref = gf_sg_find_node_by_name(is->graph, iri->string+1);
+		else ref = gf_sg_find_node_by_name(is->graph, iri->string);
+
+		if (ref) {
+			GF_FieldInfo info;
+			/*safety check, break cyclic references*/
+			if (ref==orig_ref) return NULL;
+
+			switch (ref->sgprivate->tag) {
+			case TAG_SVG_audio:
+				o_type = GF_MEDIA_OBJECT_AUDIO; 
+				if (gf_svg_get_attribute_by_tag(ref, TAG_SVG_ATT_xlink_href, 0, 0, &info)==GF_OK) {
+					return get_sync_reference(is, info.far_ptr, o_type, orig_ref ? orig_ref : ref, post_pone);
+				}
+				return NULL;
+			case TAG_SVG_video:
+				o_type = GF_MEDIA_OBJECT_VIDEO; 
+				if (gf_svg_get_attribute_by_tag(ref, TAG_SVG_ATT_xlink_href, 0, 0, &info)==GF_OK) {
+					return get_sync_reference(is, info.far_ptr, o_type, orig_ref ? orig_ref : ref, post_pone);
+				}
+				return NULL;
+			default:
+				return NULL;
+			}
+		}
+	}
+	*post_pone = 0;
+	mfurl.count = 1;
+	mfurl.vals = &sfurl;
+	mfurl.vals[0].OD_ID = stream_id;
+	mfurl.vals[0].url = iri->string;
+
+	res = gf_is_get_media_object(is, &mfurl, o_type, 0);
+	if (!res) *post_pone = 1;
+	return res;
+}
+
 GF_EXPORT
 GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 {
 	u32 obj_type;
+	Bool post_pone;
+	GF_FieldInfo info;
 	GF_InlineScene *is;
+	GF_MediaObject *res, *syncRef;
 	GF_SceneGraph *sg = gf_node_get_graph(node);
 	if (!sg) return NULL;
 	is = (GF_InlineScene*)gf_sg_get_private(sg);
 	if (!is) return NULL;
+
+	syncRef = NULL;
 
 	/*keep track of the kind of object expected if URL is not using OD scheme*/
 	switch (gf_node_get_tag(node)) {
@@ -70,17 +128,29 @@ GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 #endif
 	case TAG_SVG_audio: 
 		obj_type = GF_MEDIA_OBJECT_AUDIO; 
+		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_syncReference, 0, 0, &info)==GF_OK) {
+			syncRef = get_sync_reference(is, info.far_ptr, GF_MEDIA_OBJECT_UNDEF, node, &post_pone);
+			/*syncRef is specified but doesn't exist yet, post-pone*/
+			if (post_pone) return NULL;
+		}
 		break;
 	case TAG_SVG_image: 
 		obj_type = GF_MEDIA_OBJECT_VIDEO; 
 		break;
 	case TAG_SVG_video: 
 		obj_type = GF_MEDIA_OBJECT_VIDEO; 
+		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_syncReference, 0, 0, &info)==GF_OK) {
+			syncRef = get_sync_reference(is, info.far_ptr, GF_MEDIA_OBJECT_UNDEF, node, &post_pone);
+			/*syncRef is specified but doesn't exist yet, post-pone*/
+			if (post_pone) return NULL;
+		}
 		break;
 
 	default: obj_type = GF_MEDIA_OBJECT_UNDEF; break;
 	}
-	return gf_is_get_media_object(is, url, obj_type, lock_timelines);
+	res = gf_is_get_media_object_ex(is, url, obj_type, lock_timelines, syncRef);
+
+	return res;
 }
 
 GF_MediaObject *gf_mo_new()
@@ -175,7 +245,6 @@ void MO_UpdateCaps(GF_MediaObject *mo)
 		mo->odm->codec->fps = cap.cap.valueFloat;
 	}
 	else if (mo->type == GF_MEDIA_OBJECT_AUDIO) {
-		void gf_sr_lock_audio(void *, Bool );
 		u32 sr, nb_ch, bps;
 		gf_mo_get_audio_info(mo, &sr, &bps, &nb_ch, NULL);
 		mo->odm->codec->bytes_per_sec = sr * nb_ch * bps / 8;

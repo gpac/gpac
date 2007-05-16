@@ -49,14 +49,15 @@ typedef struct _parent_list
 } GF_ParentList;
 
 
-/*internal flag reserved for NodeID*/
-#define GF_NODE_IS_DEF	0x80000000
+/*internal flags reserved for NodeID*/
+#define GF_NODE_IS_DEF			0x80000000	// 1<<31
+#define GF_NODE_IS_DEACTIVATED	0x40000000	// 1<<30
 
 #ifdef GF_CYCLIC_RENDER_ON
-#define GF_NODE_IN_RENDER	0x40000000
-#define GF_NODE_INTERNAL_FLAGS 0xC0000000
+#define GF_NODE_IN_RENDER		0x20000000	//	1<<29
+#define GF_NODE_INTERNAL_FLAGS	0xE0000000
 #else
-#define GF_NODE_INTERNAL_FLAGS 0x80000000
+#define GF_NODE_INTERNAL_FLAGS	0xC0000000
 #endif
 
 struct _node_interactive_ext
@@ -179,6 +180,8 @@ struct __tag_scene_graph
 	GF_List *xlink_hrefs;
 	GF_List *smil_timed_elements;
 	Bool update_smil_timing;
+	/*listeners to add*/
+	GF_List *listeners_to_add;
 #ifdef GPAC_HAS_SPIDERMONKEY
 	struct __tag_svg_script_ctx *svg_js;
 #endif
@@ -329,7 +332,7 @@ typedef struct __smil_sync_attrip_ptrs {
 	SMIL_SyncBehavior *syncBehavior, *syncBehaviorDefault;
 	SMIL_SyncTolerance *syncTolerance, *syncToleranceDefault;
 	SVG_Boolean *syncMaster;
-	SVG_String *syncReference;
+	XMLRI *syncReference;
 } SMILSyncAttributesPointers;
 
 typedef struct __smil_anim_attrip_ptrs {
@@ -371,6 +374,7 @@ Bool gf_svg_is_current_color(GF_FieldInfo *a);
 void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg);
 void gf_svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg);
 
+Bool gf_svg_is_timing_tag(u32 tag);
 Bool gf_svg_is_animation_tag(u32 tag);
 u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info);
 
@@ -408,6 +412,10 @@ enum
 	SMIL_TIMING_EVAL_REPEAT,
 	SMIL_TIMING_EVAL_FRACTION,
 	SMIL_TIMING_EVAL_DISCARD,
+	/*signaled the animation element has been inserted in the DOM tree*/
+	SMIL_TIMING_EVAL_ACTIVATE,
+	/*signaled the animation element has been removed from the DOM tree*/
+	SMIL_TIMING_EVAL_DEACTIVATE,
 };
 
 typedef struct _smil_timing_rti
@@ -427,8 +435,9 @@ typedef struct _smil_timing_rti
 	s32	current_interval_index;
 	SMIL_Interval *current_interval;
 
-	/* evaluation of timing attributes and activation of the timed element may be postponed in some cases
-	   for instance, animation elements are activated when traversing the tree, but audio elements are not traversed.*/
+	/* Evaluation of animations is postponed untill tree traversal, so that inherit values can be computed
+	Other timed elements (audio, video, animation) are evaluated directly and do not require
+	scene tree traversal.*/
 	Bool postpone;
 
 	void (*evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, u32 state);
@@ -450,6 +459,7 @@ typedef struct _smil_timing_rti
 	/* simulated normalized simple time */
 	Fixed fraction;
 
+	Double media_duration;
 } SMIL_Timing_RTI;
 
 void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field);
@@ -460,6 +470,8 @@ void gf_smil_timing_delete_runtime_info(GF_Node *timed_elt, SMIL_Timing_RTI *rti
 Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double scene_time);
 /*returns 1 if an animation changed a value in the rendering tree */
 s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
+
+void gf_smil_set_media_duration(SMIL_Timing_RTI *rti, Double media_duration);
 
 /* SMIL Animation Structures */
 /* This structure is used per animated attribute,
@@ -524,6 +536,7 @@ typedef struct {
 	s32		previous_key_index;
 	Fixed	previous_coef;
 	u32		previous_keytime_index;
+	Bool set_done;
 
 	GF_Path *path;
 	u8 rotate;
@@ -542,6 +555,9 @@ void gf_smil_anim_remove_from_target(GF_Node *anim, GF_Node *target);
 void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event);
 void gf_smil_setup_events(GF_Node *node);
 Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event);
+
+void gf_smil_anim_reset_variables(SMIL_Anim_RTI *rai);
+SMIL_Anim_RTI *gf_smil_anim_get_anim_runtime_from_timing(SMIL_Timing_RTI *rti);
 
 #endif
 
@@ -871,6 +887,19 @@ Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute);
 /*exported for LASeR paring*/
 u32 svg_parse_point(SVG_Point *p, char *value_string);
 
+/*activates node. This is used by LASeR:activate and whenever a node is inserted in the scene
+through DOM*/
+GF_Err gf_node_activate(GF_Node *node);
+/*deactivates node. This is used by LASeR:deactivate and whenever a node is removed from the scene
+through DOM*/
+GF_Err gf_node_deactivate(GF_Node *node);
+
+/*post a listener to be added - this is only used by LASeR:activate and DOM.addEventListener. This 
+is to ensure that when a node is processing an event creating a new listener on this node, this listener
+will not be triggered*/
+void gf_dom_listener_post_add(GF_Node *obs, GF_Node *listener);
+/*process all pending add_listener request*/
+void gf_dom_listener_process_add(GF_SceneGraph *sg);
 
 #ifdef GPAC_ENABLE_SVG_SA
 

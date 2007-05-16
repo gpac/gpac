@@ -190,22 +190,48 @@ GF_Err gf_laser_encoder_get_rap(GF_LASeRCodec *codec, char **out_data, u32 *out_
 	return e;
 }
 
-
 static void lsr_write_vluimsbf5(GF_LASeRCodec *lsr, u32 val, const char *name)
 {
 	u32 nb_words;
-	u32 nb_tot, nb_bits = val ? gf_get_bit_size(val) : 1;
+	u32 nb_bits = val ? gf_get_bit_size(val) : 1;
 	nb_words = nb_bits / 4;
 	if (nb_bits%4) nb_words++;
 	assert(nb_words * 4 >= nb_bits);
-	nb_bits = nb_words * 4;
-	nb_tot = nb_words+nb_bits;
+	nb_bits = 4*nb_words;
 	while (nb_words) {
 		nb_words--;
 		gf_bs_write_int(lsr->bs, nb_words ? 1 : 0, 1);
 	}
 	gf_bs_write_int(lsr->bs, val, nb_bits);
-	if (name) GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", name, nb_tot, val));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", name, nb_bits + (nb_bits/4), val));
+}
+
+static void lsr_write_vluimsbf5_ex(GF_LASeRCodec *lsr, u32 val, u32 extra_words, const char *name)
+{
+	u32 nb_words;
+	u32 nb_bits = val ? gf_get_bit_size(val) : 1;
+	nb_words = nb_bits / 4;
+	if (nb_bits%4) nb_words++;
+	nb_words += extra_words;
+
+	assert(nb_words * 4 >= nb_bits);
+	nb_bits = 4*nb_words;
+	while (nb_words) {
+		nb_words--;
+		gf_bs_write_int(lsr->bs, nb_words ? 1 : 0, 1);
+	}
+	gf_bs_write_int(lsr->bs, val, nb_bits);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", name, nb_bits + (nb_bits/4), val));
+}
+
+static u32 lsr_get_vluimsbf5_size(u32 val, u32 extra_words)
+{
+	u32 nb_words;
+	u32 nb_bits = val ? gf_get_bit_size(val) : 1;
+	nb_words = nb_bits / 4;
+	if (nb_bits%4) nb_words++;
+	nb_words += extra_words;
+	return 4*nb_words + nb_words;
 }
 
 static void lsr_write_vluimsbf8(GF_LASeRCodec *lsr, u32 val, const char *name)
@@ -265,6 +291,21 @@ static void lsr_write_codec_IDREF_Node(GF_LASeRCodec *lsr, GF_Node *href, const 
 	assert(nID);
 	lsr_write_vluimsbf5(lsr, nID-1, name);
 	GF_LSR_WRITE_INT(lsr, 0, 1, "reserved");
+}
+
+static u32 lsr_get_IDREF_nb_bits(GF_LASeRCodec *lsr, GF_Node *href)
+{
+	u32 nb_bits, nb_words, nID;
+	
+	nID = gf_node_get_id(href);
+	assert(nID);
+
+	nb_bits = nID ? gf_get_bit_size(nID) : 1;
+	nb_words = nb_bits / 4;
+	if (nb_bits%4) nb_words++;
+	assert(nb_words * 4 >= nb_bits);
+	nb_bits = nb_words * 4;
+	return nb_words+nb_bits /*IDREF part*/ + 1 /*reserevd bit*/;
 }
 
 static void lsr_write_fixed_16_8(GF_LASeRCodec *lsr, Fixed fix, const char *name)
@@ -997,6 +1038,62 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 	while (att) {
 		field_rare = gf_lsr_rare_type_from_attribute(att->tag);
 		if (field_rare==-1) {
+			att = att->next;
+			continue;
+		}
+		/*RARE extension*/
+		if (field_rare==49) {
+			Bool is_string = 0;
+			u32 size, cur_bits;
+			u32 len = 2+3;
+			switch (att->tag) {
+			case TAG_SVG_ATT_syncMaster: len +=1; break;
+			case TAG_SVG_ATT_requiredFonts: 
+				len += 8*strlen(*(SVG_String*)att->data);
+				/*get vluimsbf5 field size with one extra word (4 bits, enough to code string alignment)*/
+				size = lsr_get_vluimsbf5_size(len, 1);
+				cur_bits = gf_bs_get_bit_position(lsr->bs) + lsr->info->cfg.extensionIDBits + size + 5;
+				/*count string alignment*/
+				while (cur_bits%8) {
+					len++;
+					cur_bits++;
+				}
+				is_string = 1;
+				break;
+			default: len +=2; break;
+			}
+			GF_LSR_WRITE_INT(lsr, 49, 6, "attributeRARE");
+			GF_LSR_WRITE_INT(lsr, 2, lsr->info->cfg.extensionIDBits, "extensionID");
+			if (is_string) {
+				lsr_write_vluimsbf5_ex(lsr, len, 1, "len");
+			} else {
+				lsr_write_vluimsbf5(lsr, len, "len");
+			}
+			GF_LSR_WRITE_INT(lsr, 1, 2, "nbOfAttributes");
+	
+			switch (att->tag) {
+			case TAG_SVG_ATT_syncMaster: 
+				GF_LSR_WRITE_INT(lsr, 0, 3, "attributeRARE");
+				GF_LSR_WRITE_INT(lsr, *(SVG_Boolean *)att->data ? 1 : 0, 1, "syncMaster");
+				break;
+			case TAG_SVG_ATT_focusHighlight: 
+				GF_LSR_WRITE_INT(lsr, 1, 3, "attributeRARE");
+				GF_LSR_WRITE_INT(lsr, *(SVG_FocusHighlight*)att->data, 2, "focusHighlight");
+				break;
+			case TAG_SVG_ATT_initialVisibility: 
+				GF_LSR_WRITE_INT(lsr, 2, 3, "attributeRARE");
+				GF_LSR_WRITE_INT(lsr, *(SVG_InitialVisibility*)att->data, 2, "initialVisibility");
+				break;
+			case TAG_SVG_ATT_fullscreen: 
+				GF_LSR_WRITE_INT(lsr, 3, 3, "attributeRARE");
+				GF_LSR_WRITE_INT(lsr, *(SVG_Boolean *)att->data ? 1 : 0, 2, "fullscreen");
+				break;
+			case TAG_SVG_ATT_requiredFonts: 
+				GF_LSR_WRITE_INT(lsr, 4, 3, "attributeRARE");
+				lsr_write_byte_align_string(lsr, *(SVG_String*)att->data, "requiredFonts");
+				break;
+			}
+			GF_LSR_WRITE_INT(lsr, 0, 1, "hasNextExtension");
 			att = att->next;
 			continue;
 		}
@@ -2068,7 +2165,7 @@ static void lsr_write_audio(GF_LASeRCodec *lsr, SVG_Element *elt)
 	lsr_write_clip_time(lsr, atts.clipBegin, "clipBegin");
 	lsr_write_clip_time(lsr, atts.clipEnd, "clipEnd");
 	GF_LSR_WRITE_INT(lsr, atts.syncReference ? 1 : 0, 1, "hasSyncReference");
-	if (atts.syncReference) lsr_write_any_uri_string(lsr, *(SVG_String*)atts.syncReference, "syncReference");
+	if (atts.syncReference) lsr_write_any_uri(lsr, atts.syncReference, "syncReference");
 
 	lsr_write_any_attribute(lsr, elt, 1);
 	lsr_write_group_content(lsr,  elt, 0);
@@ -2758,7 +2855,7 @@ static void lsr_write_video(GF_LASeRCodec *lsr, SVG_Element *elt)
 	lsr_write_clip_time(lsr, atts.clipBegin, "clipBegin");
 	lsr_write_clip_time(lsr, atts.clipEnd, "clipEnd");
 	GF_LSR_WRITE_INT(lsr, atts.syncReference ? 1 : 0, 1, "hasSyncReference");
-	if (atts.syncReference) lsr_write_any_uri_string(lsr, *atts.syncReference, "syncReference");
+	if (atts.syncReference) lsr_write_any_uri(lsr, atts.syncReference, "syncReference");
 	
 	lsr_write_any_attribute(lsr, elt, 1);
 	lsr_write_group_content(lsr, elt, 0);
@@ -3460,6 +3557,22 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 		case GF_SG_LSR_SAVE:
 			break;
 		case GF_SG_LSR_SEND_EVENT:
+			break;
+		case GF_SG_LSR_ACTIVATE:
+		case GF_SG_LSR_DEACTIVATE:
+		{
+			u32 update_size = lsr_get_IDREF_nb_bits(lsr, com->node);
+
+			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_EXTEND, 4, "ch4");
+			GF_LSR_WRITE_INT(lsr, 2, lsr->info->cfg.extensionIDBits, "extensionID");
+			lsr_write_vluimsbf5(lsr, 10 + 5 /*occ2*/ + 2 /*reserved*/ + 5 /*occ3*/ + 2 /*ch5*/ + update_size, "len");
+			lsr_write_vluimsbf5(lsr, 87, "reserved");
+			lsr_write_vluimsbf5(lsr, 1, "occ2");
+			GF_LSR_WRITE_INT(lsr, 1, 2, "reserved");
+			lsr_write_vluimsbf5(lsr, 1, "occ3");
+			GF_LSR_WRITE_INT(lsr, (com->tag==GF_SG_LSR_ACTIVATE) ? 1 : 2, 2, "ch5");
+			lsr_write_codec_IDREF_Node(lsr, com->node, "ref");
+		}
 			break;
 		default:
 			return GF_BAD_PARAM;

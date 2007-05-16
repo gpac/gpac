@@ -467,6 +467,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	u32 i, numOK;
 	GF_Err e;
 	GF_ESD *esd;
+	GF_MediaObject *syncRef;
 
 	if (!odm->net_service) odm->net_service = serv;
 	
@@ -491,6 +492,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		odm->current_time = 0;
 		odm->flags |= GF_ODM_REMOTE_OD;
 	}
+
+	/*HACK - temp storage of sync ref*/
+	syncRef = (GF_MediaObject*)odm->ocr_codec;
+	odm->ocr_codec = NULL;
 
 	e = ODM_ValidateOD(odm, &hasInline, &externalClock);
 	if (e) {
@@ -527,7 +532,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 
 		i=0;
 		while ((esd = (GF_ESD *)gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
-			e = gf_odm_setup_es(odm, esd, serv);
+			e = gf_odm_setup_es(odm, esd, serv, syncRef);
 			/*notify error but still go on, all streams are not so usefull*/
 			if (e==GF_OK) {
 				numOK++;
@@ -623,7 +628,7 @@ void ODM_CheckChannelService(GF_Channel *ch)
 
 /*setup channel, clock and query caps*/
 GF_EXPORT
-GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *serv)
+GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *serv, GF_MediaObject *sync_ref)
 {
 	GF_CodecCapability cap;
 	GF_Channel *ch;
@@ -640,6 +645,11 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	ck = NULL;
 	flag = (s8) -1;
 
+	/*sync reference*/
+	if (sync_ref && sync_ref->odm && sync_ref->odm->codec) {
+		ck = sync_ref->odm->codec->ck;
+		goto clock_setup;
+	}
 	/*timeline override*/
 	if (odm->flags & GF_ODM_INHERIT_TIMELINE) {
 		if (odm->parentscene->root_od->subscene->scene_codec)

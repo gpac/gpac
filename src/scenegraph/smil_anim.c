@@ -144,6 +144,14 @@ static void gf_smil_anim_set(SMIL_Anim_RTI *rai)
 	if (!animp) return;
 	if (!animp->to || !animp->to->type) return;
 
+	if (rai->set_done && !rai->owner->presentation_value_changed) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, 
+		   ("[SMIL Animation] Time %f - Animation %s - set animation done - nothing to do\n", 
+		   gf_node_get_scene_time((GF_Node*)rai->anim_elt), 
+		   gf_node_get_name((GF_Node *)rai->anim_elt)));
+		return;
+	}
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, 
 		   ("[SMIL Animation] Time %f - Animation %s - applying set animation\n", 
 		   gf_node_get_scene_time((GF_Node*)rai->anim_elt), 
@@ -157,6 +165,7 @@ static void gf_smil_anim_set(SMIL_Anim_RTI *rai)
 
 	gf_svg_attributes_copy(&rai->interpolated_value, &to_info, 0);
 	rai->interpolated_value_changed = 1;
+	rai->set_done = 1;
 }
 
 static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
@@ -507,18 +516,20 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
 	}
 }
 
-static SMIL_Anim_RTI *gf_smil_anim_get_anim_runtime_from_timing(SMIL_Timing_RTI *rti)
+SMIL_Anim_RTI *gf_smil_anim_get_anim_runtime_from_timing(SMIL_Timing_RTI *rti)
 {
 	GF_Node *n = rti->timed_elt;
 	u32 i, j;
 	GF_Node *target = NULL;
-
 	u32 tag = gf_node_get_tag(n);
+
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+		if (!gf_svg_is_animation_tag(tag)) return NULL;
 		target = ((SVGTimedAnimBaseElement *)n)->xlinkp->href->target;
 	}
 #ifdef GPAC_ENABLE_SVG_SA
 	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
+		if (!gf_svg_sa_is_animation_tag(tag)) return NULL;
 		target = ((SVG_SA_Element *)n)->xlinkp->href->target;
 	} 
 #endif
@@ -662,6 +673,17 @@ static void gf_smil_anim_animate_with_fraction(SMIL_Timing_RTI *rti, Fixed norma
 	rti->evaluate_status = SMIL_TIMING_EVAL_NONE;
 }
 
+void gf_smil_anim_reset_variables(SMIL_Anim_RTI *rai)
+{
+	if (!rai) return;
+	/* we reset all the animation parameters to force computation of next interpolation value
+	   when the animation restarts */
+	rai->interpolated_value_changed = 0;
+	rai->previous_key_index = -1;
+	rai->previous_coef = -1;
+	rai->set_done = 0;
+}
+
 /* copy/paste of the animate function except for the optimization which consists in 
    not recomputing the interpolation value */
 static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
@@ -671,10 +693,14 @@ static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 	if (!rai || !animp) return;
 
 	/* We do the accumulation only once and store the result in interpolated value */
-	if (rti->cycle_number == rti->first_frozen) {
+	if (rti->cycle_number == rti->first_frozen) {	
+		
+		/* we reset interpolated_value_changed before computing the last interpolation value,
+		   in order to remove unecessary calls to gf_smil_anim_apply_accumulate */
 		rai->interpolated_value_changed = 0;
 		gf_smil_anim_compute_interpolation_value(rai, normalized_simple_time);
 		if (rai->interpolated_value_changed) gf_smil_anim_apply_accumulate(rai);
+
 	} 
 	/* we still need to apply additive/replace behavior even when frozen 
 	   because we don't know how many other animations have run during this cycle,
@@ -698,6 +724,8 @@ static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 			rai->owner->presentation_value_changed = 0;
 		}
 	}
+	if (rti->cycle_number == rti->first_frozen)	
+		gf_smil_anim_reset_variables(rai);
 }
 
 static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
@@ -707,6 +735,7 @@ static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation %s - applying remove behavior\n", gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_name((GF_Node *)rai->anim_elt)));
 	gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->owner->specified_value, 0);
 	rai->owner->presentation_value_changed = 1;
+	gf_smil_anim_reset_variables(rai);
 }
 
 static void gf_smil_anim_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_simple_time, u32 state)
@@ -740,7 +769,6 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 {
 	u32 count_all, i;
 
-	/*TODO FIXME - THIS IS WRONG, we're changing orders of animations which may corrupt the visual result*/
 	/* Perform all the animations on this node */
 	count_all = gf_node_animation_count(node);
 	for (i = 0; i < count_all; i++) {

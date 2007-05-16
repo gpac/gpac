@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed May 09 09:48:35 2007
+	DO NOT MOFIFY - File generated on GMT Tue May 15 11:18:46 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -355,7 +355,7 @@ u32 gf_svg_get_attribute_type(u32 tag)
 		case TAG_SVG_ATT_syncBehavior: return SMIL_SyncBehavior_datatype;
 		case TAG_SVG_ATT_syncTolerance: return SMIL_SyncTolerance_datatype;
 		case TAG_SVG_ATT_syncMaster: return SVG_Boolean_datatype;
-		case TAG_SVG_ATT_syncReference: return SVG_String_datatype;
+		case TAG_SVG_ATT_syncReference: return XMLRI_datatype;
 		case TAG_SVG_ATT_x: return SVG_Coordinate_datatype;
 		case TAG_SVG_ATT_y: return SVG_Coordinate_datatype;
 		case TAG_SVG_ATT_width: return SVG_Length_datatype;
@@ -770,7 +770,7 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	case TAG_SVG_ATT_syncBehavior: return gf_svg_create_attribute_from_datatype(SMIL_SyncBehavior_datatype, tag);
 	case TAG_SVG_ATT_syncTolerance: return gf_svg_create_attribute_from_datatype(SMIL_SyncTolerance_datatype, tag);
 	case TAG_SVG_ATT_syncMaster: return gf_svg_create_attribute_from_datatype(SVG_Boolean_datatype, tag);
-	case TAG_SVG_ATT_syncReference: return gf_svg_create_attribute_from_datatype(SVG_String_datatype, tag);
+	case TAG_SVG_ATT_syncReference: return gf_svg_create_attribute_from_datatype(XMLRI_datatype, tag);
 	case TAG_SVG_ATT_x: return gf_svg_create_attribute_from_datatype(SVG_Coordinate_datatype, tag);
 	case TAG_SVG_ATT_y: return gf_svg_create_attribute_from_datatype(SVG_Coordinate_datatype, tag);
 	case TAG_SVG_ATT_width: return gf_svg_create_attribute_from_datatype(SVG_Length_datatype, tag);
@@ -982,7 +982,7 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_syncBehavior: all_atts->syncBehavior = (SMIL_SyncBehavior *)att->data; break;
 		case TAG_SVG_ATT_syncTolerance: all_atts->syncTolerance = (SMIL_SyncTolerance *)att->data; break;
 		case TAG_SVG_ATT_syncMaster: all_atts->syncMaster = (SVG_Boolean *)att->data; break;
-		case TAG_SVG_ATT_syncReference: all_atts->syncReference = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_syncReference: all_atts->syncReference = (XMLRI *)att->data; break;
 		case TAG_SVG_ATT_x: all_atts->x = (SVG_Coordinate *)att->data; break;
 		case TAG_SVG_ATT_y: all_atts->y = (SVG_Coordinate *)att->data; break;
 		case TAG_SVG_ATT_width: all_atts->width = (SVG_Length *)att->data; break;

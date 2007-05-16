@@ -126,9 +126,9 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_SVG_polygon:			svg_init_polygon(sr, node); break;
 	case TAG_SVG_text:				svg_init_text(sr, node); break;
 	case TAG_SVG_a:				svg_init_a(sr, node); break;
-	case TAG_SVG_image:			svg_init_image(sr, node); break; /* Warning: using the same call as for TAG_SVG_image */
-	case TAG_SVG_video:			svg_init_video(sr, node); break; /* Warning: using the same call as for TAG_SVG_video */
-	case TAG_SVG_audio:			svg_init_audio(sr, node); break; /* Warning: using the same call as for TAG_SVG_audio */
+	case TAG_SVG_image:			svg_init_image(sr, node); break;
+	case TAG_SVG_video:			svg_init_video(sr, node); break;
+	case TAG_SVG_audio:			svg_init_audio(sr, node); break;
 
 	case TAG_SVG_linearGradient:	svg_init_linearGradient(sr, node); break;
 	case TAG_SVG_radialGradient:	svg_init_radialGradient(sr, node); break;
@@ -149,9 +149,10 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_SVG_SA_text:				svg_sa_init_text(sr, node); break;
 	case TAG_SVG_SA_path:				svg_sa_init_path(sr, node); break;
 	case TAG_SVG_SA_a:					svg_sa_init_a(sr, node); break;
-	case TAG_SVG_SA_image:				svg_init_image(sr, node); break;
-	case TAG_SVG_SA_video:				svg_init_video(sr, node); break;
-	case TAG_SVG_SA_audio:				svg_init_audio(sr, node); break;
+	case TAG_SVG_SA_image:				svg_init_image(sr, node); break;  /* Warning: using the same call as for TAG_SVG_image */
+	case TAG_SVG_SA_video:				svg_init_video(sr, node); break;  /* Warning: using the same call as for TAG_SVG_image */
+	case TAG_SVG_SA_audio:				svg_init_audio(sr, node); break;  /* Warning: using the same call as for TAG_SVG_image */
+
 	case TAG_SVG_SA_linearGradient:	svg_sa_init_linearGradient(sr, node); break;
 	case TAG_SVG_SA_radialGradient:	svg_sa_init_radialGradient(sr, node); break;
 	case TAG_SVG_SA_solidColor:		svg_sa_init_solidColor(sr, node); break;

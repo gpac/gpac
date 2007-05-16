@@ -50,8 +50,8 @@ GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener)
 	if (!node->sgprivate->interact->events) node->sgprivate->interact->events = gf_list_new();
 
 	/*only one observer per listener*/
-	if(gf_node_get_private(listener)!=NULL) return GF_NOT_SUPPORTED;
-	gf_node_set_private(listener, node);
+	if (listener->sgprivate->UserPrivate!=NULL) return GF_NOT_SUPPORTED;
+	listener->sgprivate->UserPrivate = node;
 	return gf_list_add(node->sgprivate->interact->events, listener);
 }
 
@@ -72,6 +72,33 @@ GF_Node *gf_dom_listener_get(GF_Node *node, u32 i)
 {
 	if (!node || !node->sgprivate->interact) return 0;
 	return (GF_Node *)gf_list_get(node->sgprivate->interact->events, i);
+}
+
+typedef struct
+{
+	GF_Node *obs;
+	GF_Node *listener;
+} DOMAddListener;
+
+void gf_dom_listener_post_add(GF_Node *obs, GF_Node *listener)
+{
+	DOMAddListener *l;
+	l = (DOMAddListener*)malloc(sizeof(DOMAddListener));
+	l->listener = listener;
+	l->obs = obs;
+	gf_list_add(obs->sgprivate->scenegraph->listeners_to_add, l);
+}
+
+void gf_dom_listener_process_add(GF_SceneGraph *sg)
+{
+	u32 i, count;
+	count = gf_list_count(sg->listeners_to_add);
+	for (i=0; i<count; i++) {
+		DOMAddListener *l = (DOMAddListener *)gf_list_get(sg->listeners_to_add, i);
+		gf_dom_listener_add(l->obs, l->listener);
+		free(l);
+	}
+	gf_list_reset(sg->listeners_to_add);
 }
 
 void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event)
@@ -216,12 +243,13 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 	if (!node) return 0;
 
 	if (node->sgprivate->interact && node->sgprivate->interact->events) {
-		u32 i, count;
+		u32 i, count, post_count;
 		count = gf_list_count(node->sgprivate->interact->events);
 		for (i=0; i<count; i++) {
 			GF_Node *handler = NULL;
 			XMLEV_Event *listened_event;
 			GF_Node *listen = (GF_Node *)gf_list_get(node->sgprivate->interact->events, i);
+
 			switch (listen->sgprivate->tag) {
 #ifdef GPAC_ENABLE_SVG_SA_BASE
 #ifdef GPAC_ENABLE_SVG_SA
@@ -267,7 +295,7 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 				/*exec event*/
 				svg_process_event(listen, event);
 				/*the event has destroyed ourselves, abort propagation
-				THIS IS NOT DOM compliant, the event should propagate on the original target+ancestor path*/
+				THIS IS NOT DOM compliant, the event should propagate on the original target+ancestors path*/
 				if (node->sgprivate->num_instances==1) {
 					/*unprotect node event*/
 					gf_node_unregister(node, NULL);
@@ -276,11 +304,28 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 				node->sgprivate->num_instances--;
 			}
 			/*canceled*/
-			if (event->event_phase==4) return 0;
+			if (event->event_phase==4) {
+				gf_dom_listener_process_add(node->sgprivate->scenegraph);
+				return 0;
+			}
+
+			/*if listeners have been removed, update count*/
+			post_count = gf_list_count(node->sgprivate->interact->events);
+			if (post_count < count) {
+				s32 pos = gf_list_find(node->sgprivate->interact->events, listen);
+				if (pos>=0) i = pos;
+				/*FIXME this is not going to work in all cases...*/
+				else i--;
+				count = post_count;
+			}
 		}
 		/*propagation stoped*/
-		if (event->event_phase>=3) return 0;
+		if (event->event_phase>=3) {
+			gf_dom_listener_process_add(node->sgprivate->scenegraph);
+			return 0;
+		}
 	}
+	gf_dom_listener_process_add(node->sgprivate->scenegraph);
 	return 1;
 }
 
@@ -302,6 +347,9 @@ Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 {
 	if (!node || !event) return 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Time %f - Firing event %s.%s\n", gf_node_get_scene_time(node), gf_node_get_name(node), gf_dom_event_get_name(event->type)));
+
+	/*flush any pending add_listener*/
+	gf_dom_listener_process_add(node->sgprivate->scenegraph);
 
 	event->target = node;
 	event->currentTarget = NULL;

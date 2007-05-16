@@ -156,6 +156,8 @@ void gf_is_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for_shu
 void gf_is_buffering_info(GF_InlineScene *is);
 void gf_is_attach_to_renderer(GF_InlineScene *is);
 struct _mediaobj *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
+struct _mediaobj *gf_is_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref);
+
 void gf_is_setup_object(GF_InlineScene *is, GF_ObjectManager *odm);
 /*restarts inline scene - care has to be taken not to remove the scene while it is traversed*/
 void gf_is_restart(GF_InlineScene *is);
@@ -688,7 +690,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *parent_serv);
 /*disctonnect OD and removes it if desired (otherwise only STOP is propagated)*/
 void gf_odm_disconnect(GF_ObjectManager *odman, Bool do_remove);
 /*setup an ESD*/
-GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *service);
+GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *service, GF_MediaObject *sync_ref);
 /*removes an ESD (this destroys associated channel if any)*/
 void gf_odm_remove_es(GF_ObjectManager *odm, u16 ES_ID);
 /*set stream duration - updates object duration accordingly*/

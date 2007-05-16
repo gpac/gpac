@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed May 09 09:48:35 2007
+	DO NOT MOFIFY - File generated on GMT Tue May 15 11:18:46 2007
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -408,7 +408,7 @@ struct _all_atts {
 	SMIL_SyncBehavior *syncBehavior;
 	SMIL_SyncTolerance *syncTolerance;
 	SVG_Boolean *syncMaster;
-	SVG_String *syncReference;
+	XMLRI *syncReference;
 	SVG_Coordinate *x;
 	SVG_Coordinate *y;
 	SVG_Length *width;

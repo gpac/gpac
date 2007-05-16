@@ -150,6 +150,19 @@ static void SG_CheckFieldChange(GF_Node *node, GF_FieldInfo *field)
 	gf_node_changed(node, field);
 }
 
+static void gf_node_unregister_children_deactivate(GF_Node *container, GF_ChildNodeItem *child)
+{
+	GF_ChildNodeItem *cur;
+	while (child) {
+		gf_node_unregister(child->node, container);
+		gf_node_deactivate(child->node);
+		cur = child;
+		child = child->next;
+		free(cur);
+	}
+}
+
+
 GF_EXPORT
 GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_offset)
 {
@@ -453,10 +466,15 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		if (!com->node) return GF_NON_COMPLIANT_BITSTREAM;
 		if (!gf_list_count(com->command_fields)) {
 			gf_node_replace(com->node, NULL, 0);
+			gf_node_deactivate(com->node);
 			return GF_OK;
 		}
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
-		e = gf_node_replace_child(com->node, &((SVG_Element *)com->node)->children, inf->pos, NULL);
+		node = gf_node_list_get_child(((SVG_Element *)com->node)->children, inf->pos);
+		if (node) {
+			e = gf_node_replace_child(com->node, &((SVG_Element *)com->node)->children, inf->pos, NULL);
+			gf_node_deactivate(node);
+		}
 		break;
 	case GF_SG_LSR_INSERT:
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
@@ -468,6 +486,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				gf_node_list_insert_child(& ((SVG_Element *)com->node)->children, inf->new_node, inf->pos);
 
 			gf_node_register(inf->new_node, com->node);
+			gf_node_activate(inf->new_node);
 			gf_node_changed(com->node, NULL);
 		} else {
 			/*NOT SUPPORTED*/
@@ -482,23 +501,28 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			if (inf->pos<0) {
 				/*if fieldIndex (eg attributeName) is set, this is children replacement*/
 				if (inf->fieldIndex>0) {
-					gf_node_unregister_children(com->node, ((SVG_Element *)com->node)->children);
+					gf_node_unregister_children_deactivate(com->node, ((SVG_Element *)com->node)->children);
 					((SVG_Element *)com->node)->children = NULL;
 					gf_node_list_add_child(& ((SVG_Element *)com->node)->children, inf->new_node);
 					gf_node_register(inf->new_node, com->node);
+					gf_node_activate(inf->new_node);
 				} else {
 					e = gf_node_replace(com->node, inf->new_node, 0);
+					gf_node_activate(inf->new_node);
 				}
 			} else {
+				node = gf_node_list_get_child( ((SVG_Element *)com->node)->children, inf->pos);
 				gf_node_replace_child(com->node, & ((SVG_Element *)com->node)->children, inf->pos, inf->new_node);
 				gf_node_register(inf->new_node, com->node);
+				if (node) gf_node_deactivate(node);
+				gf_node_activate(inf->new_node);
 			}
 			/*signal node modif*/
 			gf_node_changed(com->node, NULL);
 			return e;
 		} else if (inf->node_list) {
 			GF_ChildNodeItem *child, *cur, *prev;
-			gf_node_unregister_children(com->node, ((SVG_Element *)com->node)->children);
+			gf_node_unregister_children_deactivate(com->node, ((SVG_Element *)com->node)->children);
 			((SVG_Element *)com->node)->children = NULL;
 
 			prev = NULL;
@@ -508,6 +532,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				cur->next = NULL;
 				cur->node = child->node;
 				gf_node_register(child->node, com->node);
+				gf_node_activate(child->node);
 				if (prev) prev->next = cur;
 				else ((SVG_Element *)com->node)->children = cur;
 				prev = cur;
@@ -631,6 +656,13 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		} else {
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
+		break;
+	case GF_SG_LSR_ACTIVATE:
+		gf_node_activate(com->node);
+		break;
+	case GF_SG_LSR_DEACTIVATE:
+		gf_node_deactivate(com->node);
+		gf_node_changed(com->node, NULL);
 		break;
 #endif
 

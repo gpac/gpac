@@ -467,17 +467,6 @@ static void AM_GetInputData(GF_AudioMixer *am, MixerInput *in, u32 audio_delay)
 		return;
 	}
 
-#if 0
-	for (i=0;i<src_samp; i++) {
-		*(in->ch_buf[0] + in->out_samples_written) = (s32) (in_s16[2*i]);
-		*(in->ch_buf[1] + in->out_samples_written) = (s32) (in_s16[2*i+1]);
-		in->out_samples_written ++;
-		if (in->out_samples_written == in->out_samples_to_write) break;
-	}
-	in->in_bytes_used = i*in->src->bps * in->src->chan / 8 + 1;
-	return;
-#endif
-
 	/*while space to fill and input data, convert*/
 	use_prev = in->has_prev;
 	i = 0;
@@ -495,7 +484,7 @@ static void AM_GetInputData(GF_AudioMixer *am, MixerInput *in, u32 audio_delay)
 			for (j=0; j<in_ch; j++) {
 				inChan[j] = use_prev ? in->last_channels[j] : in_s16[in_ch*prev + j];
 				inChanNext[j] = in_s16[in_ch*next + j];
-				inChan[j] = (frac*inChanNext[j] + (255-frac)*inChan[j]) / 255;
+				inChan[j] = (frac*inChanNext[j] + (255-frac)*inChan[j]) / 255;			
 			}
 		} else {
 			for (j=0; j<in_ch; j++) {
@@ -719,6 +708,12 @@ do_mix:
 		if (nb_written < in->out_samples_written) nb_written = in->out_samples_written;
 	}
 
+	if (!nb_written) {
+		memset(buffer, 0, sizeof(char)*buffer_size);
+		gf_mixer_lock(am, 0);
+		return 0;
+	}
+
 	out_mix = am->output;
 	if (am->bits_per_sample==16) {
 		s16 *out_s16 = (s16 *) buffer;
@@ -747,7 +742,9 @@ do_mix:
 	}
 
 	nb_written *= am->nb_channels*am->bits_per_sample/8;
-//	if (am->ar && (buffer_size > nb_written)) memset((char *)buffer + nb_written, 0, sizeof(char)*(buffer_size-nb_written));
+	if (buffer_size > nb_written) 
+		memset((char *)buffer + nb_written, 0, sizeof(char)*(buffer_size-nb_written));
+
 	gf_mixer_lock(am, 0);
 	return nb_written;
 }
