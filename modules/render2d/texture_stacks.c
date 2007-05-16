@@ -90,6 +90,10 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 	Composite2DStack *st = (Composite2DStack *) gf_node_get_private(txh->owner);
 	GF_Raster2D *r2d = st->surf->render->compositor->r2d;
 
+	if (!gf_node_dirty_get(txh->owner)) {
+		txh->needs_refresh = 0;
+		return;
+	}
 	/*rebuild stencil*/
 	if (!st->surf->the_surface || !txh->hwtx || ((s32) st->width != ct2D->pixelWidth) || ( (s32) st->height != ct2D->pixelHeight) ) {
 		if (txh->hwtx) r2d->stencil_delete(txh->hwtx);
@@ -130,6 +134,8 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 	Composite_CheckBindables(st->txh.owner, eff, st->first);
 	st->first = 0;
 	
+	
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Entering CompositeTexture2D Render Cycle\n"));
 	e = VS2D_InitDraw(st->surf, eff);
 	if (e) {
 		effect_delete(eff);
@@ -200,11 +206,12 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 		}
 	} 
 
-	if (txh->needs_refresh && r2d->stencil_texture_modified) r2d->stencil_texture_modified(st->txh.hwtx); 
-	/*always invalidate to make sure the frame counter is incremented, otherwise we will
-	break bounds tracking*/
-	gf_sr_invalidate(st->txh.compositor, NULL);
+	if (txh->needs_refresh) {
+		if (r2d->stencil_texture_modified) r2d->stencil_texture_modified(st->txh.hwtx); 
+		gf_sr_invalidate(st->txh.compositor, NULL);
+	}
 	effect_delete(eff);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Leaving CompositeTexture2D Render Cycle\n"));
 }
 
 static GF_Err C2D_GetSurfaceAccess(VisualSurface2D *surf)

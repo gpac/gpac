@@ -160,7 +160,8 @@ void drawable_del_ex(Drawable *dr, Render2D *r2d)
 
 void drawable_del(Drawable *dr)
 {
-	drawable_del_ex(dr, gf_sr_get_renderer(dr->node) ? gf_sr_get_renderer(dr->node)->visual_renderer->user_priv : NULL);
+	GF_Renderer *sr = gf_sr_get_renderer(dr->node);
+	drawable_del_ex(dr, sr ? sr->visual_renderer->user_priv : NULL);
 }
 void DestroyDrawableNode(GF_Node *node)
 {
@@ -424,8 +425,7 @@ void drawctx_update_info(DrawableContext *ctx, struct _visual_surface_2D *surf)
 	}
 
 	/*in all cases reset dirty flag of appearance and its sub-nodes*/
-	if (ctx->flags & CTX_HAS_APPEARANCE)
-		gf_node_dirty_reset(ctx->appear);
+	//if (ctx->flags & CTX_HAS_APPEARANCE) gf_node_dirty_reset(ctx->appear);
 }
 
 
@@ -573,7 +573,8 @@ DrawableContext *drawable_init_context(Drawable *drawable, RenderEffect2D *eff)
 	ctx->h_texture = NULL;
 	if (eff->appear) {
 		ctx->appear = eff->appear;
-		if (gf_node_dirty_get(eff->appear)) ctx->flags |= CTX_APP_DIRTY;
+		if (gf_node_dirty_get(eff->appear)) 
+			ctx->flags |= CTX_APP_DIRTY;
 	}
 #ifndef FIXME
 	/*todo cliper*/
@@ -641,7 +642,7 @@ void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff)
 		VS2D_RegisterSensor(eff->surface, ctx);
 
 		/*keep track of node drawn, whether direct or indirect rendering*/
-		if (!(ctx->drawable->flags & DRAWABLE_REG_WITH_SURFACE)) {
+		if (!(ctx->drawable->flags & DRAWABLE_REGISTERED_WITH_SURFACE) ) {
 			struct _drawable_store *it;
 			GF_SAFEALLOC(it, struct _drawable_store);
 			it->drawable = ctx->drawable;
@@ -651,7 +652,8 @@ void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff)
 			} else {
 				eff->surface->prev_nodes = eff->surface->last_prev_entry = it;
 			}
-			ctx->drawable->flags |= DRAWABLE_REG_WITH_SURFACE;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Registering new drawn node %s on surface\n", gf_node_get_class_name(it->drawable->node)));
+			ctx->drawable->flags |= DRAWABLE_REGISTERED_WITH_SURFACE;
 		}
 
 		if (eff->trav_flags & TF_RENDER_DIRECT) {

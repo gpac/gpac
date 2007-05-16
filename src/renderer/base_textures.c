@@ -59,7 +59,7 @@ static void MT_Activate(MovieTextureStack *stack, M_MovieTexture *mt, Double sce
 	gf_node_event_out_str((GF_Node*)mt, "isActive");
 	if (!stack->txh.is_open) {
 		scene_time -= mt->startTime;
-		gf_sr_texture_play_from(&stack->txh, &mt->url, scene_time, gf_mo_get_loop(stack->txh.stream, mt->loop), 0, NULL);
+		gf_sr_texture_play_from_to(&stack->txh, &mt->url, scene_time, -1, gf_mo_get_loop(stack->txh.stream, mt->loop), 0);
 	}
 	gf_mo_set_speed(stack->txh.stream, mt->speed);
 }
@@ -106,11 +106,10 @@ static void UpdateMovieTexture(GF_TextureHandler *txh)
 			txh->needs_refresh = 1;
 		}
 	}
-	/*we have no choice but retraversing the graph until we're inactive since the movie framerate and
-	the renderer framerate are likely to be different*/
-	if (!txh->stream_finished) gf_sr_invalidate(txh->compositor, NULL);
-
+	if (txh->needs_refresh) 
+		gf_sr_invalidate(txh->compositor, NULL);
 }
+
 static void MT_UpdateTime(GF_TimeNode *st)
 {
 	Double time;

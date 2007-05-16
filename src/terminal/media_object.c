@@ -342,7 +342,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 }
 
 GF_EXPORT
-void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop)
+void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
 {
 	u32 obj_time;
 	if (!mo || !mo->nb_fetch) return;
@@ -360,6 +360,11 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop)
 		} else {
 			assert(mo->odm->codec->CB->output->RenderedLength + nb_bytes <= mo->odm->codec->CB->output->dataLength);
 			mo->odm->codec->CB->output->RenderedLength += nb_bytes;
+		}
+
+		if (forceDrop<0) {
+			gf_odm_lock(mo->odm, 0);
+			return;
 		}
 
 		/*discard frame*/
@@ -410,7 +415,7 @@ void gf_mo_get_object_time(GF_MediaObject *mo, u32 *obj_time)
 
 
 GF_EXPORT
-void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop)
+void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_loop)
 {
 	if (!mo) return;
 
@@ -427,13 +432,21 @@ void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop)
 		if (mo->odm->flags & GF_ODM_NO_TIME_CTRL) {
 			mo->odm->media_start_time = 0;
 		} else {
-			mo->odm->media_start_time = (u64) (media_offset*1000);
+			mo->odm->media_start_time = (u64) (clipBegin*1000);
 			if (mo->odm->duration && (mo->odm->media_start_time > mo->odm->duration)) {
 				if (can_loop) {
 					mo->odm->media_start_time %= mo->odm->duration;
 				} else {
 					mo->odm->media_start_time = mo->odm->duration;
 				}
+			}
+			if (clipEnd>=clipBegin) {
+				mo->odm->media_stop_time = (u64) (clipEnd*1000);
+				if (mo->odm->duration && (mo->odm->media_stop_time > mo->odm->duration)) {
+					mo->odm->media_stop_time = 0;
+				}
+			} else {
+				mo->odm->media_stop_time = 0;
 			}
 		}
 		if (is_restart) {
@@ -460,15 +473,22 @@ void gf_mo_stop(GF_MediaObject *mo)
 		/*do not stop directly, this can delete channel data currently being decoded (BIFS anim & co)*/
 		gf_mx_p(mo->odm->term->net_mx);
 		/*if object not in media queue, add it*/
-		if (gf_list_find(mo->odm->term->media_queue, mo->odm)<0) {
+		if (gf_list_find(mo->odm->term->media_queue, mo->odm)<0)
 			gf_list_add(mo->odm->term->media_queue, mo->odm);
-			mo->odm->media_start_time = (u64)-1;
-		}
-		/*otherwise a play is pending, remove it*/
-		else if (mo->odm->media_start_time >= 0) {
-			gf_list_del_item(mo->odm->term->media_queue, mo->odm);
-		}
+		
+		/*signal STOP request*/
+		mo->odm->media_start_time = (u64)-1;
+
 		gf_mx_v(mo->odm->term->net_mx);
+		if (mo->odm->codec->CB) {
+			GF_CompositionMemory *cb = mo->odm->codec->CB;
+			GF_CMUnit *out = cb->output->next;
+			while (out != cb->output) {
+				out->dataLength = 0;
+				out->TS = 0;
+				out = out->next;
+			}
+		}
 
 	} else {
 		if (!mo->num_to_restart) {
@@ -673,3 +693,26 @@ u32 gf_mo_get_last_frame_time(GF_MediaObject *mo)
 	return mo ? mo->timestamp : 0;
 }
 
+Bool gf_mo_has_audio(GF_MediaObject *mo)
+{
+	u32 i;
+	GF_NetworkCommand com;
+	GF_ClientService *ns;
+	GF_InlineScene *is;
+	if (!mo || !mo->odm) return 0;
+	if (mo->type != GF_MEDIA_OBJECT_VIDEO) return 0;
+
+	ns = mo->odm->net_service;
+	is = mo->odm->parentscene;
+	for (i=0; i<gf_list_count(is->ODlist); i++) {
+		GF_ObjectManager *odm = gf_list_get(is->ODlist, i);
+		if (odm->net_service != ns) continue;
+		if (!odm->mo) continue;
+		/*there is already an audio object in this service, do not recreate one*/
+		if (odm->mo->type == GF_MEDIA_OBJECT_AUDIO) return 0;
+	}
+	memset(&com, 0, sizeof(GF_NetworkCommand) );
+	com.command_type = GF_NET_SERVICE_HAS_AUDIO;
+	if (gf_term_service_command(ns, &com) == GF_OK) return 1;
+	return 0;
+}

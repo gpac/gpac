@@ -1252,11 +1252,21 @@ void gf_smil_anim_delete_animations(GF_Node *e)
 
 void gf_smil_anim_init_discard(GF_Node *node)
 {
+	XLinkAttributesPointers *xlinkp = NULL;
 	u32 tag = gf_node_get_tag(node);
 	gf_smil_timing_init_runtime_info(node);
 	
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		((SVGTimedAnimBaseElement *)node)->timingp->runtime->evaluate_status = SMIL_TIMING_EVAL_DISCARD;
+		SVGAllAttributes all_atts;
+		SVGTimedAnimBaseElement *e = (SVGTimedAnimBaseElement *)node;
+		gf_svg_flatten_attributes((SVG_Element *)e, &all_atts);
+		e->xlinkp = malloc(sizeof(XLinkAttributesPointers));
+		xlinkp = e->xlinkp;
+		xlinkp->href = all_atts.xlink_href;
+		xlinkp->type = all_atts.xlink_type;		
+
+		e->timingp->runtime->evaluate_status = SMIL_TIMING_EVAL_DISCARD;
+	
 	}
 #ifdef GPAC_ENABLE_SVG_SA
 	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {

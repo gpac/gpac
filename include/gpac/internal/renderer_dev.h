@@ -270,7 +270,7 @@ GF_TextureHandler *gf_sr_texture_get_handler(GF_Node *n);
 Bool gf_sr_texture_check_url_change(GF_TextureHandler *txh, MFURL *url);
 /*starts associated object*/
 GF_Err gf_sr_texture_play(GF_TextureHandler *txh, MFURL *url);
-GF_Err gf_sr_texture_play_from(GF_TextureHandler *txh, MFURL *url, Double time_offset, Bool can_loop, Bool lock_scene_timeline, MFURL *sync_ref_url);
+GF_Err gf_sr_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double start_offset, Double end_offset, Bool can_loop, Bool lock_scene_timeline);
 /*stops associated object*/
 void gf_sr_texture_stop(GF_TextureHandler *txh);
 /*restarts associated object - DO NOT CALL stop/start*/
@@ -511,7 +511,7 @@ typedef struct
 /*setup interface with audio renderer - overwrite any functions needed after setup EXCEPT callback object*/
 void gf_sr_audio_setup(GF_AudioInput *ai, GF_Renderer *sr, GF_Node *node);
 /*open audio object*/
-GF_Err gf_sr_audio_open(GF_AudioInput *ai, MFURL *url);
+GF_Err gf_sr_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double clipEnd);
 /*closes audio object*/
 void gf_sr_audio_stop(GF_AudioInput *ai);
 /*restarts audio object (cf note in MediaObj)*/

@@ -38,7 +38,7 @@ typedef struct
 
 static void AC_Activate(AudioClipStack *st, M_AudioClip *ac)
 {
-	gf_sr_audio_open(&st->input, &ac->url);
+	gf_sr_audio_open(&st->input, &ac->url, 0, -1);
 	ac->isActive = 1;
 	gf_node_event_out_str((GF_Node *)ac, "isActive");
 
@@ -143,7 +143,7 @@ void AudioClipModified(GF_Node *node)
 	if (st->input.is_open && st->input.is_open) {
 		if (gf_sr_audio_check_url(&st->input, &ac->url)) {
 			gf_sr_audio_stop(&st->input);
-			gf_sr_audio_open(&st->input, &ac->url);
+			gf_sr_audio_open(&st->input, &ac->url, 0, -1);
 			/*force unregister to resetup audio cfg*/
 			gf_sr_audio_unregister(&st->input);
 			gf_sr_invalidate(st->input.compositor, NULL);
@@ -175,7 +175,7 @@ typedef struct
 
 static void AS_Activate(AudioSourceStack *st, M_AudioSource *as)
 {
-	gf_sr_audio_open(&st->input, &as->url);
+	gf_sr_audio_open(&st->input, &as->url, 0, -1);
 	st->is_active = 1;
 	gf_mo_set_speed(st->input.stream, st->input.speed);
 	/*rerender all graph to get parent audio group*/
@@ -272,7 +272,7 @@ void AudioSourceModified(GF_Node *node)
 	if (st->input.is_open&& st->input.is_open) {
 		if (gf_sr_audio_check_url(&st->input, &as->url)) {
 			gf_sr_audio_stop(&st->input);
-			gf_sr_audio_open(&st->input, &as->url);
+			gf_sr_audio_open(&st->input, &as->url, 0, -1);
 			/*force unregister to resetup audio cfg*/
 			gf_sr_audio_unregister(&st->input);
 			gf_sr_invalidate(st->input.compositor, NULL);

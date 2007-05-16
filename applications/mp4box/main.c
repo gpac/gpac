@@ -57,7 +57,7 @@ void dump_file_mp4(GF_ISOFile *file, char *inName);
 void dump_file_rtp(GF_ISOFile *file, char *inName);
 void dump_file_ts(GF_ISOFile *file, char *inName);
 void dump_file_ismacryp(GF_ISOFile *file, char *inName);
-void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_convert, Bool to_srt);
+void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_convert, u32 dump_type);
 void DumpSDP(GF_ISOFile *file, char *inName);
 void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump);
 void DumpMovieInfo(GF_ISOFile *file);
@@ -955,7 +955,7 @@ int main(int argc, char **argv)
 	TrackAction tracks[MAX_CUMUL_OPS];
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, remove_root_od;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, remove_root_od, import_subtitle;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat;
 	GF_ISOFile *file;
@@ -977,7 +977,7 @@ int main(int argc, char **argv)
 	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
-	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = 0;
+	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
@@ -1114,6 +1114,7 @@ int main(int argc, char **argv)
 #endif
 			if (!stricmp(arg, "-ttxt")) dump_ttxt = 1;
 			else dump_srt = 1;
+			import_subtitle = 1;
 		} else if (!stricmp(arg, "-dm2ts")) {
 			dump_m2ts = 1;
 			if ( ((i+1<(u32) argc) && inName) || (i+2<(u32) argc) ) {
@@ -1680,8 +1681,11 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if (dump_mode == 1 + GF_SM_DUMP_SVG) {
+		if (strstr(inName, ".srt") || strstr(inName, ".ttxt")) import_subtitle = 2;
+	}
 
-	if ((dump_ttxt || dump_srt) && !trackID) {
+	if (import_subtitle && !trackID) {
 #ifndef GPAC_READ_ONLY
 		GF_MediaImporter import;
 		file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
@@ -1700,7 +1704,7 @@ int main(int argc, char **argv)
 			while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 			outfile[strlen(outfile)-1] = 0;
 		}
-		dump_timed_text_track(file, gf_isom_get_track_id(file, 1), dump_std ? NULL : outfile, 1, dump_srt);
+		dump_timed_text_track(file, gf_isom_get_track_id(file, 1), dump_std ? NULL : outfile, 1, (import_subtitle==2) ? 2 : dump_srt);
 		gf_isom_delete(file);
 		gf_delete_file("ttxt_convert");
 		if (e) {

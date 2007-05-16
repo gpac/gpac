@@ -185,7 +185,7 @@ static void svg_sa_render_bitmap(GF_Node *node, void *rs)
 			if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, & ((SVG_SA_Element *)node)->xlink->href)) {
 				gf_term_set_mfurl_from_uri(st->txh.compositor->term, &(st->txurl), & ((SVG_SA_Element*)node)->xlink->href);
 				if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
-				gf_sr_texture_play_from(&st->txh, &st->txurl, 0, 0, 0, NULL);
+				gf_sr_texture_play_from_to(&st->txh, &st->txurl, 0, -1, 0, 0);
 			}
 		} 
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
@@ -274,11 +274,12 @@ static void svg_play_texture(SVG_image_stack *st, SVGAllAttributes *atts)
 		atts = &all_atts;
 	}
 	if (atts->syncBehavior) lock_scene = (*atts->syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? 1 : 0;
-	gf_sr_texture_play_from(&st->txh, &st->txurl, 
+
+	gf_sr_texture_play_from_to(&st->txh, &st->txurl, 
 		atts->clipBegin ? (*atts->clipBegin) : 0.0,
+		atts->clipEnd ? (*atts->clipEnd) : -1.0,
 		0, 
-		lock_scene,
-		NULL);
+		lock_scene);
 }
 
 static void svg_render_bitmap(GF_Node *node, void *rs)
@@ -382,7 +383,7 @@ static void SVG_Update_image(GF_TextureHandler *txh)
 
 	/*setup texture if needed*/
 	if (!txh->is_open && txurl->count) {
-		gf_sr_texture_play_from(txh, txurl, 0, 0, 0, NULL);
+		gf_sr_texture_play_from_to(txh, txurl, 0, -1, 0, 0);
 	}
 	gf_sr_texture_update_frame(txh, 0);
 	/*URL is present but not opened - redraw till fetch*/
@@ -464,8 +465,12 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 	SVG_video_stack *st = (SVG_video_stack *) gf_node_get_private(txh->owner);
 	
 	if (!txh->is_open) {
-		u32 tag = gf_node_get_tag(txh->owner);
-		SVG_InitialVisibility init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
+		u32 tag;
+		SVG_InitialVisibility init_vis;
+		if (st->first_frame_fetched) return;
+
+		tag = gf_node_get_tag(txh->owner);
+		init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
 
 		switch (tag) {
 #ifdef GPAC_ENABLE_SVG_SA
@@ -489,34 +494,51 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 		}
 
 		/*opens stream only at first access to fetch first frame if needed*/
-		if (!st->first_frame_fetched && (init_vis == SVG_INITIALVISIBILTY_ALWAYS)) {
-			//gf_sr_texture_play_from(txh, &st->txurl, 0, 0, 0, NULL);
+		if (init_vis == SVG_INITIALVISIBILTY_ALWAYS) {
 			svg_play_texture((SVG_image_stack*)st, NULL);
 			gf_sr_invalidate(txh->compositor, NULL);
-			return;
-		} else {
-			return;
 		}
+		return;
 	} 
 
 	/*when fetching the first frame disable resync*/
 	gf_sr_texture_update_frame(txh, 0);
 
 	/* only when needs_refresh = 1, first frame is fetched */
-	if (!st->first_frame_fetched && (txh->needs_refresh) ) {
-		st->first_frame_fetched = 1;
-		/*stop stream if needed*/
-		if (!gf_smil_timing_is_active(txh->owner)) {
-			gf_sr_texture_stop(txh);
-			//make sure the refresh flag is not cleared
-			txh->needs_refresh = 1;
+	if (!st->first_frame_fetched) {
+		if (!st->audio && gf_mo_has_audio(st->txh.stream)) {
+			GF_FieldInfo att_vid, att_aud;
+			st->audio = gf_node_new(st->txh.owner->sgprivate->scenegraph, TAG_SVG_audio);
+			gf_node_register(st->audio, NULL);
+			if (gf_svg_get_attribute_by_tag(st->txh.owner, TAG_SVG_ATT_xlink_href, 0, 0, &att_vid)==GF_OK) {
+				gf_svg_get_attribute_by_tag(st->audio, TAG_SVG_ATT_xlink_href, 1, 0, &att_aud);
+				gf_svg_attributes_copy(&att_aud, &att_vid, 0);
+			}
+			/*BYPASS SMIL TIMING MODULE!!*/
+			svg_init_audio((Render2D *)st->txh.compositor->visual_renderer->user_priv, st->audio, 1);
+		}
+		if (txh->needs_refresh) {
+			st->first_frame_fetched = 1;
+			/*stop stream if needed*/
+			if (!gf_smil_timing_is_active(txh->owner)) {
+				gf_sr_texture_stop(txh);
+				//make sure the refresh flag is not cleared
+				txh->needs_refresh = 1;
+			}
 		}
 	}
 	/*we have no choice but retraversing the graph until we're inactive since the movie framerate and
 	the renderer framerate are likely to be different */
 	if (!txh->stream_finished) 
 		gf_sr_invalidate(txh->compositor, NULL);
+
+	if (st->stop_requested) {
+		st->stop_requested = 0;
+		gf_sr_texture_stop(&st->txh);
+	}
 }
+
+static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status, GF_Node *audio, GF_Node *video);
 
 static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
 {
@@ -537,27 +559,27 @@ static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 		}
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:
-		gf_sr_texture_stop(&stack->txh);
-		break;
 	case SMIL_TIMING_EVAL_REMOVE:
-		gf_sr_texture_stop(&stack->txh);
-		stack->txh.stream = NULL;
-		gf_sr_invalidate(stack->txh.compositor, NULL);
+		stack->stop_requested = 1;
 		break;
 	case SMIL_TIMING_EVAL_REPEAT:
 		gf_sr_texture_restart(&stack->txh);
 		break;
 	}
+	if (stack->audio) svg_audio_smil_evaluate_ex(rti, normalized_scene_time, status, stack->audio, stack->txh.owner);
 }
 
 static void SVG_Render_video(GF_Node *node, void *rs, Bool is_destroy)
 {
+	SVG_video_stack *st = (SVG_video_stack *)gf_node_get_private(node);
 	if (is_destroy) {
-		SVG_video_stack *st = (SVG_video_stack *)gf_node_get_private(node);
 		gf_sr_texture_destroy(&st->txh);
 		gf_sg_mfurl_del(st->txurl);
 
 		drawable_del(st->graph);
+		if (st->audio) {
+			gf_node_unregister(st->audio, NULL);
+		}
 		free(st);
 	} else {
 		switch (gf_node_get_tag(node)) {
@@ -573,6 +595,7 @@ static void SVG_Render_video(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 		case TAG_SVG_video:
 			svg_render_bitmap(node, rs);
+			if (st->audio) gf_node_render(st->audio, rs);
 			break;
 		}
 	}
@@ -632,19 +655,27 @@ void svg_init_video(Render2D *sr, GF_Node *node)
 /* SVG audio element */
 /*********************/
 
-static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
+static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status, GF_Node *audio, GF_Node *video)
 {
-	SVG_audio_stack *stack = (SVG_audio_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
+	SVG_audio_stack *stack;
+	if (!audio) audio = rti->timed_elt;
+	stack = (SVG_audio_stack *)gf_node_get_private(audio);
 	
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
 		if (!stack->is_active) { 
-			if (gf_sr_audio_open(&stack->input, &stack->aurl) == GF_OK) {
+			SVGAllAttributes atts;
+			gf_svg_flatten_attributes((SVG_Element*) (video ? video : audio), &atts);
+
+			if (gf_sr_audio_open(&stack->input, &stack->aurl,
+					atts.clipBegin ? (*atts.clipBegin) : 0.0,
+					atts.clipEnd ? (*atts.clipEnd) : -1.0) == GF_OK) 
+			{
 				gf_mo_set_speed(stack->input.stream, FIX_ONE);
 				stack->is_active = 1;
 			}
 		}
-		else if (stack->input.stream_finished && (rti->media_duration < 0) ) { 
+		else if (!audio && stack->input.stream_finished && (rti->media_duration < 0) ) { 
 			Double dur = gf_mo_get_duration(stack->input.stream);
 			if (dur <= 0) {
 				dur = gf_mo_get_last_frame_time(stack->input.stream);
@@ -674,6 +705,12 @@ static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 		break;
 	}
 }
+
+static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
+{
+	svg_audio_smil_evaluate_ex(rti, normalized_scene_time, status, NULL, NULL);
+}
+
 
 static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 {
@@ -733,7 +770,7 @@ static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 	eff->svg_flags = backup_flags;
 }
 
-void svg_init_audio(Render2D *sr, GF_Node *node)
+void svg_init_audio(Render2D *sr, GF_Node *node, Bool slaved_timing)
 {
 	u32 tag;
 	SVG_audio_stack *st;
@@ -752,7 +789,7 @@ void svg_init_audio(Render2D *sr, GF_Node *node)
 	case TAG_SVG_SANI_audio:
 #endif
 		gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), & ((SVG_SA_audioElement *)node)->xlink->href);
-		if (((SVG_SA_Element *)node)->timing->runtime) {
+		if (!slaved_timing && ((SVG_SA_Element *)node)->timing->runtime) {
 			SMIL_Timing_RTI *rti = ((SVG_SA_Element *)node)->timing->runtime;
 			rti->evaluate = svg_audio_smil_evaluate;
 		}
@@ -764,7 +801,7 @@ void svg_init_audio(Render2D *sr, GF_Node *node)
 		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
 			gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), href_info.far_ptr);
 		}
-		if (((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
+		if (!slaved_timing &&  ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
 			SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
 			rti->evaluate = svg_audio_smil_evaluate;
 		}

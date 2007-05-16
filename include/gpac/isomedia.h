@@ -1398,7 +1398,10 @@ GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Desc
 and ESD will be emulated for text tracks.*/
 GF_Err gf_isom_text_set_streaming_mode(GF_ISOFile *the_file, Bool do_convert);
 
-GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, Bool srt_dump);
+/*exports text track to given format
+@dump_type: 0 for TTXT, 1 for srt, 2 for SVG
+*/
+GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, u32 dump_type);
 
 /*returns encoded TX3G box (text sample description for 3GPP text streams) as needed by RTP or other standards:
 	@sidx: 1-based stream description index

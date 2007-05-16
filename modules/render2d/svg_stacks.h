@@ -62,6 +62,8 @@ typedef struct
 {
 	BASE_IMAGE_STACK
 	Bool first_frame_fetched;
+	GF_Node *audio;
+	Bool stop_requested;
 } SVG_video_stack;
 
 typedef struct
@@ -116,7 +118,7 @@ void svg_init_a(Render2D *se, GF_Node *node);
 /*WARNING - these are also used by SVG_SA and SVG_SANI*/
 void svg_init_image(Render2D *se, GF_Node *node);
 void svg_init_video(Render2D *se, GF_Node *node);
-void svg_init_audio(Render2D *se, GF_Node *node);
+void svg_init_audio(Render2D *se, GF_Node *node, Bool slaved_timing);
 
 /*moves to next/prev in the focus list. The start/end of the focus list is NULL, ie UA focus*/
 u32 svg_focus_switch_ring(Render2D *sr, Bool move_prev);

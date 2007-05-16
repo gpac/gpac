@@ -643,17 +643,16 @@ waiting_to_begin:
 			}
 
 		}
-		/*special case for unspecified simple duration and only for animations (postpone == 1) */
-		else if (rti->postpone && rti->current_interval->simple_duration==-1) {
-			if (rti->current_interval->active_duration<=0) {
-				rti->status = SMIL_STATUS_FROZEN;
-				rti->first_frozen = rti->cycle_number;
-				rti->evaluate_status = SMIL_TIMING_EVAL_FREEZE;
-				ret = rti->postpone;
-			} 
+		/*special case for unspecified simpleDur with animations (not with media timed elements)*/
+		else if (rti->postpone 
+			&& (rti->current_interval->simple_duration==-1) 
+			&& (rti->current_interval->active_duration<=0) 
+		) {
+			ret = 1;
+			rti->status = SMIL_STATUS_FROZEN;
+			rti->first_frozen = rti->cycle_number;
+			rti->evaluate_status = SMIL_TIMING_EVAL_FREEZE;
 		} else { // the animation is still active 
-
-
 			if (!timingp->restart || *timingp->restart == SMIL_RESTART_ALWAYS) {
 				s32 interval_index;
 				interval_index = gf_smil_timing_find_interval_index(rti, scene_time);

@@ -35,7 +35,9 @@ static void RenderShape(GF_Node *node, void *rs, Bool is_destroy)
 {
 	RenderEffect2D *eff;
 	M_Shape *shape = (M_Shape *) node;
-	if (is_destroy || !shape->geometry) return;
+	if (is_destroy ) return;
+	gf_node_dirty_clear(node, 0);
+	if (!shape->geometry) return;
 	eff = (RenderEffect2D *)rs;
 
 	if (eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF) return;

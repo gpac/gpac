@@ -111,7 +111,7 @@ static void AS_CheckURL(AnimationStreamStack *stack, M_AnimationStream *as)
 
 		/*if changed while playing trigger*/
 		if (as->isActive) {
-			gf_mo_play(stack->stream, 0, 0);
+			gf_mo_play(stack->stream, 0, -1, 0);
 			gf_mo_set_speed(stack->stream, as->speed);
 		}
 		return;
@@ -128,7 +128,7 @@ static void AS_CheckURL(AnimationStreamStack *stack, M_AnimationStream *as)
 		stack->stream = gf_mo_find((GF_Node *)as, &as->url, 0);
 		/*if changed while playing play new source*/
 		if (as->isActive) {
-			gf_mo_play(stack->stream, 0, 0);
+			gf_mo_play(stack->stream, 0, -1, 0);
 			gf_mo_set_speed(stack->stream, as->speed);
 		}
 		gf_sr_invalidate(stack->compositor, NULL);
@@ -150,7 +150,7 @@ static void AS_Activate(AnimationStreamStack *stack, M_AnimationStream *as)
 	as->isActive = 1;
 	gf_node_event_out_str((GF_Node*)as, "isActive");
 
-	gf_mo_play(stack->stream, 0, 0);
+	gf_mo_play(stack->stream, 0, -1, 0);
 	gf_mo_set_speed(stack->stream, as->speed);
 }
 

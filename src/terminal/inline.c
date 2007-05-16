@@ -457,7 +457,7 @@ static Bool Inline_SetScene(M_Inline *root)
 	gf_node_set_private((GF_Node *)root, mo->odm->subscene);
 	gf_list_add(mo->odm->subscene->inline_nodes, root);
 	/*play*/
-	gf_mo_play(mo, 0, 0);
+	gf_mo_play(mo, 0, -1, 0);
 	return 1;
 }
 
@@ -904,7 +904,7 @@ void IS_LoadExternProto(GF_InlineScene *is, MFURL *url)
 	gf_list_add(is->extern_protos, pl);
 	pl->mo = gf_is_get_media_object(is, url, GF_MEDIA_OBJECT_SCENE, 0);
 	/*this may already be destroyed*/
-	if (pl->mo) gf_mo_play(pl->mo, 0, 0);
+	if (pl->mo) gf_mo_play(pl->mo, 0, -1, 0);
 }
 
 GF_EXPORT
