@@ -706,7 +706,10 @@ restart:
 				parser->current_pos += i;
 				assert(parser->current_pos < parser->line_size);
 			}
-			while (strchr(" \n\t\r", parser->buffer[parser->current_pos+1])) {
+			while (1) {
+				char c = parser->buffer[parser->current_pos+1];
+				if (!c) goto exit;
+				if (!strchr(" \n\t\r", c)) break;
 				parser->current_pos++;
 				if (parser->current_pos==parser->line_size) goto exit;
 			}
@@ -764,6 +767,7 @@ restart:
 			elt = parser->buffer + parser->elt_name_start-1;
 
 			parser->sax_state = SAX_STATE_ATT_NAME;
+			assert(parser->elt_start_pos <= parser->file_pos + parser->current_pos);
 			parser->elt_start_pos = parser->file_pos + parser->current_pos;
 
 			if (!strncmp(elt, "!--", 3)) { 
@@ -992,7 +996,7 @@ static void xml_sax_reset(GF_SAXParser *parser)
 	parser->nb_alloc_attrs = parser->nb_attrs = 0;
 }
 
-#define XML_INPUT_SIZE	4096
+#define XML_INPUT_SIZE	64
 
 static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 {
@@ -1010,7 +1014,6 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 		e = gf_xml_sax_parse(parser, szLine);
 		if (e) break;
 
-		parser->file_pos = gztell(parser->gz_in);
 		if (parser->file_pos > parser->file_size) parser->file_size = parser->file_pos + 1;
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
 	}

@@ -2196,7 +2196,11 @@ static void nhml_node_start(void *sax_cbck, const char *node_name, const char *n
 		node_id = strdup(att->value);
 		break;
 	}
-	if (!node_id) node_id = strdup("__nhml__none");
+	if (!node_id) {
+		node_id = strdup("__nhml__none");
+		gf_list_add(breaker->id_stack, node_id);
+		return;
+	}
 	gf_list_add(breaker->id_stack, node_id);
 
 	if (breaker->from_is_start && breaker->from_id && !strcmp(breaker->from_id, node_id)) {
@@ -2212,6 +2216,7 @@ static void nhml_node_start(void *sax_cbck, const char *node_name, const char *n
 	}
 
 }
+
 static void nhml_node_end(void *sax_cbck, const char *node_name, const char *name_space)
 {
 	XMLBreaker *breaker = (XMLBreaker *)sax_cbck;
@@ -2257,6 +2262,8 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 	tmp = strchr(xmlFrom, '.');
 	*tmp = 0;
 	if (stricmp(xmlFrom, "doc")) breaker.from_id = strdup(xmlFrom);
+	/*doc start pos is 0, no need to look for it*/
+	else if (breaker.from_is_start) breaker.from_is_start = 0;
 	*tmp = '.';
 
 	if (strstr(xmlTo, ".start")) breaker.to_is_start = 1;
@@ -2264,6 +2271,8 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 	tmp = strchr(xmlTo, '.');
 	*tmp = 0;
 	if (stricmp(xmlTo, "doc")) breaker.to_id = strdup(xmlTo);
+	/*doc end pos is file size, no need to look for it*/
+	else if (breaker.to_is_end) breaker.to_is_end = 0;
 	*tmp = '.';
 
 	breaker.sax = gf_xml_sax_new(nhml_node_start, nhml_node_end, NULL, &breaker);
@@ -2276,6 +2285,10 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 		fseek(xml, 0, SEEK_END);
 		breaker.to_pos = ftell(xml);
 		fseek(xml, 0, SEEK_SET);
+	}
+	if(breaker.to_pos < breaker.from_pos) {
+		e = gf_import_message(import, GF_BAD_PARAM, "NHML import failure: xmlFrom %s is located after xmlTo %s", xmlFrom, xmlTo);
+		goto exit;
 	}
 
 	samp->dataLength = breaker.to_pos - breaker.from_pos;
@@ -2412,6 +2425,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	inRootOD = 0;
 	do_compress = 0;
 	specInfo = NULL;
+	samp = NULL;
 
 	if (stricmp(root->name, "NHNTStream")) { 
 		e = gf_import_message(import, GF_BAD_PARAM, "Error parsing NHML file - \"NHNTStream\" root expected, got \"%s\"", root->name);
@@ -2498,7 +2512,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	/*compressing samples, remove data ref*/
 	if (do_compress) import->flags &= ~GF_IMPORT_USE_DATAREF;
 
-	if (streamType)  {
+	if (streamType) {
 		if (!import->esd) {
 			import->esd = gf_odf_desc_esd_new(2);
 			destroy_esd = 1;
@@ -2679,7 +2693,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 			if (strlen(szMediaTemp)) xml_file = szMediaTemp;
 			else xml_file = szMedia;
 			samp->dataLength = max_size;
-			gf_import_sample_from_xml(import, samp, xml_file, szXmlFrom, szXmlTo, &max_size);
+			e = gf_import_sample_from_xml(import, samp, xml_file, szXmlFrom, szXmlTo, &max_size);
 		}
 		if (e) goto exit;
 
