@@ -654,9 +654,9 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 			if (!success) {
 				gf_dm_disconnect(sess);
-				sess->status = GF_DOWNLOAD_STATE_UNAVAILABLE;
+				sess->status = GF_NETIO_STATE_ERROR;
 				sess->last_error = GF_AUTHENTICATION_FAILURE;
-				gf_dm_sess_notify(sess, NULL, 0, sess->status, GF_AUTHENTICATION_FAILURE);
+				gf_dm_sess_notify_state(sess, sess->status, sess->last_error);
 			}
 		}
 	}
