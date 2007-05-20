@@ -444,13 +444,6 @@ static void lsr_write_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 	if (iri->type==XMLRI_STREAMID) 
 		lsr_write_codec_IDREF(lsr, iri, "ref");
 }
-static void lsr_write_any_uri_string(GF_LASeRCodec *lsr, char *uri, const char *name)
-{
-	XMLRI iri;
-	iri.type = XMLRI_STRING;
-	iri.string = uri;
-	lsr_write_any_uri(lsr, &iri, name);
-}
 
 static void lsr_write_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *name)
 {
