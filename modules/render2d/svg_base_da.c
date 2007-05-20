@@ -39,8 +39,29 @@ void svg_check_focus_upon_destroy(GF_Node *n)
 	}
 }
 
+static Bool svg_is_focus_target(GF_Node *elt)
+{
+	u32 i, count;
+	if (gf_node_get_tag(elt)==TAG_SVG_a) 
+		return 1;
 
-static GF_Node *svg_set_focus_prev(GF_Node *elt, Bool current_focus, Bool check_nav)
+	count = gf_dom_listener_count(elt);
+	for (i=0; i<count; i++) {
+		GF_FieldInfo info;
+		GF_Node *l = gf_dom_listener_get(elt, i);
+		if (gf_svg_get_attribute_by_tag(l, TAG_SVG_ATT_event, 0, 0, &info)==GF_OK) {
+			switch ( ((XMLEV_Event*)info.far_ptr)->type) {
+			case GF_EVENT_FOCUSIN:
+			case GF_EVENT_FOCUSOUT:
+			case GF_EVENT_ACTIVATE:
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+static GF_Node *svg_set_focus_prev(Render2D *sr, GF_Node *elt, Bool current_focus)
 {
 	u32 i, count;
 	GF_Node *n;
@@ -49,17 +70,30 @@ static GF_Node *svg_set_focus_prev(GF_Node *elt, Bool current_focus, Bool check_
 	if (gf_node_get_tag(elt) <= GF_NODE_FIRST_DOM_NODE_TAG) return NULL;
 
 	gf_svg_flatten_attributes((SVG_Element *)elt, &atts);
-	/*FIXME for a, anims and handlers*/
-	if (!current_focus && atts.focusable && (*atts.focusable==SVG_FOCUSABLE_TRUE)) 
-		return elt;
+
+	if (atts.display && (*atts.display==SVG_DISPLAY_NONE)) return NULL;
+
+	if (!current_focus) {
+		Bool is_auto = 1;
+		if (atts.focusable) {
+			if (*atts.focusable==SVG_FOCUSABLE_TRUE) return elt;
+			if (*atts.focusable==SVG_FOCUSABLE_FALSE) is_auto = 0;
+		}
+		if (is_auto && svg_is_focus_target(elt)) return elt;
+	}
+
 	/**/
-	if (check_nav && atts.nav_next) {
-		switch (atts.nav_next->type) {
+	if (atts.nav_prev) {
+		switch (atts.nav_prev->type) {
 		case SVG_FOCUS_SELF:
 			/*focus locked on element*/
 			return elt;
 		case SVG_FOCUS_IRI:
-			return atts.nav_next->target.target;
+			if (!atts.nav_prev->target.target) {
+				if (!atts.nav_prev->target.string) return NULL;
+				atts.nav_prev->target.target = gf_sg_find_node_by_name(sr->compositor->scene, atts.nav_prev->target.string+1);
+			}
+			return atts.nav_prev->target.target;
 		default:
 			break;
 		}
@@ -71,13 +105,13 @@ static GF_Node *svg_set_focus_prev(GF_Node *elt, Bool current_focus, Bool check_
 	for (i=count; i>0; i--) {
 		/*get in the subtree*/
 		n = gf_node_list_get_child( ((SVG_Element*)elt)->children, i-1);
-		n = svg_set_focus_prev(n, current_focus, check_nav);
+		n = svg_set_focus_prev(sr, n, current_focus);
 		if (n) return n;
 	}
 	return NULL;
 }
 
-static GF_Node *svg_browse_parent_for_focus_prev(GF_Node *elt, Bool check_nav)
+static GF_Node *svg_browse_parent_for_focus_prev(Render2D *sr, GF_Node *elt)
 {
 	s32 idx = 0;
 	u32 i, count;
@@ -86,7 +120,7 @@ static GF_Node *svg_browse_parent_for_focus_prev(GF_Node *elt, Bool check_nav)
 	/*not found, browse parent list*/
 	par = (SVG_Element *)gf_node_get_parent((GF_Node*)elt, 0);
 	/*root, return NULL if next, current otherwise*/
-	if (!par) return (check_nav ? NULL : elt);
+	if (!par) return NULL;
 
 	/*locate element*/
 	count = gf_node_list_get_count(par->children);
@@ -95,15 +129,15 @@ static GF_Node *svg_browse_parent_for_focus_prev(GF_Node *elt, Bool check_nav)
 	for (i=idx; i>0; i--) {
 		n = gf_node_list_get_child(par->children, i-1);
 		/*get in the subtree*/
-		n = svg_set_focus_prev(n, 0, check_nav);
+		n = svg_set_focus_prev(sr, n, 0);
 		if (n) return n;
 	}
 	/*up one level*/
-	return svg_browse_parent_for_focus_prev((GF_Node*)par, check_nav);
+	return svg_browse_parent_for_focus_prev(sr, (GF_Node*)par);
 }
 
 
-static GF_Node *svg_set_focus_next(GF_Node *elt, Bool current_focus, Bool check_nav)
+static GF_Node *svg_set_focus_next(Render2D *sr, GF_Node *elt, Bool current_focus)
 {
 	GF_ChildNodeItem *child;
 	GF_Node *n;
@@ -112,16 +146,29 @@ static GF_Node *svg_set_focus_next(GF_Node *elt, Bool current_focus, Bool check_
 	if (gf_node_get_tag(elt) <= GF_NODE_FIRST_DOM_NODE_TAG) return NULL;
 
 	gf_svg_flatten_attributes((SVG_Element *)elt, &atts);
-	/*FIXME for a, anims and handlers*/
-	if (!current_focus && atts.focusable && (*atts.focusable==SVG_FOCUSABLE_TRUE)) 
-		return elt;
-	/**/
-	if (check_nav && atts.nav_next) {
+
+	if (atts.display && (*atts.display==SVG_DISPLAY_NONE)) return NULL;
+
+	if (!current_focus) {
+		Bool is_auto = 1;
+		if (atts.focusable) {
+			if (*atts.focusable==SVG_FOCUSABLE_TRUE) return elt;
+			if (*atts.focusable==SVG_FOCUSABLE_FALSE) is_auto = 0;
+		}
+		if (is_auto && svg_is_focus_target(elt)) return elt;
+	}
+
+	/*check next*/
+	if (atts.nav_next) {
 		switch (atts.nav_next->type) {
 		case SVG_FOCUS_SELF:
 			/*focus locked on element*/
 			return elt;
 		case SVG_FOCUS_IRI:
+			if (!atts.nav_next->target.target) {
+				if (!atts.nav_next->target.string) return NULL;
+				atts.nav_next->target.target = gf_sg_find_node_by_name(sr->compositor->scene, atts.nav_next->target.string+1);
+			}
 			return atts.nav_next->target.target;
 		default:
 			break;
@@ -132,14 +179,14 @@ static GF_Node *svg_set_focus_next(GF_Node *elt, Bool current_focus, Bool check_
 	child = ((SVG_Element*)elt)->children;
 	while (child) {
 		/*get in the subtree*/
-		n = svg_set_focus_next(child->node, 0, check_nav);
+		n = svg_set_focus_next(sr, child->node, 0);
 		if (n) return n;
 		child = child->next;
 	}
 	return NULL;
 }
 
-static GF_Node *svg_browse_parent_for_focus_next(GF_Node *elt, Bool check_nav)
+static GF_Node *svg_browse_parent_for_focus_next(Render2D *sr, GF_Node *elt)
 {
 	s32 idx = 0;
 	GF_ChildNodeItem *child;
@@ -148,7 +195,7 @@ static GF_Node *svg_browse_parent_for_focus_next(GF_Node *elt, Bool check_nav)
 	/*not found, browse parent list*/
 	par = (SVG_Element *)gf_node_get_parent((GF_Node*)elt, 0);
 	/*root, return NULL if next, current otherwise*/
-	if (!par) return (check_nav ? NULL : elt);
+	if (!par) return NULL;
 
 	/*locate element*/
 	child = par->children;
@@ -156,38 +203,38 @@ static GF_Node *svg_browse_parent_for_focus_next(GF_Node *elt, Bool check_nav)
 	while (child) {
 		if (idx<0) {
 			/*get in the subtree*/
-			n = svg_set_focus_next(child->node, 0, check_nav);
+			n = svg_set_focus_next(sr, child->node, 0);
 			if (n) return n;
 		}
 		idx--;
 		child = child->next;
 	}
 	/*up one level*/
-	return svg_browse_parent_for_focus_next((GF_Node*)par, check_nav);
+	return svg_browse_parent_for_focus_next(sr, (GF_Node*)par);
 }
 
 u32 svg_focus_switch_ring(Render2D *sr, Bool move_prev)
 {
 	GF_DOM_Event evt;
-	Bool check_next = 1;
+	Bool current_focus = 1;
 	u32 ret = 0;
 	GF_Node *n, *prev;
 
 	prev = sr->focus_node;
 
 	if (!sr->focus_node) {
-		check_next = 0;
 		sr->focus_node = gf_sg_get_root_node(sr->compositor->scene);
 		if (!sr->focus_node) return 0;
+		current_focus = 0;
 	}
 
 	/*get focus in current doc order*/
 	if (move_prev) {
-		n = svg_set_focus_prev(sr->focus_node, 1, check_next);
-		if (!n) n = svg_browse_parent_for_focus_prev(sr->focus_node, check_next);
+		n = svg_set_focus_prev(sr, sr->focus_node, current_focus);
+		if (!n) n = svg_browse_parent_for_focus_prev(sr, sr->focus_node);
 	} else {
-		n = svg_set_focus_next(sr->focus_node, 1, check_next);
-		if (!n) n = svg_browse_parent_for_focus_next(sr->focus_node, check_next);
+		n = svg_set_focus_next(sr, sr->focus_node, current_focus);
+		if (!n) n = svg_browse_parent_for_focus_next(sr, sr->focus_node);
 	}
 	sr->focus_node = n;
 
@@ -1278,19 +1325,19 @@ void svg_init_a(Render2D *sr, GF_Node *node)
 	gf_node_set_callback_function(node, svg_render_a);
 
 	/*listener for onClick event*/
-	handler = gf_dom_listener_build(node, GF_EVENT_CLICK, 0);
+	handler = gf_dom_listener_build(node, GF_EVENT_CLICK, 0, NULL);
 	/*and overwrite handler*/
 	handler->handle_event = svg_a_handle_event;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for activate event*/
-	handler = gf_dom_listener_build(node, GF_EVENT_ACTIVATE, 0);
+	handler = gf_dom_listener_build(node, GF_EVENT_ACTIVATE, 0, NULL);
 	/*and overwrite handler*/
 	handler->handle_event = svg_a_handle_event;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for mousemove event*/
-	handler = gf_dom_listener_build(node, GF_EVENT_MOUSEOVER, 0);
+	handler = gf_dom_listener_build(node, GF_EVENT_MOUSEOVER, 0, NULL);
 	/*and overwrite handler*/
 	handler->handle_event = svg_a_handle_event;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
@@ -1336,9 +1383,9 @@ void r2d_render_svg_use(GF_Node *node, GF_Node *sub_root, void *rs)
 	svg_apply_local_transformation(eff, &all_atts, &backup_matrix);
 
 	gf_mx2d_pre_multiply(&eff->transform, &translate);
-	prev_use = eff->parent_use;
 	if (all_atts.xlink_href) {
-		eff->parent_use = all_atts.xlink_href->target;
+		prev_use = eff->parent_use;
+		eff->parent_use = node;
 		gf_node_render(all_atts.xlink_href->target, eff);
 		eff->parent_use = prev_use;
 	}

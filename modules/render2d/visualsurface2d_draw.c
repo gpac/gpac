@@ -223,8 +223,10 @@ static void VS2D_DrawGradient(VisualSurface2D *surf, GF_Path *path, GF_TextureHa
 	if (!rc.width || !rc.height || !txh->hwtx) return;
 	txh->compute_gradient_matrix(txh, &rc, &g_mat);
 
-	get_gf_sr_texture_transform(ctx->appear, txh, &txt_mat, (txh == ctx->h_texture) ? 0 : 1, INT2FIX(txh->width), INT2FIX(txh->height));
-	gf_mx2d_add_matrix(&g_mat, &txt_mat);
+	if (ctx->flags & CTX_HAS_APPEARANCE) {
+		get_gf_sr_texture_transform(ctx->appear, txh, &txt_mat, (txh == ctx->h_texture) ? 0 : 1, INT2FIX(txh->width), INT2FIX(txh->height));
+		gf_mx2d_add_matrix(&g_mat, &txt_mat);
+	}
 	gf_mx2d_add_matrix(&g_mat, &ctx->transform);
 
 	r2d->stencil_set_matrix(txh->hwtx, &g_mat);

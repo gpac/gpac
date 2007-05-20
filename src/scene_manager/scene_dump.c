@@ -2565,12 +2565,12 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		DUMP_IND(sdump);
 	}
 
-	fprintf(sdump->trace, "<%s ", gf_node_get_class_name(n));
+	fprintf(sdump->trace, "<%s", gf_node_get_class_name(n));
 
 	if (is_root) 
-		fprintf(sdump->trace, "xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" ");
+		fprintf(sdump->trace, " xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"");
 	
-	if (nID) fprintf(sdump->trace, "id=\"%s\" ", lsr_format_node_id(n, 0, attValue));
+	if (nID) fprintf(sdump->trace, " id=\"%s\"", lsr_format_node_id(n, 0, attValue));
 
 	att = svg->attributes;
 	while (att) {
@@ -2601,7 +2601,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		info.name = gf_svg_get_attribute_name(att->tag);
 		info.far_ptr = att->data;
 		gf_svg_dump_attribute((GF_Node*)svg, &info, attValue);
-		if (strlen(attValue)) fprintf(sdump->trace, "%s=\"%s\" ", info.name, attValue);
+		if (strlen(attValue)) fprintf(sdump->trace, " %s=\"%s\"", info.name, attValue);
 		fflush(sdump->trace);
 		att = att->next;
 	}
@@ -2620,7 +2620,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 				txt = hdl->children ? (GF_DOMText*)hdl->children->node : NULL;
 				if (!txt || (txt->sgprivate->tag!=TAG_DOMText) || !txt->textContent) continue;
 				if (gf_svg_get_attribute_by_tag((GF_Node*)hdl, TAG_SVG_ATT_ev_event, 0, 0, &info)==GF_OK) {
-					fprintf(sdump->trace, "on%s=\"%s\" ", gf_dom_event_get_name( ((XMLEV_Event*)info.far_ptr)->type), txt->textContent);
+					fprintf(sdump->trace, " on%s=\"%s\"", gf_dom_event_get_name( ((XMLEV_Event*)info.far_ptr)->type), txt->textContent);
 				}
 			}
 		}

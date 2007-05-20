@@ -1079,7 +1079,7 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 			case TAG_SVG_solidColor:
 			{
 				SVGAllAttributes all_atts;
-				gf_svg_flatten_attributes((SVG_Element*)props->fill->iri.target, &all_atts);
+				gf_svg_flatten_attributes((SVG_Element*)props->stroke->iri.target, &all_atts);
 
 				if (all_atts.solid_color) {
 					if (all_atts.solid_opacity) {

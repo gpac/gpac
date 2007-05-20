@@ -600,6 +600,7 @@ JSBool svg_udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	case SVG_LanguageID_datatype:
 /*end of DOM string traits*/
 		gf_svg_parse_attribute(n, &info, val, 0);
+		svg_node_changed(n, &info);
 		break;
 
 #if 0
@@ -628,7 +629,7 @@ JSBool svg_udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 		return JS_FALSE;
 #endif
 	}
-	return JS_FALSE;
+	return JS_TRUE;
 }
 
 JSBool svg_udom_set_float_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -1978,7 +1979,7 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 
 	txt = svg_get_text_child(node);
 	if (!txt) return 0;
-	
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Executing script code from handler\n"));
 
 	svg_js = node->sgprivate->scenegraph->svg_js;
@@ -1993,6 +1994,8 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);
+	JS_ClearNewbornRoots(svg_js->js_ctx);
+	JS_GC(svg_js->js_ctx);
 
 	if (ret==JS_FALSE) {
 		_ScriptMessage(node->sgprivate->scenegraph, GF_SCRIPT_ERROR, "SVG: Invalid handler textContent");

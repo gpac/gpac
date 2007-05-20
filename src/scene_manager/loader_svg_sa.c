@@ -446,7 +446,7 @@ static SVG_SA_Element *svg_sa_parse_element(GF_SVG_SA_Parser *parser, const char
 			if (evtType != GF_EVENT_UNKNOWN) {
 				XMLEV_Event evt;
 				SVG_SA_handlerElement *handler;
-				handler = gf_dom_listener_build((GF_Node *) elt, evtType, 0);
+				handler = gf_dom_listener_build((GF_Node *) elt, evtType, 0, NULL);
 				handler->textContent = strdup(att->value);
 				gf_node_init((GF_Node *)handler);
 			} else if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {

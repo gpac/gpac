@@ -199,24 +199,39 @@ GF_Node *dom_get_node(JSContext *c, JSObject *obj, Bool *is_doc)
 static jsval dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 {
 	JSObject *new_obj;
+	if (sg->document) return OBJECT_TO_JSVAL(sg->document);
+
 	if (sg->reference_count)
 		sg->reference_count++;
 	gf_node_register(sg->RootNode, NULL);
 	new_obj = JS_NewObject(c, &domDocumentClass, 0, 0);
 	JS_SetPrivate(c, new_obj, sg);
+	sg->document = new_obj;
 	return OBJECT_TO_JSVAL(new_obj);
 }
 static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 {
+	GF_SceneGraph *sg;
+	u32 i, count;
 	JSObject *new_obj;
 	if (!n || !n->sgprivate->scenegraph) return JSVAL_VOID;
 	if (n->sgprivate->tag<TAG_DOMText) return JSVAL_VOID;
+
+	sg = n->sgprivate->scenegraph;
+	count = gf_list_count(sg->objects);
+	for (i=0; i<count; i++) {
+		JSObject *obj = gf_list_get(sg->objects, i);
+		GF_Node *a_node = JS_GetPrivate(c, obj);
+		if (n==a_node) return OBJECT_TO_JSVAL(obj);
+	}
+
 	if (n->sgprivate->scenegraph->reference_count)
 		n->sgprivate->scenegraph->reference_count ++;
 
 	gf_node_register(n, NULL);
 	new_obj = JS_NewObject(c, _class, 0, 0);
 	JS_SetPrivate(c, new_obj, n);
+	gf_list_add(sg->objects, new_obj);
 	return OBJECT_TO_JSVAL(new_obj);
 }
 static jsval dom_node_construct(JSContext *c, GF_Node *n)
@@ -558,6 +573,7 @@ static void dom_node_finalize(JSContext *c, JSObject *obj)
 		GF_Node *n = (GF_Node *) JS_GetPrivate(c, obj);
 		/*the JS proto of the svgClass or a destroyed object*/
 		if (!n) return;
+		gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
 		dom_unregister_node(n);
 	}
 }
@@ -942,6 +958,7 @@ static void dom_document_finalize(JSContext *c, JSObject *obj)
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!sg) return;
 
+	sg->document = NULL;
 	gf_node_unregister(sg->RootNode, NULL);
 	if (sg->reference_count) {
 		sg->reference_count--;
@@ -1436,7 +1453,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 				return JS_TRUE;
 			}
 			/*nope, create a listener*/
-			handler = gf_dom_listener_build(n, evtType, 0);
+			handler = gf_dom_listener_build(n, evtType, 0, NULL);
 			gf_dom_add_text_node((GF_Node*)handler, strdup(val) );
 			return JS_TRUE;
 		}
@@ -2615,14 +2632,18 @@ void dom_js_load(JSContext *c, JSObject *global)
 	JS_InitClass(c, global, 0, &xmlHTTPRequestClass, xml_http_constructor, 0, xmlHTTPRequestClassProps, xmlHTTPRequestClassFuncs, 0, 0);
 }
 
-JSObject *dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
+void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
 {
 	JSObject *obj;
-	if (!doc) return NULL;
+	if (!doc || !doc->RootNode) return;
+
+	if (doc->reference_count)
+		doc->reference_count++;
+
 	obj = JS_DefineObject(c, global, "document", &domDocumentClass, 0, 0 );
 	gf_node_register(doc->RootNode, NULL);
 	JS_SetPrivate(c, obj, doc);
-	return obj;
+	doc->document = obj;
 }
 
 JSObject *dom_js_define_event(JSContext *c, JSObject *global)
