@@ -172,6 +172,7 @@ Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
 {
 	switch (node->sgprivate->tag) {
 	case TAG_SVG_animateMotion:
+	case TAG_SVG_discard: 
 	case TAG_SVG_set: 
 	case TAG_SVG_animate: 
 	case TAG_SVG_animateColor: 

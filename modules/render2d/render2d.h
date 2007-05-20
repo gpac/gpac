@@ -49,6 +49,7 @@ typedef struct _render_2d
 	Bool is_tracking;
 	struct _drawable_context *grab_ctx;
 	struct _drawable *grab_node;
+	GF_Node *grab_use;
 	u32 last_sensor;
 	GF_Node *focus_node;
 

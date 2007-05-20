@@ -152,7 +152,8 @@ typedef struct
 	Double smil_event_time;
 } GF_DOM_Event;
 
-
+/*fires event on the specified node
+BE CAREFULL: event execution may very well destroy ANY node, especially the event target node !!*/
 Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event);
 
 u32 gf_dom_event_type_by_name(const char *name);
@@ -183,8 +184,9 @@ u32 gf_dom_listener_count(GF_Node *node);
 GF_Node *gf_dom_listener_get(GF_Node *node, u32 i);
 
 /*creates a default listener/handler for the given event on the given node, and return the 
-handler element to allow for handler function override*/
-GF_DOMHandler *gf_dom_listener_build(GF_Node *node, u32 event_type, u32 event_param);
+handler element to allow for handler function override
+owner is the node holding the created listener/handler. If null, they are registered with the observer*/
+GF_DOMHandler *gf_dom_listener_build(GF_Node *observer, u32 event_type, u32 event_param, GF_Node *owner);
 
 
 

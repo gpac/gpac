@@ -480,7 +480,7 @@ void gf_mo_stop(GF_MediaObject *mo)
 		mo->odm->media_start_time = (u64)-1;
 
 		gf_mx_v(mo->odm->term->net_mx);
-		if (mo->odm->codec->CB) {
+		if (mo->odm->codec && mo->odm->codec->CB) {
 			GF_CompositionMemory *cb = mo->odm->codec->CB;
 			GF_CMUnit *out = cb->output->next;
 			while (out != cb->output) {

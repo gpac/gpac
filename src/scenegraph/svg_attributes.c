@@ -36,6 +36,8 @@
 */
 u32 gf_dom_event_type_by_name(const char *name)
 {
+	if ((name[0]=='o') && (name[1]=='n')) name += 2;
+
 	if (!strcmp(name, "abort"))	return GF_EVENT_ABORT;
 	if (!strcmp(name, "activate"))	return GF_EVENT_ACTIVATE;
 	if (!strcmp(name, "begin"))		return GF_EVENT_BEGIN;
@@ -44,8 +46,8 @@ u32 gf_dom_event_type_by_name(const char *name)
 	if (!strcmp(name, "end"))		return GF_EVENT_END;
 	if (!strcmp(name, "endEvent"))	return GF_EVENT_END_EVENT;
 	if (!strcmp(name, "error"))		return GF_EVENT_ERROR;
-	if (!strcmp(name, "focusin"))	return GF_EVENT_FOCUSIN;
-	if (!strcmp(name, "focusout"))	return GF_EVENT_FOCUSOUT;
+	if (!strcmp(name, "focusin") || !strcmp(name, "DOMFocusIn"))	return GF_EVENT_FOCUSIN;
+	if (!strcmp(name, "focusout") || !strcmp(name, "DOMFocusOut"))	return GF_EVENT_FOCUSOUT;
 	if (!strcmp(name, "keydown"))	return GF_EVENT_KEYDOWN;
 	if (!strcmp(name, "keypress") || !stricmp(name, "accesskey"))	return GF_EVENT_KEYDOWN;
 	if (!strcmp(name, "keyup"))		return GF_EVENT_KEYUP;
@@ -710,7 +712,7 @@ static u32 svg_parse_float(char *d, Fixed *f, Bool is_angle)
 	Bool is_negative = 0;
 	Float _val = 0;
 	u32 i = 0;
-	while ((d[i] != 0) && strchr(" ,;\r\n", d[i])) i++;
+	while ((d[i] != 0) && strchr(" ,;\r\n\t", d[i])) i++;
 	if (!d[i]) goto end;
 	if (d[i] == '+') i++;
 	if (d[i] == '-') {
@@ -5466,6 +5468,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SVG_PlaybackOrder_datatype:
 	case SVG_TimelineBegin_datatype:
 	case SVG_TransformType_datatype:
+	case SVG_Focusable_datatype:
 		*(u8 *)a->far_ptr = *(u8 *)b->far_ptr;
 		return GF_OK;
 

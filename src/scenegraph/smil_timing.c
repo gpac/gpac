@@ -585,6 +585,8 @@ s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 		else return 0;
 	}
 
+	gf_node_register(rti->timed_elt, NULL);
+
 waiting_to_begin:
 	if (rti->status == SMIL_STATUS_WAITING_TO_BEGIN) {
 		if (rti->current_interval && scene_time >= rti->current_interval->begin) {			
@@ -606,7 +608,8 @@ waiting_to_begin:
 			}
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Timing   ] Time %f - Timed element %s - Evaluating (Not starting)\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_name((GF_Node *)rti->timed_elt)));
-			return -2;
+			ret = -2;
+			goto exit;
 		}
 	}
 
@@ -732,6 +735,9 @@ waiting_to_begin:
 			gf_list_del_item(sg->smil_timed_elements, rti);
 		}
 	}
+
+exit:
+	gf_node_unregister(rti->timed_elt, NULL);
 	return ret;
 }
 

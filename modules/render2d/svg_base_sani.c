@@ -878,19 +878,19 @@ void svg_sani_init_a(Render2D *sr, GF_Node *node)
 	gf_node_set_callback_function(node, svg_sani_render_a);
 
 	/*listener for onClick event*/
-	handler = gf_dom_listener_build(node, GF_EVENT_CLICK, 0);
+	handler = gf_dom_listener_build(node, GF_EVENT_CLICK, 0, NULL);
 	/*and overwrite handler*/
 	handler->handle_event = svg_sani_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for activate event*/
-	handler = gf_dom_listener_build(node, GF_EVENT_ACTIVATE, 0);
+	handler = gf_dom_listener_build(node, GF_EVENT_ACTIVATE, 0, NULL);
 	/*and overwrite handler*/
 	handler->handle_event = svg_sani_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for mouseover event*/
-	handler = gf_dom_listener_build(node, GF_EVENT_MOUSEOVER, 0);
+	handler = gf_dom_listener_build(node, GF_EVENT_MOUSEOVER, 0, NULL);
 	/*and overwrite handler*/
 	handler->handle_event = svg_sani_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);

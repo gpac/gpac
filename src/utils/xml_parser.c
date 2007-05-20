@@ -537,7 +537,7 @@ static void xml_sax_store_text(GF_SAXParser *parser, u32 txt_len)
 	parser->text_start = parser->current_pos + 1;
 	parser->text_end = parser->text_start + txt_len;
 	parser->current_pos += txt_len;
-	assert(parser->current_pos < parser->line_size);
+	assert(parser->current_pos <= parser->line_size);
 }
 
 static char *xml_get_current_text(GF_SAXParser *parser)
@@ -702,16 +702,10 @@ restart:
 			if (is_text && i) {
 				xml_sax_store_text(parser, i);
 				is_text = 0;
+				parser->sax_state = SAX_STATE_ELEMENT;
 			} else if (i) {
 				parser->current_pos += i;
 				assert(parser->current_pos < parser->line_size);
-			}
-			while (1) {
-				char c = parser->buffer[parser->current_pos+1];
-				if (!c) goto exit;
-				if (!strchr(" \n\t\r", c)) break;
-				parser->current_pos++;
-				if (parser->current_pos==parser->line_size) goto exit;
 			}
 			is_end = 0;
 			i = 0;
@@ -721,19 +715,23 @@ restart:
 					i = 0;
 					goto exit;
 				}
-				if (c=='\t') break;
-				else if (c=='\r') break;
-				else if (c==' ') break;
-				else if (c=='>') break;
-				else if (c=='=') break;
+				if ((c=='\t') || (c=='\r') || (c==' ') ) {
+					if (i) break;
+					else parser->current_pos++;
+				}
 				else if (c=='\n') {
 					parser->line++;
-					break;
+					if (i) break;
+					else parser->current_pos++;
 				}
-
-				else if (c=='/') is_end = !i ? 1 : 2;
-
-				i++;
+				else if (c=='>') break;
+				else if (c=='=') break;
+				else if (c=='/') {
+					is_end = !i ? 1 : 2;
+					i++;
+				} else {
+					i++;
+				}
 //				if ((c=='[') && (parser->buffer[parser->elt_name_start-1 + i-2]=='A') ) break;
 				if (parser->current_pos+1+i==parser->line_size) {
 					i=0;
@@ -795,6 +793,7 @@ restart:
 						orig_buf = strdup(parser->buffer + parser->current_pos);
 						parser->current_pos = 0;
 						parser->line_size = 0;
+						parser->elt_start_pos = 0;
 						parser->sax_state = SAX_STATE_TEXT_CONTENT;
 						e = gf_xml_sax_parse_intern(parser, orig_buf);
 						free(orig_buf);
@@ -996,7 +995,7 @@ static void xml_sax_reset(GF_SAXParser *parser)
 	parser->nb_alloc_attrs = parser->nb_attrs = 0;
 }
 
-#define XML_INPUT_SIZE	64
+#define XML_INPUT_SIZE	4096
 
 static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 {

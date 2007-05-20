@@ -40,6 +40,27 @@
 
 #include <gpac/scenegraph_svg.h>
 
+#ifdef GPAC_HAS_SPIDERMONKEY
+
+/*WIN32 and WinCE config (no configure script)*/
+#if defined(WIN32) || defined(_WIN32_WCE) || defined(__SYMBIAN32__)
+#ifndef XP_PC
+#define XP_PC
+#endif
+/*WINCE specific config*/
+#if defined(_WIN32_WCE)
+#include <windows.h>
+#define XP_WINCE
+#endif
+#endif
+
+/*other platforms should be setup through configure*/
+
+#include <jsapi.h> 
+
+#endif
+
+
 void gf_node_setup(GF_Node *p, u32 tag);
 
 typedef struct _parent_list
@@ -202,6 +223,10 @@ struct __tag_scene_graph
 	entity (typically the player), and cannot be destroyed from the scripting engine
 	*/
 	u32 reference_count;
+	/*DOM nodes*/
+	GF_List *objects;
+	/*DOM document*/
+	JSObject *document;
 #endif
 };
 
@@ -725,26 +750,6 @@ s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *na
 		Script node
 */
 
-#ifdef GPAC_HAS_SPIDERMONKEY
-
-/*WIN32 and WinCE config (no configure script)*/
-#if defined(WIN32) || defined(_WIN32_WCE) || defined(__SYMBIAN32__)
-#ifndef XP_PC
-#define XP_PC
-#endif
-/*WINCE specific config*/
-#if defined(_WIN32_WCE)
-#include <windows.h>
-#define XP_WINCE
-#endif
-#endif
-
-/*other platforms should be setup through configure*/
-
-#include <jsapi.h> 
-
-#endif
-
 typedef struct 
 {
 	//extra script fields
@@ -857,7 +862,7 @@ and setup the callback pointers*/
 void dom_js_load(JSContext *c, JSObject *global);
 
 /*defines a new global object "document" of type Document*/
-JSObject *dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc);
+void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc);
 /*defines a new global object "evt" of type Event*/
 JSObject *dom_js_define_event(JSContext *c, JSObject *global);
 

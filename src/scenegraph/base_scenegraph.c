@@ -55,6 +55,7 @@ GF_SceneGraph *gf_sg_new()
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	tmp->scripts = gf_list_new();
+	tmp->objects = gf_list_new();
 	tmp->listeners_to_add = gf_list_new();
 #endif
 	return tmp;
@@ -116,6 +117,7 @@ void gf_sg_del(GF_SceneGraph *sg)
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	gf_list_del(sg->scripts);
+	gf_list_del(sg->objects);
 #endif
 	gf_list_del(sg->Routes);
 	gf_list_del(sg->protos);
@@ -229,7 +231,13 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	while (gf_list_count(sg->scripts)) {
 		GF_Node *n = gf_list_get(sg->scripts, 0);
 		gf_list_rem(sg->scripts, 0);
+		/*prevent destroy*/
+		gf_node_register(n, NULL);
+		/*remove from all parents*/
 		gf_node_replace(n, NULL, 0);
+		/*FORCE destroy in case the script refers to itself*/
+		n->sgprivate->num_instances=1;
+		gf_node_unregister(n, NULL);
 	}
 #endif
 
@@ -630,13 +638,21 @@ static void Replace_IRI(GF_SceneGraph *sg, GF_Node *old_node, GF_Node *newNode)
 /*replace or remove node instance in the given node (eg in all IRI)*/
 static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNode)
 {
+	GF_ChildNodeItem *prev = NULL;
 	GF_ChildNodeItem *child = ((SVG_Element *)FromNode)->children;
 	while (child) {
 		if (child->node != old_node) {
+			prev = child;
 			child = child->next;
 			continue;
 		}
-		child->node = newNode;
+		if (newNode) {
+			child->node = newNode;
+		} else {
+			if (prev) prev->next = child->next;
+			else ((SVG_Element *)FromNode)->children = child->next;
+			free(child);
+		}
 		break;
 	}
 }

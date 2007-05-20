@@ -177,6 +177,7 @@ void R2D_SceneReset(GF_VisualRenderer *vr)
 	sr->zoom = FIX_ONE;
 	sr->grab_node = NULL;
 	sr->grab_ctx = NULL;
+	sr->grab_use = NULL;
 	sr->focus_node = NULL;
 	R2D_SetScaling(sr, sr->scale_x, sr->scale_y);
 	/*force resetup of main surface in case we're switching coord system*/
@@ -361,12 +362,12 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 			switch (event->type) {
 			case GF_EVENT_MOUSEMOVE:
 				evt.cancelable = 0;
-				if (sr->grab_node != ctx->drawable) {
+				if ((sr->grab_node != ctx->drawable) || (sr->grab_use != ctx->appear) ) {
 					/*mouse out*/
 					if (sr->grab_node) {
 						evt.relatedTarget = ctx->drawable->node;
 						evt.type = GF_EVENT_MOUSEOUT;
-						ret += gf_dom_event_fire(sr->grab_node->node, NULL, &evt);
+						ret += gf_dom_event_fire(sr->grab_node->node, sr->grab_use, &evt);
 						/*prepare mouseOver*/
 						evt.relatedTarget = sr->grab_node->node;
 					}
@@ -376,6 +377,7 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 
 					sr->grab_ctx = ctx;
 					sr->grab_node = ctx->drawable;
+					sr->grab_use = ctx->appear;
 				} else {
 					evt.type = GF_EVENT_MOUSEMOVE;
 					ret += gf_dom_event_fire(ctx->drawable->node, ctx->appear, &evt);
@@ -412,10 +414,11 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 				evt.cancelable = 1;
 				evt.key_flags = sr->compositor->key_states;
 				evt.type = GF_EVENT_MOUSEOUT;
-				ret += gf_dom_event_fire(sr->grab_node->node, NULL, &evt);
+				ret += gf_dom_event_fire(sr->grab_node->node, sr->grab_use, &evt);
 			}
 			sr->grab_node = NULL;
 			sr->grab_ctx = NULL;
+			sr->grab_use = NULL;
 
 			/*dispatch event to root SVG*/
 			memset(&evt, 0, sizeof(GF_DOM_Event));
