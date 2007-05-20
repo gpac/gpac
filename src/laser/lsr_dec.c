@@ -587,17 +587,6 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 	}
 }
 
-static void lsr_read_any_uri_string(GF_LASeRCodec *lsr, char **str, const char *name)
-{
-	XMLRI iri;
-	if (*str) free(*str);
-	*str = NULL;
-	memset(&iri, 0, sizeof(XMLRI));
-	iri.type = 0xFF;
-	lsr_read_any_uri(lsr, &iri, name);
-	*str = iri.string;
-}
-
 static void lsr_read_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *name)
 {
 	u32 val;
