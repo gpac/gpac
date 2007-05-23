@@ -121,6 +121,7 @@ struct __tag_bifs_dec
 	GF_List *command_buffers;
 
 	Bool ignore_size;
+	Bool is_com_dec;
 	Double cts_offset;
 };
 

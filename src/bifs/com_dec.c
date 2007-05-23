@@ -481,7 +481,9 @@ static GF_Err BD_DecFieldReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	}
 
 	/*parse the field*/
+	codec->is_com_dec = 1;
 	e = gf_bifs_dec_field(codec, bs, node, &field);
+	codec->is_com_dec = 0;
 	/*remove prev nodes*/
 	if (field.fieldType == GF_SG_VRML_SFNODE) {
 		if (prev_node) e = gf_node_unregister(prev_node, node);

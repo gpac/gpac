@@ -48,7 +48,7 @@
 	the_class.enumerate = JS_EnumerateStub;	\
 	the_class.resolve = JS_ResolveStub;		\
 	the_class.convert = JS_ConvertStub;		\
-	the_class.finalize = fin;	
+	the_class.finalize = fin;
 
 
 static GFINLINE Bool ScriptAction(GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
@@ -75,12 +75,19 @@ static GFINLINE GF_SceneGraph *xml_get_scenegraph(JSContext *c)
  *	This is NOT a full dom implementation :)
  *
  *************************************************************/
-static JSClass domDocumentClass;
-static JSClass domNodeClass;
-static JSClass domElementClass;
-static JSClass domTextClass;
-static JSClass domNodeListClass;
-static JSClass domEventClass;
+typedef struct
+{
+	u32 nb_inst;
+	JSClass domDocumentClass;
+	JSClass domNodeClass;
+	JSClass domElementClass;
+	JSClass domTextClass;
+	JSClass domNodeListClass;
+	JSClass domEventClass;
+	JSClass xmlHTTPRequestClass;
+} GF_DOMRuntime;
+
+static GF_DOMRuntime *dom_rt = NULL;
 
 /*SVG uDOM declarations*/
 JSBool svg_udom_set_property(JSContext *c, GF_Node *n, u32 svg_prop_id, jsval *vp);
@@ -162,7 +169,7 @@ static JSBool xml_dom3_not_implemented(JSContext *c, JSObject *obj, uintN argc, 
 	{"textContent",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT},			
 
 #define JS_DOM3_NODE_LAST_PROP		15
-
+#define JS_DOM3_uDOM_FIRST_PROP		18
 
 static void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info)
 {
@@ -182,14 +189,14 @@ static void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info)
 GF_Node *dom_get_node(JSContext *c, JSObject *obj, Bool *is_doc)
 {
 	if (is_doc) *is_doc = 0;
-	if (JS_InstanceOf(c, obj, &domDocumentClass, NULL)) {
+	if (JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL)) {
 		GF_SceneGraph *sg = (GF_SceneGraph *)JS_GetPrivate(c, obj);
 		if (is_doc) *is_doc = 1;
 		return sg->RootNode;
 	}
-	if (JS_InstanceOf(c, obj, &domElementClass, NULL) 
-		|| JS_InstanceOf(c, obj, &domTextClass, NULL)
-		|| JS_InstanceOf(c, obj, &domNodeClass, NULL) 
+	if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) 
+		|| JS_InstanceOf(c, obj, &dom_rt->domTextClass, NULL)
+		|| JS_InstanceOf(c, obj, &dom_rt->domNodeClass, NULL) 
 	)
 		return (GF_Node *) JS_GetPrivate(c, obj);
 
@@ -204,7 +211,7 @@ static jsval dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 	if (sg->reference_count)
 		sg->reference_count++;
 	gf_node_register(sg->RootNode, NULL);
-	new_obj = JS_NewObject(c, &domDocumentClass, 0, 0);
+	new_obj = JS_NewObject(c, &dom_rt->domDocumentClass, 0, 0);
 	JS_SetPrivate(c, new_obj, sg);
 	sg->document = new_obj;
 	return OBJECT_TO_JSVAL(new_obj);
@@ -238,21 +245,21 @@ static jsval dom_node_construct(JSContext *c, GF_Node *n)
 {
 	/*in our implementation ONLY ELEMENTS are created, never attributes. We therefore always
 	create Elements when asked to create a node !!*/
-	return dom_base_node_construct(c, &domElementClass, n);
+	return dom_base_node_construct(c, &dom_rt->domElementClass, n);
 }
 jsval dom_element_construct(JSContext *c, GF_Node *n)
 {
 	/*in our implementation ONLY ELEMENTS are created, never attributes. We therefore always
 	create Elements when asked to create a node !!*/
-	return dom_base_node_construct(c, &domElementClass, n);
+	return dom_base_node_construct(c, &dom_rt->domElementClass, n);
 }
 static jsval dom_text_construct(JSContext *c, GF_Node *n)
 {
-	return dom_base_node_construct(c, &domTextClass, n);
+	return dom_base_node_construct(c, &dom_rt->domTextClass, n);
 }
 Bool dom_is_element(JSContext *c, JSObject *obj)
 {
-	if (JS_InstanceOf(c, obj, &domElementClass, NULL)) return 1;
+	if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL)) return 1;
 	return 0;
 }
 
@@ -332,7 +339,7 @@ static jsval dom_nodelist_construct(JSContext *c, GF_ParentNode *n)
 		n->sgprivate->scenegraph->reference_count++;
 
 	gf_node_register((GF_Node*)n, NULL);
-	new_obj = JS_NewObject(c, &domNodeListClass, 0, 0);
+	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass, 0, 0);
 	JS_SetPrivate(c, new_obj, nl);
 	return OBJECT_TO_JSVAL(new_obj);
 }
@@ -340,7 +347,7 @@ static jsval dom_nodelist_construct(JSContext *c, GF_ParentNode *n)
 static void dom_nodelist_finalize(JSContext *c, JSObject *obj)
 {
 	DOMNodeList *nl;
-	if (!JS_InstanceOf(c, obj, &domNodeListClass, NULL) )
+	if (!JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL) )
 		return;
 
 	nl = (DOMNodeList *) JS_GetPrivate(c, obj);
@@ -365,7 +372,7 @@ static JSBool dom_nodelist_item(JSContext *c, JSObject *obj, uintN argc, jsval *
 	GF_Node *n;
 	u32 idx, count;
 	DOMNodeList *nl;
-	if (!JS_InstanceOf(c, obj, &domNodeListClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL) ) return JS_FALSE;
 	if ((argc!=1) || !JSVAL_IS_INT(argv[0])) return JS_FALSE;
 
 	nl = (DOMNodeList *)JS_GetPrivate(c, obj);
@@ -385,7 +392,7 @@ static JSBool dom_nodelist_item(JSContext *c, JSObject *obj, uintN argc, jsval *
 static JSBool dom_nodelist_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	DOMNodeList *nl;
-	if (!JS_InstanceOf(c, obj, &domNodeListClass, NULL) 
+	if (!JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL) 
 	)
 		return JS_FALSE;
 
@@ -406,14 +413,6 @@ static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, jsval id, js
 	return JS_FALSE;
 }
 
-static JSFunctionSpec nodeListFuncs[] = {
-	{"item",					dom_nodelist_item, 1},
-	{0}
-};
-static JSPropertySpec nodeListProps[] = {
-	{"length",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{0}
-};
 
 /*dom event listener*/
 
@@ -436,11 +435,11 @@ JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 	char *inNS = NULL;
 	GF_Node *node = NULL;
 
-	if (JS_InstanceOf(c, obj, &domDocumentClass, NULL) ) {
+	if (JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) {
 		GF_SceneGraph *sg = JS_GetPrivate(c, obj);
 		node = sg->RootNode;
 	}
-	else if (JS_InstanceOf(c, obj, &domElementClass, NULL) ) {
+	else if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) {
 		node = JS_GetPrivate(c, obj);
 	}
 	/*FIXME - SVG uDOM conection not supported yet*/
@@ -501,11 +500,11 @@ JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval 
 	char *inNS = NULL;
 	GF_Node *node = NULL;
 
-	if (JS_InstanceOf(c, obj, &domDocumentClass, NULL) ) {
+	if (JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) {
 		GF_SceneGraph *sg = JS_GetPrivate(c, obj);
 		node = sg->RootNode;
 	}
-	else if (JS_InstanceOf(c, obj, &domElementClass, NULL) ) {
+	else if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) {
 		node = JS_GetPrivate(c, obj);
 	} 
 	/*FIXME - SVG uDOM conection not supported yet*/
@@ -566,9 +565,9 @@ JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval 
 /*dom3 node*/
 static void dom_node_finalize(JSContext *c, JSObject *obj)
 {
-	if (JS_InstanceOf(c, obj, &domElementClass, NULL) 
-		|| JS_InstanceOf(c, obj, &domTextClass, NULL)
-		|| JS_InstanceOf(c, obj, &domNodeClass, NULL)
+	if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) 
+		|| JS_InstanceOf(c, obj, &dom_rt->domTextClass, NULL)
+		|| JS_InstanceOf(c, obj, &dom_rt->domNodeClass, NULL)
 		) {
 		GF_Node *n = (GF_Node *) JS_GetPrivate(c, obj);
 		/*the JS proto of the svgClass or a destroyed object*/
@@ -933,16 +932,6 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	return JS_FALSE;
 }
 
-static JSFunctionSpec nodeFuncs[] = {
-	JS_DOM3_NODE_FUNCS
-	{0}
-};
-
-static JSPropertySpec nodeProps[] = {
-	JS_DOM3_NODE_PROPS
-	{0}
-};
-
 
 /*dom3 document*/
 
@@ -951,7 +940,7 @@ fortunately a sg cannot be created like that...*/
 static void dom_document_finalize(JSContext *c, JSObject *obj)
 {
 	GF_SceneGraph *sg;
-	if (!JS_InstanceOf(c, obj, &domDocumentClass, NULL) ) 
+	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) 
 		return;
 
 	sg = (GF_SceneGraph*) JS_GetPrivate(c, obj);
@@ -1075,7 +1064,7 @@ static JSBool xml_document_create_element(JSContext *c, JSObject *obj, uintN arg
 	GF_Node *n;
 	GF_SceneGraph *sg;
 	char *name;
-	if (!JS_InstanceOf(c, obj, &domDocumentClass, NULL) || !argc || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) || !argc || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
 	sg = (GF_SceneGraph *) JS_GetPrivate(c, obj);
 	if (!sg) return JS_FALSE;
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
@@ -1098,7 +1087,7 @@ static JSBool xml_document_create_text(JSContext *c, JSObject *obj, uintN argc, 
 {
 	GF_Node *n;
 	GF_SceneGraph *sg;
-	if (!JS_InstanceOf(c, obj, &domDocumentClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) return JS_FALSE;
 	sg = (GF_SceneGraph *) JS_GetPrivate(c, obj);
 	if (!sg) return JS_FALSE;
 
@@ -1140,7 +1129,7 @@ static JSBool xml_document_elements_by_tag(JSContext *c, JSObject *obj, uintN ar
 	GF_SceneGraph *sg;
 	JSObject *new_obj;
 	char *name;
-	if (!JS_InstanceOf(c, obj, &domDocumentClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) return JS_FALSE;
 	sg = (GF_SceneGraph *) JS_GetPrivate(c, obj);
 	if (!sg) return JS_FALSE;
 
@@ -1155,7 +1144,7 @@ static JSBool xml_document_elements_by_tag(JSContext *c, JSObject *obj, uintN ar
 	GF_SAFEALLOC(nl, DOMNodeList);
 	if (name && !strcmp(name, "*")) name = NULL;
 	xml_doc_gather_nodes((GF_ParentNode*)sg->RootNode, name, nl);
-	new_obj = JS_NewObject(c, &domNodeListClass, 0, 0);
+	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass, 0, 0);
 	JS_SetPrivate(c, new_obj, nl);
 	*rval = OBJECT_TO_JSVAL(new_obj);
 	return JS_TRUE;
@@ -1166,7 +1155,7 @@ static JSBool xml_document_element_by_id(JSContext *c, JSObject *obj, uintN argc
 	GF_Node *n;
 	GF_SceneGraph *sg;
 	char *id;
-	if (!JS_InstanceOf(c, obj, &domDocumentClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) return JS_FALSE;
 	sg = (GF_SceneGraph *) JS_GetPrivate(c, obj);
 	if (!sg) return JS_FALSE;
 
@@ -1178,49 +1167,6 @@ static JSBool xml_document_element_by_id(JSContext *c, JSObject *obj, uintN argc
 }
 
 
-static JSFunctionSpec documentFuncs[] = {
-	JS_DOM3_NODE_FUNCS
-	{"createElement",				xml_document_create_element, 1},
-	{"createDocumentFragment",		xml_dom3_not_implemented, 0},
-	{"createTextNode",				xml_document_create_text, 1},
-	{"createComment",				xml_dom3_not_implemented, 1},
-	{"createCDATASection",			xml_dom3_not_implemented, 1},
-	{"createProcessingInstruction",	xml_dom3_not_implemented, 2},
-	{"createAttribute",				xml_dom3_not_implemented, 1},
-	{"createEntityReference",		xml_dom3_not_implemented, 1},
-	{"getElementsByTagName",		xml_document_elements_by_tag, 1},
-	{"importNode",					xml_dom3_not_implemented, 2},
-	{"createElementNS",				xml_document_create_element, 2},
-	{"createAttributeNS",			xml_dom3_not_implemented, 2},
-	{"getElementsByTagNameNS",		xml_document_elements_by_tag, 2},
-	{"getElementById",				xml_document_element_by_id, 1},	
-	{"adoptNode",					xml_dom3_not_implemented, 1},
-	{"normalizeDocument",			xml_dom3_not_implemented, 0},
-	{"renameNode",					xml_dom3_not_implemented, 3},
-	/*eventTarget interface*/
-	JS_DOM3_EVEN_TARGET_FUNC
-	/*DocumentEvent interface*/
-	{"createEvent", xml_dom3_not_implemented, 1},
-	{0}
-};
-
-static JSPropertySpec documentProps[] = {
-	JS_DOM3_NODE_PROPS
-	{"doctype",				JS_DOM3_NODE_LAST_PROP+1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"implementation",		JS_DOM3_NODE_LAST_PROP+2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"documentElement",		JS_DOM3_NODE_LAST_PROP+3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"inputEncoding",		JS_DOM3_NODE_LAST_PROP+4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"xmlEncoding",			JS_DOM3_NODE_LAST_PROP+5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"xmlStandalone",		JS_DOM3_NODE_LAST_PROP+6,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-	{"xmlVersion",			JS_DOM3_NODE_LAST_PROP+7,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-	{"strictErrorChecking",	JS_DOM3_NODE_LAST_PROP+8,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-	{"documentURI",			JS_DOM3_NODE_LAST_PROP+9,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-	{"domConfig",			JS_DOM3_NODE_LAST_PROP+10,      JSPROP_ENUMERATE | JSPROP_PERMANENT},
-	/*svgDocument interface*/
-	{"global",				JS_DOM3_NODE_LAST_PROP+11,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{0}
-};
-
 
 /*dom3 element*/
 
@@ -1229,7 +1175,7 @@ static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 	u32 prop_id;
 	Bool is_doc;
 	GF_Node *n;
-	if (!JS_InstanceOf(c, obj, &domElementClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
@@ -1262,7 +1208,7 @@ static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 static JSBool dom_element_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	u32 prop_id;
-	if (!JS_InstanceOf(c, obj, &domElementClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
@@ -1288,7 +1234,7 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 {
 	GF_Node *n;
 	char *name;
-	if (!JS_InstanceOf(c, obj, &domElementClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 	n = dom_get_node(c, obj, NULL);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
@@ -1327,7 +1273,7 @@ static JSBool xml_element_has_attribute(JSContext *c, JSObject *obj, uintN argc,
 {
 	GF_Node *n;
 	char *name;
-	if (!JS_InstanceOf(c, obj, &domElementClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 	n = dom_get_node(c, obj, NULL);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
@@ -1368,7 +1314,7 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 	GF_DOMFullAttribute *prev, *att;
 	GF_Node *n;
 	char *name;
-	if (!JS_InstanceOf(c, obj, &domElementClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 	n = dom_get_node(c, obj, NULL);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
@@ -1416,7 +1362,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 	u32 evtType;
 	GF_Node *n;
 	char *name, *val;
-	if (!JS_InstanceOf(c, obj, &domElementClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if ((argc < 2) || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
 	n = dom_get_node(c, obj, NULL);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
@@ -1500,7 +1446,7 @@ static JSBool xml_element_elements_by_tag(JSContext *c, JSObject *obj, uintN arg
 	GF_Node *n;
 	JSObject *new_obj;
 	char *name;
-	if (!JS_InstanceOf(c, obj, &domElementClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 	n = dom_get_node(c, obj, NULL);
 	if (!n) return JS_FALSE;
@@ -1514,7 +1460,7 @@ static JSBool xml_element_elements_by_tag(JSContext *c, JSObject *obj, uintN arg
 	GF_SAFEALLOC(nl, DOMNodeList);
 	if (name && !strcmp(name, "*")) name = NULL;
 	xml_doc_gather_nodes((GF_ParentNode*)n, name, nl);
-	new_obj = JS_NewObject(c, &domNodeListClass, 0, 0);
+	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass, 0, 0);
 	JS_SetPrivate(c, new_obj, nl);
 	*rval = OBJECT_TO_JSVAL(new_obj);
 	return JS_TRUE;
@@ -1527,7 +1473,7 @@ static JSBool xml_element_set_id(JSContext *c, JSObject *obj, uintN argc, jsval 
 	u32 node_id;
 	char *name;
 	Bool is_id;
-	if (!JS_InstanceOf(c, obj, &domElementClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if ((argc<2) || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 	n = dom_get_node(c, obj, NULL);
 	if (!n) return JS_FALSE;
@@ -1556,110 +1502,6 @@ static JSBool xml_element_set_id(JSContext *c, JSObject *obj, uintN argc, jsval 
 	return JS_TRUE;
 }
 
-static JSFunctionSpec elementFuncs[] = {
-	JS_DOM3_NODE_FUNCS
-	{"getAttribute",				xml_element_get_attribute, 1},
-	{"setAttribute",				xml_element_set_attribute, 2},
-	{"removeAttribute",				xml_element_remove_attribute, 1},
-	{"getAttributeNS",				xml_element_get_attribute, 2},
-	{"setAttributeNS",				xml_element_set_attribute, 3},
-	{"removeAttributeNS",			xml_element_remove_attribute, 2},
-	{"hasAttribute",				xml_element_has_attribute, 1},
-	{"hasAttributeNS",				xml_element_has_attribute, 2},
-	{"getElementsByTagName",		xml_element_elements_by_tag, 1},
-	{"getElementsByTagNameNS",		xml_element_elements_by_tag, 2},
-	{"setIdAttribute",				xml_element_set_id, 2},
-	{"setIdAttributeNS",			xml_element_set_id, 3},
-	{"getAttributeNode",			xml_dom3_not_implemented, 1},
-	{"setAttributeNode",			xml_dom3_not_implemented, 1},
-	{"removeAttributeNode",			xml_dom3_not_implemented, 1},
-	{"getAttributeNodeNS",			xml_dom3_not_implemented, 2},
-	{"setAttributeNodeNS",			xml_dom3_not_implemented, 1},
-	{"setIdAttributeNode",			xml_dom3_not_implemented, 2},
-	/*eventTarget interface*/
-	JS_DOM3_EVEN_TARGET_FUNC	
-
-	/*SVG uDOM extensions*/
-
-	/*timeControl interface*/
-	{"beginElementAt", svg_udom_smil_begin, 1},
-	{"beginElement", svg_udom_smil_begin, 0},
-	{"endElementAt", svg_udom_smil_end, 1},
-	{"endElement", svg_udom_smil_end, 0},
-	{"pauseElement", svg_udom_smil_pause, 0},
-	{"resumeElement", svg_udom_smil_resume, 0},
-	/*trait access interface*/
-	{"getTrait", svg_udom_get_trait, 1},
-	{"getTraitNS", svg_udom_get_trait, 2},
-	{"getFloatTrait", svg_udom_get_float_trait, 1},
-	{"getMatrixTrait", svg_udom_get_matrix_trait, 1},
-	{"getRectTrait", svg_udom_get_rect_trait, 1},
-	{"getPathTrait", svg_udom_get_path_trait, 1},
-	{"getRGBColorTrait", svg_udom_get_rgb_color_trait, 1},
-	/*FALLBACK TO BASE-VALUE FOR NOW - WILL NEED EITHER DOM TREE-CLONING OR A FAKE RENDER
-	PASS FOR EACH PRESENTATION VALUE ACCESS*/
-	{"getPresentationTrait", svg_udom_get_trait, 1},
-	{"getPresentationTraitNS", svg_udom_get_trait, 2},
-	{"getFloatPresentationTrait", svg_udom_get_float_trait, 1},
-	{"getMatrixPresentationTrait", svg_udom_get_matrix_trait, 1},
-	{"getRectPresentationTrait", svg_udom_get_rect_trait, 1},
-	{"getPathPresentationTrait", svg_udom_get_path_trait, 1},
-	{"getRGBColorPresentationTrait", svg_udom_get_rgb_color_trait, 1},
-	{"setTrait", svg_udom_set_trait, 2},
-	{"setTraitNS", svg_udom_set_trait, 3},
-	{"setFloatTrait", svg_udom_set_float_trait, 2},
-	{"setMatrixTrait", svg_udom_set_matrix_trait, 2},
-	{"setRectTrait", svg_udom_set_rect_trait, 2},
-	{"setPathTrait", svg_udom_set_path_trait, 2},
-	{"setRGBColorTrait", svg_udom_set_rgb_color_trait, 2},
-	/*locatable interface*/
-	{"getBBox", svg_udom_get_local_bbox, 0},
-	{"getScreenCTM", svg_udom_get_screen_ctm, 0},
-	{"getScreenBBox", svg_udom_get_screen_bbox, 0},
-	/*svgSVGElement interface*/
-	{"createSVGMatrixComponents", svg_udom_create_matrix_components, 0},
-	{"createSVGRect", svg_udom_create_rect, 0},
-	{"createSVGPath", svg_udom_create_path, 0},
-	{"createSVGRGBColor", svg_udom_create_color, 0},
-	{"moveFocus", svg_udom_move_focus, 0},
-	{"setFocus", svg_udom_set_focus, 0},
-	{"getCurrentFocusedObject", svg_udom_get_focus, 0},
-	{0}
-};
-
-#define JS_DOM3_uDOM_FIRST_PROP		18
-
-static JSPropertySpec elementProps[] = {
-	JS_DOM3_NODE_PROPS
-	{"tagName",				JS_DOM3_NODE_LAST_PROP+1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"schemaTypeInfo",		JS_DOM3_NODE_LAST_PROP+2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-
-	/*SVG uDOM extensions*/
-
-	/*elementTraversal interface - mapped to node interface*/
-	/*= firstChild (id=5)*/
-	{"firstElementChild",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*= lastChild (id=6)*/
-	{"lastElementChild",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*= previousSibling (id=7)*/
-	{"previousElementSibling",	7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*= nextSibling (id=8)*/
-	{"nextElementSibling",		8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*svgElement interface*/
-	{"id",						JS_DOM3_NODE_LAST_PROP+3,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-	/*svgSVGElement interface*/
-	{"currentScale",			JS_DOM3_NODE_LAST_PROP+4,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-	{"currentRotate",			JS_DOM3_NODE_LAST_PROP+5,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-	{"currentTranslate",		JS_DOM3_NODE_LAST_PROP+6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"viewport",				JS_DOM3_NODE_LAST_PROP+7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"currentTime",				JS_DOM3_NODE_LAST_PROP+8,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-	/*timeControl interface*/
-	{"isPaused",				JS_DOM3_NODE_LAST_PROP+9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*old SVG1.1 stuff*/
-	{"ownerSVGElement",			JS_DOM3_NODE_LAST_PROP+10, 0},
-	{0}
-};
-
 
 /*dom3 character/text/comment*/
 
@@ -1668,7 +1510,7 @@ static JSBool dom_text_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	GF_DOMText *txt;
 	u32 prop_id;
 
-	if (!JS_InstanceOf(c, obj, &domTextClass, NULL))
+	if (!JS_InstanceOf(c, obj, &dom_rt->domTextClass, NULL))
 		return JS_FALSE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
@@ -1704,7 +1546,7 @@ static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 {
 	GF_DOMText *txt;
 	u32 prop_id;
-	if (!JS_InstanceOf(c, obj, &domTextClass, NULL))
+	if (!JS_InstanceOf(c, obj, &dom_rt->domTextClass, NULL))
 		return JS_FALSE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
@@ -1729,67 +1571,6 @@ static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	return JS_FALSE;
 }
 
-static JSFunctionSpec textFuncs[] = {
-	JS_DOM3_NODE_FUNCS
-	{"substringData",			xml_dom3_not_implemented, 2},
-	{"appendData",				xml_dom3_not_implemented, 1},
-	{"insertData",				xml_dom3_not_implemented, 2},
-	{"deleteData",				xml_dom3_not_implemented, 2},
-	{"replaceData",				xml_dom3_not_implemented, 3},
-	/*text*/
-	{"splitText",				xml_dom3_not_implemented, 1},
-	{"replaceWholeText",		xml_dom3_not_implemented, 1},
-	{0}
-};
-
-static JSPropertySpec textProps[] = {
-	JS_DOM3_NODE_PROPS
-	{"data",						JS_DOM3_NODE_LAST_PROP+1,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-	{"length",						JS_DOM3_NODE_LAST_PROP+2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*text*/
-	{"isElementContentWhitespace",	JS_DOM3_NODE_LAST_PROP+3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"wholeText",					JS_DOM3_NODE_LAST_PROP+4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{0}
-};
-
-
-static JSPropertySpec eventProps[] = {
-	{"type",			0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"target",			1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"currentTarget",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"namespaceURI",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"bubbles",			4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"cancelable",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"detail",			6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*mouse*/
-	{"screenX",			7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"screenY",			8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"clientX",			9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"clientY",			10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"button",			11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"relatedTarget",	12,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*text, connectionEvent*/
-	{"data",			13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*keyboard*/
-	{"keyIdentifier",	14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"keyChar",			15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"charCode",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*wheelEvent*/
-	{"wheelDelta",		16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*progress*/
-	{"lengthComputable",17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"typeArg",			18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"loaded",			19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"total",			20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	/*zoom*/
-	{"zoomRectScreen",	21,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"previousScale",	22,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"previousTranslate",	23,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"newScale",		24,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"newTranslate",	25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{0}
-};
-
 static JSBool event_stop_propagation(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
@@ -1811,14 +1592,6 @@ static JSBool event_is_default_prevented(JSContext *c, JSObject *obj, uintN argc
 	*rval = (evt->event_phase == 4) ? JS_TRUE : JS_FALSE;
 	return JS_TRUE;
 }
-
-static JSFunctionSpec eventFuncs[] = {
-	{"stopPropagation", event_stop_propagation, 0},
-	{"preventDefault", event_prevent_default, 0},
-	{"isDefaultPrevented", event_is_default_prevented, 0},
-	/*TODO - all event initXXX methods*/
-	{0},
-};
 
 static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
@@ -1894,8 +1667,6 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
  *	xmlHttpRequest implementation
  *
  *************************************************************/
-static JSClass xmlHTTPRequestClass;
-
 
 typedef struct
 {
@@ -2086,7 +1857,7 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 static void xml_http_finalize(JSContext *c, JSObject *obj)
 {
 	XMLHTTPContext *ctx;
-	if (!JS_InstanceOf(c, obj, &xmlHTTPRequestClass, NULL) ) return;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (ctx) {
 		xml_http_reset(ctx);
@@ -2096,7 +1867,7 @@ static void xml_http_finalize(JSContext *c, JSObject *obj)
 static JSBool xml_http_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	XMLHTTPContext *p;
-	if (!JS_InstanceOf(c, obj, &xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
 	GF_SAFEALLOC(p, XMLHTTPContext);
 	p->c = c;
 	p->_this = obj;
@@ -2108,7 +1879,7 @@ static JSBool xml_http_constructor(JSContext *c, JSObject *obj, uintN argc, jsva
 static void xml_http_state_change(XMLHTTPContext *ctx)
 {
 	jsval rval;
-	GF_SceneGraph *scene = (GF_SceneGraph *) xml_get_scenegraph(ctx->c);
+	//GF_SceneGraph *scene = (GF_SceneGraph *) xml_get_scenegraph(ctx->c);
 	if (ctx->onreadystatechange)
 		JS_CallFunction(ctx->c, ctx->_this, ctx->onreadystatechange, 0, NULL, &rval);
 
@@ -2123,7 +1894,7 @@ static JSBool xml_http_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	XMLHTTPContext *ctx;
 	GF_SceneGraph *scene;
 
-	if (!JS_InstanceOf(c, obj, &xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_FALSE;
 
@@ -2177,7 +1948,7 @@ static JSBool xml_http_set_header(JSContext *c, JSObject *obj, uintN argc, jsval
 {
 	char *hdr, *val;
 	XMLHTTPContext *ctx;
-	if (!JS_InstanceOf(c, obj, &xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_FALSE;
 
@@ -2370,7 +2141,7 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	XMLHTTPContext *ctx;
 	GF_Err e;
 
-	if (!JS_InstanceOf(c, obj, &xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_FALSE;
 
@@ -2414,7 +2185,7 @@ static JSBool xml_http_abort(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 {
 	GF_DownloadSession *sess;
 	XMLHTTPContext *ctx;
-	if (!JS_InstanceOf(c, obj, &xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_FALSE;
 
@@ -2431,7 +2202,7 @@ static JSBool xml_http_get_all_headers(JSContext *c, JSObject *obj, uintN argc, 
 	u32 nb_hdr;
 	char szVal[4096];
 	XMLHTTPContext *ctx;
-	if (!JS_InstanceOf(c, obj, &xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_FALSE;
 
@@ -2465,7 +2236,7 @@ static JSBool xml_http_get_header(JSContext *c, JSObject *obj, uintN argc, jsval
 	char *hdr;
 	char szVal[2048];
 	XMLHTTPContext *ctx;
-	if (!argc || !JS_InstanceOf(c, obj, &xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!argc || !JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_FALSE;
 
@@ -2499,7 +2270,7 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 {
 	JSString *s;
 	XMLHTTPContext *ctx;
-	if (!JS_InstanceOf(c, obj, &xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_FALSE;
 
@@ -2554,7 +2325,7 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	XMLHTTPContext *ctx;
-	if (!JS_InstanceOf(c, obj, &xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_FALSE;
 
@@ -2586,50 +2357,312 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	return JS_TRUE;
 }
 
-static JSPropertySpec xmlHTTPRequestClassProps[] = {
-	{"onreadystatechange",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT  },
-	{"readyState",			1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"responseText",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"responseXML",			3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"status",				4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"statusText",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{0}
-};
-static JSFunctionSpec xmlHTTPRequestClassFuncs[] = {
-	{"open",					xml_http_open, 2},
-	{"setRequestHeader",		xml_http_set_header, 2},
-    {"send",					xml_http_send,          0},
-	{"abort",					xml_http_abort, 0},
-	{"getAllResponseHeaders",	xml_http_get_all_headers, 0},
-	{"getResponseHeader",		xml_http_get_header, 1},
-	/*todo - addEventListener and removeEventListener*/
-	{0}
-};
-
 
 void dom_js_load(JSContext *c, JSObject *global)
 {
-	DOM_CORE_SETUP_CLASS(domNodeClass, "Node", JSCLASS_HAS_PRIVATE, dom_node_getProperty, dom_node_setProperty, dom_node_finalize);
-	JS_InitClass(c, global, 0, &domNodeClass, 0, 0, nodeProps, nodeFuncs, 0, 0);
+	if (!dom_rt) {
+		GF_SAFEALLOC(dom_rt, GF_DOMRuntime);
+		DOM_CORE_SETUP_CLASS(dom_rt->domNodeClass, "Node", JSCLASS_HAS_PRIVATE, dom_node_getProperty, dom_node_setProperty, dom_node_finalize);
+		DOM_CORE_SETUP_CLASS(dom_rt->domDocumentClass, "Document", JSCLASS_HAS_PRIVATE, dom_document_getProperty, dom_document_setProperty, dom_document_finalize);
+		/*Element uses the same destructor as node*/
+		DOM_CORE_SETUP_CLASS(dom_rt->domElementClass, "Element", JSCLASS_HAS_PRIVATE, dom_element_getProperty, dom_element_setProperty, dom_node_finalize);
+		/*Text uses the same destructor as node*/
+		DOM_CORE_SETUP_CLASS(dom_rt->domTextClass, "Text", JSCLASS_HAS_PRIVATE, dom_text_getProperty, dom_text_setProperty, dom_node_finalize);
+		/*Event class*/
+		DOM_CORE_SETUP_CLASS(dom_rt->domEventClass , "Event", JSCLASS_HAS_PRIVATE, event_getProperty, JS_PropertyStub, JS_FinalizeStub);
+		DOM_CORE_SETUP_CLASS(dom_rt->domNodeListClass, "NodeList", JSCLASS_HAS_PRIVATE, dom_nodelist_getProperty, dom_nodelist_setProperty, dom_nodelist_finalize);
+		DOM_CORE_SETUP_CLASS(dom_rt->xmlHTTPRequestClass, "XMLHttpRequest", JSCLASS_HAS_PRIVATE, xml_http_getProperty, xml_http_setProperty, xml_http_finalize);
 
-	DOM_CORE_SETUP_CLASS(domDocumentClass, "Document", JSCLASS_HAS_PRIVATE, dom_document_getProperty, dom_document_setProperty, dom_document_finalize);
-	JS_InitClass(c, global, 0, &domDocumentClass, 0, 0, documentProps, documentFuncs, 0, 0);
-	/*Element uses the same destructor as node*/
-	DOM_CORE_SETUP_CLASS(domElementClass, "Element", JSCLASS_HAS_PRIVATE, dom_element_getProperty, dom_element_setProperty, dom_node_finalize);
-	JS_InitClass(c, global, 0, &domElementClass, 0, 0, elementProps, elementFuncs, 0, 0);
-	/*Text uses the same destructor as node*/
-	DOM_CORE_SETUP_CLASS(domTextClass, "Text", JSCLASS_HAS_PRIVATE, dom_text_getProperty, dom_text_setProperty, dom_node_finalize);
-	JS_InitClass(c, global, 0, &domTextClass, 0, 0, textProps, textFuncs, 0, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] dom run-time allocated\n"));
+	}
+	dom_rt->nb_inst++;
 
-	/*Event class*/
-	DOM_CORE_SETUP_CLASS(domEventClass , "Event", JSCLASS_HAS_PRIVATE, event_getProperty, JS_PropertyStub, JS_FinalizeStub);
-	JS_InitClass(c, global, 0, &domEventClass, 0, 0, eventProps, eventFuncs, 0, 0);
+	{
+		JSFunctionSpec nodeFuncs[] = {
+			JS_DOM3_NODE_FUNCS
+			{0}
+		};
+		JSPropertySpec nodeProps[] = {
+			JS_DOM3_NODE_PROPS
+			{0}
+		};
+		JS_InitClass(c, global, 0, &dom_rt->domNodeClass, 0, 0, nodeProps, nodeFuncs, 0, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] node class initialized\n"));
+	}
+	{
+		JSFunctionSpec documentFuncs[] = {
+			JS_DOM3_NODE_FUNCS
+			{"createElement",				xml_document_create_element, 1},
+			{"createDocumentFragment",		xml_dom3_not_implemented, 0},
+			{"createTextNode",				xml_document_create_text, 1},
+			{"createComment",				xml_dom3_not_implemented, 1},
+			{"createCDATASection",			xml_dom3_not_implemented, 1},
+			{"createProcessingInstruction",	xml_dom3_not_implemented, 2},
+			{"createAttribute",				xml_dom3_not_implemented, 1},
+			{"createEntityReference",		xml_dom3_not_implemented, 1},
+			{"getElementsByTagName",		xml_document_elements_by_tag, 1},
+			{"importNode",					xml_dom3_not_implemented, 2},
+			{"createElementNS",				xml_document_create_element, 2},
+			{"createAttributeNS",			xml_dom3_not_implemented, 2},
+			{"getElementsByTagNameNS",		xml_document_elements_by_tag, 2},
+			{"getElementById",				xml_document_element_by_id, 1},	
+			{"adoptNode",					xml_dom3_not_implemented, 1},
+			{"normalizeDocument",			xml_dom3_not_implemented, 0},
+			{"renameNode",					xml_dom3_not_implemented, 3},
+			/*eventTarget interface*/
+			JS_DOM3_EVEN_TARGET_FUNC
+			/*DocumentEvent interface*/
+			{"createEvent", xml_dom3_not_implemented, 1},
+			{0}
+		};
 
-	DOM_CORE_SETUP_CLASS(domNodeListClass, "NodeList", JSCLASS_HAS_PRIVATE, dom_nodelist_getProperty, dom_nodelist_setProperty, dom_nodelist_finalize);
-	JS_InitClass(c, global, 0, &domNodeListClass, 0, 0, nodeListProps, nodeListFuncs, 0, 0);
+		JSPropertySpec documentProps[] = {
+			JS_DOM3_NODE_PROPS
+			{"doctype",				JS_DOM3_NODE_LAST_PROP+1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"implementation",		JS_DOM3_NODE_LAST_PROP+2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"documentElement",		JS_DOM3_NODE_LAST_PROP+3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"inputEncoding",		JS_DOM3_NODE_LAST_PROP+4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"xmlEncoding",			JS_DOM3_NODE_LAST_PROP+5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"xmlStandalone",		JS_DOM3_NODE_LAST_PROP+6,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"xmlVersion",			JS_DOM3_NODE_LAST_PROP+7,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"strictErrorChecking",	JS_DOM3_NODE_LAST_PROP+8,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"documentURI",			JS_DOM3_NODE_LAST_PROP+9,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"domConfig",			JS_DOM3_NODE_LAST_PROP+10,      JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			/*svgDocument interface*/
+			{"global",				JS_DOM3_NODE_LAST_PROP+11,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{0}
+		};
+
+		JS_InitClass(c, global, 0, &dom_rt->domDocumentClass, 0, 0, documentProps, documentFuncs, 0, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] document class initialized\n"));
+	}
 	
-	DOM_CORE_SETUP_CLASS(xmlHTTPRequestClass, "XMLHttpRequest", JSCLASS_HAS_PRIVATE, xml_http_getProperty, xml_http_setProperty, xml_http_finalize);
-	JS_InitClass(c, global, 0, &xmlHTTPRequestClass, xml_http_constructor, 0, xmlHTTPRequestClassProps, xmlHTTPRequestClassFuncs, 0, 0);
+	{
+		JSFunctionSpec elementFuncs[] = {
+			JS_DOM3_NODE_FUNCS
+			{"getAttribute",				xml_element_get_attribute, 1},
+			{"setAttribute",				xml_element_set_attribute, 2},
+			{"removeAttribute",				xml_element_remove_attribute, 1},
+			{"getAttributeNS",				xml_element_get_attribute, 2},
+			{"setAttributeNS",				xml_element_set_attribute, 3},
+			{"removeAttributeNS",			xml_element_remove_attribute, 2},
+			{"hasAttribute",				xml_element_has_attribute, 1},
+			{"hasAttributeNS",				xml_element_has_attribute, 2},
+			{"getElementsByTagName",		xml_element_elements_by_tag, 1},
+			{"getElementsByTagNameNS",		xml_element_elements_by_tag, 2},
+			{"setIdAttribute",				xml_element_set_id, 2},
+			{"setIdAttributeNS",			xml_element_set_id, 3},
+			{"getAttributeNode",			xml_dom3_not_implemented, 1},
+			{"setAttributeNode",			xml_dom3_not_implemented, 1},
+			{"removeAttributeNode",			xml_dom3_not_implemented, 1},
+			{"getAttributeNodeNS",			xml_dom3_not_implemented, 2},
+			{"setAttributeNodeNS",			xml_dom3_not_implemented, 1},
+			{"setIdAttributeNode",			xml_dom3_not_implemented, 2},
+			/*eventTarget interface*/
+			JS_DOM3_EVEN_TARGET_FUNC	
+
+			/*SVG uDOM extensions*/
+
+			/*timeControl interface*/
+			{"beginElementAt", svg_udom_smil_begin, 1},
+			{"beginElement", svg_udom_smil_begin, 0},
+			{"endElementAt", svg_udom_smil_end, 1},
+			{"endElement", svg_udom_smil_end, 0},
+			{"pauseElement", svg_udom_smil_pause, 0},
+			{"resumeElement", svg_udom_smil_resume, 0},
+			/*trait access interface*/
+			{"getTrait", svg_udom_get_trait, 1},
+			{"getTraitNS", svg_udom_get_trait, 2},
+			{"getFloatTrait", svg_udom_get_float_trait, 1},
+			{"getMatrixTrait", svg_udom_get_matrix_trait, 1},
+			{"getRectTrait", svg_udom_get_rect_trait, 1},
+			{"getPathTrait", svg_udom_get_path_trait, 1},
+			{"getRGBColorTrait", svg_udom_get_rgb_color_trait, 1},
+			/*FALLBACK TO BASE-VALUE FOR NOW - WILL NEED EITHER DOM TREE-CLONING OR A FAKE RENDER
+			PASS FOR EACH PRESENTATION VALUE ACCESS*/
+			{"getPresentationTrait", svg_udom_get_trait, 1},
+			{"getPresentationTraitNS", svg_udom_get_trait, 2},
+			{"getFloatPresentationTrait", svg_udom_get_float_trait, 1},
+			{"getMatrixPresentationTrait", svg_udom_get_matrix_trait, 1},
+			{"getRectPresentationTrait", svg_udom_get_rect_trait, 1},
+			{"getPathPresentationTrait", svg_udom_get_path_trait, 1},
+			{"getRGBColorPresentationTrait", svg_udom_get_rgb_color_trait, 1},
+			{"setTrait", svg_udom_set_trait, 2},
+			{"setTraitNS", svg_udom_set_trait, 3},
+			{"setFloatTrait", svg_udom_set_float_trait, 2},
+			{"setMatrixTrait", svg_udom_set_matrix_trait, 2},
+			{"setRectTrait", svg_udom_set_rect_trait, 2},
+			{"setPathTrait", svg_udom_set_path_trait, 2},
+			{"setRGBColorTrait", svg_udom_set_rgb_color_trait, 2},
+			/*locatable interface*/
+			{"getBBox", svg_udom_get_local_bbox, 0},
+			{"getScreenCTM", svg_udom_get_screen_ctm, 0},
+			{"getScreenBBox", svg_udom_get_screen_bbox, 0},
+			/*svgSVGElement interface*/
+			{"createSVGMatrixComponents", svg_udom_create_matrix_components, 0},
+			{"createSVGRect", svg_udom_create_rect, 0},
+			{"createSVGPath", svg_udom_create_path, 0},
+			{"createSVGRGBColor", svg_udom_create_color, 0},
+			{"moveFocus", svg_udom_move_focus, 0},
+			{"setFocus", svg_udom_set_focus, 0},
+			{"getCurrentFocusedObject", svg_udom_get_focus, 0},
+			{0}
+		};
+
+		JSPropertySpec elementProps[] = {
+			JS_DOM3_NODE_PROPS
+			{"tagName",				JS_DOM3_NODE_LAST_PROP+1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"schemaTypeInfo",		JS_DOM3_NODE_LAST_PROP+2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+
+			/*SVG uDOM extensions*/
+
+			/*elementTraversal interface - mapped to node interface*/
+			/*= firstChild (id=5)*/
+			{"firstElementChild",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*= lastChild (id=6)*/
+			{"lastElementChild",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*= previousSibling (id=7)*/
+			{"previousElementSibling",	7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*= nextSibling (id=8)*/
+			{"nextElementSibling",		8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*svgElement interface*/
+			{"id",						JS_DOM3_NODE_LAST_PROP+3,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			/*svgSVGElement interface*/
+			{"currentScale",			JS_DOM3_NODE_LAST_PROP+4,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"currentRotate",			JS_DOM3_NODE_LAST_PROP+5,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"currentTranslate",		JS_DOM3_NODE_LAST_PROP+6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"viewport",				JS_DOM3_NODE_LAST_PROP+7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"currentTime",				JS_DOM3_NODE_LAST_PROP+8,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			/*timeControl interface*/
+			{"isPaused",				JS_DOM3_NODE_LAST_PROP+9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*old SVG1.1 stuff*/
+			{"ownerSVGElement",			JS_DOM3_NODE_LAST_PROP+10, 0},
+			{0}
+		};
+		JS_InitClass(c, global, 0, &dom_rt->domElementClass, 0, 0, elementProps, elementFuncs, 0, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] element class initialized\n"));
+	}
+
+	{
+		JSFunctionSpec textFuncs[] = {
+			JS_DOM3_NODE_FUNCS
+			{"substringData",			xml_dom3_not_implemented, 2},
+			{"appendData",				xml_dom3_not_implemented, 1},
+			{"insertData",				xml_dom3_not_implemented, 2},
+			{"deleteData",				xml_dom3_not_implemented, 2},
+			{"replaceData",				xml_dom3_not_implemented, 3},
+			/*text*/
+			{"splitText",				xml_dom3_not_implemented, 1},
+			{"replaceWholeText",		xml_dom3_not_implemented, 1},
+			{0}
+		};
+		JSPropertySpec textProps[] = {
+			JS_DOM3_NODE_PROPS
+			{"data",						JS_DOM3_NODE_LAST_PROP+1,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"length",						JS_DOM3_NODE_LAST_PROP+2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*text*/
+			{"isElementContentWhitespace",	JS_DOM3_NODE_LAST_PROP+3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"wholeText",					JS_DOM3_NODE_LAST_PROP+4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{0}
+		};
+		JS_InitClass(c, global, 0, &dom_rt->domTextClass, 0, 0, textProps, textFuncs, 0, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] text class initialized\n"));
+	}
+	
+	{
+		JSFunctionSpec eventFuncs[] = {
+			{"stopPropagation", event_stop_propagation, 0},
+			{"preventDefault", event_prevent_default, 0},
+			{"isDefaultPrevented", event_is_default_prevented, 0},
+			/*TODO - all event initXXX methods*/
+			{0},
+		};
+		JSPropertySpec eventProps[] = {
+			{"type",			0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"target",			1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"currentTarget",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"namespaceURI",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"bubbles",			4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"cancelable",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"detail",			6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*mouse*/
+			{"screenX",			7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"screenY",			8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"clientX",			9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"clientY",			10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"button",			11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"relatedTarget",	12,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*text, connectionEvent*/
+			{"data",			13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*keyboard*/
+			{"keyIdentifier",	14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"keyChar",			15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"charCode",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*wheelEvent*/
+			{"wheelDelta",		16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*progress*/
+			{"lengthComputable",17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"typeArg",			18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"loaded",			19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"total",			20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*zoom*/
+			{"zoomRectScreen",	21,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"previousScale",	22,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"previousTranslate",	23,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"newScale",		24,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"newTranslate",	25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{0}
+		};
+		JS_InitClass(c, global, 0, &dom_rt->domEventClass, 0, 0, eventProps, eventFuncs, 0, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] event class initialized\n"));
+	}
+
+	{
+		JSFunctionSpec nodeListFuncs[] = {
+			{"item",					dom_nodelist_item, 1},
+			{0}
+		};
+		JSPropertySpec nodeListProps[] = {
+			{"length",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{0}
+		};
+		JS_InitClass(c, global, 0, &dom_rt->domNodeListClass, 0, 0, nodeListProps, nodeListFuncs, 0, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] nodeList class initialized\n"));
+	}
+	
+	{
+		JSPropertySpec xmlHTTPRequestClassProps[] = {
+			{"onreadystatechange",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT  },
+			{"readyState",			1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"responseText",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"responseXML",			3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"status",				4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"statusText",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{0}
+		};
+		JSFunctionSpec xmlHTTPRequestClassFuncs[] = {
+			{"open",					xml_http_open, 2},
+			{"setRequestHeader",		xml_http_set_header, 2},
+			{"send",					xml_http_send,          0},
+			{"abort",					xml_http_abort, 0},
+			{"getAllResponseHeaders",	xml_http_get_all_headers, 0},
+			{"getResponseHeader",		xml_http_get_header, 1},
+			/*todo - addEventListener and removeEventListener*/
+			{0}
+		};
+		JS_InitClass(c, global, 0, &dom_rt->xmlHTTPRequestClass, xml_http_constructor, 0, xmlHTTPRequestClassProps, xmlHTTPRequestClassFuncs, 0, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] XMLHttpRequest class initialized\n"));
+	}
+}
+
+void dom_js_unload()
+{
+	if (!dom_rt) return;
+	dom_rt->nb_inst--;
+	if (!dom_rt->nb_inst) {
+		free(dom_rt);
+		dom_rt = NULL;
+	}
 }
 
 void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
@@ -2640,7 +2673,7 @@ void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
 	if (doc->reference_count)
 		doc->reference_count++;
 
-	obj = JS_DefineObject(c, global, "document", &domDocumentClass, 0, 0 );
+	obj = JS_DefineObject(c, global, "document", &dom_rt->domDocumentClass, 0, 0 );
 	gf_node_register(doc->RootNode, NULL);
 	JS_SetPrivate(c, obj, doc);
 	doc->document = obj;
@@ -2648,7 +2681,7 @@ void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
 
 JSObject *dom_js_define_event(JSContext *c, JSObject *global)
 {
-	return JS_DefineObject(c, global, "evt", &domEventClass, 0, 0 );
+	return JS_DefineObject(c, global, "evt", &dom_rt->domEventClass, 0, 0 );
 }
 
 #endif

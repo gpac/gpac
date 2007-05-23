@@ -2070,6 +2070,7 @@ static void lsr_write_animateMotion(GF_LASeRCodec *lsr, SVG_Element*elt, SVG_Ele
 	lsr_write_fraction_12(lsr, atts.keySplines, "keySplines");
 	lsr_write_fraction_12(lsr, atts.keyTimes, "keyTimes");
 	lsr_write_anim_values(lsr, atts.values, "values");
+	lsr_write_attribute_type(lsr, &atts);
 	lsr_write_smil_times(lsr, atts.begin, "begin", 1);
 	lsr_write_duration(lsr, atts.dur, "dur");
 	lsr_write_anim_fill(lsr, atts.smil_fill);
@@ -3470,14 +3471,17 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 			GF_ChildNodeItem *l = field->node_list;
 			u32 count = gf_node_list_get_count(l);
 			GF_LSR_WRITE_INT(lsr, 1, 1, "opt_group");
-			lsr_write_vluimsbf5(lsr, count, "count");
+
+			if (type==LSR_UPDATE_REPLACE) lsr_write_vluimsbf5(lsr, count, "count");
+
 			while (l) {
 				lsr_write_update_content_model(lsr, (SVG_Element*) com->node, l->node);
 				l = l->next;
+				if (type==LSR_UPDATE_INSERT) break;
 			}
 		} else if (field && field->new_node && !is_text_node) {
 			GF_LSR_WRITE_INT(lsr, 1, 1, "opt_group");
-			lsr_write_vluimsbf5(lsr, 1, "count");
+			if (type==LSR_UPDATE_REPLACE) lsr_write_vluimsbf5(lsr, 1, "count");
 			lsr_write_update_content_model(lsr, (SVG_Element*) com->node, field->new_node);
 		} else {
 			GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");

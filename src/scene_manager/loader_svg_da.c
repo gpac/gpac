@@ -472,7 +472,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 	GF_FieldInfo info;
 	u32	tag, i, count;
 	Bool needs_init, has_id;
-	SVG_Element *elt;
+	SVG_Element *elt = NULL;
 	const char *node_name = NULL;
 	const char *ev_event, *ev_observer;
 	SVG_DeferedAnimation *anim = NULL;
@@ -1022,6 +1022,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			time = 0;
 			rap = 0;
 			ts_res = 1000;
+			OTI = ST = 0;
 			for (i=0; i<nb_attributes;i++) {
 				GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 				if (!strcmp(att->name, "time")) time = atoi(att->value);
@@ -1220,8 +1221,8 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		} else {
 			assert(parser->command->tag==GF_SG_LSR_NEW_SCENE);
 			assert(gf_node_get_tag((GF_Node *)elt) == TAG_SVG_svg);
-			assert(!parser->command->node);
-			parser->command->node = (GF_Node *)elt;
+			if(!parser->command->node) 
+				parser->command->node = (GF_Node *)elt;
 		}
 	} else if (!parser->has_root) {
 		gf_list_del_item(parser->node_stack, stack);

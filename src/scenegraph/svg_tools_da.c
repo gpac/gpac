@@ -331,6 +331,7 @@ static void gf_svg_attributes_set_default_value(u32 node_tag, SVGAttribute *att)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_svg_get_attribute_by_tag(GF_Node *node, u32 attribute_tag, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field)
 {
 	SVG_Element *elt = (SVG_Element *)node;
@@ -466,6 +467,7 @@ u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info)
          otherwise they default to their initial value
 		 which for the function below means NULL, the renderer will take care of the rest
  */
+GF_EXPORT
 u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *render_svg_props) 
 {
 	u32 inherited_flags_mask = GF_SG_NODE_DIRTY | GF_SG_CHILD_DIRTY;

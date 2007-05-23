@@ -151,10 +151,11 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 
 static void OSS_WriteAudio(GF_AudioOutput*dr)
 {
+	u32 written;
 	OSSCTX();
-	dr->FillBuffer(dr->audio_renderer, ctx->wav_buf, ctx->buf_size);
+	written = dr->FillBuffer(dr->audio_renderer, ctx->wav_buf, ctx->buf_size);
 	/*this will also perform sleep*/
-	write(ctx->audio_dev, ctx->wav_buf, ctx->buf_size);
+	write(ctx->audio_dev, ctx->wav_buf, written);
 }
 
 static void OSS_SetVolume(GF_AudioOutput*dr, u32 Volume) {}

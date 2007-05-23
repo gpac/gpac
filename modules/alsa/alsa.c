@@ -211,6 +211,7 @@ err_exit:
 
 static void ALSA_WriteAudio(GF_AudioOutput*dr)
 {
+	u32 written;
 	snd_pcm_sframes_t nb_frames;
 	int err;
 	ALSAContext *ctx = (ALSAContext*)dr->opaque;
@@ -232,9 +233,11 @@ static void ALSA_WriteAudio(GF_AudioOutput*dr)
 	if (!nb_frames) return;
 	
 	//assert(nb_frames*ctx->block_align<=ctx->buf_size);
-	dr->FillBuffer(dr->audio_renderer, ctx->wav_buf, (u32) (ctx->block_align*nb_frames) );
+	written = dr->FillBuffer(dr->audio_renderer, ctx->wav_buf, (u32) (ctx->block_align*nb_frames) );
+	if (!written) return;
+	written /= ctx->block_align;
 
-	err = snd_pcm_writei(ctx->playback_handle, ctx->wav_buf, nb_frames);
+	err = snd_pcm_writei(ctx->playback_handle, ctx->wav_buf, written);
 	if (err == -EPIPE ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[ALSA] an xrun occured!\n"));
 		snd_pcm_prepare(ctx->playback_handle);

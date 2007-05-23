@@ -683,6 +683,7 @@ struct _od_manager
 GF_ObjectManager *gf_odm_new();
 void gf_odm_del(GF_ObjectManager *ODMan);
 void gf_odm_lock(GF_ObjectManager *odm, u32 LockIt);
+
 /*setup service entry point*/
 void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *sub_url);
 /*setup OD*/
@@ -723,6 +724,8 @@ Bool gf_odm_shares_clock(GF_ObjectManager *odm, struct _object_clock *ock);
 void gf_odm_refresh_uninteractives(GF_ObjectManager *odm);
 
 GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName);
+/*locks ODM with destruction check - returns 0 if object manager is not attached to object*/
+Bool gf_odm_lock_mo(struct _mediaobj *mo);
 
 
 /*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a 

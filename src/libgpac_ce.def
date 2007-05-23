@@ -102,6 +102,7 @@ EXPORTS
 	gf_mx_del
 	gf_mx_v
 	gf_mx_p
+	gf_mx_try_lock
 	gf_sema_new
 	gf_sema_del
 	gf_sema_notify
@@ -505,6 +506,8 @@ EXPORTS
 	gf_isom_delete_text_sample
 	gf_isom_has_sync_shadows
 	gf_isom_apple_get_tag
+	gf_isom_get_omadrm_info
+	gf_isom_is_omadrm_media
 
 ;NON-READ-ONLY exports
 ;	gf_isom_set_timescale
@@ -685,7 +688,6 @@ EXPORTS
 	gf_rtsp_set_buffer_size
 	gf_rtsp_session_reset
 	gf_rtsp_is_my_session
-	gf_rtsp_get_session_id
 	gf_rtsp_get_server_name
 	gf_rtsp_get_service_name
 	gf_rtsp_get_response
@@ -700,7 +702,6 @@ EXPORTS
 	gf_rtsp_session_new_server
 	gf_rtsp_get_command
 	gf_rtsp_load_service_name
-	gf_rtsp_set_session_id
 	gf_rtsp_send_response
 	gf_rtsp_get_session_ip
 	gf_rtsp_get_next_interleave_id
@@ -711,6 +712,7 @@ EXPORTS
 	gf_rtp_setup_transport
 	gf_rtp_set_ports
 	gf_rtp_setup_payload
+	gf_rtp_enable_nat_keepalive
 	gf_rtp_initialize
 	gf_rtp_set_info_rtp
 	gf_rtp_get_current_time
@@ -751,6 +753,11 @@ EXPORTS
 	gf_rtp_builder_init
 	gf_rtp_builder_process
 	gf_rtp_builder_format_sdp
+	gf_rtp_depacketizer_new
+	gf_rtp_depacketizer_del
+	gf_rtp_depacketizer_reset
+	gf_rtp_depacketizer_process
+	gf_rtp_depacketizer_get_slconfig
 
 ;avilib exports
 ;	AVI_write_frame
@@ -771,10 +778,18 @@ EXPORTS
 ;	gf_media_make_isma
 ;	gf_media_make_3gpp
 	gf_media_map_esd
+	gf_media_get_file_hash
 ;	gf_media_import
 ;	gf_media_export
 ;	gf_media_fragment_file
 ;	gf_media_import_chapters
+
+;mcrypt exports
+	gf_crypt_open
+	gf_crypt_close
+	gf_crypt_init
+	gf_crypt_decrypt
+	gf_crypt_set_state
 
 ;parsers_av.h exports
 	gf_m4v_parser_new
@@ -867,6 +882,12 @@ EXPORTS
 
 
 ;scenegraph.h and scenegraph_vrml.h exports
+	gf_node_list_add_child
+	gf_node_list_insert_child
+	gf_node_list_del_child
+	gf_node_list_find_child
+	gf_node_list_get_child
+	gf_node_list_get_count
 	gf_node_get_tag
 	gf_node_set_id
 	gf_node_get_name
@@ -973,7 +994,6 @@ EXPORTS
 	gf_sg_proto_instance_set_ised
 	gf_sg_script_field_new
 	gf_sg_script_field_get_info
-	gf_sg_set_javascript_api
 	gf_sg_script_load
 	gf_sg_script_event_in
 	gf_sg_has_scripting
@@ -1069,6 +1089,7 @@ EXPORTS
 	gf_sr_texture_get_handler
 	gf_sr_texture_check_url_change
 	gf_sr_texture_play
+	gf_sr_texture_play_from_to
 	gf_sr_texture_stop
 	gf_sr_texture_restart
 	gf_sr_texture_update_frame
@@ -1101,9 +1122,12 @@ EXPORTS
 	gf_term_node_callback
 	gf_term_message
 	gf_mo_get_loop
+	gf_mo_get_duration
 	gf_mo_set_speed
 	gf_mo_set_flag
 	gf_mo_get_flags
+	gf_mo_has_audio
+	gf_mo_get_last_frame_time
 
 
 ;laser.h exports
@@ -1123,7 +1147,6 @@ EXPORTS
 ;	gf_laser_set_trace
 
 ;SVG exports
-	gf_node_svg_type_by_class_name
 	gf_svg_create_attribute_value
 	gf_svg_delete_attribute_value
 	gf_svg_attributes_equal
@@ -1135,13 +1158,23 @@ EXPORTS
 	gf_svg_parse_style
 	gf_svg_properties_init_pointers
 	gf_svg_properties_reset_pointers
-	gf_svg_apply_inheritance
 	gf_svg_apply_animations
 	gf_svg_register_iri
 	gf_svg_unregister_iri
 	gf_svg_path_build
 	gf_svg_store_embedded_data
 	gf_svg_has_appearance_flag_dirty
+	gf_svg_flatten_attributes
+	gf_svg_get_attribute_by_tag
+	gf_svg_apply_inheritance
+
+	gf_smil_timing_init_runtime_info
+	gf_smil_timing_get_normalized_simple_time
+	gf_smil_timing_is_active
+	gf_smil_timing_insert_clock
+	gf_smil_set_media_duration
+	gf_smil_notify_timed_elements
+
 	gf_dom_listener_build
 	gf_dom_listener_add
 	gf_dom_listener_del
@@ -1150,8 +1183,6 @@ EXPORTS
 	gf_dom_event_fire
 	gf_dom_event_type_by_name
 	gf_dom_event_get_name
-	gf_smil_timing_init_runtime_info
-	gf_smil_timing_get_normalized_simple_time
-	gf_smil_timing_is_active
+
 	gf_term_set_mfurl_from_uri
 	gf_term_check_iri_change

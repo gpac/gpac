@@ -4,7 +4,7 @@ PRJ_MMPFILES
 //-- osmo4 icon
 gnumakefile icons.mk
 
-//-- libghpac & osmo4
+//-- libgpac & osmo4
 libgpac.mmp
 osmo4.mmp
 
@@ -19,6 +19,7 @@ epoc_hw.mmp
 //ffmpeg_in.mmp
 ft_font.mmp
 img_in.mmp
+ismacryp.mmp
 isom_in.mmp
 laser_dec.mmp
 mp3_in.mmp

@@ -6,7 +6,6 @@ UID		0x10000080 0x10000081
 //Common tools
 SOURCEPATH ..\..\modules\rtp_in
 SOURCE rtp_in.c
-SOURCE rtp_payloads.c
 SOURCE rtp_session.c
 SOURCE rtp_signaling.c
 SOURCE rtp_stream.c

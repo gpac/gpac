@@ -857,7 +857,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 	if (sess->status > GF_NETIO_DATA_TRANSFERED) return GF_BAD_PARAM;
 
 	*read_size = 0;
-	if (sess->status =GF_NETIO_DATA_TRANSFERED) return GF_EOS;
+	if (sess->status == GF_NETIO_DATA_TRANSFERED) return GF_EOS;
 
 	if (sess->status == GF_NETIO_SETUP) {
 		gf_dm_connect(sess);

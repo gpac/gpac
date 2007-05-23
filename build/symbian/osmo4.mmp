@@ -9,7 +9,7 @@
 * ==============================================================================
 */
 
-TARGET            osmo4.exe
+TARGET            Osmo4.exe
 TARGETTYPE        EXE
 UID		0 0xf01f9075
 SECUREID	0xf01f9075
@@ -28,12 +28,12 @@ SOURCE            playlist.cpp
 
 SOURCEPATH        ..\..\applications\osmo4_sym\res
 
-START RESOURCE    osmo4.rss
+START RESOURCE    Osmo4.rss
 HEADER
 TARGETPATH resource\apps
 END //RESOURCE
 
-START RESOURCE    osmo4_reg.rss
+START RESOURCE    Osmo4_reg.rss
 #ifdef WINSCW
 TARGETPATH 	  \private\10003a3f\apps
 #else

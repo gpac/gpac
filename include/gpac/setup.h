@@ -181,12 +181,12 @@ char * my_str_lwr(char *str);
 
 #ifndef DBL_MAX
 #include <libc/ieeefp.h>
-#define DBL_MAX	__IEEE_DBL_MAXPOWTWO
+#define DBL_MAX	(__IEEE_DBL_MAXPOWTWO)
 #endif
 
 #ifndef FLT_MAX
 #include <libc/ieeefp.h>
-#define FLT_MAX	__IEEE_FLT_MAXPOWTWO
+#define FLT_MAX	(__IEEE_FLT_MAXPOWTWO)
 #endif
 
 #ifndef FLT_EPSILON

@@ -518,6 +518,12 @@ process_reply:
 			agg_ch = RP_FindChannel(sess->owner, NULL, 0, info->url, 0);
 
 			if (!agg_ch || (agg_ch->rtsp != sess) ) continue;
+			/*channel is already playing*/
+			if (agg_ch->status == RTP_Running) {
+	//			gf_rtp_set_info_rtp(agg_ch->rtp_ch, info->seq, info->rtp_time, info->ssrc);
+	//			agg_ch->check_rtp_time = 1;
+				continue;
+			}
 			
 			/*if play/seeking we must send update RTP/NPT link*/
 			if (ch_ctrl->com.command_type != GF_NET_CHAN_RESUME) {
@@ -618,12 +624,13 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 	/*we may need to re-setup stream/session*/
 	if ( (command->command_type==GF_NET_CHAN_PLAY) || (command->command_type==GF_NET_CHAN_RESUME) || (command->command_type==GF_NET_CHAN_PAUSE)) {
 		if (ch->status == RTP_Disconnected) {
-			if ((sess->owner->stream_control_type!=RTSP_CONTROL_INDEPENDENT)
+			if ( (sess->owner->stream_control_type==RTSP_CONTROL_AGGREGATE)
 				&& (sess->flags & RTSP_AGG_CONTROL)) {
 				i=0;
 				while ((a_ch = (RTPStream *)gf_list_enum(sess->owner->channels, &i))) {
 					if (a_ch->rtsp != sess) continue;
-					RP_Setup(a_ch);
+					if (a_ch->status == RTP_Disconnected) 
+						RP_Setup(a_ch);
 				}
 			} else {
 				RP_Setup(ch);
@@ -680,6 +687,14 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		}
 
 		if (!(sess->flags & RTSP_AGG_CONTROL) && strlen(ch->control)) com->ControlString = strdup(ch->control);
+		if (RP_SessionActive(ch)) {
+			if (!com->ControlString && ch->control) com->ControlString = strdup(ch->control);
+		} else {
+			if ((sess->owner->stream_control_type!=RTSP_CONTROL_INDEPENDENT) && com->ControlString) {
+				free(com->ControlString);
+				com->ControlString=NULL;
+			}
+		}
 
 	} else if (command->command_type==GF_NET_CHAN_PAUSE) {
 		range = gf_rtsp_range_new();
@@ -750,38 +765,31 @@ void RP_ProcessTeardown(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 
 void RP_Teardown(RTSPSession *sess, RTPStream *ch)
 {
-	char *ctrl = NULL;
 	GF_RTSPCommand *com;
 
 	switch (sess->owner->stream_control_type) {
 	case RTSP_CONTROL_AGGREGATE:
 		/*we need a session id*/
 		if (!sess->session_id) return;
-
-		if (sess->flags & RTSP_AGG_CONTROL) {
-			/*ignore teardown on channels in aggregated control*/
-			if (ch) return;
-		} else {
-			if (ch && ch->control) ctrl = strdup(ch->control);
-		}
+		/*ignore teardown on channels*/
+		if ((sess->flags & RTSP_AGG_CONTROL) && ch) return;
 		break;
 	case RTSP_CONTROL_RTSP_V2:
 		/*we need a session id*/
 		if (!sess->session_id) return;
 		/*do not ignore teardown on channels*/
-		if (ch && ch->control) ctrl = strdup(ch->control);
 		break;
 	case RTSP_CONTROL_INDEPENDENT:
-		/*DO NOT USE CONTROL - we only have 1 stream per session, and using ctrl on teardown 
-		is not supported by most servers*/
-		ctrl = NULL;
+		/*todo*/
 		break;
 	}
 
 	com = gf_rtsp_command_new();
 	com->method = strdup(GF_RTSP_TEARDOWN);
-	com->ControlString = ctrl;
-	com->user_data = ch;
+	if (ch && ch->control && (sess->owner->stream_control_type == RTSP_CONTROL_RTSP_V2)) {
+		com->ControlString = strdup(ch->control);
+		com->user_data = ch;
+	}
 
 	RP_QueueCommand(sess, ch, com, 1);
 }

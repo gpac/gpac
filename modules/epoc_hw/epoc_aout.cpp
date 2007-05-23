@@ -262,6 +262,7 @@ static void EAUD_WriteAudio(GF_AudioOutput *dr)
 
 	/*no buffers available...*/
 	if (ctx->nb_buffers_queued == ctx->num_buffers) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOCAudio] Audio queue full - yielding to app\n"));
 		User::After(0);
 		TInt error;
 		CActiveScheduler::RunIfReady(error, CActive::EPriorityIdle);
@@ -269,10 +270,11 @@ static void EAUD_WriteAudio(GF_AudioOutput *dr)
 	}
 
 	while (ctx->nb_buffers_queued < ctx->num_buffers) {
-//		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOCAudio] Filling audio buffer %d / %d\n", current_buffer, num_buffers));
-		dr->FillBuffer(dr->audio_renderer, ctx->buffers[ctx->current_buffer], ctx->buffer_size);
+		u32 written = dr->FillBuffer(dr->audio_renderer, ctx->buffers[ctx->current_buffer], ctx->buffer_size);
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOCAudio] Filling audio buffer %d / %d\n", ctx->current_buffer, ctx->num_buffers));
+		if (!written) return;
 
-		ctx->sent_buffers[ctx->current_buffer].Set((const TText8 *) ctx->buffers[ctx->current_buffer], ctx->buffer_size);
+		ctx->sent_buffers[ctx->current_buffer].Set((const TText8 *) ctx->buffers[ctx->current_buffer], written);
 
 		ctx->nb_buffers_queued++;
 		ctx->m_stream->WriteL(ctx->sent_buffers[ctx->current_buffer]);

@@ -182,7 +182,6 @@ void xor_stuff( CTR_BUFFER *buf, void* akey, void (*func)(void*,void*), u8* plai
 GF_Err _mcrypt(void * buf,void *plaintext, int len, int blocksize, void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))
 {				/* plaintext can be any size */
 	u8 *plain;
-	u32*fplain = (u32*)plaintext;
 	int dlen, j=0;
 	int modlen;
 

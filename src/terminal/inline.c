@@ -257,9 +257,9 @@ static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_ti
 		gf_list_add(odm->OD->ESDescriptors, esd);
 	} else {
 		char *frag = strrchr(mo->URLs.vals[0].url, '#');
-		if (frag) frag[0] = 0;
+//		if (frag) frag[0] = 0;
 		odm->OD->URLString = strdup(mo->URLs.vals[0].url);
-		if (frag) frag[0] = '#';
+//		if (frag) frag[0] = '#';
 		if (lock_timelines) odm->flags |= GF_ODM_INHERIT_TIMELINE;
 	}
 
@@ -463,8 +463,13 @@ static Bool Inline_SetScene(M_Inline *root)
 
 Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
 {
+	Bool include_sub_url = 0;
 	u32 i;
 	char szURL1[GF_MAX_PATH], szURL2[GF_MAX_PATH], *ext;
+
+	/*don't analyse audio/video to locate segments or viewports*/
+	if (obj->type==GF_MEDIA_OBJECT_AUDIO) include_sub_url = 1;
+	if (obj->type==GF_MEDIA_OBJECT_VIDEO) include_sub_url = 1;
 
 	if (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID) {
 		if (!obj->URLs.count) {
@@ -476,6 +481,13 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
 	} else {
 		if (!obj->URLs.count) return 0;
 		strcpy(szURL1, obj->URLs.vals[0].url);
+	}
+	/*check on full URL without removing fragment IDs*/
+	if (include_sub_url) {
+		for (i=0; i<an_url->count; i++) {
+			if (!stricmp(szURL1, an_url->vals[i].url)) return 1;
+		}
+		return 0;
 	}
 	ext = strrchr(szURL1, '#');
 	if (ext) ext[0] = 0;
@@ -687,7 +699,7 @@ static GFINLINE Bool is_match_obj_type(u32 type, u32 hint_type)
 
 GF_MediaObject *gf_is_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref)
 {
-	GF_MediaObject *obj, *old_obj;
+	GF_MediaObject *obj;
 	u32 i, OD_ID;
 
 	OD_ID = URL_GetODID(url);
@@ -701,11 +713,11 @@ GF_MediaObject *gf_is_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 ob
 
 		/*dynamic OD scheme*/
 		if ((OD_ID == GF_ESM_DYNAMIC_OD_ID) && (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID)
-			/*locate sub-url in given one (handles viewpoint/segments)*/
-			&& gf_mo_is_same_url(obj, url) 
 			/*if object type unknown (media control, media sensor), return first obj matching URL
 			otherwise check types*/
 			&& is_match_obj_type(obj->type, obj_type_hint)
+			/*locate sub-url in given one (handles viewpoint/segments)*/
+			&& gf_mo_is_same_url(obj, url) 
 			) return obj;
 	}
 	/*we cannot create an OD manager at this point*/
@@ -717,42 +729,7 @@ GF_MediaObject *gf_is_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 ob
 	obj->type = obj_type_hint;
 	gf_list_add(is->media_objects, obj);
 	if (OD_ID == GF_ESM_DYNAMIC_OD_ID) {
-		char *szExt;
 		gf_sg_vrml_field_copy(&obj->URLs, url, GF_SG_VRML_MFURL);
-		for (i=0; i<obj->URLs.count; i++) {
-			/*remove proto addressing or viewpoint/viewport*/
-			switch (obj_type_hint) {
-			case GF_MEDIA_OBJECT_SCENE:
-//				szExt = strrchr(obj->URLs.vals[i].url, '#');
-//				if (szExt) szExt[0] = 0;
-				break;
-			case GF_MEDIA_OBJECT_AUDIO:
-				/*little trick to avoid pbs when an audio and a visual node refer to the same service without 
-				extensions (eg "file.avi")*/
-				szExt = strrchr(obj->URLs.vals[i].url, '#');
-				if (!szExt) {
-					szExt = (char*)malloc(sizeof(char)* (strlen(obj->URLs.vals[i].url)+7));
-					strcpy(szExt, obj->URLs.vals[i].url);
-					strcat(szExt, "#audio");
-					free(obj->URLs.vals[i].url);
-					obj->URLs.vals[i].url = szExt;
-				}
-				break;
-			}
-		}
-#if 0
-		if (obj_type_hint==GF_MEDIA_OBJECT_AUDIO) {
-			/*since we modify the URL the above check is not enough*/
-			old_obj = IS_CheckExistingObject(is, &obj->URLs);
-			if (old_obj != obj) {
-				gf_list_del_item(is->media_objects, obj);
-				gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
-				free(obj);
-				return old_obj;
-			}
-		}
-#endif
-
 		IS_InsertObject(is, obj, lock_timelines, sync_ref);
 		/*safety check!!!*/
 		if (gf_list_find(is->media_objects, obj)<0) 

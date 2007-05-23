@@ -79,10 +79,20 @@ void gf_odm_del(GF_ObjectManager *odm)
 
 void gf_odm_lock(GF_ObjectManager *odm, u32 LockIt)
 {
+	assert(odm);
 	if (LockIt) 
 		gf_mx_p(odm->mx);
 	else
 		gf_mx_v(odm->mx);
+}
+
+Bool gf_odm_lock_mo(GF_MediaObject *mo)
+{
+	if (!mo || !mo->odm) return 0;
+	gf_odm_lock(mo->odm, 1);
+	/*the ODM may have been destroyed here !!*/
+	if (!mo->odm) return 0;
+	return 1;
 }
 
 GF_EXPORT
@@ -184,6 +194,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url)
 {
 	u32 od_type;
+	char *ext;
 	char *sub_url = (char *) service_sub_url;
 	GF_Terminal *term;
 	GF_Descriptor *desc;
@@ -193,13 +204,17 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 
 	odm->net_service->nb_odm_users++;
 	if (odm->subscene) od_type = GF_MEDIA_OBJECT_SCENE;
-	else if (odm->mo) od_type = odm->mo->type;
+	else if (odm->mo) {
+		od_type = odm->mo->type;
+		if (!sub_url && odm->mo->URLs.count && odm->mo->URLs.vals[0].url) {
+			sub_url = odm->mo->URLs.vals[0].url;
+		}
+	}
 	else od_type = GF_MEDIA_OBJECT_UNDEF;
 
 	/*for remote ODs, get expected OD type in case the service needs to generate the IOD on the fly*/
 	if (odm->parentscene && odm->OD && odm->OD->URLString) {
 		GF_MediaObject *mo;
-		char *ext;
 		mo = gf_is_find_object(odm->parentscene, odm->OD->objectDescriptorID, odm->OD->URLString);
 		if (mo) od_type = mo->type;
 		ext = strchr(odm->OD->URLString, '#');
@@ -209,7 +224,11 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	desc = odm->net_service->ifce->GetServiceDescriptor(odm->net_service->ifce, od_type, sub_url); 
 
 	/*create empty service descriptor, this will automatically create a dynamic scene*/
-	if (!desc) desc = gf_odf_desc_new(GF_ODF_OD_TAG);
+	if (!desc) {
+		if (od_type != GF_MEDIA_OBJECT_SCENE)
+			return;
+		desc = gf_odf_desc_new(GF_ODF_OD_TAG);
+	}
 
 	if (!gf_list_count( ((GF_ObjectDescriptor*)desc)->ESDescriptors)) {
 		/*new subscene*/

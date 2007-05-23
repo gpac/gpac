@@ -872,6 +872,7 @@ SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag)
 	}
 }
 
+GF_EXPORT
 void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 {
 	SVGAttribute *att;

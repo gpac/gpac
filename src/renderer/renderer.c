@@ -577,11 +577,15 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	if (!sr) return GF_BAD_PARAM;
 
 	gf_sr_lock(sr, 1);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, (scene_graph ? "[Render] Attaching new scene\n" : "[Render] Detaching scene\n"));
 
-	if (sr->audio_renderer && (sr->scene != scene_graph)) 
+	if (sr->audio_renderer && (sr->scene != scene_graph)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Reseting audio render\n"));
 		gf_sr_ar_reset(sr->audio_renderer);
+	}
 
 #ifdef GF_SR_EVENT_QUEUE
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Reseting event queue\n"));
 	gf_mx_p(sr->ev_mx);
 	while (gf_list_count(sr->events)) {
 		GF_Event *ev = (GF_Event*)gf_list_get(sr->events, 0);
@@ -590,10 +594,9 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	}
 #endif
 	
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Reseting render module\n"));
 	/*reset main surface*/
 	sr->visual_renderer->SceneReset(sr->visual_renderer);
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, (scene_graph ? "[Render] Attaching new scene\n" : "[Render] Detaching scene\n"));
 
 	/*set current graph*/
 	sr->scene = scene_graph;
@@ -726,7 +729,7 @@ void gf_sr_lock_audio(GF_Renderer *sr, Bool doLock)
 GF_EXPORT
 void gf_sr_lock(GF_Renderer *sr, Bool doLock)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Render] Thread ID %d is %s the scene\n", gf_th_id(), doLock ? "locking" : "unlocking" ));
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Render] Thread ID %d is %s the scene\n", gf_th_id(), doLock ? "locking" : "unlocking" ));
 	if (doLock)
 		gf_mx_p(sr->mx);
 	else {
@@ -1161,12 +1164,12 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	}
 #endif
 
-	if (gf_sg_notify_smil_timed_elements(sr->scene)) {
+	if (gf_smil_notify_timed_elements(sr->scene)) {
 		sr->draw_next_frame = 1;
 	}
 #if 0
 	for (i=0; i<gf_list_count(sr->secondary_scenes); i++) {
-		if (gf_sg_notify_smil_timed_elements(gf_list_get(sr->secondary_scenes, i))) {
+		if (gf_smil_notify_timed_elements(gf_list_get(sr->secondary_scenes, i))) {
 			sr->draw_next_frame = 1;
 		}
 	}

@@ -129,29 +129,6 @@ SOURCE=..\..\modules\rtp_in\rtp_in.def
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\rtp_in\rtp_payloads.c
-DEP_CPP_RTP_P=\
-	"..\..\include\gpac\avparse.h"\
-	"..\..\include\gpac\base_coding.h"\
-	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\ietf.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\service.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\sync_layer.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\modules\rtp_in\rtp_in.h"\
-	
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\rtp_in\rtp_session.c
 DEP_CPP_RTP_S=\
 	"..\..\include\gpac\base_coding.h"\

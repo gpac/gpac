@@ -300,6 +300,20 @@ static Bool check_mpeg4_systems(GF_InputService *plug, GF_ISOFile *mov)
 	return has_mpeg4;
 }
 
+static u32 get_track_id(GF_ISOFile *mov, u32 media_type, u32 idx)
+{
+	u32 i, count, cur;
+	cur=0;
+	count = gf_isom_get_track_count(mov);
+	for (i=0; i<count; i++) {
+		if (gf_isom_get_media_type(mov, i+1) != media_type) continue;
+		if (!idx) return gf_isom_get_track_id(mov, i+1);
+		cur++;
+		if (cur==idx) return gf_isom_get_track_id(mov, i+1);
+	}
+	return 0;
+}
+
 /*fixme, this doesn't work properly with respect to @expect_type*/
 static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
@@ -323,9 +337,20 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		if (!ext) {
 			trackID = 0;
 		} else {
-			if (!strnicmp(ext, "#trackID=", 9)) ext += 9;
-			else ext += 1;
-			trackID = atoi(ext);
+			if (!strnicmp(ext, "#trackID=", 9)) trackID = atoi(ext+9);
+			else if (!stricmp(ext, "#video")) trackID = get_track_id(read->mov, GF_ISOM_MEDIA_VISUAL, 0);
+			else if (!strnicmp(ext, "#video", 6)) {
+				trackID = atoi(ext+6);
+				trackID = get_track_id(read->mov, GF_ISOM_MEDIA_VISUAL, trackID);
+			}
+			else if (!stricmp(ext, "#audio")) trackID = get_track_id(read->mov, GF_ISOM_MEDIA_AUDIO, 0);
+			else if (!strnicmp(ext, "#audio", 6)) {
+				trackID = atoi(ext+6);
+				trackID = get_track_id(read->mov, GF_ISOM_MEDIA_AUDIO, trackID);
+			}
+			else trackID = atoi(ext+1);
+
+			if (!trackID) return NULL;
 		}
 	}
 
@@ -336,6 +361,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 				((type==GF_ISOM_MEDIA_VISUAL) && (expect_type==GF_MEDIA_OBJECT_VIDEO)) 
 				|| ((type==GF_ISOM_MEDIA_AUDIO) && (expect_type==GF_MEDIA_OBJECT_AUDIO)) ) {
 				trackID = gf_isom_get_track_id(read->mov, i+1);
+				break;
 			}
 
 		}
@@ -755,7 +781,6 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 static Bool ISOR_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
 	char szURL[2048], *sep;
-	u32 ID;
 	ISOMReader *read = (ISOMReader *)plug->priv;
 	const char *this_url = gf_term_get_service_url(read->service);
 	if (!this_url || !url) return 0;
@@ -769,15 +794,7 @@ static Bool ISOR_CanHandleURLInService(GF_InputService *plug, const char *url)
 	/*direct addressing in service*/
 	if (url[0] == '#') return 1;
 	if (strnicmp(szURL, url, sizeof(char)*strlen(szURL))) return 0;
-	sep = strrchr(url, '#');
-	if (!sep) return 0;
-	sep += 1;
-	ID = 0;
-	if (!strnicmp(sep, "trackID=", 8)) sep+=8;
-	ID = atoi(sep);
-	if (!ID) return 0;
-	if (gf_isom_get_track_by_id(read->mov, ID)) return 1;
-	return 0;
+	return 1;
 }
 
 GF_InputService *isor_client_load()

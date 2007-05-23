@@ -318,7 +318,7 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", "\\private\\F01F9075\\cache");
 		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
 		/*startup file*/
-		gf_cfg_set_key(m_user.config, "General", "StartupFile", "\\private\\F01F9075\\gpac.mp4");
+		//gf_cfg_set_key(m_user.config, "General", "StartupFile", "\\private\\F01F9075\\gpac.mp4");
 		/*setup UDP traffic autodetect*/
 		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
 		gf_cfg_set_key(m_user.config, "Network", "UDPNotAvailable", "no");
@@ -330,16 +330,6 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 		gf_cfg_set_key(m_user.config, "FontEngine", "TextureTextMode", "3D");
 
 		
-		/*first launch, register all files ext*/
-		for (u32 i=0; i<gf_modules_get_count(m_user.modules); i++) {
-			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
-			if (!ifce) continue;
-			if (ifce) {
-				ifce->CanHandleURL(ifce, "test.test");
-				gf_modules_close_interface((GF_BaseInterface *)ifce);
-			}
-		}
-
 		/*save cfg and reload*/
 		gf_cfg_del(m_user.config);
 		m_user.config = gf_cfg_new("\\private\\F01F9075\\", "GPAC.cfg");
@@ -361,6 +351,19 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 		gf_cfg_del(m_user.config);
 		User::Leave(KErrGeneral);
 	}
+
+	if (first_launch) {
+		/*first launch, register all files ext*/
+		for (u32 i=0; i<gf_modules_get_count(m_user.modules); i++) {
+			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
+			if (!ifce) continue;
+			if (ifce) {
+				ifce->CanHandleURL(ifce, "test.test");
+				gf_modules_close_interface((GF_BaseInterface *)ifce);
+			}
+		}
+	}
+
 	/*we don't thread the terminal, ie appart from the audio renderer, media decoding and visual rendering is 
 	handled by the app process*/
 	m_user.init_flags = GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION;

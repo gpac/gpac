@@ -497,8 +497,20 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 }
 
 
+
 /*seems OK under mingw also*/
 #ifdef WIN32
+#ifdef _WIN32_WCE
+
+Bool gf_prompt_has_input()
+{
+	return 0;
+}
+char gf_prompt_get_char() { return 0; }
+void gf_prompt_set_echo_off(Bool echo_off) { return; }
+
+#else
+
 #include <conio.h>
 #include <windows.h>
 
@@ -519,6 +531,7 @@ void gf_prompt_set_echo_off(Bool echo_off)
 	else flags |= ENABLE_ECHO_INPUT;
 	SetConsoleMode(hStdin, flags);
 }
+#endif
 #else
 /*linux kbhit/getchar- borrowed on debian mailing lists, (author Mike Brownlow)*/
 #include <termios.h>

@@ -2994,6 +2994,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 }
 
+#if 0
 static void JS_Protect(GF_ScriptPriv *priv)
 {
 	if (priv->js_cache) {
@@ -3009,6 +3010,7 @@ static void JS_Protect(GF_ScriptPriv *priv)
 		}
 	}
 }
+#endif
 
 static void JS_Unprotect(GF_ScriptPriv *priv)
 {
@@ -3043,6 +3045,7 @@ static void JS_PreDestroy(GF_Node *node)
 	/*unprotect all cached objects from GC*/
 	JS_Unprotect(priv);
 	gf_sg_ecmascript_del(priv->js_ctx);
+	dom_js_unload();
 	if (priv->js_cache) gf_list_del(priv->js_cache);
 	priv->js_ctx = NULL;
 	/*unregister script from parent scene (cf base_scenegraph::sg_reset) */
@@ -3334,6 +3337,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 
 	JS_SetContextPrivate(priv->js_ctx, node);
 	gf_sg_script_init_sm_api(priv, node);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Built-in classes initialized\n"));
 	/*initialize DOM*/
 	dom_js_load(priv->js_ctx, priv->js_obj);
 
@@ -3341,6 +3345,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 
 	/*setup fields interfaces*/
 	JS_InitScriptFields(priv, node);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] script fields initialized\n"));
 
 	priv->JS_PreDestroy = JS_PreDestroy;
 	priv->JS_EventIn = JS_EventIn;
