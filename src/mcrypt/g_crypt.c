@@ -103,11 +103,13 @@ static void internal_end_mcrypt(GF_Crypt *td)
 }
 
 
+GF_EXPORT
 GF_Crypt *gf_crypt_open(const char *algorithm, const char *mode)
 {
 	return gf_crypt_open_intern(algorithm, mode, 0);
 }
 
+GF_EXPORT
 void gf_crypt_close(GF_Crypt *td)
 {
 	internal_end_mcrypt(td);
@@ -131,6 +133,7 @@ GF_Err gf_crypt_set_key(GF_Crypt *td, void *key, u32 keysize, const void *IV)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_crypt_set_state(GF_Crypt *td, const void *iv, int size) 
 {
 	if (!td) return GF_BAD_PARAM;
@@ -173,6 +176,7 @@ u32 gf_crypt_get_mode_version(GF_Crypt *td) { return td ? td->mode_version : 0; 
 
 
 
+GF_EXPORT
 GF_Err gf_crypt_init(GF_Crypt *td, void *key, u32 lenofkey, const void *IV)
 {
 	GF_Err e;
@@ -252,6 +256,7 @@ GF_Err gf_crypt_encrypt(GF_Crypt *td, void *plaintext, int len)
 	return td->_mcrypt(td->abuf, plaintext, len, gf_crypt_get_block_size(td), td->akey, (mcryptfunc) td->a_encrypt, (mcryptfunc) td->a_decrypt);
 }
 
+GF_EXPORT
 GF_Err gf_crypt_decrypt(GF_Crypt *td, void *ciphertext, int len)
 {
 	if (!td) return GF_BAD_PARAM;

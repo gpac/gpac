@@ -149,10 +149,12 @@ u32 gf_mixer_get_block_align(GF_AudioMixer *am)
 
 void gf_mixer_lock(GF_AudioMixer *am, Bool lockIt)
 {
-	if (lockIt)
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[AudioRender] Thread ID %d is %s the audio mixer\n", gf_th_id(), lockIt ? "locking" : "unlocking" ));
+	if (lockIt) {
 		gf_mx_p(am->mx);
-	else
+	} else {
 		gf_mx_v(am->mx);
+	}
 }
 
 
@@ -619,6 +621,8 @@ do_mix:
 	single_source = NULL;
 	for (i=0; i<count; i++) {
 		in = (MixerInput *)gf_list_get(am->sources, i);
+		if (in->src->IsMuted(in->src->callback)) continue;
+
 		if (in->buffer_size < nb_samples) { 
 			for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
 				if (in->ch_buf[j]) free(in->ch_buf[j]); 

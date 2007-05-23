@@ -88,6 +88,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 				gf_term_lock_net(term, 1);
 				service->ifce->CloseService(service->ifce);
 				root->net_service = NULL;
+				service->owner = NULL;
 				/*depends on module: some module could forget to call gf_term_on_disconnect */
 				if ( gf_list_del_item(term->net_services, service) >= 0) {
 					/*and queue for destroy*/

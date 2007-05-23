@@ -414,7 +414,7 @@ const char *gf_svg_get_system_paint_server_name(u32 paint_type);
 u32 gf_svg_get_system_paint_server_type(const char *name);
 
 
-Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg);
+Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg);
 void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock);
 
 /*******************************************************************************

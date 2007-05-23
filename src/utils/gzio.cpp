@@ -5,7 +5,7 @@
  * Compile this file with -DNO_GZCOMPRESS to avoid the compression code.
  */
 
-/* @(#) $Id: gzio.cpp,v 1.1 2007-02-19 09:01:42 jeanlf Exp $ */
+/* @(#) $Id: gzio.cpp,v 1.2 2007-05-23 15:51:18 jeanlf Exp $ */
 
 #include <stdio.h>
 
@@ -607,7 +607,7 @@ int gzprintf (gzFile file, const char *format, /* args */ ...)
 {
     char buf[Z_PRINTF_BUFSIZE];
     va_list va;
-    int len;
+    int len = 0;
 
     buf[sizeof(buf) - 1] = 0;
     va_start(va, format);

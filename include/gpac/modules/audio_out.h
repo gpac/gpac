@@ -47,7 +47,7 @@ extern "C" {
 */
 
 /*interface name and version for audio output*/
-#define GF_AUDIO_OUTPUT_INTERFACE		GF_4CC('G','A','O', 0x02)
+#define GF_AUDIO_OUTPUT_INTERFACE		GF_4CC('G','A','O', 0x03)
 
 /*interface returned on query interface*/
 typedef struct _audiooutput
@@ -116,8 +116,8 @@ typedef struct _audiooutput
 	
 	/*these are assigned by the audio renderer once module is loaded*/
 	
-	/*fills the buffer with audio data*/
-	void (*FillBuffer) (void *audio_renderer, char *buffer, u32 buffer_size);
+	/*fills the buffer with audio data, returns effective bytes written - the rest is filled with 0*/
+	u32 (*FillBuffer) (void *audio_renderer, char *buffer, u32 buffer_size);
 	void *audio_renderer;
 
 } GF_AudioOutput;

@@ -109,7 +109,10 @@ DEP_CPP_MAINF=\
 	"..\..\applications\osmo4_wce\Osmo4.h"\
 	"..\..\applications\osmo4_wce\ProgressBar.h"\
 	"..\..\applications\osmo4_wce\StdAfx.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
@@ -128,7 +131,10 @@ DEP_CPP_OPEND=\
 	"..\..\applications\osmo4_wce\OpenDlg.h"\
 	"..\..\applications\osmo4_wce\Osmo4.h"\
 	"..\..\applications\osmo4_wce\StdAfx.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\setup.h"\
@@ -144,8 +150,11 @@ DEP_CPP_OPTIO=\
 	"..\..\applications\osmo4_wce\Options.h"\
 	"..\..\applications\osmo4_wce\Osmo4.h"\
 	"..\..\applications\osmo4_wce\StdAfx.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\iso639.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\audio_out.h"\
@@ -171,8 +180,11 @@ DEP_CPP_OSMO4=\
 	"..\..\applications\osmo4_wce\ProgressBar.h"\
 	"..\..\applications\osmo4_wce\StdAfx.h"\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -198,7 +210,10 @@ DEP_CPP_PROGR=\
 	"..\..\applications\osmo4_wce\Osmo4.h"\
 	"..\..\applications\osmo4_wce\ProgressBar.h"\
 	"..\..\applications\osmo4_wce\StdAfx.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\setup.h"\
@@ -263,5 +278,9 @@ SOURCE=..\..\applications\osmo4_wce\res\Cmdbar.bmp
 SOURCE=..\..\applications\osmo4_wce\res\Osmo4.ico
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=..\..\include\gpac\sync_layer.h
+# End Source File
 # End Target
 # End Project

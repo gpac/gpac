@@ -244,7 +244,11 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 		if (test) fclose(test);
 		m_user.config = gf_cfg_new((const char *) config_path, gpac_cfg);
 	    if(!m_user.config) {
+#ifdef _WIN32_WCE
+			::MessageBox(NULL, _T("GPAC Configuration file not found"), _T("Fatal Error"), MB_OK);
+#else
 			::MessageBox(NULL, "GPAC Configuration file not found", "Fatal Error", MB_OK);
+#endif
 			goto err_exit;
 		}
 		gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) config_path);
@@ -260,7 +264,11 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "dx_hw");
 		gf_cfg_set_key(m_user.config, "Video", "UseHardwareMemory", "yes");
 
+#ifdef _WIN32_WCE
+		strcpy((char*)cfg_file, "\\windows");
+#else
 		::GetWindowsDirectory((char*)cfg_file, MAX_PATH);
+#endif
 		if (cfg_file[strlen((char*)cfg_file)-1] != '\\') strcat((char*)cfg_file, "\\");
 		strcat((char *)cfg_file, "Fonts");
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) cfg_file);

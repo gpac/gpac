@@ -48,10 +48,13 @@ static GF_Err AR_SetupAudioFormat(GF_AudioRenderer *ar)
 	return GF_OK;
 }
 
-void AR_FillBuffer(void *ptr, char *buffer, u32 buffer_size)
+static u32 AR_FillBuffer(void *ptr, char *buffer, u32 buffer_size)
 {
 	GF_AudioRenderer *ar = (GF_AudioRenderer *) ptr;
-	if (!ar->need_reconfig) gf_mixer_get_output(ar->mixer, buffer, buffer_size);
+	if (!ar->need_reconfig) {
+		return gf_mixer_get_output(ar->mixer, buffer, buffer_size);
+	}
+	return 0;
 }
 
 u32 AR_MainLoop(void *p)
@@ -69,7 +72,12 @@ u32 AR_MainLoop(void *p)
 
 	while (ar->audio_th_state == 1) {
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[AudioRender] Audio simulation step\n"));
-		//gf_sleep(0);
+		
+		/*THIS IS NEEDED FOR SYMBIAN - if no yield here, the audio module always grabs the 
+		main mixer mutex and it takes forever before it can be grabed by another thread, 
+		for instance when reconfiguring scene*/
+		gf_sleep(0);
+		
 		gf_mixer_lock(ar->mixer, 1);
 		if (ar->Frozen) {
 			gf_mixer_lock(ar->mixer, 0);

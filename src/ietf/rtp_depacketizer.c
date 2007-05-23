@@ -1243,6 +1243,7 @@ void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, cha
 }
 
 
+GF_EXPORT
 void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 {
 	memset(slc, 0, sizeof(GF_SLConfig));

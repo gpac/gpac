@@ -39,6 +39,7 @@ SOURCEPATH ..\..\src\ietf
 SOURCE rtcp.c
 SOURCE rtp.c
 SOURCE rtp_packetizer.c
+SOURCE rtp_depacketizer.c
 SOURCE rtp_pck_3gpp.c
 SOURCE rtp_pck_mpeg12.c
 SOURCE rtp_pck_mpeg4.c
@@ -129,15 +130,16 @@ SOURCE vrml_script.c
 SOURCE vrml_smjs.c
 SOURCE vrml_tools.c
 SOURCE x3d_nodes.c
-SOURCE svg_attributes.c
-SOURCE svg_nodes.c
-SOURCE svg_tools.c
-SOURCE svg_types.c
-SOURCE svg_smjs.c
 SOURCE smil_anim.c
 SOURCE smil_timing.c
-SOURCE svg_properties.c
 SOURCE dom_events.c
+SOURCE dom_smjs.c
+SOURCE svg_attributes.c
+SOURCE svg_nodes_da.c
+SOURCE svg_tools_da.c
+SOURCE svg_types.c
+SOURCE svg_smjs.c
+SOURCE svg_properties.c
 
 //mcrypt
 SOURCEPATH ..\..\src\mcrypt
@@ -155,6 +157,7 @@ SOURCE rijndael-192.c
 SOURCE rijndael-256.c
 SOURCE stream.c
 SOURCE tripledes.c
+SOURCE sha1.c
 
 //media tools
 SOURCEPATH ..\..\src\media_tools
@@ -187,7 +190,7 @@ SOURCE swf_shape.c
 SOURCE text_to_bifs.c
 SOURCE encode_cbk.c
 SOURCE encode_isom.c
-SOURCE loader_svg.c
+SOURCE loader_svg_da.c
 
 //terminal
 SOURCEPATH ..\..\src\terminal
@@ -229,6 +232,6 @@ LIBRARY euser.lib estlib.lib ezlib.lib hal.lib
     deffile ..\..\build\symbian\libgpac_symbian.def
 #endif
 
-EXPORTUNFROZEN
+// EXPORTUNFROZEN
 //  nostrictdef
 

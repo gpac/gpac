@@ -68,6 +68,7 @@ u32 gf_dom_listener_count(GF_Node *node)
 	return gf_list_count(node->sgprivate->interact->events);
 }
 
+GF_EXPORT
 GF_Node *gf_dom_listener_get(GF_Node *node, u32 i)
 {
 	if (!node || !node->sgprivate->interact) return 0;

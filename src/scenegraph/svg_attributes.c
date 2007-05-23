@@ -5346,6 +5346,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 }
 
 /* *a = *b, copy by value */
+GF_EXPORT
 GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 {
 	if (!a->far_ptr || !b->far_ptr) return GF_BAD_PARAM;

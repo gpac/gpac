@@ -846,6 +846,7 @@ GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 
 #endif
 
+GF_EXPORT
 GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]) 
 {
 	u8 block[1024];

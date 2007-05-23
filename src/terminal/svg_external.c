@@ -182,6 +182,8 @@ static void svg_animation_smil_update(SMIL_Timing_RTI *rti, Fixed normalized_sce
 	u32 tag = gf_node_get_tag(n);
 	is = (GF_InlineScene *)gf_node_get_private(n);
 
+	clipBegin = clipEnd = NULL;
+
 	if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
 		SVGAllAttributes all_atts;
 		gf_svg_flatten_attributes((SVG_Element *)n, &all_atts);

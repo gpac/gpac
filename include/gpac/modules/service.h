@@ -325,6 +325,9 @@ typedef struct _netinterface
 		"rtsp://myserver/file.mp4/ES_ID=3" and "rtsp://myserver/file.mp4/ES_ID=4" 
 		or "file.avi#audio" and "file.avi#video".In this case a partial IOD for the desired object is expected
 	Note: once a service is acknowledged as connected, this function must be executed synchronously
+	The service can return NULL for a descriptor:
+		* if the expected media type is a single media, this means the media couldn't be found
+		* if the expected media type is a scene, this means the terminalk shall create and manage the scene
 	*/
 	GF_Descriptor *(*GetServiceDescriptor) (struct _netinterface *, u32 expect_type, const char *sub_url);
 	

@@ -24,8 +24,8 @@ SOURCE texture_stacks.c
 SOURCE viewport.c
 SOURCE visualsurface2d.c
 SOURCE visualsurface2d_draw.c
-SOURCE svg_base.c
-SOURCE svg_text.c
+SOURCE svg_base_da.c
+SOURCE svg_text_da.c
 SOURCE svg_media.c
 SOURCE laser_base.c
 

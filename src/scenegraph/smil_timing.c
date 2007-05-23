@@ -145,6 +145,7 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 	}
 }
 
+GF_EXPORT
 void gf_smil_set_media_duration(SMIL_Timing_RTI *rti, Double media_duration)
 {
 	rti->media_duration = media_duration;
@@ -444,7 +445,7 @@ static void gf_smil_timing_print_interval(SMIL_Interval *interval)
 }
 #endif
 
-Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
+Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 {
 	SMIL_Timing_RTI *rti;
 	u32 active_count = 0, i = 0;
@@ -847,6 +848,7 @@ Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *anim_parent,
 	return 1;
 }
 
+GF_EXPORT
 void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock)
 {
 	u32 i, count, found;

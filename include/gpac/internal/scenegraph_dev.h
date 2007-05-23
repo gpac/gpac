@@ -860,6 +860,9 @@ typedef struct __tag_svg_script_ctx
 and its private data MUST be a scenegraph. This scenegraph is only used to create new documents
 and setup the callback pointers*/
 void dom_js_load(JSContext *c, JSObject *global);
+/*unloads the DOM core support (to be called upon destruction only, once the JSContext has been destroyed
+to releases all resources used by DOM JS)*/
+void dom_js_unload();
 
 /*defines a new global object "document" of type Document*/
 void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc);
