@@ -369,8 +369,13 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
 		}
 
 		if (forceDrop<0) {
-			gf_odm_lock(mo->odm, 0);
-			return;
+			/*only allow for explicit last frame keeping if only one node is using the resource
+			otherwise this would block the composition memory*/
+			if (mo->num_open>1) forceDrop=0;
+			else {
+				gf_odm_lock(mo->odm, 0);
+				return;
+			}
 		}
 
 		/*discard frame*/
