@@ -619,7 +619,8 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 		if (! (sr->user->init_flags & GF_TERM_WINDOWLESS)) sr->back_color = 0xFF000000;
 
 		top_node = gf_sg_get_root_node(sr->scene);
-		tag = gf_node_get_tag(top_node);
+		tag = 0;
+		if (top_node) tag = gf_node_get_tag(top_node);
 
 #ifndef GPAC_DISABLE_SVG
 		w = h = NULL;
