@@ -243,13 +243,14 @@ u32 svg_focus_switch_ring(Render2D *sr, Bool move_prev)
 		/*the event is already handled, even though no listeners may be present*/
 		ret = 1;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.bubbles = 1;
 		if (prev) {
+			evt.bubbles = 1;
 			evt.target = prev;
 			evt.type = GF_EVENT_FOCUSOUT;
 			gf_dom_event_fire(prev, NULL, &evt);
 		}
 		if (sr->focus_node) {
+			evt.bubbles = 1;
 			evt.target = sr->focus_node;
 			evt.type = GF_EVENT_FOCUSIN;
 			gf_dom_event_fire(sr->focus_node, NULL, &evt);

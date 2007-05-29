@@ -2274,6 +2274,7 @@ GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 			if (f->fieldType==SVG_Transform_Scale_datatype) att_name = "scale";
 			else if (f->fieldType==SVG_Transform_Rotate_datatype) att_name = "rotation";
 			else if (f->fieldType==SVG_Transform_Translate_datatype) att_name = "translation";
+			else if (f->fieldIndex==(u32) -1) att_name = "textContent";
 			else att_name = (char*) gf_svg_get_attribute_name(f->fieldIndex);
 
 			fprintf(sdump->trace, "attributeName=\"%s\" ", att_name);
@@ -2281,6 +2282,7 @@ GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 				info.far_ptr = f->field_ptr;
 				info.fieldIndex = f->fieldIndex;
 				info.fieldType = f->fieldType;
+				info.name = att_name;
 
 				if ((s32) f->pos >= 0) {
 					gf_svg_dump_attribute_indexed(com->node, &info, szAtt);

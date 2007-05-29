@@ -355,9 +355,12 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 		gf_svg_attributes_resolve_currentColor(&from_info, &rai->owner->current_color_value);
 		gf_svg_attributes_resolve_inherit(&from_info, &rai->owner->parent_presentation_value);
 	}
-
-	to_info.fieldType = animp->to->type;
-	to_info.far_ptr = animp->to->value;
+	if (animp->to) {
+		to_info.fieldType = animp->to->type;
+		to_info.far_ptr = animp->to->value;
+	} else {
+		to_info.fieldType = 0;
+	}
 	if (rai->is_first_anim) gf_svg_attributes_resolve_unspecified(&to_info, &rai->owner->specified_value, &rai->default_transform_value);
 	else gf_svg_attributes_resolve_unspecified(&to_info, &rai->owner->presentation_value, &rai->default_transform_value);
 	if (rai->owner->is_property && gf_svg_attribute_is_interpolatable(to_info.fieldType)) {
@@ -591,7 +594,7 @@ static void gf_smil_anim_get_last_specified_value(SMIL_Anim_RTI *rai)
 	} else if ((animp->by && animp->by->type) && (!animp->to || animp->to->type == 0)) {
 		rai->last_specified_value.fieldType = animp->by->type;
 		rai->last_specified_value.far_ptr   = animp->by->value;
-	} else { 
+	} else if (animp->to) { 
 		rai->last_specified_value.fieldType = animp->to->type;
 		rai->last_specified_value.far_ptr   = animp->to->value;
 	}

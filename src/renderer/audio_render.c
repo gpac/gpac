@@ -45,6 +45,10 @@ static GF_Err AR_SetupAudioFormat(GF_AudioRenderer *ar)
 	}
 	gf_mixer_set_config(ar->mixer, freq, nb_chan, nb_bits, ch_cfg);
 	ar->audio_delay = ar->audio_out->GetAudioDelay(ar->audio_out);
+
+	ar->audio_out->SetVolume(ar->audio_out, ar->volume);
+	ar->audio_out->SetPan(ar->audio_out, ar->pan);
+	
 	return GF_OK;
 }
 
@@ -183,10 +187,6 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 	ar->volume = sOpt ? atoi(sOpt) : 75;
 	sOpt = gf_cfg_get_key(user->config, "Audio", "Pan");
 	ar->pan = sOpt ? atoi(sOpt) : 50;
-	if (ar->audio_out) {
-		ar->audio_out->SetVolume(ar->audio_out, ar->volume);
-		ar->audio_out->SetPan(ar->audio_out, ar->pan);
-	}
 
 	/*init renderer timer*/
 	ar->startTime = gf_sys_clock();

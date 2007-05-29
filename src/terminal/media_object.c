@@ -424,7 +424,7 @@ void gf_mo_get_object_time(GF_MediaObject *mo, u32 *obj_time)
 GF_EXPORT
 void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_loop)
 {
-	if (!gf_odm_lock_mo(mo)) return;
+	if (!mo) return;
 
 	if (!mo->num_open && mo->odm) {
 		Bool is_restart = 0;
@@ -469,14 +469,12 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 		}
 	}
 	mo->num_open++;
-	gf_odm_lock(mo->odm, 0);
 }
 
 GF_EXPORT
 void gf_mo_stop(GF_MediaObject *mo)
 {
 	if (!mo || !mo->num_open) return;
-	if (!gf_odm_lock_mo(mo)) return;
 
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
@@ -505,7 +503,6 @@ void gf_mo_stop(GF_MediaObject *mo)
 			mo->num_restart = mo->num_to_restart = mo->num_open + 1;
 		}
 	}
-	gf_odm_lock(mo->odm, 0);
 }
 
 GF_EXPORT

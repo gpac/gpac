@@ -526,9 +526,9 @@ static void lsr_write_any_attribute(GF_LASeRCodec *lsr, SVG_Element *node, Bool 
 static void lsr_write_private_attributes(GF_LASeRCodec *lsr, SVG_Element *elt)
 {
 	if (1) {
-		GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");
+		GF_LSR_WRITE_INT(lsr, 0, 1, "has_private_attr");
 	} else {
-		GF_LSR_WRITE_INT(lsr, 1, 1, "opt_group");
+		GF_LSR_WRITE_INT(lsr, 1, 1, "has_private_attr");
 		lsr_write_private_att_class(lsr);
 	}
 }
@@ -3175,7 +3175,7 @@ static void lsr_write_group_content(GF_LASeRCodec *lsr, SVG_Element *elt, Bool s
 	}
 }
 
-static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fieldType, u32 transformType, void *val, Bool is_indexed)
+static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fieldType, u32 att_tag, u32 transformType, void *val, Bool is_indexed)
 {
 	SVG_Number *n;
 	if (is_indexed) {
@@ -3232,18 +3232,6 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 		case SVG_Paint_datatype:
 			lsr_write_paint(lsr, (SVG_Paint *)val, "val"); 
 			break;
-/*
-		case SVG_Opacity_datatype:
-		case SVG_AudioLevel_datatype:
-			n = val;
-			if (n->type==SVG_NUMBER_INHERIT) {
-				GF_LSR_WRITE_INT(lsr, 1, 1, "isDefaultValue"); 
-			} else {
-				GF_LSR_WRITE_INT(lsr, 0, 1, "isDefaultValue"); 
-				lsr_write_fixed_clamp(lsr, n->value, "val");
-			}
-			break;
-*/
 		case SVG_Transform_datatype:
 			lsr_write_matrix(lsr, (SVG_Transform*)val);
 			break;
@@ -3263,31 +3251,41 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 		case SVG_FontSize_datatype:
 		case SVG_Length_datatype:
 			n = (SVG_Number*)val;
-			if (n->type==SVG_NUMBER_INHERIT) {
-				GF_LSR_WRITE_INT(lsr, 1, 1, "isDefaultValue"); 
-			} else {
-				GF_LSR_WRITE_INT(lsr, 0, 1, "isDefaultValue"); 
-				GF_LSR_WRITE_INT(lsr, 0, 1, "escapeFlag"); 
-				lsr_write_fixed_16_8(lsr, n->value, "val");
-			}
-			break;
-/*
-		case SVG_LineIncrement_datatype:
-			n = val;
-			if (n->type==SVG_NUMBER_INHERIT) {
-				GF_LSR_WRITE_INT(lsr, 1, 1, "isDefaultValue");
-			} else {
-				GF_LSR_WRITE_INT(lsr, 0, 1, "isDefaultValue");
-				if (n->type==SVG_NUMBER_AUTO) {
-					GF_LSR_WRITE_INT(lsr, 1, 1, "escapeFlag");
-					GF_LSR_WRITE_INT(lsr, 0, 2, "auto");
+			switch (att_tag) {
+			/*fractions*/
+			case TAG_SVG_ATT_audio_level:
+			case TAG_SVG_ATT_fill_opacity:
+			case TAG_SVG_ATT_offset:
+			case TAG_SVG_ATT_opacity:
+			case TAG_SVG_ATT_solid_opacity:
+			case TAG_SVG_ATT_stop_opacity:
+			case TAG_SVG_ATT_stroke_opacity:
+			case TAG_SVG_ATT_viewport_fill_opacity:
+				if (n->type==SVG_NUMBER_INHERIT) {
+					GF_LSR_WRITE_INT(lsr, 1, 1, "isDefaultValue"); 
 				} else {
-					GF_LSR_WRITE_INT(lsr, 0, 1, "escapeFlag");
-					lsr_write_fixed_16_8(lsr, n->value, "line-increment-value");
+					GF_LSR_WRITE_INT(lsr, 0, 1, "isDefaultValue"); 
+					lsr_write_fixed_16_8(lsr, n->value, "val");
+				}
+				break;
+			case TAG_SVG_ATT_width:
+			case TAG_SVG_ATT_height:
+				if (elt->sgprivate->tag==TAG_SVG_svg) {
+					lsr_write_value_with_units(lsr, n, "val");
+				} else {
+					lsr_write_coordinate(lsr, n->value, 0, "val");
+				}
+				break;
+			default:
+				if (n->type==SVG_NUMBER_INHERIT) {
+					GF_LSR_WRITE_INT(lsr, 1, 1, "isDefaultValue"); 
+				} else {
+					GF_LSR_WRITE_INT(lsr, 0, 1, "isDefaultValue"); 
+					GF_LSR_WRITE_INT(lsr, 0, 1, "escapeFlag"); 
+					lsr_write_fixed_16_8(lsr, n->value, "val");
 				}
 			}
 			break;
-*/
 		case SVG_Rotate_datatype:
 			n = (SVG_Number*)val;
 			if (n->type==SVG_NUMBER_INHERIT) {
@@ -3303,11 +3301,6 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 				}
 			}
 			break;
-/*
-		case SVG_NumberOrPercentage_datatype:
-			lsr_write_value_with_units(lsr, val, "val");
-			break;
-*/
 		case SVG_Coordinate_datatype:
 			n = (SVG_Number*)val;
 			lsr_write_coordinate(lsr, n->value, 0, "val");
@@ -3318,7 +3311,28 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 			lsr_write_float_list(lsr, (GF_List **)val, "val");
 			break;
 		case XMLRI_datatype:
-			lsr_write_any_uri(lsr, (XMLRI*)val, "val");
+			if ((att_tag==TAG_SVG_ATT_xlink_href) || (att_tag==TAG_SVG_ATT_syncReference)) {
+				lsr_write_any_uri(lsr, (XMLRI*)val, "val");
+			} else if (((XMLRI*)val)->target) {
+				GF_LSR_WRITE_INT(lsr, 0, 1, "isDefault");
+				GF_LSR_WRITE_INT(lsr, 0, 1, "isEscape");
+				lsr_write_vluimsbf5(lsr, gf_node_get_id( ((XMLRI*)val)->target) - 1, "ID");
+			} else {
+				GF_LSR_WRITE_INT(lsr, 1, 1, "isDefault");
+			}
+			break;
+		case SVG_Focus_datatype:
+			if ( (((SVG_Focus*)val)->type == SVG_FOCUS_AUTO) || !((SVG_Focus*)val)->target.target) {
+				GF_LSR_WRITE_INT(lsr, 1, 1, "isDefault");
+			} else if (((SVG_Focus*)val)->type == SVG_FOCUS_SELF) {
+				GF_LSR_WRITE_INT(lsr, 0, 1, "isDefault");
+				GF_LSR_WRITE_INT(lsr, 1, 1, "isEscape");
+				GF_LSR_WRITE_INT(lsr, 1, 2, "escapeEnumVal");
+			} else {
+				GF_LSR_WRITE_INT(lsr, 0, 1, "isDefault");
+				GF_LSR_WRITE_INT(lsr, 0, 1, "isEscape");
+				lsr_write_vluimsbf5(lsr, gf_node_get_id( ((SVG_Focus*)val)->target.target) - 1, "ID");
+			}
 			break;
 
 		case SVG_String_datatype:
@@ -3456,11 +3470,11 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 	lsr_write_codec_IDREF_Node(lsr, com->node, "ref");
 	if (field && !field->new_node && !field->node_list && !com->fromNodeID) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "has_value");
-		lsr_write_update_value(lsr, (SVG_Element *)com->node, field_type, tr_type, field->field_ptr, (field->pos>=0) ? 1 : 0);
+		lsr_write_update_value(lsr, (SVG_Element *)com->node, field_type, field->fieldIndex, tr_type, field->field_ptr, (field->pos>=0) ? 1 : 0);
 	} else if (is_text_node) {
 		GF_DOMText *t = (GF_DOMText *)field->new_node;
 		GF_LSR_WRITE_INT(lsr, 1, 1, "has_value");
-		lsr_write_update_value(lsr, (SVG_Element *)com->node, SVG_String_datatype, 0, &t->textContent, (field->pos>=0) ? 1 : 0);
+		lsr_write_update_value(lsr, (SVG_Element *)com->node, SVG_String_datatype, field->fieldIndex, 0, &t->textContent, (field->pos>=0) ? 1 : 0);
 	} else {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "has_value");
 	}

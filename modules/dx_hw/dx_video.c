@@ -425,14 +425,14 @@ static void DeleteVideoOutput(void *ifce)
 Bool QueryInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return 1;
-	//if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return 1;
+	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return 1;
 	return 0;
 }
 /*interface create*/
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return NewDXVideoOutput();
-	//if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return NewAudioOutput();
+	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return NewAudioOutput();
 	return NULL;
 }
 /*interface destroy*/
@@ -443,7 +443,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		DeleteVideoOutput((GF_VideoOutput *)ifce);
 		break;
 	case GF_AUDIO_OUTPUT_INTERFACE:
-		//DeleteAudioOutput(ifce);
+		DeleteAudioOutput(ifce);
 		break;
 	}
 }

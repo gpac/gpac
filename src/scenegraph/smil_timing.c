@@ -648,7 +648,7 @@ waiting_to_begin:
 
 		}
 		/*special case for unspecified simpleDur with animations (not with media timed elements)*/
-		else if (rti->postpone 
+		else if (0 && rti->postpone 
 			&& (rti->current_interval->simple_duration==-1) 
 			&& (rti->current_interval->active_duration<=0) 
 		) {
