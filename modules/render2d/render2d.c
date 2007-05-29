@@ -438,6 +438,7 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 	else if (event->type==GF_EVENT_TEXTINPUT) {
 	} 
 	else if ((event->type>=GF_EVENT_KEYUP) && (event->type<=GF_EVENT_LONGKEYPRESS)) {
+		GF_Node *target;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.key_flags = event->key.flags;
 		evt.bubbles = 1;
@@ -445,14 +446,16 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_Event *event, Fixed X, Fixed 
 		evt.type = event->type;
 		evt.detail = event->key.key_code;
 		evt.key_hw_code = event->key.hw_code;
-		ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
+		target = sr->focus_node;
+		if (!target) target = gf_sg_get_root_node(sr->compositor->scene);
+		ret += gf_dom_event_fire(target, NULL, &evt);
 
 		if (event->type==GF_EVENT_KEYDOWN) {
 			switch (event->key.key_code) {
 			case GF_KEY_ENTER:
 				evt.type = GF_EVENT_ACTIVATE;
 				evt.detail = 0;
-				ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
+				ret += gf_dom_event_fire(target, NULL, &evt);
 				break;
 			case GF_KEY_TAB:
 				ret += svg_focus_switch_ring(sr, (event->key.flags & GF_KEY_MOD_SHIFT) ? 1 : 0);

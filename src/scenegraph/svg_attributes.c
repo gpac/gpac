@@ -3045,7 +3045,6 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 	case XMLEV_DefaultAction_datatype:
 	case XMLEV_Phase_datatype:
 	case SMIL_SyncBehavior_datatype:
-	case SMIL_SyncTolerance_datatype:
 	case SMIL_AttributeType_datatype:
 	case SMIL_CalcMode_datatype:
 	case SMIL_Additive_datatype:
@@ -3064,6 +3063,13 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 			u8 *keyword;
 			GF_SAFEALLOC(keyword, u8)
 			return keyword;
+		}
+		break;
+	case SMIL_SyncTolerance_datatype:
+		{
+			SMIL_SyncTolerance *st;
+			GF_SAFEALLOC(st, SMIL_SyncTolerance)
+			return st;
 		}
 		break;
 
@@ -3165,6 +3171,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 		break;
 	case SVG_FeatureList_datatype:
 	case SVG_ExtensionList_datatype:
+	case SVG_FormatList_datatype:
 	case SVG_LanguageIDs_datatype:
 	case SVG_ListOfIRI_datatype:
 	case SVG_Points_datatype:
@@ -3567,8 +3574,10 @@ static void gf_svg_dump_matrix(GF_Matrix2D *matrix, char *attValue)
 
 GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 {
-	u8 intVal = *(u8 *)info->far_ptr;
+	u8 intVal;
 	strcpy(attValue, "");
+	if (!info->far_ptr) return GF_OK;
+	intVal = *(u8 *)info->far_ptr;
 	
 	switch (info->fieldType) {
 	case SVG_Boolean_datatype:
@@ -3754,12 +3763,10 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 		else if (intVal==SMIL_SYNCBEHAVIOR_INDEPENDENT) strcpy(attValue, "independent");
 		break;
 	case SMIL_SyncTolerance_datatype:
-		if (intVal==SMIL_SYNCTOLERANCE_INHERIT) strcpy(attValue, "inherit");
-		else if (intVal==SMIL_SYNCTOLERANCE_DEFAULT) strcpy(attValue, "default");
-		else if (intVal==SMIL_SYNCBEHAVIOR_LOCKED) {
-			strcpy(attValue, "default");
-			/*FIXME - DIMP SMIL TIMES*/
-			//svg_parse_clock_value(value_string, &(value->value));
+		if (((SMIL_SyncTolerance*)info->far_ptr)->type==SMIL_SYNCTOLERANCE_INHERIT) strcpy(attValue, "inherit");
+		else if (((SMIL_SyncTolerance*)info->far_ptr)->type==SMIL_SYNCTOLERANCE_DEFAULT) strcpy(attValue, "default");
+		else if (((SMIL_SyncTolerance*)info->far_ptr)->type==SMIL_SYNCBEHAVIOR_LOCKED) {
+			sprintf(attValue, "%g", ((SMIL_SyncTolerance*)info->far_ptr)->value);
 		}
 		break;
 	case SMIL_AttributeType_datatype:
@@ -3888,7 +3895,7 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 		for (i=0; i<count; i++) {
 			char szT[1000];
 			SVG_Point *p = (SVG_Point *)gf_list_get(l, i);
-			sprintf(szT, "%g %g", FIX2FLT(p->x), FIX2FLT(p->x));
+			sprintf(szT, "%g %g", FIX2FLT(p->x), FIX2FLT(p->y));
 			if (i) strcat(attValue, " ");
 			strcat(attValue, szT);
 		}
@@ -3996,6 +4003,14 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 		if (foc->type==SVG_FOCUS_SELF) strcpy(attValue, "self");
 		else if (foc->type==SVG_FOCUS_AUTO) strcpy(attValue, "auto");
 		else sprintf(attValue, "#%s", foc->target.string);
+	}
+		break;
+	case SVG_Focusable_datatype:
+	{
+		SVG_Focusable *f = (SVG_Focusable *)info->far_ptr;
+		if (*f == SVG_FOCUSABLE_TRUE) strcpy(attValue, "true");
+		else if (*f == SVG_FOCUSABLE_FALSE) strcpy(attValue, "false");
+		else strcpy(attValue, "auto");
 	}
 		break;
 
@@ -4444,7 +4459,6 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case XMLEV_DefaultAction_datatype:
 	case XMLEV_Phase_datatype:
 	case SMIL_SyncBehavior_datatype:
-	case SMIL_SyncTolerance_datatype:
 	case SMIL_AttributeType_datatype:
 	case SMIL_CalcMode_datatype:
 	case SMIL_Additive_datatype:
@@ -4471,6 +4485,14 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		return (v1==v2) ? 1 : 0;
 	case SVG_Color_datatype:
 		return svg_colors_equal((SVG_Color *)f1->far_ptr, (SVG_Color *)f2->far_ptr);
+	case SMIL_SyncTolerance_datatype:
+	{
+		SMIL_SyncTolerance *st1 = (SMIL_SyncTolerance*)f1->far_ptr;
+		SMIL_SyncTolerance *st2 = (SMIL_SyncTolerance*)f2->far_ptr;
+		if (st1->type!=st2->type) return 0;
+		if ((st1->type==SMIL_SYNCTOLERANCE_VALUE) && (st1->value!=st2->value)) return 0;
+		return 1;
+	}
 
 	case SVG_Paint_datatype:
 	{
@@ -5452,7 +5474,6 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case XMLEV_DefaultAction_datatype:
 	case XMLEV_Phase_datatype:
 	case SMIL_SyncBehavior_datatype:
-	case SMIL_SyncTolerance_datatype:
 	case SMIL_AttributeType_datatype:
 	case SMIL_CalcMode_datatype:
 	case SMIL_Additive_datatype:
@@ -5473,6 +5494,9 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		*(u8 *)a->far_ptr = *(u8 *)b->far_ptr;
 		return GF_OK;
 
+	case SMIL_SyncTolerance_datatype:
+		*(SMIL_SyncTolerance*)a->far_ptr = *(SMIL_SyncTolerance*)b->far_ptr;
+		return GF_OK;
 	/* Other types */
 	case SVG_LanguageID_datatype:
 	case SVG_ContentType_datatype:
