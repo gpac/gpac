@@ -256,10 +256,14 @@ static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_ti
 		esd->ESID = esd->OCRESID = 65534;
 		gf_list_add(odm->OD->ESDescriptors, esd);
 	} else {
-		char *frag = strrchr(mo->URLs.vals[0].url, '#');
-//		if (frag) frag[0] = 0;
-		odm->OD->URLString = strdup(mo->URLs.vals[0].url);
-//		if (frag) frag[0] = '#';
+		if (mo->type==GF_MEDIA_OBJECT_SCENE) {
+			char *frag = strrchr(mo->URLs.vals[0].url, '#');
+			if (frag) frag[0] = 0;
+			odm->OD->URLString = strdup(mo->URLs.vals[0].url);
+			if (frag) frag[0] = '#';
+		} else {
+			odm->OD->URLString = strdup(mo->URLs.vals[0].url);
+		}
 		if (lock_timelines) odm->flags |= GF_ODM_INHERIT_TIMELINE;
 	}
 
@@ -665,8 +669,10 @@ void gf_is_render(GF_Node *n, void *render_stack, Bool is_destroy)
 GF_EXPORT
 void gf_is_attach_to_renderer(GF_InlineScene *is)
 {
-	if (is->graph_attached==1) return;
-	if (gf_sg_get_root_node(is->graph)==NULL) return;
+	if ((is->graph_attached==1) || (gf_sg_get_root_node(is->graph)==NULL) ) {
+		gf_term_invalidate_renderer(is->root_od->term);
+		return;
+	}
 	is->graph_attached = 1;
 	/*main display scene, setup renderer*/
 	if (is->root_od->term->root_scene == is) {
