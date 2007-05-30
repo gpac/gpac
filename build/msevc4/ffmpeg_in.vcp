@@ -50,8 +50,8 @@ RSC=rc.exe
 # ADD BASE RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "NDEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "NDEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD BASE CPP /nologo /W3 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "FFMPEG_IN_EXPORTS" /YX /O2 /M$(CECrtMT) /c
-# ADD CPP /nologo /W3 /Oxt /I "../../include" /I "../../extra_lib/include" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "FFMPEG_IN_EXPORTS" /M$(CECrtMT) /c
-# SUBTRACT CPP /YX
+# ADD CPP /nologo /W3 /I "../../include" /I "../../extra_lib/include" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "FFMPEG_IN_EXPORTS" /M$(CECrtMT) /c
+# SUBTRACT CPP /O<none> /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 BSC32=bscmake.exe
@@ -102,6 +102,16 @@ LINK32=link.exe
 
 SOURCE=..\..\modules\ffmpeg_in\ffmpeg_decode.c
 DEP_CPP_FFMPE=\
+	"..\..\extra_lib\include\ffmpeg\avcodec.h"\
+	"..\..\extra_lib\include\ffmpeg\avformat.h"\
+	"..\..\extra_lib\include\ffmpeg\avio.h"\
+	"..\..\extra_lib\include\ffmpeg\avutil.h"\
+	"..\..\extra_lib\include\ffmpeg\common.h"\
+	"..\..\extra_lib\include\ffmpeg\integer.h"\
+	"..\..\extra_lib\include\ffmpeg\intfloat_readwrite.h"\
+	"..\..\extra_lib\include\ffmpeg\log.h"\
+	"..\..\extra_lib\include\ffmpeg\mathematics.h"\
+	"..\..\extra_lib\include\ffmpeg\rational.h"\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config.h"\
@@ -118,11 +128,27 @@ DEP_CPP_FFMPE=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\ffmpeg_in\ffmpeg_in.h"\
 	
+NODEP_CPP_FFMPE=\
+	"..\..\extra_lib\include\ffmpeg\berrno.h"\
+	"..\..\extra_lib\include\ffmpeg\config.h"\
+	"..\..\extra_lib\include\ffmpeg\internal.h"\
+	"..\..\extra_lib\include\ffmpeg\os_support.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\ffmpeg_in\ffmpeg_demux.c
 DEP_CPP_FFMPEG=\
+	"..\..\extra_lib\include\ffmpeg\avcodec.h"\
+	"..\..\extra_lib\include\ffmpeg\avformat.h"\
+	"..\..\extra_lib\include\ffmpeg\avio.h"\
+	"..\..\extra_lib\include\ffmpeg\avutil.h"\
+	"..\..\extra_lib\include\ffmpeg\common.h"\
+	"..\..\extra_lib\include\ffmpeg\integer.h"\
+	"..\..\extra_lib\include\ffmpeg\intfloat_readwrite.h"\
+	"..\..\extra_lib\include\ffmpeg\log.h"\
+	"..\..\extra_lib\include\ffmpeg\mathematics.h"\
+	"..\..\extra_lib\include\ffmpeg\rational.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
@@ -138,6 +164,12 @@ DEP_CPP_FFMPEG=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\ffmpeg_in\ffmpeg_in.h"\
 	
+NODEP_CPP_FFMPEG=\
+	"..\..\extra_lib\include\ffmpeg\berrno.h"\
+	"..\..\extra_lib\include\ffmpeg\config.h"\
+	"..\..\extra_lib\include\ffmpeg\internal.h"\
+	"..\..\extra_lib\include\ffmpeg\os_support.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -151,6 +183,16 @@ SOURCE=..\..\modules\ffmpeg_in\ffmpeg_in.h
 
 SOURCE=..\..\modules\ffmpeg_in\ffmpeg_load.c
 DEP_CPP_FFMPEG_=\
+	"..\..\extra_lib\include\ffmpeg\avcodec.h"\
+	"..\..\extra_lib\include\ffmpeg\avformat.h"\
+	"..\..\extra_lib\include\ffmpeg\avio.h"\
+	"..\..\extra_lib\include\ffmpeg\avutil.h"\
+	"..\..\extra_lib\include\ffmpeg\common.h"\
+	"..\..\extra_lib\include\ffmpeg\integer.h"\
+	"..\..\extra_lib\include\ffmpeg\intfloat_readwrite.h"\
+	"..\..\extra_lib\include\ffmpeg\log.h"\
+	"..\..\extra_lib\include\ffmpeg\mathematics.h"\
+	"..\..\extra_lib\include\ffmpeg\rational.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
@@ -165,6 +207,12 @@ DEP_CPP_FFMPEG_=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\ffmpeg_in\ffmpeg_in.h"\
+	
+NODEP_CPP_FFMPEG_=\
+	"..\..\extra_lib\include\ffmpeg\berrno.h"\
+	"..\..\extra_lib\include\ffmpeg\config.h"\
+	"..\..\extra_lib\include\ffmpeg\internal.h"\
+	"..\..\extra_lib\include\ffmpeg\os_support.h"\
 	
 # End Source File
 # End Target

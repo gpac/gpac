@@ -781,11 +781,17 @@ static GFINLINE void gf_dm_data_recieved(GF_DownloadSession *sess, char *data, u
 					nbBytes = 0;
 				} else {
 					if (sess->icy_count > 1) {
+						GF_NETIO_Parameter par;
 						char szData[4096];
 						memcpy(szData, data+1, sess->icy_count-1);
 						szData[sess->icy_count] = 0;
+	
+						par.error = 0;
+						par.msg_type = GF_NETIO_PARSE_HEADER;
+						par.name = "icy-meta";
+						par.value = szData;
+						gf_dm_sess_user_io(sess, &par);
 					}
-
 					nbBytes -= sess->icy_count;
 					data += sess->icy_count;
 					sess->icy_count = 0;
@@ -954,7 +960,8 @@ void http_do_requests(GF_DownloadSession *sess)
 	char *hdr, *hdr_val;
 	u32 bytesRead, res;
 	s32 LinePos, Pos;
-	u32 rsp_code, BodyStart, ContentLength, first_byte, last_byte, total_size, range, no_range;
+	u32 rsp_code, ContentLength, first_byte, last_byte, total_size, range, no_range;
+	s32 BodyStart;
 
 	/*sent HTTP request*/
 	if (sess->status==GF_NETIO_CONNECTED) {
@@ -1016,6 +1023,9 @@ void http_do_requests(GF_DownloadSession *sess)
 		sprintf(sHTTP, "%s %s HTTP/1.0\r\nHost: %s\r\n" ,
 			par.name ? par.name : "GET", sess->remote_path, sess->server_name);
 
+		/*signal we support title streaming*/
+		if (!strcmp(sess->remote_path, "/")) strcat(sHTTP, "icy-metadata:1\r\n");
+
 		/*get all headers*/
 		has_agent = has_accept = has_connection = has_range = 0;
 		while (1) {
@@ -1068,7 +1078,7 @@ void http_do_requests(GF_DownloadSession *sess)
 #endif
 			e = gf_sk_send(sess->sock, sHTTP, strlen(sHTTP));
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s", sHTTP));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s\n\n", sHTTP));
 		if (e) {
 			sess->status = GF_NETIO_STATE_ERROR;
 			sess->last_error = e;
@@ -1123,6 +1133,7 @@ void http_do_requests(GF_DownloadSession *sess)
 				}
 				return;
 			case GF_OK:
+				if (!res) return;
 				break;
 			default:
 				goto exit;
@@ -1131,21 +1142,22 @@ void http_do_requests(GF_DownloadSession *sess)
 
 			/*locate body start*/
 			BodyStart = gf_token_find(sHTTP, 0, bytesRead, "\r\n\r\n");
-			if (!BodyStart) {
-				//BodyStart = gf_token_find(sHTTP, 0, bytesRead, "\n\n");
-				if (!BodyStart) continue;
-				BodyStart += 2;
-			} else {
-				BodyStart += 4;
+			if (BodyStart <= 0) {
+				BodyStart=0;
+				continue;
 			}
+			BodyStart += 4;
 			break;
 		}
 		if (bytesRead < 0) {
 			e = GF_REMOTE_SERVICE_ERROR;
 			goto exit;
 		}
+		if (!BodyStart) 
+			BodyStart = bytesRead;
+
 		sHTTP[BodyStart-1] = 0;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s\n", sHTTP));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s\n\n", sHTTP));
 
 		LinePos = gf_token_get_line(sHTTP, 0, bytesRead, buf, 1024);
 		Pos = gf_token_get(buf, 0, " \t\r\n", comp, 400);
@@ -1228,9 +1240,12 @@ void http_do_requests(GF_DownloadSession *sess)
 			else if (!stricmp(hdr, "Accept-Ranges")) {
 				if (strstr(hdr_val, "none")) no_range = 1;
 			}
-			else if (!stricmp(hdr, "Location")) new_location = strdup(hdr_val);
-			else if (!stricmp(hdr, "icy-metaint")) sess->icy_metaint = atoi(hdr);
-			else if (!stricmp(hdr, "ice") || !stricmp(hdr, "icy") ) is_ice = 1;
+			else if (!stricmp(hdr, "Location")) 
+				new_location = strdup(hdr_val);
+			else if (!stricmp(hdr, "icy-metaint")) 
+				sess->icy_metaint = atoi(hdr_val);
+			else if (!stricmp(hdr, "ice") || !stricmp(hdr, "icy") ) 
+				is_ice = 1;
 
 			if (sep) sep[0]=':';
 			if (hdr_sep) hdr_sep[0] = '\r';

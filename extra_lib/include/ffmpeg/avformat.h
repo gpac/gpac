@@ -25,8 +25,8 @@
 extern "C" {
 #endif
 
-#define LIBAVFORMAT_VERSION_INT ((51<<16)+(6<<8)+0)
-#define LIBAVFORMAT_VERSION     51.6.0
+#define LIBAVFORMAT_VERSION_INT ((51<<16)+(8<<8)+0)
+#define LIBAVFORMAT_VERSION     51.8.0
 #define LIBAVFORMAT_BUILD       LIBAVFORMAT_VERSION_INT
 
 #define LIBAVFORMAT_IDENT       "Lavf" AV_STRINGIFY(LIBAVFORMAT_VERSION)
@@ -38,14 +38,6 @@ extern "C" {
 #include "avio.h"
 
 /* packet functions */
-
-#ifndef MAXINT64
-#define MAXINT64 int64_t_C(0x7fffffffffffffff)
-#endif
-
-#ifndef MININT64
-#define MININT64 int64_t_C(0x8000000000000000)
-#endif
 
 typedef struct AVPacket {
     int64_t pts;                            ///< presentation time stamp in time_base units
@@ -104,6 +96,8 @@ typedef struct AVFrac {
 /*************************************************/
 /* input/output formats */
 
+struct AVCodecTag;
+
 struct AVFormatContext;
 
 /* this structure contains the data a format has to probe a file */
@@ -136,13 +130,15 @@ typedef struct AVFormatParameters {
     enum CodecID audio_codec_id;
 } AVFormatParameters;
 
-#define AVFMT_NOFILE        0x0001 /* no file should be opened */
+//! demuxer will use url_fopen, no opened file should be provided by the caller
+#define AVFMT_NOFILE        0x0001
 #define AVFMT_NEEDNUMBER    0x0002 /* needs '%d' in filename */
 #define AVFMT_SHOW_IDS      0x0008 /* show format stream IDs numbers */
 #define AVFMT_RAWPICTURE    0x0020 /* format wants AVPicture structure for
                                       raw picture data */
 #define AVFMT_GLOBALHEADER  0x0040 /* format wants global header */
 #define AVFMT_NOTIMESTAMPS  0x0080 /* format doesnt need / has any timestamps */
+#define AVFMT_GENERIC_INDEX 0x0100 /* use generic index building code */
 
 typedef struct AVOutputFormat {
     const char *name;
@@ -162,6 +158,13 @@ typedef struct AVOutputFormat {
     /* currently only used to set pixel format if not YUV420P */
     int (*set_parameters)(struct AVFormatContext *, AVFormatParameters *);
     int (*interleave_packet)(struct AVFormatContext *, AVPacket *out, AVPacket *in, int flush);
+
+    /**
+     * list of supported codec_id-codec_tag pairs, ordered by "better choice first"
+     * the arrays are all CODEC_ID_NONE terminated
+     */
+    const struct AVCodecTag **codec_tag;
+
     /* private fields */
     struct AVOutputFormat *next;
 } AVOutputFormat;
@@ -216,6 +219,8 @@ typedef struct AVInputFormat {
     /* pause playing - only meaningful if using a network based format
        (RTSP) */
     int (*read_pause)(struct AVFormatContext *);
+
+    const struct AVCodecTag **codec_tag;
 
     /* private fields */
     struct AVInputFormat *next;
@@ -306,7 +311,7 @@ typedef struct AVFormatContext {
     struct AVOutputFormat *oformat;
     void *priv_data;
     ByteIOContext pb;
-    int nb_streams;
+    unsigned int nb_streams;
     AVStream *streams[MAX_STREAMS];
     char filename[1024]; /* input or output filename */
     /* stream info */
@@ -369,6 +374,11 @@ typedef struct AVFormatContext {
     int loop_input;
     /* decoding: size of data to probe; encoding unused */
     unsigned int probesize;
+
+    /**
+     * maximum duration in AV_TIME_BASE units over which the input should be analyzed in av_find_stream_info()
+     */
+    int max_analyze_duration;
 } AVFormatContext;
 
 typedef struct AVPacketList {
@@ -398,6 +408,10 @@ void av_hex_dump(FILE *f, uint8_t *buf, int size);
 void av_pkt_dump(FILE *f, AVPacket *pkt, int dump_payload);
 
 void av_register_all(void);
+
+/* codec tag <-> codec id */
+enum CodecID av_codec_get_id(const struct AVCodecTag **tags, unsigned int tag);
+unsigned int av_codec_get_tag(const struct AVCodecTag **tags, enum CodecID id);
 
 /* media file input */
 AVInputFormat *av_find_input_format(const char *short_name);

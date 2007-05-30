@@ -37,6 +37,14 @@ typedef struct AVRational{
     int den; ///< denominator
 } AVRational;
 
+static inline AVRational _AVRational(int num,int den)
+{
+	AVRational r;
+	r.num = num;
+	r.den = den;
+	return r;
+}
+
 /**
  * returns 0 if a==b, 1 if a>b and -1 if a<b.
  */

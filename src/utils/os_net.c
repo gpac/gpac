@@ -944,6 +944,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 			return GF_IP_NETWORK_FAILURE;
 		}
 	}
+	if (!res) return GF_IP_NETWORK_EMPTY;
 	*BytesRead = res;
 	return GF_OK;
 }

@@ -55,6 +55,10 @@ typedef struct
 	Bool is_live;
 	char prev_data[1000];
 	u32 prev_size;
+
+	char *icy_name;
+	char *icy_genre;
+	char *icy_track_name;
 } AACReader;
 
 typedef struct
@@ -313,6 +317,37 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		} else {
 			return;
 		}
+	} else if (param->msg_type==GF_NETIO_PARSE_HEADER) {
+		if (!strcmp(param->name, "icy-name")) {
+			if (read->icy_name) free(read->icy_name);
+			read->icy_name = strdup(param->value);
+		}
+		if (!strcmp(param->name, "icy-genre")) {
+			if (read->icy_genre) free(read->icy_genre);
+			read->icy_genre = strdup(param->value);
+		}
+		if (!strcmp(param->name, "icy-meta")) {
+			GF_NetworkCommand com;
+			char *meta;
+			if (read->icy_track_name) free(read->icy_track_name);
+			read->icy_track_name = NULL;
+			meta = param->value;
+			while (meta && meta[0]) {
+				char *sep = strchr(meta, ';');
+				if (sep) sep[0] = 0;
+	
+				if (!strnicmp(meta, "StreamTitle=", 12)) {
+					read->icy_track_name = strdup(meta+12);
+				}
+				if (!sep) break;
+				sep[0] = ';';
+				meta = sep+1;
+			}
+
+			com.base.command_type = GF_NET_SERVICE_INFO;
+			gf_term_on_command(read->service, &com, GF_OK);
+		}
+		return;
 	} else {
 		/*handle service message*/
 		gf_term_download_update_stats(read->dnload);
@@ -493,6 +528,13 @@ static GF_Err AAC_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 static GF_Err AAC_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	AACReader *read = plug->priv;
+
+
+	if (com->base.command_type==GF_NET_SERVICE_INFO) {
+		com->info.name = read->icy_track_name ? read->icy_track_name : read->icy_name;
+		com->info.comment = read->icy_genre;
+		return GF_OK;
+	}
 
 	if (!com->base.on_channel) {
 		/*if live session we may cache*/

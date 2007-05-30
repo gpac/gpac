@@ -33,7 +33,11 @@ struct URLContext {
     int is_streamed;  /* true if streamed (no seek possible), default = false */
     int max_packet_size;  /* if non zero, the stream is packetized with this max packet size */
     void *priv_data;
+#if LIBAVFORMAT_VERSION_INT >= (52<<16)
+    char *filename; /* specified filename */
+#else
     char filename[1]; /* specified filename */
+#endif
 };
 
 typedef struct URLContext URLContext;
@@ -68,6 +72,13 @@ void url_set_interrupt_cb(URLInterruptCB *interrupt_cb);
 
 /* not implemented */
 int url_poll(URLPollEntry *poll_table, int n, int timeout);
+
+/**
+ * passing this as the "whence" parameter to a seek function causes it to
+ * return the filesize without seeking anywhere, supporting this is optional
+ * if its not supprted then the seek function will return <0
+ */
+#define AVSEEK_SIZE 0x10000
 
 typedef struct URLProtocol {
     const char *name;
