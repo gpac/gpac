@@ -325,7 +325,6 @@ GF_Err rtp_init_packetizer(RTP_Stream *rtp, char *dest_ip)
 GF_Err rtp_setup_sdp(RTP_Session *session, char *dest_ip)
 {	
 	RTP_Stream *rtp;
-	u32 flags = 0;
 	FILE *sdp_out;
 	char filename[30];
 	char mediaName[30], payloadName[30];
@@ -647,7 +646,6 @@ void process_sessions(Streamer *streamer)
 {
 	RTP_Session *session;
 	RTP_Stream *rtp, *to_send;
-	Bool first = 1;
 	u32 time;
 	s32 diff;
 	u64 min_ts;
@@ -882,10 +880,10 @@ GF_Err configuration(Streamer *streamer, char *cfg_file, char *src_file, char *i
 			if (!opt) sess_path_mtu = streamer->path_mtu;
 
 			opt = gf_cfg_get_key(configFile, sessionName, "IP_dest");
-			sess_dest_ip = opt ? (char *)opt : dest_ip;
+			sess_dest_ip = (char *) (opt ? opt : dest_ip);
 		} else {
 			sess_path_mtu = streamer->path_mtu;
-			sess_dest_ip = dest_ip;
+			sess_dest_ip = (char *) dest_ip;
 			session->looping = loop;
 			session->force_mpeg4_generic = force_mpeg4;
 			first_port = port;
@@ -998,7 +996,6 @@ Bool check_exit()
 int main(int argc, char **argv)
 {
 	Streamer streamer;		/* Streamer metadata (from cfg file) */
-	GF_Err e = GF_OK;			/* Error Message */	
 	char *cfg = NULL;
 	RTP_Session *session;
 	u32 i;
