@@ -732,6 +732,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", "/tmp");
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "X11 Video Output");
 		gf_cfg_set_key(m_user.config, "Render2D", "ScalableZoom", "yes");
+		gf_cfg_set_key(m_user.config, "Audio", "DriverName", "SDL Audio Output");
 #endif
 
 		sOpt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
