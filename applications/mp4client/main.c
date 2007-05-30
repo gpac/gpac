@@ -211,6 +211,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "2");
 	gf_cfg_set_key(cfg, "Audio", "TotalDuration", "120");
 	gf_cfg_set_key(cfg, "Audio", "DisableNotification", "no");
+	gf_cfg_set_key(cfg, "Rendering", "RendererName", "GPAC 2D Renderer");
 	gf_cfg_set_key(cfg, "FontEngine", "DriverName", "ft_font");
 
 #ifdef WIN32
@@ -221,6 +222,10 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	fprintf(stdout, "Please enter full path to a TrueType font directory (.ttf, .ttc) - enter to default:\n");
 	scanf("%s", szPath);
 #else
+	/*these fonts seems installed by default on many systems...*/
+	gf_cfg_set_key(cfg, "FontEngine", "FontSerif", "Bitstream Vera Serif");
+	gf_cfg_set_key(cfg, "FontEngine", "FontSans", "Bitstream Vera Sans");
+	gf_cfg_set_key(cfg, "FontEngine", "FontFixed", "Bitstream Vera Monospace");
 	strcpy(szPath, "/usr/share/fonts/truetype/");
 #endif
 	fprintf(stdout, "Using default font directory %s\n", szPath);
@@ -252,6 +257,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "X11 Video Output");
 	/*x11 only supports scalable zoom*/
 	gf_cfg_set_key(cfg, "Render2D", "ScalableZoom", "yes");
+	gf_cfg_set_key(cfg, "Audio", "DriverName", "SDL Audio Output");
 #endif
 #endif
 	gf_cfg_set_key(cfg, "Video", "SwitchResolution", "no");
