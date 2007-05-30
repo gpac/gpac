@@ -32,21 +32,28 @@ extern "C" {
 #endif
 
 #include "avutil.h"
-/*FIX FOR WINCE*/
-//#include <sys/types.h> /* size_t */
+
+#ifndef _WIN32_WCE
+#include <sys/types.h> /* size_t */
+#endif
 
 #define AV_STRINGIFY(s)         AV_TOSTRING(s)
 #define AV_TOSTRING(s) #s
 
-#define LIBAVCODEC_VERSION_INT  ((51<<16)+(25<<8)+0)
-#define LIBAVCODEC_VERSION      51.25.0
+#define LIBAVCODEC_VERSION_INT  ((51<<16)+(32<<8)+0)
+#define LIBAVCODEC_VERSION      51.32.0
 #define LIBAVCODEC_BUILD        LIBAVCODEC_VERSION_INT
 
 #define LIBAVCODEC_IDENT        "Lavc" AV_STRINGIFY(LIBAVCODEC_VERSION)
 
-#define AV_NOPTS_VALUE          int64_t_C(0x8000000000000000)
+#define AV_NOPTS_VALUE			INT64_C(0x8000000000000000)
 #define AV_TIME_BASE            1000000
+#ifdef CONFIG_MSVC
+static AVRational AV_TIME_BASE_Q_HACK() { AVRational r; r.num=1; r.den=AV_TIME_BASE; return r;}
+#define AV_TIME_BASE_Q AV_TIME_BASE_Q_HACK()
+#else
 #define AV_TIME_BASE_Q          (AVRational){1, AV_TIME_BASE}
+#endif
 
 enum CodecID {
     CODEC_ID_NONE,
@@ -150,6 +157,7 @@ enum CodecID {
     CODEC_ID_TIERTEXSEQVIDEO,
     CODEC_ID_TIFF,
     CODEC_ID_GIF,
+    CODEC_ID_FFH264,
 
     /* various pcm "codecs" */
     CODEC_ID_PCM_S16LE= 0x10000,
@@ -237,6 +245,8 @@ enum CodecID {
     CODEC_ID_WAVPACK,
     CODEC_ID_DSICINAUDIO,
     CODEC_ID_IMC,
+    CODEC_ID_MUSEPACK7,
+    CODEC_ID_MLP,
 
     /* subtitle codecs */
     CODEC_ID_DVD_SUBTITLE= 0x17000,
@@ -366,7 +376,7 @@ typedef struct RcOverride{
 #define CODEC_FLAG2_LOCAL_HEADER  0x00000008 ///< place global headers at every keyframe instead of in extradata
 #define CODEC_FLAG2_BPYRAMID      0x00000010 ///< H.264 allow b-frames to be used as references
 #define CODEC_FLAG2_WPRED         0x00000020 ///< H.264 weighted biprediction for b-frames
-#define CODEC_FLAG2_MIXED_REFS    0x00000040 ///< H.264 multiple references per partition
+#define CODEC_FLAG2_MIXED_REFS    0x00000040 ///< H.264 one reference per partition, as opposed to one reference per macroblock
 #define CODEC_FLAG2_8X8DCT        0x00000080 ///< H.264 high profile 8x8 transform
 #define CODEC_FLAG2_FASTPSKIP     0x00000100 ///< H.264 fast pskip
 #define CODEC_FLAG2_AUD           0x00000200 ///< H.264 access unit delimiters
@@ -374,6 +384,7 @@ typedef struct RcOverride{
 #define CODEC_FLAG2_INTRA_VLC     0x00000800 ///< use MPEG-2 intra VLC table
 #define CODEC_FLAG2_MEMC_ONLY     0x00001000 ///< only do ME/MC (I frames -> ref, P frame -> ME+MC)
 #define CODEC_FLAG2_DROP_FRAME_TIMECODE 0x00002000 ///< timecode is in drop frame format
+#define CODEC_FLAG2_SKIP_RD       0x00004000 ///< RD optimal MB level residual skiping
 
 /* Unsupported options :
  *              Syntax Arithmetic coding (SAC)
@@ -863,7 +874,7 @@ typedef struct AVCodecContext {
     int qmax;
 
     /**
-     * maximum quantizer difference etween frames.
+     * maximum quantizer difference between frames.
      * - encoding: set by user.
      * - decoding: unused
      */
@@ -1232,6 +1243,7 @@ typedef struct AVCodecContext {
 #define FF_IDCT_XVIDMMX      14
 #define FF_IDCT_CAVS         15
 #define FF_IDCT_SIMPLEARMV5TE 16
+#define FF_IDCT_SIMPLEARMV6  17
 
     /**
      * slice count.
@@ -2084,9 +2096,6 @@ typedef struct AVCodec {
     int (*decode)(AVCodecContext *, void *outdata, int *outdata_size,
                   uint8_t *buf, int buf_size);
     int capabilities;
-#if LIBAVCODEC_VERSION_INT < ((50<<16)+(0<<8)+0)
-    void *dummy; // FIXME remove next time we break binary compatibility
-#endif
     struct AVCodec *next;
     void (*flush)(AVCodecContext *);
     const AVRational *supported_framerates; ///array of supported framerates, or NULL if any, array is terminated by {0,0}
@@ -2144,240 +2153,247 @@ typedef struct AVSubtitle {
 } AVSubtitle;
 
 extern AVCodec ac3_encoder;
-extern AVCodec mp2_encoder;
-extern AVCodec mp3lame_encoder;
-extern AVCodec oggvorbis_encoder;
+extern AVCodec amr_nb_encoder;
+extern AVCodec amr_wb_encoder;
+extern AVCodec asv1_encoder;
+extern AVCodec asv2_encoder;
+extern AVCodec bmp_encoder;
+extern AVCodec dvvideo_encoder;
 extern AVCodec faac_encoder;
+extern AVCodec ffv1_encoder;
+extern AVCodec ffvhuff_encoder;
 extern AVCodec flac_encoder;
+extern AVCodec flashsv_encoder;
+extern AVCodec flv_encoder;
 extern AVCodec gif_encoder;
-extern AVCodec xvid_encoder;
-extern AVCodec mpeg1video_encoder;
-extern AVCodec mpeg2video_encoder;
 extern AVCodec h261_encoder;
 extern AVCodec h263_encoder;
 extern AVCodec h263p_encoder;
-extern AVCodec flv_encoder;
-extern AVCodec rv10_encoder;
-extern AVCodec rv20_encoder;
-extern AVCodec dvvideo_encoder;
-extern AVCodec mjpeg_encoder;
-extern AVCodec ljpeg_encoder;
+extern AVCodec h264_encoder;
+extern AVCodec huffyuv_encoder;
 extern AVCodec jpegls_encoder;
-extern AVCodec png_encoder;
-extern AVCodec ppm_encoder;
-extern AVCodec pgm_encoder;
-extern AVCodec pgmyuv_encoder;
-extern AVCodec pbm_encoder;
-extern AVCodec pam_encoder;
+extern AVCodec libgsm_encoder;
+extern AVCodec libtheora_encoder;
+extern AVCodec ljpeg_encoder;
+extern AVCodec mdec_encoder;
+extern AVCodec mjpeg_encoder;
+extern AVCodec mp2_encoder;
+extern AVCodec mp3lame_encoder;
+extern AVCodec mpeg1video_encoder;
+extern AVCodec mpeg2video_encoder;
 extern AVCodec mpeg4_encoder;
 extern AVCodec msmpeg4v1_encoder;
 extern AVCodec msmpeg4v2_encoder;
 extern AVCodec msmpeg4v3_encoder;
-extern AVCodec wmv1_encoder;
-extern AVCodec wmv2_encoder;
-extern AVCodec huffyuv_encoder;
-extern AVCodec ffvhuff_encoder;
-extern AVCodec h264_encoder;
-extern AVCodec asv1_encoder;
-extern AVCodec asv2_encoder;
-extern AVCodec vcr1_encoder;
-extern AVCodec ffv1_encoder;
+extern AVCodec oggvorbis_encoder;
+extern AVCodec pam_encoder;
+extern AVCodec pbm_encoder;
+extern AVCodec pgm_encoder;
+extern AVCodec pgmyuv_encoder;
+extern AVCodec png_encoder;
+extern AVCodec ppm_encoder;
+extern AVCodec rv10_encoder;
+extern AVCodec rv20_encoder;
 extern AVCodec snow_encoder;
-extern AVCodec vorbis_encoder;
-extern AVCodec mdec_encoder;
-extern AVCodec zlib_encoder;
 extern AVCodec sonic_encoder;
 extern AVCodec sonic_ls_encoder;
 extern AVCodec svq1_encoder;
+extern AVCodec vcr1_encoder;
+extern AVCodec vorbis_encoder;
+extern AVCodec wmav1_encoder;
+extern AVCodec wmav2_encoder;
+extern AVCodec wmv1_encoder;
+extern AVCodec wmv2_encoder;
 extern AVCodec x264_encoder;
+extern AVCodec xvid_encoder;
+extern AVCodec zlib_encoder;
+extern AVCodec zmbv_encoder;
 
-extern AVCodec gif_decoder;
-extern AVCodec h263_decoder;
-extern AVCodec h261_decoder;
-extern AVCodec mpeg4_decoder;
-extern AVCodec msmpeg4v1_decoder;
-extern AVCodec msmpeg4v2_decoder;
-extern AVCodec msmpeg4v3_decoder;
-extern AVCodec wmv1_decoder;
-extern AVCodec wmv2_decoder;
-extern AVCodec vc1_decoder;
-extern AVCodec wmv3_decoder;
-extern AVCodec mpeg1video_decoder;
-extern AVCodec mpeg2video_decoder;
-extern AVCodec mpegvideo_decoder;
-extern AVCodec mpeg_xvmc_decoder;
-extern AVCodec h263i_decoder;
-extern AVCodec flv_decoder;
-extern AVCodec rv10_decoder;
-extern AVCodec rv20_decoder;
-extern AVCodec rv30_decoder;
-extern AVCodec rv40_decoder;
-extern AVCodec svq1_decoder;
-extern AVCodec svq3_decoder;
+extern AVCodec aac_decoder;
+extern AVCodec aasc_decoder;
+extern AVCodec alac_decoder;
+extern AVCodec amr_nb_decoder;
+extern AVCodec amr_wb_decoder;
+extern AVCodec asv1_decoder;
+extern AVCodec asv2_decoder;
+extern AVCodec avs_decoder;
+extern AVCodec bmp_decoder;
+extern AVCodec cavs_decoder;
+extern AVCodec cinepak_decoder;
+extern AVCodec cljr_decoder;
+extern AVCodec cook_decoder;
+extern AVCodec cscd_decoder;
+extern AVCodec cyuv_decoder;
+extern AVCodec dsicinaudio_decoder;
+extern AVCodec dsicinvideo_decoder;
 extern AVCodec dvvideo_decoder;
-extern AVCodec wmav1_decoder;
-extern AVCodec wmav2_decoder;
+extern AVCodec eightbps_decoder;
+extern AVCodec ffv1_decoder;
+extern AVCodec ffvhuff_decoder;
+extern AVCodec flac_decoder;
+extern AVCodec flashsv_decoder;
+extern AVCodec flic_decoder;
+extern AVCodec flv_decoder;
+extern AVCodec fourxm_decoder;
+extern AVCodec fraps_decoder;
+extern AVCodec gif_decoder;
+extern AVCodec h261_decoder;
+extern AVCodec h263_decoder;
+extern AVCodec h263i_decoder;
+extern AVCodec h264_decoder;
+extern AVCodec huffyuv_decoder;
+extern AVCodec idcin_decoder;
+extern AVCodec imc_decoder;
+extern AVCodec indeo2_decoder;
+extern AVCodec indeo3_decoder;
+extern AVCodec interplay_dpcm_decoder;
+extern AVCodec interplay_video_decoder;
+extern AVCodec kmvc_decoder;
+extern AVCodec libgsm_decoder;
+extern AVCodec loco_decoder;
+extern AVCodec mace3_decoder;
+extern AVCodec mace6_decoder;
+extern AVCodec mdec_decoder;
 extern AVCodec mjpeg_decoder;
 extern AVCodec mjpegb_decoder;
-extern AVCodec sp5x_decoder;
-extern AVCodec png_decoder;
+extern AVCodec mmvideo_decoder;
 extern AVCodec mp2_decoder;
 extern AVCodec mp3_decoder;
 extern AVCodec mp3adu_decoder;
 extern AVCodec mp3on4_decoder;
-extern AVCodec qdm2_decoder;
-extern AVCodec cook_decoder;
-extern AVCodec truespeech_decoder;
-extern AVCodec tta_decoder;
-extern AVCodec mace3_decoder;
-extern AVCodec mace6_decoder;
-extern AVCodec huffyuv_decoder;
-extern AVCodec ffvhuff_decoder;
+extern AVCodec mpc7_decoder;
+extern AVCodec mpeg1video_decoder;
+extern AVCodec mpeg2video_decoder;
+extern AVCodec mpeg4_decoder;
+extern AVCodec mpeg4aac_decoder;
+extern AVCodec mpeg_xvmc_decoder;
+extern AVCodec mpegvideo_decoder;
+extern AVCodec msmpeg4v1_decoder;
+extern AVCodec msmpeg4v2_decoder;
+extern AVCodec msmpeg4v3_decoder;
+extern AVCodec msrle_decoder;
+extern AVCodec msvideo1_decoder;
+extern AVCodec mszh_decoder;
+extern AVCodec nuv_decoder;
 extern AVCodec oggvorbis_decoder;
-extern AVCodec cyuv_decoder;
-extern AVCodec h264_decoder;
-extern AVCodec indeo3_decoder;
-extern AVCodec vp3_decoder;
+extern AVCodec png_decoder;
+extern AVCodec qdm2_decoder;
+extern AVCodec qdraw_decoder;
+extern AVCodec qpeg_decoder;
+extern AVCodec qtrle_decoder;
+extern AVCodec ra_144_decoder;
+extern AVCodec ra_288_decoder;
+extern AVCodec roq_decoder;
+extern AVCodec roq_dpcm_decoder;
+extern AVCodec rpza_decoder;
+extern AVCodec rv10_decoder;
+extern AVCodec rv20_decoder;
+extern AVCodec rv30_decoder;
+extern AVCodec rv40_decoder;
+extern AVCodec shorten_decoder;
+extern AVCodec smackaud_decoder;
+extern AVCodec smacker_decoder;
+extern AVCodec smc_decoder;
+extern AVCodec snow_decoder;
+extern AVCodec sol_dpcm_decoder;
+extern AVCodec sonic_decoder;
+extern AVCodec sp5x_decoder;
+extern AVCodec svq1_decoder;
+extern AVCodec svq3_decoder;
+extern AVCodec targa_decoder;
 extern AVCodec theora_decoder;
+extern AVCodec tiertexseqvideo_decoder;
+extern AVCodec tiff_decoder;
+extern AVCodec truemotion1_decoder;
+extern AVCodec truemotion2_decoder;
+extern AVCodec truespeech_decoder;
+extern AVCodec tscc_decoder;
+extern AVCodec tta_decoder;
+extern AVCodec ulti_decoder;
+extern AVCodec vc1_decoder;
+extern AVCodec vcr1_decoder;
+extern AVCodec vmdaudio_decoder;
+extern AVCodec vmdvideo_decoder;
+extern AVCodec vmnc_decoder;
+extern AVCodec vorbis_decoder;
+extern AVCodec vp3_decoder;
 extern AVCodec vp5_decoder;
 extern AVCodec vp6_decoder;
 extern AVCodec vp6f_decoder;
-extern AVCodec amr_nb_decoder;
-extern AVCodec amr_nb_encoder;
-extern AVCodec amr_wb_encoder;
-extern AVCodec amr_wb_decoder;
-extern AVCodec aac_decoder;
-extern AVCodec mpeg4aac_decoder;
-extern AVCodec asv1_decoder;
-extern AVCodec asv2_decoder;
-extern AVCodec vcr1_decoder;
-extern AVCodec cljr_decoder;
-extern AVCodec ffv1_decoder;
-extern AVCodec snow_decoder;
-extern AVCodec fourxm_decoder;
-extern AVCodec mdec_decoder;
-extern AVCodec roq_decoder;
-extern AVCodec interplay_video_decoder;
-extern AVCodec xan_wc3_decoder;
-extern AVCodec rpza_decoder;
-extern AVCodec cinepak_decoder;
-extern AVCodec msrle_decoder;
-extern AVCodec msvideo1_decoder;
 extern AVCodec vqa_decoder;
-extern AVCodec idcin_decoder;
-extern AVCodec eightbps_decoder;
-extern AVCodec smc_decoder;
-extern AVCodec flic_decoder;
-extern AVCodec vmdvideo_decoder;
-extern AVCodec vmdaudio_decoder;
-extern AVCodec truemotion1_decoder;
-extern AVCodec truemotion2_decoder;
-extern AVCodec mszh_decoder;
-extern AVCodec zlib_decoder;
-extern AVCodec ra_144_decoder;
-extern AVCodec ra_288_decoder;
-extern AVCodec roq_dpcm_decoder;
-extern AVCodec interplay_dpcm_decoder;
-extern AVCodec xan_dpcm_decoder;
-extern AVCodec sol_dpcm_decoder;
-extern AVCodec sonic_decoder;
-extern AVCodec qtrle_decoder;
-extern AVCodec flac_decoder;
-extern AVCodec tscc_decoder;
-extern AVCodec cscd_decoder;
-extern AVCodec nuv_decoder;
-extern AVCodec ulti_decoder;
-extern AVCodec qdraw_decoder;
-extern AVCodec xl_decoder;
-extern AVCodec qpeg_decoder;
-extern AVCodec shorten_decoder;
-extern AVCodec loco_decoder;
-extern AVCodec wnv1_decoder;
-extern AVCodec aasc_decoder;
-extern AVCodec alac_decoder;
-extern AVCodec ws_snd1_decoder;
-extern AVCodec indeo2_decoder;
-extern AVCodec vorbis_decoder;
-extern AVCodec fraps_decoder;
-extern AVCodec libgsm_encoder;
-extern AVCodec libgsm_decoder;
-extern AVCodec bmp_decoder;
-extern AVCodec mmvideo_decoder;
-extern AVCodec zmbv_decoder;
-extern AVCodec avs_decoder;
-extern AVCodec smacker_decoder;
-extern AVCodec smackaud_decoder;
-extern AVCodec kmvc_decoder;
-extern AVCodec flashsv_decoder;
-extern AVCodec cavs_decoder;
-extern AVCodec vmnc_decoder;
 extern AVCodec wavpack_decoder;
-extern AVCodec targa_decoder;
-extern AVCodec dsicinvideo_decoder;
-extern AVCodec dsicinaudio_decoder;
-extern AVCodec tiertexseqvideo_decoder;
-extern AVCodec tiff_decoder;
-extern AVCodec imc_decoder;
+extern AVCodec wmav1_decoder;
+extern AVCodec wmav2_decoder;
+extern AVCodec wmv1_decoder;
+extern AVCodec wmv2_decoder;
+extern AVCodec wmv3_decoder;
+extern AVCodec wnv1_decoder;
+extern AVCodec ws_snd1_decoder;
+extern AVCodec xan_dpcm_decoder;
+extern AVCodec xan_wc3_decoder;
+extern AVCodec xl_decoder;
+extern AVCodec zlib_decoder;
+extern AVCodec zmbv_decoder;
 
 /* pcm codecs */
 #define PCM_CODEC(id, name) \
 extern AVCodec name ## _decoder; \
 extern AVCodec name ## _encoder
 
-PCM_CODEC(CODEC_ID_PCM_S32LE, pcm_s32le);
-PCM_CODEC(CODEC_ID_PCM_S32BE, pcm_s32be);
-PCM_CODEC(CODEC_ID_PCM_U32LE, pcm_u32le);
-PCM_CODEC(CODEC_ID_PCM_U32BE, pcm_u32be);
-PCM_CODEC(CODEC_ID_PCM_S24LE, pcm_s24le);
-PCM_CODEC(CODEC_ID_PCM_S24BE, pcm_s24be);
-PCM_CODEC(CODEC_ID_PCM_U24LE, pcm_u24le);
-PCM_CODEC(CODEC_ID_PCM_U24BE, pcm_u24be);
+PCM_CODEC(CODEC_ID_PCM_ALAW,    pcm_alaw);
+PCM_CODEC(CODEC_ID_PCM_MULAW,   pcm_mulaw);
+PCM_CODEC(CODEC_ID_PCM_S8,      pcm_s8);
+PCM_CODEC(CODEC_ID_PCM_S16BE,   pcm_s16be);
+PCM_CODEC(CODEC_ID_PCM_S16LE,   pcm_s16le);
+PCM_CODEC(CODEC_ID_PCM_S24BE,   pcm_s24be);
 PCM_CODEC(CODEC_ID_PCM_S24DAUD, pcm_s24daud);
-PCM_CODEC(CODEC_ID_PCM_S16LE, pcm_s16le);
-PCM_CODEC(CODEC_ID_PCM_S16BE, pcm_s16be);
-PCM_CODEC(CODEC_ID_PCM_U16LE, pcm_u16le);
-PCM_CODEC(CODEC_ID_PCM_U16BE, pcm_u16be);
-PCM_CODEC(CODEC_ID_PCM_S8, pcm_s8);
-PCM_CODEC(CODEC_ID_PCM_U8, pcm_u8);
-PCM_CODEC(CODEC_ID_PCM_ALAW, pcm_alaw);
-PCM_CODEC(CODEC_ID_PCM_MULAW, pcm_mulaw);
+PCM_CODEC(CODEC_ID_PCM_S24LE,   pcm_s24le);
+PCM_CODEC(CODEC_ID_PCM_S32BE,   pcm_s32be);
+PCM_CODEC(CODEC_ID_PCM_S32LE,   pcm_s32le);
+PCM_CODEC(CODEC_ID_PCM_U8,      pcm_u8);
+PCM_CODEC(CODEC_ID_PCM_U16BE,   pcm_u16be);
+PCM_CODEC(CODEC_ID_PCM_U16LE,   pcm_u16le);
+PCM_CODEC(CODEC_ID_PCM_U24BE,   pcm_u24be);
+PCM_CODEC(CODEC_ID_PCM_U24LE,   pcm_u24le);
+PCM_CODEC(CODEC_ID_PCM_U32BE,   pcm_u32be);
+PCM_CODEC(CODEC_ID_PCM_U32LE,   pcm_u32le);
 
 /* adpcm codecs */
 
-PCM_CODEC(CODEC_ID_ADPCM_IMA_QT, adpcm_ima_qt);
-PCM_CODEC(CODEC_ID_ADPCM_IMA_WAV, adpcm_ima_wav);
+PCM_CODEC(CODEC_ID_ADPCM_4XM,     adpcm_4xm);
+PCM_CODEC(CODEC_ID_ADPCM_ADX,     adpcm_adx);
+PCM_CODEC(CODEC_ID_ADPCM_CT,      adpcm_ct);
+PCM_CODEC(CODEC_ID_ADPCM_EA,      adpcm_ea);
+PCM_CODEC(CODEC_ID_ADPCM_G726,    adpcm_g726);
 PCM_CODEC(CODEC_ID_ADPCM_IMA_DK3, adpcm_ima_dk3);
 PCM_CODEC(CODEC_ID_ADPCM_IMA_DK4, adpcm_ima_dk4);
-PCM_CODEC(CODEC_ID_ADPCM_IMA_WS, adpcm_ima_ws);
-PCM_CODEC(CODEC_ID_ADPCM_SMJPEG, adpcm_ima_smjpeg);
-PCM_CODEC(CODEC_ID_ADPCM_MS, adpcm_ms);
-PCM_CODEC(CODEC_ID_ADPCM_4XM, adpcm_4xm);
-PCM_CODEC(CODEC_ID_ADPCM_XA, adpcm_xa);
-PCM_CODEC(CODEC_ID_ADPCM_ADX, adpcm_adx);
-PCM_CODEC(CODEC_ID_ADPCM_EA, adpcm_ea);
-PCM_CODEC(CODEC_ID_ADPCM_G726, adpcm_g726);
-PCM_CODEC(CODEC_ID_ADPCM_CT, adpcm_ct);
-PCM_CODEC(CODEC_ID_ADPCM_SWF, adpcm_swf);
-PCM_CODEC(CODEC_ID_ADPCM_YAMAHA, adpcm_yamaha);
-PCM_CODEC(CODEC_ID_ADPCM_SBPRO_4, adpcm_sbpro_4);
-PCM_CODEC(CODEC_ID_ADPCM_SBPRO_3, adpcm_sbpro_3);
+PCM_CODEC(CODEC_ID_ADPCM_IMA_QT,  adpcm_ima_qt);
+PCM_CODEC(CODEC_ID_ADPCM_IMA_WAV, adpcm_ima_wav);
+PCM_CODEC(CODEC_ID_ADPCM_IMA_WS,  adpcm_ima_ws);
+PCM_CODEC(CODEC_ID_ADPCM_MS,      adpcm_ms);
 PCM_CODEC(CODEC_ID_ADPCM_SBPRO_2, adpcm_sbpro_2);
+PCM_CODEC(CODEC_ID_ADPCM_SBPRO_3, adpcm_sbpro_3);
+PCM_CODEC(CODEC_ID_ADPCM_SBPRO_4, adpcm_sbpro_4);
+PCM_CODEC(CODEC_ID_ADPCM_SMJPEG,  adpcm_ima_smjpeg);
+PCM_CODEC(CODEC_ID_ADPCM_SWF,     adpcm_swf);
+PCM_CODEC(CODEC_ID_ADPCM_XA,      adpcm_xa);
+PCM_CODEC(CODEC_ID_ADPCM_YAMAHA,  adpcm_yamaha);
 
 #undef PCM_CODEC
 
 /* dummy raw video codec */
-extern AVCodec rawvideo_encoder;
 extern AVCodec rawvideo_decoder;
+extern AVCodec rawvideo_encoder;
 
 /* the following codecs use external GPL libs */
 extern AVCodec ac3_decoder;
 extern AVCodec dts_decoder;
 
 /* subtitles */
-extern AVCodec dvdsub_encoder;
-extern AVCodec dvdsub_decoder;
-extern AVCodec dvbsub_encoder;
 extern AVCodec dvbsub_decoder;
+extern AVCodec dvbsub_encoder;
+extern AVCodec dvdsub_decoder;
+extern AVCodec dvdsub_encoder;
 
 /* resample.c */
 
@@ -2510,18 +2526,21 @@ int avcodec_default_execute(AVCodecContext *c, int (*func)(AVCodecContext *c2, v
  */
 int avcodec_open(AVCodecContext *avctx, AVCodec *codec);
 
+
+attribute_deprecated int avcodec_decode_audio(AVCodecContext *avctx, int16_t *samples,
+                         int *frame_size_ptr,
+                         uint8_t *buf, int buf_size);
 /**
  * Decode an audio frame.
  *
  * @param avctx the codec context.
  * @param samples output buffer, 16 byte aligned
- * @param frame_size_ptr the output buffer size in bytes, zero if no frame could be compressed
+ * @param frame_size_ptr the output buffer size in bytes (you MUST set this to the allocated size before calling avcodec_decode_audio2()), zero if no frame could be compressed
  * @param buf input buffer, 16 byte aligned
  * @param buf_size the input buffer size
  * @return 0 if successful, -1 if not.
  */
-
-int avcodec_decode_audio(AVCodecContext *avctx, int16_t *samples,
+int avcodec_decode_audio2(AVCodecContext *avctx, int16_t *samples,
                          int *frame_size_ptr,
                          uint8_t *buf, int buf_size);
 int avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture,
@@ -2617,19 +2636,20 @@ int av_parser_change(AVCodecParserContext *s,
                      const uint8_t *buf, int buf_size, int keyframe);
 void av_parser_close(AVCodecParserContext *s);
 
-extern AVCodecParser mpegvideo_parser;
-extern AVCodecParser mpeg4video_parser;
+extern AVCodecParser aac_parser;
+extern AVCodecParser ac3_parser;
 extern AVCodecParser cavsvideo_parser;
+extern AVCodecParser dvbsub_parser;
+extern AVCodecParser dvdsub_parser;
 extern AVCodecParser h261_parser;
 extern AVCodecParser h263_parser;
 extern AVCodecParser h264_parser;
 extern AVCodecParser mjpeg_parser;
-extern AVCodecParser pnm_parser;
+extern AVCodecParser mpeg4video_parser;
 extern AVCodecParser mpegaudio_parser;
-extern AVCodecParser ac3_parser;
-extern AVCodecParser dvdsub_parser;
-extern AVCodecParser dvbsub_parser;
-extern AVCodecParser aac_parser;
+extern AVCodecParser mpegvideo_parser;
+extern AVCodecParser pnm_parser;
+extern AVCodecParser vc1_parser;
 
 
 typedef struct AVBitStreamFilterContext {
@@ -2665,6 +2685,7 @@ extern AVBitStreamFilter remove_extradata_bsf;
 extern AVBitStreamFilter noise_bsf;
 extern AVBitStreamFilter mp3_header_compress_bsf;
 extern AVBitStreamFilter mp3_header_decompress_bsf;
+extern AVBitStreamFilter mjpega_dump_header_bsf;
 
 
 /* memory */
@@ -2683,20 +2704,6 @@ int img_crop(AVPicture *dst, const AVPicture *src,
 
 int img_pad(AVPicture *dst, const AVPicture *src, int height, int width, int pix_fmt,
             int padtop, int padbottom, int padleft, int padright, int *color);
-
-/* endian macros */
-#if !defined(BE_16) || !defined(BE_32) || !defined(LE_16) || !defined(LE_32)
-#define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
-#define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
-                   (((uint8_t*)(x))[1] << 16) | \
-                   (((uint8_t*)(x))[2] << 8) | \
-                    ((uint8_t*)(x))[3])
-#define LE_16(x)  ((((uint8_t*)(x))[1] << 8) | ((uint8_t*)(x))[0])
-#define LE_32(x)  ((((uint8_t*)(x))[3] << 24) | \
-                   (((uint8_t*)(x))[2] << 16) | \
-                   (((uint8_t*)(x))[1] << 8) | \
-                    ((uint8_t*)(x))[0])
-#endif
 
 extern unsigned int av_xiphlacing(unsigned char *s, unsigned int v);
 

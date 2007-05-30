@@ -312,7 +312,16 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
 		return;
 	}
+	if (com->command_type==GF_NET_SERVICE_INFO) {
+		GF_Event evt;
+		evt.type = GF_EVENT_METADATA;
+		GF_USER_SENDEVENT(term->user, &evt);
+		return;
+	}
+
+	
 	if (!com->base.on_channel) return;
+
 
 	ch = gf_term_get_channel(service, com->base.on_channel);
 	if (!ch) return;
@@ -381,10 +390,12 @@ Bool net_check_interface(GF_InputService *ifce)
 
 static void fetch_mime_io(void *dnld, GF_NETIO_Parameter *parameter)
 {
+	/*this is correct, however some shoutcast servers don't understand HEAD and don't reply at all
+	so don't use HEAD*/
+#if 0
 	/*only get the content type*/
-	if (parameter->msg_type==GF_NETIO_GET_METHOD) {
-		parameter->name = "HEAD";
-	}
+	if (parameter->msg_type==GF_NETIO_GET_METHOD) parameter->name = "HEAD";
+#endif
 }
 
 static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)

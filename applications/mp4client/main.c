@@ -530,6 +530,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		break;
 
+	case GF_EVENT_METADATA:
+		ResetCaption();
+		break;
 
 	case GF_EVENT_QUIT:
 		Run = 0;

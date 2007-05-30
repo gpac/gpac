@@ -167,6 +167,7 @@ enum {
 	GF_EVENT_PROGRESS, /*progress message from the MPEG-4 terminal*/
 	GF_EVENT_VIEWPOINTS,	/*indicates viewpoint list has changed - no struct associated*/
 	GF_EVENT_STREAMLIST,	/*indicates stream list has changed - no struct associated - only used when no scene info is present*/
+	GF_EVENT_METADATA, /*indicates a change in associated metadata*/
 
 	GF_EVENT_SYS_COLORS,	/*queries the list of system colors*/
 	GF_EVENT_RESET_RTI,	/*forces a reset of the runtime info*/
