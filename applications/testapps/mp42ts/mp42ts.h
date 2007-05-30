@@ -29,6 +29,9 @@
 #include <gpac/thread.h>
 
 
+typedef struct __m2ts_mux_program M2TS_Mux_Program;
+typedef struct __m2ts_mux M2TS_Mux;
+
 enum {
 	LOG_NO_LOG = 0,
 	LOG_PES = 1,
@@ -112,7 +115,7 @@ typedef struct __m2ts_mux_stream {
 } M2TS_Mux_Stream;
 
 
-typedef struct __m2ts_mux_program {
+struct __m2ts_mux_program {
 	struct __m2ts_mux_program *next;
 
 	struct __m2ts_mux *mux;
@@ -128,9 +131,9 @@ typedef struct __m2ts_mux_program {
 	/*TS time at pcr init*/
 	M2TS_Time pcr_init_ts_time;
 	u64 pcr_init_time;
-} M2TS_Mux_Program;
+};
 
-typedef struct __m2ts_mux {
+struct __m2ts_mux {
 	M2TS_Mux_Program *programs;
 	M2TS_Mux_Stream *pat;
 
@@ -152,7 +155,7 @@ typedef struct __m2ts_mux {
 
 	Bool eos_found;
 	u32 tot_pck_sent, pck_sent, last_br_time, avg_br;
-} M2TS_Mux;
+};
 
 
 enum

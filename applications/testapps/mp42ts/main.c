@@ -201,7 +201,7 @@ void m2ts_mux_table_update(M2TS_Mux_Stream *stream, u8 table_id, u16 table_id_ex
 			gf_bs_write_u32(bs, 0);
 		}
 
-		gf_bs_get_content(bs, &section->data, &section->length); 
+		gf_bs_get_content(bs, (char**) &section->data, &section->length); 
 		gf_bs_del(bs);
 
 		if (use_syntax_indicator) {
@@ -387,7 +387,7 @@ Bool m2ts_stream_process_pat(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 			gf_bs_write_int(bs, prog->pmt->pid, 13);	/*reserved*/
 			prog = prog->next;
 		}
-		gf_bs_get_content(bs, &payload, &size);
+		gf_bs_get_content(bs, (char**)&payload, &size);
 		gf_bs_del(bs);
 		m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_PAT, muxer->ts_id, payload, size, 1, 0, 0);
 		stream->table_needs_update = 0;
@@ -452,7 +452,7 @@ Bool m2ts_stream_process_pmt(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 			es = es->next;
 		}
 	
-		gf_bs_get_content(bs, &payload, &length);
+		gf_bs_get_content(bs, (char**)&payload, &length);
 		gf_bs_del(bs);
 
 		m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_PMT, stream->program->number, payload, length, 1, 0, 0);
@@ -1347,7 +1347,7 @@ Bool open_program(M2TSProgram *prog, const char *src)
 	}
 }
 
-void main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	const char *ts_pck;
 	GF_Err e;
@@ -1413,7 +1413,7 @@ void main(int argc, char **argv)
 	}
 	if (!nb_progs || !ts_out) {
 		usage();
-		return;
+		return 0;
 	}
 
 	gf_log_set_level(GF_LOG_DEBUG);
@@ -1556,5 +1556,6 @@ exit:
 		if (progs[i].mp4) gf_isom_close(progs[i].mp4);
 	}
 	gf_sys_close();
+	return 1;
 }
 
