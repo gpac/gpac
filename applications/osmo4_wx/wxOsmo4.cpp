@@ -686,6 +686,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");
 			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
 		}
+		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
 
 #ifdef WIN32
 		unsigned char str_path[MAX_PATH];
@@ -722,6 +723,12 @@ Bool wxOsmo4Frame::LoadTerminal()
 		gf_cfg_set_key(m_user.config, "Render2D", "ScalableZoom", "no");
 #else
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", "/usr/share/fonts/truetype/");
+		/*these fonts seems installed by default on many systems...*/
+		gf_cfg_set_key(m_user.config, "FontEngine", "FontSerif", "Bitstream Vera Serif");
+		gf_cfg_set_key(m_user.config, "FontEngine", "FontSans", "Bitstream Vera Sans");
+		gf_cfg_set_key(m_user.config, "FontEngine", "FontFixed", "Bitstream Vera Monospace");
+
+
 		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", "/tmp");
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "X11 Video Output");
 		gf_cfg_set_key(m_user.config, "Render2D", "ScalableZoom", "yes");
