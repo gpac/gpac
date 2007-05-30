@@ -719,7 +719,7 @@ void process_sessions(Streamer *streamer)
 		diff = (u32) (min_ts) - gf_sys_clock();
 		if (diff > 2) {
 			//fprintf(stdout, "RTP session %d stream %d - sleeping %d ms\n", to_send->session->id, to_send->track, diff);
-			gf_sleep(0);
+			gf_sleep(1);
 		} else {
 			if (diff<0) fprintf(stdout, "WARNING: RTP session %d stream %d - sending packet %d ms too late\n", to_send->session->id, to_send->track, -diff);
 			break;
@@ -1020,7 +1020,7 @@ int main(int argc, char **argv)
 	streamer.log_level = LOG_BURST;
 	streamer.path_mtu = 1450;
 
-	for (i=1; i<argc; i++) {
+	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
 		if (arg[0]=='-') {
 			if (!stricmp(arg, "-q") || !stricmp(arg, "--quiet")) streamer.log_level = LOG_NONE;
