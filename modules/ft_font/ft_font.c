@@ -201,6 +201,7 @@ static FT_Face ft_font_in_cache(FTBuilder *ft, const char *fontName, const char 
 	return NULL;
 }
 
+
 static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 {
 	FT_Face face;
@@ -248,9 +249,16 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 		} else if (ftpriv->tmp_font_style && strstr(ftpriv->tmp_font_style, "ITALIC") ) {
 			strcat(szFont, " Italic");
 		}
-		gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", szFont, file_name);
+		gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", szFont, file_path);
 	}
 	return 1;
+}
+
+static Bool ft_enum_fonts_dir(void *cbck, char *file_name, char *file_path)
+{
+	Bool ret = gf_enum_directory(file_path, 0, ft_enum_fonts, cbck, "ttf;ttc");
+	if (ret) return 1;
+	return gf_enum_directory(file_path, 1, ft_enum_fonts_dir, cbck, NULL);
 }
 
 static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const char *styles)
@@ -295,7 +303,6 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 	in the cfg file*/
 	if (fontName && strlen(fontName)) {
 		const char *opt;
-		char file_path[GF_MAX_PATH];
 		strcpy(fname, fontName);
 		if (styles && strstr(styles, "BOLD") && strstr(styles, "ITALIC")) {
 			strcat(fname, " Bold Italic");
@@ -308,11 +315,11 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 		}
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", fname);
 		if (opt) {
+			char *font_name;
 			if (!stricmp(opt, "UNKNOWN")) return GF_NOT_SUPPORTED;
-
-			strcpy(file_path, ftpriv->font_dir);
-			strcat(file_path, opt);
-			if (ft_enum_fonts(dr, (char *)opt, file_path)) return GF_OK;
+			font_name = strrchr(opt, '/');
+			if (!font_name) font_name = strrchr(opt, '\\');
+			if (font_name && ft_enum_fonts(dr, font_name+1, (char *)opt)) return GF_OK;
 		}
 	}
 
@@ -321,6 +328,8 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 	ftpriv->register_font = 1;
 	if (!strlen(ftpriv->tmp_font_name)) ftpriv->tmp_font_name = NULL;
 	gf_enum_directory(ftpriv->font_dir, 0, ft_enum_fonts, dr, "ttf;ttc");
+	if (!ftpriv->active_face) 
+		gf_enum_directory(ftpriv->font_dir, 1, ft_enum_fonts_dir, dr, NULL);
 	ftpriv->register_font = 0;
 
 	if (ftpriv->active_face) {

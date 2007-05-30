@@ -212,12 +212,29 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "Audio", "TotalDuration", "120");
 	gf_cfg_set_key(cfg, "Audio", "DisableNotification", "no");
 	gf_cfg_set_key(cfg, "FontEngine", "DriverName", "ft_font");
-	fprintf(stdout, "Please enter full path to a TrueType font directory (.ttf, .ttc):\n");
+
+#ifdef WIN32
+	GetWindowsDirectory((char*)szPath, MAX_PATH);
+	if (szPath[strlen((char*)szPath)-1] != '\\') strcat((char*)szPath, "\\");
+	strcat((char *)szPath, "Fonts");
+#elif defined(__DARWIN__) || defined(__APPLE__)
+	fprintf(stdout, "Please enter full path to a TrueType font directory (.ttf, .ttc) - enter to default:\n");
 	scanf("%s", szPath);
+#else
+	strcpy(szPath, "/usr/share/fonts/truetype/");
+#endif
+	fprintf(stdout, "Using default font directory %s\n", szPath);
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", szPath);
+
+#ifdef WIN32
 	fprintf(stdout, "Please enter full path to a cache directory for HTTP downloads:\n");
 	scanf("%s", szPath);
 	gf_cfg_set_key(cfg, "General", "CacheDirectory", szPath);
+#else
+	fprintf(stdout, "Using /tmp as a cache directory for HTTP downloads:\n");
+	gf_cfg_set_key(cfg, "General", "CacheDirectory", "/tmp");
+#endif
+
 	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "yes");
 	gf_cfg_set_key(cfg, "Rendering", "AntiAlias", "All");
 	gf_cfg_set_key(cfg, "Rendering", "Framerate", "30");
@@ -637,6 +654,10 @@ GF_Config *loadconfigfile(char *filepath)
 	strcpy(szPath, ".");
 	cfg = gf_cfg_new(szPath, "GPAC.cfg");
 	if (cfg) goto success;
+
+	GetModuleFileNameA(NULL, szPath, GF_MAX_PATH);
+	cfg_dir = strrchr(szPath, '\\');
+	if (cfg_dir) cfg_dir[1] = 0;
 	cfg = create_default_config(szPath, "GPAC.cfg");
 #else
 	/*linux*/

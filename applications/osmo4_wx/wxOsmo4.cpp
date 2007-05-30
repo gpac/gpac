@@ -706,6 +706,8 @@ Bool wxOsmo4Frame::LoadTerminal()
 			gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
 		}
 #else
+
+#if defined(__DARWIN__) || defined(__APPLE__)
 		wxDirDialog dlg3(NULL, wxT("Please specify a cache directory for GPAC"));
 		dlg3.SetPath(wxT("/tmp"));
 		if ( dlg3.ShowModal() == wxID_OK ) 
@@ -716,10 +718,11 @@ Bool wxOsmo4Frame::LoadTerminal()
 		if ( dlg2.ShowModal() == wxID_OK ) 
 			gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) dlg2.GetPath().mb_str(wxConvUTF8) );
 
-#ifdef __DARWIN__
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "SDL Video Output");
 		gf_cfg_set_key(m_user.config, "Render2D", "ScalableZoom", "no");
 #else
+		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", "/usr/share/fonts/truetype/");
+		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", "/tmp");
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "X11 Video Output");
 		gf_cfg_set_key(m_user.config, "Render2D", "ScalableZoom", "yes");
 #endif
