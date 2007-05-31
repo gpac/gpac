@@ -1,5 +1,5 @@
-Installation instructions for GPAC 0.4.2 on windows platform
-last modified: July 2006
+Installation instructions for GPAC 0.4.4 on windows platform
+last modified: Mai 2007
 
 0 Foreword
 	Compilation has only been tested with MSVC 6, not .NET
@@ -56,7 +56,11 @@ II GPAC compilation
 		
 		* img_in:
 			If you have not installed libpng, remove the GPAC_HAS_PNG preprocessor variable from the img_in project settings
+        and the relevant library from the link settings
 			If you have not installed libjpeg, remove the GPAC_HAS_JPEG preprocessor variable from the img_in project settings
+        and the relevant library from the link settings
+			If you have not installed libopenjpeg, remove the GPAC_HAS_JP2 preprocessor variable from the img_in project settings
+        and the relevant library from the link settings
 			If you have not installed any of the above libraries, you may remove the "img_in" project from the workspace (DEL).
 
 		* amr_float_dec	

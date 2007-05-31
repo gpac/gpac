@@ -1,5 +1,5 @@
-Installation instructions for GPAC 0.4.3 on Symbian 9.1 (S60 3rd Edition) platform
-last modified: December 2006
+Installation instructions for GPAC 0.4.4 on Symbian 9.1 (S60 3rd Edition) platform
+last modified: Mai 2007
 
 0 Foreword
 	Compilation has only been tested with GCCE & Nokia S60 SDK
@@ -33,8 +33,7 @@ last modified: December 2006
     warnings during C compil. 
 
 I Extra lib installation
-	Currently no extra libs are available for GPAC on symbian, the package will be updated soon
-
+	Please follow the instructions in gpac_extra_lib/00_README_FIRST
 
 II GPAC compilation
 

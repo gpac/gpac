@@ -1,6 +1,6 @@
 [Version]
 Signature = "$Windows NT$"
-Provider = "GPAC 0.4.3"
+Provider = "GPAC 0.4.4"
 CESignature = "$Windows CE$"
 
 [CEStrings]
@@ -48,6 +48,7 @@ gm_dummy_in.dll = 1
 gm_ft_font.dll = 1
 gm_gapi.dll = 1
 gm_img_in.dll = 1
+gm_ismacryp.dll = 1
 gm_isom_in.dll = 1
 gm_mp3_in.dll = 1
 gm_odf_dec.dll = 1

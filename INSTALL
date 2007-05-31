@@ -1,4 +1,4 @@
-Installation instructions for GPAC 0.4.3 - November 2006:
+Installation instructions for GPAC 0.4.4 - Mai 2007:
 
 
 * Foreword
@@ -7,7 +7,7 @@ Installation instructions for GPAC 0.4.3 - November 2006:
 limited (no still image, no audio, no video, no text, no scripting). It is therefore recommended to download the 
 extra lib package available at http://sourceforge.net/projects/gpac. Compilation instructions for these libraries 
 are provided per library in the package. 
-	The current extra_lib package to use with gpac 0.4.3 is gpac_extra_libs 0.4.0.
+	The current extra_lib package to use with gpac 0.4.4 is gpac_extra_libs 0.4.4.
 
 	In case you have some of these libs already installed on your system, the detailed list of dependencies is
 	* freetype2 from version 2.1.4 on.
@@ -17,14 +17,15 @@ are provided per library in the package.
 	* Libpng version 1.2.5 
 	* MAD version 0.15.1b (older versions should work)
 	* xvid version 1.0 (0.9.0 / .1 / .2 should also work)
-	* ffmpeg 25 June 2005 CVS version
+	* ffmpeg 08 February 2007 snapshot
 	* libogg 1.1, libvorbis 1.1 and libtheora 1.0 from Xiph.org
 	* faad2, version 2.0 or 2.1 (CVS from www.audiocoding.com)
 
 	Windows user are invited to download and install the Microsoft Platform SDK at
 		http://www.microsoft.com/msdownload/platformsdk/sdkupdate
-	If you don't have enough bandwidth (it's big) the GDIplus SDK is also included in the extra lib package
+	If you don't have enough bandwidth (it's big) the GDIplus SDK is also included in the gpac_extra_lib package
 
+* Installing GPAC
 
 Detailed instruction for Win32 MSVC Compilation are available in gpac/doc/INSTALL.w32
 
@@ -36,4 +37,9 @@ Detailed instruction for GCC cross-compilation for familiar+GPE systems are avai
 	
 Detailed instruction for GCCE/Symbian cross-compilation for Symbian v9.1 systems are available in gpac/doc/INSTALL.symbian
 	
+* Configuring GPAC
+
+GPAC's client configuration is documented in gpac/doc/configuration.html
+MP4Box documentation is available online at http://gpac.sourceforge.net
+
 	

@@ -1,47 +1,56 @@
-Latest CVS changes: 08/05/07 
+31/05/07: GPAC 0.4.4
   - Added support for XMLHttpRequest for both VRML/MPEG-4 and SVG. All methods should be supported, but only GET/HEAD have been tested
   - Added a basic subset of DOM Core for xml doc (XMLHttpRequest, SVG) and moved the uDOM implementation in it.
-  - Added support for SVG focus&navigation in 2D renderer
-  - Added back script support for new SVG/LASeR implementation
+  - Added support for SVG focus & navigation in 2D renderer
+  - new SVG scene graph implementation with much lower memory usage 
   - Updated LASeR to new SVG implementation and fixed many bugs in codec 
-      current LASeR version should now be in sync with the latest spec
+      current LASeR binary version should now be in sync with the latest spec (IS+COR, AMD still to be done)
+  - Added support for some LASeR tools:
+      - conditional
+      - clipBegin/clipEnd and syncReference on audio/video elements
+      - WARNING: 
+          * other LASeR (non-SVG) v1 elements and all v2 elements are NOT supported
+          * LASeR save/restore and sendEvents are NOT supported
+          * SAF handling is likely not conformant yet          
   - Moved default SVG implementation to dynamic attribute allocation
-  - Initial commit of ALSA output module
-  - Initial commit of DVB support for Linux - connection URL is dvb://ChannelName, cf doc/configuration.html
-  - Fixed handling of QT V1 and V2 audio descriptions
+  - ALSA output module
+  - DVB support for Linux - connection URL is dvb://ChannelName, cf doc/configuration.html
   - Moved ISMA decryption to run-time module for basic DRM tests
   - Added support for NAT Keep Alive (RTP streaming only)
-  - Misc source code reorganization for RTP (depacketizers now in libgpac, no longer in plugins)
-  - Fixed support for IPV6 and for multicast (IPV4 and IPV6)
+  - Two new test apps:
+      mp4_streamer: RTP unicaster/mulitcaster
+      mp42ts: MPEG-2 TS sample gateway, can output to file or to RTP. Supports ISO file and SDPs (RTP only, no RTSP) as input.
   - Changed default behavior in MP4Box when adding AAC-SBR with explicit signaling: full SBR Samplerate is now used in media track.
   - Added JP2 and MJP2 support for mux/demux and playback - latest version of openjpeg (1.1) used for decoding (Win32 only).
         Win32 user: if you don't want to install openjpeg, remove GPAC_HAS_JP2 from img_in project settings
-  - Fixed handling of negative delays when adding/appending media tracks with MP4Box
-  - moved ffmpeg headers to latest CVS version (05/01/2007).
-  - fixes in MPEG2 TS import
   - large code rewrite in scenegraph and 2D renderer to lower memory usage
   - added support for OMA DRM2 packaging in MP4Box (doc to come)
-  - initial commit of symbian version. Build instructions are in doc/INSTALL.symbian.
-  - Speedup of XML SAX parser
-  - addded unthreaded mode in MP4Client (-no-thread switch) to test behavior on symbian
-  - addded fullscreen startup mode in MP4Client (-fs switch)
-  - fixed handling of iTunes tags in MP4Box (set/get) and in players (title display)
-  - libgpac and some modules now ported to symbian 9.1, but player not done yet
-      !! GPAC may be quite unstable during this porting phase !! 
-  - added detection of FPS for raw AVC import when present
-  - fixed a display freezing bug in osmo4 for PocketPC 2003.
-  - moved key/mouse event subsystem to DOM3 model 
-  - added support for svg animation and svg use with external resources
-  - cleanup of MPEG-4 RemoteOD + support for segment identifiers at scene level
+  - Symbian OS now supported. Build instructions are in doc/INSTALL.symbian. Network is NOT working on symbian yet
+  - Major speed improvement of XML SAX parser
+  - added unthreaded mode in MP4Client (-no-thread switch) to test behavior on symbian
+  - added fullscreen startup mode in MP4Client (-fs switch)
+  - better handling of iTunes tags in MP4Box (set/get) and in players (title display)
   - added support for multiple RTSP sessions in an SDP description
   - added support for faked broadcast mode in SDP (forbids any timeline control by player except initial play/final stop)
       syntax is (in media SDP section, per stream): a=gpac-broadcast:1
+  - added ffmpeg support for WinCE devices (ffmpeg for WinCE is available in gpac_extra_libs)
+  - added GPAC log system
+
+  - moved key/mouse event subsystem to DOM3 model 
+  - Fixed handling of QT V1 and V2 audio descriptions
+  - Misc source code reorganization for RTP (depacketizers now in libgpac, no longer in plugins)
+  - Fixed support for IPV6 and for multicast (IPV4 and IPV6). Some issues remain with IPV6 on Win32 XP, so IPV6 is disabled by default on Win32
+  - Fixed handling of negative delays when adding/appending media tracks with MP4Box
+  - moved ffmpeg headers to latest CVS version (05/01/2007).
+  - fixes in MPEG2 TS import and demuxer
+  - added detection of FPS for raw AVC import when present
+  - fixed a display freezing bug in osmo4 for PocketPC 2003.
+  - added support for svg animation and svg use with external resources
+  - cleanup of MPEG-4 RemoteOD + support for segment identifiers at scene level
   - some workarounds for iPod file producing (special UUID needed) (-ipod option, auto on for .m4a and .m4v extensions)
   - added windowless mode on Win32: transparent background color is defined in the config file ( [Rendering] ColorKey )
-  - added iTunes tag support in GPAC clients (ID3 tags not supported yet)
-  - fixed some iTunes tags handling bug, and added cover art support (extract/set) in MP4Box
-  - added GPAC log system
   - major speed improvements in MPEG-4/VRML scripts and SVG uDOM regarding node creation
+  - and a lot more bug fixes...
 
 21/07/06: GPAC 0.4.2
   - commit of GPAX (GPAC ActiveX) - controller only works in IE and ActiveX control tester for now.

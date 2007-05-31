@@ -40,5 +40,8 @@ porting the lib means barely porting these files and updating the makefile
 gpac/include/gpac
 	all exported files of the lib (high level APIs). Development headers are <gpac/file>
 
-gpac/src/include/gpac/internal
-	all development files of the lib (low level access). Development headers are <gpac/internal/file>
+gpac/include/gpac/internal
+	all development files of the lib (low level access).
+
+gpac/include/gpac/modules
+	all module APIs defined in GPAC.
