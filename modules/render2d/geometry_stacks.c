@@ -446,6 +446,8 @@ static void DrawBitmap(GF_Node *node, RenderEffect2D *eff)
 	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
 	if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
 
+	if (ctx->transform.m[0] || ctx->transform.m[4]<0) use_blit = 0;
+
 	/*materialKey*/
 	has_key = 0;
 	if (ctx->appear) {
@@ -472,16 +474,14 @@ static void DrawBitmap(GF_Node *node, RenderEffect2D *eff)
 
 	/*no HW, fall back to the graphics driver*/
 	if (!use_blit) {
-		Fixed w, h;
 		GF_Matrix2D _mat;
-		w = ctx->bi->unclip.width;
-		h = ctx->bi->unclip.height;
+		GF_Rect rc = gf_rect_center(ctx->bi->unclip.width, ctx->bi->unclip.height);
 		gf_mx2d_copy(_mat, ctx->transform);
 		gf_mx2d_inverse(&_mat);
-		gf_mx2d_apply_coords(&_mat, &w, &h);
+		gf_mx2d_apply_rect(&_mat, &rc);
 
 		drawable_reset_path(st->graph);
-		gf_path_add_rect_center(st->graph->path, 0, 0, w, h);
+		gf_path_add_rect_center(st->graph->path, 0, 0, rc.width, rc.height);
 		ctx->flags |= CTX_NO_ANTIALIAS;
 		VS2D_TexturePath(eff->surface, st->graph->path, ctx);
 		return;

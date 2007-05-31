@@ -52,7 +52,7 @@ void releaseDanaeMediaObject(void *dmo);
 void loadDanaeUrl(void *session, char *url);
 #endif
 
-//#define GF_SR_EVENT_QUEUE	
+#define GF_SR_EVENT_QUEUE	
 
 /*FPS computed on this number of frame*/
 #define GF_SR_FPS_COMPUTE_SIZE	30

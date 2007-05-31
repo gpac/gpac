@@ -8,9 +8,9 @@
 
 <p style="text-align: center;">
 <br/>
-<b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.3-DEV</span></b>
+<b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.4</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified April 2007</span></b>
+<b><span style="Font-Size: 18pt">Last Modified Mai 2007</span></b>
 </p>
 
 <br/><br/>
@@ -435,7 +435,10 @@ integrate text rendering which is always heavy work.</p>
 Specifies the driver to use for font handling. This driver cannot be reloaded at run-time, the complete system must be restarted.</p>
 <b>FontDirectory</b> (value: <i>path to TrueType (*.ttf, *.ttc) font directory</i>]
 <p style="text-indent: 5%">
-Specifies the directory where fonts are located - currently only one directory can be specified (however nothing stops a font module from using a private directory).</p>
+Specifies the directory where fonts are located - currently only one directory can be specified (however nothing stops a font module from using a private directory).
+<br/><i>Note:</i>
+The freetype module will scan the entire sub-directories for fonts.
+</p>
 <b>TextureTextMode</b> (value: <i>"Never", "3D", "Always"</i>]
 <p style="text-indent: 5%">
 Specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text look in the 3D renderer and also improve text-on-video like content.</p>

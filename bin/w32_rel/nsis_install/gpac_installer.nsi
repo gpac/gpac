@@ -5,7 +5,7 @@ WindowIcon on
 Icon "..\Osmo4.ico"
 UninstallIcon "..\Osmo4.ico"
 
-!define GPAC_VERSION	0.4.3-DEV 
+!define GPAC_VERSION	0.4.4 
 
 Name "GPAC Framework ${GPAC_VERSION}"
 OutFile "GPAC Framework ${GPAC_VERSION} Setup.exe"
@@ -147,6 +147,7 @@ Section "FFMPEG Reader and Decoder"
   File "..\gm_ffmpeg_in.dll"
   File "..\avcodec-51.dll"
   File "..\avformat-51.dll"
+  File "..\avutil-49.dll"
 SectionEnd
 
 Section "XviD Video Decoder"

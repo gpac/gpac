@@ -139,10 +139,10 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 				sr->width = fs_width;
 				sr->height = fs_height;
 				sr->visual_renderer->RecomputeAR(sr->visual_renderer);
-				sr->reset_graphics = 1;
 			} else {
 				gf_sr_set_output_size(sr, evt.size.width, evt.size.height);
 			}
+			sr->reset_graphics = 1;
 			
 //			if (!sr->user->os_window_handler) 
 //				GF_USER_SENDEVENT(sr->user, &evt);

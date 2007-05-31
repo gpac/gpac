@@ -1,11 +1,11 @@
-# $Id: gpac.spec,v 1.2 2006-07-21 13:07:50 jeanlf Exp $
+# $Id: gpac.spec,v 1.3 2007-05-31 17:27:07 jeanlf Exp $
 Summary: GPAC is a multimedia framework covering MPEG-4, VRML/X3D and SVG.
 Name: gpac
-Version: 0.4.2
+Version: 0.4.4
 Release: DEV
 License: LGPL
 Group: Applications/Multimedia
-Source0: gpac-0.4.2.tar.gz%{?_with_amr:Source1:http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-530.zip}
+Source0: gpac-0.4.4.tar.gz%{?_with_amr:Source1:http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-530.zip}
 URL: http://gpac.sourceforge.net/
 BuildRoot: %{_tmppath}/%{name}-root
 Requires: SDL
@@ -45,7 +45,7 @@ encoders/multiplexers and publishing tools for content distribution.
 
 GPAC is licensed under the GNU Lesser General Public License.
 
-The current GPAC release (0.4.2) already covers a very large part of the MPEG-4 standard,
+The current GPAC release (0.4.4) already covers a very large part of the MPEG-4 standard,
 and features what can probably be seen as the most advanced and robust 2D MPEG-4 
 Player available worldwide, as well as a decent 3D MPEG-4/VRML player.
 
