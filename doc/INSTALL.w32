@@ -1,5 +1,5 @@
 Installation instructions for GPAC 0.4.4 on windows platform
-last modified: Mai 2007
+last modified: May 2007
 
 0 Foreword
 	Compilation has only been tested with MSVC 6, not .NET
@@ -17,7 +17,7 @@ I Extra lib installation
 	
 II GPAC compilation
 
-	open /IDEs/VC6/GPAC.dsw with MSVC6 (GPAC workspace)
+	open gpac/build/msvc6/GPAC.dsw with MSVC6 (GPAC workspace)
 	
 	NEVER ATTEMPT TO LOAD A PROJECT OUTSIDE THIS WORKSPACE
 	
@@ -135,11 +135,11 @@ II GPAC compilation
 
 	II.7 Recompiling Osmozilla
 		Osmozilla is GPAC plugin for Mozilla-based browsers, enabling to embed all GPAC supported contents in a web page. Recompile it only if you think it may 
-		be helpfull (Set as the active project and recompile)
+		be helpful (Set as the active project and recompile)
 
 	II.7 Recompiling GPAX
 		GPAX is GPAC ActiveX control, only usable as an Internet Explorer plugin for now, enabling to embed all GPAC supported contents in a web page. Recompile it only if you think it may 
-		be helpfull (Set as the active project and recompile)
+		be helpful (Set as the active project and recompile)
 
 III Launching the applications
 
@@ -153,22 +153,22 @@ to first launch Osmo4 to get a working config file.
 	
 	You can use MP4Box as is.
 	
-	MP4Client needs GPAC configuration file to run. It will by default search for the file in the current directory, and some  hardcoded directories that will likely not work.
+	MP4Client needs GPAC configuration file to run. It will by default search for the file in the current directory, and some hardcoded directories that will likely not work.
 	If the config file is not found, a new one is created in the current directory. You can pass a given config file as a parameter (MP4Client -c config_path).
 	You can also modify the hardcoded path in MP4Client (gpac/Applications/MP4Client/main.c) to point to gpac output directory and recompile.
 	
 		
-	Osmozilla cannot be launched without a mozilla-based web browser. You should not try to install it in any other wau than with  the GPAC installer 
+	Osmozilla cannot be launched without a mozilla-based web browser. You should not try to install it in any other way than with the GPAC installer 
 	(cf below). Once installed, you may try any test in an html page viewed with your browser, for instance:
       	<object type="application/mp4" width="120" height="100">
-        <param name="src" value"myfile.mp4" /> 
+        <param name="src" value="myfile.mp4" /> 
       	</object>
    To make sure your browser has loaded the osmozilla plugin and to check the mime types supported, try typing "about:plugins" in your browser address bar.
 		
 	GPAX cannot be launched without Internet Explorer. You should not try to install it in any other way than with the GPAC installer 
 	(cf below). Once installed, you may try any test in an html page viewed with your browser, for instance:
       	<object type="application/mp4" width="120" height="100">
-        <param name="src" value"myfile.mp4" /> 
+        <param name="src" value="myfile.mp4" /> 
       	</object>
       	
       	
