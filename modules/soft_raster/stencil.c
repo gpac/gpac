@@ -455,7 +455,7 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 		y0 = FIX2INT(y);
 		if (repeat_t) {
 			y0 = (y0) % _this->height;
-		} else if (y0 >= _this->width) y0 = _this->height-1;
+		} else if (y0 >= _this->height) y0 = _this->height-1;
 		y += _this->inc_y;
 
 		pix = _this->tx_get_pixel(_this->pixels + _this->stride*y0 + _this->Bpp*x0);
