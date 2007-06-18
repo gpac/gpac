@@ -116,6 +116,7 @@ GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u
 		break;
 	case GF_PIXEL_RGB_32:
 	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
 		BPP = 4;
 		break;
 	case GF_PIXEL_BGR_32:
@@ -166,6 +167,7 @@ GF_Err evg_surface_attach_to_texture(GF_SURFACE _this, GF_STENCIL sten)
 		break;
 	case GF_PIXEL_RGB_32:
 	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
 		BPP = 4;
 		break;
 	default:
@@ -241,10 +243,12 @@ GF_Err evg_surface_clear(GF_SURFACE _this, GF_IRect *rc, u32 color)
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGB_32:
 		return evg_surface_clear_argb(surf, clear, color);
+	case GF_PIXEL_RGBA:
+		return evg_surface_clear_rgba(surf, clear, color);
 	case GF_PIXEL_BGR_24:
-		return evg_surface_clear_rgb(surf, clear, color);
-	case GF_PIXEL_RGB_24:
 		return evg_surface_clear_bgr(surf, clear, color);
+	case GF_PIXEL_RGB_24:
+		return evg_surface_clear_rgb(surf, clear, color);
 	case GF_PIXEL_RGB_565:
 		return evg_surface_clear_565(surf, clear, color);
 #ifdef GF_RGB_444_SUPORT
@@ -359,6 +363,19 @@ static Bool setup_grey_callback(EVGSurface *surf)
 			}
 		} else {
 			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_var;
+		}
+		break;
+
+	case GF_PIXEL_RGBA:
+		if (use_const) {
+			if (!a) return 0;
+			if (a!=0xFF) {
+				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgba_fill_const_a;
+			} else {
+				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgba_fill_const;
+			}
+		} else {
+			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgba_fill_var;
 		}
 		break;
 
