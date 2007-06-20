@@ -120,6 +120,8 @@ typedef struct
 	HGLRC gl_HRC;
 #endif
 	Bool is_3D_out;
+	Bool is_3D_offscreen;
+	HWND gl_hwnd;
 	Bool has_focus;
 
 	DWORD orig_wnd_proc;

@@ -835,7 +835,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 		if (nb_active_animations) {
 			if (aa->presentation_value_changed) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Element %s - Presentation value changed for attribute %s\n", gf_node_get_scene_time(node), gf_node_get_name(node), gf_svg_get_attribute_name(aa->presentation_value.fieldIndex)));
-				gf_node_dirty_set(node, aa->dirty_flags, 0);
+				gf_node_dirty_set(node, aa->dirty_flags, aa->dirty_parents);
 			} else {
 				/* WARNING - This does not work for use elements because apply_animations may be called several times */
 				gf_node_dirty_clear(node, aa->dirty_flags);
@@ -1185,7 +1185,11 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 			aa->dirty_flags = gf_svg_sani_get_rendering_flag_if_modified((SVG_SANI_Element *)target, &target_attribute);
 		}
 #endif
+	
+		aa->dirty_parents = 0;
+		if (aa->dirty_flags & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_DISPLAY_DIRTY)) aa->dirty_parents = 1;
 	}
+
 	rai->owner = aa;
 	gf_smil_anim_get_last_specified_value(rai);
 

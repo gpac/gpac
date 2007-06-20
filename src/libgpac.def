@@ -272,6 +272,7 @@ EXPORTS
 	gf_mx_add_scale
 	gf_mx_add_rotation
 	gf_mx_add_matrix
+	gf_mx_add_matrix_2d
 	gf_mx_inverse
 	gf_mx_apply_vec
 	gf_mx_apply_rect
@@ -472,6 +473,7 @@ EXPORTS
 	gf_isom_get_alternate_brand
 	gf_isom_has_padding_bits
 	gf_isom_get_visual_info
+	gf_isom_get_pixel_aspect_ratio
 	gf_isom_get_audio_info
 	gf_isom_get_chapter_count
 	gf_isom_get_chapter
@@ -556,6 +558,7 @@ EXPORTS
 	gf_isom_modify_alternate_brand
 	gf_isom_set_sample_padding_bits
 	gf_isom_set_visual_info
+	gf_isom_set_pixel_aspect_ratio
 	gf_isom_set_track_layout_info
 	gf_isom_set_audio_info
 	gf_isom_add_sample_fragment

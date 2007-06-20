@@ -227,9 +227,11 @@ RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 	RTSPSession *tmp;
 	GF_RTSPSession *rtsp;
 
+	if (!session_control) return NULL;
+
 	/*little fix: some servers don't understand DESCRIBE URL/trackID=, so remove the trackID...*/
 	szCtrl = strdup(session_control);
-	szExt = strrchr(szCtrl, '.');
+	szExt = szCtrl ? strrchr(szCtrl, '.') : NULL;
 	if (szExt) {
 		szExt = strchr(szExt, '/');
 		if (szExt) {

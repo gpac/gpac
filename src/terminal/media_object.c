@@ -200,6 +200,23 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 		*pixel_ar = cap.cap.valueInt;
 		if (! (*pixel_ar & 0x0000FFFF)) *pixel_ar = 0;
 		if (! (*pixel_ar & 0xFFFF0000)) *pixel_ar = 0;
+
+		/**/
+		if (! *pixel_ar) {
+			GF_Channel *ch;
+			GF_NetworkCommand com;
+			com.base.command_type = GF_NET_CHAN_GET_PIXEL_AR;
+			ch = gf_list_get(mo->odm->channels, 0);
+			com.base.on_channel = ch;
+			if (gf_term_service_command(ch->service, &com) == GF_OK) {
+				if ((com.par.hSpacing>65535) || (com.par.vSpacing>65535)) {
+					com.par.hSpacing>>=16;
+					com.par.vSpacing>>=16;
+				}
+				if (com.par.hSpacing|| com.par.vSpacing)
+					*pixel_ar = (com.par.hSpacing<<16) | com.par.vSpacing;
+			}
+		}
 	}
 	return 1;
 }

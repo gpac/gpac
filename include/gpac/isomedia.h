@@ -606,6 +606,9 @@ GF_Err gf_isom_get_audio_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamD
 /*returns track visual info - all coord values are expressed as 16.16 fixed point floats*/
 GF_Err gf_isom_get_track_layout_info(GF_ISOFile *the_file, u32 trackNumber, u32 *width, u32 *height, s32 *translation_x, s32 *translation_y, s16 *layer);
 
+/*returns width and height of the given visual sample desc - error if not a visual track*/
+GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 *hSpacing, u32 *vSpacing);
+
 /*
 	User Data Manipulation (cf write API too)
 */
@@ -873,6 +876,9 @@ GF_Err gf_isom_set_brand_info(GF_ISOFile *the_file, u32 MajorBrand, u32 MinorVer
 /*adds or remove an alternate brand for the movie*/
 GF_Err gf_isom_modify_alternate_brand(GF_ISOFile *the_file, u32 Brand, u8 AddIt);
 
+/*removes all alternate brands except major brand*/
+GF_Err gf_isom_reset_alt_brands(GF_ISOFile *movie);
+
 /*set the number of padding bits at the end of a given sample if needed
 if the function is never called the padding bit info is ignored
 this MUST be called on an existin sample*/
@@ -885,6 +891,8 @@ GF_Err gf_isom_set_visual_info(GF_ISOFile *the_file, u32 trackNumber, u32 Stream
 /*mainly used for 3GPP text since most ISO-based formats ignore these (except MJ2K) 
 all coord values are expressed as 16.16 fixed point floats*/
 GF_Err gf_isom_set_track_layout_info(GF_ISOFile *the_file, u32 trackNumber, u32 width, u32 height, s32 translation_x, s32 translation_y, s16 layer);
+
+GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 hSpacing, u32 vSpacing);
 
 /*set SR & nbChans for audio description*/
 GF_Err gf_isom_set_audio_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample);

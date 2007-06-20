@@ -77,6 +77,8 @@ enum
 	
 	/*retrieves ESD for channel - net->term only, for cache configuration*/
 	GF_NET_CHAN_GET_ESD,
+	/*retrieves visual PAR as indicated in container if any*/
+	GF_NET_CHAN_GET_PIXEL_AR,
 	
 	/*service buffer query (for all channels running in service), app<-module*/
 	GF_NET_BUFFER_QUERY,
@@ -245,6 +247,13 @@ typedef struct __netstatcom
 	u16 multiplex_port;
 } GF_NetComStats;
 
+/*GF_NET_CHAN_GET_PIXEL_AR*/
+typedef struct
+{
+	u32 command_type;
+	LPNETCHANNEL on_channel;
+	u32 hSpacing, vSpacing;
+} GF_NetComPixelAR;
 
 /*GF_NET_SERVICE_INFO*/
 typedef struct __netinfocom
@@ -278,6 +287,7 @@ typedef union __netcommand
 	GF_NetComDRMConfig drm_cfg;
 	GF_NetComGetESD cache_esd;
 	GF_NetComInfo info;
+	GF_NetComPixelAR par;
 } GF_NetworkCommand;
 
 /*

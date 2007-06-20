@@ -665,7 +665,7 @@ void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff)
 			gf_node_render(ctx->drawable->node, eff);
 			
 			eff->ctx = NULL;
-			eff->traversing_mode = 0;
+			eff->traversing_mode = TRAVERSE_RENDER;
 		}
 	}
 }

@@ -3698,6 +3698,8 @@ void mp4v_del(GF_Box *s)
 	/*for publishing*/
 	if (ptr->emul_esd) gf_odf_desc_del((GF_Descriptor *)ptr->emul_esd);
 
+	if (ptr->pasp) gf_isom_box_del((GF_Box *)ptr->pasp);
+
 	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
 	free(ptr);
 }
@@ -3729,6 +3731,10 @@ GF_Err mp4v_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_UUID:
 		if (ptr->ipod_ext) return GF_ISOM_INVALID_FILE;
 		ptr->ipod_ext = (GF_UnknownUUIDBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_PASP:
+		if (ptr->pasp) return GF_ISOM_INVALID_FILE;
+		ptr->pasp = (GF_PixelAspectRatioBox *)a;
 		break;
 	default:
 		gf_isom_box_del(a);
@@ -3785,6 +3791,12 @@ GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_isom_video_sample_entry_write((GF_VisualSampleEntryBox *)s, bs);
+
+	if (ptr->pasp) {
+		e = gf_isom_box_write((GF_Box *)ptr->pasp, bs);
+		if (e) return e;
+	}
+
 	/*mp4v*/
 	if (ptr->esd) {
 		e = gf_isom_box_write((GF_Box *)ptr->esd, bs);
@@ -3852,6 +3864,11 @@ GF_Err mp4v_Size(GF_Box *s)
 		}
 	} else {
 		return GF_ISOM_INVALID_FILE;
+	}
+	if (ptr->pasp) {
+		e = gf_isom_box_size((GF_Box *)ptr->pasp);
+		if (e) return e;
+		ptr->size += ptr->pasp->size;
 	}
 	if (ptr->protection_info && (ptr->type == GF_ISOM_BOX_TYPE_ENCV)) {
 		e = gf_isom_box_size((GF_Box *)ptr->protection_info);
@@ -7136,6 +7153,57 @@ GF_Err sdtp_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += ptr->sampleCount;
+	return GF_OK;
+}
+
+#endif //GPAC_READ_ONLY
+
+
+GF_Box *pasp_New()
+{
+	GF_PixelAspectRatioBox *tmp;
+	GF_SAFEALLOC(tmp, GF_PixelAspectRatioBox);
+	if (tmp == NULL) return NULL;
+	tmp->type = GF_ISOM_BOX_TYPE_PASP;
+	return (GF_Box *)tmp;
+}
+
+
+void pasp_del(GF_Box *s)
+{
+	GF_PixelAspectRatioBox *ptr = (GF_PixelAspectRatioBox*)s;
+	if (ptr == NULL) return;
+	free(ptr);
+}
+
+
+GF_Err pasp_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_PixelAspectRatioBox *ptr = (GF_PixelAspectRatioBox*)s;
+	ptr->hSpacing = gf_bs_read_u32(bs);
+	ptr->vSpacing = gf_bs_read_u32(bs);
+	ptr->size -= 8;
+	return GF_OK;
+}
+
+//from here, for write/edit versions
+#ifndef GPAC_READ_ONLY
+
+GF_Err pasp_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_PixelAspectRatioBox *ptr = (GF_PixelAspectRatioBox *)s;
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, ptr->hSpacing);
+	gf_bs_write_u32(bs, ptr->vSpacing);
+	return GF_OK;
+}
+
+GF_Err pasp_Size(GF_Box *s)
+{
+	GF_Err e = gf_isom_box_get_size(s);
+	if (e) return e;
+	s->size += 8;
 	return GF_OK;
 }
 

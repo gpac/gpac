@@ -160,6 +160,7 @@ enum
 	GF_ISOM_BOX_TYPE_BTRT	= GF_4CC( 'b', 't', 'r', 't' ),
 	GF_ISOM_BOX_TYPE_M4DS	= GF_4CC( 'm', '4', 'd', 's' ),
 	GF_ISOM_BOX_TYPE_AVC1	= GF_4CC( 'a', 'v', 'c', '1' ),
+	GF_ISOM_BOX_TYPE_PASP	= GF_4CC( 'p', 'a', 's', 'p' ),
 
 	/*3GPP extensions*/
 	GF_ISOM_BOX_TYPE_DAMR	= GF_4CC( 'd', 'a', 'm', 'r' ),
@@ -660,6 +661,13 @@ typedef struct
 	GF_SLConfig *slc;
 } GF_MPEGSampleEntryBox;
 
+typedef struct
+{
+	GF_ISOM_BOX
+	u32 hSpacing;
+	u32 vSpacing;
+} GF_PixelAspectRatioBox;
+
 
 #define GF_ISOM_VISUAL_SAMPLE_ENTRY		\
 	GF_ISOM_SAMPLE_ENTRY_FIELDS			\
@@ -672,9 +680,10 @@ typedef struct
 	u32 horiz_res, vert_res;			\
 	u32 entry_data_size;				\
 	u16 frames_per_sample;				\
-	char compressor_name[33];	\
+	char compressor_name[33];			\
 	u16 bit_depth;						\
-	s16 color_table_index;
+	s16 color_table_index;				\
+	GF_PixelAspectRatioBox *pasp;		
 
 typedef struct
 {
@@ -2993,6 +3002,14 @@ GF_Err odkm_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err odkm_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err odkm_Size(GF_Box *s);
 GF_Err odkm_dump(GF_Box *a, FILE * trace);
+
+
+GF_Box *pasp_New();
+void pasp_del(GF_Box *s);
+GF_Err pasp_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err pasp_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err pasp_Size(GF_Box *s);
+GF_Err pasp_dump(GF_Box *a, FILE * trace);
 
 
 #ifdef __cplusplus

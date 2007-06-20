@@ -281,6 +281,7 @@ static GF_Err EVID_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		/*nothing to do since we don't own the window*/
 		break;
 	case GF_EVENT_VIDEO_SETUP:
+		((EPOCVideo *)dr->opaque)->is_gl = evt->setup.opengl_mode;
 		return EVID_InitSurface(dr/*, evt->size.width, evt->size.height*/);
 	}
 	return GF_OK;

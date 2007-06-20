@@ -110,7 +110,7 @@ static GF_Err gdip_get_text_size(GF_FontRaster *dr, const unsigned short *string
 	RectF rc;
 	rc.X = rc.Y = 0;
 	rc.Width = rc.Height = 0;
-	GdipAddPathString(path_tmp, string, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
+	GdipAddPathString(path_tmp, (const WCHAR *)string, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
 
 	GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
 
@@ -169,7 +169,7 @@ static GF_Err gdip_add_text_to_path(GF_FontRaster *dr, GF_Path *path, Bool flipT
 	str[1] = string[i];
 	str[2] = (unsigned short) '_';
 	str[3] = (unsigned short) 0;
-	GdipAddPathString(path_tmp, str, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
+	GdipAddPathString(path_tmp, (const WCHAR *)str, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
 	GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
 	Float w1 = rc.Width - 2 * ctx->underscore_width;
 	
@@ -180,7 +180,7 @@ static GF_Err gdip_add_text_to_path(GF_FontRaster *dr, GF_Path *path, Bool flipT
 	str[2] = (unsigned short) 0;
 	rc.X = rc.Y = 0;
 	rc.Width = rc.Height = 0;
-	GdipAddPathString(path_tmp, str, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
+	GdipAddPathString(path_tmp, (const WCHAR *)str, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
 	GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
 	real_start = w1 - (rc.Width - ctx->underscore_width);
 
@@ -188,7 +188,7 @@ static GF_Err gdip_add_text_to_path(GF_FontRaster *dr, GF_Path *path, Bool flipT
 
 	rc.X = rc.Y = 0;
 	rc.Width = rc.Height = 0;
-	GdipAddPathString(path_tmp, string, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
+	GdipAddPathString(path_tmp, (const WCHAR *)string, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
 	GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
 
 

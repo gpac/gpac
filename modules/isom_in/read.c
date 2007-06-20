@@ -758,6 +758,8 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	/*nothing to do on MP4 for channel config*/
 	case GF_NET_CHAN_CONFIG:
 		return GF_OK;
+	case GF_NET_CHAN_GET_PIXEL_AR:
+		return gf_isom_get_pixel_aspect_ratio(read->mov, ch->track, 1, &com->par.hSpacing, &com->par.hSpacing);
 	case GF_NET_CHAN_GET_DSI:
 	{
 		/*it may happen that there are conflicting config when using ESD URLs...*/

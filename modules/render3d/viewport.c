@@ -189,11 +189,10 @@ static void RenderViewport(GF_Node *node, void *rs, Bool is_destroy)
 		break;
 	/*fit entirely: nothing to change*/
 	case 0:
+	default:
 		rc.width = w;
 		rc.height = h;
 		break;
-	default:
-		return;
 	}
 	sx = gf_divfix(rc_bckup.width , rc.width);
 	sy = gf_divfix(rc_bckup.height , rc.height);
@@ -202,21 +201,24 @@ static void RenderViewport(GF_Node *node, void *rs, Bool is_destroy)
 	rc.y = rc.height/2;
 
 	tx = ty = 0;
-	if (vp->fit) {
+	if (vp->fit && vp->alignment.count) {
 		/*left alignment*/
 		if (vp->alignment.vals[0] == -1) tx = rc.width/2 - w/2;
 		else if (vp->alignment.vals[0] == 1) tx = w/2 - rc.width/2;
 
-		/*top-alignment*/
-		if (vp->alignment.vals[1]==-1) ty = rc.height/2 - h/2;
-		else if (vp->alignment.vals[1]==1) ty = h/2 - rc.height/2;
+		if (vp->alignment.count>1) {
+			/*top-alignment*/
+			if (vp->alignment.vals[1]==-1) ty = rc.height/2 - h/2;
+			else if (vp->alignment.vals[1]==1) ty = h/2 - rc.height/2;
+		}
 	}
 
 	
+	gf_mx2d_add_scale(&mat, sx, sy);
+	gf_mx2d_add_translation(&mat, -tx, -ty);
+	gf_mx2d_inverse(&mat);
+
 	gf_mx_from_mx2d(&mx, &mat);
-	gf_mx_add_scale(&mx, sx, sy, FIX_ONE);
-	gf_mx_add_translation(&mx, -tx, -ty, 0);
-	gf_mx_inverse(&mx);
 
 	/*in layers directly modify the model matrix*/
 	if (eff->viewpoints != eff->surface->view_stack) {

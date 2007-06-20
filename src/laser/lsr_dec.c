@@ -3703,6 +3703,12 @@ static GF_Node *lsr_read_video(GF_LASeRCodec *lsr, SVG_Element *parent)
 	lsr_read_clip_time(lsr, elt, TAG_SVG_ATT_clipBegin, "clipBegin");
 	lsr_read_clip_time(lsr, elt, TAG_SVG_ATT_clipEnd, "clipEnd");
 
+	GF_LSR_READ_INT(lsr, flag, 1, "hasFullscreen");
+	if (flag) {
+		lsr->last_error = gf_svg_get_attribute_by_tag(elt, TAG_SVG_ATT_fullscreen, 1, 0, &info);
+		GF_LSR_READ_INT(lsr, *(SVG_Boolean *)info.far_ptr, 1, "fullscreen");
+	}
+
 	lsr_read_sync_reference(lsr, elt);
 	lsr_read_any_attribute(lsr, elt, 1);
 	lsr_read_group_content(lsr, elt, 0);

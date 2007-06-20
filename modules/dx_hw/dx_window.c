@@ -587,6 +587,14 @@ u32 DD_WindowThread(void *par)
 		return 1;
 	}
 	ShowWindow(ctx->fs_hwnd, SW_HIDE);
+
+	ctx->gl_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC OpenGL Offscreen", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+	if (!ctx->gl_hwnd) {
+		ctx->th_state = 2;
+		return 1;
+	}
+	ShowWindow(ctx->gl_hwnd, SW_HIDE);
+	
 	ctx->th_state = 1;
 
 	/*if visible set focus*/
@@ -645,12 +653,14 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 		ctx->orig_wnd_proc = 0L;
 	}
 	PostMessage(ctx->fs_hwnd, WM_DESTROY, 0, 0);
+	PostMessage(ctx->gl_hwnd, WM_DESTROY, 0, 0);
 	while (ctx->th_state!=2) gf_sleep(10);
 	UnregisterClass("GPAC DirectDraw Output", GetModuleHandle("gm_dx_hw.dll"));
 	gf_th_del(ctx->th);
 	ctx->th = NULL;
 	ctx->os_hwnd = NULL;
 	ctx->fs_hwnd = NULL;
+	ctx->gl_hwnd = NULL;
 	the_video_output = NULL;
 }
 
@@ -747,12 +757,24 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		break;
 	/*HW setup*/
 	case GF_EVENT_VIDEO_SETUP:
-		if (ctx->is_3D_out) {
-			ctx->width = evt->size.width;
-			ctx->height = evt->size.height;
+		switch (evt->setup.opengl_mode) {
+		case 0:
+			ctx->is_3D_out = 0;
+			return DD_SetBackBufferSize(dr, evt->size.width, evt->size.height);
+		case 1:
+			ctx->is_3D_out = 1;
+			ctx->is_3D_offscreen = 0;
+			ctx->width = evt->setup.width;
+			ctx->height = evt->setup.height;
+			return DD_SetupOpenGL(dr);
+		case 2:
+			ctx->is_3D_out = 0;
+			ctx->is_3D_offscreen = 1;
+			ctx->width = evt->setup.width;
+			ctx->height = evt->setup.height;
+			SetWindowPos(ctx->gl_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
 			return DD_SetupOpenGL(dr);
 		}
-		return DD_SetBackBufferSize(dr, evt->size.width, evt->size.height);
 	}
 	return GF_OK;
 }

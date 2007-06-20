@@ -525,6 +525,7 @@ typedef struct {
 	Bool presentation_value_changed;
 	/* flag used for rendering */
 	u32 dirty_flags;
+	Bool dirty_parents;
 } SMIL_AttributeAnimations;
 
 /* This structure is per animation element, 
