@@ -877,8 +877,9 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_VIDEO_SETUP:
 	{
 		SDLVID();
-		if (ctx->is_3D_out) SDLVid_ResizeWindow(dr, evt->size.width, evt->size.height);
-		else SDLVid_SetBackbufferSize(dr, evt->size.width, evt->size.height);
+		ctx->is_3D_out = evt->setup.opengl_mode;
+		if (ctx->is_3D_out) SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
+		else SDLVid_SetBackbufferSize(dr, evt->setup.width, evt->setup.height);
 	}
 		break;
 	}

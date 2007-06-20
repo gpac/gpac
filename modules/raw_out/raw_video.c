@@ -103,7 +103,7 @@ static GF_Err RAW_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			return raw_resize(dr, evt->size.width, evt->size.height);
 #else
 		case GF_EVENT_VIDEO_SETUP:
-			return raw_resize(dr, evt->size.width, evt->size.height);
+			return raw_resize(dr, evt->setup.width, evt->setup.height);
 #endif
 		}
 	}

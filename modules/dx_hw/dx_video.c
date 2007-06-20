@@ -53,19 +53,25 @@ static void RestoreWindow(DDContext *dd)
 	SetFocus(dd->cur_hwnd);
 }
 
-void DestroyObjects(DDContext *dd)
+void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 {
 	RestoreWindow(dd);
 
-	SAFE_DD_RELEASE(dd->rgb_pool.pSurface);
-	memset(&dd->rgb_pool, 0, sizeof(DDSurface));
-	SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
-	memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+	if (!only_3d) {
+		SAFE_DD_RELEASE(dd->rgb_pool.pSurface);
+		memset(&dd->rgb_pool, 0, sizeof(DDSurface));
+		SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
+		memset(&dd->yuv_pool, 0, sizeof(DDSurface));
 
-	SAFE_DD_RELEASE(dd->pPrimary);
-	SAFE_DD_RELEASE(dd->pBack);
-	SAFE_DD_RELEASE(dd->pDD);
-	dd->ddraw_init = 0;
+		SAFE_DD_RELEASE(dd->pPrimary);
+		SAFE_DD_RELEASE(dd->pBack);
+		SAFE_DD_RELEASE(dd->pDD);
+		dd->ddraw_init = 0;
+
+		/*do not destroy associated GL context*/
+		if (dd->is_3D_offscreen) return;
+	}
+
 
 	/*delete openGL context*/
 #ifdef GPAC_USE_OGL_ES
@@ -90,6 +96,11 @@ void DestroyObjects(DDContext *dd)
 		dd->gl_HDC = NULL;
 	}
 #endif
+}
+
+void DestroyObjects(DDContext *dd)
+{
+	DestroyObjectsEx(dd, 0);
 }
 
 GF_Err DD_SetupOpenGL(GF_VideoOutput *dr) 
@@ -136,9 +147,13 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 
 	/*already setup*/
 //	if (dd->gl_HRC) return GF_OK;
-	DestroyObjects(dd);
+	DestroyObjectsEx(dd, dd->is_3D_out ? 0 : 1);
 
-	dd->gl_HDC = GetDC(dd->cur_hwnd);
+	if (dd->is_3D_offscreen) {
+		dd->gl_HDC = GetDC(dd->gl_hwnd);
+	} else {
+		dd->gl_HDC = GetDC(dd->cur_hwnd);
+	}
 	if (!dd->gl_HDC) return GF_IO_ERR;
 
     memset(&pfd, 0, sizeof(pfd));
@@ -159,6 +174,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 	if (!wglMakeCurrent(dd->gl_HDC, dd->gl_HRC)) return GF_IO_ERR;
 #endif
 	evt.type = GF_EVENT_VIDEO_SETUP;
+	evt.setup.opengl_mode = dd->is_3D_offscreen ? 2 : 1;
 	dr->on_event(dr->evt_cbk_hdl, &evt);	
 	return GF_OK;
 }
@@ -190,6 +206,9 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 static void DD_Shutdown(GF_VideoOutput *dr)
 {
 	DDCONTEXT
+
+	/*force destroy of opengl*/
+	dd->is_3D_offscreen = 0;
 	DestroyObjects(dd);
 
 	DD_ShutdownWindow(dr);

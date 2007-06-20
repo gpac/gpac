@@ -447,6 +447,24 @@ typedef struct
 	u16 width, height;
 } GF_EventSize;
 
+/*event proc return value: ignored*/
+typedef struct
+{
+	/*GF_EVENT_VIDEO_SETUP*/
+	u8 type;
+	/*width and height of visual surface to allocate*/
+	u16 width, height;
+	/*indicates whether double buffering is desired*/
+	Bool back_buffer;
+	/*indicates whether opengl context shall be created. Values are:
+		0: no opengl context shall be created
+		1: opengl context shall be created for the main window and set as the current one
+		2: an extra opengl context shall be created for offscreen rendering and set as the current one
+			if not supported, mix of 2D (raster) and 3D (openGL) will be disabled
+	*/
+	u32 opengl_mode;
+} GF_EventVideoSetup;
+
 /*event proc return value: ignored
 this event may be triggered by the renderer if owning window or if shortcut fullscreen is detected*/
 typedef struct
@@ -619,6 +637,7 @@ typedef union
 	GF_EventAuthorize auth;
 	GF_EventSysColors sys_cols;
 	GF_EventMove move;
+	GF_EventVideoSetup setup;
 } GF_Event;
 
 

@@ -422,9 +422,11 @@ u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info)
 	case SVG_StrokeLineJoin_datatype:
 		return GF_SG_SVG_STROKELINEJOIN_DIRTY;
 	case SVG_TextAlign_datatype:
-		return GF_SG_SVG_TEXTALIGN_DIRTY;
+		return GF_SG_SVG_TEXTPOSITION_DIRTY;
 	case SVG_TextAnchor_datatype:
-		return GF_SG_SVG_TEXTANCHOR_DIRTY;
+		return GF_SG_SVG_TEXTPOSITION_DIRTY;
+	case SVG_Display_datatype:
+		return GF_SG_SVG_DISPLAY_DIRTY;
 	case SVG_VectorEffect_datatype:
 		return GF_SG_SVG_VECTOREFFECT_DIRTY;
 	}
@@ -491,6 +493,8 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 		render_svg_props->display = all_atts->display;
 	} else if (!all_atts->display) {
 		render_svg_props->display = NULL;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_DISPLAY_DIRTY;
 	}
 
 	if (all_atts->display_align && *(all_atts->display_align) != SVG_DISPLAYALIGN_INHERIT) {
@@ -651,12 +655,12 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 	if (all_atts->text_align && *(all_atts->text_align) != SVG_TEXTALIGN_INHERIT) {
 		render_svg_props->text_align = all_atts->text_align;
 	} else {
-		inherited_flags_mask |= GF_SG_SVG_TEXTALIGN_DIRTY;
+		inherited_flags_mask |= GF_SG_SVG_TEXTPOSITION_DIRTY;
 	}
 	if (all_atts->text_anchor && *(all_atts->text_anchor) != SVG_TEXTANCHOR_INHERIT) {
 		render_svg_props->text_anchor = all_atts->text_anchor;
 	} else {
-		inherited_flags_mask |= GF_SG_SVG_TEXTANCHOR_DIRTY;
+		inherited_flags_mask |= GF_SG_SVG_TEXTPOSITION_DIRTY;
 	}
 	if (all_atts->text_rendering && *(all_atts->text_rendering) != SVG_RENDERINGHINT_INHERIT) {
 		render_svg_props->text_rendering = all_atts->text_rendering;

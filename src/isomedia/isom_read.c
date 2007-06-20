@@ -1911,6 +1911,39 @@ GF_Err gf_isom_get_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 }
 
 GF_EXPORT
+GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 *hSpacing, u32 *vSpacing)
+{
+	GF_TrackBox *trak;
+	GF_SampleEntryBox *entry;
+	GF_SampleDescriptionBox *stsd;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
+	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->boxList)) return movie->LastError = GF_BAD_PARAM;
+
+	entry = (GF_SampleEntryBox *)gf_list_get(stsd->boxList, StreamDescriptionIndex - 1);
+	//no support for generic sample entries (eg, no MPEG4 descriptor)
+	if (entry == NULL) return GF_BAD_PARAM;
+	
+	//valid for MPEG visual, JPG and 3GPP H263
+	switch (entry->type) {
+	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_MP4V:
+	case GF_ISOM_SUBTYPE_3GP_H263:
+	case GF_ISOM_BOX_TYPE_AVC1:
+	case GF_ISOM_BOX_TYPE_GNRV:
+		*hSpacing = ((GF_VisualSampleEntryBox*)entry)->pasp ? ((GF_VisualSampleEntryBox*)entry)->pasp->hSpacing : 0;
+		*vSpacing = ((GF_VisualSampleEntryBox*)entry)->pasp ? ((GF_VisualSampleEntryBox*)entry)->pasp->vSpacing : 0;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+GF_EXPORT
 const char *gf_isom_get_filename(GF_ISOFile *movie)
 {
 	if (!movie) return NULL;

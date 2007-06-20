@@ -766,6 +766,14 @@ void gf_mx_add_rotation(GF_Matrix *mx, Fixed angle, Fixed x, Fixed y, Fixed z);
  *\param mul the matrix to add
 */
 void gf_mx_add_matrix(GF_Matrix *mx, GF_Matrix *mul);
+/*!\brief 2D matrix multiplication
+ *
+ *Adds a 2D affine matrix to a matrix
+ *\param mx the matrix 
+ *\param mat2D the matrix to premultiply
+ */
+void gf_mx_add_matrix_2d(GF_Matrix *mx, GF_Matrix2D *mat2D);
+
 /*!\brief affine matrix inversion
  *
  *Inverses an affine matrix.\warning Results are undefined if the matrix is not an affine one

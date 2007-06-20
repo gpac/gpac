@@ -629,11 +629,12 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 	  }
 	  break;
 	case GF_EVENT_VIDEO_SETUP:
+		xWindow->is_3D_out = evt->setup.opengl_mode;
 		/*and resetup HW*/
 #ifdef GPAC_HAS_OPENGL
 		if (xWindow->is_3D_out) return X11_SetupGL(vout);
 #endif
-		return X11_ResizeBackBuffer(vout, evt->size.width, evt->size.height);
+		return X11_ResizeBackBuffer(vout, evt->setup.width, evt->setup.height);
 	}
 	} else {
 	  X11_HandleEvents(vout);

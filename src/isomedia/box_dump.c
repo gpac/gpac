@@ -203,6 +203,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_BTRT: return btrt_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_AVC1: return mp4v_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_PASP: return pasp_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_TX3G: return tx3g_dump(a, trace);
@@ -752,6 +753,8 @@ GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 	if (a->type == GF_ISOM_BOX_TYPE_ENCV) {
 		gf_box_dump(p->protection_info, trace);
 	}
+	if (p->pasp) gf_box_dump(p->pasp, trace);
+
 	DumpBox(a, trace);
 
 	fprintf(trace, "</%s>\n", name);
@@ -3157,6 +3160,16 @@ GF_Err odkm_dump(GF_Box *a, FILE * trace)
 	if (ptr->hdr) gf_box_dump((GF_Box *)ptr->hdr, trace);
 	if (ptr->fmt) gf_box_dump((GF_Box *)ptr->fmt, trace);
 	fprintf(trace, "</OMADRMKMSBox>\n");
+	return GF_OK;
+}
+
+
+GF_Err pasp_dump(GF_Box *a, FILE * trace)
+{
+	GF_PixelAspectRatioBox *ptr = (GF_PixelAspectRatioBox*)a;
+	fprintf(trace, "<PixelAspectRatioBox hSpacing=\"%d\" vSpacing=\"%d\" >\n", ptr->hSpacing, ptr->vSpacing);
+	gf_full_box_dump((GF_Box *)a, trace);
+	fprintf(trace, "</PixelAspectRatioBox>\n");
 	return GF_OK;
 }
 

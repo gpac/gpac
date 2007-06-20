@@ -1156,6 +1156,29 @@ void gf_mx_add_matrix(GF_Matrix *mat, GF_Matrix *mul)
 }
 
 GF_EXPORT
+void gf_mx_add_matrix_2d(GF_Matrix *mat, GF_Matrix2D *mat2D)
+{
+    GF_Matrix tmp;
+	gf_mx_init(tmp);
+
+    tmp.m[0] = gf_mulfix(mat->m[0],mat2D->m[0]) + gf_mulfix(mat->m[4],mat2D->m[3]);
+    tmp.m[4] = gf_mulfix(mat->m[0],mat2D->m[1]) + gf_mulfix(mat->m[4],mat2D->m[4]);
+    tmp.m[8] = mat->m[8];
+    tmp.m[12]= gf_mulfix(mat->m[0],mat2D->m[2]) + gf_mulfix(mat->m[4],mat2D->m[5]) + mat->m[12];
+    tmp.m[1] = gf_mulfix(mat->m[1],mat2D->m[0]) + gf_mulfix(mat->m[5],mat2D->m[3]);
+    tmp.m[5] = gf_mulfix(mat->m[1],mat2D->m[1]) + gf_mulfix(mat->m[5],mat2D->m[4]);
+    tmp.m[9] = mat->m[9];
+    tmp.m[13]= gf_mulfix(mat->m[1],mat2D->m[2]) + gf_mulfix(mat->m[5],mat2D->m[5]) + mat->m[13];
+    tmp.m[2] = gf_mulfix(mat->m[2],mat2D->m[0]) + gf_mulfix(mat->m[6],mat2D->m[3]);
+    tmp.m[6] = gf_mulfix(mat->m[2],mat2D->m[1]) + gf_mulfix(mat->m[6],mat2D->m[4]);
+    tmp.m[10]= mat->m[10];
+    tmp.m[14]= gf_mulfix(mat->m[2],mat2D->m[2]) + gf_mulfix(mat->m[6],mat2D->m[5]) + mat->m[14];
+	memcpy(mat->m, tmp.m, sizeof(Fixed)*16);
+}
+
+
+
+GF_EXPORT
 void gf_mx_add_translation(GF_Matrix *mat, Fixed tx, Fixed ty, Fixed tz)
 {
 	Fixed tmp[3];

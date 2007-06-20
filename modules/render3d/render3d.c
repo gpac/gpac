@@ -340,8 +340,9 @@ GF_Err R3D_RecomputeAR(GF_VisualRenderer *vr)
 	if (sr->compositor->new_width || sr->compositor->new_height) {
 		GF_Event evt;
 		evt.type = GF_EVENT_VIDEO_SETUP;
-		evt.size.width = sr->compositor->width;
-		evt.size.height = sr->compositor->height;
+		evt.setup.width = sr->compositor->width;
+		evt.setup.height = sr->compositor->height;
+		evt.setup.opengl_mode = 1;
 		sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 	}
 

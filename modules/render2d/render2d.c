@@ -839,8 +839,9 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 		R2D_SetScaling(sr, FIX_ONE, FIX_ONE);
 		/*and resize hardware surface*/
 		evt.type = GF_EVENT_VIDEO_SETUP;
-		evt.size.width = sr->cur_width;
-		evt.size.height = sr->cur_height;
+		evt.setup.width = sr->cur_width;
+		evt.setup.height = sr->cur_height;
+		evt.setup.opengl_mode = 0;
 		return sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 	}
 	out_width = sr->compositor->width;
@@ -905,8 +906,9 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 	gf_sr_invalidate(sr->compositor, NULL);
 	/*and resize hardware surface*/
 	evt.type = GF_EVENT_VIDEO_SETUP;
-	evt.size.width = out_width;
-	evt.size.height = out_height;
+	evt.setup.width = out_width;
+	evt.setup.height = out_height;
+	evt.setup.opengl_mode = 0;
 	return sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 }
 

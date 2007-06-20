@@ -877,10 +877,11 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		/*nothing to do since we don't own the window*/
 		break;
 	case GF_EVENT_VIDEO_SETUP:
+		gctx->is_3D = evt->setup.opengl_mode;
 #ifdef GPAC_USE_OGL_ES
 		if (gctx->is_3D) return GAPI_SetupOGL_ES(the_video_driver);
 #endif
-		return GAPI_InitBackBuffer(dr, evt->size.width, evt->size.height);
+		return GAPI_InitBackBuffer(dr, evt->setup.width, evt->setup.height);
 	}
 	return GF_OK;
 }

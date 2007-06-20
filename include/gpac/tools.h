@@ -58,14 +58,14 @@ extern "C" {
  *	Macro giving GPAC version expressed as a printable string
 */
 /*KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)!!!, and NO SPACE in GPAC_VERSION for proper install*/
-#define GPAC_VERSION       "0.4.4"
+#define GPAC_VERSION       "0.4.5-DEV"
 /*!
  *	\brief GPAC Version
  *	\hideinitializer
  *
  *	Macro giving GPAC version expressed as an integer, where version X.Y.Z is coded as 0x00XXYYZZ
 */
-#define GPAC_VERSION_INT	0x00000404
+#define GPAC_VERSION_INT	0x00000405
 
 /*!
  *	\brief Memory allocation

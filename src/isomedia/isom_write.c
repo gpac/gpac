@@ -1122,6 +1122,49 @@ GF_Err gf_isom_set_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 	}
 }
 
+GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 hSpacing, u32 vSpacing)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_SampleEntryBox *entry;
+	GF_VisualSampleEntryBox*vent;
+	GF_SampleDescriptionBox *stsd;
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
+	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->boxList)) {
+		return movie->LastError = GF_BAD_PARAM;
+	}
+	entry = (GF_SampleEntryBox *)gf_list_get(stsd->boxList, StreamDescriptionIndex - 1);
+	//no support for generic sample entries (eg, no MPEG4 descriptor)
+	if (entry == NULL) return GF_BAD_PARAM;
+	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+	switch (entry->type) {
+	case GF_ISOM_BOX_TYPE_MP4V:
+	case GF_ISOM_SUBTYPE_3GP_H263:
+	case GF_ISOM_BOX_TYPE_AVC1:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
+
+	vent = (GF_VisualSampleEntryBox*)entry;
+	if (!hSpacing || !vSpacing) {
+		if (vent->pasp) gf_isom_box_del((GF_Box*)vent->pasp);
+		vent->pasp = NULL;
+		return GF_OK;
+	}
+	if (!vent->pasp) vent->pasp = (GF_PixelAspectRatioBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_PASP);
+	vent->pasp->hSpacing = hSpacing;
+	vent->pasp->vSpacing = vSpacing;
+	return GF_OK;
+}
+
 GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample)
 {
 	GF_Err e;
@@ -1957,6 +2000,30 @@ found:
 	return GF_OK;
 }
 
+
+GF_Err gf_isom_reset_alt_brands(GF_ISOFile *movie)
+{
+	u32 *p;
+	GF_Err e;
+	
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	
+	e = CheckNoData(movie);
+	if (e) return e;
+
+	if (!movie->brand) {
+		movie->brand = (GF_FileTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_FTYP);
+		gf_list_add(movie->TopBoxes, movie->brand);
+	}
+	p = (u32*)malloc(sizeof(u32));
+	if (!p) return GF_OUT_OF_MEM;
+	p[0] = movie->brand->majorBrand;
+	movie->brand->altCount = 1;
+	free(movie->brand->altBrand);
+	movie->brand->altBrand = p;
+	return GF_OK;
+}
 
 GF_Err gf_isom_set_sample_padding_bits(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumber, u8 NbBits)
 {

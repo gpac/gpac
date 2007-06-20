@@ -2817,8 +2817,15 @@ static void lsr_write_use(GF_LASeRCodec *lsr, SVG_Element *elt, Bool ommit_tag)
 
 static void lsr_write_video(GF_LASeRCodec *lsr, SVG_Element *elt)
 {
+	u32 fs_value;
 	SVGAllAttributes atts;
 	gf_svg_flatten_attributes(elt, &atts);
+
+	fs_value = 0;
+	if (atts.fullscreen) {
+		fs_value = *atts.fullscreen + 1;
+		atts.fullscreen = NULL;
+	}
 
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt);
@@ -2848,6 +2855,10 @@ static void lsr_write_video(GF_LASeRCodec *lsr, SVG_Element *elt)
 
 	lsr_write_clip_time(lsr, atts.clipBegin, "clipBegin");
 	lsr_write_clip_time(lsr, atts.clipEnd, "clipEnd");
+
+	GF_LSR_WRITE_INT(lsr, fs_value ? 1 : 0, 1, "hasFullscreen");
+	if (atts.fullscreen) GF_LSR_WRITE_INT(lsr, fs_value - 1, 1, "fullscreen");
+
 	GF_LSR_WRITE_INT(lsr, atts.syncReference ? 1 : 0, 1, "hasSyncReference");
 	if (atts.syncReference) lsr_write_any_uri(lsr, atts.syncReference, "syncReference");
 	

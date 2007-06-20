@@ -432,8 +432,10 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 	u32 i, idx, count, common_idx, nb_tracks, scheme_type, cur_tk;
 	const char *scheme_URI, *KMS_URI;
 	ISMACrypInfo *info;
+	Bool is_oma;
 	GF_TrackCryptInfo *a_tci, tci;
 
+	is_oma = 0;
 	count = 0;
 	info = NULL;
 	if (drm_file) {
@@ -486,6 +488,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 				continue;
 			}
 			KMS_URI = "OMA DRM";
+			is_oma = 1;
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] TrackID %d encrypted with unknown scheme %s - skipping\n", trackID, gf_4cc_to_str(scheme_type) ));
 			continue;
@@ -529,6 +532,10 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		}
 		e = gf_ismacryp_decrypt_track(mp4, &tci, NULL, NULL);
 		if (e) break;
+	}
+	if (is_oma) {
+		e = gf_isom_set_brand_info(mp4, GF_4CC('i','s','o','2'), 0x00000001);
+		if (!e) e = gf_isom_modify_alternate_brand(mp4, GF_4CC('o','d','c','f'), 0);
 	}
 	if (info) del_crypt_info(info);
 	return e;
@@ -804,7 +811,10 @@ GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	GF_Err e;
 	u32 i, count, nb_tracks, common_idx, idx;
 	ISMACrypInfo *info;
+	Bool is_oma;
 	GF_TrackCryptInfo *tci;
+
+	is_oma = 0;
 
 	info = load_crypt_file(drm_file);
 	if (!info) {
@@ -839,7 +849,16 @@ GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 
 		e = gf_ismacryp_encrypt_track(mp4, tci, NULL, NULL);
 		if (e) break;
+
+		if (tci->enc_type==1) is_oma = 1;
 	}
+
+	if (is_oma) {
+		/*set as OMA V2*/
+		e = gf_isom_set_brand_info(mp4, GF_4CC('o','d','c','f'), 0x00000002);
+		gf_isom_reset_alt_brands(mp4);
+	}
+
 	del_crypt_info(info);
 	return e;
 }

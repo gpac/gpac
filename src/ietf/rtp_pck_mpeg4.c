@@ -402,6 +402,8 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 	else if (builder->sl_header.accessUnitStartFlag) do_flush = 1;
 	/*we must NOT fragment a NALU*/
 	else if (builder->bytesInPacket + nalu_size >= builder->Path_MTU) do_flush = 2;
+	/*aggregation is disabled*/
+	else if (! (builder->flags & GP_RTP_PCK_USE_MULTI) ) do_flush = 2;
 
 	if (builder->bytesInPacket && do_flush) {
 		builder->rtp_header.Marker = (do_flush==1) ? 1 : 0;
