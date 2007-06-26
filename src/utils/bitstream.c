@@ -164,7 +164,7 @@ static Bool BS_IsAlign(GF_BitStream *bs)
 static u8 BS_ReadByte(GF_BitStream *bs)
 {
 	if (bs->bsmode == GF_BITSTREAM_READ) {
-		if (bs->position == bs->size) {
+		if (bs->position >= bs->size) {
 			if (bs->EndOfStream) bs->EndOfStream(bs->par);
 			return 0;
 		}
