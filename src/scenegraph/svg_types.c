@@ -297,6 +297,18 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_list_del(l);
 		free(value);
 		break;
+	case SMIL_KeyTimes_datatype:
+	case SMIL_KeySplines_datatype:
+		l = *(GF_List**)value;
+		while (gf_list_count(l)) {
+			Fixed *f = gf_list_last(l);
+			gf_list_rem_last(l);
+			free(f);
+		}
+		gf_list_del(l);
+		free(value);
+		break;
+
 	case SMIL_RepeatCount_datatype:
 	case SMIL_Duration_datatype:
 	case SVG_Length_datatype:

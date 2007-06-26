@@ -155,6 +155,13 @@ GF_Err gf_laser_decoder_remove_stream(GF_LASeRCodec *codec, u16 ESID)
 }
 
 
+void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), void *par);
+
+void lsr_end_of_stream(void *co)
+{
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[LASeR] memory overread - corrupted decoding\n"));
+	((GF_LASeRCodec *) co)->last_error = GF_NON_COMPLIANT_BITSTREAM;
+}
 
 GF_EXPORT
 GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, char *data, u32 data_len)
@@ -174,6 +181,7 @@ GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, char *data, u32 data_l
 		codec->res_factor = gf_divfix(FIX_ONE, INT2FIX(1 << (-codec->info->cfg.resolution)) );
 
 	codec->bs = gf_bs_new(data, data_len, GF_BITSTREAM_READ);
+	gf_bs_set_eos_callback(codec->bs, lsr_end_of_stream, codec);
 	codec->memory_dec = 0;
 	e = lsr_decode_laser_unit(codec, NULL);
 	gf_bs_del(codec->bs);
@@ -199,6 +207,7 @@ GF_Err gf_laser_decode_command_list(GF_LASeRCodec *codec, u16 ESID, char *data, 
 		codec->res_factor = gf_divfix(FIX_ONE, INT2FIX(1 << (-codec->info->cfg.resolution)) );
 
 	codec->bs = gf_bs_new(data, data_len, GF_BITSTREAM_READ);
+	gf_bs_set_eos_callback(codec->bs, lsr_end_of_stream, codec);
 	codec->memory_dec = 1;
 	e = lsr_decode_laser_unit(codec, com_list);
 	gf_bs_del(codec->bs);
@@ -4372,10 +4381,9 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				field->pos = idx;
 				field->new_node = new_node;
 				if (new_node) gf_node_register(new_node, NULL);
-				gf_node_register(new_node, NULL);
 			} else if (com_type==3) {
 				gf_node_list_insert_child(& ((SVG_Element *)n)->children, new_node, idx);
-				gf_node_register(new_node, n);
+				if (new_node) gf_node_register(new_node, n);
 			} else {
 				/*child replacement*/
 				if (idx!=-1) {
@@ -4384,7 +4392,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 						gf_node_replace(old, new_node, 0);
 					else {
 						gf_node_list_add_child( & ((SVG_Element *)n)->children, new_node);
-						gf_node_register(new_node, n);
+						if (new_node) gf_node_register(new_node, n);
 					}
 				} else {
 					/*node replacement*/
