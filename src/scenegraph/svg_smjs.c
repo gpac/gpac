@@ -1961,15 +1961,82 @@ GF_DOMText *svg_get_text_child(GF_Node *node)
 	return NULL;
 }
 
+static Bool svg_js_load_script(GF_Node *script, char *file)
+{
+	FILE *jsf;
+	char *jsscript;
+	u32 fsize;
+	Bool success = 1;
+	JSBool ret;
+	jsval rval;
+	GF_SVGJS *svg_js;
+
+	svg_js = script->sgprivate->scenegraph->svg_js;
+	jsf = fopen(file, "rb");
+	if (!jsf) return 0;
+
+	fseek(jsf, 0, SEEK_END);
+	fsize = ftell(jsf);
+	fseek(jsf, 0, SEEK_SET);
+	jsscript = malloc(sizeof(char)*(fsize+1));
+	fread(jsscript, sizeof(char)*fsize, 1, jsf);
+	fclose(jsf);
+	jsscript[fsize] = 0;
+
+	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, jsscript, sizeof(char)*fsize, 0, 0, &rval);
+	if (ret==JS_FALSE) success = 0;
+
+	free(jsscript);
+	return success;
+}
+
+#include <gpac/download.h>
+#include <gpac/network.h>
+
+/* Download is performed asynchronously, so the script loading must be performed in this function */
+static void JS_SVG_NetIO(void *cbck, GF_NETIO_Parameter *param)
+{
+	GF_Err e;
+	JSFileDownload *jsdnload = (JSFileDownload *)cbck;
+
+	e = param->error;
+	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
+		const char *szCache = gf_dm_sess_get_cache_name(jsdnload->sess);
+		if (!svg_js_load_script(jsdnload->node, (char *) szCache))
+			e = GF_SCRIPT_ERROR;
+		else
+			e = GF_OK;
+
+	} else {
+		if (!e) {
+			/* the download is going on */
+			return;
+		} else {
+			/* there was an error during the download */
+		}
+	}
+
+	/*destroy current download session (ie, destroy ourselves)*/
+	gf_dm_sess_del(jsdnload->sess);
+	free(jsdnload);
+
+	if (e) {
+		GF_JSAPIParam par;
+		par.info.e = e;
+		par.info.msg = "Cannot fetch script";
+		ScriptAction(jsdnload->node->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
+	}
+}
+
 void JSScript_LoadSVG(GF_Node *node)
 {
 	GF_DOMText *txt;
 	GF_SVGJS *svg_js;
 	JSBool ret;
 	jsval rval;
+	GF_FieldInfo href_info;
 
-	txt = svg_get_text_child(node);
-	if (!txt) return;
+	if (node->sgprivate->tag == TAG_SVG_handler) return;
 
 	if (!node->sgprivate->scenegraph->svg_js) {
 		if (JSScript_CreateSVGContext(node->sgprivate->scenegraph) != GF_OK) return;
@@ -1983,14 +2050,47 @@ void JSScript_LoadSVG(GF_Node *node)
 		svg_js->nb_scripts++;
 		node->sgprivate->UserCallback = svg_script_predestroy;
 	}
-	if (node->sgprivate->tag == TAG_SVG_handler) return;
 
-	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
-	if (ret==JS_FALSE) {
-		_ScriptMessage(node->sgprivate->scenegraph, GF_SCRIPT_ERROR, "SVG: Invalid script");
-		return;
+	if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
+		GF_JSAPIParam par;
+		char *url;
+		GF_Err e;
+		JSFileDownload *jsdnload;
+		XMLRI *xmlri = (XMLRI *)href_info.far_ptr;
+	
+		/* getting the base uri of the scene and concatenating */
+		ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_GET_SCENE_URI, node, &par);
+		url = NULL;
+		if (par.uri.url) url = gf_url_concatenate(par.uri.url, xmlri->string);
+		if (!url) url = strdup(xmlri->string);
+
+		/* if the file is local, we don't need to download it */
+		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
+			svg_js_load_script(node, url);
+		} else {
+
+			/* getting a download manager */
+			par.dnld_man = NULL;
+			ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
+			if (!par.dnld_man) return;
+
+			GF_SAFEALLOC(jsdnload, JSFileDownload);
+			jsdnload->node = node;
+			jsdnload->sess = gf_dm_sess_new(par.dnld_man, url, 0, JS_SVG_NetIO, jsdnload, &e);
+			free(url);
+			if (!jsdnload->sess) {
+				free(jsdnload);
+			}
+		}
+	} else {
+		txt = svg_get_text_child(node);
+		if (!txt) return;
+		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
+		if (ret==JS_FALSE) {
+			_ScriptMessage(node->sgprivate->scenegraph, GF_SCRIPT_ERROR, "SVG: Invalid script");
+			return;
+		}
 	}
-	return;
 }
 
 Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)

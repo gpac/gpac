@@ -3150,7 +3150,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 
 void JSScriptFromFile(GF_Node *node);
 
-static Bool js_load_script(M_Script *script, char *file)
+static Bool vrml_js_load_script(GF_Node *script, char *file)
 {
 	FILE *jsf;
 	char *jsscript;
@@ -3185,16 +3185,6 @@ static Bool js_load_script(M_Script *script, char *file)
 }
 
 
-#include <gpac/download.h>
-#include <gpac/network.h>
-
-typedef struct
-{
-	GF_Node *node;
-	GF_DownloadSession *sess;
-} JSFileDownload;
-
-
 static void JS_NetIO(void *cbck, GF_NETIO_Parameter *param)
 {
 	GF_Err e;
@@ -3204,7 +3194,7 @@ static void JS_NetIO(void *cbck, GF_NETIO_Parameter *param)
 	e = param->error;
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 		const char *szCache = gf_dm_sess_get_cache_name(jsdnload->sess);
-		if (!js_load_script(script, (char *) szCache))
+		if (!vrml_js_load_script(script, (char *) szCache))
 			e = GF_SCRIPT_ERROR;
 		else
 			e = GF_OK;
@@ -3253,7 +3243,7 @@ void JSScriptFromFile(GF_Node *node)
 
 	e = GF_SCRIPT_ERROR;
 
-	if (!js_load_script(script, script->url.vals[0].script_text)) {
+	if (!vrml_js_load_script(script, script->url.vals[0].script_text)) {
 		GF_JSAPIParam par;
 		char *url;
 		GF_Err e;
