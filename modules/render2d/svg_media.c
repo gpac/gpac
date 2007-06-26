@@ -728,6 +728,8 @@ static void SVG_Render_audio(GF_Node *node, void *rs, Bool is_destroy)
 		free(st);
 		return;
 	}
+	if (eff->traversing_mode!=TRAVERSE_RENDER) return;
+
 	if (st->is_active) {
 		gf_sr_audio_register(&st->input, (GF_BaseEffect*)rs);
 	}
