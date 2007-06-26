@@ -2149,7 +2149,8 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	if (ctx->sess) return JS_FALSE;
 
 	if (argc) {
-		if (JSVAL_IS_OBJECT(argv[0])) {
+		if (JSVAL_IS_NULL(argv[0])) {
+		} else  if (JSVAL_IS_OBJECT(argv[0])) {
 //			if (!JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &documentClass, NULL) ) return JS_FALSE;
 			
 			/*NOT SUPPORTED YET, we must serialize the sg*/
