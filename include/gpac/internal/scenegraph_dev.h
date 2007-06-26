@@ -813,6 +813,16 @@ struct _scriptfield
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
+
+#include <gpac/download.h>
+#include <gpac/network.h>
+
+typedef struct
+{
+	GF_Node *node;
+	GF_DownloadSession *sess;
+} JSFileDownload;
+
 JSContext *gf_sg_ecmascript_new();
 void gf_sg_ecmascript_del(JSContext *);
 
