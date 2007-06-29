@@ -153,7 +153,10 @@ enum
 	LSR_EVT_textinput = 30,
 	LSR_EVT_unload = 31,
 	LSR_EVT_zoom = 32
-};
+};	
+
+u32 dom_to_lsr_key(u32 dom_k);
+
 
 #define LSR_UPDATE_TYPE_ROTATE			76
 #define LSR_UPDATE_TYPE_SCALE			79

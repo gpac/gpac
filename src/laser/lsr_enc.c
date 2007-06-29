@@ -636,7 +636,6 @@ static void lsr_write_matrix(GF_LASeRCodec *lsr, SVG_Transform *mx)
 		} else {
 			GF_LSR_WRITE_INT(lsr, 0, 1, "xy_yx_present");
 		}
-		lsr->coord_bits -= lsr->scale_bits;
 
 		if (mx->mat.m[2] || mx->mat.m[5]) {
 			GF_LSR_WRITE_INT(lsr, 1, 1, "xz_yz_present");
@@ -647,6 +646,7 @@ static void lsr_write_matrix(GF_LASeRCodec *lsr, SVG_Transform *mx)
 		} else {
 			GF_LSR_WRITE_INT(lsr, 0, 1, "xz_yz_present");
 		}
+		lsr->coord_bits -= lsr->scale_bits;
 	}
 }
 
@@ -662,7 +662,7 @@ static void lsr_write_fixed_clamp(GF_LASeRCodec *lsr, Fixed f, const char *name)
 	GF_LSR_WRITE_INT(lsr, (u32) val, 8, name);
 }
 
-static u32 dom_to_lsr_key(u32 dom_k)
+u32 dom_to_lsr_key(u32 dom_k)
 {
 	switch (dom_k) {
 	case GF_KEY_STAR: return 0;
@@ -1964,7 +1964,7 @@ static void lsr_write_clip_time(GF_LASeRCodec *lsr, SVG_Clock *clock, const char
 
 static void lsr_write_href_anim(GF_LASeRCodec *lsr, XMLRI *href, SVG_Element *parent)
 {
-	if (href->target && (href->target==parent)) {
+	if (!href || (href->target && (href->target==parent))) {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "has_href");
 	} else {
 		lsr_write_href(lsr, href);
@@ -3256,6 +3256,8 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 			lsr_write_coordinate(lsr, ((SVG_Point *)val)->y, 0, "translation_y");
 			break;
 		case SVG_Transform_Rotate_datatype:
+			GF_LSR_WRITE_INT(lsr, 0, 1, "isDefaultValue"); 
+			GF_LSR_WRITE_INT(lsr, 0, 1, "escapeFlag"); 
 			lsr_write_fixed_16_8(lsr, ((SVG_Point_Angle*)val)->angle, "rotate");
 			break;
 		case SVG_Number_datatype:
@@ -3276,7 +3278,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 					GF_LSR_WRITE_INT(lsr, 1, 1, "isDefaultValue"); 
 				} else {
 					GF_LSR_WRITE_INT(lsr, 0, 1, "isDefaultValue"); 
-					lsr_write_fixed_16_8(lsr, n->value, "val");
+					lsr_write_fixed_clamp(lsr, n->value, "val");
 				}
 				break;
 			case TAG_SVG_ATT_width:
@@ -3519,6 +3521,7 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 {
 	GF_CommandField *field;
 	u32 i, count;
+	u32 detail;
 	GF_BitStream *old_bs;
 
 	count = com_list ? gf_list_count(com_list) : 0;
@@ -3575,11 +3578,53 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 			lsr_write_any_attribute(lsr, NULL, 1);
 			break;
 		case GF_SG_LSR_RESTORE:
-			break;
+			return GF_NOT_SUPPORTED;
 		case GF_SG_LSR_SAVE:
-			break;
+			return GF_NOT_SUPPORTED;
 		case GF_SG_LSR_SEND_EVENT:
-			break;
+			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_SEND_EVENT, 4, "ch4");
+
+			detail = com->send_event_integer;
+			switch (com->send_event_name) {
+			case GF_EVENT_KEYDOWN:
+			case GF_EVENT_LONGKEYPRESS:
+			case GF_EVENT_REPEAT_KEY:
+			case GF_EVENT_SHORT_ACCESSKEY:
+				detail = dom_to_lsr_key(detail);
+				if (detail==100) detail = 0;
+				break;
+			}
+
+			/*FIXME in the spec, way too obscur*/
+			lsr_write_event_type(lsr, com->send_event_name, com->send_event_integer);
+
+			if (detail && com->send_event_integer) {
+				GF_LSR_WRITE_INT(lsr, 1, 1, "has_intvalue");
+				GF_LSR_WRITE_INT(lsr, (com->send_event_integer<0) ? 1 : 0, 1, "sign");
+				lsr_write_vluimsbf5(lsr, ABS(com->send_event_integer), "value");
+			} else {
+				GF_LSR_WRITE_INT(lsr, 0, 1, "has_intvalue");
+			}
+			if (com->send_event_name<=GF_EVENT_MOUSEWHEEL) {
+				GF_LSR_WRITE_INT(lsr, 1, 1, "has_pointvalue");
+				lsr_write_coordinate(lsr, INT2FIX(com->send_event_x), 0, "x");
+				lsr_write_coordinate(lsr, INT2FIX(com->send_event_y), 0, "y");
+			} else {
+				GF_LSR_WRITE_INT(lsr, 0, 1, "has_pointvalue");
+			}
+			lsr_write_codec_IDREF_Node(lsr, com->node, "ref");
+			if (com->send_event_string) {
+				GF_LSR_WRITE_INT(lsr, 1, 1, "has_stringvalue");
+				lsr_write_byte_align_string(lsr, com->send_event_string, "stringvalue");
+			} else if (!detail && com->send_event_integer) {
+				GF_LSR_WRITE_INT(lsr, 1, 1, "has_stringvalue");
+				lsr_write_byte_align_string(lsr, (char *)gf_dom_get_key_name(com->send_event_integer), "stringvalue");
+			} else {
+				GF_LSR_WRITE_INT(lsr, 0, 1, "has_stringvalue");
+			}
+			GF_LSR_WRITE_INT(lsr, 0, 1, "has_attr_any");
+			return GF_OK;
+
 		case GF_SG_LSR_ACTIVATE:
 		case GF_SG_LSR_DEACTIVATE:
 		{

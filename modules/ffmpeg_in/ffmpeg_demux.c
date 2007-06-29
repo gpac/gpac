@@ -631,6 +631,13 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	FFDemux *ffd = plug->priv;
 
+
+	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
+		u32 i, count;
+		if (ffd->audio_st>=0) return GF_OK;
+		return GF_NOT_SUPPORTED;
+	}
+
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 
 	switch (com->command_type) {

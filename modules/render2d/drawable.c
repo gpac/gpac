@@ -1090,6 +1090,10 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 				}
 			}
 				break;
+			case TAG_SVG_linearGradient: 
+			case TAG_SVG_radialGradient: 
+				ctx->aspect.line_texture = svg_gradient_get_texture((GF_Node *)props->stroke->iri.target);
+				break;
 #ifdef GPAC_ENABLE_SVG_SA
 			case TAG_SVG_SA_solidColor:
 				{

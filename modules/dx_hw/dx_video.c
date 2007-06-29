@@ -173,9 +173,11 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 	if (!dd->gl_HRC) return GF_IO_ERR;
 	if (!wglMakeCurrent(dd->gl_HDC, dd->gl_HRC)) return GF_IO_ERR;
 #endif
-	evt.type = GF_EVENT_VIDEO_SETUP;
-	evt.setup.opengl_mode = dd->is_3D_offscreen ? 2 : 1;
-	dr->on_event(dr->evt_cbk_hdl, &evt);	
+	if (!dd->is_3D_offscreen) {
+		evt.type = GF_EVENT_VIDEO_SETUP;
+		evt.setup.opengl_mode = 1;
+		dr->on_event(dr->evt_cbk_hdl, &evt);	
+	}
 	return GF_OK;
 }
 
@@ -314,6 +316,8 @@ static GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 #endif
 		return GF_OK;
 	}
+//	if (dd->gl_HDC) SwapBuffers(dd->gl_HDC);
+
 	if (!dd->ddraw_init) return GF_BAD_PARAM;
 
 	if (!dd->fullscreen && dd->windowless) {

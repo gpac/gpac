@@ -681,16 +681,17 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 	}
 
 	if (anim) {
-		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
+		/*FIXME - we need to parse from/to/values but not initialize the stack*/
+//		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
 			needs_init = 0;
 			if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL)) {
 				svg_delete_defered_anim(anim, NULL);
 			} else {
 				gf_list_add(parser->defered_animations, anim);
 			}
-		} else {
-			svg_delete_defered_anim(anim, NULL);
-		}
+//		} else {
+//			svg_delete_defered_anim(anim, NULL);
+//		}
 	}
 
 	/* if the new element has an id, we try to resolve defered references */
@@ -756,6 +757,10 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 	char *atOperandNode = NULL;
 	char *atOperandAtt = NULL;
 	char *atValue = NULL;
+	char *atPoint = NULL;
+	char *atInteger = NULL;
+	char *atEvent = NULL;
+	char *atString = NULL;
 	GF_CommandField *field;
 	s32 index = -1;
 	u32 i;
@@ -893,8 +898,45 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 		svg_lsr_set_v2(parser);
 
 		return GF_OK;
-	default:
+	case GF_SG_LSR_SEND_EVENT:
+		for (i=0; i<nb_attributes; i++) {
+			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
+			if (!strcmp(att->name, "ref")) atNode = att->value;
+			else if (!strcmp(att->name, "event")) atEvent = att->value;
+			else if (!strcmp(att->name, "pointvalue")) atPoint = att->value;
+			else if (!strcmp(att->name, "intvalue")) atInteger = att->value;
+			else if (!strcmp(att->name, "stringvalue")) atString = att->value;
+		}
+
+		if (!atEvent) return svg_report(parser, GF_BAD_PARAM, "Missing event name for command");
+		if (!atNode) return svg_report(parser, GF_BAD_PARAM, "Missing node ref for command");
+		/*should be a XML IDREF, not an XML IRI*/
+		if (atNode[0]=='#') atNode++;
+		parser->command->node = svg_find_node(parser, atNode);
+		if (!parser->command->node) return svg_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
+		gf_node_register(parser->command->node, NULL);
+
+		parser->command->send_event_name = gf_dom_event_type_by_name(atEvent);
+
+		parser->command->send_event_integer = 0xEFFFFFFF;
+		if (atString) {
+			u32 key = gf_dom_get_key_type(atString);
+			if (key == GF_KEY_UNIDENTIFIED) {
+				parser->command->send_event_string = strdup(atString);
+			} else {
+				parser->command->send_event_integer = key;
+			}
+		}
+		if (atInteger) parser->command->send_event_integer = atoi(atInteger);
+		if (atPoint) {
+			SVG_Point pt;
+			svg_parse_point(&pt, atPoint);
+			parser->command->send_event_x = FIX2INT(pt.x);
+			parser->command->send_event_y = FIX2INT(pt.y);
+		}
 		return GF_OK;
+	default:
+		return GF_NOT_SUPPORTED;
 	}
 }
 

@@ -770,8 +770,6 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		case 2:
 			ctx->is_3D_out = 0;
 			ctx->is_3D_offscreen = 1;
-			ctx->width = evt->setup.width;
-			ctx->height = evt->setup.height;
 			SetWindowPos(ctx->gl_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
 			return DD_SetupOpenGL(dr);
 		}
