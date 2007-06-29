@@ -508,6 +508,7 @@ EXPORTS
 	gf_isom_apple_get_tag
 	gf_isom_get_omadrm_info
 	gf_isom_is_omadrm_media
+	gf_isom_get_pixel_aspect_ratio
 
 ;NON-READ-ONLY exports
 ;	gf_isom_set_timescale

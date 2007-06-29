@@ -640,19 +640,42 @@ typedef struct
 	*/
 	Bool use_names;
 
-	/*route insert, replace and delete (BIFS only)
-	fromNodeID is also used to identify operandElementId in LASeR Add/Replace
-	*/
-	u32 RouteID;
-	char *def_name;
-	u32 fromNodeID, fromFieldIndex;
-	u32 toNodeID, toFieldIndex;
-
 	/*proto list to insert - BIFS only*/
 	GF_List *new_proto_list;
 	/*proto ID list to delete - BIFS only*/
 	u32 *del_proto_list;
 	u32 del_proto_list_size;
+
+
+	/*route insert, replace and delete (BIFS only)
+		fromNodeID is also used to identify operandElementId in LASeR Add/Replace
+
+	OR
+		sendEvent
+	*/
+	union {
+		u32 RouteID;
+		u32 send_event_name;
+	};
+	union {
+		char *def_name;
+		char *send_event_string;
+	};
+	union {
+		u32 fromNodeID;
+		s32 send_event_integer;
+	};
+	u32 fromFieldIndex;
+
+	union {
+		u32 toNodeID;
+		s32 send_event_x;
+	};
+	union {
+		u32 toFieldIndex;
+		s32 send_event_y;
+	};
+
 } GF_Command;
 
 

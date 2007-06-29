@@ -825,7 +825,6 @@ static void lsr_read_matrix(GF_LASeRCodec *lsr, SVG_Transform *mx)
 			GF_LSR_READ_INT(lsr, flag, lsr->coord_bits, "yx");
 			mx->mat.m[3] = lsr_translate_scale(lsr, flag);
 		}
-		lsr->coord_bits -= lsr->scale_bits;
 
 		GF_LSR_READ_INT(lsr, flag, 1, "xz_yz_present");
 		if (flag) {
@@ -834,6 +833,7 @@ static void lsr_read_matrix(GF_LASeRCodec *lsr, SVG_Transform *mx)
 			GF_LSR_READ_INT(lsr, flag, lsr->coord_bits, "yz");
 			mx->mat.m[5] = lsr_translate_coords(lsr, flag, lsr->coord_bits);
 		}
+		lsr->coord_bits -= lsr->scale_bits;
 	}
 }
 
@@ -4097,7 +4097,18 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 		((SVG_Point *)val)->y = num.value;
 		break;
 	case SVG_Transform_Rotate_datatype:
-		((SVG_Point_Angle*)val)->angle = lsr_read_fixed_16_8(lsr, "rotate");
+		GF_LSR_READ_INT(lsr, is_default, 1, "isDefaultValue"); 
+		if (is_default) ((SVG_Point_Angle*)val)->angle = 0;
+		else {
+			GF_LSR_READ_INT(lsr, has_escape, 1, "escapeFlag"); 
+			if (has_escape) {
+				GF_LSR_READ_INT(lsr, escape_val, 2, "escapeEnum"); 
+				((SVG_Point_Angle*)val)->angle = 0;
+			}
+			else {
+				((SVG_Point_Angle*)val)->angle = lsr_read_fixed_16_8(lsr, "rotate");
+			}
+		}
 		break;
 	case SVG_Transform_datatype:
 		lsr_read_matrix(lsr, val);
@@ -4120,7 +4131,7 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 			if (is_default) n->type=SVG_NUMBER_INHERIT;
 			else {
 				n->type = SVG_NUMBER_VALUE;
-				n->value = lsr_read_fixed_16_8(lsr, "val");
+				n->value = lsr_read_fixed_clamp(lsr, "val");
 			}
 			break;
 		case TAG_SVG_ATT_width:
@@ -4808,18 +4819,31 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 static GF_Err lsr_read_send_event(GF_LASeRCodec *lsr, GF_List *com_list)
 {
 	u32 flag, idref;
-	XMLEV_Event evt;
-	lsr_read_event_type(lsr, &evt);
+	s32 detail;
+	SVG_Number x, y;
+	XMLEV_Event event;
+	lsr_read_event_type(lsr, &event);
+
+	detail = 0;
 	GF_LSR_READ_INT(lsr, flag, 1, "has_intvalue");
 	if (flag) {
 		GF_LSR_READ_INT(lsr, flag, 1, "sign");
-		flag = lsr_read_vluimsbf5(lsr, "value");
+		detail = lsr_read_vluimsbf5(lsr, "value");
+		if (flag) detail = -detail;
+
+		switch (event.type) {
+		case GF_EVENT_KEYDOWN:
+		case GF_EVENT_LONGKEYPRESS:
+		case GF_EVENT_REPEAT_KEY:
+		case GF_EVENT_SHORT_ACCESSKEY:
+			detail = lsr_to_dom_key(detail);
+			break;
+		}
 	}
 	GF_LSR_READ_INT(lsr, flag, 1, "has_pointvalue");
 	if (flag) {
-		SVG_Number coord;
-		lsr_read_coordinate(lsr, &coord, 0, "x");
-		lsr_read_coordinate(lsr, &coord, 0, "y");
+		lsr_read_coordinate(lsr, &x, 0, "x");
+		lsr_read_coordinate(lsr, &y, 0, "y");
 	}
 	idref = lsr_read_codec_IDREF_command(lsr, "idref");
 
@@ -4828,6 +4852,34 @@ static GF_Err lsr_read_send_event(GF_LASeRCodec *lsr, GF_List *com_list)
 		lsr_read_byte_align_string(lsr, NULL, "string");;
 	}
 	lsr_read_any_attribute(lsr, NULL, 1);
+
+	if (!com_list) {
+		GF_DOM_Event evt;
+		GF_Node *target = gf_sg_find_node(lsr->sg, idref);
+		if (!target) return GF_OK;
+
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.type = event.type;
+		evt.detail = detail ? detail : event.parameter;
+		evt.clientX = FIX2INT(x.value);
+		evt.clientY = FIX2INT(y.value);
+		gf_dom_event_fire(target, NULL, &evt);
+
+	} else {
+		GF_Command *com = gf_sg_command_new(lsr->sg, GF_SG_LSR_SEND_EVENT);
+		gf_list_add(com_list, com);
+		com->node = gf_sg_find_node(lsr->sg, idref);
+		if (!com->node) {
+			com->RouteID = idref;
+			gf_list_add(lsr->unresolved_commands, com);
+		} else {
+			gf_node_register(com->node, NULL);
+		}
+		com->send_event_integer = detail ? detail : event.parameter;
+		com->send_event_name = event.type;
+		com->send_event_x = FIX2INT(x.value);
+		com->send_event_y = FIX2INT(y.value);
+	}
 	return GF_OK;
 }
 

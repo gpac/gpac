@@ -396,6 +396,8 @@ static void fetch_mime_io(void *dnld, GF_NETIO_Parameter *parameter)
 	/*only get the content type*/
 	if (parameter->msg_type==GF_NETIO_GET_METHOD) parameter->name = "HEAD";
 #endif
+
+
 }
 
 static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)

@@ -968,8 +968,9 @@ void http_do_requests(GF_DownloadSession *sess)
 		char range_buf[1024];
 		char pass_buf[1024];
 		const char *user_agent;
+		const char *user_profile;
 		u32 size;
-		Bool has_accept, has_connection, has_range, has_agent;
+		Bool has_accept, has_connection, has_range, has_agent, send_profile;
 
 		/*setup authentification*/
 		strcpy(pass_buf, "");
@@ -1059,24 +1060,78 @@ void http_do_requests(GF_DownloadSession *sess)
 			strcat(sHTTP, "\r\n");
 		}
 		if (sess->flags & GF_DOWNLOAD_IS_ICY) strcat(sHTTP, "Icy-Metadata: 1\r\n");
-		
+
 		par.msg_type = GF_NETIO_GET_CONTENT;
 		par.data = NULL;
 		par.size = 0;
-		gf_dm_sess_user_io(sess, &par);
-		if (par.data && par.size) {
-			sprintf(range_buf, "Content-Length: %d\r\n", par.size);
-			strcat(sHTTP, range_buf);
+
+		/*check if we have personalization info*/
+		send_profile = 0;
+		user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfileID");
+		if (user_profile) {
+			strcat(sHTTP, "X-UserProfileID: ");
+			strcat(sHTTP, user_profile);
+			strcat(sHTTP, "\r\n");
+		} else {
+			user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfile");
+			if (user_profile) {
+				FILE *profile = fopen(user_profile, "rt");
+				if (profile) {
+					fseek(profile, 0, SEEK_END);
+					par.size = ftell(profile);
+					fclose(profile);
+					sprintf(range_buf, "Content-Length: %d\r\n", par.size);
+					strcat(sHTTP, range_buf);
+					strcat(sHTTP, "Content-Type: text/xml\r\n");
+					send_profile = 1;
+				}
+			}
+		}
+
+
+		if (!send_profile) {
+			gf_dm_sess_user_io(sess, &par);
+			if (par.data && par.size) {
+				sprintf(range_buf, "Content-Length: %d\r\n", par.size);
+				strcat(sHTTP, range_buf);
+			}
 		}
 		strcat(sHTTP, "\r\n");
 
+		if (send_profile || par.data) {
+			u32 len = strlen(sHTTP);
+			char *tmp_buf = malloc(sizeof(char)*(len+par.size));
+			strcpy(tmp_buf, sHTTP);
+			if (par.data) {
+				memcpy(tmp_buf+len, par.data, par.size);
+			} else {
+				FILE *profile;
+				user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfile");
+				assert (user_profile);
+				profile = fopen(user_profile, "rt");
+				fread(tmp_buf+len, 1, par.size, profile);
+				fclose(profile);
+			}
+
 #ifdef GPAC_HAS_SSL
-		if (sess->ssl) {
-			e = GF_IP_NETWORK_FAILURE;
-			if (!SSL_write(sess->ssl, sHTTP, strlen(sHTTP))) e = GF_OK;
-		} else 
+			if (sess->ssl) {
+				e = GF_IP_NETWORK_FAILURE;
+				if (!SSL_write(sess->ssl, tmp_buf, len+par.size)) e = GF_OK;
+			} else 
 #endif
-			e = gf_sk_send(sess->sock, sHTTP, strlen(sHTTP));
+				e = gf_sk_send(sess->sock, tmp_buf, len+par.size);
+
+			free(tmp_buf);
+		} else {
+
+#ifdef GPAC_HAS_SSL
+			if (sess->ssl) {
+				e = GF_IP_NETWORK_FAILURE;
+				if (!SSL_write(sess->ssl, sHTTP, strlen(sHTTP))) e = GF_OK;
+			} else 
+#endif
+				e = gf_sk_send(sess->sock, sHTTP, strlen(sHTTP));
+		}
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s\n\n", sHTTP));
 		if (e) {
@@ -1086,26 +1141,6 @@ void http_do_requests(GF_DownloadSession *sess)
 			return;
 		}
 
-		if (par.size && par.data) {
-			u32 done = 0;
-			while (done<par.size) {
-			
-#ifdef GPAC_HAS_SSL
-				if (sess->ssl) {
-					e = GF_IP_NETWORK_FAILURE;
-					if (!SSL_write(sess->ssl, par.data+done, par.size-done)) e = GF_OK;
-				} else 
-#endif
-					e = gf_sk_send(sess->sock, par.data+done, par.size-done);
-
-				if (e) {
-					sess->status = GF_NETIO_STATE_ERROR;
-					sess->last_error = e;
-					gf_dm_sess_notify_state(sess, GF_NETIO_STATE_ERROR, e);
-					return;
-				}
-			}
-		}
 		sess->status = GF_NETIO_WAIT_FOR_REPLY;
 		gf_dm_sess_notify_state(sess, GF_NETIO_WAIT_FOR_REPLY, GF_OK);
 		return;
@@ -1186,7 +1221,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		//parse header
 		while (1) {
 			char *sep, *hdr_sep;
-			if ( (u32) LinePos + 4 > BodyStart) break;
+			if ( (s32) LinePos + 4 > BodyStart) break;
 			LinePos = gf_token_get_line(sHTTP, LinePos , bytesRead, buf, 1024);
 			if (LinePos < 0) break;
 
@@ -1246,6 +1281,9 @@ void http_do_requests(GF_DownloadSession *sess)
 				sess->icy_metaint = atoi(hdr_val);
 			else if (!stricmp(hdr, "ice") || !stricmp(hdr, "icy") ) 
 				is_ice = 1;
+			else if (!stricmp(hdr, "X-UserProfileID") ) 
+				gf_cfg_set_key(sess->dm->cfg, "Downloader", "UserProfileID", hdr_val);
+
 
 			if (sep) sep[0]=':';
 			if (hdr_sep) hdr_sep[0] = '\r';
@@ -1397,7 +1435,7 @@ void http_do_requests(GF_DownloadSession *sess)
 
 
 		//we may have existing data in this buffer ...
-		if (!e && (BodyStart < (u32) bytesRead)) {
+		if (!e && (BodyStart < (s32) bytesRead)) {
 			gf_dm_data_recieved(sess, sHTTP + BodyStart, bytesRead - BodyStart);
 			/*store data if no callbacks or cache*/
 			if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) {

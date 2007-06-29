@@ -3150,7 +3150,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 
 void JSScriptFromFile(GF_Node *node);
 
-static Bool vrml_js_load_script(GF_Node *script, char *file)
+static Bool vrml_js_load_script(M_Script *script, char *file)
 {
 	FILE *jsf;
 	char *jsscript;

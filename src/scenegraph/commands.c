@@ -664,6 +664,17 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		gf_node_deactivate(com->node);
 		gf_node_changed(com->node, NULL);
 		break;
+	case GF_SG_LSR_SEND_EVENT:
+	{
+		GF_DOM_Event evt;
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.type = com->send_event_name;
+		evt.detail = com->send_event_integer;
+		evt.clientX = com->send_event_x;
+		evt.clientY = com->send_event_y;
+		gf_dom_event_fire(com->node, NULL, &evt);
+	}
+		break;
 #endif
 
 	default:
