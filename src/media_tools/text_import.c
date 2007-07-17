@@ -29,6 +29,7 @@
 #include <gpac/xml.h>
 #include <gpac/token.h>
 #include <gpac/internal/media_dev.h>
+#include <gpac/internal/isomedia_dev.h>
 
 #ifndef GPAC_READ_ONLY
 
@@ -992,10 +993,12 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 		if (!strcmp(node->name, "TextStreamHeader")) {
 			GF_XMLNode *sdesc;
 			s32 w, h, tx, ty, layer;
+			u32 tref_id;
 			w = TTXT_DEFAULT_WIDTH;
 			h = TTXT_DEFAULT_HEIGHT;
 			tx = ty = layer = 0;
 			nb_children--;
+			tref_id = 0;
 
 			j=0;
 			while ( (att=(GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
@@ -1004,7 +1007,12 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 				else if (!strcmp(att->name, "layer")) layer = atoi(att->value);
 				else if (!strcmp(att->name, "translation_x")) tx = atoi(att->value);
 				else if (!strcmp(att->name, "translation_y")) ty = atoi(att->value);
+				else if (!strcmp(att->name, "trefID")) tref_id = atoi(att->value);
 			}
+
+			if (tref_id) 
+				gf_isom_set_track_reference(import->dest, track, GF_ISOM_BOX_TYPE_CHAP, tref_id);
+
 			gf_isom_set_track_layout_info(import->dest, track, w<<16, h<<16, tx<<16, ty<<16, (s16) layer);
 
 			j=0;

@@ -1998,6 +1998,7 @@ static void JS_SVG_NetIO(void *cbck, GF_NETIO_Parameter *param)
 {
 	GF_Err e;
 	JSFileDownload *jsdnload = (JSFileDownload *)cbck;
+	GF_Node *node = jsdnload->node;
 
 	e = param->error;
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
@@ -2024,7 +2025,7 @@ static void JS_SVG_NetIO(void *cbck, GF_NETIO_Parameter *param)
 		GF_JSAPIParam par;
 		par.info.e = e;
 		par.info.msg = "Cannot fetch script";
-		ScriptAction(jsdnload->node->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
+		ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
 	}
 }
 

@@ -259,10 +259,10 @@ GF_Err gf_path_add_ellipse(GF_Path *gp, Fixed cx, Fixed cy, Fixed a_axis, Fixed 
 	u32 i;
 	a_axis /= 2;
 	b_axis /= 2;
-	e = gf_path_add_move_to(gp, cx, cy+b_axis);
+	e = gf_path_add_move_to(gp, cx+a_axis, cy);
 	if (e) return e;
 	for (i=1; i<GF_2D_DEFAULT_RES; i++) {
-		cur = GF_PI2 + GF_2PI*i/GF_2D_DEFAULT_RES;
+		cur = GF_2PI*i/GF_2D_DEFAULT_RES;
 		_vx = gf_mulfix(a_axis, gf_cos(cur) );
 		_vy = gf_mulfix(b_axis, gf_sin(cur) );
 		e = gf_path_add_line_to(gp, _vx + cx, _vy + cy);

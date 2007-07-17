@@ -106,23 +106,27 @@ SubSection "GPAC Plugins"
 ;
 ;	2 install modes, normal one and full one
 ;
-Section "MPEG-4 Systems Decoders"
+Section "MPEG-4 BIFS Decoder"
   SectionIn 1 2
   File "..\gm_bifs_dec.dll"
+SectionEnd
+
+Section "MPEG-4 ODF Decoder"
+  SectionIn 1 2
   File "..\gm_odf_dec.dll"
 SectionEnd
 
-Section "LASeR Decoder"
+Section "MPEG-4 LASeR Decoder"
   SectionIn 1 2
   File "..\gm_laser_dec.dll"
 SectionEnd
 
-Section "SAF Demultiplexer"
+Section "MPEG-4 SAF Demultiplexer"
   SectionIn 1 2
   File "..\gm_saf_in.dll"
 SectionEnd
 
-Section "VRML/X3D/MPEG-4 Text/SWF Loader"
+Section "Generic Scene Description File Loader"
   SectionIn 1 2
   File "..\gm_ctx_load.dll"
 SectionEnd

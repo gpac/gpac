@@ -2291,6 +2291,8 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 		goto exit;
 	}
 
+	assert(breaker.to_pos > breaker.from_pos);
+
 	samp->dataLength = breaker.to_pos - breaker.from_pos;
 	if (*max_size < samp->dataLength) {
 		*max_size = samp->dataLength;

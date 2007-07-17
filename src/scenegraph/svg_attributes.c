@@ -761,7 +761,7 @@ end:
 /*
    Parse an Offset Value, i.e +/- Clock Value
 */
-static void svg_parse_clock_value(char *d, Double *clock_value) 
+static GF_Err svg_parse_clock_value(char *d, Double *clock_value) 
 {
 	char *tmp;
 	s32 sign = 1;
@@ -777,35 +777,38 @@ static void svg_parse_clock_value(char *d, Double *clock_value)
 			u32 hours;
 			u32 minutes;
 			Float seconds;
-			sscanf(d, "%d:%d:%f", &hours, &minutes, &seconds);
+			if (sscanf(d, "%d:%d:%f", &hours, &minutes, &seconds) < 3) return GF_BAD_PARAM;
 			*clock_value = hours*3600 + minutes*60 + seconds;
 		} else {
 			/* Partial Clock value : mm:ss(.frac) */
 			s32 minutes;
 			Float seconds;
-			sscanf(d, "%d:%f", &minutes, &seconds);
+			if (sscanf(d, "%d:%f", &minutes, &seconds) < 2) return GF_BAD_PARAM;
 			*clock_value = minutes*60 + seconds;
 		}
 	} else if ((tmp = strstr(d, "h"))) {
 		Float f;
-		sscanf(d, "%fh", &f);
+		if (sscanf(d, "%fh", &f) == 0) return GF_BAD_PARAM;
 		*clock_value = 3600*f;
 	} else if (strstr(d, "min")) {
 		Float f;
-		sscanf(d, "%fmin", &f);
+		if (sscanf(d, "%fmin", &f) == 0) return GF_BAD_PARAM;
 		*clock_value = 60*f;
 	} else if ((tmp = strstr(d, "ms"))) {
 		Float f;
-		sscanf(d, "%fms", &f);
+		if (sscanf(d, "%fms", &f) == 0) return GF_BAD_PARAM;
 		*clock_value = f/1000;
 	} else if (strchr(d, 's')) {
 		Float f;
-		sscanf(d, "%fs", &f);
+		if (sscanf(d, "%fs", &f) == 0) return GF_BAD_PARAM;
 		*clock_value = f;
 	} else {
-		*clock_value = atof(d);
+		Float f;
+		if (sscanf(d, "%f", &f) == 0) return GF_BAD_PARAM;
+		*clock_value = f;
 	}
 	*clock_value *= sign;
+	return GF_OK;
 }
 /* Parses one SVG time value:
 	  'indefinite', 
@@ -2135,9 +2138,13 @@ static void smil_parse_min_max_dur_repeatdur(SMIL_Duration *value, char *value_s
 		value->type = SMIL_DURATION_MEDIA;
 	} else {
 		Double ftime;
-		svg_parse_clock_value(value_string, &ftime);
-		value->clock_value = ftime;
-		value->type = SMIL_DURATION_DEFINED;
+		if (svg_parse_clock_value(value_string, &ftime) == GF_OK) {
+			value->clock_value = ftime;
+			value->type = SMIL_DURATION_DEFINED;
+		} else {
+			/* WARNING: Should this attribute in error be removed ? */
+			value->type = SMIL_DURATION_INDEFINITE;
+		}
 	}
 }
 
@@ -2267,10 +2274,14 @@ static void svg_parse_coordinates(GF_List *values, char *value_string)
 
 u32 svg_parse_point(SVG_Point *p, char *value_string)
 {
-	u32 i = 0;
-	i+=svg_parse_float(&(value_string[i]), &(p->x), 0);
-	i+=svg_parse_float(&(value_string[i]), &(p->y), 0);
-	return i;
+	u32 i = 0, j = 0;
+	i = svg_parse_float(&(value_string[i]), &(p->x), 0);
+	j = svg_parse_float(&(value_string[i]), &(p->y), 0);
+	/* we need to detect an odd number of coordinates in polygon points list 
+	   cf. http://www.w3.org/TR/SVGMobile12/shapes.html#PolygonElement
+	   see svg_parse_points */
+	if (j == 0) return 0;
+	else return i+j;
 }
 
 static u32 svg_parse_point_into_matrix(GF_Matrix2D *p, char *value_string)
@@ -2284,13 +2295,25 @@ static u32 svg_parse_point_into_matrix(GF_Matrix2D *p, char *value_string)
 
 static void svg_parse_points(GF_List *values, char *value_string)
 {
-	u32 i = 0;
+	u32 i = 0, j;
 	char *str = value_string;
 	u32 len = strlen(str);
 	while (i < len) {
 		SVG_Point *p;
 		GF_SAFEALLOC(p, SVG_Point)
-		i += svg_parse_point(p, &str[i]);
+		j = svg_parse_point(p, &str[i]);
+		if (j == 0) {
+			/* cf. http://www.w3.org/TR/SVGMobile12/shapes.html#PolygonElement
+			   If an odd number of coordinates is provided, then the element 
+			   is treated as if the attribute had not been specified.*/
+			while (gf_list_count(values)) {
+				p = (SVG_Point *)gf_list_get(values, 0);
+				free(p);
+				gf_list_rem(values, 0);
+			}
+			return;
+		}
+		i += j;
 		gf_list_add(values, p);
 	}
 }
@@ -3380,6 +3403,7 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 			pt = &path->points[i];
 			if (!i || (*contour == i-1) ) {
 				sprintf(szT, "M%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y));
+				contour++;
 			} else if (path->tags[i]==GF_PATH_CLOSE) {
 				sprintf(szT, " z");
 			} else {
@@ -3393,10 +3417,13 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 			break;
 		case GF_PATH_CURVE_CONIC:
 			ct1 = &path->points[i];
-			end = &path->points[i+2];
+			end = &path->points[i+1];
 			sprintf(szT, " Q%g %g %g %g", FIX2FLT(ct1->x), FIX2FLT(ct1->y), FIX2FLT(end->x), FIX2FLT(end->y));
 			strcat(attValue, szT);
 			last_pt = *end;
+			if (path->tags[i+2]==GF_PATH_CLOSE)  {
+				strcat(attValue, " z");
+			}
 			i+=2;
 			break;
 		case GF_PATH_CURVE_CUBIC:
@@ -3406,6 +3433,9 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 			sprintf(szT, " C%g %g %g %g %g %g", FIX2FLT(ct1->x), FIX2FLT(ct1->y), FIX2FLT(ct2->x), FIX2FLT(ct2->y), FIX2FLT(end->x), FIX2FLT(end->y));
 			strcat(attValue, szT);
 			last_pt = *end;
+			if (path->tags[i+2]==GF_PATH_CLOSE) {
+				strcat(attValue, " z");
+			}
 			i+=3;
 			break;
 		}
@@ -5507,7 +5537,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SVG_FontFamily_datatype:
 		((SVG_FontFamily *)a->far_ptr)->type = ((SVG_FontFamily *)b->far_ptr)->type;
 		if ( ((SVG_FontFamily *)a->far_ptr)->value) free( ((SVG_FontFamily *)a->far_ptr)->value );
-		((SVG_FontFamily *)a->far_ptr)->value = strdup(((SVG_FontFamily *)b->far_ptr)->value);
+		((SVG_FontFamily *)a->far_ptr)->value = (((SVG_FontFamily *)b->far_ptr)->value ? strdup(((SVG_FontFamily *)b->far_ptr)->value) : NULL );
 		return GF_OK;
 
 	case XMLRI_datatype:

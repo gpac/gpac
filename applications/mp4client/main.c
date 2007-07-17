@@ -1025,7 +1025,7 @@ int main (int argc, char **argv)
 		char *ext;
 		strcpy(the_url, url_arg);
 		ext = strrchr(the_url, '.');
-		if (ext && !stricmp(ext, ".m3u")) {
+		if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
 			fprintf(stdout, "Opening Playlist %s\n", the_url);
 			playlist = fopen(the_url, "rt");
 			if (playlist) {

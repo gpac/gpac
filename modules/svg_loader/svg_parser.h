@@ -69,7 +69,7 @@ Bool SVG_CheckDownload(SVGParser *parser);
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
 
-#include <gpac/nodes_svg.h>
+#include <gpac/nodes_svg_sa.h>
 #include <gpac/internal/scenegraph_dev.h>
 
 /*enable this if you want to link SVG loader against static libxml2 & iconv*/
@@ -224,7 +224,7 @@ typedef struct {
 } defered_element;
 
 typedef struct {
-	SVG_IRI *iri;
+	XMLRI *iri;
 	SVG_SA_Element *elt;
 } href_instance;
 
