@@ -40,7 +40,7 @@ typedef struct {
 	GF_Node *bifs_parent;
 	GF_Node *bifs_text_node;
 
-} SVG_SANI_BIFS_Converter;
+} SVG2BIFS_Converter;
 
 static GF_Node *create_appearance(SVGPropertiesPointers *svg_props, GF_SceneGraph *sg)
 {
@@ -119,7 +119,7 @@ static GF_Node *create_appearance(SVGPropertiesPointers *svg_props, GF_SceneGrap
 
 
 
-static GF_Node *add_transform(SVG_SANI_BIFS_Converter *converter, GF_Node *node)
+static GF_Node *add_transform(SVG2BIFS_Converter *converter, GF_Node *node)
 {
 	M_TransformMatrix2D *tr = (M_TransformMatrix2D*)gf_node_new(converter->bifs_sg, TAG_MPEG4_TransformMatrix2D);
 	gf_node_register((GF_Node *)tr, node);
@@ -140,7 +140,7 @@ static GF_Node *add_transform(SVG_SANI_BIFS_Converter *converter, GF_Node *node)
 static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	u32 i;
-	SVG_SANI_BIFS_Converter *converter = (SVG_SANI_BIFS_Converter *)sax_cbck;
+	SVG2BIFS_Converter *converter = (SVG2BIFS_Converter *)sax_cbck;
 	SVGPropertiesPointers *backup_props;
 	char *id_string = NULL;
 
@@ -347,52 +347,69 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 					if (converter->all_atts.d) {
 						M_Coordinate2D *c2d;
 						M_XCurve2D *xc = (M_XCurve2D *)shape->geometry;
-						u32 i, j, c;
+						u32 i, j, c, k;
 
 						xc->point = gf_node_new(converter->bifs_sg, TAG_MPEG4_Coordinate2D);
 						c2d = (M_Coordinate2D *)xc->point;
 						gf_node_register(xc->point, (GF_Node *)xc);
 						
 						gf_sg_vrml_mf_alloc(&c2d->point, GF_SG_VRML_MFVEC2F, converter->all_atts.d->n_points);
-						j= 0;
-						for (i = 0; i < converter->all_atts.d->n_points; i++) {
-							if (converter->all_atts.d->tags[i] != GF_PATH_CLOSE || i == converter->all_atts.d->n_points-1) {
-								c2d->point.vals[j] = converter->all_atts.d->points[i];
-								j++;
-							}
-						}
-						c2d->point.count = j;
-
 						gf_sg_vrml_mf_alloc(&xc->type, GF_SG_VRML_MFINT32, converter->all_atts.d->n_points);
+
 						c = 0;
+						k = 0;
 						j = 0;
+						c2d->point.vals[k] = converter->all_atts.d->points[0];
+						k++;
 						xc->type.vals[0] = 0;
-						for (i = 1; i < converter->all_atts.d->n_points; i++) {
+						for (i = 1; i < converter->all_atts.d->n_points; ) {
 							switch(converter->all_atts.d->tags[i]) {
 							case GF_PATH_CURVE_ON:
-								if (c < converter->all_atts.d->n_contours &&
-									i-1 == converter->all_atts.d->contours[c]) {
+								c2d->point.vals[k] = converter->all_atts.d->points[i];
+								k++;
+
+								if (i-1 == converter->all_atts.d->contours[c]) {
 									xc->type.vals[j] = 0;
 									c++;
 								} else {
 									xc->type.vals[j] = 1;
 								}
+								i++;
 								break;
 							case GF_PATH_CURVE_CUBIC:
+								c2d->point.vals[k] = converter->all_atts.d->points[i];
+								c2d->point.vals[k+1] = converter->all_atts.d->points[i+1];
+								c2d->point.vals[k+2] = converter->all_atts.d->points[i+2];
+								k+=3;
+
 								xc->type.vals[j] = 2;
-								i+=2;
+								if (converter->all_atts.d->tags[i+2]==GF_PATH_CLOSE)  {
+									j++;
+									xc->type.vals[j] = 6;
+								}
+								i+=3;
 								break;
 							case GF_PATH_CLOSE:
 								xc->type.vals[j] = 6;
+								i++;
 								break;
 							case GF_PATH_CURVE_CONIC:
+								c2d->point.vals[k] = converter->all_atts.d->points[i];
+								c2d->point.vals[k+1] = converter->all_atts.d->points[i+1];
+								k+=2;
+
 								xc->type.vals[j] = 7;
-								i++;
+								if (converter->all_atts.d->tags[i+1]==GF_PATH_CLOSE)  {
+									j++;
+									xc->type.vals[j] = 6;
+								}
+								i+=2;
 								break;
 							}
 							j++;
 						}
 						xc->type.count = j;
+						c2d->point.count = k;
 					}			
 					
 					shape->appearance = create_appearance(&converter->svg_props, converter->bifs_sg);
@@ -589,7 +606,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 
 static void svg2bifs_node_end(void *sax_cbck, const char *name, const char *name_space)
 {
-	SVG_SANI_BIFS_Converter *converter = (SVG_SANI_BIFS_Converter *)sax_cbck;
+	SVG2BIFS_Converter *converter = (SVG2BIFS_Converter *)sax_cbck;
 	GF_Node *parent;
 
 	SVGPropertiesPointers *backup_props = gf_node_get_private(converter->svg_parent);
@@ -607,7 +624,7 @@ static void svg2bifs_node_end(void *sax_cbck, const char *name, const char *name
 
 static void svg2bifs_text_content(void *sax_cbck, const char *text_content, Bool is_cdata)
 {
-	SVG_SANI_BIFS_Converter *converter = (SVG_SANI_BIFS_Converter *)sax_cbck;
+	SVG2BIFS_Converter *converter = (SVG2BIFS_Converter *)sax_cbck;
 	if (converter->bifs_text_node) {
 		M_Text *text = (M_Text *)converter->bifs_text_node;
 		gf_sg_vrml_mf_alloc(&text->string, GF_SG_VRML_MFSTRING, 1);
@@ -617,13 +634,13 @@ static void svg2bifs_text_content(void *sax_cbck, const char *text_content, Bool
 
 int main(int argc, char **argv)
 {
-	SVG_SANI_BIFS_Converter *converter;
+	SVG2BIFS_Converter *converter;
 	GF_SceneDumper *dump;
 	char *tmp;
 
 	gf_sys_init();
 
-	GF_SAFEALLOC(converter, SVG_SANI_BIFS_Converter);
+	GF_SAFEALLOC(converter, SVG2BIFS_Converter);
 
 	converter->sax_parser = gf_xml_sax_new(svg2bifs_node_start, svg2bifs_node_end, svg2bifs_text_content, converter);
 	

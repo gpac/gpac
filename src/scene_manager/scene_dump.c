@@ -210,7 +210,6 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 			fprintf(sdump->trace, " <Body>\n");
 			if (!root_od) {
 				fprintf(sdump->trace, "  <Replace>\n");
-				fprintf(sdump->trace, "   <Scene>\n");
 			}
 		} else {
 			if (sdump->dump_mode==GF_SM_DUMP_VRML) {
@@ -247,7 +246,6 @@ void SD_FinalizeDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 
 	if (!sdump->X3DDump) {
 		if (!root_od) {
-			fprintf(sdump->trace, "   </Scene>\n");
 			fprintf(sdump->trace, "  </Replace>\n");
 		}
 		fprintf(sdump->trace, " </Body>\n");

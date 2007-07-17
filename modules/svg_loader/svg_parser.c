@@ -505,7 +505,7 @@ static void parse_attributename(SVG_SA_Element *animation_element, char *value_s
 	gf_node_get_field_by_name((GF_Node *)animation_element, "xlink:href", &xlink_href);
 	gf_node_get_field_by_name((GF_Node *)animation_element, "attributeName", &attribute_name);
 
-	targetElement = ((SVG_IRI *)xlink_href.far_ptr)->target;
+	targetElement = ((XMLRI *)xlink_href.far_ptr)->target;
 
 	if (!targetElement) {
 #ifdef PRINT_WARNING
@@ -542,7 +542,7 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVG_SA
 			gf_svg_parse_attribute((GF_Node *)elt,&xlink_href,  href, 0, 0);
 		} else {
 			/* default is the parent element */
-			elt->xlink->href.type = SVG_IRI_ELEMENTID;
+			elt->xlink->href.type = XMLRI_ELEMENTID;
 			elt->xlink->href.target = parent;
 			gf_svg_register_iri(parser->graph, &elt->xlink->href);
 		}
@@ -562,8 +562,13 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVG_SA
 					/* parsing the type attribute of the animateTransform node,
 					   so we set the value of anim_transform_type to be able to parse 
 					   the animation values appropriately */
+<<<<<<< svg_parser.c
+					gf_svg_parse_attribute(elt, &type_info, type, 0, 0);
+					anim_value_type		= SVG_Transform_datatype;
+=======
 					gf_svg_parse_attribute((GF_Node *)elt, &type_info, type, 0, 0);
 					anim_value_type		= SVG_Matrix_datatype;
+>>>>>>> 1.76
 					anim_transform_type = *(SVG_TransformType*)type_info.far_ptr;
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG] type attribute not found.\n"));
@@ -670,7 +675,7 @@ void svg_parse_sax_defered_anchor(SVGParser *parser, SVG_SA_Element *anchor_elt,
 		gf_svg_parse_attribute((GF_Node *)anchor_elt, &xlink_href_info, local_de.target_id, 0, 0);
 	else {
 		/* default is the parent element */
-		local_de.animation_elt->xlink->href.type = SVG_IRI_ELEMENTID;
+		local_de.animation_elt->xlink->href.type = XMLRI_ELEMENTID;
 		local_de.animation_elt->xlink->href.target = local_de.parent;
 		gf_svg_register_iri(parser->graph, &local_de.animation_elt->xlink->href);
 	}
@@ -688,7 +693,7 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVG_SA_Element *animatio
 		free(local_de.target_id);
 	} else {
 		/* default is the parent element */
-		local_de.animation_elt->xlink->href.type = SVG_IRI_ELEMENTID;
+		local_de.animation_elt->xlink->href.type = XMLRI_ELEMENTID;
 		local_de.animation_elt->xlink->href.target = local_de.parent;
 		gf_svg_register_iri(parser->graph, &local_de.animation_elt->xlink->href);
 	}
@@ -715,8 +720,13 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVG_SA_Element *animatio
 		/* determine the transform_type in case of animateTransform attribute */
 		GF_FieldInfo type_info;
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "type", &type_info);
+<<<<<<< svg_parser.c
+		gf_svg_parse_attribute(animation_elt, &type_info, local_de.type, 0, 0);
+		anim_value_type = SVG_Transform_datatype;
+=======
 		gf_svg_parse_attribute((GF_Node *)animation_elt, &type_info, local_de.type, 0, 0);
 		anim_value_type = SVG_Matrix_datatype;
+>>>>>>> 1.76
 		anim_transform_type = *(SVG_TransformType*)type_info.far_ptr;
 	} 
 
@@ -953,10 +963,10 @@ SVG_SA_Element *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, co
 			{
 				href_instance *hi = gf_list_get(parser->unresolved_hrefs, i);
 				if (hi) {
-					SVG_IRI *iri = hi->iri;
-					GF_Node *targ = gf_sg_find_node_by_name(parser->graph, &(iri->iri[1]));
+					XMLRI *iri = hi->iri;
+					GF_Node *targ = gf_sg_find_node_by_name(parser->graph, &(iri->string[1]));
 					if (iri->target) {
-						hi->elt->xlink->href.type = SVG_IRI_ELEMENTID;
+						hi->elt->xlink->href.type = XMLRI_ELEMENTID;
 						hi->elt->xlink->href.target = (SVG_SA_Element *)targ;
 						gf_svg_register_iri(parser->graph, &hi->elt->xlink->href);
 						gf_node_init((GF_Node *)hi->elt);
@@ -1067,15 +1077,15 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 	/* Resolve hrefs */
 	while (gf_list_count(parser->unresolved_hrefs) > 0) {
 		href_instance *hi = gf_list_get(parser->unresolved_hrefs, 0);
-		SVG_IRI *iri = hi->iri;
-		GF_Node *targ =  gf_sg_find_node_by_name(parser->graph, &(iri->iri[1]));
+		XMLRI *iri = hi->iri;
+		GF_Node *targ =  gf_sg_find_node_by_name(parser->graph, &(iri->string[1]));
 		gf_list_rem(parser->unresolved_hrefs, 0);
 		if (targ) {
-			hi->elt->xlink->href.type = SVG_IRI_ELEMENTID;
+			hi->elt->xlink->href.type = XMLRI_ELEMENTID;
 			hi->elt->xlink->href.target = (SVG_SA_Element *)targ;
 			gf_svg_register_iri(parser->graph, &hi->elt->xlink->href);
-			if (iri->iri) free(iri->iri);
-			iri->iri = NULL;
+			if (iri->string) free(iri->string);
+			iri->string = NULL;
 		}
 	}
 

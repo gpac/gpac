@@ -403,7 +403,7 @@ Bool gf_svg_is_timing_tag(u32 tag);
 Bool gf_svg_is_animation_tag(u32 tag);
 u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info);
 
-Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *anim_parent, GF_List *smil_times, Bool is_end, const char *node_name);
+Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *event_base_element, GF_List *smil_times, Bool is_end, const char *node_name);
 
 
 /* SMIL Timing structures */

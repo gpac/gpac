@@ -316,7 +316,7 @@ static void svg_render_bitmap(GF_Node *node, void *rs)
 				const char *cache_dir = gf_cfg_get_key(st->txh.compositor->user->config, "General", "CacheDirectory");
 				gf_svg_store_embedded_data(href_info.far_ptr, cache_dir, "embedded_");
 
-				if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, href_info.far_ptr) == GF_OK) {
+				if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, href_info.far_ptr)) {
 					gf_term_set_mfurl_from_uri(st->txh.compositor->term, &(st->txurl), href_info.far_ptr);
 					svg_play_texture(st, &all_atts);
 				}

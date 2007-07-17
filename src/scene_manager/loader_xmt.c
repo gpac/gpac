@@ -1422,7 +1422,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 		if (parser->proto_field && (!strcmp(name, "node") || !strcmp(name, "nodes")) ) 
 			return NULL;
 		/*anim & QP info */
-		if (parser->proto_field  && !strcmp(name, "InterfaceCodingParameter")) {
+		if (parser->proto_field  && !strcmp(name, "InterfaceCodingParameters")) {
 			u32 qp_type, nbBits, hasMinMax, qp_sftype;
 			Fixed ftMin, ftMax;
 			ftMin = ftMax = 0;
