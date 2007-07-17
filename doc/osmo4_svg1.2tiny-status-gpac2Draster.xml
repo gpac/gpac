@@ -1,183 +1,523 @@
-<?xml version="1.0"?>
-<testSuiteStatus>
-    <!--=============================================================-->
-    <!-- This file contains the header portion of the                -->
-    <!-- test_status.xml file.                                       -->
-    <!--=============================================================-->
-    <!-- $Id: osmo4_svg1.2tiny-status-gpac2Draster.xml,v 1.1 2006-05-18 06:46:44 cconcolato Exp $ -->
-    <!--=============================================================-->
-    <contributors>
-        <contributor email="Ola.Andersson@zoomon.com" symbol="OA"
-        name="Ola Anderson" />
-        <contributor email="benoit@itedo.com" symbol="BB"
-        name="Benoit Bezaire" />
-        <contributor email="Vincent.Hardy@sun.com" symbol="VH"
-        name="Vincent Hardy" />
-        <contributor email="shayman@rim.com" symbol="SH"
-        name="Scott Hayman" />
-        <contributor email="Michael.Ingrassia@nokia.com" symbol="MI"
-        name="Michael Ingrassia" />
-        <contributor email="chris@w3.org" symbol="CL"
-        name="Chris Lilley" />
-        <contributor email="craign@cisra.canon.com.au" symbol="CN"
-        name="Craig Northway" />
-        <contributor email="ueda.hirotaka@sharp.co.jp" symbol="UH"
-        name="Hirotaka Ueda" />
-        <contributor email="aq@fuchsia-design.com" symbol="AQ"
-        name="Antoine Quint" />
-        <contributor email="jon.ferraiolo@adobe.com" symbol="JF"
-        name="Jon Ferraiolo" />
-    </contributors>
-
-    <!-- ================================================================== -->
-    <!-- The featureTests element describes all the tests needed for a      -->
-    <!-- given feature or specification chapter.                            -->
-    <!--                                                                    -->
-    <!-- + the featureName attribute describes the feature.                 -->
-    <!-- + the owner attribute should be the two-letter acronym of the test -->
-    <!--   owner(see the minutes template for a list of values.             -->
-    <!-- + the evaluationComplete attribute should be 'true' or 'false'     -->
-    <!-- + the version attribute should be 1.1 or 1.2.                      -->
-    <!-- ================================================================== -->
-
-    <!-- ================================================================== -->
-    <!-- The test element describes a test shortly and captures its         -->
-    <!-- status.                                                            -->
-    <!--                                                                    --> 
-    <!-- + the name attribute is the full test name such as                 -->
-    <!--   animate-elem-34-t.svg.                                           -->
-    <!-- + the owner attribute is the two letter accronym.                  -->
-    <!-- + the reviewer attribute is the two-letter accronym of the         -->
-    <!--   reviewer.                                                        -->
-    <!-- + the status attribute is one of:                                  -->
-    <!--   . empty : the evaluation has determined this test is needed      -->
-    <!--            but the test has not been created.                      -->
-    <!--   . created : the test has been created and is ready for review    -->
-    <!--   . reviewed : the test has been reviewed and approved             -->
-    <!--   . imageCreated : the test reference image has been generated.    -->
-    <!--   . imageOwnerReviewed : the reference image has been reviewed     -->
-    <!--            by the test owner.                                      -->
-    <!--   . accepted : The test and the reference image have been reviewed -->
-    <!--            and accepted                                            -->
-    <!-- + the issue attribute is optional. If present, it means that       -->
-    <!--   the test has raised an issue and the value is the issue #        -->
-    <!-- ================================================================== -->
-<featureTests featureName="" sectionNumber="19.2"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-animation-117-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom animations</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-bubbling-107-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test event bubbling</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-clippath-113-f.svg" owner="JF" reviewer="[reviewer]" status="created">Custom clippath example</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-clippathprimitives-121-f.svg" owner="JF" reviewer="[reviewer]" status="created">Custom clippath primitives example</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-disallow-103-f.svg" owner="JF" reviewer="[reviewer]" status="created">Verify that bindings in the SVG namespace are not honored</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-disallow-104-f.svg" owner="JF" reviewer="[reviewer]" status="created">Verify that bindings in the SVG namespace are not honored</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-disallow-105-f.svg" owner="JF" reviewer="[reviewer]" status="created">Verify that bindings against an SVG element are not honored</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-extref-102-f.svg" owner="JF" reviewer="[reviewer]" status="created">Simple sXBL external reference example</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-filter-115-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom filters</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-filterprimitives-118-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom filter primitives</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-gradientprimitives-120-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom gradient primitivess</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-gradients-109-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom gradients</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-marker-112-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom markers</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-mask-114-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom masks</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-patterns-110-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom patterns</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-presentationatts-108-f.svg" owner="JF" reviewer="[reviewer]" status="created">Verify that user agent ignores presentation attributes on custom elements</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-rendering-106-f.svg" owner="JF" reviewer="[reviewer]" status="created">Verify adherence to sXBL rendering rules</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-simple-101-f.svg" owner="JF" reviewer="[reviewer]" status="created">Simple sXBL (hello world) example</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-solidColor-111-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom solidColor definitions</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-traitDef-122-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test the traitDef element</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-vectoreffect-116-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom vector effects</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-vectoreffectprimitives-119-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom vector effect primitives</test>
-</featureTests>
-<featureTests featureName="Alternate content based on display resolutions" sectionNumber="12.3"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="media-multires-101-f.svg" owner="unknown" reviewer="" status="created">multiImage with just subImageRef children</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="media-multires-102-f.svg" owner="unknown" reviewer="" status="created">multiImage element with both subImageRef and subImage</test>
-</featureTests>
-<featureTests featureName="Animation elements" sectionNumber="19.2"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animate-elem-101-t.svg" owner="SH" reviewer="[reviewer]" status="created">Tests the animation of the       vector-effect property</test>
-</featureTests>
-<featureTests featureName="Background Fill Property" sectionNumber="11.1"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-background-101-t.svg" owner="SH" reviewer="CL" status="reviewed">Tests the background-fill and background-fill-opacity       properties</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-background-102-f.svg" owner="CL" reviewer="[reviewer]" status="created">Tests the background-fill and background-fill-opacity       properties on nested svg elements</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-background-103-t.svg" owner="CL" reviewer="[reviewer]" status="created">Tests the background-fill and background-fill-opacity       properties with solidColor</test>
-</featureTests>
-<featureTests featureName="CSS Stylesheets" sectionNumber="3.11"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-css-123-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test CSS stylesheet processing</test>
-</featureTests>
-<featureTests featureName="Element focus and navigation" sectionNumber="15.1"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="applications-focus-101-t.svg" owner="AQ" reviewer="[reviewer]" status="created">Test for directional focus   navigation attributes</test>
-</featureTests>
-<featureTests featureName="Enhanced Alpha Compositing" sectionNumber="10.1"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-101-f.svg" owner="CN" reviewer="[reviewer]" status="created">This file tests all the compositing operators</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-102-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of atop operator</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-103-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of 'clip to self' operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-104-f.svg" owner="CN" reviewer="[reviewer]" status="created">This file tests the clip-to-self     attribute with all compositing operators</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-105-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of color_burn operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-106-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of color_dodge operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-107-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of darken operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-108-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of difference operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-109-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of enable-background.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-110-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of exclusion operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-111-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of hard-light operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-112-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of knock-out on compositing operations.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-113-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of lighten operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-114-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of multiply operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-115-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of overlay operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-116-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of screen operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-117-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of soft-light operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-118-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of src-in operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-119-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of src_out operator.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-120-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of src_over operator.</test>
-</featureTests>
-<featureTests featureName="Extended links" sectionNumber="14."><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="extendedlinks-intro-101-f.svg" owner="[CL]" reviewer="[reviewer]" status="created">[extended links with title attributes]</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="extendedlinks-intro-102-f.svg" owner="[CL]" reviewer="[reviewer]" status="created">[extended links with title elements]</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="extendedlinks-intro-103-f.svg" owner="[CL]" reviewer="[reviewer]" status="created">[extended links with a single choice]</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="extendedlinks-intro-104-f.svg" owner="[CL]" reviewer="[reviewer]" status="created">[extended links with switch for titles]</test>
-</featureTests>
-<featureTests featureName="Filter Region extensions" sectionNumber="11.9"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-margin-101-f.svg" owner="VH" reviewer="unknown" status="created">Compares the same filter with and without margins</test>
-</featureTests>
-<featureTests featureName="Filter primitives overview" sectionNumber="15.7"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="filters-overview-102-b.svg" owner="VH" reviewer="unknown" status="created">checks         that the paddings are properly handled</test>
-</featureTests>
-<featureTests featureName="Focus and navigation" sectionNumber="3.12"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-focus-124-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test CSS stylesheet processing</test>
-</featureTests>
-<featureTests featureName="Navigation between pages" sectionNumber="5.6"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-nav-101-t.svg" owner="CN" reviewer="VH" status="reviewed">This tests the navigation of pages using durations.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-nav-102-t.svg" owner="CN" reviewer="VH" status="reviewed">This tests the navigation of pages using begin and end.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-nav-103-t.svg" owner="CN" reviewer="VH" status="reviewed">This tests the navigation of pages using events for end.</test>
-</featureTests>
-<featureTests featureName="Overlaying graphics" sectionNumber="11.15"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-overlay-101-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test overlay and overlay-host properties</test>
-</featureTests>
-<featureTests featureName="Specifying a snapshot time" sectionNumber="17.4"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="nonvisual-snapshot-101-t.svg" owner="OA" reviewer="[reviewer]" status="empty">Test the snapShotTime attribute on the root svg element.</test>
-</featureTests>
-<featureTests featureName="Specifying paint" sectionNumber="11.7"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-paint-101-f.svg" owner="CN" reviewer="[reviewer]" status="created">This test uses icc-named-color.</test>
-</featureTests>
-<featureTests featureName="Text Flow" sectionNumber="4.12"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="flow-flow-101-t.svg" owner="CL" reviewer="[reviewer]" status="created">[basic text flow in a single region]</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="flow-flow-102-t.svg" owner="CL" reviewer="[reviewer]" status="created">[Text flow with Japanese text, and styled spans.]</test>
-</featureTests>
-<featureTests featureName="The 'use' element" sectionNumber="5.6"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="struct-use-101-t.svg" owner="unknown" reviewer="" status="created">Inheritance of properties through shadow tree with use</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="struct-use-102-t.svg" owner="OA" reviewer="[reviewer]" status="created">Tests external references on the use element</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="struct-use-103-t.svg" owner="OA" reviewer="[reviewer]" status="created">Tests animated external references on the use element</test>
-</featureTests>
-<featureTests featureName="The animation element" sectionNumber="13.1"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animation-animate-101-t.svg" owner="OA" reviewer="[reviewer]" status="created">Test the animation element</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animation-animate-102-t.svg" owner="OA" reviewer="[reviewer]" status="created">Test the animation element</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animation-animate-103-t.svg" owner="OA" reviewer="[reviewer]" status="created">Test the animation element</test>
-</featureTests>
-<featureTests featureName="The audio element" sectionNumber="12.1"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="media-audio-101-t.svg" owner="UH" reviewer="unknown" status="created">Plays music files</test>
-</featureTests>
-<featureTests featureName="The flowDiv element" sectionNumber="4.4"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="flow-div-101-t.svg" owner="CL" reviewer="[reviewer]" status="created">[basic text flow in a single non rectangular region, with a flowdiv]</test>
-</featureTests>
-<featureTests featureName="The pageSet element" sectionNumber="5.3"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-pageset-101-t.svg" owner="HU" reviewer="[reviewer]" status="created">This is the test for multiple pages.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-pageset-102-t.svg" owner="CN" reviewer="[reviewer]" status="created">This tests static rendering of paginated content</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-pageset-103-t.svg" owner="CN" reviewer="[reviewer]" status="created">This tests static rendering of paginated content</test>
-</featureTests>
-<featureTests featureName="The solidColor Element" sectionNumber="11.4"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-solidcolor-101-f.svg" owner="VH" reviewer="unknown" status="created">Tests solidColour</test>
-</featureTests>
-<featureTests featureName="The veFill element" sectionNumber="9.11"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-fill-101-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veFill fill types]</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-fill-102-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veFill multi fill ]</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-fill-103-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veFill empty ]</test>
-</featureTests>
-<featureTests featureName="The veStroke element" sectionNumber="9.12"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-stroke-101-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veStroke fill types]</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-stroke-102-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veStroke multiple strokes]</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-stroke-103-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veStroke empty]</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-stroke-104-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veStroke stroke order]</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-stroke-105-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veStroke attribute inheritance]</test>
-</featureTests>
-<featureTests featureName="The vector-effect property" sectionNumber="9.18"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-prop-101-t.svg" owner="SH" reviewer="[reviewer]" status="created">Tests the vector-effect       property</test>
-</featureTests>
-<featureTests featureName="The video element" sectionNumber="12.2"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="media-video-101-f.svg" owner="[CL]" reviewer="[reviewer]" status="created">[video example derived from spec]</test>
-</featureTests>
-<featureTests featureName="Time containers" sectionNumber="13.3"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animation-timecontainer-101-t.svg" owner="OA" reviewer="[reviewer]" status="empty">Test the timing attributes on the root svg element.</test>
-<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animation-timecontainer-102-t.svg" owner="OA" reviewer="[reviewer]" status="empty">Test the timing attributes on the root svg element.</test>
-</featureTests>
-<featureTests featureName="Using device colors" sectionNumber="11.5"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-devicecolor-101-f.svg" owner="CN" reviewer="CL" status="created">This test uses device-color.</test>
-</featureTests>
-</testSuiteStatus>
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- shortName=A unique abbreviation to be used for a file name for this file             -->
+<!--        and column header for the matrix.  MUST be a legal xml id prefix and fileName -->
+<!--       (shortName.xml) please make it 3-12 characters and do not use spaces.          -->
+<!-- company=Your company name as you would like it to appear in documentation            -->
+<!-- product=The name of the product you are running the test on                          -->
+<!-- version=The version number of the product being tested                               -->
+<!-- platform=The platform(s) that the product is tested on                               -->
+<!-- date=The date of the submission in the form year/month/day, eg. 2002/08/30           -->
+<svg-status-query company=""
+		date=""
+		product=""
+		version=""
+		shortName=""
+		profile="tiny">
+<!-- test attributes:                                                                   -->
+<!--    status=must be one of 'OK', 'PARTIAL', or 'FAIL'                                -->
+<!--    comment=optional comment to publish with the result, like why you don't pass :) -->
+	<test name="animate-elem-02-t" revision="1.7" status="" comment=""/>
+	<test name="animate-elem-03-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-04-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-05-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-06-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-07-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-08-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-09-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-10-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-11-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-12-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-13-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-14-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-15-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-17-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-19-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-20-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-201-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-202-t" revision="1.2" status="" comment=""/>
+	<test name="animate-elem-203-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-204-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-205-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-206-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-207-t" revision="1.2" status="" comment=""/>
+	<test name="animate-elem-208-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-209-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-21-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-210-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-211-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-212-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-213-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-214-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-215-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-216-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-217-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-218-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-219-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-22-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-220-t" revision="1.2" status="" comment=""/>
+	<test name="animate-elem-221-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-222-t" revision="1.2" status="" comment=""/>
+	<test name="animate-elem-223-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-224-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-23-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-24-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-25-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-26-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-27-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-28-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-29-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-30-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-31-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-32-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-33-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-34-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-35-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-36-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-37-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-38-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-39-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-40-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-41-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-44-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-46-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-52-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-53-t" revision="1.1" status="" comment=""/>
+	<test name="animate-elem-60-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-61-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-62-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-63-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-64-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-65-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-66-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-67-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-68-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-69-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-70-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-77-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-78-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-80-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-81-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-82-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-83-t" revision="1.6" status="" comment=""/>
+	<test name="animate-elem-84-t" revision="1.4" status="" comment=""/>
+	<test name="animate-elem-85-t" revision="1.5" status="" comment=""/>
+	<test name="animate-elem-86-t" revision="1.2" status="" comment=""/>
+	<test name="coords-constr-201-t" revision="1.3" status="" comment=""/>
+	<test name="coords-constr-202-t" revision="1.3" status="" comment=""/>
+	<test name="coords-constr-203-t" revision="1.3" status="" comment=""/>
+	<test name="coords-constr-204-t" revision="1.2" status="" comment=""/>
+	<test name="coords-coord-01-t" revision="1.4" status="" comment=""/>
+	<test name="coords-coord-02-t" revision="1.4" status="" comment=""/>
+	<test name="coords-pAR-201-t" revision="1.3" status="" comment=""/>
+	<test name="coords-trans-01-t" revision="1.7" status="" comment=""/>
+	<test name="coords-trans-02-t" revision="1.7" status="" comment=""/>
+	<test name="coords-trans-03-t" revision="1.7" status="" comment=""/>
+	<test name="coords-trans-04-t" revision="1.7" status="" comment=""/>
+	<test name="coords-trans-05-t" revision="1.7" status="" comment=""/>
+	<test name="coords-trans-06-t" revision="1.8" status="" comment=""/>
+	<test name="coords-trans-07-t" revision="1.1" status="" comment=""/>
+	<test name="coords-trans-08-t" revision="1.1" status="" comment=""/>
+	<test name="coords-trans-09-t" revision="1.1" status="" comment=""/>
+	<test name="coords-units-01-t" revision="1.9" status="" comment=""/>
+	<test name="coords-viewattr-05-t" revision="1.11" status="" comment=""/>
+	<test name="coords-viewattr-06-t" revision="1.4" status="" comment=""/>
+	<test name="extend-namespace-02-t" revision="1.6" status="" comment=""/>
+	<test name="fonts-desc-01-t" revision="1.2" status="" comment=""/>
+	<test name="fonts-desc-02-t" revision="1.4" status="" comment=""/>
+	<test name="fonts-desc-03-t" revision="1.1" status="" comment=""/>
+	<test name="fonts-desc-05-t" revision="1.1" status="" comment=""/>
+	<test name="fonts-elem-01-t" revision="1.6" status="" comment=""/>
+	<test name="fonts-elem-02-t" revision="1.6" status="" comment=""/>
+	<test name="fonts-elem-03-t" revision="1.5" status="" comment=""/>
+	<test name="fonts-elem-05-t" revision="1.4" status="" comment=""/>
+	<test name="fonts-elem-06-t" revision="1.4" status="" comment=""/>
+	<test name="fonts-glyph-02-t" revision="1.4" status="" comment=""/>
+	<test name="fonts-glyph-03-t" revision="1.4" status="" comment=""/>
+	<test name="fonts-glyph-04-t" revision="1.4" status="" comment=""/>
+	<test name="fonts-glyph-201-t" revision="1.3" status="" comment=""/>
+	<test name="fonts-glyph-202-t" revision="1.4" status="" comment=""/>
+	<test name="fonts-kern-01-t" revision="1.5" status="" comment=""/>
+	<test name="fonts-overview-201-t" revision="1.4" status="" comment=""/>
+	<test name="interact-dom-02-t" revision="1.6" status="" comment=""/>
+	<test name="interact-event-201-t" revision="1.4" status="" comment=""/>
+	<test name="interact-event-202-t" revision="1.3" status="" comment=""/>
+	<test name="interact-event-203-t" revision="1.2" status="" comment=""/>
+	<test name="interact-events-02-t" revision="1.5" status="" comment=""/>
+	<test name="interact-focus-201-t" revision="1.4" status="" comment=""/>
+	<test name="interact-focus-202-t" revision="1.3" status="" comment=""/>
+	<test name="interact-focus-203-t" revision="1.3" status="" comment=""/>
+	<test name="interact-focus-204-t" revision="1.4" status="" comment=""/>
+	<test name="interact-focus-205-t" revision="1.3" status="" comment=""/>
+	<test name="interact-focus-206-t" revision="1.3" status="" comment=""/>
+	<test name="interact-focus-207-t" revision="1.3" status="" comment=""/>
+	<test name="interact-focus-208-t" revision="1.3" status="" comment=""/>
+	<test name="interact-focus-209-t" revision="1.3" status="" comment=""/>
+	<test name="interact-focus-210-t" revision="1.3" status="" comment=""/>
+	<test name="interact-focus-211-t" revision="1.5" status="" comment=""/>
+	<test name="interact-focus-212-t" revision="1.2" status="" comment=""/>
+	<test name="interact-order-04-t" revision="1.6" status="" comment=""/>
+	<test name="interact-order-05-t" revision="1.6" status="" comment=""/>
+	<test name="interact-order-06-t" revision="1.6" status="" comment=""/>
+	<test name="interact-pevents-01-t" revision="1.4" status="" comment=""/>
+	<test name="interact-pevents-02-t" revision="1.6" status="" comment=""/>
+	<test name="interact-pevents-03-t" revision="1.4" status="" comment=""/>
+	<test name="interact-pevents-04-t" revision="1.7" status="" comment=""/>
+	<test name="interact-pevents-05-t" revision="1.3" status="" comment=""/>
+	<test name="interact-pevents-06-t" revision="1.3" status="" comment=""/>
+	<test name="interact-pevents-07-t" revision="1.3" status="" comment=""/>
+	<test name="interact-pevents-08-t" revision="1.5" status="" comment=""/>
+	<test name="interact-zoom-01-t" revision="1.6" status="" comment=""/>
+	<test name="interact-zoom-02-t" revision="1.6" status="" comment=""/>
+	<test name="interact-zoom-03-t" revision="1.6" status="" comment=""/>
+	<test name="jpeg-required-201-t" revision="1.2" status="" comment=""/>
+	<test name="jpeg-required-202-t" revision="1.2" status="" comment=""/>
+	<test name="jpeg-required-203-t" revision="1.2" status="" comment=""/>
+	<test name="jpeg-required-204-t" revision="1.2" status="" comment=""/>
+	<test name="jpeg-required-205-t" revision="1.2" status="" comment=""/>
+	<test name="jpeg-required-206-t" revision="1.2" status="" comment=""/>
+	<test name="jpeg-required-207-t" revision="1.2" status="" comment=""/>
+	<test name="jpeg-required-208-t" revision="1.2" status="" comment=""/>
+	<test name="jpeg-required-209-t" revision="1.2" status="" comment=""/>
+	<test name="jpeg-required-210-t" revision="1.2" status="" comment=""/>
+	<test name="linking-a-01-t" revision="1.4" status="" comment=""/>
+	<test name="linking-a-03-t" revision="1.4" status="" comment=""/>
+	<test name="linking-a-04-t" revision="1.5" status="" comment=""/>
+	<test name="linking-a-05-t" revision="1.4" status="" comment=""/>
+	<test name="linking-a-07-t" revision="1.5" status="" comment=""/>
+	<test name="linking-a-08-t" revision="1.2" status="" comment=""/>
+	<test name="linking-frag-201-t" revision="1.2" status="" comment=""/>
+	<test name="linking-frag-202-t" revision="1.2" status="" comment=""/>
+	<test name="linking-refs-201-t" revision="1.4" status="" comment=""/>
+	<test name="linking-refs-202-t" revision="1.4" status="" comment=""/>
+	<test name="linking-refs-203-t" revision="1.4" status="" comment=""/>
+	<test name="linking-refs-204-t" revision="1.4" status="" comment=""/>
+	<test name="linking-refs-205-t" revision="1.4" status="" comment=""/>
+	<test name="linking-uri-01-t" revision="1.5" status="" comment=""/>
+	<test name="linking-uri-02-t" revision="1.5" status="" comment=""/>
+	<test name="linking-uri-03-t" revision="1.6" status="" comment=""/>
+	<test name="media-alevel-201-t" revision="1.5" status="" comment=""/>
+	<test name="media-alevel-202-t" revision="1.5" status="" comment=""/>
+	<test name="media-alevel-203-t" revision="1.2" status="" comment=""/>
+	<test name="media-alevel-204-t" revision="1.2" status="" comment=""/>
+	<test name="media-alevel-205-t" revision="1.2" status="" comment=""/>
+	<test name="media-alevel-206-t" revision="1.3" status="" comment=""/>
+	<test name="media-alevel-207-t" revision="1.2" status="" comment=""/>
+	<test name="media-alevel-208-t" revision="1.2" status="" comment=""/>
+	<test name="media-anim-201-t" revision="1.4" status="" comment=""/>
+	<test name="media-anim-202-t" revision="1.4" status="" comment=""/>
+	<test name="media-anim-203-t" revision="1.4" status="" comment=""/>
+	<test name="media-anim-204-t" revision="1.5" status="" comment=""/>
+	<test name="media-anim-205-t" revision="1.4" status="" comment=""/>
+	<test name="media-anim-206-t" revision="1.4" status="" comment=""/>
+	<test name="media-anim-207-t" revision="1.4" status="" comment=""/>
+	<test name="media-anim-208-t" revision="1.5" status="" comment=""/>
+	<test name="media-anim-209-t" revision="1.3" status="" comment=""/>
+	<test name="media-anim-210-t" revision="1.5" status="" comment=""/>
+	<test name="media-anim-211-t" revision="1.2" status="" comment=""/>
+	<test name="media-anim-212-t" revision="1.3" status="" comment=""/>
+	<test name="media-anim-213-t" revision="1.1" status="" comment=""/>
+	<test name="media-audio-201-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-202-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-203-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-204-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-205-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-206-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-207-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-208-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-209-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-210-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-211-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-212-t" revision="1.2" status="" comment=""/>
+	<test name="media-audio-213-t" revision="1.3" status="" comment=""/>
+	<test name="media-audio-214-t" revision="1.1" status="" comment=""/>
+	<test name="media-synch-201-t" revision="1.4" status="" comment=""/>
+	<test name="media-synch-202-t" revision="1.4" status="" comment=""/>
+	<test name="media-synch-203-t" revision="1.3" status="" comment=""/>
+	<test name="media-synch-204-t" revision="1.3" status="" comment=""/>
+	<test name="media-synch-205-t" revision="1.3" status="" comment=""/>
+	<test name="media-synch-206-t" revision="1.3" status="" comment=""/>
+	<test name="media-synch-207-t" revision="1.3" status="" comment=""/>
+	<test name="media-synch-208-t" revision="1.3" status="" comment=""/>
+	<test name="media-synch-209-t" revision="1.3" status="" comment=""/>
+	<test name="media-synch-210-t" revision="1.3" status="" comment=""/>
+	<test name="media-synch-211-t" revision="1.3" status="" comment=""/>
+	<test name="media-video-201-t" revision="1.3" status="" comment=""/>
+	<test name="media-video-202-t" revision="1.4" status="" comment=""/>
+	<test name="media-video-203-t" revision="1.3" status="" comment=""/>
+	<test name="media-video-204-t" revision="1.4" status="" comment=""/>
+	<test name="media-video-205-t" revision="1.4" status="" comment=""/>
+	<test name="media-video-206-t" revision="1.4" status="" comment=""/>
+	<test name="media-video-207-t" revision="1.4" status="" comment=""/>
+	<test name="media-video-208-t" revision="1.4" status="" comment=""/>
+	<test name="media-video-209-t" revision="1.4" status="" comment=""/>
+	<test name="media-video-210-t" revision="1.4" status="" comment=""/>
+	<test name="media-video-211-t" revision="1.4" status="" comment=""/>
+	<test name="media-video-212-t" revision="1.4" status="" comment=""/>
+	<test name="media-video-213-t" revision="1.2" status="" comment=""/>
+	<test name="media-video-214-t" revision="1.3" status="" comment=""/>
+	<test name="media-video-215-t" revision="1.2" status="" comment=""/>
+	<test name="media-video-216-t" revision="1.2" status="" comment=""/>
+	<test name="media-video-217-t" revision="1.2" status="" comment=""/>
+	<test name="media-video-218-t" revision="1.2" status="" comment=""/>
+	<test name="media-video-219-t" revision="1.2" status="" comment=""/>
+	<test name="media-video-220-t" revision="1.2" status="" comment=""/>
+	<test name="media-video-221-t" revision="1.2" status="" comment=""/>
+	<test name="media-video-222-t" revision="1.1" status="" comment=""/>
+	<test name="metadata-example-01-t" revision="1.5" status="" comment=""/>
+	<test name="paint-color-01-t" revision="1.5" status="" comment=""/>
+	<test name="paint-color-03-t" revision="1.6" status="" comment=""/>
+	<test name="paint-color-04-t" revision="1.5" status="" comment=""/>
+	<test name="paint-color-05-t" revision="1.5" status="" comment=""/>
+	<test name="paint-colors-201-t" revision="1.1" status="" comment=""/>
+	<test name="paint-fill-01-t" revision="1.3" status="" comment=""/>
+	<test name="paint-fill-02-t" revision="1.3" status="" comment=""/>
+	<test name="paint-fill-03-t" revision="1.3" status="" comment=""/>
+	<test name="paint-fill-04-t" revision="1.3" status="" comment=""/>
+	<test name="paint-fill-05-t" revision="1.2" status="" comment=""/>
+	<test name="paint-grad-04-t" revision="1.5" status="" comment=""/>
+	<test name="paint-grad-05-t" revision="1.5" status="" comment=""/>
+	<test name="paint-grad-07-t" revision="1.5" status="" comment=""/>
+	<test name="paint-grad-08-t" revision="1.4" status="" comment=""/>
+	<test name="paint-grad-09-t" revision="1.4" status="" comment=""/>
+	<test name="paint-grad-11-t" revision="1.4" status="" comment=""/>
+	<test name="paint-grad-12-t" revision="1.4" status="" comment=""/>
+	<test name="paint-grad-15-t" revision="1.5" status="" comment=""/>
+	<test name="paint-grad-16-t" revision="1.4" status="" comment=""/>
+	<test name="paint-grad-17-t" revision="1.5" status="" comment=""/>
+	<test name="paint-grad-18-t" revision="1.4" status="" comment=""/>
+	<test name="paint-grad-19-t" revision="1.5" status="" comment=""/>
+	<test name="paint-grad-201-t" revision="1.2" status="" comment=""/>
+	<test name="paint-grad-202-t" revision="1.2" status="" comment=""/>
+	<test name="paint-grad-203-t" revision="1.3" status="" comment=""/>
+	<test name="paint-grad-204-t" revision="1.3" status="" comment=""/>
+	<test name="paint-grad-205-t" revision="1.2" status="" comment=""/>
+	<test name="paint-nsstroke-201-t" revision="1.2" status="" comment=""/>
+	<test name="paint-nsstroke-202-t" revision="1.2" status="" comment=""/>
+	<test name="paint-nsstroke-203-t" revision="1.2" status="" comment=""/>
+	<test name="paint-other-201-t" revision="1.2" status="" comment=""/>
+	<test name="paint-other-202-t" revision="1.2" status="" comment=""/>
+	<test name="paint-other-203-t" revision="1.2" status="" comment=""/>
+	<test name="paint-stroke-01-t" revision="1.3" status="" comment=""/>
+	<test name="paint-stroke-02-t" revision="1.3" status="" comment=""/>
+	<test name="paint-stroke-03-t" revision="1.3" status="" comment=""/>
+	<test name="paint-stroke-04-t" revision="1.3" status="" comment=""/>
+	<test name="paint-stroke-05-t" revision="1.2" status="" comment=""/>
+	<test name="paint-stroke-06-t" revision="1.2" status="" comment=""/>
+	<test name="paint-stroke-07-t" revision="1.1" status="" comment=""/>
+	<test name="paint-stroke-08-t" revision="1.2" status="" comment=""/>
+	<test name="paint-stroke-201-t" revision="1.2" status="" comment=""/>
+	<test name="paint-stroke-202-t" revision="1.2" status="" comment=""/>
+	<test name="paint-stroke-203-t" revision="1.2" status="" comment=""/>
+	<test name="paint-stroke-204-t" revision="1.2" status="" comment=""/>
+	<test name="paint-stroke-205-t" revision="1.2" status="" comment=""/>
+	<test name="paint-stroke-206-t" revision="1.2" status="" comment=""/>
+	<test name="paint-stroke-207-t" revision="1.2" status="" comment=""/>
+	<test name="paint-vfill-201-t" revision="1.2" status="" comment=""/>
+	<test name="paint-vfill-202-t" revision="1.3" status="" comment=""/>
+	<test name="paint-vfill-203-t" revision="1.2" status="" comment=""/>
+	<test name="paint-vfill-204-t" revision="1.2" status="" comment=""/>
+	<test name="paint-vfill-205-t" revision="1.2" status="" comment=""/>
+	<test name="paint-vfill-206-t" revision="1.2" status="" comment=""/>
+	<test name="paths-data-01-t" revision="1.9" status="" comment=""/>
+	<test name="paths-data-02-t" revision="1.9" status="" comment=""/>
+	<test name="paths-data-04-t" revision="1.9" status="" comment=""/>
+	<test name="paths-data-05-t" revision="1.10" status="" comment=""/>
+	<test name="paths-data-06-t" revision="1.9" status="" comment=""/>
+	<test name="paths-data-07-t" revision="1.9" status="" comment=""/>
+	<test name="paths-data-08-t" revision="1.6" status="" comment=""/>
+	<test name="paths-data-09-t" revision="1.6" status="" comment=""/>
+	<test name="paths-data-10-t" revision="1.8" status="" comment=""/>
+	<test name="paths-data-12-t" revision="1.7" status="" comment=""/>
+	<test name="paths-data-13-t" revision="1.7" status="" comment=""/>
+	<test name="paths-data-14-t" revision="1.7" status="" comment=""/>
+	<test name="paths-data-15-t" revision="1.7" status="" comment=""/>
+	<test name="render-elems-01-t" revision="1.6" status="" comment=""/>
+	<test name="render-elems-02-t" revision="1.6" status="" comment=""/>
+	<test name="render-elems-03-t" revision="1.6" status="" comment=""/>
+	<test name="render-elems-06-t" revision="1.6" status="" comment=""/>
+	<test name="render-elems-07-t" revision="1.6" status="" comment=""/>
+	<test name="render-elems-08-t" revision="1.6" status="" comment=""/>
+	<test name="render-groups-01-t" revision="1.7" status="" comment=""/>
+	<test name="render-groups-03-t" revision="1.6" status="" comment=""/>
+	<test name="script-element-201-t" revision="1.3" status="" comment=""/>
+	<test name="script-element-202-t" revision="1.2" status="" comment=""/>
+	<test name="script-handle-05-t" revision="1.7" status="" comment=""/>
+	<test name="script-handle-06-t" revision="1.7" status="" comment=""/>
+	<test name="script-handle-07-t" revision="1.7" status="" comment=""/>
+	<test name="script-handle-08-t" revision="1.8" status="" comment=""/>
+	<test name="script-handle-201-t" revision="1.4" status="" comment=""/>
+	<test name="script-handle-202-t" revision="1.4" status="" comment=""/>
+	<test name="script-listener-201-t" revision="1.2" status="" comment=""/>
+	<test name="script-listener-202-t" revision="1.2" status="" comment=""/>
+	<test name="shapes-circle-01-t" revision="1.7" status="" comment=""/>
+	<test name="shapes-circle-02-t" revision="1.5" status="" comment=""/>
+	<test name="shapes-circle-03-t" revision="1.3" status="" comment=""/>
+	<test name="shapes-ellipse-01-t" revision="1.7" status="" comment=""/>
+	<test name="shapes-ellipse-02-t" revision="1.6" status="" comment=""/>
+	<test name="shapes-ellipse-03-t" revision="1.3" status="" comment=""/>
+	<test name="shapes-intro-01-t" revision="1.5" status="" comment=""/>
+	<test name="shapes-line-01-t" revision="1.6" status="" comment=""/>
+	<test name="shapes-line-02-t" revision="1.1" status="" comment=""/>
+	<test name="shapes-polygon-01-t" revision="1.6" status="" comment=""/>
+	<test name="shapes-polygon-02-t" revision="1.2" status="" comment=""/>
+	<test name="shapes-polyline-01-t" revision="1.6" status="" comment=""/>
+	<test name="shapes-polyline-02-t" revision="1.1" status="" comment=""/>
+	<test name="shapes-rect-01-t" revision="1.7" status="" comment=""/>
+	<test name="shapes-rect-02-t" revision="1.5" status="" comment=""/>
+	<test name="shapes-rect-03-t" revision="1.2" status="" comment=""/>
+	<test name="struct-cond-01-t" revision="1.6" status="" comment=""/>
+	<test name="struct-cond-02-t" revision="1.6" status="" comment=""/>
+	<test name="struct-cond-03-t" revision="1.4" status="" comment=""/>
+	<test name="struct-cond-04-t" revision="1.2" status="" comment=""/>
+	<test name="struct-cond-205-t" revision="1.2" status="" comment=""/>
+	<test name="struct-cond-206-t" revision="1.3" status="" comment=""/>
+	<test name="struct-cond-207-t" revision="1.2" status="" comment=""/>
+	<test name="struct-defs-01-t" revision="1.6" status="" comment=""/>
+	<test name="struct-defs-201-t" revision="1.2" status="" comment=""/>
+	<test name="struct-discard-101-t" revision="1.2" status="" comment=""/>
+	<test name="struct-discard-201-t" revision="1.1" status="" comment=""/>
+	<test name="struct-discard-202-t" revision="1.3" status="" comment=""/>
+	<test name="struct-discard-203-t" revision="1.4" status="" comment=""/>
+	<test name="struct-discard-204-t" revision="1.3" status="" comment=""/>
+	<test name="struct-discard-205-t" revision="1.2" status="" comment=""/>
+	<test name="struct-discard-206-t" revision="1.2" status="" comment=""/>
+	<test name="struct-discard-207-t" revision="1.2" status="" comment=""/>
+	<test name="struct-frag-01-t" revision="1.5" status="" comment=""/>
+	<test name="struct-frag-02-t" revision="1.4" status="" comment=""/>
+	<test name="struct-frag-03-t" revision="1.4" status="" comment=""/>
+	<test name="struct-frag-04-t" revision="1.4" status="" comment=""/>
+	<test name="struct-frag-05-t" revision="1.4" status="" comment=""/>
+	<test name="struct-frag-06-t" revision="1.4" status="" comment=""/>
+	<test name="struct-group-01-t" revision="1.6" status="" comment=""/>
+	<test name="struct-group-03-t" revision="1.4" status="" comment=""/>
+	<test name="struct-image-01-t" revision="1.6" status="" comment=""/>
+	<test name="struct-image-03-t" revision="1.6" status="" comment=""/>
+	<test name="struct-image-04-t" revision="1.6" status="" comment=""/>
+	<test name="struct-image-05-t" revision="1.5" status="" comment=""/>
+	<test name="struct-image-06-t" revision="1.4" status="" comment=""/>
+	<test name="struct-image-07-t" revision="1.4" status="" comment=""/>
+	<test name="struct-image-08-t" revision="1.4" status="" comment=""/>
+	<test name="struct-image-09-t" revision="1.4" status="" comment=""/>
+	<test name="struct-image-10-t" revision="1.4" status="" comment=""/>
+	<test name="struct-progressive-201-t" revision="1.2" status="" comment=""/>
+	<test name="struct-progressive-202-t" revision="1.2" status="" comment=""/>
+	<test name="struct-progressive-203-t" revision="1.2" status="" comment=""/>
+	<test name="struct-progressive-204-t" revision="1.2" status="" comment=""/>
+	<test name="struct-svg-201-t" revision="1.2" status="" comment=""/>
+	<test name="struct-svg-202-t" revision="1.2" status="" comment=""/>
+	<test name="struct-svg-203-t" revision="1.2" status="" comment=""/>
+	<test name="struct-svg-204-t" revision="1.2" status="" comment=""/>
+	<test name="struct-svg-205-t" revision="1.2" status="" comment=""/>
+	<test name="struct-use-01-t" revision="1.4" status="" comment=""/>
+	<test name="struct-use-03-t" revision="1.4" status="" comment=""/>
+	<test name="struct-use-04-t" revision="1.4" status="" comment=""/>
+	<test name="struct-use-05-t" revision="1.4" status="" comment=""/>
+	<test name="struct-use-06-t" revision="1.1" status="" comment=""/>
+	<test name="struct-use-07-t" revision="1.1" status="" comment=""/>
+	<test name="struct-use-201-t" revision="1.3" status="" comment=""/>
+	<test name="struct-use-202-t" revision="1.2" status="" comment=""/>
+	<test name="styling-inherit-01-t" revision="1.5" status="" comment=""/>
+	<test name="styling-pres-01-t" revision="1.5" status="" comment=""/>
+	<test name="text-align-01-t" revision="1.5" status="" comment=""/>
+	<test name="text-align-03-t" revision="1.6" status="" comment=""/>
+	<test name="text-align-07-t" revision="1.4" status="" comment=""/>
+	<test name="text-align-08-t" revision="1.4" status="" comment=""/>
+	<test name="text-align-201-t" revision="1.1" status="" comment=""/>
+	<test name="text-align-202-t" revision="1.5" status="" comment=""/>
+	<test name="text-area-201-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-202-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-203-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-204-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-205-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-206-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-207-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-208-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-209-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-210-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-211-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-212-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-213-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-220-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-221-t" revision="1.2" status="" comment=""/>
+	<test name="text-area-222-t" revision="1.2" status="" comment=""/>
+	<test name="text-fonts-01-t" revision="1.6" status="" comment=""/>
+	<test name="text-fonts-02-t" revision="1.6" status="" comment=""/>
+	<test name="text-fonts-03-t" revision="1.4" status="" comment=""/>
+	<test name="text-fonts-04-t" revision="1.1" status="" comment=""/>
+	<test name="text-fonts-202-t" revision="1.2" status="" comment=""/>
+	<test name="text-intro-01-t" revision="1.6" status="" comment=""/>
+	<test name="text-intro-04-t" revision="1.6" status="" comment=""/>
+	<test name="text-intro-05-t" revision="1.4" status="" comment=""/>
+	<test name="text-intro-06-t" revision="1.5" status="" comment=""/>
+	<test name="text-intro-201-t" revision="1.2" status="" comment=""/>
+	<test name="text-text-04-t" revision="1.4" status="" comment=""/>
+	<test name="text-text-05-t" revision="1.4" status="" comment=""/>
+	<test name="text-text-06-t" revision="1.5" status="" comment=""/>
+	<test name="text-text-07-t" revision="1.4" status="" comment=""/>
+	<test name="text-text-08-t" revision="unknown" status="" comment=""/>
+	<test name="text-text-09-t" revision="1.2" status="" comment=""/>
+	<test name="text-tselect-03-t" revision="1.6" status="" comment=""/>
+	<test name="text-ws-01-t" revision="1.5" status="" comment=""/>
+	<test name="text-ws-02-t" revision="1.5" status="" comment=""/>
+	<test name="types-basicDOM-02-t" revision="1.5" status="" comment=""/>
+	<test name="types-data-201-t" revision="1.1" status="" comment=""/>
+	<test name="types-data-202-t" revision="1.1" status="" comment=""/>
+	<test name="types-data-203-t" revision="1.1" status="" comment=""/>
+	<test name="types-data-204-t" revision="1.1" status="" comment=""/>
+	<test name="udom-conform-201-t" revision="1.2" status="" comment=""/>
+	<test name="udom-dom-201-t" revision="1.3" status="" comment=""/>
+	<test name="udom-dom-202-t" revision="1.3" status="" comment=""/>
+	<test name="udom-dom-203-t" revision="1.3" status="" comment=""/>
+	<test name="udom-dom-204-t" revision="1.4" status="" comment=""/>
+	<test name="udom-dom-205-t" revision="1.3" status="" comment=""/>
+	<test name="udom-dom-206-t" revision="1.4" status="" comment=""/>
+	<test name="udom-dom-207-t" revision="1.3" status="" comment=""/>
+	<test name="udom-dom-208-t" revision="1.4" status="" comment=""/>
+	<test name="udom-dom-209-t" revision="1.3" status="" comment=""/>
+	<test name="udom-dom-210-t" revision="1.3" status="" comment=""/>
+	<test name="udom-dom-211-t" revision="1.3" status="" comment=""/>
+	<test name="udom-dom-212-t" revision="1.4" status="" comment=""/>
+	<test name="udom-dom-213-t" revision="1.5" status="" comment=""/>
+	<test name="udom-event-201-t" revision="1.4" status="" comment=""/>
+	<test name="udom-event-202-t" revision="1.4" status="" comment=""/>
+	<test name="udom-event-203-t" revision="1.5" status="" comment=""/>
+	<test name="udom-event-204-t" revision="1.4" status="" comment=""/>
+	<test name="udom-event-205-t" revision="1.3" status="" comment=""/>
+	<test name="udom-event-206-t" revision="1.2" status="" comment=""/>
+	<test name="udom-event-207-t" revision="1.3" status="" comment=""/>
+	<test name="udom-event-208-t" revision="1.2" status="" comment=""/>
+	<test name="udom-glob-201-t" revision="1.4" status="" comment=""/>
+	<test name="udom-node-201-t" revision="1.2" status="" comment=""/>
+	<test name="udom-node-202-t" revision="1.3" status="" comment=""/>
+	<test name="udom-node-203-t" revision="1.2" status="" comment=""/>
+	<test name="udom-node-204-t" revision="1.3" status="" comment=""/>
+	<test name="udom-over-01-t" revision="1.6" status="" comment=""/>
+	<test name="udom-smil-201-t" revision="1.3" status="" comment=""/>
+	<test name="udom-smil-202-t" revision="1.3" status="" comment=""/>
+	<test name="udom-smil-203-t" revision="1.3" status="" comment=""/>
+	<test name="udom-svg-201-t" revision="1.3" status="" comment=""/>
+	<test name="udom-svg-202-t" revision="1.3" status="" comment=""/>
+	<test name="udom-svg-203-t" revision="1.1" status="" comment=""/>
+	<test name="udom-svg-204-t" revision="1.4" status="" comment=""/>
+	<test name="udom-svg-205-t" revision="1.3" status="" comment=""/>
+	<test name="udom-svg-206-t" revision="1.2" status="" comment=""/>
+	<test name="udom-svg-207-t" revision="1.1" status="" comment=""/>
+	<test name="udom-svg-208-t" revision="1.1" status="" comment=""/>
+	<test name="udom-svg-209-t" revision="1.1" status="" comment=""/>
+	<test name="udom-svg-210-t" revision="1.1" status="" comment=""/>
+	<test name="udom-svg-211-t" revision="1.2" status="" comment=""/>
+	<test name="udom-svgtimedelement-201-t" revision="1.3" status="" comment=""/>
+	<test name="udom-svgtimedelement-202-t" revision="1.2" status="" comment=""/>
+	<test name="udom-svgtimedelement-203-t" revision="1.2" status="" comment=""/>
+	<test name="udom-svgtimedelement-204-t" revision="1.2" status="" comment=""/>
+	<test name="udom-svgtimedelement-205-t" revision="1.2" status="" comment=""/>
+	<test name="udom-textcontent-201-t" revision="1.3" status="" comment=""/>
+	<test name="udom-textcontent-202-t" revision="1.2" status="" comment=""/>
+	<test name="udom-traitaccess-201-t" revision="1.2" status="" comment=""/>
+	<test name="udom-traitaccess-202-t" revision="1.2" status="" comment=""/>
+	<test name="udom-traitaccess-203-t" revision="1.3" status="" comment=""/>
+	<test name="udom-traitaccess-204-t" revision="1.2" status="" comment=""/>
+	<test name="udom-traitaccess-205-t" revision="1.2" status="" comment=""/>
+	<test name="udom-traitaccess-206-t" revision="1.2" status="" comment=""/>
+	<test name="udom-traitaccess-207-t" revision="1.3" status="" comment=""/>
+</svg-status-query>
