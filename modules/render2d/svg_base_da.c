@@ -1384,10 +1384,10 @@ void r2d_render_svg_use(GF_Node *node, GF_Node *sub_root, void *rs)
 	svg_apply_local_transformation(eff, &all_atts, &backup_matrix);
 
 	gf_mx2d_pre_multiply(&eff->transform, &translate);
-	if (all_atts.xlink_href) {
+	if (sub_root) {
 		prev_use = eff->parent_use;
 		eff->parent_use = node;
-		gf_node_render(all_atts.xlink_href->target, eff);
+		gf_node_render(sub_root, eff);
 		eff->parent_use = prev_use;
 	}
 	svg_restore_parent_transformation(eff, &backup_matrix);  
@@ -1398,6 +1398,62 @@ end:
 }
 
 
+void r2d_render_svg_animation(GF_Node *node, GF_Node *sub_root, void *rs)
+{
+	SVGAllAttributes all_atts;
+	GF_Matrix2D backup_matrix;
+	SVGPropertiesPointers backup_props;
+	u32 backup_flags;
+	RenderEffect2D *eff = (RenderEffect2D*)rs;
+  	GF_Matrix2D translate;
+	SVGPropertiesPointers new_props, *old_props;
+
+	memset(&new_props, 0, sizeof(SVGPropertiesPointers));
+
+	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+	svg_render_base(node, &all_atts, eff, &backup_props, &backup_flags);
+
+
+	gf_mx2d_init(translate);
+	translate.m[2] = (all_atts.x ? all_atts.x->value : 0);
+	translate.m[5] = (all_atts.y ? all_atts.y->value : 0);
+	
+	if (svg_is_display_off(eff->svg_props) ||
+		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
+		goto end;
+	}
+
+	svg_apply_local_transformation(eff, &all_atts, &backup_matrix);
+	gf_mx2d_pre_multiply(&eff->transform, &translate);
+
+#if 0
+	st = gf_node_get_private(n);
+	if (!st->is) return;
+	root = gf_sg_get_root_node(st->is->graph);
+	if (root) {
+		old_props = eff->svg_props;
+		eff->svg_props = &new_props;
+		gf_svg_properties_init_pointers(eff->svg_props);
+		//gf_sr_render_inline(st->is->root_od->term->renderer, root, rs);
+		gf_node_render(root, rs);
+		eff->svg_props = old_props;
+		gf_svg_properties_reset_pointers(&new_props);
+//	}
+#endif
+
+	old_props = eff->svg_props;
+	eff->svg_props = &new_props;
+	gf_svg_properties_init_pointers(eff->svg_props);
+
+	gf_node_render(sub_root, rs);
+	eff->svg_props = old_props;
+	gf_svg_properties_reset_pointers(&new_props);
+
+	svg_restore_parent_transformation(eff, &backup_matrix);  
+end:
+	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+	eff->svg_flags = backup_flags;
+}
 
 
 static void SVG_DestroyPaintServer(GF_Node *node)

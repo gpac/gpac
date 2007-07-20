@@ -87,7 +87,6 @@ typedef struct
 	Fixed prev_size;
 	u32 prev_flags;
 	u32 prev_anchor;
-	char *textToRender;
 } SVG_TextStack;
 
 
@@ -113,6 +112,8 @@ void svg_init_polyline(Render2D *sr, GF_Node *node);
 void svg_init_polygon(Render2D *sr, GF_Node *node);
 void svg_init_path(Render2D *sr, GF_Node *node);
 void svg_init_text(Render2D *sr, GF_Node *node);
+void svg_init_tspan(Render2D *sr, GF_Node *node);
+void svg_init_textArea(Render2D *sr, GF_Node *node);
 void svg_init_a(Render2D *se, GF_Node *node);
 
 /*WARNING - these are also used by SVG_SA and SVG_SANI*/
