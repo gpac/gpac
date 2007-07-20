@@ -224,6 +224,21 @@ typedef struct _render2d_effect
 
 	Bool inside_cliper;
 	Bool is_focus_group;
+
+	/* variables pour noeud text, tspan et textArea*/
+	/* position du dernier chunk/sous-chunk de texte placé */
+	u32 chunk_index;
+	Fixed text_end_x, text_end_y;
+
+	/* variables pour noeud text et tspan */
+	GF_List *x_anchors;
+	SVG_Coordinates *text_x, *text_y;
+	u32 count_x, count_y;
+
+	/* variables pour noeud textArea*/
+	Fixed max_length, max_height;
+	Fixed base_x, base_y;
+	Fixed y_step;
 } RenderEffect2D;
 
 void effect_reset(RenderEffect2D *eff);
@@ -264,7 +279,7 @@ void r2d_render_svg_sani_use(GF_Node *anim, GF_Node *sub_root, void *rs);
 #endif
 
 void r2d_render_svg_use(GF_Node *anim, GF_Node *sub_root, void *rs);
-
+void r2d_render_svg_animation(GF_Node *anim, GF_Node *sub_root, void *rs);
 #endif
 
 #endif
