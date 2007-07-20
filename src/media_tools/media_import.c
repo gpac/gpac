@@ -249,7 +249,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import)
 	samp->IsRAP = 1;
 	samp->dataLength = size;
 
-	gf_import_message(import, GF_OK, "%s import - size %d x %d", (OTI==0x6C) ? "JPEG" : (OTI==0x6C) ? "PNG" : "JPEG2000", w, h);
+	gf_import_message(import, GF_OK, "%s import - size %d x %d", (OTI==0x6C) ? "JPEG" : (OTI==0x6D) ? "PNG" : "JPEG2000", w, h);
 
 	gf_set_progress("Importing Image", 0, 1);
 	if (import->flags & GF_IMPORT_USE_DATAREF) {
