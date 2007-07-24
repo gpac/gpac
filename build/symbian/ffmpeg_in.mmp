@@ -1,25 +1,15 @@
 TARGET gm_ffmpeg_in.dll
-TARGETTYPE DLL
-CAPABILITY	NetworkServices
-UID		0x10000080 0x10000081
 
+//common config of all modules
+#include ".\module_base.mmp"
 
-//Common tools
+//source
 SOURCEPATH ..\..\modules\ffmpeg_in
 SOURCE ffmpeg_decode.c
 SOURCE ffmpeg_demux.c
 SOURCE ffmpeg_load.c
 
-SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include ..\..\extra_lib\include
+SYSTEMINCLUDE ..\..\extra_lib\include
 STATICLIBRARY libffmpeg.lib 
-LIBRARY euser.lib estlib.lib libgpac.lib ezlib.lib
-
-#if defined(WINS)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#else if defined(ARM)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#endif
-
-//EXPORTUNFROZEN
-//  nostrictdef
+LIBRARY ezlib.lib
 

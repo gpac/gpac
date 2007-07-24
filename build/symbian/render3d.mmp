@@ -1,11 +1,11 @@
 TARGET gm_render3d.dll
-TARGETTYPE DLL
-CAPABILITY	NetworkServices
-UID		0x10000080 0x10000081
 
 MACRO GPAC_USE_OGL_ES
 
-//Common tools
+//common config of all modules
+#include ".\module_base.mmp"
+
+//source
 SOURCEPATH ..\..\modules\render3d
 SOURCE background.c
 SOURCE bindable.c
@@ -37,19 +37,5 @@ SOURCE texturing_gl.c
 SOURCE vs_gl_draw.c
 SOURCE tesselate.c
 
-
-SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
-
-LIBRARY euser.lib estlib.lib ws32.lib 
-LIBRARY libgpac.lib
-LIBRARY libgles_cm.lib
-
-#if defined(WINS)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#else if defined(ARM)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#endif
-
-// EXPORTUNFROZEN
-//  nostrictdef
+LIBRARY ws32.lib libgles_cm.lib
 

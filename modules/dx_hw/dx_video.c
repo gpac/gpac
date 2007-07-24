@@ -36,7 +36,7 @@ static void RestoreWindow(DDContext *dd)
 
 
 	dd->NeedRestore = 0;
-	if (dd->is_3D_out) {
+	if (dd->output_3d_type=+1) {
 		ChangeDisplaySettings(NULL,0);
 		SetForegroundWindow(GetDesktopWindow());
 		SetForegroundWindow(dd->cur_hwnd);
@@ -69,7 +69,7 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		dd->ddraw_init = 0;
 
 		/*do not destroy associated GL context*/
-		if (dd->is_3D_offscreen) return;
+		if (dd->output_3d_type==2) return;
 	}
 
 
@@ -147,9 +147,9 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 
 	/*already setup*/
 //	if (dd->gl_HRC) return GF_OK;
-	DestroyObjectsEx(dd, dd->is_3D_out ? 0 : 1);
+	DestroyObjectsEx(dd, (dd->output_3d_type==1) ? 0 : 1);
 
-	if (dd->is_3D_offscreen) {
+	if (dd->output_3d_type==2) {
 		dd->gl_HDC = GetDC(dd->gl_hwnd);
 	} else {
 		dd->gl_HDC = GetDC(dd->cur_hwnd);
@@ -173,7 +173,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 	if (!dd->gl_HRC) return GF_IO_ERR;
 	if (!wglMakeCurrent(dd->gl_HDC, dd->gl_HRC)) return GF_IO_ERR;
 #endif
-	if (!dd->is_3D_offscreen) {
+	if (dd->output_3d_type==1) {
 		evt.type = GF_EVENT_VIDEO_SETUP;
 		evt.setup.opengl_mode = 1;
 		dr->on_event(dr->evt_cbk_hdl, &evt);	
@@ -184,7 +184,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 
 
 
-GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_flags, GF_GLConfig *cfg)
+GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_flags)
 {
 	RECT rc;
 	DDCONTEXT
@@ -196,11 +196,7 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 	if (!dd->os_hwnd) return GF_IO_ERR;
 	dd->cur_hwnd = dd->os_hwnd;
 
-	if (cfg) {
-		dd->is_3D_out = 1;
-		return GF_OK;
-	}
-	dd->is_3D_out = 0;
+	dd->output_3d_type = 0;
 	GetWindowRect(dd->cur_hwnd, &rc);
 	return InitDirectDraw(dr, rc.right - rc.left, rc.bottom - rc.top);
 }
@@ -210,7 +206,7 @@ static void DD_Shutdown(GF_VideoOutput *dr)
 	DDCONTEXT
 
 	/*force destroy of opengl*/
-	dd->is_3D_offscreen = 0;
+	if (dd->output_3d_type) dd->output_3d_type = 1;
 	DestroyObjects(dd);
 
 	DD_ShutdownWindow(dr);
@@ -252,7 +248,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	SetForegroundWindow(dd->cur_hwnd);
 
 
-	if (dd->is_3D_out) {
+	if (dd->output_3d_type==1) {
 		DEVMODE settings;
 		e = GF_OK;
 		/*Setup FS*/
@@ -308,7 +304,7 @@ static GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 
 	if (!dd) return GF_BAD_PARAM;
-	if (dd->is_3D_out) {
+	if (dd->output_3d_type==1) {
 #ifdef GPAC_USE_OGL_ES
 		if (dd->surface) eglSwapBuffers(dd->egldpy, dd->surface);
 #else
@@ -316,7 +312,6 @@ static GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 #endif
 		return GF_OK;
 	}
-//	if (dd->gl_HDC) SwapBuffers(dd->gl_HDC);
 
 	if (!dd->ddraw_init) return GF_BAD_PARAM;
 

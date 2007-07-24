@@ -37,7 +37,6 @@ typedef struct
 {
 	RWindow *window;
 	RWsSession *session;
-	Bool is_gl;
 
 	u32 pixel_format, bpp, width, height;
 	CWsScreenDevice *screen;
@@ -45,6 +44,7 @@ typedef struct
 	CWindowGc *gc;
 
 	char *locked_data;
+	Bool output_3d_type;
 
 #ifdef GPAC_USE_OGL_ES
 	EGLDisplay egl_display;
@@ -151,12 +151,14 @@ static GF_Err EVID_InitSurface(GF_VideoOutput *dr)
 		ctx->bpp = 4;
 		gl_buffer_size = 32;
 		break;
+#if defined(__SERIES60_3X__)
 	/** Display mode with alpha (24bpp colour plus 8bpp alpha) */
 	case EColor16MA: 
 		ctx->pixel_format = GF_PIXEL_ARGB; 
 		ctx->bpp = 4;
 		gl_buffer_size = 32;
 		break;
+#endif
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Unsupported display type %d\n", disp_mode));
 		return GF_NOT_SUPPORTED;
@@ -165,7 +167,7 @@ static GF_Err EVID_InitSurface(GF_VideoOutput *dr)
 	ctx->height = s.iHeight;
 
 #ifdef GPAC_USE_OGL_ES
-	if (ctx->is_gl) {
+	if (ctx->output_3d_type==1) {
 		if (!gl_buffer_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Display mode not supported by OpenGL\n"));
 			return GF_IO_ERR;
@@ -229,13 +231,12 @@ static GF_Err EVID_InitSurface(GF_VideoOutput *dr)
 }
 
 
-static GF_Err EVID_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool noover, GF_GLConfig *gl_cfg)
+static GF_Err EVID_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_flags)
 {
 	EPOCVideo *ctx = (EPOCVideo *)dr->opaque;
 
 	ctx->window = (RWindow *)os_handle;
 	ctx->session = (RWsSession *)os_display;
-	if (gl_cfg) ctx->is_gl = 1;
 	return EVID_InitSurface(dr);
 }
 
@@ -281,7 +282,8 @@ static GF_Err EVID_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		/*nothing to do since we don't own the window*/
 		break;
 	case GF_EVENT_VIDEO_SETUP:
-		((EPOCVideo *)dr->opaque)->is_gl = evt->setup.opengl_mode;
+		if (evt->setup.opengl_mode==2) return GF_NOT_SUPPORTED;
+		((EPOCVideo *)dr->opaque)->output_3d_type = evt->setup.opengl_mode;
 		return EVID_InitSurface(dr/*, evt->size.width, evt->size.height*/);
 	}
 	return GF_OK;

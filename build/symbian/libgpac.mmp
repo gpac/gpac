@@ -3,11 +3,14 @@ TARGETTYPE DLL
 CAPABILITY	NetworkServices
 UID		0x1000008d 0xf01f9073
 
+//allow writable static data
+EPOCALLOWDLLDATA
+
 //comment if you don't have JS
-MACRO GPAC_HAS_SPIDERMONKEY
-MACRO XP_PC
-SYSTEMINCLUDE ..\..\extra_lib\include\js
-STATICLIBRARY libjs.lib
+//MACRO GPAC_HAS_SPIDERMONKEY
+//MACRO XP_PC
+//SYSTEMINCLUDE ..\..\extra_lib\include\js
+//STATICLIBRARY libjs.lib
 
 
 //Common tools

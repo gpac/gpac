@@ -1,7 +1,5 @@
 TARGET gm_mp3_in.dll
-TARGETTYPE DLL
-CAPABILITY	NetworkServices
-UID		0x10000080 0x10000081
+
 
 //comment if you don't have libmad
 MACRO GPAC_HAS_MAD
@@ -9,21 +7,16 @@ MACRO FPM_ARM
 STATICLIBRARY libmad.lib 
 SYSTEMINCLUDE ..\..\extra_lib\include\mad
 
-//Common tools
+
+//common config of all modules
+#include ".\module_base.mmp"
+
+//source
 SOURCEPATH ..\..\modules\mp3_in
 SOURCE mp3_in.c
 SOURCE mad_dec.c
 
-SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
-
-LIBRARY euser.lib estlib.lib libgpac.lib
-
-#if defined(WINS)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#else if defined(ARM)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
+#if defined(GCCE)
+#else
+LIBRARY egcc.lib
 #endif
-
-//EXPORTUNFROZEN
-//  nostrictdef
-

@@ -1,0 +1,48 @@
+
+; Osmo4.pkg
+;
+;Language - standard language definitions
+&EN
+
+; standard SIS file header
+#{"Osmo4"},(0x1000AC00),0,4,5
+
+;Supports Series 60  v2.0
+(0x101F7960), 0, 0, 0, {"Series60ProductID"}
+
+;GUI
+"Epoc32\release\thumb\urel\Osmo4.APP"                -"!:\system\apps\Osmo4\Osmo4.app"
+"Epoc32\data\z\system\apps\Osmo4\Osmo4_gen.rsc"          -"!:\system\apps\Osmo4\Osmo4.rsc"
+"Epoc32\data\z\system\apps\Osmo4\Osmo4_caption.rsc"  -"!:\system\apps\Osmo4\Osmo4_caption.rsc"
+"Epoc32\data\z\system\apps\Osmo4\Osmo4.aif"          -"!:\system\apps\Osmo4\Osmo4.aif"
+
+;GPAC lib, default cfg file, startup file & cache
+"Epoc32\release\thumb\urel\libgpac.dll"              -"!:\system\apps\Osmo4\libgpac.dll"
+"GPAC.cfg"                                           -"!:\system\apps\Osmo4\GPAC.cfg"
+"..\..\..\doc\gpac.mp4"                              -"!:\system\apps\Osmo4\gpac.mp4"
+""                                                   -"!:\system\apps\Osmo4\cache\", FN
+
+;modules:
+"Epoc32\release\thumb\urel\gm_aac_in.dll"           -"!:\system\apps\Osmo4\gm_aac_in.dll"
+"Epoc32\release\thumb\urel\gm_amr_in.dll"           -"!:\system\apps\Osmo4\gm_amr_in.dll"
+"Epoc32\release\thumb\urel\gm_bifs_dec.dll"           -"!:\system\apps\Osmo4\gm_bifs_dec.dll"
+"Epoc32\release\thumb\urel\gm_ctx_load.dll"           -"!:\system\apps\Osmo4\gm_ctx_load.dll"
+"Epoc32\release\thumb\urel\gm_dummy_in.dll"           -"!:\system\apps\Osmo4\gm_dummy_in.dll"
+"Epoc32\release\thumb\urel\gm_epoc_hw.dll"           -"!:\system\apps\Osmo4\gm_epoc_hw.dll"
+;"Epoc32\release\thumb\urel\gm_ffmpeg_in.dll"           -"!:\system\apps\Osmo4\gm_ffmpeg_in.dll"
+"Epoc32\release\thumb\urel\gm_ft_font.dll"           -"!:\system\apps\Osmo4\gm_ft_font.dll"
+"Epoc32\release\thumb\urel\gm_img_in.dll"           -"!:\system\apps\Osmo4\gm_img_in.dll"
+"Epoc32\release\thumb\urel\gm_ismacryp.dll"           -"!:\system\apps\Osmo4\gm_ismacryp.dll"
+"Epoc32\release\thumb\urel\gm_isom_in.dll"           -"!:\system\apps\Osmo4\gm_isom_in.dll"
+"Epoc32\release\thumb\urel\gm_laser_dec.dll"           -"!:\system\apps\Osmo4\gm_laser_dec.dll"
+"Epoc32\release\thumb\urel\gm_mp3_in.dll"           -"!:\system\apps\Osmo4\gm_mp3_in.dll"
+"Epoc32\release\thumb\urel\gm_odf_dec.dll"           -"!:\system\apps\Osmo4\gm_odf_dec.dll"
+"Epoc32\release\thumb\urel\gm_render2d.dll"           -"!:\system\apps\Osmo4\gm_render2d.dll"
+"Epoc32\release\thumb\urel\gm_render3d.dll"           -"!:\system\apps\Osmo4\gm_render3d.dll"
+"Epoc32\release\thumb\urel\gm_rtp_in.dll"           -"!:\system\apps\Osmo4\gm_rtp_in.dll"
+"Epoc32\release\thumb\urel\gm_saf_in.dll"           -"!:\system\apps\Osmo4\gm_saf_in.dll"
+"Epoc32\release\thumb\urel\gm_soft_raster.dll"           -"!:\system\apps\Osmo4\gm_soft_raster.dll"
+"Epoc32\release\thumb\urel\gm_svg_in.dll"           -"!:\system\apps\Osmo4\gm_svg_in.dll"
+"Epoc32\release\thumb\urel\gm_timedtext.dll"           -"!:\system\apps\Osmo4\gm_timedtext.dll"
+"Epoc32\release\thumb\urel\gm_xvid_dec.dll"           -"!:\system\apps\Osmo4\gm_xvid_dec.dll"
+

@@ -58,10 +58,8 @@ static GF_Err raw_resize(GF_VideoOutput *dr, u32 w, u32 h)
 	return GF_OK;
 }
 
-GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg)
+GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_flags)
 {
-	/*fixme, we could try with OpenGL p-buffers*/
-	if (cfg) return GF_NOT_SUPPORTED;
 	raw_resize(dr, 100, 100);
 	return GF_OK;
 }
@@ -103,6 +101,7 @@ static GF_Err RAW_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			return raw_resize(dr, evt->size.width, evt->size.height);
 #else
 		case GF_EVENT_VIDEO_SETUP:
+			if (evt->setup.opengl_mode) return GF_NOT_SUPPORTED;
 			return raw_resize(dr, evt->setup.width, evt->setup.height);
 #endif
 		}

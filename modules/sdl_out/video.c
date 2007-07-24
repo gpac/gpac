@@ -417,7 +417,7 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 #define SDL_GL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_RESIZABLE
 #define SDL_GL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_FULLSCREEN
 
-void SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height) 
+GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height) 
 {
 	SDLVID();
 	GF_Event evt;
@@ -425,11 +425,11 @@ void SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 	/*lock X mutex to make sure the event queue is not being processed*/
 	gf_mx_p(ctx->evt_mx);
 
-	if (ctx->is_3D_out) {
+	if (ctx->output_3d_type==1) {
 		u32 flags;
 		if ((ctx->width==width) && (ctx->height==height) ) {
 			gf_mx_v(ctx->evt_mx);
-			return;
+			return GF_OK;
 		}
 		flags = SDL_GL_WINDOW_FLAGS;
 		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
@@ -454,9 +454,9 @@ void SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		u32 flags = SDL_WINDOW_FLAGS;
 		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
-		assert(ctx->screen);
 	}
 	gf_mx_v(ctx->evt_mx);
+	return ctx->screen ? GF_OK : GF_IO_ERR;
 }
 
 
@@ -622,14 +622,14 @@ exit:
 }
 
 
-GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u32 init_flags, GF_GLConfig *cfg)
+GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u32 init_flags)
 {
 	SDLVID();
 	/*we don't allow SDL hack, not stable enough*/
 	//if (os_handle) return GF_NOT_SUPPORTED;
 	ctx->os_handle = os_handle;
 	ctx->is_init = 0;
-	ctx->is_3D_out = cfg ? 1 : 0;
+	ctx->output_3d_type = 0;
 	ctx->systems_memory = (init_flags & (GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION) ) ? 2 : 0;
 	if (!SDLOUT_InitSDL()) return GF_IO_ERR;
 	ctx->sdl_th_state = 0;
@@ -682,7 +682,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_w
 		if (sOpt && !stricmp(sOpt, "yes")) switch_res = 1;
 		if (!dr->max_screen_width || !dr->max_screen_height) switch_res = 1;
 
-		flags = ctx->is_3D_out ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
+		flags = (ctx->output_3d_type==1) ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
 		ctx->store_width = *screen_width;
 		ctx->store_height = *screen_height;
 		if (switch_res) {
@@ -708,7 +708,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_w
 		*screen_width = ctx->fs_width;
 		*screen_height = ctx->fs_height;
 		/*GL has changed*/
-		if (ctx->is_3D_out) {
+		if (ctx->output_3d_type==1) {
 			GF_Event evt;
 			evt.type = GF_EVENT_VIDEO_SETUP;
 			dr->on_event(dr->evt_cbk_hdl, &evt);
@@ -729,7 +729,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight)
 	const char *opt;
 	SDLVID();
 	
-	if (ctx->is_3D_out) return GF_BAD_PARAM;
+	if (ctx->output_3d_type==1) return GF_BAD_PARAM;
 
 	if (ctx->systems_memory<2) {
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
@@ -801,7 +801,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	/*if resizing don't process otherwise we may deadlock*/
 	if (!ctx->screen) return GF_OK;
 
-	if (ctx->is_3D_out) {
+	if (ctx->output_3d_type==1) {
 		SDL_GL_SwapBuffers();
 		return GF_OK;
 	}
@@ -877,9 +877,18 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_VIDEO_SETUP:
 	{
 		SDLVID();
-		ctx->is_3D_out = evt->setup.opengl_mode;
-		if (ctx->is_3D_out) SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
-		else SDLVid_SetBackbufferSize(dr, evt->setup.width, evt->setup.height);
+		switch (evt->setup.opengl_mode) {
+		case 0:
+			ctx->output_3d_type = 0;
+			return SDLVid_SetBackbufferSize(dr, evt->setup.width, evt->setup.height);
+		case 1:
+			ctx->output_3d_type = 1;
+			return SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
+		case 2:
+			/*find a way to do that in SDL*/
+			ctx->output_3d_type = 2;
+			return GF_NOT_SUPPORTED;
+		}
 	}
 		break;
 	}

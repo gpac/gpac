@@ -114,7 +114,7 @@ typedef unsigned int size_t;
 #define strupr _strupr
 #define strlwr _strlwr
 
-
+#define GPAC_DISABLE_LOG
 
 #else	/*END WINCE*/
 
@@ -147,21 +147,36 @@ typedef unsigned int size_t;
 #include <string.h>
 #include <assert.h>
 
-typedef unsigned __int64 u64;
-typedef unsigned int u32;
-typedef unsigned short u16;
-typedef unsigned char u8;
-typedef __int64 s64;
-typedef int s32;
-typedef short s16;
-typedef signed char s8;
+#ifdef __SERIES60_3X__
 
-#pragma mpwc_relax on
+typedef unsigned __int64 u64;
+typedef __int64 s64;
+
+#else 
+
+/*FIXME - we don't have 64bit support here we should get rid of all 64bits divisions*/
+//typedef unsigned long long u64;
+//typedef long long s64;
+
+typedef unsigned int u64;
+typedef signed int s64;
+
+#endif	/*symbian 8*/
 
 /*SYMBIAN always fixed-point*/
 #ifndef GPAC_FIXED_POINT
 #define GPAC_FIXED_POINT
 #endif
+
+
+typedef unsigned int u32;
+typedef unsigned short u16;
+typedef unsigned char u8;
+typedef int s32;
+typedef short s16;
+typedef signed char s8;
+
+#pragma mpwc_relax on
 
 #define GF_MAX_PATH	260
 

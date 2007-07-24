@@ -271,8 +271,6 @@ GF_Err gf_odf_write_descriptor_list_filter(GF_BitStream *bs, GF_List *descList, 
 	return GF_OK;
 }
 
-static char szStreamText[20];
-
 GF_EXPORT
 const char *gf_odf_stream_type_name(u32 streamType)
 {
@@ -289,9 +287,7 @@ const char *gf_odf_stream_type_name(u32 streamType)
 	case GF_STREAM_INTERACT: return "Interaction";
 	case GF_STREAM_TEXT: return "Text";
 	case GF_STREAM_ND_SUBPIC: return "NeroDigital Subpicture";
-	default: 
-		sprintf(szStreamText, "Unknown (0x%02x)", streamType);
-		return szStreamText;
+	default: return "Unknown";
 	}
 }
 

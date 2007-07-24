@@ -1,7 +1,4 @@
 TARGET gm_img_in.dll
-TARGETTYPE DLL
-CAPABILITY	NetworkServices
-UID		0x10000080 0x10000081
 
 //comment if you don't have libpng
 MACRO GPAC_HAS_PNG
@@ -14,12 +11,22 @@ MACRO GPAC_HAS_JPEG
 SYSTEMINCLUDE ..\..\extra_lib\include\jpeg
 STATICLIBRARY libjpeg.lib 
 
+
 //comment if you don't have libopenjpeg
 MACRO GPAC_HAS_JP2
 SYSTEMINCLUDE ..\..\extra_lib\include\openjpeg
 STATICLIBRARY libopenjpeg.lib 
 
-//Common tools
+//THIS MUST BE SET BEFORE EPOC LIBS OTHERWISE LINKER IS SCREWED !!
+#if defined(GCCE)
+#else
+LIBRARY egcc.lib
+#endif
+
+//common config of all modules
+#include ".\module_base.mmp"
+
+//source
 SOURCEPATH ..\..\modules\img_in
 SOURCE img_dec.c
 SOURCE img_in.c
@@ -27,17 +34,4 @@ SOURCE bmp_dec.c
 SOURCE png_dec.c
 SOURCE jpeg_dec.c
 SOURCE jp2_dec.c
-
-SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
-
-LIBRARY euser.lib estlib.lib libgpac.lib
-
-#if defined(WINS)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#else if defined(ARM)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#endif
-
-//EXPORTUNFROZEN
-//  nostrictdef
 

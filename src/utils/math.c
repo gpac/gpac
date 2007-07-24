@@ -43,6 +43,13 @@ u32 gf_get_bit_size(u32 MaxVal)
 #pragma message("Compiling with fixed-point arithmetic")
 #endif
 
+#if defined(__SYMBIAN32__) && !defined(__SERIES60_3X__)
+typedef long long fix_s64;
+#else
+typedef s64 fix_s64;
+#endif
+
+
 /* the following is 0.2715717684432231 * 2^30 */
 #define GF_TRIG_COSCALE  0x11616E8EUL
 
@@ -98,8 +105,8 @@ static GFINLINE s32 gf_trig_prenorm(GF_Point2D *vec)
     return shift;
 }
 
-#define ANGLE_RAD_TO_DEG(_th) ((s32) ( (((s64)_th)*5729582)/100000))
-#define ANGLE_DEG_TO_RAD(_th) ((s32) ( (((s64)_th)*100000)/5729582))
+#define ANGLE_RAD_TO_DEG(_th) ((s32) ( (((fix_s64)_th)*5729582)/100000))
+#define ANGLE_DEG_TO_RAD(_th) ((s32) ( (((fix_s64)_th)*100000)/5729582))
 
 static GFINLINE void gf_trig_pseudo_polarize(GF_Point2D *vec)
 {
@@ -318,7 +325,7 @@ Fixed gf_divfix(Fixed a, Fixed b)
 		q = 0x7FFFFFFFL;
     else
 		/* compute result directly */
-		q = (u32)( ( ( (s64)a << 16 ) + ( b >> 1 ) ) / b );
+		q = (u32)( ( ( (fix_s64)a << 16 ) + ( b >> 1 ) ) / b );
     return ( s < 0 ? -(s32)q : (s32)q );
 }
 
@@ -378,13 +385,13 @@ Fixed gf_sqrt(Fixed x)
 static Fixed gf_trig_downscale(Fixed  val)
 {
 	Fixed  s;
-	s64 v;
+	fix_s64 v;
 	s   = val;
 	val = ( val >= 0 ) ? val : -val;
 #ifdef _MSC_VER
-	v = ( val * (s64)GF_TRIG_SCALE ) + 0x100000000;
+	v = ( val * (fix_s64)GF_TRIG_SCALE ) + 0x100000000;
 #else
-	v = ( val * (s64)GF_TRIG_SCALE ) + 0x100000000ULL;
+	v = ( val * (fix_s64)GF_TRIG_SCALE ) + 0x100000000ULL;
 #endif
 	val = (Fixed)( v >> 32 );
 	return ( s >= 0 ) ? val : -val;
@@ -569,7 +576,7 @@ Fixed gf_muldiv(Fixed a, Fixed b, Fixed c)
     if ( b < 0 ) { b = -b; s = -s; }
     if ( c < 0 ) { c = -c; s = -s; }
 
-    d = (s32)( c > 0 ? ( (s64)a * b + ( c >> 1 ) ) / c : 0x7FFFFFFFL);
+    d = (s32)( c > 0 ? ( (fix_s64)a * b + ( c >> 1 ) ) / c : 0x7FFFFFFFL);
     return (Fixed) (( s > 0 ) ? d : -d);
 }
 

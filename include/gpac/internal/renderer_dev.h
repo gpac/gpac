@@ -118,6 +118,8 @@ struct __tag_base_renderer
 	u32 frame_time[GF_SR_FPS_COMPUTE_SIZE];
 	u32 current_frame;
 
+	u32 last_click_time;
+
 	u32 scene_width, scene_height;
 	Bool has_size_info;
 	/*screen size*/

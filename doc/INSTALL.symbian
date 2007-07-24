@@ -32,6 +32,14 @@ last modified: Mai 2007
     Global compiler options are located in SDKRoot\Epoc32\tools\compilation_config\ - you may edit the default C++ rules to remove some 
     warnings during C compil. 
 
+  Side notes:
+    several SDKs may coexist on the drive. 
+      * To see the list of SDKs, at DOS prompt, c:\devices
+      * To change the default SDK, at DOS prompt, c:\devices -setdefault @sdk_name
+          you may need to exit prompt and start a new one in order to refresh environment variables.      
+    GPAC should compile on EKA2 (Symbian OS v8.0b, v8.1b).
+    GPAC CANNOT COMPILE ON EKA1 (Symbian OS v6.1, v7.0, v7.0s, v8.0a v8.1a) because EKA1 does not support writable static data in DLLs
+  
 I Extra lib installation
 	Please follow the instructions in gpac_extra_lib/00_README_FIRST
 
@@ -48,10 +56,17 @@ II GPAC compilation
   II.2 Compiling GPAC
    	cd gpac/build/symbian
   	bldmake bldfiles
+      * for GCCE
     abld build gcce urel
+      * for thumb
+    abld build thumb urel
     cd sis
-    makesis osmo4_gcce.pkg
+    set EPOCROOT=\path\to\epoc\root\
+      * for GCCE
+    makesis -d%EPOCROOT% osmo4_gcce.pkg
     signsis osmo4_gcce.SIS osmo4_gcce.SIS gpac.cer gpac.key password
+      * for THUMB
+    makesis -d%EPOCROOT% osmo4_thumb.pkg
   
 You will get a .SIS package that installs properly on a symbian device.
 NOTES:

@@ -49,27 +49,21 @@ extern "C" {
 		Video hardware output module
 */
 
-/*opengl configuration*/
-typedef struct
-{
-	Bool double_buffered;
-} GF_GLConfig;
-
 enum
 {
 	/*HW supports YUV->backbuffer blitting*/
 	GF_VIDEO_HW_HAS_YUV = (1<<1),
 	/*HW supports keying*/
 	GF_VIDEO_HW_HAS_COLOR_KEY = (1<<2),
-	/*HW supports OpenGL rendering. Whether this is OpenGL or OpenGL-ES depends on compilation settings and cannot be 
-	changed at runtime*/
+	/*HW supports OpenGL rendering. Whether this is OpenGL or OpenGL-ES depends on compilation settings
+	and cannot be changed at runtime*/
 	GF_VIDEO_HW_HAS_OPENGL = (1<<4),
-	/*HW supports 90 degres rotation of display (Mobile Phones & PDAs)*/
+	/*HW supports 90 degres rotation of display in 2D mode (Mobile Phones & PDAs)*/
 	GF_VIDEO_HW_CAN_ROTATE = (1<<5),
 };
 
 /*interface name and version for video output*/
-#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O',0x03) 
+#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O',0x04) 
 
 /*
 			video output interface
@@ -84,6 +78,9 @@ enum
 	The context shall be setup in Resize and SetFullScreen calls which are always happening in the main 
 	rendering thread. This will take care of openGL context issues with multithreading
 
+	By default all modules are required to be setup in 2D. If 3D is needed, a GF_EVENT_VIDEO_SETUP will
+	be sent with the desired configuration.
+
 	Except Setup and Shutdown functions, all interface functions are called through the main renderer thread
 	or its user to avoid multithreading issues. Care must still be taken when handling events
 */
@@ -94,9 +91,8 @@ typedef struct _video_out
 
 	/*setup system - if os_handle is NULL the driver shall create the output display (common case)
 	the other case is currently only used by child windows on win32 and winCE
-	@init_flags: a list of initialization flags as specified in user.h
-	if cfg is specified, the output is 3D, otherwise 2D*/
-	GF_Err (*Setup)(struct _video_out *vout, void *os_handle, void *os_display, u32 init_flags, GF_GLConfig *cfg);
+	@init_flags: a list of initialization flags as specified in user.h*/
+	GF_Err (*Setup)(struct _video_out *vout, void *os_handle, void *os_display, u32 init_flags);
 	/*shutdown system */
 	void (*Shutdown) (struct _video_out *vout);
 
@@ -114,8 +110,13 @@ typedef struct _video_out
 	GF_EVENT_SIZE:  inital window resize upon scene load
 	GF_EVENT_VIDEO_SETUP: all HW related setup:
 		* for 2D output, this means resizing the backbuffer if needed (depending on HW constraints)
-		* for 3D output, this means re-setup of OpenGL context (depending on HW constraints). Depending on windowing systems 
-			and implementations, it could be possible to resize a window without destroying the GL context.
+		* for 3D output, this means re-setup of OpenGL context (depending on HW constraints).
+			* This can be a request for an offscreen rendering surface. If supported, this surface SHALL
+			be readable through glReadPixels. If not supported, just return an error.
+			Note that GPAC never uses more than one GL context (offscreen or main video)
+			* Depending on windowing systems and implementations, it could be possible to resize a window 
+		without destroying the GL context. If the GL context is destroyed, the module should send an event
+		of the same type to the player.
 	
 	This function is also called with a NULL event at the begining of each rendering cycle, in order to allow event 
 	handling for modules uncapable of safe multithreading (eg X11)

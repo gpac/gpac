@@ -337,8 +337,10 @@ void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHand
 	gf_mx2d_init(gf_mx2d_txt);
 	gf_mx2d_add_scale(&gf_mx2d_txt, sS, sT);
 	/*apply texture transform*/
-	get_gf_sr_texture_transform(ctx->appear, txh, &gf_sr_texture_transform, (txh == ctx->h_texture) ? 0 : 1, txh->width * sS, txh->height * sT);
-	gf_mx2d_add_matrix(&gf_mx2d_txt, &gf_sr_texture_transform);
+	if (ctx->flags & CTX_HAS_APPEARANCE) {
+		get_gf_sr_texture_transform(ctx->appear, txh, &gf_sr_texture_transform, (txh == ctx->h_texture) ? 0 : 1, txh->width * sS, txh->height * sT);
+		gf_mx2d_add_matrix(&gf_mx2d_txt, &gf_sr_texture_transform);
+	}
 
 	/*move to bottom-left corner of bounds */
 	gf_mx2d_add_translation(&gf_mx2d_txt, (orig_rc.x), (orig_rc.y - orig_rc.height));

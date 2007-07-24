@@ -289,6 +289,7 @@ EXPORTS
 	gf_mx_rotation_matrix_from_vectors
 	gf_mx2d_from_mx
 	gf_mx_apply_plane
+	gf_mx_add_matrix_2d
 	gf_plane_get_distance
 	gf_plane_intersect_line
 	gf_closest_point_to_line

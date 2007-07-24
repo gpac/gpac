@@ -239,13 +239,51 @@ static Bool check_graphics2D_driver(GF_Raster2D *ifce)
 static GF_Renderer *SR_New(GF_User *user)
 {
 	const char *sOpt;
-	GF_VisualRenderer *vrend;
-	GF_GLConfig cfg, *gl_cfg;
-	Bool forced = 1;
 	GF_Renderer *tmp;
+	Bool forced = 1;
+
 	GF_SAFEALLOC(tmp, GF_Renderer);
 	if (!tmp) return NULL;
 	tmp->user = user;
+
+	/*load video out*/
+	sOpt = gf_cfg_get_key(user->config, "Video", "DriverName");
+	if (sOpt) {
+		tmp->video_out = (GF_VideoOutput *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_VIDEO_OUTPUT_INTERFACE);
+		if (tmp->video_out) {
+			tmp->video_out->evt_cbk_hdl = tmp;
+			tmp->video_out->on_event = gf_sr_on_event;
+			/*init hw*/
+			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->init_flags) != GF_OK) {
+				gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
+				tmp->video_out = NULL;
+			}
+		} else {
+			sOpt = NULL;
+		}
+	}
+
+	if (!tmp->video_out) {
+		u32 i, count;
+		count = gf_modules_get_count(user->modules);
+		for (i=0; i<count; i++) {
+			tmp->video_out = (GF_VideoOutput *) gf_modules_load_interface(user->modules, i, GF_VIDEO_OUTPUT_INTERFACE);
+			if (!tmp->video_out) continue;
+			tmp->video_out->evt_cbk_hdl = tmp;
+			tmp->video_out->on_event = gf_sr_on_event;
+			/*init hw*/
+			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->init_flags)==GF_OK) {
+				gf_cfg_set_key(user->config, "Video", "DriverName", tmp->video_out->module_name);
+				break;
+			}
+			gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
+			tmp->video_out = NULL;
+		}
+	}
+	if (!tmp->video_out ) {
+		free(tmp);
+		return NULL;
+	}
 
 	/*load renderer to check for GL flag*/
 	if (! (user->init_flags & (GF_TERM_FORCE_2D | GF_TERM_FORCE_3D)) ) {
@@ -277,53 +315,8 @@ static GF_Renderer *SR_New(GF_User *user)
 	}
 
 	if (!tmp->visual_renderer) {
+		gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RENDER, ("[Renderer] Cannot load any visual renderer - aborting\n"));
-		free(tmp);
-		return NULL;
-	}
-
-	memset(&cfg, 0, sizeof(cfg));
-	cfg.double_buffered = 1;
-	gl_cfg = tmp->visual_renderer->bNeedsGL ? &cfg : NULL;
-	vrend = tmp->visual_renderer;
-	tmp->visual_renderer = NULL;
-	/*load video out*/
-	sOpt = gf_cfg_get_key(user->config, "Video", "DriverName");
-	if (sOpt) {
-		tmp->video_out = (GF_VideoOutput *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_VIDEO_OUTPUT_INTERFACE);
-		if (tmp->video_out) {
-			tmp->video_out->evt_cbk_hdl = tmp;
-			tmp->video_out->on_event = gf_sr_on_event;
-			/*init hw*/
-			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->init_flags, gl_cfg) != GF_OK) {
-				gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
-				tmp->video_out = NULL;
-			}
-		} else {
-			sOpt = NULL;
-		}
-	}
-
-	if (!tmp->video_out) {
-		u32 i, count;
-		count = gf_modules_get_count(user->modules);
-		for (i=0; i<count; i++) {
-			tmp->video_out = (GF_VideoOutput *) gf_modules_load_interface(user->modules, i, GF_VIDEO_OUTPUT_INTERFACE);
-			if (!tmp->video_out) continue;
-			tmp->video_out->evt_cbk_hdl = tmp;
-			tmp->video_out->on_event = gf_sr_on_event;
-			/*init hw*/
-			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->init_flags, gl_cfg)==GF_OK) {
-				gf_cfg_set_key(user->config, "Video", "DriverName", tmp->video_out->module_name);
-				break;
-			}
-			gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
-			tmp->video_out = NULL;
-		}
-	}
-	tmp->visual_renderer = vrend;
-	if (!tmp->video_out ) {
-		gf_modules_close_interface((GF_BaseInterface *)tmp->visual_renderer);
 		free(tmp);
 		return NULL;
 	}
@@ -1056,8 +1049,6 @@ GF_Node *gf_sr_pick_node(GF_Renderer *sr, s32 X, s32 Y)
 	return NULL;
 }
 
-static u32 last_lclick_time = 0;
-
 static void SR_ForwardUserEvent(GF_Renderer *sr, GF_Event *ev)
 {
 	GF_USER_SENDEVENT(sr->user, ev);
@@ -1067,14 +1058,14 @@ static void SR_ForwardUserEvent(GF_Renderer *sr, GF_Event *ev)
 		GF_Event event;
 		/*emulate doubleclick*/
 		now = gf_sys_clock();
-		if (now - last_lclick_time < 250) {
+		if (now - sr->last_click_time < 250) {
 			event.type = GF_EVENT_MOUSEDOUBLECLICK;
 			event.mouse.key_states = sr->key_states;
 			event.mouse.x = ev->mouse.x;
 			event.mouse.y = ev->mouse.y;
 			GF_USER_SENDEVENT(sr->user, &event);
 		}
-		last_lclick_time = now;
+		sr->last_click_time = now;
 	}
 }
 

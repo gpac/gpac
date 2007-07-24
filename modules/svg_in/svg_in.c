@@ -238,7 +238,12 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 	if (sOpt && !strcmp(sOpt, "yes")) {
 		svgin->sax_max_duration = 30;
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "MaxDuration");
-		if (sOpt) svgin->sax_max_duration = atoi(sOpt);
+		if (sOpt) {
+			svgin->sax_max_duration = atoi(sOpt);
+		} else {
+			svgin->sax_max_duration = 30;
+			gf_modules_set_option((GF_BaseInterface *)plug, "SAXLoader", "MaxDuration", "30");
+		}
 	} else {
 		svgin->sax_max_duration = (u32) -1;
 	}

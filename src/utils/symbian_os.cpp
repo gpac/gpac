@@ -48,7 +48,7 @@
 
 //  Exported Functions (DLL entry point)
 #ifndef EKA2 // for EKA1 only
-EXPORT_C TInt E32Dll(TDllReason /*aReason*/)
+GLDEF_C TInt E32Dll(TDllReason /*aReason*/)
 // Called when the DLL is loaded and unloaded. Note: have to define
 // epoccalldllentrypoints in MMP file to get this called in THUMB.
 {
@@ -77,7 +77,11 @@ void gf_sleep(u32 ms)
 {
 	TTimeIntervalMicroSeconds32 inter;
 	inter = (TInt) (1000*ms);
+#ifdef __SERIES60_3X__
 	User::AfterHighRes(inter); 
+#else
+	User::After(inter); 
+#endif
 
 #if 0
 	TInt error;
@@ -637,7 +641,9 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
 	TInt ram, ram_free;
 	u32 now, time;
+#ifdef __SERIES60_3X__
 	TModuleMemoryInfo mi;
+#endif
 	TTimeIntervalMicroSeconds tims;
 	RProcess cur_process;
 	RThread cur_th;
@@ -648,7 +654,11 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		if (cur_th.GetCpuTime(tims) != KErrNone) {
 			return 0;
 		}
+#ifdef __SERIES60_3X__
 		rti->process_cpu_time = (u32) (tims.Int64() / 1000);
+#else
+		rti->process_cpu_time = (u32) ( TInt64(tims.Int64() / 1000).GetTInt() );
+#endif
 		return 0;
 	}
 	if (rti->sampling_instant + refresh_time_ms > now) return 0;
@@ -658,15 +668,20 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	if (cur_th.Process(cur_process) != KErrNone) {
 		return 0;
 	}
+#ifdef __SERIES60_3X__
 	if (cur_process.GetMemoryInfo(mi) != KErrNone) {
 		return 0;
 	}
 	rti->process_memory = mi.iCodeSize + mi.iConstDataSize + mi.iInitialisedDataSize + mi.iUninitialisedDataSize;
-
+#endif
 	if (cur_th.GetCpuTime(tims) != KErrNone) {
 		return 0;
 	}
+#ifdef __SERIES60_3X__
 	time = (u32) (tims.Int64() / 1000);
+#else
+	time = (u32) ( TInt64(tims.Int64() / 1000).GetTInt() );
+#endif
 	rti->process_cpu_time_diff = time - rti->process_cpu_time;
 	rti->process_cpu_time = time;
 	rti->process_cpu_usage = 100*rti->process_cpu_time_diff / rti->sampling_period_duration;

@@ -1,9 +1,9 @@
 TARGET gm_rtp_in.dll
-TARGETTYPE DLL
-CAPABILITY	NetworkServices
-UID		0x10000080 0x10000081
 
-//Common tools
+//common config of all modules
+#include ".\module_base.mmp"
+
+//source
 SOURCEPATH ..\..\modules\rtp_in
 SOURCE rtp_in.c
 SOURCE rtp_session.c
@@ -11,17 +11,4 @@ SOURCE rtp_signaling.c
 SOURCE rtp_stream.c
 SOURCE sdp_fetch.c
 SOURCE sdp_load.c
-
-SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
-
-LIBRARY euser.lib estlib.lib libgpac.lib
-
-#if defined(WINS)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#else if defined(ARM)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#endif
-
-//EXPORTUNFROZEN
-//  nostrictdef
 

@@ -196,16 +196,16 @@ void COsmo4AppUi::HandleForegroundEventL(TBool aForeground)
 void COsmo4AppUi::HandleCommandL( TInt aCommand )
 {
 	GF_Err e;
+#ifndef GPAC_GUI_ONLY
 	switch( aCommand ) {
+	case EAknSoftkeyBack:
+		if (view_mode==1) TogglePlaylist();
+		break;
     case EEikCmdExit:
     case EAknSoftkeyExit:
         iAppView->Shutdown();
 		Exit();
         break;
-#ifndef GPAC_GUI_ONLY
-	case EAknSoftkeyBack:
-		if (view_mode==1) TogglePlaylist();
-		break;
 	/*PLAYLIST commands*/
 	case EOsmo4PlayListAdd:
 		iPlaylist->PlaylistAct(Osmo4PLAdd);
@@ -323,19 +323,17 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 		iAppView->ReloadTerminal();
 	}
 		break;
-#endif
     default:
 		if ((aCommand>=EOsmo4OpenRecentFirst) && (aCommand<=EOsmo4OpenRecentLast)) {
-#ifndef GPAC_GUI_ONLY
 			const char *sOpt = gf_cfg_get_key_name(iAppView->m_user.config, "RecentFiles", aCommand - EOsmo4OpenRecentFirst);
 			if (sOpt) iAppView->Connect(sOpt);
-#endif
 		} else {
 			iAppView->MessageBox("Unandled command - panic", "Osmo4");
 			Panic( EOsmo4Ui );
 		}
         break;
     }
+#endif
 }
 
 

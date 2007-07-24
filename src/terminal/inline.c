@@ -678,7 +678,10 @@ void gf_is_attach_to_renderer(GF_InlineScene *is)
 	if (is->root_od->term->root_scene == is) {
 		gf_sr_set_scene(is->root_od->term->renderer, is->graph);
 	}
-	else {		
+	else {
+		u32 i, count=gf_list_count(is->inline_nodes);
+		for (i=0;i<count; i++) 
+			gf_node_dirty_parents( gf_list_get(is->inline_nodes, i) );
 		gf_term_invalidate_renderer(is->root_od->term);
 	}
 }

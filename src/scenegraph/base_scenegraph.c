@@ -1330,6 +1330,12 @@ void gf_node_dirty_set(GF_Node *node, u32 flags, Bool and_dirty_parents)
 }
 
 GF_EXPORT
+void gf_node_dirty_parents(GF_Node *node)
+{
+	dirty_parents(node);
+}
+
+GF_EXPORT
 void gf_node_dirty_clear(GF_Node *node, u32 flag_to_remove)
 {
 	if (!node) return;

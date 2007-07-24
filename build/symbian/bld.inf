@@ -35,4 +35,4 @@ xvid_dec.mmp
 
 
 PRJ_PLATFORMS
-GCCE
+DEFAULT

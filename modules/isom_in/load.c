@@ -174,3 +174,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 #endif
 	}
 }
+

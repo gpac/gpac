@@ -54,7 +54,9 @@ typedef struct
 
 	u32 width, height;
 
-	Bool is_3D_out;
+	SDL_Surface *offscreen_gl;
+
+	u32 output_3d_type;
 	void *os_handle;
 } SDLVidCtx;
 

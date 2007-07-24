@@ -729,7 +729,7 @@ char *gf_rtsp_generate_session_id(GF_RTSPSession *sess)
 	res = one;
 	res <<= 32;
 	res += two;
-	sprintf(buffer, "%llu", res);
+	sprintf(buffer, LLU, res);
 	return strdup(buffer);
 }
 

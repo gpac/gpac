@@ -106,8 +106,11 @@ static void UpdateMovieTexture(GF_TextureHandler *txh)
 			txh->needs_refresh = 1;
 		}
 	}
-	if (txh->needs_refresh) 
+	if (txh->needs_refresh) {
+		/*mark all subtrees using this image as dirty*/
+		gf_node_dirty_parents(txh->owner);
 		gf_sr_invalidate(txh->compositor, NULL);
+	}
 }
 
 static void MT_UpdateTime(GF_TimeNode *st)
@@ -221,7 +224,11 @@ static void UpdateImageTexture(GF_TextureHandler *txh)
 	}
 	gf_sr_texture_update_frame(txh, 0);
 	/*URL is present but not opened - redraw till fetch*/
-	if (txh->stream && !txh->hwtx) gf_sr_invalidate(txh->compositor, NULL);
+	if ((txh->stream && !txh->hwtx) || txh->needs_refresh) {
+		/*mark all subtrees using this image as dirty*/
+		gf_node_dirty_parents(txh->owner);
+		gf_sr_invalidate(txh->compositor, NULL);
+	}
 }
 
 void InitImageTexture(GF_Renderer *sr, GF_Node *node)
