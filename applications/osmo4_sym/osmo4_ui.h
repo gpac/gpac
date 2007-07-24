@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef __osmo4APPUI_H__
-#define __osmo4APPUI_H__
+#ifndef __OSMO4_UI_H__
+#define __OSMO4_UI_H__
 
 // INCLUDES
 #include <aknappui.h>
@@ -174,7 +174,7 @@ private:
 		int nb_keys;
     };
 
-#endif // __osmo4APPUI_H__
+#endif // __OSMO4_UI_H__
 
 // End of File
 

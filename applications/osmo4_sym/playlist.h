@@ -77,7 +77,10 @@ public:
 
 	void PlaylistAct(Osmo4_PLActions act);
 
+#ifndef GPAC_GUI_ONLY
 	GF_User *m_user;
+#endif
+
 private:
     void ConstructL(const TRect& aRect, GF_User *user);
     CPlaylist();
