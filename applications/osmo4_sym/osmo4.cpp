@@ -1,51 +1,81 @@
-/*
- *			GPAC - Multimedia Framework C SDK
- *
- *			Copyright (c) ENST 2006-200X
- *				Authors: Jean Le Feuvre 
- *					All rights reserved
- *
- *  This file is part of GPAC / Symbian GUI player
- *
- *  GPAC is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU Lesser General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *   
- *  GPAC is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.
- *   
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *
- */
+#include "osmo4.h"
+#include "osmo4_ui.h"
 
 
-// INCLUDE FILES
+#if defined(EKA2) && defined(__SERIES60_3X__)
+
 #include <eikstart.h>
-#include "osmo4_app.h"
-
 
 EXPORT_C CApaApplication* NewApplication()
-	{
+{
 	return new COsmo4Application;
-	}
+}
 
-#ifdef EKA2
-
-// EXE point
-GLDEF_C TInt E32Main() {
+GLDEF_C TInt E32Main() 
+{
     return EikStart::RunApplication( NewApplication );
 }
 
 #else
 
-// DLL entry point
-GLDEF_C TInt E32Dll(TDllReason /*aReason*/) {
+
+GLDEF_C TInt E32Dll( TDllReason /*aReason*/ )
+{
     return KErrNone;
 }
 
+EXPORT_C CApaApplication* NewApplication()
+{
+    return ( static_cast<CApaApplication*>( new COsmo4Application ) );
+}
+
 #endif
+
+
+const TUid KUidOsmo4App = { 0x1000AC00 };
+
+CApaDocument* COsmo4Application::CreateDocumentL()
+{
+    return (static_cast<CApaDocument*> ( COsmo4Document::NewL( *this ) ) );
+}
+
+TUid COsmo4Application::AppDllUid() const
+{
+    return KUidOsmo4App;
+}
+
+
+COsmo4Document* COsmo4Document::NewL( CEikApplication& aApp )
+{
+    COsmo4Document* self = NewLC( aApp );
+    CleanupStack::Pop( self );
+    return self;
+}
+
+COsmo4Document* COsmo4Document::NewLC( CEikApplication& aApp )
+{
+    COsmo4Document* self =
+        new ( ELeave ) COsmo4Document( aApp );
+
+    CleanupStack::PushL( self );
+    self->ConstructL();
+    return self;
+}
+void COsmo4Document::ConstructL()
+{
+}
+
+COsmo4Document::COsmo4Document( CEikApplication& aApp )
+    : CAknDocument( aApp )
+{
+}
+
+COsmo4Document::~COsmo4Document()
+{
+}
+
+CEikAppUi* COsmo4Document::CreateAppUiL()
+{
+    return ( static_cast <CEikAppUi*> ( new ( ELeave ) COsmo4AppUi ) );
+}
+

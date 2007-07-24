@@ -24,21 +24,29 @@
  */
 
 
-#ifndef __osmo4APPVIEW_H__
-#define __osmo4APPVIEW_H__
+#ifndef __OSMO4_VIEW_H__
+#define __OSMO4_VIEW_H__
 
 // INCLUDES
 #include <coecntrl.h>
+
+#if defined(__SERIES60_3X__)
 #include <remconcoreapitargetobserver.h>
 #include <remconcoreapitarget.h>
 #include <remconinterfaceselector.h>
+#endif
+
 
 #include <gpac/terminal.h>
 #include <gpac/thread.h>
 
 
 // CLASS DECLARATION
-class COsmo4AppView : public CCoeControl,MRemConCoreApiTargetObserver
+class COsmo4AppView : public CCoeControl
+#if defined(__SERIES60_3X__)
+		,MRemConCoreApiTargetObserver
+#endif
+
     {
     public: // New methods
 
@@ -82,13 +90,19 @@ class COsmo4AppView : public CCoeControl,MRemConCoreApiTargetObserver
         */
         virtual void SizeChanged();
 
+#ifndef GPAC_GUI_ONLY
 		GF_User *GetUser() { return &m_user; }
+#else
+		GF_User *GetUser() { return NULL; }
+#endif
 		void SetupLogs();
 		void MessageBox(const char *text, const char *title);
 
 		virtual TKeyResponse OfferKeyEventL(const TKeyEvent& aKeyEvent, TEventCode aType);
-		void MrccatoCommand(TRemConCoreApiOperationId aOperationId, TRemConCoreApiButtonAction aButtonAct);
 
+#if defined(__SERIES60_3X__)
+		void MrccatoCommand(TRemConCoreApiOperationId aOperationId, TRemConCoreApiButtonAction aButtonAct);
+#endif
 		void ReloadTerminal();
 
 
@@ -100,7 +114,9 @@ class COsmo4AppView : public CCoeControl,MRemConCoreApiTargetObserver
 		void ShowHide(Bool show);
 		Bool EventProc(GF_Event *evt);
 
+#ifndef GPAC_GUI_ONLY
 		GF_Terminal *m_term;
+#endif
 
     private: // Constructors
 
@@ -125,20 +141,28 @@ class COsmo4AppView : public CCoeControl,MRemConCoreApiTargetObserver
 
 		RWindow m_window;
 		RWsSession m_session;
+#ifndef GPAC_GUI_ONLY
 		GF_SystemRTInfo m_rti;
+#endif
+
+#if defined(__SERIES60_3X__)
 		CRemConInterfaceSelector *selector;
 		CRemConCoreApiTarget *target;
+#endif
+
 
 public:
 		u32 last_title_update;
 		Bool do_log;
 		Bool show_rti;
+#ifndef GPAC_GUI_ONLY
 		GF_Mutex *m_mx;
 		GF_User m_user;
+#endif
     };
 
 
-#endif // __osmo4APPVIEW_H__
+#endif // __OSMO4_VIEW_H__
 
 // End of File
 

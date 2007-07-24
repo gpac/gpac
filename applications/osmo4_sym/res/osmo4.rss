@@ -1,17 +1,4 @@
-/*
-* ==============================================================================
-*  Name        : osmo4.rss
-*  Part of     : osmo4
-*  Interface   : 
-*  Description : 
-*  Version     : 
-*
-*  Copyright (c) 2005-2006 Nokia Corporation.
-*  This material, including documentation and any related 
-*  computer programs, is protected by copyright controlled by 
-*  Nokia Corporation.
-* ==============================================================================
-*/
+/* Copyright (c) 2004, Nokia. All rights reserved */
 
 //  RESOURCE IDENTIFIER
 NAME OSMO    // 4 letter ID
@@ -21,72 +8,35 @@ NAME OSMO    // 4 letter ID
 #include <eikon.rh>
 #include <avkon.rh>
 #include <avkon.rsg>
+
 #include <appinfo.rh>
 
-//d:Caption string for app.
-rls_string STRING_osmo_caption_string "Osmo4"
-
-
-//  RESOURCE DEFINITIONS
-// -----------------------------------------------------------------------------
-//
-//    Define the resource file signature
-//    This resource should be empty.
-//
-// -----------------------------------------------------------------------------
-//
 RESOURCE RSS_SIGNATURE
     {
     }
 
-// -----------------------------------------------------------------------------
-//
-//    Default Document Name
-//
-// -----------------------------------------------------------------------------
-//
 RESOURCE TBUF r_default_document_name
     {
     buf="OSMO";
     }
 
-// -----------------------------------------------------------------------------
-//
-//    Define default menu and CBA key.
-//
-// -----------------------------------------------------------------------------
-//
 RESOURCE EIK_APP_INFO
     {
-    menubar = r_osmo4_menubar;
+    menubar = r_Osmo4_menubar;
     cba = R_AVKON_SOFTKEYS_OPTIONS_EXIT;
     }
 
 
-// -----------------------------------------------------------------------------
-//
-//   r_osmo4_menubar
-//   Menubar for Osmo4 example
-//
-// -----------------------------------------------------------------------------
-//
-RESOURCE MENU_BAR r_osmo4_menubar
+RESOURCE MENU_BAR r_Osmo4_menubar
     {
     titles =
         {
-        MENU_TITLE { menu_pane = r_osmo4_menu; }
+        MENU_TITLE { menu_pane = r_Osmo4_menu; }
         };
     }
 
 
-// -----------------------------------------------------------------------------
-//
-//   r_osmo4_menu
-//   Menu for "Options"
-//
-// -----------------------------------------------------------------------------
-//
-RESOURCE MENU_PANE r_osmo4_menu
+RESOURCE MENU_PANE r_Osmo4_menu
     {
     }
 
@@ -109,14 +59,11 @@ RESOURCE MENU_PANE r_osmo4_ssm2
     {
     }
 
-// ---------------------------------------------------------------------------- 
-//
-// r_osmo4_localisable_app_info
-//
-// ---------------------------------------------------------------------------- 
-//
+
+rls_string STRING_osmo_caption_string "Osmo4"
+
 RESOURCE LOCALISABLE_APP_INFO r_osmo4_localisable_app_info
-    {
+     {
     short_caption = STRING_osmo_caption_string;
     caption_and_icon = 
     CAPTION_AND_ICON_INFO

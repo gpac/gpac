@@ -38,8 +38,8 @@
 #include <aknquerydialog.h> 
 
 
-#include "osmo4_AppUi.h"
-#include "osmo4_AppView.h"
+#include "osmo4_ui.h"
+#include "osmo4_view.h"
 #include "playlist.h"
 
 #include <gpac/utf.h>
@@ -65,9 +65,12 @@ void COsmo4AppUi::ConstructL()
 	AddToStackL(iAppView);
 
 	/*create playlist*/
+#ifndef GPAC_GUI_ONLY
 	iPlaylist = CPlaylist::NewL( ClientRect(), iAppView->GetUser() );
 
 	iPlaylist->MakeVisible(EFalse);
+#endif
+	
 	iAppView->MakeVisible(ETrue);
 	view_mode = 0;
 
@@ -81,6 +84,7 @@ void COsmo4AppUi::ConstructL()
 
 
 	CCommandLineArguments *args = CCommandLineArguments::NewL();
+#ifndef GPAC_GUI_ONLY
 	if (args->Count() > 1) {
 		TPtrC url = args->Arg(1);
 #if defined(_UNICODE)
@@ -100,6 +104,7 @@ void COsmo4AppUi::ConstructL()
 		iAppView->Connect((const char *)url.Ptr());
 #endif
 	}
+#endif
 	delete args;
 }
 
@@ -192,14 +197,15 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 {
 	GF_Err e;
 	switch( aCommand ) {
-	case EAknSoftkeyBack:
-		if (view_mode==1) TogglePlaylist();
-		break;
     case EEikCmdExit:
     case EAknSoftkeyExit:
         iAppView->Shutdown();
 		Exit();
         break;
+#ifndef GPAC_GUI_ONLY
+	case EAknSoftkeyBack:
+		if (view_mode==1) TogglePlaylist();
+		break;
 	/*PLAYLIST commands*/
 	case EOsmo4PlayListAdd:
 		iPlaylist->PlaylistAct(Osmo4PLAdd);
@@ -317,10 +323,13 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 		iAppView->ReloadTerminal();
 	}
 		break;
+#endif
     default:
 		if ((aCommand>=EOsmo4OpenRecentFirst) && (aCommand<=EOsmo4OpenRecentLast)) {
+#ifndef GPAC_GUI_ONLY
 			const char *sOpt = gf_cfg_get_key_name(iAppView->m_user.config, "RecentFiles", aCommand - EOsmo4OpenRecentFirst);
 			if (sOpt) iAppView->Connect(sOpt);
+#endif
 		} else {
 			iAppView->MessageBox("Unandled command - panic", "Osmo4");
 			Panic( EOsmo4Ui );
@@ -339,13 +348,16 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 void COsmo4AppUi::HandleStatusPaneSizeChange()
 {
 	iAppView->SetRect( ClientRect() );
+#ifndef GPAC_GUI_ONLY
 	iPlaylist->SetRect( ClientRect() );
+#endif
 } 
 
 void COsmo4AppUi::TogglePlaylist()
 {
 	CEikButtonGroupContainer* cba= CEikButtonGroupContainer::Current();
 
+#ifndef GPAC_GUI_ONLY
 	switch (view_mode) {
 	case 0:
 		RemoveFromStack(iAppView);
@@ -374,6 +386,7 @@ void COsmo4AppUi::TogglePlaylist()
 		view_mode = 0;
 		break;
 	}
+#endif
 }
 
 void COsmo4AppUi::PlayURL(const char *url)
@@ -391,6 +404,7 @@ void COsmo4AppUi::PlayURL(const char *url)
 
 void COsmo4AppUi::SetTitleInfo(const char *title)
 {
+#if 0
     CEikStatusPane* statusPane = StatusPane();
     CAknTitlePane *iTitlePane = (CAknTitlePane*) statusPane->ControlL(TUid::Uid(EEikStatusPaneUidTitle));
 
@@ -399,6 +413,7 @@ void COsmo4AppUi::SetTitleInfo(const char *title)
 	HBufC *htitle = HBufC::NewL( strlen(title)+1);
 	htitle->Des().Copy( TPtrC8(( TText8* ) title) );
 	iTitlePane->SetText(htitle);
+#endif
 }
 
 void COsmo4AppUi::SetTitle(const char *title, int store_it)
@@ -441,6 +456,7 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 		aMenuPane->Reset();
 
 		if (view_mode==1) {
+#ifndef GPAC_GUI_ONLY
 			Bool is_file = iPlaylist->SelectionIsFile();
 			Bool in_pl = (is_file && iPlaylist->IsInPlaylist()) ? 1 : 0;
 
@@ -461,6 +477,7 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 				DECLARE_MENU_ITEM(_L("Sort"), 0, 0, R_OSMO4_SM1, 1);
 			}
 			DECLARE_MENU_ITEM(iPlaylist->PlaylistMode() ? _L("Browse") : _L("Playlist"), EOsmo4PlayListMode, 0, 0, 0);
+#endif
 		} else {
 			/*open*/
 			DECLARE_MENU_ITEM(_L("File"), 0, 0, R_OSMO4_SM1, 0);
@@ -480,9 +497,11 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 		else {
 			DECLARE_MENU_ITEM(_L("Open local"), EOsmo4PlayListView, 0, 0, 0);
 			DECLARE_MENU_ITEM(_L("Open URL"), EOsmo4OpenURL, 0, 0, 1);
+#ifndef GPAC_GUI_ONLY
 			if (gf_cfg_get_key_name(iAppView->m_user.config, "RecentFiles", 0) != NULL) {
 				DECLARE_MENU_ITEM(_L("Recent"), 0, 0, R_OSMO4_SSM1, 0);
 			}
+#endif
 			DECLARE_MENU_ITEM(_L("Reload"), EOsmo4Reload, 0, 0, 0);
 		}
 		smenu_id = 1;
@@ -494,10 +513,12 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 	/*View menu*/
 	if (aResourceId==R_OSMO4_SM2) {
 		aMenuPane->Reset();
+#ifndef GPAC_GUI_ONLY
 		/*content view menu*/
 		if (gf_term_get_option(iAppView->m_term, GF_OPT_NAVIGATION_TYPE) != GF_NAVIGATE_TYPE_NONE) {
 			DECLARE_MENU_ITEM(_L("Navigate"), 0, 0, R_OSMO4_SSM1, 1);
 		}
+#endif
 		DECLARE_MENU_ITEM(_L("Fullscreen"), EOsmo4Fullscreen, 0, 0, 0);
 		/*don't allow content AR modification by user*/
 		//DECLARE_MENU_ITEM(_L("Aspect Ratio"), 0, 0, R_OSMO4_SSM2, 1);
@@ -508,9 +529,10 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 	}
 	/*Option menu*/
 	if (aResourceId==R_OSMO4_SM3) {
+#ifndef GPAC_GUI_ONLY
 		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "Rendering", "RendererName");
 		DECLARE_MENU_ITEM(_L("Use OpenGL"), EOsmo4OptSwitchRender, (opt && strstr(opt, "3D")) ? 1 : 0, 0, 0);
-
+#endif
 		
 		DECLARE_MENU_ITEM(_L("Enable Logs"), EOsmo4OptEnableLogs, iAppView->do_log, 0, 0);
 		return;
@@ -520,6 +542,7 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 		aMenuPane->Reset();
 		if (smenu_id == 1) {
 			u32 i = 0;
+#ifndef GPAC_GUI_ONLY
 			while (1) {
 				const char *opt = gf_cfg_get_key_name(iAppView->m_user.config, "RecentFiles", i);
 				if (!opt) break;
@@ -534,11 +557,13 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 				i++;
 				if (i>=10) break;
 			}
+#endif
 		} else if (smenu_id == 2) {
 			DECLARE_MENU_ITEM(_L("Reset"), EOsmo4NavReset, 0, 0, 1);
 			DECLARE_MENU_ITEM(_L("None"), EOsmo4NavNone, 0, 0, 0);
 			DECLARE_MENU_ITEM(_L("Slide"), EOsmo4NavSlide, 0, 0, 0);
 
+#ifndef GPAC_GUI_ONLY
 			if (gf_term_get_option(iAppView->m_term, GF_OPT_NAVIGATION_TYPE) == GF_NAVIGATE_TYPE_3D) {
 				DECLARE_MENU_ITEM(_L("Walk"), EOsmo4NavWalk, 0, 0, 0);
 				DECLARE_MENU_ITEM(_L("Fly"), EOsmo4NavFly, 0, 0, 0);
@@ -546,6 +571,7 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 				DECLARE_MENU_ITEM(_L("Headlight"), EOsmo4NavHeadlight, 0, 0, 0);
 				DECLARE_MENU_ITEM(_L("Gravity"), EOsmo4NavGravity, 0, 0, 0);
 			}
+#endif
 		}
 		return;
 	}

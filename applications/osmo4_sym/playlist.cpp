@@ -30,7 +30,7 @@
 #include <gpac/utf.h>
 
 // INCLUDE FILES
-#include "osmo4_appui.h"
+#include "osmo4_ui.h"
 #include "playlist.h"
 
 #ifdef USE_SKIN
@@ -93,6 +93,8 @@ void CPlaylist::ConstructL(const TRect& aRect, GF_User *user)
     SetRect(aRect);
     ActivateL();
 	MakeVisible(EFalse);
+
+#ifndef GPAC_GUI_ONLY
 	m_user = user;
 
 	strcpy(ext_list, "");
@@ -108,7 +110,7 @@ void CPlaylist::ConstructL(const TRect& aRect, GF_User *user)
 		strcat(ext_list, szKeyList);
 		strcat(ext_list, " ");
 	}
-
+#endif
 	strcpy(szCurrentDir, "");
 }
 
@@ -265,8 +267,10 @@ void CPlaylist::ScanDirectory(const char *dir)
 		AddItem("..", 1);
 	}
 
+#ifndef GPAC_GUI_ONLY
 	gf_enum_directory((const char *) szCurrentDir, 1, enum_dirs, this, NULL);
 	gf_enum_directory((char *) szCurrentDir, 0, enum_files, this, view_all_files ? NULL : ext_list);
+#endif
 	FlushItemList();
 
 	((COsmo4AppUi *) CEikonEnv::Static()->AppUi())->SetTitle(szCurrentDir, 0);
@@ -277,6 +281,8 @@ void CPlaylist::GetSelectionName(char *szName)
 {
 	CDesCArray* array = static_cast<CDesCArray*>(iListBox->Model()->ItemTextArray());
 	TInt idx = iListBox->CurrentItemIndex();
+
+#ifndef GPAC_GUI_ONLY
 
 #if defined(_UNICODE)
 	size_t len;
@@ -291,8 +297,10 @@ void CPlaylist::GetSelectionName(char *szName)
 #ifdef USE_SKIN
 	sptr += 1;
 #endif
+
 	len = gf_utf8_wcstombs(szName, 512, &sptr);
 	szName[len] = 0;
+
 
 #else
 
@@ -309,6 +317,11 @@ void CPlaylist::GetSelectionName(char *szName)
 	len = strlen(szName);
 	szName[len-2] = 0;
 #endif
+
+#else
+	szName[0] = 0;
+#endif
+
 }
 
 void CPlaylist::HandleSelection()
@@ -339,8 +352,10 @@ void CPlaylist::HandleSelection()
 		COsmo4AppUi *app = (COsmo4AppUi *) CEikonEnv::Static()->AppUi();
 		if (playlist_mode) {
 			TInt idx = iListBox->CurrentItemIndex();
+#ifndef GPAC_GUI_ONLY
 			const char *url = gf_cfg_get_key_name(m_user->config, "Playlist", idx);
 			if (url) app->PlayURL(url);
+#endif
 		} else {
 			sprintf(szURL, "%s\\%s", szCurrentDir, szName);
 			app->PlayURL(szURL);
@@ -367,8 +382,10 @@ Bool CPlaylist::IsInPlaylist()
 
 	/*remove from playlist*/
 	sprintf(szURL, "%s\\%s", szCurrentDir, szName);
+#ifndef GPAC_GUI_ONLY
 	const char *opt = gf_cfg_get_key(m_user->config, "Playlist", szURL);
 	if (opt) return 1;
+#endif
 	return 0;
 }
 
@@ -382,7 +399,11 @@ static Bool dir_add_files(void *cbk, char *name, char *path)
 		if (!ext || !strstr(extension_list, ext+1)) return 0;
 	}
 #endif
+
+#ifndef GPAC_GUI_ONLY
 	gf_cfg_set_key(pl->m_user->config, "Playlist", path, "");
+#endif
+
 	return 0;
 }
 
@@ -390,6 +411,7 @@ static Bool dir_add_files(void *cbk, char *name, char *path)
 void CPlaylist::RefreshPlaylist()
 {
 	if (playlist_mode) {
+#ifndef GPAC_GUI_ONLY
 		u32 count = gf_cfg_get_key_count(m_user->config, "Playlist");
 		ResetView();
 		for (u32 i=0; i<count; i++) {
@@ -399,7 +421,7 @@ void CPlaylist::RefreshPlaylist()
 			AddItem(sep ? (sep+1) : opt, 0);
 		}
 		if (!count) AddItem("[empty]", 0);
-
+#endif
 		FlushItemList();
 
 		((COsmo4AppUi *) CEikonEnv::Static()->AppUi())->SetTitle("Playlist", 0);
@@ -419,9 +441,11 @@ void CPlaylist::PlaylistAct(Osmo4_PLActions act)
 
 	if (act==Osmo4PLClear) {
 		while (1) {
+#ifndef GPAC_GUI_ONLY
 			const char *opt = gf_cfg_get_key_name(m_user->config, "Playlist", 0);
 			if (!opt) break;
 			gf_cfg_set_key(m_user->config, "Playlist", opt, NULL);
+#endif
 		}
 		RefreshPlaylist();
 		return;
@@ -434,6 +458,7 @@ void CPlaylist::PlaylistAct(Osmo4_PLActions act)
 		RefreshPlaylist();
 		return;
 	} else if (act == Osmo4PLAdd) {
+#ifndef GPAC_GUI_ONLY
 		GetSelectionName(szName);
 		if ((szName[0] == '+') && (szName[1] == ' ')) {
 			if ((szName[2] != '.') && (szName[3] != '.')) {
@@ -446,6 +471,7 @@ void CPlaylist::PlaylistAct(Osmo4_PLActions act)
 			sprintf(szURL, "%s\\%s", szCurrentDir, szName);
 			gf_cfg_set_key(m_user->config, "Playlist", szURL, "");
 		}
+#endif
 		return;
 	}
 
@@ -456,8 +482,10 @@ void CPlaylist::PlaylistAct(Osmo4_PLActions act)
 	switch (act) {
 	/*remove from playlist*/
 	case Osmo4PLRem:
+#ifndef GPAC_GUI_ONLY
 		sprintf(szURL, "%s\\%s", szCurrentDir, szName);
 		gf_cfg_set_key(m_user->config, "Playlist", szURL, NULL);
+#endif
 		RefreshPlaylist();
 		break;
 	/*move up*/
@@ -466,8 +494,10 @@ void CPlaylist::PlaylistAct(Osmo4_PLActions act)
 		count = array->Count();
 		idx = iListBox->CurrentItemIndex();
 		sprintf(szURL, "%s\\%s", szCurrentDir, szName);
+#ifndef GPAC_GUI_ONLY
 		gf_cfg_set_key(m_user->config, "Playlist", szURL, NULL);
 		gf_cfg_insert_key(m_user->config, "Playlist", szURL, "", idx-1);
+#endif
 		RefreshPlaylist();
 		if (idx>1) iListBox->SetCurrentItemIndexAndDraw(idx-1);
 		break;
@@ -477,8 +507,10 @@ void CPlaylist::PlaylistAct(Osmo4_PLActions act)
 		count = array->Count();
 		idx = iListBox->CurrentItemIndex();
 		sprintf(szURL, "%s\\%s", szCurrentDir, szName);
+#ifndef GPAC_GUI_ONLY
 		gf_cfg_set_key(m_user->config, "Playlist", szURL, NULL);
 		gf_cfg_insert_key(m_user->config, "Playlist", szURL, "", idx+1);
+#endif
 		RefreshPlaylist();
 		if (idx<count-1) iListBox->SetCurrentItemIndexAndDraw(idx+1);
 		break;

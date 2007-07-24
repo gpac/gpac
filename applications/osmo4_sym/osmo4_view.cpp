@@ -28,12 +28,23 @@
 #include <coemain.h>
 #include <eikenv.h>
 
-#include "osmo4_AppView.h"
-#include "osmo4_appui.h"
+#include "osmo4_view.h"
+#include "osmo4_ui.h"
 
 #include <gpac/options.h>
 /*for initial setup*/
 #include <gpac/modules/service.h>
+
+
+#if defined(__SERIES60_3X__)
+#define GPAC_CFG_DIR	"\\private\\F01F9075\\"
+#define GPAC_CFG_FILE	"\\private\\F01F9075\\GPAC.cfg"
+#define GPAC_MODULES_DIR	"\\sys\\bin\\"
+#else
+#define GPAC_CFG_DIR	"E:\\system\\apps\\Osmo4\\"
+#define GPAC_CFG_FILE	"E:\\system\\apps\\Osmo4\\GPAC.cfg"
+#define GPAC_MODULES_DIR	GPAC_CFG_DIR
+#endif
 
 // ============================ MEMBER FUNCTIONS ===============================
 
@@ -73,14 +84,18 @@ COsmo4AppView::COsmo4AppView()
 {
     // No implementation required
 	m_pTimer = NULL;
+#ifndef GPAC_GUI_ONLY
 	memset(&m_user, 0, sizeof(GF_User));
 	m_term = NULL;
 	m_mx = NULL;
+	memset(&m_rti, 0, sizeof(GF_SystemRTInfo));
+#endif
 	last_title_update = 0;
 	show_rti = 0;
-	memset(&m_rti, 0, sizeof(GF_SystemRTInfo));
+#if defined(__SERIES60_3X__)
 	selector = NULL;
 	target = NULL;
+#endif
 }
 
 
@@ -93,9 +108,14 @@ COsmo4AppView::COsmo4AppView()
 COsmo4AppView::~COsmo4AppView()
 {
 	Shutdown();
+#ifndef GPAC_GUI_ONLY
 	if (m_mx) gf_mx_del(m_mx);
+#endif
+
+#if defined(__SERIES60_3X__)
 	if (selector) delete selector;
 	//if (target) delete target;
+#endif
 }
 
 void COsmo4AppView::Shutdown()
@@ -106,6 +126,7 @@ void COsmo4AppView::Shutdown()
 		delete m_pTimer;
 		m_pTimer = NULL;
 	}
+#ifndef GPAC_GUI_ONLY
 	if (m_term) {
 		GF_Terminal *t = m_term;
 		m_term = NULL;
@@ -119,6 +140,7 @@ void COsmo4AppView::Shutdown()
 		gf_modules_del(m_user.modules);
 		m_user.modules = NULL;
 	}
+#endif
 //	MessageBox("Osmo4 shutdown OK", "");
 }
 
@@ -145,20 +167,24 @@ TInt myTick(TAny* aObject)
 
 TInt COsmo4AppView::OnTick()
 {
+#ifndef GPAC_GUI_ONLY
 	if (m_term) gf_term_process_step(m_term);
 
 	/*check RTI display*/
 	if (show_rti && gf_sys_get_rti(500, &m_rti, 0)) DisplayRTI();
+#endif
 	/*never stop...*/
 	return 1;
 }
 
 void COsmo4AppView::DisplayRTI()
 {
+#ifndef GPAC_GUI_ONLY
 	COsmo4AppUi *app = (COsmo4AppUi *) CEikonEnv::Static()->AppUi();
 	char szInfo[20];
 	sprintf(szInfo, "CPU %02d FPS %02.2f", m_rti.process_cpu_usage, gf_term_get_framerate(m_term, 0));
 	app->SetInfo(szInfo);
+#endif
 }
 
 
@@ -168,6 +194,7 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 	char szMsg[2048];
 	COsmo4AppView *app = (COsmo4AppView *)cbk;
 
+#ifndef GPAC_GUI_ONLY
 	gf_mx_p(app->m_mx);
 	if (app->do_log) {
 		FILE *logs = fopen("\\data\\gpac_logs.txt", "a+t");
@@ -180,6 +207,7 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 		app->MessageBox(szMsg, "Error:");
 	}
 	gf_mx_v(app->m_mx);
+#endif
 }
 
 static Bool GPAC_EventProc(void *ptr, GF_Event *evt)
@@ -192,6 +220,7 @@ Bool COsmo4AppView::EventProc(GF_Event *evt)
 {
 	TRect r;
 
+#ifndef GPAC_GUI_ONLY
 	switch (evt->type) {
 	case GF_EVENT_MESSAGE:
 		if (!evt->message.message) return 0;
@@ -208,6 +237,7 @@ Bool COsmo4AppView::EventProc(GF_Event *evt)
 		gf_term_set_size(m_term, r.Width(), r.Height());
 		break;
 	}
+#endif
 	return 0;
 }
 
@@ -215,11 +245,15 @@ void COsmo4AppView::SetupLogs()
 {
 	const char *opt;
 
+#ifndef GPAC_GUI_ONLY
+		MessageBox("Osmo4", "log1");
 	gf_mx_p(m_mx);
+		MessageBox("Osmo4", "log2");
 	if (do_log) {
 		gf_log_set_level(0);
 		do_log = 0;
 	}
+		MessageBox("Osmo4", "log3");
 	/*setup GPAC logs: log all errors*/
 	opt = gf_cfg_get_key(m_user.config, "General", "LogLevel");
 	if ((opt && !stricmp(opt, "debug")) /*|| 1*/) { 
@@ -234,20 +268,28 @@ void COsmo4AppView::SetupLogs()
 			gf_log_set_tools(0xFFFFFFFF);
 		}
 	}
+		MessageBox("Osmo4", "log4");
 	if (!do_log) {
 		gf_log_set_level(GF_LOG_ERROR);
+			MessageBox("Osmo4", "log4_a");
 		gf_log_set_tools(0xFFFFFFFF);
+			MessageBox("Osmo4", "log4_b");
 	}
+		MessageBox("Osmo4", "log5");
 
 	gf_log_set_callback(this, on_gpac_log);
+		MessageBox("Osmo4", "log6");
 	gf_mx_v(m_mx);
+		MessageBox("Osmo4", "log7");
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Osmo4 logs initialized\n"));
+#endif
 }
 
 
 static void Osmo4_progress_cbk(void *usr, char *title, u32 done, u32 total)
 {
+#ifndef GPAC_GUI_ONLY
 	COsmo4AppView *view = (COsmo4AppView *) usr;
 	COsmo4AppUi *app = (COsmo4AppUi *) CEikonEnv::Static()->AppUi();
 
@@ -259,7 +301,7 @@ static void Osmo4_progress_cbk(void *usr, char *title, u32 done, u32 total)
 		sprintf(szName, "%s %02d %%", title, (done*100 / total) );
 		app->SetInfo(szName);
 	}
-
+#endif
 }
 
 // -----------------------------------------------------------------------------
@@ -272,9 +314,11 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 	const char *opt;
 	Bool first_launch = 0;
 
+#if defined(__SERIES60_3X__)
 	selector = CRemConInterfaceSelector::NewL();
 	target = CRemConCoreApiTarget::NewL(*selector, *this);
 	selector->OpenTargetL();
+#endif
 
     // Create a window for this application view
     CreateWindowL();
@@ -282,43 +326,47 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
     SetRect( aRect );
 	//draw
     ActivateL();
-	m_mx = gf_mx_new();
 
+#ifndef GPAC_GUI_ONLY
 	m_window = Window();
 	m_session = CEikonEnv::Static()->WsSession();
 
+	m_mx = gf_mx_new();
+
 	//load config file
-	m_user.config = gf_cfg_new("\\private\\F01F9075\\", "GPAC.cfg");
+	m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
 	if (!m_user.config) {
 		first_launch = 1;
-		FILE *ft = fopen("\\private\\F01F9075\\GPAC.cfg", "wt");
+		FILE *ft = fopen(GPAC_CFG_FILE, "wt");
 		if (!ft) {
 			MessageBox("Cannot create GPAC Config file", "Fatal Error");
 			User::Leave(KErrGeneral);
 		} else {
 			fclose(ft);
 		}
-		m_user.config = gf_cfg_new("\\private\\F01F9075\\", "GPAC.cfg");
+		m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
 		if (!m_user.config) {
 			MessageBox("GPAC Configuration file not found", "Fatal Error");
 			User::Leave(KErrGeneral);
 		}
 	}
-
 	SetupLogs();
+		MessageBox("Osmo4", "2");
 	gf_set_progress_callback(this, Osmo4_progress_cbk);
+		MessageBox("Osmo4", "3");
 
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	if (!opt) first_launch = 2;
+		MessageBox("Osmo4", "4");
 	
 	if (first_launch) {
 		/*hardcode module directory*/
-		gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", "\\sys\\bin");
+		gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", GPAC_MODULES_DIR);
 		/*hardcode cache directory*/
-		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", "\\private\\F01F9075\\cache");
+		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", GPAC_CFG_DIR"cache");
 		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
 		/*startup file*/
-		//gf_cfg_set_key(m_user.config, "General", "StartupFile", "\\private\\F01F9075\\gpac.mp4");
+		gf_cfg_set_key(m_user.config, "General", "StartupFile", GPAC_CFG_DIR"gpac.mp4");
 		/*setup UDP traffic autodetect*/
 		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
 		gf_cfg_set_key(m_user.config, "Network", "UDPNotAvailable", "no");
@@ -332,7 +380,7 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 		
 		/*save cfg and reload*/
 		gf_cfg_del(m_user.config);
-		m_user.config = gf_cfg_new("\\private\\F01F9075\\", "GPAC.cfg");
+		m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
 		if (!m_user.config) {
 			MessageBox("Cannot save initial GPAC Config file", "Fatal Error");
 			User::Leave(KErrGeneral);
@@ -393,6 +441,19 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 
 	opt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
 	if (opt) gf_term_connect(m_term, opt);
+
+#else
+	FILE *ft = fopen(GPAC_CFG_FILE, "rt");
+	if (!ft) {
+		MessageBox("Cannot open cfg", GPAC_CFG_FILE);
+		MessageBox("Fatal error", "Exit");
+		User::Leave(KErrGeneral);
+	} else {
+		fclose(ft);
+	}
+
+#endif
+
 }
 
 
@@ -403,6 +464,7 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 //
 void COsmo4AppView::Draw( const TRect& /*aRect*/ ) const
 {
+#ifndef GPAC_GUI_ONLY
 	if (!m_term) {
 		CWindowGc& gc = SystemGc();
 		TRgb black(0,0,0);
@@ -412,10 +474,18 @@ void COsmo4AppView::Draw( const TRect& /*aRect*/ ) const
 		/*FIXME - this is just to force a screen flush, needs rework*/
 		gf_term_set_option(m_term, GF_OPT_FREEZE_DISPLAY, 0);
 	}
+#else
+		CWindowGc& gc = SystemGc();
+		TRgb black(0,0,0);
+	    TRect rect = Rect();
+		gc.SetBrushColor(black);
+		gc.Clear(rect);
+#endif
 }
 
 void COsmo4AppView::ShowHide(Bool show)
 {
+#ifndef GPAC_GUI_ONLY
 	if (show) {
 		MakeVisible(ETrue);
 		if (m_term) {
@@ -426,6 +496,9 @@ void COsmo4AppView::ShowHide(Bool show)
 		MakeVisible(EFalse);
 		if (m_term) gf_term_set_option(m_term, GF_OPT_VISIBLE, 0);
 	}
+#else
+	MakeVisible(ETrue);
+#endif
 }
 
 // -----------------------------------------------------------------------------
@@ -435,15 +508,18 @@ void COsmo4AppView::ShowHide(Bool show)
 //
 void COsmo4AppView::SizeChanged()
 {  
+#ifndef GPAC_GUI_ONLY
 	if (m_term) {
 		TSize s = m_window.Size();
 		gf_term_set_size(m_term, s.iWidth, s.iHeight);
 	}
+#endif
 	DrawNow();
 }
 
 void COsmo4AppView::Connect(const char *url)
 {
+#ifndef GPAC_GUI_ONLY
 	char the_url[1024];
 	/*copy before removing from recent files*/
 	strcpy(the_url, url);
@@ -453,6 +529,7 @@ void COsmo4AppView::Connect(const char *url)
 	if (count > 10) gf_cfg_set_key(m_user.config, "RecentFiles", gf_cfg_get_key_name(m_user.config, "RecentFiles", count-1), NULL);
 
 	if (m_term) gf_term_connect(m_term, the_url);
+#endif
 }
 
 
@@ -490,15 +567,20 @@ TKeyResponse COsmo4AppView::OfferKeyEventL(const TKeyEvent& aKeyEvent, TEventCod
 			return EKeyWasNotConsumed;
 		}
 	}
+#ifndef GPAC_GUI_ONLY
 	ret = gf_term_user_event(m_term, &evt);
 	/*generate a key up*/
 	if (aType==EEventKey) {
 		evt.type = GF_EVENT_KEYUP;
 		ret += gf_term_user_event(m_term, &evt);
 	}
+#else
+	ret = 0;
+#endif
 	return ret ? EKeyWasConsumed : EKeyWasNotConsumed;
 }
 
+#if defined(__SERIES60_3X__)
 void COsmo4AppView::MrccatoCommand(TRemConCoreApiOperationId aOperationId, TRemConCoreApiButtonAction aButtonAct)
 {
 	GF_Event e;
@@ -549,8 +631,11 @@ void COsmo4AppView::MrccatoCommand(TRemConCoreApiOperationId aOperationId, TRemC
 	}
 }
 
+#endif
+
 void COsmo4AppView::ReloadTerminal()
 {
+#ifndef GPAC_GUI_ONLY
 	COsmo4AppUi *app = (COsmo4AppUi *) CEikonEnv::Static()->AppUi();
 	GF_Terminal *term = m_term;
 
@@ -564,4 +649,5 @@ void COsmo4AppView::ReloadTerminal()
 		MessageBox("Couldn't reload terminal", "Fatal Error !");
 		Panic(EOsmo4Ui);
 	}
+#endif
 }
