@@ -74,9 +74,9 @@ typedef struct
 
 	HBITMAP bitmap;
     DWORD * bits;
+
 #ifdef GPAC_USE_OGL_ES
-	Bool is_3D;
-	GF_GLConfig gl_cfg;
+	u32 output_3d_type;
     EGLDisplay egldpy;
     EGLSurface surface;
     EGLConfig eglconfig;

@@ -38,11 +38,9 @@
 
 #if defined(__SERIES60_3X__)
 #define GPAC_CFG_DIR	"\\private\\F01F9075\\"
-#define GPAC_CFG_FILE	"\\private\\F01F9075\\GPAC.cfg"
 #define GPAC_MODULES_DIR	"\\sys\\bin\\"
 #else
-#define GPAC_CFG_DIR	"E:\\system\\apps\\Osmo4\\"
-#define GPAC_CFG_FILE	"E:\\system\\apps\\Osmo4\\GPAC.cfg"
+#define GPAC_CFG_DIR	"\\system\\apps\\Osmo4\\"
 #define GPAC_MODULES_DIR	GPAC_CFG_DIR
 #endif
 
@@ -246,14 +244,11 @@ void COsmo4AppView::SetupLogs()
 	const char *opt;
 
 #ifndef GPAC_GUI_ONLY
-		MessageBox("Osmo4", "log1");
 	gf_mx_p(m_mx);
-		MessageBox("Osmo4", "log2");
 	if (do_log) {
 		gf_log_set_level(0);
 		do_log = 0;
 	}
-		MessageBox("Osmo4", "log3");
 	/*setup GPAC logs: log all errors*/
 	opt = gf_cfg_get_key(m_user.config, "General", "LogLevel");
 	if ((opt && !stricmp(opt, "debug")) /*|| 1*/) { 
@@ -268,19 +263,13 @@ void COsmo4AppView::SetupLogs()
 			gf_log_set_tools(0xFFFFFFFF);
 		}
 	}
-		MessageBox("Osmo4", "log4");
 	if (!do_log) {
 		gf_log_set_level(GF_LOG_ERROR);
-			MessageBox("Osmo4", "log4_a");
 		gf_log_set_tools(0xFFFFFFFF);
-			MessageBox("Osmo4", "log4_b");
 	}
-		MessageBox("Osmo4", "log5");
 
 	gf_log_set_callback(this, on_gpac_log);
-		MessageBox("Osmo4", "log6");
 	gf_mx_v(m_mx);
-		MessageBox("Osmo4", "log7");
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Osmo4 logs initialized\n"));
 #endif
@@ -337,7 +326,7 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 	m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
 	if (!m_user.config) {
 		first_launch = 1;
-		FILE *ft = fopen(GPAC_CFG_FILE, "wt");
+		FILE *ft = fopen(GPAC_CFG_DIR"GPAC.cfg", "wt");
 		if (!ft) {
 			MessageBox("Cannot create GPAC Config file", "Fatal Error");
 			User::Leave(KErrGeneral);
@@ -350,14 +339,12 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 			User::Leave(KErrGeneral);
 		}
 	}
+
 	SetupLogs();
-		MessageBox("Osmo4", "2");
 	gf_set_progress_callback(this, Osmo4_progress_cbk);
-		MessageBox("Osmo4", "3");
 
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	if (!opt) first_launch = 2;
-		MessageBox("Osmo4", "4");
 	
 	if (first_launch) {
 		/*hardcode module directory*/
@@ -441,16 +428,6 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 
 	opt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
 	if (opt) gf_term_connect(m_term, opt);
-
-#else
-	FILE *ft = fopen(GPAC_CFG_FILE, "rt");
-	if (!ft) {
-		MessageBox("Cannot open cfg", GPAC_CFG_FILE);
-		MessageBox("Fatal error", "Exit");
-		User::Leave(KErrGeneral);
-	} else {
-		fclose(ft);
-	}
 
 #endif
 

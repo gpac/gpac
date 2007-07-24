@@ -233,10 +233,14 @@ enum
 	if relying on this flag for sub-tree discarding (eg, culling or similar)*/
 	GF_SG_CHILD_DIRTY = 1<<1,
 
+	/*flag set by bindable nodes to indicate a modification of the bindable stack. This is 
+	only used for offscreen rendering of Layer3D*/
+	GF_SG_VRML_BINDABLE_DIRTY = 1<<2,
+
 	/*SVG-specific flags due to mix of geometry and appearance & co attributes*/
 	/*SVG geometry changed is the same as base flag*/
 	GF_SG_SVG_GEOMETRY_DIRTY		= GF_SG_NODE_DIRTY,
-	GF_SG_SVG_COLOR_DIRTY			= 1<<2,
+	GF_SG_SVG_COLOR_DIRTY			= GF_SG_VRML_BINDABLE_DIRTY,
 	GF_SG_SVG_DISPLAYALIGN_DIRTY	= 1<<3,
 	GF_SG_SVG_FILL_DIRTY			= 1<<4,
 	GF_SG_SVG_FILLOPACITY_DIRTY		= 1<<5,
@@ -275,6 +279,11 @@ which means tat if you never clean the dirty flags, no propagation will take pla
 */
 void gf_node_dirty_set(GF_Node *node, u32 flags, Bool dirty_parents);
 
+/*mark all parent subtrees for this node as GF_SG_CHILD_DIRTY
+Note: parent subtree marking aborts if a node in the subtree is already marked with GF_SG_CHILD_DIRTY
+which means that if you never clean the dirty flags, no propagation will take place
+*/
+void gf_node_dirty_parents(GF_Node *node);
 
 /*set dirty flag off. It is the user responsability to clear dirty flags
 if @flags is 0, all flags are set off
@@ -653,28 +662,28 @@ typedef struct
 	OR
 		sendEvent
 	*/
-	union {
+//	union {
 		u32 RouteID;
 		u32 send_event_name;
-	};
-	union {
+//	};
+//	union {
 		char *def_name;
 		char *send_event_string;
-	};
-	union {
+//	};
+//	union {
 		u32 fromNodeID;
 		s32 send_event_integer;
-	};
+//	};
 	u32 fromFieldIndex;
 
-	union {
+//	union {
 		u32 toNodeID;
 		s32 send_event_x;
-	};
-	union {
+//	};
+//	union {
 		u32 toFieldIndex;
 		s32 send_event_y;
-	};
+//	};
 
 } GF_Command;
 

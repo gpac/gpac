@@ -1,0 +1,6 @@
+LIBRARY     gm_render_full.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

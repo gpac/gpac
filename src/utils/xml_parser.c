@@ -849,10 +849,13 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 	u32 size = parser->line_size;
 	u32 nl_size = strlen(string);
 	
-	if (parser->alloc_size < size+nl_size+1) {
+	if ( (parser->alloc_size < size+nl_size+1) 
+		|| (parser->alloc_size / 2 ) > size+nl_size+1) 
+	{
 		parser->buffer = realloc(parser->buffer, sizeof(char) * (size+nl_size+1) );
 		if (!parser->buffer ) return GF_OUT_OF_MEM;
 		parser->alloc_size = size+nl_size+1;
+		//fprintf(stdout, "SAX internal buffer size %d\n", parser->alloc_size);
 	}
 	memcpy(parser->buffer+size, string, sizeof(char)*nl_size);
 	parser->buffer[size+nl_size] = 0;

@@ -669,7 +669,7 @@ rem_fmt:
 GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height)
 {
 	DDCONTEXT;
-	if (dd->is_3D_out) return GF_BAD_PARAM;
+	if (dd->output_3d_type) return GF_BAD_PARAM;
 	if (!dd->ddraw_init) return InitDirectDraw(dr, width, height);
 	return CreateBackBuffer(dr, width, height);
 }

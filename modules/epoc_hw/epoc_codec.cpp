@@ -32,6 +32,11 @@
 
 #define KMMFFourCCCodeEAACP			0x43414520  // ' ' 'E' 'A' 'C' 
 
+#if defined(__SYMBIAN32__) && !defined(__SERIES60_3X__)
+//codec configuration UID
+#define  KUidMmfCodecAudioSettings	0x10203622
+#endif
+
 enum
 {
 	GF_EPOC_HAS_AMR = 1,
@@ -97,6 +102,7 @@ static void EDEC_LoadCaps(GF_BaseDecoder *ifcg)
 
 }
 
+
 static GF_Err EDEC_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	RArray<TInt> configParams;
@@ -120,6 +126,7 @@ static GF_Err EDEC_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 		if (gf_m4a_get_config(decSpecInfo, decSpecInfoSize, &a_cfg) != GF_OK) return GF_NON_COMPLIANT_BITSTREAM;
 		
 		aac_sbr_upsample = 0;
+#if !defined(__SYMBIAN32__) || defined(__SERIES60_3X__)
 		if (a_cfg.has_sbr && (ctx->caps & GF_EPOC_HAS_HEAAC)) {
 			TRAP(err, ctx->dec = CMMFCodec::NewL(KMMFFourCCCodeEAACP, KMMFFourCCCodePCM16));
 			if (err != KErrNone) {
@@ -150,7 +157,9 @@ static GF_Err EDEC_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 			ctx->num_channels = a_cfg.nb_chan;
 			ctx->num_samples = aac_sbr_upsample ? 2048 : 1024;
 			ctx->sample_rate = a_cfg.sbr_sr;
-		} else {
+		} else 
+#endif
+		{
 retry_no_sbr:
 			TRAP(err, ctx->dec = CMMFCodec::NewL(KMMFFourCCCodeAAC, KMMFFourCCCodePCM16));
 			if (err != KErrNone) {

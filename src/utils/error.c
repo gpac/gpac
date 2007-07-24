@@ -79,6 +79,7 @@ char *gf_strdup(const char *str)
 	return ptr;
 }
 
+
 #include <gpac/tools.h>
 
 static char szTYPE[5];
@@ -242,7 +243,7 @@ void gf_log(const char *fmt, ...)
 {
 }
 GF_EXPORT
-void gf_log_lt(u32 ll, lt)
+void gf_log_lt(u32 ll, u32 lt)
 {
 }
 GF_EXPORT
@@ -258,6 +259,11 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 {
 	return NULL;
 }
+GF_EXPORT
+u32 gf_log_get_level() { return 0; }
+
+GF_EXPORT
+u32 gf_log_get_tools() { return 0; }
 
 #endif
 

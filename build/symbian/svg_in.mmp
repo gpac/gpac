@@ -1,22 +1,10 @@
 TARGET gm_svg_in.dll
-TARGETTYPE DLL
-CAPABILITY	NetworkServices
-UID		0x10000080 0x10000081
 
-//Common tools
+//common config of all modules
+#include ".\module_base.mmp"
+
+//source
 SOURCEPATH ..\..\modules\svg_in
 SOURCE svg_in.c
 
-SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
-
-LIBRARY euser.lib estlib.lib ezlib.lib libgpac.lib
-
-#if defined(WINS)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#else if defined(ARM)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#endif
-
-//EXPORTUNFROZEN
-//  nostrictdef
-
+LIBRARY ezlib.lib

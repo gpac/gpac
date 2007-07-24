@@ -551,13 +551,15 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 	dr->on_event(dr->evt_cbk_hdl, &evt);	
 	return GF_OK;
 }
+
+
 #endif
 
 
 void GAPI_ReleaseObjects(GAPIPriv *ctx)
 {
 #ifdef GPAC_USE_OGL_ES
-	if (ctx->is_3D) GAPI_ReleaseOGL_ES(ctx);
+	if (ctx->output_3d_type) GAPI_ReleaseOGL_ES(ctx);
 	else
 #endif
     if (ctx->bitmap) DeleteObject(ctx->bitmap);
@@ -566,7 +568,7 @@ void GAPI_ReleaseObjects(GAPIPriv *ctx)
 	ctx->bitmap = NULL;
 }
 
-GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool noover, GF_GLConfig *cfg)
+GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool noover)
 {
 	struct GXDisplayProperties gx = GXGetDisplayProperties();
 	RECT rc;
@@ -608,21 +610,9 @@ GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no
 	gctx->x_pitch = gx.cbxPitch;
 	gctx->y_pitch = gx.cbyPitch;
 
-	if (cfg) {
-#ifdef GPAC_USE_OGL_ES
-		gctx->gl_cfg = *cfg;
-		gctx->is_3D = 1;
-#else
-		return GF_NOT_SUPPORTED;
-#endif
-	}
-
 	GAPI_SetupWindow(dr);
 	if (!gctx->hWnd) return GF_IO_ERR;
-#ifdef GPAC_USE_OGL_ES
-	if (gctx->is_3D) return GF_OK;
-#endif
-	
+
 	/*setup GX*/
 	if (!GXOpenDisplay(gctx->hWnd, 0L)) {
 		MessageBox(NULL, _T("Cannot open display"), _T("GAPI Error"), MB_OK);
@@ -655,7 +645,7 @@ static GF_Err GAPI_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u3
 	if (bOn == gctx->fullscreen) return GF_OK;
 
 #ifdef GPAC_USE_OGL_ES
-	if (gctx->is_3D) {
+	if (gctx->output_3d_type==1) {
 		gctx->fullscreen = bOn;
 		return GAPI_SetupOGL_ES(dr);
 	}
@@ -824,7 +814,7 @@ static GF_Err GAPI_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	gf_mx_p(gctx->mx);
 	
 #ifdef GPAC_USE_OGL_ES
-	if (gctx->is_3D) {
+	if (gctx->output_3d_type==1) {
 		if (gctx->fullscreen && gctx->surface && gctx->egldpy) {
 			if (gctx->erase_dest) {
 				InvalidateRect(gctx->hWnd, NULL, TRUE);
@@ -877,11 +867,22 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		/*nothing to do since we don't own the window*/
 		break;
 	case GF_EVENT_VIDEO_SETUP:
-		gctx->is_3D = evt->setup.opengl_mode;
+		switch (evt->setup.opengl_mode) {
+		case 0:
+			gctx->output_3d_type = 0;
+			return GAPI_InitBackBuffer(dr, evt->setup.width, evt->setup.height);
 #ifdef GPAC_USE_OGL_ES
-		if (gctx->is_3D) return GAPI_SetupOGL_ES(the_video_driver);
+		case 1:
+			gctx->output_3d_type = 1;
+			return GAPI_SetupOGL_ES(the_video_driver);
+		case 2:
+			gctx->output_3d_type = 2;
+			return GF_NOT_SUPPORTED;
+#else
+		default:
+			return GF_NOT_SUPPORTED;
 #endif
-		return GAPI_InitBackBuffer(dr, evt->setup.width, evt->setup.height);
+		}
 	}
 	return GF_OK;
 }

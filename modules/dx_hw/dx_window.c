@@ -759,17 +759,15 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	case GF_EVENT_VIDEO_SETUP:
 		switch (evt->setup.opengl_mode) {
 		case 0:
-			ctx->is_3D_out = 0;
+			ctx->output_3d_type = 0;
 			return DD_SetBackBufferSize(dr, evt->size.width, evt->size.height);
 		case 1:
-			ctx->is_3D_out = 1;
-			ctx->is_3D_offscreen = 0;
+			ctx->output_3d_type = 1;
 			ctx->width = evt->setup.width;
 			ctx->height = evt->setup.height;
 			return DD_SetupOpenGL(dr);
 		case 2:
-			ctx->is_3D_out = 0;
-			ctx->is_3D_offscreen = 1;
+			ctx->output_3d_type = 2;
 			SetWindowPos(ctx->gl_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
 			return DD_SetupOpenGL(dr);
 		}

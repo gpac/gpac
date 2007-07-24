@@ -119,8 +119,7 @@ typedef struct
 	HDC gl_HDC;
 	HGLRC gl_HRC;
 #endif
-	Bool is_3D_out;
-	Bool is_3D_offscreen;
+	u32 output_3d_type;
 	HWND gl_hwnd;
 	Bool has_focus;
 

@@ -423,14 +423,19 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	u32 *data = surf->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
+//	if (_y<150) return;
+
 	/* reverse to texture coords*/
 	x = INT2FIX(_x);
 	y = INT2FIX(_y);
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);
+
+	
 	_fd = INT2FIX(_this->width); 
 	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
 	if (!repeat_s && (x < - _fd)) x = 0;
 	while (x<0) x += _fd;
+
 	_fd = INT2FIX(_this->height); 
 	repeat_t = _this->mod & GF_TEXTURE_REPEAT_T;
 	if (!repeat_t && (y < - _fd)) y = 0;
@@ -444,6 +449,7 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 
 	while (count) {
 		x0 = FIX2INT(x);
+		assert((s32)x0 >=0);
 
 		if (repeat_s) {
 			x0 = (x0) % _this->width;
@@ -451,12 +457,16 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 			x0 = MIN(x0, _this->width-1);
 		}
 		x += _this->inc_x;
+		if (x<0) x+=_this->width;
 		
 		y0 = FIX2INT(y);
+		assert((s32)y0 >=0);
 		if (repeat_t) {
 			y0 = (y0) % _this->height;
-		} else if (y0 >= _this->height) y0 = _this->height-1;
+		} else if (y0 >= _this->height) 
+			y0 = _this->height-1;
 		y += _this->inc_y;
+		if (y<0) y+=_this->height;
 
 		pix = _this->tx_get_pixel(_this->pixels + _this->stride*y0 + _this->Bpp*x0);
 

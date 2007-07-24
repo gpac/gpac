@@ -102,7 +102,6 @@ typedef struct
 #ifdef GPAC_HAS_OPENGL
 	XVisualInfo *glx_visualinfo;
 	GLXContext glx_context;
-	GF_GLConfig gl_cfg;
 #endif
 } XWindow;
 

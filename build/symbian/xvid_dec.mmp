@@ -1,13 +1,12 @@
 TARGET gm_xvid_dec.dll
-TARGETTYPE DLL
-CAPABILITY	NetworkServices
-UID		0x10000080 0x10000081
 
 MACRO __MARM__
 MACRO __MARM_ARMI__
 
+//common config of all modules
+#include ".\module_base.mmp"
 
-//Common tools
+//source
 SOURCEPATH ..\..\modules\xvid_dec
 SOURCE xvid_dec_wce.cpp
 SOURCEPATH ..\..\modules\xvid_dec\xvid_wce
@@ -32,18 +31,4 @@ SOURCE xvid.cpp
 //SOURCE xvid_ppc.asm
 
 
-
-SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
 SYSTEMINCLUDE ..\..\modules\xvid_dec\xvid_wce
-
-LIBRARY euser.lib estlib.lib libgpac.lib
-
-#if defined(WINS)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#else if defined(ARM)
-    deffile ..\..\build\symbian\gpac_module_symbian.def
-#endif
-
-//EXPORTUNFROZEN
-//  nostrictdef
-

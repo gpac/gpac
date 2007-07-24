@@ -25,9 +25,11 @@
  *
  */
 
+#include <gpac/setup.h>
 #include <gpac/internal/avilib.h>
 
 #ifndef GPAC_READ_ONLY
+
 
 #define PACKAGE "GPAC/avilib"
 #define VERSION GPAC_VERSION

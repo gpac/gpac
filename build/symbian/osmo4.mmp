@@ -1,32 +1,43 @@
-/*
-* ==============================================================================
-*  Name        : osmo4.mmp
-*  Part of     : osmo4
-*  Interface   : 
-*  Description : 
-*  Version     : 
-*
-* ==============================================================================
-*/
+
+/*config for symbian 9.x*/
+#if defined(GCCE)
 
 TARGET            Osmo4.exe
 TARGETTYPE        EXE
-UID		0 0xf01f9075
 SECUREID	0xf01f9075
+UID		0 0xf01f9075
 VENDORID	0
 
 CAPABILITY	NetworkServices
 EPOCSTACKSIZE	32768
 
+#else
+/*config for symbian 8.x*/
+
+TARGET            Osmo4.app
+TARGETTYPE        app
+UID               0x100039CE 0x1000AC00
+TARGETPATH        \system\apps\Osmo4
+
+EPOCALLOWDLLDATA
+
+#endif
+
+//MACRO GPAC_GUI_ONLY
+
+/*source code*/
 SOURCEPATH        ..\..\applications\osmo4_sym
 SOURCE            osmo4.cpp
-SOURCE            osmo4_app.cpp
-SOURCE            osmo4_AppView.cpp
-SOURCE            osmo4_AppUi.cpp
-SOURCE            osmo4_doc.cpp
+SOURCE            osmo4_view.cpp
+SOURCE            osmo4_ui.cpp
 SOURCE            playlist.cpp
 
+
+
+/*resource files*/
 SOURCEPATH        ..\..\applications\osmo4_sym\res
+
+#if defined(GCCE)
 
 START RESOURCE    Osmo4.rss
 HEADER
@@ -41,21 +52,37 @@ TARGETPATH 	  \private\10003a3f\import\apps
 #endif
 END //RESOURCE
 
+#else
+
+RESOURCE          Osmo4_gen.rss
+RESOURCE          Osmo4_caption.rss
+
+#endif
 
 
 USERINCLUDE    ..\..\applications\osmo4_sym ..\..\applications\osmo4_sym\res
+
 SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
 
-//all libs need for base GUI
 LIBRARY           euser.lib apparc.lib cone.lib eikcore.lib avkon.lib efsrv.lib estlib.lib ws32.lib bafl.lib eikcoctl.lib
-//gpac ...
+
+//gpac core lib
 LIBRARY           libgpac.lib
+
 //when using skin support
 LIBRARY           aknskins.lib 
+
+#if defined(GCCE)
 //hardware key listener stuff
 LIBRARY           remconcoreapi.lib remconinterfacebase.lib 
+#endif
 
 LANG SC
 
-// End of File
+#if defined(GCCE)
+#else
+AIF             Osmo4.aif ..\..\applications\osmo4_sym\aif osmo4aif.rss c12 osmo4_icon.bmp osmo4_icon_mask.bmp osmo4_menu.bmp osmo4_menu_mask.bmp
+#endif
 
+
+// End of File

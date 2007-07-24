@@ -687,7 +687,7 @@ static GF_Err gf_subdivide_cubic(GF_Path *gp, Fixed x0, Fixed y0, Fixed x1, Fixe
 	pt.y = y1 - y0;
 	z1_0 = gf_v2d_len(&pt);
 
-	if ((z3_0 < FIX_ONE/100) && (z1_0 < FIX_ONE/100)) 
+	if ((z3_0*100 < FIX_ONE) && (z1_0*100 < FIX_ONE)) 
 		goto nosubdivide;
 
 	/* perp is distance from line, multiplied by dist z0-z3 */

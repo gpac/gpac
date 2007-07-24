@@ -25,7 +25,7 @@
 #include <gpac/base_coding.h>
 #include <gpac/constants.h>
 
-static char base_64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const char base_64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 GF_EXPORT
 u32 gf_base64_encode(char *_in, u32 inSize, char *_out, u32 outSize)
@@ -61,7 +61,7 @@ u32 gf_base64_encode(char *_in, u32 inSize, char *_out, u32 outSize)
 	return j;
 }
 
-static unsigned char index_64[128] = {
+static const unsigned char index_64[128] = {
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,   62, 0xff, 0xff, 0xff,   63,
@@ -137,7 +137,7 @@ u32 gf_base64_decode(char *in_buf, u32 inSize, char *out, u32 outSize)
  *			Copyright (c) ENST 2004  - Philippe de Cuetos 
  */
 
-static char base_16[] = "0123456789abcdef";
+static const char base_16[] = "0123456789abcdef";
 
 GF_EXPORT
 u32 gf_base16_encode(char *_in, u32 inSize, char *_out, u32 outSize)

@@ -123,7 +123,6 @@ SR_SetRenderingSession(void *sr, void*session)
 
 GF_Renderer *SR_NewStandaloneRenderer()
 {
-	GF_GLConfig cfg, *gl_cfg;
 	GF_Renderer *tmp;
 	GF_SAFEALLOC(tmp, GF_Renderer)
 	tmp->user, GF_User)
@@ -133,7 +132,6 @@ GF_Renderer *SR_NewStandaloneRenderer()
 
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.double_buffered = 1;
-	gl_cfg = tmp->visual_renderer->bNeedsGL ? &cfg : NULL;
 
 	tmp->video_out = NewRawVideoOutput();
 	tmp->video_out->evt_cbk_hdl = tmp;

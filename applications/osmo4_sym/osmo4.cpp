@@ -2,14 +2,15 @@
 #include "osmo4_ui.h"
 
 
-#if defined(EKA2) && defined(__SERIES60_3X__)
+EXPORT_C CApaApplication* NewApplication()
+	{
+	return new COsmo4Application;
+	}
+
+
+#ifdef EKA2
 
 #include <eikstart.h>
-
-EXPORT_C CApaApplication* NewApplication()
-{
-	return new COsmo4Application;
-}
 
 GLDEF_C TInt E32Main() 
 {
@@ -24,15 +25,15 @@ GLDEF_C TInt E32Dll( TDllReason /*aReason*/ )
     return KErrNone;
 }
 
-EXPORT_C CApaApplication* NewApplication()
-{
-    return ( static_cast<CApaApplication*>( new COsmo4Application ) );
-}
-
 #endif
 
 
+#if defined(__SERIES60_3X__)
+const TUid KUidOsmo4App = { 0xf01f9075 };
+#else
 const TUid KUidOsmo4App = { 0x1000AC00 };
+#endif
+
 
 CApaDocument* COsmo4Application::CreateDocumentL()
 {

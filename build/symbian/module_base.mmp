@@ -1,0 +1,24 @@
+TARGETTYPE DLL
+CAPABILITY	NetworkServices
+UID		0x10000080 0x10000081
+//allow writable static data
+EPOCALLOWDLLDATA
+
+//Symbian 8 needs E32Dll proc
+#if defined(THUMB)
+SOURCEPATH .
+SOURCE symbian_dll_entry.cpp
+#endif
+
+SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
+LIBRARY euser.lib estlib.lib libgpac.lib
+
+#if defined(WINS)
+    deffile ..\..\build\symbian\gpac_module_symbian.def
+#else if defined(ARM)
+    deffile ..\..\build\symbian\gpac_module_symbian.def
+#endif
+
+//EXPORTUNFROZEN
+//  nostrictdef
+

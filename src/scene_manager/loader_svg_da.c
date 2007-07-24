@@ -701,6 +701,14 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 
 	if (needs_init) gf_node_init((GF_Node *)elt);
 
+	if (parent && elt) {
+		/*mark parent element as dirty (new child added) and invalidate parent graph for progressive rendering*/
+		gf_node_dirty_set((GF_Node *)parent->node, GF_SG_CHILD_DIRTY, 1);
+		/*request scene redraw*/
+		if (parser->load->scene_graph->NodeCallback) 
+			parser->load->scene_graph->NodeCallback(parser->load->scene_graph->userpriv, GF_SG_CALLBACK_MODIFIED, NULL, NULL);
+	}
+
 	/*register listener element*/
 	if ((parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) && elt && (tag==TAG_SVG_listener)) {
 		GF_FieldInfo info;

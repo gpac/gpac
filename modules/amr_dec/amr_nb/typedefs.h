@@ -282,7 +282,7 @@ typedef unsigned long UWord32;
 
 #define LSBFIRST
 
-#ifndef abort
+#if defined(_WIN32_WCE) && !defined abort
 #define abort() exit(0)
 #endif
 

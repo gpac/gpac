@@ -921,7 +921,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	xWindow->setup_done = 1;
 }
 
-GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32 no_proc_override, GF_GLConfig * cfg)
+GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32 no_proc_override)
 {
 	X11VID ();
 	/*assign window if any, NEVER display*/
