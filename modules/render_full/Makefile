@@ -14,6 +14,13 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
+LINKLIBS= $(EXTRALIBS)
+ifeq ($(HAS_OPENGL),yes)
+LINKLIBS+= $(OGL_LIBS)
+else
+CFLAGS+=-DGPAC_DISABLE_3D
+endif
+
 #common obj
 OBJS=background.o background2d.o bindable.o bitmap.o camera.o composite_texture.o drawable.o events.o form.o geometry_2d.o \
       geometry_3d.o geometry_ifs2d.o geometry_ils2d.o geometry_x3d.o gradients.o grouping.o grouping_stacks_2d.o grouping_stacks_3d.o \
@@ -50,7 +57,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS) $(EXTRALIBS) $(OGL_LIBS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS) $(LINKLIBS)
 
 
 %.o: %.c

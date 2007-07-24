@@ -98,10 +98,15 @@ typedef struct
 
 	u32 w_width, w_height;
 	u32 depth, bpp, pixel_format;
-	Bool is_3D_out;
+	u32 output_3d_mode;
+
 #ifdef GPAC_HAS_OPENGL
 	XVisualInfo *glx_visualinfo;
 	GLXContext glx_context;
+	Pixmap gl_pixmap;
+	GLXPixmap gl_offscreen;
+	Window gl_wnd;
+	u32 offscreen_type;
 #endif
 } XWindow;
 
