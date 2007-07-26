@@ -105,6 +105,7 @@ void DestroyObjects(DDContext *dd)
 
 GF_Err DD_SetupOpenGL(GF_VideoOutput *dr) 
 {
+	const char *sOpt;
 	GF_Event evt;
 	DDCONTEXT
 
@@ -160,6 +161,9 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
     pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
     pfd.nVersion = 1;
     pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+    sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseGLDoubleBuffering");
+    if (sOpt && !strcmp(sOpt, "yes")) pfd.dwFlags |= PFD_DOUBLEBUFFER;
+
     pfd.dwLayerMask = PFD_MAIN_PLANE;
     pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = 32;

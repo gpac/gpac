@@ -496,14 +496,13 @@ static GF_Err X11_SetupGLPixmap(GF_VideoOutput *vout, u32 width, u32 height)
   if (!xWin->gl_offscreen) return GF_IO_ERR;
  
   XSync(xWin->display, False);
-  xWin->glx_context = glXCreateContext(xWin->display, xWin->glx_visualinfo, 0, GL_TRUE);
+  xWin->glx_context = glXCreateContext(xWin->display, xWin->glx_visualinfo, 0, GL_FALSE);
   XSync(xWin->display, False);
   if (!xWin->glx_context) return GF_IO_ERR;
 
  XSync(xWin->display, False);
  fprintf(stdout, "!! Activating GLContext on GLPixmap - this may crash !!\n");
  glXMakeCurrent(xWin->display, xWin->gl_offscreen, xWin->glx_context);
-//  glXMakeCurrent(xWin->display, xWin->gl_wnd, xWin->glx_context);
   }
 
   fprintf(stdout, "Offscreen GL context setup\n");
@@ -969,7 +968,8 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	  attribs[i++] = 5;
 	  attribs[i++] = GLX_DEPTH_SIZE;
 	  attribs[i++] = 16;
-	  //if (xWindow->gl_cfg.double_buffered) attribs[i++] = GLX_DOUBLEBUFFER;
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering");
+	if (sOpt && !strcmp(sOpt, "yes")) attribs[i++] = GLX_DOUBLEBUFFER;
 	  attribs[i++] = None;
 	  xWindow->glx_visualinfo = glXChooseVisual(xWindow->display, xWindow->screennum, attribs);
 	  if (!xWindow->glx_visualinfo) {
