@@ -51,7 +51,7 @@
 <file name="bifs-2D-positioning-transform2D" title="Positioning graphical objects" type="bt" /> 
 <file name="bifs-2D-positioning-transformmatrix2D" title="Positioning graphical objects (2)" type="bt" /> 
 <file name="bifs-2D-positioning-layer2D" title="Rectangular axis-aligned clipping" type="bt" /> 
-<file name="bifs-2D-positioning-layer2d-layer2d" title="Nested Clipping" type="bt" /> 
+<file name="bifs-2D-positioning-layer2d-in-layer2d" title="Nested Clipping" type="bt" /> 
 <file name="bifs-2D-positioning-layout-scroll-full" title="Scrolling" type="bt" /> 
 <file name="bifs-2D-positioning-pathlayout" title="Layout along a Path" type="bt" /> 
 <!--file name="bifs-2D-positioning-clipper2D" type="bt" /> 
@@ -264,7 +264,7 @@
 <file name="bifs-3D-shapes-extrusion" type="bt" use3d="true" /> 
 <file name="bifs-3D-shapes-indexedfaceset" type="bt" use3d="true" /> 
 <file name="bifs-3D-shapes-indexedlineset" type="bt" use3d="true" /> 
-<file name="bifs-3D-shapes-NonLinearDeformer" type="bt" use3d="true" /> 
+<file name="bifs-3D-shapes-nonlineardeformer" type="bt" use3d="true" /> 
 <file name="bifs-3D-shapes-pointset" type="bt" use3d="true" /> 
 </category>
 <category name="3D Background &amp; Viewpoints">
@@ -331,7 +331,8 @@
 <file name="bifs-od-update-od" type="bt" /> 
 </category>
 </format>
-<format name="SVG">
+<!--
+format name="SVG">
 <category name="Static Vector Graphics (no interactivity)">
 <file name="svg-chaise" type="svg" /> 
 </category>
@@ -342,7 +343,8 @@
     <snapshot time="9.5"/>
 </file>
 </category>
-</format>
+</format
+-->
 <format name="X3D">
 <category name="2D tools">
 <file name="x3d-2D-Arc2d" type="x3dv" use3d="true" /> 
