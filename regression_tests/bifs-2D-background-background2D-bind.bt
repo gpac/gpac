@@ -33,7 +33,7 @@ OrderedGroup {
    info [
     "This shows 2 Background2D nodes and the bind mechanism" 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:37:08 $ - $Revision: 1.4 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Background Test"
