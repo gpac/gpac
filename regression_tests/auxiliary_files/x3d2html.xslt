@@ -56,16 +56,15 @@
 	                    <div id = "contentview">
 	                        <h2>Viewer</h2>
 	                        <object id = "player" type = "application/x-gpac"
-	                            width = "320"
-	                            height = "240"	                            
-	                            pluginspage = "http://perso.enst.fr/~lefeuvre/GPAC/GPAC%20Framework%200.4.1%20Setup.exe">
+	                            width = "100%"
+	                            height = "100%"	                            
+	                            pluginspage = "http://tsi.enst.fr/~lefeuvre/GPAC/">
 	                            <param name = "src" value = "{$filename}.x3d"/>
 	                            <param name = "use3d" value = "true"/>
-Your browser does not have the GPAC plugin installed, visit http://gpac.sourceforge.net for more information ...</object>	                        <form name = "formname">
-	                            <input type = "button" value = "Play" onclick = "document.player.Play()"/>
-	                            <input type = "button" value = "Pause" onclick = "document.player.Pause()"/>
-	                            <input type = "button" value = "Reload" onclick = "document.player.Reload()"/>
-	                        </form>
+Your browser does not have the GPAC plugin installed, visit http://gpac.sourceforge.net for more information ...</object>	                        
+                          <!--form name = "formname">
+                                <input type = "button" value = "Play/Pause" onclick = "document.player.Pause()"/>
+	                        </form-->
 	                    </div>
 					</div>
                     <xsl:if test = "$snapshot1">
@@ -111,14 +110,17 @@ Your browser does not have the GPAC plugin installed, visit http://gpac.sourcefo
         <xsl:param name = "string"/>
         <xsl:choose>
             <xsl:when test = "contains($string,'&quot; &quot;')">
-                <xsl:value-of select = "substring-before($string,'&quot; &quot;')"/>                <br/>
+                <p>
+                <xsl:value-of select = "substring-before($string,'&quot; &quot;')"/>
+                </p>
                 <xsl:call-template name = "WorldInfoDescriptionToParagraph">
                     <xsl:with-param name = "string" select = "substring-after($string,'&quot; &quot;')"/>
                 </xsl:call-template>
             </xsl:when>
             <xsl:otherwise>
+                <p>
                 <xsl:value-of select = "substring-before($string,'&quot;')"/>
-                <br/>
+                </p>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>

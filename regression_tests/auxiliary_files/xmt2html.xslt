@@ -47,11 +47,6 @@
                 </div>
                 <div id = "content">
                     <div id = "left">                
-                        <div id = "description">
-                            <h2>Description</h2>
-                            <xsl:call-template name = "xmtDescriptionToParagraph"><xsl:with-param name = "string" 
-                            select = "substring-after(//xmt:WorldInfo/@info, '&quot;')"/></xsl:call-template>
-                        </div>
                         <div id = "downloadbar">
                             <h2>Download</h2>
                             <ul>
@@ -60,22 +55,26 @@
                                 <li><a href = "{$filename}.xmt">XMT-A</a></li>
                             </ul>
                         </div>
+                        <div id = "description">
+                            <h2>Description</h2>
+                            <xsl:call-template name = "xmtDescriptionToParagraph"><xsl:with-param name = "string" 
+                            select = "substring-after(//xmt:WorldInfo/@info, '&quot;')"/></xsl:call-template>
+                        </div>
                     </div>
                     <div id = "right">                
                         <div id = "contentview">
                             <h2>Viewer</h2>
                             <object id = "player" type = "application/x-gpac"
                                 width = "{//xmt:commandStream/xmt:size/@pixelWidth}" 
-                                height = "{//xmt:commandStream/xmt:size/@pixelHeight}"                            
-                                pluginspage = "http://perso.enst.fr/~lefeuvre/GPAC/GPAC%20Framework%200.4.1%20Setup.exe">
+                                height = "{//xmt:commandStream/xmt:size/@pixelHeight}"                                                           
+                                pluginspage = "http://tsi.enst.fr/~lefeuvre/GPAC/"
+                                style="max-width: 100%; max-height: 100%;">
                                 <param name = "src" value = "{$filename}.mp4"/>
                                 <xsl:if test = "$use3d"><param name = "use3d" value = "true"/></xsl:if>
 Your browser does not have the GPAC plugin installed, visit http://gpac.sourceforge.net for more information ...</object>
-                            <form name = "formname">
-                                <input type = "button" value = "Play" onclick = "document.player.Play()"/>
-                                <input type = "button" value = "Pause" onclick = "document.player.Pause()"/>
-                                <input type = "button" value = "Reload" onclick = "document.player.Reload()"/>
-                            </form>
+                            <!--form name = "formname">
+                                <input type = "button" value = "Play/Pause" onclick = "document.player.Pause()"/>
+                            </form-->
                         </div>
                     </div>
                     <xsl:if test = "$snapshot1">
@@ -113,6 +112,12 @@ Your browser does not have the GPAC plugin installed, visit http://gpac.sourcefo
                             </table>
                         </div>
                     </xsl:if>
+                    <div id = "codeview">
+                        <h2>XMT Code</h2>
+                        <object data="{$filename}.xmt" type="application/xml">
+Your browser does not support inline objects. You cannot view the XMT code, use the download link instead.
+                        </object>
+                    </div>
                 </div>
             </body>
         </html>
@@ -121,19 +126,21 @@ Your browser does not have the GPAC plugin installed, visit http://gpac.sourcefo
         <xsl:param name = "string"/>
         <xsl:choose>
             <xsl:when test = "contains($string,'&quot; &quot;')">
-				<xsl:call-template name="xmtCfToA">
-					<xsl:with-param name="string"><xsl:value-of select = "substring-before($string,'&quot; &quot;')"/></xsl:with-param>
-				</xsl:call-template>
-                <br/>
+        				<p>
+                <xsl:call-template name="xmtCfToA">
+        					<xsl:with-param name="string"><xsl:value-of select = "substring-before($string,'&quot; &quot;')"/></xsl:with-param>
+        				</xsl:call-template>
+                </p>
                 <xsl:call-template name = "xmtDescriptionToParagraph">
                     <xsl:with-param name = "string" select = "substring-after($string,'&quot; &quot;')"/>
                 </xsl:call-template>
             </xsl:when>
             <xsl:otherwise>
-				<xsl:call-template name="xmtCfToA">
-					<xsl:with-param name="string"><xsl:value-of select = "substring-before($string,'&quot;')"/></xsl:with-param>
-				</xsl:call-template>
-                <br/>
+                <p>
+        				<xsl:call-template name="xmtCfToA">
+        					<xsl:with-param name="string"><xsl:value-of select = "substring-before($string,'&quot;')"/></xsl:with-param>
+        				</xsl:call-template>
+                </p>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
@@ -141,7 +148,7 @@ Your browser does not have the GPAC plugin installed, visit http://gpac.sourcefo
         <xsl:param name = "string"/>
         <xsl:choose>
             <xsl:when test = "contains($string,'cf ')">
-				<xsl:variable name="astring"><xsl:value-of select = "substring-after($string,'cf ')"/></xsl:variable>
+        				<xsl:variable name="astring"><xsl:value-of select = "substring-after($string,'cf ')"/></xsl:variable>
                 See also <a><xsl:attribute name="href"><xsl:value-of select="$astring"/>.html</xsl:attribute><xsl:value-of select="$astring"/></a>
             </xsl:when>
             <xsl:otherwise>
