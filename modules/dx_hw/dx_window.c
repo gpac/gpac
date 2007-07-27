@@ -649,7 +649,7 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 		PostMessage(ctx->os_hwnd, WM_DESTROY, 0, 0);
 	} else if (ctx->orig_wnd_proc) {
 		/*restore window proc*/
-		//SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
+		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
 		ctx->orig_wnd_proc = 0L;
 	}
 	PostMessage(ctx->fs_hwnd, WM_DESTROY, 0, 0);
