@@ -5,7 +5,7 @@ Group {
   Viewpoint { position 0 0 2}
   WorldInfo {
    title "IndexedTriangleFanSet X3D test"
-   info ["This shows a IndexedTriangleFanSet" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows a IndexedTriangleFanSet" "" "GPAC Regression Tests" "$Date: 2007-07-27 11:30:48 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 
   Transform {

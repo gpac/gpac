@@ -3,7 +3,7 @@
 Group {
  children [
   WorldInfo {
-   info ["This shows IndexedFaceSets" "with RGBA color per vertex" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows IndexedFaceSets" "with RGBA color per vertex" "" "GPAC Regression Tests" "$Date: 2007-07-27 11:30:48 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "ColorRGBA X3D Test test"
   }
   Transform {

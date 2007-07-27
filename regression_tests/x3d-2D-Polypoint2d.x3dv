@@ -4,7 +4,7 @@ Group {
  children [
   WorldInfo {
    title "Polypoint2D X3D test"
-   info ["This shows a Polypoint2D" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows a Polypoint2D" "" "GPAC Regression Tests" "$Date: 2007-07-27 11:30:48 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 
   Transform {

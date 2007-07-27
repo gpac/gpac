@@ -5,7 +5,7 @@ Group {
 	Background2D { backColor 1 1 1}
   WorldInfo {
    title "HatchStyle X3D test"
-   info ["This shows a box" "with hatching properties" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows a box" "with hatching properties" "" "GPAC Regression Tests" "$Date: 2007-07-27 11:30:48 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 
   Transform {
