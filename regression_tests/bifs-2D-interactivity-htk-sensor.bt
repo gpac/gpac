@@ -33,7 +33,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows usage of String Sensor" "" "GPAC Regression Tests" "(C) 2002 ENST"]
+   info ["This shows usage of String Sensor" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.2 $" "(C) 2002 ENST"]
    title "InputSensor Test - StringSensor device"
   }
   Transform2D {

@@ -26,7 +26,7 @@ OrderedGroup {
  children [
   WorldInfo {
    title "Viewpoint bind test"
-   info ["This shows sensors triggering viewpoint binding" "Viewpoint switching shall be animated" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows sensors triggering viewpoint binding" "Viewpoint switching shall be animated" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 
 	DEF VP1 Viewpoint {description "Front View" position 0 0 200 jump FALSE}

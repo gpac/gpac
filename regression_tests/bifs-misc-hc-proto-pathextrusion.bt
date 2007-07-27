@@ -41,7 +41,7 @@ Group {
   children [
   	
   WorldInfo {
-   info ["This shows GPAC PathExtrusion HardcodedProto" "The text is extruded along a spline to get a solid text in 3D" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows GPAC PathExtrusion HardcodedProto" "The text is extruded along a spline to get a solid text in 3D" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "PathExtrusion HardcodedProto"
   }
   NavigationInfo { type ["EXAMINE", "ANY"] headlight FALSE}

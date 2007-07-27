@@ -50,7 +50,7 @@ OrderedGroup {
     "This configuration allows doing different things than the TouchSensor because the TouchSensor cannot give information about the buttons, or the wheel. On the other hand, it can be triggered based on sibling geometry, which is not the case of the InputSensor node in MouseSensor mode." 
     "In this example, the result of the InputSensor node triggers ECMAScript actions." 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "InputSensor Node for mouse events (MouseSensor)"

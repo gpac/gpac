@@ -31,7 +31,7 @@ OrderedGroup {
     "Within the layer, the content is clipped along the 200x200 rectangle and filled with a red background." 
     "Behind this layer, a rotated blue rectangle is displayed."
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Layer2D - Rectangular Axis Aligned Clipping"

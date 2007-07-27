@@ -50,7 +50,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This is a proto with an MF URL ISed field" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This is a proto with an MF URL ISed field" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "Proto with URL Test"
   }
   DEF testInstance testURL {

@@ -27,7 +27,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows a cyclic scene graph" "" "GPAC Regression Tests" "(C) 2002-2005 GPAC Team"]
+   info ["This shows a cyclic scene graph" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.2 $" "(C) 2002-2005 GPAC Team"]
    title "Cyclic Scene Graph Test"
   }
   DEF TR Transform2D {

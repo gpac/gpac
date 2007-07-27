@@ -30,7 +30,7 @@ OrderedGroup {
    info [
     "This test shows line texturing with a radial gradient with different spread method and animated focal point"
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"]
    title "Radial Gradient on lines using XLineProperties node"
   }

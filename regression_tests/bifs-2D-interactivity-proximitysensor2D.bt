@@ -33,7 +33,7 @@ OrderedGroup {
     "When the mouse enters or exits an area, an action is triggered."
     "Here, nothing happens when the mouse enters the object, then it turns red if the mouse enters the first area, and it turns empty if the mouse enters the second area." 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "ProximitySensor2D"

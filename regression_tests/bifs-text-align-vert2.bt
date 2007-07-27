@@ -27,7 +27,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows Text alignment for vertical text" "top to bottom = FALSE" "left to right = TRUE" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows Text alignment for vertical text" "top to bottom = FALSE" "left to right = TRUE" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "Vertical Text alignment"
   }
   Transform2D {

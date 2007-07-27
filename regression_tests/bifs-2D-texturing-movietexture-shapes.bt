@@ -39,7 +39,7 @@ OrderedGroup {
     "The url of this node points to the video using any internet protocol (http, rtsp) or using MPEG-4 OD." 
     "The MovieTexture node is associated to the geometry as a children of the Shape node. The video is then clipped along the bounding box of the shape." 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.4 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Displaying Videos as a texture on any shape"

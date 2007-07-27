@@ -30,7 +30,7 @@ OrderedGroup {
    info [
     "This shows line texturing with a composite texture using the CompositeTexture2D node using variable width and different line alignment" 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Complex line texturing with the XLineProperties node"

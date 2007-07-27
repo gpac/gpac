@@ -27,7 +27,7 @@ Group {
 
   WorldInfo {
    title "Transform test"
-   info ["This shows 3D transform on a box" "using DEF/USE and oriented scaling" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows 3D transform on a box" "using DEF/USE and oriented scaling" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 
   DEF TR Transform {

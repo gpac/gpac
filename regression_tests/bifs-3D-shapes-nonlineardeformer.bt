@@ -26,7 +26,7 @@ Group {
 	children [
 
   WorldInfo {
-   info ["This shows NonLinearDeformer" "in different modes and differnet axis." "Deformation is controled through the NLD.extend field" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows NonLinearDeformer" "in different modes and differnet axis." "Deformation is controled through the NLD.extend field" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "NonLinearDeformer Test"
   }
   Viewpoint { position 0 -1 10 }

@@ -24,7 +24,7 @@ InitialObjectDescriptor {
 OrderedGroup {
  children [
   WorldInfo {
-   info ["Inlined scene with planeSensor2D" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["Inlined scene with planeSensor2D" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "Inline Test"
   }
 	

@@ -35,7 +35,7 @@ Group {
 
   WorldInfo {
    title "Composite Texture test"
-   info ["This shows a box" "with a 3D composite texture" "the texture is a spinning sphere with an image texture"  "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows a box" "with a 3D composite texture" "the texture is a spinning sphere with an image texture"  "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 			
 

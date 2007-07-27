@@ -32,7 +32,7 @@ OrderedGroup {
        "This node is an extension of the Curve2D node. It allows more drawing types: quadratic Bezier curves and elliptical arcs."
        "Both XCurve2D and Curve2D are similar to IndexedFaceSet2D and IndexedLineSet2D because they can be used to represent polygons and polylines. The difference is that it is not possible to assign a color or texture per point, nor a color per closed path. "
        "" 
-       "GPAC Regression Tests" 
+       "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.3 $" 
        "(C) 2002-2006 GPAC Team"
     ]
    title "XCurve2D"

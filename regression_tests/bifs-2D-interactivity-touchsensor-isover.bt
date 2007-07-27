@@ -32,7 +32,7 @@ OrderedGroup {
     "The TouchSensor node sends an isOver event when the Mouse enters or exits the region delimited by a Shape node, sibling of the TouchSensor node. The value is TRUE, when it enters, and FALSE when it leaves." 
     "In this example, the TouchSensor has only one sibling a rectangle, which turns empty when the mouse is not over it."
     ""
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "TouchSensor & isOver"

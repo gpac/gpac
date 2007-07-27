@@ -31,7 +31,7 @@ OrderedGroup {
     "This test shows how a TouchSensor node and a TimeSensor can be used to make a new Event called MoveOver, which is TRUE when the mouse moves over a Shape or FALSE when the mouse has not moved over the Shape for a certain period of time." 
     "This is an example to show how new events can be created based on existing tools and events (no scripting). This particular event simulates the Lingo MouseWithin event. "
     ""
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.2 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Move Over"

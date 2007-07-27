@@ -27,6 +27,12 @@ OrderedGroup {
 		Background2D {
 			backColor 1 1 1
 		}
+  WorldInfo {
+   info [
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"
+    ]
+   title "Othello using BIFS and ECMAScript"
+  }
 		DEF TimeOutSensor TimeSensor {
 			enabled FALSE
 			cycleInterval 0.15

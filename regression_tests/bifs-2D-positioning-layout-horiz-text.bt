@@ -27,7 +27,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows Layout node" "performing text splitting at word boundaries" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows Layout node" "performing text splitting at word boundaries" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "Layout Text Test"
   }
   Transform2D {

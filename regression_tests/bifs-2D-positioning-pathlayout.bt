@@ -27,7 +27,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows PathLayout usage" "with text and graphics layout" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows PathLayout usage" "with text and graphics layout" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "PathLayout Test"
   }
   Transform2D {

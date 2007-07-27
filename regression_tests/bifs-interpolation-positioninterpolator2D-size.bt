@@ -24,7 +24,7 @@ InitialObjectDescriptor {
 OrderedGroup {
  children [
   WorldInfo {
-   info ["This shows 2D size interpolation" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows 2D size interpolation" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "PositionInterpolator2D"
   }
   DEF BACK Background2D {

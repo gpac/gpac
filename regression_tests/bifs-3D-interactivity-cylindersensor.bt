@@ -26,7 +26,7 @@ Group {
  children [
   WorldInfo {
    title "CylinderSensor test"
-   info ["This shows a cylinderSensor" "exercising isActive, rotationChanged and trackPoint_changed events" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows a cylinderSensor" "exercising isActive, rotationChanged and trackPoint_changed events" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
   }
   Background2D {backColor 1 1 1}
   Viewpoint {}

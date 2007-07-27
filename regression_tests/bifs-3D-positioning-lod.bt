@@ -29,7 +29,7 @@ Group {
   }
   WorldInfo {
    title "LOD test"
-   info ["This shows LOD with 2 level of details" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows LOD with 2 level of details" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 
   Transform {

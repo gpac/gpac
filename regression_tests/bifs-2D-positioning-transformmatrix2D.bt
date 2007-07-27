@@ -34,7 +34,7 @@ OrderedGroup {
     "Click on the transformed rectangles to start transformation animations." 
     "cf bifs-2D-positioning-transform2D" 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.4 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Apply transformations on local coordinate systems - TransformMatrix2D node"  

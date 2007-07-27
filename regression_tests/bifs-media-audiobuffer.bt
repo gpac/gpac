@@ -35,7 +35,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows audiobuffer" "with loop and pitch" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows audiobuffer" "with loop and pitch" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
    title "AudioBuffer Test"
   }
   Sound2D {

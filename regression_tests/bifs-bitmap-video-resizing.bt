@@ -38,7 +38,7 @@ OrderedGroup {
     "Both textures use a Bitmap node to allow efficient handling of the textures." 
     "The resizing of the video is not done using a Transform2D node (or TransformMatrix2D) but by changing the size property of the Bitmap node." 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.5 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Bitmap Video Resizing"

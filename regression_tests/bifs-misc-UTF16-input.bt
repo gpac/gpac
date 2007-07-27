@@ -27,7 +27,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows non ASCII Text characters" "Input BT file is in UTF-16 Little Endian format" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows non ASCII Text characters" "Input BT file is in UTF-16 Little Endian format" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "MP4Box Test"
   }
   Transform2D {

@@ -33,7 +33,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows media streams synchronized to an empty OCR stream" "and mediaControl controling the OCR playback" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows media streams synchronized to an empty OCR stream" "and mediaControl controling the OCR playback" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
    title "Animation Stream"
   }
   Transform2D {

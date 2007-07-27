@@ -155,7 +155,7 @@ OrderedGroup {
    backColor 0.2 0.4 0.7
   }
   WorldInfo {
-   info ["This shows script used in proto for a bubble-like effect" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows script used in proto for a bubble-like effect" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
    title "Script and Proto test"
   }
   Transform2D {

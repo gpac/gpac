@@ -37,7 +37,7 @@ OrderedGroup {
     "4 bytes corresponds to 32-bits ARGB"
     "The background color of the scene is animated to see the effect on the texture." 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Synthetic Non Vectorial Texture"

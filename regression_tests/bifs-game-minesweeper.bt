@@ -38,7 +38,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This game was translated from" "the site http://javascript.internet.com'" "Written and designed by Peter Occil (poccil@yahoo.com)" "Translated and adapted by " "Cyril Concolato (cyril.concolato@enst.fr), June 2003"]
+   info [
+   "This game was translated from" 
+   "the site http://javascript.internet.com'"
+    "Written and designed by Peter Occil (poccil@yahoo.com)" 
+    "Translated and adapted by " 
+    "Cyril Concolato (cyril.concolato@enst.fr), June 2003"
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"
+]
    title "Winmine using MPEG-4 BIFS and Javascript"
   }
   Transform2D {
