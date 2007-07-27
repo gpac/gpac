@@ -7,7 +7,7 @@ Group {
     Group {
      children [
       WorldInfo {
-       info ["This shows usage of X3D KeySensor" "and triggering of events" "" "GPAC Regression Tests" "(C) 2002-2003 ENST"]
+       info ["This shows usage of X3D KeySensor" "and triggering of events" "" "GPAC Regression Tests" "$Date: 2007-07-27 11:30:48 $ - $Revision: 1.2 $" "(C) 2002-2003 ENST"]
        title "KeySensor X3D Test"
       }
       Shape {

@@ -4,7 +4,7 @@ Group {
  children [
   WorldInfo {
    title "StringSensor X3D Test"
-   info ["This shows usage of X3D StringSensor" "" "GPAC Regression Tests" "(C) 2002 ENST"]
+   info ["This shows usage of X3D StringSensor" "" "GPAC Regression Tests" "$Date: 2007-07-27 11:30:48 $ - $Revision: 1.2 $" "(C) 2002 ENST"]
   }
 
   Transform { 
