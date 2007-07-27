@@ -1,11 +1,11 @@
 <testsuitelist> 
 <format name="BIFS">
 <category name="2D Shapes">
+<file name="bifs-2D-shapes-all" title="All Possible Shapes" type="bt"/>
 <file name="bifs-2D-shapes-indexfaceset2D" title="Drawing Polygons" type="bt" /> 
 <file name="bifs-2D-shapes-indexlineset2D" title="Drawing Polylines" type="bt" /> 
 <file name="bifs-2D-shapes-pointset2D" title="Drawing Points" type="bt" /> 
 <file name="bifs-2D-shapes-xcurve2D" title="Drawing Bezier Curves" type="bt" /> 
-<file name="bifs-2D-shapes-all" title="All Possible Shapes" type="bt"/>
 </category>
 <category name="2D Painting">
 <file name="bifs-2D-painting-material2D" title="Simple Filling and Stroking" type="bt" /> 

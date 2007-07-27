@@ -1,66 +1,95 @@
 body {
-   padding: 0;
-   background-color: #cbcbcb;   
-   margin-left: 15px;
-   margin-right: 15px;
+  background-color:#E8E5E5;
+	border: 0; margin: 0; padding: 0;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 12px; 	
+  margin-top: 15px;
+  margin-left: 15px;
+  margin-right: 15px;
 }
+
+a {	text-decoration:none; }
 
 #title {
-   font-family: sans-serif; 
-   text-align: center;
-   margin: 0;
-   padding: 0;
-   color: #D50751;
-   margin-top: 1em;
-   margin-bottom: 1em;
+  font-size: 16px; 
+  font-weight:bold;
+  text-align: left;
+  margin: 0;
+  padding: 0;
+  color: #D50751;
 }
 
-#nav
-{
+#nav {
+	text-align: left;
+	
+}
+
+#nav ul {
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid black;	
+  margin-bottom: 15px;
+}
+
+#nav li {
+	display: inline;
+	list-style-type: none;
+  font-size: 14px; 
+  font-weight:bold;
 	text-align: center;
 }
 
-#nav li
-{
-	display: inline;
-	list-style-type: none;
-	margin-right: 30px;
-	margin-left: 30px;
-}
-
-#content 
-{
+#content {
 	width: 95%;
-	margin-left: 5px;
-	padding-top: 10px;
 }
 
-#left
-{
-    width: 48%;
-    float: left;
-    border: 1px;
-    border-style: dotted;
-    border-color: #0000bb;
+a {	text-decoration:none; }
+
+h2 {
+	color:#000000; 
+  font-weight:bold;
+	margin-left: 23px;
+	width: 95%;
+  font-size: 14px; 
+  font-weight:bold;
 }
 
-#right
-{
-    width: 50%;
-    float: right;
-    border: 1px;
-    border-style: dotted;
-    border-color: #0000bb;
+div#description h2, div#contentview h2, div#codeview h2 {
+	border-bottom: 1px solid black;
 }
 
-#description
-{
+div#content h3 {
+	border-bottom: 1px solid black;
+}
+
+#left {
+  width: 49%;
+  float: left;
+	border-right: 1px solid black;
+}
+
+#right {
+  width: 50%;
+  float: right;
+}
+
+#description {
+  width: 95%;
 	text-align: left;
 }
 
-#downloadbar
+#downloadbar, #downloadbar h2 {
+  color:#FFFFFF; 
+  margin: 0;
+  padding: 0; 
+  background-color:#A51129; 
+  text-align: center; 
+  position: relative;
+  width: 95%;
+}
+
+#downloadbar ul
 {
-	font-size: 110%;
 	text-align: center;
 }
 
@@ -71,55 +100,33 @@ body {
 	padding-right: 20px;
 }
 
-#downloadbar a:link, #downloadbar a:visited
-{
-	color: #347879;
-	font-weight: bold;
+#downloadbar a:link, #downloadbar a:visited {
+  display:inline;  
+  padding:0; 
+  color:#FFFFFF;
 	background-color: transparent;
-	text-decoration: none;
 }
 
-#downloadbar a:hover, #downloadbar a:active
-{
-	color: #347879;
-	background-color: #fff;
+#contentview {
+    text-align: left;
 }
 
-h2
-{
-	background-color: #fff;
-}
-
-h3
-{
-    margin-left: 10px;
-	background-color: #fff;
-}
-
-#contentview
-{
-    text-align:center;
-}
-
-#snapshotview
-{
+#snapshotview {
     clear: both;
 }
 
-#codeview
-{
+#codeview {
     clear: both;
+    width: 100%;
+    height: 100%;
 }
 
-#codeview iframe
-{
-    margin: 0px; 
-    height: 300px;
-    width: 49%;
+#codeview object {
+    width: 100%;
+    height: 100%;
 }
 
-#category li
-{
+#category li {
 	display: inline;
 	list-style-type: none;
 	margin-right: 20px;

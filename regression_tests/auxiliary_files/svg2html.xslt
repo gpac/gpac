@@ -47,32 +47,32 @@
                 </div>
                 <div id = "content">
                     <div id = "left">                
-                        <div id = "description">
-                            <h2>Description</h2>
-                            <xsl:value-of select = "//svg:desc"/>
-                        </div>
                         <div id = "downloadbar">
                             <h2>Download</h2>
                             <ul>
                                 <li><a href = "{$filename}.svg">SVG </a></li>
+                                <li><a href = "{$filename}.xsr">LASeRML </a></li>
                                 <li><a href = "{$filename}.mp4">LASeR (as MP4 file)</a></li>
+                                <li><a href = "{$filename}.saf">LASeR in SAF </a></li>
                             </ul>
+                        </div>
+                        <div id = "description">
+                            <h2>Description</h2>
+                            <xsl:value-of select = "//svg:desc"/>
                         </div>
                     </div>
                     <div id = "right">                
                         <div id = "contentview">
                             <h2>Viewer</h2>
                             <object id = "player" type = "application/x-gpac"
-                                width = "{//svg:svg/@width}"
-                                height = "{//svg:svg/@height}"                                
-                                pluginspage = "http://perso.enst.fr/~lefeuvre/GPAC/GPAC%20Framework%200.4.1%20Setup.exe">
+                                width = "100%"
+                                height = "100%"                                
+                                pluginspage = "http://tsi.enst.fr/~lefeuvre/GPAC/">
                                 <param name = "src" value = "{$filename}.svg"/>
 Your browser does not have the GPAC plugin installed, visit http://gpac.sourceforge.net for more information ...</object>
-                            <form name = "formname">
-                                <input type = "button" value = "Play" onclick = "document.player.Play()"/>
-                                <input type = "button" value = "Pause" onclick = "document.player.Pause()"/>
-                                <input type = "button" value = "Reload" onclick = "document.player.Reload()"/>
-                            </form>
+                            <!--form name = "formname">
+                                <input type = "button" value = "Play/Pause" onclick = "document.player.Pause()"/>
+                            </form-->
                         </div>
                     </div>
                     <xsl:if test = "$snapshot1">
