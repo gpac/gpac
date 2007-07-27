@@ -67,7 +67,7 @@ DEF ORD OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows proto declaration list deletion" "through BIFS Extended commands" "The player should complain about unknown nodes" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows proto declaration list deletion" "through BIFS Extended commands" "The player should complain about unknown nodes" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "Proto List Delete test"
   }
   MYPROTO {}

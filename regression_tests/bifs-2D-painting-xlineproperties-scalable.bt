@@ -31,7 +31,7 @@ OrderedGroup {
     "This test shows the usage of scalable flag in the XLineProperties node" 
     "We see that the right line's width changes during the animation while the left one does not change." 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.3 $" 
     "(C) 2002-2004 GPAC Team"
     ]
     title "Scalability of the outline - the XLineProperties node"

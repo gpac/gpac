@@ -42,7 +42,7 @@ OrderedGroup {
     "cf bifs-2D-painting-xlineproperties-scalable"
     "cf bifs-2D-painting-xlineproperties-transparent"
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.4 $" 
     "(C) 2002-2006 GPAC Team"]
    title "Material2D properties"
   }

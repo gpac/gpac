@@ -30,7 +30,7 @@ OrderedGroup {
    info [
     "This test shows how transparency applies to composite textures."
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "CompositeTexture and Transparency"

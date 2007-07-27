@@ -26,7 +26,7 @@ Group {
  children [
    WorldInfo {
    title "Fog test"
-   info ["This shows a fog" "with varying visibility range" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows a fog" "with varying visibility range" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 	DEF AFOG Fog {color 0.2 0.2 0.2 visibilityRange 4}
   Transform {

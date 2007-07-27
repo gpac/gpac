@@ -33,7 +33,7 @@ OrderedGroup {
    url [od:10]
   }
   WorldInfo {
-   info ["This shows usage of Viewport in the scene" "viewport can be changed through the player's viewport list" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows usage of Viewport in the scene" "viewport can be changed through the player's viewport list" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "Viewport Test"
   }
   DEF VP Viewport {

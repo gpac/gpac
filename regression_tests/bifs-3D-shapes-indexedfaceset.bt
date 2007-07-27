@@ -27,7 +27,7 @@ Group {
 
   WorldInfo {
    title "IndexedFaceSet test"
-   info ["This shows an IFS" "with and without colorPerVertex" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows an IFS" "with and without colorPerVertex" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 
   Transform {

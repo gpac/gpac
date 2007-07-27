@@ -30,7 +30,7 @@ InitialObjectDescriptor {
 OrderedGroup {
  children [
   WorldInfo {
-   info ["This shows usage of the viewport per layer" "Translated from SVG" "" "GPAC Regression Tests" "SVG Test Suite - (C) W3C 2002"]
+   info ["This shows usage of the viewport per layer" "Translated from SVG" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "SVG Test Suite - (C) W3C 2002"]
    title "Animation Stream"
   }
   Background2D {

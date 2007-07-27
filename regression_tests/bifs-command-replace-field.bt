@@ -32,7 +32,7 @@ OrderedGroup {
     "It applies to both SFField and MFField, for replacement of single value in an MFField, use Indexed Replacement"
     "cf bifs-command-replace-index"
     ""
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.3 $" 
     "(C) 2002-2004 GPAC Team"]
    title "Field Replacement"
   }

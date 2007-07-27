@@ -27,7 +27,7 @@ Group {
  	Viewpoint {position 0 0 100 }
   WorldInfo {
    title "PositionAnimator test"
-   info ["This shows PositionAnimator using bezier spline interpolation" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows PositionAnimator using bezier spline interpolation" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
   DEF BACK Background2D { backColor 1 1 1}
   DEF TR Transform {   

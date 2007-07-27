@@ -49,7 +49,7 @@ OrderedGroup {
     "- and the state of the modifier keys (CTRL, ALT and Shift)." 
     "In this example, the target nodes are Valuator nodes which cast the key code into the char representation, and the result is displayed." 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "InputSensor Node for detecting keys (KeySensor)"

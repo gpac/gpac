@@ -44,7 +44,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["Each animated logo is an instance of a single proto" "defined in an external library" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["Each animated logo is an instance of a single proto" "defined in an external library" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
    title "Complexe proto Test"
   }
   FORESTGUMP {

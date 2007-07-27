@@ -66,7 +66,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows usage of DEF/USE inside a proto" "and DEF/USE of a proto" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows usage of DEF/USE inside a proto" "and DEF/USE of a proto" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "Simple proto Test"
   }
   DEF G GEOMETRY_PROTO {

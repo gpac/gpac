@@ -36,7 +36,7 @@ children [
   }
   Viewpoint {}
   WorldInfo {
-   info ["This shows spinning cubes with image and video textures" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows spinning cubes with image and video textures" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
    title "Cube, Texture Test"
   }
 

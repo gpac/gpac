@@ -33,7 +33,7 @@ OrderedGroup {
 
   WorldInfo {
    title "Box test"
-   info ["This shows a bitmap using" "a compositetexture3D" "the 3D texture is a spinning box with an image texture" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows a bitmap using" "a compositetexture3D" "the 3D texture is a spinning box with an image texture" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 	Background2D{url 20}
 	

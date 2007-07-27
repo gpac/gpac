@@ -32,7 +32,7 @@ OrderedGroup {
     "A group made of a circle and a rectangle is reused under a ColorTransform node which animates only the Red-Blue component from 0 to 1" 
     "Note: the transparency is specified for a set of objects but is applied individually, that is why the overlapping region of the circle and of the rectangle gets black faster than the rest of the group." 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "ColorTranform"

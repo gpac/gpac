@@ -37,7 +37,7 @@ OrderedGroup {
     "This test shows an Image (the Osmo4 logo), which has an alpha component being display on a yellow background."
     "The geometry node use to display the image is a Bitmap node with a scale of 0.75 0.75"
     ""
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.4 $" 
     "(C) 2002-2004 GPAC Team"
    ]
    title "Bitmap and Transparent Images"

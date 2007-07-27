@@ -38,7 +38,7 @@ OrderedGroup {
     "The MaterialKey node allows defining a key color or color range and to make that color transparent in the texture. The degree of transparency can be specified using the transparency property." 
      
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.4 $" 
     "(C) 2002-2004 GPAC Team"
    ]
    title "Color Keying on Video using the MaterialKey node"

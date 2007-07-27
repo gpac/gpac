@@ -32,7 +32,7 @@ OrderedGroup {
     "The TouchSensor node sends an isActive event each time a Mouse Button is pressed. The value of the event is TRUE if the Mouse is over a sibling shape of the TouchSensor node. Otherwise it is FALSE." 
     "In this example, the event value is routed to the filled property of 2 different circles. So, when the mouse is clicked on the square, both circled are filled and when the mouse is released, both circles become empty."
     ""
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "TouchSensor & isActive"

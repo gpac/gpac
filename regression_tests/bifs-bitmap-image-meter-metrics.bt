@@ -32,7 +32,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows dragable bitmap with scale 0.75 0.75" "in Meter Metrics" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows dragable bitmap with scale 0.75 0.75" "in Meter Metrics" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "Bitmap Test"
   }
   Transform2D {

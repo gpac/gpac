@@ -30,7 +30,7 @@ OrderedGroup {
    info [
     "This shows how to make a 4 states button" 
     "" 
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.2 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "4 States Button"

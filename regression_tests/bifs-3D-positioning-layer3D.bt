@@ -29,7 +29,7 @@ OrderedGroup {
 
   WorldInfo {
    title "Layer3D test"
-   info ["This shows a Layer3D using the entire window" "and layer2D/layer3D defining a 2D control panel" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows a Layer3D using the entire window" "and layer2D/layer3D defining a 2D control panel" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 
 	Transform2D {

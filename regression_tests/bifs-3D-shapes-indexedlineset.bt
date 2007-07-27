@@ -27,7 +27,7 @@ Group {
 
   WorldInfo {
    title "IndexedLineSet test"
-   info ["This shows an ILS" "with and without color per vertex" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows an ILS" "with and without color per vertex" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
   }
 
   Transform {

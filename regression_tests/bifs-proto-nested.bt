@@ -90,7 +90,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows a Proto using DEF/USE Protos" "declared inside the proto itself" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows a Proto using DEF/USE Protos" "declared inside the proto itself" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "Nested Proto test"
   }
   Transform2D {

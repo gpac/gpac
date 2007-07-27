@@ -33,7 +33,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows MovieTexture node on bitmap" "looping (visual object synchronized on BIFS)" "results at end of video are undefined" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows MovieTexture node on bitmap" "looping (visual object synchronized on BIFS)" "results at end of video are undefined" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
    title "MovieTexture Test"
   }
   Transform2D {

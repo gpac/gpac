@@ -26,7 +26,7 @@ Group {
  children [
   WorldInfo {
    title "Anchor and Viewpoints test"
-   info ["This shows anchors triggering viewpoint binding" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows anchors triggering viewpoint binding" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
   }
 
 	DEF VP1 Viewpoint {description "Front View" position 0 0 300}

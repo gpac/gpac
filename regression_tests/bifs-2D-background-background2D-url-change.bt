@@ -33,7 +33,7 @@ OrderedGroup {
    url [od:20]
   }
   WorldInfo {
-   info ["This shows Background2D with dynamic image change" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows Background2D with dynamic image change" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "Background Test"
   }
   Transform2D {

@@ -41,7 +41,7 @@ OrderedGroup {
     "* PointSet2D: a list of points to be displayed (not really useful)"
     ""
     ""
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.4 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Basic 2D Geometry nodes"

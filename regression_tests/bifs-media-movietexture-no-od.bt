@@ -36,7 +36,7 @@ OrderedGroup {
    info [
     "This test shows how a URL in a MovieTexture node can be a regular URL (http, file, ...) and not an OD URL."
     ""
-    "GPAC Regression Tests"
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.7 $"
     "(C) 2002-2006 GPAC Team"
    ]
    title "Video referenced by a non-OD URL"

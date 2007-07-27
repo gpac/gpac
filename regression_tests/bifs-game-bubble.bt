@@ -93,7 +93,7 @@ OrderedGroup {
         " - a Script node which handles the initialization (colors, size, index) and dynamic positionning of the bubbles. It is also responsible for the game logic."
         "The number of of lines and columns in the bubble grid can be easily modified in the Script node." 
         "" 
-        "GPAC Regression Tests" 
+        "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.5 $" 
         "(C) 2002-2006 GPAC Team"        
       ]
     }

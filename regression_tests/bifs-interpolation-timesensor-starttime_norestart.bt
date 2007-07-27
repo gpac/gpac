@@ -27,7 +27,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows usage of timesensor start time" "Animation shall not be restartable until over" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows usage of timesensor start time" "Animation shall not be restartable until over" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "TimeSensor startTime test"
   }
   Transform2D {

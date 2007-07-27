@@ -29,7 +29,7 @@ OrderedGroup {
     "Initially, the scene has a white background but at 2s, the Background2D node is replaced by a NULL node. Since the Background2D node is not used anymore, it is deleted." 
     "Replacing with a NULL node does not change the index of the following siblings."
     ""
-    "GPAC Regression Tests" 
+    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.3 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Node Replacement with a NULL node"

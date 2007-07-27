@@ -42,7 +42,7 @@ EXTERNPROTO PlanarExtrusion [
 Group {
   children [
   WorldInfo {
-   info ["This shows GPAC PlanarExtrusion HardcodedProto" "A circle is extruded along another circle to get a nice 3D torus" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows GPAC PlanarExtrusion HardcodedProto" "A circle is extruded along another circle to get a nice 3D torus" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
    title "PlanarExtrusion HardcodedProto"
   }
   	
