@@ -417,6 +417,7 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 	}
 	
 	if(aWindow == NULL) return FALSE;
+	if (!aWindow->width || !aWindow->height) return FALSE;
 
 	m_width = aWindow->width;
 	m_height = aWindow->height;

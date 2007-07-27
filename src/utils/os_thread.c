@@ -165,7 +165,7 @@ void gf_th_del(GF_Thread *t)
 {
 	Thread_Stop(t, 0);
 #ifdef WIN32
-	if (t->threadH) CloseHandle(t->threadH);
+//	if (t->threadH) CloseHandle(t->threadH);
 #endif
 	free(t);
 }
