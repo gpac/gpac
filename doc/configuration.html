@@ -8,9 +8,9 @@
 
 <p style="text-align: center;">
 <br/>
-<b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.4</span></b>
+<b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.5-DEV</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified Mai 2007</span></b>
+<b><span style="Font-Size: 18pt">Last Modified July 2007</span></b>
 </p>
 
 <br/><br/>
@@ -399,6 +399,18 @@ Specifies fullscreen resolution mode. If enabled, selects smallest video resolut
 <b>UseHardwareMemory</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Only valid for 2D renderer. Specifies if main video backbuffer is on hardware or system memory. Depending on the scene type, this may drastically change the playback speed.</p>
+<b>UseGLDoubleBuffering</b> [value: <i>"yes" "no"</i>]
+<p style="text-indent: 5%">
+Specifies if OpenGL double buffering shall be used. Default is "no".</p>
+<b>X113DOffscreenMode</b> [value: <i>"Window" "VisibleWindow" "Pixmap"</i>]
+<p style="text-indent: 5%">
+Specifies the type of OpenGL offscreen rendering in X11. Default mode is "Pixmap".</p>
+<ul>
+<li><i>"Window"</i>: A hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work.</li>
+<li><i>"VisibleWindow"</i>: A visible window is used to perform offscreen rendering. This can be usefull while debugging.</li>
+<li><i>"Pixmap"</i>: An X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player.</li>
+</ul>
+
 
 <br/><br/>
 <a name="Network"></a>
