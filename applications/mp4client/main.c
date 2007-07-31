@@ -847,7 +847,8 @@ int main (int argc, char **argv)
 
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
-		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
+//		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
+		if (arg[0] != '-') {
 			url_arg = arg;
 		} else if (!strcmp(arg, "-c") || !strcmp(arg, "-cfg")) {
 			the_cfg = argv[i+1];
