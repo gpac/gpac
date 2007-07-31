@@ -1045,7 +1045,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					char *szName;
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stdout, "\t");
-					if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[1], "theora", 6)) szName = "Theora";
+					if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[3], "theora", 6)) szName = "Theora";
 					else szName = "Unknown";
 					fprintf(stdout, "Ogg/%s video / GPAC Mux  - Visual Size %d x %d\n", szName, w, h);
 				}
@@ -1095,9 +1095,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				{
 					char *szName;
 					if (full_dump) fprintf(stdout, "\t");
-					if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[1], "vorbis", 6)) szName = "Vorbis";
-					else if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[0], "Speex", 5)) szName = "Speex";
-					else if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[0], "Flac", 4)) szName = "Flac";
+					if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[3], "vorbis", 6)) szName = "Vorbis";
+					else if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[2], "Speex", 5)) szName = "Speex";
+					else if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[2], "Flac", 4)) szName = "Flac";
 					else szName = "Unknown";
 					fprintf(stdout, "Ogg/%s audio / GPAC Mux - Sample Rate %d - %d channel(s)\n", szName, sr, nb_ch);
 				}

@@ -326,7 +326,10 @@ opaque_audio:
 		esd->slConfig->timestampResolution = ffd->video_tscale.den;
 		switch (dec->codec_id) {
 		case CODEC_ID_MPEG4:
-		case CODEC_ID_H264:
+		/*there is a bug in fragmentation of raw H264 in ffmpeg, the NALU startcode (0x00000001) is split across
+		two frames - we therefore force internal ffmpeg codec ID to avoid NALU size recompute
+		at the decoder level*/
+//		case CODEC_ID_H264:
 			/*if dsi not detected force use ffmpeg*/
 			if (!dec->extradata_size) goto opaque_video;
 			/*otherwise use any MPEG-4 Visual*/
@@ -633,7 +636,6 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 
 	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
-		u32 i, count;
 		if (ffd->audio_st>=0) return GF_OK;
 		return GF_NOT_SUPPORTED;
 	}

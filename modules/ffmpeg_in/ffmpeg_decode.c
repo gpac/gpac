@@ -178,7 +178,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 			case 0x21:
 				codec_id = CODEC_ID_H264;
 				/*ffmpeg H264/AVC needs that*/
-				ffd->ctx->codec_tag = 0x31637661;
+				//ffd->ctx->codec_tag = 0x31637661;
 				break;
 			case 0x6A:
 			case 0x60:
@@ -500,6 +500,7 @@ redecode:
 				u32 nalu_size;
 				u32 remain = inBufferLength;
 				char *start, *end;
+
 				start = inBuffer;
 				end = inBuffer + 4;
 				while (remain>4) {
@@ -516,7 +517,7 @@ redecode:
 					end++;
 					remain--;
 				}
-				nalu_size = end - start - 4;
+				nalu_size = (inBuffer+inBufferLength) - start - 4;
 				start[0] = (nalu_size>>24)&0xFF;
 				start[1] = (nalu_size>>16)&0xFF;
 				start[2] = (nalu_size>>8)&0xFF;
@@ -568,9 +569,9 @@ redecode:
 		}
 		/*check PAR in case on-the-fly change*/
 		if (!ffd->no_par_update && ffd->ctx->sample_aspect_ratio.num && ffd->ctx->sample_aspect_ratio.den) {
-			outsize = (ffd->ctx->sample_aspect_ratio.num<<16) | ffd->ctx->sample_aspect_ratio.den;
-			if (outsize!=ffd->previous_par) {
-				ffd->previous_par=outsize;
+			u32 new_par = (ffd->ctx->sample_aspect_ratio.num<<16) | ffd->ctx->sample_aspect_ratio.den;
+			if (new_par != ffd->previous_par) {
+				ffd->previous_par = new_par;
 				*outBufferLength = ffd->out_size;
 				return GF_BUFFER_TOO_SMALL;
 			}

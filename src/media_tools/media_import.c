@@ -4164,7 +4164,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 					gf_bs_del(bs);
 					bs = NULL;
 					import->esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-					import->esd->decoderConfig->objectTypeIndication = 0xDF;
+					import->esd->decoderConfig->objectTypeIndication = GPAC_OGG_MEDIA_OTI;
 
 					e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, NULL, NULL, &di);
 					if (e) goto exit;
