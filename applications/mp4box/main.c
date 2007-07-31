@@ -997,7 +997,8 @@ int main(int argc, char **argv)
 	for (i = 1; i < (u32) argc ; i++) {
 		arg = argv[i];
 		/*main file*/
-		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
+//		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
+		if (arg[0] != '-') {
 			if (inName) { fprintf(stdout, "Error - 2 input names specified, please check usage\n"); return 1; }
 			inName = arg;
 		}
