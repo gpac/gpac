@@ -955,7 +955,7 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 		import->tk_info[0].video_info.width = AVI_video_width(in);
 		import->tk_info[0].video_info.height = AVI_video_height(in);
 		comp = AVI_video_compressor(in);
-		import->tk_info[0].media_type = GF_4CC(comp[0], comp[1], comp[2], comp[3]);
+		import->tk_info[0].media_type = GF_4CC((u8)comp[0], (u8)comp[1], (u8)comp[2], (u8)comp[3]);
 
 		import->nb_tracks = 1;
 		for (i=0; i<(u32) AVI_audio_tracks(in); i++) {
@@ -1873,7 +1873,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 		return gf_import_message(import, GF_IO_ERR, "Cannot fetch audio frame from MPEG file");
 	}
     
-	hdr = GF_4CC(buf[0],buf[1],buf[2],buf[3]);
+	hdr = GF_4CC((u8)buf[0],(u8)buf[1],(u8)buf[2],(u8)buf[3]);
 	mtype = gf_mp3_object_type_indication(hdr);
 	sr = gf_mp3_sampling_rate(hdr);
 	nb_ch = gf_mp3_num_channels(hdr);
