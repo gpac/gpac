@@ -466,7 +466,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 
 	case GF_NET_CHAN_GET_DSI:
-		if (ch->depacketizer->sl_map.configSize) {
+		if (ch->depacketizer && ch->depacketizer->sl_map.configSize) {
 			com->get_dsi.dsi_len = ch->depacketizer->sl_map.configSize;
 			com->get_dsi.dsi = (char*)malloc(sizeof(char)*com->get_dsi.dsi_len);
 			memcpy(com->get_dsi.dsi, ch->depacketizer->sl_map.config, sizeof(char)*com->get_dsi.dsi_len);
