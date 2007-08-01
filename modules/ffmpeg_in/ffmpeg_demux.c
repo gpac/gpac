@@ -403,16 +403,64 @@ static void FFD_SetupObjects(FFDemux *ffd)
 	}
 }
 
+static int ff_url_open(URLContext *h, const char *filename, int flags)
+{
+	int res = 0;
+
+	return res;
+}
+static int ff_url_read(URLContext *h, unsigned char *buf, int size)
+{
+	u32 read;
+	int full_size;
+	FFDemux *ffd = h->priv_data;
+	int res = 0;
+
+	full_size = 0;
+	if (ffd->buffer_used) {
+		if (ffd->buffer_used>size) {
+			ffd->buffer_used-=size;
+			memcpy(ffd->buffer, ffd->buffer+size, sizeof(char)*ffd->buffer_used);
+			return size;
+		} 
+		full_size += ffd->buffer_used;
+		buf += ffd->buffer_used;
+		size -= ffd->buffer_used;
+		ffd->buffer_used = 0;
+	}
+
+	while (1) {
+		GF_Err e = gf_dm_sess_fetch_data(ffd->dnload, buf, size, &read);
+		if (e==GF_EOS) break;
+		/*we're sync!!*/
+		if (e==GF_IP_NETWORK_EMPTY) continue;
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] error fetching bytes from network: %s\n", gf_error_to_string(e) ) );
+			return -1;
+		}
+		full_size += read;
+		if (read==size) break;
+		size -= read;
+		buf += read;
+	}
+	return full_size ? (int) full_size : -1;
+}
+
+static void FFD_NetIO(void *cbk, GF_NETIO_Parameter *param)
+{
+}
 
 static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	GF_Err e;
 	s64 last_aud_pts;
 	s32 i;
+	Bool is_local;
 	const char *sOpt;
 	char *ext, szName[1000];
 	FFDemux *ffd = plug->priv;
 	AVInputFormat *av_in = NULL;
+	char szExt[20];
 
 	if (ffd->ctx) return GF_SERVICE_ERROR;
 
@@ -427,15 +475,54 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		else if (!stricmp(&ext[1], "audio")) ffd->service_type = 2;
 		ext[0] = 0;
 	}
-	i = av_open_input_file(&ffd->ctx, szName, NULL, 0, NULL);
-	if (i<0) {
-		char szExt[20];
-		ext = strrchr(szName, '.');
-		strcpy(szExt, ext+1);
-		strlwr(szExt);
 
-		/*some extensions not supported by ffmpeg*/
-		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
+	/*some extensions not supported by ffmpeg, overload input format*/
+	ext = strrchr(szName, '.');
+	strcpy(szExt, ext+1);
+	strlwr(szExt);
+	if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
+
+	is_local = (strnicmp(url, "file://", 7) && strstr(url, "://")) ? 0 : 1;
+	if (!is_local) {
+	    AVProbeData   pd;
+
+		/*setup wraper for FFMPEG I/O*/
+		ffd->url.priv_data = ffd;
+		ffd->url.prot = &ffd->prot;
+		ffd->url.prot->name = "GPAC FFMPEG I/O";
+		ffd->url.prot->url_open = 0;
+		ffd->url.prot->url_read = ff_url_read;
+		ffd->url.prot->url_write = 0;
+		ffd->url.prot->url_seek = 0;
+		ffd->url.prot->url_close = 0;
+		ffd->url.prot->next = 0;
+
+		ffd->buffer_size = 8192;
+		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "IOBufferSize"); 
+		if (sOpt) ffd->buffer_size = atoi(sOpt);
+		ffd->buffer = malloc(sizeof(char)*ffd->buffer_size);
+
+		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, &ffd->url, ff_url_read, NULL, NULL);
+
+		ffd->dnload = gf_term_download_new(ffd->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, FFD_NetIO, ffd);
+		if (!ffd->dnload) return GF_URL_ERROR;
+		while (1) {
+			e = gf_dm_sess_fetch_data(ffd->dnload, ffd->buffer, 2048, &ffd->buffer_used);
+			if (e) return e;
+			if (ffd->buffer_used) break;
+		}
+
+		pd.filename = szName;
+		pd.buf_size = ffd->buffer_used;
+		pd.buf = ffd->buffer;
+		av_in = av_probe_input_format(&pd, 1);
+		if (!av_in) {
+			return GF_NOT_SUPPORTED;
+		}
+		/*setup downloader*/
+		av_in->flags |= AVFMT_NOFILE;
+		i = av_open_input_stream(&ffd->ctx, &ffd->io, szName, av_in, NULL);
+	} else {
 		i = av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
 	}
 
@@ -496,11 +583,13 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 
 	/*build seek*/
-	ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? 0 : 1;
-	if (!ffd->seekable) {
-	    av_close_input_file(ffd->ctx);
-		av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
-	    av_find_stream_info(ffd->ctx);
+	if (is_local) {
+		ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? 0 : 1;
+		if (!ffd->seekable) {
+			av_close_input_file(ffd->ctx);
+			av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
+			av_find_stream_info(ffd->ctx);
+		}
 	}
 
 	/*let's go*/
@@ -561,6 +650,11 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 	FFDemux *ffd = plug->priv;
 
 	ffd->is_running = 0;
+
+	if (ffd->dnload) gf_term_download_del(ffd->dnload);
+	ffd->dnload = NULL;
+	if (ffd->buffer) free(ffd->buffer);
+	ffd->buffer = NULL;
 
 	if (ffd->ctx) av_close_input_file(ffd->ctx);
 	ffd->ctx = NULL;

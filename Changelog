@@ -1,4 +1,5 @@
-24/07/07:
+01/08/07:
+  - added support for http playback in ffmpeg demuxer
   - initial commit of the new renderer moduel (render_full, "GPAC Full Renderer"), which is a merge of both 2D and 3D renderer
   with support for offscreen OpenGL, when available. Offscreen rendering is still experimental and only works under Windows at the current time. 
   This is a temporary version, the goal is to replace all renderer modules by this single renderer integrated in libgpac.

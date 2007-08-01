@@ -10,7 +10,7 @@
 <br/>
 <b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.5-DEV</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified July 2007</span></b>
+<b><span style="Font-Size: 18pt">Last Modified $Date: 2007-08-01 16:27:33 $</span></b>
 </p>
 
 <br/><br/>
@@ -601,6 +601,9 @@ Specifies filters to apply when decoding video. The string is a list of filters 
 <b>DataBufferMS</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 Specifies the amount of video/audio data (in milliseconds) to be bufferer before starting decoding. For developpers only.</p>
+<b>IOBufferSize</b> [value: <i>positive integer</i>]
+<p style="text-indent: 5%">
+Specifies the size (in bytes) of the buffer used to fecth data from network (http playback only). Default size is 8192 bytes.</p>
 
 <br/><br/>
 

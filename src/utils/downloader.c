@@ -874,11 +874,18 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 	}
 	/*we're running but we had data previously*/
 	if (sess->init_data) {
-		memcpy(buffer, sess->init_data, sizeof(char)*sess->init_data_size);
-		*read_size = sess->init_data_size;
-		free(sess->init_data);
-		sess->init_data = NULL;
-		sess->init_data_size = 0;
+		if (sess->init_data_size<=buffer_size) {
+			memcpy(buffer, sess->init_data, sizeof(char)*sess->init_data_size);
+			*read_size = sess->init_data_size;
+			free(sess->init_data);
+			sess->init_data = NULL;
+			sess->init_data_size = 0;
+		} else {
+			memcpy(buffer, sess->init_data, sizeof(char)*buffer_size);
+			*read_size = buffer_size;
+			sess->init_data_size -= buffer_size;
+			memcpy(sess->init_data, sess->init_data+buffer_size, sizeof(char)*sess->init_data_size);
+		}
 		return GF_OK;
 	}
 
