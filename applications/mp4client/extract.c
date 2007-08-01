@@ -278,6 +278,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 
 Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 *times, u32 nb_times)
 {
+	GF_Err e;
 	u32 i = 0;
 	GF_VideoSurface fb;
 	char szPath[GF_MAX_PATH];
@@ -303,7 +304,11 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 		gf_term_process_flush(term);
 	}
 
-	gf_sr_get_screen_buffer(term->renderer, &fb);
+	e = gf_sr_get_screen_buffer(term->renderer, &fb);
+	if (e != GF_OK) {
+		fprintf(stdout, "Error grabbing screen buffer: %s\n", gf_error_to_string(e));
+		return 0;
+	}
 	width = fb.width;
 	height = fb.height;
 	gf_sr_release_screen_buffer(term->renderer, &fb);

@@ -883,14 +883,14 @@ int main (int argc, char **argv)
 			rend_mode = 2;
 		} else if (!strcmp(arg, "-quiet")) {
 			be_quiet = 1;
-		} else if (!strcmp(arg, "-log-file")) {
+		} else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
 			logfile = fopen(argv[i+1], "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
-		} else if (!strcmp(arg, "-log-level")) {
+		} else if (!strcmp(arg, "-log-level") || !strcmp(arg, "-ll")) {
 			gf_log_set_level(parse_log_level(argv[i+1]));
 			i++;
-		} else if (!strcmp(arg, "-log-tools")) {
+		} else if (!strcmp(arg, "-log-tools") || !strcmp(arg, "-lt")) {
 			gf_log_set_tools(parse_log_tools(argv[i+1]));
 			i++;
 		} else if (!strcmp(arg, "-align")) {

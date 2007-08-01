@@ -88,6 +88,9 @@ void FFDEC_Delete(void *ifce);
 
 */
 
+//#define FFMPEG_IO_BUF_SIZE	16384
+
+
 typedef struct
 {
 	/*the service we're responsible for*/
@@ -115,6 +118,17 @@ typedef struct
 
 	u32 service_type;
 	Bool unreliable_audio_timing;
+
+	/*IO wrapper*/
+    ByteIOContext   io;
+    URLContext     url;
+    URLProtocol    prot;
+	char *buffer;
+	u32 buffer_size;
+
+	u32 buffer_used;
+	/*file downloader*/
+	GF_DownloadSession * dnload;
 } FFDemux;
 
 void *New_FFMPEG_Demux();

@@ -929,6 +929,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 		if (!esd->slConfig->timestampResolution) esd->slConfig->timestampResolution = 1000;
 		track = gf_isom_new_track(mp4, sc->ESID, GF_ISOM_MEDIA_OD, esd->slConfig->timestampResolution);
 		if (!sc->ESID) sc->ESID = gf_isom_get_track_id(mp4, track);
+		if (!esd->decoderConfig->objectTypeIndication) esd->decoderConfig->objectTypeIndication = 1;
 		gf_isom_set_track_enabled(mp4, track, 1);
 		/*no DSI required*/
 		/*create stream description*/
