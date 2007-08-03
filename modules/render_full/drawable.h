@@ -66,18 +66,20 @@ enum {
 	high-level draw operations on the drawable & drawable context will be used*/
 	DRAWABLE_USE_TRAVERSE_DRAW = 1,
 
-	/*flag set by user during a TRAVERSE_RENDER pass when geometry's node has been modified. This forces clearing of the node
+	/*bounds tracker flags, INTERNAL TO RENDERER */
+
+	/*flag set by drawable_mark_modified during a TRAVERSE_RENDER pass when geometry's node has been modified. This forces clearing of the node
 	and skips bounds checking. 
 	Flag is cleared by the renderer*/
 	DRAWABLE_HAS_CHANGED = 1<<1,
-
-	/*bounds tracker flags, INTERNAL TO RENDERER */
+	/*same flag as above except set when picking/getting bounds out of the main scene traversal routine (user event, script)*/
+	DRAWABLE_HAS_CHANGED_IN_LAST_TRAVERSE = 1<<2,
 
 	/*flag set if node has been drawn for the current visual manager*/
-	DRAWABLE_DRAWN_ON_VISUAL = 1<<2,
+	DRAWABLE_DRAWN_ON_VISUAL = 1<<3,
 	/*set if node is registered in previous node drawn list of the current visual manager
 	the flag is only set during a visual_render_frame pass*/
-	DRAWABLE_REGISTERED_WITH_VISUAL = 1<<3,
+	DRAWABLE_REGISTERED_WITH_VISUAL = 1<<4,
 };
 
 typedef struct _drawable
@@ -144,6 +146,10 @@ Drawable *drawable_stack_new(Render *render, GF_Node *node);
 void drawable_reset_path(Drawable *st);
 /*reset all paths outlines (only) of the stack*/
 void drawable_reset_path_outline(Drawable *st);
+
+/*mark the drawable as modified - this shall be caleed whenever the node geometry is rebuilt
+in order to signal this change to the bounds tracker algorithm*/
+void drawable_mark_modified(Drawable *st, GF_TraverseState *tr_state);
 
 /*reset bounds array (current and previous) on the given visual manager*/
 void drawable_reset_bounds(Drawable *dr, GF_VisualManager *surf);

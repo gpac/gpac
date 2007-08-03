@@ -908,6 +908,93 @@ static Bool parse_meta_args(MetaAction *meta, char *opts)
 }
 #endif
 
+
+
+
+typedef struct
+{	
+	/*0: set tsel param - 1 remove tsel - 2 remove all tsel info in alternate group - 3 remove all tsel info in file*/
+	u32 act_type;
+	u32 trackID;
+
+	u32 refTrackID;
+	u32 criteria[30];
+	u32 nb_criteria;
+	Bool is_switchGroup;
+	u32 switchGroupID;
+} TSELAction;
+
+static Bool parse_tsel_args(TSELAction *tsel_list, char *opts, u32 *nb_tsel_act)
+{
+	u32 act;
+	u32 refTrackID = 0;
+	Bool has_switch_id;
+	u32 switch_id;
+	u32 criteria[30];
+	u32 nb_criteria = 0;
+	TSELAction *tsel_act;
+	char szSlot[1024], *next;
+
+	has_switch_id = 0;
+	act = tsel_list[*nb_tsel_act].act_type;
+			
+
+	if (!opts) return 0;
+	while (1) {
+		if (!opts || !opts[0]) return 1;
+		if (opts[0]==':') opts += 1;
+		strcpy(szSlot, opts);
+		next = strchr(szSlot, ':');
+		/*use ':' as separator, but beware DOS paths...*/
+		if (next && next[1]=='\\') next = strchr(szSlot+2, ':');
+		if (next) next[0] = 0;
+
+
+		if (!strnicmp(szSlot, "ref=", 4)) refTrackID = atoi(szSlot+4);  
+		else if (!strnicmp(szSlot, "switchID=", 9)) {
+			if (atoi(szSlot+9)<0) {
+				switch_id = 0; 
+				has_switch_id = 0;
+			} else {
+				switch_id = atoi(szSlot+9); 
+				has_switch_id = 1;
+			}
+		}
+		else if (!strnicmp(szSlot, "switchID", 8)) {
+				switch_id = 0; 
+				has_switch_id = 1;
+		}
+		else if (!strnicmp(szSlot, "criteria=", 9)) {
+			u32 j=9;
+			nb_criteria = 0;
+			while (j+3<strlen(szSlot)) {
+				criteria[nb_criteria] = GF_4CC(szSlot[j], szSlot[j+1], szSlot[j+2], szSlot[j+3]);
+				j+=5;
+				nb_criteria++;
+			}
+		}
+		else if (!strnicmp(szSlot, "trackID=", 8)) {
+			if (*nb_tsel_act>=MAX_CUMUL_OPS) {
+				fprintf(stdout, "Sorry - no more than %d track selection operations allowed\n", MAX_CUMUL_OPS); 
+				return 0; 
+			}
+			tsel_act = &tsel_list[*nb_tsel_act];
+			memset(tsel_act, 0, sizeof(TSELAction));
+			tsel_act->act_type = act;
+			tsel_act->trackID = atoi(szSlot+8);
+			tsel_act->refTrackID = refTrackID;
+			tsel_act->switchGroupID = switch_id;
+			tsel_act->is_switchGroup = has_switch_id;
+			tsel_act->nb_criteria = nb_criteria;
+			memcpy(tsel_act->criteria, criteria, sizeof(u32)*nb_criteria);
+			(*nb_tsel_act) ++;
+		}		
+		opts += strlen(szSlot);
+	}
+	return 1;
+}
+
+
 #define CHECK_NEXT_ARG	if (i+1==(u32)argc) { fprintf(stdout, "Missing arg - please check usage\n"); return 1; }
 
 #define CHECK_META_OPS	CHECK_NEXT_ARG if (nb_meta_act>=MAX_CUMUL_OPS) { fprintf(stdout, "Sorry - no more than %d meta operations allowed\n", MAX_CUMUL_OPS); return 1; }
@@ -953,8 +1040,9 @@ int main(int argc, char **argv)
 	char *szFilesToCat[MAX_CUMUL_OPS];
 	char *szTracksToAdd[MAX_CUMUL_OPS];
 	TrackAction tracks[MAX_CUMUL_OPS];
+	TSELAction tsel_acts[MAX_CUMUL_OPS];
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
-	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type;
+	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, remove_root_od, import_subtitle;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat;
@@ -966,7 +1054,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = raw_sample_num = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = minor_version = 0;
+	nb_tsel_acts = nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = raw_sample_num = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = minor_version = 0;
 	e = GF_OK;
 	split_duration = 0.0;
 	split_start = -1.0;
@@ -1218,6 +1306,7 @@ int main(int argc, char **argv)
 				sdp_lines[nb_sdp_ex].line = argv[i+1];
 				sdp_lines[nb_sdp_ex].trackID = 0;
 			}
+			open_edit = 1;
 			nb_sdp_ex++;
 			i++;
 		}
@@ -1545,6 +1634,21 @@ int main(int argc, char **argv)
 			nb_meta_act++;
 			i++;
 		}
+		else if (!stricmp(arg, "-group-add") || !stricmp(arg, "-group-rem-track") || !stricmp(arg, "-group-rem")) { 
+			tsel_acts[nb_tsel_acts].act_type = !stricmp(arg, "-group-rem") ? 2 : ( !stricmp(arg, "-group-rem-track") ? 1 : 0 );
+			if (parse_tsel_args(tsel_acts, argv[i+1], &nb_tsel_acts)==0) {
+				fprintf(stdout, "Invalid group syntax - check usage\n");
+				return 1;
+			}
+			open_edit=1;
+			i++;
+		}
+		else if (!stricmp(arg, "-group-clean")) { 
+			tsel_acts[nb_tsel_acts].act_type = 3;
+			nb_tsel_acts++;
+			open_edit=1;
+		}
+
 		else if (!stricmp(arg, "-package")) {
 			CHECK_NEXT_ARG 
 			pack_file  = argv[i+1];
@@ -2070,6 +2174,37 @@ int main(int argc, char **argv)
 	}
 
 #ifndef GPAC_READ_ONLY
+
+	for (i=0; i<nb_tsel_acts; i++) {
+		switch (tsel_acts[i].act_type) {
+		case 0:
+			e = gf_isom_set_track_switch_parameter(file, 
+				gf_isom_get_track_by_id(file, tsel_acts[i].trackID),
+				tsel_acts[i].refTrackID ? gf_isom_get_track_by_id(file, tsel_acts[i].refTrackID) : 0,
+				tsel_acts[i].is_switchGroup ? 1 : 0,
+				&tsel_acts[i].switchGroupID,
+				tsel_acts[i].criteria, tsel_acts[i].nb_criteria);
+			if (e) goto err_exit;
+			needSave = 1;
+			break;
+		case 1:
+			e = gf_isom_reset_track_switch_parameter(file, gf_isom_get_track_by_id(file, tsel_acts[i].trackID), 0);
+			if (e) goto err_exit;
+			needSave = 1;
+			break;
+		case 2:
+			e = gf_isom_reset_track_switch_parameter(file, gf_isom_get_track_by_id(file, tsel_acts[i].trackID), 1);
+			if (e) goto err_exit;
+			needSave = 1;
+			break;
+		case 3:
+			e = gf_isom_reset_switch_parameters(file);
+			if (e) goto err_exit;
+			needSave = 1;
+			break;
+		}
+	}
+
 	if (remove_sys_tracks) {
 		remove_systems_tracks(file);
 		needSave = 1;

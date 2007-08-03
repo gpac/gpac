@@ -258,6 +258,11 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, GF_
 	return bi;
 }
 
+void drawable_mark_modified(Drawable *st, GF_TraverseState *tr_state)
+{
+	st->flags |= tr_state->visual->bounds_tracker_modif_flag;
+}
+
 /*move current bounds to previous bounds*/
 Bool drawable_flush_bounds(Drawable *drawable, GF_VisualManager *on_visual, u32 render_mode)
 {
@@ -267,6 +272,10 @@ Bool drawable_flush_bounds(Drawable *drawable, GF_VisualManager *on_visual, u32 
 
 	/*reset node modified flag*/
 	drawable->flags &= ~DRAWABLE_HAS_CHANGED;
+	if (drawable->flags & DRAWABLE_HAS_CHANGED_IN_LAST_TRAVERSE) {
+		drawable->flags |= DRAWABLE_HAS_CHANGED;
+		drawable->flags &= ~DRAWABLE_HAS_CHANGED_IN_LAST_TRAVERSE;
+	}
 
 	dri = drawable->dri;
 	while (dri) {

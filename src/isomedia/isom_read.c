@@ -2230,3 +2230,42 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, u32 tag, const char **data, u32 *d
 	return GF_OK;
 }
 
+
+
+
+GF_EXPORT
+GF_Err gf_isom_get_track_switch_group_count(GF_ISOFile *movie, u32 trackNumber, u32 *alternateGroupID, u32 *nb_groups)
+{
+	GF_UserDataMap *map;
+	GF_TrackBox *trak;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	*alternateGroupID = trak->Header->alternate_group;
+	*nb_groups = 0;
+	if (!trak->udta) return GF_OK;
+
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_TSEL, NULL);
+	if (!map) return 0;
+	*nb_groups = gf_list_count(map->boxList);
+	return GF_OK;
+}
+
+GF_EXPORT
+const u32 *gf_isom_get_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u32 group_index, u32 *switchGroupID, u32 *criteriaListSize)
+{
+	GF_TrackBox *trak;
+	GF_UserDataMap *map;
+	GF_TrackSelectionBox *tsel;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!group_index || !trak || !trak->udta) return NULL;
+
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_TSEL, NULL);
+	if (!map) return NULL;
+	tsel = gf_list_get(map->boxList, group_index-1);
+	*switchGroupID = tsel->switchGroup;
+	*criteriaListSize = tsel->attributeListCount;
+	return (const u32 *) tsel->attributeList;
+}
+

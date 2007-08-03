@@ -27,12 +27,22 @@
 #include "node_stacks.h"
 #include "visual_manager.h"
 
-static void build_graph(Drawable *stack, M_IndexedLineSet2D *ils2D)
+static void ils2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
 {
 	u32 i;
 	Bool started;
 	SFVec2f *pts;
-	M_Coordinate2D *coord = (M_Coordinate2D *)ils2D->coord;
+	M_IndexedLineSet2D *ils2D;
+	M_Coordinate2D *coord;
+
+	if (! gf_node_dirty_get(node)) return;
+	
+	drawable_reset_path(stack);
+	gf_node_dirty_clear(node, 0);
+	drawable_mark_modified(stack, tr_state);
+
+	ils2D = (M_IndexedLineSet2D *)node;
+	coord = (M_Coordinate2D *)ils2D->coord;
 
 	pts = coord->point.vals;
 	if (ils2D->coordIndex.count > 0) {
@@ -253,21 +263,15 @@ static void RenderILS2D(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
+		ils2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_RENDER:
-
-		/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
-		rect tracking (otherwise we would miss geometry changes with same bounds)*/
-		if (gf_node_dirty_get(node)) {
-			drawable_reset_path(stack);
-			build_graph(stack, ils2D);
-			gf_node_dirty_clear(node, 0);
-			stack->flags |= DRAWABLE_HAS_CHANGED;
-		}
+		ils2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
+
 		ctx = drawable_init_context(stack, tr_state);
 		if (!ctx) return;
 		/*ILS2D are NEVER filled*/

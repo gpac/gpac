@@ -35,51 +35,38 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	GF_ChildNodeItem *l;
 
 	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
-		/*need to recompute bounds*/
-		if (tr_state->traversing_mode!=TRAVERSE_GET_BOUNDS) {
-			/*traverse subtree to recompute bounds*/
-			u32 mode_back = tr_state->traversing_mode;
-			tr_state->traversing_mode=TRAVERSE_GET_BOUNDS;
-			group_2d_traverse(node, group, tr_state);
-			tr_state->traversing_mode = mode_back;
-		}
-		/*we're recomputing bounds*/
-		else {
-			u32 ntag = gf_node_get_tag(node);
-			group->flags &= ~GROUP_HAS_SENSORS;
-			/*special case for anchor which is a parent node acting as a sensor*/
-			if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
-				group->flags |= GROUP_HAS_SENSORS;
-			} else {
-				l = ((GF_ParentNode *)node)->children;
-				while (l) {
-					if (render_is_sensor_node(l->node)) {
-						group->flags |= GROUP_HAS_SENSORS;
-						break;
-					}
-					l = l->next;
+		/*never trigger bounds recompute in 2D since we don't cull 2D groups*/
+		u32 ntag = gf_node_get_tag(node);
+		group->flags &= ~GROUP_HAS_SENSORS;
+		/*special case for anchor which is a parent node acting as a sensor*/
+		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
+			group->flags |= GROUP_HAS_SENSORS;
+		} else {
+			l = ((GF_ParentNode *)node)->children;
+			while (l) {
+				if (render_is_sensor_node(l->node)) {
+					group->flags |= GROUP_HAS_SENSORS;
+					break;
 				}
+				l = l->next;
 			}
-
-			/*now here is the trick: ExternProtos may not be loaded at this point, in which case we can't
-			perform proper culling. Unloaded ExternProto signal themselves by invalidating their parent
-			graph to get a new Render(). We must therefore reset the CHILD_DIRTY flag before computing 
-			bounds otherwise we'll never re-invalidate the subgraph anymore*/
-			gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
 		}
+
+		/*now here is the trick: ExternProtos may not be loaded at this point, in which case we can't
+		perform proper culling. Unloaded ExternProto signal themselves by invalidating their parent
+		graph to get a new Render(). We must therefore reset the CHILD_DIRTY flag before computing 
+		bounds otherwise we'll never re-invalidate the subgraph anymore*/
+		gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
 	}
-	/*not parent (eg form, layout...) sub-tree not dirty and getting bounds, direct copy */
+	/*sub-tree not dirty and getting bounds, direct copy */
 	else if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		tr_state->bounds = group->bounds;
-		gf_node_dirty_clear(node, 0);
 		return;
 	}
 
-	gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
-
 	/*no culling in 2d*/
 
-	/*picking*/
+	/*picking: collect sensors*/
 	sensor_backup = NULL;
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
 		SensorHandler *hsens;
@@ -98,7 +85,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	}
 
 
-	if ((tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) ) {
+	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		split_text_backup = tr_state->text_split_mode;
 		if (tr_state->text_split_mode && (gf_node_list_get_count(l)>1) ) tr_state->text_split_mode = 0;
 		group->flags &= ~GROUP_SKIP_CULLING;
@@ -156,52 +143,39 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 	GF_ChildNodeItem *l;
 
 	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
-		/*need to recompute bounds*/
-		if (tr_state->traversing_mode!=TRAVERSE_GET_BOUNDS) {
-			/*traverse subtree to recompute bounds*/
-			u32 mode_back = tr_state->traversing_mode;
-			tr_state->traversing_mode=TRAVERSE_GET_BOUNDS;
-			group_2d_traverse_with_order(node, group, tr_state, positions);
-			tr_state->traversing_mode = mode_back;
-		}
-		/*we're recomputing bounds*/
-		else {
-			u32 ntag = gf_node_get_tag(node);
-			group->flags &= ~GROUP_HAS_SENSORS;
-			/*special case for anchor which is a parent node acting as a sensor*/
-			if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
-				group->flags |= GROUP_HAS_SENSORS;
-			} else {
-				l = ((GF_ParentNode *)node)->children;
-				count = gf_node_list_get_count(l);
-				for (i=0; i<count; i++) {
-					child = gf_node_list_get_child(l, positions[i]);
-					if (render_is_sensor_node(child)) {
-						group->flags |= GROUP_HAS_SENSORS;
-						break;
-					}
+		/*never trigger bounds recompute in 2D since we don't cull 2D groups*/
+		u32 ntag = gf_node_get_tag(node);
+		group->flags &= ~GROUP_HAS_SENSORS;
+		/*special case for anchor which is a parent node acting as a sensor*/
+		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
+			group->flags |= GROUP_HAS_SENSORS;
+		} else {
+			l = ((GF_ParentNode *)node)->children;
+			count = gf_node_list_get_count(l);
+			for (i=0; i<count; i++) {
+				child = gf_node_list_get_child(l, positions[i]);
+				if (render_is_sensor_node(child)) {
+					group->flags |= GROUP_HAS_SENSORS;
+					break;
 				}
 			}
-
-			/*now here is the trick: ExternProtos may not be loaded at this point, in which case we can't
-			perform proper culling. Unloaded ExternProto signal themselves by invalidating their parent
-			graph to get a new Render(). We must therefore reset the CHILD_DIRTY flag before computing 
-			bounds otherwise we'll never re-invalidate the subgraph anymore*/
-			gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
 		}
+
+		/*now here is the trick: ExternProtos may not be loaded at this point, in which case we can't
+		perform proper culling. Unloaded ExternProto signal themselves by invalidating their parent
+		graph to get a new Render(). We must therefore reset the CHILD_DIRTY flag before computing 
+		bounds otherwise we'll never re-invalidate the subgraph anymore*/
+		gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
 	}
 	/*not parent (eg form, layout...) sub-tree not dirty and getting bounds, direct copy */
 	else if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		tr_state->bounds = group->bounds;
-		gf_node_dirty_clear(node, 0);
 		return;
 	}
 
-	gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
-
 	/*no culling in 2d*/
 
-	/*picking*/
+	/*picking: collect sensors*/
 	sensor_backup = NULL;
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
 		SensorHandler *hsens;
@@ -379,7 +353,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 	}
 	
 
-	/*picking*/
+	/*picking: collect sensors*/
 	sensor_backup = NULL;
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
 		/*reset sensor stack if any sensors at this level*/
@@ -557,7 +531,6 @@ void parent_node_end_text_group(ParentNode2D *group, GF_Rect *bounds, Fixed asce
 
 
 
-
 void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *tr_state)
 {
 	Bool split_text_backup;
@@ -592,7 +565,7 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 
 	/*no culling in 2D*/
 	
-	/*picking*/
+	/*picking: collect sensors*/
 	sensor_backup = NULL;
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
 		SensorHandler *hsens;

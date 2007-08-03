@@ -89,7 +89,7 @@ static void SVG_Draw_bitmap(GF_TraverseState *tr_state)
 	}
 }
 
-static void SVG_Build_Bitmap_Graph(SVG_video_stack *stack)
+static void SVG_Build_Bitmap_Graph(SVG_video_stack *stack, GF_TraverseState *tr_state)
 {
 	GF_Rect rc, new_rc;
 	Fixed x, y, width, height;
@@ -118,7 +118,9 @@ static void SVG_Build_Bitmap_Graph(SVG_video_stack *stack)
 	drawable_reset_path(stack->graph);
 	gf_path_add_rect_center(stack->graph->path, x+width/2, y+height/2, width, height);
 	gf_path_get_bounds(stack->graph->path, &new_rc);
-	if (!gf_rect_equal(rc, new_rc)) stack->graph->flags |= DRAWABLE_HAS_CHANGED;
+	if (!gf_rect_equal(rc, new_rc)) 
+		drawable_mark_modified(stack->graph, tr_state);
+
 	gf_node_dirty_clear(stack->graph->node, GF_SG_SVG_GEOMETRY_DIRTY);
 }
 
@@ -185,7 +187,7 @@ static void svg_render_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node)) {
 		GF_FieldInfo href_info;
-		SVG_Build_Bitmap_Graph((SVG_video_stack*)gf_node_get_private(node));
+		SVG_Build_Bitmap_Graph((SVG_video_stack*)gf_node_get_private(node), tr_state);
 		/*if open and changed, stop and play*/
 		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
 			if (gf_term_check_iri_change(stack->txh.compositor->term, &stack->txurl, href_info.far_ptr)) {

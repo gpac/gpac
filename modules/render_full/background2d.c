@@ -306,6 +306,8 @@ static void RenderBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 	if (!bck->isBound) return;
 
 
+	/*special case for background in Layer2D: the background is seen as a regular drawable, so 
+	RENDER_BINDABLE is not used*/
 	if (tr_state->traversing_mode==TRAVERSE_DRAW_2D) {
 		DrawBackground2D_2D(tr_state->ctx, tr_state);
 		return;

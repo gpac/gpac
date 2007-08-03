@@ -622,7 +622,7 @@ static GF_Err render_get_screenbuffer(GF_VisualRenderer *vr, GF_VideoSurface *fr
 {
 	Render *sr = (Render *)vr->user_priv;
 #ifndef GPAC_DISABLE_3D
-	if (sr->visual->type_3d) render_3d_get_screen_buffer(sr, framebuffer);
+	if (sr->visual->type_3d) return render_3d_get_screen_buffer(sr, framebuffer);
 #endif
 	return sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, framebuffer, 1);
 }

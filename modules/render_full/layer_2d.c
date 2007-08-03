@@ -97,6 +97,7 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_List *oldb, *oldv;
 	GF_Node *viewport;
 	GF_Node *back;
+	GF_Matrix2D backup;
 
 #ifndef GPAC_DISABLE_3D
 	GF_List *oldf, *oldn;
@@ -138,11 +139,7 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	viewport = (GF_Node*)gf_list_get(st->views, 0);
 
-	if (gf_node_dirty_get(node)) {
-		/*recompute grouping node state*/
-		if (gf_node_dirty_get(node) && GF_SG_CHILD_DIRTY) 
-			group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
-		
+	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		/*override group bounds*/
 		visual_get_size_info(tr_state, &st->clip.width, &st->clip.height);
 		/*setup bounds in local coord system*/
@@ -150,6 +147,7 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		if (l->size.y>=0) st->clip.height = l->size.y;
 		st->clip = gf_rect_center(st->clip.width, st->clip.height);
 		st->bounds = st->clip;
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 	
 
@@ -209,17 +207,22 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		{
 			GF_IRect prev_clip;
 			GF_Rect rc;
-			if (viewport) {
-				tr_state->traversing_mode = TRAVERSE_RENDER_BINDABLE;
-				tr_state->bounds = st->clip;
-				gf_node_render(viewport, tr_state);
-			}
+
+			gf_mx2d_copy(backup, tr_state->transform);
 
 			prev_clip = tr_state->visual->top_clipper;
 			rc = st->clip;
 			gf_mx2d_apply_rect(&tr_state->transform, &rc);
-			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
-			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
+
+			if (viewport) {
+				tr_state->traversing_mode = TRAVERSE_RENDER_BINDABLE;
+//				tr_state->bounds = st->clip;
+				tr_state->bounds = rc;
+				gf_node_render(viewport, tr_state);
+			}
+
+//			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
+//			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
 			
 			tr_state->traversing_mode = TRAVERSE_RENDER;
 			if (back && Bindable_GetIsBound(back) ) {
@@ -268,6 +271,7 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 
 			group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
 			tr_state->visual->top_clipper = prev_clip;
+			gf_mx2d_copy(tr_state->transform, backup);
 		}
 		break;
 		

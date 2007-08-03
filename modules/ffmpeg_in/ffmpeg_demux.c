@@ -504,11 +504,14 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, &ffd->url, ff_url_read, NULL, NULL);
 
-		ffd->dnload = gf_term_download_new(ffd->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, FFD_NetIO, ffd);
+		ffd->dnload = gf_term_download_new(ffd->service, url, GF_NETIO_SESSION_NOT_THREADED  | GF_NETIO_SESSION_NOT_CACHED, FFD_NetIO, ffd);
 		if (!ffd->dnload) return GF_URL_ERROR;
 		while (1) {
 			e = gf_dm_sess_fetch_data(ffd->dnload, ffd->buffer, 2048, &ffd->buffer_used);
-			if (e) return e;
+			if (e==GF_EOS) break;
+			/*we're sync!!*/
+			if (e==GF_IP_NETWORK_EMPTY) continue;
+			if (e) goto err_exit;
 			if (ffd->buffer_used) break;
 		}
 

@@ -1157,6 +1157,15 @@ picked:
 	}
 }
 
+static void text_check_changes(GF_Node *node, TextStack *stack, GF_TraverseState *tr_state)
+{
+	if (gf_node_dirty_get(node)) {
+		TextStack2D_clean_paths(tr_state->visual->render->compositor, stack);
+		BuildTextGraph(stack, (M_Text*)node, tr_state);
+		gf_node_dirty_clear(node, 0);
+		drawable_mark_modified(stack->graph, tr_state);
+	}
+}
 
 static void Text_Render(GF_Node *n, void *rs, Bool is_destroy)
 {
@@ -1200,6 +1209,7 @@ static void Text_Render(GF_Node *n, void *rs, Bool is_destroy)
 		text_pick(n, st, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
+		text_check_changes(n, st, tr_state);
 		tr_state->bounds = st->bounds;
 		return;
 	case TRAVERSE_RENDER:
@@ -1208,18 +1218,12 @@ static void Text_Render(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 	}
 
-	/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
-	rect tracking (otherwise we would miss geometry changes with same bounds)*/
-	if (gf_node_dirty_get(n)) {
-		TextStack2D_clean_paths(tr_state->visual->render->compositor, st);
-		BuildTextGraph(st, txt, tr_state);
-		gf_node_dirty_clear(n, 0);
-		st->graph->flags |= DRAWABLE_HAS_CHANGED;
-	}
+	text_check_changes(n, st, tr_state);
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) return;
 #endif
+
 	ctx = drawable_init_context(st->graph, tr_state);
 	if (!ctx) return;
 	ctx->sub_path_index = tr_state->text_split_idx;

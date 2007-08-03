@@ -205,9 +205,6 @@ static Bool render_exec_event_vrml(Render *sr, GF_Event *ev)
 	if (!gf_list_count(sr->sensors) && sr->hit_info.appear) 
 		return render_composite_texture_handle_event(sr, ev);
 
-	if (ev->type==GF_EVENT_MOUSEUP)
-		ev->type=GF_EVENT_MOUSEUP;
-
 	hs_grabbed = NULL;
 	stype = GF_CURSOR_NORMAL;
 	count = gf_list_count(sr->previous_sensors);

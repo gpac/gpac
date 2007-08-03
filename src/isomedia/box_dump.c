@@ -273,6 +273,8 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_ODKM: return odkm_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_ODAF: return iSFM_dump(a, trace);
 
+	case GF_ISOM_BOX_TYPE_TSEL: return tsel_dump(a, trace);
+
 	default: return defa_dump(a, trace);
 	}
 }
@@ -3170,6 +3172,22 @@ GF_Err pasp_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<PixelAspectRatioBox hSpacing=\"%d\" vSpacing=\"%d\" >\n", ptr->hSpacing, ptr->vSpacing);
 	gf_full_box_dump((GF_Box *)a, trace);
 	fprintf(trace, "</PixelAspectRatioBox>\n");
+	return GF_OK;
+}
+
+
+GF_Err tsel_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_TrackSelectionBox *ptr = (GF_TrackSelectionBox *)a;
+	fprintf(trace, "<TrackSelectionBox switchGroup=\"%d\" criteria=\"", ptr->switchGroup);
+	for (i=0; i<ptr->attributeListCount;i++) {
+		if (i) fprintf(trace, ";");
+		fprintf(trace, "%s", gf_4cc_to_str(ptr->attributeList[i]));
+	}
+	fprintf(trace, "\">\n");
+	gf_full_box_dump((GF_Box *)a, trace);
+	fprintf(trace, "</TrackSelectionBox>\n");
 	return GF_OK;
 }
 

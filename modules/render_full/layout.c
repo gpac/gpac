@@ -30,7 +30,8 @@ typedef struct
 {
 	PARENT_NODE_STACK_2D
 	
-	Bool start_scroll, is_scrolling;
+	Bool is_scrolling;
+	u32 start_scroll_type;
 	Double start_time, pause_time;
 	GF_List *lines;
 	GF_Rect clip;
@@ -449,14 +450,29 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 
 	time = gf_node_get_scene_time((GF_Node *)l);
 
-	if (st->scale_scroll && (st->prev_rate!=st->scale_scroll)) st->start_scroll = 1;
-	if (st->start_scroll) {
-		st->start_scroll = 0;
+//	if (st->scale_scroll && (st->prev_rate!=st->scale_scroll)) st->start_scroll_type = 1;
+
+	/*if scroll rate changed to previous non-zero value, this is a 
+	scroll restart, don't re-update bounds*/
+	if ((st->start_scroll_type==2) && (st->prev_rate==st->scale_scroll)) st->start_scroll_type = 0;
+	
+	if (st->start_scroll_type) {
 		st->start_time = time;
-		st->last_scroll = 0;
 		st->is_scrolling = 1;
 		st->prev_rate = st->scale_scroll;
-		layout_setup_scroll_bounds(st, l);
+
+		/*continuous restart: use last scroll to update the start time. We must recompute scroll bounds
+		since switching from scroll_rate >0 to <0 changes the bounds !*/
+		if ((st->start_scroll_type==2) && st->scale_scroll) {
+			Fixed cur_pos = st->scroll_min + st->last_scroll;
+			layout_setup_scroll_bounds(st, l);
+			cur_pos -= st->scroll_min;
+			st->start_time = time - FIX2FLT(gf_divfix(cur_pos, st->scale_scroll));
+		} else {
+			layout_setup_scroll_bounds(st, l);
+		}
+		st->last_scroll = 0;
+		st->start_scroll_type = 0;
 	}
 
 	/*handle pause/resume*/
@@ -585,9 +601,9 @@ static void RenderLayout(GF_Node *node, void *rs, Bool is_destroy)
 		if (l->size.x>=0) st->clip.width = l->size.x;
 		if (l->size.y>=0) st->clip.height = l->size.y;
 		st->bounds = st->clip = gf_rect_center(st->clip.width, st->clip.height);
+
+		if (st->scale_scroll && !st->start_scroll_type) st->start_scroll_type = 1;
 	}
-	recompute_layout = 0;
-	if (gf_node_dirty_get(node)) recompute_layout = 1;
 
 	/*don't waste time traversing is pick ray not in clipper*/
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && !render_pick_in_clipper(tr_state, &st->clip)) 
@@ -599,6 +615,12 @@ static void RenderLayout(GF_Node *node, void *rs, Bool is_destroy)
 		gf_bbox_from_rect(&tr_state->bbox, &st->clip);
 #endif
 		goto layout_exit;
+	}
+
+	recompute_layout = 0;
+	if (gf_node_dirty_get(node)) {
+		recompute_layout = 1;
+		gf_node_dirty_clear(node, 0);
 	}
 
 	/*setup clipping*/
@@ -637,6 +659,9 @@ static void RenderLayout(GF_Node *node, void *rs, Bool is_destroy)
 
 		/*apply justification*/
 		layout_justify(st, l);
+
+		/*prepare initial scroll bounds*/
+//		layout_setup_scroll_bounds(st, l);
 	}
 
 	/*scroll*/
@@ -672,14 +697,13 @@ void render_layout_modified(Render *sr, GF_Node *node)
 	LayoutStack *st = (LayoutStack *) gf_node_get_private(node);
 	/*if modif other than scrollrate restart scroll*/
 	if (st->scroll_rate == ((M_Layout*)node)->scrollRate) {
-		st->start_scroll = 1;
-		/*draw next frame*/
-		gf_sr_invalidate(sr->compositor, NULL);
-	}
-	/*modif scrollrate , update rate and invalidate scroll*/
+		st->start_scroll_type = 1;
+	} 
+	/*if modif on scroll rate only, indicate continous restart*/
 	else if (((M_Layout*)node)->scrollRate) {
-		/*draw next frame*/
-		gf_sr_invalidate(sr->compositor, NULL);
+		st->start_scroll_type = 2;
 	}
+	gf_node_dirty_set(node, GF_SG_NODE_DIRTY, 0);
+	gf_sr_invalidate(sr->compositor, NULL);
 }
 

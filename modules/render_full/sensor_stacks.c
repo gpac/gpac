@@ -63,7 +63,6 @@ static void RenderAnchor(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
-	/*note we don't clear dirty flag, this is done in traversing*/
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		MFURL *url;
 		if (gf_node_get_tag(node)==TAG_MPEG4_Anchor) {
@@ -78,6 +77,7 @@ static void RenderAnchor(GF_Node *node, void *rs, Bool is_destroy)
 		if (!tr_state->visual->render->compositor->user->EventProc) {
 			st->enabled = 0;
 		}
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 
 	group_2d_traverse(node, (GroupingNode2D*)st, tr_state);
@@ -490,7 +490,9 @@ static void OnTouchSensor(SensorHandler *sh, Bool is_over, GF_Event *ev, Render 
 		gf_node_event_out_str(sh->sensor, "isActive");
 		sr->grabbed_sensor = 1;
 	}
-	if (is_over && (ev->type==GF_EVENT_MOUSEDOWN)  ) {
+	if (is_over) {
+		/*THIS IS NOT CONFORMANT, the hitpoint should be in the touchsensor coordinate system, eg we 
+		should store the matrix from TS -> shape and apply that ...*/
 		ts->hitPoint_changed = sr->hit_info.local_point;
 		gf_node_event_out_str(sh->sensor, "hitPoint_changed");
 		ts->hitNormal_changed = sr->hit_info.hit_normal;
