@@ -158,6 +158,24 @@ void PrintGeneralUsage()
 			"                       * Note: this removes all MPEG-4 Systems media\n"
 			" -split-chunk S:E     extracts a new file from Start to End (in seconds)\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
+			" -group-add fmt       creates a new grouping information in the file. Format is\n"
+			"                      a colon-separated list of following options:\n"
+			"                      refTrack=ID: ID of the track used as a group reference.\n"
+			"                       If not set or 0, a new alternate group will be created\n"
+			"                      switchID=ID: ID of the switch group to create.\n"
+			"                       If 0, a new ID will be computed for you\n"
+			"                       If <0, disables SwitchGroup\n"
+			"                      criteria=string: list of space-separated 4CCs.\n"
+			"                      trackID=ID: ID of the track to add to this group.\n"
+			"\n"
+			"                       *WARNING* Options modify state as they are parsed:\n"
+			"                        trackID=1:criteria=lang:trackID=2\n"
+			"                       is different from:\n"
+			"                        criteria=lang:trackID=1:trackID=2\n"
+			"\n"
+			" -group-rem-track ID  removes track from its group\n"
+			" -group-rem ID        removes the track's group\n"
+			" -group-clean         removes all group information from all tracks\n"
 			"\n");
 }
 void PrintFormats()
@@ -346,7 +364,6 @@ void PrintHintUsage()
 			"\n"
 			" -add-sdp string:     adds sdp string to (hint) track (\"-add-sdp tkID:string\")\n"
 			"                      or movie. This will take care of SDP lines ordering\n"
-			"                       * WARNING: You cannot add anything to SDP, cf rfc2327.\n"
 			" -unhint:             removes all hinting information.\n"
 			"\n");
 }
@@ -973,7 +990,7 @@ static Bool parse_tsel_args(TSELAction *tsel_list, char *opts, u32 *nb_tsel_act)
 				nb_criteria++;
 			}
 		}
-		else if (!strnicmp(szSlot, "trackID=", 8)) {
+		else if (!strnicmp(szSlot, "trackID=", 8) || !strchr(szSlot, '=') ) {
 			if (*nb_tsel_act>=MAX_CUMUL_OPS) {
 				fprintf(stdout, "Sorry - no more than %d track selection operations allowed\n", MAX_CUMUL_OPS); 
 				return 0; 
@@ -981,7 +998,7 @@ static Bool parse_tsel_args(TSELAction *tsel_list, char *opts, u32 *nb_tsel_act)
 			tsel_act = &tsel_list[*nb_tsel_act];
 			memset(tsel_act, 0, sizeof(TSELAction));
 			tsel_act->act_type = act;
-			tsel_act->trackID = atoi(szSlot+8);
+			tsel_act->trackID = strchr(szSlot, '=') ? atoi(szSlot+8) : atoi(szSlot);
 			tsel_act->refTrackID = refTrackID;
 			tsel_act->switchGroupID = switch_id;
 			tsel_act->is_switchGroup = has_switch_id;
