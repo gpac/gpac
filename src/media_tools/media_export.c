@@ -491,7 +491,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 		u64 dts;
 		u32 hh, mm, ss, ms;
 
-		samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
+		samp = gf_isom_get_sample(dumper->file, track, i, &di);
 		if (!samp) {
 			break;
 		}
