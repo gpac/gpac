@@ -655,12 +655,23 @@ exit:
 
 Bool visual_2d_render_frame(GF_VisualManager *vis, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual)
 {
+	GF_TraverseState static_state;
+
 	GF_SceneGraph *sg;
+	GF_Matrix2D backup;
 	u32 i;
 	GF_Err e;
 
+	vis->bounds_tracker_modif_flag = DRAWABLE_HAS_CHANGED;
+
+	memcpy(&static_state, tr_state, sizeof(GF_TraverseState));
+	gf_mx2d_copy(backup, tr_state->transform);
+
 	e = visual_2d_init_draw(vis, tr_state);
-	if (e) return 0;
+	if (e) {
+		gf_mx2d_copy(tr_state->transform, backup);
+		return 0;
+	}
 
 	if (is_root_visual) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Traversing scene tree (root node %s)\n", root ? gf_node_get_class_name(root) : "none"));
@@ -678,13 +689,19 @@ Bool visual_2d_render_frame(GF_VisualManager *vis, GF_Node *root, GF_TraverseSta
 	} else {
 		gf_node_render(root, tr_state);
 	}
-
-	return visual_2d_terminate_draw(vis, tr_state);
+	gf_mx2d_copy(tr_state->transform, backup);
+	e = visual_2d_terminate_draw(vis, tr_state);
+	memcpy(tr_state, &static_state, sizeof(GF_TraverseState));
+	return e;
 }
 
 
 void visual_2d_pick_node(GF_VisualManager *vis, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
 {
+	GF_Matrix2D backup;
+	vis->bounds_tracker_modif_flag = DRAWABLE_HAS_CHANGED_IN_LAST_TRAVERSE;
+
+	gf_mx2d_copy(backup, tr_state->transform);
 
 	visual_2d_setup_projection(vis, tr_state);
 
@@ -711,5 +728,6 @@ void visual_2d_pick_node(GF_VisualManager *vis, GF_TraverseState *tr_state, GF_E
 	} else {
 		gf_node_render(gf_sg_get_root_node(vis->render->compositor->scene), tr_state);
 	}
+	gf_mx2d_copy(tr_state->transform, backup);
 }
 

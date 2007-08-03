@@ -112,7 +112,16 @@ void render_init_shape(Render *sr, GF_Node *node)
 	gf_node_set_callback_function(node, RenderShape);
 }
 
-
+static void circle_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
+{
+	if (gf_node_dirty_get(node)) {
+		Fixed a = ((M_Circle *) node)->radius * 2;
+		drawable_reset_path(stack);
+		gf_path_add_ellipse(stack->path, 0, 0, a, a);
+		gf_node_dirty_clear(node, 0);
+		drawable_mark_modified(stack, tr_state);
+	}
+}
 static void RenderCircle(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableContext *ctx;
@@ -136,22 +145,14 @@ static void RenderCircle(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_GET_BOUNDS:
+		circle_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_RENDER:
-		/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
-		rect tracking (otherwise we would miss geometry changes with same bounds)*/
-		if (gf_node_dirty_get(node)) {
-			Fixed a = ((M_Circle *) node)->radius * 2;
-			drawable_reset_path(stack);
-			gf_path_add_ellipse(stack->path, 0, 0, a, a);
-			gf_node_dirty_clear(node, 0);
-			stack->flags |= DRAWABLE_HAS_CHANGED;
-		}
-
+		circle_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -168,6 +169,15 @@ void render_init_circle(Render *sr, GF_Node *node)
 	gf_node_set_callback_function(node, RenderCircle);
 }
 
+static void ellipse_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
+{
+	if (gf_node_dirty_get(node)) {
+		drawable_reset_path(stack);
+		gf_path_add_ellipse(stack->path, 0, 0, ((M_Ellipse *) node)->radius.x, ((M_Ellipse *) node)->radius.y);
+		gf_node_dirty_clear(node, 0);
+		drawable_mark_modified(stack, tr_state);
+	}
+}
 static void RenderEllipse(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableContext *ctx;
@@ -178,6 +188,7 @@ static void RenderEllipse(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_node_del(node);
 		return;
 	}
+
 
 	switch (tr_state->traversing_mode) {
 #ifndef GPAC_DISABLE_3D
@@ -193,18 +204,11 @@ static void RenderEllipse(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
+		ellipse_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_RENDER:
-
-		/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
-		rect tracking (otherwise we would miss geometry changes with same bounds)*/
-		if (gf_node_dirty_get(node)) {
-			drawable_reset_path(stack);
-			gf_path_add_ellipse(stack->path, 0, 0, ((M_Ellipse *) node)->radius.x, ((M_Ellipse *) node)->radius.y);
-			gf_node_dirty_clear(node, 0);
-			stack->flags |= DRAWABLE_HAS_CHANGED;
-		}
+		ellipse_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -273,6 +277,17 @@ static void render_2d_draw_rectangle(GF_TraverseState *tr_state)
 	}
 }
 
+static void rectangle_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
+{
+	/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
+	rect tracking (otherwise we would miss geometry changes with same bounds)*/
+	if (gf_node_dirty_get(node)) {
+		drawable_reset_path(stack);
+		gf_path_add_rect_center(stack->path, 0, 0, ((M_Rectangle *) node)->size.x, ((M_Rectangle *) node)->size.y);
+		gf_node_dirty_clear(node, 0);
+		drawable_mark_modified(stack, tr_state);
+	}
+}
 static void RenderRectangle(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableContext *ctx;
@@ -301,23 +316,17 @@ static void RenderRectangle(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
+		rectangle_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_RENDER:
+		rectangle_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
 		break;
 	default:
 		return;
-	}
-	/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
-	rect tracking (otherwise we would miss geometry changes with same bounds)*/
-	if (gf_node_dirty_get(node)) {
-		drawable_reset_path(stack);
-		gf_path_add_rect_center(stack->path, 0, 0, ((M_Rectangle *) node)->size.x, ((M_Rectangle *) node)->size.y);
-		gf_node_dirty_clear(node, 0);
-		stack->flags |= DRAWABLE_HAS_CHANGED;
 	}
 
 	ctx = drawable_init_context(stack, tr_state);
@@ -353,12 +362,21 @@ void render_init_rectangle(Render  *sr, GF_Node *node)
 #define CHECK_VALID_C2D(nbPts) if (cur_index+nbPts>=pt_count) { gf_path_reset(stack->path); return; }
 //#define CHECK_VALID_C2D(nbPts)
 
-static void build_curve2D(Drawable *stack, M_Curve2D *c2D)
+static void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
 {
+	M_Curve2D *c2D;
 	SFVec2f orig, ct_orig, ct_end, end;
 	u32 cur_index, i, remain, type_count, pt_count;
 	SFVec2f *pts;
-	M_Coordinate2D *coord = (M_Coordinate2D *)c2D->point;
+	M_Coordinate2D *coord;
+	if (! gf_node_dirty_get(node)) return;
+
+	c2D = (M_Curve2D *)node;
+	coord = (M_Coordinate2D *)c2D->point;
+	drawable_reset_path(stack);
+	stack->path->fineness = c2D->fineness;
+	if (tr_state->visual->render->compositor->high_speed)  stack->path->fineness /= 2;
+
 
 	pts = coord->point.vals;
 	if (!pts) 
@@ -460,6 +478,9 @@ static void build_curve2D(Drawable *stack, M_Curve2D *c2D)
 		if (remain>1)
 			gf_path_add_bezier(stack->path, &pts[cur_index], remain);
 	}
+	
+	gf_node_dirty_clear(node, 0);
+	drawable_mark_modified(stack, tr_state);
 }
 
 static void RenderCurve2D(GF_Node *node, void *rs, Bool is_destroy)
@@ -489,20 +510,11 @@ static void RenderCurve2D(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
+		curve2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_RENDER:
-		/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
-		rect tracking (otherwise we would miss geometry changes with same bounds)*/
-		if (gf_node_dirty_get(node)) {
-			drawable_reset_path(stack);
-			stack->path->fineness = c2D->fineness;
-			if (tr_state->visual->render->compositor->high_speed)  stack->path->fineness /= 2;
-			build_curve2D(stack, c2D);
-			gf_node_dirty_clear(node, 0);
-			stack->flags |= DRAWABLE_HAS_CHANGED;
-		}
-
+		curve2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -536,17 +548,26 @@ static void get_point_size(GF_Matrix2D *mat, Fixed *w, Fixed *h)
 	*w = *h = gf_divfix(FLT2FIX(1.41421356f) , gf_v2d_len(&pt));
 }
 
-static void build_graph(Drawable *stack, GF_Matrix2D *mat, M_PointSet2D *ps2D)
+static void pointset2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
 {
 	u32 i;
 	Fixed w, h;
-	M_Coordinate2D *coord = (M_Coordinate2D *)ps2D->coord;
-	get_point_size(mat, &w, &h);
+	M_Coordinate2D *coord;
+
+	if (!gf_node_dirty_get(node)) return;
+	coord = (M_Coordinate2D *) ((M_PointSet2D *)node)->coord;
+
+	drawable_reset_path(stack);
+
+	get_point_size(&tr_state->transform, &w, &h);
 	/*for PS2D don't add to avoid too  much antialiasing, just try to fill the given pixel*/
 	for (i=0; i < coord->point.count; i++) 
 		gf_path_add_rect(stack->path, coord->point.vals[i].x, coord->point.vals[i].y, w, h);
 
 	stack->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
+	
+	gf_node_dirty_clear(node, 0);
+	drawable_mark_modified(stack, tr_state);
 }
 
 static void PointSet2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
@@ -617,21 +638,13 @@ static void RenderPointSet2D(GF_Node *node, void *rs, Bool is_destroy)
 	} 
 #endif
 	case TRAVERSE_GET_BOUNDS:
+		pointset2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
 		return;
 	case TRAVERSE_RENDER:
-
-		/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
-		rect tracking (otherwise we would miss geometry changes with same bounds)*/
-		if (gf_node_dirty_get(node)) {
-			drawable_reset_path(stack);
-			build_graph(stack, &tr_state->transform, ps2D);
-			gf_node_dirty_clear(node, 0);
-			stack->flags |= DRAWABLE_HAS_CHANGED;
-		}
-
+		pointset2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif

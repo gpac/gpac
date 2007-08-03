@@ -983,18 +983,18 @@ static void svg_drawable_render(GF_Node *node, void *rs, Bool is_destroy,
 		/*the rebuild function is responsible for cleaning the path*/
 		rebuild_path(node, stack, &all_atts);
 		gf_node_dirty_clear(node, GF_SG_SVG_GEOMETRY_DIRTY);
-		stack->flags |= DRAWABLE_HAS_CHANGED;
+		drawable_mark_modified(stack, tr_state);
 	}
 	if (all_atts.d) {
 		if (*(tr_state->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) {
 			if (!(stack->path->flags & GF_PATH_FILL_ZERO_NONZERO)) {
 				stack->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
-				stack->flags |= DRAWABLE_HAS_CHANGED;
+				drawable_mark_modified(stack, tr_state);
 			}
 		} else {
 			if (stack->path->flags & GF_PATH_FILL_ZERO_NONZERO) {
 				stack->path->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
-				stack->flags |= DRAWABLE_HAS_CHANGED;
+				drawable_mark_modified(stack, tr_state);
 			}
 		}
 	}

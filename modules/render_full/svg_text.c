@@ -304,7 +304,7 @@ static void svg_render_text(GF_Node *node, void *rs, Bool is_destroy)
 			child = child->next;
 		}
 		gf_node_dirty_clear(node, 0);
-		cs->flags |= DRAWABLE_HAS_CHANGED;
+		drawable_mark_modified(cs, tr_state);
 		st->prev_size = tr_state->svg_props->font_size->value;
 		st->prev_flags = *tr_state->svg_props->font_style;
 		st->prev_anchor = *tr_state->svg_props->text_anchor;
@@ -407,7 +407,7 @@ static void svg_render_tspan(GF_Node *node, void *rs, Bool is_destroy)
 			child = child->next;
 		}
 		gf_node_dirty_clear(node, 0);
-		cs->flags |= DRAWABLE_HAS_CHANGED;
+		drawable_mark_modified(cs, tr_state);
 		st->prev_size = tr_state->svg_props->font_size->value;
 		st->prev_flags = *tr_state->svg_props->font_style;
 		st->prev_anchor = *tr_state->svg_props->text_anchor;
@@ -821,7 +821,7 @@ static void svg_render_textArea(GF_Node *node, void *rs, Bool is_destroy){
 
 		//effacement mémoire, mise à jour des données-test de changement
 		gf_node_dirty_clear(node, 0);
-		cs->flags |= DRAWABLE_HAS_CHANGED;
+		drawable_mark_modified(cs, tr_state);
 		st->prev_size = tr_state->svg_props->font_size->value;
 		st->prev_flags = *tr_state->svg_props->font_style;
 		st->prev_anchor = *tr_state->svg_props->text_anchor;
@@ -1051,7 +1051,7 @@ void textArea_tspan_render(GF_Node *node, GF_TraverseState *tr_state, Bool is_de
 			child = child->next;
 		}
 		gf_node_dirty_clear(node, 0);
-		cs->flags |= DRAWABLE_HAS_CHANGED;
+		drawable_mark_modified(cs, tr_state);
 		st->prev_size = tr_state->svg_props->font_size->value;
 		st->prev_flags = *tr_state->svg_props->font_style;
 		st->prev_anchor = *tr_state->svg_props->text_anchor;

@@ -945,7 +945,7 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 {
 	Float scale;
-	u32 trackNum, j, size, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count;
+	u32 trackNum, i, j, size, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups;
 	u64 time_slice, dur;
 	u8 bps;
 	GF_ESD *esd;
@@ -1264,6 +1264,26 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	}
 
 	DumpMetaItem(file, 0, trackNum, "Track Meta");
+
+	gf_isom_get_track_switch_group_count(file, trackNum, &alt_group, &nb_groups);
+	if (alt_group) {
+		fprintf(stdout, "Alternate Group ID %d\n", alt_group);
+		for (i=0; i<nb_groups; i++) {
+			u32 nb_crit, switchGroupID; 
+			const u32 *criterias = gf_isom_get_track_switch_parameter(file, trackNum, i+1, &switchGroupID, &nb_crit);
+			if (switchGroupID) {
+				fprintf(stdout, "\tSwitchGroup ID %d criterias: ", switchGroupID);
+			} else {
+				fprintf(stdout, "\tAlternate Group criterias: ");
+			}
+			for (j=0; j<nb_crit; j++) {
+				if (j) fprintf(stdout, " ");
+				fprintf(stdout, "%s", gf_4cc_to_str(criterias[j]) );
+			}
+			if (j) fprintf(stdout, "\n");
+		}
+	}
+
 	if (!full_dump) {
 		fprintf(stdout, "\n");
 		return;

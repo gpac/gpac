@@ -55,6 +55,8 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 
+static Bool request_next_playlist_item = 0;
+
 static GF_Config *cfg_file;
 static Bool display_rti = 0;
 static Bool Run;
@@ -137,7 +139,7 @@ void PrintHelp()
 	fprintf(stdout, "MP4Client command keys:\n"
 		"\to: connect to the specified URL\n"
 		"\tO: connect to the specified URL in playlist mode\n"
-		"\tN: switch to the next URL in the playlist\n"
+		"\tN: switch to the next URL in the playlist (works with return key as well)\n"
 		"\tr: restart current presentation\n"
 		"\tp: play/pause the presentation\n"
 		"\ts: step one frame ahead\n"
@@ -485,6 +487,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			case GF_KEY_DOWN: 
 				if (Volume) { Volume = (Volume > 5) ? (Volume-5) : 0; gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, Volume); }
 				break;
+			case GF_KEY_PAGEDOWN:
+				if (Volume!=100) { Volume = MIN(Volume + 5, 100); gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, Volume); } 
+				break;
 			}
 		} else {
 			switch (evt->key.key_code) {
@@ -493,6 +498,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				break;
 			case GF_KEY_ESCAPE:
 				gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
+				break;
+			case GF_KEY_PAGEDOWN:
+				request_next_playlist_item = 1;
 				break;
 			}
 		}
@@ -1057,6 +1065,11 @@ int main (int argc, char **argv)
 		
 		/*we don't want getchar to block*/
 		if (!gf_prompt_has_input()) {
+			if (request_next_playlist_item) {
+				c = '\n';
+				request_next_playlist_item = 0;
+				goto force_input;
+			}
 //			UpdateRTInfo("");
 			if (not_threaded) {
 				gf_term_process_step(term);
@@ -1067,6 +1080,7 @@ int main (int argc, char **argv)
 		}
 		c = gf_prompt_get_char();
 
+force_input:
 		switch (c) {
 		case 'q':
 			Run = 0;

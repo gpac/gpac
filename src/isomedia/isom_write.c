@@ -3553,6 +3553,161 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 }
 
 
+GF_EXPORT
+GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u32 trackRefGroup, Bool is_switch_group, u32 *switchGroupID, u32 *criteriaList, u32 criteriaListCount)
+{
+	GF_TrackSelectionBox *tsel;
+	GF_TrackBox *trak;
+	GF_UserDataMap *map;
+	GF_Err e;
+	u32 alternateGroupID = 0;
+	u32 next_switch_group_id = 0;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !criteriaListCount || !switchGroupID) return GF_BAD_PARAM;
+
+
+	if (trackRefGroup) {
+		GF_TrackBox *trak_ref = gf_isom_get_track_from_file(movie, trackRefGroup);
+		if (trak_ref != trak) {
+			if (!trak_ref || !trak_ref->Header->alternate_group) return GF_BAD_PARAM;
+			alternateGroupID = trak_ref->Header->alternate_group;
+		} else {
+			alternateGroupID = trak->Header->alternate_group;
+		}
+	} 
+	if (!alternateGroupID) {
+		u32 i=0;		
+		/*there is a function for this ....*/
+		if (trak->Header->alternate_group) return GF_BAD_PARAM;
+
+		while (i< gf_isom_get_track_count(movie) ) {
+			//locate first available ID
+			GF_TrackBox *a_trak = gf_isom_get_track_from_file(movie, i+1);
+			if (a_trak->Header->alternate_group >= alternateGroupID)
+				alternateGroupID = a_trak->Header->alternate_group;
+
+			i++;
+		}
+		alternateGroupID++;
+	}
+
+	if (is_switch_group) {
+		u32 i=0;		
+		while (i< gf_isom_get_track_count(movie) ) {
+			//locate first available ID
+			GF_TrackBox *a_trak = gf_isom_get_track_from_file(movie, i+1);
+
+			if (a_trak->udta) {
+				u32 j, count;
+				map = udta_getEntry(a_trak->udta, GF_ISOM_BOX_TYPE_TSEL, NULL);
+				if (map) {
+					count = gf_list_count(map->boxList);
+					for (j=0; j<count; j++) {
+						tsel = gf_list_get(map->boxList, j);
+
+						if (*switchGroupID) {
+							if (tsel->switchGroup==next_switch_group_id) {
+								if (a_trak->Header->alternate_group != alternateGroupID) return GF_BAD_PARAM;
+							}
+						} else {
+							if (tsel->switchGroup && (tsel->switchGroup>=next_switch_group_id) ) 
+								next_switch_group_id = tsel->switchGroup;
+						}
+					}
+				}
+
+			}
+			i++;
+		}
+		if (! *switchGroupID) *switchGroupID = next_switch_group_id+1;
+	}
+
+	
+	if (!trak->udta) {
+		e = trak_AddBox((GF_Box*)trak, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
+		if (e) return e;
+	}
+
+	tsel = NULL;
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_TSEL, NULL);
+
+	/*locate tsel box with no switch group*/
+	if (map)  {
+		u32 j, count = gf_list_count(map->boxList);
+		for (j=0; j<count; j++) {
+			tsel = gf_list_get(map->boxList, j);
+			if (tsel->switchGroup == *switchGroupID) break;
+			tsel = NULL;
+		}
+	}
+	if (!tsel) {
+		tsel = (GF_TrackSelectionBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_TSEL);
+		e = udta_AddBox(trak->udta, (GF_Box *) tsel);
+		if (e) return e;
+	}
+
+	trak->Header->alternate_group = alternateGroupID;
+	tsel->switchGroup = *switchGroupID;
+	tsel->attributeListCount = criteriaListCount;
+	if (tsel->attributeList) free(tsel->attributeList);
+	tsel->attributeList = malloc(sizeof(u32)*criteriaListCount);
+	memcpy(tsel->attributeList, criteriaList, sizeof(u32)*criteriaListCount);
+	return GF_OK;
+}
+
+void reset_tsel_box(GF_TrackBox *trak)
+{
+	GF_UserDataMap *map;
+	trak->Header->alternate_group = 0;
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_TSEL, NULL);
+	if (map) {
+		gf_list_del_item(trak->udta->recordList, map);
+		gf_isom_box_array_del(map->boxList);
+		free(map);
+	}
+
+}
+
+GF_EXPORT
+GF_Err gf_isom_reset_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, Bool reset_all_group)
+{
+	GF_TrackBox *trak;
+	u32 alternateGroupID = 0;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	if (!trak->Header->alternate_group) return GF_OK;
+
+	alternateGroupID = trak->Header->alternate_group;
+	if (reset_all_group) {
+		u32 i=0;		
+		while (i< gf_isom_get_track_count(movie) ) {
+			//locate first available ID
+			GF_TrackBox *a_trak = gf_isom_get_track_from_file(movie, i+1);
+			if (a_trak->Header->alternate_group == alternateGroupID) reset_tsel_box(a_trak);
+			i++;
+		}
+	} else {
+		reset_tsel_box(trak);
+	}
+	return GF_OK;
+}
+
+
+GF_EXPORT
+GF_Err gf_isom_reset_switch_parameters(GF_ISOFile *movie)
+{
+	u32 i=0;		
+	while (i< gf_isom_get_track_count(movie) ) {
+		//locate first available ID
+		GF_TrackBox *a_trak = gf_isom_get_track_from_file(movie, i+1);
+		reset_tsel_box(a_trak);
+		i++;
+	}
+	return GF_OK;
+}
+
 
 #endif	//GPAC_READ_ONLY
 

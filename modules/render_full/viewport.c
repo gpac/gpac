@@ -240,6 +240,17 @@ static void RenderViewport(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx2d_add_translation(&mat, -tx, -ty);
 	gf_mx2d_inverse(&mat);
 
+
+/*
+	gf_mx2d_init(mat);
+	gf_mx2d_add_translation(&mat, vp->position.x, vp->position.y);
+	gf_mx2d_add_rotation(&mat, 0, 0, vp->orientation);
+	gf_mx2d_add_translation(&mat, -w/2, h/2);
+	gf_mx2d_add_scale(&mat, 1/sx, 1/sy);
+	gf_mx2d_add_translation(&mat, -tx, -ty);
+*/
+
+
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		/*in layers directly modify the model matrix*/

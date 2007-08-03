@@ -348,10 +348,8 @@ static void RenderForm(GF_Node *n, void *rs, Bool is_destroy)
 		}
 	
 		tr_state->visual->top_clipper = prev_clip;
-		if (tr_state->traversing_mode==TRAVERSE_RENDER)  {
-			if (had_clip) tr_state->clipper = prev_clipper;
-			tr_state->has_clip = had_clip;
-		}
+		if (had_clip) tr_state->clipper = prev_clipper;
+		tr_state->has_clip = had_clip;
 	} else 
 #endif
 	{

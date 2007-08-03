@@ -932,3 +932,76 @@ GF_Err twrp_Size(GF_Box *s)
 
 #endif
 
+void tsel_del(GF_Box *s)
+{
+	GF_TrackSelectionBox *ptr;
+	ptr = (GF_TrackSelectionBox *) s;
+	if (ptr == NULL) return;
+	if (ptr->attributeList) free(ptr->attributeList);
+	free(ptr);
+}
+
+GF_Err tsel_Read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_TrackSelectionBox *ptr = (GF_TrackSelectionBox *) s;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	ptr->switchGroup = gf_bs_read_u32(bs);
+	ptr->size -= 4;
+	if (ptr->size % 4) return GF_ISOM_INVALID_FILE;
+	ptr->attributeListCount = (u32)ptr->size/4;
+	ptr->attributeList = malloc(ptr->attributeListCount*sizeof(u32));
+	if (ptr->attributeList == NULL) return GF_OUT_OF_MEM;
+	
+	for (i=0; i< ptr->attributeListCount; i++) {
+		ptr->attributeList[i] = gf_bs_read_u32(bs);
+	}
+	return GF_OK;
+}
+
+GF_Box *tsel_New()
+{
+	GF_TrackSelectionBox *tmp;
+	
+	tmp = (GF_TrackSelectionBox *) malloc(sizeof(GF_TrackSelectionBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_TrackSelectionBox));
+	gf_isom_full_box_init((GF_Box *)tmp);
+	tmp->type = GF_ISOM_BOX_TYPE_TSEL;
+	return (GF_Box *)tmp;
+}
+
+
+//from here, for write/edit versions
+#ifndef GPAC_READ_ONLY
+
+GF_Err tsel_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_TrackSelectionBox *ptr = (GF_TrackSelectionBox *) s;
+	
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs,ptr->switchGroup);
+
+	for (i = 0; i < ptr->attributeListCount; i++ ) {
+		gf_bs_write_u32(bs, ptr->attributeList[i]);
+	}
+	
+	return GF_OK;
+}
+
+GF_Err tsel_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_TrackSelectionBox *ptr = (GF_TrackSelectionBox *) s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size += 4 + (4*ptr->attributeListCount);
+	return GF_OK;
+}
+
+#endif //GPAC_READ_ONLY

@@ -857,7 +857,8 @@ GF_EXPORT
 GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_size, u32 *read_size)
 {
 	GF_Err e;
-	if (sess->cache || !buffer || !buffer_size) return GF_BAD_PARAM;
+//	if (sess->cache || !buffer || !buffer_size) return GF_BAD_PARAM;
+	if (/*sess->cache || */ !buffer || !buffer_size) return GF_BAD_PARAM;
 	if (sess->th) return GF_BAD_PARAM;
 	if (sess->status == GF_NETIO_DISCONNECTED) return GF_EOS;
 	if (sess->status > GF_NETIO_DATA_TRANSFERED) return GF_BAD_PARAM;
@@ -1445,12 +1446,12 @@ void http_do_requests(GF_DownloadSession *sess)
 		if (!e && (BodyStart < (s32) bytesRead)) {
 			gf_dm_data_recieved(sess, sHTTP + BodyStart, bytesRead - BodyStart);
 			/*store data if no callbacks or cache*/
-			if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) {
+//			if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) {
 				if (sess->init_data) free(sess->init_data);
 				sess->init_data_size = bytesRead - BodyStart;
 				sess->init_data = (char *) malloc(sizeof(char) * sess->init_data_size);
 				memcpy(sess->init_data, sHTTP+BodyStart, sess->init_data_size);
-			}
+//			}
 		}
 exit:
 		if (e) {

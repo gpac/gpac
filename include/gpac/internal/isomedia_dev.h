@@ -168,6 +168,7 @@ enum
 	GF_ISOM_BOX_TYPE_DEVC	= GF_4CC( 'd', 'e', 'v', 'c' ),
 	GF_ISOM_BOX_TYPE_DQCP	= GF_4CC( 'd', 'q', 'c', 'p' ),
 	GF_ISOM_BOX_TYPE_DSMV	= GF_4CC( 'd', 's', 'm', 'v' ),
+	GF_ISOM_BOX_TYPE_TSEL	= GF_4CC( 't', 's', 'e', 'l' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
 	GF_ISOM_BOX_TYPE_FTAB	= GF_4CC( 'f', 't', 'a', 'b' ),
@@ -1096,6 +1097,14 @@ typedef struct
 	GF_ISOM_BOX
 	u8 wrap_flag;
 } GF_TextWrapBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 switchGroup;
+	u32 *attributeList;
+	u32 attributeListCount;
+} GF_TrackSelectionBox;
 
 /*
 	MPEG-21 extensions
@@ -3011,6 +3020,13 @@ GF_Err pasp_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err pasp_Size(GF_Box *s);
 GF_Err pasp_dump(GF_Box *a, FILE * trace);
 
+
+GF_Box *tsel_New();
+void tsel_del(GF_Box *s);
+GF_Err tsel_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tsel_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err tsel_Size(GF_Box *s);
+GF_Err tsel_dump(GF_Box *a, FILE * trace);
 
 #ifdef __cplusplus
 }

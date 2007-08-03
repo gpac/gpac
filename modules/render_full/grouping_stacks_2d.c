@@ -62,29 +62,33 @@ static void RenderSwitch(GF_Node *node, void *rs, Bool is_destroy)
 		children = ((X_Switch *)node)->children;
 		whichChoice = ((X_Switch *)node)->whichChoice;
 	}
-	count = gf_node_list_get_count(children);
 
-	prev_switch = tr_state->trav_flags;
-	/*check changes in choice field*/
-	if ((gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) || (st->last_switch != whichChoice) ) {
-		tr_state->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
-		i=0;
-		l = children;
-		while (l) {
-//			if ((s32) i!=whichChoice) gf_node_render(l->node, tr_state);
-			if ((s32) i == st->last_switch) gf_node_render(l->node, tr_state);
-			l = l->next;
-			i++;
+	if (tr_state->traversing_mode!=TRAVERSE_GET_BOUNDS) {
+
+		count = gf_node_list_get_count(children);
+
+		prev_switch = tr_state->trav_flags;
+		/*check changes in choice field*/
+		if ((gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) || (st->last_switch != whichChoice) ) {
+			tr_state->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
+			i=0;
+			l = children;
+			while (l) {
+	//			if ((s32) i!=whichChoice) gf_node_render(l->node, tr_state);
+				if ((s32) i == st->last_switch) gf_node_render(l->node, tr_state);
+				l = l->next;
+				i++;
+			}
+			tr_state->trav_flags &= ~GF_SR_TRAV_SWITCHED_OFF;
+			st->last_switch = whichChoice;
 		}
-		tr_state->trav_flags &= ~GF_SR_TRAV_SWITCHED_OFF;
-		st->last_switch = whichChoice;
+
+		gf_node_dirty_clear(node, 0);
+
+		/*no need to check for sensors since a sensor is active for the whole parent group, that is for switch itself
+		CSQ: switch cannot be used to switch sensors, too bad...*/
+		tr_state->trav_flags = prev_switch;
 	}
-
-	gf_node_dirty_clear(node, 0);
-
-	/*no need to check for sensors since a sensor is active for the whole parent group, that is for switch itself
-	CSQ: switch cannot be used to switch sensors, too bad...*/
-	tr_state->trav_flags = prev_switch;
 
 	if (whichChoice>=0) {
 		child = (GF_Node*)gf_node_list_get_child(children, whichChoice);
@@ -180,6 +184,7 @@ static void RenderTransform2D(GF_Node *node, void *rs, Bool is_destroy)
 			ptr->is_identity = 0;
 			gf_mx2d_add_translation(&ptr->mat, tr->translation.x, tr->translation.y);
 		}
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 	traverse_transform(node, ptr, tr_state);
 }
@@ -227,6 +232,7 @@ static void RenderTransformMatrix2D(GF_Node *node, void *rs, Bool is_destroy)
 			ptr->is_identity = 1;
 		else
 			ptr->is_identity = 0;
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 	traverse_transform(node, ptr, tr_state);
 }
@@ -262,6 +268,10 @@ static void RenderColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 		free(ptr);
 		return;
 	}
+	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
+		group_2d_traverse(node, (GroupingNode2D *) ptr, tr_state);
+		return;
+	}
 
 	c_changed = 0;
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
@@ -271,6 +281,7 @@ static void RenderColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 			tr->mbr, tr->mbg, tr->mbb, tr->mba, tr->tb, 
 			tr->mar, tr->mag, tr->mab, tr->maa, tr->ta); 
 		c_changed = 1;
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 	/*note we don't clear dirty flag, this is done in traversing*/
 	if (ptr->cmat.identity) {
@@ -338,7 +349,7 @@ static void RenderOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
-	if (!og->order.count) {
+	if (!og->order.count || (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) ) {
 		group_2d_traverse(node, (GroupingNode2D*)stack, tr_state);
 		return;
 	}
@@ -360,6 +371,7 @@ static void RenderOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 		free(priorities);
 		
 		tr_state->invalidate_all = 1;
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 	group_2d_traverse_with_order(node, (GroupingNode2D*)stack, tr_state, stack->positions);
 	tr_state->invalidate_all = invalidate_backup;

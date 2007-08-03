@@ -103,11 +103,15 @@ struct _visual_manager
 	/*node owning this visual manager (composite textures) - NULL for root visual*/
 	GF_Node *offscreen;
 
+	/*value of the flag to use to signal any geometry changes*/
+	u32 bounds_tracker_modif_flag;
+
+
+#ifndef GPAC_DISABLE_3D
 	/*
 	 *	Visual Manager part for 3D drawing 
 	 */
 
-#ifndef GPAC_DISABLE_3D
 	/*navigation stack*/
 	GF_List *navigation_stack;
 	/*fog stack*/

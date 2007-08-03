@@ -184,6 +184,7 @@ static void RenderTransform(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 	}
 
+	/*note we don't clear dirty flag, this is done in traversing*/
 	if (gf_node_dirty_get(n) & GF_SG_NODE_DIRTY) {
 		Bool scale_rot, recenter;
 		gf_mx_init(st->mx);

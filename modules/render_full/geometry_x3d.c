@@ -26,6 +26,18 @@
 #include "visual_manager.h"
 #include "drawable.h"
 
+static void disk2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
+{
+	if (gf_node_dirty_get(node)) {
+		Fixed a = ((X_Disk2D *) node)->outerRadius * 2;
+		drawable_reset_path(stack);
+		gf_path_add_ellipse(stack->path, 0, 0, a, a);
+		a = ((X_Disk2D *) node)->innerRadius * 2;
+		if (a) gf_path_add_ellipse(stack->path, 0, 0, a, a);
+		gf_node_dirty_clear(node, 0);
+		drawable_mark_modified(stack, tr_state);
+	}
+}
 
 static void RenderDisk2D(GF_Node *node, void *rs, Bool is_destroy)
 {
@@ -50,24 +62,14 @@ static void RenderDisk2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_GET_BOUNDS:
+		disk2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_RENDER:
-
-		/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
-		rect tracking (otherwise we would miss geometry changes with same bounds)*/
-		if (gf_node_dirty_get(node)) {
-			Fixed a = ((X_Disk2D *) node)->outerRadius * 2;
-			drawable_reset_path(stack);
-			gf_path_add_ellipse(stack->path, 0, 0, a, a);
-			a = ((X_Disk2D *) node)->innerRadius * 2;
-			if (a) gf_path_add_ellipse(stack->path, 0, 0, a, a);
-			gf_node_dirty_clear(node, 0);
-			stack->flags |= DRAWABLE_HAS_CHANGED;
-		}
+		disk2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -82,6 +84,22 @@ void render_init_disk2d(Render *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
 	gf_node_set_callback_function(node, RenderDisk2D);
+}
+
+static void arc2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
+{
+	if (gf_node_dirty_get(node)) {
+		drawable_reset_path(stack);
+		if (gf_node_get_tag(node)==TAG_X3D_Arc2D) {
+			X_Arc2D *a = (X_Arc2D *) node;
+			gf_path_add_arc(stack->path, a->radius, a->startAngle, a->endAngle, 0);
+		} else {
+			X_ArcClose2D *a = (X_ArcClose2D *) node;
+			gf_path_add_arc(stack->path, a->radius, a->startAngle, a->endAngle, !stricmp(a->closureType.buffer, "PIE") ? 2 : 1);
+		}
+		gf_node_dirty_clear(node, 0);
+		drawable_mark_modified(stack, tr_state);
+	}
 }
 
 static void RenderArc2D(GF_Node *node, void *rs, Bool is_destroy)
@@ -109,6 +127,7 @@ static void RenderArc2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_GET_BOUNDS:
+		arc2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 #ifndef GPAC_DISABLE_3D
 		gf_bbox_from_rect(&tr_state->bbox, &tr_state->bounds);
@@ -118,21 +137,7 @@ static void RenderArc2D(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_RENDER:
-
-		/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
-		rect tracking (otherwise we would miss geometry changes with same bounds)*/
-		if (gf_node_dirty_get(node)) {
-			drawable_reset_path(stack);
-			if (gf_node_get_tag(node)==TAG_X3D_Arc2D) {
-				X_Arc2D *a = (X_Arc2D *) node;
-				gf_path_add_arc(stack->path, a->radius, a->startAngle, a->endAngle, 0);
-			} else {
-				X_ArcClose2D *a = (X_ArcClose2D *) node;
-				gf_path_add_arc(stack->path, a->radius, a->startAngle, a->endAngle, !stricmp(a->closureType.buffer, "PIE") ? 2 : 1);
-			}
-			gf_node_dirty_clear(node, 0);
-			stack->flags |= DRAWABLE_HAS_CHANGED;
-		}
+		arc2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -147,6 +152,24 @@ void render_init_arc2d(Render *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
 	gf_node_set_callback_function(node, RenderArc2D);
+}
+
+static void polyline2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
+{
+	if (gf_node_dirty_get(node)) {
+		u32 i;
+		X_Polyline2D *a = (X_Polyline2D *) node;
+		drawable_reset_path(stack);
+		for (i=0; i<a->lineSegments.count; i++) {
+			if (i) {
+				gf_path_add_line_to(stack->path, a->lineSegments.vals[i].x, a->lineSegments.vals[i].y);
+			} else {
+				gf_path_add_move_to(stack->path, a->lineSegments.vals[i].x, a->lineSegments.vals[i].y);
+			}
+		}
+		gf_node_dirty_clear(node, 0);
+		drawable_mark_modified(stack, tr_state);
+	}
 }
 
 static void RenderPolyline2D(GF_Node *node, void *rs, Bool is_destroy)
@@ -170,29 +193,14 @@ static void RenderPolyline2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_GET_BOUNDS:
+		polyline2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_RENDER:
-
-		/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
-		rect tracking (otherwise we would miss geometry changes with same bounds)*/
-		if (gf_node_dirty_get(node)) {
-			u32 i;
-			X_Polyline2D *a = (X_Polyline2D *) node;
-			drawable_reset_path(stack);
-			for (i=0; i<a->lineSegments.count; i++) {
-				if (i) {
-					gf_path_add_line_to(stack->path, a->lineSegments.vals[i].x, a->lineSegments.vals[i].y);
-				} else {
-					gf_path_add_move_to(stack->path, a->lineSegments.vals[i].x, a->lineSegments.vals[i].y);
-				}
-			}
-			gf_node_dirty_clear(node, 0);
-			stack->flags |= DRAWABLE_HAS_CHANGED;
-		}
+		polyline2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -207,6 +215,25 @@ void render_init_polyline2d(Render *sr, GF_Node *node)
 {
 	drawable_stack_new(sr, node);
 	gf_node_set_callback_function(node, RenderPolyline2D);
+}
+
+static void triangleset2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
+{
+	if (gf_node_dirty_get(node)) {
+		u32 i, count;
+		X_TriangleSet2D *p = (X_TriangleSet2D *)node;
+		drawable_reset_path(stack);
+		count = p->vertices.count;
+		while (count%3) count--;
+		for (i=0; i<count; i+=3) {
+			gf_path_add_move_to(stack->path, p->vertices.vals[i].x, p->vertices.vals[i].y);
+			gf_path_add_line_to(stack->path, p->vertices.vals[i+1].x, p->vertices.vals[i+1].y);
+			gf_path_add_line_to(stack->path, p->vertices.vals[i+2].x, p->vertices.vals[i+2].y);
+			gf_path_close(stack->path);
+		}
+		gf_node_dirty_clear(node, 0);
+		drawable_mark_modified(stack, tr_state);
+	}
 }
 
 static void RenderTriangleSet2D(GF_Node *node, void *rs, Bool is_destroy)
@@ -263,31 +290,14 @@ static void RenderTriangleSet2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_GET_BOUNDS:
+		triangleset2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_RENDER:
-
-		/*if modified update node - we don't update for other traversing mode in order not to mess up the dirty
-		rect tracking (otherwise we would miss geometry changes with same bounds)*/
-		if (gf_node_dirty_get(node)) {
-			u32 i, count;
-			X_TriangleSet2D *p = (X_TriangleSet2D *)node;
-			drawable_reset_path(stack);
-			count = p->vertices.count;
-			while (count%3) count--;
-			for (i=0; i<count; i+=3) {
-				gf_path_add_move_to(stack->path, p->vertices.vals[i].x, p->vertices.vals[i].y);
-				gf_path_add_line_to(stack->path, p->vertices.vals[i+1].x, p->vertices.vals[i+1].y);
-				gf_path_add_line_to(stack->path, p->vertices.vals[i+2].x, p->vertices.vals[i+2].y);
-				gf_path_close(stack->path);
-			}
-			gf_node_dirty_clear(node, 0);
-			stack->flags |= DRAWABLE_HAS_CHANGED;
-		}
-
+		triangleset2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif

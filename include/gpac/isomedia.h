@@ -1736,6 +1736,48 @@ GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber);
 #endif
 
 
+
+
+
+/*3GPP Alternate Group API - (c) 2007 ENST & ResonateMP4*/
+
+/*gets the number of switching groups declared in this track if any:
+trackNumber: track number
+alternateGroupID: alternate group id of track if speciifed, 0 otherwise
+nb_groups: number of switching groups defined for this track
+*/
+GF_Err gf_isom_get_track_switch_group_count(GF_ISOFile *movie, u32 trackNumber, u32 *alternateGroupID, u32 *nb_groups);
+
+/*returns the list of criteria (expressed as 4CC IDs, cf 3GPP TS 26.244)
+trackNumber: track number
+group_index: 1-based index of the group to inspect
+switchGroupID: ID of the switch group if any, 0 otherwise (alternate-only group)
+criteriaListSize: number of criteria items in returned list
+*/
+const u32 *gf_isom_get_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u32 group_index, u32 *switchGroupID, u32 *criteriaListSize);
+
+#ifndef GPAC_READ_ONLY
+/*sets a new (switch) group for this track
+trackNumber: track
+trackRefGroup: number of a track belonging to the same alternate group. If 0, a new alternate group will be created for this track
+is_switch_group: if set, indicates that a switch group identifier shall be assigned to the created group. Otherwise, the criteria list is associated with the entire alternate group
+switchGroupID: SHALL NOT BE NULL
+	input: specifies the desired switchGroupID to use. If value is 0, next available switchGroupID in file is used.
+	output: indicates the switchGroupID used.
+criteriaList, criteriaListCount: criteria list and size. Criterias are expressed as 4CC IDs, cf 3GPP TS 26.244
+*/
+GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u32 trackRefGroup, Bool is_switch_group, u32 *switchGroupID, u32 *criteriaList, u32 criteriaListCount);
+
+/*resets track switch group information for the track or for the entire alternate group this track belongs to if reset_all_group is set*/
+GF_Err gf_isom_reset_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, Bool reset_all_group);
+
+/*resets ALL track switch group information in the entire movie*/
+GF_Err gf_isom_reset_switch_parameters(GF_ISOFile *movie);
+
+#endif
+
+
+
 #ifdef __cplusplus
 }
 #endif
