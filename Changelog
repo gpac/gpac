@@ -1,6 +1,10 @@
-01/08/07:
+03/08/07:
+  - added support for TrackSelection (tsel) - (c) 2007 ENST & RresonateMP4 - cf MP4Box -h general
+  - added support for PASP in ISO files
+  - misc fixes in render_full module
+  - committed patch fixing VobSub extraction bug
   - added support for http playback in ffmpeg demuxer
-  - initial commit of the new renderer moduel (render_full, "GPAC Full Renderer"), which is a merge of both 2D and 3D renderer
+  - initial commit of the new renderer module (render_full, "GPAC Full Renderer"), which is a merge of both 2D and 3D renderer
   with support for offscreen OpenGL, when available. Offscreen rendering is still experimental and only works under Windows at the current time. 
   This is a temporary version, the goal is to replace all renderer modules by this single renderer integrated in libgpac.
   
