@@ -228,6 +228,7 @@ static GF_Err M4V_Reset(GF_M4VParser *m4v, u32 start)
 static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 {
 	char p[4];
+	u32 ext_type;
 	s32 o_type;
 	u8 go, par;
 
@@ -273,14 +274,15 @@ static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *d
 			break;
 		case M2V_EXT_START_CODE:
 			gf_bs_read_data(m4v->bs, p, 4);
-			if ( ((p[0] >> 4) & 0xf) == 1) {
+			ext_type = ((p[0] >> 4) & 0xf);
+			if (ext_type == 1) {
 			  dsi->VideoPL = 0x65;
 			  dsi->height = ((p[1] & 0x1) << 13) | ((p[2] & 0x80) << 5) | (dsi->height & 0x0fff);
 			  dsi->width = (((p[2] >> 5) & 0x3) << 12) | (dsi->width & 0x0fff);
 			}
 			break;
 		case M2V_PIC_START_CODE:
-			go = 0;
+			if (dsi->width) go = 0;
 			break;
 		default:
 			break;

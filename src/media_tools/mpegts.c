@@ -198,7 +198,7 @@ void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, 
 					default: pes->vid_par = 0; break;
 					case 2: pes->vid_par = (4<<16) | 3; break;
 					case 3: pes->vid_par = (16<<16) | 9; break;
-					case 4: pes->vid_par = (2<<16) | 21; break;
+					case 4: pes->vid_par = (221<<16) | 100; break;
 					}
 				}
 				if (pes->frame_state==0x00) {
