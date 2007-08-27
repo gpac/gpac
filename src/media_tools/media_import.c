@@ -912,9 +912,12 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	if (nbNotCoded) gf_import_message(import, GF_OK, "Removed %d N-VOPs%s", nbNotCoded,is_packed ? " (Packed Bitstream)" : "");
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, (u8) PL);
 
+	if (dsi.par_den && dsi.par_num) gf_media_change_par(import->dest, track, dsi.par_num, dsi.par_den);
+
 exit:
 	if (samp) gf_isom_sample_del(&samp);
 	if (destroy_esd) gf_odf_desc_del((GF_Descriptor *) import->esd);
+
 	/*this destroys the bitstream as well*/
 	gf_m4v_parser_del(vparse);
 	fclose(mdia);
@@ -1675,7 +1678,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	Double FPS;
 	char *buf;
 	u8 ftype;
-	u32 track, di, streamID, mtype, w, h, nb_streams, buf_len, frames, ref_frame, timescale, duration, file_size, dts_inc, last_pos;
+	u32 track, di, streamID, mtype, w, h, ar, nb_streams, buf_len, frames, ref_frame, timescale, duration, file_size, dts_inc, last_pos;
 	Bool destroy_esd;
 
 	if (import->flags & GF_IMPORT_USE_DATAREF) 
@@ -1744,6 +1747,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	}
 	w = mpeg2ps_get_video_stream_width(ps, streamID);
 	h = mpeg2ps_get_video_stream_height(ps, streamID);
+	ar = mpeg2ps_get_video_stream_aspect_ratio(ps, streamID);
 	mtype = (mpeg2ps_get_video_stream_type(ps, streamID) == MPEG_VIDEO_MPEG2) ? 0x61 : 0x6A;
 	FPS = mpeg2ps_get_video_stream_framerate(ps, streamID);
 	if (import->video_fps) FPS = (Double) import->video_fps;
@@ -1812,6 +1816,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	if (last_pos!=file_size) gf_set_progress("Importing MPEG-PS Video", frames, frames);
 
 	MP4T_RecomputeBitRate(import->dest, track);
+	if (ar) gf_media_change_par(import->dest, track, ar>>16, ar&0xffff);
 
 exit:
 	if (import->esd && destroy_esd) {
@@ -5452,14 +5457,16 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 	} 
 	else if (stype==GF_ISOM_SUBTYPE_MPEG4) {
 		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
-		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) || (esd->decoderConfig->objectTypeIndication!=0x20)) {
+		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) ) {
 			if (esd)  gf_odf_desc_del((GF_Descriptor *) esd);
 			return GF_NOT_SUPPORTED;
 		}
-		e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
-		if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
-		gf_odf_desc_del((GF_Descriptor *) esd);
-		if (e) return e;
+		if (esd->decoderConfig->objectTypeIndication==0x20) {
+			e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
+			if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
+			gf_odf_desc_del((GF_Descriptor *) esd);
+			if (e) return e;
+		}
 	} else {
 		return GF_BAD_PARAM;
 	}
