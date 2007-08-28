@@ -2738,17 +2738,21 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 				}
 					break;
 				case GF_SG_VRML_MFNODE:
-					/*for eventIn fields, rebuild node list*/
-					if (field->fieldType == GF_SG_EVENT_IN) {
+					/*for eventIn & exposedField fields, rebuild node list - we MUST do this
+					because we don't notify the script engine whenever a new node is inserted/replaced
+					in a node list*/
+					if ((field->eventType == GF_SG_EVENT_IN) || (field->eventType == GF_SG_EVENT_EXPOSED_FIELD)) {
 						GF_ChildNodeItem *f = *(GF_ChildNodeItem **) field->far_ptr;
 						u32 count = 0;
 						while (f) {
 							count++;
 							f = f->next;
 						}
+						/*this will destroy the different objects*/
 						JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
-						JS_SetArrayLength(priv->js_ctx, jsf->js_list, count);
+						if (JS_SetArrayLength(priv->js_ctx, jsf->js_list, count) != JS_TRUE) return JSVAL_NULL;
 
+						count = 0;
 						f = *(GF_ChildNodeItem **) field->far_ptr;
 						while (f) {
 							JSObject *pf = JS_NewObject(priv->js_ctx, &js_rt->SFNodeClass, 0, obj);
@@ -2761,7 +2765,8 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 							JS_SetPrivate(priv->js_ctx, pf, slot);
 
 							newVal = OBJECT_TO_JSVAL(pf);
-							JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+							JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) count, &newVal);
+							count++;
 
 							f = f->next;
 						}
