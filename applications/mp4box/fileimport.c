@@ -115,7 +115,7 @@ void convert_file_info(char *inName, u32 trackID)
 		if (import.tk_info[i].flags & GF_IMPORT_FORCE_PACKED) fprintf(stdout, "\tCan force packed bitstream import\n");
 		if (import.tk_info[i].flags & GF_IMPORT_OVERRIDE_FPS) fprintf(stdout, "\tCan override source frame rate\n");
 		if (import.tk_info[i].flags & (GF_IMPORT_SBR_IMPLICIT|GF_IMPORT_SBR_EXPLICIT)) fprintf(stdout, "\tCan use AAC-SBR signaling\n");
-		if (import.tk_info[i].flags & GF_IMPORT_FORCE_MPEG4) fprintf(stdout, "\tCan force MPEG-4 Systems stream description\n");
+		if (import.tk_info[i].flags & GF_IMPORT_FORCE_MPEG4) fprintf(stdout, "\tCan force MPEG-4 Systems signaling\n");
 		if (import.tk_info[i].flags & GF_IMPORT_3GPP_AGGREGATION) fprintf(stdout, "\tCan use 3GPP frame aggregation\n");
 		if (import.tk_info[i].flags & GF_IMPORT_NO_DURATION) fprintf(stdout, "\tCannot use duration-based import\n");
 
