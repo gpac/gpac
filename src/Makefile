@@ -157,6 +157,12 @@ endif
 EXTRALIBS+=$(GPAC_SH_FLAGS)
 endif
 
+ifeq ($(WANT_PIC),yes)
+OBJSPIC=$(OBJS:.o=.opic)
+else
+OBJSPIC=$(OBJS)
+endif
+
 SRCS := $(OBJS:.o=.c) 
 
 all: lib
@@ -204,10 +210,10 @@ else
 	$(CC) $(CFLAGS) -c -o $@ $< 
 endif
 
-$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) isomedia scenegraph mcrypt mediatools sceneman term render
+$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(OBJSPIC) isomedia scenegraph mcrypt mediatools sceneman term render
 	ar cr ../bin/gcc/libgpac_static.a $(OBJS)
 	ranlib ../bin/gcc/libgpac_static.a
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJS) $(EXTRALIBS)
+	$(CC) $(SHFLAGS) -Wl,-soname,$(LIB) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS)
 
 dep: depend
 

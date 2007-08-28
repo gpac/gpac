@@ -69,6 +69,8 @@ has_ipv6="no"
 has_dvb4linux="no"
 has_openjpeg="no"
 gprof_build="no"
+PIC_CFLAGS=""
+want_pic="no"
 
 win32="no"
 mingw32="no"
@@ -90,6 +92,7 @@ DYN_LIB_SUFFIX="so"
 X11_PATH="/usr/X11R6"
 OSS_CFLAGS=""
 OSS_LDFLAGS=""
+INSTFLAGS=""
 is_64="no"
 
 #Configure Usage
@@ -121,7 +124,9 @@ echo "  --mozdir=MOZ_PATH        specify mozilla main directory path for system 
 echo ""
 echo "  --enable-debug           produce debug version"
 echo "  --enable-gprof           enable profiling"
-echo "  --track-memory           enables tracking of all memory allocated by gpac"
+echo "  --enable-pic             enable Position Independant Code for shared objects"
+echo "  --strip                  enable strip"
+echo "  --track-memory           enable tracking of all memory allocated by gpac"
 echo "  --disable-fragments      disable movie fragments in ISO media support"
 echo "  --disable-opt            disable GCC optimizations"
 echo "  --disable-ipv6           disable IPV6 support"
@@ -149,6 +154,10 @@ echo "  --use-faad=OPT           force FAAD OPT=[no,local]"
 echo "  --use-mad=OPT            force MAD OPT=[no,local]"
 echo "  --use-xvid=OPT           force XVID OPT=[no,local]"
 echo "  --use-ffmpeg=OPT         force FFMPEG OPT=[no,local]"
+echo "  --use-ogg=OPT            force OGG OPT=[no,system,local]"
+echo "  --use-vorbis=OPT         force vorbis OPT=[no,system,local]"
+echo "  --use-theora=OPT         force theora OPT=[no,system,local]"
+echo "  --use-openjpeg=OPT       force openjpeg OPT=[no,system,local]"
 echo ""
 echo "NOTE: The object files are build at the place where configure is launched"
 exit 1
@@ -191,7 +200,8 @@ case "$cpu" in
       if [ -z "`echo $CFLAGS | grep -- -m32`"  ]; then
         cpu="x86_64"
         #that's a bit crude...
-        CFLAGS="$CFLAGS -fPIC -DPIC"
+        PIC_CFLAGS="-fPIC -DPIC"
+        want_pic="yes"
       fi
     fi
   ;;
@@ -822,6 +832,8 @@ for opt do
   ;;
   --enable-gprof) gprof_build="yes";
   ;;
+  --enable-pic) PIC_CFLAGS="-fPIC -DPIC"; want_pic="yes";
+  ;;
   --disable-opt) no_gcc_opt="yes"
   ;;
   --disable-ipv6) has_ipv6="no"
@@ -841,6 +853,8 @@ for opt do
   --enable-fixed-point) use_fixed_point="yes"
   ;;
   --force-fixed-point) use_fixed_point="forced"
+  ;;
+  --strip) INSTFLAGS="-s $INSTFLAGS"
   ;;
   --track-memory) use_memory_tracking="yes"
   ;;
@@ -863,6 +877,14 @@ for opt do
   --use-ffmpeg=*) has_ffmpeg=${opt#--use-ffmpeg=}
   ;;
   --use-png=*) has_png=${opt#--use-png=}
+  ;;
+  --use-ogg=*) has_ogg=${opt#--use-ogg=}
+  ;;
+  --use-vorbis=*) has_vorbis=${opt#--use-vorbis=}
+  ;;
+  --use-theora=*) has_theora=${opt#--use-theora=}
+  ;;
+  --use-openjpeg=*) has_openjpeg=${opt#--use-openjpeg=}
   ;;
   esac
 done
@@ -1197,6 +1219,8 @@ echo "RANLIB=$ranlib" >> config.mak
 echo "STRIP=$strip" >> config.mak
 echo "OPTFLAGS=$CFLAGS" >> config.mak
 echo "CPPFLAGS=$CPPFLAGS" >> config.mak
+echo "PIC_CFLAGS=$PIC_CFLAGS" >> config.mak
+echo "WANT_PIC=$want_pic" >> config.mak
 echo "LDFLAGS=$LDFLAGS" >> config.mak
 echo "SHFLAGS=$SHFLAGS" >> config.mak
 
@@ -1238,6 +1262,9 @@ if test "$win32" = "no" ; then
 else
 	echo "DYN_LIB_SUFFIX=dll" >> config.mak
 fi
+
+
+echo "INSTFLAGS=$INSTFLAGS" >> config.mak
 
 echo "CONFIG_JS=$has_js" >> config.mak
 if test "$has_js" = "no" ; then
@@ -1368,7 +1395,7 @@ if test "$source_path_used" = "yes" ; then
          ln -sf $source_path/$dir/Makefile $dir/Makefile
     done
 
-    MOD_DIRS="modules modules/aac_in modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/img_in modules/isom_in modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/raw_out modules/render2d modules/render3d modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/svg_loader modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec"
+    MOD_DIRS="modules modules/aac_in modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/img_in modules/ismacryp modules/isom_in modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/raw_out modules/render2d modules/render3d modules/render_full modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/svg_loader modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec"
     cur_dir="`pwd`"
     for dir in $MOD_DIRS ; do
             mkdir -p $dir
@@ -1409,5 +1436,8 @@ fi
 if [ ! -d "./bin/gcc/temp" ]; then
 	mkdir ./bin/gcc/temp
 fi
+
+echo '%.opic : %.c' >> config.mak
+echo '	$(CC) $(CFLAGS) $(PIC_CFLAGS) -c $< -o $@' >> config.mak
 
 echo "Done - type 'make help' for make info, 'make' to build"

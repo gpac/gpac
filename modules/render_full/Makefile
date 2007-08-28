@@ -53,11 +53,17 @@ LDFLAGS+=-export-symbols render.def
 else
 endif
 
+ifeq ($(WANT_PIC),yes)
+OBJSPIC=$(OBJS:.o=.opic)
+else
+OBJSPIC=$(OBJS)
+endif
+
 all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS) $(LINKLIBS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(LINKFLAGS) $(LINKLIBS)
 
 
 %.o: %.c
