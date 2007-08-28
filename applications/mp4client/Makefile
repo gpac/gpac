@@ -49,8 +49,8 @@ clean:
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
 
 install: clean
-	make -override BUILD_INSTALL=yes all
-	install -c -s -m 755 ../../bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin"
+	$(MAKE) -override BUILD_INSTALL=yes all
+	install -m 755 $(INSTFLAGS) ../../bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin"
 
 uninstall:
 	rm -rf $(prefix)/bin/MP4Client

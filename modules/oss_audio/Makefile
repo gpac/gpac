@@ -31,10 +31,16 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_oss_audio.$(DYN_LIB_SUFFIX)
 
+ifeq ($(WANT_PIC),yes)
+OBJSPIC=$(OBJS:.o=.opic)
+else
+OBJSPIC=$(OBJS)
+endif
+
 all: $(LIB)
 
-$(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac $(OSS_LDFLAGS)
+$(LIB): $(OBJSPIC)
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac $(OSS_LDFLAGS)
 
 
 %.o: %.c

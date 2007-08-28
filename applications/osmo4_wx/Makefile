@@ -59,13 +59,13 @@ ifeq ($(CONFIG_DARWIN),yes)
 	   $(DESTDIR)$(mac_apps)/Osmo4.app/Contents/Resources/English.lproj/InfoPlist.strings
 	cp ./Darwin.Osmo.icns \
 	   $(DESTDIR)$(mac_apps)/Osmo4.app/Contents/Resources/Osmo.icns
-	install -c -s -m 755 ../../bin/gcc/Osmo4 \
+	install -m 755 $(INSTFLAGS) ../../bin/gcc/Osmo4 \
 	      $(DESTDIR)$(mac_apps)/Osmo4.app/Contents/MacOS
 	echo -n 'APPLOsm4' > $(DESTDIR)$(mac_apps)/Osmo4.app/Contents/PkgInfo
 else
 	rm -f wxOsmo4.o
-	make -override BUILD_INSTALL=yes all
-	install -c -s -m 755 ../../bin/gcc/Osmo4 "$(prefix)/bin"
+	$(MAKE) -override BUILD_INSTALL=yes all
+	install -m 755 $(INSTFLAGS) ../../bin/gcc/Osmo4 "$(DESTDIR)$(prefix)/bin"
 endif
 
 uninstall:

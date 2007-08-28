@@ -2377,7 +2377,7 @@ GF_Err DumpLSRSendEvent(GF_SceneDumper *sdump, GF_Command *com)
 		}
 	default:
 		if (com->send_event_integer)
-			fprintf(sdump->trace, " intvalue=\"%s\"", com->send_event_integer);
+			fprintf(sdump->trace, " intvalue=\"%d\"", com->send_event_integer);
 		if (com->send_event_string)
 			fprintf(sdump->trace, " stringvalue=\"%s\"", com->send_event_string);
 		break;

@@ -5,8 +5,6 @@ include config.mak
 
 vpath %.c $(SRC_PATH)
 
-INSTFLAGS=-s
-
 all: lib apps mods
 
 lib:

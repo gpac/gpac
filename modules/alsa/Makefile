@@ -22,10 +22,16 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_alsa.$(DYN_LIB_SUFFIX)
 
+ifeq ($(WANT_PIC),yes)
+OBJSPIC=$(OBJS:.o=.opic)
+else
+OBJSPIC=$(OBJS)
+endif
+
 all: $(LIB)
 
-$(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac -lasound
+$(LIB): $(OBJSPIC)
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac -lasound
 
 
 %.o: %.c

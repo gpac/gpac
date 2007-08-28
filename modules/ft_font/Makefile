@@ -28,11 +28,17 @@ endif
 LINKVAR=-L../../bin/gcc -lgpac $(FT_LIBS)
 
 
+ifeq ($(WANT_PIC),yes)
+OBJSPIC=$(OBJS:.o=.opic)
+else
+OBJSPIC=$(OBJS)
+endif
+
 all: $(LIB)
 
 
-$(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKVAR) $(EXTRALIBS)
+$(LIB): $(OBJSPIC)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(LINKVAR) $(EXTRALIBS)
 
 
 %.o: %.c
