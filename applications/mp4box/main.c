@@ -264,6 +264,7 @@ void PrintImportUsage()
 			"                       * For all other imports, default FPS is 25\n"
 			"                      -- THIS IS IGNORED FOR IsoMedia IMPORT --\n"
 			" -mpeg4:              forces MPEG-4 sample descriptions when possible (3GPP2)\n"
+			"                       For AAC, forces MPEG-4 AAC signaling even if MPEG-2\n"
 			" -agg N:              aggregates N audio frames in 1 sample (3GP media only)\n"
 			"                       * Note: Maximum value is 15 - Disabled by default\n"
 			"\n"

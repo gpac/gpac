@@ -486,6 +486,8 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 		fclose(in);
 		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Audio isn't MPEG-2/4 AAC with ADTS");
 	}
+	if (import->flags & GF_IMPORT_FORCE_MPEG4) hdr.is_mp2 = 0;
+
 	/*keep MPEG-2 AAC OTI even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
 	oti = hdr.is_mp2 ? hdr.profile+0x66-1 : 0x40;
 	sr = GF_M4ASampleRates[hdr.sr_idx];
@@ -493,7 +495,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->tk_info[0].track_num = 1;
 		import->tk_info[0].type = GF_ISOM_MEDIA_AUDIO;
-		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_SBR_IMPLICIT | GF_IMPORT_SBR_EXPLICIT;
+		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_SBR_IMPLICIT | GF_IMPORT_SBR_EXPLICIT | GF_IMPORT_FORCE_MPEG4;
 		import->nb_tracks = 1;
 		import->tk_info[0].audio_info.sample_rate = sr;
 		import->tk_info[0].audio_info.nb_channels = hdr.nb_ch;
