@@ -224,7 +224,14 @@ FILE *gf_temp_file_new()
 
 	return NULL;
 #elif defined(WIN32)
-	return tmpfile();
+	char tmp[MAX_PATH], t_file[100];
+	FILE *res = tmpfile();
+	if (res) return res;
+	/*tmpfile() may fail under vista ...*/
+	if (!GetEnvironmentVariable("TEMP",tmp,MAX_PATH)) return NULL;
+	sprintf(t_file, "\\gpac_%08x.tmp", (u32) tmp);
+	strcat(tmp, t_file);
+	return fopen(tmp, "w+b");
 #else
 	return tmpfile(); 
 #endif
