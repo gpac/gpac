@@ -935,8 +935,14 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		dst_tk = 0;
 		tk_id = gf_isom_get_track_id(orig, i+1);
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
-		if (dst_tk && !force_cat) {
-			if (!gf_isom_is_same_sample_description(orig, i+1, dest, dst_tk)) dst_tk = 0;
+		if (dst_tk) {
+			/*we MUST have the same codec*/
+			if (gf_isom_get_media_subtype(orig, i+1, 1) != gf_isom_get_media_subtype(dest, dst_tk, 1)) dst_tk = 0;
+			/*we only support cat with the same number of sample descriptions*/
+			if (gf_isom_get_sample_description_count(orig, i+1) != gf_isom_get_sample_description_count(dest, dst_tk)) dst_tk = 0;
+			/*if not forcing cat, check the media codec config is the same*/
+			if (!force_cat && !gf_isom_is_same_sample_description(orig, i+1, dest, dst_tk)) dst_tk = 0;
+			/*we force the same visual resolution*/
 			else if (mtype==GF_ISOM_MEDIA_VISUAL) {
 				u32 w, h, ow, oh;
 				gf_isom_get_visual_info(orig, i+1, 1, &ow, &oh);
