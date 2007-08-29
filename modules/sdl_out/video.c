@@ -111,10 +111,7 @@ static char collide_data[] =
 
 #define SDLVID()	SDLVidCtx *ctx = (SDLVidCtx *)dr->opaque
 
-#if defined(__linux__)
-#define HAVE_X11
-#endif
-#ifdef HAVE_X11
+#ifdef GPAC_HAS_X11
 #include <X11/Xlib.h>
 #endif
 
@@ -491,7 +488,7 @@ u32 SDLVid_EventProc(void *par)
 
 	/*save display resolution (SDL doesn't give acees to that)*/
 	dr->max_screen_width = dr->max_screen_height = 0;
-#ifdef HAVE_X11
+#ifdef GPAC_HAS_X11
     {
     Display *dpy = XOpenDisplay(NULL);
     if (dpy) {
@@ -632,6 +629,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	ctx->output_3d_type = 0;
 	ctx->systems_memory = (init_flags & (GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION) ) ? 2 : 0;
 	if (!SDLOUT_InitSDL()) return GF_IO_ERR;
+
 	ctx->sdl_th_state = 0;
 	gf_th_run(ctx->sdl_th, SDLVid_EventProc, dr);
 	while (!ctx->sdl_th_state) gf_sleep(10);
@@ -926,7 +924,6 @@ void *SDL_NewVideo()
 	driv->Blit = NULL;
 	driv->LockBackBuffer = SDLVid_LockBackBuffer;
 	driv->LockOSContext = NULL;
-
 	return driv;
 }
 
