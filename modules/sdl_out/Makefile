@@ -14,7 +14,10 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-ifeq ($(CONFIG_LINUX),yes)
+LINKFLAGS=$(SDL_LIBS)
+ifeq ($(CONFIG_X11), yes)
+CFLAGS+=-DGPAC_HAS_X11
+LINKFLAGS+=-lX11
 ifeq ($(X11_INC_PATH), )
 else
 CFLAGS+=-I$(X11_INC_PATH)
@@ -41,7 +44,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJSPIC)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(SDL_LIBS) -L../../bin/gcc -lgpac
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(LINKFLAGS) -L../../bin/gcc -lgpac
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 
