@@ -847,9 +847,9 @@ err_exit:
 	return e;
 }
 
-GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir);
+GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat);
 
-GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir)
+GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat)
 {
 	u32 i, j, count, nb_tracks, nb_samp, nb_done;
 	GF_ISOFile *orig;
@@ -860,7 +860,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	u64 insert_dts, skip_until_dts;
 	GF_ISOSample *samp;
 
-	if (strchr(fileName, '*')) return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir);
+	if (strchr(fileName, '*')) return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat);
 
 	e = GF_OK;
 	if (!gf_isom_probe_file(fileName)) {
@@ -935,7 +935,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		dst_tk = 0;
 		tk_id = gf_isom_get_track_id(orig, i+1);
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
-		if (dst_tk) {
+		if (dst_tk && !force_cat) {
 			if (!gf_isom_is_same_sample_description(orig, i+1, dest, dst_tk)) dst_tk = 0;
 			else if (mtype==GF_ISOM_MEDIA_VISUAL) {
 				u32 w, h, ow, oh;
@@ -1074,6 +1074,7 @@ typedef struct
 	Double force_fps;
 	u32 frames_per_sample;
 	char *tmp_dir;
+	Bool force_cat;
 } CATEnum;
 
 Bool cat_enumerate(void *cbk, char *szName, char *szPath)
@@ -1089,12 +1090,12 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath)
 	strcpy(szFileName, szName);
 	strcat(szFileName, cat_enum->szOpt);
 
-	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->tmp_dir);
+	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->tmp_dir, cat_enum->force_cat);
 	if (e) return 1;
 	return 0;
 }
 
-GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir)
+GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat)
 {
 	CATEnum cat_enum;
 	char *sep;
@@ -1104,6 +1105,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Do
 	cat_enum.force_fps = force_fps;
 	cat_enum.frames_per_sample = frames_per_sample;
 	cat_enum.tmp_dir = tmp_dir;
+	cat_enum.force_cat = force_cat;
 
 	strcpy(cat_enum.szPath, fileName);
 	sep = strrchr(cat_enum.szPath, GF_PATH_SEPARATOR);
