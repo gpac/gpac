@@ -190,8 +190,7 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 
 	use_texture = back_texture_enabled(bck, &st->txh);
 
-	/*no lights on background*/
-	visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT | V3D_STATE_BLEND, 0);
+	visual_3d_set_background_state(tr_state->visual, 1);
 
 	visual_3d_matrix_push(tr_state->visual);
 
@@ -206,6 +205,7 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 		visual_3d_clear(tr_state->visual, bck->backColor, FIX_ONE);
 		if (!use_texture) {
 			visual_3d_matrix_pop(tr_state->visual);
+			visual_3d_set_background_state(tr_state->visual, 0);
 			return;
 		}
 		/*we need a hack here because main vp is always rendered before main background, and in the case of a
@@ -266,6 +266,7 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 	}
 
 	visual_3d_matrix_pop(tr_state->visual);
+	visual_3d_set_background_state(tr_state->visual, 0);
 }
 #endif
 

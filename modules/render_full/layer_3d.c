@@ -464,6 +464,7 @@ static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 			/*note that we don't backup the state as a layer3D cannot be declared in a layer3D*/
 			tr_state->layer3d = node;
+
 			/*setup GL*/
 			visual_3d_setup(tr_state->visual);
 		}

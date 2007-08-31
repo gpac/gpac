@@ -67,36 +67,8 @@ void render_load_opengl_extensions(Render *sr)
 #endif
 }
 
-
-void visual_3d_setup(GF_VisualManager *vis)
+static void visual_3d_setup_quality(GF_VisualManager *vis)
 {
-#ifndef GPAC_USE_TINYGL
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glDepthFunc(GL_LEQUAL);
-#endif
-	glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glFrontFace(GL_CCW);
-    glCullFace(GL_BACK);
-
-#ifdef GPAC_USE_OGL_ES
-	glClearDepthx(FIX_ONE);
-	glLightModelx(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-	glMaterialx(GL_FRONT_AND_BACK, GL_SHININESS, FLT2FIX(0.2f * 128) );
-#else
-	glClearDepth(1.0f);
-	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_FALSE);
-	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, (float) (0.2 * 128));
-#endif
-
-    glShadeModel(GL_SMOOTH);
-	glGetIntegerv(GL_MAX_LIGHTS, (GLint*)&vis->max_lights);
-#ifdef GL_MAX_CLIP_PLANES
-	glGetIntegerv(GL_MAX_CLIP_PLANES, &vis->max_clips);
-#endif
-
-
 	if (vis->render->compositor->high_speed) {
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
@@ -132,10 +104,41 @@ void visual_3d_setup(GF_VisualManager *vis)
 		glDisable(GL_POLYGON_SMOOTH);
 #endif
 	}
+}
+
+void visual_3d_setup(GF_VisualManager *vis)
+{
+#ifndef GPAC_USE_TINYGL
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDepthFunc(GL_LEQUAL);
+#endif
+	glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW);
+    glCullFace(GL_BACK);
+
+#ifdef GPAC_USE_OGL_ES
+	glClearDepthx(FIX_ONE);
+	glLightModelx(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+	glMaterialx(GL_FRONT_AND_BACK, GL_SHININESS, FLT2FIX(0.2f * 128) );
+#else
+	glClearDepth(1.0f);
+	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_FALSE);
+	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, (float) (0.2 * 128));
+#endif
+
+    glShadeModel(GL_SMOOTH);
+	glGetIntegerv(GL_MAX_LIGHTS, (GLint*)&vis->max_lights);
+#ifdef GL_MAX_CLIP_PLANES
+	glGetIntegerv(GL_MAX_CLIP_PLANES, &vis->max_clips);
+#endif
+
+	visual_3d_setup_quality(vis);
 
 	glDisable(GL_COLOR_MATERIAL);
 	glDisable(GL_LIGHTING);
-	glEnable(GL_BLEND);
+	glDisable(GL_BLEND);
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_FOG);
@@ -143,8 +146,33 @@ void visual_3d_setup(GF_VisualManager *vis)
 	will actually compute the related fragments. Since a typical world always use scaling, we always turn normalization on 
 	to avoid tracking scale*/
 	glEnable(GL_NORMALIZE);
+
 	glClear(GL_DEPTH_BUFFER_BIT);
 }
+
+void visual_3d_set_background_state(GF_VisualManager *vis, Bool on)
+{
+	if (on) {
+		glDisable(GL_LIGHTING);
+		glDisable(GL_FOG);
+		glDisable(GL_LINE_SMOOTH);
+		glDisable(GL_POINT_SMOOTH);
+		glDisable(GL_BLEND);
+#ifndef GPAC_USE_OGL_ES
+		glDisable(GL_POLYGON_SMOOTH);
+#endif
+		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+		glHint(GL_LINE_SMOOTH_HINT, GL_FASTEST);
+		glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
+#ifdef GL_POLYGON_SMOOTH_HINT
+		glHint(GL_POLYGON_SMOOTH_HINT, GL_FASTEST);
+#endif
+	} else {
+		visual_3d_setup_quality(vis);
+	}
+}
+
 
 void visual_3d_enable_depth_buffer(GF_VisualManager *vis, Bool on)
 {
@@ -349,7 +377,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 
 	/*if inside or no aabb for the mesh draw vertex array*/
-	if (1 || (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos) {
+	if ( (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos) {
 #ifdef GPAC_USE_OGL_ES
 		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, mesh->indices);
 #else

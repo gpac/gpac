@@ -745,6 +745,7 @@ static GFINLINE void insert_node_def(GF_SceneGraph *sg, GF_Node *def, u32 ID, co
 			cur = cur->next;
 		}
 		cur->next = reg_node;
+		sg->id_node_last = reg_node;
 	}
 }
 

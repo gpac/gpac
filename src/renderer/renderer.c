@@ -1177,6 +1177,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		if (sr->reset_graphics && st->hwtx) sr->visual_renderer->TextureHWReset(st);
 		st->update_texture_fcnt(st);
 	}
+	sr->reset_graphics = 0;
 
 	/*if invalidated, draw*/
 	if (sr->draw_next_frame) {
@@ -1201,7 +1202,6 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 			}
 #endif
 		}
-		sr->reset_graphics = 0;
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_RENDER, ("[Render] Scene drawn in %d ms\n", gf_sys_clock() - in_time));
 
@@ -1260,8 +1260,8 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	if ((sr->user->init_flags & GF_TERM_NO_VISUAL_THREAD) || !sr->frame_duration) return;
 
 	/*compute sleep time till next frame, otherwise we'll kill the CPU*/
-	i=1;
-	while (i * sr->frame_duration < end_time) i++;
+	i = end_time / sr->frame_duration + 1;
+//	while (i * sr->frame_duration < end_time) i++;
 	in_time = i * sr->frame_duration - end_time;
 	gf_sleep(in_time);
 }

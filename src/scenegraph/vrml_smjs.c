@@ -1729,6 +1729,8 @@ JSBool array_setElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 	ret = JS_GetArrayLength(c, ptr->js_list, &len);
 	if (ret==JS_FALSE) return JS_FALSE;
 
+	if (!gf_sg_vrml_is_sf_field(ptr->field.fieldType)) return JS_FALSE;
+
 	switch (ptr->field.fieldType) {
 	case GF_SG_VRML_MFVEC2F: the_sf_class = &js_rt->SFVec2fClass; break;
 	case GF_SG_VRML_MFVEC3F: the_sf_class = &js_rt->SFVec3fClass; break;

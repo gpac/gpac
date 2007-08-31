@@ -149,17 +149,10 @@ static void RenderViewport(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode != TRAVERSE_RENDER_BINDABLE) return;
 	if (!vp->isBound) return;
 
-#ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d) {
-		w = tr_state->bbox.max_edge.x - tr_state->bbox.min_edge.x;
-		h = tr_state->bbox.max_edge.y - tr_state->bbox.min_edge.y;
-	} else 
-#endif
-	{
-		w = tr_state->bounds.width;
-		h = tr_state->bounds.height;
-	}
+	w = tr_state->bounds.width;
+	h = tr_state->bounds.height;
 	if (!w || !h) return;
+
 
 	is_layer = (tr_state->viewpoints == tr_state->visual->view_stack) ? 0 : 1;
 	/*if no parent this is the main viewport, don't update if not changed*/
@@ -173,19 +166,7 @@ static void RenderViewport(GF_Node *node, void *rs, Bool is_destroy)
 
 	//compute scaling ratio
 	rc = gf_rect_center(vp->size.x, vp->size.y);
-	gf_mx2d_apply_rect(&mat, &rc);
-		
-#ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d) {
-	} else
-#endif
-	{ 
-		tr_state->bounds.width = rc.width;
-		tr_state->bounds.height = rc.height;
-	}
-
 	ar = gf_divfix(h, w);
-
 	rc_bckup = rc;
 
 	switch (vp->fit) {
@@ -217,8 +198,8 @@ static void RenderViewport(GF_Node *node, void *rs, Bool is_destroy)
 	default:
 		return;
 	}
-	sx = gf_divfix(rc_bckup.width , rc.width);
-	sy = gf_divfix(rc_bckup.height , rc.height);
+	sx = gf_divfix(rc.width, rc_bckup.width);
+	sy = gf_divfix(rc.height, rc_bckup.height);
 
 	rc.x = - rc.width/2;
 	rc.y = rc.height/2;
@@ -236,39 +217,32 @@ static void RenderViewport(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	}
 	
-	gf_mx2d_add_scale(&mat, sx, sy);
-	gf_mx2d_add_translation(&mat, -tx, -ty);
-	gf_mx2d_inverse(&mat);
-
-
-/*
 	gf_mx2d_init(mat);
-	gf_mx2d_add_translation(&mat, vp->position.x, vp->position.y);
-	gf_mx2d_add_rotation(&mat, 0, 0, vp->orientation);
-	gf_mx2d_add_translation(&mat, -w/2, h/2);
-	gf_mx2d_add_scale(&mat, 1/sx, 1/sy);
-	gf_mx2d_add_translation(&mat, -tx, -ty);
-*/
+	gf_mx2d_add_scale(&mat, sx, sy);
+	gf_mx2d_add_translation(&mat, tx, ty);
 
+	gf_mx2d_add_translation(&mat, -vp->position.x*sx, -vp->position.y*sy);
+	gf_mx2d_add_rotation(&mat, 0, 0, vp->orientation);
+
+	tr_state->bounds = rc;
+	tr_state->bounds.x += tx;
+	tr_state->bounds.y += ty;
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		/*in layers directly modify the model matrix*/
-		if (tr_state->viewpoints != tr_state->visual->view_stack) {
+		if (is_layer) {
 			gf_mx_from_mx2d(&mx, &mat);
 			gf_mx_add_matrix(&tr_state->model_matrix, &mx);
-		} else {
+		} 
+		/*otherwise add to camera viewport matrix*/
+		else {
 			gf_mx_from_mx2d(&tr_state->camera->viewport, &mat);
 			tr_state->camera->flags = (CAM_HAS_VIEWPORT | CAM_IS_DIRTY);
 		}
-		return;
-	}
+	} else
 #endif
-	gf_mx2d_add_matrix(&tr_state->transform, &mat);
-	tr_state->bounds.width = rc.width;
-	tr_state->bounds.height = rc.height;
-	tr_state->bounds.x = - rc.width/2 + tx;
-	tr_state->bounds.y = rc.height/2 + ty;
+		gf_mx2d_pre_multiply(&tr_state->transform, &mat);
 }
 
 void render_init_viewport(Render *sr, GF_Node *node)

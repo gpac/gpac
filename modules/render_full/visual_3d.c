@@ -116,8 +116,8 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	SFVec3f d;
 
 	/*update znear&zfar*/
-	tr_state->camera->z_near = tr_state->camera->avatar_size.x / 20; 
-	if (tr_state->camera->z_near<=0) tr_state->camera->z_near = FIX_ONE/100;
+	tr_state->camera->z_near = tr_state->camera->avatar_size.x *2; 
+	if (tr_state->camera->z_near<=0) tr_state->camera->z_near = FIX_ONE/2;
 	tr_state->camera->z_far = tr_state->camera->visibility; 
 	if (tr_state->camera->z_far<=0) {
 		tr_state->camera->z_far = INT2FIX(1000);
@@ -128,8 +128,6 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 //		if (tr_state->is_pixel_metrics) tr_state->camera->z_far = gf_mulfix(tr_state->camera->z_far , tr_state->min_hsize);
 #endif
 	}
-//	tr_state->camera->z_near = 0.1;
-//	fprintf(stdout, "GL znear %g zfar %g\n", tr_state->camera->z_near, tr_state->camera->z_far);
 
 	if (vp) {
 		/*now check if vp is in pixel metrics. If not then:
@@ -519,7 +517,6 @@ static void visual_3d_render_node(GF_TraverseState *tr_state, GF_Node *root_node
 
 Bool visual_3d_render_frame(GF_VisualManager *vis, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual)
 {
-	/*setup GL*/
 	visual_3d_setup(vis);
 
 	/*setup our traversing state*/

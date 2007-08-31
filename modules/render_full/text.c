@@ -1196,6 +1196,8 @@ static void Text_Render(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 	}
 
+	text_check_changes(n, st, tr_state);
+
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_DRAW_2D:
 		text_draw_2d(n, tr_state);
@@ -1209,7 +1211,6 @@ static void Text_Render(GF_Node *n, void *rs, Bool is_destroy)
 		text_pick(n, st, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
-		text_check_changes(n, st, tr_state);
 		tr_state->bounds = st->bounds;
 		return;
 	case TRAVERSE_RENDER:
@@ -1217,8 +1218,6 @@ static void Text_Render(GF_Node *n, void *rs, Bool is_destroy)
 	default:
 		return;
 	}
-
-	text_check_changes(n, st, tr_state);
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) return;

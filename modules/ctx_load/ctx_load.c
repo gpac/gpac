@@ -265,12 +265,6 @@ static Bool CTXLoad_StreamInRootOD(GF_ObjectDescriptor *od, u32 ESID)
 }
 
 
-static GF_SceneGraph *CTXLoad_GetProtoLib(void *cbk, MFURL *lib_url)
-{
-	CTXLoadPriv *priv = (CTXLoadPriv *)cbk;
-	return gf_is_get_proto_lib(priv->inline_scene, lib_url);
-}
-
 Double CTXLoad_GetVRMLTime(void *cbk)
 {
 	u32 secs, msecs;
@@ -379,8 +373,8 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 				gf_sg_set_scene_size_info(priv->inline_scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
 				/*VRML, override base clock*/
 				if ((priv->load.type==GF_SM_LOAD_VRML) || (priv->load.type==GF_SM_LOAD_X3DV) || (priv->load.type==GF_SM_LOAD_X3D)) {
+					/*override clock callback*/
 					gf_sg_set_scene_time_callback(priv->inline_scene->graph, CTXLoad_GetVRMLTime);
-					gf_sg_set_proto_loader(priv->inline_scene->graph, CTXLoad_GetProtoLib);
 				}
 			}
 		} 

@@ -31,6 +31,7 @@
 
 GF_Err render_3d_set_aspect_ratio(Render *sr)
 {
+	GF_Event evt;
 	Double ratio;
 	Fixed scaleX, scaleY;
 
@@ -47,56 +48,51 @@ GF_Err render_3d_set_aspect_ratio(Render *sr)
 		render_set_aspect_ratio_scaling(sr, FIX_ONE, FIX_ONE);
 		sr->visual->width = sr->vp_width;
 		sr->visual->height = sr->vp_height;
-		if (sr->recompute_ar==2) goto hw_setup;
+	} else {
 
-		return GF_OK;
-	}
-
-	switch (sr->compositor->aspect_ratio) {
-	case GF_ASPECT_RATIO_FILL_SCREEN:
-		break;
-	case GF_ASPECT_RATIO_16_9:
-		sr->vp_height = 9 * sr->vp_width  / 16;
-		break;
-	case GF_ASPECT_RATIO_4_3:
-		sr->vp_height = 3 * sr->vp_width / 4;
-		break;
-	default:
-		ratio = sr->compositor->scene_height;
-		ratio /= sr->compositor->scene_width;
-		if (sr->vp_width * ratio > sr->vp_height) {
-			sr->vp_width = sr->vp_height * sr->compositor->scene_width;
-			sr->vp_width /= sr->compositor->scene_height;
+		switch (sr->compositor->aspect_ratio) {
+		case GF_ASPECT_RATIO_FILL_SCREEN:
+			break;
+		case GF_ASPECT_RATIO_16_9:
+			sr->vp_height = 9 * sr->vp_width  / 16;
+			break;
+		case GF_ASPECT_RATIO_4_3:
+			sr->vp_height = 3 * sr->vp_width / 4;
+			break;
+		default:
+			ratio = sr->compositor->scene_height;
+			ratio /= sr->compositor->scene_width;
+			if (sr->vp_width * ratio > sr->vp_height) {
+				sr->vp_width = sr->vp_height * sr->compositor->scene_width;
+				sr->vp_width /= sr->compositor->scene_height;
+			}
+			else {
+				sr->vp_height = sr->vp_width * sr->compositor->scene_height;
+				sr->vp_height /= sr->compositor->scene_width;
+			}
+			break;
 		}
-		else {
-			sr->vp_height = sr->vp_width * sr->compositor->scene_height;
-			sr->vp_height /= sr->compositor->scene_width;
+		sr->vp_x = (sr->compositor->width - sr->vp_width) / 2;
+		sr->vp_y = (sr->compositor->height - sr->vp_height) / 2;
+		/*update size info for main visual*/
+		if (sr->visual) {
+			sr->visual->width = sr->compositor->scene_width;
+			sr->visual->height = sr->compositor->scene_height;
 		}
-		break;
+		/*scaling is still needed for bitmap*/
+		scaleX = gf_divfix(INT2FIX(sr->vp_width), INT2FIX(sr->compositor->scene_width));
+		scaleY = gf_divfix(INT2FIX(sr->vp_height), INT2FIX(sr->compositor->scene_height));
+		render_set_aspect_ratio_scaling(sr, scaleX, scaleY);
 	}
-	sr->vp_x = (sr->compositor->width - sr->vp_width) / 2;
-	sr->vp_y = (sr->compositor->height - sr->vp_height) / 2;
-	/*update size info for main visual*/
-	if (sr->visual) {
-		sr->visual->width = sr->compositor->scene_width;
-		sr->visual->height = sr->compositor->scene_height;
-	}
-	/*scaling is still needed for bitmap*/
-	scaleX = gf_divfix(INT2FIX(sr->vp_width), INT2FIX(sr->compositor->scene_width));
-	scaleY = gf_divfix(INT2FIX(sr->vp_height), INT2FIX(sr->compositor->scene_height));
-	render_set_aspect_ratio_scaling(sr, scaleX, scaleY);
 
 	/*and resetup OpenGL*/
-hw_setup:
-	{
-		GF_Event evt;
-		evt.type = GF_EVENT_VIDEO_SETUP;
-		evt.setup.width = sr->compositor->width;
-		evt.setup.height = sr->compositor->height;
-		evt.setup.back_buffer = 1;
-		evt.setup.opengl_mode = 1;
-		sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
-	}
+	evt.type = GF_EVENT_VIDEO_SETUP;
+	evt.setup.width = sr->compositor->width;
+	evt.setup.height = sr->compositor->height;
+	evt.setup.back_buffer = 1;
+	evt.setup.opengl_mode = 1;
+	sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
+	sr->compositor->reset_graphics=0;
 	return GF_OK;
 }
 

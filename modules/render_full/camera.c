@@ -180,7 +180,7 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 			gf_mx_add_translation(&cam->modelview, -cam->width / 2, -cam->height / 2, 0);
 		}
 
-		/*compute center and radius*/
+		/*compute center and radius - CHECK ME!*/
 		vlen = cam->z_far - cam->z_near;
 		h = gf_mulfix(vlen , gf_tan(cam->fieldOfView / 2));
 		w = gf_mulfix(h, ar);

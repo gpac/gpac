@@ -50,6 +50,8 @@ static void RenderDisk2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
+	disk2d_check_changes(node, stack, tr_state);
+
 	switch (tr_state->traversing_mode) {
 #ifndef GPAC_DISABLE_3D
 	case TRAVERSE_DRAW_3D:
@@ -62,14 +64,12 @@ static void RenderDisk2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_GET_BOUNDS:
-		disk2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_RENDER:
-		disk2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -112,6 +112,8 @@ static void RenderArc2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
+	arc2d_check_changes(node, stack, tr_state);
+
 	switch (tr_state->traversing_mode) {
 #ifndef GPAC_DISABLE_3D
 	case TRAVERSE_DRAW_3D:
@@ -127,7 +129,6 @@ static void RenderArc2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_GET_BOUNDS:
-		arc2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 #ifndef GPAC_DISABLE_3D
 		gf_bbox_from_rect(&tr_state->bbox, &tr_state->bounds);
@@ -137,7 +138,6 @@ static void RenderArc2D(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_RENDER:
-		arc2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -182,6 +182,8 @@ static void RenderPolyline2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
+	polyline2d_check_changes(node, stack, tr_state);
+
 	switch (tr_state->traversing_mode) {
 #ifndef GPAC_DISABLE_3D
 	case TRAVERSE_DRAW_3D:
@@ -193,14 +195,12 @@ static void RenderPolyline2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_GET_BOUNDS:
-		polyline2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_RENDER:
-		polyline2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -247,6 +247,8 @@ static void RenderTriangleSet2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
+	triangleset2d_check_changes(node, stack, tr_state);
+
 	switch (tr_state->traversing_mode) {
 #ifndef GPAC_DISABLE_3D
 	case TRAVERSE_DRAW_3D:
@@ -290,14 +292,12 @@ static void RenderTriangleSet2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_GET_BOUNDS:
-		triangleset2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_RENDER:
-		triangleset2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif

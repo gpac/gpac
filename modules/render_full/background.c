@@ -266,6 +266,7 @@ static void RenderBackground(GF_Node *node, void *rs, Bool is_destroy)
 		DestroyBackground(node);
 		return;
 	}
+
 	gf_node_dirty_clear(node, 0);
 	bck = (M_Background *)node;
 	st = (BackgroundStack *) gf_node_get_private(node);
@@ -319,8 +320,6 @@ static void RenderBackground(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	}
 
-	visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT | V3D_STATE_BLEND, 0);
-
 	/*undo translation*/
 	res.x = res.y = res.z = 0; res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&tr_state->camera->unprojection, &res);
@@ -329,6 +328,9 @@ static void RenderBackground(GF_Node *node, void *rs, Bool is_destroy)
 	res.y = gf_divfix(res.y, res.q);
 	res.z = gf_divfix(res.z, res.q);
 	/*NB: we don't support local rotation of the background ...*/
+
+	/*enable background state (turn off all quality options)*/
+	visual_3d_set_background_state(tr_state->visual, 1);
 
 	if (has_sky) {
 		if (!st->sky_mesh) {
@@ -396,6 +398,9 @@ static void RenderBackground(GF_Node *node, void *rs, Bool is_destroy)
 
 		visual_3d_matrix_pop(tr_state->visual);
 	}
+
+	/*enable background state (turn off all quality options)*/
+//	visual_3d_set_background_state(tr_state->visual, 0);
 }
 
 
