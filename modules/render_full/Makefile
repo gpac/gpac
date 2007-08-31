@@ -62,7 +62,7 @@ endif
 all: $(LIB)
 
 
-$(LIB): $(OBJS)
+$(LIB): $(OBJSPIC)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(LINKFLAGS) $(LINKLIBS)
 
 
