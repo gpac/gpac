@@ -92,12 +92,38 @@ static void l2d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 	}
 }
 
+
+#if VIEWPORT_CLIPS
+static void rect_intersect(GF_Rect *rc1, GF_Rect *rc2)
+{
+	if (! gf_rect_overlaps(*rc1, *rc2)) {
+		rc1->width = rc1->height = 0; 
+		return;
+	}
+	if (rc2->x > rc1->x) {
+		rc1->width -= rc2->x - rc1->x;
+		rc1->x = rc2->x;
+	} 
+	if (rc2->x + rc2->width < rc1->x + rc1->width) {
+		rc1->width = rc2->width + rc2->x - rc1->x;
+	} 
+	if (rc2->y < rc1->y) {
+		rc1->height -= rc1->y - rc2->y; 
+		rc1->y = rc2->y;
+	} 
+	if (rc2->y - rc2->height > rc1->y - rc1->height) {
+		rc1->height = rc1->y - rc2->y + rc2->height;
+	} 
+}
+#endif
+
 static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_List *oldb, *oldv;
 	GF_Node *viewport;
 	GF_Node *back;
 	GF_Matrix2D backup;
+	GF_Matrix mx3d;
 
 #ifndef GPAC_DISABLE_3D
 	GF_List *oldf, *oldn;
@@ -158,6 +184,8 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			tr_state->layer_clipper = render_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, 1);
 
 			visual_3d_matrix_push(tr_state->visual);
+			gf_mx_copy(mx3d, tr_state->model_matrix);
+
 			/*setup clipping*/
 			visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper);
 			
@@ -174,10 +202,11 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			/*apply viewport*/
 			if (viewport) {
 				tr_state->traversing_mode = TRAVERSE_RENDER_BINDABLE;
-				gf_bbox_from_rect(&tr_state->bbox, &st->clip);
+				tr_state->bounds = st->clip;
 				gf_node_render(viewport, tr_state);
 				visual_3d_matrix_add(tr_state->visual, tr_state->model_matrix.m);
 			}
+
 
 			node_list_backup = tr_state->visual->alpha_nodes_to_draw;
 			tr_state->visual->alpha_nodes_to_draw = gf_list_new();
@@ -187,6 +216,7 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
 
 			visual_3d_flush_contexts(tr_state->visual, tr_state);
+			tr_state->traversing_mode = TRAVERSE_RENDER;
 
 			assert(!gf_list_count(tr_state->visual->alpha_nodes_to_draw));
 			gf_list_del(tr_state->visual->alpha_nodes_to_draw);
@@ -194,6 +224,7 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 
 			
 			visual_3d_matrix_pop(tr_state->visual);
+			gf_mx_copy(tr_state->model_matrix, mx3d);
 
 			visual_3d_reset_clipper_2d(tr_state->visual);
 
@@ -212,17 +243,23 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 
 			prev_clip = tr_state->visual->top_clipper;
 			rc = st->clip;
+			/*get clipper in world coordinate*/
 			gf_mx2d_apply_rect(&tr_state->transform, &rc);
 
 			if (viewport) {
 				tr_state->traversing_mode = TRAVERSE_RENDER_BINDABLE;
-//				tr_state->bounds = st->clip;
-				tr_state->bounds = rc;
+				tr_state->bounds = st->clip;
 				gf_node_render(viewport, tr_state);
+#if VIEWPORT_CLIPS
+				/*move viewport box in world coordinate*/
+				gf_mx2d_apply_rect(&backup, &tr_state->bounds);
+				/*and intersect with layer clipper*/
+				rect_intersect(&rc, &tr_state->bounds);
+#endif
 			}
 
-//			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
-//			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
+			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
+			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
 			
 			tr_state->traversing_mode = TRAVERSE_RENDER;
 			if (back && Bindable_GetIsBound(back) ) {
@@ -277,8 +314,38 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		
 		/*check picking - we must fall in our 2D clipper*/
 	case TRAVERSE_PICK:
-		if (render_pick_in_clipper(tr_state, &st->clip)) 
-			group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
+		if (render_pick_in_clipper(tr_state, &st->clip)) {
+		
+#ifndef GPAC_DISABLE_3D
+			if (tr_state->visual->type_3d) {
+				/*apply viewport*/
+				if (viewport) {
+					gf_mx_copy(mx3d, tr_state->model_matrix);
+					tr_state->traversing_mode = TRAVERSE_RENDER_BINDABLE;
+					tr_state->bounds = st->clip;
+					gf_node_render(viewport, tr_state);
+					tr_state->traversing_mode = TRAVERSE_PICK;
+					group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
+					gf_mx_copy(tr_state->model_matrix, mx3d);
+				} else {
+					group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
+				}
+			} else 
+#endif
+			{
+				if (viewport) {
+					gf_mx2d_copy(backup, tr_state->transform);
+					tr_state->traversing_mode = TRAVERSE_RENDER_BINDABLE;
+					tr_state->bounds = st->clip;
+					gf_node_render(viewport, tr_state);
+					tr_state->traversing_mode = TRAVERSE_PICK;
+					group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
+					gf_mx2d_copy(tr_state->transform, backup);
+				} else {
+					group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
+				}
+			}	
+		}
 		break;
 	case TRAVERSE_GET_BOUNDS:
 		tr_state->bounds = st->clip;

@@ -1070,7 +1070,7 @@ int main (int argc, char **argv)
 				request_next_playlist_item = 0;
 				goto force_input;
 			}
-//			UpdateRTInfo("");
+			UpdateRTInfo("");
 			if (not_threaded) {
 				gf_term_process_step(term);
 			} else {

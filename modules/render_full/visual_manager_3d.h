@@ -151,7 +151,7 @@ typedef struct
 } Drawable3DContext;
 
 /*
-	till end of file: all 3D specific calls. These should only be used by the 3D visual
+	till end of file: all 3D specific calls. 
 */
 
 /*setup visual (hint & co)*/
@@ -179,6 +179,9 @@ void visual_3d_set_state(GF_VisualManager *surf, u32 flag_mask, Bool setOn);
 void visual_3d_clear(GF_VisualManager *surf, SFColor color, Fixed alpha);
 /*clear depth*/
 void visual_3d_clear_depth(GF_VisualManager *surf);
+
+/*turns background state on/off. When on, all quality options are disabled in order to draw as fast as possible*/
+void visual_3d_set_background_state(GF_VisualManager *vis, Bool on);
 
 /*matrix mode types*/
 enum

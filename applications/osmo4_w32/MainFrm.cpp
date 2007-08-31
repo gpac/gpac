@@ -894,7 +894,7 @@ void CMainFrame::BuildViewList()
 	s32 id = ID_VP_0;
 	nb_viewpoints = 0;
 	while (1) {
-		const char *szName;
+		const char *szName = NULL;
 		Bool bound;
 		GF_Err e = gf_term_get_viewpoint(app->m_term, nb_viewpoints+1, &szName, &bound);
 		if (e) break;

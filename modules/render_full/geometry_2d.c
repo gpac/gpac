@@ -133,6 +133,8 @@ static void RenderCircle(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
+	circle_check_changes(node, stack, tr_state);
+
 	switch (tr_state->traversing_mode) {
 #ifndef GPAC_DISABLE_3D
 	case TRAVERSE_DRAW_3D:
@@ -145,14 +147,12 @@ static void RenderCircle(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_GET_BOUNDS:
-		circle_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_RENDER:
-		circle_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -189,6 +189,7 @@ static void RenderEllipse(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
+	ellipse_check_changes(node, stack, tr_state);
 
 	switch (tr_state->traversing_mode) {
 #ifndef GPAC_DISABLE_3D
@@ -204,11 +205,9 @@ static void RenderEllipse(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
-		ellipse_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_RENDER:
-		ellipse_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -299,6 +298,8 @@ static void RenderRectangle(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
+	rectangle_check_changes(node, stack, tr_state);
+
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_DRAW_2D:
 		render_2d_draw_rectangle(tr_state);
@@ -316,11 +317,9 @@ static void RenderRectangle(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
-		rectangle_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_RENDER:
-		rectangle_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -496,6 +495,8 @@ static void RenderCurve2D(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	if (!c2D->point) return;
 
+	curve2d_check_changes(node, stack, tr_state);
+
 	switch (tr_state->traversing_mode) {
 #ifndef GPAC_DISABLE_3D
 	case TRAVERSE_DRAW_3D:
@@ -510,11 +511,9 @@ static void RenderCurve2D(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
-		curve2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_RENDER:
-		curve2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
@@ -618,6 +617,8 @@ static void RenderPointSet2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (!ps2D->coord) return;
 
+	pointset2d_check_changes(node, stack, tr_state);
+
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_DRAW_2D:
 		PointSet2D_Draw(node, tr_state);
@@ -638,13 +639,11 @@ static void RenderPointSet2D(GF_Node *node, void *rs, Bool is_destroy)
 	} 
 #endif
 	case TRAVERSE_GET_BOUNDS:
-		pointset2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
 		return;
 	case TRAVERSE_RENDER:
-		pointset2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif

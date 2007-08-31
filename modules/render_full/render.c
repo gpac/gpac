@@ -697,14 +697,56 @@ static Bool render_script_action(GF_VisualRenderer *vr, u32 type, GF_Node *n, GF
 
 static GF_Err render_get_viewport(GF_VisualRenderer *vr, u32 viewpoint_idx, const char **outName, Bool *is_bound)
 {
+	u32 count;
+	GF_Node *n;
+	Render *sr = (Render *) vr->user_priv;
+	if (!sr->visual) return GF_BAD_PARAM;
+	count = gf_list_count(sr->visual->view_stack);
+	if (!viewpoint_idx) return GF_BAD_PARAM;
+	if (viewpoint_idx>count) return GF_EOS;
+
+	n = (GF_Node*)gf_list_get(sr->visual->view_stack, viewpoint_idx-1);
+	switch (gf_node_get_tag(n)) {
+	case TAG_MPEG4_Viewport: *outName = ((M_Viewport*)n)->description.buffer; *is_bound = ((M_Viewport*)n)->isBound;return GF_OK;
+	case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: *outName = ((M_Viewpoint*)n)->description.buffer; *is_bound = ((M_Viewpoint*)n)->isBound; return GF_OK;
+	default: *outName = NULL; return GF_OK;
+	}
 	return GF_OK;
 }
 
 static GF_Err render_set_viewport(GF_VisualRenderer *vr, u32 viewpoint_idx, const char *viewpoint_name)
 {
-	return GF_OK;
-}
+	u32 count, i;
+	GF_Node *n;
+	Render *sr = (Render *) vr->user_priv;
+	if (!sr->visual) return GF_BAD_PARAM;
+	count = gf_list_count(sr->visual->view_stack);
+	if (viewpoint_idx>count) return GF_BAD_PARAM;
+	if (!viewpoint_idx && !viewpoint_name) return GF_BAD_PARAM;
 
+	if (viewpoint_idx) {
+		Bool bind;
+		n = (GF_Node*)gf_list_get(sr->visual->view_stack, viewpoint_idx-1);
+		bind = Bindable_GetIsBound(n);
+		Bindable_SetSetBind(n, !bind);
+		return GF_OK;
+	}
+	for (i=0; i<count;i++) {
+		char *name = NULL;
+		n = (GF_Node*)gf_list_get(sr->visual->view_stack, viewpoint_idx-1);
+		switch (gf_node_get_tag(n)) {
+		case TAG_MPEG4_Viewport: name = ((M_Viewport*)n)->description.buffer; break;
+		case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: name = ((M_Viewpoint*)n)->description.buffer; break;
+		default: break;
+		}
+		if (name && !stricmp(name, viewpoint_name)) {
+			Bool bind = Bindable_GetIsBound(n);
+			Bindable_SetSetBind(n, !bind);
+			return GF_OK;
+		}
+	}
+	return GF_BAD_PARAM;
+}
 
 
 

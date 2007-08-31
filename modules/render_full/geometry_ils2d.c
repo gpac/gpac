@@ -238,6 +238,8 @@ static void RenderILS2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (!ils2D->coord) return;
 
+	ils2d_check_changes(node, stack, tr_state);
+
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_DRAW_2D:
 		ILS2D_Draw(node, tr_state);
@@ -263,11 +265,9 @@ static void RenderILS2D(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
-		ils2d_check_changes(node, stack, tr_state);
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_RENDER:
-		ils2d_check_changes(node, stack, tr_state);
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) return;
 #endif
