@@ -90,8 +90,12 @@ static void RenderPathExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 
 
 	if (gf_node_dirty_get(node)) {
+		u32 mode = tr_state->traversing_mode;
+		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
 		gf_node_render(path_ext.geometry, tr_state);
-		gf_node_dirty_clear(node, 0);
+		tr_state->traversing_mode = mode;
+
+
 		switch (gf_node_get_tag(path_ext.geometry) ) {
 		case TAG_MPEG4_Circle:
 		case TAG_MPEG4_Ellipse:
@@ -200,10 +204,14 @@ static void RenderPlanarExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node)) {
 		u32 cur, nb_pts;
+		u32 mode = tr_state->traversing_mode;
 		geo = spine = NULL;
+
+		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
 		gf_node_render(plane_ext.geometry, tr_state);
 		gf_node_render(plane_ext.spine, tr_state);
-		gf_node_dirty_clear(node, 0);
+		tr_state->traversing_mode = mode;
+
 		switch (gf_node_get_tag(plane_ext.geometry) ) {
 		case TAG_MPEG4_Circle:
 		case TAG_MPEG4_Ellipse:
@@ -392,7 +400,6 @@ static void RenderPlaneClipper(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node)) {
 		PlaneClipper_GetNode(node, &stack->pc);
-		gf_node_dirty_clear(node, 0);
 	}
 
 	if (tr_state->num_clip_planes==MAX_USER_CLIP_PLANES) {

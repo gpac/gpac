@@ -599,8 +599,8 @@ static void render_render_inline(GF_VisualRenderer *vr, GF_Node *inline_parent, 
 		Bool needs_3d_switch = 0;
 		switch (gf_node_get_tag(inline_root)) {
 		case TAG_MPEG4_Layer3D:
-		case TAG_MPEG4_Group:
-		case TAG_X3D_Group:
+//		case TAG_MPEG4_Group:
+//		case TAG_X3D_Group:
 			needs_3d_switch = 1;
 			break;
 		}
