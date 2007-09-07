@@ -869,7 +869,9 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_VIDEO_SETUP:
 		switch (evt->setup.opengl_mode) {
 		case 0:
+#ifdef GPAC_USE_OGL_ES
 			gctx->output_3d_type = 0;
+#endif
 			return GAPI_InitBackBuffer(dr, evt->setup.width, evt->setup.height);
 #ifdef GPAC_USE_OGL_ES
 		case 1:
