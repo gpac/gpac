@@ -949,7 +949,7 @@ static Bool parse_tsel_args(TSELAction *tsel_list, char *opts, u32 *nb_tsel_act)
 	u32 act;
 	u32 refTrackID = 0;
 	Bool has_switch_id;
-	u32 switch_id;
+	u32 switch_id = 0;
 	u32 criteria[30];
 	u32 nb_criteria = 0;
 	TSELAction *tsel_act;
