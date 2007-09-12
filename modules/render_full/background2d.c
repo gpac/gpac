@@ -142,9 +142,11 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 				}
 			}
 		}
-		if (stack->txh.hwtx) ctx->flags |= CTX_APP_DIRTY;
-		else ctx->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
+		/*if (stack->txh.hwtx) ctx->flags |= CTX_APP_DIRTY;
+		else */
+		ctx->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
 	} else {
+		
 		/*direct rendering, render without clippers */
 		if (tr_state->trav_flags & TF_RENDER_DIRECT) {
 			/*directly clear with specified color*/

@@ -555,12 +555,12 @@ void svg_render_domtext(GF_Node *node, SVGAllAttributes atts, GF_TraverseState *
 		if (temp_txt) {
 			u16 *wcText;
 			//si on va épuiser les positions, on prend la dernière valeur
-			if (tr_state->count_x==1) {
+			if ((tr_state->count_x==1) && atts.text_x) {
 				SVG_Coordinate *xc = (SVG_Coordinate *) gf_list_get(*atts.text_x, tr_state->chunk_index);
 				tr_state->text_end_x = xc->value;
 				(tr_state->count_x)--;
 			}
-			if (tr_state->count_y==1) {
+			if ((tr_state->count_y==1) && atts.text_y) {
 				SVG_Coordinate *yc = (SVG_Coordinate *) gf_list_get(*atts.text_y, tr_state->chunk_index);
 				tr_state->text_end_y = yc->value;
 				(tr_state->count_y)--;

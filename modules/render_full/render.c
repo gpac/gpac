@@ -116,9 +116,9 @@ static void render_reset(GF_VisualRenderer *vr)
 
 	/*reset traverse state*/
 	flag = sr->traverse_state->trav_flags;
-	gf_list_del(sr->traverse_state->sensors);
+	gf_list_del(sr->traverse_state->vrml_sensors);
 	memset(sr->traverse_state, 0, sizeof(GF_TraverseState));
-	sr->traverse_state->sensors = gf_list_new();
+	sr->traverse_state->vrml_sensors = gf_list_new();
 	gf_mx2d_init(sr->traverse_state->transform);
 	gf_cmx_init(&sr->traverse_state->color_mat);
 	sr->traverse_state->trav_flags = flag;
@@ -226,6 +226,10 @@ static void render_draw_scene(GF_VisualRenderer *vr)
 
 		/*setup camera mode*/
 #ifndef GPAC_DISABLE_3D
+		if (! (sr->compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
+			sr->visual->type_3d = 0;
+			sr->visual->camera.is_3D = 0;
+		}
 
 #ifdef GPAC_USE_TINYGL
 		sr->visual->type_3d = 0;
@@ -244,7 +248,6 @@ static void render_draw_scene(GF_VisualRenderer *vr)
 
 	if (sr->recompute_ar) {
 #ifndef GPAC_DISABLE_3D
-		sr->offscreen_width = sr->offscreen_height = 0;
 		if (sr->visual->type_3d) render_3d_set_aspect_ratio(sr);
 		else
 #endif
@@ -299,7 +302,10 @@ static void render_reset_graphics(GF_VisualRenderer *vr)
 {
 #ifndef GPAC_DISABLE_3D
 	Render *sr = (Render *)vr->user_priv;
-	if (sr) render_load_opengl_extensions(sr);
+	if (sr) {
+		render_load_opengl_extensions(sr);
+		sr->offscreen_width = sr->offscreen_height = 0;
+	}
 #endif
 }
 
@@ -322,6 +328,8 @@ static void render_reload_config(GF_VisualRenderer *vr)
 	sr->scalable_zoom = (!sOpt || !stricmp(sOpt, "yes") ) ? 1 : 0;
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render", "DisableYUV");
 	sr->enable_yuv_hw = (sOpt && !stricmp(sOpt, "yes") ) ? 0 : 1;
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render", "DisablePartialHardwareBlit");
+	sr->disable_partial_hw_blit = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 
 
 #ifndef GPAC_DISABLE_3D
@@ -765,7 +773,7 @@ static GF_Err render_load(GF_VisualRenderer *vr, GF_Renderer *compositor)
 	sr->visuals = gf_list_new();
 
 	GF_SAFEALLOC(sr->traverse_state, GF_TraverseState);
-	sr->traverse_state->sensors = gf_list_new();
+	sr->traverse_state->vrml_sensors = gf_list_new();
 	sr->sensors = gf_list_new();
 	sr->previous_sensors = gf_list_new();
 	
@@ -833,7 +841,7 @@ void render_unload(GF_VisualRenderer *vr)
 	gf_list_del(sr->visuals);
 	gf_list_del(sr->strike_bank);
 
-	gf_list_del(sr->traverse_state->sensors);
+	gf_list_del(sr->traverse_state->vrml_sensors);
 	free(sr->traverse_state);
 
 #ifndef GPAC_DISABLE_3D

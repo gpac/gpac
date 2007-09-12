@@ -37,14 +37,14 @@
 
 
 GF_EXPORT
-Bool gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, XMLRI *iri)
+GF_Err gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, XMLRI *iri)
 {
 	u32 stream_id = 0;
-	Bool ret = 1;
+	GF_Err e = GF_OK;
 	SFURL *sfurl = NULL;
 	if (iri->type==XMLRI_STREAMID) {
 		stream_id = iri->lsr_stream_id;
-	} else if (!iri->string) return 0;
+	} else if (!iri->string) return GF_OK;
 
 	gf_sg_vrml_mf_reset(mfurl, GF_SG_VRML_MFURL);
 	mfurl->count = 1;
@@ -54,11 +54,11 @@ Bool gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, XMLRI *iri)
 	if (!stream_id) {
 		if (term && !strncmp(iri->string, "data:", 5)) {
 			const char *cache_dir = gf_cfg_get_key(term->user->config, "General", "CacheDirectory");
-			ret = gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
+			e = gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
 		}
 		sfurl->url = strdup(iri->string);
 	}
-	return ret;
+	return e;
 }
 
 GF_EXPORT

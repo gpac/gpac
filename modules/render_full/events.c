@@ -296,7 +296,7 @@ Bool visual_execute_event(GF_VisualManager *vis, GF_TraverseState *tr_state, GF_
 #endif
 		visual_2d_pick_node(vis, tr_state, ev, children);
 	
-	gf_list_reset(tr_state->sensors);
+	gf_list_reset(tr_state->vrml_sensors);
 
 	if (vis->render->hit_info.use_dom_events) 
 		return render_exec_event_dom(vis->render, ev);

@@ -267,8 +267,14 @@ GF_Err visual_2d_init_draw(GF_VisualManager *vis, GF_TraverseState *tr_state)
 	if (bck && bck->isBound) {
 		ctx = b2d_get_context(bck, vis->back_stack);
 		if (ctx) {
-			ctx->bi->clip = vis->surf_rect;
-			ctx->bi->unclip = gf_rect_ft(&vis->surf_rect);
+			/*force clearing entire zone, not just viewport, when using color. If texture, we MUST
+			use the VP clipper in order to compute offsets when blitting bitmaps*/
+			if (ctx->aspect.fill_texture &&ctx->aspect.fill_texture->stream) {
+				ctx->bi->clip = vis->top_clipper;
+			} else {
+				ctx->bi->clip = vis->surf_rect;
+			}
+			ctx->bi->unclip = gf_rect_ft(&ctx->bi->clip);
 			tr_state->traversing_mode = TRAVERSE_RENDER_BINDABLE;
 			gf_node_render((GF_Node *) bck, tr_state);
 			tr_state->traversing_mode = TRAVERSE_RENDER;
@@ -591,12 +597,17 @@ Bool visual_2d_terminate_draw(GF_VisualManager *vis, GF_TraverseState *tr_state)
 #ifdef TRACK_OPAQUE_REGIONS
 		vis->draw_node_index = 0;
 #endif
-		bck_ctx->bi->unclip = gf_rect_ft(&vis->surf_rect);
-		bck_ctx->bi->clip = vis->surf_rect;
+		/*force clearing entire zone, not just viewport, when using color. If texture, we MUST
+		use the VP clipper in order to compute offsets when blitting bitmaps*/
+		if (bck_ctx->aspect.fill_texture && bck_ctx->aspect.fill_texture->stream) {
+			bck_ctx->bi->clip = vis->top_clipper;
+		} else {
+			bck_ctx->bi->clip = vis->surf_rect;
+		}
+		bck_ctx->bi->unclip = gf_rect_ft(&bck_ctx->bi->clip);
 		gf_node_render(bck_ctx->drawable->node, tr_state);
 	} else {
 		count = vis->to_redraw.count;
-		if (bck_ctx) bck_ctx->bi->unclip = gf_rect_ft(&vis->surf_rect);
 		for (k=0; k<count; k++) {
 			GF_IRect rc;
 			/*opaque area, skip*/
@@ -604,7 +615,6 @@ Bool visual_2d_terminate_draw(GF_VisualManager *vis, GF_TraverseState *tr_state)
 			if (vis->to_redraw.opaque_node_index[k] > 0) continue;
 #endif
 			rc = vis->to_redraw.list[k];
-			gf_irect_intersect(&rc, &vis->top_clipper);
 			visual_2d_clear(vis, &rc, 0);
 		}
 	}
@@ -715,6 +725,7 @@ void visual_2d_pick_node(GF_VisualManager *vis, GF_TraverseState *tr_state, GF_E
 	
 	vis->render->hit_info.world_point = tr_state->ray.orig;
 	vis->render->hit_info.world_ray = tr_state->ray;
+	vis->render->hit_info.picked_square_dist = 0;
 
 	gf_list_reset(vis->render->sensors);
 	tr_state->traversing_mode = TRAVERSE_PICK;

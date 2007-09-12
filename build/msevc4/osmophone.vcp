@@ -80,7 +80,7 @@ LINK32=link.exe
 # ADD BASE RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "DEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "DEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD BASE CPP /nologo /W3 /Zi /Od /D "DEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "UNICODE" /D "_UNICODE" /YX /M$(CECrtMTDebug) /c
-# ADD CPP /nologo /W3 /Zi /Od /I "../../include" /D "DEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "UNICODE" /D "_UNICODE" /YX /M$(CECrtMTDebug) /c
+# ADD CPP /nologo /W3 /Zi /Od /I "../../include" /D "DEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "UNICODE" /D "_UNICODE" /FR /YX /M$(CECrtMTDebug) /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 BSC32=bscmake.exe
@@ -104,8 +104,11 @@ LINK32=link.exe
 SOURCE=..\..\applications\osmophone\main.cpp
 DEP_CPP_MAIN_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -120,8 +123,10 @@ DEP_CPP_MAIN_=\
 	{$(INCLUDE)}"aygshell.h"\
 	{$(INCLUDE)}"gx.h"\
 	{$(INCLUDE)}"sipapi.h"\
-	{$(INCLUDE)}"vibrate.h"\
 	{$(INCLUDE)}"winuserm.h"\
+	
+NODEP_CPP_MAIN_=\
+	"C:\Program Files\Windows CE Tools\wce420\POCKET PC 2003\Include\ARMV4\vibrate.h"\
 	
 # End Source File
 # Begin Source File
@@ -133,8 +138,10 @@ DEP_CPP_OPENF=\
 	"..\..\include\gpac\tools.h"\
 	{$(INCLUDE)}"aygshell.h"\
 	{$(INCLUDE)}"sipapi.h"\
-	{$(INCLUDE)}"vibrate.h"\
 	{$(INCLUDE)}"winuserm.h"\
+	
+NODEP_CPP_OPENF=\
+	"C:\Program Files\Windows CE Tools\wce420\POCKET PC 2003\Include\ARMV4\vibrate.h"\
 	
 # End Source File
 # Begin Source File

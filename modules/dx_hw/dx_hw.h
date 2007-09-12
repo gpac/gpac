@@ -53,7 +53,6 @@
 #define USE_DX_3
 #endif
 
-
 typedef struct
 {
 #ifdef USE_DX_3

@@ -37,7 +37,7 @@
 
 #if !defined(__GNUC__)
 
-#if 0 && defined(IPV6_MULTICAST_IF)
+#if defined(IPV6_MULTICAST_IF)
 #define GPAC_IPV6 1
 #pragma message("Using WinSock IPV6")
 #else
@@ -85,6 +85,12 @@ static int wsa_init = 0;
 #include <arpa/inet.h>
 
 #include <gpac/network.h>
+
+/*not defined on solaris*/
+#ifndef INADDR_NONE
+#define INADDR_NONE ((unsigned long)-1)
+#endif
+
 
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1

@@ -84,11 +84,14 @@ void visual_3d_disable_texture(GF_TraverseState *tr_state);
 /*check for collisions on a list of nodes, or scene root if list is null
 	- exported for Layer3D - try to harmonize*/
 void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *node_list);
-/*init render pass
-	- exported for Layer3D - try to harmonize*/
-void visual_3d_init_render(GF_TraverseState *tr_state);
-/*setup projection
-	- exported for Layer3D - try to harmonize*/
+/*init render pass - exported for Layer3D 
+	@layer_type: 
+		0: not a layer
+		1: 3D layer in 3D context, depth clear but no color clear
+		2: 3D layer in 2D context (offscreen rendering), depth and color clear with alpha=0
+*/
+void visual_3d_init_render(GF_TraverseState *tr_state, u32 layer_type);
+/*setup projection - exported for Layer3D */
 void visual_3d_setup_projection(GF_TraverseState *tr_state);
 
 
@@ -175,7 +178,7 @@ enum
 
 /*enable/disable one of the above feature*/
 void visual_3d_set_state(GF_VisualManager *surf, u32 flag_mask, Bool setOn);
-/*clear visual with given color - alpha should only be specified for composite textures*/
+/*clear visual with given color - alpha should only be specified for composite textures and Layer3D*/
 void visual_3d_clear(GF_VisualManager *surf, SFColor color, Fixed alpha);
 /*clear depth*/
 void visual_3d_clear_depth(GF_VisualManager *surf);

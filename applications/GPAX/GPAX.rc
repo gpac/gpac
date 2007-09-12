@@ -1,4 +1,4 @@
-//Microsoft Developer Studio generated resource script.
+//Microsoft eMbedded Visual C++ generated resource script.
 //
 #include "resource.h"
 
@@ -85,7 +85,7 @@ BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "ENST\0"
             VALUE "FileDescription", "GPAX\0"
-            VALUE "FileVersion", "0.4.2\0"
+            VALUE "FileVersion", "0.4.4\0"
             VALUE "InternalName", "GPAX\0"
             VALUE "LegalCopyright", "Copyright © 2006\0"
             VALUE "LegalTrademarks", "\0"

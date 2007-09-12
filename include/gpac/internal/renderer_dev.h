@@ -574,7 +574,7 @@ void gf_sr_audio_unregister(GF_AudioInput *ai);
 
 #ifndef GPAC_DISABLE_SVG
 Bool gf_term_check_iri_change(GF_Terminal *term, MFURL *url, XMLRI *iri);
-Bool gf_term_set_mfurl_from_uri(GF_Terminal *sr, MFURL *mfurl, XMLRI *iri);
+GF_Err gf_term_set_mfurl_from_uri(GF_Terminal *sr, MFURL *mfurl, XMLRI *iri);
 #endif
 
 

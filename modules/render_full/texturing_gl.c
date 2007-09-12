@@ -148,7 +148,8 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode)
 		break;
 	case TX_MODULATE:
 		if (txh->transparent) glEnable(GL_BLEND);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		//glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		break;
 	case TX_DECAL:
 	default:
@@ -179,7 +180,7 @@ void tx_disable(GF_TextureHandler *txh)
 }
 
 
-u32 get_pow2(u32 s)
+u32 render_get_pow2(u32 s)
 {
 	u32 i;
 	u32 res = s;
@@ -233,8 +234,8 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	if (txh->owner && (!tx_wrap->rescale_width || !tx_wrap->rescale_height)) 
 		gf_node_dirty_set(txh->owner, 0, 1);
 
-	tx_wrap->rescale_width = get_pow2(txh->width);
-	tx_wrap->rescale_height = get_pow2(txh->height);
+	tx_wrap->rescale_width = render_get_pow2(txh->width);
+	tx_wrap->rescale_height = render_get_pow2(txh->height);
 
 	is_pow2 = ((tx_wrap->rescale_width==txh->width) && (tx_wrap->rescale_height==txh->height)) ? 1 : 0;
 	tx_wrap->flags = TX_IS_POW2;

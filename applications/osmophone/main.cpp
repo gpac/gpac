@@ -85,6 +85,8 @@ static Bool menu_switched = 0;
 static Bool use_low_fps = 0;
 static Bool use_svg_prog = 0;
 
+static u32 playlist_act = 0;
+
 void set_status(char *state)
 {
 	if (show_status && g_hwnd_status) {
@@ -155,6 +157,46 @@ void set_full_screen()
 	}
 }
 
+void do_open_file()
+{
+	gf_cfg_set_key(user.config, "RecentFiles", the_url, NULL);
+	gf_cfg_insert_key(user.config, "RecentFiles", the_url, "", 0);
+	u32 count = gf_cfg_get_key_count(user.config, "RecentFiles");
+	if (count > 10) gf_cfg_set_key(user.config, "RecentFiles", gf_cfg_get_key_name(user.config, "RecentFiles", count-1), NULL);
+
+	gf_term_connect(term, the_url);
+}
+
+void switch_playlist(Bool play_prev)
+{
+	char szPLE[20];
+	u32 idx = 0;
+	u32 count;
+	const char *ple = gf_cfg_get_key(user.config, "General", "PLEntry");
+	if (ple) idx = atoi(ple);
+	
+	count = gf_cfg_get_key_count(user.config, "Playlist");
+	if (!count) return;
+	/*not the first launch*/
+	if (strlen(the_url)) {
+		if (!idx && play_prev) return;
+		if (play_prev) idx--;
+		else idx++;
+		if (idx>=count) return;
+	} else {
+		if (idx>=count) idx=0;
+	}
+
+	ple = gf_cfg_get_key_name(user.config, "Playlist", idx);
+	if (!ple) return;
+
+	sprintf(szPLE, "%d", idx);
+	gf_cfg_set_key(user.config, "General", "PLEntry", szPLE);
+
+	strcpy(the_url, ple);
+	do_open_file();
+}
+
 
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
@@ -209,6 +251,12 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			evt->type = ctrl_mod_down ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
 			gf_term_user_event(term, evt);
 			break;
+		case GF_KEY_MEDIAPREVIOUSTRACK:
+			playlist_act = 2;
+			break;
+		case GF_KEY_MEDIANEXTTRACK:
+			playlist_act = 1;
+			break;
 		}
 		break;
 	case GF_EVENT_MOUSEDOUBLECLICK:
@@ -245,7 +293,7 @@ Bool LoadTerminal()
 		strcpy(the_url, str);
 		gf_term_connect(term, str);
 	}
-
+//	gf_term_connect(term, "http://gpac.sf.net/screenshots/lion.jpg");
 	return 1;
 }
 
@@ -348,15 +396,6 @@ void freeze_display(Bool do_freeze)
 	}
 }
 
-void do_open_file()
-{
-	gf_cfg_set_key(user.config, "RecentFiles", the_url, NULL);
-	gf_cfg_insert_key(user.config, "RecentFiles", the_url, "", 0);
-	u32 count = gf_cfg_get_key_count(user.config, "RecentFiles");
-	if (count > 10) gf_cfg_set_key(user.config, "RecentFiles", gf_cfg_get_key_name(user.config, "RecentFiles", count-1), NULL);
-
-	gf_term_connect(term, the_url);
-}
 
 void refresh_recent_files()
 {
@@ -382,35 +421,6 @@ void refresh_recent_files()
 	}
 }
 
-void switch_playlist(Bool play_prev)
-{
-	char szPLE[20];
-	u32 idx = 0;
-	u32 count;
-	const char *ple = gf_cfg_get_key(user.config, "General", "PLEntry");
-	if (ple) idx = atoi(ple);
-	
-	count = gf_cfg_get_key_count(user.config, "Playlist");
-	if (!count) return;
-	/*not the first launch*/
-	if (strlen(the_url)) {
-		if (!idx && play_prev) return;
-		if (play_prev) idx--;
-		else idx++;
-		if (idx>=count) return;
-	} else {
-		if (idx>=count) idx=0;
-	}
-
-	ple = gf_cfg_get_key_name(user.config, "Playlist", idx);
-	if (!ple) return;
-
-	sprintf(szPLE, "%d", idx);
-	gf_cfg_set_key(user.config, "General", "PLEntry", szPLE);
-
-	strcpy(the_url, ple);
-	do_open_file();
-}
 
 void open_file(HWND hwnd)
 {
@@ -989,13 +999,23 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	str = gf_cfg_get_key(user.config, "SAXLoader", "Progressive");
 	use_svg_prog = (str && !strcmp(str, "yes")) ? 1 : 0;
 
+	GXOpenInput();
+
 	if (InitInstance(nShowCmd)) {
 		SetForegroundWindow(g_hwnd);
 		while (GetMessage(&msg, NULL, 0,0) == TRUE) {
 			TranslateMessage (&msg);
 			DispatchMessage (&msg);
+
+
+			if (playlist_act) {
+				switch_playlist(playlist_act-1);
+				playlist_act = 0;
+			}
 		}
 	}
+
+	GXCloseInput();
 
 	/*and destroy*/
 	if (term) gf_term_del(term);

@@ -594,7 +594,7 @@ u32 DD_WindowThread(void *par)
 		return 1;
 	}
 	ShowWindow(ctx->gl_hwnd, SW_HIDE);
-	
+
 	ctx->th_state = 1;
 
 	/*if visible set focus*/

@@ -124,9 +124,11 @@ GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u
 		return GF_NOT_SUPPORTED;
 	}
 	surf->stride = stride;
+	if (!surf->stencil_pix_run || (surf->width != width)) {
+		if (surf->stencil_pix_run) free(surf->stencil_pix_run);
+		surf->stencil_pix_run = (u32 *) malloc(sizeof(u32) * (width+2));
+	}
 	surf->width = width;
-	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
-	surf->stencil_pix_run = (u32 *) malloc(sizeof(u32) * (width+2));
 	surf->height = height;
 	surf->pixels = (char*)pixels;
 	surf->pixelFormat = pixelFormat;

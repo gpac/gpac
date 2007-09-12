@@ -71,15 +71,15 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
 		SensorHandler *hsens;
 		/*reset sensor stack if any sensors at this level*/
-		sensor_backup = tr_state->sensors;
-		tr_state->sensors = gf_list_new();
+		sensor_backup = tr_state->vrml_sensors;
+		tr_state->vrml_sensors = gf_list_new();
 
 
 		/*add sensor(s) to traversing state*/
 		l = ((GF_ParentNode *)node)->children;
 		while (l) {
 			hsens = render_get_sensor_handler(l->node);
-			if (hsens) gf_list_add(tr_state->sensors, hsens);
+			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
 			l = l->next;
 		}
 	}
@@ -128,8 +128,8 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 
 	if (sensor_backup) {
 		/*destroy current traversing state sensors and restore previous*/
-		gf_list_del(tr_state->sensors);
-		tr_state->sensors = sensor_backup;
+		gf_list_del(tr_state->vrml_sensors);
+		tr_state->vrml_sensors = sensor_backup;
 	}
 }
 
@@ -180,8 +180,8 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
 		SensorHandler *hsens;
 		/*reset sensor stack if any sensors at this level*/
-		sensor_backup = tr_state->sensors;
-		tr_state->sensors = gf_list_new();
+		sensor_backup = tr_state->vrml_sensors;
+		tr_state->vrml_sensors = gf_list_new();
 
 
 		/*add sensor(s) to traversing state*/
@@ -190,7 +190,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		for (i=0; i<count; i++) {
 			child = gf_node_list_get_child(l, positions[i]);
 			hsens = render_get_sensor_handler(child);
-			if (hsens) gf_list_add(tr_state->sensors, hsens);
+			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
 		}
 	}
 
@@ -238,8 +238,8 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 
 	if (sensor_backup) {
 		/*destroy current traversing state sensors and restore previous*/
-		gf_list_del(tr_state->sensors);
-		tr_state->sensors = sensor_backup;
+		gf_list_del(tr_state->vrml_sensors);
+		tr_state->vrml_sensors = sensor_backup;
 	}
 }
 
@@ -357,14 +357,14 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 	sensor_backup = NULL;
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
 		/*reset sensor stack if any sensors at this level*/
-		sensor_backup = tr_state->sensors;
-		tr_state->sensors = gf_list_new();
+		sensor_backup = tr_state->vrml_sensors;
+		tr_state->vrml_sensors = gf_list_new();
 
 		l = ((GF_ParentNode*)node)->children;
 		while (l) {
 			hsens = render_get_sensor_handler(l->node);
 			if (hsens && hsens->IsEnabled(l->node)) 
-				gf_list_add(tr_state->sensors, hsens);
+				gf_list_add(tr_state->vrml_sensors, hsens);
 
 			l = l->next;
 		}
@@ -446,8 +446,8 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 
 	if (sensor_backup) {
 		/*destroy current traversing state sensors and restore previous*/
-		gf_list_del(tr_state->sensors);
-		tr_state->sensors = sensor_backup;
+		gf_list_del(tr_state->vrml_sensors);
+		tr_state->vrml_sensors = sensor_backup;
 	}
 
 	/*remove dlights*/
@@ -570,15 +570,15 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
 		SensorHandler *hsens;
 		/*reset sensor stack if any sensors at this level*/
-		sensor_backup = tr_state->sensors;
-		tr_state->sensors = gf_list_new();
+		sensor_backup = tr_state->vrml_sensors;
+		tr_state->vrml_sensors = gf_list_new();
 
 
 		/*add sensor(s) to traversing state*/
 		l = ((GF_ParentNode *)node)->children;
 		while (l) {
 			hsens = render_get_sensor_handler(l->node);
-			if (hsens) gf_list_add(tr_state->sensors, hsens);
+			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
 			l = l->next;
 		}
 	}
@@ -614,8 +614,8 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 
 	if (sensor_backup) {
 		/*destroy current traversing state sensors and restore previous*/
-		gf_list_del(tr_state->sensors);
-		tr_state->sensors = sensor_backup;
+		gf_list_del(tr_state->vrml_sensors);
+		tr_state->vrml_sensors = sensor_backup;
 	}
 }
 

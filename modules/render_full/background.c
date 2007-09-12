@@ -400,7 +400,7 @@ static void RenderBackground(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	/*enable background state (turn off all quality options)*/
-//	visual_3d_set_background_state(tr_state->visual, 0);
+	visual_3d_set_background_state(tr_state->visual, 0);
 }
 
 

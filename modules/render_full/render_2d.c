@@ -27,12 +27,12 @@
 #include "visual_manager.h"
 
 
-GF_Err render_2d_get_video_access(GF_VisualManager *surf)
+GF_Err render_2d_get_video_access(GF_VisualManager *vis)
 {
 	GF_Err e;
-	Render *sr = surf->render;
+	Render *sr = vis->render;
 
-	if (!surf->raster_surface) return GF_BAD_PARAM;
+	if (!vis->raster_surface) return GF_BAD_PARAM;
 	sr->hw_locked = 0;
 	e = GF_IO_ERR;
 	
@@ -40,9 +40,9 @@ GF_Err render_2d_get_video_access(GF_VisualManager *surf)
 	if (sr->compositor->r2d->surface_attach_to_device && sr->compositor->video_out->LockOSContext) {
 		sr->hw_context = sr->compositor->video_out->LockOSContext(sr->compositor->video_out, 1);
 		if (sr->hw_context) {
-			e = sr->compositor->r2d->surface_attach_to_device(surf->raster_surface, sr->hw_context, sr->cur_width, sr->cur_height);
+			e = sr->compositor->r2d->surface_attach_to_device(vis->raster_surface, sr->hw_context, sr->cur_width, sr->cur_height);
 			if (!e) {
-				surf->is_attached = 1;
+				vis->is_attached = 1;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Video surface handle attached to raster\n"));
 				return GF_OK;
 			}
@@ -55,13 +55,13 @@ GF_Err render_2d_get_video_access(GF_VisualManager *surf)
 
 	if (sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, &sr->hw_surface, 1)==GF_OK) {
 		sr->hw_locked = 1;
-		e = sr->compositor->r2d->surface_attach_to_buffer(surf->raster_surface, sr->hw_surface.video_buffer, 
+		e = sr->compositor->r2d->surface_attach_to_buffer(vis->raster_surface, sr->hw_surface.video_buffer, 
 							sr->hw_surface.width, 
 							sr->hw_surface.height,
 							sr->hw_surface.pitch,
 							(GF_PixelFormat) sr->hw_surface.pixel_format);
 		if (!e) {
-			surf->is_attached = 1;
+			vis->is_attached = 1;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Video surface memory attached to raster\n"));
 			return GF_OK;
 		}
@@ -69,16 +69,16 @@ GF_Err render_2d_get_video_access(GF_VisualManager *surf)
 		sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, &sr->hw_surface, 0);
 	}
 	sr->hw_locked = 0;
-	surf->is_attached = 0;
+	vis->is_attached = 0;
 	return e;	
 }
 
-void render_2d_release_video_access(GF_VisualManager *surf)
+void render_2d_release_video_access(GF_VisualManager *vis)
 {
-	Render *sr = surf->render;
-	if (surf->is_attached) {
-		sr->compositor->r2d->surface_detach(surf->raster_surface);
-		surf->is_attached = 0;
+	Render *sr = vis->render;
+	if (vis->is_attached) {
+		sr->compositor->r2d->surface_detach(vis->raster_surface);
+		vis->is_attached = 0;
 	}
 	if (sr->hw_context) {
 		sr->compositor->video_out->LockOSContext(sr->compositor->video_out, 0);
@@ -89,7 +89,7 @@ void render_2d_release_video_access(GF_VisualManager *surf)
 	}
 }
 
-Bool render_2d_pixel_format_supported(GF_VisualManager *surf, u32 pixel_format)
+Bool render_2d_pixel_format_supported(GF_VisualManager *vis, u32 pixel_format)
 {
 	switch (pixel_format) {
 	case GF_PIXEL_RGB_24:
@@ -108,28 +108,28 @@ Bool render_2d_pixel_format_supported(GF_VisualManager *surf, u32 pixel_format)
 	}
 }
 
-void render_2d_draw_bitmap(GF_VisualManager *surf, struct _gf_sr_texture_handler *txh, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key, GF_ColorMatrix *cmat)
+void render_2d_draw_bitmap(GF_VisualManager *vis, struct _gf_sr_texture_handler *txh, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key, GF_ColorMatrix *cmat)
 {
 	GF_VideoSurface video_src;
 	Fixed w_scale, h_scale, tmp;
 	GF_Err e;
 	Bool use_soft_stretch;
 	GF_Window src_wnd, dst_wnd;
-	u32 start_x, start_y, cur_width, cur_height;
+	u32 cur_width, cur_height;
 	GF_IRect clipped_final = *clip;
 	GF_Rect final = *unclip;
 
 	if (!txh->data) return;
 
-	if (!surf->render->compositor->has_size_info && !(surf->render->compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) 
-		&& (surf->render->compositor->override_size_flags & 1) 
-		&& !(surf->render->compositor->override_size_flags & 2) 
+	if (!vis->render->compositor->has_size_info && !(vis->render->compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) 
+		&& (vis->render->compositor->override_size_flags & 1) 
+		&& !(vis->render->compositor->override_size_flags & 2) 
 		) {
-		if ( (surf->render->compositor->scene_width < txh->width) 
-			|| (surf->render->compositor->scene_height < txh->height)) {
-			surf->render->compositor->scene_width = txh->width;
-			surf->render->compositor->scene_height = txh->height;
-			surf->render->compositor->msg_type |= GF_SR_CFG_OVERRIDE_SIZE;
+		if ( (vis->render->compositor->scene_width < txh->width) 
+			|| (vis->render->compositor->scene_height < txh->height)) {
+			vis->render->compositor->scene_width = txh->width;
+			vis->render->compositor->scene_height = txh->height;
+			vis->render->compositor->msg_type |= GF_SR_CFG_OVERRIDE_SIZE;
 			return;
 		}
 	}
@@ -140,19 +140,20 @@ void render_2d_draw_bitmap(GF_VisualManager *surf, struct _gf_sr_texture_handler
 	w_scale = final.width / txh->width;
 	h_scale = final.height / txh->height;
 
-	/*take care of pixel rounding for odd width/height and make sure we strictly draw in the clipped bounds*/
-	cur_width = surf->render->cur_width;
-	cur_height = surf->render->cur_height;
+	/*use entire video surface for un-centering coord system*/
+	cur_width = vis->render->vp_width;
+	cur_height = vis->render->vp_height;
 
-	if (surf->center_coords) {
-		if (cur_width % 2) {
+	/*take care of pixel rounding for odd width/height and make sure we strictly draw in the clipped bounds*/
+	if (vis->center_coords) {
+		if (0 && cur_width % 2) {
 			clipped_final.x += (cur_width-1) / 2;
 			final.x += INT2FIX( (cur_width-1) / 2 );
 		} else {
 			clipped_final.x += cur_width / 2;
 			final.x += INT2FIX( cur_width / 2 );
 		}
-		if (cur_height % 2) {
+		if (0 && cur_height % 2) {
 			clipped_final.y = (cur_height-1) / 2 - clipped_final.y;
 			final.y = INT2FIX( (cur_height - 1) / 2) - final.y;
 		} else {
@@ -160,10 +161,10 @@ void render_2d_draw_bitmap(GF_VisualManager *surf, struct _gf_sr_texture_handler
 			final.y = INT2FIX( cur_height / 2) - final.y;
 		}
 	} else {
-		final.x -= surf->render->vp_x;
-		clipped_final.x -= surf->render->vp_x;
-		final.y -= surf->render->vp_y + final.height;
-		clipped_final.y -= surf->render->vp_y + clipped_final.height;
+		final.x -= vis->render->vp_x;
+		clipped_final.x -= vis->render->vp_x;
+		final.y -= vis->render->vp_y + final.height;
+		clipped_final.y -= vis->render->vp_y + clipped_final.height;
 	}
 
 	/*make sure we lie in the final rect (this is needed for directRender mode)*/
@@ -189,65 +190,58 @@ void render_2d_draw_bitmap(GF_VisualManager *surf, struct _gf_sr_texture_handler
 	if (clipped_final.width<=0 || clipped_final.height <=0) 
 		return;
 
-	/*compute X offset in src bitmap*/
-	start_x = 0;
-	tmp = INT2FIX(clipped_final.x);
-	if (tmp >= final.x)
-		start_x = FIX2INT( gf_divfix(tmp - final.x, w_scale) );
-
-
-	/*compute Y offset in src bitmap*/
-	start_y = 0;
-	tmp = INT2FIX(clipped_final.y);
-	if (tmp >= final.y)
-		start_y = FIX2INT( gf_divfix(tmp - final.y, h_scale) );
-	
-	/*add AR offset */
-	clipped_final.x += surf->render->vp_x;
-	clipped_final.y += surf->render->vp_y;
-
+	/*set dest window*/
 	dst_wnd.x = (u32) clipped_final.x;
 	dst_wnd.y = (u32) clipped_final.y;
 	dst_wnd.w = (u32) clipped_final.width;
 	dst_wnd.h = (u32) clipped_final.height;
 
-	src_wnd.w = FIX2INT( gf_divfix(INT2FIX(dst_wnd.w), w_scale) );
-	src_wnd.h = FIX2INT( gf_divfix(INT2FIX(dst_wnd.h), h_scale) );
+	/*compute SRC window*/
+	src_wnd.x = src_wnd.y = 0;
+	src_wnd.w = FIX2INT( gf_divfix(INT2FIX(clip->width), w_scale)  + FIX_ONE/2 );
+	src_wnd.h = FIX2INT( gf_divfix(INT2FIX(clip->height), h_scale)  + FIX_ONE/2 );
+
 	if (src_wnd.w>txh->width) src_wnd.w=txh->width;
 	if (src_wnd.h>txh->height) src_wnd.h=txh->height;
-	
-	src_wnd.x = start_x;
-	src_wnd.y = start_y;
 
+	tmp = INT2FIX(clipped_final.x) - final.x /*- INT2FIX(vis->render->vp_x)*/;
+	if (tmp>=0) src_wnd.x = FIX2INT( gf_divfix( tmp, w_scale) + FIX_ONE/2 );
+
+	tmp = INT2FIX(clipped_final.y) - final.y /*+ INT2FIX(vis->render->vp_y)*/;
+	if (tmp>=0) src_wnd.y = FIX2INT( gf_divfix(tmp, h_scale) + FIX_ONE/2 );
 
 	if (!src_wnd.w || !src_wnd.h) return;
 	/*make sure we lie in src bounds*/
 	if (src_wnd.x + src_wnd.w>txh->width) src_wnd.w = txh->width - src_wnd.x;
 	if (src_wnd.y + src_wnd.h>txh->height) src_wnd.h = txh->height - src_wnd.y;
 
+	/*can we use hardware blitter ?*/
 	use_soft_stretch = 1;
-	if (!cmat && (alpha==0xFF) && surf->render->compositor->video_out->Blit) {
-		u32 hw_caps = surf->render->compositor->video_out->hw_caps;
+	if (!vis->render->disable_partial_hw_blit 
+		|| ((src_wnd.w==txh->width) && (src_wnd.h==txh->height) )) {
+		if (!cmat && (alpha==0xFF) && vis->render->compositor->video_out->Blit) {
+			u32 hw_caps = vis->render->compositor->video_out->hw_caps;
 
-		switch (txh->pixelformat) {
-		case GF_PIXEL_RGB_24:
-		case GF_PIXEL_BGR_24:
-			use_soft_stretch = 0;
-			break;
-		case GF_PIXEL_YV12:
-		case GF_PIXEL_IYUV:
-		case GF_PIXEL_I420:
-			if (surf->render->enable_yuv_hw && (hw_caps & GF_VIDEO_HW_HAS_YUV))
+			switch (txh->pixelformat) {
+			case GF_PIXEL_RGB_24:
+			case GF_PIXEL_BGR_24:
 				use_soft_stretch = 0;
-			break;
-		default:
-			break;
+				break;
+			case GF_PIXEL_YV12:
+			case GF_PIXEL_IYUV:
+			case GF_PIXEL_I420:
+				if (vis->render->enable_yuv_hw && (hw_caps & GF_VIDEO_HW_HAS_YUV))
+					use_soft_stretch = 0;
+				break;
+			default:
+				break;
+			}
+			if (col_key && (GF_COL_A(*col_key) || !(hw_caps & GF_VIDEO_HW_HAS_COLOR_KEY))) use_soft_stretch = 1;
 		}
-		if (col_key && (GF_COL_A(*col_key) || !(hw_caps & GF_VIDEO_HW_HAS_COLOR_KEY))) use_soft_stretch = 1;
 	}
 
 	/*most graphic cards can't perform bliting on locked surface - force unlock by releasing the hardware*/
-	visual_2d_release_raster(surf);
+	visual_2d_release_raster(vis);
 
 	video_src.height = txh->height;
 	video_src.width = txh->width;
@@ -255,7 +249,7 @@ void render_2d_draw_bitmap(GF_VisualManager *surf, struct _gf_sr_texture_handler
 	video_src.pixel_format = txh->pixelformat;
 	video_src.video_buffer = txh->data;
 	if (!use_soft_stretch) {
-		e = surf->render->compositor->video_out->Blit(surf->render->compositor->video_out, &video_src, &src_wnd, &dst_wnd, col_key);
+		e = vis->render->compositor->video_out->Blit(vis->render->compositor->video_out, &video_src, &src_wnd, &dst_wnd, col_key);
 		/*HW pb, try soft*/
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RENDER, ("[Renderer] Error during hardware blit - trying with soft one\n"));
@@ -264,11 +258,11 @@ void render_2d_draw_bitmap(GF_VisualManager *surf, struct _gf_sr_texture_handler
 	}
 	if (use_soft_stretch) {
 		GF_VideoSurface backbuffer;
-		e = surf->render->compositor->video_out->LockBackBuffer(surf->render->compositor->video_out, &backbuffer, 1);
+		e = vis->render->compositor->video_out->LockBackBuffer(vis->render->compositor->video_out, &backbuffer, 1);
 		gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, 0, alpha, 0, col_key, cmat);
-		e = surf->render->compositor->video_out->LockBackBuffer(surf->render->compositor->video_out, &backbuffer, 0);
+		e = vis->render->compositor->video_out->LockBackBuffer(vis->render->compositor->video_out, &backbuffer, 0);
 	}
-	visual_2d_init_raster(surf);
+	visual_2d_init_raster(vis);
 }
 
 
@@ -406,6 +400,7 @@ void render_2d_set_user_transform(Render *sr, Fixed zoom, Fixed tx, Fixed ty, Bo
 	}
 	gf_mx2d_init(sr->traverse_state->transform);
 	gf_mx2d_add_scale(&sr->traverse_state->transform, gf_mulfix(sr->zoom,sr->scale_x), gf_mulfix(sr->zoom,sr->scale_y));
+
 	gf_mx2d_add_translation(&sr->traverse_state->transform, sr->trans_x, sr->trans_y);
 	if (sr->rotation) gf_mx2d_add_rotation(&sr->traverse_state->transform, 0, 0, sr->rotation);
 

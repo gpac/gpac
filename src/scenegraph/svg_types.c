@@ -381,14 +381,14 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 
 
 GF_EXPORT
-Bool gf_svg_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *base_filename)
+GF_Err gf_svg_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *base_filename)
 {
 	char szFile[GF_MAX_PATH], buf[20], *sep, *data, *ext;
 	u32 data_size, idx;
 	Bool existing;
 	FILE *f;
 
-	if (!cache_dir || !base_filename || !iri || !iri->string || strncmp(iri->string, "data:", 5)) return 0;
+	if (!cache_dir || !base_filename || !iri || !iri->string || strncmp(iri->string, "data:", 5)) return GF_OK;
 
 	/*handle "data:" scheme when cache is specified*/
 	strcpy(szFile, cache_dir);
@@ -414,7 +414,7 @@ Bool gf_svg_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *b
 	sep = (char *)iri->string + 5;
 	if (!strncmp(sep, "image/jpg", 9) || !strncmp(sep, "image/jpeg", 10)) ext = ".jpg";
 	else if (!strncmp(sep, "image/png", 9)) ext = ".png";
-	else return 0;
+	else return GF_OK;
 
 
 	data = NULL;
@@ -423,17 +423,17 @@ Bool gf_svg_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *b
 		sep += 8;
 		data_size = 2*strlen(sep);
 		data = (char*)malloc(sizeof(char)*data_size);
-		if (!data) return 0;
+		if (!data) return GF_OUT_OF_MEM;
 		data_size = gf_base64_decode(sep, strlen(sep), data, data_size);
 	}
 	else if (!strncmp(sep, ";base16,", 8)) {
 		data_size = 2*strlen(sep);
 		data = (char*)malloc(sizeof(char)*data_size);
-		if (!data) return 0;
+		if (!data) return GF_OUT_OF_MEM;
 		sep += 8;
 		data_size = gf_base16_decode(sep, strlen(sep), data, data_size);
 	}
-	if (!data_size) return 0;
+	if (!data_size) return GF_OK;
 	
 	iri->type = XMLRI_STRING;
 	
@@ -454,14 +454,19 @@ Bool gf_svg_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *b
 
 	if (!existing) {
 		f = fopen(szFile, "wb");
-		if (!f) return 0;
+		if (!f) {
+			free(data);
+			free(iri->string);
+			iri->string = NULL;
+			return GF_IO_ERR;
+		}
 		fwrite(data, data_size, 1, f);
 		fclose(f);
 	}
 	free(data);
 	free(iri->string);
 	iri->string = strdup(szFile);
-	return 1;
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_SVG*/

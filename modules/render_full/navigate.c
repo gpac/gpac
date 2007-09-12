@@ -287,7 +287,7 @@ static Bool render_handle_navigation_3d(Render *sr, GF_Event *ev)
 			sr->navigation_grabbed = 1;
 
 			/*change vp and examine center to current location*/
-			if ((keys & GF_KEY_MOD_CTRL) && sr->hit_info.sq_dist) {
+			if ((keys & GF_KEY_MOD_CTRL) && sr->hit_info.picked_square_dist) {
 				cam->vp_position = cam->position;
 				cam->vp_orientation = camera_get_orientation(cam->position, cam->target, cam->up);
 				cam->vp_fov = cam->fieldOfView;
