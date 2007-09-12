@@ -99,9 +99,9 @@ picked:
 	}
 
 	gf_list_reset(tr_state->visual->render->sensors);
-	count = gf_list_count(tr_state->sensors);
+	count = gf_list_count(tr_state->vrml_sensors);
 	for (i=0; i<count; i++) {
-		gf_list_add(tr_state->visual->render->sensors, gf_list_get(tr_state->sensors, i));
+		gf_list_add(tr_state->visual->render->sensors, gf_list_get(tr_state->vrml_sensors, i));
 	}
 }
 
@@ -970,6 +970,12 @@ void drawable_reset_path_outline(Drawable *st)
 		si->original = NULL;
 		si = si->next;
 	}
+#ifndef GPAC_DISABLE_3D
+	if (st->mesh) {
+		mesh_free(st->mesh);
+		st->mesh = NULL;
+	}
+#endif
 }
 
 void drawable_reset_path(Drawable *st)

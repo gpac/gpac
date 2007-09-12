@@ -746,7 +746,7 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 	GF_ClientService *serv;
 	const char *szURI;
 	u32 total_size, bytes_done, net_status, bytes_per_sec;
-	
+
 	gf_dm_sess_get_stats(sess, NULL, &szURI, &total_size, &bytes_done, &bytes_per_sec, &net_status);
 	serv = (GF_ClientService *)gf_dm_sess_get_private(sess);
 	switch (net_status) {

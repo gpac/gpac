@@ -1071,7 +1071,9 @@ void *NewX11VideoOutput ()
 	driv->Shutdown = X11_Shutdown;
 	driv->LockBackBuffer = X11_LockBackBuffer;
 	driv->ProcessEvent = X11_ProcessEvent;
-	driv->hw_caps = GF_VIDEO_HW_HAS_OPENGL;
+	driv->hw_caps = GF_VIDEO_HW_OPENGL;
+	/*fixme - needs a better detection scheme*/
+	driv->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
 	return (void *) driv;
 
 }

@@ -30,6 +30,8 @@ GF_Camera *new_camera()
 {
 	GF_Camera *tmp;
 	GF_SAFEALLOC(tmp, GF_Camera);
+	tmp->speed = 1;
+
 	return tmp;
 }
 void delete_camera(GF_Camera *cam)

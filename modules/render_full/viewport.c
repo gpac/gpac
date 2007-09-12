@@ -400,6 +400,7 @@ static void RenderNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 		}
 		assert(gf_list_find(st->reg_stacks, tr_state->navigations)==-1);
 		gf_list_add(st->reg_stacks, tr_state->navigations);
+		gf_mx_copy(st->world_view_mx, tr_state->model_matrix);
 		/*in any case don't draw the first time*/
 		gf_sr_invalidate(tr_state->visual->render->compositor, NULL);
 		return;
@@ -448,7 +449,7 @@ static void RenderNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 	if (ni->avatarSize.count>1) tr_state->camera->avatar_size.y = gf_mulfix(scale, ni->avatarSize.vals[1]);
 	if (ni->avatarSize.count>2) tr_state->camera->avatar_size.z = gf_mulfix(scale, ni->avatarSize.vals[2]);
 
-	if (tr_state->is_pixel_metrics) {
+	if (0 && tr_state->is_pixel_metrics) {
 		u32 s = MAX(tr_state->visual->width, tr_state->visual->height);
 		s /= 2;
 //		tr_state->camera->speed = ni->speed;

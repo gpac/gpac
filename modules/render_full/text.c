@@ -1151,9 +1151,9 @@ picked:
 	}
 
 	gf_list_reset(tr_state->visual->render->sensors);
-	count = gf_list_count(tr_state->sensors);
+	count = gf_list_count(tr_state->vrml_sensors);
 	for (i=0; i<count; i++) {
-		gf_list_add(tr_state->visual->render->sensors, gf_list_get(tr_state->sensors, i));
+		gf_list_add(tr_state->visual->render->sensors, gf_list_get(tr_state->vrml_sensors, i));
 	}
 }
 

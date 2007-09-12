@@ -113,6 +113,7 @@ void IMG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	GF_Err e;
 	const char *szCache;
 	IMGLoader *read = (IMGLoader *) cbk;
+	if (!read->dnload) return;
 
 	/*handle service message*/
 	gf_term_download_update_stats(read->dnload);

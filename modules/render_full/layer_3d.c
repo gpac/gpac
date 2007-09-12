@@ -29,6 +29,7 @@
 #include "texturing.h"
 #include "visual_manager.h"
 
+#include "gl_inc.h"
 
 #ifndef GPAC_DISABLE_3D
 
@@ -40,7 +41,7 @@ typedef struct
 {
 	GROUPING_NODE_STACK_3D
 	Bool first;
-	GF_Rect clip;
+	GF_Rect clip, vp;
 	GF_VisualManager *visual;
 
 	Bool unsupported;
@@ -143,6 +144,14 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 
 	if (st->unsupported) return 0;
 
+#ifndef GPAC_USE_TINYGL
+	/*no support for offscreen rendering*/
+	if (!(sr->compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
+		st->unsupported = 1;
+		return 0;
+	}
+#endif
+
 	if (tr_state->visual->render->recompute_ar) {
 		gf_node_dirty_set(node, 0, 0);
 		return 0;
@@ -152,14 +161,26 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 #ifndef GPAC_USE_TINYGL
 	back = gf_list_get(tr_state->backgrounds, 0);
 	if (back && back->isBound) new_pixel_format = GF_PIXEL_RGB_24;
+
+	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
+#ifdef GPAC_USE_OGL_ES
+	new_pixel_format = GF_PIXEL_RGBA;
+#else
+	/*no support for alpha in offscreen rendering*/
+	if (!(sr->compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA)) 
+		new_pixel_format = GF_PIXEL_RGB_24;
+#endif
+
 #endif
 
 	w = (u32) FIX2INT(gf_ceil(width));
 	h = (u32) FIX2INT(gf_ceil(height));
 
-	/*some implementation of glReadPixel crash if w||h are not multiple of 4*/
-	w = (w/4) * 4;
-	h = (h/4) * 4;
+	/*1- some implementation of glReadPixel crash if w||h are not multiple of 4*/
+	/*2- some implementation of glReadPixel don't behave properly here when texture is not a power of 2*/
+	w = render_get_pow2(w);
+	h = render_get_pow2(h);
+
 	if (!w || !h) return 0;
 
 	if (st->txh.hwtx
@@ -169,7 +190,6 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	) 
 		return 2;
 
-
 	if (st->txh.hwtx) {
 #ifdef GPAC_USE_TINYGL
 		if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
@@ -178,7 +198,8 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 		if (st->txh.data) free(st->txh.data);
 		st->txh.data = NULL;
 	}
-	
+
+	st->vp = gf_rect_center(INT2FIX(w), INT2FIX(h) );
 
 	st->txh.width = w;
 	st->txh.height = h;
@@ -291,6 +312,50 @@ static void layer3d_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 	}
 }
 
+static void layer3d_setup_clip(Layer3DStack *st, GF_TraverseState *tr_state, Bool prev_cam, GF_Rect rc)
+{
+	Fixed sw, sh;
+
+	if (tr_state->visual->render->visual==tr_state->visual) {
+		sw = INT2FIX(tr_state->visual->render->compositor->width);
+		sh = INT2FIX(tr_state->visual->render->compositor->height);
+	} else {
+		sw = INT2FIX(tr_state->visual->width);
+		sh = INT2FIX(tr_state->visual->height);
+	}
+
+	if ((tr_state->traversing_mode==TRAVERSE_RENDER) && !prev_cam) {
+		rc.x = rc.y = 0;
+		st->visual->camera.vp = rc;
+	} else {
+		st->visual->camera.vp = rc;
+		st->visual->camera.vp.x += sw/2;
+		st->visual->camera.vp.y -= st->visual->camera.vp.height;
+		st->visual->camera.vp.y += sh/2;
+	}
+
+	tr_state->camera->width = tr_state->camera->vp.width;
+	tr_state->camera->height = tr_state->camera->vp.height;
+
+	if (!tr_state->is_pixel_metrics) {
+		if (tr_state->camera->height > tr_state->camera->width) {
+			tr_state->camera->height = 2 * gf_divfix(tr_state->camera->height, tr_state->camera->width);
+			tr_state->camera->width = 2*FIX_ONE;
+		} else {
+			tr_state->camera->width = 2 * gf_divfix(tr_state->camera->width, tr_state->camera->height);
+			tr_state->camera->height = 2*FIX_ONE;
+		}
+	}
+
+	/*setup bounds*/
+	tr_state->bbox.max_edge.x = tr_state->camera->width/2;
+	tr_state->bbox.min_edge.x = -tr_state->bbox.max_edge.x;
+	tr_state->bbox.max_edge.y = tr_state->camera->height/2;
+	tr_state->bbox.min_edge.y = -tr_state->bbox.max_edge.y;
+	tr_state->bbox.max_edge.z = tr_state->bbox.min_edge.z = 0;
+	tr_state->bbox.is_set = 1;
+
+}
 
 static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 {
@@ -298,7 +363,6 @@ static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_List *oldb, *oldv, *oldf, *oldn;
 	GF_Rect rc;
 	u32 cur_lights;
-	Fixed sw, sh;
 	GF_List *node_list_backup;
 	GF_BBox bbox_backup;
 	GF_Matrix model_backup;
@@ -364,8 +428,10 @@ static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->camera = &st->visual->camera;
 	old_visual = tr_state->visual;
 
-	/*check bindables*/
-	l3d_CheckBindables(node, tr_state, st->first);
+	bbox_backup = tr_state->bbox;
+	gf_mx_copy(model_backup, tr_state->model_matrix);
+	gf_mx2d_copy(mx2d_backup, tr_state->transform);
+
 
 	/*compute viewport in visual coordinate*/
 	rc = st->clip;
@@ -375,68 +441,27 @@ static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 			gf_mx_apply_rect(&prev_cam->viewport, &rc);
 		gf_mx_apply_rect(&tr_state->model_matrix, &rc);
 		if (tr_state->visual->render->visual==tr_state->visual) {
-			gf_mx_init(model_backup);
-			gf_mx_add_scale(&model_backup, tr_state->visual->render->scale_x, tr_state->visual->render->scale_y, FIX_ONE);
-			gf_mx_apply_rect(&model_backup, &rc);
+			GF_Matrix mx;
+			gf_mx_init(mx);
+			gf_mx_add_scale(&mx, tr_state->visual->render->scale_x, tr_state->visual->render->scale_y, FIX_ONE);
+			gf_mx_apply_rect(&mx, &rc);
 		}
 	} else {
 		gf_mx2d_apply_rect(&tr_state->transform, &rc);
-		if (tr_state->visual->render->visual==tr_state->visual) {
+/*		if (tr_state->visual->render->visual==tr_state->visual) {
 			gf_mx2d_init(mx2d_backup);
 			gf_mx2d_add_scale(&mx2d_backup, tr_state->visual->render->scale_x, tr_state->visual->render->scale_y);
 			gf_mx2d_apply_rect(&mx2d_backup, &rc);
 		}
-
+*/
 		/*switch visual*/
 		tr_state->visual = st->visual;
 	}
 
-	if (tr_state->visual->render->visual==tr_state->visual) {
-		sw = INT2FIX(tr_state->visual->render->compositor->width);
-		sh = INT2FIX(tr_state->visual->render->compositor->height);
-	} else {
-		if (!prev_cam && !tr_state->visual->width && !tr_state->visual->height) {
-			if (!layer3d_setup_offscreen(node, st, tr_state, rc.width, rc.height)) goto l3d_exit;
-		}
 
-		sw = INT2FIX(tr_state->visual->width);
-		sh = INT2FIX(tr_state->visual->height);
-
-	}
-
-	if ((tr_state->traversing_mode==TRAVERSE_RENDER) && !prev_cam) {
-		rc.x = rc.y = 0;
-		st->visual->camera.vp = rc;
-	} else {
-		st->visual->camera.vp = rc;
-		st->visual->camera.vp.x += sw/2;
-		st->visual->camera.vp.y -= st->visual->camera.vp.height;
-		st->visual->camera.vp.y += sh/2;
-	}
-
-	tr_state->camera->width = tr_state->camera->vp.width;
-	tr_state->camera->height = tr_state->camera->vp.height;
-
-	if (!tr_state->is_pixel_metrics) {
-		if (tr_state->camera->height > tr_state->camera->width) {
-			tr_state->camera->height = 2 * gf_divfix(tr_state->camera->height, tr_state->camera->width);
-			tr_state->camera->width = 2*FIX_ONE;
-		} else {
-			tr_state->camera->width = 2 * gf_divfix(tr_state->camera->width, tr_state->camera->height);
-			tr_state->camera->height = 2*FIX_ONE;
-		}
-	}
-	bbox_backup = tr_state->bbox;
-	gf_mx_copy(model_backup, tr_state->model_matrix);
-	gf_mx2d_copy(mx2d_backup, tr_state->transform);
-
-	/*setup bounds*/
-	tr_state->bbox.max_edge.x = tr_state->camera->width/2;
-	tr_state->bbox.min_edge.x = -tr_state->bbox.max_edge.x;
-	tr_state->bbox.max_edge.y = tr_state->camera->height/2;
-	tr_state->bbox.min_edge.y = -tr_state->bbox.max_edge.y;
-	tr_state->bbox.max_edge.z = tr_state->bbox.min_edge.z = 0;
-	tr_state->bbox.is_set = 1;
+	/*check bindables*/
+	if (!prev_cam) gf_mx_from_mx2d(&tr_state->model_matrix, &tr_state->transform);
+	l3d_CheckBindables(node, tr_state, st->first);
 
 
 	/*drawing a layer means drawing all subelements as a whole (no depth sorting with parents)*/
@@ -465,11 +490,10 @@ static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 			/*note that we don't backup the state as a layer3D cannot be declared in a layer3D*/
 			tr_state->layer3d = node;
 
+			rc = st->vp;
 			/*setup GL*/
 			visual_3d_setup(tr_state->visual);
-		}
 
-		if (!prev_cam) {
 			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
 			visual_3d_matrix_reset(tr_state->visual);
 			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_TEXTURE);
@@ -484,11 +508,15 @@ static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
 			visual_3d_matrix_push(tr_state->visual);
 		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Redrawing Layer3D node\n"));
+
+		layer3d_setup_clip(st, tr_state, prev_cam ? 1 : 0, rc);
 
 		cur_lights = tr_state->visual->num_lights;
 		/*this will init projection. Note that we're binding the viewpoint in the current pixelMetrics context
-		even if the viewpoint was declared in an inline below*/
-		visual_3d_init_render(tr_state);
+		even if the viewpoint was declared in an inline below
+		if no previous camera, we're using offscreen rendering, force clear */
+		visual_3d_init_render(tr_state, prev_cam ? 1 : 2);
 
 		visual_3d_check_collisions(tr_state, l->children);
 		tr_state->traversing_mode = TRAVERSE_RENDER;
@@ -525,7 +553,7 @@ static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		/*!! we were in a 2D mode, create drawable context!!*/
 		if (!prev_cam) {
 			DrawableContext *ctx;
-
+			
 			/*with TinyGL we draw directly to the offscreen buffer*/
 #ifndef GPAC_USE_TINYGL
 			tx_copy_to_stencil(&st->txh);
@@ -560,6 +588,10 @@ layer3d_unchanged_2d:
 		Fixed in_x, in_y;
 		Bool do_pick = 0;
 
+		if (!prev_cam) rc = st->vp;
+
+		layer3d_setup_clip(st, tr_state, prev_cam ? 1 : 0, rc);
+
 		if (tr_state->visual->render->active_layer==node) {
 			do_pick = (tr_state->visual->render->grabbed_sensor || tr_state->visual->render->navigation_grabbed) ? 1 : 0;
 		}
@@ -582,12 +614,15 @@ layer3d_unchanged_2d:
 		if (tr_state->visual->render->visual==tr_state->visual) {
 			start.x = gf_mulfix(start.x, tr_state->visual->render->scale_x);
 			start.y = gf_mulfix(start.y, tr_state->visual->render->scale_y);
+		} else if (!prev_cam) {
+			start.x = gf_muldiv(start.x, st->visual->camera.width, st->clip.width);
+			start.y = gf_muldiv(start.y, st->visual->camera.height, st->clip.height);
 		}
 
 		visual_3d_setup_projection(tr_state);
 		in_x = 2 * gf_divfix(start.x, st->visual->camera.width);
 		in_y = 2 * gf_divfix(start.y, st->visual->camera.height);
-			
+					
 		res.x = in_x; res.y = in_y; res.z = -FIX_ONE; res.q = FIX_ONE;
 		gf_mx_apply_vec_4x4(&st->visual->camera.unprojection, &res);
 		if (!res.q) goto l3d_exit;
@@ -602,14 +637,20 @@ layer3d_unchanged_2d:
 		end.y = gf_divfix(res.y, res.q);
 		end.z = gf_divfix(res.z, res.q);
 		tr_state->ray = gf_ray(start, end);
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Layer3D cast ray\n\tOrigin %.4f %.4f %.4f - End %.4f %.4f %.4f\n\tDir %.4f %.4f %.4f\n", 
+			FIX2FLT(tr_state->ray.orig.x), FIX2FLT(tr_state->ray.orig.y), FIX2FLT(tr_state->ray.orig.z),
+			FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z),
+			FIX2FLT(tr_state->ray.dir.x), FIX2FLT(tr_state->ray.dir.y), FIX2FLT(tr_state->ray.dir.z)));
+
 		group_3d_traverse(node, (GroupingNode *)st, tr_state);
 		tr_state->ray = prev_r;
 
-		/*we're the first layer being traversed, store info if navigation allowed*/
-		if (!tr_state->layer3d) {
-			if (tr_state->camera->navigate_mode || (tr_state->camera->navigation_flags & NAV_ANY))
-				tr_state->layer3d = node;
-		}
+		/*store info if navigation allowed - we just override any layer3D picked first since we are picking 2D
+		objects*/
+		if (tr_state->camera->navigate_mode || (tr_state->camera->navigation_flags & NAV_ANY))
+			tr_state->layer3d = node;
+
 		tr_state->traversing_mode = TRAVERSE_PICK;
 	}
 
@@ -651,7 +692,7 @@ void render_init_layer3d(Render *sr, GF_Node *node)
 	stack->txh.compositor = sr->compositor;
 	stack->drawable = drawable_new();
 	stack->drawable->node = node;
-
+	stack->drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;
 
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, RenderLayer3D);

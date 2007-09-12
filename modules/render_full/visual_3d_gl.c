@@ -95,7 +95,6 @@ static void visual_3d_setup_quality(GF_VisualManager *vis)
 			glEnable(GL_POLYGON_SMOOTH);
 		else
 			glDisable(GL_POLYGON_SMOOTH);
-		glEnable(GL_POLYGON_SMOOTH);
 #endif
 	} else {
 		glDisable(GL_LINE_SMOOTH);

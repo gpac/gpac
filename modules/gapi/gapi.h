@@ -81,9 +81,16 @@ typedef struct
     EGLSurface surface;
     EGLConfig eglconfig;
     EGLContext eglctx;
+
+	HBITMAP gl_bitmap;
+    DWORD *gl_bits;
+	HWND gl_hwnd;
+	Bool use_pbuffer;
 #endif
 
 } GAPIPriv;
+
+GF_Err GAPI_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 height) ;
 
 
 #ifdef __cplusplus

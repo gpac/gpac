@@ -130,6 +130,9 @@ static GF_Err JP2_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capa
 	case GF_CODEC_PADDING_BYTES:
 		capability->cap.valueInt = 4;
 		break;
+	case GF_CODEC_PAR:
+		capability->cap.valueInt = 0;
+		break;
 	default:
 		capability->cap.valueInt = 0;
 		return GF_NOT_SUPPORTED;

@@ -403,7 +403,7 @@ void gf_svg_parse_style(GF_Node *n, char *style);
 GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue);
 GF_Err gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info, char *attValue);
 
-Bool gf_svg_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *base_filename);
+GF_Err gf_svg_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *base_filename);
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points);
 void gf_svg_register_iri(GF_SceneGraph *sg, XMLRI *iri);
 void gf_svg_unregister_iri(GF_SceneGraph *sg, XMLRI *iri);

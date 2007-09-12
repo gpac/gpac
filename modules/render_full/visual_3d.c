@@ -71,8 +71,15 @@ static void visual_3d_setup_traversing_state(GF_VisualManager *vis, GF_TraverseS
 			tr_state->camera->vp.y = INT2FIX(tr_state->visual->render->vp_y);
 			tr_state->camera->vp.width = INT2FIX(tr_state->visual->render->vp_width);
 			tr_state->camera->vp.height = INT2FIX(tr_state->visual->render->vp_height);
-			tr_state->camera->width = INT2FIX(tr_state->visual->width);
-			tr_state->camera->height = INT2FIX(tr_state->visual->height);
+
+			/*2D ortho, scale is already present in the root user transform*/
+			if (vis->type_3d==1) {
+				tr_state->camera->width = INT2FIX(tr_state->visual->render->vp_width);
+				tr_state->camera->height = INT2FIX(tr_state->visual->render->vp_height);
+			} else {
+				tr_state->camera->width = INT2FIX(tr_state->visual->width);
+				tr_state->camera->height = INT2FIX(tr_state->visual->height);
+			}
 		} else {
 			Fixed sw, sh;
 			sw = INT2FIX(tr_state->visual->render->vp_width);
@@ -116,7 +123,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	SFVec3f d;
 
 	/*update znear&zfar*/
-	tr_state->camera->z_near = tr_state->camera->avatar_size.x *2; 
+	tr_state->camera->z_near = tr_state->camera->avatar_size.x ; 
 	if (tr_state->camera->z_near<=0) tr_state->camera->z_near = FIX_ONE/2;
 	tr_state->camera->z_far = tr_state->camera->visibility; 
 	if (tr_state->camera->z_far<=0) {
@@ -214,13 +221,10 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 	tr_state->traversing_mode = mode;
 }
 
-void visual_3d_init_render(GF_TraverseState *tr_state)
+void visual_3d_init_render(GF_TraverseState *tr_state, u32 layer_type)
 {
-	Bool in_layer;
 	u32 mode;
 	GF_Node *bindable;
-
-	in_layer = (tr_state->backgrounds != tr_state->visual->back_stack) ? 1 : 0;
 
 	/*if not in layer, render navigation
 	FIXME: we should update the nav info according to the world transform at the current viewpoint (vrml)*/
@@ -235,7 +239,7 @@ void visual_3d_init_render(GF_TraverseState *tr_state)
 		tr_state->camera->visibility = 0;
 		tr_state->camera->speed = FIX_ONE;
 		/*not specified in the spec, but by default we forbid navigation in layer*/
-		if (in_layer) {
+		if (layer_type) {
 			tr_state->camera->navigation_flags = NAV_HEADLIGHT;
 			tr_state->camera->navigate_mode = GF_NAVIGATE_NONE;
 		} else {
@@ -278,13 +282,22 @@ void visual_3d_init_render(GF_TraverseState *tr_state)
 	bindable = (GF_Node*) gf_list_get(tr_state->backgrounds, 0);
 
 	/*if in layer clear z buffer (even if background)*/
-//	if (in_layer) visual_3d_clear_depth(tr_state->visual);
+	if (layer_type) visual_3d_clear_depth(tr_state->visual);
+
+	/*clear requested - do it before background drawing for layer3D (transparent background)*/
+	if (layer_type==2) {
+		SFColor col;
+		col.red = INT2FIX((tr_state->visual->render->compositor->back_color>>16)&0xFF) / 255;
+		col.green = INT2FIX((tr_state->visual->render->compositor->back_color>>8)&0xFF) / 255;
+		col.blue = INT2FIX((tr_state->visual->render->compositor->back_color)&0xFF) / 255;
+		visual_3d_clear(tr_state->visual, col, 0);
+	}
 
 	if (Bindable_GetIsBound(bindable)) {
 		gf_node_render(bindable, tr_state);
 	}
 	/*clear if not in layer*/
-	else if (!in_layer) {
+	else if (!layer_type) {
 		SFColor col;
 		col.red = INT2FIX((tr_state->visual->render->compositor->back_color>>16)&0xFF) / 255;
 		col.green = INT2FIX((tr_state->visual->render->compositor->back_color>>8)&0xFF) / 255;
@@ -487,7 +500,7 @@ static void visual_3d_render_node(GF_TraverseState *tr_state, GF_Node *root_node
 	GF_Node *fog;
 	if (!tr_state->camera || !tr_state->visual) return;
 
-	visual_3d_init_render(tr_state);
+	visual_3d_init_render(tr_state, 0);
 
 	/*main visual, handle collisions*/
 	if ((tr_state->visual==tr_state->visual->render->visual) && tr_state->camera->is_3D) 
@@ -794,6 +807,15 @@ void visual_3d_pick_node(GF_VisualManager *vis, GF_TraverseState *tr_state, GF_E
 	visual_3d_setup_projection(tr_state);
 
 	x = INT2FIX(ev->mouse.x); y = INT2FIX(ev->mouse.y);
+
+	/*if coordinate system is not centered, move to centered coord before applying camera transform
+	because the (un)projection matrices include this transform*/
+	if (!vis->center_coords) {
+		x = x - INT2FIX(tr_state->camera->width)/2;
+		y = INT2FIX(tr_state->camera->height)/2 - y;
+	}
+
+
 	/*main visual with AR*/
 	if ((vis->render->visual == vis) && vis->render->compositor->has_size_info) {
 		Fixed scale = gf_divfix(INT2FIX(vis->width), INT2FIX(vis->render->vp_width));
@@ -835,7 +857,9 @@ void visual_3d_pick_node(GF_VisualManager *vis, GF_TraverseState *tr_state, GF_E
 		FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z),
 		FIX2FLT(tr_state->ray.dir.x), FIX2FLT(tr_state->ray.dir.y), FIX2FLT(tr_state->ray.dir.z)));
 
-	vis->render->hit_info.sq_dist = 0;
+	 
+
+	vis->render->hit_info.picked_square_dist = 0;
 	vis->render->hit_info.picked = NULL;
 	gf_list_reset(vis->render->sensors);
 
@@ -866,7 +890,7 @@ void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *me
 
 	if (!mesh && !path) return;
 
-	count = gf_list_count(tr_state->sensors);
+	count = gf_list_count(tr_state->vrml_sensors);
 	sr = tr_state->visual->render;
 
 	node_is_over = 0;
@@ -885,7 +909,7 @@ void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *me
 	gf_mx_apply_ray(&mx, &r);
 
 	/*if we already have a hit point don't check anything below...*/
-	if (sr->hit_info.sq_dist && !sr->grabbed_sensor && !tr_state->layer3d) {
+	if (sr->hit_info.picked_square_dist && !sr->grabbed_sensor && !tr_state->layer3d) {
 		GF_Plane p;
 		GF_BBox box;
 		SFVec3f hit = sr->hit_info.world_point;
@@ -931,15 +955,15 @@ void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *me
 
 	gf_vec_diff(vdiff, world_pt, tr_state->ray.orig);
 	sqdist = gf_vec_lensq(vdiff);
-	if (sr->hit_info.sq_dist && (sr->hit_info.sq_dist+FIX_EPSILON<sqdist)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Picking: node %s (def %s) is farther (%g) than current pick (%g)\n", gf_node_get_class_name(n), gf_node_get_name(n), FIX2FLT(sqdist), FIX2FLT(sr->hit_info.sq_dist)));
+	if (sr->hit_info.picked_square_dist && (sr->hit_info.picked_square_dist+FIX_EPSILON<sqdist)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Picking: node %s (def %s) is farther (%g) than current pick (%g)\n", gf_node_get_class_name(n), gf_node_get_name(n), FIX2FLT(sqdist), FIX2FLT(sr->hit_info.picked_square_dist)));
 		return;
 	}
 
-	sr->hit_info.sq_dist = sqdist;
+	sr->hit_info.picked_square_dist = sqdist;
 	gf_list_reset(sr->sensors);
 	for (i=0; i<count; i++) {
-		gf_list_add(sr->sensors, gf_list_get(tr_state->sensors, i));
+		gf_list_add(sr->sensors, gf_list_get(tr_state->vrml_sensors, i));
 	}
 
 	gf_mx_copy(sr->hit_info.world_to_local, tr_state->model_matrix);

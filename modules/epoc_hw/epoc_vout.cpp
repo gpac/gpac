@@ -332,7 +332,8 @@ static void *EPOC_vout_new()
 	/*alpha and keying to do*/
 	driv->hw_caps = 0;
 #ifdef GPAC_USE_OGL_ES
-	driv->hw_caps |= GF_VIDEO_HW_HAS_OPENGL;
+	/*no offscreen opengl with epoc at the moment*/
+	driv->hw_caps |= GF_VIDEO_HW_OPENGL;
 #endif
 
 	driv->Setup = EVID_Setup;

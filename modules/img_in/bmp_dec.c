@@ -85,6 +85,9 @@ static GF_Err BMP_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capa
 	case GF_CODEC_PADDING_BYTES:
 		capability->cap.valueInt = 0;
 		break;
+	case GF_CODEC_PAR:
+		capability->cap.valueInt = 0;
+		break;
 	default:
 		return GF_NOT_SUPPORTED;
 	}

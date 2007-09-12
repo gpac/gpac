@@ -916,7 +916,8 @@ void *SDL_NewVideo()
 	driv->SetFullScreen = SDLVid_SetFullScreen;
 	driv->Flush = SDLVid_Flush;
 	driv->ProcessEvent = SDLVid_ProcessEvent;
-	driv->hw_caps |= GF_VIDEO_HW_HAS_OPENGL;
+	/*no offscreen opengl with SDL*/
+	driv->hw_caps |= GF_VIDEO_HW_OPENGL;
 
 	/*no YUV hardware blitting in SDL (only overlays)*/
 

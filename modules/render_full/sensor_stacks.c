@@ -485,7 +485,7 @@ static void OnTouchSensor(SensorHandler *sh, Bool is_over, GF_Event *ev, Render 
 		ts->isOver = is_over;
 		gf_node_event_out_str(sh->sensor, "isOver");
 	}
-	if (!ts->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+	if (!ts->isActive && is_over && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		ts->isActive = 1;
 		gf_node_event_out_str(sh->sensor, "isActive");
 		sr->grabbed_sensor = 1;

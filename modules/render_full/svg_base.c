@@ -383,7 +383,14 @@ void render_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAllAtt
 
 		if (atts->transform && atts->transform->is_ref) {
 			gf_mx_from_mx2d(&tr_state->model_matrix, &tr_state->vb_transform);
-			if (is_draw) visual_3d_matrix_load(tr_state->visual, tr_state->model_matrix.m);
+			if (is_draw) {
+				GF_Matrix tmp;
+				gf_mx_init(tmp);
+				gf_mx_add_translation(&tmp, -tr_state->camera->width/2, tr_state->camera->height/2, 0);
+				gf_mx_add_scale(&tmp, 1, -1, 1);
+				gf_mx_add_matrix(&tmp, &tr_state->model_matrix);
+				visual_3d_matrix_load(tr_state->visual, tmp.m);
+			}
 		}
 
 		if (atts->motionTransform) {
@@ -625,7 +632,7 @@ static void svg_set_viewport_transformation(GF_TraverseState *tr_state, SVGAllAt
 static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 viewport_color;
-	GF_Matrix2D backup_matrix;
+	GF_Matrix2D backup_matrix, vb_bck;
 	GF_Matrix bck_mx;
 	GF_IRect top_clip;
 	Bool is_root_svg = 0;
@@ -663,6 +670,10 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 	top_clip = tr_state->visual->top_clipper;
 	gf_mx2d_copy(backup_matrix, tr_state->transform);
+	if (!is_root_svg) gf_mx2d_copy(vb_bck, tr_state->vb_transform);
+#ifndef GPAC_DISABLE_3D
+	if (tr_state->visual->type_3d) gf_mx_copy(bck_mx, tr_state->model_matrix);
+#endif
 	
 	gf_mx2d_init(tr_state->vb_transform);
 	svg_set_viewport_transformation(tr_state, &all_atts, is_root_svg);
@@ -715,11 +726,13 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 exit:
 #ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d && (tr_state->traversing_mode==TRAVERSE_RENDER)) 
-		visual_3d_matrix_pop(tr_state->visual);
+	if (tr_state->visual->type_3d) {
+		if (tr_state->traversing_mode==TRAVERSE_RENDER) visual_3d_matrix_pop(tr_state->visual);
+		gf_mx_copy(tr_state->model_matrix, bck_mx);
+	}
 #endif
-
-	render_svg_restore_parent_transformation(tr_state, &backup_matrix, &bck_mx);
+	gf_mx2d_copy(tr_state->transform, backup_matrix);  
+	if (!is_root_svg) gf_mx2d_copy(tr_state->vb_transform, vb_bck);
 	memcpy(tr_state->svg_props, &backup_props, styling_size);
 	tr_state->svg_flags = backup_flags;
 	tr_state->visual->top_clipper = top_clip;
@@ -837,14 +850,176 @@ void render_init_svg_switch(Render *sr, GF_Node *node)
 	gf_node_set_callback_function(node, svg_render_switch);
 }
 
+static Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, GF_Path *path, DrawAspect2D *asp, GF_TraverseState *tr_state)
+{
+	Bool check_fill, check_stroke, check_over, check_outline, check_vis;
+	u8 ptr_evt;
+	if (!path) path = drawable->path;
+
+	ptr_evt = *tr_state->svg_props->pointer_events;
+
+	if (ptr_evt==SVG_POINTEREVENTS_NONE) {
+		return 0;
+	}
+
+	if (ptr_evt==SVG_POINTEREVENTS_BOUNDINGBOX) {
+		if ( (x >= path->bbox.x) && (y <= path->bbox.y) 
+		&& (x <= path->bbox.x + path->bbox.width) && (y >= path->bbox.y - path->bbox.height) )
+			return 1;
+		return 0;
+	} 
+	
+	check_fill = check_stroke = check_over = check_outline = check_vis = 0;
+	/*FIXME - todo*/
+	switch (ptr_evt) {
+	case SVG_POINTEREVENTS_VISIBLE:
+		check_vis = 1;
+		check_fill = 1;
+		check_stroke = 1;
+		break;
+	case SVG_POINTEREVENTS_VISIBLEFILL:
+		check_vis = 1;
+		check_fill = 2;
+		break;
+	case SVG_POINTEREVENTS_VISIBLESTROKE:
+		check_vis = 1;
+		check_stroke = 2;
+		break;
+	case SVG_POINTEREVENTS_VISIBLEPAINTED:
+		check_vis = 1;
+		check_fill = 2;
+		check_stroke = 2;
+		break;
+	case SVG_POINTEREVENTS_FILL:
+		check_fill = 1;
+		break;
+	case SVG_POINTEREVENTS_STROKE:
+		check_stroke = 1;
+		break;
+	case SVG_POINTEREVENTS_ALL:
+		check_fill = 1;
+		check_stroke = 1;
+		break;
+	case SVG_POINTEREVENTS_PAINTED:
+		check_fill = 2;
+		check_stroke = 2;
+		break;
+	default:
+		return 0;
+	}
+
+	if (check_vis) {
+		if (*tr_state->svg_props->visibility!=SVG_VISIBILITY_VISIBLE) return 0;
+	}
+
+	if (check_fill) {
+		/*not painted*/
+		if ((check_fill==2) && !asp->fill_texture && !GF_COL_A(asp->fill_color) ) return 0;
+		/*point is over path*/
+		if (gf_path_point_over(path, x, y)) return 1;
+	}
+	if (check_stroke) {
+		StrikeInfo2D *si;
+		/*not painted*/
+		if ((check_stroke==2) && !asp->line_texture && !GF_COL_A(asp->line_color) ) return 0;
+
+		si = drawable_get_strikeinfo(tr_state->visual->render, drawable, asp, tr_state->appear, NULL, 0, NULL);
+		/*point is over outline*/
+		if (si && si->outline && gf_path_point_over(si->outline, x, y)) 
+			return 1;
+	}
+	return 0;
+}
+
+void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAspect2D *asp) 
+{
+	SFVec3f local_pt, world_pt, vdiff;
+	SFVec3f hit_normal;
+	SFVec2f text_coords;
+	u32 i;
+	Fixed sqdist;
+	Bool node_is_over;
+	Render *sr;
+	GF_Matrix mx;
+	GF_Ray r;
+	u32 cull_bckup = tr_state->cull_flag;
+
+	sr = tr_state->visual->render;
+
+	node_is_over = 0;
+	r = tr_state->ray;
+	gf_mx_copy(mx, tr_state->model_matrix);
+	gf_mx_inverse(&mx);
+	gf_mx_apply_ray(&mx, &r);
+
+	/*if we already have a hit point don't check anything below...*/
+	if (sr->hit_info.picked_square_dist && !sr->grabbed_sensor && !tr_state->layer3d) {
+		GF_Plane p;
+		GF_BBox box;
+		SFVec3f hit = sr->hit_info.world_point;
+		gf_mx_apply_vec(&mx, &hit);
+		p.normal = r.dir;
+		p.d = -1 * gf_vec_dot(p.normal, hit);
+		gf_bbox_from_rect(&box, &drawable->path->bbox);
+
+		if (gf_bbox_plane_relation(&box, &p) == GF_BBOX_FRONT) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Picking: bounding box of node %s (DEF %s) below current hit point - skipping\n", gf_node_get_class_name(drawable->node), gf_node_get_name(drawable->node)));
+			return;
+		}
+	}
+	node_is_over = 0;
+	if (render_get_2d_plane_intersection(&r, &local_pt)) {
+		node_is_over = svg_drawable_is_over(drawable, local_pt.x, local_pt.y, NULL, asp, tr_state);
+	}
+
+	if (!node_is_over) return;
+
+	hit_normal.x = hit_normal.y = 0; hit_normal.z = FIX_ONE;
+	text_coords.x = gf_divfix(local_pt.x, drawable->path->bbox.width) + FIX_ONE/2;
+	text_coords.y = gf_divfix(local_pt.y, drawable->path->bbox.height) + FIX_ONE/2;
+
+	/*check distance from user and keep the closest hitpoint*/
+	world_pt = local_pt;
+	gf_mx_apply_vec(&tr_state->model_matrix, &world_pt);
+
+	for (i=0; i<tr_state->num_clip_planes; i++) {
+		if (gf_plane_get_distance(&tr_state->clip_planes[i], &world_pt) < 0) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Picking: node %s (def %s) is not in clipper half space\n", gf_node_get_class_name(drawable->node), gf_node_get_name(drawable->node)));
+			return;
+		}
+	}
+
+	gf_vec_diff(vdiff, world_pt, tr_state->ray.orig);
+	sqdist = gf_vec_lensq(vdiff);
+	if (sr->hit_info.picked_square_dist && (sr->hit_info.picked_square_dist+FIX_EPSILON<sqdist)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Picking: node %s (def %s) is farther (%g) than current pick (%g)\n", gf_node_get_class_name(drawable->node), gf_node_get_name(drawable->node), FIX2FLT(sqdist), FIX2FLT(sr->hit_info.picked_square_dist)));
+		return;
+	}
+
+	sr->hit_info.picked_square_dist = sqdist;
+	gf_list_reset(sr->sensors);
+
+	gf_mx_copy(sr->hit_info.world_to_local, tr_state->model_matrix);
+	gf_mx_copy(sr->hit_info.local_to_world, mx);
+	sr->hit_info.local_point = local_pt;
+	sr->hit_info.world_point = world_pt;
+	sr->hit_info.world_ray = tr_state->ray;
+	sr->hit_info.hit_normal = hit_normal;
+	sr->hit_info.hit_texcoords = text_coords;
+
+	sr->hit_info.appear = NULL;
+	sr->hit_info.picked = drawable->node;
+	sr->hit_info.use_dom_events = 1;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Picking: node %s (def %s) is under mouse - hit %g %g %g\n", gf_node_get_class_name(drawable->node), gf_node_get_name(drawable->node),
+			FIX2FLT(world_pt.x), FIX2FLT(world_pt.y), FIX2FLT(world_pt.z)));
+}
 
 void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_state)
 {
 	DrawAspect2D asp;
 	GF_Matrix2D inv_2d;
-	StrikeInfo2D *si;
 	Fixed x, y;
-	u32 i, count;
 	Bool picked = 0;
 	PickingInfo *hit = &tr_state->visual->render->hit_info;
 	SVGPropertiesPointers backup_props;
@@ -861,29 +1036,14 @@ void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_s
 
 	render_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
-	/*FIXME - todo*/
-	switch (*tr_state->svg_props->pointer_events) {
-	case SVG_POINTEREVENTS_NONE:
-		goto picked;
-	case SVG_POINTEREVENTS_FILL:
-	case SVG_POINTEREVENTS_VISIBLEFILL:
-		break;
-	case SVG_POINTEREVENTS_STROKE:
-	case SVG_POINTEREVENTS_VISIBLESTROKE:
-		break;
-	case SVG_POINTEREVENTS_BOUNDINGBOX:
-		break;
-	default:
-		break;
-	}
-
 	memset(&asp, 0, sizeof(DrawAspect2D));
 	drawable_get_aspect_2d_svg(node, &asp, tr_state);
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
-		visual_3d_drawable_pick(drawable->node, tr_state, NULL, drawable->path);
-		if (hit->picked==node) hit->use_dom_events = 1;
+		svg_drawable_3d_pick(drawable, tr_state, &asp);
+		render_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
+		memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		return;
 	} 
 #endif
@@ -893,26 +1053,8 @@ void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_s
 	y = tr_state->ray.orig.y;
 	gf_mx2d_apply_coords(&inv_2d, &x, &y);
 
-	memset(&asp, 0, sizeof(DrawAspect2D));
-	drawable_get_aspect_2d(drawable->node, &asp, tr_state);
+	picked = svg_drawable_is_over(drawable, x, y, NULL, &asp, tr_state);
 
-	if (/*tr_state->ctx->aspect.fill_texture */
-		/* (tr_state->pick_type<PICK_FULL) */
-		//GF_COL_A(asp.fill_color)
-		1) {
-		if (gf_path_point_over(drawable->path, x, y)) {
-			picked = 1;
-		}
-	}
-
-	if (!picked && (asp.pen_props.width || asp.line_texture) ) {
-		si = drawable_get_strikeinfo(tr_state->visual->render, drawable, &asp, tr_state->appear, NULL, 0, NULL);
-		if (si && si->outline && gf_path_point_over(si->outline, x, y)) {
-			goto picked;
-		}
-	}
-
-picked:
 	if (picked) {
 		hit->local_point.x = x;
 		hit->local_point.y = y;
@@ -933,11 +1075,8 @@ picked:
 			hit->appear = NULL;
 		}
 
+		/*reset snesors*/
 		gf_list_reset(tr_state->visual->render->sensors);
-		count = gf_list_count(tr_state->sensors);
-		for (i=0; i<count; i++) {
-			gf_list_add(tr_state->visual->render->sensors, gf_list_get(tr_state->sensors, i));
-		}
 	}
 
 	render_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
@@ -1434,7 +1573,19 @@ void render_svg_render_use(GF_Node *node, GF_Node *sub_root, void *rs)
 
 	render_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
-	gf_mx2d_pre_multiply(&tr_state->transform, &translate);
+#ifndef GPAC_DISABLE_3D
+	if (tr_state->visual->type_3d) {
+		gf_mx_add_matrix_2d(&tr_state->model_matrix, &translate);
+
+		if (tr_state->traversing_mode==TRAVERSE_RENDER) {
+			GF_Matrix tmp;
+			gf_mx_from_mx2d(&tmp, &translate);
+			visual_3d_matrix_add(tr_state->visual, tmp.m);
+		}
+	} else 
+#endif
+		gf_mx2d_pre_multiply(&tr_state->transform, &translate);
+
 	if (all_atts.xlink_href) {
 		prev_use = tr_state->parent_use;
 		tr_state->parent_use = node;

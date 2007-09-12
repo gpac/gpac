@@ -180,6 +180,17 @@ static void composite_update(GF_TextureHandler *txh)
 #ifdef GPAC_USE_TINYGL
 	/*TinyGL pixel format is fixed at compile time, we cannot override it !*/
 	new_pixel_format = GF_PIXEL_RGBA;
+#else
+
+	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
+#ifdef GPAC_USE_OGL_ES
+	new_pixel_format = GF_PIXEL_RGBA;
+#else
+	/*no alpha support in offscreen rendering*/
+	if (!(sr->compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA)) 
+		new_pixel_format = GF_PIXEL_RGB_24;
+#endif
+
 #endif
 
 
@@ -313,7 +324,7 @@ static void composite_update(GF_TextureHandler *txh)
 #endif
 
 	GF_SAFEALLOC(tr_state, GF_TraverseState);
-	tr_state->sensors = gf_list_new();
+	tr_state->vrml_sensors = gf_list_new();
 	tr_state->visual = st->visual;
 	tr_state->invalidate_all = invalidate_all;
 
@@ -372,7 +383,7 @@ static void composite_update(GF_TextureHandler *txh)
 		}
 		gf_sr_invalidate(st->txh.compositor, NULL);
 	}
-	gf_list_del(tr_state->sensors);
+	gf_list_del(tr_state->vrml_sensors);
 	free(tr_state);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Leaving CompositeTexture2D Render Cycle\n"));
 }
@@ -453,8 +464,13 @@ void render_init_compositetexture3d(Render *sr, GF_Node *node)
 	gf_node_set_callback_function(node, composite_render);
 	render_visual_register(sr, st->visual);
 
-	st->visual->type_3d = 2;
-	st->visual->camera.is_3D = 1;
+	if (! (sr->compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
+		st->visual->type_3d = 0;
+		st->visual->camera.is_3D = 0;
+	} else {
+		st->visual->type_3d = 2;
+		st->visual->camera.is_3D = 1;
+	}
 	camera_invalidate(&st->visual->camera);
 }
 #endif
@@ -496,7 +512,7 @@ Bool render_composite_texture_handle_event(Render *sr, GF_Event *ev)
 
 
 	GF_SAFEALLOC(tr_state, GF_TraverseState);
-	tr_state->sensors = gf_list_new();
+	tr_state->vrml_sensors = gf_list_new();
 	tr_state->visual = stack->visual;
 	tr_state->traversing_mode = TRAVERSE_PICK;
 	tr_state->is_pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(ap->texture));
@@ -505,12 +521,12 @@ Bool render_composite_texture_handle_event(Render *sr, GF_Event *ev)
 	l = children = ((M_CompositeTexture2D*)ap->texture)->children;
 	while (l) {
 		SensorHandler *hsens = render_get_sensor_handler(l->node);
-		if (hsens) gf_list_add(tr_state->sensors, hsens);
+		if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
 		l = l->next;
 	}
 
 	res = visual_execute_event(stack->visual, tr_state, ev, children);
-	gf_list_del(tr_state->sensors);
+	gf_list_del(tr_state->vrml_sensors);
 	free(tr_state);
 	return res;
 }

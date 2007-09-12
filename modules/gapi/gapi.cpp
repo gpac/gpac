@@ -177,9 +177,12 @@ static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
 	case VK_F3: evt->key_code = GF_KEY_F3; break;
 	case VK_F4: evt->key_code = GF_KEY_F4; break;
 	case VK_F5: evt->key_code = GF_KEY_F5; break;
-	case VK_F6: evt->key_code = GF_KEY_F6; break;
-	case VK_F7: evt->key_code = GF_KEY_F7; break;
+//	case VK_F6: evt->key_code = GF_KEY_F6; break;
+//	case VK_F7: evt->key_code = GF_KEY_F7; break;
+	case VK_F6: evt->key_code = GF_KEY_VOLUMEUP; break;
+	case VK_F7: evt->key_code = GF_KEY_VOLUMEDOWN; break;
 	case VK_F8: evt->key_code = GF_KEY_F8; break;
+		
 	case VK_F9: evt->key_code = GF_KEY_F9; break;
 	case VK_F10: evt->key_code = GF_KEY_F10; break;
 	case VK_F11: evt->key_code = GF_KEY_F11; break;
@@ -258,12 +261,21 @@ static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
 			else if (res==ctx->keys.vkDown) evt->key_code = is_landscape ? GF_KEY_LEFT : GF_KEY_DOWN;
 			else if (res==ctx->keys.vkUp) evt->key_code = is_landscape ? GF_KEY_RIGHT : GF_KEY_UP;
 			else if (res==ctx->keys.vkStart) evt->key_code = GF_KEY_ENTER;
-			else if (res==ctx->keys.vkA) evt->key_code = GF_KEY_CONTROL;
-			else if (res==ctx->keys.vkB) evt->key_code = GF_KEY_SHIFT;
-			else if (res==ctx->keys.vkC) evt->key_code = GF_KEY_ALT;
-
-			else
+			else if (res==ctx->keys.vkA) 
+				evt->key_code = GF_KEY_MEDIAPREVIOUSTRACK;
+			else if (res==ctx->keys.vkB) 
+				evt->key_code = GF_KEY_MEDIANEXTTRACK;
+			else if (res==ctx->keys.vkC) 
+				evt->key_code = GF_KEY_SHIFT;
+			else if (res==0xc1) 
+				evt->key_code = GF_KEY_ALT;
+			else if (res==0xc2) 
+				evt->key_code = GF_KEY_CONTROL;
+			else if (res==0xc5) 
+				evt->key_code = GF_KEY_VOLUMEDOWN;
+			else {
 				evt->key_code = GF_KEY_UNIDENTIFIED;
+			}
 		}
 		break;
 	}
@@ -389,6 +401,7 @@ void GAPI_WindowThread(void *par)
 
 void GAPI_SetupWindow(GF_VideoOutput *dr)
 {
+	GF_Err e;
 	GAPIPriv *ctx = (GAPIPriv *)dr->opaque;
 	if (the_video_driver) return;
 	the_video_driver = dr;
@@ -403,6 +416,44 @@ void GAPI_SetupWindow(GF_VideoOutput *dr)
 		/*override window proc*/
 		SetWindowLong(ctx->hWnd, GWL_WNDPROC, (DWORD) GAPI_WindowProc);
 	}
+
+#ifdef GPAC_USE_OGL_ES
+	ctx->use_pbuffer = 1;
+	dr->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+	e = GAPI_SetupOGL_ES_Offscreen(dr, 20, 20);
+	if (e!=GF_OK) {
+		dr->hw_caps &= ~GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+		e = GAPI_SetupOGL_ES_Offscreen(dr, 20, 20);
+	}
+	if (!e) {
+		dr->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN;
+		return;
+	}
+	ctx->use_pbuffer = 0;
+
+	WNDCLASS wc;
+	HINSTANCE hInst;
+	hInst = GetModuleHandle(_T("gm_gapi.dll") );
+	memset(&wc, 0, sizeof(WNDCLASS));
+	wc.hInstance = hInst;
+	wc.lpfnWndProc = GAPI_WindowProc;
+	wc.lpszClassName = _T("GPAC GAPI Offscreen");
+	RegisterClass (&wc);
+
+	ctx->gl_hwnd = CreateWindow(_T("GPAC GAPI Offscreen"), _T("GPAC GAPI Offscreen"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+	if (!ctx->gl_hwnd) return;
+	ShowWindow(ctx->gl_hwnd, SW_HIDE);
+
+	dr->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+	e = GAPI_SetupOGL_ES_Offscreen(dr, 20, 20);
+
+	if (e!=GF_OK) {
+		dr->hw_caps &= ~GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+		e = GAPI_SetupOGL_ES_Offscreen(dr, 20, 20);
+	}
+	if (e==GF_OK) dr->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN;
+#endif
+
 }
 
 void GAPI_ShutdownWindow(GF_VideoOutput *dr)
@@ -421,6 +472,12 @@ void GAPI_ShutdownWindow(GF_VideoOutput *dr)
 		ctx->orig_wnd_proc = 0L;
 	}
 	ctx->hWnd = NULL;
+#ifdef GPAC_USE_OGL_ES
+	PostMessage(ctx->gl_hwnd, WM_DESTROY, 0, 0);
+	ctx->gl_hwnd = NULL;
+	UnregisterClass(_T("GPAC GAPI Offscreen"), GetModuleHandle(_T("gm_gapi.dll") ));
+#endif
+
 	the_video_driver = NULL;
 }
 
@@ -432,7 +489,7 @@ GF_Err GAPI_Clear(GF_VideoOutput *dr, u32 color)
 	return GF_OK;
 }
 
-static void createPixmap(GAPIPriv *ctx, HDC dc, Bool for_gl)
+static void createPixmap(GAPIPriv *ctx, HDC dc, u32 pix_type)
 {
     const size_t    bmiSize = sizeof(BITMAPINFO) + 256U*sizeof(RGBQUAD);
     BITMAPINFO*     bmi;
@@ -460,7 +517,11 @@ static void createPixmap(GAPIPriv *ctx, HDC dc, Bool for_gl)
 		p[0] = 0x00ff0000; p[1] = 0x0000ff00; p[2] = 0x000000ff;
 		break;
 	}
-	if (for_gl) {
+	if (pix_type==2) {
+#ifdef GPAC_USE_OGL_ES
+		ctx->gl_bitmap = CreateDIBSection(dc, bmi, DIB_RGB_COLORS, (void **) &ctx->gl_bits, NULL, 0);
+#endif
+	} else if (pix_type==1) {
 		ctx->bitmap = CreateDIBSection(dc, bmi, DIB_RGB_COLORS, (void **) &ctx->bits, NULL, 0);
 	} else {
 		ctx->bitmap = CreateDIBSection(dc, bmi, DIB_RGB_COLORS, (void **) &ctx->backbuffer, NULL, 0);
@@ -473,7 +534,7 @@ static void createPixmap(GAPIPriv *ctx, HDC dc, Bool for_gl)
 
 #ifdef GPAC_USE_OGL_ES
 
-void GAPI_ReleaseOGL_ES(GAPIPriv *ctx)
+void GAPI_ReleaseOGL_ES(GAPIPriv *ctx, Bool offscreen_only)
 {
 	if (ctx->egldpy) {
 		if (ctx->eglctx) eglDestroyContext(ctx->egldpy, ctx->eglctx);
@@ -481,6 +542,11 @@ void GAPI_ReleaseOGL_ES(GAPIPriv *ctx)
 		if (ctx->egldpy) eglTerminate(ctx->egldpy);
 		ctx->egldpy = 0;
 	}
+    if (ctx->gl_bitmap) DeleteObject(ctx->gl_bitmap);
+	ctx->gl_bitmap = NULL;
+
+	if (offscreen_only) return;
+
     if (ctx->bitmap) DeleteObject(ctx->bitmap);
 	ctx->bitmap = NULL;
 }
@@ -495,7 +561,7 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 	atts[0] = EGL_RED_SIZE; atts[1] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
 	atts[2] = EGL_GREEN_SIZE; atts[3] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : (gctx->pixel_format==GF_PIXEL_RGB_565) ? 6 : 5;
 	atts[4] = EGL_BLUE_SIZE; atts[5] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
-	/*no supported...*/
+	/*not supported...*/
 	atts[6] = EGL_ALPHA_SIZE; atts[7] = EGL_DONT_CARE;
 	atts[8] = EGL_DEPTH_SIZE; atts[9] = 32;
 	atts[10] = EGL_STENCIL_SIZE; atts[11] = EGL_DONT_CARE;
@@ -503,7 +569,7 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 	atts[14] = EGL_NONE;
 
 	/*whenever window is resized we must reinit OGL-ES*/
-	GAPI_ReleaseOGL_ES(gctx);
+	GAPI_ReleaseOGL_ES(gctx, 0);
 
 	if (!gctx->fullscreen) {
 		RECT rc;
@@ -553,13 +619,84 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 }
 
 
+
+GF_Err GAPI_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 height) 
+{
+	static int atts[15];
+	EGLint n, maj, min;
+	HDC dc;
+
+	GAPICTX(dr)
+
+	GAPI_ReleaseOGL_ES(gctx, 1);
+
+	if (!gctx->use_pbuffer) {
+		SetWindowPos(gctx->gl_hwnd, NULL, 0, 0, width, height, SWP_NOZORDER | SWP_NOMOVE);
+		dc = GetDC(gctx->gl_hwnd);
+		createPixmap(gctx, dc, 2);
+		ReleaseDC(gctx->hWnd, dc);
+	}
+
+	gctx->egldpy = eglGetDisplay(/*gctx->dpy*/EGL_DEFAULT_DISPLAY);
+	if (!eglInitialize(gctx->egldpy, &maj, &min)) {
+		gctx->egldpy = NULL;
+		return GF_IO_ERR;
+	}
+
+/*	atts[0] = EGL_RED_SIZE; atts[1] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
+	atts[2] = EGL_GREEN_SIZE; atts[3] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : (gctx->pixel_format==GF_PIXEL_RGB_565) ? 6 : 5;
+	atts[4] = EGL_BLUE_SIZE; atts[5] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
+*/
+	atts[0] = EGL_RED_SIZE; atts[1] = 8;
+	atts[2] = EGL_GREEN_SIZE; atts[3] = 8;
+	atts[4] = EGL_BLUE_SIZE; atts[5] = 8;
+	atts[6] = EGL_ALPHA_SIZE; atts[7] = (dr->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA) ? 8 : EGL_DONT_CARE;
+	atts[8] = EGL_DEPTH_SIZE; atts[9] = 16;
+	atts[10] = EGL_STENCIL_SIZE; atts[11] = EGL_DONT_CARE;
+	atts[12] = EGL_SURFACE_TYPE; atts[13] = gctx->use_pbuffer ? EGL_PBUFFER_BIT : EGL_PIXMAP_BIT;
+	atts[14] = EGL_NONE;
+
+	eglGetConfigs(gctx->egldpy, NULL, 0, &n);
+	if (!eglChooseConfig(gctx->egldpy, atts, &gctx->eglconfig, 1, &n)) {
+		return GF_IO_ERR;
+	}
+
+	if (!gctx->use_pbuffer) {
+		gctx->surface = eglCreatePixmapSurface(gctx->egldpy, gctx->eglconfig, gctx->gl_bitmap, 0);
+	} else {
+		atts[0] = EGL_WIDTH; atts[1] = width;
+		atts[2] = EGL_HEIGHT; atts[3] = height;
+		atts[4] = EGL_NONE;
+
+		gctx->surface = eglCreatePbufferSurface(gctx->egldpy, gctx->eglconfig, atts);
+	}
+
+	if (!gctx->surface) {
+		return GF_IO_ERR; 
+	}
+	gctx->eglctx = eglCreateContext(gctx->egldpy, gctx->eglconfig, NULL, NULL);
+	if (!gctx->eglctx) {
+		eglDestroySurface(gctx->egldpy, gctx->surface);
+		gctx->surface = 0L;
+		return GF_IO_ERR; 
+	}
+    if (!eglMakeCurrent(gctx->egldpy, gctx->surface, gctx->surface, gctx->eglctx)) {
+		eglDestroyContext(gctx->egldpy, gctx->eglctx);
+		gctx->eglctx = 0L;
+		eglDestroySurface(gctx->egldpy, gctx->surface);
+		gctx->surface = 0L;
+		return GF_IO_ERR;
+	}
+	return GF_OK;
+}
+
 #endif
 
 
 void GAPI_ReleaseObjects(GAPIPriv *ctx)
 {
 #ifdef GPAC_USE_OGL_ES
-	if (ctx->output_3d_type) GAPI_ReleaseOGL_ES(ctx);
+	if (ctx->output_3d_type) GAPI_ReleaseOGL_ES(ctx, 0);
 	else
 #endif
     if (ctx->bitmap) DeleteObject(ctx->bitmap);
@@ -879,7 +1016,7 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			return GAPI_SetupOGL_ES(the_video_driver);
 		case 2:
 			gctx->output_3d_type = 2;
-			return GF_NOT_SUPPORTED;
+			return GAPI_SetupOGL_ES_Offscreen(the_video_driver, evt->setup.width, evt->setup.height);
 #else
 		default:
 			return GF_NOT_SUPPORTED;
@@ -957,7 +1094,7 @@ static void *NewGAPIVideoOutput()
 	/*alpha and keying to do*/
 	driv->hw_caps = GF_VIDEO_HW_CAN_ROTATE;
 #ifdef GPAC_USE_OGL_ES
-	driv->hw_caps = GF_VIDEO_HW_HAS_OPENGL;
+	driv->hw_caps = GF_VIDEO_HW_OPENGL;
 #endif
 
 	driv->Setup = GAPI_Setup;

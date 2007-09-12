@@ -83,7 +83,7 @@ typedef struct
 	/*normal at hit point, local coord system*/
 	SFVec3f hit_normal;
 	/*distance from ray origin used to discards further hits - FIXME: may not properly work with transparent layer3D*/
-	Fixed sq_dist;
+	Fixed picked_square_dist;
 } PickingInfo;
 
 
@@ -118,9 +118,9 @@ typedef struct _render_2d_3d
 	GF_Node *focus_node;
 	/*current sensor type*/
 	u32 sensor_type;
-	/*list of sensors active before the picking phase (eg active at the previous pass)*/
+	/*list of VRML sensors active before the picking phase (eg active at the previous pass)*/
 	GF_List *previous_sensors;
-	/*list of sensors active after the picking phase*/
+	/*list of VRML sensors active after the picking phase*/
 	GF_List *sensors;
 	/*indicates a sensor is currently active*/
 	Bool grabbed_sensor;
@@ -140,6 +140,8 @@ typedef struct _render_2d_3d
 	/*options*/
 	Bool scalable_zoom;
 	Bool enable_yuv_hw;
+	/*disables partial hardware blit (eg during dirty rect) to avoid artefacts*/
+	Bool disable_partial_hw_blit;
 
 	/*root node uses dom events*/
 	Bool root_uses_dom_events;
@@ -314,8 +316,8 @@ typedef struct _traversing_state
 	/*1-based idx of text element drawn*/
 	u32 text_split_idx;
 
-	/*all sensors for the current level*/
-	GF_List *sensors;
+	/*all VRML sensors for the current level*/
+	GF_List *vrml_sensors;
 
 	/*current appearance when traversing geometry nodes*/
 	GF_Node *appear;

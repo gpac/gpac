@@ -27,6 +27,8 @@
 
 #include <gpac/user.h>
 
+#include <GL/gl.h>
+
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
 
 
@@ -36,7 +38,7 @@ static void RestoreWindow(DDContext *dd)
 
 
 	dd->NeedRestore = 0;
-	if (dd->output_3d_type=+1) {
+	if (dd->output_3d_type==1) {
 		ChangeDisplaySettings(NULL,0);
 		SetForegroundWindow(GetDesktopWindow());
 		SetForegroundWindow(dd->cur_hwnd);
@@ -71,7 +73,6 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		/*do not destroy associated GL context*/
 		if (dd->output_3d_type==2) return;
 	}
-
 
 	/*delete openGL context*/
 #ifdef GPAC_USE_OGL_ES
@@ -428,7 +429,7 @@ static void *NewDXVideoOutput()
 
     driv->max_screen_width = GetSystemMetrics(SM_CXSCREEN);
     driv->max_screen_height = GetSystemMetrics(SM_CYSCREEN);
-	driv->hw_caps = GF_VIDEO_HW_HAS_OPENGL;
+	driv->hw_caps = GF_VIDEO_HW_OPENGL | GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
 
 	DD_SetupDDraw(driv);
 
