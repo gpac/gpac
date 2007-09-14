@@ -332,9 +332,9 @@ void do_layout(Bool notif_size)
 		::ShowWindow(g_hwnd_menu1, menu_switched ? SW_HIDE : SW_SHOW);
 		::ShowWindow(g_hwnd_menu2, menu_switched ? SW_SHOW : SW_HIDE);
 		if (show_status) {
-			::MoveWindow(g_hwnd, 0, caption_h, disp_w, disp_h, 1);
+			::MoveWindow(g_hwnd, 0, 0, disp_w, disp_h, 1);
 			::ShowWindow(g_hwnd_status, SW_SHOW);
-			::MoveWindow(g_hwnd_status, 0, 0, disp_w, caption_h-2, 1);
+			::MoveWindow(g_hwnd_status, 0, 0, disp_w, caption_h, 1);
 			::MoveWindow(g_hwnd_disp, 0, caption_h, disp_w, disp_h - caption_h, 1);
 			w = disp_w;
 			h = disp_h - caption_h;
@@ -404,11 +404,13 @@ void freeze_display(Bool do_freeze)
 		}
 		/*freeze display*/
 		gf_term_set_option(term, GF_OPT_FREEZE_DISPLAY, 1);
+		
 		set_backlight_state(0);
 		gf_sleep(100);
 	} else {
 		if (prev_backlight_state) set_backlight_state(1);
 		gf_term_set_option(term, GF_OPT_FREEZE_DISPLAY, 0);
+
 		if (do_resume) {
 			gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
 			set_backlight_state(1);
@@ -416,6 +418,16 @@ void freeze_display(Bool do_freeze)
 	}
 }
 
+static void show_taskbar(Bool show_it)
+{
+	if (show_it) {
+		SHFullScreen(GetForegroundWindow(), SHFS_SHOWSTARTICON | SHFS_SHOWTASKBAR| SHFS_SHOWSIPBUTTON);
+		::ShowWindow(::FindWindow(_T("HHTaskbar"),NULL), SW_SHOWNA);
+	} else {
+		::ShowWindow(::FindWindow(_T("HHTaskbar"),NULL), SW_HIDE);
+		SHFullScreen(GetForegroundWindow(), SHFS_HIDESTARTICON | SHFS_HIDETASKBAR| SHFS_HIDESIPBUTTON);
+	}
+}
 
 void refresh_recent_files()
 {
@@ -960,7 +972,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	screen_w = GetSystemMetrics(SM_CXSCREEN);
 	screen_h = GetSystemMetrics(SM_CYSCREEN);
 	disp_w = screen_w;
-	disp_h = screen_h - menu_h - caption_h;
+	disp_h = screen_h - menu_h /*- caption_h*/;
 
 	
 	if (hwndOld = FindWindow(_T("Osmophone"), NULL))
@@ -1023,6 +1035,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	if (InitInstance(nShowCmd)) {
 		SetForegroundWindow(g_hwnd);
+		show_taskbar(0);
+
 		while (GetMessage(&msg, NULL, 0,0) == TRUE) {
 			TranslateMessage (&msg);
 			DispatchMessage (&msg);
@@ -1033,6 +1047,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 				playlist_act = 0;
 			}
 		}
+		show_taskbar(1);
 	}
 
 	GXCloseInput();

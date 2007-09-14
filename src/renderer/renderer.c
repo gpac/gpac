@@ -75,7 +75,11 @@ static void gf_sr_set_fullscreen(GF_Renderer *sr)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render] Switching fullscreen %s\n", sr->fullscreen ? "off" : "on"));
 	/*move to FS*/
 	sr->fullscreen = !sr->fullscreen;
-	e = sr->video_out->SetFullScreen(sr->video_out, sr->fullscreen, &sr->width, &sr->height);
+	if (sr->fullscreen && (sr->scene_width>sr->scene_height)) {
+		e = sr->video_out->SetFullScreen(sr->video_out, 2, &sr->width, &sr->height);
+	} else {
+		e = sr->video_out->SetFullScreen(sr->video_out, sr->fullscreen, &sr->width, &sr->height);
+	}
 	if (e) {
 		GF_USER_MESSAGE(sr->user, "VideoRenderer", "Cannot switch to fullscreen", e);
 		sr->fullscreen = 0;
@@ -707,7 +711,7 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 		evt.size.width = width;
 		evt.size.height = height;
 		sr->user->EventProc(sr->user->opaque, &evt);
-	}
+	} 
 	if (scene_graph)
 		sr->draw_next_frame = 1;
 	return GF_OK;

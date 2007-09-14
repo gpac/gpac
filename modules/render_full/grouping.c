@@ -40,7 +40,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		group->flags &= ~GROUP_HAS_SENSORS;
 		/*special case for anchor which is a parent node acting as a sensor*/
 		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
-			group->flags |= GROUP_HAS_SENSORS;
+			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
 		} else {
 			l = ((GF_ParentNode *)node)->children;
 			while (l) {
@@ -74,13 +74,19 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		sensor_backup = tr_state->vrml_sensors;
 		tr_state->vrml_sensors = gf_list_new();
 
+		if (group->flags & GROUP_IS_ANCHOR) {
+			SensorHandler *render_anchor_get_handler(GF_Node *n);
 
-		/*add sensor(s) to traversing state*/
-		l = ((GF_ParentNode *)node)->children;
-		while (l) {
-			hsens = render_get_sensor_handler(l->node);
+			hsens = render_anchor_get_handler(node);
 			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
-			l = l->next;
+		} else {
+			/*add sensor(s) to traversing state*/
+			l = ((GF_ParentNode *)node)->children;
+			while (l) {
+				hsens = render_get_sensor_handler(l->node);
+				if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
+				l = l->next;
+			}
 		}
 	}
 

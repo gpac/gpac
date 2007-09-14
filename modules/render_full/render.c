@@ -133,6 +133,8 @@ static void render_reset(GF_VisualRenderer *vr)
 	/*force resetup in case we're switching coord system*/
 	sr->root_visual_setup = 0;
 	visual_2d_reset_raster(sr->visual);
+	
+	render_set_aspect_ratio_scaling(sr, sr->scale_x, sr->scale_x);
 }
 
 

@@ -31,7 +31,7 @@ OrderedGroup {
     "This test shows the usage of line dashing using the XLineProperties node."
     "Two properties are demonstrated: dash pattern and dash offset. The offset is animated on the left, the dash length is animated on the right." 
     "" 
-    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:07 $ - $Revision: 1.3 $" 
+    "GPAC Regression Tests" "$Date: 2007-09-14 16:42:18 $ - $Revision: 1.4 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Animating the line dashes using the XLineProperties node"
@@ -45,7 +45,7 @@ OrderedGroup {
        lineProps DEF XLP1 XLineProperties {
         lineColor 0 0 1
         lineStyle 6
-        isScalable FALSE
+        isScalable TRUE
         lineCap 1
         width 20
         dashes [0.1 80]
@@ -91,7 +91,7 @@ OrderedGroup {
        lineProps DEF XLP2 XLineProperties {
         lineColor 0 0 1
         lineStyle 6
-        isScalable FALSE
+        isScalable TRUE
         lineCap 1
         width 20
         dashes [3 80]

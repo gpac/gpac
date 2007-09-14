@@ -158,7 +158,7 @@ static void on_activate_anchor(GF_Node *node)
 	OnAnchor(&st->hdl, 0, &ev, NULL);
 }
 
-static SensorHandler *render_anchor_get_handler(GF_Node *n)
+SensorHandler *render_anchor_get_handler(GF_Node *n)
 {
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(n);
 	return &st->hdl;

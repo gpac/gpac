@@ -912,6 +912,9 @@ StrikeInfo2D *drawable_get_strikeinfo(Render *sr, Drawable *drawable, DrawAspect
 	} 
 #endif
 
+	/*picking*/
+	if (!asp->line_scale) return si;
+
 	/*node changed or outline not build*/
 	now = lp ? drawable_get_lineprops_last_update_time(lp) : si->last_update_time;
 	if (!si->outline || (now!=si->last_update_time) || (si->line_scale != asp->line_scale) || (si->path_length != asp->pen_props.path_length) || (svg_flags & CTX_SVG_OUTLINE_GEOMETRY_DIRTY)) {

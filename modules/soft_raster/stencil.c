@@ -457,7 +457,7 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 			x0 = MIN(x0, _this->width-1);
 		}
 		x += _this->inc_x;
-		if (x<0) x+=_this->width;
+		if (x<0) x+=INT2FIX(_this->width);
 		
 		y0 = FIX2INT(y);
 		assert((s32)y0 >=0);
@@ -466,7 +466,7 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 		} else if (y0 >= _this->height) 
 			y0 = _this->height-1;
 		y += _this->inc_y;
-		if (y<0) y+=_this->height;
+		if (y<0) y+=INT2FIX(_this->height);
 
 		pix = _this->tx_get_pixel(_this->pixels + _this->stride*y0 + _this->Bpp*x0);
 

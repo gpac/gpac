@@ -537,8 +537,12 @@ static void createPixmap(GAPIPriv *ctx, HDC dc, u32 pix_type)
 void GAPI_ReleaseOGL_ES(GAPIPriv *ctx, Bool offscreen_only)
 {
 	if (ctx->egldpy) {
+		eglMakeCurrent(ctx->egldpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+
 		if (ctx->eglctx) eglDestroyContext(ctx->egldpy, ctx->eglctx);
-		if (ctx->surface ) eglDestroySurface(ctx->egldpy, ctx->surface);
+		ctx->eglctx = 0;
+		if (ctx->surface) eglDestroySurface(ctx->egldpy, ctx->surface);
+		ctx->surface = 0;
 		if (ctx->egldpy) eglTerminate(ctx->egldpy);
 		ctx->egldpy = 0;
 	}
@@ -775,10 +779,12 @@ static void GAPI_Shutdown(GF_VideoOutput *dr)
 
 static GF_Err GAPI_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 *outHeight)
 {
+	Bool is_wide_scene = (bOn==2) ? 1 : 0;
 	GF_Err e;
 	GAPICTX(dr);
 
 	if (!gctx) return GF_BAD_PARAM;
+	if (is_wide_scene) bOn = 1;
 	if (bOn == gctx->fullscreen) return GF_OK;
 
 #ifdef GPAC_USE_OGL_ES
@@ -811,8 +817,8 @@ static GF_Err GAPI_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u3
 			gctx->backup_w = *outWidth;
 			gctx->backup_h = *outHeight;
 
-			if ((gctx->bb_width > gctx->bb_height) && (gctx->screen_w > gctx->screen_h)) is_landscape = 0;
-			else if ((gctx->bb_width < gctx->bb_height) && (gctx->screen_w < gctx->screen_h)) is_landscape = 0;
+			if (is_wide_scene && (gctx->screen_w > gctx->screen_h)) is_landscape = 0;
+			else if (!is_wide_scene && (gctx->screen_w < gctx->screen_h)) is_landscape = 0;
 			else is_landscape = 1;
 
 			if (is_landscape) {
