@@ -782,7 +782,7 @@ void WinGPAC::OnAbout()
 BOOL CAboutDlg::OnInitDialog() 
 {
 	CDialog::OnInitDialog();
-	CString str = "GPAC/Osmo4 - version " GPAC_VERSION;
+	CString str = "GPAC/Osmo4 - version " GPAC_FULL_VERSION;
 	SetWindowText(str);
 	return TRUE;  
 }

@@ -259,9 +259,29 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		}
 		break;
-	case GF_EVENT_MOUSEDOUBLECLICK:
-		set_full_screen();
-		return 0;
+	case GF_EVENT_NAVIGATE:
+		if (gf_term_is_supported_url(term, evt->navigate.to_url, 1, 1)) {
+			gf_term_navigate_to(term, evt->navigate.to_url);
+			return 1;
+		} else {
+			u16 dst[1024];
+			SHELLEXECUTEINFO info;
+
+/*
+			if (full_screen) gf_term_set_option(term, GF_OPT_FULLSCREEN, 0);
+			full_screen = 0;
+*/
+			memset(&info, 0, sizeof(SHELLEXECUTEINFO));
+			info.cbSize = sizeof(SHELLEXECUTEINFO);
+			info.lpVerb = L"open";
+			info.fMask = SEE_MASK_NOCLOSEPROCESS;
+			info.lpFile = L"iexplore";
+			CE_CharToWide((char *) evt->navigate.to_url, dst);
+			info.lpParameters = (LPCTSTR) dst;
+			info.nShow = SW_SHOWNORMAL;
+			ShellExecuteEx(&info);
+		}
+		return 1;
 	}
 	return 0;
 }

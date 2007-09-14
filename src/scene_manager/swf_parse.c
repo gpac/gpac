@@ -2475,7 +2475,7 @@ GF_Err SWF_InitContext(SWFReader *read)
 
 	sprintf(szMsg, "%s file converted to MPEG-4 Systems", read->load->fileName);
 	((M_WorldInfo *)n)->info.vals[0] = strdup(szMsg);
-	((M_WorldInfo *)n)->info.vals[1] = strdup("Conversion done using GPAC version " GPAC_VERSION " - (C) 2000-2005 GPAC");
+	((M_WorldInfo *)n)->info.vals[1] = strdup("Conversion done using GPAC version " GPAC_FULL_VERSION " - (C) 2000-2005 GPAC");
 	((M_WorldInfo *)n)->info.vals[2] = strdup("Macromedia SWF to MPEG-4 Conversion mapping released under GPL license");
 
 	/*background*/

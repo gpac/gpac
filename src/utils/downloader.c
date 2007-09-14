@@ -46,7 +46,7 @@
 
 static void gf_dm_connect(GF_DownloadSession *sess);
 
-#define GF_DOWNLOAD_AGENT_NAME		"GPAC/" GPAC_VERSION
+#define GF_DOWNLOAD_AGENT_NAME		"GPAC/" GPAC_FULL_VERSION
 #define GF_DOWNLOAD_BUFFER_SIZE		8192
 
 /*internal flags*/

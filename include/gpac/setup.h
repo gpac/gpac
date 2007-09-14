@@ -72,9 +72,10 @@ typedef char s8;
 /*win32 assert*/
 #ifndef assert
 
-void CE_Assert(u32 valid);
+void CE_Assert(u32 valid, char *file, u32 line);
+
 #ifndef NDEBUG
-#define assert( t )	CE_Assert((unsigned int) (t) )
+#define assert( t )	CE_Assert((unsigned int) (t), __FILE__, __LINE__ )
 #else
 #define assert(t)
 #endif

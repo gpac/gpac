@@ -6,9 +6,10 @@ Icon "..\Osmo4.ico"
 UninstallIcon "..\Osmo4.ico"
 
 !define GPAC_VERSION	0.4.5-DEV
+!define /date RELDATE "%Y%m%d"
 
 Name "GPAC Framework ${GPAC_VERSION}"
-OutFile "GPAC Framework ${GPAC_VERSION} Setup.exe"
+OutFile "GPAC.Framework.Setup-${RELDATE}.exe"
 
 InstallDir $PROGRAMFILES\GPAC
 InstallDirRegKey HKLM SOFTWARE\GPAC "Install_Dir"
@@ -338,11 +339,11 @@ SectionEnd
 
 
 
-Function .onInstSuccess
-  MessageBox MB_YESNO "GPAC Framework installation complete. Do you want to launch the Osmo4 player?" IDNO NoLaunch
-    Exec $INSTDIR\Osmo4.exe
-  NoLaunch:
-FunctionEnd
+; Function .onInstSuccess
+;  MessageBox MB_YESNO "GPAC Framework installation complete. Do you want to launch the Osmo4 player?" IDNO NoLaunch
+;    Exec $INSTDIR\Osmo4.exe
+;  NoLaunch:
+; FunctionEnd
 
 
 

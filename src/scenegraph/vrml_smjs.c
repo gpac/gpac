@@ -204,7 +204,7 @@ static JSBool getName(JSContext *c, JSObject *obj, uintN n, jsval *v, jsval *rva
 }
 static JSBool getVersion(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *rval)
 {
-	JSString *s = JS_NewStringCopyZ(c, GPAC_VERSION);
+	JSString *s = JS_NewStringCopyZ(c, GPAC_FULL_VERSION);
 	if (!s) return JS_FALSE;
 	*rval = STRING_TO_JSVAL(s); 
 	return JS_TRUE;

@@ -27,7 +27,7 @@
 
 #ifndef GPAC_READ_ONLY
 
-#define GPAC_ISOM_CPRT_NOTICE "IsoMedia File Produced with GPAC "GPAC_VERSION
+#define GPAC_ISOM_CPRT_NOTICE "IsoMedia File Produced with GPAC "GPAC_FULL_VERSION
 
 static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 {

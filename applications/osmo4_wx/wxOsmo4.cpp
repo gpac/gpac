@@ -1536,7 +1536,7 @@ BEGIN_EVENT_TABLE(AboutDlg, wxDialog)
 END_EVENT_TABLE()
 
 AboutDlg::AboutDlg(wxWindow *parent)
-             : wxDialog(parent, -1, wxString(wxT("GPAC/Osmo4 V ")wxT(GPAC_VERSION)))
+             : wxDialog(parent, -1, wxString(wxT("GPAC/Osmo4 V ")wxT(GPAC_FULL_VERSION)))
 {
 	SetSize(220, 320);
 	Centre();

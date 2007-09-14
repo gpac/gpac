@@ -1283,7 +1283,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 		gf_isom_sdp_add_line(file, buf64);
 	}
 	//xtended attribute for copyright
-	sprintf(buf64, "a=x-copyright: %s", "MP4/3GP File hinted with GPAC " GPAC_VERSION " (C)2000-2005 - http://gpac.sourceforge.net");
+	sprintf(buf64, "a=x-copyright: %s", "MP4/3GP File hinted with GPAC " GPAC_FULL_VERSION " (C)2000-2005 - http://gpac.sourceforge.net");
 	gf_isom_sdp_add_line(file, buf64);
 
 	if (IOD_Profile == GF_SDP_IOD_NONE) return GF_OK;

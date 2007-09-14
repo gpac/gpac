@@ -156,7 +156,7 @@ GF_Err gf_path_close(GF_Path *gp)
 	end.x -= start.x;
 	end.y -= start.y;
 	diff = gf_mulfix(end.x, end.x) + gf_mulfix(end.y, end.y);
-	if (900*diff > FIX_ONE) {
+	if (ABS(diff) > FIX_ONE/1000) {
 		GF_Err e = gf_path_add_line_to(gp, start.x, start.y);
 		if (e) return e;
 	}

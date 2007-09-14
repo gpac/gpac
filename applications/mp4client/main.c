@@ -130,7 +130,7 @@ void PrintUsage()
 		"MP4Client - GPAC command line player and dumper - version %s\n"
 		"GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
 
-		GPAC_VERSION
+		GPAC_FULL_VERSION
 		);
 }
 
@@ -181,7 +181,7 @@ void PrintHelp()
 		"MP4Client - GPAC command line player - version %s\n"
 		"GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
 
-		GPAC_VERSION
+		GPAC_FULL_VERSION
 		);
 }
 
@@ -364,7 +364,7 @@ static void ResetCaption()
 			event.caption.caption = str ? str+1 : the_url;
 		}
 	} else {
-		event.caption.caption = "GPAC MP4Client " GPAC_VERSION;
+		event.caption.caption = "GPAC MP4Client " GPAC_FULL_VERSION;
 	}
 	gf_term_user_event(term, &event);
 }
@@ -1052,7 +1052,7 @@ int main (int argc, char **argv)
 		fprintf(stdout, "Hit 'h' for help\n\n");
 		str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
 		if (str) {
-			strcpy(the_url, "MP4Client "GPAC_VERSION);
+			strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
 			gf_term_connect(term, str);
 			startup_file = 1;
 		}

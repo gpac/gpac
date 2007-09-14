@@ -25,8 +25,6 @@
 #include "node_stacks.h"
 #include "grouping.h"
 #include "visual_manager.h"
-/*for anchor processing, which needs to be filtered at the inline scene level*/
-#include <gpac/internal/terminal_dev.h>
 
 typedef struct
 {

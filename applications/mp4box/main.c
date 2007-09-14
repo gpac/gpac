@@ -102,7 +102,7 @@ u32 nb_itunes_tags = sizeof(itags) / sizeof(itunes_tag);
 
 void PrintVersion()
 {
-	fprintf(stdout, "MP4Box - GPAC version " GPAC_VERSION "\n"
+	fprintf(stdout, "MP4Box - GPAC version " GPAC_FULL_VERSION "\n"
 #ifdef GPAC_FIXED_POINT
 				"GPAC compiled in fixed-point version\n"
 #endif
