@@ -188,19 +188,19 @@ static void visual_2d_get_texture_transform(GF_Node *__appear, GF_TextureHandler
 		if (!scale.x) scale.x = FIX_ONE/100;
 		if (!scale.y) scale.y = FIX_ONE/100;
 
-		gf_mx2d_add_translation(mat, -txt->center.x * final_width, -txt->center.y * final_height);
+		gf_mx2d_add_translation(mat, -gf_mulfix(txt->center.x, final_width), -gf_mulfix(txt->center.y, final_height) );
 		gf_mx2d_add_scale(mat, scale.x, scale.y);
 		gf_mx2d_add_rotation(mat, 0, 0, txt->rotation);
-		gf_mx2d_add_translation(mat, txt->center.x * final_width, txt->center.y * final_height);
-		gf_mx2d_add_translation(mat, txt->translation.x * final_width, txt->translation.y * final_height);
+		gf_mx2d_add_translation(mat, gf_mulfix(txt->center.x, final_width), gf_mulfix(txt->center.y, final_height) );
+		gf_mx2d_add_translation(mat, gf_mulfix(txt->translation.x, final_width), gf_mulfix(txt->translation.y, final_height) );
 		/*and inverse the matrix (this is texture transform, cf VRML)*/
 		gf_mx2d_inverse(mat);
 		return;
 	}
 	if (node_tag==TAG_MPEG4_TransformMatrix2D) {
 		tr_mx2d_get_matrix((GF_Node *) txtrans, mat);
-		mat->m[2] *= final_width;
-		mat->m[5] *= final_height;
+		mat->m[2] = gf_mulfix(mat->m[2], final_width);
+		mat->m[5] = gf_mulfix(mat->m[5], final_height);
 		gf_mx2d_inverse(mat);
 		return;
 	}

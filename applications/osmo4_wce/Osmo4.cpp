@@ -424,7 +424,10 @@ BOOL CAboutDlg::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	CString str = _T("Osmo4 Player\nGPAC V");
-	str += _T(GPAC_FULL_VERSION);
+	str += _T(GPAC_VERSION);
+	str += _T(" (build");
+	str += _T(GPAC_BUILD_NUMBER);
+	str += _T(")");
 	m_AbtTxt.SetWindowText(str);
 	return TRUE; 
 }
