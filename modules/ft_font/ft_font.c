@@ -427,7 +427,11 @@ static GF_Err ft_get_text_size(GF_FontRaster *dr, const unsigned short *string, 
 		if (i+1<count) {
 			w += ftpriv->active_face->glyph->metrics.horiAdvance;
 		} else {
-			w += bbox.xMax;
+			if (bbox.xMax) {
+				w += bbox.xMax;
+			} else {
+				w += ftpriv->active_face->glyph->metrics.horiAdvance;
+			}
 		}
 		FT_Done_Glyph(glyph);
 	}
@@ -598,7 +602,7 @@ static GF_Err ft_add_text_to_path(GF_FontRaster *dr, GF_Path *path, Bool flipTex
 		if (!i) bounds->x += bbox.xMin * outl.x_scale;
 
 		/*take care of last char (may be AFTER last horiz_advanced with certain glyphs)*/
-		if ((i+1==count) && (bbox.xMax)) {
+		if ((i+1==count)&&(bbox.xMax)) {
 			outl.pos_x += bbox.xMax * outl.x_scale;
 		} else {
 			outl.pos_x += ftpriv->active_face->glyph->metrics.horiAdvance * outl.x_scale;

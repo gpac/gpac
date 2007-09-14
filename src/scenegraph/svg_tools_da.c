@@ -151,6 +151,7 @@ Bool gf_svg_node_init(GF_Node *node)
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
 		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
+	/*case TAG_SVG_animation: */
 	case TAG_SVG_audio: 
 	case TAG_SVG_video: 
 		gf_smil_timing_init_runtime_info(node);

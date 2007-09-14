@@ -250,6 +250,12 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 
 	for (i=0; i<strlen(tmp); i++) {
 		if (tmp[i] == '/') tmp[i] = '_';
+		else if (tmp[i] == '?') tmp[i] = '_';
+		else if (tmp[i] == '&') tmp[i] = '_';
+		else if (tmp[i] == '=') tmp[i] = '_';
+		else if (tmp[i] == '[') tmp[i] = '_';
+		else if (tmp[i] == ']') tmp[i] = '_';
+		else if (tmp[i] == ':') tmp[i] = '_';
 		else if (tmp[i] == '.') {
 			tmp[i] = '_';
 			last_sep = i;

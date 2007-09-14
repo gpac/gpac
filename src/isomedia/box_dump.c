@@ -2742,6 +2742,8 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump)
 {
+	char nhmlFileName[1024];
+	FILE *nhmlFile;
 	u32 i, count, di, ts, cur_frame;
 	u64 start, end;
 	GF_BitStream *bs;
@@ -2749,13 +2751,20 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
 	if (!trak || (trak->Media->handler->handlerType != GF_ISOM_MEDIA_TEXT)) return GF_BAD_PARAM;
 
+	strcpy(nhmlFileName, the_file->fileName);
+	strcat(nhmlFileName, ".nhml");
+	nhmlFile = fopen(nhmlFileName, "wt");
+	fprintf(nhmlFile, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	fprintf(nhmlFile, "<NHNTStream streamType=\"3\" objectTypeIndication=\"10\" timeScale=\"%d\" baseMediaFile=\"file.svg\" inRootOD=\"yes\">\n", trak->Media->mediaHeader->timeScale);
+	fprintf(nhmlFile, "<NHNTSample isRAP=\"yes\" DTS=\"0\" xmlFrom=\"doc.start\" xmlTo=\"text_1.start\"/>\n");
+
 	ts = trak->Media->mediaHeader->timeScale;
 	cur_frame = 0;
 	start = end = 0;
 
 	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	fprintf(dump, "<svg version=\"1.2\" baseProfile=\"tiny\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"%d\" height=\"%d\" fill=\"black\">\n", trak->Header->width >> 16 , trak->Header->height >> 16);
-	fprintf(dump, "<g transform=\"translate(%d, %d)\" text-align=\"center\">\n", (trak->Header->width >> 16)/2 , (trak->Header->height >> 16)/2);
+	fprintf(dump, "<g transform=\"translate(%d, %d)\" text-anchor=\"middle\">\n", (trak->Header->width >> 16)/2 , (trak->Header->height >> 16)/2);
 
 	count = gf_isom_get_sample_count(the_file, track);
 	for (i=0; i<count; i++) {
@@ -2791,9 +2800,20 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		gf_isom_delete_text_sample(txt);
 		fprintf(dump, "\n");
 		gf_set_progress("SRT Extract", i, count);
+
+		if (i == count - 2) {
+			fprintf(nhmlFile, "<NHNTSample isRAP=\"no\" DTS=\"%f\" xmlFrom=\"text_%d.start\" xmlTo=\"doc.end\"/>\n", ((s64)start*1.0), cur_frame);
+		} else {
+			fprintf(nhmlFile, "<NHNTSample isRAP=\"no\" DTS=\"%f\" xmlFrom=\"text_%d.start\" xmlTo=\"text_%d.start\"/>\n", ((s64)start*1.0), cur_frame, cur_frame+1);
+		}
+		
 	}
 	fprintf(dump, "</g>\n");
 	fprintf(dump, "</svg>\n");
+
+	fprintf(nhmlFile, "</NHNTStream>\n");
+	fclose(nhmlFile);
+
 	if (count) gf_set_progress("SRT Extract", i, count);
 	return GF_OK;
 }

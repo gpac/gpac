@@ -168,6 +168,81 @@ static void gf_smil_anim_set(SMIL_Anim_RTI *rai)
 	rai->set_done = 1;
 }
 
+static void gf_smil_anim_use_keypoints_keytimes(SMIL_Anim_RTI *rai, Fixed normalized_simple_time,
+												Fixed *interpolation_coefficient, u32 *keyValueIndex)
+{
+	SMILAnimationAttributesPointers *animp = rai->animp;
+	u32 keyTimeIndex;
+	Fixed interval_duration;
+	u32 tag;
+
+	*interpolation_coefficient = normalized_simple_time;
+
+	/* Computing new interpolation coefficient */
+	if (animp->keyTimes && gf_list_count(*animp->keyTimes)) {
+		Fixed keyTimeBefore = 0, keyTimeAfter=0; 
+		u32 keyTimesCount = gf_list_count(*animp->keyTimes);
+		for (keyTimeIndex = rai->previous_keytime_index; keyTimeIndex<keyTimesCount; keyTimeIndex++) {
+			Fixed *tm1, *t = (Fixed *)gf_list_get(*animp->keyTimes, keyTimeIndex);
+			if (normalized_simple_time < *t) {
+				rai->previous_keytime_index = keyTimeIndex;
+				tm1 = (Fixed *) gf_list_get(*animp->keyTimes, keyTimeIndex-1);
+				if (tm1) keyTimeBefore = *tm1; 
+				else keyTimeBefore = 0;
+				keyTimeAfter = *t;
+				break;
+			}
+		}
+		keyTimeIndex--;
+		interval_duration = keyTimeAfter - keyTimeBefore;
+		if (keyValueIndex) *keyValueIndex = keyTimeIndex;
+		if (interval_duration) 
+			*interpolation_coefficient = gf_divfix(normalized_simple_time - keyTimeBefore, interval_duration);
+		else 
+			*interpolation_coefficient = 1;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - Using Key Times: index %d, interval duration %.2f, coeff: %.2f\n", keyTimeIndex, interval_duration, interpolation_coefficient));
+	} 
+
+	tag = gf_node_get_tag(rai->anim_elt);
+	switch (tag) {
+#ifdef GPAC_ENABLE_SVG_SA_BASE
+#ifdef GPAC_ENABLE_SVG_SA
+	case TAG_SVG_SA_animateMotion:
+#endif
+#ifdef GPAC_ENABLE_SVG_SANI
+	case TAG_SVG_SANI_animateMotion:
+#endif
+	{
+		SVG_SA_animateMotionElement *am = (SVG_SA_animateMotionElement *)rai->anim_elt;
+		if (gf_list_count(am->keyPoints)) {
+			Fixed *p1, *p2;		
+			p1 = (Fixed *)gf_list_get(*am->animp->keyPoints, keyTimeIndex);
+			p2 = (Fixed *)gf_list_get(*am->animp->keyPoints, keyTimeIndex+1);
+			*interpolation_coefficient = gf_mulfix(FIX_ONE - *interpolation_coefficient, *p1) + gf_mulfix(*interpolation_coefficient, (p2 ? *p2 : *p1));					
+			if (keyValueIndex) *keyValueIndex = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - Using Key Points: key Points Index %d, coeff: %.2f\n", keyTimeIndex, *interpolation_coefficient));
+		}
+	}
+		break;
+#endif
+	case TAG_SVG_animateMotion:
+		{
+			SVGTimedAnimBaseElement *am = (SVGTimedAnimBaseElement *)rai->anim_elt;
+			if (am->animp->keyPoints && gf_list_count(*am->animp->keyPoints)) {
+				Fixed *p1, *p2;
+				p1 = (Fixed *)gf_list_get(*am->animp->keyPoints, keyTimeIndex);
+				p2 = (Fixed *)gf_list_get(*am->animp->keyPoints, keyTimeIndex+1);
+				*interpolation_coefficient = gf_mulfix(FIX_ONE - *interpolation_coefficient, *p1) + gf_mulfix(*interpolation_coefficient, (p2 ? *p2 : *p1));					
+				if (keyValueIndex) *keyValueIndex = 0;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - Using Key Points: key Point Index %d, coeff: %.2f\n", keyTimeIndex, *interpolation_coefficient));
+			}
+		}
+		break;
+	default:
+		break;
+	}
+}
+
 static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
 {
 	SMILAnimationAttributesPointers *animp = rai->animp;
@@ -175,7 +250,6 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 	GF_FieldInfo value_info, value_info_next;
 	u32 keyValueIndex;
 	u32 nbValues;
-	Fixed interval_duration;
 	Fixed interpolation_coefficient;
 	u32 real_calcMode;
 
@@ -209,28 +283,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 	}
 
 	/* Computing new key value index and interpolation coefficient */
-	if (animp->keyTimes && gf_list_count(*animp->keyTimes)) {
-		u32 keyTimeIndex;
-		Fixed keyTimeBefore = 0, keyTimeAfter=0; 
-		u32 keyTimesCount = gf_list_count(*animp->keyTimes);
-		for (keyTimeIndex = rai->previous_keytime_index; keyTimeIndex<keyTimesCount; keyTimeIndex++) {
-			Fixed *tm1, *t = (Fixed *)gf_list_get(*animp->keyTimes, keyTimeIndex);
-			if (normalized_simple_time < *t) {
-				rai->previous_keytime_index = keyTimeIndex;
-				tm1 = (Fixed *) gf_list_get(*animp->keyTimes, keyTimeIndex-1);
-				if (tm1) keyTimeBefore = *tm1; 
-				else keyTimeBefore = 0;
-				keyTimeAfter = *t;
-				break;
-			}
-		}
-		keyTimeIndex--;
-		keyValueIndex = keyTimeIndex;
-		interval_duration = keyTimeAfter - keyTimeBefore;
-		if (interval_duration) interpolation_coefficient = gf_divfix(normalized_simple_time - keyTimeBefore, interval_duration);
-		else interpolation_coefficient = 1;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - Using Key Times: index %d, interval duration %.2f, coeff: %.2f\n", keyTimeIndex, interval_duration, interpolation_coefficient));
-	} else {
+	if (!(animp->keyTimes && gf_list_count(*animp->keyTimes))) {
 		if (real_calcMode == SMIL_CALCMODE_DISCRETE) {
 			Fixed tmp = normalized_simple_time*nbValues;
 			if (normalized_simple_time == FIX_ONE) {
@@ -249,38 +302,8 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 			interpolation_coefficient = tmp - INT2FIX(keyValueIndex);
 		}
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - No KeyTimes: key index %d, coeff: %.2f\n", keyValueIndex, FIX2FLT(interpolation_coefficient)));
-	}
-
-	switch (tag) {
-#ifdef GPAC_ENABLE_SVG_SA_BASE
-#ifdef GPAC_ENABLE_SVG_SA
-	case TAG_SVG_SA_animateMotion:
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-	case TAG_SVG_SANI_animateMotion:
-#endif
-	{
-		SVG_SA_animateMotionElement *am = (SVG_SA_animateMotionElement *)rai->anim_elt;
-		if (gf_list_count(am->keyPoints)) {
-			interpolation_coefficient = *(Fixed *)gf_list_get(am->keyPoints, keyValueIndex);
-			keyValueIndex = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - Using Key Points: key Value Index %d, coeff: %.2f\n", keyValueIndex, interpolation_coefficient));
-		}
-	}
-		break;
-#endif
-	case TAG_SVG_animateMotion:
-		{
-			SVGTimedAnimBaseElement *am = (SVGTimedAnimBaseElement *)rai->anim_elt;
-			if (am->animp->keyPoints && gf_list_count(*am->animp->keyPoints)) {
-				interpolation_coefficient = *(Fixed *)gf_list_get(*am->animp->keyPoints, keyValueIndex);
-				keyValueIndex = 0;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - Using Key Points: key Value Index %d, coeff: %.2f\n", keyValueIndex, interpolation_coefficient));
-			}
-		}
-		break;
-	default:
-		break;
+	} else {
+		gf_smil_anim_use_keypoints_keytimes(rai, normalized_simple_time, &interpolation_coefficient, &keyValueIndex);
 	}
 
 #if DO_OPTIMIZATION_TESTS
@@ -336,12 +359,11 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 {
 	GF_FieldInfo from_info, to_info;
 	SMILAnimationAttributesPointers *animp = rai->animp;
+	Fixed interpolation_coefficient;
 
 	if (!animp) return;
 	
 	if (rai->previous_coef == normalized_simple_time) return;
-
-	rai->previous_coef = normalized_simple_time;
 
 	if (animp->from) {
 		from_info.fieldType = animp->from->type;
@@ -368,6 +390,10 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 		gf_svg_attributes_resolve_inherit(&to_info, &rai->owner->parent_presentation_value);
 	}
 
+	gf_smil_anim_use_keypoints_keytimes(rai, normalized_simple_time, &interpolation_coefficient, NULL);
+
+	rai->previous_coef = interpolation_coefficient;
+
 	switch ((animp->calcMode ? *animp->calcMode : SMIL_CALCMODE_LINEAR)) {
 	case SMIL_CALCMODE_DISCRETE:
 		{
@@ -385,8 +411,8 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 	case SMIL_CALCMODE_PACED:
 	case SMIL_CALCMODE_LINEAR:
 	default:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - applying from-to animation (linear interpolation, using coefficient %f)\n", gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_name((GF_Node *)rai->anim_elt), normalized_simple_time));
-		gf_svg_attributes_interpolate(&from_info, &to_info, &rai->interpolated_value, normalized_simple_time, 1);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - applying from-to animation (linear interpolation, using coefficient %f)\n", gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_name((GF_Node *)rai->anim_elt), interpolation_coefficient));
+		gf_svg_attributes_interpolate(&from_info, &to_info, &rai->interpolated_value, interpolation_coefficient, 1);
 		break;
 	}
 	rai->interpolated_value_changed = 1;
@@ -485,9 +511,13 @@ static Bool gf_svg_compute_path_anim(SMIL_Anim_RTI *rai, GF_Matrix2D *m, Fixed n
 
 static void gf_smil_anim_animate_using_path(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
 {
-	Bool res = 0;
+	Bool res;
+	SMILAnimationAttributesPointers *animp = rai->animp;
+	Fixed interpolation_coefficient;
+
+	gf_smil_anim_use_keypoints_keytimes(rai, normalized_simple_time, &interpolation_coefficient, NULL);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - applying path animation (coef: %f), ", gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_name((GF_Node *)rai->anim_elt), normalized_simple_time));
-	res = gf_svg_compute_path_anim(rai, (GF_Matrix2D*)rai->interpolated_value.far_ptr, normalized_simple_time);
+	res = gf_svg_compute_path_anim(rai, (GF_Matrix2D*)rai->interpolated_value.far_ptr, interpolation_coefficient);
 	if (res) rai->interpolated_value_changed = 1;
 }
 

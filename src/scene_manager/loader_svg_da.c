@@ -71,17 +71,6 @@ typedef struct
 	SVG_SAFExternalStream *streams;
 } GF_SVG_Parser;
 
-typedef struct
-{
-	/*top of parsed sub-tree*/
-	SVG_Element *node;
-	/*depth of unknown elements being skipped*/
-	u32 unknown_depth;
-	/*last child added, used to speed-up parsing*/
-	GF_ChildNodeItem *last_child;
-} SVG_NodeStack;
-
-
 typedef struct {
 	/* Stage of the resolving:
 	    0: resolving attributes which depends on the target: from, to, by, values, type
@@ -104,6 +93,20 @@ typedef struct {
 	char *by;
 	char *values;
 } SVG_DeferedAnimation;
+
+typedef struct
+{
+	/*top of parsed sub-tree*/
+	SVG_Element *node;
+	/*the current element is animation that cannot be parsed completely 
+	  upon reception of start tag of element but for which we may be able 
+	  to parse at the end tag of the element (animateMotion)*/
+	SVG_DeferedAnimation *anim;
+	/*depth of unknown elements being skipped*/
+	u32 unknown_depth;
+	/*last child added, used to speed-up parsing*/
+	GF_ChildNodeItem *last_child;
+} SVG_NodeStack;
 
 static GF_Err svg_report(GF_SVG_Parser *parser, GF_Err e, char *format, ...)
 {
@@ -247,7 +250,7 @@ static void svg_delete_defered_anim(SVG_DeferedAnimation *anim, GF_List *defered
 	free(anim);
 }
 
-static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_DeferedAnimation *anim, const char *nodeID)
+static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_DeferedAnimation *anim, const char *nodeID, Bool force_init)
 {
 	GF_FieldInfo info;
 	u32 tag;
@@ -309,7 +312,7 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 			} else if (tag == TAG_SVG_discard) {
 				/* there is no value to parse in discard, we can jump to the next stage */
 				anim->resolve_stage = 1;
-				return svg_parse_animation(parser, sg, anim, nodeID);
+				return svg_parse_animation(parser, sg, anim, nodeID, 0);
 			} else {
 				svg_report(parser, GF_OK, "Missing attributeName attribute on %s", gf_node_get_name((GF_Node *)anim->animation_elt));
 				return 0;
@@ -355,7 +358,7 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 		/* Stage 1: parsing the begin values 
 					we go into the next stage only if at least one begin value is resolved */
 		gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_begin, 1, 0, &info);
-		if (gf_svg_resolve_smil_times(sg, anim->anim_parent, *(GF_List **)info.far_ptr, 0, nodeID)) {
+		if (gf_svg_resolve_smil_times(sg, anim->target, *(GF_List **)info.far_ptr, 0, nodeID)) {
 			anim->resolve_stage = 2;
 		} else {
 			return 0;
@@ -363,10 +366,10 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 	}
 
 	gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_end, 1, 0, &info);
-	if (!gf_svg_resolve_smil_times(sg, anim->anim_parent, *(GF_List **)info.far_ptr, 1, nodeID)) return 0;
+	if (!gf_svg_resolve_smil_times(sg, anim->target, *(GF_List **)info.far_ptr, 1, nodeID)) return 0;
 
 	/*animateMotion needs its children to be parsed before it can be initialized !! */
-	if (gf_node_get_tag((GF_Node *)anim->animation_elt) != TAG_SVG_animateMotion)
+	if (force_init || gf_node_get_tag((GF_Node *)anim->animation_elt) != TAG_SVG_animateMotion)
 		gf_node_init((GF_Node *)anim->animation_elt);
 	
 	return 1;
@@ -434,7 +437,7 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 	for (i=0; i<count; i++) {
 		SVG_DeferedAnimation *anim = (SVG_DeferedAnimation *)gf_list_get(parser->defered_animations, i);
 		/*resolve it - we don't check the name since it may be used in SMIL times, which we don't track at anim level*/
-		if (svg_parse_animation(parser, sg, anim, nodeID)) {
+		if (svg_parse_animation(parser, sg, anim, nodeID, 1)) {
 			svg_delete_defered_anim(anim, parser->defered_animations);
 			i--;
 			count--;
@@ -682,11 +685,18 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			gf_list_add(parser->defered_listeners, listener);
 	}
 
+	/* if the new element has an id, we try to resolve defered references */
+	if (node_name) {
+		svg_resolved_refs(parser, parser->load->scene_graph, node_name);
+	}
+
+	/* if the new element is an animation, now that all specified attributes have been found,
+	   we can start parsing them */
 	if (anim) {
 		/*FIXME - we need to parse from/to/values but not initialize the stack*/
 //		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
 			needs_init = 0;
-			if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL)) {
+			if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL, 0)) {
 				svg_delete_defered_anim(anim, NULL);
 			} else {
 				gf_list_add(parser->defered_animations, anim);
@@ -694,11 +704,6 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 //		} else {
 //			svg_delete_defered_anim(anim, NULL);
 //		}
-	}
-
-	/* if the new element has an id, we try to resolve defered references */
-	if (node_name) {
-		svg_resolved_refs(parser, parser->load->scene_graph, node_name);
 	}
 
 	if (needs_init) gf_node_init((GF_Node *)elt);
@@ -1329,11 +1334,34 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 			gf_dom_event_fire((GF_Node*)node, NULL, &evt);
 
 			switch (node->sgprivate->tag) {
-			/*init animateMotion once all children have been parsed tomake sure we get the mpath child if any*/
 			case TAG_SVG_animateMotion:
-			/*init script once text script is loaded*/
+				/* 
+				try to init animateMotion once all children have been parsed 
+				to make sure we get the mpath child if any, however, we are still not sure 
+				if the target is known. We can force initialisation 
+				because mpath children (if any have been parsed) 
+				*/
+				{
+				   u32 i, count;
+				   SVG_DeferedAnimation *anim = NULL;
+				   count = gf_list_count(parser->defered_animations);
+				   for (i = 0; i < count; i++) {
+					   anim = gf_list_get(parser->defered_animations, i);
+					   if (anim->animation_elt == node) break;
+					   else anim = NULL;
+				   }
+				   if (anim) {
+					   svg_parse_animation(parser, gf_node_get_graph((GF_Node *)node), anim, NULL, 1);
+					   if (anim->resolve_stage != 0) {
+						   gf_list_del_item(parser->defered_animations, anim);
+						   gf_node_init((GF_Node *)node);
+					   }
+				   }
+				}
+				break;
 			case TAG_SVG_script:
 			case TAG_SVG_handler:
+			/*init script once text script is loaded*/
 				gf_node_init((GF_Node *)node);
 				break;
 			}
@@ -1355,100 +1383,22 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)sax_cbck;
 	SVG_NodeStack *top = (SVG_NodeStack *)gf_list_last(parser->node_stack);
 	SVG_Element *elt = (top ? top->node : NULL);
-	GF_FieldInfo info;
 	GF_DOMText *text;
-	u8 xml_space;
 	u32 tag;
-	char *result;
-	u32 len;
 
 	if (top && top->unknown_depth && !parser->command_depth) return;
 	if (!elt && !parser->command) return;
 
-	result = strdup(text_content);
-	len = strlen(text_content);
-
-	if (is_cdata) goto skip_xml_space;
-
-	if (elt && gf_svg_get_attribute_by_tag((GF_Node *)elt, TAG_SVG_ATT_xml_space, 0, 0, &info) == GF_OK)
-		xml_space = *((XML_Space *)info.far_ptr);
-	else 
-		xml_space = XML_SPACE_DEFAULT;
-
-	if (xml_space != XML_SPACE_PRESERVE) {
-		u32 j, i, state;
-		i = j = 0;
-		state = 0;
-		for (i=0; i<len; i++) {
-			switch (text_content[i]) {
-			/*move all \r* to \n*/
-			case '\r': 
-				if (!j) break;
-				if (text_content[i+1]!='\n') {
-					result[j] = '\n';
-					j++;
-					state = 0;
-				}
-				break;
-			case '\t': 
-			case ' ':
-				if (j && !state) {
-					state = 1;
-					result[j] = ' ';
-					j++;
-				}
-				break;
-			case '\n':
-				if (!j) break;
-			default:
-				result[j] = text_content[i];
-				j++;
-				state = 0;
-				break;
-			}
-		}
-		result[j] = 0;
-		len = j;
-	}
-	else {
-		u32 j, i;
-		i = j = 0;
-		for (i=0; i<len; i++) {
-			switch (text_content[i]) {
-			/*move all \r* to \n*/
-			case '\r': 
-				if (text_content[i+1]!='\n') {
-					result[j] = '\n';
-					j++;
-				}
-				break;
-			case '\t': 
-				result[j] = ' ';
-				j++;
-				break;
-			default:
-				result[j] = text_content[i];
-				j++;
-				break;
-			}
-		}
-		result[j] = 0;
-		len = j;
-	}
-
-skip_xml_space:
-	if (!len) {
-		free(result);
-		return;
-	}
+	tag = (elt ? gf_node_get_tag((GF_Node *)elt) : 0);
 
 	/*if top is a conditional, create a new text node*/
-	if (!elt || (elt->sgprivate->tag==TAG_SVG_conditional) ) {
+	if (!elt || tag == TAG_SVG_conditional) {
 		GF_CommandField *field = (GF_CommandField *)gf_list_get(parser->command->command_fields, 0);
+		if (parser->command->tag == GF_SG_LSR_NEW_SCENE || parser->command->tag == GF_SG_LSR_ADD) return;
+		
 		assert(field);
 
 		if (field->new_node) {
-			free(result);
 			svg_report(parser, GF_OK, "Warning: LASeR cannot replace children with a mix of text nodes and elements - ignoring text\n");
 			return;
 		}
@@ -1456,7 +1406,7 @@ skip_xml_space:
 		/*create a text node but don't register it with any node*/
 		text = gf_dom_new_text_node(parser->load->scene_graph);
 		gf_node_register((GF_Node *)text, NULL);
-		text->textContent = result;
+		text->textContent = strdup(text_content);
 
 		if (field->new_node) {
 			field->field_ptr = &field->node_list;
@@ -1470,11 +1420,11 @@ skip_xml_space:
 			field->field_ptr = &field->new_node;
 		}
 		return;
+	} else if (tag == TAG_SVG_text || tag == TAG_SVG_tspan || tag == TAG_SVG_textArea) {
+		text = gf_dom_add_text_node((GF_Node *)elt, strdup(text_content));
+		text->is_cdata = is_cdata;
+		gf_node_changed((GF_Node *)text, NULL);
 	}
-	tag = gf_node_get_tag((GF_Node *)elt);
-	text = gf_dom_add_text_node((GF_Node *)elt, result);
-	text->is_cdata = is_cdata;
-	gf_node_changed((GF_Node *)text, NULL);
 }
 
 static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)

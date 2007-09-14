@@ -462,6 +462,9 @@ static void xml_sax_flush_text(GF_SAXParser *parser)
 	char *text, c;
 	if (!parser->text_start || parser->init_state || !parser->sax_text_content) return;
 
+	/* This optimization should be done at the application level
+	   generic XML parsing should not try to remove any character !!*/
+#if 0
 	offset = 0;
 	while (parser->text_start+offset<parser->text_end) {
 		c = parser->buffer[parser->text_start-1+offset];
@@ -493,6 +496,8 @@ static void xml_sax_flush_text(GF_SAXParser *parser)
 		}
 	}
 	parser->text_end-=offset;
+#endif
+
 	assert(parser->text_start < parser->text_end);
 
 	c = parser->buffer[parser->text_end-1];

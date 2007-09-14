@@ -449,16 +449,23 @@ typedef struct _smil_timing_rti
 	SMILTimingAttributesPointers *timingp;
 
 	Double scene_time;
+	Bool force_reevaluation;
 
 	/* SMIL element life-cycle status */
 	u8 status;
 	u32 cycle_number;
 	u32 first_frozen;
 
+#define NO_INTERVAL_LIST 
+
+#ifdef NO_INTERVAL_LIST
+	SMIL_Interval *current_interval;
+#else
 	/* List of possible intervals for activation of the element */
 	GF_List *intervals;
 	s32	current_interval_index;
 	SMIL_Interval *current_interval;
+#endif
 
 	/* Evaluation of animations is postponed untill tree traversal, so that inherit values can be computed
 	Other timed elements (audio, video, animation) are evaluated directly and do not require

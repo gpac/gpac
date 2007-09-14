@@ -423,7 +423,7 @@ static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
 
 static Bool check_extension(char *szExtList, char *szExt)
 {
-	char szExt2[50];
+	char szExt2[500];
 	if (szExtList[0] != '"') return 0;
 	szExtList += 1;
 
@@ -448,7 +448,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	u32 i;
 	GF_Err e;
 	char *sURL, *ext, *mime_type;
-	char szExt[50];
+	char szExt[500];
 	GF_InputService *ifce;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Looking for plugin for URL %s\n", url));
@@ -488,6 +488,10 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	if (mime_type && (!stricmp(mime_type, "text/plain") || !stricmp(mime_type, "video/quicktime")) ) {
 		free(mime_type);
 		mime_type = NULL;
+/*
+	} else if (mime_type && !strlen(mime_type)) {
+		mime_type = strdup("video/mp4");
+*/
 	}
 
 	ifce = NULL;
@@ -746,6 +750,8 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 	GF_ClientService *serv;
 	const char *szURI;
 	u32 total_size, bytes_done, net_status, bytes_per_sec;
+	
+	if (!sess) return;
 
 	gf_dm_sess_get_stats(sess, NULL, &szURI, &total_size, &bytes_done, &bytes_per_sec, &net_status);
 	serv = (GF_ClientService *)gf_dm_sess_get_private(sess);
@@ -807,7 +813,7 @@ GF_EXPORT
 Bool gf_term_check_extension(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description, const char *fileExt)
 {
 	const char *szExtList;
-	char *ext, szExt[100];
+	char *ext, szExt[500];
 	if (!ifce || !mimeType || !extList || !description || !fileExt) return 0;
 	/*this is a URL*/
 	if ( (strlen(fileExt)>20) || strchr(fileExt, '/')) return 0;
