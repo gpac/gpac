@@ -172,7 +172,7 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 {
 	if (sdump->XMLDump) {
 		fprintf(sdump->trace, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-		fprintf(sdump->trace, "<!-- %s Scene Dump - GPAC version " GPAC_VERSION " -->\n", 
+		fprintf(sdump->trace, "<!-- %s Scene Dump - GPAC version " GPAC_FULL_VERSION " -->\n", 
 			(sdump->dump_mode==GF_SM_DUMP_SVG) ? "SVG" : 
 			(sdump->dump_mode==GF_SM_DUMP_LASER) ? "LASeR" : 
 			sdump->X3DDump ? "X3D" : "XMT-A"
@@ -225,7 +225,7 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 			fprintf(sdump->trace, "<!DOCTYPE X3D PUBLIC \"ISO//Web3D//DTD X3D 3.0//EN\" \"http://www.web3d.org/specifications/x3d-3.0.dtd\">\n");
 			fprintf(sdump->trace, "<X3D xmlns:xsd=\"http://www.w3.org/2001/XMLSchema-instance\" xsd:noNamespaceSchemaLocation=\"http://www.web3d.org/specifications/x3d-3.0.xsd\" version=\"3.0\">\n");
 			fprintf(sdump->trace, "<head>\n");
-			fprintf(sdump->trace, "<meta content=\"X3D File Converted/Dumped by GPAC Version %s\" name=\"generator\"/>\n", GPAC_VERSION);
+			fprintf(sdump->trace, "<meta content=\"X3D File Converted/Dumped by GPAC Version %s\" name=\"generator\"/>\n", GPAC_FULL_VERSION);
 			fprintf(sdump->trace, "</head>\n");
 			fprintf(sdump->trace, "<Scene>\n");
 		} else {

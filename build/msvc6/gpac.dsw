@@ -66,12 +66,6 @@ Package=<4>
     Project_Dep_Name odf_dec
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name render2d
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name render3d
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name rtp_in
     End Project Dependency
     Begin Project Dependency

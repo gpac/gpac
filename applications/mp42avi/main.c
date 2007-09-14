@@ -66,7 +66,7 @@ typedef struct tagBITMAPINFOHEADER{
 
 void PrintVersion()
 {
-	printf ("MP42AVI - GPAC version %s\n", GPAC_VERSION);
+	printf ("MP42AVI - GPAC version %s\n", GPAC_FULL_VERSION);
 }
 
 void PrintUsage()

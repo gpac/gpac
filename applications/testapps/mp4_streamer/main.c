@@ -287,10 +287,12 @@ static void on_pck_done(void *cbk, GF_RTPHeader *header)
 	if (e) 
 		fprintf(stdout, "Error %s sending RTP packet\n", gf_error_to_string(e));
 	free(rtp->packet.payload);				
+
+	if (rtp->session->streamer->log_level == LOG_PACKET) 
+		fprintf(stdout, "  RTP SN %u - TS %u - M %u - Size %u\n", rtp->packet.header.SequenceNumber, rtp->packet.header.TimeStamp, rtp->packet.header.Marker, rtp->packet.payload_len + RTP_HEADER_SIZE);
+
 	rtp->packet.payload = NULL;
 	rtp->packet.payload_len = 0;
-	
-	if (rtp->session->streamer->log_level == LOG_PACKET) fprintf(stdout, "  RTP SN %u - TS %u - M %u - Size %u\n", rtp->packet.header.SequenceNumber, rtp->packet.header.TimeStamp, rtp->packet.header.Marker, rtp->packet.payload_len + RTP_HEADER_SIZE);
 }
 
 

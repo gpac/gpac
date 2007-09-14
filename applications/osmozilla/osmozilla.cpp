@@ -133,7 +133,7 @@ NPError NS_PluginGetValue(NPPVariable aVariable, void *aValue)
 		*((char **)aValue) = "Osmozilla";
 		break;
 	case NPPVpluginDescriptionString:
-		*((char **)aValue) = "GPAC Plugin " GPAC_VERSION " for Mozilla. For more information go to <a href=\"http://gpac.sourceforge.net\">GPAC website</a>";
+		*((char **)aValue) = "GPAC Plugin " GPAC_FULL_VERSION " for Mozilla. For more information go to <a href=\"http://gpac.sourceforge.net\">GPAC website</a>";
 		break;
 	default:
 		err = NPERR_INVALID_PARAM;

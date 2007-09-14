@@ -32,7 +32,7 @@
 
 
 #define PACKAGE "GPAC/avilib"
-#define VERSION GPAC_VERSION
+#define VERSION GPAC_FULL_VERSION
 
 #define INFO_LIST
 

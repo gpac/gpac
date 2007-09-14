@@ -59,6 +59,10 @@ extern "C" {
 */
 /*KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)!!!, and NO SPACE in GPAC_VERSION for proper install*/
 #define GPAC_VERSION       "0.4.5-DEV"
+
+#define GPAC_BUILD_NUMBER	"2"
+#define GPAC_FULL_VERSION       GPAC_VERSION" (build "GPAC_BUILD_NUMBER")"
+
 /*!
  *	\brief GPAC Version
  *	\hideinitializer

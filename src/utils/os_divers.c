@@ -155,10 +155,14 @@ s32 gettimeofday(struct timeval *tp, void *tz)
 
 #ifdef _WIN32_WCE
 
-void CE_Assert(u32 valid)
+void CE_Assert(u32 valid, char *file, u32 line)
 {
 	if (!valid) {
-		MessageBox(NULL, _T("ASSERT FAILED"), _T("Fatal Error"), MB_OK);
+		char szBuf[2048];
+		u16 wcBuf[2048];
+		sprintf(szBuf, "File %s : line %d", file, line);
+		CE_CharToWide(szBuf, wcBuf);
+		MessageBox(NULL, wcBuf, _T("GPAC Assertion Failure"), MB_OK);
 	}
 }
 
