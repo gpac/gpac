@@ -273,8 +273,10 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 		if (is && is->root_od->mo) gf_mo_stop(is->root_od->mo);
 		break;
 	case SMIL_TIMING_EVAL_REPEAT:
+/*
 		is = (GF_InlineScene *)gf_node_get_private((GF_Node *)rti->timed_elt);
 		if (is && is->root_od->mo) is->needs_restart = 1;
+		*/
 		break;
 	}
 }
