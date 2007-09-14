@@ -369,10 +369,13 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 	if (!gf_svg_resolve_smil_times(sg, anim->target, *(GF_List **)info.far_ptr, 1, nodeID)) return 0;
 
 	/*animateMotion needs its children to be parsed before it can be initialized !! */
-	if (force_init || gf_node_get_tag((GF_Node *)anim->animation_elt) != TAG_SVG_animateMotion)
+	if (force_init || gf_node_get_tag((GF_Node *)anim->animation_elt) != TAG_SVG_animateMotion) {
 		gf_node_init((GF_Node *)anim->animation_elt);
+		return 1;
+	} else {
+		return 0;
+	}
 	
-	return 1;
 }
 
 static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const char *nodeID)
