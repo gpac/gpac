@@ -7,12 +7,12 @@
 <!-- version=The version number of the product being tested                               -->
 <!-- platform=The platform(s) that the product is tested on                               -->
 <!-- date=The date of the submission in the form year/month/day, eg. 2002/08/30           -->
-<svg-status-query company="ENST" date="2007/07/17" product="GPAC Player" version="0.4.5-dev" shortName="Osmo4" platform="WindowsXP"	profile="tiny">
+<svg-status-query company="ENST" date="2007/09/17" product="GPAC Player" version="0.4.5-dev-build-2" shortName="Osmo4" platform="WindowsXP"	profile="tiny">
 <!-- test attributes:                                                                   -->
 <!--    status=must be one of 'OK', 'PARTIAL', or 'FAIL'                                -->
 <!--    comment=optional comment to publish with the result, like why you don't pass :) -->
 	<test name="animate-elem-02-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-03-t" revision="1.6" status="OK" comment=""/>
+	<test name="animate-elem-03-t" revision="1.6" status="OK" comment="Freeze not correct"/>
 	<test name="animate-elem-04-t" revision="1.6" status="OK" comment=""/>
 	<test name="animate-elem-05-t" revision="1.6" status="OK" comment=""/>
 	<test name="animate-elem-06-t" revision="1.6" status="OK" comment=""/>
@@ -56,26 +56,26 @@
 	<test name="animate-elem-224-t" revision="1.1" status="FAIL" comment=""/>
 	<test name="animate-elem-23-t" revision="1.5" status="OK" comment=""/>
 	<test name="animate-elem-24-t" revision="1.5" status="OK" comment=""/>
-	<test name="animate-elem-25-t" revision="1.5" status="OK" comment=""/>
-	<test name="animate-elem-26-t" revision="1.6" status="OK" comment=""/>
+	<test name="animate-elem-25-t" revision="1.5" status="OK" comment="Freeze not correct in second anim"/>
+	<test name="animate-elem-26-t" revision="1.6" status="OK" comment="Freeze not correct in second anim"/>
 	<test name="animate-elem-27-t" revision="1.5" status="OK" comment=""/>
 	<test name="animate-elem-28-t" revision="1.6" status="OK" comment=""/>
 	<test name="animate-elem-29-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-30-t" revision="1.4" status="PARTIAL" comment="viewbox on image"/>
 	<test name="animate-elem-31-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-32-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-33-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-33-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-34-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-35-t" revision="1.1" status="PARTIAL" comment=""/>
-	<test name="animate-elem-36-t" revision="1.4" status="OK" comment=""/>
+	<test name="animate-elem-35-t" revision="1.1" status="PARTIAL" comment="Stroke anim"/>
+	<test name="animate-elem-36-t" revision="1.4" status="OK" comment="Rendering problem when rotating images"/>
 	<test name="animate-elem-37-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-38-t" revision="1.6" status="OK" comment=""/>
 	<test name="animate-elem-39-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-40-t" revision="1.5" status="PARTIAL" comment="Multiple x/y values on text is not supported."/>
+	<test name="animate-elem-40-t" revision="1.5" status="OK" comment=""/>
 	<test name="animate-elem-41-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-44-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-46-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-52-t" revision="1.4" status="OK" comment=""/>
+	<test name="animate-elem-52-t" revision="1.4" status="PARTIAL" comment="B and C anim don't work"/>
 	<test name="animate-elem-53-t" revision="1.1" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
 	<test name="animate-elem-60-t" revision="1.4" status="PARTIAL" comment="No wallclock events, bug in sync base (end - 2) events"/>
 	<test name="animate-elem-61-t" revision="1.4" status="OK" comment=""/>
@@ -88,7 +88,7 @@
 	<test name="animate-elem-68-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-69-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-70-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-77-t" revision="1.4" status="PARTIAL" comment="Animation of font-style buggy."/>
+	<test name="animate-elem-77-t" revision="1.4" status="PARTIAL" comment="Animation of text-anchor buggy."/>
 	<test name="animate-elem-78-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-80-t" revision="1.5" status="OK" comment=""/>
 	<test name="animate-elem-81-t" revision="1.5" status="PARTIAL" comment="bug in accumulate"/>
@@ -113,8 +113,8 @@
 	<test name="coords-trans-07-t" revision="1.1" status="OK" comment=""/>
 	<test name="coords-trans-08-t" revision="1.1" status="OK" comment=""/>
 	<test name="coords-trans-09-t" revision="1.1" status="OK" comment=""/>
-	<test name="coords-units-01-t" revision="1.9" status="PARTIAL" comment=""/>
-	<test name="coords-viewattr-05-t" revision="1.11" status="FAIL" comment=""/>
+	<test name="coords-units-01-t" revision="1.9" status="PARTIAL" comment="radial gradients"/>
+	<test name="coords-viewattr-05-t" revision="1.11" status="FAIL" comment="pAR on image"/>
 	<test name="coords-viewattr-06-t" revision="1.4" status="FAIL" comment=""/>
 	<test name="extend-namespace-02-t" revision="1.6" status="OK" comment=""/>
 	<test name="fonts-desc-01-t" revision="1.2" status="FAIL" comment="SVG Fonts not supported."/>
@@ -145,8 +145,8 @@
 	<test name="interact-focus-205-t" revision="1.3" status="PARTIAL" comment=""/>
 	<test name="interact-focus-206-t" revision="1.3" status="OK" comment=""/>
 	<test name="interact-focus-207-t" revision="1.3" status="OK" comment=""/>
-	<test name="interact-focus-208-t" revision="1.3" status="FAIL" comment="doesn't display the tspans"/>
-	<test name="interact-focus-209-t" revision="1.3" status="FAIL" comment="textarea not implemented"/>
+	<test name="interact-focus-208-t" revision="1.3" status="OK" comment=""/>
+	<test name="interact-focus-209-t" revision="1.3" status="OK" comment=""/>
 	<test name="interact-focus-210-t" revision="1.3" status="PARTIAL" comment="top row doesn't turn red"/>
 	<test name="interact-focus-211-t" revision="1.5" status="FAIL" comment=""/>
 	<test name="interact-focus-212-t" revision="1.2" status="FAIL" comment=""/>
@@ -182,35 +182,35 @@
 	<test name="linking-a-08-t" revision="1.2" status="FAIL" comment="tspan"/>
 	<test name="linking-frag-201-t" revision="1.2" status="FAIL" comment=""/>
 	<test name="linking-frag-202-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="linking-refs-201-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="linking-refs-202-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="linking-refs-203-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="linking-refs-204-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="linking-refs-205-t" revision="1.4" status="FAIL" comment=""/>
+	<test name="linking-refs-201-t" revision="1.4" status="OK" comment=""/>
+	<test name="linking-refs-202-t" revision="1.4" status="OK" comment=""/>
+	<test name="linking-refs-203-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="linking-refs-204-t" revision="1.4" status="OK" comment=""/>
+	<test name="linking-refs-205-t" revision="1.4" status="FAIL" comment="xml:base"/>
 	<test name="linking-uri-01-t" revision="1.5" status="FAIL" comment=""/>
 	<test name="linking-uri-02-t" revision="1.5" status="FAIL" comment=""/>
 	<test name="linking-uri-03-t" revision="1.6" status="FAIL" comment=""/>
 	<test name="media-alevel-201-t" revision="1.5" status="OK" comment=""/>
-	<test name="media-alevel-202-t" revision="1.5" status="FAIL" comment="Audio-level on video"/>
+	<test name="media-alevel-202-t" revision="1.5" status="OK" comment=""/>
 	<test name="media-alevel-203-t" revision="1.2" status="FAIL" comment="repeat on audio"/>
 	<test name="media-alevel-204-t" revision="1.2" status="FAIL" comment="repeatCount on audio"/>
 	<test name="media-alevel-205-t" revision="1.2" status="FAIL" comment=""/>
 	<test name="media-alevel-206-t" revision="1.3" status="FAIL" comment="audio restart and audio-level inheritance"/>
 	<test name="media-alevel-207-t" revision="1.2" status="OK" comment=""/>
 	<test name="media-alevel-208-t" revision="1.2" status="FAIL" comment="repeatCount indefinite"/>
-	<test name="media-anim-201-t" revision="1.4" status="FAIL" comment="Not supported in this version"/>
-	<test name="media-anim-202-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="media-anim-203-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="media-anim-204-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="media-anim-205-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="media-anim-206-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="media-anim-207-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="media-anim-208-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="media-anim-209-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="media-anim-210-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="media-anim-211-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="media-anim-212-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="media-anim-213-t" revision="1.1" status="FAIL" comment=""/>
+	<test name="media-anim-201-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="media-anim-202-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="media-anim-203-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="media-anim-204-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test name="media-anim-205-t" revision="1.4" status="PARTIAL" comment="viewport and pAR on animation"/>
+	<test name="media-anim-206-t" revision="1.4" status="PARTIAL" comment="viewport and pAR on animation"/>
+	<test name="media-anim-207-t" revision="1.4" status="PARTIAL" comment="viewport and pAR on animation"/>
+	<test name="media-anim-208-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test name="media-anim-209-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="media-anim-210-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test name="media-anim-211-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test name="media-anim-212-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="media-anim-213-t" revision="1.1" status="PARTIAL" comment=""/>
 	<test name="media-audio-201-t" revision="1.2" status="OK" comment=""/>
 	<test name="media-audio-202-t" revision="1.2" status="FAIL" comment="no repeat"/>
 	<test name="media-audio-203-t" revision="1.2" status="FAIL" comment=""/>
@@ -223,19 +223,19 @@
 	<test name="media-audio-210-t" revision="1.2" status="OK" comment=""/>
 	<test name="media-audio-211-t" revision="1.2" status="OK" comment=""/>
 	<test name="media-audio-212-t" revision="1.2" status="OK" comment=""/>
-	<test name="media-audio-213-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="media-audio-214-t" revision="1.1" status="FAIL" comment="CRASH!!"/>
-	<test name="media-synch-201-t" revision="1.4" status="FAIL" comment="No animation in this version"/>
-	<test name="media-synch-202-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="media-synch-203-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="media-synch-204-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="media-synch-205-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="media-synch-206-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="media-synch-207-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="media-synch-208-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="media-synch-209-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="media-synch-210-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="media-synch-211-t" revision="1.3" status="FAIL" comment=""/>
+	<test name="media-audio-213-t" revision="1.3" status="OK" comment=""/>
+	<test name="media-audio-214-t" revision="1.1" status="OK" comment=""/>
+	<test name="media-synch-201-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="media-synch-202-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="media-synch-203-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="media-synch-204-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="media-synch-205-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="media-synch-206-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="media-synch-207-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="media-synch-208-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="media-synch-209-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="media-synch-210-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="media-synch-211-t" revision="1.3" status="PARTIAL" comment=""/>
 	<test name="media-video-201-t" revision="1.3" status="PARTIAL" comment="Video should not be displayed"/>
 	<test name="media-video-202-t" revision="1.4" status="PARTIAL" comment="video does not disappear when complete"/>
 	<test name="media-video-203-t" revision="1.3" status="FAILED" comment="transformBehavior pinned not supported"/>
@@ -259,10 +259,10 @@
 	<test name="media-video-221-t" revision="1.2" status="PARTIAL" comment=""/>
 	<test name="media-video-222-t" revision="1.1" status="OK" comment=""/>
 	<test name="metadata-example-01-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-color-01-t" revision="1.5" status="FAIL" comment=""/>
+	<test name="paint-color-01-t" revision="1.5" status="OK" comment=""/>
 	<test name="paint-color-03-t" revision="1.6" status="OK" comment=""/>
 	<test name="paint-color-04-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-color-05-t" revision="1.5" status="FAIL" comment=""/>
+	<test name="paint-color-05-t" revision="1.5" status="OK" comment=""/>
 	<test name="paint-colors-201-t" revision="1.1" status="OK" comment=""/>
 	<test name="paint-fill-01-t" revision="1.3" status="OK" comment=""/>
 	<test name="paint-fill-02-t" revision="1.3" status="OK" comment=""/>
@@ -305,9 +305,9 @@
 	<test name="paint-stroke-203-t" revision="1.2" status="PARTIAL" comment=""/>
 	<test name="paint-stroke-204-t" revision="1.2" status="PARTIAL" comment=""/>
 	<test name="paint-stroke-205-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="paint-stroke-206-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test name="paint-stroke-206-t" revision="1.2" status="OK" comment=""/>
 	<test name="paint-stroke-207-t" revision="1.2" status="OK" comment=""/>
-	<test name="paint-vfill-201-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test name="paint-vfill-201-t" revision="1.2" status="OK" comment=""/>
 	<test name="paint-vfill-202-t" revision="1.3" status="OK" comment=""/>
 	<test name="paint-vfill-203-t" revision="1.2" status="PARTIAL" comment=""/>
 	<test name="paint-vfill-204-t" revision="1.2" status="PARTIAL" comment=""/>
@@ -370,10 +370,10 @@
 	<test name="struct-cond-207-t" revision="1.2" status="FAIL" comment=""/>
 	<test name="struct-defs-01-t" revision="1.6" status="OK" comment=""/>
 	<test name="struct-defs-201-t" revision="1.2" status="OK" comment=""/>
-	<test name="struct-discard-101-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="struct-discard-201-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="struct-discard-202-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="struct-discard-203-t" revision="1.4" status="FAIL" comment=""/>
+	<test name="struct-discard-101-t" revision="1.2" status="OK" comment=""/>
+	<test name="struct-discard-201-t" revision="1.1" status="OK" comment=""/>
+	<test name="struct-discard-202-t" revision="1.3" status="CRASH" comment=""/>
+	<test name="struct-discard-203-t" revision="1.4" status="OK" comment=""/>
 	<test name="struct-discard-204-t" revision="1.3" status="OK" comment=""/>
 	<test name="struct-discard-205-t" revision="1.2" status="OK" comment=""/>
 	<test name="struct-discard-206-t" revision="1.2" status="FAIL" comment=""/>
@@ -390,62 +390,63 @@
 	<test name="struct-image-03-t" revision="1.6" status="OK" comment=""/>
 	<test name="struct-image-04-t" revision="1.6" status="OK" comment=""/>
 	<test name="struct-image-05-t" revision="1.5" status="OK" comment=""/>
-	<test name="struct-image-06-t" revision="1.4" status="PARTIAL" comment="viewport"/>
+	<test name="struct-image-06-t" revision="1.4" status="PARTIAL" comment="pAR on image"/>
 	<test name="struct-image-07-t" revision="1.4" status="FAIL" comment="xml:base"/>
 	<test name="struct-image-08-t" revision="1.4" status="OK" comment=""/>
 	<test name="struct-image-09-t" revision="1.4" status="OK" comment=""/>
 	<test name="struct-image-10-t" revision="1.4" status="OK" comment=""/>
 	<test name="struct-progressive-201-t" revision="1.2" status="OK" comment=""/>
-	<test name="struct-progressive-202-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="struct-progressive-203-t" revision="1.2" status="OK" comment=""/>
-	<test name="struct-progressive-204-t" revision="1.2" status="OK" comment=""/>
-	<test name="struct-svg-201-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="struct-svg-202-t" revision="1.2" status="FAIL" comment=""/>
+	<test name="struct-progressive-202-t" revision="1.2" status="FAIL" comment="eRR not supported"/>
+	<test name="struct-progressive-203-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test name="struct-progressive-204-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test name="struct-svg-201-t" revision="1.2" status="FAIL" comment="snapshot time"/>
+	<test name="struct-svg-202-t" revision="1.2" status="FAIL" comment="snapshot time"/>
 	<test name="struct-svg-203-t" revision="1.2" status="OK" comment=""/>
-	<test name="struct-svg-204-t" revision="1.2" status="OK" comment=""/>
+	<test name="struct-svg-204-t" revision="1.2" status="FAIL" comment=""/>
 	<test name="struct-svg-205-t" revision="1.2" status="OK" comment=""/>
 	<test name="struct-use-01-t" revision="1.4" status="OK" comment=""/>
 	<test name="struct-use-03-t" revision="1.4" status="OK" comment=""/>
-	<test name="struct-use-04-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="struct-use-05-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="struct-use-06-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="struct-use-07-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="struct-use-201-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="struct-use-202-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="styling-inherit-01-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="styling-pres-01-t" revision="1.5" status="FAIL" comment=""/>
+	<test name="struct-use-04-t" revision="1.4" status="PARTIAL" comment="property handling not correct"/>
+	<test name="struct-use-05-t" revision="1.4" status="OK" comment=""/>
+	<test name="struct-use-06-t" revision="1.1" status="PARTIAL" comment=""/>
+	<test name="struct-use-07-t" revision="1.1" status="PARTIAL" comment=""/>
+	<test name="struct-use-201-t" revision="1.3" status="PARTIAL" comment="reference restrictions in use"/>
+	<test name="struct-use-202-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test name="styling-inherit-01-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test name="styling-pres-01-t" revision="1.5" status="OK" comment=""/>
 	<test name="text-align-01-t" revision="1.5" status="OK" comment=""/>
 	<test name="text-align-03-t" revision="1.6" status="FAIL" comment=""/>
-	<test name="text-align-07-t" revision="1.4" status="FAIL" comment=""/>
+	<test name="text-align-04-t" revision="1.6" status="FAIL" comment=""/>
 	<test name="text-align-08-t" revision="1.4" status="OK" comment=""/>
 	<test name="text-align-201-t" revision="1.1" status="OK" comment=""/>
 	<test name="text-align-202-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="text-area-201-t" revision="1.2" status="FAIL" comment="not implemented yet"/>
+	<test name="text-area-201-t" revision="1.2" status="OK" comment=""/>
 	<test name="text-area-202-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-203-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-204-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-205-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-206-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-207-t" revision="1.2" status="FAIL" comment=""/>
+	<test name="text-area-203-t" revision="1.2" status="OK" comment=""/>
+	<test name="text-area-204-t" revision="1.2" status="OK" comment=""/>
+	<test name="text-area-205-t" revision="1.2" status="OK" comment=""/>
+	<test name="text-area-206-t" revision="1.2" status="OK" comment=""/>
+	<test name="text-area-207-t" revision="1.2" status="OK" comment=""/>
 	<test name="text-area-208-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-209-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-210-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-211-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-212-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-213-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-220-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-221-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-222-t" revision="1.2" status="FAIL" comment=""/>
+	<test name="text-area-209-t" revision="1.2" status="OK" comment=""/>
+	<test name="text-area-210-t" revision="1.2" status="OK" comment=""/>
+	<test name="text-area-211-t" revision="1.2" status="OK" comment=""/>
+	<test name="text-area-212-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test name="text-area-213-t" revision="1.2" status="PARTIAL" comment="display-align not supported"/>
+	<test name="text-area-220-t" revision="1.2" status="PARTIAL" comment="display-align not supported"/>
+	<test name="text-area-221-t" revision="1.2" status="PARTIAL" comment="display-align not supported"/>
+	<test name="text-area-222-t" revision="1.2" status="FAIL" comment="editable not supported"/>
+	<test name="text-deco-01-t" revision="1.1" status="PARTIAL" comment=""/>
 	<test name="text-fonts-01-t" revision="1.6" status="FAIL" comment="SVG Fonts not supported"/>
 	<test name="text-fonts-02-t" revision="1.6" status="FAIL" comment=""/>
-	<test name="text-fonts-03-t" revision="1.4" status="FAILFAIL" comment=""/>
+	<test name="text-fonts-03-t" revision="1.4" status="FAIL" comment=""/>
 	<test name="text-fonts-04-t" revision="1.1" status="FAIL" comment=""/>
 	<test name="text-fonts-202-t" revision="1.2" status="FAIL" comment=""/>
 	<test name="text-intro-01-t" revision="1.6" status="FAIL" comment=""/>
 	<test name="text-intro-04-t" revision="1.6" status="FAIL" comment=""/>
 	<test name="text-intro-05-t" revision="1.4" status="FAIL" comment=""/>
 	<test name="text-intro-06-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="text-intro-201-t" revision="1.2" status="FAIL" comment=""/>
+	<test name="text-intro-201-t" revision="1.2" status="OK" comment=""/>
 	<test name="text-text-04-t" revision="1.4" status="FAIL" comment=""/>
 	<test name="text-text-05-t" revision="1.4" status="FAIL" comment=""/>
 	<test name="text-text-06-t" revision="1.5" status="FAIL" comment=""/>

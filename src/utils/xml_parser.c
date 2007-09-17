@@ -458,13 +458,13 @@ typedef struct
 
 static void xml_sax_flush_text(GF_SAXParser *parser)
 {
-	u32 offset;
 	char *text, c;
 	if (!parser->text_start || parser->init_state || !parser->sax_text_content) return;
 
 	/* This optimization should be done at the application level
 	   generic XML parsing should not try to remove any character !!*/
 #if 0
+	u32 offset;
 	offset = 0;
 	while (parser->text_start+offset<parser->text_end) {
 		c = parser->buffer[parser->text_start-1+offset];

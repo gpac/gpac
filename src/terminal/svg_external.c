@@ -114,6 +114,7 @@ static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers
 		}
 	}
 	memset(&url, 0, sizeof(MFURL));
+	if (!xlinkp->href) return NULL;
 	gf_term_set_mfurl_from_uri(is->root_od->term, &url, xlinkp->href);
 
 	/*
