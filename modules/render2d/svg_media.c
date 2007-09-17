@@ -80,9 +80,17 @@ static void SVG_Draw_bitmap(RenderEffect2D *eff)
 
 static void SVG_Build_Bitmap_Graph(SVG_image_stack *st)
 {
+	u32 tag;
 	GF_Rect rc, new_rc;
-	Fixed x, y, width, height;
-	u32 tag = gf_node_get_tag(st->graph->node);
+	Fixed x, y, width, height, txwidth, txheight;
+	Fixed rectx, recty, rectwidth, rectheight;
+	SVGAllAttributes atts;
+	SVG_PreserveAspectRatio pAR;
+	SVG_Element *e = (SVG_Element *)st->graph->node;
+
+	gf_svg_flatten_attributes(e, &atts);
+
+	tag = gf_node_get_tag(st->graph->node);
 	switch (tag) {
 #ifdef GPAC_ENABLE_SVG_SA
 	case TAG_SVG_SA_image:
@@ -127,9 +135,6 @@ static void SVG_Build_Bitmap_Graph(SVG_image_stack *st)
 	case TAG_SVG_image:
 	case TAG_SVG_video:
 		{
-			SVG_Element *e = (SVG_Element *)st->graph->node;
-			SVGAllAttributes atts;
-			gf_svg_flatten_attributes(e, &atts);
 			x = (atts.x ? atts.x->value : 0);
 			y = (atts.y ? atts.y->value : 0);
 			width = (atts.width ? atts.width->value : 0);
@@ -140,12 +145,99 @@ static void SVG_Build_Bitmap_Graph(SVG_image_stack *st)
 		return;
 	}
 
-	if (!width) width = INT2FIX(st->txh.width);
-	if (!height) height = INT2FIX(st->txh.height);
+	if (!width || !height) return;
+	
+	txheight = INT2FIX(st->txh.height);
+	txwidth = INT2FIX(st->txh.width);
+
+	if (!txwidth || !txheight) return;
+
+	if (!atts.preserveAspectRatio) {
+		pAR.defer = 0;
+		pAR.meetOrSlice = SVG_MEETORSLICE_MEET;
+		pAR.align = SVG_PRESERVEASPECTRATIO_XMIDYMID;
+	} else {
+		pAR = *atts.preserveAspectRatio;
+	}
+	if (pAR.defer) {
+		/* TODO */
+		rectwidth = width;
+		rectheight = height;
+		rectx = x+rectwidth/2;
+		recty = y+rectheight/2;
+	} else {
+
+		if (pAR.align==SVG_PRESERVEASPECTRATIO_NONE) {
+			rectwidth = width;
+			rectheight = height;				
+			rectx = x+rectwidth/2;
+			recty = y+rectheight/2;
+		} else {
+			Fixed scale, scale_w, scale_h;
+			scale_w = gf_divfix(width, txwidth);
+			scale_h = gf_divfix(height, txheight);
+			if (pAR.meetOrSlice==SVG_MEETORSLICE_MEET) {
+				if (scale_w > scale_h) {
+					scale = scale_h;
+					rectwidth = gf_mulfix(txwidth, scale);
+					rectheight = height;
+				} else {
+					scale = scale_w;
+					rectwidth = width;
+					rectheight = gf_mulfix(txheight, scale);
+				}
+			} else {
+				if (scale_w < scale_h) {
+					scale = scale_h;
+					rectwidth = gf_mulfix(txwidth, scale);
+					rectheight = height;
+				} else {
+					scale = scale_w;
+					rectwidth = width;
+					rectheight = gf_mulfix(txheight, scale);
+				}
+			}
+
+			rectx = x + rectwidth/2;
+			recty = y + rectheight/2;
+			switch (pAR.align) {
+			case SVG_PRESERVEASPECTRATIO_XMINYMIN:
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMIDYMIN:
+				rectx += (width - rectwidth)/ 2; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMAXYMIN:
+				rectx += width - rectwidth; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMINYMID:
+				recty += (height - rectheight)/ 2; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMIDYMID:
+				rectx += (width - rectwidth)/ 2; 
+				recty += (height - rectheight) / 2; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMAXYMID:
+				rectx += width - rectwidth; 
+				recty += ( txheight - rectheight) / 2; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMINYMAX:
+				recty += height - rectheight; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMIDYMAX:
+				rectx += (width - rectwidth)/ 2; 
+				recty += height - rectheight; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMAXYMAX:
+				rectx += width  - rectwidth; 
+				recty += height - rectheight; 
+				break;
+			}
+		}
+	}
 
 	gf_path_get_bounds(st->graph->path, &rc);
 	drawable_reset_path(st->graph);
-	gf_path_add_rect_center(st->graph->path, x+width/2, y+height/2, width, height);
+	gf_path_add_rect_center(st->graph->path, rectx, recty, rectwidth, rectheight);
 	gf_path_get_bounds(st->graph->path, &new_rc);
 	if (!gf_rect_equal(rc, new_rc)) st->graph->flags |= DRAWABLE_HAS_CHANGED;
 	gf_node_dirty_clear(st->graph->node, GF_SG_SVG_GEOMETRY_DIRTY);
