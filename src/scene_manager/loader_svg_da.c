@@ -555,10 +555,10 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		anim->animation_elt = elt;
 		if (!parent) {
 			if (parser->command) {
-				anim->anim_parent = (SVG_Element*) parser->command->node;
+				anim->target = anim->anim_parent = (SVG_Element*) parser->command->node;
 			}
 		} else {
-			anim->anim_parent = parent->node;
+			anim->target = anim->anim_parent = parent->node;
 		}
 		anim->resolve_stage = 1;
 	} else if ((tag == TAG_SVG_script) || (tag==TAG_SVG_handler)) {

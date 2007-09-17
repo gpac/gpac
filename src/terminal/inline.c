@@ -139,7 +139,7 @@ GF_ObjectManager *gf_is_find_odm(GF_InlineScene *is, u16 OD_ID)
 	GF_ObjectManager *odm;
 	u32 i=0;
 	while ((odm = (GF_ObjectManager *)gf_list_enum(is->ODlist, &i))) {
-		if (odm->OD->objectDescriptorID == OD_ID) return odm;
+		if (odm->OD && odm->OD->objectDescriptorID == OD_ID) return odm;
 	}
 	return NULL;
 }
