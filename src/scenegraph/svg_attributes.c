@@ -3621,9 +3621,9 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 		if (paint->type == SVG_PAINT_NONE) strcpy(attValue, "none");
 		else if (paint->type == SVG_PAINT_INHERIT) strcpy(attValue, "inherit");
 		else if (paint->type == SVG_PAINT_URI) {
-			strcat(attValue, "url(#");
-			svg_dump_iri(&paint->iri, attValue);
-			strcat(attValue, ")");
+			char tmp[1024];
+			svg_dump_iri(&paint->iri, tmp);
+			sprintf(attValue, "url(%s)", tmp);
 		} else svg_dump_color(&paint->color, attValue);
 	}
 		break;

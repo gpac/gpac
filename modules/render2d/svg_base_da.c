@@ -1467,6 +1467,39 @@ static void SVG_DestroyPaintServer(GF_Node *node)
 	}
 }
 
+static GF_Node *gf_svg_copy_gradient_attributes_from(GF_Node *node, SVGAllAttributes *all_atts)
+{
+	GF_Node *href_node;
+	SVGAllAttributes all_href_atts;
+	GF_FieldInfo info;
+
+	/*check gradient redirection ...*/
+	href_node = node;
+	while (href_node && gf_svg_get_attribute_by_tag(href_node, TAG_SVG_ATT_xlink_href, 0, 0, &info)==GF_OK) {
+		href_node = ((XMLRI*)info.far_ptr)->target;
+		if (href_node == node) href_node = NULL;
+	}
+	if (href_node == node) href_node = NULL;
+
+	if (href_node) {
+		gf_svg_flatten_attributes((SVG_Element *)href_node, &all_href_atts);
+		if (!all_atts->gradientUnits) all_atts->gradientUnits = all_href_atts.gradientUnits;
+		if (!all_atts->gradientTransform) all_atts->gradientTransform = all_href_atts.gradientTransform;
+		if (!all_atts->cx) all_atts->cx = all_href_atts.cx;
+		if (!all_atts->cy) all_atts->cy = all_href_atts.cy;
+		if (!all_atts->r) all_atts->r = all_href_atts.r;
+		if (!all_atts->fx) all_atts->fx = all_href_atts.fx;
+		if (!all_atts->fy) all_atts->fy = all_href_atts.fy;
+		if (!all_atts->spreadMethod) all_atts->spreadMethod = all_href_atts.spreadMethod;
+		if (!all_atts->x1) all_atts->x1 = all_href_atts.x1;
+		if (!all_atts->x2) all_atts->x2 = all_href_atts.x2;
+		if (!all_atts->y1) all_atts->y1 = all_href_atts.y1;
+		if (!all_atts->y2) all_atts->y2 = all_href_atts.y2;
+	}
+
+	return href_node;
+}
+
 static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children)
 {
 	SVGPropertiesPointers backup_props_1;
@@ -1476,24 +1509,31 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children
 	u32 count;
 	Fixed alpha, max_offset;
 	SVGAllAttributes all_atts;
+	GF_Node *node, *href_node;
+	node = st->txh.owner;
 
-	if (!gf_node_dirty_get(st->txh.owner)) return;
-	gf_node_dirty_clear(st->txh.owner, 0);
+	if (!gf_node_dirty_get(node)) return;
+	gf_node_dirty_clear(node, 0);
 
 	st->txh.needs_refresh = 1;
 	st->txh.transparent = 0;
-	count = gf_node_list_get_count(children);
-	st->nb_col = 0;
-	st->cols = (u32*)realloc(st->cols, sizeof(u32)*count);
-	st->keys = (Fixed*)realloc(st->keys, sizeof(Fixed)*count);
 
 	GF_SAFEALLOC(svgp, SVGPropertiesPointers);
 	gf_svg_properties_init_pointers(svgp);
 	eff->svg_props = svgp;
 
-	gf_svg_flatten_attributes((SVG_Element *)st->txh.owner, &all_atts);
-	svg_render_base(st->txh.owner, &all_atts, eff, &backup_props_1, &backup_flags_1);
+	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+	href_node = gf_svg_copy_gradient_attributes_from(node, &all_atts);
 
+	svg_render_base(node, &all_atts, eff, &backup_props_1, &backup_flags_1);
+
+	if (!children && href_node) {
+		children = ((SVG_Element *)href_node)->children;
+	}
+	count = gf_node_list_get_count(children);
+	st->nb_col = 0;
+	st->cols = (u32*)realloc(st->cols, sizeof(u32)*count);
+	st->keys = (Fixed*)realloc(st->keys, sizeof(Fixed)*count);
 	max_offset = 0;
 	while (children) {
 		SVGPropertiesPointers backup_props_2;
@@ -1696,20 +1736,20 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		focal.x = all_atts.fx->value;
 		if (all_atts.fx->type==SVG_NUMBER_PERCENTAGE) focal.x /= 100;
 	} else {
-		focal.x = FIX_ONE/2;
+		focal.x = center.x;
 	}
 	if (all_atts.fy) {
 		focal.y = all_atts.fx->value;
 		if (all_atts.fy->type==SVG_NUMBER_PERCENTAGE) focal.y /= 100;
 	} else {
-		focal.y = FIX_ONE/2;
+		focal.y = center.y;
 	}
 
-	if (all_atts.gradientUnits && (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT) ) {
+	if (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT) ) {
 		/*move to local coord system - cf SVG spec*/
 		gf_mx2d_add_scale(mat, bounds->width, bounds->height);
 		gf_mx2d_add_translation(mat, bounds->x, bounds->y  - bounds->height);
-	} 
+	}
 	txh->compositor->r2d->stencil_set_radial_gradient(txh->hwtx, center.x, center.y, focal.x, focal.y, radius, radius);
 }
 
@@ -1737,15 +1777,8 @@ void svg_init_stop(Render2D *sr, GF_Node *node)
 
 GF_TextureHandler *svg_gradient_get_texture(GF_Node *node)
 {
-	GF_FieldInfo info;
-	GF_Node *g = NULL;
 	SVG_GradientStack *st;
-	/*check gradient redirection ...*/
-	if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &info)==GF_OK) {
-		g = ((XMLRI*)info.far_ptr)->target;
-	}
-	if (!g) g = node;
-	st = (SVG_GradientStack*) gf_node_get_private((GF_Node *)g);
+	st = (SVG_GradientStack*) gf_node_get_private((GF_Node *)node);
 	return st->nb_col ? &st->txh : NULL;
 }
 
