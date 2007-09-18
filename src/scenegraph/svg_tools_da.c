@@ -482,7 +482,8 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 		render_svg_props->audio_level = NULL;
 	}
 	
-	if (all_atts->color && all_atts->color->color.type != SVG_COLOR_INHERIT) {
+	if (all_atts->color && all_atts->color->type == SVG_PAINT_COLOR 
+		&& all_atts->color->color.type != SVG_COLOR_INHERIT) {
 		render_svg_props->color = all_atts->color;
 	} else {
 		inherited_flags_mask |= GF_SG_SVG_COLOR_DIRTY;
