@@ -444,12 +444,13 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 		rysq = gf_mulfix(r_y, r_y);
 	} 
 
-	scale = gf_sqrt(
-				gf_divfix(
-					gf_mulfix(rxsq,rysq) - gf_mulfix(rxsq, ymidpsq) - gf_mulfix(rysq,xmidpsq),
-					gf_mulfix(rxsq,ymidpsq) + gf_mulfix(rysq, xmidpsq)
-				)
+	scale = gf_divfix(
+					(gf_mulfix(rxsq,rysq) - gf_mulfix(rxsq, ymidpsq) - gf_mulfix(rysq,xmidpsq)),
+					(gf_mulfix(rxsq,ymidpsq) + gf_mulfix(rysq, xmidpsq))
 			);
+	/* precision problem may lead to negative value around zero, we need to take care of it before sqrt */
+	scale = gf_sqrt(ABS(scale));
+
 	cxp = gf_mulfix(scale, gf_divfix(gf_mulfix(r_x, ymidp),r_y));
 	cyp = gf_mulfix(scale, -gf_divfix(gf_mulfix(r_y, xmidp),r_x));
 	cxp = (large_arc_flag == sweep_flag ? - cxp : cxp);
