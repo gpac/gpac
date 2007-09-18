@@ -1469,6 +1469,10 @@ static void SVG_DestroyPaintServer(GF_Node *node)
 
 static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children)
 {
+	SVGPropertiesPointers backup_props_1;
+	u32 backup_flags_1;
+	SVGPropertiesPointers *svgp;
+	RenderEffect2D *eff = ((Render2D *)st->txh.compositor->visual_renderer->user_priv)->top_effect;
 	u32 count;
 	Fixed alpha, max_offset;
 	SVGAllAttributes all_atts;
@@ -1483,22 +1487,36 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children
 	st->cols = (u32*)realloc(st->cols, sizeof(u32)*count);
 	st->keys = (Fixed*)realloc(st->keys, sizeof(Fixed)*count);
 
+	GF_SAFEALLOC(svgp, SVGPropertiesPointers);
+	gf_svg_properties_init_pointers(svgp);
+	eff->svg_props = svgp;
+
+	gf_svg_flatten_attributes((SVG_Element *)st->txh.owner, &all_atts);
+	svg_render_base(st->txh.owner, &all_atts, eff, &backup_props_1, &backup_flags_1);
 
 	max_offset = 0;
 	while (children) {
+		SVGPropertiesPointers backup_props_2;
+		u32 backup_flags_2;
 		Fixed key;
 		GF_Node *stop = children->node;
 		children = children->next;
 		if (gf_node_get_tag((GF_Node *)stop) != TAG_SVG_stop) continue;
 
 		gf_svg_flatten_attributes((SVG_Element*)stop, &all_atts);
-
+		svg_render_base(stop, &all_atts, eff, &backup_props_2, &backup_flags_2);
+	
 		alpha = FIX_ONE;
-		if (all_atts.stop_opacity && (all_atts.stop_opacity->type==SVG_NUMBER_VALUE) )
-			alpha = all_atts.stop_opacity->value;
+		if (eff->svg_props->stop_opacity && (eff->svg_props->stop_opacity->type==SVG_NUMBER_VALUE) )
+			alpha = eff->svg_props->stop_opacity->value;
 
-		if (all_atts.stop_color)
-			st->cols[st->nb_col] = GF_COL_ARGB_FIXED(alpha, all_atts.stop_color->color.red, all_atts.stop_color->color.green, all_atts.stop_color->color.blue);
+		if (eff->svg_props->stop_color) {
+			if (eff->svg_props->stop_color->color.type == SVG_COLOR_CURRENTCOLOR) {
+				st->cols[st->nb_col] = GF_COL_ARGB_FIXED(alpha, eff->svg_props->color->color.red, eff->svg_props->color->color.green, eff->svg_props->color->color.blue);
+			} else {
+				st->cols[st->nb_col] = GF_COL_ARGB_FIXED(alpha, eff->svg_props->stop_color->color.red, eff->svg_props->stop_color->color.green, eff->svg_props->stop_color->color.blue);
+			}
+		}
 
 		if (all_atts.offset) {
 			key = all_atts.offset->value;
@@ -1512,9 +1530,18 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children
 
 		st->nb_col++;
 		if (alpha!=FIX_ONE) st->txh.transparent = 1;
+		memcpy(eff->svg_props, &backup_props_2, sizeof(SVGPropertiesPointers));
+		eff->svg_flags = backup_flags_2;
 	}
 	st->txh.compositor->r2d->stencil_set_gradient_interpolation(st->txh.hwtx, st->keys, st->cols, st->nb_col);
 	st->txh.compositor->r2d->stencil_set_gradient_mode(st->txh.hwtx, /*lg->spreadMethod*/ GF_GRADIENT_MODE_PAD);
+
+	memcpy(eff->svg_props, &backup_props_1, sizeof(SVGPropertiesPointers));
+	eff->svg_flags = backup_flags_1;
+
+	gf_svg_properties_reset_pointers(svgp);
+	free(svgp);
+	eff->svg_props = NULL;
 }
 
 static void SVG_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
@@ -1597,7 +1624,7 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		gf_mx2d_init(*mat);
 	}
 
-	if (all_atts.gradientUnits && (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT) ) {
+	if (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT) ) {
 		/*move to local coord system - cf SVG spec*/
 		gf_mx2d_add_scale(mat, bounds->width, bounds->height);
 		gf_mx2d_add_translation(mat, bounds->x - 1, bounds->y  - bounds->height - 1);
