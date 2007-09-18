@@ -329,6 +329,7 @@ EXPORTS
 	gf_path_add_ellipse
 	gf_path_add_bezier
 	gf_path_add_arc_to
+	gf_path_add_svg_arc_to
 	gf_path_add_arc
 	gf_path_get_control_bounds
 	gf_path_get_bounds

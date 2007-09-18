@@ -1307,10 +1307,6 @@ next_command:
 
 			i += svg_parse_float(&(d[i]), &(orig.x), 0);	
 			i += svg_parse_float(&(d[i]), &(orig.y), 0);				
-			if (c == 'a') {
-				orig.x += rel_ref_pt.x;
-				orig.y += rel_ref_pt.y;
-			}
 
 			i += svg_parse_float(&(d[i]), &(x_axis_rotation), 0);	
 			i += svg_parse_float(&(d[i]), &(large_arc_flag), 0);				
@@ -1322,7 +1318,7 @@ next_command:
 				end.x += rel_ref_pt.x;
 				end.y += rel_ref_pt.y;
 			}
-			//gf_path_add_svg_arc_to(path, orig.x, orig.y, x_axis_rotation, large_arc_flag, sweep_flag, end.x, end.y);
+			gf_path_add_svg_arc_to(path, end.x, end.y, orig.x, orig.y, x_axis_rotation , (large_arc_flag == 1 ? 1 : 0), (sweep_flag == 1 ? 1 : 0));
 			rel_ref_pt = end;
 			ct_orig = end;
 			prev_c = c;

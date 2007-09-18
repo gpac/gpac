@@ -247,7 +247,7 @@ GF_Err gf_path_add_ellipse(GF_Path *gp, Fixed cx, Fixed cy, Fixed a_axis, Fixed 
  */
 GF_Err gf_path_add_bezier(GF_Path *gp, GF_Point2D *pts, u32 nb_pts);
 /*!
- *	\brief adds arc to path
+ *	\brief adds arc as described in MPEG-4 BIFS to path
  *
  *	Adds an arc contour to the path from focal and end points.
  *	\param gp the target path
@@ -261,6 +261,21 @@ GF_Err gf_path_add_bezier(GF_Path *gp, GF_Point2D *pts, u32 nb_pts);
  *	\return error code if any error, \ref GF_OK otherwise
  */
 GF_Err gf_path_add_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed fa_x, Fixed fa_y, Fixed fb_x, Fixed fb_y, Bool cw);
+/*!
+ *	\brief adds arc as described in SVG to path
+ *
+ *	Adds an arc contour to the path from end point, radii and 3 parameters.
+ *	\param gp the target path
+ *	\param end_x x-coordinate of the arc end point
+ *	\param end_y y-coordinate of the arc end point
+ *	\param r_x x-axis radius
+ *	\param r_y y-axis radius 
+ *	\param x_axis_rotation angle for the x-axis
+ *	\param large_arc_flag large or short arc selection
+ *	\param sweep_flag if 1, the arc will be clockwise, otherwise counter-clockwise.
+ *	\return error code if any error, \ref GF_OK otherwise
+ */
+GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, Fixed r_y, Fixed x_axis_rotation, Bool large_arc_flag, Bool sweep_flag);
 /*!
  *	\brief adds arc to path
  *
