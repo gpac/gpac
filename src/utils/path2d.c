@@ -393,6 +393,120 @@ GF_Err gf_path_add_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed fa_x, Fix
 }
 
 GF_EXPORT
+GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, Fixed r_y, Fixed x_axis_rotation, Bool large_arc_flag, Bool sweep_flag)
+{
+	Fixed start_x, start_y;
+	Fixed xmid,ymid;
+	Fixed xmidp,ymidp;
+	Fixed xmidpsq,ymidpsq;
+	Fixed phi, cos_phi, sin_phi;
+	Fixed c_x, c_y;
+	Fixed cxp, cyp;
+	Fixed scale;
+	Fixed rxsq, rysq;
+	Fixed start_angle, sweep_angle;
+	Fixed radius_scale;
+	Fixed vx, vy, normv;
+	Fixed ux, uy, normu;
+	Fixed sign;
+	u32 i, num_steps;
+
+	if (!gp->n_points) return GF_BAD_PARAM;
+
+	if (!r_x || !r_y) {
+		gf_path_add_line_to(gp, end_x, end_y);
+		return GF_OK;
+	}
+	if (r_x < 0) r_x = -r_x;
+	if (r_y < 0) r_y = -r_y;
+
+	start_x = gp->points[gp->n_points-1].x;
+	start_y = gp->points[gp->n_points-1].y;
+
+	phi = gf_mulfix(gf_divfix(x_axis_rotation, 180), GF_PI);
+	cos_phi = gf_cos(phi);
+	sin_phi = gf_sin(phi);
+	xmid = (start_x - end_x)/2;
+	ymid = (start_y - end_y)/2;
+	xmidp = gf_mulfix(cos_phi, xmid) + gf_mulfix(sin_phi, ymid);
+	ymidp = gf_mulfix(-sin_phi, xmid) + gf_mulfix(cos_phi, ymid);
+	xmidpsq = gf_mulfix(xmidp, xmidp);
+	ymidpsq = gf_mulfix(ymidp, ymidp);
+
+	rxsq = gf_mulfix(r_x, r_x);
+	rysq = gf_mulfix(r_y, r_y);
+
+	radius_scale = gf_divfix(xmidpsq, rxsq) + gf_divfix(ymidpsq, rysq);
+	if (radius_scale > FIX_ONE) {
+		r_x = gf_mulfix(gf_sqrt(radius_scale), r_x);
+		r_y = gf_mulfix(gf_sqrt(radius_scale), r_y);
+		rxsq = gf_mulfix(r_x, r_x);
+		rysq = gf_mulfix(r_y, r_y);
+	} 
+
+	scale = gf_sqrt(
+				gf_divfix(
+					gf_mulfix(rxsq,rysq) - gf_mulfix(rxsq, ymidpsq) - gf_mulfix(rysq,xmidpsq),
+					gf_mulfix(rxsq,ymidpsq) + gf_mulfix(rysq, xmidpsq)
+				)
+			);
+	cxp = gf_mulfix(scale, gf_divfix(gf_mulfix(r_x, ymidp),r_y));
+	cyp = gf_mulfix(scale, -gf_divfix(gf_mulfix(r_y, xmidp),r_x));
+	cxp = (large_arc_flag == sweep_flag ? - cxp : cxp);
+	cyp = (large_arc_flag == sweep_flag ? - cyp : cyp);
+
+	c_x = gf_mulfix(cos_phi, cxp) - gf_mulfix(sin_phi, cyp) + (start_x + end_x)/2;
+	c_y = gf_mulfix(sin_phi, cxp) + gf_mulfix(cos_phi, cyp) + (start_y + end_y)/2;
+
+	ux = FIX_ONE;
+	uy = 0;
+	normu = FIX_ONE;
+	
+	vx = gf_divfix(xmidp-cxp,r_x);
+	vy = gf_divfix(ymidp-cyp,r_y);
+	normv = gf_sqrt(gf_mulfix(vx, vx) + gf_mulfix(vy,vy));
+
+	sign = vy;
+	start_angle = gf_acos(gf_divfix(vx,normv));
+	start_angle = (sign > 0 ? start_angle: -start_angle);
+
+	ux = vx;
+	uy = vy;
+	normu = normv;
+	
+	vx = gf_divfix(-xmidp-cxp,r_x);
+	vy = gf_divfix(-ymidp-cyp,r_y);
+	normu = gf_sqrt(gf_mulfix(ux, ux) + gf_mulfix(uy,uy));
+	
+	sign = gf_mulfix(ux, vy) - gf_mulfix(uy, vx);
+	sweep_angle = gf_acos(
+					gf_divfix(
+					  gf_mulfix(ux,vx) + gf_mulfix(uy, vy),
+					  gf_mulfix(normu, normv)
+					)
+				  );
+	sweep_angle = (sign > 0 ? sweep_angle: -sweep_angle);
+	if (sweep_flag == 0) {
+		if (sweep_angle > 0) sweep_angle -= GF_2PI; 
+	} else {
+		if (sweep_angle < 0) sweep_angle += GF_2PI; 
+	}
+
+	num_steps = GF_2D_DEFAULT_RES/2;
+	for (i=1; i<=num_steps; i++) {
+		Fixed _vx, _vy;
+		Fixed _vxp, _vyp;
+		Fixed angle = start_angle + sweep_angle*i/num_steps;
+		_vx = gf_mulfix(r_x, gf_cos(angle));
+		_vy = gf_mulfix(r_y, gf_sin(angle));
+		_vxp = gf_mulfix(cos_phi, _vx) - gf_mulfix(sin_phi, _vy) + c_x;
+		_vyp = gf_mulfix(sin_phi, _vx) + gf_mulfix(cos_phi, _vy) + c_y;
+		gf_path_add_line_to(gp, _vxp, _vyp);
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_angle, u32 close_type)
 {
 	GF_Err e;
