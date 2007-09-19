@@ -498,7 +498,7 @@ u32 drawable_get_aspect_2d(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *t
 check_default:
 		/*this is a bug in the spec: by default line width is 1.0, but in meterMetrics this means half of the screen :)*/
 		asp->pen_props.width = FIX_ONE;
-		if (!tr_state->is_pixel_metrics) asp->pen_props.width = gf_divfix(asp->pen_props.width, tr_state->min_hsize);
+		if (!tr_state->pixel_metrics) asp->pen_props.width = gf_divfix(asp->pen_props.width, tr_state->min_hsize);
 		if (m && m->transparency==FIX_ONE) {
 			asp->pen_props.width = 0;
 		} else {
@@ -744,7 +744,7 @@ static void drawable_finalize_render_ex(struct _drawable_context *ctx, GF_Traver
 		unclip = ctx->bi->unclip;
 		if (! (ctx->flags & CTX_NO_ANTIALIAS)) {
 			/*grow of 2 pixels (-1 and +1) to handle AA, but ONLY on cliper otherwise we will modify layout/form */
-			pw = (tr_state->is_pixel_metrics) ? FIX_ONE : 2*FIX_ONE/tr_state->visual->width;
+			pw = (tr_state->pixel_metrics) ? FIX_ONE : 2*FIX_ONE/tr_state->visual->width;
 			unclip.x -= pw;
 			unclip.y += pw;
 			unclip.width += 2*pw;
@@ -1219,10 +1219,12 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 
 	drawable_get_aspect_2d_svg(drawable->node, &ctx->aspect, tr_state);
 
-	if (*tr_state->svg_props->fill_rule == SVG_FILLRULE_NONZERO) {
-		ctx->drawable->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
-	} else {
-		ctx->drawable->path->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
+	if (ctx->drawable->path) {
+		if (*tr_state->svg_props->fill_rule == SVG_FILLRULE_NONZERO) {
+			ctx->drawable->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
+		} else {
+			ctx->drawable->path->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
+		}
 	}
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/

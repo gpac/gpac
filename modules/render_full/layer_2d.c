@@ -124,6 +124,7 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_Node *back;
 	GF_Matrix2D backup;
 	GF_Matrix mx3d;
+	SFVec2f prev_vp;
 
 #ifndef GPAC_DISABLE_3D
 	GF_List *oldf, *oldn;
@@ -176,6 +177,9 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 	
+	prev_vp = tr_state->vp_size;
+	tr_state->vp_size.x = st->clip.width;
+	tr_state->vp_size.y = st->clip.height;
 
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_RENDER:
@@ -363,6 +367,7 @@ static void RenderLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	
 	/*restore traversing state*/
+	tr_state->vp_size = prev_vp;
 	tr_state->backgrounds = oldb;
 	tr_state->viewpoints = oldv;
 #ifndef GPAC_DISABLE_3D

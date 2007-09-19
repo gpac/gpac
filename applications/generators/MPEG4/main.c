@@ -804,6 +804,7 @@ void WriteNodeCode(GF_List *BNodes)
 	fprintf(f, "\n#include <gpac/internal/scenegraph_dev.h>\n");
 
 	for (k=0; k<gf_list_count(BNodes); k++) {
+		Bool is_parent = 0;
 		n = gf_list_get(BNodes, k);
 
 		if (n->skip_impl) continue;
@@ -819,7 +820,7 @@ void WriteNodeCode(GF_List *BNodes)
 			
 			//delete all children node
 			if (!strcmp(bf->name, "children") && stricmp(n->name, "audioBuffer")) {
-				fprintf(f, "\tgf_sg_vrml_parent_destroy((GF_Node *) p);\t\n");
+				is_parent = 1;
 				continue;
 			}
 
@@ -863,6 +864,7 @@ void WriteNodeCode(GF_List *BNodes)
 				}
 			}
 		}
+		if (is_parent) fprintf(f, "\tgf_sg_vrml_parent_destroy((GF_Node *) p);\t\n");
 		fprintf(f, "\tgf_node_free((GF_Node *) p);\n}\n\n");
 
 		//node fields

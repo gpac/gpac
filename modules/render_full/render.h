@@ -41,6 +41,7 @@ typedef struct _draw_aspect_2d DrawAspect2D;
 
 //#define GPAC_DISABLE_3D
 
+#define GPAC_RENDER_USE_CACHE
 
 #ifndef GPAC_DISABLE_3D
 #include "camera.h"
@@ -290,9 +291,14 @@ typedef struct _traversing_state
 	u32 traversing_mode;
 
 	/*current graph traversed is in pixel metrics*/
-	Bool is_pixel_metrics;
+	Bool pixel_metrics;
+	/*current graph traversed uses centered coordinates*/
+	Bool center_coords;
 	/*minimal half-dimension (w/2, h/2)*/
 	Fixed min_hsize;
+
+	/*current size of viewport being traverse (root scene, layers)*/
+	SFVec2f vp_size;
 
 	/*the one and only visual manager currently being traversed*/
 	GF_VisualManager *visual;
@@ -333,6 +339,7 @@ typedef struct _traversing_state
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
 	GF_Node *parent_use;
+	SVGAllAttributes *parent_vp_atts;
 #endif
 
 	/*SVG text rendering state*/
@@ -363,6 +370,11 @@ typedef struct _traversing_state
 	Bool has_clip, has_layer_clip;
 	/*active clipper in world coord system */
 	GF_Rect clipper, layer_clipper;
+
+	
+#ifdef GPAC_RENDER_USE_CACHE
+	Bool in_group_cache;
+#endif
 
 
 #ifndef GPAC_DISABLE_3D

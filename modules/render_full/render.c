@@ -181,7 +181,7 @@ static void render_draw_scene(GF_VisualRenderer *vr)
 		sr->root_visual_setup = 1;
 		sr->visual->center_coords = 1;
 
-		sr->traverse_state->is_pixel_metrics = 1;
+		sr->traverse_state->pixel_metrics = 1;
 		sr->traverse_state->min_hsize = INT2FIX(MIN(sr->compositor->scene_width, sr->compositor->scene_height)) / 2;
 
 		node_tag = gf_node_get_tag(top_node);
@@ -193,7 +193,7 @@ static void render_draw_scene(GF_VisualRenderer *vr)
 			sr->visual->camera.is_3D = 0;
 #endif
 			sr->root_uses_dom_events = 0;
-			sr->traverse_state->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
+			sr->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
 			break;
 		case TAG_MPEG4_Group:
 		case TAG_MPEG4_Layer3D:
@@ -202,14 +202,14 @@ static void render_draw_scene(GF_VisualRenderer *vr)
 			sr->visual->camera.is_3D = 1;
 #endif
 			sr->root_uses_dom_events = 0;
-			sr->traverse_state->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
+			sr->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
 			break;
 		case TAG_X3D_Group:
 #ifndef GPAC_DISABLE_3D
 			sr->visual->type_3d = 3;
 #endif
 			sr->root_uses_dom_events = 0;
-			sr->traverse_state->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
+			sr->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
 			break;
 #ifndef GPAC_DISABLE_SVG
 		case TAG_SVG_svg:
@@ -240,7 +240,7 @@ static void render_draw_scene(GF_VisualRenderer *vr)
 		camera_invalidate(&sr->visual->camera);
 #endif
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Main scene setup - Using DOM events: %d - pixel metrics %d - center coords %d\n", sr->root_uses_dom_events, sr->traverse_state->is_pixel_metrics, sr->visual->center_coords));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Main scene setup - Using DOM events: %d - pixel metrics %d - center coords %d\n", sr->root_uses_dom_events, sr->traverse_state->pixel_metrics, sr->visual->center_coords));
 
 #ifndef GPAC_DISABLE_3D
 		/*change in 2D/3D config, force AR recompute/video restup*/
@@ -255,6 +255,9 @@ static void render_draw_scene(GF_VisualRenderer *vr)
 #endif
 			render_2d_set_aspect_ratio(sr);
 		sr->recompute_ar = 0;
+
+		sr->traverse_state->vp_size.x = INT2FIX(sr->compositor->scene_width);
+		sr->traverse_state->vp_size.y = INT2FIX(sr->compositor->scene_height);
 	}
 
 #if 0
@@ -539,15 +542,39 @@ static u32 render_get_option(GF_VisualRenderer *vr, u32 option)
 /*render inline scene*/
 static void render_inline_mpeg4(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *inline_root, void *rs)
 {
-	Bool use_pm;
+	Bool use_pm, flip_coords;
 	u32 h, w;
 	GF_SceneGraph *in_scene;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 
+	flip_coords = 0;
 	in_scene = gf_node_get_graph(inline_root);
-	use_pm = gf_sg_use_pixel_metrics(in_scene);
-	if (use_pm == tr_state->is_pixel_metrics) {
-		gf_node_render(inline_root, rs);
+	switch (gf_node_get_tag(inline_root)) {
+	case TAG_MPEG4_Layer2D:
+	case TAG_MPEG4_OrderedGroup:
+	case TAG_MPEG4_Layer3D:
+	case TAG_MPEG4_Group:
+	case TAG_X3D_Group:
+		use_pm = gf_sg_use_pixel_metrics(in_scene);
+		break;
+	default:
+		flip_coords = 1;
+		use_pm = 1;
+		break;
+	}
+	if (use_pm == tr_state->pixel_metrics) {
+		if (flip_coords) {
+			GF_Matrix2D mx_bck, mx;
+			gf_mx2d_copy(mx_bck, tr_state->transform);
+			gf_mx2d_init(mx);
+			gf_mx2d_add_scale(&mx, 1, -1);
+			gf_mx2d_add_translation(&mx, -tr_state->vp_size.x/2, tr_state->vp_size.y/2);
+			gf_mx2d_pre_multiply(&tr_state->transform, &mx);
+			gf_node_render(inline_root, rs);
+			gf_mx2d_copy(tr_state->transform, mx_bck);
+		} else {
+			gf_node_render(inline_root, rs);
+		}
 		return;
 	}
 	/*override aspect ratio if any size info is given in the scene*/
@@ -562,13 +589,13 @@ static void render_inline_mpeg4(GF_VisualRenderer *vr, GF_Node *inline_parent, G
 		gf_mx_copy(gf_mx_bck, tr_state->model_matrix);
 		gf_mx_init(mx);
 		/*apply meterMetrics<->pixelMetrics scale*/
-/*		if (!use_pm) {
+		if (!use_pm) {
 			gf_mx_add_scale(&mx, tr_state->min_hsize, tr_state->min_hsize, tr_state->min_hsize);
 		} else {
 			Fixed inv_scale = gf_invfix(tr_state->min_hsize);
 			gf_mx_add_scale(&mx, inv_scale, inv_scale, inv_scale);
 		}
-*/		tr_state->is_pixel_metrics = use_pm;
+		tr_state->pixel_metrics = use_pm;
 		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
 		if (tr_state->traversing_mode==TRAVERSE_RENDER) {
 			visual_3d_matrix_push(tr_state->visual);
@@ -591,12 +618,12 @@ static void render_inline_mpeg4(GF_VisualRenderer *vr, GF_Node *inline_parent, G
 			Fixed inv_scale = gf_invfix(tr_state->min_hsize);
 			gf_mx2d_add_scale(&mx, inv_scale, inv_scale);
 		}
-		tr_state->is_pixel_metrics = use_pm;
+		tr_state->pixel_metrics = use_pm;
 		gf_mx2d_add_matrix(&tr_state->transform, &mx);
 		gf_node_render(inline_root, rs);
 		gf_mx2d_copy(tr_state->transform, mx_bck);
 	}
-	tr_state->is_pixel_metrics = !use_pm;
+	tr_state->pixel_metrics = !use_pm;
 }
 
 static void render_render_inline(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *inline_root, void *rs)
@@ -619,6 +646,9 @@ static void render_render_inline(GF_VisualRenderer *vr, GF_Node *inline_parent, 
 	}
 #endif
 	switch (gf_node_get_tag(inline_parent)) {
+	case TAG_SVG_animation:
+		render_svg_render_animation(inline_parent, inline_root, rs);
+		break;
 	case TAG_SVG_use:
 		render_svg_render_use(inline_parent, inline_root, rs);
 		break;

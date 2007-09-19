@@ -169,7 +169,7 @@ void visual_2d_setup_projection(GF_VisualManager *vis, GF_TraverseState *tr_stat
 		rc.y = rc.height = INT2FIX(vis->height);
 	}
 	/*set top-transform to pixelMetrics*/
-	if (!tr_state->is_pixel_metrics) gf_mx2d_add_scale(&tr_state->transform, tr_state->min_hsize, tr_state->min_hsize);
+	if (!tr_state->pixel_metrics) gf_mx2d_add_scale(&tr_state->transform, tr_state->min_hsize, tr_state->min_hsize);
 
 	vis->surf_rect = gf_rect_pixelize(&rc);
 

@@ -461,172 +461,138 @@ void render_svg_render_base(GF_Node *node, SVGAllAttributes *all_atts, GF_Traver
 	tr_state->svg_flags |= gf_node_dirty_get(node);
 }
 
-static void svg_set_viewport_transformation(GF_TraverseState *tr_state, SVGAllAttributes *atts, Bool is_root) 
+static Bool svg_set_viewport_transformation(GF_TraverseState *tr_state, SVGAllAttributes *atts, Bool is_root) 
 {
-	u32 dpi = 90; /* Should retrieve the dpi from the system */
-	Fixed real_width, real_height;
-	u32 scene_width, scene_height;
+	SVG_PreserveAspectRatio par;
+	Fixed scale, vp_w, vp_h;
+	Fixed parent_width, parent_height;
 	GF_Matrix2D mat;
 
 	gf_mx2d_init(mat);
 
-	scene_width = tr_state->visual->render->compositor->scene_width;
-	scene_height = tr_state->visual->render->compositor->scene_height;
-
-
-	if (!atts->width) { 
-		real_width = INT2FIX(scene_width);
+	/*canvas size negociation has already been done when attaching the scene to the renderer*/
+	if (atts->width && (atts->width->type==SVG_NUMBER_PERCENTAGE) ) { 
+		parent_width = gf_mulfix(tr_state->vp_size.x, atts->width->value/100);
 	} else {
-		switch (atts->width->type) {
-		case SVG_NUMBER_VALUE:
-		case SVG_NUMBER_PX:
-			real_width = atts->width->value;
-			break;
-		case SVG_NUMBER_PERCENTAGE:
-			real_width = scene_width*atts->width->value/100;
-			break;
-		case SVG_NUMBER_IN:
-			real_width = dpi * atts->width->value;
-			break;
-		case SVG_NUMBER_CM:
-			real_width = gf_mulfix(dpi*FLT2FIX(0.39), atts->width->value);
-			break;
-		case SVG_NUMBER_MM:
-			real_width = gf_mulfix(dpi*FLT2FIX(0.039), atts->width->value);
-			break;
-		case SVG_NUMBER_PT:
-			real_width = dpi/12 * atts->width->value;
-			break;
-		case SVG_NUMBER_PC:
-			real_width = dpi/6 * atts->width->value;
-			break;
-		default:
-			real_width = INT2FIX(scene_width);
-			break;
+		parent_width = tr_state->vp_size.x;
+	}
+
+	if (atts->height && (atts->height->type==SVG_NUMBER_PERCENTAGE) ) { 
+		parent_height = gf_mulfix(tr_state->vp_size.y, atts->height->value/100);
+	} else {
+		parent_height = tr_state->vp_size.y;
+	}
+
+	if (!atts->viewBox) return 1;
+	if ((atts->viewBox->width<=0) || (atts->viewBox->height<=0) ) return 0;
+
+	/*setup default*/
+	par.defer = 0;
+	par.meetOrSlice = SVG_MEETORSLICE_MEET;
+	par.align = SVG_PRESERVEASPECTRATIO_XMIDYMID;
+
+	/*use parent (animation, image) viewport settings*/
+	if (tr_state->parent_vp_atts) {
+		if (tr_state->parent_vp_atts->preserveAspectRatio) {
+			if (tr_state->parent_vp_atts->preserveAspectRatio->defer) {
+				if (atts->preserveAspectRatio) 
+					par = *atts->preserveAspectRatio;
+			} else {
+				par = *tr_state->parent_vp_atts->preserveAspectRatio;
+			}
+		}
+	}
+	/*use current viewport settings*/
+	else if (atts->preserveAspectRatio) {
+		par = *atts->preserveAspectRatio;
+	}
+
+	if (par.meetOrSlice==SVG_MEETORSLICE_MEET) {
+		if (gf_divfix(parent_width, atts->viewBox->width) > gf_divfix(parent_height, atts->viewBox->height)) {
+			scale = gf_divfix(parent_height, atts->viewBox->height);
+			vp_w = gf_mulfix(atts->viewBox->width, scale);
+			vp_h = parent_height;
+		} else {
+			scale = gf_divfix(parent_width, atts->viewBox->width);
+			vp_w = parent_width;
+			vp_h = gf_mulfix(atts->viewBox->height, scale);
+		}
+	} else {
+		if (gf_divfix(parent_width, atts->viewBox->width) < gf_divfix(parent_height, atts->viewBox->height)) {
+			scale = gf_divfix(parent_height, atts->viewBox->height);
+			vp_w = gf_mulfix(atts->viewBox->width, scale);
+			vp_h = parent_height;
+		} else {
+			scale = gf_divfix(parent_width, atts->viewBox->width);
+			vp_w = parent_width;
+			vp_h = gf_mulfix(atts->viewBox->height, scale);
 		}
 	}
 
-	if (!atts->height) {
-		real_height = INT2FIX(scene_height);
+	if (par.align==SVG_PRESERVEASPECTRATIO_NONE) {
+		mat.m[0] = gf_divfix(parent_width, atts->viewBox->width);
+		mat.m[4] = gf_divfix(parent_height, atts->viewBox->height);
+		mat.m[2] = - gf_muldiv(atts->viewBox->x, parent_width, atts->viewBox->width); 
+		mat.m[5] = - gf_muldiv(atts->viewBox->y, parent_height, atts->viewBox->height); 
 	} else {
-		switch (atts->height->type) {
-		case SVG_NUMBER_VALUE:
-		case SVG_NUMBER_PX:
-			real_height = atts->height->value;
+		Fixed dx, dy;
+		mat.m[0] = mat.m[4] = scale;
+		mat.m[2] = - gf_mulfix(atts->viewBox->x, scale); 
+		mat.m[5] = - gf_mulfix(atts->viewBox->y, scale); 
+
+		dx = dy = 0;
+		switch (par.align) {
+		case SVG_PRESERVEASPECTRATIO_XMINYMIN:
 			break;
-		case SVG_NUMBER_PERCENTAGE:
-			real_height = scene_height*atts->height->value/100;
+		case SVG_PRESERVEASPECTRATIO_XMIDYMIN:
+			dx = ( parent_width - vp_w) / 2; 
 			break;
-		case SVG_NUMBER_IN:
-			real_height = dpi * atts->height->value;
+		case SVG_PRESERVEASPECTRATIO_XMAXYMIN:
+			dx = parent_width - vp_w; 
 			break;
-		case SVG_NUMBER_CM:
-			real_height = gf_mulfix(dpi*FLT2FIX(0.39), atts->height->value);
+		case SVG_PRESERVEASPECTRATIO_XMINYMID:
+			dy = ( parent_height - vp_h) / 2; 
 			break;
-		case SVG_NUMBER_MM:
-			real_height = gf_mulfix(dpi*FLT2FIX(0.039), atts->height->value);
+		case SVG_PRESERVEASPECTRATIO_XMIDYMID:
+			dx = ( parent_width  - vp_w) / 2; 
+			dy = ( parent_height - vp_h) / 2; 
 			break;
-		case SVG_NUMBER_PT:
-			real_height = dpi/12 * atts->height->value;
+		case SVG_PRESERVEASPECTRATIO_XMAXYMID:
+			dx = parent_width  - vp_w; 
+			dy = ( parent_height - vp_h) / 2; 
 			break;
-		case SVG_NUMBER_PC:
-			real_height = dpi/6 * atts->height->value;
+		case SVG_PRESERVEASPECTRATIO_XMINYMAX:
+			dy = parent_height - vp_h; 
 			break;
-		default:
-			real_height = INT2FIX(scene_height);
+		case SVG_PRESERVEASPECTRATIO_XMIDYMAX:
+			dx = (parent_width - vp_w) / 2; 
+			dy = parent_height - vp_h; 
+			break;
+		case SVG_PRESERVEASPECTRATIO_XMAXYMAX:
+			dx = parent_width  - vp_w; 
+			dy = parent_height - vp_h; 
 			break;
 		}
-	}
-
-	if (atts->viewBox && atts->viewBox->width != 0 && atts->viewBox->height != 0) {
-		Fixed scale, vp_w, vp_h;
-		
-		if (atts->preserveAspectRatio && atts->preserveAspectRatio->meetOrSlice==SVG_MEETORSLICE_MEET) {
-			if (gf_divfix(real_width, atts->viewBox->width) > gf_divfix(real_height, atts->viewBox->height)) {
-				scale = gf_divfix(real_height, atts->viewBox->height);
-				vp_w = gf_mulfix(atts->viewBox->width, scale);
-				vp_h = real_height;
+		mat.m[2] += dx;
+		mat.m[5] += dy;
+		/*we need a clipper*/
+		if (par.meetOrSlice==SVG_MEETORSLICE_SLICE) {
+			GF_Rect rc;
+			rc.width = parent_width;
+			rc.height = parent_height;
+			if (!is_root) {
+				rc.x = 0;
+				rc.y = parent_height;
+				gf_mx2d_apply_rect(&tr_state->vb_transform, &rc);
 			} else {
-				scale = gf_divfix(real_width, atts->viewBox->width);
-				vp_w = real_width;
-				vp_h = gf_mulfix(atts->viewBox->height, scale);
+				rc.x = dx;
+				rc.y = dy + parent_height;
 			}
-		} else {
-			if (gf_divfix(real_width, atts->viewBox->width) < gf_divfix(real_height, atts->viewBox->height)) {
-				scale = gf_divfix(real_height, atts->viewBox->height);
-				vp_w = gf_mulfix(atts->viewBox->width, scale);
-				vp_h = real_height;
-			} else {
-				scale = gf_divfix(real_width, atts->viewBox->width);
-				vp_w = real_width;
-				vp_h = gf_mulfix(atts->viewBox->height, scale);
-			}
-		}
-
-		if (!atts->preserveAspectRatio || atts->preserveAspectRatio->align==SVG_PRESERVEASPECTRATIO_NONE) {
-			mat.m[0] = gf_divfix(real_width, atts->viewBox->width);
-			mat.m[4] = gf_divfix(real_height, atts->viewBox->height);
-			mat.m[2] = - gf_muldiv(atts->viewBox->x, real_width, atts->viewBox->width); 
-			mat.m[5] = - gf_muldiv(atts->viewBox->y, real_height, atts->viewBox->height); 
-		} else {
-			Fixed dx, dy;
-			mat.m[0] = mat.m[4] = scale;
-			mat.m[2] = - gf_mulfix(atts->viewBox->x, scale); 
-			mat.m[5] = - gf_mulfix(atts->viewBox->y, scale); 
-
-			dx = dy = 0;
-			switch (atts->preserveAspectRatio->align) {
-			case SVG_PRESERVEASPECTRATIO_XMINYMIN:
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMIDYMIN:
-				dx = ( real_width - vp_w) / 2; 
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMAXYMIN:
-				dx = real_width - vp_w; 
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMINYMID:
-				dy = ( real_height - vp_h) / 2; 
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMIDYMID:
-				dx = ( real_width  - vp_w) / 2; 
-				dy = ( real_height - vp_h) / 2; 
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMAXYMID:
-				dx = real_width  - vp_w; 
-				dy = ( real_height - vp_h) / 2; 
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMINYMAX:
-				dy = real_height - vp_h; 
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMIDYMAX:
-				dx = (real_width - vp_w) / 2; 
-				dy = real_height - vp_h; 
-				break;
-			case SVG_PRESERVEASPECTRATIO_XMAXYMAX:
-				dx = real_width  - vp_w; 
-				dy = real_height - vp_h; 
-				break;
-			}
-			mat.m[2] += dx;
-			mat.m[5] += dy;
-			/*we need a clipper*/
-			if (atts->preserveAspectRatio->meetOrSlice==SVG_MEETORSLICE_SLICE) {
-				GF_Rect rc;
-				rc.width = real_width;
-				rc.height = real_height;
-				if (!is_root) {
-					rc.x = 0;
-					rc.y = real_height;
-					gf_mx2d_apply_rect(&tr_state->vb_transform, &rc);
-				} else {
-					rc.x = dx;
-					rc.y = dy + real_height;
-				}
-				tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
-			}
+			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
 		}
 	}
 	gf_mx2d_pre_multiply(&tr_state->vb_transform, &mat);
+	return 1;
 }
 
 static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
@@ -675,8 +641,10 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->visual->type_3d) gf_mx_copy(bck_mx, tr_state->model_matrix);
 #endif
 	
+
 	gf_mx2d_init(tr_state->vb_transform);
-	svg_set_viewport_transformation(tr_state, &all_atts, is_root_svg);
+	if (!svg_set_viewport_transformation(tr_state, &all_atts, is_root_svg))
+		goto exit;
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
@@ -707,15 +675,33 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	/* TODO: FIX ME: this only works for single SVG element in the doc*/
-	if (is_root_svg && tr_state->svg_props->viewport_fill && tr_state->svg_props->viewport_fill->type != SVG_PAINT_NONE) {
-		Fixed vp_opacity = tr_state->svg_props->viewport_fill_opacity ? tr_state->svg_props->viewport_fill_opacity->value : FIX_ONE;
-		viewport_color = GF_COL_ARGB_FIXED(vp_opacity, tr_state->svg_props->viewport_fill->color.red, tr_state->svg_props->viewport_fill->color.green, tr_state->svg_props->viewport_fill->color.blue);
-		if (tr_state->visual->render->compositor->back_color != viewport_color) {
-			tr_state->visual->render->compositor->back_color = viewport_color;
-			/*clear visual*/
-			visual_2d_clear(tr_state->visual, NULL, 0);
-			gf_sr_invalidate(tr_state->visual->render->compositor, NULL);
-			goto exit;
+	if (is_root_svg) {
+		SVG_Paint *vp_fill = NULL;
+		Fixed vp_opacity;
+		GF_IRect *clip = NULL;
+		
+		if (tr_state->parent_vp_atts) {
+			vp_fill = tr_state->parent_vp_atts->viewport_fill;
+			vp_opacity = tr_state->parent_vp_atts->viewport_fill_opacity ? tr_state->parent_vp_atts->viewport_fill_opacity->value : FIX_ONE;
+			clip = &tr_state->visual->top_clipper;
+		} else {
+			vp_fill = tr_state->svg_props->viewport_fill;
+			vp_opacity = tr_state->svg_props->viewport_fill_opacity ? tr_state->svg_props->viewport_fill_opacity->value : FIX_ONE;
+		}
+		
+		if (vp_fill && (vp_fill->type != SVG_PAINT_NONE)) {
+			viewport_color = GF_COL_ARGB_FIXED(vp_opacity, vp_fill->color.red, vp_fill->color.green, vp_fill->color.blue);
+
+			if (clip) {
+				/*clear visual*/
+				//visual_2d_clear(tr_state->visual, clip, viewport_color);
+			} else if (tr_state->visual->render->compositor->back_color != viewport_color) {
+				tr_state->visual->render->compositor->back_color = viewport_color;
+				/*clear visual*/
+				visual_2d_clear(tr_state->visual, NULL, 0);
+				gf_sr_invalidate(tr_state->visual->render->compositor, NULL);
+				goto exit;
+			}
 		}
 	}
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
@@ -1586,10 +1572,10 @@ void render_svg_render_use(GF_Node *node, GF_Node *sub_root, void *rs)
 #endif
 		gf_mx2d_pre_multiply(&tr_state->transform, &translate);
 
-	if (all_atts.xlink_href) {
+	if (sub_root) {
 		prev_use = tr_state->parent_use;
 		tr_state->parent_use = node;
-		gf_node_render(all_atts.xlink_href->target, tr_state);
+		gf_node_render(sub_root, tr_state);
 		tr_state->parent_use = prev_use;
 	}
 	render_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);  
@@ -1599,6 +1585,101 @@ end:
 	tr_state->svg_flags = backup_flags;
 }
 
+
+void render_svg_render_animation(GF_Node *node, GF_Node *sub_root, void *rs)
+{
+	SVGAllAttributes all_atts;
+	GF_Matrix2D backup_matrix;
+	GF_Matrix backup_matrix3d;
+	SVGPropertiesPointers backup_props;
+	u32 backup_flags;
+	SFVec2f prev_vp;
+	GF_Rect rc;
+	GF_IRect clip, prev_clip;
+
+	SVGAllAttributes *prev_vp_atts;
+	GF_TraverseState *tr_state = (GF_TraverseState*)rs;
+  	GF_Matrix2D translate;
+	SVGPropertiesPointers *old_props;
+
+	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+	if (!all_atts.width || !all_atts.height) return;
+	if (!all_atts.width->value || !all_atts.height->value) return;
+
+	render_svg_render_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
+
+
+	gf_mx2d_init(translate);
+	translate.m[2] = (all_atts.x ? all_atts.x->value : 0);
+	translate.m[5] = (all_atts.y ? all_atts.y->value : 0);
+	
+	if (render_svg_is_display_off(tr_state->svg_props) ||
+		*(tr_state->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
+		goto end;
+	}
+
+	render_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &backup_matrix3d);
+
+
+#ifndef GPAC_DISABLE_3D
+	if (tr_state->visual->type_3d) {
+		gf_mx_add_matrix_2d(&tr_state->model_matrix, &translate);
+
+		if (tr_state->traversing_mode==TRAVERSE_RENDER) {
+			GF_Matrix tmp;
+			gf_mx_from_mx2d(&tmp, &translate);
+			visual_3d_matrix_add(tr_state->visual, tmp.m);
+		}
+	} else 
+#endif
+		gf_mx2d_pre_multiply(&tr_state->transform, &translate);
+
+#if 0
+	st = gf_node_get_private(n);
+	if (!st->is) return;
+	root = gf_sg_get_root_node(st->is->graph);
+	if (root) {
+		old_props = tr_state->svg_props;
+		tr_state->svg_props = &new_props;
+		gf_svg_properties_init_pointers(tr_state->svg_props);
+		//gf_sr_render_inline(st->is->root_od->term->renderer, root, rs);
+		gf_node_render(root, rs);
+		tr_state->svg_props = old_props;
+		gf_svg_properties_reset_pointers(&new_props);
+//	}
+#endif
+
+	old_props = tr_state->svg_props;
+	tr_state->svg_props = NULL;
+	
+	prev_vp_atts = tr_state->parent_vp_atts;
+	tr_state->parent_vp_atts = &all_atts;
+	prev_vp = tr_state->vp_size;
+	tr_state->vp_size.x = gf_sr_svg_convert_length_to_display(tr_state->visual->render->compositor, all_atts.width);
+	tr_state->vp_size.y = gf_sr_svg_convert_length_to_display(tr_state->visual->render->compositor, all_atts.height);
+
+	/*setup new clipper*/
+	rc.width = tr_state->vp_size.x;
+	rc.height = tr_state->vp_size.y;
+	rc.x = 0;
+	rc.y = tr_state->vp_size.y;
+	gf_mx2d_apply_rect(&tr_state->transform, &rc);
+	prev_clip = tr_state->visual->top_clipper;
+	clip = gf_rect_pixelize(&rc);
+	gf_irect_intersect(&tr_state->visual->top_clipper, &clip);
+
+	gf_node_render(sub_root, rs);
+	tr_state->svg_props = old_props;
+	tr_state->visual->top_clipper = prev_clip;
+
+	tr_state->parent_vp_atts = prev_vp_atts;
+	tr_state->vp_size = prev_vp;
+
+	render_svg_restore_parent_transformation(tr_state, &backup_matrix, &backup_matrix3d);  
+end:
+	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+	tr_state->svg_flags = backup_flags;
+}
 
 #endif
 

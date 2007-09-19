@@ -81,7 +81,7 @@ Bool visual_get_size_info(GF_TraverseState *tr_state, Fixed *surf_width, Fixed *
 		w = tr_state->visual->render->vp_width;
 		h = tr_state->visual->render->vp_height;
 	}
-	if (tr_state->is_pixel_metrics) {
+	if (tr_state->pixel_metrics) {
 		*surf_width = INT2FIX(w);
 		*surf_height = INT2FIX(h);
 		return 1;

@@ -135,7 +135,7 @@ typedef struct
 	/*1-based idx of text element drawn*/
 	u32 text_split_idx;
 	/*needed for bitmap*/
-	Bool is_pixel_metrics;
+	Bool pixel_metrics;
 	/*cull flag - needed for AABB tree culling in case object is 100% inside frustum*/
 	u32 cull_flag;
 

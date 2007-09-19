@@ -245,7 +245,7 @@ static Bool render_handle_navigation_3d(Render *sr, GF_Event *ev)
 		cam = &sr->visual->camera;
 		assert(sr->compositor);
 		assert(sr->compositor->scene);
-		is_pixel_metrics = sr->traverse_state->is_pixel_metrics;
+		is_pixel_metrics = sr->traverse_state->pixel_metrics;
 	}
 
 	if (!cam->navigate_mode) return 0;
@@ -505,7 +505,7 @@ static Bool render_handle_navigation_2d(GF_VisualManager *surf, GF_Event *ev)
 	Fixed x, y, dx, dy, key_trans, key_rot, zoom;
 	u32 navigation_mode;
 	s32 key_inv;
-	Bool is_pixel_metrics = surf->render->traverse_state->is_pixel_metrics;
+	Bool is_pixel_metrics = surf->render->traverse_state->pixel_metrics;
 	u32 keys = surf->render->compositor->key_states;
 
 	zoom = surf->render->zoom;

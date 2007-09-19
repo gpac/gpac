@@ -337,7 +337,7 @@ static void layer3d_setup_clip(Layer3DStack *st, GF_TraverseState *tr_state, Boo
 	tr_state->camera->width = tr_state->camera->vp.width;
 	tr_state->camera->height = tr_state->camera->vp.height;
 
-	if (!tr_state->is_pixel_metrics) {
+	if (!tr_state->pixel_metrics) {
 		if (tr_state->camera->height > tr_state->camera->width) {
 			tr_state->camera->height = 2 * gf_divfix(tr_state->camera->height, tr_state->camera->width);
 			tr_state->camera->width = 2*FIX_ONE;
@@ -382,7 +382,7 @@ static void RenderLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	if (gf_node_dirty_get(node)) {
 
 		/*main visual in pixel metrics, use output width*/
-		if (tr_state->is_pixel_metrics && (tr_state->visual->render->visual==tr_state->visual)) {
+		if (tr_state->pixel_metrics && (tr_state->visual->render->visual==tr_state->visual)) {
 			st->clip.width = INT2FIX(tr_state->visual->render->vp_width);
 			st->clip.height = INT2FIX(tr_state->visual->render->vp_height);
 		} else {

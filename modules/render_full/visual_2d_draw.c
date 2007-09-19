@@ -242,7 +242,7 @@ static void visual_2d_draw_gradient(GF_VisualManager *vis, GF_Path *path, GF_Tex
 
 
 
-void visual_2d_texture_path_text(GF_VisualManager *vis, DrawableContext *txt_ctx, GF_Path *path, GF_Rect *object_bounds, GF_TextureHandler *txh, GF_Rect *gf_sr_texture_bounds)
+void visual_2d_texture_path_text(GF_VisualManager *vis, DrawableContext *txt_ctx, GF_Path *path, GF_Rect *object_bounds, GF_TextureHandler *txh, GF_Rect *tex_bounds)
 {
 	GF_STENCIL stencil;
 	Fixed sS, sT;
@@ -259,7 +259,7 @@ void visual_2d_texture_path_text(GF_VisualManager *vis, DrawableContext *txt_ctx
 
 	/*get original bounds*/
 	orig_rc = *object_bounds;
-	rc = *gf_sr_texture_bounds;
+	rc = *tex_bounds;
 
 	/*get scaling ratio so that active texture view is stretched to original bounds (std 2D shape texture mapping in MPEG4)*/
 	sS = gf_divfix(orig_rc.width, rc.width);
@@ -311,7 +311,7 @@ static void visual_2d_texture_path_intern(GF_VisualManager *vis, GF_Path *path, 
 	Fixed sS, sT;
 	u32 tx_tile;
 	GF_STENCIL tx_raster;
-	GF_Matrix2D gf_mx2d_txt, gf_sr_texture_transform;
+	GF_Matrix2D gf_mx2d_txt, tex_trans;
 	GF_Rect rc, orig_rc;
 	GF_Raster2D *raster = vis->render->compositor->r2d;
 
@@ -344,8 +344,10 @@ static void visual_2d_texture_path_intern(GF_VisualManager *vis, GF_Path *path, 
 	gf_mx2d_init(gf_mx2d_txt);
 	gf_mx2d_add_scale(&gf_mx2d_txt, sS, sT);
 	/*apply texture transform*/
-	visual_2d_get_texture_transform(ctx->appear, txh, &gf_sr_texture_transform, (txh == ctx->aspect.fill_texture) ? 0 : 1, txh->width * sS, txh->height * sT);
-	gf_mx2d_add_matrix(&gf_mx2d_txt, &gf_sr_texture_transform);
+	if (ctx->flags & CTX_HAS_APPEARANCE) {
+		visual_2d_get_texture_transform(ctx->appear, txh, &tex_trans, (txh == ctx->aspect.fill_texture) ? 0 : 1, txh->width * sS, txh->height * sT);
+		gf_mx2d_add_matrix(&gf_mx2d_txt, &tex_trans);
+	}
 
 	/*move to bottom-left corner of bounds */
 	gf_mx2d_add_translation(&gf_mx2d_txt, (orig_rc.x), (orig_rc.y - orig_rc.height));

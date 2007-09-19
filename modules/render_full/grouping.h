@@ -33,11 +33,23 @@ enum
 	GROUP_SKIP_CULLING	=	1<<1,
 	GROUP_HAS_LIGHTS	=	1<<2,
 	GROUP_IS_ANCHOR		=	1<<3,
+	GROUP_IS_CACHED		=	1<<4,
 };
+
+#ifdef GPAC_RENDER_USE_CACHE
 
 #define GROUPING_NODE_STACK_2D		\
 	u32 flags;						\
 	GF_Rect bounds;					\
+	struct _group_cache *cache;	\
+
+#else
+
+#define GROUPING_NODE_STACK_2D		\
+	u32 flags;						\
+	GF_Rect bounds;					\
+
+#endif
 
 typedef struct
 {

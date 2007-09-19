@@ -98,7 +98,7 @@ static void visual_3d_setup_traversing_state(GF_VisualManager *vis, GF_TraverseS
 		tr_state->camera->vp.height = tr_state->camera->height = INT2FIX(vis->height);
 	}
 
-	if (!tr_state->is_pixel_metrics) {
+	if (!tr_state->pixel_metrics) {
 		if (tr_state->camera->height > tr_state->camera->width) {
 			tr_state->camera->height = 2*gf_divfix(tr_state->camera->height , tr_state->camera->width);
 			tr_state->camera->width = 2*FIX_ONE;
@@ -150,7 +150,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	}
 	/*default VP setup - this is undocumented in the spec. Default VP pos is (0, 0, 10) but not really nice 
 	in pixel metrics. We set z so that we see just the whole visual*/
-	else if (tr_state->is_pixel_metrics) {
+	else if (tr_state->pixel_metrics) {
 		position.z = gf_divfix(tr_state->camera->width, 2*gf_tan(fieldOfView/2) );
 	}
 
@@ -253,7 +253,7 @@ void visual_3d_init_render(GF_TraverseState *tr_state, u32 layer_type)
 		}
 		tr_state->camera->had_nav_info = 0;
 
-		if (tr_state->is_pixel_metrics) {
+		if (tr_state->pixel_metrics) {
 			tr_state->camera->visibility = gf_mulfix(tr_state->camera->visibility, tr_state->min_hsize);
 			tr_state->camera->avatar_size.x = gf_mulfix(tr_state->camera->avatar_size.x, tr_state->min_hsize);
 			tr_state->camera->avatar_size.y = gf_mulfix(tr_state->camera->avatar_size.y, tr_state->min_hsize);
@@ -390,7 +390,7 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 	ctx->color_mat.identity = tr_state->color_mat.identity;
 	if (!tr_state->color_mat.identity) memcpy(&ctx->color_mat, &tr_state->color_mat, sizeof(GF_ColorMatrix));
 
-	ctx->is_pixel_metrics = tr_state->is_pixel_metrics;
+	ctx->pixel_metrics = tr_state->pixel_metrics;
 	ctx->text_split_idx = tr_state->text_split_idx;
 	
 	i=0;
@@ -468,7 +468,7 @@ void visual_3d_flush_contexts(GF_VisualManager *surf, GF_TraverseState *tr_state
 		tr_state->color_mat.identity = ctx->color_mat.identity;
 		if (!tr_state->color_mat.identity) memcpy(&tr_state->color_mat, &ctx->color_mat, sizeof(GF_ColorMatrix));
 		tr_state->text_split_idx = ctx->text_split_idx;
-		tr_state->is_pixel_metrics = ctx->is_pixel_metrics;
+		tr_state->pixel_metrics = ctx->pixel_metrics;
 		/*restore cull flag in case we're completely inside (avoids final frustum/AABB tree culling)*/
 		tr_state->cull_flag = ctx->cull_flag;
 
@@ -699,7 +699,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *no
 }
 
 /*uncomment to disable frustum cull*/
-//#define DISABLE_VIEW_CULL
+#define DISABLE_VIEW_CULL
 
 #ifndef GPAC_DISABLE_LOG
 static const char *szPlaneNames [] = 
@@ -826,7 +826,7 @@ void visual_3d_pick_node(GF_VisualManager *vis, GF_TraverseState *tr_state, GF_E
 
 	start.z = vis->camera.z_near;
 	end.z = vis->camera.z_far;
-	if (!tr_state->camera->is_3D && !tr_state->is_pixel_metrics) {
+	if (!tr_state->camera->is_3D && !tr_state->pixel_metrics) {
 		start.x = end.x = gf_divfix(x, tr_state->min_hsize); 
 		start.y = end.y = gf_divfix(y, tr_state->min_hsize);
 	} else {

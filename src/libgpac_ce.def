@@ -1083,6 +1083,7 @@ EXPORTS
 	gf_sr_set_size
 	gf_sr_register_extra_graph
 	gf_sr_get_renderer
+	gf_sr_svg_convert_length_to_display
 
 ;render_dev.h exports
 	gf_sr_register_time_node
