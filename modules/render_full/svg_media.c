@@ -530,10 +530,14 @@ typedef struct
 	MFURL aurl;
 } SVG_audio_stack;
 
-static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status, GF_Node *audio, GF_Node *video)
+static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status, GF_Node *slave_audio, GF_Node *video)
 {
+	GF_Node *audio;
 	SVG_audio_stack *stack;
+
+	audio = slave_audio;
 	if (!audio) audio = rti->timed_elt;
+
 	stack = (SVG_audio_stack *)gf_node_get_private(audio);
 	
 	switch (status) {
@@ -550,7 +554,7 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 				stack->is_active = 1;
 			}
 		}
-		else if (!audio && stack->input.stream_finished && (rti->media_duration < 0) ) { 
+		else if (!slave_audio && stack->input.stream_finished && (rti->media_duration < 0) ) { 
 			Double dur = gf_mo_get_duration(stack->input.stream);
 			if (dur <= 0) {
 				dur = gf_mo_get_last_frame_time(stack->input.stream);
