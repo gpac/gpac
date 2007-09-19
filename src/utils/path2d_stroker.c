@@ -1236,6 +1236,12 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 	  if ( error )
 		  goto Exit;
 
+	  /*subpath is a single point, force a lineTo to start for the stroker to compute lineCap*/
+	  if (point==limit) {
+		  error = FT_Stroker_LineTo( stroker, &v_start, 1);
+		  goto Exit;
+	  }
+
 	  while ( point < limit ) {
 		  point++;
 		  tags++;
@@ -1646,10 +1652,6 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 	stroker.line_join = pen.join;
 	stroker.miter_limit = pen.miterLimit;
 	stroker.radius = pen.width/2;
-
-	/*security: some SVG paths use a single MoveTo for points drawing but the stroker needs at least 2 points*/
-	if (path->n_points==1) 
-		gf_path_add_line_to(path, path->points[0].x, path->points[0].y);
 
 	gf_path_flatten(path);
 
