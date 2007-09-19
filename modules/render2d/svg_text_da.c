@@ -527,12 +527,12 @@ void svg_render_domtext(GF_Node *node, SVGAllAttributes atts, RenderEffect2D *ef
 		if (temp_txt) {
 			u16 *wcText;
 			//si on va épuiser les positions, on prend la dernière valeur
-			if (eff->count_x==1) {
+			if (atts.text_x && eff->count_x==1) {
 				SVG_Coordinate *xc = (SVG_Coordinate *) gf_list_get(*atts.text_x, eff->chunk_index);
 				eff->text_end_x = xc->value;
 				(eff->count_x)--;
 			}
-			if (eff->count_y==1) {
+			if (atts.text_y && eff->count_y==1) {
 				SVG_Coordinate *yc = (SVG_Coordinate *) gf_list_get(*atts.text_y, eff->chunk_index);
 				eff->text_end_y = yc->value;
 				(eff->count_y)--;

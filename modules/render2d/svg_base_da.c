@@ -1172,7 +1172,7 @@ static void svg_render_path(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_reset_path(cs);
 		gf_svg_path_build(cs->path, all_atts.d->commands, all_atts.d->points);
 #endif
-		if (*(eff->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
+		if (cs->path && *(eff->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 		gf_node_dirty_clear(node, 0);
 		cs->flags |= DRAWABLE_HAS_CHANGED;
 	}
