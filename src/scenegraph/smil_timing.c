@@ -408,6 +408,23 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 		e->timingp->repeatDur	= all_atts.repeatDur;
 		e->timingp->restart		= all_atts.restart;
 		timingp = e->timingp;
+
+		if (tag == TAG_SVG_audio || tag == TAG_SVG_video) {
+			/* if the dur attribute is not set, then it should be set to media 
+			   as this is the default for media elements see 
+			   http://www.w3.org/TR/2005/REC-SMIL2-20051213/smil-timing.html#Timing-DurValueSemantics
+			   "For simple media elements that specify continuous media 
+			   (i.e. media with an inherent notion of time), the implicit duration is 
+			   the intrinsic duration of the media itself - e.g. video and audio files 
+			   have a defined duration."
+			Check if this should work with the animation element */
+			if (!e->timingp->dur) {
+				SVGAttribute *att = gf_svg_create_attribute((GF_Node *)e, TAG_SVG_ATT_dur);
+				e->timingp->dur = (SMIL_Duration *)att->data;
+				e->timingp->dur->type = SMIL_DURATION_MEDIA;
+			}
+		}
+	
 	} 
 #ifdef GPAC_ENABLE_SVG_SA
 	else if ((tag>=GF_NODE_RANGE_FIRST_SVG_SA) && (tag<=GF_NODE_RANGE_LAST_SVG_SA)) {
