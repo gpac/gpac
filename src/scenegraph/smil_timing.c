@@ -214,9 +214,10 @@ static Bool gf_smil_timing_get_next_interval(SMIL_Timing_RTI *rti, SMIL_Interval
 	for (i = 0; i < count; i ++) {
 		SMIL_Time *begin = (SMIL_Time*)gf_list_get(*rti->timingp->begin, i);
 		if (GF_SMIL_TIME_IS_CLOCK(begin->type)) {
-			if (begin->clock <= rti->current_interval->begin) continue;
-			if (begin->clock <= scene_time) {
+			if (rti->current_interval->begin != -1 && begin->clock <= rti->current_interval->begin) continue;
+			if (rti->current_interval->begin == -1 || begin->clock <= scene_time) {
 				interval->begin = begin->clock;
+				break;
 			}
 		}
 	}
