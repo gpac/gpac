@@ -1124,6 +1124,7 @@ EXPORTS
 	gf_sr_audio_stop
 	gf_sr_audio_restart
 	gf_sr_get_renderer
+	gf_sr_svg_convert_length_to_display
 
 ;terminal_dev exports
 	gf_is_new

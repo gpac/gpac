@@ -337,7 +337,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 	tr_state->backgrounds = st->visual->back_stack;
 	tr_state->viewpoints = st->visual->view_stack;
-	tr_state->is_pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(st->txh.owner));
+	tr_state->pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(st->txh.owner));
 	tr_state->min_hsize = INT2FIX( MIN(txh->width, txh->height) ) / 2;
 
 	composite_do_bindable(st->txh.owner, tr_state, st->first);
@@ -515,7 +515,7 @@ Bool render_composite_texture_handle_event(Render *sr, GF_Event *ev)
 	tr_state->vrml_sensors = gf_list_new();
 	tr_state->visual = stack->visual;
 	tr_state->traversing_mode = TRAVERSE_PICK;
-	tr_state->is_pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(ap->texture));
+	tr_state->pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(ap->texture));
 
 	/*collect sensors*/
 	l = children = ((M_CompositeTexture2D*)ap->texture)->children;

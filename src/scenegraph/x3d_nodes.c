@@ -24,9 +24,9 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Dec 22 19:22:55 2006
+	DO NOT MOFIFY - File generated on GMT Wed Sep 19 08:01:06 2007
 
-	BY X3DGen for GPAC Version 0.4.3-DEV
+	BY X3DGen for GPAC Version 0.4.5-DEV
 */
 
 
@@ -44,11 +44,11 @@
 static void Anchor_Del(GF_Node *node)
 {
 	X_Anchor *p = (X_Anchor *) node;
-	gf_sg_vrml_parent_destroy(node);	
 	gf_sg_sfstring_del(p->description);
 	gf_sg_mfstring_del(p->parameter);
 	gf_sg_mfurl_del(p->url);
 	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_free((GF_Node *)p);
 }
 
@@ -769,8 +769,8 @@ static GF_Node *Background_Create()
 static void Billboard_Del(GF_Node *node)
 {
 	X_Billboard *p = (X_Billboard *) node;
-	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1365,9 +1365,9 @@ static GF_Node *Circle2D_Create()
 static void Collision_Del(GF_Node *node)
 {
 	X_Collision *p = (X_Collision *) node;
-	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->proxy, node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1812,8 +1812,8 @@ static GF_Node *Cone_Create()
 static void Contour2D_Del(GF_Node *node)
 {
 	X_Contour2D *p = (X_Contour2D *) node;
-	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_free((GF_Node *)p);
 }
 
@@ -3531,8 +3531,8 @@ static GF_Node *FontStyle_Create()
 static void Group_Del(GF_Node *node)
 {
 	X_Group *p = (X_Group *) node;
-	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_free((GF_Node *)p);
 }
 
@@ -5058,9 +5058,9 @@ static GF_Node *LineSet_Create()
 static void LOD_Del(GF_Node *node)
 {
 	X_LOD *p = (X_LOD *) node;
-	gf_sg_vrml_parent_destroy(node);	
 	gf_sg_mffloat_del(p->range);
 	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_free((GF_Node *)p);
 }
 
@@ -8245,8 +8245,8 @@ static GF_Node *SpotLight_Create()
 static void StaticGroup_Del(GF_Node *node)
 {
 	X_StaticGroup *p = (X_StaticGroup *) node;
-	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_free((GF_Node *)p);
 }
 
@@ -8418,8 +8418,8 @@ static GF_Node *StringSensor_Create()
 static void Switch_Del(GF_Node *node)
 {
 	X_Switch *p = (X_Switch *) node;
-	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_free((GF_Node *)p);
 }
 
@@ -9400,8 +9400,8 @@ static GF_Node *TouchSensor_Create()
 static void Transform_Del(GF_Node *node)
 {
 	X_Transform *p = (X_Transform *) node;
-	gf_sg_vrml_parent_destroy(node);	
 	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_sg_vrml_parent_destroy(node);	
 	gf_node_free((GF_Node *)p);
 }
 

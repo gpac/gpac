@@ -352,6 +352,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 	fprintf(vrml_code, "\n/*for NDT tag definitions*/\n#include <gpac/nodes_mpeg4.h>\n");
 
 	for (k=0; k<gf_list_count(BNodes); k++) {
+		Bool is_parent = 0;
 		n = gf_list_get(BNodes, k);
 		if (n->skip_impl) continue;
 		fprintf(vrml_code, "\n/*\n\t%s Node deletion\n*/\n\n", n->name);
@@ -365,7 +366,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 			
 			//delete all children node
 			if (strcmp(bf->type, "eventOut") && !strcmp(bf->name, "children")) {
-				fprintf(vrml_code, "\tgf_sg_vrml_parent_destroy(node);\t\n");
+				is_parent = 1;
 				continue;
 			}
 
@@ -406,6 +407,8 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				}
 			}
 		}
+		if (is_parent)
+			fprintf(vrml_code, "\tgf_sg_vrml_parent_destroy(node);\t\n");
 		/*avoids gcc warnings in case no field to delete*/
 		fprintf(vrml_code, "\tgf_node_free((GF_Node *)p);\n}\n\n");
 

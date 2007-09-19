@@ -29,7 +29,6 @@
 #include "render.h"
 #include <gpac/nodes_mpeg4.h>
 
-
 typedef struct _bound_info
 {
 	/*cliped bounds in pixels - needed to track static objects with animated cliping*/
@@ -80,6 +79,8 @@ enum {
 	/*set if node is registered in previous node drawn list of the current visual manager
 	the flag is only set during a visual_render_frame pass*/
 	DRAWABLE_REGISTERED_WITH_VISUAL = 1<<4,
+
+	DRAWABLE_IS_CACHED = 1<<5,
 };
 
 typedef struct _drawable
@@ -103,6 +104,11 @@ typedef struct _drawable
 	GF_Path *path;
 	/*cached outlines*/
 	struct _strikeinfo2d *outline;
+
+#ifdef GPAC_RENDER_USE_CACHE
+	struct _drawable_cache_bmp *cached;
+#endif
+
 } Drawable;
 
 /*construction destruction*/

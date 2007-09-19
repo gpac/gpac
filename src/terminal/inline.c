@@ -593,6 +593,13 @@ void gf_is_render(GF_Node *n, void *render_stack, Bool is_destroy)
 				OD framework is destroyed, destroy the associated resource*/
 				if (mo->OD_ID == GF_ESM_DYNAMIC_OD_ID) {
 					gf_odm_disconnect(is->root_od, 1);
+
+					/*get parent scene and remove MediaObject in case the ressource
+					gets re-requested later on*/
+					is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) n) );
+					gf_list_del_item(is->media_objects, mo);
+					gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
+					free(mo);
 				} else {
 					gf_odm_stop(is->root_od, 1);
 					gf_is_disconnect(is, 1);

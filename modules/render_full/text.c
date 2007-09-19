@@ -298,7 +298,7 @@ static void split_text_letters(TextStack *st, M_Text *txt, GF_TraverseState *tr_
 	fontSize = FSSIZE;
 	if (fontSize <= 0) {
 		fontSize = INT2FIX(12);
-		if (!tr_state->is_pixel_metrics) fontSize = gf_divfix(fontSize, tr_state->visual->render->cur_width);
+		if (!tr_state->pixel_metrics) fontSize = gf_divfix(fontSize, tr_state->visual->render->cur_width);
     }
 	line_spacing = gf_mulfix(FSSPACE, fontSize);
 
@@ -374,7 +374,7 @@ static void split_text_words(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 	fontSize = FSSIZE;
 	if (fontSize <= 0) {
 		fontSize = INT2FIX(12);
-		if (!tr_state->is_pixel_metrics) fontSize = gf_divfix(fontSize, tr_state->visual->render->cur_width);
+		if (!tr_state->pixel_metrics) fontSize = gf_divfix(fontSize, tr_state->visual->render->cur_width);
     }
 	line_spacing = gf_mulfix(FSSPACE, fontSize);
 
@@ -452,7 +452,7 @@ static void BuildVerticalTextGraph(TextStack *st, M_Text *txt, GF_TraverseState 
 	fontSize = FSSIZE;
 	if (fontSize <= 0) {
 		fontSize = INT2FIX(12);
-		if (!tr_state->is_pixel_metrics) fontSize = gf_divfix(fontSize, tr_state->visual->render->cur_width);
+		if (!tr_state->pixel_metrics) fontSize = gf_divfix(fontSize, tr_state->visual->render->cur_width);
     }
 
 	line_spacing = gf_mulfix(FSSPACE, fontSize);
@@ -651,7 +651,7 @@ static void BuildTextGraph(TextStack *st, M_Text *txt, GF_TraverseState *tr_stat
 	fontSize = FSSIZE;
 	if (fontSize <= 0) {
 		fontSize = INT2FIX(12);
-		if (!tr_state->is_pixel_metrics) fontSize = gf_divfix(fontSize, tr_state->visual->render->cur_width);
+		if (!tr_state->pixel_metrics) fontSize = gf_divfix(fontSize, tr_state->visual->render->cur_width);
     }
 
 	if (ft_dr->set_font(ft_dr, FSFAMILY, FSSTYLE) != GF_OK) {

@@ -24,9 +24,9 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Dec 22 19:22:55 2006
+	DO NOT MOFIFY - File generated on GMT Wed Sep 19 08:01:06 2007
 
-	BY X3DGen for GPAC Version 0.4.3-DEV
+	BY X3DGen for GPAC Version 0.4.5-DEV
 */
 
 #ifndef _GF_X3D_NODES_H

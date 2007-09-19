@@ -228,10 +228,12 @@ void render_init_svg_stop(Render *sr, GF_Node *node);
 void render_init_svg_image(Render *sr, GF_Node *node);
 void render_init_svg_video(Render *sr, GF_Node *node);
 void render_init_svg_audio(Render *sr, GF_Node *node, Bool slaved_timing);
+void render_svg_render_animation(GF_Node *node, GF_Node *sub_root, void *rs);
 
 void render_init_svg_text(Render *sr, GF_Node *node);
 void render_init_svg_tspan(Render *sr, GF_Node *node);
 void render_init_svg_textarea(Render *sr, GF_Node *node);
+
 
 #endif
 

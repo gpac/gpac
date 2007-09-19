@@ -1631,6 +1631,7 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	if (!txh->hwtx) return;
 
 	gf_svg_flatten_attributes((SVG_Element*)txh->owner, &all_atts);
+	/*TODO get "transfered" attributed from xlink:href if any*/
 
 	if (all_atts.x1) {
 		start.x = all_atts.x1->value;
@@ -1705,6 +1706,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	if (!txh->hwtx) return;
 
 	gf_svg_flatten_attributes((SVG_Element*)txh->owner, &all_atts);
+	/*TODO get "transfered" attributed from xlink:href if any*/
 
 	if (all_atts.gradientTransform) 
 		gf_mx2d_copy(*mat, all_atts.gradientTransform->mat);

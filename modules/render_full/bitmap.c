@@ -169,7 +169,7 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 
 
 	/*we're in meter metrics*/
-	if (!tr_state->is_pixel_metrics) {
+	if (!tr_state->pixel_metrics) {
 		size.x = gf_divfix(size.x, tr_state->min_hsize);
 		size.y = gf_divfix(size.y, tr_state->min_hsize);
 	}

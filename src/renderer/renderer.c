@@ -534,9 +534,12 @@ Bool gf_sr_get_size(GF_Renderer *sr, u32 *Width, u32 *Height)
 }
 
 #ifndef GPAC_DISABLE_SVG
-static Fixed convert_svg_length_to_user(GF_Renderer *sr, SVG_Length *length)
+GF_EXPORT
+Fixed gf_sr_svg_convert_length_to_display(GF_Renderer *sr, SVG_Length *length)
 {
-	// Assuming the environment is 90dpi
+	/* Assuming the environment is 90dpi*/
+	u32 dpi = 90;
+
 	switch (length->type) {
 	case SVG_NUMBER_PERCENTAGE:
 		break;
@@ -549,16 +552,16 @@ static Fixed convert_svg_length_to_user(GF_Renderer *sr, SVG_Length *length)
 	case SVG_NUMBER_PX:
 		return length->value;
 	case SVG_NUMBER_CM:
-		return gf_mulfix(length->value, FLT2FIX(35.43307f));
+		return gf_mulfix(length->value, dpi*FLT2FIX(0.39));
 		break;
 	case SVG_NUMBER_MM:
-		return gf_mulfix(length->value, FLT2FIX(3.543307f));
+		return gf_mulfix(length->value, dpi*FLT2FIX(0.039));
 	case SVG_NUMBER_IN:
-		return length->value * 90;
+		return length->value * dpi;
 	case SVG_NUMBER_PT:
-		return 5 * length->value / 4;
+		return (dpi * length->value) / 12;
 	case SVG_NUMBER_PC:
-		return length->value * 15;
+		return (dpi*length->value) / 6;
 	case SVG_NUMBER_INHERIT:
 		break;
 	}
@@ -653,12 +656,12 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 			sr->has_size_info = 1;
 			sr->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
 			if (w->type!=SVG_NUMBER_PERCENTAGE) {
-				width = FIX2INT(convert_svg_length_to_user(sr, w) );
+				width = FIX2INT(gf_sr_svg_convert_length_to_display(sr, w) );
 			} else {
 				width = 320; //FIX2INT(root->viewBox.width);
 			}
 			if (h->type!=SVG_NUMBER_PERCENTAGE) {
-				height = FIX2INT(convert_svg_length_to_user(sr, h) );
+				height = FIX2INT(gf_sr_svg_convert_length_to_display(sr, h) );
 			} else {
 				height = 240; //FIX2INT(root->viewBox.height);
 			}
