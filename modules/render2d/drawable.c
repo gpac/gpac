@@ -1051,10 +1051,12 @@ static void setup_svg_drawable_context(DrawableContext *ctx, struct _visual_surf
 		}
 	}
 
-	if (*props->fill_rule == SVG_FILLRULE_NONZERO) {
-		ctx->drawable->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
-	} else {
-		ctx->drawable->path->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
+	if (ctx->drawable->path) {
+		if (*props->fill_rule == SVG_FILLRULE_NONZERO) {
+			ctx->drawable->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
+		} else {
+			ctx->drawable->path->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
+		}
 	}
 
 	ctx->aspect.line_color = 0;

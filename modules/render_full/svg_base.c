@@ -1666,7 +1666,7 @@ void render_svg_render_animation(GF_Node *node, GF_Node *sub_root, void *rs)
 	gf_mx2d_apply_rect(&tr_state->transform, &rc);
 	prev_clip = tr_state->visual->top_clipper;
 	clip = gf_rect_pixelize(&rc);
-	gf_irect_intersect(&tr_state->visual->top_clipper, &clip);
+//	gf_irect_intersect(&tr_state->visual->top_clipper, &clip);
 
 	gf_node_render(sub_root, rs);
 	tr_state->svg_props = old_props;
