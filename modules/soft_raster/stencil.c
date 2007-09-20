@@ -321,7 +321,7 @@ static void rg_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 cou
 			col = gradient_get_color((EVG_BaseGradient *)_this, pos);
 			*data++ = gf_cmx_apply(&p->cmat, col);
 		} else {
-		*data++ = gradient_get_color((EVG_BaseGradient *)_this, pos);
+			*data++ = gradient_get_color((EVG_BaseGradient *)_this, pos);
 		}
 		dx += _this->d_i.x;
 		dy += _this->d_i.y;

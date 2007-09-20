@@ -200,6 +200,10 @@ SOURCE=..\..\modules\render_full\navigate.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\modules\render_full\offscreen_cache.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\modules\render_full\path_layout.c
 # End Source File
 # Begin Source File
@@ -305,6 +309,10 @@ SOURCE=..\..\modules\render_full\mesh.h
 # Begin Source File
 
 SOURCE=..\..\modules\render_full\node_stacks.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render_full\offscreen_cache.h
 # End Source File
 # Begin Source File
 

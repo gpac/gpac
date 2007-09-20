@@ -800,21 +800,20 @@ void gf_node_render(GF_Node *node, void *renderStack)
 
 	if (node->sgprivate->flags & GF_NODE_IS_DEACTIVATED) return;
 
-	if (node->sgprivate->tag != TAG_ProtoNode) {
-		if (node->sgprivate->UserCallback) { 
+	if (node->sgprivate->UserCallback) { 
 #ifdef GF_CYCLIC_RENDER_ON
-			if (node->sgprivate->flags & GF_NODE_IN_RENDER) return;
-			node->sgprivate->flags |= GF_NODE_IN_RENDER;
-			assert(node->sgprivate->flags);
+		if (node->sgprivate->flags & GF_NODE_IN_RENDER) return;
+		node->sgprivate->flags |= GF_NODE_IN_RENDER;
+		assert(node->sgprivate->flags);
 #endif
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneGraph] Traversing node %s\n", gf_node_get_class_name(node) ));
-			node->sgprivate->UserCallback(node, renderStack, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneGraph] Traversing node %s\n", gf_node_get_class_name(node) ));
+		node->sgprivate->UserCallback(node, renderStack, 0);
 #ifdef GF_CYCLIC_RENDER_ON
-			node->sgprivate->flags &= ~GF_NODE_IN_RENDER;
+		node->sgprivate->flags &= ~GF_NODE_IN_RENDER;
 #endif
-		}
 		return;
 	}
+	if (node->sgprivate->tag != TAG_ProtoNode) return;
 
 	/*proto only traverses its first child*/
 	if (((GF_ProtoInstance *) node)->RenderingNode) {

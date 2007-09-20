@@ -150,7 +150,7 @@ void drawable_del_ex(Drawable *dr, Render *render)
 	/*remove node from all visuals it's on*/
 	dri = dr->dri;
 	while (dri) {
-		is_reg = render_visual_is_registered(render, dri->visual);
+		is_reg = render ? render_visual_is_registered(render, dri->visual) : 0;
 	
 		bi = dri->current_bounds;
 		while (bi) {
@@ -171,7 +171,7 @@ void drawable_del_ex(Drawable *dr, Render *render)
 		dri = dri->next;
 		free(cur);
 	}
-	render->compositor->draw_next_frame = 1;
+	if (render) render->compositor->draw_next_frame = 1;
 
 	/*remove path object*/
 	if (dr->path) gf_path_del(dr->path);

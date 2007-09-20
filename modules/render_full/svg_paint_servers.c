@@ -36,10 +36,6 @@ typedef struct
 	GF_TextureHandler txh;
 	char *tx_data;
 	Bool no_rgb_support;
-/*	u32 *cols;
-	Fixed *keys;
-	u32 nb_col;
-*/
 } SVG_GradientStack;
 
 
@@ -384,8 +380,10 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	if (!stencil) return;
 
 	gf_svg_flatten_attributes((SVG_Element*)txh->owner, &all_atts);
-	/*TODO get "transfered" attributed from xlink:href if any*/
 
+	/*get "transfered" attributed from xlink:href if any*/
+	svg_copy_gradient_attributes_from(txh->owner, &all_atts);
+	
 	if (all_atts.x1) {
 		start.x = all_atts.x1->value;
 		if (all_atts.x1->type==SVG_NUMBER_PERCENTAGE) start.x /= 100;
@@ -461,7 +459,9 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	if (!stencil) return;
 
 	gf_svg_flatten_attributes((SVG_Element*)txh->owner, &all_atts);
-	/*TODO get "transfered" attributed from xlink:href if any*/
+
+	/*get "transfered" attributed from xlink:href if any*/
+	svg_copy_gradient_attributes_from(txh->owner, &all_atts);
 
 	if (all_atts.gradientTransform) 
 		gf_mx2d_copy(*mat, all_atts.gradientTransform->mat);
@@ -496,7 +496,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		focal.x = center.x;
 	}
 	if (all_atts.fy) {
-		focal.y = all_atts.fx->value;
+		focal.y = all_atts.fy->value;
 		if (all_atts.fy->type==SVG_NUMBER_PERCENTAGE) focal.y /= 100;
 	} else {
 		focal.y = center.y;
@@ -534,15 +534,7 @@ void render_init_svg_stop(Render *sr, GF_Node *node)
 
 GF_TextureHandler *render_svg_get_gradient_texture(GF_Node *node)
 {
-	GF_FieldInfo info;
-	GF_Node *g = NULL;
-	SVG_GradientStack *st;
-	/*check gradient redirection ...*/
-	if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &info)==GF_OK) {
-		g = ((XMLRI*)info.far_ptr)->target;
-	}
-	if (!g) g = node;
-	st = (SVG_GradientStack*) gf_node_get_private((GF_Node *)g);
+	SVG_GradientStack *st = (SVG_GradientStack*) gf_node_get_private((GF_Node *)node);
 	return &st->txh;
 }
 

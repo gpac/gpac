@@ -27,10 +27,18 @@
 #include "grouping.h"
 #include "visual_manager.h"
 
+#ifdef GPAC_RENDER_USE_CACHE
+Bool group_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state);
+#endif
+
+
 /*This is the generic routine for child traversing*/
 void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
 {
 	Bool split_text_backup;
+#ifdef GPAC_RENDER_USE_CACHE
+	Bool group_cached;
+#endif
 	GF_List *sensor_backup;
 	GF_ChildNodeItem *l;
 
@@ -51,18 +59,27 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 				l = l->next;
 			}
 		}
-
-		/*now here is the trick: ExternProtos may not be loaded at this point, in which case we can't
-		perform proper culling. Unloaded ExternProto signal themselves by invalidating their parent
-		graph to get a new Render(). We must therefore reset the CHILD_DIRTY flag before computing 
-		bounds otherwise we'll never re-invalidate the subgraph anymore*/
-		gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
 	}
 	/*sub-tree not dirty and getting bounds, direct copy */
 	else if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		tr_state->bounds = group->bounds;
 		return;
 	}
+
+#ifdef GPAC_RENDER_USE_CACHE
+	group_cached = group_cache_traverse(node, group, tr_state);
+#endif
+
+	/*now here is the trick: ExternProtos may not be loaded at this point, in which case we can't
+	perform proper culling. Unloaded ExternProto signal themselves by invalidating their parent
+	graph to get a new Render(). We must therefore reset the CHILD_DIRTY flag before computing 
+	bounds otherwise we'll never re-invalidate the subgraph anymore*/
+	gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
+
+
+#ifdef GPAC_RENDER_USE_CACHE
+	if (group_cached) return;
+#endif
 
 	/*no culling in 2d*/
 

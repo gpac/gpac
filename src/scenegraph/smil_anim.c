@@ -596,9 +596,8 @@ static void gf_smil_anim_get_last_specified_value(SMIL_Anim_RTI *rai)
 	if (!animp) return;
 
 	if (rai->path) {
-		/*TODO CHECK WITH CYRIL !! */
-//		if (!rai->last_specified_value.far_ptr) rai->last_specified_value.far_ptr = malloc(sizeof(GF_Matrix2D));
-//		gf_svg_compute_path_anim(rai, rai->last_specified_value.far_ptr, FIX_ONE);
+		if (!rai->last_specified_value.far_ptr) rai->last_specified_value.far_ptr = malloc(sizeof(GF_Matrix2D));
+		gf_svg_compute_path_anim(rai, rai->last_specified_value.far_ptr, FIX_ONE);
 		return;
 	} else if ((tag == TAG_SVG_set)
 #ifdef GPAC_ENABLE_SVG_SANI

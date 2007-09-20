@@ -736,14 +736,19 @@ static u32 svg_parse_float(char *d, Fixed *f, Bool is_angle)
 		if (!d[i]) goto end;
 	}
 	if (d[i] == 'e' || d[i] == 'E') {
-		u32 exp = 0;
+		Bool neg_exp = 0;
+		s32 exp = 0;
 		i++;
-		if (d[i] == '+' || d[i] == '-') i++;
+		if (d[i] == '+') i++;
+		else if (d[i] == '-') {
+			i++;
+			neg_exp=1;
+		}
 		while (d[i] >= '0' && d[i] <= '9' && d[i] != 0) {
 			exp = exp*10 + (d[i]-'0');
 			i++;
 		}
-		_val *= (Float)pow(10, exp);
+		_val *= (Float)pow(10, neg_exp ? -exp : exp);
 	}
 end:
 	if (is_negative) _val *= -1;

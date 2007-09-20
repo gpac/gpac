@@ -26,6 +26,11 @@
 #include "grouping.h"
 #include "visual_manager.h"
 
+#ifdef GPAC_RENDER_USE_CACHE
+#include "offscreen_cache.h"
+#endif
+#include "grouping.h"
+
 #ifndef GPAC_DISABLE_3D
 
 
@@ -445,6 +450,92 @@ void render_init_plane_clipper(Render *sr, GF_Node *node)
 #endif
 
 
+/*PlaneClipper hardcoded proto*/
+typedef struct
+{
+	BASE_NODE
+	CHILDREN
+
+    Bool offscreen;
+	Fixed opacity;
+} OffscreenGroup;
+
+typedef struct
+{
+	GROUPING_NODE_STACK_2D
+	OffscreenGroup og;
+} OffscreenGroupStack;
+
+static Bool OffscreenGroup_GetNode(GF_Node *node, OffscreenGroup *og)
+{
+	GF_FieldInfo field;
+	memset(og, 0, sizeof(OffscreenGroup));
+	og->sgprivate = node->sgprivate;
+
+	if (gf_node_get_field(node, 0, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_MFNODE) return 0;
+	og->children = *(GF_ChildNodeItem **) field.far_ptr;
+
+	if (gf_node_get_field(node, 1, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFBOOL) return 0;
+	og->offscreen = * (SFBool *) field.far_ptr;
+
+	if (gf_node_get_field(node, 2, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFFLOAT) return 0;
+	og->opacity = * (SFFloat *) field.far_ptr;
+	return 1;
+}
+
+
+static void RenderOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
+{
+	OffscreenGroupStack *stack = (OffscreenGroupStack *)gf_node_get_private(node);
+	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+
+	if (is_destroy) {
+		if (stack->cache) group_cache_del(stack->cache);
+		free(stack);
+		return;
+	}
+
+	if (tr_state->traversing_mode==TRAVERSE_RENDER) {
+		if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
+			OffscreenGroup_GetNode(node, &stack->og);
+
+			if (stack->og.offscreen) {
+				stack->flags |= GROUP_IS_CACHED;
+				if (!stack->cache) {
+					stack->cache = group_cache_new((GF_Node*)&stack->og);
+				}
+				stack->cache->opacity = stack->og.opacity;
+				stack->cache->drawable->flags |= DRAWABLE_HAS_CHANGED;
+			} else {
+				if (stack->cache) group_cache_del(stack->cache);
+				stack->cache = NULL;
+				stack->flags &= ~GROUP_IS_CACHED;
+			}
+			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
+			/*flag is not set for PROTO*/
+			gf_node_dirty_set(node, GF_SG_CHILD_DIRTY, 0);
+		}
+	}
+	group_2d_traverse((GF_Node *)&stack->og, (GroupingNode2D*)stack, tr_state);
+}
+
+void render_init_offscreen_group(Render *sr, GF_Node *node)
+{
+	OffscreenGroup og;
+	if (OffscreenGroup_GetNode(node, &og)) {
+		OffscreenGroupStack *stack;
+		GF_SAFEALLOC(stack, OffscreenGroupStack);
+		gf_node_set_private(node, stack);
+		gf_node_set_callback_function(node, RenderOffscreenGroup);
+		stack->og = og;
+		if (og.offscreen) stack->flags |= GROUP_IS_CACHED;
+	}
+}
+
+
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
 void render_init_hardcoded_proto(Render *sr, GF_Node *node)
 {
@@ -459,21 +550,25 @@ void render_init_hardcoded_proto(Render *sr, GF_Node *node)
 	for (i=0; i<proto_url->count; i++) {
 		const char *url = proto_url->vals[0].url;
 #ifndef GPAC_DISABLE_3D
-		if (!strnicmp(url, "urn:inet:gpac:builtin:PathExtrusion", 22 + 13)) {
+		if (!strcmp(url, "urn:inet:gpac:builtin:PathExtrusion")) {
 			render_init_path_extrusion(sr, node);
 			return;
 		}
-		if (!strnicmp(url, "urn:inet:gpac:builtin:PlanarExtrusion", 22 + 15)) {
+		if (!strcmp(url, "urn:inet:gpac:builtin:PlanarExtrusion")) {
 			render_init_planar_extrusion(sr, node);
 			return;
 		}
-		if (!strnicmp(url, "urn:inet:gpac:builtin:PlaneClipper", 22 + 12)) {
+		if (!strcmp(url, "urn:inet:gpac:builtin:PlaneClipper")) {
 			render_init_plane_clipper(sr, node);
 			return;
 		}
 #endif
-		if (!strnicmp(url, "urn:inet:gpac:builtin:TextureText", 22 + 11)) {
+		if (!strcmp(url, "urn:inet:gpac:builtin:TextureText")) {
 			render_init_texture_text(sr, node);
+			return;
+		}
+		if (!strcmp(url, "urn:inet:gpac:builtin:OffscreenGroup")) {
+			render_init_offscreen_group(sr, node);
 			return;
 		}
 	}
