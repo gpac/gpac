@@ -106,7 +106,7 @@ typedef struct _drawable
 	struct _strikeinfo2d *outline;
 
 #ifdef GPAC_RENDER_USE_CACHE
-	struct _drawable_cache_bmp *cached;
+	struct _drawable_cache *cached;
 #endif
 
 } Drawable;

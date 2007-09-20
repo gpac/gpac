@@ -1741,7 +1741,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		focal.x = center.x;
 	}
 	if (all_atts.fy) {
-		focal.y = all_atts.fx->value;
+		focal.y = all_atts.fy->value;
 		if (all_atts.fy->type==SVG_NUMBER_PERCENTAGE) focal.y /= 100;
 	} else {
 		focal.y = center.y;
