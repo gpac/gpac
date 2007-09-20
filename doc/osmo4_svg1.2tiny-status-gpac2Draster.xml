@@ -79,27 +79,27 @@
 	<test name="animate-elem-201-t" revision="1.3" status="PARTIAL" comment=""/>
 	<test name="animate-elem-202-t" revision="1.3" status="OK" comment=""/>
 	<test name="animate-elem-203-t" revision="1.3" status="PARTIAL" comment="Precision problem"/>
-	<test name="animate-elem-204-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="animate-elem-205-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="animate-elem-206-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="animate-elem-207-t" revision="1.2" status="FAIL" comment=""/>
+	<test name="animate-elem-204-t" revision="1.1" status="PARTIAL" comment=""/>
+	<test name="animate-elem-205-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="animate-elem-206-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="animate-elem-207-t" revision="1.2" status="OK" comment=""/>
 	<test name="animate-elem-208-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="animate-elem-209-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="animate-elem-210-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="animate-elem-211-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="animate-elem-212-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="animate-elem-213-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="animate-elem-214-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="animate-elem-215-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="animate-elem-216-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="animate-elem-217-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="animate-elem-218-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="animate-elem-219-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="animate-elem-220-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="animate-elem-221-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="animate-elem-222-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="animate-elem-223-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="animate-elem-224-t" revision="1.1" status="FAIL" comment=""/>
+	<test name="animate-elem-209-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-210-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-211-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-212-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-213-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-214-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-215-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-216-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-217-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-218-t" revision="1.4" status="OK" comment=""/>
+	<test name="animate-elem-219-t" revision="1.1" status="PARTIAL" comment="attributeType not supported"/>
+	<test name="animate-elem-220-t" revision="1.2" status="PARTIAL" comment="calcMode spline not supported"/>
+	<test name="animate-elem-221-t" revision="1.1" status="OK" comment=""/>
+	<test name="animate-elem-222-t" revision="1.2" status="FAIL" comment="begin, end, dur, min"/>
+	<test name="animate-elem-223-t" revision="1.1" status="PARTIAL" comment="min, max"/>
+	<test name="animate-elem-224-t" revision="1.1" status="PARTIAL" comment=""/>
 
 	<test name="coords-coord-01-t" revision="1.5" status="OK" comment=""/>
 	<test name="coords-coord-02-t" revision="1.5" status="OK" comment=""/>

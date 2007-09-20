@@ -231,8 +231,12 @@ static void gf_smil_anim_use_keypoints_keytimes(SMIL_Anim_RTI *rai, Fixed normal
 			if (am->animp->keyPoints && gf_list_count(*am->animp->keyPoints)) {
 				Fixed *p1, *p2;
 				p1 = (Fixed *)gf_list_get(*am->animp->keyPoints, keyTimeIndex);
-				p2 = (Fixed *)gf_list_get(*am->animp->keyPoints, keyTimeIndex+1);
-				*interpolation_coefficient = gf_mulfix(FIX_ONE - *interpolation_coefficient, *p1) + gf_mulfix(*interpolation_coefficient, (p2 ? *p2 : *p1));					
+				if (!animp->calcMode || *animp->calcMode == SMIL_CALCMODE_DISCRETE) {
+					p2 = (Fixed *)gf_list_get(*am->animp->keyPoints, keyTimeIndex+1);
+					*interpolation_coefficient = gf_mulfix(FIX_ONE - *interpolation_coefficient, *p1) + gf_mulfix(*interpolation_coefficient, (p2 ? *p2 : *p1));					
+				} else {
+					*interpolation_coefficient = *p1;
+				}
 				if (keyValueIndex) *keyValueIndex = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - Using Key Points: key Point Index %d, coeff: %.2f\n", gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_name((GF_Node *)rai->anim_elt), keyTimeIndex, *interpolation_coefficient));
 			}
@@ -515,7 +519,11 @@ static void gf_smil_anim_animate_using_path(SMIL_Anim_RTI *rai, Fixed normalized
 	SMILAnimationAttributesPointers *animp = rai->animp;
 	Fixed interpolation_coefficient;
 
-	gf_smil_anim_use_keypoints_keytimes(rai, normalized_simple_time, &interpolation_coefficient, NULL);
+	if (animp->calcMode && *animp->calcMode == SMIL_CALCMODE_DISCRETE) {
+
+	} else {
+		gf_smil_anim_use_keypoints_keytimes(rai, normalized_simple_time, &interpolation_coefficient, NULL);
+	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - applying path animation (coef: %f), ", gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_name((GF_Node *)rai->anim_elt), normalized_simple_time));
 	res = gf_svg_compute_path_anim(rai, (GF_Matrix2D*)rai->interpolated_value.far_ptr, interpolation_coefficient);
 	if (res) rai->interpolated_value_changed = 1;
