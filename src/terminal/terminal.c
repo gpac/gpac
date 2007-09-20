@@ -296,10 +296,24 @@ void gf_term_message(GF_Terminal *term, const char *service, const char *message
 	GF_USER_MESSAGE(term->user, service, message, error);
 }
 
-static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_audio, Bool pause_clocks)
+void gf_term_pause_all_clocks(GF_Terminal *term, Bool pause)
 {
 	u32 i, j;
 	GF_ClientService *ns;
+	/*pause all clocks on all services*/
+	i=0;
+	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+		GF_Clock *ck;
+		j=0;
+		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
+			if (pause) gf_clock_pause(ck);
+			else gf_clock_resume(ck);
+		}
+	}
+}
+
+static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_audio, Bool pause_clocks)
+{
 	/*only play/pause if connected*/
 	if (!term || !term->root_scene) return;
 	/*and if not already paused/playing*/
@@ -318,16 +332,7 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 
 	if (!pause_clocks) return;
 
-	/*pause all clocks on all services*/
-	i=0;
-	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
-		GF_Clock *ck;
-		j=0;
-		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
-			if (PlayState) gf_clock_pause(ck);
-			else gf_clock_resume(ck);
-		}
-	}
+	gf_term_pause_all_clocks(term, PlayState ? 1 : 0);
 }
 
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)

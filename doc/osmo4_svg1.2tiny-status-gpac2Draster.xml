@@ -78,7 +78,7 @@
   <test name="animate-elem-86-t" revision="1.4" status="FAIL" comment=""/>
 	<test name="animate-elem-201-t" revision="1.3" status="PARTIAL" comment=""/>
 	<test name="animate-elem-202-t" revision="1.3" status="OK" comment=""/>
-	<test name="animate-elem-203-t" revision="1.3" status="FAIL" comment=""/>
+	<test name="animate-elem-203-t" revision="1.3" status="PARTIAL" comment="Precision problem"/>
 	<test name="animate-elem-204-t" revision="1.1" status="FAIL" comment=""/>
 	<test name="animate-elem-205-t" revision="1.3" status="FAIL" comment=""/>
 	<test name="animate-elem-206-t" revision="1.3" status="FAIL" comment=""/>

@@ -975,7 +975,7 @@ end:
 	} else {
 		rti->current_interval->nb_iterations = 0;
 		/* Is this correct ? */
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Timing   ] Time %f - Timed element %s - Error Computing Normalized Simple Time while simple duration is indefinite\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_name((GF_Node *)rti->timed_elt)));
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Timing   ] Time %f - Timed element %s - Error Computing Normalized Simple Time while simple duration is indefinite\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_name((GF_Node *)rti->timed_elt)));
 		return FIX_ONE;
 	}
 	
@@ -1026,6 +1026,9 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 		if (gf_smil_timing_get_next_interval(rti, &tmp_interval, gf_node_get_scene_time((GF_Node*)rti->timed_elt))) {
 			*rti->current_interval = tmp_interval;
 		}
+	} else {
+		gf_smil_timing_get_interval_end(rti, rti->current_interval);
+		gf_smil_timing_compute_active_duration(rti, rti->current_interval);
 	}
 #else
 	/* We need to recompute the list of intervals, preserving the current interval if any */
