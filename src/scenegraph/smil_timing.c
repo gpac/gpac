@@ -949,12 +949,34 @@ Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double sce
 #endif
 
 	activeTime = scene_time - rti->current_interval->begin;
-	if (rti->current_interval->active_duration != -1 && activeTime > rti->current_interval->active_duration) return FIX_ONE;
+	if (rti->current_interval->active_duration != -1 && activeTime >= rti->current_interval->active_duration) {
+		/*
+		According to SMIL (http://www.w3.org/TR/2005/REC-SMIL2-20051213/animation.html#animationNS-Fill)
+		When a element is frozen, its normalized simple time is not necessarily 1.
+		*/
+		activeTime = rti->current_interval->active_duration;
+		if (rti->current_interval->simple_duration>0) {
+			if (activeTime == rti->current_interval->simple_duration*(rti->current_interval->nb_iterations+1)) {
+				return FIX_ONE;
+			} else {
+				goto end;
+			}
+		} else {
+			/* Is this correct ? */
+			rti->current_interval->nb_iterations = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Timing   ] Time %f - Timed element %s - Error Computing Normalized Simple Time while simple duration is indefinite\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_name((GF_Node *)rti->timed_elt)));
+			return 0;
+		}
+	}
 
+end:
 	if (rti->current_interval->simple_duration>0) {
 		rti->current_interval->nb_iterations = (u32)floor(activeTime / rti->current_interval->simple_duration);
 	} else {
 		rti->current_interval->nb_iterations = 0;
+		/* Is this correct ? */
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Timing   ] Time %f - Timed element %s - Error Computing Normalized Simple Time while simple duration is indefinite\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_name((GF_Node *)rti->timed_elt)));
+		return FIX_ONE;
 	}
 	
 	simpleTime = activeTime - rti->current_interval->simple_duration * rti->current_interval->nb_iterations;
