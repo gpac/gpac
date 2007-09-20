@@ -1356,7 +1356,6 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 				   if (anim) {
 					   svg_parse_animation(parser, gf_node_get_graph((GF_Node *)node), anim, NULL, 1);
 					   if (anim->resolve_stage != 0) {
-						   gf_node_init((GF_Node *)node);
 						   svg_delete_defered_anim(anim, parser->defered_animations);
 					   }
 				   }

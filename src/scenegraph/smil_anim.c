@@ -863,7 +863,12 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 		}
 		if (nb_active_animations) {
 			if (aa->presentation_value_changed) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Element %s - Presentation value changed for attribute %s\n", gf_node_get_scene_time(node), gf_node_get_name(node), gf_svg_get_attribute_name(aa->presentation_value.fieldIndex)));
+				if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_COMPOSE)) { 
+					char str[100];
+					gf_log_lt(GF_LOG_DEBUG, GF_LOG_COMPOSE); 
+					gf_svg_dump_attribute(node, &aa->presentation_value, str);
+					gf_log("[SMIL Animation] Time %f - Element %s - Presentation value changed for attribute %s, new value: %s\n", gf_node_get_scene_time(node), gf_node_get_name(node), gf_svg_get_attribute_name(aa->presentation_value.fieldIndex), str);
+				}
 				gf_node_dirty_set(node, aa->dirty_flags, aa->dirty_parents);
 			} else {
 				/* WARNING - This does not work for use elements because apply_animations may be called several times */
@@ -1234,6 +1239,11 @@ void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai)
 	gf_svg_delete_attribute_value(rai->interpolated_value.fieldType, 
 								  rai->interpolated_value.far_ptr, 
 								  rai->anim_elt->sgprivate->scenegraph);
+	if (rai->path) {
+		gf_svg_delete_attribute_value(rai->last_specified_value.fieldType, 
+									  rai->last_specified_value.far_ptr, 
+									  rai->anim_elt->sgprivate->scenegraph);
+	}
 #if USE_GF_PATH	
 #else
 	if (rai->path) gf_path_del(rai->path);

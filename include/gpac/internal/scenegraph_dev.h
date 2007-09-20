@@ -560,6 +560,10 @@ typedef struct {
 	Bool interpolated_value_changed;
 
 	/* last value of the animation, used in accumulation phase */
+	/* normally the far pointer in the last specified value is a pointer to a real attribute value,
+	   and there's no need to allocate a new value. Except if the last specified value is the last 
+	   point in a path (animateMotion) in which case we allocate a matrix as last spec value,
+	   which we need to delete (see animate-elem-202-t.svg). This is signaled if rai->path is not NULL*/
 	GF_FieldInfo last_specified_value;
 
 	/* temporary value needed when the type of 
