@@ -130,7 +130,7 @@ GpPath *gdip_create_path(GF_Path *_this)
 #define GPGRAPH() struct _graphics *_graph = (struct _graphics *)_this;
 
 static
-GF_SURFACE gf_new_surface(GF_Raster2D *, Bool center_coords)
+GF_SURFACE gdip_new_surface(GF_Raster2D *, Bool center_coords)
 {
 	struct _graphics *graph;
 	SAFEALLOC(graph, struct _graphics);
@@ -139,7 +139,7 @@ GF_SURFACE gf_new_surface(GF_Raster2D *, Bool center_coords)
 }
 
 static
-void gf_delete_surface(GF_SURFACE _this)
+void gdip_delete_surface(GF_SURFACE _this)
 {
 	GPGRAPH();
 	free(_graph);
@@ -149,7 +149,7 @@ void gf_delete_surface(GF_SURFACE _this)
 #define GDIP_PIXEL_MODE PixelOffsetModeHighQuality
 
 static
-GF_Err gf_attach_surface_to_device(GF_SURFACE _this, void *os_handle, u32 width, u32 height)
+GF_Err gdip_attach_surface_to_device(GF_SURFACE _this, void *os_handle, u32 width, u32 height)
 {
 	GpMatrix *mat;
 	HDC handle = (HDC) os_handle;
@@ -171,7 +171,7 @@ GF_Err gf_attach_surface_to_device(GF_SURFACE _this, void *os_handle, u32 width,
 	return GF_OK;
 }
 static
-GF_Err gf_attach_surface_to_texture(GF_SURFACE _this, GF_STENCIL sten)
+GF_Err gdip_attach_surface_to_texture(GF_SURFACE _this, GF_STENCIL sten)
 {
 	GpMatrix *mat;
 	struct _stencil *_sten = (struct _stencil *)sten;
@@ -193,7 +193,7 @@ GF_Err gf_attach_surface_to_texture(GF_SURFACE _this, GF_STENCIL sten)
 	return GF_OK;
 }
 static
-GF_Err gf_attach_surface_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
+GF_Err gdip_attach_surface_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
 {
 	GpMatrix *mat;
 	u32 pFormat;
@@ -240,7 +240,7 @@ GF_Err gf_attach_surface_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u3
 }
 
 static
-void gf_detach_surface(GF_SURFACE _this)
+void gdip_detach_surface(GF_SURFACE _this)
 {
 	GPGRAPH();
 	if (_graph->graph) GdipDeleteGraphics(_graph->graph);
@@ -255,7 +255,7 @@ void gf_detach_surface(GF_SURFACE _this)
 
 
 static
-GF_Err gf_surface_set_raster_level(GF_SURFACE _this, GF_RasterLevel RasterSetting)
+GF_Err gdip_surface_set_raster_level(GF_SURFACE _this, GF_RasterLevel RasterSetting)
 {
 	GPGRAPH();
 	switch (RasterSetting) {
@@ -277,7 +277,7 @@ GF_Err gf_surface_set_raster_level(GF_SURFACE _this, GF_RasterLevel RasterSettin
 	return GF_OK;
 }
 static
-GF_Err gf_surface_set_matrix(GF_SURFACE _this, GF_Matrix2D * mat)
+GF_Err gdip_surface_set_matrix(GF_SURFACE _this, GF_Matrix2D * mat)
 {
 	GPGRAPH();
 	if (_graph->mat) GdipDeleteMatrix(_graph->mat);
@@ -286,7 +286,7 @@ GF_Err gf_surface_set_matrix(GF_SURFACE _this, GF_Matrix2D * mat)
 	return GF_OK;
 }
 static
-GF_Err gf_surface_set_clipper(GF_SURFACE _this, GF_IRect *rc)
+GF_Err gdip_surface_set_clipper(GF_SURFACE _this, GF_IRect *rc)
 {
 	GPGRAPH();
 	if (_graph->clip) GdipDeletePath(_graph->clip);
@@ -299,7 +299,7 @@ GF_Err gf_surface_set_clipper(GF_SURFACE _this, GF_IRect *rc)
 }
 
 static
-GpBrush *gf_get_brush(struct _stencil *_sten)
+GpBrush *gdip_get_brush(struct _stencil *_sten)
 {
 	if (_sten->pSolid) return _sten->pSolid;
 	if (_sten->pLinear) return _sten->pLinear;
@@ -308,7 +308,7 @@ GpBrush *gf_get_brush(struct _stencil *_sten)
 	return NULL;
 }
 
-static GpPath *gf_setup_path(struct _graphics *_this, GF_Path *path)
+static GpPath *gdip_setup_path(struct _graphics *_this, GF_Path *path)
 {
 	GpPath *tr = gdip_create_path(path);
 	/*append current matrix*/
@@ -317,7 +317,7 @@ static GpPath *gf_setup_path(struct _graphics *_this, GF_Path *path)
 }
 
 static
-GF_Err gf_surface_set_path(GF_SURFACE _this, GF_Path *path)
+GF_Err gdip_surface_set_path(GF_SURFACE _this, GF_Path *path)
 {
 	struct _storepath *_path;
 	GPGRAPH();
@@ -327,14 +327,14 @@ GF_Err gf_surface_set_path(GF_SURFACE _this, GF_Path *path)
 	if (!path) return GF_OK;
 	
 	_path = (struct _storepath *)path;
-	_graph->current = gf_setup_path(_graph, path);
+	_graph->current = gdip_setup_path(_graph, path);
 	return GF_OK;
 }
 
 //#define NODRAW
 
 static
-GF_Err gf_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
+GF_Err gdip_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 {
 	GpStatus ret;
 	GpMatrix *newmat;
@@ -359,7 +359,7 @@ GF_Err gf_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 	case GF_STENCIL_LINEAR_GRADIENT:
 		if (_sten->pMat) {
 			/*rebuild gradient*/
-			gf_recompute_line_gradient(_sten);
+			gdip_recompute_line_gradient(_sten);
 
 			GdipResetTextureTransform((GpTexture*)_sten->pLinear);
 			if (_sten->pMat) {
@@ -375,7 +375,7 @@ GF_Err gf_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 		break;
 	case GF_STENCIL_RADIAL_GRADIENT:
 		/*build gradient*/
-		gf_recompute_radial_gradient(_sten);
+		gdip_recompute_radial_gradient(_sten);
 
 		GdipSetCompositingQuality(_graph->graph, CompositingQualityHighSpeed);
 		GdipSetInterpolationMode(_graph->graph, InterpolationModeLowQuality);
@@ -400,7 +400,7 @@ GF_Err gf_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 		ret = GdipFillPath(_graph->graph, _sten->pRadial, _graph->current);
 		break;
 	case GF_STENCIL_TEXTURE:
-		gf_load_texture(_sten);
+		gdip_load_texture(_sten);
 		if (_sten->pTexture) {
 			GpMatrix *newmat;
 			GdipResetTextureTransform((GpTexture*)_sten->pTexture);
@@ -424,7 +424,7 @@ GF_Err gf_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 
 
 static
-GF_Err gf_surface_flush(GF_SURFACE _this)
+GF_Err gdip_surface_flush(GF_SURFACE _this)
 {
 	GPGRAPH();
 	GdipFlush(_graph->graph, FlushIntentionSync);
@@ -432,7 +432,7 @@ GF_Err gf_surface_flush(GF_SURFACE _this)
 }
 
 static
-GF_Err gf_surface_clear(GF_SURFACE _this, GF_IRect *rc, u32 color)
+GF_Err gdip_surface_clear(GF_SURFACE _this, GF_IRect *rc, u32 color)
 {
 	GpPath *path;
 	GPGRAPH();
@@ -455,21 +455,21 @@ GF_Err gf_surface_clear(GF_SURFACE _this, GF_IRect *rc, u32 color)
 	return GF_OK;
 }
 
-void gf_init_driver_surface(GF_Raster2D *driver)
+void gdip_init_driver_surface(GF_Raster2D *driver)
 {
-	driver->surface_new = gf_new_surface;
-	driver->surface_delete = gf_delete_surface;
-	driver->surface_attach_to_device = gf_attach_surface_to_device;
-	driver->surface_attach_to_texture = gf_attach_surface_to_texture;
-	driver->surface_attach_to_buffer = gf_attach_surface_to_buffer;
-	driver->surface_detach = gf_detach_surface;
-	driver->surface_set_raster_level = gf_surface_set_raster_level;
-	driver->surface_set_matrix = gf_surface_set_matrix;
-	driver->surface_set_clipper = gf_surface_set_clipper;
-	driver->surface_set_path = gf_surface_set_path;
-	driver->surface_fill = gf_surface_fill;
-	driver->surface_flush = gf_surface_flush;
-	driver->surface_clear = gf_surface_clear;
+	driver->surface_new = gdip_new_surface;
+	driver->surface_delete = gdip_delete_surface;
+	driver->surface_attach_to_device = gdip_attach_surface_to_device;
+	driver->surface_attach_to_texture = gdip_attach_surface_to_texture;
+	driver->surface_attach_to_buffer = gdip_attach_surface_to_buffer;
+	driver->surface_detach = gdip_detach_surface;
+	driver->surface_set_raster_level = gdip_surface_set_raster_level;
+	driver->surface_set_matrix = gdip_surface_set_matrix;
+	driver->surface_set_clipper = gdip_surface_set_clipper;
+	driver->surface_set_path = gdip_surface_set_path;
+	driver->surface_fill = gdip_surface_fill;
+	driver->surface_flush = gdip_surface_flush;
+	driver->surface_clear = gdip_surface_clear;
 }
 
 
@@ -477,21 +477,21 @@ GF_Raster2D *gdip_LoadRenderer()
 {
 	GdiplusStartupInput startupInput;
 	GF_Raster2D *driver;
-	struct _gf_context *ctx;
-	SAFEALLOC(ctx, struct _gf_context);
+	struct _gdip_context *ctx;
+	SAFEALLOC(ctx, struct _gdip_context);
 	SAFEALLOC(driver, GF_Raster2D);
 	GdiplusStartup(&ctx->gdiToken, &startupInput, NULL);
 	driver->internal = ctx;
 	GF_REGISTER_MODULE_INTERFACE(driver, GF_RASTER_2D_INTERFACE, "GDIplus 2D Raster", "gpac distribution")
-	gf_init_driver_texture(driver);
-	gf_init_driver_surface(driver);
-	gf_init_driver_grad(driver);
+	gdip_init_driver_texture(driver);
+	gdip_init_driver_surface(driver);
+	gdip_init_driver_grad(driver);
 	return driver;
 }
 
 void gdip_ShutdownRenderer(GF_Raster2D *driver)
 {
-	struct _gf_context *ctx = (struct _gf_context *)driver->internal;
+	struct _gdip_context *ctx = (struct _gdip_context *)driver->internal;
 
 	GdiplusShutdown(ctx->gdiToken);
 	free(driver->internal);

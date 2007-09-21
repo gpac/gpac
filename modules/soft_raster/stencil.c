@@ -225,11 +225,16 @@ GF_Err evg_stencil_set_brush_color(GF_STENCIL st, GF_Color c)
 
 static void lgb_fill_run(EVGStencil *p, EVGSurface *surf, s32 x, s32 y, u32 count) 
 {
+	Bool has_cmat, has_a;
 	Fixed _res;
 	s32 val, inc;
+	u32 col, ca;
 	u32 *data = surf->stencil_pix_run;
 	u32 shifter = (EVGGRADIENTSCALEBITS - EVGGRADIENTBITS);
 	EVG_LinearGradient *_this = (EVG_LinearGradient *) p;
+
+	has_cmat = _this->cmat.identity ? 0 : 1;
+	has_a = (_this->alpha==0xFF) ? 0 : 1;
 
 	/*no need to move x & y to fixed*/
 	_res = (Fixed) (x * _this->smat.m[0] + y * _this->smat.m[1] + _this->smat.m[2]);
@@ -237,7 +242,16 @@ static void lgb_fill_run(EVGStencil *p, EVGSurface *surf, s32 x, s32 y, u32 coun
 	val = FIX2INT(_res);
 	inc = FIX2INT(_this->smat.m[0]);
 	while (count) {
-		*data++ = gradient_get_color((EVG_BaseGradient *)_this, (val >> shifter) ); 
+		if (has_cmat) {
+			col = gradient_get_color((EVG_BaseGradient *)_this, (val >> shifter) );
+			*data++ = gf_cmx_apply(&p->cmat, col);
+		} else if (has_a) {
+			col = gradient_get_color((EVG_BaseGradient *)_this, (val >> shifter) );
+			ca = ((GF_COL_A(col) + 1) * _this->alpha) >> 8;
+			*data++ = ( ((ca<<24) & 0xFF000000) ) | (col & 0x00FFFFFF);
+		} else {
+			*data++ = gradient_get_color((EVG_BaseGradient *)_this, (val >> shifter) );
+		}
 		val += inc;
 		count--;
 	}
@@ -298,9 +312,9 @@ EVGStencil *evg_linear_gradient_brush()
 static void rg_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 count) 
 {
 	Fixed x, y, dx, dy, b, val;
-	Bool has_cmat;
+	Bool has_cmat, has_a;
 	s32 pos;
-	u32 col;
+	u32 col, ca;
 	u32 *data = surf->stencil_pix_run;
 	EVG_RadialGradient *_this = (EVG_RadialGradient *) p;
 
@@ -309,6 +323,7 @@ static void rg_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 cou
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);
 
 	has_cmat = _this->cmat.identity ? 0 : 1;
+	has_a = (_this->alpha==0xFF) ? 0 : 1;
 
 	dx = x - _this->d_f.x;
 	dy = y - _this->d_f.y;
@@ -320,6 +335,12 @@ static void rg_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 cou
 		if (has_cmat) {
 			col = gradient_get_color((EVG_BaseGradient *)_this, pos);
 			*data++ = gf_cmx_apply(&p->cmat, col);
+		} else if (has_a) {
+			col = gradient_get_color((EVG_BaseGradient *)_this, pos);
+			if (col)
+				col = col;
+			ca = ((GF_COL_A(col) + 1) * _this->alpha) >> 8;
+			*data++ = ( ((ca<<24) & 0xFF000000) ) | (col & 0x00FFFFFF);
 		} else {
 			*data++ = gradient_get_color((EVG_BaseGradient *)_this, pos);
 		}
@@ -739,11 +760,15 @@ GF_Err evg_stencil_set_color_matrix(GF_STENCIL st, GF_ColorMatrix *cmat)
 	return GF_OK;
 }
 
-GF_Err evg_stencil_set_texture_alpha(GF_STENCIL st, u8 alpha)
+GF_Err evg_stencil_set_alpha(GF_STENCIL st, u8 alpha)
 {
 	EVG_Texture *_this = (EVG_Texture *)st;
-	if (!_this || (_this->type!=GF_STENCIL_TEXTURE)) return GF_BAD_PARAM;
-	_this->alpha = alpha;
+	if (!_this) return GF_BAD_PARAM;
+	if (_this->type==GF_STENCIL_SOLID) return GF_BAD_PARAM;
+	if (_this->type==GF_STENCIL_TEXTURE)
+		_this->alpha = alpha;
+	else
+		((EVG_BaseGradient*)st)->alpha = alpha;
 	return GF_OK;
 }
 

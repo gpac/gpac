@@ -196,6 +196,7 @@ typedef struct
 		u32	pre[(1<<EVGGRADIENTBITS)];	\
 		u32	col[EVGGRADIENTSLOTS];		\
 		Fixed pos[EVGGRADIENTSLOTS];	\
+		u8 alpha;		\
 
 typedef struct
 {
@@ -273,13 +274,14 @@ GF_Err evg_stencil_set_radial_gradient(GF_STENCIL st, Fixed cx, Fixed cy, Fixed 
 GF_Err evg_stencil_set_gradient_interpolation(GF_STENCIL p, Fixed *pos, GF_Color *col, u32 count);
 GF_Err evg_stencil_set_gradient_mode(GF_STENCIL p, GF_GradientMode mode);
 
+GF_Err evg_stencil_set_alpha(GF_STENCIL st, u8 alpha);
+
 /*texture only*/
 GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy);
 GF_Err evg_stencil_set_tiling(GF_STENCIL st, GF_TextureTiling mode);
 GF_Err evg_stencil_set_filter(GF_STENCIL st, GF_TextureFilter filter_mode);
 GF_Err evg_stencil_set_color_matrix(GF_STENCIL st, GF_ColorMatrix *cmat);
 GF_Err evg_stencil_reset_color_matrix(GF_STENCIL st);
-GF_Err evg_stencil_set_texture_alpha(GF_STENCIL st, u8 alpha);
 GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_PixelFormat pixelFormat);
 
 

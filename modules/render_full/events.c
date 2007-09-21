@@ -282,6 +282,7 @@ static Bool render_exec_event_vrml(Render *sr, GF_Event *ev)
 
 Bool visual_execute_event(GF_VisualManager *vis, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
 {
+	Bool ret;
 	tr_state->traversing_mode = TRAVERSE_PICK;
 #ifndef GPAC_DISABLE_3D
 	tr_state->layer3d = NULL;
@@ -298,10 +299,11 @@ Bool visual_execute_event(GF_VisualManager *vis, GF_TraverseState *tr_state, GF_
 	
 	gf_list_reset(tr_state->vrml_sensors);
 
-	if (vis->render->hit_info.use_dom_events) 
-		return render_exec_event_dom(vis->render, ev);
-	else
-		return render_exec_event_vrml(vis->render, ev);
+	if (vis->render->hit_info.use_dom_events) {
+		ret = render_exec_event_dom(vis->render, ev);
+		if (ret) return 1;
+	}
+	return render_exec_event_vrml(vis->render, ev);
 }
 
 Bool render_execute_event(Render *sr, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)

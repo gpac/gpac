@@ -240,6 +240,10 @@ static void render_draw_scene(GF_VisualRenderer *vr)
 		camera_invalidate(&sr->visual->camera);
 #endif
 
+		sr->traverse_state->vp_size.x = INT2FIX(sr->compositor->scene_width);
+		sr->traverse_state->vp_size.y = INT2FIX(sr->compositor->scene_height);
+
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Renderer] Main scene setup - Using DOM events: %d - pixel metrics %d - center coords %d\n", sr->root_uses_dom_events, sr->traverse_state->pixel_metrics, sr->visual->center_coords));
 
 #ifndef GPAC_DISABLE_3D

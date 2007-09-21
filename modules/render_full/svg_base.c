@@ -44,7 +44,7 @@ static Bool svg_is_focus_target(GF_Node *elt)
 	if (gf_node_get_tag(elt)==TAG_SVG_a) 
 		return 1;
 
-	count = gf_dom_listener_count(elt);
+	count = gf_dom_listener_count(elt);	
 	for (i=0; i<count; i++) {
 		GF_FieldInfo info;
 		GF_Node *l = gf_dom_listener_get(elt, i);
@@ -785,6 +785,40 @@ void render_init_svg_g(Render *sr, GF_Node *node)
 	gf_node_set_callback_function(node, svg_render_g);
 }
 
+
+static void svg_render_defs(GF_Node *node, void *rs, Bool is_destroy)
+{
+	SVGPropertiesPointers backup_props;
+	u32 prev_flags, backup_flags;
+	u32 styling_size = sizeof(SVGPropertiesPointers);
+
+	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+
+	SVGAllAttributes all_atts;
+
+	if (is_destroy) {
+		svg_check_focus_upon_destroy(node);
+		return;
+	}
+	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+
+	render_svg_render_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
+
+	prev_flags = tr_state->trav_flags;
+	tr_state->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
+	render_svg_node_list(((SVG_Element *)node)->children, tr_state);
+	tr_state->trav_flags = prev_flags;
+
+	memcpy(tr_state->svg_props, &backup_props, styling_size);
+	tr_state->svg_flags = backup_flags;
+}
+
+
+void render_init_svg_defs(Render *sr, GF_Node *node)
+{
+	gf_node_set_callback_function(node, svg_render_defs);
+}
+
 static void svg_render_switch(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
@@ -922,7 +956,7 @@ void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAs
 	SFVec3f local_pt, world_pt, vdiff;
 	SFVec3f hit_normal;
 	SFVec2f text_coords;
-	u32 i;
+	u32 i, count;
 	Fixed sqdist;
 	Bool node_is_over;
 	Render *sr;
@@ -983,7 +1017,14 @@ void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAs
 	}
 
 	sr->hit_info.picked_square_dist = sqdist;
+
+	/*also stack any VRML sensors present at the current level. If the event is not catched
+	by a listener in the SVG tree, the event will be forwarded to the VRML tree*/
 	gf_list_reset(sr->sensors);
+	count = gf_list_count(tr_state->vrml_sensors);
+	for (i=0; i<count; i++) {
+		gf_list_add(sr->sensors, gf_list_get(tr_state->vrml_sensors, i));
+	}
 
 	gf_mx_copy(sr->hit_info.world_to_local, tr_state->model_matrix);
 	gf_mx_copy(sr->hit_info.local_to_world, mx);
@@ -1042,6 +1083,7 @@ void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_s
 	picked = svg_drawable_is_over(drawable, x, y, NULL, &asp, tr_state);
 
 	if (picked) {
+		u32 count, i;
 		hit->local_point.x = x;
 		hit->local_point.y = y;
 		hit->local_point.z = 0;
@@ -1061,8 +1103,13 @@ void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_s
 			hit->appear = NULL;
 		}
 
-		/*reset snesors*/
+		/*also stack any VRML sensors present at the current level. If the event is not catched
+		by a listener in the SVG tree, the event will be forwarded to the VRML tree*/
 		gf_list_reset(tr_state->visual->render->sensors);
+		count = gf_list_count(tr_state->vrml_sensors);
+		for (i=0; i<count; i++) {
+			gf_list_add(tr_state->visual->render->sensors, gf_list_get(tr_state->vrml_sensors, i));
+		}
 	}
 
 	render_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
