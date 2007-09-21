@@ -1131,6 +1131,9 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	}
 #endif
 
+#ifdef EXPERIMENTAL
+	gf_term_pause_all_clocks(sr->term, 1);
+#endif
 	/*execute all routes before updating textures, otherwise nodes inside composite texture may never see their
 	dirty flag set*/
 	gf_sg_activate_routes(sr->scene);
@@ -1217,6 +1220,9 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 			sr->reset_graphics = 1;
 		}
 	}
+#ifdef EXPERIMENTAL
+	gf_term_pause_all_clocks(sr->term, 0);
+#endif
 
 	/*release all textures - we must release them to handle a same OD being used by several textures*/
 	count = gf_list_count(sr->textures);

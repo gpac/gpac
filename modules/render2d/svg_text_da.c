@@ -213,7 +213,7 @@ static void svg_render_text(GF_Node *node, void *rs, Bool is_destroy)
 		eff->text_end_x = 0;
 		eff->text_end_y = 0;
 
-		//initialisation des positions de caractères 
+ 		//initialisation des positions de caractères 
 		if (atts.text_x) eff->count_x = gf_list_count(*atts.text_x);
 		else eff->count_x=0;
 		if (atts.text_y) eff->count_y = gf_list_count(*atts.text_y);
@@ -471,6 +471,7 @@ void svg_render_domtext(GF_Node *node, SVGAllAttributes atts, RenderEffect2D *ef
 		char *dup_text;
 
 		temp_txt = dup_text = apply_space_preserve(0, dom_text->textContent);
+		if (!strlen(temp_txt)) return;
 
 		if (svg_set_font(eff, ft_dr, styles) != GF_OK) return;
 		ft_dr->set_font_size(ft_dr, eff->svg_props->font_size->value);
@@ -543,7 +544,10 @@ void svg_render_domtext(GF_Node *node, SVGAllAttributes atts, RenderEffect2D *ef
 
 			//conversion du texte
 			wcText=char2unicode(temp_txt,&len);
-			if (len == (u32) -1) return;
+			if (len == (u32) -1 || !len) {
+				free(wcText);
+				return;
+			}
 
 			//récupération des dimensions
 			ft_dr->get_text_size(ft_dr, wcText, &lw, &lh);
@@ -599,6 +603,7 @@ void get_domtext_width(GF_Node *node, RenderEffect2D *eff){
 		char *dup_text;
 
 		temp_txt = dup_text = apply_space_preserve(0, dom_text->textContent);
+		if (!strlen(temp_txt)) return;
 
 		ft_dr = eff->surface->render->compositor->font_engine;
 		if (!ft_dr) return;
@@ -643,7 +648,10 @@ void get_domtext_width(GF_Node *node, RenderEffect2D *eff){
 		if (temp_txt) {
 			u16 *wcText;
 			wcText=char2unicode(temp_txt,&len);
-			if (len == (u32) -1) return;
+			if (len == (u32) -1 || !len) {
+				free(wcText);
+				return;
+			}
 			ft_dr->get_text_size(ft_dr, wcText, &lw, &lh);
 			free(wcText);
 			//ici on remplit la case suivante de eff->x_anchors

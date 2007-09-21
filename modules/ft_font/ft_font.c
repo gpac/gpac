@@ -339,11 +339,11 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 				gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif", ftpriv->active_face->family_name);
 				strcpy(ftpriv->font_serif, ftpriv->active_face->family_name);
 			}
-			else if (!ftpriv->font_sans[0] && OrigFontName && !stricmp(OrigFontName, "SANS")) {
+			else if (!ftpriv->font_sans[0] && OrigFontName && (!stricmp(OrigFontName, "SANS") || !stricmp(OrigFontName, "sans-serif"))) {
 				gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSans", ftpriv->active_face->family_name);
 				strcpy(ftpriv->font_sans, ftpriv->active_face->family_name);
 			}
-			else if (!ftpriv->font_fixed[0] && OrigFontName && !stricmp(OrigFontName, "TYPEWRITTER")) {
+			else if (!ftpriv->font_fixed[0] && OrigFontName && (!stricmp(OrigFontName, "TYPEWRITTER") || !stricmp(OrigFontName, "monospace"))) {
 				gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", ftpriv->active_face->family_name);
 				strcpy(ftpriv->font_fixed, ftpriv->active_face->family_name);
 			}

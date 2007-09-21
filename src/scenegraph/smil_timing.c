@@ -102,6 +102,20 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 		}
 	}
 
+	/* Step 3: if end is defined in the document, clamp active duration to end-begin 
+	otherwise return*/
+	if (interval->end < 0) {
+		/* interval->active_duration stays as is */
+	} else {
+		if (interval->active_duration >= 0)
+			interval->active_duration = MIN(interval->active_duration, interval->end - interval->begin);
+		else 
+			interval->active_duration = interval->end - interval->begin;
+	}
+
+	/* Contrary to what was implemented before, min and max check should be done last, to 
+	   ensure that they have greater priority than the end attribute 
+	   see (animate-elem-223-t.svg) */
 	/* Step 2: clamp the active duration with min and max */
 	clamp_active_duration = 1;
 	/* testing for presence of min and max because some elements may not have them: eg SVG audio */
@@ -115,6 +129,10 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 		if (isMinDefined) {
 			if (interval->active_duration >= 0 && interval->active_duration <= timingp->min->clock_value) {
 				interval->active_duration = timingp->min->clock_value;
+				/* TODO if repeat duration or simple duration is smaller than min, 
+				then the active duration shall be set to min see 
+				http://www.w3.org/TR/2005/REC-SMIL2-20051213/smil-timing.html#Timing-MinMax 
+				and 6th example in animate-elem-65-t.svg */
 			}
 		}
 		if (isMaxDefined) {
@@ -125,16 +143,6 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 		}
 	}
 
-	/* Step 3: if end is defined in the document, clamp active duration to end-begin 
-	otherwise return*/
-	if (interval->end < 0) {
-		/* interval->active_duration stays as is */
-	} else {
-		if (interval->active_duration >= 0)
-			interval->active_duration = MIN(interval->active_duration, interval->end - interval->begin);
-		else 
-			interval->active_duration = interval->end - interval->begin;
-	}
 }
 
 /* This should be called when the dur attribute is set to media and when the media duration is known.
