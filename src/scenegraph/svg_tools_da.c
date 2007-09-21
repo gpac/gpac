@@ -388,6 +388,7 @@ u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info)
 		if (info->fieldIndex == TAG_SVG_ATT_stroke) return GF_SG_SVG_STROKE_DIRTY;
 		if (info->fieldIndex == TAG_SVG_ATT_solid_color) return GF_SG_SVG_SOLIDCOLOR_DIRTY;
 		if (info->fieldIndex == TAG_SVG_ATT_stop_color) return GF_SG_SVG_STOPCOLOR_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_color) return GF_SG_SVG_COLOR_DIRTY;
 		break;
 	case SVG_Number_datatype:
 		if (info->fieldIndex == TAG_SVG_ATT_opacity) return GF_SG_SVG_OPACITY_DIRTY;

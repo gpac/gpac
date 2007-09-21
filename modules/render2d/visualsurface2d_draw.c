@@ -280,9 +280,9 @@ void VS2D_TexturePathText(VisualSurface2D *surf, DrawableContext *txt_ctx, GF_Pa
 
 	/*if col do a cxmatrix*/
 	if (!r && !g && !b) {
-		r2d->stencil_set_texture_alpha(hwtx, alpha);
+		r2d->stencil_set_alpha(hwtx, alpha);
 	} else {
-		r2d->stencil_set_texture_alpha(hwtx, 0xFF);
+		r2d->stencil_set_alpha(hwtx, 0xFF);
 		memset(cmat.m, 0, sizeof(Fixed) * 20);
 		cmat.m[4] = INT2FIX(r)/255;
 		cmat.m[9] = INT2FIX(g)/255;
@@ -360,7 +360,7 @@ void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHand
 		u8 a = GF_COL_A(ctx->aspect.fill_color);
 		if (!a) a = GF_COL_A(ctx->aspect.line_color);
 		/*texture alpha scale is the original material transparency, NOT the one after color transform*/
-		r2d->stencil_set_texture_alpha(txh->hwtx, a );
+		r2d->stencil_set_alpha(txh->hwtx, a );
 		r2d->stencil_set_color_matrix(txh->hwtx, ctx->col_mat);
 
 		r2d->surface_set_matrix(surf->the_surface, &ctx->transform);

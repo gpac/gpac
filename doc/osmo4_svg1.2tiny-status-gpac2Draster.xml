@@ -161,8 +161,8 @@
 	<test name="interact-event-203-t" revision="1.4" status="PARTIAL" comment=""/>
 	<test name="interact-event-204-t" revision="1.3" status="PARTIAL" comment=""/>
 
-	<test name="interact-focus-201-t" revision="1.7" status="PARTIAL" comment="rects not turning green"/>
-	<test name="interact-focus-202-t" revision="1.6" status="PARTIAL" comment=""/>
+	<test name="interact-focus-201-t" revision="1.7" status="OK" comment="Have to use previous focus"/>
+	<test name="interact-focus-202-t" revision="1.6" status="OK" comment=""/>
 	<test name="interact-focus-203-t" revision="1.5" status="OK" comment="No viewport modification to follow focus"/>
 	<test name="interact-focus-204-t" revision="1.6" status="OK" comment=""/>
 	<test name="interact-focus-205-t" revision="1.6" status="PARTIAL" comment=""/>
@@ -171,8 +171,8 @@
 	<test name="interact-focus-208-t" revision="1.2" status="OK" comment=""/>
 	<test name="interact-focus-209-t" revision="1.2" status="OK" comment=""/>
 	<test name="interact-focus-210-t" revision="1.5" status="PARTIAL" comment="top row doesn't turn red"/>
-	<test name="interact-focus-211-t" revision="1.7" status="FAIL" comment=""/>
-	<test name="interact-focus-212-t" revision="1.4" status="FAIL" comment=""/>
+	<test name="interact-focus-211-t" revision="1.7" status="OK" comment="Use focus prev"/>
+	<test name="interact-focus-212-t" revision="1.4" status="OK" comment=""/>
 
 	<test name="jpeg-required-201-t" revision="1.3" status="OK" comment=""/>
 	<test name="jpeg-required-202-t" revision="1.4" status="OK" comment=""/>

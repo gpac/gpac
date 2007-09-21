@@ -36,6 +36,7 @@ typedef struct
 	GF_TextureHandler txh;
 	char *tx_data;
 	Bool no_rgb_support;
+	Bool linear;
 } SVG_GradientStack;
 
 
@@ -58,6 +59,21 @@ static GF_Node *svg_copy_gradient_attributes_from(GF_Node *node, SVGAllAttribute
 	/*check gradient redirection ...*/
 	href_node = node;
 	while (href_node && gf_svg_get_attribute_by_tag(href_node, TAG_SVG_ATT_xlink_href, 0, 0, &info)==GF_OK) {
+		XMLRI*iri = (XMLRI*)info.far_ptr;
+
+		if (iri->type != XMLRI_ELEMENTID) {
+			GF_SceneGraph *sg = gf_node_get_graph(node);
+			GF_Node *n = gf_sg_find_node_by_name(sg, &(iri->string[1]));
+			if (n) {
+				iri->type = XMLRI_ELEMENTID;
+				iri->target = n;
+				gf_svg_register_iri(sg, iri);
+				free(iri->string);
+				iri->string = NULL;
+			} else {
+				break;
+			}
+		}
 		href_node = ((XMLRI*)info.far_ptr)->target;
 		if (href_node == node) href_node = NULL;
 	}
@@ -82,7 +98,7 @@ static GF_Node *svg_copy_gradient_attributes_from(GF_Node *node, SVGAllAttribute
 	return href_node;
 }
 
-static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children, Bool linear)
+static void render_svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Bool real_traverse)
 {
 	GF_STENCIL stencil;
 	u32 count;
@@ -93,15 +109,24 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children
 	u32 nb_col;
 	SVGPropertiesPointers backup_props_1;
 	u32 backup_flags_1;
-	SVGPropertiesPointers *svgp;
-	GF_Node *node, *href_node;
-	GF_TraverseState *tr_state = ((Render *)st->txh.compositor->visual_renderer->user_priv)->traverse_state;
-	node = st->txh.owner;
+	GF_Node *href_node;
+	GF_ChildNodeItem *children;
+	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(node);
 
-	if (!gf_node_dirty_get(node)) {
-		st->txh.needs_refresh = 0;
+	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+	href_node = svg_copy_gradient_attributes_from(node, &all_atts);
+	render_svg_render_base(node, &all_atts, tr_state, &backup_props_1, &backup_flags_1);
+
+	if (real_traverse &&
+		! (tr_state->svg_flags & (GF_SG_SVG_STOPCOLOR_DIRTY|GF_SG_SVG_STOPOPACITY_DIRTY|GF_SG_SVG_COLOR_DIRTY)) 
+		&& !gf_node_dirty_get(node) 
+		&& !st->txh.needs_refresh) 
+	{
+		memcpy(tr_state->svg_props, &backup_props_1, sizeof(SVGPropertiesPointers));
+		tr_state->svg_flags = backup_flags_1;
 		return;
 	}
+
 	gf_node_dirty_clear(st->txh.owner, 0);
 	st->txh.needs_refresh = 1;
 	st->txh.transparent = 0;
@@ -109,20 +134,12 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children
 	if (!st->txh.hwtx) render_texture_allocate(&st->txh);
 
 	stencil = render_texture_get_stencil(&st->txh);
-	if (!stencil) stencil = st->txh.compositor->r2d->stencil_new(st->txh.compositor->r2d, linear ? GF_STENCIL_LINEAR_GRADIENT : GF_STENCIL_RADIAL_GRADIENT);
+	if (!stencil) stencil = st->txh.compositor->r2d->stencil_new(st->txh.compositor->r2d, st->linear ? GF_STENCIL_LINEAR_GRADIENT : GF_STENCIL_RADIAL_GRADIENT);
 	/*set stencil even if assigned, this invalidates the associated bitmap state in 3D*/
 	render_texture_set_stencil(&st->txh, stencil);
 
 
-	GF_SAFEALLOC(svgp, SVGPropertiesPointers);
-	gf_svg_properties_init_pointers(svgp);
-	tr_state->svg_props = svgp;
-
-	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
-	href_node = svg_copy_gradient_attributes_from(node, &all_atts);
-
-	render_svg_render_base(node, &all_atts, tr_state, &backup_props_1, &backup_flags_1);
-
+	children = ((SVG_Element *)node)->children;
 	if (!children && href_node) {
 		children = ((SVG_Element *)href_node)->children;
 	}
@@ -155,6 +172,8 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children
 			} else {
 				cols[nb_col] = GF_COL_ARGB_FIXED(alpha, tr_state->svg_props->stop_color->color.red, tr_state->svg_props->stop_color->color.green, tr_state->svg_props->stop_color->color.blue);
 			}
+		} else {
+			cols[nb_col] = GF_COL_ARGB_FIXED(alpha, 0, 0, 0);
 		}
 
 		if (all_atts.offset) {
@@ -180,36 +199,42 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_ChildNodeItem *children
 
 	memcpy(tr_state->svg_props, &backup_props_1, sizeof(SVGPropertiesPointers));
 	tr_state->svg_flags = backup_flags_1;
+}
+
+static void render_svg_update_gradient(SVG_GradientStack *st, GF_ChildNodeItem *children, Bool linear)
+{
+	SVGPropertiesPointers *svgp;
+	GF_Node *node = st->txh.owner;
+	GF_TraverseState *tr_state = ((Render *)st->txh.compositor->visual_renderer->user_priv)->traverse_state;
+
+	if (!gf_node_dirty_get(node)) {
+		st->txh.needs_refresh = 0;
+		return;
+	}
+	gf_node_dirty_clear(st->txh.owner, 0);
+
+	GF_SAFEALLOC(svgp, SVGPropertiesPointers);
+	gf_svg_properties_init_pointers(svgp);
+	tr_state->svg_props = svgp;
+
+	render_svg_gradient_traverse(node, tr_state, 0);
 
 	gf_svg_properties_reset_pointers(svgp);
 	free(svgp);
 	tr_state->svg_props = NULL;
 }
 
-static void SVG_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
+
+static void render_svg_render_gradient(GF_Node *node, void *rs, Bool is_destroy)
 {
-	SVGPropertiesPointers backup_props;
-	SVGAllAttributes all_atts;
-	u32 backup_flags;
-	u32 styling_size = sizeof(SVGPropertiesPointers);
-	SVG_Element *elt = (SVG_Element *)node;
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
 	if (is_destroy) {
 		SVG_DestroyPaintServer(node);
 		return;
 	}
-
-	gf_svg_flatten_attributes(elt, &all_atts);
-	render_svg_render_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
-	
-	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		return;
-	} else {
-		render_svg_node_list(elt->children, tr_state);
-	}
-	memcpy(tr_state->svg_props, &backup_props, styling_size);
-	tr_state->svg_flags = backup_flags;
+	if (tr_state->traversing_mode != TRAVERSE_RENDER) return;
+	render_svg_gradient_traverse(node, tr_state, 1);
 }
 
 #define GRAD_TEXTURE_SIZE	128
@@ -365,7 +390,7 @@ static void SVG_UpdateLinearGradient(GF_TextureHandler *txh)
 	SVG_Element *lg = (SVG_Element *) txh->owner;
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
 
-	SVG_UpdateGradient(st, lg->children, 1);
+	render_svg_update_gradient(st, lg->children, 1);
 }
 
 
@@ -432,8 +457,9 @@ void render_init_svg_linearGradient(Render *sr, GF_Node *node)
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = SVG_UpdateLinearGradient;
 	st->txh.compute_gradient_matrix = SVG_LG_ComputeMatrix;
+	st->linear = 1;
 	gf_node_set_private(node, st);
-	gf_node_set_callback_function(node, SVG_Render_PaintServer);
+	gf_node_set_callback_function(node, render_svg_render_gradient);
 }
 
 /* radial gradient */
@@ -443,7 +469,7 @@ static void SVG_UpdateRadialGradient(GF_TextureHandler *txh)
 	SVG_Element *rg = (SVG_Element *) txh->owner;
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
 
-	SVG_UpdateGradient(st, rg->children, 0);
+	render_svg_update_gradient(st, rg->children, 0);
 }
 
 static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
@@ -519,9 +545,35 @@ void render_init_svg_radialGradient(Render *sr, GF_Node *node)
 	st->txh.update_texture_fcnt = SVG_UpdateRadialGradient;
 	st->txh.compute_gradient_matrix = SVG_RG_ComputeMatrix;
 	gf_node_set_private(node, st);
-	gf_node_set_callback_function(node, SVG_Render_PaintServer);
+	gf_node_set_callback_function(node, render_svg_render_gradient);
 }
 
+
+static void SVG_Render_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
+{
+	SVGPropertiesPointers backup_props;
+	SVGAllAttributes all_atts;
+	u32 backup_flags;
+	u32 styling_size = sizeof(SVGPropertiesPointers);
+	SVG_Element *elt = (SVG_Element *)node;
+	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+
+	if (is_destroy) {
+		SVG_DestroyPaintServer(node);
+		return;
+	}
+
+	gf_svg_flatten_attributes(elt, &all_atts);
+	render_svg_render_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
+	
+	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
+		return;
+	} else {
+		render_svg_node_list(elt->children, tr_state);
+	}
+	memcpy(tr_state->svg_props, &backup_props, styling_size);
+	tr_state->svg_flags = backup_flags;
+}
 void render_init_svg_solidColor(Render *sr, GF_Node *node)
 {
 	gf_node_set_callback_function(node, SVG_Render_PaintServer);

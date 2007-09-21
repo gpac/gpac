@@ -231,6 +231,12 @@ static void visual_2d_draw_gradient(GF_VisualManager *vis, GF_Path *path, GF_Tex
 	raster->stencil_set_matrix(stencil, &g_mat);
 	raster->stencil_set_color_matrix(stencil, ctx->col_mat);
 
+	/*MPEG-4/VRML context or no fill info*/	
+	if (ctx->flags & CTX_HAS_APPEARANCE || !ctx->aspect.fill_color)
+		raster->stencil_set_alpha(stencil, 0xFF);
+	else
+		raster->stencil_set_alpha(stencil, GF_COL_A(ctx->aspect.fill_color) );
+
 	raster->surface_set_matrix(vis->raster_surface, &ctx->transform);
 
 	raster->surface_set_path(vis->raster_surface, path);
@@ -284,9 +290,9 @@ void visual_2d_texture_path_text(GF_VisualManager *vis, DrawableContext *txt_ctx
 
 	/*if col do a cxmatrix*/
 	if (!r && !g && !b) {
-		raster->stencil_set_texture_alpha(stencil, alpha);
+		raster->stencil_set_alpha(stencil, alpha);
 	} else {
-		raster->stencil_set_texture_alpha(stencil, 0xFF);
+		raster->stencil_set_alpha(stencil, 0xFF);
 		memset(cmat.m, 0, sizeof(Fixed) * 20);
 		cmat.m[4] = INT2FIX(r)/255;
 		cmat.m[9] = INT2FIX(g)/255;
@@ -368,7 +374,7 @@ static void visual_2d_texture_path_intern(GF_VisualManager *vis, GF_Path *path, 
 		u8 a = GF_COL_A(ctx->aspect.fill_color);
 		if (!a) a = GF_COL_A(ctx->aspect.line_color);
 		/*texture alpha scale is the original material transparency, NOT the one after color transform*/
-		raster->stencil_set_texture_alpha(tx_raster, a );
+		raster->stencil_set_alpha(tx_raster, a );
 		raster->stencil_set_color_matrix(tx_raster, ctx->col_mat);
 
 		raster->surface_set_matrix(vis->raster_surface, &ctx->transform);

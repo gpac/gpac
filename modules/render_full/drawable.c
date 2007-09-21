@@ -1056,10 +1056,18 @@ static GF_Node *svg_get_texture_target(GF_Node *node, DOM_String uri)
 void drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *tr_state)
 {
 	SVGPropertiesPointers *props = tr_state->svg_props;
+	Fixed clamped_opacity = FIX_ONE;
 	Fixed clamped_solid_opacity = FIX_ONE;
 	Fixed clamped_fill_opacity = (props->fill_opacity->value < 0 ? 0 : (props->fill_opacity->value > FIX_ONE ? FIX_ONE : props->fill_opacity->value));
 	Fixed clamped_stroke_opacity = (props->stroke_opacity->value < 0 ? 0 : (props->stroke_opacity->value > FIX_ONE ? FIX_ONE : props->stroke_opacity->value));	
 
+	if (props->opacity) {
+		clamped_opacity = (props->opacity->value < 0 ? 0 : (props->opacity->value > FIX_ONE ? FIX_ONE : props->opacity->value));	
+		if (clamped_opacity!=FIX_ONE) {
+			clamped_fill_opacity = gf_mulfix(clamped_fill_opacity, clamped_opacity);
+			clamped_stroke_opacity = gf_mulfix(clamped_stroke_opacity, clamped_opacity);
+		}
+	}
 	asp->fill_color = 0;
 
 	if (props->fill->type==SVG_PAINT_URI) {
@@ -1088,6 +1096,7 @@ void drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 					if (all_atts.solid_opacity) {
 						Fixed val = all_atts.solid_opacity->value;
 						clamped_solid_opacity = MIN(FIX_ONE, MAX(0, val) );
+						clamped_solid_opacity = gf_mulfix(clamped_solid_opacity, clamped_opacity);
 					}
 					asp->fill_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, all_atts.solid_color->color.red, all_atts.solid_color->color.green, all_atts.solid_color->color.blue);
 				}
@@ -1101,6 +1110,7 @@ void drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 			default: 
 				break;
 			}
+			asp->fill_color = GF_COL_ARGB_FIXED(clamped_opacity, 0, 0, 0);
 		}
 	} else if (props->fill->type == SVG_PAINT_COLOR) {
 		if (props->fill->color.type == SVG_COLOR_CURRENTCOLOR) {
@@ -1146,12 +1156,16 @@ void drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 				}
 			}
 				break;
+			case TAG_SVG_linearGradient: 
+			case TAG_SVG_radialGradient: 
+				asp->line_texture = render_get_texture_handler((GF_Node *)props->stroke->iri.target);
+				break;
 			default: 
 				break;
 			}
 		}
 	} else if (props->stroke->type == SVG_PAINT_COLOR) {
-		if (props->stroke->color.type == SVG_COLOR_CURRENTCOLOR) {
+	if (props->stroke->color.type == SVG_COLOR_CURRENTCOLOR) {
 			asp->line_color = GF_COL_ARGB_FIXED(clamped_stroke_opacity, props->color->color.red, props->color->color.green, props->color->color.blue);
 		} else if (props->stroke->color.type == SVG_COLOR_RGBCOLOR) {
 			asp->line_color = GF_COL_ARGB_FIXED(clamped_stroke_opacity, props->stroke->color.red, props->stroke->color.green, props->stroke->color.blue);

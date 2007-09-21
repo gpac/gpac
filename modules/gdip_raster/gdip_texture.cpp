@@ -29,7 +29,7 @@
 #define COL_555(c) ((( (c>>16) & 248)<<7) + (((c>>8) & 248)<<2)  + ((c&0xFF)>>3))
 
 static
-GF_Err gf_stencil_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy)
+GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy)
 {
 	char *ptr;
 	Bool is_yuv;
@@ -40,7 +40,7 @@ GF_Err gf_stencil_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 hei
 	GPSTEN();
 	CHECK_RET(GF_STENCIL_TEXTURE);
 
-	gf_cmat_reset(&_sten->cmat);
+	gdip_cmat_reset(&_sten->cmat);
 	isBGR = 0;
 	BPP = 4;
 	copy = 0;
@@ -196,13 +196,13 @@ GF_Err gf_stencil_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 hei
 
 
 static
-GF_Err gf_stencil_create_texture(GF_STENCIL _this, u32 width, u32 height, GF_PixelFormat pixelFormat)
+GF_Err gdip_create_texture(GF_STENCIL _this, u32 width, u32 height, GF_PixelFormat pixelFormat)
 {
 	u32 pFormat;
 	GPSTEN();
 	CHECK_RET(GF_STENCIL_TEXTURE);
 
-	gf_cmat_reset(&_sten->cmat);
+	gdip_cmat_reset(&_sten->cmat);
 	/*is pixel format supported ?*/
 	switch (pixelFormat) {
 	case GF_PIXEL_BGR_24:
@@ -241,14 +241,15 @@ GF_Err gf_stencil_create_texture(GF_STENCIL _this, u32 width, u32 height, GF_Pix
 
 
 static
-GF_Err gf_set_gf_sr_texture_repeat_mode(GF_STENCIL _this, GF_TextureTiling mode)
+GF_Err gdip_set_texture_repeat_mode(GF_STENCIL _this, GF_TextureTiling mode)
 {
 	GPSTEN();
 	_sten->tiling = mode;
 	return GF_OK;
 }
+
 static
-GF_Err gf_set_gf_sr_texture_filter(GF_STENCIL _this, GF_TextureFilter filter_mode)
+GF_Err gdip_set_sr_texture_filter(GF_STENCIL _this, GF_TextureFilter filter_mode)
 {
 	GPSTEN();
 	CHECK_RET(GF_STENCIL_TEXTURE);
@@ -256,46 +257,13 @@ GF_Err gf_set_gf_sr_texture_filter(GF_STENCIL _this, GF_TextureFilter filter_mod
 	return GF_OK;
 }
 
-#if 0
-static void gf_cmat_multiply(GF_ColorMatrix *_this, GF_ColorMatrix *w)
-{
-	Float res[20];
-	if (!_this || !w || w->identity) return;
-	res[0] = _this->m[0]*w->m[0] + _this->m[1]*w->m[5] + _this->m[2]*w->m[10] + _this->m[3]*w->m[15];
-	res[1] = _this->m[0]*w->m[1] + _this->m[1]*w->m[6] + _this->m[2]*w->m[11] + _this->m[3]*w->m[16];
-	res[2] = _this->m[0]*w->m[2] + _this->m[1]*w->m[7] + _this->m[2]*w->m[12] + _this->m[3]*w->m[17];
-	res[3] = _this->m[0]*w->m[3] + _this->m[1]*w->m[8] + _this->m[2]*w->m[13] + _this->m[3]*w->m[18];
-	res[4] = _this->m[0]*w->m[4] + _this->m[1]*w->m[9] + _this->m[2]*w->m[14] + _this->m[3]*w->m[19] + _this->m[4];
-	
-	res[5] = _this->m[5]*w->m[0] + _this->m[6]*w->m[5] + _this->m[7]*w->m[10] + _this->m[8]*w->m[15];
-	res[6] = _this->m[5]*w->m[1] + _this->m[6]*w->m[6] + _this->m[7]*w->m[11] + _this->m[8]*w->m[16];
-	res[7] = _this->m[5]*w->m[2] + _this->m[6]*w->m[7] + _this->m[7]*w->m[12] + _this->m[8]*w->m[17];
-	res[8] = _this->m[5]*w->m[3] + _this->m[6]*w->m[8] + _this->m[7]*w->m[13] + _this->m[8]*w->m[18];
-	res[9] = _this->m[5]*w->m[4] + _this->m[6]*w->m[9] + _this->m[7]*w->m[14] + _this->m[8]*w->m[19] + _this->m[9];
-	
-	res[10] = _this->m[10]*w->m[0] + _this->m[11]*w->m[5] + _this->m[12]*w->m[10] + _this->m[13]*w->m[15];
-	res[11] = _this->m[10]*w->m[1] + _this->m[11]*w->m[6] + _this->m[12]*w->m[11] + _this->m[13]*w->m[16];
-	res[12] = _this->m[10]*w->m[2] + _this->m[11]*w->m[7] + _this->m[12]*w->m[12] + _this->m[13]*w->m[17];
-	res[13] = _this->m[10]*w->m[3] + _this->m[11]*w->m[8] + _this->m[12]*w->m[13] + _this->m[13]*w->m[18];
-	res[14] = _this->m[10]*w->m[4] + _this->m[11]*w->m[9] + _this->m[12]*w->m[14] + _this->m[13]*w->m[19] + _this->m[14];
-	
-	res[15] = _this->m[15]*w->m[0] + _this->m[16]*w->m[5] + _this->m[17]*w->m[10] + _this->m[18]*w->m[15];
-	res[16] = _this->m[15]*w->m[1] + _this->m[16]*w->m[6] + _this->m[17]*w->m[11] + _this->m[18]*w->m[16];
-	res[17] = _this->m[15]*w->m[2] + _this->m[16]*w->m[7] + _this->m[17]*w->m[12] + _this->m[18]*w->m[17];
-	res[18] = _this->m[15]*w->m[3] + _this->m[16]*w->m[8] + _this->m[17]*w->m[13] + _this->m[18]*w->m[18];
-	res[19] = _this->m[15]*w->m[4] + _this->m[16]*w->m[9] + _this->m[17]*w->m[14] + _this->m[18]*w->m[19] + _this->m[19];
-	
-	memcpy(_this->m, res, sizeof(Float)*20);
-}
-#endif
-
 
 static
-GF_Err gf_stencil_set_color_matrix(GF_STENCIL _this, GF_ColorMatrix *cmat)
+GF_Err gdip_set_color_matrix(GF_STENCIL _this, GF_ColorMatrix *cmat)
 {
 	GPSTEN();
 	if (!cmat || cmat->identity) {
-		_sten->gf_sr_texture_invalid = _sten->has_cmat;
+		_sten->texture_invalid = _sten->has_cmat;
 		_sten->has_cmat = 0;
 	} else {
 		if (_sten->invert_br) {
@@ -314,31 +282,31 @@ GF_Err gf_stencil_set_color_matrix(GF_STENCIL _this, GF_ColorMatrix *cmat)
 		}
 		_sten->has_cmat = 1;
 	}
-	_sten->gf_sr_texture_invalid = 1;
+	_sten->texture_invalid = 1;
 	return GF_OK;
 }
 
 static
-GF_Err gf_set_gf_sr_texture_alpha(GF_STENCIL _this, u8 alpha)
+GF_Err gdip_set_alpha(GF_STENCIL _this, u8 alpha)
 {
 	GPSTEN();
 	if (_sten->alpha != alpha) {
 		_sten->alpha = alpha;
-		_sten->gf_sr_texture_invalid = 1;
+		_sten->texture_invalid = 1;
 	}
 	return GF_OK;
 }
 
-void gf_convert_texture(struct _stencil *sten);
+void gdip_convert_texture(struct _stencil *sten);
 
 static
-GF_Err gf_get_pixel(GF_STENCIL _this, u32 x, u32 y, u32 *col)
+GF_Err gdip_get_pixel(GF_STENCIL _this, u32 x, u32 y, u32 *col)
 {
 	ARGB v;
 	GpStatus st;
 
 	GPSTEN();
-	if (!_sten->is_converted) gf_convert_texture(_sten);
+	if (!_sten->is_converted) gdip_convert_texture(_sten);
 	if (!_sten->pBitmap) return GF_BAD_PARAM;
 
 	st = GdipBitmapGetPixel(_sten->pBitmap, x, y, &v);
@@ -353,13 +321,13 @@ GF_Err gf_get_pixel(GF_STENCIL _this, u32 x, u32 y, u32 *col)
 
 
 static
-GF_Err gf_set_pixel(GF_STENCIL _this, u32 x, u32 y, u32 col)
+GF_Err gdip_set_pixel(GF_STENCIL _this, u32 x, u32 y, u32 col)
 {
 	GpStatus st;
 	ARGB v;
 	GPSTEN();
 	if (!_sten->pBitmap) return GF_BAD_PARAM;
-	if (!_sten->is_converted) gf_convert_texture(_sten);
+	if (!_sten->is_converted) gdip_convert_texture(_sten);
 
 	if (_sten->invert_br) {
 		v = GF_COL_ARGB( ((col>>24)&0xFF), ((col)&0xFF), ((col>>8)&0xFF), ((col>>16)&0xFF) );
@@ -372,7 +340,7 @@ GF_Err gf_set_pixel(GF_STENCIL _this, u32 x, u32 y, u32 col)
 
 #if 0
 static
-GF_Err gf_get_texture(GF_STENCIL _this, unsigned char **pixels, u32 *width, u32 *height, u32 *stride, GF_PixelFormat *pixelFormat)
+GF_Err gdip_get_texture(GF_STENCIL _this, unsigned char **pixels, u32 *width, u32 *height, u32 *stride, GF_PixelFormat *pixelFormat)
 {
 	GpRect rc;
 	BitmapData data;
@@ -411,25 +379,25 @@ GF_Err gf_get_texture(GF_STENCIL _this, unsigned char **pixels, u32 *width, u32 
 #endif
 
 
-void gf_stencil_texture_modified(GF_STENCIL _this)
+void gdip_texture_modified(GF_STENCIL _this)
 {
 	GPSTEN();
-	_sten->gf_sr_texture_invalid = 1;
+	_sten->texture_invalid = 1;
 }
 
-void gf_init_driver_texture(GF_Raster2D *driver)
+void gdip_init_driver_texture(GF_Raster2D *driver)
 {
-	driver->stencil_set_texture = gf_stencil_set_texture;
-	driver->stencil_set_tiling = gf_set_gf_sr_texture_repeat_mode;
-	driver->stencil_set_filter = gf_set_gf_sr_texture_filter;
-	driver->stencil_set_color_matrix = gf_stencil_set_color_matrix;
-	driver->stencil_set_texture_alpha = gf_set_gf_sr_texture_alpha;
-	driver->stencil_create_texture = gf_stencil_create_texture;
-	driver->stencil_texture_modified = gf_stencil_texture_modified;
+	driver->stencil_set_texture = gdip_set_texture;
+	driver->stencil_set_tiling = gdip_set_texture_repeat_mode;
+	driver->stencil_set_filter = gdip_set_sr_texture_filter;
+	driver->stencil_set_color_matrix = gdip_set_color_matrix;
+	driver->stencil_set_alpha = gdip_set_alpha;
+	driver->stencil_create_texture = gdip_create_texture;
+	driver->stencil_texture_modified = gdip_texture_modified;
 }
 
 
-void gf_convert_texture(struct _stencil *sten)
+void gdip_convert_texture(struct _stencil *sten)
 {
 	u32 BPP, format;
 	GF_VideoSurface src, dst;
@@ -467,21 +435,21 @@ void gf_convert_texture(struct _stencil *sten)
 	sten->is_converted = 1;
 }
 
-void gf_load_texture(struct _stencil *sten)
+void gdip_load_texture(struct _stencil *sten)
 {
 	GpImageAttributes *attr;
 	ColorMatrix _cmat;
 
-	if (sten->gf_sr_texture_invalid && sten->pTexture) {
+	if (sten->texture_invalid && sten->pTexture) {
 		GdipDeleteBrush(sten->pTexture);
 		sten->pTexture = NULL;
 	}
 	/*nothing to do*/
 	if (sten->is_converted && sten->pTexture) return;
-	sten->gf_sr_texture_invalid = 0;
+	sten->texture_invalid = 0;
 
 	/*convert*/
-	if (!sten->is_converted) gf_convert_texture(sten);
+	if (!sten->is_converted) gdip_convert_texture(sten);
 
 	GdipCreateImageAttributes(&attr);
 	if (sten->has_cmat) {

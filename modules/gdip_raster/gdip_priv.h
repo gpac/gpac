@@ -69,7 +69,7 @@ struct IDirectDrawSurface7;
 /* default resolution for N-bezier curves*/
 #define GDIP_DEFAULT_RESOLUTION		64
 
-struct _gf_context
+struct _gdip_context
 {
 	ULONG_PTR gdiToken;
 };
@@ -113,7 +113,7 @@ GFINLINE void cmat_gpac_to_gdip(GF_ColorMatrix *mat, ColorMatrix *matrix)
 }
 
 
-GFINLINE void gf_cmat_reset(ColorMatrix *matrix)
+GFINLINE void gdip_cmat_reset(ColorMatrix *matrix)
 {
 	memset(matrix->m, 0, sizeof(Float)*5*5);
 	matrix->m[0][0] = matrix->m[1][1] = matrix->m[2][2] = matrix->m[3][3] = matrix->m[4][4] = 1.0;
@@ -162,7 +162,7 @@ struct _stencil
 	Bool invert_br;
 	GF_TextureFilter tFilter;
 
-	Bool gf_sr_texture_invalid;
+	Bool texture_invalid;
 	GF_Rect wnd;
 	u8 alpha;
 
@@ -180,14 +180,14 @@ struct _stencil
 #define CHECK2(_t1, _t2) if ((_sten->type!=_t1) && (_sten->type!=_t2)) return;
 #define CHECK2_RET(_t1, _t2) if ((_sten->type!=_t1) && (_sten->type!=_t2)) return GF_BAD_PARAM;
 
-void gf_recompute_line_gradient(GF_STENCIL _this);
-void gf_recompute_radial_gradient(GF_STENCIL _this);
+void gdip_recompute_line_gradient(GF_STENCIL _this);
+void gdip_recompute_radial_gradient(GF_STENCIL _this);
 
-void gf_load_texture(struct _stencil *sten);
+void gdip_load_texture(struct _stencil *sten);
 
-void gf_init_driver_texture(GF_Raster2D *driver);
-void gf_init_driver_common(GF_Raster2D *driver);
-void gf_init_driver_grad(GF_Raster2D *driver);
+void gdip_init_driver_texture(GF_Raster2D *driver);
+void gdip_init_driver_common(GF_Raster2D *driver);
+void gdip_init_driver_grad(GF_Raster2D *driver);
 
 typedef struct
 {

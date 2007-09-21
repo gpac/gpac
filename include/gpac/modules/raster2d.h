@@ -161,6 +161,9 @@ typedef struct _raster2d_interface
 	/*set the center of the gradient*/
 	GF_Err (*stencil_set_vertex_colors) (GF_STENCIL _this, u32 *colors, u32 nbCol);
 	
+	/*sets global alpha blending level for stencil (texture and gradients)
+	the alpha channel shall be combined with the color matrix if any*/
+	GF_Err (*stencil_set_alpha) (GF_STENCIL _this, u8 alpha);
 	
 	/*set stencil texture
 		@pixels: texture data, from top to bottom
@@ -183,8 +186,6 @@ typedef struct _raster2d_interface
 	/*signals the texture has been modified (internal texture only)*/
 	void (*stencil_texture_modified) (GF_STENCIL _this);
 
-	/*sets alpha blending level for texture - the alpha channel shall be combined with the color matrix if any*/
-	GF_Err (*stencil_set_texture_alpha) (GF_STENCIL _this, u8 alpha);
 	/*sets texture tile mode*/
 	GF_Err (*stencil_set_tiling) (GF_STENCIL _this, GF_TextureTiling mode);
 	/*sets texture filtering mode*/

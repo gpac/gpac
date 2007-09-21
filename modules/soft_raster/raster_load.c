@@ -41,11 +41,11 @@ GF_Raster2D *EVG_LoadRenderer()
 	dr->stencil_set_linear_gradient = evg_stencil_set_linear_gradient;
 	dr->stencil_set_radial_gradient = evg_stencil_set_radial_gradient;
 	dr->stencil_set_gradient_interpolation = evg_stencil_set_gradient_interpolation;
+	dr->stencil_set_alpha = evg_stencil_set_alpha;
 	dr->stencil_set_texture = evg_stencil_set_texture;
 	dr->stencil_set_tiling = evg_stencil_set_tiling;
 	dr->stencil_set_filter = evg_stencil_set_filter;
 	dr->stencil_set_color_matrix = evg_stencil_set_color_matrix;
-	dr->stencil_set_texture_alpha = evg_stencil_set_texture_alpha;
 	dr->stencil_create_texture = evg_stencil_create_texture;
 	dr->stencil_texture_modified = NULL;
 

@@ -25,7 +25,7 @@
 #include "gdip_priv.h"
 
 
-GF_STENCIL gf_new_stencil(GF_Raster2D *, GF_StencilType type)
+GF_STENCIL gdip_new_stencil(GF_Raster2D *, GF_StencilType type)
 {
 	struct _stencil *sten;
 	
@@ -46,7 +46,7 @@ GF_STENCIL gf_new_stencil(GF_Raster2D *, GF_StencilType type)
 }
 
 static
-void gf_delete_stencil(GF_STENCIL _this)
+void gdip_delete_stencil(GF_STENCIL _this)
 {
 	GPSTEN();
 	if (_sten->pSolid) GdipDeleteBrush(_sten->pSolid);
@@ -65,7 +65,7 @@ void gf_delete_stencil(GF_STENCIL _this)
 	free(_sten);
 }
 static
-GF_Err gf_stencil_set_matrix(GF_STENCIL _this, GF_Matrix2D *mat)
+GF_Err gdip_stencil_set_matrix(GF_STENCIL _this, GF_Matrix2D *mat)
 {
 	GPSTEN();
 	GPMATRIX();
@@ -75,7 +75,7 @@ GF_Err gf_stencil_set_matrix(GF_STENCIL _this, GF_Matrix2D *mat)
 }
 
 static
-GF_Err gf_set_brush_color(GF_STENCIL _this, GF_Color c)
+GF_Err gdip_set_brush_color(GF_STENCIL _this, GF_Color c)
 {
 	GPSTEN();
 	CHECK_RET(GF_STENCIL_SOLID);
@@ -89,7 +89,7 @@ GF_Err gf_set_brush_color(GF_STENCIL _this, GF_Color c)
 
 
 static
-GF_Err gf_set_gradient_mode(GF_STENCIL _this, GF_GradientMode mode)
+GF_Err gdip_set_gradient_mode(GF_STENCIL _this, GF_GradientMode mode)
 {
 	GPSTEN();
 	CHECK2_RET(GF_STENCIL_LINEAR_GRADIENT, GF_STENCIL_RADIAL_GRADIENT);
@@ -99,7 +99,7 @@ GF_Err gf_set_gradient_mode(GF_STENCIL _this, GF_GradientMode mode)
 }
 
 static 
-GF_Err gf_set_linear_gradient (GF_STENCIL _this, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y)
+GF_Err gdip_set_linear_gradient (GF_STENCIL _this, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y)
 {
 	GPSTEN();
 	CHECK_RET(GF_STENCIL_LINEAR_GRADIENT);
@@ -117,7 +117,7 @@ GF_Err gf_set_linear_gradient (GF_STENCIL _this, Fixed start_x, Fixed start_y, F
 	return GF_OK;
 }
 
-void gf_recompute_line_gradient(GF_STENCIL _this)
+void gdip_recompute_line_gradient(GF_STENCIL _this)
 {
 	GpPointF start, end;
 	u32 i, k;
@@ -180,7 +180,7 @@ void gf_recompute_line_gradient(GF_STENCIL _this)
 
 /*GDIplus is completely bugged here, we MUST build the gradient in local coord system and apply translation
 after, otherwise performances are just horrible*/
-void gf_recompute_radial_gradient(GF_STENCIL _this)
+void gdip_recompute_radial_gradient(GF_STENCIL _this)
 {
 	s32 repeat, k;
 	u32 i;
@@ -311,7 +311,7 @@ void gf_recompute_radial_gradient(GF_STENCIL _this)
 }
 
 static 
-GF_Err gf_set_radial_gradient(GF_STENCIL _this, Fixed cx, Fixed cy, Fixed fx, Fixed fy, Fixed x_radius, Fixed y_radius)
+GF_Err gdip_set_radial_gradient(GF_STENCIL _this, Fixed cx, Fixed cy, Fixed fx, Fixed fy, Fixed x_radius, Fixed y_radius)
 {
 	GPSTEN();
 	CHECK_RET(GF_STENCIL_RADIAL_GRADIENT);
@@ -328,7 +328,7 @@ GF_Err gf_set_radial_gradient(GF_STENCIL _this, Fixed cx, Fixed cy, Fixed fx, Fi
 }
 
 static
-GF_Err gf_set_gradient_interpolation(GF_STENCIL _this, Fixed *pos, GF_Color *col, u32 count)
+GF_Err gdip_set_gradient_interpolation(GF_STENCIL _this, Fixed *pos, GF_Color *col, u32 count)
 {
 	u32 i;
 	GPSTEN();
@@ -348,7 +348,7 @@ GF_Err gf_set_gradient_interpolation(GF_STENCIL _this, Fixed *pos, GF_Color *col
 
 
 static 
-GF_Err gf_set_vertex_path(GF_STENCIL _this, GF_Path *path)
+GF_Err gdip_set_vertex_path(GF_STENCIL _this, GF_Path *path)
 {
 	GPSTEN();
 	GpPath *p;
@@ -361,7 +361,7 @@ GF_Err gf_set_vertex_path(GF_STENCIL _this, GF_Path *path)
 }
 
 static 
-GF_Err gf_set_vertex_center (GF_STENCIL _this, Fixed cx, Fixed cy, u32 color)
+GF_Err gdip_set_vertex_center (GF_STENCIL _this, Fixed cx, Fixed cy, u32 color)
 {
 	GpStatus ret;
 	GPSTEN();
@@ -377,7 +377,7 @@ GF_Err gf_set_vertex_center (GF_STENCIL _this, Fixed cx, Fixed cy, u32 color)
 }
 
 static
-GF_Err gf_set_vertex_colors (GF_STENCIL _this, u32 *colors, u32 nbCol)
+GF_Err gdip_set_vertex_colors (GF_STENCIL _this, u32 *colors, u32 nbCol)
 {
 	int col = nbCol;
 	GPSTEN();
@@ -390,17 +390,17 @@ GF_Err gf_set_vertex_colors (GF_STENCIL _this, u32 *colors, u32 nbCol)
 }
 
 
-void gf_init_driver_grad(GF_Raster2D *driver)
+void gdip_init_driver_grad(GF_Raster2D *driver)
 {
-	driver->stencil_new = gf_new_stencil;
-	driver->stencil_delete = gf_delete_stencil;
-	driver->stencil_set_matrix = gf_stencil_set_matrix;
-	driver->stencil_set_brush_color = gf_set_brush_color;
-	driver->stencil_set_gradient_mode = gf_set_gradient_mode;
-	driver->stencil_set_linear_gradient = gf_set_linear_gradient;
-	driver->stencil_set_radial_gradient = gf_set_radial_gradient;
-	driver->stencil_set_gradient_interpolation = gf_set_gradient_interpolation;
-	driver->stencil_set_vertex_path = gf_set_vertex_path;
-	driver->stencil_set_vertex_center = gf_set_vertex_center;
-	driver->stencil_set_vertex_colors = gf_set_vertex_colors;
+	driver->stencil_new = gdip_new_stencil;
+	driver->stencil_delete = gdip_delete_stencil;
+	driver->stencil_set_matrix = gdip_stencil_set_matrix;
+	driver->stencil_set_brush_color = gdip_set_brush_color;
+	driver->stencil_set_gradient_mode = gdip_set_gradient_mode;
+	driver->stencil_set_linear_gradient = gdip_set_linear_gradient;
+	driver->stencil_set_radial_gradient = gdip_set_radial_gradient;
+	driver->stencil_set_gradient_interpolation = gdip_set_gradient_interpolation;
+	driver->stencil_set_vertex_path = gdip_set_vertex_path;
+	driver->stencil_set_vertex_center = gdip_set_vertex_center;
+	driver->stencil_set_vertex_colors = gdip_set_vertex_colors;
 }
