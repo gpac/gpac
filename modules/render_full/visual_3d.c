@@ -430,6 +430,7 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 void visual_3d_flush_contexts(GF_VisualManager *surf, GF_TraverseState *tr_state)
 {
 	u32 i, idx, count;
+	Bool pixel_metrics = tr_state->pixel_metrics;
 
 	tr_state->traversing_mode = TRAVERSE_DRAW_3D;
 
@@ -493,6 +494,7 @@ void visual_3d_flush_contexts(GF_VisualManager *surf, GF_TraverseState *tr_state
 		gf_list_del(ctx->directional_lights);
 		free(ctx);
 	}
+	tr_state->pixel_metrics = pixel_metrics;
 	gf_list_reset(tr_state->visual->alpha_nodes_to_draw);
 }
 static void visual_3d_render_node(GF_TraverseState *tr_state, GF_Node *root_node)
