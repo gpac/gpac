@@ -546,6 +546,7 @@ static u32 render_get_option(GF_VisualRenderer *vr, u32 option)
 /*render inline scene*/
 static void render_inline_mpeg4(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *inline_root, void *rs)
 {
+	Fixed min_hsize;
 	Bool use_pm, flip_coords;
 	u32 h, w;
 	GF_SceneGraph *in_scene;
@@ -582,6 +583,7 @@ static void render_inline_mpeg4(GF_VisualRenderer *vr, GF_Node *inline_parent, G
 		return;
 	}
 	/*override aspect ratio if any size info is given in the scene*/
+	min_hsize = tr_state->min_hsize;
 	if (gf_sg_get_scene_size_info(in_scene, &w, &h)) {
 		Fixed scale = INT2FIX( MIN(w, h) / 2);
 		if (scale) tr_state->min_hsize = scale;
@@ -589,8 +591,8 @@ static void render_inline_mpeg4(GF_VisualRenderer *vr, GF_Node *inline_parent, G
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
-		GF_Matrix gf_mx_bck, mx;
-		gf_mx_copy(gf_mx_bck, tr_state->model_matrix);
+		GF_Matrix mx_bck, mx;
+		gf_mx_copy(mx_bck, tr_state->model_matrix);
 		gf_mx_init(mx);
 		/*apply meterMetrics<->pixelMetrics scale*/
 		if (!use_pm) {
@@ -609,7 +611,7 @@ static void render_inline_mpeg4(GF_VisualRenderer *vr, GF_Node *inline_parent, G
 		} else {
 			gf_node_render(inline_root, rs);
 		}
-		gf_mx_copy(tr_state->model_matrix, gf_mx_bck);
+		gf_mx_copy(tr_state->model_matrix, mx_bck);
 	} else 
 #endif
 	{
@@ -628,6 +630,7 @@ static void render_inline_mpeg4(GF_VisualRenderer *vr, GF_Node *inline_parent, G
 		gf_mx2d_copy(tr_state->transform, mx_bck);
 	}
 	tr_state->pixel_metrics = !use_pm;
+	tr_state->min_hsize = min_hsize;
 }
 
 static void render_render_inline(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *inline_root, void *rs)

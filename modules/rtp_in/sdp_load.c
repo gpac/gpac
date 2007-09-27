@@ -196,7 +196,7 @@ GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, const char *sub_url)
 		while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
 			if (ch->depacketizer->sl_map.StreamType != get_stream_type_from_hint(rtp->media_type)) continue;
 
-			if (!sub_url || strstr(sub_url, ch->control)) {
+			if (!sub_url || (ch->control && strstr(sub_url, ch->control)) ) {
 				the_od = RP_GetChannelOD(ch, i-1);
 				if (!the_od) continue;
 				return (GF_Descriptor *) the_od;

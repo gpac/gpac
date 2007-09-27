@@ -796,6 +796,8 @@ GF_Err configuration(Streamer *streamer, char *cfg_file, char *src_file, char *i
 		fprintf(stdout, " Path MTU: %u bytes \n", streamer->path_mtu);
 
 		/*configure burst mode*/
+		opt = gf_cfg_get_key(configFile, "GLOBAL", "burst_mode");
+		streamer->burst_mode = (opt && !strcmp(opt, "yes")) ? 1 : 0;
 		if (streamer->burst_mode) {
 			opt = gf_cfg_get_key(configFile, "GLOBAL", "off_duration");
 			streamer->offDuration = opt ? atoi(opt) : 0;
