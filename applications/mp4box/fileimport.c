@@ -1187,12 +1187,12 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 			else fprintf(stdout, "a %d.%d representation\n", stats->int_res_2d, opts->resolution);
 
 			fprintf(stdout, " Matrix Scale & Skew Coefficients ");
-			if (opts->coord_bits < stats->scale_int_res_2d) {
-				opts->scale_bits = stats->scale_int_res_2d - opts->coord_bits;
+			if (opts->coord_bits - 8 < stats->scale_int_res_2d) {
+				opts->scale_bits = stats->scale_int_res_2d - opts->coord_bits + 8;
 				fprintf(stdout, "encoded using a %d.8 representation\n", stats->scale_int_res_2d);
 			} else  {
 				opts->scale_bits = 0;
-				fprintf(stdout, "not encoded.\n");
+				fprintf(stdout, "encoded using a %d.8 representation\n", opts->coord_bits - 8);
 			}
 		}
 	}
