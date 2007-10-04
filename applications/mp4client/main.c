@@ -204,7 +204,9 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 #ifdef GPAC_MODULES_PATH
 	fprintf(stdout, "Using module directory %s \n", GPAC_MODULES_PATH);
 	strcpy(szPath, GPAC_MODULES_PATH);
-#else
+#elif defined(WIN32)
+	strcpy(szPath, file_path);	
+#else 
 	fprintf(stdout, "Please enter full path to GPAC modules directory:\n");
 	scanf("%s", szPath);
 #endif
@@ -234,8 +236,11 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", szPath);
 
 #ifdef WIN32
-	fprintf(stdout, "Please enter full path to a cache directory for HTTP downloads:\n");
-	scanf("%s", szPath);
+//	fprintf(stdout, "Please enter full path to a cache directory for HTTP downloads:\n");
+//	scanf("%s", szPath);
+	GetWindowsDirectory((char*)szPath, MAX_PATH);
+	if (szPath[strlen((char*)szPath)-1] != '\\') strcat((char*)szPath, "\\");
+	strcat((char *)szPath, "Temp");
 	gf_cfg_set_key(cfg, "General", "CacheDirectory", szPath);
 #else
 	fprintf(stdout, "Using /tmp as a cache directory for HTTP downloads:\n");
