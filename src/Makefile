@@ -34,8 +34,6 @@ LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegra
 
 ifeq ($(DISABLE_SVG), no)
 LIBGPAC_SCENE+=scenegraph/svg_attributes.o scenegraph/svg_nodes_da.o scenegraph/svg_tools_da.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o
-LIBGPAC_SCENE+=scenegraph/svg_nodes_sa.o scenegraph/svg_tools_sa.o
-LIBGPAC_SCENE+=scenegraph/svg_nodes_sani.o scenegraph/svg_tools_sani.o
 endif
 
 
@@ -49,8 +47,6 @@ LIBGPAC_MEDIATOOLS=media_tools/av_parsers.o media_tools/avilib.o media_tools/gpa
 LIBGPAC_SCENEMANAGER=scene_manager/loader_bt.o scene_manager/loader_isom.o scene_manager/loader_qt.o scene_manager/loader_xmt.o scene_manager/scene_dump.o scene_manager/scene_manager.o scene_manager/scene_stats.o scene_manager/swf_parse.o scene_manager/swf_shape.o scene_manager/text_to_bifs.o scene_manager/encode_cbk.o scene_manager/encode_isom.o 
 ifeq ($(DISABLE_SVG), no)
 LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg_da.o
-LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg_sa.o
-LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg_sani.o
 endif
 
 ## libgpac objects gathering: src/terminal
