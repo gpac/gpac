@@ -22,9 +22,7 @@
  *
  */
 
-//#include <gpac/internal/compositor_dev.h>
-
-#include "camera.h"
+#include <gpac/internal/camera.h>
 
 #include <gpac/options.h>
 
