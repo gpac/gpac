@@ -296,11 +296,6 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 }
 
 
-
-void gf_sc_unload(GF_Compositor *compositor)
-{
-}
-
 static GF_Compositor *gf_sc_create(GF_User *user)
 {
 	const char *sOpt;
@@ -989,6 +984,8 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 			compositor->force_opengl_2d = value;
 			/*force resetup*/
 			compositor->root_visual_setup = 0;
+			/*force texture setup when switching to OpenGL*/
+			if (value) compositor->reset_graphics = 1;
 			/*force redraw*/
 			compositor->draw_next_frame = 1;
 		}

@@ -33,8 +33,71 @@ typedef struct _bitmap_stack
 	Drawable *graph;
 	/*cached size for 3D mode*/
 	SFVec2f size;
+	u32 prev_tx_w, prev_tx_h;
+	GF_Rect rc;
 } BitmapStack;
 
+
+
+static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *tr_state, GF_Rect *out_rc, Bool notify_changes)
+{
+	GF_TextureHandler *txh;
+	Fixed sx, sy;
+	SFVec2f size;
+
+	M_Bitmap *bmp = (M_Bitmap *)node;
+
+	if (!tr_state->appear) return;
+	if (! ((M_Appearance *)tr_state->appear)->texture) return;
+	txh = gf_sc_texture_get_handler( ((M_Appearance *)tr_state->appear)->texture );
+	/*bitmap not ready*/
+	if (!txh || !txh->tx_io || !txh->width || !txh->height) {
+		if (notify_changes) gf_node_dirty_set(node, 0, 1);
+		return;
+	}
+	/*no change in scale and same texture size*/
+	if (!gf_node_dirty_get(node) && (st->prev_tx_w == txh->width) && (st->prev_tx_h == txh->height)) {
+		*out_rc = st->rc;
+		return;
+	}
+	st->prev_tx_w = txh->width;
+	st->prev_tx_h = txh->height;
+
+	sx = bmp->scale.x; if (sx<0) sx = FIX_ONE;
+	sy = bmp->scale.y; if (sy<0) sy = FIX_ONE;
+
+	compositor_adjust_scale(txh->owner, &sx, &sy);
+
+	/*check size change*/
+	size.x = txh->width*sx;
+	size.y = txh->height*sy;
+	/*if we have a PAR update it!!*/
+	if (txh->pixel_ar) {
+		u32 n = (txh->pixel_ar>>16) & 0xFFFF;
+		u32 d = (txh->pixel_ar) & 0xFFFF;
+		size.x = ( (txh->width * n) / d) * sx;
+	}
+
+
+	/*we're in meter metrics*/
+	if (!tr_state->pixel_metrics) {
+		size.x = gf_divfix(size.x, tr_state->min_hsize);
+		size.y = gf_divfix(size.y, tr_state->min_hsize);
+	}
+	*out_rc = st->rc = gf_rect_center(size.x, size.y);
+
+	gf_node_dirty_clear(node, 0);
+
+	if ((st->size.x==size.x) && (st->size.y==size.y)) return; 
+	st->size = size;
+
+	/*change in size*/
+	if (notify_changes) gf_node_dirty_set(node, 0, 1);
+
+	/*get size with scale*/
+	drawable_reset_path(st->graph);
+	gf_path_add_rect_center(st->graph->path, 0, 0, st->size.x, st->size.y);
+}
 
 #ifndef GPAC_DISABLE_3D
 static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
@@ -43,6 +106,9 @@ static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 
 	BitmapStack *st = (BitmapStack *)gf_node_get_private(node);
 	M_Bitmap *bmp = (M_Bitmap *)node;
+
+	/*no choice but to update the graph since a bitmap may be used with several textures ...*/
+	Bitmap_BuildGraph(node, st, tr_state, &tr_state->bounds, 0);
 
 	memset(&asp, 0, sizeof(DrawAspect2D));
 	drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
@@ -133,59 +199,6 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 	}
 }
 
-
-static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *tr_state, GF_Rect *out_rc, Bool notify_changes)
-{
-	GF_TextureHandler *txh;
-	Fixed sx, sy;
-	SFVec2f size;
-
-	M_Bitmap *bmp = (M_Bitmap *)node;
-
-	if (!tr_state->appear) return;
-	if (! ((M_Appearance *)tr_state->appear)->texture) return;
-	txh = gf_sc_texture_get_handler( ((M_Appearance *)tr_state->appear)->texture );
-	/*bitmap not ready*/
-	if (!txh || !txh->tx_io || !txh->width || !txh->height) {
-		if (notify_changes) gf_node_dirty_set(node, 0, 1);
-		return;
-	}
-	
-	sx = bmp->scale.x; if (sx<0) sx = FIX_ONE;
-	sy = bmp->scale.y; if (sy<0) sy = FIX_ONE;
-
-	compositor_adjust_scale(txh->owner, &sx, &sy);
-
-	/*check size change*/
-	size.x = txh->width*sx;
-	size.y = txh->height*sy;
-	/*if we have a PAR update it!!*/
-	if (txh->pixel_ar) {
-		u32 n = (txh->pixel_ar>>16) & 0xFFFF;
-		u32 d = (txh->pixel_ar) & 0xFFFF;
-		size.x = ( (txh->width * n) / d) * sx;
-	}
-
-
-	/*we're in meter metrics*/
-	if (!tr_state->pixel_metrics) {
-		size.x = gf_divfix(size.x, tr_state->min_hsize);
-		size.y = gf_divfix(size.y, tr_state->min_hsize);
-	}
-	*out_rc = gf_rect_center(size.x, size.y);
-
-	gf_node_dirty_clear(node, 0);
-
-	if ((st->size.x==size.x) && (st->size.y==size.y)) return; 
-	st->size = size;
-
-	/*change in size*/
-	if (notify_changes) gf_node_dirty_set(node, 0, 1);
-
-	/*get size with scale*/
-	drawable_reset_path(st->graph);
-	gf_path_add_rect_center(st->graph->path, 0, 0, st->size.x, st->size.y);
-}
 static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Rect rc;
