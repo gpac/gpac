@@ -392,7 +392,6 @@ static void gf_smil_handle_event_begin(GF_Node *hdl, GF_DOM_Event *evt)
 {
 	GF_FieldInfo info;
 	GF_Node *timed_elt = (GF_Node *)gf_node_get_private(hdl);
-	u32 tag = timed_elt->sgprivate->tag;
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "begin";
 	info.far_ptr = ((SVGTimedAnimBaseElement *)timed_elt)->timingp->begin;
@@ -404,7 +403,6 @@ static void gf_smil_handle_event_end(GF_Node *hdl, GF_DOM_Event *evt)
 {
 	GF_FieldInfo info;
 	GF_Node *timed_elt = (GF_Node *)gf_node_get_private(hdl);
-	u32 tag = timed_elt->sgprivate->tag;
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "end";
 	info.far_ptr = ((SVGTimedAnimBaseElement *)timed_elt)->timingp->end;
@@ -416,7 +414,6 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 {
 	void *hdl;
 	u32 i, count;
-	u32 tag = node->sgprivate->tag;
 	count = gf_list_count(l);
 	for (i=0; i<count; i++) {
 		SMIL_Time *t = (SMIL_Time*)gf_list_get(l, i);
