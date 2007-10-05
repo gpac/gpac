@@ -510,9 +510,9 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 	SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 
 	/*get background ckey*/
-	opt = gf_modules_get_option((GF_BaseInterface *)vout, "Rendering", "ColorKey");
+	opt = gf_modules_get_option((GF_BaseInterface *)vout, "Compositor", "ColorKey");
 	if (!opt) {
-		gf_modules_set_option((GF_BaseInterface *)vout, "Rendering", "ColorKey", "FFFEFEFE");
+		gf_modules_set_option((GF_BaseInterface *)vout, "Compositor", "ColorKey", "FFFEFEFE");
 		opt = "FFFEFEFE";
 	}
 

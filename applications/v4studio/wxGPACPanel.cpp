@@ -58,12 +58,12 @@ Bool V4S_EventProc(void *par, GF_Event *evt)
 		break;
 	case GF_EVENT_SCENE_SIZE:
 	case GF_EVENT_SIZE:
-//		gf_sr_set_size(panel->GetSceneRenderer(), evt->size.width, evt->size.height);
+//		gf_sc_set_size(panel->GetSceneCompositor(), evt->size.width, evt->size.height);
 		panel->Update();
 		break;
 	case GF_EVENT_MOUSEDOWN:
 		if (evt->mouse.button==GF_MOUSE_LEFT) {
-			panel->picked = gf_sr_pick_node(panel->GetSceneRenderer(), evt->mouse.x, evt->mouse.y);
+			panel->picked = gf_sc_pick_node(panel->GetSceneCompositor(), evt->mouse.x, evt->mouse.y);
 			panel->m_iDragging ++;
 			if (panel->picked) {
 				panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->SetSelectedItem(panel->picked);	
@@ -74,7 +74,7 @@ Bool V4S_EventProc(void *par, GF_Event *evt)
 		}
 		else if (evt->mouse.button==GF_MOUSE_MIDDLE) {
 			panel->m_iDragging ++;
-			panel->picked = gf_sr_pick_node(panel->GetSceneRenderer(), evt->mouse.x, evt->mouse.y);
+			panel->picked = gf_sc_pick_node(panel->GetSceneCompositor(), evt->mouse.x, evt->mouse.y);
 			if (panel->picked) {
 				panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->SetSelectedItem(panel->picked);	
 				panel->dragX = evt->mouse.x;
@@ -84,7 +84,7 @@ Bool V4S_EventProc(void *par, GF_Event *evt)
 		}
 		else if (evt->mouse.button==GF_MOUSE_RIGHT) {
 			panel->m_iDragging ++;
-			panel->picked = gf_sr_pick_node(panel->GetSceneRenderer(), evt->mouse.x, evt->mouse.y);
+			panel->picked = gf_sc_pick_node(panel->GetSceneCompositor(), evt->mouse.x, evt->mouse.y);
 			if (panel->picked) {
 				panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->SetSelectedItem(panel->picked);	
 				panel->dragX = evt->mouse.x;
@@ -181,8 +181,8 @@ void wxGPACPanel::Update()
 {
 	if (m_term) {
 		//gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
-		gf_sr_invalidate(m_term->renderer, NULL);
-		gf_sr_render_frame(m_term->renderer);
+		gf_sc_invalidate(m_term->compositor, NULL);
+		gf_sc_draw_frame(m_term->compositor);
 	}
 }
 
@@ -312,8 +312,8 @@ bool GPACInit(void *application, GF_Terminal **term, GF_User *user, bool quiet)
 		}
 
 #ifdef WIN32
-		sOpt = gf_cfg_get_key(user->config, "Rendering", "Raster2D");
-		if (!sOpt) gf_cfg_set_key(user->config, "Rendering", "Raster2D", "gdip_rend");
+		sOpt = gf_cfg_get_key(user->config, "Compositor", "Raster2D");
+		if (!sOpt) gf_cfg_set_key(user->config, "Compositor", "Raster2D", "gdip_rend");
 		sOpt = gf_cfg_get_key(user->config, "General", "CacheDirectory");
 		if (!sOpt) {
 			unsigned char str_path[MAX_PATH];
@@ -363,7 +363,7 @@ bool GPACInit(void *application, GF_Terminal **term, GF_User *user, bool quiet)
 		wxMessageDialog(NULL, "Fatal Error", "Cannot load GPAC Terminal", wxOK).ShowModal();
 		return 0;
 	} else {
-		if (!quiet) ::wxLogMessage("GPAC Terminal started - using %s", gf_cfg_get_key(user->config, "Rendering", "RendererName"));
+		if (!quiet) ::wxLogMessage("GPAC Terminal started");
 	}
 
 	return 1;

@@ -23,7 +23,7 @@
  */
 
 #include <gpac/isomedia.h>
-#include <gpac/renderer.h>
+#include <gpac/compositor.h>
 #include <gpac/scenegraph.h>
 #include <gpac/bifs.h>
 #include <gpac/options.h>
@@ -62,7 +62,7 @@ typedef struct tagBITMAPINFOHEADER{
 #endif
 
 #include <gpac/internal/avilib.h>
-#include <gpac/internal/renderer_dev.h>
+#include <gpac/internal/compositor_dev.h>
 
 void PrintVersion()
 {
@@ -93,7 +93,7 @@ void PrintUsage()
 
 typedef struct 
 {
-	GF_Renderer *sr;
+	GF_Compositor *sr;
 	GF_SceneGraph *sg;
 	GF_BifsDecoder *bifs;
 	GF_ISOFile *file;
@@ -110,7 +110,7 @@ void node_init(void *cbk, GF_Node *node)
 	case TAG_MPEG4_QuantizationParameter:
 		break;
 	default:
-		if (b2v->sr) gf_sr_on_node_init(b2v->sr, node);
+		if (b2v->sr) gf_sc_on_node_init(b2v->sr, node);
 		break;
 	}
 }
@@ -118,7 +118,7 @@ void node_init(void *cbk, GF_Node *node)
 void node_modif(void *cbk, GF_Node *node)
 {
 	BIFSVID *b2v = cbk;
-	if (b2v->sr) gf_sr_invalidate(b2v->sr, node);
+	if (b2v->sr) gf_sc_invalidate(b2v->sr, node);
 }
 
 Double get_scene_time(void *cbk)
@@ -211,7 +211,7 @@ void dump_frame(BIFSVID b2v, char *conv_buf, char *out_path, u32 dump_type, avi_
 	GF_VideoSurface fb;
 
 	/*lock it*/
-	gf_sr_get_screen_buffer(b2v.sr, &fb);
+	gf_sc_get_screen_buffer(b2v.sr, &fb);
 	/*export frame*/
 	switch (dump_type) {
 	case 0:
@@ -230,7 +230,7 @@ void dump_frame(BIFSVID b2v, char *conv_buf, char *out_path, u32 dump_type, avi_
 		break;
 	}
 	/*unlock it*/
-	gf_sr_release_screen_buffer(b2v.sr, &fb);
+	gf_sc_release_screen_buffer(b2v.sr, &fb);
 }
 
 
@@ -333,7 +333,7 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 		if (test) strcpy(old_driv, test);
 
 		needs_raw = 0;
-		test = gf_cfg_get_key(user.config, "Rendering", "RendererName");
+		test = gf_cfg_get_key(user.config, "Compositor", "RendererName");
 		/*since we only support RGB24 for MP42AVI force using RAW out with 2D driver*/
 		if (test && strstr(test, "2D")) {
 			gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
@@ -350,9 +350,9 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 
 	memset(&b2v, 0, sizeof(BIFSVID));
 	user.init_flags = GF_TERM_NO_AUDIO;
-	/* Initialization of the renderer */
-	b2v.sr = gf_sr_new(&user, 0, NULL);
-	gf_sr_set_option(b2v.sr, GF_OPT_VISIBLE, 0);
+	/* Initialization of the compositor */
+	b2v.sr = gf_sc_new(&user, 0, NULL);
+	gf_sc_set_option(b2v.sr, GF_OPT_VISIBLE, 0);
 
 	/* Initialization of the scene graph */	
 	b2v.sg = gf_sg_new();
@@ -361,7 +361,7 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 	gf_sg_set_modified_callback(b2v.sg, node_modif, &b2v);
 
 	/*load config*/
-	gf_sr_set_option(b2v.sr, GF_OPT_RELOAD_CONFIG, 1);
+	gf_sc_set_option(b2v.sr, GF_OPT_RELOAD_CONFIG, 1);
 
 	{
 		u32 di;
@@ -404,7 +404,7 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 		gf_odf_desc_del((GF_Descriptor *) esd);
 	
 	}
-	gf_sr_set_scene(b2v.sr, b2v.sg);
+	gf_sc_set_scene(b2v.sr, b2v.sg);
 
 	if (!width || !height) {
 		gf_sg_get_scene_size_info(b2v.sg, &width, &height);
@@ -414,19 +414,19 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 		printf("Adjusting width (%d) to have a stride multiple of 4\n", width);
 		while ((width*3)%4) width--;
 	}
-	gf_sr_set_size(b2v.sr, width, height);
-	gf_sr_get_screen_buffer(b2v.sr, &fb);
+	gf_sc_set_size(b2v.sr, width, height);
+	gf_sc_get_screen_buffer(b2v.sr, &fb);
 	width = fb.width;
 	height = fb.height;
-	gf_sr_release_screen_buffer(b2v.sr, &fb);
+	gf_sc_release_screen_buffer(b2v.sr, &fb);
 
 	GF_SAFEALLOC(rendered_frames, nb_viewpoints*sizeof(char *));
 	for (viewpoint_index = 1; viewpoint_index <= nb_viewpoints; viewpoint_index++) {
 		GF_SAFEALLOC(rendered_frames[viewpoint_index-1], fb.width*fb.height*3);
-		gf_sr_set_viewpoint(b2v.sr, viewpoint_index, NULL);
-		gf_sr_render_frame(b2v.sr);
+		gf_sc_set_viewpoint(b2v.sr, viewpoint_index, NULL);
+		gf_sc_draw_frame(b2v.sr);
 		/*needed for background2D !!*/
-		gf_sr_render_frame(b2v.sr);
+		gf_sc_draw_frame(b2v.sr);
 		strcpy(out_path, "");
 		if (out_dir) {
 			strcat(out_path, out_dir);
@@ -434,10 +434,10 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 		}
 		strcat(out_path, rad_name);
 		strcat(out_path, "_view");
-		gf_sr_get_screen_buffer(b2v.sr, &fb);
+		gf_sc_get_screen_buffer(b2v.sr, &fb);
 		write_bmp(&fb, out_path, viewpoint_index);
 		memcpy(rendered_frames[viewpoint_index-1], fb.video_buffer, fb.width*fb.height*3);
-		gf_sr_release_screen_buffer(b2v.sr, &fb);
+		gf_sc_release_screen_buffer(b2v.sr, &fb);
 	}
 
 	if (width != 800 || height != 480) {
@@ -487,8 +487,8 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 	/*destroy everything*/
 	gf_bifs_decoder_del(b2v.bifs);
 	gf_sg_del(b2v.sg);
-	gf_sr_set_scene(b2v.sr, NULL);
-	gf_sr_del(b2v.sr);
+	gf_sc_set_scene(b2v.sr, NULL);
+	gf_sc_del(b2v.sr);
 
 
 
@@ -557,7 +557,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	test = gf_cfg_get_key(user.config, "Video", "DriverName");
 	if (test) strcpy(old_driv, test);
 
-	test = gf_cfg_get_key(user.config, "Rendering", "RendererName");
+	test = gf_cfg_get_key(user.config, "Compositor", "RendererName");
 	/*since we only support RGB24 for MP42AVI force using RAW out with 2D driver*/
 	if (test && strstr(test, "2D")) {
 		gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
@@ -566,8 +566,8 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 
 		needs_raw = 0;
 	user.init_flags = GF_TERM_NO_AUDIO | GF_TERM_FORCE_3D;
-	b2v.sr = gf_sr_new(&user, 0, NULL);
-	gf_sr_set_option(b2v.sr, GF_OPT_VISIBLE, 0);
+	b2v.sr = gf_sc_new(&user, 0, NULL);
+	gf_sc_set_option(b2v.sr, GF_OPT_VISIBLE, 0);
 
 	b2v.sg = gf_sg_new();
 	gf_sg_set_scene_time_callback(b2v.sg, get_scene_time, &b2v);
@@ -575,7 +575,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	gf_sg_set_modified_callback(b2v.sg, node_modif, &b2v);
 
 	/*load config*/
-	gf_sr_set_option(b2v.sr, GF_OPT_RELOAD_CONFIG, 1);
+	gf_sc_set_option(b2v.sr, GF_OPT_RELOAD_CONFIG, 1);
 
 	b2v.bifs = gf_bifs_decoder_new(b2v.sg, 0);
 
@@ -626,7 +626,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	}
 	if (dump_time>=0) dump_time = dump_time *1000 / timescale;
 
-	gf_sr_set_scene(b2v.sr, b2v.sg);
+	gf_sc_set_scene(b2v.sr, b2v.sg);
 	count = gf_isom_get_sample_count(file, i+1);
 
 	reset_fps = 0;
@@ -646,10 +646,10 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 		while ((width*3)%4) width--;
 	}
 
-	gf_sr_set_size(b2v.sr, width, height);
-	gf_sr_render_frame(b2v.sr);
+	gf_sc_set_size(b2v.sr, width, height);
+	gf_sc_draw_frame(b2v.sr);
 
-	gf_sr_get_screen_buffer(b2v.sr, &fb);
+	gf_sc_get_screen_buffer(b2v.sr, &fb);
 	width = fb.width;
 	height = fb.height;
 	if (avi_out) {
@@ -657,7 +657,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 		conv_buf = malloc(sizeof(char) * width * height * 3);
 	}
 	printf("Dumping at BIFS resolution %d x %d\n\n", width, height);
-	gf_sr_release_screen_buffer(b2v.sr, &fb);
+	gf_sc_release_screen_buffer(b2v.sr, &fb);
 
 	cur_time = 0;
 
@@ -677,10 +677,10 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 		if ((frameID>=0) && (j<(u32)frameID)) continue;
 		if ((dump_time>=0) && ((u32) dump_time>b2v.cts)) continue;
 		/*render frame*/
-		gf_sr_render_frame(b2v.sr);
+		gf_sc_draw_frame(b2v.sr);
 		/*needed for background2D !!*/
 		if (first_dump) {
-			gf_sr_render_frame(b2v.sr);
+			gf_sc_draw_frame(b2v.sr);
 			first_dump = 0;
 		}
 
@@ -707,8 +707,8 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	/*destroy everything*/
 	gf_bifs_decoder_del(b2v.bifs);
 	gf_sg_del(b2v.sg);
-	gf_sr_set_scene(b2v.sr, NULL);
-	gf_sr_del(b2v.sr);
+	gf_sc_set_scene(b2v.sr, NULL);
+	gf_sc_del(b2v.sr);
 
 err_exit:
 	if (avi_out) AVI_close(avi_out);

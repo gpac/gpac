@@ -37,7 +37,7 @@ extern "C" {
 /*
 		Media Object
 
-  opaque handler for all natural media objects (audio, video, image) so that scene renderer and systems engine
+  opaque handler for all natural media objects (audio, video, image) so that compositor and systems engine
 are not too tied up. 
 	NOTE: the media object location relies on the node parent graph (this is to deal with namespaces in OD framework)
 therefore it is the task of the media management app to setup clear links between the scene graph and its ressources
@@ -117,7 +117,7 @@ Bool gf_mo_has_audio(GF_MediaObject *mo);
 enum
 {
 	/*this is set to 0 by the OD manager whenever a change occur in the media (w/h change, SR change, etc) 
-	as a hint for the renderer*/
+	as a hint for the compositor*/
 	GF_MO_IS_INIT = (1<<1),
 	/*this is used for 3D/GL rendering to indicate an image has been vertically flipped*/
 	GF_MO_IS_FLIP = (1<<2),

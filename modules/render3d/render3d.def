@@ -1,6 +1,0 @@
-LIBRARY     gm_render3d.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

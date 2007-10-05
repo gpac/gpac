@@ -234,6 +234,15 @@ Fixed gf_angle_diff(Fixed a, Fixed b);
 u32 gf_get_bit_size(u32 MaxVal);
 
 /*!
+ *	\brief Get power of 2
+ *
+ *	Gets the closest power of 2 greater or equal to the value.
+ *	\param val value to be used.
+ *	\return requested power of 2.
+ */
+u32 gf_get_next_pow2(u32 val);
+
+/*!
  *\addtogroup math2d_grp math2d
  *\ingroup math_grp
  *\brief 2D Mathematics functions
@@ -351,7 +360,7 @@ GF_IRect gf_rect_pixelize(GF_Rect *r);
 /*!
  *\brief 2D matrix
  *
- *The 2D affine matrix object used by renderers and parsers. The transformation of P(x,y) in P'(X, Y) is:
+ *The 2D affine matrix object usied in GPAC. The transformation of P(x,y) in P'(X, Y) is:
  \code
 	X = m[0]*x + m[1]*y + m[2];
 	Y = m[3]*x + m[4]*y + m[5];
@@ -590,7 +599,7 @@ typedef struct __vec4f
 
 /*!\brief 3D matrix
  *
- *The 3D matrix object used by renderers and parsers. The matrix is oriented like OpenGL matrices (column-major ordering), with 
+ *The 3D matrix object used in GPAC. The matrix is oriented like OpenGL matrices (column-major ordering), with 
  the translation part at the end of the coefficients list.
  \note Unless specified otherwise, the matrix object is always expected to represent an affine transformation.
  */

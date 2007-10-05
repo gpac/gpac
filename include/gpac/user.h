@@ -55,14 +55,10 @@ enum
 	GF_TERM_NO_VISUAL_THREAD = 1<<2,
 	/*disables frame-rate regulation (used when dumping content)*/
 	GF_TERM_NO_REGULATION = 1<<3,
-	/*forces 2D renderer, regardless of config file*/
-	GF_TERM_FORCE_2D = 1<<4,
-	/*forces 3D renderer, regardless of config file*/
-	GF_TERM_FORCE_3D = 1<<5,
 	/*lets the main user handle window events (neede for browser plugins)*/
-	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<6,
+	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<4,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<7
+	GF_TERM_WINDOWLESS = 1<<5
 };
 
 /*user object for all callbacks*/

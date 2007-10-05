@@ -2352,7 +2352,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		SFString *s = (SFString*)field->far_ptr;
 		JSString *str = JSVAL_IS_STRING(val) ? JSVAL_TO_STRING(val) : JS_ValueToString(c, val);
 		char *str_val = JS_GetStringBytes(str);
-		/*we do filter strings since rebuilding a text is quite slow, so let's avoid killing the renderers*/
+		/*we do filter strings since rebuilding a text is quite slow, so let's avoid killing the compositors*/
 		if (!s->buffer || strcmp(str_val, s->buffer)) {
 			if ( s->buffer) free(s->buffer);
 			s->buffer = strdup(str_val);

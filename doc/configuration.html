@@ -10,7 +10,7 @@
 <br/>
 <b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.5-DEV</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified $Date: 2007-08-01 16:27:33 $</span></b>
+<b><span style="Font-Size: 18pt">Last Modified $Date: 2007-10-05 16:50:24 $</span></b>
 </p>
 
 <br/><br/>
@@ -25,9 +25,7 @@ The config file is based on the win32 .ini file model, thus is ordered by sectio
 <b><a href="#General" style="text-decoration: underline;">General</a></b>
 <b><a href="#RecentFiles" style="text-decoration: underline;">RecentFiles</a></b>
 <b><a href="#Systems" style="text-decoration: underline;">Systems</a></b>
-<b><a href="#Rendering" style="text-decoration: underline;">Rendering</a></b>
-<b><a href="#Render2D" style="text-decoration: underline;">Render2D</a></b>
-<b><a href="#Render3D" style="text-decoration: underline;">Render3D</a></b>
+<b><a href="#Compositor" style="text-decoration: underline;">Compositor</a></b>
 <b><a href="#Audio" style="text-decoration: underline;">Audio</a></b>
 <b><a href="#Video" style="text-decoration: underline;">Video</a></b>
 <b><a href="#Network" style="text-decoration: underline;">Network</a></b>
@@ -242,19 +240,14 @@ where <i>AA</i> is the hexadecimal MPEG-4 streamType value for the codec (04=vis
 The string is the name of the module to be used (same considerations as other modules, cf introduction).
 </p>
 
-<a name="Rendering"></a>
-<span style="text-decoration: underline;"><b>Section "Rendering"</b></span> <i><a href="#Overview">Back to top</a></i>
+<a name="Compositor"></a>
+<span style="text-decoration: underline;"><b>Section "Compositor"</b></span> <i><a href="#Overview">Back to top</a></i>
 <p>
-The "Rendering" section of the config file holds all configuration options for the logical rendering engine.
-</p>
-<b>RendererName</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies which renderer should be used. There are currently 2 renderers available in GPAC, "GPAC 2D Renderer" and "GPAC 3D Renderer". Renderers cannot be reloaded during a presentation, the GPAC client shall be shutdown and restarted.
+The "Compositor" section of the config file holds all configuration options for the compositor (logical rendering engine).
 </p>
 <b>Raster2D</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
-Specifies the 2D rasterizer to use for vectorial drawing. Same as above, this module cannot be reloaded during a presentation. This is used by the 2D renderer for all drawings
-and by the 3D renderer for text texturing and gradients compute.</p>
+Specifies the 2D rasterizer to use for vectorial drawing. Same as above, this module cannot be reloaded during a presentation.</p>
 <b>FrameRate</b> [value: <i>float</i>]
 <p style="text-indent: 5%">
 Specifies the simulation frame-rate of the presentation - this value is also used by the MPEG-4 Systems engine to determine when a BIFS frame is mature for decoding.</p>
@@ -267,7 +260,7 @@ Specifies antialiasing settings - whether the setting is applied or not depends 
 <li><i>"Text"</i>: anti-aliasing for text only</li>
 <li><i>"All"</i>: complete anti-aliasing</li>
 </ul>
-<b>FastRender</b> [value: <i>"yes" "no"</i>]
+<b>HighSpeed</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Specifies whether rendering should target speed or quality - whether the setting is applied or not depends on the renderer, graphics module / graphic card.</p>
 <b>ForceSceneSize</b> [value: <i>"yes" "no"</i>]
@@ -275,7 +268,7 @@ Specifies whether rendering should target speed or quality - whether the setting
 Forces the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration.</p>
 <b>StressMode</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
-Specifies that the renderer runs in worst case scenario, recomputing all vectorial paths, outline or display lists and reloading textures (sending them to graphics card) at each frame.</p>
+Specifies that the renderer runs in worst case scenario, recomputing display lists and reloading textures (sending them to graphics card) at each frame even when no change has occured.</p>
 <b>BoundingVolume</b> [value: <i>"None" "Box" "AABB"</i>]
 <p style="text-indent: 5%">
 Specifies whether the bounding volume of an object shall be drawn or not. Note that the 2D renderer only uses rectangles as bounding volumes. The "AABB" value is used by the 
@@ -288,13 +281,7 @@ Specifies whether the renderer shall redraw the scene and reload texture at each
 <p style="text-indent: 5%">
 Specifies the color key to use for windowless rendering. GPAC currently doesn't support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of GPAC's output, if supported.
 </p>
-
-<a name="Render2D"></a>
-<span style="text-decoration: underline;"><b>Section "Render2D"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>
-The "Render2D" section of the config file holds all configuration options for the 2D tile rendering engine and hardware.
-</p>
-<b>DirectRender</b> [value: <i>"yes" "no"</i>]
+<b>DirectDraw</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Specifies whether direct rendering should be used or not. In direct rendering mode, the screen is completely redrawn at each frame. In indirect rendering 
 object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer. Whether 
@@ -305,11 +292,6 @@ Specifies whether scalable zoom should be used or not. When scalable zoom is ena
 <b>DisableYUV</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Disables YUV hardware support (YUV hardware support may not be available for the current video output module).</p>
-
-<br/><br/>
-<a name="Render3D"></a>
-<span style="text-decoration: underline;"><b>Section "Render3D"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "Render3D" section of the config file holds all configuration options for the 3D rendering engine and OpenGL hardware.</p>
 <b>RasterOutlines</b> [value: <i>"yes"  "no"</i>]
 <p style="text-indent: 5%">
 Specifies that outlining shall be done through OpenGL pen width rather than vectorial outlining.</p>
@@ -344,11 +326,13 @@ Enables power of 2 emulation. Ignored if openGL rectangular texture extension is
 <b>BitmapCopyPixels</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Specifies whether the bitmap node should be drawn with regular openGL texturing ("no") or through pixel copy routines ("yes"). This greatly impacts video rendering through 
-bitmap depending on the graphics card. Some cards will have faster pixel copy routines that texture transfer ones, some won't.</p>
+bitmap depending on the graphics card. Some cards will have faster pixel copy routines that texture transfer ones, some won't.
+</p>
 <b>OpenGLExtensions</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
 Read-only option listing the OpenGL extensions supported by the GL driver. Only valid after the 3D renderer has been used.
 </p>
+
 
 <br/><br/>
 

@@ -103,7 +103,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	gf_odm_stop(odm, 1);
 
 	/*disconnect sub-scene*/
-	if (odm->subscene) gf_is_disconnect(odm->subscene, do_remove);
+	if (odm->subscene) gf_inline_disconnect(odm->subscene, do_remove);
 
 	/*no destroy*/
 	if (!do_remove) return;
@@ -167,8 +167,8 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
-		gf_is_remove_object(odm->parentscene, odm, do_remove);
-		if (odm->subscene) gf_is_del(odm->subscene);
+		gf_inline_remove_object(odm->parentscene, odm, do_remove);
+		if (odm->subscene) gf_inline_del(odm->subscene);
 		gf_odm_del(odm);
 		return;
 	}
@@ -177,7 +177,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	if (odm->term->root_scene) {
 		GF_Event evt;
 		assert(odm->term->root_scene == odm->subscene);
-		gf_is_del(odm->subscene);
+		gf_inline_del(odm->subscene);
 		/*reset main pointer*/
 		odm->term->root_scene = NULL;
 
@@ -215,7 +215,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	/*for remote ODs, get expected OD type in case the service needs to generate the IOD on the fly*/
 	if (odm->parentscene && odm->OD && odm->OD->URLString) {
 		GF_MediaObject *mo;
-		mo = gf_is_find_object(odm->parentscene, odm->OD->objectDescriptorID, odm->OD->URLString);
+		mo = gf_inline_find_object(odm->parentscene, odm->OD->objectDescriptorID, odm->OD->URLString);
 		if (mo) od_type = mo->type;
 		ext = strchr(odm->OD->URLString, '#');
 		if (ext) sub_url = ext;
@@ -234,7 +234,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		/*new subscene*/
 		if (!odm->subscene) {
 			assert(odm->parentscene);
-			odm->subscene = gf_is_new(odm->parentscene);
+			odm->subscene = gf_inline_new(odm->parentscene);
 			odm->subscene->root_od = odm;
 		}
 	}
@@ -526,7 +526,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	/*if there is a BIFS stream in the OD, we need an GF_InlineScene (except if we already 
 	have one, which means this is the first IOD)*/
 	if (hasInline && !odm->subscene) {
-		odm->subscene = gf_is_new(odm->parentscene);
+		odm->subscene = gf_inline_new(odm->parentscene);
 		odm->subscene->root_od = odm;
 	}
 
@@ -575,7 +575,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	
 	/*setup mediaobject info except for top-level OD*/
 	if (odm->parentscene) {
-		gf_is_setup_object(odm->parentscene, odm);
+		gf_inline_setup_object(odm->parentscene, odm);
 	} else {
 		/*othewise send a connect ack for top level*/
 		GF_Event evt;
@@ -595,7 +595,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	if (odm->term->root_scene->is_dynamic_scene && (odm->OD->objectDescriptorID==GF_ESM_DYNAMIC_OD_ID) && (odm->flags & GF_ODM_REMOTE_OD)) {
 		GF_Event evt;
 		if (odm->OD_PL) {
-			gf_is_select_object(odm->term->root_scene, odm);
+			gf_inline_select_object(odm->term->root_scene, odm);
 			odm->OD_PL = 0;
 		}
 		evt.type = GF_EVENT_STREAMLIST;
@@ -1421,7 +1421,7 @@ void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *ch, u64 stream_durat
 	}
 
 	/*update scene duration*/
-	gf_is_set_duration(odm->subscene ? odm->subscene : (odm->parentscene ? odm->parentscene : odm->term->root_scene));
+	gf_inline_set_duration(odm->subscene ? odm->subscene : (odm->parentscene ? odm->parentscene : odm->term->root_scene));
 }
 
 

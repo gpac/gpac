@@ -54,7 +54,7 @@ Bool gf_node_in_table(GF_Node *node, u32 NDTType)
 {
 	u32 tag = node ? node->sgprivate->tag : 0;
 	if (tag==TAG_ProtoNode) {
-		tag = gf_sg_proto_get_render_tag(((GF_ProtoInstance *)node)->proto_interface);
+		tag = gf_sg_proto_get_root_tag(((GF_ProtoInstance *)node)->proto_interface);
 		if (tag==TAG_UndefinedNode) return 1;
 	}
 	return gf_node_in_table_by_tag(tag, NDTType);
@@ -261,21 +261,6 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load);
 
 #ifndef GPAC_DISABLE_SVG
 
-#ifdef GPAC_ENABLE_SVG_SA
-GF_Err gf_sm_load_init_svg_sa(GF_SceneLoader *load);
-GF_Err gf_sm_load_done_svg_sa(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_svg_sa(GF_SceneLoader *load);
-GF_Err gf_sm_load_init_svg_sa_string(GF_SceneLoader *load, char *str);
-#endif
-
-#ifdef GPAC_ENABLE_SVG_SANI
-GF_Err gf_sm_load_init_svg_sani(GF_SceneLoader *load);
-GF_Err gf_sm_load_done_svg_sani(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_svg_sani(GF_SceneLoader *load);
-GF_Err gf_sm_load_init_svg_sani_string(GF_SceneLoader *load, char *str);
-#endif
-
-
 GF_Err gf_sm_load_init_svg(GF_SceneLoader *load);
 GF_Err gf_sm_load_done_svg(GF_SceneLoader *load);
 GF_Err gf_sm_load_run_svg(GF_SceneLoader *load);
@@ -314,14 +299,6 @@ static GF_Err gf_sm_load_init_from_string(GF_SceneLoader *load, char *str)
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_init_xmt_string(load, str);
 #ifndef GPAC_DISABLE_SVG
-#ifdef GPAC_ENABLE_SVG_SA
-	case GF_SM_LOAD_SVG_SA: 
-		return gf_sm_load_init_svg_sa_string(load, str);
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-	case GF_SM_LOAD_SVG_SANI: 
-		return gf_sm_load_init_svg_sani_string(load, str);
-#endif
 	case GF_SM_LOAD_SVG_DA: 
 	case GF_SM_LOAD_XSR: 
 		return gf_sm_load_init_svg_string(load, str);
@@ -354,14 +331,6 @@ static void gf_sm_load_done_string(GF_SceneLoader *load, Bool do_clean)
 	case GF_SM_LOAD_SVG_DA:
 	case GF_SM_LOAD_XSR:
 		break;
-#ifdef GPAC_ENABLE_SVG_SA
-	case GF_SM_LOAD_SVG_SA:
-		break;
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-	case GF_SM_LOAD_SVG_SANI:
-		break;
-#endif
 #endif
 	default: 
 		break;
@@ -437,14 +406,6 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_init_xmt(load);
 #ifndef GPAC_DISABLE_SVG
-#ifdef GPAC_ENABLE_SVG_SA
-	case GF_SM_LOAD_SVG_SA:
-		return gf_sm_load_init_svg_sa(load);
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-	case GF_SM_LOAD_SVG_SANI:
-		return gf_sm_load_init_svg_sani(load);
-#endif
 	case GF_SM_LOAD_SVG_DA:
 	case GF_SM_LOAD_XSR:
 		return gf_sm_load_init_svg(load);
@@ -475,16 +436,6 @@ void gf_sm_load_done(GF_SceneLoader *load)
 		gf_sm_load_done_xmt(load); 
 		break;
 #ifndef GPAC_DISABLE_SVG
-#ifdef GPAC_ENABLE_SVG_SA
-	case GF_SM_LOAD_SVG_SA:
-		gf_sm_load_done_svg_sa(load);
-		break;
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-	case GF_SM_LOAD_SVG_SANI:
-		gf_sm_load_done_svg_sani(load);
-		break;
-#endif
 	case GF_SM_LOAD_XSR:
 	case GF_SM_LOAD_SVG_DA:
 		gf_sm_load_done_svg(load);
@@ -516,14 +467,6 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_run_xmt(load);
 #ifndef GPAC_DISABLE_SVG
-#ifdef GPAC_ENABLE_SVG_SA
-	case GF_SM_LOAD_SVG_SA:
-		return gf_sm_load_run_svg_sa(load);
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-	case GF_SM_LOAD_SVG_SANI:
-		return gf_sm_load_run_svg_sani(load);
-#endif
 	case GF_SM_LOAD_XSR:
 	case GF_SM_LOAD_SVG_DA:
 		return gf_sm_load_run_svg(load);
@@ -541,34 +484,4 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 		return GF_BAD_PARAM;
 	}
 }
-
-#ifdef DANAE
-void *DANAE_NewSceneLoader(char *filename, void *scene_graph)
-{
-	GF_SceneLoader *scene_loader;
-	
-	GF_SAFEALLOC(scene_loader, GF_SceneLoader);
-	scene_loader->fileName = filename;
-	scene_loader->scene_graph = scene_graph;
-   	scene_loader->flags = GF_SM_LOAD_FOR_PLAYBACK;
-	if (gf_sm_load_init(scene_loader) != GF_OK) {
-		free(scene_loader);
-		return NULL;
-	}
-	return scene_loader;
-
-}
-
-void DANAE_SceneLoader_Parse(void *p)
-{
-	gf_sm_load_run(p);
-}
-
-void DANAE_SceneLoader_Terminate(void *p)
-{
-	gf_sm_load_done(p);
-	free(p);
-}
-
-#endif
 

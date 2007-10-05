@@ -1482,8 +1482,7 @@ exit:
 		}
 #endif
 		e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
-		if (!size || e == GF_IP_NETWORK_EMPTY) {
-		
+		if (!size || e == GF_IP_NETWORK_EMPTY) {	
 			if (!sess->total_size && (gf_sys_clock() - sess->window_start > 1000)) {
 				sess->total_size = sess->bytes_done;
 				gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);

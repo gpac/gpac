@@ -25,7 +25,7 @@
 
 
 #include <gpac/internal/terminal_dev.h>
-#include <gpac/internal/renderer_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/constants.h>
 #include "media_memory.h"
 #include "media_control.h"
@@ -304,8 +304,8 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	scene_locked = 0;
 	
 	/*for resync, if needed - the logic behind this is that there is no composition memory on sytems codecs so
-	"frame dropping" is done by preventing the renderer from redrawing after an update and decoding following AU
-	so that the renderer is always woken up once all late systems AUs are decoded. This flag is overriden when 
+	"frame dropping" is done by preventing the compositor from redrawing after an update and decoding following AU
+	so that the compositor is always woken up once all late systems AUs are decoded. This flag is overriden when 
 	seeking*/
 	check_next_unit = (codec->odm->term->flags & GF_TERM_SYSDEC_RESYNC) ? 1 : 0;
 	
@@ -376,10 +376,10 @@ check_unit:
 
 	/*lock scene*/
 	if (!scene_locked) {
-		gf_term_lock_renderer(codec->odm->term, 1);
+		gf_term_lock_compositor(codec->odm->term, 1);
 		scene_locked = 1;
 		/*if terminal is paused, force step-mode: it won't hurt in regular pause/play and ensures proper frame dumping*/
-		if (codec->odm->term->play_state) codec->odm->term->renderer->step_mode=1;
+		if (codec->odm->term->play_state) codec->odm->term->compositor->step_mode=1;
 	}
 
 	/*current media time for system objects is the clock time, since the media is likely to have random 
@@ -402,7 +402,7 @@ check_unit:
 		goto exit;
 	}
 	/*OD acts as scene codec, regenerate scene*/
-	if (codec->flags & GF_ESM_CODEC_IS_SCENE_OD) gf_is_regenerate(codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene);
+	if (codec->flags & GF_ESM_CODEC_IS_SCENE_OD) gf_inline_regenerate(codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene);
 	/*in broadcast mode, generate a scene if none is available*/
 	else if (codec->ck->no_time_ctrl) {
 		GF_InlineScene *is = codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene;
@@ -413,7 +413,7 @@ check_unit:
 		if (is->graph_attached != 1 ) {
 			Bool prev_dyn = is->is_dynamic_scene; 
 			is->is_dynamic_scene = 1;
-			gf_is_regenerate(is);
+			gf_inline_regenerate(is);
 			is->graph_attached = 2;
 			is->is_dynamic_scene = prev_dyn;
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Decoder] Got OD resources before scene - generating temporary scene\n"));
@@ -424,7 +424,7 @@ check_unit:
 	if (check_next_unit) goto check_unit;
 	
 exit:
-	if (scene_locked) gf_term_lock_renderer(codec->odm->term, 0);
+	if (scene_locked) gf_term_lock_compositor(codec->odm->term, 0);
 	return e;
 }
 
@@ -464,7 +464,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	codec->odm->current_time = codec->last_unit_cts = gf_clock_time(codec->ck);
 
 	/*lock scene*/
-	gf_term_lock_renderer(codec->odm->term, 1);
+	gf_term_lock_compositor(codec->odm->term, 1);
 	now = gf_term_get_time(codec->odm->term);
 	e = sdec->ProcessData(sdec, NULL, codec->odm->current_time, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
 	now = gf_term_get_time(codec->odm->term) - now;
@@ -481,7 +481,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	codec_update_stats(codec, 0, now);
 
-	gf_term_lock_renderer(codec->odm->term, 0);
+	gf_term_lock_compositor(codec->odm->term, 0);
 
 	if (e==GF_EOS) {
 		/*first end of stream, evaluate duration*/
@@ -559,7 +559,7 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 		if (!dec->CB->Min) dec->CB->Min = 1;
 	}
 	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene) {
-		gf_is_force_scene_size_video(dec->odm->parentscene, dec->odm->mo);
+		gf_inline_force_scene_size_video(dec->odm->parentscene, dec->odm->mo);
 	}
 	return GF_OK;
 }
@@ -629,7 +629,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				gf_cm_rewind_input(codec->CB);
 				mmlevel = GF_CODEC_LEVEL_NORMAL;
 				/*force staying in step-mode*/
-				codec->odm->term->renderer->step_mode=1;
+				codec->odm->term->compositor->step_mode=1;
 			}
 		}
 		/*only perform drop in normal playback*/

@@ -442,12 +442,6 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 	m_url_changed = 0;
 	SetOptions();
  
-    /*setup 3D mode if requested*/
-	if (m_szURL && (strstr(m_szURL, ".wrl") || strstr(m_szURL, ".x3d") || strstr(m_szURL, ".x3dv"))) {
-		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
-	} else {
-		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", m_bUse3D ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
-	}
 	m_term = gf_term_new(&m_user);
 	if (! m_term) return FALSE;
 
@@ -516,36 +510,12 @@ void nsOsmozillaInstance::SetOptions()
 
 }
 
-void nsOsmozillaInstance::ReloadTerminal()
-{
-	GF_Terminal *a_term;
-	const char *rend;
-	Bool needs_3d;
-	if (!m_szURL || m_bUse3D) return;
-
-	if (m_szURL && (strstr(m_szURL, ".wrl") || strstr(m_szURL, ".x3d") || strstr(m_szURL, ".x3dv"))) {
-		needs_3d = 1;
-	} else {
-		needs_3d = 0;
-	}
-	rend = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
-	if (strstr(rend, "3D") && needs_3d) return;
-	if (strstr(rend, "2D") && !needs_3d) return;
-
-	a_term = m_term;
-	m_term = NULL;
-	gf_term_del(a_term);
-	gf_cfg_set_key(m_user.config, "Rendering", "RendererName", needs_3d ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
-	m_term = gf_term_new(&m_user);
-}
-
 NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
 				    NPBool seekable, uint16 * stype)
 {
 	if (m_szURL) free(m_szURL);
 	m_szURL = strdup((const char *)stream->url);
 
-	ReloadTerminal();
 	/*connect from 0 and pause if not autoplay*/
 	if (m_bAutoStart)
 		gf_term_connect(m_term, m_szURL);

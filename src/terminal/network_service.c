@@ -105,7 +105,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 					1- first remove from parent scene without destroying object, this will trigger a re-setup
 					if other URLs are present
 					2- then destroy object*/
-					gf_is_remove_object(root->parentscene, root, 0);
+					gf_inline_remove_object(root->parentscene, root, 0);
 					gf_odm_disconnect(root, 1);
 				}
 				return;
@@ -135,7 +135,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 				GF_ObjectManager *odm = (GF_ObjectManager*)gf_list_get(ODs, 0);
 				gf_list_rem(ODs, 0);
 				/*force re-setup*/
-				gf_is_setup_object(odm->parentscene, odm);
+				gf_inline_setup_object(odm->parentscene, odm);
 			}
 			gf_list_del(ODs);
 		} else {
@@ -242,7 +242,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[Service %s] %s\n", service->url, media_desc ? "Adding new media object" : "Regenerating scene graph"));
 	if (!media_desc) {
-		if (!no_scene_check) gf_is_regenerate(is);
+		if (!no_scene_check) gf_inline_regenerate(is);
 		return;
 	}
 
@@ -259,7 +259,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	}
 
 	gf_term_lock_net(term, 1);
-	odm = gf_is_find_odm(is, od->objectDescriptorID);
+	odm = gf_inline_find_odm(is, od->objectDescriptorID);
 	/*remove the old OD*/
 	if (odm) gf_odm_disconnect(odm, 1);
 	odm = gf_odm_new();
@@ -273,7 +273,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	gf_odm_setup_object(odm, service);
 
 	/*OD inserted by service: resetup scene*/
-	if (!no_scene_check && is->is_dynamic_scene) gf_is_regenerate(is);
+	if (!no_scene_check && is->is_dynamic_scene) gf_inline_regenerate(is);
 }
 
 static void term_on_command(void *user_priv, GF_ClientService *service, GF_NetworkCommand *com, GF_Err response)

@@ -257,10 +257,8 @@ BOOL COsmo4::InitInstance()
 		if (m_user.modules) {
 			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) config_path);
 
-			gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
-
-			sOpt = gf_cfg_get_key(m_user.config, "Rendering", "Raster2D");
-			if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "GPAC 2D Raster");
+			sOpt = gf_cfg_get_key(m_user.config, "Compositor", "Raster2D");
+			if (!sOpt) gf_cfg_set_key(m_user.config, "Compositor", "Raster2D", "GPAC 2D Raster");
 
 
 			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
@@ -484,23 +482,6 @@ void COsmo4::Pause()
 }
 
 
-
-void COsmo4::ReloadTerminal()
-{
-	Bool reconnect = m_open;
-	m_reconnect_time = 0;
-	if (m_can_seek) m_reconnect_time = gf_term_get_time_in_ms(m_term);
-
-	gf_term_del(m_term);
-	m_term = gf_term_new(&m_user);
-	if (!m_term) {
-		MessageBox(NULL, _T("Fatal Error !!"), _T("Couldn't change renderer"), MB_OK);
-		m_pMainWnd->PostMessage(WM_DESTROY);
-		return;
-	}
-	if (reconnect) m_pMainWnd->PostMessage(WM_OPENURL);
-}
-
 void COsmo4::OnConfigure()
 {
 	COptions dlg;
@@ -508,8 +489,6 @@ void COsmo4::OnConfigure()
 	ShowTaskBar(1);
 	dlg.DoModal();
 	ShowTaskBar(0);
-
-	if (dlg.m_bNeedsReload) ReloadTerminal();
 }
 
 void COsmo4::ShowTaskBar(Bool showIt, Bool pause_only)

@@ -535,21 +535,6 @@ void view_about(HWND hwnd)
 	freeze_display(0);
 }
 
-void reload_terminal()
-{
-	HCURSOR hcur = SetCursor(LoadCursor(NULL, IDC_WAIT));
-	gf_term_del(term);
-	term = gf_term_new(&user);
-	if (!term) {
-		MessageBox(NULL, _T("Fatal Error !!"), _T("Couldn't change renderer"), MB_OK);
-		PostQuitMessage(0);
-	} else {
-		const char *str = gf_cfg_get_key(user.config, "Rendering", "RendererName");
-		use_3D_renderer = (str && strstr(str, "3D")) ? 1 : 0;
-	}
-	SetCursor(hcur);
-}
-
 void pause_file()
 {
 	if (!is_connected) return;
@@ -610,8 +595,7 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		break;
 	case IDM_VIEW_3DREND:
 		use_3D_renderer = !use_3D_renderer;
-		gf_cfg_set_key(user.config, "Rendering", "RendererName", use_3D_renderer ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
-		reload_terminal();
+		gf_term_set_option(term, GF_OPT_USE_OPENGL, use_3D_renderer);
 		break;
 	case IDM_NAV_RESET:
 		gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
@@ -668,7 +652,7 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	{
 		Bool drend = gf_term_get_option(term, GF_OPT_DIRECT_RENDER) ? 0 : 1;
 		gf_term_set_option(term, GF_OPT_DIRECT_RENDER, drend);
-		gf_cfg_set_key(user.config, "Render2D", "DirectRender", drend ? "yes" : "no");
+		gf_cfg_set_key(user.config, "Compositor", "DirectDraw", drend ? "yes" : "no");
 	}
 		break;
 
@@ -913,8 +897,7 @@ Bool initial_setup(const char *szExePath)
 	gf_cfg_set_key(user.config, "General", "CacheDirectory", szPath);
 
 	/*base rendering options*/
-	gf_cfg_set_key(user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
-	gf_cfg_set_key(user.config, "Rendering", "Raster2D", "GPAC 2D Raster");
+	gf_cfg_set_key(user.config, "Compositor", "Raster2D", "GPAC 2D Raster");
 	/*enable UDP traffic autodetect*/
 	gf_cfg_set_key(user.config, "Network", "AutoReconfigUDP", "yes");
 	gf_cfg_set_key(user.config, "Network", "UDPTimeout", "10000");
@@ -1025,8 +1008,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	str = gf_cfg_get_key(user.config, "General", "Loop");
 	loop = (str && !stricmp(str, "yes")) ? 1 : 0;
 
-	str = gf_cfg_get_key(user.config, "Rendering", "RendererName");
-	use_3D_renderer = (str && strstr(str, "3D")) ? 1 : 0;
+	use_3D_renderer = 0;
 
 	str = gf_cfg_get_key(user.config, "SAXLoader", "Progressive");
 	use_svg_prog = (str && !strcmp(str, "yes")) ? 1 : 0;

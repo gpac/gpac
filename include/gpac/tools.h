@@ -60,7 +60,7 @@ extern "C" {
 /*KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)!!!, and NO SPACE in GPAC_VERSION for proper install*/
 #define GPAC_VERSION       "0.4.5-DEV"
 
-#define GPAC_BUILD_NUMBER	"5"
+#define GPAC_BUILD_NUMBER	"10"
 #define GPAC_FULL_VERSION       GPAC_VERSION" (build "GPAC_BUILD_NUMBER")"
 
 /*!
@@ -296,16 +296,16 @@ enum
 	GF_LOG_CODEC = 1<<7,
 	/*! Log message from any XML parser (context loading, etc)*/
 	GF_LOG_PARSER = 1<<8,
-	/*! Log message from the terminal/renderer, indicating media object state*/
+	/*! Log message from the terminal/compositor, indicating media object state*/
 	GF_LOG_MEDIA = 1<<9,
 	/*! Log message from the scene graph/scene manager (handling of nodes and attribute modif, DOM core)*/
 	GF_LOG_SCENE = 1<<10,
 	/*! Log message from the scripting engine*/
 	GF_LOG_SCRIPT = 1<<11,
 	/*! Log message from event handling, animations and scene timing*/
-	GF_LOG_COMPOSE = 1<<12,
-	/*! Log message from renderer*/
-	GF_LOG_RENDER = 1<<13,
+	GF_LOG_INTERACT = 1<<12,
+	/*! Log message from compositor*/
+	GF_LOG_COMPOSE = 1<<13,
 	/*! Log message from a media service*/
 	GF_LOG_SERVICE = 1<<14,
 	/*! Log message from multimedia I/O devices (audio/video input/output, ...)*/

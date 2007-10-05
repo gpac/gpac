@@ -24,13 +24,11 @@
 
 
 #include <gpac/internal/terminal_dev.h>
-#include <gpac/internal/renderer_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_x3d.h>
 #include "media_memory.h"
 #include "media_control.h"
-#include <gpac/nodes_svg_sa.h>
-#include <gpac/nodes_svg_sani.h>
 #include <gpac/nodes_svg_da.h>
 
 
@@ -80,7 +78,7 @@ static GF_MediaObject *get_sync_reference(GF_InlineScene *is, XMLRI *iri, u32 o_
 	mfurl.vals[0].OD_ID = stream_id;
 	mfurl.vals[0].url = iri->string;
 
-	res = gf_is_get_media_object(is, &mfurl, o_type, 0);
+	res = gf_inline_get_media_object(is, &mfurl, o_type, 0);
 	if (!res) *post_pone = 1;
 	return res;
 }
@@ -116,16 +114,6 @@ GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 	case TAG_MPEG4_Inline: case TAG_X3D_Inline: obj_type = GF_MEDIA_OBJECT_SCENE; break;
 	
 	/*SVG*/
-#ifdef GPAC_ENABLE_SVG_SA
-	case TAG_SVG_SA_audio: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
-	case TAG_SVG_SA_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
-	case TAG_SVG_SA_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-	case TAG_SVG_SANI_audio: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
-	case TAG_SVG_SANI_image: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
-	case TAG_SVG_SANI_video: obj_type = GF_MEDIA_OBJECT_VIDEO; break;
-#endif
 	case TAG_SVG_audio: 
 		obj_type = GF_MEDIA_OBJECT_AUDIO; 
 		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_syncReference, 0, 0, &info)==GF_OK) {
@@ -148,7 +136,7 @@ GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 
 	default: obj_type = GF_MEDIA_OBJECT_UNDEF; break;
 	}
-	res = gf_is_get_media_object_ex(is, url, obj_type, lock_timelines, syncRef);
+	res = gf_inline_get_media_object_ex(is, url, obj_type, lock_timelines, syncRef);
 
 	return res;
 }

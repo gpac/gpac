@@ -97,7 +97,7 @@ public:
 	enum { IDD = IDD_OPT_RENDER };
 	CComboBox	m_Antialias;
 	CButton	m_ForceSize;
-	CButton	m_FastRender;
+	CButton	m_HighSpeed;
 	CButton	m_Scalable;
 	CButton	m_DirectRender;
 	CComboBox	m_BIFSRate;
@@ -314,7 +314,6 @@ public:
 	CButton	m_EmulatePOW2;
 	//}}AFX_DATA
 
-	Bool m_bNeedsReload;
 	void SaveOptions();
 
 // Overrides
@@ -342,8 +341,6 @@ class COptions : public CDialog
 // Construction
 public:
 	COptions(CWnd* pParent = NULL);   // standard constructor
-
-	Bool m_bNeedsReload;
 
 // Dialog Data
 	//{{AFX_DATA(COptions)

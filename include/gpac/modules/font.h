@@ -60,7 +60,7 @@ typedef struct _font_raster
 	/*add text to path - graphics driver may be changed at any time, therefore the font engine shall not 
 	cache graphics data
 		@path: target path
-		x and y scaling: string display length control by the renderer, to apply to the text string
+		x and y scaling: string display length control by the compositor, to apply to the text string
 		left and top: top-left corner where to place the string (top alignment)
 		ascent: offset between @top and baseline - may be needed by some fonts engine
 		bounds: output bounds of the added text including white space

@@ -2048,9 +2048,6 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_SCENE, 0xFE);
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_GRAPHICS, 0xFE);
 		break;
-/* WARNING: Code added for Bandwidth estimation in DANAE */
-	case 32:
-/**/
 	case GF_STREAM_VISUAL:
 		mtype = GF_ISOM_MEDIA_VISUAL;
 		if (import->esd->decoderConfig->objectTypeIndication==0x20) {

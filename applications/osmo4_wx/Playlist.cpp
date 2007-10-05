@@ -47,7 +47,6 @@ PLEntry::PLEntry(wxString url)
 	} else {
 		m_disp_name = strdup(_url);
 		if (!is_remote) {
-			m_disp_name = strdup(_url);
 			str = strrchr(m_disp_name, '.');
 			if (str) str[0] = 0;
 		}

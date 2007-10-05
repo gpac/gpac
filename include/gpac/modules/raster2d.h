@@ -180,7 +180,7 @@ typedef struct _raster2d_interface
 	GF_Err (*stencil_set_texture) (GF_STENCIL _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy);
 	/*creates internal texture - pixel data is owned by texture brush - set to NULL if not supported - this is used to 
 	cope with engines that don't support random strides (ex: Gdiplus needs stride to be a multiple of 4) 
-	if not set the renderer will create its own mem texture and pass it through set_texture - pixel format shall 
+	if not set the compositor will create its own mem texture and pass it through set_texture - pixel format shall 
 	be respected as far as Alpha is concerned (eg alpha info shall be kept and used in blit) */
 	GF_Err (*stencil_create_texture) (GF_STENCIL _this, u32 width, u32 height, GF_PixelFormat pixelFormat);
 	/*signals the texture has been modified (internal texture only)*/

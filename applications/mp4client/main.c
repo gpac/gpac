@@ -123,8 +123,8 @@ void PrintUsage()
 		"\t-raw [times]:   dumps given frames to bmp\n"
 		"\t-avi [times]:   dumps given file to raw avi\n"
 		"\t-fps FPS:       specifies frame rate for AVI dumping (default: 25.0)\n"
-		"\t-2d:            uses 2D renderer\n"
-		"\t-3d:            uses 3D renderer\n"
+		"\t-2d:            uses 2D compositor\n"
+		"\t-3d:            uses 3D compositor\n"
 		"\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
 		"\t-show:          show window while dumping (default: no)\n"
 		"MP4Client - GPAC command line player and dumper - version %s\n"
@@ -161,8 +161,8 @@ void PrintHelp()
 		"\tn: changes navigation mode\n"
 		"\tx: reset to last active viewpoint\n"
 		"\n"
-		"\t2: restart using 2D renderer\n"
-		"\t3: restart using 3D renderer\n"
+		"\t2: restart using 2D compositor\n"
+		"\t3: restart using 3D compositor\n"
 		"\n"
 		"\t4: forces 4/3 Aspect Ratio\n"
 		"\t5: forces 16/9 Aspect Ratio\n"
@@ -215,7 +215,6 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "2");
 	gf_cfg_set_key(cfg, "Audio", "TotalDuration", "120");
 	gf_cfg_set_key(cfg, "Audio", "DisableNotification", "no");
-	gf_cfg_set_key(cfg, "Rendering", "RendererName", "GPAC 2D Renderer");
 	gf_cfg_set_key(cfg, "FontEngine", "DriverName", "ft_font");
 
 #ifdef WIN32
@@ -236,34 +235,37 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", szPath);
 
 #ifdef WIN32
-//	fprintf(stdout, "Please enter full path to a cache directory for HTTP downloads:\n");
-//	scanf("%s", szPath);
+/*	fprintf(stdout, "Please enter full path to a cache directory for HTTP downloads:\n");
+	scanf("%s", szPath);
+*/
 	GetWindowsDirectory((char*)szPath, MAX_PATH);
 	if (szPath[strlen((char*)szPath)-1] != '\\') strcat((char*)szPath, "\\");
 	strcat((char *)szPath, "Temp");
+
 	gf_cfg_set_key(cfg, "General", "CacheDirectory", szPath);
+	fprintf(stdout, "Using default cache directory %s\n", szPath);
 #else
 	fprintf(stdout, "Using /tmp as a cache directory for HTTP downloads:\n");
 	gf_cfg_set_key(cfg, "General", "CacheDirectory", "/tmp");
 #endif
 
 	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "yes");
-	gf_cfg_set_key(cfg, "Rendering", "AntiAlias", "All");
-	gf_cfg_set_key(cfg, "Rendering", "Framerate", "30");
+	gf_cfg_set_key(cfg, "Compositor", "AntiAlias", "All");
+	gf_cfg_set_key(cfg, "Compositor", "Framerate", "30");
 	/*use power-of-2 emulation*/
-	gf_cfg_set_key(cfg, "Render3D", "EmulatePOW2", "yes");
+	gf_cfg_set_key(cfg, "Compositor", "EmulatePOW2", "yes");
 #ifdef WIN32
-	gf_cfg_set_key(cfg, "Render2D", "ScalableZoom", "yes");
+	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "yes");
 	gf_cfg_set_key(cfg, "Video", "DriverName", "DirectX Video Output");
 #else
 #ifdef __DARWIN__
 	gf_cfg_set_key(cfg, "Video", "DriverName", "SDL Video Output");
 	/*SDL not so fast with scalable zoom*/
-	gf_cfg_set_key(cfg, "Render2D", "ScalableZoom", "no");
+	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "no");
 #else
 	gf_cfg_set_key(cfg, "Video", "DriverName", "X11 Video Output");
 	/*x11 only supports scalable zoom*/
-	gf_cfg_set_key(cfg, "Render2D", "ScalableZoom", "yes");
+	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "yes");
 	gf_cfg_set_key(cfg, "Audio", "DriverName", "SDL Audio Output");
 #endif
 #endif
@@ -719,7 +721,7 @@ void set_navigation()
 	u32 type = gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE);
 	e = GF_OK;
 	if (!type) {
-		fprintf(stdout, "Content/renderer doesn't allow user-selectable navigation\n");
+		fprintf(stdout, "Content/compositor doesn't allow user-selectable navigation\n");
 	} else if (type==1) {
 		fprintf(stdout, "Select Navigation (\'N\'one, \'E\'xamine, \'S\'lide): ");
 		scanf("%s", navstr);
@@ -765,8 +767,8 @@ static u32 parse_log_tools(char *val)
 		else if (!stricmp(val, "media")) flags |= GF_LOG_MEDIA;
 		else if (!stricmp(val, "scene")) flags |= GF_LOG_SCENE;
 		else if (!stricmp(val, "script")) flags |= GF_LOG_SCRIPT;
+		else if (!stricmp(val, "interact")) flags |= GF_LOG_INTERACT;
 		else if (!stricmp(val, "compose")) flags |= GF_LOG_COMPOSE;
-		else if (!stricmp(val, "render")) flags |= GF_LOG_RENDER;
 		else if (!stricmp(val, "service")) flags |= GF_LOG_SERVICE;
 		else if (!stricmp(val, "mmio")) flags |= GF_LOG_MMIO;
 		else if (!stricmp(val, "none")) flags = 0;
@@ -837,7 +839,7 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 int main (int argc, char **argv)
 {
 	const char *str;
-	u32 i, width, height, times[100], nb_times, rend_mode, dump_mode;
+	u32 i, width, height, times[100], nb_times, dump_mode;
 	Bool start_fs = 0;
 	Double fps = 25.0;
 	Bool ret, fill_ar, visible;
@@ -851,7 +853,7 @@ int main (int argc, char **argv)
 
 	memset(&user, 0, sizeof(GF_User));
 
-	dump_mode = rend_mode = 0;
+	dump_mode = 0;
 	fill_ar = visible = 0;
 	url_arg = the_cfg = rti_file = NULL;
 	width = height = 0;
@@ -890,10 +892,6 @@ int main (int argc, char **argv)
 		} else if (!stricmp(arg, "-fps")) {
 			fps = atof(argv[i+1]);
 			i++;
-		} else if (!stricmp(arg, "-2d")) {
-			rend_mode = 1;
-		} else if (!stricmp(arg, "-3d")) {
-			rend_mode = 2;
 		} else if (!strcmp(arg, "-quiet")) {
 			be_quiet = 1;
 		} else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
@@ -944,8 +942,6 @@ int main (int argc, char **argv)
 
 	/*setup dumping options*/
 	if (dump_mode) {
-		if (rend_mode==2) user.init_flags |= GF_TERM_FORCE_3D;
-		else if (rend_mode==1) user.init_flags |= GF_TERM_FORCE_2D;
 		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
 		if (!visible) user.init_flags |= GF_TERM_INIT_HIDE;
 	} else {
@@ -957,10 +953,10 @@ int main (int argc, char **argv)
 	str = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
 
 	user.modules = gf_modules_new((const unsigned char *) str, cfg_file);
-	i = gf_modules_get_count(user.modules);
-	if (!i) {
+	if (user.modules) i = gf_modules_get_count(user.modules);
+	if (!i || !user.modules) {
 		fprintf(stdout, "Error: no modules found in %s - exiting\n", str);
-		gf_modules_del(user.modules);
+		if (user.modules) gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
 		gf_sys_close();
 		if (logfile) fclose(logfile);
@@ -1001,13 +997,6 @@ int main (int argc, char **argv)
 
 		str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
 		no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
-	}
-
-
-	if (rend_mode) {
-		fprintf(stdout, "Using %dD renderer\n", (rend_mode==2) ? 3 : 2);
-	} else {
-		fprintf(stdout, "Using %s\n", gf_cfg_get_key(cfg_file, "Rendering", "RendererName"));
 	}
 
 	str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Enabled");
@@ -1248,29 +1237,11 @@ force_input:
 		case 'c':
 			PrintGPACConfig();
 			break;
-		case '2':
 		case '3':
 		{
-			GF_Terminal *a_term;
-			u32 now = gf_term_get_time_in_ms(term);
-			Bool reconnect = (is_connected && !startup_file) ? 1 : 0;
-			str = gf_cfg_get_key(cfg_file, "Rendering", "RendererName");
-			if (strstr(str, "2D") && (c=='2')) { fprintf(stdout, "Already using 2D Renderer\n"); break; }
-			if (strstr(str, "3D") && (c=='3')) { fprintf(stdout, "Already using 3D Renderer\n"); break; }
-			if (is_connected) gf_term_disconnect(term);
-			a_term = term;
-			term = NULL;
-			gf_term_del(a_term);
-			gf_cfg_set_key(cfg_file, "Rendering", "RendererName", (c=='2') ? "GPAC 2D Renderer" : "GPAC 3D Renderer");
-			term = gf_term_new(&user);
-			if (!term) {
-				fprintf(stdout, "Error reloading renderer - aborting\n");
-				goto exit;
-			}
-			fprintf(stdout, "Using %s\n", gf_cfg_get_key(cfg_file, "Rendering", "RendererName"));
-			if (reconnect) gf_term_connect_from_time(term, the_url, now, 0);
-			else if (startup_file) {
-				gf_term_connect(term, gf_cfg_get_key(cfg_file, "General", "StartupFile"));
+			Bool use_3d = !gf_term_get_option(term, GF_OPT_USE_OPENGL);
+			if (gf_term_set_option(term, GF_OPT_USE_OPENGL, use_3d)==GF_OK) {
+				fprintf(stdout, "Using %s for 2D rendering\n", use_3d ? "OpenGL" : "2D rasterizer");
 			}
 		}
 			break;
@@ -1365,8 +1336,6 @@ force_input:
 	if (playlist) fclose(playlist);
 	gf_term_del(term);
 	fprintf(stdout, "OK\n");
-
-exit:
 
 	fprintf(stdout, "Unloading modules... ");
 	gf_modules_del(user.modules);

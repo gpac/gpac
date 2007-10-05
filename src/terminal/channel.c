@@ -289,7 +289,7 @@ static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 			gf_term_message(ch->odm->term, ch->service->url, "Data timeout - aborting buffering", GF_OK); 
 			ch->MinBuffer = ch->MaxBuffer = 0;
 			ch->au_duration = 0;
-			gf_is_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+			gf_inline_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 			return 0;
 		} else {
 			now = ch->odm->term->net_data_timeout + ch->last_au_time - now;
@@ -322,10 +322,10 @@ static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 
 static void Channel_UpdateBuffering(GF_Channel *ch, Bool update_info)
 {
-	if (update_info && ch->MaxBuffer) gf_is_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+	if (update_info && ch->MaxBuffer) gf_inline_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 	if (!Channel_NeedsBuffering(ch, 0)) {
 		ch_buffer_off(ch);
-		if (ch->MaxBuffer) gf_is_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+		if (ch->MaxBuffer) gf_inline_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 		if (ch->clock->no_time_ctrl) ch->clock->no_time_ctrl = 2;
 	}
 }

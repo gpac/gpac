@@ -33,7 +33,7 @@ void v4s_node_init(void *cbkObject, u32 type, GF_Node *node, void *param)
 		case TAG_MPEG4_QuantizationParameter:
 			break;
 		default:
-			gf_sr_on_node_init(((V4SceneManager *)cbkObject)->GetSceneRenderer(), node);
+			gf_sc_on_node_init(((V4SceneManager *)cbkObject)->GetSceneCompositor(), node);
 			break;
 		}
 	}
@@ -41,7 +41,7 @@ void v4s_node_init(void *cbkObject, u32 type, GF_Node *node, void *param)
 
 void V4SceneManager::LoadNew() 
 {
-	m_pIs = gf_is_new(NULL);
+	m_pIs = gf_inline_new(NULL);
 	gf_sg_set_private(m_pIs->graph, this);
 	gf_sg_set_node_callback(m_pIs->graph, v4s_node_init);
 	m_gpac_panel = new wxGPACPanel(this, NULL);
@@ -109,7 +109,7 @@ void V4SceneManager::LoadFileOld(const char *path)
 			   This is a temporary patch */
 			if (c->tag == GF_SG_SCENE_REPLACE) { c->node = m_pIs->graph->RootNode; }
 		}
-		gf_sr_set_scene(term->renderer, m_pIs->graph);
+		gf_sc_set_scene(term->compositor, m_pIs->graph);
 
 		// retrieves all the node from the tree and adds them to the node pool
 		GF_Node * root = gf_sg_get_root_node(m_pIs->graph);
@@ -126,7 +126,7 @@ void V4SceneManager::LoadFile(const char *path)
 
 	// initializes a new scene
 	// We need an GF_InlineScene, a SceneManager and an GF_ObjectManager
-	m_pIs = gf_is_new(NULL);
+	m_pIs = gf_inline_new(NULL);
 	m_pSm = gf_sm_new(m_pIs->graph);
 
 	m_pIs->root_od = gf_odm_new();
@@ -166,7 +166,7 @@ void V4SceneManager::LoadFile(const char *path)
 		   This is a temporary patch */
 		if (c->tag == GF_SG_SCENE_REPLACE) { c->node = m_pIs->graph->RootNode; }
 	}
-	gf_sr_set_scene(term->renderer, m_pIs->graph);
+	gf_sc_set_scene(term->compositor, m_pIs->graph);
 
 	// TODO : read actual values from file
 	SetLength(50);
@@ -195,7 +195,7 @@ void V4SceneManager::SetSceneSize(int w, int h)
 {
 	gf_sg_set_scene_size_info(m_pIs->graph, w,h, 1);
 	/*reassign scene graph to update scene size in renderer*/
-	gf_sr_set_scene(m_gpac_panel->GetMPEG4Terminal()->renderer, m_pIs->graph);
+	gf_sc_set_scene(m_gpac_panel->GetMPEG4Terminal()->compositor, m_pIs->graph);
 }
 
 void V4SceneManager::GetSceneSize(wxSize &size) 

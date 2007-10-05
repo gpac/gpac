@@ -71,9 +71,9 @@ BOOL COptions::OnInitDialog()
 	m_Selector.AddString("General");
 	m_Selector.AddString("MPEG-4 Systems");
 	m_Selector.AddString("Media Decoders");
-	m_Selector.AddString("Rendering");
-	m_Selector.AddString("Renderer 2D");
-	m_Selector.AddString("Renderer 3D");
+	m_Selector.AddString("Compositor");
+	m_Selector.AddString("2D Drawing");
+	m_Selector.AddString("3D Drawing");
 	m_Selector.AddString("Video Output");
 	m_Selector.AddString("Audio Output");
 	m_Selector.AddString("Text Engine");
@@ -142,11 +142,10 @@ void COptions::OnSelchangeSelect()
 
 void COptions::OnSaveopt() 
 {
-	Bool need_reload;
 	m_general.SaveOptions();
 	m_systems.SaveOptions();
 	m_decoder.SaveOptions();
-	need_reload = m_render.SaveOptions();
+	m_render.SaveOptions();
 	m_render2d.SaveOptions();
 	m_render3d.SaveOptions();
 	m_audio.SaveOptions();
@@ -157,12 +156,8 @@ void COptions::OnSaveopt()
 	m_cache.SaveOptions();
 	m_logs.SaveOptions();
 
-	WinGPAC *gpac = GetApp();
-	if (!need_reload) {
-		gf_term_set_option(gpac->m_term, GF_OPT_RELOAD_CONFIG, 1);
-	} else {
-		gpac->ReloadTerminal();
-	}
+	Osmo4 *gpac = GetApp();
+	gf_term_set_option(gpac->m_term, GF_OPT_RELOAD_CONFIG, 1);
 	m_render2d.SetYUV();
 }
 
@@ -218,7 +213,7 @@ BOOL COptGen::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "Loop");
@@ -236,7 +231,7 @@ BOOL COptGen::OnInitDialog()
 
 void COptGen::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
 	gpac->m_Loop = m_Loop.GetCheck();
 	gf_cfg_set_key(gpac->m_user.config, "General", "Loop", gpac->m_Loop ? "yes" : "no");
@@ -287,7 +282,7 @@ BOOL COptSystems::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Systems", "Language3CC");
@@ -338,7 +333,7 @@ BOOL COptSystems::OnInitDialog()
 
 void COptSystems::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
 	s32 sel = m_Lang.GetCurSel();
 	u32 i=0;
@@ -395,7 +390,7 @@ BOOL OptDecoder::OnInitDialog()
 	const char *sOpt;
 	CDialog::OnInitDialog();
 	
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	
 	/*audio dec enum*/
 	while (m_Audio.GetCount()) m_Audio.DeleteString(0);
@@ -440,7 +435,7 @@ BOOL OptDecoder::OnInitDialog()
 
 void OptDecoder::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	char str[100];
 	m_Audio.GetWindowText(str, 100);
 	gf_cfg_set_key(gpac->m_user.config, "Systems", "DefAudioDec", str);
@@ -466,7 +461,7 @@ void COptRender::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_USE_RENDER3D, m_Use3DRender);
 	DDX_Control(pDX, IDC_AA_LIST, m_AntiAlias);
 	DDX_Control(pDX, IDC_FORCE_SIZE, m_ForceSize);
-	DDX_Control(pDX, IDC_FAST_RENDER, m_FastRender);
+	DDX_Control(pDX, IDC_FAST_RENDER, m_HighSpeed);
 	DDX_Control(pDX, IDC_BIFS_RATE, m_BIFSRate);
 	//}}AFX_DATA_MAP
 }
@@ -504,16 +499,16 @@ BOOL COptRender::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 	
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "RendererName");
-	m_Use3DRender.SetCheck( (sOpt && strstr(sOpt, "3D")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "ForceOpenGL");
+	m_Use3DRender.SetCheck( (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "ForceSceneSize");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "ForceSceneSize");
 	m_ForceSize.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "FrameRate");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "FrameRate");
 	if (!sOpt) sOpt = "30.0";
 	s32 select = 0;
 	while (m_BIFSRate.GetCount()) m_BIFSRate.DeleteString(0);
@@ -523,10 +518,10 @@ BOOL COptRender::OnInitDialog()
 	}
 	m_BIFSRate.SetCurSel(select);
 	
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "FastRender");
-	m_FastRender.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "HighSpeed");
+	m_HighSpeed.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "AntiAlias");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "AntiAlias");
 	while (m_AntiAlias.GetCount()) m_AntiAlias.DeleteString(0);
 
 	m_AntiAlias.AddString("None");
@@ -539,7 +534,7 @@ BOOL COptRender::OnInitDialog()
 
 	/*graphics driver enum*/
 	while (m_Graphics.GetCount()) m_Graphics.DeleteString(0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "Raster2D");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "Raster2D");
 	s32 count = gf_modules_get_count(gpac->m_user.modules);
 	GF_BaseInterface *ifce;
 	select = 0;
@@ -558,7 +553,7 @@ BOOL COptRender::OnInitDialog()
 	m_DrawBounds.AddString("None");
 	m_DrawBounds.AddString("Box/Rect");
 	m_DrawBounds.AddString("AABB Tree");
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "BoundingVolume");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "BoundingVolume");
 	if (sOpt && !stricmp(sOpt, "Box")) m_DrawBounds.SetCurSel(1);
 	else if (sOpt && !stricmp(sOpt, "AABB")) m_DrawBounds.SetCurSel(2);
 	else m_DrawBounds.SetCurSel(0);
@@ -570,33 +565,25 @@ BOOL COptRender::OnInitDialog()
 Bool COptRender::SaveOptions()
 {
 	char str[50];
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
-	gf_cfg_set_key(gpac->m_user.config, "Rendering", "FastRender", m_FastRender.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Rendering", "ForceSceneSize", m_ForceSize.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "HighSpeed", m_HighSpeed.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "ForceSceneSize", m_ForceSize.GetCheck() ? "yes" : "no");
 
 	s32 sel = m_BIFSRate.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Rendering", "FrameRate", BIFSRates[sel]);
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "FrameRate", BIFSRates[sel]);
 
 	sel = m_AntiAlias.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Rendering", "AntiAlias", (sel==0) ? "None" : ( (sel==1) ? "Text" : "All"));
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "AntiAlias", (sel==0) ? "None" : ( (sel==1) ? "Text" : "All"));
 
 	sel = m_DrawBounds.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Rendering", "BoundingVolume", (sel==2) ? "AABB" : (sel==1) ? "Box" : "None");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "BoundingVolume", (sel==2) ? "AABB" : (sel==1) ? "Box" : "None");
 
 	m_Graphics.GetWindowText(str, 50);
-	gf_cfg_set_key(gpac->m_user.config, "Rendering", "Raster2D", str);
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "Raster2D", str);
 
-	const char *opt;
-	opt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "RendererName");
-	if (!opt || strstr(opt, "2D")) {
-		if (!m_Use3DRender.GetCheck()) return 0;
-		gf_cfg_set_key(gpac->m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
-		return 1;
-	}
-	if (m_Use3DRender.GetCheck()) return 0;
-	gf_cfg_set_key(gpac->m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
-	return 1;
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "ForceOpenGL", m_Use3DRender.GetCheck() ? "yes" : "no");
+	return 0;
 }
 
 
@@ -633,23 +620,23 @@ BOOL COptRender2D::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render2D", "DirectRender");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "DirectDraw");
 	if (sOpt && !stricmp(sOpt, "yes")) {
 		m_DirectRender.SetCheck(1);
 	} else {
 		m_DirectRender.SetCheck(0);
 	}
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render2D", "ScalableZoom");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "ScalableZoom");
 	if (sOpt && !stricmp(sOpt, "no")) {
 		m_Scalable.SetCheck(0);
 	} else {
 		m_Scalable.SetCheck(1);
 	}
 	
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render2D", "DisableYUV");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "DisableYUV");
 	if (sOpt && !stricmp(sOpt, "yes")) {
 		m_NoYUV.SetCheck(1);
 	} else {
@@ -664,7 +651,7 @@ BOOL COptRender2D::OnInitDialog()
 
 void COptRender2D::SetYUV()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	u32 yuv_format = gf_term_get_option(gpac->m_term, GF_OPT_YUV_FORMAT);
 	if (!yuv_format) {
 		m_YUVFormat.SetWindowText("(No YUV used)");
@@ -677,11 +664,11 @@ void COptRender2D::SetYUV()
 
 void COptRender2D::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
-	gf_cfg_set_key(gpac->m_user.config, "Render2D", "DirectRender", m_DirectRender.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Render2D", "ScalableZoom", m_Scalable.GetCheck() ? "yes" : "no");
+	Osmo4 *gpac = GetApp();
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "DirectDraw", m_DirectRender.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "ScalableZoom", m_Scalable.GetCheck() ? "yes" : "no");
 
-	gf_cfg_set_key(gpac->m_user.config, "Render2D", "DisableYUV", m_NoYUV.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "DisableYUV", m_NoYUV.GetCheck() ? "yes" : "no");
 }
 
 
@@ -723,13 +710,13 @@ BOOL COptRender3D::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 
 	m_DrawNormals.AddString("Never");
 	m_DrawNormals.AddString("Per Face");
 	m_DrawNormals.AddString("Per Vertex");
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "DrawNormals");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "DrawNormals");
 	if (sOpt && !stricmp(sOpt, "PerFace")) m_DrawNormals.SetCurSel(1);
 	else if (sOpt && !stricmp(sOpt, "PerVertex")) m_DrawNormals.SetCurSel(2);
 	else m_DrawNormals.SetCurSel(0);
@@ -737,7 +724,7 @@ BOOL COptRender3D::OnInitDialog()
 	m_BackCull.AddString("Off");
 	m_BackCull.AddString("On");
 	m_BackCull.AddString("Alpha");
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "BackFaceCulling");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "BackFaceCulling");
 	if (sOpt && !stricmp(sOpt, "Off")) m_BackCull.SetCurSel(0);
 	else if (sOpt && !stricmp(sOpt, "Alpha")) m_BackCull.SetCurSel(2);
 	else m_BackCull.SetCurSel(1);
@@ -745,23 +732,23 @@ BOOL COptRender3D::OnInitDialog()
 	m_Wireframe.AddString("Solid");
 	m_Wireframe.AddString("Wireframe");
 	m_Wireframe.AddString("Both");
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "Wireframe");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "Wireframe");
 	if (sOpt && !stricmp(sOpt, "WireOnly")) m_Wireframe.SetCurSel(1);
 	else if (sOpt && !stricmp(sOpt, "WireOnSolid")) m_Wireframe.SetCurSel(2);
 	else m_Wireframe.SetCurSel(0);
 	
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "RasterOutlines");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "RasterOutlines");
 	m_RasterOutlines.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "EmulatePOW2");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "EmulatePOW2");
 	m_EmulPow2.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "PolygonAA");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "PolygonAA");
 	m_PolyAA.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "BitmapCopyPixels");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "BitmapCopyPixels");
 	m_BitmapPixels.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "DisableRectExt");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "DisableRectExt");
 	m_DisableTXRect.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
@@ -769,21 +756,21 @@ BOOL COptRender3D::OnInitDialog()
 
 void COptRender3D::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
 	u32 sel = m_DrawNormals.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "DrawNormals", (sel==2) ? "PerVertex" : (sel==1) ? "PerFace" : "Never");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "DrawNormals", (sel==2) ? "PerVertex" : (sel==1) ? "PerFace" : "Never");
 	sel = m_BackCull.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "BackFaceCulling", (sel==2) ? "Alpha" : (sel==1) ? "On" : "Off");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "BackFaceCulling", (sel==2) ? "Alpha" : (sel==1) ? "On" : "Off");
 	sel = m_Wireframe.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "Wireframe", (sel==2) ? "WireOnSolid" : (sel==1) ? "WireOnly" : "WireNone");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "Wireframe", (sel==2) ? "WireOnSolid" : (sel==1) ? "WireOnly" : "WireNone");
 
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "RasterOutlines", m_RasterOutlines.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "EmulatePOW2", m_EmulPow2.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "PolygonAA", m_PolyAA.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "RasterOutlines", m_RasterOutlines.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "EmulatePOW2", m_EmulPow2.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "PolygonAA", m_PolyAA.GetCheck() ? "yes" : "no");
 
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "DisableRectExt", m_DisableTXRect.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "BitmapCopyPixels", m_BitmapPixels.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "DisableRectExt", m_DisableTXRect.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "BitmapCopyPixels", m_BitmapPixels.GetCheck() ? "yes" : "no");
 }
 
 COptVideo::COptVideo(CWnd* pParent /*=NULL*/)
@@ -817,7 +804,7 @@ BOOL COptVideo::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Video", "SwitchResolution");
@@ -850,7 +837,7 @@ BOOL COptVideo::OnInitDialog()
 
 void COptVideo::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	char str[50];
 
 	gf_cfg_set_key(gpac->m_user.config, "Video", "SwitchResolution", m_SwitchRes.GetCheck() ? "yes" : "no");
@@ -903,7 +890,7 @@ BOOL COptAudio::OnInitDialog()
 	m_SpinFPS.SetBuddy(& m_AudioDur);
 	m_SpinFPS.SetRange(0, 2000);
 
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "ForceConfig");
@@ -964,7 +951,7 @@ BOOL COptAudio::OnInitDialog()
 
 void COptAudio::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	char str[50];
 
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "ForceConfig", m_ForceConfig.GetCheck() ? "yes" : "no");
@@ -1044,7 +1031,7 @@ BOOL COptFont::OnInitDialog()
 	
 	CDialog::OnInitDialog();
 	
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 
 	/*video drivers enum*/
@@ -1126,7 +1113,7 @@ void COptFont::OnBrowseFont()
 
 void COptFont::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	char str[MAX_PATH];
 		
 	m_Fonts.GetWindowText(str, 50);
@@ -1210,7 +1197,7 @@ BOOL COptHTTP::OnInitDialog()
 	char proxy[GF_MAX_PATH];
 	CDialog::OnInitDialog();
 	
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "CacheDirectory");
@@ -1272,7 +1259,7 @@ void COptHTTP::OnUseProxy()
 
 void COptHTTP::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
 	gf_cfg_set_key(gpac->m_user.config, "Downloader", "CleanCache", m_CleanCache.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "Downloader", "RestartFiles", m_RestartFile.GetCheck() ? "yes" : "no");
@@ -1338,7 +1325,7 @@ BOOL COptStream::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 
 	while (m_Port.GetCount()) m_Port.DeleteString(0);
@@ -1490,7 +1477,7 @@ void COptStream::OnUpdateBuffer()
 
 void COptStream::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	Bool force_rtsp = 0;
 	s32 sel = m_Port.GetCurSel();
 	switch (sel) {
@@ -1599,7 +1586,7 @@ BOOL COptMCache::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "StreamingCache", "RecordDirectory");
@@ -1635,7 +1622,7 @@ void COptMCache::OnMcacheUsename()
 
 void COptMCache::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
 	gf_cfg_set_key(gpac->m_user.config, "StreamingCache", "KeepExistingFiles", m_Overwrite.GetCheck() ? "no" : "yes");
 	if (m_UseBase.GetCheck()) {
@@ -1685,7 +1672,7 @@ BOOL OptFiles::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	u32 count, i;
 
 	while (m_FileDescs.GetCount()) m_FileDescs.DeleteString(0);
@@ -1717,7 +1704,7 @@ void OptFiles::OnSelchangeFilelist()
 
 void OptFiles::SetSelection(u32 sel)
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	char *sMime, *sKey, sDesc[200], sText[200];
 	sMime = (char *) gf_cfg_get_key_name(gpac->m_user.config, "MimeTypes", sel);
 	sprintf(sText, "Mime Type: %s", sMime);
@@ -1912,7 +1899,7 @@ BOOL COptLogs::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	switch (gpac->m_log_level) {
 	case GF_LOG_ERROR: m_Level.SetCurSel(1); break;
 	case GF_LOG_WARNING: m_Level.SetCurSel(2); break;
@@ -1925,14 +1912,14 @@ BOOL COptLogs::OnInitDialog()
 	m_script.SetCheck(gpac->m_log_tools & GF_LOG_SCRIPT);
 	m_scene.SetCheck(gpac->m_log_tools & GF_LOG_SCENE);
 	m_rtp.SetCheck(gpac->m_log_tools & GF_LOG_RTP);
-	m_render.SetCheck(gpac->m_log_tools & GF_LOG_RENDER);
+	m_render.SetCheck(gpac->m_log_tools & GF_LOG_COMPOSE);
 	m_parser.SetCheck(gpac->m_log_tools & GF_LOG_PARSER);
 	m_net.SetCheck(gpac->m_log_tools & GF_LOG_NETWORK);
 	m_mmio.SetCheck(gpac->m_log_tools & GF_LOG_MMIO);
 	m_media.SetCheck(gpac->m_log_tools & GF_LOG_MEDIA);
 	m_core.SetCheck(gpac->m_log_tools & GF_LOG_CORE);
 	m_container.SetCheck(gpac->m_log_tools & GF_LOG_CONTAINER);
-	m_compose.SetCheck(gpac->m_log_tools & GF_LOG_COMPOSE);
+	m_compose.SetCheck(gpac->m_log_tools & GF_LOG_INTERACT);
 	m_coding.SetCheck(gpac->m_log_tools & GF_LOG_CODING);
 	m_codec.SetCheck(gpac->m_log_tools & GF_LOG_CODEC);
 	m_author.SetCheck(gpac->m_log_tools & GF_LOG_AUTHOR);
@@ -1942,7 +1929,7 @@ BOOL COptLogs::OnInitDialog()
 
 void COptLogs::SaveOptions()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	CString str = "";
 	u32 flags = 0;
 
@@ -1975,14 +1962,14 @@ void COptLogs::SaveOptions()
 	if (m_script.GetCheck()) { flags |= GF_LOG_SCRIPT; str +="script:"; }
 	if (m_scene.GetCheck()) { flags |= GF_LOG_SCENE; str +="scene:"; }
 	if (m_rtp.GetCheck()) { flags |= GF_LOG_RTP; str +="rtp:"; }
-	if (m_render.GetCheck()) { flags |= GF_LOG_RENDER; str +="render:"; }
+	if (m_render.GetCheck()) { flags |= GF_LOG_COMPOSE; str +="compose:"; }
 	if (m_parser.GetCheck()) { flags |= GF_LOG_PARSER; str +="parser:"; }
 	if (m_net.GetCheck()) { flags |= GF_LOG_NETWORK; str +="network:"; }
 	if (m_mmio.GetCheck()) { flags |= GF_LOG_MMIO; str +="mmio:"; }
 	if (m_media.GetCheck()) { flags |= GF_LOG_MEDIA; str +="media:"; }
 	if (m_core.GetCheck()) { flags |= GF_LOG_CORE; str +="core:"; }
 	if (m_container.GetCheck()) { flags |= GF_LOG_CONTAINER; str +="container:"; }
-	if (m_compose.GetCheck()) { flags |= GF_LOG_COMPOSE; str +="compose:"; }
+	if (m_compose.GetCheck()) { flags |= GF_LOG_INTERACT; str +="interact:"; }
 	if (m_coding.GetCheck()) { flags |= GF_LOG_CODING; str +="coding:"; }
 	if (m_codec.GetCheck()) { flags |= GF_LOG_CODEC; str +="codec:"; }
 	if (m_author.GetCheck()) { flags |= GF_LOG_AUTHOR; str +="author:"; }

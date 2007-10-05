@@ -15,7 +15,7 @@
 #include "resource.h"       // main symbols
 
 /////////////////////////////////////////////////////////////////////////////
-// WinGPAC:
+// Osmo4:
 // See GPAC.cpp for the implementation of this class
 //
 
@@ -37,10 +37,10 @@ enum {
 
 const char *static_gpac_get_url();
 
-class WinGPAC : public CWinApp
+class Osmo4 : public CWinApp
 {
 public:
-	WinGPAC();
+	Osmo4();
 
 	GF_Terminal *m_term;
 	GF_User m_user;
@@ -62,7 +62,6 @@ public:
 	Bool m_Loop, m_LookForSubtitles, m_NoConsole, m_ViewXMTA, m_SingleInstance, m_NoMimeFetch;
 	u32 start_mode;
 
-	void ReloadTerminal();
 	CString GetFileFilter();
 	
 	char szAppPath[GF_MAX_PATH];
@@ -74,7 +73,7 @@ public:
 
 // Overrides
 	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(WinGPAC)
+	//{{AFX_VIRTUAL(Osmo4)
 	public:
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
@@ -83,7 +82,7 @@ public:
 // Implementation
 
 public:
-	//{{AFX_MSG(WinGPAC)
+	//{{AFX_MSG(Osmo4)
 	afx_msg void OnOpenFile();
 	afx_msg void OnMainPause();
 	afx_msg void OnFileStep();
@@ -95,13 +94,12 @@ public:
 	afx_msg void OnFileStop();
 	afx_msg void OnUpdateFileStop(CCmdUI* pCmdUI);
 	afx_msg void OnSwitchRender();
-	afx_msg void OnReloadTerminal();
 	afx_msg void OnAbout();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
 
-inline WinGPAC *GetApp() { return (WinGPAC *)AfxGetApp(); }
+inline Osmo4 *GetApp() { return (Osmo4 *)AfxGetApp(); }
 
 
 

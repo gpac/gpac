@@ -81,7 +81,7 @@ BOOL CFileProps::OnInitDialog()
 
 void CFileProps::WriteInlineTree(GF_ObjectManager *root_od, HTREEITEM parent)
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
 	/*browse all ODs*/
 	u32 count = gf_term_get_object_count(gpac->m_term, root_od);
@@ -113,7 +113,7 @@ void CFileProps::WriteInlineTree(GF_ObjectManager *root_od, HTREEITEM parent)
 
 void CFileProps::RewriteODTree()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	
 	m_ODTree.DeleteAllItems();
 
@@ -190,7 +190,7 @@ void CFileProps::SetGeneralInfo()
 	GF_ObjectManager *odm;
 	u32 h, m, s, i, j;
 
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	odm = current_odm;
 
 	strcpy(info, "");
@@ -338,7 +338,7 @@ void CFileProps::OnWorld()
 	CString wit;
 	const char *str;
 	GF_List *descs;
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
 	descs = gf_list_new();
 	str = gf_term_get_world_info(gpac->m_term, current_odm, descs);
@@ -360,7 +360,7 @@ void CFileProps::OnWorld()
 void CFileProps::OnViewsg() 
 {
 	char szOutFile[GF_MAX_PATH];
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
 	strcpy(szOutFile, gpac->szAppPath);
 	strcat(szOutFile, "scene_dump");
@@ -379,7 +379,7 @@ void CFileProps::SetDecoderInfo()
 	ODInfo odi;
 	char buf[1000], info[2000];
 	u32 h, m, s;
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
 	sprintf(info, "");
 	m_ODInfo.SetWindowText("");
@@ -452,7 +452,7 @@ void CFileProps::SetStreamsInfo()
 	GF_ObjectManager *odm;
 	Bool is_media;
 
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	odm = current_odm;
 
 	strcpy(info, "");
@@ -641,7 +641,7 @@ void CFileProps::SetNetworkInfo()
 	u32 d_enum, nb_streams;
 	GF_Err e;
 	GF_ObjectManager *odm;
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	odm = current_odm;
 
 	strcpy(info, "");

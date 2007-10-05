@@ -314,13 +314,10 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
         break;
 	case EOsmo4OptSwitchRender:
 	{
-		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "Rendering", "RendererName");
-		if (opt && strstr(opt, "3D")) {
-			gf_cfg_set_key(iAppView->m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
-		} else {
-			gf_cfg_set_key(iAppView->m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
-		}
-		iAppView->ReloadTerminal();
+		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "Compositor", "ForceOpenGL");
+		Bool use_gl = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+		gf_cfg_set_key(iAppView->m_user.config, "Compositor", "ForceOpenGL", use_gl ? "no" : "yes);
+		gf_term_set_option(iAppView->m_term, GF_OPT_USE_OPENGL, !use_gl);
 	}
 		break;
     default:
@@ -528,8 +525,8 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 	/*Option menu*/
 	if (aResourceId==R_OSMO4_SM3) {
 #ifndef GPAC_GUI_ONLY
-		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "Rendering", "RendererName");
-		DECLARE_MENU_ITEM(_L("Use OpenGL"), EOsmo4OptSwitchRender, (opt && strstr(opt, "3D")) ? 1 : 0, 0, 0);
+		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "Compositor", "ForceOpenGL");
+		DECLARE_MENU_ITEM(_L("Use OpenGL"), EOsmo4OptSwitchRender, (opt && !strcmp(opt, "yes")) ? 1 : 0, 0, 0);
 #endif
 		
 		DECLARE_MENU_ITEM(_L("Enable Logs"), EOsmo4OptEnableLogs, iAppView->do_log, 0, 0);

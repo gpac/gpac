@@ -64,7 +64,7 @@ void MC_Restart(GF_ObjectManager *odm)
 
 		/*this is inline restart - only possible through media control*/
 		if (odm->subscene && odm->subscene->root_od==ctrl->stream->odm) {
-			gf_is_restart(odm->subscene);
+			gf_inline_restart(odm->subscene);
 			return;
 		}
 	}
@@ -278,7 +278,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			gf_sg_vrml_mf_reset(&stack->url, GF_SG_VRML_MFURL);
 
 			prev = stack->stream;
-			stack->stream = gf_is_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
+			stack->stream = gf_inline_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
 			if (stack->stream) {
 				if (!stack->stream->odm) return;
 				/*MediaControl on inline: if dynamic scene, make sure it is connected before attaching...*/
@@ -311,9 +311,9 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			}
 		}
 	} else {
-		stack->stream = gf_is_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
+		stack->stream = gf_inline_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
 		if (!stack->stream || !stack->stream->odm) {
-			if (stack->control->url.count) gf_term_invalidate_renderer(stack->parent->root_od->term);
+			if (stack->control->url.count) gf_term_invalidate_compositor(stack->parent->root_od->term);
 			return;
 		}
 		gf_sg_vrml_field_copy(&stack->url, &stack->control->url, GF_SG_VRML_MFURL);
@@ -419,5 +419,5 @@ void MC_Modified(GF_Node *node)
 	}
 
 	/*invalidate scene, we recompute MC state in render*/
-	gf_term_invalidate_renderer(stack->parent->root_od->term);
+	gf_term_invalidate_compositor(stack->parent->root_od->term);
 }

@@ -482,7 +482,7 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 	if (node->sgprivate->tag == TAG_ProtoNode) {
 		node->sgprivate->UserCallback = NULL;
 		node->sgprivate->UserPrivate = NULL;
-		/*NO RENDER, this is filtered at the generic gf_node_render to cope with instanciations and externProto*/
+		/*NO RENDER, this is filtered at the generic gf_node_traverse to cope with instanciations and externProto*/
 		/*load code*/
 		gf_sg_proto_instanciate((GF_ProtoInstance *)node);
 	}
@@ -1143,13 +1143,13 @@ const char *gf_sg_proto_get_class_name(GF_Proto *proto)
 	return (const char *) proto->Name;
 }
 
-u32 gf_sg_proto_get_render_tag(GF_Proto *proto)
+u32 gf_sg_proto_get_root_tag(GF_Proto *proto)
 {
 	GF_Node *n;
 	if (!proto) return TAG_UndefinedNode;
 	n = (GF_Node*)gf_list_get(proto->node_code, 0);
 	if (!n) return TAG_UndefinedNode;
-	if (n->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_get_render_tag(((GF_ProtoInstance *)n)->proto_interface);
+	if (n->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_get_root_tag(((GF_ProtoInstance *)n)->proto_interface);
 	return n->sgprivate->tag;
 }
 

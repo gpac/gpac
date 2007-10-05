@@ -22,11 +22,9 @@
  *
  */
 
-#include <gpac/nodes_svg_sa.h>
+#include <gpac/internal/scenegraph_dev.h>
 
 #ifndef GPAC_DISABLE_SVG
-
-#include <gpac/internal/scenegraph_dev.h>
 
 void gf_svg_reset_path(SVG_PathData d) 
 {

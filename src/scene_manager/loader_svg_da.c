@@ -1385,6 +1385,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	SVG_NodeStack *top = (SVG_NodeStack *)gf_list_last(parser->node_stack);
 	SVG_Element *elt = (top ? top->node : NULL);
 	GF_DOMText *text;
+	u32 skip_text;
 	u32 tag;
 
 	if (top && top->unknown_depth && !parser->command_depth) return;
@@ -1421,7 +1422,30 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 			field->field_ptr = &field->new_node;
 		}
 		return;
-	} else if (tag == TAG_SVG_text || tag == TAG_SVG_tspan || tag == TAG_SVG_textArea) {
+	}
+	skip_text = 1;
+	switch (tag) {
+	case TAG_SVG_text:
+	case TAG_SVG_tspan:
+	case TAG_SVG_textArea:
+		skip_text = 0;
+		break;
+	/*for script and handlers only add text if not empty*/
+	case TAG_SVG_handler:
+	case TAG_SVG_script:
+	{
+		u32 i, len = strlen(text_content);
+		for (i=0; i<len; i++) {
+			if (!strchr(" \n\r\t", text_content[i])) {
+				skip_text = 0;
+				break;
+			}
+		}
+	}
+		break;
+	}
+
+	if (!skip_text) {
 		text = gf_dom_add_text_node((GF_Node *)elt, strdup(text_content));
 		text->is_cdata = is_cdata;
 		gf_node_changed((GF_Node *)text, NULL);

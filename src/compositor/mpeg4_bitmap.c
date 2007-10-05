@@ -1,0 +1,281 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Copyright (c) Jean Le Feuvre 2000-2005
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / Scene Compositor sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *
+ */
+
+
+
+#include "nodes_stacks.h"
+#include "visual_manager.h"
+#include "texturing.h"
+
+typedef struct _bitmap_stack
+{
+	Drawable *graph;
+	/*cached size for 3D mode*/
+	SFVec2f size;
+} BitmapStack;
+
+
+#ifndef GPAC_DISABLE_3D
+static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
+{
+	DrawAspect2D asp;
+
+	BitmapStack *st = (BitmapStack *)gf_node_get_private(node);
+	M_Bitmap *bmp = (M_Bitmap *)node;
+
+	memset(&asp, 0, sizeof(DrawAspect2D));
+	drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
+
+	compositor_3d_draw_bitmap(st->graph, &asp, tr_state, st->size.x, st->size.y, bmp->scale.x, bmp->scale.y);
+}
+#endif
+
+static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
+{
+	u8 alpha;
+	u32 keyColor;
+	GF_Compositor *compositor;
+	Bool use_blit, has_key;
+	DrawableContext *ctx = tr_state->ctx;
+	BitmapStack *st = (BitmapStack *) gf_node_get_private(node);
+
+
+	compositor = tr_state->visual->compositor;
+	/*bitmaps are NEVER rotated (forbidden in spec). In case a rotation was done we still display (reset the skew components)*/
+	ctx->transform.m[1] = ctx->transform.m[3] = 0;
+
+	use_blit = 1;
+	alpha = GF_COL_A(ctx->aspect.fill_color);
+	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
+	if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
+
+	if (ctx->transform.m[0] || ctx->transform.m[4]<0) use_blit = 0;
+
+	/*materialKey*/
+	has_key = 0;
+	if (ctx->appear) {
+		M_Appearance *app = (M_Appearance *)ctx->appear;
+		if ( app->material && (gf_node_get_tag((GF_Node *)app->material)==TAG_MPEG4_MaterialKey) ) {
+			if (((M_MaterialKey*)app->material)->isKeyed && ((M_MaterialKey*)app->material)->transparency) {
+				SFColor col = ((M_MaterialKey*)app->material)->keyColor;
+				has_key = 1;
+				keyColor = GF_COL_ARGB_FIXED(
+								FIX_ONE - ((M_MaterialKey*)app->material)->transparency,
+								col.red, col.green, col.blue);
+			}
+		}
+	}
+
+	/*this is not a native texture, use graphics*/
+	if (!ctx->aspect.fill_texture->data) {
+		use_blit = 0;
+	} else {
+		if (!tr_state->visual->SupportsFormat || !tr_state->visual->DrawBitmap ) use_blit = 0;
+		/*format not supported directly, try with brush*/
+		else if (!tr_state->visual->SupportsFormat(tr_state->visual, ctx->aspect.fill_texture->pixelformat) ) use_blit = 0;
+	}
+
+	/*no HW, fall back to the graphics driver*/
+	if (!use_blit) {
+		GF_Matrix2D _mat;
+		GF_Rect rc = gf_rect_center(ctx->bi->unclip.width, ctx->bi->unclip.height);
+		gf_mx2d_copy(_mat, ctx->transform);
+		gf_mx2d_inverse(&_mat);
+		gf_mx2d_apply_rect(&_mat, &rc);
+
+		drawable_reset_path(st->graph);
+		gf_path_add_rect_center(st->graph->path, 0, 0, rc.width, rc.height);
+		ctx->flags |= CTX_NO_ANTIALIAS;
+		visual_2d_texture_path(tr_state->visual, st->graph->path, ctx);
+		return;
+	}
+
+	/*direct drawing, draw without clippers */
+	if (tr_state->direct_draw) {
+		tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, &ctx->bi->clip, &ctx->bi->unclip, alpha, has_key ? &keyColor : NULL, ctx->col_mat);
+	}
+	/*draw bitmap for all dirty rects*/
+	else {
+		u32 i;
+		GF_IRect clip;
+		for (i=0; i<tr_state->visual->to_redraw.count; i++) {
+			/*there's an opaque region above, don't draw*/
+#ifdef TRACK_OPAQUE_REGIONS
+			if (tr_state->visual->draw_node_index < tr_state->visual->to_redraw.opaque_node_index[i]) continue;
+#endif
+			clip = ctx->bi->clip;
+			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
+			if (clip.width && clip.height) {
+				tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, &clip, &ctx->bi->unclip, alpha, has_key ? &keyColor : NULL, ctx->col_mat);
+			}
+		}
+	}
+}
+
+
+static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *tr_state, GF_Rect *out_rc, Bool notify_changes)
+{
+	GF_TextureHandler *txh;
+	Fixed sx, sy;
+	SFVec2f size;
+
+	M_Bitmap *bmp = (M_Bitmap *)node;
+
+	if (!tr_state->appear) return;
+	if (! ((M_Appearance *)tr_state->appear)->texture) return;
+	txh = gf_sc_texture_get_handler( ((M_Appearance *)tr_state->appear)->texture );
+	/*bitmap not ready*/
+	if (!txh || !txh->tx_io || !txh->width || !txh->height) {
+		if (notify_changes) gf_node_dirty_set(node, 0, 1);
+		return;
+	}
+	
+	sx = bmp->scale.x; if (sx<0) sx = FIX_ONE;
+	sy = bmp->scale.y; if (sy<0) sy = FIX_ONE;
+
+	compositor_adjust_scale(txh->owner, &sx, &sy);
+
+	/*check size change*/
+	size.x = txh->width*sx;
+	size.y = txh->height*sy;
+	/*if we have a PAR update it!!*/
+	if (txh->pixel_ar) {
+		u32 n = (txh->pixel_ar>>16) & 0xFFFF;
+		u32 d = (txh->pixel_ar) & 0xFFFF;
+		size.x = ( (txh->width * n) / d) * sx;
+	}
+
+
+	/*we're in meter metrics*/
+	if (!tr_state->pixel_metrics) {
+		size.x = gf_divfix(size.x, tr_state->min_hsize);
+		size.y = gf_divfix(size.y, tr_state->min_hsize);
+	}
+	*out_rc = gf_rect_center(size.x, size.y);
+
+	gf_node_dirty_clear(node, 0);
+
+	if ((st->size.x==size.x) && (st->size.y==size.y)) return; 
+	st->size = size;
+
+	/*change in size*/
+	if (notify_changes) gf_node_dirty_set(node, 0, 1);
+
+	/*get size with scale*/
+	drawable_reset_path(st->graph);
+	gf_path_add_rect_center(st->graph->path, 0, 0, st->size.x, st->size.y);
+}
+static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
+{
+	GF_Rect rc;
+	DrawableContext *ctx;
+	BitmapStack *st = (BitmapStack *)gf_node_get_private(node);
+	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
+
+	if (is_destroy) {
+		drawable_del(st->graph);
+		free(st);
+		return;
+	}
+
+	switch (tr_state->traversing_mode) {
+	case TRAVERSE_DRAW_2D:
+		draw_bitmap_2d(node, tr_state);
+		return;
+#ifndef GPAC_DISABLE_3D
+	case TRAVERSE_DRAW_3D:
+		draw_bitmap_3d(node, tr_state);
+		return;
+#endif
+	case TRAVERSE_PICK:
+		drawable_pick(st->graph, tr_state);
+		return;
+	case TRAVERSE_GET_BOUNDS:
+		Bitmap_BuildGraph(node, st, tr_state, &tr_state->bounds, 
+#ifndef GPAC_DISABLE_3D
+			tr_state->visual->type_3d ? 1 : 0
+#else
+		0
+#endif
+		);
+
+		return;
+	case TRAVERSE_SORT:
+#ifndef GPAC_DISABLE_3D
+		if (tr_state->visual->type_3d) return;
+#endif
+		break;
+	default:
+		return;
+	}
+
+	Bitmap_BuildGraph(node, st, tr_state, &rc, 1);
+
+	ctx = drawable_init_context_mpeg4(st->graph, tr_state);
+	if (!ctx || !ctx->aspect.fill_texture ) {
+		visual_2d_remove_last_context(tr_state->visual);
+		return;
+	}
+
+	/*even if set this is not true*/
+	ctx->aspect.pen_props.width = 0;
+	ctx->flags |= CTX_NO_ANTIALIAS;
+
+	ctx->flags &= ~CTX_IS_TRANSPARENT;
+	/*if clipper then transparent*/
+
+	if (ctx->aspect.fill_texture->transparent) {
+		ctx->flags |= CTX_IS_TRANSPARENT;
+	} else {
+		M_Appearance *app = (M_Appearance *)ctx->appear;
+		if ( app->material && (gf_node_get_tag((GF_Node *)app->material)==TAG_MPEG4_MaterialKey) ) {
+			if (((M_MaterialKey*)app->material)->isKeyed && ((M_MaterialKey*)app->material)->transparency)
+				ctx->flags |= CTX_IS_TRANSPARENT;
+		} 
+		else if (!tr_state->color_mat.identity) {
+			ctx->flags |= CTX_IS_TRANSPARENT;
+		} else {
+			u8 alpha = GF_COL_A(ctx->aspect.fill_color);
+			/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
+			if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
+			if (alpha < 0xFF) ctx->flags |= CTX_IS_TRANSPARENT;
+		}
+	}
+
+	/*bounds are stored when building graph*/	
+	drawable_finalize_sort(ctx, tr_state, &rc);
+}
+
+
+void compositor_init_bitmap(GF_Compositor  *compositor, GF_Node *node)
+{
+	BitmapStack *st;
+	GF_SAFEALLOC(st, BitmapStack);
+	st->graph = drawable_new();
+	st->graph->node = node;
+	st->graph->flags = DRAWABLE_USE_TRAVERSE_DRAW;
+	gf_node_set_private(node, st);
+	gf_node_set_callback_function(node, TraverseBitmap);
+}
+

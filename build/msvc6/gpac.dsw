@@ -504,51 +504,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "render2d"=.\render2d.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libgpac_dll
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "render3d"=.\render3d.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libgpac_dll
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "render_full"=.\render_full.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libgpac_dll
-    End Project Dependency
-}}}
-
-###############################################################################
-
 Project: "rtp_in"=.\rtp_in.dsp - Package Owner=<4>
 
 Package=<5>
@@ -604,6 +559,21 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "svg2bifs"=..\..\applications\testapps\svg2bifs\svg2bifs.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac
     End Project Dependency
 }}}
 

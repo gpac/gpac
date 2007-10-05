@@ -73,7 +73,7 @@ void COpenUrl::OnButgo()
 		return;
 	}
 
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
 	m_url = URL;
 	UpdateLastFiles(gpac->m_user.config, (const char *) URL);
@@ -84,7 +84,7 @@ BOOL COpenUrl::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	u32 i=0;
 
 	while (m_URLs.GetCount()) m_URLs.DeleteString(0);

@@ -220,7 +220,7 @@ void Playlist::OnSize(UINT nType, int cx, int cy)
 void Playlist::OnDropFiles(HDROP hDropInfo) 
 {
 	u32 i, count;
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	char fileName[MAX_PATH];
 	count = ::DragQueryFile(hDropInfo, 0xFFFFFFFF, NULL, 0);
 	if (!count) return;
@@ -367,7 +367,7 @@ void Playlist::RefreshList()
 
 void Playlist::OnPlAddFile() 
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	CString sFiles = app->GetFileFilter();
 	
 	CFileDialog fd(TRUE,NULL,NULL, OFN_ALLOWMULTISELECT | OFN_HIDEREADONLY | OFN_FILEMUSTEXIST , sFiles);
@@ -478,7 +478,7 @@ static int CALLBACK LocCbck(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pData)
 }
 static Bool pl_enum_dir_item(void *cbck, char *item_name, char *item_path)
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	Playlist *_this = (Playlist *)cbck;
 
 	if (gf_term_is_supported_url(gpac->m_term, item_name, 0, 1)) {

@@ -170,7 +170,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 
 exit:
 	if ((svgin->inline_scene->graph_attached!=1) && (gf_sg_get_root_node(svgin->loader.scene_graph)!=NULL) ) {
-		gf_is_attach_to_renderer(svgin->inline_scene);
+		gf_inline_attach_to_compositor(svgin->inline_scene);
 	}
 	/*prepare for next playback*/
 	if (e==GF_EOS) {
@@ -249,25 +249,6 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 	}
 
 	svgin->loader.type = GF_SM_LOAD_SVG_DA;
-
-
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "Version");
-#ifdef GPAC_ENABLE_SVG_SA
-	if (sOpt && !strcmp(sOpt, "static_allocation")) {
-		svgin->loader.type = GF_SM_LOAD_SVG_SA;
-		fprintf(stdout, "Using SVG Scene Graph with static allocation of attributes\n");
-	}
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-	if (sOpt && !strcmp(sOpt, "no_inheritance")) {
-		svgin->loader.type = GF_SM_LOAD_SVG_SANI;
-		fprintf(stdout, "Using SVG Scene Graph with static allocation of attributes and no inheritance\n");
-	} 
-#endif
-	if (svgin->loader.type == GF_SM_LOAD_SVG_DA) {
-		fprintf(stdout, "Using SVG Scene Graph with dynamic allocation of attributes\n");
-	}
-	
 	return GF_OK;
 }
 

@@ -64,7 +64,7 @@ static GF_Err CTXLoad_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapabi
 static void ODS_SetupOD(GF_InlineScene *is, GF_ObjectDescriptor *od)
 {
 	GF_ObjectManager *odm;
-	odm = gf_is_find_odm(is, od->objectDescriptorID);
+	odm = gf_inline_find_odm(is, od->objectDescriptorID);
 	/*remove the old OD*/
 	if (odm) gf_odm_disconnect(odm, 1);
 	odm = gf_odm_new();
@@ -97,7 +97,7 @@ void CTXLoad_OnActivate(GF_Node *node)
 	GF_InlineScene *is = (GF_InlineScene *) gf_node_get_private(node);
 	M_Conditional*c = (M_Conditional*)node;
 	/*always apply in parent graph to handle protos correctly*/
-	if (c->activate) gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_is_get_time(is));
+	if (c->activate) gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_inline_get_time(is));
 }
 void CTXLoad_OnReverseActivate(GF_Node *node)
 {
@@ -105,7 +105,7 @@ void CTXLoad_OnReverseActivate(GF_Node *node)
 	M_Conditional*c = (M_Conditional*)node;
 	/*always apply in parent graph to handle protos correctly*/
 	if (!c->reverseActivate) 
-		gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_is_get_time(is));
+		gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_inline_get_time(is));
 }
 
 void CTXLoad_NodeCallback(void *cbk, u32 type, GF_Node *node, void *param)
@@ -296,7 +296,7 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 	}
 	if (max_dur) {
 		priv->inline_scene->root_od->duration = max_dur;
-		gf_is_set_duration(priv->inline_scene);
+		gf_inline_set_duration(priv->inline_scene);
 	}
 }
 
@@ -357,7 +357,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 			}
 			if (!priv->inline_scene->graph_attached) {
 				gf_sg_set_scene_size_info(priv->inline_scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
-				gf_is_attach_to_renderer(priv->inline_scene);
+				gf_inline_attach_to_compositor(priv->inline_scene);
 
 				CTXLoad_CheckStreams(priv);
 			}
@@ -397,7 +397,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 		if (priv->load_flags==2) {
 			CTXLoad_CheckStreams(priv);
 			if (!gf_list_count(priv->ctx->streams)) {
-				gf_is_attach_to_renderer(priv->inline_scene);
+				gf_inline_attach_to_compositor(priv->inline_scene);
 			}
 		}
 	}
@@ -574,7 +574,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 					{
 						GF_ODRemove *odR = (GF_ODRemove*)com;
 						for (k=0; k<odR->NbODs; k++) {
-							GF_ObjectManager *odm = gf_is_find_odm(priv->inline_scene, odR->OD_ID[k]);
+							GF_ObjectManager *odm = gf_inline_find_odm(priv->inline_scene, odR->OD_ID[k]);
 							if (odm) gf_odm_disconnect(odm, 1);
 						}
 					}
@@ -594,7 +594,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 			}
 			sc->last_au_time = au_time + 1;
 			/*attach graph to renderer*/
-			gf_is_attach_to_renderer(priv->inline_scene);
+			gf_inline_attach_to_compositor(priv->inline_scene);
 			if (e) return e;
 
 			/*for root streams remove completed AUs (no longer needed)*/

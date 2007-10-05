@@ -28,8 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/internal/terminal_dev.h>
 #include "media_control.h"
-/*for inline scene rendering*/
-#include <gpac/renderer.h>
+#include <gpac/compositor.h>
 
 void MO_UpdateCaps(GF_MediaObject *mo);
 
@@ -42,7 +41,7 @@ typedef struct
 } ProtoLink;
 
 GF_EXPORT
-Double gf_is_get_time(void *_is)
+Double gf_inline_get_time(void *_is)
 {
 	u32 ret;
 	GF_Clock *ck;
@@ -55,7 +54,7 @@ Double gf_is_get_time(void *_is)
 	return ret/1000.0;
 }
 
-GF_InlineScene *gf_is_new(GF_InlineScene *parentScene)
+GF_InlineScene *gf_inline_new(GF_InlineScene *parentScene)
 {
 	GF_InlineScene *tmp;
 	GF_SAFEALLOC(tmp, GF_InlineScene);
@@ -75,13 +74,13 @@ GF_InlineScene *gf_is_new(GF_InlineScene *parentScene)
 
 	gf_sg_set_private(tmp->graph, tmp);
 	gf_sg_set_node_callback(tmp->graph, gf_term_node_callback);
-	gf_sg_set_scene_time_callback(tmp->graph, gf_is_get_time);
+	gf_sg_set_scene_time_callback(tmp->graph, gf_inline_get_time);
 
-	gf_sg_set_proto_loader(tmp->graph, gf_is_get_proto_lib);
+	gf_sg_set_proto_loader(tmp->graph, gf_inline_get_proto_lib);
 	return tmp;
 }
 
-void gf_is_del(GF_InlineScene *is)
+void gf_inline_del(GF_InlineScene *is)
 {
 	gf_list_del(is->ODlist);
 	gf_list_del(is->inline_nodes);
@@ -134,7 +133,7 @@ void gf_is_del(GF_InlineScene *is)
 }
 
 GF_EXPORT
-GF_ObjectManager *gf_is_find_odm(GF_InlineScene *is, u16 OD_ID)
+GF_ObjectManager *gf_inline_find_odm(GF_InlineScene *is, u16 OD_ID)
 {
 	GF_ObjectManager *odm;
 	u32 i=0;
@@ -144,7 +143,7 @@ GF_ObjectManager *gf_is_find_odm(GF_InlineScene *is, u16 OD_ID)
 	return NULL;
 }
 
-void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
+void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 {
 	GF_MediaObject *obj;
 	GF_Node *root_node;
@@ -152,7 +151,7 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	GF_SceneDecoder *dec = NULL;
 	if (is->scene_codec) dec = (GF_SceneDecoder *)is->scene_codec->decio;
 
-	gf_term_lock_renderer(is->root_od->term, 1);
+	gf_term_lock_compositor(is->root_od->term, 1);
 	
 	/*disconnect / kill all objects BEFORE reseting the scene graph since we have 
 	potentially registered Inline nodes of the graph with the sub-scene*/
@@ -182,14 +181,14 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	}
 
 	if (is->graph_attached && (is->root_od->term->root_scene == is)) {
-		gf_sr_set_scene(is->root_od->term->renderer, NULL);
+		gf_sc_set_scene(is->root_od->term->compositor, NULL);
 	}
 	/*release the scene*/
 	if (dec && dec->ReleaseScene) dec->ReleaseScene(dec);
 	gf_sg_reset(is->graph);
 	is->graph_attached = 0;
 	
-	gf_term_lock_renderer(is->root_od->term, 0);
+	gf_term_lock_compositor(is->root_od->term, 0);
 
 
 	assert(!gf_list_count(is->extra_scenes) );
@@ -286,7 +285,7 @@ static void IS_ReinsertObject(GF_InlineScene *is, GF_MediaObject *mo)
 }
 
 
-void gf_is_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for_shutdown)
+void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for_shutdown)
 {
 	u32 i;
 	GF_MediaObject *obj;
@@ -395,7 +394,7 @@ u32 URL_GetODID(MFURL *url)
 
 
 //browse all channels and update buffering info
-void gf_is_buffering_info(GF_InlineScene *is)
+void gf_inline_buffering_info(GF_InlineScene *is)
 {
 	u32 i, j, max_buffer, cur_buffer;
 	GF_Channel *ch;
@@ -450,11 +449,11 @@ static Bool Inline_SetScene(M_Inline *root)
 	parent = (GF_InlineScene *)gf_sg_get_private(graph);
 	if (!parent) return 0;
 
-	mo = gf_is_get_media_object(parent, &root->url, GF_MEDIA_OBJECT_SCENE, 0);
+	mo = gf_inline_get_media_object(parent, &root->url, GF_MEDIA_OBJECT_SCENE, 0);
 	if (!mo || !mo->odm) return 0;
 
 	if (!mo->odm->subscene) {
-		gf_term_invalidate_renderer(parent->root_od->term);
+		gf_term_invalidate_compositor(parent->root_od->term);
 		return 0;
 	}
 	/*assign inline scene as private stack of inline node, and remember inline node for event propagation*/
@@ -504,7 +503,7 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
 	return 0;
 }
 
-void gf_is_on_modified(GF_Node *node)
+void gf_inline_on_modified(GF_Node *node)
 {
 	u32 ODID;
 	GF_MediaObject *mo;
@@ -528,7 +527,7 @@ void gf_is_on_modified(GF_Node *node)
 				mo->num_open --;
 				if (!mo->num_open) {
 					gf_odm_stop(pIS->root_od, 1);
-					gf_is_disconnect(pIS, 1);
+					gf_inline_disconnect(pIS, 1);
 					assert(gf_list_count(pIS->ODlist) == 0);
 				}
 			}
@@ -570,13 +569,13 @@ static void IS_CheckMediaRestart(GF_InlineScene *is)
 			}
 		} else {
 			/*trigger render until to watch for restart...*/
-			gf_term_invalidate_renderer(is->root_od->term);
+			gf_term_invalidate_compositor(is->root_od->term);
 		}
 	}
 }
 
 
-void gf_is_render(GF_Node *n, void *render_stack, Bool is_destroy)
+static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 {
 	GF_Node *root;
 	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(n);
@@ -602,7 +601,7 @@ void gf_is_render(GF_Node *n, void *render_stack, Bool is_destroy)
 					free(mo);
 				} else {
 					gf_odm_stop(is->root_od, 1);
-					gf_is_disconnect(is, 1);
+					gf_inline_disconnect(is, 1);
 					assert(gf_list_count(is->ODlist) == 0);
 				}
 			}
@@ -630,7 +629,7 @@ void gf_is_render(GF_Node *n, void *render_stack, Bool is_destroy)
 		/*special case: scene change*/
 		if (is->needs_restart==2) {
 			is->needs_restart = 0;
-			gf_is_on_modified(n);
+			gf_inline_on_modified(n);
 			return;
 		}
 
@@ -639,17 +638,17 @@ void gf_is_render(GF_Node *n, void *render_stack, Bool is_destroy)
 
 		if (is->is_dynamic_scene) {
 			if (is->root_od->media_ctrl) is->root_od->media_ctrl->current_seg = current_seg;
-			gf_is_restart_dynamic(is, 0);
+			gf_inline_restart_dynamic(is, 0);
 		} else {
 			/*we cannot use gf_mo_restart since it only sets the needs_restart for inline scenes. 
 			The rational is that gf_mo_restart can be called from the parent scene (OK) or from the scene itself, in 
-			which case shutting down the graph would crash the renderer. We therefore need two render passes to 
+			which case shutting down the graph would crash the compositor. We therefore need two render passes to 
 			safely restart an inline scene*/
 
 			/*1- stop main object from playing but don't disconnect channels*/
 			gf_odm_stop(is->root_od, 1);
 			/*2- close all ODs inside the scene and reset the graph*/
-			gf_is_disconnect(is, 0);
+			gf_inline_disconnect(is, 0);
 			if (is->root_od->media_ctrl) is->root_od->media_ctrl->current_seg = current_seg;
 			/*3- restart the scene*/
 			gf_odm_start(is->root_od);
@@ -669,27 +668,27 @@ void gf_is_render(GF_Node *n, void *render_stack, Bool is_destroy)
 	
 	root = gf_sg_get_root_node(is->graph);
 	if (root) {
-		gf_sr_render_inline(is->root_od->term->renderer, n, root, render_stack);
+		gf_sc_traverse_subscene(is->root_od->term->compositor, n, root, rs);
 	}
 }
 
 GF_EXPORT
-void gf_is_attach_to_renderer(GF_InlineScene *is)
+void gf_inline_attach_to_compositor(GF_InlineScene *is)
 {
 	if ((is->graph_attached==1) || (gf_sg_get_root_node(is->graph)==NULL) ) {
-		gf_term_invalidate_renderer(is->root_od->term);
+		gf_term_invalidate_compositor(is->root_od->term);
 		return;
 	}
 	is->graph_attached = 1;
-	/*main display scene, setup renderer*/
+	/*main display scene, setup compositor*/
 	if (is->root_od->term->root_scene == is) {
-		gf_sr_set_scene(is->root_od->term->renderer, is->graph);
+		gf_sc_set_scene(is->root_od->term->compositor, is->graph);
 	}
 	else {
 		u32 i, count=gf_list_count(is->inline_nodes);
 		for (i=0;i<count; i++) 
 			gf_node_dirty_parents( gf_list_get(is->inline_nodes, i) );
-		gf_term_invalidate_renderer(is->root_od->term);
+		gf_term_invalidate_compositor(is->root_od->term);
 	}
 }
 
@@ -713,7 +712,7 @@ static GFINLINE Bool is_match_obj_type(u32 type, u32 hint_type)
 	return 0;
 }
 
-GF_MediaObject *gf_is_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref)
+GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref)
 {
 	GF_MediaObject *obj;
 	u32 i, OD_ID;
@@ -754,13 +753,13 @@ GF_MediaObject *gf_is_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 ob
 	return obj;
 }
 
-GF_MediaObject *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines)
+GF_MediaObject *gf_inline_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines)
 {
-	return gf_is_get_media_object_ex(is, url, obj_type_hint, lock_timelines, NULL);
+	return gf_inline_get_media_object_ex(is, url, obj_type_hint, lock_timelines, NULL);
 }
 
 GF_EXPORT
-void gf_is_setup_object(GF_InlineScene *is, GF_ObjectManager *odm)
+void gf_inline_setup_object(GF_InlineScene *is, GF_ObjectManager *odm)
 {
 	GF_MediaObject *obj;
 	u32 i;
@@ -808,18 +807,18 @@ existing:
 		if (odm->mo->speed != FIX_ONE) gf_odm_set_speed(odm, odm->mo->speed);
 	}
 	/*invalidate scene for all nodes using the OD*/
-	gf_term_invalidate_renderer(odm->term);
+	gf_term_invalidate_compositor(odm->term);
 }
 
-void gf_is_restart(GF_InlineScene *is)
+void gf_inline_restart(GF_InlineScene *is)
 {
 	is->needs_restart = 1;
-	gf_term_invalidate_renderer(is->root_od->term);
+	gf_term_invalidate_compositor(is->root_od->term);
 }
 
 
 GF_EXPORT
-void gf_is_set_duration(GF_InlineScene *is)
+void gf_inline_set_duration(GF_InlineScene *is)
 {
 	Double dur;
 	u32 i;
@@ -895,13 +894,13 @@ void IS_LoadExternProto(GF_InlineScene *is, MFURL *url)
 	pl = (ProtoLink*)malloc(sizeof(ProtoLink));
 	pl->url = url;
 	gf_list_add(is->extern_protos, pl);
-	pl->mo = gf_is_get_media_object(is, url, GF_MEDIA_OBJECT_SCENE, 0);
+	pl->mo = gf_inline_get_media_object(is, url, GF_MEDIA_OBJECT_SCENE, 0);
 	/*this may already be destroyed*/
 	if (pl->mo) gf_mo_play(pl->mo, 0, -1, 0);
 }
 
 GF_EXPORT
-GF_SceneGraph *gf_is_get_proto_lib(void *_is, MFURL *lib_url)
+GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 {
 	ProtoLink *pl;
 	u32 i;
@@ -959,7 +958,7 @@ Bool IS_IsProtoLibObject(GF_InlineScene *is, GF_ObjectManager *odm)
 }
 
 
-GF_MediaObject *gf_is_find_object(GF_InlineScene *is, u16 ODID, char *url)
+GF_MediaObject *gf_inline_find_object(GF_InlineScene *is, u16 ODID, char *url)
 {
 	u32 i;
 	GF_MediaObject *mo;
@@ -987,7 +986,7 @@ const char *IS_GetSceneViewName(GF_InlineScene *is)
 }
 
 GF_EXPORT
-Bool gf_is_default_scene_viewpoint(GF_Node *node)
+Bool gf_inline_default_scene_viewpoint(GF_Node *node)
 {
 	const char *nname, *sname;
 	GF_SceneGraph *sg = gf_node_get_graph(node);
@@ -1002,27 +1001,27 @@ Bool gf_is_default_scene_viewpoint(GF_Node *node)
 }
 
 GF_EXPORT
-void gf_is_register_extra_graph(GF_InlineScene *is, GF_SceneGraph *extra_scene, Bool do_remove)
+void gf_inline_register_extra_graph(GF_InlineScene *is, GF_SceneGraph *extra_scene, Bool do_remove)
 {
 	if (do_remove) {
 		if (gf_list_find(is->extra_scenes, extra_scene)<0) return;
 		gf_list_del_item(is->extra_scenes, extra_scene);
 		/*for root scene*/
 		if (is->root_od->term->root_scene == is) {
-			gf_sr_register_extra_graph(is->root_od->term->renderer, extra_scene, 1);
+			gf_sc_register_extra_graph(is->root_od->term->compositor, extra_scene, 1);
 		}
 	} else {
 		if (gf_list_find(is->extra_scenes, extra_scene)>=0) return;
 		gf_list_add(is->extra_scenes, extra_scene);
 		/*for root scene*/
 		if (is->root_od->term->root_scene == is) {
-			gf_sr_register_extra_graph(is->root_od->term->renderer, extra_scene, 0);
+			gf_sc_register_extra_graph(is->root_od->term->compositor, extra_scene, 0);
 		}
 	}
 }
 
 
-static void gf_is_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
+static void gf_inline_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
 {
 	u32 pixel_ar;
 	if (!gf_mo_get_visual_info(mo, w, h, NULL, &pixel_ar, NULL)) return;
@@ -1052,14 +1051,14 @@ static void IS_UpdateVideoPos(GF_InlineScene *is)
 	gf_sg_get_scene_size_info(is->graph, &w, &h);
 	if (!w || !h) return;
 
-	gf_is_get_video_size(mo, &v_w, &v_h);
+	gf_inline_get_video_size(mo, &v_w, &v_h);
 	tr->translation.x = INT2FIX((s32) (w - v_w)) / 2;
 	tr->translation.y = INT2FIX((s32) (h - v_h)) / 2;
 	gf_node_dirty_set((GF_Node *)tr, 0, 0);
 
 	if (is->root_od->term->root_scene == is) {
-		//if (is->graph_attached) gf_sr_set_scene(is->root_od->term->renderer, NULL);
-		gf_sr_set_scene(is->root_od->term->renderer, is->graph);
+		//if (is->graph_attached) gf_sc_set_scene(is->root_od->term->compositor, NULL);
+		gf_sc_set_scene(is->root_od->term->compositor, is->graph);
 	}
 }
 
@@ -1081,11 +1080,11 @@ static Bool is_odm_url(SFURL *url, GF_ObjectManager *odm)
 	return !stricmp(url->url, odm->OD->URLString);
 }
 
-void gf_is_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo)
+void gf_inline_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo)
 {
 	u32 w, h;
-	gf_is_get_video_size(mo, &w, &h);
-	gf_is_force_scene_size(is, w, h);
+	gf_inline_get_video_size(mo, &w, &h);
+	gf_inline_force_scene_size(is, w, h);
 }
 
 
@@ -1093,7 +1092,7 @@ void gf_is_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo)
 This will also try to reload any previously presented streams. Note that in the usual case the scene is generated
 just once when recieving the first OD AU (ressources are NOT destroyed when seeking), but since the network may need
 to update the OD ressources, we still kake care of it*/
-void gf_is_regenerate(GF_InlineScene *is)
+void gf_inline_regenerate(GF_InlineScene *is)
 {
 	u32 i, nb_obj, w, h;
 	GF_Node *n1, *n2;
@@ -1109,7 +1108,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inline] Regenerating scene graph for service %s\n", is->root_od->net_service->url));
 
 	if (is->root_od->term->root_scene == is) 
-		gf_sr_set_scene(is->root_od->term->renderer, NULL);
+		gf_sc_set_scene(is->root_od->term->compositor, NULL);
 
 	gf_sg_reset(is->graph);
 	gf_sg_get_scene_size_info(is->graph, &w, &h);
@@ -1123,7 +1122,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 	gf_node_register(n2, n1);
 
 	ac = (M_AudioClip *) is_create_node(is->graph, TAG_MPEG4_AudioClip, "DYN_AUDIO");
-	ac->startTime = gf_is_get_time(is);
+	ac->startTime = gf_inline_get_time(is);
 	((M_Sound2D *)n2)->source = (GF_Node *)ac;
 	gf_node_register((GF_Node *)ac, n2);
 
@@ -1172,7 +1171,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 
 	/*note we create a movie texture even for images...*/
 	mt = (M_MovieTexture *) is_create_node(is->graph, TAG_MPEG4_MovieTexture, "DYN_VIDEO");
-	mt->startTime = gf_is_get_time(is);
+	mt->startTime = gf_inline_get_time(is);
 	((M_Appearance *)n2)->texture = (GF_Node *)mt;
 	gf_node_register((GF_Node *)mt, n2);
 
@@ -1186,7 +1185,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 			sfu->OD_ID = is->visual_url.OD_ID;
 			if (is->visual_url.url) sfu->url = strdup(is->visual_url.url);
 			if (odm->mo) {
-				gf_is_get_video_size(odm->mo, &w, &h);
+				gf_inline_get_video_size(odm->mo, &w, &h);
 				gf_sg_set_scene_size_info(is->graph, w, h, 1);
 			}
 			first_odm = NULL;
@@ -1207,7 +1206,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 		if (is->visual_url.url) sfu->url = strdup(is->visual_url.url);
 	
 		if (first_odm->mo) {
-			gf_is_get_video_size(first_odm->mo, &w, &h);
+			gf_inline_get_video_size(first_odm->mo, &w, &h);
 			gf_sg_set_scene_size_info(is->graph, w, h, 1);
 		}
 		nb_obj++;
@@ -1260,15 +1259,15 @@ void gf_is_regenerate(GF_InlineScene *is)
 
 	/*disconnect to force resize*/
 	if (is->root_od->term->root_scene == is) {
-		if (is->graph_attached) gf_sr_set_scene(is->root_od->term->renderer, NULL);
-		gf_sr_set_scene(is->root_od->term->renderer, is->graph);
+		if (is->graph_attached) gf_sc_set_scene(is->root_od->term->compositor, NULL);
+		gf_sc_set_scene(is->root_od->term->compositor, is->graph);
 		is->graph_attached = 1;
 		evt.type = GF_EVENT_STREAMLIST;
 		GF_USER_SENDEVENT(is->root_od->term->user,&evt);
 		IS_UpdateVideoPos(is);
 	} else {
 		is->graph_attached = 1;
-		gf_term_invalidate_renderer(is->root_od->term);
+		gf_term_invalidate_compositor(is->root_od->term);
 	}
 }
 
@@ -1289,7 +1288,7 @@ static Bool check_odm_deactivate(SFURL *url, GF_ObjectManager *odm, GF_Node *n)
 	return 1;
 }
 
-void gf_is_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
+void gf_inline_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 {
 	if (!is->is_dynamic_scene || !is->graph_attached || !odm) return;
 	
@@ -1314,7 +1313,7 @@ void gf_is_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 			is->audio_url.url = strdup(odm->OD->URLString);
 			ac->url.vals[0].url = strdup(odm->OD->URLString);
 		}
-		ac->startTime = gf_is_get_time(is);
+		ac->startTime = gf_inline_get_time(is);
 		gf_node_changed((GF_Node *)ac, NULL);
 		return;
 	}
@@ -1332,9 +1331,9 @@ void gf_is_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 			is->visual_url.url = strdup(odm->OD->URLString);
 			mt->url.vals[0].url = strdup(odm->OD->URLString);
 		}
-		mt->startTime = gf_is_get_time(is);
+		mt->startTime = gf_inline_get_time(is);
 		gf_node_changed((GF_Node *)mt, NULL);
-		if (odm->mo) gf_is_force_scene_size_video(is, odm->mo);
+		if (odm->mo) gf_inline_force_scene_size_video(is, odm->mo);
 		return;
 	}
 
@@ -1352,7 +1351,7 @@ void gf_is_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 			is->text_url.url = strdup(odm->OD->URLString);
 			as->url.vals[0].url = strdup(odm->OD->URLString);
 		}
-		as->startTime = gf_is_get_time(is);
+		as->startTime = gf_inline_get_time(is);
 		gf_node_changed((GF_Node *)as, NULL);
 		return;
 	}
@@ -1360,18 +1359,18 @@ void gf_is_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 
 
 GF_EXPORT
-void gf_is_force_scene_size(GF_InlineScene *is, u32 width, u32 height)
+void gf_inline_force_scene_size(GF_InlineScene *is, u32 width, u32 height)
 {
 	/*for now only allowed when no scene info*/
 	if (!is->is_dynamic_scene) return;
 	gf_sg_set_scene_size_info(is->graph, width, height, gf_sg_use_pixel_metrics(is->graph));
 	if (is->root_od->term->root_scene != is) return;
-	gf_sr_set_scene(is->root_od->term->renderer, is->graph);
+	gf_sc_set_scene(is->root_od->term->compositor, is->graph);
 
 	IS_UpdateVideoPos(is);
 }
 
-void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
+void gf_inline_restart_dynamic(GF_InlineScene *is, u64 from_time)
 {
 	u32 i;
 	GF_List *to_restart;
@@ -1404,15 +1403,15 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 		M_MovieTexture *mt = (M_MovieTexture *) gf_sg_find_node_by_name(is->graph, "DYN_VIDEO");
 		M_AnimationStream *as = (M_AnimationStream *) gf_sg_find_node_by_name(is->graph, "DYN_TEXT");
 		if (ac) {
-			ac->startTime = gf_is_get_time(is);
+			ac->startTime = gf_inline_get_time(is);
 			gf_node_changed((GF_Node *)ac, NULL);
 		}
 		if (mt) {
-			mt->startTime = gf_is_get_time(is);
+			mt->startTime = gf_inline_get_time(is);
 			gf_node_changed((GF_Node *)mt, NULL);
 		}
 		if (as) {
-			as->startTime = gf_is_get_time(is);
+			as->startTime = gf_inline_get_time(is);
 			gf_node_changed((GF_Node *)as, NULL);
 		}
 	}
@@ -1420,7 +1419,7 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 
 
 GF_EXPORT
-Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt)
+Bool gf_inline_process_anchor(GF_Node *caller, GF_Event *evt)
 {
 	u32 i;
 	GF_Terminal *term;
@@ -1444,26 +1443,26 @@ Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt)
 		gf_sg_vrml_mf_alloc(&inl->url, GF_SG_VRML_MFURL, 1);
 		inl->url.vals[0].url = strdup(evt->navigate.to_url ? evt->navigate.to_url : "");
 		/*signal URL change but don't destroy inline scene now since we got this event from inside the scene, 
-		this could crash renderers*/
+		this could crash compositors*/
 		is->needs_restart = 2;
 	}
 	return 1;
 }
 
 GF_EXPORT
-GF_Renderer *gf_sr_get_renderer(GF_Node *node)
+GF_Compositor *gf_sc_get_compositor(GF_Node *node)
 {
 	GF_InlineScene *is;
 	GF_SceneGraph *sg = gf_node_get_graph(node);
 	if (!sg) return NULL;
 	is = (GF_InlineScene *)gf_sg_get_private(sg);
 	if (!is) return NULL;
-	return is->root_od->term->renderer;
+	return is->root_od->term->compositor;
 }
 
 
 void InitInline(GF_InlineScene *is, GF_Node *node)
 {
-	gf_node_set_callback_function(node, gf_is_render);
+	gf_node_set_callback_function(node, gf_inline_traverse);
 }
 

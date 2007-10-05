@@ -3,7 +3,7 @@
 
 #include "safe_include.h" 
 #include <gpac/scene_manager.h>
-#include <gpac/renderer.h>
+#include <gpac/compositor.h>
 #include <gpac/internal/terminal_dev.h> // MPEG4CLIENT
 #include "wxGPACPanel.h"
 #include "V4NodePools.h"
@@ -84,7 +84,7 @@ public:
 
 
 
-	GF_Renderer		*GetSceneRenderer() { return m_gpac_panel->GetSceneRenderer(); }
+	GF_Compositor *GetSceneCompositor() { return m_gpac_panel->GetSceneCompositor(); }
 
 	// GF_InlineScene
 	GF_InlineScene	*GetInlineScene() { return m_pIs; }

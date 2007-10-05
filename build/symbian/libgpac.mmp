@@ -214,20 +214,69 @@ SOURCE object_manager.c
 SOURCE terminal.c 
 SOURCE svg_external.c
 
-//renderer
-SOURCEPATH ..\..\src\renderer
+//compositor
+SOURCEPATH ..\..\src\compositor
 SOURCE audio_input.c
 SOURCE audio_mixer.c
 SOURCE audio_render.c
-SOURCE audio_stacks.c
-SOURCE base_textures.c
-SOURCE common_stacks.c
-SOURCE renderer.c
-SOURCE texturing.c 
+SOURCE bindable.c
+SOURCE camera.c
+SOURCE compositor.c
+SOURCE compositor_2d.c
+SOURCE compositor_3d.c
+SOURCE compositor_node_init.c
+SOURCE drawable.c
+SOURCE events.c
+SOURCE hardcoded_protos.c
+SOURCE mesh.c
+SOURCE mesh_collide.c
+SOURCE mesh_tesselate.c
+SOURCE mpeg4_animstream.c
+SOURCE mpeg4_audio.c
+SOURCE mpeg4_background.c
+SOURCE mpeg4_background2d.c
+SOURCE mpeg4_bitmap.c
+SOURCE mpeg4_composite.c
+SOURCE mpeg4_form.c
+SOURCE mpeg4_geometry_2d.c
+SOURCE mpeg4_geometry_3d.c
+SOURCE mpeg4_geometry_ifs2d.c
+SOURCE mpeg4_geometry_ils2d.c
+SOURCE mpeg4_gradients.c
+SOURCE mpeg4_grouping.c
+SOURCE mpeg4_grouping_2d.c
+SOURCE mpeg4_grouping_3d.c
+SOURCE mpeg4_layer_2d.c
+SOURCE mpeg4_layer_3d.c
+SOURCE mpeg4_layout.c
+SOURCE mpeg4_lighting.c
+SOURCE mpeg4_path_layout.c
+SOURCE mpeg4_sensors.c
+SOURCE mpeg4_sound.c
+SOURCE mpeg4_text.c
+SOURCE mpeg4_textures.c
+SOURCE mpeg4_timesensor.c
+SOURCE mpeg4_viewport.c
+SOURCE navigate.c
+SOURCE offscreen_cache.c
+SOURCE svg_base.c
+SOURCE svg_geometry.c
+SOURCE svg_grouping.c
+SOURCE svg_media.c
+SOURCE svg_paint_servers.c
+SOURCE svg_text.c
+SOURCE texturing.c
+SOURCE texturing_gl.c
+SOURCE visual_manager.c
+SOURCE visual_manager_2d.c
+SOURCE visual_manager_2d_draw.c
+SOURCE visual_manager_3d.c
+SOURCE visual_manager_3d_gl.c
+SOURCE x3d_geometry.c
 
 SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
 
-LIBRARY euser.lib estlib.lib ezlib.lib hal.lib
+LIBRARY euser.lib estlib.lib ezlib.lib hal.lib libgles_cm.lib
 
 #if defined(WINS)
     deffile ..\..\build\symbian\libgpac_symbian.def

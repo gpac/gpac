@@ -147,49 +147,49 @@ struct _inline_scene
 	Bool static_media_ressources;
 };
 
-GF_InlineScene *gf_is_new(GF_InlineScene *parentScene);
-void gf_is_del(GF_InlineScene *is);
-struct _od_manager *gf_is_find_odm(GF_InlineScene *is, u16 OD_ID);
-void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown);
-void gf_is_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for_shutdown);
+GF_InlineScene *gf_inline_new(GF_InlineScene *parentScene);
+void gf_inline_del(GF_InlineScene *is);
+struct _od_manager *gf_inline_find_odm(GF_InlineScene *is, u16 OD_ID);
+void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown);
+void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for_shutdown);
 /*browse all (media) channels and send buffering info to the app*/
-void gf_is_buffering_info(GF_InlineScene *is);
-void gf_is_attach_to_renderer(GF_InlineScene *is);
-struct _mediaobj *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
-struct _mediaobj *gf_is_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref);
+void gf_inline_buffering_info(GF_InlineScene *is);
+void gf_inline_attach_to_compositor(GF_InlineScene *is);
+struct _mediaobj *gf_inline_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
+struct _mediaobj *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref);
 
-void gf_is_setup_object(GF_InlineScene *is, GF_ObjectManager *odm);
+void gf_inline_setup_object(GF_InlineScene *is, GF_ObjectManager *odm);
 /*restarts inline scene - care has to be taken not to remove the scene while it is traversed*/
-void gf_is_restart(GF_InlineScene *is);
+void gf_inline_restart(GF_InlineScene *is);
 /*updates scene duration based on settings*/
-void gf_is_set_duration(GF_InlineScene *is);
+void gf_inline_set_duration(GF_InlineScene *is);
 /*locate media object by ODID (non dynamic ODs) or URL (dynamic ODs)*/
-struct _mediaobj *gf_is_find_object(GF_InlineScene *is, u16 ODID, char *url);
+struct _mediaobj *gf_inline_find_object(GF_InlineScene *is, u16 ODID, char *url);
 /*returns scene time in sec - exact meaning of time depends on standard used*/
-Double gf_is_get_time(void *_is);
+Double gf_inline_get_time(void *_is);
 /*returns true if the given node DEF name is the url target view (eg blabla#myview)*/
-Bool gf_is_default_scene_viewpoint(GF_Node *node);
+Bool gf_inline_default_scene_viewpoint(GF_Node *node);
 /*register extra scene graph for on-screen display*/
-void gf_is_register_extra_graph(GF_InlineScene *is, GF_SceneGraph *extra_scene, Bool do_remove);
+void gf_inline_register_extra_graph(GF_InlineScene *is, GF_SceneGraph *extra_scene, Bool do_remove);
 /*forces scene size info (without changing pixel metrics) - this may be needed by modules using extra graphs (like timedtext)*/
-void gf_is_force_scene_size(GF_InlineScene *is, u32 width, u32 height);
+void gf_inline_force_scene_size(GF_InlineScene *is, u32 width, u32 height);
 /*regenerate a scene graph based on available objects - can only be called for dynamic OD streams*/
-void gf_is_regenerate(GF_InlineScene *is);
+void gf_inline_regenerate(GF_InlineScene *is);
 /*selects given ODM for dynamic scenes*/
-void gf_is_select_object(GF_InlineScene *is, GF_ObjectManager *odm);
+void gf_inline_select_object(GF_InlineScene *is, GF_ObjectManager *odm);
 /*restarts dynamic scene from given time: scene graph is not reseted, objects are just restarted
 instead of closed and reopened. If a media control is present on inline, from_time is overriden by MC range*/
-void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time);
+void gf_inline_restart_dynamic(GF_InlineScene *is, u64 from_time);
 /*owner inline node has been modified*/
-void gf_is_on_modified(GF_Node *node);
+void gf_inline_on_modified(GF_Node *node);
 /*returns scene graph associated with an externProto lib - exported for VRML/X3D loaded*/
-GF_SceneGraph *gf_is_get_proto_lib(void *_is, MFURL *lib_url);
-/*exported for renderers: handles filtering of "self" parameter indicating anchor only acts on container inline scene
+GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url);
+/*exported for compositor: handles filtering of "self" parameter indicating anchor only acts on container inline scene
 not root one. Returns 1 if handled (cf user.h, navigate event)*/
-Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt);
+Bool gf_inline_process_anchor(GF_Node *caller, GF_Event *evt);
 /*extern proto fetcher*/
-GF_SceneGraph *gf_is_get_proto_lib(void *SceneCallback, MFURL *lib_url);
-void gf_is_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo);
+GF_SceneGraph *gf_inline_get_proto_lib(void *SceneCallback, MFURL *lib_url);
+void gf_inline_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo);
 /*compares object URL with another URL - ONLY USE THIS WITH DYNAMIC ODs*/
 Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *inline_url);
 
@@ -212,7 +212,7 @@ enum
 	GF_TERM_MULTI_THREAD = 1<<3,
 	GF_TERM_SYSDEC_RESYNC = 1<<4,
 	GF_TERM_SINGLE_CLOCK = 1<<5,
-	GF_TERM_RENDER_FRAME = 1<<6
+	GF_TERM_DRAW_FRAME = 1<<6
 };
 
 
@@ -223,8 +223,8 @@ struct _tag_terminal
 
 	/*callback to user application*/	
 	GF_User *user;
-	/*scene renderer*/
-	struct __tag_base_renderer *renderer;
+	/*scene compositor*/
+	struct __tag_compositor *compositor;
 	/*file downloader*/
 	GF_DownloadManager *downloader;
 	/*top level scene*/
@@ -305,20 +305,20 @@ void gf_term_close_services(GF_Terminal *app, GF_ClientService *service);
 void gf_term_lock_net(GF_Terminal *app, Bool LockIt);
 
 
-/*locks scene renderer*/
-void gf_term_lock_renderer(GF_Terminal *app, Bool LockIt);
-/*get scene renderer time*/
+/*locks scene compositor*/
+void gf_term_lock_compositor(GF_Terminal *app, Bool LockIt);
+/*get scene compositor time - FIXME this is not flexible enough for SMIL/Multiple time containers*/
 u32 gf_term_get_time(GF_Terminal *term);
-/*forces scene retraversal*/
-void gf_term_invalidate_renderer(GF_Terminal *term);
+/*forces scene composition*/
+void gf_term_invalidate_compositor(GF_Terminal *term);
 
 /*callbacks for scene graph library so that all related ESM nodes are properly instanciated*/
 void gf_term_node_callback(void *_is, u32 type, GF_Node *node, void *param);
 
 /*add/rem node requiring a call to render without being present in traversed graph (VRML/MPEG-4 protos). 
 For these nodes, the traverse effect passed will be NULL.*/
-void gf_term_add_render_node(GF_Terminal *term, GF_Node *node);
-void gf_term_rem_render_node(GF_Terminal *term, GF_Node *node);
+void gf_term_queue_node_traverse(GF_Terminal *term, GF_Node *node);
+void gf_term_unqueue_node_traverse(GF_Terminal *term, GF_Node *node);
 
 
 
@@ -666,7 +666,7 @@ struct _od_manager
 	/*full object duration 0 if unknown*/
 	u64 duration;
 	/*
-	upon start: media start time as requested by scene renderer (eg not media control)
+	upon start: media start time as requested by scene compositor (eg not media control)
 	set to -1 upon stop to postpone stop request
 	*/
 	u64 media_start_time, media_stop_time;

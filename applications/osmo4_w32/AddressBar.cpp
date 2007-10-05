@@ -122,7 +122,7 @@ void AddressBar::OnClose()
 
 void AddressBar::ReloadURLs()
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	u32 i=0;
 
 	while (m_Address.GetCount()) m_Address.DeleteString(0);
@@ -146,7 +146,7 @@ void AddressBar::SelectionReady()
 		m_Address.GetLBText(sel, URL);
 	}
 	if (!URL.GetLength()) return;
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	Playlist *pl = ((CMainFrame*)gpac->m_pMainWnd)->m_pPlayList;
 	/*don't store local files*/
 	if (URL.Find("://", 0)>0) {

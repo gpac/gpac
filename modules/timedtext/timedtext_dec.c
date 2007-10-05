@@ -111,7 +111,7 @@ static void TTD_UpdateSizeInfo(TTDPriv *priv)
 		}
 		gf_sg_get_scene_size_info(priv->sg, &w, &h);
 		if (!w || !h) return;
-		gf_is_force_scene_size(priv->inlineScene, w, h);
+		gf_inline_force_scene_size(priv->inlineScene, w, h);
 	}
 
 	if (!w || !h) return;
@@ -133,7 +133,7 @@ static void TTD_UpdateSizeInfo(TTDPriv *priv)
 		}
 		if (set_size) {
 			gf_sg_set_scene_size_info(priv->sg, w, h, 1);
-			gf_is_force_scene_size(priv->inlineScene, w, h);
+			gf_inline_force_scene_size(priv->inlineScene, w, h);
 		}
 	} else {
 		/*otherwise override (mainly used for SRT & TTXT file direct loading*/
@@ -193,9 +193,9 @@ static GF_Err TTD_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 		if (capability.cap.valueInt) {
 			TTD_ResetDisplay(priv);
 			TTD_UpdateSizeInfo(priv);
-			gf_is_register_extra_graph(priv->inlineScene, priv->sg, 0);
+			gf_inline_register_extra_graph(priv->inlineScene, priv->sg, 0);
 		} else {
-			gf_is_register_extra_graph(priv->inlineScene, priv->sg, 1);
+			gf_inline_register_extra_graph(priv->inlineScene, priv->sg, 1);
 		}			
 	}
 	return GF_OK;
@@ -355,7 +355,7 @@ static GF_Err TTD_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	if (!priv->nb_streams) return GF_BAD_PARAM;
 
-	gf_is_register_extra_graph(priv->inlineScene, priv->sg, 1);
+	gf_inline_register_extra_graph(priv->inlineScene, priv->sg, 1);
 
 	gf_node_unregister((GF_Node *) priv->ts_blink, NULL);
 	gf_node_unregister((GF_Node *) priv->process_blink, NULL);
