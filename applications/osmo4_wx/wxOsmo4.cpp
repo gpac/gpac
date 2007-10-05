@@ -1946,9 +1946,9 @@ void wxOsmo4Frame::UpdateRenderSwitch()
 	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "ForceOpenGL");
 	m_pToolBar->RemoveTool(SWITCH_RENDER);
 	if (opt && !stricmp(opt, "yes")) 
-		m_pToolBar->InsertTool(12, SWITCH_RENDER, *m_pSW3D, wxNullBitmap, FALSE, NULL, wxT("2D Rasterizer"));
+		m_pToolBar->InsertTool(12, SWITCH_RENDER, *m_pSW2D, wxNullBitmap, FALSE, NULL, wxT("2D Rasterizer"));
 	else
-		m_pToolBar->InsertTool(12, SWITCH_RENDER, *m_pSW2D, wxNullBitmap, FALSE, NULL, wxT("OpenGL Rendering"));
+		m_pToolBar->InsertTool(12, SWITCH_RENDER, *m_pSW3D, wxNullBitmap, FALSE, NULL, wxT("OpenGL Rendering"));
 
 #ifdef WIN32
 	/*there's a display bug with the menubtn, remove and reinsert*/

@@ -349,6 +349,7 @@ static void visual_2d_texture_path_intern(GF_VisualManager *visual, GF_Path *pat
 	
 	gf_mx2d_init(gf_mx2d_txt);
 	gf_mx2d_add_scale(&gf_mx2d_txt, sS, sT);
+
 	/*apply texture transform*/
 	if (ctx->flags & CTX_HAS_APPEARANCE) {
 		visual_2d_get_texture_transform(ctx->appear, txh, &tex_trans, (txh == ctx->aspect.fill_texture) ? 0 : 1, txh->width * sS, txh->height * sT);

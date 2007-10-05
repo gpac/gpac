@@ -300,6 +300,7 @@ EVGStencil *evg_linear_gradient_brush()
 	tmp->type = GF_STENCIL_LINEAR_GRADIENT;
 	for(i=0; i<EVGGRADIENTSLOTS; i++) tmp->pos[i]=-1;
 
+	tmp->alpha = 0xFF;
 	evg_stencil_set_linear_gradient((EVGStencil *)tmp, 0, 0, FIX_ONE, 0);
 	return (EVGStencil *) tmp;
 }
@@ -383,6 +384,7 @@ EVGStencil *evg_radial_gradient_brush()
 	tmp->center.x = tmp->center.y = FIX_ONE/2;
 	tmp->focus = tmp->center;
 	tmp->radius = tmp->center;
+	tmp->alpha = 0xFF;
 	return (EVGStencil *) tmp;
 }
 

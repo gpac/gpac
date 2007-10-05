@@ -148,16 +148,19 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 		/*ignore texture transform for bitmap*/
  		tr_state->mesh_has_texture = gf_sc_texture_enable(txh, NULL);
 		if (tr_state->mesh_has_texture) {
-			if (!stack->mesh) {
-				SFVec2f size;
-				size.x = width;
-				size.y = height;
+			/*we must check the w & h passed are correct because of bitmap node initialization*/
+			if (width && height) {
+				if (!stack->mesh) {
+					SFVec2f size;
+					size.x = width;
+					size.y = height;
 
-				stack->mesh = new_mesh();
-				mesh_new_rectangle(stack->mesh, size);
+					stack->mesh = new_mesh();
+					mesh_new_rectangle(stack->mesh, size);
+				}
+
+				visual_3d_mesh_paint(tr_state, stack->mesh);
 			}
-
-			visual_3d_mesh_paint(tr_state, stack->mesh);
  			gf_sc_texture_disable(txh);
 			tr_state->mesh_has_texture = 0;
 			return;
