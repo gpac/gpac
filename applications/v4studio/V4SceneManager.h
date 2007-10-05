@@ -84,13 +84,13 @@ public:
 
 
 
-	GF_Renderer *GetSceneRenderer() { return m_gpac_panel->GetSceneRenderer(); }
+	GF_Renderer		*GetSceneRenderer() { return m_gpac_panel->GetSceneRenderer(); }
 
 	// GF_InlineScene
-	GF_InlineScene *GetInlineScene() { return m_pIs; }
+	GF_InlineScene	*GetInlineScene() { return m_pIs; }
 
 	// SceneGraph
-	GF_SceneGraph *GetSceneGraph() { return m_pIs->graph; }
+	GF_SceneGraph	*GetSceneGraph() { return m_pIs->graph; }
 	GF_Node			*GetRootNode() { return gf_sg_get_root_node(m_pIs->graph); }
 
 	wxGPACPanel		*GetGPACPanel() { return m_gpac_panel; }
