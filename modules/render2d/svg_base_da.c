@@ -28,6 +28,9 @@
 #ifndef GPAC_DISABLE_SVG
 #include "svg_stacks.h"
 
+#include <gpac/network.h>
+#include <gpac/scene_manager.h>
+
 
 void svg_check_focus_upon_destroy(GF_Node *n)
 {
@@ -581,6 +584,12 @@ static void svg_set_viewport_transformation(RenderEffect2D *eff, SVGAllAttribute
 	gf_mx2d_pre_multiply(&eff->vb_transform, &mat);
 }
 
+typedef struct _svg_root_stack {
+	SVGPropertiesPointers svgp;
+	Bool remote_client_connected;
+	GF_Socket *socketTCP2;
+} SVGRootStack;
+
 static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 viewport_color;
@@ -592,11 +601,13 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 	SVGAllAttributes all_atts;
+	SVGRootStack *st = gf_node_get_private(node);
+	GF_Err e;
 
 	if (is_destroy) {
-		SVGPropertiesPointers *svgp = gf_node_get_private(node);
+		SVGPropertiesPointers *svgp = &st->svgp;
 		gf_svg_properties_reset_pointers(svgp);
-		free(svgp);
+		free(st);
 		svg_check_focus_upon_destroy(node);
 		return;
 	}
@@ -610,6 +621,97 @@ static void svg_render_svg(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	svg_render_base(node, &all_atts, eff, &backup_props, &backup_flags);
+
+#if 0
+	if (st->remote_client_connected) {
+		//fprintf(stdout,"remote client %d\n",st->remote_client_connected);
+		char buffer[100];
+		u32 read;
+
+		e=gf_sk_receive(st->socketTCP2, buffer, 100, 0, &read);
+		if (read > 0) {
+			fprintf(stdout, "Send annonce %s\n", gf_error_to_string(e));
+			if (!strcmp(buffer, "quit")) {
+				gf_sk_del(st->socketTCP2);
+				st->remote_client_connected = 0;
+			} else {
+				/* reception d'un evenement */
+			}
+		} else {
+			gf_sr_invalidate(eff->surface->render->compositor, NULL);
+			goto exit;
+		}
+	}
+
+
+	if (all_atts.baseProfile && strlen(*all_atts.baseProfile) && !st->remote_client_connected) {
+		if(!strcmp(*all_atts.baseProfile,"server")){
+		char message[100] = "127.0.0.1:9093";
+		GF_Socket *socket, *socketTCP;
+		GF_Err e1,e2;
+		GF_SceneDumper *sd;
+		GF_SceneGraph *sg;
+		GF_Node *backup_root_node;
+		char filename[500] = "C:\\tmp";
+		FILE *fichier_lu;
+		char sous_scene[1000];
+		char backup[100];
+		char adresse_UDP[16]="127.0.0.1";//"224.0.0.100";
+		u16 udp_dest_port = 7080;
+		u16 tcp_local_port = 9093;
+
+		socket = gf_sk_new(GF_SOCK_TYPE_UDP);
+		if (gf_sk_is_multicast_address(adresse_UDP)) {
+			gf_sk_setup_multicast(socket, adresse_UDP, udp_dest_port, 0, 0, NULL);
+		} else {
+			gf_sk_bind(socket, 0, adresse_UDP, udp_dest_port, GF_SOCK_REUSE_PORT);
+		}
+
+		//Envoi IP
+		e = gf_sk_send(socket, message, strlen(message)+1);
+		gf_sk_del(socket);
+		fprintf(stdout, "Send annonce %s\n", gf_error_to_string(e));
+		gf_sr_invalidate(eff->surface->render->compositor, NULL);
+
+		socketTCP=gf_sk_new(GF_SOCK_TYPE_TCP);
+		e1=gf_sk_bind(socketTCP, tcp_local_port, NULL, 0, GF_SOCK_REUSE_PORT);
+		e2=gf_sk_listen(socketTCP, 1);
+        e2 = gf_sk_accept(socketTCP, &st->socketTCP2);
+		if (e2 == GF_OK) {
+
+			strncpy(backup, *all_atts.baseProfile, strlen(*all_atts.baseProfile)+1);
+			strncpy(*all_atts.baseProfile, "client", strlen("client")+1); 
+			st->remote_client_connected = 1;
+			fprintf(stdout,"remote client %d\n",st->remote_client_connected);
+			sg = gf_node_get_graph(node);
+			backup_root_node = gf_sg_get_root_node(sg);
+			gf_sg_set_root_node(sg, node);
+			sd = gf_sm_dumper_new(sg, filename, ' ', GF_SM_DUMP_SVG);
+			gf_sm_dump_graph(sd, 1, 1);
+			gf_sm_dumper_del(sd);
+			gf_sg_set_root_node(sg, backup_root_node);
+			strncpy(*all_atts.baseProfile, backup, strlen(backup)+1);			
+			fichier_lu=fopen(filename,"r");
+			if (fichier_lu){
+				
+				while (feof(fichier_lu)==0){ //tant qu'on n'est pas à la fin du fichier
+					fread(sous_scene,1,1000,fichier_lu);
+					gf_sk_send(st->socketTCP2, sous_scene, strlen(sous_scene)+1);
+				}
+
+			}
+
+			else {fprintf(stdout, "problème d'ouverture");}
+			gf_sr_invalidate(eff->surface->render->compositor, NULL);
+			goto exit;
+		}
+		
+		gf_sk_del(socketTCP);
+
+		}
+
+	}
+#endif
 
 	/*enable or disable navigation*/
 	eff->surface->render->navigation_disabled = (all_atts.zoomAndPan && *all_atts.zoomAndPan == SVG_ZOOMANDPAN_DISABLE) ? 1 : 0;
@@ -657,11 +759,16 @@ exit:
 
 void svg_init_svg(Render2D *sr, GF_Node *node)
 {
+	SVGRootStack *st;
+	GF_SAFEALLOC(st, SVGRootStack);
+	gf_svg_properties_init_pointers(&st->svgp);
+	gf_node_set_private(node, st);
+/*
 	SVGPropertiesPointers *svgp;
 	GF_SAFEALLOC(svgp, SVGPropertiesPointers);
 	gf_svg_properties_init_pointers(svgp);
 	gf_node_set_private(node, svgp);
-
+*/
 	gf_node_set_callback_function(node, svg_render_svg);
 }
 

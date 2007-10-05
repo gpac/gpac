@@ -1486,7 +1486,7 @@ u32 gf_node_get_field_count(GF_Node *node)
 #ifdef GPAC_ENABLE_SVG_SANI
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG_SANI) return gf_svg_sani_get_attribute_count(node);
 #endif
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return 0;
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_count(node);
 #endif
 	return 0;
 }
@@ -1583,7 +1583,7 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 #ifdef GPAC_ENABLE_SVG_SANI
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG_SANI) return gf_svg_sani_get_attribute_info(node, info);
 #endif
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return GF_NOT_SUPPORTED;
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_info(node, info);
 #endif
 #endif
 	return GF_NOT_SUPPORTED;

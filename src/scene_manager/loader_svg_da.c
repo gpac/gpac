@@ -1354,8 +1354,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 					   else anim = NULL;
 				   }
 				   if (anim) {
-					   svg_parse_animation(parser, gf_node_get_graph((GF_Node *)node), anim, NULL, 1);
-					   if (anim->resolve_stage != 0) {
+					   if (svg_parse_animation(parser, gf_node_get_graph((GF_Node *)node), anim, NULL, 1)) {
 						   svg_delete_defered_anim(anim, parser->defered_animations);
 					   }
 				   }
@@ -1460,7 +1459,7 @@ GF_Err gf_sm_load_init_svg(GF_SceneLoader *load)
 	parser = svg_new_parser(load);
 
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ( (load->type==GF_SM_LOAD_XSR) ? "SVG: MPEG-4 (LASER) Scene Parsing\n" : "SVG: SVG Scene Parsing\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ( (load->type==GF_SM_LOAD_XSR) ? "[SVG Parser\t] MPEG-4 (LASER) Scene Parsing\n" : "[SVG Parser\t] SVG Scene Parsing\n"));
 
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, svg_progress);
 	if (e<0) return svg_report(parser, e, "Unable to parse file %s: %s", load->fileName, gf_xml_sax_get_error(parser->sax_parser) );

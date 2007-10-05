@@ -244,6 +244,11 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 	case SVG_PathData_datatype:
 		{
 #if USE_GF_PATH
+			SVG_PathData *d = (SVG_PathData *)field->far_ptr;
+			for (i=0; i<d->n_points; i++) {
+				StatSFVec2f(stat, &(d->points[i]));
+				stat->count_2d ++;
+			}		
 #else
 			SVG_PathData *d = (SVG_PathData *)field->far_ptr;
 			for (i=0; i<gf_list_count(d->points); i++) {
@@ -252,6 +257,15 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 				stat->count_2d ++;
 			}
 #endif
+		}
+		break;
+	case SVG_ViewBox_datatype:
+		{
+			SVG_ViewBox *vB = (SVG_ViewBox *)field->far_ptr;
+			StatFixed(stat, vB->x, 0);
+			StatFixed(stat, vB->y, 0);
+			StatFixed(stat, vB->width, 0);
+			StatFixed(stat, vB->height, 0);
 		}
 		break;
 	case SVG_Points_datatype:
@@ -263,6 +277,19 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 				StatSFVec2f(stat, (SFVec2f *)p);
 				stat->count_2d ++;
 			}
+		}
+		break;
+	case SVG_Transform_datatype:
+		{
+			GF_Matrix2D *mx = &((SVG_Transform *)field->far_ptr)->mat;
+			if (!gf_mx2d_is_identity(*mx) && !(!mx->m[0] && !mx->m[1] && !mx->m[3] && !mx->m[4])) {
+				StatFixed(stat, mx->m[0], 1);
+				StatFixed(stat, mx->m[1], 1);
+				StatFixed(stat, mx->m[3], 1);
+				StatFixed(stat, mx->m[4], 1);				
+				StatFixed(stat, mx->m[2], 0);
+				StatFixed(stat, mx->m[5], 0);
+			} 
 		}
 		break;
 	case SVG_Motion_datatype:
@@ -338,11 +365,16 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 
 #ifndef GPAC_DISABLE_SVG
 	if ((n->sgprivate->tag>= GF_NODE_RANGE_FIRST_SVG) && (n->sgprivate->tag<= GF_NODE_RANGE_LAST_SVG)) {
-		GF_ChildNodeItem *list = ((SVG_Element *)n)->children;;
-		count = gf_node_get_field_count(n);
-		for (i=0; i<count; i++) {
-			gf_node_get_field(n, i, &field);
+		GF_ChildNodeItem *list = ((SVG_Element *)n)->children;
+		GF_DOMAttribute *atts = ((GF_DOMNode*)n)->attributes;
+		while (atts) {
+			field.far_ptr = atts->data;
+			field.fieldType = atts->data_type;
+			field.fieldIndex = atts->tag;
+			field.name = NULL; 
 			StatSVGAttribute(st->stats, &field);
+
+			atts = atts->next;
 		}
 		while (list) {
 			StatNodeGraph(st, list->node);

@@ -512,7 +512,7 @@ static Bool gf_svg_compute_path_anim(SMIL_Anim_RTI *rai, GF_Matrix2D *m, Fixed n
 	offset = gf_mulfix(normalized_simple_time, rai->length);
 	gf_mx2d_init(*m);
 	res = gf_path_iterator_get_transform(rai->path_iterator, offset, 1, m, 1, 0);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("offset: %f, position: (%f, %f)", offset, ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[2], ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[5]));
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("offset: %f, position: (%f, %f)", offset, ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[2], ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[5]));
 	switch (rai->rotate) {
 	case SVG_NUMBER_AUTO:
 		break;
@@ -735,11 +735,13 @@ static void gf_smil_anim_animate(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 			gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->interpolated_value, 1);
 			rai->owner->presentation_value_changed = 1;
 		} else {
-			if (rai->is_first_anim) {
+/*			if (rai->is_first_anim) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - applying non-additive behavior (change needed because first anim)\n", gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_name((GF_Node *)rai->anim_elt)));
 				gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->interpolated_value, 1);
 				rai->owner->presentation_value_changed = 1;
-			} else {
+			} else 
+*/
+			{
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SMIL Animation] Time %f - Animation     %s - applying non-additive behavior (nothing to be done)\n", gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_name((GF_Node *)rai->anim_elt)));
 				rai->owner->presentation_value_changed = 0;
 			}

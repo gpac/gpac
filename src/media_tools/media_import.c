@@ -1000,6 +1000,7 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 		|| !stricmp(comp, "PVMM") /*PacketVideo - not tested*/
 		|| !stricmp(comp, "SEDG") /*Samsung - not tested*/
 		|| !stricmp(comp, "RMP4") /*Sigma - not tested*/
+		|| !stricmp(comp, "MP43") /*not tested*/
 		) {
 		e = GF_OK;
 	}

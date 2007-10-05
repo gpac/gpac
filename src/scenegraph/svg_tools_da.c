@@ -799,5 +799,35 @@ GF_Err gf_node_activate(GF_Node *node)
 	return e;
 }
 
+
+u32 gf_svg_get_attribute_count(GF_Node *node)
+{
+	u32 count = 0;
+	GF_DOMNode *dom = (GF_DOMNode *)node;
+	GF_DOMAttribute *atts = dom->attributes;
+	while (atts) {
+		count++;
+		atts = atts->next;
+	}
+	return count;
+}
+
+GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info) 
+{
+	GF_DOMNode *dom = (GF_DOMNode *)node;
+	GF_DOMAttribute *atts = dom->attributes;
+	while (atts) {
+		if (atts->tag == info->fieldIndex) {
+			info->fieldType = atts->data_type;
+			info->far_ptr  = atts->data;
+			return GF_OK;
+		}
+		atts = atts->next;
+	}
+	info->fieldType = 0;
+	info->far_ptr  = NULL;
+	return GF_NOT_SUPPORTED;
+}
+
 #endif
 

@@ -1036,7 +1036,7 @@ EXPORTS
 	gf_node_list_find_child
 	gf_node_list_get_child
 	gf_node_list_get_count
-
+	gf_node_list_del_child_idx
 
 ;terminal.h exports
 	gf_term_new
