@@ -281,66 +281,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libgpac_dll
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name dummy_in
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name gapi
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name img_in
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name render2d
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name soft_rast
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "render2d"=.\render2d.vcp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libgpac_dll
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "render3d"=.\render3d.vcp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libgpac_dll
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "render_full"=.\render_full.vcp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libgpac_dll
-    End Project Dependency
 }}}
 
 ###############################################################################

@@ -48,7 +48,7 @@ static GF_Err LSR_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer
 	if (!e && parser->needs_attachement) {
 		parser->needs_attachement = 0;
 		gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
-		gf_is_attach_to_renderer(parser->inline_scene);
+		gf_inline_attach_to_compositor(parser->inline_scene);
 	}
 	return e;
 }
@@ -77,7 +77,7 @@ static GF_Err SVG_ProcessProgressiveDocument(GF_SceneDecoder *plug, unsigned cha
 	{ /* the SVG root element has been encountered */
 		gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
 		/*attach graph to renderer*/
-		gf_is_attach_to_renderer(parser->inline_scene);
+		gf_inline_attach_to_compositor(parser->inline_scene);
 		parser->loader_status = 3;
 	}
 	return e;
@@ -101,7 +101,7 @@ static GF_Err SVG_ProcessFullDocument(GF_SceneDecoder *plug, unsigned char *inBu
 		if (!e) {
 			gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
 			/*attach graph to renderer*/
-			gf_is_attach_to_renderer(parser->inline_scene);
+			gf_inline_attach_to_compositor(parser->inline_scene);
 		} else {
 			parser->loader_status = 0;
 		}
@@ -124,7 +124,7 @@ static GF_Err SVG_ProcessAU(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 
 		if (!e) {
 			gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
 			/*attach graph to renderer*/
-			gf_is_attach_to_renderer(parser->inline_scene);
+			gf_inline_attach_to_compositor(parser->inline_scene);
 		} else {
 			parser->loader_status = 0;
 		}

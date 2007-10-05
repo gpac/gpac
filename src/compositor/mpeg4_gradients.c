@@ -1,0 +1,616 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Copyright (c) Jean Le Feuvre 2000-2005
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / Scene Compositor sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *
+ */
+
+#include "nodes_stacks.h"
+#include "texturing.h"
+
+
+#define GRAD_TEXTURE_SIZE	128
+#define GRAD_TEXTURE_HSIZE	64
+
+/*linear/radial gradient*/
+typedef struct
+{
+	GF_TextureHandler txh;
+	char *tx_data;
+	Bool transparent;
+	Bool no_rgb_support;
+} GradientStack;
+
+void GradientGetMatrix(GF_Node *transform, GF_Matrix2D *mat)
+{
+	gf_mx2d_init(*mat);
+	if (transform) {
+		switch (gf_node_get_tag(transform) ) {
+		case TAG_MPEG4_Transform2D:
+		{
+			M_Transform2D *tr = (M_Transform2D *)transform;
+			gf_mx2d_add_scale_at(mat, 0, 0, tr->scale.x, tr->scale.y, tr->scaleOrientation);
+			gf_mx2d_add_rotation(mat, tr->center.x, tr->center.y, tr->rotationAngle);
+			gf_mx2d_add_translation(mat, tr->translation.x, tr->translation.y);
+		}
+			break;
+		case TAG_MPEG4_TransformMatrix2D:
+		{
+			M_TransformMatrix2D *tm = (M_TransformMatrix2D*)transform;
+			gf_mx2d_init(*mat);
+			mat->m[0] = tm->mxx; mat->m[1] = tm->mxy; mat->m[2] = tm->tx;
+			mat->m[3] = tm->myx; mat->m[4] = tm->myy; mat->m[5] = tm->ty;
+		}
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+static void DestroyGradient(GF_Node *node, void *rs, Bool is_destroy)
+{
+	if (is_destroy) {
+		GradientStack *st = (GradientStack *) gf_node_get_private(node);
+		gf_sc_texture_destroy(&st->txh);
+		if (st->tx_data) free(st->tx_data);
+		free(st);
+	}
+}
+
+static void UpdateLinearGradient(GF_TextureHandler *txh)
+{
+	u32 i, *cols;
+	Fixed a;
+	Bool const_a;
+	GF_STENCIL stencil;
+	M_LinearGradient *lg = (M_LinearGradient *) txh->owner;
+	GradientStack *st = (GradientStack *) gf_node_get_private(txh->owner);
+
+	if (!gf_node_dirty_get(txh->owner)) {
+		txh->needs_refresh = 0;
+		return;
+	}
+	if (!txh->tx_io) gf_sc_texture_allocate(txh);
+
+	stencil = gf_sc_texture_get_stencil(txh);
+	if (!stencil) stencil = txh->compositor->rasterizer->stencil_new(txh->compositor->rasterizer, GF_STENCIL_LINEAR_GRADIENT);
+	/*set stencil even if assigned, this invalidates the associated bitmap state in 3D*/
+	gf_sc_texture_set_stencil(txh, stencil);
+
+	gf_node_dirty_clear(txh->owner, 0);
+	txh->needs_refresh = 1;
+
+	st->txh.transparent = 0;
+	const_a = (lg->opacity.count == 1) ? 1 : 0;
+	cols = (u32*)malloc(sizeof(u32) * lg->key.count);
+	for (i=0; i<lg->key.count; i++) {
+		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
+		cols[i] = GF_COL_ARGB_FIXED(a, lg->keyValue.vals[i].red, lg->keyValue.vals[i].green, lg->keyValue.vals[i].blue);
+		if (a != FIX_ONE) txh->transparent = 1;
+	}
+	txh->compositor->rasterizer->stencil_set_gradient_interpolation(stencil, lg->key.vals, cols, lg->key.count);
+	free(cols);
+	txh->compositor->rasterizer->stencil_set_gradient_mode(stencil, (GF_GradientMode) lg->spreadMethod);
+}
+
+
+static void LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+{
+	GF_STENCIL stencil;
+	SFVec2f start, end;
+	M_LinearGradient *lg = (M_LinearGradient *) txh->owner;
+
+	stencil = gf_sc_texture_get_stencil(txh);
+	if (!stencil) return;
+
+	if (lg->key.count<2) return;
+	if (lg->key.count != lg->keyValue.count) return;
+
+	start = lg->startPoint;
+	end = lg->endPoint;
+
+	/*create gradient brush if needed*/
+	if (!txh->tx_io) return;
+
+	GradientGetMatrix((GF_Node *) lg->transform, mat);
+	
+	/*move line to object space*/
+	start.x = gf_mulfix(start.x, bounds->width);
+	end.x = gf_mulfix(end.x, bounds->width);
+	start.y = gf_mulfix(start.y, bounds->height);
+	end.y = gf_mulfix(end.y, bounds->height);
+
+	/*move transform to object space*/
+	mat->m[2] = gf_mulfix(mat->m[2], bounds->width);
+	mat->m[5] = gf_mulfix(mat->m[5], bounds->height);
+	mat->m[1] = gf_muldiv(mat->m[1], bounds->width, bounds->height);
+	mat->m[3] = gf_muldiv(mat->m[3], bounds->height, bounds->width);
+
+	/*translate to the center of the bounds*/
+	gf_mx2d_add_translation(mat, bounds->x, bounds->y - bounds->height);
+
+	txh->compositor->rasterizer->stencil_set_linear_gradient(stencil, start.x, start.y, end.x, end.y);
+}
+
+static void BuildLinearGradientTexture(GF_TextureHandler *txh)
+{
+	u32 i;
+	SFVec2f start, end;
+	u32 *cols;
+	Fixed a;
+	Bool const_a;
+	GF_Matrix2D mat;
+	GF_STENCIL stenc;
+	GF_SURFACE surface;
+	GF_STENCIL texture2D;
+	GF_Path *path;
+	GF_Err e;
+	Bool transparent;
+	M_LinearGradient *lg = (M_LinearGradient *) txh->owner;
+	GradientStack *st = (GradientStack *) gf_node_get_private(txh->owner);
+	GF_Raster2D *raster = txh->compositor->rasterizer;
+
+	if (!txh->tx_io) return;
+
+
+	if (st->tx_data) {
+		free(st->tx_data);
+		st->tx_data = NULL;
+	}
+
+	if (lg->key.count<2) return;
+	if (lg->key.count != lg->keyValue.count) return;
+
+	start = lg->startPoint;
+	end = lg->endPoint;
+
+	transparent = (lg->opacity.count==1) ? (lg->opacity.vals[0]!=FIX_ONE) : 1;
+	
+	/*init our 2D graphics stuff*/
+	texture2D = raster->stencil_new(raster, GF_STENCIL_TEXTURE);
+	if (!texture2D) return;
+	surface = raster->surface_new(raster, 1);
+	if (!surface) {
+		raster->stencil_delete(texture2D);
+		return;
+	}
+
+	if (st->no_rgb_support) transparent = 1;
+	if (st->tx_data && (st->transparent != transparent)) {
+		free(st->tx_data);
+		st->tx_data = NULL;
+	}
+	
+	if (transparent) {
+		if (!st->tx_data) {
+			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+		} else {
+			memset(st->tx_data, 0, sizeof(char)*txh->stride*txh->height);
+		}
+		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
+	} else {
+		if (!st->tx_data) {
+			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
+		}
+		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB_24, GF_PIXEL_RGB_24, 1);
+		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
+		if (e) {
+			/*remember for later use*/
+			st->no_rgb_support = 1;
+			transparent = 1;
+			free(st->tx_data);
+			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
+		}
+	}
+	st->transparent = transparent;
+
+	if (e) {
+		free(st->tx_data);
+		raster->stencil_delete(texture2D);
+		raster->surface_delete(surface);
+		return;
+	}
+	e = raster->surface_attach_to_texture(surface, texture2D);
+	if (e) {
+		raster->stencil_delete(texture2D);
+		raster->surface_delete(surface);
+		return;
+	}
+
+	/*create & setup gradient*/
+	stenc = raster->stencil_new(raster, GF_STENCIL_LINEAR_GRADIENT);
+	if (!stenc) {
+		raster->stencil_delete(texture2D);
+		raster->surface_delete(surface);
+	}
+	/*move line to object space*/
+	start.x *= GRAD_TEXTURE_SIZE;
+	end.x *= GRAD_TEXTURE_SIZE;
+	start.y *= GRAD_TEXTURE_SIZE;
+	end.y *= GRAD_TEXTURE_SIZE;
+	raster->stencil_set_linear_gradient(stenc, start.x, start.y, end.x, end.y);
+	const_a = (lg->opacity.count == 1) ? 1 : 0;
+	cols = (u32*)malloc(sizeof(u32) * lg->key.count);
+	for (i=0; i<lg->key.count; i++) {
+		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
+		cols[i] = GF_COL_ARGB_FIXED(a, lg->keyValue.vals[i].red, lg->keyValue.vals[i].green, lg->keyValue.vals[i].blue);
+	}
+	raster->stencil_set_gradient_interpolation(stenc, lg->key.vals, cols, lg->key.count);
+	free(cols);
+	raster->stencil_set_gradient_mode(stenc, (GF_GradientMode)lg->spreadMethod);
+
+	/*fill surface*/
+	path = gf_path_new();
+	gf_path_add_move_to(path, -INT2FIX(GRAD_TEXTURE_HSIZE), -INT2FIX(GRAD_TEXTURE_HSIZE));
+	gf_path_add_line_to(path, INT2FIX(GRAD_TEXTURE_HSIZE), -INT2FIX(GRAD_TEXTURE_HSIZE));
+	gf_path_add_line_to(path, INT2FIX(GRAD_TEXTURE_HSIZE), INT2FIX(GRAD_TEXTURE_HSIZE));
+	gf_path_add_line_to(path, -INT2FIX(GRAD_TEXTURE_HSIZE), INT2FIX(GRAD_TEXTURE_HSIZE));
+	gf_path_close(path);
+
+	/*add gradient transform*/
+	GradientGetMatrix(lg->transform, &mat);
+	/*move transform to object space*/
+	mat.m[2] *= GRAD_TEXTURE_SIZE;
+	mat.m[5] *= GRAD_TEXTURE_SIZE;
+	/*translate to the center of the bounds*/
+	gf_mx2d_add_translation(&mat, -INT2FIX(GRAD_TEXTURE_HSIZE), -INT2FIX(GRAD_TEXTURE_HSIZE));
+	/*back to GL bottom->up order*/
+	gf_mx2d_add_scale(&mat, FIX_ONE, -FIX_ONE);
+	raster->stencil_set_matrix(stenc, &mat);
+
+	raster->surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
+	raster->surface_set_path(surface, path);
+	raster->surface_fill(surface, stenc);
+	raster->stencil_delete(stenc);
+	raster->surface_delete(surface);
+	raster->stencil_delete(texture2D);
+	gf_path_del(path);
+
+	txh->data = st->tx_data;
+	txh->width = GRAD_TEXTURE_SIZE;
+	txh->height = GRAD_TEXTURE_SIZE;
+	txh->transparent = transparent;
+	if (transparent) {
+		u32 j;
+		txh->stride = GRAD_TEXTURE_SIZE*4;
+
+		/*back to RGBA texturing*/
+		txh->pixelformat = GF_PIXEL_RGBA;
+		for (i=0; i<txh->height; i++) {
+			char *data = txh->data + i*txh->stride;
+			for (j=0; j<txh->width; j++) {
+				u32 val = *(u32 *) &data[4*j];
+				data[4*j] = (val>>16) & 0xFF;
+				data[4*j+1] = (val>>8) & 0xFF;
+				data[4*j+2] = (val) & 0xFF;
+				data[4*j+3] = (val>>24) & 0xFF;
+			}
+		}
+	} else {
+		txh->stride = GRAD_TEXTURE_SIZE*3;
+		txh->pixelformat = GF_PIXEL_RGB_24;
+	}
+	gf_sc_texture_set_data(txh);
+}
+
+void compositor_init_linear_gradient(GF_Compositor *compositor, GF_Node *node)
+{
+	GradientStack *st;
+	GF_SAFEALLOC(st, GradientStack);
+
+	gf_sc_texture_setup(&st->txh, compositor, node);
+	st->txh.update_texture_fcnt = UpdateLinearGradient;
+	st->txh.compute_gradient_matrix = LG_ComputeMatrix;
+	
+	gf_node_set_private(node, st);
+	gf_node_set_callback_function(node, DestroyGradient);
+}
+
+
+static void BuildRadialGradientTexture(GF_TextureHandler *txh)
+{
+	u32 i;
+	SFVec2f center, focal;
+	u32 *cols;
+	Fixed a, radius;
+	Bool const_a;
+	GF_Matrix2D mat;
+	GF_STENCIL stenc;
+	GF_SURFACE surface;
+	GF_STENCIL texture2D;
+	GF_Path *path;
+	GF_Err e;
+	Bool transparent;
+	M_RadialGradient *rg = (M_RadialGradient*) txh->owner;
+	GradientStack *st = (GradientStack *) gf_node_get_private(txh->owner);
+	GF_Raster2D *raster = txh->compositor->rasterizer;
+
+
+	if (!txh->tx_io) return;
+
+	if (st->tx_data) {
+		free(st->tx_data);
+		st->tx_data = NULL;
+	}
+
+	if (rg->key.count<2) return;
+	if (rg->key.count != rg->keyValue.count) return;
+
+	transparent = (rg->opacity.count==1) ? ((rg->opacity.vals[0]!=FIX_ONE) ? 1 : 0) : 1;
+	
+	/*init our 2D graphics stuff*/
+	texture2D = raster->stencil_new(raster, GF_STENCIL_TEXTURE);
+	if (!texture2D) return;
+	surface = raster->surface_new(raster, 1);
+	if (!surface) {
+		raster->stencil_delete(texture2D);
+		return;
+	}
+
+	if (st->no_rgb_support) transparent = 1;
+	if (st->tx_data && (st->transparent != transparent)) {
+		free(st->tx_data);
+		st->tx_data = NULL;
+	}
+	
+	if (transparent) {
+		if (!st->tx_data) {
+			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+		} else {
+			memset(st->tx_data, 0, sizeof(char)*txh->stride*txh->height);
+		}
+		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
+	} else {
+		if (!st->tx_data) {
+			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
+		}
+		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB_24, GF_PIXEL_RGB_24, 1);
+		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
+		if (e) {
+			/*remember for later use*/
+			st->no_rgb_support = 1;
+			transparent = 1;
+			free(st->tx_data);
+			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
+		}
+	}
+	st->transparent = transparent;
+
+	if (e) {
+		free(st->tx_data);
+		raster->stencil_delete(texture2D);
+		raster->surface_delete(surface);
+		return;
+	}
+	e = raster->surface_attach_to_texture(surface, texture2D);
+	if (e) {
+		raster->stencil_delete(texture2D);
+		raster->surface_delete(surface);
+		return;
+	}
+
+	/*create & setup gradient*/
+	stenc = raster->stencil_new(raster, GF_STENCIL_RADIAL_GRADIENT);
+	if (!stenc) {
+		raster->stencil_delete(texture2D);
+		raster->surface_delete(surface);
+	}
+
+	center = rg->center;
+	focal = rg->focalPoint;
+	radius = rg->radius;
+
+	/*move circle to object space*/
+	center.x *= GRAD_TEXTURE_SIZE;
+	center.y *= GRAD_TEXTURE_SIZE;
+	focal.x *= GRAD_TEXTURE_SIZE;
+	focal.y *= GRAD_TEXTURE_SIZE;
+	radius *= GRAD_TEXTURE_SIZE;
+
+	raster->stencil_set_radial_gradient(stenc, center.x, center.y, focal.x, focal.y, radius, radius);
+
+	const_a = (rg->opacity.count == 1) ? 1 : 0;
+	cols = (u32*) malloc(sizeof(u32) * rg->key.count);
+	for (i=0; i<rg->key.count; i++) {
+		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);
+		cols[i] = GF_COL_ARGB_FIXED(a, rg->keyValue.vals[i].red, rg->keyValue.vals[i].green, rg->keyValue.vals[i].blue);
+	}
+	raster->stencil_set_gradient_interpolation(stenc, rg->key.vals, cols, rg->key.count);
+	free(cols);
+	raster->stencil_set_gradient_mode(stenc, (GF_GradientMode)rg->spreadMethod);
+
+	/*fill surface*/
+	path = gf_path_new();
+	gf_path_add_move_to(path, -INT2FIX(GRAD_TEXTURE_HSIZE), -INT2FIX(GRAD_TEXTURE_HSIZE));
+	gf_path_add_line_to(path, INT2FIX(GRAD_TEXTURE_HSIZE), -INT2FIX(GRAD_TEXTURE_HSIZE));
+	gf_path_add_line_to(path, INT2FIX(GRAD_TEXTURE_HSIZE), INT2FIX(GRAD_TEXTURE_HSIZE));
+	gf_path_add_line_to(path, -INT2FIX(GRAD_TEXTURE_HSIZE), INT2FIX(GRAD_TEXTURE_HSIZE));
+	gf_path_close(path);
+
+	/*add gradient transform*/
+	GradientGetMatrix(rg->transform, &mat);
+	/*move transform to object space*/
+	mat.m[2] *= GRAD_TEXTURE_SIZE;
+	mat.m[5] *= GRAD_TEXTURE_SIZE;
+	/*translate to the center of the bounds*/
+	gf_mx2d_add_translation(&mat, -INT2FIX(GRAD_TEXTURE_HSIZE), -INT2FIX(GRAD_TEXTURE_HSIZE));
+	/*back to GL bottom->up order*/
+	gf_mx2d_add_scale(&mat, FIX_ONE, -FIX_ONE);
+	raster->stencil_set_matrix(stenc, &mat);
+
+	raster->surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
+	raster->surface_set_path(surface, path);
+	raster->surface_fill(surface, stenc);
+	raster->stencil_delete(stenc);
+	raster->surface_delete(surface);
+	raster->stencil_delete(texture2D);
+	gf_path_del(path);
+
+	txh->data = st->tx_data;
+	txh->width = GRAD_TEXTURE_SIZE;
+	txh->height = GRAD_TEXTURE_SIZE;
+	txh->transparent = transparent;
+	if (transparent) {
+		u32 j;
+		txh->stride = GRAD_TEXTURE_SIZE*4;
+
+		/*back to RGBA texturing*/
+		txh->pixelformat = GF_PIXEL_RGBA;
+		for (i=0; i<txh->height; i++) {
+			char *data = txh->data + i*txh->stride;
+			for (j=0; j<txh->width; j++) {
+				u32 val = *(u32 *) &data[4*j];
+				data[4*j] = (val>>16) & 0xFF;
+				data[4*j+1] = (val>>8) & 0xFF;
+				data[4*j+2] = (val) & 0xFF;
+				data[4*j+3] = (val>>24) & 0xFF;
+			}
+		}
+	} else {
+		txh->stride = GRAD_TEXTURE_SIZE*3;
+		txh->pixelformat = GF_PIXEL_RGB_24;
+	}
+//	tx_set_blend_enable(txh, 1);
+	gf_sc_texture_set_data(txh);
+	return;
+}
+
+static void UpdateRadialGradient(GF_TextureHandler *txh)
+{
+	GF_STENCIL stencil;
+	u32 i;
+	M_RadialGradient *rg = (M_RadialGradient*) txh->owner;
+	GradientStack *st = (GradientStack *) gf_node_get_private(txh->owner);
+
+	if (!gf_node_dirty_get(txh->owner)) {
+		txh->needs_refresh = 0;
+		return;
+	}
+
+	if (!txh->tx_io) gf_sc_texture_allocate(txh);
+
+	stencil = gf_sc_texture_get_stencil(txh);
+	if (!stencil)stencil = txh->compositor->rasterizer->stencil_new(txh->compositor->rasterizer, GF_STENCIL_RADIAL_GRADIENT);
+	/*set stencil even if assigned, this invalidates the associated bitmap state in 3D*/
+	gf_sc_texture_set_stencil(txh, stencil);
+
+	gf_node_dirty_clear(txh->owner, 0);
+	txh->needs_refresh = 1;
+
+	st->txh.transparent = 0;
+	for (i=0; i<rg->opacity.count; i++) {
+		if (rg->opacity.vals[i] != FIX_ONE) {
+			st->txh.transparent = 1;
+			break;
+		}
+	}
+}
+
+static void RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+{
+	SFVec2f center, focal;
+	u32 i, *cols;
+	Fixed a;
+	GF_STENCIL stencil;
+	Bool const_a;
+	M_RadialGradient *rg = (M_RadialGradient *) txh->owner;
+
+	if (rg->key.count<2) return;
+	if (rg->key.count != rg->keyValue.count) return;
+
+	if (!txh->tx_io) return;
+
+	stencil = gf_sc_texture_get_stencil(txh);
+	if (!stencil) return;
+
+	GradientGetMatrix((GF_Node *) rg->transform, mat);
+
+	center = rg->center;
+	focal = rg->focalPoint;
+
+	/*move circle to object space*/
+	center.x = gf_mulfix(center.x, bounds->width);
+	center.y = gf_mulfix(center.y, bounds->height);
+	focal.x = gf_mulfix(focal.x, bounds->width);
+	focal.y = gf_mulfix(focal.y, bounds->height);
+
+	/*move transform to object space*/
+	mat->m[2] = gf_mulfix(mat->m[2], bounds->width);
+	mat->m[5] = gf_mulfix(mat->m[5], bounds->height);
+	mat->m[1] = gf_muldiv(mat->m[1], bounds->width, bounds->height);
+	mat->m[3] = gf_muldiv(mat->m[3], bounds->height, bounds->width);
+
+	
+	txh->compositor->rasterizer->stencil_set_radial_gradient(stencil, center.x, center.y, focal.x, focal.y, gf_mulfix(rg->radius, bounds->width), gf_mulfix(rg->radius, bounds->height));
+
+	const_a = (rg->opacity.count == 1) ? 1 : 0;
+	cols = (u32*)malloc(sizeof(u32) * rg->key.count);
+	for (i=0; i<rg->key.count; i++) {
+		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);
+		cols[i] = GF_COL_ARGB_FIXED(a, rg->keyValue.vals[i].red, rg->keyValue.vals[i].green, rg->keyValue.vals[i].blue);
+	}
+	txh->compositor->rasterizer->stencil_set_gradient_interpolation(stencil, rg->key.vals, cols, rg->key.count);
+	free(cols);
+
+	txh->compositor->rasterizer->stencil_set_gradient_mode(stencil, (GF_GradientMode) rg->spreadMethod);
+	gf_mx2d_add_translation(mat, bounds->x, bounds->y - bounds->height);
+}
+
+
+void compositor_init_radial_gradient(GF_Compositor *compositor, GF_Node *node)
+{
+	GradientStack *st;
+	GF_SAFEALLOC(st, GradientStack);
+
+	gf_sc_texture_setup(&st->txh, compositor, node);
+	st->txh.update_texture_fcnt = UpdateRadialGradient;
+	st->txh.compute_gradient_matrix = RG_ComputeMatrix;
+
+	gf_node_set_private(node, st);
+	gf_node_set_callback_function(node, DestroyGradient);
+}
+
+GF_TextureHandler *compositor_mpeg4_get_gradient_texture(GF_Node *node)
+{
+	GradientStack *st = (GradientStack*) gf_node_get_private(node);
+	return &st->txh;
+}
+
+void compositor_gradient_update(GF_TextureHandler *txh)
+{
+	switch (gf_node_get_tag(txh->owner) ) {
+	case TAG_MPEG4_RadialGradient:
+		BuildRadialGradientTexture(txh);
+		break;
+	case TAG_MPEG4_LinearGradient:
+		BuildLinearGradientTexture(txh);
+		break;
+#ifndef GPAC_DISABLE_SVG
+	case TAG_SVG_linearGradient:
+	case TAG_SVG_radialGradient:
+		compositor_svg_build_gradient_texture(txh);
+		break;
+#endif
+	}
+}
+

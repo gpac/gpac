@@ -161,9 +161,9 @@ IDM_MAIN_MENU2 MENU DISCARDABLE
 BEGIN
     POPUP "Options"
     BEGIN
-        MENUITEM "3D Mode",                     IDM_VIEW_3DREND
+        MENUITEM "2D OpenGL",                   IDM_VIEW_3DREND
         MENUITEM "15.0 FPS",                    IDM_VIEW_LOW_RATE
-        MENUITEM "Direct Render",               IDM_VIEW_DIRECT
+        MENUITEM "Direct Draw",                 IDM_VIEW_DIRECT
         MENUITEM SEPARATOR
         MENUITEM "Status Bar",                  IDM_VIEW_STATUS
         MENUITEM "CPU usage",                   IDM_VIEW_CPU

@@ -252,7 +252,7 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 			goto err_exit;
 		}
 		gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) config_path);
-		gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "GPAC 2D Raster");
+		gf_cfg_set_key(m_user.config, "Compositor", "Raster2D", "GPAC 2D Raster");
 		sprintf((char *) cfg_file, "%s\\cache", config_path);
 		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) cfg_file);
 		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "no");
@@ -281,12 +281,6 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
     m_user.os_window_handler = m_hWnd;
     m_user.opaque = this;
     m_user.EventProc = GPAX_EventProc;
-
-	if (strstr(m_url, ".wrl") || strstr(m_url, ".x3d") || strstr(m_url, ".x3dv")) {
-		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
-	} else {
-		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", m_bUse3D ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
-	}
 
 	//create a terminal
     m_term = gf_term_new(&m_user);

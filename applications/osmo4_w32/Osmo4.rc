@@ -41,8 +41,6 @@ BEGIN
             MENUITEM "&Abort",                      ID_REC_ABORT
         END
         MENUITEM SEPARATOR
-        MENUITEM "Reload Player",               ID_RELOAD_TERMINAL
-        MENUITEM SEPARATOR
         MENUITEM "Exit",                        ID_FILE_EXIT
     END
     POPUP "View"
@@ -359,9 +357,6 @@ STRINGTABLE DISCARDABLE
 BEGIN
     ID_VIEW_FULLSCREEN      "Move to Full Screen mode (Esc to exit)"
     ID_AR_KEEP              "Keep Aspect Ratio of presentation"
-    ID_AR_FILL              "Ignores Aspect Ratio and always fill screen"
-    ID_AR_43                "Forces Aspect Ratio of 4/3"
-    ID_AR_169               "Forces Aspect Ratio of 16/9"
     ID_SHORTCUTS            "List of available shortcuts"
     ID_FILE_PROP            "Show presentation properties"
     ID_FILE_STEP            "Step one frame into presentation"
@@ -376,6 +371,9 @@ END
 STRINGTABLE DISCARDABLE 
 BEGIN
     ID_NAVIGATE_WALK        "Turn walk navigation on"
+    ID_AR_FILL              "Ignores Aspect Ratio and always fill screen"
+    ID_AR_43                "Forces Aspect Ratio of 4/3"
+    ID_AR_169               "Forces Aspect Ratio of 16/9"
     ID_NAV_RESET            "Restore last viewpoint"
 END
 

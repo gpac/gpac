@@ -159,9 +159,9 @@ Bool gf_sg_route_activate(GF_Route *r)
 	}
 #ifndef GPAC_DISABLE_LOG
 	if (r->IS_route) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[VRML Event] executing %s.%s IS %s.%s\n", gf_node_get_name(r->FromNode), r->FromField.name, gf_node_get_name(r->ToNode), r->ToField.name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[VRML Event] executing %s.%s IS %s.%s\n", gf_node_get_name(r->FromNode), r->FromField.name, gf_node_get_name(r->ToNode), r->ToField.name));
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[VRML Event] executing ROUTE %s.%s TO %s.%s\n", gf_node_get_name(r->FromNode), r->FromField.name, gf_node_get_name(r->ToNode), r->ToField.name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[VRML Event] executing ROUTE %s.%s TO %s.%s\n", gf_node_get_name(r->FromNode), r->FromField.name, gf_node_get_name(r->ToNode), r->ToField.name));
 	}
 #endif
 

@@ -26,8 +26,7 @@
 #include <gpac/utf.h>
 #include <gpac/nodes_x3d.h>
 #include <gpac/constants.h>
-/*for screen to BIFS coordinate mapping (MouseSensor) */
-#include <gpac/renderer.h>
+#include <gpac/compositor.h>
 
 #include "input_sensor.h"
 
@@ -335,7 +334,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffer
 		if (!st->is->enabled) continue;
 
 		count = gf_list_count(st->is->buffer.commandList);
-		scene_time = gf_is_get_time(priv->scene);
+		scene_time = gf_inline_get_time(priv->scene);
 		for (j=0; j<count; j++) {
 			GF_Command *com = (GF_Command *)gf_list_get(st->is->buffer.commandList, j);
 			GF_FieldInfo *field = (GF_FieldInfo *)gf_list_get(priv->ddf, j);
@@ -450,10 +449,10 @@ static void IS_Register(GF_Node *n)
 	/*start stream*/
 	gf_mo_play(st->mo, 0, -1, 0);
 
-	gf_term_rem_render_node(odm->term, n);
+	gf_term_unqueue_node_traverse(odm->term, n);
 }
 
-static void RenderInputSensor(GF_Node *node, void *rs, Bool is_destroy)
+static void TraverseInputSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
 	ISStack *st = (ISStack*)gf_node_get_private(node);
 	M_InputSensor *is = (M_InputSensor *)node;
@@ -462,7 +461,7 @@ static void RenderInputSensor(GF_Node *node, void *rs, Bool is_destroy)
 		GF_InlineScene *is;
 		if (st->registered) IS_Unregister(st);
 		is = (GF_InlineScene*)gf_sg_get_private(gf_node_get_graph(node));
-		gf_term_rem_render_node(is->root_od->term, node);
+		gf_term_unqueue_node_traverse(is->root_od->term, node);
 		free(st);
 	} else {
 		/*get decoder object */
@@ -479,8 +478,8 @@ void InitInputSensor(GF_InlineScene *is, GF_Node *node)
 	GF_SAFEALLOC(stack, ISStack);
 	stack->is = (M_InputSensor *) node;
 	gf_node_set_private(node, stack);
-	gf_node_set_callback_function(node, RenderInputSensor);
-	gf_term_add_render_node(is->root_od->term, node);
+	gf_node_set_callback_function(node, TraverseInputSensor);
+	gf_term_queue_node_traverse(is->root_od->term, node);
 }
 
 /*check only URL changes*/
@@ -562,7 +561,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 	}
 
 	/*get BIFS coordinates*/
-	gf_sr_map_point(term->renderer, X, Y, &bX, &bY);
+	gf_sc_map_point(term->compositor, X, Y, &bX, &bY);
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 

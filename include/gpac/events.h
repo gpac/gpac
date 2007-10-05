@@ -466,7 +466,7 @@ typedef struct
 } GF_EventVideoSetup;
 
 /*event proc return value: ignored
-this event may be triggered by the renderer if owning window or if shortcut fullscreen is detected*/
+this event may be triggered by the compositor if owning window or if shortcut fullscreen is detected*/
 typedef struct
 {
 	/*GF_EVENT_SHOWHIDE*/

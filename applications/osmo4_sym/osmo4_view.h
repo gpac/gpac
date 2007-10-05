@@ -103,8 +103,6 @@ class COsmo4AppView : public CCoeControl
 #if defined(__SERIES60_3X__)
 		void MrccatoCommand(TRemConCoreApiOperationId aOperationId, TRemConCoreApiButtonAction aButtonAct);
 #endif
-		void ReloadTerminal();
-
 
 		TInt OnTick();
 

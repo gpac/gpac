@@ -3,7 +3,7 @@
 
 #include "safe_include.h" 
 #include <gpac/scene_manager.h>
-#include <gpac/renderer.h>
+#include <gpac/compositor.h>
 #include <gpac/internal/terminal_dev.h> // MPEG4CLIENT
 
 
@@ -70,8 +70,8 @@ public:
 	void GetSceneSize(wxSize &size);
 
 	// Renderer (owned by the terminal)
-	void SetRenderer(GF_Renderer *sr) { m_pSr = sr; }
-	GF_Renderer *GetSceneRenderer() { return m_pSr; }
+	void SetRenderer(GF_Compositor *sr) { m_pSr = sr; }
+	GF_Compositor *GetSceneCompositor() { return m_pSr; }
 
 	// GF_InlineScene
 	// TODO : Should be modified ?
@@ -125,7 +125,7 @@ protected:
 	GF_Node * dictionnary;
 
 	// from other objects
-	GF_Renderer *m_pSr;
+	GF_Compositor *m_pSr;
 	GF_Terminal *m_term;
 	V4StudioFrame * frame;
 	

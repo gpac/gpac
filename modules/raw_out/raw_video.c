@@ -36,13 +36,8 @@ typedef struct
 } RawContext;
 
 
-#ifdef DANAE
-#define RAW_OUT_PIXEL_FORMAT		GF_PIXEL_ARGB
-#define NBPP						4
-#else
 #define RAW_OUT_PIXEL_FORMAT		GF_PIXEL_RGB_24
 #define NBPP						3
-#endif
 
 #define RAWCTX	RawContext *rc = (RawContext *)dr->opaque
 
@@ -96,14 +91,9 @@ static GF_Err RAW_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
 	if (evt) {
 		switch (evt->type) {
-#ifdef DANAE
-		case GF_EVENT_SIZE:
-			return raw_resize(dr, evt->size.width, evt->size.height);
-#else
 		case GF_EVENT_VIDEO_SETUP:
 			if (evt->setup.opengl_mode) return GF_NOT_SUPPORTED;
 			return raw_resize(dr, evt->setup.width, evt->setup.height);
-#endif
 		}
 	}
 	return GF_OK;

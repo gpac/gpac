@@ -33,12 +33,6 @@
 #include <gpac/nodes_mpeg4.h>
 /*title node*/
 #include <gpac/nodes_svg_da.h>
-#ifdef GPAC_ENABLE_SVG_SA
-#include <gpac/nodes_svg_sa.h>
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-#include <gpac/nodes_svg_sani.h>
-#endif
 
 
 static Bool check_in_scene(GF_InlineScene *scene, GF_ObjectManager *odm)
@@ -109,7 +103,7 @@ void gf_term_select_object(GF_Terminal *term, GF_ObjectManager *odm)
 	if (!term || !odm) return;
 	if (!gf_term_check_odm(term, odm)) return;
 
-	gf_is_select_object(term->root_scene, odm);
+	gf_inline_select_object(term->root_scene, odm);
 }
 
 
@@ -309,16 +303,6 @@ const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od
 	}
 	if (!info) return NULL;
 	
-#ifdef GPAC_ENABLE_SVG_SA
-	if (gf_node_get_tag(info) == TAG_SVG_SA_title) {
-		return ((SVG_SA_titleElement *) info)->textContent;
-	} else 
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-	if (gf_node_get_tag(info) == TAG_SVG_SANI_title) {
-		return ((SVG_SANI_titleElement *) info)->textContent;
-	} else 
-#endif
 	if (gf_node_get_tag(info) == TAG_SVG_title) {
 		/*FIXME*/
 		//return ((SVG_titleElement *) info)->textContent;

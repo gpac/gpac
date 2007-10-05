@@ -360,8 +360,6 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 		gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
 		gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
 		
-		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
-
 		gf_cfg_set_key(m_user.config, "FontEngine", "TextureTextMode", "3D");
 
 		
@@ -609,22 +607,3 @@ void COsmo4AppView::MrccatoCommand(TRemConCoreApiOperationId aOperationId, TRemC
 }
 
 #endif
-
-void COsmo4AppView::ReloadTerminal()
-{
-#ifndef GPAC_GUI_ONLY
-	COsmo4AppUi *app = (COsmo4AppUi *) CEikonEnv::Static()->AppUi();
-	GF_Terminal *term = m_term;
-
-	app->SetInfo("Reloading terminal...");
-	m_term = NULL;
-	gf_term_del(term);
-	m_term = gf_term_new(&m_user);
-	app->SetInfo(NULL);
-
-	if (!m_term) {
-		MessageBox("Couldn't reload terminal", "Fatal Error !");
-		Panic(EOsmo4Ui);
-	}
-#endif
-}

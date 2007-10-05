@@ -297,9 +297,9 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, u32 TS, u32 NbBytes)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 		} 
 
-		/*since a new CU is here notify the renderer*/
+		/*since a new CU is here notify the compositor*/
 		if ((cb->odm->codec->type==GF_STREAM_VISUAL) && cb->odm->mo && cb->odm->mo->num_open) {
-			gf_term_invalidate_renderer(cb->odm->term);
+			gf_term_invalidate_compositor(cb->odm->term);
 		}
 	}
 	gf_odm_lock(cb->odm, 0);
@@ -415,7 +415,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 	/*no output*/
 	if (!cb->output->dataLength) {
 		if ((cb->Status != CB_STOP) && cb->HasSeenEOS && (cb->odm && cb->odm->codec)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 
 			cb->Status = CB_STOP;
 			cb->odm->current_time = (u32) cb->odm->media_stop_time;
@@ -431,7 +431,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 
 		/*handle visual object - EOS if no more data (we keep the last CU for rendering, so check next one)*/
 		if (cb->HasSeenEOS && (!cb->output->next->dataLength || (cb->Capacity==1))) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 			cb->Status = CB_STOP;
 			cb->odm->current_time = (u32) cb->odm->media_stop_time;
 			/*force update of media time*/
@@ -521,7 +521,7 @@ void gf_cm_set_eos(GF_CompositionMemory *cb)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 	}
 	cb->HasSeenEOS = 1;
-	gf_term_invalidate_renderer(cb->odm->term);
+	gf_term_invalidate_compositor(cb->odm->term);
 	gf_odm_lock(cb->odm, 0);
 }
 

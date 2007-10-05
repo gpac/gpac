@@ -59,8 +59,8 @@ ifeq ($(DISABLE_SVG), no)
 LIBGPAC_TERMINAL+=terminal/svg_external.o
 endif
 
-## libgpac objects gathering: src/renderer
-LIBGPAC_RENDERER=renderer/audio_input.o renderer/audio_mixer.o renderer/audio_render.o renderer/audio_stacks.o renderer/base_textures.o renderer/common_stacks.o renderer/renderer.o renderer/texturing.o 
+## libgpac objects gathering: src/compositor
+LIBGPAC_COMPOSITOR=compositor/audio_input.o compositor/audio_mixer.o compositor/audio_render.o compositor/bindable.o compositor/camera.o compositor/compositor.o compositor/compositor_2d.o compositor/compositor_3d.o compositor/compositor_node_init.o compositor/drawable.o compositor/events.o compositor/hardcoded_protos.o compositor/mesh.o compositor/mesh_collide.o compositor/mesh_tesselate.o compositor/mpeg4_animstream.o compositor/mpeg4_audio.o compositor/mpeg4_background.o compositor/mpeg4_background2d.o compositor/mpeg4_bitmap.o compositor/mpeg4_composite.o compositor/mpeg4_form.o compositor/mpeg4_geometry_2d.o compositor/mpeg4_geometry_3d.o compositor/mpeg4_geometry_ifs2d.o compositor/mpeg4_geometry_ils2d.o compositor/mpeg4_gradients.o compositor/mpeg4_grouping.o compositor/mpeg4_grouping_2d.o compositor/mpeg4_grouping_3d.o compositor/mpeg4_layer_2d.o compositor/mpeg4_layer_3d.o compositor/mpeg4_layout.o compositor/mpeg4_lighting.o compositor/mpeg4_path_layout.o compositor/mpeg4_sensors.o compositor/mpeg4_sound.o compositor/mpeg4_text.o compositor/mpeg4_textures.o compositor/mpeg4_timesensor.o compositor/mpeg4_viewport.o compositor/navigate.o compositor/offscreen_cache.o compositor/svg_base.o compositor/svg_geometry.o compositor/svg_grouping.o compositor/svg_media.o compositor/svg_paint_servers.o compositor/svg_text.o compositor/texturing.o compositor/texturing_gl.o compositor/visual_manager.o compositor/visual_manager_2d.o compositor/visual_manager_2d_draw.o compositor/visual_manager_3d.o compositor/visual_manager_3d_gl.o compositor/x3d_geometry.o
 
 ## libgpac objects gathering: src/laser
 LIBGPAC_LASER=
@@ -69,7 +69,7 @@ LIBGPAC_LASER=laser/lsr_enc.o laser/lsr_dec.o laser/lsr_tables.o
 endif
 
 ## libgpac objects gathering: la totale ...
-OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_MCRYPT) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_RENDERER) $(LIBGPAC_LASER)
+OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_MCRYPT) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER)
 
 
 ## libgpac global compilation and linking options
@@ -124,11 +124,19 @@ ifeq ($(DISABLE_SVG), yes)
 TERMINAL_CFLAGS+=-DGPAC_DISABLE_SVG
 endif
 
-## libgpac renderer compilation options
-RENDERER_CFLAGS=
+## libgpac compositor compilation options
+COMPOSITOR_CFLAGS=
+## SVG disabled
 ifeq ($(DISABLE_SVG), yes)
-RENDERER_CFLAGS+=-DGPAC_DISABLE_SVG
+COMPOSITOR_CFLAGS+=-DGPAC_DISABLE_SVG
 endif
+## OpenGL not available
+ifeq ($(HAS_OPENGL),yes)
+EXTRALIBS+= $(OGL_LIBS)
+else
+COMPOSITOR_CFLAGS+=-DGPAC_DISABLE_3D
+endif
+
 
 ## libgpac media tools compilation options
 MEDIATOOLS_CFLAGS=
@@ -188,8 +196,8 @@ sceneman: $(LIBGPAC_SCENEMANAGER)
 term: CFLAGS+=$(TERMINAL_CFLAGS)
 term: $(LIBGPAC_TERMINAL)
 
-render: CFLAGS+=$(RENDERER_CFLAGS)
-render: $(LIBGPAC_RENDERER)
+compositor: CFLAGS+=$(COMPOSITOR_CFLAGS)
+compositor: $(LIBGPAC_COMPOSITOR)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 
@@ -210,7 +218,7 @@ else
 	$(CC) $(CFLAGS) -c -o $@ $< 
 endif
 
-$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(OBJSPIC) isomedia scenegraph mcrypt mediatools sceneman term render
+$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(OBJSPIC) isomedia scenegraph mcrypt mediatools sceneman term compositor
 	ar cr ../bin/gcc/libgpac_static.a $(OBJS)
 	ranlib ../bin/gcc/libgpac_static.a
 	$(CC) $(SHFLAGS) -Wl,-soname,$(LIB) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS)

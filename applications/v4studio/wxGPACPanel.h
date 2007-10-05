@@ -4,7 +4,7 @@
 
 #include "safe_include.h" 
 #include <gpac/scenegraph.h>
-#include <gpac/renderer.h>
+#include <gpac/compositor.h>
 /*for service connection...*/
 #include <gpac/internal/terminal_dev.h>
 
@@ -21,7 +21,7 @@ public :
 
 	 // Access to private members
 	GF_Terminal *GetMPEG4Terminal() { return m_term; }	
-	GF_Renderer *GetSceneRenderer() { return m_term->renderer; }	
+	GF_Compositor *GetSceneCompositor() { return m_term->compositor; }	
 	V4SceneManager *GetV4SceneManager() { return parent; }
 	// 
 	void Update();

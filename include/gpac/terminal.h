@@ -62,7 +62,7 @@ void gf_term_connect_from_time(GF_Terminal *term, const char *URL, u64 time_in_m
 whether a frame has been drawn or not, which means the FPS returned can be much greater than the target rendering 
 framerate
 	if @absoluteFPS is not set, the return value is the FPS taking into account not drawn frames (eg, less than 
-	or equal to renderer FPS)
+	or equal to compositor FPS)
 */
 Double gf_term_get_framerate(GF_Terminal *term, Bool absoluteFPS);
 /*get main scene current time in milliseconds*/

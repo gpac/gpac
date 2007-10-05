@@ -34,14 +34,6 @@ extern "C" {
 #include <gpac/math.h>
 
 
-/*define to enable SVG test graph with static attribute allocation but no inheritance*/
-//#define	GPAC_ENABLE_SVG_SA
-//#define	GPAC_ENABLE_SVG_SANI
-
-#if defined(GPAC_ENABLE_SVG_SA) || defined(GPAC_ENABLE_SVG_SANI)
-#define	GPAC_ENABLE_SVG_SA_BASE
-#endif
-
 
 /*
 	TAG definitions are static, in order to be able to mix nodes from different standard
@@ -74,18 +66,6 @@ enum {
 
 	/*all nodes below MUST be parent nodes*/
 	GF_NODE_FIRST_PARENT_NODE_TAG,
-
-#ifdef GPAC_ENABLE_SVG_SA
-	/*range for SVG / static alloc mode*/
-	GF_NODE_RANGE_FIRST_SVG_SA, 
-	GF_NODE_RANGE_LAST_SVG_SA = GF_NODE_RANGE_FIRST_SVG_SA+100,
-#endif
-
-#ifdef GPAC_ENABLE_SVG_SANI
-	/*range for SVG static alloc and no inheritance mode*/
-	GF_NODE_RANGE_FIRST_SVG_SANI, 
-	GF_NODE_RANGE_LAST_SVG_SANI = GF_NODE_RANGE_FIRST_SVG_SANI+100,
-#endif
 
 	/*DOM text node*/
 	TAG_DOMText,
@@ -175,13 +155,12 @@ GF_Err gf_node_remove_id(GF_Node *p);
 void *gf_node_get_private(GF_Node*);
 void gf_node_set_private(GF_Node*, void *);
 
-/*set rendering function. When rendering a scene graph, the render stack is passed
-through the graph without being touched. If a node has no associated RenderNode(), the traversing of the 
+/*set traversal callback function. If a node has no associated callback, the traversing of the 
 graph won't propagate below it. It is the app responsability to setup traversing functions as needed
 VRML/MPEG4:  Instanciated Protos are handled internally as well as interpolators, valuators and scripts
 @is_destroy: set when the node is about to be destroyed
 */
-GF_Err gf_node_set_callback_function(GF_Node *, void (*NodeFunction)(GF_Node *node, void *render_stack, Bool is_destroy) );
+GF_Err gf_node_set_callback_function(GF_Node *, void (*NodeFunction)(GF_Node *node, void *traverse_state, Bool is_destroy) );
 
 /*register a node (DEFed or not), specifying parent if any.
 A node must be registered whenever used by something (a parent node, a command, whatever) to prevent its 
@@ -208,14 +187,14 @@ GF_Err gf_node_replace(GF_Node *old_node, GF_Node *new_node, Bool updateOrderedG
 u32 gf_node_get_num_instances(GF_Node *node);
 
 
-/*calls RenderNode on this node*/
-void gf_node_render(GF_Node *node, void *renderStack);
+/*calls node traverse callback routine on this node*/
+void gf_node_traverse(GF_Node *node, void *udta);
 /*allows a node to be re-rendered - by default a node in its render phase will never be rendered a second time. 
 Use this function to enable a second render for this node - this must be called while node is being rendered*/
-void gf_node_allow_cyclic_render(GF_Node *node);
+void gf_node_allow_cyclic_traverse(GF_Node *node);
 
-/*blindly calls RenderNode on all nodes in the "children" list*/
-void gf_node_render_children(GF_Node *node, void *renderStack);;
+/*blindly calls traverse callback on all children nodes */
+void gf_node_traverse_children(GF_Node *node, void *renderStack);
 /*returns number of parent for this node (parent are kept regardless of DEF state)*/
 u32 gf_node_get_parent_count(GF_Node *node);
 /*returns desired parent for this node (parent are kept regardless of DEF state)

@@ -25,7 +25,7 @@
 
 #ifndef GPAC_DISABLE_SVG
 
-#include <gpac/internal/renderer_dev.h>
+#include <gpac/internal/compositor_dev.h>
 
 #ifdef GPAC_ENABLE_SVG_SA
 #include <gpac/nodes_svg_sa.h>
@@ -456,7 +456,7 @@ Bool gf_svg_sa_node_changed(GF_Node *node, GF_FieldInfo *field)
 	case TAG_SVG_SA_audio: 
 	case TAG_SVG_SA_video: 
 		gf_smil_timing_modified(node, field);
-		/*used by renderers*/
+		/*used by compositors*/
 		break;
 	}
 	return ret;

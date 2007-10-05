@@ -177,12 +177,6 @@ enum
 	GF_SM_LOAD_X3D, /*X3D XML loader*/
 	GF_SM_LOAD_SVG_DA, /*SVG loader with dynamic allocation of attributes */
 	GF_SM_LOAD_XSR, /*LASeR+XML loader*/
-#ifdef GPAC_ENABLE_SVG_SA
-	GF_SM_LOAD_SVG_SA, /* SVG loader with static allocation of attributes */
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-	GF_SM_LOAD_SVG_SANI, /*SVG loader with static allocation of attributes and no property inheritance */
-#endif
 	GF_SM_LOAD_SWF, /*SWF->MPEG-4 converter*/
 	GF_SM_LOAD_QT, /*MOV->MPEG-4 converter (only cubic QTVR for now)*/
 	GF_SM_LOAD_MP4 /*MP4 memory loader*/

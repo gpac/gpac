@@ -184,7 +184,7 @@ Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
 	case TAG_SVG_audio: 
 	case TAG_SVG_video: 
 		gf_smil_timing_modified(node, field);
-		/*used by renderers*/
+		/*used by compositors*/
 		return 0;
 	}
 	return 0;
@@ -379,7 +379,7 @@ GF_Err gf_svg_get_attribute_by_name(GF_Node *node, char *name, Bool create_if_no
 	return gf_svg_get_attribute_by_tag(node, attribute_tag, create_if_not_found, set_default, field);
 }
 
-u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info)
+u32 gf_svg_get_modification_flags(SVG_Element *n, GF_FieldInfo *info)
 {
 //	return 0xFFFFFFFF;
 	switch (info->fieldType) {
@@ -469,7 +469,7 @@ u32 gf_svg_get_rendering_flag_if_modified(SVG_Element *n, GF_FieldInfo *info)
 /* NOTE: Some properties (audio-level, display, opacity, solid*, stop*, vector-effect, viewport*) 
          are inherited only when they are  specified with the value 'inherit'
          otherwise they default to their initial value
-		 which for the function below means NULL, the renderer will take care of the rest
+		 which for the function below means NULL, the compositor will take care of the rest
  */
 GF_EXPORT
 u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *render_svg_props) 
@@ -713,12 +713,6 @@ static GF_Err gf_node_deactivate_ex(GF_Node *node)
 		}
 		/*unregister all listeners*/
 		switch (node->sgprivate->tag) {
-#ifdef GPAC_ENABLE_SVG_SA
-		case TAG_SVG_SA_listener:
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-		case TAG_SVG_SANI_listener:
-#endif
 		case TAG_SVG_listener:
 			assert(node->sgprivate->UserPrivate);
 			obs = node->sgprivate->UserPrivate;
@@ -766,12 +760,6 @@ static GF_Err gf_node_activate_ex(GF_Node *node)
 		}
 		/*register all listeners*/
 		switch (node->sgprivate->tag) {
-#ifdef GPAC_ENABLE_SVG_SA
-		case TAG_SVG_SA_listener:
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-		case TAG_SVG_SANI_listener:
-#endif
 		case TAG_SVG_listener:
 			assert(node->sgprivate->UserPrivate);
 			obs = node->sgprivate->UserPrivate;

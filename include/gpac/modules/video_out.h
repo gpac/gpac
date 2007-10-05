@@ -87,7 +87,7 @@ enum
 	By default all modules are required to be setup in 2D. If 3D is needed, a GF_EVENT_VIDEO_SETUP will
 	be sent with the desired configuration.
 
-	Except Setup and Shutdown functions, all interface functions are called through the main renderer thread
+	Except Setup and Shutdown functions, all interface functions are called through the main compositor thread
 	or its user to avoid multithreading issues. Care must still be taken when handling events
 */
 typedef struct _video_out

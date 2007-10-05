@@ -83,7 +83,7 @@ static void svg_node_changed(GF_Node *n, GF_FieldInfo *info)
 	if (!info) {
 		gf_node_changed(n, NULL);
 	} else {
-		u32 flag = gf_svg_get_rendering_flag_if_modified((SVG_Element *)n, info);
+		u32 flag = gf_svg_get_modification_flags((SVG_Element *)n, info);
 		gf_node_dirty_set(n, flag, 0);
 	}
 	/*trigger rendering*/
@@ -2105,7 +2105,7 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	txt = svg_get_text_child(node);
 	if (!txt) return 0;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Executing script code from handler\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events] Executing script code from handler\n"));
 
 	svg_js = node->sgprivate->scenegraph->svg_js;
 

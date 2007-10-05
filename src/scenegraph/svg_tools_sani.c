@@ -208,7 +208,7 @@ Bool gf_svg_sani_node_changed(GF_Node *node, GF_FieldInfo *field)
 	case TAG_SVG_SANI_audio: 
 	case TAG_SVG_SANI_video: 
 		gf_smil_timing_modified(node, field);
-		/*used by renderers*/
+		/*used by compositors*/
 		return 0;
 	}
 	return 0;

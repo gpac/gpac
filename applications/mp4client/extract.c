@@ -63,7 +63,7 @@ typedef struct tagBITMAPINFOHEADER{
 
 #include <gpac/internal/avilib.h>
 #include <gpac/internal/terminal_dev.h>
-#include <gpac/internal/renderer_dev.h>
+#include <gpac/internal/compositor_dev.h>
 
 extern Bool is_connected;
 extern GF_Terminal *term;
@@ -205,7 +205,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 	GF_VideoSurface fb;
 
 	/*lock it*/
-	gf_sr_get_screen_buffer(term->renderer, &fb);
+	gf_sc_get_screen_buffer(term->compositor, &fb);
 	/*export frame*/
 	switch (dump_type) {
 	case 1:
@@ -273,7 +273,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 		break;
 	}
 	/*unlock it*/
-	gf_sr_release_screen_buffer(term->renderer, &fb);
+	gf_sc_release_screen_buffer(term->compositor, &fb);
 }
 
 Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 *times, u32 nb_times)
@@ -293,7 +293,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 	/*connect in pause mode*/
 	gf_term_connect_from_time(term, url, 0, 1);
 
-	while (!term->renderer->scene) {
+	while (!term->compositor->scene) {
 		if (last_error) return 1;
 		gf_term_process_flush(term);
 		gf_sleep(10);
@@ -304,14 +304,14 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 		gf_term_process_flush(term);
 	}
 
-	e = gf_sr_get_screen_buffer(term->renderer, &fb);
+	e = gf_sc_get_screen_buffer(term->compositor, &fb);
 	if (e != GF_OK) {
 		fprintf(stdout, "Error grabbing screen buffer: %s\n", gf_error_to_string(e));
 		return 0;
 	}
 	width = fb.width;
 	height = fb.height;
-	gf_sr_release_screen_buffer(term->renderer, &fb);
+	gf_sc_release_screen_buffer(term->compositor, &fb);
 
 	/*we work in RGB24, and we must make sure the pitch is %4*/
 	if ((width*3)%4) {
@@ -321,10 +321,10 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 		gf_term_set_size(term, width, height);
 		gf_term_process_flush(term);
 
-		gf_sr_get_screen_buffer(term->renderer, &fb);
+		gf_sc_get_screen_buffer(term->compositor, &fb);
 		width = fb.width;
 		height = fb.height;
-		gf_sr_release_screen_buffer(term->renderer, &fb);
+		gf_sc_release_screen_buffer(term->compositor, &fb);
 	}
 
 	if (dump_mode==1) {

@@ -24,7 +24,6 @@
 
 #include <gpac/scene_manager.h>
 #include <gpac/nodes_x3d.h>
-#include <gpac/nodes_svg_sa.h>
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
@@ -532,10 +531,8 @@ void PrintNode(const char *name, u32 graph_type)
 
 	tag = 0;
 	if (graph_type==2) {
-#ifndef GPAC_DISABLE_SVG
-		tag = gf_svg_get_element_tag(name);
-#endif
-		std_name = "SVG";
+		fprintf(stdout, "SVG node printing is not supported\n");
+		return;
 	} else if (graph_type==1) {
 		tag = gf_node_x3d_type_by_class_name(name);
 		std_name = "X3D";
@@ -558,12 +555,8 @@ void PrintNode(const char *name, u32 graph_type)
 	}
 	nbF = gf_node_get_field_count(node);
 
-	if (graph_type==2) {
-		fprintf(stdout, "SVG Element Syntax:\n");
-		fprintf(stdout, "<%s ", nname);
-	} else {
-		fprintf(stdout, "Node Syntax:\n%s {\n", nname);
-	}
+	fprintf(stdout, "Node Syntax:\n%s {\n", nname);
+
 	for (i=0; i<nbF; i++) {
 		gf_node_get_field(node, i, &f);
 		if (graph_type==2) {
@@ -605,11 +598,7 @@ void PrintNode(const char *name, u32 graph_type)
 		}
 		fprintf(stdout, "\n");
 	}
-	if (graph_type==2) {
-		fprintf(stdout, "/>\n%d possible attributes\n",nbF);
-	} else {
-		fprintf(stdout, "}\n\n");
-	}
+	fprintf(stdout, "}\n\n");
 
 	gf_node_unregister(node, NULL);
 	gf_sg_del(sg);

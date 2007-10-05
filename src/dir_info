@@ -19,8 +19,8 @@ gpac/src/media_tools
 gpac/src/odf
 	MPEG-4 Object Descriptor Framework: encoding/decoding of all descriptors, OD codec and OCI codec
 
-gpac/src/renderer
-	base renderer handling all common things between 2D and 3D rendering plugins
+gpac/src/compositor
+	Compositor for 2D & 3D drawing - handles MPEG-4, X3D/VRML and SVG.
 
 gpac/src/scene_manager
 	memory representation of the scene, importers (BT/XMT/SWF/QT), dumpers and encoding

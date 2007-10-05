@@ -79,7 +79,6 @@ private:
 	/*power management*/
 	u32 m_prev_batt_bl, m_prev_ac_bl;
 
-	void ReloadTerminal();
 	FILE *m_logs;
 
 // Overrides

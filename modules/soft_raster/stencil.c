@@ -25,7 +25,7 @@
 #include "rast_soft.h"
 
 EVGStencil *evg_solid_brush();
-EVGStencil *evg_gf_sr_texture_brush();
+EVGStencil *evg_texture_brush();
 EVGStencil *evg_linear_gradient_brush();
 EVGStencil *evg_radial_gradient_brush();
 
@@ -147,7 +147,7 @@ GF_STENCIL evg_stencil_new(GF_Raster2D *_dr, GF_StencilType type)
 		st = evg_radial_gradient_brush();
 		break;
 	case GF_STENCIL_TEXTURE:
-		st = evg_gf_sr_texture_brush();
+		st = evg_texture_brush();
 		break;
 	default:
 		return 0L;
@@ -613,7 +613,7 @@ void evg_bmp_init(EVGStencil *p)
 }
 
 
-EVGStencil *evg_gf_sr_texture_brush()
+EVGStencil *evg_texture_brush()
 {
 	EVG_Texture *tmp;
 	GF_SAFEALLOC(tmp, EVG_Texture);
@@ -643,7 +643,7 @@ u32 get_pix_565(char *pix) { u16 val = *(u16*)pix; return GF_COL_ARGB(0xFF,  (u8
 u32 get_pix_grey(char *pix) { u8 val = *pix; return GF_COL_ARGB(0xFF, val, val, val); }
 u32 get_pix_alphagrey(char *pix) { return GF_COL_ARGB((u8) *(pix+1), (u8) *pix, (u8) *pix, (u8) *pix); }
 
-static void gf_sr_texture_set_callback(EVG_Texture *_this)
+static void texture_set_callback(EVG_Texture *_this)
 {
 	switch (_this->pixel_format) {
 	case GF_PIXEL_RGBA:
@@ -730,7 +730,7 @@ GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 heigh
 	_this->height = height;
 	_this->stride = stride;
 	_this->pixels = (char *) pixels;
-	gf_sr_texture_set_callback(_this);
+	texture_set_callback(_this);
 	return GF_OK;
 }
 
@@ -812,7 +812,7 @@ void evg_set_texture_active(EVGStencil *st)
 	_this->is_converted = 1;
 	_this->pixels = (char *) _this->conv_buf;
 	_this->stride = _this->Bpp * _this->width;
-	gf_sr_texture_set_callback(_this);
+	texture_set_callback(_this);
 }
 
 GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_PixelFormat pixelFormat)
@@ -853,6 +853,6 @@ GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_Pixel
 	_this->pixels = (char *) malloc(sizeof(char) * _this->stride * _this->height);
 	memset(_this->pixels, 0, sizeof(char) * _this->stride * _this->height);
 	_this->owns_texture = 1;
-	gf_sr_texture_set_callback(_this);
+	texture_set_callback(_this);
 	return GF_OK;
 }

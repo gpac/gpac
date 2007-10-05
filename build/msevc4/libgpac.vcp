@@ -45,7 +45,7 @@ CPP=clarm.exe
 # PROP Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "NDEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /O2 /M$(CECrtMT) /c
-# ADD CPP /nologo /W3 /Oxt /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "NDEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /M$(CECrtMT) /c
+# ADD CPP /nologo /W3 /Oxt /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /I "../../extra_lib/include" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "NDEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /D "GPAC_USE_OGL_ES" /M$(CECrtMT) /c
 # SUBTRACT CPP /YX
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
@@ -71,7 +71,7 @@ BSC32=bscmake.exe
 # PROP Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Zi /Od /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /M$(CECrtMTDebug) /c
-# ADD CPP /nologo /W3 /Zi /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /FR /M$(CECrtMTDebug) /c
+# ADD CPP /nologo /W3 /Zi /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /I "../../extra_lib/include" /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /D "GPAC_USE_OGL_ES" /FR /M$(CECrtMTDebug) /c
 # SUBTRACT CPP /YX
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
@@ -1496,7 +1496,6 @@ DEP_CPP_COMMA=\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\nodes_svg_da.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -1534,8 +1533,6 @@ DEP_CPP_DOM_E=\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_svg_da.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -1714,8 +1711,6 @@ DEP_CPP_SMIL_=\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_svg_da.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -1752,8 +1747,6 @@ DEP_CPP_SMIL_T=\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_svg_da.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -1834,76 +1827,6 @@ DEP_CPP_SVG_N=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SVG_N=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scenegraph\svg_nodes_sa.c
-DEP_CPP_SVG_NO=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\scenegraph_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\tools.h"\
-	
-NODEP_CPP_SVG_NO=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scenegraph\svg_nodes_sani.c
-DEP_CPP_SVG_NOD=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\scenegraph_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\tools.h"\
-	
-NODEP_CPP_SVG_NOD=\
 	"..\..\extra_lib\include\js\jsstddef.h"\
 	"..\..\extra_lib\include\js\platform.h"\
 	
@@ -2016,88 +1939,6 @@ NODEP_CPP_SVG_T=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scenegraph\svg_tools_sa.c
-DEP_CPP_SVG_TO=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
-	"..\..\include\gpac\internal\scenegraph_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\audio_out.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\modules\raster2d.h"\
-	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	
-NODEP_CPP_SVG_TO=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scenegraph\svg_tools_sani.c
-DEP_CPP_SVG_TOO=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\scenegraph_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\tools.h"\
-	
-NODEP_CPP_SVG_TOO=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
-	
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\src\scenegraph\svg_types.c
 DEP_CPP_SVG_TY=\
 	"..\..\extra_lib\include\js\jsapi.h"\
@@ -2118,7 +1959,6 @@ DEP_CPP_SVG_TY=\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -2778,100 +2618,6 @@ NODEP_CPP_LOADER_S=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scene_manager\loader_svg_sa.c
-DEP_CPP_LOADER_SV=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
-	"..\..\include\gpac\bifs.h"\
-	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\bifs_dev.h"\
-	"..\..\include\gpac\internal\scenegraph_dev.h"\
-	"..\..\include\gpac\isomedia.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\scene_manager.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\sync_layer.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\utf.h"\
-	"..\..\include\gpac\xml.h"\
-	
-NODEP_CPP_LOADER_SV=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scene_manager\loader_svg_sani.c
-DEP_CPP_LOADER_SVG=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
-	"..\..\include\gpac\bifs.h"\
-	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\bifs_dev.h"\
-	"..\..\include\gpac\internal\scenegraph_dev.h"\
-	"..\..\include\gpac\isomedia.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\scene_manager.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\sync_layer.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\utf.h"\
-	"..\..\include\gpac\xml.h"\
-	
-NODEP_CPP_LOADER_SVG=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
-	
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\src\scene_manager\loader_xmt.c
 DEP_CPP_LOADER_X=\
 	"..\..\extra_lib\include\js\jsapi.h"\
@@ -3337,11 +3083,14 @@ SOURCE=..\..\src\terminal\decoder.c
 DEP_CPP_DECOD=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -3357,7 +3106,6 @@ DEP_CPP_DECOD=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
@@ -3379,6 +3127,7 @@ SOURCE=..\..\src\terminal\inline.c
 DEP_CPP_INLIN=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
@@ -3393,7 +3142,6 @@ DEP_CPP_INLIN=\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
@@ -3411,6 +3159,7 @@ SOURCE=..\..\src\terminal\input_sensor.c
 DEP_CPP_INPUT=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
@@ -3426,7 +3175,6 @@ DEP_CPP_INPUT=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
-	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
@@ -3484,6 +3232,7 @@ SOURCE=..\..\src\terminal\media_manager.c
 DEP_CPP_MEDIA_M=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
@@ -3497,7 +3246,6 @@ DEP_CPP_MEDIA_M=\
 	"..\..\include\gpac\modules\ipmp.h"\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
@@ -3560,11 +3308,14 @@ DEP_CPP_MEDIA_O=\
 	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -3582,11 +3333,8 @@ DEP_CPP_MEDIA_O=\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\nodes_svg_da.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
@@ -3688,8 +3436,6 @@ DEP_CPP_OBJEC=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\nodes_svg_da.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scene_manager.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -3754,6 +3500,7 @@ DEP_CPP_SVG_E=\
 	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
@@ -3770,10 +3517,7 @@ DEP_CPP_SVG_E=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_svg_da.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
 	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
@@ -3796,6 +3540,7 @@ SOURCE=..\..\src\terminal\term_node_init.c
 DEP_CPP_TERM_=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
@@ -3811,11 +3556,8 @@ DEP_CPP_TERM_=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\nodes_svg_da.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
@@ -3835,11 +3577,14 @@ SOURCE=..\..\src\terminal\terminal.c
 DEP_CPP_TERMI=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
@@ -3857,274 +3602,7 @@ DEP_CPP_TERMI=\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scene_manager.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\sync_layer.h"\
-	"..\..\include\gpac\terminal.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	
-# End Source File
-# End Group
-# Begin Group "renderer"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=..\..\src\renderer\audio_input.c
-DEP_CPP_AUDIO=\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\audio_out.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\modules\raster2d.h"\
-	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\renderer\audio_mixer.c
-DEP_CPP_AUDIO_=\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\audio_out.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\modules\raster2d.h"\
-	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\renderer\audio_render.c
-DEP_CPP_AUDIO_R=\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\audio_out.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\modules\raster2d.h"\
-	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\renderer\audio_stacks.c
-DEP_CPP_AUDIO_S=\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\audio_out.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\modules\raster2d.h"\
-	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_x3d.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	"..\..\src\renderer\common_stacks.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\renderer\base_textures.c
-DEP_CPP_BASE_T=\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\audio_out.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\modules\raster2d.h"\
-	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_x3d.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	"..\..\src\renderer\common_stacks.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\renderer\common_stacks.c
-DEP_CPP_COMMO=\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\audio_out.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\modules\raster2d.h"\
-	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\nodes_x3d.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	"..\..\src\renderer\common_stacks.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\renderer\common_stacks.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\renderer\renderer.c
-DEP_CPP_RENDE=\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\audio_out.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\modules\raster2d.h"\
-	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\nodes_svg_sani.h"\
-	"..\..\include\gpac\options.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\terminal.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\renderer\texturing.c
-DEP_CPP_TEXTU=\
-	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
-	"..\..\include\gpac\internal\terminal_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\audio_out.h"\
-	"..\..\include\gpac\modules\codec.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\modules\ipmp.h"\
-	"..\..\include\gpac\modules\raster2d.h"\
-	"..\..\include\gpac\modules\service.h"\
-	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\nodes_svg_sa.h"\
-	"..\..\include\gpac\options.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
@@ -4427,6 +3905,2220 @@ SOURCE=..\..\include\gpac\xml.h
 # Begin Source File
 
 SOURCE=..\..\include\gpac\yuv.h
+# End Source File
+# End Group
+# Begin Group "compositor"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=..\..\src\compositor\audio_input.c
+DEP_CPP_AUDIO=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\audio_mixer.c
+DEP_CPP_AUDIO_=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\audio_render.c
+DEP_CPP_AUDIO_R=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\bindable.c
+DEP_CPP_BINDA=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\camera.c
+DEP_CPP_CAMER=\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\src\compositor\camera.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\camera.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\compositor.c
+DEP_CPP_COMPO=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\terminal.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\compositor_2d.c
+DEP_CPP_COMPOS=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\compositor_3d.c
+DEP_CPP_COMPOSI=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\compositor_node_init.c
+DEP_CPP_COMPOSIT=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\drawable.c
+DEP_CPP_DRAWA=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\drawable.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\events.c
+DEP_CPP_EVENT=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\gl_inc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\hardcoded_protos.c
+DEP_CPP_HARDC=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\offscreen_cache.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mesh.c
+DEP_CPP_MESH_=\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mesh.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mesh_collide.c
+DEP_CPP_MESH_C=\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mesh_tesselate.c
+DEP_CPP_MESH_T=\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\src\compositor\gl_inc.h"\
+	
+NODEP_CPP_MESH_T=\
+	"..\..\src\compositor\GLES\egl.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_animstream.c
+DEP_CPP_MPEG4_A=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_audio.c
+DEP_CPP_MPEG4_AU=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_background.c
+DEP_CPP_MPEG4_B=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_background2d.c
+DEP_CPP_MPEG4_BA=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_bitmap.c
+DEP_CPP_MPEG4_BI=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_composite.c
+DEP_CPP_MPEG4_C=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_form.c
+DEP_CPP_MPEG4_F=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_geometry_2d.c
+DEP_CPP_MPEG4_G=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_geometry_3d.c
+DEP_CPP_MPEG4_GE=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_geometry_ifs2d.c
+DEP_CPP_MPEG4_GEO=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_geometry_ils2d.c
+DEP_CPP_MPEG4_GEOM=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_gradients.c
+DEP_CPP_MPEG4_GR=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_grouping.c
+DEP_CPP_MPEG4_GRO=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_grouping.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_grouping_2d.c
+DEP_CPP_MPEG4_GROU=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_grouping_3d.c
+DEP_CPP_MPEG4_GROUP=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_layer_2d.c
+DEP_CPP_MPEG4_L=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_layer_3d.c
+DEP_CPP_MPEG4_LA=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\gl_inc.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_MPEG4_LA=\
+	"..\..\src\compositor\GLES\egl.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_layout.c
+DEP_CPP_MPEG4_LAY=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_lighting.c
+DEP_CPP_MPEG4_LI=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_path_layout.c
+DEP_CPP_MPEG4_P=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_sensors.c
+DEP_CPP_MPEG4_S=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\ipmp.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\terminal.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_sound.c
+DEP_CPP_MPEG4_SO=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_text.c
+DEP_CPP_MPEG4_T=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\include\gpac\utf.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_textures.c
+DEP_CPP_MPEG4_TE=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\texturing.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_timesensor.c
+DEP_CPP_MPEG4_TI=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_viewport.c
+DEP_CPP_MPEG4_VI=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\ipmp.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\terminal.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\navigate.c
+DEP_CPP_NAVIG=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\nodes_stacks.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\offscreen_cache.c
+DEP_CPP_OFFSC=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\mpeg4_grouping.h"\
+	"..\..\src\compositor\offscreen_cache.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\offscreen_cache.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_base.c
+DEP_CPP_SVG_B=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_geometry.c
+DEP_CPP_SVG_G=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_grouping.c
+DEP_CPP_SVG_GR=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_media.c
+DEP_CPP_SVG_M=\
+	"..\..\extra_lib\include\js\jsapi.h"\
+	"..\..\extra_lib\include\js\jsautocfg.h"\
+	"..\..\extra_lib\include\js\jscompat.h"\
+	"..\..\extra_lib\include\js\jscpucfg.h"\
+	"..\..\extra_lib\include\js\jslong.h"\
+	"..\..\extra_lib\include\js\jsosdep.h"\
+	"..\..\extra_lib\include\js\jsotypes.h"\
+	"..\..\extra_lib\include\js\jspubtd.h"\
+	"..\..\extra_lib\include\js\jstypes.h"\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\network.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_SVG_M=\
+	"..\..\extra_lib\include\js\jsstddef.h"\
+	"..\..\extra_lib\include\js\platform.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_paint_servers.c
+DEP_CPP_SVG_PA=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_text.c
+DEP_CPP_SVG_TE=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\include\gpac\utf.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\texturing.c
+DEP_CPP_TEXTU=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\ipmp.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\terminal.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\texturing.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\texturing_gl.c
+DEP_CPP_TEXTUR=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\gl_inc.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_TEXTUR=\
+	"..\..\src\compositor\GLES\egl.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager.c
+DEP_CPP_VISUA=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_2d.c
+DEP_CPP_VISUAL=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_2d.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_2d_draw.c
+DEP_CPP_VISUAL_=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_3d.c
+DEP_CPP_VISUAL_M=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\texturing.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_3d.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_3d_gl.c
+DEP_CPP_VISUAL_MA=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\options.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\gl_inc.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_VISUAL_MA=\
+	"..\..\src\compositor\GLES\egl.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\x3d_geometry.c
+DEP_CPP_X3D_G=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\compositor\drawable.h"\
+	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\visual_manager.h"\
+	"..\..\src\compositor\visual_manager_2d.h"\
+	"..\..\src\compositor\visual_manager_3d.h"\
+	
 # End Source File
 # End Group
 # End Target

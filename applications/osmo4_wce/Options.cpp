@@ -29,7 +29,6 @@ COptions::COptions(CWnd* pParent /*=NULL*/)
 	//{{AFX_DATA_INIT(COptions)
 	//}}AFX_DATA_INIT
 
-	m_bNeedsReload = 0;
 }
 
 
@@ -99,7 +98,7 @@ BOOL COptions::OnInitDialog()
 	m_Selection.AddString(_T("General"));
 	m_Selection.AddString(_T("MPEG-4 Systems"));
 	m_Selection.AddString(_T("Decoders"));
-	m_Selection.AddString(_T("Rendering"));
+	m_Selection.AddString(_T("Compositor"));
 	m_Selection.AddString(_T("3D Rendering"));
 	m_Selection.AddString(_T("Audio"));
 	m_Selection.AddString(_T("Text"));
@@ -131,7 +130,6 @@ void COptions::OnSaveopt()
 
 	COsmo4 *gpac = GetApp();
 	gf_term_set_option(gpac->m_term, GF_OPT_RELOAD_CONFIG, 1);
-	m_bNeedsReload = m_render3D.m_bNeedsReload;
 }
 
 void COptions::OnOK() 
@@ -675,7 +673,7 @@ void COptRender::DoDataExchange(CDataExchange* pDX)
 	//{{AFX_DATA_MAP(COptRender)
 	DDX_Control(pDX, IDC_AA_LIST, m_Antialias);
 	DDX_Control(pDX, IDC_FORCE_SIZE, m_ForceSize);
-	DDX_Control(pDX, IDC_FAST_RENDER, m_FastRender);
+	DDX_Control(pDX, IDC_FAST_RENDER, m_HighSpeed);
 	DDX_Control(pDX, IDC_ZOOM_SCALABLE, m_Scalable);
 	DDX_Control(pDX, IDC_DIRECTRENDER, m_DirectRender);
 	DDX_Control(pDX, IDC_BIFS_RATE, m_BIFSRate);
@@ -718,26 +716,26 @@ BOOL COptRender::OnInitDialog()
 	COsmo4 *gpac = GetApp();
 	const char *sOpt;
 	
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render2D", "DirectRender");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "DirectDraw");
 	if (sOpt && !stricmp(sOpt, "yes")) {
 		m_DirectRender.SetCheck(1);
 	} else {
 		m_DirectRender.SetCheck(0);
 	}
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render2D", "ScalableZoom");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "ScalableZoom");
 	if (sOpt && !stricmp(sOpt, "no")) {
 		m_Scalable.SetCheck(0);
 	} else {
 		m_Scalable.SetCheck(1);
 	}
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "ForceSceneSize");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "ForceSceneSize");
 	if (sOpt && !stricmp(sOpt, "yes")) {
 		m_ForceSize.SetCheck(1);
 	} else {
 		m_ForceSize.SetCheck(0);
 	}
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "FrameRate");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "FrameRate");
 	if (!sOpt) sOpt = "30.0";
 	s32 select = 0;
 	while (m_BIFSRate.GetCount()) m_BIFSRate.DeleteString(0);
@@ -749,10 +747,10 @@ BOOL COptRender::OnInitDialog()
 	}
 	m_BIFSRate.SetCurSel(select);
 	
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "FastRender");
-	m_FastRender.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "HighSpeed");
+	m_HighSpeed.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "AntiAlias");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "AntiAlias");
 	while (m_Antialias.GetCount()) m_Antialias.DeleteString(0);
 
 	m_Antialias.AddString(_T("None"));
@@ -771,16 +769,16 @@ void COptRender::SaveOptions()
 {
 	COsmo4 *gpac = GetApp();
 
-	gf_cfg_set_key(gpac->m_user.config, "Render2D", "DirectRender", m_DirectRender.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Render2D", "ScalableZoom", m_Scalable.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Rendering", "FastRender", m_FastRender.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Rendering", "ForceSceneSize", m_ForceSize.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "DirectDraw", m_DirectRender.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "ScalableZoom", m_Scalable.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "HighSpeed", m_HighSpeed.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "ForceSceneSize", m_ForceSize.GetCheck() ? "yes" : "no");
 
 	s32 sel = m_BIFSRate.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Rendering", "FrameRate", BIFSRates[sel]);
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "FrameRate", BIFSRates[sel]);
 
 	sel = m_Antialias.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Rendering", "AntiAlias", (sel==0) ? "None" : ( (sel==1) ? "Text" : "All"));
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "AntiAlias", (sel==0) ? "None" : ( (sel==1) ? "Text" : "All"));
 }
 
 
@@ -819,20 +817,20 @@ BOOL COptRender3D::OnInitDialog()
 	COsmo4 *gpac = GetApp();
 	const char *sOpt;
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "RendererName");
-	m_Use3DRender.SetCheck( (sOpt && strstr(sOpt, "3D")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "ForceOpenGL");
+	m_Use3DRender.SetCheck( (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "BackFaceCulling");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "BackFaceCulling");
 	m_NoBackFace.SetCheck( (sOpt && !stricmp(sOpt, "Off")) ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "EmulatePOW2");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "EmulatePOW2");
 	m_EmulatePOW2.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
 	m_WireMode.ResetContent();
 	m_WireMode.AddString(_T("Solid Draw"));
 	m_WireMode.AddString(_T("Wireframe"));
 	m_WireMode.AddString(_T("Both"));
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "Wireframe");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "Wireframe");
 	if (sOpt && !stricmp(sOpt, "WireOnly")) m_WireMode.SetCurSel(1);
 	else if (sOpt && !stricmp(sOpt, "WireOnSolid")) m_WireMode.SetCurSel(2);
 	else m_WireMode.SetCurSel(0);
@@ -842,13 +840,10 @@ BOOL COptRender3D::OnInitDialog()
 	m_DrawNormals.AddString(_T("Never"));
 	m_DrawNormals.AddString(_T("Per Face"));
 	m_DrawNormals.AddString(_T("Per Vertex"));
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "DrawNormals");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "DrawNormals");
 	if (sOpt && !stricmp(sOpt, "PerFace")) m_DrawNormals.SetCurSel(1);
 	else if (sOpt && !stricmp(sOpt, "PerVertex")) m_DrawNormals.SetCurSel(2);
 	else m_DrawNormals.SetCurSel(0);
-
-
-	m_bNeedsReload = 0;
 
 	return TRUE;  
 }
@@ -859,24 +854,13 @@ void COptRender3D::SaveOptions()
 	COsmo4 *gpac = GetApp();
 
 	u32 sel = m_DrawNormals.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "DrawNormals", (sel==2) ? "PerVertex" : (sel==1) ? "PerFace" : "Never");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "DrawNormals", (sel==2) ? "PerVertex" : (sel==1) ? "PerFace" : "Never");
 	
 	sel = m_WireMode.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "Wireframe", (sel==2) ? "WireOnSolid" : (sel==1) ? "WireOnly" : "WireNone");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "Wireframe", (sel==2) ? "WireOnSolid" : (sel==1) ? "WireOnly" : "WireNone");
 
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "BackFaceCulling", m_NoBackFace.GetCheck() ? "Off" : "On");
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "EmulatePOW2", m_EmulatePOW2.GetCheck() ? "yes" : "no");
-
-	m_bNeedsReload = 0;
-	const char *opt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "RendererName");
-	if (!opt || strstr(opt, "2D")) {
-		if (!m_Use3DRender.GetCheck()) return;
-		gf_cfg_set_key(gpac->m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
-		m_bNeedsReload = 1;
-	} else if (! m_Use3DRender.GetCheck()) {
-		gf_cfg_set_key(gpac->m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
-		m_bNeedsReload = 1;
-	}
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "BackFaceCulling", m_NoBackFace.GetCheck() ? "Off" : "On");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "EmulatePOW2", m_EmulatePOW2.GetCheck() ? "yes" : "no");
 }
 
 

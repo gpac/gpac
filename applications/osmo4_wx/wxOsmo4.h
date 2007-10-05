@@ -236,7 +236,6 @@ public:
 	void DoConnect();
 
 	void ConnectAcknowledged(Bool bOk); 
-	void ReloadTerminal(); 
 	void SetStatus(wxString str);
 
 	void OnFilePlay(wxCommandEvent &event);
@@ -278,7 +277,6 @@ private:
 	void OnFileOpenURL(wxCommandEvent &event);
 	void OnFileReload(wxCommandEvent &event);
 	void OnFileProperties(wxCommandEvent &event);
-	void OnTermReload(wxCommandEvent &event);
 	void OnFileQuit(wxCommandEvent &event);
 	void OnFullScreen(wxCommandEvent &event);
 	void OnOptions(wxCommandEvent &event);

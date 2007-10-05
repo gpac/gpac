@@ -179,8 +179,7 @@ enum
 /*high-level options*/
 enum
 {
-	/*common options between 2D and 3D renderers*/
-	/*set/get antialias flag (value: one of the AntiAlias enum) - may be ignored with 3D renderer depending on graphic cards*/
+	/*set/get antialias flag (value: one of the AntiAlias enum) - may be ignored in OpenGL mode depending on graphic cards*/
 	GF_OPT_ANTIALIAS  =0,
 	/*set/get fast mode (value: boolean) */
 	GF_OPT_HIGHSPEED,
@@ -237,11 +236,10 @@ enum
 	GF_OPT_MEDIA_CACHE,
 	/*get/set Play state - cf above states for set*/
 	GF_OPT_PLAY_STATE,
+	/*get/set OpenGL force mode - returns error if OpenGL is not supported*/
+	GF_OPT_USE_OPENGL,
 
-	/*
-			2D renderer only options
-	*/
-	/*set/get direct rendering flag. In direct rendering, the screen is entirely redrawn at each frame
+	/*set/get direct draw flag. In direct draw, the screen is entirely redrawn at each frame
 	value: boolean
 	*/
 	GF_OPT_DIRECT_RENDER,

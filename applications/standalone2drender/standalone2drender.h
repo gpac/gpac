@@ -5,9 +5,9 @@
 extern "C" {
 #endif
 
-#include <gpac/renderer.h>
+#include <gpac/compositor.h>
 
-GF_Renderer *SR_NewStandaloneRenderer();
+GF_Compositor *SR_NewStandaloneRenderer();
 
 #ifdef __cplusplus
 }

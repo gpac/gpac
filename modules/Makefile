@@ -1,7 +1,7 @@
 include ../config.mak
 
 #all OS and lib independent
-PLUGDIRS=aac_in bifs_dec ctx_load dummy_in soft_raster mp3_in isom_in odf_dec rtp_in raw_out render2d render_full timedtext img_in svg_in saf_in mpegts_in ismacryp
+PLUGDIRS=aac_in bifs_dec ctx_load dummy_in soft_raster mp3_in isom_in odf_dec rtp_in raw_out timedtext img_in svg_in saf_in mpegts_in ismacryp
 
 ifeq ($(DISABLE_SVG), no)
 PLUGDIRS+=laser_dec svg_in
@@ -53,10 +53,6 @@ endif
 
 ifeq ($(CONFIG_SDL), yes)
 PLUGDIRS+=sdl_out
-endif
-
-ifeq ($(HAS_OPENGL),yes)
-PLUGDIRS+=render3d
 endif
 
 ifeq ($(CONFIG_X11),yes)

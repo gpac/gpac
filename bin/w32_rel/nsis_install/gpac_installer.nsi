@@ -21,7 +21,6 @@ LicenseData "..\..\..\COPYING"
 DirText "This will install the GPAC Framework on your computer. Choose a directory"
 
 InstType Normal
-InstType "Full (With LibXML+SVG and misc plugins)"
 
 
 ComponentText "This will install the GPAC Framework on your computer. Select which optional things you want installed."
@@ -86,8 +85,6 @@ Section "Osmo4/GPAC Player"
   File "..\gm_dummy_in.dll"
   File "..\gm_dx_hw.dll"
   File "..\js32.dll"
-  File "..\gm_render2d.dll"
-  File "..\gm_render3d.dll"
 
   ;create default cache
   SetOutPath $INSTDIR\cache
@@ -108,47 +105,47 @@ SubSection "GPAC Plugins"
 ;	2 install modes, normal one and full one
 ;
 Section "MPEG-4 BIFS Decoder"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_bifs_dec.dll"
 SectionEnd
 
 Section "MPEG-4 ODF Decoder"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_odf_dec.dll"
 SectionEnd
 
 Section "MPEG-4 LASeR Decoder"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_laser_dec.dll"
 SectionEnd
 
 Section "MPEG-4 SAF Demultiplexer"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_saf_in.dll"
 SectionEnd
 
 Section "Generic Scene Description File Loader"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_ctx_load.dll"
 SectionEnd
 
 Section "Image Package (PNG, JPEG, BMP)"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_img_in.dll"
 SectionEnd
 
 Section "AAC Audio support (FAAD decoder, AAC files and Radios)"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_aac_in.dll"
 SectionEnd
 
 Section "MP3 Audio support (MAD decoder, MP3 files and Radios)"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_mp3_in.dll"
 SectionEnd
 
 Section "FFMPEG Reader and Decoder"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_ffmpeg_in.dll"
   File "..\avcodec-51.dll"
   File "..\avformat-51.dll"
@@ -156,81 +153,64 @@ Section "FFMPEG Reader and Decoder"
 SectionEnd
 
 Section "XviD Video Decoder"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_xvid_dec.dll"
 SectionEnd
 
 Section "3GPP AMR NB & WB Speech Decoder"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_amr_float_dec.dll"
 SectionEnd
 
 Section "Subtitle & TimedText Support"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_timedtext.dll"
 SectionEnd
 
 Section "MP4 and 3GPP File Reader"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_isom_in.dll"
 SectionEnd
 
 Section "MPEG-2 TS Reader"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_mpegts_in.dll"
 SectionEnd
 
 Section "Real-Time Streaming (RTP/RTSP/RTP) Support"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_rtp_in.dll"
 SectionEnd
 
 Section "Progressive SVG Support"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_svg_in.dll"
 SectionEnd
 
 Section "GDI+ Rasterizer"
-  SectionIn 1 2
+  SectionIn 1
   call InsertGDIPLUS
 SectionEnd
 
 Section "GPAC 2D Rasterizer"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_soft_raster.dll"
 SectionEnd
 
 Section "FreeType Font Outliner"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_ft_font.dll"
 SectionEnd
 
 Section "Windows MME Audio Output"
-  SectionIn 1 2
+  SectionIn 1
   File "..\gm_wav_out.dll"
 SectionEnd
 
-;
-;	Full install mode
-;
-;Section "3GPP AMR Fixed-point Speech Decoder"
-;  SectionIn 2
-;  File "..\gm_amr_dec.dll"
-;SectionEnd
-
 Section "Xiph Ogg Reader - Vorbis and Theora Decoders"
-  SectionIn 2
+  SectionIn 1
   File "..\gm_ogg_xiph.dll"
 SectionEnd
-
-;Section "SVG LibXML Loader"
-;  SectionIn 2
-;  File "..\gm_svg_loader.dll"
-;  File ".\libxml2.dll"
-;  File ".\zlib1.dll"
-;  File ".\iconv.dll"
-;SectionEnd
-
 
 SubSectionEnd
 

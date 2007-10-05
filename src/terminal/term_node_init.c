@@ -23,19 +23,13 @@
  */
 
 
-#include <gpac/renderer.h>
+#include <gpac/compositor.h>
 #include <gpac/internal/terminal_dev.h>
 /*includes MPEG4 nodes + input sensor stack*/
 #include "input_sensor.h"
 /*includes X3D nodes for WorldInfo, Inline and Key/String sensors*/
 #include <gpac/nodes_x3d.h>
 #include <gpac/nodes_svg_da.h>
-#ifdef GPAC_ENABLE_SVG_SA
-#include <gpac/nodes_svg_sa.h>
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-#include <gpac/nodes_svg_sani.h>
-#endif
 
 void InitMediaControl(GF_InlineScene *is, GF_Node *node);
 void MC_Modified(GF_Node *node);
@@ -45,24 +39,17 @@ void InitInline(GF_InlineScene *is, GF_Node *node);
 
 
 #ifndef GPAC_DISABLE_SVG
-#ifdef GPAC_ENABLE_SVG_SA
-void svg_sa_render_init_animation(GF_InlineScene *is, GF_Node *node);
-void svg_sa_init_use(GF_InlineScene *is, GF_Node *node);
-#endif
-#ifdef GPAC_ENABLE_SVG_SANI
-void svg_sani_render_init_use(GF_InlineScene *is, GF_Node *node);
-#endif
-void svg_render_init_use(GF_InlineScene *is, GF_Node *node);
-void svg_render_init_animation(GF_InlineScene *is, GF_Node *node);
+void term_svg_init_use(GF_InlineScene *is, GF_Node *node);
+void term_svg_init_animation(GF_InlineScene *is, GF_Node *node);
 #endif
 
-void Render_WorldInfo(GF_Node *node, void *rs, Bool is_destroy)
+void TraverseWorldInfo(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
 	is->world_info = is_destroy ? NULL : (M_WorldInfo *) node;
 }
 
-void svg_render_title(GF_Node *node, void *rs, Bool is_destroy)
+void svg_traverse_title(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
 	is->world_info = is_destroy ? NULL : (M_WorldInfo *) node;
@@ -88,7 +75,7 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 	/*world info is stored at the inline scene level*/
 	case TAG_MPEG4_WorldInfo:
 	case TAG_X3D_WorldInfo:
-		gf_node_set_callback_function(node, Render_WorldInfo);
+		gf_node_set_callback_function(node, TraverseWorldInfo);
 		gf_node_set_private(node, is);
 		break;
 
@@ -98,37 +85,18 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 #ifndef GPAC_DISABLE_SVG
 
 	case TAG_SVG_title: 
-		gf_node_set_callback_function(node, svg_render_title);
+		gf_node_set_callback_function(node, svg_traverse_title);
 		gf_node_set_private(node, is);
 		break;
 	case TAG_SVG_use: 
-		svg_render_init_use(is, node); 
+		term_svg_init_use(is, node); 
 		break;
 	case TAG_SVG_animation:	
-		svg_render_init_animation(is, node); 
-		break;
-
-#ifdef GPAC_ENABLE_SVG_SA
-	case TAG_SVG_SA_title: 
-		gf_node_set_callback_function(node, svg_render_title);
-		gf_node_set_private(node, is);
-		break;
-	case TAG_SVG_SA_animation:	
-		svg_sa_render_init_animation(is, node); 
-		break;
-	case TAG_SVG_SA_use: 
-		svg_sa_init_use(is, node); 
+		term_svg_init_animation(is, node); 
 		break;
 #endif
 
-#ifdef GPAC_ENABLE_SVG_SANI
-	case TAG_SVG_SANI_use: 
-		svg_sani_render_init_use(is, node); 
-		break;
-#endif
-#endif
-
-	default: gf_sr_on_node_init(is->root_od->term->renderer, node); break;
+	default: gf_sc_on_node_init(is->root_od->term->compositor, node); break;
 	}
 }
 
@@ -137,20 +105,20 @@ void gf_term_on_node_modified(void *_is, GF_Node *node)
 	GF_InlineScene *is = (GF_InlineScene *)_is;
 	if (!is) return;
 	if (!node) {
-		gf_sr_invalidate(is->root_od->term->renderer, NULL); 
+		gf_sc_invalidate(is->root_od->term->compositor, NULL); 
 		return;
 	}
 	
 	switch (gf_node_get_tag(node)) {
 	case TAG_MPEG4_Inline: 
 	case TAG_X3D_Inline: 
-		gf_is_on_modified(node); break;
+		gf_inline_on_modified(node); break;
 	case TAG_MPEG4_MediaBuffer: break;
 	case TAG_MPEG4_MediaControl: MC_Modified(node); break;
 	case TAG_MPEG4_MediaSensor: MS_Modified(node); break;
 	case TAG_MPEG4_InputSensor: InputSensorModified(node); break;
 	case TAG_MPEG4_Conditional: break;
-	default: gf_sr_invalidate(is->root_od->term->renderer, node); break;
+	default: gf_sc_invalidate(is->root_od->term->compositor, node); break;
 	}
 }
 

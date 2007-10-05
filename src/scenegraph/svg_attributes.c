@@ -80,7 +80,7 @@ u32 gf_dom_event_type_by_name(const char *name)
 	/*LASeR unofficial events*/
 	if (!strcmp(name, "battery"))		return GF_EVENT_BATTERY;
 	if (!strcmp(name, "cpu"))		return GF_EVENT_CPU;
-	GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[DOM Events] Unknown event found \"%s\"\n", name));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[DOM Events] Unknown event found \"%s\"\n", name));
 	return GF_EVENT_UNKNOWN;
 }
 
@@ -2617,41 +2617,8 @@ GF_Err laser_parse_size(LASeR_Size *size, char *attribute_content)
 GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if_defined)
 {
 	GF_SceneGraph *sg = gf_node_get_graph((GF_Node *)n);
-#if 0
-	SVG_SA_Element *unided_elt;
-	GF_SceneGraph *sg = gf_node_get_graph(n);
-
-	unided_elt = (SVG_SA_Element *)gf_sg_find_node_by_name(sg, (char *) nodename);
-	if (unided_elt) {
-		/* An element with the same id is already in the document
-		   Is it in an update, in which case it may be normal, otherwise it's an error.*/		
-		if (!warning_if_defined) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] element with id='%s' already defined in document.\n", nodename));
-		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] element with id='%s' already defined in document.\n", nodename));
-			gf_node_set_id(n, gf_node_get_id((GF_Node*)unided_elt), nodename);
-		}
-	} else {
-		u32 id;
-		if (sscanf(nodename, "N%d", &id) == 1) {
-			GF_Node *n;
-			id++;
-			n = gf_sg_find_node(sg, id);
-			if (n) { /* an existing node was found with this binary id, reassign a new one */
-				u32 nID = gf_sg_get_next_available_node_id(sg);
-				const char *nname = gf_node_get_name(n);
-				gf_node_set_id(n, nID, nname);
-			}
-		} else {
-			id = gf_sg_get_next_available_node_id(sg);
-		}
-		gf_node_set_id(n, id, nodename);
-	}
-#else
-	u32 id;
-	id = gf_sg_get_max_node_id(sg) + 1;
+	u32 id = gf_sg_get_max_node_id(sg) + 1;
 	gf_node_set_id(n, id, nodename);
-#endif
 	return GF_OK;
 }
 
@@ -4843,7 +4810,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		return 1;
 	}
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING|GF_LOG_COMPOSE, ("[SVG Attributes] comparaison for field %s of type %s not supported\n", f1->name, gf_svg_attribute_type_to_string(f1->fieldType)));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING|GF_LOG_INTERACT, ("[SVG Attributes] comparaison for field %s of type %s not supported\n", f1->name, gf_svg_attribute_type_to_string(f1->fieldType)));
 		return 0;
 	}
 }
@@ -4858,7 +4825,7 @@ static void svg_color_clamp(SVG_Color *a)
 static GF_Err svg_color_muladd(Fixed alpha, SVG_Color *a, Fixed beta, SVG_Color *b, SVG_Color *c, Bool clamp)
 {
 	if (a->type != SVG_COLOR_RGBCOLOR || b->type != SVG_COLOR_RGBCOLOR) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] only RGB colors are additive\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] only RGB colors are additive\n"));
 		return GF_BAD_PARAM;
 	}
 	c->type = SVG_COLOR_RGBCOLOR;
@@ -4872,11 +4839,11 @@ static GF_Err svg_color_muladd(Fixed alpha, SVG_Color *a, Fixed beta, SVG_Color 
 static GF_Err svg_number_muladd(Fixed alpha, SVG_Number *a, Fixed beta, SVG_Number *b, SVG_Number *c)
 {
 	if (a->type != b->type) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] cannot add lengths of mismatching types\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] cannot add lengths of mismatching types\n"));
 		return GF_BAD_PARAM;
 	}
 	if (a->type == SVG_NUMBER_INHERIT || a->type == SVG_NUMBER_AUTO) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] cannot add lengths\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] cannot add lengths\n"));
 		return GF_BAD_PARAM;
 	}
 	c->value = gf_mulfix(alpha, a->value) + gf_mulfix(beta, b->value);
@@ -5163,7 +5130,7 @@ static GF_Err svg_matrix_muladd(Fixed alpha, GF_Matrix2D *a, Fixed beta, GF_Matr
 		c->m[4] = a->m[4];
 		c->m[5] = gf_mulfix(alpha, a->m[5]) + gf_mulfix(beta, b->m[5]);
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] matrix operations not supported\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] matrix operations not supported\n"));
 		return GF_BAD_PARAM;
 	}
 	return GF_OK;
@@ -5210,7 +5177,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 			SVG_Paint *pb = (SVG_Paint *)b->far_ptr;
 			SVG_Paint *pc = (SVG_Paint *)c->far_ptr;
 			if (pa->type != pb->type || pa->type != SVG_PAINT_COLOR || pb->type != SVG_PAINT_COLOR) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] only color paints are additive\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] only color paints are additive\n"));
 				return GF_BAD_PARAM;
 			}
 			pc->type = SVG_PAINT_COLOR;
@@ -5250,14 +5217,14 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 			if (ta->is_ref == tb->is_ref) {
 				return svg_matrix_muladd(alpha, &ta->mat, beta, &tb->mat, &tc->mat);
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] matrix operations not supported\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] matrix operations not supported\n"));
 				return GF_NOT_SUPPORTED;
 			}
 		} else {
 			/* a and c are matrices but b is not */
 			GF_Matrix2D tmp;
 			if (alpha != FIX_ONE) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] matrix operations not supported\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] matrix operations not supported\n"));
 				return GF_NOT_SUPPORTED;
 			}
 			gf_mx2d_init(tmp);
@@ -5278,7 +5245,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 				gf_mx2d_add_skew_y(&tmp, gf_mulfix(*(Fixed*)b->far_ptr, beta));
 				break;
 			default:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] copy of attributes %s not supported\n", a->name));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] copy of attributes %s not supported\n", a->name));
 				return GF_NOT_SUPPORTED;
 			}
 			gf_mx2d_add_matrix(&tmp, &((SVG_Transform*)a->far_ptr)->mat);
@@ -5290,7 +5257,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		if (b->fieldType == SVG_Transform_Translate_datatype) {
 			return svg_point_muladd(alpha, (SVG_Point*)a->far_ptr, beta, (SVG_Point*)b->far_ptr, (SVG_Point*)c->far_ptr);
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] matrix operations not supported\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] matrix operations not supported\n"));
 			return GF_NOT_SUPPORTED;
 		}
 
@@ -5307,7 +5274,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 				return svg_point_muladd(alpha, (SVG_Point*)a->far_ptr, beta, (SVG_Point*)b->far_ptr, (SVG_Point*)c->far_ptr);
 			}
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] matrix operations not supported\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] matrix operations not supported\n"));
 			return GF_NOT_SUPPORTED;
 		}
 
@@ -5315,7 +5282,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		if (b->fieldType == SVG_Transform_Rotate_datatype) {
 			return svg_point_angle_muladd(alpha, (SVG_Point_Angle*)a->far_ptr, beta, (SVG_Point_Angle*)b->far_ptr, (SVG_Point_Angle*)c->far_ptr);
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] matrix operations not supported\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] matrix operations not supported\n"));
 			return GF_NOT_SUPPORTED;
 		}
 
@@ -5324,7 +5291,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 			*(Fixed*)c->far_ptr = gf_mulfix(alpha, *(Fixed*)a->far_ptr) + gf_mulfix(beta, *(Fixed*)b->far_ptr);
 			return GF_OK;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] matrix operations not supported\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] matrix operations not supported\n"));
 			return GF_NOT_SUPPORTED;
 		}
 
@@ -5333,7 +5300,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 			*(Fixed*)c->far_ptr = gf_mulfix(alpha, *(Fixed*)a->far_ptr) + gf_mulfix(beta, *(Fixed*)b->far_ptr);
 			return GF_OK;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] matrix operations not supported\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] matrix operations not supported\n"));
 			return GF_NOT_SUPPORTED;
 		}
 
@@ -5421,7 +5388,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	case SMIL_Duration_datatype:
 	case SMIL_RepeatCount_datatype:
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG Attributes] addition for attributes %s of type %s not supported\n", a->name, gf_svg_attribute_type_to_string(a->fieldType)));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[SVG Attributes] addition for attributes %s of type %s not supported\n", a->name, gf_svg_attribute_type_to_string(a->fieldType)));
 		return GF_NOT_SUPPORTED;
 	}
 	return GF_OK;
@@ -5511,7 +5478,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 			gf_mx2d_copy(((SVG_Transform *)a->far_ptr)->mat, ((SVG_Transform *)b->far_ptr)->mat);
 			break;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Attributes] forbidden type of transform\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] forbidden type of transform\n"));
 			return GF_NOT_SUPPORTED;
 		}
 		return GF_OK;
@@ -5613,7 +5580,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SMIL_Duration_datatype:
 	case SMIL_RepeatCount_datatype:
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG Attributes] copy of attributes %s of type %s not supported\n", a->name, gf_svg_attribute_type_to_string(a->fieldType)));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[SVG Attributes] copy of attributes %s of type %s not supported\n", a->name, gf_svg_attribute_type_to_string(a->fieldType)));
 		return GF_OK;
 	}
 	return GF_OK;
@@ -5754,7 +5721,7 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	case SMIL_Duration_datatype:
 	case SMIL_RepeatCount_datatype:
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG Attributes] interpolation for attributes %s of type %s not supported\n", a->name, gf_svg_attribute_type_to_string(a->fieldType)));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[SVG Attributes] interpolation for attributes %s of type %s not supported\n", a->name, gf_svg_attribute_type_to_string(a->fieldType)));
 		return GF_OK;
 	}
 	return GF_OK;

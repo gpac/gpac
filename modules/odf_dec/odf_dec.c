@@ -53,7 +53,7 @@ static GF_Err ODF_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool
 static void ODS_SetupOD(GF_InlineScene *is, GF_ObjectDescriptor *od)
 {
 	GF_ObjectManager *odm;
-	odm = gf_is_find_odm(is, od->objectDescriptorID);
+	odm = gf_inline_find_odm(is, od->objectDescriptorID);
 	/*remove the old OD*/
 	if (odm) gf_odm_disconnect(odm, 1);
 	odm = gf_odm_new();
@@ -90,7 +90,7 @@ static GF_Err ODS_RemoveOD(ODPriv *priv, GF_ODRemove *odR)
 {
 	u32 i;
 	for (i=0; i< odR->NbODs; i++) {
-		GF_ObjectManager *odm = gf_is_find_odm(priv->scene, odR->OD_ID[i]);
+		GF_ObjectManager *odm = gf_inline_find_odm(priv->scene, odR->OD_ID[i]);
 		if (odm) gf_odm_disconnect(odm, 1);
 	}
 	return GF_OK;
@@ -102,7 +102,7 @@ static GF_Err ODS_UpdateESD(ODPriv *priv, GF_ESDUpdate *ESDs)
 	GF_ObjectManager *odm;
 	u32 count, i;
 
-	odm = gf_is_find_odm(priv->scene, ESDs->ODID);
+	odm = gf_inline_find_odm(priv->scene, ESDs->ODID);
 	/*spec: "ignore"*/
 	if (!odm) return GF_OK;
 
@@ -130,7 +130,7 @@ static GF_Err ODS_UpdateESD(ODPriv *priv, GF_ESDUpdate *ESDs)
 	}
 	/*resetup object since a new ES has been inserted 
 	(typically an empty object first sent, then a stream added - cf how ogg demuxer works)*/
-	gf_is_setup_object(priv->scene, odm);
+	gf_inline_setup_object(priv->scene, odm);
 	return GF_OK;
 }
 
@@ -139,7 +139,7 @@ static GF_Err ODS_RemoveESD(ODPriv *priv, GF_ESDRemove *ESDs)
 {
 	GF_ObjectManager *odm;
 	u32 i;
-	odm = gf_is_find_odm(priv->scene, ESDs->ODID);
+	odm = gf_inline_find_odm(priv->scene, ESDs->ODID);
 	/*spec: "ignore"*/
 	if (!odm) return GF_OK;
 

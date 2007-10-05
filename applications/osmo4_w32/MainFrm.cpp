@@ -191,7 +191,7 @@ void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT nID , DWORD )
 	char szMsg[100];
 	GF_SystemRTInfo rti;
 	if (nID != RTI_TIMER) return;
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	CMainFrame *pFrame = (CMainFrame *) app->m_pMainWnd;
 	/*shutdown*/
 	if (!pFrame) return;
@@ -485,7 +485,7 @@ void CALLBACK EXPORT ProgressTimer(HWND , UINT , UINT nID , DWORD )
 {
 	u32 now;
 	if (nID != PROGRESS_TIMER) return;
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	CMainFrame *pFrame = (CMainFrame *) app->m_pMainWnd;
 	/*shutdown*/
 	if (!pFrame) return;
@@ -518,7 +518,7 @@ void CMainFrame::SetProgTimer(Bool bOn)
 LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 {
 	Bool do_pause;
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	CString txt, url;
 	m_bStartupFile = FALSE;
 	txt = "Osmo4 - ";
@@ -570,7 +570,7 @@ void CMainFrame::OnLButtonUp(UINT , CPoint ) { ForwardMessage(); }
 void CMainFrame::OnDropFiles(HDROP hDropInfo) 
 {
 	u32 i, count;
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	char fileName[MAX_PATH];
 
 	count = ::DragQueryFile(hDropInfo, 0xFFFFFFFF, NULL, 0);
@@ -640,14 +640,14 @@ BOOL CMainFrame::DestroyWindow()
 
 void CMainFrame::OnViewOriginal() 
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	gf_term_set_option(gpac->m_term, GF_OPT_ORIGINAL_VIEW, 1);	
 	OnSetSize(gpac->orig_width, gpac->orig_height);
 }
 
 void CMainFrame::SetFullscreen() 
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 	if (!m_bFullScreen) {
 //		GetWindowRect(&backup_wnd_rc);
 		if (gf_term_set_option(gpac->m_term, GF_OPT_FULLSCREEN, 1) == GF_OK) 
@@ -711,7 +711,7 @@ void CMainFrame::OnUpdateArKeep(CCmdUI* pCmdUI)
 void CMainFrame::OnUpdateNavigate(CCmdUI* pCmdUI)
 {
 	BOOL enable;
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	pCmdUI->Enable(FALSE);
 	if (!app->m_isopen) return;
 	
@@ -741,7 +741,7 @@ void CMainFrame::OnUpdateNavigate(CCmdUI* pCmdUI)
 
 void CMainFrame::SetNavigate(u32 mode)
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	gf_term_set_option(app->m_term, GF_OPT_NAVIGATION, mode);
 }
 void CMainFrame::OnNavigateNone() { SetNavigate(GF_NAVIGATE_NONE); }
@@ -756,14 +756,14 @@ void CMainFrame::OnNavigateGame() { SetNavigate(GF_NAVIGATE_GAME); }
 
 void CMainFrame::OnNavigateReset()
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	gf_term_set_option(app->m_term, GF_OPT_NAVIGATION_TYPE, 0);
 }
 
 
 LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
-	WinGPAC *gpac = GetApp();
+	Osmo4 *gpac = GetApp();
 
 	if (gf_term_is_supported_url(gpac->m_term, gpac->m_navigate_url, 1, gpac->m_NoMimeFetch)) {
 		char *str = gf_url_concatenate(m_pPlayList->GetURL(), gpac->m_navigate_url);
@@ -884,7 +884,7 @@ void CMainFrame::OnNavInfo()
 
 void CMainFrame::BuildViewList()
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	if (!app->m_isopen) return;
 
 	/*THIS IS HARCODED FROM THE MENU LAYOUT */
@@ -915,7 +915,7 @@ void CMainFrame::BuildStreamList(Bool reset_only)
 {
 	u32 nb_subs;
 	CMenu *pSelect;
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 
 	pSelect = GetMenu()->GetSubMenu(2)->GetSubMenu(0);
 	/*THIS IS HARCODED FROM THE MENU LAYOUT */
@@ -983,7 +983,7 @@ void CMainFrame::BuildStreamList(Bool reset_only)
 BOOL CMainFrame::OnCommand(WPARAM wParam, LPARAM lParam)
 {
 	int ID = LOWORD(wParam);
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 
 	if ( (ID>=ID_VP_0) && (ID<=ID_VP_0+nb_viewpoints)) {
 		ID -= ID_VP_0;
@@ -1026,7 +1026,7 @@ BOOL CMainFrame::OnCommand(WPARAM wParam, LPARAM lParam)
 
 void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT ID, BOOL bSys)
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	/*viewport list*/
 	if (pPopupMenu->GetMenuItemID(0)==ID_VP_0) {
 		for (int i=0; i<nb_viewpoints; i++) {
@@ -1114,7 +1114,7 @@ void CMainFrame::OnCollideDisp()
 
 void CMainFrame::OnUpdateCollideDisp(CCmdUI* pCmdUI) 
 {
-	WinGPAC *gpac = GetApp(); 
+	Osmo4 *gpac = GetApp(); 
 	pCmdUI->Enable(gpac->m_isopen);	
 	pCmdUI->SetCheck( (gf_term_get_option(gpac->m_term, GF_OPT_COLLISION) == GF_COLLISION_DISPLACEMENT) ? 1 : 0);
 }
@@ -1126,7 +1126,7 @@ void CMainFrame::OnCollideNone()
 
 void CMainFrame::OnUpdateCollideNone(CCmdUI* pCmdUI) 
 {
-	WinGPAC *gpac = GetApp(); 
+	Osmo4 *gpac = GetApp(); 
 	pCmdUI->Enable(gpac->m_isopen);	
 	pCmdUI->SetCheck( (gf_term_get_option(gpac->m_term, GF_OPT_COLLISION) == GF_COLLISION_NONE) ? 1 : 0);
 }
@@ -1138,21 +1138,21 @@ void CMainFrame::OnCollideReg()
 
 void CMainFrame::OnUpdateCollideReg(CCmdUI* pCmdUI) 
 {
-	WinGPAC *gpac = GetApp(); 
+	Osmo4 *gpac = GetApp(); 
 	pCmdUI->Enable(gpac->m_isopen);	
 	pCmdUI->SetCheck( (gf_term_get_option(gpac->m_term, GF_OPT_COLLISION) == GF_COLLISION_NORMAL) ? 1 : 0);
 }
 
 void CMainFrame::OnHeadlight() 
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	Bool val = !gf_term_get_option(app->m_term, GF_OPT_HEADLIGHT);
 	gf_term_set_option(app->m_term, GF_OPT_HEADLIGHT, val);
 }
 
 void CMainFrame::OnUpdateHeadlight(CCmdUI* pCmdUI) 
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	pCmdUI->Enable(FALSE);
 	if (!app->m_isopen) return;
 	u32 type = gf_term_get_option(app->m_term, GF_OPT_NAVIGATION_TYPE);
@@ -1164,14 +1164,14 @@ void CMainFrame::OnUpdateHeadlight(CCmdUI* pCmdUI)
 
 void CMainFrame::OnGravity() 
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	Bool val = gf_term_get_option(app->m_term, GF_OPT_GRAVITY) ? 0 : 1;
 	gf_term_set_option(app->m_term, GF_OPT_GRAVITY, val);
 }
 
 void CMainFrame::OnUpdateGravity(CCmdUI* pCmdUI) 
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	pCmdUI->Enable(FALSE);
 	if (!app->m_isopen) return;
 	u32 type = gf_term_get_option(app->m_term, GF_OPT_NAVIGATION_TYPE);
@@ -1230,7 +1230,7 @@ BOOL CMainFrame::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult)
 
 void CMainFrame::OnNavNext() 
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	/*don't play if last could trigger playlist loop*/
 	if ((m_pPlayList->m_cur_entry<0) || (gf_list_count(m_pPlayList->m_entries) == 1 + (u32) m_pPlayList->m_cur_entry)) return;
 	m_pPlayList->PlayNext();
@@ -1245,7 +1245,7 @@ void CMainFrame::OnUpdateNavNext(CCmdUI* pCmdUI)
 
 void CMainFrame::OnNavPrev() 
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	if (m_pPlayList->m_cur_entry<=0) return;
 	m_pPlayList->PlayPrev();
 }
@@ -1315,7 +1315,7 @@ void CMainFrame::LookForSubtitles()
 
 void CMainFrame::OnCacheEnable()
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	u32 state = gf_term_get_option(app->m_term, GF_OPT_MEDIA_CACHE);
 	if (state==GF_MEDIA_CACHE_DISABLED) {
 		gf_term_set_option(app->m_term, GF_OPT_MEDIA_CACHE, GF_MEDIA_CACHE_ENABLED);
@@ -1326,7 +1326,7 @@ void CMainFrame::OnCacheEnable()
 
 void CMainFrame::OnUpdateCacheEnable(CCmdUI* pCmdUI) 
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	u32 state = gf_term_get_option(app->m_term, GF_OPT_MEDIA_CACHE);
 	switch (state) {
 	case GF_MEDIA_CACHE_ENABLED:
@@ -1345,19 +1345,19 @@ void CMainFrame::OnUpdateCacheEnable(CCmdUI* pCmdUI)
 
 void CMainFrame::OnUpdateCacheStop(CCmdUI* pCmdUI) 
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	u32 state = gf_term_get_option(app->m_term, GF_OPT_MEDIA_CACHE);
 	pCmdUI->Enable( (state==GF_MEDIA_CACHE_RUNNING) ? TRUE : FALSE);
 }
 
 void CMainFrame::OnCacheStop()
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	gf_term_set_option(app->m_term, GF_OPT_MEDIA_CACHE, GF_MEDIA_CACHE_DISABLED);
 }
 void CMainFrame::OnCacheAbort()
 {
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	gf_term_set_option(app->m_term, GF_OPT_MEDIA_CACHE, GF_MEDIA_CACHE_DISCARD);
 }
 
@@ -1372,7 +1372,7 @@ void CMainFrame::BuildChapterList(Bool reset_only)
 	CMenu *pChaps;
 	ODInfo odi;
 	NetInfoCommand com;
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 
 	/*THIS IS HARCODED FROM THE MENU LAYOUT */
 	pChaps = GetMenu()->GetSubMenu(2)->GetSubMenu(1);

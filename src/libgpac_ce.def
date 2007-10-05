@@ -907,8 +907,8 @@ EXPORTS
 	gf_node_replace_child
 	gf_node_event_out
 	gf_node_event_out_str
-	gf_node_render
-	gf_node_render_children
+	gf_node_traverse
+	gf_node_traverse_children
 	gf_node_get_parent_count
 	gf_node_get_parent
 	gf_node_get_class_name
@@ -945,7 +945,7 @@ EXPORTS
 	gf_node_changed
 	gf_node_new
 	gf_node_clone
-	gf_node_allow_cyclic_render
+	gf_node_allow_cyclic_traverse
 	gf_sg_vrml_get_event_type_name
 	gf_sg_vrml_get_field_type_by_name
 	gf_sg_vrml_field_pointer_new
@@ -1058,66 +1058,65 @@ EXPORTS
 	gf_term_set_mfurl_from_uri
 
 ;renderer.h exports
-	gf_sr_new
-	gf_sr_del
-	gf_sr_set_fps
-	gf_sr_set_scene
-	gf_sr_render_frame
-	gf_sr_on_node_init
-	gf_sr_invalidate
-	gf_sr_get_clock
-	gf_sr_lock
-	gf_sr_user_event
-	gf_sr_map_point
-	gf_sr_set_option
-	gf_sr_get_option
-	gf_sr_get_fps
-	gf_sr_get_screen_buffer
-	gf_sr_release_screen_buffer
-	gf_sr_simulation_tick
-	gf_sr_reset_graphics
-	gf_sr_pick_node
-	gf_sr_get_viewpoint
-	gf_sr_set_viewpoint
-	gf_sr_render_inline
-	gf_sr_set_size
-	gf_sr_register_extra_graph
-	gf_sr_get_renderer
-	gf_sr_svg_convert_length_to_display
+	gf_sc_new
+	gf_sc_del
+	gf_sc_set_fps
+	gf_sc_set_scene
+	gf_sc_draw_frame
+	gf_sc_on_node_init
+	gf_sc_invalidate
+	gf_sc_get_clock
+	gf_sc_lock
+	gf_sc_user_event
+	gf_sc_map_point
+	gf_sc_set_option
+	gf_sc_get_option
+	gf_sc_get_fps
+	gf_sc_get_screen_buffer
+	gf_sc_release_screen_buffer
+	gf_sc_simulation_tick
+	gf_sc_reset_graphics
+	gf_sc_pick_node
+	gf_sc_get_viewpoint
+	gf_sc_set_viewpoint
+	gf_sc_set_size
+	gf_sc_register_extra_graph
+	gf_sc_get_compositor
+	gf_sc_svg_convert_length_to_display
 
 ;render_dev.h exports
-	gf_sr_register_time_node
-	gf_sr_unregister_time_node
-	gf_sr_texture_setup
-	gf_sr_texture_destroy
-	gf_sr_texture_get_handler
-	gf_sr_texture_check_url_change
-	gf_sr_texture_play
-	gf_sr_texture_play_from_to
-	gf_sr_texture_stop
-	gf_sr_texture_restart
-	gf_sr_texture_update_frame
-	gf_sr_texture_release_stream
-	gf_sr_audio_register
-	gf_sr_audio_unregister
-	gf_sr_audio_setup
-	gf_sr_audio_open
-	gf_sr_audio_stop
-	gf_sr_audio_restart
+	gf_sc_register_time_node
+	gf_sc_unregister_time_node
+	gf_sc_texture_setup
+	gf_sc_texture_destroy
+	gf_sc_texture_get_handler
+	gf_sc_texture_check_url_change
+	gf_sc_texture_play
+	gf_sc_texture_play_from_to
+	gf_sc_texture_stop
+	gf_sc_texture_restart
+	gf_sc_texture_update_frame
+	gf_sc_texture_release_stream
+	gf_sc_audio_register
+	gf_sc_audio_unregister
+	gf_sc_audio_setup
+	gf_sc_audio_open
+	gf_sc_audio_stop
+	gf_sc_audio_restart
 
 ;terminal_dev exports
-	gf_is_new
-	gf_is_del
-	gf_is_get_time
-	gf_is_attach_to_renderer
-	gf_is_find_odm
-	gf_is_set_duration
-	gf_is_setup_object
-	gf_is_default_scene_viewpoint
-	gf_is_register_extra_graph
-	gf_is_force_scene_size
-	gf_is_get_proto_lib
-	gf_is_process_anchor
+	gf_inline_new
+	gf_inline_del
+	gf_inline_get_time
+	gf_inline_attach_to_compositor
+	gf_inline_find_odm
+	gf_inline_set_duration
+	gf_inline_setup_object
+	gf_inline_default_scene_viewpoint
+	gf_inline_register_extra_graph
+	gf_inline_force_scene_size
+	gf_inline_get_proto_lib
+	gf_inline_process_anchor
 	gf_odm_new
 	gf_odm_setup_object
 	gf_odm_disconnect

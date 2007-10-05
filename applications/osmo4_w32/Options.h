@@ -295,7 +295,7 @@ public:
 	CButton	m_Use3DRender;
 	CComboBox	m_AntiAlias;
 	CButton	m_ForceSize;
-	CButton	m_FastRender;
+	CButton	m_HighSpeed;
 	CComboBox	m_BIFSRate;
 	//}}AFX_DATA
 

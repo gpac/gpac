@@ -854,9 +854,13 @@ GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	}
 
 	if (is_oma) {
+#if 0
 		/*set as OMA V2*/
 		e = gf_isom_set_brand_info(mp4, GF_4CC('o','d','c','f'), 0x00000002);
 		gf_isom_reset_alt_brands(mp4);
+#else
+		e = gf_isom_modify_alternate_brand(mp4, GF_4CC('o','p','f','2'), 1);
+#endif
 	}
 
 	del_crypt_info(info);

@@ -429,15 +429,14 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	}
 	m_decvideo->SetSelection(select);
 
-	/*rendering*/
-	sOpt = gf_cfg_get_key(cfg, "Rendering", "RendererName");
-	m_bWas3D = (sOpt && strstr(sOpt, "3D")) ? 1 : 0;
+	/*rendering FIXME*/
+	m_bWas3D = 0;
 	m_use3D->SetValue(m_bWas3D ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(cfg, "Rendering", "ForceSceneSize");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "ForceSceneSize");
 	m_force_size->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(cfg, "Rendering", "FrameRate");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "FrameRate");
 	if (!sOpt) sOpt = "30.0";
 	select = 0;
 	for (i = 0; i<NUM_RATES; i++) {
@@ -446,10 +445,10 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	}
 	m_fps->SetSelection(select);
 	
-	sOpt = gf_cfg_get_key(cfg, "Rendering", "FastRender");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "HighSpeed");
 	m_fast->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(cfg, "Rendering", "AntiAlias");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "AntiAlias");
 	m_aa->Append(wxT("None"));
 	m_aa->Append(wxT("Text only"));
 	m_aa->Append(wxT("Complete"));
@@ -458,7 +457,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	else if (sOpt && !stricmp(sOpt, "None")) select = 0;
 	m_aa->SetSelection(select);
 
-	sOpt = gf_cfg_get_key(cfg, "Rendering", "BoundingVolume");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "BoundingVolume");
 	m_draw_bounds->Append(wxT("None"));
 	m_draw_bounds->Append(wxT("Box/Rect"));
 	m_draw_bounds->Append(wxT("AABB Tree"));
@@ -468,16 +467,16 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_draw_bounds->SetSelection(select);
 
 	/*render2d*/
-	sOpt = gf_cfg_get_key(cfg, "Render2D", "DirectRender");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "DirectDraw");
 	m_direct->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "Render2D", "ScalableZoom");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "ScalableZoom");
 	m_scalable->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "Render2D", "DisableYUV");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "DisableYUV");
 	m_noyuv->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	SetYUVLabel();
 
 	/*graphics driver enum*/
-	sOpt = gf_cfg_get_key(cfg, "Rendering", "Raster2D");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "Raster2D");
 	GF_BaseInterface *ifce;
 	select = to_sel = 0;
 	for (i=0; i<count; i++) {
@@ -491,30 +490,30 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_graph->SetSelection(select);
 
 	/*render3d*/
-	sOpt = gf_cfg_get_key(cfg, "Render3D", "RasterOutlines");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "RasterOutlines");
 	m_raster_outlines->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "Render3D", "EmulatePOW2");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "EmulatePOW2");
 	m_emulpow2->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "Render3D", "PolygonAA");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "PolygonAA");
 	m_polyaa->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "Render3D", "BackFaceCulling");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "BackFaceCulling");
 	m_nobackcull->SetValue((sOpt && !stricmp(sOpt, "Off")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "Render3D", "Wireframe");
-	sOpt = gf_cfg_get_key(cfg, "Render3D", "BitmapCopyPixels");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "Wireframe");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "BitmapCopyPixels");
 	m_copypixels->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "Render3D", "DisableRectExt");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "DisableRectExt");
 	m_norectext->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	m_wire->Append(wxT("No Wireframe"));
 	m_wire->Append(wxT("Wireframe Only"));
 	m_wire->Append(wxT("Solid and Wireframe"));
-	sOpt = gf_cfg_get_key(cfg, "Render3D", "Wireframe");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "Wireframe");
 	if (sOpt && !stricmp(sOpt, "WireOnly")) m_wire->SetSelection(1);
 	else if (sOpt && !stricmp(sOpt, "WireOnSolid")) m_wire->SetSelection(2);
 	else m_wire->SetSelection(0);
 	m_normals->Append(wxT("Never"));
 	m_normals->Append(wxT("Per Face"));
 	m_normals->Append(wxT("Per Vertex"));
-	sOpt = gf_cfg_get_key(cfg, "Render3D", "DrawNormals");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "DrawNormals");
 	if (sOpt && !stricmp(sOpt, "PerFace")) m_normals->SetSelection(1);
 	else if (sOpt && !stricmp(sOpt, "PerVertex")) m_normals->SetSelection(2);
 	else m_normals->SetSelection(0);
@@ -703,7 +702,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_select->Append(wxT("General"));
 	m_select->Append(wxT("MPEG-4 Systems"));
 	m_select->Append(wxT("Media Decoders"));
-	m_select->Append(wxT("Rendering"));
+	m_select->Append(wxT("Compositor"));
 	m_select->Append(wxT("Renderer 2D"));
 	m_select->Append(wxT("Renderer 3D"));
 	m_select->Append(wxT("Video Output"));
@@ -887,9 +886,6 @@ void wxGPACControl::OnSetAudioDriver(wxCommandEvent &WXUNUSED(event))
 
 void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 {
-	Bool need_reload = 0;
-
-
 	/*save options*/
 	GF_Config *cfg = m_pApp->m_user.config;
 
@@ -925,37 +921,36 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 	gf_cfg_set_key(cfg, "Systems", "DefVideoDec", m_decvideo->GetStringSelection().mb_str(wxConvUTF8));
 	
 
-	gf_cfg_set_key(cfg, "Rendering", "FastRender", m_fast->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Rendering", "ForceSceneSize", m_force_size->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Compositor", "HighSpeed", m_fast->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Compositor", "ForceSceneSize", m_force_size->GetValue() ? "yes" : "no");
 
-	gf_cfg_set_key(cfg, "Rendering", "FrameRate", BIFSRates[m_fps->GetSelection()]);
+	gf_cfg_set_key(cfg, "Compositor", "FrameRate", BIFSRates[m_fps->GetSelection()]);
 	sel = m_aa->GetSelection();
-	gf_cfg_set_key(cfg, "Rendering", "AntiAlias", (sel==0) ? "None" : ( (sel==1) ? "Text" : "All"));
+	gf_cfg_set_key(cfg, "Compositor", "AntiAlias", (sel==0) ? "None" : ( (sel==1) ? "Text" : "All"));
 	sel = m_draw_bounds->GetSelection();
-	gf_cfg_set_key(cfg, "Rendering", "BoundingVolume", (sel==2) ? "AABB" : (sel==1) ? "Box" : "None");
+	gf_cfg_set_key(cfg, "Compositor", "BoundingVolume", (sel==2) ? "AABB" : (sel==1) ? "Box" : "None");
 
 	Bool is_3D = m_use3D->GetValue() ? 1 : 0;
 	if (m_bWas3D != is_3D) {
-		gf_cfg_set_key(cfg, "Rendering", "RendererName", is_3D ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
-		need_reload = 1;
+		/*FIXME*/
 	}
-	gf_cfg_set_key(cfg, "Rendering", "Raster2D", m_graph->GetStringSelection().mb_str(wxConvUTF8));
+	gf_cfg_set_key(cfg, "Compositor", "Raster2D", m_graph->GetStringSelection().mb_str(wxConvUTF8));
 
-	gf_cfg_set_key(cfg, "Render2D", "DirectRender", m_direct->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Render2D", "ScalableZoom", m_scalable->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Render2D", "DisableYUV", m_noyuv->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Compositor", "DirectDraw", m_direct->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", m_scalable->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Compositor", "DisableYUV", m_noyuv->GetValue() ? "yes" : "no");
 
-	gf_cfg_set_key(cfg, "Render3D", "RasterOutlines", m_raster_outlines->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Render3D", "EmulatePOW2", m_emulpow2->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Render3D", "PolygonAA", m_polyaa->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Render3D", "DisableRectExt", m_norectext->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Render3D", "BitmapCopyPixels", m_copypixels->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Render3D", "BackFaceCulling", m_nobackcull->GetValue() ? "Off" : "On");
+	gf_cfg_set_key(cfg, "Compositor", "RasterOutlines", m_raster_outlines->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Compositor", "EmulatePOW2", m_emulpow2->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Compositor", "PolygonAA", m_polyaa->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Compositor", "DisableRectExt", m_norectext->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Compositor", "BitmapCopyPixels", m_copypixels->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Compositor", "BackFaceCulling", m_nobackcull->GetValue() ? "Off" : "On");
 
 	sel = m_wire->GetSelection();
-	gf_cfg_set_key(cfg, "Render3D", "Wireframe", (sel==2) ? "WireOnSolid" : ( (sel==1) ? "WireOnly" : "WireNone" ) );
+	gf_cfg_set_key(cfg, "Compositor", "Wireframe", (sel==2) ? "WireOnSolid" : ( (sel==1) ? "WireOnly" : "WireNone" ) );
 	sel = m_normals->GetSelection();
-	gf_cfg_set_key(cfg, "Render3D", "DrawNormals", (sel==2) ? "PerVertex" : ( (sel==1) ? "PerFace" : "Never" ) );
+	gf_cfg_set_key(cfg, "Compositor", "DrawNormals", (sel==2) ? "PerVertex" : ( (sel==1) ? "PerFace" : "Never" ) );
 
 	gf_cfg_set_key(cfg, "Video", "SwitchResolution", m_switchres->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Video", "UseHardwareMemory", m_usehwmem->GetValue() ? "yes" : "no");
@@ -1031,10 +1026,6 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 	gf_cfg_set_key(cfg, "StreamingCache", "RecordDirectory", m_recdir->GetLabel().mb_str(wxConvUTF8));
 
 
-	if (!need_reload) {
-		gf_term_set_option(m_pApp->m_term, GF_OPT_RELOAD_CONFIG, 1);
-	} else {
-		m_pApp->ReloadTerminal();
-	}
+	gf_term_set_option(m_pApp->m_term, GF_OPT_RELOAD_CONFIG, 1);
 }
 

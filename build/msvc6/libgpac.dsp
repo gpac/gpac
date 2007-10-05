@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O1 /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O1 /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /I "../../src/compositor" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x40c /d "NDEBUG"
 # ADD RSC /l 0x40c /d "NDEBUG"
@@ -521,14 +521,6 @@ SOURCE=..\..\src\scenegraph\svg_nodes_da.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scenegraph\svg_nodes_sa.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scenegraph\svg_nodes_sani.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\src\scenegraph\svg_properties.c
 # End Source File
 # Begin Source File
@@ -538,14 +530,6 @@ SOURCE=..\..\src\scenegraph\svg_smjs.c
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\svg_tools_da.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scenegraph\svg_tools_sa.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scenegraph\svg_tools_sani.c
 # End Source File
 # Begin Source File
 
@@ -682,14 +666,6 @@ SOURCE=..\..\src\scene_manager\loader_qt.c
 # Begin Source File
 
 SOURCE=..\..\src\scene_manager\loader_svg_da.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scene_manager\loader_svg_sa.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scene_manager\loader_svg_sani.c
 # End Source File
 # Begin Source File
 
@@ -876,48 +852,284 @@ SOURCE=..\..\src\terminal\terminal.c
 SOURCE=..\..\include\gpac\internal\terminal_dev.h
 # End Source File
 # End Group
-# Begin Group "renderer"
+# Begin Group "compositor"
 
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=..\..\src\renderer\audio_input.c
+SOURCE=..\..\src\compositor\audio_input.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\renderer\audio_mixer.c
+SOURCE=..\..\src\compositor\audio_mixer.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\renderer\audio_render.c
+SOURCE=..\..\src\compositor\audio_render.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\renderer\audio_stacks.c
+SOURCE=..\..\src\compositor\bindable.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\renderer\base_textures.c
+SOURCE=..\..\src\compositor\camera.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\renderer\common_stacks.c
+SOURCE=..\..\src\compositor\camera.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\renderer\common_stacks.h
+SOURCE=..\..\src\compositor\compositor.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\renderer\renderer.c
+SOURCE=..\..\src\compositor\compositor_2d.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\include\gpac\internal\renderer_dev.h
+SOURCE=..\..\src\compositor\compositor_3d.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\renderer\texturing.c
+SOURCE=..\..\include\gpac\internal\compositor_dev.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\compositor_node_init.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\drawable.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\drawable.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\events.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\gl_inc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\hardcoded_protos.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mesh.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mesh.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mesh_collide.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mesh_tesselate.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_animstream.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_audio.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_background.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_background2d.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_bitmap.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_composite.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_form.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_geometry_2d.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_geometry_3d.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_geometry_ifs2d.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_geometry_ils2d.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_gradients.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_grouping.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_grouping.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_grouping_2d.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_grouping_3d.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_layer_2d.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_layer_3d.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_layout.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_lighting.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_path_layout.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_sensors.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_sound.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_text.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_textures.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_timesensor.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\mpeg4_viewport.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\navigate.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\nodes_stacks.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\offscreen_cache.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\offscreen_cache.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_base.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_geometry.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_grouping.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_media.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_paint_servers.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_text.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\texturing.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\texturing.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\texturing_gl.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_2d.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_2d.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_2d_draw.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_3d.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_3d.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\visual_manager_3d_gl.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\x3d_geometry.c
 # End Source File
 # End Group
 # Begin Group "laser"
@@ -974,6 +1186,10 @@ SOURCE=..\..\include\gpac\modules\codec.h
 # Begin Source File
 
 SOURCE=..\..\include\gpac\color.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\compositor.h
 # End Source File
 # Begin Source File
 
@@ -1086,10 +1302,6 @@ SOURCE=..\..\include\gpac\path2d.h
 # Begin Source File
 
 SOURCE=..\..\include\gpac\modules\raster2d.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\renderer.h
 # End Source File
 # Begin Source File
 

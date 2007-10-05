@@ -37,6 +37,7 @@
 IMPLEMENT_APP(wxOsmo4App)
 
 #include "osmo4.xpm"
+
 #include <wx/dnd.h>
 #include <wx/filename.h>
 
@@ -614,8 +615,8 @@ Bool wxOsmo4Frame::LoadTerminal()
 			else if (!stricmp(val, "media")) m_log_tools |= GF_LOG_MEDIA;
 			else if (!stricmp(val, "scene")) m_log_tools |= GF_LOG_SCENE;
 			else if (!stricmp(val, "script")) m_log_tools |= GF_LOG_SCRIPT;
+			else if (!stricmp(val, "interact")) m_log_tools |= GF_LOG_INTERACT;
 			else if (!stricmp(val, "compose")) m_log_tools |= GF_LOG_COMPOSE;
-			else if (!stricmp(val, "render")) m_log_tools |= GF_LOG_RENDER;
 			else if (!stricmp(val, "service")) m_log_tools |= GF_LOG_SERVICE;
 			else if (!stricmp(val, "mmio")) m_log_tools |= GF_LOG_MMIO;
 			else if (!stricmp(val, "none")) m_log_tools = 0;
@@ -686,12 +687,11 @@ Bool wxOsmo4Frame::LoadTerminal()
 			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");
 			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
 		}
-		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
 
 #ifdef WIN32
 		unsigned char str_path[MAX_PATH];
-		sOpt = gf_cfg_get_key(m_user.config, "Rendering", "Raster2D");
-		if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "gdip_rend");
+		sOpt = gf_cfg_get_key(m_user.config, "Compositor", "Raster2D");
+		if (!sOpt) gf_cfg_set_key(m_user.config, "Compositor", "Raster2D", "gdip_rend");
 		sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
 		if (!sOpt) {
 			sprintf((char *) str_path, "%scache", abs_gpac_path.mb_str(wxConvUTF8));
@@ -720,7 +720,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 			gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) dlg2.GetPath().mb_str(wxConvUTF8) );
 
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "SDL Video Output");
-		gf_cfg_set_key(m_user.config, "Render2D", "ScalableZoom", "no");
+		gf_cfg_set_key(m_user.config, "Compositor", "ScalableZoom", "no");
 #else
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", "/usr/share/fonts/truetype/");
 		/*these fonts seems installed by default on many systems...*/
@@ -731,7 +731,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 
 		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", "/tmp");
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "X11 Video Output");
-		gf_cfg_set_key(m_user.config, "Render2D", "ScalableZoom", "yes");
+		gf_cfg_set_key(m_user.config, "Compositor", "ScalableZoom", "yes");
 		gf_cfg_set_key(m_user.config, "Audio", "DriverName", "SDL Audio Output");
 #endif
 
@@ -777,7 +777,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 		wxMessageDialog(NULL, wxT("Fatal Error"), wxT("Cannot load GPAC Terminal"), wxOK).ShowModal();
 		return 0;
 	} else {
-		::wxLogMessage(wxT("GPAC Terminal started - using ") + wxString(gf_cfg_get_key(m_user.config, "Rendering", "RendererName"), wxConvUTF8) );
+		::wxLogMessage(wxT("GPAC Terminal started") );
 	}
 	return 1;
 }
@@ -824,8 +824,6 @@ wxDEFAULT_FRAME_STYLE
 	smenu->Append(ID_MCACHE_ABORT, wxT("&Abort"), wxT("Stops recording and discards"));
 	menu->Append(0, wxT("&Streaming Cache"), smenu);
 	menu->Enable(FILE_PROPERTIES, 0);
-	menu->AppendSeparator();
-	menu->Append(TERM_RELOAD, wxT("Reload &Player"), wxT("Reload GPAC Terminal"));
 	menu->AppendSeparator();
 	menu->Append(FILE_QUIT, wxT("E&xit"), wxT("Quit the application"));
 	b->Append(menu, wxT("&File"));
@@ -1088,7 +1086,6 @@ BEGIN_EVENT_TABLE(wxOsmo4Frame, wxFrame)
 	EVT_MENU(FILE_OPEN_URL, wxOsmo4Frame::OnFileOpenURL)
 	EVT_MENU(FILE_RELOAD, wxOsmo4Frame::OnFileReload)
 	EVT_MENU(FILE_PROPERTIES, wxOsmo4Frame::OnFileProperties)
-	EVT_MENU(TERM_RELOAD, wxOsmo4Frame::OnTermReload)
 	EVT_MENU(FILE_QUIT, wxOsmo4Frame::OnFileQuit)
 	EVT_MENU(VIEW_FULLSCREEN, wxOsmo4Frame::OnFullScreen)
 	EVT_MENU(VIEW_OPTIONS, wxOsmo4Frame::OnOptions)
@@ -1852,40 +1849,6 @@ void wxOsmo4Frame::OnSlide(wxScrollEvent &event)
 }
 
 
-void wxOsmo4Frame::ReloadTerminal()
-{
-	Bool reconnect = (m_connected && !m_bStartupFile) ? 1 : 0;
-	::wxLogMessage(wxT("Reloading GPAC Terminal"));
-
-	u32 reconnect_time = 0;
-	if (m_duration) reconnect_time = gf_term_get_time_in_ms(m_term);
-
-	gf_term_del(m_term);
-	/*SET IT TO NULL to make sure we don't process callbacks during setup!!!*/
-	m_term = NULL;
-
-	CheckVideoOut();
-	m_term = gf_term_new(&m_user);
-	if (!m_term) {
-		wxMessageDialog(this, wxT("Fatal Error !!"), wxT("Couldn't change renderer"), wxOK);
-		Destroy();
-		return;
-	}
-	if (reconnect) {
-		if (reconnect_time) {
-			gf_term_connect_from_time(m_term, m_pPlayList->GetURL().mb_str(wxConvUTF8), reconnect_time, 0);
-		} else {
-			gf_term_connect(m_term, m_pPlayList->GetURL().mb_str(wxConvUTF8));
-		}
-	} else if (m_bStartupFile) {
-		gf_term_connect(m_term, gf_cfg_get_key(m_user.config, "General", "StartupFile") );
-	}
-	::wxLogMessage(wxT("GPAC Terminal reloaded"));
-
-	UpdateRenderSwitch();
-}
-
-
 void wxOsmo4Frame::BuildViewList()
 {
 	if (!vp_list || !m_connected) return;
@@ -1969,23 +1932,23 @@ void wxOsmo4Frame::OnUpdateNavigation(wxUpdateUIEvent & event)
 
 void wxOsmo4Frame::OnRenderSwitch(wxCommandEvent &WXUNUSED(event))
 {
-	const char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
-	if (!stricmp(opt, "GPAC 2D Renderer"))
-		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
-	else
-		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
+	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "ForceOpenGL");
+	Bool use_gl = (opt && !stricmp(opt, "yes")) ? 1 : 0;
+	gf_cfg_set_key(m_user.config, "Compositor", "ForceOpenGL", use_gl ? "no" : "yes");
 
-	ReloadTerminal();
+	gf_term_set_option(m_term, GF_OPT_USE_OPENGL, !use_gl);
+
+	UpdateRenderSwitch();
 }
 
 void wxOsmo4Frame::UpdateRenderSwitch()
 {
-	const char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
+	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "ForceOpenGL");
 	m_pToolBar->RemoveTool(SWITCH_RENDER);
-	if (!stricmp(opt, "GPAC 3D Renderer")) 
-		m_pToolBar->InsertTool(12, SWITCH_RENDER, *m_pSW3D, wxNullBitmap, FALSE, NULL, wxT("Switch to 2D Renderer"));
+	if (!stricmp(opt, "yes")) 
+		m_pToolBar->InsertTool(12, SWITCH_RENDER, *m_pSW3D, wxNullBitmap, FALSE, NULL, wxT("2D Rasterizer"));
 	else
-		m_pToolBar->InsertTool(12, SWITCH_RENDER, *m_pSW2D, wxNullBitmap, FALSE, NULL, wxT("Switch to 3D Renderer"));
+		m_pToolBar->InsertTool(12, SWITCH_RENDER, *m_pSW2D, wxNullBitmap, FALSE, NULL, wxT("OpenGL Rendering"));
 
 #ifdef WIN32
 	/*there's a display bug with the menubtn, remove and reinsert*/
@@ -1995,11 +1958,6 @@ void wxOsmo4Frame::UpdateRenderSwitch()
 	m_pToolBar->InsertControl(3, m_pNextBut);
 #endif
 	m_pToolBar->Realize();
-}
-
-void wxOsmo4Frame::OnTermReload(wxCommandEvent &WXUNUSED(event))
-{
-	ReloadTerminal();
 }
 
 void wxOsmo4Frame::UpdatePlay()

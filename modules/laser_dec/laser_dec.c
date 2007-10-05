@@ -57,7 +57,7 @@ GF_Err LSR_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_sce
 	
 	priv->codec = gf_laser_decoder_new(scene->graph);
 	/*attach the clock*/
-	gf_laser_decoder_set_clock(priv->codec, gf_is_get_time, scene);
+	gf_laser_decoder_set_clock(priv->codec, gf_inline_get_time, scene);
 	return GF_OK;
 }
 
@@ -105,7 +105,7 @@ static GF_Err LSR_ProcessData(GF_SceneDecoder*plug, char *inBuffer, u32 inBuffer
 	e = gf_laser_decode_au(priv->codec, ES_ID, inBuffer, inBufferLength);
 
 	/*if scene not attached do it*/
-	gf_is_attach_to_renderer(priv->pScene);
+	gf_inline_attach_to_compositor(priv->pScene);
 	return e;
 }
 

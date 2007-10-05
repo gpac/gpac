@@ -1,4 +1,8 @@
-03/08/07:
+Latest CVS changes - 05/10/07:
+  - Renderer modules have been removed from GPAC. The new integrated 2D+3D renderer has been moved to libgpac and is now 
+      called "compositor". Some renaming has been done in the process to clarify a bit some functions.
+      NOTE: EVC3 and MSVC8 projects have not been updated yet
+      
   - added support for TrackSelection (tsel) - (c) 2007 ENST & RresonateMP4 - cf MP4Box -h general
   - added support for PASP in ISO files
   - misc fixes in render_full module

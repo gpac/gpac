@@ -26,8 +26,7 @@
 
 #include <gpac/internal/terminal_dev.h>
 #include "media_memory.h"
-/*in case the media manager is also responsible for visual rendering*/
-#include <gpac/renderer.h>
+#include <gpac/compositor.h>
 
 
 u32 MM_Loop(void *par);
@@ -279,9 +278,9 @@ static u32 MM_SimulationStep(GF_Terminal *term, u32 *last_dec)
 	}
 	gf_mx_v(term->mm_mx);
 
-	if (term->flags & GF_TERM_RENDER_FRAME) {
+	if (term->flags & GF_TERM_DRAW_FRAME) {
 		time_taken = gf_sys_clock();
-		gf_sr_render_frame(term->renderer);
+		gf_sc_draw_frame(term->compositor);
 		time_taken = gf_sys_clock() - time_taken;
 
 		if (time_left>time_taken) 
@@ -347,7 +346,7 @@ u32 RunSingleDec(void *ptr)
 }
 
 /*NOTE: when starting/stoping a decoder we only lock the decoder mutex, NOT the media manager. This
-avoids deadlocking in case a system codec waits for the scene graph and the renderer requests 
+avoids deadlocking in case a system codec waits for the scene graph and the compositor requests 
 a stop/start on a media*/
 void gf_term_start_codec(GF_Codec *codec)
 {
@@ -515,7 +514,7 @@ void gf_term_set_priority(GF_Terminal *term, s32 Priority)
 GF_EXPORT
 GF_Err gf_term_process_step(GF_Terminal *term)
 {
-	if (!(term->flags & GF_TERM_RENDER_FRAME)) return GF_BAD_PARAM;
+	if (!(term->flags & GF_TERM_DRAW_FRAME)) return GF_BAD_PARAM;
 
 	MM_SimulationStep(term, NULL);
 	return GF_OK;
@@ -526,7 +525,7 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 {
 	u32 i;
 	CodecEntry *ce;
-	if (!(term->flags & GF_TERM_RENDER_FRAME) ) return GF_BAD_PARAM;
+	if (!(term->flags & GF_TERM_DRAW_FRAME) ) return GF_BAD_PARAM;
 
 	/*update till frame mature*/
 	while (1) {
@@ -539,7 +538,7 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 		}
 		gf_mx_v(term->mm_mx);
 
-		if (!gf_sr_render_frame(term->renderer))
+		if (!gf_sc_draw_frame(term->compositor))
 			break;
 
 		if (! (term->user->init_flags & GF_TERM_NO_REGULATION))

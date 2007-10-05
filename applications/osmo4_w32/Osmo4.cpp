@@ -15,10 +15,10 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
-// WinGPAC
+// Osmo4
 
-BEGIN_MESSAGE_MAP(WinGPAC, CWinApp)
-	//{{AFX_MSG_MAP(WinGPAC)
+BEGIN_MESSAGE_MAP(Osmo4, CWinApp)
+	//{{AFX_MSG_MAP(Osmo4)
 	ON_COMMAND(ID_FILEOPEN, OnOpenFile)
 	ON_COMMAND(ID_FILE_STEP, OnFileStep)
 	ON_COMMAND(ID_OPEN_URL, OnOpenUrl)
@@ -29,23 +29,22 @@ BEGIN_MESSAGE_MAP(WinGPAC, CWinApp)
 	ON_COMMAND(ID_FILE_STOP, OnFileStop)
 	ON_UPDATE_COMMAND_UI(ID_FILE_STOP, OnUpdateFileStop)
 	ON_COMMAND(ID_SWITCH_RENDER, OnSwitchRender)
-	ON_COMMAND(ID_RELOAD_TERMINAL, OnReloadTerminal)
 	ON_UPDATE_COMMAND_UI(ID_FILE_RELOAD, OnUpdateFileStop)
 	ON_COMMAND(ID_H_ABOUT, OnAbout)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
-// WinGPAC construction
+// Osmo4 construction
 
-WinGPAC::WinGPAC()
+Osmo4::Osmo4()
 {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// The one and only WinGPAC object
+// The one and only Osmo4 object
 
-WinGPAC theApp;
+Osmo4 theApp;
 
 
 
@@ -141,7 +140,7 @@ u32 get_sys_col(int idx)
 static void Osmo4_progress_cbk(void *usr, char *title, u32 done, u32 total)
 {
 	if (!total) return;
-	CMainFrame *pFrame = (CMainFrame *) ((WinGPAC *) usr)->m_pMainWnd;
+	CMainFrame *pFrame = (CMainFrame *) ((Osmo4 *) usr)->m_pMainWnd;
 	s32 prog = (s32) ( (100 * (u64)done) / total);
 	if (pFrame->m_last_prog < prog) {
 		pFrame->console_err = GF_OK;
@@ -161,7 +160,7 @@ static log_msg(char *msg)
 Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 {
 	u32 dur;
-	WinGPAC *gpac = (WinGPAC *) priv;
+	Osmo4 *gpac = (Osmo4 *) priv;
 	CMainFrame *pFrame = (CMainFrame *) gpac->m_pMainWnd;
 	/*shutdown*/
 	if (!pFrame) return 0;
@@ -377,7 +376,7 @@ static void osmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_lis
 	fflush(logs);
 }
 
-BOOL WinGPAC::InitInstance()
+BOOL Osmo4::InitInstance()
 {
 	CCommandLineInfo cmdInfo;
 
@@ -485,8 +484,8 @@ BOOL WinGPAC::InitInstance()
 			unsigned char str_path[MAX_PATH];
 			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) szAppPath);
 
-			sOpt = gf_cfg_get_key(m_user.config, "Rendering", "Raster2D");
-			if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "GPAC 2D Raster");
+			sOpt = gf_cfg_get_key(m_user.config, "Compositor", "Raster2D");
+			if (!sOpt) gf_cfg_set_key(m_user.config, "Compositor", "Raster2D", "GPAC 2D Raster");
 
 			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
 			if (!sOpt) {
@@ -590,8 +589,8 @@ BOOL WinGPAC::InitInstance()
 			else if (!stricmp(val, "media")) m_log_tools |= GF_LOG_MEDIA;
 			else if (!stricmp(val, "scene")) m_log_tools |= GF_LOG_SCENE;
 			else if (!stricmp(val, "script")) m_log_tools |= GF_LOG_SCRIPT;
+			else if (!stricmp(val, "interact")) m_log_tools |= GF_LOG_INTERACT;
 			else if (!stricmp(val, "compose")) m_log_tools |= GF_LOG_COMPOSE;
-			else if (!stricmp(val, "render")) m_log_tools |= GF_LOG_RENDER;
 			else if (!stricmp(val, "service")) m_log_tools |= GF_LOG_SERVICE;
 			else if (!stricmp(val, "mmio")) m_log_tools |= GF_LOG_MMIO;
 			else if (!stricmp(val, "none")) m_log_tools = 0;
@@ -669,7 +668,7 @@ BOOL WinGPAC::InitInstance()
 	return TRUE;
 }
 
-int WinGPAC::ExitInstance() 
+int Osmo4::ExitInstance() 
 {
 	if (m_term) gf_term_del(m_term);
 	if (m_user.modules) gf_modules_del(m_user.modules);
@@ -685,42 +684,9 @@ int WinGPAC::ExitInstance()
 }
 
 
-void WinGPAC::ReloadTerminal()
-{
-	CMainFrame *pFrame = (CMainFrame *) m_pMainWnd;
-	Bool reconnect = (m_isopen && pFrame->m_bStartupFile) ? 1 : 0;
-	pFrame->console_err = GF_OK;
-	pFrame->console_message = "Reloading GPAC Terminal";
-	m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
-
-	m_reconnect_time = 0;
-	if (can_seek) m_reconnect_time = gf_term_get_time_in_ms(m_term);
-
-	gf_term_del(m_term);
-	m_term = gf_term_new(&m_user);
-	if (!m_term) {
-		MessageBox(NULL, "Fatal Error !!", "Couldn't change renderer", MB_OK);
-		m_pMainWnd->PostMessage(WM_DESTROY);
-		return;
-	}
-	pFrame->console_message = "GPAC Terminal reloaded";
-	m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
-	UpdateRenderSwitch();
-
-	RECT rc;
-	((CMainFrame *) m_pMainWnd)->m_pWndView->GetClientRect(&rc);
-	gf_term_set_size(m_term, rc.right - rc.left, rc.bottom - rc.top);
-
-	if (reconnect) m_pMainWnd->PostMessage(WM_OPENURL);
-	else {
-		const char *sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "StartupFile");
-		if (sOpt) gf_term_connect(m_term, sOpt);
-	}
-}
-
 
 /////////////////////////////////////////////////////////////////////////////
-// WinGPAC message handlers
+// Osmo4 message handlers
 
 
 
@@ -773,7 +739,7 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
-void WinGPAC::OnAbout() 
+void Osmo4::OnAbout() 
 {
 	CAboutDlg aboutDlg;
 	aboutDlg.DoModal();
@@ -793,10 +759,10 @@ void CAboutDlg::OnGogpac()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// WinGPAC message handlers
+// Osmo4 message handlers
 
 
-void WinGPAC::SetOptions()
+void Osmo4::SetOptions()
 {
 	const char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
 	m_Loop = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
@@ -811,7 +777,7 @@ void WinGPAC::SetOptions()
 }
 
 
-void WinGPAC::OnOpenUrl() 
+void Osmo4::OnOpenUrl() 
 {
 	COpenUrl url;
 	if (url.DoModal() != IDOK) return;
@@ -824,7 +790,7 @@ void WinGPAC::OnOpenUrl()
 }
 
 
-CString WinGPAC::GetFileFilter()
+CString Osmo4::GetFileFilter()
 {
 	u32 keyCount, i;
 	CString sFiles;
@@ -909,7 +875,7 @@ CString WinGPAC::GetFileFilter()
 	return supportedFiles;
 }
 
-void WinGPAC::OnOpenFile() 
+void Osmo4::OnOpenFile() 
 {
 	CString sFiles = GetFileFilter();
 	u32 nb_items;
@@ -950,28 +916,28 @@ void WinGPAC::OnOpenFile()
 }
 
 
-void WinGPAC::Pause()
+void Osmo4::Pause()
 {
 	if (!m_isopen) return;
 	gf_term_set_option(m_term, GF_OPT_PLAY_STATE, (gf_term_get_option(m_term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) ? GF_STATE_PAUSED : GF_STATE_PLAYING);
 }
 
-void WinGPAC::OnMainPause() 
+void Osmo4::OnMainPause() 
 {
 	Pause();	
 }
 
-void WinGPAC::OnFileStep() 
+void Osmo4::OnFileStep() 
 {
 	gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 	((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, 3);
 }
-void WinGPAC::OnUpdateFileStep(CCmdUI* pCmdUI) 
+void Osmo4::OnUpdateFileStep(CCmdUI* pCmdUI) 
 {
 	pCmdUI->Enable(m_isopen && !m_reset);	
 }
 
-void WinGPAC::PlayFromTime(u32 time)
+void Osmo4::PlayFromTime(u32 time)
 {
 	Bool do_pause;
 	if (start_mode==1) do_pause = 1;
@@ -982,13 +948,13 @@ void WinGPAC::PlayFromTime(u32 time)
 }
 
 
-void WinGPAC::OnFileReload() 
+void Osmo4::OnFileReload() 
 {
 	gf_term_disconnect(m_term);
 	m_pMainWnd->PostMessage(WM_OPENURL);
 }
 
-void WinGPAC::UpdatePlayButton(Bool force_play)
+void Osmo4::UpdatePlayButton(Bool force_play)
 {
 	if (!force_play && gf_term_get_option(m_term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) {
 		((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, 4);
@@ -997,7 +963,7 @@ void WinGPAC::UpdatePlayButton(Bool force_play)
 	}
 }
 
-void WinGPAC::OnFilePlay() 
+void Osmo4::OnFilePlay() 
 {
 	if (m_isopen) {
 		if (m_reset) {
@@ -1013,7 +979,7 @@ void WinGPAC::OnFilePlay()
 	}
 }
 
-void WinGPAC::OnUpdateFilePlay(CCmdUI* pCmdUI) 
+void Osmo4::OnUpdateFilePlay(CCmdUI* pCmdUI) 
 {
 	if (m_isopen) {
 		pCmdUI->Enable(TRUE);	
@@ -1032,7 +998,7 @@ void WinGPAC::OnUpdateFilePlay(CCmdUI* pCmdUI)
 	}
 }
 
-void WinGPAC::OnFileStop() 
+void Osmo4::OnFileStop() 
 {
 	CMainFrame *pFrame = (CMainFrame *) m_pMainWnd;
 	if (m_reset) return;
@@ -1044,33 +1010,27 @@ void WinGPAC::OnFileStop()
 	start_mode = 2;
 }
 
-void WinGPAC::OnUpdateFileStop(CCmdUI* pCmdUI) 
+void Osmo4::OnUpdateFileStop(CCmdUI* pCmdUI) 
 {
 	pCmdUI->Enable(m_isopen);	
 }
 
-void WinGPAC::OnSwitchRender() 
+void Osmo4::OnSwitchRender() 
 {
-	const char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
-	if (!stricmp(opt, "GPAC 2D Renderer"))
-		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
-	else
-		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
+	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "ForceOpenGL");
+	Bool use_gl = (opt && !stricmp(opt, "yes")) ? 1 : 0;
+	gf_cfg_set_key(m_user.config, "Compositor", "ForceOpenGL", use_gl ? "no" : "yes");
 
-	ReloadTerminal();
+	gf_term_set_option(m_term, GF_OPT_USE_OPENGL, !use_gl);
+
+	UpdateRenderSwitch();
 }
 
-void WinGPAC::UpdateRenderSwitch()
+void Osmo4::UpdateRenderSwitch()
 {
-	const char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
-	if (!stricmp(opt, "GPAC 3D Renderer"))
+	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "ForceOpenGL");
+	if (opt && !stricmp(opt, "no"))
 		((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(12, ID_SWITCH_RENDER, TBBS_BUTTON, 10);
 	else
 		((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(12, ID_SWITCH_RENDER, TBBS_BUTTON, 9);
 }
-
-void WinGPAC::OnReloadTerminal() 
-{
-	ReloadTerminal();
-}
-

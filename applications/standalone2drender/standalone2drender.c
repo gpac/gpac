@@ -31,14 +31,14 @@
 #include "visualsurface2d.h"
 #include "ft_font.h"
 
-void SR_ResetFrameRate(GF_Renderer *);
+void SR_ResetFrameRate(GF_Compositor *);
 GF_Raster2D *EVG_LoadRenderer();
 GF_VideoOutput *NewRawVideoOutput();
 GF_VisualRenderer *NewVisualRenderer();
 GF_Err R2D_GetSurfaceAccess(VisualSurface2D *surf);
 void R2D_ReleaseSurfaceAccess(VisualSurface2D *surf);
 Bool R2D_SupportsFormat(VisualSurface2D *surf, u32 pixel_format);
-void R2D_DrawBitmap(VisualSurface2D *surf, struct _gf_sr_texture_handler *txh, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key, GF_ColorMatrix *cmat);
+void R2D_DrawBitmap(VisualSurface2D *surf, struct _gf_sc_texture_handler *txh, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key, GF_ColorMatrix *cmat);
 GF_FontRaster *FT_Load();
 void FT_Delete(GF_FontRaster *);
 
@@ -63,7 +63,7 @@ static GF_Err SA2DR_InitFontEngine(GF_FontRaster *dr)
 	return GF_OK;
 }
 
-static void SA2DR_SetFontEngine(GF_Renderer *sr)
+static void SA2DR_SetFontEngine(GF_Compositor *sr)
 {
 	GF_FontRaster *ifce = FT_Load();
 
@@ -75,7 +75,7 @@ static void SA2DR_SetFontEngine(GF_Renderer *sr)
 	sr->font_engine = ifce;
 }
 
-static GF_Err SA2DR_LoadRenderer(GF_VisualRenderer *vr, GF_Renderer *compositor)
+static GF_Err SA2DR_LoadRenderer(GF_VisualRenderer *vr, GF_Compositor *compositor)
 {
 	Render2D *sr;
 	if (vr->user_priv) return GF_BAD_PARAM;
@@ -114,17 +114,10 @@ static GF_Err SA2DR_LoadRenderer(GF_VisualRenderer *vr, GF_Renderer *compositor)
 	return GF_OK;
 }
 
-#ifdef DANAE
-SR_SetRenderingSession(void *sr, void*session)
+GF_Compositor *SR_NewStandaloneRenderer()
 {
-	((GF_Renderer*)sr)->danae_session = session;
-}
-#endif
-
-GF_Renderer *SR_NewStandaloneRenderer()
-{
-	GF_Renderer *tmp;
-	GF_SAFEALLOC(tmp, GF_Renderer)
+	GF_Compositor *tmp;
+	GF_SAFEALLOC(tmp, GF_Compositor)
 	tmp->user, GF_User)
 
 	tmp->visual_renderer = NewVisualRenderer();
@@ -165,7 +158,7 @@ GF_Renderer *SR_NewStandaloneRenderer()
 	return tmp;
 }
 
-void SR_DeleteStandaloneRenderer(GF_Renderer *tmp)
+void SR_DeleteStandaloneRenderer(GF_Compositor *tmp)
 {
 	tmp->visual_renderer->UnloadRenderer(tmp->visual_renderer);
 	free(tmp->visual_renderer);

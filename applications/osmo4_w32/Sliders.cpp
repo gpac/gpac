@@ -51,7 +51,7 @@ END_MESSAGE_MAP()
 void Sliders::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
 {
 	
-	WinGPAC *app = GetApp();
+	Osmo4 *app = GetApp();
 	if (pScrollBar->GetDlgCtrlID() == ID_SLIDER) {
 		switch (nSBCode) {
 		case TB_LINEUP:
