@@ -17,12 +17,16 @@
 #include "V4SceneManager.h" 
 
 enum {
-	// Menu commands
+	// File Menu commands
 	MENU_FILE_NEW,
 	MENU_FILE_OPEN,
 	MENU_FILE_SAVE,
 	MENU_FILE_CLOSE,
 	MENU_FILE_QUIT,
+
+	// Tools Menu commands
+	MENU_TOOL_SHOW_LOWLEVEL,
+	MENU_TOOL_SHOW_HIGHLEVEL,
 
 	// Generic Toolbar commands
 	TOOL_FILE_NEW,
@@ -43,9 +47,13 @@ enum {
 	TOOL_VIEW_DICT,
 
 	CHANGE_SIZE_DIALOG,
-  CHANGE_FRAMERATE,
-  CHANGE_LENGTH,
+	CHANGE_FRAMERATE,
+	CHANGE_LENGTH,
 
+	/* High level node creation */
+	TOOL_NEW_2DSCENE,
+
+	/* Low level node creations */
 	// 2D node Toolbar commands
 	TOOL_NEW_ORDEREDGROUP,
 	TOOL_NEW_LAYER2D,
@@ -84,18 +92,21 @@ public:
 	V4StudioFrame();
 	~V4StudioFrame();
 
+	/* generic UI functions */
 
-  /* generic UI functions */
-
-  /* Menu functions */
+	/* File Menu functions */
 	void OnNew(wxCommandEvent &event);
 	void OnFileOpen(wxCommandEvent &event);
 	void OnSave(wxCommandEvent &event);
 	void OnClose(wxCommandEvent &event);
 	void OnQuit(wxCommandEvent &event);
 	void OnChangeSize(wxCommandEvent &event);
-  void OnChangeFrameRate(wxCommandEvent &event);
-  void OnChangeLength(wxCommandEvent &event);
+	void OnChangeFrameRate(wxCommandEvent &event);
+	void OnChangeLength(wxCommandEvent &event);
+
+	/* Tools Menu functions */
+	void OnLowLevelTools(wxCommandEvent &event);
+	void OnHighLevelTools(wxCommandEvent &event);
 
 	/* edition toolbar functions */
 	void OnEditCut(wxCommandEvent &event);
@@ -107,7 +118,6 @@ public:
 	void OnCombo(wxCommandEvent& event);
 	void NextFrame(wxCommandEvent &event);
 	void SwitchView(wxCommandEvent &event);
-
 
 	/* new components toolbar functions */
 	void OnNewLayer2D(wxCommandEvent &event);
@@ -180,11 +190,15 @@ protected:
 	V4CommandPanel	*cmdPanel;
 
 	wxMenu			*m_pFileMenu;
+	wxMenu			*m_pToolsMenu;
 	wxStatusBar		*m_pStatusbar;
 	// The Main bar that contains the new, load, save, cut, copy ...
 	wxToolBar		*m_pMainToolbar;
+
 	// The tool bar to create all the MPEG-4 nodes
-	wxToolBar		*m_pNodeToolbar;
+	wxToolBar		*m_pLowLevelNodeToolbar;
+	wxToolBar		*m_pHighLevelNodeToolbar;
+	u32				m_uSelectedNodeToolBar;
 
 	// editing states machine
 	bool editDict;              // true if we are editing the dictionnary

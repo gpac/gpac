@@ -42,101 +42,98 @@ END_EVENT_TABLE()
 
 
 // Constructor
-V4CommandPanel::V4CommandPanel(V4StudioFrame * parent_) : wxPanel(parent_, -1), 
+V4CommandPanel::V4CommandPanel(V4StudioFrame * parent_) 
+	: wxPanel(parent_, -1), 
+	// tabs
+	tabs(this, -1), 
+	tabView(&tabs, -1), 
+	tabAdd(&tabs, -1),
 
-// tabs
-tabs(this, -1), 
-tabView(&tabs, -1), 
-tabAdd(&tabs, -1),
+	// add Page
+	cmbCommands(&tabAdd, cmbCommandID, ""),
+	lblCommands(&tabAdd, -1, "Action :"),
+	cmbNodes(&tabAdd, -1, ""),
+	lblNodes(&tabAdd, -1, "Node :"), 
+	cmbFields(&tabAdd ,cmbFieldID, ""),
+	lblFields(&tabAdd, -1, "Field :"),
+	txtField(&tabAdd, -1, ""),
+	btnCreate(&tabAdd, CreateID, "Create"),
 
-// add Page
-cmbCommands(&tabAdd, cmbCommandID, ""),
-lblCommands(&tabAdd, -1, "Action :"),
-cmbNodes(&tabAdd, -1, ""),
-lblNodes(&tabAdd, -1, "Node :"), 
-cmbFields(&tabAdd ,cmbFieldID, ""),
-lblFields(&tabAdd, -1, "Field :"),
-txtField(&tabAdd, -1, ""),
-btnCreate(&tabAdd, CreateID, "Create"),
-
-// view Page
-cmbListCommands(&tabView, -1),
-txtDesc(&tabView, -1),
-btnDelete(&tabView, -1, "Delete")
-
+	// view Page
+	cmbListCommands(&tabView, -1),
+	txtDesc(&tabView, -1),
+	btnDelete(&tabView, -1, "Delete")
 {
-  parent = parent_;
+	parent = parent_;
 
-  // disposition
+	// disposition
 
-  // global
-  sizerTabs = new wxBoxSizer(wxHORIZONTAL);
-  sizerTabs->Add(&tabs, 1, wxEXPAND);
+	// global
+	sizerTabs = new wxBoxSizer(wxHORIZONTAL);
+	sizerTabs->Add(&tabs, 1, wxEXPAND);
 
-  tabs.AddPage(&tabView, "View");
-  tabs.AddPage(&tabAdd, "Add");
-
-
-  // Add Page
-  sizerAdd = new wxBoxSizer(wxVERTICAL); // up = combobox, middle = differs with the command, bottom = buttons
-
-  sizerU = new wxBoxSizer(wxHORIZONTAL); // up
-  sizerM = new wxBoxSizer(wxVERTICAL);   // middle
-  sizerD = new wxBoxSizer(wxHORIZONTAL); // bottom
-
-  szSelectNode = new wxBoxSizer(wxHORIZONTAL);
-  szSelectField = new wxBoxSizer(wxHORIZONTAL);
-  szTxtField = new wxBoxSizer(wxHORIZONTAL);
-
-  sizerAdd->Add(sizerU, 1, wxEXPAND);
-  sizerAdd->Add(sizerM, 3, wxEXPAND);
-  sizerAdd->Add(sizerD, 1, wxEXPAND);
-
-  sizerU->Add(&lblCommands, 1, wxEXPAND | wxALL, 5);
-  sizerU->Add(&cmbCommands, 3, wxEXPAND | wxALL, 2);
-
-  szSelectField->Add(&lblFields, 1, wxEXPAND | wxALL, 5);
-  szSelectField->Add(&cmbFields, 2, wxEXPAND | wxALL, 2);
-
-  szSelectNode->Add(&lblNodes, 1, wxEXPAND | wxALL, 5);
-  szSelectNode->Add(&cmbNodes, 2, wxEXPAND | wxALL, 2);
-
-  szTxtField->Add(&txtField, 1, wxEXPAND | wxALL, 5);
-
-  sizerD->Add(&btnCreate, 1, wxEXPAND | wxALL, 3);
-
-  tabAdd.SetSizer(sizerAdd);
+	tabs.AddPage(&tabView, "View");
+	tabs.AddPage(&tabAdd, "Add");
 
 
+	// Add Page
+	sizerAdd = new wxBoxSizer(wxVERTICAL); // up = combobox, middle = differs with the command, bottom = buttons
 
-  // View Page
-  sizerView = new wxBoxSizer(wxVERTICAL);
-  sizerUp   = new wxBoxSizer(wxHORIZONTAL);
-  sizerDown = new wxBoxSizer(wxHORIZONTAL);
+	sizerU = new wxBoxSizer(wxHORIZONTAL); // up
+	sizerM = new wxBoxSizer(wxVERTICAL);   // middle
+	sizerD = new wxBoxSizer(wxHORIZONTAL); // bottom
 
-  sizerView->Add(sizerUp, 0, wxEXPAND);
-  sizerView->Add(sizerDown, 4, wxEXPAND);
+	szSelectNode = new wxBoxSizer(wxHORIZONTAL);
+	szSelectField = new wxBoxSizer(wxHORIZONTAL);
+	szTxtField = new wxBoxSizer(wxHORIZONTAL);
 
-  sizerUp->Add(&cmbListCommands, 2, wxEXPAND | wxALL, 2);
-  sizerUp->Add(&btnDelete, 1, wxEXPAND | wxALL, 2);
+	sizerAdd->Add(sizerU, 1, wxEXPAND);
+	sizerAdd->Add(sizerM, 3, wxEXPAND);
+	sizerAdd->Add(sizerD, 1, wxEXPAND);
 
-  sizerDown->Add(&txtDesc, 1, wxEXPAND);
+	sizerU->Add(&lblCommands, 1, wxEXPAND | wxALL, 5);
+	sizerU->Add(&cmbCommands, 3, wxEXPAND | wxALL, 2);
 
-  tabView.SetSizer(sizerView);
+	szSelectField->Add(&lblFields, 1, wxEXPAND | wxALL, 5);
+	szSelectField->Add(&cmbFields, 2, wxEXPAND | wxALL, 2);
+
+	szSelectNode->Add(&lblNodes, 1, wxEXPAND | wxALL, 5);
+	szSelectNode->Add(&cmbNodes, 2, wxEXPAND | wxALL, 2);
+
+	szTxtField->Add(&txtField, 1, wxEXPAND | wxALL, 5);
+
+	sizerD->Add(&btnCreate, 1, wxEXPAND | wxALL, 3);
+
+	tabAdd.SetSizer(sizerAdd);
 
 
 
-  // global
-  SetSizer(sizerTabs);
+	// View Page
+	sizerView = new wxBoxSizer(wxVERTICAL);
+	sizerUp   = new wxBoxSizer(wxHORIZONTAL);
+	sizerDown = new wxBoxSizer(wxHORIZONTAL);
 
-  //Layout();
+	sizerView->Add(sizerUp, 0, wxEXPAND);
+	sizerView->Add(sizerDown, 4, wxEXPAND);
 
-  ShowFieldSizer(false);
-  ShowNodeSizer(false);
-  txtField.Show(false);
+	sizerUp->Add(&cmbListCommands, 2, wxEXPAND | wxALL, 2);
+	sizerUp->Add(&btnDelete, 1, wxEXPAND | wxALL, 2);
 
+	sizerDown->Add(&txtDesc, 1, wxEXPAND);
+
+	tabView.SetSizer(sizerView);
+
+
+
+	// global
+	SetSizer(sizerTabs);
+
+	//Layout();
+
+	ShowFieldSizer(false);
+	ShowNodeSizer(false);
+	txtField.Show(false);
 }
-
 
 // Destructor
 V4CommandPanel::~V4CommandPanel() {
@@ -145,23 +142,22 @@ V4CommandPanel::~V4CommandPanel() {
 	delete szTxtField;
 };
 
-
 /************************/
 /*        Events        */
 /************************/
 
 // OnPaint event
 void V4CommandPanel::OnPaint(wxPaintEvent& event) {
-  wxPaintDC dc(this);
+	wxPaintDC dc(this);
 
-  dc.BeginDrawing();
+	dc.BeginDrawing();
 
-    // draws a seperator line on the left border
-    int w,h;
-    this->GetSize(&w, &h);
-    dc.DrawLine(0, 0, 0, h);
+	// draws a seperator line on the left border
+	int w,h;
+	this->GetSize(&w, &h);
+	dc.DrawLine(0, 0, 0, h);
 
-  dc.EndDrawing();
+	dc.EndDrawing();
 }
 
 

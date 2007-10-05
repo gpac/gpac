@@ -11,8 +11,7 @@ V4SceneManager::V4SceneManager(V4StudioFrame *parent) : frame(parent)
 {
 	m_pSm = NULL;
 	m_pIs = NULL;
-
-  units = 1000; // used to calculate AU timings
+	units = 1000; // used to calculate AU timings
 }
 
 V4SceneManager::~V4SceneManager()
@@ -47,7 +46,9 @@ void V4SceneManager::LoadNew()
 	gf_sg_set_node_callback(m_pIs->graph, v4s_node_init);
 	m_gpac_panel = new wxGPACPanel(this, NULL);
 	GF_Terminal *term = m_gpac_panel->GetMPEG4Terminal();
-	gf_sr_set_scene(term->renderer, m_pIs->graph);
+	/* Cannot set the new scene because no root node 
+	   gf_sr_set_scene(term->renderer, m_pIs->graph);
+	   */
 
 	m_pSm = gf_sm_new(m_pIs->graph);
 	/* Create a BIFS stream with one AU with on ReplaceScene */
@@ -56,8 +57,8 @@ void V4SceneManager::LoadNew()
 	GF_Command *command = gf_sg_command_new(m_pIs->graph, GF_SG_SCENE_REPLACE);
 	gf_list_add(au->commands, command);
 
-  SetLength(50);
-  SetFrameRate(25);
+	SetLength(50);
+	SetFrameRate(25);
 
 	// reinitializes the node pool
 	pools.Clear();
@@ -167,9 +168,9 @@ void V4SceneManager::LoadFile(const char *path)
 	}
 	gf_sr_set_scene(term->renderer, m_pIs->graph);
 
-  // TODO : read actual values from file
-  SetLength(50);
-  SetFrameRate(25);
+	// TODO : read actual values from file
+	SetLength(50);
+	SetFrameRate(25);
 
 	// retrieves all the node from the tree and adds them to the node pool
 	GF_Node * root = gf_sg_get_root_node(m_pIs->graph);
@@ -236,7 +237,7 @@ GF_Node *CloneNodeForEditing(GF_SceneGraph *inScene, GF_Node *orig) //, GF_Node 
 {
 	u32 i, j, count;
 	GF_Node *node, *child, *tmp;
-	GF_List *list, *list2;
+	GF_ChildNodeItem *list, *list2;
 	GF_FieldInfo field_orig, field;
 
 	/*this is not a mistake*/
@@ -282,13 +283,13 @@ GF_Node *CloneNodeForEditing(GF_SceneGraph *inScene, GF_Node *orig) //, GF_Node 
 			*((GF_Node **) field.far_ptr) = child;
 			break;
 		case GF_SG_VRML_MFNODE:
-			list = *( (GF_List **) field_orig.far_ptr);
-			list2 = *( (GF_List **) field.far_ptr);
+			list = *( (GF_ChildNodeItem **) field_orig.far_ptr);
+			list2 = *( (GF_ChildNodeItem **) field.far_ptr);
 
-			for (j=0; j<gf_list_count(list); j++) {
-				tmp = (GF_Node *)gf_list_get(list, j);
+			for (j=0; j<gf_node_list_get_count(list); j++) {
+				tmp = (GF_Node *)gf_node_list_get_child(list, j);
 				child = CloneNodeForEditing(inScene, tmp);//, node);
-				gf_list_add(list2, child);
+				gf_node_list_add_child(&list2, child);
 			}
 			break;
 		default:
@@ -384,7 +385,7 @@ void V4SceneManager::AddRecursive(GF_Node * node, bool parentAdded) {
   }
   
   GF_FieldInfo field;
-  GF_List * list;
+  GF_ChildNodeItem * list;
   int count = gf_node_get_field_count(node);
 
   // tests all fields, if a field is a node then adds it and process its children recursively
@@ -398,9 +399,9 @@ void V4SceneManager::AddRecursive(GF_Node * node, bool parentAdded) {
 
     // multiple value node field
     if (field.fieldType == GF_SG_VRML_MFNODE) {
-      list = *( (GF_List **) field.far_ptr);
-			for (u32 j=0; j<gf_list_count(list); j++)
-				AddRecursive( (GF_Node *) gf_list_get(list, j), parentAdded );
+      list = *( (GF_ChildNodeItem **) field.far_ptr);
+			for (u32 j=0; j<gf_node_list_get_count(list); j++)
+				AddRecursive( (GF_Node *) gf_node_list_get_child(list, j), parentAdded );
     }
   }
 }
@@ -554,7 +555,7 @@ void V4SceneManager::MakeChild(GF_Node * child, GF_Node * parent, const u32 fiel
 
   // if the field is multi valued
   if (field.fieldType == GF_SG_VRML_MFNODE)
-    gf_list_add( *((GF_List **)field.far_ptr), child );
+    gf_node_list_add_child((GF_ChildNodeItem **)field.far_ptr, child );
 
 }
 

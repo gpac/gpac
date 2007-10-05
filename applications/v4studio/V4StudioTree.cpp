@@ -116,22 +116,20 @@ void V4StudioTree::AddNodesToItem(wxTreeItemId parentItemId, GF_Node * node, s32
 			break;
 		case GF_SG_VRML_MFNODE:
 			{
-				GF_List *nodes = (* (GF_List **) field.far_ptr); // list of children
-				u32 nbNodes = gf_list_count(nodes);
-        u8 skipped = 0; // counts nodes not added
+				GF_ChildNodeItem *nodes = (* (GF_ChildNodeItem **) field.far_ptr); // list of children
+				u32 nbNodes = gf_node_list_get_count(nodes);
+				u8 skipped = 0; // counts nodes not added
 
 				for (j=0; j< nbNodes; j++) {          
-          // gets a pointer to the current child
-					GF_Node *child = (GF_Node *)gf_list_get(nodes, j);
-
-          // prevents the dictionnary from being added to the graph
-          const char * c = gf_node_get_name(child);
-          if ( (c != NULL) && !strcmp(c,DICTNAME) ) {
-            skipped++;
-            continue;
-          }
-
-          // recursively adds children
+					// gets a pointer to the current child
+					GF_Node *child = (GF_Node *)gf_node_list_get_child(nodes, j);
+					// prevents the dictionnary from being added to the graph
+					const char * c = gf_node_get_name(child);
+					if ( (c != NULL) && !strcmp(c,DICTNAME) ) {
+						skipped++;
+						continue;
+					}
+					// recursively adds children
 					AddNodesToItem(nodeItemId, child, i, j-skipped);
 				}
 			}
@@ -261,8 +259,8 @@ void V4StudioTree::OnEndDrag(wxTreeEvent& event)
 		break;
 	case GF_SG_VRML_MFNODE:
 		{
-			GF_List *nodes = (* (GF_List **) srcField.far_ptr);
-			gf_list_rem(nodes, srcData->GetPosition());
+			GF_ChildNodeItem *nodes = (* (GF_ChildNodeItem **) srcField.far_ptr);
+			gf_node_list_del_child_idx(&nodes, srcData->GetPosition());
 		}
 		break;
 	default:
@@ -280,8 +278,8 @@ void V4StudioTree::OnEndDrag(wxTreeEvent& event)
 		break;
 	case GF_SG_VRML_MFNODE:
 		{
-			GF_List *nodes = (* (GF_List **) dstField.far_ptr);
-			gf_list_insert(nodes, srcNode, dstData->GetPosition());
+			GF_ChildNodeItem *nodes = (* (GF_ChildNodeItem **) dstField.far_ptr);
+			gf_node_list_insert_child(&nodes, srcNode, dstData->GetPosition());
 			gf_node_dirty_set(dstData->GetNode(), 0, 1);
 		}
 		break;
