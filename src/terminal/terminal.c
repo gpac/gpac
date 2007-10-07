@@ -1018,7 +1018,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 GF_Err gf_term_get_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer)
 {
 	if (!term) return GF_BAD_PARAM;
-	return gf_sc_get_screen_buffer(term->compositor, framebuffer);
+	return gf_sc_get_screen_buffer(term->compositor, framebuffer, 0);
 }
 
 GF_Err gf_term_release_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer)

@@ -1336,20 +1336,36 @@ void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color
 	glDisable(GL_BLEND);
 }
 
-GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb)
+GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb, Bool depth_buffer)
 {
 	/*FIXME*/
 #ifndef GPAC_USE_TINYGL
 	u32 i, hy;
 	char *tmp;
 
-	fb->video_buffer = (char*)malloc(sizeof(char)*3*compositor->vp_width * compositor->vp_height);
 	fb->width = compositor->vp_width;
-	fb->pitch = 3*compositor->vp_width;
 	fb->height = compositor->vp_height;
-	fb->pixel_format = GF_PIXEL_RGB_24;
 
-	glReadPixels(compositor->vp_x, compositor->vp_y, compositor->vp_width, compositor->vp_height, GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
+	if (depth_buffer) {
+		fb->pitch = compositor->vp_width; /* multiply by 4 if float depthbuffer */
+		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch * fb->height); 
+		fb->pixel_format = GF_PIXEL_GREYSCALE;
+		/*
+		glPixelTransferf(GL_DEPTH_SCALE, 10000.0);
+		glPixelTransferf(GL_DEPTH_BIAS, -9999); */  /* these were optimal values for elevation grid with old znear */ 
+		/*
+		glPixelTransferf(GL_DEPTH_SCALE, 182.85);
+		glPixelTransferf(GL_DEPTH_BIAS, -181.5);  */ /* optimal values for box, cones etc with old znear */
+
+		/* GL_FLOAT for float depthbuffer */
+		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, fb->video_buffer); 
+	} else {
+		fb->pitch = 3*compositor->vp_width;
+		fb->video_buffer = (char*)malloc(sizeof(char) * fb->pitch * fb->height);
+		fb->pixel_format = GF_PIXEL_RGB_24;
+
+		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
+	}
 
 	/*flip image (openGL always handle image data bottom to top) */
 	tmp = (char*)malloc(sizeof(char)*fb->pitch);

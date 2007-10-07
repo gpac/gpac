@@ -1199,17 +1199,19 @@ void gf_sc_set_font_engine(GF_Compositor *compositor)
 	gf_sc_lock(compositor, 0);
 }
 
-GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer)
+GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, Bool depth_buffer)
 {
 	GF_Err e;
 	if (!compositor || !framebuffer) return GF_BAD_PARAM;
 	gf_mx_p(compositor->mx);
 
 #ifndef GPAC_DISABLE_3D
-	if (compositor->visual->type_3d) e = compositor_3d_get_screen_buffer(compositor, framebuffer);
+	if (compositor->visual->type_3d) e = compositor_3d_get_screen_buffer(compositor, framebuffer, depth_buffer);
 	else
 #endif
-	e = compositor->video_out->LockBackBuffer(compositor->video_out, framebuffer, 1);
+	/*no depth dump in 2D mode*/
+	if (depth_buffer) e = GF_NOT_SUPPORTED;
+	else compositor->video_out->LockBackBuffer(compositor->video_out, framebuffer, 1);
 	
 	if (e != GF_OK) gf_mx_v(compositor->mx);
 	return e;
