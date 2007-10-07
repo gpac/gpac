@@ -841,7 +841,7 @@ GF_Camera *compositor_layer3d_get_camera(GF_Node *node);
 void compositor_layer3d_bind_camera(GF_Node *node, Bool do_bind, u32 nav_value);
 void compositor_3d_draw_bitmap(struct _drawable *stack, DrawAspect2D *asp, GF_TraverseState *tr_state, Fixed width, Fixed height, Fixed bmp_scale_x, Fixed bmp_scale_y);
 
-GF_Err compositor_3d_get_screen_buffer(GF_Compositor *sr, GF_VideoSurface *fb);
+GF_Err compositor_3d_get_screen_buffer(GF_Compositor *sr, GF_VideoSurface *fb, Bool depth_buffer);
 GF_Err compositor_3d_release_screen_buffer(GF_Compositor *sr, GF_VideoSurface *framebuffer);
 
 void gf_sc_load_opengl_extensions(GF_Compositor *sr);

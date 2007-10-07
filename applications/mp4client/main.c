@@ -884,6 +884,9 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-raw")) {
 			dump_mode = 3;
 			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!strcmp(arg, "-depth")) {
+			dump_mode = 4;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
 		} else if (!stricmp(arg, "-size")) {
 			if (sscanf(argv[i+1], "%dx%d", &width, &height) != 2) {
 				width = height = 0;

@@ -79,6 +79,7 @@ static GFINLINE u8 colmask(s32 a, s32 n)
 static u32 put_pixel(FILE *fout, u32 type, u32 pf, char *ptr)
 {
 	u16 col;
+	u32 i = 0;
 	switch (pf) {
 	case GF_PIXEL_RGB_32:
 	case GF_PIXEL_ARGB:
@@ -118,6 +119,24 @@ static u32 put_pixel(FILE *fout, u32 type, u32 pf, char *ptr)
 		fputc(colmask(col >> (5 - 3), 3), fout);
 		fputc(colmask(col >> (10 - 3), 3), fout);
 		return 2;
+	/* this is used to write the byte depthbuffer in greyscale when dumping depth*/ 
+	case GF_PIXEL_GREYSCALE:
+		/* bmp always needs 3 pixels */
+		fputc(ptr[0], fout);
+		fputc(ptr[0], fout);
+		fputc(ptr[0], fout);
+		/* if printing the characters corresponding to the float depth buffer: */
+		/*
+		while (ptr[i]!='\0') {
+			fputc(ptr[i], fout);
+			i++;
+		}
+		fputc('\b', fout);
+		*/
+		return 1;
+	case 0:
+		fputc(ptr[0], fout);
+		return 1;
 	}
 	return 0;
 }
@@ -129,9 +148,13 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	BITMAPINFOHEADER fi;
 	FILE *fout;
 	u32 j, i;
-	char *ptr;
+	char *ptr, *prev;
 
-	sprintf(str, "%s_%d.bmp", rad_name, img_num);
+	prev = strrchr(rad_name, '.');
+	if (prev) prev[0] = '\0'; 
+
+	if (fb->pixel_format==GF_PIXEL_GREYSCALE) sprintf(str, "%s_%d_depth.bmp", rad_name, img_num);
+	else sprintf(str, "%s_%d.bmp", rad_name, img_num);
 
 	fout = fopen(str, "wb");
 	if (!fout) return;
@@ -169,6 +192,42 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	fclose(fout);
 }
 
+/*writes onto a file the content of the framebuffer in *fb interpreted as the byte depthbuffer */
+/*it's also possible to write a float depthbuffer by passing the floats to strings and writing chars in putpixel - see comments*/
+void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
+{
+	char str[GF_MAX_PATH];
+	FILE *fout;
+	char *ptr, *prev;
+
+	/*if float depth buffer: */
+	/* float *ptr; */
+	u32 j, i;
+	
+	prev = strrchr(rad_name, '.');
+	if (prev) prev[0] = '\0'; 
+	sprintf(str, "%s_%d_depth", rad_name, img_num);
+	fout = fopen(str, "wb");
+	if (!fout) return;
+	(*fb).pixel_format=0;
+
+	for (j=fb->height; j>0; j--) {
+		ptr = fb->video_buffer; /* needs cast to float if float depth buffer */
+		ptr += (j - 1) *fb->pitch;
+		for (i=0;i<fb->width; i++) {
+			/* for float depthbuffer: */
+			/* sprintf(tmp, "%f", *ptr); 
+			u32 res = put_pixel(fout, 0, fb->pixel_format, tmp); */
+			u32 res = put_pixel(fout, 0, fb->pixel_format, ptr);
+			assert(res);
+			/*for float depth buffer: (we'll advance 4 bytes) */
+			/* ptr += 1; */
+			ptr += res;
+		}
+		/* float: fputc('\n', fout); */
+	}
+	fclose(fout);
+}
 
 void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 {
@@ -199,13 +258,96 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	fclose(fout);
 }
 
+
+/* creates a .bmp format greyscale image of the byte depthbuffer and a binary with only the content of the depthbuffer */
+void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, avi_t *avi_out)
+{
+	u32 i, k;
+	GF_VideoSurface fb;
+
+	/*lock it*/
+	gf_sc_get_screen_buffer(term->compositor, &fb, 1);
+	/*export frame*/
+	switch (dump_type) {
+	case 1:
+		/*reverse frame*/
+		for (k=0; k<fb.height; k++) {
+			char *dst, *src;
+			u16 src_16;
+			dst = conv_buf + k*fb.width*3;
+			src = fb.video_buffer + (fb.height-k-1) * fb.pitch;
+			
+			for (i=0;i<fb.width; i++) {
+				switch (fb.pixel_format) {
+				case GF_PIXEL_RGB_32:
+				case GF_PIXEL_ARGB:
+					dst[0] = src[0];
+					dst[1] = src[1];
+					dst[2] = src[2];
+					src+=4;
+					break;
+				case GF_PIXEL_BGR_32:
+				case GF_PIXEL_RGBA:
+					dst[0] = src[3];
+					dst[1] = src[2];
+					dst[2] = src[1];
+					src+=4;
+					break;
+				case GF_PIXEL_RGB_24:
+					dst[0] = src[2];
+					dst[1] = src[1];
+					dst[2] = src[0];
+					src+=3;
+					break;
+				case GF_PIXEL_BGR_24:
+					dst[0] = src[2];
+					dst[1] = src[1];
+					dst[2] = src[0];
+					src+=3;
+					break;
+				case GF_PIXEL_RGB_565:
+					src_16 = * ( (u16 *)src );
+					dst[2] = colmask(src_16 >> 8/*(11 - 3)*/, 3);
+					dst[1] = colmask(src_16 >> 3/*(5 - 2)*/, 2);
+					dst[0] = colmask(src_16 << 3, 3);
+					src+=2;
+					break;
+				case GF_PIXEL_RGB_555:
+					src_16 = * (u16 *)src;
+					dst[2] = colmask(src_16 >> 7/*(10 - 3)*/, 3);
+					dst[1] = colmask(src_16 >> 2/*(5 - 3)*/, 3);
+					dst[0] = colmask(src_16 << 3, 3);
+					src+=2;
+					break;
+				}
+				dst += 3;
+			}
+		}
+		if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*3, 1) <0)
+			printf("Error writing frame\n");
+		break;
+	case 2:
+		write_bmp(&fb, rad_name, frameNum);
+		break;
+	case 3:
+		write_raw(&fb, rad_name, frameNum);
+		break;
+	case 4:
+		write_bmp(&fb, rad_name, frameNum);
+		write_depthfile(&fb, rad_name, frameNum);
+		break;
+	}
+	/*unlock it*/
+	gf_sc_release_screen_buffer(term->compositor, &fb);
+}
+
 void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, avi_t *avi_out)
 {
 	u32 i, k;
 	GF_VideoSurface fb;
 
 	/*lock it*/
-	gf_sc_get_screen_buffer(term->compositor, &fb);
+	gf_sc_get_screen_buffer(term->compositor, &fb, 0);
 	/*export frame*/
 	switch (dump_type) {
 	case 1:
@@ -283,6 +425,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 	GF_VideoSurface fb;
 	char szPath[GF_MAX_PATH];
 	char *prev = strrchr(url, '/');
+
 	if (!prev) prev = strrchr(url, '\\');
 	if (!prev) prev = url;
 	strcpy(szPath, prev);
@@ -304,7 +447,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 		gf_term_process_flush(term);
 	}
 
-	e = gf_sc_get_screen_buffer(term->compositor, &fb);
+	e = gf_sc_get_screen_buffer(term->compositor, &fb, 0);
 	if (e != GF_OK) {
 		fprintf(stdout, "Error grabbing screen buffer: %s\n", gf_error_to_string(e));
 		return 0;
@@ -321,7 +464,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 		gf_term_set_size(term, width, height);
 		gf_term_process_flush(term);
 
-		gf_sc_get_screen_buffer(term->compositor, &fb);
+		gf_sc_get_screen_buffer(term->compositor, &fb, 0);
 		width = fb.width;
 		height = fb.height;
 		gf_sc_release_screen_buffer(term->compositor, &fb);
@@ -383,7 +526,12 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
 				gf_term_process_flush(term);
 			}
-			dump_frame(term, szPath, dump_mode, i+1, NULL, NULL);
+
+			if (dump_mode==4) {
+				dump_depth(term, szPath, dump_mode, i+1, NULL, NULL);
+			} else {
+				dump_frame(term, szPath, dump_mode, i+1, NULL, NULL);
+			}
 			
 			if (i+1<nb_times) gf_term_step_clocks(term, times[i+1] - times[i]);
 		}

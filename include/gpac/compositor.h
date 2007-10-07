@@ -104,7 +104,7 @@ scene timing*/
 /*force render tick*/
 void gf_sc_render(GF_Compositor *sr);
 /*gets screen buffer - this locks the scene graph too until released is called*/
-GF_Err gf_sc_get_screen_buffer(GF_Compositor *sr, GF_VideoSurface *framebuffer);
+GF_Err gf_sc_get_screen_buffer(GF_Compositor *sr, GF_VideoSurface *framebuffer, Bool depth_buffer);
 /*releases screen buffer and unlocks graph*/
 GF_Err gf_sc_release_screen_buffer(GF_Compositor *sr, GF_VideoSurface *framebuffer);
 
