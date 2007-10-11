@@ -217,7 +217,7 @@ SubSectionEnd
 SubSection "Osmo4 Shortcuts"
 
 Section "Add Start Menu Shortcuts"
-  SectionIn 1 2
+  SectionIn 1
   CreateDirectory "$SMPROGRAMS\Osmo4"
   CreateShortCut "$SMPROGRAMS\Osmo4\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
   CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
@@ -228,12 +228,12 @@ Section "Add Start Menu Shortcuts"
 SectionEnd
 
 Section "Add shortcut to QuickLaunch"
-  SectionIn 1 2
+  SectionIn 1
   CreateShortCut "$QUICKLAUNCH\Osmo4.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
 SectionEnd
 
 Section "Add shortcut to Desktop"
-  SectionIn 1 2
+  SectionIn 1
   CreateShortCut "$DESKTOP\Osmo4.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
 SectionEnd
 
@@ -241,7 +241,7 @@ SectionEnd
 !define SHCNF_IDLIST 0
 
 Section "Make Osmo4 the default MPEG-4 Player"
-  SectionIn 1 2
+  SectionIn 1
   ;write file association
   WriteRegStr HKCR GPAC\mp4\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
   WriteRegStr HKCR GPAC\mp4\Shell\open\command "" '$INSTDIR\Osmo4.exe "%L" '
@@ -252,7 +252,7 @@ Section "Make Osmo4 the default MPEG-4 Player"
 SectionEnd
 
 Section "Associate 3GPP files (3GP) with Osmo4"
-  SectionIn 1 2
+  SectionIn 1
   ;write file association
   WriteRegStr HKCR GPAC\3gp\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
   WriteRegStr HKCR GPAC\3gp\Shell\open\command "" '$INSTDIR\Osmo4.exe "%L" '
@@ -261,7 +261,7 @@ Section "Associate 3GPP files (3GP) with Osmo4"
 SectionEnd
 
 Section "Associate 3GPP2 files (3G2) with Osmo4"
-  SectionIn 1 2
+  SectionIn 1
   ;write file association
   WriteRegStr HKCR GPAC\3g2\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
   WriteRegStr HKCR GPAC\3g2\Shell\open\command "" '$INSTDIR\Osmo4.exe "%L" '
@@ -273,7 +273,7 @@ SubSectionEnd
 
 
 Section "MP4Box (Command-line MPEG-4 tool)"
-  SectionIn 1 2
+  SectionIn 1
   SetOutPath $INSTDIR
   File "..\MP4Box.exe"
 
@@ -285,7 +285,7 @@ SectionEnd
 !define HK_MOZ "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0"
 
 Section "Osmozilla (GPAC Plugin for Mozilla)"
-  SectionIn 1 2
+  SectionIn 1
   SetOutPath $INSTDIR\mozilla
   File "..\nposmozilla.dll"
   File "..\nposmozilla.xpt"
@@ -303,7 +303,7 @@ SectionEnd
 
 
 Section "GPAX (GPAC ActiveX Control)"
-  SectionIn 1 2
+  SectionIn 1
   SetOutPath $INSTDIR
   File "..\GPAX.dll"
   WriteRegStr HKCR GPAC "InstallDir" "$INSTDIR"
@@ -312,7 +312,7 @@ SectionEnd
 
 
 Section "MP4Client (GPAC Command-line client/grabber)"
-  SectionIn 1 2
+  SectionIn 1
   SetOutPath $INSTDIR
   File "..\MP4Client.exe"
 SectionEnd
