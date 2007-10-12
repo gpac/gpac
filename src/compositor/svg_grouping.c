@@ -353,7 +353,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_sc_svg_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
-		if (all_atts.opacity && (all_atts.opacity->value!=FIX_ONE)) {
+		if (all_atts.opacity) {
 			Bool force_recompute = 0;
 			GroupCache *gc = gf_node_get_private(node);
 			if (!gc) {
