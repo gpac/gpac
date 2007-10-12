@@ -220,7 +220,7 @@ void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_s
 	memcpy(&backup_props, tr_state->svg_props, sizeof(SVGPropertiesPointers));
 	gf_svg_apply_inheritance(&all_atts, tr_state->svg_props);
 
-	compositorr_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
 	memset(&asp, 0, sizeof(DrawAspect2D));
 	drawable_get_aspect_2d_svg(node, &asp, tr_state);
@@ -329,7 +329,7 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (! compositor_svg_is_display_off(tr_state->svg_props)) {
 			gf_path_get_bounds(stack->path, &tr_state->bounds);
-			compositorr_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 			gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
 			compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 		}
@@ -338,7 +338,7 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 		if (!compositor_svg_is_display_off(tr_state->svg_props) &&
 			( *(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) ) {
 
-			compositorr_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
 			ctx = drawable_init_context_svg(stack, tr_state);
 			if (ctx) {
@@ -360,7 +360,7 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 						stack->mesh = new_mesh();
 						mesh_from_path(stack->mesh, stack->path);
 					}
-					visual_3d_draw_svg(ctx, tr_state);
+					visual_3d_draw_from_context(ctx, tr_state);
 					ctx->drawable = NULL;
 				} else 
 #endif

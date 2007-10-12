@@ -1132,7 +1132,7 @@ static void svg_parse_path(SVG_PathData *path, char *attribute_content)
 
 	i = 0;
 	prev_c = 'M';
-	orig.x = orig.y = ct_orig.x = ct_orig.y = prev_m_pt.x = prev_m_pt.y = rel_ref_pt.x = rel_ref_pt.y = 0;
+	orig.x = orig.y = ct_orig.x = ct_orig.y = prev_m_pt.x = prev_m_pt.y = rel_ref_pt.x = rel_ref_pt.y = end.x = end.y = 0;
 	while(1) {
 		while ( (d[i]==' ') || (d[i] =='\t') || (d[i] =='\r') || (d[i] =='\n') ) i++;			
 		c = d[i];

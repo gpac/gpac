@@ -446,9 +446,10 @@ void compositor_init_plane_clipper(GF_Compositor *compositor, GF_Node *node)
 
 #endif
 
-#ifdef GPAC_USE_GROUP_CACHE
 
-/*PlaneClipper hardcoded proto*/
+#ifdef MPEG4_USE_GROUP_CACHE
+
+/*OffscreenGroup hardcoded proto*/
 typedef struct
 {
 	BASE_NODE
@@ -503,7 +504,7 @@ static void TraverseOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
 			if (stack->og.offscreen) {
 				stack->flags |= GROUP_IS_CACHED;
 				if (!stack->cache) {
-					stack->cache = group_cache_new((GF_Node*)&stack->og);
+					stack->cache = group_cache_new(tr_state->visual->compositor, (GF_Node*)&stack->og);
 				}
 				stack->cache->opacity = stack->og.opacity;
 				stack->cache->drawable->flags |= DRAWABLE_HAS_CHANGED;
@@ -532,7 +533,8 @@ void compositor_init_offscreen_group(GF_Compositor *compositor, GF_Node *node)
 		if (og.offscreen) stack->flags |= GROUP_IS_CACHED;
 	}
 }
-#endif /*GPAC_USE_GROUP_CACHE*/
+
+#endif /*MPEG4_USE_GROUP_CACHE*/
 
 
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
@@ -566,7 +568,7 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 			compositor_init_texture_text(compositor, node);
 			return;
 		}
-#ifdef GPAC_USE_GROUP_CACHE
+#ifdef MPEG4_USE_GROUP_CACHE
 		if (!strcmp(url, "urn:inet:gpac:builtin:OffscreenGroup")) {
 			compositor_init_offscreen_group(compositor, node);
 			return;

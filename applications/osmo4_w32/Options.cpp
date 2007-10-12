@@ -387,6 +387,7 @@ END_MESSAGE_MAP()
 
 BOOL OptDecoder::OnInitDialog() 
 {
+	u32 i;
 	const char *sOpt;
 	CDialog::OnInitDialog();
 	
@@ -399,7 +400,7 @@ BOOL OptDecoder::OnInitDialog()
 	GF_BaseDecoder *ifce;
 	s32 select = 0;
 	s32 to_sel = 0;
-	for (u32 i=0; i<count; i++) {
+	for (i=0; i<count; i++) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
 		if (!ifce) continue;
 
@@ -497,6 +498,7 @@ static char *BIFSRates[11] =
 
 BOOL COptRender::OnInitDialog() 
 {
+	s32 i;
 	CDialog::OnInitDialog();
 	
 	Osmo4 *gpac = GetApp();
@@ -512,7 +514,7 @@ BOOL COptRender::OnInitDialog()
 	if (!sOpt) sOpt = "30.0";
 	s32 select = 0;
 	while (m_BIFSRate.GetCount()) m_BIFSRate.DeleteString(0);
-	for (s32 i = 0; i<NUM_RATES; i++) {
+	for (i = 0; i<NUM_RATES; i++) {
 		m_BIFSRate.AddString(BIFSRates[i]);
 		if (sOpt && !stricmp(sOpt, BIFSRates[i]) ) select = i;
 	}
@@ -1684,7 +1686,7 @@ BOOL OptFiles::OnInitDialog()
 		if (!sMime) continue;
 		sOpt = gf_cfg_get_key(gpac->m_user.config, "MimeTypes", sMime);
 		if (!sOpt) continue;
-		sKey = strstr(sOpt, "\" \"");
+		sKey = (char *) strstr(sOpt, "\" \"");
 		if (!sKey) continue;
 		strcpy(sDesc, sKey+3);
 		sKey = strchr(sDesc, '\"');

@@ -360,35 +360,6 @@ static void mark_opaque_areas(GF_VisualManager *visual)
 }
 #endif
 
-static void clean_contexts(GF_VisualManager *visual)
-{
-	u32 i, count;
-	Bool is_root_visual = (visual->compositor->visual==visual) ? 1 : 0;
-	DrawableContext *ctx = visual->context;
-	while (ctx && ctx->drawable) {
-		/*remove visual registration flag*/
-		ctx->drawable->flags &= ~DRAWABLE_REGISTERED_WITH_VISUAL;
-		if (is_root_visual && (ctx->flags & CTX_HAS_APPEARANCE)) 
-			gf_node_dirty_reset(ctx->appear);
-		ctx = ctx->next;
-	}
-
-	/*composite visual, cannot reset flags until root is done*/
-	if (!is_root_visual) return;
-
-	/*reset all flags of all appearance nodes registered on all visuals but main one (done above)
-	this must be done once all visuals have been drawn, otherwise we won't detect the changes 
-	for nodes drawn on several visuals*/
-	count = gf_list_count(visual->compositor->visuals);
-	for (i=1; i<count; i++) {
-		GF_VisualManager *a_vis = gf_list_get(visual->compositor->visuals, i);
-		ctx = a_vis->context;
-		while (ctx && ctx->drawable) {
-			if (ctx->flags & CTX_HAS_APPEARANCE) gf_node_dirty_reset(ctx->appear);
-			ctx = ctx->next;
-		}
-	}
-}
 
 
 /*clears list*/
@@ -477,7 +448,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	/*in direct mode the visual is always redrawn*/
 	if (tr_state->direct_draw) {
 		visual_2d_release_raster(visual);
-		clean_contexts(visual);
+		visual_clean_contexts(visual);
 		return 1;
 	}
 
@@ -659,7 +630,7 @@ exit:
 	/*clear dirty rects*/
 	ra_clear(&visual->to_redraw);
 	visual_2d_release_raster(visual);
-	clean_contexts(visual);
+	visual_clean_contexts(visual);
 	return has_changed;
 }
 

@@ -1192,7 +1192,7 @@ void visual_3d_draw_2d(Drawable *st, GF_TraverseState *tr_state)
 	visual_3d_draw_2d_with_aspect(st, tr_state, &asp, 0);
 }
 
-void visual_3d_draw_svg(DrawableContext *ctx, GF_TraverseState *tr_state)
+void visual_3d_draw_from_context(DrawableContext *ctx, GF_TraverseState *tr_state)
 {
 	GF_Rect rc;
 	gf_path_get_bounds(ctx->drawable->path, &rc);

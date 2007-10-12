@@ -54,7 +54,7 @@ void CGPAXPlugin::SetStatusText(char *msg)
 		if (msg) {
 			u16 w_msg[1024];
 			gf_utf8_mbstowcs(w_msg, 1024, (const char **)&msg);
-			m_pBrowser->put_StatusText(w_msg);
+			m_pBrowser->put_StatusText((BSTR) w_msg);
 		} else {
 			m_pBrowser->put_StatusText(L"");
 		}
@@ -143,12 +143,12 @@ Bool CGPAXPlugin::EventProc(GF_Event *evt)
 				else if (!strnicmp(evt->navigate.parameters[i], "_target=", 8)) {
 					sz_ptr = & evt->navigate.parameters[i]+8;
 					gf_utf8_mbstowcs(w_szTar, 1024, (const char **)sz_ptr);
-					target.bstrVal = w_szTar;
+					target.bstrVal = (BSTR) w_szTar;
 				}
 			}
 			sz_ptr = & evt->navigate.to_url;
 			gf_utf8_mbstowcs(w_szURL, 1024, (const char **)sz_ptr);
-			m_pBrowser->Navigate(w_szURL, &flags, &target, NULL, NULL);;
+			m_pBrowser->Navigate((BSTR) w_szURL, &flags, &target, NULL, NULL);;
 			return 1;
 		}
 #endif
@@ -180,7 +180,7 @@ Bool CGPAXPlugin::ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog,
         {
 //            USES_CONVERSION;
 //            lstrcpyn(buf,OLE2T(v.bstrVal),bufsize);
-			const u16 *srcp = v.bstrVal;
+			const u16 *srcp = (const u16 *) v.bstrVal;
 			u32 len = gf_utf8_wcstombs(buf, bufsize, &srcp);
 			if (len>=0) {
 				buf[len] = 0;
@@ -479,15 +479,15 @@ STDMETHODIMP CGPAXPlugin::Update(BSTR _mtype, BSTR _updates)
 		u32 len;
 		char mtype[1024], *updates;
 
-		srcp = _mtype;
+		srcp = (u16 *) _mtype;
 		len = gf_utf8_wcstombs(mtype, 1024, (const u16 **)&srcp);
 		mtype[len] = 0;
 
-		srcp = _updates;
+		srcp = (u16 *)_updates;
 		len = gf_utf8_wcstombs(NULL, 0, (const u16 **)&srcp);
 		if (len) {
 			updates = (char *) malloc(sizeof(char) * (len+1));
-			srcp = _updates;
+			srcp = (u16 *)_updates;
 			len = gf_utf8_wcstombs(updates, len, (const u16 **)&srcp);
 			updates[len] = 0;
 			gf_term_scene_update(m_term, mtype, updates);
@@ -513,7 +513,7 @@ STDMETHODIMP CGPAXPlugin::get_src(BSTR *url)
 }
 STDMETHODIMP CGPAXPlugin::put_src(BSTR url)
 {
-	const u16 *srcp = url;
+	const u16 *srcp = (const u16 *)url;
 	u32 len = gf_utf8_wcstombs(m_url, MAXLEN_URL, &srcp);
 	m_url[len] = 0;
 	UpdateURL();

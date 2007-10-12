@@ -58,7 +58,7 @@ Bool enum_dirs(void *cbk, char *name, char *path)
 {
 	TCHAR w_name[GF_MAX_PATH], w_str_name[GF_MAX_PATH];
 
-	CE_CharToWide(name, w_name);
+	CE_CharToWide(name, (u16 *) w_name);
 	wcscpy(w_str_name, _T("+ "));
 	wcscat(w_str_name, w_name);
     int iRes = SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)(LPCTSTR) w_str_name);
@@ -74,7 +74,7 @@ Bool enum_files(void *cbk, char *name, char *path)
 		char *ext = strrchr(name, '.');
 		if (!ext || !strstr(extension_list, ext+1)) return 0;
 	}
-	CE_CharToWide(name, w_name);
+	CE_CharToWide(name, (u16 *) w_name);
     SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)(LPCTSTR) w_name);
 	return 0;
 }
@@ -84,7 +84,7 @@ void set_directory(TCHAR *dir)
 {
 	SendMessage(hList, LB_RESETCONTENT, 0, 0);
 
-	CE_WideToChar(dir, (char *) current_dir);
+	CE_WideToChar((u16 *) dir, (char *) current_dir);
 	wcscpy(w_current_dir, dir);
 	SetWindowText(hDirTxt, w_current_dir);
 
@@ -116,7 +116,7 @@ void refresh_playlist()
 		const char *file = gf_cfg_get_key_name(cfg, "Playlist", i);
 		char *name = strrchr(file, '\\');
 		if (!name) name = strrchr(file, '/');
-		CE_CharToWide(name ? name+1 : (char *) file, w_name);
+		CE_CharToWide(name ? name+1 : (char *) file, (u16 *) w_name);
 		SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)(LPCTSTR) w_name);
 	}
 	i = 0;
@@ -203,7 +203,7 @@ void process_list_change(HWND hWnd, Bool add_to_pl)
 			char *b = strrchr((const char *) current_dir, '\\');
 			if (b) b[1] = 0;
 			else b[0] = '\\';
-			CE_CharToWide((char *) current_dir, w_current_dir);
+			CE_CharToWide((char *) current_dir, (u16 *) w_current_dir);
 			set_directory(w_current_dir);
 		} else {
 			if (add_to_pl) {
@@ -212,18 +212,18 @@ void process_list_change(HWND hWnd, Bool add_to_pl)
 				wcscpy(wdir, w_current_dir);
 				wcscat(wdir, sTxt+2);
 				wcscat(wdir, _T("\\"));
-				CE_WideToChar(wdir, (char *) dir);
+				CE_WideToChar((u16 *) wdir, (char *) dir);
 				gf_enum_directory(dir, 0, add_files, NULL, NULL);
 			} else {
 				wcscat(w_current_dir, sTxt+2);
 				wcscat(w_current_dir, _T("\\"));
-				CE_WideToChar(w_current_dir, (char *) current_dir);
+				CE_WideToChar((u16 *) w_current_dir, (char *) current_dir);
 				set_directory(w_current_dir);
 			}
 		}
 	} else {
 		char szTxt[1024];
-		CE_WideToChar(sTxt, (char *) szTxt);
+		CE_WideToChar((u16 *) sTxt, (char *) szTxt);
 		strcpy((char *) out_url, (const char *) current_dir);
 		strcat(out_url, szTxt);
 		if (add_to_pl) {
@@ -289,7 +289,7 @@ BOOL InitFileDialog(const HWND hWnd)
 	} else {
 		if (!strcmp((const char *) current_dir, "\\")) {
 			char *opt = (char *) gf_cfg_get_key(cfg, "General", "LastWorkingDir");
-			if (opt) CE_CharToWide(opt, w_current_dir);
+			if (opt) CE_CharToWide(opt, (u16 *) w_current_dir);
 		}
 		set_directory(w_current_dir);
 	}

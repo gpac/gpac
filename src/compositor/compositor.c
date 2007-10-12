@@ -32,6 +32,9 @@
 #include "visual_manager.h"
 #include "texturing.h"
 
+#define SC_DEF_WIDTH	320
+#define SC_DEF_HEIGHT	240
+
 
 /*macro for size event format/send*/
 #define GF_USER_SETSIZE(_user, _w, _h)	\
@@ -424,7 +427,7 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 
 	/*set default size if owning output*/
 	if (!tmp->user->os_window_handler) {
-		gf_sc_set_size(tmp, 320, 20);
+		gf_sc_set_size(tmp, SC_DEF_WIDTH, SC_DEF_HEIGHT);
 	}
 
 	gf_mx_v(tmp->mx);
@@ -543,12 +546,12 @@ static GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Hei
 		compositor->has_size_info = 0;
 		if (compositor->override_size_flags) {
 			/*specify a small size to detect biggest bitmap but not 0 in case only audio..*/
-			compositor->scene_height = 20;
-			compositor->scene_width = 320;
+			compositor->scene_height = SC_DEF_HEIGHT;
+			compositor->scene_width = SC_DEF_WIDTH;
 		} else {
 			/*use current res*/
 			compositor->scene_width = compositor->display_width ? compositor->display_width : compositor->new_width;
-			compositor->scene_height = (compositor->display_height==20) ? 240 : (compositor->display_height ? compositor->display_height : compositor->new_height);
+			compositor->scene_height = compositor->display_height ? compositor->display_height : compositor->new_height;
 		}
 	} else {
 		compositor->has_size_info = 1;
@@ -649,7 +652,6 @@ static void gf_sc_reset(GF_Compositor *compositor)
 
 	/*force resetup in case we're switching coord system*/
 	compositor->root_visual_setup = 0;
-	visual_2d_reset_raster(compositor->visual);
 	compositor_set_ar_scale(compositor, compositor->scale_x, compositor->scale_x);
 }
 
@@ -726,12 +728,12 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 			if (w->type!=SVG_NUMBER_PERCENTAGE) {
 				width = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, w) );
 			} else {
-				width = 320; //FIX2INT(root->viewBox.width);
+				width = SC_DEF_WIDTH; //FIX2INT(root->viewBox.width);
 			}
 			if (h->type!=SVG_NUMBER_PERCENTAGE) {
 				height = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, h) );
 			} else {
-				height = 240; //FIX2INT(root->viewBox.height);
+				height = SC_DEF_HEIGHT; //FIX2INT(root->viewBox.height);
 			}
 		}
 #endif

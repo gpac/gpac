@@ -945,8 +945,8 @@ void CMainFrame::BuildStreamList(Bool reset_only)
 
 		if (gf_term_get_object_info(app->m_term, odm, &info) != GF_OK) break;
 		if (info.owns_service) {
-			char *szName = strrchr(info.service_url, '\\');
-			if (!szName) szName = strrchr(info.service_url, '/');
+			char *szName = (char *)strrchr(info.service_url, '\\');
+			if (!szName) szName = (char *)strrchr(info.service_url, '/');
 			if (!szName) szName = (char *) info.service_url;
 			else szName += 1;
 			strcpy(szLabel, szName);

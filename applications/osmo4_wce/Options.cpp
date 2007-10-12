@@ -192,14 +192,14 @@ BOOL COptAudio::OnInitDialog()
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "NumBuffers");
 	if (sOpt) {
-		CE_CharToWide((char *)sOpt, wTmp);
+		CE_CharToWide((char *)sOpt, (u16 *)wTmp);
 		m_AudioEdit.SetWindowText(wTmp);
 	} else {
 		m_AudioEdit.SetWindowText(_T("2"));
 	}
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "TotalDuration");
 	if (sOpt) {
-		CE_CharToWide((char *)sOpt, wTmp);
+		CE_CharToWide((char *)sOpt, (u16 *)wTmp);
 		m_AudioDur.SetWindowText(wTmp);
 	} else {
 		m_AudioDur.SetWindowText(_T("200"));
@@ -225,7 +225,7 @@ BOOL COptAudio::OnInitDialog()
 		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_AUDIO_OUTPUT_INTERFACE);
 		if (!ifce) continue;
 		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
-		CE_CharToWide((char *) ((GF_BaseInterface *)ifce)->module_name, wTmp);
+		CE_CharToWide((char *) ((GF_BaseInterface *)ifce)->module_name, (u16 *)wTmp);
 		m_DriverList.AddString(wTmp);
 		gf_modules_close_interface(ifce);
 		to_sel++;
@@ -247,14 +247,14 @@ void COptAudio::SaveOptions()
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "NoResync", m_AudioResync.GetCheck() ? "yes" : "no");
 
 	m_AudioEdit.GetWindowText(wstr, 20);
-	CE_WideToChar(wstr, str);
+	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "NumBuffers", str);
 	m_AudioDur.GetWindowText(wstr, 20);
-	CE_WideToChar(wstr, str);
+	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "TotalDuration", str);
 
 	m_DriverList.GetWindowText(wstr, 50);
-	CE_WideToChar(wstr, str);
+	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "DriverName", str);
 
 }
@@ -299,6 +299,7 @@ END_MESSAGE_MAP()
 
 BOOL COptDecoder::OnInitDialog() 
 {
+	u32 i;
 	CDialog::OnInitDialog();
 	
 	COsmo4 *gpac = GetApp();
@@ -311,13 +312,13 @@ BOOL COptDecoder::OnInitDialog()
 	GF_BaseDecoder *ifce;
 	s32 select = 0;
 	s32 to_sel = 0;
-	for (u32 i=0; i<count; i++) {
+	for (i=0; i<count; i++) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
 		if (!ifce) continue;
 		if (ifce->CanHandleStream(ifce, GF_STREAM_AUDIO, 0, NULL, 0, 0)) {
 			if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 			TCHAR wzTmp[500];
-			CE_CharToWide((char *) ifce->module_name, wzTmp);
+			CE_CharToWide((char *) ifce->module_name, (u16 *)wzTmp);
 			m_Audio.AddString(wzTmp);
 			to_sel++;
 		}
@@ -337,7 +338,7 @@ BOOL COptDecoder::OnInitDialog()
 		if (ifce->CanHandleStream(ifce, GF_STREAM_VISUAL, 0, NULL, 0, 0)) {
 			if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 			TCHAR wzTmp[500];
-			CE_CharToWide((char *) ifce->module_name, wzTmp);
+			CE_CharToWide((char *) ifce->module_name, (u16 *)wzTmp);
 			m_Video.AddString(wzTmp);
 			to_sel++;
 		}
@@ -355,10 +356,10 @@ void COptDecoder::SaveOptions()
 	char str[100];
 
 	m_Audio.GetWindowText(wstr, 50);
-	CE_WideToChar(wstr, str);
+	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "Systems", "DefAudioDec", str);
 	m_Video.GetWindowText(wstr, 50);
-	CE_WideToChar(wstr, str);
+	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "Systems", "DefVideoDec", str);
 }
 
@@ -413,7 +414,7 @@ BOOL COptFont::OnInitDialog()
 		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_FONT_RASTER_INTERFACE);
 		if (!ifce) continue;
 		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
-		CE_CharToWide((char *) ifce->module_name, wTmp);
+		CE_CharToWide((char *) ifce->module_name, (u16 *)wTmp);
 		m_Fonts.AddString(wTmp);
 		gf_modules_close_interface(ifce);
 		to_sel++;
@@ -422,7 +423,7 @@ BOOL COptFont::OnInitDialog()
 	
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "FontDirectory");
-	CE_CharToWide((char *)sOpt, wTmp);
+	CE_CharToWide((char *)sOpt, (u16 *)wTmp);
 	if (sOpt) m_BrowseFont.SetWindowText(wTmp);
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "TextureTextMode");
@@ -444,10 +445,10 @@ void COptFont::SaveOptions()
 	TCHAR wstr[MAX_PATH];
 		
 	m_Fonts.GetWindowText(wstr, 50);
-	CE_WideToChar(wstr, str);
+	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "DriverName", str);
 	m_BrowseFont.GetWindowText(wstr, 50);
-	CE_WideToChar(wstr, str);
+	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontDirectory", str);
 	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "TextureTextMode", m_UseTexture.GetCheck() ? "Always" : "Never");
 }
@@ -531,12 +532,14 @@ void COptGen::OnFileassoc()
 	DWORD dwDisp;
 
 	RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("SOFTWARE\\Osmo4"), 0, KEY_READ, &hSection);
-	wcscpy(szDir, AfxGetApp()->m_pszHelpFilePath);
+	
+	GetModuleFileName(NULL, szDir, MAX_PATH);
+
 	while (szDir[strlen((char *) szDir)-1] != (TCHAR) '\\') szDir[strlen((char *) szDir)-1] = 0;
 	if (!hSection) 
 		RegCreateKeyEx(HKEY_LOCAL_MACHINE, _T("SOFTWARE\\Osmo4"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hSection, &dwDisp);
 
-	CE_WideToChar(szDir, szTemp);
+	CE_WideToChar((u16 *)szDir, szTemp);
 	/*overwrite install dir with current path*/
 	RegSetValueEx(hSection, _T("Install_Dir"), 0, REG_SZ, (const unsigned char *) szTemp, strlen(szTemp)+1);
 	RegCloseKey(hSection);
@@ -546,7 +549,7 @@ void COptGen::OnFileassoc()
 	RegCreateKeyEx(HKEY_CLASSES_ROOT, _T("mp4file\\DefaultIcon"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hSection, &dwDisp);
 	wcscpy(cmd, szDir);
 	wcscat(cmd, _T("Osmo4.ico") );
-	CE_WideToChar(cmd, szTemp);
+	CE_WideToChar((u16 *)cmd, szTemp);
 
 	RegSetValueEx(hSection, _T(""), 0, REG_SZ, (const unsigned char *) szTemp, strlen((const char *) szTemp)+1);
 	RegCloseKey(hSection);
@@ -554,7 +557,7 @@ void COptGen::OnFileassoc()
 	RegCreateKeyEx(HKEY_CLASSES_ROOT, _T("mp4file\\Shell\\open\\command"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hSection, &dwDisp);
 	wcscpy(cmd, szDir);
 	wcscat(cmd, _T("Osmo4.exe \"%L\"") );
-	CE_WideToChar(cmd, szTemp);
+	CE_WideToChar((u16 *)cmd, szTemp);
 	RegSetValueEx(hSection, _T(""), 0, REG_SZ, (const unsigned char *) szTemp, strlen(szTemp)+1);
 	RegCloseKey(hSection);
 
@@ -619,14 +622,14 @@ BOOL COptHTTP::OnInitDialog()
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "SAXLoader", "MaxDuration");
 	if (sOpt) {
-		CE_CharToWide((char *) sOpt, wTmp);
+		CE_CharToWide((char *) sOpt, (u16 *)wTmp);
 		m_SaxDuration.SetWindowText(wTmp);
 	} else {
 		m_SaxDuration.SetWindowText( _T("30") );
 	}
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "CacheDirectory");
-	CE_CharToWide((char *) sOpt, wTmp);
+	CE_CharToWide((char *) sOpt, (u16 *)wTmp);
 	if (sOpt) m_CacheDir.SetWindowText(wTmp);
 	
 	OnProgressive();
@@ -649,11 +652,11 @@ void COptHTTP::SaveOptions()
 	gf_cfg_set_key(gpac->m_user.config, "SAXLoader", "Progressive", m_Progressive.GetCheck() ? "yes" : "no");
 
 	m_SaxDuration.GetWindowText(wTmp, MAX_PATH);
-	CE_WideToChar(wTmp, szCacheDir);
+	CE_WideToChar((u16 *)wTmp, szCacheDir);
 	gf_cfg_set_key(gpac->m_user.config, "SAXLoader", "MaxDuration", szCacheDir);
 
 	m_CacheDir.GetWindowText(wTmp, MAX_PATH);
-	CE_WideToChar(wTmp, szCacheDir);
+	CE_WideToChar((u16 *)wTmp, szCacheDir);
 	gf_cfg_set_key(gpac->m_user.config, "General", "CacheDirectory", szCacheDir);
 }
 
@@ -741,7 +744,7 @@ BOOL COptRender::OnInitDialog()
 	while (m_BIFSRate.GetCount()) m_BIFSRate.DeleteString(0);
 	for (s32 i = 0; i<NUM_RATES; i++) {
 		TCHAR szText[100];
-		CE_CharToWide(BIFSRates[i], szText);
+		CE_CharToWide(BIFSRates[i], (u16 *)szText);
 		m_BIFSRate.AddString(szText);
 		if (sOpt && !stricmp(sOpt, BIFSRates[i]) ) select = i;
 	}
@@ -958,7 +961,7 @@ BOOL COptStream::OnInitDialog()
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Streaming", "RTSPTimeout");
 	if (sOpt) {
-		CE_CharToWide((char *) sOpt, wTmp);
+		CE_CharToWide((char *) sOpt, (u16 *)wTmp);
 		m_Timeout.SetWindowText(wTmp);
 	} else {
 		m_Timeout.SetWindowText(_T("30000"));
@@ -966,7 +969,7 @@ BOOL COptStream::OnInitDialog()
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Network", "BufferLength");
 	if (sOpt) {
-		CE_CharToWide((char *) sOpt, wTmp);
+		CE_CharToWide((char *) sOpt, (u16 *)wTmp);
 		m_Buffer.SetWindowText(wTmp);
 	} else {
 		m_Buffer.SetWindowText(_T("3000"));
@@ -976,7 +979,7 @@ BOOL COptStream::OnInitDialog()
 	u32 buf_len = 0;
 	if (sOpt) buf_len = atoi(sOpt);
 	if (buf_len) {
-		CE_CharToWide((char *) sOpt, wTmp);
+		CE_CharToWide((char *) sOpt, (u16 *)wTmp);
 		m_RebufferLen.SetWindowText(wTmp);
 		m_Rebuffer.SetCheck(1);
 		m_RebufferLen.EnableWindow(1);
@@ -1029,10 +1032,10 @@ void COptStream::CheckRebuffer()
 	char str[50];
 	s32 buf, rebuf;
 	m_Buffer.GetWindowText(wstr, 50);
-	CE_WideToChar(wstr, str);
+	CE_WideToChar((u16 *)wstr, str);
 	buf = atoi(str);
 	m_RebufferLen.GetWindowText(wstr, 50);
-	CE_WideToChar(wstr, str);
+	CE_WideToChar((u16 *)wstr, str);
 	rebuf = atoi(str);
 	if (rebuf*2 > buf) {
 		rebuf = buf/2;
@@ -1094,15 +1097,15 @@ void COptStream::SaveOptions()
 	char str[50];
 
 	m_Timeout.GetWindowText(wstr, 50);
-	CE_WideToChar(wstr, str);
+	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "Streaming", "RTSPTimeout", str);
 
 	m_Buffer.GetWindowText(wstr, 50);
-	CE_WideToChar(wstr, str);
+	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "Network", "BufferLength", str);
 	if (m_Rebuffer.GetCheck()) {
 		m_RebufferLen.GetWindowText(wstr, 50);
-		CE_WideToChar(wstr, str);
+		CE_WideToChar((u16 *)wstr, str);
 		gf_cfg_set_key(gpac->m_user.config, "Network", "RebufferLength", str);
 	} else {
 		gf_cfg_set_key(gpac->m_user.config, "Network", "RebufferLength", "0");
@@ -1158,7 +1161,7 @@ BOOL COptSystems::OnInitDialog()
 		TCHAR szTmp[100];
 		/*only use common languages (having both 2- and 3-char code names)*/
 		if (GF_ISO639_Lang[i+2][0]) {
-			CE_CharToWide( (char *)GF_ISO639_Lang[i], szTmp);
+			CE_CharToWide( (char *)GF_ISO639_Lang[i], (u16 *)szTmp);
 			m_Lang.AddString(szTmp);
 			if (sOpt && !stricmp(sOpt, GF_ISO639_Lang[i+1])) select = m_Lang.GetCount() - 1;
 		}

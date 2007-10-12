@@ -26,67 +26,21 @@
 
 #include "offscreen_cache.h"
 
-#ifdef GPAC_USE_GROUP_CACHE
-
 #include "visual_manager.h"
 #include "mpeg4_grouping.h"
 #include "texturing.h"
 
 
-#define GPAC_CACHE_PF	GF_PIXEL_ARGB
-#define GPAC_CACHE_BPP	4
 
-void drawable_cache_del(DrawableCache *cache)
-{
-	if (cache->txh.data) free(cache->txh.data);
-	if (cache->path) gf_path_del(cache->path);
-	free(cache);
-}
-
-DrawableCache *drawable_cache_initialize(DrawableContext *ctx, GF_Compositor *compositor, GF_Rect *local_bounds)
-{
-	DrawableCache *cache;
-	GF_IRect pix_bounds = gf_rect_pixelize(local_bounds);
-	GF_SAFEALLOC(cache, DrawableCache);
-
-	/*setup texture */
-	cache->txh.compositor = compositor;
-	cache->txh.height = pix_bounds.height;
-	cache->txh.width = pix_bounds.width;
-	cache->txh.stride = pix_bounds.width * GPAC_CACHE_BPP;
-	cache->txh.pixelformat = GPAC_CACHE_PF;
-
-	if (cache->txh.data) free(cache->txh.data);
-
-	cache->txh.data = (u8 *) malloc (sizeof(u8) * cache->txh.stride * cache->txh.height);
-	memset(cache->txh.data, 0, sizeof(char) * cache->txh.stride * cache->txh.height);
-	/*the path of drawable_cache is a rectangle one that is the the bound of the object*/
-	cache->path = gf_path_new();
-	/*set a rectangle to the path
-	  Attention, we want to center the cached bitmap at the center of the screen (main visual), so we use
-	  the global coordinate to parameterize the path*/
-	gf_path_add_rect_center(cache->path, 
-		local_bounds->x + local_bounds->width/2,
-		local_bounds->y - local_bounds->height/2,
-		local_bounds->width, local_bounds->height);
- 
-	gf_sc_texture_push_image(&cache->txh, 0, 1);
-	return cache;
-}
-
-
-void drawable_cache_draw(GF_TraverseState *tr_state, GF_Path *cache_path, GF_TextureHandler *cache_txh) 
+void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state) 
 {
 	GF_TextureHandler *old_txh = tr_state->ctx->aspect.fill_texture;
 	/*switch the texture to our offscreen cache*/
-	tr_state->ctx->aspect.fill_texture = cache_txh;
+	tr_state->ctx->aspect.fill_texture = &cache->txh;
 
-#if 0
-	visual_2d_texture_path(tr_state->visual, tr_state->ctx->drawable->cached->path, tr_state->ctx);
-#else
 	/*if skew/rotate, don't try the bitmap Blit (HW/SW)*/
 	if (tr_state->ctx->transform.m[1] || tr_state->ctx->transform.m[3]) { 
-		visual_2d_texture_path(tr_state->visual, cache_path, tr_state->ctx);
+		visual_2d_texture_path(tr_state->visual, cache->drawable->path, tr_state->ctx);
 	} else {
 		DrawableContext *ctx = tr_state->ctx;
 		GF_Rect unclip;
@@ -119,14 +73,15 @@ void drawable_cache_draw(GF_TraverseState *tr_state, GF_Path *cache_path, GF_Tex
 			}
 		}
 	}
-#endif
+
 	tr_state->ctx->aspect.fill_texture = old_txh;
 }
 
-GroupCache *group_cache_new(GF_Node *node)
+GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node)
 {
 	GroupCache *cache;
 	GF_SAFEALLOC(cache, GroupCache);
+	gf_sc_texture_setup(&cache->txh, compositor, node);
 	cache->drawable = drawable_new();
 	/*draw the cache through traverse callback*/
 	cache->drawable->flags |= DRAWABLE_USE_TRAVERSE_DRAW;
@@ -141,10 +96,11 @@ void group_cache_del(GroupCache *cache)
 	drawable_del_ex(cache->drawable, cache->txh.compositor);
 	if (cache->txh.data) free(cache->txh.data);
 	gf_sc_texture_release(&cache->txh);
+	gf_sc_texture_destroy(&cache->txh);
 	free(cache);
 }
 
-void group_cache_setup(GroupCache *cache, GF_Rect *local_bounds, GF_Compositor *compositor)
+void group_cache_setup(GroupCache *cache, GF_Rect *local_bounds, GF_Compositor *compositor, Bool for_gl)
 {
 	/*pixelize bounds*/
 	GF_IRect pix_bounds = gf_rect_pixelize(local_bounds);
@@ -153,8 +109,10 @@ void group_cache_setup(GroupCache *cache, GF_Rect *local_bounds, GF_Compositor *
 	cache->txh.compositor = compositor;
 	cache->txh.height = pix_bounds.height;
 	cache->txh.width = pix_bounds.width;
-	cache->txh.stride = pix_bounds.width * GPAC_CACHE_BPP;
-	cache->txh.pixelformat = GPAC_CACHE_PF;
+
+	cache->txh.stride = pix_bounds.width * 4;
+	cache->txh.pixelformat = for_gl ? GF_PIXEL_RGBA : GF_PIXEL_ARGB;
+//	cache->txh.pixelformat = GF_PIXEL_RGB_24;
 
 	if (cache->txh.data) free(cache->txh.data);
 
@@ -175,47 +133,22 @@ void group_cache_setup(GroupCache *cache, GF_Rect *local_bounds, GF_Compositor *
 #define OFFSCREEN_SCALE_UP		FIX_ONE
 #define OFFSCREEN_SCALE_DOWN	FIX_ONE
 
-/**/
-Bool group_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
+void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute)
 {
-	Bool needs_recompute = 0;
 	DrawableContext *group_ctx = NULL;	
-	GF_ChildNodeItem *l;	
-	//u32 time;
+	GF_ChildNodeItem *l;
 
-	/*this is not an offscreen group*/
-	if (!(group->flags & GROUP_IS_CACHED) ) return 0;
-
-	/*we are currently in a group cache, regular traversing*/
-	if (tr_state->in_group_cache) return 0;
-
-	/*draw mode*/
-	if (tr_state->traversing_mode == TRAVERSE_DRAW_2D) {
-		/*cache SHALL BE SETUP*/
-		assert(group->cache);
-		/*draw it*/
-		drawable_cache_draw(tr_state, 
-							group->cache->drawable->path, 
-							&group->cache->txh); 
-		return 1;
-	}
-	/*other modes than sorting, use regular traversing*/
-	if (tr_state->traversing_mode != TRAVERSE_SORT) return 0;
+	if (!cache) return;
 
 	/*do we need to recompute the cache*/
 	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
-		needs_recompute = 1;
-	}
-
-	if (!group->cache) {
-		/*ALLOCATE THE CACHE*/
-		group->cache = group_cache_new(node);
-		needs_recompute = 1;
+		force_recompute = 1;
 	}
 
 	/*we need to redraw the group in an offscreen visual*/
-	if (needs_recompute) {
+	if (force_recompute) {
 		GF_Matrix2D backup;
+		u32 type_3d;
 		u32 prev_flags;
 		GF_Rect cache_bounds;
 		GF_SURFACE offscreen_surface, old_surf;
@@ -232,9 +165,25 @@ Bool group_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState
 		gf_mx2d_init(tr_state->transform);
 		/*disable direct drawing to indicate that children in the group should not be drawn*/
 		tr_state->direct_draw = 0;
+		/*force 2D rendering*/
+		type_3d = tr_state->visual->type_3d;
+		tr_state->visual->type_3d = 0;
+		/*top clipper is not setup in 3D*/
+		if (type_3d) {
+			tr_state->visual->surf_rect.width = tr_state->visual->width;
+			tr_state->visual->surf_rect.height = tr_state->visual->height;
+			if (tr_state->visual->center_coords) {
+				tr_state->visual->surf_rect.y = tr_state->visual->height/2;
+				tr_state->visual->surf_rect.x = -tr_state->visual->surf_rect.width/2;
+			} else {
+				tr_state->visual->surf_rect.y = tr_state->visual->height;
+				tr_state->visual->surf_rect.x = 0;
+			}
+			tr_state->visual->top_clipper = tr_state->visual->surf_rect;
+		}
 
 		/*step 2: insert a DrawableContext for this group in the display list*/
-		group_ctx = drawable_init_context_mpeg4(group->cache->drawable, tr_state);
+		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
 
 		/*step 3: traverse the group to collect all children in the display list, but using the local coordinate system*/		
 		l = ((GF_ParentNode*)node)->children;
@@ -272,24 +221,30 @@ Bool group_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState
 			move to DRAW mode
 		*/
 		old_surf = tr_state->visual->raster_surface;
-		offscreen_surface = r2d->surface_new(r2d, 1);	/*a new temp raster visual*/
+		offscreen_surface = r2d->surface_new(r2d, tr_state->visual->center_coords);	/*a new temp raster visual*/
 		tr_state->visual->raster_surface = offscreen_surface;
 		tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 		/* Initialize the group cache, and we build the path for the group */
-		group_cache_setup(group->cache, &cache_bounds, tr_state->visual->compositor);
+		group_cache_setup(cache, &cache_bounds, tr_state->visual->compositor, type_3d);
 			
 		/*attach the buffer to visual*/
-		r2d->surface_attach_to_buffer(offscreen_surface, group->cache->txh.data,
-										group->cache->txh.width, 
-										group->cache->txh.height,
-										group->cache->txh.stride, 
-										group->cache->txh.pixelformat);
+		r2d->surface_attach_to_buffer(offscreen_surface, cache->txh.data,
+										cache->txh.width, 
+										cache->txh.height,
+										cache->txh.stride, 
+										cache->txh.pixelformat);
 		
 		/*centered the bitmap on the visual*/
 		gf_mx2d_init(tr_state->transform);
 		gf_mx2d_add_scale(&tr_state->transform, OFFSCREEN_SCALE_DOWN, OFFSCREEN_SCALE_DOWN); 
-		temp_x = -cache_bounds.x-cache_bounds.width/2;
-		temp_y = -cache_bounds.y +cache_bounds.height/2;
+		temp_x = -cache_bounds.x;
+		temp_y = -cache_bounds.y;
+		if (tr_state->visual->center_coords) {
+			temp_x -= cache_bounds.width/2;
+			temp_y += cache_bounds.height/2;
+		} else {
+			temp_y += cache_bounds.height;
+		}
 		gf_mx2d_add_translation(&tr_state->transform, temp_x, temp_y);		
 		
 		/*step 6: draw all child contexts - use direct drawing in order to bypass dirty rect*/
@@ -320,21 +275,79 @@ Bool group_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState
 		r2d->surface_delete(offscreen_surface);
 		tr_state->visual->raster_surface = old_surf;
 		tr_state->traversing_mode = TRAVERSE_SORT;
+
+		tr_state->visual->type_3d = type_3d;
 		
 		/*update texture*/
-		group->cache->txh.transparent = 1;
-		gf_sc_texture_push_image(&group->cache->txh, 0, 1);
+		cache->txh.transparent = 1;
+		gf_sc_texture_set_data(&cache->txh);
+		gf_sc_texture_push_image(&cache->txh, 0, tr_state->visual->type_3d ? 0 : 1);
 	}
 	/*just setup the context*/
-	else if(group->cache) {
-		group_ctx = drawable_init_context_mpeg4(group->cache->drawable, tr_state);
+	else {
+		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
 	}
 	assert(group_ctx);
 	group_ctx->flags |= CTX_NO_ANTIALIAS;
-	group_ctx->aspect.fill_color = GF_COL_ARGB_FIXED(group->cache->opacity, 0, 0, 0);
-	drawable_finalize_sort(group_ctx, tr_state, NULL);
+	group_ctx->aspect.fill_color = GF_COL_ARGB_FIXED(cache->opacity, FIX_ONE, FIX_ONE, FIX_ONE);
+	group_ctx->aspect.fill_texture = &cache->txh;
 
+	if (!cache->opacity) {
+		group_ctx->drawable = NULL;
+		return;
+	}
+
+	if (gf_node_dirty_get(node)) group_ctx->flags |= CTX_TEXTURE_DIRTY;
+
+#ifndef GPAC_DISABLE_3D
+	if (tr_state->visual->type_3d) {
+		if (!cache->drawable->mesh) {
+			cache->drawable->mesh = new_mesh();
+			mesh_from_path(cache->drawable->mesh, cache->drawable->path);
+		}
+		visual_3d_draw_from_context(group_ctx, tr_state);
+		group_ctx->drawable = NULL;
+	} else 
+#endif
+		drawable_finalize_sort(group_ctx, tr_state, NULL);
+	
+}
+
+
+#ifdef MPEG4_USE_GROUP_CACHE
+
+/**/
+Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
+{
+	Bool needs_recompute = 0;
+	//u32 time;
+
+	/*this is not an offscreen group*/
+	if (!(group->flags & GROUP_IS_CACHED) ) return 0;
+
+	/*we are currently in a group cache, regular traversing*/
+	if (tr_state->in_group_cache) return 0;
+
+	/*draw mode*/
+	if (tr_state->traversing_mode == TRAVERSE_DRAW_2D) {
+		/*cache SHALL BE SETUP*/
+		assert(group->cache);
+		/*draw it*/
+		group_cache_draw(group->cache, tr_state);
+		return 1;
+	}
+	/*other modes than sorting, use regular traversing*/
+	if (tr_state->traversing_mode != TRAVERSE_SORT) return 0;
+
+	if (!group->cache) {
+		/*ALLOCATE THE CACHE*/
+		group->cache = group_cache_new(tr_state->visual->compositor, node);
+		needs_recompute = 1;
+	}
+
+
+	group_cache_traverse(node, group->cache, tr_state, needs_recompute);
 	return 1;
 }
 
-#endif /*GPAC_USE_GROUP_CACHE*/
+#endif /*MPEG4_USE_GROUP_CACHE*/

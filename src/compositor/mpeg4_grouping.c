@@ -27,16 +27,12 @@
 #include "mpeg4_grouping.h"
 #include "visual_manager.h"
 
-#ifdef GPAC_USE_GROUP_CACHE
-Bool group_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state);
-#endif
-
 
 /*This is the generic routine for child traversing*/
 void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
 {
 	Bool split_text_backup;
-#ifdef GPAC_USE_GROUP_CACHE
+#ifdef MPEG4_USE_GROUP_CACHE
 	Bool group_cached;
 #endif
 	GF_List *sensor_backup;
@@ -66,8 +62,8 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		return;
 	}
 
-#ifdef GPAC_USE_GROUP_CACHE
-	group_cached = group_cache_traverse(node, group, tr_state);
+#ifdef MPEG4_USE_GROUP_CACHE
+	group_cached = mpeg4_group2d_cache_traverse(node, group, tr_state);
 #endif
 
 	/*now here is the trick: ExternProtos may not be loaded at this point, in which case we can't
@@ -77,7 +73,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
 
 
-#ifdef GPAC_USE_GROUP_CACHE
+#ifdef MPEG4_USE_GROUP_CACHE
 	if (group_cached) return;
 #endif
 

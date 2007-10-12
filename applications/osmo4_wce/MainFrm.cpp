@@ -153,7 +153,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_progBar.ShowWindow(SW_SHOWNORMAL);
 	
 
-	m_wndCommandBar.m_bShowSharedNewButton = FALSE;
+//	m_wndCommandBar.m_bShowSharedNewButton = FALSE;
 
 	if (!m_wndCommandBar.Create(this) 
 			|| !m_wndCommandBar.InsertMenuBar(IDR_MENU)
@@ -216,6 +216,7 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame diagnostics
 
+/*
 #ifdef _DEBUG
 void CMainFrame::AssertValid() const
 {
@@ -228,6 +229,7 @@ void CMainFrame::Dump(CDumpContext& dc) const
 }
 
 #endif //_DEBUG
+*/
 
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame message handlers
@@ -395,7 +397,7 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	COsmo4 *app = GetApp();
 	CloseURL();
 	char filename[5000];
-	CE_WideToChar((LPTSTR) (LPCTSTR) app->m_filename, filename);
+	CE_WideToChar((u16 *) (LPCTSTR) app->m_filename, filename);
 	app->m_stoped = 0;
 	
 	if (app->m_reconnect_time) {
@@ -415,15 +417,15 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
 	COsmo4 *app = GetApp();
 	char to_url[MAX_PATH];
-	CE_WideToChar((LPTSTR) (LPCTSTR) app->m_navigate_url, to_url);
+	CE_WideToChar((u16 *) (LPCTSTR) app->m_navigate_url, to_url);
 
 	if (gf_term_is_supported_url(app->m_term, to_url, 1, app->m_no_mime_fetch)) {
 		char fileName[MAX_PATH];
 		TCHAR w_to_url[MAX_PATH];
-		CE_WideToChar((LPTSTR) (LPCTSTR) app->m_filename, fileName);
+		CE_WideToChar((u16 *) (LPCTSTR) app->m_filename, fileName);
 		char *str = gf_url_concatenate(fileName, to_url);
 		if (!str) str = strdup(to_url);
-		CE_CharToWide(str, w_to_url);
+		CE_CharToWide(str, (u16 *)w_to_url);
 		free(str);
 		app->m_filename = w_to_url;
 		Open(0, 0);
@@ -457,7 +459,7 @@ void CMainFrame::OnFilePause()
 	COsmo4 *app = GetApp();
 	if (app->m_stoped) {
 		char filename[5000];
-		CE_WideToChar((LPTSTR) (LPCTSTR) app->m_filename, filename);
+		CE_WideToChar((u16 *) (LPCTSTR) app->m_filename, filename);
 		app->m_stoped = 0;
 		gf_term_connect(app->m_term, filename);
 		app->SetBacklightState(1);

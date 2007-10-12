@@ -1347,6 +1347,9 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 	fb->height = compositor->vp_height;
 
 	if (depth_buffer) {
+#ifdef GPAC_USE_OGL_ES
+		return GF_NOT_SUPPORTED;
+#else
 		fb->pitch = compositor->vp_width; /* multiply by 4 if float depthbuffer */
 		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch * fb->height); 
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
@@ -1359,6 +1362,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 		/* GL_FLOAT for float depthbuffer */
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, fb->video_buffer); 
+#endif
 	} else {
 		fb->pitch = 3*compositor->vp_width;
 		fb->video_buffer = (char*)malloc(sizeof(char) * fb->pitch * fb->height);

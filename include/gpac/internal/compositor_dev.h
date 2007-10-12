@@ -71,8 +71,6 @@ typedef struct _draw_aspect_2d DrawAspect2D;
 typedef struct _traversing_state GF_TraverseState;
 
 
-#define GPAC_USE_GROUP_CACHE
-
 #ifndef GPAC_DISABLE_3D
 #include <gpac/internal/camera.h>
 #include <gpac/internal/mesh.h>
@@ -599,10 +597,8 @@ struct _traversing_state
 	GF_Rect clipper, layer_clipper;
 
 	
-#ifdef GPAC_USE_GROUP_CACHE
 	/*set when traversing a cached group during offscreen bitmap construction.*/
 	Bool in_group_cache;
-#endif
 
 #ifndef GPAC_DISABLE_3D
 	/*the current camera*/
@@ -868,7 +864,7 @@ void compositor_set_ar_scale(GF_Compositor *sr, Fixed scaleX, Fixed scaleY);
 void compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *all_atts, GF_TraverseState *tr_state, 
 					 SVGPropertiesPointers *backup_props, u32 *backup_flags);
 Bool compositor_svg_is_display_off(SVGPropertiesPointers *props);
-void compositorr_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAllAttributes *atts, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix);
+void compositor_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAllAttributes *atts, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix);
 void compositor_svg_restore_parent_transformation(GF_TraverseState *tr_state, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix);
 
 void compositor_svg_traverse_children(GF_ChildNodeItem *children, GF_TraverseState *tr_state);

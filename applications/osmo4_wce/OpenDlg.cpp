@@ -82,7 +82,7 @@ BOOL OpenDlg::OnInitDialog()
 	while (1) {
 		sOpt = gf_cfg_get_key_name(app->m_user.config, "RecentFiles", i);
 		if (!sOpt) break;
-		CE_CharToWide((char *) sOpt, w_str);
+		CE_CharToWide((char *) sOpt, (u16 *)w_str);
 		m_URLs.AddString(w_str);
 		i++;
 	}

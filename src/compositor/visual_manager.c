@@ -34,6 +34,7 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 	ra_init(&tmp->to_redraw);
 	tmp->back_stack = gf_list_new();
 	tmp->view_stack = gf_list_new();
+	tmp->raster_brush = compositor->rasterizer->stencil_new(compositor->rasterizer, GF_STENCIL_SOLID);
 
 #ifndef GPAC_DISABLE_3D
 	tmp->navigation_stack = gf_list_new();
@@ -47,7 +48,11 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 void visual_del(GF_VisualManager *visual)
 {
 	ra_del(&visual->to_redraw);
-	visual_2d_reset_raster(visual);
+
+	if (visual->raster_surface) visual->compositor->rasterizer->surface_delete(visual->raster_surface);
+	visual->raster_surface = NULL;
+	if (visual->raster_brush) visual->compositor->rasterizer->stencil_delete(visual->raster_brush);
+	visual->raster_brush = NULL;
 
 	while (visual->context) {
 		DrawableContext *ctx = visual->context;
@@ -96,11 +101,45 @@ Bool visual_get_size_info(GF_TraverseState *tr_state, Fixed *surf_width, Fixed *
 	return 0;
 }
 
+void visual_clean_contexts(GF_VisualManager *visual)
+{
+	u32 i, count;
+	Bool is_root_visual = (visual->compositor->visual==visual) ? 1 : 0;
+	DrawableContext *ctx = visual->context;
+	while (ctx && ctx->drawable) {
+		/*remove visual registration flag*/
+		ctx->drawable->flags &= ~DRAWABLE_REGISTERED_WITH_VISUAL;
+		if (is_root_visual && (ctx->flags & CTX_HAS_APPEARANCE)) 
+			gf_node_dirty_reset(ctx->appear);
+		ctx = ctx->next;
+	}
+
+	/*composite visual, cannot reset flags until root is done*/
+	if (!is_root_visual) return;
+
+	/*reset all flags of all appearance nodes registered on all visuals but main one (done above)
+	this must be done once all visuals have been drawn, otherwise we won't detect the changes 
+	for nodes drawn on several visuals*/
+	count = gf_list_count(visual->compositor->visuals);
+	for (i=1; i<count; i++) {
+		GF_VisualManager *a_vis = gf_list_get(visual->compositor->visuals, i);
+		ctx = a_vis->context;
+		while (ctx && ctx->drawable) {
+			if (ctx->flags & CTX_HAS_APPEARANCE) 
+				gf_node_dirty_reset(ctx->appear);
+			ctx = ctx->next;
+		}
+	}
+}
 
 Bool visual_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual)
 {
 #ifndef GPAC_DISABLE_3D
-	if (visual->type_3d) return visual_3d_draw_frame(visual, root, tr_state, is_root_visual);
+	if (visual->type_3d) {
+		GF_Err e = visual_3d_draw_frame(visual, root, tr_state, is_root_visual);
+		visual_clean_contexts(visual);
+		return e;
+	}
 #endif
 	return visual_2d_draw_frame(visual, root, tr_state, is_root_visual);
 }

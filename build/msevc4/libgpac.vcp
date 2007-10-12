@@ -4043,19 +4043,15 @@ DEP_CPP_BINDA=\
 
 SOURCE=..\..\src\compositor\camera.c
 DEP_CPP_CAMER=\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\options.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_CAMER=\
 	"..\..\src\compositor\camera.h"\
 	
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\compositor\camera.h
+SOURCE=..\..\include\gpac\internal\camera.h
 # End Source File
 # Begin Source File
 
@@ -4359,7 +4355,7 @@ DEP_CPP_MESH_=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\compositor\mesh.h
+SOURCE=..\..\include\gpac\internal\mesh.h
 # End Source File
 # Begin Source File
 
@@ -4380,6 +4376,8 @@ DEP_CPP_MESH_C=\
 
 SOURCE=..\..\src\compositor\mesh_tesselate.c
 DEP_CPP_MESH_T=\
+	"..\..\extra_lib\include\GLES\egl.h"\
+	"..\..\extra_lib\include\GLES\gl.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4390,9 +4388,6 @@ DEP_CPP_MESH_T=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\compositor\gl_inc.h"\
-	
-NODEP_CPP_MESH_T=\
-	"..\..\src\compositor\GLES\egl.h"\
 	
 # End Source File
 # Begin Source File
@@ -5030,6 +5025,8 @@ DEP_CPP_MPEG4_L=\
 
 SOURCE=..\..\src\compositor\mpeg4_layer_3d.c
 DEP_CPP_MPEG4_LA=\
+	"..\..\extra_lib\include\GLES\egl.h"\
+	"..\..\extra_lib\include\GLES\gl.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config.h"\
@@ -5066,9 +5063,6 @@ DEP_CPP_MPEG4_LA=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
-	
-NODEP_CPP_MPEG4_LA=\
-	"..\..\src\compositor\GLES\egl.h"\
 	
 # End Source File
 # Begin Source File
@@ -5833,6 +5827,8 @@ SOURCE=..\..\src\compositor\texturing.h
 
 SOURCE=..\..\src\compositor\texturing_gl.c
 DEP_CPP_TEXTUR=\
+	"..\..\extra_lib\include\GLES\egl.h"\
+	"..\..\extra_lib\include\GLES\gl.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config.h"\
@@ -5868,9 +5864,6 @@ DEP_CPP_TEXTUR=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
-	
-NODEP_CPP_TEXTUR=\
-	"..\..\src\compositor\GLES\egl.h"\
 	
 # End Source File
 # Begin Source File
@@ -6045,6 +6038,8 @@ SOURCE=..\..\src\compositor\visual_manager_3d.h
 
 SOURCE=..\..\src\compositor\visual_manager_3d_gl.c
 DEP_CPP_VISUAL_MA=\
+	"..\..\extra_lib\include\GLES\egl.h"\
+	"..\..\extra_lib\include\GLES\gl.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config.h"\
@@ -6076,9 +6071,6 @@ DEP_CPP_VISUAL_MA=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
-	
-NODEP_CPP_VISUAL_MA=\
-	"..\..\src\compositor\GLES\egl.h"\
 	
 # End Source File
 # Begin Source File

@@ -25,7 +25,7 @@
 #ifndef GROUPING_H
 #define GROUPING_H
 
-#include "drawable.h"
+#include "offscreen_cache.h"
 
 enum
 {
@@ -36,7 +36,7 @@ enum
 	GROUP_IS_CACHED		=	1<<4,
 };
 
-#ifdef GPAC_USE_GROUP_CACHE
+#ifdef MPEG4_USE_GROUP_CACHE
 
 #define GROUPING_NODE_STACK_2D		\
 	u32 flags;						\
@@ -51,7 +51,7 @@ enum
 
 #endif
 
-typedef struct
+typedef struct _mpeg4_group2d
 {
 	GROUPING_NODE_STACK_2D
 } GroupingNode2D;

@@ -28,28 +28,9 @@
 #ifndef OFFSCREEN_CACHE_H
 #define OFFSCREEN_CACHE_H
 
-#include <gpac/internal/compositor_dev.h>
-
-#ifdef GPAC_USE_GROUP_CACHE
-
 #include "drawable.h"
 
-
-typedef struct _drawable_cache
-{
-	/*gpac texture object*/
-	GF_TextureHandler txh;
-	/*bitmap path for the cache*/
-	GF_Path *path;
-	/*the priority to determine the overlapping*/
-	u8 priority;
-} DrawableCache;
-
-void drawable_cache_del(DrawableCache *bitmap);
-
-DrawableCache *drawable_cache_initialize(DrawableContext *ctx, GF_Compositor *compositor, GF_Rect *local_bounds);
-
-void drawable_cache_draw(GF_TraverseState *eff, GF_Path *cache_path, GF_TextureHandler *cache_txh);
+#define MPEG4_USE_GROUP_CACHE
 
 
 typedef struct _group_cache
@@ -66,10 +47,17 @@ typedef struct _group_cache
 } GroupCache;
 
 
-GroupCache *group_cache_new(GF_Node *node);
+GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node);
 void group_cache_del(GroupCache *cache);
 
-#endif	/*GPAC_USE_GROUP_CACHE*/
+void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute);
+
+void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state);
+
+
+#ifdef MPEG4_USE_GROUP_CACHE
+Bool mpeg4_group2d_cache_traverse(GF_Node *node, struct _mpeg4_group2d *group, GF_TraverseState *tr_state);
+#endif
 
 #endif	/*OFFSCREEN_CACHE_H*/
 

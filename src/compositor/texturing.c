@@ -28,6 +28,9 @@
 
 #include "nodes_stacks.h"
 
+static void update_texture_void(GF_TextureHandler *txh)
+{
+}
 
 GF_EXPORT
 void gf_sc_texture_setup(GF_TextureHandler *txh, GF_Compositor *compositor, GF_Node *owner)
@@ -36,6 +39,7 @@ void gf_sc_texture_setup(GF_TextureHandler *txh, GF_Compositor *compositor, GF_N
 	txh->owner = owner;
 	txh->compositor = compositor;
 	if (gf_list_find(compositor->textures, txh)<0) gf_list_add(compositor->textures, txh);
+	if (!txh->update_texture_fcnt) txh->update_texture_fcnt = update_texture_void;
 }
 
 

@@ -27,6 +27,7 @@
 
 #ifndef GPAC_DISABLE_SVG
 #include "nodes_stacks.h"
+#include "offscreen_cache.h"
 
 static void svg_check_focus_upon_destroy(GF_Node *n)
 {
@@ -307,6 +308,7 @@ void compositor_init_svg_svg(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, svg_traverse_svg);
 }
 
+
 static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
@@ -320,7 +322,15 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	SVGAllAttributes all_atts;
 
 	if (is_destroy) {
+		GroupCache *gc = gf_node_get_private(node);
+		if (gc) group_cache_del(gc);
+
 		svg_check_focus_upon_destroy(node);
+		return;
+	}
+	/*group cache traverse routine*/
+	else if (tr_state->traversing_mode == TRAVERSE_DRAW_2D) {
+		group_cache_draw((GroupCache *) gf_node_get_private(node), tr_state);
 		return;
 	}
 
@@ -339,13 +349,27 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}	
 	
-	compositorr_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_sc_svg_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
-	} else {
-		compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
-
+	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
+		if (all_atts.opacity && (all_atts.opacity->value!=FIX_ONE)) {
+			Bool force_recompute = 0;
+			GroupCache *gc = gf_node_get_private(node);
+			if (!gc) {
+				force_recompute = 1;
+				gc = group_cache_new(tr_state->visual->compositor, node);
+				gf_node_set_private(node, gc);
+			}
+			gc->opacity = all_atts.opacity->value;
+			group_cache_traverse(node, gc, tr_state, force_recompute);
+			gf_node_dirty_clear(node, 0);
+		} else {
+			compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
+		}
 		drawable_check_focus_highlight(node, tr_state, NULL);
+	} else {
+			compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
 	}
 	compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 	memcpy(tr_state->svg_props, &backup_props, styling_size);
@@ -418,7 +442,7 @@ static void svg_traverse_switch(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	
-	compositorr_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_sc_svg_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
 	} else {
@@ -473,7 +497,7 @@ static void svg_traverse_a(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}	
 	
-	compositorr_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_sc_svg_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
 	} else {
@@ -623,7 +647,7 @@ void compositor_svg_traverse_use(GF_Node *node, GF_Node *sub_root, void *rs)
 	translate.m[5] = (all_atts.y ? all_atts.y->value : 0);
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		compositorr_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+		compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 		if (!compositor_svg_is_display_off(tr_state->svg_props)) {
 			if (all_atts.xlink_href) gf_node_traverse(all_atts.xlink_href->target, tr_state);
 			gf_mx2d_apply_rect(&translate, &tr_state->bounds);
@@ -637,7 +661,7 @@ void compositor_svg_traverse_use(GF_Node *node, GF_Node *sub_root, void *rs)
 		goto end;
 	}
 
-	compositorr_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
@@ -698,7 +722,7 @@ void compositor_svg_traverse_animation(GF_Node *node, GF_Node *sub_root, void *r
 		goto end;
 	}
 
-	compositorr_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &backup_matrix3d);
+	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &backup_matrix3d);
 
 
 #ifndef GPAC_DISABLE_3D

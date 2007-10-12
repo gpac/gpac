@@ -37,10 +37,6 @@ GF_Err visual_2d_init_raster(GF_VisualManager *visual)
 		visual->raster_surface = raster->surface_new(raster, visual->center_coords);
 		if (!visual->raster_surface) return GF_IO_ERR;
 	}
-	if (!visual->raster_brush) {
-		visual->raster_brush = raster->stencil_new(raster, GF_STENCIL_SOLID);
-		if (!visual->raster_brush) return GF_IO_ERR;
-	}
 	return visual->GetSurfaceAccess(visual);
 }
 
@@ -54,14 +50,6 @@ void visual_2d_release_raster(GF_VisualManager *visual)
 	}
 }
 
-void visual_2d_reset_raster(GF_VisualManager *visual)
-{
-	GF_Raster2D *raster = visual->compositor->rasterizer;
-	if (visual->raster_surface) raster->surface_delete(visual->raster_surface);
-	visual->raster_surface = NULL;
-	if (visual->raster_brush) raster->stencil_delete(visual->raster_brush);
-	visual->raster_brush = NULL;
-}
 
 void visual_2d_clear(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor)
 {

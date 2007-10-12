@@ -91,7 +91,7 @@ void set_status(char *state)
 {
 	if (show_status && g_hwnd_status) {
 		TCHAR wstate[1024];
-		CE_CharToWide(state, wstate);
+		CE_CharToWide(state, (u16 *) wstate);
 		SendMessage(g_hwnd_status, WM_SETTEXT, 0, (LPARAM) wstate);
 		last_state_time = GetTickCount();
 	}
@@ -448,7 +448,7 @@ void refresh_recent_files()
 		if (!name) name = (char *) sOpt;
 		else name += 1;
 
-		CE_CharToWide(name, txt);
+		CE_CharToWide(name, (u16 *) txt);
 		AppendMenu(hMenu, MF_STRING, IDM_OPEN_FILE1+i, txt);
 	}
 }
@@ -892,7 +892,7 @@ Bool initial_setup(const char *szExePath)
 
 	strcpy(szPath, szExePath);
 	strcat(szPath, "cache");
-	CE_CharToWide(szPath, wzPath);
+	CE_CharToWide(szPath, (u16 *) wzPath);
 	CreateDirectory(wzPath, NULL);
 	gf_cfg_set_key(user.config, "General", "CacheDirectory", szPath);
 
@@ -944,7 +944,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	term = NULL;
 
 	GetModuleFileName(NULL, wzExePath, GF_MAX_PATH);
-	CE_WideToChar(wzExePath, szExePath);
+	CE_WideToChar((u16 *) wzExePath, szExePath);
 	char *sep = strrchr(szExePath, '\\');
 	sep[1] = 0;
 
