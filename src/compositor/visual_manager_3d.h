@@ -65,7 +65,7 @@ void visual_3d_draw_2d(Drawable *st, GF_TraverseState *tr_state);
 /*draws a 2D object, setting up material and texture with specified 2D aspect*/
 void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, DrawAspect2D *asp, Bool is_svg);
 /*draws a 2D SVG object - the DrawableContext MUST be set in the traversing state*/
-void visual_3d_draw_svg(DrawableContext *ctx, GF_TraverseState *tr_state);
+void visual_3d_draw_from_context(DrawableContext *ctx, GF_TraverseState *tr_state);
 
 
 /*sets 2D strike aspect 

@@ -221,15 +221,15 @@ u32 gf_svg_sani_get_rendering_flag_if_modified(SVG_SANI_Element *n, GF_FieldInfo
 	case SVG_Paint_datatype: 
 		if (!strcmp(info->name, "fill"))	return GF_SG_SVG_FILL_DIRTY;
 		if (!strcmp(info->name, "stroke")) return GF_SG_SVG_STROKE_DIRTY;
-		if (!strcmp(info->name, "solid-color")) return GF_SG_SVG_SOLIDCOLOR_DIRTY;
-		if (!strcmp(info->name, "stop-color")) return GF_SG_SVG_STOPCOLOR_DIRTY;
+		if (!strcmp(info->name, "solid-color")) return GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
+		if (!strcmp(info->name, "stop-color")) return GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
 		break;
 	case SVG_Number_datatype:
 		if (!strcmp(info->name, "opacity")) return GF_SG_SVG_OPACITY_DIRTY;
 		if (!strcmp(info->name, "fill-opacity")) return GF_SG_SVG_FILLOPACITY_DIRTY;
 		if (!strcmp(info->name, "stroke-opacity")) return GF_SG_SVG_STROKEOPACITY_DIRTY;
-		if (!strcmp(info->name, "solid-opacity")) return GF_SG_SVG_SOLIDOPACITY_DIRTY;
-		if (!strcmp(info->name, "stop-opacity")) return GF_SG_SVG_STOPOPACITY_DIRTY;
+		if (!strcmp(info->name, "solid-opacity")) return GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
+		if (!strcmp(info->name, "stop-opacity")) return GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
 		if (!strcmp(info->name, "line-increment")) return GF_SG_SVG_LINEINCREMENT_DIRTY;
 		if (!strcmp(info->name, "stroke-miterlimit")) return GF_SG_SVG_STROKEMITERLIMIT_DIRTY;
 		break;

@@ -118,7 +118,7 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props_1, &backup_flags_1);
 
 	if (real_traverse &&
-		! (tr_state->svg_flags & (GF_SG_SVG_STOPCOLOR_DIRTY|GF_SG_SVG_STOPOPACITY_DIRTY|GF_SG_SVG_COLOR_DIRTY)) 
+		! (tr_state->svg_flags & (GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY|GF_SG_SVG_COLOR_DIRTY)) 
 		&& !gf_node_dirty_get(node) 
 		&& !st->txh.needs_refresh) 
 	{

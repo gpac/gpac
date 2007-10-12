@@ -91,8 +91,6 @@ void visual_2d_drawable_delete(GF_VisualManager *visual, Drawable *node);
 GF_Err visual_2d_init_raster(GF_VisualManager *visual);
 /*releases raster surface handler */
 void visual_2d_release_raster(GF_VisualManager *visual);
-/*destroys raster driver objects used by the surface*/
-void visual_2d_reset_raster(GF_VisualManager *visual);
 
 /*clear given rect or all visual if no rect specified - clear color depends on visual's type:
 	BackColor for background nodes

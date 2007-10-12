@@ -196,8 +196,10 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 
 	visual_3d_matrix_push(tr_state->visual);
 
-	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_TEXTURE);
-	visual_3d_matrix_reset(tr_state->visual);
+/*	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_TEXTURE);
+	gf_sc_texture_get_transform(&st->txh, NULL, &mx);
+	visual_3d_matrix_load(tr_state->visual, mx.m);
+*/	
 	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
 
 	is_layer = (tr_state->visual->back_stack == tr_state->backgrounds) ? 0 : 1;
@@ -219,6 +221,13 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 		visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, !is_layer);
 		tr_state->mesh_has_texture = gf_sc_texture_enable(&st->txh, NULL);
 		if (!tr_state->mesh_has_texture) visual_3d_set_material_2d(tr_state->visual, bck->backColor, FIX_ONE);
+
+		visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_TEXTURE);
+		gf_mx_init(mx);
+		gf_mx_add_scale(&mx, FIX_ONE, -FIX_ONE, FIX_ONE);
+		visual_3d_matrix_load(tr_state->visual, mx.m);
+		visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
+
 	}
 
 	/*create mesh object if needed*/
@@ -400,6 +409,7 @@ void compositor_init_background2d(GF_Compositor *compositor, GF_Node *node)
 
 	gf_sc_texture_setup(&ptr->txh, compositor, node);
 	ptr->txh.update_texture_fcnt = UpdateBackgroundTexture;
+	ptr->txh.flags = GF_SR_TEXTURE_REPEAT_S | GF_SR_TEXTURE_REPEAT_T;
 
 	gf_node_set_private(node, ptr);
 	gf_node_set_callback_function(node, TraverseBackground2D);

@@ -347,7 +347,7 @@ void gf_sc_svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Tr
 	tr_state->bounds = rc;
 }
 
-void compositorr_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAllAttributes *atts, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix)
+void compositor_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAllAttributes *atts, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix)
 {
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {

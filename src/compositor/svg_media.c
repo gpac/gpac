@@ -297,14 +297,14 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props)) {
 			gf_path_get_bounds(stack->graph->path, &tr_state->bounds);
-			compositorr_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 			gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
 			compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 		}
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props) && ( *(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) ) {
 
-			compositorr_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
 			ctx = drawable_init_context_svg(stack->graph, tr_state);
 			if (!ctx || !ctx->aspect.fill_texture ) return;

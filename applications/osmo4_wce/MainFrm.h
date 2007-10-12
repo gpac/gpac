@@ -76,13 +76,17 @@ public:
 // Implementation
 public:
 	virtual ~CMainFrame();
+
+/*
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
+*/
 
 protected:  // control bar embedded members
-	CCeCommandBar	m_wndCommandBar;
+//	CCeCommandBar	m_wndCommandBar;
+	CCommandBar	m_wndCommandBar;
 
 	void CloseURL();
 	void ForwardMessage();

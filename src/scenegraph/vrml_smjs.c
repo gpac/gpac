@@ -489,14 +489,14 @@ void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner
 		if (field->on_event_in) field->on_event_in(parent);
 		else if (script_field && (field->eventType==GF_SG_EVENT_IN) ) {
 			gf_sg_script_event_in(parent, field);
-			gf_node_changed(parent, field);
+			gf_node_changed_internal(parent, field, 0);
 			return;
 		}
 		/*field has changed, set routes...*/
   if (parent->sgprivate->tag == TAG_ProtoNode)gf_sg_proto_check_field_change(parent, field->fieldIndex);
   else {
  		gf_node_event_out(parent, field->fieldIndex);
-	 	gf_node_changed(parent, field);
+	 	gf_node_changed_internal(parent, field, 0);
 	 }
 		return;
 	}
@@ -669,7 +669,11 @@ static JSBool field_toString(JSContext *c, JSObject *obj, uintN n, jsval *v, jsv
 	return JS_TRUE; 
 }
 
-
+static void vrml_node_register(GF_Node *node, GF_Node *parent)
+{
+	node->sgprivate->flags |= GF_NODE_HAS_BINDING;
+	gf_node_register(node, parent);
+}
 
 static JSBool SFNodeConstructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -730,7 +734,7 @@ static JSBool SFNodeConstructor(JSContext *c, JSObject *obj, uintN argc, jsval *
 		gf_node_init(new_node);
 	}
 
-	gf_node_register(new_node, NULL);
+	vrml_node_register(new_node, NULL);
 	field = NewJSField();
 	field->field.fieldType = GF_SG_VRML_SFNODE;
 	field->temp_node = new_node;
@@ -1814,7 +1818,7 @@ JSBool array_setElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 		new_n = *(GF_Node**)from->field.far_ptr;
 		if (new_n) {
 			gf_node_list_insert_child( (GF_ChildNodeItem **)ptr->field.far_ptr , new_n, ind);
-			gf_node_register(new_n, ptr->owner);
+			vrml_node_register(new_n, ptr->owner);
 		}
 		/*unregister previous node*/
 		if (prev_n) gf_node_unregister(prev_n, ptr->owner);
@@ -2446,7 +2450,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		} else if (JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) {
 			GF_Node *n = * (GF_Node**) ((GF_JSField *) JS_GetPrivate(c, obj))->field.far_ptr;
 			* ((GF_Node **)field->far_ptr) = n;
-			gf_node_register(n, owner);
+			vrml_node_register(n, owner);
 			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
@@ -2504,7 +2508,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 			child = * ((GF_Node**)from->field.far_ptr);
 
 			gf_node_list_add_child_last( (GF_ChildNodeItem **) field->far_ptr , child, &last);
-			gf_node_register(child, owner);
+			vrml_node_register(child, owner);
 		}
 		Script_FieldChanged(c, owner, parent, field);
 		return;
@@ -2624,7 +2628,6 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 	jsval newVal;
 	JSString *s;
 
-
 	/*native types*/
 	switch (field->fieldType) {
     case GF_SG_VRML_SFBOOL:
@@ -2663,7 +2666,12 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 		while ((obj = gf_list_enum(priv->js_cache, &i))) {
 			jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);
 			if (jsf && (jsf->owner==parent) && (jsf->field.fieldIndex == field->fieldIndex)) {
+
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] found cached jsobj 0x%08x (field %s) in script bank 0x%08x\n", obj, field->name, priv->js_cache) );
+				if (!jsf->reevaluate) return OBJECT_TO_JSVAL(obj);
+
 				/*we need to rebuild MF types where SF is a native type.*/
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Recomputing cached jsobj\n") );
 				switch (jsf->field.fieldType) {
 				case GF_SG_VRML_MFBOOL:
 				{
@@ -2740,10 +2748,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 				}
 					break;
 				case GF_SG_VRML_MFNODE:
-					/*for eventIn & exposedField fields, rebuild node list - we MUST do this
-					because we don't notify the script engine whenever a new node is inserted/replaced
-					in a node list*/
-					if ((field->eventType == GF_SG_EVENT_IN) || (field->eventType == GF_SG_EVENT_EXPOSED_FIELD)) {
+					{
 						GF_ChildNodeItem *f = *(GF_ChildNodeItem **) field->far_ptr;
 						u32 count = 0;
 						while (f) {
@@ -2763,7 +2768,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 							slot->temp_node = f->node;
 							slot->field.far_ptr = & slot->temp_node;
 							slot->field.fieldType = GF_SG_VRML_SFNODE;
-							gf_node_register(f->node, parent);
+							vrml_node_register(f->node, parent);
 							JS_SetPrivate(priv->js_ctx, pf, slot);
 
 							newVal = OBJECT_TO_JSVAL(pf);
@@ -2775,7 +2780,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 					}
 					break;
 				}
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] found cached jsobj 0x%08x (field %s) in script bank 0x%08x\n", obj, field->name, priv->js_cache) );
+				jsf->reevaluate = 0;
 				return OBJECT_TO_JSVAL(obj);
 			}
 		}
@@ -2966,7 +2971,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 			slot->field.far_ptr = & slot->temp_node;
 			slot->field.fieldType = GF_SG_VRML_SFNODE;
 
-			gf_node_register(n, parent);
+			vrml_node_register(n, parent);
 			JS_SetPrivate(priv->js_ctx, pf, slot);
 
 			//slot->obj = pf;
@@ -3424,6 +3429,31 @@ void gf_sg_ecmascript_del(JSContext *ctx)
 	}
 }
 
+static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info)
+{
+	JSObject *obj = NULL;
+	GF_ScriptPriv *priv;
+	u32 i, count, j;
+
+	count = gf_list_count(sg->scripts);
+	for (i=0; i<count; i++) {
+		GF_Node *p = gf_list_get(sg->scripts, i);
+		if ((p->sgprivate->tag!=TAG_MPEG4_Script) && (p->sgprivate->tag!=TAG_X3D_Script))
+			continue;
+
+		priv = (GF_ScriptPriv *)gf_node_get_private(p);
+		if (!priv->js_cache) continue;
+
+		j=0;
+		while ((obj = gf_list_enum(priv->js_cache, &j))) {
+			GF_JSField *jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);
+			if (jsf && (jsf->owner==node) && (jsf->field.fieldIndex == info->fieldIndex)) {
+				jsf->reevaluate = 1;
+			}
+		}
+	}
+}
+
 #endif
 
 
@@ -3436,6 +3466,7 @@ void gf_sg_set_script_action(GF_SceneGraph *scene, gf_sg_script_action script_ac
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 	scene->script_load = JSScript_Load;
+	scene->on_node_modified = JSScript_NodeModified;
 #endif
 
 }

@@ -144,5 +144,8 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 
 Bool visual_get_size_info(GF_TraverseState *tr_state, Fixed *surf_width, Fixed *surf_height);
 
+/*reset all appearance dirty state and visual registration info*/
+void visual_clean_contexts(GF_VisualManager *visual);
+
 #endif	/*_VISUAL_MANAGER_H_*/
 

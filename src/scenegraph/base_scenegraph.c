@@ -36,6 +36,9 @@ static void ReplaceDEFNode(GF_Node *FromNode, GF_Node *node, GF_Node *newNode, B
 static void ReplaceIRINode(GF_Node *FromNode, GF_Node *oldNode, GF_Node *newNode);
 #endif
 
+static void node_modif_stub(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info)
+{
+}
 
 GF_SceneGraph *gf_sg_new()
 {
@@ -58,6 +61,7 @@ GF_SceneGraph *gf_sg_new()
 	tmp->objects = gf_list_new();
 	tmp->listeners_to_add = gf_list_new();
 #endif
+	tmp->on_node_modified = node_modif_stub;
 	return tmp;
 }
 
@@ -1348,14 +1352,17 @@ void gf_node_init(GF_Node *node)
 }
 
 
-GF_EXPORT
-void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
+void gf_node_changed_internal(GF_Node *node, GF_FieldInfo *field, Bool notify_scripts)
 {
 	GF_SceneGraph *sg;
 	if (!node) return;
 
 	sg = node->sgprivate->scenegraph;
 	assert(sg);
+
+	/*signal changes in node to JS for MFFields*/
+	if (field && notify_scripts && (node->sgprivate->flags & GF_NODE_HAS_BINDING) && !gf_sg_vrml_is_sf_field(field->fieldType) ) 
+		sg->on_node_modified(sg, node, field);
 
 	/*internal nodes*/
 	if (gf_sg_vrml_node_changed(node, field)) return;
@@ -1364,8 +1371,16 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 #endif
 
 	/*force child dirty tag*/
-	if (field && ((field->fieldType==GF_SG_VRML_SFNODE) || (field->fieldType==GF_SG_VRML_MFNODE))) node->sgprivate->flags |= GF_SG_CHILD_DIRTY;
+	if (field && ( (field->fieldType==GF_SG_VRML_SFNODE) || (field->fieldType==GF_SG_VRML_MFNODE)) )
+		node->sgprivate->flags |= GF_SG_CHILD_DIRTY;
+
 	if (sg->NodeCallback) sg->NodeCallback(sg->userpriv, GF_SG_CALLBACK_MODIFIED, node, field);
+}
+
+GF_EXPORT
+void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
+{
+	gf_node_changed_internal(node, field, 1);
 }
 
 void gf_node_del(GF_Node *node)

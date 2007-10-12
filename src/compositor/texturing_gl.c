@@ -135,8 +135,7 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode)
 		break;
 	case TX_MODULATE:
 		if (txh->transparent) glEnable(GL_BLEND);
-		//glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 		break;
 	case TX_DECAL:
 	default:
@@ -530,10 +529,11 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 	Bool ret = 0;
 	gf_mx_init(*mx);
 
-	/*not converted (eg not YUV), native pixel format, flip it*/
-	if (!txh->tx_io->conv_data) {
-		gf_mx_add_scale(mx, FIX_ONE, -FIX_ONE, FIX_ONE);
-		ret = 1;
+	/*image not converted (eg not YUV), native pixel format, flip it - note that gradiens
+	are already built as OpenGL textures*/
+	if (!txh->tx_io->conv_data && !txh->compute_gradient_matrix) {
+//		gf_mx_add_scale(mx, FIX_ONE, -FIX_ONE, FIX_ONE);
+//		ret = 1;
 	}
 
 	/*WATCHOUT: GL_TEXTURE-RECTANGLE coords are w, h not 1.0, 1.0*/

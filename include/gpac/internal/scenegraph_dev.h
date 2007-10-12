@@ -70,15 +70,18 @@ typedef struct _parent_list
 } GF_ParentList;
 
 
-/*internal flags reserved for NodeID*/
+/*internal flag reserved for NodeID*/
 #define GF_NODE_IS_DEF			0x80000000	// 1<<31
+/*internal flag reserved for activate/deactivate*/
 #define GF_NODE_IS_DEACTIVATED	0x40000000	// 1<<30
+/*internal flag reserved for node with scripting bindings*/
+#define GF_NODE_HAS_BINDING		0x20000000	// 1<<29
 
 #ifdef GF_CYCLIC_TRAVERSE_ON
-#define GF_NODE_IN_TRAVERSE		0x20000000	//	1<<29
-#define GF_NODE_INTERNAL_FLAGS	0xE0000000
+#define GF_NODE_IN_TRAVERSE		0x10000000	//	1<<28
+#define GF_NODE_INTERNAL_FLAGS	0xF0000000
 #else
-#define GF_NODE_INTERNAL_FLAGS	0xC0000000
+#define GF_NODE_INTERNAL_FLAGS	0xE0000000
 #endif
 
 struct _node_interactive_ext
@@ -95,7 +98,7 @@ typedef struct _nodepriv
 {
 	/*node type*/
 	u16 tag;
-	/*number of instances of this node in the graph (VRML/MPEG-4 only*/
+	/*number of instances of this node in the graph (VRML/MPEG-4 only)*/
 	u16 num_instances;
 	/*node flags*/
 	u32 flags;
@@ -189,6 +192,8 @@ struct __tag_scene_graph
 
 	/*script loader*/
 	void (*script_load)(GF_Node *node);
+	/*callback to JS upon node modif*/
+	void (*on_node_modified)(struct __tag_scene_graph *sg, GF_Node *node, GF_FieldInfo *info);
 
 	u32 max_defined_route_id;
 
@@ -235,6 +240,7 @@ void gf_sg_parent_reset(GF_Node *pNode);
 
 void *gf_node_get_name_address(GF_Node*node);
 
+void gf_node_changed_internal(GF_Node *node, GF_FieldInfo *field, Bool notify_scripts);
 
 struct _route
 {
@@ -820,7 +826,6 @@ struct _scriptfield
 	void *pField;
 
 	Double last_route_time;
-
 	Bool activate_event_out;
 };
 
@@ -857,6 +862,8 @@ typedef struct
 	GF_ChildNodeItem *temp_list;
 	/*when not owned by a node*/
 	void *field_ptr;
+
+	Bool reevaluate;
 } GF_JSField;
 
 void gf_sg_script_to_node_field(JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);

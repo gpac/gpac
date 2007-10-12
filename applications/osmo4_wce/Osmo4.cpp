@@ -219,8 +219,10 @@ BOOL COsmo4::InitInstance()
 	pFrame->ShowWindow(m_nCmdShow);
 	pFrame->UpdateWindow();
 
+	TCHAR w_config_path[MAX_PATH];
 	char config_path[MAX_PATH];
-	CE_WideToChar((unsigned short *) (LPCTSTR) AfxGetApp()->m_pszHelpFilePath, (char *) config_path);
+	GetModuleFileName(NULL, w_config_path, MAX_PATH);
+	CE_WideToChar((u16 *) w_config_path, (char *) config_path);
 
 	while (config_path[strlen((char *) config_path)-1] != '\\') config_path[strlen((char *) config_path)-1] = 0;
 

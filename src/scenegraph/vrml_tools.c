@@ -725,28 +725,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 
 Bool gf_sg_vrml_is_sf_field(u32 FieldType)
 {
-	switch (FieldType) {
-	case GF_SG_VRML_SFBOOL:
-	case GF_SG_VRML_SFFLOAT:
-	case GF_SG_VRML_SFDOUBLE:
-	case GF_SG_VRML_SFTIME:
-	case GF_SG_VRML_SFINT32:
-	case GF_SG_VRML_SFSTRING:
-	case GF_SG_VRML_SFVEC3F:
-	case GF_SG_VRML_SFVEC3D:
-	case GF_SG_VRML_SFVEC2F:
-	case GF_SG_VRML_SFVEC2D:
-	case GF_SG_VRML_SFCOLOR:
-	case GF_SG_VRML_SFCOLORRGBA:
-	case GF_SG_VRML_SFROTATION:
-	case GF_SG_VRML_SFIMAGE:
-	case GF_SG_VRML_SFNODE:
-	case GF_SG_VRML_SFURL:
-	case GF_SG_VRML_SFCOMMANDBUFFER:
-		return 1;
-	default:
-		return 0;
-	}
+	return (FieldType<GF_SG_VRML_FIRST_MF);
 }
 
 /*********************************************************************

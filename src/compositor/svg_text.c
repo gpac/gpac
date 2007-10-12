@@ -44,7 +44,7 @@ static void svg_finalize_sort(DrawableContext *ctx, GF_TraverseState * tr_state)
 			ctx->drawable->mesh = new_mesh();
 			mesh_from_path(ctx->drawable->mesh, ctx->drawable->path);
 		}
-		visual_3d_draw_svg(ctx, tr_state);
+		visual_3d_draw_from_context(ctx, tr_state);
 		ctx->drawable = NULL;
 	} else 
 #endif
@@ -226,7 +226,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	
-	compositorr_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
+	compositor_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
 
 	if ( (st->prev_size != tr_state->svg_props->font_size->value) || 
 		 (st->prev_flags != *tr_state->svg_props->font_style) || 
@@ -385,7 +385,7 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	
-	compositorr_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
+	compositor_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
 
 	if ( (st->prev_size != tr_state->svg_props->font_size->value) || 
 		 (st->prev_flags != *tr_state->svg_props->font_style) || 
@@ -784,7 +784,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy){
 		return;
 	}
 	
-	compositorr_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
+	compositor_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
 
 	if ( (st->prev_size != tr_state->svg_props->font_size->value) || 
 		 (st->prev_flags != *tr_state->svg_props->font_style) || 
@@ -1024,7 +1024,7 @@ void textArea_tspan_traverse(GF_Node *node, GF_TraverseState *tr_state, Bool is_
 		return;
 	}
 	
-	compositorr_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
+	compositor_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
 	if ( (st->prev_size != tr_state->svg_props->font_size->value) || 
 		 (st->prev_flags != *tr_state->svg_props->font_style) || 
 		 (st->prev_anchor != *tr_state->svg_props->text_anchor) ||

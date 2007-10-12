@@ -153,7 +153,7 @@ static void Osmo4_progress_cbk(void *usr, char *title, u32 done, u32 total)
 
 #define W32_MIN_WIDTH 120
 
-static log_msg(char *msg)
+static void log_msg(char *msg)
 {
 	::MessageBox(NULL, msg, "GPAC", MB_OK);
 }
@@ -460,12 +460,16 @@ BOOL Osmo4::InitInstance()
 		}
 	}
 
+#if 0
 	// Standard initialization
 #ifdef _AFXDLL
 	Enable3dControls();			// Call this when using MFC in a shared DLL
 #else
 	Enable3dControlsStatic();	// Call this when linking to MFC statically
 #endif
+
+#endif
+
 	SetRegistryKey(_T("GPAC"));
 	CMainFrame* pFrame = new CMainFrame;
 	m_pMainWnd = pFrame;

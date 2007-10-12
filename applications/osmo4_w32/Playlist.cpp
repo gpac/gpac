@@ -25,14 +25,14 @@ PLEntry::PLEntry(CString url, char *path)
 		strcat(szPath, url);
 		m_url = strdup(szPath);
 	}
-	char *str = strrchr(url, '\\');
-	if (!str) str = strrchr(url, '/');
+	char *str = (char *) strrchr(url, '\\');
+	if (!str) str = (char *) strrchr(url, '/');
 	if (str && strlen(str+1)) {
 		m_disp_name = strdup(str+1);
 		str = strrchr(m_disp_name, '.');
 		if (str) str[0] = 0;
 	} else {
-		str = strstr(url, "://");
+		str = (char *) strstr(url, "://");
 		if (str) {
 			str += 3;
 			m_disp_name = strdup(str);
@@ -878,7 +878,7 @@ void Playlist::Truncate()
 
 void Playlist::QueueURL(CString filename)
 {
-	char *ext = strrchr(filename, '.');
+	char *ext = (char *) strrchr(filename, '.');
 	if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls")) ) {
 		OpenPlayList(filename);
 	} else {

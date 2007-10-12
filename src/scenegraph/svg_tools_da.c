@@ -386,16 +386,16 @@ u32 gf_svg_get_modification_flags(SVG_Element *n, GF_FieldInfo *info)
 	case SVG_Paint_datatype: 
 		if (info->fieldIndex == TAG_SVG_ATT_fill)	return GF_SG_SVG_FILL_DIRTY;
 		if (info->fieldIndex == TAG_SVG_ATT_stroke) return GF_SG_SVG_STROKE_DIRTY;
-		if (info->fieldIndex == TAG_SVG_ATT_solid_color) return GF_SG_SVG_SOLIDCOLOR_DIRTY;
-		if (info->fieldIndex == TAG_SVG_ATT_stop_color) return GF_SG_SVG_STOPCOLOR_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_solid_color) return GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_stop_color) return GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
 		if (info->fieldIndex == TAG_SVG_ATT_color) return GF_SG_SVG_COLOR_DIRTY;
 		break;
 	case SVG_Number_datatype:
 		if (info->fieldIndex == TAG_SVG_ATT_opacity) return GF_SG_SVG_OPACITY_DIRTY;
 		if (info->fieldIndex == TAG_SVG_ATT_fill_opacity) return GF_SG_SVG_FILLOPACITY_DIRTY;
 		if (info->fieldIndex == TAG_SVG_ATT_stroke_opacity) return GF_SG_SVG_STROKEOPACITY_DIRTY;
-		if (info->fieldIndex == TAG_SVG_ATT_solid_opacity) return GF_SG_SVG_SOLIDOPACITY_DIRTY;
-		if (info->fieldIndex == TAG_SVG_ATT_stop_opacity) return GF_SG_SVG_STOPOPACITY_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_solid_opacity) return GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_stop_opacity) return GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
 		if (info->fieldIndex == TAG_SVG_ATT_line_increment) return GF_SG_SVG_LINEINCREMENT_DIRTY;
 		if (info->fieldIndex == TAG_SVG_ATT_stroke_miterlimit) return GF_SG_SVG_STROKEMITERLIMIT_DIRTY;
 		break;
@@ -577,38 +577,38 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 		if (all_atts->solid_color->type == SVG_PAINT_COLOR && 
 			all_atts->solid_color->color.type == SVG_COLOR_CURRENTCOLOR &&
 			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
-			inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_DIRTY;
+			inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
 		}
 	} else if (!all_atts->solid_color) {
 		render_svg_props->solid_color = NULL;
 	} else {
-		inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_DIRTY;
+		inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
 	}
 	if (all_atts->solid_opacity && all_atts->solid_opacity->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->solid_opacity = all_atts->solid_opacity;
 	} else if (!all_atts->solid_opacity) {
 		render_svg_props->solid_opacity = NULL;
 	} else {
-		inherited_flags_mask |= GF_SG_SVG_SOLIDOPACITY_DIRTY;
+		inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
 	}
 	if (all_atts->stop_color && all_atts->stop_color->type != SVG_PAINT_INHERIT) {
 		render_svg_props->stop_color = all_atts->stop_color;
 		if (all_atts->stop_color->type == SVG_PAINT_COLOR && 
 			all_atts->stop_color->color.type == SVG_COLOR_CURRENTCOLOR &&
 			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
-			inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_DIRTY;
+			inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
 		}
 	} else if (!all_atts->stop_color) {
 		render_svg_props->stop_color = NULL;
 	} else {
-		inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_DIRTY;
+		inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
 	}
 	if (all_atts->stop_opacity && all_atts->stop_opacity->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->stop_opacity = all_atts->stop_opacity;
 	} else if (!all_atts->stop_opacity) {
 		render_svg_props->stop_opacity = NULL;
 	} else {
-		inherited_flags_mask |= GF_SG_SVG_STOPOPACITY_DIRTY;
+		inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
 	}
 	if (all_atts->stroke && all_atts->stroke->type != SVG_PAINT_INHERIT) {
 		render_svg_props->stroke = all_atts->stroke;

@@ -877,7 +877,7 @@ SOURCE=..\..\src\compositor\camera.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\compositor\camera.h
+SOURCE=..\..\include\gpac\internal\camera.h
 # End Source File
 # Begin Source File
 
@@ -925,7 +925,7 @@ SOURCE=..\..\src\compositor\mesh.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\compositor\mesh.h
+SOURCE=..\..\include\gpac\internal\mesh.h
 # End Source File
 # Begin Source File
 
