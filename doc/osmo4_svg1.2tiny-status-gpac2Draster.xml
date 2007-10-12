@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="application/xslt+xml" href="status2html.xslt"?>
 <!-- shortName=A unique abbreviation to be used for a file name for this file             -->
 <!--        and column header for the matrix.  MUST be a legal xml id prefix and fileName -->
 <!--       (shortName.xml) please make it 3-12 characters and do not use spaces.          -->
@@ -60,7 +61,7 @@
 	<test name="animate-elem-62-t" revision="1.2" status="PARTIAL" comment="No wallclock events (not in tiny), negative offsets in end based time is not supported"/>
 	<test name="animate-elem-63-t" revision="1.2" status="PARTIAL" comment="Negative offset in end attribute"/>
 	<test name="animate-elem-64-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-65-t" revision="1.6" status="OK" comment="min < repeatDur (same as ASV and Opera)"/>
+	<test name="animate-elem-65-t" revision="1.6" status="OK" comment="min less than repeatDur (same as ASV and Opera)"/>
 	<test name="animate-elem-66-t" revision="1.6" status="OK" comment=""/>
 	<test name="animate-elem-67-t" revision="1.6" status="OK" comment="Same behavior in Opera"/>
 	<test name="animate-elem-68-t" revision="1.6" status="OK" comment=""/>
@@ -78,21 +79,21 @@
   <test name="animate-elem-86-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-201-t" revision="1.3" status="PARTIAL" comment=""/>
 	<test name="animate-elem-202-t" revision="1.3" status="OK" comment=""/>
-	<test name="animate-elem-203-t" revision="1.3" status="PARTIAL" comment="Precision problem"/>
+	<test name="animate-elem-203-t" revision="1.3" status="PARTIAL" comment="Precision problem in additive animations"/>
 	<test name="animate-elem-204-t" revision="1.1" status="PARTIAL" comment="Misalignement of shapes during the animation"/>
 	<test name="animate-elem-205-t" revision="1.3" status="PARTIAL" comment="Misalignement of shapes during the animation"/>
 	<test name="animate-elem-206-t" revision="1.3" status="PARTIAL" comment="Misalignement of shapes during the animation"/>
 	<test name="animate-elem-207-t" revision="1.2" status="OK" comment=""/>
-	<test name="animate-elem-208-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="animate-elem-209-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-208-t" revision="1.1" status="FAIL" comment="animateMotion bug"/>
+	<test name="animate-elem-209-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateMotions"/>
 	<test name="animate-elem-210-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-211-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="animate-elem-212-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="animate-elem-213-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="animate-elem-214-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="animate-elem-215-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="animate-elem-216-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="animate-elem-217-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test name="animate-elem-211-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test name="animate-elem-212-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test name="animate-elem-213-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test name="animate-elem-214-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test name="animate-elem-215-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test name="animate-elem-216-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test name="animate-elem-217-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
 	<test name="animate-elem-218-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-219-t" revision="1.1" status="PARTIAL" comment="attributeType not supported"/>
 	<test name="animate-elem-220-t" revision="1.2" status="PARTIAL" comment="calcMode spline not supported"/>
@@ -118,8 +119,8 @@
 	<test name="coords-constr-201-t" revision="1.4" status="OK" comment=""/>
 	<test name="coords-constr-202-t" revision="1.4" status="OK" comment=""/>
 	<test name="coords-constr-203-t" revision="1.4" status="OK" comment=""/>
-	<test name="coords-constr-204-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="coords-pAR-201-t" revision="1.4" status="FAIL" comment=""/>
+	<test name="coords-constr-204-t" revision="1.4" status="FAIL" comment="order between animateMotion and transform=ref"/>
+	<test name="coords-pAR-201-t" revision="1.4" status="OK" comment=""/>
 
 	<test name="extend-namespace-02-t" revision="1.2" status="OK" comment=""/>
 
@@ -145,14 +146,14 @@
 	<test name="interact-order-04-t" revision="1.8" status="OK" comment=""/>
 	<test name="interact-order-05-t" revision="1.8" status="OK" comment=""/>
 	<test name="interact-order-06-t" revision="1.8" status="PARTIAL" comment="Strings are not selectable"/>
-	<test name="interact-pevents-01-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="interact-pevents-02-t" revision="1.8" status="FAIL" comment=""/>
-	<test name="interact-pevents-03-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="interact-pevents-04-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="interact-pevents-05-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="interact-pevents-06-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="interact-pevents-07-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="interact-pevents-08-t" revision="1.7" status="FAIL" comment=""/>
+	<test name="interact-pevents-01-t" revision="1.2" status="FAIL" comment="Pointer events not supported"/>
+	<test name="interact-pevents-02-t" revision="1.8" status="FAIL" comment="Pointer events not supported"/>
+	<test name="interact-pevents-03-t" revision="1.2" status="FAIL" comment="Pointer events not supported"/>
+	<test name="interact-pevents-04-t" revision="1.2" status="FAIL" comment="Pointer events not supported"/>
+	<test name="interact-pevents-05-t" revision="1.5" status="FAIL" comment="Pointer events not supported"/>
+	<test name="interact-pevents-06-t" revision="1.5" status="FAIL" comment="Pointer events not supported"/>
+	<test name="interact-pevents-07-t" revision="1.5" status="FAIL" comment="Pointer events not supported"/>
+	<test name="interact-pevents-08-t" revision="1.7" status="FAIL" comment="Pointer events not supported"/>
 	<test name="interact-zoom-01-t" revision="1.8" status="OK" comment=""/>
 	<test name="interact-zoom-02-t" revision="1.8" status="OK" comment=""/>
 	<test name="interact-zoom-03-t" revision="1.9" status="OK" comment=""/>
@@ -161,7 +162,7 @@
 	<test name="interact-event-203-t" revision="1.4" status="OK" comment=""/>
 	<test name="interact-event-204-t" revision="1.3" status="OK" comment=""/>
 
-	<test name="interact-focus-201-t" revision="1.7" status="OK" comment="Have to use previous focus"/>
+	<test name="interact-focus-201-t" revision="1.7" status="OK" comment="According to our interpretation of the spec, this test requires the use of previous focus to see any modifications."/>
 	<test name="interact-focus-202-t" revision="1.6" status="OK" comment=""/>
 	<test name="interact-focus-203-t" revision="1.5" status="OK" comment="No viewport modification to follow focus"/>
 	<test name="interact-focus-204-t" revision="1.6" status="OK" comment=""/>
@@ -171,7 +172,7 @@
 	<test name="interact-focus-208-t" revision="1.2" status="OK" comment=""/>
 	<test name="interact-focus-209-t" revision="1.2" status="OK" comment=""/>
 	<test name="interact-focus-210-t" revision="1.5" status="PARTIAL" comment="top row doesn't turn red"/>
-	<test name="interact-focus-211-t" revision="1.7" status="OK" comment="Use focus prev"/>
+	<test name="interact-focus-211-t" revision="1.7" status="OK" comment="According to our interpretation of the spec, this test requires the use of previous focus to see any modifications."/>
 	<test name="interact-focus-212-t" revision="1.4" status="OK" comment=""/>
 
 	<test name="jpeg-required-201-t" revision="1.3" status="OK" comment=""/>
