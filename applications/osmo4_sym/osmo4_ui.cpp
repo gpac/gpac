@@ -316,7 +316,7 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 	{
 		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "Compositor", "ForceOpenGL");
 		Bool use_gl = (opt && !strcmp(opt, "yes")) ? 1 : 0;
-		gf_cfg_set_key(iAppView->m_user.config, "Compositor", "ForceOpenGL", use_gl ? "no" : "yes);
+		gf_cfg_set_key(iAppView->m_user.config, "Compositor", "ForceOpenGL", use_gl ? "no" : "yes");
 		gf_term_set_option(iAppView->m_term, GF_OPT_USE_OPENGL, !use_gl);
 	}
 		break;
@@ -575,8 +575,8 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 		aMenuPane->Reset();
 		DECLARE_MENU_ITEM(_L("Keep Original"), EOsmo4AROriginal, 0, 0, 0);
 		DECLARE_MENU_ITEM(_L("Fill Screen"), EOsmo4ARFillScreen, 0, 0, 0);
-		DECLARE_MENU_ITEM(_L("Ratio 4/3"), EOsmo4AR4_3, 0, 0, 0);
-		DECLARE_MENU_ITEM(_L("Ratio 16/9"), EOsmo4AR16_9, 0, 0, 0);
+		DECLARE_MENU_ITEM(_L("Ratio 4-3"), EOsmo4AR4_3, 0, 0, 0);
+		DECLARE_MENU_ITEM(_L("Ratio 16-9"), EOsmo4AR16_9, 0, 0, 0);
 		return;
 	}
 }

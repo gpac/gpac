@@ -97,6 +97,9 @@ public:
 
     DECLARE_REGISTRY_RESOURCEID(IDR_GPAXPLUGIN)
     DECLARE_PROTECT_FINAL_CONSTRUCT()
+#if (_MSC_VER >= 1300)
+	DECLARE_OLEMISC_STATUS(OLEMISC_ACTSLIKEBUTTON | OLEMISC_ACTIVATEWHENVISIBLE)
+#endif
 
     static LPCTSTR GetWindowClassName() { return TEXT("GPAC ActiveX"); }
 
@@ -118,7 +121,8 @@ public:
 	COM_INTERFACE_ENTRY_IMPL(IOleInPlaceActiveObject)
     COM_INTERFACE_ENTRY_IMPL(IOleInPlaceObjectWindowless)
 	
-	COM_INTERFACE_ENTRY(IObjectSafety)
+//	COM_INTERFACE_ENTRY(IObjectSafety)
+	COM_INTERFACE_ENTRY_IID(IID_IObjectSafety, IObjectSafety)
 	COM_INTERFACE_ENTRY(IPersistPropertyBag)
     COM_INTERFACE_ENTRY_IMPL_IID(IID_IPersist, IPersistPropertyBag)
 	
@@ -129,7 +133,6 @@ public:
 	*/
 
 	COM_INTERFACE_ENTRY(IProvideClassInfo2)
-
     COM_INTERFACE_ENTRY(IPersistStreamInit)
     COM_INTERFACE_ENTRY2(IPersist, IPersistStreamInit)
     COM_INTERFACE_ENTRY(ISupportErrorInfo)
@@ -171,8 +174,12 @@ public:
             };
         for (int i=0; i<sizeof(arr)/sizeof(arr[0]); i++)
         {
-            if (::InlineIsEqualGUID(*arr[i], riid))
-                return S_OK;
+#if (_MSC_VER < 1300)
+			if (::ATL::InlineIsEqualGUID(*arr[i], riid))
+#else
+			if (::InlineIsEqualGUID(*arr[i], riid))
+#endif
+				return S_OK;
         }
         return S_FALSE;
     }

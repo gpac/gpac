@@ -30,8 +30,6 @@
 
 #include "drawable.h"
 
-#define MPEG4_USE_GROUP_CACHE
-
 
 typedef struct _group_cache
 {
@@ -55,9 +53,6 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state);
 
 
-#ifdef MPEG4_USE_GROUP_CACHE
-Bool mpeg4_group2d_cache_traverse(GF_Node *node, struct _mpeg4_group2d *group, GF_TraverseState *tr_state);
-#endif
 
 #endif	/*OFFSCREEN_CACHE_H*/
 

@@ -24,8 +24,6 @@ isom_in.mmp
 laser_dec.mmp
 mp3_in.mmp
 odf_dec.mmp
-render2d.mmp
-render3d.mmp
 rtp_in.mmp
 saf_in.mmp
 soft_raster.mmp
@@ -35,4 +33,4 @@ xvid_dec.mmp
 
 
 PRJ_PLATFORMS
-DEFAULT
+GCCE
