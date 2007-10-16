@@ -85,8 +85,12 @@ public:
 */
 
 protected:  // control bar embedded members
-//	CCeCommandBar	m_wndCommandBar;
+
+#if (_MSC_VER >= 1300)
 	CCommandBar	m_wndCommandBar;
+#else
+	CCeCommandBar	m_wndCommandBar;
+#endif
 
 	void CloseURL();
 	void ForwardMessage();
