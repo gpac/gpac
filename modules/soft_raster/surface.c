@@ -524,6 +524,9 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 	return GF_OK;
 }
 
+static void gray_spans_stub(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+{
+}
 
 GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 {
@@ -538,6 +541,8 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 
 	/*setup ft raster calllbacks*/
 	if (!setup_grey_callback(surf)) return GF_OK;
+
+//	surf->ftparams.gray_spans = gray_spans_stub;
 
 	get_surface_world_matrix(surf, &mat);
 

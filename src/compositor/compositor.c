@@ -371,9 +371,16 @@ static GF_Compositor *gf_sc_create(GF_User *user)
 		}
 		if (tmp->rasterizer) gf_cfg_set_key(user->config, "Compositor", "Raster2D", tmp->rasterizer->module_name);
 	}
+	if (!tmp->rasterizer) {
+		tmp->video_out->Shutdown(tmp->video_out);
+		gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
+		free(tmp);
+		return NULL;
+	}
 
 	/*and init*/
 	if (gf_sc_load(tmp) != GF_OK) {
+		gf_modules_close_interface((GF_BaseInterface *)tmp->rasterizer);
 		tmp->video_out->Shutdown(tmp->video_out);
 		gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
 		free(tmp);
@@ -633,6 +640,10 @@ static void gf_sc_reset(GF_Compositor *compositor)
 		}
 		visual->last_prev_entry = NULL;
 		visual->to_redraw.count = 0;
+
+		/*reset the surface as well*/
+		if (visual->raster_surface) compositor->rasterizer->surface_delete(visual->raster_surface);
+		visual->raster_surface = NULL;
 	}
 
 	gf_list_reset(compositor->sensors);
