@@ -288,8 +288,8 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	if (!compositor->has_size_info && !(compositor->override_size_flags & 2) ) {
 		compositor->output_width = compositor->display_width;
 		compositor->output_height = compositor->display_height;
-		compositor->visual->width = compositor->output_width;
-		compositor->visual->height = compositor->output_height;
+		compositor->vp_width = compositor->visual->width = compositor->output_width;
+		compositor->vp_height = compositor->visual->height = compositor->output_height;
 		compositor_set_ar_scale(compositor, FIX_ONE, FIX_ONE);
 		/*and resize hardware surface*/
 		evt.type = GF_EVENT_VIDEO_SETUP;

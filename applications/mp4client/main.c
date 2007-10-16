@@ -976,7 +976,7 @@ int main (int argc, char **argv)
 	fprintf(stdout, "Loading GPAC Terminal ... ");	
 	term = gf_term_new(&user);
 	if (!term) {
-		fprintf(stdout, "\nInit error - check you have at least one video out...\nFound modules:\n");
+		fprintf(stdout, "\nInit error - check you have at least one video out and one rasterizer...\nFound modules:\n");
 		list_modules(user.modules);
 		gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
