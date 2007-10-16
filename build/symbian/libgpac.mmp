@@ -276,7 +276,11 @@ SOURCE x3d_geometry.c
 
 SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
 
-LIBRARY euser.lib estlib.lib ezlib.lib hal.lib libgles_cm.lib
+LIBRARY euser.lib estlib.lib ezlib.lib hal.lib
+
+//comment if you don't have OpenGL ES 
+MACRO GPAC_USE_OGL_ES
+LIBRARY libgles_cm.lib
 
 #if defined(WINS)
     deffile ..\..\build\symbian\libgpac_symbian.def

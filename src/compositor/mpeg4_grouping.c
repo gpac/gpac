@@ -36,7 +36,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	Bool group_cached;
 #endif
 	GF_List *sensor_backup;
-	GF_ChildNodeItem *l;
+	GF_ChildNodeItem *child;
 
 	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
 		/*never trigger bounds recompute in 2D since we don't cull 2D groups*/
@@ -46,13 +46,13 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
 			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
 		} else {
-			l = ((GF_ParentNode *)node)->children;
-			while (l) {
-				if (compositor_mpeg4_is_sensor_node(l->node)) {
+			child = ((GF_ParentNode *)node)->children;
+			while (child) {
+				if (compositor_mpeg4_is_sensor_node(child->node)) {
 					group->flags |= GROUP_HAS_SENSORS;
 					break;
 				}
-				l = l->next;
+				child = child->next;
 			}
 		}
 	}
@@ -94,28 +94,28 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
 		} else {
 			/*add sensor(s) to traversing state*/
-			l = ((GF_ParentNode *)node)->children;
-			while (l) {
-				hsens = compositor_mpeg4_get_sensor_handler(l->node);
+			child = ((GF_ParentNode *)node)->children;
+			while (child) {
+				hsens = compositor_mpeg4_get_sensor_handler(child->node);
 				if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
-				l = l->next;
+				child = child->next;
 			}
 		}
 	}
 
 
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
+		child = ((GF_ParentNode *)node)->children;
 		split_text_backup = tr_state->text_split_mode;
-		if (tr_state->text_split_mode && (gf_node_list_get_count(l)>1) ) tr_state->text_split_mode = 0;
+		if (tr_state->text_split_mode && (gf_node_list_get_count(child)>1) ) tr_state->text_split_mode = 0;
 		group->flags &= ~GROUP_SKIP_CULLING;
 		group->bounds.width = group->bounds.height = 0;
 		tr_state->bounds.width = tr_state->bounds.height = 0;
 #ifndef GPAC_DISABLE_3D
 		tr_state->bbox.is_set = 0;
 #endif		
-		l = ((GF_ParentNode *)node)->children;
-		while (l) {
-			gf_node_traverse(l->node, tr_state);
+		while (child) {
+			gf_node_traverse(child->node, tr_state);
 			if (tr_state->disable_cull) {
 				group->flags |= GROUP_SKIP_CULLING;
 				tr_state->disable_cull = 0;
@@ -129,7 +129,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 #endif
 			gf_rect_union(&group->bounds, &tr_state->bounds);
 			tr_state->bounds.width = tr_state->bounds.height = 0;
-			l = l->next;
+			child = child->next;
 		}
 
 		tr_state->bounds = group->bounds;
@@ -138,10 +138,10 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 			tr_state->disable_cull = 1;
 		tr_state->text_split_mode = split_text_backup;
 	} else {
-		l = ((GF_ParentNode *)node)->children;
-		while (l) {
-			gf_node_traverse(l->node, tr_state);
-			l = l->next;
+		child = ((GF_ParentNode *)node)->children;
+		while (child) {
+			gf_node_traverse(child->node, tr_state);
+			child = child->next;
 		} 
 	}
 
@@ -159,7 +159,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 	Bool split_text_backup;
 	GF_List *sensor_backup;
 	GF_Node *child;
-	GF_ChildNodeItem *l;
+	GF_ChildNodeItem *list;
 
 	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
 		/*never trigger bounds recompute in 2D since we don't cull 2D groups*/
@@ -169,10 +169,10 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
 			group->flags |= GROUP_HAS_SENSORS;
 		} else {
-			l = ((GF_ParentNode *)node)->children;
-			count = gf_node_list_get_count(l);
+			list = ((GF_ParentNode *)node)->children;
+			count = gf_node_list_get_count(list);
 			for (i=0; i<count; i++) {
-				child = gf_node_list_get_child(l, positions[i]);
+				child = gf_node_list_get_child(list, positions[i]);
 				if (compositor_mpeg4_is_sensor_node(child)) {
 					group->flags |= GROUP_HAS_SENSORS;
 					break;
@@ -204,28 +204,28 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 
 
 		/*add sensor(s) to traversing state*/
-		l = ((GF_ParentNode *)node)->children;
-		count = gf_node_list_get_count(l);
+		list = ((GF_ParentNode *)node)->children;
+		count = gf_node_list_get_count(list);
 		for (i=0; i<count; i++) {
-			child = gf_node_list_get_child(l, positions[i]);
+			child = gf_node_list_get_child(list, positions[i]);
 			hsens = compositor_mpeg4_get_sensor_handler(child);
 			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
 		}
 	}
 
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
+		list = ((GF_ParentNode *)node)->children;
 		split_text_backup = tr_state->text_split_mode;
-		if (tr_state->text_split_mode && (gf_node_list_get_count(l)>1) ) tr_state->text_split_mode = 0;
+		if (tr_state->text_split_mode && (gf_node_list_get_count(list)>1) ) tr_state->text_split_mode = 0;
 		group->flags &= ~GROUP_SKIP_CULLING;
 		group->bounds.width = group->bounds.height = 0;
 		tr_state->bounds.width = tr_state->bounds.height = 0;
 #ifndef GPAC_DISABLE_3D
 		tr_state->bbox.is_set = 0;
 #endif		
-		l = ((GF_ParentNode *)node)->children;
-		count = gf_node_list_get_count(l);
+		count = gf_node_list_get_count(list);
 		for (i=0; i<count; i++) {
-			child = gf_node_list_get_child(l, positions[i]);
+			child = gf_node_list_get_child(list, positions[i]);
 			gf_node_traverse(child, tr_state);
 			if (tr_state->disable_cull) {
 				group->flags |= GROUP_SKIP_CULLING;
@@ -247,10 +247,10 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 			tr_state->disable_cull = 1;
 		tr_state->text_split_mode = split_text_backup;
 	} else {
-		l = ((GF_ParentNode *)node)->children;
-		count = gf_node_list_get_count(l);
+		list = ((GF_ParentNode *)node)->children;
+		count = gf_node_list_get_count(list);
 		for (i=0; i<count; i++) {
-			child = gf_node_list_get_child(l, positions[i]);
+			child = gf_node_list_get_child(list, positions[i]);
 			gf_node_traverse(child, tr_state);
 		} 
 	}

@@ -42,8 +42,6 @@
 "Epoc32\release\GCCE\UREL\gm_laser_dec.dll"           -"c:\sys\bin\gm_laser_dec.dll"
 "Epoc32\release\GCCE\UREL\gm_mp3_in.dll"           -"c:\sys\bin\gm_mp3_in.dll"
 "Epoc32\release\GCCE\UREL\gm_odf_dec.dll"           -"c:\sys\bin\gm_odf_dec.dll"
-"Epoc32\release\GCCE\UREL\gm_render2d.dll"           -"c:\sys\bin\gm_render2d.dll"
-"Epoc32\release\GCCE\UREL\gm_render3d.dll"           -"c:\sys\bin\gm_render3d.dll"
 "Epoc32\release\GCCE\UREL\gm_rtp_in.dll"           -"c:\sys\bin\gm_rtp_in.dll"
 "Epoc32\release\GCCE\UREL\gm_saf_in.dll"           -"c:\sys\bin\gm_saf_in.dll"
 "Epoc32\release\GCCE\UREL\gm_soft_raster.dll"           -"c:\sys\bin\gm_soft_raster.dll"

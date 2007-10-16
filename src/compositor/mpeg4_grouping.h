@@ -22,10 +22,12 @@
  *
  */
 
-#ifndef GROUPING_H
-#define GROUPING_H
+#ifndef MPEG4_GROUPING_H
+#define MPEG4_GROUPING_H
 
-#include "offscreen_cache.h"
+#include <gpac/internal/compositor_dev.h>
+
+#define MPEG4_USE_GROUP_CACHE
 
 enum
 {
@@ -62,6 +64,11 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 /*traverse all children of the node with the given traversing order*/
 void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, u32 *positions);
 
+
+
+#ifdef MPEG4_USE_GROUP_CACHE
+Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state);
+#endif
 
 #ifndef GPAC_DISABLE_3D
 
@@ -150,5 +157,5 @@ void parent_node_child_traverse(ChildGroup *cg, GF_TraverseState *tr_state);
 void parent_node_child_traverse_matrix(ChildGroup *cg, GF_TraverseState *tr_state, GF_Matrix2D *mat2D);
 
 
-#endif
+#endif	/*MPEG4_GROUPING_H*/
 
