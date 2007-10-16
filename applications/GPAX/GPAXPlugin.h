@@ -40,7 +40,10 @@
 #include <gpac/module.h>
 #include <gpac/options.h>
 
+#if (_MSC_VER >= 1300)
 using namespace ATL;
+#endif
+
 
 Bool GPAX_EventProc(void *ptr, GF_Event *evt);
 
