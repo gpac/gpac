@@ -59,21 +59,6 @@ GF_Err gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, XMLRI *iri)
 	return e;
 }
 
-GF_EXPORT
-Bool gf_term_check_iri_change(GF_Terminal *term, MFURL *url, XMLRI *iri)
-{
-	if (iri->type==XMLRI_STREAMID) {
-		if (!url->count) return 1;
-		if (url->vals[0].OD_ID!=iri->lsr_stream_id) return 1;
-		return 0;
-	}
-	if (url->count && !iri->string) return 1;
-	if (!url->count && iri->string) return 1;
-	if (!url->count) return 0;
-	if (!strcmp(url->vals[0].url, iri->string)) return 0;
-	return 1;
-}
-
 
 /* Creates a subscene from the xlink:href */
 static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlinkp, SMILSyncAttributesPointers *syncp, Bool use_sync)

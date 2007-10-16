@@ -502,7 +502,7 @@ static void nav_set_zoom_trans_2d(GF_VisualManager *visual, Fixed zoom, Fixed dx
 
 static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *ev)
 {
-	Fixed x, y, dx, dy, key_trans, key_rot, zoom;
+	Fixed x, y, dx, dy, key_trans, key_rot, zoom, new_zoom;
 	u32 navigation_mode;
 	s32 key_inv;
 	Bool is_pixel_metrics = visual->compositor->traverse_state->pixel_metrics;
@@ -547,6 +547,17 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 			visual->compositor->grab_x = x;
 			visual->compositor->grab_y = y;
 			visual->compositor->navigation_grabbed = 1;
+			/*update zoom center*/
+			if (keys & GF_KEY_MOD_CTRL) {
+				if (visual->center_coords) {
+					visual->compositor->trans_x -= visual->compositor->grab_x;
+					visual->compositor->trans_y -= visual->compositor->grab_y;
+				} else {
+					visual->compositor->trans_x -= visual->compositor->grab_x - visual->width/2;
+					visual->compositor->trans_y += visual->height/2 - visual->compositor->grab_y;
+				}
+				nav_set_zoom_trans_2d(visual, visual->compositor->zoom, 0, 0);
+			}
 			return 0;
 		}
 		break;
@@ -558,15 +569,23 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 		}
 		break;
 
+	case GF_EVENT_MOUSEWHEEL:
+		if (navigation_mode != GF_NAVIGATE_SLIDE) return 0;
+		new_zoom = zoom + INT2FIX(ev->mouse.wheel_pos)/10;
+		nav_set_zoom_trans_2d(visual, new_zoom, 0, 0);
+		return 1;
+
 	case GF_EVENT_MOUSEMOVE:
 		if (!visual->compositor->navigation_grabbed) return 0;
 		switch (navigation_mode) {
 		case GF_NAVIGATE_SLIDE:
 			if (keys & GF_KEY_MOD_CTRL) {
-				Fixed new_zoom = zoom;
-				if (new_zoom > FIX_ONE) new_zoom += dy/20;
-				else new_zoom += dy/80;
-				nav_set_zoom_trans_2d(visual, new_zoom, 0, 0);
+				if (dy) {
+					new_zoom = zoom;
+					if (new_zoom > FIX_ONE) new_zoom += dy/20;
+					else new_zoom += dy/80;
+					nav_set_zoom_trans_2d(visual, new_zoom, 0, 0);
+				}
 			} else {
 				nav_set_zoom_trans_2d(visual, zoom, dx, dy);
 			}

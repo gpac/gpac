@@ -607,8 +607,12 @@ Fixed gf_sc_svg_convert_length_to_display(GF_Compositor *compositor, SVG_Length 
 
 void compositor_set_ar_scale(GF_Compositor *compositor, Fixed scaleX, Fixed scaleY)
 {
+	compositor->trans_x = gf_muldiv(compositor->trans_x, scaleX, compositor->scale_x);
+	compositor->trans_y = gf_muldiv(compositor->trans_y, scaleY, compositor->scale_y);
+
 	compositor->scale_x = scaleX;
 	compositor->scale_y = scaleY;
+
 	compositor_2d_set_user_transform(compositor, compositor->zoom, compositor->trans_x, compositor->trans_y, 1);
 }
 

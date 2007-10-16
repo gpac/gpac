@@ -235,6 +235,20 @@ static void svg_play_texture(SVG_video_stack *stack, SVGAllAttributes *atts)
 		lock_scene);
 }
 
+static Bool svg_check_iri_change(GF_Terminal *term, MFURL *url, XMLRI *iri)
+{
+	if (iri->type==XMLRI_STREAMID) {
+		if (!url->count) return 1;
+		if (url->vals[0].OD_ID!=iri->lsr_stream_id) return 1;
+		return 0;
+	}
+	if (url->count && !iri->string) return 1;
+	if (!url->count && iri->string) return 1;
+	if (!url->count) return 0;
+	if (!strcmp(url->vals[0].url, iri->string)) return 0;
+	return 1;
+}
+
 static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 {
 	/*video stack is just an extension of image stack, type-casting is OK*/
@@ -277,22 +291,26 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node)) {
 		GF_FieldInfo href_info;
-		SVG_Build_Bitmap_Graph((SVG_video_stack*)gf_node_get_private(node), tr_state);
 		/*if open and changed, stop and play*/
 		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
-			if (gf_term_check_iri_change(stack->txh.compositor->term, &stack->txurl, href_info.far_ptr)) {
+			if (svg_check_iri_change(stack->txh.compositor->term, &stack->txurl, href_info.far_ptr)) {
 				const char *cache_dir = gf_cfg_get_key(stack->txh.compositor->user->config, "General", "CacheDirectory");
 				gf_svg_store_embedded_data(href_info.far_ptr, cache_dir, "embedded_");
 
-				if (gf_term_check_iri_change(stack->txh.compositor->term, &stack->txurl, href_info.far_ptr) == GF_OK) {
+				if (svg_check_iri_change(stack->txh.compositor->term, &stack->txurl, href_info.far_ptr) ) {
 					gf_term_set_mfurl_from_uri(stack->txh.compositor->term, &(stack->txurl), href_info.far_ptr);
+					stack->txh.width = stack->txh.height = 0;
 					svg_play_texture(stack, &all_atts);
 				}
 			} 
 		}
-		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
+		/*do not clear dirty state until the image is loaded*/
+		if (stack->txh.width) {
+			gf_node_dirty_clear(node, 0);
+			SVG_Build_Bitmap_Graph((SVG_video_stack*)gf_node_get_private(node), tr_state);
+		}
 	} 
-	
+
 	/*FIXME: setup aspect ratio*/
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props)) {
@@ -361,9 +379,11 @@ static void SVG_Update_image(GF_TextureHandler *txh)
 	if (!txh->is_open && txurl->count) {
 		gf_sc_texture_play_from_to(txh, txurl, 0, -1, 0, 0);
 	}
+
 	gf_sc_texture_update_frame(txh, 0);
 	/*URL is present but not opened - redraw till fetch*/
-	if (txh->stream && !txh->tx_io) gf_sc_invalidate(txh->compositor, NULL);
+	if (txh->stream && (!txh->tx_io || txh->needs_refresh) ) 
+		gf_sc_invalidate(txh->compositor, NULL);
 }
 
 static void svg_traverse_image(GF_Node *node, void *rs, Bool is_destroy)
