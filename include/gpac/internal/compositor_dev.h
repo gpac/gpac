@@ -810,7 +810,6 @@ void gf_sc_audio_unregister(GF_AudioInput *ai);
 
 
 #ifndef GPAC_DISABLE_SVG
-Bool gf_term_check_iri_change(GF_Terminal *term, MFURL *url, XMLRI *iri);
 GF_Err gf_term_set_mfurl_from_uri(GF_Terminal *sr, MFURL *mfurl, XMLRI *iri);
 Fixed gf_sc_svg_convert_length_to_display(GF_Compositor *sr, SVG_Length *length);
 
