@@ -1220,7 +1220,11 @@ void gf_rtp_depacketizer_reset(GF_RTPDepacketizer *rtp, Bool full_reset)
 		if (rtp->inter_bs) gf_bs_del(rtp->inter_bs);
 		rtp->inter_bs = NULL;
 		rtp->flags |= GF_RTP_NEW_AU;
-		if (full_reset) memset(&rtp->sl_hdr, 0, sizeof(GF_SLHeader));
+		if (full_reset) {
+			u32 dur = rtp->sl_hdr.au_duration;
+			memset(&rtp->sl_hdr, 0, sizeof(GF_SLHeader));
+			rtp->sl_hdr.au_duration = dur;
+		}
 	}
 }
 

@@ -129,6 +129,9 @@ static GF_Err XVID_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 	XVIDCTX();
 
 	switch (capability->CapCode) {
+	case GF_CODEC_RESILIENT:
+		capability->cap.valueInt = 1;
+		break;
 	case GF_CODEC_WIDTH:
 		capability->cap.valueInt = ctx->width;
 		break;
