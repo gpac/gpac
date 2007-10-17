@@ -388,6 +388,7 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 		} else {
 			/*missed end of pck ?*/
 			if (sess->payloadSize) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP over RTSP] Missed end of packet (%d bytes) in stream %d\n", sess->payloadSize - sess->pck_start, sess->InterID));
 				ch = GetTCPChannel(sess, sess->InterID, sess->InterID, 0);
 				if (ch) {
 					IsRTCP = (ch->rtcpID == sess->InterID);
@@ -408,7 +409,7 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 	} 
 	/*end of packet*/
 	else if (sess->payloadSize - sess->pck_start <= Size) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP over RTSP] Missed begining of packet (%d bytes)\n", Size));
+//		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP over RTSP] Missed begining of packet (%d bytes) in stream %d\n", Size, sess->InterID));
 
 		res = sess->payloadSize - sess->pck_start;
 		memcpy(sess->rtsp_pck_buf + sess->pck_start, buffer, res);
@@ -426,7 +427,7 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 	}
 	/*middle of packet*/
 	else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP over RTSP] Missed begining of RTP packet\n"));
+//		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP over RTSP] Missed begining of RTP packet in stream %d\n", sess->InterID));
 		memcpy(sess->rtsp_pck_buf + sess->pck_start, buffer, Size);
 		sess->pck_start += Size;
 		sess->CurrentPos += Size;
