@@ -85,7 +85,10 @@ proceed_box:
 			/*no size means till end of file - EXCEPT FOR some old QuickTime boxes...*/
 			if (type == GF_ISOM_BOX_TYPE_TOTL)
 				size = 12;
-			if (!size) size = gf_bs_available(bs) + 8;
+			if (!size) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning Read Box type %s size 0 reading till the end of file\n", gf_4cc_to_str(type)));
+				size = gf_bs_available(bs) + 8;
+			}
 		}
 	}
 	/*handle uuid*/

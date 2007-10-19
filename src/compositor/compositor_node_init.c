@@ -170,6 +170,8 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 	case TAG_SVG_image:				compositor_init_svg_image(compositor, node); break;
 	case TAG_SVG_video:				compositor_init_svg_video(compositor, node); break;
 	case TAG_SVG_audio:				compositor_init_svg_audio(compositor, node, 0); break;
+
+	/* <use> and <animation> elements are initialized at the terminal level (see gf_term_on_node_init)*/
 #endif
 
 	case TAG_ProtoNode: compositor_init_hardcoded_proto(compositor, node); break;

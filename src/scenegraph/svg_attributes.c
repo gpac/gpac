@@ -3371,13 +3371,13 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 			pt = &path->points[i];
 			if (!i || (*contour == i-1) ) {
 				sprintf(szT, "M%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y));
-				contour++;
+				if (i) contour++;
 			} else if (path->tags[i]==GF_PATH_CLOSE) {
-				sprintf(szT, " z");
+				sprintf(szT, "z");
 			} else {
-				if (i && (last_pt.x==pt->x)) sprintf(szT, " V%g", FIX2FLT(pt->y));
-				else if (i && (last_pt.y==pt->y)) sprintf(szT, " H%g", FIX2FLT(pt->x));
-				sprintf(szT, " L%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y));
+				if (i && (last_pt.x==pt->x)) sprintf(szT, "V%g", FIX2FLT(pt->y));
+				else if (i && (last_pt.y==pt->y)) sprintf(szT, "H%g", FIX2FLT(pt->x));
+				else sprintf(szT, "L%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y));
 			}
 			strcat(attValue, szT);
 			last_pt = *pt;
@@ -3386,11 +3386,11 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 		case GF_PATH_CURVE_CONIC:
 			ct1 = &path->points[i];
 			end = &path->points[i+1];
-			sprintf(szT, " Q%g %g %g %g", FIX2FLT(ct1->x), FIX2FLT(ct1->y), FIX2FLT(end->x), FIX2FLT(end->y));
+			sprintf(szT, "Q%g %g %g %g", FIX2FLT(ct1->x), FIX2FLT(ct1->y), FIX2FLT(end->x), FIX2FLT(end->y));
 			strcat(attValue, szT);
 			last_pt = *end;
 			if (path->tags[i+2]==GF_PATH_CLOSE)  {
-				strcat(attValue, " z");
+				strcat(attValue, "z");
 			}
 			i+=2;
 			break;
@@ -3398,11 +3398,11 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 			ct1 = &path->points[i];
 			ct2 = &path->points[i+1];
 			end = &path->points[i+2];
-			sprintf(szT, " C%g %g %g %g %g %g", FIX2FLT(ct1->x), FIX2FLT(ct1->y), FIX2FLT(ct2->x), FIX2FLT(ct2->y), FIX2FLT(end->x), FIX2FLT(end->y));
+			sprintf(szT, "C%g %g %g %g %g %g", FIX2FLT(ct1->x), FIX2FLT(ct1->y), FIX2FLT(ct2->x), FIX2FLT(ct2->y), FIX2FLT(end->x), FIX2FLT(end->y));
 			strcat(attValue, szT);
 			last_pt = *end;
 			if (path->tags[i+2]==GF_PATH_CLOSE) {
-				strcat(attValue, " z");
+				strcat(attValue, "z");
 			}
 			i+=3;
 			break;

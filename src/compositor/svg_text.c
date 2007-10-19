@@ -73,13 +73,13 @@ static void set_font_style(GF_TraverseState * tr_state, char *styles)
 	case SVG_FONTWEIGHT_LIGHTER:
 	case SVG_FONTWEIGHT_200:
 	case SVG_FONTWEIGHT_300:
+	case SVG_FONTWEIGHT_400:
 		break;
 
-	case SVG_FONTWEIGHT_400:
 	case SVG_FONTWEIGHT_NORMAL:
+	case SVG_FONTWEIGHT_500:
 		break;
 	
-	case SVG_FONTWEIGHT_500:
 	case SVG_FONTWEIGHT_600:
 	case SVG_FONTWEIGHT_700:
 	case SVG_FONTWEIGHT_BOLD:

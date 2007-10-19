@@ -200,7 +200,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	GF_Descriptor *desc;
 	GF_IPMP_ToolList *toolList;
 
-	assert(odm->OD==NULL);
+//	assert(odm->OD==NULL);
 
 	odm->net_service->nb_odm_users++;
 	if (odm->subscene) od_type = GF_MEDIA_OBJECT_SCENE;
