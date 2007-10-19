@@ -776,6 +776,7 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 			evt.progress.done = bytes_done;
 			GF_USER_SENDEVENT(serv->term->user, &evt);
 		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s received %d / %d\n", szURI, bytes_done, total_size));
 		break;
 	}
 }

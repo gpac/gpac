@@ -2656,7 +2656,6 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 	if (svg->children) fprintf(sdump->trace, ">");
 	else {
 		fprintf(sdump->trace, "/>");
-		if (!sdump->in_text) fprintf(sdump->trace, "\n");
 		return;
 	}
 
@@ -2686,11 +2685,11 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		SD_DumpSVG_Element(sdump, list->node, n, 0);
 		list = list->next;
 	}
+	if (!sdump->in_text) fprintf(sdump->trace, "\n");
 	sdump->indent--;
 	if (!sdump->in_text) DUMP_IND(sdump);
 	fprintf(sdump->trace, "</%s>", gf_node_get_class_name(n));
 	if (tag==TAG_SVG_text) sdump->in_text = 0;
-	if (!sdump->in_text) fprintf(sdump->trace, "\n");
 }
 #endif
 

@@ -203,7 +203,7 @@ SVGAttribute *gf_svg_create_attribute_from_datatype(u32 data_type, u32 attribute
 }
 
 
-static void gf_svg_attributes_set_default_value(u32 node_tag, SVGAttribute *att)
+void gf_svg_attributes_set_default_value(u32 node_tag, SVGAttribute *att)
 {
 	switch (att->tag) {
 	case TAG_SVG_ATT_width:

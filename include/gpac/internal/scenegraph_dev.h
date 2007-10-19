@@ -919,6 +919,7 @@ const char *gf_svg_get_element_name(u32 tag);
 SVGAttribute *gf_svg_create_attribute_from_datatype(u32 data_type, u32 attribute_tag);
 
 GF_Err gf_svg_get_attribute_by_name(GF_Node *node, char *name, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
+void *gf_svg_get_property_pointer_from_tag(SVGPropertiesPointers *output_property_context, u32 prop_tag);
 void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
 								   SVGPropertiesPointers *output_property_context);
 

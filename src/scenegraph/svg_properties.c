@@ -223,17 +223,9 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 }
 
 
-
-void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
-								   SVGPropertiesPointers *output_property_context)
+void *gf_svg_get_property_pointer_from_tag(SVGPropertiesPointers *output_property_context, u32 prop_tag)
 {
-	SVGAttribute *att = elt->attributes;
-	while (att) {
-		if (att->data == input_attribute) break;
-		att = att->next;
-	}
-	if (!att) return NULL;
-	switch (att->tag) {
+	switch (prop_tag) {
 		case TAG_SVG_ATT_audio_level: return output_property_context->audio_level;
 		case TAG_SVG_ATT_color: return output_property_context->color;
 		case TAG_SVG_ATT_color_rendering: return output_property_context->color_rendering;
@@ -274,6 +266,19 @@ void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
 		default:return NULL;
 	}
 }
+
+void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
+								   SVGPropertiesPointers *output_property_context)
+{
+	SVGAttribute *att = elt->attributes;
+	while (att) {
+		if (att->data == input_attribute) break;
+		att = att->next;
+	}
+	if (!att) return NULL;
+	return gf_svg_get_property_pointer_from_tag(output_property_context, att->tag);
+}
+
 Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute)
 {
 	u32 tag = gf_node_get_tag(node);
