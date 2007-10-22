@@ -88,7 +88,6 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 
 	GF_SAFEALLOC(svg_props->line_increment, SVG_Number);
 	svg_props->line_increment->type = SVG_NUMBER_AUTO;
-	svg_props->line_increment->value = FIX_ONE;
 
 	GF_SAFEALLOC(svg_props->opacity, SVG_Number);
 	svg_props->opacity->type = SVG_NUMBER_VALUE;
