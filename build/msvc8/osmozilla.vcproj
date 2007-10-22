@@ -9,6 +9,12 @@
 		<Platform
 			Name="Win32"
 		/>
+		<Platform
+			Name="Smartphone 2003 (ARMV4)"
+		/>
+		<Platform
+			Name="Pocket PC 2003 (ARMV4)"
+		/>
 	</Platforms>
 	<ToolFiles>
 	</ToolFiles>
@@ -74,7 +80,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="advapi32.lib user32.lib gdi32.lib "
-				OutputFile="../../bin/w32_deb/nposmozilla.dll"
+				OutputFile="../../bin/w32_deb_vc8/nposmozilla.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				ModuleDefinitionFile="..\..\applications\osmozilla\osmozilla.def"
@@ -109,6 +115,102 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="if not exist &quot;$(ProgramFiles)\GPAC\mozilla&quot; md &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;copy ..\..\bin\w32_deb\nposmozilla.dll &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug|Smartphone 2003 (ARMV4)"
+			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			ConfigurationType="2"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="_DEBUG"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
+				TargetEnvironment="1"
+				TypeLibraryName=".\obj/osmozilla_deb/osmozilla.tlb"
+				HeaderFileName=""
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				ExecutionBucket="7"
+				Optimization="0"
+				AdditionalIncludeDirectories="..\..\extra_lib\include\gecko-sdk,..\..\extra_lib\include\gecko-sdk\java\include,..\..\extra_lib\include\gecko-sdk\plugin\include,..\..\extra_lib\include\gecko-sdk\nspr\include,..\..\extra_lib\include\gecko-sdk\xpcom\include,..\..\include"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;XP_WIN32;XP_WIN;_X86_;_WINDOWS;_USRDLL;NPBASIC_EXPORTS;MOZILLA_STRICT_API;XPCOM_GLUE"
+				MinimalRebuild="true"
+				RuntimeLibrary="3"
+				PrecompiledHeaderFile=".\obj/osmozilla_deb/osmozilla.pch"
+				AssemblerListingLocation=".\obj/osmozilla_deb/"
+				ObjectFile=".\obj/osmozilla_deb/"
+				ProgramDataBaseFileName=".\obj/osmozilla_deb/"
+				BrowseInformation="1"
+				WarningLevel="3"
+				SuppressStartupBanner="true"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="_DEBUG"
+				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="advapi32.lib user32.lib gdi32.lib "
+				OutputFile="../../bin/w32_deb_vc8/nposmozilla.dll"
+				LinkIncremental="2"
+				SuppressStartupBanner="true"
+				ModuleDefinitionFile="..\..\applications\osmozilla\osmozilla.def"
+				GenerateDebugInformation="true"
+				ProgramDatabaseFile=".\obj/osmozilla_deb/nposmozilla.pdb"
+				ImportLibrary=".\obj/osmozilla_deb/nposmozilla.lib"
+				TargetMachine="0"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile=".\obj/osmozilla_deb/osmozilla.bsc"
+			/>
+			<Tool
+				Name="VCCodeSignTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				CommandLine="if not exist &quot;$(ProgramFiles)\GPAC\mozilla&quot; md &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;copy ..\..\bin\w32_deb\nposmozilla.dll &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;"
+			/>
+			<DeploymentTool
+				ForceDirty="-1"
+				RemoteDirectory=""
+				RegisterOutput="0"
+				AdditionalFiles=""
+			/>
+			<DebuggerTool
 			/>
 		</Configuration>
 		<Configuration
@@ -171,7 +273,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="advapi32.lib user32.lib gdi32.lib "
-				OutputFile="../../bin/w32_rel/nposmozilla.dll"
+				OutputFile="../../bin/w32_rel_vc8/nposmozilla.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ModuleDefinitionFile="..\..\applications\osmozilla\osmozilla.def"
@@ -207,6 +309,220 @@
 				CommandLine="xpt_link ..\..\bin\w32_rel\nposmozilla.xpt ..\..\applications\osmozilla\nsIOsmozilla.xpt_w32&#x0D;&#x0A;if not exist &quot;$(ProgramFiles)\GPAC\mozilla&quot; md &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;copy ..\..\bin\w32_rel\nposmozilla.dll &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;copy ..\..\bin\w32_rel\nposmozilla.xpt &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;"
 			/>
 		</Configuration>
+		<Configuration
+			Name="Release|Smartphone 2003 (ARMV4)"
+			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			ConfigurationType="2"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="NDEBUG"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
+				TargetEnvironment="1"
+				TypeLibraryName=".\obj/osmozilla_rel/osmozilla.tlb"
+				HeaderFileName=""
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				ExecutionBucket="7"
+				Optimization="2"
+				InlineFunctionExpansion="1"
+				AdditionalIncludeDirectories="..\..\extra_lib\include\gecko-sdk,..\..\extra_lib\include\gecko-sdk\plugin\include,..\..\extra_lib\include\gecko-sdk\nspr\include,..\..\extra_lib\include\gecko-sdk\java\include,..\..\extra_lib\include\gecko-sdk\xpcom\include,..\..\include"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_WINDOWS;_USRDLL;NPBASIC_EXPORTS;MOZILLA_STRICT_API;XP_WIN;_X86_;XPCOM_GLUE;WINVER=0x0400"
+				StringPooling="true"
+				RuntimeLibrary="2"
+				EnableFunctionLevelLinking="true"
+				PrecompiledHeaderFile=".\obj/osmozilla_rel/osmozilla.pch"
+				AssemblerListingLocation=".\obj/osmozilla_rel/"
+				ObjectFile=".\obj/osmozilla_rel/"
+				ProgramDataBaseFileName=".\obj/osmozilla_rel/"
+				WarningLevel="3"
+				SuppressStartupBanner="true"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="advapi32.lib user32.lib gdi32.lib "
+				OutputFile="../../bin/w32_rel_vc8/nposmozilla.dll"
+				LinkIncremental="1"
+				SuppressStartupBanner="true"
+				ModuleDefinitionFile="..\..\applications\osmozilla\osmozilla.def"
+				ProgramDatabaseFile=".\obj/osmozilla_rel/nposmozilla.pdb"
+				ImportLibrary=".\obj/osmozilla_rel/nposmozilla.lib"
+				TargetMachine="0"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile=".\obj/osmozilla_rel/osmozilla.bsc"
+			/>
+			<Tool
+				Name="VCCodeSignTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				CommandLine="xpt_link ..\..\bin\w32_rel\nposmozilla.xpt ..\..\applications\osmozilla\nsIOsmozilla.xpt_w32&#x0D;&#x0A;if not exist &quot;$(ProgramFiles)\GPAC\mozilla&quot; md &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;copy ..\..\bin\w32_rel\nposmozilla.dll &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;copy ..\..\bin\w32_rel\nposmozilla.xpt &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;"
+			/>
+			<DeploymentTool
+				ForceDirty="-1"
+				RemoteDirectory=""
+				RegisterOutput="0"
+				AdditionalFiles=""
+			/>
+			<DebuggerTool
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug|Pocket PC 2003 (ARMV4)"
+			ConfigurationType="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				ExecutionBucket="7"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCCodeSignTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+			<DeploymentTool
+				ForceDirty="-1"
+				RemoteDirectory=""
+				RegisterOutput="0"
+				AdditionalFiles=""
+			/>
+			<DebuggerTool
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|Pocket PC 2003 (ARMV4)"
+			ConfigurationType="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				ExecutionBucket="7"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCCodeSignTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+			<DeploymentTool
+				ForceDirty="-1"
+				RemoteDirectory=""
+				RegisterOutput="0"
+				AdditionalFiles=""
+			/>
+			<DebuggerTool
+			/>
+		</Configuration>
 	</Configurations>
 	<References>
 	</References>
@@ -228,7 +544,25 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
+					Name="Debug|Smartphone 2003 (ARMV4)"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -250,7 +584,25 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
+					Name="Debug|Smartphone 2003 (ARMV4)"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -272,7 +624,25 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
+					Name="Debug|Smartphone 2003 (ARMV4)"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -294,7 +664,25 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
+					Name="Debug|Smartphone 2003 (ARMV4)"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -320,7 +708,25 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
+					Name="Debug|Smartphone 2003 (ARMV4)"
+					>
+					<Tool
+						Name="VCResourceCompilerTool"
+						PreprocessorDefinitions=""
+						AdditionalIncludeDirectories="\gpac\applications\osmozilla"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCResourceCompilerTool"
+						PreprocessorDefinitions=""
+						AdditionalIncludeDirectories="\gpac\applications\osmozilla"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCResourceCompilerTool"
