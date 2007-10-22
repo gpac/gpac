@@ -4407,6 +4407,7 @@ static Bool svg_colors_equal(SVG_Color *c1, SVG_Color *c2)
 static Bool svg_numbers_equal(SVG_Length *l1, SVG_Length *l2)
 {
 	if (l1->type!=l2->type) return 0;
+	if (l1->type >= SVG_NUMBER_INHERIT) return 1;
 	return (l1->value==l2->value) ? 1 : 0;
 }
 static Bool svg_iris_equal(XMLRI*iri1, XMLRI*iri2)
