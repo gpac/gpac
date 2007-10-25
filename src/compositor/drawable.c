@@ -699,6 +699,15 @@ void drawable_check_bounds(struct _drawable_context *ctx, GF_VisualManager *visu
 	}
 }
 
+void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp)
+{
+	GF_Rect rc;
+	rc.x = rc.y = 0;
+	rc.width = rc.height = FIX_ONE;
+	gf_mx_apply_rect(&tr_state->model_matrix, &rc);
+	asp->line_scale = MAX(gf_divfix(tr_state->visual->compositor->scale_x, rc.width), gf_divfix(tr_state->visual->compositor->scale_y, rc.height));
+}
+
 static void drawable_finalize_sort_ex(struct _drawable_context *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds, Bool is_focus)
 {
 	Fixed pw;
@@ -718,6 +727,10 @@ static void drawable_finalize_sort_ex(struct _drawable_context *ctx, GF_Traverse
 	if (ctx->aspect.pen_props.width) {
 		StrikeInfo2D *si = NULL;
 
+		if (!ctx->aspect.line_scale) 
+			drawable_compute_line_scale(tr_state, &ctx->aspect);
+
+#if 0
 		/*if pen is not scalable, apply user/viewport transform so that original aspect is kept*/
 		if (!ctx->aspect.line_scale) {
 			GF_Point2D pt;
@@ -725,7 +738,8 @@ static void drawable_finalize_sort_ex(struct _drawable_context *ctx, GF_Traverse
 			pt.y = tr_state->transform.m[3] + tr_state->transform.m[4];
 			ctx->aspect.line_scale = gf_divfix(FLT2FIX(1.41421356f) , gf_v2d_len(&pt));
 		}
-		
+#endif
+
 		/*get strike info & outline for exact bounds compute. If failure use default offset*/
 		si = drawable_get_strikeinfo(tr_state->visual->compositor, ctx->drawable, &ctx->aspect, tr_state->appear, ctx->drawable->path, ctx->flags, NULL);
 		if (si && si->outline) {
@@ -904,11 +918,7 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 	/*3D drawing of outlines*/
 #ifndef GPAC_DISABLE_3D
 	if (tr_state && !asp->line_scale) {
-		GF_Rect rc;
-		rc.x = rc.y = 0;
-		rc.width = rc.height = FIX_ONE;
-		gf_mx_apply_rect(&tr_state->model_matrix, &rc);
-		asp->line_scale = MAX(gf_divfix(tr_state->visual->compositor->scale_x, rc.width), gf_divfix(tr_state->visual->compositor->scale_y, rc.height));
+		drawable_compute_line_scale(tr_state, asp);
 	} 
 #endif
 

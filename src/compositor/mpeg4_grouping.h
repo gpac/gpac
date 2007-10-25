@@ -119,6 +119,7 @@ typedef struct
 	/*if text node, ascent and descent of the text is stored for baseline alignment*/
 	Fixed ascent, descent;
 	u32 text_split_idx;
+	Bool discardable;
 } ChildGroup;
 
 
@@ -141,7 +142,7 @@ void parent_node_predestroy(ParentNode2D *gr);
 /*reset children list*/
 void parent_node_reset(ParentNode2D *gr);
 /*creates a new group for the given node. If the node is NULL, the previous group's node is used*/
-void parent_node_start_group(ParentNode2D *group, GF_Node *n);
+void parent_node_start_group(ParentNode2D *group, GF_Node *n, Bool discardable);
 /*sets the current group bounds*/
 void parent_node_end_group(ParentNode2D *group, GF_Rect *bounds);
 /*sets the current group bounds + font properties*/

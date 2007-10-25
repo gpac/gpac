@@ -426,7 +426,7 @@ BOOL COptFont::OnInitDialog()
 	CE_CharToWide((char *)sOpt, (u16 *)wTmp);
 	if (sOpt) m_BrowseFont.SetWindowText(wTmp);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "TextureTextMode");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "TextureTextMode");
 	m_UseTexture.SetCheck( (!sOpt || stricmp(sOpt, "Never")) ? 1 : 0);
 
 	return TRUE;  
@@ -450,7 +450,7 @@ void COptFont::SaveOptions()
 	m_BrowseFont.GetWindowText(wstr, 50);
 	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontDirectory", str);
-	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "TextureTextMode", m_UseTexture.GetCheck() ? "Always" : "Never");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "TextureTextMode", m_UseTexture.GetCheck() ? "Default" : "Never");
 }
 
 

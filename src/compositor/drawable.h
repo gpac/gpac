@@ -296,5 +296,6 @@ void delete_strikeinfo2d(StrikeInfo2D *info);
 StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawable, DrawAspect2D *asp, GF_Node *appear, GF_Path *path, u32 svg_flags, GF_TraverseState *tr_state);
 
 
+void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp);
 
 #endif

@@ -913,6 +913,10 @@ SOURCE=..\..\src\compositor\events.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\compositor\font_engine.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\compositor\gl_inc.h
 # End Source File
 # Begin Source File

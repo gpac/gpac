@@ -354,6 +354,7 @@ Bool tx_convert(GF_TextureHandler *txh)
 	/*stretch and flip*/
 	gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 1, NULL, NULL);
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
+	txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 	return 1;
 }
 
@@ -529,11 +530,10 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 	Bool ret = 0;
 	gf_mx_init(*mx);
 
-	/*image not converted (eg not YUV), native pixel format, flip it - note that gradiens
-	are already built as OpenGL textures*/
-	if (!txh->tx_io->conv_data && !txh->compute_gradient_matrix) {
-//		gf_mx_add_scale(mx, FIX_ONE, -FIX_ONE, FIX_ONE);
-//		ret = 1;
+	/*flip image if requested*/
+	if (! (txh->flags & GF_SR_TEXTURE_NO_GL_FLIP) ) {
+		gf_mx_add_scale(mx, FIX_ONE, -FIX_ONE, FIX_ONE);
+		ret = 1;
 	}
 
 	/*WATCHOUT: GL_TEXTURE-RECTANGLE coords are w, h not 1.0, 1.0*/

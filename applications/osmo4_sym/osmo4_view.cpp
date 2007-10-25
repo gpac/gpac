@@ -360,7 +360,7 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 		gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
 		gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
 		
-		gf_cfg_set_key(m_user.config, "FontEngine", "TextureTextMode", "3D");
+		gf_cfg_set_key(m_user.config, "Compositor", "TextureTextMode", "Default");
 
 		
 		/*save cfg and reload*/

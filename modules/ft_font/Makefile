@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS= ft_font.o
+OBJS= ft_font.o ft_reader.o
 
 SRCS := $(OBJS:.o=.c) 
 

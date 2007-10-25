@@ -1244,7 +1244,7 @@ force_input:
 		{
 			Bool use_3d = !gf_term_get_option(term, GF_OPT_USE_OPENGL);
 			if (gf_term_set_option(term, GF_OPT_USE_OPENGL, use_3d)==GF_OK) {
-				fprintf(stdout, "Using %s for 2D rendering\n", use_3d ? "OpenGL" : "2D rasterizer");
+				fprintf(stdout, "Using %s for 2D drawing\n", use_3d ? "OpenGL" : "2D rasterizer");
 			}
 		}
 			break;

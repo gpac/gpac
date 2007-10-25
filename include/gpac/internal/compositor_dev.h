@@ -167,6 +167,7 @@ struct __tag_compositor
 
 	/*font engine*/
 	GF_FontRaster *font_engine;
+	GF_FontManager *font_manager;
 
 	/*options*/
 	u32 aspect_ratio, antiAlias, texture_text_mode;
@@ -364,6 +365,8 @@ enum
 	GF_SR_TEXTURE_REPEAT_T = (1<<1),
 	/*texture is a matte texture*/
 	GF_SR_TEXTURE_MATTE = (1<<2),
+	/*texture doesn't need vertical flip for OpenGL*/
+	GF_SR_TEXTURE_NO_GL_FLIP = (1<<3),
 };
 
 typedef struct _gf_sc_texture_handler

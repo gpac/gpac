@@ -582,9 +582,9 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_font->SetSelection(select);
 	sOpt = gf_cfg_get_key(cfg, "FontEngine", "FontDirectory");
 	if (sOpt) m_fontdir->SetLabel(wxString(sOpt, wxConvUTF8) );
-	sOpt = gf_cfg_get_key(cfg, "FontEngine", "TextureTextMode");
+	sOpt = gf_cfg_get_key(cfg, "Compositor", "TextureTextMode");
+	m_texturemode->Append(wxT("Default"));
 	m_texturemode->Append(wxT("Never"));
-	m_texturemode->Append(wxT("3D Only"));
 	m_texturemode->Append(wxT("Always"));
 	if (sOpt && !stricmp(sOpt, "Always")) m_texturemode->SetSelection(2);
 	else if (sOpt && !stricmp(sOpt, "3D")) m_texturemode->SetSelection(1);
@@ -972,9 +972,9 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 	gf_cfg_set_key(cfg, "FontEngine", "DriverName", m_font->GetStringSelection().mb_str(wxConvUTF8));
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", m_fontdir->GetLabel().mb_str(wxConvUTF8));
 	switch (m_texturemode->GetSelection()) {
-	case 2: gf_cfg_set_key(cfg, "FontEngine", "TextureTextMode", "Always"); break;
-	case 1: gf_cfg_set_key(cfg, "FontEngine", "TextureTextMode", "3D"); break;
-	default: gf_cfg_set_key(cfg, "FontEngine", "TextureTextMode", "Never"); break;
+	case 2: gf_cfg_set_key(cfg, "Compositor", "TextureTextMode", "Always"); break;
+	case 1: gf_cfg_set_key(cfg, "Compositor", "TextureTextMode", "Never"); break;
+	default: gf_cfg_set_key(cfg, "Compositor", "TextureTextMode", "Default"); break;
 	}
 
 	gf_cfg_set_key(cfg, "Downloader", "CleanCache", m_cleancache->GetValue() ? "yes" : "no");

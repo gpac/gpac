@@ -104,10 +104,13 @@ void visual_2d_texture_path(GF_VisualManager *visual, GF_Path *path, DrawableCon
 DrawPath shall always be called after TexturePath*/
 void visual_2d_draw_path(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_STENCIL brush, GF_STENCIL pen);
 /*special texturing extension for text, using a given path (text rectangle) and texture*/
-void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_ctx, GF_Path *path, GF_Rect *object_bounds, GF_TextureHandler *txh, GF_Rect *gf_sc_texture_bounds);
+void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_ctx, GF_Path *path, GF_Rect *object_bounds, GF_TextureHandler *txh);
 /*fill given rect with given color with given ctx transform and clipper (used for text hilighting only)
 if rc is NULL, fills object bounds*/
 void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect *rc, u32 color, u32 strike_color);
+
+
+void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx);
 
 
 #endif	/*_VISUAL_MANAGER_2D_*/
