@@ -704,7 +704,13 @@ void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp)
 	GF_Rect rc;
 	rc.x = rc.y = 0;
 	rc.width = rc.height = FIX_ONE;
-	gf_mx_apply_rect(&tr_state->model_matrix, &rc);
+#ifndef GPAC_DISABLE_3D
+	if (tr_state->visual->type_3d)
+		gf_mx_apply_rect(&tr_state->model_matrix, &rc);
+	else
+#endif
+		gf_mx2d_apply_rect(&tr_state->transform, &rc);
+
 	asp->line_scale = MAX(gf_divfix(tr_state->visual->compositor->scale_x, rc.width), gf_divfix(tr_state->visual->compositor->scale_y, rc.height));
 }
 
