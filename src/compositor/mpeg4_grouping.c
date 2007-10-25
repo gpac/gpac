@@ -515,7 +515,7 @@ void parent_node_reset(ParentNode2D *group)
 	}
 }
 
-void parent_node_start_group(ParentNode2D *group, GF_Node *n)
+void parent_node_start_group(ParentNode2D *group, GF_Node *n, Bool discardable)
 {
 	ChildGroup *cg;
 	if (!n) {
@@ -525,12 +525,13 @@ void parent_node_start_group(ParentNode2D *group, GF_Node *n)
 	}
 	GF_SAFEALLOC(cg, ChildGroup);
 	cg->child = n;
+	cg->discardable = discardable;
 	gf_list_add(group->groups, cg);
 }
 
 void parent_node_end_group(ParentNode2D *group, GF_Rect *bounds)
 {
-	ChildGroup *cg = (ChildGroup *)gf_list_get(group->groups, gf_list_count(group->groups)-1);
+	ChildGroup *cg = (ChildGroup *)gf_list_last(group->groups);
 	if (!cg) return;
 	/*don't override splitted text info*/
 	if (cg->ascent || cg->descent) return;
@@ -540,7 +541,7 @@ void parent_node_end_group(ParentNode2D *group, GF_Rect *bounds)
 
 void parent_node_end_text_group(ParentNode2D *group, GF_Rect *bounds, Fixed ascent, Fixed descent, u32 text_split_idx)
 {
-	ChildGroup *cg = (ChildGroup *)gf_list_get(group->groups, gf_list_count(group->groups)-1);
+	ChildGroup *cg = (ChildGroup *)gf_list_last(group->groups);
 	if (!cg) return;
 	cg->text_split_idx = text_split_idx;
 	cg->ascent = ascent;
@@ -613,7 +614,7 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 
 	l = ((GF_ParentNode *)node)->children;
 	while (l) {
-		parent_node_start_group(group, l->node);
+		parent_node_start_group(group, l->node, 0);
 		
 		tr_state->bounds.width = tr_state->bounds.height = 0;
 	

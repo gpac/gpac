@@ -89,6 +89,7 @@ static u32 get_justify(M_Layout *l, u32 i)
 
 static void get_lines_info(LayoutStack *st, M_Layout *l)
 {
+	Fixed prev_discard_width;
 	u32 i, count;
 	LineInfo *li;
 	Fixed max_w, max_h;
@@ -102,6 +103,7 @@ static void get_lines_info(LayoutStack *st, M_Layout *l)
 
 	li = new_line_info(st);
 	li->first_child = 0;
+	prev_discard_width = 0;
 
 	for (i=0; i<count; i++) {
 		ChildGroup *cg = (ChildGroup *)gf_list_get(st->groups, i);
@@ -123,9 +125,19 @@ static void get_lines_info(LayoutStack *st, M_Layout *l)
 						li->ascent = li->height;
 						li->descent = 0;
 					}
+					/*previous word is discardable (' ')*/
+					if (prev_discard_width) {
+						li->width -= prev_discard_width;
+						li->nb_children--;
+					}
+					if (cg->discardable && (i+1==count)) break; 
 
 					li = new_line_info(st);
 					li->first_child = i;
+					if (cg->discardable) {
+						li->first_child++;
+						continue;
+					}
 				} 
 			}
 		
@@ -139,6 +151,9 @@ static void get_lines_info(LayoutStack *st, M_Layout *l)
 			}
 			li->width += cg->final.width;
 			li->nb_children ++;
+
+			prev_discard_width = cg->discardable ? cg->final.width : 0;
+
 		}
 	}
 }

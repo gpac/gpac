@@ -241,8 +241,6 @@ static Bool gf_sc_set_check_raster2d(GF_Raster2D *ifce)
 
 static GF_Err gf_sc_load(GF_Compositor *compositor)
 {
-	const char *sOpt;
-
 	compositor->strike_bank = gf_list_new();
 	compositor->visuals = gf_list_new();
 
@@ -262,12 +260,6 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 
 	compositor->zoom = compositor->scale_x = compositor->scale_y = FIX_ONE;
 
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FocusHighlightFill");
-	if (sOpt) sscanf(sOpt, "%x", &compositor->highlight_fill);
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FocusHighlightStroke");
-	if (sOpt) sscanf(sOpt, "%x", &compositor->highlight_stroke);
-	else compositor->highlight_stroke = 0xFF000000;
-
 	/*create a drawable for focus highlight*/
 	compositor->focus_highlight = drawable_new();
 	/*associate a dummy node for traversing*/
@@ -275,23 +267,10 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	gf_node_register(compositor->focus_highlight->node, NULL);
 	gf_node_set_callback_function(compositor->focus_highlight->node, drawable_traverse_focus);
 
-	/*load options*/
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DirectDraw");
-	if (sOpt && ! stricmp(sOpt, "yes")) 
-		compositor->traverse_state->direct_draw = 1;
-	else
-		compositor->traverse_state->direct_draw = 0;
-	
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ScalableZoom");
-	compositor->scalable_zoom = (!sOpt || !stricmp(sOpt, "yes") ) ? 1 : 0;
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableYUV");
-	compositor->enable_yuv_hw = (sOpt && !stricmp(sOpt, "yes") ) ? 0 : 1;
-
 	
 #ifndef GPAC_DISABLE_3D
 	/*default collision mode*/
-	compositor->collide_mode = GF_COLLISION_DISPLACEMENT;
-//	compositor->collide_mode = GF_COLLISION_NORMAL;
+	compositor->collide_mode = GF_COLLISION_DISPLACEMENT; //GF_COLLISION_NORMAL
 	compositor->gravity_on = 1;
 #endif
 
@@ -400,6 +379,8 @@ static GF_Compositor *gf_sc_create(GF_User *user)
 	gf_sc_reset_framerate(tmp);	
 	/*set font engine if any*/
 	gf_sc_set_font_engine(tmp);
+
+	tmp->font_manager = gf_font_manager_new(user);
 	
 	tmp->extra_scenes = gf_list_new();
 	tmp->interaction_level = GF_INTERACT_NORMAL | GF_INTERACT_INPUT_SENSOR | GF_INTERACT_NAVIGATION;
@@ -500,6 +481,8 @@ void gf_sc_del(GF_Compositor *compositor)
 		compositor->font_engine->shutdown_font_engine(compositor->font_engine);
 		gf_modules_close_interface((GF_BaseInterface *)compositor->font_engine);
 	}
+	if (compositor->font_manager) gf_font_manager_del(compositor->font_manager);
+
 	gf_list_del(compositor->textures);
 	gf_list_del(compositor->time_nodes);
 	gf_list_del(compositor->extra_scenes);
@@ -871,6 +854,28 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		gf_sc_set_option(compositor, GF_OPT_ANTIALIAS, GF_ANTIALIAS_FULL);
 	}
 
+	
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FocusHighlightFill");
+	if (sOpt) sscanf(sOpt, "%x", &compositor->highlight_fill);
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FocusHighlightStroke");
+	if (sOpt) sscanf(sOpt, "%x", &compositor->highlight_stroke);
+	else compositor->highlight_stroke = 0xFF000000;
+
+	/*load options*/
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DirectDraw");
+	if (sOpt && ! stricmp(sOpt, "yes")) 
+		compositor->traverse_state->direct_draw = 1;
+	else
+		compositor->traverse_state->direct_draw = 0;
+	
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ScalableZoom");
+	compositor->scalable_zoom = (!sOpt || !stricmp(sOpt, "yes") ) ? 1 : 0;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableYUV");
+	compositor->enable_yuv_hw = (sOpt && !stricmp(sOpt, "yes") ) ? 0 : 1;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisablePartialHardwareBlit");
+	compositor->disable_partial_hw_blit = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+
+
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "StressMode");
 	gf_sc_set_option(compositor, GF_OPT_STRESS_MODE, (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0);
 
@@ -887,16 +892,10 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		gf_sc_set_option(compositor, GF_OPT_DRAW_BOUNDS, GF_BOUNDS_NONE);
 	}
 
-	sOpt = gf_cfg_get_key(compositor->user->config, "FontEngine", "DriverName");
-	if (sOpt && compositor->font_engine) {
-		dr_name = compositor->font_engine->module_name;
-		if (stricmp(dr_name, sOpt)) gf_sc_set_font_engine(compositor);
-	}
-
-	sOpt = gf_cfg_get_key(compositor->user->config, "FontEngine", "TextureTextMode");
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TextureTextMode");
 	if (sOpt && !stricmp(sOpt, "Always")) compositor->texture_text_mode = GF_TEXTURE_TEXT_ALWAYS;
-	else if (sOpt && !stricmp(sOpt, "3D")) compositor->texture_text_mode = GF_TEXTURE_TEXT_3D;
-	else compositor->texture_text_mode = GF_TEXTURE_TEXT_NONE;
+	else if (sOpt && !stricmp(sOpt, "Never")) compositor->texture_text_mode = GF_TEXTURE_TEXT_NEVER;
+	else compositor->texture_text_mode = GF_TEXTURE_TEXT_DEFAULT;
 
 	if (compositor->audio_renderer) {
 		sOpt = gf_cfg_get_key(compositor->user->config, "Audio", "NoResync");
@@ -908,6 +907,57 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ForceOpenGL");
 	compositor->force_opengl_2d = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
+
+
+	/*currently:
+	- no tesselator for GL-ES, so use raster outlines.
+	- no support for npow2 textures, and no support for DrawPixels
+	*/
+#ifndef GPAC_USE_OGL_ES
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "RasterOutlines");
+	compositor->raster_outlines = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "EmulatePOW2");
+	compositor->emul_pow2 = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "BitmapCopyPixels");
+	compositor->bitmap_use_pixels = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+#else
+	compositor->raster_outlines = 1;
+	compositor->emul_pow2 = 1;
+	compositor->bitmap_use_pixels = 0;
+#endif
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "PolygonAA");
+	compositor->poly_aa = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "BackFaceCulling");
+	if (sOpt && !stricmp(sOpt, "Off")) compositor->backcull = GF_BACK_CULL_OFF;
+	else if (sOpt && !stricmp(sOpt, "Alpha")) compositor->backcull = GF_BACK_CULL_ALPHA;
+	else compositor->backcull = GF_BACK_CULL_ON;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "Wireframe");
+	if (sOpt && !stricmp(sOpt, "WireOnly")) compositor->wiremode = GF_WIREFRAME_ONLY;
+	else if (sOpt && !stricmp(sOpt, "WireOnSolid")) compositor->wiremode = GF_WIREFRAME_SOLID;
+	else compositor->wiremode = GF_WIREFRAME_NONE;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DrawNormals");
+	if (sOpt && !stricmp(sOpt, "PerFace")) compositor->draw_normals = GF_NORMALS_FACE;
+	else if (sOpt && !stricmp(sOpt, "PerVertex")) compositor->draw_normals = GF_NORMALS_VERTEX;
+	else compositor->draw_normals = GF_NORMALS_NONE;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableRectExt");
+	compositor->disable_rect_ext = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+
+	
+	sOpt = gf_cfg_get_key(compositor->user->config, "FontEngine", "DriverName");
+	if (sOpt && compositor->font_engine) {
+		dr_name = compositor->font_engine->module_name;
+		if (stricmp(dr_name, sOpt)) gf_sc_set_font_engine(compositor);
+	}
+
+	/*RECT texture support - we must reload HW*/
+	compositor->reset_graphics = 1;
+	
+
 
 	compositor->draw_next_frame = 1;
 

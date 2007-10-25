@@ -978,38 +978,6 @@ fi
 #end SDL check
 
 
-#look for libxml2 support
-has_xml2="no"
-xml2_too_old="no"
-
-if test "`which xml2-config`" != "" ; then
-
-xml2_cflags=`xml2-config --cflags`
-xml2_lflags=`xml2-config --libs`
-
-cat > $TMPC << EOF
-#include <stdio.h>
-#include <string.h>
-#include <libxml/tree.h>
-#include <libxml/parser.h>
-#include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-int main( void ) { return 0; }
-EOF
-
-if $cc $xml2_cflags -o $TMPO $TMPC $xml2_lflags > /dev/null 2>&1 ; then
-xml2_version=`xml2-config --version | sed 's/[^0-9]//g'`
-if test "$xml2_version" -lt 260 ; then
-xml2_too_old="yes"
-else
-has_xml2="yes"
-fi
-fi
-
-fi
-#end xml2 tes
-
-
 # Checking for CFLAGS
 if test -z "$CFLAGS"; then
     CFLAGS="-O3"
@@ -1098,10 +1066,6 @@ fi
 echo "SDL Support: $has_sdl"
 if test "$sdl_too_old" = "yes" ; then
 echo "SDL Version too old - please upgrade for SDL support"
-fi
-echo "libXML2: $has_xml2"
-if test "$xml2_too_old" = "yes" ; then
-echo "XML2 Version too old - please upgrade for libXML2 support (SVG parser)"
 fi
 echo "OpenGL support: $has_opengl"
 echo "OpenSSL support: $has_ssl"
@@ -1329,12 +1293,6 @@ echo "USE_WXWIDGETS=$has_wx" >> config.mak
 if test "$has_wx" = "yes"; then
 echo "WX_CFLAGS=$wx_cflags" >> config.mak
 echo "WX_LFLAGS=$wx_lflags" >> config.mak
-fi
-
-echo "HAS_LIBXML2=$has_xml2" >> config.mak
-if test "$has_xml2" = "yes"; then
-echo "XML2_CFLAGS=$xml2_cflags" >> config.mak
-echo "XML2_LFLAGS=$xml2_lflags" >> config.mak
 fi
 
 echo "MOZILLA_DIR=$moz_path" >> config.mak

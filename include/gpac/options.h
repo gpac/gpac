@@ -154,9 +154,9 @@ enum
 /*TextTexturing settings*/
 enum
 {
-	GF_TEXTURE_TEXT_NONE = 0, /*text never drawn as texture*/
-	GF_TEXTURE_TEXT_3D, /*text drawn as texture in 3D mode only*/
-	GF_TEXTURE_TEXT_ALWAYS /*text always drawn as texture*/
+	GF_TEXTURE_TEXT_DEFAULT = 0, /*text drawn as texture in 3D mode, regular in 2D mode*/
+	GF_TEXTURE_TEXT_NEVER, /*text never drawn as texture*/
+	GF_TEXTURE_TEXT_ALWAYS /*text always drawn*/
 };
 
 /*Normal drawing settings*/

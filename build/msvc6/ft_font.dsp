@@ -101,5 +101,9 @@ SOURCE=..\..\modules\ft_font\ft_font.def
 
 SOURCE=..\..\modules\ft_font\ft_font.h
 # End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\ft_font\ft_reader.c
+# End Source File
 # End Target
 # End Project

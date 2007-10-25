@@ -10,7 +10,7 @@
 <br/>
 <b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.5-DEV</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified $Date: 2007-10-05 16:50:24 $</span></b>
+<b><span style="Font-Size: 18pt">Last Modified $Date: 2007-10-25 09:40:02 $</span></b>
 </p>
 
 <br/><br/>
@@ -328,6 +328,9 @@ Enables power of 2 emulation. Ignored if openGL rectangular texture extension is
 Specifies whether the bitmap node should be drawn with regular openGL texturing ("no") or through pixel copy routines ("yes"). This greatly impacts video rendering through 
 bitmap depending on the graphics card. Some cards will have faster pixel copy routines that texture transfer ones, some won't.
 </p>
+<b>TextureTextMode</b> (value: <i>"Default", "Never", "Always"</i>]
+<p style="text-indent: 5%">
+Specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text rendering in 3D and also improve text-on-video like content. Default value will use texturing for OpenGL rendering. </p>
 <b>OpenGLExtensions</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
 Read-only option listing the OpenGL extensions supported by the GL driver. Only valid after the 3D renderer has been used.
@@ -435,9 +438,6 @@ Specifies the directory where fonts are located - currently only one directory c
 <br/><i>Note:</i>
 The freetype module will scan the entire sub-directories for fonts.
 </p>
-<b>TextureTextMode</b> (value: <i>"Never", "3D", "Always"</i>]
-<p style="text-indent: 5%">
-Specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text look in the 3D renderer and also improve text-on-video like content.</p>
 <b>FontSerif</b> [value: <i>string</i>]}: specifies default SERIF font.<br/>
 <b>FontSans</b> [value: <i>string</i>]}: specifies default SANS font.<br/>
 <b>FontFixed</b> [value: <i>string</i>]}: specifies default fixed font.<br/>

@@ -1058,9 +1058,9 @@ BOOL COptFont::OnInitDialog()
 
 	/*text texturing modes*/
 	while (m_TextureModes.GetCount()) m_TextureModes.DeleteString(0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "TextureTextMode");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "TextureTextMode");
+	m_TextureModes.AddString("Default");
 	m_TextureModes.AddString("Never");
-	m_TextureModes.AddString("Only in 3D");
 	m_TextureModes.AddString("Always");
 	if (sOpt && !stricmp(sOpt, "3D")) m_TextureModes.SetCurSel(1);
 	else if (sOpt && !stricmp(sOpt, "Always")) m_TextureModes.SetCurSel(2);
@@ -1123,9 +1123,9 @@ void COptFont::SaveOptions()
 	m_BrowseFont.GetWindowText(str, 50);
 	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontDirectory", str);
 	switch (m_TextureModes.GetCurSel()) {
-	case 2: gf_cfg_set_key(gpac->m_user.config, "FontEngine", "TextureTextMode", "Always"); break;
-	case 1: gf_cfg_set_key(gpac->m_user.config, "FontEngine", "TextureTextMode", "3D"); break;
-	default: gf_cfg_set_key(gpac->m_user.config, "FontEngine", "TextureTextMode", "Never"); break;
+	case 2: gf_cfg_set_key(gpac->m_user.config, "Compositor", "TextureTextMode", "Always"); break;
+	case 1: gf_cfg_set_key(gpac->m_user.config, "Compositor", "TextureTextMode", "Never"); break;
+	default: gf_cfg_set_key(gpac->m_user.config, "Compositor", "TextureTextMode", "Default"); break;
 	}
 }
 

@@ -236,12 +236,12 @@ static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_
 
 
 
-void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_ctx, GF_Path *path, GF_Rect *object_bounds, GF_TextureHandler *txh, GF_Rect *tex_bounds)
+void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_ctx, GF_Path *path, GF_Rect *object_bounds, GF_TextureHandler *txh)
 {
 	GF_STENCIL stencil;
 	Fixed sS, sT;
 	GF_Matrix2D gf_mx2d_txt;
-	GF_Rect rc, orig_rc;
+	GF_Rect orig_rc;
 	u8 alpha, r, g, b;
 	GF_ColorMatrix cmat;
 	GF_Raster2D *raster = visual->compositor->rasterizer;
@@ -253,11 +253,10 @@ void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_
 
 	/*get original bounds*/
 	orig_rc = *object_bounds;
-	rc = *tex_bounds;
-
+	
 	/*get scaling ratio so that active texture view is stretched to original bounds (std 2D shape texture mapping in MPEG4)*/
-	sS = gf_divfix(orig_rc.width, rc.width);
-	sT = gf_divfix(orig_rc.height, rc.height);
+	sS = gf_divfix(orig_rc.width, INT2FIX(txh->width));
+	sT = gf_divfix(orig_rc.height, INT2FIX(txh->height));
 	
 	gf_mx2d_init(gf_mx2d_txt);
 	gf_mx2d_add_scale(&gf_mx2d_txt, sS, sT);
@@ -300,12 +299,12 @@ void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_
 	txt_ctx->flags |= CTX_PATH_FILLED;
 }
 
-static void visual_2d_texture_path_intern(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx)
+void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx)
 {
 	Fixed sS, sT;
 	u32 tx_tile;
 	GF_STENCIL tx_raster;
-	GF_Matrix2D gf_mx2d_txt, tex_trans;
+	GF_Matrix2D mx_texture, tex_trans;
 	GF_Rect rc, orig_rc;
 	GF_Raster2D *raster = visual->compositor->rasterizer;
 
@@ -325,7 +324,11 @@ static void visual_2d_texture_path_intern(GF_VisualManager *visual, GF_Path *pat
 	visual_2d_set_options(visual->compositor, visual->raster_surface, ctx->flags & CTX_IS_TEXT, ctx->flags & CTX_NO_ANTIALIAS);
 
 	/*get original bounds*/
-	gf_path_get_bounds(path, &orig_rc);
+	if (orig_bounds) {
+		orig_rc = *orig_bounds;
+	} else {
+		gf_path_get_bounds(path, &orig_rc);
+	}
 
 	/*get active texture window in pixels*/
 	rc.width = INT2FIX(txh->width);
@@ -335,23 +338,25 @@ static void visual_2d_texture_path_intern(GF_VisualManager *visual, GF_Path *pat
 	sS = orig_rc.width / txh->width;
 	sT = orig_rc.height / txh->height;
 	
-	gf_mx2d_init(gf_mx2d_txt);
-	gf_mx2d_add_scale(&gf_mx2d_txt, sS, sT);
+	gf_mx2d_init(mx_texture);
+	gf_mx2d_add_scale(&mx_texture, sS, sT);
 
 	/*apply texture transform*/
 	if (ctx->flags & CTX_HAS_APPEARANCE) {
 		visual_2d_get_texture_transform(ctx->appear, txh, &tex_trans, (txh == ctx->aspect.fill_texture) ? 0 : 1, txh->width * sS, txh->height * sT);
-		gf_mx2d_add_matrix(&gf_mx2d_txt, &tex_trans);
+		gf_mx2d_add_matrix(&mx_texture, &tex_trans);
 	}
 
 	/*move to bottom-left corner of bounds */
-	gf_mx2d_add_translation(&gf_mx2d_txt, (orig_rc.x), (orig_rc.y - orig_rc.height));
+	gf_mx2d_add_translation(&mx_texture, (orig_rc.x), (orig_rc.y - orig_rc.height));
+
+	if (ext_mx) gf_mx2d_add_matrix(&mx_texture, ext_mx);
 
 	/*move to final coordinate system (except background which is built directly in final coord system)*/	
-	if (!(ctx->flags & CTX_IS_BACKGROUND) ) gf_mx2d_add_matrix(&gf_mx2d_txt, &ctx->transform);
+	if (!(ctx->flags & CTX_IS_BACKGROUND) ) gf_mx2d_add_matrix(&mx_texture, &ctx->transform);
 
 	/*set path transform, except for background2D node which is directly build in the final coord system*/
-	raster->stencil_set_matrix(tx_raster, &gf_mx2d_txt);
+	raster->stencil_set_matrix(tx_raster, &mx_texture);
 
 
 	tx_tile = 0;
@@ -394,7 +399,7 @@ void visual_2d_texture_path(GF_VisualManager *visual, GF_Path *path, struct _dra
 	}
 #endif
 
-	visual_2d_texture_path_intern(visual, path, NULL, ctx);
+	visual_2d_texture_path_extended(visual, path, NULL, ctx, NULL, NULL);
 }
 
 #define ADAPTATION_SIZE		0
@@ -467,7 +472,7 @@ void visual_2d_draw_path(GF_VisualManager *visual, GF_Path *path, DrawableContex
 			si = drawable_get_strikeinfo(visual->compositor, ctx->drawable, &ctx->aspect, ctx->appear, path, ctx->flags, NULL);
 			if (si && si->outline) {
 				if (ctx->aspect.line_texture) {
-					visual_2d_texture_path_intern(visual, si->outline, ctx->aspect.line_texture, ctx);
+					visual_2d_texture_path_extended(visual, si->outline, ctx->aspect.line_texture, ctx, NULL, NULL);
 				} else {
 					raster->surface_set_path(visual->raster_surface, si->outline);
 					visual_2d_fill_path(visual, ctx, pen);

@@ -32,6 +32,7 @@ extern "C" {
 
 #include <gpac/path2d.h>
 #include <gpac/module.h>
+#include <gpac/user.h>
 
 
 /*interface name and version for font raster*/
@@ -73,6 +74,102 @@ typedef struct _font_raster
 	void *priv;
 } GF_FontRaster;
 
+
+
+
+typedef struct gf_ft_glyph
+{
+	struct gf_ft_glyph *next;
+	u32 utf_name;
+	GF_Path *path;
+	/*glyph bbox in font EM size*/
+	s32 x,y,width,height;
+	/*glyph horizontal advance in font EM size*/
+	s32 horiz_advance;
+	/*glyph vertical advance in font EM size*/
+	s32 vert_advance;
+} GF_Glyph;
+
+typedef struct gf_ft_font
+{
+	struct gf_ft_font *next;
+	struct gf_ft_glyph *glyph;
+
+	char *name;
+	u32 em_size;
+	u32 styles;
+	/*font uits in em size*/
+	s32 ascent, descent, line_spacing, max_advance_h, max_advance_v;
+} GF_Font;
+
+enum
+{
+	GF_FONT_BOLD = 1,
+	GF_FONT_ITALIC = 1<<1,
+	GF_FONT_UNDERLINED = 1<<2,
+};
+
+/*interface name and version for font engine*/
+#define GF_FONT_READER_INTERFACE		GF_4CC('G','F','T', 0x01)
+
+
+typedef struct _font_reader
+{
+	/* interface declaration*/
+	GF_DECL_MODULE_INTERFACE
+
+	/*inits font engine.*/
+	GF_Err (*init_font_engine)(struct _font_reader *dr);
+	/*shutdown font engine*/
+	GF_Err (*shutdown_font_engine)(struct _font_reader *dr);
+
+	/*set active font . @styles indicates font styles (PLAIN, BOLD, ITALIC, 
+	BOLDITALIC and UNDERLINED, STRIKEOUT)*/
+	GF_Err (*set_font)(struct _font_reader *dr, const char *fontName, u32 styles);
+	/*gets font info*/
+	GF_Err (*get_font_info)(struct _font_reader *dr, char **font_name, s32 *em_size, s32 *ascent, s32 *descent, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v);
+
+	/*translate string to glyph sequence*/
+	GF_Err (*get_glyphs)(struct _font_reader *dr, const char *utf_string, unsigned short *glyph_buffer, u32 *io_glyph_buffer_size);
+
+	/*loads glyph by name - returns NULL if glyph cannot be found*/
+	GF_Glyph *(*load_glyph)(struct _font_reader *dr, u32 glyph_name);
+
+
+/*module private*/
+	void *udta;
+} GF_FontReader;
+
+
+
+typedef struct
+{
+	GF_Font *font;
+	
+	GF_Glyph **glyphs;
+	u32 nb_glyphs;
+
+	Fixed font_size;
+	Bool horizontal;
+	/*scale to apply to get to requested font size*/
+	Fixed font_scale;
+	GF_Rect bounds;
+
+	/*x and y offset in local coord system*/
+	Fixed off_x, off_y;
+	Fixed x_scale, y_scale;
+
+	/*per-glyph positioning if any - shall be the same number as the glyphs*/
+	Fixed *dx, *dy;
+} GF_TextSpan;
+typedef struct _gf_ft_mgr GF_FontManager;
+
+GF_FontManager *gf_font_manager_new(GF_User *user);
+void gf_font_manager_del(GF_FontManager *fm);
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size);
+void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);
+GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name);
+GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
 
 #ifdef __cplusplus
 }
