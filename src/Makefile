@@ -98,6 +98,10 @@ endif
 EXTRALIBS+= $(JS_LIBS)
 endif
 
+SCENEGRAPH_CFLAGS+=-DGPAC_HAS_SPIDERMONKEY $(JS_FLAGS)
+EXTRALIBS+= $(JS_LIBS)
+
+
 ifeq ($(DISABLE_SVG), yes)
 SCENEGRAPH_CFLAGS+=-DGPAC_DISABLE_SVG
 endif
@@ -177,7 +181,7 @@ lib: $(LIB)
 mcrypt: CFLAGS= $(OPTFLAGS) -w -I$(SRC_PATH)/include
 mcrypt: $(LIBGPAC_MCRYPT)
 
-scenegraph: CFLAGS+=$(SCENEGRAPH_CFLAGS)
+scenegraph: CFLAGS += $(SCENEGRAPH_CFLAGS)
 scenegraph: $(LIBGPAC_SCENE)
 
 isomedia: CFLAGS+=$(ISOMEDIA_CFLAGS)
@@ -214,7 +218,7 @@ else
 	$(CC) $(CFLAGS) -c -o $@ $< 
 endif
 
-$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(OBJSPIC) isomedia scenegraph mcrypt mediatools sceneman term compositor
+$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) isomedia scenegraph mcrypt mediatools sceneman term compositor $(OBJSPIC)
 	ar cr ../bin/gcc/libgpac_static.a $(OBJS)
 	ranlib ../bin/gcc/libgpac_static.a
 	$(CC) $(SHFLAGS) -Wl,-soname,$(LIB) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS)
