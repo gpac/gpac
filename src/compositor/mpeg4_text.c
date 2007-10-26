@@ -215,7 +215,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 
 static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 {
-	u32 i, j, int_major, k, styles;
+	u32 i, j, int_major, k, styles, count;
 	Fixed fontSize, start_x, start_y, line_spacing, tot_width, tot_height, max_scale, space;
 	GF_Font *font;
 	Bool horizontal;
@@ -388,7 +388,8 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 
 	st->bounds.width = st->bounds.height = 0;
 
-	for (i=0; i < txt->string.count; i++) {
+	count = gf_list_count(st->text_lines);
+	for (i=0; i < count; i++) {
 		GF_TextLine *line = gf_list_get(st->text_lines, i);
 		switch (int_major) {
 		/*major-justification MIDDLE*/
