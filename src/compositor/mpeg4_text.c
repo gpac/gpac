@@ -153,7 +153,8 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 			GF_TextLine *txt_line;
 
 			/*we currently only split sentences at spaces*/
-			if (split_words && (j+1!=len) && (tspan->glyphs[j]->utf_name != (unsigned short) ' ')) continue;
+			if (split_words && (j+1!=len) && (tspan->glyphs[j]->utf_name != (unsigned short) ' ')) 
+				continue;
 
 			GF_SAFEALLOC(txt_line, GF_TextLine);
 
@@ -174,11 +175,8 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 					txt_line->span->bounds.width += gf_mulfix((txt_line->span->glyphs[k] ? txt_line->span->glyphs[k]->horiz_advance : tspan->font->max_advance_h), tspan->font_scale);
 				}
 			} else {
-				if (FSLTR) {
-					txt_line->span->glyphs[0] = tspan->glyphs[j];
-				} else {
-					txt_line->span->glyphs[0] = tspan->glyphs[len - j - 1];
-				}
+				txt_line->span->glyphs[0] = tspan->glyphs[FSLTR ? j : (len - j - 1) ];
+				txt_line->span->glyphs[0] = tspan->glyphs[j];
 				txt_line->span->bounds.width = gf_mulfix((txt_line->span->glyphs[0] ? txt_line->span->glyphs[0]->horiz_advance : tspan->font->max_advance_h), tspan->font_scale);
 			}
 
@@ -511,13 +509,13 @@ static Bool text_setup_span_texture(GF_Compositor *compositor, GF_TextLine *tl, 
 	if (tl->txh && !tl->txh->data) return 0;
 
 	if (tl->txh && tl->txh->data) {
-//		if (tl->last_zoom == compositor->zoom) {
+		if (tl->last_zoom == compositor->zoom) {
 
 #ifndef GPAC_DISABLE_3D
 			if (for_3d && !tl->mesh) text_span_build_mesh(tl);
 #endif
 			return 1;
-//		}
+		}
 	}
 	tl->last_zoom = compositor->zoom;
 
@@ -579,8 +577,6 @@ static Bool text_setup_span_texture(GF_Compositor *compositor, GF_TextLine *tl, 
 	tl->txh->pixelformat = GF_PIXEL_RGBA;
 	tl->txh->transparent = 1;
 	tl->txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
-
-	fprintf(stdout, "Recomputing text texture - size %d %d\n", width, height);
 
 	surface = raster->surface_new(raster, 1);
 	if (!surface) {
@@ -786,7 +782,7 @@ static void text_draw_3d(GF_TraverseState *tr_state, GF_Node *node, TextStack *s
 
 		if (fill_2d) visual_3d_set_material_2d_argb(tr_state->visual, asp.fill_color);
 
-		i=tr_state->text_split_idx; 
+		i=tr_state->text_split_idx ? tr_state->text_split_idx-1 : 0;
 		while ((tl = (GF_TextLine *)gf_list_enum(st->text_lines, &i))) {
 
 			if (hlight) {
@@ -936,7 +932,7 @@ void text_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 		use_texture_text = !ctx->aspect.fill_texture && !ctx->aspect.pen_props.width;
 	}
 
-	i=ctx->sub_path_index;
+	i=ctx->sub_path_index ? ctx->sub_path_index-1 : 0;
 	while ((line = (GF_TextLine *)gf_list_enum(st->text_lines, &i))) {
 		if (hl_color) visual_2d_fill_rect(tr_state->visual, ctx, &line->span->bounds, hl_color, 0);
 		if (use_texture_text && text_setup_span_texture(tr_state->visual->compositor, line, 0)) {
@@ -1023,8 +1019,8 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 		ctx->aspect.pen_props.cap = GF_LINE_CAP_FLAT;
 	}
 	if (ctx->sub_path_index) {
-		GF_TextSpan *tspan = (GF_TextSpan *)gf_list_get(st->text_lines, ctx->sub_path_index-1);
-		if (tspan) drawable_finalize_sort(ctx, tr_state, &tspan->bounds);
+		GF_TextLine *tl = (GF_TextLine *)gf_list_get(st->text_lines, ctx->sub_path_index-1);
+		if (tl) drawable_finalize_sort(ctx, tr_state, &tl->span->bounds);
 	} else {
 		drawable_finalize_sort(ctx, tr_state, &st->bounds);
 	}
