@@ -406,6 +406,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Pocket PC 2003 (ARMV4)"
+			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool
@@ -6685,6 +6686,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\compositor\events.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\compositor\font_engine.c"
 				>
 			</File>
 			<File
