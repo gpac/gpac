@@ -225,8 +225,12 @@ static void imagetexture_update(GF_TextureHandler *txh)
 		gf_sc_texture_play(txh, &txnode->url);
 	}
 	gf_sc_texture_update_frame(txh, 0);
-	/*URL is present but not opened - redraw till fetch*/
-	if ((txh->stream && !txh->tx_io) || txh->needs_refresh) {
+	
+	if (
+		/*URL is present but not opened - redraw till fetch*/
+		/* (txh->stream && !txh->tx_io) && */ 
+		/*image has been updated*/
+		txh->needs_refresh) {
 		/*mark all subtrees using this image as dirty*/
 		gf_node_dirty_parents(txh->owner);
 		gf_sc_invalidate(txh->compositor, NULL);

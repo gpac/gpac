@@ -1091,7 +1091,7 @@ void visual_3d_drawable_collide(GF_Node *node, GF_TraverseState *tr_state)
 	}
 }
 
-static GF_TextureHandler *visual_3d_setup_texture_2d(GF_TraverseState *tr_state, DrawAspect2D *asp, Bool is_svg)
+static GF_TextureHandler *visual_3d_setup_texture_2d(GF_TraverseState *tr_state, DrawAspect2D *asp, Bool is_svg, GF_Mesh *mesh)
 {
 	if (!asp->fill_texture) return NULL;
 
@@ -1103,7 +1103,13 @@ static GF_TextureHandler *visual_3d_setup_texture_2d(GF_TraverseState *tr_state,
 		gf_sc_texture_set_blend_mode(asp->fill_texture, TX_REPLACE);
 	}
 
-	tr_state->mesh_has_texture = gf_sc_texture_enable(asp->fill_texture, is_svg ? NULL : ((M_Appearance *)tr_state->appear)->textureTransform);
+	if (is_svg) {
+		GF_Rect rc;
+		gf_rect_from_bbox(&rc, &mesh->bounds);
+		tr_state->mesh_has_texture = gf_sc_texture_enable_ex(asp->fill_texture, NULL, &rc);
+	} else {
+		tr_state->mesh_has_texture = gf_sc_texture_enable(asp->fill_texture, ((M_Appearance *)tr_state->appear)->textureTransform);
+	}
 	if (tr_state->mesh_has_texture) return asp->fill_texture;
 	return NULL;
 }
@@ -1136,7 +1142,7 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 	StrikeInfo2D *si;
 	GF_TextureHandler *fill_txh;
 
-	fill_txh = visual_3d_setup_texture_2d(tr_state, asp, is_svg);
+	fill_txh = visual_3d_setup_texture_2d(tr_state, asp, is_svg, st->mesh);
 
 	/*fill path*/
 	if (fill_txh || (GF_COL_A(asp->fill_color)) ) {
