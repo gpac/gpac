@@ -4043,10 +4043,14 @@ DEP_CPP_BINDA=\
 
 SOURCE=..\..\src\compositor\camera.c
 DEP_CPP_CAMER=\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\options.h"\
-	
-NODEP_CPP_CAMER=\
-	"..\..\src\compositor\camera.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
 	
 # End Source File
 # Begin Source File
@@ -4289,6 +4293,37 @@ DEP_CPP_EVENT=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\font_engine.c
+DEP_CPP_FONT_=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\compositor.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
 	
 # End Source File
 # Begin Source File
@@ -5632,6 +5667,7 @@ DEP_CPP_SVG_GR=\
 	"..\..\include\gpac\user.h"\
 	"..\..\src\compositor\drawable.h"\
 	"..\..\src\compositor\nodes_stacks.h"\
+	"..\..\src\compositor\offscreen_cache.h"\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
