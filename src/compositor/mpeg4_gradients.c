@@ -112,7 +112,7 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 }
 
 
-static void LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+static void LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat, Bool for_3d)
 {
 	GF_STENCIL stencil;
 	SFVec2f start, end;
@@ -241,6 +241,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 	if (!stenc) {
 		raster->stencil_delete(texture2D);
 		raster->surface_delete(surface);
+		return;
 	}
 	/*move line to object space*/
 	start.x *= GRAD_TEXTURE_SIZE;
@@ -268,6 +269,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 
 	/*add gradient transform*/
 	GradientGetMatrix(lg->transform, &mat);
+
 	/*move transform to object space*/
 	mat.m[2] *= GRAD_TEXTURE_SIZE;
 	mat.m[5] *= GRAD_TEXTURE_SIZE;
@@ -309,6 +311,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 		txh->stride = GRAD_TEXTURE_SIZE*3;
 		txh->pixelformat = GF_PIXEL_RGB_24;
 	}
+	txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 	gf_sc_texture_set_data(txh);
 }
 
@@ -491,6 +494,7 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 		txh->pixelformat = GF_PIXEL_RGB_24;
 	}
 //	tx_set_blend_enable(txh, 1);
+	txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 	gf_sc_texture_set_data(txh);
 	return;
 }
@@ -526,7 +530,7 @@ static void UpdateRadialGradient(GF_TextureHandler *txh)
 	}
 }
 
-static void RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+static void RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat, Bool for_3d)
 {
 	SFVec2f center, focal;
 	u32 i, *cols;

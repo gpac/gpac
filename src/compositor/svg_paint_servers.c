@@ -240,6 +240,56 @@ static void svg_traverse_gradient(GF_Node *node, void *rs, Bool is_destroy)
 #define GRAD_TEXTURE_SIZE	128
 #define GRAD_TEXTURE_HSIZE	64
 
+static GF_Rect compositor_svg_get_gradient_bounds(GF_TextureHandler *txh, SVGAllAttributes *all_atts)
+{
+	GF_Rect rc;
+	if (gf_node_get_tag(txh->owner)==TAG_SVG_radialGradient) {
+		rc.x = rc.y = rc.width = FIX_ONE/2;
+		if (all_atts->r) {
+			rc.width = 2*all_atts->r->value;
+			if (all_atts->r->type==SVG_NUMBER_PERCENTAGE) rc.width /= 100;
+		}
+		if (all_atts->cx) {
+			rc.x = all_atts->cx->value;
+			if (all_atts->cx->type==SVG_NUMBER_PERCENTAGE) rc.x /= 100;
+		}
+		if (all_atts->cy) {
+			rc.y = all_atts->cy->value;
+			if (all_atts->cy->type==SVG_NUMBER_PERCENTAGE) rc.y /= 100;
+		}
+		rc.height = rc.width;
+		rc.x -= rc.width/2;
+		rc.y -= rc.height/2;
+	} else {
+		rc.x = rc.y = rc.height = 0;
+		rc.width = FIX_ONE;
+		if (all_atts->x1) {
+			rc.x = all_atts->x1->value;
+			if (all_atts->x1->type==SVG_NUMBER_PERCENTAGE) rc.x /= 100;
+		}
+		if (all_atts->y1) {
+			rc.y = all_atts->y1->value;
+			if (all_atts->y1->type==SVG_NUMBER_PERCENTAGE) rc.y /= 100;
+		}
+		if (all_atts->x2) {
+			rc.width = all_atts->x2->value;
+			if (all_atts->x2->type==SVG_NUMBER_PERCENTAGE) rc.width/= 100;
+		}
+		rc.width -= rc.x;
+
+		if (all_atts->y2) {
+			rc.height = all_atts->y2->value;
+			if (all_atts->y2->type==SVG_NUMBER_PERCENTAGE) rc.height /= 100;
+		}
+		rc.height -= rc.y;
+
+		if (!rc.width) rc.width = rc.height;
+		if (!rc.height) rc.height = rc.width;
+	}
+	rc.y += rc.height;
+	return rc;
+}
+
 void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 {
 	u32 i;
@@ -257,6 +307,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 
 
 	if (!txh->tx_io) return;
+
 
 	if (st->tx_data) {
 		free(st->tx_data);
@@ -322,27 +373,22 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	gf_path_add_line_to(path, -size, size);
 	gf_path_close(path);
 
+	gf_mx2d_init(mat);
+	txh->compute_gradient_matrix(txh, NULL, &mat, 0);
 
 	gf_svg_flatten_attributes((SVG_Element*)txh->owner, &all_atts);
-	gf_mx2d_init(mat);
 
 	if (all_atts.gradientUnits && (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT) ) {
-		if (all_atts.gradientTransform) {
+		if (all_atts.gradientTransform)
 			gf_mx2d_copy(mat, all_atts.gradientTransform->mat);
-		}
+
 		gf_mx2d_add_scale(&mat, 2*size, 2*size);
 		gf_mx2d_add_translation(&mat, -size, -size);
 	} else {
-		/*FIXME - UserSpace is broken*/
-		if (all_atts.gradientTransform) {
-			GF_Matrix2D mx;
-			gf_mx2d_copy(mx, all_atts.gradientTransform->mat);
-			mx.m[2] = 0;
-			mx.m[5] = 0;
-			gf_mx2d_add_matrix(&mat, &mx);
-		}
-
-		gf_mx2d_add_scale(&mat, 2*size, 2*size);
+		GF_Rect rc = compositor_svg_get_gradient_bounds(txh, &all_atts);
+		/*recenter the gradient to use full texture*/
+		gf_mx2d_add_translation(&mat, -rc.x, rc.height-rc.y);
+		gf_mx2d_add_scale(&mat, gf_divfix(2*size, rc.width), gf_divfix(2*size , rc.height));
 		gf_mx2d_add_translation(&mat, -size, -size);
 	}
 
@@ -358,6 +404,8 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	txh->width = GRAD_TEXTURE_SIZE;
 	txh->height = GRAD_TEXTURE_SIZE;
 	txh->transparent = transparent;
+	txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
+
 	if (transparent) {
 		u32 j;
 		txh->stride = GRAD_TEXTURE_SIZE*4;
@@ -394,7 +442,7 @@ static void SVG_UpdateLinearGradient(GF_TextureHandler *txh)
 }
 
 
-static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat, Bool for_3d)
 {
 	GF_STENCIL stencil;
 	SFVec2f start, end;
@@ -408,7 +456,25 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 
 	/*get "transfered" attributed from xlink:href if any*/
 	svg_copy_gradient_attributes_from(txh->owner, &all_atts);
-	
+
+	gf_mx2d_init(*mat);
+
+	/*gradient is a texture, only update the bounds*/
+	if (for_3d) {
+		GF_Rect rc;
+		if (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT)) 
+			return;
+
+		/*get gradient bounds in local coord system*/
+		rc = compositor_svg_get_gradient_bounds(txh, &all_atts);
+		gf_mx2d_add_scale(mat, gf_divfix(rc.width, bounds->width), gf_divfix(rc.height, bounds->height));
+
+		return;
+	}
+
+	if (all_atts.gradientTransform) 
+		gf_mx2d_copy(*mat, all_atts.gradientTransform->mat );
+
 	if (all_atts.x1) {
 		start.x = all_atts.x1->value;
 		if (all_atts.x1->type==SVG_NUMBER_PERCENTAGE) start.x /= 100;
@@ -425,7 +491,7 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		end.x = all_atts.x2->value;
 		if (all_atts.x2->type==SVG_NUMBER_PERCENTAGE) end.x /= 100;
 	} else {
-		end.x = 1;
+		end.x = FIX_ONE;
 	}
 	if (all_atts.y2) {
 		end.y = all_atts.y2->value;
@@ -433,18 +499,14 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	} else {
 		end.y = 0;
 	}
+
 	txh->compositor->rasterizer->stencil_set_gradient_mode(stencil, (GF_GradientMode) all_atts.spreadMethod ? *(SVG_SpreadMethod*)all_atts.spreadMethod : 0);
 
-	if (all_atts.gradientTransform) {
-		gf_mx2d_copy(*mat, all_atts.gradientTransform->mat );
-	} else {
-		gf_mx2d_init(*mat);
-	}
 
 	if (bounds && (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT)) ) {
 		/*move to local coord system - cf SVG spec*/
 		gf_mx2d_add_scale(mat, bounds->width, bounds->height);
-		gf_mx2d_add_translation(mat, bounds->x - 1, bounds->y  - bounds->height - 1);
+		gf_mx2d_add_translation(mat, bounds->x, bounds->y  - bounds->height);
 	}
 	txh->compositor->rasterizer->stencil_set_linear_gradient(stencil, start.x, start.y, end.x, end.y);
 }
@@ -472,7 +534,7 @@ static void SVG_UpdateRadialGradient(GF_TextureHandler *txh)
 	svg_update_gradient(st, rg->children, 0);
 }
 
-static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat, Bool for_3d)
 {
 	GF_STENCIL stencil;
 	SFVec2f center, focal;
@@ -489,10 +551,25 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	/*get "transfered" attributed from xlink:href if any*/
 	svg_copy_gradient_attributes_from(txh->owner, &all_atts);
 
+	gf_mx2d_init(*mat);
+
+	/*gradient is a texture, only update the bounds*/
+	if (for_3d && bounds) {
+		GF_Rect rc;
+		if (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT)) 
+			return;
+
+		/*get gradient bounds in local coord system*/
+		rc = compositor_svg_get_gradient_bounds(txh, &all_atts);
+		gf_mx2d_add_translation(mat, gf_divfix(rc.x-bounds->x, rc.width), gf_divfix(bounds->y - rc.y, rc.height) );
+		gf_mx2d_add_scale(mat, gf_divfix(rc.width, bounds->width), gf_divfix(rc.height, bounds->height));
+
+		gf_mx2d_inverse(mat);
+		return;
+	}
+
 	if (all_atts.gradientTransform) 
 		gf_mx2d_copy(*mat, all_atts.gradientTransform->mat);
-	else
-		gf_mx2d_init(*mat);
 	
 	if (all_atts.r) {
 		radius = all_atts.r->value;

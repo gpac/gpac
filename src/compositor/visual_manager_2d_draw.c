@@ -205,7 +205,7 @@ static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_
 	if (!txh) txh = ctx->aspect.fill_texture;
 	gf_path_get_bounds(path, &rc);
 	if (!rc.width || !rc.height || !txh->tx_io) return;
-	txh->compute_gradient_matrix(txh, &rc, &g_mat);
+	txh->compute_gradient_matrix(txh, &rc, &g_mat, 0);
 
 	stencil = gf_sc_texture_get_stencil(txh);
 	if (!stencil) return;

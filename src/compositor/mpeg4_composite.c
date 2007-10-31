@@ -415,6 +415,7 @@ void compositor_init_compositetexture2d(GF_Compositor *compositor, GF_Node *node
 	gf_sc_texture_setup(&st->txh, compositor, node);
 	st->txh.update_texture_fcnt = composite_update;
 
+	st->txh.flags = GF_SR_TEXTURE_NO_GL_FLIP;
 	if ((c2d->repeatSandT==1) || (c2d->repeatSandT==3) ) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (c2d->repeatSandT>1) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 
@@ -445,6 +446,7 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 	gf_sc_texture_setup(&st->txh, compositor, node);
 	st->txh.update_texture_fcnt = composite_update;
 
+	st->txh.flags = GF_SR_TEXTURE_NO_GL_FLIP;
 	if (c3d->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (c3d->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 

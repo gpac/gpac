@@ -803,7 +803,16 @@ void gf_node_traverse(GF_Node *node, void *renderStack)
 			gf_node_dirty_set(node, 0, 1);
 			return;
 		}
-		node = proto_inst->RenderingNode;
+
+		/*resolve all top-level proto until we find the first traversable node*/
+		while (node->sgprivate->tag == TAG_ProtoNode) {
+			node = ((GF_ProtoInstance *) node)->RenderingNode;
+			if (!node) {
+				gf_node_dirty_set(node, 0, 1);
+				return;
+			}
+		}
+		proto_inst->RenderingNode = node;
 		node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, node, NULL);
 	}
 	if (node->sgprivate->UserCallback) {
@@ -1282,11 +1291,16 @@ static void dirty_parents(GF_Node *node)
 		if (! (p->sgprivate->flags & GF_SG_CHILD_DIRTY)) {
 			p->sgprivate->flags |= GF_SG_CHILD_DIRTY;
 			dirty_parents(p);
+//		} else {
+//			fprintf(stdout, "dirty propagation stopped at %s\n", gf_node_get_class_name(p));
 		}
 		check_root = 0;
 		nlist = nlist->next;
 	}
-	if (check_root && (node==node->sgprivate->scenegraph->RootNode) && node->sgprivate->scenegraph->NodeCallback) node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_GRAPH_DIRTY, NULL, NULL);
+	if (check_root && node->sgprivate->scenegraph->NodeCallback && 
+		/*propagate if root node or if proto node (may be unattached yet)*/
+		( (node==node->sgprivate->scenegraph->RootNode) || node->sgprivate->scenegraph->pOwningProto) )
+		node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_GRAPH_DIRTY, NULL, NULL);
 }
 
 GF_EXPORT

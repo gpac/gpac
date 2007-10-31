@@ -438,7 +438,9 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, GL_UNSIGNED_BYTE, (unsigned char *) data);
 		}
 	} else {
-#ifdef GPAC_USE_OGL_ES
+		/*it appears gluScaleImage is quite slow - use ourt own resampler which is not as nice but a but faster*/
+//#ifdef GPAC_USE_OGL_ES
+#if 1
 		GF_VideoSurface src, dst;
 		src.width = txh->width;
 		src.height = txh->height;
@@ -464,7 +466,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		}
 	}
 #endif
-	
 	return 1;
 
 #endif
@@ -637,7 +638,7 @@ Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh)
 
 #ifndef GPAC_DISABLE_3D
 
-Bool gf_sc_texture_enable(GF_TextureHandler *txh, GF_Node *tx_transform)
+Bool gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Rect *bounds)
 {
 	GF_Matrix mx;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
@@ -657,18 +658,32 @@ Bool gf_sc_texture_enable(GF_TextureHandler *txh, GF_Node *tx_transform)
 	if (txh->compute_gradient_matrix && gf_sc_texture_needs_reload(txh) ) {
 		compositor_gradient_update(txh);
 	}
+
 	tx_set_image(txh, 0);
 
 	visual_3d_set_matrix_mode(compositor->visual, V3D_MATRIX_TEXTURE);
-	if (gf_sc_texture_get_transform(txh, tx_transform, &mx)) 
+	if (bounds && txh->compute_gradient_matrix) {
+		GF_Matrix2D mx2d;
+		txh->compute_gradient_matrix(txh, bounds, &mx2d, 1);
+		gf_mx_from_mx2d(&mx, &mx2d);
 		visual_3d_matrix_load(compositor->visual, mx.m);
-	else
+	}
+	else if (gf_sc_texture_get_transform(txh, tx_transform, &mx)) {
+		visual_3d_matrix_load(compositor->visual, mx.m);
+	} else {
 		visual_3d_matrix_reset(compositor->visual);
+	}
 	visual_3d_set_matrix_mode(compositor->visual, V3D_MATRIX_MODELVIEW);
 
 	tx_bind(txh);
 	return 1;
 }
+
+Bool gf_sc_texture_enable(GF_TextureHandler *txh, GF_Node *tx_transform)
+{
+	return gf_sc_texture_enable_ex(txh, tx_transform, NULL);
+}
+
 
 #endif
 

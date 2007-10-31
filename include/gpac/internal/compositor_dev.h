@@ -402,7 +402,7 @@ typedef struct _gf_sc_texture_handler
 	objects - since we don't want to build an offscreen texture for the gradient, gradients have to be updated 
 	at each draw - the matrix shall be updated to the gradient transformation in the local system
 	MUST be set for gradient textures*/
-	void (*compute_gradient_matrix)(struct _gf_sc_texture_handler *txh, GF_Rect *bounds, GF_Matrix2D *mat);
+	void (*compute_gradient_matrix)(struct _gf_sc_texture_handler *txh, GF_Rect *bounds, GF_Matrix2D *mat, Bool for_3d);
 
 	/*image data for natural media*/
 	char *data;
