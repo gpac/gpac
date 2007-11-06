@@ -484,9 +484,9 @@ Bool m2ts_stream_process_mpeg4bifssection(M2TS_Mux *muxer, M2TS_Mux_Stream *stre
 			stream->sl_header.accessUnitLength = stream->pck.data_len;
 			stream->sl_header.randomAccessPointFlag = stream->pck.flags;
 			stream->sl_header.compositionTimeStampFlag = 1;
-			stream->sl_header.compositionTimeStamp = stream->pck.cts*90000/1000;
+			stream->sl_header.compositionTimeStamp = stream->pck.cts; //*90000/1000;
 			stream->sl_header.decodingTimeStampFlag = 1;
-			stream->sl_header.decodingTimeStamp = stream->pck.dts*90000/1000;
+			stream->sl_header.decodingTimeStamp = stream->pck.dts; //*90000/1000;
 			gf_sl_packetize(&stream->sl_config, &stream->sl_header, stream->pck.data, stream->pck.data_len, &stream->sl_packet, &stream->sl_packet_len);
 			m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_MPEG4_BIFS, muxer->ts_id, stream->sl_packet, stream->sl_packet_len, 1, 0, 0);
 			free(stream->sl_packet);
@@ -834,7 +834,7 @@ M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __ele
 			stream->sl_config.useAccessUnitStartFlag = 1;
 			stream->sl_config.useIdleFlag = 0; //1
 			stream->sl_config.usePaddingFlag = 0;
-			stream->sl_config.useRandomAccessPointFlag = 0;
+			stream->sl_config.useRandomAccessPointFlag = 1;
 			stream->sl_config.useTimestampsFlag = 1;
 		}
 		break;
