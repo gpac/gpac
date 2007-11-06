@@ -236,14 +236,14 @@ void main(int argc, char **argv)
 */
 
 
-	if ((in=fopen(argv[2], "rb")) == NULL) {
+	if ((in=fopen(argv[1], "rb")) == NULL) {
 		printf( "Impossible d'ouvrir %s en lecture.\n", argv[1]);
 	}
 			
 	bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
 	if (bs == NULL) return;
 
-	RS_Deinterleaver(bs, argv[3]);
+	RS_Deinterleaver(bs, argv[2]);
 	fclose(in);
 	gf_bs_del(bs);
 

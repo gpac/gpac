@@ -353,10 +353,10 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog)
 	}
 #endif	
 	for (i=0; i<count; i++) {
-		GF_M2TS_PES *pes = gf_list_get(prog->streams, i);
-		if (pes->pid==prog->pmt_pid) continue;
-		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
-		MP2TS_DeclareStream(m2ts, pes);
+		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
+		if (es->pid==prog->pmt_pid) continue;
+		if (!(es->flags & GF_M2TS_ES_IS_SECTION)) gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
+		MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es);
 	}
 	/*force scene regeneration*/
 	gf_term_add_media(m2ts->service, NULL, 0);
