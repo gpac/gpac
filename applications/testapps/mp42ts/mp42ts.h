@@ -112,6 +112,11 @@ typedef struct __m2ts_mux_stream {
 	/*avg bitrate compute*/
 	u64 last_br_time;
 	u32 bytes_since_last_time;
+
+	GF_SLHeader sl_header;
+	GF_SLConfig sl_config;
+	u8 *sl_packet;
+	u32 sl_packet_len;
 } M2TS_Mux_Stream;
 
 
@@ -131,6 +136,8 @@ struct __m2ts_mux_program {
 	/*TS time at pcr init*/
 	M2TS_Time pcr_init_ts_time;
 	u64 pcr_init_time;
+
+	GF_Descriptor *iod;
 };
 
 struct __m2ts_mux {
@@ -155,6 +162,8 @@ struct __m2ts_mux {
 
 	Bool eos_found;
 	u32 tot_pck_sent, pck_sent, last_br_time, avg_br;
+
+	Bool mpeg4_signaling;
 };
 
 

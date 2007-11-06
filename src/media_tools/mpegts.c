@@ -26,7 +26,7 @@
 #include <gpac/avparse.h>
 #include <gpac/constants.h>
 
-#define DEBUG_TS_PACKET 0
+#define DEBUG_TS_PACKET 1
 
 const char *gf_m2ts_get_stream_name(u32 streamType)
 {
@@ -396,7 +396,7 @@ void gf_m2ts_es_del(GF_M2TS_ES *es)
 		 	if (ses->sec->section) free(ses->sec->section);
 		 	free(ses->sec);
 		 }
-	}
+	} else 
 	if (es->pid!=es->program->pmt_pid) {
 		GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 		if (pes->data) free(pes->data);
@@ -610,9 +610,9 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 	/*alloc final buffer*/
 	if (!sec->length && (sec->received >= 3)) {
 		if (gf_m2ts_is_long_section(sec->section[0])) {
-			sec->length = 3 + ( ((sec->section[1]<<8) | sec->section[2]) & 0xfff );
+			sec->length = 3 + ( ((sec->section[1]<<8) | (sec->section[2]&0xff)) & 0xfff );
 		} else {
-			sec->length = 3 + ( ((sec->section[1]<<8) | sec->section[2]) & 0x3ff );
+			sec->length = 3 + ( ((sec->section[1]<<8) | (sec->section[2]&0xff)) & 0x3ff );
 		}
 		sec->section = (char*)realloc(sec->section, sizeof(char)*sec->length);
 	}
@@ -759,19 +759,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, un
 				GF_BitStream *iod_bs;
 				scope = data[6];
 				label = data[7];
-				
-				iod_bs = gf_bs_new(data+8, data_size-8, GF_BITSTREAM_READ);
-#if 0
-				printf("Parsing IOD descriptor ... ");
-				if (gf_odf_parse_descriptor(iod_bs , (GF_Descriptor **) &pmt->program->pmt_iod, &size) == GF_OK)
-					printf("done.\n");
-				else 
-					printf("error.\n");
-#else
+				iod_bs = gf_bs_new(data+8, len-2, GF_BITSTREAM_READ);
 				if (pmt->program->pmt_iod) gf_odf_desc_del((GF_Descriptor *)pmt->program->pmt_iod);
 				gf_odf_parse_descriptor(iod_bs , (GF_Descriptor **) &pmt->program->pmt_iod, &size);
-#endif
-
 				gf_bs_del(iod_bs );
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping descriptor (0x%x) and others not supported\n", tag));
@@ -844,16 +834,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, un
 				pes->lang = GF_4CC(' ', data[2], data[3], data[4]);
 				break;
 			case GF_M2TS_MPEG4_SL_DESCRIPTOR: 
-			{
-				//u32 esd_index = 0;
-				pes->mpeg4_es_id = ((data[7] & 0x1f) << 8) | data[8];
-				pes->flags |= GF_M2TS_ES_IS_SL;
-/*
-				while ( (GF_ESD *esd = (GF_ESD*)gf_list_enum(pmt->program->pmt_iod->ESDescriptors, &esd_index)) ) {
-					if (esd->ESID == pes->ES_ID) pes->esd = esd;
-				}
-*/
-			}
+				es->mpeg4_es_id = ((data[2] & 0x1f) << 8) | data[3];
+				es->flags |= GF_M2TS_ES_IS_SL;
 				break;
 			case GF_M2TS_DVB_DATA_BROADCAST_ID_DESCRIPTOR: 
 				 {
