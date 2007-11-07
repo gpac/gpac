@@ -360,12 +360,12 @@ void m2ts_mux_table_get_next_packet(M2TS_Mux_Stream *stream, u8 *packet)
 		stream->current_section = stream->current_section->next;
 		if (!stream->current_section) {
 			stream->current_table = stream->current_table->next;
-			if (!stream->current_table) {
+			if (!stream->current_table && stream->refresh_rate_ms) {
 				stream->current_table = stream->tables;
 				/*update time*/
 				m2ts_time_inc(&stream->time, stream->refresh_rate_ms, 1000);
 			}
-			stream->current_section = stream->current_table->section;
+			if (stream->current_table) stream->current_section = stream->current_table->section;
 		}
 	}
 
@@ -469,9 +469,10 @@ Bool m2ts_stream_process_pmt(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 	return 1;
 }
 
-Bool m2ts_stream_process_mpeg4bifssection(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
+Bool m2ts_stream_process_mpeg4_systems_section(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 {
-	if (!stream->current_section || stream->current_section_offset == 0) {
+	/*TODO: how to handle carrousel */
+	if (!stream->current_section) {		
 		if (stream->ifce->caps & GF_ESI_AU_PULL_CAP) {
 			if (stream->current_section_offset) stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_RELEASE, NULL);
 
@@ -482,12 +483,12 @@ Bool m2ts_stream_process_mpeg4bifssection(M2TS_Mux *muxer, M2TS_Mux_Stream *stre
 			stream->sl_header.accessUnitStartFlag = 1;
 			stream->sl_header.accessUnitEndFlag = 1;
 			stream->sl_header.accessUnitLength = stream->pck.data_len;
-			stream->sl_header.randomAccessPointFlag = stream->pck.flags;
-			stream->sl_header.compositionTimeStampFlag = 1;
-			stream->sl_header.compositionTimeStamp = stream->pck.cts; //*90000/1000;
-			stream->sl_header.decodingTimeStampFlag = 1;
-			stream->sl_header.decodingTimeStamp = stream->pck.dts; //*90000/1000;
-			gf_sl_packetize(&stream->sl_config, &stream->sl_header, stream->pck.data, stream->pck.data_len, &stream->sl_packet, &stream->sl_packet_len);
+			stream->sl_header.randomAccessPointFlag = (stream->pck.flags & GF_ESI_DATA_AU_RAP) ? 1: 0;
+			stream->sl_header.compositionTimeStampFlag = 1; //(stream->pck.flags & GF_ESI_DATA_HAS_CTS)? 1: 0;
+			stream->sl_header.compositionTimeStamp = (u64) (stream->ts_scale * (s64) stream->pck.cts);
+			stream->sl_header.decodingTimeStampFlag = 1; //(stream->pck.flags & GF_ESI_DATA_HAS_DTS)? 1: 0;
+			stream->sl_header.decodingTimeStamp = (u64) (stream->ts_scale * (s64) stream->pck.dts);
+			gf_sl_packetize(&stream->ifce->sl_config, &stream->sl_header, stream->pck.data, stream->pck.data_len, &stream->sl_packet, &stream->sl_packet_len);
 			m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_MPEG4_BIFS, muxer->ts_id, stream->sl_packet, stream->sl_packet_len, 1, 0, 0);
 			free(stream->sl_packet);
 			stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_RELEASE, NULL);
@@ -585,9 +586,6 @@ u32 m2ts_stream_add_pes_header(GF_BitStream *bs, M2TS_Mux_Stream *stream,
 								u32 au_length)
 {
 	u32 pes_len;
-	u32 pes_header_data_length;
-
-	pes_header_data_length = 10;
 
 	gf_bs_write_int(bs,	0x1, 24);//packet start code
 	gf_bs_write_u8(bs,	stream->mpeg2_stream_id);// stream id 
@@ -608,7 +606,7 @@ u32 m2ts_stream_add_pes_header(GF_BitStream *bs, M2TS_Mux_Stream *stream,
 	gf_bs_write_int(bs, use_dts, 1);
 	gf_bs_write_int(bs, 0x0, 6); //6 flags = 0 (ESCR, ES_rate, DSM_trick, additional_copy, PES_CRC, PES_extension)
 
-	gf_bs_write_int(bs, pes_header_data_length, 8);
+	gf_bs_write_int(bs, use_dts*5+use_pts*5, 8);
 
 	if (use_pts) {
 		u64 t;
@@ -679,6 +677,7 @@ void m2ts_mux_pes_get_next_packet(M2TS_Mux_Stream *stream, u8 *packet)
 	gf_bs_write_int(bs,	au_start, 1); // start ind
 	gf_bs_write_int(bs,	0, 1);	  // transport priority
 	gf_bs_write_int(bs,	stream->pid, 13); // pid
+//	fprintf(stdout, "[MPEG-2 TS] Packet PID %d\n", stream->pid);
 	gf_bs_write_int(bs,	0, 2);    // scrambling
 	gf_bs_write_int(bs,	adaptation_field_control, 2);    // we do not use adaptation field for sections 
 	gf_bs_write_int(bs,	stream->continuity_counter, 4);   // continuity counter
@@ -809,33 +808,21 @@ M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __ele
 		stream->mpeg2_stream_id = 0xC0;
 		break;
 	case GF_STREAM_SCENE:
+	case GF_STREAM_OD:
 		if (program->mux->mpeg4_signaling) {
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_SECTIONS;
 			stream->mpeg2_stream_id = 0xFA;
-			stream->process = m2ts_stream_process_mpeg4bifssection;
-			stream->sl_config.AUDuration = 0;
-			stream->sl_config.AULength = 0;
-			stream->sl_config.AUSeqNumLength = 0;
-			stream->sl_config.CUDuration = 0;
-			stream->sl_config.degradationPriorityLength = 0;
-			stream->sl_config.durationFlag = 0;
-			stream->sl_config.hasRandomAccessUnitsOnlyFlag = 0;
-			stream->sl_config.instantBitrateLength = 0; //32;
-			stream->sl_config.OCRLength = 0;
-			stream->sl_config.OCRResolution = 1000; // 90000
+			stream->process = m2ts_stream_process_mpeg4_systems_section;
+/*			stream->sl_config.instantBitrateLength = 0; //32;
 			stream->sl_config.packetSeqNumLength = 0;
-			stream->sl_config.predefined = 0;
-			stream->sl_config.startCTS = 0;
-			stream->sl_config.startDTS = 0;
-			stream->sl_config.timeScale = 0;
-			stream->sl_config.timestampLength = 32; // 33;
-			stream->sl_config.timestampResolution = 1000; //90000;
+			stream->sl_config.OCRResolution = 1000; // 90000
 			stream->sl_config.useAccessUnitEndFlag = 1;
 			stream->sl_config.useAccessUnitStartFlag = 1;
 			stream->sl_config.useIdleFlag = 0; //1
-			stream->sl_config.usePaddingFlag = 0;
 			stream->sl_config.useRandomAccessPointFlag = 1;
 			stream->sl_config.useTimestampsFlag = 1;
+			stream->sl_config.timestampLength = 32; // 33;
+			stream->sl_config.timestampResolution = 1000; //90000;*/
 		}
 		break;
 	}
@@ -1357,7 +1344,6 @@ Bool open_program(M2TSProgram *prog, const char *src)
 	/* Open ISO file  */
 	if (gf_isom_probe_file(src)) {
 		prog->mp4 = gf_isom_open(src, GF_ISOM_OPEN_READ, 0);
-		prog->iod = gf_isom_get_root_od(prog->mp4);
 		prog->nb_streams = gf_isom_get_track_count(prog->mp4); 
 		for (i=0; i<prog->nb_streams; i++) {
 			fill_isom_es_ifce(&prog->streams[i], prog->mp4, i+1);
@@ -1367,7 +1353,18 @@ Bool open_program(M2TSProgram *prog, const char *src)
 				(gf_isom_get_sample_count(prog->mp4, i+1)>1) ) {
 				prog->pcr_idx = i+1;
 			}
+			prog->streams[i].sl_config.timestampResolution = 90000; //prog->streams[i].timescale;
+			prog->streams[i].sl_config.useRandomAccessPointFlag = 1;
+			prog->streams[i].sl_config.useAccessUnitStartFlag = 1;
+			prog->streams[i].sl_config.useAccessUnitEndFlag = 1;
+			prog->streams[i].sl_config.useTimestampsFlag = 1;
+			prog->streams[i].sl_config.timestampLength = 33;
+			prog->streams[i].sl_config.tag = GF_ODF_SLC_TAG;
+			gf_isom_set_extraction_slc(prog->mp4, i+1, 1, &prog->streams[i].sl_config);
 		}
+		/* WARNING: the returned IOD may be different from the one actually in the file
+		 because it rewrites the SL config according to SL extraction settings. */
+		prog->iod = gf_isom_get_root_od(prog->mp4);
 		if (prog->pcr_idx) prog->pcr_idx-=1;
 		return 1;
 	}
