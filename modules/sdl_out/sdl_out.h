@@ -23,13 +23,13 @@
  */
 
 
+/*SDL*/
+#include <SDL.h>
+
 /*driver interfaces*/
 #include <gpac/modules/audio_out.h>
 #include <gpac/modules/video_out.h>
 #include <gpac/thread.h>
-#include <gpac/list.h>
-/*SDL*/
-#include <SDL.h>
 
 /*SDL init routines*/
 Bool SDLOUT_InitSDL();

@@ -106,7 +106,7 @@
 #define IDS_CAP_MENUITEM40092           40093
 #define IDS_CAP_ADD                     40095
 #define IDM_OF_PL_CLEAR                 40096
-#define IDM_FILE_RELOAD                 40097
+#define IDM_FILE_LOG_RTI                40097
 #define IDM_VIEW_CPU                    40098
 #define IDM_FILE_PAUSE                  40099
 #define IDM_VIEW_LOW_RATE               40100

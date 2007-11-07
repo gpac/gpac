@@ -10,7 +10,7 @@
 <br/>
 <b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.5-DEV</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified $Date: 2007-10-25 09:40:02 $</span></b>
+<b><span style="Font-Size: 18pt">Last Modified $Date: 2007-11-07 15:30:15 $</span></b>
 </p>
 
 <br/><br/>
@@ -323,6 +323,9 @@ Enables power of 2 emulation. Ignored if openGL rectangular texture extension is
 <li>"yes": video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations.</li>
 <li>"no": video is resized to a power of 2 texture when mapping to a shape.</li>
 </ul>
+<b>DisableGLUScale</b> [value: <i>"yes" "no"</i>]
+<p style="text-indent: 5%">
+Disables usage of gluScaleImage, which may be slower but nicer than GPAC's software stretch routines.</p>
 <b>BitmapCopyPixels</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Specifies whether the bitmap node should be drawn with regular openGL texturing ("no") or through pixel copy routines ("yes"). This greatly impacts video rendering through 

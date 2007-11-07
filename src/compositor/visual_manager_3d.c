@@ -533,6 +533,9 @@ static void visual_3d_draw_node(GF_TraverseState *tr_state, GF_Node *root_node)
 
 Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual)
 {
+#ifndef GPAC_DISABLE_SVG
+	u32 time = gf_sys_clock();
+#endif
 	visual_3d_setup(visual);
 
 	/*setup our traversing state*/
@@ -559,6 +562,7 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	} else {
 		visual_3d_draw_node(tr_state, root);
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\t3D drawn in \t%d\tms\n", visual->compositor->frame_number, gf_sys_clock() - time));
 	
 	return 1;
 }

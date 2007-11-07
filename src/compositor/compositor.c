@@ -647,6 +647,7 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	compositor->grab_node = NULL;
 	compositor->grab_use = NULL;
 	compositor->focus_node = NULL;
+	compositor->frame_number = 0;
 
 	/*force resetup in case we're switching coord system*/
 	compositor->root_visual_setup = 0;
@@ -943,6 +944,9 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	if (sOpt && !stricmp(sOpt, "PerFace")) compositor->draw_normals = GF_NORMALS_FACE;
 	else if (sOpt && !stricmp(sOpt, "PerVertex")) compositor->draw_normals = GF_NORMALS_VERTEX;
 	else compositor->draw_normals = GF_NORMALS_NONE;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableGLUScale");
+	compositor->disable_glu_scale = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;	
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableRectExt");
 	compositor->disable_rect_ext = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
@@ -1370,8 +1374,8 @@ static void gf_sc_forward_event(GF_Compositor *compositor, GF_Event *ev)
 
 static void gf_sc_draw_scene(GF_Compositor *compositor)
 {
-	GF_Window rc;
 	u32 flags;
+
 	GF_Node *top_node = gf_sg_get_root_node(compositor->scene);
 
 	if (!top_node && !compositor->visual->last_had_back && !compositor->visual->cur_context) {
@@ -1464,6 +1468,10 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 	}
 
 	if (compositor->recompute_ar) {
+#ifndef GPAC_DISABLE_LOG
+		u32 time = gf_sys_clock();
+#endif
+
 #ifndef GPAC_DISABLE_3D
 		if (compositor->visual->type_3d) compositor_3d_set_aspect_ratio(compositor);
 		else
@@ -1473,35 +1481,15 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 
 		compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
 		compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
-	}
 
-#if 0
-	{
-		GF_SystemRTInfo rti;
-		gf_sys_get_rti(0, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
-		fprintf(stdout, "Memory usage before DrawScene: %d\n", rti.gpac_memory);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\tvisual configuration changed in\t%d\tms\n", compositor->frame_number, gf_sys_clock() - time));
 	}
-#endif
 
 	flags = compositor->traverse_state->direct_draw;
 	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
 	compositor->traverse_state->direct_draw = flags;
 	compositor->traverse_state->invalidate_all = 0;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Drawing done - flushing output\n"));
-
-	/*and flush*/
-	rc.x = rc.y = 0; 
-	rc.w = compositor->display_width;	
-	rc.h = compositor->display_height;		
-	compositor->video_out->Flush(compositor->video_out, &rc);
-
-#if 0
-	{
-		GF_SystemRTInfo rti;
-		gf_sys_get_rti(0, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
-		fprintf(stdout, "Memory usage after DrawScene: %d\n", rti.gpac_memory);
-	}
-#endif 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Drawing done\n"));
 }
 
 void gf_sc_simulation_tick(GF_Compositor *compositor)
@@ -1549,15 +1537,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	gf_mx_v(compositor->ev_mx);
 #endif
 
-
-#if 0
-	if (compositor->frame_number == 0 && compositor->user->EventProc) {
-		GF_Event evt;
-		evt.type = GF_EVENT_UPDATE_RTI;
-		evt.caption.caption = "UPDATE - Before first call to draw scene";
-		compositor->user->EventProc(compositor->user->opaque, &evt);
-	}
-#endif
 
 #ifdef EXPERIMENTAL
 	gf_term_pause_all_clocks(compositor->term, 1);
@@ -1619,29 +1598,25 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	/*if invalidated, draw*/
 	if (compositor->draw_next_frame) {
+		GF_Window rc;
+		u32 start_time = gf_sys_clock();
 		/*video flush only*/
 		if (compositor->draw_next_frame==2) {
-			GF_Window rc;
-			rc.x = rc.y = 0; 
-			rc.w = compositor->display_width;	
-			rc.h = compositor->display_height;		
 			compositor->draw_next_frame = 0;
-			compositor->video_out->Flush(compositor->video_out, &rc);
 		} else {
 			compositor->draw_next_frame = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene\n"));
 			gf_sc_draw_scene(compositor);
-#if 0
-			if (compositor->frame_number == 0 && compositor->user->EventProc) {
-				GF_Event evt;
-				evt.type = GF_EVENT_UPDATE_RTI;
-				evt.caption.caption = "Before first call to draw scene";
-				compositor->user->EventProc(compositor->user->opaque, &evt);
-			}
-#endif
-		}
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Scene drawn in %d ms\n", gf_sys_clock() - in_time));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\tcomposed in\t%d\tms\n", compositor->frame_number, gf_sys_clock() - start_time));
+		}
+		/*and flush*/
+		start_time = gf_sys_clock();
+		rc.x = rc.y = 0; 
+		rc.w = compositor->display_width;	
+		rc.h = compositor->display_height;		
+		compositor->video_out->Flush(compositor->video_out, &rc);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\tflushed to screen in\t%d\tms\n", compositor->frame_number, gf_sys_clock() - start_time));
 
 		if (compositor->stress_mode) {
 			compositor->draw_next_frame = 1;
@@ -1674,22 +1649,15 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	end_time = gf_sys_clock() - in_time;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\tcycle completed in\t%d\tms\n", compositor->frame_number, end_time));
+
+
 	gf_sc_lock(compositor, 0);
 
 	compositor->current_frame = (compositor->current_frame+1) % GF_SR_FPS_COMPUTE_SIZE;
 	compositor->frame_time[compositor->current_frame] = end_time;
 
 	compositor->frame_number++;
-#if 0
-	if (compositor->user->EventProc) {
-		char legend[100];
-		GF_Event evt;
-		evt.type = GF_EVENT_UPDATE_RTI;
-		sprintf(legend, "After composition of frame %d", compositor->frame_number);
-		evt.caption.caption = legend;
-		compositor->user->EventProc(compositor->user->opaque, &evt);
-	}
-#endif
 
 	/*step mode on, pause and return*/
 	if (compositor->step_mode) {

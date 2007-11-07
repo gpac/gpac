@@ -198,7 +198,7 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 	GF_SAFEALLOC(tspan, GF_TextSpan);
 	tspan->font = font;
 	tspan->font_size = font_size;
-	tspan->font_scale = gf_divfix(font_size, font->em_size);
+	tspan->font_scale = font_size / font->em_size;
 	tspan->x_scale = tspan->y_scale = FIX_ONE;
 	tspan->nb_glyphs = len;
 	tspan->glyphs = malloc(sizeof(void *)*len);

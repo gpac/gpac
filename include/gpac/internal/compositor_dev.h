@@ -319,6 +319,8 @@ struct __tag_compositor
 	u32 backcull;
 	/*polygon atialiasing*/
 	Bool poly_aa;
+	/*disable gluScaleImage*/
+	Bool disable_glu_scale;
 	/*wireframe/solid mode*/
 	u32 wiremode;
 	/*collision detection mode*/

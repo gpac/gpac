@@ -39,6 +39,8 @@
 #define WM_LOADTERM	WM_USER + 1
 #define STATE_TIMER_ID		20
 #define STATE_TIMER_DUR		1000
+#define GPAC_TIMER_ID		21
+#define GPAC_TIMER_DUR		33
 
 
 Bool gf_file_dialog(HINSTANCE inst, HWND parent, char *url, const char *ext_list, GF_Config *cfg);
@@ -52,6 +54,7 @@ static HWND g_hwnd_menu1 = NULL;
 static HWND g_hwnd_menu2 = NULL;
 static HWND g_hwnd_status = NULL;
 static HINSTANCE g_hinst = NULL;
+static Bool is_ppc = 0;
 
 static Bool is_connected = 0;
 static Bool navigation_on = 0;
@@ -84,6 +87,10 @@ static Bool view_cpu = 0;
 static Bool menu_switched = 0;
 static Bool use_low_fps = 0;
 static Bool use_svg_prog = 0;
+
+static Bool log_rti = 0;
+static FILE *rti_file = NULL;
+static u32 rti_update_time_ms = 200;
 
 static u32 playlist_act = 0;
 
@@ -157,12 +164,55 @@ void set_full_screen()
 	}
 }
 
+
+static void on_gpac_rti_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+{
+	GF_SystemRTInfo rti;
+
+	if (lm != GF_LOG_RTI) return;
+
+	gf_sys_get_rti(rti_update_time_ms, &rti, 0);
+	
+	fprintf(rti_file, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t\t", 
+		gf_sys_clock(),
+		gf_term_get_time_in_ms(term),
+		rti.total_cpu_usage,
+		(u32) gf_term_get_framerate(term, 0),
+		(u32) ( rti.gpac_memory / 1024)
+	);
+	if (fmt) vfprintf(rti_file, fmt+6 /*[RTI] "*/, list);
+}
+
+static void setup_logs()
+{
+	if (rti_file) fclose(rti_file);
+	rti_file = NULL;
+
+	if (log_rti) {
+		rti_file = fopen("\\gpac_rti.txt", "a+t");
+
+		fprintf(rti_file, "!! GPAC RunTime Info for file %s !!\n", the_url);
+		fprintf(rti_file, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
+
+		gf_log_set_level(GF_LOG_DEBUG);
+		gf_log_set_tools(GF_LOG_RTI);
+		gf_log_set_callback(rti_file, on_gpac_rti_log);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
+	} else {
+		gf_log_set_level(GF_LOG_ERROR);
+		gf_log_set_tools(0);
+		gf_log_set_callback(NULL, NULL);
+	}
+}
+
 void do_open_file()
 {
 	gf_cfg_set_key(user.config, "RecentFiles", the_url, NULL);
 	gf_cfg_insert_key(user.config, "RecentFiles", the_url, "", 0);
 	u32 count = gf_cfg_get_key_count(user.config, "RecentFiles");
 	if (count > 10) gf_cfg_set_key(user.config, "RecentFiles", gf_cfg_get_key_name(user.config, "RecentFiles", count-1), NULL);
+
+	setup_logs();
 
 	gf_term_connect(term, the_url);
 }
@@ -286,6 +336,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	return 0;
 }
 
+#define TERM_NOT_THREADED
 
 Bool LoadTerminal()
 {
@@ -298,6 +349,9 @@ Bool LoadTerminal()
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = user.modules;
 	user.os_window_handler = g_hwnd_disp;
+#ifdef TERM_NOT_THREADED
+	user.init_flags = GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION;
+#endif
 
 	term = gf_term_new(&user);
 	if (!term) {
@@ -307,13 +361,16 @@ Bool LoadTerminal()
 		return 0;
 	}
 
+#ifdef TERM_NOT_THREADED
+	::SetTimer(g_hwnd, GPAC_TIMER_ID, GPAC_TIMER_DUR, NULL);
+#endif
+
 	const char *str = gf_cfg_get_key(user.config, "General", "StartupFile");
 	if (str) {
 		do_layout(1);
 		strcpy(the_url, str);
 		gf_term_connect(term, str);
 	}
-//	gf_term_connect(term, "http://gpac.sf.net/screenshots/lion.jpg");
 	return 1;
 }
 
@@ -420,6 +477,8 @@ void freeze_display(Bool do_freeze)
 
 static void show_taskbar(Bool show_it)
 {
+	if (!is_ppc) return;
+
 	if (show_it) {
 		SHFullScreen(GetForegroundWindow(), SHFS_SHOWSTARTICON | SHFS_SHOWTASKBAR| SHFS_SHOWSIPBUTTON);
 		::ShowWindow(::FindWindow(_T("HHTaskbar"),NULL), SW_SHOWNA);
@@ -571,11 +630,9 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	case IDM_FILE_OPEN:
 		open_file(hwnd);
 		break;
-	case IDM_FILE_RELOAD:
-		/*doesn't work with SVG files yet...*/
-		//gf_term_play_from_time(term, 0);
-		gf_term_disconnect(term);
-		gf_term_connect(term, the_url);
+	case IDM_FILE_LOG_RTI:
+		log_rti = !log_rti;
+		setup_logs();
 		break;
 	case IDM_FILE_PAUSE:
 		pause_file();
@@ -711,9 +768,9 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_4_3, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_4_3) ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_16_9, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_16_9) ? MF_CHECKED : MF_UNCHECKED);
 
-	EnableMenuItem((HMENU)wParam, IDM_FILE_RELOAD, MF_BYCOMMAND| (is_connected ? MF_ENABLED : MF_GRAYED) );
 	EnableMenuItem((HMENU)wParam, IDM_FILE_PAUSE, MF_BYCOMMAND| (is_connected ? MF_ENABLED : MF_GRAYED) );
-
+	CheckMenuItem((HMENU)wParam, IDM_FILE_LOG_RTI, MF_BYCOMMAND| (log_rti) ? MF_CHECKED : MF_UNCHECKED);
+	
 	u32 type;
 	if (!is_connected) type = 0;
 	else type = gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE);
@@ -785,7 +842,10 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			return DefWindowProc(hwnd, msg, wParam, lParam);
 		break;
 	case WM_TIMER:
-		update_state_info();
+		if (wParam==STATE_TIMER_ID) update_state_info();
+#ifdef TERM_NOT_THREADED
+		else gf_term_process_step(term);
+#endif
 		break;
 	case WM_HOTKEY:
 		break;
@@ -865,12 +925,13 @@ BOOL InitInstance (int CmdShow)
 	if (!g_hwnd) return FALSE;
 
 	ShowWindow(g_hwnd, CmdShow);
-	::SetTimer(g_hwnd, STATE_TIMER_ID, STATE_TIMER_DUR, NULL);
 
 	refresh_recent_files();
-	set_status("Loading Terminal");
+
+	::SetTimer(g_hwnd, STATE_TIMER_ID, STATE_TIMER_DUR, NULL);
 	do_layout(1);
 
+	set_status("Loading Terminal");
 	PostMessage(g_hwnd, WM_LOADTERM, 0, 0);
 	set_status("Ready");
 	return TRUE;
@@ -939,6 +1000,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	HWND 	hwndOld = NULL;	
 	const char *str;
 	Bool initial_launch = 0;
+
+	if (hwndOld = FindWindow(_T("Osmophone"), NULL))
+	{
+		SetForegroundWindow(hwndOld);    
+		return 0;
+	}
 	
 	memset(&user, 0, sizeof(GF_User));
 	term = NULL;
@@ -958,11 +1025,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	disp_h = screen_h - menu_h /*- caption_h*/;
 
 	
-	if (hwndOld = FindWindow(_T("Osmophone"), NULL))
-	{
-		SetForegroundWindow(hwndOld);    
-		return 0;
-	}
+	TCHAR      szBuf[MAX_PATH];
+	SystemParametersInfo(SPI_GETPLATFORMTYPE, MAX_PATH, szBuf, 0);
+
+	if (! lstrcmp(szBuf, __TEXT("PocketPC"))) is_ppc = 1;
+	else if (! lstrcmp(szBuf, __TEXT("Palm PC2"))) is_ppc = 1;
+
 
 	user.config = gf_cfg_new(szExePath, "GPAC.cfg");
 	if (!user.config) {
@@ -1013,7 +1081,15 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	str = gf_cfg_get_key(user.config, "SAXLoader", "Progressive");
 	use_svg_prog = (str && !strcmp(str, "yes")) ? 1 : 0;
 
-	GXOpenInput();
+	str = gf_cfg_get_key(user.config, "General", "RTIRefreshPeriod");
+	if (str) {
+		rti_update_time_ms = atoi(str);
+	} else {
+		gf_cfg_set_key(user.config, "General", "RTIRefreshPeriod", "200");
+	}
+
+
+	if (is_ppc) GXOpenInput();
 
 	if (InitInstance(nShowCmd)) {
 		SetForegroundWindow(g_hwnd);
@@ -1023,7 +1099,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			TranslateMessage (&msg);
 			DispatchMessage (&msg);
 
-
 			if (playlist_act) {
 				switch_playlist(playlist_act-1);
 				playlist_act = 0;
@@ -1031,8 +1106,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		}
 		show_taskbar(1);
 	}
-
-	GXCloseInput();
+	if (is_ppc) GXCloseInput();
 
 	/*and destroy*/
 	if (term) gf_term_del(term);
@@ -1042,5 +1116,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	if (backlight_off) set_backlight_state(0);
 
 	gf_sys_close();
+	if (rti_file) fclose(rti_file);
 	return 0;
 }

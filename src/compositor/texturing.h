@@ -55,6 +55,10 @@ Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh);
 
 /*enable the texture and pushes the given texture transform on the graphics card*/
 Bool gf_sc_texture_enable(GF_TextureHandler *txh, GF_Node *tx_transform);
+
+/*same as gf_sc_texture_enable, but provides object bounds for correct mapping of svg gradients in UserSpaceMode*/
+Bool gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Rect *bounds);
+
 /*disables the texture (unbinds it)*/
 void gf_sc_texture_disable(GF_TextureHandler *txh);
 /*retrieves the internal (potentially converted for YUV) data buffer*/
