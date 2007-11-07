@@ -120,6 +120,8 @@ typedef struct __elementary_stream_ifce
 	/*MPEG-4 ST/OTIs*/
 	u8 stream_type;
 	u8 object_type_indication;
+	/* MPEG-4 SL Config */
+	GF_SLConfig sl_config;
 	/*stream 4CC for non-mpeg codecs, 0 otherwise (stream is identified through StreamType/ObjectType)*/
 	u32 fourcc;
 	/*packed 3-char language code (4CC with last byte ' ')*/

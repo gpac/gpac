@@ -307,6 +307,7 @@ static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream)
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		esd->decoderConfig->objectTypeIndication = 0x40;
 		break;
+	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 	default:
 		gf_odf_desc_del((GF_Descriptor *)esd);
 		return;
@@ -356,7 +357,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog)
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
 		if (!(es->flags & GF_M2TS_ES_IS_SECTION)) gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
-		MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es);
+		if (!prog->pmt_iod) MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es);
 	}
 	/*force scene regeneration*/
 	gf_term_add_media(m2ts->service, NULL, 0);
