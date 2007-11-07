@@ -924,7 +924,10 @@ static GFINLINE u64 gf_m2ts_get_pts(unsigned char *data)
 static void gf_m2ts_pes_header(unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
 {
 	Bool has_pts, has_dts;
+	u32 len_check;
 	memset(pesh, 0, sizeof(GF_M2TS_PESHeader));
+
+	len_check = 0;
 
 	pesh->id = data[0];
 	pesh->pck_len = (data[1]<<8) | data[2];
@@ -954,10 +957,17 @@ static void gf_m2ts_pes_header(unsigned char *data, u32 data_size, GF_M2TS_PESHe
 	if (has_pts) {
 		pesh->PTS = gf_m2ts_get_pts(data);
 		data+=5;
+		len_check += 5;
 	}
 	if (has_dts) {
 		pesh->DTS = gf_m2ts_get_pts(data);
 		data+=5;
+		len_check += 5;
+	}
+	if (len_check < pesh->hdr_data_len) {		
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Skipping % bytes in pes header\n", pes->pid, pesh->hdr_data_len - len_check));
+	} else if (len_check > pesh->hdr_data_len) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Wrong pes_header_data_length field %d bytes - read %d\n", pes->pid, pesh->hdr_data_len, len_check));
 	}
 }
 
