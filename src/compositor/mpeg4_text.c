@@ -119,8 +119,8 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 	font = gf_font_manager_set_font(ft_mgr, fs ? fs->family.vals : NULL, fs ? fs->family.count : 0, styles);
 	if (!font) return;
 
-	st->ascent = gf_muldiv(INT2FIX(font->ascent), fontSize, font->em_size);
-	st->descent = gf_muldiv(INT2FIX(-font->descent), fontSize, font->em_size);
+	st->ascent = (fontSize*font->ascent) / font->em_size;
+	st->descent = -(fontSize-font->descent) / font->em_size;
 
 	if (!strcmp(FSMINOR, "MIDDLE")) {
 		start_y = (st->descent + st->ascent)/2;
@@ -172,12 +172,12 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 			if (split_words) {
 				for (k=0; k<txt_line->span->nb_glyphs; k++) {
 					txt_line->span->glyphs[k] = tspan->glyphs[FSLTR ? (first_char+k) : (len - first_char - k - 1)];
-					txt_line->span->bounds.width += gf_mulfix((txt_line->span->glyphs[k] ? txt_line->span->glyphs[k]->horiz_advance : tspan->font->max_advance_h), tspan->font_scale);
+					txt_line->span->bounds.width += tspan->font_scale * (txt_line->span->glyphs[k] ? txt_line->span->glyphs[k]->horiz_advance : tspan->font->max_advance_h);
 				}
 			} else {
 				txt_line->span->glyphs[0] = tspan->glyphs[FSLTR ? j : (len - j - 1) ];
 				txt_line->span->glyphs[0] = tspan->glyphs[j];
-				txt_line->span->bounds.width = gf_mulfix((txt_line->span->glyphs[0] ? txt_line->span->glyphs[0]->horiz_advance : tspan->font->max_advance_h), tspan->font_scale);
+				txt_line->span->bounds.width = tspan->font_scale * (txt_line->span->glyphs[0] ? txt_line->span->glyphs[0]->horiz_advance : tspan->font->max_advance_h);
 			}
 
 			gf_list_add(st->text_lines, txt_line);
@@ -239,9 +239,9 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 	font = gf_font_manager_set_font(ft_mgr, fs ? fs->family.vals : NULL, fs ? fs->family.count : 0, styles);
 	if (!font) return;
 
-	st->ascent = gf_muldiv(INT2FIX(font->ascent), fontSize, font->em_size);
-	st->descent = gf_muldiv(INT2FIX(-font->descent), fontSize, font->em_size);
-	space = gf_muldiv(INT2FIX(font->line_spacing), fontSize, font->em_size);
+	st->ascent = (fontSize*font->ascent) / font->em_size;
+	st->descent = (-font->descent*fontSize) / font->em_size;
+	space = (font->line_spacing*fontSize) / font->em_size;
 	line_spacing = gf_mulfix(FSSPACE, fontSize);
 
 	tot_width = tot_height = 0;
@@ -279,7 +279,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		gf_list_add(st->text_lines, line);
 
 		if (horizontal) {
-			tspan->bounds.width = gf_mulfix(INT2FIX(size), tspan->font_scale);
+			tspan->bounds.width = tspan->font_scale * size;
 			/*apply length*/
 			if ((txt->length.count>i) && (txt->length.vals[i]>0)) {
 				tspan->x_scale = gf_divfix(txt->length.vals[i], tspan->bounds.width);
@@ -287,7 +287,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 			}
 			if (tot_width < tspan->bounds.width ) tot_width = tspan->bounds.width ;
 		} else {
-			tspan->bounds.height = gf_mulfix(INT2FIX(size), tspan->font_scale);
+			tspan->bounds.height = tspan->font_scale * size;
 
 			/*apply length*/
 			if ((txt->length.count>i) && (txt->length.vals[i]>0)) {
@@ -876,9 +876,9 @@ void text_draw_tspan_2d(GF_TraverseState *tr_state, GF_TextSpan *span, DrawableC
 		ctx->flags = flags;
 
 		if (span->horizontal) {
-			dx += gf_mulfix(span->glyphs[i]->horiz_advance, sx);
+			dx += sx * span->glyphs[i]->horiz_advance, sx;
 		} else {
-			dy -= gf_mulfix(span->glyphs[i]->vert_advance , sy);
+			dy -= sy * span->glyphs[i]->vert_advance , sy;
 		}
 	}
 	gf_mx2d_copy(ctx->transform, mx);
@@ -947,6 +947,59 @@ void text_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 
 
 
+static void text_pick(GF_Node *node, TextStack *st, GF_TraverseState *tr_state)
+{
+	u32 i, count;
+	GF_Matrix2D inv_2d;
+	Fixed x, y;
+	GF_Compositor *compositor = tr_state->visual->compositor;
+
+	/*TODO: pick the real glyph and not just the bounds of the text span*/
+	count = gf_list_count(st->text_lines);
+	gf_mx2d_copy(inv_2d, tr_state->transform);
+	gf_mx2d_inverse(&inv_2d);
+	x = tr_state->ray.orig.x;
+	y = tr_state->ray.orig.y;
+	gf_mx2d_apply_coords(&inv_2d, &x, &y);
+
+	for (i=0; i<count; i++) {
+		GF_TextLine *tl = (GF_TextLine *)gf_list_get(st->text_lines, i);
+
+		if ((x>=tl->span->bounds.x)
+			&& (y<=tl->span->bounds.y) 
+			&& (x<=tl->span->bounds.x+tl->span->bounds.width) 
+			&& (y>=tl->span->bounds.y-tl->span->bounds.height)) goto picked;
+
+	}
+	return;
+
+picked:
+	compositor->hit_local_point.x = x;
+	compositor->hit_local_point.y = y;
+	compositor->hit_local_point.z = 0;
+
+	gf_mx_from_mx2d(&compositor->hit_world_to_local, &tr_state->transform);
+	gf_mx_from_mx2d(&compositor->hit_local_to_world, &inv_2d);
+
+	compositor->hit_node = node;
+	compositor->hit_use_dom_events = 0;
+	compositor->hit_normal.x = compositor->hit_normal.y = 0; compositor->hit_normal.z = FIX_ONE;
+	compositor->hit_texcoords.x = gf_divfix(x, st->bounds.width) + FIX_ONE/2;
+	compositor->hit_texcoords.y = gf_divfix(y, st->bounds.height) + FIX_ONE/2;
+
+	if (compositor_is_composite_texture(tr_state->appear)) {
+		compositor->hit_appear = tr_state->appear;
+	} else {
+		compositor->hit_appear = NULL;
+	}
+
+	gf_list_reset(tr_state->visual->compositor->sensors);
+	count = gf_list_count(tr_state->vrml_sensors);
+	for (i=0; i<count; i++) {
+		gf_list_add(tr_state->visual->compositor->sensors, gf_list_get(tr_state->vrml_sensors, i));
+	}
+}
+
 
 static void text_check_changes(GF_Node *node, TextStack *stack, GF_TraverseState *tr_state)
 {
@@ -995,6 +1048,7 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_PICK:
+		text_pick(n, st, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
 		tr_state->bounds = st->bounds;

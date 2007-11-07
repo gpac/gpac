@@ -554,6 +554,12 @@ static void load_line_rgb_32(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 	}
 }
 
+static void load_line_argb(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u8 *dst_bits)
+{
+	src_bits += x_offset*4 + y_offset*y_pitch;
+	memcpy(dst_bits, src_bits, sizeof(char)*4*width);
+}
+
 static void load_line_bgr_32(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u8 *dst_bits)
 {
 	src_bits += x_offset*4 + y_offset*y_pitch;
@@ -622,11 +628,13 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		break;
 	case GF_PIXEL_ARGB:
 		has_alpha = 1;
-	case GF_PIXEL_RGB_32:
 		load_line = load_line_rgb_32;
 		break;
 	case GF_PIXEL_RGBA:
 		has_alpha = 1;
+	case GF_PIXEL_RGB_32:
+		load_line = load_line_rgb_32;
+		break;
 	case GF_PIXEL_BGR_32:
 		load_line = load_line_bgr_32;
 		break;

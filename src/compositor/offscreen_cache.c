@@ -100,19 +100,15 @@ void group_cache_del(GroupCache *cache)
 	free(cache);
 }
 
-void group_cache_setup(GroupCache *cache, GF_Rect *local_bounds, GF_Compositor *compositor, Bool for_gl)
+void group_cache_setup(GroupCache *cache, GF_Rect *path_bounds, GF_IRect *pix_bounds, GF_Compositor *compositor, Bool for_gl)
 {
-	/*pixelize bounds*/
-	GF_IRect pix_bounds = gf_rect_pixelize(local_bounds);
-
 	/*setup texture */
 	cache->txh.compositor = compositor;
-	cache->txh.height = pix_bounds.height;
-	cache->txh.width = pix_bounds.width;
+	cache->txh.height = pix_bounds->height;
+	cache->txh.width = pix_bounds->width;
 
-	cache->txh.stride = pix_bounds.width * 4;
+	cache->txh.stride = pix_bounds->width * 4;
 	cache->txh.pixelformat = for_gl ? GF_PIXEL_RGBA : GF_PIXEL_ARGB;
-//	cache->txh.pixelformat = GF_PIXEL_RGB_24;
 
 	if (cache->txh.data) free(cache->txh.data);
 
@@ -125,13 +121,10 @@ void group_cache_setup(GroupCache *cache, GF_Rect *local_bounds, GF_Compositor *
 	  Attention, we want to center the cached bitmap at the center of the screen (main visual), so we use
 	  the local coordinate to parameterize the path*/
 	gf_path_add_rect_center(cache->drawable->path, 
-		local_bounds->x + local_bounds->width/2,
-		local_bounds->y - local_bounds->height/2,
-		local_bounds->width, local_bounds->height);
- }
-
-#define OFFSCREEN_SCALE_UP		FIX_ONE
-#define OFFSCREEN_SCALE_DOWN	FIX_ONE
+		path_bounds->x + path_bounds->width/2,
+		path_bounds->y - path_bounds->height/2,
+		path_bounds->width, path_bounds->height);
+}
 
 void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute)
 {
@@ -148,13 +141,14 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 	/*we need to redraw the group in an offscreen visual*/
 	if (force_recompute) {
 		GF_Matrix2D backup;
+		GF_IRect rc1, rc2;
 		u32 type_3d;
 		u32 prev_flags;
 		GF_Rect cache_bounds;
 		GF_SURFACE offscreen_surface, old_surf;
 		GF_Raster2D *r2d = tr_state->visual->compositor->rasterizer;
 		DrawableContext *child_ctx;
-		Fixed temp_x, temp_y;
+		Fixed temp_x, temp_y, scale_x, scale_y;
 
 
 		/*step 1 : store current state and indicate children should not be cached*/
@@ -163,43 +157,21 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		/*store the current transform matrix, create a new one for group_cache*/
 		gf_mx2d_copy(backup, tr_state->transform);
 		gf_mx2d_init(tr_state->transform);
-		/*disable direct drawing to indicate that children in the group should not be drawn*/
-		tr_state->direct_draw = 0;
+
 		/*force 2D rendering*/
 		type_3d = tr_state->visual->type_3d;
 		tr_state->visual->type_3d = 0;
-		/*top clipper is not setup in 3D*/
-		if (type_3d) {
-			tr_state->visual->surf_rect.width = tr_state->visual->width;
-			tr_state->visual->surf_rect.height = tr_state->visual->height;
-			if (tr_state->visual->center_coords) {
-				tr_state->visual->surf_rect.y = tr_state->visual->height/2;
-				tr_state->visual->surf_rect.x = -tr_state->visual->surf_rect.width/2;
-			} else {
-				tr_state->visual->surf_rect.y = tr_state->visual->height;
-				tr_state->visual->surf_rect.x = 0;
-			}
-			tr_state->visual->top_clipper = tr_state->visual->surf_rect;
-		}
 
 		/*step 2: insert a DrawableContext for this group in the display list*/
 		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
 
-		/*step 3: traverse the group to collect all children in the display list, but using the local coordinate system*/		
+		/*step 3: collect the bounds of all children*/		
+		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
+		cache_bounds.width = cache_bounds.height = 0;
 		l = ((GF_ParentNode*)node)->children;
-		gf_mx2d_init(tr_state->transform);		
-		gf_mx2d_add_scale(&tr_state->transform, OFFSCREEN_SCALE_UP, OFFSCREEN_SCALE_UP);		
-		while (l) {				
+		while (l) {
 			gf_node_traverse(l->node, tr_state);
 			l = l->next;
-		}
-
-		/*step 4: now we have all DrawableContexts of the children of this group, get their bounds*/		
-		cache_bounds.width = cache_bounds.height = 0;
-		child_ctx = group_ctx->next;
-		while (child_ctx && child_ctx->drawable) {
-			gf_rect_union(&cache_bounds, &child_ctx->bi->unclip);
-
 			/*TODO for dynamic group caching: add some tests*/
 			/*1. do we have a texture on one drawable - if so maybe no cache*/
 			/*2- how many drawable*/
@@ -209,23 +181,36 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 				c. alpha used
 				...
 			*/
-			child_ctx = child_ctx->next;
+			gf_rect_union(&cache_bounds, &tr_state->bounds);
 		}
+		tr_state->traversing_mode = TRAVERSE_SORT;
 
-		/*step 5: now we have the bounds:
+
+		/*step 4: now we have the bounds:
 			allocate the offscreen memory
 			create temp raster visual & attach to buffer
 			override the tr_state->visual->the_surface with the temp raster
 			!! SAME AS DRAWABLE CACHE: WATCHOUT FOR NON-CENTERED RECT (add translation to visual and 
 			build proper path)
-			move to DRAW mode
+			setup top clipers
 		*/
 		old_surf = tr_state->visual->raster_surface;
 		offscreen_surface = r2d->surface_new(r2d, tr_state->visual->center_coords);	/*a new temp raster visual*/
 		tr_state->visual->raster_surface = offscreen_surface;
-		tr_state->traversing_mode = TRAVERSE_DRAW_2D;
-		/* Initialize the group cache, and we build the path for the group */
-		group_cache_setup(cache, &cache_bounds, tr_state->visual->compositor, type_3d);
+
+		/*don't waste memory: if scale down is setup at root level, apply it*/
+		scale_x = MIN(tr_state->visual->compositor->scale_x, FIX_ONE);
+		scale_y = MIN(tr_state->visual->compositor->scale_y, FIX_ONE);
+
+		tr_state->bounds = cache_bounds;
+		gf_mx2d_add_scale(&tr_state->transform, scale_x, scale_y);
+		gf_mx2d_apply_rect(&tr_state->transform, &cache_bounds);
+		rc1 = gf_rect_pixelize(&cache_bounds);
+		if (rc1.width%2) rc1.width++;
+		if (rc1.height%2) rc1.height++;
+
+		/* Initialize the group cache with the scaled pixelized bounds for texture but the original bounds for path*/
+		group_cache_setup(cache, &tr_state->bounds, &rc1, tr_state->visual->compositor, type_3d);
 			
 		/*attach the buffer to visual*/
 		r2d->surface_attach_to_buffer(offscreen_surface, cache->txh.data,
@@ -235,8 +220,6 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 										cache->txh.pixelformat);
 		
 		/*centered the bitmap on the visual*/
-		gf_mx2d_init(tr_state->transform);
-		gf_mx2d_add_scale(&tr_state->transform, OFFSCREEN_SCALE_DOWN, OFFSCREEN_SCALE_DOWN); 
 		temp_x = -cache_bounds.x;
 		temp_y = -cache_bounds.y;
 		if (tr_state->visual->center_coords) {
@@ -247,24 +230,37 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		}
 		gf_mx2d_add_translation(&tr_state->transform, temp_x, temp_y);		
 		
-		/*step 6: draw all child contexts - use direct drawing in order to bypass dirty rect*/
+		/*override top clippers*/
+		rc1 = tr_state->visual->surf_rect;
+		rc2 = tr_state->visual->top_clipper;
+		tr_state->visual->surf_rect.width = cache->txh.width;
+		tr_state->visual->surf_rect.height = cache->txh.height;
+		if (tr_state->visual->center_coords) {
+			tr_state->visual->surf_rect.y = cache->txh.height/2;
+			tr_state->visual->surf_rect.x = -1 * (s32) cache->txh.width/2;
+		} else {
+			tr_state->visual->surf_rect.y = cache->txh.height;
+			tr_state->visual->surf_rect.x = 0;
+		}
+		tr_state->visual->top_clipper = tr_state->visual->surf_rect;
+
+
+		/*step 5: traverse subtree in direct draw mode*/
 		tr_state->direct_draw = 1;
 		group_ctx->flags &= ~CTX_NO_ANTIALIAS;
-		child_ctx = group_ctx->next;		
+
+		l = ((GF_ParentNode*)node)->children;
+		while (l) {
+			gf_node_traverse(l->node, tr_state);
+			l = l->next;
+		}
+		/*step 6: reset all contexts after the current group one*/
+		child_ctx = group_ctx->next;
 		while (child_ctx && child_ctx->drawable) {
-			gf_mx2d_pre_multiply(&child_ctx->transform, &tr_state->transform);
-			child_ctx->bi->clip = tr_state->visual->top_clipper;
-			tr_state->ctx = child_ctx;			
-			if (child_ctx->drawable->flags & DRAWABLE_USE_TRAVERSE_DRAW) {
-				gf_node_traverse(child_ctx->drawable->node, tr_state);
-			} else {
-				drawable_draw(child_ctx->drawable, tr_state);
-			}
-			/*and discard this context from the main visual display list*/
 			child_ctx->drawable = NULL;	
 			child_ctx = child_ctx->next;
 		}	
-		tr_state->ctx = NULL;
+
 		/*and set ourselves as the last context on the main visual*/
 		tr_state->visual->cur_context = group_ctx;
 
@@ -277,6 +273,8 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		tr_state->traversing_mode = TRAVERSE_SORT;
 
 		tr_state->visual->type_3d = type_3d;
+		tr_state->visual->surf_rect = rc1;
+		tr_state->visual->top_clipper = rc2;
 		
 		/*update texture*/
 		cache->txh.transparent = 1;

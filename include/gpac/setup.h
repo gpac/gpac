@@ -115,7 +115,7 @@ typedef unsigned int size_t;
 #define strupr _strupr
 #define strlwr _strlwr
 
-#define GPAC_DISABLE_LOG
+//#define GPAC_DISABLE_LOG
 
 #else	/*END WINCE*/
 

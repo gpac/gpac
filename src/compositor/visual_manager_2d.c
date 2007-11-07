@@ -636,17 +636,16 @@ exit:
 
 Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual)
 {
-	GF_TraverseState static_state;
-
 	GF_SceneGraph *sg;
 	GF_Matrix2D backup;
 	u32 i;
 	GF_Err e;
+#ifndef GPAC_DISABLE_SVG
+	u32 itime, time = gf_sys_clock();
+#endif
 
-	visual->bounds_tracker_modif_flag = DRAWABLE_HAS_CHANGED;
-
-	memcpy(&static_state, tr_state, sizeof(GF_TraverseState));
 	gf_mx2d_copy(backup, tr_state->transform);
+	visual->bounds_tracker_modif_flag = DRAWABLE_HAS_CHANGED;
 
 	e = visual_2d_init_draw(visual, tr_state);
 	if (e) {
@@ -654,13 +653,16 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 		return 0;
 	}
 
-	if (is_root_visual) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Traversing scene tree (root node %s)\n", root ? gf_node_get_class_name(root) : "none"));
-#ifndef GPAC_DISABLE_SVG
-		i = gf_sys_clock();
+#ifndef GPAC_DISABLE_LOG
+	itime = gf_sys_clock();
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\t2D traverse setup done in\t%d\tms\n", visual->compositor->frame_number, itime - time));
+	time = itime;
 #endif
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Traversing scene subtree (root node %s)\n", root ? gf_node_get_class_name(root) : "none"));
+
+	if (is_root_visual) {
 		gf_node_traverse(root, tr_state);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Traversing scene done in %d ms\n", gf_sys_clock() - i));
 
 		i=0;
 		while ((sg = (GF_SceneGraph*)gf_list_enum(visual->compositor->extra_scenes, &i))) {
@@ -670,9 +672,22 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	} else {
 		gf_node_traverse(root, tr_state);
 	}
+
+#ifndef GPAC_DISABLE_LOG
+	itime = gf_sys_clock();
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\t2D traversing%s done in\t%d\tms\n", visual->compositor->frame_number, tr_state->direct_draw ? " and drawing" : "",  itime - time));
+	time = itime;
+#endif
+
 	gf_mx2d_copy(tr_state->transform, backup);
 	e = visual_2d_terminate_draw(visual, tr_state);
-	memcpy(tr_state, &static_state, sizeof(GF_TraverseState));
+	
+#ifndef GPAC_DISABLE_LOG
+	if (!tr_state->direct_draw) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\t2D drawn in\t%d\tms\n", visual->compositor->frame_number, gf_sys_clock() - time));
+	}
+#endif
+
 	return e;
 }
 

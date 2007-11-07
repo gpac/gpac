@@ -415,7 +415,7 @@ void compositor_init_compositetexture2d(GF_Compositor *compositor, GF_Node *node
 	gf_sc_texture_setup(&st->txh, compositor, node);
 	st->txh.update_texture_fcnt = composite_update;
 
-	st->txh.flags = GF_SR_TEXTURE_NO_GL_FLIP;
+//	st->txh.flags = GF_SR_TEXTURE_NO_GL_FLIP;
 	if ((c2d->repeatSandT==1) || (c2d->repeatSandT==3) ) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (c2d->repeatSandT>1) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 
@@ -446,7 +446,7 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 	gf_sc_texture_setup(&st->txh, compositor, node);
 	st->txh.update_texture_fcnt = composite_update;
 
-	st->txh.flags = GF_SR_TEXTURE_NO_GL_FLIP;
+//	st->txh.flags = GF_SR_TEXTURE_NO_GL_FLIP;
 	if (c3d->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (c3d->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 
@@ -488,6 +488,7 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Even
 	GF_TraverseState *tr_state;
 	GF_ChildNodeItem *children, *l;
 	Bool res;
+	u32 flags;
 	SFVec3f txcoord;
 	CompositeTextureStack *stack;
 	M_Appearance *ap = (M_Appearance *)compositor->hit_appear;
@@ -500,6 +501,8 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Even
 	txcoord.x = compositor->hit_texcoords.x;
 	txcoord.y = compositor->hit_texcoords.y;
 	txcoord.z = 0;
+	flags = stack->txh.flags;
+	stack->txh.flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 	if (gf_sc_texture_get_transform(&stack->txh, ap->textureTransform, &mx)) {
 		/*tx coords are inverted when mapping, thus applying directly the matrix will give us the 
 		untransformed coords*/
@@ -507,6 +510,7 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Even
 		while (txcoord.x<0) txcoord.x += FIX_ONE; while (txcoord.x>FIX_ONE) txcoord.x -= FIX_ONE;
 		while (txcoord.y<0) txcoord.y += FIX_ONE; while (txcoord.y>FIX_ONE) txcoord.y -= FIX_ONE;
 	}
+	stack->txh.flags = flags;
 	/*convert to tx space*/
 	ev->mouse.x = FIX2INT( (txcoord.x - FIX_ONE/2) * stack->visual->width);
 	ev->mouse.y = FIX2INT( (txcoord.y - FIX_ONE/2) * stack->visual->height);
@@ -517,6 +521,8 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Even
 	tr_state->visual = stack->visual;
 	tr_state->traversing_mode = TRAVERSE_PICK;
 	tr_state->pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(ap->texture));
+	gf_mx2d_init(tr_state->transform);
+	gf_mx_init(tr_state->model_matrix);
 
 	/*collect sensors*/
 	l = children = ((M_CompositeTexture2D*)ap->texture)->children;

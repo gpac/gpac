@@ -83,6 +83,7 @@ void PrintUsage()
 	fprintf(stdout, "Usage MP4Client [options] [filename]\n"
 		"\t-c fileName:    user-defined configuration file\n"
 		"\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
+		"\t-rtix fileName:  same as -rti but driven by GPAC logs\n"
 		"\t-quiet:         removes script message, buffering and downloading status\n"
 		"\t-log-file file: sets output log file.\n"
 		"\t-log-level lev: sets log level. Possible values are:\n"
@@ -290,30 +291,19 @@ static void PrintTime(u64 time)
 	fprintf(stdout, "%02d:%02d:%02d.%02d", h, m, s, ms);
 }
 
-#define RTI_UPDATE_TIME_MS	200
+
+static u32 rti_update_time_ms = 200;
 static FILE *rti_logs = NULL;
 static u64 memory_at_gpac_startup = 0;
-static u64 memory_at_gpac_load = 0;
-
-static void init_rti_logs(char *rti_file, char *url)
-{
-	if (rti_logs) fclose(rti_logs);
-	rti_logs = fopen(rti_file, "wt");
-	if (rti_logs) {
-		fprintf(rti_logs, "!! GPAC RunTime Info ");
-		if (url) fprintf(rti_logs, "for file %s", url);
-		fprintf(rti_logs, " !!\n");
-		fprintf(rti_logs, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
-		memory_at_gpac_load = 0;
-	}
-}
 
 static void UpdateRTInfo(const char *legend)
 {
 	GF_SystemRTInfo rti;
 
 	/*refresh every second*/
-	if ((!display_rti && !rti_logs) || !gf_sys_get_rti(RTI_UPDATE_TIME_MS, &rti, 0 /*GF_RTI_ALL_PROCESSES_TIMES | GF_RTI_PROCESS_MEMORY*/) /*|| !rti.sampling_period_duration*/) return;
+	if (!display_rti && !rti_logs) return;
+	if (!gf_sys_get_rti(rti_update_time_ms, &rti, 0) && !legend) 
+		return;
 
 	if (display_rti) {
 		char szMsg[1024];
@@ -329,15 +319,15 @@ static void UpdateRTInfo(const char *legend)
 		gf_term_user_event(term, &evt);
 	}
 	if (rti_logs) {
-		if (!memory_at_gpac_load) memory_at_gpac_load = rti.gpac_memory;
-		fprintf(rti_logs, "%d\t%d\t%d\t%d\t%d\t%s\n", 
+		fprintf(rti_logs, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t%s", 
 			gf_sys_clock(),
 			gf_term_get_time_in_ms(term),
 			rti.total_cpu_usage,
 			(u32) gf_term_get_framerate(term, 0),
-			(u32) ((rti.gpac_memory - memory_at_gpac_load) / 1024), 
-			legend
+			(u32) (rti.gpac_memory / 1024), 
+			legend ? legend : ""
 			);
+		if (!legend) fprintf(rti_logs, "\n");
 	}
 }
 
@@ -393,13 +383,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	if (!term) return 0;
 
 	switch (evt->type) {
-	case GF_EVENT_UPDATE_RTI:
-		UpdateRTInfo(evt->caption.caption);
-		break;
-	case GF_EVENT_RESET_RTI:
-		memory_at_gpac_load = 0;
-		UpdateRTInfo(evt->caption.caption);
-		break;
 	case GF_EVENT_DURATION:
 		Duration = 1000;
 		Duration = (u64) (((s64) Duration) * evt->duration.duration);
@@ -546,7 +529,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (evt->connect.is_connected) {
 			is_connected = 1;
 			fprintf(stdout, "Service Connected\n");
-			/* memory_at_gpac_load = 0;*/
 		} else if (is_connected) {
 			fprintf(stdout, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
 			is_connected = 0;
@@ -832,8 +814,36 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
 	FILE *logs = cbk;
-    vfprintf(logs, fmt, list);
-	fflush(logs);
+
+	if (rti_logs && (lm & GF_LOG_RTI)) {
+		char szMsg[2048];
+		vsprintf(szMsg, fmt, list);
+		UpdateRTInfo(szMsg + 6 /*"[RTI] "*/);
+	} else {
+		vfprintf(logs, fmt, list);
+		fflush(logs);
+	}
+}
+
+static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
+{
+	if (rti_logs) fclose(rti_logs);
+	rti_logs = fopen(rti_file, "wt");
+	if (rti_logs) {
+		fprintf(rti_logs, "!! GPAC RunTime Info ");
+		if (url) fprintf(rti_logs, "for file %s", url);
+		fprintf(rti_logs, " !!\n");
+		fprintf(rti_logs, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
+
+		/*turn on RTI loging*/
+		if (use_rtix) {
+			gf_log_set_callback(NULL, on_gpac_log);
+			gf_log_set_level(GF_LOG_DEBUG);
+			gf_log_set_tools(GF_LOG_RTI);
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log"));
+		}
+	}
 }
 
 int main (int argc, char **argv)
@@ -841,6 +851,7 @@ int main (int argc, char **argv)
 	const char *str;
 	u32 i, width, height, times[100], nb_times, dump_mode;
 	Bool start_fs = 0;
+	Bool use_rtix = 0;
 	Double fps = 25.0;
 	Bool ret, fill_ar, visible;
 	char *url_arg, *the_cfg, *rti_file;
@@ -871,6 +882,10 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-rti")) {
 			rti_file = argv[i+1];
 			i++;
+		} else if (!strcmp(arg, "-rtix")) {
+			rti_file = argv[i+1];
+			i++;
+			use_rtix = 1;
 		} else if (!strcmp(arg, "-fill")) {
 			fill_ar = 1;
 		} else if (!strcmp(arg, "-show")) {
@@ -941,7 +956,7 @@ int main (int argc, char **argv)
 	
 	gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
 	memory_at_gpac_startup = rti.physical_memory_avail;
-	if (rti_file) init_rti_logs(rti_file, url_arg);
+	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
 
 	/*setup dumping options*/
 	if (dump_mode) {
@@ -1009,8 +1024,13 @@ int main (int argc, char **argv)
 	}
 
 	if (rti_file) {
-		memory_at_gpac_load = 0;
-		UpdateRTInfo("Before connecting ...");
+		str = gf_cfg_get_key(cfg_file, "General", "RTIRefreshPeriod");
+		if (str) {
+			rti_update_time_ms = atoi(str);
+		} else {
+			gf_cfg_set_key(cfg_file, "General", "RTIRefreshPeriod", "200");
+		}
+		UpdateRTInfo("At GPAC load time\n");
 	}
 
 	Run = 1;
@@ -1067,11 +1087,11 @@ int main (int argc, char **argv)
 				request_next_playlist_item = 0;
 				goto force_input;
 			}
-			UpdateRTInfo("");
+			if (!use_rtix || display_rti) UpdateRTInfo(NULL);
 			if (not_threaded) {
 				gf_term_process_step(term);
 			} else {
-				gf_sleep(RTI_UPDATE_TIME_MS);
+				gf_sleep(rti_update_time_ms);
 			}
 			continue;
 		}
@@ -1087,7 +1107,7 @@ force_input:
 			gf_term_disconnect(term);
 			fprintf(stdout, "Enter the absolute URL\n");
 			scanf("%s", the_url);
-			if (rti_file) init_rti_logs(rti_file, the_url);
+			if (rti_file) init_rti_logs(rti_file, the_url, use_rtix);
 			gf_term_connect(term, the_url);
 			break;
 		case 'O':
@@ -1319,7 +1339,7 @@ force_input:
 		case 'g':
 		{
 			GF_SystemRTInfo rti;
-			gf_sys_get_rti(RTI_UPDATE_TIME_MS, &rti, 0);
+			gf_sys_get_rti(rti_update_time_ms, &rti, 0);
 			fprintf(stdout, "GPAC allocated memory "LLD"\n", rti.gpac_memory);
 		}
 			break;
@@ -1333,7 +1353,7 @@ force_input:
 	}
 
 	gf_term_disconnect(term);
-	if (rti_file) UpdateRTInfo("disconnected");
+	if (rti_file) UpdateRTInfo("Disconnected\n");
 
 	fprintf(stdout, "Deleting terminal... ");
 	if (playlist) fclose(playlist);

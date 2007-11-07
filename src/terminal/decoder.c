@@ -703,7 +703,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 					codec->cur_video_frames += 1;
 				}
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Decoder %s] ODM%d: decoded frame TS %d in %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, AU->CTS, now));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] ODM%d (%s) decoded frame TS %d in %d ms\n", codec->odm->OD->objectDescriptorID, codec->decio->module_name, AU->CTS, now));
 			break;
 		/*this happens a lot when using non-MPEG-4 streams (ex: ffmpeg demuxer)*/
 		case GF_PACKED_FRAMES:
@@ -728,7 +728,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				AU->CTS += deltaTS;
 			}
 			codec_update_stats(codec, 0, now);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Decoder] ODM%d: decoded packed frame TS %d in %d ms\n", codec->odm->OD->objectDescriptorID, AU->CTS, now));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] ODM%d (%s) decoded packed frame TS %d in %d ms\n", codec->odm->OD->objectDescriptorID, codec->decio->module_name, AU->CTS, now));
 			continue;
 		default:
 			UnlockCompositionUnit(codec, AU->CTS, 0);

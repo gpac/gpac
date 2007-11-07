@@ -163,6 +163,7 @@ void CE_Assert(u32 valid, char *file, u32 line)
 		sprintf(szBuf, "File %s : line %d", file, line);
 		CE_CharToWide(szBuf, wcBuf);
 		MessageBox(NULL, wcBuf, _T("GPAC Assertion Failure"), MB_OK);
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -858,24 +859,25 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	orig_perm = GetCurrentPermissions();
 	SetProcPermissions(0xFFFFFFFF);
 	hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0); 
-	if (!hSnapShot) return 0;
-	tentry.dwSize = sizeof(THREADENTRY32); 
-	the_rti.thread_count = 0;
-	/*note we always act as if GF_RTI_ALL_PROCESSES_TIMES flag is set, since there is no other way
-	to enumerate threads from a process, and GetProcessTimes doesn't exist on CE*/
-	if (Thread32First(hSnapShot, &tentry)) {
-		do {
-			/*get thread times*/
-			if (GetThreadTimes( (HANDLE) tentry.th32ThreadID, (FILETIME *) &creation, (FILETIME *) &exit, (FILETIME *) &kernel, (FILETIME *) &user)) {
-				total_cpu_time += user + kernel;
-				if (tentry.th32OwnerProcessID==the_rti.pid) {
-					process_cpu_time += user + kernel;
-					the_rti.thread_count ++;
+	if (hSnapShot) {
+		tentry.dwSize = sizeof(THREADENTRY32); 
+		the_rti.thread_count = 0;
+		/*note we always act as if GF_RTI_ALL_PROCESSES_TIMES flag is set, since there is no other way
+		to enumerate threads from a process, and GetProcessTimes doesn't exist on CE*/
+		if (Thread32First(hSnapShot, &tentry)) {
+			do {
+				/*get thread times*/
+				if (GetThreadTimes( (HANDLE) tentry.th32ThreadID, (FILETIME *) &creation, (FILETIME *) &exit, (FILETIME *) &kernel, (FILETIME *) &user)) {
+					total_cpu_time += user + kernel;
+					if (tentry.th32OwnerProcessID==the_rti.pid) {
+						process_cpu_time += user + kernel;
+						the_rti.thread_count ++;
+					}
 				}
-			}
-		} while (Thread32Next(hSnapShot, &tentry));
+			} while (Thread32Next(hSnapShot, &tentry));
+		}
+		CloseToolhelp32Snapshot(hSnapShot); 
 	}
-	CloseToolhelp32Snapshot(hSnapShot); 
 
 	if (flags & GF_RTI_PROCESS_MEMORY) {
 		HEAPLIST32 hlentry;
@@ -1048,6 +1050,8 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	last_proc_idle_time = proc_idle_time;
 	last_proc_k_u_time = proc_k_u_time;
 #endif
+
+	if (!the_rti.gpac_memory) the_rti.gpac_memory = the_rti.process_memory;
 
 	memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
 	return 1;

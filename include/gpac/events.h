@@ -170,8 +170,6 @@ enum {
 	GF_EVENT_METADATA, /*indicates a change in associated metadata*/
 
 	GF_EVENT_SYS_COLORS,	/*queries the list of system colors*/
-	GF_EVENT_RESET_RTI,	/*forces a reset of the runtime info*/
-	GF_EVENT_UPDATE_RTI,	/*updates runtime info*/
 };
 
 /*GPAC/DOM3 key codes*/

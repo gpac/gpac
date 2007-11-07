@@ -60,7 +60,7 @@ extern "C" {
 /*KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)!!!, and NO SPACE in GPAC_VERSION for proper install*/
 #define GPAC_VERSION       "0.4.5-DEV"
 
-#define GPAC_BUILD_NUMBER	"10"
+#define GPAC_BUILD_NUMBER	"11"
 #define GPAC_FULL_VERSION       GPAC_VERSION" (build "GPAC_BUILD_NUMBER")"
 
 /*!
@@ -309,7 +309,9 @@ enum
 	/*! Log message from a media service*/
 	GF_LOG_SERVICE = 1<<14,
 	/*! Log message from multimedia I/O devices (audio/video input/output, ...)*/
-	GF_LOG_MMIO = 1<<15
+	GF_LOG_MMIO = 1<<15,
+	/*! Log for runtime info (times, memory, CPU usage)*/
+	GF_LOG_RTI = 1<<16
 };
 
 /*!
@@ -614,7 +616,7 @@ enum
  *
  *	Gets CPU and memory usage info for the calling process and the system. Information gathering
  * is controled through timeout values.
- *	\param refresh_time_ms refresh time period in milliseconds. If the last sampling was done less than this period ago, the function aborts.
+ *	\param refresh_time_ms refresh time period in milliseconds. If the last sampling was done less than this period ago, the run-time info is not refreshed.
  *	\param rti holder to the run-time info structure to update.
  *	\param flags specify which info is to be retrieved.
  *	\return 1 if info has been updated, 0 otherwise.

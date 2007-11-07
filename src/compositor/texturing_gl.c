@@ -259,7 +259,10 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		return 0;
 	}
 	/*note we don't free the data if existing, since this only happen when re-setting up after context loss (same size)*/
-	if ((txh->tx_io->flags == TX_MUST_SCALE) & !txh->tx_io->scale_data) txh->tx_io->scale_data = (char*)malloc(sizeof(char) * txh->tx_io->nb_comp*txh->tx_io->rescale_width*txh->tx_io->rescale_height);
+	if ((txh->tx_io->flags == TX_MUST_SCALE) & !txh->tx_io->scale_data) {
+		txh->tx_io->scale_data = (char*)malloc(sizeof(char) * txh->tx_io->nb_comp*txh->tx_io->rescale_width*txh->tx_io->rescale_height);
+		memset(txh->tx_io->scale_data , 0, sizeof(char) * txh->tx_io->nb_comp*txh->tx_io->rescale_width*txh->tx_io->rescale_height);
+	}
 
 	glEnable(txh->tx_io->gl_type);
 	glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
@@ -438,26 +441,29 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, GL_UNSIGNED_BYTE, (unsigned char *) data);
 		}
 	} else {
-		/*it appears gluScaleImage is quite slow - use ourt own resampler which is not as nice but a but faster*/
-//#ifdef GPAC_USE_OGL_ES
-#if 1
-		GF_VideoSurface src, dst;
-		src.width = txh->width;
-		src.height = txh->height;
-		src.pitch = txh->stride;
-		src.pixel_format = txh->pixelformat;
-		src.video_buffer = txh->data;
 
-		dst.width = txh->tx_io->rescale_width;
-		dst.height = txh->tx_io->rescale_height;
-		dst.pitch = txh->tx_io->rescale_width*txh->tx_io->nb_comp;
-		dst.pixel_format = txh->pixelformat;
-		dst.video_buffer = txh->tx_io->scale_data;
-
-		gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 0, NULL, NULL);
-#else
-		gluScaleImage(txh->tx_io->gl_format, txh->width, txh->height, GL_UNSIGNED_BYTE, data, txh->tx_io->rescale_width, txh->tx_io->rescale_height, GL_UNSIGNED_BYTE, txh->tx_io->scale_data);
+#ifndef GPAC_USE_OGL_ES
+		if (!txh->compositor->disable_glu_scale) {
+			gluScaleImage(txh->tx_io->gl_format, txh->width, txh->height, GL_UNSIGNED_BYTE, data, txh->tx_io->rescale_width, txh->tx_io->rescale_height, GL_UNSIGNED_BYTE, txh->tx_io->scale_data);
+		} else 
 #endif
+		{
+			/*it appears gluScaleImage is quite slow - use ourt own resampler which is not as nice but a but faster*/
+			GF_VideoSurface src, dst;
+			src.width = txh->width;
+			src.height = txh->height;
+			src.pitch = txh->stride;
+			src.pixel_format = txh->pixelformat;
+			src.video_buffer = txh->data;
+
+			dst.width = txh->tx_io->rescale_width;
+			dst.height = txh->tx_io->rescale_height;
+			dst.pitch = txh->tx_io->rescale_width*txh->tx_io->nb_comp;
+			dst.pixel_format = txh->pixelformat;
+			dst.video_buffer = txh->tx_io->scale_data;
+
+			gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 0, NULL, NULL);
+		}
 
 		if (first_load) {
 			glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, txh->tx_io->rescale_width, txh->tx_io->rescale_height, 0, txh->tx_io->gl_format, GL_UNSIGNED_BYTE, txh->tx_io->scale_data);
