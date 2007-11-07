@@ -921,7 +921,7 @@ static GFINLINE u64 gf_m2ts_get_pts(unsigned char *data)
     return pts;
 }
 
-static void gf_m2ts_pes_header(unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
+static void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
 {
 	Bool has_pts, has_dts;
 	u32 len_check;
@@ -1004,7 +1004,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
                   (stream_id == 0x1bd)) {
 
 				/*OK read header*/
-				gf_m2ts_pes_header(pes->data+3, pes->data_len-3, &pesh);
+				gf_m2ts_pes_header(pes, pes->data+3, pes->data_len-3, &pesh);
 
 				/*3-byte start-code + 6 bytes header + hdr extensions*/
 				len = 9 + pesh.hdr_data_len;
@@ -1014,7 +1014,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 			else if ((u8) pes->data[3]==0xfa) {
 				GF_M2TS_SL_PCK sl_pck;
 				/*read header*/
-				gf_m2ts_pes_header(pes->data+3, pes->data_len-3, &pesh);
+				gf_m2ts_pes_header(pes, pes->data+3, pes->data_len-3, &pesh);
 
 				/*3-byte start-code + 6 bytes header + hdr extensions*/
 				len = 9 + pesh.hdr_data_len;
