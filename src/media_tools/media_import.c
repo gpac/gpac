@@ -4791,7 +4791,6 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						}
 					}
 					if (import->tk_info[idx].type == 0) import->tk_info[idx].type = GF_ISOM_MEDIA_ESM;
-					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
 					break;
 				}
