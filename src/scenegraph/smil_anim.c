@@ -819,14 +819,12 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 
 		if (aa->is_property) {
 			/* Storing the pointer to the parent presentation value, 
-			   i.e. the presentation value issued at the parent level in the tree */
+			   i.e. the presentation value produced at the parent level in the tree */
 			aa->parent_presentation_value = aa->presentation_value;
 			aa->parent_presentation_value.far_ptr = gf_svg_get_property_pointer((SVG_Element *)node, aa->orig_dom_ptr, render_svg_props); 
 
 			/* Storing also the pointer to the presentation value of the color property 
 			   (special handling of the keyword 'currentColor' if used in animation values) */
-			aa->current_color_value.fieldType = SVG_Paint_datatype;
-
 			gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_color, 1, 1, &info);
 			aa->current_color_value.far_ptr = info.far_ptr;
 		}
@@ -843,6 +841,8 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 			//scene_time = gf_node_get_scene_time(node);
 			scene_time = rti->scene_time;
 
+			/* The evaluate_status has been updated when notifying the new scene time to this animation, 
+			   i.e. before the scene tree traversal */
 			if (rti->evaluate_status) {
 				Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
 				rti->evaluate(rti, simple_time, rti->evaluate_status);
@@ -1053,17 +1053,20 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 	if (!aa) {
 		GF_SAFEALLOC(aa, SMIL_AttributeAnimations)
 
+		/* We determine if the animated attribute is a property since this changes quite a lot the animation model */
+		aa->is_property = gf_svg_is_property(target, &target_attribute);
+		aa->current_color_value.fieldType = SVG_Paint_datatype;
+
 		/* We copy (one copy for all animations on the same attribute) the DOM specified 
 		   value before any animation starts (because the animation will override it), 
 		   we also save the initial memory address of the specified value (orig_dom_ptr)
 		   for inheritance hack */
 		aa->specified_value = target_attribute;
-		aa->is_property = gf_svg_is_property(target, &target_attribute);
 		aa->orig_dom_ptr = aa->specified_value.far_ptr;
 		aa->specified_value.far_ptr = gf_svg_create_attribute_value(target_attribute.fieldType);
 		gf_svg_attributes_copy(&aa->specified_value, &target_attribute, 0);
 
-		/* Now, the initial memory address for the specified value hold the presentation value,
+		/* Now, the initial memory address of the specified value holds the presentation value,
 		   and the presentation value is initialized */
 		aa->presentation_value = target_attribute;
 		
@@ -1073,6 +1076,8 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 
 		/* determine what the rendering will need to do when the animation runs */
 		aa->dirty_flags = gf_svg_get_modification_flags((SVG_Element *)target, &target_attribute);
+
+		/* ??? */
 		aa->dirty_parents = 0;
 		if (aa->dirty_flags & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_DISPLAY_DIRTY)) aa->dirty_parents = 1;
 	}
@@ -1080,10 +1085,11 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 	rai->owner = aa;
 	gf_smil_anim_get_last_specified_value(rai);
 
-	/* for animation (unlike other timed elements like video), the interpolation cannot be done 
+	/* for animation (unlike other timed elements like video), the evaluation (i.e. interpolation) cannot be done 
 	during timing evaluation, because due to inheritance, interpolation can only be computed 
 	during scene tree traversal, therefore we need to postpone evaluation of the timed element */
 	timingp->runtime->postpone = 1;
+
 	timingp->runtime->evaluate = gf_smil_anim_evaluate;
 }
 
