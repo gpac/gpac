@@ -39,6 +39,13 @@ EXPORTS
 	gf_prompt_get_char
 	gf_prompt_set_echo_off
 
+;	gf_mulfix
+;	gf_divfix
+;	gf_muldiv
+;	gf_atan2
+;	gf_invfix
+;	gf_sqrt
+
 ;array.h exports
 	gf_list_new
 	gf_list_del

@@ -225,7 +225,7 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx2d_add_scale(&mat, sx, sy);
 	gf_mx2d_add_translation(&mat, tx, ty);
 
-	gf_mx2d_add_translation(&mat, -vp->position.x*sx, -vp->position.y*sy);
+	gf_mx2d_add_translation(&mat, -gf_mulfix(vp->position.x,sx), -gf_mulfix(vp->position.y,sy) );
 	gf_mx2d_add_rotation(&mat, 0, 0, vp->orientation);
 
 	tr_state->bounds = rc;

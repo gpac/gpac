@@ -267,11 +267,6 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	glEnable(txh->tx_io->gl_type);
 	glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
 
-	/*if flip image requested, force texture repeat*/
-	if (! (txh->flags & GF_SR_TEXTURE_NO_GL_FLIP) ) {
-		txh->flags |= GF_SR_TEXTURE_REPEAT_S | GF_SR_TEXTURE_REPEAT_T;
-	}
-
 #ifdef GPAC_USE_OGL_ES
 	glTexParameterx(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
 	glTexParameterx(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
@@ -544,7 +539,10 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 
 	/*flip image if requested*/
 	if (! (txh->flags & GF_SR_TEXTURE_NO_GL_FLIP) ) {
+		/*flip it*/
 		gf_mx_add_scale(mx, FIX_ONE, -FIX_ONE, FIX_ONE);
+		/*and translate it to handle repeatS/repeatT*/
+		gf_mx_add_translation(mx, 0, -FIX_ONE, 0);
 		ret = 1;
 	}
 
