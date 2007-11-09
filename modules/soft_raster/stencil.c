@@ -453,6 +453,11 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	y = INT2FIX(_y);
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);
 
+	/*ugly hack we may have a numerical stability issue*/
+#ifdef GPAC_FIXED_POINT
+	x += FIX_ONE/1000;
+	y += FIX_ONE/1000;
+#endif
 	
 	_fd = INT2FIX(_this->width); 
 	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
@@ -546,9 +551,15 @@ static void bmp_fill_run_straight(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _
 	u32 *data = surf->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
-	/*get texture coords in FIXED*/
+	/*get texture coords in FIXED - offset*/
 	x = _this->smat.m[0]*_x + _this->smat.m[2];
 	y = _this->smat.m[4]*_y + _this->smat.m[5];
+
+	/*ugly hack we may have a numerical stability issue*/
+#ifdef GPAC_FIXED_POINT
+	x += FIX_ONE/1000;
+	y += FIX_ONE/1000;
+#endif
 
 	/* and move in absolute coords*/
 	_fdim = INT2FIX(_this->width);
