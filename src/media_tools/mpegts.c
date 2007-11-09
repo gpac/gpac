@@ -638,9 +638,6 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, un
 	}
 
 	/*reset service desc*/
-	free(ses->sec->section);
-	ses->sec->section = NULL;
-	ses->sec->length = ses->sec->received = 0;
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] SDT for actual ts\n"));
 	gf_m2ts_reset_sdt(ts);
 
@@ -1234,13 +1231,25 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 {
 	u32 i;
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-		GF_M2TS_PES *pes = (GF_M2TS_PES *) ts->ess[i];
-		if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
-		pes->frame_state = 0;
-		if (pes->data) free(pes->data);
-		pes->data = NULL;
-		pes->data_len = 0;
-		pes->PTS = pes->DTS = 0;
+		GF_M2TS_ES *es = (GF_M2TS_ES *) ts->ess[i];
+		if (!es) continue;
+
+		if (es->flags & GF_M2TS_ES_IS_SECTION) {
+			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
+			 if (ses->sec) {
+		 		if (ses->sec->section) free(ses->sec->section);
+		 		free(ses->sec);
+				ses->sec = NULL;
+			 }
+		} else {
+			GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
+			if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
+			pes->frame_state = 0;
+			if (pes->data) free(pes->data);
+			pes->data = NULL;
+			pes->data_len = 0;
+			pes->PTS = pes->DTS = 0;
+		}
 	}
 }
 
