@@ -3190,7 +3190,7 @@ GF_Err pasp_dump(GF_Box *a, FILE * trace)
 {
 	GF_PixelAspectRatioBox *ptr = (GF_PixelAspectRatioBox*)a;
 	fprintf(trace, "<PixelAspectRatioBox hSpacing=\"%d\" vSpacing=\"%d\" >\n", ptr->hSpacing, ptr->vSpacing);
-	gf_full_box_dump((GF_Box *)a, trace);
+	DumpBox((GF_Box *)a, trace);
 	fprintf(trace, "</PixelAspectRatioBox>\n");
 	return GF_OK;
 }
