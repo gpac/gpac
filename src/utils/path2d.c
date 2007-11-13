@@ -445,6 +445,7 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 		gf_path_add_line_to(gp, end_x, end_y);
 		return GF_OK;
 	}
+
 	if (r_x < 0) r_x = -r_x;
 	if (r_y < 0) r_y = -r_y;
 
@@ -456,6 +457,11 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 	sin_phi = gf_sin(phi);
 	xmid = (start_x - end_x)/2;
 	ymid = (start_y - end_y)/2;
+	if (!xmid && !ymid) {
+		gf_path_add_line_to(gp, end_x, end_y);
+		return GF_OK;
+	}
+
 	xmidp = gf_mulfix(cos_phi, xmid) + gf_mulfix(sin_phi, ymid);
 	ymidp = gf_mulfix(-sin_phi, xmid) + gf_mulfix(cos_phi, ymid);
 	xmidpsq = gf_mulfix(xmidp, xmidp);
@@ -463,6 +469,7 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 
 	rxsq = gf_mulfix(r_x, r_x);
 	rysq = gf_mulfix(r_y, r_y);
+	assert(rxsq && rxsq);
 
 	radius_scale = gf_divfix(xmidpsq, rxsq) + gf_divfix(ymidpsq, rysq);
 	if (radius_scale > FIX_ONE) {
@@ -472,9 +479,13 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 		rysq = gf_mulfix(r_y, r_y);
 	} 
 
-	scale = gf_divfix(
+	/*FIXME - this can be 0*/
+	sign = gf_mulfix(rxsq,ymidpsq) + gf_mulfix(rysq, xmidpsq);
+	scale = FIX_ONE;
+	/*FIXME - what if scale is 0 ??*/
+	if (sign) scale = gf_divfix(
 					(gf_mulfix(rxsq,rysq) - gf_mulfix(rxsq, ymidpsq) - gf_mulfix(rysq,xmidpsq)),
-					(gf_mulfix(rxsq,ymidpsq) + gf_mulfix(rysq, xmidpsq))
+					sign
 			);
 	/* precision problem may lead to negative value around zero, we need to take care of it before sqrt */
 	scale = gf_sqrt(ABS(scale));
@@ -508,12 +519,10 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 	normu = gf_sqrt(gf_mulfix(ux, ux) + gf_mulfix(uy,uy));
 	
 	sign = gf_mulfix(ux, vy) - gf_mulfix(uy, vx);
-	sweep_angle = gf_acos(
-					gf_divfix(
-					  gf_mulfix(ux,vx) + gf_mulfix(uy, vy),
-					  gf_mulfix(normu, normv)
-					)
-				  );
+	sweep_angle = gf_divfix( gf_mulfix(ux,vx) + gf_mulfix(uy, vy), gf_mulfix(normu, normv) );
+	/*numerical stability safety*/
+	sweep_angle = MAX(-FIX_ONE, MIN(sweep_angle, FIX_ONE));
+	sweep_angle = gf_acos(sweep_angle);
 	sweep_angle = (sign > 0 ? sweep_angle: -sweep_angle);
 	if (sweep_flag == 0) {
 		if (sweep_angle > 0) sweep_angle -= GF_2PI; 
@@ -873,6 +882,11 @@ subdivide:
 	yb2 = (y2 + y3) / 2;
 	x_m = (xa2 + xb1) / 2;
 	y_m = (ya2 + yb1) / 2;
+	/*safeguard for numerical stability*/
+	if ( (ABS(x_m-x0) < FIX_EPSILON) && (ABS(y_m-y0) < FIX_EPSILON))
+		return gf_path_add_line_to(gp, x3, y3);
+	if ( (ABS(x3-x_m) < FIX_EPSILON) && (ABS(y3-y_m) < FIX_EPSILON))
+		return gf_path_add_line_to(gp, x3, y3);
 
 	e = gf_subdivide_cubic(gp, x0, y0, xa1, ya1, xa2, ya2, x_m, y_m, fineness);
 	if (e) return e;
