@@ -617,6 +617,7 @@ skip_background:
 #endif
 			tr_state->ctx = ctx;
 
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s\n", gf_node_get_name(ctx->drawable->node) ));
 			if (ctx->drawable->flags & DRAWABLE_USE_TRAVERSE_DRAW) {
 				gf_node_traverse(ctx->drawable->node, tr_state);
 			} else {
@@ -631,6 +632,7 @@ exit:
 	ra_clear(&visual->to_redraw);
 	visual_2d_release_raster(visual);
 	visual_clean_contexts(visual);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redraw done - changed", has_changed ? "" : "un"));
 	return has_changed;
 }
 

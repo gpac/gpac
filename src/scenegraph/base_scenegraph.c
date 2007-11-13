@@ -694,17 +694,18 @@ static GFINLINE void insert_node_def(GF_SceneGraph *sg, GF_Node *def, u32 ID, co
 	reg_node->node = def;
 	reg_node->NodeID = ID;
 	reg_node->NodeName = name ? strdup(name) : NULL;
-	reg_node->next = NULL;
 
 	if (!sg->id_node) {
 		sg->id_node = reg_node;
 		sg->id_node_last = sg->id_node;
-	} else if (sg->id_node->NodeID>ID) {
-		reg_node->next = sg->id_node;
-		sg->id_node = reg_node;
+		reg_node->next = NULL;
 	} else if (sg->id_node_last->NodeID < ID) {
 		sg->id_node_last->next = reg_node;
 		sg->id_node_last = reg_node;
+		reg_node->next = NULL;
+	} else if (sg->id_node->NodeID>ID) {
+		reg_node->next = sg->id_node;
+		sg->id_node = reg_node;
 	} else {
 		cur = sg->id_node;
 		while (cur->next) {
@@ -717,6 +718,7 @@ static GFINLINE void insert_node_def(GF_SceneGraph *sg, GF_Node *def, u32 ID, co
 		}
 		cur->next = reg_node;
 		sg->id_node_last = reg_node;
+		reg_node->next = NULL;
 	}
 }
 
@@ -777,7 +779,7 @@ void gf_node_traverse(GF_Node *node, void *renderStack)
 		node->sgprivate->flags |= GF_NODE_IN_TRAVERSE;
 		assert(node->sgprivate->flags);
 #endif
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneGraph] Traversing node %s\n", gf_node_get_class_name(node) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneGraph] Traversing node %s (ID %s)\n", gf_node_get_class_name(node) , gf_node_get_name(node) ));
 		node->sgprivate->UserCallback(node, renderStack, 0);
 #ifdef GF_CYCLIC_TRAVERSE_ON
 		node->sgprivate->flags &= ~GF_NODE_IN_TRAVERSE;
