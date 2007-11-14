@@ -119,6 +119,10 @@ typedef struct
 	Bool has_entities;
 } GF_XMLSaxAttribute;
 
+
+//#define NO_GZIP
+
+
 struct _tag_sax_parser
 {
 	/*0: UTF-8, 1: UTF-16 BE, 2: UTF-16 LE. String input is always converted back to utf8*/
@@ -130,7 +134,11 @@ struct _tag_sax_parser
 	u32 node_depth;
 
 	/*gz input file*/
+#ifdef NO_GZIP
+	FILE *f_in;
+#else
 	gzFile gz_in;
+#endif
 	/*current line , file size and pos for user notif*/
 	u32 line, file_size, file_pos;
 
@@ -1009,12 +1017,21 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 {
 	GF_Err e = GF_EOS;
 	unsigned char szLine[XML_INPUT_SIZE+2];
+#ifdef NO_GZIP
+	if (!parser->f_in) return GF_BAD_PARAM;
+#else
 	if (!parser->gz_in) return GF_BAD_PARAM;
+#endif
 
 	parser->file_pos = 0;
 
+#ifdef NO_GZIP
+	while (!feof(parser->f_in) && !parser->suspended) {
+		u32 read = fread(szLine, 1, XML_INPUT_SIZE, parser->f_in);
+#else
 	while (!gzeof(parser->gz_in) && !parser->suspended) {
 		u32 read = gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
+#endif
 		if (!read) break;
 		szLine[read] = 0;
 		szLine[read+1] = 0;
@@ -1024,12 +1041,21 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 		if (parser->file_pos > parser->file_size) parser->file_size = parser->file_pos + 1;
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
 	}
+#ifdef NO_GZIP
+	if (feof(parser->f_in)) {
+#else
 	if (gzeof(parser->gz_in)) {
+#endif
 		if (!e) e = GF_EOS;
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_size, parser->file_size);
 
+#ifdef NO_GZIP
+		fclose(parser->f_in);
+		parser->f_in = NULL;
+#else
 		gzclose(parser->gz_in);
 		parser->gz_in = 0;
+#endif
 	}
 	return e;
 }
@@ -1039,7 +1065,9 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 {
 	FILE *test;
 	GF_Err e;
+#ifndef NO_GZIP
 	gzFile gzInput;
+#endif
 	unsigned char szLine[6];
 
 	/*check file exists and gets its size (zlib doesn't support SEEK_END)*/
@@ -1051,11 +1079,16 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 
 	parser->on_progress = OnProgress;
 
+#ifdef NO_GZIP
+	parser->f_in = fopen(fileName, "rt");
+	fread(szLine, 1, 4, parser->f_in);
+#else
 	gzInput = gzopen(fileName, "rb");
 	if (!gzInput) return GF_IO_ERR;
 	parser->gz_in = gzInput;
 	/*init SAX parser (unicode setup)*/
 	gzread(gzInput, szLine, 4);
+#endif
 	szLine[4] = szLine[5] = 0;
 	e = gf_xml_sax_init(parser, szLine);
 	if (e) return e;
@@ -1065,8 +1098,13 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 GF_EXPORT
 Bool gf_xml_sax_binary_file(GF_SAXParser *parser)
 {
-	if (!parser || !parser->gz_in) return 0;
+	if (!parser) return 0;
+#ifdef NO_GZIP
+	return 0;
+#else
+	if (!parser->gz_in) return 0;
 	return (((z_stream*)parser->gz_in)->data_type==Z_BINARY) ? 1 : 0;
+#endif
 }
 
 GF_EXPORT
@@ -1092,7 +1130,11 @@ void gf_xml_sax_del(GF_SAXParser *parser)
 {
 	xml_sax_reset(parser);
 	gf_list_del(parser->entities);
+#ifdef NO_GZIP
+	if (parser->f_in) fclose(parser->f_in);
+#else
 	if (parser->gz_in) gzclose(parser->gz_in);
+#endif
 	free(parser);
 }
 
@@ -1101,7 +1143,11 @@ GF_Err gf_xml_sax_suspend(GF_SAXParser *parser, Bool do_suspend)
 {
 	parser->suspended = do_suspend;
 	if (!do_suspend) {
+#ifdef NO_GZIP
+		if (parser->f_in) return xml_sax_read_file(parser);
+#else
 		if (parser->gz_in) return xml_sax_read_file(parser);
+#endif
 		return xml_sax_parse(parser, 0);
 	}
 	return GF_OK;
@@ -1111,10 +1157,24 @@ GF_EXPORT
 u32 gf_xml_sax_get_line(GF_SAXParser *parser) { return parser->line + 1 ; }
 
 GF_EXPORT
-u32 gf_xml_sax_get_file_size(GF_SAXParser *parser) { return parser->gz_in ? parser->file_size : 0; }
+u32 gf_xml_sax_get_file_size(GF_SAXParser *parser) 
+{ 
+#ifdef NO_GZIP
+	return parser->f_in ? parser->file_size : 0; 
+#else
+	return parser->gz_in ? parser->file_size : 0; 
+#endif
+}
 
 GF_EXPORT
-u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser) { return parser->gz_in ? parser->file_pos : 0; }
+u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser) 
+{
+#ifdef NO_GZIP
+	return parser->f_in ? parser->file_pos : 0; 
+#else
+	return parser->gz_in ? parser->file_pos : 0; 
+#endif
+}
 
 GF_EXPORT
 char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value, char *substitute, char *get_attr, char *end_pattern, Bool *is_substitute)
@@ -1122,12 +1182,20 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	u32 state, att_len;
 	z_off_t pos;
 	char szLine1[XML_INPUT_SIZE+2], szLine2[XML_INPUT_SIZE+2], *szLine, *cur_line, *sep, *start, first_c, *result;
+#ifdef NO_GZIP
+	if (!parser->f_in) return NULL;
+#else
 	if (!parser->gz_in) return NULL;
+#endif
 
 	result = NULL;
 
 	szLine1[0] = szLine2[0] = 0;
+#ifdef NO_GZIP
+	pos = ftell(parser->f_in);
+#else
 	pos = gztell(parser->gz_in);
+#endif
 	att_len = strlen(parser->buffer + parser->att_name_start);
 	if (att_len<2*XML_INPUT_SIZE) att_len = 2*XML_INPUT_SIZE;
 	szLine = (char *) malloc(sizeof(char)*att_len);
@@ -1137,14 +1205,22 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	state = 0;
 	goto retry;
 
+#ifdef NO_GZIP
+	while (!feof(parser->f_in)) {
+#else
 	while (!gzeof(parser->gz_in)) {
+#endif
 		u32 read;
 		if (cur_line == szLine2) {
 			cur_line = szLine1;
 		} else {
 			cur_line = szLine2;
 		}
+#ifdef NO_GZIP
+		read = fread(cur_line, 1, XML_INPUT_SIZE, parser->f_in);
+#else
 		read = gzread(parser->gz_in, cur_line, XML_INPUT_SIZE);
+#endif
 		cur_line[read] = cur_line[read+1] = 0;
 
 		strcat(szLine, cur_line);
@@ -1215,8 +1291,12 @@ fetch_attr:
 	}
 exit:
 	free(szLine);
+#ifdef NO_GZIP
+	fseek(parser->f_in, pos, SEEK_SET);
+#else
 	gzrewind(parser->gz_in);
 	gzseek(parser->gz_in, pos, SEEK_SET);
+#endif
 	return result;
 }
 
