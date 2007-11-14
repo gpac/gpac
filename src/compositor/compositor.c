@@ -723,7 +723,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		/*hack for SVG where size is set in %*/
 		if (!compositor->has_size_info && w && h) {
 			compositor->has_size_info = 1;
-			compositor->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
+//			compositor->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
 			if (w->type!=SVG_NUMBER_PERCENTAGE) {
 				width = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, w) );
 			} else {
