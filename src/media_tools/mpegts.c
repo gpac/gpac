@@ -637,8 +637,6 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, un
 		return;
 	}
 
-	/*reset service desc*/
-//	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] SDT for actual ts\n"));
 	gf_m2ts_reset_sdt(ts);
 
 	orig_net_id = (data[0] << 8) | data[1];

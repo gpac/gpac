@@ -649,7 +649,7 @@ static void xml_sax_cdata(GF_SAXParser *parser)
 		xml_sax_store_text(parser, size);
 		xml_sax_flush_text(parser);
 		parser->current_pos += 3;
-		assert(parser->current_pos < parser->line_size);
+		assert(parser->current_pos <= parser->line_size);
 		parser->sax_state = SAX_STATE_TEXT_CONTENT;
 	}
 }

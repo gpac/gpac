@@ -410,24 +410,24 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		st->prev_size = tr_state->svg_props->font_size->value;
 		st->prev_flags = *tr_state->svg_props->font_style;
 		st->prev_anchor = *tr_state->svg_props->text_anchor;
+	} 
+	
+	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
+		if (!compositor_svg_is_display_off(tr_state->svg_props))
+			gf_path_get_bounds(cs->path, &tr_state->bounds);
+		goto end;
 	} else {
-		if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-			if (!compositor_svg_is_display_off(tr_state->svg_props))
-				gf_path_get_bounds(cs->path, &tr_state->bounds);
-			goto end;
-		} else {
-			GF_ChildNodeItem *child = ((GF_ParentNode *) tspan)->children;
-			while (child) {
-				switch  (gf_node_get_tag(child->node)) {
-				case TAG_DOMText:
-					break;
-				case TAG_SVG_tspan:
-					gf_node_traverse(child->node, tr_state); break;
-				default:
-					break;
-				}
-				child = child->next;
+		GF_ChildNodeItem *child = ((GF_ParentNode *) tspan)->children;
+		while (child) {
+			switch  (gf_node_get_tag(child->node)) {
+			case TAG_DOMText:
+				break;
+			case TAG_SVG_tspan:
+				gf_node_traverse(child->node, tr_state); break;
+			default:
+				break;
 			}
+			child = child->next;
 		}
 	}
 

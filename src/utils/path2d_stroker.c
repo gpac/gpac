@@ -1643,8 +1643,9 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 	GF_Path *outline;
 	GF_Path *dashed;
 	GF_Path *scaled;
-
 	FT_Stroker stroker;
+	if (!path || !pen.width) return NULL;
+
 	memset(&stroker, 0, sizeof(stroker));
     stroker.borders[0].start = -1;
     stroker.borders[1].start = -1;
