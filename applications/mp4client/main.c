@@ -755,6 +755,7 @@ static u32 parse_log_tools(char *val)
 		else if (!stricmp(val, "mmio")) flags |= GF_LOG_MMIO;
 		else if (!stricmp(val, "none")) flags = 0;
 		else if (!stricmp(val, "all")) flags = 0xFFFFFFFF;
+		else if (!stricmp(val, "rti")) flags |= GF_LOG_RTI;
 		if (!sep) break;
 		sep[0] = ':';
 		val = sep+1;
