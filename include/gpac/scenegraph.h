@@ -147,6 +147,8 @@ const char *gf_node_get_name(GF_Node*);
 u32 gf_node_get_id(GF_Node*);
 /* gets node built-in name (eg 'Appearance', ..) */
 const char *gf_node_get_class_name(GF_Node *Node);
+/* gets node built-in name from a tag value (eg 'Appearance', ..) */
+const char *gf_node_get_class_name_by_tag(u32 tag);
 
 /*unset the node ID*/
 GF_Err gf_node_remove_id(GF_Node *p);

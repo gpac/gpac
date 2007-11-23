@@ -307,6 +307,8 @@ static void *LockOSContext(GF_VideoOutput *dr, Bool do_lock)
 {
 	DDCONTEXT;
 
+	if (!dd->pBack) return NULL;
+
 	if (do_lock) {
 		if (!dd->lock_hdc && ! IDirectDrawSurface_IsLost(dd->pBack)) {
 			if (FAILED(IDirectDrawSurface_GetDC(dd->pBack, &dd->lock_hdc)) ) 
