@@ -518,9 +518,30 @@ void PrintNodeSFField(u32 type, void *far_ptr)
 		break;
 	}
 }
+
+static Bool node_in_table_by_tag(u32 tag, u32 NDTType)
+{
+	if (!tag) return 0;
+	if (tag==TAG_ProtoNode) return 1;
+	else if (tag<=GF_NODE_RANGE_LAST_MPEG4) {
+		u32 i;
+		u32 gf_bifs_get_node_type(u32 NDT_Tag, u32 NodeTag, u32 Version);
+
+		for (i=0;i<GF_BIFS_LAST_VERSION; i++) {
+			if (gf_bifs_get_node_type(NDTType, tag, i+1)) return 1;
+		}
+		return 0;
+	} else if (tag<=GF_NODE_RANGE_LAST_X3D) {
+		Bool X3D_IsNodeInTable(u32 NDT_Tag, u32 NodeTag);
+		return X3D_IsNodeInTable(NDTType, tag);
+	}
+	return 0;
+}
+
 void PrintNode(const char *name, u32 graph_type)
 {
 	const char *nname, *std_name;
+	char szField[1024];
 	GF_Node *node;
 	GF_SceneGraph *sg;
 	u32 tag, nbF, i;
@@ -528,6 +549,14 @@ void PrintNode(const char *name, u32 graph_type)
 	u8 qt, at;
 	Fixed bmin, bmax;
 	u32 nbBits;
+	Bool is_nodefield = 0;
+
+	char *sep = strchr(name, '.');
+	if (sep) {
+		strcpy(szField, sep+1);
+		sep[0] = 0;
+		is_nodefield = 1;
+	}
 
 	tag = 0;
 	if (graph_type==2) {
@@ -554,6 +583,31 @@ void PrintNode(const char *name, u32 graph_type)
 		return;
 	}
 	nbF = gf_node_get_field_count(node);
+
+	if (is_nodefield) {
+		u32 tfirst, tlast;
+		if (gf_node_get_field_by_name(node, szField, &f) != GF_OK) {
+			fprintf(stdout, "Field %s is not a member of node %s\n", szField, name);
+			return;
+		}
+		fprintf(stdout, "Allowed nodes in %s.%s:\n", name, szField);
+		if (graph_type==1) {
+			tfirst = GF_NODE_RANGE_FIRST_X3D;
+			tlast = GF_NODE_RANGE_LAST_X3D;
+		} else {
+			tfirst = GF_NODE_RANGE_FIRST_MPEG4;
+			tlast = GF_NODE_RANGE_LAST_MPEG4;
+		}
+		for (i=tfirst; i<tlast;i++) {
+			if (node_in_table_by_tag(i, f.NDTtype)) {
+				const char *nname = gf_node_get_class_name_by_tag(i);
+				if (nname && strcmp(nname, "Unknown Node")) {
+					fprintf(stdout, "\t%s\n", nname); 
+				}
+			}
+		}
+		return;
+	}
 
 	fprintf(stdout, "Node Syntax:\n%s {\n", nname);
 

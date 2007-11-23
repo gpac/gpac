@@ -937,6 +937,7 @@ EXPORTS
 	gf_node_get_parent_count
 	gf_node_get_parent
 	gf_node_get_class_name
+	gf_node_get_class_name_by_tag
 	gf_node_dirty_set
 	gf_node_dirty_clear
 	gf_node_dirty_get

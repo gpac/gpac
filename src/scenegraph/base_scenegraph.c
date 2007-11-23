@@ -1488,6 +1488,21 @@ const char *gf_node_get_class_name(GF_Node *node)
 }
 
 GF_EXPORT
+const char *gf_node_get_class_name_by_tag(u32 tag)
+{
+	assert(tag);
+#ifdef GF_NODE_USE_POINTERS
+	return "NOT SUPPORTED";
+#else
+	if (tag==TAG_UndefinedNode) return "UndefinedNode";
+	else if (tag==TAG_ProtoNode) return "Proto";
+	else if (tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(tag);
+	else if (tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(tag);
+	else return "UnsupportedNode";
+#endif
+}
+
+GF_EXPORT
 GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 {
 	GF_Node *node;

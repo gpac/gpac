@@ -47,9 +47,9 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 #else
 
 	const char *ext = (const char *) glGetString(GL_EXTENSIONS);
+	if (!ext) return;
 	/*store OGL extension to config for app usage*/
 	gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLExtensions", ext);
-	if (!ext) return;
 	memset(&compositor->gl_caps, 0, sizeof(GLCaps));
 
 	if (CHECK_GL_EXT("GL_ARB_multisample") || CHECK_GL_EXT("GLX_ARB_multisample") || CHECK_GL_EXT("WGL_ARB_multisample")) 

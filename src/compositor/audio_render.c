@@ -126,6 +126,11 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 	ar->mixer = gf_mixer_new(ar);
 	ar->user = user;
 
+	sOpt = gf_cfg_get_key(user->config, "Audio", "Volume");
+	ar->volume = sOpt ? atoi(sOpt) : 75;
+	sOpt = gf_cfg_get_key(user->config, "Audio", "Pan");
+	ar->pan = sOpt ? atoi(sOpt) : 50;
+
 	if (! (user->init_flags & GF_TERM_NO_AUDIO) ) {
 
 		/*get a prefered compositor*/
@@ -182,11 +187,6 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 		}
 		if (!ar->audio_out) gf_cfg_set_key(user->config, "Audio", "DriverName", "No Audio Output Available");
 	}
-
-	sOpt = gf_cfg_get_key(user->config, "Audio", "Volume");
-	ar->volume = sOpt ? atoi(sOpt) : 75;
-	sOpt = gf_cfg_get_key(user->config, "Audio", "Pan");
-	ar->pan = sOpt ? atoi(sOpt) : 50;
 
 	/*init compositor timer*/
 	ar->startTime = gf_sys_clock();
