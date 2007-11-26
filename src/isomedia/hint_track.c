@@ -495,7 +495,7 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 Sourc
 			entry->hint_sample->AdditionalData = (char*)realloc(entry->hint_sample->AdditionalData, sizeof(char) * (entry->hint_sample->dataLength + DataLength));
 			if (AtBegin) {
 				if (entry->hint_sample->dataLength)
-					memmove(entry->hint_sample->AdditionalData + entry->hint_sample->dataLength, entry->hint_sample->AdditionalData, entry->hint_sample->dataLength);
+					memmove(entry->hint_sample->AdditionalData + DataLength, entry->hint_sample->AdditionalData, entry->hint_sample->dataLength);
 				memcpy(entry->hint_sample->AdditionalData, extra_data, DataLength);
 				/*offset existing DTE*/
 				gf_isom_hint_pck_offset(entry->hint_sample->HintType, pck, DataLength, SampleNumber);

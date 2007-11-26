@@ -87,7 +87,7 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 				}
 				break;
 			default:
-				if ((rtp->transport_mode==2) && ! (ch->rtsp->flags & RTSP_FORCE_INTER) ) {
+				if (rtp->transport_mode && ! (ch->rtsp->flags & RTSP_FORCE_INTER) ) {
 					gf_rtsp_set_buffer_size(ch->rtsp->session, RTSP_TCP_BUFFER_SIZE);
 					ch->rtsp->flags |= RTSP_FORCE_INTER;
 				}
