@@ -288,6 +288,7 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 		tmp->temp_file = strdup(szPath);
 	}
 	if (!tmp->stream) {
+		if (tmp->temp_file) free(tmp->temp_file);
 		free(tmp);
 		return NULL;
 	}
