@@ -1234,11 +1234,17 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 
 		if (es->flags & GF_M2TS_ES_IS_SECTION) {
 			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
-			 if (ses->sec) {
-		 		if (ses->sec->section) free(ses->sec->section);
-		 		free(ses->sec);
-				ses->sec = NULL;
-			 }
+			ses->sec->cc = -1;
+			ses->sec->length = 0;
+			ses->sec->received = 0;
+			free(ses->sec->section);
+			ses->sec->section = NULL;
+			while (ses->sec->table) {
+				GF_M2TS_Table *t = ses->sec->table;
+				ses->sec->table = t->next;
+				if (t->data) free(t->data);
+				free(t);
+			}
 		} else {
 			GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 			if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
@@ -1248,7 +1254,23 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 			pes->data_len = 0;
 			pes->PTS = pes->DTS = 0;
 		}
+//		free(es);
+//		ts->ess[i] = NULL;
 	}
+/*
+	if (ts->pat) {
+		ts->pat->cc = -1;
+		ts->pat->length = 0;
+		ts->pat->received = 0;
+		free(ts->pat->section);
+		while (ts->pat->table) {
+			GF_M2TS_Table *t = ts->pat->table;
+			ts->pat->table = t->next;
+			if (t->data) free(t->data);
+			free(t);
+		}
+	}
+*/
 }
 
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)

@@ -207,7 +207,8 @@ enum
 			u32 pid; \
 			u32 stream_type; \
 			u32 mpeg4_es_id; \
-			void *user;
+			void *user; \
+			u64 first_dts;
 
 struct tag_m2ts_es
 {
@@ -251,8 +252,6 @@ typedef struct tag_m2ts_pes
 	/*PES reframer - if NULL, pes processing is skiped*/
 	u32 frame_state;
 	void (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, unsigned char *data, u32 data_len);
-
-	u64 first_dts;
 
 } GF_M2TS_PES;
 

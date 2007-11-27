@@ -71,7 +71,7 @@ void RS_Interleaver(GF_BitStream *bs, char *out_name)
 
 	k = 11;
 	bs_data = gf_bs_available(bs);
-	while (bs_data > 0 || k > 0){
+	while (bs_data > 188 || k > 0){
 
 		gf_bs_read_data(bs, ts[11], 188);
 		if (bs_data == 0) {
@@ -146,7 +146,7 @@ void RS_Deinterleaver(GF_BitStream *bs, char *out_name)
 	memset(rs[11], 0, 204);
 
 	bs_data = gf_bs_available(bs);
-	while (bs_data > 0){
+	while (bs_data > 204){
 		u64 pos;
 		k++;
 		printf("TS Packet Number: %d\r", k);

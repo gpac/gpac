@@ -197,7 +197,12 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 			if (esd->decoderConfig->objectTypeIndication<=2) {
 				if (!esd->dependsOnESID && nbBifs && !i) 
 					mp4_report(load, GF_OK, "several scene namespaces used or improper scene dependencies in file - import may be incorrect");
-				e = gf_bifs_decoder_configure_stream(bifs_dec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, esd->decoderConfig->objectTypeIndication);
+				if (!esd->decoderConfig->decoderSpecificInfo) {
+					/* Hack for T-DMB non compliant streams */
+					e = gf_bifs_decoder_configure_stream(bifs_dec, esd->ESID, NULL, 0, esd->decoderConfig->objectTypeIndication);
+				} else {
+					e = gf_bifs_decoder_configure_stream(bifs_dec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, esd->decoderConfig->objectTypeIndication);
+				}
 				if (e) goto exit;
 				nbBifs++;
 			}
