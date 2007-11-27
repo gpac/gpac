@@ -318,7 +318,13 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 	GF_Err e;
 	GF_BitStream *bs;
 	GF_BIFSConfig *cfg;
-	if (!dsi || !dsi->data || !dsi->dataLength ) return NULL;
+	if (!dsi || !dsi->data || !dsi->dataLength ) {
+		/* Hack for T-DMB non compliant streams (OnTimeTek ?) */
+		cfg = (GF_BIFSConfig *) gf_odf_desc_new(GF_ODF_BIFS_CFG_TAG);	
+		cfg->pixelMetrics = 1;
+		cfg->version = 1;
+		return cfg;
+	}
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
 	
 	cfg = (GF_BIFSConfig *) gf_odf_desc_new(GF_ODF_BIFS_CFG_TAG);	

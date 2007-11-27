@@ -256,6 +256,7 @@ static void M2TS_Regulate(M2TSIn *m2ts)
 			gf_term_on_command(m2ts->service, &com, GF_OK);
 			if (com.buffer.occupancy < REGULATE_TIME_SLOT) {
 				//gf_sleep(1);
+				fprintf(stdout, "Service Buffer Occupancy %d\n", com.buffer.occupancy);
 				return;
 			}
 			to_sleep = com.buffer.occupancy  - REGULATE_TIME_SLOT;
@@ -884,6 +885,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		pes = M2TS_GetChannel(m2ts, com->base.on_channel);
 		if (!pes) return GF_STREAM_NOT_FOUND;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
+		fprintf(stdout, "Setting default reframing\n");
 		/*this is a multplex, only trigger the play command for the first stream activated*/
 		if (!m2ts->nb_playing) {
 			m2ts->start_range = (u32) (com->play.start_range*1000);

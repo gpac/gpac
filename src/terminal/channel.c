@@ -491,7 +491,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	return;
 }
 
-void Channel_RecieveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength)
+void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength)
 {
 	GF_DBUnit *au;
 	if (!StreamLength) return;
@@ -548,7 +548,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	char *payload;
 
 	if (ch->skip_sl) {
-		Channel_RecieveSkipSL(serv, ch, StreamBuf, StreamLength);
+		Channel_ReceiveSkipSL(serv, ch, StreamBuf, StreamLength);
 		return;
 	}
 

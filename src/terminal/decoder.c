@@ -410,7 +410,7 @@ check_unit:
 		/*static OD resources (embedded in ESD) in broadcast mode, reset time*/
 		if (codec->flags & GF_ESM_CODEC_IS_STATIC_OD) gf_clock_reset(codec->ck);
 		/*generate a temp scene if none is in place*/
-		if (0 && is->graph_attached != 1 ) {
+		if (is->graph_attached != 1 ) {
 			Bool prev_dyn = is->is_dynamic_scene; 
 			is->is_dynamic_scene = 1;
 			gf_inline_regenerate(is);

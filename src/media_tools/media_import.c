@@ -4670,10 +4670,16 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	u32 i, count, idx;
 	GF_M2TS_Program *prog;
 	GF_M2TS_PES_PCK *pck;
+	GF_M2TS_SL_PCK *sl_pck;
 	GF_TSImport *tsimp = (GF_TSImport *) ts->user;
 	GF_MediaImporter *import= (GF_MediaImporter *)tsimp->import;
+	GF_M2TS_ES *es = NULL;
+	GF_M2TS_PES *pes = NULL;
+	GF_M2TS_SECTION_ES *ses = NULL;
 
 	switch (evt_type) {
+	case GF_M2TS_EVT_PAT_FOUND:
+		break;
 	case GF_M2TS_EVT_PAT_REPEAT:
 	case GF_M2TS_EVT_PMT_REPEAT:
 	case GF_M2TS_EVT_SDT_REPEAT:
@@ -4695,13 +4701,18 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 		if (import->flags & GF_IMPORT_PROBE_ONLY) {
 			for (i=0; i<count; i++) {
-				GF_M2TS_PES *pes = (GF_M2TS_PES *)gf_list_get(prog->streams, i);
-				if (pes->pid == prog->pmt_pid) continue;
+				GF_M2TS_ES *es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
+				if (es->pid == prog->pmt_pid) continue;
+				if (es->flags & GF_M2TS_ES_IS_SECTION) {
+					ses = (GF_M2TS_SECTION_ES *)es;
+				} else {
+					pes = (GF_M2TS_PES *)es;
+				}
 				idx = import->nb_tracks;
-				import->tk_info[idx].track_num = pes->pid;
+				import->tk_info[idx].track_num = es->pid;
 				import->tk_info[idx].prog_num = prog->number;
 
-				switch (pes->stream_type) {
+				switch (es->stream_type) {
 				case GF_M2TS_VIDEO_MPEG1:
 					import->tk_info[idx].media_type = GF_4CC('M','P','G','1');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
@@ -4746,16 +4757,16 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					break;
 				case GF_M2TS_SYSTEMS_MPEG4_PES:
 				case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
-					if (pes->stream_type == GF_M2TS_SYSTEMS_MPEG4_PES) {
-						import->tk_info[idx].media_type = GF_4CC('S','L','P',' ');
+					if (es->stream_type == GF_M2TS_SYSTEMS_MPEG4_PES) {
+						import->tk_info[idx].media_type = GF_4CC('M','4','S','P');
 					} else {
-						import->tk_info[idx].media_type = GF_4CC('S','L','S',' ');
+						import->tk_info[idx].media_type = GF_4CC('M','4','S','S');
 					}
 					if (prog->pmt_iod) {
 						u32 k, esd_count = gf_list_count(prog->pmt_iod->ESDescriptors);
 						for (k = 0; k < esd_count; k++) {
 							GF_ESD *esd = (GF_ESD *)gf_list_get(prog->pmt_iod->ESDescriptors, k);
-							if (esd->ESID != pes->mpeg4_es_id) continue;
+							if (esd->ESID != es->mpeg4_es_id) continue;
 							switch (esd->decoderConfig->streamType) {
 							case GF_STREAM_SCENE:
 								import->tk_info[idx].type = GF_ISOM_MEDIA_SCENE;
@@ -4799,12 +4810,19 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		/*we're importing*/
 		else {
 			u32 mtype, stype, oti;
+			Bool is_in_iod;
 			mtype = stype = oti = 0;
+			is_in_iod = 0;
 			for (i=0; i<count; i++) {
-				GF_M2TS_PES *pes = (GF_M2TS_PES *)gf_list_get(prog->streams, i);
-				if (pes->pid != import->trackID) continue;
+				GF_M2TS_ES *es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
+				if (es->pid != import->trackID) continue;
+				if (es->flags & GF_M2TS_ES_IS_SECTION) {
+					ses = (GF_M2TS_SECTION_ES *)es;
+				} else {
+					pes = (GF_M2TS_PES *)es;
+				}
 
-				switch (pes->stream_type) {
+				switch (es->stream_type) {
 				case GF_M2TS_VIDEO_MPEG1:
 					mtype = GF_ISOM_MEDIA_VISUAL;
 					stype = GF_STREAM_VISUAL; oti = 0x6A;
@@ -4833,6 +4851,40 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					mtype = GF_ISOM_MEDIA_AUDIO;
 					stype = GF_STREAM_AUDIO; oti = 0x40;
 					break;
+				case GF_M2TS_SYSTEMS_MPEG4_PES:
+				case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
+					if (prog->pmt_iod) {
+						u32 k, esd_count = gf_list_count(prog->pmt_iod->ESDescriptors);
+						for (k = 0; k < esd_count; k++) {
+							GF_ESD *esd = (GF_ESD *)gf_list_get(prog->pmt_iod->ESDescriptors, k);
+							if (esd->ESID != es->mpeg4_es_id) continue;
+							stype = esd->decoderConfig->streamType; 
+							oti = esd->decoderConfig->objectTypeIndication;
+							if (!import->esd) 
+								import->esd = esd;
+							switch (stype) {
+							case GF_STREAM_SCENE:
+								mtype = GF_ISOM_MEDIA_SCENE;
+								break;
+							case GF_STREAM_OD:
+								mtype = GF_ISOM_MEDIA_OD;
+								break;
+							case GF_STREAM_INTERACT:
+								mtype = GF_ISOM_MEDIA_SCENE;
+								break;
+							default:
+								mtype = GF_ISOM_MEDIA_ESM;
+								break;
+							}
+						}
+						is_in_iod = 1;
+					}
+					if (mtype == 0) {
+						mtype = GF_ISOM_MEDIA_ESM;
+						oti = 0;
+						stype = 0;
+					}
+					break;
 				default:
 					continue;
 				}
@@ -4848,7 +4900,6 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						//error
 					}
 				}
-
 				if (!import->esd) {
 					import->esd = gf_odf_desc_esd_new(2);
 					destroy_esd = 1;
@@ -4861,12 +4912,15 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				import->esd->slConfig->timestampResolution = 90000;
 				
 				gf_isom_set_track_enabled(import->dest, tsimp->track, 1);
+
 				if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, tsimp->track);
 				gf_isom_new_mpeg4_description(import->dest, tsimp->track, import->esd, NULL, NULL, &di);
 				if (destroy_esd) {
 					gf_odf_desc_del((GF_Descriptor *)import->esd);
 					import->esd = NULL;
 				}
+
+				if (is_in_iod) gf_isom_add_track_to_root_od(import->dest, tsimp->track);
 
 				import->final_trackID = gf_isom_get_track_id(import->dest, tsimp->track);
 				/*wait until we have visual or audio info*/
@@ -4895,12 +4949,16 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		if (pck->stream->vid_h || pck->stream->aud_sr) import->flags |= GF_IMPORT_DO_ABORT;
 		break;
 	case GF_M2TS_EVT_SL_PCK:
-		{
-			GF_M2TS_SL_PCK *sl_pck = (GF_M2TS_SL_PCK *)par;
-			GF_M2TS_PES *pes = (GF_M2TS_PES *)sl_pck->stream;
-			if (import->flags & GF_IMPORT_PROBE_ONLY) {
-				for (i=0; i<import->nb_tracks; i++) {
-					if (import->tk_info[i].track_num == sl_pck->stream->pid) {
+		sl_pck = (GF_M2TS_SL_PCK *)par;
+		if (import->flags & GF_IMPORT_PROBE_ONLY) {
+			for (i=0; i<import->nb_tracks; i++) {
+				if (import->tk_info[i].track_num == sl_pck->stream->pid) {
+					if (sl_pck->stream->flags & GF_M2TS_ES_IS_SECTION) {
+						ses = (GF_M2TS_SECTION_ES *)sl_pck->stream;
+					} else {
+						pes = (GF_M2TS_PES *)sl_pck->stream;
+					}
+					if (pes) {
 						if (pes->aud_sr) {
 							import->tk_info[i].audio_info.sample_rate = pes->aud_sr;
 							import->tk_info[i].audio_info.nb_channels = pes->aud_nb_ch;
@@ -4908,14 +4966,14 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 							import->tk_info[i].video_info.width = pes->vid_w;
 							import->tk_info[i].video_info.height = pes->vid_h;
 						}
-						break;
 					}
+					break;
 				}
-				return;
 			}
-			if (pes->pid != import->trackID) return;
-			if (pes->vid_h || pes->aud_sr) import->flags |= GF_IMPORT_DO_ABORT;
+			return;
 		}
+		if (sl_pck->stream->pid != import->trackID) return;
+		if (pes && (pes->vid_h || pes->aud_sr)) import->flags |= GF_IMPORT_DO_ABORT;
 		break;
 	}
 }
@@ -4923,94 +4981,147 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
 {
 	GF_Err e;
-	GF_M2TS_PES_PCK *pck;
 	GF_ISOSample *samp;
 	Bool is_au_start;
 	GF_TSImport *tsimp = (GF_TSImport *)ts->user;
 	GF_MediaImporter *import= tsimp->import;
 
-	if (evt_type != GF_M2TS_EVT_PES_PCK) return;
-	pck = (GF_M2TS_PES_PCK *)par;
-	is_au_start = (pck->flags & GF_M2TS_PES_PCK_AU_START);
+	switch (evt_type) {
+	case GF_M2TS_EVT_PES_PCK:
+		{
+			GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK *)par;
+			is_au_start = (pck->flags & GF_M2TS_PES_PCK_AU_START);
 
-	/* Even if we don't import this stream we need to check the first dts of the program */
-	if (!pck->stream->first_dts && is_au_start) {
-		pck->stream->first_dts = (pck->DTS?pck->DTS:pck->PTS);
-		if (!pck->stream->program->first_dts || 
-			pck->stream->program->first_dts > pck->stream->first_dts) {
-			pck->stream->program->first_dts = pck->stream->first_dts;
+			/* Even if we don't import this stream we need to check the first dts of the program */
+			if (!pck->stream->first_dts && is_au_start) {
+				pck->stream->first_dts = (pck->DTS?pck->DTS:pck->PTS);
+				if (!pck->stream->program->first_dts || 
+					pck->stream->program->first_dts > pck->stream->first_dts) {
+					pck->stream->program->first_dts = pck->stream->first_dts;
+				}
+			}
+
+			if (pck->stream->pid != import->trackID) return;
+
+			if (!is_au_start) {
+				e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error appending sample data\n"));
+				}
+				if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
+				if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
+				if (pck->flags & GF_M2TS_PES_PCK_B_FRAME) tsimp->nb_b++;
+				return;
+			}
+
+			samp = gf_isom_sample_new();
+			samp->DTS = pck->DTS ? pck->DTS : pck->PTS;
+			samp->CTS_Offset = (u32) (pck->PTS - samp->DTS);
+
+			if (pck->stream->first_dts == samp->DTS) {
+
+				u32 w = 0;
+				if (pck->stream->vid_w) {
+					w = pck->stream->vid_w;
+					if (pck->stream->vid_par) w = w * (pck->stream->vid_par>>16) / (pck->stream->vid_par&0xffff);
+				}
+
+				switch (pck->stream->stream_type) {
+				case GF_M2TS_VIDEO_MPEG1: gf_import_message(import, GF_OK, "MPEG-1 Video import - %d x %d (TS PID %d)", w, pck->stream->vid_h, pck->stream->pid); break;
+				case GF_M2TS_VIDEO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Video import - %d x %d (TS PID %d)", w, pck->stream->vid_h, pck->stream->pid); break;
+				case GF_M2TS_VIDEO_MPEG4: gf_import_message(import, GF_OK, "MPEG-4 Video import - %d x %d (TS PID %d)", w, pck->stream->vid_h, pck->stream->pid); break;
+				case GF_M2TS_VIDEO_H264: gf_import_message(import, GF_OK, "MPEG-4 AVC/H264 Video import - %d x %d (TS PID %d)", pck->stream->vid_w, pck->stream->vid_h, pck->stream->pid); break;
+				case GF_M2TS_AUDIO_MPEG1: gf_import_message(import, GF_OK, "MPEG-1 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
+				case GF_M2TS_AUDIO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
+				case GF_M2TS_AUDIO_AAC: gf_import_message(import, GF_OK, "MPEG-4 AAC Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
+				}
+				if (pck->stream->aud_sr) gf_isom_set_audio_info(import->dest, tsimp->track, 1, pck->stream->aud_sr, pck->stream->aud_nb_ch, 16);
+				else if (pck->stream->vid_w) {
+					gf_isom_set_visual_info(import->dest, tsimp->track, 1, pck->stream->vid_w, pck->stream->vid_h);
+					gf_isom_set_track_layout_info(import->dest, tsimp->track, w<<16, pck->stream->vid_h<<16, 0, 0, 0);
+				}
+
+				gf_isom_set_media_language(import->dest, tsimp->track, (char *) gf_4cc_to_str(pck->stream->lang)+1);
+			}
+
+			if (samp->DTS >= pck->stream->first_dts) {
+				samp->DTS -= pck->stream->first_dts;
+				samp->IsRAP = (pck->flags & GF_M2TS_PES_PCK_RAP) ? 1 : 0;
+				samp->data = pck->data;
+				samp->dataLength = pck->data_len;
+				e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error adding sample\n"));
+				}
+				if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90))
+					import->flags |= GF_IMPORT_DO_ABORT;
+
+				if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
+				if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
+				if (pck->flags & GF_M2TS_PES_PCK_B_FRAME) tsimp->nb_b++;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] negative time sample - skipping\n"));
+			}
+			samp->data = NULL;
+			gf_isom_sample_del(&samp);
 		}
-	}
+		break;
+	case GF_M2TS_EVT_SL_PCK:
+		{
+			u32 k, esd_count;
+			GF_ESD *esd = NULL;
+			GF_M2TS_SL_PCK *sl_pck = (GF_M2TS_SL_PCK *)par;
 
-	if (pck->stream->pid != import->trackID) return;
+			if (sl_pck->stream->pid != import->trackID) return;
+			if (!sl_pck->stream->program->pmt_iod) return;
+			esd_count = gf_list_count(sl_pck->stream->program->pmt_iod->ESDescriptors);
+			for (k = 0; k < esd_count; k++) {
+				GF_ESD *esd_tmp = (GF_ESD *)gf_list_get(sl_pck->stream->program->pmt_iod->ESDescriptors, k);
+				if (esd_tmp->ESID != sl_pck->stream->mpeg4_es_id) continue;
+				esd = esd_tmp;
+				break;
+			}
+			if (esd) {
+				GF_SLHeader hdr;
+				u32 hdr_len;
+				gf_sl_depacketize(esd->slConfig, &hdr, sl_pck->data, sl_pck->data_len, &hdr_len);
+				samp = gf_isom_sample_new();
 
-	if (!is_au_start) {
-		e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error appending sample data\n"));
+				if (!hdr.accessUnitStartFlag) {
+					e = gf_isom_append_sample_data(import->dest, tsimp->track, sl_pck->data + hdr_len, sl_pck->data_len - hdr_len);
+					if (e) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error appending sample data\n"));
+					}
+				} else {
+					if (!sl_pck->stream->first_dts) {
+						sl_pck->stream->first_dts = (hdr.decodingTimeStamp?hdr.decodingTimeStamp:hdr.compositionTimeStamp);
+					}
+
+					samp->DTS = (hdr.decodingTimeStamp?hdr.decodingTimeStamp:hdr.compositionTimeStamp);
+					samp->CTS_Offset = (u32) (hdr.compositionTimeStampFlag - hdr.decodingTimeStamp);
+					samp->DTS -= sl_pck->stream->first_dts;
+					samp->IsRAP = esd->slConfig->useRandomAccessPointFlag ? hdr.randomAccessPointFlag: 1;
+
+					samp->data = sl_pck->data + hdr_len;
+					samp->dataLength = sl_pck->data_len - hdr_len;
+					e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
+					samp->data = NULL;
+					gf_isom_sample_del(&samp);
+				}
+			}
 		}
-		if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
-		if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
-		if (pck->flags & GF_M2TS_PES_PCK_B_FRAME) tsimp->nb_b++;
+		break;
+	default:
 		return;
 	}
-
-	samp = gf_isom_sample_new();
-	samp->DTS = pck->DTS ? pck->DTS : pck->PTS;
-	samp->CTS_Offset = (u32) (pck->PTS - samp->DTS);
-
-	if (pck->stream->first_dts == samp->DTS) {
-
-		u32 w = 0;
-		if (pck->stream->vid_w) {
-			w = pck->stream->vid_w;
-			if (pck->stream->vid_par) w = w * (pck->stream->vid_par>>16) / (pck->stream->vid_par&0xffff);
-		}
-
-		switch (pck->stream->stream_type) {
-		case GF_M2TS_VIDEO_MPEG1: gf_import_message(import, GF_OK, "MPEG-1 Video import - %d x %d (TS PID %d)", w, pck->stream->vid_h, pck->stream->pid); break;
-		case GF_M2TS_VIDEO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Video import - %d x %d (TS PID %d)", w, pck->stream->vid_h, pck->stream->pid); break;
-		case GF_M2TS_VIDEO_MPEG4: gf_import_message(import, GF_OK, "MPEG-4 Video import - %d x %d (TS PID %d)", w, pck->stream->vid_h, pck->stream->pid); break;
-		case GF_M2TS_VIDEO_H264: gf_import_message(import, GF_OK, "MPEG-4 AVC/H264 Video import - %d x %d (TS PID %d)", pck->stream->vid_w, pck->stream->vid_h, pck->stream->pid); break;
-		case GF_M2TS_AUDIO_MPEG1: gf_import_message(import, GF_OK, "MPEG-1 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
-		case GF_M2TS_AUDIO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
-		case GF_M2TS_AUDIO_AAC: gf_import_message(import, GF_OK, "MPEG-4 AAC Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
-		}
-		if (pck->stream->aud_sr) gf_isom_set_audio_info(import->dest, tsimp->track, 1, pck->stream->aud_sr, pck->stream->aud_nb_ch, 16);
-		else if (pck->stream->vid_w) {
-			gf_isom_set_visual_info(import->dest, tsimp->track, 1, pck->stream->vid_w, pck->stream->vid_h);
-			gf_isom_set_track_layout_info(import->dest, tsimp->track, w<<16, pck->stream->vid_h<<16, 0, 0, 0);
-		}
-
-		gf_isom_set_media_language(import->dest, tsimp->track, (char *) gf_4cc_to_str(pck->stream->lang)+1);
-	}
-
-	if (samp->DTS >= pck->stream->first_dts) {
-		samp->DTS -= pck->stream->first_dts;
-		samp->IsRAP = (pck->flags & GF_M2TS_PES_PCK_RAP) ? 1 : 0;
-		samp->data = pck->data;
-		samp->dataLength = pck->data_len;
-		e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error adding sample\n"));
-		}
-		if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90))
-			import->flags |= GF_IMPORT_DO_ABORT;
-
-		if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
-		if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
-		if (pck->flags & GF_M2TS_PES_PCK_B_FRAME) tsimp->nb_b++;
-	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] negative time sample - skipping\n"));
-	}
-	samp->data = NULL;
-	gf_isom_sample_del(&samp);
 }
 
 GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 {
 	GF_M2TS_Demuxer *ts;
-	GF_M2TS_PES *pes;
+	GF_M2TS_PES *pes = NULL;
+	GF_M2TS_ES *es;
+	GF_M2TS_SECTION_ES *ses = NULL;
 	char data[188];
 	GF_TSImport tsimp;
 	u64 fsize, done;
@@ -5050,8 +5161,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	/* Second parsing, the real one */ 
 	if (!(import->flags & GF_IMPORT_PROBE_ONLY)) {
 
-		pes = (GF_M2TS_PES *)ts->ess[import->trackID];
-		if (!pes) {
+		es = (GF_M2TS_ES *)ts->ess[import->trackID];
+		if (!es) {
 			gf_m2ts_demux_del(ts);
 			fclose(mts);
 			return gf_import_message(import, GF_BAD_PARAM, "Unknown PID %d", import->trackID);
@@ -5075,17 +5186,21 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		MP4T_RecomputeBitRate(import->dest, tsimp.track);
 
 		/* creation of the edit lists */
-		if (pes->first_dts != pes->program->first_dts) {
-			u32 media_ts, moov_ts, offset;
-			u64 dur;
-			media_ts = gf_isom_get_media_timescale(import->dest, tsimp.track);
-			moov_ts = gf_isom_get_timescale(import->dest);
-			assert(pes->program->first_dts < pes->first_dts);
-			offset = (u32)(pes->first_dts - pes->program->first_dts) * moov_ts / media_ts;
-			dur = gf_isom_get_media_duration(import->dest, tsimp.track) * moov_ts / media_ts;
-			gf_isom_set_edit_segment(import->dest, tsimp.track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);				
-			gf_isom_set_edit_segment(import->dest, tsimp.track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);				
-			//gf_import_message(import, GF_OK, "Timeline offset: %d ms", (u32)((pes->first_dts - pes->program->first_dts)/90));
+		if (!(es->flags & GF_M2TS_ES_IS_SECTION)) {
+			pes = (GF_M2TS_PES *)es;
+
+			if (pes->first_dts != pes->program->first_dts) {
+				u32 media_ts, moov_ts, offset;
+				u64 dur;
+				media_ts = gf_isom_get_media_timescale(import->dest, tsimp.track);
+				moov_ts = gf_isom_get_timescale(import->dest);
+				assert(pes->program->first_dts < pes->first_dts);
+				offset = (u32)(pes->first_dts - pes->program->first_dts) * moov_ts / media_ts;
+				dur = gf_isom_get_media_duration(import->dest, tsimp.track) * moov_ts / media_ts;
+				gf_isom_set_edit_segment(import->dest, tsimp.track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);				
+				gf_isom_set_edit_segment(import->dest, tsimp.track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);				
+				//gf_import_message(import, GF_OK, "Timeline offset: %d ms", (u32)((pes->first_dts - pes->program->first_dts)/90));
+			}
 		}
 
 		if (tsimp.nb_p) {
