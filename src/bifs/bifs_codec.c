@@ -120,7 +120,13 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	BIFSStreamInfo *pInfo;
 	GF_Err e;
 	
-	if (!DecoderSpecificInfo) return GF_BAD_PARAM;
+	if (!DecoderSpecificInfo) {
+		GF_SAFEALLOC(pInfo, BIFSStreamInfo);
+		pInfo->ESID = ESID;
+		pInfo->config.PixelMetrics = 1;
+		pInfo->config.version = (objectTypeIndication==2) ? 1 : 2;
+		return gf_list_add(codec->streamInfo, pInfo);
+	}
 //	gf_mx_p(codec->mx);
 	if (gf_bifs_dec_get_stream(codec, ESID) != NULL) {
 //		gf_mx_v(codec->mx);
@@ -324,7 +330,7 @@ GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig
 	
 	GF_SAFEALLOC(pInfo, BIFSStreamInfo);
 	pInfo->ESID = ESID;
-	pInfo->UseName = encodeNames;
+	codec->UseName = encodeNames;
 	pInfo->config.Height = cfg->pixelHeight;
 	pInfo->config.Width = cfg->pixelWidth;
 	pInfo->config.NodeIDBits = cfg->nodeIDbits;

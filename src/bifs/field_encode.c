@@ -569,7 +569,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	GF_BIFS_WRITE_INT(codec, bs, node_id ? 1 : 0, 1, "DEF", NULL);
 	if (node_id) {
 		GF_BIFS_WRITE_INT(codec, bs, node_id - 1, codec->info->config.NodeIDBits, "NodeID", NULL);
-		if (codec->info->UseName) gf_bifs_enc_name(codec, bs, (char*) node_name );
+		if (codec->UseName) gf_bifs_enc_name(codec, bs, (char*) node_name );
 	}
 
 	/*no updates of time fields for now - NEEDED FOR A LIVE ENCODER*/

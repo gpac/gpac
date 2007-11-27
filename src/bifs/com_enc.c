@@ -397,7 +397,7 @@ GF_Err BE_RouteReplace(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs,
 		GF_BIFS_WRITE_INT(codec, bs, com->RouteID ? 1 : 0, 1, "isDEF", NULL);
 		if (com->RouteID) {
 			GF_BIFS_WRITE_INT(codec, bs, com->RouteID-1, codec->info->config.RouteIDBits, "RouteID", NULL);
-			if (codec->info->UseName) gf_bifs_enc_name(codec, bs, com->def_name);
+			if (codec->UseName) gf_bifs_enc_name(codec, bs, com->def_name);
 		}
 	} else {
 		GF_BIFS_WRITE_INT(codec, bs, com->RouteID - 1, codec->info->config.RouteIDBits, "RouteID", NULL);
@@ -460,7 +460,7 @@ GF_Err BE_EncProtoList(GF_BifsEncoder *codec, GF_List *protoList, GF_BitStream *
 		/*1- proto interface declaration*/
 		GF_BIFS_WRITE_INT(codec, bs, proto->ID, codec->info->config.ProtoIDBits, "protoID", NULL);
 
-		if (codec->info->UseName) gf_bifs_enc_name(codec, bs, proto->Name);
+		if (codec->UseName) gf_bifs_enc_name(codec, bs, proto->Name);
 
 		numFields = gf_list_count(proto->proto_fields);
 		for (j=0; j<numFields; j++) {
@@ -470,7 +470,7 @@ GF_Err BE_EncProtoList(GF_BifsEncoder *codec, GF_List *protoList, GF_BitStream *
 			GF_BIFS_WRITE_INT(codec, bs, proto_field->EventType, 2, "eventType", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, proto_field->FieldType, 6, "fieldType", NULL);
 			
-			if (codec->info->UseName) gf_bifs_enc_name(codec, bs, proto_field->FieldName);
+			if (codec->UseName) gf_bifs_enc_name(codec, bs, proto_field->FieldName);
 			switch (proto_field->EventType) {
 			case GF_SG_EVENT_EXPOSED_FIELD:
 			case GF_SG_EVENT_FIELD:
@@ -614,7 +614,7 @@ GF_Err gf_bifs_enc_route(GF_BifsEncoder *codec, GF_Route *r, GF_BitStream *bs)
 	/*def'ed route*/
 	if (r->ID) {
 		GF_BIFS_WRITE_INT(codec, bs, r->ID-1, codec->info->config.RouteIDBits, "routeID", NULL);
-		if (codec->info->UseName) gf_bifs_enc_name(codec, bs, r->name);
+		if (codec->UseName) gf_bifs_enc_name(codec, bs, r->name);
 	}
 	/*origin*/
 	GF_BIFS_WRITE_INT(codec, bs, gf_node_get_id(r->FromNode) - 1, codec->info->config.NodeIDBits, "outNodeID", NULL);
@@ -640,7 +640,7 @@ GF_Err BE_SceneReplaceEx(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *b
 
 	/*reserved*/
 	GF_BIFS_WRITE_INT(codec, bs, 0, 6, "reserved", NULL);
-	GF_BIFS_WRITE_INT(codec, bs, codec->info->UseName ? 1 : 0, 1, "useName", NULL);
+	GF_BIFS_WRITE_INT(codec, bs, codec->UseName ? 1 : 0, 1, "useName", NULL);
 
 	e = BE_EncProtoList(codec, com->new_proto_list, bs);
 	if (e) goto exit;
@@ -684,7 +684,7 @@ GF_Err BE_SceneReplace(GF_BifsEncoder *codec, GF_SceneGraph *graph, GF_BitStream
 
 	/*reserved*/
 	GF_BIFS_WRITE_INT(codec, bs, 0, 6, "reserved", NULL);
-	GF_BIFS_WRITE_INT(codec, bs, codec->info->UseName ? 1 : 0, 1, "useName", NULL);
+	GF_BIFS_WRITE_INT(codec, bs, codec->UseName ? 1 : 0, 1, "useName", NULL);
 
 	/*assign current graph*/
 	codec->scene_graph = graph;

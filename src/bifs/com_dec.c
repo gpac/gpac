@@ -668,7 +668,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 		/*1- proto interface declaration*/
 		ID = gf_bs_read_int(bs, codec->info->config.ProtoIDBits);
 
-		if (codec->info->UseName) {
+		if (codec->UseName) {
 			gf_bifs_dec_name(bs, name);
 		} else {
 			sprintf(name, "Proto%d", numProtos);
@@ -688,7 +688,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 			event_type = gf_bs_read_int(bs, 2);
 			field_type = gf_bs_read_int(bs, 6);
 			
-			if (codec->info->UseName) {
+			if (codec->UseName) {
 				gf_bifs_dec_name(bs, name);
 			} else {
 				sprintf(name, "_field%d", numFields);
@@ -901,7 +901,7 @@ GF_Err gf_bifs_dec_route(GF_BifsDecoder * codec, GF_BitStream *bs, Bool is_inser
 	/*def'ed route*/
 	if (flag) {
 		RouteID = 1 + gf_bs_read_int(bs, codec->info->config.RouteIDBits);
-		if (codec->info->UseName) gf_bifs_dec_name(bs, name);
+		if (codec->UseName) gf_bifs_dec_name(bs, name);
 	}
 	/*origin*/
 	node_id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
@@ -928,7 +928,7 @@ GF_Err gf_bifs_dec_route(GF_BifsDecoder * codec, GF_BitStream *bs, Bool is_inser
 	if (!r) return GF_OUT_OF_MEM;
 	if (RouteID) {
 		e = gf_sg_route_set_id(r, RouteID);
-		if (!e && codec->info->UseName) e = gf_sg_route_set_name(r, name);
+		if (!e && codec->UseName) e = gf_sg_route_set_name(r, name);
 	}
 	return e;
 }
@@ -947,8 +947,7 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 	/*reserved*/
 	i = gf_bs_read_int(bs, 6);
 
-	codec->info->UseName = gf_bs_read_int(bs, 1);
-
+	codec->UseName = gf_bs_read_int(bs, 1);
 	/*parse PROTOS*/
 	e = gf_bifs_dec_proto_list(codec, bs, proto_list);
 	if (e) goto exit;

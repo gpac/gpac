@@ -400,7 +400,7 @@ GF_Err BM_ParseRouteInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com
 	/*def'ed route*/
 	if (flag) {
 		RouteID = 1 + gf_bs_read_int(bs, codec->info->config.RouteIDBits);
-		if (codec->info->UseName) gf_bifs_dec_name(bs, name);
+		if (codec->UseName) gf_bifs_dec_name(bs, name);
 	}
 	/*origin*/
 	node_id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
@@ -425,7 +425,7 @@ GF_Err BM_ParseRouteInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com
 
 	com = gf_sg_command_new(codec->current_graph, GF_SG_ROUTE_INSERT);
 	com->RouteID = RouteID;
-	if (codec->info->UseName) com->def_name = strdup( name);
+	if (codec->UseName) com->def_name = strdup( name);
 	com->fromNodeID = gf_node_get_id(OutNode);
 	com->fromFieldIndex = outField;
 	com->toNodeID = gf_node_get_id(InNode);

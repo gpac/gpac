@@ -70,7 +70,6 @@ typedef struct
 typedef struct 
 {
 	BIFSConfig config;
-	Bool UseName;
 	u16 ESID;
 } BIFSStreamInfo;
 
@@ -89,6 +88,8 @@ struct __tag_bifs_dec
 	GF_List *streamInfo;
 	/*active stream*/
 	BIFSStreamInfo *info;
+
+	Bool UseName;
 
 	GF_SceneGraph *scenegraph;
 	/*modified during conditional execution / proto parsing*/
@@ -159,6 +160,8 @@ struct __tag_bifs_enc
 	GF_List *streamInfo;
 	/*active stream*/
 	BIFSStreamInfo *info;
+
+	Bool UseName;
 
 	/*the scene graph the codec is encoding (set htrough ReplaceScene or manually)*/
 	GF_SceneGraph *scene_graph;
