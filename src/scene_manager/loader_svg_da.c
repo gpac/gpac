@@ -1488,20 +1488,6 @@ GF_Err gf_sm_load_init_svg(GF_SceneLoader *load)
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, svg_progress);
 	if (e<0) return svg_report(parser, e, "Unable to parse file %s: %s", load->fileName, gf_xml_sax_get_error(parser->sax_parser) );
 
-#if 0
-	{
-		GF_SystemRTInfo rti;
-		gf_sys_get_rti(0, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
-		fprintf(stdout, "Memory usage before delete gz: %d\n", rti.gpac_memory);
-		if (parser->sax_parser) {
-			gf_xml_sax_del(parser->sax_parser);
-			parser->sax_parser = NULL;
-		}
-		gf_sys_get_rti(0, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
-		fprintf(stdout, "Memory usage after delete gz: %d\n", rti.gpac_memory);
-	}
-#endif
-
 	return parser->last_error;
 }
 

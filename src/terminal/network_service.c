@@ -220,7 +220,8 @@ static void term_on_slp_recieved(void *user_priv, GF_ClientService *service, LPN
 	GET_TERM();
 
 	ch = gf_term_get_channel(service, netch);
-	if (!ch) return;
+	if (!ch) 
+		return;
 	
 	if (reception_status==GF_EOS) {
 		gf_es_on_eos(ch);
@@ -289,10 +290,15 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		com->buffer.min = com->buffer.occupancy = (u32) -1;
 		if (!service->owner) return;
 		
+		/*browse all channels in the scene, running on this service, and get buffer info*/
 		od_list = NULL;
-		if (service->owner->parentscene) od_list = service->owner->parentscene->ODlist;
-		else if (service->owner->subscene) od_list = service->owner->subscene->ODlist;
+		if (service->owner->parentscene) {
+			od_list = service->owner->parentscene->ODlist;
+		} else if (service->owner->subscene) {
+			od_list = service->owner->subscene->ODlist;
+		}
 		if (!od_list) return;
+		gf_mx_p(term->net_mx);
 		i=0;
 		while ((odm = (GF_ObjectManager*)gf_list_enum(od_list, &i))) {
 			u32 j, count;
@@ -309,6 +315,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 					com->buffer.occupancy = ch->BufferTime;
 			}
 		}
+		gf_mx_v(term->net_mx);
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
 		return;
 	}

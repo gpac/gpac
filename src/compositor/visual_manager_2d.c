@@ -77,7 +77,7 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 		drawctx_reset(visual->context);
 		return visual->context;
 	}
-	assert(visual->cur_context);
+//	assert(visual->cur_context);
 	/*current context is OK*/
 	if (!visual->cur_context->drawable) {
 		/*reset next context in display list for next call*/
@@ -88,7 +88,7 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 	/*need a new context and next one is OK*/
 	if (visual->cur_context->next) {
 		visual->cur_context = visual->cur_context->next;
-		assert(visual->cur_context->drawable == NULL);
+//		assert(visual->cur_context->drawable == NULL);
 		/*reset next context in display list for next call*/
 		if (visual->cur_context->next) visual->cur_context->next->drawable = NULL;
 		drawctx_reset(visual->cur_context);
@@ -98,6 +98,18 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 	visual->cur_context->next = NewDrawableContext();
 	visual->cur_context = visual->cur_context->next;
 	drawctx_reset(visual->cur_context);
+
+	if (1) {
+		u32 i;
+		DrawableContext *last = visual->cur_context;
+		for (i=0; i<50; i++) {
+			last->next = malloc(sizeof(DrawableContext));
+			last = last->next;
+			last->drawable = NULL;
+			last->col_mat = NULL;
+		}
+		last->next = NULL;
+	}
 	return visual->cur_context;
 }
 

@@ -1293,8 +1293,6 @@ static void dirty_parents(GF_Node *node)
 		if (! (p->sgprivate->flags & GF_SG_CHILD_DIRTY)) {
 			p->sgprivate->flags |= GF_SG_CHILD_DIRTY;
 			dirty_parents(p);
-//		} else {
-//			fprintf(stdout, "dirty propagation stopped at %s\n", gf_node_get_class_name(p));
 		}
 		check_root = 0;
 		nlist = nlist->next;

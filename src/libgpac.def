@@ -45,6 +45,10 @@ EXPORTS
 ;	gf_atan2
 ;	gf_invfix
 ;	gf_sqrt
+	gf_malloc
+	gf_realloc
+	gf_free
+	gf_strdup
 
 ;array.h exports
 	gf_list_new

@@ -1,4 +1,6 @@
-Latest CVS changes - 31/10/07:
+Latest CVS changes - 29/11/07:
+  - Added support of MPEG-4 systems over MPEG-2
+  - Added extended version of "-node" switch in MP4Box, to get the list of possible nodes. For insatnce, "MP4Box -node Anchor.children"
   - Initial commit of new glyph-based font manager - only MPEG-4 text uses it at the current time.
   You MUST have the FreeType plugin enabled for that.
       The goal here is to integrate SVG fonts quite seamlessly.

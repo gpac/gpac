@@ -68,7 +68,6 @@ typedef struct {
 typedef struct
 {
 	GF_ClientService *service;
-	Bool do_regulate;
 	GF_M2TS_Demuxer *ts;
 	char *program;
 	u32 prog_id;
@@ -90,6 +89,7 @@ typedef struct
 	u32 file_size;
 	Double duration;
 	u32 nb_playing;
+	Bool file_regulate;
 } M2TSIn;
 
 
@@ -249,22 +249,21 @@ static void M2TS_Regulate(M2TSIn *m2ts)
 	/*sleep untill the buffer occupancy is too low - note that this work because all streams in this
 	demuxer are synchronized*/
 	while (m2ts->run_state) {
-		/*wait for a connected channel !!*/
-		if (!m2ts->nb_playing && m2ts->do_regulate) {
+		if (!m2ts->nb_playing && m2ts->file_regulate) {
 			gf_sleep(50);
-		} else {
-			gf_term_on_command(m2ts->service, &com, GF_OK);
-			if (com.buffer.occupancy < REGULATE_TIME_SLOT) {
-				//gf_sleep(1);
-				fprintf(stdout, "Service Buffer Occupancy %d\n", com.buffer.occupancy);
-				return;
-			}
-			to_sleep = com.buffer.occupancy  - REGULATE_TIME_SLOT;
-			//fprintf(stdout, "MPEG-2 TS regulate: %d ms in buffers - sleeping %d ms\n", com.buffer.occupancy, to_sleep);
-			while (m2ts->run_state && (to_sleep>REGULATE_TIME_SLOT)) {
-				gf_sleep(REGULATE_TIME_SLOT);
-				to_sleep -= REGULATE_TIME_SLOT;
-			}
+			continue;
+		}
+		gf_term_on_command(m2ts->service, &com, GF_OK);
+		
+		/*not enough data*/
+		if (com.buffer.occupancy < REGULATE_TIME_SLOT) {
+			return;
+		}
+		/*sleep*/
+		to_sleep = com.buffer.occupancy  - REGULATE_TIME_SLOT;
+		while (m2ts->run_state && (to_sleep>REGULATE_TIME_SLOT)) {
+			gf_sleep(REGULATE_TIME_SLOT);
+			to_sleep -= REGULATE_TIME_SLOT;
 		}
 	}
 }
@@ -333,7 +332,7 @@ static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream)
 	od->objectDescriptorID = stream->pid;	
 	/*declare but don't regenerate scene*/
 	gf_term_add_media(m2ts->service, (GF_Descriptor*)od, 1);
-	m2ts->do_regulate = 1;
+
 	/*wait for connection*/
 	while (!stream->user) gf_sleep(0);
 }
@@ -357,11 +356,14 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog)
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
+		/*move to skip mode for all PES until asked for playback*/
 		if (!(es->flags & GF_M2TS_ES_IS_SECTION)) gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
 		if (!prog->pmt_iod) MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es);
 	}
 	/*force scene regeneration*/
 	gf_term_add_media(m2ts->service, NULL, 0);
+
+	m2ts->file_regulate = 1;
 }
 
 static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
@@ -732,7 +734,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 		ext[0] = 0;
 	}
 
-	m2ts->do_regulate = 0;
+	m2ts->file_regulate = 0;
 	m2ts->duration = 0;
 
 	if (!strnicmp(url, "udp://", 6)
@@ -776,11 +778,10 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 {
 	u32 i=0;
 	M2TSIn *m2ts = plug->priv;
-	GF_Descriptor *desc;
+	GF_Descriptor *desc = NULL;
 	if (gf_list_count(m2ts->ts->programs) == 1) {
 		GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, 0);
 		if (prog->pmt_iod) {
-			m2ts->do_regulate = 1;
 			gf_odf_desc_copy((GF_Descriptor *)prog->pmt_iod, &desc);
 			return desc;
 		}

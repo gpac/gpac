@@ -467,9 +467,13 @@ struct _es_channel
 	u32 au_duration;
 	Bool skip_sl;
 
-	Bool is_protected;
+	/*indicates that decoding can be called directly when receiving an AU on this channel
+	This is used by systems streams with no clock control (eg, MPEG-2 TS multiplexes) to make sure resources are 
+	setup as fast as possible.*/
+	Bool direct_dispatch;
 
 	GF_IPMPTool *ipmp_tool;
+	Bool is_protected;
 
 	/*TSs as recieved from network - these are used for cache storage*/
 	u64 net_dts, net_cts;

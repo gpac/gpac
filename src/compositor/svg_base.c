@@ -416,6 +416,30 @@ void compositor_svg_restore_parent_transformation(GF_TraverseState *tr_state, GF
 }
 
 
+static void gf_svg_apply_inheritance_no_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *render_svg_props) 
+{
+#define CHECK_PROP(a, b) if (b) a = b;
+
+	render_svg_props->audio_level = NULL;
+	CHECK_PROP(render_svg_props->display, all_atts->display);
+	CHECK_PROP(render_svg_props->fill, all_atts->fill);
+	CHECK_PROP(render_svg_props->fill_opacity, all_atts->fill_opacity);
+	CHECK_PROP(render_svg_props->fill_rule, all_atts->fill_rule);
+	CHECK_PROP(render_svg_props->solid_color, all_atts->solid_color);		
+	CHECK_PROP(render_svg_props->solid_opacity, all_atts->solid_opacity);
+	CHECK_PROP(render_svg_props->stop_color, all_atts->stop_color);
+	CHECK_PROP(render_svg_props->stop_opacity, all_atts->stop_opacity);
+	CHECK_PROP(render_svg_props->stroke, all_atts->stroke);
+	CHECK_PROP(render_svg_props->stroke_dasharray, all_atts->stroke_dasharray);
+	CHECK_PROP(render_svg_props->stroke_dashoffset, all_atts->stroke_dashoffset);
+	CHECK_PROP(render_svg_props->stroke_linecap, all_atts->stroke_linecap);
+	CHECK_PROP(render_svg_props->stroke_linejoin, all_atts->stroke_linejoin);
+	CHECK_PROP(render_svg_props->stroke_miterlimit, all_atts->stroke_miterlimit);
+	CHECK_PROP(render_svg_props->stroke_opacity, all_atts->stroke_opacity);
+	CHECK_PROP(render_svg_props->stroke_width, all_atts->stroke_width);
+	CHECK_PROP(render_svg_props->visibility, all_atts->visibility);
+}
+
 void compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *all_atts, GF_TraverseState *tr_state, 
 					 SVGPropertiesPointers *backup_props, u32 *backup_flags)
 {
@@ -430,8 +454,10 @@ void compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *all_atts, GF_
 	gf_svg_apply_animations(node, tr_state->svg_props); // including again inheritance if values are 'inherit'
 #else
 	/* animation (including possibly inheritance) then full inheritance */
-	gf_svg_apply_animations(node, tr_state->svg_props); 
+//	gf_svg_apply_animations(node, tr_state->svg_props); 
 	inherited_flags_mask = gf_svg_apply_inheritance(all_atts, tr_state->svg_props);
+//	gf_svg_apply_inheritance_no_inheritance(all_atts, tr_state->svg_props);
+//	inherited_flags_mask = 0xFFFFFFFF;
 #endif
 	tr_state->svg_flags &= inherited_flags_mask;
 	tr_state->svg_flags |= gf_node_dirty_get(node);

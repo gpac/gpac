@@ -424,6 +424,7 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline, Bool *externalCloc
 		sOpt = "und";
 	}
 	lang = (sOpt[0]<<16) | (sOpt[1]<<8) | sOpt[2];
+#if 0
 	if (gf_list_count(odm->OD->ESDescriptors)>1) {
 		ODM_SelectAlternateStream(odm, lang, GF_STREAM_SCENE);
 		ODM_SelectAlternateStream(odm, lang, GF_STREAM_OD);
@@ -433,7 +434,7 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline, Bool *externalCloc
 		ODM_SelectAlternateStream(odm, lang, GF_STREAM_INTERACT);
 		ODM_SelectAlternateStream(odm, lang, GF_STREAM_TEXT);
 	}
-	
+#endif
 	/*no scene, OK*/
 	if (!nb_scene) return GF_OK;
 

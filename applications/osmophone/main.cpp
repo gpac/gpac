@@ -142,6 +142,7 @@ void update_state_info()
 static u32 prev_pos = 0;
 void cbk_on_progress(void *_title, u32 done, u32 total)
 {
+#if 0
 	char szMsg[1024];
 	u32 pos = (u32) ((u64) done * 100)/total;
 	if (pos<prev_pos) prev_pos = 0;
@@ -150,6 +151,7 @@ void cbk_on_progress(void *_title, u32 done, u32 total)
 		sprintf(szMsg, "%s: (%02d/100)", _title ? (char *)_title : "", pos);
 		set_status(szMsg);
 	}
+#endif
 }
 
 void set_full_screen()

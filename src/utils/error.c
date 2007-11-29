@@ -167,10 +167,14 @@ void gf_set_progress(char *title, u32 done, u32 total)
 {
 	if (prog_cbk) {
 		prog_cbk(user_cbk, title, done, total);
-	} else {
+	}
+#ifndef _WIN32_WCE
+	else {
 		gf_on_progress_stdout(title, done, total);
 	}
+#endif
 }
+
 GF_EXPORT
 void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
 {
@@ -195,7 +199,9 @@ u32 gf_log_get_tools() { return global_log_tools; }
 
 void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_list vlist)
 {
+#ifndef _WIN32_WCE
     vfprintf(stdout, fmt, vlist);
+#endif
 }
 
 

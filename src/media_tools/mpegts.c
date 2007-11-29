@@ -387,23 +387,6 @@ Bool gf_m2ts_crc32_check(unsigned char *data, u32 len)
 }
 
 
-void gf_m2ts_es_del(GF_M2TS_ES *es)
-{
-	gf_list_del_item(es->program->streams, es);
-	if (es->flags & GF_M2TS_ES_IS_SECTION) {
-		GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
-		 if (ses->sec) {
-		 	if (ses->sec->section) free(ses->sec->section);
-		 	free(ses->sec);
-		 }
-	} else 
-	if (es->pid!=es->program->pmt_pid) {
-		GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
-		if (pes->data) free(pes->data);
-	}
-	free(es);
-}
-
 static GF_M2TS_SectionFilter *gf_m2ts_section_filter_new(gf_m2ts_section_callback process_section_callback)
 {
 	GF_M2TS_SectionFilter *sec;
@@ -423,6 +406,19 @@ static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
 		free(t);
 	}
 	free(sf);
+}
+
+void gf_m2ts_es_del(GF_M2TS_ES *es)
+{
+	gf_list_del_item(es->program->streams, es);
+	if (es->flags & GF_M2TS_ES_IS_SECTION) {
+		GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
+		if (ses->sec) gf_m2ts_section_filter_del(ses->sec);
+	} else if (es->pid!=es->program->pmt_pid) {
+		GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
+		if (pes->data) free(pes->data);
+	}
+	free(es);
 }
 
 static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
@@ -972,7 +968,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	Bool flush_pes = 0;
 
 	if (!pes->reframe) return;
-	
+
 	if (hdr->payload_start) {
 		flush_pes = 1;
 	} else if (pes->pes_len && (pes->data_len + data_size  == pes->pes_len + 6)) { 
@@ -984,6 +980,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		pes->data_len += data_size;
 		/*force discard*/
 		data_size = 0;
+		flush_pes = 1;
 	}
 
 	/*PES first fragment: flush previous packet*/
@@ -1014,7 +1011,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 				/*3-byte start-code + 6 bytes header + hdr extensions*/
 				len = 9 + pesh.hdr_data_len;
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] SL Packet in PES for %d\n", pes->pid));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] SL Packet in PES for %d - ES ID %d\n", pes->pid, pes->mpeg4_es_id));
 				sl_pck.data = pes->data + len;
 				sl_pck.data_len = pes->data_len - len;
 				sl_pck.stream = (GF_M2TS_ES *)pes;
@@ -1273,15 +1270,24 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 */
 }
 
+static void gf_m2ts_reframe_skip(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
+{
+	u32 res;
+	res = 0;
+}
+
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 {
+	/*igbnore request for section PIDs*/
+	if (pes->flags & GF_M2TS_ES_IS_SECTION) return GF_OK;
+
 	if (pes->pid==pes->program->pmt_pid) return GF_BAD_PARAM;
 
 	if (mode==GF_M2TS_PES_FRAMING_RAW) {
 		pes->reframe = gf_m2ts_reframe_default;
 		return GF_OK;
 	} else if (mode==GF_M2TS_PES_FRAMING_SKIP) {
-		pes->reframe = NULL;
+		pes->reframe = gf_m2ts_reframe_skip;
 		return GF_OK;
 	} else { // mode==GF_M2TS_PES_FRAMING_DEFAULT
 		switch (pes->stream_type) {

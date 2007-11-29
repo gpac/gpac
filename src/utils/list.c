@@ -129,9 +129,9 @@ void *gf_list_get(GF_List *ptr, u32 itemNumber)
 	ItemSlot *entry;
 	u32 i;
 
-	if ((! ptr) || (itemNumber >= ptr->entryCount) ) return NULL;
+	if (!ptr || (itemNumber >= ptr->entryCount) ) return NULL;
 
-	if ( itemNumber < (u32) ptr->foundEntryNumber ) {
+	if (!ptr->foundEntry || (itemNumber < (u32) ptr->foundEntryNumber) ) {
 		ptr->foundEntryNumber = 0;
 		ptr->foundEntry = ptr->head;
 	}
