@@ -433,10 +433,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 
 		assert(parser->att_sep);
 		sep = strchr(parser->buffer + parser->current_pos, parser->att_sep);
-		if (!sep) {
-			//fprintf(stdout, "XML: sep not found, waiting for more data\n");
-			return 1;
-		}
+		if (!sep) return 1;
 
 		parser->current_pos = sep - parser->buffer;
 		att->val_end = parser->current_pos + 1;
@@ -868,7 +865,6 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 		parser->buffer = realloc(parser->buffer, sizeof(char) * (size+nl_size+1) );
 		if (!parser->buffer ) return GF_OUT_OF_MEM;
 		parser->alloc_size = size+nl_size+1;
-		//fprintf(stdout, "SAX internal buffer size %d\n", parser->alloc_size);
 	}
 	memcpy(parser->buffer+size, string, sizeof(char)*nl_size);
 	parser->buffer[size+nl_size] = 0;
@@ -1017,6 +1013,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 {
 	GF_Err e = GF_EOS;
 	unsigned char szLine[XML_INPUT_SIZE+2];
+
 #ifdef NO_GZIP
 	if (!parser->f_in) return GF_BAD_PARAM;
 #else
@@ -1025,22 +1022,21 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 
 	parser->file_pos = 0;
 
+	while (!parser->suspended) {
 #ifdef NO_GZIP
-	while (!feof(parser->f_in) && !parser->suspended) {
-		u32 read = fread(szLine, 1, XML_INPUT_SIZE, parser->f_in);
+		s32 read = fread(szLine, 1, XML_INPUT_SIZE, parser->f_in);
 #else
-	while (!gzeof(parser->gz_in) && !parser->suspended) {
-		u32 read = gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
+		s32 read = gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
 #endif
-		if (!read) break;
+		if (read<=0) break;
 		szLine[read] = 0;
-		szLine[read+1] = 0;
+		szLine[read+1] = 0;		
 		e = gf_xml_sax_parse(parser, szLine);
 		if (e) break;
-
 		if (parser->file_pos > parser->file_size) parser->file_size = parser->file_pos + 1;
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
 	}
+	
 #ifdef NO_GZIP
 	if (feof(parser->f_in)) {
 #else

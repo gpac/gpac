@@ -1019,7 +1019,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		compositor->draw_next_frame = 1;
 		break;
 	case GF_OPT_ORIGINAL_VIEW:
-		compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, 1);
+		compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, 0);
 		gf_sc_set_size(compositor, compositor->scene_width, compositor->scene_height);
 		break;
 	case GF_OPT_VISIBLE:
@@ -1065,7 +1065,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		compositor->enable_yuv_hw = value;
 		break;
 	case GF_OPT_NAVIGATION_TYPE: 
-		compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, 1);
+		compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, 0);
 #ifndef GPAC_DISABLE_3D
 		compositor_3d_reset_camera(compositor);
 #endif
@@ -1521,7 +1521,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[General] Time %f - Composing new frame #%d\n", gf_node_get_scene_time(gf_sg_get_root_node(compositor->scene)), compositor->frame_number));
 
 	in_time = gf_sys_clock();
-	if (compositor->reset_graphics) compositor->draw_next_frame = 1;
+	if (compositor->reset_graphics)
+		compositor->draw_next_frame = 1;
 
 #ifdef GF_SR_EVENT_QUEUE
 	/*process pending user events*/

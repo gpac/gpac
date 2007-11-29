@@ -348,7 +348,7 @@ check_unit:
 
 	/*check timing based on the input channel and main FPS*/
 //	if ( (AU->DTS > obj_time + codec->odm->term->half_frame_duration) ) goto exit;
-	if ( (AU->DTS > obj_time ) ) goto exit;
+//	if ( (AU->DTS > obj_time ) ) goto exit;
 
 	/*check seeking and update timing - do NOT use the base layer, since BIFS streams may depend on other 
 	streams not on the same clock*/

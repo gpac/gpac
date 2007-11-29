@@ -163,18 +163,6 @@ void Bindable_SetSetBind(GF_Node *bindable, Bool val)
 	default: return;
 	}
 }
-#if 0
-static void dump_bindable_stack(GF_List *stack, char *label)
-{
-	u32 j=0;
-	GF_Node *n;
-	fprintf(stdout, "Bindable stack %s:\n", label);
-	while ((n = gf_list_enum(stack, &j))) {
-		fprintf(stdout, "%d: %s\n", j, gf_node_get_name(n));
-	}
-	fprintf(stdout, "\n");
-}
-#endif
 
 void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list)
 {

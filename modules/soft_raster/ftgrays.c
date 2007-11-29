@@ -239,10 +239,10 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 {
 	TCoord  ex1, ex2, fx1, fx2, delta;
 	long    p, first;
-	s64 dx;
+	long dx;
 	int     incr, lift, mod, rem;
 	
-	dx = (s64) x2; dx -= (s64) x1;
+	dx = x2 - x1;
 	ex1 = TRUNC( x1 ); /* if (ex1 >= raster->max_ex) ex1 = raster->max_ex-1; */
 	ex2 = TRUNC( x2 ); /* if (ex2 >= raster->max_ex) ex2 = raster->max_ex-1; */
 	fx1 = (TCoord)( x1 - SUBPIXELS( ex1 ) );
@@ -326,7 +326,7 @@ static GFINLINE void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y, i
 	TCoord  min, max;
 	TCoord  ey1, ey2, fy1, fy2;
 	TPos    x, x2;
-	s64 dx, dy;
+	long dx, dy;
 	long    p, first;
 	int     delta, rem, mod, lift, incr;
 
@@ -345,8 +345,8 @@ static GFINLINE void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y, i
 	fy1 = (TCoord)( raster->y - raster->last_ey );
 	fy2 = (TCoord)( to_y - SUBPIXELS( ey2 ) );
 
-	dx = (s64) to_x; dx -= (s64) raster->x;
-	dy = (s64) to_y; dy -= (s64) raster->y;
+	dx = to_x - raster->x;
+	dy = to_y - raster->y;
 
 	/* perform vertical clipping */
 	min = ey1;

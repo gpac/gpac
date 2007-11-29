@@ -231,6 +231,7 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, GF_
 		dri->visual = visual;
 		if (prev) prev->next = dri;
 		else ctx->drawable->dri = dri;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Allocating new bound info storage on visual %08x for drawable %s\n", visual, gf_node_get_class_name(ctx->drawable->node)));
 	}
 	
 	/*get available bound info slot*/
@@ -244,14 +245,14 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, GF_
 	if (!bi) {
 		GF_SAFEALLOC(bi, BoundInfo);
 		if (_prev) {
-			assert(!_prev->next);
+//			assert(!_prev->next);
 			_prev->next = bi;
 		}
 		else {
-			assert(!dri->current_bounds);
+//			assert(!dri->current_bounds);
 			dri->current_bounds = bi;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Allocating new bound info for drawable %s\n", gf_node_get_class_name(ctx->drawable->node)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Allocating new bound info for drawable %s\n", gf_node_get_class_name(ctx->drawable->node)));
 	}
 	/*reset next bound info*/
 	if (bi->next) bi->next->clip.width = 0;
@@ -774,6 +775,7 @@ static void drawable_finalize_sort_ex(struct _drawable_context *ctx, GF_Traverse
 	} else {
 		ctx->bi->clip.width = 0;
 	}
+
 	drawable_finalize_end(ctx, tr_state);
 	if (ctx->drawable && !is_focus) drawable_check_focus_highlight(ctx->drawable->node, tr_state, &store_orig_bounds);
 }
@@ -1212,6 +1214,7 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 
 	//Get a empty context from the current visual
 	ctx = visual_2d_get_drawable_context(tr_state->visual);
+	if (!ctx) return NULL;
 
 	gf_mx2d_copy(ctx->transform, tr_state->transform);
 

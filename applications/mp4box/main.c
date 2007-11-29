@@ -1255,7 +1255,9 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-no-sys") || !stricmp(arg, "-nosys")) { remove_sys_tracks = 1; open_edit = 1; }
 		else if (!stricmp(arg, "-no-iod")) { remove_root_od = 1; open_edit = 1; }
 		else if (!stricmp(arg, "-out")) { CHECK_NEXT_ARG outName = argv[i+1]; i++; }
-		else if (!stricmp(arg, "-tmp")) { CHECK_NEXT_ARG tmpdir = argv[i+1]; i++; }
+		else if (!stricmp(arg, "-tmp")) {
+			CHECK_NEXT_ARG tmpdir = argv[i+1]; i++; 
+		}
 		else if (!stricmp(arg, "-cprt")) { CHECK_NEXT_ARG cprt = argv[i+1]; i++; open_edit = 1; }
 		else if (!stricmp(arg, "-chap")) { CHECK_NEXT_ARG chap_file = argv[i+1]; i++; open_edit = 1; }
 		else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {

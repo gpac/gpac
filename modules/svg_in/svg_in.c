@@ -174,8 +174,8 @@ exit:
 	}
 	/*prepare for next playback*/
 	if (e==GF_EOS) {
-		gf_sm_load_done(&svgin->loader);
-		svgin->loader.fileName = NULL;
+		//gf_sm_load_done(&svgin->loader);
+		//svgin->loader.fileName = NULL;
 	}
 	return e;
 }

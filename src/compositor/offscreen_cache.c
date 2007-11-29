@@ -320,6 +320,10 @@ Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_Trave
 	Bool needs_recompute = 0;
 	//u32 time;
 
+	if (tr_state->visual->compositor->frame_number<4) {
+		tr_state->visual->compositor->draw_next_frame = 1;
+		return 0;
+	}
 	/*this is not an offscreen group*/
 	if (!(group->flags & GROUP_IS_CACHED) ) return 0;
 

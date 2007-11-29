@@ -847,7 +847,6 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		rti->physical_memory = ms.dwTotalPhys;
 		rti->physical_memory_avail = ms.dwAvailPhys;
 		rti->gpac_memory = (u64) gpac_allocated_memory;
-//		fprintf(stdout, "Total memory (nbblocs*4+memory) %d\n", 4*gpac_nb_alloc_blocs+gpac_allocated_memory);
 		return 1;
 	}
 

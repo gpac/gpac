@@ -111,8 +111,6 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 			if (clip.width && clip.height) {
 				raster->surface_set_clipper(visual->raster_surface, &clip);
 				raster->surface_fill(visual->raster_surface, stencil);
-//			} else {
-//				fprintf(stdout, "node outside clipper\n");
 			}
 		}
 	}

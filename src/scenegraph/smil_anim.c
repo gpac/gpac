@@ -697,6 +697,8 @@ static void gf_smil_anim_animate(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 			}
 		}
 	}
+	gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->owner->specified_value, 1);
+	rai->owner->presentation_value_changed = 1;
 }
 
 static void gf_smil_anim_animate_with_fraction(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
@@ -851,7 +853,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 
 		}
 		if (nb_active_animations) {
-			if (aa->presentation_value_changed) {
+			if (0 && aa->presentation_value_changed) {
 #ifndef GPAC_DISABLE_LOG
 				if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_INTERACT)) { 
 					char str[100];

@@ -359,7 +359,8 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	compositor->visual->height = compositor->output_height;
 	/*set scale factor*/
 	compositor_set_ar_scale(compositor, scaleX, scaleY);
-	gf_sc_invalidate(compositor, NULL);
+//	gf_sc_invalidate(compositor, NULL);
+	compositor->draw_next_frame = 0;
 	/*and resize hardware surface*/
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	evt.setup.width = compositor->vp_width;

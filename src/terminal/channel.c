@@ -325,7 +325,7 @@ static void Channel_UpdateBuffering(GF_Channel *ch, Bool update_info)
 	if (update_info && ch->MaxBuffer) gf_inline_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 	if (!Channel_NeedsBuffering(ch, 0)) {
 		ch_buffer_off(ch);
-		if (ch->MaxBuffer) gf_inline_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+		if (ch->MaxBuffer && update_info) gf_inline_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 		if (ch->clock->no_time_ctrl) ch->clock->no_time_ctrl = 2;
 	}
 }
@@ -360,6 +360,7 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 	}
 	ch->BufferTime += ch->au_duration;
 }
+#include <gpac/internal/compositor_dev.h>
 
 /*dispatch the AU in the DB*/
 static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
@@ -480,14 +481,49 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		ch->last_au_time = gf_term_get_time(ch->odm->term);
 		Channel_UpdateBuffering(ch, 1);
 	}
-	/*little opt: if this is an OD AU, try to setup the object if needed */
-	if (ch->esd->decoderConfig->streamType==GF_STREAM_OD) {
-		gf_term_lock_net(ch->odm->term, 1);
-		gf_codec_process(ch->odm->subscene->od_codec, 100);
-		gf_term_lock_net(ch->odm->term, 0);
-	}
 	gf_es_lock(ch, 0);
 
+
+	/*little optimisation: if direct dispatching is possible, try to decode the AU
+	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or 
+	media resources*/
+	if (ch->direct_dispatch) {
+		u32 retry = 500;
+		u32 current_frame;
+		GF_Terminal *term = ch->odm->term;
+		ch_buffer_off(ch);
+		switch (ch->esd->decoderConfig->streamType) {
+		case GF_STREAM_OD:
+			gf_mx_p(term->mm_mx);
+			gf_codec_process(ch->odm->subscene->od_codec, 100);
+			gf_mx_v(term->mm_mx);
+			break;
+		case GF_STREAM_SCENE:
+			gf_mx_p(term->mm_mx);
+			gf_codec_process(ch->odm->subscene->scene_codec, 100);
+			gf_mx_v(term->mm_mx);
+			break;
+		}
+
+		current_frame = term->compositor->frame_number;
+		/*wait for initial setup to complete before giving back the hand to the caller service*/
+		while (retry) {
+			/*Scene bootstrap: if the scene is attached, wait for first frame to complete so that initial PLAY on
+			objects can be evaluated*/
+			if (term->compositor->scene && (term->compositor->frame_number==current_frame) ) {
+				retry--;
+				gf_sleep(1);
+				continue;
+			}
+			/*Media bootstrap: wait for all pending requests on media objects are processed*/
+			if (gf_list_count(term->media_queue)) {
+				retry--;
+				gf_sleep(1);
+				continue;
+			}
+			break;
+		}
+	}
 	return;
 }
 
@@ -557,6 +593,11 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		if (!StreamLength) return;
 		gf_sl_depacketize(ch->esd->slConfig, &hdr, StreamBuf, StreamLength, &SLHdrLen);
 		StreamLength -= SLHdrLen;
+		/*some DMB streams are broken - uncomment for playback*/
+#if 0
+		if (ch->esd->decoderConfig->streamType==GF_STREAM_SCENE) hdr.accessUnitEndFlag = 1;
+		if (ch->esd->decoderConfig->streamType==GF_STREAM_OD) hdr.accessUnitEndFlag = 1;
+#endif
 	} else {
 		hdr = *header;
 		SLHdrLen = 0;
@@ -652,6 +693,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			/*TS Wraping not tested*/
 			ch->CTS = (u32) (ch->ts_offset + (s64) (ch->net_cts) * 1000 / ch->ts_res);
 			ch->DTS = (u32) (ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res);
+
+			if (!hdr.compositionTimeStamp) hdr.compositionTimeStampFlag=0;
 		} else {
 			/*use CU duration*/
 			if (!ch->IsClockInit) ch->DTS = ch->CTS = ch->ts_offset;
@@ -674,7 +717,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			}
 		}
 
-		if (!ch->IsClockInit) {
+		if (!ch->IsClockInit && (hdr.compositionTimeStampFlag || !ch->esd->slConfig->useTimestampsFlag) ) {
 			/*first data received on channel inits the clock, regardless of:
 				- wether channel owns the clock or not
 				- wether data can be processed or not (carousel)
@@ -1054,6 +1097,16 @@ void gf_es_on_connect(GF_Channel *ch)
 		if (gf_term_service_command(ch->service, &com) == GF_OK) {
 			ch->MinBuffer = com.buffer.min;
 			ch->MaxBuffer = com.buffer.max;
+		}
+	}
+	if (ch->clock->no_time_ctrl) {
+		switch (ch->esd->decoderConfig->streamType) {
+		case GF_STREAM_AUDIO:
+		case GF_STREAM_VISUAL:
+			break;
+		default:
+			ch->direct_dispatch = 1;
+			break;
 		}
 	}
 

@@ -32,10 +32,10 @@ EXPORTS
 	gf_log_lt
 	gf_set_progress
 	gf_set_progress_callback
-;	gf_malloc
-;	gf_realloc
-;	gf_free
-;	gf_strdup
+	gf_malloc
+	gf_realloc
+	gf_free
+	gf_strdup
 
 ;array.h exports
 	gf_list_new
