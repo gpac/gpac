@@ -1797,10 +1797,8 @@ avi_t *AVI_open_input_file(char *filename, int getIndex)
       AVI->aptr=0; //reset  
   }
 
-  if (AVI_errno) {
-      free(AVI);
-      return NULL;
-  }
+  if (AVI_errno) return NULL;
+
   return AVI;
 }
 
