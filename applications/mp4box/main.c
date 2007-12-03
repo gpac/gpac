@@ -1985,7 +1985,7 @@ int main(int argc, char **argv)
 		case 1:
 			file = gf_isom_open(inName, (u8) (open_edit ? GF_ISOM_OPEN_EDIT : ( (dump_isom>0) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ), tmpdir);
 			if (!file) {
-				if (open_edit) {
+				if (open_edit && nb_meta_act) {
 					file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, tmpdir);
 					if (!outName && file) outName = inName;
 				}
