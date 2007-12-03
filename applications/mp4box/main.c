@@ -2256,13 +2256,20 @@ int main(int argc, char **argv)
 		} else {
 			char *rel_name = strrchr(inName, GF_PATH_SEPARATOR);
 			if (!rel_name) rel_name = strrchr(inName, '/');
+
+			strcpy(outfile, "");
+			if (tmpdir) {
+				strcpy(outfile, tmpdir);
+				if (!strchr("\\/", tmpdir[strlen(tmpdir)-1])) strcat(outfile, "/");
+			}
+			if (!pack_file) strcat(outfile, "out_");
+			strcat(outfile, rel_name ? rel_name + 1 : inName);
+
 			if (pack_file) {
 				strcpy(outfile, rel_name ? rel_name + 1 : inName);
 				rel_name = strrchr(outfile, '.');
 				if (rel_name) rel_name[0] = 0;
 				strcat(outfile, ".m21");
-			} else {
-				sprintf(outfile, "out_%s", rel_name ? rel_name + 1 : inName);
 			}
 		}
 		if ((conv_type == GF_ISOM_CONV_TYPE_ISMA) || (conv_type == GF_ISOM_CONV_TYPE_ISMA_EX)) {
@@ -2518,7 +2525,7 @@ int main(int argc, char **argv)
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {
 			if (remove(inName)) fprintf(stdout, "Error removing file %s\n", inName);
-			else if (rename(outfile, inName)) fprintf(stdout, "Error renaming file %s\n", outfile);
+			else if (rename(outfile, inName)) fprintf(stdout, "Error renaming file %s to %s\n", outfile, inName);
 		}
 		gf_sys_close();
 		return (e!=GF_OK) ? 1 : 0;
@@ -2618,10 +2625,10 @@ int main(int argc, char **argv)
 		else fprintf(stdout, "%.3f secs Interleaving%s\n", InterleavingTime, old_interleave ? " - no drift control" : "");
 
 		e = gf_isom_close(file);
-		if (e) goto err_exit;
-		if (!outName && !encode && !force_new && !pack_file) {
+
+		if (!e && !outName && !encode && !force_new && !pack_file) {
 			if (remove(inName)) fprintf(stdout, "Error removing file %s\n", inName);
-			else if (rename(outfile, inName)) fprintf(stdout, "Error renaming file %s\n", outfile);
+			else if (rename(outfile, inName)) fprintf(stdout, "Error renaming file %s to %s\n", outfile, inName);
 		}
 	} else {
 		gf_isom_delete(file);
