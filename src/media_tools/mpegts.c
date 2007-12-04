@@ -882,6 +882,7 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, un
 		} else {
 			GF_SAFEALLOC(prog, GF_M2TS_Program);
 			prog->streams = gf_list_new();
+			prog->additional_ods = gf_list_new();
 			prog->pmt_pid = pid;
 			prog->number = number;
 			gf_list_add(ts->programs, prog);

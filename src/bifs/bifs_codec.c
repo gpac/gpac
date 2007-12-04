@@ -121,6 +121,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	GF_Err e;
 	
 	if (!DecoderSpecificInfo) {
+		/* Hack for T-DMB non compliant streams */
 		GF_SAFEALLOC(pInfo, BIFSStreamInfo);
 		pInfo->ESID = ESID;
 		pInfo->config.PixelMetrics = 1;

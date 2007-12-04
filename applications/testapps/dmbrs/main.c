@@ -149,7 +149,7 @@ void RS_Deinterleaver(GF_BitStream *bs, char *out_name)
 	while (bs_data > 204){
 		u64 pos;
 		k++;
-		printf("TS Packet Number: %d\r", k);
+//		printf("TS Packet Number: %d\r", k);
 			
 		pos = gf_bs_get_position(bs);
 		gf_bs_read_data(bs, buf, 204);
