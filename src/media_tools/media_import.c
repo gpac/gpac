@@ -4848,8 +4848,6 @@ static GF_ESD *m2ts_get_esd(GF_M2TS_ES *es)
 	return esd;
 }
 
-static u64 prev_dts;
-
 void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
 {
 	GF_Err e;
@@ -5240,8 +5238,6 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					samp->CTS_Offset = (u32) (hdr.compositionTimeStamp - samp->DTS);
 					if (samp->DTS >= sl_pck->stream->first_dts) {
 						samp->DTS -= sl_pck->stream->first_dts;
-						printf("Current DTS "LLD", Previous DTS "LLD"\n", samp->DTS, prev_dts);
-						prev_dts = samp->DTS;
 						samp->IsRAP = import->esd->slConfig->useRandomAccessPointFlag ? hdr.randomAccessPointFlag: 1;
 
 						samp->data = sl_pck->data + hdr_len;
@@ -5283,6 +5279,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	u64 fsize, done;
 	u32 size;
 	FILE *mts;
+	char progress[1000];
 	
 	if (import->trackID > GF_M2TS_MAX_STREAMS) 
 		return gf_import_message(import, GF_BAD_PARAM, "Invalid PID %d", import->trackID );
@@ -5300,6 +5297,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_import_data;
 	ts->user = &tsimp;
+
+	sprintf(progress, "Importing MPEG-2 TS (PID %d)", import->trackID);
 	while (!feof(mts)) {
 		size = fread(data, 1, 188, mts);
 		if (size<188) break;
@@ -5307,9 +5306,9 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		gf_m2ts_process_data(ts, data, size);
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 		done += size;
-		gf_set_progress("Importing MPEG-2 TS", (u32) (done/1024), (u32) (fsize/1024));
+		gf_set_progress(progress, (u32) (done/1024), (u32) (fsize/1024));
 	}
-	gf_set_progress("Importing MPEG-2 TS", (u32) (fsize/1024), (u32) (fsize/1024));
+	gf_set_progress(progress, (u32) (fsize/1024), (u32) (fsize/1024));
 
 	if (!(import->flags & GF_IMPORT_PROBE_ONLY)) {
  		es = (GF_M2TS_ES *)ts->ess[import->trackID];
