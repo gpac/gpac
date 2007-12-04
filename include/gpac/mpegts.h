@@ -184,6 +184,7 @@ typedef struct
 	u32 number;
 
 	GF_InitialObjectDescriptor *pmt_iod;
+	GF_List *additional_ods;
 
 	/*first dts found on this program - this is used by parsers, but not setup by the lib*/
 	u64 first_dts;
@@ -198,6 +199,8 @@ enum
 	GF_M2TS_ES_IS_FMC = 1<<1,
 	/*ES is an mpeg-4 SL-packetized stream*/
 	GF_M2TS_ES_IS_SL = 1<<2,
+	/*ES is an mpeg-4 Object Descriptor SL-packetized stream*/
+	GF_M2TS_ES_IS_MPEG4_OD = 1<<3,
 };
 
 /*Abstract Section/PES stream object, only used for type casting*/
