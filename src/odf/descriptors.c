@@ -67,7 +67,7 @@ GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc
 	} while ( val & 0x80);
 	*desc_size = size;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ODF] Reading descriptor (tag %d size %d)\n", tag, size ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODF] Reading descriptor (tag %d size %d)\n", tag, size ));
 
 	newDesc = gf_odf_create_descriptor(tag);
 	if (! newDesc) {
@@ -100,7 +100,7 @@ GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc
 	*desc_size += sizeHeader - gf_odf_size_field_size(*desc_size);
 	*desc = newDesc;
 	if (err) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ODF] Error reading descriptor (tag %d size %d): %s\n", tag, size, gf_error_to_string(err) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Error reading descriptor (tag %d size %d): %s\n", tag, size, gf_error_to_string(err) ));
 		gf_odf_delete_descriptor(newDesc);
 		*desc = NULL;
 	}

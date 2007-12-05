@@ -369,7 +369,7 @@ static void ODM_SelectAlternateStream(GF_ObjectManager *odm, u32 lang_code, u8 s
 
 
 /*Validate the streams in this OD, and check if we have to setup an inline scene*/
-GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline, Bool *externalClock)
+GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline)
 {
 	u32 i;
 	u16 es_id;
@@ -381,15 +381,10 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline, Bool *externalCloc
 	prev_st = 0;
 
 	*hasInline = 0;
-	*externalClock = 0;
 
 	/*step 1: validate OD*/
 	i=0;
 	while ((esd = (GF_ESD *)gf_list_enum(odm->OD->ESDescriptors, &i))) {
-		/*check external clock refs*/
-		if (esd->OCRESID && (esd->OCRESID!=esd->ESID) && (od_get_esd(odm->OD, esd->OCRESID) == NULL) ) {
-			*externalClock = 1;
-		}
 		switch (esd->decoderConfig->streamType) {
 		case GF_STREAM_OD: nb_od++; break;
 		case GF_STREAM_OCR: nb_ocr++; break;
@@ -483,7 +478,7 @@ case, the GF_InlineScene pointer will be set by the OD codec.*/
 GF_EXPORT
 void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 {
-	Bool hasInline, externalClock;
+	Bool hasInline;
 	u32 i, numOK;
 	GF_Err e;
 	GF_ESD *esd;
@@ -517,7 +512,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	syncRef = (GF_MediaObject*)odm->ocr_codec;
 	odm->ocr_codec = NULL;
 
-	e = ODM_ValidateOD(odm, &hasInline, &externalClock);
+	e = ODM_ValidateOD(odm, &hasInline);
 	if (e) {
 		gf_term_message(odm->term, odm->net_service->url, "MPEG-4 Service Error", e);
 		gf_odm_disconnect(odm, 1);
@@ -531,16 +526,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		odm->subscene->root_od = odm;
 	}
 
-	/*this is an inline OD using clocks in its subnamespace - this is NOT supported by gpac since it breaks
-	all buffering logics (and may not be compliant, spec is unclear here) -> force single clock for these 
-	streams (many ISMA files use this...)*/
-	if (hasInline && externalClock) {
-		GF_ESD *esd = (GF_ESD *)gf_list_get(odm->OD->ESDescriptors, 0);
-		odm->subscene->force_sub_clock_id = esd->ESID;
-	}
-
 	numOK = odm->pending_channels = 0;
-
 	/*empty IOD, use a dynamic scene*/
 	if (!gf_list_count(odm->OD->ESDescriptors) && odm->subscene) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] No streams in object - taking over scene graph generation\n",odm->OD->objectDescriptorID));

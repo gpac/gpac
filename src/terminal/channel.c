@@ -24,6 +24,7 @@
 
 
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/sync_layer.h>
 #include <gpac/constants.h>
 
@@ -42,6 +43,8 @@ static void ch_buffer_off(GF_Channel *ch)
 
 static void ch_buffer_on(GF_Channel *ch)
 {
+	/*don't buffer on an already running clock*/
+	if (ch->clock->no_time_ctrl && ch->clock->clock_init) return;
 	/*just in case*/
 	if (!ch->BufferOn) {
 		ch->BufferOn = 1;
@@ -193,9 +196,11 @@ GF_Err gf_es_start(GF_Channel *ch)
 	default:
 		break;
 	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Starting ES %d\n", ch->esd->ESID));
 
 	/*reset clock if we own it*/
-	if (gf_es_owns_clock(ch)) gf_clock_reset(ch->clock);
+	if (gf_es_owns_clock(ch) && !ch->clock->no_time_ctrl) 
+		gf_clock_reset(ch->clock);
 
 	/*reset channel*/
 	Channel_Reset(ch, 1);
@@ -360,7 +365,6 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 	}
 	ch->BufferTime += ch->au_duration;
 }
-#include <gpac/internal/compositor_dev.h>
 
 /*dispatch the AU in the DB*/
 static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
@@ -488,7 +492,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or 
 	media resources*/
 	if (ch->direct_dispatch) {
-		u32 retry = 500;
+		u32 retry = 50000;
 		u32 current_frame;
 		GF_Terminal *term = ch->odm->term;
 		ch_buffer_off(ch);
@@ -594,7 +598,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		gf_sl_depacketize(ch->esd->slConfig, &hdr, StreamBuf, StreamLength, &SLHdrLen);
 		StreamLength -= SLHdrLen;
 		/*some DMB streams are broken - uncomment for playback*/
-#if 0
+#if 1
 		if (ch->esd->decoderConfig->streamType==GF_STREAM_SCENE) hdr.accessUnitEndFlag = 1;
 		if (ch->esd->decoderConfig->streamType==GF_STREAM_OD) hdr.accessUnitEndFlag = 1;
 #endif
@@ -718,31 +722,20 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		}
 
 		if (!ch->IsClockInit && (hdr.compositionTimeStampFlag || !ch->esd->slConfig->useTimestampsFlag) ) {
-			/*first data received on channel inits the clock, regardless of:
-				- wether channel owns the clock or not
-				- wether data can be processed or not (carousel)
-			We then offset other streams' timeline by the time ellapsed since clock initialization
-			*/
-#if 1
+			/*the first data received inits the clock - this is needed to handle clock dependencies on non-initialized 
+			streams (eg, bifs/od depends on audio/video clock)*/
 			if (!ch->clock->clock_init) {
 				gf_clock_set_time(ch->clock, ch->CTS);
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS));
-			} else if (ch->clock->no_time_ctrl && 0) {
-				s32 offset = gf_term_get_time(ch->odm->term);
-				offset -= ch->clock->StartTime;
-				if (offset>0) {
-					ch->ts_offset += offset;
-					ch->DTS += offset;
-					ch->CTS += offset;
-				}
-			}
-			ch->IsClockInit = 1;
-#else
-			if (!ch->clock->clock_init && gf_es_owns_clock(ch)) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Forcing clock initialization at STB %d - AU DTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS));
+			} 
+			/*channel is the OCR, force a re-init of the clock since we cannot assume the AU used to init the clock was
+			not sent ahead of time*/
+			else if (gf_es_owns_clock(ch)) {
+				ch->clock->clock_init = 0;
 				gf_clock_set_time(ch->clock, ch->DTS);
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS));
 			}
 			if (ch->clock->clock_init) ch->IsClockInit = 1;
-#endif
 		}
 		/*if the AU Length is carried in SL, get its size*/
 		if (ch->esd->slConfig->AULength > 0) {
@@ -803,8 +796,10 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 
 	/*check OCR*/
 	if (hdr.OCRflag) {
-		s64 OCR_TS = (s64) (((s64) hdr.objectClockReference) * ch->ocr_scale);
-		gf_clock_set_time(ch->clock, (u32) OCR_TS);
+		u32 OCR_TS = (u32) (s64) (((s64) hdr.objectClockReference) * ch->ocr_scale);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d adjusting OCR to %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS));
+		fprintf(stdout, "ES%d: At OTB %d adjusting OCR to %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS);
+		gf_clock_set_time(ch->clock, OCR_TS);
 		ch->IsClockInit = 1;
 	}
 
@@ -1079,6 +1074,13 @@ void gf_es_on_connect(GF_Channel *ch)
 	/*remember channels connected on service*/
 	if (ch->esd->URLString) ch->service->nb_ch_users++;
 
+	/*turn off buffering for JPEG and PNG*/
+	switch (ch->esd->decoderConfig->objectTypeIndication) {
+	case 0x6C:
+	case 0x6D:
+		can_buffer = 0;
+		break;
+	}
 	/*buffer setup*/
 	ch->MinBuffer = ch->MaxBuffer = 0;
 	if (can_buffer) {

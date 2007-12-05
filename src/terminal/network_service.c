@@ -298,7 +298,9 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 			od_list = service->owner->subscene->ODlist;
 		}
 		if (!od_list) return;
-		gf_mx_p(term->net_mx);
+		/*get exclusive access to media scheduler, to make sure ODs are not being
+		manipulated*/
+		gf_mx_p(term->mm_mx);
 		i=0;
 		while ((odm = (GF_ObjectManager*)gf_list_enum(od_list, &i))) {
 			u32 j, count;
@@ -306,16 +308,15 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 			for (j=0; j<count; j++) {
 				GF_Channel *ch = (GF_Channel *)gf_list_get(odm->channels, j);
 				if (ch->service != service) continue;
-				if (ch->IsEndOfStream) continue;
-				if (ch->clock->Buffering) continue;
 				if (ch->es_state != GF_ESM_ES_RUNNING) continue;
+				if (!ch->MaxBuffer || ch->IsEndOfStream || ch->clock->Buffering) continue;
 				if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
 				if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
 				if ((ch->AU_Count > 2)  && ((u32) ch->BufferTime<com->buffer.occupancy))
 					com->buffer.occupancy = ch->BufferTime;
 			}
 		}
-		gf_mx_v(term->net_mx);
+		gf_mx_v(term->mm_mx);
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
 		return;
 	}
