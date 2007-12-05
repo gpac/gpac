@@ -347,8 +347,7 @@ check_unit:
 //	if (ch->first_au_fetched && !gf_clock_is_started(ch->clock)) goto exit;
 
 	/*check timing based on the input channel and main FPS*/
-//	if ( (AU->DTS > obj_time + codec->odm->term->half_frame_duration) ) goto exit;
-//	if ( (AU->DTS > obj_time ) ) goto exit;
+	if (AU->DTS > obj_time /*+ codec->odm->term->half_frame_duration*/) goto exit;
 
 	/*check seeking and update timing - do NOT use the base layer, since BIFS streams may depend on other 
 	streams not on the same clock*/
@@ -410,7 +409,7 @@ check_unit:
 		/*static OD resources (embedded in ESD) in broadcast mode, reset time*/
 		if (codec->flags & GF_ESM_CODEC_IS_STATIC_OD) gf_clock_reset(codec->ck);
 		/*generate a temp scene if none is in place*/
-		if (is->graph_attached != 1 ) {
+		if (is->graph_attached != 1) {
 			Bool prev_dyn = is->is_dynamic_scene; 
 			is->is_dynamic_scene = 1;
 			gf_inline_regenerate(is);
