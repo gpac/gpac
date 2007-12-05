@@ -1478,15 +1478,18 @@ GF_Err gf_sm_load_init_svg(GF_SceneLoader *load)
 {
 	GF_Err e;
 	GF_SVG_Parser *parser;
+	u32 in_time;
 
 	if (!load->fileName) return GF_BAD_PARAM;
 	parser = svg_new_parser(load);
 
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ( (load->type==GF_SM_LOAD_XSR) ? "[SVG Parser\t] MPEG-4 (LASER) Scene Parsing\n" : "[SVG Parser\t] SVG Scene Parsing\n"));
-
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ( (load->type==GF_SM_LOAD_XSR) ? "[Parser] MPEG-4 (LASER) Scene Parsing\n" : "[Parser] SVG Scene Parsing\n"));
+	
+	in_time = gf_sys_clock();
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, svg_progress);
 	if (e<0) return svg_report(parser, e, "Unable to parse file %s: %s", load->fileName, gf_xml_sax_get_error(parser->sax_parser) );
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[SVG Parser] Scene parsed and Scene Graph built in %d ms\n", gf_sys_clock() - in_time));
 
 	return parser->last_error;
 }

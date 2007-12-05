@@ -252,7 +252,7 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, GF_
 //			assert(!dri->current_bounds);
 			dri->current_bounds = bi;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Allocating new bound info for drawable %s\n", gf_node_get_class_name(ctx->drawable->node)));
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Allocating new bound info for drawable %s\n", gf_node_get_class_name(ctx->drawable->node)));
 	}
 	/*reset next bound info*/
 	if (bi->next) bi->next->clip.width = 0;
@@ -670,7 +670,7 @@ void drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_s
 		} else {
 			tr_state->visual->prev_nodes = tr_state->visual->last_prev_entry = it;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Registering new drawn node %s on visual\n", gf_node_get_class_name(it->drawable->node)));
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Registering new drawn node %s on visual\n", gf_node_get_class_name(it->drawable->node)));
 		ctx->drawable->flags |= DRAWABLE_REGISTERED_WITH_VISUAL;
 	}
 

@@ -4867,7 +4867,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	case GF_M2TS_EVT_PAT_REPEAT:
 	case GF_M2TS_EVT_PMT_REPEAT:
 	case GF_M2TS_EVT_SDT_REPEAT:
-		if (import->flags & GF_IMPORT_PROBE_ONLY) import->flags |= GF_IMPORT_DO_ABORT;
+//		if (import->flags & GF_IMPORT_PROBE_ONLY) import->flags |= GF_IMPORT_DO_ABORT;
 		break;
 	case GF_M2TS_EVT_SDT_FOUND:
 		import->nb_progs = gf_list_count(ts->SDTs);
@@ -5335,6 +5335,9 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		if (tsimp.nb_p) {
 			gf_import_message(import, GF_OK, "Import results: %d VOPs (%d Is - %d Ps - %d Bs)", gf_isom_get_sample_count(import->dest, tsimp.track), tsimp.nb_i, tsimp.nb_p, tsimp.nb_b);
 		}
+
+		if (es->program->pmt_iod)
+			gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_MP42, 1);
 	}
 
 	gf_m2ts_demux_del(ts);

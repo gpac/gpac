@@ -462,8 +462,10 @@ typedef struct _smil_timing_rti
 
 	/* SMIL element life-cycle status */
 	u8 status;
+	/* current cycle number */
 	u32 cycle_number;
-	u32 first_frozen;
+	/* cycle number of the last state change */
+	u32 state_change_cycle_number;
 
 #define NO_INTERVAL_LIST 
 
@@ -564,9 +566,6 @@ typedef struct {
 
 	/* result of the animation */
 	GF_FieldInfo interpolated_value;
-	
-	/* has the interpolated value changed since last cycle */
-	Bool interpolated_value_changed;
 
 	/* last value of the animation, used in accumulation phase */
 	/* normally the far pointer in the last specified value is a pointer to a real attribute value,
@@ -579,10 +578,17 @@ typedef struct {
 	   the key values is different from the target attribute type */
 	GF_FieldInfo tmp_value;
 
+
+	/* In change detection mode, we test previous animation parameters to determine 
+	   if a new evaluation of the animation will produce a different result. 
+	   The result of these test is stored in interpolated_value_changed */
+	Bool	change_detection_mode;
+	Bool	interpolated_value_changed;
 	s32		previous_key_index;
-	Fixed	previous_coef;
 	u32		previous_keytime_index;
-	Bool set_done;
+	Fixed	previous_coef;
+	s32		previous_iteration;
+	Bool	anim_done;
 
 	GF_Path *path;
 	u8 rotate;

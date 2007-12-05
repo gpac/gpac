@@ -143,6 +143,8 @@ by calling the gf_sg_get_next_available_node_id function
 GF_Err gf_node_set_id(GF_Node*n, u32 nodeID, const char *nodeDEFName);
 /*get def name of the node , NULL if not set*/
 const char *gf_node_get_name(GF_Node*);
+/*get def name of the node , or the string representation of the node pointer if not set*/
+const char *gf_node_get_log_name(GF_Node*);
 /*get def ID of the node, 0 if node not def*/
 u32 gf_node_get_id(GF_Node*);
 /* gets node built-in name (eg 'Appearance', ..) */

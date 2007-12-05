@@ -454,7 +454,7 @@ void compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *all_atts, GF_
 	gf_svg_apply_animations(node, tr_state->svg_props); // including again inheritance if values are 'inherit'
 #else
 	/* animation (including possibly inheritance) then full inheritance */
-//	gf_svg_apply_animations(node, tr_state->svg_props); 
+	gf_svg_apply_animations(node, tr_state->svg_props); 
 	inherited_flags_mask = gf_svg_apply_inheritance(all_atts, tr_state->svg_props);
 //	gf_svg_apply_inheritance_no_inheritance(all_atts, tr_state->svg_props);
 //	inherited_flags_mask = 0xFFFFFFFF;

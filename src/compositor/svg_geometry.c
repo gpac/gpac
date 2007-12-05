@@ -312,7 +312,7 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 		gf_node_dirty_clear(node, GF_SG_SVG_GEOMETRY_DIRTY);
 		drawable_mark_modified(stack, tr_state);
 	}
-	if (all_atts.d) {
+	if (stack->path) {
 		if (*(tr_state->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) {
 			if (!(stack->path->flags & GF_PATH_FILL_ZERO_NONZERO)) {
 				stack->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
