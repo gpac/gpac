@@ -253,7 +253,7 @@ GF_EXPORT
 Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 {
 	if (!node || !event) return 0;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events    ] Time %f - Firing event  %s.%s\n", gf_node_get_scene_time(node), gf_node_get_name(node), gf_dom_event_get_name(event->type)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events    ] Time %f - Firing event  %s.%s\n", gf_node_get_scene_time(node), gf_node_get_log_name(node), gf_dom_event_get_name(event->type)));
 
 	/*flush any pending add_listener*/
 	gf_dom_listener_process_add(node->sgprivate->scenegraph);
@@ -383,7 +383,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 		if (j!=count) i++;
 		count++;
 		found++;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing] Inserting new time in %s.%s: %f\n", gf_node_get_name(timed_elt), (is_end?"end":"begin"), resolved->clock));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing] Inserting new time in %s.%s: %f\n", gf_node_get_log_name(timed_elt), (is_end?"end":"begin"), resolved->clock));
 	}
 	if (found) gf_node_changed(timed_elt, info);
 }
