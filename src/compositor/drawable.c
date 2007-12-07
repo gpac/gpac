@@ -597,6 +597,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 
 	//Get a empty context from the current visual
 	ctx = visual_2d_get_drawable_context(tr_state->visual);
+	if (!ctx) return NULL;
 
 	ctx->drawable = drawable;
 

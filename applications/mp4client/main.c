@@ -48,6 +48,7 @@ void ViewODs(GF_Terminal *term, Bool show_timing);
 void PrintGPACConfig();
 
 static Bool not_threaded = 0;
+static Bool no_audio = 0;
 Bool is_connected = 0;
 Bool startup_file = 0;
 GF_User user;
@@ -114,6 +115,7 @@ void PrintUsage()
 		"\n"
 		"\t-size WxH:      specifies visual size (default: scene size)\n"
 		"\t-no-thread:     disables thread usage (except for audio)\n"
+		"\t-no-audio:	   disables audio \n"
 		"\t-no-wnd:        uses windowless mode (Win32 only)\n"
 		"\t-align vh:      specifies v and h alignment for windowless mode\n"
 		"                   possible v values: t(op), m(iddle), b(ottom)\n"
@@ -252,7 +254,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 
 	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "yes");
 	gf_cfg_set_key(cfg, "Compositor", "AntiAlias", "All");
-	gf_cfg_set_key(cfg, "Compositor", "Framerate", "30");
+	gf_cfg_set_key(cfg, "Compositor", "FrameRate", "30");
 	/*use power-of-2 emulation*/
 	gf_cfg_set_key(cfg, "Compositor", "EmulatePOW2", "yes");
 #ifdef WIN32
@@ -933,6 +935,7 @@ int main (int argc, char **argv)
 		}
 		else if (!strcmp(arg, "-no-wnd")) user.init_flags |= GF_TERM_WINDOWLESS;
 		else if (!strcmp(arg, "-no-thread")) not_threaded = 1;
+		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
 		else {
 			PrintUsage();
@@ -987,7 +990,8 @@ int main (int argc, char **argv)
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = user.modules;
-	if (not_threaded) user.init_flags |= GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION | GF_TERM_NO_AUDIO;
+	if (not_threaded) user.init_flags |= GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION;
+	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 
 	fprintf(stdout, "Loading GPAC Terminal ... ");	
 	term = gf_term_new(&user);

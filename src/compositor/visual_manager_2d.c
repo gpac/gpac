@@ -27,6 +27,7 @@
 #include "visual_manager.h"
 #include "nodes_stacks.h"
 
+//#define SKIP_CONTEXT
 
 Bool gf_irect_overlaps(GF_IRect *rc1, GF_IRect *rc2)
 {
@@ -71,6 +72,10 @@ GF_Rect gf_rect_ft(GF_IRect *rc)
 
 DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 {
+#ifdef SKIP_CONTEXT
+	return NULL;
+#endif
+
 	if (!visual->context) {
 		visual->context = NewDrawableContext();
 		visual->cur_context = visual->context;
@@ -669,7 +674,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 
 #ifndef GPAC_DISABLE_LOG
 	itime = gf_sys_clock();
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\t2D traverse setup done in\t%d\tms\n", visual->compositor->frame_number, itime - time));
+	visual->compositor->traverse_setup_time = itime - time;
 	time = itime;
 #endif
 
@@ -689,7 +694,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 
 #ifndef GPAC_DISABLE_LOG
 	itime = gf_sys_clock();
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\t2D traversing%s done in\t%d\tms\n", visual->compositor->frame_number, tr_state->direct_draw ? " and drawing" : "",  itime - time));
+	visual->compositor->traverse_and_draw_time = itime - time;
 	time = itime;
 #endif
 
@@ -698,7 +703,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	
 #ifndef GPAC_DISABLE_LOG
 	if (!tr_state->direct_draw) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\t2D drawn in\t%d\tms\n", visual->compositor->frame_number, gf_sys_clock() - time));
+		visual->compositor->draw_2d_time = gf_sys_clock() - time;
 	}
 #endif
 

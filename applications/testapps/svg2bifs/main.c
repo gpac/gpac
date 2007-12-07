@@ -40,7 +40,34 @@ typedef struct {
 	GF_Node *bifs_parent;
 	GF_Node *bifs_text_node;
 
+	Bool force_transform;
+
 } SVG2BIFS_Converter;
+
+
+typedef struct {
+	/* Stage of the resolving:
+	    0: resolving attributes which depends on the target: from, to, by, values, type
+		1: resolving begin times
+		2: resolving end times */
+	u32 resolve_stage;
+	/* Animation element being defered */
+	SVG_Element *animation_elt;
+	/* anim parent*/
+	SVG_Element *anim_parent;
+	/* target animated element*/
+	SVG_Element *target;
+	/* id of the target element when unresolved*/
+	char *target_id;
+
+	/* attributes which cannot be parsed until the type of the target attribute is known */
+	char *type; /* only for animateTransform */
+	char *to;
+	char *from;
+	char *by;
+	char *values;
+} SVG_DeferedAnimation;
+
 
 static GF_Node *create_appearance(SVGPropertiesPointers *svg_props, GF_SceneGraph *sg)
 {
@@ -119,7 +146,7 @@ static GF_Node *create_appearance(SVGPropertiesPointers *svg_props, GF_SceneGrap
 
 
 
-static GF_Node *add_transform(SVG2BIFS_Converter *converter, GF_Node *node)
+static GF_Node *add_transform_matrix(SVG2BIFS_Converter *converter, GF_Node *node)
 {
 	M_TransformMatrix2D *tr = (M_TransformMatrix2D*)gf_node_new(converter->bifs_sg, TAG_MPEG4_TransformMatrix2D);
 	gf_node_register((GF_Node *)tr, node);
@@ -137,15 +164,117 @@ static GF_Node *add_transform(SVG2BIFS_Converter *converter, GF_Node *node)
 
 }
 
+static GF_Node *add_transform2d(SVG2BIFS_Converter *converter, GF_Node *node)
+{
+	M_Transform2D *tr = (M_Transform2D*)gf_node_new(converter->bifs_sg, TAG_MPEG4_Transform2D);
+	gf_node_register((GF_Node *)tr, node);
+	gf_node_list_add_child(&((GF_ParentNode*)node)->children, (GF_Node *)tr);
+	return (GF_Node *)tr;
+}
+
+static void svg_parse_animation(GF_SceneGraph *sg, SVG_DeferedAnimation *anim)
+{
+	GF_FieldInfo info;
+	u32 tag;
+	u8 anim_value_type = 0;
+
+	if (anim->resolve_stage==0) {
+		/* Stage 0: parsing the animation attribute values 
+					for that we need to resolve the target first */
+		if (!anim->target) 
+			anim->target = (SVG_Element *) gf_sg_find_node_by_name(sg, anim->target_id + 1);
+
+		if (!anim->target) {
+			/* the target is still not known stay in stage 0 */
+			return;
+		} else { 
+			XMLRI *iri;
+			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_xlink_href, 1, 0, &info);
+			iri = (XMLRI *)info.far_ptr;
+			iri->type = XMLRI_ELEMENTID;
+			iri->target = anim->target;
+			gf_svg_register_iri(sg, iri);
+		}
+
+		tag = gf_node_get_tag((GF_Node *)anim->animation_elt);
+		/* get the attribute name attribute if specified */
+		if (anim->type && (tag== TAG_SVG_animateTransform) ) {
+			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_transform_type, 1, 0, &info);
+			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->type, 0);
+			switch(*(SVG_TransformType *) info.far_ptr) {
+			case SVG_TRANSFORM_TRANSLATE:
+				anim_value_type = SVG_Transform_Translate_datatype;
+				break;
+			case SVG_TRANSFORM_SCALE:
+				anim_value_type = SVG_Transform_Scale_datatype;
+				break;
+			case SVG_TRANSFORM_ROTATE:
+				anim_value_type = SVG_Transform_Rotate_datatype;
+				break;
+			case SVG_TRANSFORM_SKEWX:
+				anim_value_type = SVG_Transform_SkewX_datatype;
+				break;
+			case SVG_TRANSFORM_SKEWY:
+				anim_value_type = SVG_Transform_SkewY_datatype;
+				break;
+			case SVG_TRANSFORM_MATRIX:
+				anim_value_type = SVG_Transform_datatype;
+				break;
+			default:
+				fprintf(stdout, "unknown datatype for animate transform");
+				return;
+			}
+		}
+		else if (gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_attributeName, 0, 0, &info) == GF_OK) {
+			gf_svg_get_attribute_by_name((GF_Node *)anim->target, ((SMIL_AttributeName *)info.far_ptr)->name, 1, 1, &info);
+			anim_value_type = info.fieldType;
+		} else {
+			if (tag == TAG_SVG_animateMotion) {
+				anim_value_type = SVG_Motion_datatype;
+			} else if (tag == TAG_SVG_discard) {
+				/* there is no value to parse in discard, we can jump to the next stage */
+				anim->resolve_stage = 1;
+				svg_parse_animation(sg, anim);
+				return;
+			} else {
+				fprintf(stdout, "Missing attributeName attribute on %s", gf_node_get_name((GF_Node *)anim->animation_elt));
+				return;
+			}
+		}
+
+		if (anim->to) {
+			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_to, 1, 0, &info);
+			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->to, anim_value_type);
+		} 
+		if (anim->from) {
+			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_from, 1, 0, &info);
+			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->from, anim_value_type);
+		} 
+		if (anim->by) {
+			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_by, 1, 0, &info);
+			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->by, anim_value_type);
+		} 
+		if (anim->values) {
+			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_values, 1, 0, &info);
+			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->values, anim_value_type);
+		}
+		anim->resolve_stage = 1;
+	}
+}
+
+
 static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	u32 i;
 	SVG2BIFS_Converter *converter = (SVG2BIFS_Converter *)sax_cbck;
 	SVGPropertiesPointers *backup_props;
 	char *id_string = NULL;
+	u32	tag;
+	SVG_Element *elt;
+	SVG_DeferedAnimation *anim = NULL;
 
-	u32	tag = gf_svg_get_element_tag(name);
-	SVG_Element *elt = (SVG_Element*)gf_node_new(converter->svg_sg, tag);
+	tag = gf_svg_get_element_tag(name);
+	elt = (SVG_Element*)gf_node_new(converter->svg_sg, tag);
 	if (!gf_sg_get_root_node(converter->svg_sg)) {
 		gf_node_register((GF_Node *)elt, NULL);
 		gf_sg_set_root_node(converter->svg_sg, (GF_Node *)elt);
@@ -153,10 +282,18 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 		gf_node_register((GF_Node *)elt, converter->svg_parent);	
 		//gf_node_list_add_child(&((GF_ParentNode*)converter->svg_parent)->children, (GF_Node *)elt);
 	}
-	converter->svg_parent = (GF_Node *)elt;
 	
 //	fprintf(stdout, "Converting %s\n", gf_node_get_class_name((GF_Node *)elt));
 //	if (converter->bifs_parent) fprintf(stdout, "%s\n", gf_node_get_class_name(converter->bifs_parent));
+
+	if (gf_svg_is_animation_tag(tag)) {
+		GF_SAFEALLOC(anim, SVG_DeferedAnimation);
+		/*default anim target is parent node*/
+		anim->animation_elt = elt;
+		if (converter->svg_parent) {
+			anim->target = anim->anim_parent = converter->svg_parent;
+		}
+	}
 
 	for (i=0; i<nb_attributes; i++) {
 		GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
@@ -167,6 +304,16 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 		} else if (!stricmp(att->name, "id") || !stricmp(att->name, "xml:id")) {
 			gf_svg_parse_element_id((GF_Node *)elt, att->value, 0);
 			id_string = att->value;
+		} else if (anim && !stricmp(att->name, "to")) {
+			anim->to = strdup(att->value);
+		} else if (anim && !stricmp(att->name, "from")) {
+			anim->from = strdup(att->value);
+		} else if (anim && !stricmp(att->name, "by")) {
+			anim->by = strdup(att->value);
+		} else if (anim && !stricmp(att->name, "values")) {
+			anim->values = strdup(att->value);
+		} else if (anim && (tag == TAG_SVG_animateTransform) && !stricmp(att->name, "type")) {
+			anim->type = strdup(att->value);
 		} else {
 			GF_FieldInfo info;
 			if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {
@@ -177,15 +324,21 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 		}
 	}
 
+	if (anim) {
+		svg_parse_animation(converter->svg_sg, anim);
+	}
+
 	memset(&converter->all_atts, 0, sizeof(SVGAllAttributes));
 	gf_svg_flatten_attributes(elt, &converter->all_atts);
 	
-	backup_props = gf_malloc(sizeof(SVGPropertiesPointers));
+	backup_props = malloc(sizeof(SVGPropertiesPointers));
 	memcpy(backup_props, &converter->svg_props, sizeof(SVGPropertiesPointers));
 	gf_node_set_private((GF_Node *)elt, backup_props);
 
 	gf_svg_apply_inheritance(&converter->all_atts, &converter->svg_props);
 
+	fprintf(stdout, "START\t%s\t%s\t%s", converter->svg_parent ? gf_node_get_class_name(converter->svg_parent) : "none", converter->bifs_parent ? gf_node_get_class_name(converter->bifs_parent) : "none", name);
+	converter->svg_parent = (GF_Node *)elt;
 	if (!gf_sg_get_root_node(converter->bifs_sg)) {
 		if (tag == TAG_SVG_svg) {
 			GF_Node *node, *child;
@@ -206,22 +359,31 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 			gf_node_register(node, NULL);
 			gf_sg_set_root_node(converter->bifs_sg, node);
 
+			child = gf_node_new(converter->bifs_sg, TAG_MPEG4_QuantizationParameter);
+			gf_node_register(child, node);
+			gf_node_list_add_child(&((GF_ParentNode*)node)->children, child);
+			{
+				M_QuantizationParameter *qp = (M_QuantizationParameter *)child;
+				qp->useEfficientCoding = 1;
+			}
+
 			/* SVG to BIFS coordinate transformation */
 			child = gf_node_new(converter->bifs_sg, TAG_MPEG4_Viewport);
 			gf_node_register(child, node);
 			gf_node_list_add_child(&((GF_ParentNode*)node)->children, child);
-			if (converter->all_atts.viewBox) {
+			{
 				M_Viewport *vp = (M_Viewport*)child;
-				vp->size.x = converter->all_atts.viewBox->width;
-				vp->size.y = converter->all_atts.viewBox->height;
-				vp->position.x = converter->all_atts.viewBox->x+converter->all_atts.viewBox->width/2;
-				vp->position.y = -(converter->all_atts.viewBox->y+converter->all_atts.viewBox->height/2);
-			} else {
-				M_Viewport *vp = (M_Viewport*)child;
-				vp->size.x = INT2FIX(converter->bifs_sg->width);
-				vp->size.y = INT2FIX(converter->bifs_sg->height);
-				vp->position.x = INT2FIX(converter->bifs_sg->width)/2;
-				vp->position.y = -INT2FIX(converter->bifs_sg->height)/2;
+				if (converter->all_atts.viewBox) {
+					vp->size.x = converter->all_atts.viewBox->width;
+					vp->size.y = converter->all_atts.viewBox->height;
+					vp->position.x = converter->all_atts.viewBox->x+converter->all_atts.viewBox->width/2;
+					vp->position.y = -(converter->all_atts.viewBox->y+converter->all_atts.viewBox->height/2);
+				} else {
+					vp->size.x = INT2FIX(converter->bifs_sg->width);
+					vp->size.y = INT2FIX(converter->bifs_sg->height);
+					vp->position.x = INT2FIX(converter->bifs_sg->width)/2;
+					vp->position.y = -INT2FIX(converter->bifs_sg->height)/2;
+				}
 			}
 
 			child = gf_node_new(converter->bifs_sg, TAG_MPEG4_Background2D);
@@ -254,7 +416,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 		case TAG_SVG_g:
 			{
 				if (converter->all_atts.transform) {
-					node = add_transform(converter, node);
+					node = add_transform_matrix(converter, node);
 					converter->bifs_parent = node;
 				} else {
 					M_Group *g = (M_Group*)gf_node_new(converter->bifs_sg, TAG_MPEG4_Group);
@@ -269,10 +431,17 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 			{
 				Bool is_parent_set = 0;
 				if (converter->all_atts.transform) {
-					node = add_transform(converter, node);
+					node = add_transform_matrix(converter, node);
 					converter->bifs_parent = node;
 					is_parent_set = 1;
 				} 
+				if (converter->force_transform) {					
+					node = add_transform2d(converter, node);
+					if (!is_parent_set) {
+						converter->bifs_parent = node;
+						is_parent_set = 1;
+					}
+				}
 				if (converter->all_atts.x || converter->all_atts.y) {
 					child = gf_node_new(converter->bifs_sg, TAG_MPEG4_Transform2D);
 					gf_node_register(child, node);
@@ -314,10 +483,17 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 			{
 				Bool is_parent_set = 0;
 				if (converter->all_atts.transform) {
-					node = add_transform(converter, node);
+					node = add_transform_matrix(converter, node);
 					converter->bifs_parent = node;
 					is_parent_set = 1;
 				} 
+				if (converter->force_transform) {					
+					node = add_transform2d(converter, node);
+					if (!is_parent_set) {
+						converter->bifs_parent = node;
+						is_parent_set = 1;
+					}
+				}
 				if (converter->all_atts.x || converter->all_atts.y) {
 					child = gf_node_new(converter->bifs_sg, TAG_MPEG4_Transform2D);
 					gf_node_register(child, node);
@@ -421,11 +597,17 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 			{
 				Bool is_parent_set = 0;
 				if (converter->all_atts.transform) {
-					node = add_transform(converter, node);
+					node = add_transform_matrix(converter, node);
 					converter->bifs_parent = node;
 					is_parent_set = 1;
 				} 
-
+				if (converter->force_transform) {					
+					node = add_transform2d(converter, node);
+					if (!is_parent_set) {
+						converter->bifs_parent = node;
+						is_parent_set = 1;
+					}
+				}
 				child = gf_node_new(converter->bifs_sg, TAG_MPEG4_Shape);
 				gf_node_register(child, node);
 				gf_node_list_add_child(&((GF_ParentNode*)node)->children, child);
@@ -462,9 +644,16 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 			{
 				Bool is_parent_set = 0;
 				if (converter->all_atts.transform) {
-					node = add_transform(converter, node);
+					node = add_transform_matrix(converter, node);
 					converter->bifs_parent = node;
 					is_parent_set = 1;
+				}
+				if (converter->force_transform) {					
+					node = add_transform2d(converter, node);
+					if (!is_parent_set) {
+						converter->bifs_parent = node;
+						is_parent_set = 1;
+					}
 				}
 
 				child = gf_node_new(converter->bifs_sg, TAG_MPEG4_Transform2D);
@@ -516,9 +705,16 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 			{
 				Bool is_parent_set = 0;
 				if (converter->all_atts.transform) {
-					node = add_transform(converter, node);
+					node = add_transform_matrix(converter, node);
 					converter->bifs_parent = node;
 					is_parent_set = 1;
+				}
+				if (converter->force_transform) {					
+					node = add_transform2d(converter, node);
+					if (!is_parent_set) {
+						converter->bifs_parent = node;
+						is_parent_set = 1;
+					}
 				}
 				if (converter->all_atts.cx || converter->all_atts.cy) {
 					child = gf_node_new(converter->bifs_sg, TAG_MPEG4_Transform2D);
@@ -586,12 +782,176 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 				converter->bifs_parent = node;
 			}
 			break;
+		case TAG_SVG_animateTransform:
+			{
+				GF_Node *child_ts;
+				if (!gf_node_get_id(node)) {
+					gf_node_set_id(node, gf_sg_get_next_available_node_id(converter->bifs_sg), NULL);
+				}
+				
+				child_ts = gf_node_new(converter->bifs_sg, TAG_MPEG4_TimeSensor);
+				if (!gf_node_get_id(child_ts)) {
+					gf_node_set_id(child_ts, gf_sg_get_next_available_node_id(converter->bifs_sg), NULL);
+				}
+				gf_node_register(child_ts, node);
+				gf_node_list_add_child(&((GF_ParentNode *)node)->children, child_ts);
+				{
+					M_TimeSensor *ts = (M_TimeSensor *)child_ts;
+					if (converter->all_atts.dur) {
+						ts->cycleInterval = converter->all_atts.dur->clock_value;
+					}
+					if (converter->all_atts.repeatCount && converter->all_atts.repeatCount->type == SMIL_REPEATCOUNT_INDEFINITE) {
+						ts->loop = 1;
+					}
+				}
+				
+				if (converter->all_atts.transform_type) {
+					GF_FieldInfo fromField, toField;
+
+					switch (*converter->all_atts.transform_type) {
+					case SVG_TRANSFORM_ROTATE:
+						child = gf_node_new(converter->bifs_sg, TAG_MPEG4_PositionInterpolator2D);
+						if (!gf_node_get_id(child)) {
+							gf_node_set_id(child, gf_sg_get_next_available_node_id(converter->bifs_sg), NULL);
+						}
+						gf_node_register(child, node);
+						gf_node_list_add_child(&((GF_ParentNode *)node)->children, child);
+						
+						gf_node_get_field_by_name(child_ts, "fraction_changed", &fromField);
+						gf_node_get_field_by_name(child, "set_fraction", &toField);
+						gf_sg_route_new(converter->bifs_sg, child_ts, fromField.fieldIndex, child, toField.fieldIndex);
+
+						gf_node_get_field_by_name(child, "value_changed", &fromField);
+						gf_node_get_field_by_name(node, "rotationAngle", &toField);
+						gf_sg_route_new(converter->bifs_sg, child, fromField.fieldIndex, node, toField.fieldIndex);
+						{
+							M_PositionInterpolator2D *pi2d = (M_PositionInterpolator2D *)child;
+							if (converter->all_atts.keyTimes) {
+								SFFloat *g;
+								u32 count, i; 
+								count = gf_list_count(*converter->all_atts.keyTimes);
+								for (i = 0; i < count; i++) {
+									Fixed *f = gf_list_get(*converter->all_atts.keyTimes, i);
+									gf_sg_vrml_mf_append(&pi2d->key, GF_SG_VRML_MFFLOAT, &g); 
+									*g = *f;
+								}
+							}
+							if (converter->all_atts.values) {
+								SFVec2f *g;
+								u32 count, i; 
+								count = gf_list_count(converter->all_atts.values->values);
+								for (i = 0; i < count; i++) {
+									SVG_Point_Angle *p;
+									p = gf_list_get(converter->all_atts.values->values, i);
+									gf_sg_vrml_mf_append(&pi2d->keyValue, GF_SG_VRML_MFVEC2F, &g); 
+									g->x = p->x;
+									g->y = p->y;
+								}
+							}
+						}
+
+
+						child = gf_node_new(converter->bifs_sg, TAG_MPEG4_ScalarInterpolator);
+						if (!gf_node_get_id(child)) {
+							gf_node_set_id(child, gf_sg_get_next_available_node_id(converter->bifs_sg), NULL);
+						}
+						gf_node_register(child, node);
+						gf_node_list_add_child(&((GF_ParentNode *)node)->children, child);
+						
+						gf_node_get_field_by_name(child_ts, "fraction_changed", &fromField);
+						gf_node_get_field_by_name(child, "set_fraction", &toField);
+						gf_sg_route_new(converter->bifs_sg, child_ts, fromField.fieldIndex, child, toField.fieldIndex);
+
+						gf_node_get_field_by_name(child, "value_changed", &fromField);
+						gf_node_get_field_by_name(node, "center", &toField);
+						gf_sg_route_new(converter->bifs_sg, child, fromField.fieldIndex, node, toField.fieldIndex);
+
+						{
+							M_ScalarInterpolator *si = (M_ScalarInterpolator *)child;
+							if (converter->all_atts.keyTimes) {
+								SFFloat *g;
+								u32 count, i; 
+								count = gf_list_count(*converter->all_atts.keyTimes);
+								for (i = 0; i < count; i++) {
+									Fixed *f = gf_list_get(*converter->all_atts.keyTimes, i);
+									gf_sg_vrml_mf_append(&si->key, GF_SG_VRML_MFFLOAT, &g); 
+									*g = *f;
+								}
+							}
+							if (converter->all_atts.values) {
+								SFFloat *g;
+								u32 count, i; 
+								count = gf_list_count(converter->all_atts.values->values);
+								for (i = 0; i < count; i++) {
+									SVG_Point_Angle *p;
+									p = gf_list_get(converter->all_atts.values->values, i);
+									gf_sg_vrml_mf_append(&si->keyValue, GF_SG_VRML_MFFLOAT, &g); 
+									*g = p->angle;
+								}
+							}
+						}
+
+						break;
+
+					case SVG_TRANSFORM_SCALE:
+					case SVG_TRANSFORM_TRANSLATE:
+						child = gf_node_new(converter->bifs_sg, TAG_MPEG4_PositionInterpolator2D);
+						if (!gf_node_get_id(child)) {
+							gf_node_set_id(child, gf_sg_get_next_available_node_id(converter->bifs_sg), NULL);
+						}
+						gf_node_register(child, node);
+						gf_node_list_add_child(&((GF_ParentNode *)node)->children, child);
+
+						gf_node_get_field_by_name(child_ts, "fraction_changed", &fromField);
+						gf_node_get_field_by_name(child, "set_fraction", &toField);
+						gf_sg_route_new(converter->bifs_sg, child_ts, fromField.fieldIndex, child, toField.fieldIndex);
+
+						gf_node_get_field_by_name(child, "value_changed", &fromField);
+						if (*converter->all_atts.transform_type == SVG_TRANSFORM_SCALE) 
+							gf_node_get_field_by_name(node, "scale", &toField);
+						else 
+							gf_node_get_field_by_name(node, "translation", &toField);
+
+						gf_sg_route_new(converter->bifs_sg, child, fromField.fieldIndex, node, toField.fieldIndex);
+						{
+							M_PositionInterpolator2D *pi2d = (M_PositionInterpolator2D *)child;
+							if (converter->all_atts.keyTimes) {
+								SFFloat *g;
+								u32 count, i; 
+								count = gf_list_count(*converter->all_atts.keyTimes);
+								for (i = 0; i < count; i++) {
+									Fixed *f = gf_list_get(*converter->all_atts.keyTimes, i);
+									gf_sg_vrml_mf_append(&pi2d->key, GF_SG_VRML_MFFLOAT, &g); 
+									*g = *f;
+								}
+							}
+							if (converter->all_atts.values) {
+								SFVec2f *g;
+								u32 count, i; 
+								count = gf_list_count(converter->all_atts.values->values);
+								for (i = 0; i < count; i++) {
+									SVG_Point *p;
+									p = gf_list_get(converter->all_atts.values->values, i);
+									gf_sg_vrml_mf_append(&pi2d->keyValue, GF_SG_VRML_MFVEC2F, &g); 
+									g->x = p->x;
+									g->y = p->y;
+								}
+							}
+						}
+						break;
+					default:
+						fprintf(stdout, "Warning: transformation type not supported \n");						
+					}
+				}				
+				//converter->bifs_parent = node;
+			}
+			break;
 		default:
 			{
 				fprintf(stdout, "Warning: element %s not supported \n", gf_node_get_class_name((GF_Node *)elt));
 				child = gf_node_new(converter->bifs_sg, TAG_MPEG4_Transform2D);
 				gf_node_register(child, node);
-				gf_node_list_add_child(&((GF_ParentNode*)node)->children, child);
+				//gf_node_list_add_child(&((GF_ParentNode*)node)->children, child);
 				node = child;
 				child = NULL;
 				converter->bifs_parent = node;
@@ -600,8 +960,10 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 		}
 
 		if (id_string) 
-			gf_node_set_id(converter->bifs_parent, gf_node_get_id((GF_Node *)elt), gf_node_get_name((GF_Node *)elt));
+			gf_node_set_id(converter->bifs_parent, gf_sg_get_next_available_node_id(converter->bifs_sg), NULL);//gf_node_get_name((GF_Node *)elt));
+
 	}
+	fprintf(stdout, "\t%s\n", converter->bifs_parent ? gf_node_get_class_name(converter->bifs_parent) : "none");
 }
 
 static void svg2bifs_node_end(void *sax_cbck, const char *name, const char *name_space)
@@ -614,12 +976,15 @@ static void svg2bifs_node_end(void *sax_cbck, const char *name, const char *name
 //	free(backup_props);
 	gf_node_set_private(converter->svg_parent, NULL);
 
-	converter->bifs_parent = gf_node_get_parent(converter->bifs_parent, 0);
+	if (!(gf_node_get_tag(converter->svg_parent) == TAG_SVG_animateTransform))
+		converter->bifs_parent = gf_node_get_parent(converter->bifs_parent, 0);
 	parent = gf_node_get_parent(converter->svg_parent, 0);
 	gf_node_unregister(converter->svg_parent, parent);	
 	if (!parent) gf_sg_set_root_node(converter->svg_sg, NULL);
 	converter->svg_parent = parent;
 	converter->bifs_text_node = NULL;
+
+	fprintf(stdout, "END:\t%s\t%s\n", converter->svg_parent ? gf_node_get_class_name(converter->svg_parent) : "none", converter->bifs_parent ? gf_node_get_class_name(converter->bifs_parent) : "none");
 }
 
 static void svg2bifs_text_content(void *sax_cbck, const char *text_content, Bool is_cdata)
@@ -643,7 +1008,8 @@ int main(int argc, char **argv)
 	GF_SAFEALLOC(converter, SVG2BIFS_Converter);
 
 	converter->sax_parser = gf_xml_sax_new(svg2bifs_node_start, svg2bifs_node_end, svg2bifs_text_content, converter);
-	
+	converter->force_transform = 1;
+
 	converter->svg_sg = gf_sg_new();
 	gf_svg_properties_init_pointers(&converter->svg_props);
 
@@ -658,7 +1024,7 @@ int main(int argc, char **argv)
 	dump = gf_sm_dumper_new(converter->bifs_sg, argv[1], ' ', GF_SM_DUMP_XMTA);
 	tmp[0] = '.';
 
-	gf_sm_dump_graph(dump, 1, 1);
+	gf_sm_dump_graph(dump, 1, 0);
 	gf_sm_dumper_del(dump);
 
 	gf_svg_properties_reset_pointers(&converter->svg_props);
