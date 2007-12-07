@@ -283,7 +283,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 			com.map_time.reset_buffers = 1;
 			gf_term_on_command(ch->owner->service, &com, GF_OK);
 
-			if (ch->depacketizer->payt==GF_RTP_PAYT_H264_AVC) ch->depacketizer->flags |= GF_RTP_AVC_WAIT_RAP;
+//			if (ch->depacketizer->payt==GF_RTP_PAYT_H264_AVC) ch->depacketizer->flags |= GF_RTP_AVC_WAIT_RAP;
 		}
 		/*this is RESUME on channel, filter packet based on time (darwin seems to send
 		couple of packet before)

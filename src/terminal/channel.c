@@ -793,8 +793,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	/*update the RAP marker on a packet base (to cope with AVC/H264 NALU->AU reconstruction)*/
 	if (hdr.randomAccessPointFlag) ch->IsRap = 1;
 
-#if 1
-	/*check OCR*/
+	/*we ignore OCRs for the moment*/
+#if 0
+	/*Apply OCR*/
 	if (!ch->BufferOn && ch->IsClockInit && hdr.OCRflag) {
 		u32 OCR_TS = (u32) (s64) (((s64) hdr.objectClockReference) * ch->ocr_scale);
 		u32 ck = gf_clock_time(ch->clock);
