@@ -1636,7 +1636,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 
 	/*update all timed nodes */
-	for (i=0; i<gf_list_count(compositor->time_nodes); i++) {
+	count = gf_list_count(compositor->time_nodes);
+	for (i=0; i<count; i++) {
 		GF_TimeNode *tn = (GF_TimeNode *)gf_list_get(compositor->time_nodes, i);
 		if (!tn->needs_unregister) tn->UpdateTimeNode(tn);
 		if (tn->needs_unregister) {
@@ -1644,6 +1645,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			tn->needs_unregister = 0;
 			gf_list_rem(compositor->time_nodes, i);
 			i--;
+			count --;
 			continue;
 		}
 	}

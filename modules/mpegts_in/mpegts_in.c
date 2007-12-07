@@ -90,8 +90,12 @@ typedef struct
 	Double duration;
 	u32 nb_playing;
 	Bool file_regulate;
+	u64 pcr_last;
+	u32 stb_at_last_pcr;
+	u32 nb_pck;
 } M2TSIn;
 
+#define M2TS_BUFFER_MAX 400
 
 
 #ifdef GPAC_HAS_LINUX_DVB
@@ -235,37 +239,6 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 	if (!sExt) return 0;
 	if (gf_term_check_extension(plug, "video/mpeg-2", "ts m2t", "MPEG-2 TS", sExt)) return 1;
 	return 0;
-}
-
-#define REGULATE_TIME_SLOT	200
-
-/*!! FIXME - THIS IS PLAIN WRONG AND UGLY - WE NEED TO ESTIMATE THE TS BITRATE AND REGULATE BASED ON THAT !!!*/
-static void M2TS_Regulate(M2TSIn *m2ts)
-{
-	u32 to_sleep;
-	GF_NetworkCommand com;
-
-	com.command_type = GF_NET_BUFFER_QUERY;
-	/*sleep untill the buffer occupancy is too low - note that this work because all streams in this
-	demuxer are synchronized*/
-	while (m2ts->run_state) {
-		if (!m2ts->nb_playing && m2ts->file_regulate) {
-			gf_sleep(50);
-			continue;
-		}
-		gf_term_on_command(m2ts->service, &com, GF_OK);
-		
-		/*not enough data*/
-		if (com.buffer.occupancy < REGULATE_TIME_SLOT) {
-			return;
-		}
-		/*sleep*/
-		to_sleep = com.buffer.occupancy  - REGULATE_TIME_SLOT;
-		while (m2ts->run_state && (to_sleep>REGULATE_TIME_SLOT)) {
-			gf_sleep(REGULATE_TIME_SLOT);
-			to_sleep -= REGULATE_TIME_SLOT;
-		}
-	}
 }
 
 static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream)
@@ -448,6 +421,32 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_SL_PCK:
 		MP2TS_SendSLPacket(m2ts, param);
 		break;
+	case GF_M2TS_EVT_PES_PCR:
+		if (m2ts->file_regulate) {
+			u64 pcr = ((GF_M2TS_PES_PCK *) param)->PTS;
+			u32 stb = gf_sys_clock();
+			if (m2ts->pcr_last) {
+				s32 diff;
+				u64 pcr_diff = (pcr - m2ts->pcr_last);
+				pcr_diff /= 27000;
+				diff = (u32) pcr_diff - (stb - m2ts->stb_at_last_pcr);
+				if (diff>0 && (diff<1000) ) {
+					/*query buffer level, don't sleep if too low*/
+					GF_NetworkCommand com;
+					com.command_type = GF_NET_BUFFER_QUERY;
+					gf_term_on_command(m2ts->service, &com, GF_OK);
+					if (com.buffer.occupancy) gf_sleep(diff);
+				
+					m2ts->nb_pck = 0;
+					m2ts->pcr_last = pcr;
+					m2ts->stb_at_last_pcr = gf_sys_clock();
+				}
+			} else {
+				m2ts->pcr_last = pcr;
+				m2ts->stb_at_last_pcr = gf_sys_clock();
+			}
+		}
+		break;
 	}
 }
 
@@ -521,9 +520,13 @@ u32 M2TS_Run(void *_p)
 			if (!size) break;
 			/*process chunk*/
 			gf_m2ts_process_data(m2ts->ts, data, size);
-		
-			/*regulate file reading*/
-			M2TS_Regulate(m2ts);
+
+			m2ts->nb_pck++;
+			/*if asked to regulate, wait until we get a play request*/
+			while (m2ts->run_state && !m2ts->nb_playing && m2ts->file_regulate) {
+				gf_sleep(50);
+				continue;
+			}
 		}
 		fprintf(stdout, "\nEOS reached\n");
 		if (m2ts->nb_playing) {
@@ -657,6 +660,7 @@ void M2TS_SetupFile(M2TSIn *m2ts, char *url)
 	m2ts->file = fopen(url, "rb");
 	if (!m2ts->file) {
 		gf_term_on_connect(m2ts->service, NULL, GF_URL_ERROR);
+		return;
 	}
 
 	fseek(m2ts->file, 0, SEEK_END);
@@ -759,6 +763,7 @@ static GF_Err M2TS_CloseService(GF_InputService *plug)
 {
 	M2TSIn *m2ts = plug->priv;
 
+	fprintf(stdout, "destroying TSin\n");
 	if (m2ts->th) {
 		if (m2ts->run_state == 1) {
 			m2ts->run_state = 0;
@@ -876,7 +881,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_INTERACTIVE:
 		return GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_BUFFER:
-		com->buffer.max = REGULATE_TIME_SLOT;
+		com->buffer.max = M2TS_BUFFER_MAX;
 		com->buffer.min = 0;
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:

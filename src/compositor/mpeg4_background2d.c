@@ -123,7 +123,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 
 			/*direct drawing, no clippers */
 			if (tr_state->direct_draw) {
-				tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, &ctx->bi->clip, &ctx->bi->unclip, 0xFF, NULL, NULL);
+				tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, 0xFF, NULL);
 			}
 			/*draw bitmap for all dirty rects*/
 			else {
@@ -137,7 +137,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 					clip = ctx->bi->clip;
 					gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
 					if (clip.width && clip.height) {
-						tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, &clip, &ctx->bi->unclip, 0xFF, NULL, NULL);
+						tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, 0xFF, NULL);
 					}
 				}
 			}

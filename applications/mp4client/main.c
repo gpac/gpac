@@ -987,7 +987,7 @@ int main (int argc, char **argv)
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = user.modules;
-	if (not_threaded) user.init_flags |= GF_TERM_NO_VISUAL_THREAD;
+	if (not_threaded) user.init_flags |= GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION | GF_TERM_NO_AUDIO;
 
 	fprintf(stdout, "Loading GPAC Terminal ... ");	
 	term = gf_term_new(&user);

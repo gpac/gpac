@@ -109,7 +109,7 @@ Bool compositor_2d_pixel_format_supported(GF_VisualManager *visual, u32 pixel_fo
 	}
 }
 
-void compositor_2d_draw_bitmap(GF_VisualManager *visual, struct _gf_sc_texture_handler *txh, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key, GF_ColorMatrix *cmat)
+void compositor_2d_draw_bitmap(GF_VisualManager *visual, struct _gf_sc_texture_handler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key)
 {
 	GF_VideoSurface video_src;
 	Fixed w_scale, h_scale, tmp;
@@ -220,7 +220,7 @@ void compositor_2d_draw_bitmap(GF_VisualManager *visual, struct _gf_sc_texture_h
 	use_soft_stretch = 1;
 	if (!visual->compositor->disable_partial_hw_blit 
 		|| ((src_wnd.w==txh->width) && (src_wnd.h==txh->height) )) {
-		if (!cmat && (alpha==0xFF) && visual->compositor->video_out->Blit) {
+		if (!ctx->col_mat && (alpha==0xFF) && visual->compositor->video_out->Blit) {
 			u32 hw_caps = visual->compositor->video_out->hw_caps;
 
 			switch (txh->pixelformat) {
@@ -260,7 +260,7 @@ void compositor_2d_draw_bitmap(GF_VisualManager *visual, struct _gf_sc_texture_h
 	if (use_soft_stretch) {
 		GF_VideoSurface backbuffer;
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 1);
-		gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, 0, alpha, 0, col_key, cmat);
+		gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, 0, alpha, 0, col_key, ctx->col_mat);
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 0);
 	}
 	visual_2d_init_raster(visual);

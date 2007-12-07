@@ -288,7 +288,10 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		GF_ObjectManager *odm;
 		com->buffer.max = 0;
 		com->buffer.min = com->buffer.occupancy = (u32) -1;
-		if (!service->owner) return;
+		if (!service->owner) {
+			com->buffer.occupancy = 0;
+			return;
+		}
 		
 		/*browse all channels in the scene, running on this service, and get buffer info*/
 		od_list = NULL;
@@ -297,7 +300,10 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		} else if (service->owner->subscene) {
 			od_list = service->owner->subscene->ODlist;
 		}
-		if (!od_list) return;
+		if (!od_list) {
+			com->buffer.occupancy = 0;
+			return;
+		}
 		/*get exclusive access to media scheduler, to make sure ODs are not being
 		manipulated*/
 		gf_mx_p(term->mm_mx);
@@ -309,7 +315,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 				GF_Channel *ch = (GF_Channel *)gf_list_get(odm->channels, j);
 				if (ch->service != service) continue;
 				if (ch->es_state != GF_ESM_ES_RUNNING) continue;
-				if (!ch->MaxBuffer || ch->IsEndOfStream || ch->clock->Buffering) continue;
+				if (!ch->MaxBuffer || ch->direct_dispatch || ch->IsEndOfStream) continue;
 				if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
 				if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
 				if ((ch->AU_Count > 2)  && ((u32) ch->BufferTime<com->buffer.occupancy))
