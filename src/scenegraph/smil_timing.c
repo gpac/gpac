@@ -553,6 +553,7 @@ Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 	SMIL_Timing_RTI *rti;
 	u32 active_count = 0, i = 0;
 	s32 ret;
+	
 	if (!sg) return 0;
 
 	sg->update_smil_timing = 0;

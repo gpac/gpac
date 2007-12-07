@@ -420,6 +420,8 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 
 	gf_mx_v(tmp->mx);
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCycle Log\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and Draw)\t2D Draw\tTraverse\tFlush\tCycle\n"));
+
 	return tmp;
 }
 
@@ -1467,6 +1469,9 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #endif
 	}
 
+#ifndef GPAC_DISABLE_LOG
+	compositor->visual_config_time = 0;
+#endif
 	if (compositor->recompute_ar) {
 #ifndef GPAC_DISABLE_LOG
 		u32 time = gf_sys_clock();
@@ -1482,8 +1487,10 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
 		compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\tvisual configuration changed in\t%d\tms\n", compositor->frame_number, gf_sys_clock() - time));
-	}
+#ifndef GPAC_DISABLE_LOG
+		compositor->visual_config_time = gf_sys_clock() - time;
+#endif
+	} 
 
 	flags = compositor->traverse_state->direct_draw;
 	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
@@ -1492,9 +1499,12 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Drawing done\n"));
 }
 
+extern u32 time_spent_in_anim;
+
 void gf_sc_simulation_tick(GF_Compositor *compositor)
 {	
 	u32 in_time, end_time, i, count;
+	u32 event_time, route_time, smil_timing_time, time_node_time, texture_time, traverse_time, flush_time;
 
 	/*lock compositor for the whole cycle*/
 	gf_sc_lock(compositor, 1);
@@ -1518,14 +1528,13 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		return;
 	}
 
-//	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[General] Time %f - Composing new frame #%d\n", gf_node_get_scene_time(gf_sg_get_root_node(compositor->scene)), compositor->frame_number));
-
 	in_time = gf_sys_clock();
 	if (compositor->reset_graphics)
 		compositor->draw_next_frame = 1;
 
 #ifdef GF_SR_EVENT_QUEUE
 	/*process pending user events*/
+	event_time = gf_sys_clock();
 	gf_mx_p(compositor->ev_mx);
 	while (gf_list_count(compositor->events)) {
 		GF_Event *ev = (GF_Event*)gf_list_get(compositor->events, 0);
@@ -1536,15 +1545,19 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		free(ev);
 	}
 	gf_mx_v(compositor->ev_mx);
+	event_time = gf_sys_clock() - event_time;
 #endif
 
 
 #ifdef EXPERIMENTAL
 	gf_term_pause_all_clocks(compositor->term, 1);
 #endif
+
+	route_time = gf_sys_clock();
 	/*execute all routes before updating textures, otherwise nodes inside composite texture may never see their
 	dirty flag set*/
 	gf_sg_activate_routes(compositor->scene);
+	route_time = gf_sys_clock() - route_time;
 
 #ifndef GPAC_DISABLE_SVG
 #if SVG_FIXME
@@ -1574,6 +1587,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 #endif
 
+	smil_timing_time = gf_sys_clock();
 	if (gf_smil_notify_timed_elements(compositor->scene)) {
 		compositor->draw_next_frame = 1;
 	}
@@ -1584,9 +1598,11 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		}
 	}
 #endif
+	smil_timing_time = gf_sys_clock() - smil_timing_time;
 
 #endif
 
+	texture_time = gf_sys_clock();
 	/*update all textures*/
 	count = gf_list_count(compositor->textures);
 	for (i=0; i<count; i++) {
@@ -1596,11 +1612,13 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		st->update_texture_fcnt(st);
 	}
 	compositor->reset_graphics = 0;
+	texture_time = gf_sys_clock() - texture_time;
+
 
 	/*if invalidated, draw*/
 	if (compositor->draw_next_frame) {
 		GF_Window rc;
-		u32 start_time = gf_sys_clock();
+		traverse_time = gf_sys_clock();
 		/*video flush only*/
 		if (compositor->draw_next_frame==2) {
 			compositor->draw_next_frame = 0;
@@ -1608,16 +1626,15 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			compositor->draw_next_frame = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene\n"));
 			gf_sc_draw_scene(compositor);
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\tcomposed in\t%d\tms\n", compositor->frame_number, gf_sys_clock() - start_time));
+			traverse_time = gf_sys_clock() - traverse_time;
 		}
 		/*and flush*/
-		start_time = gf_sys_clock();
+		flush_time = gf_sys_clock();
 		rc.x = rc.y = 0; 
 		rc.w = compositor->display_width;	
 		rc.h = compositor->display_height;		
 		compositor->video_out->Flush(compositor->video_out, &rc);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\tflushed to screen in\t%d\tms\n", compositor->frame_number, gf_sys_clock() - start_time));
+		flush_time = gf_sys_clock() - flush_time;
 
 		if (compositor->stress_mode) {
 			compositor->draw_next_frame = 1;
@@ -1635,6 +1652,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		gf_sc_texture_release_stream(st);
 	}
 
+	time_node_time = gf_sys_clock();
 	/*update all timed nodes */
 	count = gf_list_count(compositor->time_nodes);
 	for (i=0; i<count; i++) {
@@ -1645,14 +1663,31 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			tn->needs_unregister = 0;
 			gf_list_rem(compositor->time_nodes, i);
 			i--;
-			count --;
+			count--;
 			continue;
 		}
 	}
+	time_node_time = gf_sys_clock() - time_node_time;
 
 	end_time = gf_sys_clock() - in_time;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\tcycle completed in\t%d\tms\n", compositor->frame_number, end_time));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCycle Log\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
+		compositor->frame_number, 
+		compositor->traverse_state->direct_draw,
+		compositor->visual_config_time,
+		event_time, 
+		route_time, 
+		smil_timing_time, 
+		time_node_time, 
+		texture_time, 
+		time_spent_in_anim, 
+		compositor->traverse_setup_time,
+		compositor->traverse_and_draw_time,
+		compositor->draw_2d_time,
+		traverse_time, 
+		flush_time, 
+		end_time));
+	time_spent_in_anim = 0;
 
 
 	gf_sc_lock(compositor, 0);

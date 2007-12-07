@@ -25,6 +25,8 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg_da.h>
 
+u32 time_spent_in_anim = 0;
+
 static char log_node_name[10];
 const char *gf_node_get_log_name(GF_Node *anim) 
 {
@@ -928,6 +930,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 	u32 count_all, i;
 	u32 time;
 
+	time = gf_sys_clock();
 
 	/* Perform all the animations on this node */
 	count_all = gf_node_animation_count(node);
@@ -937,7 +940,6 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 		u32 count;
 		SMIL_AttributeAnimations *aa;
 
-		time = gf_sys_clock();
 
 		aa = (SMIL_AttributeAnimations *)gf_node_animation_get(node, i);		
 		count = gf_list_count(aa->anims);
@@ -1025,6 +1027,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 
 		}
 #endif
+//		gf_svg_attributes_copy(&aa->presentation_value, &aa->specified_value, 0);
 		if (aa->presentation_value_changed) {
 #ifndef GPAC_DISABLE_LOG
 			if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_INTERACT)) { 
@@ -1037,13 +1040,15 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 					gf_svg_get_attribute_name(aa->presentation_value.fieldIndex), str);
 			}
 #endif
-			gf_node_dirty_set(node, aa->dirty_flags, aa->dirty_parents);
+			/* we only set dirty flags when a real flag is set to avoid unnecessary computation */
+			if (aa->dirty_flags) gf_node_dirty_set(node, aa->dirty_flags, aa->dirty_parents);
 		} else {
 			/* WARNING - This does not work for use elements because apply_animations may be called several times */
 			//gf_node_dirty_clear(node, aa->dirty_flags);
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Time %f - Element %s - animations performed in\t%d\tms\n", gf_node_get_scene_time(node), gf_node_get_log_name(node), gf_sys_clock() - time));
 	}
+
+	time_spent_in_anim += gf_sys_clock() - time;
 
 }
 

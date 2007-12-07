@@ -285,7 +285,6 @@ static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 Object
 	GF_M4ADecSpecInfo a_cfg;
 	/*audio decs*/	
 	if (StreamType != GF_STREAM_AUDIO) return 0;
-	if (!decSpecInfoSize || !decSpecInfo) return 0;
 
 	switch (ObjectType) {
 	/*MPEG2 aac*/
@@ -301,6 +300,7 @@ static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 Object
 	default:
 		return 0;
 	}
+	if (!decSpecInfoSize || !decSpecInfo) return 0;
 	if (gf_m4a_get_config((unsigned char *) decSpecInfo, decSpecInfoSize, &a_cfg) != GF_OK) return 0;
 	/*BSAC not supported*/
 	if (a_cfg.base_object_type == GF_M4A_ER_BSAC) return 0;

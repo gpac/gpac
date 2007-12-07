@@ -81,7 +81,7 @@ static void CI2D_SetFraction(GF_Node *n)
 		}
 	}
 	//invalidate
-	gf_node_event_out_str(n, "value_changed");
+	gf_node_event_out(n, 3);//"value_changed"
 }
 
 Bool InitCoordinateInterpolator2D(M_CoordinateInterpolator2D *node)
@@ -146,7 +146,7 @@ static void CoordInt_SetFraction(GF_Node *n)
 	M_CoordinateInterpolator *_this = (M_CoordinateInterpolator *) n;
 
 	if (CI_SetFraction(_this->set_fraction, &_this->value_changed, &_this->key, &_this->keyValue)) 
-		gf_node_event_out_str(n, "value_changed");
+		gf_node_event_out(n, 3);//"value_changed"
 }
 
 Bool InitCoordinateInterpolator(M_CoordinateInterpolator *n)
@@ -166,7 +166,7 @@ static void NormInt_SetFraction(GF_Node *n)
 	for (i=0; i<_this->value_changed.count; i++) {
 		gf_vec_norm(&_this->value_changed.vals[i]);
 	}
-	gf_node_event_out_str(n, "value_changed");
+	gf_node_event_out(n, 3);//"value_changed"
 }
 
 Bool InitNormalInterpolator(M_NormalInterpolator *n)
@@ -210,7 +210,7 @@ static void ColorInt_SetFraction(GF_Node *node)
 			break;
 		}
 	}
-	gf_node_event_out_str(node, "value_changed");
+	gf_node_event_out(node, 3);//"value_changed"
 }
 
 Bool InitColorInterpolator(M_ColorInterpolator *node)
@@ -247,7 +247,7 @@ static void PosInt2D_SetFraction(GF_Node *node)
 			break;
 		}
 	}
-	gf_node_event_out_str(node, "value_changed");
+	gf_node_event_out(node, 3);//"value_changed"
 }
 
 Bool InitPositionInterpolator2D(M_PositionInterpolator2D *node)
@@ -284,7 +284,7 @@ static void PosInt_SetFraction(GF_Node *node)
 			break;
 		}
 	}
-	gf_node_event_out_str(node, "value_changed");
+	gf_node_event_out(node, 3);//"value_changed"
 }
 
 Bool InitPositionInterpolator(M_PositionInterpolator *node)
@@ -319,7 +319,7 @@ static void ScalarInt_SetFraction(GF_Node *node)
 			break;
 		}
 	}
-	gf_node_event_out_str(node, "value_changed");
+	gf_node_event_out(node, 3);//"value_changed"
 }
 Bool InitScalarInterpolator(M_ScalarInterpolator *node)
 {
@@ -408,7 +408,7 @@ static void OrientInt_SetFraction(GF_Node *node)
 			break;
 		}
 	}
-	gf_node_event_out_str(node, "value_changed");
+	gf_node_event_out(node, 3);//"value_changed"
 }
 
 Bool InitOrientationInterpolator(M_OrientationInterpolator *node)
@@ -464,7 +464,7 @@ static void CI4D_SetFraction(GF_Node *n)
 		}
 	}
 	//invalidate
-	gf_node_event_out_str(n, "value_changed");
+	gf_node_event_out(n, 3);//"value_changed"
 }
 
 Bool InitCoordinateInterpolator4D(M_CoordinateInterpolator4D *node)
@@ -508,7 +508,7 @@ static void PI4D_SetFraction(GF_Node *node)
 			break;
 		}
 	}
-	gf_node_event_out_str(node, "value_changed");
+	gf_node_event_out(node, 3);//"value_changed"
 }
 
 Bool InitPositionInterpolator4D(M_PositionInterpolator4D *node)
@@ -560,7 +560,7 @@ static void BooleanSequencer_setFraction(GF_Node *n)
 			break;
 		}
 	}
-	gf_node_event_out_str(n, "value_changed");
+	gf_node_event_out(n, 3);//"value_changed"
 }
 
 static void BooleanSequencer_setNext(GF_Node *n)
@@ -573,7 +573,7 @@ static void BooleanSequencer_setNext(GF_Node *n)
 	val = (*prev_val + 1) % bs->keyValue.count;
 	*prev_val = val;
 	bs->value_changed = bs->keyValue.vals[val];
-	gf_node_event_out_str(n, "value_changed");
+	gf_node_event_out(n, 3);//"value_changed"
 }
 
 static void BooleanSequencer_setPrevious(GF_Node *n)
@@ -588,7 +588,7 @@ static void BooleanSequencer_setPrevious(GF_Node *n)
 	val %= bs->keyValue.count;
 	*prev_val = val;
 	bs->value_changed = bs->keyValue.vals[val];
-	gf_node_event_out_str(n, "value_changed");
+	gf_node_event_out(n, 3);//"value_changed"
 }
 static void DestroyBooleanSequencer(GF_Node *n, void *eff, Bool is_destroy)
 {
@@ -653,7 +653,7 @@ static void IntegerSequencer_setFraction(GF_Node *n)
 			break;
 		}
 	}
-	gf_node_event_out_str(n, "value_changed");
+	gf_node_event_out(n, 3);//"value_changed"
 }
 
 static void IntegerSequencer_setNext(GF_Node *n)
@@ -666,7 +666,7 @@ static void IntegerSequencer_setNext(GF_Node *n)
 	val = (*prev_val + 1) % is->keyValue.count;
 	*prev_val = val;
 	is->value_changed = is->keyValue.vals[val];
-	gf_node_event_out_str(n, "value_changed");
+	gf_node_event_out(n, 3);//"value_changed"
 }
 
 static void IntegerSequencer_setPrevious(GF_Node *n)
@@ -681,7 +681,7 @@ static void IntegerSequencer_setPrevious(GF_Node *n)
 	val %= is->keyValue.count;
 	*prev_val = val;
 	is->value_changed = is->keyValue.vals[val];
-	gf_node_event_out_str(n, "value_changed");
+	gf_node_event_out(n, 3);//"value_changed"
 }
 static void DestroyIntegerSequencer(GF_Node *n, void *eff, Bool is_destroy)
 {

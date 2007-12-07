@@ -53,7 +53,7 @@ static
 void timesensor_deactivate(TimeSensorStack *stack, M_TimeSensor *ts)
 {
 	ts->isActive = 0;
-	gf_node_event_out_str((GF_Node *) ts, "isActive");
+	gf_node_event_out((GF_Node *) ts, 7);//"isActive"
 	assert(stack->time_handle.is_registered);
 	stack->time_handle.needs_unregister = 1;
 	stack->num_cycles = 0;
@@ -71,7 +71,7 @@ void timesensor_update_time(GF_TimeNode *st)
 	if (! TS->enabled) {
 		if (TS->isActive) {
 			TS->cycleTime = gf_node_get_scene_time(st->obj);
-			gf_node_event_out_str(st->obj, "cycleTime");
+			gf_node_event_out(st->obj, 5);//"cycleTime"
 			timesensor_deactivate(stack, TS);
 		}
 		return;
@@ -102,7 +102,7 @@ void timesensor_update_time(GF_TimeNode *st)
 
 	if (TS->isActive) {
 		TS->time = currentTime;
-		gf_node_event_out_str(st->obj, "time");
+		gf_node_event_out(st->obj, 8);//"time"
 
 		/*VRML:
 			"f = fmod( (now - startTime) , cycleInterval) / cycleInterval
@@ -117,20 +117,20 @@ void timesensor_update_time(GF_TimeNode *st)
 			TS->fraction_changed = FLT2FIX( fmod(cycleTime, stack->cycle_interval) / stack->cycle_interval );
 			/*cf above*/
 			if (TS->fraction_changed < FIX_EPSILON) TS->fraction_changed = FIX_ONE;
-			gf_node_event_out_str(st->obj, "fraction_changed");
+			gf_node_event_out(st->obj, 6);//"fraction_changed"
 			timesensor_deactivate(stack, TS);
 			return;
 		}
 		if (! TS->loop) {
 			if (cycleTime >= stack->cycle_interval) {
 				TS->fraction_changed = FIX_ONE;
-				gf_node_event_out_str(st->obj, "fraction_changed");
+				gf_node_event_out(st->obj, 6);//"fraction_changed"
 				timesensor_deactivate(stack, TS);
 				return;
 			}
 		}
 		TS->fraction_changed = newFraction;
-		gf_node_event_out_str(st->obj, "fraction_changed");
+		gf_node_event_out(st->obj, 6);//"fraction_changed"
 	}
 
 	/*we're (about to be) active: VRML:
@@ -140,11 +140,11 @@ void timesensor_update_time(GF_TimeNode *st)
 	if (!TS->isActive) {
 		st->needs_unregister = 0;
 		TS->isActive = 1;
-		gf_node_event_out_str(st->obj, "isActive");
+		gf_node_event_out(st->obj, 7); //"isActive"
 		TS->cycleTime = currentTime;
-		gf_node_event_out_str(st->obj, "cycleTime");
+		gf_node_event_out(st->obj, 5);//"cycleTime"
 		TS->fraction_changed = newFraction;
-		gf_node_event_out_str(st->obj, "fraction_changed");
+		gf_node_event_out(st->obj, 6);//"fraction_changed"
 	}
 
 	//compute cycle time
@@ -153,7 +153,7 @@ void timesensor_update_time(GF_TimeNode *st)
 		stack->num_cycles += inc;
 		cycleTime -= inc*stack->cycle_interval;
 		TS->cycleTime = currentTime - cycleTime;
-		gf_node_event_out_str(st->obj, "cycleTime");
+		gf_node_event_out(st->obj, 5);//"cycleTime"
 	}
 }
 
