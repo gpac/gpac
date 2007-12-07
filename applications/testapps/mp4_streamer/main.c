@@ -117,6 +117,8 @@ typedef struct __tag_rtp_stream
 
 	Double ts_scale, microsec_ts_scale;
 	Bool process_burst;
+	/*NALU size for H264/AVC*/
+	u32 avc_nalu_size;
 
 	struct __tag_rtp_session *session;
 } RTP_Stream;
@@ -243,7 +245,7 @@ static void burst_on_pck_done(void *cbk, GF_RTPHeader *header)
 /*
  * The RTP packetiser has added data to the current RTP packet
  */
-static void burst_on_pck_data(void *cbk, char *data, u32 data_size, Bool is_head) 
+static void on_pck_data(void *cbk, char *data, u32 data_size, Bool is_head) 
 {
 	RTP_Stream *rtp = cbk;
 	if (!data ||!data_size) return;
@@ -304,12 +306,12 @@ GF_Err rtp_init_packetizer(RTP_Stream *rtp, char *dest_ip)
 
 	if (rtp->session->streamer->burst_mode) {
 		rtp->packetizer = gf_rtp_packetizer_create_and_init_from_file(rtp->session->mp4File, rtp->track, rtp,
-												burst_on_pck_new, burst_on_pck_done, NULL, burst_on_pck_data,
+												burst_on_pck_new, burst_on_pck_done, NULL, on_pck_data,
 												rtp->session->streamer->path_mtu, 0, 0, flags, 
 												rtp->session->streamer->payt, 0, 0, 0);
 	} else {
 		rtp->packetizer = gf_rtp_packetizer_create_and_init_from_file(rtp->session->mp4File, rtp->track, rtp,
-												on_pck_new, on_pck_done, NULL, burst_on_pck_data,
+												on_pck_new, on_pck_done, NULL, on_pck_data,
 												rtp->session->streamer->path_mtu, 0, 0, flags, 
 												rtp->session->streamer->payt, 0, 0, 0);
 	}
@@ -417,6 +419,7 @@ GF_Err rtp_setup_sdp(RTP_Session *session, char *dest_ip)
 				}
 			}
 			fprintf(sdp_out, "%s\n", sdpLine);
+			rtp->avc_nalu_size = avcc->nal_unit_size;
 			gf_odf_avc_cfg_del(avcc);
 		}
 		/*MPEG-4 decoder config*/
@@ -629,7 +632,33 @@ void burst_process_session(RTP_Session *session)
 
 		if (session->streamer->log_level >= LOG_AU) fprintf(stdout, "Sess %d - stream %d - Processing AU %d - DTS "LLD" - CTS "LLD"\n", session->id, rtp->track, rtp->current_au, rtp->packetizer->sl_header.decodingTimeStamp, rtp->packetizer->sl_header.compositionTimeStamp);
 
-		gf_rtp_builder_process(rtp->packetizer, rtp->au->data, rtp->au->dataLength, (u8) 1, rtp->au->dataLength, rtp->sample_duration, (u8) rtp->sample_desc_index);
+		/*unpack nal units*/
+		if (rtp->avc_nalu_size) {
+			u32 v, size;
+			u32 remain = rtp->au->dataLength;
+			char *ptr = rtp->au->data;
+
+			rtp->packetizer->sl_header.accessUnitStartFlag = 1;
+			rtp->packetizer->sl_header.accessUnitEndFlag = 0;
+			while (remain) {
+				size = 0;
+				v = rtp->avc_nalu_size;
+				while (v) {
+					size |= (u8) *ptr;
+					ptr++;
+					remain--;
+					v-=1;
+					if (v) size<<=8;
+				}
+				remain -= size;
+				rtp->packetizer->sl_header.accessUnitEndFlag = remain ? 0 : 1;
+				gf_rtp_builder_process(rtp->packetizer, ptr, size, (u8) !remain, rtp->au->dataLength, rtp->sample_duration, (u8) rtp->sample_desc_index );
+				ptr += size;
+				rtp->packetizer->sl_header.accessUnitStartFlag = 0;
+			}
+		} else {
+			gf_rtp_builder_process(rtp->packetizer, rtp->au->data, rtp->au->dataLength, (u8) 1, rtp->au->dataLength, rtp->sample_duration, (u8) rtp->sample_desc_index);
+		}
 			
 		rtp->next_ts = (u32)(rtp->packetizer->sl_header.decodingTimeStamp + rtp->sample_duration);
 		/*OK delete sample*/
@@ -729,7 +758,34 @@ void process_sessions(Streamer *streamer)
 	}
 
 	/*send packets*/
-	gf_rtp_builder_process(to_send->packetizer, to_send->au->data, to_send->au->dataLength, (u8) 1, to_send->au->dataLength, to_send->sample_duration, (u8) to_send->sample_desc_index);
+
+	/*unpack nal units*/
+	if (to_send->avc_nalu_size) {
+		u32 v, size;
+		u32 remain = to_send->au->dataLength;
+		char *ptr = to_send->au->data;
+
+		to_send->packetizer->sl_header.accessUnitStartFlag = 1;
+		to_send->packetizer->sl_header.accessUnitEndFlag = 0;
+		while (remain) {
+			size = 0;
+			v = to_send->avc_nalu_size;
+			while (v) {
+				size |= (u8) *ptr;
+				ptr++;
+				remain--;
+				v-=1;
+				if (v) size<<=8;
+			}
+			remain -= size;
+			to_send->packetizer->sl_header.accessUnitEndFlag = remain ? 0 : 1;
+			gf_rtp_builder_process(to_send->packetizer, ptr, size, (u8) !remain, to_send->au->dataLength, to_send->sample_duration, (u8) to_send->sample_desc_index );
+			ptr += size;
+			to_send->packetizer->sl_header.accessUnitStartFlag = 0;
+		}
+	} else {
+		gf_rtp_builder_process(to_send->packetizer, to_send->au->data, to_send->au->dataLength, (u8) 1, to_send->au->dataLength, to_send->sample_duration, (u8) to_send->sample_desc_index);
+	}
 	/*delete sample*/
 	gf_isom_sample_del(&to_send->au);
 

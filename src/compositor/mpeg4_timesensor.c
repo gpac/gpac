@@ -169,7 +169,8 @@ void compositor_init_timesensor(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, timesensor_destroy);
 	/*time sensor needs to be run only if def'ed, otherwise it doesn't impact scene*/
-	if (gf_node_get_id(node)) gf_sc_register_time_node(compositor, &st->time_handle);
+	//if (gf_node_get_id(node)) 
+	gf_sc_register_time_node(compositor, &st->time_handle);
 }
 
 
