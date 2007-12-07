@@ -724,8 +724,6 @@ struct _object_clock *gf_odm_get_media_clock(GF_ObjectManager *odm);
 void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url);
 /*returns true if this OD depends on the given clock*/
 Bool gf_odm_shares_clock(GF_ObjectManager *odm, struct _object_clock *ock);
-/*refresh all ODs when an non-interactive stream is found*/
-void gf_odm_refresh_uninteractives(GF_ObjectManager *odm);
 
 GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName);
 /*locks ODM with destruction check - returns 0 if object manager is not attached to object*/

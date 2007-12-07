@@ -179,7 +179,7 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 
 	/*direct drawing, draw without clippers */
 	if (tr_state->direct_draw) {
-		tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, &ctx->bi->clip, &ctx->bi->unclip, alpha, has_key ? &keyColor : NULL, ctx->col_mat);
+		tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, has_key ? &keyColor : NULL);
 	}
 	/*draw bitmap for all dirty rects*/
 	else {
@@ -193,7 +193,7 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, &clip, &ctx->bi->unclip, alpha, has_key ? &keyColor : NULL, ctx->col_mat);
+				tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, has_key ? &keyColor : NULL);
 			}
 		}
 	}

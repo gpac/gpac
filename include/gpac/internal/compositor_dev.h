@@ -827,7 +827,7 @@ void compositor_2d_set_user_transform(GF_Compositor *sr, Fixed zoom, Fixed tx, F
 GF_Err compositor_2d_get_video_access(GF_VisualManager *surf);
 void compositor_2d_release_video_access(GF_VisualManager *surf);
 Bool compositor_2d_pixel_format_supported(GF_VisualManager *surf, u32 pixel_format);
-void compositor_2d_draw_bitmap(GF_VisualManager *surf, struct _gf_sc_texture_handler *txh, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key, GF_ColorMatrix *cmat);
+void compositor_2d_draw_bitmap(GF_VisualManager *visual, struct _gf_sc_texture_handler *txh, struct _drawable_context *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res);
 

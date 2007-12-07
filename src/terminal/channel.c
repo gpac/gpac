@@ -44,7 +44,9 @@ static void ch_buffer_off(GF_Channel *ch)
 static void ch_buffer_on(GF_Channel *ch)
 {
 	/*don't buffer on an already running clock*/
-	if (ch->clock->no_time_ctrl && ch->clock->clock_init) return;
+	if (ch->clock->no_time_ctrl && ch->clock->clock_init && (ch->esd->ESID!=ch->clock->clockID) ) return;
+	if (ch->direct_dispatch) return;
+
 	/*just in case*/
 	if (!ch->BufferOn) {
 		ch->BufferOn = 1;
@@ -481,18 +483,11 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch AU CTS %d time %d Buffer %d Nb AUs %d\n", ch->esd->ESID, au->CTS, gf_clock_time(ch->clock), ch->BufferTime, ch->AU_Count));
 
-	if (ch->BufferOn) {
-		ch->last_au_time = gf_term_get_time(ch->odm->term);
-		Channel_UpdateBuffering(ch, 1);
-	}
-	gf_es_lock(ch, 0);
-
-
 	/*little optimisation: if direct dispatching is possible, try to decode the AU
 	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or 
 	media resources*/
 	if (ch->direct_dispatch) {
-		u32 retry = 50000;
+		u32 retry = 100;
 		u32 current_frame;
 		GF_Terminal *term = ch->odm->term;
 		ch_buffer_off(ch);
@@ -528,7 +523,13 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 			break;
 		}
 	}
-	return;
+
+	if (ch->BufferOn) {
+		ch->last_au_time = gf_term_get_time(ch->odm->term);
+		Channel_UpdateBuffering(ch, 1);
+	}
+
+	gf_es_lock(ch, 0);
 }
 
 void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength)
@@ -697,8 +698,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			/*TS Wraping not tested*/
 			ch->CTS = (u32) (ch->ts_offset + (s64) (ch->net_cts) * 1000 / ch->ts_res);
 			ch->DTS = (u32) (ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res);
-
-			if (!hdr.compositionTimeStamp) hdr.compositionTimeStampFlag=0;
 		} else {
 			/*use CU duration*/
 			if (!ch->IsClockInit) ch->DTS = ch->CTS = ch->ts_offset;
@@ -733,7 +732,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			else if (gf_es_owns_clock(ch)) {
 				ch->clock->clock_init = 0;
 				gf_clock_set_time(ch->clock, ch->DTS);
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS));
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d - %d buffering\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering));
 			}
 			if (ch->clock->clock_init) ch->IsClockInit = 1;
 		}
@@ -794,14 +793,18 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	/*update the RAP marker on a packet base (to cope with AVC/H264 NALU->AU reconstruction)*/
 	if (hdr.randomAccessPointFlag) ch->IsRap = 1;
 
+#if 1
 	/*check OCR*/
-	if (hdr.OCRflag) {
+	if (!ch->BufferOn && ch->IsClockInit && hdr.OCRflag) {
 		u32 OCR_TS = (u32) (s64) (((s64) hdr.objectClockReference) * ch->ocr_scale);
+		u32 ck = gf_clock_time(ch->clock);
+		OCR_TS += ch->BufferTime;
+		fprintf(stdout, "OCR %d OTB %d Diff %d Buffer %d (%d AUs) \n", OCR_TS, ck, OCR_TS - ck, ch->BufferTime, ch->AU_Count);
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d adjusting OCR to %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS));
-		fprintf(stdout, "ES%d: At OTB %d adjusting OCR to %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS);
 		gf_clock_set_time(ch->clock, OCR_TS);
-		ch->IsClockInit = 1;
 	}
+#endif
 
 	/*get AU end state*/	
 	OldLength = ch->buffer ? ch->len : 0;
@@ -1028,6 +1031,35 @@ void gf_es_lock(GF_Channel *ch, u32 LockIt)
 	}
 }
 
+/*refresh all ODs when an non-interactive stream is found*/
+static void refresh_non_interactive_clocks(GF_ObjectManager *odm)
+{
+	u32 i, j;
+	GF_Channel *ch;
+	GF_ObjectManager *test_od;
+	GF_InlineScene *in_scene;
+
+	/*check for inline*/
+	in_scene = odm->subscene ? odm->subscene : odm->parentscene;
+	i=0;
+	while ((ch = (GF_Channel*)gf_list_enum(in_scene->root_od->channels, &i)) ) {
+		if (ch->clock->no_time_ctrl) {
+			in_scene->root_od->flags |= GF_ODM_NO_TIME_CTRL;
+			//if (ch->clock->use_ocr && ch->BufferOn) ch_buffer_off(ch);
+		}
+	}
+
+	i=0;
+	while ((test_od = (GF_ObjectManager *)gf_list_enum(in_scene->ODlist, &i)) ) {
+		j=0;
+		while ((ch = (GF_Channel*)gf_list_enum(test_od->channels, &j)) ) {
+			if (ch->clock->no_time_ctrl) {
+				test_od->flags |= GF_ODM_NO_TIME_CTRL;
+				//if (ch->clock->use_ocr && ch->BufferOn) ch_buffer_off(ch);
+			}
+		}
+	}
+}
 /*performs final setup upon connection confirm*/
 void gf_es_on_connect(GF_Channel *ch)
 {
@@ -1062,7 +1094,7 @@ void gf_es_on_connect(GF_Channel *ch)
 	if (gf_term_service_command(ch->service, &com)!=GF_OK) {
 		ch->clock->no_time_ctrl = 1;
 		ch->odm->flags |= GF_ODM_NO_TIME_CTRL;
-		gf_odm_refresh_uninteractives(ch->odm);
+		refresh_non_interactive_clocks(ch->odm);
 	}
 
 	/*signal channel state*/

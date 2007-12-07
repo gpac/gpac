@@ -253,7 +253,7 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 
 		/*direct drawing, draw without clippers */
 		if (tr_state->direct_draw) {
-			tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, &clip, &unclip, alpha, NULL, ctx->col_mat);
+			tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &clip, &unclip, alpha, NULL);
 		}
 		/*draw bitmap for all dirty rects*/
 		else {
@@ -267,7 +267,7 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 				a_clip = clip;
 				gf_irect_intersect(&a_clip, &tr_state->visual->to_redraw.list[i]);
 				if (a_clip.width && a_clip.height) {
-					tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, &a_clip, &unclip, alpha, NULL, ctx->col_mat);
+					tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &a_clip, &unclip, alpha, NULL);
 				}
 			}
 		}

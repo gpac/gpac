@@ -590,40 +590,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	}
 }
 
-/*refresh all ODs when an non-interactive stream is found*/
-void gf_odm_refresh_uninteractives(GF_ObjectManager *odm)
-{
-	u32 i, j;
-	GF_Channel *ch;
-	GF_ObjectManager *test_od;
-	GF_InlineScene *in_scene;
 
-	/*check for inline*/
-	in_scene = odm->parentscene;
-	if (odm->subscene) {
-		assert(odm->subscene->root_od == odm);
-		in_scene = odm->subscene;
-		i=0;
-		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
-			if (ch->clock->no_time_ctrl) {
-				odm->flags |= GF_ODM_NO_TIME_CTRL;
-				break;
-			}
-		}
-	}
-
-	i=0;
-	while ((test_od = (GF_ObjectManager *)gf_list_enum(in_scene->ODlist, &i)) ) {
-		if (odm==test_od) continue;
-		j=0;
-		while ((ch = (GF_Channel*)gf_list_enum(test_od->channels, &j)) ) {
-			if (ch->clock->no_time_ctrl) {
-				test_od->flags |= GF_ODM_NO_TIME_CTRL;
-				break;
-			}
-		}
-	}
-}
 
 void ODM_CheckChannelService(GF_Channel *ch)
 {
