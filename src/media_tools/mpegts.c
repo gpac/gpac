@@ -504,8 +504,10 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		/*not done yet*/
 		if (t->last_section_number > t->section_number) return;
 
-		if (!t->is_init) status = GF_M2TS_TABLE_FOUND;
-		else status = (t->last_version_number==t->version_number) ? GF_M2TS_TABLE_REPEAT : GF_M2TS_TABLE_UPDATE;
+		if (!t->is_init) 
+			status = GF_M2TS_TABLE_FOUND;
+		else 
+			status = (t->last_version_number==t->version_number) ? GF_M2TS_TABLE_REPEAT : GF_M2TS_TABLE_UPDATE;
 
 		t->last_version_number = t->version_number;
 		t->is_init = 1;

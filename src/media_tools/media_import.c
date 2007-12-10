@@ -4822,12 +4822,14 @@ static GF_ESD *m2ts_get_esd(GF_M2TS_ES *es)
 	u32 k, esd_count;
 
 	esd = NULL;
-	esd_count = gf_list_count(es->program->pmt_iod->ESDescriptors);
-	for (k = 0; k < esd_count; k++) {
-		GF_ESD *esd_tmp = (GF_ESD *)gf_list_get(es->program->pmt_iod->ESDescriptors, k);
-		if (esd_tmp->ESID != es->mpeg4_es_id) continue;
-		esd = esd_tmp;
-		break;
+	if (es->program->pmt_iod && es->program->pmt_iod->ESDescriptors) {
+		esd_count = gf_list_count(es->program->pmt_iod->ESDescriptors);
+		for (k = 0; k < esd_count; k++) {
+			GF_ESD *esd_tmp = (GF_ESD *)gf_list_get(es->program->pmt_iod->ESDescriptors, k);
+			if (esd_tmp->ESID != es->mpeg4_es_id) continue;
+			esd = esd_tmp;
+			break;
+		}
 	}
 	
 	if (!esd) {
@@ -4966,15 +4968,17 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		} else {
 			/* We are not in PROBE mode, we are importing only one stream and don't care about the other streams */
 			u32 mtype, stype, oti;
-			Bool is_in_iod;
+			Bool is_in_iod, found;
 
 			/* Since the GF_M2TS_ES_IS_MPEG4_OD flag is stored at the ES level and ES are reset after probe,
 			   we need to set it again as in probe mode */
+			found = 0;
 			count = gf_list_count(prog->streams);
 			for (i=0; i<count; i++) {
 				GF_ESD *esd;
 				es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
 				if (es->pid == prog->pmt_pid) continue;
+				if (es->pid == import->trackID) found = 1;
 				if (es->flags & GF_M2TS_ES_IS_SECTION) {
 					ses = (GF_M2TS_SECTION_ES *)es;
 				} else {
@@ -4985,6 +4989,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					es->flags |= GF_M2TS_ES_IS_MPEG4_OD;
 				}
 			}
+			/*this PMT is not the one of our stream*/
+			if (!found) return;
 
 			es = ts->ess[import->trackID]; /* import->trackID == pid */
 			if (!es) break;
