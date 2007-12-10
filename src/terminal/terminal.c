@@ -1028,3 +1028,18 @@ GF_Err gf_term_release_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebu
 }
 
 
+static void gf_term_sample_scenetime(GF_InlineScene *scene)
+{
+	u32 i, count;
+	gf_inline_sample_time(scene);
+	count = gf_list_count(scene->ODlist);
+	for (i=0; i<count; i++) {
+		GF_ObjectManager *odm = gf_list_get(scene->ODlist, i);
+		if (odm->subscene) gf_term_sample_scenetime(odm->subscene);
+	}
+}
+
+void gf_term_sample_clocks(GF_Terminal *term)
+{
+	gf_term_sample_scenetime(term->root_scene);
+}

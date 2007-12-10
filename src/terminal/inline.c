@@ -43,15 +43,33 @@ typedef struct
 GF_EXPORT
 Double gf_inline_get_time(void *_is)
 {
+	GF_InlineScene *is = (GF_InlineScene *)_is;
+#if 0
 	u32 ret;
 	GF_Clock *ck;
-	GF_InlineScene *is = (GF_InlineScene *)_is;
 	assert(is);
 	ck = is->scene_codec ? is->scene_codec->ck : is->dyn_ck;
 	if (!ck) return 0.0;
 	ret = gf_clock_time(ck);
 	if (is->root_od->media_stop_time && (is->root_od->media_stop_time<ret)) ret = (u32) is->root_od->media_stop_time;
 	return ret/1000.0;
+#else
+	return is->simulation_time;
+#endif
+}
+
+void gf_inline_sample_time(GF_InlineScene *is)
+{
+	u32 ret;
+	GF_Clock *ck;
+	ck = is->scene_codec ? is->scene_codec->ck : is->dyn_ck;
+	if (!ck) 
+		is->simulation_time = 0;
+	else {
+		ret = gf_clock_time(ck);
+		if (is->root_od->media_stop_time && (is->root_od->media_stop_time<ret)) ret = (u32) is->root_od->media_stop_time;
+		is->simulation_time = ((Double) ret) / 1000.0;
+	}
 }
 
 GF_InlineScene *gf_inline_new(GF_InlineScene *parentScene)

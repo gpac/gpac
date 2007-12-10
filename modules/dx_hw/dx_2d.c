@@ -569,8 +569,8 @@ void DD_InitYUV(GF_VideoOutput *dr)
 	
 	DDCONTEXT;
 
-	w = 320;
-	h = 240;
+	w = 720;
+	h = 576;
 
 	dd->yuv_init = 1;
 
@@ -663,8 +663,10 @@ rem_fmt:
 	if (best_planar && (min_planar < min_packed )) {
 		dr->yuv_pixel_format = best_planar;
 	} else {
+		min_planar = min_packed;
 		dr->yuv_pixel_format = best_packed;
 	} 
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Picked YUV format %s - drawn in %d ms\n", gf_4cc_to_str(dr->yuv_pixel_format), min_planar));
 	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
 }
 

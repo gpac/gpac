@@ -1548,10 +1548,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	event_time = gf_sys_clock() - event_time;
 #endif
 
-
-#ifdef EXPERIMENTAL
-	gf_term_pause_all_clocks(compositor->term, 1);
-#endif
+	gf_term_sample_clocks(compositor->term);
 
 	route_time = gf_sys_clock();
 	/*execute all routes before updating textures, otherwise nodes inside composite texture may never see their
@@ -1641,9 +1638,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			compositor->reset_graphics = 1;
 		}
 	}
-#ifdef EXPERIMENTAL
-	gf_term_pause_all_clocks(compositor->term, 0);
-#endif
 
 	/*release all textures - we must release them to handle a same OD being used by several textures*/
 	count = gf_list_count(compositor->textures);
