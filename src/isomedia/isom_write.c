@@ -577,11 +577,6 @@ GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescript
 	e = unpack_track(trak);
 	if (e) return e;
 
-	//REWRITE ANY OD STUFF
-	if (trak->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {
-		e = Media_ParseODFrame(trak->Media, sample);
-		if (e) return e;
-	}
 	//OK, add the sample
 	//1- Get the streamDescriptionIndex and dataRefIndex
 	//not specified, get the latest used...
@@ -606,12 +601,20 @@ GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescript
 
 	//Get the offset...
 	data_offset = gf_isom_datamap_get_offset(trak->Media->information->dataHandler);
-	//add the meta data
-	e = Media_AddSample(trak->Media, data_offset, sample, descIndex, 0);
+
+	/*rewrite OD frame*/
+	if (trak->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {
+		GF_ISOSample *od_sample = NULL;
+		e = Media_ParseODFrame(trak->Media, sample, &od_sample);
+		if (!e) e = Media_AddSample(trak->Media, data_offset, od_sample, descIndex, 0);
+		if (!e) e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, od_sample->data, od_sample->dataLength);
+		if (od_sample) gf_isom_sample_del(&od_sample);
+	} else {
+		e = Media_AddSample(trak->Media, data_offset, sample, descIndex, 0);
+		if (!e) e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
+	}
 	if (e) return e;
-	//add the media data
-	e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
-	if (e) return e;
+
 	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 	return SetTrackDuration(trak);
 }
@@ -641,12 +644,6 @@ GF_Err gf_isom_add_sample_shadow(GF_ISOFile *movie, u32 trackNumber, GF_ISOSampl
 	e = unpack_track(trak);
 	if (e) return e;
 
-	/*REWRITE ANY OD STUFF*/
-	if (trak->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {
-		e = Media_ParseODFrame(trak->Media, sample);
-		if (e) return e;
-	}
-
 	e = findEntryForTime(trak->Media->information->sampleTable, sample->DTS, 0, &sampleNum, &prevSampleNum);
 	if (e) return e;
 	/*we need the EXACT match*/
@@ -673,12 +670,20 @@ GF_Err gf_isom_add_sample_shadow(GF_ISOFile *movie, u32 trackNumber, GF_ISOSampl
 
 	data_offset = gf_isom_datamap_get_offset(trak->Media->information->dataHandler);
 	if (offset_times) sample->DTS += 1; 
-	e = Media_AddSample(trak->Media, data_offset, sample, descIndex, sampleNum);
+
+	/*REWRITE ANY OD STUFF*/
+	if (trak->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {
+		GF_ISOSample *od_sample = NULL;
+		e = Media_ParseODFrame(trak->Media, sample, &od_sample);
+		if (!e) e = Media_AddSample(trak->Media, data_offset, od_sample, descIndex, sampleNum);
+		if (!e) e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, od_sample->data, od_sample->dataLength);
+		if (od_sample) gf_isom_sample_del(&od_sample);
+	} else {
+		e = Media_AddSample(trak->Media, data_offset, sample, descIndex, sampleNum);
+		if (!e) e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
+	}
+	if (e) return e;
 	if (offset_times) sample->DTS -= 1; 
-	if (e) return e;
-	//add the media data
-	e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
-	if (e) return e;
 
 	//OK, update duration
 	e = Media_SetDuration(trak);
@@ -848,13 +853,14 @@ GF_Err gf_isom_update_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 
 	//REWRITE ANY OD STUFF
 	if (trak->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {
-		e = Media_ParseODFrame(trak->Media, sample);
-		if (e) return e;
+		GF_ISOSample *od_sample = NULL;
+		e = Media_ParseODFrame(trak->Media, sample, &od_sample);
+		if (!e) e = Media_UpdateSample(trak->Media, sampleNumber, od_sample, data_only);
+		if (od_sample) gf_isom_sample_del(&od_sample);
+	} else {
+		e = Media_UpdateSample(trak->Media, sampleNumber, sample, data_only);
 	}
-	//OK, update it
-	e = Media_UpdateSample(trak->Media, sampleNumber, sample, data_only);
 	if (e) return e;
-
 	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 	return GF_OK;
 }

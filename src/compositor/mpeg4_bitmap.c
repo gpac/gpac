@@ -136,7 +136,7 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
 	if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
 
-	if (ctx->transform.m[0] || ctx->transform.m[4]<0) use_blit = 0;
+	if ((ctx->transform.m[0]<0) || (ctx->transform.m[4]<0)) use_blit = 0;
 
 	/*materialKey*/
 	has_key = 0;

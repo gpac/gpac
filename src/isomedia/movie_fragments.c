@@ -556,6 +556,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	u32 count, buffer_size;
 	char *buffer;
 	u64 pos;
+	GF_ISOSample *od_sample = NULL;
 	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf, *traf_2;
 	GF_TrackFragmentRunBox *trun;
@@ -652,7 +653,8 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	//rewrite OD frames
 	if (traf->trex->track->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {
 		//this may fail if depandancies are not well done ...
-		Media_ParseODFrame(traf->trex->track->Media, sample);
+		Media_ParseODFrame(traf->trex->track->Media, sample, &od_sample);
+		sample = od_sample;
 	}
 
 	//finally write the data
@@ -663,6 +665,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	} else {
 		return GF_BAD_PARAM;
 	}
+	if (od_sample) gf_isom_sample_del(&od_sample);
 	return GF_OK;
 }
 

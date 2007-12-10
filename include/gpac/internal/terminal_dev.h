@@ -92,6 +92,8 @@ GF_Err gf_term_service_cache_close(GF_ClientService *ns, Bool no_save);
 this is mainly designed for movie dumping in MP4Client*/
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff);
 
+void gf_term_sample_clocks(GF_Terminal *term);
+
 /*
 		Inline scene stuff
 */
@@ -145,6 +147,9 @@ struct _inline_scene
 	OD shutdown/startup when seeking. This will also remove unneeded net traffic for AddChannel/RemoveChannel
 	like RTSP TEARDOWN/SETUP*/
 	Bool static_media_ressources;
+
+	/*current simulation time of the compositor*/
+	Double simulation_time;
 };
 
 GF_InlineScene *gf_inline_new(GF_InlineScene *parentScene);
@@ -190,8 +195,10 @@ Bool gf_inline_process_anchor(GF_Node *caller, GF_Event *evt);
 /*extern proto fetcher*/
 GF_SceneGraph *gf_inline_get_proto_lib(void *SceneCallback, MFURL *lib_url);
 void gf_inline_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo);
+void gf_inline_sample_time(GF_InlineScene *is);
 /*compares object URL with another URL - ONLY USE THIS WITH DYNAMIC ODs*/
 Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *inline_url);
+
 
 
 enum

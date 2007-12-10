@@ -224,7 +224,7 @@ err_exit:
 
 
 // Update the dependancies when an OD AU is inserted in the file
-GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
+GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample, GF_ISOSample **od_samp)
 {
 	GF_TrackReferenceBox *tref;
 	GF_TrackReferenceTypeBox *mpod;
@@ -233,7 +233,6 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 	GF_ODCodec *ODencode;
 	GF_ODCodec *ODdecode;
 	u32 i, j;
-
 	//the commands we proceed
 	GF_ESDUpdate *esdU, *esdU2;
 	GF_ESDRemove *esdR, *esdR2;
@@ -246,6 +245,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 	GF_ES_ID_Ref *ref;
 	GF_Descriptor *desc;
 
+	*od_samp = NULL;
 	if (!mdia || !sample || !sample->data || !sample->dataLength) return GF_BAD_PARAM;
 
 	//First find the references, and create them if none
@@ -406,10 +406,15 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 	if (e) goto err_exit;
 
 	//and set the buffer in the sample
-	free(sample->data);
-	sample->data = NULL;
-	sample->dataLength = 0;
-	e = gf_odf_codec_get_au(ODencode, &sample->data, &sample->dataLength);
+	*od_samp = gf_isom_sample_new();
+	(*od_samp)->CTS_Offset = sample->CTS_Offset;
+	(*od_samp)->DTS = sample->DTS;
+	(*od_samp)->IsRAP = sample->IsRAP;
+	e = gf_odf_codec_get_au(ODencode, & (*od_samp)->data, & (*od_samp)->dataLength);
+	if (e) {
+		gf_isom_sample_del(od_samp);
+		*od_samp = NULL;
+	}
 
 err_exit:
 
