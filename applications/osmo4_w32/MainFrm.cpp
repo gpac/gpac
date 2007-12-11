@@ -957,7 +957,13 @@ void CMainFrame::BuildStreamList(Bool reset_only)
 		switch (info.od_type) {
 		case GF_STREAM_AUDIO:
 			pMenu = pSelect->GetSubMenu(0);
-			if (!info.owns_service) sprintf(szLabel, "Audio #%d", pMenu->GetMenuItemCount() + 1);
+			if (!info.owns_service) {
+				if (info.lang) {
+					sprintf(szLabel, "Audio %s", gf_4cc_to_str(info.lang) );
+				} else {
+					sprintf(szLabel, "Audio #%d", pMenu->GetMenuItemCount() + 1);
+				}
+			}
 			pMenu->AppendMenu(MF_ENABLED, ID_SELOBJ_0 + i, szLabel);
 			break;
 		case GF_STREAM_VISUAL:
@@ -968,7 +974,13 @@ void CMainFrame::BuildStreamList(Bool reset_only)
 		case GF_STREAM_TEXT:
 			nb_subs ++;
 			pMenu = pSelect->GetSubMenu(2);
-			if (!info.owns_service) sprintf(szLabel, "Subtitle #%d", pMenu->GetMenuItemCount() + 1);
+			if (!info.owns_service) {
+				if (info.lang) {
+					sprintf(szLabel, "Subtitle %s", gf_4cc_to_str(info.lang) );
+				} else {
+					sprintf(szLabel, "Subtitle #%d", pMenu->GetMenuItemCount() + 1);
+				}
+			}
 			pMenu->AppendMenu(MF_ENABLED, ID_SELOBJ_0 + i, szLabel);
 			break;
 		}
@@ -1008,7 +1020,7 @@ BOOL CMainFrame::OnCommand(WPARAM wParam, LPARAM lParam)
 		}
 		return TRUE;
 	}
-	if ( (ID>=ID_SELOBJ_0) && (ID<=ID_SELOBJ_9)) {
+	if ( (ID>=ID_SELOBJ_0) && (ID<=ID_SELOBJ_29)) {
 		ID -= ID_SELOBJ_0;
 		GF_ObjectManager *root_od = gf_term_get_root_object(app->m_term);
 		if (!root_od) return TRUE;
@@ -1054,7 +1066,7 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT ID, BOOL bSys)
 			pPopupMenu->EnableMenuItem(0, MF_BYPOSITION | MF_ENABLED);
 		}
 	}
-	if ((pPopupMenu->GetMenuItemID(0)>=ID_SELOBJ_0) && (pPopupMenu->GetMenuItemID(0)<=ID_SELOBJ_9)) {
+	if ((pPopupMenu->GetMenuItemID(0)>=ID_SELOBJ_0) && (pPopupMenu->GetMenuItemID(0)<=ID_SELOBJ_29)) {
 		GF_ObjectManager *root_od = gf_term_get_root_object(app->m_term);
 		if (!root_od) return;
 

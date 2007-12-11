@@ -282,6 +282,26 @@
 #define ID_SELOBJ_7                     1347
 #define ID_SELOBJ_8                     1348
 #define ID_SELOBJ_9                     1349
+#define ID_SELOBJ_10                    1350
+#define ID_SELOBJ_11                    1351
+#define ID_SELOBJ_12                    1352
+#define ID_SELOBJ_13                    1353
+#define ID_SELOBJ_14                    1354
+#define ID_SELOBJ_15                    1355
+#define ID_SELOBJ_16                    1356
+#define ID_SELOBJ_17                    1357
+#define ID_SELOBJ_18                    1358
+#define ID_SELOBJ_19                    1359
+#define ID_SELOBJ_20                    1360
+#define ID_SELOBJ_21                    1361
+#define ID_SELOBJ_22                    1362
+#define ID_SELOBJ_23                    1363
+#define ID_SELOBJ_24                    1364
+#define ID_SELOBJ_25                    1365
+#define ID_SELOBJ_26                    1366
+#define ID_SELOBJ_27                    1367
+#define ID_SELOBJ_28                    1368
+#define ID_SELOBJ_29                    1369
 #define ID_SETCHAP_FIRST                2000
 #define ID_SETCHAP_LAST                 2200
 

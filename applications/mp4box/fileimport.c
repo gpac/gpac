@@ -964,6 +964,20 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 							dst_tk = j+1;
 							break;
 						}
+					}
+					/*check language code*/
+					else if (mtype==GF_ISOM_MEDIA_AUDIO) {
+						u32 lang_src, lang_dst;
+						char lang[4];
+						lang[3]=0;
+						gf_isom_get_media_language(orig, i+1, lang);
+						lang_src = GF_4CC(lang[0], lang[1], lang[2], lang[3]);
+						gf_isom_get_media_language(dest, j+1, lang);
+						lang_dst = GF_4CC(lang[0], lang[1], lang[2], lang[3]);
+						if (lang_dst==lang_src) {
+							dst_tk = j+1;
+							break;
+						}
 					} else {
 						dst_tk = j+1;
 						break;

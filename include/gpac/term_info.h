@@ -107,6 +107,8 @@ typedef struct
 	/*set if ISMACryp present on the object - will need refinement for IPMPX...
 	0: not protected - 1: protected and OK - 2: protected and DRM failed*/
 	u32 protection;
+
+	u32 lang;
 } ODInfo;
 
 /*fills the ODInfo structure describing the OD manager*/
