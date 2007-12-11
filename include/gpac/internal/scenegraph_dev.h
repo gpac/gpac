@@ -458,6 +458,7 @@ typedef struct _smil_timing_rti
 	SMILTimingAttributesPointers *timingp;
 
 	Double scene_time;
+	Fixed normalized_simple_time;
 	Bool force_reevaluation;
 
 	/* SMIL element life-cycle status */
@@ -503,6 +504,9 @@ typedef struct _smil_timing_rti
 	Fixed fraction;
 
 	Double media_duration;
+
+	/* shortcut when this rti corresponds to an animation */
+	struct _smil_anim_rti *rai;
 } SMIL_Timing_RTI;
 
 void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field);
@@ -549,7 +553,7 @@ typedef struct {
 /* This structure is per animation element, 
    it holds the result of the animation and 
    some info to make animation computation faster */
-typedef struct {
+typedef struct _smil_anim_rti {
 	SMIL_AttributeAnimations *owner;
 
 	Bool is_first_anim;
@@ -577,6 +581,13 @@ typedef struct {
 	/* temporary value needed when the type of 
 	   the key values is different from the target attribute type */
 	GF_FieldInfo tmp_value;
+
+	/* the number of values in animations should be constant (unless updated with LASeR commands) 
+	   we can store them to avoid computing them at each cycle */
+	u32 values_count;
+	u32 key_times_count;
+	u32 key_points_count;
+	u32 key_splines_count;
 
 
 	/* In change detection mode, we test previous animation parameters to determine 
@@ -609,7 +620,7 @@ void gf_smil_setup_events(GF_Node *node);
 Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event);
 
 void gf_smil_anim_reset_variables(SMIL_Anim_RTI *rai);
-SMIL_Anim_RTI *gf_smil_anim_get_anim_runtime_from_timing(SMIL_Timing_RTI *rti);
+void gf_smil_anim_set_anim_runtime_in_timing(GF_Node *n);
 
 #endif
 

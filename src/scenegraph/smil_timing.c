@@ -643,7 +643,7 @@ static Bool gf_smil_discard(SMIL_Timing_RTI *rti, Fixed scene_time)
    Whenever an animation (re)starts, it is placed at the end of the queue (potentially after frozen animations) */
 static void gf_smil_reorder_anim(SMIL_Timing_RTI *rti)
 {
-	SMIL_Anim_RTI *rai = (SMIL_Anim_RTI *) gf_smil_anim_get_anim_runtime_from_timing(rti);
+	SMIL_Anim_RTI *rai = rti->rai;
 	if (rai) {
 		gf_list_del_item(rai->owner->anims, rai);
 		gf_list_add(rai->owner->anims, rai);
@@ -659,7 +659,6 @@ static void gf_smil_reorder_anim(SMIL_Timing_RTI *rti)
    -2 means that the timed element is waiting to begin */
 s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 {
-	Fixed simple_time;
 	s32 ret = 0;
 	GF_DOM_Event evt;
 	SMILTimingAttributesPointers *timingp = rti->timingp;
@@ -728,6 +727,7 @@ waiting_to_begin:
 			evt.smil_event_time = rti->current_interval->begin + rti->current_interval->active_duration;
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 
+			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
 			ret = rti->postpone;
 
 			if (timingp->fill && *timingp->fill == SMIL_FILL_FREEZE) {
@@ -735,16 +735,14 @@ waiting_to_begin:
 				rti->state_change_cycle_number = rti->cycle_number;
 				rti->evaluate_status = SMIL_TIMING_EVAL_FREEZE;
 				if (!rti->postpone) {
-					Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
-					rti->evaluate(rti, simple_time, rti->evaluate_status);
+					rti->evaluate(rti, rti->normalized_simple_time, rti->evaluate_status);
 				}
 			} else {
 				rti->status = SMIL_STATUS_DONE;
 				rti->state_change_cycle_number = rti->cycle_number;
 				rti->evaluate_status = SMIL_TIMING_EVAL_REMOVE;
 				if (!rti->postpone) {
-					Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
-					rti->evaluate(rti, simple_time, rti->evaluate_status);
+					rti->evaluate(rti, rti->normalized_simple_time, rti->evaluate_status);
 				}
 			}
 
@@ -798,7 +796,7 @@ waiting_to_begin:
 			ret = rti->postpone;
 			
 			cur_id = rti->current_interval->nb_iterations;
-			simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
+			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
 			if (cur_id < rti->current_interval->nb_iterations) {
 				memset(&evt, 0, sizeof(evt));
 				evt.type = GF_EVENT_REPEAT_EVENT;
@@ -814,7 +812,7 @@ waiting_to_begin:
 			}
 
 			if (!rti->postpone) {
-				rti->evaluate(rti, simple_time, rti->evaluate_status);
+				rti->evaluate(rti, rti->normalized_simple_time, rti->evaluate_status);
 			}	
 		}
 	}
