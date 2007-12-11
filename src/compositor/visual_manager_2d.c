@@ -649,7 +649,7 @@ exit:
 	ra_clear(&visual->to_redraw);
 	visual_2d_release_raster(visual);
 	visual_clean_contexts(visual);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redraw done - changed", has_changed ? "" : "un"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redraw done - %schanged\n", has_changed ? "" : "un"));
 	return has_changed;
 }
 
@@ -694,7 +694,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 
 #ifndef GPAC_DISABLE_LOG
 	itime = gf_sys_clock();
-	visual->compositor->traverse_and_draw_time = itime - time;
+	visual->compositor->traverse_and_direct_draw_time = itime - time;
 	time = itime;
 #endif
 
@@ -703,7 +703,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	
 #ifndef GPAC_DISABLE_LOG
 	if (!tr_state->direct_draw) {
-		visual->compositor->draw_2d_time = gf_sys_clock() - time;
+		visual->compositor->indirect_draw_time = gf_sys_clock() - time;
 	}
 #endif
 

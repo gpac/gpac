@@ -339,10 +339,10 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
 
 	if (compositor_svg_is_display_off(tr_state->svg_props)) {
-		u32 prev_flags = tr_state->switched_off;
+/*		u32 prev_flags = tr_state->switched_off;
 		tr_state->switched_off = 1;
 		compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
-		tr_state->switched_off = prev_flags;
+		tr_state->switched_off = prev_flags;*/
 
 		memcpy(tr_state->svg_props, &backup_props, styling_size);
 		tr_state->svg_flags = backup_flags;
@@ -487,10 +487,10 @@ static void svg_traverse_a(GF_Node *node, void *rs, Bool is_destroy)
 	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
 
 	if (compositor_svg_is_display_off(tr_state->svg_props)) {
-		u32 prev_flags = tr_state->switched_off;
+		/*u32 prev_flags = tr_state->switched_off;
 		tr_state->switched_off = 1;
 		compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
-		tr_state->switched_off = prev_flags;
+		tr_state->switched_off = prev_flags;*/
 
 		memcpy(tr_state->svg_props, &backup_props, styling_size);
 		tr_state->svg_flags = backup_flags;
