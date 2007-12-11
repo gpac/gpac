@@ -119,6 +119,8 @@ static void get_codec_stats(GF_Codec *dec, ODInfo *info)
 
 GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo *info)
 {
+	GF_Channel *ch;
+
 	if (!term || !odm || !info) return GF_BAD_PARAM;
 	if (!gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
 
@@ -158,7 +160,6 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 		if (!ck) {
 			info->status = 4;
 		} else {
-			GF_Channel *ch;
 			info->status = gf_clock_is_started(ck) ? 1 : 2;
 			info->clock_drift = ck->drift;
 
@@ -172,6 +173,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 					buf += ch->BufferTime;
 				}
 				if (ch->is_protected) info->protection = ch->ipmp_tool ? 1 : 2;
+
 			}
 			if (buf) info->buffer = (s32) buf;
 		}
@@ -235,6 +237,8 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 	if (odm->subscene && odm->subscene->scene_codec) get_codec_stats(odm->subscene->scene_codec, info);
 	else if (odm->codec) get_codec_stats(odm->codec, info);
 
+	ch = (GF_Channel*)gf_list_get(odm->channels, 0);
+	if (ch && ch->esd->langDesc) info->lang = ch->esd->langDesc->langCode;
 	return GF_OK;
 }
 

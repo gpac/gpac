@@ -24,7 +24,7 @@
 
 #include <gpac/internal/compositor_dev.h>
 /*for user and terminal API (options and InputSensor)*/
-#include <gpac/terminal.h>
+#include <gpac/internal/terminal_dev.h>
 #include <gpac/options.h>
 
 #include "nodes_stacks.h"
