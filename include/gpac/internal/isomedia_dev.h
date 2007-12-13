@@ -567,10 +567,11 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	GF_List *entryList;
+	GF_SttsEntry *entries;
+	u32 nb_entries, alloc_size;
+
 #ifndef GPAC_READ_ONLY
 	/*cache for WRITE*/
-	GF_SttsEntry *w_currentEntry;
 	u32 w_currentSampleNum;
 	u64 w_LastDTS;
 #endif
@@ -580,6 +581,8 @@ typedef struct
 	u64 r_CurrentDTS;
 } GF_TimeToSampleBox;
 
+
+/*TO CHECK - it could be reasonnable to only use 16bits for both count and offset*/
 typedef struct
 {
 	u32 sampleCount;
@@ -589,10 +592,10 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	GF_List *entryList;
+	GF_DttsEntry *entries;
+	u32 nb_entries, alloc_size;
+
 #ifndef GPAC_READ_ONLY
-	/*Cache for write*/
-	GF_DttsEntry *w_currentEntry;
 	u32 w_LastSampleNumber;
 	/*force one sample per entry*/
 	Bool unpack_mode;

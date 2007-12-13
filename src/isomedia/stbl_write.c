@@ -26,6 +26,10 @@
 
 #ifndef GPAC_READ_ONLY
 
+/*macro used for table realloc*/
+//#define ALLOC_INC(a)	a += 5;
+#define ALLOC_INC(a)	a = a ? a*2 : 2;
+
 //adds a DTS in the table and get the sample number of this new sample
 //we could return an error if a sample with the same DTS already exists
 //but this is not true for QT or MJ2K, only for MP4...
@@ -33,7 +37,7 @@
 GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 LastAUDefDuration)
 {
 	u32 i, j, sampNum;
-	u64 *DTSs, *newDTSs, curDTS;
+	u64 *DTSs, curDTS;
 	GF_SttsEntry *ent;
 
 	GF_TimeToSampleBox *stts = stbl->TimeToSample;
@@ -42,136 +46,126 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 
 	*sampleNumber = 0;
 	//if we don't have an entry, that's the first one...
-	if (! gf_list_count(stts->entryList)) {
+	if (!stts->nb_entries) {
 		//assert the first DTS is 0. If not, that will break the whole file
 		if (DTS) return GF_BAD_PARAM;
-		ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
-		if (!ent) return GF_OUT_OF_MEM;
-		ent->sampleCount = 1;
-		ent->sampleDelta = LastAUDefDuration;
-		stts->w_currentEntry = ent;
+		stts->alloc_size = 1;
+		stts->nb_entries = 1;
+		stts->entries = malloc(sizeof(GF_SttsEntry));
+		if (!stts->entries) return GF_OUT_OF_MEM;
+		stts->entries[0].sampleCount = 1;
+		stts->entries[0].sampleDelta = LastAUDefDuration;
 		stts->w_currentSampleNum = (*sampleNumber) = 1;
-		return gf_list_add(stts->entryList, ent);
+		return GF_OK;
 	}
 
 	//check the last DTS...
 	if (DTS > stts->w_LastDTS) {
+		ent = &stts->entries[stts->nb_entries-1];
 		//OK, we're adding at the end
-		if (DTS == stts->w_LastDTS + stts->w_currentEntry->sampleDelta) {
-			stts->w_currentEntry->sampleCount ++;
+		if (DTS == stts->w_LastDTS + ent->sampleDelta) {
+			ent->sampleCount ++;
 			stts->w_currentSampleNum ++;
 			(*sampleNumber) = stts->w_currentSampleNum;
 			stts->w_LastDTS = DTS;
 			return GF_OK;
 		}
 		//we need to split the entry
-		if (stts->w_currentEntry->sampleCount == 1) {
+		if (ent->sampleCount == 1) {
 			//use this one and adjust...
-			stts->w_currentEntry->sampleDelta = (u32) (DTS - stts->w_LastDTS);
-			stts->w_currentEntry->sampleCount ++;
+			ent->sampleDelta = (u32) (DTS - stts->w_LastDTS);
+			ent->sampleCount ++;
 			stts->w_currentSampleNum ++;
 			stts->w_LastDTS = DTS;
 			(*sampleNumber) = stts->w_currentSampleNum;
 			return GF_OK;
 		}
 		//we definitely need to split the entry ;)
-		stts->w_currentEntry->sampleCount --;
-		ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
-		if (!ent) return GF_OUT_OF_MEM;
+		ent->sampleCount --;
+		if (stts->alloc_size==stts->nb_entries) {
+			ALLOC_INC(stts->alloc_size);
+			stts->entries = realloc(stts->entries, sizeof(GF_SttsEntry)*stts->alloc_size);
+			if (!stts->entries) return GF_OUT_OF_MEM;
+		}
+		ent = &stts->entries[stts->nb_entries];
+		stts->nb_entries++;
+
 		ent->sampleCount = 2;
 		ent->sampleDelta = (u32) (DTS - stts->w_LastDTS);
 		stts->w_LastDTS = DTS;
 		stts->w_currentSampleNum ++;
 		(*sampleNumber) = stts->w_currentSampleNum;
-		stts->w_currentEntry = ent;
-		return gf_list_add(stts->entryList, ent);
+		return GF_OK;
 	}
 
 
-	//unpack the DTSs...
-	DTSs = (u64*)malloc(sizeof(u64) * stbl->SampleSize->sampleCount);
+	//unpack the DTSs and locate new sample...
+	DTSs = (u64*)malloc(sizeof(u64) * (stbl->SampleSize->sampleCount+1) );
 	if (!DTSs) return GF_OUT_OF_MEM;
 	curDTS = 0;
 	sampNum = 0;
 	ent = NULL;
-	i=0;
-	while ((ent = (GF_SttsEntry *)gf_list_enum(stts->entryList, &i))) {
+	for (i=0; i<stts->nb_entries; i++) {
+		ent = & stts->entries[i];
 		for (j = 0; j<ent->sampleCount; j++) {
+			if (curDTS + ent->sampleDelta > DTS) {
+				DTSs[sampNum] = DTS;
+				sampNum++;
+				*sampleNumber = sampNum;
+			}
 			DTSs[sampNum] = curDTS;
 			curDTS += ent->sampleDelta;
 			sampNum ++;
 		}
 	}
-	//delete the table..
-	while (gf_list_count(stts->entryList)) {
-		ent = (GF_SttsEntry*)gf_list_get(stts->entryList, 0);
-		free(ent);
-		gf_list_rem(stts->entryList, 0);
+
+	/*we will at most insert 2 new entries*/
+	if (stts->nb_entries+2 >= stts->alloc_size) {
+		stts->alloc_size += 2;
+		stts->entries = realloc(stts->entries, sizeof(GF_SttsEntry)*stts->alloc_size);
+		if (!stts->entries) return GF_OUT_OF_MEM;
 	}
 
-	//create the new DTSs
-	newDTSs = (u64*)malloc(sizeof(u64) * (stbl->SampleSize->sampleCount + 1));
-	if (!newDTSs) return GF_OUT_OF_MEM;
-	i = 0;
-	while (i < stbl->SampleSize->sampleCount) {
-		if (DTSs[i] > DTS) break;
-		newDTSs[i] = DTSs[i];
-		i++;
-	}
-	//if we add a sample with the same DTS as an existing one, it's added after.
-	newDTSs[i] = DTS;
-	*sampleNumber = i+1;
-	for (; i<stbl->SampleSize->sampleCount; i++) {
-		newDTSs[i+1] = DTSs[i];
+	/*repack the DTSs*/
+	j=0;
+	stts->nb_entries = 1;
+	stts->entries[0].sampleCount = 1;
+	stts->entries[0].sampleDelta = (u32) DTSs[1] /* - (DTS[0] wichis 0)*/;
+	for (i=1; i<stbl->SampleSize->sampleCount+1; i++) {
+		if (i == stbl->SampleSize->sampleCount) {
+			//and by default, our last sample has the same delta as the prev
+			stts->entries[j].sampleCount++;
+		} else if (stts->entries[j].sampleDelta == (u32) ( DTSs[i+1] - DTSs[i]) ) {
+			stts->entries[j].sampleCount ++;
+		} else {
+			stts->nb_entries ++;
+			j++;
+			stts->entries[j].sampleCount = 1;
+			stts->entries[j].sampleDelta = (u32) (DTSs[i+1] - DTSs[i]);
+		}
 	}
 	free(DTSs);
 
-	//rewrite the table
-	ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
-	if (!ent) return GF_OUT_OF_MEM;
-	ent->sampleCount = 0;
-	ent->sampleDelta = (u32) newDTSs[1];
-	i = 0;
-	while (1) {
-		if (i == stbl->SampleSize->sampleCount) {
-			//and by default, our last sample has the same delta as the prev
-			ent->sampleCount++;
-			gf_list_add(stts->entryList, ent);
-			break;
-		}
-		if (newDTSs[i+1] - newDTSs[i] == ent->sampleDelta) {
-			ent->sampleCount += 1;
-		} else {
-			gf_list_add(stts->entryList, ent);
-			ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
-			if (!ent) return GF_OUT_OF_MEM;
-			ent->sampleCount = 1;
-			ent->sampleDelta = (u32) (newDTSs[i+1] - newDTSs[i]);
-		}
-		i++;
-	}
-	free(newDTSs);
 	//reset the cache to the end
-	stts->w_currentEntry = ent;
 	stts->w_currentSampleNum = stbl->SampleSize->sampleCount + 1;
 	return GF_OK;
 }
 
 GF_Err AddCompositionOffset(GF_CompositionOffsetBox *ctts, u32 offset)
 {
-	GF_DttsEntry *entry;
 	if (!ctts) return GF_BAD_PARAM;
 
-	entry = ctts->w_currentEntry;
-	if ( (entry == NULL) || (entry->decodingOffset != offset) ) {
-		entry = (GF_DttsEntry *) malloc(sizeof(GF_DttsEntry));
-		if (!entry) return GF_OUT_OF_MEM;
-		entry->sampleCount = 1;
-		entry->decodingOffset = offset;
-		gf_list_add(ctts->entryList, entry);
-		ctts->w_currentEntry = entry;
+	if (ctts->nb_entries && (ctts->entries[ctts->nb_entries-1].decodingOffset==offset)) {
+		ctts->entries[ctts->nb_entries-1].sampleCount++;
 	} else {
-		entry->sampleCount++;
+		if (ctts->alloc_size==ctts->nb_entries) {
+			ALLOC_INC(ctts->alloc_size);
+			ctts->entries = realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
+			if (!ctts->entries) return GF_OUT_OF_MEM;
+		}
+		ctts->entries[ctts->nb_entries].decodingOffset = offset;
+		ctts->entries[ctts->nb_entries].sampleCount = 1;
+		ctts->nb_entries++;
 	}
 	ctts->w_LastSampleNumber++;
 	return GF_OK;
@@ -180,29 +174,22 @@ GF_Err AddCompositionOffset(GF_CompositionOffsetBox *ctts, u32 offset)
 //adds a CTS offset for a new sample
 GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 CTSoffset)
 {
-	GF_DttsEntry *ent;
-	u32 i, j, count, sampNum, *CTSs, *newCTSs;
+	u32 i, j, sampNum, *CTSs;
 
 	GF_CompositionOffsetBox *ctts = stbl->CompositionOffset;
 
 	/*in unpack mode we're sure to have 1 ctts entry per sample*/
 	if (ctts->unpack_mode) {
-		ent = (GF_DttsEntry *) malloc(sizeof(GF_DttsEntry));
-		if (!ent) return GF_OUT_OF_MEM;
-		ent->sampleCount = 1;
-		ent->decodingOffset = CTSoffset;
-		return gf_list_add(ctts->entryList, ent);
-	}
-	/*move to last entry*/
-	if (!ctts->w_currentEntry) {
-		ctts->w_LastSampleNumber = 0;
-		count = gf_list_count(ctts->entryList);
-		for (i=0; i<count; i++) {
-			ctts->w_currentEntry = (GF_DttsEntry *)gf_list_get(ctts->entryList, i);
-			ctts->w_LastSampleNumber += ctts->w_currentEntry->sampleCount;
+		if (ctts->nb_entries==ctts->alloc_size) {
+			ALLOC_INC(ctts->alloc_size);
+			ctts->entries = realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
+			if (!ctts->entries) return GF_OUT_OF_MEM;
 		}
+		ctts->entries[ctts->nb_entries].decodingOffset = CTSoffset;
+		ctts->entries[ctts->nb_entries].sampleCount = 1;
+		ctts->nb_entries++;
+		return GF_OK;
 	}
-
 	//check if we're working in order...
 	if (ctts->w_LastSampleNumber < sampleNumber) {
 		//add some 0 till we get to the sample
@@ -213,105 +200,75 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 CTSoffset)
 	}
 
 	//NOPE we are inserting a sample...
-	CTSs = (u32*)malloc(sizeof(u32) * stbl->SampleSize->sampleCount);
+	CTSs = (u32*)malloc(sizeof(u32) * (stbl->SampleSize->sampleCount+1) );
 	if (!CTSs) return GF_OUT_OF_MEM;
 	sampNum = 0;
-	i=0;
-	while ((ent = (GF_DttsEntry *)gf_list_enum(ctts->entryList, &i))) {
-		for (j = 0; j<ent->sampleCount; j++) {
-			CTSs[sampNum] = ent->decodingOffset;
+	for (i=0; i<ctts->nb_entries; i++) {
+		for (j = 0; j<ctts->entries[i].sampleCount; j++) {
+			if (sampNum+1==sampleNumber) {
+				CTSs[sampNum] = CTSoffset;
+				sampNum ++;
+			}
+			CTSs[sampNum] = ctts->entries[i].decodingOffset;
 			sampNum ++;
 		}
 	}
 	
-	//delete the entries
-	while (gf_list_count(ctts->entryList)) {
-		ent = (GF_DttsEntry*)gf_list_get(ctts->entryList, 0);
-		free(ent);
-		gf_list_rem(ctts->entryList, 0);
+	/*we will at most add 2 new entries (spliting of an existing one)*/
+	if (ctts->nb_entries+2>=ctts->alloc_size) {
+		ctts->alloc_size += 2;
+		ctts->entries = realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
 	}
-	
-	//create the new CTS
-	newCTSs = (u32*)malloc(sizeof(u32) * (stbl->SampleSize->sampleCount + 1));
-	if (!newCTSs) return GF_OUT_OF_MEM;
-	j = 0;
-	for (i = 0; i < stbl->SampleSize->sampleCount; i++) {
-		if (i+1 == sampleNumber) {
-			newCTSs[i] = CTSoffset;
-			j = 1;
+
+	ctts->entries[0].sampleCount = 1;
+	ctts->entries[0].decodingOffset = CTSs[0];
+	ctts->nb_entries = 1;
+	j=0;
+	for (i=1; i<stbl->SampleSize->sampleCount + 1; i++) {
+		if (CTSs[i]==ctts->entries[j].decodingOffset) {
+			ctts->entries[j].sampleCount++;
+		} else {
+			j++;
+			ctts->nb_entries++;
+			ctts->entries[j].sampleCount = 1;
+			ctts->entries[j].decodingOffset = CTSs[i];
 		}
-		newCTSs[i+j] = CTSs[i];
 	}
 	free(CTSs);
-
-	//rewrite the table
-	ent = (GF_DttsEntry*)malloc(sizeof(GF_DttsEntry));
-	if (!ent) return GF_OUT_OF_MEM;
-	ent->sampleCount = 1;
-	ent->decodingOffset = newCTSs[0];
-	i = 1;
-	while (1) {
-		if (i == stbl->SampleSize->sampleCount) {
-			gf_list_add(ctts->entryList, ent);
-			break;
-		}
-		if (newCTSs[i] == ent->decodingOffset) {
-			ent->sampleCount += 1;
-		} else {
-			gf_list_add(ctts->entryList, ent);
-			ent = (GF_DttsEntry*)malloc(sizeof(GF_DttsEntry));
-			if (!ent) return GF_OUT_OF_MEM;
-			ent->sampleCount = 1;
-			ent->decodingOffset = newCTSs[i];
-		}
-		i++;
-	}
-	free(newCTSs);
-	//reset the cache to the end
-	ctts->w_currentEntry = ent;
-	//we've inserted a sample, therefore the last sample (n) has now number n+1
-	//we cannot use SampleCount because we have probably skipped some samples
-	//(we're calling AddCTS only if the sample gas a CTSOffset !!!)
+	
+	/*we've inserted a sample, therefore the last sample (n) has now number n+1
+	we cannot use SampleCount because we have probably skipped some samples
+	(we're calling AddCTS only if the sample has a CTSOffset !!!)*/
 	ctts->w_LastSampleNumber += 1;
 	return GF_OK;
 }
 
 GF_Err stbl_repackCTS(GF_CompositionOffsetBox *ctts)
 {
-	GF_DttsEntry *entry, *next;
-	GF_List *newTable;
-	u32 i, count;
+	u32 i, j;
+
 	if (!ctts->unpack_mode) return GF_OK;
 	ctts->unpack_mode = 0;
 
-	count = gf_list_count(ctts->entryList);
-	if (!count) return GF_OK;
-	newTable = gf_list_new();
-	entry = (GF_DttsEntry *)gf_list_get(ctts->entryList, 0);
-	ctts->w_LastSampleNumber = entry->sampleCount;
-
-	gf_list_add(newTable, entry);
-	for (i=1; i<count; i++) {
-		next = (GF_DttsEntry *)gf_list_get(ctts->entryList, i);
-		ctts->w_LastSampleNumber += next->sampleCount;
-		if (entry->decodingOffset != next->decodingOffset) {
-			entry = next;
-			gf_list_add(newTable, entry);
-			ctts->w_currentEntry = entry;
+	j=0;
+	for (i=1; i<ctts->nb_entries; i++) {
+		if (ctts->entries[i].decodingOffset==ctts->entries[j].decodingOffset) {
+			ctts->entries[j].sampleCount++;
 		} else {
-			entry->sampleCount += next->sampleCount;
-			free(next);
+			j++;
+			ctts->entries[j].sampleCount = 1;
+			ctts->entries[j].decodingOffset = ctts->entries[i].decodingOffset;
 		}
-	} 
-	gf_list_del(ctts->entryList);
-	ctts->entryList = newTable;
+	}
+	ctts->nb_entries=j+1;
+	/*note we don't realloc*/
 	return GF_OK;
 }
 
 GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 {
-	GF_DttsEntry *entry, *next;
-	u32 i, j, remain;
+	GF_DttsEntry *packed;
+	u32 i, j, remain, count;
 	GF_CompositionOffsetBox *ctts;
 	GF_List *newTable;
 	ctts = stbl->CompositionOffset;
@@ -319,27 +276,33 @@ GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 	ctts->unpack_mode = 1;
 	newTable = gf_list_new();
 
-	i=0;
-	while ((entry = (GF_DttsEntry *)gf_list_enum(ctts->entryList, &i))) {
-		gf_list_add(newTable, entry);
-		for (j=1; j<entry->sampleCount; j++) {
-			next = (GF_DttsEntry *)malloc(sizeof(GF_DttsEntry));
-			if (!next) return GF_OUT_OF_MEM;
-			next->decodingOffset = entry->decodingOffset;
-			next->sampleCount = 1;
-			gf_list_add(newTable, next);
+	packed = ctts->entries;
+	count = ctts->nb_entries;
+	ctts->entries = NULL;
+	ctts->nb_entries = 0;
+	ctts->alloc_size = 0;
+	for (i=0;i<count; i++) {
+		for (j=0; j<packed[i].sampleCount; j++) {
+			if (ctts->nb_entries == ctts->alloc_size) {
+				ALLOC_INC(ctts->alloc_size);
+				ctts->entries = realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
+			}
+			ctts->entries[ctts->nb_entries].decodingOffset = packed[i].decodingOffset;
+			ctts->entries[ctts->nb_entries].sampleCount = 1;
+			ctts->nb_entries++;
 		}
-		entry->sampleCount = 1;
 	}
-	gf_list_del(ctts->entryList);
-	ctts->entryList = newTable;
-	remain = stbl->SampleSize->sampleCount - gf_list_count(ctts->entryList);
+	free(packed);
+
+	remain = stbl->SampleSize->sampleCount - ctts->nb_entries;
 	while (remain) {
-		entry = (GF_DttsEntry *)malloc(sizeof(GF_DttsEntry));
-		if (!entry) return GF_OUT_OF_MEM;
-		entry->decodingOffset = 0;
-		entry->sampleCount = 1;
-		gf_list_add(ctts->entryList, entry);
+		if (ctts->nb_entries == ctts->alloc_size) {
+			ALLOC_INC(ctts->alloc_size);
+			ctts->entries = realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
+		}
+		ctts->entries[ctts->nb_entries].decodingOffset = 0;
+		ctts->entries[ctts->nb_entries].sampleCount = 1;
+		ctts->nb_entries++;
 		remain--;
 	}
 	return GF_OK;
@@ -394,7 +357,7 @@ GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size)
 	if (stsz->sampleCount + 1 == sampleNumber) {
 		if (!stsz->alloc_size) stsz->alloc_size = stsz->sampleCount;
 		if (stsz->sampleCount == stsz->alloc_size) {
-			stsz->alloc_size += 50;
+			ALLOC_INC(stsz->alloc_size);
 			stsz->sizes = realloc(stsz->sizes, sizeof(u32)*(stsz->alloc_size) );
 			if (!stsz->sizes) return GF_OUT_OF_MEM;
 		}
@@ -572,7 +535,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 			if (sampleNumber > stco->entryCount) {
 				if (!stco->alloc_size) stco->alloc_size = stco->entryCount;
 				if (stco->entryCount == stco->alloc_size) {
-					stco->alloc_size += 50;
+					ALLOC_INC(stco->alloc_size);
 					stco->offsets = (u32*)realloc(stco->offsets, sizeof(u32) * stco->alloc_size);
 					if (!stco->offsets) return GF_OUT_OF_MEM;
 				}
@@ -602,7 +565,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 		if (sampleNumber > co64->entryCount) {
 			if (!co64->alloc_size) co64->alloc_size = co64->entryCount;
 			if (co64->entryCount == co64->alloc_size) {
-				co64->alloc_size += 50;
+				ALLOC_INC(co64->alloc_size);
 				co64->offsets = (u64*)realloc(co64->offsets, sizeof(u64) * co64->alloc_size);
 				if (!co64->offsets) return GF_OUT_OF_MEM;
 			}
@@ -691,12 +654,10 @@ GF_Err stbl_SetChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u64 offset)
 
 GF_Err stbl_SetSampleCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 offset)
 {
-	u32 i, j, sampNum, *CTSs;
-	GF_DttsEntry *ent;
-
 	GF_CompositionOffsetBox *ctts = stbl->CompositionOffset;
 
-	
+	assert(ctts->unpack_mode);
+
 	//if we're setting the CTS of a sample we've skipped...
 	if (ctts->w_LastSampleNumber < sampleNumber) {
 		//add some 0 till we get to the sample
@@ -705,63 +666,7 @@ GF_Err stbl_SetSampleCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 offset)
 		}
 		return AddCompositionOffset(ctts, offset);
 	}
-	if (ctts->unpack_mode) {
-		GF_DttsEntry *dtts = (GF_DttsEntry *)gf_list_get(ctts->entryList, sampleNumber-1);
-		if (!dtts) return GF_BAD_PARAM;
-		dtts->decodingOffset = offset;
-		return GF_OK;
-	}
-
-	//NOPE we are inserting a sample...
-	CTSs = (u32*)malloc(sizeof(u32) * ctts->w_LastSampleNumber);
-	if (!CTSs) return GF_OUT_OF_MEM;
-	sampNum = 0;
-	i=0;
-	while ((ent = (GF_DttsEntry *)gf_list_enum(ctts->entryList, &i))) {
-		for (j = 0; j<ent->sampleCount; j++) {
-			if (sampNum + 1 == sampleNumber) {
-				CTSs[sampNum] = offset;
-			} else {
-				CTSs[sampNum] = ent->decodingOffset;
-			}
-			sampNum ++;
-		}
-	}
-	//delete the entries
-	while (gf_list_count(ctts->entryList)) {
-		ent = (GF_DttsEntry*)gf_list_get(ctts->entryList, 0);
-		free(ent);
-		gf_list_rem(ctts->entryList, 0);
-	}
-
-	//rewrite the table
-	ent = (GF_DttsEntry*)malloc(sizeof(GF_DttsEntry));
-	if (!ent) return GF_OUT_OF_MEM;
-	ent->sampleCount = 1;
-	ent->decodingOffset = CTSs[0];
-	i = 1;
-	//reset the read cache (entry insertion)
-	ctts->r_currentEntryIndex = 1;
-	ctts->r_FirstSampleInEntry = 1;
-	while (1) {
-		if (i == ctts->w_LastSampleNumber) {
-			gf_list_add(ctts->entryList, ent);
-			break;
-		}
-		if (CTSs[i] == ent->decodingOffset) {
-			ent->sampleCount += 1;
-		} else {
-			gf_list_add(ctts->entryList, ent);
-			ent = (GF_DttsEntry*)malloc(sizeof(GF_DttsEntry));
-			if (!ent) return GF_OUT_OF_MEM;
-			ent->sampleCount = 1;
-			ent->decodingOffset = CTSs[i];
-			ctts->r_FirstSampleInEntry = i;
-		}
-		if (i==sampleNumber) ctts->r_currentEntryIndex = gf_list_count(ctts->entryList) + 1;
-		i++;
-	}
-	free(CTSs);
+	ctts->entries[sampleNumber-1].decodingOffset = offset;
 	return GF_OK;
 }
 
@@ -889,10 +794,7 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 
 	//gasp, we're removing the only sample: empty the sample table 
 	if (stbl->SampleSize->sampleCount == 1) {
-		if (gf_list_count(stts->entryList)) {
-			gf_list_rem(stts->entryList, 0);
-		}
-		//update the reading cache
+		stts->nb_entries = 0;
 		stts->r_FirstSampleInEntry = stts->r_currentEntryIndex = 0;
 		stts->r_CurrentDTS = 0;
 		return GF_OK;
@@ -904,9 +806,9 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 	sampNum = 0;
 	ent = NULL;
 	k=0;
-	i=0;
-	while ((ent = (GF_SttsEntry *)gf_list_enum(stts->entryList, &i))) {
-		for (j = 0; j<ent->sampleCount; j++) {
+	for (i=0; i<stts->nb_entries; i++) {
+		ent = & stts->entries[i];
+		for (j=0; j<ent->sampleCount; j++) {
 			if (sampNum == sampleNumber - 1) {
 				k=1;
 			} else {
@@ -916,46 +818,31 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 			sampNum ++;
 		}
 	}
-	//delete the table..
-	while (gf_list_count(stts->entryList)) {
-		ent = (GF_SttsEntry*)gf_list_get(stts->entryList, 0);
-		free(ent);
-		gf_list_rem(stts->entryList, 0);
-	}
-
-	//rewrite the table
-	ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
-	if (!ent) return GF_OUT_OF_MEM;
-	ent->sampleCount = 0;
-	gf_list_add(stts->entryList, ent);
+	j=0;
+	stts->nb_entries = 1;
+	stts->entries[0].sampleCount = 1;
 	if (stbl->SampleSize->sampleCount == 2) {
-		ent->sampleDelta = LastAUDefDuration;
+		stts->entries[0].sampleDelta = LastAUDefDuration;
 	} else {
-		ent->sampleDelta = (u32) DTSs[1];
-		DTSs[0] = 0;
+		stts->entries[0].sampleDelta = (u32) DTSs[1] /*- DTS[0]==0 */;
 	}
-	i = 0;
-	while (1) {
-		if (i+2 == stbl->SampleSize->sampleCount) {
+	for (i=0; i<stbl->SampleSize->sampleCount-1; i++) {
+		if (i+1 == stbl->SampleSize->sampleCount-1) {
 			//and by default, our last sample has the same delta as the prev
-			ent->sampleCount++;
-			break;
-		}
-		if (DTSs[i+1] - DTSs[i] == ent->sampleDelta) {
-			ent->sampleCount += 1;
+			stts->entries[j].sampleCount++;
+		} else if (DTSs[i+1] - DTSs[i] == stts->entries[j].sampleDelta) {
+			stts->entries[j].sampleCount += 1;
 		} else {
-			ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
-			if (!ent) return GF_OUT_OF_MEM;
-			ent->sampleCount = 1;
-			ent->sampleDelta = (u32) (DTSs[i+1] - DTSs[i]);
-			gf_list_add(stts->entryList, ent);
+			j++;
+			stts->nb_entries++;
+			stts->entries[j].sampleCount = 1;
+			stts->entries[j].sampleDelta = (u32) (DTSs[i+1] - DTSs[i]);
 		}
 		i++;
 	}
 	stts->w_LastDTS = DTSs[stbl->SampleSize->sampleCount - 2];
 	free(DTSs);
 	//reset write the cache to the end
-	stts->w_currentEntry = ent;
 	stts->w_currentSampleNum = stbl->SampleSize->sampleCount - 1;
 	//reset read the cache to the begining
 	stts->r_FirstSampleInEntry = stts->r_currentEntryIndex = 0;
@@ -967,12 +854,8 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 //always called before removing the sample from SampleSize
 GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber)
 {
-	u32 *CTSs;
-	u32 sampNum, i, j, k, count;
-	GF_DttsEntry *ent;
-	GF_CompositionOffsetBox *ctts;
-
-	ctts = stbl->CompositionOffset;
+	GF_CompositionOffsetBox *ctts = stbl->CompositionOffset;
+	assert(ctts->unpack_mode);
 
 	//last one...
 	if (stbl->SampleSize->sampleCount == 1) {
@@ -985,66 +868,10 @@ GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber)
 	//instead, use the cache
 	//first case, we're removing a sample that was not added yet
 	if (sampleNumber > ctts->w_LastSampleNumber) return GF_OK;
-	//No, the sample was here...
-	//this is the only one we have.
-	if (ctts->w_LastSampleNumber == 1) {
-		gf_isom_box_del((GF_Box *) ctts);
-		stbl->CompositionOffset = NULL;
-		return GF_OK;
-	}
-	CTSs = (u32*)malloc(sizeof(u32) * (ctts->w_LastSampleNumber - 1));
-	if (!CTSs) return GF_OUT_OF_MEM;
-	sampNum = 0;
-	k = 0;
-	count = gf_list_count(ctts->entryList);
-	for (i=0; i<count; i++) {
-		ent = (GF_DttsEntry*)gf_list_get(ctts->entryList, i);
-		for (j = 0; j<ent->sampleCount; j++) {
-			if (sampNum + 1 == sampleNumber) {
-				k = 1;
-			} else {
-				CTSs[sampNum-k] = ent->decodingOffset;
-			}
-			sampNum ++;
-		}
-	}
-	
-	//delete the entries
-	while (gf_list_count(ctts->entryList)) {
-		ent = (GF_DttsEntry*)gf_list_get(ctts->entryList, 0);
-		free(ent);
-		gf_list_rem(ctts->entryList, 0);
-	}
-	
 
-	//rewrite the table
-	ent = (GF_DttsEntry*)malloc(sizeof(GF_DttsEntry));
-	if (!ent) return GF_OUT_OF_MEM;
-	ent->sampleCount = 1;
-	ent->decodingOffset = CTSs[0];
-	i = 1;
-	while (1) {
-		if (i+1 == ctts->w_LastSampleNumber) {
-			gf_list_add(ctts->entryList, ent);
-			break;
-		}
-		if (CTSs[i] == ent->decodingOffset) {
-			ent->sampleCount += 1;
-		} else {
-			gf_list_add(ctts->entryList, ent);
-			ent = (GF_DttsEntry*)malloc(sizeof(GF_DttsEntry));
-			if (!ent) return GF_OUT_OF_MEM;
-			ent->sampleCount = 1;
-			ent->decodingOffset = CTSs[i];
-		}
-		i++;
-	}
-	free(CTSs);
-	//reset the cache to the end
-	ctts->w_currentEntry = ent;
-	//we've removed a sample, therefore the last sample (n) has now number n-1
-	//we cannot use SampleCount because we have probably skipped some samples
-	//(we're calling AddCTS only if the sample gas a CTSOffset !!!)
+	ctts->nb_entries--;
+	memmove(&ctts->entries[sampleNumber-1], &ctts->entries[sampleNumber], sizeof(GF_DttsEntry)*ctts->nb_entries);
+
 	ctts->w_LastSampleNumber -= 1;
 	return GF_OK;
 }
@@ -1415,22 +1242,22 @@ GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size)
 
 void stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration)
 {
-	GF_SttsEntry *ent;
-	u32 count;
-	count = gf_list_count(stbl->TimeToSample->entryList);
-	if (count) {
-		ent = (GF_SttsEntry *)gf_list_get(stbl->TimeToSample->entryList, count-1);
-		if (ent->sampleDelta == duration) {
-			ent->sampleCount += 1;
+	GF_TimeToSampleBox *stts = stbl->TimeToSample;
+
+	if (stts->nb_entries) {
+		if (stts->entries[stts->nb_entries-1].sampleDelta == duration) {
+			stts->entries[stts->nb_entries-1].sampleCount += 1;
 			return;
 		}
 	}
-	//nope need a new entry
-	ent = (GF_SttsEntry *)malloc(sizeof(GF_SttsEntry));
-	if (!ent) return;
-	ent->sampleCount = 1;
-	ent->sampleDelta = duration;
-	gf_list_add(stbl->TimeToSample->entryList, ent);
+	if (stts->nb_entries==stts->alloc_size) {
+		ALLOC_INC(stts->alloc_size);
+		stts->entries = realloc(stts->entries, sizeof(GF_SttsEntry)*stts->alloc_size);
+		if (!stts->entries) return;
+	}
+	stts->entries[stts->nb_entries].sampleCount = 1;
+	stts->entries[stts->nb_entries].sampleDelta = duration;
+	stts->nb_entries++;
 }
 
 void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size)
@@ -1581,24 +1408,23 @@ void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding)
 
 void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, u32 CTSOffset)
 {
-	u32 count;
-	GF_DttsEntry *ent;
+	GF_CompositionOffsetBox *ctts;
 
 	if (!stbl->CompositionOffset) stbl->CompositionOffset = (GF_CompositionOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CTTS);
+	
+	ctts = stbl->CompositionOffset;
 
-	count = gf_list_count(stbl->CompositionOffset->entryList);
-	if (count) {
-		ent = (GF_DttsEntry *)gf_list_get(stbl->CompositionOffset->entryList, count-1);
-		if (ent->decodingOffset == CTSOffset) {
-			ent->sampleCount ++;
-			return;
-		}
+	if (ctts->nb_entries && (ctts->entries[ctts->nb_entries-1].decodingOffset == CTSOffset) ){
+		ctts->entries[ctts->nb_entries-1].sampleCount++;
+		return;
 	}
-	ent = (GF_DttsEntry *)malloc(sizeof(GF_DttsEntry));
-	if (!ent) return;
-	ent->sampleCount = 1;
-	ent->decodingOffset = CTSOffset;
-	gf_list_add(stbl->CompositionOffset->entryList, ent);
+	if (ctts->nb_entries==ctts->alloc_size) {
+		ALLOC_INC(ctts->alloc_size);
+		ctts->entries = realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
+	}
+	ctts->entries[ctts->nb_entries].decodingOffset = CTSOffset;
+	ctts->entries[ctts->nb_entries].sampleCount = 1;
+	ctts->nb_entries++;
 }
 
 void stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority)

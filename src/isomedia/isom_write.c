@@ -795,6 +795,7 @@ GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 
 {
 	GF_TrackBox *trak;
 	GF_SttsEntry *ent;
+	GF_TimeToSampleBox *stts;
 	u64 mdur;
 	GF_Err e;
 
@@ -805,9 +806,10 @@ GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 
 	if (!trak) return GF_BAD_PARAM;
 
 	mdur = trak->Media->mediaHeader->duration;
+	stts = trak->Media->information->sampleTable->TimeToSample;
+	if (!stts->nb_entries) return GF_BAD_PARAM;
 	//get the last entry
-	ent = (GF_SttsEntry*)gf_list_get(trak->Media->information->sampleTable->TimeToSample->entryList, gf_list_count(trak->Media->information->sampleTable->TimeToSample->entryList)-1);
-	if (!ent) return GF_BAD_PARAM;
+	ent = (GF_SttsEntry*) &stts->entries[stts->nb_entries-1];
 
 	mdur -= ent->sampleDelta;
 	if (duration) {
@@ -818,14 +820,17 @@ GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 
 		} else {
 			if (ent->sampleDelta == duration) return GF_OK;
 			ent->sampleCount -= 1;
-			ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
-			ent->sampleCount = 1;
-			ent->sampleDelta = duration;
-			//add this entry
-			gf_list_add(trak->Media->information->sampleTable->TimeToSample->entryList, ent);
+
+			if (stts->nb_entries==stts->alloc_size) {
+				stts->alloc_size++;
+				stts->entries = realloc(stts->entries, sizeof(GF_SttsEntry)*stts->alloc_size);
+				if (!stts->entries) return GF_OUT_OF_MEM;
+			}
+			stts->entries[stts->nb_entries].sampleCount = 1;
+			stts->entries[stts->nb_entries].sampleDelta = duration;
+			stts->nb_entries++;
 			//and update the write cache
-			trak->Media->information->sampleTable->TimeToSample->w_currentEntry = ent;
-			trak->Media->information->sampleTable->TimeToSample->w_currentSampleNum = trak->Media->information->sampleTable->SampleSize->sampleCount;
+			stts->w_currentSampleNum = trak->Media->information->sampleTable->SampleSize->sampleCount;
 		}
 	}
 	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
@@ -914,6 +919,9 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 
 	//block for hint tracks
 	if (trak->Media->handler->handlerType == GF_ISOM_MEDIA_HINT) return GF_BAD_PARAM;
+
+	e = unpack_track(trak);
+	if (e) return e;
 
 	//remove DTS
 	e = stbl_RemoveDTS(trak->Media->information->sampleTable, sampleNumber, trak->Media->mediaHeader->timeScale);
@@ -2762,14 +2770,12 @@ GF_Err gf_isom_set_track_id(GF_ISOFile *movie, u32 trackNumber, u32 trackID)
 GF_EXPORT
 GF_Err gf_isom_modify_cts_offset(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, u32 offset)
 {
-	GF_DttsEntry *ent;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 	if (!trak->Media->information->sampleTable->CompositionOffset) return GF_BAD_PARAM;
 	if (!trak->Media->information->sampleTable->CompositionOffset->unpack_mode) return GF_BAD_PARAM;
-	ent = (GF_DttsEntry *)gf_list_get(trak->Media->information->sampleTable->CompositionOffset->entryList, sample_number - 1);
-	if (!ent) return GF_BAD_PARAM;
-	ent->decodingOffset = offset;
+	/*we're in unpack mode: one entry per sample*/
+	trak->Media->information->sampleTable->CompositionOffset->entries[sample_number - 1].decodingOffset = offset;
 	return GF_OK;
 }
 

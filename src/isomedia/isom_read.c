@@ -971,16 +971,14 @@ Bool gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber)
 {
 	u32 i;
 	GF_CompositionOffsetBox *ctts;
-	GF_DttsEntry *pe;
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media->information->sampleTable->CompositionOffset) return 0;
 
 	//return true at the first offset found
 	ctts = trak->Media->information->sampleTable->CompositionOffset;
-	i=0;
-	while ((pe = (GF_DttsEntry*)gf_list_enum(ctts->entryList, &i))) {
-		if (pe->decodingOffset && pe->sampleCount) return 1;
+	for (i=0; i<ctts->nb_entries; i++) {
+		if (ctts->entries[i].decodingOffset && ctts->entries[i].sampleCount) return 1;
 	}
 	return 0;
 }
@@ -1586,7 +1584,6 @@ u32 gf_isom_get_max_chunk_duration(GF_ISOFile *movie, u32 trackNumber)
 	GF_SampleToChunkBox *stsc;
 	GF_TimeToSampleBox *stts;
 	GF_StscEntry *sc;
-	GF_SttsEntry *ts;
 	if (!movie || !trackNumber || !movie->moov) return 0;
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return 0;
@@ -1600,9 +1597,8 @@ u32 gf_isom_get_max_chunk_duration(GF_ISOFile *movie, u32 trackNumber)
 		if (sc->samplesPerChunk > sample_per_chunk) sample_per_chunk = sc->samplesPerChunk;
 	}
 	sample_dur = 0;
-	i=0;
-	while ((ts = (GF_SttsEntry *)gf_list_enum(stts->entryList, &i))) {
-		if (ts->sampleDelta > sample_dur) sample_dur = ts->sampleDelta;
+	for (i=0; i<stts->nb_entries; i++) {
+		if (stts->entries[i].sampleDelta > sample_dur) sample_dur = stts->entries[i].sampleDelta;
 	}
 	
 	//rescale to ms
@@ -1639,7 +1635,6 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 							 u32 *defaultRandomAccess, u8 *defaultPadding, u16 *defaultDegradationPriority)
 {
 	GF_TrackBox *trak;
-	GF_SttsEntry *ts_ent;
 	GF_StscEntry *sc_ent;
 	u32 i, j, maxValue, value;
 	GF_SampleTableBox *stbl;
@@ -1650,11 +1645,10 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 	//duration
 	if (defaultDuration) {
 		maxValue = value = 0;
-		i=0;
-		while ((ts_ent = (GF_SttsEntry *)gf_list_enum(stbl->TimeToSample->entryList, &i))) {
-			if (ts_ent->sampleCount>maxValue) {
-				value = ts_ent->sampleDelta;
-				maxValue = ts_ent->sampleCount;
+		for (i=0; i<stbl->TimeToSample->nb_entries; i++) {
+			if (stbl->TimeToSample->entries[i].sampleCount>maxValue) {
+				value = stbl->TimeToSample->entries[i].sampleDelta;
+				maxValue = stbl->TimeToSample->entries[i].sampleCount;
 			}
 		}
 		*defaultDuration = value;

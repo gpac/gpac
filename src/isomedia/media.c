@@ -96,7 +96,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 		memset(szName, 0, 80);
 		strcpy(szName, "QCELP-13K(GPAC-emulated)");
 		gf_bs_write_data(bs, szName, 80);
-		ent = (GF_SttsEntry*)gf_list_get(stbl->TimeToSample->entryList, 0);
+		ent = &stbl->TimeToSample->entries[0];
 		sample_rate = entry->samplerate_hi;
 		block_size = ent ? ent->sampleDelta : 160;
 		gf_bs_write_u16_le(bs, 8*sample_size*sample_rate/block_size);
@@ -508,7 +508,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 		//we assume a constant frame rate for the media and assume the last sample
 		//will be hold the same time as the prev one
 		stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS);
-		ent = (GF_SttsEntry*)gf_list_last(trak->Media->information->sampleTable->TimeToSample->entryList);
+		ent = &trak->Media->information->sampleTable->TimeToSample->entries[trak->Media->information->sampleTable->TimeToSample->nb_entries-1];
 		trak->Media->mediaHeader->duration = DTS;
 
 #if 1

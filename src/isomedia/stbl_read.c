@@ -59,7 +59,7 @@ GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sample
 			stbl_GetSampleCTS(stbl->CompositionOffset, curSampNum, &CTSOffset);
 			//we're too far, rewind
 			if ( i && (curDTS + CTSOffset > DTS) ) {
-				ent = (GF_SttsEntry*)gf_list_get(stbl->TimeToSample->entryList, i);
+				ent = &stbl->TimeToSample->entries[i];
 				curSampNum -= ent->sampleCount;
 				curDTS -= ent->sampleDelta * ent->sampleCount;
 				i --;
@@ -77,9 +77,9 @@ GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sample
 	}
 
 	//look for the DTS from this entry
-	count = gf_list_count(stbl->TimeToSample->entryList);
+	count = stbl->TimeToSample->nb_entries;
 	for (; i<count; i++) {
-		ent = (GF_SttsEntry*)gf_list_get(stbl->TimeToSample->entryList, i);
+		ent = &stbl->TimeToSample->entries[i];
 		if (useCTS) {
 			stbl_GetSampleCTS(stbl->CompositionOffset, curSampNum, &CTSOffset);
 		} else {
@@ -137,11 +137,9 @@ GF_Err stbl_GetSampleSize(GF_SampleSizeBox *stsz, u32 SampleNumber, u32 *Size)
 //Get the CTS offset of a given sample
 GF_Err stbl_GetSampleCTS(GF_CompositionOffsetBox *ctts, u32 SampleNumber, u32 *CTSoffset)
 {
-	u32 i, count;
-	GF_DttsEntry *ent;
+	u32 i;
 
 	(*CTSoffset) = 0;
-	ent = NULL;
 	//test on SampleNumber is done before
 	if (!ctts || !SampleNumber) return GF_BAD_PARAM;
 
@@ -152,19 +150,17 @@ GF_Err stbl_GetSampleCTS(GF_CompositionOffsetBox *ctts, u32 SampleNumber, u32 *C
 		ctts->r_currentEntryIndex = 0;
 		i = 0;
 	}
-	count = gf_list_count(ctts->entryList);
-	for (; i< count; i++) {
-		ent = (GF_DttsEntry*)gf_list_get(ctts->entryList, i);
-		if (SampleNumber < ctts->r_FirstSampleInEntry + ent->sampleCount) break;
+	for (; i< ctts->nb_entries; i++) {
+		if (SampleNumber < ctts->r_FirstSampleInEntry + ctts->entries[i].sampleCount) break;
 		//update our cache
 		ctts->r_currentEntryIndex += 1;
-		ctts->r_FirstSampleInEntry += ent->sampleCount;
+		ctts->r_FirstSampleInEntry += ctts->entries[i].sampleCount;
 	}
 	//no ent, set everything to 0...
-	if (!ent) return GF_OK;
+	if (i==ctts->nb_entries) return GF_OK;
 	/*asked for a sample not in table - this means CTTS is 0 (that's due to out internal packing construction of CTTS)*/
-	if (SampleNumber >= ctts->r_FirstSampleInEntry + ent->sampleCount) return GF_OK;
-	(*CTSoffset) = ent->decodingOffset;
+	if (SampleNumber >= ctts->r_FirstSampleInEntry + ctts->entries[i].sampleCount) return GF_OK;
+	(*CTSoffset) = ctts->entries[i].decodingOffset;
 	return GF_OK;
 }
 
@@ -179,7 +175,7 @@ GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS)
 
 	ent = NULL;
 	//use our cache
-	count = gf_list_count(stts->entryList);
+	count = stts->nb_entries;
 	if (stts->r_FirstSampleInEntry 
 		&& (stts->r_FirstSampleInEntry <= SampleNumber)
 		//this is for read/write access
@@ -193,7 +189,7 @@ GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS)
 	}
 
 	for (; i < count; i++) {
-		ent = (GF_SttsEntry*)gf_list_get(stts->entryList, i);
+		ent = &stts->entries[i];
 
 		//in our entry
 		if (ent->sampleCount + stts->r_FirstSampleInEntry >= 1 + SampleNumber) {
