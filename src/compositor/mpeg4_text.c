@@ -59,8 +59,9 @@ typedef struct
 
 typedef struct
 {
-	Fixed last_zoom;
 	GF_TextSpan *span;
+
+	Fixed last_zoom;
 	GF_TextureHandler *txh;
 	/*texture path (rectangle)*/
 	GF_Path *path;
@@ -144,7 +145,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 		char *str = txt->string.vals[i];
 		if (!str) continue;
 
-		tspan = gf_font_manager_create_span(ft_mgr, font, str, fontSize);
+		tspan = gf_font_manager_create_span(ft_mgr, font, str, fontSize, 0, 0);
 		len = tspan->nb_glyphs;
 		tspan->horizontal = 1;
 
@@ -256,7 +257,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		char *str = txt->string.vals[i];
 		if (!str) continue;
 
-		tspan = gf_font_manager_create_span(ft_mgr, font, txt->string.vals[i], fontSize);
+		tspan = gf_font_manager_create_span(ft_mgr, font, txt->string.vals[i], fontSize, 0, 0);
 		if (!tspan) continue;
 		
 		GF_SAFEALLOC(line, GF_TextLine);
@@ -847,63 +848,7 @@ static void text_draw_3d(GF_TraverseState *tr_state, GF_Node *node, TextStack *s
 #endif
 
 
-void text_draw_tspan_2d(GF_TraverseState *tr_state, GF_TextSpan *span, DrawableContext *ctx)
-{
-	u32 flags, i;
-	Fixed dx, dy, sx, sy, lscale;
-	Bool has_texture = ctx->aspect.fill_texture ? 1 : 0;
-	GF_Matrix2D mx, tx;
 
-	gf_mx2d_copy(mx, ctx->transform);
-
-	flags = ctx->flags;
-	dx = span->off_x;
-	dy = span->off_y;
-	sx = gf_mulfix(span->font_scale, span->x_scale);
-	sy = gf_mulfix(span->font_scale, span->y_scale);
-
-	lscale = ctx->aspect.line_scale;
-	ctx->aspect.line_scale = gf_divfix(ctx->aspect.line_scale, span->font_scale);
-
-	for (i=0; i<span->nb_glyphs; i++) {
-		if (!span->glyphs[i]) {
-			if (span->horizontal) {
-				dx += sx * span->font->max_advance_h;
-			} else {
-				dy -= sy * span->font->max_advance_v;
-			}
-			continue;
-		}
-		ctx->transform.m[0] = sx;
-		ctx->transform.m[4] = sy;
-		ctx->transform.m[1] = ctx->transform.m[3] = 0;
-		ctx->transform.m[2] = dx;
-		ctx->transform.m[5] = dy;
-		gf_mx2d_add_matrix(&ctx->transform, &mx);
-
-		if (has_texture) {
-			tx.m[0] = sx;
-			tx.m[4] = sy;
-			tx.m[1] = tx.m[3] = 0;
-			tx.m[2] = dx;
-			tx.m[5] = dy;
-			gf_mx2d_inverse(&tx);
-
-			visual_2d_texture_path_extended(tr_state->visual, span->glyphs[i]->path, ctx->aspect.fill_texture, ctx, &span->bounds, &tx);
-		}
-
-		visual_2d_draw_path(tr_state->visual, span->glyphs[i]->path, ctx, NULL, NULL);
-		ctx->flags = flags;
-
-		if (span->horizontal) {
-			dx += sx * span->glyphs[i]->horiz_advance;
-		} else {
-			dy -= sy * span->glyphs[i]->vert_advance;
-		}
-	}
-	gf_mx2d_copy(ctx->transform, mx);
-	ctx->aspect.line_scale = lscale;
-}
 
 void text_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 {
@@ -959,7 +904,7 @@ void text_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 		if (use_texture_text && text_setup_span_texture(tr_state->visual->compositor, line, 0)) {
 			visual_2d_texture_path_text(tr_state->visual, ctx, line->path, &line->span->bounds, line->txh);
 		} else {
-			text_draw_tspan_2d(tr_state, line->span, ctx);
+			gf_font_span_draw_2d(tr_state, line->span, ctx);
 		}
 		if (ctx->sub_path_index) break;
 	}

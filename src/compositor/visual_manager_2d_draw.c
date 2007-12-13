@@ -94,7 +94,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 	/*background & direct drawing : use ctx clip*/
 	if ((ctx->flags & CTX_IS_BACKGROUND) || !visual->to_redraw.count) {
 		if (ctx->bi->clip.width && ctx->bi->clip.height) {
-			raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
+//			raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
 			raster->surface_fill(visual->raster_surface, stencil);
 		}
 	} 
@@ -109,7 +109,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &visual->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				raster->surface_set_clipper(visual->raster_surface, &clip);
+//				raster->surface_set_clipper(visual->raster_surface, &clip);
 				raster->surface_fill(visual->raster_surface, stencil);
 			}
 		}
