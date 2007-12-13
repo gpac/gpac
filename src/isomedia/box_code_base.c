@@ -311,20 +311,8 @@ GF_Err cprt_Size(GF_Box *s)
 
 void ctts_del(GF_Box *s)
 {
-	u32 entryCount;
-	u32 i;
-	GF_DttsEntry *pe;
 	GF_CompositionOffsetBox *ptr = (GF_CompositionOffsetBox *)s;
-	if (ptr == NULL) return;
-	
-	if (ptr->entryList) {
-		entryCount = gf_list_count(ptr->entryList);
-		for ( i = 0; i < entryCount; i++ ) {
-			pe = (GF_DttsEntry*)gf_list_get(ptr->entryList, i);
-			if (pe) free(pe);	
-		}
-		gf_list_del(ptr->entryList);
-	}
+	if (ptr->entries) free(ptr->entries);
 	free(ptr);
 }
 
@@ -333,31 +321,23 @@ void ctts_del(GF_Box *s)
 GF_Err ctts_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 entries;
-	u32 entryCount;
-	u32 count, sampleCount;
-	s32 decodingOffset;
-	GF_DttsEntry *p;
+	u32 i;
+	u32 sampleCount;
 	GF_CompositionOffsetBox *ptr = (GF_CompositionOffsetBox *)s;
 	
-	p = NULL;
-
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	entryCount = gf_bs_read_u32(bs);
+	ptr->nb_entries = gf_bs_read_u32(bs);
+	ptr->alloc_size = ptr->nb_entries;
+	ptr->entries = malloc(sizeof(GF_DttsEntry)*ptr->alloc_size);
+	if (!ptr->entries) return GF_OUT_OF_MEM;
 	sampleCount = 0;
-	for ( entries = 0; entries < entryCount; entries++ ) {
-		p = (GF_DttsEntry *) malloc(sizeof(GF_DttsEntry));
-		if (!p) return GF_OUT_OF_MEM;
-		count = gf_bs_read_u32(bs);
-		decodingOffset = gf_bs_read_u32(bs);
-		p->sampleCount = count;
-		sampleCount += count;
-		p->decodingOffset = decodingOffset;
-		gf_list_add(ptr->entryList, p);
+	for (i=0; i<ptr->nb_entries; i++) {
+		ptr->entries[i].sampleCount = gf_bs_read_u32(bs);
+		ptr->entries[i].decodingOffset = gf_bs_read_u32(bs);
+		sampleCount += ptr->entries[i].sampleCount;
 	}
 #ifndef GPAC_READ_ONLY
-	ptr->w_currentEntry = p;
 	ptr->w_LastSampleNumber = sampleCount;
 #endif
 	return GF_OK;
@@ -372,11 +352,6 @@ GF_Box *ctts_New()
 	memset(tmp, 0, sizeof(GF_CompositionOffsetBox));
 
 	gf_isom_full_box_init((GF_Box *) tmp);
-	tmp->entryList = gf_list_new();
-	if (! tmp->entryList) {
-		free(tmp);
-		return NULL;
-	}
 	tmp->type = GF_ISOM_BOX_TYPE_CTTS;
 	return (GF_Box *) tmp;
 }
@@ -390,20 +365,14 @@ GF_Err ctts_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 i;
-	u32 entryCount;
-	GF_DttsEntry *p;
 	GF_CompositionOffsetBox *ptr = (GF_CompositionOffsetBox *)s;
 	
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-    entryCount = gf_list_count(ptr->entryList);
-	gf_bs_write_u32(bs, entryCount);
-	for ( i = 0; i < entryCount; i++ ) {
-		p = (GF_DttsEntry*)gf_list_get(ptr->entryList, i);
-		if (p) {
-			gf_bs_write_u32(bs, p->sampleCount);
-			gf_bs_write_u32(bs, p->decodingOffset);
-		}
+	gf_bs_write_u32(bs, ptr->nb_entries);
+	for (i=0; i<ptr->nb_entries; i++ ) {
+		gf_bs_write_u32(bs, ptr->entries[i].sampleCount);
+		gf_bs_write_u32(bs, ptr->entries[i].decodingOffset);
 	}
 	return GF_OK;
 }
@@ -411,13 +380,11 @@ GF_Err ctts_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err ctts_Size(GF_Box *s)
 {
 	GF_Err e;
-	u32 entryCount;
 	GF_CompositionOffsetBox *ptr = (GF_CompositionOffsetBox *) s;
 
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	entryCount = gf_list_count(ptr->entryList);
-	ptr->size += 4 + (8 * entryCount);
+	ptr->size += 4 + (8 * ptr->nb_entries);
 	return GF_OK;
 }
 
@@ -5639,16 +5606,8 @@ GF_Err stsz_Size(GF_Box *s)
 
 void stts_del(GF_Box *s)
 {
-	GF_SttsEntry *ent;
 	GF_TimeToSampleBox *ptr = (GF_TimeToSampleBox *)s;
-	if (ptr == NULL) return;
-	if (ptr->entryList) {
-		u32 i=0;
-		while ((ent = (GF_SttsEntry *)gf_list_enum(ptr->entryList, &i))) {
-			free(ent);
-		}
-		gf_list_del(ptr->entryList);
-	}
+	if (ptr->entries) free(ptr->entries);
 	free(ptr);
 }
 
@@ -5657,34 +5616,29 @@ GF_Err stts_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 i;
-	u32 entryCount;
-	GF_SttsEntry *ent;
 	GF_TimeToSampleBox *ptr = (GF_TimeToSampleBox *)s;
 
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 
-	ent = NULL;
 #ifndef GPAC_READ_ONLY
 	ptr->w_LastDTS = 0;
 #endif
-	entryCount = gf_bs_read_u32(bs);
-	for (i = 0; i < entryCount; i++) {
-		ent = (GF_SttsEntry *) malloc(sizeof(GF_SttsEntry));
-		if (! ent) return GF_OUT_OF_MEM;
-		ent->sampleCount = gf_bs_read_u32(bs);
-		ent->sampleDelta = gf_bs_read_u32(bs);
-		e = gf_list_add(ptr->entryList, ent);
-		if (e) return e;
+	ptr->nb_entries = gf_bs_read_u32(bs);
+	ptr->alloc_size = ptr->nb_entries;
+	ptr->entries = malloc(sizeof(GF_SttsEntry)*ptr->alloc_size);
+	if (!ptr->entries) return GF_OUT_OF_MEM;
+	for (i=0; i<ptr->nb_entries; i++) {
+		ptr->entries[i].sampleCount = gf_bs_read_u32(bs);
+		ptr->entries[i].sampleDelta = gf_bs_read_u32(bs);
 #ifndef GPAC_READ_ONLY
-		ptr->w_currentEntry = ent;
-		ptr->w_currentSampleNum += ent->sampleCount;
-		ptr->w_LastDTS += ent->sampleCount * ent->sampleDelta;
+		ptr->w_currentSampleNum += ptr->entries[i].sampleCount;
+		ptr->w_LastDTS += ptr->entries[i].sampleCount * ptr->entries[i].sampleDelta;
 #endif
 	}
 	//remove the last sample delta.
 #ifndef GPAC_READ_ONLY
-	if (ent) ptr->w_LastDTS -= ent->sampleDelta;
+	if (ptr->nb_entries) ptr->w_LastDTS -= ptr->entries[ptr->nb_entries-1].sampleDelta;
 #endif
 	return GF_OK;
 }
@@ -5695,11 +5649,6 @@ GF_Box *stts_New()
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_TimeToSampleBox));
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->entryList = gf_list_new();
-	if (!tmp->entryList) {
-		free(tmp);
-		return NULL;
-	}
 	tmp->type = GF_ISOM_BOX_TYPE_STTS;
 	return (GF_Box *)tmp;
 }
@@ -5711,16 +5660,14 @@ GF_Err stts_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 i;
-	GF_SttsEntry *ent;
 	GF_TimeToSampleBox *ptr = (GF_TimeToSampleBox *)s;
 	
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_u32(bs, gf_list_count(ptr->entryList));
-	i=0;
-	while ((ent = (GF_SttsEntry *)gf_list_enum(ptr->entryList, &i))) {
-		gf_bs_write_u32(bs, ent->sampleCount);
-		gf_bs_write_u32(bs, ent->sampleDelta);
+	gf_bs_write_u32(bs, ptr->nb_entries);
+	for (i=0; i<ptr->nb_entries;i++) {
+		gf_bs_write_u32(bs, ptr->entries[i].sampleCount);
+		gf_bs_write_u32(bs, ptr->entries[i].sampleDelta);
 	}
 	return GF_OK;
 }
@@ -5731,7 +5678,7 @@ GF_Err stts_Size(GF_Box *s)
 	GF_TimeToSampleBox *ptr = (GF_TimeToSampleBox *)s;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	ptr->size += 4 + (8 * gf_list_count(ptr->entryList));
+	ptr->size += 4 + (8 * ptr->nb_entries);
 	return GF_OK;
 }
 

@@ -888,16 +888,14 @@ GF_Err stts_dump(GF_Box *a, FILE * trace)
 {
 	GF_TimeToSampleBox *p;
 	u32 i;
-	GF_SttsEntry *t;
 
 	p = (GF_TimeToSampleBox *)a;
-	fprintf(trace, "<TimeToSampleBox EntryCount=\"%d\">\n", gf_list_count(p->entryList));
+	fprintf(trace, "<TimeToSampleBox EntryCount=\"%d\">\n", p->nb_entries);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
-	i=0;
-	while ((t = (GF_SttsEntry *)gf_list_enum(p->entryList, &i))) {
-		fprintf(trace, "<TimeToSampleEntry SampleDelta=\"%d\" SampleCount=\"%d\"/>\n", t->sampleDelta, t->sampleCount);
+	for (i=0; i<p->nb_entries; i++) {
+		fprintf(trace, "<TimeToSampleEntry SampleDelta=\"%d\" SampleCount=\"%d\"/>\n", p->entries[i].sampleDelta, p->entries[i].sampleCount);
 	}
 	fprintf(trace, "</TimeToSampleBox>\n");
 	return GF_OK;
@@ -907,16 +905,13 @@ GF_Err ctts_dump(GF_Box *a, FILE * trace)
 {
 	GF_CompositionOffsetBox *p;
 	u32 i;
-	GF_DttsEntry *t;
-
 	p = (GF_CompositionOffsetBox *)a;
-	fprintf(trace, "<CompositionOffsetBox EntryCount=\"%d\">\n", gf_list_count(p->entryList));
+	fprintf(trace, "<CompositionOffsetBox EntryCount=\"%d\">\n", p->nb_entries);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
-	i=0;
-	while ((t = (GF_DttsEntry *)gf_list_enum(p->entryList, &i))) {
-		fprintf(trace, "<CompositionOffsetEntry CompositionOffset=\"%d\" SampleCount=\"%d\"/>\n", t->decodingOffset, t->sampleCount);
+	for (i=0; i<p->nb_entries;i++) {
+		fprintf(trace, "<CompositionOffsetEntry CompositionOffset=\"%d\" SampleCount=\"%d\"/>\n", p->entries[i].decodingOffset, p->entries[i].sampleCount);
 	}
 	fprintf(trace, "</CompositionOffsetBox>\n");
 	return GF_OK;
