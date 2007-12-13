@@ -69,6 +69,7 @@ enum
 typedef struct _visual_manager GF_VisualManager;
 typedef struct _draw_aspect_2d DrawAspect2D;
 typedef struct _traversing_state GF_TraverseState;
+typedef struct _gf_ft_mgr GF_FontManager;
 
 
 #ifndef GPAC_DISABLE_3D
@@ -578,8 +579,9 @@ struct _traversing_state
 #endif
 
 	/*SVG text rendering state*/
-	/* variables pour noeud text, tspan et textArea*/
-	/* position of last placed text chunk*/
+	Bool in_svg_text;
+	Bool in_svg_text_area;
+	/* current chunk & position of last placed text chunk*/
 	u32 chunk_index;
 	Fixed text_end_x, text_end_y;
 
@@ -591,7 +593,7 @@ struct _traversing_state
 	/* textArea state*/
 	Fixed max_length, max_height;
 	Fixed base_x, base_y;
-	Fixed y_step;
+	Fixed line_spacing;
 
 	/*current context to be drawn - only set when drawing in 2D mode or 3D for SVG*/
 	struct _drawable_context *ctx;
@@ -877,6 +879,46 @@ void compositor_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAl
 void compositor_svg_restore_parent_transformation(GF_TraverseState *tr_state, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix);
 
 void compositor_svg_traverse_children(GF_ChildNodeItem *children, GF_TraverseState *tr_state);
+
+
+
+/*Text handling*/
+
+typedef struct
+{
+	GF_Font *font;
+	
+	GF_Glyph **glyphs;
+	u32 nb_glyphs;
+
+	Fixed font_size;
+	Bool horizontal;
+	/*scale to apply to get to requested font size*/
+	Fixed font_scale;
+	GF_Rect bounds;
+
+	/*MPEG-4 span scaling (length & maxExtend)*/
+	Fixed x_scale, y_scale;
+	/*x (resp. y) offset in local coord system. Ignored if per-glyph dx (resp dy) are specified*/
+	Fixed off_x, off_y;
+
+	/*per-glyph positioning - when allocated, this is the same number as the glyphs*/
+	Fixed *dx, *dy;
+
+
+	/*span texturing and 3D tools*/
+	struct _span_internal *ext;
+} GF_TextSpan;
+
+GF_FontManager *gf_font_manager_new(GF_User *user);
+void gf_font_manager_del(GF_FontManager *fm);
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset);
+void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);
+GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name);
+GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
+
+void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, struct _drawable_context *ctx);
+void gf_font_manager_refresh_span_bounds(GF_TextSpan *span);
 
 #endif	/*_COMPOSITOR_DEV_H_*/
 

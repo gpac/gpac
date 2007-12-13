@@ -142,35 +142,6 @@ typedef struct _font_reader
 
 
 
-typedef struct
-{
-	GF_Font *font;
-	
-	GF_Glyph **glyphs;
-	u32 nb_glyphs;
-
-	Fixed font_size;
-	Bool horizontal;
-	/*scale to apply to get to requested font size*/
-	Fixed font_scale;
-	GF_Rect bounds;
-
-	/*x and y offset in local coord system*/
-	Fixed off_x, off_y;
-	Fixed x_scale, y_scale;
-
-	/*per-glyph positioning if any - shall be the same number as the glyphs*/
-	Fixed *dx, *dy;
-} GF_TextSpan;
-typedef struct _gf_ft_mgr GF_FontManager;
-
-GF_FontManager *gf_font_manager_new(GF_User *user);
-void gf_font_manager_del(GF_FontManager *fm);
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size);
-void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);
-GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name);
-GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
-
 #ifdef __cplusplus
 }
 #endif
