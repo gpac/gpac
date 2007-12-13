@@ -28,6 +28,7 @@
 #include <gpac/modules/font.h>
 #include <gpac/options.h>
 #include "visual_manager.h"
+#include "nodes_stacks.h"
 
 #include "texturing.h"
 
@@ -248,6 +249,7 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 	if (span->dy) free(span->dy);
 
 	if (span->ext) {
+		if (span->ext->path) gf_path_del(span->ext->path);
 		if (span->ext->mesh) mesh_free(span->ext->mesh);
 		if (span->ext->outline) mesh_free(span->ext->outline);
 		if (span->ext->txh) {
@@ -300,7 +302,7 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 
 
 
-static GF_Path *span_create_path(GF_TextSpan *span)
+GF_Path *gf_font_span_create_path(GF_TextSpan *span, Bool flip_it)
 {
 	u32 i;
 	GF_Matrix2D mat;
@@ -310,6 +312,7 @@ static GF_Path *span_create_path(GF_TextSpan *span)
 	gf_mx2d_init(mat);
 	mat.m[0] = gf_mulfix(span->font_scale, span->x_scale);
 	mat.m[4] = gf_mulfix(span->font_scale, span->y_scale);
+	if (flip_it) gf_mx2d_add_scale(&mat, FIX_ONE, -FIX_ONE);
 
 	dx = gf_divfix(span->off_x, mat.m[0]);
 	dy = gf_divfix(span->off_y, mat.m[4]);
@@ -322,6 +325,9 @@ static GF_Path *span_create_path(GF_TextSpan *span)
 				dy -= INT2FIX(span->font->max_advance_v);
 			}
 		} else {
+			if (span->dx) dx = gf_divfix(span->dx[i], mat.m[0]);
+			if (span->dy) dy = gf_divfix(span->dy[i], mat.m[4]);
+
 			gf_path_add_subpath(path, span->glyphs[i]->path, dx, dy);
 
 			if (span->horizontal) {
@@ -478,7 +484,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 
 	raster->surface_set_matrix(surface, &mx);
 	raster->surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
-	span_path = span_create_path(span);
+	span_path = gf_font_span_create_path(span, !compositor->visual->center_coords);
 	raster->surface_set_path(surface, span_path);
 
 	raster->surface_fill(surface, brush);
@@ -507,11 +513,11 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 
 #ifndef GPAC_DISABLE_3D
 
-void gf_font_span_fill_3d(GF_TextSpan *span, GF_TraverseState *tr_state)
+static void span_fill_3d(GF_TextSpan *span, GF_TraverseState *tr_state)
 {
 	span_alloc_extensions(span);
 	if (!span->ext->mesh) {
-		GF_Path *path = span_create_path(span);
+		GF_Path *path = gf_font_span_create_path(span, !tr_state->visual->center_coords);
 		span->ext->mesh = new_mesh();
 		mesh_from_path(span->ext->mesh, path);
 		gf_path_del(path);
@@ -520,11 +526,11 @@ void gf_font_span_fill_3d(GF_TextSpan *span, GF_TraverseState *tr_state)
 	visual_3d_mesh_paint(tr_state, span->ext->mesh);
 }
 
-void gf_font_span_strike_3d(GF_TextSpan *span, GF_TraverseState *tr_state, DrawAspect2D *asp, Bool vect_outline)
+static void span_strike_3d(GF_TextSpan *span, GF_TraverseState *tr_state, DrawAspect2D *asp, Bool vect_outline)
 {
 	span_alloc_extensions(span);
 	if (!span->ext->outline) {
-		GF_Path *path = span_create_path(span);
+		GF_Path *path = gf_font_span_create_path(span, !tr_state->visual->center_coords);
 		span->ext->outline = new_mesh();
 #ifndef GPAC_USE_OGL_ES
 		if (vect_outline) {
@@ -549,13 +555,143 @@ void gf_font_span_strike_3d(GF_TextSpan *span, GF_TraverseState *tr_state, DrawA
 }
 
 
+void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspect2D *asp, u32 text_hl, Bool force_texturing)
+{
+	u32 i;
+	SFColorRGBA hl_color;
+	GF_TextSpan *span;
+	Bool fill_2d, vect_outline, can_texture_text;
+	GF_Compositor *compositor = (GF_Compositor*)tr_state->visual->compositor;
+
+	vect_outline = !compositor->raster_outlines;
+
+	visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, 0);
+
+	fill_2d = 0;
+	if (!asp) {
+		if (!visual_3d_setup_appearance(tr_state)) return;
+	} else {
+		fill_2d = (asp->fill_color) ? 1 : 0;
+	}
+
+
+	if (text_hl && (fill_2d || !asp) ) {
+		/*reverse video: highlighting uses the text color, and text color is inverted (except alpha channel)
+		the ideal impl would be to use the background color for the text, but since the text may be 
+		displayed over anything non uniform this would require clipping the highlight rect with the text
+		which is too onerous (and not supported anyway) */
+		if (text_hl == 0x00FFFFFF) {
+			if (!asp) {
+				if (tr_state->appear) {
+					SFColor c, rc;
+					c = ((M_Material *) ((M_Appearance *)  tr_state->appear)->material)->diffuseColor;
+					hl_color = gf_sg_sfcolor_to_rgba(c);
+					hl_color.alpha = ((M_Material *) ((M_Appearance *)  tr_state->appear)->material)->transparency;
+					/*invert diffuse color and resetup*/
+					rc.red = FIX_ONE - c.red;
+					rc.green = FIX_ONE - c.green;
+					rc.blue = FIX_ONE - c.blue;
+					((M_Material *) ((M_Appearance *)  tr_state->appear)->material)->diffuseColor = rc;
+					visual_3d_setup_appearance(tr_state);
+					((M_Material *) ((M_Appearance *)  tr_state->appear)->material)->diffuseColor = c;
+				} else {
+					hl_color.red = hl_color.green = hl_color.blue = 0;
+					hl_color.alpha = FIX_ONE;
+				}
+			} else {
+				hl_color.alpha = FIX_ONE;
+				hl_color.red = INT2FIX( GF_COL_R(asp->fill_color) ) / 255;
+				hl_color.green = INT2FIX( GF_COL_G(asp->fill_color) ) / 255;
+				hl_color.blue = INT2FIX( GF_COL_B(asp->fill_color) ) / 255;
+				if (GF_COL_A(asp->fill_color) ) {
+					u8 r = GF_COL_R(asp->fill_color);
+					u8 g = GF_COL_G(asp->fill_color);
+					u8 b = GF_COL_B(asp->fill_color);
+					asp->fill_color = GF_COL_ARGB(GF_COL_A(asp->fill_color), 255-r, 255-g, 255-b);
+				}
+			}
+		} else {
+			hl_color.red = INT2FIX(GF_COL_R(text_hl)) / 255;
+			hl_color.green = INT2FIX(GF_COL_G(text_hl)) / 255;
+			hl_color.blue = INT2FIX(GF_COL_B(text_hl)) / 255;
+			hl_color.alpha = INT2FIX(GF_COL_A(text_hl)) / 255;
+		}
+		if (asp && !asp->fill_color) text_hl = 0;
+	}
+
+	/*setup texture*/
+	visual_3d_setup_texture(tr_state);
+	can_texture_text = 0;
+	if (fill_2d || !asp) {
+		/*check if we can use text texturing*/
+		if (force_texturing || (compositor->texture_text_mode != GF_TEXTURE_TEXT_NEVER) ) {
+			if (fill_2d && asp->pen_props.width) {
+				can_texture_text = 0;
+			} else {
+				can_texture_text = tr_state->mesh_has_texture ? 0 : 1;
+			}
+		}
+	}
+
+	visual_3d_enable_antialias(tr_state->visual, compositor->antiAlias);
+	if (fill_2d || !asp || tr_state->mesh_has_texture) {
+		if (fill_2d) visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
+
+		i = tr_state->text_split_idx ? tr_state->text_split_idx-1 : 0;
+		while ((span = (GF_TextSpan *)gf_list_enum(spans, &i))) {
+			if (text_hl) {
+				visual_3d_fill_rect(tr_state->visual, span->bounds, hl_color);
+				if (fill_2d) 
+					visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
+				else
+					visual_3d_setup_appearance(tr_state);
+			}
+
+			if (can_texture_text && span_setup_texture(tr_state->visual->compositor, span, 1)) {
+				tr_state->mesh_has_texture = 1;
+				gf_sc_texture_enable(span->ext->txh, NULL);
+				visual_3d_mesh_paint(tr_state, span->ext->mesh);
+				gf_sc_texture_disable(span->ext->txh);
+				/*be nice to GL, we remove the text from HW at each frame since there may be a lot of text*/
+				gf_sc_texture_reset(span->ext->txh);
+			} else {
+				span_fill_3d(span, tr_state);
+			}
+
+			if (tr_state->text_split_idx) break;
+		}
+
+		/*reset texturing in case of line texture*/
+		if (!asp) visual_3d_disable_texture(tr_state);
+	}
+
+	visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, 0);
+
+	if (asp && asp->pen_props.width) {
+		if (!asp->line_scale) {
+			drawable_compute_line_scale(tr_state, asp);
+		}
+		asp->pen_props.width = gf_divfix(asp->pen_props.width, asp->line_scale);
+		visual_3d_set_2d_strike(tr_state, asp);
+
+		if (tr_state->text_split_idx) {
+			span = (GF_TextSpan *)gf_list_get(spans, tr_state->text_split_idx-1);
+			span_strike_3d(span, tr_state, asp, vect_outline);
+		} else {
+			i=0;
+			while ((span = (GF_TextSpan *)gf_list_enum(spans, &i))) {
+				span_strike_3d(span, tr_state, asp, vect_outline);
+			}
+		}
+	}
+}
 
 
 #endif
 
 
 
-void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, DrawableContext *ctx)
+static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, DrawableContext *ctx)
 {
 	u32 flags, i;
 	Bool flip_text;
@@ -615,15 +751,38 @@ void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, Drawabl
 	ctx->aspect.line_scale = lscale;
 }
 
-void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, DrawableContext *ctx, u32 hl_color, Bool force_texture_text)
+void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_color, Bool force_texture_text)
 {
-	Bool use_texture_text;
+	Bool use_texture_text, is_rv;
 	u32 i = 0;
 	GF_TextSpan *span;
+	DrawableContext *ctx = tr_state->ctx;
 
 	use_texture_text = 0;
 	if (force_texture_text || (tr_state->visual->compositor->texture_text_mode==GF_TEXTURE_TEXT_ALWAYS) ) {
 		use_texture_text = !ctx->aspect.fill_texture && !ctx->aspect.pen_props.width;
+	}
+
+	is_rv = 0;
+	if (hl_color) {
+		/*reverse video: highlighting uses the text color, and text color is inverted (except alpha channel)
+		the ideal impl would be to use the background color for the text, but since the text may be 
+		displayed over anything non uniform this would require clipping the highlight rect with the text
+		which is too onerous (and not supported anyway) */
+		if (hl_color==0x00FFFFFF) {
+			u32 a, r, g, b;
+			hl_color = tr_state->ctx->aspect.fill_color;
+			
+			a = GF_COL_A(tr_state->ctx->aspect.fill_color);
+			if (a) {
+				r = GF_COL_R(tr_state->ctx->aspect.fill_color);
+				g = GF_COL_G(tr_state->ctx->aspect.fill_color);
+				b = GF_COL_B(tr_state->ctx->aspect.fill_color);
+				tr_state->ctx->aspect.fill_color = GF_COL_ARGB(a, 255-r, 255-g, 255-b);
+			}
+			is_rv = 1;
+		}
+		if (GF_COL_A(hl_color) == 0) hl_color = 0;
 	}
 
 	i=ctx->sub_path_index ? ctx->sub_path_index-1 : 0;
@@ -638,4 +797,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, DrawableC
 		}
 		if (ctx->sub_path_index) break;
 	}
+	if (is_rv) tr_state->ctx->aspect.fill_color = hl_color;
+
+
 }

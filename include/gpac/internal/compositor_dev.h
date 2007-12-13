@@ -917,8 +917,12 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);
 GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name);
 GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
 
-void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, struct _drawable_context *ctx);
 void gf_font_manager_refresh_span_bounds(GF_TextSpan *span);
+GF_Path *gf_font_span_create_path(GF_TextSpan *span, Bool flip_it);
+
+
+void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_color, Bool force_texture_text);
+void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspect2D *asp, u32 text_hl, Bool force_texturing);
 
 #endif	/*_COMPOSITOR_DEV_H_*/
 
