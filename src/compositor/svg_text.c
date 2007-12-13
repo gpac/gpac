@@ -51,11 +51,7 @@ static void svg_finalize_sort(DrawableContext *ctx, SVG_TextStack *st, GF_Traver
 {
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
-		if (!ctx->drawable->mesh) {
-			ctx->drawable->mesh = new_mesh();
-			mesh_from_path(ctx->drawable->mesh, ctx->drawable->path);
-		}
-		visual_3d_draw_from_context(ctx, tr_state);
+		gf_font_spans_draw_3d(st->spans, tr_state, &ctx->aspect, 0, 0);
 		ctx->drawable = NULL;
 	} else 
 #endif
@@ -564,11 +560,7 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 
 static void svg_text_draw_2d(SVG_TextStack *st, GF_TraverseState *tr_state)
 {
-	GF_TextSpan *span;
-	u32 i=0;
-	while ((span = (GF_TextSpan *)gf_list_enum(st->spans, &i))) {
-		gf_font_span_draw_2d(tr_state, span, tr_state->ctx);
-	}
+	gf_font_spans_draw_2d(st->spans, tr_state, 0, 0);
 }
 
 static void svg_update_bounds(SVG_TextStack *st)
@@ -610,7 +602,6 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		svg_text_draw_2d(st, tr_state);
 		return;
 	}
-
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {
 		svg_drawable_pick(node, st->drawable, tr_state);
 		return;
