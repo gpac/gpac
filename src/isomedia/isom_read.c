@@ -1583,7 +1583,6 @@ u32 gf_isom_get_max_chunk_duration(GF_ISOFile *movie, u32 trackNumber)
 	u32 i, sample_per_chunk, sample_dur;
 	GF_SampleToChunkBox *stsc;
 	GF_TimeToSampleBox *stts;
-	GF_StscEntry *sc;
 	if (!movie || !trackNumber || !movie->moov) return 0;
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return 0;
@@ -1592,9 +1591,8 @@ u32 gf_isom_get_max_chunk_duration(GF_ISOFile *movie, u32 trackNumber)
 	stts = trak->Media->information->sampleTable->TimeToSample;
 
 	sample_per_chunk = 0;
-	i=0;
-	while ((sc = (GF_StscEntry *) gf_list_enum(stsc->entryList, &i))) {
-		if (sc->samplesPerChunk > sample_per_chunk) sample_per_chunk = sc->samplesPerChunk;
+	for (i=0; i<stsc->nb_entries; i++) {
+		if (stsc->entries[i].samplesPerChunk > sample_per_chunk) sample_per_chunk = stsc->entries[i].samplesPerChunk;
 	}
 	sample_dur = 0;
 	for (i=0; i<stts->nb_entries; i++) {
@@ -1659,9 +1657,10 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 	}
 	//descIndex
 	if (defaultDescriptionIndex) {
+		GF_SampleToChunkBox *stsc= stbl->SampleToChunk;
 		maxValue = value = 0;
-		i=0;
-		while ((sc_ent = (GF_StscEntry *)gf_list_enum(stbl->SampleToChunk->entryList, &i))) {
+		for (i=0; i<stsc->nb_entries; i++) {
+			sc_ent = &stsc->entries[i];
 			if ((sc_ent->nextChunk - sc_ent->firstChunk) * sc_ent->samplesPerChunk > maxValue) {
 				value = sc_ent->sampleDescriptionIndex;
 				maxValue = (sc_ent->nextChunk - sc_ent->firstChunk) * sc_ent->samplesPerChunk;

@@ -272,7 +272,7 @@ void GetGhostNum(GF_StscEntry *ent, u32 EntryIndex, u32 count, GF_SampleTableBox
 			}
 		} else {
 			//this is an unknown case due to edit mode...
-			nextEnt = (GF_StscEntry*)gf_list_get(stbl->SampleToChunk->entryList, EntryIndex+1);
+			nextEnt = &stbl->SampleToChunk->entries[EntryIndex+1];
 			ghostNum = nextEnt->firstChunk - ent->firstChunk;
 		}
 	} else {
@@ -285,7 +285,7 @@ void GetGhostNum(GF_StscEntry *ent, u32 EntryIndex, u32 count, GF_SampleTableBox
 GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offset, u32 *chunkNumber, u32 *descIndex, u8 *isEdited)
 {
 	GF_Err e;
-	u32 i, j, k, offsetInChunk, size, count;
+	u32 i, j, k, offsetInChunk, size;
 	GF_ChunkOffsetBox *stco;
 	GF_ChunkLargeOffsetBox *co64;
 	GF_StscEntry *ent;
@@ -295,9 +295,8 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 	(*isEdited) = 0;
 	if (!stbl || !sampleNumber) return GF_BAD_PARAM;
 
-	count = gf_list_count(stbl->SampleToChunk->entryList);
-	if (count==stbl->SampleSize->sampleCount) {
-		ent = (GF_StscEntry *)gf_list_get(stbl->SampleToChunk->entryList, sampleNumber-1);
+	if (stbl->SampleToChunk->nb_entries == stbl->SampleSize->sampleCount) {
+		ent = &stbl->SampleToChunk->entries[sampleNumber-1];
 		if (!ent) return GF_BAD_PARAM;
 		(*descIndex) = ent->sampleDescriptionIndex;
 		(*chunkNumber) = sampleNumber;
@@ -318,22 +317,21 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 		
 		i = stbl->SampleToChunk->currentIndex;
 //		ent = gf_list_get(stbl->SampleToChunk->entryList, i);
-		ent = stbl->SampleToChunk->currentEntry;
-		GetGhostNum(ent, i, count, stbl);
+		ent = &stbl->SampleToChunk->entries[stbl->SampleToChunk->currentIndex];
+		GetGhostNum(ent, i, stbl->SampleToChunk->nb_entries, stbl);
 		k = stbl->SampleToChunk->currentChunk;
 	} else {
 		i = 0;
 		stbl->SampleToChunk->currentIndex = 0;
 		stbl->SampleToChunk->currentChunk = 1;
 		stbl->SampleToChunk->firstSampleInCurrentChunk = 1;
-		ent = (GF_StscEntry*)gf_list_get(stbl->SampleToChunk->entryList, 0);
-		stbl->SampleToChunk->currentEntry = ent;
-		GetGhostNum(ent, 0, count, stbl);
+		ent = &stbl->SampleToChunk->entries[0];
+		GetGhostNum(ent, 0, stbl->SampleToChunk->nb_entries, stbl);
 		k = stbl->SampleToChunk->currentChunk;
 	}
 
 	//first get the chunk
-	for (; i < count; i++) {
+	for (; i < stbl->SampleToChunk->nb_entries; i++) {
 		//browse from the current chunk we're browsing from index 1
 		for (; k <= stbl->SampleToChunk->ghostNumber; k++) {
 			//browse all the samples in this chunk
@@ -347,12 +345,11 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 			stbl->SampleToChunk->currentChunk ++;
 		}
 		//not in this entry, get the next entry if not the last one
-		if (i+1 != count) {
-			ent = (GF_StscEntry*)gf_list_get(stbl->SampleToChunk->entryList, i+1);
+		if (i+1 != stbl->SampleToChunk->nb_entries) {
+			ent = &stbl->SampleToChunk->entries[i+1];
 			//update the GhostNumber
-			GetGhostNum(ent, i+1, count, stbl);
+			GetGhostNum(ent, i+1, stbl->SampleToChunk->nb_entries, stbl);
 			//update the entry in our cache
-			stbl->SampleToChunk->currentEntry = ent;
 			stbl->SampleToChunk->currentIndex = i+1;
 			stbl->SampleToChunk->currentChunk = 1;
 			k = 1;

@@ -4878,20 +4878,9 @@ GF_Err stdp_Size(GF_Box *s)
 
 void stsc_del(GF_Box *s)
 {
-	u32 entryCount;
-	u32 i;
-	GF_StscEntry *ent;
 	GF_SampleToChunkBox *ptr = (GF_SampleToChunkBox *)s;
 	if (ptr == NULL) return;
-
-	entryCount = gf_list_count(ptr->entryList);
-	if (entryCount) {
-		for (i = 0; i < entryCount; i++) {
-			ent = (GF_StscEntry*)gf_list_get(ptr->entryList, i);
-			if (ent) free(ent);
-		}
-	}
-	gf_list_del(ptr->entryList);
+	if (ptr->entries) free(ptr->entries);
 	free(ptr);
 }
 
@@ -4900,43 +4889,29 @@ GF_Err stsc_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 i;
-	u32 entryCount;
-	GF_StscEntry *ent, *firstEnt;
 	GF_SampleToChunkBox *ptr = (GF_SampleToChunkBox *)s;
 
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	entryCount = gf_bs_read_u32(bs);
+	ptr->nb_entries = gf_bs_read_u32(bs);
+	ptr->alloc_size = ptr->nb_entries;
+	ptr->entries = malloc(sizeof(GF_StscEntry)*ptr->alloc_size);
+	if (!ptr->entries) return GF_OUT_OF_MEM;
 	
-	firstEnt = NULL;
-	for (i = 0; i < entryCount; i++) {
-		ent = (GF_StscEntry *)malloc(sizeof(GF_StscEntry));
-		if (!ent) return GF_OUT_OF_MEM;
-		ent->firstChunk = gf_bs_read_u32(bs);
-		ent->samplesPerChunk = gf_bs_read_u32(bs);
-		ent->sampleDescriptionIndex = gf_bs_read_u32(bs);
-		ent->isEdited = 0;
-		ent->nextChunk = 0;
+	for (i = 0; i < ptr->nb_entries; i++) {
+		ptr->entries[i].firstChunk = gf_bs_read_u32(bs);
+		ptr->entries[i].samplesPerChunk = gf_bs_read_u32(bs);
+		ptr->entries[i].sampleDescriptionIndex = gf_bs_read_u32(bs);
+		ptr->entries[i].isEdited = 0;
+		ptr->entries[i].nextChunk = 0;
 
-		//create our cache at first load
-		if (! ptr->currentEntry) {
-			firstEnt = ent;
-		} else {
-			//update the next chunk
-			ptr->currentEntry->nextChunk = ent->firstChunk;
-		}
-		ptr->currentEntry = ent;
-		e = gf_list_add(ptr->entryList, ent);
-		if (e) return e;
+		//update the next chunk in the previous entry
+		if (i) ptr->entries[i-1].nextChunk = ptr->entries[i].firstChunk;
 	}
-	//create our cache
-	if (firstEnt) {
-		ptr->currentEntry = firstEnt;
-		ptr->currentIndex = 0;
-		ptr->firstSampleInCurrentChunk = 0;
-		ptr->currentChunk = 0;
-		ptr->ghostNumber = 0;
-	}
+	ptr->currentIndex = 0;
+	ptr->firstSampleInCurrentChunk = 0;
+	ptr->currentChunk = 0;
+	ptr->ghostNumber = 0;
 	return GF_OK;
 }
 
@@ -4946,11 +4921,6 @@ GF_Box *stsc_New()
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_SampleToChunkBox));
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->entryList = gf_list_new();
-	if (tmp->entryList == NULL) {
-		free(tmp);
-		return NULL;
-	}
 	tmp->type = GF_ISOM_BOX_TYPE_STSC;
 	return (GF_Box *)tmp;
 }
@@ -4962,19 +4932,15 @@ GF_Err stsc_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 i;	
-	u32 entryCount;
-	GF_StscEntry *ent;
 	GF_SampleToChunkBox *ptr = (GF_SampleToChunkBox *)s;
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-    entryCount = gf_list_count(ptr->entryList);
-	gf_bs_write_u32(bs, entryCount);
-	for (i = 0; i < entryCount; i++) {
-		ent = (GF_StscEntry*)gf_list_get(ptr->entryList, i);
-		gf_bs_write_u32(bs, ent->firstChunk);
-		gf_bs_write_u32(bs, ent->samplesPerChunk);
-		gf_bs_write_u32(bs, ent->sampleDescriptionIndex);
+	gf_bs_write_u32(bs, ptr->nb_entries);
+	for (i=0; i<ptr->nb_entries; i++) {
+		gf_bs_write_u32(bs, ptr->entries[i].firstChunk);
+		gf_bs_write_u32(bs, ptr->entries[i].samplesPerChunk);
+		gf_bs_write_u32(bs, ptr->entries[i].sampleDescriptionIndex);
 	}
 	return GF_OK;
 }
@@ -4985,7 +4951,7 @@ GF_Err stsc_Size(GF_Box *s)
 	GF_SampleToChunkBox *ptr = (GF_SampleToChunkBox *)s;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	ptr->size += 4 + (12 * gf_list_count(ptr->entryList));
+	ptr->size += 4 + (12 * ptr->nb_entries);
 	return GF_OK;
 }
 

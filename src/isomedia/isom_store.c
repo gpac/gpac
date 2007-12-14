@@ -207,8 +207,8 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 		if (writer->mdia->mediaTrack->meta) ShiftMetaOffset(writer->mdia->mediaTrack->meta, offset);
 
 		//we have to proceed entry by entry in case a part of the media is not self-contained...
-		j=0;
-		while ((ent = (GF_StscEntry *)gf_list_enum(writer->stsc->entryList, &j))) {
+		for (j=0; j<writer->stsc->nb_entries; j++) {
+			ent = &writer->stsc->entries[j];
 			if (!Media_IsSelfContained(writer->mdia, ent->sampleDescriptionIndex)) continue;
 
 			//OK, get the chunk(s) number(s) and "shift" its (their) offset(s).
