@@ -148,10 +148,13 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode != TRAVERSE_BINDABLE) return;
 	if (!vp->isBound) return;
 
+#ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		w = tr_state->bbox.max_edge.x - tr_state->bbox.min_edge.x;
 		h = tr_state->bbox.max_edge.y - tr_state->bbox.min_edge.y;
-	} else {
+	} else 
+#endif
+	{
 		w = tr_state->bounds.width;
 		h = tr_state->bounds.height;
 	}

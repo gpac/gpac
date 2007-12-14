@@ -173,7 +173,9 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 {
 	u32 viewport_color;
 	GF_Matrix2D backup_matrix, vb_bck;
+#ifndef GPAC_DISABLE_3D
 	GF_Matrix bck_mx;
+#endif
 	GF_IRect top_clip;
 	Bool is_root_svg = 0;
 	SVGPropertiesPointers backup_props;

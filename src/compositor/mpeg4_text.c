@@ -494,7 +494,9 @@ void text_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 static void text_pick(GF_Node *node, TextStack *st, GF_TraverseState *tr_state)
 {
 	u32 i, count;
+#ifndef GPAC_DISABLE_3D
 	GF_Matrix inv_mx;
+#endif
 	GF_Matrix2D inv_2d;
 	Fixed x, y;
 	GF_Compositor *compositor = tr_state->visual->compositor;
@@ -502,6 +504,7 @@ static void text_pick(GF_Node *node, TextStack *st, GF_TraverseState *tr_state)
 	/*TODO: pick the real glyph and not just the bounds of the text span*/
 	count = gf_list_count(st->spans);
 
+#ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		GF_Ray r;
 		SFVec3f local_pt;
@@ -515,7 +518,9 @@ static void text_pick(GF_Node *node, TextStack *st, GF_TraverseState *tr_state)
 
 		x = local_pt.x;
 		y = local_pt.y;
-	} else {
+	} else 
+#endif
+	{
 		gf_mx2d_copy(inv_2d, tr_state->transform);
 		gf_mx2d_inverse(&inv_2d);
 		x = tr_state->ray.orig.x;
@@ -539,10 +544,13 @@ picked:
 	compositor->hit_local_point.y = y;
 	compositor->hit_local_point.z = 0;
 
+#ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		gf_mx_copy(compositor->hit_world_to_local, tr_state->model_matrix);
 		gf_mx_copy(compositor->hit_local_to_world, inv_mx);
-	} else {
+	} else 
+#endif
+	{
 		gf_mx_from_mx2d(&compositor->hit_world_to_local, &tr_state->transform);
 		gf_mx_from_mx2d(&compositor->hit_local_to_world, &inv_2d);
 	}

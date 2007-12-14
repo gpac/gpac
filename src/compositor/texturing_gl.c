@@ -105,6 +105,7 @@ void gf_sc_texture_reset(GF_TextureHandler *txh)
 {
 #ifndef GPAC_DISABLE_3D
 	if (txh->tx_io->id) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texturing] Releasing OpenGL texture %d\n", txh->tx_io->id));
 		glDeleteTextures(1, &txh->tx_io->id);
 		txh->tx_io->id = 0;
 	}
@@ -400,6 +401,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		glGenTextures(1, &txh->tx_io->id);
 		tx_setup_format(txh);
 		first_load = 1;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texturing] Allcoating OpenGL texture %d\n", txh->tx_io->id));
 	}
 	if (!txh->tx_io->gl_type) return 0;
 	
@@ -684,6 +686,7 @@ Bool gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_R
 	}
 	visual_3d_set_matrix_mode(compositor->visual, V3D_MATRIX_MODELVIEW);
 
+	txh->flags |= GF_SR_TEXTURE_USED;
 	tx_bind(txh);
 	return 1;
 }

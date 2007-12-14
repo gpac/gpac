@@ -150,7 +150,6 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		DrawableContext *child_ctx;
 		Fixed temp_x, temp_y, scale_x, scale_y;
 
-
 		/*step 1 : store current state and indicate children should not be cached*/
 		tr_state->in_group_cache = 1;
 		prev_flags = tr_state->direct_draw;
@@ -158,9 +157,12 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		gf_mx2d_copy(backup, tr_state->transform);
 		gf_mx2d_init(tr_state->transform);
 
+		type_3d = 0;
+#ifndef GPAC_DISABLE_3D
 		/*force 2D rendering*/
 		type_3d = tr_state->visual->type_3d;
 		tr_state->visual->type_3d = 0;
+#endif
 
 		/*step 2: insert a DrawableContext for this group in the display list*/
 		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
@@ -272,14 +274,16 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		tr_state->visual->raster_surface = old_surf;
 		tr_state->traversing_mode = TRAVERSE_SORT;
 
+#ifndef GPAC_DISABLE_3D
 		tr_state->visual->type_3d = type_3d;
+#endif
 		tr_state->visual->surf_rect = rc1;
 		tr_state->visual->top_clipper = rc2;
 		
 		/*update texture*/
 		cache->txh.transparent = 1;
 		gf_sc_texture_set_data(&cache->txh);
-		gf_sc_texture_push_image(&cache->txh, 0, tr_state->visual->type_3d ? 0 : 1);
+		gf_sc_texture_push_image(&cache->txh, 0, type_3d ? 0 : 1);
 	}
 	/*just setup the context*/
 	else {

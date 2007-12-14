@@ -109,6 +109,8 @@ static Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, GF_Path *
 	return 0;
 }
 
+#ifndef GPAC_DISABLE_3D
+
 void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAspect2D *asp) 
 {
 	SFVec3f local_pt, world_pt, vdiff;
@@ -200,6 +202,8 @@ void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAs
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SVG Picking] node %s (def %s) is under mouse - hit %g %g %g\n", gf_node_get_class_name(drawable->node), gf_node_get_name(drawable->node),
 			FIX2FLT(world_pt.x), FIX2FLT(world_pt.y), FIX2FLT(world_pt.z)));
 }
+
+#endif
 
 void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_state)
 {

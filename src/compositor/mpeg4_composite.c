@@ -522,8 +522,9 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Even
 	tr_state->traversing_mode = TRAVERSE_PICK;
 	tr_state->pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(ap->texture));
 	gf_mx2d_init(tr_state->transform);
+#ifndef GPAC_DISABLE_3D
 	gf_mx_init(tr_state->model_matrix);
-
+#endif
 	/*collect sensors*/
 	l = children = ((M_CompositeTexture2D*)ap->texture)->children;
 	while (l) {

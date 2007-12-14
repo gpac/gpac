@@ -841,6 +841,13 @@ void gf_mx_lookat(GF_Matrix *mx, GF_Vec position, GF_Vec target, GF_Vec up_vecto
  *\param b pointer to bounding box. Once the function is called, contains the transformed bounding box
 */
 void gf_mx_apply_bbox(GF_Matrix *mx, GF_BBox *b);
+/*!\brief matrix box sphere transformation
+ *
+ *Applies a 3D matrix transformation to a bounding box, computing only the enclosing sphere of the transformed one.
+ *\param mx transformation matrix
+ *\param b pointer to bounding box. Once the function is called, contains the transformed bounding sphere
+*/
+void gf_mx_apply_bbox_sphere(GF_Matrix *mx, GF_BBox *box);
 /*!\brief non-affine matrix multiplication
  *
  *Multiplies two non-affine matrices mx = mx*mul
