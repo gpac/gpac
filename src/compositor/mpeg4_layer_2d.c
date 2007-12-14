@@ -94,10 +94,10 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_Node *viewport;
 	GF_Node *back;
 	GF_Matrix2D backup;
-	GF_Matrix mx3d;
 	SFVec2f prev_vp;
 
 #ifndef GPAC_DISABLE_3D
+	GF_Matrix mx3d;
 	GF_List *oldf, *oldn;
 	GF_List *node_list_backup;
 	GF_Rect prev_clipper;

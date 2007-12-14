@@ -705,7 +705,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *no
 }
 
 /*uncomment to disable frustum cull*/
-#define DISABLE_VIEW_CULL
+//#define DISABLE_VIEW_CULL
 
 #ifndef GPAC_DISABLE_LOG
 static const char *szPlaneNames [] = 
@@ -738,9 +738,9 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 		return 0;
 	}
 
-	/*get bbox in world space*/
+	/*get bbox sphere in world space*/
 	b = *bbox;
-	gf_mx_apply_bbox(&tr_state->model_matrix, &b);
+	gf_mx_apply_bbox_sphere(&tr_state->model_matrix, &b);	
 	cam = tr_state->camera;
 
 	/*if camera is inside bbox consider we intersect*/
@@ -763,12 +763,13 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 	rad = b.radius;
 	irad = -b.radius;
 	do_sphere = 1;
-
+	
 	/*skip near/far tests in ortho mode, and near in 3D*/
 	i = (tr_state->camera->is_3D) ? (skip_near ? 1 : 0) : 2;
 	for (; i<6; i++) {
+		Fixed d;
 		if (do_sphere) {
-			Fixed d = gf_plane_get_distance(&cam->planes[i], &b.center);
+			d = gf_plane_get_distance(&cam->planes[i], &b.center);
 			if (d<irad) {
 				tr_state->cull_flag = CULL_OUTSIDE;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node out (sphere-planes test) plane %s\n", szPlaneNames[i]));
@@ -776,6 +777,9 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 			}
 			/*intersect, move to n-p vertex test*/
 			if (d<rad) {
+				/*get full bbox in world coords*/
+				b = *bbox;
+				gf_mx_apply_bbox(&tr_state->model_matrix, &b);
 				/*get box vertices*/
 				gf_bbox_get_vertices(b.min_edge, b.max_edge, vertices);
 				do_sphere = 0;
@@ -785,16 +789,21 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 		}
 		p_idx = cam->p_idx[i];
 		/*check p-vertex: if not in plane, we're out (since p-vertex is the closest point to the plane)*/
-		if (gf_plane_get_distance(&cam->planes[i], &vertices[p_idx])<0) {
+		d = gf_plane_get_distance(&cam->planes[i], &vertices[p_idx]);
+		if (d<0) {
 			tr_state->cull_flag = CULL_OUTSIDE;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node out (p-vertex test) plane %s\n", szPlaneNames[i]));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node out (p-vertex test) plane %s - Distance %g\n", szPlaneNames[i], FIX2FLT(d) ));
 			return 0;
 		}
-		/*check n-vertex: if not in plane, we're intersecting*/
-		if (gf_plane_get_distance(&cam->planes[i], &vertices[7-p_idx])<0) {
-			tr_state->cull_flag = CULL_INTERSECTS;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node intersect (n-vertex test) plane %s\n", szPlaneNames[i]));
-			return 1;
+		
+		/*check n-vertex: if not in plane, we're intersecting - don't check for near and far planes*/
+		if (i>1) {
+			d = gf_plane_get_distance(&cam->planes[i], &vertices[7-p_idx]);
+			if (d<0) {
+				tr_state->cull_flag = CULL_INTERSECTS;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node intersect (n-vertex test) plane %s - Distance %g\n", szPlaneNames[i], FIX2FLT(d) ));
+				return 1;
+			}
 		}
 	}
 

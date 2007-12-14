@@ -71,7 +71,11 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Switching fullscreen %s\n", compositor->fullscreen ? "off" : "on"));
 	/*move to FS*/
 	compositor->fullscreen = !compositor->fullscreen;
-	if (compositor->fullscreen && !compositor->visual->type_3d && (compositor->scene_width>compositor->scene_height)) {
+	if (compositor->fullscreen && (compositor->scene_width>compositor->scene_height)
+#ifndef GPAC_DISABLE_3D
+			&& !compositor->visual->type_3d 
+#endif
+			) {
 		e = compositor->video_out->SetFullScreen(compositor->video_out, 2, &compositor->display_width, &compositor->display_height);
 	} else {
 		e = compositor->video_out->SetFullScreen(compositor->video_out, compositor->fullscreen, &compositor->display_width, &compositor->display_height);
@@ -908,6 +912,9 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		compositor->audio_renderer->disable_multichannel = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	}
 
+
+#ifndef GPAC_DISABLE_3D
+
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ForceOpenGL");
 	compositor->force_opengl_2d = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
 
@@ -953,6 +960,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableRectExt");
 	compositor->disable_rect_ext = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 
+#endif
 	
 	sOpt = gf_cfg_get_key(compositor->user->config, "FontEngine", "DriverName");
 	if (sOpt && compositor->font_engine) {
@@ -1510,6 +1518,7 @@ extern u32 time_spent_in_anim;
 void gf_sc_simulation_tick(GF_Compositor *compositor)
 {	
 	u32 in_time, end_time, i, count;
+	Bool frame_drawn;
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time, time_node_time, texture_time, traverse_time, flush_time;
 #endif
@@ -1624,16 +1633,20 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	/*update all textures*/
 	count = gf_list_count(compositor->textures);
 	for (i=0; i<count; i++) {
-		GF_TextureHandler *st = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
+		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
 		/*signal graphics reset before updating*/
-		if (compositor->reset_graphics && st->tx_io) gf_sc_texture_reset(st);
-		st->update_texture_fcnt(st);
+		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
+		txh->update_texture_fcnt(txh);
+		txh->flags &= ~GF_SR_TEXTURE_USED;
 	}
 	compositor->reset_graphics = 0;
+
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock() - texture_time;
 #endif
 
+
+	frame_drawn = (compositor->draw_next_frame==1) ? 1 : 0;
 
 	/*if invalidated, draw*/
 	if (compositor->draw_next_frame) {
@@ -1674,8 +1687,9 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	/*release all textures - we must release them to handle a same OD being used by several textures*/
 	count = gf_list_count(compositor->textures);
 	for (i=0; i<count; i++) {
-		GF_TextureHandler *st = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
-		gf_sc_texture_release_stream(st);
+		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
+		gf_sc_texture_release_stream(txh);
+		if (frame_drawn && txh->tx_io && !(txh->flags & GF_SR_TEXTURE_USED)) gf_sc_texture_reset(txh);
 	}
 
 #ifndef GPAC_DISABLE_LOG

@@ -94,7 +94,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 	/*background & direct drawing : use ctx clip*/
 	if ((ctx->flags & CTX_IS_BACKGROUND) || !visual->to_redraw.count) {
 		if (ctx->bi->clip.width && ctx->bi->clip.height) {
-//			raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
+			raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
 			raster->surface_fill(visual->raster_surface, stencil);
 		}
 	} 
@@ -109,7 +109,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &visual->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-//				raster->surface_set_clipper(visual->raster_surface, &clip);
+				raster->surface_set_clipper(visual->raster_surface, &clip);
 				raster->surface_fill(visual->raster_surface, stencil);
 			}
 		}
@@ -224,6 +224,7 @@ static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_
 		raster->stencil_set_alpha(stencil, GF_COL_A(ctx->aspect.fill_color) );
 
 	raster->surface_set_matrix(visual->raster_surface, &ctx->transform);
+	txh->flags |= GF_SR_TEXTURE_USED;
 
 	raster->surface_set_path(visual->raster_surface, path);
 	visual_2d_fill_path(visual, ctx, stencil);
@@ -288,6 +289,7 @@ void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_
 	}
 
 	raster->surface_set_matrix(visual->raster_surface, &txt_ctx->transform);
+	txh->flags |= GF_SR_TEXTURE_USED;
 
 	/*push path*/
 	raster->surface_set_path(visual->raster_surface, path);
@@ -373,6 +375,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	} else {
 		raster->surface_set_matrix(visual->raster_surface, NULL);
 	}
+	txh->flags |= GF_SR_TEXTURE_USED;
 
 	/*push path & draw*/
 	raster->surface_set_path(visual->raster_surface, path);

@@ -250,8 +250,10 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 
 	if (span->ext) {
 		if (span->ext->path) gf_path_del(span->ext->path);
+#ifndef GPAC_DISABLE_3D
 		if (span->ext->mesh) mesh_free(span->ext->mesh);
 		if (span->ext->outline) mesh_free(span->ext->outline);
+#endif
 		if (span->ext->txh) {
 			gf_sc_texture_destroy(span->ext->txh);
 			if (span->ext->txh->data) free(span->ext->txh->data);
@@ -447,7 +449,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 		free(span->ext->txh);
 	}
 	GF_SAFEALLOC(span->ext->txh, GF_TextureHandler);
-	span->ext->txh->compositor = compositor;
+	gf_sc_texture_setup(span->ext->txh, compositor, NULL);
 	gf_sc_texture_allocate(span->ext->txh);
 	stencil = gf_sc_texture_get_stencil(span->ext->txh);
 	if (!stencil) stencil = raster->stencil_new(raster, GF_STENCIL_TEXTURE);
@@ -652,8 +654,6 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 				gf_sc_texture_enable(span->ext->txh, NULL);
 				visual_3d_mesh_paint(tr_state, span->ext->mesh);
 				gf_sc_texture_disable(span->ext->txh);
-				/*be nice to GL, we remove the text from HW at each frame since there may be a lot of text*/
-				gf_sc_texture_reset(span->ext->txh);
 			} else {
 				span_fill_3d(span, tr_state);
 			}

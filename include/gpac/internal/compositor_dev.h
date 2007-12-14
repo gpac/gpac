@@ -71,7 +71,6 @@ typedef struct _draw_aspect_2d DrawAspect2D;
 typedef struct _traversing_state GF_TraverseState;
 typedef struct _gf_ft_mgr GF_FontManager;
 
-
 #ifndef GPAC_DISABLE_3D
 #include <gpac/internal/camera.h>
 #include <gpac/internal/mesh.h>
@@ -375,6 +374,9 @@ enum
 	GF_SR_TEXTURE_MATTE = (1<<2),
 	/*texture doesn't need vertical flip for OpenGL*/
 	GF_SR_TEXTURE_NO_GL_FLIP = (1<<3),
+	/*Set durin a composition cycle. If not set at the end of the cycle, 
+	the hardware binding is released*/
+	GF_SR_TEXTURE_USED = (1<<4),
 };
 
 typedef struct _gf_sc_texture_handler

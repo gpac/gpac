@@ -220,7 +220,8 @@ static void TraverseTransform(GF_Node *n, void *rs, Bool is_destroy)
 
 	
 	gf_mx_copy(tr_state->model_matrix, gf_mx_bckup);
-	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) gf_mx_apply_bbox(&st->mx, &tr_state->bbox);
+	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) 
+		gf_mx_apply_bbox(&st->mx, &tr_state->bbox);
 }
 
 void compositor_init_transform(GF_Compositor *compositor, GF_Node *node)
