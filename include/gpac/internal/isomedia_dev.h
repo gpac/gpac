@@ -858,12 +858,12 @@ typedef struct
 	u8 isEdited;
 } GF_StscEntry;
 
-
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	GF_List *entryList;
-	GF_StscEntry *currentEntry;
+	GF_StscEntry *entries;
+	u32 alloc_size, nb_entries;
+
 	/*0-based cache for READ. In WRITE mode, we always have 1 sample per chunk so no need for a cache*/
 	u32 currentIndex;
 	/*first sample number in this chunk*/

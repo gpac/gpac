@@ -270,11 +270,9 @@ GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 	GF_DttsEntry *packed;
 	u32 i, j, remain, count;
 	GF_CompositionOffsetBox *ctts;
-	GF_List *newTable;
 	ctts = stbl->CompositionOffset;
 	if (ctts->unpack_mode) return GF_OK;
 	ctts->unpack_mode = 1;
-	newTable = gf_list_new();
 
 	packed = ctts->entries;
 	count = ctts->nb_entries;
@@ -487,27 +485,16 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 {
 	GF_SampleTableBox *stbl;
 	GF_ChunkOffsetBox *stco;
+	GF_SampleToChunkBox *stsc;
 	GF_ChunkLargeOffsetBox *co64;
-	GF_StscEntry *ent, *tmp;
-	u32 count, i, k, *newOff;
+	GF_StscEntry *ent;
+	u32 i, k, *newOff;
 	u64 *newLarge;
 
 	stbl = mdia->information->sampleTable;
+	stsc = stbl->SampleToChunk;
 
-	count = gf_list_count(mdia->information->sampleTable->SampleToChunk->entryList);
-
-	if (count + 1 < sampleNumber ) return GF_BAD_PARAM;
-
-	ent = (GF_StscEntry*)malloc(sizeof(GF_StscEntry));
-	if (!ent) return GF_OUT_OF_MEM;
-	ent->isEdited = 0;
-	if (Media_IsSelfContained(mdia, StreamDescIndex)) ent->isEdited = 1;
-	ent->sampleDescriptionIndex = StreamDescIndex;
-	ent->samplesPerChunk = 1;
-
-	//we know 1 chunk == 1 sample, so easy...
-	ent->firstChunk = sampleNumber;
-	ent->nextChunk = sampleNumber + 1;
+	if (stsc->nb_entries + 1 < sampleNumber ) return GF_BAD_PARAM;
 
 	//add the offset to the chunk...
 	//and we change our offset
@@ -590,24 +577,43 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 		}
 	}
 
+	if (stsc->nb_entries==stsc->alloc_size) {
+		ALLOC_INC(stsc->alloc_size);
+		stsc->entries = realloc(stsc->entries, sizeof(GF_StscEntry)*stsc->alloc_size);
+		if (!stsc->entries) return GF_OUT_OF_MEM;
+	}
+	if (sampleNumber == stsc->nb_entries + 1) {
+		ent = &stsc->entries[stsc->nb_entries];
+	} else {
+		memmove(&stsc->entries[sampleNumber-1], &stsc->entries[sampleNumber], sizeof(GF_StscEntry)*(stsc->nb_entries+1-sampleNumber));
+		ent = &stsc->entries[sampleNumber-1];
+	}
+	ent->isEdited = 0;
+	ent->isEdited = (Media_IsSelfContained(mdia, StreamDescIndex)) ? 1 : 0;
+	ent->sampleDescriptionIndex = StreamDescIndex;
+	ent->samplesPerChunk = 1;
+	ent->firstChunk = sampleNumber;
+	ent->nextChunk = sampleNumber + 1;
+
 	//OK, now if we've inserted a chunk, update the sample to chunk info...
-	if (sampleNumber == count + 1) {
-		ent->nextChunk = count + 1;
-		if (stbl->SampleToChunk->currentEntry)
-			stbl->SampleToChunk->currentEntry->nextChunk = ent->firstChunk;
-		stbl->SampleToChunk->currentEntry = ent;
-		stbl->SampleToChunk->currentIndex = count;
+	if (sampleNumber == stsc->nb_entries + 1) {
+		ent->nextChunk = stsc->nb_entries + 1;
+		if (stsc->nb_entries) 
+			stsc->entries[stsc->nb_entries-1].nextChunk = ent->firstChunk;
+
+		stbl->SampleToChunk->currentIndex = stsc->nb_entries;
 		stbl->SampleToChunk->firstSampleInCurrentChunk = sampleNumber;
 		//write - edit mode: sample number = chunk number
 		stbl->SampleToChunk->currentChunk = sampleNumber;
 		stbl->SampleToChunk->ghostNumber = 1;
-		return gf_list_add(stbl->SampleToChunk->entryList, ent);
+	} else {
+		/*offset remaining entries*/
+		for (i = sampleNumber; i<stsc->nb_entries+1; i++) {
+			stsc->entries[i].firstChunk++;
+		}
 	}
-	for (i = sampleNumber - 1; i<count; i++) {
-		tmp = (GF_StscEntry*)gf_list_get(stbl->SampleToChunk->entryList, i);
-		if (tmp) tmp->firstChunk +=1;
-	}
-	return gf_list_insert(stbl->SampleToChunk->entryList, ent, sampleNumber-1);
+	stsc->nb_entries++;
+	return GF_OK;
 }
 
 
@@ -622,7 +628,7 @@ GF_Err stbl_SetChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u64 offset)
 
 	if (!sampleNumber || !stbl) return GF_BAD_PARAM;
 
-	ent = (GF_StscEntry*)gf_list_get(stbl->SampleToChunk->entryList, sampleNumber - 1);
+	ent = &stbl->SampleToChunk->entries[sampleNumber - 1];
 
 	//we edit our entry if self contained
 	if (Media_IsSelfContained(mdia, ent->sampleDescriptionIndex))
@@ -925,26 +931,22 @@ GF_Err stbl_RemoveSize(GF_SampleSizeBox *stsz, u32 sampleNumber)
 //always called after removing the sample from SampleSize
 GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber)
 {
-	u32 i, k, count;
+	u32 i, k;
 	u32 *offsets;
 	u64 *Loffsets;
-	GF_StscEntry *ent;
+	GF_SampleToChunkBox *stsc = stbl->SampleToChunk;
 
 	//remove the entry in SampleToChunk (1 <-> 1 in edit mode)
-	ent = (GF_StscEntry*)gf_list_get(stbl->SampleToChunk->entryList, sampleNumber - 1);
-	gf_list_rem(stbl->SampleToChunk->entryList, sampleNumber - 1);
-	free(ent);
+	memmove(&stsc->entries[sampleNumber-1], &stsc->entries[sampleNumber], sizeof(GF_StscEntry)*(stsc->nb_entries-sampleNumber));
+	stsc->nb_entries--;
 
 	//update the firstchunk info
-	count=gf_list_count(stbl->SampleToChunk->entryList);
-	for (i = sampleNumber - 1; i < count; i++) {
-		ent = (GF_StscEntry*)gf_list_get(stbl->SampleToChunk->entryList, i);
-		ent->firstChunk -= 1;
-		ent->nextChunk -= 1;
+	for (i=sampleNumber-1; i < stsc->nb_entries; i++) {
+		stsc->entries[i].firstChunk -= 1;
+		stsc->entries[i].nextChunk -= 1;
 	}
 	//update the cache
 	stbl->SampleToChunk->firstSampleInCurrentChunk = 1;
-	stbl->SampleToChunk->currentEntry = (GF_StscEntry*)gf_list_get(stbl->SampleToChunk->entryList, 0);
 	stbl->SampleToChunk->currentIndex = 0;
 	stbl->SampleToChunk->currentChunk = 1;
 	stbl->SampleToChunk->ghostNumber = 1;
@@ -1333,14 +1335,14 @@ void stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset)
 
 void stbl_AppendSampleToChunk(GF_SampleTableBox *stbl, u32 DescIndex, u32 samplesInChunk)
 {
-	u32 count, nextChunk;
+	u32 nextChunk;
+	GF_SampleToChunkBox *stsc= stbl->SampleToChunk;
 	GF_StscEntry *ent;
 
-	count = gf_list_count(stbl->SampleToChunk->entryList);
 	nextChunk = ((GF_ChunkOffsetBox *) stbl->ChunkOffset)->entryCount;
 
-	if (count) {
-		ent = (GF_StscEntry *)gf_list_get(stbl->SampleToChunk->entryList, count-1);
+	if (stsc->nb_entries) {
+		ent = &stsc->entries[stsc->nb_entries-1];
 		//good we can use this one
 		if ( (ent->sampleDescriptionIndex == DescIndex) && (ent->samplesPerChunk==samplesInChunk)) 
 			return;
@@ -1348,12 +1350,17 @@ void stbl_AppendSampleToChunk(GF_SampleTableBox *stbl, u32 DescIndex, u32 sample
 		//set the next chunk btw ...
 		ent->nextChunk = nextChunk;
 	}
+	if (stsc->nb_entries==stsc->alloc_size) {
+		ALLOC_INC(stsc->alloc_size);
+		stsc->entries = realloc(stsc->entries, sizeof(GF_StscEntry)*stsc->alloc_size);
+		if (!stsc->entries) return;
+	}
 	//ok we need a new entry - this assumes this function is called AFTER AppendChunk
-	GF_SAFEALLOC(ent, GF_StscEntry);
+	ent = &stsc->entries[stsc->nb_entries];
 	ent->firstChunk = nextChunk;
 	ent->sampleDescriptionIndex = DescIndex;
 	ent->samplesPerChunk = samplesInChunk;
-	gf_list_add(stbl->SampleToChunk->entryList, ent);
+	stsc->nb_entries++;
 }
 
 //called AFTER AddSize
@@ -1473,7 +1480,7 @@ GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl)
 		return GF_ISOM_INVALID_FILE;
 
 	//do we need to unpack? Not if we have only one sample per chunk.
-	if (stbl->SampleSize->sampleCount == gf_list_count(stbl->SampleToChunk->entryList)) return GF_OK;
+	if (stbl->SampleSize->sampleCount == stbl->SampleToChunk->nb_entries) return GF_OK;
 
 	//check the offset type and create a new table...
 	if (stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
@@ -1503,22 +1510,23 @@ GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl)
 	//create a new SampleToChunk table
 	stsc_tmp = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
 
-	ent = NULL;
+	stsc_tmp->nb_entries = stsc_tmp->alloc_size = stbl->SampleSize->sampleCount;
+	stsc_tmp->entries = malloc(sizeof(GF_StscEntry)*stsc_tmp->nb_entries);
+	if (!stsc_tmp->entries) return GF_OUT_OF_MEM;
+
 	//OK write our two tables...
+	ent = NULL;
 	for (i = 0; i < stbl->SampleSize->sampleCount; i++) {
 		//get the data info for the sample
 		e = stbl_GetSampleInfos(stbl, i+1, &dataOffset, &chunkNumber, &sampleDescIndex, &isEdited);
 		if (e) goto err_exit;
-		ent = (GF_StscEntry*)malloc(sizeof(GF_StscEntry));
-		if (!ent) return GF_OUT_OF_MEM;
+		ent = &stsc_tmp->entries[i];
 		ent->isEdited = 0;
 		ent->sampleDescriptionIndex = sampleDescIndex;
 		//here's the trick: each sample is in ONE chunk
 		ent->firstChunk = i+1;
 		ent->nextChunk = i+2;
 		ent->samplesPerChunk = 1;
-		e = gf_list_add(stsc_tmp->entryList, ent);
-		if (e) goto err_exit;
 		if (stco_tmp) {
 			stco_tmp->offsets[i] = (u32) dataOffset;
 		} else {
@@ -1539,7 +1547,6 @@ GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl)
 		stbl->ChunkOffset = (GF_Box *)co64_tmp;
 	}
 	stbl->SampleToChunk = stsc_tmp;
-	stbl->SampleToChunk->currentEntry = (GF_StscEntry*)gf_list_get(stbl->SampleToChunk->entryList, 0);
 	stbl->SampleToChunk->currentIndex = 0;
 	stbl->SampleToChunk->currentChunk = 0;
 	stbl->SampleToChunk->firstSampleInCurrentChunk = 0;
@@ -1606,9 +1613,8 @@ static GFINLINE GF_Err stbl_AddOffset(GF_Box **a, u64 offset)
 GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 StreamDescIndex, GF_SampleToChunkBox *the_stsc, GF_Box **the_stco, u64 data_offset, u8 forceNewChunk)
 {
 	GF_Err e;
-	u32 count;
 	u8 newChunk;
-	GF_StscEntry *ent, *newEnt;
+	GF_StscEntry *ent, *newEnt, *cur_ent;
 
 	if (!stbl) return GF_ISOM_INVALID_FILE;
 
@@ -1621,36 +1627,35 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 	//when writing flat files, it is never used
 	if (forceNewChunk) newChunk = 1;
 
+	cur_ent = NULL;
 	//2 - make sure we have the table inited (i=0)
-	if (! the_stsc->currentEntry) {
+	if (! the_stsc->entries) {
 		newChunk = 1;
 	} else {
+		cur_ent = &the_stsc->entries[the_stsc->nb_entries - 1];
 	//3 - make sure we do not exceed the MaxSamplesPerChunk and we have the same descIndex
-		if (StreamDescIndex != the_stsc->currentEntry->sampleDescriptionIndex) 
+		if (StreamDescIndex != cur_ent->sampleDescriptionIndex) 
 			newChunk = 1;
-		if (stbl->MaxSamplePerChunk && the_stsc->currentEntry->samplesPerChunk == stbl->MaxSamplePerChunk) 
+		if (stbl->MaxSamplePerChunk && cur_ent->samplesPerChunk == stbl->MaxSamplePerChunk) 
 			newChunk = 1;
 	}
 
 	//no need for a new chunk
 	if (!newChunk) {
-		the_stsc->currentEntry->samplesPerChunk += 1;
+		cur_ent->samplesPerChunk += 1;
 		return GF_OK;
 	}
 
 	//OK, we have to create a new chunk...
-	count = gf_list_count(the_stsc->entryList);
 	//check if we can remove the current sampleToChunk entry (same properties)
-	if (count > 1) {
-		ent = (GF_StscEntry*)gf_list_get(the_stsc->entryList, count - 2);
-		if ( (ent->sampleDescriptionIndex == the_stsc->currentEntry->sampleDescriptionIndex)
-			&& (ent->samplesPerChunk == the_stsc->currentEntry->samplesPerChunk)
+	if (the_stsc->nb_entries > 1) {
+		ent = &the_stsc->entries[the_stsc->nb_entries - 2];
+		if ( (ent->sampleDescriptionIndex == cur_ent->sampleDescriptionIndex)
+			&& (ent->samplesPerChunk == cur_ent->samplesPerChunk)
 			) {
 			//OK, it's the same SampleToChunk, so delete it
-			ent->nextChunk = the_stsc->currentEntry->firstChunk;
-			free(the_stsc->currentEntry);
-			gf_list_rem(the_stsc->entryList, count - 1);
-			the_stsc->currentEntry = ent;
+			ent->nextChunk = cur_ent->firstChunk;
+			the_stsc->nb_entries--;
 		}
 	}
 
@@ -1658,9 +1663,14 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 	e = stbl_AddOffset(the_stco, data_offset);
 	if (e) return e;
 
+	if (the_stsc->nb_entries==the_stsc->alloc_size) {
+		ALLOC_INC(the_stsc->alloc_size);
+		the_stsc->entries = realloc(the_stsc->entries, sizeof(GF_StscEntry)*the_stsc->alloc_size);
+		if (!the_stsc->entries) return GF_OUT_OF_MEM;
+	}
 	//create a new entry (could be the first one, BTW)
-	newEnt = (GF_StscEntry*)malloc(sizeof(GF_StscEntry));
-	if (!newEnt) return GF_OUT_OF_MEM;
+	newEnt = &the_stsc->entries[the_stsc->nb_entries];
+
 	//get the first chunk value
 	if ((*the_stco)->type == GF_ISOM_BOX_TYPE_STCO) {
 		newEnt->firstChunk = ((GF_ChunkOffsetBox *) (*the_stco) )->entryCount;
@@ -1670,11 +1680,10 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 	newEnt->sampleDescriptionIndex = StreamDescIndex;
 	newEnt->samplesPerChunk = 1;
 	newEnt->nextChunk = 0;
-	gf_list_add(the_stsc->entryList, newEnt);
 	//if we already have an entry, adjust its next chunk to point to our new chunk
-	if (the_stsc->currentEntry)
-		the_stsc->currentEntry->nextChunk = newEnt->firstChunk;
-	the_stsc->currentEntry = newEnt;
+	if (the_stsc->nb_entries)
+		the_stsc->entries[the_stsc->nb_entries-1].nextChunk = newEnt->firstChunk;
+	the_stsc->nb_entries++;
 	return GF_OK;
 }
 

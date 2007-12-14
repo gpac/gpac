@@ -958,16 +958,14 @@ GF_Err stsc_dump(GF_Box *a, FILE * trace)
 {
 	GF_SampleToChunkBox *p;
 	u32 i;
-	GF_StscEntry *t;
 
 	p = (GF_SampleToChunkBox *)a;
-	fprintf(trace, "<SampleToChunkBox EntryCount=\"%d\">\n", gf_list_count(p->entryList));
+	fprintf(trace, "<SampleToChunkBox EntryCount=\"%d\">\n", p->nb_entries);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
-	i=0;
-	while ((t = (GF_StscEntry *)gf_list_enum(p->entryList, &i))) {
-		fprintf(trace, "<SampleToChunkEntry FirstChunk=\"%d\" SamplesPerChunk=\"%d\" SampleDescriptionIndex=\"%d\"/>\n", t->firstChunk, t->samplesPerChunk, t->sampleDescriptionIndex);
+	for (i=0; i<p->nb_entries; i++) {
+		fprintf(trace, "<SampleToChunkEntry FirstChunk=\"%d\" SamplesPerChunk=\"%d\" SampleDescriptionIndex=\"%d\"/>\n", p->entries[i].firstChunk, p->entries[i].samplesPerChunk, p->entries[i].sampleDescriptionIndex);
 	}
 	fprintf(trace, "</SampleToChunkBox>\n");
 	return GF_OK;
