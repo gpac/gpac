@@ -35,7 +35,6 @@
 /*TrueType tables*/
 #include FT_TRUETYPE_TABLES_H 
 
-
 typedef struct
 {
 	FT_Library library;
@@ -54,19 +53,22 @@ typedef struct
 
 	/*temp storage for enum - may be NULL*/
 	const char *tmp_font_name;
-	const char *tmp_font_style;
+	u32 tmp_font_style;
 	/*default fonts*/
 	char font_serif[1024];
 	char font_sans[1024];
 	char font_fixed[1024];
+
+	u16 *conv_buf;
+	u32 alloc_size;
 } FTBuilder;
 
 
 
-static GF_Err ft_init_font_engine(GF_FontRaster *dr)
+static GF_Err ft_init_font_engine(GF_FontReader *dr)
 {
 	const char *sOpt;
-	FTBuilder *ftpriv = (FTBuilder *)dr->priv;
+	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontDirectory");
 	if (!sOpt) return GF_BAD_PARAM;
@@ -107,9 +109,9 @@ static GF_Err ft_init_font_engine(GF_FontRaster *dr)
 	return GF_OK;
 }
 
-GF_Err ft_shutdown_font_engine(GF_FontRaster *dr)
+static GF_Err ft_shutdown_font_engine(GF_FontReader *dr)
 {
-	FTBuilder *ftpriv = (FTBuilder *)dr->priv;
+	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
 
 	ftpriv->active_face = NULL;
 	/*reset loaded fonts*/
@@ -122,11 +124,15 @@ GF_Err ft_shutdown_font_engine(GF_FontRaster *dr)
 	/*exit FT*/
 	if (ftpriv->library) FT_Done_FreeType(ftpriv->library);
 	ftpriv->library = NULL;
+	if (ftpriv->conv_buf) free(ftpriv->conv_buf);
+	ftpriv->conv_buf = NULL;
+	ftpriv->alloc_size = 0;
+
 	return GF_OK;
 }
 
 
-static Bool ft_check_face(FT_Face font, const char *fontName, const char *styles)
+static Bool ft_check_face(FT_Face font, const char *fontName, u32 styles)
 {
 	Bool ret;
 	char *ft_name;
@@ -143,7 +149,7 @@ static Bool ft_check_face(FT_Face font, const char *fontName, const char *styles
 	}
 	ft_name = strdup(font->family_name);
 	strupr(ft_name);
-	if (strstr(styles, "BOLDITALIC") ) {
+	if (styles & (GF_FONT_BOLD | GF_FONT_ITALIC)) {
 		if (!strstr(ft_name, "BOLD") && !strstr(ft_style, "BOLD") ) {
 			free(ft_name);
 			free(ft_style);
@@ -155,7 +161,7 @@ static Bool ft_check_face(FT_Face font, const char *fontName, const char *styles
 			return 0;
 		}
 	}
-	else if (strstr(styles, "BOLD")) {
+	else if (styles & GF_FONT_BOLD ) {
 		if (!strstr(ft_name, "BOLD") && !strstr(ft_style, "BOLD") ) {
 			free(ft_name);
 			free(ft_style);
@@ -167,7 +173,7 @@ static Bool ft_check_face(FT_Face font, const char *fontName, const char *styles
 			return 0;
 		}
 	}
-	else if (strstr(styles, "ITALIC")) {
+	else if (styles & GF_FONT_ITALIC ) {
 		if (!strstr(ft_name, "ITALIC") && !strstr(ft_style, "ITALIC")) {
 			free(ft_name);
 			free(ft_style);
@@ -190,7 +196,7 @@ static Bool ft_check_face(FT_Face font, const char *fontName, const char *styles
 	return 1;
 }
 
-static FT_Face ft_font_in_cache(FTBuilder *ft, const char *fontName, const char *styles)
+static FT_Face ft_font_in_cache(FTBuilder *ft, const char *fontName, u32 styles)
 {
 	u32 i=0;
 	FT_Face font;
@@ -206,8 +212,8 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 {
 	FT_Face face;
 	u32 num_faces, i;
-	GF_FontRaster *dr = cbck;
-	FTBuilder *ftpriv = dr->priv;
+	GF_FontReader *dr = cbck;
+	FTBuilder *ftpriv = dr->udta;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Enumerating font %s (%s)\n", file_name, file_path));
 
@@ -242,11 +248,11 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 	if (ftpriv->register_font) {
 		char szFont[GF_MAX_PATH];
 		strcpy(szFont, face->family_name);
-		if (ftpriv->tmp_font_style && strstr(ftpriv->tmp_font_style, "BOLD") && strstr(ftpriv->tmp_font_style, "ITALIC")) {
+		if (ftpriv->tmp_font_style & (GF_FONT_BOLD | GF_FONT_ITALIC)) {
 			strcat(szFont, " Bold Italic");
-		} else if (ftpriv->tmp_font_style && strstr(ftpriv->tmp_font_style, "BOLD") ) {
+		} else if (ftpriv->tmp_font_style & GF_FONT_BOLD) {
 			strcat(szFont, " Bold");
-		} else if (ftpriv->tmp_font_style && strstr(ftpriv->tmp_font_style, "ITALIC") ) {
+		} else if (ftpriv->tmp_font_style & GF_FONT_BOLD) {
 			strcat(szFont, " Italic");
 		}
 		gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", szFont, file_path);
@@ -261,19 +267,16 @@ static Bool ft_enum_fonts_dir(void *cbck, char *file_name, char *file_path)
 	return gf_enum_directory(file_path, 1, ft_enum_fonts_dir, cbck, NULL);
 }
 
-static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const char *styles)
+static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 styles)
 {
 	char fname[1024];
 	char *fontName;
 	Bool check_def_fonts = 0;
-	FTBuilder *ftpriv = (FTBuilder *)dr->priv;
+	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
 
 	fontName = (char *) OrigFontName;
 	ftpriv->active_face = NULL;
 	ftpriv->strike_style = 0;
-	if (styles && strstr(styles, "UNDERLINE")) ftpriv->strike_style = 1;
-	else if (styles && strstr(styles, "STRIKE")) ftpriv->strike_style = 2;
-
 	if (!fontName || !strlen(fontName) || !stricmp(fontName, "SERIF")) {
 		fontName = ftpriv->font_serif;
 		check_def_fonts = 1;
@@ -286,10 +289,6 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 		fontName = ftpriv->font_fixed;
 		check_def_fonts = 1;
 	}
-
-	if (styles && (!stricmp(styles, "PLAIN") || !stricmp(styles, "REGULAR"))) styles = NULL;
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Setting current font to %s (styles %s)\n", fontName, styles));
 
 	/*first look in loaded fonts*/
 	ftpriv->active_face = ft_font_in_cache(ftpriv, fontName, styles);
@@ -304,13 +303,13 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 	if (fontName && strlen(fontName)) {
 		const char *opt;
 		strcpy(fname, fontName);
-		if (styles && strstr(styles, "BOLD") && strstr(styles, "ITALIC")) {
+		if (styles & (GF_FONT_BOLD | GF_FONT_ITALIC) ) {
 			strcat(fname, " Bold Italic");
 		}
-		else if (styles && strstr(styles, "BOLD")) {
+		else if (styles & GF_FONT_BOLD) {
 			strcat(fname, " Bold");
 		}
-		else if (styles && strstr(styles, "ITALIC")) {
+		else if (styles & GF_FONT_ITALIC) {
 			strcat(fname, " Italic");
 		}
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", fname);
@@ -339,11 +338,11 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 				gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif", ftpriv->active_face->family_name);
 				strcpy(ftpriv->font_serif, ftpriv->active_face->family_name);
 			}
-			else if (!ftpriv->font_sans[0] && OrigFontName && (!stricmp(OrigFontName, "SANS") || !stricmp(OrigFontName, "sans-serif"))) {
+			else if (!ftpriv->font_sans[0] && OrigFontName && !stricmp(OrigFontName, "SANS")) {
 				gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSans", ftpriv->active_face->family_name);
 				strcpy(ftpriv->font_sans, ftpriv->active_face->family_name);
 			}
-			else if (!ftpriv->font_fixed[0] && OrigFontName && (!stricmp(OrigFontName, "TYPEWRITTER") || !stricmp(OrigFontName, "monospace"))) {
+			else if (!ftpriv->font_fixed[0] && OrigFontName && !stricmp(OrigFontName, "TYPEWRITTER")) {
 				gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", ftpriv->active_face->family_name);
 				strcpy(ftpriv->font_fixed, ftpriv->active_face->family_name);
 			}
@@ -375,169 +374,135 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 	return GF_NOT_SUPPORTED;
 }
 
-static GF_Err ft_set_font_size(GF_FontRaster *dr, Fixed pixel_size)
+static GF_Err ft_get_font_info(GF_FontReader *dr, char **font_name, s32 *em_size, s32 *ascent, s32 *descent, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v)
 {
-	FTBuilder *ftpriv = (FTBuilder *)dr->priv;
-	if (!ftpriv->active_face || !pixel_size) return GF_BAD_PARAM;
+	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
+	if (!ftpriv->active_face) return GF_BAD_PARAM;
 
-	ftpriv->pixel_size = pixel_size;
-
-	return GF_OK;
-}
-
-static GF_Err ft_get_font_metrics(GF_FontRaster *dr, Fixed *ascent, Fixed *descent, Fixed *lineSpacing)
-{
-	FTBuilder *ftpriv = (FTBuilder *)dr->priv;
-	if (!ftpriv->active_face || !ftpriv->pixel_size) return GF_BAD_PARAM;
-
-	*ascent = (ftpriv->pixel_size / ftpriv->active_face->units_per_EM) * ftpriv->active_face->ascender;
-	*descent = - (ftpriv->pixel_size / ftpriv->active_face->units_per_EM) * ftpriv->active_face->descender;
-	*lineSpacing = (ftpriv->pixel_size / ftpriv->active_face->units_per_EM) * ftpriv->active_face->height;
+	*em_size = ftpriv->active_face->units_per_EM;
+	*ascent = ftpriv->active_face->ascender;
+	*descent = ftpriv->active_face->descender;
+	*line_spacing = ftpriv->active_face->height;
+	*font_name = strdup(ftpriv->active_face->family_name);
+	*max_advance_h = ftpriv->active_face->max_advance_width;
+	*max_advance_v = ftpriv->active_face->max_advance_height;
 	return GF_OK;
 }
 
 
-static GF_Err ft_get_text_size(GF_FontRaster *dr, const unsigned short *string, Fixed *width, Fixed *height)
+static GF_Err ft_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *xml_lang)
 {
-	u32 i, count, glyph_idx, w, h;
-	FT_Glyph glyph;
-	FT_BBox bbox;
-	FTBuilder *ftpriv = (FTBuilder *)dr->priv;
-	if (!ftpriv->active_face || !ftpriv->pixel_size) return GF_BAD_PARAM;
+	s32 len;
+	u32 i;
+	char *utf8 = (char*) utf_string;
+	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
 
-	FT_Select_Charmap(ftpriv->active_face, FT_ENCODING_UNICODE);
+	if (!ftpriv->active_face) return GF_BAD_PARAM;
 
-	count = gf_utf8_wcslen(string);
-	if (count == (size_t) (-1)) return GF_BAD_PARAM;
+	/*TODO: reverse layout (for arabic fonts) and glyph substitution / ligature */
 
-	w = h = 0;
-	for (i=0; i<count; i++) {
-		glyph_idx = FT_Get_Char_Index(ftpriv->active_face, string[i]);
-		/*missing glyph*/
-		if (!glyph_idx) continue;
-
-		/*work in design units*/
-		FT_Load_Glyph(ftpriv->active_face, glyph_idx, FT_LOAD_NO_SCALE | FT_LOAD_NO_BITMAP);
-		FT_Get_Glyph(ftpriv->active_face->glyph, &glyph);
-
-		FT_Glyph_Get_CBox(glyph, ft_glyph_bbox_unscaled, &bbox);		
-		if (h < (u32) (bbox.yMax - bbox.yMin)) h = (bbox.yMax - bbox.yMin);
-
-		if (!i) w = -1 * bbox.xMin;
-		if (i+1<count) {
-			w += ftpriv->active_face->glyph->metrics.horiAdvance;
-		} else {
-			if (bbox.xMax) {
-				w += bbox.xMax;
-			} else {
-				w += ftpriv->active_face->glyph->metrics.horiAdvance;
-			}
-		}
-		FT_Done_Glyph(glyph);
+	len = utf_string ? strlen(utf_string) : 0;
+	if (!len) {
+		*io_glyph_buffer_size = 0;
+		return GF_OK;
 	}
+	if (*io_glyph_buffer_size < (u32) len) {
+		*io_glyph_buffer_size = (u32) len;
+		return GF_BUFFER_TOO_SMALL;
+	}
+	if ((u32) len > ftpriv->alloc_size) {
+		ftpriv->alloc_size = len+1;
+		ftpriv->conv_buf = realloc(ftpriv->conv_buf, sizeof(u16)*ftpriv->alloc_size);
+		if (!ftpriv->conv_buf) return GF_OUT_OF_MEM;
+	}
+	len = gf_utf8_mbstowcs(ftpriv->conv_buf, ftpriv->alloc_size, &utf8);
+	if (len<0) return GF_IO_ERR;
+	if (utf8) return GF_IO_ERR;
 
-	/*convert to font size*/
-	*width = (ftpriv->pixel_size / ftpriv->active_face->units_per_EM) * w;
-	*height = (ftpriv->pixel_size / ftpriv->active_face->units_per_EM) * h;
+	for (i=0; i<(u32) len; i++) {
+		glyph_buffer[i] = (u32) ftpriv->conv_buf[i];
+	}
+	*io_glyph_buffer_size = (u32) len;
 	return GF_OK;
 }
+
 
 
 
 
 typedef struct
 {
-//	Fixed font_scale;
-	Fixed top;
-	Fixed pos_x;
 	FTBuilder *ftpriv;
 	GF_Path *path;
-
-	Fixed x_scale, y_scale;
-	Fixed last_x, last_y;
+	s32 last_x, last_y;
 } ft_outliner;
 
 
-#define GETX(_x) (ftol->pos_x + gf_mulfix(ftol->x_scale, INT2FIX(_x)))
-#define GETY(_y) (ftol->top + gf_mulfix(ftol->y_scale, INT2FIX(_y)))
-
-
-/*
-	this is not explicit in FreeType doc, i assume each line/curve ending at last moveTo
-	shall be closed
-*/
-
-int ft_move_to(FT_Vector *to, void *user)
+static int ft_move_to(FT_Vector *to, void *user)
 {
-	Fixed x, y;
 	ft_outliner *ftol = (ft_outliner *)user;
-	x = GETX(to->x);
-	y = GETY(to->y);
-	gf_path_add_move_to(ftol->path, x, y);
-	ftol->last_x = x;
-	ftol->last_y = y;
+	gf_path_add_move_to(ftol->path, INT2FIX(to->x), INT2FIX(to->y) );
+	ftol->last_x = to->x;
+	ftol->last_y = to->y;
 	return 0;
 }
-int ft_line_to(FT_Vector *to, void *user)
+static int ft_line_to(FT_Vector *to, void *user)
 {
-	Fixed x, y;
 	ft_outliner *ftol = (ft_outliner *)user;
-	x = GETX(to->x);
-	y = GETY(to->y);
-
-	if ( (ftol->last_x == x) && (ftol->last_y == y)) {
+	if ( (ftol->last_x == to->x) && (ftol->last_y == to->y)) {
 		gf_path_close(ftol->path);
 	} else {
-		gf_path_add_line_to(ftol->path, x, y);
+		gf_path_add_line_to(ftol->path, INT2FIX(to->x), INT2FIX(to->y) );
 	}
 	return 0;
 }
-int ft_conic_to(FT_Vector * control, FT_Vector *to, void *user)
+static int ft_conic_to(FT_Vector * control, FT_Vector *to, void *user)
 {
-	Fixed x, y, cx, cy;
 	ft_outliner *ftol = (ft_outliner *)user;
-	cx = GETX(control->x);
-	cy = GETY(control->y);
-	x = GETX(to->x);
-	y = GETY(to->y);
-	gf_path_add_quadratic_to(ftol->path, cx, cy, x, y);
-
-	if ( (ftol->last_x == x) && (ftol->last_y == y)) gf_path_close(ftol->path);
+	gf_path_add_quadratic_to(ftol->path, INT2FIX(control->x), INT2FIX(control->y), INT2FIX(to->x), INT2FIX(to->y) );
+	if ( (ftol->last_x == to->x) && (ftol->last_y == to->y)) gf_path_close(ftol->path);
 	return 0;
 }
-int ft_cubic_to(FT_Vector *control1, FT_Vector *control2, FT_Vector *to, void *user)
+static int ft_cubic_to(FT_Vector *c1, FT_Vector *c2, FT_Vector *to, void *user)
 {
-	Fixed x, y, c1x, c1y, c2x, c2y;
 	ft_outliner *ftol = (ft_outliner *)user;
-	c1x = GETX(control1->x);
-	c1y = GETY(control1->y);
-	c2x = GETX(control2->x);
-	c2y = GETY(control2->y);
-	x = GETX(to->x);
-	y = GETY(to->y);
-	gf_path_add_cubic_to(ftol->path, c1x, c1y, c1x, c1y, x, y);
-	if ( (ftol->last_x == x) && (ftol->last_y == y)) gf_path_close(ftol->path);
+	gf_path_add_cubic_to(ftol->path, INT2FIX(c1->x), INT2FIX(c1->y), INT2FIX(c2->x), INT2FIX(c2->y), INT2FIX(to->x), INT2FIX(to->y) );
+	if ( (ftol->last_x == to->x) && (ftol->last_y == to->y)) gf_path_close(ftol->path);
 	return 0;
 }
 
 
-static GF_Err ft_add_text_to_path(GF_FontRaster *dr, GF_Path *path, Bool flipText,
-					const unsigned short *string, Fixed left, Fixed top, Fixed x_scaling, Fixed y_scaling, 
-					Fixed ascent, GF_Rect *bounds)
+static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 {
-
-	u32 i, count, glyph_idx;
-	Fixed def_inc_x, font_scale;
-	s32 ymin, ymax;
+	GF_Glyph *glyph;
+	u32 glyph_idx;
 	FT_BBox bbox;
 	FT_OutlineGlyph outline;
 	ft_outliner outl;
 	FT_Outline_Funcs ft_outl_funcs;
 
-	FTBuilder *ftpriv = (FTBuilder *)dr->priv;
-	if (!ftpriv->active_face || !ftpriv->pixel_size) return GF_BAD_PARAM;
+	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
+	if (!ftpriv->active_face || !glyph_name) return NULL;
 
 	FT_Select_Charmap(ftpriv->active_face, FT_ENCODING_UNICODE);
+
+	glyph_idx = FT_Get_Char_Index(ftpriv->active_face, glyph_name);
+	/*missing glyph*/
+	if (!glyph_idx) return NULL;
+
+	/*work in design units*/
+	FT_Load_Glyph(ftpriv->active_face, glyph_idx, FT_LOAD_NO_SCALE | FT_LOAD_NO_BITMAP);
+
+	FT_Get_Glyph(ftpriv->active_face->glyph, (FT_Glyph*)&outline);
+
+#ifdef FT_GLYPH_FORMAT_OUTLINE
+	/*oops not vectorial...*/
+	if (outline->root.format != FT_GLYPH_FORMAT_OUTLINE) return NULL;
+#endif
+
+
+	GF_SAFEALLOC(glyph, GF_Glyph);
+	GF_SAFEALLOC(glyph->path, GF_Path);
 
 	/*setup outliner*/
 	ft_outl_funcs.shift = 0;
@@ -546,121 +511,59 @@ static GF_Err ft_add_text_to_path(GF_FontRaster *dr, GF_Path *path, Bool flipTex
 	ft_outl_funcs.line_to = ft_line_to;
 	ft_outl_funcs.conic_to = ft_conic_to;
 	ft_outl_funcs.cubic_to = ft_cubic_to;
-
-	/*units per EM are 24.6 fixed point in freetype, consider them as integers (no risk of overflow)*/
-	font_scale = ftpriv->pixel_size / ftpriv->active_face->units_per_EM;
-	outl.path = path;
+	outl.path = glyph->path;
 	outl.ftpriv = ftpriv;
 	
-	outl.x_scale = gf_mulfix(x_scaling, font_scale);
-	outl.y_scale = gf_mulfix(y_scaling, font_scale);
-	if (!flipText) outl.y_scale *= -1;
-	
-	bounds->x = outl.pos_x = gf_mulfix(left, x_scaling);
-	if (flipText) 
-		bounds->y = outl.top = gf_mulfix(top - ascent, y_scaling);
-	else 
-		bounds->y = outl.top = gf_mulfix(top, y_scaling);
+	/*freeType is marvelous and gives back the right advance on space char !!!*/
+	FT_Outline_Decompose(&outline->outline, &ft_outl_funcs, &outl);
 
-	/*same remark as above*/
-	def_inc_x = ftpriv->active_face->max_advance_width * outl.x_scale;
+	FT_Glyph_Get_CBox((FT_Glyph) outline, ft_glyph_bbox_unscaled, &bbox);
 
-	/*TODO: reverse layout (for arabic fonts) and glyph substitution / ligature once openType is in place in freetype*/
-
-	bounds->height = 0;
-
-	count = gf_utf8_wcslen(string);
-	if (count == (size_t) (-1)) return GF_BAD_PARAM;
-	ymin = ymax	= 0;
-
-	for (i=0; i<count; i++) {
-		glyph_idx = FT_Get_Char_Index(ftpriv->active_face, string[i]);
-		/*missing glyph*/
-		if (!glyph_idx) continue;
-
-		/*work in design units*/
-		FT_Load_Glyph(ftpriv->active_face, glyph_idx, FT_LOAD_NO_SCALE | FT_LOAD_NO_BITMAP);
-
-		FT_Get_Glyph(ftpriv->active_face->glyph, (FT_Glyph*)&outline);
-#ifdef FT_GLYPH_FORMAT_OUTLINE
-		/*oops not vectorial...*/
-		if (outline->root.format != FT_GLYPH_FORMAT_OUTLINE) {
-			outl.pos_x += def_inc_x;
-			FT_Done_Glyph((FT_Glyph) outline);
-			continue;
-		}
-#endif
-
-		/*freeType is marvelous and gives back the right advance on space char !!!*/
-	    FT_Outline_Decompose(&outline->outline, &ft_outl_funcs, &outl);
-
-		FT_Glyph_Get_CBox((FT_Glyph) outline, ft_glyph_bbox_unscaled, &bbox);		
-		if (ymax < bbox.yMax ) ymax = bbox.yMax ;
-		if (ymin > bbox.yMin) ymin = bbox.yMin;
-
-		/*update start of bounding box on first char*/
-		if (!i) bounds->x += bbox.xMin * outl.x_scale;
-
-		/*take care of last char (may be AFTER last horiz_advanced with certain glyphs)*/
-		if ((i+1==count)&&(bbox.xMax)) {
-			outl.pos_x += bbox.xMax * outl.x_scale;
-		} else {
-			outl.pos_x += ftpriv->active_face->glyph->metrics.horiAdvance * outl.x_scale;
-		}
-		FT_Done_Glyph((FT_Glyph) outline);
-	}
-
-
-	bounds->width = outl.pos_x - bounds->x;
-	bounds->height = (ymax - ymin) * outl.y_scale;
-	bounds->y = ymax * outl.y_scale;
-	if (!bounds->height && count) bounds->height = FIX_ONE/1000;
-
-	/*add underline/strikeout*/
-	if (ftpriv->strike_style) {
-		Fixed sy;
-		if (ftpriv->strike_style==1) {
-			sy = top - ascent + ftpriv->active_face->underline_position * font_scale;
-		} else {
-			sy = top - 3 * ascent / 4;
-		}
-		gf_path_add_rect_center(path, bounds->x + bounds->width / 2, sy, bounds->width, ftpriv->active_face->underline_thickness * font_scale);
-	}
-	return GF_OK;
+	glyph->ID = glyph_name;
+	glyph->utf_name = glyph_name;
+	glyph->horiz_advance = ftpriv->active_face->glyph->metrics.horiAdvance;
+	glyph->vert_advance = ftpriv->active_face->glyph->metrics.vertAdvance;
+/*
+	glyph->x = bbox.xMin;
+	glyph->y = bbox.yMax;
+	glyph->width = ftpriv->active_face->glyph->metrics.width;
+	glyph->height = ftpriv->active_face->glyph->metrics.height;
+*/
+	FT_Done_Glyph((FT_Glyph) outline);
+	return glyph;
 }
 
 
-GF_FontRaster *FT_Load()
+GF_FontReader *ft_load()
 {
-	GF_FontRaster *dr;
+	GF_FontReader *dr;
 	FTBuilder *ftpriv;
-	dr = malloc(sizeof(GF_FontRaster));
-	memset(dr, 0, sizeof(GF_FontRaster));
-	GF_REGISTER_MODULE_INTERFACE(dr, GF_FONT_RASTER_INTERFACE, "FreeType Font Engine", "gpac distribution");
+	dr = malloc(sizeof(GF_FontReader));
+	memset(dr, 0, sizeof(GF_FontReader));
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_FONT_READER_INTERFACE, "FreeType Font Reader", "gpac distribution");
 
 	ftpriv = malloc(sizeof(FTBuilder));
 	memset(ftpriv, 0, sizeof(FTBuilder));
 
 	ftpriv->loaded_fonts = gf_list_new();
 
-	dr->priv = ftpriv;
+	dr->udta = ftpriv;
 
 	
 	dr->init_font_engine = ft_init_font_engine;
 	dr->shutdown_font_engine = ft_shutdown_font_engine;
 	dr->set_font = ft_set_font;
-	dr->set_font_size = ft_set_font_size;
-	dr->get_font_metrics = ft_get_font_metrics;
-	dr->get_text_size = ft_get_text_size;
-	dr->add_text_to_path = ft_add_text_to_path;
+	dr->get_font_info = ft_get_font_info;
+	dr->get_glyphs = ft_get_glyphs;
+	dr->load_glyph = ft_load_glyph;
 	return dr;
 }
 
 
-void FT_Delete(GF_BaseInterface *ifce)
+void ft_delete(GF_BaseInterface *ifce)
 {
-	GF_FontRaster *dr = (GF_FontRaster *) ifce;
-	FTBuilder *ftpriv = dr->priv;
+	GF_FontReader *dr = (GF_FontReader *) ifce;
+	FTBuilder *ftpriv = dr->udta;
 
 
 	if (ftpriv->font_dir) free(ftpriv->font_dir);
@@ -668,7 +571,7 @@ void FT_Delete(GF_BaseInterface *ifce)
 
 	gf_list_del(ftpriv->loaded_fonts);
 
-	free(dr->priv);
+	free(dr->udta);
 	free(dr);
 }
 
@@ -677,7 +580,6 @@ void FT_Delete(GF_BaseInterface *ifce)
 GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
-	if (InterfaceType == GF_FONT_RASTER_INTERFACE) return 1;
 	if (InterfaceType == GF_FONT_READER_INTERFACE) return 1;
 	return 0;
 }
@@ -685,8 +587,7 @@ Bool QueryInterface(u32 InterfaceType)
 GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
-	if (InterfaceType == GF_FONT_RASTER_INTERFACE) return (GF_BaseInterface *)FT_Load();
-	if (InterfaceType == GF_FONT_READER_INTERFACE) return (GF_BaseInterface *)FTR_Load();
+	if (InterfaceType == GF_FONT_READER_INTERFACE) return (GF_BaseInterface *)ft_load();
 	return NULL;
 }
 
@@ -694,11 +595,8 @@ GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
-	case GF_FONT_RASTER_INTERFACE:
-		FT_Delete(ifce);
-		break;
 	case GF_FONT_READER_INTERFACE:
-		FTR_Delete(ifce);
+		ft_delete(ifce);
 		break;
 	}
 }

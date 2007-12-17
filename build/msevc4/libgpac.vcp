@@ -4178,6 +4178,10 @@ DEP_CPP_COMPOSI=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\gpac\internal\compositor_dev.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\compositor\compositor_node_init.c
 DEP_CPP_COMPOSIT=\
 	"..\..\include\gpac\color.h"\
@@ -5593,6 +5597,10 @@ DEP_CPP_SVG_B=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\compositor\svg_font.c
 # End Source File
 # Begin Source File
 

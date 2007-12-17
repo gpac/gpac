@@ -122,7 +122,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 		char *str = txt->string.vals[i];
 		if (!str) continue;
 
-		tspan = gf_font_manager_create_span(ft_mgr, font, str, fontSize, 0, 0);
+		tspan = gf_font_manager_create_span(ft_mgr, font, str, fontSize, 0, 0, NULL);
 		len = tspan->nb_glyphs;
 		tspan->horizontal = 1;
 
@@ -230,7 +230,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		char *str = txt->string.vals[i];
 		if (!str) continue;
 
-		tspan = gf_font_manager_create_span(ft_mgr, font, txt->string.vals[i], fontSize, 0, 0);
+		tspan = gf_font_manager_create_span(ft_mgr, font, txt->string.vals[i], fontSize, 0, 0, NULL);
 		if (!tspan) continue;
 		
 		tspan->horizontal = horizontal;
@@ -601,7 +601,6 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 	}
 
-	if (!st->compositor->font_engine) return;
 	if (!txt->string.count) return;
 
 	if (tr_state->text_split_mode) {

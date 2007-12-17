@@ -321,7 +321,7 @@ bool GPACInit(void *application, GF_Terminal **term, GF_User *user, bool quiet)
 			gf_cfg_set_key(user->config, "General", "CacheDirectory", (const char *) str_path);
 		}
 		/*by default use GDIplus, much faster than freetype on font loading*/
-		gf_cfg_set_key(user->config, "FontEngine", "DriverName", "gdip_rend");
+		gf_cfg_set_key(user->config, "FontEngine", "FontReader", "gdip_rend");
 		gf_cfg_set_key(user->config, "Video", "DriverName", "DirectX Video Output");
 #else
 		wxDirDialog dlg3(NULL, "Please specify a cache directory for GPAC");

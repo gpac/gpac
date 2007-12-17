@@ -569,10 +569,10 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 #endif
 
 	/*font*/
-	sOpt = gf_cfg_get_key(cfg, "FontEngine", "DriverName");
+	sOpt = gf_cfg_get_key(cfg, "FontEngine", "FontReader");
 	to_sel = select = 0;
 	for (i=0; i<count; i++) {
-		ifce = gf_modules_load_interface(m_pApp->m_user.modules, i, GF_FONT_RASTER_INTERFACE);
+		ifce = gf_modules_load_interface(m_pApp->m_user.modules, i, GF_FONT_READER_INTERFACE);
 		if (!ifce) continue;
 		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 		m_font->Append(wxString(((GF_BaseInterface *)ifce)->module_name, wxConvUTF8) );
@@ -969,7 +969,7 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 		gf_cfg_set_key(cfg, "Audio", "DisableNotification", m_notifs->GetValue() ? "yes" : "no");
 #endif
 	
-	gf_cfg_set_key(cfg, "FontEngine", "DriverName", m_font->GetStringSelection().mb_str(wxConvUTF8));
+	gf_cfg_set_key(cfg, "FontEngine", "FontReader", m_font->GetStringSelection().mb_str(wxConvUTF8));
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", m_fontdir->GetLabel().mb_str(wxConvUTF8));
 	switch (m_texturemode->GetSelection()) {
 	case 2: gf_cfg_set_key(cfg, "Compositor", "TextureTextMode", "Always"); break;

@@ -194,7 +194,7 @@ typedef struct
 	ULONG_PTR gdiToken;
 
 	/*text stuff*/
-	Float font_size;
+	Float em_size, descent, ascent;
 	s32 font_style;
 	Float whitespace_width;
 	Float underscore_width;
@@ -205,8 +205,8 @@ typedef struct
 	char font_fixed[1024];
 } FontPriv;
 
-GF_FontRaster *gdip_new_font_driver();
-void gdip_delete_font_driver(GF_FontRaster *dr);
+GF_FontReader *gdip_new_font_driver();
+void gdip_delete_font_driver(GF_FontReader *dr);
 
 
 

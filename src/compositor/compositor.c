@@ -227,8 +227,6 @@ static void gf_sc_reset_framerate(GF_Compositor *compositor)
 	compositor->current_frame = 0;
 }
 
-void gf_sc_set_font_engine(GF_Compositor *compositor);
-
 static void gf_sc_on_event(void *cbck, GF_Event *event);
 
 static Bool gf_sc_set_check_raster2d(GF_Raster2D *ifce)
@@ -381,9 +379,6 @@ static GF_Compositor *gf_sc_create(GF_User *user)
 #endif
 	
 	gf_sc_reset_framerate(tmp);	
-	/*set font engine if any*/
-	gf_sc_set_font_engine(tmp);
-
 	tmp->font_manager = gf_font_manager_new(user);
 	
 	tmp->extra_scenes = gf_list_new();
@@ -481,12 +476,6 @@ void gf_sc_del(GF_Compositor *compositor)
 	gf_list_del(compositor->events);
 #endif
 
-
-	if (compositor->font_engine) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Closing font engine\n"));
-		compositor->font_engine->shutdown_font_engine(compositor->font_engine);
-		gf_modules_close_interface((GF_BaseInterface *)compositor->font_engine);
-	}
 	if (compositor->font_manager) gf_font_manager_del(compositor->font_manager);
 
 	gf_list_del(compositor->textures);
@@ -839,7 +828,7 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 
 void gf_sc_reload_config(GF_Compositor *compositor)
 {
-	const char *sOpt, *dr_name;
+	const char *sOpt;
 
 	/*changing drivers needs exclusive access*/
 	gf_sc_lock(compositor, 1);
@@ -962,16 +951,8 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 #endif
 	
-	sOpt = gf_cfg_get_key(compositor->user->config, "FontEngine", "DriverName");
-	if (sOpt && compositor->font_engine) {
-		dr_name = compositor->font_engine->module_name;
-		if (stricmp(dr_name, sOpt)) gf_sc_set_font_engine(compositor);
-	}
-
 	/*RECT texture support - we must reload HW*/
 	compositor->reset_graphics = 1;
-	
-
 
 	compositor->draw_next_frame = 1;
 
@@ -1234,51 +1215,6 @@ void gf_sc_map_point(GF_Compositor *compositor, s32 X, s32 Y, Fixed *bifsX, Fixe
 	*bifsY = INT2FIX(Y);
 }
 
-
-void gf_sc_set_font_engine(GF_Compositor *compositor)
-{
-	const char *sOpt;
-	u32 i, count;
-	GF_FontRaster *ifce;
-
-	ifce = NULL;
-	sOpt = gf_cfg_get_key(compositor->user->config, "FontEngine", "DriverName");
-	if (sOpt) ifce = (GF_FontRaster *) gf_modules_load_interface_by_name(compositor->user->modules, sOpt, GF_FONT_RASTER_INTERFACE);
-
-	if (!ifce) {
-		count = gf_modules_get_count(compositor->user->modules);
-		for (i=0; i<count; i++) {
-			ifce = (GF_FontRaster *) gf_modules_load_interface(compositor->user->modules, i, GF_FONT_RASTER_INTERFACE);
-			if (ifce) {
-				gf_cfg_set_key(compositor->user->config, "FontEngine", "DriverName", ifce->module_name);
-				sOpt = ifce->module_name;
-				break;
-			}
-		}
-	}
-	if (!ifce) return;
-
-	/*cannot init font engine*/
-	if (ifce->init_font_engine(ifce) != GF_OK) {
-		gf_modules_close_interface((GF_BaseInterface *)ifce);
-		return;
-	}
-
-
-	/*shutdown current*/
-	gf_sc_lock(compositor, 1);
-	if (compositor->font_engine) {
-		compositor->font_engine->shutdown_font_engine(compositor->font_engine);
-		gf_modules_close_interface((GF_BaseInterface *)compositor->font_engine);
-	}
-	compositor->font_engine = ifce;
-
-	/*success*/
-	gf_cfg_set_key(compositor->user->config, "FontEngine", "DriverName", sOpt);
-		
-	compositor->draw_next_frame = 1;
-	gf_sc_lock(compositor, 0);
-}
 
 GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, Bool depth_buffer)
 {
