@@ -698,7 +698,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 			gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) str_path);
 		}
 		/*by default use GDIplus, much faster than freetype on font loading*/
-		gf_cfg_set_key(m_user.config, "FontEngine", "DriverName", "gdip_rend");
+		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "gdip_rend");
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "DirectX Video Output");
 
 		sOpt = gf_cfg_get_key(m_user.config, "General", "StartupFile");

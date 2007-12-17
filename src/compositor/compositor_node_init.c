@@ -171,6 +171,15 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 	case TAG_SVG_video:				compositor_init_svg_video(compositor, node); break;
 	case TAG_SVG_audio:				compositor_init_svg_audio(compositor, node, 0); break;
 
+	/*SVG font support - note that we initialize the font when parsing the font-face element, not the font element*/
+	case TAG_SVG_font_face:			compositor_init_svg_font(compositor, node); break;
+	case TAG_SVG_missing_glyph:
+	case TAG_SVG_glyph:
+		compositor_init_svg_glyph(compositor, node); 
+		break;
+	case TAG_SVG_font_face_uri:
+		compositor_init_svg_font_face_uri(compositor, node); break;
+
 	/* <use> and <animation> elements are initialized at the terminal level (see gf_term_on_node_init)*/
 #endif
 

@@ -38,8 +38,8 @@ struct _gf_ft_mgr
 
 	GF_Font *font, *default_font;
 
-	unsigned short *conv_buffer;
-	u32 conv_buffer_size;
+	u32 *id_buffer;
+	u32 id_buffer_size;
 };
 
 
@@ -79,8 +79,8 @@ GF_FontManager *gf_font_manager_new(GF_User *user)
 	}
 	GF_SAFEALLOC(font_mgr, GF_FontManager);
 	font_mgr->reader = ifce;
-	font_mgr->conv_buffer_size = 20;
-	font_mgr->conv_buffer = malloc(sizeof(unsigned short)*font_mgr->conv_buffer_size);
+	font_mgr->id_buffer_size = 20;
+	font_mgr->id_buffer = malloc(sizeof(u32)*font_mgr->id_buffer_size);
 	gf_font_manager_set_font(font_mgr, &def_font, 1, 0);
 	font_mgr->default_font = font_mgr->font;
 	return font_mgr;
@@ -89,13 +89,15 @@ GF_FontManager *gf_font_manager_new(GF_User *user)
 
 void gf_font_del(GF_Font *font)
 {
-	GF_Glyph *glyph = font->glyph;
-
-	while (glyph) {
-		GF_Glyph *next = glyph->next;
-		gf_path_del(glyph->path);
-		free(glyph);
-		glyph = next;
+	if (!font->get_glyphs) {
+		GF_Glyph *glyph;
+		glyph = font->glyph;
+		while (glyph) {
+			GF_Glyph *next = glyph->next;
+			gf_path_del(glyph->path);
+			free(glyph);
+			glyph = next;
+		}
 	}
 	free(font->name);
 	free(font);
@@ -116,9 +118,41 @@ void gf_font_manager_del(GF_FontManager *fm)
 		gf_font_del(font);
 		font = next;
 	}
-	free(fm->conv_buffer);
+	free(fm->id_buffer);
 	free(fm);
 }
+
+GF_Err gf_font_manager_register_font(GF_FontManager *fm, GF_Font *font)
+{
+	if (fm->font) {
+		GF_Font *a_font = fm->font;
+		while (a_font->next) a_font = a_font->next;
+		a_font->next = font;
+	} else {
+		fm->font = font;
+	}
+	return GF_OK;
+}
+
+GF_Err gf_font_manager_unregister_font(GF_FontManager *fm, GF_Font *font)
+{
+	GF_Font *prev_font, *a_font;
+	
+	prev_font = NULL;
+	a_font = fm->font;
+	while (a_font) {
+		if (a_font==font) break;
+		prev_font = a_font;
+		a_font = a_font->next;
+	}
+	if (prev_font) {
+		prev_font->next = font->next;
+	} else {
+		fm->font = font->next;
+	}
+	return GF_OK;
+}
+
 
 
 GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles)
@@ -130,7 +164,7 @@ GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_f
 	for (i=0; i<nb_fonts; i++) {
 		GF_Font *font = fm->font;
 		while (font) {
-			if (!stricmp(font->name, alt_fonts[i])) {
+			if (font->name && !stricmp(font->name, alt_fonts[i])) {
 				the_font = font;
 				break;
 			}
@@ -144,6 +178,7 @@ GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_f
 			GF_SAFEALLOC(the_font, GF_Font);
 			fm->reader->get_font_info(fm->reader, &the_font->name, &the_font->em_size, &the_font->ascent, &the_font->descent, &the_font->line_spacing, &the_font->max_advance_h, &the_font->max_advance_v);
 			the_font->styles = styles;
+			if (!the_font->name) the_font->name = strdup(alt_fonts[i]);
 		
 			if (fm->font) {
 				font = fm->font;
@@ -156,7 +191,9 @@ GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_f
 		}
 	}
 	if (!the_font) the_font = fm->default_font;
-	fm->reader->set_font(fm->reader, the_font->name, the_font->styles);
+	/*embeded font*/
+	if (the_font && !the_font->get_glyphs) 
+		fm->reader->set_font(fm->reader, the_font->name, the_font->styles);
 
 	return the_font;
 }
@@ -165,13 +202,18 @@ GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 {
 	GF_Glyph *glyph = font->glyph;
 	while (glyph) {
-		if (glyph->utf_name==name) return glyph;
+		if (glyph->ID==name) return glyph;
 		glyph = glyph->next;
 	}
-	/*load it*/
-	if (!fm->reader) return NULL;
-	fm->reader->set_font(fm->reader, font->name, font->styles);
-	glyph = fm->reader->load_glyph(fm->reader, name);
+	/*load glyph*/
+
+	if (font->load_glyph) {
+		glyph = font->load_glyph(font->udta, name);
+	} else {
+		if (!fm->reader) return NULL;
+		fm->reader->set_font(fm->reader, font->name, font->styles);
+		glyph = fm->reader->load_glyph(fm->reader, name);
+	}
 	if (!glyph) return NULL;
 
 	if (!font->glyph) font->glyph = glyph;
@@ -184,27 +226,37 @@ GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 }
 
 
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset)
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *xml_lang)
 {
 	GF_Err e;
 	u32 len, i;
 	GF_TextSpan *span;
 
-	len = fm->conv_buffer_size;
-	e = fm->reader->get_glyphs(fm->reader, text, fm->conv_buffer, &len);
+	len = fm->id_buffer_size;
+	if (font->get_glyphs)
+		e = font->get_glyphs(font->udta, text, fm->id_buffer, &len, xml_lang);
+	else
+		e = fm->reader->get_glyphs(fm->reader, text, fm->id_buffer, &len, xml_lang);
+
 	if (e==GF_BUFFER_TOO_SMALL) {
-		fm->conv_buffer_size = len;
-		fm->conv_buffer = realloc(fm->conv_buffer, sizeof(unsigned short) * len);
-		if (!fm->conv_buffer) return NULL;
-		e = fm->reader->get_glyphs(fm->reader, text, fm->conv_buffer, &len);
+		fm->id_buffer_size = len;
+		fm->id_buffer = realloc(fm->id_buffer, sizeof(u32) * len);
+		if (!fm->id_buffer) return NULL;
+	
+		if (font->get_glyphs)
+			e = font->get_glyphs(font->udta, text, fm->id_buffer, &len, xml_lang);
+		else
+			e = fm->reader->get_glyphs(fm->reader, text, fm->id_buffer, &len, xml_lang);
 	}
 	if (e) return NULL;
 
 	GF_SAFEALLOC(span, GF_TextSpan);
 	span->font = font;
 	span->font_size = font_size;
-	span->font_scale = font_size / font->em_size;
+	if (font->em_size) 
+		span->font_scale = font_size / font->em_size;
 	span->x_scale = span->y_scale = FIX_ONE;
+	span->lang = xml_lang;
 	span->nb_glyphs = len;
 	span->glyphs = malloc(sizeof(void *)*len);
 	if (needs_x_offset) {
@@ -217,7 +269,7 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 	}
 	
 	for (i=0; i<len; i++) {
-		span->glyphs[i] = gf_font_get_glyph(fm, font, fm->conv_buffer[i]);
+		span->glyphs[i] = gf_font_get_glyph(fm, font, fm->id_buffer[i]);
 	}
 	return span;
 }

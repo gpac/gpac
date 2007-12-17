@@ -35,78 +35,27 @@ extern "C" {
 #include <gpac/user.h>
 
 
-/*interface name and version for font raster*/
-#define GF_FONT_RASTER_INTERFACE		GF_4CC('G','F','R', 0x01)
-
-typedef struct _font_raster
+typedef struct _gf_glyph
 {
-	/* interface declaration*/
-	GF_DECL_MODULE_INTERFACE
-
-	/*inits font engine.*/
-	GF_Err (*init_font_engine)(struct _font_raster*dr);
-	/*shutdown font engine*/
-	GF_Err (*shutdown_font_engine)(struct _font_raster*dr);
-
-	/*set active font . @styles indicates font styles (PLAIN, BOLD, ITALIC, 
-	BOLDITALIC and UNDERLINED, STRIKEOUT)*/
-	GF_Err (*set_font)(struct _font_raster*dr, const char *fontName, const char *styles);
-	/*set active font pixel size*/
-	GF_Err (*set_font_size)(struct _font_raster*dr, Fixed pixel_size);
-	/*gets font metrics*/
-	GF_Err (*get_font_metrics)(struct _font_raster*dr, Fixed *ascent, Fixed *descent, Fixed *lineSpacing);
-	/*gets size of the given string (wide char)*/
-	GF_Err (*get_text_size)(struct _font_raster*dr, const unsigned short *string, Fixed *width, Fixed *height);
-
-	/*add text to path - graphics driver may be changed at any time, therefore the font engine shall not 
-	cache graphics data
-		@path: target path
-		x and y scaling: string display length control by the compositor, to apply to the text string
-		left and top: top-left corner where to place the string (top alignment)
-		ascent: offset between @top and baseline - may be needed by some fonts engine
-		bounds: output bounds of the added text including white space
-		flipText: true = BIFS, false = SVG
-	*/
-	GF_Err (*add_text_to_path)(struct _font_raster*dr, GF_Path *path, Bool flipText,
-					const unsigned short* string, Fixed left, Fixed top, Fixed x_scaling, Fixed y_scaling, 
-					Fixed ascent, GF_Rect *bounds);
-/*private*/
-	void *priv;
-} GF_FontRaster;
-
-
-
-
-typedef struct gf_ft_glyph
-{
-	struct gf_ft_glyph *next;
+	/*glyphs are stored as linked lists*/
+	struct _gf_glyph *next;
+	/*glyph ID as used in *_get_glyphs - this may not match the UTF name*/
+	u32 ID;
+	/*UTF-name of the glyph if any*/
 	u32 utf_name;
 	GF_Path *path;
-	/*glyph bbox in font EM size*/
-	s32 x,y,width,height;
 	/*glyph horizontal advance in font EM size*/
 	s32 horiz_advance;
 	/*glyph vertical advance in font EM size*/
 	s32 vert_advance;
 } GF_Glyph;
 
-typedef struct gf_ft_font
-{
-	struct gf_ft_font *next;
-	struct gf_ft_glyph *glyph;
-
-	char *name;
-	u32 em_size;
-	u32 styles;
-	/*font uits in em size*/
-	s32 ascent, descent, line_spacing, max_advance_h, max_advance_v;
-} GF_Font;
-
 enum
 {
 	GF_FONT_BOLD = 1,
 	GF_FONT_ITALIC = 1<<1,
 	GF_FONT_UNDERLINED = 1<<2,
+	GF_FONT_STRIKEOUT = 1<<3,
 };
 
 /*interface name and version for font engine*/
@@ -130,11 +79,10 @@ typedef struct _font_reader
 	GF_Err (*get_font_info)(struct _font_reader *dr, char **font_name, s32 *em_size, s32 *ascent, s32 *descent, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v);
 
 	/*translate string to glyph sequence*/
-	GF_Err (*get_glyphs)(struct _font_reader *dr, const char *utf_string, unsigned short *glyph_buffer, u32 *io_glyph_buffer_size);
+	GF_Err (*get_glyphs)(struct _font_reader *dr, const char *utf_string, u32 *glyph_id_buffer, u32 *io_glyph_id_buffer_size, const char *xml_lang);
 
 	/*loads glyph by name - returns NULL if glyph cannot be found*/
 	GF_Glyph *(*load_glyph)(struct _font_reader *dr, u32 glyph_name);
-
 
 /*module private*/
 	void *udta;

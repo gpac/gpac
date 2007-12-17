@@ -119,7 +119,7 @@ static GF_Font *svg_set_font(GF_TraverseState * tr_state, GF_FontManager *fm)
 			skip = 0;
 			while (a_font[len-skip] == ' ') skip++;
 			if (skip) a_font[len-skip+1] = 0;
-			a_font++;
+//			a_font++;
 			font = gf_font_manager_set_font(fm, &a_font, 1, styles);
 			if (skip) a_font[len-skip] = ' ';
 		}
@@ -156,7 +156,7 @@ static void svg_apply_text_anchor(GF_TraverseState * tr_state, Fixed *width)
 	}
 }
 
-static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed font_size, Bool x_offsets, Bool y_offsets, Bool preserve, char *textContent) 
+static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed font_size, Bool x_offsets, Bool y_offsets, Bool preserve, char *textContent, const char *lang) 
 {
 	GF_TextSpan *span;
 	char *dup_text;
@@ -193,7 +193,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 	}
 	dup_text[j] = 0;
 
-	span = gf_font_manager_create_span(fm, font, dup_text, font_size, x_offsets, y_offsets);
+	span = gf_font_manager_create_span(fm, font, dup_text, font_size, x_offsets, y_offsets, lang);
 	free(dup_text);
 	if (span) span->horizontal = 1;
 	return span;
@@ -268,7 +268,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 	font = svg_set_font(tr_state, fm);
 	if (!font) return;
 
-	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, 1, 1, 0, dom_text->textContent);
+	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, 1, 1, 0, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL);
 	if (!span) return;
 
 	/*first run*/
@@ -304,7 +304,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 					break;
 				}
 				word_size += glyph_size;
-				h = gf_mulfix(span->glyphs[i]->height, span->font_scale);
+				h = gf_mulfix(span->glyphs[i]->vert_advance, span->font_scale);
 				if (h>word_height) word_height = h;
 			}
 			i++;
@@ -357,7 +357,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 	gf_list_add(spans, span);
 }
 
-static void get_domtext_width(GF_Node *node, GF_TraverseState *tr_state)
+static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_TraverseState *tr_state)
 {
 	u32 i;
 	GF_Font *font;
@@ -374,7 +374,7 @@ static void get_domtext_width(GF_Node *node, GF_TraverseState *tr_state)
 	font = svg_set_font(tr_state, fm);
 	if (!font) return;
 
-	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1), (tr_state->count_y>1), 0, dom_text->textContent);
+	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1), (tr_state->count_y>1), 0, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL);
 	if (!span) return;
 
 	i=0;
@@ -382,7 +382,7 @@ static void get_domtext_width(GF_Node *node, GF_TraverseState *tr_state)
 	while ( (i<span->nb_glyphs)
 		&& ( (tr_state->count_x>1) || (tr_state->count_y>1) )
 	) {
-		block_width = gf_mulfix(span->glyphs[i] ? span->glyphs[i]->width : font->max_advance_h, span->font_scale);
+		block_width = gf_mulfix(span->glyphs[i] ? span->glyphs[i]->horiz_advance : font->max_advance_h, span->font_scale);
 
 		//store width in tr_state->x_anchors
 		entry = (Fixed*)malloc(sizeof(Fixed));
@@ -435,7 +435,7 @@ static void get_tspan_width(GF_Node *node, void *rs)
 	while (child) {
 		switch  (gf_node_get_tag(child->node)) {
 		case TAG_DOMText:
-			get_domtext_width(child->node, tr_state); 
+			get_domtext_width(child->node, &atts, tr_state); 
 			break;
 		case TAG_SVG_tspan:
 			get_tspan_width(child->node, tr_state); 
@@ -475,7 +475,7 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 	font = svg_set_font(tr_state, fm);
 	if (!font) return;
 
-	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1), (tr_state->count_y>1), 0, dom_text->textContent);
+	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1), (tr_state->count_y>1), 0, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL);
 	if (!span) return;
 
 	i=0;
@@ -645,7 +645,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		while (child) {
 			switch  (gf_node_get_tag(child->node)) {
 			case TAG_DOMText:
-				get_domtext_width(child->node, tr_state); 
+				get_domtext_width(child->node, &atts, tr_state); 
 				break;
 			case TAG_SVG_tspan:
 				get_tspan_width(child->node, tr_state); 

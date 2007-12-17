@@ -295,7 +295,7 @@ BOOL COsmo4::InitInstance()
 			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "200");
 		}
 		/*by default use GDIplus, much faster than freetype on font loading*/
-		gf_cfg_set_key(m_user.config, "FontEngine", "DriverName", "ft_font");
+		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "ft_font");
 
 		sprintf((char *) str_path, "%sgpac.mp4", config_path);
 		gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);

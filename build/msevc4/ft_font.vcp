@@ -126,25 +126,5 @@ SOURCE=..\..\modules\ft_font\ft_font.def
 
 SOURCE=..\..\modules\ft_font\ft_font.h
 # End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\ft_font\ft_reader.c
-DEP_CPP_FT_RE=\
-	"..\..\extra_lib\include\freetype\freetype\config\ftheader.h"\
-	"..\..\extra_lib\include\freetype\ft2build.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	"..\..\include\gpac\utf.h"\
-	
-# End Source File
 # End Target
 # End Project

@@ -10,7 +10,7 @@
 <br/>
 <b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.5-DEV</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified $Date: 2007-11-07 15:30:15 $</span></b>
+<b><span style="Font-Size: 18pt">Last Modified $Date: 2007-12-17 14:50:18 $</span></b>
 </p>
 
 <br/><br/>
@@ -432,9 +432,9 @@ the stream rebuffered till BufferLength. Therefore a value of 0 means no rebuffe
 <span style="text-decoration: underline;"><b>Section "FontEngine"</b></span> <i><a href="#Overview">Back to top</a></i>
 <p>The "FontEngine" section of the config file holds all configuration options for the font handling. The GPAC rendering module handles text through vectorial outline, allowing graphics module development without having to 
 integrate text rendering which is always heavy work.</p>
-<b>DriverName</b> [value: <i>string</i>]
+<b>FontReader</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
-Specifies the driver to use for font handling. This driver cannot be reloaded at run-time, the complete system must be restarted.</p>
+Specifies the module to use for font handling. This module cannot be reloaded at run-time, GPAC must be restarted.</p>
 <b>FontDirectory</b> (value: <i>path to TrueType (*.ttf, *.ttc) font directory</i>]
 <p style="text-indent: 5%">
 Specifies the directory where fonts are located - currently only one directory can be specified (however nothing stops a font module from using a private directory).

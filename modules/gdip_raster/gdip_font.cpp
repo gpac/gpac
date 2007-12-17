@@ -32,10 +32,10 @@
 #endif
 
 
-GF_Err gdip_init_font_engine(GF_FontRaster *dr)
+GF_Err gdip_init_font_engine(GF_FontReader *dr)
 {
 	const char *sOpt;
-	FontPriv *ctx = (FontPriv *)dr->priv;
+	FontPriv *ctx = (FontPriv *)dr->udta;
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif");
 	strcpy(ctx->font_serif, sOpt ? sOpt : "Times New Roman");
@@ -46,14 +46,44 @@ GF_Err gdip_init_font_engine(GF_FontRaster *dr)
 
 	return GF_OK;
 }
-GF_Err gdip_shutdown_font_engine(GF_FontRaster *dr)
+GF_Err gdip_shutdown_font_engine(GF_FontReader *dr)
 {
-	FontPriv *ctx = (FontPriv *)dr->priv;
+	FontPriv *ctx = (FontPriv *)dr->udta;
 
 	if (ctx->font) GdipDeleteFontFamily(ctx->font);
 	ctx->font = NULL;
 	
 	/*nothing to do*/
+	return GF_OK;
+}
+
+
+
+static GF_Err gdip_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *xml_lang)
+{
+	s32 len;
+	u32 i;
+	u16 *conv;
+	char *utf8 = (char*) utf_string;
+	FontPriv *priv = (FontPriv*)dr->udta;
+
+	len = utf_string ? strlen(utf_string) : 0;
+	if (!len) {
+		*io_glyph_buffer_size = 0;
+		return GF_OK;
+	}
+	if (*io_glyph_buffer_size < (u32) len) {
+		*io_glyph_buffer_size = (u32) len;
+		return GF_BUFFER_TOO_SMALL;
+	}
+	len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, (const char **) &utf8);
+	if (len<0) return GF_IO_ERR;
+	if (utf8) return GF_IO_ERR;
+	conv = (u16*) glyph_buffer;
+	for (i=len; i>0; i--) {
+		glyph_buffer[i-1] = (u32) conv[i-1];
+	}
+	*io_glyph_buffer_size = (u32) len;
 	return GF_OK;
 }
 
@@ -76,32 +106,11 @@ static void adjust_white_space(const unsigned short *string, Float *width, Float
 	}
 }
 
-static GF_Err gdip_get_font_metrics(GF_FontRaster *dr, Fixed *ascent, Fixed *descent, Fixed *lineSpacing)
-{
-	UINT16 val, em;
-	FontPriv *ctx = (FontPriv *)dr->priv;
-
-	*ascent = *descent = *lineSpacing = 0;
-	if (!ctx->font) return GF_BAD_PARAM;
-
-
-	GdipGetEmHeight(ctx->font, ctx->font_style, &em);
-	GdipGetCellAscent(ctx->font, ctx->font_style, &val);
-	*ascent = FLT2FIX( ctx->font_size * val / em );
-
-	GdipGetCellDescent(ctx->font, ctx->font_style, &val);
-	*descent = FLT2FIX( ctx->font_size * val / em);
-
-	GdipGetLineSpacing(ctx->font, ctx->font_style, &val);
-	*lineSpacing = FLT2FIX( ctx->font_size * val / em);
-	return GF_OK;
-}
-
-static GF_Err gdip_get_text_size(GF_FontRaster *dr, const unsigned short *string, Fixed *width, Fixed *height)
+static GF_Err gdip_get_text_size(GF_FontReader *dr, const unsigned short *string, Fixed *width, Fixed *height)
 {
 	GpPath *path_tmp;
 	GpStringFormat *fmt;
-	FontPriv *ctx = (FontPriv *)dr->priv;
+	FontPriv *ctx = (FontPriv *)dr->udta;
 	*width = *height = 0;
 	if (!ctx->font) return GF_BAD_PARAM;
 
@@ -110,7 +119,7 @@ static GF_Err gdip_get_text_size(GF_FontRaster *dr, const unsigned short *string
 	RectF rc;
 	rc.X = rc.Y = 0;
 	rc.Width = rc.Height = 0;
-	GdipAddPathString(path_tmp, (const WCHAR *)string, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
+	GdipAddPathString(path_tmp, (const WCHAR *)string, -1, ctx->font, ctx->font_style, ctx->em_size, &rc, fmt);
 
 	GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
 
@@ -124,159 +133,10 @@ static GF_Err gdip_get_text_size(GF_FontRaster *dr, const unsigned short *string
 	return GF_OK;
 }
 
-
-static GF_Err gdip_add_text_to_path(GF_FontRaster *dr, GF_Path *path, Bool flipText,
-					const unsigned short* string, Fixed _left, Fixed _top, Fixed _x_scaling, Fixed _y_scaling, 
-					Fixed _ascent, GF_Rect *bounds)
-{
-	GpPath *path_tmp;
-	GpMatrix *mat;
-	GpStringFormat *fmt;
-	Float real_start;
-	unsigned short str[4];
-	Float left, top, x_scaling, y_scaling, ascent;
-	FontPriv *ctx = (FontPriv *)dr->priv;
-
-	if (!ctx->font) return GF_BAD_PARAM;
-
-	left = FIX2FLT(_left);
-	top = FIX2FLT(_top);
-	x_scaling = FIX2FLT(_x_scaling);
-	y_scaling = FIX2FLT(_y_scaling);
-	ascent = FIX2FLT(_ascent);
-
-	
-	RectF rc;
-	rc.X = rc.Y = 0;
-	rc.Width = rc.Height = 0;
-
-	/*find first non-space char and estimate its glyph pos since GDIplus doesn't give this info*/
-	s32 len = gf_utf8_wcslen(string);
-	s32 i=0;
-	for (; i<len; i++) {
-		if (string[i] != (unsigned short) ' ') break;
-	}
-	if (i>=len) return GF_OK;
-
-	GdipCreateStringFormat(StringFormatFlagsNoWrap | StringFormatFlagsNoFitBlackBox | StringFormatFlagsMeasureTrailingSpaces, LANG_NEUTRAL, &fmt);
-	GdipSetStringFormatAlign(fmt, StringAlignmentNear);
-	GdipCreatePath(FillModeAlternate, &path_tmp);
-
-	/*to compute first glyph alignment (say 'x', we figure out its bounding full box by using the '_' char as wrapper (eg, "_x_")
-	then the bounding box starting from xMin of the glyph ('x_'). The difference between both will give us a good approx 
-	of the glyph alignment*/
-	str[0] = (unsigned short) '_';
-	str[1] = string[i];
-	str[2] = (unsigned short) '_';
-	str[3] = (unsigned short) 0;
-	GdipAddPathString(path_tmp, (const WCHAR *)str, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
-	GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
-	Float w1 = rc.Width - 2 * ctx->underscore_width;
-	
-	GdipResetPath(path_tmp);
-
-	str[0] = string[i];
-	str[1] = (unsigned short) '_';
-	str[2] = (unsigned short) 0;
-	rc.X = rc.Y = 0;
-	rc.Width = rc.Height = 0;
-	GdipAddPathString(path_tmp, (const WCHAR *)str, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
-	GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
-	real_start = w1 - (rc.Width - ctx->underscore_width);
-
-	GdipResetPath(path_tmp);
-
-	rc.X = rc.Y = 0;
-	rc.Width = rc.Height = 0;
-	GdipAddPathString(path_tmp, (const WCHAR *)string, -1, ctx->font, ctx->font_style, FIX2FLT(ctx->font_size), &rc, fmt);
-	GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
-
-
-	GdipCreateMatrix(&mat);
-	Float off_left = rc.X;
-	Float off_left_real = rc.X;
-
-	/*adjust all white space at begin*/
-	adjust_white_space(string, &off_left, -1*ctx->whitespace_width);
-
-	if (flipText) {
-		/*first translate in local system*/
-		GdipTranslateMatrix(mat, left - off_left + real_start, -top, MatrixOrderAppend);
-		/*then scale as specified*/
-		GdipScaleMatrix(mat, x_scaling, -y_scaling, MatrixOrderAppend);
-	} else {
-		/*first translate in local system*/
-		GdipTranslateMatrix(mat, left - off_left + real_start, top-ascent, MatrixOrderAppend);
-		/*then scale as specified*/
-		GdipScaleMatrix(mat, x_scaling, y_scaling, MatrixOrderAppend);
-	}
-	GdipTransformPath(path_tmp, mat);
-
-	/*start enum*/
-	s32 count;
-	GdipGetPointCount(path_tmp, &count);
-	GpPointF *pts = new GpPointF[count];
-	BYTE *types = new BYTE[count];
-	GdipGetPathTypes(path_tmp, types, count);
-	GdipGetPathPoints(path_tmp, pts, count);
-
-	for (i=0; i<count; ) {
-		BOOL closed = 0;
-		s32 sub_type;
-		
-		sub_type = types[i] & PathPointTypePathTypeMask;
-
-		if (sub_type == PathPointTypeStart) {
-			gf_path_add_move_to(path, FLT2FIX(pts[i].X), FLT2FIX(pts[i].Y));
-			i++;
-		}
-		else if (sub_type == PathPointTypeLine) {
-			gf_path_add_line_to(path, FLT2FIX(pts[i].X), FLT2FIX(pts[i].Y));
-		
-			if (types[i] & PathPointTypeCloseSubpath) gf_path_close(path);
-
-			i++;
-		}
-		else if (sub_type == PathPointTypeBezier) {
-			assert(i+2<=count);
-			gf_path_add_cubic_to(path, FLT2FIX(pts[i].X), FLT2FIX(pts[i].Y), FLT2FIX(pts[i+1].X), FLT2FIX(pts[i+1].Y), FLT2FIX(pts[i+2].X), FLT2FIX(pts[i+2].Y));
-
-			if (types[i+2] & PathPointTypeCloseSubpath) gf_path_close(path);
-
-			i += 3;
-		} else {
-			assert(0);
-			break;
-		}
-	}
-	
-	delete [] pts;
-	delete [] types;
-	
-	GdipResetPath(path_tmp);
-	adjust_white_space(string, &rc.Width, ctx->whitespace_width);
-	rc.X = off_left_real;
-	rc.X = off_left;
-	/*special case where string is just space*/
-	if (!rc.Height) rc.Height = 1;
-
-	GdipAddPathRectangles(path_tmp, &rc, 1);
-	GdipGetPathWorldBounds(path_tmp, &rc, mat, NULL);
-	bounds->x = FLT2FIX(rc.X);
-	bounds->y = FLT2FIX(rc.Y);
-	bounds->width = FLT2FIX(rc.Width);
-	bounds->height = FLT2FIX(rc.Height);
-
-	GdipDeleteStringFormat(fmt);
-	GdipDeletePath(path_tmp);
-	GdipDeleteMatrix(mat);
-	return GF_OK;
-}
-
-static GF_Err gdip_set_font(GF_FontRaster *dr, const char *fontName, const char *styles)
+static GF_Err gdip_set_font(GF_FontReader *dr, const char *fontName, u32 styles)
 {
 	WCHAR wcFontName[GDIP_MAX_STRING_SIZE];
-	FontPriv *ctx = (FontPriv *)dr->priv;
+	FontPriv *ctx = (FontPriv *)dr->udta;
 
 	if (ctx->font) GdipDeleteFontFamily(ctx->font);
 	ctx->font = NULL;
@@ -297,37 +157,40 @@ static GF_Err gdip_set_font(GF_FontRaster *dr, const char *fontName, const char 
 
 	//setup styles
 	ctx->font_style = 0;
-	if (styles) {
-		char *upr_styles = strdup(styles);
-		strupr(upr_styles);
-		if (strstr(upr_styles, "BOLDITALIC")) ctx->font_style |= FontStyleBoldItalic;
-		else if (strstr(upr_styles, "BOLD")) ctx->font_style |= FontStyleBold;
-		else if (strstr(upr_styles, "ITALIC")) ctx->font_style |= FontStyleItalic;
-		
-		if (strstr(upr_styles, "UNDERLINED")) {
-			ctx->font_style |= FontStyleUnderline;
-		}
-		if (strstr(upr_styles, "STRIKEOUT")) {
-			ctx->font_style |= FontStyleStrikeout;
-		}
-		free(upr_styles);
-	}	
+	if (styles & (GF_FONT_BOLD|GF_FONT_ITALIC) ) ctx->font_style |= FontStyleBoldItalic;
+	else if (styles & GF_FONT_BOLD ) ctx->font_style |= FontStyleBold;
+	else if (styles & GF_FONT_ITALIC) ctx->font_style |= FontStyleItalic;
 
+	if (styles & GF_FONT_UNDERLINED) ctx->font_style |= FontStyleUnderline;
+	if (styles & GF_FONT_STRIKEOUT) ctx->font_style |= FontStyleStrikeout;
 	return GF_OK;
 }
 
-
-static GF_Err gdip_set_font_size(GF_FontRaster *dr, Fixed pixel_size)
+static GF_Err gdip_get_font_info(GF_FontReader *dr, char **font_name, s32 *em_size, s32 *ascent, s32 *descent, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v)
 {
-	unsigned short test_str[4];
-	FontPriv *ctx = (FontPriv *)dr->priv;
+	UINT16 val, em;
+	FontPriv *ctx = (FontPriv *)dr->udta;
+
+	*font_name = NULL;
+	*em_size = *ascent = *descent = *line_spacing = *max_advance_h = *max_advance_v = 0;
 	if (!ctx->font) return GF_BAD_PARAM;
 
-	ctx->font_size = FIX2FLT(pixel_size);
+	GdipGetEmHeight(ctx->font, ctx->font_style, &em);
+	*em_size = (s32) em;
+	GdipGetCellAscent(ctx->font, ctx->font_style, &val);
+	ctx->ascent = (Float) val;
+	*ascent = (s32) val;
+	GdipGetCellDescent(ctx->font, ctx->font_style, &val);
+	*descent = (s32) val; *descent *= -1;
+	ctx->descent = -1 * (Float) val;
+	GdipGetLineSpacing(ctx->font, ctx->font_style, &val);
+	*line_spacing = (s32) val;
+	*max_advance_v = *ascent - *descent;
 
-	/*GDI+ won't return begin/end whitespace info through GetBoundingRect, so compute a default value for space...*/
-	ctx->whitespace_width = 0;
+
+	unsigned short test_str[4];
 	Fixed w, h, w2;
+	ctx->em_size = (Float) *em_size;
 	test_str[0] = (unsigned short) '_';
 	test_str[1] = (unsigned short) '\0';
 	gdip_get_text_size(dr, test_str, &w, &h);
@@ -339,41 +202,148 @@ static GF_Err gdip_set_font_size(GF_FontRaster *dr, Fixed pixel_size)
 	test_str[3] = (unsigned short) '\0';
 	gdip_get_text_size(dr, test_str, &w2, &h);
 	ctx->whitespace_width = FIX2FLT(w2 - 2*w);
+
+	*max_advance_h = (s32) MAX(ctx->underscore_width, ctx->whitespace_width);
 	return GF_OK;
 }
 
 
-GF_FontRaster *gdip_new_font_driver()
+
+static GF_Glyph *gdip_load_glyph(GF_FontReader *dr, u32 glyph_name)
+{
+	GF_Glyph *glyph;
+	GpPath *path_tmp;
+	GpStringFormat *fmt;
+	GpMatrix *mat;
+	unsigned short str[4];
+	int i;
+	FontPriv *ctx = (FontPriv *)dr->udta;
+
+	if (!ctx->font) return NULL;
+
+	RectF rc;
+	rc.X = rc.Y = 0;
+	rc.Width = rc.Height = 0;
+
+	GdipCreateStringFormat(StringFormatFlagsNoWrap | StringFormatFlagsNoFitBlackBox | StringFormatFlagsMeasureTrailingSpaces, LANG_NEUTRAL, &fmt);
+	GdipSetStringFormatAlign(fmt, StringAlignmentNear);
+	GdipCreatePath(FillModeAlternate, &path_tmp);
+
+	/*to compute first glyph alignment (say 'x', we figure out its bounding full box by using the '_' char as wrapper (eg, "_x_")
+	then the bounding box starting from xMin of the glyph ('x_'). The difference between both will give us a good approx 
+	of the glyph alignment*/
+	str[0] = glyph_name;
+	str[1] = (unsigned short) '_';
+	str[2] = (unsigned short) 0;
+	GdipAddPathString(path_tmp, (const WCHAR *)str, -1, ctx->font, ctx->font_style, ctx->em_size, &rc, fmt);
+	GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
+	Float est_advance_h = rc.Width - ctx->underscore_width;
+	
+	GdipResetPath(path_tmp);
+
+	str[0] = glyph_name;
+	str[1] = (unsigned short) 0;
+	rc.X = rc.Y = 0;
+	rc.Width = rc.Height = 0;
+	GdipAddPathString(path_tmp, (const WCHAR *)str, -1, ctx->font, ctx->font_style, ctx->em_size, &rc, fmt);
+
+	GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
+
+	/*flip so that we are in a font coordinate system - also move back the glyph to x=0 and y=baseline, GdiPlus doesn't do so*/
+	GdipCreateMatrix(&mat);
+	GdipTranslateMatrix(mat, - rc.X, -ctx->ascent, MatrixOrderAppend);
+	GdipScaleMatrix(mat, 1, -1, MatrixOrderAppend);
+	GdipTransformPath(path_tmp, mat);
+	GdipDeleteMatrix(mat);
+
+
+	/*start enum*/
+	s32 count;
+	GdipGetPointCount(path_tmp, &count);
+	GpPointF *pts = new GpPointF[count];
+	BYTE *types = new BYTE[count];
+	GdipGetPathTypes(path_tmp, types, count);
+	GdipGetPathPoints(path_tmp, pts, count);
+
+	GF_SAFEALLOC(glyph, GF_Glyph);
+	GF_SAFEALLOC(glyph->path, GF_Path);
+
+	for (i=0; i<count; ) {
+		BOOL closed = 0;
+		s32 sub_type;
+		
+		sub_type = types[i] & PathPointTypePathTypeMask;
+
+		if (sub_type == PathPointTypeStart) {
+			gf_path_add_move_to(glyph->path, FLT2FIX(pts[i].X), FLT2FIX(pts[i].Y));
+			i++;
+		}
+		else if (sub_type == PathPointTypeLine) {
+			gf_path_add_line_to(glyph->path, FLT2FIX(pts[i].X), FLT2FIX(pts[i].Y));
+		
+			if (types[i] & PathPointTypeCloseSubpath) gf_path_close(glyph->path);
+
+			i++;
+		}
+		else if (sub_type == PathPointTypeBezier) {
+			assert(i+2<=count);
+			gf_path_add_cubic_to(glyph->path, FLT2FIX(pts[i].X), FLT2FIX(pts[i].Y), FLT2FIX(pts[i+1].X), FLT2FIX(pts[i+1].Y), FLT2FIX(pts[i+2].X), FLT2FIX(pts[i+2].Y));
+
+			if (types[i+2] & PathPointTypeCloseSubpath) gf_path_close(glyph->path);
+
+			i += 3;
+		} else {
+			assert(0);
+			break;
+		}
+	}
+	
+	delete [] pts;
+	delete [] types;
+	GdipDeleteStringFormat(fmt);
+	GdipDeletePath(path_tmp);
+
+	glyph->ID = glyph_name;
+	glyph->utf_name = glyph_name;
+	glyph->vert_advance = (s32) (ctx->ascent-ctx->descent);
+	glyph->horiz_advance = (s32) est_advance_h;
+	return glyph;
+}
+
+
+
+
+GF_FontReader *gdip_new_font_driver()
 {
 	GdiplusStartupInput startupInput;
-	GF_FontRaster *dr;
+	GF_FontReader *dr;
 	FontPriv *ctx;
 
 	SAFEALLOC(ctx, FontPriv);
-	SAFEALLOC(dr, GF_FontRaster);
+	SAFEALLOC(dr, GF_FontReader);
 	GdiplusStartup(&ctx->gdiToken, &startupInput, NULL);
 
-	GF_REGISTER_MODULE_INTERFACE(dr, GF_FONT_RASTER_INTERFACE, "GDIplus Font Engine", "gpac distribution")
-	dr->add_text_to_path = gdip_add_text_to_path;
-	dr->get_font_metrics = gdip_get_font_metrics;
-	dr->get_text_size = gdip_get_text_size;
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_FONT_READER_INTERFACE, "GDIplus Font Reader", "gpac distribution")
 	dr->init_font_engine = gdip_init_font_engine;
-	dr->set_font = gdip_set_font;
-	dr->set_font_size = gdip_set_font_size;
 	dr->shutdown_font_engine = gdip_shutdown_font_engine;
-	dr->priv = ctx;
+	dr->set_font = gdip_set_font;
+	dr->get_font_info = gdip_get_font_info;
+	dr->get_glyphs = gdip_get_glyphs;
+	dr->load_glyph = gdip_load_glyph;
+
+	dr->udta = ctx;
 	return dr;
 }
 
-void gdip_delete_font_driver(GF_FontRaster *dr)
+void gdip_delete_font_driver(GF_FontReader *dr)
 {
-	FontPriv *ctx = (FontPriv *)dr->priv;
+	FontPriv *ctx = (FontPriv *)dr->udta;
 	GdiplusShutdown(ctx->gdiToken);
 
 	if (ctx->font) GdipDeleteFontFamily(ctx->font);
 	ctx->font = NULL;
 
-	free(dr->priv);
+	free(dr->udta);
 	free(dr);
 }
 
@@ -381,7 +351,7 @@ void gdip_delete_font_driver(GF_FontRaster *dr)
 
 Bool QueryInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_FONT_RASTER_INTERFACE) return 1;
+	if (InterfaceType == GF_FONT_READER_INTERFACE) return 1;
 	if (InterfaceType == GF_RASTER_2D_INTERFACE) return 1;
 	return 0;
 }
@@ -391,7 +361,7 @@ void gdip_ShutdownRenderer(GF_Raster2D *driver);
 
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType==GF_FONT_RASTER_INTERFACE) return (GF_BaseInterface *)gdip_new_font_driver();
+	if (InterfaceType==GF_FONT_READER_INTERFACE) return (GF_BaseInterface *)gdip_new_font_driver();
 	if (InterfaceType==GF_RASTER_2D_INTERFACE) return (GF_BaseInterface *)gdip_LoadRenderer();
 	return NULL;
 }
@@ -399,8 +369,8 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
-	case GF_FONT_RASTER_INTERFACE:
-		gdip_delete_font_driver((GF_FontRaster *)ifce);
+	case GF_FONT_READER_INTERFACE:
+		gdip_delete_font_driver((GF_FontReader *)ifce);
 		break;
 	case GF_RASTER_2D_INTERFACE:
 		gdip_ShutdownRenderer((GF_Raster2D *)ifce);

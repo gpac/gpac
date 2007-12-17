@@ -529,7 +529,7 @@ BOOL Osmo4::InitInstance()
 		if (!sOpt) gf_cfg_set_key(m_user.config, "Video", "UseHardwareMemory", "yes");
 
 		/*by default use GDIplus, much faster than freetype on font loading*/
-		gf_cfg_set_key(m_user.config, "FontEngine", "DriverName", "gdip_rend");
+		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "gdip_rend");
 
 	}	
 	if (! gf_modules_get_count(m_user.modules) ) {

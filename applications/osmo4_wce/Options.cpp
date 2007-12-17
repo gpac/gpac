@@ -411,7 +411,7 @@ BOOL COptFont::OnInitDialog()
 	s32 select = 0;
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
 	for (i=0; i<count; i++) {
-		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_FONT_RASTER_INTERFACE);
+		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_FONT_READER_INTERFACE);
 		if (!ifce) continue;
 		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 		CE_CharToWide((char *) ifce->module_name, (u16 *)wTmp);
@@ -446,7 +446,7 @@ void COptFont::SaveOptions()
 		
 	m_Fonts.GetWindowText(wstr, 50);
 	CE_WideToChar((u16 *)wstr, str);
-	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "DriverName", str);
+	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontReader", str);
 	m_BrowseFont.GetWindowText(wstr, 50);
 	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontDirectory", str);

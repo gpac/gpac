@@ -166,7 +166,6 @@ struct __tag_compositor
 	Bool reset_graphics;
 
 	/*font engine*/
-	GF_FontRaster *font_engine;
 	GF_FontManager *font_manager;
 
 	/*options*/
@@ -886,6 +885,30 @@ void compositor_svg_traverse_children(GF_ChildNodeItem *children, GF_TraverseSta
 
 /*Text handling*/
 
+typedef struct _gf_font GF_Font;
+
+struct _gf_font 
+{
+	/*fonts are linked within the font manager*/
+	GF_Font *next;
+	/*list of glyphs in the font*/
+	GF_Glyph *glyph;
+
+	char *name;
+	u32 em_size;
+	u32 styles;
+	/*font uits in em size*/
+	s32 ascent, descent, line_spacing, max_advance_h, max_advance_v;
+
+	/*only set for embedded font engines (SVG fonts)*/
+	GF_Err (*get_glyphs)(void *udta, const char *utf_string, u32 *glyph_ids_buffer, u32 *io_glyph_ids_buffer_size, const char *xml_lang);
+	GF_Glyph *(*load_glyph)(void *udta, u32 glyph_name);
+	void *udta;
+
+	struct _gf_ft_mgr *ft_mgr;
+};
+
+
 typedef struct
 {
 	GF_Font *font;
@@ -907,6 +930,8 @@ typedef struct
 	/*per-glyph positioning - when allocated, this is the same number as the glyphs*/
 	Fixed *dx, *dy;
 
+	/*span language*/
+	const char *lang;
 
 	/*span texturing and 3D tools*/
 	struct _span_internal *ext;
@@ -914,10 +939,13 @@ typedef struct
 
 GF_FontManager *gf_font_manager_new(GF_User *user);
 void gf_font_manager_del(GF_FontManager *fm);
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset);
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *lang);
 void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);
 GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name);
 GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
+
+GF_Err gf_font_manager_register_font(GF_FontManager *fm, GF_Font *font);
+GF_Err gf_font_manager_unregister_font(GF_FontManager *fm, GF_Font *font);
 
 void gf_font_manager_refresh_span_bounds(GF_TextSpan *span);
 GF_Path *gf_font_span_create_path(GF_TextSpan *span, Bool flip_it);

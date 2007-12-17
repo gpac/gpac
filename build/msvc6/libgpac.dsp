@@ -1069,6 +1069,10 @@ SOURCE=..\..\src\compositor\svg_base.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\compositor\svg_font.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\compositor\svg_geometry.c
 # End Source File
 # Begin Source File
