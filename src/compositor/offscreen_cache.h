@@ -42,13 +42,15 @@ typedef struct _group_cache
 	Drawable *drawable;
 
 	Fixed opacity;
+	Bool force_recompute;
 } GroupCache;
 
 
 GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node);
 void group_cache_del(GroupCache *cache);
 
-void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute);
+/*returns 1 if cache is being recomputed due to dirty subtree*/
+Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute);
 
 void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state);
 

@@ -30,7 +30,7 @@
 #include "mpeg4_grouping.h"
 #include "texturing.h"
 
-
+#define NUM_STATS_FRAMES	2
 
 void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state) 
 {
@@ -126,17 +126,22 @@ void group_cache_setup(GroupCache *cache, GF_Rect *path_bounds, GF_IRect *pix_bo
 		path_bounds->width, path_bounds->height);
 }
 
-void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute)
+Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute)
 {
 	DrawableContext *group_ctx = NULL;	
 	GF_ChildNodeItem *l;
 
-	if (!cache) return;
+	if (!cache) return 0;
 
 	/*do we need to recompute the cache*/
-	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
+	if (cache->force_recompute) {
 		force_recompute = 1;
+		cache->force_recompute = 0;
 	}
+	else if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
+		force_recompute = 1;
+	} 
+
 
 	/*we need to redraw the group in an offscreen visual*/
 	if (force_recompute) {
@@ -259,6 +264,7 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		/*step 6: reset all contexts after the current group one*/
 		child_ctx = group_ctx->next;
 		while (child_ctx && child_ctx->drawable) {
+			drawable_reset_bounds(child_ctx->drawable, tr_state->visual);
 			child_ctx->drawable = NULL;	
 			child_ctx = child_ctx->next;
 		}	
@@ -296,7 +302,7 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 	if (!cache->opacity) {
 		group_ctx->drawable = NULL;
-		return;
+		return 0;
 	}
 
 	if (gf_node_dirty_get(node)) group_ctx->flags |= CTX_TEXTURE_DIRTY;
@@ -313,6 +319,7 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 #endif
 		drawable_finalize_sort(group_ctx, tr_state, NULL);
 	
+	return (force_recompute==1);
 }
 
 
@@ -321,18 +328,59 @@ void group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 /**/
 Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
 {
+	Bool is_dirty = gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY;
 	Bool needs_recompute = 0;
-	//u32 time;
-
-	if (tr_state->visual->compositor->frame_number<4) {
-		tr_state->visual->compositor->draw_next_frame = 1;
-		return 0;
-	}
-	/*this is not an offscreen group*/
-	if (!(group->flags & GROUP_IS_CACHED) ) return 0;
 
 	/*we are currently in a group cache, regular traversing*/
 	if (tr_state->in_group_cache) return 0;
+
+	/*this is not an offscreen group*/
+	if (!(group->flags & GROUP_IS_CACHED) ) {
+		Bool cache_on = 0;
+
+		if (!is_dirty && (group->flags & GROUP_IS_CACHABLE)) {
+			group->flags |= GROUP_IS_CACHED;
+			group->flags &= ~GROUP_IS_CACHABLE;
+			fprintf(stdout, "Turning group %s cache on\n", gf_node_get_log_name(node) );
+			cache_on = 1;
+		} 
+
+		if (!cache_on) {
+			if (is_dirty) {
+				group->changed = 1;
+			} 
+			/*ask for stats again*/
+			else if (group->changed) {
+				group->changed = 0;
+				group->nb_stats_frame = 0;
+				group->traverse_time = 0;
+			}
+			if (is_dirty || (group->nb_stats_frame < NUM_STATS_FRAMES)) {
+				/*force direct draw mode*/
+				if (!is_dirty) tr_state->visual->compositor->traverse_state->invalidate_all = 1;
+				/*force redraw*/
+				tr_state->visual->compositor->draw_next_frame = 1;
+			}
+			return 0;
+		}
+	}
+	/*dynamic cache which - figure out if we need to recompute it or not*/
+	else if (is_dirty && !(group->flags & GROUP_PERMANENT_CACHE) ) {
+		/*cache may not be deleted immediately*/
+		if (group->cache) {
+			if (group->changed) {
+				group_cache_del(group->cache);
+				group->cache = NULL;
+				group->flags &= ~GROUP_IS_CACHED;
+				group->changed = 0;
+				fprintf(stdout, "Turning group %s cache off\n", gf_node_get_log_name(node) );
+				return 0;
+			} else {
+				group->changed = 1;
+				group->cache->force_recompute = 1;
+			}
+		}
+	}
 
 	/*draw mode*/
 	if (tr_state->traversing_mode == TRAVERSE_DRAW_2D) {
@@ -351,9 +399,155 @@ Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_Trave
 		needs_recompute = 1;
 	}
 
-
-	group_cache_traverse(node, group->cache, tr_state, needs_recompute);
+	/*cache has been modified due to node changes, reset stats*/
+	if (group_cache_traverse(node, group->cache, tr_state, needs_recompute)) {
+		group->changed = 0;
+		group->nb_stats_frame = 0;
+		group->traverse_time = 0;
+	}
 	return 1;
 }
+
+
+void group_cache_record_stats(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, DrawableContext *first_child, Bool skip_first_child)
+{
+	GF_Rect rc, gr_bounds;
+	GF_Matrix2D mx;
+	DrawableContext *ctx;
+	u32 nb_seg_opaque, nb_seg_alpha, nb_objects, avg_time, last_frame_time, nb_obj_prev;
+	Fixed alpha_pixels, opaque_pixels, area_world, area_local, ratio;
+
+	/*first frame is unusable for stats because lot of time is being spent building the path and allocating 
+	the drawable contexts*/
+	if (!tr_state->visual->compositor->frame_number || group->changed) {
+		group->traverse_time = 0;
+		return;
+	}
+
+	if (group->nb_stats_frame < NUM_STATS_FRAMES) {
+		group->nb_stats_frame++;
+		tr_state->visual->compositor->draw_next_frame = 1;
+		return;
+	}
+
+	/*compute stats*/
+	nb_objects = 0;
+	nb_seg_opaque = nb_seg_alpha = 0;
+	alpha_pixels = opaque_pixels = 0;
+	/*reset bounds*/
+	gr_bounds.width = gr_bounds.height = 0;
+
+	ctx = first_child;
+	if (!first_child) ctx = tr_state->visual->context;
+	if (skip_first_child) ctx = ctx->next;
+	/*compute properties for the sub display list*/
+	while (ctx && ctx->drawable) {
+		Fixed area;
+		u32 alpha_comp;
+
+		/*add to group area*/
+		gf_rect_union(&gr_bounds, &ctx->bi->unclip);
+		nb_objects++;
+		
+		/*get area and compute alpha/opaque coverage*/
+		area = ctx->bi->unclip.width * ctx->bi->unclip.height;
+		alpha_comp = GF_COL_A(ctx->aspect.fill_color);
+
+		/*no alpha*/
+		if ((alpha_comp==0xFF) 
+			/*no transparent texture*/
+			&& (!ctx->aspect.fill_texture || !ctx->aspect.fill_texture->transparent)
+		) {
+			Fixed coverage;
+			/*transparent context: ellipse or any path - compute coverage*/
+			if (ctx->flags & CTX_IS_TRANSPARENT) {
+				/*FIXME: we need to get a better fast approximation of the covered area of the path
+				for now, we only estimate to 75%*/
+				coverage = INT2FIX(3) / 4;
+			}
+			/*non-transparent context: rectangle or bitmap*/
+			else {
+				coverage = FIX_ONE;
+			}
+			opaque_pixels += gf_mulfix(area, coverage);
+			nb_seg_opaque += ctx->drawable->path->n_points;
+		} else if (alpha_comp) {
+			alpha_pixels += area;
+			nb_seg_alpha += ctx->drawable->path->n_points;
+		} else {
+			/*don't count stroke areas, this will automatically lower the group coverage and we will
+			not cache groups with mainly strokes*/
+		}
+		ctx = ctx->next;
+	}
+	/*visually empty group*/
+	if (!gr_bounds.width || !gr_bounds.height) return;
+
+	/*and recompute for local coordinate system*/
+	gf_mx2d_copy(mx, tr_state->transform);
+	gf_mx2d_inverse(&mx);
+	rc = gr_bounds;
+	gf_mx2d_apply_rect(&mx, &rc);
+	area_world = gr_bounds.width * gr_bounds.height;
+	area_local = rc.width * rc.height;
+
+	ratio = gf_divfix(area_local, area_world);
+	alpha_pixels = gf_mulfix(alpha_pixels, ratio);
+	opaque_pixels = gf_mulfix(opaque_pixels, ratio);
+
+#if 0
+	fprintf(stdout, "Local stats for group %s at frame %d:\n"
+					"\tNb of Modifications %d\n"
+					"\tNb of Objects %d\n"
+					"\tAverage Traverse Time %g\n"
+					"\tPixel Area: Local %g (World %g)\n"
+					"\tOpaque Pixels %d (%g %%) - %d segments\n"
+					"\tAlpha Pixels %d (%g %%) - %d segments\n"
+					"\tTotal Pixels %d (%g %%) - %d segments\n"
+					"\n"
+		
+			, gf_node_get_log_name(node)
+			, tr_state->visual->compositor->frame_number
+			, group->nb_changes
+			, nb_objects
+			, INT2FIX(group->traverse_time) / tr_state->visual->compositor->frame_number
+			, area_local, area_world
+			, FIX2INT(opaque_pixels), gf_divfix(100*opaque_pixels, area_local), nb_seg_opaque
+			, FIX2INT(alpha_pixels), gf_divfix(100*alpha_pixels, area_local), nb_seg_alpha
+			, FIX2INT(opaque_pixels+alpha_pixels), gf_divfix(100*(opaque_pixels+alpha_pixels), area_local), nb_seg_alpha+nb_seg_opaque
+	);
+#endif
+
+	last_frame_time = tr_state->visual->compositor->frame_time[tr_state->visual->compositor->current_frame];
+	avg_time = group->traverse_time;
+	avg_time /= group->nb_stats_frame;
+	nb_obj_prev = tr_state->visual->num_nodes_prev_frame;
+
+
+	if (/*small groups*/
+		(nb_objects==1)
+	/*low complexity group*/
+	|| (nb_seg_alpha+nb_seg_opaque<10)
+	/*low coverage groups (plenty of space wasted*/
+	|| (opaque_pixels+alpha_pixels < 60*area_local/100)
+	/*group doesn't take that long to render*/
+//	|| (avg_time < last_frame_time/10)
+	/*never cache root node!!*/
+	|| (gf_node_get_parent(node, 0) == NULL)
+	/*... whatever criteria desired ...*/
+	) {
+		group->flags &= ~GROUP_IS_CACHABLE;
+
+		if (group->cache) {
+			group_cache_del(group->cache);
+			group->cache = NULL;
+			group->flags &= ~GROUP_IS_CACHED;
+		}
+	} else {
+		group->flags |= GROUP_IS_CACHABLE;
+		tr_state->visual->compositor->draw_next_frame = 1;
+	}
+}
+
 
 #endif /*MPEG4_USE_GROUP_CACHE*/

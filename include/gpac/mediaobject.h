@@ -126,6 +126,13 @@ enum
 u32 gf_mo_get_flags(GF_MediaObject *mo);
 void gf_mo_set_flag(GF_MediaObject *mo, u32 flag, Bool set_on);
 
+/*loads a new resource as indicated in the xlink:href attribute of the node. If this points to a fragment
+of the current document, returns NULL. This will automatically trigger a play request on the resource*/
+GF_MediaObject *gf_mo_load_resource(GF_Node *node);
+void gf_mo_unload_resource(GF_MediaObject *mo);
+/*returns scene graph associated with a scene/document object, or NULL if wrong type or not loaded*/
+GF_SceneGraph *gf_mo_get_scenegraph(GF_MediaObject *mo);
+
 #ifdef __cplusplus
 }
 #endif

@@ -27,7 +27,7 @@
 
 #include <gpac/internal/compositor_dev.h>
 
-#define MPEG4_USE_GROUP_CACHE
+//#define MPEG4_USE_GROUP_CACHE
 
 enum
 {
@@ -35,7 +35,11 @@ enum
 	GROUP_SKIP_CULLING	=	1<<1,
 	GROUP_HAS_LIGHTS	=	1<<2,
 	GROUP_IS_ANCHOR		=	1<<3,
-	GROUP_IS_CACHED		=	1<<4,
+	/*set if group has been detected as a good candidate for caching*/
+	GROUP_IS_CACHABLE	=	1<<4,
+	/*set if group is cached*/
+	GROUP_IS_CACHED				=	1<<5,
+	GROUP_PERMANENT_CACHE		=	1<<6,
 };
 
 #ifdef MPEG4_USE_GROUP_CACHE
@@ -43,7 +47,10 @@ enum
 #define GROUPING_NODE_STACK_2D		\
 	u32 flags;						\
 	GF_Rect bounds;					\
-	struct _group_cache *cache;	\
+	struct _group_cache *cache;		\
+	u16 traverse_time;				\
+	u8 changed;					\
+	u8 nb_stats_frame;				\
 
 #else
 

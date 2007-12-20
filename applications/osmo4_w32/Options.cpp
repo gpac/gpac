@@ -1038,12 +1038,12 @@ BOOL COptFont::OnInitDialog()
 
 	/*video drivers enum*/
 	while (m_Fonts.GetCount()) m_Fonts.DeleteString(0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "DriverName");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "FontReader");
 	s32 to_sel = 0;
 	s32 select = 0;
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
 	for (i=0; i<count; i++) {
-		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_FONT_RASTER_INTERFACE);
+		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_FONT_READER_INTERFACE);
 		if (!ifce) continue;
 		if (sOpt && !stricmp(ifce->module_name, sOpt)) select = to_sel;
 		m_Fonts.AddString(ifce->module_name);
@@ -1119,7 +1119,7 @@ void COptFont::SaveOptions()
 	char str[MAX_PATH];
 		
 	m_Fonts.GetWindowText(str, 50);
-	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "DriverName", str);
+	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontReader", str);
 	m_BrowseFont.GetWindowText(str, 50);
 	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontDirectory", str);
 	switch (m_TextureModes.GetCurSel()) {

@@ -274,6 +274,10 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	/*default collision mode*/
 	compositor->collide_mode = GF_COLLISION_DISPLACEMENT; //GF_COLLISION_NORMAL
 	compositor->gravity_on = 1;
+
+	/*create default unit sphere and box for bounds*/
+	compositor->unit_bbox = new_mesh();
+	mesh_new_unit_bbox(compositor->unit_bbox);
 #endif
 
 	return GF_OK;
@@ -1618,6 +1622,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			compositor->draw_next_frame = 1;
 			compositor->reset_graphics = 1;
 		}
+		compositor->reset_fonts = 0;
 	}
 
 	/*release all textures - we must release them to handle a same OD being used by several textures*/

@@ -44,19 +44,46 @@ typedef struct _gf_glyph
 	/*UTF-name of the glyph if any*/
 	u32 utf_name;
 	GF_Path *path;
+	/*width of the glyph - !! this can be more than the horizontal advance !! */
+	u32 width;
 	/*glyph horizontal advance in font EM size*/
 	s32 horiz_advance;
+	/*height of the glyph - !! this can be more than the vertical advance !! */
+	u32 height;
 	/*glyph vertical advance in font EM size*/
 	s32 vert_advance;
 } GF_Glyph;
 
 enum
 {
-	GF_FONT_BOLD = 1,
-	GF_FONT_ITALIC = 1<<1,
-	GF_FONT_UNDERLINED = 1<<2,
-	GF_FONT_STRIKEOUT = 1<<3,
+	/*font styles*/
+	GF_FONT_ITALIC = 1,
+	GF_FONT_OBLIQUE = 1<<1,
+	/*font variant (smallcaps)*/
+	GF_FONT_SMALLCAPS = 1<<2,
+	/*font decoration*/
+	GF_FONT_UNDERLINED = 1<<3,
+	GF_FONT_STRIKEOUT = 1<<4,
+
+	/*all font weight modification are placed AFTER 1<<9*/
+	GF_FONT_WEIGHT_100 = 1<<10,
+	GF_FONT_WEIGHT_LIGHTER = 1<<11,
+	GF_FONT_WEIGHT_200 = 1<<12,
+	GF_FONT_WEIGHT_300 = 1<<13,
+	GF_FONT_WEIGHT_400 = 1<<14,
+	GF_FONT_WEIGHT_NORMAL = 1<<15,
+	GF_FONT_WEIGHT_500 = 1<<16,
+	GF_FONT_WEIGHT_600 = 1<<17,
+	GF_FONT_WEIGHT_700 = 1<<18,
+	GF_FONT_WEIGHT_BOLD = 1<<19,
+	GF_FONT_WEIGHT_800 = 1<<20,
+	GF_FONT_WEIGHT_900 = 1<<21,
+	GF_FONT_WEIGHT_BOLDER = 1<<22
 };
+/*mask for font styles used for CSS2 selection*/
+#define GF_FONT_STYLE_MASK	0x00000007
+/*mask for all font weight*/
+#define GF_FONT_WEIGHT_MASK	0xFFFFFC00
 
 /*interface name and version for font engine*/
 #define GF_FONT_READER_INTERFACE		GF_4CC('G','F','T', 0x01)

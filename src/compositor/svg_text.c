@@ -66,30 +66,31 @@ static u32 svg_get_font_styles(GF_TraverseState * tr_state)
 	u32 styles = 0;
 	switch(*tr_state->svg_props->font_style) {
 	case SVG_FONTSTYLE_ITALIC:
-	case SVG_FONTSTYLE_OBLIQUE:
 		styles = GF_FONT_ITALIC;
 		break;
+	case SVG_FONTSTYLE_OBLIQUE:
+		styles = GF_FONT_OBLIQUE;
+		break;
 	}
+	if (*tr_state->svg_props->font_variant==SVG_FONTVARIANT_SMALLCAPS) 
+		styles |= GF_FONT_SMALLCAPS;
 
 	switch(*tr_state->svg_props->font_weight) {
-	case SVG_FONTWEIGHT_100:
-	case SVG_FONTWEIGHT_LIGHTER:
-	case SVG_FONTWEIGHT_200:
-	case SVG_FONTWEIGHT_300:
-	case SVG_FONTWEIGHT_400:
-		break;
-	case SVG_FONTWEIGHT_NORMAL:
-	case SVG_FONTWEIGHT_500:
-		break;	
-	case SVG_FONTWEIGHT_600:
-	case SVG_FONTWEIGHT_700:
-	case SVG_FONTWEIGHT_BOLD:
-	case SVG_FONTWEIGHT_800:
-	case SVG_FONTWEIGHT_900:
-	case SVG_FONTWEIGHT_BOLDER:
-		styles |= GF_FONT_BOLD;
-		break;
+	case SVG_FONTWEIGHT_100: styles |= GF_FONT_WEIGHT_100; break;
+	case SVG_FONTWEIGHT_LIGHTER: styles |= GF_FONT_WEIGHT_LIGHTER; break;
+	case SVG_FONTWEIGHT_200: styles |= GF_FONT_WEIGHT_200; break;
+	case SVG_FONTWEIGHT_300: styles |= GF_FONT_WEIGHT_300; break;
+	case SVG_FONTWEIGHT_400: styles |= GF_FONT_WEIGHT_400; break;
+	case SVG_FONTWEIGHT_NORMAL: styles |= GF_FONT_WEIGHT_NORMAL; break;
+	case SVG_FONTWEIGHT_500: styles |= GF_FONT_WEIGHT_500; break;
+	case SVG_FONTWEIGHT_600: styles |= GF_FONT_WEIGHT_600; break;
+	case SVG_FONTWEIGHT_700: styles |= GF_FONT_WEIGHT_700; break;
+	case SVG_FONTWEIGHT_BOLD: styles |= GF_FONT_WEIGHT_BOLD; break;
+	case SVG_FONTWEIGHT_800: styles |= GF_FONT_WEIGHT_800; break;
+	case SVG_FONTWEIGHT_900: styles |= GF_FONT_WEIGHT_900; break;
+	case SVG_FONTWEIGHT_BOLDER: styles |= GF_FONT_WEIGHT_BOLDER; break;
 	}
+
 	return styles;
 }
 
@@ -97,8 +98,10 @@ static GF_Font *svg_set_font(GF_TraverseState * tr_state, GF_FontManager *fm)
 {
 	GF_Font *font = NULL;
 	char *a_font;
-	u32 styles = svg_get_font_styles(tr_state);
+	char *fonts[50];
+	u32 nb_fonts = 0;
 
+	u32 styles = svg_get_font_styles(tr_state);
 
 	a_font = tr_state->svg_props->font_family->value;
 	while (a_font && !font) {
@@ -112,15 +115,18 @@ static GF_Font *svg_set_font(GF_TraverseState * tr_state, GF_FontManager *fm)
 			char *sep_end = strchr(a_font+1, '\'');
 			if (sep_end) sep_end[0] = 0;
 			a_font++;
-			font = gf_font_manager_set_font(fm, &a_font, 1, styles);
+//			font = gf_font_manager_set_font(fm, &a_font, 1, styles);
+			fonts[nb_fonts] = strdup(a_font);
+			nb_fonts++;
 			if (sep_end) sep_end[0] = '\'';
 		} else {
 			u32 skip, len = strlen(a_font)-1;
 			skip = 0;
 			while (a_font[len-skip] == ' ') skip++;
 			if (skip) a_font[len-skip+1] = 0;
-//			a_font++;
-			font = gf_font_manager_set_font(fm, &a_font, 1, styles);
+//			font = gf_font_manager_set_font(fm, &a_font, 1, styles);
+			fonts[nb_fonts] = strdup(a_font);
+			nb_fonts++;
 			if (skip) a_font[len-skip] = ' ';
 		}
 		
@@ -130,9 +136,13 @@ static GF_Font *svg_set_font(GF_TraverseState * tr_state, GF_FontManager *fm)
 		} else {
 			a_font = NULL;
 		}
+		if (nb_fonts==50) break;
 	}
-
-	if (!font) font = gf_font_manager_set_font(fm, NULL, 0, styles);
+	font = gf_font_manager_set_font(fm, fonts, nb_fonts, styles);
+	while (nb_fonts) {
+		free(fonts[nb_fonts-1]);
+		nb_fonts--;
+	}
 	return font;
 }
 
@@ -165,7 +175,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 
 	len = strlen(textContent);
 	dup_text = malloc(len+1);
-	prev = 0;
+	prev = ' ';
 	for (i = 0, j = 0; i < len; i++) {
 		if (textContent[i] == ' ') {
 			if (prev == ' ' && !preserve) { 
@@ -193,7 +203,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 	}
 	dup_text[j] = 0;
 
-	span = gf_font_manager_create_span(fm, font, dup_text, font_size, x_offsets, y_offsets, lang);
+	span = gf_font_manager_create_span(fm, font, dup_text, font_size, x_offsets, y_offsets, lang, 1);
 	free(dup_text);
 	if (span) span->horizontal = 1;
 	return span;
@@ -569,6 +579,7 @@ static void svg_update_bounds(SVG_TextStack *st)
 	GF_TextSpan *span;
 	/*finally compute text bounds*/
 	st->bounds.width = st->bounds.height = 0;
+	st->bounds.x = st->bounds.y = 0;
 	while ( (span = gf_list_enum(st->spans, &i)) ) {
 		gf_font_manager_refresh_span_bounds(span);
 		gf_rect_union(&st->bounds, &span->bounds);
@@ -603,7 +614,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {
-		svg_drawable_pick(node, st->drawable, tr_state);
+		gf_font_spans_pick(node, st->spans, tr_state, &st->bounds, 1);
 		return;
 	}
 
@@ -624,6 +635,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		 (st->prev_flags != *tr_state->svg_props->font_style) || 
 		 (st->prev_anchor != *tr_state->svg_props->text_anchor) ||
 		 (gf_node_dirty_get(node) & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_CHILD_DIRTY) ) 
+		 || tr_state->visual->compositor->reset_fonts
 	) {
 		u32 mode;
 		child = ((GF_ParentNode *) text)->children;
@@ -939,6 +951,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 		 (st->prev_flags != *tr_state->svg_props->font_style) || 
 		 (st->prev_anchor != *tr_state->svg_props->text_anchor) ||
 		 (gf_node_dirty_get(node) & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_CHILD_DIRTY) ) 
+		 || tr_state->visual->compositor->reset_fonts
 	) {
 		u32 mode;
 

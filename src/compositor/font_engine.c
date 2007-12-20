@@ -159,37 +159,100 @@ GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_f
 {
 	u32 i;
 	GF_Err e;
+	Bool has_italic = (styles & GF_FONT_ITALIC) ? 1 : 0;
+	Bool has_smallcaps = (styles & GF_FONT_SMALLCAPS) ? 1 : 0;
 	GF_Font *the_font = NULL;
 
 	for (i=0; i<nb_fonts; i++) {
+		u32 weight_diff = 0xFFFFFFFF;
+		GF_Font *best_font = NULL;
 		GF_Font *font = fm->font;
 		while (font) {
 			if (font->name && !stricmp(font->name, alt_fonts[i])) {
-				the_font = font;
-				break;
+				s32 fw;
+				s32 w;
+				u32 diff;
+				Bool ft_has_smallcaps;
+				Bool ft_has_weight = (font->styles & GF_FONT_WEIGHT_MASK) ? 1 : 0;
+				if (font->styles == styles) {
+					the_font = font;
+					break;
+				}
+				/*check we have the same font variant*/
+				ft_has_smallcaps = (font->styles & GF_FONT_SMALLCAPS) ? 1 : 0;
+				if (ft_has_smallcaps != has_smallcaps) {
+					font = font->next;
+					continue;
+				}
+				/*check if we have an oblique/italic match*/
+				if (has_italic) {
+					if (! (font->styles & (GF_FONT_OBLIQUE|GF_FONT_ITALIC))) {
+						font = font->next;
+						continue;
+					}
+					/*if italic force it*/
+					if (font->styles & GF_FONT_ITALIC) best_font = font;
+					/*if oblic use it if no italic found*/
+					else if (!best_font) best_font  = font;
+					else {
+						font = font->next;
+						continue;
+					}
+				}
+
+				/*compute min weight diff*/
+				fw = font->styles>>10;
+				w = styles>>10;
+				diff = ABS(fw - w);
+				if (ft_has_weight) {
+					if (diff<weight_diff) {
+						weight_diff = diff;
+						best_font = font;
+					}
+				}
+				/*no weight means "all"*/
+				else {
+					if ((font->styles & GF_FONT_STYLE_MASK) == (styles & GF_FONT_STYLE_MASK) ) {
+						weight_diff = diff;
+						best_font = font;
+						font = font->next;
+						continue;
+					}
+				}
 			}
 			font = font->next;
 		}
 		if (the_font) break;
-		if (!fm->reader) continue;
-
-		e = fm->reader->set_font(fm->reader, alt_fonts[i], styles);
-		if (!e) {
-			GF_SAFEALLOC(the_font, GF_Font);
-			fm->reader->get_font_info(fm->reader, &the_font->name, &the_font->em_size, &the_font->ascent, &the_font->descent, &the_font->line_spacing, &the_font->max_advance_h, &the_font->max_advance_v);
-			the_font->styles = styles;
-			if (!the_font->name) the_font->name = strdup(alt_fonts[i]);
-		
-			if (fm->font) {
-				font = fm->font;
-				while (font->next) font = font->next;
-				font->next = the_font;
-			} else {
-				fm->font = the_font;
+		if (fm->reader) {
+			e = fm->reader->set_font(fm->reader, alt_fonts[i], styles);
+			if (!e) {
+				GF_SAFEALLOC(the_font, GF_Font);
+				fm->reader->get_font_info(fm->reader, &the_font->name, &the_font->em_size, &the_font->ascent, &the_font->descent, &the_font->line_spacing, &the_font->max_advance_h, &the_font->max_advance_v);
+				the_font->styles = styles;
+				if (!the_font->name) the_font->name = strdup(alt_fonts[i]);
+			
+				if (fm->font) {
+					font = fm->font;
+					while (font->next) font = font->next;
+					font->next = the_font;
+				} else {
+					fm->font = the_font;
+				}
+				return the_font;
 			}
-			return the_font;
+		}
+		if (best_font) {
+			the_font = best_font;
+			break;
 		}
 	}
+
+	/*check for font alias*/
+	if (the_font && the_font->get_alias) {
+		return the_font->get_alias(the_font->udta);
+
+	}
+
 	if (!the_font) the_font = fm->default_font;
 	/*embeded font*/
 	if (the_font && !the_font->get_glyphs) 
@@ -198,7 +261,7 @@ GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_f
 	return the_font;
 }
 
-GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
+static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 {
 	GF_Glyph *glyph = font->glyph;
 	while (glyph) {
@@ -211,7 +274,7 @@ GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 		glyph = font->load_glyph(font->udta, name);
 	} else {
 		if (!fm->reader) return NULL;
-		fm->reader->set_font(fm->reader, font->name, font->styles);
+//		fm->reader->set_font(fm->reader, font->name, font->styles);
 		glyph = fm->reader->load_glyph(fm->reader, name);
 	}
 	if (!glyph) return NULL;
@@ -226,7 +289,7 @@ GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 }
 
 
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *xml_lang)
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *xml_lang, Bool fliped_text)
 {
 	GF_Err e;
 	u32 len, i;
@@ -257,6 +320,7 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 		span->font_scale = font_size / font->em_size;
 	span->x_scale = span->y_scale = FIX_ONE;
 	span->lang = xml_lang;
+	span->flip = fliped_text;
 	span->nb_glyphs = len;
 	span->glyphs = malloc(sizeof(void *)*len);
 	if (needs_x_offset) {
@@ -319,15 +383,43 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 {
 	u32 i;
-	Fixed size;
-	Fixed min_x, min_y, width, height;
+	Fixed size, descent, ascent;
+	Fixed min_x, min_y, width, max_y;
+
+	if (!span->nb_glyphs) {
+		span->bounds.width = span->bounds.height = 0;
+		return;
+	}
+	descent = 0;
+	if (span->font->descent<0) descent = -gf_mulfix(span->font->descent, span->font_scale);
+	ascent = gf_mulfix(span->font->ascent, span->font_scale);
+
+	/*if fliped text (SVG), the min_y is at the ascent side*/
+	if (span->flip) {
+		Fixed tmp = ascent;
+		ascent = descent;
+		descent = tmp;
+	}
 
 	width = span->horizontal ? 0 : gf_mulfix(span->font->max_advance_h, span->font_scale);
-	height = !span->horizontal ? 0 : gf_mulfix(span->font->ascent-span->font->descent, span->font_scale);
+
 	min_x = span->dx ? FIX_MAX : span->off_x;
-	min_y = span->dy ? FIX_MAX : span->off_y;
+	min_y = span->dy ? FIX_MAX : span->off_y - descent;
+	max_y = span->dy ? -FIX_MAX : span->off_y + ascent;
+
 	for (i=0;i<span->nb_glyphs; i++) {
-		size = gf_mulfix(span->glyphs[i] ? span->glyphs[i]->horiz_advance : span->font->max_advance_h, span->font_scale);
+		size = 0;
+		if (!i && span->glyphs[i] && span->glyphs[i]->path) {
+			min_x += gf_mulfix(span->glyphs[i]->path->bbox.x, span->font_scale);
+		}
+		/*if last glyph of the span, increase by width only*/
+		if (i+1==span->nb_glyphs) {
+			size += gf_mulfix(span->glyphs[i] ? span->glyphs[i]->width: span->font->max_advance_h, span->font_scale);
+		}
+		/*otherwise increase by the horizontal advance*/
+		else {
+			size += gf_mulfix(span->glyphs[i] ? span->glyphs[i]->horiz_advance : span->font->max_advance_h, span->font_scale);
+		}
 		if (span->dx) {
 			if (span->dx[i]<min_x) {
 				if (i) width += min_x-span->dx[i];
@@ -338,25 +430,33 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 			width += size;
 		}
 		if (span->dy) {
-			if (span->dy[i]<min_y) {
-				if (i) height += min_y-span->dy[i];
-				min_y = span->dy[i];
-			}
-			size = gf_mulfix(span->glyphs[i] ? span->glyphs[i]->vert_advance : span->font->max_advance_v, span->font_scale);
-			if (span->dy[i] + size > height + min_y) height = span->dy[i] + size - min_y;
-		} else if (!span->horizontal) {
-			height += gf_mulfix(span->font->ascent-span->font->descent, span->font_scale);
+			if (span->dy[i] - ascent < min_y) min_y = span->dy[i] - descent;
+			if (span->dy[i] + descent > max_y) max_y = span->dy[i] + ascent;
+		} 
+		else if (span->glyphs[i]) {
+			size = gf_mulfix(span->glyphs[i]->height, span->font_scale);
+			if (size > max_y-min_y) max_y = size + min_y;
 		}
 	}
 	span->bounds.x = min_x;
 	span->bounds.width = width;
-	span->bounds.y = min_y - gf_mulfix(span->font->ascent, span->font_scale) + height;
-	span->bounds.height = height;
+
+	span->bounds.y = max_y;
+/*	if (span->font->descent<0) {
+		span->bounds.y += height - gf_mulfix(span->font->ascent, span->font_scale);
+	}
+*/
+	span->bounds.height = max_y - min_y;
+	if (span->font->baseline) {
+		Fixed bline = gf_mulfix(span->font->baseline, span->font_scale);
+		span->bounds.y += bline;
+		span->bounds.height += bline;
+	}
 }
 
 
 
-GF_Path *gf_font_span_create_path(GF_TextSpan *span, Bool flip_it)
+GF_Path *gf_font_span_create_path(GF_TextSpan *span)
 {
 	u32 i;
 	GF_Matrix2D mat;
@@ -366,7 +466,7 @@ GF_Path *gf_font_span_create_path(GF_TextSpan *span, Bool flip_it)
 	gf_mx2d_init(mat);
 	mat.m[0] = gf_mulfix(span->font_scale, span->x_scale);
 	mat.m[4] = gf_mulfix(span->font_scale, span->y_scale);
-	if (flip_it) gf_mx2d_add_scale(&mat, FIX_ONE, -FIX_ONE);
+	if (span->flip) gf_mx2d_add_scale(&mat, FIX_ONE, -FIX_ONE);
 
 	dx = gf_divfix(span->off_x, mat.m[0]);
 	dy = gf_divfix(span->off_y, mat.m[4]);
@@ -496,7 +596,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 #endif
 
 	if (span->ext->txh) {
-		gf_sc_texture_release(span->ext->txh);
+		gf_sc_texture_destroy(span->ext->txh);
 		if (span->ext->txh->data) free(span->ext->txh->data);
 		free(span->ext->txh);
 	}
@@ -538,7 +638,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 
 	raster->surface_set_matrix(surface, &mx);
 	raster->surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
-	span_path = gf_font_span_create_path(span, !compositor->visual->center_coords);
+	span_path = gf_font_span_create_path(span);
 	raster->surface_set_path(surface, span_path);
 
 	raster->surface_fill(surface, brush);
@@ -546,6 +646,11 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	raster->surface_delete(surface);
 	gf_path_del(span_path);
 
+	if (span->font->baseline) {
+		Fixed dy = gf_mulfix(span->font->baseline, span->font_scale);
+		bounds.y += dy;
+		span->bounds.y += dy;
+	}
 	span->ext->path = gf_path_new();
 	gf_path_add_move_to(span->ext->path, bounds.x, bounds.y-bounds.height);
 	gf_path_add_line_to(span->ext->path, bounds.x+bounds.width, bounds.y-bounds.height);
@@ -571,7 +676,7 @@ static void span_fill_3d(GF_TextSpan *span, GF_TraverseState *tr_state)
 {
 	span_alloc_extensions(span);
 	if (!span->ext->mesh) {
-		GF_Path *path = gf_font_span_create_path(span, !tr_state->visual->center_coords);
+		GF_Path *path = gf_font_span_create_path(span);
 		span->ext->mesh = new_mesh();
 		mesh_from_path(span->ext->mesh, path);
 		gf_path_del(path);
@@ -584,7 +689,7 @@ static void span_strike_3d(GF_TextSpan *span, GF_TraverseState *tr_state, DrawAs
 {
 	span_alloc_extensions(span);
 	if (!span->ext->outline) {
-		GF_Path *path = gf_font_span_create_path(span, !tr_state->visual->center_coords);
+		GF_Path *path = gf_font_span_create_path(span);
 		span->ext->outline = new_mesh();
 #ifndef GPAC_USE_OGL_ES
 		if (vect_outline) {
@@ -747,7 +852,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 {
 	u32 flags, i;
 	Bool flip_text;
-	Fixed dx, dy, sx, sy, lscale;
+	Fixed dx, dy, sx, sy, lscale, bline;
 	Bool has_texture = ctx->aspect.fill_texture ? 1 : 0;
 	GF_Matrix2D mx, tx;
 
@@ -760,6 +865,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 	sy = gf_mulfix(span->font_scale, span->y_scale);
 	flip_text = (! tr_state->visual->center_coords) ? 1 : 0;
 
+	bline = gf_mulfix(span->font->baseline, span->font_scale);
 	lscale = ctx->aspect.line_scale;
 	ctx->aspect.line_scale = gf_divfix(ctx->aspect.line_scale, span->font_scale);
 
@@ -777,6 +883,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 		ctx->transform.m[1] = ctx->transform.m[3] = 0;
 		ctx->transform.m[2] = span->dx ? span->dx[i] : dx;
 		ctx->transform.m[5] = span->dy ? span->dy[i] : dy;
+		ctx->transform.m[5] += bline;
 		gf_mx2d_add_matrix(&ctx->transform, &mx);
 
 		if (has_texture) {
@@ -785,6 +892,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 			tx.m[1] = tx.m[3] = 0;
 			tx.m[2] = span->dx ? span->dx[i] : dx;
 			tx.m[5] = span->dy ? span->dy[i] : dy;
+			tx.m[5] += bline;
 			gf_mx2d_inverse(&tx);
 
 			visual_2d_texture_path_extended(tr_state->visual, span->glyphs[i]->path, ctx->aspect.fill_texture, ctx, &span->bounds, &tx);
@@ -852,4 +960,110 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 	if (is_rv) tr_state->ctx->aspect.fill_color = hl_color;
 
 
+}
+
+void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events)
+{
+	u32 i, count, j;
+	Fixed dx, dy;
+#ifndef GPAC_DISABLE_3D
+	GF_Matrix inv_mx;
+#endif
+	GF_Matrix2D inv_2d;
+	Fixed x, y;
+	GF_Compositor *compositor = tr_state->visual->compositor;
+
+	/*TODO: pick the real glyph and not just the bounds of the text span*/
+	count = gf_list_count(spans);
+
+#ifndef GPAC_DISABLE_3D
+	if (tr_state->visual->type_3d) {
+		GF_Ray r;
+		SFVec3f local_pt;
+
+		r = tr_state->ray;
+		gf_mx_copy(inv_mx, tr_state->model_matrix);
+		gf_mx_inverse(&inv_mx);
+		gf_mx_apply_ray(&inv_mx, &r);
+
+		if (!compositor_get_2d_plane_intersection(&r, &local_pt)) return;
+
+		x = local_pt.x;
+		y = local_pt.y;
+	} else 
+#endif
+	{
+		gf_mx2d_copy(inv_2d, tr_state->transform);
+		gf_mx2d_inverse(&inv_2d);
+		x = tr_state->ray.orig.x;
+		y = tr_state->ray.orig.y;
+		gf_mx2d_apply_coords(&inv_2d, &x, &y);
+	}
+
+	for (i=0; i<count; i++) {
+		Fixed loc_x, loc_y;
+		GF_TextSpan *span = (GF_TextSpan*)gf_list_get(spans, i);
+
+		if ((x>=span->bounds.x)
+			&& (y<=span->bounds.y) 
+			&& (x<=span->bounds.x+span->bounds.width) 
+			&& (y>=span->bounds.y-span->bounds.height)) {
+		} else {
+			continue;
+		}
+
+		dx = span->off_x;
+		dy = span->off_y;
+		for (j=0; j<span->nb_glyphs; j++) {
+			loc_x = x - (span->dx ? span->dx[j] : dx);
+			loc_y = y - (span->dy ? span->dy[j] : dy);
+			loc_x = gf_divfix(loc_x, span->font_scale);
+			loc_y = gf_divfix(loc_y, span->font_scale) + span->font->baseline;
+			if (span->flip) loc_y = - loc_y;
+
+			if (gf_path_point_over(span->glyphs[j]->path, loc_x, loc_y))
+				goto picked;
+
+			if (span->horizontal) {
+				dx += span->font_scale * span->glyphs[i]->horiz_advance;
+			} else {
+				dy -= span->font_scale * span->glyphs[i]->vert_advance;
+			}
+		}
+	}
+	return;
+
+picked:
+	compositor->hit_local_point.x = x;
+	compositor->hit_local_point.y = y;
+	compositor->hit_local_point.z = 0;
+
+#ifndef GPAC_DISABLE_3D
+	if (tr_state->visual->type_3d) {
+		gf_mx_copy(compositor->hit_world_to_local, tr_state->model_matrix);
+		gf_mx_copy(compositor->hit_local_to_world, inv_mx);
+	} else 
+#endif
+	{
+		gf_mx_from_mx2d(&compositor->hit_world_to_local, &tr_state->transform);
+		gf_mx_from_mx2d(&compositor->hit_local_to_world, &inv_2d);
+	}
+
+	compositor->hit_node = node;
+	compositor->hit_use_dom_events = use_dom_events;
+	compositor->hit_normal.x = compositor->hit_normal.y = 0; compositor->hit_normal.z = FIX_ONE;
+	compositor->hit_texcoords.x = gf_divfix(x, node_bounds->width) + FIX_ONE/2;
+	compositor->hit_texcoords.y = gf_divfix(y, node_bounds->height) + FIX_ONE/2;
+
+	if (compositor_is_composite_texture(tr_state->appear)) {
+		compositor->hit_appear = tr_state->appear;
+	} else {
+		compositor->hit_appear = NULL;
+	}
+
+	gf_list_reset(tr_state->visual->compositor->sensors);
+	count = gf_list_count(tr_state->vrml_sensors);
+	for (i=0; i<count; i++) {
+		gf_list_add(tr_state->visual->compositor->sensors, gf_list_get(tr_state->vrml_sensors, i));
+	}
 }

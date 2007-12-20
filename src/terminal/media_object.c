@@ -730,3 +730,11 @@ Bool gf_mo_has_audio(GF_MediaObject *mo)
 	if (gf_term_service_command(ns, &com) == GF_OK) return 1;
 	return 0;
 }
+
+GF_EXPORT
+GF_SceneGraph *gf_mo_get_scenegraph(GF_MediaObject *mo)
+{
+	if (!mo || !mo->odm || !mo->odm->subscene) return NULL;
+	return mo->odm->subscene->graph;
+}
+

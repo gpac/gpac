@@ -111,7 +111,7 @@ GF_EXPORT
 size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 {
 	gf_utf8_mbstate_t* ps = &internal;
-	const char* src = *srcp;
+	const char *src = *srcp;
 
     unsigned short* destptr = dest;
     for (; len > 0; destptr++, len--) {
@@ -184,3 +184,5 @@ size_t gf_utf8_wcslen (const unsigned short *s)
   }
   return ptr - s;
 }
+
+

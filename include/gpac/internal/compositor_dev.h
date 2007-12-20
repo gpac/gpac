@@ -158,6 +158,7 @@ struct __tag_compositor
 	/*freeze_display prevents any screen updates - needed when output driver uses direct video memory access*/
 	Bool is_hidden, freeze_display;
 
+	/*current frame number*/
 	u32 frame_number;
 	/*count number of initialized sensors*/
 	u32 interaction_sensors;
@@ -167,6 +168,8 @@ struct __tag_compositor
 
 	/*font engine*/
 	GF_FontManager *font_manager;
+	/*set whenever a new font has been received*/
+	Bool reset_fonts;
 
 	/*options*/
 	u32 aspect_ratio, antiAlias, texture_text_mode;
@@ -899,8 +902,10 @@ struct _gf_font
 	u32 styles;
 	/*font uits in em size*/
 	s32 ascent, descent, line_spacing, max_advance_h, max_advance_v;
+	s32 baseline;
 
 	/*only set for embedded font engines (SVG fonts)*/
+	GF_Font *(*get_alias)(void *udta);
 	GF_Err (*get_glyphs)(void *udta, const char *utf_string, u32 *glyph_ids_buffer, u32 *io_glyph_ids_buffer_size, const char *xml_lang);
 	GF_Glyph *(*load_glyph)(void *udta, u32 glyph_name);
 	void *udta;
@@ -933,26 +938,31 @@ typedef struct
 	/*span language*/
 	const char *lang;
 
+	/*for coord systems with Y-axis pointing downwards*/
+	Bool flip;
+
 	/*span texturing and 3D tools*/
 	struct _span_internal *ext;
 } GF_TextSpan;
 
 GF_FontManager *gf_font_manager_new(GF_User *user);
 void gf_font_manager_del(GF_FontManager *fm);
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *lang);
-void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);
-GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name);
+
 GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
+
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *lang, Bool fliped_text);
+void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);
 
 GF_Err gf_font_manager_register_font(GF_FontManager *fm, GF_Font *font);
 GF_Err gf_font_manager_unregister_font(GF_FontManager *fm, GF_Font *font);
 
 void gf_font_manager_refresh_span_bounds(GF_TextSpan *span);
-GF_Path *gf_font_span_create_path(GF_TextSpan *span, Bool flip_it);
+GF_Path *gf_font_span_create_path(GF_TextSpan *span);
 
 
 void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_color, Bool force_texture_text);
 void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspect2D *asp, u32 text_hl, Bool force_texturing);
+void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events);
 
 #endif	/*_COMPOSITOR_DEV_H_*/
 
