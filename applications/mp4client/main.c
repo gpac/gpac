@@ -218,7 +218,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "2");
 	gf_cfg_set_key(cfg, "Audio", "TotalDuration", "120");
 	gf_cfg_set_key(cfg, "Audio", "DisableNotification", "no");
-	gf_cfg_set_key(cfg, "FontEngine", "DriverName", "ft_font");
+	gf_cfg_set_key(cfg, "FontEngine", "FontReader", "ft_font");
 
 #ifdef WIN32
 	GetWindowsDirectory((char*)szPath, MAX_PATH);

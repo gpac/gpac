@@ -39,9 +39,12 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	GF_ChildNodeItem *child;
 
 	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
-		/*never trigger bounds recompute in 2D since we don't cull 2D groups*/
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
+
+		/*never performs bounds recompute on the fly in 2D since we don't cull 2D groups
+		but still mark the group as empty*/
+		group->bounds.width = 0;
 		/*special case for anchor which is a parent node acting as a sensor*/
 		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
 			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
@@ -57,10 +60,11 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		}
 	}
 	/*sub-tree not dirty and getting bounds, direct copy */
-	else if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
+	else if ((tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) && group->bounds.width) {
 		tr_state->bounds = group->bounds;
 		return;
 	}
+
 
 #ifdef MPEG4_USE_GROUP_CACHE
 	group_cached = mpeg4_group2d_cache_traverse(node, group, tr_state);
@@ -137,12 +141,28 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		if (group->flags & GROUP_SKIP_CULLING) 
 			tr_state->disable_cull = 1;
 		tr_state->text_split_mode = split_text_backup;
-	} else {
+	}
+	/*TRAVERSE_SORT */
+	else {
+#ifdef MPEG4_USE_GROUP_CACHE
+		DrawableContext *first_ctx = tr_state->visual->cur_context;
+		Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? 1 : 0;
+		u32 traverse_time = gf_sys_clock();
+#endif
+
 		child = ((GF_ParentNode *)node)->children;
 		while (child) {
 			gf_node_traverse(child->node, tr_state);
 			child = child->next;
 		} 
+
+#ifdef MPEG4_USE_GROUP_CACHE
+		/*get the traversal time for each group*/	
+		traverse_time = gf_sys_clock() - traverse_time;
+		group->traverse_time += traverse_time;
+		/*record the traversal information at the group level*/
+		group_cache_record_stats(node, group, tr_state, first_ctx, skip_first_ctx);
+#endif
 	}
 
 	if (sensor_backup) {
@@ -150,6 +170,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		gf_list_del(tr_state->vrml_sensors);
 		tr_state->vrml_sensors = sensor_backup;
 	}
+
 }
 
 /*This is the routine for OrderedGroup child traversing*/

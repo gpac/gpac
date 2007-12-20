@@ -502,7 +502,7 @@ static void TraverseOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
 			OffscreenGroup_GetNode(node, &stack->og);
 
 			if (stack->og.offscreen) {
-				stack->flags |= GROUP_IS_CACHED;
+				stack->flags |= GROUP_IS_CACHED | GROUP_PERMANENT_CACHE;
 				if (!stack->cache) {
 					stack->cache = group_cache_new(tr_state->visual->compositor, (GF_Node*)&stack->og);
 				}
@@ -511,7 +511,7 @@ static void TraverseOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
 			} else {
 				if (stack->cache) group_cache_del(stack->cache);
 				stack->cache = NULL;
-				stack->flags &= ~GROUP_IS_CACHED;
+				stack->flags &= ~(GROUP_IS_CACHED|GROUP_PERMANENT_CACHE);
 			}
 			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 			/*flag is not set for PROTO*/

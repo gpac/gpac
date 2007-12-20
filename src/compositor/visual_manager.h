@@ -105,6 +105,7 @@ struct _visual_manager
 	/*value of the flag to use to signal any geometry changes*/
 	u32 bounds_tracker_modif_flag;
 
+	u32 num_nodes_prev_frame, num_nodes_current_frame;
 
 #ifndef GPAC_DISABLE_3D
 	/*

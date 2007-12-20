@@ -78,6 +78,16 @@ size_t gf_utf8_mbstowcs(unsigned short* dst, size_t dst_len, const char** srcp);
  */
 size_t gf_utf8_wcslen(const unsigned short *s);
 
+/*!
+ *\brief string direction
+ *
+ *Determines the implicit layout direction of a string, left-to-right or right-to-left
+ *\param s the wide-char string
+ *\return 1 if the string is right-to-left oriented, 0 otherwise
+ */
+Bool gf_utf8_is_right_to_left(u16 *utf_string);
+
+
 /*! @} */
 
 #ifdef __cplusplus

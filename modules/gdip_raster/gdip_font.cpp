@@ -61,8 +61,9 @@ GF_Err gdip_shutdown_font_engine(GF_FontReader *dr)
 
 static GF_Err gdip_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *xml_lang)
 {
-	s32 len;
+	u32 len;
 	u32 i;
+	Bool rev;
 	u16 *conv;
 	char *utf8 = (char*) utf_string;
 	FontPriv *priv = (FontPriv*)dr->udta;
@@ -72,16 +73,24 @@ static GF_Err gdip_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *gl
 		*io_glyph_buffer_size = 0;
 		return GF_OK;
 	}
-	if (*io_glyph_buffer_size < (u32) len) {
-		*io_glyph_buffer_size = (u32) len;
+	if (*io_glyph_buffer_size < len+1) {
+		*io_glyph_buffer_size = len+1;
 		return GF_BUFFER_TOO_SMALL;
 	}
 	len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, (const char **) &utf8);
-	if (len<0) return GF_IO_ERR;
+	if ((s32) len<0) return GF_IO_ERR;
 	if (utf8) return GF_IO_ERR;
 	conv = (u16*) glyph_buffer;
+	rev = gf_utf8_is_right_to_left(conv);
 	for (i=len; i>0; i--) {
 		glyph_buffer[i-1] = (u32) conv[i-1];
+	}
+	if (rev) { 
+		for (i=0; i<len/2; i++) {
+			u32 v = glyph_buffer[i];
+			glyph_buffer[i] = glyph_buffer[len-1-i];
+			glyph_buffer[len-1-i] = v;
+		}
 	}
 	*io_glyph_buffer_size = (u32) len;
 	return GF_OK;
@@ -157,9 +166,8 @@ static GF_Err gdip_set_font(GF_FontReader *dr, const char *fontName, u32 styles)
 
 	//setup styles
 	ctx->font_style = 0;
-	if (styles & (GF_FONT_BOLD|GF_FONT_ITALIC) ) ctx->font_style |= FontStyleBoldItalic;
-	else if (styles & GF_FONT_BOLD ) ctx->font_style |= FontStyleBold;
-	else if (styles & GF_FONT_ITALIC) ctx->font_style |= FontStyleItalic;
+	if (styles & GF_FONT_WEIGHT_BOLD ) ctx->font_style |= FontStyleBold;
+	if (styles & GF_FONT_ITALIC) ctx->font_style |= FontStyleItalic;
 
 	if (styles & GF_FONT_UNDERLINED) ctx->font_style |= FontStyleUnderline;
 	if (styles & GF_FONT_STRIKEOUT) ctx->font_style |= FontStyleStrikeout;
@@ -211,6 +219,7 @@ static GF_Err gdip_get_font_info(GF_FontReader *dr, char **font_name, s32 *em_si
 
 static GF_Glyph *gdip_load_glyph(GF_FontReader *dr, u32 glyph_name)
 {
+	GF_Rect bounds;
 	GF_Glyph *glyph;
 	GpPath *path_tmp;
 	GpStringFormat *fmt;
@@ -307,6 +316,9 @@ static GF_Glyph *gdip_load_glyph(GF_FontReader *dr, u32 glyph_name)
 	glyph->utf_name = glyph_name;
 	glyph->vert_advance = (s32) (ctx->ascent-ctx->descent);
 	glyph->horiz_advance = (s32) est_advance_h;
+	gf_path_get_bounds(glyph->path, &bounds);
+	glyph->width = FIX2INT(bounds.width);
+	glyph->height = FIX2INT(bounds.height);
 	return glyph;
 }
 

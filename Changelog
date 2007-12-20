@@ -1,4 +1,5 @@
-Latest CVS changes - 12/12/07:
+Latest CVS changes - 17/12/07:
+  - Moved all Font modules to the new glyph-based architecture - partial support for SVG fonts 
   - Moved SVG text to new glyph-based renderer, added support for OpenGL drawing and textured mode
   - Added support for AVC/H264 in mp4_streamer
   - Added support of MPEG-4 systems over MPEG-2

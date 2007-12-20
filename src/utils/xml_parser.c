@@ -48,6 +48,7 @@ static char *xml_translate_xml_string(char *str)
 			if (str[i+1]=='#') {
 				char szChar[20], *end;
 				u16 wchar[2];
+				u32 val;
 				const unsigned short *srcp;
 				strncpy(szChar, str+i, 10);
 				end = strchr(szChar, ';');
@@ -55,7 +56,11 @@ static char *xml_translate_xml_string(char *str)
 				end[1] = 0;
 				i+=strlen(szChar);
 				wchar[1] = 0;
-				sscanf(szChar, "&#%hd;", &wchar[0]);
+				if (szChar[2]=='x')
+					sscanf(szChar, "&#x%x;", &val);
+				else
+					sscanf(szChar, "&#%d;", &val);
+				wchar[0] = val;
 				srcp = wchar;
 				j += gf_utf8_wcstombs(&value[j], 20, &srcp);
 			}

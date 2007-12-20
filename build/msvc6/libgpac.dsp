@@ -157,6 +157,10 @@ SOURCE=..\..\src\utils\token.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\utils\uni_bidi.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\utils\url.c
 # End Source File
 # Begin Source File

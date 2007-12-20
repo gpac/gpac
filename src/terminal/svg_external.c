@@ -336,5 +336,63 @@ void term_svg_init_use(GF_InlineScene *is, GF_Node *node)
 	gf_node_set_callback_function(node, svg_traverse_use);
 }
 
+
+GF_MediaObject *gf_mo_load_resource(GF_Node *node)
+{
+	GF_InlineScene *new_resource;
+	SVGAllAttributes all_atts;
+	XLinkAttributesPointers xlinkp;
+	SMILSyncAttributesPointers syncp;
+	GF_InlineScene *is = gf_sg_get_private(gf_node_get_graph(node)); 
+	if (!is) return NULL;
+
+	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+	xlinkp.actuate = all_atts.xlink_actuate;
+	xlinkp.arcrole = all_atts.xlink_arcrole;
+	xlinkp.href = all_atts.xlink_href;
+	xlinkp.role = all_atts.xlink_role;
+	xlinkp.show = all_atts.xlink_show;
+	xlinkp.title = all_atts.xlink_title;
+	xlinkp.type = all_atts.xlink_type;
+	syncp.syncBehavior = all_atts.syncBehavior;
+	syncp.syncBehaviorDefault = all_atts.syncBehaviorDefault;
+	syncp.syncMaster = all_atts.syncMaster;
+	syncp.syncReference = all_atts.syncReference;
+	syncp.syncTolerance = all_atts.syncTolerance;
+	syncp.syncToleranceDefault = all_atts.syncToleranceDefault;
+
+	if (!xlinkp.href) return NULL;
+
+	if (xlinkp.href->type == XMLRI_ELEMENTID) return NULL;
+
+	new_resource = gf_svg_get_subscene(node, &xlinkp, &syncp, 0);
+	if (!new_resource) return NULL;
+
+	/*play*/
+	if (!new_resource->root_od->mo->num_open) 
+		gf_mo_play(new_resource->root_od->mo, 0, -1, 0);
+
+	return new_resource->root_od->mo;	
+}
+
+void gf_mo_unload_resource(GF_MediaObject *mo)
+{
+	if (!mo) return;
+	if (!gf_odm_lock_mo(mo)) return;
+	if (!mo->odm->subscene) {
+		gf_odm_lock(mo->odm, 0);
+		return;
+	}
+	if (mo->num_open) {
+		mo->num_open--;
+		if (!mo->num_open) {
+			/*do we simply stop the associated document or unload it??? to check*/
+//			gf_mo_stop(mo);
+			gf_odm_disconnect(mo->odm, 1);
+		}
+	}
+	gf_odm_lock(mo->odm, 0);
+}
+
 #endif //GPAC_DISABLE_SVG
 

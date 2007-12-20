@@ -275,6 +275,7 @@ GF_EXPORT
 GF_Err gf_path_add_subpath(GF_Path *gp, GF_Path *src, Fixed off_x, Fixed off_y)
 {
 	u32 i;
+	if (!src) return GF_OK;
 	gp->contours = realloc(gp->contours, sizeof(u32) * (gp->n_contours + src->n_contours));
 	if (!gp->contours) return GF_OUT_OF_MEM;
 	for (i=0; i<src->n_contours; i++) {

@@ -2625,10 +2625,13 @@ GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if
 /* Parse an SVG attribute */
 GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type)
 {
+	/*THIS IS PLAIN WRONG AND BREAKS SVG FONTS!!!*/
+#if 0
 	u32 len;
 	while (*attribute_content == ' ') attribute_content++;
 	len = strlen(attribute_content);
 	while (attribute_content[len-1] == ' ') { attribute_content[len-1] = 0; len--; }
+#endif
 
 	switch (info->fieldType) {
 	case SVG_Boolean_datatype:

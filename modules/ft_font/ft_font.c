@@ -58,9 +58,6 @@ typedef struct
 	char font_serif[1024];
 	char font_sans[1024];
 	char font_fixed[1024];
-
-	u16 *conv_buf;
-	u32 alloc_size;
 } FTBuilder;
 
 
@@ -124,76 +121,42 @@ static GF_Err ft_shutdown_font_engine(GF_FontReader *dr)
 	/*exit FT*/
 	if (ftpriv->library) FT_Done_FreeType(ftpriv->library);
 	ftpriv->library = NULL;
-	if (ftpriv->conv_buf) free(ftpriv->conv_buf);
-	ftpriv->conv_buf = NULL;
-	ftpriv->alloc_size = 0;
-
 	return GF_OK;
 }
 
 
 static Bool ft_check_face(FT_Face font, const char *fontName, u32 styles)
 {
-	Bool ret;
-	char *ft_name;
-	char *ft_style;
+	u32 ft_style, loc_styles;
+	char *name;
 
 	if (fontName && stricmp(font->family_name, fontName)) return 0;
-	ft_style = strdup(font->style_name);
-	strupr(ft_style);
-	if (!styles) {
-		ret = 1;
-		if (strstr(ft_style, "BOLD") || strstr(ft_style, "ITALIC") ) ret = 0;
-		free(ft_style);
-		return ret;
+	ft_style = 0;
+	if (font->style_name) {
+		name = strdup(font->style_name);
+		strupr(name);
+		if (strstr(name, "BOLD")) ft_style |= GF_FONT_WEIGHT_BOLD;
+		if (strstr(name, "ITALIC")) ft_style |= GF_FONT_ITALIC;
+		free(name);
+	} else {
+		if (font->style_flags & FT_STYLE_FLAG_BOLD) ft_style |= GF_FONT_WEIGHT_BOLD;
+		if (font->style_flags & FT_STYLE_FLAG_ITALIC) ft_style |= GF_FONT_ITALIC;
 	}
-	ft_name = strdup(font->family_name);
-	strupr(ft_name);
-	if (styles & (GF_FONT_BOLD | GF_FONT_ITALIC)) {
-		if (!strstr(ft_name, "BOLD") && !strstr(ft_style, "BOLD") ) {
-			free(ft_name);
-			free(ft_style);
-			return 0;
-		}
-		if (!strstr(ft_name, "ITALIC") && !strstr(ft_style, "ITALIC") ) {
-			free(ft_name);
-			free(ft_style);
-			return 0;
-		}
-	}
-	else if (styles & GF_FONT_BOLD ) {
-		if (!strstr(ft_name, "BOLD") && !strstr(ft_style, "BOLD") ) {
-			free(ft_name);
-			free(ft_style);
-			return 0;
-		}
-		if (strstr(ft_style, "ITALIC")) {
-			free(ft_name);
-			free(ft_style);
-			return 0;
-		}
-	}
-	else if (styles & GF_FONT_ITALIC ) {
-		if (!strstr(ft_name, "ITALIC") && !strstr(ft_style, "ITALIC")) {
-			free(ft_name);
-			free(ft_style);
-			return 0;
-		}
-		if (strstr(ft_style, "BOLD")) {
-			free(ft_name);
-			free(ft_style);
-			return 0;
-		}
-	}
-	else if (strstr(ft_name, "ITALIC") || strstr(ft_style, "ITALIC") || strstr(ft_name, "BOLD") || strstr(ft_style, "BOLD") ) {
-		free(ft_name);
-		free(ft_style);
-		return 0;
-	}
-	/*looks good, let's use this one*/
-	free(ft_name);
-	free(ft_style);
-	return 1;
+	name = strdup(font->family_name);
+	strupr(name);
+	if (strstr(name, "BOLD")) ft_style |= GF_FONT_WEIGHT_BOLD;
+	if (strstr(name, "ITALIC")) ft_style |= GF_FONT_ITALIC;
+	free(name);
+
+	loc_styles = styles & GF_FONT_WEIGHT_MASK;
+	if (loc_styles>=GF_FONT_WEIGHT_BOLD)
+		styles = (styles & 0x00000007) | GF_FONT_WEIGHT_BOLD;
+	else 
+		styles = (styles & 0x00000007);
+
+	if (ft_style==styles) 
+		return 1;
+	return 0;
 }
 
 static FT_Face ft_font_in_cache(FTBuilder *ft, const char *fontName, u32 styles)
@@ -248,13 +211,8 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 	if (ftpriv->register_font) {
 		char szFont[GF_MAX_PATH];
 		strcpy(szFont, face->family_name);
-		if (ftpriv->tmp_font_style & (GF_FONT_BOLD | GF_FONT_ITALIC)) {
-			strcat(szFont, " Bold Italic");
-		} else if (ftpriv->tmp_font_style & GF_FONT_BOLD) {
-			strcat(szFont, " Bold");
-		} else if (ftpriv->tmp_font_style & GF_FONT_BOLD) {
-			strcat(szFont, " Italic");
-		}
+		if (ftpriv->tmp_font_style & GF_FONT_WEIGHT_BOLD) strcat(szFont, " Bold");
+		if (ftpriv->tmp_font_style & GF_FONT_ITALIC) strcat(szFont, " Italic");
 		gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", szFont, file_path);
 	}
 	return 1;
@@ -303,15 +261,9 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	if (fontName && strlen(fontName)) {
 		const char *opt;
 		strcpy(fname, fontName);
-		if (styles & (GF_FONT_BOLD | GF_FONT_ITALIC) ) {
-			strcat(fname, " Bold Italic");
-		}
-		else if (styles & GF_FONT_BOLD) {
-			strcat(fname, " Bold");
-		}
-		else if (styles & GF_FONT_ITALIC) {
-			strcat(fname, " Italic");
-		}
+		if (styles & GF_FONT_WEIGHT_BOLD) strcat(fname, " Bold");
+		if (styles & GF_FONT_ITALIC) strcat(fname, " Italic");
+
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", fname);
 		if (opt) {
 			char *font_name;
@@ -392,8 +344,10 @@ static GF_Err ft_get_font_info(GF_FontReader *dr, char **font_name, s32 *em_size
 
 static GF_Err ft_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *xml_lang)
 {
-	s32 len;
+	u32 len;
 	u32 i;
+	Bool rev;
+	u16 *conv;
 	char *utf8 = (char*) utf_string;
 	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
 
@@ -406,23 +360,27 @@ static GF_Err ft_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyp
 		*io_glyph_buffer_size = 0;
 		return GF_OK;
 	}
-	if (*io_glyph_buffer_size < (u32) len) {
-		*io_glyph_buffer_size = (u32) len;
+	if (*io_glyph_buffer_size < len+1) {
+		*io_glyph_buffer_size = len+1;
 		return GF_BUFFER_TOO_SMALL;
 	}
-	if ((u32) len > ftpriv->alloc_size) {
-		ftpriv->alloc_size = len+1;
-		ftpriv->conv_buf = realloc(ftpriv->conv_buf, sizeof(u16)*ftpriv->alloc_size);
-		if (!ftpriv->conv_buf) return GF_OUT_OF_MEM;
-	}
-	len = gf_utf8_mbstowcs(ftpriv->conv_buf, ftpriv->alloc_size, &utf8);
-	if (len<0) return GF_IO_ERR;
+	len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, &utf8);
+	if ((s32)len<0) return GF_IO_ERR;
 	if (utf8) return GF_IO_ERR;
 
-	for (i=0; i<(u32) len; i++) {
-		glyph_buffer[i] = (u32) ftpriv->conv_buf[i];
+	conv = (u16*) glyph_buffer;
+	rev = gf_utf8_is_right_to_left(conv);
+	for (i=len; i>0; i--) {
+		glyph_buffer[i-1] = (u32) conv[i-1];
 	}
-	*io_glyph_buffer_size = (u32) len;
+	if (rev) { 
+		for (i=0; i<len/2; i++) {
+			u32 v = glyph_buffer[i];
+			glyph_buffer[i] = glyph_buffer[len-1-i];
+			glyph_buffer[len-1-i] = v;
+		}
+	}
+	*io_glyph_buffer_size = len;
 	return GF_OK;
 }
 
@@ -526,9 +484,9 @@ static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 /*
 	glyph->x = bbox.xMin;
 	glyph->y = bbox.yMax;
+*/
 	glyph->width = ftpriv->active_face->glyph->metrics.width;
 	glyph->height = ftpriv->active_face->glyph->metrics.height;
-*/
 	FT_Done_Glyph((FT_Glyph) outline);
 	return glyph;
 }

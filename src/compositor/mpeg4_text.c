@@ -89,7 +89,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 
 	styles = 0;
 	if (fs && fs->style.buffer) {
-		if (strstr(fs->style.buffer, "BOLD") || strstr(fs->style.buffer, "bold")) styles |= GF_FONT_BOLD;
+		if (strstr(fs->style.buffer, "BOLD") || strstr(fs->style.buffer, "bold")) styles |= GF_FONT_WEIGHT_BOLD;
 		if (strstr(fs->style.buffer, "ITALIC") || strstr(fs->style.buffer, "italic")) styles |= GF_FONT_ITALIC;
 		if (strstr(fs->style.buffer, "UNDERLINED") || strstr(fs->style.buffer, "underlined")) styles |= GF_FONT_UNDERLINED;
 	}
@@ -122,7 +122,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 		char *str = txt->string.vals[i];
 		if (!str) continue;
 
-		tspan = gf_font_manager_create_span(ft_mgr, font, str, fontSize, 0, 0, NULL);
+		tspan = gf_font_manager_create_span(ft_mgr, font, str, fontSize, 0, 0, NULL, 0);
 		len = tspan->nb_glyphs;
 		tspan->horizontal = 1;
 
@@ -209,7 +209,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 
 	styles = 0;
 	if (fs && fs->style.buffer) {
-		if (strstr(fs->style.buffer, "BOLD") || strstr(fs->style.buffer, "bold")) styles |= GF_FONT_BOLD;
+		if (strstr(fs->style.buffer, "BOLD") || strstr(fs->style.buffer, "bold")) styles |= GF_FONT_WEIGHT_BOLD;
 		if (strstr(fs->style.buffer, "ITALIC") || strstr(fs->style.buffer, "italic")) styles |= GF_FONT_ITALIC;
 		if (strstr(fs->style.buffer, "UNDERLINED") || strstr(fs->style.buffer, "underlined")) styles |= GF_FONT_UNDERLINED;
 	}
@@ -230,7 +230,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		char *str = txt->string.vals[i];
 		if (!str) continue;
 
-		tspan = gf_font_manager_create_span(ft_mgr, font, txt->string.vals[i], fontSize, 0, 0, NULL);
+		tspan = gf_font_manager_create_span(ft_mgr, font, txt->string.vals[i], fontSize, 0, 0, NULL, 0);
 		if (!tspan) continue;
 		
 		tspan->horizontal = horizontal;
@@ -491,93 +491,9 @@ void text_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 
 
 
-static void text_pick(GF_Node *node, TextStack *st, GF_TraverseState *tr_state)
-{
-	u32 i, count;
-#ifndef GPAC_DISABLE_3D
-	GF_Matrix inv_mx;
-#endif
-	GF_Matrix2D inv_2d;
-	Fixed x, y;
-	GF_Compositor *compositor = tr_state->visual->compositor;
-
-	/*TODO: pick the real glyph and not just the bounds of the text span*/
-	count = gf_list_count(st->spans);
-
-#ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d) {
-		GF_Ray r;
-		SFVec3f local_pt;
-
-		r = tr_state->ray;
-		gf_mx_copy(inv_mx, tr_state->model_matrix);
-		gf_mx_inverse(&inv_mx);
-		gf_mx_apply_ray(&inv_mx, &r);
-
-		if (!compositor_get_2d_plane_intersection(&r, &local_pt)) return;
-
-		x = local_pt.x;
-		y = local_pt.y;
-	} else 
-#endif
-	{
-		gf_mx2d_copy(inv_2d, tr_state->transform);
-		gf_mx2d_inverse(&inv_2d);
-		x = tr_state->ray.orig.x;
-		y = tr_state->ray.orig.y;
-		gf_mx2d_apply_coords(&inv_2d, &x, &y);
-	}
-
-	for (i=0; i<count; i++) {
-		GF_TextSpan *span = (GF_TextSpan*)gf_list_get(st->spans, i);
-
-		if ((x>=span->bounds.x)
-			&& (y<=span->bounds.y) 
-			&& (x<=span->bounds.x+span->bounds.width) 
-			&& (y>=span->bounds.y-span->bounds.height)) goto picked;
-
-	}
-	return;
-
-picked:
-	compositor->hit_local_point.x = x;
-	compositor->hit_local_point.y = y;
-	compositor->hit_local_point.z = 0;
-
-#ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d) {
-		gf_mx_copy(compositor->hit_world_to_local, tr_state->model_matrix);
-		gf_mx_copy(compositor->hit_local_to_world, inv_mx);
-	} else 
-#endif
-	{
-		gf_mx_from_mx2d(&compositor->hit_world_to_local, &tr_state->transform);
-		gf_mx_from_mx2d(&compositor->hit_local_to_world, &inv_2d);
-	}
-
-	compositor->hit_node = node;
-	compositor->hit_use_dom_events = 0;
-	compositor->hit_normal.x = compositor->hit_normal.y = 0; compositor->hit_normal.z = FIX_ONE;
-	compositor->hit_texcoords.x = gf_divfix(x, st->bounds.width) + FIX_ONE/2;
-	compositor->hit_texcoords.y = gf_divfix(y, st->bounds.height) + FIX_ONE/2;
-
-	if (compositor_is_composite_texture(tr_state->appear)) {
-		compositor->hit_appear = tr_state->appear;
-	} else {
-		compositor->hit_appear = NULL;
-	}
-
-	gf_list_reset(tr_state->visual->compositor->sensors);
-	count = gf_list_count(tr_state->vrml_sensors);
-	for (i=0; i<count; i++) {
-		gf_list_add(tr_state->visual->compositor->sensors, gf_list_get(tr_state->vrml_sensors, i));
-	}
-}
-
-
 static void text_check_changes(GF_Node *node, TextStack *stack, GF_TraverseState *tr_state)
 {
-	if (gf_node_dirty_get(node)) {
+	if (gf_node_dirty_get(node) || tr_state->visual->compositor->reset_fonts) {
 		text_clean_paths(tr_state->visual->compositor, stack);
 		build_text(stack, (M_Text*)node, tr_state);
 		gf_node_dirty_clear(node, 0);
@@ -621,7 +537,7 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_PICK:
-		text_pick(n, st, tr_state);
+		gf_font_spans_pick(n, st->spans, tr_state, &st->bounds, 0);
 		return;
 	case TRAVERSE_GET_BOUNDS:
 		tr_state->bounds = st->bounds;
@@ -723,7 +639,7 @@ void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh 
 	count = gf_list_count(st->spans);
 	for (i=0; i<count; i++) {
 		GF_TextSpan *span = (GF_TextSpan *)gf_list_get(st->spans, i);
-		GF_Path *span_path = gf_font_span_create_path(span, 0);
+		GF_Path *span_path = gf_font_span_create_path(span);
 		mesh_extrude_path_ext(mesh, span_path, thespine, creaseAngle, min_cx, min_cy, width_cx, width_cy, begin_cap, end_cap, spine_ori, spine_scale, txAlongSpine);
 		gf_path_del(span_path);
 	}

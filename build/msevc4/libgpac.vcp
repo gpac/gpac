@@ -262,6 +262,10 @@ DEP_CPP_TOKEN=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\utils\uni_bidi.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\utils\url.c
 DEP_CPP_URL_C=\
 	"..\..\include\gpac\network.h"\

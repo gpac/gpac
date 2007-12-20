@@ -80,6 +80,7 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 		visual->context = NewDrawableContext();
 		visual->cur_context = visual->context;
 		drawctx_reset(visual->context);
+		visual->num_nodes_current_frame ++;
 		return visual->context;
 	}
 //	assert(visual->cur_context);
@@ -97,12 +98,14 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 		/*reset next context in display list for next call*/
 		if (visual->cur_context->next) visual->cur_context->next->drawable = NULL;
 		drawctx_reset(visual->cur_context);
+		visual->num_nodes_current_frame ++;
 		return visual->cur_context;
 	}
 	/*need to create a new context*/
 	visual->cur_context->next = NewDrawableContext();
 	visual->cur_context = visual->cur_context->next;
 	drawctx_reset(visual->cur_context);
+	visual->num_nodes_current_frame ++;
 
 	if (1) {
 		u32 i;
@@ -235,6 +238,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	visual_2d_setup_projection(visual, tr_state);
 
 	tr_state->traversing_mode = TRAVERSE_SORT;
+	visual->num_nodes_current_frame = 0;
 
 	/*setup raster surface, brush and pen */
 	e = visual_2d_init_raster(visual);
@@ -466,6 +470,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	if (tr_state->direct_draw) {
 		visual_2d_release_raster(visual);
 		visual_clean_contexts(visual);
+		visual->num_nodes_prev_frame = visual->num_nodes_current_frame;
 		return 1;
 	}
 
@@ -649,6 +654,7 @@ exit:
 	ra_clear(&visual->to_redraw);
 	visual_2d_release_raster(visual);
 	visual_clean_contexts(visual);
+	visual->num_nodes_prev_frame = visual->num_nodes_current_frame;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redraw done - %schanged\n", has_changed ? "" : "un"));
 	return has_changed;
 }

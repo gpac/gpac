@@ -190,6 +190,7 @@ EXPORTS
 	gf_utf8_wcstombs
 	gf_utf8_mbstowcs
 	gf_utf8_wcslen
+	gf_utf8_is_right_to_left
 
 ;download.h exports
 	gf_dm_sess_get_cache_name
