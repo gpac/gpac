@@ -116,7 +116,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 								ctx->bi->unclip.width, ctx->bi->unclip.height);
 
 			/*draw texture*/
-			visual_2d_texture_path(tr_state->visual, stack->drawable->path, ctx);
+			visual_2d_texture_path(tr_state->visual, stack->drawable->path, ctx, tr_state);
 
 		} else {
 			ctx->bi->clip = gf_rect_pixelize(&ctx->bi->unclip);

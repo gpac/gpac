@@ -447,7 +447,7 @@ void compositor_init_plane_clipper(GF_Compositor *compositor, GF_Node *node)
 #endif
 
 
-#ifdef MPEG4_USE_GROUP_CACHE
+#ifdef GROUP_2D_USE_CACHE
 
 /*OffscreenGroup hardcoded proto*/
 typedef struct
@@ -534,7 +534,7 @@ void compositor_init_offscreen_group(GF_Compositor *compositor, GF_Node *node)
 	}
 }
 
-#endif /*MPEG4_USE_GROUP_CACHE*/
+#endif /*GROUP_2D_USE_CACHE*/
 
 
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
@@ -568,7 +568,7 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 			compositor_init_texture_text(compositor, node);
 			return;
 		}
-#ifdef MPEG4_USE_GROUP_CACHE
+#ifdef GROUP_2D_USE_CACHE
 		if (!strcmp(url, "urn:inet:gpac:builtin:OffscreenGroup")) {
 			compositor_init_offscreen_group(compositor, node);
 			return;

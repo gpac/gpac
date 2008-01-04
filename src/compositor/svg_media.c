@@ -63,7 +63,7 @@ static void SVG_Draw_bitmap(GF_TraverseState *tr_state)
 
 	/*no HW, fall back to the graphics driver*/
 	if (!use_blit) {
-		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx);
+		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
 		return;
 	}
 

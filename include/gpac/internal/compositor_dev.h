@@ -45,7 +45,12 @@
 #include <gpac/scenegraph_svg.h>
 #endif
 
+/*if defined, events are queued before being processed, otherwise they are handled whenever triggered*/
 #define GF_SR_EVENT_QUEUE	
+
+/*use 2D caching for groups*/
+//#define GROUP_2D_USE_CACHE
+
 
 /*FPS computed on this number of frame*/
 #define GF_SR_FPS_COMPUTE_SIZE	30
@@ -346,6 +351,14 @@ struct __tag_compositor
 	u32 traverse_and_direct_draw_time;
 	u32 indirect_draw_time;
 
+#ifdef GROUP_2D_USE_CACHE
+	/*sorted list of cached groups - never rested*/
+	GF_List *cached_groups;
+	u32 kbytes_cache_total;
+	/*list of groups beiong cached - reseted before each traversal*/
+	GF_List *queue_cached_groups;
+#endif
+
 };
 
 
@@ -504,6 +517,9 @@ enum
 	TRAVERSE_COLLIDE,
 #endif
 };
+
+
+typedef struct _group_cache_candidate GF_CacheCandidate;
 
 
 

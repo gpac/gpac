@@ -381,6 +381,11 @@ static GF_Compositor *gf_sc_create(GF_User *user)
 	tmp->events = gf_list_new();
 	tmp->ev_mx = gf_mx_new();
 #endif
+
+#ifdef GROUP_2D_USE_CACHE
+	tmp->cached_groups = gf_list_new();
+	tmp->queue_cached_groups = gf_list_new();
+#endif
 	
 	gf_sc_reset_framerate(tmp);	
 	tmp->font_manager = gf_font_manager_new(user);
@@ -481,6 +486,11 @@ void gf_sc_del(GF_Compositor *compositor)
 #endif
 
 	if (compositor->font_manager) gf_font_manager_del(compositor->font_manager);
+
+#ifdef GROUP_2D_USE_CACHE
+	gf_list_del(compositor->cached_groups);
+	gf_list_del(compositor->queue_cached_groups);
+#endif
 
 	gf_list_del(compositor->textures);
 	gf_list_del(compositor->time_nodes);
@@ -647,6 +657,12 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	compositor->grab_use = NULL;
 	compositor->focus_node = NULL;
 	compositor->frame_number = 0;
+
+#ifdef GROUP_2D_USE_CACHE
+	gf_list_reset(compositor->cached_groups);
+	compositor->kbytes_cache_total = 0;
+	gf_list_reset(compositor->queue_cached_groups);
+#endif
 
 	/*force resetup in case we're switching coord system*/
 	compositor->root_visual_setup = 0;
@@ -1446,10 +1462,12 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #endif
 	} 
 
+#ifdef GROUP_2D_USE_CACHE
+	gf_list_reset(compositor->queue_cached_groups);
+#endif
 	flags = compositor->traverse_state->direct_draw;
 	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
 	compositor->traverse_state->direct_draw = flags;
-	compositor->traverse_state->invalidate_all = 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Drawing done\n"));
 }
 

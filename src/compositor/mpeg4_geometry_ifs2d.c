@@ -95,8 +95,8 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	col.red = col.green = col.blue = 0;
 	/*simple case, no color specified*/
 	if (!ifs2D->color) {
-		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx);
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL);
+		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
+		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 		return;
 	}
 
@@ -114,8 +114,8 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		} else {
 			ctx->aspect.fill_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 		}
-		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx);
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL);
+		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
+		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 		return;
 	}
 
@@ -150,8 +150,8 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 				ctx->aspect.fill_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 			}
 
-			visual_2d_texture_path(tr_state->visual, path, ctx);
-			visual_2d_draw_path(tr_state->visual, path, ctx, NULL, NULL);
+			visual_2d_texture_path(tr_state->visual, path, ctx, tr_state);
+			visual_2d_draw_path(tr_state->visual, path, ctx, NULL, NULL, tr_state);
 			count++;
 			i++;
 			if (i >= ci_count) break;
@@ -167,8 +167,8 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	grad = raster->stencil_new(raster, GF_STENCIL_VERTEX_GRADIENT);
 	/*not supported, fill default*/
 	if (!grad) {
-		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx);
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL);
+		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
+		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 		return;
 	}
 
@@ -238,7 +238,7 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		raster->stencil_set_matrix(grad, &ctx->transform);
 
 		/*draw*/
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, grad, grad);
+		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, grad, grad, tr_state);
 
 		raster->stencil_delete(grad);
 

@@ -252,6 +252,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 		tr_state->direct_draw = 1;
 		draw_mode = 2;
 	}
+	tr_state->invalidate_all = 0;
 
 	time = gf_sys_clock();
 	/*reset prev nodes if any (previous traverse was indirect)*/

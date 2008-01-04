@@ -31,8 +31,8 @@
 /*default draw routine*/
 void drawable_draw(Drawable *drawable, GF_TraverseState *tr_state) 
 {
-	visual_2d_texture_path(tr_state->visual, tr_state->ctx->drawable->path, tr_state->ctx);
-	visual_2d_draw_path(tr_state->visual, tr_state->ctx->drawable->path, tr_state->ctx, NULL, NULL);
+	visual_2d_texture_path(tr_state->visual, tr_state->ctx->drawable->path, tr_state->ctx, tr_state);
+	visual_2d_draw_path(tr_state->visual, tr_state->ctx->drawable->path, tr_state->ctx, NULL, NULL, tr_state);
 }
 
 /*default point_over routine*/
@@ -850,7 +850,7 @@ void drawable_traverse_focus(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	if (is_destroy) return;
 	if (tr_state->traversing_mode == TRAVERSE_DRAW_2D)
-		visual_2d_draw_path(tr_state->visual, tr_state->ctx->drawable->path, tr_state->ctx, NULL, NULL);
+		visual_2d_draw_path(tr_state->visual, tr_state->ctx->drawable->path, tr_state->ctx, NULL, NULL, tr_state);
 }
 
 

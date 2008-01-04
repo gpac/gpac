@@ -89,7 +89,7 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 
 	if (! ils2D->color) {
 		/*no texturing*/
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL);
+		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 		return;
 	}
 	
@@ -114,7 +114,7 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 				col = color->color.vals[col_ind];
 				ctx->aspect.line_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 
-				visual_2d_draw_path(tr_state->visual, path, ctx, NULL, NULL);
+				visual_2d_draw_path(tr_state->visual, path, ctx, NULL, NULL, tr_state);
 
 				i++;
 				if (i>=end_at) break;
@@ -212,7 +212,7 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 			}
 		}
 		raster->stencil_set_matrix(grad, &ctx->transform);
-		visual_2d_draw_path(tr_state->visual, path, ctx, NULL, grad);
+		visual_2d_draw_path(tr_state->visual, path, ctx, NULL, grad, tr_state);
 		if (grad) raster->stencil_delete(grad);
 
 		i ++;

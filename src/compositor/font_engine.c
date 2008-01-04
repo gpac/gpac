@@ -895,10 +895,10 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 			tx.m[5] += bline;
 			gf_mx2d_inverse(&tx);
 
-			visual_2d_texture_path_extended(tr_state->visual, span->glyphs[i]->path, ctx->aspect.fill_texture, ctx, &span->bounds, &tx);
+			visual_2d_texture_path_extended(tr_state->visual, span->glyphs[i]->path, ctx->aspect.fill_texture, ctx, &span->bounds, &tx, tr_state);
 		}
 
-		visual_2d_draw_path(tr_state->visual, span->glyphs[i]->path, ctx, NULL, NULL);
+		visual_2d_draw_path(tr_state->visual, span->glyphs[i]->path, ctx, NULL, NULL, tr_state);
 		ctx->flags = flags;
 
 		if (span->horizontal) {
@@ -948,10 +948,10 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 	i=ctx->sub_path_index ? ctx->sub_path_index-1 : 0;
 	while ((span = (GF_TextSpan *)gf_list_enum(spans, &i))) {
 		
-		if (hl_color) visual_2d_fill_rect(tr_state->visual, ctx, &span->bounds, hl_color, 0);
+		if (hl_color) visual_2d_fill_rect(tr_state->visual, ctx, &span->bounds, hl_color, 0, tr_state);
 
 		if (use_texture_text && span_setup_texture(tr_state->visual->compositor, span, 0)) {
-			visual_2d_texture_path_text(tr_state->visual, ctx, span->ext->path, &span->bounds, span->ext->txh);
+			visual_2d_texture_path_text(tr_state->visual, ctx, span->ext->path, &span->bounds, span->ext->txh, tr_state);
 		} else {
 			gf_font_span_draw_2d(tr_state, span, ctx);
 		}

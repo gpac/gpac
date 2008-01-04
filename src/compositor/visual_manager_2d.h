@@ -99,18 +99,18 @@ void visual_2d_release_raster(GF_VisualManager *visual);
 */
 void visual_2d_clear(GF_VisualManager *visual, GF_IRect *clear, u32 BackColor);
 /*texture the path with the given context info*/
-void visual_2d_texture_path(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx);
+void visual_2d_texture_path(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_TraverseState *tr_state);
 /*draw the path (fill and strike) - if brushes are NULL they are created if needed based on the context aspect
 DrawPath shall always be called after TexturePath*/
-void visual_2d_draw_path(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_STENCIL brush, GF_STENCIL pen);
+void visual_2d_draw_path(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_STENCIL brush, GF_STENCIL pen, GF_TraverseState *tr_state);
 /*special texturing extension for text, using a given path (text rectangle) and texture*/
-void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_ctx, GF_Path *path, GF_Rect *object_bounds, GF_TextureHandler *txh);
+void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_ctx, GF_Path *path, GF_Rect *object_bounds, GF_TextureHandler *txh, GF_TraverseState *tr_state);
 /*fill given rect with given color with given ctx transform and clipper (used for text hilighting only)
 if rc is NULL, fills object bounds*/
-void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect *rc, u32 color, u32 strike_color);
+void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect *rc, u32 color, u32 strike_color, GF_TraverseState *tr_state);
 
 
-void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx);
+void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx, GF_TraverseState *tr_state);
 
 
 #endif	/*_VISUAL_MANAGER_2D_*/

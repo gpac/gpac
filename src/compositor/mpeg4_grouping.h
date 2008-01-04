@@ -27,8 +27,6 @@
 
 #include <gpac/internal/compositor_dev.h>
 
-//#define MPEG4_USE_GROUP_CACHE
-
 enum
 {
 	GROUP_HAS_SENSORS	=	1,
@@ -42,15 +40,22 @@ enum
 	GROUP_PERMANENT_CACHE		=	1<<6,
 };
 
-#ifdef MPEG4_USE_GROUP_CACHE
+#ifdef GROUP_2D_USE_CACHE
 
 #define GROUPING_NODE_STACK_2D		\
 	u32 flags;						\
 	GF_Rect bounds;					\
 	struct _group_cache *cache;		\
 	u16 traverse_time;				\
-	u8 changed;					\
+	u8 changed;						\
 	u8 nb_stats_frame;				\
+	/*cache candidates are sorted by priority*/		\
+	Fixed priority;					\
+	/*size of offscreen cache */	\
+	u32 kbytes_cached;			\
+	/*nb  of objects in the cache*/	\
+	u32 nb_objects;					\
+
 
 #else
 
@@ -71,10 +76,9 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 /*traverse all children of the node with the given traversing order*/
 void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, u32 *positions);
 
-
-
-#ifdef MPEG4_USE_GROUP_CACHE
+#ifdef GROUP_2D_USE_CACHE
 Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state);
+void group_cache_record_stats(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, struct _drawable_context *first_child, Bool skip_first_child, u32 last_cache_idx);
 #endif
 
 #ifndef GPAC_DISABLE_3D
