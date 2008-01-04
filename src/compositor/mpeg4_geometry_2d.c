@@ -236,8 +236,8 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
 	if (!ctx->aspect.fill_texture || !ctx->aspect.fill_texture->stream || ctx->transform.m[1] || ctx->transform.m[3] || !txtrans_identity(ctx->appear) ) {
-		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx);
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL);
+		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
+		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 	} else {
 		GF_Rect unclip;
 		GF_IRect clip, unclip_pix;
@@ -272,7 +272,7 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 			}
 		}
 		ctx->flags |= CTX_PATH_FILLED;
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL);
+		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 	}
 }
 
@@ -584,7 +584,7 @@ static void PointSet2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	ctx->flags |= CTX_PATH_STROKE;
 	if (!color || color->color.count<coord->point.count) {
 		/*no texturing*/
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL);
+		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 		return;
 	}
 
@@ -596,7 +596,7 @@ static void PointSet2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		col = color->color.vals[i];
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 		gf_path_add_rect_center(path, coord->point.vals[i].x, coord->point.vals[i].y, w, h);
-		visual_2d_draw_path(tr_state->visual, path, ctx, NULL, NULL);
+		visual_2d_draw_path(tr_state->visual, path, ctx, NULL, NULL, tr_state);
 		gf_path_reset(path);
 		ctx->flags &= ~CTX_PATH_FILLED;
 	}

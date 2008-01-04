@@ -173,7 +173,7 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 		drawable_reset_path(st->graph);
 		gf_path_add_rect_center(st->graph->path, 0, 0, rc.width, rc.height);
 		ctx->flags |= CTX_NO_ANTIALIAS;
-		visual_2d_texture_path(tr_state->visual, st->graph->path, ctx);
+		visual_2d_texture_path(tr_state->visual, st->graph->path, ctx, tr_state);
 		return;
 	}
 

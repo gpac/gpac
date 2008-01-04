@@ -28,12 +28,12 @@
 #include <gpac/nodes_x3d.h>
 
 
-Fixed Interpolate(Fixed keyValue1, Fixed keyValue2, Fixed fraction)
+static Fixed Interpolate(Fixed keyValue1, Fixed keyValue2, Fixed fraction)
 {
 	return gf_mulfix(keyValue2 - keyValue1, fraction) + keyValue1;
 }
 
-Fixed GetInterpolateFraction(Fixed key1, Fixed key2, Fixed fraction)
+static Fixed GetInterpolateFraction(Fixed key1, Fixed key2, Fixed fraction)
 {
 	Fixed keyDiff = key2 - key1;
 	assert((fraction >= key1) && (fraction <= key2));

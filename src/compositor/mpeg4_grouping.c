@@ -27,12 +27,11 @@
 #include "mpeg4_grouping.h"
 #include "visual_manager.h"
 
-
 /*This is the generic routine for child traversing*/
 void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
 {
 	Bool split_text_backup;
-#ifdef MPEG4_USE_GROUP_CACHE
+#ifdef GROUP_2D_USE_CACHE
 	Bool group_cached;
 #endif
 	GF_List *sensor_backup;
@@ -66,7 +65,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	}
 
 
-#ifdef MPEG4_USE_GROUP_CACHE
+#ifdef GROUP_2D_USE_CACHE
 	group_cached = mpeg4_group2d_cache_traverse(node, group, tr_state);
 #endif
 
@@ -77,7 +76,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
 
 
-#ifdef MPEG4_USE_GROUP_CACHE
+#ifdef GROUP_2D_USE_CACHE
 	if (group_cached) return;
 #endif
 
@@ -142,13 +141,13 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 			tr_state->disable_cull = 1;
 		tr_state->text_split_mode = split_text_backup;
 	}
+#ifdef GROUP_2D_USE_CACHE
 	/*TRAVERSE_SORT */
-	else {
-#ifdef MPEG4_USE_GROUP_CACHE
+	else if (tr_state->traversing_mode==TRAVERSE_SORT) {
 		DrawableContext *first_ctx = tr_state->visual->cur_context;
 		Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? 1 : 0;
 		u32 traverse_time = gf_sys_clock();
-#endif
+		u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->queue_cached_groups);
 
 		child = ((GF_ParentNode *)node)->children;
 		while (child) {
@@ -156,13 +155,20 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 			child = child->next;
 		} 
 
-#ifdef MPEG4_USE_GROUP_CACHE
 		/*get the traversal time for each group*/	
 		traverse_time = gf_sys_clock() - traverse_time;
 		group->traverse_time += traverse_time;
 		/*record the traversal information at the group level*/
-		group_cache_record_stats(node, group, tr_state, first_ctx, skip_first_ctx);
+		group_cache_record_stats(node, group, tr_state, first_ctx, skip_first_ctx, last_cache_idx);
+	}
 #endif
+
+	else {
+		child = ((GF_ParentNode *)node)->children;
+		while (child) {
+			gf_node_traverse(child->node, tr_state);
+			child = child->next;
+		} 
 	}
 
 	if (sensor_backup) {

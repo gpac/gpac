@@ -27,9 +27,18 @@
 /*MPEG4 tags (for internal nodes)*/
 #include <gpac/nodes_mpeg4.h>
 
-/*from interpolators.c*/
-Fixed GetInterpolateFraction(Fixed key1, Fixed key2, Fixed fraction);
-Fixed Interpolate(Fixed keyValue1, Fixed keyValue2, Fixed fraction);
+static Fixed Interpolate(Fixed keyValue1, Fixed keyValue2, Fixed fraction)
+{
+	return gf_mulfix(keyValue2 - keyValue1, fraction) + keyValue1;
+}
+
+static Fixed GetInterpolateFraction(Fixed key1, Fixed key2, Fixed fraction)
+{
+	Fixed keyDiff = key2 - key1;
+	assert((fraction >= key1) && (fraction <= key2));
+	if (ABS(keyDiff) < FIX_EPSILON) return 0;
+	return gf_divfix(fraction - key1, keyDiff);
+}
 
 enum
 {

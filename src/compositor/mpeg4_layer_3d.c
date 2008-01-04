@@ -270,8 +270,8 @@ static void layer3d_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
 	if (1 || ctx->transform.m[1] || ctx->transform.m[3] ) {
-		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx);
-//		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL);
+		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
+//		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 	} else {
 		GF_Rect unclip;
 		GF_IRect clip, unclip_pix;
@@ -306,7 +306,7 @@ static void layer3d_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 			}
 		}
 		ctx->flags |= CTX_PATH_FILLED;
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL);
+		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 	}
 }
 
