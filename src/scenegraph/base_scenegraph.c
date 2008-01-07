@@ -56,11 +56,11 @@ GF_SceneGraph *gf_sg_new()
 #ifndef GPAC_DISABLE_SVG
 	tmp->xlink_hrefs = gf_list_new();
 	tmp->smil_timed_elements = gf_list_new();
+	tmp->listeners_to_add = gf_list_new();
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	tmp->scripts = gf_list_new();
 	tmp->objects = gf_list_new();
-	tmp->listeners_to_add = gf_list_new();
 #endif
 	tmp->on_node_modified = node_modif_stub;
 	return tmp;
@@ -1607,7 +1607,7 @@ const char *gf_node_get_log_name(GF_Node *anim)
 	const char *name = gf_node_get_name(anim);
 	if (name) return name;
 	else {
-		sprintf(log_node_name, "0x%x", anim);
+		sprintf(log_node_name, "0x%x", (u32) anim);
 		return log_node_name;
 	}
 }
