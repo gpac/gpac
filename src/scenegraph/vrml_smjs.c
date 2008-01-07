@@ -3057,7 +3057,9 @@ static void JS_PreDestroy(GF_Node *node)
 	/*unprotect all cached objects from GC*/
 	JS_Unprotect(priv);
 	gf_sg_ecmascript_del(priv->js_ctx);
+#ifndef GPAC_DISABLE_SVG
 	dom_js_unload();
+#endif
 	if (priv->js_cache) gf_list_del(priv->js_cache);
 	priv->js_ctx = NULL;
 	/*unregister script from parent scene (cf base_scenegraph::sg_reset) */
@@ -3340,8 +3342,10 @@ static void JSScript_LoadVRML(GF_Node *node)
 	JS_SetContextPrivate(priv->js_ctx, node);
 	gf_sg_script_init_sm_api(priv, node);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Built-in classes initialized\n"));
+#ifndef GPAC_DISABLE_SVG
 	/*initialize DOM*/
 	dom_js_load(priv->js_ctx, priv->js_obj);
+#endif
 
 	priv->js_cache = gf_list_new();
 
