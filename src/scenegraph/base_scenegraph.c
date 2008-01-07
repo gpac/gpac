@@ -29,6 +29,7 @@
 #include <gpac/nodes_mpeg4.h>
 /*X3D tags (for internal nodes)*/
 #include <gpac/nodes_x3d.h>
+#include <gpac/nodes_svg_da.h>
 
 static void ReplaceDEFNode(GF_Node *FromNode, GF_Node *node, GF_Node *newNode, Bool updateOrderedGroup);
 
