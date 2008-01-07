@@ -1596,7 +1596,12 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 						}
 						if (styleID && (!same_style || (td.default_style.startCharOffset != styleID))) {
 							GF_StyleRecord st = td.default_style;
-							for (i=0; i<nb_styles; i++) { if (styles[i].startCharOffset==styleID) { st = styles[i]; break; } }
+							for (m=0; m<nb_styles; m++) {
+								if (styles[m].startCharOffset==styleID) { 
+									st = styles[m];
+									break; 
+								} 
+							}
 							st.startCharOffset = nb_chars;
 							st.endCharOffset = nb_chars + txt_len;
 							gf_isom_text_add_style(samp, &st);
