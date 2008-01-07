@@ -489,7 +489,9 @@ Bool m2ts_stream_process_mpeg4_systems_section(M2TS_Mux *muxer, M2TS_Mux_Stream 
 			stream->sl_header.decodingTimeStampFlag = 1; //(stream->pck.flags & GF_ESI_DATA_HAS_DTS)? 1: 0;
 			stream->sl_header.decodingTimeStamp = (u64) (stream->ts_scale * (s64) stream->pck.dts);
 			gf_sl_packetize(&stream->ifce->sl_config, &stream->sl_header, stream->pck.data, stream->pck.data_len, &stream->sl_packet, &stream->sl_packet_len);
-			m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_MPEG4_BIFS, muxer->ts_id, stream->sl_packet, stream->sl_packet_len, 1, 0, 0);
+			/*only BIFS or OD streams can be carried over MPEG-4/MPEG-2 sections*/
+			m2ts_mux_table_update(stream, (stream->ifce->stream_type==GF_STREAM_OD) ? GF_M2TS_TABLE_ID_MPEG4_OD : GF_M2TS_TABLE_ID_MPEG4_BIFS, muxer->ts_id, stream->sl_packet, stream->sl_packet_len, 1, 0, 0);
+
 			free(stream->sl_packet);
 			stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_RELEASE, NULL);
 		}

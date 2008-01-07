@@ -5126,7 +5126,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				samp->dataLength = pck->data_len;
 				e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error adding sample\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error adding sample: %s\n", gf_error_to_string(e)));
+					import->flags |= GF_IMPORT_DO_ABORT;
+					import->last_error = e;
 				}
 				if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90))
 					import->flags |= GF_IMPORT_DO_ABORT;
@@ -5314,6 +5316,14 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		done += size;
 		gf_set_progress(progress, (u32) (done/1024), (u32) (fsize/1024));
 	}
+	if (import->last_error) {
+		GF_Err e = import->last_error;
+		import->last_error = GF_OK;
+  		gf_m2ts_demux_del(ts);
+  		fclose(mts);
+		return e;
+	}
+
 	gf_set_progress(progress, (u32) (fsize/1024), (u32) (fsize/1024));
 
 	if (!(import->flags & GF_IMPORT_PROBE_ONLY)) {
