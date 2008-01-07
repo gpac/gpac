@@ -26,19 +26,9 @@
 #include <gpac/nodes_svg_da.h>
 
 #ifndef GPAC_DISABLE_LOG
-u32 time_spent_in_anim = 0;
+extern u32 time_spent_in_anim;
 #endif
 
-static char log_node_name[10];
-const char *gf_node_get_log_name(GF_Node *anim) 
-{
-	const char *name = gf_node_get_name(anim);
-	if (name) return name;
-	else {
-		sprintf(log_node_name, "0x%x", anim);
-		return log_node_name;
-	}
-}
 
 /**************************************************************************************
  * Each GF_Node holds the (SVG/SMIL) animation elements which target itself in a list *
