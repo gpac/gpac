@@ -1473,7 +1473,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 
 
 #ifndef GPAC_DISABLE_LOG
-u32 time_spent_in_anim = 0;
+extern u32 time_spent_in_anim;
 #endif
 
 void gf_sc_simulation_tick(GF_Compositor *compositor)

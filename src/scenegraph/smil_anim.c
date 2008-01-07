@@ -26,7 +26,7 @@
 #include <gpac/nodes_svg_da.h>
 
 #ifndef GPAC_DISABLE_LOG
-extern u32 time_spent_in_anim;
+u32 time_spent_in_anim = 0;
 #endif
 
 
