@@ -27,6 +27,8 @@
 
 #include "gl_inc.h"
 
+#ifndef GPAC_DISABLE_3D
+
 #ifndef CALLBACK
 #define CALLBACK
 #endif
@@ -473,5 +475,7 @@ void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *pt
 }
 #endif
 
+
+#endif	/*GPAC_DISABLE_3D*/
 
 

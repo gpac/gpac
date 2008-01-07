@@ -1599,3 +1599,111 @@ GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 	return gf_node_get_field(node, (u32) res, field);
 #endif
 }
+
+static char log_node_name[10];
+const char *gf_node_get_log_name(GF_Node *anim) 
+{
+	const char *name = gf_node_get_name(anim);
+	if (name) return name;
+	else {
+		sprintf(log_node_name, "0x%x", anim);
+		return log_node_name;
+	}
+}
+
+
+
+static GF_Err gf_node_deactivate_ex(GF_Node *node)
+{
+#ifdef GPAC_DISABLE_SVG
+	return GF_NOT_SUPPORTED;
+#else
+	GF_Node *obs;
+	GF_ChildNodeItem *item;
+	if (node->sgprivate->tag<GF_NODE_FIRST_DOM_NODE_TAG) return GF_BAD_PARAM;
+	if (! (node->sgprivate->flags & GF_NODE_IS_DEACTIVATED)) {
+		/*deactivate anmiations*/
+		if (gf_svg_is_timing_tag(node->sgprivate->tag)) {
+			SVGTimedAnimBaseElement *timed = (SVGTimedAnimBaseElement*)node;
+			if (gf_list_del_item(node->sgprivate->scenegraph->smil_timed_elements, timed->timingp->runtime)>=0) {
+				if (timed->timingp->runtime->evaluate) {
+					timed->timingp->runtime->evaluate(timed->timingp->runtime, 0, SMIL_TIMING_EVAL_DEACTIVATE);
+				}
+			}
+		}
+		/*unregister all listeners*/
+		switch (node->sgprivate->tag) {
+		case TAG_SVG_listener:
+			assert(node->sgprivate->UserPrivate);
+			obs = node->sgprivate->UserPrivate;
+			assert(obs->sgprivate->interact && obs->sgprivate->interact->events);
+			gf_list_del_item(obs->sgprivate->interact->events, node);
+			break;
+		}
+
+		node->sgprivate->flags |= GF_NODE_IS_DEACTIVATED;
+	}
+	/*and deactivate children*/
+	item = ((GF_ParentNode*)node)->children;
+	while (item) {
+		gf_node_deactivate_ex(item->node);
+		item = item->next;
+	}
+	return GF_OK;
+#endif
+}
+
+GF_Err gf_node_deactivate(GF_Node *node)
+{
+	GF_Err e = gf_node_deactivate_ex(node);
+	gf_node_changed(node, NULL);
+	return e;
+}
+
+static GF_Err gf_node_activate_ex(GF_Node *node)
+{
+#ifdef GPAC_DISABLE_SVG
+	return GF_NOT_SUPPORTED;
+#else
+	GF_Node *obs;
+	GF_ChildNodeItem *item;
+	if (node->sgprivate->tag<GF_NODE_FIRST_DOM_NODE_TAG) return GF_BAD_PARAM;
+	if (node->sgprivate->flags & GF_NODE_IS_DEACTIVATED) {
+		/*deactivate anmiations*/
+		if (gf_svg_is_timing_tag(node->sgprivate->tag)) {
+			SVGTimedAnimBaseElement *timed = (SVGTimedAnimBaseElement*)node;
+			gf_list_add(node->sgprivate->scenegraph->smil_timed_elements, timed->timingp->runtime);
+			node->sgprivate->flags &= ~GF_NODE_IS_DEACTIVATED;
+			if (timed->timingp->runtime->evaluate) {
+				timed->timingp->runtime->evaluate(timed->timingp->runtime, 0, SMIL_TIMING_EVAL_ACTIVATE);
+			}
+		}
+		/*register all listeners*/
+		switch (node->sgprivate->tag) {
+		case TAG_SVG_listener:
+			assert(node->sgprivate->UserPrivate);
+			obs = node->sgprivate->UserPrivate;
+			node->sgprivate->UserPrivate = NULL;
+			gf_dom_listener_post_add(obs, node);
+			break;
+		}
+
+		node->sgprivate->flags &= ~GF_NODE_IS_DEACTIVATED;
+	}
+	/*and deactivate children*/
+	item = ((GF_ParentNode*)node)->children;
+	while (item) {
+		gf_node_activate_ex(item->node);
+		item = item->next;
+	}
+	return GF_OK;
+#endif
+}
+
+GF_Err gf_node_activate(GF_Node *node)
+{
+	GF_Err e = gf_node_activate_ex(node);
+	gf_node_changed(node, NULL);
+	return e;
+}
+
