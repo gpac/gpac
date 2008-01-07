@@ -112,11 +112,13 @@ void ResetWriters(GF_List *writers)
 		if (writer->stco->type == GF_ISOM_BOX_TYPE_STCO) {
 			free(((GF_ChunkOffsetBox *)writer->stco)->offsets);
 			((GF_ChunkOffsetBox *)writer->stco)->offsets = NULL;
-			((GF_ChunkOffsetBox *)writer->stco)->entryCount = 0;
+			((GF_ChunkOffsetBox *)writer->stco)->nb_entries = 0;
+			((GF_ChunkOffsetBox *)writer->stco)->alloc_size = 0;
 		} else {
 			free(((GF_ChunkLargeOffsetBox *)writer->stco)->offsets);
 			((GF_ChunkLargeOffsetBox *)writer->stco)->offsets = NULL;
-			((GF_ChunkLargeOffsetBox *)writer->stco)->entryCount = 0;
+			((GF_ChunkLargeOffsetBox *)writer->stco)->nb_entries = 0;
+			((GF_ChunkLargeOffsetBox *)writer->stco)->alloc_size = 0;
 		}
 	}
 }
@@ -215,21 +217,21 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 			if (writer->stco->type == GF_ISOM_BOX_TYPE_STCO) {
 				stco = (GF_ChunkOffsetBox *) writer->stco;
 				//be carefull for the last entry, nextChunk is set to 0 in edit mode...
-				last = ent->nextChunk ? ent->nextChunk : stco->entryCount + 1;
+				last = ent->nextChunk ? ent->nextChunk : stco->nb_entries + 1;
 				for (k = ent->firstChunk; k < last; k++) {
 
 					if (stco->offsets[k-1] + offset > 0xFFFFFFFF) {
 						//too bad, rewrite the table....
 						co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
 						if (!co64) return GF_OUT_OF_MEM;
-						co64->entryCount = stco->entryCount;
-						co64->offsets = (u64*)malloc(co64->entryCount * sizeof(u64));
+						co64->nb_entries = stco->nb_entries;
+						co64->offsets = (u64*)malloc(co64->nb_entries * sizeof(u64));
 						if (!co64) {
 							gf_isom_box_del((GF_Box *)co64);
 							return GF_OUT_OF_MEM;
 						}
 						//duplicate the table 
-						for (l = 0; l < co64->entryCount; l++) {
+						for (l = 0; l < co64->nb_entries; l++) {
 							co64->offsets[l] = (u64) stco->offsets[l];
 							if (l + 1 == k) co64->offsets[l] += offset;
 						}
@@ -243,7 +245,7 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 			} else {
 				co64 = (GF_ChunkLargeOffsetBox *) writer->stco;
 				//be carefull for the last entry ...
-				last = ent->nextChunk ? ent->nextChunk : co64->entryCount + 1;
+				last = ent->nextChunk ? ent->nextChunk : co64->nb_entries + 1;
 				for (k = ent->firstChunk; k < last; k++) {
 					co64->offsets[k-1] += offset;
 				}

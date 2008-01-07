@@ -215,7 +215,7 @@ default_sync:
 	} else {
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 0;
 		//signal we are NOT using sync points if no info is present in the table
-		esd->slConfig->useRandomAccessPointFlag = stbl->SyncSample->entryCount ? 1 : 0;
+		esd->slConfig->useRandomAccessPointFlag = stbl->SyncSample->nb_entries ? 1 : 0;
 	}
 	//do we have DegradationPriority ?
 	if (stbl->DegradationPriority) {

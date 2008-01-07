@@ -206,12 +206,12 @@ GF_Err gf_isom_text_add_karaoke(GF_TextSample *samp, u32 start_time)
 GF_Err gf_isom_text_set_karaoke_segment(GF_TextSample *samp, u32 end_time, u16 start_char, u16 end_char)
 {
 	if (!samp || !samp->cur_karaoke) return GF_BAD_PARAM;
-	samp->cur_karaoke->records = (KaraokeRecord*)realloc(samp->cur_karaoke->records, sizeof(KaraokeRecord)*(samp->cur_karaoke->entrycount+1));
+	samp->cur_karaoke->records = (KaraokeRecord*)realloc(samp->cur_karaoke->records, sizeof(KaraokeRecord)*(samp->cur_karaoke->nb_entries+1));
 	if (!samp->cur_karaoke->records) return GF_OUT_OF_MEM;
-	samp->cur_karaoke->records[samp->cur_karaoke->entrycount].end_charoffset = end_char;
-	samp->cur_karaoke->records[samp->cur_karaoke->entrycount].start_charoffset = start_char;
-	samp->cur_karaoke->records[samp->cur_karaoke->entrycount].highlight_endtime = end_time;
-	samp->cur_karaoke->entrycount++;
+	samp->cur_karaoke->records[samp->cur_karaoke->nb_entries].end_charoffset = end_char;
+	samp->cur_karaoke->records[samp->cur_karaoke->nb_entries].start_charoffset = start_char;
+	samp->cur_karaoke->records[samp->cur_karaoke->nb_entries].highlight_endtime = end_time;
+	samp->cur_karaoke->nb_entries++;
 	return GF_OK;
 }
 

@@ -235,7 +235,7 @@ GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 *IsRAP, u3
 	} else {
 		i = 0;
 	}
-	for (; i < stss->entryCount; i++) {
+	for (; i < stss->nb_entries; i++) {
 		//get the entry
 		if (stss->sampleNumbers[i] == SampleNumber) {
 			//update the cache
@@ -265,10 +265,10 @@ void GetGhostNum(GF_StscEntry *ent, u32 EntryIndex, u32 count, GF_SampleTableBox
 			//not specified in the spec, what if the last sample to chunk is no written?
 			if (stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
 				stco = (GF_ChunkOffsetBox *)stbl->ChunkOffset;
-				ghostNum = (stco->entryCount > ent->firstChunk) ? (1 + stco->entryCount - ent->firstChunk) : 1;
+				ghostNum = (stco->nb_entries > ent->firstChunk) ? (1 + stco->nb_entries - ent->firstChunk) : 1;
 			} else {
 				co64 = (GF_ChunkLargeOffsetBox *)stbl->ChunkOffset;
-				ghostNum = (co64->entryCount > ent->firstChunk) ? (1 + co64->entryCount - ent->firstChunk) : 1;
+				ghostNum = (co64->nb_entries > ent->firstChunk) ? (1 + co64->nb_entries - ent->firstChunk) : 1;
 			}
 		} else {
 			//this is an unknown case due to edit mode...
@@ -376,11 +376,11 @@ sample_found:
 	//now get the chunk
 	if ( stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
 		stco = (GF_ChunkOffsetBox *)stbl->ChunkOffset;
-		if (stco->entryCount < (*chunkNumber) ) return GF_ISOM_INVALID_FILE;
+		if (stco->nb_entries < (*chunkNumber) ) return GF_ISOM_INVALID_FILE;
 		(*offset) = (u64) stco->offsets[(*chunkNumber) - 1] + (u64) offsetInChunk;
 	} else {
 		co64 = (GF_ChunkLargeOffsetBox *)stbl->ChunkOffset;
-		if (co64->entryCount < (*chunkNumber) ) return GF_ISOM_INVALID_FILE;
+		if (co64->nb_entries < (*chunkNumber) ) return GF_ISOM_INVALID_FILE;
 		(*offset) = co64->offsets[(*chunkNumber) - 1] + (u64) offsetInChunk;
 	}
 	return GF_OK;

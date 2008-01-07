@@ -639,11 +639,11 @@ GF_Err krok_Read(GF_Box *s, GF_BitStream *bs)
 	GF_TextKaraokeBox*ptr = (GF_TextKaraokeBox*)s;
 
 	ptr->highlight_starttime = gf_bs_read_u32(bs);
-	ptr->entrycount = gf_bs_read_u16(bs);
-	if (ptr->entrycount) {
+	ptr->nb_entries = gf_bs_read_u16(bs);
+	if (ptr->nb_entries) {
 		u32 i;
-		ptr->records = (KaraokeRecord*)malloc(sizeof(KaraokeRecord)*ptr->entrycount);
-		for (i=0; i<ptr->entrycount; i++) {
+		ptr->records = (KaraokeRecord*)malloc(sizeof(KaraokeRecord)*ptr->nb_entries);
+		for (i=0; i<ptr->nb_entries; i++) {
 			ptr->records[i].highlight_endtime = gf_bs_read_u32(bs);
 			ptr->records[i].start_charoffset = gf_bs_read_u16(bs);
 			ptr->records[i].end_charoffset = gf_bs_read_u16(bs);
@@ -662,8 +662,8 @@ GF_Err krok_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	gf_bs_write_u32(bs, ptr->highlight_starttime);
-	gf_bs_write_u16(bs, ptr->entrycount);
-	for (i=0; i<ptr->entrycount; i++) {
+	gf_bs_write_u16(bs, ptr->nb_entries);
+	for (i=0; i<ptr->nb_entries; i++) {
 		gf_bs_write_u32(bs, ptr->records[i].highlight_endtime);
 		gf_bs_write_u16(bs, ptr->records[i].start_charoffset);
 		gf_bs_write_u16(bs, ptr->records[i].end_charoffset);
@@ -676,7 +676,7 @@ GF_Err krok_Size(GF_Box *s)
 	GF_TextKaraokeBox*ptr = (GF_TextKaraokeBox*)s;
 	GF_Err e = gf_isom_box_get_size(s);
 	if (e) return e;
-	s->size += 6 * 8*ptr->entrycount;
+	s->size += 6 * 8*ptr->nb_entries;
 	return GF_OK;
 }
 

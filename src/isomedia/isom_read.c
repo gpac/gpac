@@ -1414,7 +1414,7 @@ u8 gf_isom_has_sync_points(GF_ISOFile *the_file, u32 trackNumber)
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
 	if (trak->Media->information->sampleTable->SyncSample) {
-		if (!trak->Media->information->sampleTable->SyncSample->entryCount) return 2;	
+		if (!trak->Media->information->sampleTable->SyncSample->nb_entries) return 2;	
 		return 1;
 	}
 	return 0;
@@ -1428,7 +1428,7 @@ u32 gf_isom_get_sync_point_count(GF_ISOFile *the_file, u32 trackNumber)
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
 	if (trak->Media->information->sampleTable->SyncSample) {
-		return trak->Media->information->sampleTable->SyncSample->entryCount;	
+		return trak->Media->information->sampleTable->SyncSample->nb_entries;	
 	}
 	return 0;
 }
@@ -1673,7 +1673,7 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 		//no sync table is ALL RAP
 		*defaultRandomAccess = stbl->SyncSample ? 0 : 1;
 		if (stbl->SyncSample 
-			&& (stbl->SyncSample->entryCount >= stbl->SampleSize->sampleCount/2)) {
+			&& (stbl->SyncSample->nb_entries >= stbl->SampleSize->sampleCount/2)) {
 			*defaultRandomAccess = 1;
 		}
 	}
@@ -1701,9 +1701,9 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 		*defaultDegradationPriority = 0;
 		if (stbl->DegradationPriority) {
 			maxValue = 0;
-			for (i=0; i<stbl->DegradationPriority->entryCount; i++) {
+			for (i=0; i<stbl->DegradationPriority->nb_entries; i++) {
 				value = 0;
-				for (j=0; j<stbl->DegradationPriority->entryCount; j++) {
+				for (j=0; j<stbl->DegradationPriority->nb_entries; j++) {
 					if (stbl->DegradationPriority->priorities[i]==stbl->DegradationPriority->priorities[j]) {
 						value ++;
 					}
