@@ -836,7 +836,7 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	u32 entryCount;
+	u32 nb_entries;
 	u32 alloc_size;
 	u32 *offsets;
 } GF_ChunkOffsetBox;
@@ -844,7 +844,7 @@ typedef struct
 typedef struct 
 {
 	GF_ISOM_FULL_BOX
-	u32 entryCount;
+	u32 nb_entries;
 	u32 alloc_size;
 	u64 *offsets;
 } GF_ChunkLargeOffsetBox;
@@ -875,7 +875,7 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	u32 entryCount;
+	u32 alloc_size, nb_entries;
 	u32 *sampleNumbers;
 	/*cache for READ mode (in write we realloc no matter what)*/
 	u32 r_LastSyncSample;
@@ -901,7 +901,7 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	u32 entryCount;
+	u32 nb_entries;
 	u16 *priorities;
 } GF_DegradationPriorityBox;
 
@@ -1063,7 +1063,7 @@ typedef struct
 {
 	GF_ISOM_BOX
 	u32 highlight_starttime;
-	u16 entrycount;
+	u16 nb_entries;
 	KaraokeRecord *records;
 } GF_TextKaraokeBox;
 

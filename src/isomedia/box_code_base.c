@@ -40,10 +40,11 @@ GF_Err co64_Read(GF_Box *s,GF_BitStream *bs)
 	GF_ChunkLargeOffsetBox *ptr = (GF_ChunkLargeOffsetBox *) s;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	ptr->entryCount = gf_bs_read_u32(bs);
-	ptr->offsets = (u64 *) malloc(ptr->entryCount * sizeof(u64) );
+	ptr->nb_entries = gf_bs_read_u32(bs);
+	ptr->offsets = (u64 *) malloc(ptr->nb_entries * sizeof(u64) );
 	if (ptr->offsets == NULL) return GF_OUT_OF_MEM;
-	for (entries = 0; entries < ptr->entryCount; entries++) {
+	ptr->alloc_size = ptr->nb_entries;
+	for (entries = 0; entries < ptr->nb_entries; entries++) {
 		ptr->offsets[entries] = gf_bs_read_u64(bs);
 	}
 	return GF_OK;
@@ -73,8 +74,8 @@ GF_Err co64_Write(GF_Box *s, GF_BitStream *bs)
 	
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_u32(bs, ptr->entryCount);
-	for (i = 0; i < ptr->entryCount; i++ ) {
+	gf_bs_write_u32(bs, ptr->nb_entries);
+	for (i = 0; i < ptr->nb_entries; i++ ) {
 		gf_bs_write_u64(bs, ptr->offsets[i]);
 	}
 	return GF_OK;
@@ -86,7 +87,7 @@ GF_Err co64_Size(GF_Box *s)
 	GF_ChunkLargeOffsetBox *ptr = (GF_ChunkLargeOffsetBox *) s;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	ptr->size += 4 + (8 * ptr->entryCount);
+	ptr->size += 4 + (8 * ptr->nb_entries);
 	return GF_OK;
 }
 
@@ -932,13 +933,13 @@ void elst_del(GF_Box *s)
 {
 	GF_EditListBox *ptr;
 	GF_EdtsEntry *p;
-	u32 entryCount;
+	u32 nb_entries;
 	u32 i;
 
 	ptr = (GF_EditListBox *)s;
 	if (ptr == NULL) return;
-	entryCount = gf_list_count(ptr->entryList);
-	for (i = 0; i < entryCount; i++) {
+	nb_entries = gf_list_count(ptr->entryList);
+	for (i = 0; i < nb_entries; i++) {
 		p = (GF_EdtsEntry*)gf_list_get(ptr->entryList, i);
 		if (p) free(p);
 	}
@@ -954,15 +955,15 @@ GF_Err elst_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	u32 entries;
 	s32 tr;
-	u32 entryCount;
+	u32 nb_entries;
 	GF_EdtsEntry *p;
 	GF_EditListBox *ptr = (GF_EditListBox *)s;
 	
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	entryCount = gf_bs_read_u32(bs);
+	nb_entries = gf_bs_read_u32(bs);
 
-	for (entries = 0; entries < entryCount; entries++ ) {
+	for (entries = 0; entries < nb_entries; entries++ ) {
 		p = (GF_EdtsEntry *) malloc(sizeof(GF_EdtsEntry));
 		if (!p) return GF_OUT_OF_MEM;
 		if (ptr->version == 1) {
@@ -1004,16 +1005,16 @@ GF_Err elst_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 i;
-	u32 entryCount;
+	u32 nb_entries;
 	GF_EdtsEntry *p;
 	GF_EditListBox *ptr = (GF_EditListBox *)s;
 	if (!ptr) return GF_BAD_PARAM;
 
-	entryCount = gf_list_count(ptr->entryList);
+	nb_entries = gf_list_count(ptr->entryList);
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_u32(bs, entryCount);
-	for (i = 0; i < entryCount; i++ ) {
+	gf_bs_write_u32(bs, nb_entries);
+	for (i = 0; i < nb_entries; i++ ) {
 		p = (GF_EdtsEntry*)gf_list_get(ptr->entryList, i);
 		if (ptr->version == 1) {
 			gf_bs_write_u64(bs, p->segmentDuration);
@@ -1031,16 +1032,16 @@ GF_Err elst_Size(GF_Box *s)
 {
 	GF_Err e;
 	u32 durtimebytes;
-	u32 i, entryCount;
+	u32 i, nb_entries;
 	GF_EditListBox *ptr = (GF_EditListBox *)s;
 
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	//entry count
 	ptr->size += 4;
-	entryCount = gf_list_count(ptr->entryList);
+	nb_entries = gf_list_count(ptr->entryList);
 	ptr->version = 0;
-	for (i=0; i<entryCount; i++) {
+	for (i=0; i<nb_entries; i++) {
 		GF_EdtsEntry *p = (GF_EdtsEntry*)gf_list_get(ptr->entryList, i);
 		if ((p->segmentDuration>0xFFFFFFFF) || (p->mediaTime>0xFFFFFFFF)) {
 			ptr->version = 1;
@@ -1048,7 +1049,7 @@ GF_Err elst_Size(GF_Box *s)
 		}
 	}
 	durtimebytes = (ptr->version == 1 ? 16 : 8) + 4;
-	ptr->size += (entryCount * durtimebytes);
+	ptr->size += (nb_entries * durtimebytes);
 	return GF_OK;
 }
 
@@ -4549,7 +4550,7 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 			}
 */
 			if (a->type == GF_ISOM_BOX_TYPE_STDP) {
-				if (ptr->SampleSize) ((GF_DegradationPriorityBox *)a)->entryCount = ptr->SampleSize->sampleCount;
+				if (ptr->SampleSize) ((GF_DegradationPriorityBox *)a)->nb_entries = ptr->SampleSize->sampleCount;
 				e = stdp_Read(a, bs);
 			} else {
 				if (ptr->SampleSize) ((GF_SampleDependencyTypeBox *)a)->sampleCount = ptr->SampleSize->sampleCount;
@@ -4750,13 +4751,14 @@ GF_Err stco_Read(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	ptr->entryCount = gf_bs_read_u32(bs);
+	ptr->nb_entries = gf_bs_read_u32(bs);
 
-	if (ptr->entryCount) {
-		ptr->offsets = (u32 *) malloc(ptr->entryCount * sizeof(u32) );
+	if (ptr->nb_entries) {
+		ptr->offsets = (u32 *) malloc(ptr->nb_entries * sizeof(u32) );
 		if (ptr->offsets == NULL) return GF_OUT_OF_MEM;
+		ptr->alloc_size = ptr->nb_entries;
 
-		for (entries = 0; entries < ptr->entryCount; entries++) {
+		for (entries = 0; entries < ptr->nb_entries; entries++) {
 			ptr->offsets[entries] = gf_bs_read_u32(bs);
 		}
 	}
@@ -4784,8 +4786,8 @@ GF_Err stco_Write(GF_Box *s, GF_BitStream *bs)
 	GF_ChunkOffsetBox *ptr = (GF_ChunkOffsetBox *)s;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_u32(bs, ptr->entryCount);
-	for (i = 0; i < ptr->entryCount; i++) {
+	gf_bs_write_u32(bs, ptr->nb_entries);
+	for (i = 0; i < ptr->nb_entries; i++) {
 		gf_bs_write_u32(bs, ptr->offsets[i]);
 	}
 	return GF_OK;
@@ -4798,7 +4800,7 @@ GF_Err stco_Size(GF_Box *s)
 	GF_ChunkOffsetBox *ptr = (GF_ChunkOffsetBox *)s;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	ptr->size += 4 + (4 * ptr->entryCount);
+	ptr->size += 4 + (4 * ptr->nb_entries);
 	return GF_OK;
 }
 
@@ -4824,10 +4826,10 @@ GF_Err stdp_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	/*out-of-order stdp, assume no padding at the end*/
-	if (!ptr->entryCount) ptr->entryCount = (u32) (ptr->size-8) / 2;
-	ptr->priorities = (u16 *) malloc(ptr->entryCount * sizeof(u16));
+	if (!ptr->nb_entries) ptr->nb_entries = (u32) (ptr->size-8) / 2;
+	ptr->priorities = (u16 *) malloc(ptr->nb_entries * sizeof(u16));
 	if (ptr->priorities == NULL) return GF_OUT_OF_MEM;
-	for (entry = 0; entry < ptr->entryCount; entry++) {
+	for (entry = 0; entry < ptr->nb_entries; entry++) {
 		//we have a bit for padding
 		gf_bs_read_int(bs, 1);
 		ptr->priorities[entry] = gf_bs_read_int(bs, 15);
@@ -4856,7 +4858,7 @@ GF_Err stdp_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
-	for (i = 0; i < ptr->entryCount; i++) {
+	for (i = 0; i < ptr->nb_entries; i++) {
 		gf_bs_write_int(bs, 0, 1);
 		gf_bs_write_int(bs, ptr->priorities[i], 15);
 	}
@@ -4869,7 +4871,7 @@ GF_Err stdp_Size(GF_Box *s)
 	GF_DegradationPriorityBox *ptr = (GF_DegradationPriorityBox *)s;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	ptr->size += (2 * ptr->entryCount);
+	ptr->size += (2 * ptr->nb_entries);
 	return GF_OK;
 }
 
@@ -5016,15 +5018,15 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 GF_Err stsd_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 entryCount;
+	u32 nb_entries;
 	u32 i;
 	GF_Box *a;
 	GF_SampleDescriptionBox *ptr = (GF_SampleDescriptionBox *)s;
 
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	entryCount = gf_bs_read_u32(bs);
-	for (i = 0; i < entryCount; i++) {
+	nb_entries = gf_bs_read_u32(bs);
+	for (i = 0; i < nb_entries; i++) {
 		e = gf_isom_parse_box(&a, bs);
 		if (e) return e;
 		e = stsd_AddBox(ptr, a);
@@ -5054,13 +5056,13 @@ GF_Box *stsd_New()
 GF_Err stsd_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 entryCount;
+	u32 nb_entries;
 	GF_SampleDescriptionBox *ptr = (GF_SampleDescriptionBox *)s;
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	entryCount = gf_list_count(ptr->boxList);
-	gf_bs_write_u32(bs, entryCount);
+	nb_entries = gf_list_count(ptr->boxList);
+	gf_bs_write_u32(bs, nb_entries);
 	return gf_isom_box_array_write(s, ptr->boxList, bs);
 }
 
@@ -5078,15 +5080,15 @@ GF_Err stsd_Size(GF_Box *s)
 
 void stsf_del(GF_Box *s)
 {
-	u32 entryCount;
+	u32 nb_entries;
 	u32 i;
 	GF_StsfEntry *pe;
 	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *)s;
 	if (ptr == NULL) return;
 	
 	if (ptr->entryList) {
-		entryCount = gf_list_count(ptr->entryList);
-		for ( i = 0; i < entryCount; i++ ) {
+		nb_entries = gf_list_count(ptr->entryList);
+		for ( i = 0; i < nb_entries; i++ ) {
 			pe = (GF_StsfEntry*)gf_list_get(ptr->entryList, i);
 			if (pe->fragmentSizes) free(pe->fragmentSizes);
 			free(pe);	
@@ -5102,7 +5104,7 @@ GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 entries, i;
-	u32 entryCount;
+	u32 nb_entries;
 	GF_StsfEntry *p;
 	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *)s;
 	
@@ -5110,10 +5112,10 @@ GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs)
 	if (!ptr) return GF_BAD_PARAM;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	entryCount = gf_bs_read_u32(bs);
+	nb_entries = gf_bs_read_u32(bs);
 
 	p = NULL;
-	for ( entries = 0; entries < entryCount; entries++ ) {
+	for ( entries = 0; entries < nb_entries; entries++ ) {
 		p = (GF_StsfEntry *) malloc(sizeof(GF_StsfEntry));
 		if (!p) return GF_OUT_OF_MEM;
 		p->SampleNumber = gf_bs_read_u32(bs);
@@ -5126,7 +5128,7 @@ GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs)
 	}
 #ifndef GPAC_READ_ONLY
 	ptr->w_currentEntry = p;
-	ptr->w_currentEntryIndex = entryCount-1;
+	ptr->w_currentEntryIndex = nb_entries-1;
 #endif
 	return GF_OK;
 }
@@ -5158,15 +5160,15 @@ GF_Err stsf_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 i, j;
-	u32 entryCount;
+	u32 nb_entries;
 	GF_StsfEntry *p;
 	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *)s;
 	
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-    entryCount = gf_list_count(ptr->entryList);
-	gf_bs_write_u32(bs, entryCount);
-	for ( i = 0; i < entryCount; i++ ) {
+    nb_entries = gf_list_count(ptr->entryList);
+	gf_bs_write_u32(bs, nb_entries);
+	for ( i = 0; i < nb_entries; i++ ) {
 		p = (GF_StsfEntry*)gf_list_get(ptr->entryList, i);
 		gf_bs_write_u32(bs, p->SampleNumber);
 		gf_bs_write_u32(bs, p->fragmentCount);
@@ -5181,14 +5183,14 @@ GF_Err stsf_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_StsfEntry *p;
-	u32 entryCount, i;
+	u32 nb_entries, i;
 	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *) s;
 
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	entryCount = gf_list_count(ptr->entryList);
+	nb_entries = gf_list_count(ptr->entryList);
 	ptr->size += 4;
-	for (i=0;i<entryCount; i++) {
+	for (i=0;i<nb_entries; i++) {
 		p = (GF_StsfEntry *)gf_list_get(ptr->entryList, i);
 		ptr->size += 8 + 2*p->fragmentCount;
 	}
@@ -5300,11 +5302,12 @@ GF_Err stss_Read(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	ptr->entryCount = gf_bs_read_u32(bs);
-	ptr->sampleNumbers = (u32 *) malloc( (ptr->entryCount + 1) * sizeof(u32));
+	ptr->nb_entries = gf_bs_read_u32(bs);
+	ptr->alloc_size = ptr->nb_entries;
+	ptr->sampleNumbers = (u32 *) malloc( ptr->alloc_size * sizeof(u32));
 	if (ptr->sampleNumbers == NULL) return GF_OUT_OF_MEM;
 
-	for (i = 0; i < ptr->entryCount; i++) {
+	for (i = 0; i < ptr->nb_entries; i++) {
 		ptr->sampleNumbers[i] = gf_bs_read_u32(bs);
 	}
 	return GF_OK;
@@ -5331,8 +5334,8 @@ GF_Err stss_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_u32(bs, ptr->entryCount);
-	for (i = 0; i < ptr->entryCount; i++) {
+	gf_bs_write_u32(bs, ptr->nb_entries);
+	for (i = 0; i < ptr->nb_entries; i++) {
 		gf_bs_write_u32(bs, ptr->sampleNumbers[i]);
 	}
 	return GF_OK;
@@ -5344,7 +5347,7 @@ GF_Err stss_Size(GF_Box *s)
 	GF_SyncSampleBox *ptr = (GF_SyncSampleBox *)s;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	ptr->size += 4 + (4 * ptr->entryCount);
+	ptr->size += 4 + (4 * ptr->nb_entries);
 	return GF_OK;
 }
 

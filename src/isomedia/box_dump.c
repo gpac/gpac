@@ -1009,14 +1009,14 @@ GF_Err stco_dump(GF_Box *a, FILE * trace)
 	u32 i;
 
 	p = (GF_ChunkOffsetBox *)a;
-	fprintf(trace, "<ChunkOffsetBox EntryCount=\"%d\">\n", p->entryCount);
+	fprintf(trace, "<ChunkOffsetBox EntryCount=\"%d\">\n", p->nb_entries);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
 	if (!p->offsets) {
 		fprintf(trace, "<!--Warning: No Chunk Offsets indications-->\n");
 	} else {
-		for (i=0; i<p->entryCount; i++) {
+		for (i=0; i<p->nb_entries; i++) {
 			fprintf(trace, "<ChunkEntry offset=\"%d\"/>\n", p->offsets[i]);
 		}
 	}
@@ -1030,14 +1030,14 @@ GF_Err stss_dump(GF_Box *a, FILE * trace)
 	u32 i;
 
 	p = (GF_SyncSampleBox *)a;
-	fprintf(trace, "<SyncSampleBox EntryCount=\"%d\">\n", p->entryCount);
+	fprintf(trace, "<SyncSampleBox EntryCount=\"%d\">\n", p->nb_entries);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
 	if (!p->sampleNumbers) {
 		fprintf(trace, "<!--Warning: No Key Frames indications-->\n");
 	} else {
-		for (i=0; i<p->entryCount; i++) {
+		for (i=0; i<p->nb_entries; i++) {
 			fprintf(trace, "<SyncSampleEntry sampleNumber=\"%d\"/>\n", p->sampleNumbers[i]);
 		}
 	}
@@ -1051,14 +1051,14 @@ GF_Err stdp_dump(GF_Box *a, FILE * trace)
 	u32 i;
 
 	p = (GF_DegradationPriorityBox *)a;
-	fprintf(trace, "<DegradationPriorityBox EntryCount=\"%d\">\n", p->entryCount);
+	fprintf(trace, "<DegradationPriorityBox EntryCount=\"%d\">\n", p->nb_entries);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
 	if (!p->priorities) {
 		fprintf(trace, "<!--Warning: No Degradation Priority indications-->\n");
 	} else {
-		for (i=0; i<p->entryCount; i++) {
+		for (i=0; i<p->nb_entries; i++) {
 			fprintf(trace, "<DegradationPriorityEntry DegradationPriority=\"%d\"/>\n", p->priorities[i]);
 		}
 	}
@@ -1113,14 +1113,14 @@ GF_Err co64_dump(GF_Box *a, FILE * trace)
 	u32 i;
 
 	p = (GF_ChunkLargeOffsetBox *)a;
-	fprintf(trace, "<ChunkLargeOffsetBox EntryCount=\"%d\">\n", p->entryCount);
+	fprintf(trace, "<ChunkLargeOffsetBox EntryCount=\"%d\">\n", p->nb_entries);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 
 	if (!p->offsets) {
 		fprintf(trace, "<Warning: No Chunk Offsets indications/>\n");
 	} else {
-		for (i=0; i<p->entryCount; i++) 
+		for (i=0; i<p->nb_entries; i++) 
 			fprintf(trace, "<ChunkOffsetEntry offset=\""LLD"\"/>\n", LLD_CAST p->offsets[i]);
 	}
 	fprintf(trace, "</ChunkLargeOffsetBox>\n");
@@ -1523,7 +1523,7 @@ GF_Err krok_dump(GF_Box *a, FILE * trace)
 	GF_TextKaraokeBox*p = (GF_TextKaraokeBox*)a;
 	fprintf(trace, "<TextKaraokeBox highlight_starttime=\"%d\">\n", p->highlight_starttime);
 	DumpBox(a, trace);
-	for (i=0; i<p->entrycount; i++) {
+	for (i=0; i<p->nb_entries; i++) {
 		fprintf(trace, "<KaraokeRecord highlight_endtime=\"%d\" start_charoffset=\"%d\" end_charoffset=\"%d\"/>\n", p->records[i].highlight_endtime, p->records[i].start_charoffset, p->records[i].end_charoffset);
 	}
 	fprintf(trace, "</TextKaraokeBox>\n");
@@ -2567,7 +2567,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 				t = krok->highlight_starttime;
 				t /= trak->Media->mediaHeader->timeScale;
 				fprintf(dump, "<Karaoke startTime=\"%g\">\n", t);
-				for (k=0; k<krok->entrycount; k++) {
+				for (k=0; k<krok->nb_entries; k++) {
 					t = krok->records[k].highlight_endtime;
 					t /= trak->Media->mediaHeader->timeScale;
 					fprintf(dump, "<KaraokeRange ");
