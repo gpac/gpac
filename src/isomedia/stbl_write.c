@@ -38,6 +38,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 {
 	u32 i, j, sampNum;
 	u64 *DTSs, curDTS;
+	Bool inserted;
 	GF_SttsEntry *ent;
 
 	GF_TimeToSampleBox *stts = stbl->TimeToSample;
@@ -105,13 +106,15 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 	curDTS = 0;
 	sampNum = 0;
 	ent = NULL;
+	inserted = 0;
 	for (i=0; i<stts->nb_entries; i++) {
 		ent = & stts->entries[i];
 		for (j = 0; j<ent->sampleCount; j++) {
-			if (curDTS + ent->sampleDelta > DTS) {
+			if (!inserted && (curDTS > DTS)) {
 				DTSs[sampNum] = DTS;
 				sampNum++;
 				*sampleNumber = sampNum;
+				inserted = 1;
 			}
 			DTSs[sampNum] = curDTS;
 			curDTS += ent->sampleDelta;
