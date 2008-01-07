@@ -39,6 +39,7 @@ static void gf_sc_reset_collide_cursor(GF_Compositor *compositor)
 
 static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 {
+#ifndef GPAC_DISABLE_SVG
 	GF_DOM_Event evt;
 	u32 cursor_type;
 	Bool ret = 0;
@@ -178,6 +179,9 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 */
 	}
 	return ret;
+#else
+	return 0;
+#endif
 }
 
 static Bool exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)

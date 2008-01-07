@@ -596,7 +596,6 @@ struct _traversing_state
 #ifndef GPAC_DISABLE_SVG
 	GF_Node *parent_use;
 	SVGAllAttributes *parent_vp_atts;
-#endif
 
 	/*SVG text rendering state*/
 	Bool in_svg_text;
@@ -614,6 +613,8 @@ struct _traversing_state
 	Fixed max_length, max_height;
 	Fixed base_x, base_y;
 	Fixed line_spacing;
+
+#endif
 
 	/*current context to be drawn - only set when drawing in 2D mode or 3D for SVG*/
 	struct _drawable_context *ctx;
@@ -889,16 +890,21 @@ Bool gf_sc_visual_is_registered(GF_Compositor *sr, GF_VisualManager *surf);
 Bool gf_sc_pick_in_clipper(GF_TraverseState *tr_state, GF_Rect *clip);
 
 void compositor_gradient_update(GF_TextureHandler *txh);
-void compositor_svg_build_gradient_texture(GF_TextureHandler *txh);
 void compositor_set_ar_scale(GF_Compositor *sr, Fixed scaleX, Fixed scaleY);
 
-void compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *all_atts, GF_TraverseState *tr_state, 
-					 SVGPropertiesPointers *backup_props, u32 *backup_flags);
+
+#ifndef GPAC_DISABLE_SVG
+
+void compositor_svg_build_gradient_texture(GF_TextureHandler *txh);
+
+void compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *all_atts, GF_TraverseState *tr_state, SVGPropertiesPointers *backup_props, u32 *backup_flags);
 Bool compositor_svg_is_display_off(SVGPropertiesPointers *props);
 void compositor_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAllAttributes *atts, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix);
 void compositor_svg_restore_parent_transformation(GF_TraverseState *tr_state, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix);
 
 void compositor_svg_traverse_children(GF_ChildNodeItem *children, GF_TraverseState *tr_state);
+
+#endif
 
 
 

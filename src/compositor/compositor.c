@@ -704,9 +704,9 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	if (scene_graph) {
 #ifndef GPAC_DISABLE_SVG
 		SVG_Length *w, *h;
+		Bool is_svg = 0;
 #endif
 		const char *opt;
-		Bool is_svg = 0;
 		u32 tag;
 		GF_Node *top_node;
 		Bool had_size_info = compositor->has_size_info;
@@ -1471,7 +1471,10 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Drawing done\n"));
 }
 
-extern u32 time_spent_in_anim;
+
+#ifndef GPAC_DISABLE_LOG
+u32 time_spent_in_anim = 0;
+#endif
 
 void gf_sc_simulation_tick(GF_Compositor *compositor)
 {	
@@ -1847,12 +1850,14 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	}
 #endif
 	switch (gf_node_get_tag(inline_parent)) {
+#ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_animation:
 		compositor_svg_traverse_animation(inline_parent, inline_root, rs);
 		break;
 	case TAG_SVG_use:
 		compositor_svg_traverse_use(inline_parent, inline_root, rs);
 		break;
+#endif
 	default:
 		compositor_traverse_inline(compositor, inline_parent, inline_root, rs);
 		break;

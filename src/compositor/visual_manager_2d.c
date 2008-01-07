@@ -666,7 +666,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	GF_Matrix2D backup;
 	u32 i;
 	GF_Err e;
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LOG
 	u32 itime, time = gf_sys_clock();
 #endif
 
