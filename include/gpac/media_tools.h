@@ -166,6 +166,8 @@ typedef struct __track_import
 	/*for MPEG-TS and similar: program names*/
 	u32 nb_progs;
 	struct __program_import_info pg_info[GF_IMPORT_MAX_TRACKS];
+
+	GF_Err last_error;
 } GF_MediaImporter;
 
 GF_Err gf_media_import(GF_MediaImporter *importer);
