@@ -715,7 +715,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 	struct addrinfo *res, *aip;
 	u32 type;
 #else
-	u_long local_add_id;
+	unsigned long local_add_id;
 #endif
 
 	if (!sock || sock->socket) return GF_BAD_PARAM;
