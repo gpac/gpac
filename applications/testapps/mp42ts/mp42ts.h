@@ -113,10 +113,12 @@ typedef struct __m2ts_mux_stream {
 	u64 last_br_time;
 	u32 bytes_since_last_time;
 
+	/*MPEG-4 over MPEG-2*/
+	Bool use_sl;
+	Bool use_sections;
+	u8 table_id;
 	GF_SLHeader sl_header;
 	GF_SLConfig sl_config;
-	u8 *sl_packet;
-	u32 sl_packet_len;
 } M2TS_Mux_Stream;
 
 
@@ -161,7 +163,8 @@ struct __m2ts_mux {
 	u32 init_sys_time;
 
 	Bool eos_found;
-	u32 tot_pck_sent, pck_sent, last_br_time, avg_br;
+	u32 pck_sent, last_br_time, avg_br;
+	u64 tot_pck_sent, tot_pad_sent;
 
 	Bool mpeg4_signaling;
 };

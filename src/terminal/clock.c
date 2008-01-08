@@ -224,6 +224,11 @@ u32 gf_clock_time(GF_Clock *ck)
 	return time - ck->drift;
 }
 
+u32 gf_clock_ellapse_time(GF_Clock *ck)
+{
+	return gf_clock_time(ck) - ck->init_time;
+}
+
 
 Bool gf_clock_is_started(GF_Clock *ck)
 {

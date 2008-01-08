@@ -201,6 +201,9 @@ enum
 	GF_M2TS_ES_IS_SL = 1<<2,
 	/*ES is an mpeg-4 Object Descriptor SL-packetized stream*/
 	GF_M2TS_ES_IS_MPEG4_OD = 1<<3,
+
+	/*Flag used by importers*/
+	GF_M2TS_ES_FIRST_DTS = 1<<20,
 };
 
 /*Abstract Section/PES stream object, only used for type casting*/
