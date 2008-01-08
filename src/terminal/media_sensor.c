@@ -131,7 +131,11 @@ void MS_UpdateTiming(GF_ObjectManager *odm, Bool is_eos)
 				} else {
 					media_sens->sensor->mediaDuration = (Double) (s64)odm->duration;
 				}
-				media_sens->sensor->mediaDuration /= 1000;
+				if (media_sens->sensor->mediaDuration)
+					media_sens->sensor->mediaDuration /= 1000;
+				else
+					media_sens->sensor->mediaDuration = -FIX_ONE;
+
 				gf_node_event_out_str((GF_Node *) media_sens->sensor, "mediaDuration");
 			}
 			if (media_sens->sensor->isActive && (media_sens->sensor->mediaCurrentTime != time)) {

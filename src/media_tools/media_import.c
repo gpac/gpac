@@ -5068,7 +5068,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			}
 
 			/* Even if we don't import this stream we need to check the first dts of the program */
-			if (!pck->stream->first_dts && is_au_start) {
+			if (!(pck->stream->flags & GF_M2TS_ES_FIRST_DTS) && is_au_start) {
+				pck->stream->flags |= GF_M2TS_ES_FIRST_DTS;
 				pck->stream->first_dts = (pck->DTS?pck->DTS:pck->PTS);
 				if (!pck->stream->program->first_dts || 
 					pck->stream->program->first_dts > pck->stream->first_dts) {
@@ -5233,7 +5234,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error appending sample data\n"));
 					}
 				} else {
-					if (!sl_pck->stream->first_dts) {
+					if (!(sl_pck->stream->flags & GF_M2TS_ES_FIRST_DTS)) {
+						sl_pck->stream->flags |= GF_M2TS_ES_FIRST_DTS;
 						sl_pck->stream->first_dts = (hdr.decodingTimeStamp?hdr.decodingTimeStamp:hdr.compositionTimeStamp);
 						if (!sl_pck->stream->program->first_dts || 
 							sl_pck->stream->program->first_dts > sl_pck->stream->first_dts) {

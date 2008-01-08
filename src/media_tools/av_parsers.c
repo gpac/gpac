@@ -2411,16 +2411,36 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 	b3 = gf_bs_read_u8(bs);
 	/*JPEG*/
 	if ((b1==0xFF) && (b2==0xD8) && (b3==0xFF)) {
+		u32 offset = 0;
+		u32 Xdens, Ydens, nb_comp;
 		gf_bs_read_u8(bs);
+		gf_bs_skip_bytes(bs, 10);	/*2 size, 5 JFIF\0, 2 version, 1 units*/
+		Xdens = gf_bs_read_int(bs, 16);
+		Ydens = gf_bs_read_int(bs, 16);
+		nb_comp = 0;
+
 		/*get frame header FFC0*/
 		while (gf_bs_available(bs)) {
 			u32 type, w, h;
 			if (gf_bs_read_u8(bs) != 0xFF) continue;
+			if (!offset) offset = (u32)gf_bs_get_position(bs) - 1;
+
 			type = gf_bs_read_u8(bs);
+			/*process all Start of Image markers*/
 			switch (type) {
 			case 0xC0:
 			case 0xC1:
 			case 0xC2:
+			case 0xC3:
+			case 0xC5:
+			case 0xC6:
+			case 0xC7:
+			case 0xC9:
+			case 0xCA:
+			case 0xCB:
+			case 0xCD:
+			case 0xCE:
+			case 0xCF:
 				gf_bs_skip_bytes(bs, 3);
 				h = gf_bs_read_int(bs, 16);
 				w = gf_bs_read_int(bs, 16);
@@ -2428,20 +2448,21 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 					*width = w;
 					*height = h;
 				}
-				break;
-			case 0xD0:
-			case 0xD1:
-			case 0xD2:
-			case 0xD3:
-			case 0xD4:
-			case 0xD5:
-			case 0xD6:
-			case 0xD7:
+				nb_comp = gf_bs_read_int(bs, 8);
 				break;
 			}
 		}
 		*OTI = 0x6C;
 		*mtype = GF_4CC('j','p','e','g');
+		if (dsi) {
+			GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_u16(bs_dsi, offset);
+			gf_bs_write_u16(bs_dsi, Xdens);
+			gf_bs_write_u16(bs_dsi, Ydens);
+			gf_bs_write_u8(bs_dsi, nb_comp);
+			gf_bs_get_content(bs_dsi, dsi, dsi_len);
+			gf_bs_del(bs_dsi);
+		}
 	}
 	/*PNG*/
 	else if ((b1==0x89) && (b2==0x50) && (b3==0x4E)) {

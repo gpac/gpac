@@ -1248,7 +1248,7 @@ GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *frame
 #endif
 	/*no depth dump in 2D mode*/
 	if (depth_buffer) e = GF_NOT_SUPPORTED;
-	else compositor->video_out->LockBackBuffer(compositor->video_out, framebuffer, 1);
+	else e = compositor->video_out->LockBackBuffer(compositor->video_out, framebuffer, 1);
 	
 	if (e != GF_OK) gf_mx_v(compositor->mx);
 	return e;
