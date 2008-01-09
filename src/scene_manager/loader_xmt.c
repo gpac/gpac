@@ -1560,6 +1560,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 					return NULL;
 				}
 				node = gf_sg_proto_create_instance(parser->load->scene_graph, proto);
+				att->value = NULL;
 			}
 			else if (!strcmp(att->name, "USE")) {
 				node = xmt_find_node(parser, att->value);
@@ -1686,7 +1687,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 		/*all other fields*/
 		else {
 			e = gf_node_get_field_by_name(node, att->name, &info);
-			if (e) xmt_report(parser, GF_OK, "Warning: Unknown field %s for node %s - skipping", att->name, name);
+			if (e) xmt_report(parser, GF_OK, "Warning: Unknown field \"%s\" for node %s - skipping", att->name, name);
 			else if (gf_sg_vrml_is_sf_field(info.fieldType)) {
 				xmt_parse_sf_field(parser, &info, node, att->value);
 			} else {
