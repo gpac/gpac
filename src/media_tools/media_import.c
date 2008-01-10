@@ -4663,6 +4663,9 @@ typedef struct
 	GF_MediaImporter *import;
 	u32 track;
 	u32 nb_i, nb_p, nb_b;
+	GF_AVCConfig *avccfg;
+	AVCState avc;
+	Bool force_next_au_start;
 } GF_TSImport;
 
 
@@ -4832,7 +4835,7 @@ static GF_ESD *m2ts_get_esd(GF_M2TS_ES *es)
 		}
 	}
 	
-	if (!esd) {
+	if (!esd && es->program->additional_ods) {
 		u32 od_count, od_index;
 		od_count = gf_list_count(es->program->additional_ods);
 		for (od_index = 0; od_index < od_count; od_index++) {
@@ -4866,10 +4869,13 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_FOUND:
 		break;
-	case GF_M2TS_EVT_PAT_REPEAT:
+//	case GF_M2TS_EVT_PAT_REPEAT:
+//	case GF_M2TS_EVT_SDT_REPEAT:
 	case GF_M2TS_EVT_PMT_REPEAT:
-	case GF_M2TS_EVT_SDT_REPEAT:
-//		if (import->flags & GF_IMPORT_PROBE_ONLY) import->flags |= GF_IMPORT_DO_ABORT;
+		/*abort upon first PMT repeat if not using 4on2. Otherwise we must parse the entire
+		bitstream to locate ODs sent in OD updates in order to get their stream types...*/
+		if (!ts->has_4on2 && (import->flags & GF_IMPORT_PROBE_ONLY) && !import->trackID) 
+			import->flags |= GF_IMPORT_DO_ABORT;
 		break;
 	case GF_M2TS_EVT_SDT_FOUND:
 		import->nb_progs = gf_list_count(ts->SDTs);
@@ -4878,7 +4884,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			strcpy(import->pg_info[i].name, sdt->service);
 			import->pg_info[i].number = sdt->service_id;
 		}
-		if (import->flags & GF_IMPORT_PROBE_ONLY) 
+		if (!ts->has_4on2 && import->flags & GF_IMPORT_PROBE_ONLY) 
 			import->flags |= GF_IMPORT_DO_ABORT;
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
@@ -4940,6 +4946,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					import->nb_tracks++;
 					break;
 				case GF_M2TS_AUDIO_AAC:
+				case GF_M2TS_AUDIO_LATM_AAC:
 					import->tk_info[idx].media_type = GF_4CC('M','P','4','A');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_AUDIO;
 					import->tk_info[idx].lang = pes->lang;
@@ -5020,6 +5027,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			case GF_M2TS_VIDEO_H264:
 				mtype = GF_ISOM_MEDIA_VISUAL;
 				stype = GF_STREAM_VISUAL; oti = 0x21;
+				tsimp->avccfg = gf_odf_avc_cfg_new();
 				break;
 			case GF_M2TS_AUDIO_MPEG1:
 				mtype = GF_ISOM_MEDIA_AUDIO;
@@ -5063,7 +5071,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						break;
 					}
 				}
-//				if (pck->stream->vid_h || pck->stream->aud_sr) import->flags |= GF_IMPORT_DO_ABORT;
+				if (!ts->has_4on2 && (pck->stream->vid_h || pck->stream->aud_sr)) 
+					import->flags |= GF_IMPORT_DO_ABORT;
 				return;
 			}
 
@@ -5079,6 +5088,74 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 			if (pck->stream->pid != import->trackID) return;
 
+			if (tsimp->avccfg) {
+				GF_AVCConfigSlot *slc;
+				GF_BitStream *bs;
+				s32 idx;
+				u32 nal_type = pck->data[4] & 0x1F;
+			
+				switch (nal_type) {
+				case GF_AVC_NALU_SEQ_PARAM:
+					bs = gf_bs_new(pck->data+5, pck->data_len-5, GF_BITSTREAM_READ);
+					idx = AVC_ReadSeqInfo(bs, &tsimp->avc, NULL);
+					gf_bs_del(bs);
+					if ((idx>=0) && (tsimp->avc.sps[idx].status==1)) {
+						tsimp->avc.sps[idx].status = 2;
+						/*always store nalu size on 4 bytes*/
+						tsimp->avccfg->nal_unit_size = 4;
+						tsimp->avccfg->configurationVersion = 1;
+						tsimp->avccfg->profile_compatibility = tsimp->avc.sps[idx].prof_compat;
+						tsimp->avccfg->AVCProfileIndication = tsimp->avc.sps[idx].profile_idc;
+						tsimp->avccfg->AVCLevelIndication = tsimp->avc.sps[idx].level_idc;
+						slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+						slc->size = pck->data_len-4;
+						slc->data = (char*)malloc(sizeof(char)*slc->size);
+						memcpy(slc->data, pck->data+4, sizeof(char)*slc->size);
+						gf_list_add(tsimp->avccfg->sequenceParameterSets, slc);
+
+						if (pck->stream->vid_w < tsimp->avc.sps[idx].width)
+							pck->stream->vid_w = tsimp->avc.sps[idx].width;
+						if (pck->stream->vid_h < tsimp->avc.sps[idx].height)
+							pck->stream->vid_h = tsimp->avc.sps[idx].height;
+					}
+					return;
+				case GF_AVC_NALU_PIC_PARAM:
+					bs = gf_bs_new(pck->data+5, pck->data_len-5, GF_BITSTREAM_READ);
+					idx = AVC_ReadPictParamSet(bs, &tsimp->avc);
+					gf_bs_del(bs);
+					if ((idx>=0) && (tsimp->avc.pps[idx].status==1)) {
+						tsimp->avc.pps[idx].status = 2;
+						slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+						slc->size = pck->data_len-4;
+						slc->data = (char*)malloc(sizeof(char)*slc->size);
+						memcpy(slc->data, pck->data+4, sizeof(char)*slc->size);
+						gf_list_add(tsimp->avccfg->pictureParameterSets, slc);
+					}
+					return;
+				/*remove*/
+				case GF_AVC_NALU_ACCESS_UNIT:
+					tsimp->force_next_au_start = 1;
+					return;
+				case GF_AVC_NALU_FILLER_DATA:
+				case GF_AVC_NALU_END_OF_SEQ:
+				case GF_AVC_NALU_END_OF_STREAM:
+					return;
+				case GF_AVC_NALU_SEI:
+					idx = AVC_ReformatSEI_NALU(pck->data+4, pck->data_len-4, &tsimp->avc);
+					if (idx>0) pck->data_len = idx+4;
+					break;
+				}
+
+				/*rewrite nalu header*/
+				bs = gf_bs_new(pck->data, pck->data_len, GF_BITSTREAM_WRITE);
+				gf_bs_write_u32(bs, pck->data_len - 4);
+				gf_bs_del(bs);
+
+				if (tsimp->force_next_au_start) {
+					is_au_start = 1;
+					tsimp->force_next_au_start = 0;
+				}
+			}
 			if (!is_au_start) {
 				e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
 				if (e) {
@@ -5186,9 +5263,10 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 									m2ts_set_tracks_mpeg4_probe_info(import, sl_pck->stream->program, od->ESDescriptors);
 								}
 							}
+							gf_list_reset(odU->objectDescriptors); 
 						}
 					}
-					//gf_odf_codec_del(od_codec);
+					gf_odf_codec_del(od_codec);
 				}
 
 			}
@@ -5321,6 +5399,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	if (import->last_error) {
 		GF_Err e = import->last_error;
 		import->last_error = GF_OK;
+		if (tsimp.avccfg) gf_odf_avc_cfg_del(tsimp.avccfg);
   		gf_m2ts_demux_del(ts);
   		fclose(mts);
 		return e;
@@ -5329,12 +5408,22 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	gf_set_progress(progress, (u32) (fsize/1024), (u32) (fsize/1024));
 
 	if (!(import->flags & GF_IMPORT_PROBE_ONLY)) {
- 		es = (GF_M2TS_ES *)ts->ess[import->trackID];
+		es = (GF_M2TS_ES *)ts->ess[import->trackID];
   		if (!es) {
   			gf_m2ts_demux_del(ts);
   			fclose(mts);
   			return gf_import_message(import, GF_BAD_PARAM, "Unknown PID %d", import->trackID);
   		}
+		
+		if (tsimp.avccfg) {
+			u32 w = ((GF_M2TS_PES*)es)->vid_w;
+			u32 h = ((GF_M2TS_PES*)es)->vid_h;
+			gf_isom_avc_config_update(import->dest, tsimp.track, 1, tsimp.avccfg);
+			gf_isom_set_visual_info(import->dest, tsimp.track, 1, w, h);
+			gf_isom_set_track_layout_info(import->dest, tsimp.track, w<<16, h<<16, 0, 0, 0);
+			gf_odf_avc_cfg_del(tsimp.avccfg);
+		}
+
 		MP4T_RecomputeBitRate(import->dest, tsimp.track);
 		/* creation of the edit lists */
 		if (es->first_dts != es->program->first_dts) {

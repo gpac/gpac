@@ -770,8 +770,13 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 				/*parse all nodes in SFWorldNode table*/
 				node = gf_bifs_dec_node(codec, bs, NDT_SFWorldNode);
 				if (!node) {
-					e = codec->LastError;
-					goto exit;
+					if (codec->LastError) {
+						e = codec->LastError;
+						goto exit;
+					} else {
+						flag = gf_bs_read_int(bs, 1);
+						continue;
+					}
 				}
 				e = gf_node_register(node, NULL);
 				if (e) goto exit;

@@ -48,6 +48,7 @@ enum
 	GF_M2TS_PRIVATE_DATA			= 0x06,
 	GF_M2TS_AUDIO_AAC				= 0x0f,
 	GF_M2TS_VIDEO_MPEG4				= 0x10,
+	GF_M2TS_AUDIO_LATM_AAC			= 0x11,
 
 	GF_M2TS_SYSTEMS_MPEG4_PES		= 0x12,
 	GF_M2TS_SYSTEMS_MPEG4_SECTIONS	= 0x13,
@@ -184,8 +185,12 @@ typedef struct
 	u32 number;
 
 	GF_InitialObjectDescriptor *pmt_iod;
-	GF_List *additional_ods;
 
+	/*list of additional ODs found per program !! used by media importer only , refine this !! 
+		this list is only created when MPEG-4 over MPEG-2 is detected
+		the list AND the ODs contained in it are destroyed when destroying the demuxer
+	*/
+	GF_List *additional_ods;
 	/*first dts found on this program - this is used by parsers, but not setup by the lib*/
 	u64 first_dts;
 } GF_M2TS_Program;
@@ -315,8 +320,11 @@ struct tag_m2ts_demux
 	/* Structure to hold all the INT tables if the TS contains IP streams */
 	GF_List *ip_mac_not_tables;
 	
+	Bool has_4on2;
 	/* analyser */
 	FILE *pes_out;
+
+
 };
 
 

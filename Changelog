@@ -1,5 +1,6 @@
 Latest CVS changes - 10/01/08:
   - Added support for MPEG-4 over MPEG-2 TS in mp42ts (MPEG-4 SL in MPEG-2 PES)
+  - Fixed support for AVC/H264 over MPEG-2 TS import in ISO Media and in the player. Only one PPS/SPS is allowed 
   - Added support for offscreen GL rendering on symbian using PBuffers
   - SVG fonts should now be quite stable, but does not support kerning
   - Moved all Font modules to the new glyph-based architecture 
