@@ -25,9 +25,10 @@
 
 #include <gpac/internal/mesh.h>
 
-#include "gl_inc.h"
-
 #ifndef GPAC_DISABLE_3D
+
+/*for GPAC_HAS_GLU*/
+#include "gl_inc.h"
 
 #ifndef CALLBACK
 #define CALLBACK

@@ -709,8 +709,8 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		break;
 	case IDM_VIEW_DIRECT:
 	{
-		Bool drend = gf_term_get_option(term, GF_OPT_DIRECT_RENDER) ? 0 : 1;
-		gf_term_set_option(term, GF_OPT_DIRECT_RENDER, drend);
+		Bool drend = gf_term_get_option(term, GF_OPT_DIRECT_DRAW) ? 0 : 1;
+		gf_term_set_option(term, GF_OPT_DIRECT_DRAW, drend);
 		gf_cfg_set_key(user.config, "Compositor", "DirectDraw", drend ? "yes" : "no");
 	}
 		break;
@@ -757,7 +757,7 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_LOW_RATE, MF_BYCOMMAND| (use_low_fps ? MF_CHECKED : MF_UNCHECKED) );
 
 		EnableMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!use_3D_renderer ? MF_ENABLED : MF_GRAYED) );
-		CheckMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!use_3D_renderer && gf_term_get_option(term, GF_OPT_DIRECT_RENDER) ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!use_3D_renderer && gf_term_get_option(term, GF_OPT_DIRECT_DRAW) ? MF_CHECKED : MF_UNCHECKED) );
 
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_SVG_LOAD, MF_BYCOMMAND| (use_svg_prog ? MF_CHECKED : MF_UNCHECKED) );
 		return TRUE;

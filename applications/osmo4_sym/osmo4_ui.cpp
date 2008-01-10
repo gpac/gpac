@@ -235,10 +235,6 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 		break;
 	case EOsmo4OpenURL:
 		break;
-	case EOsmo4Reload:
-		gf_term_navigate_to(iAppView->m_term, NULL);
-		break;
-
 	case EOsmo4Fullscreen:
 		break;
 	case EOsmo4ViewMaxSize:
@@ -312,7 +308,7 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 		iAppView->SetupLogs();
     }
         break;
-	case EOsmo4OptSwitchRender:
+	case EOsmo4OptOpenGL:
 	{
 		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "Compositor", "ForceOpenGL");
 		Bool use_gl = (opt && !strcmp(opt, "yes")) ? 1 : 0;
@@ -320,6 +316,23 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 		gf_term_set_option(iAppView->m_term, GF_OPT_USE_OPENGL, !use_gl);
 	}
 		break;
+	case EOsmo4OptDirectDraw:
+	{
+		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "Compositor", "DirectDraw");
+		Bool use_dd = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+		gf_cfg_set_key(iAppView->m_user.config, "Compositor", "DirectDraw", use_dd ? "no" : "yes");
+		gf_term_set_option(iAppView->m_term, GF_OPT_DIRECT_DRAW, !use_dd);
+	}
+		break;
+	case EOsmo4OptXMLProgressive:
+	{
+		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "SAXLoader", "Progressive");
+		Bool use_prog = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+		gf_cfg_set_key(iAppView->m_user.config, "SAXLoader", "Progressive", use_prog ? "no" : "yes");
+		gf_cfg_set_key(iAppView->m_user.config, "SAXLoader", "MaxDuration", "100");
+	}
+		break;
+
     default:
 		if ((aCommand>=EOsmo4OpenRecentFirst) && (aCommand<=EOsmo4OpenRecentLast)) {
 			const char *sOpt = gf_cfg_get_key_name(iAppView->m_user.config, "RecentFiles", aCommand - EOsmo4OpenRecentFirst);
@@ -399,7 +412,7 @@ void COsmo4AppUi::PlayURL(const char *url)
 
 void COsmo4AppUi::SetTitleInfo(const char *title)
 {
-#if 0
+#if 1
     CEikStatusPane* statusPane = StatusPane();
     CAknTitlePane *iTitlePane = (CAknTitlePane*) statusPane->ControlL(TUid::Uid(EEikStatusPaneUidTitle));
 
@@ -423,6 +436,7 @@ void COsmo4AppUi::SetTitle(const char *title, int store_it)
 
 void COsmo4AppUi::SetInfo(const char *info)
 {
+	if (view_mode) return;
 	if (info) {
 		char szTitle[200];
 		sprintf(szTitle, "%s\n%s", info, m_title ? m_title : "Osmo4");
@@ -497,7 +511,6 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 				DECLARE_MENU_ITEM(_L("Recent"), 0, 0, R_OSMO4_SSM1, 0);
 			}
 #endif
-			DECLARE_MENU_ITEM(_L("Reload"), EOsmo4Reload, 0, 0, 0);
 		}
 		smenu_id = 1;
 		return;
@@ -526,7 +539,12 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 	if (aResourceId==R_OSMO4_SM3) {
 #ifndef GPAC_GUI_ONLY
 		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "Compositor", "ForceOpenGL");
-		DECLARE_MENU_ITEM(_L("Use OpenGL"), EOsmo4OptSwitchRender, (opt && !strcmp(opt, "yes")) ? 1 : 0, 0, 0);
+		DECLARE_MENU_ITEM(_L("Use 2D OpenGL"), EOsmo4OptOpenGL, (opt && !strcmp(opt, "yes")) ? 1 : 0, 0, 0);
+		opt = gf_cfg_get_key(iAppView->m_user.config, "Compositor", "DirectDraw");
+		DECLARE_MENU_ITEM(_L("Direct Draw"), EOsmo4OptDirectDraw, (opt && !strcmp(opt, "yes")) ? 1 : 0, 0, 0);
+		opt = gf_cfg_get_key(iAppView->m_user.config, "SAXLoader", "Progressive");
+		DECLARE_MENU_ITEM(_L("Progressive XML"), EOsmo4OptXMLProgressive, (opt && !strcmp(opt, "yes")) ? 1 : 0, 0, 0);
+
 #endif
 		
 		DECLARE_MENU_ITEM(_L("Enable Logs"), EOsmo4OptEnableLogs, iAppView->do_log, 0, 0);
@@ -551,6 +569,9 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 				aMenuPane->AddMenuItemL(item);
 				i++;
 				if (i>=10) break;
+			}
+			if (!i) {
+				DECLARE_MENU_ITEM(_L("_"), 0, 0, 0, 0);
 			}
 #endif
 		} else if (smenu_id == 2) {

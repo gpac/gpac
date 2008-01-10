@@ -338,6 +338,8 @@ static void composite_update(GF_TextureHandler *txh)
 	tr_state->viewpoints = st->visual->view_stack;
 	tr_state->pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(st->txh.owner));
 	tr_state->min_hsize = INT2FIX( MIN(txh->width, txh->height) ) / 2;
+	tr_state->vp_size.x = INT2FIX(txh->width);
+	tr_state->vp_size.y = INT2FIX(txh->height);
 
 	composite_do_bindable(st->txh.owner, tr_state, st->first);
 	st->first = 0;

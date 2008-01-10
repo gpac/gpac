@@ -94,6 +94,8 @@ void CPlaylist::ConstructL(const TRect& aRect, GF_User *user)
     ActivateL();
 	MakeVisible(EFalse);
 
+	strcpy(szCurrentDir, "");
+
 #ifndef GPAC_GUI_ONLY
 	m_user = user;
 
@@ -110,8 +112,11 @@ void CPlaylist::ConstructL(const TRect& aRect, GF_User *user)
 		strcat(ext_list, szKeyList);
 		strcat(ext_list, " ");
 	}
+
+	const char *opt = gf_cfg_get_key(m_user->config, "General", "LastWorkingDir");
+	if (opt) strcpy(szCurrentDir, opt);
 #endif
-	strcpy(szCurrentDir, "");
+
 }
 
 void CPlaylist::SizeChanged()
@@ -357,6 +362,7 @@ void CPlaylist::HandleSelection()
 			if (url) app->PlayURL(url);
 #endif
 		} else {
+			gf_cfg_set_key(m_user->config, "General", "LastWorkingDir", (const char *) szCurrentDir);
 			sprintf(szURL, "%s\\%s", szCurrentDir, szName);
 			app->PlayURL(szURL);
 		}

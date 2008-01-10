@@ -51,7 +51,6 @@ enum TOsmo4Ids
 	EOsmo4OpenURL,
 	EOsmo4OpenRecentFirst,
 	EOsmo4OpenRecentLast = EOsmo4OpenRecentFirst + 10,
-	EOsmo4Reload,
 	/*view commands*/
 	EOsmo4Fullscreen,
 	EOsmo4ViewMaxSize,
@@ -74,7 +73,9 @@ enum TOsmo4Ids
 
 	/*option commands*/
     EOsmo4OptEnableLogs,
-    EOsmo4OptSwitchRender,
+    EOsmo4OptOpenGL,
+    EOsmo4OptDirectDraw,
+    EOsmo4OptXMLProgressive,
 
 
 };

@@ -67,6 +67,9 @@ II GPAC compilation
     signsis osmo4_gcce.SIS osmo4_gcce.SIS gpac.cer gpac.key password
       * for THUMB
     makesis -d%EPOCROOT% osmo4_thumb.pkg
+    
+    Note: If you need to sign the SIS with your own certificate, you may generate one with openssl:
+    openssl req -new -x509 -nodes -sha1 -days 3650 -key gpac.key > gpac.cer
   
 You will get a .SIS package that installs properly on a symbian device.
 NOTES:

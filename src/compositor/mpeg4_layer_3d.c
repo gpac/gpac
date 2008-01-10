@@ -29,8 +29,6 @@
 #include "texturing.h"
 #include "visual_manager.h"
 
-#include "gl_inc.h"
-
 #ifndef GPAC_DISABLE_3D
 
 #ifdef GPAC_USE_TINYGL

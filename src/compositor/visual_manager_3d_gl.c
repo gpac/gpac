@@ -45,8 +45,10 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 	compositor->gl_caps.rect_texture = 1;
 	compositor->gl_caps.npot_texture = 1;
 #else
+	const char *ext;
+	if (!compositor->visual->type_3d) return;
 
-	const char *ext = (const char *) glGetString(GL_EXTENSIONS);
+	ext = (const char *) glGetString(GL_EXTENSIONS);
 	if (!ext) return;
 	/*store OGL extension to config for app usage*/
 	gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLExtensions", ext);

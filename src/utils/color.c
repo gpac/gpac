@@ -546,9 +546,9 @@ static void load_line_rgb_32(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 	u32 i;
 	src_bits += x_offset*4 + y_offset*y_pitch;
 	for (i=0; i<width; i++) {
-		dst_bits[2] = *src_bits++;
-		dst_bits[1] = *src_bits++;
 		dst_bits[0] = *src_bits++;
+		dst_bits[1] = *src_bits++;
+		dst_bits[2] = *src_bits++;
 		dst_bits[3] = *src_bits++;
 		dst_bits += 4;
 	}

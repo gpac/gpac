@@ -242,7 +242,7 @@ enum
 	/*set/get direct draw flag. In direct draw, the screen is entirely redrawn at each frame
 	value: boolean
 	*/
-	GF_OPT_DIRECT_RENDER,
+	GF_OPT_DIRECT_DRAW,
 	/*set/get scalable zoom (value: boolean)*/
 	GF_OPT_SCALABLE_ZOOM,
 	/*set/get YUV acceleration (value: boolean) */

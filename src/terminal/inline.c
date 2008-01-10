@@ -29,6 +29,7 @@
 #include <gpac/internal/terminal_dev.h>
 #include "media_control.h"
 #include <gpac/compositor.h>
+#include <gpac/nodes_x3d.h>
 
 void MO_UpdateCaps(GF_MediaObject *mo);
 
@@ -192,10 +193,16 @@ void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	}
 	
 	root_node = gf_sg_get_root_node(is->graph);
+	/*reset private stack of all inline nodes still registered*/
 	while (gf_list_count(is->inline_nodes)) {
 		GF_Node *n = (GF_Node *)gf_list_get(is->inline_nodes, 0);
 		gf_list_rem(is->inline_nodes, 0);
-		gf_node_set_private(n, NULL);
+		switch (gf_node_get_tag(n)) {
+		case TAG_MPEG4_Inline:
+		case TAG_X3D_Inline:
+			gf_node_set_private(n, NULL);
+			break;
+		}
 	}
 
 	if (is->graph_attached && (is->root_od->term->root_scene == is)) {
@@ -600,6 +607,8 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		GF_MediaObject *mo = (is && is->root_od) ? is->root_od->mo : NULL;
+
+		if (is) gf_list_del_item(is->inline_nodes, n);
 
 		if (!mo) return;
 		/*disconnect current inline if we're the last one using it (same as regular OD session leave/join)*/
@@ -1457,12 +1466,17 @@ Bool gf_inline_process_anchor(GF_Node *caller, GF_Event *evt)
 	/*FIXME this is too restrictive, we assume the navigate URL is really a presentation one...*/
 	i=0;
 	while ((inl = (M_Inline*)gf_list_enum(is->inline_nodes, &i))) {
-		gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
-		gf_sg_vrml_mf_alloc(&inl->url, GF_SG_VRML_MFURL, 1);
-		inl->url.vals[0].url = strdup(evt->navigate.to_url ? evt->navigate.to_url : "");
-		/*signal URL change but don't destroy inline scene now since we got this event from inside the scene, 
-		this could crash compositors*/
-		is->needs_restart = 2;
+		switch (gf_node_get_tag((GF_Node *)inl)) {
+		case TAG_MPEG4_Inline:
+		case TAG_X3D_Inline:
+			gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
+			gf_sg_vrml_mf_alloc(&inl->url, GF_SG_VRML_MFURL, 1);
+			inl->url.vals[0].url = strdup(evt->navigate.to_url ? evt->navigate.to_url : "");
+			/*signal URL change but don't destroy inline scene now since we got this event from inside the scene, 
+			this could crash compositors*/
+			is->needs_restart = 2;
+			break;
+		}
 	}
 	return 1;
 }

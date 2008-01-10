@@ -27,6 +27,7 @@ SOURCE module.c
 SOURCE path2d.c
 SOURCE path2d_stroker.c
 SOURCE token.c
+SOURCE uni_bidi.c
 SOURCE url.c
 SOURCE utf.c
 SOURCE xml_parser.c
@@ -227,6 +228,7 @@ SOURCE compositor_3d.c
 SOURCE compositor_node_init.c
 SOURCE drawable.c
 SOURCE events.c
+SOURCE font_engine.c
 SOURCE hardcoded_protos.c
 SOURCE mesh.c
 SOURCE mesh_collide.c
@@ -260,6 +262,7 @@ SOURCE mpeg4_viewport.c
 SOURCE navigate.c
 SOURCE offscreen_cache.c
 SOURCE svg_base.c
+SOURCE svg_font.c
 SOURCE svg_geometry.c
 SOURCE svg_grouping.c
 SOURCE svg_media.c
@@ -281,6 +284,7 @@ LIBRARY euser.lib estlib.lib ezlib.lib hal.lib
 //comment if you don't have OpenGL ES 
 MACRO GPAC_USE_OGL_ES
 LIBRARY libgles_cm.lib
+//MACRO GPAC_DISABLE_3D
 
 #if defined(WINS)
     deffile ..\..\build\symbian\libgpac_symbian.def

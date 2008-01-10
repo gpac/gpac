@@ -106,8 +106,8 @@ void PrintUsage()
 		"\t        \"media\"      : terminal media object management\n"
 		"\t        \"scene\"      : scene graph and scene manager\n"
 		"\t        \"script\"     : scripting engine messages\n"
-		"\t        \"compose\"    : composition engine (events, etc)\n"
-		"\t        \"render\"     : renderng engine (2D, 3D, etc)\n"
+		"\t        \"interact\"   : interaction engine (events, scripts, etc)\n"
+		"\t        \"compose\"    : composition engine (2D, 3D, etc)\n"
 		"\t        \"service\"    : network service management\n"
 		"\t        \"mmio\"       : Audio/Video HW I/O management\n"
 		"\t        \"none\"       : no tool logged\n"
@@ -506,7 +506,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			fprintf(stdout, "Scene Time: %f \n", gf_term_get_time_in_ms(term)/1000.0);
 			break;
 		case GF_KEY_D:
-			gf_term_set_option(term, GF_OPT_DIRECT_RENDER, !gf_term_get_option(term, GF_OPT_DIRECT_RENDER) );
+			gf_term_set_option(term, GF_OPT_DIRECT_DRAW, !gf_term_get_option(term, GF_OPT_DIRECT_DRAW) );
 			break;
 		case GF_KEY_4: gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3); break;
 		case GF_KEY_5: gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9); break;

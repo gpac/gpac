@@ -44,7 +44,7 @@ typedef struct
 	CWindowGc *gc;
 
 	char *locked_data;
-	Bool output_3d_type;
+	u32 output_3d_type;
 
 #ifdef GPAC_USE_OGL_ES
 	EGLDisplay egl_display;
@@ -55,7 +55,7 @@ typedef struct
 } EPOCVideo;
 
 
-static void EVID_ResetSurface(GF_VideoOutput *dr)
+static void EVID_ResetSurface(GF_VideoOutput *dr, Bool gl_only)
 {
 	EPOCVideo *ctx = (EPOCVideo *)dr->opaque;
 
@@ -70,6 +70,7 @@ static void EVID_ResetSurface(GF_VideoOutput *dr)
 		ctx->egl_display = NULL;
 	}
 #endif
+	if (gl_only) return;
 
 	if (ctx->locked_data) ctx->surface->UnlockHeap();
 	ctx->locked_data = NULL;
@@ -90,7 +91,7 @@ static GF_Err EVID_InitSurface(GF_VideoOutput *dr)
 	EPOCVideo *ctx = (EPOCVideo *)dr->opaque;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOC Video] Reseting video\n"));
-	EVID_ResetSurface(dr);
+	EVID_ResetSurface(dr, 0);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOC Video] Video reset OK\n"));
 
 	ctx->screen = new CWsScreenDevice(*ctx->session);
@@ -230,20 +231,128 @@ static GF_Err EVID_InitSurface(GF_VideoOutput *dr)
 	return GF_OK;
 }
 
+#ifdef GPAC_USE_OGL_ES
+
+static GF_Err EVID_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 height)
+{
+	EPOCVideo *ctx = (EPOCVideo *)dr->opaque;
+	EVID_ResetSurface(dr, 1);
+	if (!ctx->screen) return GF_NOT_SUPPORTED;
+
+	TDisplayMode disp_mode = ctx->screen->DisplayMode();
+	TInt gl_buffer_size = 0;
+	switch (disp_mode) {
+	case EColor64K: gl_buffer_size = 16; break;
+	case EColor16M: gl_buffer_size = 24; break;
+	/** 4096 colour display (12 bpp). */
+	case EColor4K: gl_buffer_size = 12; break;
+	/** True colour display mode (32 bpp, but top byte is unused and unspecified) */
+	case EColor16MU: gl_buffer_size = 32; break;
+#if defined(__SERIES60_3X__)
+	/** Display mode with alpha (24bpp colour plus 8bpp alpha) */
+	case EColor16MA: gl_buffer_size = 32; break;
+#endif
+	case EGray256:
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Unsupported display type %d for OpenGL\n", disp_mode));
+		return GF_NOT_SUPPORTED;
+	}
+
+	ctx->egl_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+	if (ctx->egl_display == NULL) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Cannot open OpenGL display\n"));
+		return GF_IO_ERR;
+	}
+
+	if (eglInitialize(ctx->egl_display, NULL, NULL) == EGL_FALSE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Cannot initialize OpenGL display\n"));
+		return GF_IO_ERR;
+	}
+
+	EGLConfig *configList = NULL;
+	EGLint numOfConfigs = 0; 
+	EGLint configSize   = 0;
+	if (eglGetConfigs(ctx->egl_display, configList, configSize, &numOfConfigs) == EGL_FALSE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Cannot retrieve OpenGL configurations\n"));
+		return GF_IO_ERR;
+	}
+	configSize = numOfConfigs;
+	configList = (EGLConfig*) malloc(sizeof(EGLConfig)*configSize);
+
+	// Define properties for the wanted EGLSurface 
+	EGLint atts[13];
+	atts[0] = EGL_RED_SIZE;		atts[1] = 8;
+	atts[2] = EGL_GREEN_SIZE;	atts[3] = 8;
+	atts[4] = EGL_BLUE_SIZE;	atts[5] = 8;
+	atts[6] = EGL_ALPHA_SIZE;	atts[7] = (dr->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA) ? 8 : EGL_DONT_CARE;
+	atts[8] = EGL_SURFACE_TYPE; atts[9] = EGL_PBUFFER_BIT;
+	atts[10] = EGL_NONE;
+
+	if (eglChooseConfig(ctx->egl_display, atts, configList, configSize, &numOfConfigs) == EGL_FALSE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Cannot choose Offscreen OpenGL configuration\n"));
+		return GF_IO_ERR;
+	}
+	EGLConfig gl_cfg = configList[0];
+	free(configList);
+
+	atts[0] = EGL_WIDTH; atts[1] = width;
+	atts[2] = EGL_HEIGHT; atts[3] = height;
+	atts[4] = EGL_NONE;
+
+	ctx->egl_surface = eglCreatePbufferSurface(ctx->egl_display, gl_cfg, atts);
+	if (ctx->egl_surface == NULL) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Cannot create OpenGL Pbuffer\n"));
+		return GF_IO_ERR;
+	}
+	ctx->egl_context = eglCreateContext(ctx->egl_display, gl_cfg, EGL_NO_CONTEXT, NULL);
+	if (ctx->egl_context == NULL) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Cannot create Offscreen OpenGL context\n"));
+		return GF_IO_ERR;
+	}
+	if (eglMakeCurrent(ctx->egl_display, ctx->egl_surface, ctx->egl_surface, ctx->egl_context) == EGL_FALSE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Cannot bind Offscreen OpenGL context to current thread\n"));
+		return GF_IO_ERR;
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOC Video] Offscreen OpenGL setup - size %d x %d\n", width, height));
+	return GF_OK;
+}
+#endif
+
 
 static GF_Err EVID_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_flags)
 {
+	GF_Err res;
 	EPOCVideo *ctx = (EPOCVideo *)dr->opaque;
 
 	ctx->window = (RWindow *)os_handle;
 	ctx->session = (RWsSession *)os_display;
-	return EVID_InitSurface(dr);
+
+	res = EVID_InitSurface(dr);
+
+	/*setup opengl offscreen*/
+#ifdef GPAC_USE_OGL_ES
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOC Video] Querying Offscreen OpenGL Capabilities\n"));
+	dr->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+	GF_Err e = EVID_SetupOGL_ES_Offscreen(dr, 20, 20);
+	if (e!=GF_OK) {
+		dr->hw_caps &= ~GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+		e = EVID_SetupOGL_ES_Offscreen(dr, 20, 20);
+	}
+	if (!e) {
+		dr->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOC Video] Offscreen OpenGL available - alpha support: %s\n", (dr->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA) ? "yes" : "no"));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOC Video] Offscreen OpenGL not available\n"));
+	}
+#endif
+
+	return res;
 }
 
 static void EVID_Shutdown(GF_VideoOutput *dr)
 {
 	EPOCVideo *ctx = (EPOCVideo *)dr->opaque;
-	EVID_ResetSurface(dr);
+	EVID_ResetSurface(dr, 0);
 	ctx->session = NULL;
 	ctx->window = NULL;
 }
@@ -282,8 +391,14 @@ static GF_Err EVID_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		/*nothing to do since we don't own the window*/
 		break;
 	case GF_EVENT_VIDEO_SETUP:
-		if (evt->setup.opengl_mode==2) return GF_NOT_SUPPORTED;
 		((EPOCVideo *)dr->opaque)->output_3d_type = evt->setup.opengl_mode;
+		if (evt->setup.opengl_mode==2) {
+#ifdef GPAC_USE_OGL_ES
+			return EVID_SetupOGL_ES_Offscreen(dr, evt->setup.width, evt->setup.height);
+#else
+			return GF_NOT_SUPPORTED;
+#endif
+		}
 		return EVID_InitSurface(dr/*, evt->size.width, evt->size.height*/);
 	}
 	return GF_OK;
