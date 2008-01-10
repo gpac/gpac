@@ -120,30 +120,41 @@ void gf_sc_texture_set_blend_mode(GF_TextureHandler *txh, u32 mode)
 	if (txh->tx_io) txh->tx_io->blend_mode = mode;
 }
 
+
 void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode)
 {
 	if (!txh->tx_io || !txh->tx_io->id || !txh->tx_io->gl_type) return;
 	glEnable(txh->tx_io->gl_type);
 
+#ifdef GPAC_USE_TINYGL
+#define GLTEXENV	glTexEnvi
+#else
+#define GLTEXENV	glTexEnvf
+#endif
+
 	switch (blend_mode) {
 	case TX_BLEND:
 		if (txh->transparent) glEnable(GL_BLEND);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
+		GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
 		break;
 	case TX_REPLACE:
 		if (txh->transparent) glEnable(GL_BLEND);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+		GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		break;
 	case TX_MODULATE:
 		if (txh->transparent) glEnable(GL_BLEND);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+#ifdef GPAC_USE_OGL_ES
+		GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+#else
+		GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+#endif
 		break;
 	case TX_DECAL:
 	default:
 		if ((txh->tx_io->gl_format==GL_LUMINANCE) || (txh->tx_io->gl_format==GL_LUMINANCE_ALPHA)) {
-			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND/*GL_MODULATE*/);
+			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND/*GL_MODULATE*/);
 		} else {
-			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 		}
 		break;
 	}
@@ -512,6 +523,8 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 
 	/*in case the ID has been lost, resetup*/
 	if (!txh->data || !txh->tx_io->tx_raster) return;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[GL Texture] Copying GL backbuffer %dx%d@PF=%s to systems memory\n", txh->width, txh->height, gf_4cc_to_str(txh->pixelformat) ));
 
 	if (txh->pixelformat==GF_PIXEL_RGBA) {
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGBA, GL_UNSIGNED_BYTE, txh->data);

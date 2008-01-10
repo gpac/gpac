@@ -28,6 +28,8 @@
 #include <gpac/nodes_x3d.h>
 
 #ifndef GPAC_DISABLE_3D
+/*for GPAC_HAS_GLU*/
+#include "gl_inc.h"
 
 /*when highspeeds, amount of subdivisions for bezier and ellipse will be devided by this factor*/
 #define HIGH_SPEED_RATIO	2

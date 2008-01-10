@@ -1051,7 +1051,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		gf_sc_reload_config(compositor);
 		compositor->draw_next_frame = 1; 
 		break;
-	case GF_OPT_DIRECT_RENDER:
+	case GF_OPT_DIRECT_DRAW:
 		compositor->traverse_state->direct_draw = value ? 1 : 0;
 		/*force redraw*/
 		compositor->draw_next_frame = 1;
@@ -1195,7 +1195,7 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	case GF_OPT_TEXTURE_TEXT: return compositor->texture_text_mode;
 	case GF_OPT_USE_OPENGL: return compositor->force_opengl_2d;
 
-	case GF_OPT_DIRECT_RENDER: return compositor->traverse_state->direct_draw ? 1 : 0;
+	case GF_OPT_DIRECT_DRAW: return compositor->traverse_state->direct_draw ? 1 : 0;
 	case GF_OPT_SCALABLE_ZOOM: return compositor->scalable_zoom;
 	case GF_OPT_YUV_HARDWARE: return compositor->enable_yuv_hw;
 	case GF_OPT_YUV_FORMAT: return compositor->enable_yuv_hw ? compositor->video_out->yuv_pixel_format : 0;

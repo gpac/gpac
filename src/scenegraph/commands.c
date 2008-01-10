@@ -255,6 +255,35 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					list = list->next;
 				}
 				break;
+			case GF_SG_VRML_SFCOMMANDBUFFER:
+			{
+				u32 i, count;
+				GF_SceneGraph *sg;
+				SFCommandBuffer *cb_dst = (SFCommandBuffer *)field.far_ptr;
+				SFCommandBuffer *cb_src = (SFCommandBuffer *)inf->field_ptr;
+
+				/*reset dest*/
+				while (gf_list_count(cb_dst->commandList)) {
+					GF_Command *sub_com = (GF_Command *)gf_list_get(cb_dst->commandList, 0);
+					gf_sg_command_del(sub_com);
+					gf_list_rem(cb_dst->commandList, 0);
+				}
+				if (cb_dst->buffer) {
+					free(cb_dst->buffer);
+					cb_dst->buffer = NULL;
+				}
+
+				/*clone command list*/
+				sg = gf_node_get_graph(com->node);
+				count = gf_list_count(cb_src->commandList);
+				for (i=0; i<count;i++) {
+					GF_Command *sub_com = (GF_Command *)gf_list_get(cb_src->commandList, i);
+					GF_Command *new_com = gf_sg_command_clone(sub_com, sg);
+					gf_list_add(cb_dst->commandList, new_com);
+				}
+			}
+				break;
+
 			default:
 				/*this is a regular field, reset it and clone - we cannot switch pointers since the
 				original fields are NOT pointers*/

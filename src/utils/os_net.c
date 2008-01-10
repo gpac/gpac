@@ -325,7 +325,7 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, u32 NonBlockingOn)
 {
 	s32 res;
 #ifdef WIN32
-	u_long val = NonBlockingOn;
+	long val = NonBlockingOn;
 	res = ioctlsocket(sock->socket, FIONBIO, &val);
 	if (res) return GF_SERVICE_ERROR;
 #else

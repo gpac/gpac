@@ -581,6 +581,7 @@ void COsmo4AppView::MrccatoCommand(TRemConCoreApiOperationId aOperationId, TRemC
 */
 	case ERemConCoreApiVolumeUp:
 	case ERemConCoreApiVolumeDown:
+#ifndef GPAC_GUI_ONLY
 		e.key.hw_code = 0;
 		e.key.flags = 0;
 		e.key.key_code = (aOperationId==ERemConCoreApiVolumeUp) ? GF_KEY_VOLUMEUP : GF_KEY_VOLUMEDOWN;
@@ -600,6 +601,7 @@ void COsmo4AppView::MrccatoCommand(TRemConCoreApiOperationId aOperationId, TRemC
 			gf_term_user_event(m_term, &e);
 			break;
 		}
+#endif
 		break;
 	default:
 		break;

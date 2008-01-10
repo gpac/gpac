@@ -1299,10 +1299,18 @@ static void dirty_parents(GF_Node *node)
 		check_root = 0;
 		nlist = nlist->next;
 	}
-	if (check_root && node->sgprivate->scenegraph->NodeCallback && 
-		/*propagate if root node or if proto node (may be unattached yet)*/
-		( (node==node->sgprivate->scenegraph->RootNode) || node->sgprivate->scenegraph->pOwningProto) )
-		node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_GRAPH_DIRTY, NULL, NULL);
+	/*propagate to parent scene graph */
+	if (check_root) {
+		/*if root node of the scenegraph*/
+		if (node->sgprivate->scenegraph->NodeCallback && (node==node->sgprivate->scenegraph->RootNode) ) {
+			node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_GRAPH_DIRTY, NULL, NULL);
+		}
+		/*or if parent graph is a protoinstance but the node is not this proto*/
+		else if (node->sgprivate->scenegraph->pOwningProto) {
+			GF_Node *the_node = (GF_Node *) node->sgprivate->scenegraph->pOwningProto;
+			if (the_node != node) dirty_parents(the_node);
+		}
+	}
 }
 
 GF_EXPORT
