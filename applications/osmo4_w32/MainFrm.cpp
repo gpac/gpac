@@ -959,16 +959,16 @@ void CMainFrame::BuildStreamList(Bool reset_only)
 			pMenu = pSelect->GetSubMenu(0);
 			if (!info.owns_service) {
 				if (info.lang) {
-					sprintf(szLabel, "Audio %s", gf_4cc_to_str(info.lang) );
+					sprintf(szLabel, "Language %s (ID %d)", gf_4cc_to_str(info.lang), info.od->objectDescriptorID);
 				} else {
-					sprintf(szLabel, "Audio #%d", pMenu->GetMenuItemCount() + 1);
+					sprintf(szLabel, "ID %d", info.od->objectDescriptorID);
 				}
 			}
 			pMenu->AppendMenu(MF_ENABLED, ID_SELOBJ_0 + i, szLabel);
 			break;
 		case GF_STREAM_VISUAL:
 			pMenu = pSelect->GetSubMenu(1);
-			if (!info.owns_service) sprintf(szLabel, "Video #%d", pMenu->GetMenuItemCount() + 1);
+			if (!info.owns_service) sprintf(szLabel, "ID %d", info.od->objectDescriptorID);
 			pMenu->AppendMenu(MF_ENABLED, ID_SELOBJ_0 + i, szLabel);
 			break;
 		case GF_STREAM_TEXT:
@@ -976,9 +976,9 @@ void CMainFrame::BuildStreamList(Bool reset_only)
 			pMenu = pSelect->GetSubMenu(2);
 			if (!info.owns_service) {
 				if (info.lang) {
-					sprintf(szLabel, "Subtitle %s", gf_4cc_to_str(info.lang) );
+					sprintf(szLabel, "Language %s (ID %d)", gf_4cc_to_str(info.lang), info.od->objectDescriptorID);
 				} else {
-					sprintf(szLabel, "Subtitle #%d", pMenu->GetMenuItemCount() + 1);
+					sprintf(szLabel, "ID %d", info.od->objectDescriptorID);
 				}
 			}
 			pMenu->AppendMenu(MF_ENABLED, ID_SELOBJ_0 + i, szLabel);

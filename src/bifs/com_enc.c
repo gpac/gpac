@@ -506,14 +506,20 @@ GF_Err BE_EncProtoList(GF_BifsEncoder *codec, GF_List *protoList, GF_BitStream *
 			if (e) goto exit;
 
 			count = gf_list_count(proto->node_code);
-			for (j=0; j<count; j++) {
-				/*parse all nodes in SFWorldNode table*/
-				node = (GF_Node*)gf_list_get(proto->node_code, j);
-				e = gf_bifs_enc_node(codec, node, NDT_SFWorldNode, bs);
-				if (e) goto exit;
-				GF_BIFS_WRITE_INT(codec, bs, (j+1==count) ? 0 : 1, 1, "moreNodes", NULL);
+			/*BIFS cannot encode empty protos ! We therefore encode a NULL node instead*/
+			if (!count) {
+				gf_bifs_enc_node(codec, NULL, NDT_SFWorldNode, bs);
+				GF_BIFS_WRITE_INT(codec, bs, 0, 1, "moreNodes", NULL);
+			} else {
+				for (j=0; j<count; j++) {
+					/*parse all nodes in SFWorldNode table*/
+					node = (GF_Node*)gf_list_get(proto->node_code, j);
+					e = gf_bifs_enc_node(codec, node, NDT_SFWorldNode, bs);
+					if (e) goto exit;
+					GF_BIFS_WRITE_INT(codec, bs, (j+1==count) ? 0 : 1, 1, "moreNodes", NULL);
+				}
 			}
-			
+
 			/*encode routes routes*/
 			nbRoutes = count = gf_list_count(proto->sub_graph->Routes);
 			for (j=0; j<count; j++) {

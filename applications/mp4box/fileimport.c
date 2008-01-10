@@ -45,6 +45,7 @@ void convert_file_info(char *inName, u32 trackID)
 	Bool found;
 	GF_MediaImporter import;
 	memset(&import, 0, sizeof(GF_MediaImporter));
+	import.trackID = trackID;
 	import.in_name = inName;
 	import.flags = GF_IMPORT_PROBE_ONLY;
 	e = gf_media_import(&import);

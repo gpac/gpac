@@ -218,25 +218,28 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 	if ((ffd->st==GF_STREAM_VISUAL)) {
 		/*for all MPEG-4 variants get size*/
 		if ((ffd->oti==0x20) || (ffd->oti == 0x21)) {
-			if (!decSpecInfoSize || !decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
+			/*if not set this may be a remap of non-mpeg4 transport (eg, transport on MPEG-TS) where
+			the DSI is carried in-band*/
+			if (decSpecInfoSize && decSpecInfo) {
 
-			/*for regular MPEG-4, try to decode and if this fails try H263 decoder at first frame*/
-			if (ffd->oti==0x20) {
-				e = gf_m4v_get_config(decSpecInfo, decSpecInfoSize, &dsi);
-				if (e) return e;
-				ffd->ctx->width = dsi.width;
-				ffd->ctx->height = dsi.height;
-				if (!dsi.width && !dsi.height) ffd->check_short_header = 1;
-				ffd->previous_par = (dsi.par_num<<16) | dsi.par_den;
-				ffd->no_par_update = 1;
-			} else if (ffd->oti==0x21) {
-				ffd->check_h264_isma = 1;
+				/*for regular MPEG-4, try to decode and if this fails try H263 decoder at first frame*/
+				if (ffd->oti==0x20) {
+					e = gf_m4v_get_config(decSpecInfo, decSpecInfoSize, &dsi);
+					if (e) return e;
+					ffd->ctx->width = dsi.width;
+					ffd->ctx->height = dsi.height;
+					if (!dsi.width && !dsi.height) ffd->check_short_header = 1;
+					ffd->previous_par = (dsi.par_num<<16) | dsi.par_den;
+					ffd->no_par_update = 1;
+				} else if (ffd->oti==0x21) {
+					ffd->check_h264_isma = 1;
+				}
+
+				/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
+				ffd->ctx->extradata = malloc(sizeof(char)*decSpecInfoSize);
+				memcpy(ffd->ctx->extradata, decSpecInfo, decSpecInfoSize);
+				ffd->ctx->extradata_size = decSpecInfoSize;
 			}
-
-			/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
-			ffd->ctx->extradata = malloc(sizeof(char)*decSpecInfoSize);
-			memcpy(ffd->ctx->extradata, decSpecInfo, decSpecInfoSize);
-			ffd->ctx->extradata_size = decSpecInfoSize;
 		}
 		ffd->frame = avcodec_alloc_frame();
 	}
