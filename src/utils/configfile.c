@@ -76,10 +76,8 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 	tmp = (GF_Config *)malloc(sizeof(GF_Config));
 	memset((void *)tmp, 0, sizeof(GF_Config));
 
-	tmp->filePath = (char *)malloc(sizeof(char) * (strlen(filePath)+1));
-	strcpy(tmp->filePath, filePath ? filePath : "");
-	tmp->fileName = (char *)malloc(sizeof(char) * (strlen(fileName)+1));
-	strcpy(tmp->fileName, fileName);
+	tmp->filePath = strdup(filePath);
+	tmp->fileName = strdup(fileName);
 	tmp->sections = gf_list_new();
 
 	//load the file
@@ -89,12 +87,16 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 		ret = fgets(line, MAX_INI_LINE, file);
 
 		if (!ret) continue;
-		if (!strlen(line)) continue;
-		if (line[0] == '#') continue;
 
 		//get rid of the end of line stuff
-		while ((strlen(line) > 0) && ((line[strlen(line)-1] == '\n') || (line[strlen(line)-1] == '\r')) )
-			line[strlen(line)-1] = 0;
+		while (1) {
+			u32 len = strlen(line);
+			if (!len) break;
+			if ((line[len-1] != '\n') && (line[len-1] != '\r')) break;
+			line[len-1] = 0;
+		}
+		if (!strlen(line)) continue;
+		if (line[0] == '#') continue;
 
 		
 		//new section

@@ -799,14 +799,12 @@ u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg)
 	}
 }
 
-GF_EXPORT
-GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
-{
-	GF_BitStream *bs;
-	memset(cfg, 0, sizeof(GF_M4ADecSpecInfo));
-	if (!dsi || !dsi_size || (dsi_size<2) ) return GF_NON_COMPLIANT_BITSTREAM;
-	bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
 
+
+GF_EXPORT
+GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_known)
+{
+	memset(cfg, 0, sizeof(GF_M4ADecSpecInfo));
 	cfg->base_object_type = gf_bs_read_int(bs, 5);
 	/*extended object type*/
 	if (cfg->base_object_type==31) {
@@ -833,10 +831,81 @@ GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
 		cfg->sbr_object_type = gf_bs_read_int(bs, 5);
 	}
 
-	gf_bs_align(bs);
-	if (gf_bs_available(bs)>=2) {
-		u32 sync = gf_bs_read_int(bs, 11);
+	/*object cfg*/
+	switch (cfg->base_object_type) {
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 6:
+	case 7:
+	case 17:
+	case 19:
+	case 20:
+	case 21:
+	case 22:
+	case 23:
+	{
+		Bool fl_flag, ext_flag;
+		u32 delay;
+		/*frame length flag*/
+		fl_flag = gf_bs_read_int(bs, 1);
+		/*depends on core coder*/
+		delay = 0;
+		if (gf_bs_read_int(bs, 1))
+			delay = gf_bs_read_int(bs, 14);
+		ext_flag = gf_bs_read_int(bs, 1);
+		if (!cfg->nb_chan) {
+		}
+		if ((cfg->base_object_type == 6) || (cfg->base_object_type == 20)) {
+			gf_bs_read_int(bs, 3);
+		}
+		if (ext_flag) {
+			if (cfg->base_object_type == 22) {
+				gf_bs_read_int(bs, 5);
+				gf_bs_read_int(bs, 11);
+			}
+			if ((cfg->base_object_type == 17) 
+				|| (cfg->base_object_type == 19) 
+				|| (cfg->base_object_type == 20) 
+				|| (cfg->base_object_type == 23) 
+			) {
+				gf_bs_read_int(bs, 1);
+				gf_bs_read_int(bs, 1);
+				gf_bs_read_int(bs, 1);
+			}
+			ext_flag = gf_bs_read_int(bs, 1);
+		}
+	}
+		break;
+	}
+	/*ER cfg*/
+	switch (cfg->base_object_type) {
+	case 17:
+	case 19:
+	case 20:
+	case 21:
+	case 22:
+	case 23:
+	case 24:
+	case 25:
+	case 26:
+	case 27:
+	{
+		u32 epConfig = gf_bs_read_int(bs, 2);
+		if ((epConfig == 2) || (epConfig == 3) ) {
+		}
+		if (epConfig == 3) {
+			gf_bs_read_int(bs, 1);
+		}
+	}
+		break;
+	}
+
+	if (size_known && (cfg->base_object_type != 5) && gf_bs_available(bs)>=2) {
+		u32 sync = gf_bs_peek_bits(bs, 11, 0);
 		if (sync==0x2b7) {
+			gf_bs_read_int(bs, 11);
 			cfg->sbr_object_type = gf_bs_read_int(bs, 5);
 			cfg->has_sbr = gf_bs_read_int(bs, 1);
 			if (cfg->has_sbr) {
@@ -850,6 +919,96 @@ GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
 		}
 	}
 	cfg->audioPL = gf_m4a_get_profile(cfg);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
+{
+	GF_BitStream *bs;
+	if (!dsi || !dsi_size || (dsi_size<2) ) return GF_NON_COMPLIANT_BITSTREAM;
+	bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
+	gf_m4a_parse_config(bs, cfg, 1);
+	gf_bs_del(bs);
+	return GF_OK;
+}
+
+
+GF_EXPORT
+GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size)
+{
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	/*extended object type*/
+	if (cfg->base_object_type>=32) {
+		gf_bs_write_int(bs, 31, 5);
+		gf_bs_write_int(bs, cfg->base_object_type-32, 6);
+	} else {
+		gf_bs_write_int(bs, cfg->base_object_type, 5);
+	}
+	gf_bs_write_int(bs, cfg->base_sr_index, 4);
+	if (cfg->base_sr_index == 0x0F) {
+		gf_bs_write_int(bs, cfg->base_sr, 24);
+	}
+	if (cfg->nb_chan == 8) {
+		gf_bs_write_int(bs, 7, 4);
+	} else {
+		gf_bs_write_int(bs, cfg->nb_chan, 4);
+	}
+
+	if (cfg->base_object_type==5) {
+		cfg->has_sbr = 1;
+		gf_bs_write_int(bs, cfg->sbr_sr_index, 4);
+		if (cfg->sbr_sr_index == 0x0F) {
+			gf_bs_write_int(bs, cfg->sbr_sr, 24);
+		}
+		gf_bs_write_int(bs, cfg->sbr_object_type, 5);
+	}
+
+	/*object cfg*/
+	switch (cfg->base_object_type) {
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 6:
+	case 7:
+	case 17:
+	case 19:
+	case 20:
+	case 21:
+	case 22:
+	case 23:
+	{
+		/*frame length flag*/
+		gf_bs_write_int(bs, 0, 1);
+		/*depends on core coder*/
+		gf_bs_write_int(bs, 0, 1);
+		/*ext flag*/
+		gf_bs_write_int(bs, 0, 1);
+		if ((cfg->base_object_type == 6) || (cfg->base_object_type == 20)) {
+			gf_bs_write_int(bs, 0, 3);
+		}
+	}
+		break;
+	}
+	/*ER cfg - not supported*/
+
+	/*implicit sbr - not used yet*/
+	if (0 && (cfg->base_object_type != 5) ) {
+		gf_bs_write_int(bs, 0x2b7, 11);
+		cfg->sbr_object_type = gf_bs_read_int(bs, 5);
+		cfg->has_sbr = gf_bs_read_int(bs, 1);
+		if (cfg->has_sbr) {
+			cfg->sbr_sr_index = gf_bs_read_int(bs, 4);
+			if (cfg->sbr_sr_index == 0x0F) {
+				cfg->sbr_sr = gf_bs_read_int(bs, 24);
+			} else {
+				cfg->sbr_sr = GF_M4ASampleRates[cfg->sbr_sr_index];
+			}
+		}
+	}
+	gf_bs_get_content(bs, dsi, dsi_size);
 	gf_bs_del(bs);
 	return GF_OK;
 }

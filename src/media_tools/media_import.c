@@ -4666,6 +4666,7 @@ typedef struct
 	GF_AVCConfig *avccfg;
 	AVCState avc;
 	Bool force_next_au_start;
+	u32 aac_setup;
 } GF_TSImport;
 
 
@@ -5037,6 +5038,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				mtype = GF_ISOM_MEDIA_AUDIO;
 				stype = GF_STREAM_AUDIO; oti = 0x69;
 				break;
+			case GF_M2TS_AUDIO_LATM_AAC:
 			case GF_M2TS_AUDIO_AAC:
 				mtype = GF_ISOM_MEDIA_AUDIO;
 				stype = GF_STREAM_AUDIO; oti = 0x40;
@@ -5051,6 +5053,21 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				break;
 			}
 			m2ts_create_track(tsimp, mtype, stype, oti, is_in_iod);
+		}
+		break;
+	case GF_M2TS_EVT_AAC_CFG:
+		if (!(import->flags & GF_IMPORT_PROBE_ONLY) && !tsimp->aac_setup) {
+			GF_ESD *esd = gf_isom_get_esd(import->dest, tsimp->track, 1);
+			if (esd) {
+				if (!esd->decoderConfig->decoderSpecificInfo) esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+				if (esd->decoderConfig->decoderSpecificInfo->data) free(esd->decoderConfig->decoderSpecificInfo->data);
+				esd->decoderConfig->decoderSpecificInfo->data = ((GF_M2TS_PES_PCK*)par)->data;
+				esd->decoderConfig->decoderSpecificInfo->dataLength = ((GF_M2TS_PES_PCK*)par)->data_len;
+				gf_isom_change_mpeg4_description(import->dest, tsimp->track, 1, esd);
+				esd->decoderConfig->decoderSpecificInfo->data = NULL;
+				gf_odf_desc_del((GF_Descriptor *)esd);
+				tsimp->aac_setup = 1;
+			}
 		}
 		break;
 	case GF_M2TS_EVT_PES_PCK:
@@ -5071,7 +5088,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						break;
 					}
 				}
-				if (!ts->has_4on2 && (pck->stream->vid_h || pck->stream->aud_sr)) 
+				if (!ts->has_4on2 && (import->trackID==pck->stream->pid) && (pck->stream->vid_h || pck->stream->aud_sr) ) 
 					import->flags |= GF_IMPORT_DO_ABORT;
 				return;
 			}

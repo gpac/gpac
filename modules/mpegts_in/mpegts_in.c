@@ -241,7 +241,7 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 	return 0;
 }
 
-static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream)
+static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 dsi_size)
 {
 	GF_ObjectDescriptor *od;
 	GF_ESD *esd;
@@ -276,7 +276,16 @@ static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream)
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		esd->decoderConfig->objectTypeIndication = 0x69;
 		break;
+	case GF_M2TS_AUDIO_LATM_AAC:
 	case GF_M2TS_AUDIO_AAC:
+		if (!dsi) {
+			/*discard regulate until we fetch the AAC config*/
+			m2ts->file_regulate = 0;
+			/*turn on parsing*/
+			gf_m2ts_set_pes_framing(stream, GF_M2TS_PES_FRAMING_DEFAULT);
+			gf_odf_desc_del((GF_Descriptor *)esd);
+			return;
+		}
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		esd->decoderConfig->objectTypeIndication = 0x40;
 		break;
@@ -295,8 +304,10 @@ static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream)
 	esd->slConfig->timestampResolution = 90000;
 	
 	/*decoder config*/
-	if (0) {
-		esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
+	if (dsi) {
+		esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*dsi_size);
+		memcpy(esd->decoderConfig->decoderSpecificInfo->data, dsi, sizeof(char)*dsi_size);
+		esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_size;
 	}
 
 	/*declare object to terminal*/
@@ -305,9 +316,6 @@ static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream)
 	od->objectDescriptorID = stream->pid;	
 	/*declare but don't regenerate scene*/
 	gf_term_add_media(m2ts->service, (GF_Descriptor*)od, 1);
-
-	/*wait for connection*/
-	while (!stream->user) gf_sleep(0);
 }
 
 static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog)
@@ -326,17 +334,17 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog)
 		if (!found) return;
 	}
 #endif	
+	m2ts->file_regulate = 1;
+
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
 		/*move to skip mode for all PES until asked for playback*/
 		if (!(es->flags & GF_M2TS_ES_IS_SECTION)) gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
-		if (!prog->pmt_iod) MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es);
+		if (!prog->pmt_iod) MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
 	}
 	/*force scene regeneration*/
 	gf_term_add_media(m2ts->service, NULL, 0);
-
-	m2ts->file_regulate = 1;
 }
 
 static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
@@ -420,6 +428,18 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		break;
 	case GF_M2TS_EVT_SL_PCK:
 		MP2TS_SendSLPacket(m2ts, param);
+		break;
+	case GF_M2TS_EVT_AAC_CFG:
+	{
+		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK*)param;
+		if (!pck->stream->first_dts) {
+			gf_m2ts_set_pes_framing(pck->stream, GF_M2TS_PES_FRAMING_SKIP);
+			MP2TS_DeclareStream(m2ts, pck->stream, pck->data, pck->data_len);
+			m2ts->file_regulate = 1;
+			/*force scene regeneration*/
+			gf_term_add_media(m2ts->service, NULL, 0);
+		}
+	}
 		break;
 	case GF_M2TS_EVT_PES_PCR:
 		if (m2ts->file_regulate) {
