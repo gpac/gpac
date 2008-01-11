@@ -121,6 +121,11 @@ enum
 	GF_M2TS_EVT_SL_PCK,
 	/*An IP datagram has been received in a section - assoctiated parameter: IP datagram */
 	GF_M2TS_EVT_IP_DATAGRAM,
+
+	/*AAC config has been extracted - associated parameter: PES Packet with encoded M4ADecSpecInfo in its data
+		THIS MUST BE CLEANED UP
+	*/
+	GF_M2TS_EVT_AAC_CFG,
 };
 
 enum
@@ -263,7 +268,9 @@ typedef struct tag_m2ts_pes
 	/*PES reframer - if NULL, pes processing is skiped*/
 	u32 frame_state;
 	void (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, unsigned char *data, u32 data_len);
-
+	/*LATM stuff - should be moved out of mpegts*/
+	unsigned char *buf;
+	u32 buf_len;
 } GF_M2TS_PES;
 
 /*SDT information object*/

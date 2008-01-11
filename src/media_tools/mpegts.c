@@ -235,6 +235,152 @@ void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, 
 	ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 }
 
+static u32 latm_get_value(GF_BitStream *bs)
+{
+	u32 i, tmp, value = 0;
+	u32 bytesForValue = gf_bs_read_int(bs, 2);
+	for (i=0; i <= bytesForValue; i++) {
+		value <<= 8;
+		tmp = gf_bs_read_int(bs, 8);
+		value += tmp;
+	}
+	return value;
+}
+
+void gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
+{
+	u32 sc_pos = 0;
+	u32 start = 0;
+	u32 to_send = data_len;
+	GF_M2TS_PES_PCK pck;
+
+	if (PTS) {
+		pes->PTS = PTS;
+		if (DTS) pes->DTS = DTS;
+		else pes->DTS = PTS;
+	}
+	/*dispatch frame*/
+	pck.stream = pes;
+	pck.DTS = pes->DTS;
+	pck.PTS = pes->PTS;
+	pck.flags = 0;
+
+	while (sc_pos+2<data_len) {
+		u32 size;
+		u32 amux_len;
+		GF_BitStream *bs;
+		/*look for sync marker 0x2B7 on 11 bits*/
+		if ((data[sc_pos]!=0x56) || ((data[sc_pos+1] & 0xE0) != 0xE0)) {
+			sc_pos++;
+			continue;
+		}
+
+		/*flush any pending data*/
+		if (start < sc_pos) {
+			/*...*/
+
+		}
+
+		/*found a start code*/
+		amux_len = data[sc_pos+1] & 0x1F;
+		amux_len <<= 8;
+		amux_len |= data[sc_pos+2];
+
+		bs = gf_bs_new(data+sc_pos+3, amux_len, GF_BITSTREAM_READ);
+
+		/*use same stream mux*/
+		if (!gf_bs_read_int(bs, 1)) {
+			Bool amux_version, amux_versionA;
+			
+			amux_version = gf_bs_read_int(bs, 1);
+			amux_versionA = 0;
+			if (amux_version) amux_versionA = gf_bs_read_int(bs, 1);
+			if (!amux_versionA) {
+				u32 i, allStreamsSameTimeFraming, numSubFrames, numProgram;
+				if (amux_version) latm_get_value(bs);
+
+				allStreamsSameTimeFraming = gf_bs_read_int(bs, 1);
+				numSubFrames = gf_bs_read_int(bs, 6);
+				numProgram = gf_bs_read_int(bs, 4);
+				for (i=0; i<=numProgram; i++) {
+					u32 j, num_lay;
+					num_lay = gf_bs_read_int(bs, 3);
+					for (j=0;j<=num_lay; j++) {
+						GF_M4ADecSpecInfo cfg;
+						u32 frameLengthType, latmBufferFullness;
+						Bool same_cfg = 0;
+						if (i || j) same_cfg = gf_bs_read_int(bs, 1);
+
+						if (!same_cfg) {
+							if (amux_version==1) latm_get_value(bs);
+							gf_m4a_parse_config(bs, &cfg, 0);
+
+							if (!pes->aud_sr) {
+								pck.stream = pes;
+								gf_m4a_write_config(&cfg, &pck.data, &pck.data_len);
+								ts->on_event(ts, GF_M2TS_EVT_AAC_CFG, &pck);
+								free(pck.data);
+								pes->aud_sr = cfg.base_sr;
+								pes->aud_nb_ch = cfg.nb_chan;
+							}
+						}
+						frameLengthType = gf_bs_read_int(bs, 3);
+						if (!frameLengthType) {
+							latmBufferFullness = gf_bs_read_int(bs, 8);
+							if (!allStreamsSameTimeFraming) {
+							}
+						} else {
+							/*not supported*/
+						}
+					}
+
+				}
+				/*other data present*/
+				if (gf_bs_read_int(bs, 1)) {
+					u32 k = 0;
+				}
+			}
+
+
+		}
+
+		/*we have a cfg, read data - we only handle single stream multiplex in LATM/LOAS*/
+		if (pes->aud_sr) {
+			size = 0;
+			while (1) {
+				u32 tmp = gf_bs_read_int(bs, 8);
+				size += tmp;
+				if (tmp!=255) break;
+			}
+			if (size>pes->buf_len) {
+				pes->buf_len = size;
+				pes->buf = realloc(pes->buf, sizeof(char)*pes->buf_len);
+			}
+			gf_bs_read_data(bs, pes->buf, size);
+
+			/*dispatch frame*/
+			pck.stream = pes;
+			pck.DTS = pes->PTS;
+			pck.PTS = pes->PTS;
+			pck.flags = GF_M2TS_PES_PCK_AU_START | GF_M2TS_PES_PCK_RAP;
+			pck.data = pes->buf;
+			pck.data_len = size;
+
+			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+
+			/*update PTS in case we don't get any update*/
+			size = 1024*90000/pes->aud_sr;
+			pes->PTS += size;
+		}
+		gf_bs_del(bs);
+
+		/*parse amux*/
+		sc_pos += amux_len+3;
+		start = sc_pos;
+
+	}
+}
+
 static void gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
 {
 	GF_M2TS_PES_PCK pck;
@@ -434,6 +580,7 @@ void gf_m2ts_es_del(GF_M2TS_ES *es)
 	} else if (es->pid!=es->program->pmt_pid) {
 		GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 		if (pes->data) free(pes->data);
+		if (pes->buf) free(pes->buf);
 	}
 	free(es);
 }
@@ -1330,6 +1477,9 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			break;
 		case GF_M2TS_VIDEO_H264:
 			pes->reframe = gf_m2ts_reframe_avc_h264;
+			break;
+		case GF_M2TS_AUDIO_LATM_AAC:
+			pes->reframe = gf_m2ts_reframe_aac_latm;
 			break;
 		default:
 			pes->reframe = gf_m2ts_reframe_default;
