@@ -708,9 +708,6 @@ static void gf_smil_anim_apply_accumulate(SMIL_Anim_RTI *rai)
 		}
 	} else {
 		if (nb_iterations > 0 && rai->previous_iteration != nb_iterations) {
-			/* we are starting a new cycle of animation, therefore we need to reset the previous state variables
-			   like previous_keytime_index ... */
-			gf_smil_anim_reset_variables(rai);
 			rai->previous_iteration = nb_iterations;
 		}
 
@@ -854,9 +851,13 @@ static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 
 static void gf_smil_anim_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_simple_time, u32 state)
 {
+	SMIL_Anim_RTI *rai = rti->rai;
 	switch (state) {
-	case SMIL_TIMING_EVAL_UPDATE: 
 	case SMIL_TIMING_EVAL_REPEAT:
+		/* we are starting a new cycle of animation, therefore we need to reset the previous state variables
+		   like previous_keytime_index ... */
+		gf_smil_anim_reset_variables(rai);
+	case SMIL_TIMING_EVAL_UPDATE: 
 		gf_smil_anim_animate(rti, normalized_simple_time);
 		break;
 	case SMIL_TIMING_EVAL_FREEZE: 
