@@ -49,6 +49,7 @@ void PrintGPACConfig();
 
 static Bool not_threaded = 0;
 static Bool no_audio = 0;
+static Bool no_regulation = 0;
 Bool is_connected = 0;
 Bool startup_file = 0;
 GF_User user;
@@ -76,7 +77,7 @@ Bool right_down = 0;
 
 #ifndef GPAC_READ_ONLY
 void dump_frame(GF_Terminal *term, char *rad_path, u32 dump_type, u32 frameNum);
-Bool dump_file(char *the_url, u32 dump_mode, Double fps, u32 width, u32 height, u32 *times, u32 nb_times);
+Bool dump_file(char *the_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times);
 #endif
 
 void PrintUsage()
@@ -114,6 +115,7 @@ void PrintUsage()
 		"\t        \"all\"        : all tools logged\n"
 		"\n"
 		"\t-size WxH:      specifies visual size (default: scene size)\n"
+		"\t-scale s:      scales the visual size (default: 1)\n"
 		"\t-no-thread:     disables thread usage (except for audio)\n"
 		"\t-no-audio:	   disables audio \n"
 		"\t-no-wnd:        uses windowless mode (Win32 only)\n"
@@ -861,6 +863,7 @@ int main (int argc, char **argv)
 	GF_SystemRTInfo rti;
 	FILE *playlist = NULL;
 	FILE *logfile = NULL;
+	Float scale = 1;
 
 	/*by default use current dir*/
 	strcpy(the_url, ".");
@@ -910,6 +913,9 @@ int main (int argc, char **argv)
 				width = height = 0;
 			}
 			i++;
+		} else if (!stricmp(arg, "-scale")) {
+			sscanf(argv[i+1], "%f", &scale);
+			i++;
 		} else if (!stricmp(arg, "-fps")) {
 			fps = atof(argv[i+1]);
 			i++;
@@ -936,6 +942,7 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-no-wnd")) user.init_flags |= GF_TERM_WINDOWLESS;
 		else if (!strcmp(arg, "-no-thread")) not_threaded = 1;
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
+		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
 		else {
 			PrintUsage();
@@ -990,8 +997,9 @@ int main (int argc, char **argv)
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = user.modules;
-	if (not_threaded) user.init_flags |= GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION;
+	if (not_threaded) user.init_flags |= GF_TERM_NO_VISUAL_THREAD;
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
+	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 
 	fprintf(stdout, "Loading GPAC Terminal ... ");	
 	term = gf_term_new(&user);
@@ -1046,7 +1054,7 @@ int main (int argc, char **argv)
 			times[0] = 0;
 			nb_times++;
 		}
-		ret = dump_file(url_arg, dump_mode, fps, width, height, times, nb_times);
+		ret = dump_file(url_arg, dump_mode, fps, width, height, scale, times, nb_times);
 		Run = 0;
 	} else
 #endif

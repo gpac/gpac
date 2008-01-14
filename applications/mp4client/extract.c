@@ -232,9 +232,11 @@ void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 {
 	u32 j, i;
-	char *ptr;
+	char *ptr, *prev;
 	char str[GF_MAX_PATH];
 	FILE *fout;
+	prev = strrchr(rad_name, '.');
+	if (prev) prev[0] = '\0'; 
 	if (img_num<10) {
 		sprintf(str, "%s_00%d.raw", rad_name, img_num);
 	} else if (img_num<100) {
@@ -418,7 +420,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 	gf_sc_release_screen_buffer(term->compositor, &fb);
 }
 
-Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 *times, u32 nb_times)
+Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times)
 {
 	GF_Err e;
 	u32 i = 0;
@@ -445,7 +447,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 	if (width && height) {
 		gf_term_set_size(term, width, height);
 		gf_term_process_flush(term);
-	}
+	} 
 
 	e = gf_sc_get_screen_buffer(term->compositor, &fb, 0);
 	if (e != GF_OK) {
@@ -455,6 +457,13 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 	width = fb.width;
 	height = fb.height;
 	gf_sc_release_screen_buffer(term->compositor, &fb);
+
+	if (scale != 1) {
+		width = (u32)(width * scale);
+		height = (u32)(height * scale);
+		gf_term_set_size(term, width, height);
+		gf_term_process_flush(term);
+	}
 
 	/*we work in RGB24, and we must make sure the pitch is %4*/
 	if ((width*3)%4) {
@@ -530,7 +539,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 			if (dump_mode==4) {
 				dump_depth(term, szPath, dump_mode, i+1, NULL, NULL);
 			} else {
-				dump_frame(term, szPath, dump_mode, i+1, NULL, NULL);
+				dump_frame(term, url, dump_mode, i+1, NULL, NULL);
 			}
 			
 			if (i+1<nb_times) gf_term_step_clocks(term, times[i+1] - times[i]);

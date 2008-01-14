@@ -852,6 +852,7 @@ waiting_to_begin:
 			GF_SceneGraph * sg = rti->timed_elt->sgprivate->scenegraph;
 			while (sg->parent_scene) sg = sg->parent_scene;
 			gf_list_del_item(sg->smil_timed_elements, rti);
+			ret = -1;
 		}
 	}
 
@@ -889,8 +890,8 @@ Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double sce
 		} else {
 			/* Is this correct ? */
 			rti->current_interval->nb_iterations = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Error Computing Normalized Simple Time while simple duration is indefinite\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
-			return 0;
+			//GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Error Computing Normalized Simple Time while simple duration is indefinite\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+			return FIX_ONE;
 		}
 	}
 

@@ -428,7 +428,7 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 
 	gf_mx_v(tmp->mx);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCycle Log\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and direct Draw)\tTraverse (and direct Draw) without anim\tIndirect Draw\tTraverse And Draw (Indirect or Not)\tFlush\tCycle\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\tNetworks\tDecoders\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and direct Draw)\tTraverse (and direct Draw) without anim\tIndirect Draw\tTraverse And Draw (Indirect or Not)\tFlush\tCycle\n"));
 
 	return tmp;
 }
@@ -1644,6 +1644,15 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			compositor->reset_graphics = 1;
 		}
 		compositor->reset_fonts = 0;
+	} else {
+#ifndef GPAC_DISABLE_LOG
+		traverse_time = 0;
+		time_spent_in_anim = 0;
+		flush_time = 0;
+		compositor->traverse_setup_time = 0;
+		compositor->traverse_and_direct_draw_time = 0;
+		compositor->indirect_draw_time = 0;
+#endif
 	}
 
 	/*release all textures - we must release them to handle a same OD being used by several textures*/
@@ -1677,7 +1686,9 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	end_time = gf_sys_clock() - in_time;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCycle Log\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
+		compositor->networks_time, 
+		compositor->decoders_time, 
 		compositor->frame_number, 
 		compositor->traverse_state->direct_draw,
 		compositor->visual_config_time,

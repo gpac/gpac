@@ -346,6 +346,9 @@ struct __tag_compositor
 	u32 offscreen_width, offscreen_height;
 #endif
 
+	u32 networks_time;
+	u32 decoders_time;
+
 	u32 visual_config_time;
 	u32 traverse_setup_time;
 	u32 traverse_and_direct_draw_time;
