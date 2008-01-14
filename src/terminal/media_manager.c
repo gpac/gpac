@@ -26,7 +26,7 @@
 
 #include <gpac/internal/terminal_dev.h>
 #include "media_memory.h"
-#include <gpac/compositor.h>
+#include <gpac/internal/compositor_dev.h>
 
 
 u32 MM_Loop(void *par);
@@ -226,11 +226,21 @@ static u32 MM_SimulationStep(GF_Terminal *term, u32 *last_dec)
 	GF_Err e;
 	u32 count, current_dec, remain;
 	u32 time_taken, time_slice, time_left;
-
 	current_dec = last_dec ? *last_dec : 0;
 	
+#ifndef GF_DISABLE_LOG
+	term->compositor->networks_time = gf_sys_clock();
+#endif
+
 	gf_term_handle_services(term);
 
+#ifndef GF_DISABLE_LOG
+	term->compositor->networks_time = gf_sys_clock() - term->compositor->networks_time;
+#endif
+
+#ifndef GF_DISABLE_LOG
+	term->compositor->decoders_time = gf_sys_clock();
+#endif
 	gf_mx_p(term->mm_mx);
 
 	count = gf_list_count(term->codecs);
@@ -277,18 +287,25 @@ static u32 MM_SimulationStep(GF_Terminal *term, u32 *last_dec)
 		}
 	}
 	gf_mx_v(term->mm_mx);
+#ifndef GF_DISABLE_LOG
+	term->compositor->decoders_time = gf_sys_clock() - term->compositor->decoders_time;
+#endif
 
 	if (term->flags & GF_TERM_DRAW_FRAME) {
 		time_taken = gf_sys_clock();
 		gf_sc_draw_frame(term->compositor);
 		time_taken = gf_sys_clock() - time_taken;
-
 		if (time_left>time_taken) 
 			time_left -= time_taken;
 		else
 			time_left = 0;
+	} /*else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("(RTI] Terminal Cycle Log\t%d\t%d\t%d\n", term->compositor->networks_time, term->compositor->decoders_time, 0));
+	}*/
+	if (!(term->user->init_flags & GF_TERM_NO_REGULATION)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("(RTI] Sleep %d ms\n", time_left));
+		gf_sleep(time_left);
 	}
-	if (!(term->user->init_flags & GF_TERM_NO_REGULATION)) gf_sleep(time_left);
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Simulation step done in %d / %d ms\n", term->frame_duration-time_left, term->frame_duration));
 	return time_left;
 }
@@ -300,6 +317,7 @@ u32 MM_Loop(void *par)
 
 	gf_th_set_priority(term->mm_thread, term->priority);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[MediaManager] Entering thread ID %d\n", gf_th_id() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("(RTI] Terminal Cycle Log\tServices\tDecoders\tCompositor\tSleep\n"));
 
 	current_dec = 0;
 	while (term->flags & GF_TERM_RUNNING) {
