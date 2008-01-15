@@ -141,12 +141,11 @@ typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 typedef struct __m2ts_demux_table
 {
 	struct __m2ts_demux_table *next;
-	/*table id*/
-	u8 table_id;
 	/*reconstructed table*/
 	unsigned char *data;
 	u32 data_size;
-
+	/*table id*/
+	u8 table_id;
 	/*reassembler state*/
 	u8 version_number;
 	u8 current_next_indicator;

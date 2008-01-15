@@ -637,12 +637,13 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			extended_table_id = (data[3]<<8) | data[4];
 			t->version_number = (data[5] >> 1) & 0x1f;
 			t->current_next_indicator = (data[5] & 0x1) ? 1 : 0;
-			cur_sec_num = data[6];
-			t->last_section_number = data[7];
+			/*add one to section numbers to detect if we missed or not the first section in the table*/
+			cur_sec_num = data[6] + 1;	
+			t->last_section_number = data[7] + 1;
 			section_start = 8;
 			section_valid = 1;
 			/*we missed something*/
-			if (cur_sec_num && (t->section_number + 1 != cur_sec_num)) {
+			if (t->section_number + 1 != cur_sec_num) {
 				section_valid = 0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted table (lost section %d)\n", cur_sec_num ? cur_sec_num-1 : 31) );
 			}
@@ -655,8 +656,8 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 	}
 	/*process section*/
 	if (section_valid) {
+		/*MPEG-4 sections: each section is an SL packet, we must not reaggregate the table*/
 		if (ses && (ses->stream_type == GF_M2TS_SYSTEMS_MPEG4_SECTIONS) ) {
-
 			if (!t->is_init)
 				status = GF_M2TS_TABLE_FOUND;
 			else 
@@ -666,49 +667,53 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			if (t->last_section_number == t->section_number) {
 				t->last_version_number = t->version_number;
 				t->is_init = 1;
+				/*reset section number*/
+				t->section_number = 0;
 			}
 			/*send each section of the table and not the aggregated table*/
 			sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, status);
 
-			goto exit;
-		} 
+		} else {
 		
-		/*table is spread across several sections, gather*/
-		if (t->last_section_number) {
-			u32 pay_size = t->data_size + sec->length - section_start;
-			t->data = (char*)realloc(t->data, sizeof(char)*pay_size);
-			memcpy(t->data + t->data_size, sec->section + section_start, sizeof(char)*(sec->length - section_start) );
-			t->data_size = pay_size;
-			if (sec->section) free(sec->section);
-			sec->section = NULL;
-			sec->length = sec->received = 0;
-		}
-		/*not done yet*/
-		if (t->last_section_number > t->section_number) return;
+			/*table is spread across several sections, gather*/
+			if (t->last_section_number) {
+				u32 pay_size = t->data_size + sec->length - section_start;
+				t->data = (char*)realloc(t->data, sizeof(char)*pay_size);
+				memcpy(t->data + t->data_size, sec->section + section_start, sizeof(char)*(sec->length - section_start) );
+				t->data_size = pay_size;
+				if (sec->section) free(sec->section);
+				sec->section = NULL;
+				sec->length = sec->received = 0;
+			}
+			/*not done yet*/
+			if (t->last_section_number > t->section_number) return;
 
-		if (!t->is_init) 
-			status = GF_M2TS_TABLE_FOUND;
-		else 
-			status = (t->last_version_number==t->version_number) ? GF_M2TS_TABLE_REPEAT : GF_M2TS_TABLE_UPDATE;
+			if (!t->is_init) 
+				status = GF_M2TS_TABLE_FOUND;
+			else 
+				status = (t->last_version_number==t->version_number) ? GF_M2TS_TABLE_REPEAT : GF_M2TS_TABLE_UPDATE;
 
-		t->last_version_number = t->version_number;
-		t->is_init = 1;
+			t->last_version_number = t->version_number;
+			t->is_init = 1;
+			/*reset section number*/
+			t->section_number = 0;
 
-
-		if (t->current_next_indicator) {
-			if (t->data) {
-				sec->process_section(ts, ses, t->data, t->data_size, t->table_id, extended_table_id, status);
-				free(t->data);
-				t->data = NULL;
-				t->data_size = 0;
-			} else {
-				sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, status);
+			if (t->current_next_indicator) {
+				if (t->data) {
+					sec->process_section(ts, ses, t->data, t->data_size, t->table_id, extended_table_id, status);
+					free(t->data);
+					t->data = NULL;
+					t->data_size = 0;
+				} else {
+					sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, status);
+				}
 			}
 		}
 	} else {
 		sec->cc = -1;
+		t->section_number = 0;
 	}
-exit:
+
 	/*clean-up (including broken sections)*/
 	if (sec->section) free(sec->section);
 	sec->section = NULL;
