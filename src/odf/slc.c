@@ -342,14 +342,56 @@ void gf_sl_packetize(GF_SLConfig* slConfig,
 			if (Header->instantBitrateFlag) gf_bs_write_int(bs, Header->instantBitrate, slConfig->instantBitrateLength);
 		}
 	}
-	//done with the Header, Alin
+	/*done with the Header, Alin*/
 	gf_bs_align(bs);
-	//write the PDU - already byte aligned with stuffing (paddingBits in SL Header)
-	gf_bs_write_data(bs, PDU, size);
+
+	/*write the PDU - already byte aligned with stuffing (paddingBits in SL Header)*/
+	if (PDU && size)
+		gf_bs_write_data(bs, PDU, size);
 
 	gf_bs_align(bs);
 	gf_bs_get_content(bs, outPacket, OutSize);
 	gf_bs_del(bs);
+}
+
+/*allocates and writes the SL-PDU (Header + PDU) given the SLConfig and the GF_SLHeader
+for this PDU. AUs must be split in PDUs by another process if needed (packetizer).*/
+GF_EXPORT
+u32 gf_sl_get_header_size(GF_SLConfig* slConfig, GF_SLHeader *Header)
+{
+	u32 nb_bits = 0;
+
+	if (slConfig->useAccessUnitStartFlag) nb_bits++;
+	if (slConfig->useAccessUnitEndFlag) nb_bits++;
+	if (slConfig->OCRLength > 0) nb_bits++;
+	if (slConfig->useIdleFlag) nb_bits++;
+	if (slConfig->usePaddingFlag) {
+		nb_bits++;
+		if (Header->paddingFlag) nb_bits+=3;
+	}
+	if (!Header->idleFlag && (! Header->paddingFlag || Header->paddingBits != 0)) {
+		if (slConfig->packetSeqNumLength > 0) nb_bits += slConfig->packetSeqNumLength;
+		if (slConfig->degradationPriorityLength > 0) {
+			nb_bits++;
+			if (Header->degradationPriorityFlag) nb_bits += slConfig->degradationPriorityLength;
+		}
+		if (Header->OCRflag) nb_bits += slConfig->OCRLength;
+		if (Header->accessUnitStartFlag) {
+			if (slConfig->useRandomAccessPointFlag) nb_bits++;
+			if (slConfig->AUSeqNumLength > 0) nb_bits += slConfig->AUSeqNumLength;
+			if (slConfig->useTimestampsFlag) {
+				nb_bits++;
+				nb_bits++;
+			}
+			if (slConfig->instantBitrateLength > 0) nb_bits++;
+			if (Header->decodingTimeStampFlag) nb_bits += slConfig->timestampLength;
+			if (Header->compositionTimeStampFlag) nb_bits += slConfig->timestampLength;
+			if (slConfig->AULength > 0) nb_bits += slConfig->AULength;
+			if (Header->instantBitrateFlag) nb_bits += slConfig->instantBitrateLength;
+		}
+	}
+	while (nb_bits%8) nb_bits++;
+	return nb_bits/8;
 }
 
 

@@ -655,6 +655,24 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 	}
 	/*process section*/
 	if (section_valid) {
+		if (ses && (ses->stream_type == GF_M2TS_SYSTEMS_MPEG4_SECTIONS) ) {
+
+			if (!t->is_init)
+				status = GF_M2TS_TABLE_FOUND;
+			else 
+				status = (t->last_version_number==t->version_number) ? GF_M2TS_TABLE_REPEAT : GF_M2TS_TABLE_UPDATE;
+
+			/*end of full section*/
+			if (t->last_section_number == t->section_number) {
+				t->last_version_number = t->version_number;
+				t->is_init = 1;
+			}
+			/*send each section of the table and not the aggregated table*/
+			sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, status);
+
+			goto exit;
+		} 
+		
 		/*table is spread across several sections, gather*/
 		if (t->last_section_number) {
 			u32 pay_size = t->data_size + sec->length - section_start;
@@ -676,6 +694,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		t->last_version_number = t->version_number;
 		t->is_init = 1;
 
+
 		if (t->current_next_indicator) {
 			if (t->data) {
 				sec->process_section(ts, ses, t->data, t->data_size, t->table_id, extended_table_id, status);
@@ -689,6 +708,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 	} else {
 		sec->cc = -1;
 	}
+exit:
 	/*clean-up (including broken sections)*/
 	if (sec->section) free(sec->section);
 	sec->section = NULL;

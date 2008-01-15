@@ -69,6 +69,7 @@ typedef struct __m2ts_mux_pck
 	u64 cts, dts;
 } M2TS_Packet;
 
+
 typedef struct __m2ts_mux_stream {
 	struct __m2ts_mux_stream *next;
 
@@ -114,11 +115,9 @@ typedef struct __m2ts_mux_stream {
 	u32 bytes_since_last_time;
 
 	/*MPEG-4 over MPEG-2*/
-	Bool use_sl;
-	Bool use_sections;
 	u8 table_id;
 	GF_SLHeader sl_header;
-	GF_SLConfig sl_config;
+	//GF_SLConfig sl_config;
 } M2TS_Mux_Stream;
 
 
