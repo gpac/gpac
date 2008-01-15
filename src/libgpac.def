@@ -417,6 +417,7 @@ EXPORTS
 	gf_odf_avc_cfg_read
 	gf_odf_avc_cfg_write
 	gf_sl_packetize
+	gf_sl_get_header_size
 	gf_sl_depacketize
 ; for MPEG-2 plugin
 	gf_odf_parse_descriptor

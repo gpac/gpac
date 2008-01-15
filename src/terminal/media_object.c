@@ -199,6 +199,8 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 			GF_NetworkCommand com;
 			com.base.command_type = GF_NET_CHAN_GET_PIXEL_AR;
 			ch = gf_list_get(mo->odm->channels, 0);
+			if (!ch) return 0;
+
 			com.base.on_channel = ch;
 			com.par.hSpacing = com.par.vSpacing = 0;
 			if (gf_term_service_command(ch->service, &com) == GF_OK) {

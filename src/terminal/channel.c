@@ -598,11 +598,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		if (!StreamLength) return;
 		gf_sl_depacketize(ch->esd->slConfig, &hdr, StreamBuf, StreamLength, &SLHdrLen);
 		StreamLength -= SLHdrLen;
-		/*some DMB streams are broken - uncomment for playback*/
-#if 1
-		if (ch->esd->decoderConfig->streamType==GF_STREAM_SCENE) hdr.accessUnitEndFlag = 1;
-		if (ch->esd->decoderConfig->streamType==GF_STREAM_OD) hdr.accessUnitEndFlag = 1;
-#endif
 	} else {
 		hdr = *header;
 		SLHdrLen = 0;
