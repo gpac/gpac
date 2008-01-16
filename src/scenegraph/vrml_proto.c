@@ -579,6 +579,8 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 				szName++;
 				if (sscanf(szName, "%d", &ID)) ID = (u32) -1;
 			}
+			/*if we have the proto name, use it*/
+			if (owner->Name) szName = owner->Name;
 			proto = gf_sg_find_proto(extern_lib, ID, szName);
 		}
 		if (!proto) proto = gf_sg_find_proto(extern_lib, owner->ID, NULL);

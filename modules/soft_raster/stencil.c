@@ -571,7 +571,14 @@ static void bmp_fill_run_straight(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _
 	while (x<0) x += _fdim;
 	_fdim = INT2FIX(_this->height);
 	if (!(_this->mod & GF_TEXTURE_REPEAT_T) && (y<- _fdim)) y=0;
-	while (y<0) y += _fdim;
+	while (y<0) {
+		y += _fdim;
+		/*small hack to realign to Y origin - this happens because the raster draws lines between pixels*/
+		if (y<0 && y>=-FIX_ONE/2) {
+			y=0;
+			break;
+		}
+	}
 
 	y0 = FIX2INT(y);
 	y0 = y0 % _this->height;
