@@ -710,6 +710,8 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 				svg_traverse_domtext(child->node, &atts, tr_state, st->spans); 
 				break;
 			case TAG_SVG_tspan:
+				/*mark tspan as dirty to force rebuild*/
+				gf_node_dirty_set(child->node, 0, 0);
 				gf_node_traverse(child->node, tr_state); 
 				break;
 			default:
