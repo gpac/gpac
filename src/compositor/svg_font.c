@@ -223,8 +223,13 @@ void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node_font, font);
 	font->name = strdup(atts.font_family->value);
 
-	font->em_size = atts.units_per_em ? FIX2INT( gf_ceil(atts.units_per_em->value) ) : 0;
+	font->em_size = atts.units_per_em ? FIX2INT( gf_ceil(atts.units_per_em->value) ) : 1000;
+	/*Inconsistency between SVG 1.2 and 1.1
+		when not specify, ascent and descent are computed based on font.vert-origin-y, WHICH DOES NOT EXIST
+	IN Tiny 1.2 !!! We assume it to be 0.
+	*/
 	font->ascent = atts.ascent ? FIX2INT( gf_ceil(atts.ascent->value) ) : 0;
+	if (!font->ascent) font->ascent = font->em_size;
 	font->descent = atts.descent ? FIX2INT( gf_ceil(atts.descent->value) ) : 0;
 	font->baseline = atts.alphabetic ? FIX2INT( gf_ceil(atts.alphabetic->value) ) : 0;
 	font->line_spacing = font->em_size;
