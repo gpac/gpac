@@ -463,21 +463,9 @@ typedef struct _smil_timing_rti
 
 	/* SMIL element life-cycle status */
 	u8 status;
-	/* current cycle number */
-	u32 cycle_number;
-	/* cycle number of the last state change */
-	u32 state_change_cycle_number;
 
-#define NO_INTERVAL_LIST 
-
-#ifdef NO_INTERVAL_LIST
 	SMIL_Interval *current_interval;
-#else
-	/* List of possible intervals for activation of the element */
-	GF_List *intervals;
-	s32	current_interval_index;
-	SMIL_Interval *current_interval;
-#endif
+	SMIL_Interval *next_interval;
 
 	/* Evaluation of animations is postponed untill tree traversal, so that inherit values can be computed
 	Other timed elements (audio, video, animation) are evaluated directly and do not require
