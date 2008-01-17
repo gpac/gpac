@@ -56,10 +56,10 @@
 	<test name="animate-elem-52-t" revision="1.6" status="OK" comment=""/>
 	<test name="animate-elem-53-t" revision="1.4" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
 
-	<test name="animate-elem-60-t" revision="1.2" status="PARTIAL" comment="No wallclock events (not in tiny), negative offsets in end based time is not supported"/>
+	<test name="animate-elem-60-t" revision="1.2" status="PARTIAL" comment="No wallclock events (not in tiny), negative offsets in end attribute is not supported"/>
 	<test name="animate-elem-61-t" revision="1.2" status="OK" comment=""/>
-	<test name="animate-elem-62-t" revision="1.2" status="PARTIAL" comment="No wallclock events (not in tiny), negative offsets in end based time is not supported"/>
-	<test name="animate-elem-63-t" revision="1.2" status="PARTIAL" comment="Negative offset in end attribute"/>
+	<test name="animate-elem-62-t" revision="1.2" status="PARTIAL" comment="No wallclock events (not in tiny), negative offsets in end attribute is not supported"/>
+	<test name="animate-elem-63-t" revision="1.2" status="PARTIAL" comment="Negative offset in end attribute is not supported"/>
 	<test name="animate-elem-64-t" revision="1.6" status="OK" comment=""/>
 	<test name="animate-elem-65-t" revision="1.6" status="OK" comment="min less than repeatDur (same as ASV and Opera)"/>
 	<test name="animate-elem-66-t" revision="1.6" status="OK" comment=""/>
@@ -85,7 +85,7 @@
 	<test name="animate-elem-206-t" revision="1.3" status="PARTIAL" comment="Misalignement of shapes during the animation"/>
 	<test name="animate-elem-207-t" revision="1.2" status="OK" comment=""/>
 	<test name="animate-elem-208-t" revision="1.1" status="FAIL" comment="animateMotion bug"/>
-	<test name="animate-elem-209-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateMotions"/>
+	<test name="animate-elem-209-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-210-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-211-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
 	<test name="animate-elem-212-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
@@ -98,7 +98,7 @@
 	<test name="animate-elem-219-t" revision="1.1" status="PARTIAL" comment="attributeType not supported"/>
 	<test name="animate-elem-220-t" revision="1.2" status="PARTIAL" comment="calcMode spline not supported"/>
 	<test name="animate-elem-221-t" revision="1.1" status="OK" comment=""/>
-	<test name="animate-elem-222-t" revision="1.2" status="FAIL" comment="begin, end, dur, min"/>
+	<test name="animate-elem-222-t" revision="1.2" status="FAIL" comment="special combination of begin, end, dur, min"/>
 	<test name="animate-elem-223-t" revision="1.1" status="OK" comment=""/>
 	<test name="animate-elem-224-t" revision="1.1" status="PARTIAL" comment=""/>
 
@@ -124,22 +124,21 @@
 
 	<test name="extend-namespace-02-t" revision="1.2" status="OK" comment=""/>
 
-	<test name="fonts-desc-01-t" revision="1.2" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-desc-02-t" revision="1.5" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-desc-03-t" revision="1.2" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-desc-05-t" revision="1.2" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-elem-01-t" revision="1.7" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-elem-02-t" revision="1.7" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-elem-03-t" revision="1.6" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-elem-05-t" revision="1.5" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-elem-06-t" revision="1.5" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-glyph-02-t" revision="1.5" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-glyph-03-t" revision="1.5" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-glyph-04-t" revision="1.5" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-glyph-201-t" revision="1.3" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-glyph-202-t" revision="1.5" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-kern-01-t" revision="1.6" status="FAIL" comment="SVG Fonts not supported."/>
-	<test name="fonts-overview-201-t" revision="1.5" status="FAIL" comment="SVG Fonts not supported."/>
+	<test name="fonts-desc-01-t" revision="1.2" status="OK" comment=""/>
+	<test name="fonts-desc-02-t" revision="1.5" status="OK" comment=""/>
+	<test name="fonts-desc-03-t" revision="1.2" status="OK" comment=""/>
+	<test name="fonts-desc-05-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test name="fonts-elem-01-t" revision="1.7" status="OK" comment=""/>
+	<test name="fonts-elem-02-t" revision="1.7" status="OK" comment=""/>
+	<test name="fonts-elem-03-t" revision="1.6" status="OK" comment=""/>
+	<test name="fonts-elem-05-t" revision="1.5" status="OK" comment=""/>
+	<test name="fonts-elem-06-t" revision="1.5" status="OK" comment=""/>
+	<test name="fonts-glyph-02-t" revision="1.5" status="OK" comment=""/>
+	<test name="fonts-glyph-04-t" revision="1.5" status="OK" comment=""/>
+	<test name="fonts-glyph-201-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="fonts-glyph-202-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test name="fonts-kern-01-t" revision="1.6" status="PARTIAL" comment="kerning not supported."/>
+	<test name="fonts-overview-201-t" revision="1.5" status="OK" comment=""/>
 
 	<test name="interact-dom-02-t" revision="1.8" status="OK" comment=""/>
 	<test name="interact-events-02-t" revision="1.2" status="OK" comment=""/>
@@ -425,7 +424,7 @@
 	<test name="struct-frag-06-t" revision="1.5" status="OK" comment=""/>
 	
   <test name="struct-group-01-t" revision="1.8" status="OK" comment=""/>
-	<test name="struct-group-03-t" revision="1.5" status="PARTIAL" comment="font-style bug"/>
+	<test name="struct-group-03-t" revision="1.5" status="OK" comment=""/>
 	
   <test name="struct-image-01-t" revision="1.8" status="OK" comment=""/>
 	<test name="struct-image-03-t" revision="1.8" status="OK" comment=""/>
@@ -465,12 +464,11 @@
 	<test name="styling-pres-01-t" revision="1.2" status="OK" comment=""/>
 	
   <test name="text-align-01-t" revision="1.6" status="OK" comment=""/>
-	<test name="text-align-03-t" revision="1.7" status="PARTIAL" comment="Bug in text-anchor"/>
-	<test name="text-align-04-t" revision="1.1" status="OK" comment="tref and toap are not tiny elements"/>
+	<test name="text-align-03-t" revision="1.7" status="PARTIAL" comment="Bug in text-anchor and tspan"/>
 	<test name="text-align-07-t" revision="1.5" status="OK" comment=""/>
-	<test name="text-align-08-t" revision="1.5" status="FAIL" comment="SVG Fonts not supported."/>
+	<test name="text-align-08-t" revision="1.5" status="PARTIAL" comment=""/>
 	<test name="text-align-201-t" revision="1.2" status="PARTIAL" comment="last space in tspan not rendered properly."/>
-	<test name="text-align-202-t" revision="1.8" status="FAIL" comment=""/>
+	<test name="text-align-202-t" revision="1.8" status="PARTIAL" comment="arabic glyph substitution problem and hebrew alignment"/>
 	
   <test name="text-area-201-t" revision="1.5" status="OK" comment=""/>
 	<test name="text-area-202-t" revision="1.2" status="FAIL" comment=""/>
@@ -489,27 +487,27 @@
 	<test name="text-area-221-t" revision="1.5" status="PARTIAL" comment="display-align not supported"/>
 	<test name="text-area-222-t" revision="1.5" status="FAIL" comment="editable not supported"/>
 	
-  <test name="text-deco-01-t" revision="1.1" status="PARTIAL" comment=""/>
+  <test name="text-deco-01-t" revision="1.1" status="PARTIAL" comment="Not in tiny"/>
 	
-  <test name="text-fonts-01-t" revision="1.7" status="OK" comment="SVG Fonts not supported"/>
-	<test name="text-fonts-02-t" revision="1.7" status="OK" comment=""/>
-	<test name="text-fonts-03-t" revision="1.5" status="OK" comment=""/>
+  <test name="text-fonts-01-t" revision="1.7" status="PARTIAL" comment="Japanese glyphs not displayed"/>
+	<test name="text-fonts-02-t" revision="1.7" status="PARTIAL" comment="bold and number equivalent are not correct"/>
+	<test name="text-fonts-03-t" revision="1.5" status="OK" comment="Missing fonts ?"/>
 	<test name="text-fonts-04-t" revision="1.2" status="OK" comment=""/>
 	<test name="text-fonts-202-t" revision="1.4" status="OK" comment=""/>
 	
-  <test name="text-intro-01-t" revision="1.7" status="OK" comment=""/>
+  <test name="text-intro-01-t" revision="1.7" status="FAIL" comment=""/>
 	<test name="text-intro-04-t" revision="1.7" status="OK" comment=""/>
-	<test name="text-intro-05-t" revision="1.5" status="OK" comment="Using GDI+ Font Engine"/>
-	<test name="text-intro-06-t" revision="1.2" status="OK" comment="Using GDI+ Font Engine"/>
-	<test name="text-intro-201-t" revision="1.3" status="OK" comment="Using GDI+ Font Engine"/>
+	<test name="text-intro-05-t" revision="1.5" status="OK" comment="Using GDI+ Font Engine / FAIL with FreeType"/>
+	<test name="text-intro-06-t" revision="1.2" status="OK" comment="Using GDI+ Font Engine  / FAIL with FreeType"/>
+	<test name="text-intro-201-t" revision="1.3" status="OK" comment="Using GDI+ Font Engine  / FAIL with FreeType"/>
 	
-  <test name="text-text-03-t" revision="1.1" status="OK" comment=""/>
-	<test name="text-text-04-t" revision="1.5" status="PARTIAL" comment="SVG Fonts not supported."/>
-	<test name="text-text-05-t" revision="1.2" status="PARTIAL" comment="SVG Fonts not supported."/>
-	<test name="text-text-06-t" revision="1.6" status="PARTIAL" comment="SVG Fonts not supported."/>
-	<test name="text-text-07-t" revision="1.5" status="PARTIAL" comment="rotate text glyphs not supported."/>
+  <test name="text-text-03-t" revision="1.1" status="PARTIAL" comment=""/>
+	<test name="text-text-04-t" revision="1.5" status="PARTIAL" comment="Problem with y alignment"/>
+	<test name="text-text-05-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test name="text-text-06-t" revision="1.6" status="PARTIAL" comment=""/>
+	<test name="text-text-07-t" revision="1.5" status="PARTIAL" comment="rotate text glyphs not supported and clipping problems"/>
 	<test name="text-text-08-t" revision="1.8" status="OK" comment=""/>
-	<test name="text-text-09-t" revision="1.4" status="PARTIAL" comment="rotate text glyphs not supported."/>
+	<test name="text-text-09-t" revision="1.4" status="PARTIAL" comment="rotate text glyphs not supported and clipping problems"/>
 	<test name="text-tref-01-b" revision="1.1" status="FAIL" comment=""/>
 	
   <test name="text-tselect-03-t" revision="1.7" status="FAIL" comment="text is not selectable."/>
