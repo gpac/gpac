@@ -366,13 +366,18 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 	SMILAnimationAttributesPointers *animp = rai->animp;
 	Fixed interpolation_coefficient;
 	s32 useFrom = (normalized_simple_time<=FIX_ONE/2);
+	u32 real_calcMode;
+
+	real_calcMode = (gf_svg_attribute_is_interpolatable(animp->to->type)?
+						(animp->calcMode ? *animp->calcMode : SMIL_CALCMODE_LINEAR):
+						SMIL_CALCMODE_DISCRETE
+					);
 
 	if (rai->change_detection_mode) {
 		if (rai->previous_coef == normalized_simple_time) 
 			rai->interpolated_value_changed = 0;
 		else {
-			if (animp->calcMode &&
-				*animp->calcMode == SMIL_CALCMODE_DISCRETE &&
+			if (real_calcMode == SMIL_CALCMODE_DISCRETE &&
 				useFrom == rai->previous_key_index) {
 				rai->interpolated_value_changed = 0;
 			} else {
@@ -426,7 +431,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 
 		rai->previous_coef = interpolation_coefficient;
 
-		switch ((animp->calcMode ? *animp->calcMode : SMIL_CALCMODE_LINEAR)) {
+		switch (real_calcMode) {
 		case SMIL_CALCMODE_DISCRETE:
 			{
 				/* before half of the duration stay at 'from' and then switch to 'to' */
@@ -964,25 +969,30 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 /* DEBUG: uncomment this line to remove animation effect, and keep animation computation */	
 //		gf_svg_attributes_copy(&aa->presentation_value, &aa->specified_value, 0);
 
-		if (aa->presentation_value_changed) {
 #ifndef GPAC_DISABLE_LOG
+		if (aa->presentation_value_changed) {
 			if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_INTERACT)) { 
 				char str[1000];
 				gf_log_lt(GF_LOG_DEBUG, GF_LOG_INTERACT); 
 				gf_svg_dump_attribute(node, &aa->presentation_value, str);
 				assert(strlen(str) < 1000);
-				gf_log("[SMIL Animation] Time %f - Element %s - Presentation value changed for attribute %s, new value: %s\n", 
+				gf_log("[SMIL Animation] Time %f - Element %s - Presentation value changed for attribute %s, new value: %s - dirty flags %x\n", 
 					gf_node_get_scene_time(node), gf_node_get_log_name(node), 
-					gf_svg_get_attribute_name(aa->presentation_value.fieldIndex), str);
+					gf_svg_get_attribute_name(aa->presentation_value.fieldIndex), str, aa->dirty_flags);
 			}
+		}
 #endif
-			/* we only set dirty flags when a real flag is set to avoid unnecessary computation
-			   for example, it is not necessary to set it when the anim is an animateTransform 
-			   since there is no associated flag */
-			if (aa->dirty_flags) gf_node_dirty_set(node, aa->dirty_flags, aa->dirty_parents);
-		} else {
-			/* WARNING - This does not work for use elements because apply_animations may be called several times */
-			//gf_node_dirty_clear(node, aa->dirty_flags);
+
+		/* we only set dirty flags when a real flag is set to avoid unnecessary computation
+		   for example, it is not necessary to set it when the anim is an animateTransform 
+		   since there is no associated flag */
+		if (aa->dirty_flags) {
+			if (aa->presentation_value_changed) {
+				gf_node_dirty_set(node, aa->dirty_flags, aa->dirty_parents);
+			} else {
+				/* WARNING - This does not work for use elements because apply_animations may be called several times */
+				gf_node_dirty_clear(node, aa->dirty_flags);
+			}
 		}
 	}
 
