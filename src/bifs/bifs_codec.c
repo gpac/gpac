@@ -96,7 +96,6 @@ GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec)
 		tmp->command_buffers = gf_list_new();
 	}
 	tmp->current_graph = NULL;
-//	tmp->mx = gf_mx_new();
 	return tmp;
 }
 
@@ -281,7 +280,6 @@ GF_BifsEncoder *gf_bifs_encoder_new(GF_SceneGraph *graph)
 	tmp->QPs = gf_list_new();
 	tmp->streamInfo = gf_list_new();
 	tmp->info = NULL;	
-//	tmp->mx = gf_mx_new();
 	tmp->encoded_nodes = gf_list_new();
 	tmp->scene_graph = graph;
 	return tmp;

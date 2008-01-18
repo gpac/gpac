@@ -53,7 +53,7 @@ typedef struct
 
 GF_Err gf_term_init_scheduler(GF_Terminal *term, u32 threading_mode)
 {
-	term->mm_mx = gf_mx_new();
+	term->mm_mx = gf_mx_new("MediaManager");
 	term->codecs = gf_list_new();
 
 	term->frame_duration = 33;
@@ -68,7 +68,7 @@ GF_Err gf_term_init_scheduler(GF_Terminal *term, u32 threading_mode)
 
 	if (term->user->init_flags & GF_TERM_NO_VISUAL_THREAD) return GF_OK;
 
-	term->mm_thread = gf_th_new();
+	term->mm_thread = gf_th_new("MediaManager");
 	term->flags |= GF_TERM_RUNNING;
 	term->priority = GF_THREAD_PRIORITY_NORMAL;
 	gf_th_run(term->mm_thread, MM_Loop, term);
@@ -103,6 +103,7 @@ static CodecEntry *mm_get_codec(GF_List *list, GF_Codec *codec)
 void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 {
 	u32 i, count;
+	Bool locked;
 	Bool threaded;
 	CodecEntry *cd;
 	CodecEntry *ptr, *next;
@@ -110,7 +111,7 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 	assert(codec);
 
 	/*we need REAL exclusive access when adding a dec*/
-	gf_mx_p(term->mm_mx);
+	locked = gf_mx_try_lock(term->mm_mx);
 
 	cd = mm_get_codec(term->codecs, codec);
 	if (cd) goto exit;
@@ -131,8 +132,8 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 	}
 	
 	if (threaded) {
-		cd->thread = gf_th_new();
-		cd->mx = gf_mx_new();
+		cd->thread = gf_th_new(cd->dec->decio->module_name);
+		cd->mx = gf_mx_new(cd->dec->decio->module_name);
 		cd->flags |= GF_MM_CE_THREADED;
 		gf_list_add(term->codecs, cd);
 		goto exit;
@@ -187,7 +188,7 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 	gf_list_add(term->codecs, cd);
 
 exit:
-	gf_mx_v(term->mm_mx);
+	if (locked) gf_mx_v(term->mm_mx);
 	return;
 }
 
@@ -495,8 +496,8 @@ void gf_term_set_threading(GF_Terminal *term, u32 mode)
 
 		if (thread_it) {
 			ce->flags |= GF_MM_CE_THREADED;
-			ce->thread = gf_th_new();
-			ce->mx = gf_mx_new();
+			ce->thread = gf_th_new(ce->dec->decio->module_name);
+			ce->mx = gf_mx_new(ce->dec->decio->module_name);
 		}
 
 		if (restart_it) {

@@ -138,7 +138,7 @@ GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort)
 
 	sess->Server = strdup(server);
 	sess->Service = strdup(service);
-	sess->mx = gf_mx_new();
+	sess->mx = gf_mx_new("RTSPSession");
 	sess->TCPChannels = gf_list_new();
 	gf_rtsp_session_reset(sess, 0);
 	return sess;

@@ -427,7 +427,7 @@ int main (int argc, char** argv)
 	tcp_conf->RAPtimer = &timer;
 	tcp_conf->port = tcp_port;
 	tcp_conf->config = conf;	// dans le cas ou on prend la configuration de l'interface ici on peut modifier les donnees
-	tcp_thread = gf_th_new();
+	tcp_thread = gf_th_new("TCPInterface");
 	th_err_tcp = gf_th_run(tcp_thread, tcp_server, tcp_conf);
 	
 	if(config_flag == 0)
@@ -456,7 +456,7 @@ int main (int argc, char** argv)
 	} 
   
 	// objet mutex
-	carrousel_mutex = gf_mx_new();
+	carrousel_mutex = gf_mx_new("Carrousel");
 	
 	// recupere l'objet data, necessaire pour toutes operations du carrousel
   	data = PNC_Init_SceneGenerator(chan, &hdr, (char *) conf->scene_init_file, atoi(conf->modif_input_port)); // la generation de scene
@@ -479,7 +479,7 @@ int main (int argc, char** argv)
 	rap_conf->RAPtimer = &timer;
 	rap_conf->carrousel_mutex = carrousel_mutex;	// ici on passe l'objet mutex
 	rap_conf->data = data;
-	rap_thread = gf_th_new();
+	rap_thread = gf_th_new("RAPGenerator");
 	th_err_rap = gf_th_run(rap_thread, RAP_send, rap_conf);
 
 	// generation du fichier SDP

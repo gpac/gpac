@@ -907,8 +907,8 @@ void *SDL_NewVideo()
 
 	ctx = malloc(sizeof(SDLVidCtx));
 	memset(ctx, 0, sizeof(SDLVidCtx));
-	ctx->sdl_th = gf_th_new();
-	ctx->evt_mx = gf_mx_new();
+	ctx->sdl_th = gf_th_new("SDLVideo");
+	ctx->evt_mx = gf_mx_new("SDLEvents");
 	
 	driv->opaque = ctx;
 	driv->Setup = SDLVid_Setup;

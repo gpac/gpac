@@ -396,7 +396,7 @@ GF_BaseDecoder *NewISCodec(u32 PL)
 	GF_REGISTER_MODULE_INTERFACE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC InputSensor Decoder", "gpac distribution")
 
 #if GPAC_HTK_DEMO
-	priv->th = gf_th_new();
+	priv->th = gf_th_new("HTKDecoder");
 #endif
 	return (GF_BaseDecoder *) tmp;
 }

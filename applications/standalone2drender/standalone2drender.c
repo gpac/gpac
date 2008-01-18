@@ -139,13 +139,13 @@ GF_Compositor *SR_NewStandaloneRenderer()
 		return NULL;
 	}
 
-	tmp->mx = gf_mx_new();
+	tmp->mx = gf_mx_new(""Renderer");
 	tmp->textures = gf_list_new();
 	tmp->frame_rate = 30.0;	
 	tmp->frame_duration = 33;
 	tmp->time_nodes = gf_list_new();
 	tmp->events = gf_list_new();
-	tmp->ev_mx = gf_mx_new();
+	tmp->ev_mx = gf_mx_new("Events");
 	
 	SR_ResetFrameRate(tmp);	
 	

@@ -1010,7 +1010,7 @@ M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __ele
 
 	stream->ifce->output_ctrl = m2ts_output_ctrl;
 	stream->ifce->output_udta = stream;
-	stream->mx = gf_mx_new();
+	stream->mx = gf_mx_new("M2TS PID");
 	if (ifce->timescale != 90000) stream->ts_scale = 90000.0 / ifce->timescale;
 	return stream;
 }

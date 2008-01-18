@@ -397,7 +397,7 @@ static GF_Err SAF_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		return GF_OK;
 	}
 	SAF_CheckFile(read);
-	read->th = gf_th_new();
+	read->th = gf_th_new("SAFDemux");
 	/*start playing for tune-in*/
 	gf_th_run(read->th, SAF_Run, read);
 	return GF_OK;

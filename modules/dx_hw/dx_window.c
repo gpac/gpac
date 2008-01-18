@@ -634,7 +634,7 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 	ctx->switch_res = flags;
 	/*create our event thread - since we always have a dedicated window for fullscreen, we need that
 	even when a window is passed to us*/
-	ctx->th = gf_th_new();
+	ctx->th = gf_th_new("DirectX Video");
 	gf_th_run(ctx->th, DD_WindowThread, dr);
 	while (!ctx->th_state) gf_sleep(2);
 

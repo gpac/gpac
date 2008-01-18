@@ -1093,7 +1093,7 @@ static void *NewGAPIVideoOutput()
 
 	priv = (GAPIPriv *) malloc(sizeof(GAPIPriv));
 	memset(priv, 0, sizeof(GAPIPriv));
-	priv->mx = gf_mx_new();
+	priv->mx = gf_mx_new("GAPI");
 	driv->opaque = priv;
 	priv->force_gx = 0;
 
