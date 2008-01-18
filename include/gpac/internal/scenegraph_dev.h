@@ -205,6 +205,7 @@ struct __tag_scene_graph
 #ifndef GPAC_DISABLE_SVG
 	GF_List *xlink_hrefs;
 	GF_List *smil_timed_elements;
+	GF_List *modified_smil_timed_elements;
 	Bool update_smil_timing;
 	/*listeners to add*/
 	GF_List *listeners_to_add;

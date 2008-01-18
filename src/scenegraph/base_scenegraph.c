@@ -57,6 +57,7 @@ GF_SceneGraph *gf_sg_new()
 #ifndef GPAC_DISABLE_SVG
 	tmp->xlink_hrefs = gf_list_new();
 	tmp->smil_timed_elements = gf_list_new();
+	tmp->modified_smil_timed_elements = gf_list_new();
 	tmp->listeners_to_add = gf_list_new();
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -119,6 +120,7 @@ void gf_sg_del(GF_SceneGraph *sg)
 #ifndef GPAC_DISABLE_SVG
 	gf_list_del(sg->xlink_hrefs);
 	gf_list_del(sg->smil_timed_elements);
+	gf_list_del(sg->modified_smil_timed_elements);
 	gf_list_del(sg->listeners_to_add);
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
