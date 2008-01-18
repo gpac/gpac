@@ -207,7 +207,7 @@ static void SVG_Build_Bitmap_Graph(SVG_video_stack *stack, GF_TraverseState *tr_
 
 	gf_path_get_bounds(stack->graph->path, &rc);
 	drawable_reset_path(stack->graph);
-	gf_path_add_rect_center(stack->graph->path, x+width/2, y+height/2, width, height);
+	gf_path_add_rect_center(stack->graph->path, rectx, recty, rectwidth, rectheight);
 	gf_path_get_bounds(stack->graph->path, &new_rc);
 	if (!gf_rect_equal(rc, new_rc)) 
 		drawable_mark_modified(stack->graph, tr_state);
