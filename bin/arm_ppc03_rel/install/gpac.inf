@@ -52,7 +52,7 @@ gm_ismacryp.dll = 1
 gm_isom_in.dll = 1
 gm_mp3_in.dll = 1
 gm_odf_dec.dll = 1
-gm_render2d.dll = 1
+;gm_render2d.dll = 1
 gm_rtp_in.dll = 1
 gm_timedtext.dll = 1
 gm_soft_raster.dll = 1
@@ -61,7 +61,7 @@ gm_xvid_dec.dll = 1
 ;gm_ogg_xiph.dll = 1
 
 ;these 2 go together
-gm_render3d.dll = 1
+;gm_render3d.dll = 1
 libGLES_CM.dll = 1
 
 ;these 2 go together
@@ -105,7 +105,7 @@ DefaultDestDir = 0, %InstallDir%
 "gm_isom_in.dll"
 "gm_mp3_in.dll"
 "gm_odf_dec.dll"
-"gm_render2d.dll"
+;"gm_render2d.dll"
 "gm_rtp_in.dll"
 "gm_soft_raster.dll"
 "gm_timedtext.dll"
@@ -113,7 +113,7 @@ DefaultDestDir = 0, %InstallDir%
 "gm_xvid_dec.dll"
 ;"gm_ogg_xiph.dll"
 
-"gm_render3d.dll"
+;"gm_render3d.dll"
 
 ;"gm_svg_loader.dll"
 
