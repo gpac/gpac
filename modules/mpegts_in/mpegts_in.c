@@ -603,7 +603,7 @@ void M2TS_SetupDVB(GF_InputService *plug, M2TSIn *m2ts, char *url)
 	e = gf_dvb_tune(m2ts->tuner, url, chan_conf);
 	if (e) goto exit;
 
-	m2ts->th = gf_th_new();
+	m2ts->th = gf_th_new("MPEG-2 TS Demux");
 	/*start playing for tune-in*/
 	gf_th_run(m2ts->th, M2TS_Run, m2ts);
 
@@ -659,7 +659,7 @@ void M2TS_SetupLive(M2TSIn *m2ts, char *url)
 	gf_sk_set_buffer_size(m2ts->sock, 0, UDP_BUFFER_SIZE);
 	gf_sk_set_block_mode(m2ts->sock, 0);
 
-	m2ts->th = gf_th_new();
+	m2ts->th = gf_th_new("MPEG-2 TS Demux");
 	gf_th_set_priority(m2ts->th, GF_THREAD_PRIORITY_HIGHEST);
 	/*start playing for tune-in*/
 	gf_th_run(m2ts->th, M2TS_Run, m2ts);
@@ -736,7 +736,7 @@ void M2TS_SetupFile(M2TSIn *m2ts, char *url)
 	m2ts->end_range = m2ts->start_range = 0;
 	m2ts->nb_playing = 0;
 
-	m2ts->th = gf_th_new();
+	m2ts->th = gf_th_new("MPEG-2 TS Demux");
 	/*start playing for tune-in*/
 	gf_th_run(m2ts->th, M2TS_Run, m2ts);
 }

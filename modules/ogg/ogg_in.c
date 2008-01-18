@@ -948,7 +948,7 @@ GF_InputService *OGG_LoadDemux()
 	reader = malloc(sizeof(OGGReader));
 	memset(reader, 0, sizeof(OGGReader));
 	reader->streams = gf_list_new();
-	reader->demuxer = gf_th_new();
+	reader->demuxer = gf_th_new("OGGDemux");
 	reader->data_buffer_ms = 1000;
 
 	plug->priv = reader;

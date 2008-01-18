@@ -77,7 +77,7 @@ GF_SAFMuxer *gf_saf_mux_new()
 {
 	GF_SAFMuxer *mux;
 	GF_SAFEALLOC(mux, GF_SAFMuxer);
-	mux->mx = gf_mx_new();
+	mux->mx = gf_mx_new("SAF");
 	mux->streams = gf_list_new();
 	return mux;
 }

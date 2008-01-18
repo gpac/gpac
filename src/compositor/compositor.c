@@ -372,14 +372,14 @@ static GF_Compositor *gf_sc_create(GF_User *user)
 		return NULL;
 	}
 
-	tmp->mx = gf_mx_new();
+	tmp->mx = gf_mx_new("Compositor");
 	tmp->textures = gf_list_new();
 	tmp->frame_rate = 30.0;	
 	tmp->frame_duration = 33;
 	tmp->time_nodes = gf_list_new();
 #ifdef GF_SR_EVENT_QUEUE
 	tmp->events = gf_list_new();
-	tmp->ev_mx = gf_mx_new();
+	tmp->ev_mx = gf_mx_new("EventQueue");
 #endif
 
 #ifdef GROUP_2D_USE_CACHE
@@ -409,7 +409,7 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 
 	/*run threaded*/
 	if (self_threaded) {
-		tmp->VisualThread = gf_th_new();
+		tmp->VisualThread = gf_th_new("Compositor");
 		gf_th_run(tmp->VisualThread, gf_sc_proc, tmp);
 		while (tmp->video_th_state!=1) {
 			gf_sleep(10);

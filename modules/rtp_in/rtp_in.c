@@ -606,8 +606,8 @@ GF_InputService *RTP_Load()
 	plug->priv = priv;
 	
 	priv->time_out = 30000;
-	priv->mx = gf_mx_new();
-	priv->th = gf_th_new();
+	priv->mx = gf_mx_new("RTPDemux");
+	priv->th = gf_th_new("RTPDemux");
 	
 	return plug;
 }

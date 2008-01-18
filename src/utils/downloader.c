@@ -521,8 +521,8 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_fla
 		return NULL;
 	}
 	if (!(sess->flags & GF_NETIO_SESSION_NOT_THREADED) ) {
-		sess->th = gf_th_new();
-		sess->mx = gf_mx_new();
+		sess->th = gf_th_new(url);
+		sess->mx = gf_mx_new(url);
 		gf_th_run(sess->th, gf_dm_session_thread, sess);
 	}
 	sess->num_retry = SESSION_RETRY_COUNT;

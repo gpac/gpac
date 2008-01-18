@@ -177,7 +177,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 				/*remember the module we use*/
 				gf_cfg_set_key(user->config, "Audio", "DriverName", ar->audio_out->module_name);
 				if (!ar->audio_out->SelfThreaded) {
-					ar->th = gf_th_new();
+					ar->th = gf_th_new("AudioRenderer");
 					gf_th_run(ar->th, gf_ar_proc, ar);
 				} else {
 					gf_ar_setup_output_format(ar);

@@ -223,7 +223,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	tmp->channels_pending = gf_list_new();
 	tmp->media_queue = gf_list_new();
 	
-	tmp->net_mx = gf_mx_new();
+	tmp->net_mx = gf_mx_new("GlobalNetwork");
 	tmp->input_streams = gf_list_new();
 	tmp->x3d_sensors = gf_list_new();
 

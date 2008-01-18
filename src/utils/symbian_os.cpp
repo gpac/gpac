@@ -272,7 +272,7 @@ struct __tag_thread
 };
 
 GF_EXPORT
-GF_Thread *gf_th_new()
+GF_Thread *gf_th_new(const char *name)
 {
 	GF_Thread *tmp = (GF_Thread *) malloc(sizeof(GF_Thread));
 	memset((void *)tmp, 0, sizeof(GF_Thread));
@@ -280,27 +280,6 @@ GF_Thread *gf_th_new()
 	return tmp;
 }
 
-#if 0
-static void *RunThread(void *ptr)
-{
-	u32 ret = 0;
-	GF_Thread *t = (GF_Thread *)ptr;
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Thread 0x%08x start\n", t->threadH->Handle() ));
-	/* Signal the caller */
-	t->status = GF_THREAD_STATUS_RUN;
-	gf_sema_notify(t->_signal, 1);
-	/* Run our thread */
-	ret = t->Run(t->args);
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Thread 0x%08x exit\n", t->threadH->Handle() ));
-	t->status = GF_THREAD_STATUS_DEAD;
-	t->Run = NULL;
-	t->threadH->Close();
-	t->threadH = NULL;
-	return (void *)ret;
-}
-#else
 static void *RunThread(void *ptr)
 {
 	TInt err;
@@ -308,21 +287,21 @@ static void *RunThread(void *ptr)
 	CTrapCleanup * cleanup = NULL;
 	GF_Thread *t = (GF_Thread *)ptr;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Thread 0x%08x start\n", t->threadH->Handle() ));
 
-
-#if 1
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[core] Creating new ActiveScheduler for thread\n"));
 	CActiveScheduler * scheduler = new CActiveScheduler();
 	if (scheduler == NULL) {
 		t->status = GF_THREAD_STATUS_DEAD;
 		gf_sema_notify(t->_signal, 1);
 		goto exit;
 	} 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[core] Installing ActiveScheduler for thread\n"));
-	CActiveScheduler::Install(scheduler);
+#ifndef GPAC_DISABLE_LOG
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Thread %s] Installing ActiveScheduler\n", t->log_name));
 #endif
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[core] Creating cleanup trap for thread\n"));
+	CActiveScheduler::Install(scheduler);
+
+#ifndef GPAC_DISABLE_LOG
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Thread %s] Creating cleanup trap\n", t->log_name));
+#endif
 	cleanup = CTrapCleanup::New();
 	if( cleanup == NULL ) {
 		t->status = GF_THREAD_STATUS_DEAD;
@@ -331,32 +310,31 @@ static void *RunThread(void *ptr)
 		goto exit;
 	}
 #if 0
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[core] Starting scheduler for thread\n"));
 	CActiveScheduler::Start();
 #endif
 	/* OK , signal the caller */
 	t->status = GF_THREAD_STATUS_RUN;
 	gf_sema_notify(t->_signal, 1);
 	/* Run our thread */
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[core] Executing thread body\n"));
+#ifndef GPAC_DISABLE_LOG
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Thread %s] Entering thread proc\n", t->log_name));
+#endif
 	TRAP(err, ret=t->Run(t->args) );
 	//ret = t->Run(t->args);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] destroying current ActiveScheduler\n"));
 	delete CActiveScheduler::Current();
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] destroying trap cleanup\n"));
 	delete cleanup;
 
 exit:
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Thread 0x%08x exit\n", t->threadH->Handle() ));
-
+#ifndef GPAC_DISABLE_LOG
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Thread %s] Exit\n", t->log_name ));
+#endif
 	t->status = GF_THREAD_STATUS_DEAD;
 	t->Run = NULL;
 	t->threadH->Close();
 	t->threadH = NULL;
 	return (void *)ret;
 }
-#endif
 
 GF_EXPORT
 GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
@@ -420,6 +398,9 @@ GF_EXPORT
 void gf_th_del(GF_Thread *t)
 {
 	Thread_Stop(t, 0);
+#ifndef GPAC_DISABLE_LOG
+	free(t->log_name);
+#endif
 	free(t);
 }
 
@@ -461,11 +442,14 @@ struct __tag_mutex
 	/* We filter recursive calls (1 thread calling Lock several times in a row only locks
 	ONCE the mutex. Holder is the current ThreadID of the mutex holder*/
 	u32 Holder, HolderCount;
+#ifndef GPAC_DISABLE_LOG
+	char *log_name;
+#endif
 };
 
 
 GF_EXPORT
-GF_Mutex *gf_mx_new()
+GF_Mutex *gf_mx_new(const char *name)
 {
 	GF_Mutex *tmp = (GF_Mutex *)malloc(sizeof(GF_Mutex));
 	if (!tmp) return NULL;
@@ -476,6 +460,15 @@ GF_Mutex *gf_mx_new()
 		free(tmp);
 		return NULL;
 	}
+#ifndef GPAC_DISABLE_LOG
+	if (name) {
+		tmp->log_name = strdup(name);
+	} else {
+		char szN[20];
+		sprintf(szN, "0x%08x", (u32) tmp);
+		tmp->log_name = strdup(szN);
+	}
+#endif
 	return tmp;
 }
 

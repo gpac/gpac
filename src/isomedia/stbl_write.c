@@ -24,11 +24,11 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef GPAC_READ_ONLY
-
 /*macro used for table realloc - we allocate much more than needed in order to keep the number of 
 realloc low, which greatly impacts performances for large files*/
 #define ALLOC_INC(a)	a = ((a<10) ? 100 : (a*3)/2);
+
+#ifndef GPAC_READ_ONLY
 
 //adds a DTS in the table and get the sample number of this new sample
 //we could return an error if a sample with the same DTS already exists

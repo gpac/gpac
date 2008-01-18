@@ -102,7 +102,7 @@ Bool compositor_2d_pixel_format_supported(GF_VisualManager *visual, u32 pixel_fo
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
-		return 1;
+		return 0;
 	/*the rest has to be displayed through brush for now, we only use YUV and RGB pool*/
 	default:
 		return 0;
@@ -161,11 +161,13 @@ void compositor_2d_draw_bitmap(GF_VisualManager *visual, struct _gf_sc_texture_h
 			clipped_final.y = output_height/ 2 - clipped_final.y;
 			final.y = INT2FIX( output_height / 2) - final.y;
 		}
-	} else {
-		final.x -= visual->compositor->vp_x;
-		clipped_final.x -= visual->compositor->vp_x;
-		final.y -= visual->compositor->vp_y + final.height;
-		clipped_final.y -= visual->compositor->vp_y + clipped_final.height;
+	} else if (1) {
+		final.y -= final.height;
+		clipped_final.y -= clipped_final.height;
+//		final.x -= visual->compositor->vp_x;
+//		clipped_final.x -= visual->compositor->vp_x;
+//		final.y -= visual->compositor->vp_y;
+//		clipped_final.y -= visual->compositor->vp_y;
 	}
 
 	/*make sure we lie in the final rect (this is needed for directdraw mode)*/
@@ -210,6 +212,9 @@ void compositor_2d_draw_bitmap(GF_VisualManager *visual, struct _gf_sc_texture_h
 
 	tmp = INT2FIX(clipped_final.y) - final.y /*+ INT2FIX(visual->compositor->vp_y)*/;
 	if (tmp>=0) src_wnd.y = FIX2INT( gf_divfix(tmp, h_scale) + FIX_ONE/2 );
+
+	if (src_wnd.w>txh->width) src_wnd.w=txh->width;
+	if (src_wnd.h>txh->height) src_wnd.h=txh->height;
 
 	if (!src_wnd.w || !src_wnd.h) return;
 	/*make sure we lie in src bounds*/

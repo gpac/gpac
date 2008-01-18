@@ -72,8 +72,9 @@ typedef struct __tag_thread GF_Thread;
  *\brief thread constructor
  *
  *Constructs a new thread object
+ *\param log name of the thread if any
  */
-GF_Thread *gf_th_new();
+GF_Thread *gf_th_new(const char *name);
 /*!
  *\brief thread destructor
  *
@@ -171,8 +172,9 @@ typedef struct __tag_mutex GF_Mutex;
  *\brief mutex constructor
  *
  *Contructs a new mutex object
+ *\param log name of the thread if any
 */
-GF_Mutex *gf_mx_new();
+GF_Mutex *gf_mx_new(const char *name);
 /*
  *\brief mutex denstructor
  *

@@ -29,7 +29,7 @@ GF_Clock *NewClock(GF_Terminal *term)
 	GF_Clock *tmp;
 	GF_SAFEALLOC(tmp, GF_Clock);
 	if (!tmp) return NULL;
-	tmp->mx = gf_mx_new();
+	tmp->mx = gf_mx_new("Clock");
 	tmp->term = term;
 	tmp->speed = FIX_ONE;
 	if (term->play_state) tmp->Paused = 1;

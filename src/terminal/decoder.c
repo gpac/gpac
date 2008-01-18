@@ -385,10 +385,10 @@ check_unit:
 	updates in time*/
 	codec->odm->current_time = gf_clock_time(codec->ck);
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SysDec] Codec %s Processing AU CTS %d\n", sdec->module_name , AU->CTS));
 	now = gf_term_get_time(codec->odm->term);
 	e = sdec->ProcessData(sdec, AU->data, AU->dataLength, ch->esd->ESID, au_time, mm_level);
 	now = gf_term_get_time(codec->odm->term) - now;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SysDec] Codec %s Processing AU CTS %d\n", sdec->module_name , AU->CTS));
 
 	codec_update_stats(codec, AU->dataLength, now);
 	codec->prev_au_size = AU->dataLength;
@@ -463,6 +463,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	codec->odm->current_time = codec->last_unit_cts = gf_clock_time(codec->ck);
 
 	/*lock scene*/
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[PrivateDec] Codec %s Processing at %d\n", sdec->module_name , codec->odm->current_time));
 	gf_term_lock_compositor(codec->odm->term, 1);
 	now = gf_term_get_time(codec->odm->term);
 	e = sdec->ProcessData(sdec, NULL, codec->odm->current_time, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);

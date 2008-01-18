@@ -828,8 +828,8 @@ void *New_FFMPEG_Demux()
 
 	ffd->CanHandleURLInService = FFD_CanHandleURLInService;
 
-	priv->thread = gf_th_new();
-	priv->mx = gf_mx_new();
+	priv->thread = gf_th_new("FFMPEG Demux");
+	priv->mx = gf_mx_new("FFMPEG Demux");
 
 	GF_REGISTER_MODULE_INTERFACE(ffd, GF_NET_CLIENT_INTERFACE, "FFMPEG Demuxer", "gpac distribution");
 	ffd->priv = priv;

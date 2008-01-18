@@ -81,7 +81,7 @@ GF_AudioMixer *gf_mixer_new(struct _audio_render *ar)
 	am = (GF_AudioMixer *) malloc(sizeof(GF_AudioMixer));
 	if (!am) return NULL;
 	memset(am, 0, sizeof(GF_AudioMixer));
-	am->mx = gf_mx_new();
+	am->mx = gf_mx_new("AudioMix");
 	am->sources = gf_list_new();
 	am->isEmpty = 1;
 	am->ar = ar;

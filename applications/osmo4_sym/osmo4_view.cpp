@@ -320,7 +320,7 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 	m_window = Window();
 	m_session = CEikonEnv::Static()->WsSession();
 
-	m_mx = gf_mx_new();
+	m_mx = gf_mx_new("Osmo4");
 
 	//load config file
 	m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");

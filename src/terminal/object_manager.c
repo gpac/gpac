@@ -48,7 +48,7 @@ GF_ObjectManager *gf_odm_new()
 	tmp->Visual_PL = (u8) -1;
 	tmp->ms_stack = gf_list_new();
 	tmp->mc_stack = gf_list_new();
-	tmp->mx = gf_mx_new();
+	tmp->mx = gf_mx_new("ODM");
 	return tmp;
 }
 
