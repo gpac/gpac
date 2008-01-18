@@ -1686,7 +1686,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	end_time = gf_sys_clock() - in_time;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
 		compositor->networks_time, 
 		compositor->decoders_time, 
 		compositor->frame_number, 
