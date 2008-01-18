@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="application/xslt+xml" href="status2html.xslt"?>
-<!-- shortName=A unique abbreviation to be used for a file name for this file             -->
+<!-- shortsvg-version="1.1" name=A unique abbreviation to be used for a file name for this file             -->
 <!--        and column header for the matrix.  MUST be a legal xml id prefix and fileName -->
 <!--       (shortName.xml) please make it 3-12 characters and do not use spaces.          -->
 <!-- company=Your company name as you would like it to appear in documentation            -->
@@ -8,572 +8,568 @@
 <!-- version=The version number of the product being tested                               -->
 <!-- platform=The platform(s) that the product is tested on                               -->
 <!-- date=The date of the submission in the form year/month/day, eg. 2002/08/30           -->
-<svg-status-query company="ENST" date="2007/10/12" product="GPAC Player" version="0.4.5-DEV (build 10)" shortName="Osmo4" profile="tiny" platform="WindowsXP"	>
+<svg-status-query company="ENST" date="2008/01/18" product="GPAC Player" version="0.4.5-DEV (build 10)" shortsvg-version="1.1" name="Osmo4" profile="tiny" platform="WindowsXP"	>
 <!-- test attributes:                                                                   -->
 <!--    status=must be one of 'OK', 'PARTIAL', or 'FAIL'                                -->
 <!--    comment=optional comment to publish with the result, like why you don't pass :) -->
 
-	<test name="animate-elem-02-t" revision="1.9" status="OK" comment=""/>
-	<test name="animate-elem-03-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-04-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-05-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-06-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-07-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-08-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-09-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-10-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-11-t" revision="1.7" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
-	<test name="animate-elem-12-t" revision="1.7" status="PARTIAL" comment="spline keyword is not supported yet, linear used instead."/>
-	<test name="animate-elem-13-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-14-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-15-t" revision="1.7" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
-	<test name="animate-elem-17-t" revision="1.7" status="PARTIAL" comment="spline keyword is not supported yet, linear used instead."/>
-	<test name="animate-elem-19-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-20-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-21-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-22-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-23-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-24-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-25-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-26-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-27-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-28-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-29-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-30-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-31-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-32-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-33-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-34-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-35-t" revision="1.4" status="PARTIAL" comment="stroke animation is not correctly supported"/>
-	<test name="animate-elem-36-t" revision="1.6" status="OK" comment="Rendering problem when rotating images"/>
-	<test name="animate-elem-37-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-38-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-39-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-40-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-41-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-44-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-46-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-52-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-53-t" revision="1.4" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
+	<test svg-version="1.1" name="animate-elem-02-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-03-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-04-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-05-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-06-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-07-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-08-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-09-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-10-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-11-t" revision="1.7" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
+	<test svg-version="1.1" name="animate-elem-12-t" revision="1.7" status="PARTIAL" comment="spline keyword is not supported yet, linear used instead."/>
+	<test svg-version="1.1" name="animate-elem-13-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-14-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-15-t" revision="1.7" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
+	<test svg-version="1.1" name="animate-elem-17-t" revision="1.7" status="PARTIAL" comment="spline keyword is not supported yet, linear used instead."/>
+	<test svg-version="1.1" name="animate-elem-19-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-20-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-21-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-22-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-23-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-24-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-25-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-26-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-27-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-28-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-29-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-30-t" revision="1.6" status="PARTIAL" comment="pAR on image"/>
+	<test svg-version="1.1" name="animate-elem-31-t" revision="1.6" status="PARTIAL" comment="visibility animations"/>
+	<test svg-version="1.1" name="animate-elem-32-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-33-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-34-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-35-t" revision="1.4" status="PARTIAL" comment="stroke animation is not correctly supported"/>
+	<test svg-version="1.1" name="animate-elem-36-t" revision="1.6" status="OK" comment="Rendering problem when rotating images"/>
+	<test svg-version="1.1" name="animate-elem-37-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-38-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-39-t" revision="1.6" status="FAIL" comment="xlink:href animations on use"/>
+	<test svg-version="1.1" name="animate-elem-40-t" revision="1.7" status="PARTIAL" comment="clipping on text using SVG Fonts"/>
+	<test svg-version="1.1" name="animate-elem-41-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-44-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-46-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-52-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-53-t" revision="1.4" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
 
-	<test name="animate-elem-60-t" revision="1.2" status="PARTIAL" comment="No wallclock events (not in tiny), negative offsets in end attribute is not supported"/>
-	<test name="animate-elem-61-t" revision="1.2" status="OK" comment=""/>
-	<test name="animate-elem-62-t" revision="1.2" status="PARTIAL" comment="No wallclock events (not in tiny), negative offsets in end attribute is not supported"/>
-	<test name="animate-elem-63-t" revision="1.2" status="PARTIAL" comment="Negative offset in end attribute is not supported"/>
-	<test name="animate-elem-64-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-65-t" revision="1.6" status="OK" comment="min less than repeatDur (same as ASV and Opera)"/>
-	<test name="animate-elem-66-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-67-t" revision="1.6" status="OK" comment="Same behavior in Opera"/>
-	<test name="animate-elem-68-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-69-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-70-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-77-t" revision="1.6" status="PARTIAL" comment="DOMText Node parsing problem + Animation of text-anchor and font-style buggy."/>
-	<test name="animate-elem-78-t" revision="1.6" status="OK" comment="synchronisation problem ?"/>
-	<test name="animate-elem-80-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-81-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-82-t" revision="1.8" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
-	<test name="animate-elem-83-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-84-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-85-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-60-t" revision="1.2" status="PARTIAL" comment="No wallclock events (not in tiny), negative offsets in end attribute is not supported"/>
+	<test svg-version="1.1" name="animate-elem-61-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-62-t" revision="1.2" status="PARTIAL" comment="No wallclock events (not in tiny), negative offsets in end attribute is not supported"/>
+	<test svg-version="1.1" name="animate-elem-63-t" revision="1.2" status="PARTIAL" comment="Negative offset in end attribute is not supported"/>
+	<test svg-version="1.1" name="animate-elem-64-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-65-t" revision="1.6" status="PARTIAL" comment="min greater than repeatDur with remove"/>
+	<test svg-version="1.1" name="animate-elem-66-t" revision="1.6" status="PARTIAL" comment="invalid value in max attribute"/>
+	<test svg-version="1.1" name="animate-elem-67-t" revision="1.6" status="PARTIAL" comment="one animation is not synchronized, Same behavior in Opera"/>
+	<test svg-version="1.1" name="animate-elem-68-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-69-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-70-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-77-t" revision="1.6" status="PARTIAL" comment="text-anchor problem"/>
+	<test svg-version="1.1" name="animate-elem-78-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-80-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-81-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-82-t" revision="1.8" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
+	<test svg-version="1.1" name="animate-elem-83-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-84-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-85-t" revision="1.7" status="OK" comment=""/>
 	
-  <test name="animate-elem-86-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-201-t" revision="1.3" status="PARTIAL" comment=""/>
-	<test name="animate-elem-202-t" revision="1.3" status="OK" comment=""/>
-	<test name="animate-elem-203-t" revision="1.3" status="PARTIAL" comment="Precision problem in additive animations"/>
-	<test name="animate-elem-204-t" revision="1.1" status="PARTIAL" comment="Misalignement of shapes during the animation"/>
-	<test name="animate-elem-205-t" revision="1.3" status="PARTIAL" comment="Misalignement of shapes during the animation"/>
-	<test name="animate-elem-206-t" revision="1.3" status="PARTIAL" comment="Misalignement of shapes during the animation"/>
-	<test name="animate-elem-207-t" revision="1.2" status="OK" comment=""/>
-	<test name="animate-elem-208-t" revision="1.1" status="FAIL" comment="animateMotion bug"/>
-	<test name="animate-elem-209-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-210-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-211-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
-	<test name="animate-elem-212-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
-	<test name="animate-elem-213-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
-	<test name="animate-elem-214-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
-	<test name="animate-elem-215-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
-	<test name="animate-elem-216-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
-	<test name="animate-elem-217-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
-	<test name="animate-elem-218-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-219-t" revision="1.1" status="PARTIAL" comment="attributeType not supported"/>
-	<test name="animate-elem-220-t" revision="1.2" status="PARTIAL" comment="calcMode spline not supported"/>
-	<test name="animate-elem-221-t" revision="1.1" status="OK" comment=""/>
-	<test name="animate-elem-222-t" revision="1.2" status="FAIL" comment="special combination of begin, end, dur, min"/>
-	<test name="animate-elem-223-t" revision="1.1" status="OK" comment=""/>
-	<test name="animate-elem-224-t" revision="1.1" status="PARTIAL" comment=""/>
+  <test svg-version="1.1" name="animate-elem-86-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="animate-elem-201-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="animate-elem-202-t" revision="1.3" status="OK" comment=""/>
+	<test svg-version="1.2" name="animate-elem-203-t" revision="1.3" status="PARTIAL" comment="Precision problem in additive animations"/>
+	<test svg-version="1.2" name="animate-elem-204-t" revision="1.1" status="PARTIAL" comment="Misalignement of shapes during the animation"/>
+	<test svg-version="1.2" name="animate-elem-205-t" revision="1.3" status="PARTIAL" comment="Misalignement of shapes during the animation"/>
+	<test svg-version="1.2" name="animate-elem-206-t" revision="1.3" status="PARTIAL" comment="Misalignement of shapes during the animation"/>
+	<test svg-version="1.2" name="animate-elem-207-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="animate-elem-208-t" revision="1.2" status="FAIL" comment="animateMotion bug"/>
+	<test svg-version="1.2" name="animate-elem-209-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="animate-elem-210-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="animate-elem-211-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test svg-version="1.2" name="animate-elem-212-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test svg-version="1.2" name="animate-elem-213-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test svg-version="1.2" name="animate-elem-214-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test svg-version="1.2" name="animate-elem-215-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test svg-version="1.2" name="animate-elem-216-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test svg-version="1.2" name="animate-elem-217-t" revision="1.4" status="PARTIAL" comment="cumulative/additive animateTransform"/>
+	<test svg-version="1.2" name="animate-elem-218-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="animate-elem-219-t" revision="1.2" status="PARTIAL" comment="attributeType not supported"/>
+	<test svg-version="1.2" name="animate-elem-220-t" revision="1.2" status="PARTIAL" comment="calcMode spline not supported"/>
+	<test svg-version="1.2" name="animate-elem-221-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="animate-elem-222-t" revision="1.2" status="FAIL" comment="special combination of begin, end, dur, min"/>
+	<test svg-version="1.2" name="animate-elem-223-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="animate-elem-224-t" revision="1.1" status="PARTIAL" comment=""/>
 
-	<test name="coords-coord-01-t" revision="1.5" status="OK" comment=""/>
-	<test name="coords-coord-02-t" revision="1.5" status="OK" comment=""/>
-	<test name="coords-trans-01-t" revision="1.9" status="OK" comment=""/>
-	<test name="coords-trans-02-t" revision="1.9" status="OK" comment=""/>
-	<test name="coords-trans-03-t" revision="1.8" status="OK" comment=""/>
-	<test name="coords-trans-04-t" revision="1.8" status="OK" comment=""/>
-	<test name="coords-trans-05-t" revision="1.8" status="OK" comment=""/>
-	<test name="coords-trans-06-t" revision="1.9" status="OK" comment=""/>
-	<test name="coords-trans-07-t" revision="1.2" status="OK" comment=""/>
-	<test name="coords-trans-08-t" revision="1.2" status="OK" comment=""/>
-	<test name="coords-trans-09-t" revision="1.2" status="OK" comment=""/>
-	<test name="coords-units-01-t" revision="1.9" status="OK" comment=""/>
-	<test name="coords-viewattr-05-t" revision="1.11" status="OK" comment=""/>
-	<test name="coords-viewattr-06-t" revision="1.2" status="OK" comment="Not a Tiny test (use of overflow)"/>
-	<test name="coords-constr-201-t" revision="1.4" status="OK" comment=""/>
-	<test name="coords-constr-202-t" revision="1.4" status="OK" comment=""/>
-	<test name="coords-constr-203-t" revision="1.4" status="OK" comment=""/>
-	<test name="coords-constr-204-t" revision="1.4" status="FAIL" comment="order between animateMotion and transform=ref"/>
-	<test name="coords-pAR-201-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-coord-01-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-coord-02-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-trans-01-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-trans-02-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-trans-03-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-trans-04-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-trans-05-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-trans-06-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-trans-07-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-trans-08-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-trans-09-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-units-01-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.1" name="coords-viewattr-05-t" revision="1.11" status="FAIL" comment=""/>
+	<test svg-version="1.1" name="coords-viewattr-06-t" revision="1.2" status="OK" comment="Not a Tiny test (use of overflow)"/>
+	<test svg-version="1.2" name="coords-constr-201-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="coords-constr-202-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="coords-constr-203-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="coords-constr-204-t" revision="1.4" status="FAIL" comment="order between animateMotion and transform=ref"/>
+	<test svg-version="1.2" name="coords-pAR-201-t" revision="1.4" status="OK" comment=""/>
 
-	<test name="extend-namespace-02-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="extend-namespace-02-t" revision="1.2" status="FAIL" comment=""/>
 
-	<test name="fonts-desc-01-t" revision="1.2" status="OK" comment=""/>
-	<test name="fonts-desc-02-t" revision="1.5" status="OK" comment=""/>
-	<test name="fonts-desc-03-t" revision="1.2" status="OK" comment=""/>
-	<test name="fonts-desc-05-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="fonts-elem-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="fonts-elem-02-t" revision="1.7" status="OK" comment=""/>
-	<test name="fonts-elem-03-t" revision="1.6" status="OK" comment=""/>
-	<test name="fonts-elem-05-t" revision="1.5" status="OK" comment=""/>
-	<test name="fonts-elem-06-t" revision="1.5" status="OK" comment=""/>
-	<test name="fonts-glyph-02-t" revision="1.5" status="OK" comment=""/>
-	<test name="fonts-glyph-04-t" revision="1.5" status="OK" comment=""/>
-	<test name="fonts-glyph-201-t" revision="1.3" status="PARTIAL" comment=""/>
-	<test name="fonts-glyph-202-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test name="fonts-kern-01-t" revision="1.6" status="PARTIAL" comment="kerning not supported."/>
-	<test name="fonts-overview-201-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="fonts-desc-01-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="fonts-desc-02-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="fonts-desc-03-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="fonts-desc-05-t" revision="1.2" status="FAIL" comment="Crash"/>
+	<test svg-version="1.1" name="fonts-elem-01-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="fonts-elem-02-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="fonts-elem-03-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="fonts-elem-05-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="fonts-elem-06-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="fonts-glyph-02-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="fonts-glyph-04-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="fonts-glyph-201-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="fonts-glyph-202-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test svg-version="1.1" name="fonts-kern-01-t" revision="1.6" status="PARTIAL" comment="kerning not supported."/>
+	<test svg-version="1.2" name="fonts-overview-201-t" revision="1.5" status="OK" comment=""/>
 
-	<test name="interact-dom-02-t" revision="1.8" status="OK" comment=""/>
-	<test name="interact-events-02-t" revision="1.2" status="OK" comment=""/>
-	<test name="interact-order-04-t" revision="1.8" status="OK" comment=""/>
-	<test name="interact-order-05-t" revision="1.8" status="OK" comment=""/>
-	<test name="interact-order-06-t" revision="1.8" status="PARTIAL" comment="Strings are not selectable"/>
-	<test name="interact-pevents-01-t" revision="1.2" status="PARTIAL" comment="Some text is not pointed correctly."/>
-	<test name="interact-pevents-02-t" revision="1.8" status="PARTIAL" comment="Some text is not pointed correctly."/>
-	<test name="interact-pevents-03-t" revision="1.2" status="OK" comment=""/>
-	<test name="interact-pevents-04-t" revision="1.2" status="OK" comment=""/>
-	<test name="interact-pevents-05-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test name="interact-pevents-06-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test name="interact-pevents-07-t" revision="1.5" status="OK" comment=""/>
-	<test name="interact-pevents-08-t" revision="1.7" status="OK" comment=""/>
-	<test name="interact-zoom-01-t" revision="1.8" status="OK" comment=""/>
-	<test name="interact-zoom-02-t" revision="1.8" status="OK" comment=""/>
-	<test name="interact-zoom-03-t" revision="1.9" status="OK" comment=""/>
-	<test name="interact-event-201-t" revision="1.6" status="OK" comment=""/>
-	<test name="interact-event-202-t" revision="1.5" status="OK" comment=""/>
-	<test name="interact-event-203-t" revision="1.4" status="OK" comment=""/>
-	<test name="interact-event-204-t" revision="1.3" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-dom-02-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-events-02-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-order-04-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-order-05-t" revision="1.8" status="PARTIAL" comment=""/>
+	<test svg-version="1.1" name="interact-order-06-t" revision="1.8" status="PARTIAL" comment="Strings are not selectable"/>
+	<test svg-version="1.1" name="interact-pevents-01-t" revision="1.2" status="PARTIAL" comment="Some text is not pointed correctly."/>
+	<test svg-version="1.1" name="interact-pevents-02-t" revision="1.8" status="PARTIAL" comment="Some text is not pointed correctly."/>
+	<test svg-version="1.1" name="interact-pevents-03-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-pevents-04-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-pevents-05-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test svg-version="1.1" name="interact-pevents-06-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test svg-version="1.1" name="interact-pevents-07-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-pevents-08-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-zoom-01-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-zoom-02-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-zoom-03-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.2" name="interact-event-201-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.2" name="interact-event-202-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="interact-event-203-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="interact-event-204-t" revision="1.3" status="OK" comment=""/>
 
-	<test name="interact-focus-201-t" revision="1.7" status="OK" comment="According to our interpretation of the spec, this test requires the use of previous focus to see any modifications."/>
-	<test name="interact-focus-202-t" revision="1.6" status="OK" comment=""/>
-	<test name="interact-focus-203-t" revision="1.5" status="OK" comment="No viewport modification to follow focus"/>
-	<test name="interact-focus-204-t" revision="1.6" status="OK" comment=""/>
-	<test name="interact-focus-205-t" revision="1.6" status="OK" comment="bounding box highlight bug"/>
-	<test name="interact-focus-206-t" revision="1.5" status="OK" comment=""/>
-	<test name="interact-focus-207-t" revision="1.5" status="OK" comment=""/>
-	<test name="interact-focus-208-t" revision="1.2" status="OK" comment=""/>
-	<test name="interact-focus-209-t" revision="1.2" status="OK" comment=""/>
-	<test name="interact-focus-210-t" revision="1.5" status="PARTIAL" comment="top row doesn't turn red"/>
-	<test name="interact-focus-211-t" revision="1.7" status="OK" comment="According to our interpretation of the spec, this test requires the use of previous focus to see any modifications."/>
-	<test name="interact-focus-212-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="interact-focus-201-t" revision="1.7" status="OK" comment="According to our interpretation of the spec, this test requires the use of previous focus to see any modifications."/>
+	<test svg-version="1.2" name="interact-focus-202-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.2" name="interact-focus-203-t" revision="1.5" status="OK" comment="No viewport modification to follow focus"/>
+	<test svg-version="1.2" name="interact-focus-204-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.2" name="interact-focus-205-t" revision="1.6" status="OK" comment="bounding box highlight bug"/>
+	<test svg-version="1.2" name="interact-focus-206-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="interact-focus-207-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="interact-focus-208-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="interact-focus-209-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="interact-focus-210-t" revision="1.5" status="PARTIAL" comment="top row doesn't turn red"/>
+	<test svg-version="1.2" name="interact-focus-211-t" revision="1.7" status="OK" comment="According to our interpretation of the spec, this test requires the use of previous focus to see any modifications."/>
+	<test svg-version="1.2" name="interact-focus-212-t" revision="1.4" status="OK" comment=""/>
 
-	<test name="jpeg-required-201-t" revision="1.3" status="OK" comment=""/>
-	<test name="jpeg-required-202-t" revision="1.4" status="OK" comment=""/>
-	<test name="jpeg-required-203-t" revision="1.4" status="OK" comment=""/>
-	<test name="jpeg-required-204-t" revision="1.4" status="OK" comment=""/>
-	<test name="jpeg-required-205-t" revision="1.4" status="OK" comment=""/>
-	<test name="jpeg-required-206-t" revision="1.4" status="OK" comment=""/>
-	<test name="jpeg-required-207-t" revision="1.4" status="OK" comment=""/>
-	<test name="jpeg-required-208-t" revision="1.4" status="OK" comment=""/>
-	<test name="jpeg-required-209-t" revision="1.4" status="OK" comment=""/>
-	<test name="jpeg-required-210-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="jpeg-required-201-t" revision="1.3" status="OK" comment=""/>
+	<test svg-version="1.2" name="jpeg-required-202-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="jpeg-required-203-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="jpeg-required-204-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="jpeg-required-205-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="jpeg-required-206-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="jpeg-required-207-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="jpeg-required-208-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="jpeg-required-209-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="jpeg-required-210-t" revision="1.4" status="OK" comment=""/>
 
-	<test name="linking-a-01-t" revision="1.6" status="OK" comment=""/>
-	<test name="linking-a-03-t" revision="1.2" status="FAIL" comment="Fragment views not supported"/>
-	<test name="linking-a-04-t" revision="1.8" status="PARTIAL" comment="Fragment"/>
-	<test name="linking-a-05-t" revision="1.6" status="PARTIAL" comment="Centering on the circle doesn't work"/>
-	<test name="linking-a-07-t" revision="1.2" status="FAIL" comment="target attribute is not supported"/>
-	<test name="linking-a-08-t" revision="1.4" status="FAIL" comment="tspan"/>
-	<test name="linking-a-09-b" revision="1.1" status="FAIL" comment=""/>
+	<test svg-version="1.1" name="linking-a-01-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="linking-a-03-t" revision="1.2" status="FAIL" comment="Fragment views not supported"/>
+	<test svg-version="1.1" name="linking-a-04-t" revision="1.8" status="PARTIAL" comment="Fragment"/>
+	<test svg-version="1.1" name="linking-a-05-t" revision="1.6" status="PARTIAL" comment="Centering on the circle doesn't work"/>
+	<test svg-version="1.1" name="linking-a-07-t" revision="1.2" status="FAIL" comment="target attribute is not supported"/>
+	<test svg-version="1.1" name="linking-a-08-t" revision="1.4" status="FAIL" comment="link inside text"/>
+	<test svg-version="1.1" name="linking-a-09-b" revision="1.1" status="FAIL" comment=""/>
 
-	<test name="linking-frag-201-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="linking-frag-202-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="linking-refs-201-t" revision="1.6" status="OK" comment=""/>
-	<test name="linking-refs-202-t" revision="1.6" status="OK" comment=""/>
-	<test name="linking-refs-203-t" revision="1.7" status="PARTIAL" comment=""/>
-	<test name="linking-refs-204-t" revision="1.6" status="OK" comment=""/>
-	<test name="linking-refs-205-t" revision="1.6" status="FAIL" comment="xml:base"/>
+	<test svg-version="1.2" name="linking-frag-201-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="linking-frag-202-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="linking-refs-201-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.2" name="linking-refs-202-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.2" name="linking-refs-203-t" revision="1.7" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="linking-refs-204-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.2" name="linking-refs-205-t" revision="1.6" status="FAIL" comment="xml:base"/>
 
-	<test name="linking-uri-01-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="linking-uri-02-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="linking-uri-03-t" revision="1.8" status="FAIL" comment=""/>
+	<test svg-version="1.1" name="linking-uri-01-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.1" name="linking-uri-02-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.1" name="linking-uri-03-t" revision="1.8" status="FAIL" comment=""/>
 
-	<test name="masking-opacity-01-t" revision="1.1" status="OK" comment=""/>
+	<test svg-version="1.1" name="masking-opacity-01-t" revision="1.1" status="FAIL" comment=""/>
 
-	<test name="media-alevel-201-t" revision="1.9" status="OK" comment=""/>
-	<test name="media-alevel-202-t" revision="1.9" status="OK" comment=""/>
-	<test name="media-alevel-203-t" revision="1.6" status="OK" comment=""/>
-	<test name="media-alevel-204-t" revision="1.5" status="OK" comment=""/>
-	<test name="media-alevel-205-t" revision="1.5" status="OK" comment=""/>
-	<test name="media-alevel-206-t" revision="1.6" status="FAIL" comment="audio-level inheritance"/>
-	<test name="media-alevel-207-t" revision="1.5" status="OK" comment=""/>
-	<test name="media-alevel-208-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-alevel-201-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-alevel-202-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-alevel-203-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-alevel-204-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-alevel-205-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-alevel-206-t" revision="1.6" status="FAIL" comment="audio-level inheritance"/>
+	<test svg-version="1.2" name="media-alevel-207-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-alevel-208-t" revision="1.5" status="OK" comment=""/>
 
-	<test name="media-anim-201-t" revision="1.7" status="OK" comment=""/>
-	<test name="media-anim-202-t" revision="1.8" status="PARTIAL" comment="Primary documents loaded multiple times"/>
-	<test name="media-anim-203-t" revision="1.8" status="PARTIAL" comment="Primary documents loaded multiple times"/>
-	<test name="media-anim-204-t" revision="1.10" status="PARTIAL" comment=""/>
-	<test name="media-anim-205-t" revision="1.9" status="PARTIAL" comment="viewport-fill and vpfo in animation"/>
-	<test name="media-anim-206-t" revision="1.9" status="PARTIAL" comment="viewport-fill and vpfo in animation"/>
-	<test name="media-anim-207-t" revision="1.7" status="PARTIAL" comment="viewport-fill and vpfo in animation"/>
-	<test name="media-anim-208-t" revision="1.9" status="PARTIAL" comment=""/>
-	<test name="media-anim-209-t" revision="1.7" status="OK" comment=""/>
-	<test name="media-anim-210-t" revision="1.10" status="PARTIAL" comment="Focus Problem"/>
-	<test name="media-anim-211-t" revision="1.4" status="FAIL" comment="Wrong media types accepted"/>
-	<test name="media-anim-212-t" revision="1.5" status="FAIL" comment="animated xlink:href on animation"/>
-	<test name="media-anim-213-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="media-anim-201-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-anim-202-t" revision="1.8" status="PARTIAL" comment="Primary documents loaded multiple times"/>
+	<test svg-version="1.2" name="media-anim-203-t" revision="1.8" status="PARTIAL" comment="Primary documents loaded multiple times"/>
+	<test svg-version="1.2" name="media-anim-204-t" revision="1.10" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="media-anim-205-t" revision="1.9" status="PARTIAL" comment="viewport-fill and vpfo in animation"/>
+	<test svg-version="1.2" name="media-anim-206-t" revision="1.9" status="PARTIAL" comment="viewport-fill and vpfo in animation"/>
+	<test svg-version="1.2" name="media-anim-207-t" revision="1.7" status="PARTIAL" comment="viewport-fill and vpfo in animation"/>
+	<test svg-version="1.2" name="media-anim-208-t" revision="1.9" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="media-anim-209-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-anim-210-t" revision="1.10" status="PARTIAL" comment="Focus Problem"/>
+	<test svg-version="1.2" name="media-anim-211-t" revision="1.4" status="FAIL" comment="Wrong media types accepted"/>
+	<test svg-version="1.2" name="media-anim-212-t" revision="1.5" status="FAIL" comment="animated xlink:href on animation"/>
+	<test svg-version="1.2" name="media-anim-213-t" revision="1.3" status="PARTIAL" comment=""/>
 
-	<test name="media-audio-201-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-audio-202-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-audio-203-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-audio-204-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-audio-205-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-audio-206-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-audio-207-t" revision="1.4" status="PARTIAL" comment="sync problem between animation and audio"/>
-	<test name="media-audio-208-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-audio-209-t" revision="1.4" status="PARTIAL" comment="end event problem"/>
-	<test name="media-audio-210-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-audio-211-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-audio-212-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-audio-213-t" revision="1.5" status="PARTIAL" comment="sound audible at R2"/>
-	<test name="media-audio-214-t" revision="1.1" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-audio-201-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-audio-202-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-audio-203-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-audio-204-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-audio-205-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-audio-206-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-audio-207-t" revision="1.4" status="PARTIAL" comment="sync problem between animation and audio"/>
+	<test svg-version="1.2" name="media-audio-208-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-audio-209-t" revision="1.4" status="PARTIAL" comment="end event problem"/>
+	<test svg-version="1.2" name="media-audio-210-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-audio-211-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-audio-212-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-audio-213-t" revision="1.5" status="PARTIAL" comment="sound audible at R2"/>
+	<test svg-version="1.2" name="media-audio-214-t" revision="1.1" status="OK" comment=""/>
 
-	<test name="media-synch-201-t" revision="1.2" status="PARTIAL" comment="syncBehavior locked but repeatCount indefinite on animation ..."/>
-	<test name="media-synch-202-t" revision="1.2" status="PARTIAL" comment="canSlip ..."/>
-	<test name="media-synch-203-t" revision="1.2" status="PARTIAL" comment="locked with pause ?"/>
-	<test name="media-synch-204-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="media-synch-205-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="media-synch-206-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="media-synch-207-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="media-synch-208-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="media-synch-209-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="media-synch-210-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="media-synch-211-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="media-synch-201-t" revision="1.2" status="PARTIAL" comment="syncBehavior locked but repeatCount indefinite on animation ..."/>
+	<test svg-version="1.2" name="media-synch-202-t" revision="1.2" status="PARTIAL" comment="canSlip ..."/>
+	<test svg-version="1.2" name="media-synch-203-t" revision="1.2" status="PARTIAL" comment="locked with pause ?"/>
+	<test svg-version="1.2" name="media-synch-204-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="media-synch-205-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="media-synch-206-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="media-synch-207-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="media-synch-208-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="media-synch-209-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="media-synch-210-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="media-synch-211-t" revision="1.2" status="PARTIAL" comment=""/>
 
-	<test name="media-video-201-t" revision="1.8" status="OK" comment=""/>
-	<test name="media-video-202-t" revision="1.9" status="PARTIAL" comment="video does not disappear when complete"/>
-	<test name="media-video-203-t" revision="1.7" status="FAILED" comment="transformBehavior pinned not supported"/>
-	<test name="media-video-204-t" revision="1.9" status="OK" comment=""/>
-	<test name="media-video-205-t" revision="1.8" status="OK" comment=""/>
-	<test name="media-video-206-t" revision="1.9" status="OK" comment=""/>
-	<test name="media-video-207-t" revision="1.9" status="OK" comment=""/>
-	<test name="media-video-208-t" revision="1.7" status="OK" comment=""/>
-	<test name="media-video-209-t" revision="1.8" status="OK" comment=""/>
-	<test name="media-video-210-t" revision="1.8" status="OK" comment=""/>
-	<test name="media-video-211-t" revision="1.8" status="OK" comment=""/>
-	<test name="media-video-212-t" revision="1.9" status="OK" comment=""/>
-	<test name="media-video-213-t" revision="1.5" status="OK" comment=""/>
-	<test name="media-video-214-t" revision="1.7" status="OK" comment=""/>
-	<test name="media-video-215-t" revision="1.6" status="PARTIAL" comment="animate, handler, setAttributeNS on video xlink:href"/>
-	<test name="media-video-216-t" revision="1.7" status="FAIL" comment="transformBehavior pinned not supported"/>
-	<test name="media-video-217-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-video-218-t" revision="1.5" status="PARTIAL" comment="main function is ok, but some events are not sent correctly"/>
-	<test name="media-video-219-t" revision="1.5" status="PARTIAL" comment="animate, handler, removeChild ..."/>
-	<test name="media-video-220-t" revision="1.4" status="PARTIAL" comment="animate, handler, removeChild ..."/>
-	<test name="media-video-221-t" revision="1.4" status="OK" comment=""/>
-	<test name="media-video-222-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-201-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-202-t" revision="1.9" status="PARTIAL" comment="video does not disappear when complete"/>
+	<test svg-version="1.2" name="media-video-203-t" revision="1.7" status="FAILED" comment="transformBehavior pinned not supported"/>
+	<test svg-version="1.2" name="media-video-204-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-205-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-206-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-207-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-208-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-209-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-210-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-211-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-212-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-213-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-214-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-215-t" revision="1.6" status="PARTIAL" comment="animate, handler, setAttributeNS on video xlink:href"/>
+	<test svg-version="1.2" name="media-video-216-t" revision="1.7" status="FAIL" comment="transformBehavior pinned not supported"/>
+	<test svg-version="1.2" name="media-video-217-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-218-t" revision="1.5" status="PARTIAL" comment="main function is ok, but some events are not sent correctly"/>
+	<test svg-version="1.2" name="media-video-219-t" revision="1.5" status="PARTIAL" comment="animate, handler, removeChild ..."/>
+	<test svg-version="1.2" name="media-video-220-t" revision="1.4" status="PARTIAL" comment="animate, handler, removeChild ..."/>
+	<test svg-version="1.2" name="media-video-221-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="media-video-222-t" revision="1.4" status="OK" comment=""/>
 
-	<test name="metadata-example-01-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="metadata-example-01-t" revision="1.6" status="OK" comment=""/>
 	
-	<test name="paint-color-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="paint-color-03-t" revision="1.6" status="OK" comment=""/>
-	<test name="paint-color-04-t" revision="1.8" status="OK" comment=""/>
-	<test name="paint-color-05-t" revision="1.7" status="OK" comment=""/>
-	<test name="paint-colors-201-t" revision="1.1" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-color-01-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-color-03-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-color-04-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-color-05-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.2" name="paint-colors-201-t" revision="1.1" status="OK" comment=""/>
 	
-  <test name="paint-fill-01-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-fill-02-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-fill-03-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-fill-04-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-fill-05-t" revision="1.4" status="OK" comment=""/>
+  <test svg-version="1.1" name="paint-fill-01-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-fill-02-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-fill-03-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-fill-04-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-fill-05-t" revision="1.4" status="OK" comment=""/>
 	
-  <test name="paint-grad-04-t" revision="1.7" status="OK" comment=""/>
-	<test name="paint-grad-05-t" revision="1.7" status="OK" comment=""/>
-	<test name="paint-grad-07-t" revision="1.7" status="OK" comment=""/>
-	<test name="paint-grad-08-t" revision="1.6" status="OK" comment=""/>
-	<test name="paint-grad-09-t" revision="1.6" status="OK" comment=""/>
-	<test name="paint-grad-11-t" revision="1.6" status="OK" comment=""/>
-	<test name="paint-grad-12-t" revision="1.6" status="OK" comment=""/>
-	<test name="paint-grad-15-t" revision="1.7" status="OK" comment=""/>
-	<test name="paint-grad-16-t" revision="1.6" status="OK" comment=""/>
-	<test name="paint-grad-17-t" revision="1.8" status="OK" comment=""/>
-	<test name="paint-grad-18-t" revision="1.6" status="OK" comment=""/>
-	<test name="paint-grad-19-t" revision="1.7" status="OK" comment=""/>
-	<test name="paint-grad-201-t" revision="1.5" status="FAIL" comment="stop-opacity animation"/>
-	<test name="paint-grad-202-t" revision="1.6" status="OK" comment=""/>
-	<test name="paint-grad-203-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-grad-204-t" revision="1.6" status="OK" comment=""/>
-	<test name="paint-grad-205-t" revision="1.5" status="OK" comment=""/>
+  <test svg-version="1.1" name="paint-grad-04-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-grad-05-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-grad-07-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-grad-08-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-grad-09-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-grad-11-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-grad-12-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-grad-15-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-grad-16-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-grad-17-t" revision="1.8" status="FAIL" comment="gradient on lines with fallback"/>
+	<test svg-version="1.1" name="paint-grad-18-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-grad-19-t" revision="1.7" status="PARTIAL" comment="??"/>
+	<test svg-version="1.2" name="paint-grad-201-t" revision="1.5" status="FAIL" comment="stop-opacity animation"/>
+	<test svg-version="1.2" name="paint-grad-202-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.2" name="paint-grad-203-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="paint-grad-204-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.2" name="paint-grad-205-t" revision="1.5" status="OK" comment=""/>
 	
-  <test name="paint-nsstroke-201-t" revision="1.4" status="OK" comment=""/>
-	<test name="paint-nsstroke-202-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="paint-nsstroke-203-t" revision="1.4" status="OK" comment=""/>
+  <test svg-version="1.2" name="paint-nsstroke-201-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="paint-nsstroke-202-t" revision="1.5" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="paint-nsstroke-203-t" revision="1.4" status="OK" comment=""/>
 	
-  <test name="paint-other-201-t" revision="1.4" status="OK" comment=""/>
-	<test name="paint-other-202-t" revision="1.5" status="PARTIAL" comment="solid-opacity animation"/>
-	<test name="paint-other-203-t" revision="1.5" status="PARTIAL" comment="solid-color animation"/>
+  <test svg-version="1.2" name="paint-other-201-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="paint-other-202-t" revision="1.5" status="PARTIAL" comment="solid-opacity animation"/>
+	<test svg-version="1.2" name="paint-other-203-t" revision="1.5" status="PARTIAL" comment="solid-color animation"/>
 	
-  <test name="paint-stroke-01-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-stroke-02-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-stroke-03-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-stroke-04-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-stroke-05-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-stroke-06-t" revision="1.6" status="OK" comment=""/>
-	<test name="paint-stroke-07-t" revision="1.4" status="OK" comment=""/>
-	<test name="paint-stroke-08-t" revision="1.4" status="OK" comment=""/>
+  <test svg-version="1.1" name="paint-stroke-01-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-stroke-02-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-stroke-03-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-stroke-04-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-stroke-05-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-stroke-06-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-stroke-07-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.1" name="paint-stroke-08-t" revision="1.4" status="OK" comment=""/>
 	
-  <test name="paint-stroke-201-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="paint-stroke-202-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="paint-stroke-203-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="paint-stroke-204-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="paint-stroke-205-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test name="paint-stroke-206-t" revision="1.2" status="OK" comment=""/>
-	<test name="paint-stroke-207-t" revision="1.4" status="OK" comment=""/>
+  <test svg-version="1.2" name="paint-stroke-201-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="paint-stroke-202-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="paint-stroke-203-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="paint-stroke-204-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="paint-stroke-205-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="paint-stroke-206-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="paint-stroke-207-t" revision="1.4" status="OK" comment=""/>
 	
-  <test name="paint-vfill-201-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="paint-vfill-202-t" revision="1.5" status="OK" comment=""/>
-	<test name="paint-vfill-203-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test name="paint-vfill-204-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test name="paint-vfill-205-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="paint-vfill-206-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test name="paint-vfillo-201-t" revision="1.1" status="PARTIAL" comment=""/>
+  <test svg-version="1.2" name="paint-vfill-201-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="paint-vfill-202-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="paint-vfill-203-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="paint-vfill-204-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="paint-vfill-205-t" revision="1.4" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="paint-vfill-206-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="paint-vfillo-201-t" revision="1.1" status="PARTIAL" comment=""/>
 	
-  <test name="paths-data-01-t" revision="1.12" status="OK" comment=""/>
-	<test name="paths-data-02-t" revision="1.12" status="OK" comment=""/>
-	<test name="paths-data-04-t" revision="1.11" status="OK" comment=""/>
-	<test name="paths-data-05-t" revision="1.12" status="OK" comment=""/>
-	<test name="paths-data-06-t" revision="1.11" status="OK" comment=""/>
-	<test name="paths-data-07-t" revision="1.11" status="OK" comment=""/>
-	<test name="paths-data-08-t" revision="1.8" status="OK" comment=""/>
-	<test name="paths-data-09-t" revision="1.8" status="OK" comment=""/>
-	<test name="paths-data-10-t" revision="1.10" status="OK" comment=""/>
-	<test name="paths-data-12-t" revision="1.10" status="OK" comment=""/>
-	<test name="paths-data-13-t" revision="1.9" status="OK" comment=""/>
-	<test name="paths-data-14-t" revision="1.8" status="OK" comment=""/>
-	<test name="paths-data-15-t" revision="1.9" status="OK" comment=""/>
+  <test svg-version="1.1" name="paths-data-01-t" revision="1.12" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-02-t" revision="1.12" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-04-t" revision="1.11" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-05-t" revision="1.12" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-06-t" revision="1.11" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-07-t" revision="1.11" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-08-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-09-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-10-t" revision="1.10" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-12-t" revision="1.10" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-13-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-14-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="paths-data-15-t" revision="1.9" status="OK" comment=""/>
 	
-  <test name="render-elems-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="render-elems-02-t" revision="1.7" status="OK" comment=""/>
-	<test name="render-elems-03-t" revision="1.7" status="OK" comment=""/>
-	<test name="render-elems-06-t" revision="1.7" status="OK" comment=""/>
-	<test name="render-elems-07-t" revision="1.7" status="OK" comment=""/>
-	<test name="render-elems-08-t" revision="1.7" status="OK" comment=""/>
-	<test name="render-groups-01-t" revision="1.8" status="OK" comment=""/>
-	<test name="render-groups-03-t" revision="1.7" status="OK" comment=""/>
+  <test svg-version="1.1" name="render-elems-01-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="render-elems-02-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="render-elems-03-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="render-elems-06-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="render-elems-07-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="render-elems-08-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="render-groups-01-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="render-groups-03-t" revision="1.7" status="OK" comment=""/>
 	
-  <test name="script-element-201-t" revision="1.5" status="OK" comment=""/>
-	<test name="script-element-202-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="script-handle-05-t" revision="1.9" status="OK" comment=""/>
-	<test name="script-handle-06-t" revision="1.8" status="PARTIAL" comment=""/>
-	<test name="script-handle-07-t" revision="1.8" status="OK" comment=""/>
-	<test name="script-handle-08-t" revision="1.9" status="OK" comment=""/>
-	<test name="script-handle-201-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test name="script-handle-202-t" revision="1.5" status="OK" comment=""/>
-	<test name="script-listener-201-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="script-listener-202-t" revision="1.4" status="FAIL" comment=""/>
+  <test svg-version="1.2" name="script-element-201-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="script-element-202-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.1" name="script-handle-05-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.1" name="script-handle-06-t" revision="1.8" status="PARTIAL" comment="activate event problem"/>
+	<test svg-version="1.1" name="script-handle-07-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="script-handle-08-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.2" name="script-handle-201-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="script-handle-202-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="script-listener-201-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="script-listener-202-t" revision="1.4" status="FAIL" comment=""/>
 	
-  <test name="shapes-circle-01-t" revision="1.9" status="OK" comment=""/>
-	<test name="shapes-circle-02-t" revision="1.7" status="OK" comment=""/>
-	<test name="shapes-circle-03-t" revision="1.5" status="OK" comment=""/>
-	<test name="shapes-ellipse-01-t" revision="1.9" status="OK" comment=""/>
-	<test name="shapes-ellipse-02-t" revision="1.8" status="OK" comment=""/>
-	<test name="shapes-ellipse-03-t" revision="1.5" status="OK" comment=""/>
-	<test name="shapes-intro-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="shapes-line-01-t" revision="1.8" status="OK" comment=""/>
-	<test name="shapes-line-02-t" revision="1.3" status="OK" comment=""/>
-	<test name="shapes-polygon-01-t" revision="1.8" status="OK" comment=""/>
-	<test name="shapes-polygon-02-t" revision="1.4" status="OK" comment=""/>
-	<test name="shapes-polyline-01-t" revision="1.8" status="OK" comment=""/>
-	<test name="shapes-polyline-02-t" revision="1.3" status="OK" comment=""/>
-	<test name="shapes-rect-01-t" revision="1.9" status="OK" comment=""/>
-	<test name="shapes-rect-02-t" revision="1.8" status="OK" comment=""/>
-	<test name="shapes-rect-03-t" revision="1.4" status="OK" comment=""/>
+  <test svg-version="1.1" name="shapes-circle-01-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-circle-02-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-circle-03-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-ellipse-01-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-ellipse-02-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-ellipse-03-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-intro-01-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-line-01-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-line-02-t" revision="1.3" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-polygon-01-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-polygon-02-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-polyline-01-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-polyline-02-t" revision="1.3" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-rect-01-t" revision="1.9" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-rect-02-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="shapes-rect-03-t" revision="1.4" status="OK" comment=""/>
 	
-  <test name="struct-cond-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="struct-cond-02-t" revision="1.7" status="OK" comment=""/>
-	<test name="struct-cond-03-t" revision="1.2" status="OK" comment=""/>
-	<test name="struct-cond-04-t" revision="1.2" status="OK" comment=""/>
-	<test name="struct-cond-205-t" revision="1.3" status="PARTIAL" comment=""/>
-	<test name="struct-cond-206-t" revision="1.4" status="OK" comment=""/>
-	<test name="struct-cond-207-t" revision="1.3" status="FAIL" comment=""/>
+  <test svg-version="1.1" name="struct-cond-01-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-cond-02-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-cond-03-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-cond-04-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="struct-cond-205-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="struct-cond-206-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="struct-cond-207-t" revision="1.3" status="FAIL" comment=""/>
 	
-  <test name="struct-defs-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="struct-defs-201-t" revision="1.3" status="OK" comment=""/>
+  <test svg-version="1.1" name="struct-defs-01-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.2" name="struct-defs-201-t" revision="1.3" status="OK" comment=""/>
 	
-  <test name="struct-discard-101-t" revision="1.2" status="OK" comment=""/>
-	<test name="struct-discard-201-t" revision="1.2" status="OK" comment=""/>
-	<test name="struct-discard-202-t" revision="1.3" status="PARTIAL" comment=""/>
-	<test name="struct-discard-203-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="struct-discard-204-t" revision="1.4" status="OK" comment=""/>
-	<test name="struct-discard-205-t" revision="1.3" status="OK" comment=""/>
-	<test name="struct-discard-206-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="struct-discard-207-t" revision="1.3" status="FAIL" comment=""/>
+  <test svg-version="1.2" name="struct-discard-101-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="struct-discard-201-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="struct-discard-202-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="struct-discard-203-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="struct-discard-204-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.2" name="struct-discard-205-t" revision="1.3" status="OK" comment=""/>
+	<test svg-version="1.2" name="struct-discard-206-t" revision="1.3" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="struct-discard-207-t" revision="1.3" status="FAIL" comment=""/>
 	
-  <test name="struct-frag-01-t" revision="1.5" status="OK" comment=""/>
-	<test name="struct-frag-02-t" revision="1.4" status="OK" comment=""/>
-	<test name="struct-frag-03-t" revision="1.4" status="OK" comment=""/>
-	<test name="struct-frag-04-t" revision="1.4" status="OK" comment=""/>
-	<test name="struct-frag-05-t" revision="1.6" status="OK" comment=""/>
-	<test name="struct-frag-06-t" revision="1.5" status="OK" comment=""/>
+  <test svg-version="1.1" name="struct-frag-01-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-frag-02-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-frag-03-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-frag-04-t" revision="1.4" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-frag-05-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-frag-06-t" revision="1.5" status="OK" comment=""/>
 	
-  <test name="struct-group-01-t" revision="1.8" status="OK" comment=""/>
-	<test name="struct-group-03-t" revision="1.5" status="OK" comment=""/>
+  <test svg-version="1.1" name="struct-group-01-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-group-03-t" revision="1.5" status="OK" comment=""/>
 	
-  <test name="struct-image-01-t" revision="1.8" status="OK" comment=""/>
-	<test name="struct-image-03-t" revision="1.8" status="OK" comment=""/>
-	<test name="struct-image-04-t" revision="1.8" status="OK" comment=""/>
-	<test name="struct-image-05-t" revision="1.2" status="OK" comment=""/>
-	<test name="struct-image-06-t" revision="1.5" status="OK" comment=""/>
-	<test name="struct-image-07-t" revision="1.5" status="FAIL" comment="xml:base"/>
-	<test name="struct-image-08-t" revision="1.5" status="OK" comment=""/>
-	<test name="struct-image-09-t" revision="1.5" status="OK" comment=""/>
-	<test name="struct-image-10-t" revision="1.5" status="OK" comment=""/>
+  <test svg-version="1.1" name="struct-image-01-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-image-03-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-image-04-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-image-05-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-image-06-t" revision="1.5" status="FAIL" comment="pAR"/>
+	<test svg-version="1.1" name="struct-image-07-t" revision="1.5" status="FAIL" comment="xml:base"/>
+	<test svg-version="1.1" name="struct-image-08-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-image-09-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-image-10-t" revision="1.5" status="OK" comment=""/>
 	
-  <test name="struct-progressive-201-t" revision="1.5" status="OK" comment=""/>
-	<test name="struct-progressive-202-t" revision="1.3" status="FAIL" comment="eRR not supported"/>
-	<test name="struct-progressive-203-t" revision="1.3" status="PARTIAL" comment=""/>
-	<test name="struct-progressive-204-t" revision="1.3" status="PARTIAL" comment=""/>
+  <test svg-version="1.2" name="struct-progressive-201-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="struct-progressive-202-t" revision="1.3" status="FAIL" comment="eRR not supported"/>
+	<test svg-version="1.2" name="struct-progressive-203-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="struct-progressive-204-t" revision="1.3" status="PARTIAL" comment=""/>
 	
-  <test name="struct-svg-201-t" revision="1.3" status="FAIL" comment="snapshot time"/>
-	<test name="struct-svg-202-t" revision="1.3" status="FAIL" comment="snapshot time"/>
-	<test name="struct-svg-203-t" revision="1.3" status="OK" comment=""/>
-	<test name="struct-svg-204-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="struct-svg-205-t" revision="1.2" status="OK" comment=""/>
+  <test svg-version="1.2" name="struct-svg-201-t" revision="1.3" status="FAIL" comment="snapshot time"/>
+	<test svg-version="1.2" name="struct-svg-202-t" revision="1.3" status="FAIL" comment="snapshot time"/>
+	<test svg-version="1.2" name="struct-svg-203-t" revision="1.3" status="OK" comment=""/>
+	<test svg-version="1.2" name="struct-svg-204-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="struct-svg-205-t" revision="1.2" status="OK" comment=""/>
 	
-  <test name="struct-use-01-t" revision="1.5" status="OK" comment=""/>
-	<test name="struct-use-03-t" revision="1.5" status="OK" comment=""/>
-	<test name="struct-use-04-t" revision="1.5" status="PARTIAL" comment="property handling not correct"/>
-	<test name="struct-use-05-t" revision="1.5" status="OK" comment=""/>
-	<test name="struct-use-06-b" revision="1.1" status="PARTIAL" comment=""/>
-	<test name="struct-use-06-t" revision="1.1" status="PARTIAL" comment=""/>
-	<test name="struct-use-07-b" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="struct-use-07-t" revision="1.1" status="PARTIAL" comment=""/>
-	<test name="struct-use-08-b" revision="1.2" status="PARTIAL" comment="Infinite referencing loop"/>
-	<test name="struct-use-09-b" revision="1.1" status="FAIL" comment=""/>
-	<test name="struct-use-201-t" revision="1.4" status="PARTIAL" comment="reference restrictions in use"/>
-	<test name="struct-use-202-t" revision="1.3" status="PARTIAL" comment=""/>
+  <test svg-version="1.1" name="struct-use-01-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-use-03-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-use-04-t" revision="1.5" status="PARTIAL" comment="property handling not correct"/>
+	<test svg-version="1.1" name="struct-use-05-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-use-06-t" revision="1.1" status="PARTIAL" comment=""/>
+	<test svg-version="1.1" name="struct-use-07-t" revision="1.1" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="struct-use-201-t" revision="1.4" status="PARTIAL" comment="reference restrictions in use"/>
+	<test svg-version="1.2" name="struct-use-202-t" revision="1.3" status="PARTIAL" comment=""/>
 	
-  <test name="styling-inherit-01-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="styling-pres-01-t" revision="1.2" status="OK" comment=""/>
+  <test svg-version="1.1" name="styling-inherit-01-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="styling-pres-01-t" revision="1.2" status="OK" comment=""/>
 	
-  <test name="text-align-01-t" revision="1.6" status="OK" comment=""/>
-	<test name="text-align-03-t" revision="1.7" status="PARTIAL" comment="Bug in text-anchor and tspan"/>
-	<test name="text-align-07-t" revision="1.5" status="OK" comment=""/>
-	<test name="text-align-08-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test name="text-align-201-t" revision="1.2" status="PARTIAL" comment="last space in tspan not rendered properly."/>
-	<test name="text-align-202-t" revision="1.8" status="PARTIAL" comment="arabic glyph substitution problem and hebrew alignment"/>
+  <test svg-version="1.1" name="text-align-01-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="text-align-03-t" revision="1.7" status="PARTIAL" comment="Bug in text-anchor and tspan"/>
+	<test svg-version="1.1" name="text-align-07-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="text-align-08-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="text-align-201-t" revision="1.2" status="PARTIAL" comment="last space in tspan not rendered properly."/>
+	<test svg-version="1.2" name="text-align-202-t" revision="1.8" status="PARTIAL" comment="arabic glyph substitution problem and hebrew alignment"/>
 	
-  <test name="text-area-201-t" revision="1.5" status="OK" comment=""/>
-	<test name="text-area-202-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-203-t" revision="1.5" status="OK" comment=""/>
-	<test name="text-area-204-t" revision="1.6" status="OK" comment=""/>
-	<test name="text-area-205-t" revision="1.5" status="OK" comment=""/>
-	<test name="text-area-206-t" revision="1.5" status="OK" comment=""/>
-	<test name="text-area-207-t" revision="1.5" status="OK" comment=""/>
-	<test name="text-area-208-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="text-area-209-t" revision="1.5" status="OK" comment=""/>
-	<test name="text-area-210-t" revision="1.5" status="OK" comment=""/>
-	<test name="text-area-211-t" revision="1.2" status="OK" comment=""/>
-	<test name="text-area-212-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="text-area-213-t" revision="1.5" status="PARTIAL" comment="display-align not supported"/>
-	<test name="text-area-220-t" revision="1.6" status="PARTIAL" comment="display-align not supported"/>
-	<test name="text-area-221-t" revision="1.5" status="PARTIAL" comment="display-align not supported"/>
-	<test name="text-area-222-t" revision="1.5" status="FAIL" comment="editable not supported"/>
+  <test svg-version="1.2" name="text-area-201-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="text-area-202-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="text-area-203-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="text-area-204-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.2" name="text-area-205-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="text-area-206-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="text-area-207-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="text-area-208-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="text-area-209-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="text-area-210-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="text-area-211-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="text-area-212-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="text-area-213-t" revision="1.5" status="PARTIAL" comment="display-align not supported"/>
+	<test svg-version="1.2" name="text-area-220-t" revision="1.6" status="PARTIAL" comment="display-align not supported"/>
+	<test svg-version="1.2" name="text-area-221-t" revision="1.5" status="PARTIAL" comment="display-align not supported"/>
+	<test svg-version="1.2" name="text-area-222-t" revision="1.5" status="FAIL" comment="editable not supported"/>
 	
-  <test name="text-deco-01-t" revision="1.1" status="PARTIAL" comment="Not in tiny"/>
+  <test svg-version="1.1" name="text-deco-01-t" revision="1.1" status="PARTIAL" comment="Not in tiny"/>
 	
-  <test name="text-fonts-01-t" revision="1.7" status="PARTIAL" comment="Japanese glyphs not displayed"/>
-	<test name="text-fonts-02-t" revision="1.7" status="PARTIAL" comment="bold and number equivalent are not correct"/>
-	<test name="text-fonts-03-t" revision="1.5" status="OK" comment="Missing fonts ?"/>
-	<test name="text-fonts-04-t" revision="1.2" status="OK" comment=""/>
-	<test name="text-fonts-202-t" revision="1.4" status="OK" comment=""/>
+  <test svg-version="1.1" name="text-fonts-01-t" revision="1.7" status="PARTIAL" comment="Japanese glyphs not displayed"/>
+	<test svg-version="1.1" name="text-fonts-02-t" revision="1.7" status="PARTIAL" comment="bold and number equivalent are not correct"/>
+	<test svg-version="1.1" name="text-fonts-03-t" revision="1.5" status="OK" comment="  "/>
+	<test svg-version="1.1" name="text-fonts-04-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="text-fonts-202-t" revision="1.4" status="OK" comment=""/>
 	
-  <test name="text-intro-01-t" revision="1.7" status="FAIL" comment=""/>
-	<test name="text-intro-04-t" revision="1.7" status="OK" comment=""/>
-	<test name="text-intro-05-t" revision="1.5" status="OK" comment="Using GDI+ Font Engine / FAIL with FreeType"/>
-	<test name="text-intro-06-t" revision="1.2" status="OK" comment="Using GDI+ Font Engine  / FAIL with FreeType"/>
-	<test name="text-intro-201-t" revision="1.3" status="OK" comment="Using GDI+ Font Engine  / FAIL with FreeType"/>
+  <test svg-version="1.1" name="text-intro-01-t" revision="1.7" status="FAIL" comment=""/>
+	<test svg-version="1.1" name="text-intro-04-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="text-intro-05-t" revision="1.5" status="OK" comment="Using GDI+ Font Engine / FAIL with FreeType"/>
+	<test svg-version="1.1" name="text-intro-06-t" revision="1.2" status="OK" comment="Using GDI+ Font Engine  / FAIL with FreeType"/>
+	<test svg-version="1.2" name="text-intro-201-t" revision="1.3" status="OK" comment="Using GDI+ Font Engine  / FAIL with FreeType"/>
 	
-  <test name="text-text-03-t" revision="1.1" status="PARTIAL" comment=""/>
-	<test name="text-text-04-t" revision="1.5" status="PARTIAL" comment="Problem with y alignment"/>
-	<test name="text-text-05-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="text-text-06-t" revision="1.6" status="PARTIAL" comment=""/>
-	<test name="text-text-07-t" revision="1.5" status="PARTIAL" comment="rotate text glyphs not supported and clipping problems"/>
-	<test name="text-text-08-t" revision="1.8" status="OK" comment=""/>
-	<test name="text-text-09-t" revision="1.4" status="PARTIAL" comment="rotate text glyphs not supported and clipping problems"/>
-	<test name="text-tref-01-b" revision="1.1" status="FAIL" comment=""/>
+  <test svg-version="1.1" name="text-text-03-t" revision="1.1" status="PARTIAL" comment=""/>
+	<test svg-version="1.1" name="text-text-04-t" revision="1.5" status="PARTIAL" comment="Problem with y alignment"/>
+	<test svg-version="1.1" name="text-text-05-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.1" name="text-text-06-t" revision="1.6" status="PARTIAL" comment=""/>
+	<test svg-version="1.1" name="text-text-07-t" revision="1.5" status="PARTIAL" comment="rotate text glyphs not supported and clipping problems"/>
+	<test svg-version="1.1" name="text-text-08-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="text-text-09-t" revision="1.4" status="PARTIAL" comment="rotate text glyphs not supported and clipping problems"/>
+	<test svg-version="1.1" name="text-tref-01-b" revision="1.1" status="FAIL" comment=""/>
 	
-  <test name="text-tselect-03-t" revision="1.7" status="FAIL" comment="text is not selectable."/>
-	<test name="text-ws-01-t" revision="1.6" status="PARTIAL" comment=""/>
-	<test name="text-ws-02-t" revision="1.7" status="PARTIAL" comment=""/>
+  <test svg-version="1.1" name="text-tselect-03-t" revision="1.7" status="FAIL" comment="text is not selectable."/>
+	<test svg-version="1.1" name="text-ws-01-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="text-ws-02-t" revision="1.7" status="FAIL" comment=""/>
 	
-  <test name="types-basicDOM-02-t" revision="1.2" status="OK" comment=""/>
-	<test name="types-data-201-t" revision="1.1" status="PARTIAL" comment=""/>
-	<test name="types-data-202-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="types-data-203-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="types-data-204-t" revision="1.1" status="FAIL" comment=""/>
+  <test svg-version="1.1" name="types-basicDOM-02-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="types-data-201-t" revision="1.1" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="types-data-202-t" revision="1.1" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="types-data-203-t" revision="1.1" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="types-data-204-t" revision="1.1" status="FAIL" comment=""/>
 	
-  <test name="udom-conform-201-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-dom-201-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-dom-202-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-dom-203-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="udom-dom-204-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-dom-205-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-dom-206-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="udom-dom-207-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-dom-208-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-dom-209-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-dom-210-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-dom-211-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-dom-212-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-dom-213-t" revision="1.6" status="FAIL" comment=""/>
-	<test name="udom-event-201-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="udom-event-202-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="udom-event-203-t" revision="1.6" status="FAIL" comment=""/>
-	<test name="udom-event-204-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="udom-event-205-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-event-206-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-event-207-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-event-208-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-glob-201-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="udom-node-201-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="udom-node-202-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-node-203-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-node-204-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-over-01-t" revision="1.7" status="FAIL" comment=""/>
-	<test name="udom-smil-201-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-smil-202-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="udom-smil-203-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-svg-201-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-svg-202-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-svg-203-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="udom-svg-204-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="udom-svg-205-t" revision="1.4" status="FAIL" comment=""/>
-	<test name="udom-svg-206-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-svg-207-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="udom-svg-208-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-svg-209-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-svg-210-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-svg-211-t" revision="1.3" status="FAIL" comment=""/>
-	<test name="udom-svgtimedelement-201-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="udom-svgtimedelement-202-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-svgtimedelement-203-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="udom-svgtimedelement-204-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="udom-svgtimedelement-205-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="udom-textcontent-201-t" revision="1.2" status="OK" comment=""/>
-	<test name="udom-textcontent-202-t" revision="1.3" status="OK" comment=""/>
-	<test name="udom-traitaccess-201-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test name="udom-traitaccess-202-t" revision="1.2" status="FAIL" comment=""/>
-	<test name="udom-traitaccess-203-t" revision="1.6" status="FAIL" comment=""/>
-	<test name="udom-traitaccess-204-t" revision="1.3" status="PARTIAL" comment=""/>
-	<test name="udom-traitaccess-205-t" revision="1.3" status="CRASH" comment=""/>
-	<test name="udom-traitaccess-206-t" revision="1.3" status="OK" comment=""/>
-	<test name="udom-traitaccess-207-t" revision="1.4" status="FAIL" comment=""/>
+  <test svg-version="1.2" name="udom-conform-201-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-201-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-202-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-203-t" revision="1.5" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-204-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-205-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-206-t" revision="1.5" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-207-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-208-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-209-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-210-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-211-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-212-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-dom-213-t" revision="1.6" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-event-201-t" revision="1.5" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-event-202-t" revision="1.5" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-event-203-t" revision="1.6" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-event-204-t" revision="1.5" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-event-205-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-event-206-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-event-207-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-event-208-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-glob-201-t" revision="1.5" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-node-201-t" revision="1.3" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-node-202-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-node-203-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-node-204-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-over-01-t" revision="1.7" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-smil-201-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-smil-202-t" revision="1.5" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-smil-203-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svg-201-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svg-202-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svg-203-t" revision="1.1" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svg-204-t" revision="1.5" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svg-205-t" revision="1.4" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svg-206-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svg-207-t" revision="1.1" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svg-208-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svg-209-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svg-210-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svg-211-t" revision="1.3" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svgtimedelement-201-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="udom-svgtimedelement-202-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-svgtimedelement-203-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="udom-svgtimedelement-204-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="udom-svgtimedelement-205-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="udom-textcontent-201-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.2" name="udom-textcontent-202-t" revision="1.3" status="OK" comment=""/>
+	<test svg-version="1.2" name="udom-traitaccess-201-t" revision="1.2" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="udom-traitaccess-202-t" revision="1.2" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-traitaccess-203-t" revision="1.6" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="udom-traitaccess-204-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test svg-version="1.2" name="udom-traitaccess-205-t" revision="1.3" status="CRASH" comment=""/>
+	<test svg-version="1.2" name="udom-traitaccess-206-t" revision="1.3" status="OK" comment=""/>
+	<test svg-version="1.2" name="udom-traitaccess-207-t" revision="1.4" status="FAIL" comment=""/>
 </svg-status-query>
