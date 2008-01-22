@@ -1078,7 +1078,7 @@ static Bool svg_parse_transform(SVG_Transform *t, char *attribute_content)
 	if ((str = strstr(attribute_content, "ref("))) {
 		t->is_ref = 1;
 		gf_mx2d_init(t->mat);
-		str+=3;
+		str+=4;
 		while(str[i] != 0 && str[i] == ' ') i++;
 		if (str[i] == 's' && str[i+1] == 'v' && str[i+2] == 'g') {
 			i+=3;

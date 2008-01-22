@@ -267,45 +267,10 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 static void layer3d_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
-	if (1 || ctx->transform.m[1] || ctx->transform.m[3] ) {
-		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
-//		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
-	} else {
-		GF_Rect unclip;
-		GF_IRect clip, unclip_pix;
-		u8 alpha = GF_COL_A(ctx->aspect.fill_color);
-		/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
-		if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
+	if (tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL)) 
+		return;
 
-		/*get image size WITHOUT line size*/
-		gf_path_get_bounds(ctx->drawable->path, &unclip);
-		gf_mx2d_apply_rect(&ctx->transform, &unclip);
-		unclip_pix = clip = gf_rect_pixelize(&unclip);
-		gf_irect_intersect(&clip, &ctx->bi->clip);
-
-		/*direct drawing, draw without clippers */
-		if (tr_state->direct_draw) {
-			tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &clip, &unclip, alpha, NULL);
-		}
-		/*draw bitmap for all dirty rects*/
-		else {
-			u32 i;
-			GF_IRect a_clip;
-			for (i=0; i<tr_state->visual->to_redraw.count; i++) {
-				/*there's an opaque region above, don't draw*/
-#ifdef TRACK_OPAQUE_REGIONS
-				if (tr_state->visual->draw_node_index < tr_state->visual->to_redraw.opaque_node_index[i]) continue;
-#endif
-				a_clip = clip;
-				gf_irect_intersect(&a_clip, &tr_state->visual->to_redraw.list[i]);
-				if (a_clip.width && a_clip.height) {
-					tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &a_clip, &unclip, alpha, NULL);
-				}
-			}
-		}
-		ctx->flags |= CTX_PATH_FILLED;
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
-	}
+	visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
 }
 
 static void layer3d_setup_clip(Layer3DStack *st, GF_TraverseState *tr_state, Bool prev_cam, GF_Rect rc)

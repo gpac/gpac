@@ -45,42 +45,9 @@ void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state)
 	/*switch the texture to our offscreen cache*/
 	tr_state->ctx->aspect.fill_texture = &cache->txh;
 
-	/*if skew/rotate, don't try the bitmap Blit (HW/SW)*/
-	if (tr_state->ctx->transform.m[1] || tr_state->ctx->transform.m[3]) { 
+	if (! tr_state->visual->DrawBitmap(tr_state->visual, tr_state, tr_state->ctx, NULL)) {
 		visual_2d_texture_path(tr_state->visual, cache->drawable->path, tr_state->ctx, tr_state);
-	} else {
-		DrawableContext *ctx = tr_state->ctx;
-		GF_Rect unclip;
-		GF_IRect clip;
-		u8 alpha = GF_COL_A(ctx->aspect.fill_color);
-		/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
-		if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
-
-		unclip = ctx->bi->unclip;
-		clip = ctx->bi->clip;
-
-		/*direct drawing, draw without clippers */
-		if (tr_state->direct_draw) {
-			tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &clip, &unclip, alpha, NULL);
-		}
-		/*draw bitmap for all dirty rects*/
-		else {
-			u32 i;
-			GF_IRect a_clip;
-			for (i=0; i<tr_state->visual->to_redraw.count; i++) {
-				/*there's an opaque region above, don't draw*/
-#ifdef TRACK_OPAQUE_REGIONS
-				if (tr_state->visual->draw_node_index < tr_state->visual->to_redraw.opaque_node_index[i]) continue;
-#endif
-				a_clip = clip;
-				gf_irect_intersect(&a_clip, &tr_state->visual->to_redraw.list[i]);
-				if (a_clip.width && a_clip.height) {
-					tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &a_clip, &unclip, alpha, NULL);
-				}
-			}
-		}
 	}
-
 	tr_state->ctx->aspect.fill_texture = old_txh;
 }
 

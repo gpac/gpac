@@ -428,9 +428,6 @@ void compositor_init_compositetexture2d(GF_Compositor *compositor, GF_Node *node
 	st->visual->ReleaseSurfaceAccess = composite_release_video_access;
 	st->visual->raster_surface = compositor->rasterizer->surface_new(compositor->rasterizer, 1);
 
-	/*Bitmap drawn with brush, not hardware since we don't know how the graphics driver handles the texture bytes*/
-	st->visual->DrawBitmap = NULL;
-	st->visual->SupportsFormat = NULL;
 	st->first = 1;
 	st->visual->compositor = compositor;
 	gf_node_set_private(node, st);
@@ -458,9 +455,6 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 	st->visual->GetSurfaceAccess = composite_get_video_access;
 	st->visual->ReleaseSurfaceAccess = composite_release_video_access;
 
-	/*Bitmap drawn with brush, not hardware since we don't know how the graphics driver handles the texture bytes*/
-	st->visual->DrawBitmap = NULL;
-	st->visual->SupportsFormat = NULL;
 	st->first = 1;
 	st->visual->compositor = compositor;
 	gf_node_set_private(node, st);

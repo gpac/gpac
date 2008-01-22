@@ -183,7 +183,7 @@ struct _draw_aspect_2d
 /*fills the 2D drawing properties according to the traversing state - MPEG4/X3D only*/
 u32 drawable_get_aspect_2d_mpeg4(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *tr_state);
 /*fills the 2D drawing properties according to the traversing state - SVG only*/
-void drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *tr_state);
+Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *tr_state);
 
 
 enum

@@ -97,7 +97,7 @@ GF_EXPORT
 GF_Err gf_path_add_move_to(GF_Path *gp, Fixed x, Fixed y)
 {
 	if (!gp) return GF_BAD_PARAM;
-	if (gp->n_points && (gp->points[gp->n_points-1].x == x) && (gp->points[gp->n_points-1].y == y)) return GF_OK;
+
 	/*skip empty paths*/
 	if ((gp->n_contours>=2) && (gp->contours[gp->n_contours-2]+1==gp->contours[gp->n_contours-1])) {
 		gp->points[gp->n_points].x = x;
@@ -420,6 +420,8 @@ GF_Err gf_path_add_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed fa_x, Fix
 	}
 	return GF_OK;
 }
+
+
 
 GF_EXPORT
 GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, Fixed r_y, Fixed x_axis_rotation, Bool large_arc_flag, Bool sweep_flag)

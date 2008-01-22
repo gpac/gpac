@@ -224,56 +224,43 @@ void compositor_init_ellipse(GF_Compositor  *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, TraverseEllipse);
 }
 
-
-static Bool txtrans_identity(GF_Node *appear)
-{
-	if (!appear || !((M_Appearance*)appear)->textureTransform) return 1;
-	/*we could optimize, but let's assume that if a transform is used, it is not identity...*/
-	return 0;
-}
-
 static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
-	if (!ctx->aspect.fill_texture || !ctx->aspect.fill_texture->stream || ctx->transform.m[1] || ctx->transform.m[3] || !txtrans_identity(ctx->appear) ) {
-		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
-	} else {
-		GF_Rect unclip;
-		GF_IRect clip, unclip_pix;
-		u8 alpha = GF_COL_A(ctx->aspect.fill_color);
-		/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
-		if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
+
+	if (ctx->aspect.fill_texture) {
+		Bool res;
+		GF_Rect orig_unclip;
+		GF_IRect orig_clip;
 
 		/*get image size WITHOUT line size*/
-		gf_path_get_bounds(ctx->drawable->path, &unclip);
-		gf_mx2d_apply_rect(&ctx->transform, &unclip);
-		unclip_pix = clip = gf_rect_pixelize(&unclip);
-		gf_irect_intersect(&clip, &ctx->bi->clip);
+		if (ctx->aspect.pen_props.width) {
+			orig_unclip = ctx->bi->unclip;
+			orig_clip = ctx->bi->clip;
 
-		/*direct drawing, draw without clippers */
-		if (tr_state->direct_draw) {
-			tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &clip, &unclip, alpha, NULL);
+			gf_path_get_bounds(ctx->drawable->path, &ctx->bi->unclip);
+			gf_mx2d_apply_rect(&ctx->transform, &ctx->bi->unclip);
+			ctx->bi->clip = gf_rect_pixelize(&ctx->bi->unclip);
+			gf_irect_intersect(&ctx->bi->clip, &orig_clip);
 		}
-		/*draw bitmap for all dirty rects*/
-		else {
-			u32 i;
-			GF_IRect a_clip;
-			for (i=0; i<tr_state->visual->to_redraw.count; i++) {
-				/*there's an opaque region above, don't draw*/
-#ifdef TRACK_OPAQUE_REGIONS
-				if (tr_state->visual->draw_node_index < tr_state->visual->to_redraw.opaque_node_index[i]) continue;
-#endif
-				a_clip = clip;
-				gf_irect_intersect(&a_clip, &tr_state->visual->to_redraw.list[i]);
-				if (a_clip.width && a_clip.height) {
-					tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &a_clip, &unclip, alpha, NULL);
-				}
+
+		res = tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL);
+
+		/*strike path*/
+		if (ctx->aspect.pen_props.width) {
+			ctx->bi->unclip = orig_unclip;
+			ctx->bi->clip = orig_clip;
+			if (res) {
+				ctx->flags |= CTX_PATH_FILLED;
+				visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 			}
 		}
-		ctx->flags |= CTX_PATH_FILLED;
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
-	}
+		/*if failure retry with raster*/
+		if (res) return;
+	} 
+
+	visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
+	visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 }
 
 static void rectangle_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)

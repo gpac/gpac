@@ -46,7 +46,7 @@ static GF_Err svg_font_get_glyphs(GF_Node *node, const char *utf_string, u32 *gl
 	Bool right_to_left;
 	u32 prev_c;
 	u32 len;
-	u32 i;
+	u32 i, gl_idx;
 	u16 *utf_res;
 	GF_ChildNodeItem *child;
 	GF_Font *font = gf_node_get_private(node);
@@ -76,6 +76,7 @@ static GF_Err svg_font_get_glyphs(GF_Node *node, const char *utf_string, u32 *gl
 		glyph_buffer[i-1] = utf_res[i-1];
 	}
 
+	gl_idx = 0;
 	prev_c = 0;
 	for (i=0;i<len; i++) {
 		SVG_GlyphStack *missing_glyph = NULL;
@@ -139,7 +140,8 @@ static GF_Err svg_font_get_glyphs(GF_Node *node, const char *utf_string, u32 *gl
 						if (i+j>=len) break;
 						if (glyph_buffer[i+j] != st->unicode[j]) break;
 					}
-					if (j==st->uni_len) break;
+					if (j==st->uni_len)
+						break;
 				}
 				st = NULL;
 			}
@@ -148,11 +150,12 @@ static GF_Err svg_font_get_glyphs(GF_Node *node, const char *utf_string, u32 *gl
 		prev_c = glyph_buffer[i];
 
 		if (!st) st = missing_glyph;
-		glyph_buffer[i] = st ? st->glyph.ID : 0;
-		if (st && st->uni_len>1) len -= st->uni_len-1;
-
+		glyph_buffer[gl_idx] = st ? st->glyph.ID : 0;
+		if (st && st->uni_len>1) i++;
+		
+		gl_idx++;
 	}
-	*io_glyph_buffer_size = len;
+	*io_glyph_buffer_size = len = gl_idx;
 	
 	if (right_to_left) { 
 		for (i=0; i<len/2; i++) {

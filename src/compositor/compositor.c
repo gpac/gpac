@@ -256,7 +256,6 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->visual->GetSurfaceAccess = compositor_2d_get_video_access;
 	compositor->visual->ReleaseSurfaceAccess = compositor_2d_release_video_access;
 	compositor->visual->DrawBitmap = compositor_2d_draw_bitmap;
-	compositor->visual->SupportsFormat = compositor_2d_pixel_format_supported;
 
 	gf_list_add(compositor->visuals, compositor->visual);
 

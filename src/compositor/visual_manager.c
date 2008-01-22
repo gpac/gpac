@@ -24,6 +24,12 @@
 
 #include "visual_manager.h"
 
+
+static Bool visual_draw_bitmap_stub(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, u32 *col_key)
+{
+	return 0;
+}
+
 GF_VisualManager *visual_new(GF_Compositor *compositor)
 {
 	GF_VisualManager *tmp;
@@ -35,6 +41,8 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 	tmp->back_stack = gf_list_new();
 	tmp->view_stack = gf_list_new();
 	tmp->raster_brush = compositor->rasterizer->stencil_new(compositor->rasterizer, GF_STENCIL_SOLID);
+
+	tmp->DrawBitmap = visual_draw_bitmap_stub;
 
 #ifndef GPAC_DISABLE_3D
 	tmp->navigation_stack = gf_list_new();

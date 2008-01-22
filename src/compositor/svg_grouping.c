@@ -180,6 +180,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	Bool is_root_svg = 0;
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
+	Bool invalidate_flag;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 	SVGAllAttributes all_atts;
@@ -198,7 +199,6 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
-	
 	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
 
 	/*enable or disable navigation*/
@@ -217,6 +217,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->visual->type_3d) gf_mx_copy(bck_mx, tr_state->model_matrix);
 #endif
 	
+	invalidate_flag = tr_state->invalidate_all;
 
 	gf_mx2d_init(tr_state->vb_transform);
 	if (!svg_set_viewport_transformation(tr_state, &all_atts, is_root_svg))
@@ -265,7 +266,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 			vp_opacity = tr_state->svg_props->viewport_fill_opacity ? tr_state->svg_props->viewport_fill_opacity->value : FIX_ONE;
 		}
 		
-		if (vp_fill && (vp_fill->type != SVG_PAINT_NONE)) {
+		if (vp_fill && (vp_fill->type != SVG_PAINT_NONE) && vp_opacity) {
 			viewport_color = GF_COL_ARGB_FIXED(vp_opacity, vp_fill->color.red, vp_fill->color.green, vp_fill->color.blue);
 
 			if (clip) {
@@ -273,10 +274,8 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 				//visual_2d_clear(tr_state->visual, clip, viewport_color);
 			} else if (tr_state->visual->compositor->back_color != viewport_color) {
 				tr_state->visual->compositor->back_color = viewport_color;
-				/*clear visual*/
-				visual_2d_clear(tr_state->visual, NULL, 0);
-				gf_sc_invalidate(tr_state->visual->compositor, NULL);
-				goto exit;
+				/*invalidate the entire visual*/
+				tr_state->invalidate_all = 1;
 			}
 		}
 	}
@@ -298,6 +297,8 @@ exit:
 	memcpy(tr_state->svg_props, &backup_props, styling_size);
 	tr_state->svg_flags = backup_flags;
 	tr_state->visual->top_clipper = top_clip;
+	if (is_root_svg) tr_state->svg_props = NULL;
+	else tr_state->invalidate_all = invalidate_flag;
 }
 
 void compositor_init_svg_svg(GF_Compositor *compositor, GF_Node *node)

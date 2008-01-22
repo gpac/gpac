@@ -486,7 +486,7 @@ void text_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 
 	text_get_draw_opt(node, st, &force_texture, &hl_color);
 
-	gf_font_spans_draw_2d(st->spans, tr_state, hl_color, force_texture);
+	gf_font_spans_draw_2d(st->spans, tr_state, hl_color, force_texture, &st->bounds);
 }
 
 
