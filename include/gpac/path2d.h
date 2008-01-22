@@ -546,8 +546,9 @@ enum
 	GF_DASH_STYLE_DASH_DOT_DOT,
 	/*! Custom pattern is used. Dash lengths are given in percentage of the pen width*/
 	GF_DASH_STYLE_CUSTOM,
-	/*! Custom pattern is used. Dash lengths are given in the same unit as the pen width*/
-	GF_DASH_STYLE_CUSTOM_ABS,
+	/*! SVG pattern is used. Dash lengths are given in the same unit as the pen width
+	and dash offset follows SVG specs (offset in dash pattern)*/
+	GF_DASH_STYLE_SVG,
 };
 
 

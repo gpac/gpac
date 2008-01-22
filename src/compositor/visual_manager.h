@@ -91,8 +91,7 @@ struct _visual_manager
 	void (*ReleaseSurfaceAccess)(GF_VisualManager *);
 
 	/*draws specified texture as flat bitmap*/
-	void (*DrawBitmap)(GF_VisualManager *visual, struct _gf_sc_texture_handler *, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key);
-	Bool (*SupportsFormat)(GF_VisualManager *visual, u32 pixel_format);
+	Bool (*DrawBitmap)(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, u32 *col_key);
 
 	/*raster surface interface*/
 	GF_SURFACE raster_surface;

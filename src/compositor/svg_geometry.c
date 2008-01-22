@@ -380,6 +380,33 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 	tr_state->svg_flags = backup_flags;
 }
 
+static GF_Err svg_rect_add_arc(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed cx, Fixed cy, Fixed rx, Fixed ry)
+{
+	Fixed angle, start_angle, end_angle, sweep, _vx, _vy, start_x, start_y;
+	s32 i, num_steps;
+
+	if (!gp->n_points) return GF_BAD_PARAM;
+
+	start_x = gp->points[gp->n_points-1].x;
+	start_y = gp->points[gp->n_points-1].y;
+
+	//start angle and end angle
+	start_angle = gf_atan2(start_y-cy, start_x-cx);
+	end_angle = gf_atan2(end_y-cy, end_x-cx);
+	sweep = end_angle - start_angle;
+
+	if (sweep<0) sweep += 2*GF_PI;
+
+	num_steps = 16;
+	for (i=1; i<=num_steps; i++) {
+		angle = start_angle + sweep*i/num_steps;
+		_vx = cx + gf_mulfix(rx, gf_cos(angle));
+		_vy = cy + gf_mulfix(ry, gf_sin(angle));
+		gf_path_add_line_to(gp, _vx, _vy);
+	}
+	return GF_OK;
+}
+
 static void svg_rect_rebuild(GF_Node *node, Drawable *stack, SVGAllAttributes *atts)
 {
 	Fixed rx = (atts->rx ? atts->rx->value : 0);
@@ -391,20 +418,39 @@ static void svg_rect_rebuild(GF_Node *node, Drawable *stack, SVGAllAttributes *a
 
 	drawable_reset_path(stack);
 
+	/*we follow SVG 1.1 and not 1.2 !!*/
 	if (rx || ry) {
+		Fixed cx, cy;
 		if (rx >= width/2) rx = width/2;
 		if (ry >= height/2) ry = height/2;
 		if (rx == 0) rx = ry;
 		if (ry == 0) ry = rx;
 		gf_path_add_move_to(stack->path, x+rx, y);
-		gf_path_add_line_to(stack->path, x+width-rx, y);
-		gf_path_add_quadratic_to(stack->path, x+width, y, x+width, y+ry);
-		gf_path_add_line_to(stack->path, x+width, y+height-ry);
-		gf_path_add_quadratic_to(stack->path, x+width, y+height, x+width-rx, y+height);
-		gf_path_add_line_to(stack->path, x+rx, y+height);
-		gf_path_add_quadratic_to(stack->path, x, y+height, x, y+height-ry);
-		gf_path_add_line_to(stack->path, x, y+ry);
-		gf_path_add_quadratic_to(stack->path, x, y, x+rx, y);
+
+		if (width-rx!=rx)
+			gf_path_add_line_to(stack->path, x+width-rx, y);
+
+		cx = x+width-rx; cy = y+ry;
+		svg_rect_add_arc(stack->path, x+width, y+ry, cx, cy, rx, ry);
+		
+		if (height-ry!=ry)
+			gf_path_add_line_to(stack->path, x+width, y+height-ry);
+
+		cx = x+width-rx; cy = y+height-ry;
+		svg_rect_add_arc(stack->path, x+width-rx, y+height, cx, cy, rx, ry);
+		
+		if (width-rx!=rx)
+			gf_path_add_line_to(stack->path, x+rx, y+height);
+
+		cx = x+rx; cy = y+height-ry;
+		svg_rect_add_arc(stack->path, x, y+height-ry, cx, cy, rx, ry);
+		
+		if (height-ry!=ry)
+			gf_path_add_line_to(stack->path, x, y+ry);
+
+		cx = x+rx; cy = y+ry;
+		svg_rect_add_arc(stack->path, x+rx, y, cx, cy, rx, ry);
+
 		gf_path_close(stack->path);
 	} else {
 		gf_path_add_move_to(stack->path, x, y);

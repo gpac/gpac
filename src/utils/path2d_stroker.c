@@ -1398,12 +1398,12 @@ static Fixed gf_path_get_dash(GF_PenSettings *pen, u32 dash_slot, u32 *next_slot
 		*next_slot = (dash_slot + 1) % 6;
 		return ret * pen->width;
 	case GF_DASH_STYLE_CUSTOM:
-	case GF_DASH_STYLE_CUSTOM_ABS:
+	case GF_DASH_STYLE_SVG:
 		if (!pen->dash_set || !pen->dash_set->num_dash) return 0;
 		if (dash_slot>=pen->dash_set->num_dash) dash_slot = 0;
 		ret = pen->dash_set->dashes[dash_slot];
 		*next_slot = (1 + dash_slot) % pen->dash_set->num_dash;
-		if (pen->dash==GF_DASH_STYLE_CUSTOM_ABS) return ret;
+		if (pen->dash==GF_DASH_STYLE_SVG) return ret;
 		/*custom dashes are of type Fixed !!*/
 		return gf_mulfix(ret, pen->width);
 
@@ -1458,6 +1458,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	Fixed totaldist;
 	Fixed dash;
 	Fixed dist;
+	Fixed dash_dist;
 	s32 offsetinit;
 	u32 next_offset;
 	s32 toggleinit;
@@ -1474,6 +1475,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	/* initial values */
 	toggleinit = 1;
 	offsetinit = 0;
+	dash_dist = 0;
 
 	dash = gf_path_get_dash(pen, offsetinit, &next_offset);
 	if (length_scale) dash = gf_mulfix(dash, length_scale);
@@ -1483,6 +1485,40 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	start_ind = 0;
 	dist = 0;
 
+	/*SVG dashing is different from BIFS one*/
+	if (pen->dash==GF_DASH_STYLE_SVG) {
+		while (pen->dash_offset>0) {
+			if (pen->dash_offset - dash < 0) {
+				dash -= pen->dash_offset;
+				pen->dash_offset = 0;
+				break;
+			}
+			pen->dash_offset -= dash;
+			offsetinit = next_offset;
+			toggleinit = !toggleinit;
+			dash = gf_path_get_dash(pen, offsetinit, &next_offset);
+			if (length_scale) dash = gf_mulfix(dash, length_scale);
+		}
+		if (pen->dash_offset<0) {
+			offsetinit = pen->dash_set->num_dash-1;
+			dash = gf_path_get_dash(pen, offsetinit, &next_offset);
+			if (length_scale) dash = gf_mulfix(dash, length_scale);
+			while (pen->dash_offset<0) {
+				toggleinit = !toggleinit;
+				if (pen->dash_offset + dash > 0) {
+					dash_dist = dash+pen->dash_offset;
+					pen->dash_offset = 0;
+					break;
+				}
+				pen->dash_offset += dash;
+				if (offsetinit) offsetinit --;
+				else offsetinit = pen->dash_set->num_dash-1;
+				dash = gf_path_get_dash(pen, offsetinit, &next_offset);
+				if (length_scale) dash = gf_mulfix(dash, length_scale);
+			}
+		}
+	}
+
 	/* calculate line lengths and update offset*/
 	totaldist = 0;
 	for (i = 0; i < nb_pts - 1; i++) {
@@ -1490,11 +1526,12 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 		diff.x = pts[i+1].x - pts[i].x;
 		diff.y = pts[i+1].y - pts[i].y;
 		dists[i] = gf_v2d_len(&diff);
-		
+
 		if (pen->dash_offset > dists[i]) {
 			pen->dash_offset -= dists[i];
 			dists[i] = 0;
-		} else if (pen->dash_offset) {
+		} 
+		else if (pen->dash_offset) {
 			Fixed a, x, y, dx, dy;
 
 			a = gf_divfix(pen->dash_offset, dists[i]);
@@ -1512,6 +1549,8 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 			totaldist += dists[i];
 		}
 	}
+	dash -= dash_dist;
+	dash_dist = 0;
 
 	/* subpath fits within first dash and no offset*/
 	if (!dist && totaldist <= dash) {

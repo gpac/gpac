@@ -119,10 +119,9 @@ static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 
 static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 {
-	u8 alpha;
 	u32 keyColor;
 	GF_Compositor *compositor;
-	Bool use_blit, has_key;
+	Bool has_key;
 	DrawableContext *ctx = tr_state->ctx;
 	BitmapStack *st = (BitmapStack *) gf_node_get_private(node);
 
@@ -131,14 +130,7 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 	/*bitmaps are NEVER rotated (forbidden in spec). In case a rotation was done we still display (reset the skew components)*/
 	ctx->transform.m[1] = ctx->transform.m[3] = 0;
 
-	use_blit = 1;
-	alpha = GF_COL_A(ctx->aspect.fill_color);
-	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
-	if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
-
-	if ((ctx->transform.m[0]<0) || (ctx->transform.m[4]<0)) use_blit = 0;
-
-	/*materialKey*/
+	/*check for material key materialKey*/
 	has_key = 0;
 	if (ctx->appear) {
 		M_Appearance *app = (M_Appearance *)ctx->appear;
@@ -153,17 +145,8 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 		}
 	}
 
-	/*this is not a native texture, use graphics*/
-	if (!ctx->aspect.fill_texture->data) {
-		use_blit = 0;
-	} else {
-		if (!tr_state->visual->SupportsFormat || !tr_state->visual->DrawBitmap ) use_blit = 0;
-		/*format not supported directly, try with brush*/
-		else if (!tr_state->visual->SupportsFormat(tr_state->visual, ctx->aspect.fill_texture->pixelformat) ) use_blit = 0;
-	}
-
 	/*no HW, fall back to the graphics driver*/
-	if (!use_blit) {
+	if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, has_key ? &keyColor : NULL)) {
 		GF_Matrix2D _mat;
 		GF_Rect rc = gf_rect_center(ctx->bi->unclip.width, ctx->bi->unclip.height);
 		gf_mx2d_copy(_mat, ctx->transform);
@@ -175,27 +158,6 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 		ctx->flags |= CTX_NO_ANTIALIAS;
 		visual_2d_texture_path(tr_state->visual, st->graph->path, ctx, tr_state);
 		return;
-	}
-
-	/*direct drawing, draw without clippers */
-	if (tr_state->direct_draw) {
-		tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, has_key ? &keyColor : NULL);
-	}
-	/*draw bitmap for all dirty rects*/
-	else {
-		u32 i;
-		GF_IRect clip;
-		for (i=0; i<tr_state->visual->to_redraw.count; i++) {
-			/*there's an opaque region above, don't draw*/
-#ifdef TRACK_OPAQUE_REGIONS
-			if (tr_state->visual->draw_node_index < tr_state->visual->to_redraw.opaque_node_index[i]) continue;
-#endif
-			clip = ctx->bi->clip;
-			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
-			if (clip.width && clip.height) {
-				tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, has_key ? &keyColor : NULL);
-			}
-		}
 	}
 }
 

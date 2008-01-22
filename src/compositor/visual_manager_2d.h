@@ -110,7 +110,9 @@ if rc is NULL, fills object bounds*/
 void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect *rc, u32 color, u32 strike_color, GF_TraverseState *tr_state);
 
 
+/*extended version of above function to override texture transforms - needed for proper texturing of glyphs*/
 void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx, GF_TraverseState *tr_state);
+void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_STENCIL brush, GF_STENCIL pen, GF_TraverseState *tr_state, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx);
 
 
 #endif	/*_VISUAL_MANAGER_2D_*/

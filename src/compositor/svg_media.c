@@ -43,49 +43,10 @@ typedef struct
 
 static void SVG_Draw_bitmap(GF_TraverseState *tr_state)
 {
-	u8 alpha;
-	GF_Compositor *compositor;
-	Bool use_blit;
 	DrawableContext *ctx = tr_state->ctx;
-	compositor = tr_state->visual->compositor;
 
-	use_blit = 1;
-	alpha = GF_COL_A(ctx->aspect.fill_color);
-
-	/*this is not a native texture, use graphics*/
-	if (!ctx->aspect.fill_texture->data || ctx->transform.m[1] || ctx->transform.m[3]) {
-		use_blit = 0;
-	} else {
-		if (!tr_state->visual->SupportsFormat || !tr_state->visual->DrawBitmap ) use_blit = 0;
-		/*format not supported directly, try with brush*/
-		else if (!tr_state->visual->SupportsFormat(tr_state->visual, ctx->aspect.fill_texture->pixelformat) ) use_blit = 0;
-	}
-
-	/*no HW, fall back to the graphics driver*/
-	if (!use_blit) {
+	if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL)) {
 		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
-		return;
-	}
-
-	/*direct drawing, draw without clippers */
-	if (tr_state->direct_draw) {
-		tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, NULL);
-	}
-	/*draw bitmap for all dirty rects*/
-	else {
-		u32 i;
-		GF_IRect clip;
-		for (i=0; i<tr_state->visual->to_redraw.count; i++) {
-			/*there's an opaque region above, don't draw*/
-#ifdef TRACK_OPAQUE_REGIONS
-			if (tr_state->visual->draw_node_index < tr_state->visual->to_redraw.opaque_node_index[i]) continue;
-#endif
-			clip = ctx->bi->clip;
-			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
-			if (clip.width && clip.height) {
-				tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, NULL);
-			}
-		}
 	}
 }
 

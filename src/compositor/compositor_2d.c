@@ -25,6 +25,7 @@
 
 
 #include "visual_manager.h"
+#include "nodes_stacks.h"
 #include <gpac/options.h>
 
 
@@ -90,31 +91,12 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 	}
 }
 
-Bool compositor_2d_pixel_format_supported(GF_VisualManager *visual, u32 pixel_format)
-{
-	switch (pixel_format) {
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_BGR_24:
-	case GF_PIXEL_RGB_555:
-	case GF_PIXEL_RGB_565:
-	case GF_PIXEL_ARGB:
-	case GF_PIXEL_RGBA:
-	case GF_PIXEL_YV12:
-	case GF_PIXEL_IYUV:
-	case GF_PIXEL_I420:
-		return 0;
-	/*the rest has to be displayed through brush for now, we only use YUV and RGB pool*/
-	default:
-		return 0;
-	}
-}
-
-void compositor_2d_draw_bitmap(GF_VisualManager *visual, struct _gf_sc_texture_handler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key)
+static void compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, struct _gf_sc_texture_handler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key)
 {
 	GF_VideoSurface video_src;
 	Fixed w_scale, h_scale, tmp;
 	GF_Err e;
-	Bool use_soft_stretch;
+	Bool use_soft_stretch, use_blit;
 	GF_Window src_wnd, dst_wnd;
 	u32 output_width, output_height;
 	GF_IRect clipped_final = *clip;
@@ -199,19 +181,42 @@ void compositor_2d_draw_bitmap(GF_VisualManager *visual, struct _gf_sc_texture_h
 	dst_wnd.w = (u32) clipped_final.width;
 	dst_wnd.h = (u32) clipped_final.height;
 
+
+#ifdef GPAC_FIXED_POINT
+#define ROUND_FIX(_v)	\
+	_v = FIX2INT(tmp);
+#else
+#define ROUND_FIX(_v)	\
+	_v = FIX2INT(tmp);	\
+	tmp -= INT2FIX(_v);	\
+	if (tmp>99*FIX_ONE/100) { _v++; tmp = 0; }	\
+	if (ABS(tmp) > FIX_EPSILON) use_blit = 0;
+#endif
+
+	use_blit = 1;
 	/*compute SRC window*/
 	src_wnd.x = src_wnd.y = 0;
-	src_wnd.w = FIX2INT( gf_divfix(INT2FIX(clip->width), w_scale)  + FIX_ONE/2 );
-	src_wnd.h = FIX2INT( gf_divfix(INT2FIX(clip->height), h_scale)  + FIX_ONE/2 );
+	tmp = gf_divfix(INT2FIX(clipped_final.x) - final.x, w_scale);
+	if (tmp<0) tmp=0;
+	ROUND_FIX(src_wnd.x);
 
-	if (src_wnd.w>txh->width) src_wnd.w=txh->width;
-	if (src_wnd.h>txh->height) src_wnd.h=txh->height;
+	tmp = gf_divfix(INT2FIX(clipped_final.y) - final.y, h_scale);
+	if (tmp<0) tmp=0;
+	ROUND_FIX(src_wnd.y);
 
-	tmp = INT2FIX(clipped_final.x) - final.x /*- INT2FIX(visual->compositor->vp_x)*/;
-	if (tmp>=0) src_wnd.x = FIX2INT( gf_divfix( tmp, w_scale) + FIX_ONE/2 );
+	tmp = gf_divfix(INT2FIX(clip->width), w_scale);
+	ROUND_FIX(src_wnd.w);
 
-	tmp = INT2FIX(clipped_final.y) - final.y /*+ INT2FIX(visual->compositor->vp_y)*/;
-	if (tmp>=0) src_wnd.y = FIX2INT( gf_divfix(tmp, h_scale) + FIX_ONE/2 );
+	tmp = gf_divfix(INT2FIX(clip->height), h_scale);
+	ROUND_FIX(src_wnd.h);
+	
+#undef ROUND_FIX
+
+
+	if (!use_blit && (src_wnd.x || src_wnd.y) ) {
+		visual_2d_texture_path(visual, ctx->drawable->path, ctx, visual->compositor->traverse_state);
+		return;
+	}
 
 	if (src_wnd.w>txh->width) src_wnd.w=txh->width;
 	if (src_wnd.h>txh->height) src_wnd.h=txh->height;
@@ -269,6 +274,64 @@ void compositor_2d_draw_bitmap(GF_VisualManager *visual, struct _gf_sc_texture_h
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 0);
 	}
 	visual_2d_init_raster(visual);
+}
+
+
+Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, u32 *col_key)
+{
+	u8 alpha = 0xFF;
+
+	if (!ctx->aspect.fill_texture) return 1;
+	if (!ctx->aspect.fill_texture->data) return 0;
+	if ((ctx->transform.m[0]<0) || (ctx->transform.m[4]<0)) return 0;
+	if (ctx->transform.m[1] || ctx->transform.m[3]) return 0;
+	if ((ctx->flags & CTX_HAS_APPEARANCE) && ctx->appear && ((M_Appearance*)ctx->appear)->textureTransform)
+		return 0;
+
+	alpha = GF_COL_A(ctx->aspect.fill_color);
+	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
+	if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
+	
+	if (!alpha) return 1;
+
+	switch (ctx->aspect.fill_texture->pixelformat) {
+	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_RGB_555:
+	case GF_PIXEL_RGB_565:
+	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
+	case GF_PIXEL_YV12:
+	case GF_PIXEL_IYUV:
+	case GF_PIXEL_I420:
+		break;
+	/*the rest has to be displayed through brush for now, we only use YUV and RGB pool*/
+	default:
+		return 0;
+	}
+
+
+	/*direct drawing, no clippers */
+	if (tr_state->direct_draw) {
+		compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key);
+	}
+	/*draw bitmap for all dirty rects*/
+	else {
+		u32 i;
+		GF_IRect clip;
+		for (i=0; i<tr_state->visual->to_redraw.count; i++) {
+			/*there's an opaque region above, don't draw*/
+#ifdef TRACK_OPAQUE_REGIONS
+			if (tr_state->visual->draw_node_index < tr_state->visual->to_redraw.opaque_node_index[i]) continue;
+#endif
+			clip = ctx->bi->clip;
+			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
+			if (clip.width && clip.height) {
+				compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, col_key);
+			}
+		}
+	}
+	return 1;
 }
 
 

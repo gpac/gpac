@@ -333,6 +333,9 @@ void gf_mx_del(GF_Mutex *mx)
 #else
 	pthread_mutex_destroy(&mx->hMutex);
 #endif
+#ifndef GPAC_DISABLE_LOG
+	free(mx->log_name);
+#endif
 	free(mx);
 }
 

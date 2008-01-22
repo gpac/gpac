@@ -848,12 +848,12 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 
 
 
-static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, DrawableContext *ctx)
+static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, DrawableContext *ctx, GF_Rect *bounds)
 {
 	u32 flags, i;
 	Bool flip_text;
 	Fixed dx, dy, sx, sy, lscale, bline;
-	Bool has_texture = ctx->aspect.fill_texture ? 1 : 0;
+	Bool needs_texture = (ctx->aspect.fill_texture || ctx->aspect.line_texture) ? 1 : 0;
 	GF_Matrix2D mx, tx;
 
 	gf_mx2d_copy(mx, ctx->transform);
@@ -886,7 +886,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 		ctx->transform.m[5] += bline;
 		gf_mx2d_add_matrix(&ctx->transform, &mx);
 
-		if (has_texture) {
+		if (needs_texture) {
 			tx.m[0] = sx;
 			tx.m[4] = sy;
 			tx.m[1] = tx.m[3] = 0;
@@ -895,10 +895,11 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 			tx.m[5] += bline;
 			gf_mx2d_inverse(&tx);
 
-			visual_2d_texture_path_extended(tr_state->visual, span->glyphs[i]->path, ctx->aspect.fill_texture, ctx, &span->bounds, &tx, tr_state);
+			visual_2d_texture_path_extended(tr_state->visual, span->glyphs[i]->path, ctx->aspect.fill_texture, ctx, bounds ? bounds : &span->bounds, &tx, tr_state);
+			visual_2d_draw_path_extended(tr_state->visual, span->glyphs[i]->path, ctx, NULL, NULL, tr_state, bounds ? bounds : &span->bounds, &tx);
+		} else {
+			visual_2d_draw_path(tr_state->visual, span->glyphs[i]->path, ctx, NULL, NULL, tr_state);
 		}
-
-		visual_2d_draw_path(tr_state->visual, span->glyphs[i]->path, ctx, NULL, NULL, tr_state);
 		ctx->flags = flags;
 
 		if (span->horizontal) {
@@ -911,7 +912,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 	ctx->aspect.line_scale = lscale;
 }
 
-void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_color, Bool force_texture_text)
+void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_color, Bool force_texture_text, GF_Rect *bounds)
 {
 	Bool use_texture_text, is_rv;
 	u32 i = 0;
@@ -953,7 +954,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 		if (use_texture_text && span_setup_texture(tr_state->visual->compositor, span, 0)) {
 			visual_2d_texture_path_text(tr_state->visual, ctx, span->ext->path, &span->bounds, span->ext->txh, tr_state);
 		} else {
-			gf_font_span_draw_2d(tr_state, span, ctx);
+			gf_font_span_draw_2d(tr_state, span, ctx, bounds);
 		}
 		if (ctx->sub_path_index) break;
 	}

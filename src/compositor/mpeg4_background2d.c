@@ -107,7 +107,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 
 	if (back_use_texture((M_Background2D *)ctx->drawable->node)) {
 
-		if (!tr_state->visual->DrawBitmap) {
+		if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL)) {
 			/*set target rect*/
 			gf_path_reset(stack->drawable->path);
 			gf_path_add_rect_center(stack->drawable->path, 
@@ -117,30 +117,6 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 
 			/*draw texture*/
 			visual_2d_texture_path(tr_state->visual, stack->drawable->path, ctx, tr_state);
-
-		} else {
-			ctx->bi->clip = gf_rect_pixelize(&ctx->bi->unclip);
-
-			/*direct drawing, no clippers */
-			if (tr_state->direct_draw) {
-				tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, 0xFF, NULL);
-			}
-			/*draw bitmap for all dirty rects*/
-			else {
-				u32 i;
-				GF_IRect clip;
-				for (i=0; i<tr_state->visual->to_redraw.count; i++) {
-					/*there's an opaque region above, don't draw*/
-#ifdef TRACK_OPAQUE_REGIONS
-					if (tr_state->visual->draw_node_index < tr_state->visual->to_redraw.opaque_node_index[i]) continue;
-#endif
-					clip = ctx->bi->clip;
-					gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
-					if (clip.width && clip.height) {
-						tr_state->visual->DrawBitmap(tr_state->visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, 0xFF, NULL);
-					}
-				}
-			}
 		}
 		/*if (stack->txh.hwtx) ctx->flags |= CTX_APP_DIRTY;
 		else */

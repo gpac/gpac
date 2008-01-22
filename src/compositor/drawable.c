@@ -953,7 +953,7 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 #endif
 		/*apply scale whether scalable or not (if not scalable, scale is still needed for scalable zoom)*/
 		asp->pen_props.width = gf_mulfix(asp->pen_props.width, asp->line_scale);
-		if (asp->pen_props.dash != GF_DASH_STYLE_CUSTOM_ABS) 
+		if (asp->pen_props.dash != GF_DASH_STYLE_SVG) 
 			asp->pen_props.dash_offset = gf_mulfix(asp->pen_props.dash_offset, asp->pen_props.width);
 		
 		if (asp->pen_props.dash_set) {
@@ -1074,8 +1074,9 @@ static GF_Node *svg_get_texture_target(GF_Node *node, DOM_String uri)
 #endif
 
 
-void drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *tr_state)
+Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *tr_state)
 {
+	Bool ret = 0;
 	SVGPropertiesPointers *props = tr_state->svg_props;
 	Fixed clamped_opacity = FIX_ONE;
 	Fixed clamped_solid_opacity = FIX_ONE;
@@ -1107,11 +1108,17 @@ void drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 		}		
 		/* If paint server not found, paint is equivalent to none */
 		if (props->fill->iri.type == XMLRI_ELEMENTID) {
+			asp->fill_color = GF_COL_ARGB_FIXED(clamped_opacity, 0, 0, 0);
 			switch (gf_node_get_tag((GF_Node *)props->fill->iri.target)) {
 			case TAG_SVG_solidColor:
 			{
 				SVGAllAttributes all_atts;
 				gf_svg_flatten_attributes((SVG_Element*)props->fill->iri.target, &all_atts);
+
+				gf_node_traverse(props->fill->iri.target, tr_state);
+			
+				if (gf_node_dirty_get(props->fill->iri.target))
+					ret = 1;
 
 				if (all_atts.solid_color) {
 					if (all_atts.solid_opacity) {
@@ -1131,7 +1138,6 @@ void drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 			default: 
 				break;
 			}
-			asp->fill_color = GF_COL_ARGB_FIXED(clamped_opacity, 0, 0, 0);
 		}
 	} else if (props->fill->type == SVG_PAINT_COLOR) {
 		if (props->fill->color.type == SVG_COLOR_CURRENTCOLOR) {
@@ -1168,6 +1174,11 @@ void drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 				SVGAllAttributes all_atts;
 				gf_svg_flatten_attributes((SVG_Element*)props->stroke->iri.target, &all_atts);
 
+				gf_node_traverse(props->stroke->iri.target, tr_state);
+
+				if (gf_node_dirty_get(props->stroke->iri.target))
+					ret = 1;
+
 				if (all_atts.solid_color) {
 					if (all_atts.solid_opacity) {
 						Fixed val = all_atts.solid_opacity->value;
@@ -1196,7 +1207,7 @@ void drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 		}
 	}
 	if (props->stroke_dasharray->type != SVG_STROKEDASHARRAY_NONE) {
-		asp->pen_props.dash = GF_DASH_STYLE_CUSTOM_ABS;
+		asp->pen_props.dash = GF_DASH_STYLE_SVG;
 		asp->pen_props.dash_offset = props->stroke_dashoffset->value;
 		asp->pen_props.dash_set = (GF_DashSettings *) &(props->stroke_dasharray->array);
 	}
@@ -1205,6 +1216,7 @@ void drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 	asp->pen_props.cap = (u8) *props->stroke_linecap;
 	asp->pen_props.join = (u8) *props->stroke_linejoin;
 	asp->pen_props.miterLimit = props->stroke_miterlimit->value;
+	return ret;
 }
 
 DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState *tr_state)
@@ -1253,7 +1265,8 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 		break;
 	}
 
-	drawable_get_aspect_2d_svg(drawable->node, &ctx->aspect, tr_state);
+	if (drawable_get_aspect_2d_svg(drawable->node, &ctx->aspect, tr_state))
+		ctx->flags |= CTX_APP_DIRTY;
 
 	if (ctx->drawable->path) {
 		if (*tr_state->svg_props->fill_rule == SVG_FILLRULE_NONZERO) {

@@ -187,7 +187,8 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 			}
 		} else if ((textContent[i] == '\n') ||
 				   (textContent[i] == '\r') ||
-				   (textContent[i] == '\t')){
+				   (textContent[i] == '\t')
+		) {
 			if (prev == ' ' && !preserve) { 
 				/* ignore space */
 			} else {
@@ -195,6 +196,17 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 				prev = dup_text[j];
 				j++;
 			}
+		} else if (
+			(((u8) textContent[i] == 0xc2) && ((u8) textContent[i+1] == 0xa0)) 
+		) {
+			if (prev == ' ' && !preserve) { 
+				/* ignore space */
+			} else {
+				dup_text[j] = ' ';
+				prev = dup_text[j];
+				j++;
+			}
+			i++;
 		} else {
 			dup_text[j] = textContent[i];
 			prev = dup_text[j];
@@ -570,7 +582,7 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 
 static void svg_text_draw_2d(SVG_TextStack *st, GF_TraverseState *tr_state)
 {
-	gf_font_spans_draw_2d(st->spans, tr_state, 0, 0);
+	gf_font_spans_draw_2d(st->spans, tr_state, 0, 0, &st->bounds);
 }
 
 static void svg_update_bounds(SVG_TextStack *st)

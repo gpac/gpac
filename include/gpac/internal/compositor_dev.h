@@ -857,11 +857,9 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *sr);
 void compositor_2d_set_user_transform(GF_Compositor *sr, Fixed zoom, Fixed tx, Fixed ty, Bool is_resize) ;
 GF_Err compositor_2d_get_video_access(GF_VisualManager *surf);
 void compositor_2d_release_video_access(GF_VisualManager *surf);
-Bool compositor_2d_pixel_format_supported(GF_VisualManager *surf, u32 pixel_format);
-void compositor_2d_draw_bitmap(GF_VisualManager *visual, struct _gf_sc_texture_handler *txh, struct _drawable_context *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key);
+Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, u32 *col_key);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res);
-
 
 #ifndef GPAC_DISABLE_3D
 
@@ -985,7 +983,7 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span);
 GF_Path *gf_font_span_create_path(GF_TextSpan *span);
 
 
-void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_color, Bool force_texture_text);
+void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_color, Bool force_texture_text, GF_Rect *bounds);
 void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspect2D *asp, u32 text_hl, Bool force_texturing);
 void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events);
 
