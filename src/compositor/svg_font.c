@@ -224,6 +224,7 @@ void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node)
 	font->load_glyph = svg_font_load_glyph;
 	font->udta = node_font;
 	gf_node_set_private(node_font, font);
+	gf_node_set_callback_function(node_font, svg_traverse_font);
 	font->name = strdup(atts.font_family->value);
 
 	font->em_size = atts.units_per_em ? FIX2INT( gf_ceil(atts.units_per_em->value) ) : 1000;
