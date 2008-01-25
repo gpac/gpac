@@ -537,7 +537,7 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_PICK:
-		gf_font_spans_pick(n, st->spans, tr_state, &st->bounds, 0);
+		gf_font_spans_pick(n, st->spans, tr_state, &st->bounds, 0, NULL);
 		return;
 	case TRAVERSE_GET_BOUNDS:
 		tr_state->bounds = st->bounds;

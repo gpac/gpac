@@ -260,8 +260,13 @@ struct __tag_compositor
 	/*set if content doesn't allow navigation*/
 	Bool navigation_disabled;
 
-	/*user mouse navigation is currently active*/
-	Bool navigation_grabbed;
+	/*user mouse navigation state:
+	 0: not active
+	 1: pre-active phase: mouse has been clicked and waiting for mouse move to confirm. This allows
+		for clicking on objects in the navigation mode
+	 2: navigation is grabbed
+	*/
+	u32 navigation_state;
 	/*navigation x & y grab point in scene coord system*/
 	Fixed grab_x, grab_y;
 	/*aspect ratio scale factor*/
@@ -594,6 +599,7 @@ struct _traversing_state
 
 	/*node for which bounds should be fetched - SVG only*/
 	GF_Node *for_node;
+	Bool abort_bounds_traverse;
 
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
@@ -616,7 +622,9 @@ struct _traversing_state
 	Fixed max_length, max_height;
 	Fixed base_x, base_y;
 	Fixed line_spacing;
-
+	/*quick and dirty hack to try to solve xml:space across text and tspans without 
+	flattening the DOMText nodes*/
+	Bool last_char_was_space;
 #endif
 
 	/*current context to be drawn - only set when drawing in 2D mode or 3D for SVG*/
@@ -924,7 +932,7 @@ struct _gf_font
 	u32 em_size;
 	u32 styles;
 	/*font uits in em size*/
-	s32 ascent, descent, line_spacing, max_advance_h, max_advance_v;
+	s32 ascent, descent, underline, line_spacing, max_advance_h, max_advance_v;
 	s32 baseline;
 
 	/*only set for embedded font engines (SVG fonts)*/
@@ -966,6 +974,9 @@ typedef struct
 
 	/*span texturing and 3D tools*/
 	struct _span_internal *ext;
+
+	/*SVG stuff :(*/
+	GF_Node *anchor;
 } GF_TextSpan;
 
 GF_FontManager *gf_font_manager_new(GF_User *user);
@@ -985,7 +996,7 @@ GF_Path *gf_font_span_create_path(GF_TextSpan *span);
 
 void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_color, Bool force_texture_text, GF_Rect *bounds);
 void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspect2D *asp, u32 text_hl, Bool force_texturing);
-void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events);
+void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events, struct _drawable *drawable);
 
 #endif	/*_COMPOSITOR_DEV_H_*/
 

@@ -191,6 +191,7 @@ GF_Node *dom_get_node(JSContext *c, JSObject *obj, Bool *is_doc)
 	if (is_doc) *is_doc = 0;
 	if (JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL)) {
 		GF_SceneGraph *sg = (GF_SceneGraph *)JS_GetPrivate(c, obj);
+		if (!sg) return NULL;
 		if (is_doc) *is_doc = 1;
 		return sg->RootNode;
 	}
@@ -963,7 +964,8 @@ static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, jsval id, js
 	GF_Node *n = dom_get_node(c, obj, &is_doc);
 	if (!n || !is_doc) return JS_FALSE;
 
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
+	*vp = JSVAL_VOID;
+	if (!JSVAL_IS_INT(id)) return JS_FALSE;
 	prop_id = JSVAL_TO_INT(id);
 	if (prop_id<=JS_DOM3_NODE_LAST_PROP) return dom_node_getProperty(c, obj, id, vp);
 
@@ -1031,7 +1033,8 @@ static JSBool dom_document_setProperty(JSContext *c, JSObject *obj, jsval id, js
 	u32 prop_id;
 	Bool is_doc;
 	GF_Node *n = dom_get_node(c, obj, &is_doc);
-	if (!n || !is_doc) return JS_FALSE;
+//	if (!n || !is_doc) return JS_FALSE;
+	if (!n || !is_doc) return JS_TRUE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
@@ -2666,7 +2669,7 @@ void dom_js_unload()
 	}
 }
 
-void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
+static void dom_js_define_document_ex(JSContext *c, JSObject *global, GF_SceneGraph *doc, const char *name)
 {
 	JSObject *obj;
 	if (!doc || !doc->RootNode) return;
@@ -2674,10 +2677,19 @@ void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
 	if (doc->reference_count)
 		doc->reference_count++;
 
-	obj = JS_DefineObject(c, global, "document", &dom_rt->domDocumentClass, 0, 0 );
+	obj = JS_DefineObject(c, global, name, &dom_rt->domDocumentClass, 0, 0 );
 	gf_node_register(doc->RootNode, NULL);
 	JS_SetPrivate(c, obj, doc);
 	doc->document = obj;
+}
+
+void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
+{
+	dom_js_define_document_ex(c, global, doc, "document");
+}
+void dom_js_define_svg_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
+{
+	dom_js_define_document_ex(c, global, doc, "SVGDocument");
 }
 
 JSObject *dom_js_define_event(JSContext *c, JSObject *global)

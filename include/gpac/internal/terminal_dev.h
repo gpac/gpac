@@ -56,7 +56,7 @@ struct _net_service
 	struct _tag_terminal *term;
 	/*service url*/
 	char *url;
-	/*struct _od_manager owning service, NULL for services created for remote channels*/
+	/*od_manager owning service, NULL for services created for remote channels*/
 	struct _od_manager *owner;
 	/*number of attached remote channels ODM (ESD URLs)*/
 	u32 nb_ch_users;
@@ -150,6 +150,9 @@ struct _inline_scene
 
 	/*current simulation time of the compositor*/
 	Double simulation_time;
+
+	/*current IRI fragment if any*/
+	char *fragment_uri;
 };
 
 GF_InlineScene *gf_inline_new(GF_InlineScene *parentScene);
@@ -162,7 +165,6 @@ void gf_inline_buffering_info(GF_InlineScene *is);
 void gf_inline_attach_to_compositor(GF_InlineScene *is);
 struct _mediaobj *gf_inline_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
 struct _mediaobj *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref);
-
 void gf_inline_setup_object(GF_InlineScene *is, GF_ObjectManager *odm);
 /*restarts inline scene - care has to be taken not to remove the scene while it is traversed*/
 void gf_inline_restart(GF_InlineScene *is);
@@ -200,6 +202,8 @@ void gf_inline_sample_time(GF_InlineScene *is);
 Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *inline_url);
 
 
+const char *gf_inline_get_fragment_uri(GF_Node *node);
+void gf_inline_set_fragment_uri(GF_Node *node, const char *uri);
 
 enum
 {

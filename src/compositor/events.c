@@ -317,15 +317,14 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 		if (compositor->visual->center_coords) {
 			evt->mouse.x = evt->mouse.x - compositor->display_width/2;
 			evt->mouse.y = compositor->display_height/2 - evt->mouse.y;
-		} else {
-			evt->mouse.x -= compositor->vp_x;
-			evt->mouse.y -= compositor->vp_y;
 		}
 	}
 
 	/*process regular events except if navigation is grabbed*/
-	if (!compositor->navigation_grabbed && (compositor->interaction_level & GF_INTERACT_NORMAL) && gf_sc_execute_event(compositor, compositor->traverse_state, evt, NULL)) 
+	if ( (compositor->navigation_state<2) && (compositor->interaction_level & GF_INTERACT_NORMAL) && gf_sc_execute_event(compositor, compositor->traverse_state, evt, NULL)) {
+		compositor->navigation_state = 0;
 		return 1;
+	}
 #ifndef GPAC_DISABLE_3D
 	/*remember active layer on mouse click - may be NULL*/
 	if ((evt->type==GF_EVENT_MOUSEDOWN) && (evt->mouse.button==GF_MOUSE_LEFT)) compositor->active_layer = compositor->traverse_state->layer3d;

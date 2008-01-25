@@ -174,7 +174,7 @@ static GF_Err gdip_set_font(GF_FontReader *dr, const char *fontName, u32 styles)
 	return GF_OK;
 }
 
-static GF_Err gdip_get_font_info(GF_FontReader *dr, char **font_name, s32 *em_size, s32 *ascent, s32 *descent, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v)
+static GF_Err gdip_get_font_info(GF_FontReader *dr, char **font_name, s32 *em_size, s32 *ascent, s32 *descent, s32 *underline, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v)
 {
 	UINT16 val, em;
 	FontPriv *ctx = (FontPriv *)dr->udta;
@@ -191,6 +191,7 @@ static GF_Err gdip_get_font_info(GF_FontReader *dr, char **font_name, s32 *em_si
 	GdipGetCellDescent(ctx->font, ctx->font_style, &val);
 	*descent = (s32) val; *descent *= -1;
 	ctx->descent = -1 * (Float) val;
+	*underline = *descent / 2;
 	GdipGetLineSpacing(ctx->font, ctx->font_style, &val);
 	*line_spacing = (s32) val;
 	*max_advance_v = *ascent - *descent;

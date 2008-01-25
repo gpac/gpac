@@ -782,7 +782,8 @@ Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *event_base_element,
 			done++;
 			continue;
 		}
-		if (node_name && strcmp(node_name, t->element_id)) continue;
+		/*commented out because it breaks regular anims (cf interact-pevents-07-t.svg)*/
+//		if (node_name && strcmp(node_name, t->element_id)) continue;
 	
 		t->element = gf_sg_find_node_by_name(sg, t->element_id);
 		if (t->element) {

@@ -37,6 +37,7 @@ struct _gf_ft_mgr
 	GF_FontReader *reader;
 
 	GF_Font *font, *default_font;
+	GF_Path *line_path;
 
 	u32 *id_buffer;
 	u32 id_buffer_size;
@@ -83,6 +84,13 @@ GF_FontManager *gf_font_manager_new(GF_User *user)
 	font_mgr->id_buffer = malloc(sizeof(u32)*font_mgr->id_buffer_size);
 	gf_font_manager_set_font(font_mgr, &def_font, 1, 0);
 	font_mgr->default_font = font_mgr->font;
+
+	font_mgr->line_path= gf_path_new();
+	gf_path_add_move_to(font_mgr->line_path, -FIX_ONE/2, FIX_ONE/2);
+	gf_path_add_line_to(font_mgr->line_path, FIX_ONE/2, FIX_ONE/2);
+	gf_path_add_line_to(font_mgr->line_path, FIX_ONE/2, -FIX_ONE/2);
+	gf_path_add_line_to(font_mgr->line_path, -FIX_ONE/2, -FIX_ONE/2);
+	gf_path_close(font_mgr->line_path);
 	return font_mgr;
 }
 
@@ -119,6 +127,7 @@ void gf_font_manager_del(GF_FontManager *fm)
 		font = next;
 	}
 	free(fm->id_buffer);
+	gf_path_del(fm->line_path);
 	free(fm);
 }
 
@@ -131,6 +140,7 @@ GF_Err gf_font_manager_register_font(GF_FontManager *fm, GF_Font *font)
 	} else {
 		fm->font = font;
 	}
+	font->ft_mgr = fm;
 	return GF_OK;
 }
 
@@ -227,7 +237,7 @@ GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_f
 			e = fm->reader->set_font(fm->reader, alt_fonts[i], styles);
 			if (!e) {
 				GF_SAFEALLOC(the_font, GF_Font);
-				fm->reader->get_font_info(fm->reader, &the_font->name, &the_font->em_size, &the_font->ascent, &the_font->descent, &the_font->line_spacing, &the_font->max_advance_h, &the_font->max_advance_v);
+				fm->reader->get_font_info(fm->reader, &the_font->name, &the_font->em_size, &the_font->ascent, &the_font->descent, &the_font->underline, &the_font->line_spacing, &the_font->max_advance_h, &the_font->max_advance_v);
 				the_font->styles = styles;
 				if (!the_font->name) the_font->name = strdup(alt_fonts[i]);
 			
@@ -238,6 +248,7 @@ GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_f
 				} else {
 					fm->font = the_font;
 				}
+				the_font->ft_mgr = fm;
 				return the_font;
 			}
 		}
@@ -294,6 +305,8 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 	GF_Err e;
 	u32 len, i;
 	GF_TextSpan *span;
+
+	if (!strlen(text)) return NULL;
 
 	len = fm->id_buffer_size;
 	if (font->get_glyphs)
@@ -912,6 +925,39 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 	ctx->aspect.line_scale = lscale;
 }
 
+void gf_font_underline_span(GF_TraverseState *tr_state, GF_TextSpan *span, DrawableContext *ctx)
+{
+	GF_Matrix2D mx, m;
+	u32 col;
+	Fixed sx, width, diff;
+	if (span->dx || span->dy) return;
+
+	gf_mx2d_copy(mx, ctx->transform);
+	sx = gf_mulfix(span->font_scale, span->x_scale);
+	diff = span->font_scale * span->font->underline;
+	if (span->flip) 
+		diff = sx * (span->font->descent - span->font->underline);
+	else
+		diff = sx * (- span->font->ascent - span->font->underline);
+
+	gf_mx2d_init(m);
+	gf_mx2d_add_scale(&m, span->bounds.width, FIX_ONE);
+	gf_mx2d_add_translation(&m, span->bounds.x + span->bounds.width / 2, span->bounds.y+diff);
+	gf_mx2d_pre_multiply(&ctx->transform, &m);
+
+	col = ctx->aspect.fill_color;
+	width = ctx->aspect.pen_props.width;
+	ctx->aspect.pen_props.width = 0;
+	ctx->flags &= ~CTX_PATH_FILLED;
+	ctx->aspect.fill_color = 0xFF0000FF;
+	visual_2d_draw_path(tr_state->visual, span->font->ft_mgr->line_path, ctx, NULL, NULL, tr_state);
+	ctx->aspect.fill_color = col;
+
+	gf_mx2d_copy(ctx->transform, mx);
+	ctx->aspect.pen_props.width = width;
+}
+
+
 void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_color, Bool force_texture_text, GF_Rect *bounds)
 {
 	Bool use_texture_text, is_rv;
@@ -956,6 +1002,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 		} else {
 			gf_font_span_draw_2d(tr_state, span, ctx, bounds);
 		}
+		if (span->anchor) gf_font_underline_span(tr_state, span, ctx);
 		if (ctx->sub_path_index) break;
 	}
 	if (is_rv) tr_state->ctx->aspect.fill_color = hl_color;
@@ -963,13 +1010,17 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 
 }
 
-void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events)
+Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, GF_Path *path, DrawAspect2D *asp, GF_TraverseState *tr_state, Bool is_text);
+
+void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events, Drawable *drawable)
 {
 	u32 i, count, j;
 	Fixed dx, dy;
 #ifndef GPAC_DISABLE_3D
 	GF_Matrix inv_mx;
 #endif
+	GF_TextSpan *span;
+	DrawAspect2D asp;
 	GF_Matrix2D inv_2d;
 	Fixed x, y;
 	GF_Compositor *compositor = tr_state->visual->compositor;
@@ -1001,9 +1052,15 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 		gf_mx2d_apply_coords(&inv_2d, &x, &y);
 	}
 
+	if (use_dom_events) {
+		memset(&asp, 0, sizeof(DrawAspect2D));
+		drawable_get_aspect_2d_svg(node, &asp, tr_state);
+	}
+
+	span = NULL;
 	for (i=0; i<count; i++) {
 		Fixed loc_x, loc_y;
-		GF_TextSpan *span = (GF_TextSpan*)gf_list_get(spans, i);
+		span = (GF_TextSpan*)gf_list_get(spans, i);
 
 		if ((x>=span->bounds.x)
 			&& (y<=span->bounds.y) 
@@ -1022,13 +1079,18 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 			loc_y = gf_divfix(loc_y, span->font_scale) + span->font->baseline;
 			if (span->flip) loc_y = - loc_y;
 
-			if (gf_path_point_over(span->glyphs[j]->path, loc_x, loc_y))
-				goto picked;
+			if (use_dom_events) {
+				if (svg_drawable_is_over(drawable, loc_x, loc_y, span->glyphs[j]->path, &asp, tr_state, 1))
+					goto picked;
+			} else {
+				if (gf_path_point_over(span->glyphs[j]->path, loc_x, loc_y))
+					goto picked;
+			}
 
 			if (span->horizontal) {
-				dx += span->font_scale * span->glyphs[i]->horiz_advance;
+				dx += span->font_scale * span->glyphs[j]->horiz_advance;
 			} else {
-				dy -= span->font_scale * span->glyphs[i]->vert_advance;
+				dy -= span->font_scale * span->glyphs[j]->vert_advance;
 			}
 		}
 	}
@@ -1051,6 +1113,8 @@ picked:
 	}
 
 	compositor->hit_node = node;
+	if (span->anchor) compositor->hit_node = span->anchor;
+
 	compositor->hit_use_dom_events = use_dom_events;
 	compositor->hit_normal.x = compositor->hit_normal.y = 0; compositor->hit_normal.z = FIX_ONE;
 	compositor->hit_texcoords.x = gf_divfix(x, node_bounds->width) + FIX_ONE/2;

@@ -1425,6 +1425,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	}
 	skip_text = 1;
 	switch (tag) {
+	case TAG_SVG_a:
 	case TAG_SVG_text:
 	case TAG_SVG_tspan:
 	case TAG_SVG_textArea:
