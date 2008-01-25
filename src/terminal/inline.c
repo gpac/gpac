@@ -148,6 +148,7 @@ void gf_inline_del(GF_InlineScene *is)
 	if (is->audio_url.url) free(is->audio_url.url);
 	if (is->visual_url.url) free(is->visual_url.url);
 	if (is->text_url.url) free(is->text_url.url);
+	if (is->fragment_uri) free(is->fragment_uri);
 	free(is);
 }
 
@@ -702,6 +703,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 GF_EXPORT
 void gf_inline_attach_to_compositor(GF_InlineScene *is)
 {
+	char *url;
 	if ((is->graph_attached==1) || (gf_sg_get_root_node(is->graph)==NULL) ) {
 		gf_term_invalidate_compositor(is->root_od->term);
 		return;
@@ -717,6 +719,14 @@ void gf_inline_attach_to_compositor(GF_InlineScene *is)
 			gf_node_dirty_parents( gf_list_get(is->inline_nodes, i) );
 		gf_term_invalidate_compositor(is->root_od->term);
 	}
+	/*locate fragment IRI*/
+	if (!is->root_od || !is->root_od->net_service || !is->root_od->net_service->url) return;
+	if (is->fragment_uri) {
+		free(is->fragment_uri);
+		is->fragment_uri = NULL;
+	}
+	url = strchr(is->root_od->net_service->url, '#');
+	if (url) is->fragment_uri = strdup(url+1);
 }
 
 static GF_MediaObject *IS_CheckExistingObject(GF_InlineScene *is, MFURL *urls)
@@ -1492,9 +1502,29 @@ GF_Compositor *gf_sc_get_compositor(GF_Node *node)
 	return is->root_od->term->compositor;
 }
 
+const char *gf_inline_get_fragment_uri(GF_Node *node)
+{
+	GF_SceneGraph *sg = gf_node_get_graph(node);
+	GF_InlineScene *is = sg ? (GF_InlineScene *) gf_sg_get_private(sg) : NULL;
+	if (!is) return NULL;
+	return is->fragment_uri;
+}
+void gf_inline_set_fragment_uri(GF_Node *node, char *uri)
+{
+	GF_SceneGraph *sg = gf_node_get_graph(node);
+	GF_InlineScene *is = sg ? (GF_InlineScene *) gf_sg_get_private(sg) : NULL;
+	if (!is) return;
+	if (is->fragment_uri) {
+		free(is->fragment_uri);
+		is->fragment_uri = NULL;
+	}
+	if (uri) is->fragment_uri = strdup(uri);
+}
+
 
 void InitInline(GF_InlineScene *is, GF_Node *node)
 {
 	gf_node_set_callback_function(node, gf_inline_traverse);
 }
+
 

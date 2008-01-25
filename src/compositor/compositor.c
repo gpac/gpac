@@ -541,7 +541,6 @@ u32 gf_sc_get_clock(GF_Compositor *compositor)
 static GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height)
 {
 	if (!Width || !Height) {
-		compositor->has_size_info = 0;
 		if (compositor->override_size_flags) {
 			/*specify a small size to detect biggest bitmap but not 0 in case only audio..*/
 			compositor->scene_height = SC_DEF_HEIGHT;
@@ -552,7 +551,6 @@ static GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Hei
 			compositor->scene_height = compositor->display_height ? compositor->display_height : compositor->new_height;
 		}
 	} else {
-		compositor->has_size_info = 1;
 		compositor->scene_height = Height;
 		compositor->scene_width = Width;
 	}
@@ -734,21 +732,21 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		/*default back color is white*/
 		if (is_svg && ! (compositor->user->init_flags & GF_TERM_WINDOWLESS)) compositor->back_color = 0xFFFFFFFF;
 
-		/*hack for SVG where size is set in %*/
+		/*hack for SVG where size is set in % - negotiate a canvas size*/
 		if (!compositor->has_size_info && w && h) {
-			compositor->has_size_info = 1;
-//			compositor->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
 			if (w->type!=SVG_NUMBER_PERCENTAGE) {
 				width = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, w) );
 			} else {
-				width = SC_DEF_WIDTH; //FIX2INT(root->viewBox.width);
+				width = SC_DEF_WIDTH;
 			}
 			if (h->type!=SVG_NUMBER_PERCENTAGE) {
 				height = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, h) );
 			} else {
-				height = SC_DEF_HEIGHT; //FIX2INT(root->viewBox.height);
+				height = SC_DEF_HEIGHT;
 			}
 		}
+		/*we consider that SVG has no size onfo per say, everything is handled by the viewBox if any*/
+		if (is_svg) compositor->has_size_info = 0;
 #endif
 		/*default back color is key color*/
 		if (compositor->user->init_flags & GF_TERM_WINDOWLESS) {
@@ -1420,8 +1418,13 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		camera_invalidate(&compositor->visual->camera);
 #endif
 
-		compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
-		compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
+		if (compositor->has_size_info) {
+			compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
+			compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
+		} else {
+			compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
+			compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
+		}
 
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Main scene setup - Using DOM events: %d - pixel metrics %d - center coords %d\n", compositor->root_uses_dom_events, compositor->traverse_state->pixel_metrics, compositor->visual->center_coords));
@@ -1449,10 +1452,14 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		else
 #endif
 			compositor_2d_set_aspect_ratio(compositor);
-		compositor->recompute_ar = 0;
 
-		compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
-		compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
+		if (compositor->has_size_info) {
+			compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
+			compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
+		} else {
+			compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
+			compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
+		}
 
 #ifndef GPAC_DISABLE_LOG
 		if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RTI)) { 
@@ -1468,6 +1475,8 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
 	compositor->traverse_state->direct_draw = flags;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Drawing done\n"));
+
+	compositor->recompute_ar = 0;
 }
 
 
@@ -1704,7 +1713,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		traverse_time, 
 		flush_time, 
 		end_time));
-
 
 	gf_sc_lock(compositor, 0);
 

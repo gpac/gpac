@@ -554,7 +554,7 @@ layer3d_unchanged_2d:
 		layer3d_setup_clip(st, tr_state, prev_cam ? 1 : 0, rc);
 
 		if (tr_state->visual->compositor->active_layer==node) {
-			do_pick = (tr_state->visual->compositor->grabbed_sensor || tr_state->visual->compositor->navigation_grabbed) ? 1 : 0;
+			do_pick = (tr_state->visual->compositor->grabbed_sensor || tr_state->visual->compositor->navigation_state) ? 1 : 0;
 		}
 
 		if (!prev_cam) gf_mx_from_mx2d(&tr_state->model_matrix, &tr_state->transform);

@@ -284,7 +284,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		if (ev->mouse.button==GF_MOUSE_LEFT) {
 			compositor->grab_x = x;
 			compositor->grab_y = y;
-			compositor->navigation_grabbed = 1;
+			compositor->navigation_state = 1;
 
 			/*change vp and examine center to current location*/
 			if ((keys & GF_KEY_MOD_CTRL) && compositor->hit_square_dist) {
@@ -298,7 +298,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		} 
 		/*right*/
 		else if (ev->mouse.button==GF_MOUSE_RIGHT) {
-			if (compositor->navigation_grabbed && (cam->navigate_mode==GF_NAVIGATE_WALK)) {
+			if (compositor->navigation_state && (cam->navigate_mode==GF_NAVIGATE_WALK)) {
 				camera_jump(cam);
 				gf_sc_invalidate(compositor, NULL);
 				return 1;
@@ -309,15 +309,16 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 
 	/* note: shortcuts are mostly the same as blaxxun contact, I don't feel like remembering 2 sets...*/
 	case GF_EVENT_MOUSEMOVE:
-		if (!compositor->navigation_grabbed) {
+		if (!compositor->navigation_state) {
 			if (cam->navigate_mode==GF_NAVIGATE_GAME) {
 				/*init mode*/
 				compositor->grab_x = x;
 				compositor->grab_y = y;
-				compositor->navigation_grabbed = 1;
+				compositor->navigation_state = 1;
 			}
 			return 0;
 		}
+		compositor->navigation_state++;
 
 		switch (cam->navigate_mode) {
 		/*FIXME- we'll likely need a "step" value for walk at some point*/
@@ -392,7 +393,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		return 1;
 
 	case GF_EVENT_MOUSEUP:
-		if (ev->mouse.button==GF_MOUSE_LEFT) compositor->navigation_grabbed = 0;
+		if (ev->mouse.button==GF_MOUSE_LEFT) compositor->navigation_state = 0;
 		break;
 
 	case GF_EVENT_KEYDOWN:
@@ -411,12 +412,12 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			}
 			break;
 		case GF_KEY_HOME:
-			if (!compositor->navigation_grabbed) compositor_3d_reset_camera(compositor);
+			if (!compositor->navigation_state) compositor_3d_reset_camera(compositor);
 			break;
 		case GF_KEY_END:
 			if (cam->navigate_mode==GF_NAVIGATE_GAME) {
 				cam->navigate_mode = GF_NAVIGATE_WALK;
-				compositor->navigation_grabbed = 0;
+				compositor->navigation_state = 0;
 				return 1;
 			}
 			break;
@@ -546,7 +547,7 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 		if (ev->mouse.button==GF_MOUSE_LEFT) {
 			visual->compositor->grab_x = x;
 			visual->compositor->grab_y = y;
-			visual->compositor->navigation_grabbed = 1;
+			visual->compositor->navigation_state = 1;
 			/*update zoom center*/
 			if (keys & GF_KEY_MOD_CTRL) {
 				if (visual->center_coords) {
@@ -564,7 +565,7 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 
 	case GF_EVENT_MOUSEUP:
 		if (ev->mouse.button==GF_MOUSE_LEFT) {
-			visual->compositor->navigation_grabbed = 0;
+			visual->compositor->navigation_state = 0;
 			return 0;
 		}
 		break;
@@ -576,7 +577,8 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 		return 1;
 
 	case GF_EVENT_MOUSEMOVE:
-		if (!visual->compositor->navigation_grabbed) return 0;
+		if (!visual->compositor->navigation_state) return 0;
+		visual->compositor->navigation_state++;
 		switch (navigation_mode) {
 		case GF_NAVIGATE_SLIDE:
 			if (keys & GF_KEY_MOD_CTRL) {
@@ -607,7 +609,7 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 			gf_sc_reset_graphics(visual->compositor);
 			return 1;
 		case GF_KEY_HOME:
-			if (!visual->compositor->navigation_grabbed) {
+			if (!visual->compositor->navigation_state) {
 				visual->compositor->trans_x = visual->compositor->trans_y = 0;
 				visual->compositor->rotation = 0;
 				visual->compositor->zoom = FIX_ONE;

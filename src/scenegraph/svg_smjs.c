@@ -1793,6 +1793,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	dom_js_load(scene->svg_js->js_ctx, scene->svg_js->global);
 	/*create document object, and remember it*/
 	dom_js_define_document(scene->svg_js->js_ctx, scene->svg_js->global, scene);
+	dom_js_define_svg_document(scene->svg_js->js_ctx, scene->svg_js->global, scene);
 	/*create event object, and remember it*/
 	scene->svg_js->event = dom_js_define_event(scene->svg_js->js_ctx, scene->svg_js->global);
 

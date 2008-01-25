@@ -325,6 +325,8 @@ void gf_sc_svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Tr
 	GF_Rect rc;
 	GF_Matrix2D cur_mx;
 
+	if (tr_state->abort_bounds_traverse) return;
+
 	gf_mx2d_copy(cur_mx, tr_state->transform);
 	rc = gf_rect_center(0,0);
 	while (children) {
@@ -334,9 +336,11 @@ void gf_sc_svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Tr
 		gf_node_traverse(children->node, tr_state);
 		/*we hit the target node*/
 		if (children->node == tr_state->for_node) {
-			tr_state->for_node = NULL;
+			tr_state->abort_bounds_traverse = 1;
+			gf_mx_from_mx2d(&tr_state->visual->compositor->hit_world_to_local, &tr_state->transform);
 			return;
 		}
+		if (tr_state->abort_bounds_traverse) return;
 
 		gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
 		gf_rect_union(&rc, &tr_state->bounds);

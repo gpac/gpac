@@ -384,7 +384,7 @@ void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u64 startTim
 	gf_sg_set_script_action(is->graph, term_script_action, term);
 	odm = gf_odm_new();
 
-	is->root_od = odm;
+	is->root_od =  odm;
 	term->root_scene = is;
 	odm->parentscene = NULL;
 	odm->subscene = is;

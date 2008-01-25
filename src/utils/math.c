@@ -918,6 +918,7 @@ GF_EXPORT
 void gf_rect_union(GF_Rect *rc1, GF_Rect *rc2) 
 {
 	if (!rc1->width || !rc1->height) {*rc1=*rc2; return;}
+	if (!rc2->width || !rc2->height) return;
 	if (rc2->x < rc1->x) { rc1->width += rc1->x - rc2->x; rc1->x = rc2->x; }
 	if (rc2->x + rc2->width > rc1->x+rc1->width) rc1->width = rc2->x + rc2->width - rc1->x;
 	if (rc2->y > rc1->y) { rc1->height += rc2->y - rc1->y; rc1->y = rc2->y; }

@@ -326,7 +326,7 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	return GF_NOT_SUPPORTED;
 }
 
-static GF_Err ft_get_font_info(GF_FontReader *dr, char **font_name, s32 *em_size, s32 *ascent, s32 *descent, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v)
+static GF_Err ft_get_font_info(GF_FontReader *dr, char **font_name, s32 *em_size, s32 *ascent, s32 *descent, s32 *underline, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v)
 {
 	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
 	if (!ftpriv->active_face) return GF_BAD_PARAM;
@@ -334,6 +334,7 @@ static GF_Err ft_get_font_info(GF_FontReader *dr, char **font_name, s32 *em_size
 	*em_size = ftpriv->active_face->units_per_EM;
 	*ascent = ftpriv->active_face->ascender;
 	*descent = ftpriv->active_face->descender;
+	*underline = ftpriv->active_face->underline_position;
 	*line_spacing = ftpriv->active_face->height;
 	*font_name = strdup(ftpriv->active_face->family_name);
 	*max_advance_h = ftpriv->active_face->max_advance_width;

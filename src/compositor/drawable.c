@@ -778,7 +778,8 @@ static void drawable_finalize_sort_ex(struct _drawable_context *ctx, GF_Traverse
 	}
 
 	drawable_finalize_end(ctx, tr_state);
-	if (ctx->drawable && !is_focus) drawable_check_focus_highlight(ctx->drawable->node, tr_state, &store_orig_bounds);
+	if (ctx->drawable && !is_focus)
+		drawable_check_focus_highlight(ctx->drawable->node, tr_state, &store_orig_bounds);
 }
 
 void drawable_finalize_sort(struct _drawable_context *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds)
