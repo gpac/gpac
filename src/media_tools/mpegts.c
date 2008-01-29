@@ -251,7 +251,6 @@ void gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u6
 {
 	u32 sc_pos = 0;
 	u32 start = 0;
-	u32 to_send = data_len;
 	GF_M2TS_PES_PCK pck;
 
 	if (PTS) {
@@ -337,7 +336,7 @@ void gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u6
 				}
 				/*other data present*/
 				if (gf_bs_read_int(bs, 1)) {
-					u32 k = 0;
+//					u32 k = 0;
 				}
 			}
 

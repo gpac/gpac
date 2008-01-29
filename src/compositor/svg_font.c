@@ -41,15 +41,15 @@ typedef struct
 
 
 /*translate string to glyph sequence*/
-static GF_Err svg_font_get_glyphs(GF_Node *node, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang)
+static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang)
 {
 	Bool right_to_left;
 	u32 prev_c;
 	u32 len;
 	u32 i, gl_idx;
 	u16 *utf_res;
+	GF_Node *node = (GF_Node *)udta;
 	GF_ChildNodeItem *child;
-	GF_Font *font = gf_node_get_private(node);
 	char *utf8 = (char*) utf_string;
 
 	/*FIXME - use glyphs unicode attributes for glyph substitution*/
@@ -64,7 +64,7 @@ static GF_Err svg_font_get_glyphs(GF_Node *node, const char *utf_string, u32 *gl
 		return GF_BUFFER_TOO_SMALL;
 	}
 
-	len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, &utf8);
+	len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, (const char**)&utf8);
 	if ((s32) len < 0) return GF_IO_ERR;
 	/*should not happen*/
 	if (utf8) return GF_IO_ERR;
@@ -168,10 +168,9 @@ static GF_Err svg_font_get_glyphs(GF_Node *node, const char *utf_string, u32 *gl
 }
 
 /*loads glyph by name - returns NULL if glyph cannot be found*/
-static GF_Glyph *svg_font_load_glyph(GF_Node *node, u32 glyph_name)
+static GF_Glyph *svg_font_load_glyph(void *udta, u32 glyph_name)
 {
-	GF_Font *font = gf_node_get_private(node);
-	GF_ChildNodeItem *child = ((GF_ParentNode *) node)->children;
+	GF_ChildNodeItem *child = ((GF_ParentNode *) udta)->children;
 
 	while (child) {
 		if (gf_node_get_tag(child->node)==TAG_SVG_glyph) {
@@ -333,7 +332,7 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node)
 
 	GF_SAFEALLOC(st, SVG_GlyphStack);
 	utf8 = *atts.unicode;
-	len = gf_utf8_mbstowcs(utf_name, 200, &utf8);
+	len = gf_utf8_mbstowcs(utf_name, 200, (const char **) &utf8);
 	/*this is a single glyph*/
 	if (len==1) {
 		st->glyph.utf_name = utf_name[0];
@@ -391,7 +390,6 @@ static Bool svg_font_uri_check(GF_Node *node, FontURIStack *st)
 	if (!atts.xlink_href) return 0;
 
 	if (atts.xlink_href->type == XMLRI_ELEMENTID) {
-		GF_SceneGraph *sg = gf_node_get_graph(node);
 		if (!atts.xlink_href->target) atts.xlink_href->target = gf_sg_find_node_by_name(gf_node_get_graph(node), atts.xlink_href->string+1);
 	} else {
 		GF_SceneGraph *ext_sg;
@@ -414,8 +412,9 @@ static Bool svg_font_uri_check(GF_Node *node, FontURIStack *st)
 	return 1;
 }
 
-GF_Font *svg_font_uri_get_alias(GF_Node *node)
+GF_Font *svg_font_uri_get_alias(void *udta)
 {
+	GF_Node *node = (GF_Node *)udta;
 	FontURIStack *st = gf_node_get_private(node);
 	if (!st->alias && !svg_font_uri_check(node, st)) {
 		return NULL;
@@ -423,12 +422,12 @@ GF_Font *svg_font_uri_get_alias(GF_Node *node)
 	return st->alias;
 }
 
-static GF_Err svg_font_uri_get_glyphs(GF_Node *node, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang)
+static GF_Err svg_font_uri_get_glyphs(void *udta, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang)
 {
 	return GF_URL_ERROR;
 }
 
-static GF_Glyph *svg_font_uri_load_glyph(GF_Node *node, u32 glyph_name)
+static GF_Glyph *svg_font_uri_load_glyph(void *udta, u32 glyph_name)
 {
 	return NULL;
 }

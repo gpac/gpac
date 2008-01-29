@@ -352,7 +352,6 @@ GF_EXPORT
 Bool gf_smil_timing_is_active(GF_Node *node) 
 {
 	SMILTimingAttributesPointers *timingp = NULL;
-	u32 tag = gf_node_get_tag(node);
 	timingp = ((SVGTimedAnimBaseElement *)node)->timingp;
 	if (!timingp || !timingp->runtime) return 0;
 	return (timingp->runtime->status == SMIL_STATUS_ACTIVE);
@@ -439,7 +438,6 @@ static Bool gf_smil_discard(SMIL_Timing_RTI *rti, Fixed scene_time)
 	SMIL_Time *begin;
 	SMILTimingAttributesPointers *timingp = rti->timingp;
 	GF_Node *target;
-	u32 tag = gf_node_get_tag(rti->timed_elt);
 
 	if (!timingp) return 0;
 	
@@ -737,8 +735,6 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 {
 	SMILTimingAttributesPointers *timingp = NULL;
 	SMIL_Timing_RTI *rti;
-
-	u32 tag = gf_node_get_tag(node);
 	
 	timingp = ((SVGTimedAnimBaseElement *)node)->timingp;
 	

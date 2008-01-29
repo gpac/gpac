@@ -1509,7 +1509,7 @@ const char *gf_inline_get_fragment_uri(GF_Node *node)
 	if (!is) return NULL;
 	return is->fragment_uri;
 }
-void gf_inline_set_fragment_uri(GF_Node *node, char *uri)
+void gf_inline_set_fragment_uri(GF_Node *node, const char *uri)
 {
 	GF_SceneGraph *sg = gf_node_get_graph(node);
 	GF_InlineScene *is = sg ? (GF_InlineScene *) gf_sg_get_private(sg) : NULL;

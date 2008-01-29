@@ -458,7 +458,6 @@ static void text_draw_3d(GF_TraverseState *tr_state, GF_Node *node, TextStack *s
 	DrawAspect2D the_asp, *asp;
 	Bool is_3d, force_texture;
 	u32 hl_color;
-	GF_Compositor *compositor = (GF_Compositor*)st->compositor;
 
 	is_3d = text_is_3d_material(tr_state);
 	asp = NULL;

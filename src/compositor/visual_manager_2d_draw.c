@@ -95,7 +95,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 	if ((ctx->flags & CTX_IS_BACKGROUND) || tr_state->direct_draw) {
 		if (ctx->bi->clip.width && ctx->bi->clip.height) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s (direct draw)\n", gf_node_get_log_name(ctx->drawable->node) ));
-//			raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
+			raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
 			raster->surface_fill(visual->raster_surface, stencil);
 		}
 	} 
