@@ -604,7 +604,7 @@ struct _traversing_state
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
 	GF_Node *parent_use;
-	SVGAllAttributes *parent_vp_atts;
+	SVGAllAttributes *parent_anim_atts;
 
 	/*SVG text rendering state*/
 	Bool in_svg_text;

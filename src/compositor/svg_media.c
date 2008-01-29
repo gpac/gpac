@@ -28,8 +28,6 @@
 #ifndef GPAC_DISABLE_SVG
 #include "nodes_stacks.h"
 
-#include <gpac/internal/scenegraph_dev.h>
-
 
 typedef struct
 {
@@ -408,7 +406,7 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 	if (!stack->first_frame_fetched) {
 		if (!stack->audio && gf_mo_has_audio(stack->txh.stream)) {
 			GF_FieldInfo att_vid, att_aud;
-			stack->audio = gf_node_new(stack->txh.owner->sgprivate->scenegraph, TAG_SVG_audio);
+			stack->audio = gf_node_new(gf_node_get_graph(stack->txh.owner), TAG_SVG_audio);
 			gf_node_register(stack->audio, NULL);
 			if (gf_svg_get_attribute_by_tag(stack->txh.owner, TAG_SVG_ATT_xlink_href, 0, 0, &att_vid)==GF_OK) {
 				gf_svg_get_attribute_by_tag(stack->audio, TAG_SVG_ATT_xlink_href, 1, 0, &att_aud);
@@ -442,14 +440,14 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 
 static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
 {
-	SVG_video_stack *stack = (SVG_video_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
+	SVG_video_stack *stack = (SVG_video_stack *)gf_node_get_private(gf_smil_get_element(rti));
 
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
 		if (!stack->txh.is_open) { 
 			svg_play_texture((SVG_video_stack*)stack, NULL);
 		}
-		else if (stack->txh.stream_finished && (rti->media_duration<0) ) { 
+		else if (stack->txh.stream_finished && (gf_smil_get_media_duration(rti)<0) ) { 
 			Double dur = gf_mo_get_duration(stack->txh.stream);
 			if (dur <= 0) {
 				dur = stack->txh.last_frame_time;
@@ -491,10 +489,7 @@ void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node)
 	if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
 		gf_term_set_mfurl_from_uri(compositor->term, &(stack->txurl), href_info.far_ptr);
 	}
-	if (((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
-		SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
-		rti->evaluate = svg_video_smil_evaluate;
-	}
+	gf_smil_set_evaluation_callback(node, svg_video_smil_evaluate);
 
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_video);
@@ -516,7 +511,7 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 	SVG_audio_stack *stack;
 
 	audio = slave_audio;
-	if (!audio) audio = rti->timed_elt;
+	if (!audio) audio = gf_smil_get_element(rti);
 
 	stack = (SVG_audio_stack *)gf_node_get_private(audio);
 	
@@ -534,7 +529,7 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 				stack->is_active = 1;
 			}
 		}
-		else if (!slave_audio && stack->input.stream_finished && (rti->media_duration < 0) ) { 
+		else if (!slave_audio && stack->input.stream_finished && (gf_smil_get_media_duration(rti) < 0) ) { 
 			Double dur = gf_mo_get_duration(stack->input.stream);
 			if (dur <= 0) {
 				dur = gf_mo_get_last_frame_time(stack->input.stream);
@@ -624,10 +619,9 @@ void compositor_init_svg_audio(GF_Compositor *compositor, GF_Node *node, Bool sl
 	if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
 		gf_term_set_mfurl_from_uri(compositor->term, &(stack->aurl), href_info.far_ptr);
 	}
-	if (!slaved_timing &&  ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
-		SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
-		rti->evaluate = svg_audio_smil_evaluate;
-	}
+	if (!slaved_timing) 
+		gf_smil_set_evaluation_callback(node, svg_audio_smil_evaluate);
+
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_audio);
 }

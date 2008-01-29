@@ -308,7 +308,6 @@ void gf_sg_mfvec3f_del(MFVec3f par);
 void gf_sg_mfvec4f_del(MFVec4f par);
 void gf_sg_mfvec2d_del(MFVec2d par);
 void gf_sg_mfvec3d_del(MFVec3d par);
-void gf_sg_mfurl_del(MFURL url);
 void gf_sg_sfimage_del(SFImage im);
 void gf_sg_sfstring_del(SFString par);
 void gf_sg_mfscript_del(MFScript sc);
@@ -438,22 +437,7 @@ typedef struct {
 
 } SMIL_Interval;
 
-enum
-{
-	SMIL_TIMING_EVAL_NONE = 0,
-	SMIL_TIMING_EVAL_UPDATE,
-	SMIL_TIMING_EVAL_FREEZE,
-	SMIL_TIMING_EVAL_REMOVE,
-	SMIL_TIMING_EVAL_REPEAT,
-	SMIL_TIMING_EVAL_FRACTION,
-	SMIL_TIMING_EVAL_DISCARD,
-	/*signaled the animation element has been inserted in the DOM tree*/
-	SMIL_TIMING_EVAL_ACTIVATE,
-	/*signaled the animation element has been removed from the DOM tree*/
-	SMIL_TIMING_EVAL_DEACTIVATE,
-};
-
-typedef struct _smil_timing_rti
+struct _smil_timing_rti
 {
 	GF_Node *timed_elt;
 	SMILTimingAttributesPointers *timingp;
@@ -496,10 +480,7 @@ typedef struct _smil_timing_rti
 
 	/* shortcut when this rti corresponds to an animation */
 	struct _smil_anim_rti *rai;
-} SMIL_Timing_RTI;
-
-void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field);
-Bool gf_smil_timing_is_active(GF_Node *node);
+};
 
 void gf_smil_timing_init_runtime_info(GF_Node *timed_elt);
 void gf_smil_timing_delete_runtime_info(GF_Node *timed_elt, SMIL_Timing_RTI *rti);
@@ -507,7 +488,6 @@ Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double sce
 /*returns 1 if an animation changed a value in the rendering tree */
 s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
 
-void gf_smil_set_media_duration(SMIL_Timing_RTI *rti, Double media_duration);
 
 /* SMIL Animation Structures */
 /* This structure is used per animated attribute,

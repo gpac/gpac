@@ -417,6 +417,35 @@ u32 gf_svg_get_system_paint_server_type(const char *name);
 Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg);
 void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock);
 
+void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content);
+
+typedef struct _smil_timing_rti SMIL_Timing_RTI;
+
+enum
+{
+	SMIL_TIMING_EVAL_NONE = 0,
+	SMIL_TIMING_EVAL_UPDATE,
+	SMIL_TIMING_EVAL_FREEZE,
+	SMIL_TIMING_EVAL_REMOVE,
+	SMIL_TIMING_EVAL_REPEAT,
+	SMIL_TIMING_EVAL_FRACTION,
+	SMIL_TIMING_EVAL_DISCARD,
+	/*signaled the animation element has been inserted in the DOM tree*/
+	SMIL_TIMING_EVAL_ACTIVATE,
+	/*signaled the animation element has been removed from the DOM tree*/
+	SMIL_TIMING_EVAL_DEACTIVATE,
+};
+
+void gf_smil_set_evaluation_callback(GF_Node *smil_time, 
+									 void (*smil_evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, u32 state));
+
+void gf_smil_set_media_duration(SMIL_Timing_RTI *rti, Double media_duration);
+Double gf_smil_get_media_duration(SMIL_Timing_RTI *rti);
+GF_Node *gf_smil_get_element(SMIL_Timing_RTI *rti);
+
+Bool gf_smil_timing_is_active(GF_Node *node);
+void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field);
+
 /*******************************************************************************
  * 
  *          SVG Scene Graph for dynamic allocation of attributes	           *

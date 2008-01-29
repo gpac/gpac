@@ -68,7 +68,7 @@ static void b2D_new_status(Background2DStack *bck)
 	status->ctx.drawable = bck->drawable;
 	status->ctx.flags = CTX_IS_BACKGROUND;
 	status->ctx.bi = &status->bi;
-	status->ctx.aspect.fill_color = GF_COL_ARGB(0, 0, 0, 0);
+	status->ctx.aspect.fill_color = GF_COL_ARGB(0xFF, 0, 0, 0);
 	status->ctx.aspect.fill_texture = &bck->txh;
 	gf_list_add(bck->status_stack, status);
 }

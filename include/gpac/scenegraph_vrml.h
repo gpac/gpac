@@ -610,6 +610,9 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName);
 u32 gf_node_mpeg4_type_by_class_name(const char *node_name);
 u32 gf_node_x3d_type_by_class_name(const char *node_name);
 
+/*exported for URL handling in compositor*/
+void gf_sg_mfurl_del(MFURL url);
+
 #ifdef __cplusplus
 }
 #endif

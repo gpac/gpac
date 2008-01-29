@@ -31,12 +31,17 @@
 
 #include <gpac/internal/terminal_dev.h>
 
+#include <gpac/nodes_svg_da.h>
+#include <gpac/compositor.h>
+
 
 typedef struct 
 {
 	Bool root_svg;
 	SVGPropertiesPointers *svg_props;
 	GF_Matrix2D viewbox_mx;
+	Drawable *vp_fill;
+	u32 prev_color;
 } SVGsvgStack;
 
 static void svg_check_focus_upon_destroy(GF_Node *n)
@@ -47,13 +52,12 @@ static void svg_check_focus_upon_destroy(GF_Node *n)
 
 static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *stack, GF_TraverseState *tr_state, SVGAllAttributes *atts) 
 {
+	GF_Matrix2D mx;
 	SVG_ViewBox ext_vb;
 	SVG_ViewBox *vb;
 	SVG_PreserveAspectRatio par;
 	Fixed scale, vp_w, vp_h;
 	Fixed parent_width, parent_height, doc_width, doc_height;
-
-	gf_mx2d_init(stack->viewbox_mx);
 
 	/*canvas size negociation has already been done when attaching the scene to the compositor*/
 	if (atts->width && (atts->width->type==SVG_NUMBER_PERCENTAGE) ) { 
@@ -61,7 +65,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 		doc_width = 0;
 	} else {
 		parent_width = tr_state->vp_size.x;
-		doc_width = atts->width->value;
+		doc_width = atts->width ? atts->width->value : 0;
 	}
 
 	if (atts->height && (atts->height->type==SVG_NUMBER_PERCENTAGE) ) { 
@@ -69,10 +73,12 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 		doc_height = 0;
 	} else {
 		parent_height = tr_state->vp_size.y;
-		doc_height = atts->height->value;
+		doc_height = atts->height ? atts->height->value : 0;
 	}
 
 	vb = atts->viewBox;
+
+	gf_mx2d_init(mx);
 
 	if (stack->root_svg) {
 		const char *frag_uri = gf_inline_get_fragment_uri(node);
@@ -88,6 +94,9 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 					ext_vb.height = FLT2FIX(h);
 					ext_vb.is_set = 1;
 					vb = &ext_vb;
+				}
+				else if (!strncmp(frag_uri, "svgView(transform(", 18)) {
+					gf_svg_parse_transformlist(&mx, (char *) frag_uri+18);
 				}
 			}
 			/*fragID*/
@@ -115,9 +124,13 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 			}
 		}
 	}
+	gf_mx2d_init(stack->viewbox_mx);
 
 	if (!vb) {
-		if (!doc_width || !doc_height) return;
+		if (!doc_width || !doc_height) {
+			gf_mx2d_copy(stack->viewbox_mx, mx);
+			return;
+		}
 		/*width/height were specified in the doc, use them to compute a dummy viewbox*/
 		ext_vb.x = 0;
 		ext_vb.y = 0;
@@ -126,7 +139,11 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 		ext_vb.is_set = 1;
 		vb = &ext_vb;
 	}
-	if ((vb->width<=0) || (vb->height<=0) ) return;
+	if ((vb->width<=0) || (vb->height<=0) ) {
+		gf_mx2d_copy(stack->viewbox_mx, mx);
+		return;
+	}
+
 
 	/*setup default*/
 	par.defer = 0;
@@ -134,13 +151,13 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 	par.align = SVG_PRESERVEASPECTRATIO_XMIDYMID;
 
 	/*use parent (animation, image) viewport settings*/
-	if (tr_state->parent_vp_atts) {
-		if (tr_state->parent_vp_atts->preserveAspectRatio) {
-			if (tr_state->parent_vp_atts->preserveAspectRatio->defer) {
+	if (tr_state->parent_anim_atts) {
+		if (tr_state->parent_anim_atts->preserveAspectRatio) {
+			if (tr_state->parent_anim_atts->preserveAspectRatio->defer) {
 				if (atts->preserveAspectRatio) 
 					par = *atts->preserveAspectRatio;
 			} else {
-				par = *tr_state->parent_vp_atts->preserveAspectRatio;
+				par = *tr_state->parent_anim_atts->preserveAspectRatio;
 			}
 		}
 	}
@@ -218,7 +235,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 		gf_mx2d_add_translation(&stack->viewbox_mx, dx, dy);
 
 		/*we need a clipper*/
-		if (stack->root_svg && (par.meetOrSlice==SVG_MEETORSLICE_SLICE)) {
+		if (stack->root_svg && !tr_state->parent_anim_atts && (par.meetOrSlice==SVG_MEETORSLICE_SLICE)) {
 			GF_Rect rc;
 			rc.width = parent_width;
 			rc.height = parent_height;
@@ -233,10 +250,12 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
 		}
 	}
+	gf_mx2d_add_matrix(&stack->viewbox_mx, &mx);
 }
 
 static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 {
+	Bool rootmost_svg;
 	u32 viewport_color;
 	SVGsvgStack *stack;
 	GF_Matrix2D backup_matrix, vb_bck;
@@ -260,13 +279,15 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 			free(stack->svg_props);
 		}
 		svg_check_focus_upon_destroy(node);
+		if (stack->vp_fill) drawable_del(stack->vp_fill);
 		free(stack);
 		return;
 	}
 	
 	prev_props = tr_state->svg_props;
-	/*FIXME - doesn't work for <use xlink:href="toto#mySVG"/>*/
-	if (stack->root_svg) tr_state->svg_props = stack->svg_props;
+	/*SVG props not set: we are either the root-most <svg> of the compositor
+	or an <svg> inside an <animation>*/
+	if (!tr_state->svg_props) tr_state->svg_props = stack->svg_props;
 	
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
@@ -298,6 +319,62 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	
 	gf_mx2d_copy(tr_state->vb_transform, stack->viewbox_mx);
 
+	rootmost_svg = (stack->root_svg && !tr_state->parent_anim_atts) ? 1 : 0;
+	if (tr_state->traversing_mode == TRAVERSE_SORT) {
+		SVG_Paint *vp_fill = NULL;
+		Fixed vp_opacity;
+		GF_IRect *clip = NULL;
+
+		if (rootmost_svg) {
+			vp_fill = tr_state->svg_props->viewport_fill;
+			vp_opacity = tr_state->svg_props->viewport_fill_opacity ? tr_state->svg_props->viewport_fill_opacity->value : FIX_ONE;
+		} else {
+			vp_fill = tr_state->parent_anim_atts->viewport_fill;
+			vp_opacity = tr_state->parent_anim_atts->viewport_fill_opacity ? tr_state->parent_anim_atts->viewport_fill_opacity->value : FIX_ONE;
+		}
+
+		if (vp_fill && (vp_fill->type != SVG_PAINT_NONE) && vp_opacity) {
+			Bool col_dirty = 0;
+			viewport_color = GF_COL_ARGB_FIXED(vp_opacity, vp_fill->color.red, vp_fill->color.green, vp_fill->color.blue);
+
+			if (stack->prev_color != viewport_color) {
+				stack->prev_color = viewport_color;
+				col_dirty = 1;
+			}
+
+			if (!rootmost_svg) {
+				DrawableContext *ctx;
+				Fixed width = tr_state->parent_anim_atts->width->value;
+				Fixed height = tr_state->parent_anim_atts->height->value;
+
+				if (!stack->vp_fill) {
+					stack->vp_fill = drawable_new();
+					stack->vp_fill->node = node;
+				}
+				if ((width != stack->vp_fill->path->bbox.width) || (height != stack->vp_fill->path->bbox.height)) {
+					drawable_reset_path(stack->vp_fill);
+					gf_path_add_rect(stack->vp_fill->path, 0, 0, width, -height);
+				}
+
+				ctx = drawable_init_context_svg(stack->vp_fill, tr_state);
+				if (ctx) {
+					ctx->flags &= ~CTX_IS_TRANSPARENT;
+					ctx->aspect.pen_props.width = 0;
+					ctx->aspect.fill_color = viewport_color;
+					ctx->aspect.fill_texture = NULL;
+					if (col_dirty) ctx->flags |= CTX_APP_DIRTY;
+					drawable_finalize_sort(ctx, tr_state, NULL);
+				}
+
+			} else if (col_dirty) {
+				tr_state->visual->compositor->back_color = viewport_color;
+				/*invalidate the entire visual*/
+				tr_state->invalidate_all = 1;
+			}
+		}
+	}
+
+
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
@@ -327,34 +404,6 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 			gf_mx2d_add_translation(&tr_state->transform, all_atts.x->value, all_atts.y->value);
 	}
 
-	/* TODO: FIX ME: this only works for single SVG element in the doc*/
-	if (stack->root_svg) {
-		SVG_Paint *vp_fill = NULL;
-		Fixed vp_opacity;
-		GF_IRect *clip = NULL;
-		
-		if (tr_state->parent_vp_atts) {
-			vp_fill = tr_state->parent_vp_atts->viewport_fill;
-			vp_opacity = tr_state->parent_vp_atts->viewport_fill_opacity ? tr_state->parent_vp_atts->viewport_fill_opacity->value : FIX_ONE;
-			clip = &tr_state->visual->top_clipper;
-		} else {
-			vp_fill = tr_state->svg_props->viewport_fill;
-			vp_opacity = tr_state->svg_props->viewport_fill_opacity ? tr_state->svg_props->viewport_fill_opacity->value : FIX_ONE;
-		}
-		
-		if (vp_fill && (vp_fill->type != SVG_PAINT_NONE) && vp_opacity) {
-			viewport_color = GF_COL_ARGB_FIXED(vp_opacity, vp_fill->color.red, vp_fill->color.green, vp_fill->color.blue);
-
-			if (clip) {
-				/*clear visual*/
-				//visual_2d_clear(tr_state->visual, clip, viewport_color);
-			} else if (tr_state->visual->compositor->back_color != viewport_color) {
-				tr_state->visual->compositor->back_color = viewport_color;
-				/*invalidate the entire visual*/
-				tr_state->invalidate_all = 1;
-			}
-		}
-	}
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_sc_svg_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
 	} else {
@@ -697,10 +746,14 @@ void compositor_init_svg_a(GF_Compositor *compositor, GF_Node *node)
 
 }
 
-/* TODO: FIX ME we actually ignore the given sub_root since it is only valid 
-	     when animations have been performed,
-         animations evaluation should be part of the core compositor */
-void compositor_svg_traverse_use(GF_Node *node, GF_Node *sub_root, void *rs)
+typedef struct
+{
+	GF_MediaObject *resource;
+	GF_Node *used_node;
+} SVGlinkStack;
+
+
+static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
 	GF_Matrix mx_3d;
@@ -710,10 +763,46 @@ void compositor_svg_traverse_use(GF_Node *node, GF_Node *sub_root, void *rs)
 	u32 backup_flags;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	SVGAllAttributes all_atts;
+	SVGlinkStack *stack = gf_node_get_private(node);
+
+	if (is_destroy) {
+		if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
+		free(stack);
+		return;
+	}
+
 
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
-
 	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
+
+	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
+		GF_MediaObject *new_res = gf_mo_load_xlink_resource(node, 0, 0, -1);
+		if (new_res != stack->resource) {
+			if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
+			stack->resource = new_res;
+		}
+		stack->used_node = NULL;
+		gf_node_dirty_clear(node, 0);
+	}
+
+	/*locate the used node - this is done at each step to handle progressive loading*/
+	if (!stack->used_node) {
+		if (all_atts.xlink_href->type == XMLRI_ELEMENTID) {
+			stack->used_node = all_atts.xlink_href->target;
+		} else if (stack->resource ) {
+			GF_SceneGraph *sg = gf_mo_get_scenegraph(stack->resource);
+			char *fragment = strchr(all_atts.xlink_href->string, '#');
+			if (fragment) {
+				stack->used_node = gf_sg_find_node_by_name(sg, fragment+1);
+			} else {
+				stack->used_node = gf_sg_get_root_node(sg);
+			}
+		}
+		if (!stack->used_node) goto end;
+	}
+
+	prev_use = tr_state->parent_use;
+	tr_state->parent_use = node;
 
 	gf_mx2d_init(translate);
 	translate.m[2] = (all_atts.x ? all_atts.x->value : 0);
@@ -726,44 +815,96 @@ void compositor_svg_traverse_use(GF_Node *node, GF_Node *sub_root, void *rs)
 			gf_mx2d_apply_rect(&translate, &tr_state->bounds);
 		} 
 		compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
-		goto end;
 	}
+	/*SORT mode and visible, traverse*/
+	else if (!compositor_svg_is_display_off(tr_state->svg_props) 
+		&& (*(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN)) {
 
-	if (compositor_svg_is_display_off(tr_state->svg_props) ||
-		(*(tr_state->svg_props->visibility) == SVG_VISIBILITY_HIDDEN)) {
-		goto end;
-	}
-
-	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+		compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
 #ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d) {
-		gf_mx_add_matrix_2d(&tr_state->model_matrix, &translate);
+		if (tr_state->visual->type_3d) {
+			gf_mx_add_matrix_2d(&tr_state->model_matrix, &translate);
 
-		if (tr_state->traversing_mode==TRAVERSE_SORT) {
-			GF_Matrix tmp;
-			gf_mx_from_mx2d(&tmp, &translate);
-			visual_3d_matrix_add(tr_state->visual, tmp.m);
-		}
-	} else 
+			if (tr_state->traversing_mode==TRAVERSE_SORT) {
+				GF_Matrix tmp;
+				gf_mx_from_mx2d(&tmp, &translate);
+				visual_3d_matrix_add(tr_state->visual, tmp.m);
+			}
+		} else 
 #endif
-		gf_mx2d_pre_multiply(&tr_state->transform, &translate);
+			gf_mx2d_pre_multiply(&tr_state->transform, &translate);
 
-	if (sub_root) {
-		prev_use = tr_state->parent_use;
-		tr_state->parent_use = node;
-		gf_node_traverse(sub_root, tr_state);
-		tr_state->parent_use = prev_use;
+
+		gf_node_traverse(stack->used_node, tr_state);
+	
+		compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);  
+
 	}
-	compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);  
+	tr_state->parent_use = prev_use;
+
 
 end:
 	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	tr_state->svg_flags = backup_flags;
 }
 
+void compositor_init_svg_use(GF_Compositor *compositor, GF_Node *node)
+{
+	SVGlinkStack *stack;
+	GF_SAFEALLOC(stack, SVGlinkStack);
+	gf_node_set_private(node, stack);
+	gf_node_set_callback_function(node, svg_traverse_use);
+}
 
-void compositor_svg_traverse_animation(GF_Node *node, GF_Node *sub_root, void *rs)
+
+
+/***********************************
+ *  'animation' specific functions *
+ ***********************************/
+
+static void svg_animation_smil_update(GF_Node *node, SVGlinkStack *stack, Fixed normalized_scene_time)
+{
+	if (gf_node_dirty_get(node) & (GF_SG_SVG_XLINK_HREF_DIRTY|GF_SG_NODE_DIRTY) ) {
+		SVGAllAttributes all_atts;
+		Double clipBegin, clipEnd;
+		GF_MediaObject *new_res;
+		gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+		clipBegin = all_atts.clipBegin ? *all_atts.clipBegin : 0;
+		clipEnd = all_atts.clipEnd ? *all_atts.clipEnd : -1;
+
+		new_res = gf_mo_load_xlink_resource(node, 1, clipBegin, clipEnd);
+		if (new_res != stack->resource) {
+			if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
+			stack->resource = new_res;
+			stack->used_node = NULL;
+		}
+		gf_node_dirty_clear(node, 0);
+	}
+}
+
+static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
+{
+	GF_Node *node = gf_smil_get_element(rti);
+	SVGlinkStack *stack = gf_node_get_private(node);
+	switch (status) {
+	case SMIL_TIMING_EVAL_UPDATE:
+		svg_animation_smil_update(node, stack, normalized_scene_time);
+		break;
+	case SMIL_TIMING_EVAL_FREEZE:
+		if (stack->resource) gf_mo_stop(stack->resource);
+		break;
+	case SMIL_TIMING_EVAL_REMOVE:
+		if (stack->resource) gf_mo_stop(stack->resource);
+		break;
+	case SMIL_TIMING_EVAL_REPEAT:
+		if (stack->resource) gf_mo_restart(stack->resource);
+		break;
+	}
+}
+
+
+static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGAllAttributes all_atts;
 	GF_Matrix2D backup_matrix;
@@ -773,22 +914,23 @@ void compositor_svg_traverse_animation(GF_Node *node, GF_Node *sub_root, void *r
 	SFVec2f prev_vp;
 	GF_Rect rc;
 	GF_IRect clip, prev_clip;
-
 	SVGAllAttributes *prev_vp_atts;
 	GF_TraverseState *tr_state = (GF_TraverseState*)rs;
   	GF_Matrix2D translate;
 	SVGPropertiesPointers *old_props;
+	SVGlinkStack *stack = gf_node_get_private(node);
+
+	if (is_destroy) {
+		if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
+		free(stack);
+		return;
+	}
 
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 	if (!all_atts.width || !all_atts.height) return;
 	if (!all_atts.width->value || !all_atts.height->value) return;
 
 	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
-
-
-	gf_mx2d_init(translate);
-	translate.m[2] = (all_atts.x ? all_atts.x->value : 0);
-	translate.m[5] = (all_atts.y ? all_atts.y->value : 0);
 	
 	if (compositor_svg_is_display_off(tr_state->svg_props) ||
 		*(tr_state->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
@@ -797,7 +939,10 @@ void compositor_svg_traverse_animation(GF_Node *node, GF_Node *sub_root, void *r
 
 	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &backup_matrix3d);
 
-
+	/*add x/y translation*/
+	gf_mx2d_init(translate);
+	translate.m[2] = (all_atts.x ? all_atts.x->value : 0);
+	translate.m[5] = (all_atts.y ? all_atts.y->value : 0);
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		gf_mx_add_matrix_2d(&tr_state->model_matrix, &translate);
@@ -811,26 +956,15 @@ void compositor_svg_traverse_animation(GF_Node *node, GF_Node *sub_root, void *r
 #endif
 		gf_mx2d_pre_multiply(&tr_state->transform, &translate);
 
-#if 0
-	st = gf_node_get_private(n);
-	if (!st->is) return;
-	root = gf_sg_get_root_node(st->is->graph);
-	if (root) {
-		old_props = tr_state->svg_props;
-		tr_state->svg_props = &new_props;
-		gf_svg_properties_init_pointers(tr_state->svg_props);
-		//gf_sc_traverse_subscene(st->is->root_od->term->compositor, root, rs);
-		gf_node_traverse(root, rs);
-		tr_state->svg_props = old_props;
-		gf_svg_properties_reset_pointers(&new_props);
-//	}
-#endif
-
+	/*reset SVG props to reload a new inheritance context*/
 	old_props = tr_state->svg_props;
 	tr_state->svg_props = NULL;
 	
-	prev_vp_atts = tr_state->parent_vp_atts;
-	tr_state->parent_vp_atts = &all_atts;
+	/*store this node's attribute to compute PAR/ViewBox of the child <svg>*/
+	prev_vp_atts = tr_state->parent_anim_atts;
+	tr_state->parent_anim_atts = &all_atts;
+
+	/*update VP size*/
 	prev_vp = tr_state->vp_size;
 	tr_state->vp_size.x = gf_sc_svg_convert_length_to_display(tr_state->visual->compositor, all_atts.width);
 	tr_state->vp_size.y = gf_sc_svg_convert_length_to_display(tr_state->visual->compositor, all_atts.height);
@@ -845,17 +979,33 @@ void compositor_svg_traverse_animation(GF_Node *node, GF_Node *sub_root, void *r
 	clip = gf_rect_pixelize(&rc);
 //	gf_irect_intersect(&tr_state->visual->top_clipper, &clip);
 
-	gf_node_traverse(sub_root, rs);
+	if (!stack->used_node && stack->resource) 
+		stack->used_node = gf_sg_get_root_node(gf_mo_get_scenegraph(stack->resource));
+
+	if (stack->used_node) gf_node_traverse(stack->used_node, rs);
+
 	tr_state->svg_props = old_props;
 	tr_state->visual->top_clipper = prev_clip;
 
-	tr_state->parent_vp_atts = prev_vp_atts;
+	tr_state->parent_anim_atts = prev_vp_atts;
 	tr_state->vp_size = prev_vp;
 
 	compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &backup_matrix3d);  
+
 end:
 	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	tr_state->svg_flags = backup_flags;
+}
+
+void compositor_init_svg_animation(GF_Compositor *compositor, GF_Node *node)
+{
+	SVGlinkStack *stack;
+
+	GF_SAFEALLOC(stack, SVGlinkStack);
+	gf_node_set_private(node, stack);
+	gf_node_set_callback_function(node, svg_traverse_animation);
+
+	gf_smil_set_evaluation_callback(node, svg_animation_smil_evaluate);
 }
 
 #endif

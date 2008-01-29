@@ -834,3 +834,23 @@ void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock)
 	gf_node_changed(elt, NULL);
 }
 
+
+void gf_smil_set_evaluation_callback(GF_Node *node, 
+									 void (*smil_evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, u32 state))
+{
+	if (node && ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
+		SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
+		rti->evaluate = smil_evaluate;
+	}
+}
+
+GF_Node *gf_smil_get_element(SMIL_Timing_RTI *rti)
+{
+	return rti->timed_elt;
+}
+
+Double gf_smil_get_media_duration(SMIL_Timing_RTI *rti)
+{
+	return rti->media_duration;
+}
+

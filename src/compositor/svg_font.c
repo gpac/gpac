@@ -396,7 +396,7 @@ static Bool svg_font_uri_check(GF_Node *node, FontURIStack *st)
 		char *font_name = strchr(atts.xlink_href->string, '#');
 		if (!font_name) return 0;
 		if (!st->mo) {
-			st->mo = gf_mo_load_resource(node);
+			st->mo = gf_mo_load_xlink_resource(node, 0, 0, -1);
 			if (!st->mo) return 0;
 		}
 		ext_sg = gf_mo_get_scenegraph(st->mo);
@@ -439,7 +439,7 @@ static void svg_traverse_font_face_uri(GF_Node *node, void *rs, Bool is_destroy)
 		gf_font_manager_unregister_font(st->font->ft_mgr, st->font);
 		if (st->font->name) free(st->font->name);
 		free(st->font);
-		if (st->mo) gf_mo_unload_resource(st->mo);
+		if (st->mo) gf_mo_unload_xlink_resource(node, st->mo);
 		free(st);
 	}
 }
