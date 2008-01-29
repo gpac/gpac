@@ -180,7 +180,8 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 	case TAG_SVG_font_face_uri:
 		compositor_init_svg_font_face_uri(compositor, node); break;
 
-	/* <use> and <animation> elements are initialized at the terminal level (see gf_term_on_node_init)*/
+	case TAG_SVG_use:				compositor_init_svg_use(compositor, node); break;
+	case TAG_SVG_animation:			compositor_init_svg_animation(compositor, node); break;
 #endif
 
 	case TAG_ProtoNode: compositor_init_hardcoded_proto(compositor, node); break;

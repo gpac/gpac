@@ -38,11 +38,6 @@ void MS_Modified(GF_Node *node);
 void InitInline(GF_InlineScene *is, GF_Node *node);
 
 
-#ifndef GPAC_DISABLE_SVG
-void term_svg_init_use(GF_InlineScene *is, GF_Node *node);
-void term_svg_init_animation(GF_InlineScene *is, GF_Node *node);
-#endif
-
 void TraverseWorldInfo(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(node);
@@ -87,12 +82,6 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 	case TAG_SVG_title: 
 		gf_node_set_callback_function(node, svg_traverse_title);
 		gf_node_set_private(node, is);
-		break;
-	case TAG_SVG_use: 
-		term_svg_init_use(is, node); 
-		break;
-	case TAG_SVG_animation:	
-		term_svg_init_animation(is, node); 
 		break;
 #endif
 

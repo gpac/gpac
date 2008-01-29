@@ -125,6 +125,8 @@ at the end of each TRAVERSE_SORT of drawable nodes
 if orig_bounds is NULL, function uses the bounds of the drawable's path
 */
 void drawable_finalize_sort(DrawableContext *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds);
+/*same as drawable_finalize_sort but skips focus check*/
+void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds, Bool skip_focus);
 
 /*performs final task common to drawable_finalize_sort and layout node traversing (cf grouping.c)*/
 void drawable_finalize_end(DrawableContext *ctx, GF_TraverseState *tr_state);

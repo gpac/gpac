@@ -964,8 +964,7 @@ static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, jsval id, js
 	GF_Node *n = dom_get_node(c, obj, &is_doc);
 	if (!n || !is_doc) return JS_FALSE;
 
-	*vp = JSVAL_VOID;
-	if (!JSVAL_IS_INT(id)) return JS_FALSE;
+	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
 	if (prop_id<=JS_DOM3_NODE_LAST_PROP) return dom_node_getProperty(c, obj, id, vp);
 
@@ -2689,7 +2688,7 @@ void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
 }
 void dom_js_define_svg_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
 {
-	dom_js_define_document_ex(c, global, doc, "SVGDocument");
+//	dom_js_define_document_ex(c, global, doc, "SVGDocument");
 }
 
 JSObject *dom_js_define_event(JSContext *c, JSObject *global)

@@ -945,7 +945,7 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 }
 
 /* Parses a list of SVG transformations and collapses them in the given matrix */
-static void svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content) 
+void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content) 
 {
 	GF_Matrix2D tmp;
 
@@ -1064,6 +1064,8 @@ static void svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 			while(str[i] != 0 && str[i] == ' ') i++;
 			if (str[i] == ')') i++;
 		} 
+		/*vor svgView parsing*/
+		if (str[i] == ')') i++;
 	}
 }
 
@@ -1101,7 +1103,7 @@ static Bool svg_parse_transform(SVG_Transform *t, char *attribute_content)
 		}
 		
 	} else {
-		svg_parse_transformlist(&t->mat, attribute_content);
+		gf_svg_parse_transformlist(&t->mat, attribute_content);
 	}
 	return GF_OK;
 }

@@ -151,13 +151,16 @@ Bool gf_svg_node_init(GF_Node *node)
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
 		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
-	/*case TAG_SVG_animation: */
 	case TAG_SVG_audio: 
 	case TAG_SVG_video: 
 		gf_smil_timing_init_runtime_info(node);
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
 		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
+	case TAG_SVG_animation:
+		gf_smil_timing_init_runtime_info(node);
+		gf_smil_setup_events(node);
+		return 0;
 	/*discard is implemented as a special animation element */
 	case TAG_SVG_discard: 
 		gf_smil_anim_init_discard(node);
@@ -181,6 +184,7 @@ Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
 	case TAG_SVG_conditional: 
 		gf_smil_timing_modified(node, field);
 		return 1;
+	case TAG_SVG_animation: 
 	case TAG_SVG_audio: 
 	case TAG_SVG_video: 
 		gf_smil_timing_modified(node, field);
@@ -441,7 +445,7 @@ u32 gf_svg_get_modification_flags(SVG_Element *n, GF_FieldInfo *info)
 		cx, cy, d, height, offset, pathLength, points, r, rx, ry, width, x, x1, x2, y, y1, y2, rotate
 
 		the following affect the positioning and are computed at each frame:
-		transform, viewBox, preserveAspectRatio
+		transform, motion
 	*/
 	switch (info->fieldType) {
 		case SVG_Number_datatype:
@@ -455,11 +459,14 @@ u32 gf_svg_get_modification_flags(SVG_Element *n, GF_FieldInfo *info)
 			return GF_SG_SVG_GEOMETRY_DIRTY;
 
 		case XMLRI_datatype:
+			return GF_SG_SVG_XLINK_HREF_DIRTY;
+		/*for viewbox & PAR, use node dirty to force recomputing of the viewbox*/
+		case SVG_PreserveAspectRatio_datatype:
+		case SVG_ViewBox_datatype:
 			return GF_SG_NODE_DIRTY;
 
 		//case SVG_Matrix_datatype:
 		//case SVG_Motion_datatype:
-		//case SVG_ViewBox_datatype:
 
 		default:
 			return 0;

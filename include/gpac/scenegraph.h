@@ -248,6 +248,7 @@ enum
 	GF_SG_SVG_TEXTPOSITION_DIRTY	= 1<<24,
 	GF_SG_SVG_DISPLAY_DIRTY			= 1<<25,
 	GF_SG_SVG_VECTOREFFECT_DIRTY	= 1<<26,
+	GF_SG_SVG_XLINK_HREF_DIRTY		= 1<<27,
 };
 
 /*set dirty flags.
@@ -683,7 +684,6 @@ GF_Err gf_sg_command_apply_list(GF_SceneGraph *graph, GF_List *comList, Double t
 GF_CommandField *gf_sg_command_field_new(GF_Command *com);
 /*clones the command in another graph - needed for uncompressed conditional in protos*/
 GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph);
-
 
 #ifdef __cplusplus
 }

@@ -258,8 +258,9 @@ void compositor_init_svg_stop(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_image(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_audio(GF_Compositor *compositor, GF_Node *node, Bool slaved_timing);
-void compositor_svg_traverse_animation(GF_Node *node, GF_Node *sub_root, void *rs);
-void compositor_svg_traverse_use(GF_Node *node, GF_Node *sub_root, void *rs);
+void compositor_init_svg_use(GF_Compositor *compositor, GF_Node *node);
+void compositor_init_svg_animation(GF_Compositor *compositor, GF_Node *node);
+
 
 void compositor_init_svg_text(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_tspan(GF_Compositor *compositor, GF_Node *node);

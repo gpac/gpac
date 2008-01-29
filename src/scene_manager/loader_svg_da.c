@@ -250,7 +250,7 @@ static void svg_delete_defered_anim(SVG_DeferedAnimation *anim, GF_List *defered
 	free(anim);
 }
 
-static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_DeferedAnimation *anim, const char *nodeID, Bool force_init)
+static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_DeferedAnimation *anim, const char *nodeID, u32 force_type)
 {
 	GF_FieldInfo info;
 	u32 tag;
@@ -360,16 +360,18 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 		gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_begin, 1, 0, &info);
 		if (gf_svg_resolve_smil_times(sg, anim->target, *(GF_List **)info.far_ptr, 0, nodeID)) {
 			anim->resolve_stage = 2;
-		} else {
+		} else if (force_type!=2) {
 			return 0;
 		}
 	}
 
 	gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_end, 1, 0, &info);
-	if (!gf_svg_resolve_smil_times(sg, anim->target, *(GF_List **)info.far_ptr, 1, nodeID)) return 0;
+	if (!gf_svg_resolve_smil_times(sg, anim->target, *(GF_List **)info.far_ptr, 1, nodeID)) {
+		if (force_type!=2) return 0;
+	}
 
 	/*animateMotion needs its children to be parsed before it can be initialized !! */
-	if (force_init || gf_node_get_tag((GF_Node *)anim->animation_elt) != TAG_SVG_animateMotion) {
+	if (force_type || gf_node_get_tag((GF_Node *)anim->animation_elt) != TAG_SVG_animateMotion) {
 		gf_node_init((GF_Node *)anim->animation_elt);
 		return 1;
 	} else {
@@ -1475,6 +1477,16 @@ static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)
 	return parser;
 }
 
+static void svg_flush_animations(GF_SVG_Parser *parser)
+{
+	while (gf_list_count(parser->defered_animations)) {
+		SVG_DeferedAnimation *anim = (SVG_DeferedAnimation *)gf_list_get(parser->defered_animations, 0);
+		if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL, 2)) {
+			svg_delete_defered_anim(anim, parser->defered_animations);
+		}
+	}
+}
+
 GF_Err gf_sm_load_init_svg(GF_SceneLoader *load)
 {
 	GF_Err e;
@@ -1491,6 +1503,8 @@ GF_Err gf_sm_load_init_svg(GF_SceneLoader *load)
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, svg_progress);
 	if (e<0) return svg_report(parser, e, "Unable to parse file %s: %s", load->fileName, gf_xml_sax_get_error(parser->sax_parser) );
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[SVG Parser] Scene parsed and Scene Graph built in %d ms\n", gf_sys_clock() - in_time));
+
+	svg_flush_animations(parser);
 
 	return parser->last_error;
 }

@@ -1868,14 +1868,6 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	}
 #endif
 	switch (gf_node_get_tag(inline_parent)) {
-#ifndef GPAC_DISABLE_SVG
-	case TAG_SVG_animation:
-		compositor_svg_traverse_animation(inline_parent, inline_root, rs);
-		break;
-	case TAG_SVG_use:
-		compositor_svg_traverse_use(inline_parent, inline_root, rs);
-		break;
-#endif
 	default:
 		compositor_traverse_inline(compositor, inline_parent, inline_root, rs);
 		break;
