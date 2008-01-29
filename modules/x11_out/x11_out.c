@@ -478,8 +478,16 @@ static GF_Err X11_SetupGLPixmap(GF_VideoOutput *vout, u32 width, u32 height)
   if (xWin->gl_pixmap) XFreePixmap(xWin->display, xWin->gl_pixmap);
   xWin->gl_pixmap = 0;
 
-  if (xWin->offscreen_type==1) {
+  if (xWin->offscreen_type) {
 	  fprintf(stdout, "using offscreen GL context through XWindow\n");
+	  if (xWin->offscreen_type==2) {
+		XSync(xWin->display, False);
+		XMapWindow (xWin->display, (Window) xWin->gl_wnd);
+		XSync(xWin->display, False);
+//		XSetWMNormalHints (xWin->display, xWin->gl_wnd, Hints);
+ 		XStoreName (xWin->display, xWin->gl_wnd, "GPAC Offscreeen Window - debug mode");
+	}
+
 	  XSync(xWin->display, False);
 	  xWin->glx_context = glXCreateContext(xWin->display,xWin->glx_visualinfo, NULL, True);
 	  XSync(xWin->display, False);
@@ -993,12 +1001,8 @@ X11_SetupWindow (GF_VideoOutput * vout)
         if (sOpt && !strcmp(sOpt, "Window")) {
 		xWindow->offscreen_type = 1;
         } else if (sOpt && !strcmp(sOpt, "VisibleWindow")) {
-		xWindow->offscreen_type = 1;
-		XSync(xWindow->display, False);
-		XMapWindow (xWindow->display, (Window) xWindow->gl_wnd);
-		XSync(xWindow->display, False);
+		xWindow->offscreen_type = 2;
 		XSetWMNormalHints (xWindow->display, xWindow->gl_wnd, Hints);
- 		XStoreName (xWindow->display, xWindow->gl_wnd, "GPAC Offscreeen Window - debug mode");
        } else if (sOpt && !strcmp(sOpt, "Pixmap")) {
 		xWindow->offscreen_type = 0;
 	} else {
