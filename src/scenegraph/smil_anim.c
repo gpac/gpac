@@ -569,7 +569,6 @@ static void gf_svg_compute_path_anim(SMIL_Anim_RTI *rai, GF_Matrix2D *m, Fixed n
 
 static void gf_smil_anim_animate_using_path(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
 {
-	SMILAnimationAttributesPointers *animp = rai->animp;
 	Fixed interpolation_coefficient;
 
 	gf_smil_anim_use_keypoints_keytimes(rai, normalized_simple_time, &interpolation_coefficient, NULL);

@@ -2629,7 +2629,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		info.name = gf_svg_get_attribute_name(att->tag);
 		info.far_ptr = att->data;
 		gf_svg_dump_attribute((GF_Node*)svg, &info, attValue);
-		if (info.fieldType = strlen(attValue))
+		if ((info.fieldType = strlen(attValue)))
 			fprintf(sdump->trace, " %s=\"%s\"", info.name, attValue);
 		fflush(sdump->trace);
 		att = att->next;

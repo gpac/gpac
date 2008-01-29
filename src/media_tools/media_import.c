@@ -5376,9 +5376,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 {
 	GF_M2TS_Demuxer *ts;
-	GF_M2TS_PES *pes = NULL;
 	GF_M2TS_ES *es;
-	GF_M2TS_SECTION_ES *ses = NULL;
 	char data[188];
 	GF_TSImport tsimp;
 	u64 fsize, done;

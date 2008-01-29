@@ -275,7 +275,6 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 {
 	GF_DOMText *dom_text = (GF_DOMText *)node;
 	u32 word_start, word_end;
-	Bool shift=0;
 	u32 i, j;
 	Fixed line_spacing;
 	GF_Font *font;
@@ -444,7 +443,6 @@ static void get_tspan_width(GF_Node *node, void *rs)
 {
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
-	SVG_TextStack *st = (SVG_TextStack *)gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	SVG_Element *tspan = (SVG_Element *)node;
 	SVGAllAttributes atts;
@@ -1059,7 +1057,6 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 	} 
 	
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		GF_ChildNodeItem *child = ((GF_ParentNode *) text)->children;
 		if (!compositor_svg_is_display_off(tr_state->svg_props))
 			tr_state->bounds = st->bounds;
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
