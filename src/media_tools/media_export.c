@@ -456,9 +456,9 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	for (i = 0; i < 16; i++) {
 		s32 y, u, v, r, g, b;
 
-		y = (s32)dsi[(i<<2)+1] - 0x10;
-		u = (s32)dsi[(i<<2)+3] - 0x80;
-		v = (s32)dsi[(i<<2)+2] - 0x80;
+		y = (s32)(u8)dsi[(i<<2)+1] - 0x10;
+		u = (s32)(u8)dsi[(i<<2)+3] - 0x80;
+		v = (s32)(u8)dsi[(i<<2)+2] - 0x80;
 		r = (298 * y           + 409 * v + 128) >> 8;
 		g = (298 * y - 100 * u - 208 * v + 128) >> 8;
 		b = (298 * y + 516 * u           + 128) >> 8;
