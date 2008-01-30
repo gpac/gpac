@@ -63,6 +63,8 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 	if (atts->width && (atts->width->type==SVG_NUMBER_PERCENTAGE) ) { 
 		parent_width = gf_mulfix(tr_state->vp_size.x, atts->width->value/100);
 		doc_width = 0;
+	} else if (!stack->root_svg) {
+		doc_width = parent_width = atts->width ? atts->width->value : 0;
 	} else {
 		parent_width = tr_state->vp_size.x;
 		doc_width = atts->width ? atts->width->value : 0;
@@ -71,6 +73,8 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 	if (atts->height && (atts->height->type==SVG_NUMBER_PERCENTAGE) ) { 
 		parent_height = gf_mulfix(tr_state->vp_size.y, atts->height->value/100);
 		doc_height = 0;
+	} else if (!stack->root_svg) {
+		doc_height = parent_height = atts->height ? atts->height->value : 0;
 	} else {
 		parent_height = tr_state->vp_size.y;
 		doc_height = atts->height ? atts->height->value : 0;
@@ -316,22 +320,22 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_dirty || tr_state->visual->compositor->recompute_ar) 
 		svg_recompute_viewport_transformation(node, stack, tr_state, &all_atts);
-	
+
 	gf_mx2d_copy(tr_state->vb_transform, stack->viewbox_mx);
 
-	rootmost_svg = (stack->root_svg && !tr_state->parent_anim_atts) ? 1 : 0;
+	rootmost_svg = (stack->root_svg && !tr_state->parent_anim_atts) ? 1 : 0;	
 	if (tr_state->traversing_mode == TRAVERSE_SORT) {
 		SVG_Paint *vp_fill = NULL;
 		Fixed vp_opacity;
 		GF_IRect *clip = NULL;
 
-		if (rootmost_svg) {
-			vp_fill = tr_state->svg_props->viewport_fill;
-			vp_opacity = tr_state->svg_props->viewport_fill_opacity ? tr_state->svg_props->viewport_fill_opacity->value : FIX_ONE;
-		} else {
+		if (tr_state->parent_anim_atts) {
 			vp_fill = tr_state->parent_anim_atts->viewport_fill;
 			vp_opacity = tr_state->parent_anim_atts->viewport_fill_opacity ? tr_state->parent_anim_atts->viewport_fill_opacity->value : FIX_ONE;
-		}
+		} else {
+			vp_fill = tr_state->svg_props->viewport_fill;
+			vp_opacity = tr_state->svg_props->viewport_fill_opacity ? tr_state->svg_props->viewport_fill_opacity->value : FIX_ONE;
+		} 
 
 		if (vp_fill && (vp_fill->type != SVG_PAINT_NONE) && vp_opacity) {
 			Bool col_dirty = 0;
@@ -375,6 +379,8 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 
+	if (!stack->root_svg && (all_atts.x || all_atts.y)) 
+		gf_mx2d_add_translation(&tr_state->vb_transform, all_atts.x->value, all_atts.y->value);
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
@@ -383,25 +389,14 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 			visual_3d_matrix_push(tr_state->visual);
 
 			gf_mx_from_mx2d(&tmp, &tr_state->vb_transform);
-
-			if (!stack->root_svg && (all_atts.x || all_atts.y)) {
-				tmp.m[12] += all_atts.x->value;
-				tmp.m[13] += all_atts.y->value;
-			}
 			visual_3d_matrix_add(tr_state->visual, tmp.m);
 		} else {
 			gf_mx_add_matrix_2d(&tr_state->model_matrix, &tr_state->vb_transform);
-
-			if (!stack->root_svg && (all_atts.x || all_atts.y)) 
-				gf_mx_add_translation(&tr_state->model_matrix, all_atts.x->value, all_atts.y->value, 0);
 		}
 	} else 
 #endif
 	{
 		gf_mx2d_pre_multiply(&tr_state->transform, &tr_state->vb_transform);
-
-		if (!stack->root_svg && (all_atts.x || all_atts.y)) 
-			gf_mx2d_add_translation(&tr_state->transform, all_atts.x->value, all_atts.y->value);
 	}
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
