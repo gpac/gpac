@@ -38,7 +38,7 @@ typedef struct
 	GF_Rect bounds;
 } SVG_TextStack;
 
-static void svg_reset_stack(SVG_TextStack *st)
+static void svg_reset_text_stack(SVG_TextStack *st)
 {
 	while (gf_list_count(st->spans)) {
 		GF_TextSpan *span = gf_list_get(st->spans, 0);
@@ -614,7 +614,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		drawable_del(st->drawable);
-		svg_reset_stack(st);
+		svg_reset_text_stack(st);
 		gf_list_del(st->spans);
 		free(st);
 		return;
@@ -649,7 +649,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		u32 mode;
 		child = ((GF_ParentNode *) text)->children;
 
-		svg_reset_stack(st);
+		svg_reset_text_stack(st);
 		tr_state->text_end_x = 0;
 		tr_state->text_end_y = 0;
 
@@ -834,7 +834,7 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		drawable_del(st->drawable);
-		svg_reset_stack(st);
+		svg_reset_text_stack(st);
 		gf_list_del(st->spans);
 		free(st);
 		return;
@@ -869,6 +869,7 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		u32 mode = tr_state->traversing_mode;
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
 
+		svg_reset_text_stack(st);
 		child = ((GF_ParentNode *) tspan)->children;
 
 		while (child) {
@@ -903,7 +904,7 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props))
 			tr_state->bounds = st->bounds;
-		goto end;
+
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
 
 		if (compositor_svg_is_display_off(tr_state->svg_props) ||
@@ -930,7 +931,6 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	}
 
-end:
 	compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx3d);
 	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	tr_state->svg_flags = backup_flags;
@@ -964,7 +964,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		drawable_del(st->drawable);
-		svg_reset_stack(st);
+		svg_reset_text_stack(st);
 		gf_list_del(st->spans);
 		free(st);
 		return;
@@ -1001,7 +1001,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 
 		child = ((GF_ParentNode *) text)->children;
 
-		svg_reset_stack(st);
+		svg_reset_text_stack(st);
 		drawable_reset_path(st->drawable);
 		tr_state->max_length = (atts.width ? (atts.width->type == SVG_NUMBER_AUTO ? FIX_MAX : atts.width->value) : FIX_MAX);
 		tr_state->max_height = (atts.height ? (atts.height->type == SVG_NUMBER_AUTO ? FIX_MAX : atts.height->value) : FIX_MAX);

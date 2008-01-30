@@ -777,7 +777,7 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 			stack->resource = new_res;
 		}
 		stack->used_node = NULL;
-		gf_node_dirty_clear(node, 0);
+		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
 	}
 
 	/*locate the used node - this is done at each step to handle progressive loading*/
@@ -850,6 +850,8 @@ void compositor_init_svg_use(GF_Compositor *compositor, GF_Node *node)
 	GF_SAFEALLOC(stack, SVGlinkStack);
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_use);
+	/*force first processing of xlink-href*/
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
 }
 
 
@@ -860,7 +862,7 @@ void compositor_init_svg_use(GF_Compositor *compositor, GF_Node *node)
 
 static void svg_animation_smil_update(GF_Node *node, SVGlinkStack *stack, Fixed normalized_scene_time)
 {
-	if (gf_node_dirty_get(node) & (GF_SG_SVG_XLINK_HREF_DIRTY|GF_SG_NODE_DIRTY) ) {
+	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY ) {
 		SVGAllAttributes all_atts;
 		Double clipBegin, clipEnd;
 		GF_MediaObject *new_res;
@@ -1001,6 +1003,9 @@ void compositor_init_svg_animation(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, svg_traverse_animation);
 
 	gf_smil_set_evaluation_callback(node, svg_animation_smil_evaluate);
+
+	/*force first processing of xlink-href*/
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
 }
 
 #endif
