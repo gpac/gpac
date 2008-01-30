@@ -153,6 +153,9 @@ struct _inline_scene
 
 	/*current IRI fragment if any*/
 	char *fragment_uri;
+
+	/*secondary resource scene*/
+	Bool secondary_resource;
 };
 
 GF_InlineScene *gf_inline_new(GF_InlineScene *parentScene);

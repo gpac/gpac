@@ -35,7 +35,7 @@
 
 
 GF_EXPORT
-GF_Err gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, XMLRI *iri)
+GF_Err gf_term_set_mfurl_from_uri_ex(GF_Terminal *term, MFURL *mfurl, XMLRI *iri, GF_InlineScene *is)
 {
 	u32 stream_id = 0;
 	GF_Err e = GF_OK;
@@ -54,14 +54,20 @@ GF_Err gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, XMLRI *iri)
 			const char *cache_dir = gf_cfg_get_key(term->user->config, "General", "CacheDirectory");
 			e = gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
 		}
-		sfurl->url = strdup(iri->string);
+		if (is) sfurl->url = gf_url_concatenate(is->root_od->net_service->url, iri->string);
+		else sfurl->url = strdup(iri->string);
 	}
 	return e;
 }
 
+GF_EXPORT
+GF_Err gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, XMLRI *iri)
+{
+	return gf_term_set_mfurl_from_uri_ex(term, mfurl, iri, NULL);
+}
 
 /* Creates a subscene from the xlink:href */
-static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlinkp, SMILSyncAttributesPointers *syncp, Bool use_sync, Bool force_new_resource)
+static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlinkp, SMILSyncAttributesPointers *syncp, Bool use_sync, Bool primary_resource)
 {
 	MFURL url;
 	Bool lock_timelines = 0;
@@ -97,21 +103,25 @@ static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers
 	}
 	memset(&url, 0, sizeof(MFURL));
 	if (!xlinkp->href) return NULL;
-	gf_term_set_mfurl_from_uri(is->root_od->term, &url, xlinkp->href);
+	gf_term_set_mfurl_from_uri_ex(is->root_od->term, &url, xlinkp->href, is);
+
+	while (is->secondary_resource && is->root_od->parentscene)
+		is = is->root_od->parentscene;
 
 	/*
 		creates the media object if not already created at the InlineScene level
 		TODO FIX ME: do it at the terminal level
 	*/
-	mo = gf_inline_get_media_object_ex(is, &url, GF_MEDIA_OBJECT_SCENE, lock_timelines, NULL, force_new_resource);
+	mo = gf_inline_get_media_object_ex(is, &url, GF_MEDIA_OBJECT_SCENE, lock_timelines, NULL, primary_resource);
 	gf_sg_vrml_mf_reset(&url, GF_SG_VRML_MFURL);
 
 	if (!mo || !mo->odm) return NULL;
+	mo->odm->subscene->secondary_resource = primary_resource ? 0 : 1;
 	return mo->odm->subscene;
 }
 
 
-GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool force_new_resource, Double clipBegin, Double clipEnd)
+GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, Double clipBegin, Double clipEnd)
 {
 	GF_InlineScene *new_resource;
 	SVGAllAttributes all_atts;
@@ -139,7 +149,7 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool force_new_resource
 
 	if (xlinkp.href->type == XMLRI_ELEMENTID) return NULL;
 
-	new_resource = gf_svg_get_subscene(node, &xlinkp, &syncp, force_new_resource ? 1 : 0, force_new_resource);
+	new_resource = gf_svg_get_subscene(node, &xlinkp, &syncp, primary_resource ? 1 : 0, primary_resource);
 	if (!new_resource) return NULL;
 
 	/*remember parent node for event propagation*/

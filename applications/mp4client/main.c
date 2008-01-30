@@ -855,6 +855,7 @@ int main (int argc, char **argv)
 {
 	const char *str;
 	u32 i, width, height, times[100], nb_times, dump_mode;
+	u32 simulation_time = 0;
 	Bool start_fs = 0;
 	Bool use_rtix = 0;
 	Double fps = 25.0;
@@ -944,6 +945,7 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
+		else if (!strncmp(arg, "-run-for=", 9)) simulation_time = atoi(arg+9);
 		else {
 			PrintUsage();
 			return 1;
@@ -1105,6 +1107,10 @@ int main (int argc, char **argv)
 				gf_term_process_step(term);
 			} else {
 				gf_sleep(rti_update_time_ms);
+			}
+			/*sim time*/
+			if (simulation_time && (gf_term_get_time_in_ms(term)>simulation_time)) {
+				Run = 0;
 			}
 			continue;
 		}
