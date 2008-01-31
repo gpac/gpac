@@ -671,8 +671,10 @@ static JSBool field_toString(JSContext *c, JSObject *obj, uintN n, jsval *v, jsv
 
 static void vrml_node_register(GF_Node *node, GF_Node *parent)
 {
-	node->sgprivate->flags |= GF_NODE_HAS_BINDING;
-	gf_node_register(node, parent);
+	if (node) {
+		node->sgprivate->flags |= GF_NODE_HAS_BINDING;
+		gf_node_register(node, parent);
+	}
 }
 
 static JSBool SFNodeConstructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)

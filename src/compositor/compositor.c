@@ -248,8 +248,10 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 
 	GF_SAFEALLOC(compositor->traverse_state, GF_TraverseState);
 	compositor->traverse_state->vrml_sensors = gf_list_new();
+	compositor->traverse_state->use_stack = gf_list_new();
 	compositor->sensors = gf_list_new();
 	compositor->previous_sensors = gf_list_new();
+	compositor->hit_use_stack = gf_list_new();
 	
 	/*setup main visual*/
 	compositor->visual = visual_new(compositor);
@@ -460,8 +462,10 @@ void gf_sc_del(GF_Compositor *compositor)
 	gf_list_del(compositor->previous_sensors);
 	gf_list_del(compositor->visuals);
 	gf_list_del(compositor->strike_bank);
+	gf_list_del(compositor->hit_use_stack);
 
 	gf_list_del(compositor->traverse_state->vrml_sensors);
+	gf_list_del(compositor->traverse_state->use_stack);
 	free(compositor->traverse_state);
 
 #ifndef GPAC_DISABLE_3D
@@ -641,8 +645,10 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	/*reset traverse state*/
 	direct_draw = compositor->traverse_state->direct_draw;
 	gf_list_del(compositor->traverse_state->vrml_sensors);
+	gf_list_del(compositor->traverse_state->use_stack);
 	memset(compositor->traverse_state, 0, sizeof(GF_TraverseState));
 	compositor->traverse_state->vrml_sensors = gf_list_new();
+	compositor->traverse_state->use_stack = gf_list_new();
 	gf_mx2d_init(compositor->traverse_state->transform);
 	gf_cmx_init(&compositor->traverse_state->color_mat);
 	compositor->traverse_state->direct_draw = direct_draw;

@@ -50,6 +50,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 		Fixed X = compositor->hit_world_point.x;
 		Fixed Y = compositor->hit_world_point.y;
 		if (compositor->hit_node) {
+			GF_Node *current_use = gf_list_last(compositor->hit_use_stack);
 			cursor_type = compositor->sensor_type;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.clientX = evt.screenX = FIX2INT(X);
@@ -61,25 +62,25 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 			switch (event->type) {
 			case GF_EVENT_MOUSEMOVE:
 				evt.cancelable = 0;
-				if ((compositor->grab_node != compositor->hit_node) || (compositor->grab_use != compositor->hit_use) ) {
+				if ((compositor->grab_node != compositor->hit_node) || (compositor->grab_use != current_use) ) {
 					/*mouse out*/
 					if (compositor->grab_node) {
 						evt.relatedTarget = compositor->hit_node;
 						evt.type = GF_EVENT_MOUSEOUT;
-						ret += gf_dom_event_fire(compositor->grab_node, compositor->grab_use, &evt);
+						ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
 						/*prepare mouseOver*/
 						evt.relatedTarget = compositor->grab_node;
 					}
 					compositor->grab_node = compositor->hit_node;
-					compositor->grab_use = compositor->hit_use;
+					compositor->grab_use = current_use;
 
 					/*mouse over*/
 					evt.type = GF_EVENT_MOUSEOVER;
-					ret += gf_dom_event_fire(compositor->grab_node, compositor->grab_use, &evt);
+					ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
 
 				} else {
 					evt.type = GF_EVENT_MOUSEMOVE;
-					ret += gf_dom_event_fire(compositor->grab_node, compositor->grab_use, &evt);
+					ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
 				}
 				compositor->num_clicks = 0;
 				break;
@@ -87,19 +88,19 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				if ((compositor->grab_x != X) || (compositor->grab_y != Y)) compositor->num_clicks = 0;
 				evt.type = GF_EVENT_MOUSEDOWN;
 				evt.detail = event->mouse.button;
-				ret += gf_dom_event_fire(compositor->grab_node, compositor->grab_use, &evt);
+				ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
 				compositor->grab_x = X;
 				compositor->grab_y = Y;
 				break;
 			case GF_EVENT_MOUSEUP:
 				evt.type = GF_EVENT_MOUSEUP;
 				evt.detail = event->mouse.button;
-				ret += gf_dom_event_fire(compositor->grab_node, compositor->grab_use, &evt);
+				ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
 				if ((compositor->grab_x == X) && (compositor->grab_y == Y)) {
 					compositor->num_clicks ++;
 					evt.type = GF_EVENT_CLICK;
 					evt.detail = compositor->num_clicks;
-					ret += gf_dom_event_fire(compositor->grab_node, compositor->grab_use, &evt);
+					ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
 				}
 				break;
 			}
@@ -114,7 +115,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				evt.cancelable = 1;
 				evt.key_flags = compositor->key_states;
 				evt.type = GF_EVENT_MOUSEOUT;
-				ret += gf_dom_event_fire(compositor->grab_node, compositor->grab_use, &evt);
+				ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
 			}
 			compositor->grab_node = NULL;
 			compositor->grab_use = NULL;

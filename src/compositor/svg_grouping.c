@@ -42,6 +42,7 @@ typedef struct
 	GF_Matrix2D viewbox_mx;
 	Drawable *vp_fill;
 	u32 prev_color;
+	Fixed prev_vp_w, prev_vp_h;
 } SVGsvgStack;
 
 static void svg_check_focus_upon_destroy(GF_Node *n)
@@ -79,6 +80,9 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 		parent_height = tr_state->vp_size.y;
 		doc_height = atts->height ? atts->height->value : 0;
 	}
+
+	stack->prev_vp_w = tr_state->vp_size.x;
+	stack->prev_vp_h = tr_state->vp_size.y;
 
 	vb = atts->viewBox;
 
@@ -317,6 +321,8 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 	is_dirty = gf_node_dirty_get(node);
 	gf_node_dirty_clear(node, 0);
+	if ((stack->prev_vp_w != tr_state->vp_size.x) || (stack->prev_vp_h != tr_state->vp_size.y))
+		is_dirty = 1;
 
 	if (is_dirty || tr_state->visual->compositor->recompute_ar) 
 		svg_recompute_viewport_transformation(node, stack, tr_state, &all_atts);
@@ -675,13 +681,19 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 	evt.type = GF_EVENT_NAVIGATE;
 	
 	if (all_atts.xlink_href->type == XMLRI_STRING) {
-		evt.navigate.to_url = all_atts.xlink_href->string;
+		evt.navigate.to_url = gf_term_resolve_xlink(handler, all_atts.xlink_href->string);
 		if (evt.navigate.to_url) {
-			evt.navigate.param_count = 1;
-			evt.navigate.parameters = (const char **) &all_atts.target;
+			if (all_atts.target) {
+				evt.navigate.parameters = (const char **) &all_atts.target;
+				evt.navigate.param_count = 1;
+			} else {
+				evt.navigate.parameters = NULL;
+				evt.navigate.param_count = 0;
+			}
 
 			if (evt.navigate.to_url[0] == '#') {
 				gf_inline_set_fragment_uri(handler, evt.navigate.to_url+1);
+				/*force recompute viewbox of root SVG - FIXME in full this should be the parent svg*/
 				gf_node_dirty_set(gf_sg_get_root_node(gf_node_get_graph(handler)), 0, 0);
 
 				compositor->trans_x = compositor->trans_y = 0;
@@ -694,6 +706,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 			} else {
 				compositor->user->EventProc(compositor->user->opaque, &evt);
 			}
+			free((char *)evt.navigate.to_url);
 		}
 	} else {
 		u32 tag;
@@ -753,7 +766,6 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 	GF_Matrix2D backup_matrix;
 	GF_Matrix mx_3d;
   	GF_Matrix2D translate;
-	GF_Node *prev_use;
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
@@ -796,8 +808,8 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 		if (!stack->used_node) goto end;
 	}
 
-	prev_use = tr_state->parent_use;
-	tr_state->parent_use = node;
+	gf_list_add(tr_state->use_stack, stack->used_node);
+	gf_list_add(tr_state->use_stack, node);
 
 	gf_mx2d_init(translate);
 	translate.m[2] = (all_atts.x ? all_atts.x->value : 0);
@@ -836,7 +848,8 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 		compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);  
 
 	}
-	tr_state->parent_use = prev_use;
+	gf_list_rem_last(tr_state->use_stack);
+	gf_list_rem_last(tr_state->use_stack);
 
 
 end:

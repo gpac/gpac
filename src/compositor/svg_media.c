@@ -248,21 +248,14 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 	compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags);
 
-	if (gf_node_dirty_get(node)) {
-		GF_FieldInfo href_info;
-		/*if open and changed, stop and play*/
-		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
-			if (svg_check_iri_change(stack->txh.compositor->term, &stack->txurl, href_info.far_ptr)) {
-				const char *cache_dir = gf_cfg_get_key(stack->txh.compositor->user->config, "General", "CacheDirectory");
-				gf_svg_store_embedded_data(href_info.far_ptr, cache_dir, "embedded_");
+	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
+		gf_term_get_mfurl_from_xlink(node, &stack->txurl);
+		stack->txh.width = stack->txh.height = 0;
+		svg_play_texture(stack, &all_atts);
+		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
+	}
 
-				if (svg_check_iri_change(stack->txh.compositor->term, &stack->txurl, href_info.far_ptr) ) {
-					gf_term_set_mfurl_from_uri(stack->txh.compositor->term, &(stack->txurl), href_info.far_ptr);
-					stack->txh.width = stack->txh.height = 0;
-					svg_play_texture(stack, &all_atts);
-				}
-			} 
-		}
+	if (gf_node_dirty_get(node)) {
 		/*do not clear dirty state until the image is loaded*/
 		if (stack->txh.width) {
 			gf_node_dirty_clear(node, 0);
@@ -352,7 +345,6 @@ static void svg_traverse_image(GF_Node *node, void *rs, Bool is_destroy)
 
 void compositor_init_svg_image(GF_Compositor *compositor, GF_Node *node)
 {
-	GF_FieldInfo href_info;
 	SVG_video_stack *stack;
 	GF_SAFEALLOC(stack, SVG_video_stack)
 	stack->graph = drawable_new();
@@ -363,9 +355,8 @@ void compositor_init_svg_image(GF_Compositor *compositor, GF_Node *node)
 	stack->txh.update_texture_fcnt = SVG_Update_image;
 	stack->txh.flags = 0;
 
-	if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
-		gf_term_set_mfurl_from_uri(compositor->term, &(stack->txurl), href_info.far_ptr);
-	}
+	/*force first processing of xlink-href*/
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
 
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_image);
@@ -474,7 +465,6 @@ static void svg_traverse_video(GF_Node *node, void *rs, Bool is_destroy)
 
 void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node)
 {
-	GF_FieldInfo href_info;
 	SVG_video_stack *stack;
 	GF_SAFEALLOC(stack, SVG_video_stack)
 	stack->graph = drawable_new();
@@ -485,10 +475,9 @@ void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node)
 	stack->txh.update_texture_fcnt = SVG_Update_video;
 	stack->txh.flags = 0;
 
-	/* create an MFURL from the SVG iri */
-	if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
-		gf_term_set_mfurl_from_uri(compositor->term, &(stack->txurl), href_info.far_ptr);
-	}
+	/*force first processing of xlink-href*/
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+
 	gf_smil_set_evaluation_callback(node, svg_video_smil_evaluate);
 
 	gf_node_set_private(node, stack);
@@ -588,6 +577,11 @@ static void svg_traverse_audio(GF_Node *node, void *rs, Bool is_destroy)
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 	compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags);
 
+	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
+		gf_term_get_mfurl_from_xlink(node, &(stack->aurl));
+		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
+	}
+
 	/*store mute flag*/
 	stack->input.is_muted = 0;
 	if (tr_state->switched_off
@@ -609,16 +603,14 @@ static void svg_traverse_audio(GF_Node *node, void *rs, Bool is_destroy)
 
 void compositor_init_svg_audio(GF_Compositor *compositor, GF_Node *node, Bool slaved_timing)
 {
-	GF_FieldInfo href_info;
 	SVG_audio_stack *stack;
 	GF_SAFEALLOC(stack, SVG_audio_stack)
 
 	gf_sc_audio_setup(&stack->input, compositor, node);
 
-	/* create an MFURL from the SVG iri */
-	if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
-		gf_term_set_mfurl_from_uri(compositor->term, &(stack->aurl), href_info.far_ptr);
-	}
+	/*force first processing of xlink-href*/
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+
 	if (!slaved_timing) 
 		gf_smil_set_evaluation_callback(node, svg_audio_smil_evaluate);
 

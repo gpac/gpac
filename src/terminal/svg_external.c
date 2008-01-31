@@ -34,37 +34,70 @@
 #include <gpac/compositor.h>
 
 
+char *gf_term_resolve_xlink(GF_Node *node, char *the_url)
+{
+	char *url;
+	GF_InlineScene *is = gf_sg_get_private(gf_node_get_graph(node));
+	if (!is) return NULL;
+
+	url = strdup(the_url);
+	/*apply XML:base*/
+	while (node) {
+		GF_FieldInfo info;
+		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xml_base, 0, 0, &info)==GF_OK) {
+			char *new_url = gf_url_concatenate( ((XMLRI*)info.far_ptr)->string, url);
+			if (new_url) {
+				free(url);
+				url = new_url;
+			}
+		}
+		node = gf_node_get_parent(node, 0);
+	}
+
+	if (is) {
+		char *the_url = gf_url_concatenate(is->root_od->net_service->url, url);
+		free(url);
+		return the_url;
+	} 
+	return url;
+}
+
 GF_EXPORT
-GF_Err gf_term_set_mfurl_from_uri_ex(GF_Terminal *term, MFURL *mfurl, XMLRI *iri, GF_InlineScene *is)
+GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 {
 	u32 stream_id = 0;
 	GF_Err e = GF_OK;
 	SFURL *sfurl = NULL;
+	GF_FieldInfo info;
+	XMLRI *iri;
+	GF_InlineScene *is = gf_sg_get_private(gf_node_get_graph(node));
+	if (!is) return GF_BAD_PARAM;
+
+	gf_sg_vrml_mf_reset(mfurl, GF_SG_VRML_MFURL);
+
+	e = gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &info);
+	if (e) return e;
+
+	iri = (XMLRI*)info.far_ptr;
+
 	if (iri->type==XMLRI_STREAMID) {
 		stream_id = iri->lsr_stream_id;
 	} else if (!iri->string) return GF_OK;
 
-	gf_sg_vrml_mf_reset(mfurl, GF_SG_VRML_MFURL);
 	mfurl->count = 1;
 	GF_SAFEALLOC(mfurl->vals, SFURL)
 	sfurl = mfurl->vals;
 	sfurl->OD_ID = stream_id;
-	if (!stream_id) {
-		if (term && !strncmp(iri->string, "data:", 5)) {
-			const char *cache_dir = gf_cfg_get_key(term->user->config, "General", "CacheDirectory");
-			e = gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
-		}
-		if (is) sfurl->url = gf_url_concatenate(is->root_od->net_service->url, iri->string);
-		else sfurl->url = strdup(iri->string);
+	if (stream_id) return GF_OK;
+
+	if (!strncmp(iri->string, "data:", 5)) {
+		const char *cache_dir = gf_cfg_get_key(is->root_od->term->user->config, "General", "CacheDirectory");
+		return gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
 	}
+	sfurl->url = gf_term_resolve_xlink(node, iri->string);
 	return e;
 }
 
-GF_EXPORT
-GF_Err gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, XMLRI *iri)
-{
-	return gf_term_set_mfurl_from_uri_ex(term, mfurl, iri, NULL);
-}
 
 /* Creates a subscene from the xlink:href */
 static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlinkp, SMILSyncAttributesPointers *syncp, Bool use_sync, Bool primary_resource)
@@ -103,7 +136,8 @@ static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers
 	}
 	memset(&url, 0, sizeof(MFURL));
 	if (!xlinkp->href) return NULL;
-	gf_term_set_mfurl_from_uri_ex(is->root_od->term, &url, xlinkp->href, is);
+
+	gf_term_get_mfurl_from_xlink(elt, &url);
 
 	while (is->secondary_resource && is->root_od->parentscene)
 		is = is->root_od->parentscene;

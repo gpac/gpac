@@ -293,8 +293,8 @@ struct __tag_compositor
 	GF_Node *hit_node;
 	/*appearance at hit point - used for composite texture*/
 	GF_Node *hit_appear;
-	/*parent use if any - SVG only*/
-	GF_Node *hit_use;
+	/*parent use stack - SVG only*/
+	GF_List *hit_use_stack;
 	/*picked node uses DOM event or VRML events ?*/
 	Bool hit_use_dom_events;
 
@@ -601,9 +601,9 @@ struct _traversing_state
 	GF_Node *for_node;
 	Bool abort_bounds_traverse;
 
+	GF_List *use_stack;
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
-	GF_Node *parent_use;
 	SVGAllAttributes *parent_anim_atts;
 
 	/*SVG text rendering state*/
@@ -854,9 +854,10 @@ void gf_sc_audio_unregister(GF_AudioInput *ai);
 
 
 #ifndef GPAC_DISABLE_SVG
-GF_Err gf_term_set_mfurl_from_uri(GF_Terminal *sr, MFURL *mfurl, XMLRI *iri);
+GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl);
 Fixed gf_sc_svg_convert_length_to_display(GF_Compositor *sr, SVG_Length *length);
 
+char *gf_term_resolve_xlink(GF_Node *node, char *the_url);
 #endif
 
 void gf_sc_load_opengl_extensions(GF_Compositor *sr);

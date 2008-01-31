@@ -32,7 +32,6 @@
 typedef struct _drawable Drawable;
 typedef struct _drawable_context DrawableContext;
 
-
 typedef struct _bound_info
 {
 	/*cliped bounds in pixels - needed to track static objects with animated cliping*/
