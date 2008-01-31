@@ -153,8 +153,10 @@ typedef struct
 } GF_DOM_Event;
 
 /*fires event on the specified node
-BE CAREFULL: event execution may very well destroy ANY node, especially the event target node !!*/
-Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event);
+BE CAREFULL: event execution may very well destroy ANY node, especially the event target node !!
+use_stack: a list of parent node/use node for bubbling phase
+*/
+Bool gf_dom_event_fire(GF_Node *node, GF_List *use_stack, GF_DOM_Event *event);
 
 u32 gf_dom_event_type_by_name(const char *name);
 const char *gf_dom_event_get_name(u32 type);

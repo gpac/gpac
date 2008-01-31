@@ -1233,7 +1233,7 @@ EXPORTS
 	gf_dom_event_type_by_name
 	gf_dom_event_get_name
 
-	gf_term_set_mfurl_from_uri
+	gf_term_get_mfurl_from_xlink
 
 ;	gf_svg_sa_apply_inheritance
 ;	gf_svg_sa_node_type_by_class_name

@@ -85,7 +85,7 @@ picked:
 	gf_mx_from_mx2d(&compositor->hit_world_to_local, &tr_state->transform);
 	gf_mx_from_mx2d(&compositor->hit_local_to_world, &inv_2d);
 
-	compositor->hit_use = NULL;
+	gf_list_reset(compositor->hit_use_stack);
 	compositor->hit_node = drawable->node;
 	compositor->hit_use_dom_events = 0;
 	compositor->hit_normal.x = compositor->hit_normal.y = 0; compositor->hit_normal.z = FIX_ONE;
@@ -1235,7 +1235,6 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 	gf_mx2d_copy(ctx->transform, tr_state->transform);
 
 	ctx->drawable = drawable;
-	ctx->appear = tr_state->parent_use;
 
 	if (tr_state->invalidate_all || gf_svg_has_appearance_flag_dirty(tr_state->svg_flags)) ctx->flags |= CTX_APP_DIRTY;
 	if (tr_state->svg_flags & (GF_SG_SVG_STROKEDASHARRAY_DIRTY | 

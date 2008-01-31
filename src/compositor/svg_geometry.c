@@ -141,6 +141,17 @@ Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, GF_Path *path, D
 	return 0;
 }
 
+
+static void svg_clone_use_stack(GF_Compositor *compositor, GF_TraverseState *tr_state)
+{
+	u32 i, count;
+	count = gf_list_count(tr_state->use_stack);
+	gf_list_reset(compositor->hit_use_stack);
+	for (i=0; i<count; i++) {
+		gf_list_add(compositor->hit_use_stack, gf_list_get(tr_state->use_stack, i));
+	}
+}
+
 #ifndef GPAC_DISABLE_3D
 
 void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAspect2D *asp) 
@@ -225,7 +236,7 @@ void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAs
 	compositor->hit_normal = hit_normal;
 	compositor->hit_texcoords = text_coords;
 
-	compositor->hit_use = tr_state->parent_use;
+	svg_clone_use_stack(compositor, tr_state);
 	/*not use in SVG patterns*/
 	compositor->hit_appear = NULL;
 	compositor->hit_node = drawable->node;
@@ -291,7 +302,7 @@ void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_s
 		compositor->hit_normal.x = compositor->hit_normal.y = 0; compositor->hit_normal.z = FIX_ONE;
 		compositor->hit_texcoords.x = gf_divfix(x, drawable->path->bbox.width) + FIX_ONE/2;
 		compositor->hit_texcoords.y = gf_divfix(y, drawable->path->bbox.height) + FIX_ONE/2;
-		compositor->hit_use = tr_state->parent_use;
+		svg_clone_use_stack(compositor, tr_state);
 		/*not use in SVG patterns*/
 		compositor->hit_appear = NULL;
 

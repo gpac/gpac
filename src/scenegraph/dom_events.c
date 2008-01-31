@@ -236,11 +236,29 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 	return 1;
 }
 
-static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event)
+static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack, u32 cur_par_idx)
 {
-	if (sg_fire_dom_event(node, event)) 
-		gf_sg_dom_event_bubble(gf_node_get_parent(node, 0), event);
+	GF_Node *parent;
+
+	if (!node) return;
+
+	/*get the node's parent*/
+	parent = gf_node_get_parent(node, 0);
+	if (cur_par_idx) {
+		GF_Node *used_node = gf_list_get(use_stack, cur_par_idx-1);
+		/*if the node is a used one, switch to the <use> subtree*/
+		if (used_node==node) {
+			parent = gf_list_get(use_stack, cur_par_idx);
+			if (cur_par_idx>1) cur_par_idx-=2;
+			else cur_par_idx = 0;
+			/*TODO check in the specs*/
+			event->target = parent;
+		}
+	}
+	if (!sg_fire_dom_event(parent, event)) return;
+	gf_sg_dom_event_bubble(parent, event, use_stack, cur_par_idx);
 }
+
 
 void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
 {
@@ -250,8 +268,9 @@ void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
 }
 
 GF_EXPORT
-Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
+Bool gf_dom_event_fire(GF_Node *node, GF_List *use_stack, GF_DOM_Event *event)
 {
+	u32 cur_par_idx;
 	if (!node || !event) return 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events    ] Time %f - Firing event  %s.%s\n", gf_node_get_scene_time(node), gf_node_get_log_name(node), gf_dom_event_get_name(event->type)));
 
@@ -281,12 +300,14 @@ Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 	}
 	/*target + bubbling phase*/
 	event->event_phase = 0;
+	cur_par_idx = 0;
+	if (use_stack) {
+		cur_par_idx = gf_list_count(use_stack);
+		if (cur_par_idx) cur_par_idx--;
+	}
 	if (sg_fire_dom_event(node, event) && event->bubbles) {
 		event->event_phase = 1;
-		if (!parent_use) parent_use = gf_node_get_parent(node, 0);
-		/*TODO check in the specs*/
-		else event->target = parent_use;
-		gf_sg_dom_event_bubble(parent_use, event);
+		gf_sg_dom_event_bubble(node, event, use_stack, cur_par_idx);
 	}
 
 	return event->currentTarget ? 1 : 0;
