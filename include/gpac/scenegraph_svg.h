@@ -380,6 +380,8 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props);
 void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props);
 Bool gf_svg_has_appearance_flag_dirty(u32 flags);
 
+u32 gf_node_animation_count(GF_Node *node);
+
 Bool gf_svg_is_element_transformable(u32 tag);
 
 void *gf_svg_create_attribute_value(u32 attribute_type);

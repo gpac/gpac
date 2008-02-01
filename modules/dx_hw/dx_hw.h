@@ -121,6 +121,7 @@ typedef struct
 	u32 output_3d_type;
 	HWND gl_hwnd;
 	Bool has_focus;
+	Bool gl_double_buffer;
 
 	DWORD orig_wnd_proc;
 

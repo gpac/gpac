@@ -36,6 +36,7 @@ typedef struct
 	GF_TextureHandler txh;
 	Bool no_rgb_support;
 	Bool linear;
+	Bool animated;
 	Fixed *keys;
 	u32 *cols;
 } SVG_GradientStack;
@@ -114,7 +115,6 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 	GF_ChildNodeItem *children;
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(node);
 
-
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 	href_node = svg_copy_gradient_attributes_from(node, &all_atts);
 	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props_1, &backup_flags_1);
@@ -140,6 +140,8 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 		st->cols = NULL;
 		if (st->keys) free(st->keys);
 		st->keys = NULL;
+
+		st->animated = gf_node_animation_count(node) ? 1 : 0;
 	}
 
 	children = ((SVG_Element *)node)->children;
@@ -164,6 +166,9 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 
 		gf_svg_flatten_attributes((SVG_Element*)stop, &all_atts);
 		compositor_svg_traverse_base(stop, &all_atts, tr_state, &backup_props_2, &backup_flags_2);
+
+		if (gf_node_animation_count(stop))
+			st->animated = 1;
 
 		if (all_dirty || gf_node_dirty_get(stop)) {
 			is_dirty = 1;
@@ -236,6 +241,10 @@ static void svg_update_gradient(SVG_GradientStack *st, GF_ChildNodeItem *childre
 	SVGPropertiesPointers *svgp;
 	GF_Node *node = st->txh.owner;
 	GF_TraverseState *tr_state = st->txh.compositor->traverse_state;
+
+	if (!gf_node_dirty_get(node)) {
+		if (!st->animated) return;
+	}
 
 	GF_SAFEALLOC(svgp, SVGPropertiesPointers);
 	gf_svg_properties_init_pointers(svgp);

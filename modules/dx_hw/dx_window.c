@@ -765,10 +765,12 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 			ctx->output_3d_type = 1;
 			ctx->width = evt->setup.width;
 			ctx->height = evt->setup.height;
+			ctx->gl_double_buffer = evt->setup.back_buffer;
 			return DD_SetupOpenGL(dr);
 		case 2:
 			ctx->output_3d_type = 2;
 			SetWindowPos(ctx->gl_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
+			ctx->gl_double_buffer = evt->setup.back_buffer;
 			return DD_SetupOpenGL(dr);
 		}
 	}

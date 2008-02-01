@@ -204,10 +204,26 @@ GF_Color gf_cmx_apply(GF_ColorMatrix *_this, GF_Color col);
 void gf_cmx_apply_fixed(GF_ColorMatrix *_this, Fixed *a, Fixed *r, Fixed *g, Fixed *b);
 
 
+/*!\brief Color Key descriptor
+ *
+ *The ColorKey object represents a ColorKey with low and high threshold keying
+*/
+typedef struct
+{
+	/*!color key R, G, and B components*/
+	u8 r, g, b;
+	/*!Alpha value for opaque (non-keyed) pixels*/
+	u8 alpha;
+	/*!low variance threshold*/
+	u8 low;
+	/*!high variance threshold*/
+	u8 high;
+} GF_ColorKey;
+
 /*!\brief not done yet
  *
  */
-GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, s32 dst_x_pitch, u8 alpha, Bool flip, u32 *colorKey, GF_ColorMatrix * cmat);
+GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, s32 dst_x_pitch, u8 alpha, Bool flip, GF_ColorKey *colorKey, GF_ColorMatrix * cmat);
 
 
 

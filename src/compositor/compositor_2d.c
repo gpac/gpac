@@ -91,7 +91,7 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 	}
 }
 
-static void compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, struct _gf_sc_texture_handler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key)
+static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHandler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, GF_ColorKey *col_key)
 {
 	GF_VideoSurface video_src;
 	Fixed w_scale, h_scale, tmp;
@@ -102,7 +102,7 @@ static void compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, struct _gf_sc
 	GF_IRect clipped_final = *clip;
 	GF_Rect final = *unclip;
 
-	if (!txh->data) return;
+	if (!txh->data) return 1;
 
 	if (!visual->compositor->has_size_info && !(visual->compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) 
 		&& (visual->compositor->override_size_flags & 1) 
@@ -113,12 +113,12 @@ static void compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, struct _gf_sc
 			visual->compositor->scene_width = txh->width;
 			visual->compositor->scene_height = txh->height;
 			visual->compositor->msg_type |= GF_SR_CFG_OVERRIDE_SIZE;
-			return;
+			return 1;
 		}
 	}
 	
 	/*this should never happen but we check for float rounding safety*/
-	if (final.width<=0 || final.height <=0) return;
+	if (final.width<=0 || final.height <=0) return 1;
 
 	w_scale = final.width / txh->width;
 	h_scale = final.height / txh->height;
@@ -156,12 +156,12 @@ static void compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, struct _gf_sc
 	if (clipped_final.x<0) {
 		clipped_final.width += clipped_final.x;
 		clipped_final.x = 0;
-		if (clipped_final.width <= 0) return;
+		if (clipped_final.width <= 0) return 0;
 	}
 	if (clipped_final.y<0) {
 		clipped_final.height += clipped_final.y;
 		clipped_final.y = 0;
-		if (clipped_final.height <= 0) return;
+		if (clipped_final.height <= 0) return 0;
 	}
 	if (clipped_final.x + clipped_final.width > (s32) output_width) {
 		clipped_final.width = output_width - clipped_final.x;
@@ -173,7 +173,7 @@ static void compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, struct _gf_sc
 	}
 	/*needed in direct drawing since clipping is not performed*/
 	if (clipped_final.width<=0 || clipped_final.height <=0) 
-		return;
+		return 0;
 
 	/*set dest window*/
 	dst_wnd.x = (u32) clipped_final.x;
@@ -212,16 +212,14 @@ static void compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, struct _gf_sc
 	
 #undef ROUND_FIX
 
-
-	if (!use_blit && (src_wnd.x || src_wnd.y) ) {
-		visual_2d_texture_path(visual, ctx->drawable->path, ctx, visual->compositor->traverse_state);
-		return;
-	}
+	/*avoid partial redraw that don't come close to src pixels with the bliter, this leads to 
+	ugly artefacts - fall back to rasterizer*/
+	if (!use_blit && (src_wnd.x || src_wnd.y) ) return 0;
 
 	if (src_wnd.w>txh->width) src_wnd.w=txh->width;
 	if (src_wnd.h>txh->height) src_wnd.h=txh->height;
 
-	if (!src_wnd.w || !src_wnd.h) return;
+	if (!src_wnd.w || !src_wnd.h) return 1;
 	/*make sure we lie in src bounds*/
 	if (src_wnd.x + src_wnd.w>txh->width) src_wnd.w = txh->width - src_wnd.x;
 	if (src_wnd.y + src_wnd.h>txh->height) src_wnd.h = txh->height - src_wnd.y;
@@ -247,7 +245,11 @@ static void compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, struct _gf_sc
 			default:
 				break;
 			}
-			if (col_key && (GF_COL_A(*col_key) || !(hw_caps & GF_VIDEO_HW_HAS_COLOR_KEY))) use_soft_stretch = 1;
+			/*disable HW color keying*/
+			if (col_key) {
+//				if ((col_key->alpha!=0xFF) || !(hw_caps & GF_VIDEO_HW_HAS_COLOR_KEY)) use_soft_stretch = 1;
+				use_soft_stretch = 1;
+			}
 		}
 	}
 
@@ -274,10 +276,11 @@ static void compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, struct _gf_sc
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 0);
 	}
 	visual_2d_init_raster(visual);
+	return 1;
 }
 
 
-Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, u32 *col_key)
+Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
 {
 	u8 alpha = 0xFF;
 
@@ -313,7 +316,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 
 	/*direct drawing, no clippers */
 	if (tr_state->direct_draw) {
-		compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key);
+		return compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key);
 	}
 	/*draw bitmap for all dirty rects*/
 	else {
@@ -327,7 +330,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, col_key);
+				if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, col_key))
+					return 0;
 			}
 		}
 	}

@@ -653,7 +653,7 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	gf_cmx_init(&compositor->traverse_state->color_mat);
 	compositor->traverse_state->direct_draw = direct_draw;
 
-	compositor->reset_graphics = 1;
+	compositor->reset_graphics = 0;
 	compositor->trans_x = compositor->trans_y = 0;
 	compositor->zoom = FIX_ONE;
 	compositor->grab_node = NULL;
@@ -740,15 +740,18 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 
 		/*hack for SVG where size is set in % - negotiate a canvas size*/
 		if (!compositor->has_size_info && w && h) {
+			do_notif = 1;
 			if (w->type!=SVG_NUMBER_PERCENTAGE) {
 				width = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, w) );
 			} else {
 				width = SC_DEF_WIDTH;
+				do_notif = 0;
 			}
 			if (h->type!=SVG_NUMBER_PERCENTAGE) {
 				height = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, h) );
 			} else {
 				height = SC_DEF_HEIGHT;
+				do_notif = 0;
 			}
 		}
 		/*we consider that SVG has no size onfo per say, everything is handled by the viewBox if any*/
@@ -766,7 +769,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 
 		/*set scene size only if different, otherwise keep scaling/FS*/
 		if ( !width || (compositor->scene_width!=width) || !height || (compositor->scene_height!=height)) {
-			do_notif = compositor->has_size_info || (!compositor->scene_width && !compositor->scene_height);
+			do_notif = do_notif || compositor->has_size_info || (!compositor->scene_width && !compositor->scene_height);
 			gf_sc_set_scene_size(compositor, width, height);
 
 			/*get actual size in pixels*/
@@ -792,18 +795,21 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 #endif
 	
 	gf_sc_lock(compositor, 0);
+	if (scene_graph)
+		compositor->draw_next_frame = 1;
 	/*here's a nasty trick: the app may respond to this by calling a gf_sc_set_size from a different
 	thread, but in an atomic way (typically happen on Win32 when changing the window size). WE MUST
 	NOTIFY THE SIZE CHANGE AFTER RELEASING THE RENDERER MUTEX*/
 	if (do_notif && compositor->user->EventProc) {
 		GF_Event evt;
+		/*wait for user ack*/
+		compositor->draw_next_frame = 0;
+
 		evt.type = GF_EVENT_SCENE_SIZE;
 		evt.size.width = width;
 		evt.size.height = height;
 		compositor->user->EventProc(compositor->user->opaque, &evt);
 	} 
-	if (scene_graph)
-		compositor->draw_next_frame = 1;
 	return GF_OK;
 }
 
@@ -1459,6 +1465,8 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #endif
 			compositor_2d_set_aspect_ratio(compositor);
 
+		compositor->draw_next_frame = 0;
+
 		if (compositor->has_size_info) {
 			compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
 			compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
@@ -1630,6 +1638,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		traverse_time = gf_sys_clock();
 		time_spent_in_anim = 0;
 #endif
+
 		/*video flush only*/
 		if (compositor->draw_next_frame==2) {
 			compositor->draw_next_frame = 0;
@@ -1947,13 +1956,16 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool from_user)
 {
 	/*not assigned yet*/
-	if (!compositor) return 0;
+	if (!compositor || !compositor->visual) return 0;
 	/*we're reconfiguring the video output, cancel all messages*/
 	if (compositor->msg_type & GF_SR_IN_RECONFIG) return 0;
 
 	switch (event->type) {
 	case GF_EVENT_REFRESH:
-		if (!compositor->draw_next_frame) compositor->draw_next_frame = 2;
+		if (!compositor->draw_next_frame) {
+			/*when refreshing the window in 3D we redraw the scene since we don't know the GL doublebuffer config*/
+			compositor->draw_next_frame = (compositor->visual->type_3d) ? 1 : 2;
+		}
 		break;
 	case GF_EVENT_VIDEO_SETUP:
 		gf_sc_reset_graphics(compositor);
