@@ -600,7 +600,7 @@ struct _traversing_state
 	/*node for which bounds should be fetched - SVG only*/
 	GF_Node *for_node;
 	Bool abort_bounds_traverse;
-
+	
 	GF_List *use_stack;
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
@@ -866,7 +866,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *sr);
 void compositor_2d_set_user_transform(GF_Compositor *sr, Fixed zoom, Fixed tx, Fixed ty, Bool is_resize) ;
 GF_Err compositor_2d_get_video_access(GF_VisualManager *surf);
 void compositor_2d_release_video_access(GF_VisualManager *surf);
-Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, u32 *col_key);
+Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, GF_ColorKey *col_key);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res);
 

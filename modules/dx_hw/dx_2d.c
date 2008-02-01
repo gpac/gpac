@@ -322,7 +322,7 @@ static void *LockOSContext(GF_VideoOutput *dr, Bool do_lock)
 }
 
 
-static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 *key)
+static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, GF_Window *dst_wnd, GF_ColorKey *key)
 {
 	HRESULT hr;
 	u32 dst_w, dst_h, src_w, src_h, flags;
@@ -337,8 +337,10 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 	if (dst_wnd != NULL) MAKERECT(r_dst, dst_wnd);
 
 	if (key) {
+		u32 col;
 		DDCOLORKEY ck;
-		ck.dwColorSpaceHighValue = ck.dwColorSpaceLowValue = *key;
+		col = GF_COL_ARGB(0xFF, key->r, key->g, key->b);
+		ck.dwColorSpaceHighValue = ck.dwColorSpaceLowValue = col;
 		hr = IDirectDrawSurface_SetColorKey(src->pSurface, DDCKEY_SRCBLT, &ck);
 		if (FAILED(hr)) return GF_IO_ERR;
 	}
@@ -483,7 +485,7 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 	return &dd->rgb_pool;
 }
 
-static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 *key)
+static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, GF_ColorKey *key)
 {
 	GF_VideoSurface temp_surf;
 	GF_Err e;

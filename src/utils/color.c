@@ -603,10 +603,10 @@ static void load_line_yuva(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 static void gf_cmx_apply_argb(GF_ColorMatrix *_this, u8 *a_, u8 *r_, u8 *g_, u8 *b_);
 
 GF_EXPORT
-GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, s32 dst_x_pitch, u8 alpha, Bool flip, u32 *col_key, GF_ColorMatrix *cmat)
+GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, s32 dst_x_pitch, u8 alpha, Bool flip, GF_ColorKey *key, GF_ColorMatrix *cmat)
 {
 	u8 *tmp, *rows;
-	u8 ka, kr, kg, kb;
+	u8 ka, kr, kg, kb, kl, kh;
 	s32 src_row;
 	u32 i, yuv_type = 0;
 	Bool has_alpha = (alpha!=0xFF) ? 1 : 0;
@@ -618,7 +618,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	load_line_proto load_line = NULL;
 
 	if (cmat && (cmat->m[15] || cmat->m[16] || cmat->m[17] || (cmat->m[18]!=FIX_ONE) || cmat->m[19] )) has_alpha = 1;
-	else if (col_key) has_alpha = GF_COL_A(*col_key) ? 1 : 0;
+	else if (key && (key->alpha<0xFF)) has_alpha = 1;
 
 	switch (src->pixel_format) {
 	case GF_PIXEL_RGB_555:
@@ -732,12 +732,15 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	/*for 2 and 4 bytes colors, precompute pitch for u16 and u32 type casting*/
 	if ((dst_bpp==2) || (dst_bpp==4) ) dst_x_pitch /= (s32) dst_bpp;
 
-	ka = kr = kg = kb = 0;
-	if (col_key) {
-		ka = GF_COL_A(*col_key);
-		kr = GF_COL_R(*col_key);
-		kg = GF_COL_G(*col_key);
-		kb = GF_COL_B(*col_key);
+	kl = kh = ka = kr = kg = kb = 0;
+	if (key) {
+		ka = key->alpha;
+		kr = key->r;
+		kg = key->g;
+		kb = key->b;
+		kl = key->low;
+		kh = key->high;
+		if (kh==kl) kh++;
 	}
 
 	while (dst_h) {
@@ -766,11 +769,21 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 							gf_cmx_apply_argb(cmat, &tmp[idx+3], &tmp[idx], &tmp[idx+1], &tmp[idx+2]);
 						}
 					}
-					if (col_key) {
+					if (key) {
 						for (i=0; i<2*src_w; i++) {
 							u32 idx = 4*i; 
-							if ( (tmp[idx]==kr) && (tmp[idx+1]==kg) && (tmp[idx+2]==kb)) 
-								tmp[idx+3] = ka;
+							s32 thres, v;
+							v = tmp[idx]-kr; thres = ABS(v);
+							v = tmp[idx+1]-kg; thres += ABS(v);
+							v = tmp[idx+2]-kb; thres += ABS(v);
+							thres/=3;
+#if 0
+							if (thres < kl) tmp[idx+3] = 0;
+							else if (thres <= kh) tmp[idx+3] = (thres-kl)*ka / (kh-kl);
+#else
+							if (thres < kh) tmp[idx+3] = 0;
+#endif
+							else tmp[idx+3] = ka;
 						}
 					}
 				}
@@ -784,10 +797,15 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 						gf_cmx_apply_argb(cmat, &tmp[idx+3], &tmp[idx], &tmp[idx+1], &tmp[idx+2]);
 					}
 				}
-				if (col_key) {
+				if (key) {
 					for (i=0; i<src_w; i++) {
 						u32 idx = 4*i; 
-						if ( (tmp[idx]==kr) && (tmp[idx+1]==kg)  && (tmp[idx+2]==kb)) tmp[idx+3] = ka;
+						s32 thres;
+						thres = (255 + (tmp[idx]-kr)) % 255;
+						thres += (255 + (tmp[idx+1]-kg)) % 255;
+						thres += (255 + (tmp[idx+2]-kb)) % 255;
+						if (thres > 3*0xFE) tmp[idx+3] = ka;
+//						if ( (tmp[idx]==kr) && (tmp[idx+1]==kg) && (tmp[idx+2]==kb)) tmp[idx+3] = ka;
 					}
 				}
 			}

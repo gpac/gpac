@@ -539,7 +539,7 @@ static void span_build_mesh(GF_TextSpan *span)
 /*and don't build too small ones otherwise result is as crap as non-textured*/
 #define MIN_TX_SIZE		16
 
-static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Bool for_3d)
+static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Bool for_3d, GF_TraverseState *tr_state)
 {
 	GF_Path *span_path;
 	GF_Rect bounds;
@@ -574,6 +574,9 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	max = INT2FIX(MAX_TX_SIZE);
 	min = INT2FIX(MIN_TX_SIZE);
 	scale = compositor->zoom;
+	if (!tr_state->pixel_metrics) {
+		scale = gf_mulfix(scale, tr_state->min_hsize);
+	}
 	if ((gf_mulfix(scale, bounds.width)>max) || (gf_mulfix(scale, bounds.height)>max)) {
 		scale = MIN(gf_divfix(max, bounds.width), gf_divfix(max, bounds.height));
 	} 
@@ -819,7 +822,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 					visual_3d_setup_appearance(tr_state);
 			}
 
-			if (can_texture_text && span_setup_texture(tr_state->visual->compositor, span, 1)) {
+			if (can_texture_text && span_setup_texture(tr_state->visual->compositor, span, 1, tr_state)) {
 				tr_state->mesh_has_texture = 1;
 				gf_sc_texture_enable(span->ext->txh, NULL);
 				visual_3d_mesh_paint(tr_state, span->ext->mesh);
@@ -997,7 +1000,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 		
 		if (hl_color) visual_2d_fill_rect(tr_state->visual, ctx, &span->bounds, hl_color, 0, tr_state);
 
-		if (use_texture_text && span_setup_texture(tr_state->visual->compositor, span, 0)) {
+		if (use_texture_text && span_setup_texture(tr_state->visual->compositor, span, 0, tr_state)) {
 			visual_2d_texture_path_text(tr_state->visual, ctx, span->ext->path, &span->bounds, span->ext->txh, tr_state);
 		} else {
 			gf_font_span_draw_2d(tr_state, span, ctx, bounds);

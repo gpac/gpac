@@ -119,9 +119,8 @@ static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 
 static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 {
-	u32 keyColor;
+	GF_ColorKey *key, keyColor;
 	GF_Compositor *compositor;
-	Bool has_key;
 	DrawableContext *ctx = tr_state->ctx;
 	BitmapStack *st = (BitmapStack *) gf_node_get_private(node);
 
@@ -131,22 +130,26 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 	ctx->transform.m[1] = ctx->transform.m[3] = 0;
 
 	/*check for material key materialKey*/
-	has_key = 0;
+	key = NULL;
 	if (ctx->appear) {
 		M_Appearance *app = (M_Appearance *)ctx->appear;
 		if ( app->material && (gf_node_get_tag((GF_Node *)app->material)==TAG_MPEG4_MaterialKey) ) {
-			if (((M_MaterialKey*)app->material)->isKeyed && ((M_MaterialKey*)app->material)->transparency) {
-				SFColor col = ((M_MaterialKey*)app->material)->keyColor;
-				has_key = 1;
-				keyColor = GF_COL_ARGB_FIXED(
-								FIX_ONE - ((M_MaterialKey*)app->material)->transparency,
-								col.red, col.green, col.blue);
+			M_MaterialKey*mk = (M_MaterialKey*)app->material;
+			if (mk->isKeyed) {
+				keyColor.r = FIX2INT(mk->keyColor.red * 255);
+				keyColor.g = FIX2INT(mk->keyColor.green * 255);
+				keyColor.b = FIX2INT(mk->keyColor.blue * 255);
+				keyColor.alpha = FIX2INT( (FIX_ONE - mk->transparency) * 255);
+				keyColor.low = FIX2INT(mk->lowThreshold * 255);
+				keyColor.high = FIX2INT(mk->highThreshold * 255);
+				key = &keyColor;
+
 			}
 		}
 	}
 
 	/*no HW, fall back to the graphics driver*/
-	if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, has_key ? &keyColor : NULL)) {
+	if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, key)) {
 		GF_Matrix2D _mat;
 		GF_Rect rc = gf_rect_center(ctx->bi->unclip.width, ctx->bi->unclip.height);
 		gf_mx2d_copy(_mat, ctx->transform);
@@ -225,8 +228,13 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 	} else {
 		M_Appearance *app = (M_Appearance *)ctx->appear;
 		if ( app->material && (gf_node_get_tag((GF_Node *)app->material)==TAG_MPEG4_MaterialKey) ) {
-			if (((M_MaterialKey*)app->material)->isKeyed && ((M_MaterialKey*)app->material)->transparency)
+			if (((M_MaterialKey*)app->material)->isKeyed) {
+				if (((M_MaterialKey*)app->material)->transparency==FIX_ONE) {
+					visual_2d_remove_last_context(tr_state->visual);
+					return;
+				}
 				ctx->flags |= CTX_IS_TRANSPARENT;
+			}
 		} 
 		else if (!tr_state->color_mat.identity) {
 			ctx->flags |= CTX_IS_TRANSPARENT;

@@ -25,7 +25,7 @@
 #include "visual_manager.h"
 
 
-static Bool visual_draw_bitmap_stub(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, u32 *col_key)
+static Bool visual_draw_bitmap_stub(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, GF_ColorKey *col_key)
 {
 	return 0;
 }
