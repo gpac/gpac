@@ -29,7 +29,7 @@ InitialObjectDescriptor {
 
 OrderedGroup {
  children [
-  Background2D {
+  DEF B Background2D {
    backColor 0 0 1
   }
   WorldInfo {
@@ -38,7 +38,7 @@ OrderedGroup {
     "The MaterialKey node allows defining a key color or color range and to make that color transparent in the texture. The degree of transparency can be specified using the transparency property." 
      
     "" 
-    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.4 $" 
+    "GPAC Regression Tests" "$Date: 2008-02-04 08:54:54 $ - $Revision: 1.5 $" 
     "(C) 2002-2004 GPAC Team"
    ]
    title "Color Keying on Video using the MaterialKey node"
@@ -54,12 +54,12 @@ OrderedGroup {
          url [od:10]
          loop FALSE
         }
-        material MaterialKey {
+        material DEF MK MaterialKey {
          isKeyed TRUE
-         lowThreshold 0
-         highThreshold 1
-         keyColor 0 0 0
-         transparency 1
+         lowThreshold 0.3
+         highThreshold 0.3
+         keyColor 1 1 0 
+         transparency 0
         }
        }
        geometry Bitmap {
@@ -70,8 +70,17 @@ OrderedGroup {
     }
    ]
   }
+  DEF TS TimeSensor {loop TRUE cycleInterval 10.0}
+  DEF CI ColorInterpolator {
+   key [0 1]
+   keyValue [1 1 1, 0 0 1]
+  }
  ]
 }
+
+#ROUTE TS.fraction_changed TO MK.highThreshold
+ROUTE TS.fraction_changed TO CI.set_fraction
+ROUTE CI.value_changed TO B.backColor
 
 AT 0 {
   UPDATE OD [
