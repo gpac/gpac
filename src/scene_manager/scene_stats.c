@@ -382,7 +382,9 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 		}
 	} else 
 #endif
-	{
+	if (n->sgprivate->tag == TAG_DOMText) {
+	} else if (n->sgprivate->tag == TAG_DOMFullNode) {
+	} else {
 		count = gf_node_get_field_count(n);
 	
 		for (i=0; i<count; i++) {
