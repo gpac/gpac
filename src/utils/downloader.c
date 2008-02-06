@@ -629,6 +629,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	sess->status = GF_NETIO_CONNECTED;
 	gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
 	gf_sk_set_block_mode(sess->sock, 1);
+	gf_sk_set_buffer_size(sess->sock, 0, GF_DOWNLOAD_BUFFER_SIZE);
 	gf_dm_configure_cache(sess);
 
 #ifdef GPAC_HAS_SSL

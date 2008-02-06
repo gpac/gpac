@@ -314,6 +314,23 @@ const char *gf_cfg_get_key_name(GF_Config *iniFile, const char *secName, u32 key
 }
 
 GF_EXPORT
+void gf_cfg_del_section(GF_Config *iniFile, const char *secName)
+{
+	u32 i;
+	IniSection *p;
+	if (!iniFile) return;
+
+	i = 0;
+	while ((p = gf_list_enum(iniFile->sections, &i))) {
+		if (!strcmp(secName, p->section_name)) {
+			DelSection(p);
+			gf_list_rem(iniFile->sections, i-1);
+			return;
+		}
+	}
+}
+
+GF_EXPORT
 GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue, u32 index)
 {
 	u32 i;

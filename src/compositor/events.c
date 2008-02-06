@@ -37,6 +37,25 @@ static void gf_sc_reset_collide_cursor(GF_Compositor *compositor)
 }
 
 
+static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
+{
+	if (event->type>GF_EVENT_MOUSEMOVE) return 0;
+
+	if (compositor->text_selection)
+		return 1;
+	switch (event->type) {
+	case GF_EVENT_MOUSEMOVE:
+		if (compositor->text_selection)
+			return 1;
+		break;
+	case GF_EVENT_MOUSEDOWN:
+		if (compositor->hit_text)
+			compositor->text_selection = compositor->hit_text;
+		break;
+	}
+	return 0;
+}
+
 static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 {
 #ifndef GPAC_DISABLE_SVG
@@ -273,11 +292,37 @@ static Bool exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
 {
 	Bool ret;
+	GF_Compositor *compositor = visual->compositor;
 	tr_state->traversing_mode = TRAVERSE_PICK;
 #ifndef GPAC_DISABLE_3D
 	tr_state->layer3d = NULL;
 #endif
-	visual->compositor->hit_appear = NULL;
+	
+	compositor->hit_appear = NULL;
+	compositor->hit_text = NULL;
+
+	if (compositor->text_selection) {
+		if (ev->type==GF_EVENT_MOUSEUP) {
+			if (!compositor->store_text_sel) compositor->store_text_sel = 1;
+			else {
+				compositor->store_text_sel = 0;
+				compositor->text_selection = NULL;
+				if (compositor->selected_text) free(compositor->selected_text);
+				compositor->selected_text = NULL;
+				if (compositor->sel_buffer) free(compositor->sel_buffer);
+				compositor->sel_buffer = NULL;
+				compositor->sel_buffer_alloc = 0;
+				compositor->sel_buffer_len = 0;
+
+				compositor->draw_next_frame = 1;
+			}
+		}
+		else if (ev->type==GF_EVENT_MOUSEDOWN) {
+			compositor->store_text_sel = 0;
+			compositor->text_selection = NULL;
+			compositor->draw_next_frame = 1;
+		}
+	}
 	
 	/*pick node*/
 #ifndef GPAC_DISABLE_3D
@@ -289,13 +334,16 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 	
 	gf_list_reset(tr_state->vrml_sensors);
 
-	if (visual->compositor->hit_use_dom_events) {
-		ret = exec_event_dom(visual->compositor, ev);
+	if (exec_text_selection(compositor, ev))
+		return 1;
+
+	if (compositor->hit_use_dom_events) {
+		ret = exec_event_dom(compositor, ev);
 		if (ret) return 1;
 		/*no vrml sensors above*/
-		if (!gf_list_count(visual->compositor->sensors)) return 0;
+		if (!gf_list_count(compositor->sensors)) return 0;
 	}
-	return exec_event_vrml(visual->compositor, ev);
+	return exec_event_vrml(compositor, ev);
 }
 
 Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)

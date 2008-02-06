@@ -1043,3 +1043,15 @@ void gf_term_sample_clocks(GF_Terminal *term)
 {
 	gf_term_sample_scenetime(term->root_scene);
 }
+
+const char *gf_term_get_text_selection(GF_Terminal *term, Bool probe_only)
+{
+	Bool has_text;
+	if (!term) return NULL;
+	has_text = gf_sc_has_text_selection(term->compositor);
+	if (!has_text) return NULL;
+	if (probe_only) return "";
+	return gf_sc_get_selected_text(term->compositor);
+}
+
+

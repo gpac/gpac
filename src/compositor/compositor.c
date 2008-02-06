@@ -26,6 +26,7 @@
 /*for user and terminal API (options and InputSensor)*/
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/options.h>
+#include <gpac/utf.h>
 
 #include "nodes_stacks.h"
 
@@ -457,6 +458,9 @@ void gf_sc_del(GF_Compositor *compositor)
 	gf_node_unregister(compositor->focus_highlight->node, NULL);
 	drawable_del_ex(compositor->focus_highlight, compositor);
 
+	if (compositor->selected_text) free(compositor->selected_text);
+	if (compositor->sel_buffer) free(compositor->sel_buffer);
+
 	visual_del(compositor->visual);
 	gf_list_del(compositor->sensors);
 	gf_list_del(compositor->previous_sensors);
@@ -778,7 +782,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 
 			if (!compositor->user->os_window_handler) {
 				/*only notify user if we are attached to a window*/
-				do_notif = 0;
+				//do_notif = 0;
 				if (compositor->video_out->max_screen_width && (width > compositor->video_out->max_screen_width))
 					width = compositor->video_out->max_screen_width;
 				if (compositor->video_out->max_screen_height && (height > compositor->video_out->max_screen_height))
@@ -885,6 +889,11 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FocusHighlightStroke");
 	if (sOpt) sscanf(sOpt, "%x", &compositor->highlight_stroke);
 	else compositor->highlight_stroke = 0xFF000000;
+
+	compositor->text_sel_color = 0xFFAAAAFF;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TextSelectHighlight");
+	if (sOpt) sscanf(sOpt, "%x", &compositor->text_sel_color);
+	if (!compositor->text_sel_color) compositor->text_sel_color = 0xFFAAAAFF;
 
 	/*load options*/
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DirectDraw");
@@ -1445,6 +1454,8 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		/*change in 2D/3D config, force AR recompute/video restup*/
 		if (was_3d != compositor->visual->type_3d) compositor->recompute_ar = was_3d ? 1 : 2;
 #endif
+
+		compositor->recompute_ar = 1;
 	}
 
 #ifndef GPAC_DISABLE_LOG
@@ -2168,3 +2179,39 @@ Bool gf_sc_pick_in_clipper(GF_TraverseState *tr_state, GF_Rect *clip)
 	}
 	return 1;
 }
+
+
+Bool gf_sc_has_text_selection(GF_Compositor *compositor)
+{
+	return compositor->store_text_sel;
+}
+
+const char *gf_sc_get_selected_text(GF_Compositor *compositor)
+{
+	u16 *srcp;
+	u32 len;
+	if (!compositor->store_text_sel) return NULL;
+
+	gf_sc_lock(compositor, 1);
+
+	compositor->traverse_state->traversing_mode = TRAVERSE_GET_TEXT;
+	if (compositor->sel_buffer) {
+		free(compositor->sel_buffer);
+		compositor->sel_buffer = NULL;
+	}
+	compositor->sel_buffer_len = 0;
+	compositor->sel_buffer_alloc = 0;
+	gf_node_traverse(compositor->text_selection, compositor->traverse_state);
+	compositor->traverse_state->traversing_mode = 0;
+	compositor->sel_buffer[compositor->sel_buffer_len]=0;
+	srcp = compositor->sel_buffer;
+	if (compositor->selected_text) free(compositor->selected_text);
+	compositor->selected_text = malloc(sizeof(char)*2*compositor->sel_buffer_len);
+	len = gf_utf8_wcstombs(compositor->selected_text, 2*compositor->sel_buffer_len, &srcp);
+	if ((s32)len<0) len = 0;
+	compositor->selected_text[len] = 0;
+	gf_sc_lock(compositor, 0);
+
+	return compositor->selected_text;
+}
+

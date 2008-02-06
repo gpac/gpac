@@ -83,11 +83,9 @@ void gf_path_del(GF_Path *gp)
 	free(gp);
 }
 
-#define PATH_POINT_ALLOC_STEP	10
-
-#define GF_2D_REALLOC_POINT(_gp, _nb)	\
-	if (_gp->n_alloc_points < _gp->n_points+_nb+1) {	\
-		_gp->n_alloc_points = _gp->n_points+_nb+1;	\
+#define GF_2D_REALLOC(_gp)	\
+	if (_gp->n_alloc_points < _gp->n_points+3) {	\
+		_gp->n_alloc_points = (_gp->n_alloc_points<5) ? 10 : (_gp->n_alloc_points*3/2);	\
 		_gp->points = (GF_Point2D *)realloc(_gp->points, sizeof(GF_Point2D)*(_gp->n_alloc_points));	\
 		_gp->tags = (u8 *) realloc(_gp->tags, sizeof(u8)*(_gp->n_alloc_points));	\
 	}	\
@@ -106,7 +104,7 @@ GF_Err gf_path_add_move_to(GF_Path *gp, Fixed x, Fixed y)
 	}
 
 	gp->contours = (u32 *) realloc(gp->contours, sizeof(u32)*(gp->n_contours+1));
-	GF_2D_REALLOC_POINT(gp, 1)
+	GF_2D_REALLOC(gp)
 
 	gp->points[gp->n_points].x = x;
 	gp->points[gp->n_points].y = y;
@@ -129,7 +127,7 @@ GF_Err gf_path_add_line_to(GF_Path *gp, Fixed x, Fixed y)
 	if (!gp || !gp->n_contours) return GF_BAD_PARAM;
 	/*we allow line to same point as move (seen in SVG sequences) - striking will make a point*/
 
-	GF_2D_REALLOC_POINT(gp, 1)
+	GF_2D_REALLOC(gp)
 	gp->points[gp->n_points].x = x;
 	gp->points[gp->n_points].y = y;
 	gp->tags[gp->n_points] = 1;
@@ -168,7 +166,7 @@ GF_EXPORT
 GF_Err gf_path_add_cubic_to(GF_Path *gp, Fixed c1_x, Fixed c1_y, Fixed c2_x, Fixed c2_y, Fixed x, Fixed y)
 {
 	if (!gp || !gp->n_contours) return GF_BAD_PARAM;
-	GF_2D_REALLOC_POINT(gp, 3)
+	GF_2D_REALLOC(gp)
 	gp->points[gp->n_points].x = c1_x;
 	gp->points[gp->n_points].y = c1_y;
 	gp->tags[gp->n_points] = GF_PATH_CURVE_CUBIC;
@@ -199,7 +197,7 @@ GF_EXPORT
 GF_Err gf_path_add_quadratic_to(GF_Path *gp, Fixed c_x, Fixed c_y, Fixed x, Fixed y)
 {
 	if (!gp || !gp->n_contours) return GF_BAD_PARAM;
-	GF_2D_REALLOC_POINT(gp, 2)
+	GF_2D_REALLOC(gp)
 	gp->points[gp->n_points].x = c_x;
 	gp->points[gp->n_points].y = c_y;
 	gp->tags[gp->n_points] = GF_PATH_CURVE_CONIC;

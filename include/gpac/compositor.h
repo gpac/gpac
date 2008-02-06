@@ -96,6 +96,8 @@ compositor FPS)
 */
 Double gf_sc_get_fps(GF_Compositor *sr, Bool absoluteFPS);
 
+Bool gf_sc_has_text_selection(GF_Compositor *compositor);
+const char *gf_sc_get_selected_text(GF_Compositor *compositor);
 
 /*user-define management: this is used for instant visual rendering of the scene graph, 
 for exporting or authoring tools preview. User is responsible for calling render when desired and shall also maintain

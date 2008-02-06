@@ -84,6 +84,7 @@ enum {
 	FILE_PREV,
 	FILE_NEXT,
 	FILE_PROPERTIES,
+	FILE_COPY,
 	TERM_RELOAD,
 	FILE_QUIT,
 	VIEW_FULLSCREEN,
@@ -340,6 +341,9 @@ private:
 	void OnCacheAbort(wxCommandEvent &event);
 	void OnUpdateCacheEnable(wxUpdateUIEvent & event);
 	void OnUpdateCacheAbort(wxUpdateUIEvent & event);
+
+	void OnFileCopy(wxCommandEvent &event);
+	void OnUpdateFileCopy(wxUpdateUIEvent &event);
 
 
 	void CheckVideoOut();

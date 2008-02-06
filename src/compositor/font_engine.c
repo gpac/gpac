@@ -296,11 +296,18 @@ static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 		while (a_glyph->next) a_glyph = a_glyph->next;
 		a_glyph->next = glyph;
 	}
+	/*space character - this may need adjustment for other empty glyphs*/
+	if (!glyph->path->n_points) {
+		glyph->path->bbox.x = 0;
+		glyph->path->bbox.width = INT2FIX(font->max_advance_h);
+		glyph->path->bbox.y = INT2FIX(font->ascent);
+		glyph->path->bbox.height = INT2FIX(font->ascent - font->descent);
+	}
 	return glyph;
 }
 
 
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *xml_lang, Bool fliped_text)
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *xml_lang, Bool fliped_text, u32 styles)
 {
 	GF_Err e;
 	u32 len, i;
@@ -332,8 +339,9 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 	if (font->em_size) 
 		span->font_scale = font_size / font->em_size;
 	span->x_scale = span->y_scale = FIX_ONE;
-	span->lang = xml_lang;
+//	span->lang = xml_lang;
 	span->flip = fliped_text;
+	span->underlined = (styles & GF_FONT_UNDERLINED) ? 1 : 0;
 	span->nb_glyphs = len;
 	span->glyphs = malloc(sizeof(void *)*len);
 	if (needs_x_offset) {
@@ -357,14 +365,16 @@ typedef struct _span_internal
 {
 	/*zoom when texture was computed*/
 	Fixed last_zoom;
-	/*texture handler*/
+	/*texture handler for bitmap text*/
 	GF_TextureHandler *txh;
 	/*texture path (rectangle)*/
 	GF_Path *path;
 
 #ifndef GPAC_DISABLE_3D
-	/*span mesh (built out of the # glyphs*/
+	/*span mesh (built out of the # glyphs)*/
 	GF_Mesh *mesh;
+	/*span texture mesh (rectangle)*/
+	GF_Mesh *tx_mesh;
 	/*span outline*/
 	GF_Mesh *outline;
 #endif
@@ -381,6 +391,7 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 		if (span->ext->path) gf_path_del(span->ext->path);
 #ifndef GPAC_DISABLE_3D
 		if (span->ext->mesh) mesh_free(span->ext->mesh);
+		if (span->ext->tx_mesh) mesh_free(span->ext->tx_mesh);
 		if (span->ext->outline) mesh_free(span->ext->outline);
 #endif
 		if (span->ext->txh) {
@@ -521,16 +532,16 @@ static void span_alloc_extensions(GF_TextSpan *span)
 static void span_build_mesh(GF_TextSpan *span)
 {
 	span_alloc_extensions(span);
-	span->ext->mesh = new_mesh();
-	mesh_set_vertex(span->ext->mesh, span->bounds.x, span->bounds.y-span->bounds.height, 0, 0, 0, FIX_ONE, 0, FIX_ONE);
-	mesh_set_vertex(span->ext->mesh, span->bounds.x+span->bounds.width, span->bounds.y-span->bounds.height, 0, 0, 0, FIX_ONE, FIX_ONE, FIX_ONE);
-	mesh_set_vertex(span->ext->mesh, span->bounds.x+span->bounds.width, span->bounds.y, 0, 0, 0, FIX_ONE, FIX_ONE, 0);
-	mesh_set_vertex(span->ext->mesh, span->bounds.x, span->bounds.y, 0, 0, 0, FIX_ONE, 0, 0);
-	mesh_set_triangle(span->ext->mesh, 0, 1, 2);
-	mesh_set_triangle(span->ext->mesh, 0, 2, 3);
-	span->ext->mesh->flags |= MESH_IS_2D;
-	span->ext->mesh->mesh_type = MESH_TRIANGLES;
-	mesh_update_bounds(span->ext->mesh);
+	span->ext->tx_mesh = new_mesh();
+	mesh_set_vertex(span->ext->tx_mesh, span->bounds.x, span->bounds.y-span->bounds.height, 0, 0, 0, FIX_ONE, 0, FIX_ONE);
+	mesh_set_vertex(span->ext->tx_mesh, span->bounds.x+span->bounds.width, span->bounds.y-span->bounds.height, 0, 0, 0, FIX_ONE, FIX_ONE, FIX_ONE);
+	mesh_set_vertex(span->ext->tx_mesh, span->bounds.x+span->bounds.width, span->bounds.y, 0, 0, 0, FIX_ONE, FIX_ONE, 0);
+	mesh_set_vertex(span->ext->tx_mesh, span->bounds.x, span->bounds.y, 0, 0, 0, FIX_ONE, 0, 0);
+	mesh_set_triangle(span->ext->tx_mesh, 0, 1, 2);
+	mesh_set_triangle(span->ext->tx_mesh, 0, 2, 3);
+	span->ext->tx_mesh->flags |= MESH_IS_2D;
+	span->ext->tx_mesh->mesh_type = MESH_TRIANGLES;
+	mesh_update_bounds(span->ext->tx_mesh);
 }
 #endif
 
@@ -561,7 +572,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 		if (span->ext->last_zoom == compositor->zoom) {
 
 #ifndef GPAC_DISABLE_3D
-			if (for_3d && !span->ext->mesh) span_build_mesh(span);
+			if (for_3d && !span->ext->tx_mesh) span_build_mesh(span);
 #endif
 			return 1;
 		}
@@ -607,8 +618,8 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	if (span->ext->path) gf_path_del(span->ext->path);
 	span->ext->path = NULL;
 #ifndef GPAC_DISABLE_3D
-	if (span->ext->mesh) mesh_free(span->ext->mesh);
-	span->ext->mesh = NULL;
+	if (span->ext->tx_mesh) mesh_free(span->ext->tx_mesh);
+	span->ext->tx_mesh = NULL;
 #endif
 
 	if (span->ext->txh) {
@@ -825,7 +836,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 			if (can_texture_text && span_setup_texture(tr_state->visual->compositor, span, 1, tr_state)) {
 				tr_state->mesh_has_texture = 1;
 				gf_sc_texture_enable(span->ext->txh, NULL);
-				visual_3d_mesh_paint(tr_state, span->ext->mesh);
+				visual_3d_mesh_paint(tr_state, span->ext->tx_mesh);
 				gf_sc_texture_disable(span->ext->txh);
 			} else {
 				span_fill_3d(span, tr_state);
@@ -875,8 +886,8 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 	gf_mx2d_copy(mx, ctx->transform);
 
 	flags = ctx->flags;
-	dx = span->off_x;
-	dy = span->off_y;
+	dx = gf_mulfix(span->off_x, span->x_scale);
+	dy = gf_mulfix(span->off_y, span->y_scale);
 	sx = gf_mulfix(span->font_scale, span->x_scale);
 	sy = gf_mulfix(span->font_scale, span->y_scale);
 	flip_text = (! tr_state->visual->center_coords) ? 1 : 0;
@@ -941,7 +952,7 @@ void gf_font_underline_span(GF_TraverseState *tr_state, GF_TextSpan *span, Drawa
 	if (span->flip) 
 		diff = sx * (span->font->descent - span->font->underline);
 	else
-		diff = sx * (- span->font->ascent - span->font->underline);
+		diff = sx * (- span->font->ascent + span->font->underline);
 
 	gf_mx2d_init(m);
 	gf_mx2d_add_scale(&m, span->bounds.width, FIX_ONE);
@@ -952,7 +963,8 @@ void gf_font_underline_span(GF_TraverseState *tr_state, GF_TextSpan *span, Drawa
 	width = ctx->aspect.pen_props.width;
 	ctx->aspect.pen_props.width = 0;
 	ctx->flags &= ~CTX_PATH_FILLED;
-	ctx->aspect.fill_color = 0xFF0000FF;
+	if (span->anchor) ctx->aspect.fill_color = 0xFF0000FF;
+
 	visual_2d_draw_path(tr_state->visual, span->font->ft_mgr->line_path, ctx, NULL, NULL, tr_state);
 	ctx->aspect.fill_color = col;
 
@@ -960,16 +972,123 @@ void gf_font_underline_span(GF_TraverseState *tr_state, GF_TextSpan *span, Drawa
 	ctx->aspect.pen_props.width = width;
 }
 
+static u32 col_reverse_video(u32 col) 
+{
+	u32 a, r, g, b;
+	a = GF_COL_A(col);
+	r = GF_COL_R(col);
+	g = GF_COL_G(col);
+	b = GF_COL_B(col);
+	return GF_COL_ARGB(a, 255-r, 255-g, 255-b);
+}
+
+static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, DrawableContext *ctx)
+{
+	u32 flags, i, start_glyph, end_glyph, color;
+	Bool flip_text;
+	Fixed dx, dy, sx, sy, width;
+	GF_Rect rc;
+	GF_Vec pt;
+	GF_Compositor *compositor = tr_state->visual->compositor;
+
+	if (compositor->text_selection != tr_state->text_parent) return;
+
+	pt.x = compositor->end_sel.x;
+	pt.y = compositor->end_sel.y;
+	pt.z = 0;
+	gf_mx_apply_vec(&compositor->hit_local_to_world, &pt);
+	sx = pt.x;
+
+	pt.x = compositor->start_sel.x;
+	pt.y = compositor->start_sel.y;
+	pt.z = 0;
+	gf_mx_apply_vec(&compositor->hit_local_to_world, &pt);
+
+	rc = span->bounds;
+	if (sx > pt.x) {
+		rc.x = pt.x;
+		rc.width = sx - pt.x;
+	} else {
+		rc.x = sx;
+		rc.width = pt.x - sx;
+	}
+
+	dx = gf_mulfix(span->off_x, span->x_scale);
+	dy = gf_mulfix(span->off_y, span->y_scale);
+	sx = gf_mulfix(span->font_scale, span->x_scale);
+	sy = gf_mulfix(span->font_scale, span->y_scale);
+	flip_text = (! tr_state->visual->center_coords) ? 1 : 0;
+
+	width = 0;
+	flags = 0;
+	if (ctx) {
+		ctx->aspect.pen_props.width;
+		ctx->aspect.pen_props.width = 0;
+		flags = ctx->flags;
+	}
+
+	color = compositor->text_sel_color;
+
+	start_glyph = end_glyph = 0;
+	for (i=0; i<span->nb_glyphs; i++) {
+		Fixed advance = sx * span->glyphs[i]->horiz_advance;
+		Fixed t_x = span->dx ? span->dx[i] : dx;
+		if (dx + advance/2 < rc.x) {
+			dx += advance;
+			continue;
+		} else if (dx > rc.x+rc.width) {
+			break;
+		} else {
+			GF_Rect g_rc = rc;
+			if (!start_glyph) start_glyph = i+1;
+			
+			if (dx + advance/2 > rc.x + rc.width) {
+				break;
+			}
+			end_glyph = i+1;
+
+			g_rc.x = dx;
+			g_rc.width = advance;
+
+			if (ctx) {
+				visual_2d_fill_rect(tr_state->visual, ctx, &g_rc, color, 0, tr_state);
+				ctx->flags = flags;
+			} else {
+				if (!compositor->sel_buffer_alloc || compositor->sel_buffer_len < compositor->sel_buffer_alloc) {
+					if (!compositor->sel_buffer_alloc) compositor->sel_buffer_alloc ++;
+					compositor->sel_buffer_alloc = 2*compositor->sel_buffer_alloc;
+					compositor->sel_buffer = realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
+				}
+				compositor->sel_buffer[compositor->sel_buffer_len] = span->glyphs[i]->utf_name;
+				compositor->sel_buffer_len++;
+			}
+
+			dx += advance;
+		}
+	}
+	if (ctx) ctx->aspect.pen_props.width = width;
+}
+
+void gf_font_spans_get_selection(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state)
+{
+	GF_TextSpan *span;
+	u32 i=0;
+	while ((span = (GF_TextSpan *)gf_list_enum(spans, &i))) {
+		gf_font_spans_select(span, tr_state, NULL);
+	}
+}
+
 
 void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_color, Bool force_texture_text, GF_Rect *bounds)
 {
 	Bool use_texture_text, is_rv;
+	GF_Compositor *compositor = tr_state->visual->compositor;
 	u32 i = 0;
 	GF_TextSpan *span;
 	DrawableContext *ctx = tr_state->ctx;
 
 	use_texture_text = 0;
-	if (force_texture_text || (tr_state->visual->compositor->texture_text_mode==GF_TEXTURE_TEXT_ALWAYS) ) {
+	if (force_texture_text || (compositor->texture_text_mode==GF_TEXTURE_TEXT_ALWAYS) ) {
 		use_texture_text = !ctx->aspect.fill_texture && !ctx->aspect.pen_props.width;
 	}
 
@@ -997,20 +1116,21 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 
 	i=ctx->sub_path_index ? ctx->sub_path_index-1 : 0;
 	while ((span = (GF_TextSpan *)gf_list_enum(spans, &i))) {
-		
-		if (hl_color) visual_2d_fill_rect(tr_state->visual, ctx, &span->bounds, hl_color, 0, tr_state);
 
-		if (use_texture_text && span_setup_texture(tr_state->visual->compositor, span, 0, tr_state)) {
+		if (compositor->text_selection)
+			gf_font_spans_select(span, tr_state, ctx);
+		else if (hl_color) 
+			visual_2d_fill_rect(tr_state->visual, ctx, &span->bounds, hl_color, 0, tr_state);
+
+		if (use_texture_text && span_setup_texture(compositor, span, 0, tr_state)) {
 			visual_2d_texture_path_text(tr_state->visual, ctx, span->ext->path, &span->bounds, span->ext->txh, tr_state);
 		} else {
 			gf_font_span_draw_2d(tr_state, span, ctx, bounds);
 		}
-		if (span->anchor) gf_font_underline_span(tr_state, span, ctx);
+		if (span->anchor || span->underlined) gf_font_underline_span(tr_state, span, ctx);
 		if (ctx->sub_path_index) break;
 	}
 	if (is_rv) tr_state->ctx->aspect.fill_color = hl_color;
-
-
 }
 
 Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, GF_Path *path, DrawAspect2D *asp, GF_TraverseState *tr_state, Bool is_text);
@@ -1028,6 +1148,11 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 	Fixed x, y;
 	GF_Compositor *compositor = tr_state->visual->compositor;
 
+	if (compositor->text_selection) {
+		if (compositor->text_selection != tr_state->text_parent) return;
+		if (compositor->store_text_sel) return;
+	}
+	
 	/*TODO: pick the real glyph and not just the bounds of the text span*/
 	count = gf_list_count(spans);
 
@@ -1060,6 +1185,7 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 		drawable_get_aspect_2d_svg(node, &asp, tr_state);
 	}
 
+	dx = dy = 0;
 	span = NULL;
 	for (i=0; i<count; i++) {
 		Fixed loc_x, loc_y;
@@ -1086,8 +1212,12 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 				if (svg_drawable_is_over(drawable, loc_x, loc_y, span->glyphs[j]->path, &asp, tr_state, 1))
 					goto picked;
 			} else {
-				if (gf_path_point_over(span->glyphs[j]->path, loc_x, loc_y))
+				GF_Rect rc;
+				gf_path_get_bounds(span->glyphs[j]->path, &rc);
+				if ( (loc_x >= rc.x) && (loc_y <= rc.y) && (loc_x <= rc.x + rc.width) && (loc_y >= rc.y - rc.height) ) {
 					goto picked;
+				}
+//				if (gf_path_point_over(span->glyphs[j]->path, loc_x, loc_y)) goto picked;
 			}
 
 			if (span->horizontal) {
@@ -1118,6 +1248,15 @@ picked:
 	compositor->hit_node = node;
 	if (span->anchor) compositor->hit_node = span->anchor;
 
+	compositor->end_sel.x = compositor->hit_world_point.x;
+	compositor->end_sel.y = compositor->hit_world_point.y;
+	if (compositor->text_selection) {
+		compositor->draw_next_frame = 1;
+	} else {
+		compositor->start_sel = compositor->end_sel;
+	}
+
+	compositor->hit_text = tr_state->text_parent;
 	compositor->hit_use_dom_events = use_dom_events;
 	compositor->hit_normal.x = compositor->hit_normal.y = 0; compositor->hit_normal.z = FIX_ONE;
 	compositor->hit_texcoords.x = gf_divfix(x, node_bounds->width) + FIX_ONE/2;

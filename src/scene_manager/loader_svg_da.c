@@ -476,6 +476,9 @@ static void svg_init_root_element(GF_SVG_Parser *parser, SVG_Element *root_svg)
 	parser->has_root = 1;
 }
 
+//#define SKIP_ALL
+//#define SKIP_ATTS
+//#define SKIP_INIT
 
 static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes, SVG_NodeStack *parent)
 {
@@ -531,8 +534,10 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		if ((tag == TAG_SVG_svg) && !parser->has_root)
 			svg_init_root_element(parser, elt);
 	}
+
 	gf_node_register((GF_Node *)elt, (parent ? (GF_Node *)parent->node : NULL));
 	if (parent && elt) gf_node_list_add_child_last( & parent->node->children, (GF_Node*)elt, & parent->last_child);
+
 
 	needs_init = 1;
 
@@ -568,6 +573,10 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 	}
 
 	ev_event = ev_observer = NULL;
+
+#ifdef SKIP_ATTS
+	nb_attributes = 0;
+#endif
 
 	/*parse all att*/
 	for (i=0; i<nb_attributes; i++) {
@@ -711,7 +720,9 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 //		}
 	}
 
+#ifndef SKIP_INIT
 	if (needs_init) gf_node_init((GF_Node *)elt);
+#endif
 
 	if (parent && elt) {
 		/*mark parent element as dirty (new child added) and invalidate parent graph for progressive rendering*/
@@ -1017,6 +1028,10 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	SVG_Element *elt;
 	SVG_Element *cond = NULL;
 
+#ifdef SKIP_ALL
+	return;
+#endif
+
 	parent = (SVG_NodeStack *)gf_list_last(parser->node_stack);
 
 	/*switch to conditional*/
@@ -1298,6 +1313,10 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)sax_cbck;
 	SVG_NodeStack *top = (SVG_NodeStack *)gf_list_last(parser->node_stack);
 
+#ifdef SKIP_ALL
+	return;
+#endif
+
 	if (!top) {
 		if (parser->laser_au && !strcmp(name, "sceneUnit")) {
 			parser->laser_au = NULL;
@@ -1390,6 +1409,10 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	u32 skip_text;
 	u32 tag;
 
+#ifdef SKIP_ALL
+	return;
+#endif
+
 	if (top && top->unknown_depth && !parser->command_depth) return;
 	if (!elt && !parser->command) return;
 
@@ -1481,9 +1504,8 @@ static void svg_flush_animations(GF_SVG_Parser *parser)
 {
 	while (gf_list_count(parser->defered_animations)) {
 		SVG_DeferedAnimation *anim = (SVG_DeferedAnimation *)gf_list_get(parser->defered_animations, 0);
-		if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL, 2)) {
-			svg_delete_defered_anim(anim, parser->defered_animations);
-		}
+		svg_parse_animation(parser, parser->load->scene_graph, anim, NULL, 2);
+		svg_delete_defered_anim(anim, parser->defered_animations);
 	}
 }
 

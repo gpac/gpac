@@ -185,6 +185,7 @@ EXPORTS
 	gf_modules_close_interface
 	gf_modules_get_option
 	gf_modules_set_option
+	gf_modules_get_config
 
 ;utf.h exports
 	gf_utf8_wcstombs
@@ -1092,6 +1093,7 @@ EXPORTS
 	gf_term_process_step
 	gf_term_get_service_interface
 	gf_term_get_service_info
+	gf_term_get_text_selection
 
 ;compositor.h exports
 	gf_sc_new

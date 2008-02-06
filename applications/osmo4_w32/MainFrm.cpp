@@ -143,6 +143,9 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND(ID_FILE_EXIT, OnFileExit)
 	ON_COMMAND(ID_VIEW_CPU, OnViewCPU)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_CPU, OnUpdateViewCPU)
+
+	ON_COMMAND(ID_FILE_COPY, OnFileCopy)
+	ON_UPDATE_COMMAND_UI(ID_FILE_COPY, OnUpdateFileCopy)
 	
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
@@ -1441,3 +1444,35 @@ void CMainFrame::OnUpdateViewCPU(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_show_rti);
 }
 
+
+void CMainFrame::OnFileCopy()
+{
+	u32 len;
+	const char *text = gf_term_get_text_selection(GetApp()->m_term, 0);
+	if (!text) return;
+
+	if (!IsClipboardFormatAvailable(CF_TEXT)) return;
+	if (!OpenClipboard()) return;
+	EmptyClipboard();
+	
+	len = strlen(text);
+	if (!len) return;
+
+	HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, (len + 1) * sizeof(char)); 
+	LPTSTR lptstrCopy = (char *) GlobalLock(hglbCopy);
+	memcpy(lptstrCopy, text, len * sizeof(char)); 
+	lptstrCopy[len] = 0;
+	GlobalUnlock(hglbCopy); 
+	SetClipboardData(CF_TEXT, hglbCopy);
+	CloseClipboard(); 
+}
+
+void CMainFrame::OnUpdateFileCopy(CCmdUI* pCmdUI)
+{
+	Osmo4 *app = GetApp();
+	if (app->m_term && (gf_term_get_text_selection(app->m_term, 1)!=NULL)) {
+		pCmdUI->Enable(TRUE);
+	} else {
+		pCmdUI->Enable(FALSE);
+	}
+}

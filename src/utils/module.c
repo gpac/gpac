@@ -177,6 +177,13 @@ GF_Err gf_modules_set_option(GF_BaseInterface *ifce, const char *secName, const 
 }
 
 GF_EXPORT
+GF_Config *gf_modules_get_config(GF_BaseInterface *ifce)
+{
+	if (!ifce || !ifce->HPLUG) return NULL;
+	return ((ModuleInstance *)ifce->HPLUG)->plugman->cfg;
+}
+
+GF_EXPORT
 const char *gf_modules_get_file_name(GF_ModuleManager *pm, u32 i)
 {
 	ModuleInstance *inst = (ModuleInstance *) gf_list_get(pm->plug_list, i);

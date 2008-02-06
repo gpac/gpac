@@ -650,11 +650,12 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		ch->pck_sn = hdr.packetSequenceNumber;
 	}
 
-	/*if idle or empty, skip the packet*/
-	if (hdr.idleFlag || (hdr.paddingFlag && !hdr.paddingBits)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: Idle or empty packet - skipping\n", ch->esd->ESID));
+	/*if empty, skip the packet*/
+	if (hdr.paddingFlag && !hdr.paddingBits) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: Empty packet - skipping\n", ch->esd->ESID));
 		return;
 	}
+	/*IDLE stream shall be processed*/
 
 
 	NewAU = 0;

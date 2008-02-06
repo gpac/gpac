@@ -311,6 +311,22 @@ struct __tag_compositor
 	/*distance from ray origin used to discards further hits - FIXME: may not properly work with transparent layer3D*/
 	Fixed hit_square_dist;
 
+	/*text selection*/
+
+	/*the active parent text node under selection*/
+	GF_Node *text_selection;
+	/*text selection start/end in world coord system*/
+	SFVec2f start_sel, end_sel;	
+	/*text selection state: if set, text selection is not reevaluated*/
+	Bool store_text_sel;
+	/*parent text node when a text is hit (to handle tspan selection)*/
+	GF_Node *hit_text;
+	/*text selection color - reverse video not yet supported*/
+	u32 text_sel_color;
+	u32 sel_buffer_len, sel_buffer_alloc;
+	u16 *sel_buffer;
+	u8 *selected_text;
+
 
 #ifndef GPAC_DISABLE_3D
 	/*options*/
@@ -350,6 +366,8 @@ struct __tag_compositor
 
 	u32 offscreen_width, offscreen_height;
 #endif
+
+
 
 	u32 networks_time;
 	u32 decoders_time;
@@ -515,6 +533,10 @@ enum
 	*/
 	TRAVERSE_BINDABLE,
 
+	/*writes the text selection into the compositor buffer - we need a traversing mode for this operation
+	to handle properly text and tspans*/
+	TRAVERSE_GET_TEXT,
+
 #ifndef GPAC_DISABLE_3D
 	/*explicit draw routine used when flushing 3D display list*/
 	TRAVERSE_DRAW_3D,
@@ -609,6 +631,8 @@ struct _traversing_state
 	/*SVG text rendering state*/
 	Bool in_svg_text;
 	Bool in_svg_text_area;
+	GF_Node *text_parent;
+
 	/* current chunk & position of last placed text chunk*/
 	u32 chunk_index;
 	Fixed text_end_x, text_end_y;
@@ -946,7 +970,7 @@ struct _gf_font
 };
 
 
-typedef struct
+typedef struct __text_span
 {
 	GF_Font *font;
 	
@@ -954,7 +978,7 @@ typedef struct
 	u32 nb_glyphs;
 
 	Fixed font_size;
-	Bool horizontal;
+
 	/*scale to apply to get to requested font size*/
 	Fixed font_scale;
 	GF_Rect bounds;
@@ -967,8 +991,12 @@ typedef struct
 	/*per-glyph positioning - when allocated, this is the same number as the glyphs*/
 	Fixed *dx, *dy;
 
+	Bool horizontal;
+
+	Bool underlined;
+
 	/*span language*/
-	const char *lang;
+//	const char *lang;
 
 	/*for coord systems with Y-axis pointing downwards*/
 	Bool flip;
@@ -985,7 +1013,7 @@ void gf_font_manager_del(GF_FontManager *fm);
 
 GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
 
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *lang, Bool fliped_text);
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *lang, Bool fliped_text, u32 styles);
 void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);
 
 GF_Err gf_font_manager_register_font(GF_FontManager *fm, GF_Font *font);
@@ -998,6 +1026,7 @@ GF_Path *gf_font_span_create_path(GF_TextSpan *span);
 void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_color, Bool force_texture_text, GF_Rect *bounds);
 void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspect2D *asp, u32 text_hl, Bool force_texturing);
 void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events, struct _drawable *drawable);
+void gf_font_spans_get_selection(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state);
 
 #endif	/*_COMPOSITOR_DEV_H_*/
 

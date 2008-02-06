@@ -158,7 +158,8 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 					stack->mesh = new_mesh();
 					mesh_new_rectangle(stack->mesh, size);
 				}
-
+			} 
+			if (stack->mesh) {
 				visual_3d_mesh_paint(tr_state, stack->mesh);
 			}
  			gf_sc_texture_disable(txh);

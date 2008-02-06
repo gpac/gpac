@@ -1,4 +1,5 @@
-Latest CVS changes - 29/01/08:
+Latest CVS changes - 06/02/08:
+  - Added support for text selection in MPEG4 (non standard) / SVGT (no copy for text+tspan)
   - Better support for SVG <animation>, added support for SVG->svg linking (ElementID and svgView) and many svg fixes 
   - Added support for MPEG-4 over MPEG-2 TS in mp42ts (MPEG-4 SL in MPEG-2 PES)
   - Added support for MPEG-4 AAC/LOAS/LATM/ over MPEG-2 TS for import in ISO Media and in the player. 

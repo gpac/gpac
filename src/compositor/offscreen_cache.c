@@ -522,8 +522,9 @@ Bool group_cache_compute_stats(GF_Node *node, GroupingNode2D *group, GF_Traverse
 
 	/*compute coverage info in world coords*/
 	area_world = gf_mulfix(gr_bounds.width, gr_bounds.height);
+	area_world = gf_mulfix(area_world, FLT2FIX(0.6));
 	/*TEST 5: discard low coverage groups in world coords (plenty of space wasted)*/
-	if (opaque_pixels+alpha_pixels < 60*area_world/100) goto group_reject;
+	if (opaque_pixels+alpha_pixels < area_world) goto group_reject;
 
 	/*and recompute for local coordinate system 
 		!! if skew factors, we have to get the more precise bounds, inverting the matrix won't work !!

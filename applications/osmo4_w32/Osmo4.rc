@@ -41,6 +41,8 @@ BEGIN
             MENUITEM "&Abort",                      ID_REC_ABORT
         END
         MENUITEM SEPARATOR
+        MENUITEM "Copy",                        ID_FILE_COPY
+        MENUITEM SEPARATOR
         MENUITEM "Exit",                        ID_FILE_EXIT
     END
     POPUP "View"
@@ -383,6 +385,11 @@ BEGIN
     ID_REC_ENABLE           "Enable recording of streaming data"
     ID_REC_STOP             "Stops recording and save to file"
     ID_REC_ABORT            "Stops recording and discard data"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_FILE_COPY            "Copy selected text to clipboard"
 END
 
 #endif    // English (U.S.) resources

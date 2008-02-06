@@ -197,13 +197,6 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 		visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, !is_layer);
 		tr_state->mesh_has_texture = gf_sc_texture_enable(&st->txh, NULL);
 		if (!tr_state->mesh_has_texture) visual_3d_set_material_2d(tr_state->visual, bck->backColor, FIX_ONE);
-
-		visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_TEXTURE);
-		gf_mx_init(mx);
-		gf_mx_add_scale(&mx, FIX_ONE, -FIX_ONE, FIX_ONE);
-		visual_3d_matrix_load(tr_state->visual, mx.m);
-		visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
-
 	}
 
 	/*create mesh object if needed*/

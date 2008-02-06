@@ -52,6 +52,8 @@ static void svg_finalize_sort(DrawableContext *ctx, SVG_TextStack *st, GF_Traver
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		gf_font_spans_draw_3d(st->spans, tr_state, &ctx->aspect, 0, 0);
+
+		drawable_check_focus_highlight(ctx->drawable->node, tr_state, &st->bounds);
 		ctx->drawable = NULL;
 	} else 
 #endif
@@ -215,7 +217,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 	}
 	dup_text[j] = 0;
 	tr_state->last_char_was_space = (j && (dup_text[j-1]==' ')) ? 1 : 0;
-	span = gf_font_manager_create_span(fm, font, dup_text, font_size, x_offsets, y_offsets, lang, 1);
+	span = gf_font_manager_create_span(fm, font, dup_text, font_size, x_offsets, y_offsets, lang, 1, 0);
 	free(dup_text);
 	if (span) span->horizontal = 1;
 	return span;
@@ -624,20 +626,58 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		svg_text_draw_2d(st, tr_state);
 		return;
 	}
+	else if (tr_state->traversing_mode==TRAVERSE_GET_TEXT) {
+		tr_state->text_parent = node;
+		gf_font_spans_get_selection(node, st->spans, tr_state);
+		/*and browse children*/
+		child = ((GF_ParentNode *) text)->children;
+		while (child) {
+			switch  (gf_node_get_tag(child->node)) {
+			case TAG_SVG_tspan:
+				gf_node_traverse(child->node, tr_state); 
+				break;
+			}
+			child = child->next;
+		}
+		tr_state->text_parent = NULL;
+		return;
+	}
 
 	gf_svg_flatten_attributes(text, &atts);
 	compositor_svg_traverse_base(node, &atts, tr_state, &backup_props, &backup_flags);
+
+	tr_state->in_svg_text++;
+	tr_state->text_parent = node;
 
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {
 		if (*tr_state->svg_props->pointer_events!=SVG_POINTEREVENTS_NONE) 
 			gf_font_spans_pick(node, st->spans, tr_state, &st->bounds, 1, st->drawable);
 
+		/*and browse children*/
+		child = ((GF_ParentNode *) text)->children;
+		while (child) {
+			switch  (gf_node_get_tag(child->node)) {
+			case TAG_SVG_tspan:
+				gf_node_traverse(child->node, tr_state); 
+				break;
+			}
+			child = child->next;
+		}
 		memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		tr_state->svg_flags = backup_flags;
+		tr_state->text_parent = NULL;
+		tr_state->in_svg_text--;
 		return;
 	}
-		
-	tr_state->in_svg_text++;
+	else if (tr_state->traversing_mode==TRAVERSE_GET_TEXT) {
+		gf_font_spans_get_selection(node, st->spans, tr_state);
+		memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+		tr_state->svg_flags = backup_flags;
+		tr_state->text_parent = NULL;
+		tr_state->in_svg_text--;
+		return;
+	}
+
 	compositor_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
 
 	if ( (st->prev_size != tr_state->svg_props->font_size->value) || 
@@ -773,33 +813,28 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props))
 			tr_state->bounds = st->bounds;
-		goto end;
-	}
 
-	if (compositor_svg_is_display_off(tr_state->svg_props) ||
-		*(tr_state->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-		tr_state->svg_flags = backup_flags;
-		return;
-	}
+	} else if ((tr_state->traversing_mode == TRAVERSE_SORT) 
+		&& !compositor_svg_is_display_off(tr_state->svg_props) 
+		&& (*(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) 
+		) {
+		ctx = drawable_init_context_svg(st->drawable, tr_state);
+		if (ctx) svg_finalize_sort(ctx, st, tr_state);
 
-	ctx = drawable_init_context_svg(st->drawable, tr_state);
-	if (ctx) svg_finalize_sort(ctx, st, tr_state);
-
-	/*and browse children*/
-	child = ((GF_ParentNode *) text)->children;
-	while (child) {
-		switch  (gf_node_get_tag(child->node)) {
-		case TAG_SVG_tspan:
-			gf_node_traverse(child->node, tr_state); 
-			break;
+		/*and browse children*/
+		child = ((GF_ParentNode *) text)->children;
+		while (child) {
+			switch  (gf_node_get_tag(child->node)) {
+			case TAG_SVG_tspan:
+				gf_node_traverse(child->node, tr_state); 
+				break;
+			}
+			child = child->next;
 		}
-		child = child->next;
 	}
 	tr_state->in_svg_text--;
+	tr_state->text_parent = NULL;
 
-
-end:
 	compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx3d);
 	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	tr_state->svg_flags = backup_flags;
@@ -841,6 +876,10 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	if (tr_state->traversing_mode==TRAVERSE_DRAW_2D) {
 		svg_text_draw_2d(st, tr_state);
+		return;
+	}
+	else if (tr_state->traversing_mode==TRAVERSE_GET_TEXT) {
+		gf_font_spans_get_selection(node, st->spans, tr_state);
 		return;
 	}
 
@@ -905,15 +944,12 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		if (!compositor_svg_is_display_off(tr_state->svg_props))
 			tr_state->bounds = st->bounds;
 
-	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
-
-		if (compositor_svg_is_display_off(tr_state->svg_props) ||
-			*(tr_state->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-			memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-			tr_state->svg_flags = backup_flags;
-			return;
-		}
-
+	} 
+	else if (
+		(tr_state->traversing_mode == TRAVERSE_SORT) 
+		&& !compositor_svg_is_display_off(tr_state->svg_props) 
+		&& ( *(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) 
+	) {
 		child = ((GF_ParentNode *) tspan)->children;
 		
 		ctx = drawable_init_context_svg(st->drawable, tr_state);
@@ -979,12 +1015,15 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 	gf_svg_flatten_attributes(text, &atts);
 	compositor_svg_traverse_base(node, &atts, tr_state, &backup_props, &backup_flags);
 
+	tr_state->text_parent = node;
+
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {
 		if (*tr_state->svg_props->pointer_events!=SVG_POINTEREVENTS_NONE) 
 			gf_font_spans_pick(node, st->spans, tr_state, &st->bounds, 1, st->drawable);
 
 		memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		tr_state->svg_flags = backup_flags;
+		tr_state->text_parent = NULL;
 		return;
 	}
 	
@@ -1059,14 +1098,10 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props))
 			tr_state->bounds = st->bounds;
-	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
-
-		if (compositor_svg_is_display_off(tr_state->svg_props) ||
-			*(tr_state->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-			memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-			tr_state->svg_flags = backup_flags;
-			return;
-		}
+	} else if ( (tr_state->traversing_mode == TRAVERSE_SORT) 
+			&& !compositor_svg_is_display_off(tr_state->svg_props) 
+			&& (*(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) 
+		) {
 
 		ctx = drawable_init_context_svg(st->drawable, tr_state);
 		if (ctx) svg_finalize_sort(ctx, st, tr_state);
@@ -1086,6 +1121,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	}
 	tr_state->in_svg_text_area--;
+	tr_state->text_parent = NULL;
 
 
 	compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx3d);

@@ -354,7 +354,7 @@ void gf_sc_svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Tr
 void compositor_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAllAttributes *atts, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix)
 {
 #ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d) {
+	if (tr_state->visual->type_3d && backup_matrix) {
 		GF_Matrix tmp;
 		Bool is_draw = (tr_state->traversing_mode==TRAVERSE_SORT) ? 1 : 0;
 		gf_mx_copy(*backup_matrix, tr_state->model_matrix);
@@ -409,7 +409,7 @@ void compositor_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAl
 void compositor_svg_restore_parent_transformation(GF_TraverseState *tr_state, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix)
 {
 #ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d) {
+	if (tr_state->visual->type_3d && backup_matrix) {
 		if (tr_state->traversing_mode==TRAVERSE_SORT) 
 			visual_3d_matrix_pop(tr_state->visual);
 		gf_mx_copy(tr_state->model_matrix, *backup_matrix);  

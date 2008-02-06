@@ -40,6 +40,7 @@ IMPLEMENT_APP(wxOsmo4App)
 
 #include <wx/dnd.h>
 #include <wx/filename.h>
+#include <wx/clipbrd.h>
 
 #include "toolbar.xpm"
 
@@ -818,12 +819,14 @@ wxDEFAULT_FRAME_STYLE
 	menu->Append(FILE_OPEN_URL, wxT("&Open URL\tCtrl+U"), wxT("Open remote presentation"));
 	menu->AppendSeparator();
 	menu->Append(FILE_PROPERTIES, wxT("&Properties\tCtrl+I"), wxT("Show presentation properties"));
+	menu->Enable(FILE_PROPERTIES, 0);
 	wxMenu *smenu = new wxMenu();
 	smenu->Append(ID_MCACHE_ENABLE, wxT("&Enable"), wxT("Turns Recorder On/Off"));
 	smenu->Append(ID_MCACHE_STOP, wxT("&Stop"), wxT("Stops recording and saves"));
 	smenu->Append(ID_MCACHE_ABORT, wxT("&Abort"), wxT("Stops recording and discards"));
 	menu->Append(0, wxT("&Streaming Cache"), smenu);
-	menu->Enable(FILE_PROPERTIES, 0);
+	menu->AppendSeparator();
+	menu->Append(FILE_COPY, wxT("&Copy\tCtrl+C"), wxT("Copy selected text"));
 	menu->AppendSeparator();
 	menu->Append(FILE_QUIT, wxT("E&xit"), wxT("Quit the application"));
 	b->Append(menu, wxT("&File"));
@@ -1096,6 +1099,8 @@ BEGIN_EVENT_TABLE(wxOsmo4Frame, wxFrame)
 	EVT_MENU(VIEW_ORIGINAL, wxOsmo4Frame::OnViewOriginal)
 	EVT_MENU(VIEW_PLAYLIST, wxOsmo4Frame::OnPlaylist)
 	EVT_UPDATE_UI(VIEW_PLAYLIST, wxOsmo4Frame::OnUpdatePlayList)
+	EVT_MENU(FILE_COPY, wxOsmo4Frame::OnFileCopy)
+	EVT_UPDATE_UI(FILE_COPY, wxOsmo4Frame::OnUpdateFileCopy)
 
 	EVT_MENU(ID_CLEAR_NAV, wxOsmo4Frame::OnClearNav)
 	EVT_UPDATE_UI(ID_STREAM_MENU, wxOsmo4Frame::OnUpdateStreamMenu)
@@ -2446,3 +2451,24 @@ void wxOsmo4Frame::OnUpdateChapterMenu(wxUpdateUIEvent & event)
 		event.Enable(1);
 	}
 }
+
+void wxOsmo4Frame::OnFileCopy(wxCommandEvent &event)
+{
+	wxClipboard clip;
+	const char *text = gf_term_get_text_selection(m_term, 0);
+	if (!text) return;
+	if (!clip.Open()) return;
+
+	clip.SetData( new wxTextDataObject(text) );
+	clip.Close();
+}
+
+void wxOsmo4Frame::OnUpdateFileCopy(wxUpdateUIEvent &event)
+{
+	if (gf_term_get_text_selection(m_term, 1)!=NULL) {
+		event.Enable(1);
+	} else {
+		event.Enable(1);
+	}
+}
+

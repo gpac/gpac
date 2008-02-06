@@ -496,6 +496,7 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 					si->outline = NULL;
 				}
 			}
+//			drawable_reset_path_outline(ctx->drawable);
 		}
 	}
 
