@@ -137,6 +137,15 @@ const char *gf_cfg_get_key_name(GF_Config *cfgFile, const char *secName, u32 key
  */
 GF_Err gf_cfg_insert_key(GF_Config *cfgFile, const char *secName, const char *keyName, const char *keyValue, u32 index);
 
+/*!
+ *	\brief section destrouction
+ *
+ *Removes all entries in the given section
+ *\param cfgFile the target configuration file
+ *\param secName the target section
+ */
+void gf_cfg_del_section(GF_Config *cfgFile, const char *secName);
+
 /*! @} */
 
 

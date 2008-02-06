@@ -122,7 +122,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 		char *str = txt->string.vals[i];
 		if (!str) continue;
 
-		tspan = gf_font_manager_create_span(ft_mgr, font, str, fontSize, 0, 0, NULL, 0);
+		tspan = gf_font_manager_create_span(ft_mgr, font, str, fontSize, 0, 0, NULL, 0, styles);
 		len = tspan->nb_glyphs;
 		tspan->horizontal = 1;
 
@@ -230,7 +230,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		char *str = txt->string.vals[i];
 		if (!str) continue;
 
-		tspan = gf_font_manager_create_span(ft_mgr, font, txt->string.vals[i], fontSize, 0, 0, NULL, 0);
+		tspan = gf_font_manager_create_span(ft_mgr, font, txt->string.vals[i], fontSize, 0, 0, NULL, 0, styles);
 		if (!tspan) continue;
 		
 		tspan->horizontal = horizontal;
@@ -485,7 +485,9 @@ void text_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 
 	text_get_draw_opt(node, st, &force_texture, &hl_color);
 
+	tr_state->text_parent = node;
 	gf_font_spans_draw_2d(st->spans, tr_state, hl_color, force_texture, &st->bounds);
+	tr_state->text_parent = NULL;
 }
 
 
@@ -536,10 +538,17 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_PICK:
+		tr_state->text_parent = n;
 		gf_font_spans_pick(n, st->spans, tr_state, &st->bounds, 0, NULL);
+		tr_state->text_parent = NULL;
 		return;
 	case TRAVERSE_GET_BOUNDS:
 		tr_state->bounds = st->bounds;
+		return;
+	case TRAVERSE_GET_TEXT:
+		tr_state->text_parent = n;
+		gf_font_spans_get_selection(n, st->spans, tr_state);
+		tr_state->text_parent = NULL;
 		return;
 	case TRAVERSE_SORT:
 		break;

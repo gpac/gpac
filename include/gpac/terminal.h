@@ -114,6 +114,10 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com);
 */
 GF_Err gf_term_set_size(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
 
+/*returns current text selection if any, or NULL otherwise. If probe mode is set, retruns a non-NULL string ("") 
+if some text is selected*/
+const char *gf_term_get_text_selection(GF_Terminal *term, Bool probe_only);
+
 
 /*decodes pending media and render frame. 
 NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)

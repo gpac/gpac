@@ -163,7 +163,7 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 
 	is_layer = (tr_state->viewpoints == tr_state->visual->view_stack) ? 0 : 1;
 	/*if no parent this is the main viewport, don't update if not changed*/
-	if (!is_layer && !gf_node_dirty_get(node)) return;
+//	if (!is_layer && !gf_node_dirty_get(node)) return;
 
 	gf_node_dirty_clear(node, 0);
 

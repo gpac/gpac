@@ -215,6 +215,15 @@ const char *gf_modules_get_option(GF_BaseInterface *interface_obj, const char *s
  */
 GF_Err gf_modules_set_option(GF_BaseInterface *interface_obj, const char *secName, const char *keyName, const char *keyValue);
 
+/*!
+ *\brief get config fiole
+ *
+ *Gets the configuration file for the module instance
+ *\param interface_obj the interface object used
+ *\return handle to the config file
+ */
+GF_Config *gf_modules_get_config(GF_BaseInterface *ifce);
+
 /*! @} */
 
 #ifdef __cplusplus

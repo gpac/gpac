@@ -68,6 +68,9 @@ static char the_url[GF_MAX_PATH];
 static Bool no_mime_check = 0;
 static Bool be_quiet = 0;
 
+static u32 forced_width=0;
+static u32 forced_height=0;
+
 /*windowless options*/
 u32 align_mode = 0;
 u32 init_w = 0;
@@ -551,6 +554,15 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			move.move.align_y = (align_mode>>8) & 0xFF;
 			move.move.relative = 2;
 			gf_term_user_event(term, &move);
+		} 
+		break;
+	case GF_EVENT_SCENE_SIZE:
+		if (forced_width && forced_height) {
+			GF_Event size;
+			size.type = GF_EVENT_SIZE;
+			size.size.width = forced_width;
+			size.size.height = forced_height;
+			gf_term_user_event(term, &size);
 		}
 		break;
 
@@ -854,7 +866,7 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 int main (int argc, char **argv)
 {
 	const char *str;
-	u32 i, width, height, times[100], nb_times, dump_mode;
+	u32 i, times[100], nb_times, dump_mode;
 	u32 simulation_time = 0;
 	Bool start_fs = 0;
 	Bool use_rtix = 0;
@@ -874,7 +886,6 @@ int main (int argc, char **argv)
 	dump_mode = 0;
 	fill_ar = visible = 0;
 	url_arg = the_cfg = rti_file = NULL;
-	width = height = 0;
 	nb_times = 0;
 	times[0] = 0;
 
@@ -910,8 +921,8 @@ int main (int argc, char **argv)
 			dump_mode = 4;
 			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
 		} else if (!stricmp(arg, "-size")) {
-			if (sscanf(argv[i+1], "%dx%d", &width, &height) != 2) {
-				width = height = 0;
+			if (sscanf(argv[i+1], "%dx%d", &forced_width, &forced_height) != 2) {
+				forced_width = forced_height = 0;
 			}
 			i++;
 		} else if (!stricmp(arg, "-scale")) {
@@ -976,8 +987,8 @@ int main (int argc, char **argv)
 		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
 		if (!visible) user.init_flags |= GF_TERM_INIT_HIDE;
 	} else {
-		init_w = width;
-		init_h = height;
+		init_w = forced_width;
+		init_h = forced_height;
 	}
 
 	fprintf(stdout, "Loading modules ... ");
@@ -1056,7 +1067,7 @@ int main (int argc, char **argv)
 			times[0] = 0;
 			nb_times++;
 		}
-		ret = dump_file(url_arg, dump_mode, fps, width, height, scale, times, nb_times);
+		ret = dump_file(url_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
 		Run = 0;
 	} else
 #endif

@@ -716,7 +716,7 @@ void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp)
 	asp->line_scale = MAX(gf_divfix(tr_state->visual->compositor->scale_x, rc.width), gf_divfix(tr_state->visual->compositor->scale_y, rc.height));
 }
 
-void drawable_finalize_sort_ex(struct _drawable_context *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds, Bool skip_focus)
+void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds, Bool skip_focus)
 {
 	Fixed pw;
 	GF_Rect unclip, store_orig_bounds;
@@ -780,6 +780,10 @@ void drawable_finalize_sort_ex(struct _drawable_context *ctx, GF_TraverseState *
 	drawable_finalize_end(ctx, tr_state);
 	if (ctx->drawable && !skip_focus)
 		drawable_check_focus_highlight(ctx->drawable->node, tr_state, &store_orig_bounds);
+
+	/*remove if this is the last context*/
+	if (tr_state->direct_draw && (tr_state->visual->cur_context == ctx)) 
+		tr_state->visual->cur_context->drawable = NULL;
 }
 
 void drawable_finalize_sort(struct _drawable_context *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds)
@@ -839,7 +843,8 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
-		tr_state->ctx = hl_ctx;
+		gf_mx2d_copy(hl_ctx->transform, tr_state->transform);
+		visual_3d_draw_2d_with_aspect(hl_ctx->drawable, tr_state, &hl_ctx->aspect, 1);
 		return;
 	}
 #endif

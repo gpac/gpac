@@ -86,7 +86,10 @@ static void visual_3d_setup_traversing_state(GF_VisualManager *visual, GF_Traver
 			sw = INT2FIX(tr_state->visual->compositor->vp_width);
 			sh = INT2FIX(tr_state->visual->compositor->vp_height);
 			/*AR changed, rebuild camera*/
-			if ((sw!=tr_state->camera->vp.width) || (sh!=tr_state->camera->vp.height)) { 
+
+			if (tr_state->visual->compositor->recompute_ar 
+				|| (sw!=tr_state->camera->vp.width) 
+				|| (sh!=tr_state->camera->vp.height)) { 
 				tr_state->camera->width = tr_state->camera->vp.width = INT2FIX(tr_state->visual->compositor->vp_width);
 				tr_state->camera->height = tr_state->camera->vp.height = INT2FIX(tr_state->visual->compositor->vp_height);
 				tr_state->camera->flags |= CAM_IS_DIRTY;
@@ -157,6 +160,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 
 	gf_vec_diff(d, position, local_center);
 	dist = gf_vec_len(d);
+
 	if (!dist || (dist<tr_state->camera->z_near) || (dist > tr_state->camera->z_far)) {
 		if (dist > tr_state->camera->z_far) tr_state->camera->z_far = 2*dist;
 
@@ -1215,18 +1219,9 @@ void visual_3d_draw_from_context(DrawableContext *ctx, GF_TraverseState *tr_stat
 {
 	GF_Rect rc;
 	gf_path_get_bounds(ctx->drawable->path, &rc);
+	visual_3d_draw_2d_with_aspect(ctx->drawable, tr_state, &ctx->aspect, 1);
 
 	drawable_check_focus_highlight(ctx->drawable->node, tr_state, &rc);
-	if (tr_state->ctx) {
-		visual_3d_draw_2d_with_aspect(tr_state->ctx->drawable, tr_state, &tr_state->ctx->aspect, 1);
-		tr_state->ctx->drawable = NULL;
-		/*discard hlight entry in the display list*/
-		if (tr_state->visual->cur_context==tr_state->ctx)
-			tr_state->visual->cur_context = ctx;
-
-		tr_state->ctx = NULL;
-	}
-	visual_3d_draw_2d_with_aspect(ctx->drawable, tr_state, &ctx->aspect, 1);
 }
 
 

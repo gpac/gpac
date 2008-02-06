@@ -793,7 +793,7 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	/*locate the used node - this is done at each step to handle progressive loading*/
-	if (!stack->used_node) {
+	if (!stack->used_node && all_atts.xlink_href) {
 		if (all_atts.xlink_href->type == XMLRI_ELEMENTID) {
 			stack->used_node = all_atts.xlink_href->target;
 		} else if (stack->resource ) {

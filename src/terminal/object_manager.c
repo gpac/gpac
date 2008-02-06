@@ -596,7 +596,8 @@ void ODM_CheckChannelService(GF_Channel *ch)
 {
 	if (ch->service == ch->odm->net_service) return;
 	/*if the stream has created a service check if close is needed or not*/
-	if (ch->esd->URLString && !ch->service->nb_ch_users) gf_term_close_services(ch->odm->term, ch->service);
+	if (ch->esd->URLString && !ch->service->nb_ch_users) 
+		gf_term_close_services(ch->odm->term, ch->service);
 }
 
 /*setup channel, clock and query caps*/
@@ -929,7 +930,10 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 			gf_list_rem(ch->odm->channels, 0);
 			/*disconnect*/
 			ch->service->ifce->DisconnectChannel(ch->service->ifce, ch); 
-			if (ch->esd->URLString) ch->service->nb_ch_users--;
+			if (ch->esd->URLString) {
+				assert(ch->service->nb_ch_users);
+				ch->service->nb_ch_users--;
+			}
 			goto err_exit;
 		}
 	}
@@ -1006,7 +1010,10 @@ void ODM_DeleteChannel(GF_ObjectManager *odm, GF_Channel *ch)
 	
 	if (ch->service) {
 		ch->service->ifce->DisconnectChannel(ch->service->ifce, ch); 
-		if (ch->esd->URLString) ch->service->nb_ch_users--;
+		if (ch->esd->URLString) {
+			assert(ch->service->nb_ch_users);
+			ch->service->nb_ch_users--;
+		}
 		ODM_CheckChannelService(ch);
 	}
 
@@ -1035,10 +1042,10 @@ esd_found:
 		if (ch->esd->ESID == ES_ID) break;
 		ch = NULL;
 	}
-	/*destroy ESD*/
-	gf_odf_desc_del((GF_Descriptor *) esd);
 	/*remove channel*/
 	if (ch) ODM_DeleteChannel(odm, ch);
+	/*destroy ESD*/
+	gf_odf_desc_del((GF_Descriptor *) esd);
 }
 
 /*this is the tricky part: make sure the net is locked before doing anything since an async service 
