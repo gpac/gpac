@@ -340,8 +340,8 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 		span->font_scale = font_size / font->em_size;
 	span->x_scale = span->y_scale = FIX_ONE;
 //	span->lang = xml_lang;
-	span->flip = fliped_text;
-	span->underlined = (styles & GF_FONT_UNDERLINED) ? 1 : 0;
+	if (fliped_text) span->flags |= GF_TEXT_SPAN_FLIP;
+	if (styles & GF_FONT_UNDERLINED) span->flags |= GF_TEXT_SPAN_UNDERLINE;
 	span->nb_glyphs = len;
 	span->glyphs = malloc(sizeof(void *)*len);
 	if (needs_x_offset) {
@@ -419,13 +419,13 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 	ascent = gf_mulfix(span->font->ascent, span->font_scale);
 
 	/*if fliped text (SVG), the min_y is at the ascent side*/
-	if (span->flip) {
+	if (span->flags & GF_TEXT_SPAN_FLIP) {
 		Fixed tmp = ascent;
 		ascent = descent;
 		descent = tmp;
 	}
 
-	width = span->horizontal ? 0 : gf_mulfix(span->font->max_advance_h, span->font_scale);
+	width = (span->flags	& GF_TEXT_SPAN_HORIZONTAL) ? 0 : gf_mulfix(span->font->max_advance_h, span->font_scale);
 
 	min_x = span->dx ? FIX_MAX : span->off_x;
 	min_y = span->dy ? FIX_MAX : span->off_y - descent;
@@ -450,7 +450,7 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 				min_x = span->dx[i];
 			}
 			if (span->dx[i] + size > width + min_x) width = span->dx[i] + size - min_x;
-		} else if (span->horizontal) {
+		} else if (span->flags & GF_TEXT_SPAN_HORIZONTAL) {
 			width += size;
 		}
 		if (span->dy) {
@@ -490,14 +490,14 @@ GF_Path *gf_font_span_create_path(GF_TextSpan *span)
 	gf_mx2d_init(mat);
 	mat.m[0] = gf_mulfix(span->font_scale, span->x_scale);
 	mat.m[4] = gf_mulfix(span->font_scale, span->y_scale);
-	if (span->flip) gf_mx2d_add_scale(&mat, FIX_ONE, -FIX_ONE);
+	if (span->flags & GF_TEXT_SPAN_FLIP) gf_mx2d_add_scale(&mat, FIX_ONE, -FIX_ONE);
 
 	dx = gf_divfix(span->off_x, mat.m[0]);
 	dy = gf_divfix(span->off_y, mat.m[4]);
 
 	for (i=0; i<span->nb_glyphs; i++) {
 		if (!span->glyphs[i]) {
-			if (span->horizontal) {
+			if (span->flags & GF_TEXT_SPAN_HORIZONTAL) {
 				dx += INT2FIX(span->font->max_advance_h);
 			} else {
 				dy -= INT2FIX(span->font->max_advance_v);
@@ -508,7 +508,7 @@ GF_Path *gf_font_span_create_path(GF_TextSpan *span)
 
 			gf_path_add_subpath(path, span->glyphs[i]->path, dx, dy);
 
-			if (span->horizontal) {
+			if (span->flags & GF_TEXT_SPAN_HORIZONTAL) {
 				dx += INT2FIX(span->glyphs[i]->horiz_advance);
 			} else {
 				dy -= INT2FIX(span->glyphs[i]->vert_advance);
@@ -898,7 +898,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 
 	for (i=0; i<span->nb_glyphs; i++) {
 		if (!span->glyphs[i]) {
-			if (span->horizontal) {
+			if (span->flags & GF_TEXT_SPAN_HORIZONTAL) {
 				dx += sx * span->font->max_advance_h;
 			} else {
 				dy -= sy * span->font->max_advance_v;
@@ -929,7 +929,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 		}
 		ctx->flags = flags;
 
-		if (span->horizontal) {
+		if (span->flags & GF_TEXT_SPAN_HORIZONTAL) {
 			dx += sx * span->glyphs[i]->horiz_advance;
 		} else {
 			dy -= sy * span->glyphs[i]->vert_advance;
@@ -949,7 +949,7 @@ void gf_font_underline_span(GF_TraverseState *tr_state, GF_TextSpan *span, Drawa
 	gf_mx2d_copy(mx, ctx->transform);
 	sx = gf_mulfix(span->font_scale, span->x_scale);
 	diff = span->font_scale * span->font->underline;
-	if (span->flip) 
+	if (span->flags & GF_TEXT_SPAN_FLIP) 
 		diff = sx * (span->font->descent - span->font->underline);
 	else
 		diff = sx * (- span->font->ascent + span->font->underline);
@@ -984,20 +984,21 @@ static u32 col_reverse_video(u32 col)
 
 static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, DrawableContext *ctx)
 {
-	u32 flags, i, start_glyph, end_glyph, color;
+	u32 flags, i, color;
 	Bool flip_text;
-	Fixed dx, dy, sx, sy, width;
+	Fixed dx, dy, sx, sy, width, height;
 	GF_Rect rc;
 	GF_Vec pt;
 	GF_Compositor *compositor = tr_state->visual->compositor;
 
-	if (compositor->text_selection != tr_state->text_parent) return;
+	if (!(span->flags & GF_TEXT_SPAN_SELECTED) ) return;
 
 	pt.x = compositor->end_sel.x;
 	pt.y = compositor->end_sel.y;
 	pt.z = 0;
 	gf_mx_apply_vec(&compositor->hit_local_to_world, &pt);
 	sx = pt.x;
+	sy = pt.y;
 
 	pt.x = compositor->start_sel.x;
 	pt.y = compositor->start_sel.y;
@@ -1012,12 +1013,20 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 		rc.x = sx;
 		rc.width = pt.x - sx;
 	}
+	if (sy > pt.y) {
+		rc.y = sy;
+		rc.height = sy - pt.y;
+	} else {
+		rc.y = pt.y;
+		rc.height = sy - pt.y;
+	}
 
 	dx = gf_mulfix(span->off_x, span->x_scale);
 	dy = gf_mulfix(span->off_y, span->y_scale);
 	sx = gf_mulfix(span->font_scale, span->x_scale);
 	sy = gf_mulfix(span->font_scale, span->y_scale);
 	flip_text = (! tr_state->visual->center_coords) ? 1 : 0;
+	height = gf_mulfix(span->font->ascent-span->font->descent, sy);
 
 	width = 0;
 	flags = 0;
@@ -1029,42 +1038,49 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 
 	color = compositor->text_sel_color;
 
-	start_glyph = end_glyph = 0;
 	for (i=0; i<span->nb_glyphs; i++) {
+		GF_Rect g_rc;
 		Fixed advance = sx * span->glyphs[i]->horiz_advance;
-		Fixed t_x = span->dx ? span->dx[i] : dx;
+		if (span->dx) dx = span->dx[i];
+		if (span->dy) dy = span->dy[i];
 		if (dx + advance/2 < rc.x) {
 			dx += advance;
 			continue;
-		} else if (dx > rc.x+rc.width) {
+		} 
+		if (dx > rc.x+rc.width) {
+			if (!span->dx) break;
+			continue;
+		} 
+		if (dy < rc.y-rc.height) {
+			if (!span->dx) break;
+			continue;
+		} 
+		
+		g_rc = span->bounds;
+		g_rc.height = height;
+		g_rc.y = dy+gf_mulfix(sx, -span->font->descent);
+		
+		if (dx + advance/2 > rc.x + rc.width) {
 			break;
-		} else {
-			GF_Rect g_rc = rc;
-			if (!start_glyph) start_glyph = i+1;
-			
-			if (dx + advance/2 > rc.x + rc.width) {
-				break;
-			}
-			end_glyph = i+1;
-
-			g_rc.x = dx;
-			g_rc.width = advance;
-
-			if (ctx) {
-				visual_2d_fill_rect(tr_state->visual, ctx, &g_rc, color, 0, tr_state);
-				ctx->flags = flags;
-			} else {
-				if (!compositor->sel_buffer_alloc || compositor->sel_buffer_len < compositor->sel_buffer_alloc) {
-					if (!compositor->sel_buffer_alloc) compositor->sel_buffer_alloc ++;
-					compositor->sel_buffer_alloc = 2*compositor->sel_buffer_alloc;
-					compositor->sel_buffer = realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
-				}
-				compositor->sel_buffer[compositor->sel_buffer_len] = span->glyphs[i]->utf_name;
-				compositor->sel_buffer_len++;
-			}
-
-			dx += advance;
 		}
+
+		g_rc.x = dx;
+		g_rc.width = advance;
+
+		if (ctx) {
+			visual_2d_fill_rect(tr_state->visual, ctx, &g_rc, color, 0, tr_state);
+			ctx->flags = flags;
+		} else {
+			if (!compositor->sel_buffer_alloc || compositor->sel_buffer_len < compositor->sel_buffer_alloc) {
+				if (!compositor->sel_buffer_alloc) compositor->sel_buffer_alloc ++;
+				compositor->sel_buffer_alloc = 2*compositor->sel_buffer_alloc;
+				compositor->sel_buffer = realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
+			}
+			compositor->sel_buffer[compositor->sel_buffer_len] = span->glyphs[i]->utf_name;
+			compositor->sel_buffer_len++;
+		}
+
+		dx += advance;
 	}
 	if (ctx) ctx->aspect.pen_props.width = width;
 }
@@ -1127,7 +1143,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 		} else {
 			gf_font_span_draw_2d(tr_state, span, ctx, bounds);
 		}
-		if (span->anchor || span->underlined) gf_font_underline_span(tr_state, span, ctx);
+		if (span->anchor || (span->flags & GF_TEXT_SPAN_UNDERLINE) ) gf_font_underline_span(tr_state, span, ctx);
 		if (ctx->sub_path_index) break;
 	}
 	if (is_rv) tr_state->ctx->aspect.fill_color = hl_color;
@@ -1206,7 +1222,7 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 			loc_y = y - (span->dy ? span->dy[j] : dy);
 			loc_x = gf_divfix(loc_x, span->font_scale);
 			loc_y = gf_divfix(loc_y, span->font_scale) + span->font->baseline;
-			if (span->flip) loc_y = - loc_y;
+			if (span->flags & GF_TEXT_SPAN_FLIP) loc_y = - loc_y;
 
 			if (use_dom_events) {
 				if (svg_drawable_is_over(drawable, loc_x, loc_y, span->glyphs[j]->path, &asp, tr_state, 1))
@@ -1220,7 +1236,7 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 //				if (gf_path_point_over(span->glyphs[j]->path, loc_x, loc_y)) goto picked;
 			}
 
-			if (span->horizontal) {
+			if (span->flags & GF_TEXT_SPAN_HORIZONTAL) {
 				dx += span->font_scale * span->glyphs[j]->horiz_advance;
 			} else {
 				dy -= span->font_scale * span->glyphs[j]->vert_advance;
@@ -1252,6 +1268,7 @@ picked:
 	compositor->end_sel.y = compositor->hit_world_point.y;
 	if (compositor->text_selection) {
 		compositor->draw_next_frame = 1;
+		span->flags |= GF_TEXT_SPAN_SELECTED;
 	} else {
 		compositor->start_sel = compositor->end_sel;
 	}

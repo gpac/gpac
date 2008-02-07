@@ -25,6 +25,7 @@
 #include "visual_manager.h"
 #include "nodes_stacks.h"
 #include <gpac/options.h>
+#include <gpac/utf.h>
 
 static void gf_sc_reset_collide_cursor(GF_Compositor *compositor)
 {
@@ -41,6 +42,8 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 {
 	if (event->type>GF_EVENT_MOUSEMOVE) return 0;
 
+	if (compositor->edited_text)
+		return 0;
 	if (compositor->text_selection)
 		return 1;
 	switch (event->type) {
@@ -53,6 +56,243 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 			compositor->text_selection = compositor->hit_text;
 		break;
 	}
+	return 0;
+}
+
+static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
+{
+	u8 *txt;
+	u16 *lptr;
+	u32 len;
+	if (!compositor->edited_text) return;
+
+	if (final_flush && compositor->sel_buffer_len) {
+		memmove(&compositor->sel_buffer[compositor->caret_pos], &compositor->sel_buffer[compositor->caret_pos+1], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos));
+		compositor->sel_buffer_len--;
+		compositor->sel_buffer[compositor->sel_buffer_len] = 0;
+	}
+
+	if (compositor->edited_text->textContent) free(compositor->edited_text->textContent);
+	if (!compositor->sel_buffer_len) {
+		compositor->edited_text->textContent= NULL;
+	} else {
+		txt = malloc(sizeof(char)*2*compositor->sel_buffer_len);
+		lptr = compositor->sel_buffer;
+		len = gf_utf8_wcstombs(txt, 2*compositor->sel_buffer_len, &lptr);
+		txt[len] = 0;
+		compositor->edited_text->textContent = strdup(txt);
+		free(txt);
+	}
+	gf_node_dirty_set(compositor->focus_node, 0, (compositor->focus_text_type==2));
+	gf_node_set_private(compositor->focus_highlight->node, NULL);
+	compositor->draw_next_frame = 1;
+
+	if (final_flush) {
+		if (compositor->sel_buffer) free(compositor->sel_buffer);
+		compositor->sel_buffer = NULL;
+		compositor->sel_buffer_len = compositor->sel_buffer_alloc = 0;
+		compositor->edited_text = NULL;
+	}
+}
+
+static void load_text_node(GF_Compositor *compositor, s32 node_idx_inc)
+{
+	GF_DOMText *res = NULL;
+	u32 prev_pos, pos;
+	GF_ChildNodeItem *child;
+
+	if ((s32)compositor->dom_text_pos + node_idx_inc < 0) return;
+	pos = compositor->dom_text_pos + node_idx_inc;
+	prev_pos = compositor->dom_text_pos;
+
+	child = ((GF_ParentNode *) compositor->focus_node)->children;
+
+	compositor->dom_text_pos = 0;
+	while (child) {
+		switch (gf_node_get_tag(child->node)) {
+		case TAG_DOMText:
+			break;
+		default:
+			child = child->next;
+			continue;
+		}
+		compositor->dom_text_pos++;
+		if (!node_idx_inc) res = (GF_DOMText *)child->node;
+		else if (pos==compositor->dom_text_pos) {
+			res = (GF_DOMText *)child->node;
+			break;
+		}
+		child = child->next;
+		continue;
+	}
+	if (!res) {
+		compositor->dom_text_pos = prev_pos;
+		return;
+	}
+
+	if (compositor->edited_text) {
+		flush_text_node_edit(compositor, 1);
+	}
+
+	if (res->textContent) {
+		u8 *src = res->textContent;
+		compositor->sel_buffer_alloc = 2+strlen(src);
+		compositor->sel_buffer = malloc(sizeof(u16)*compositor->sel_buffer_alloc);
+
+		if (node_idx_inc<=0) {
+			compositor->sel_buffer_len = gf_utf8_mbstowcs(compositor->sel_buffer, compositor->sel_buffer_alloc, &src);
+			compositor->sel_buffer[compositor->sel_buffer_len]='|';
+			compositor->caret_pos = compositor->sel_buffer_len;
+		} else {
+			compositor->sel_buffer_len = gf_utf8_mbstowcs(&compositor->sel_buffer[1], compositor->sel_buffer_alloc, &src);
+			compositor->sel_buffer[0]='|';
+			compositor->caret_pos = 0;
+		}
+		compositor->sel_buffer_len++;
+		compositor->sel_buffer[compositor->sel_buffer_len]=0;
+	} else {
+		compositor->sel_buffer_alloc = 2;
+		compositor->sel_buffer = malloc(sizeof(u16)*2);
+		compositor->sel_buffer[0] = '|';
+		compositor->sel_buffer[1] = 0;
+		compositor->caret_pos = 0;
+		compositor->sel_buffer_len = 1;
+	}
+	compositor->edited_text = res;
+	flush_text_node_edit(compositor, 0);
+}
+
+static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
+{
+	Bool is_end = 0;
+
+	if (!event) {
+		load_text_node(compositor, 0);
+		return;
+	} else if (event->type==GF_EVENT_TEXTINPUT) {
+		switch (event->character.unicode_char) {
+		case '\r':
+		case '\n':
+		case '\t':
+		case '\b':
+			return;
+		default:
+			if (compositor->sel_buffer_len + 1 == compositor->sel_buffer_alloc) {
+				compositor->sel_buffer_alloc += 10;
+				compositor->sel_buffer = realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
+			}
+			memmove(&compositor->sel_buffer[compositor->caret_pos+1], &compositor->sel_buffer[compositor->caret_pos], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos));
+			compositor->sel_buffer[compositor->caret_pos] = event->character.unicode_char;
+			compositor->sel_buffer_len++;
+			compositor->caret_pos++;
+			compositor->sel_buffer[compositor->sel_buffer_len] = 0;
+			break;
+		}
+	} else if (event->type==GF_EVENT_KEYDOWN) {
+		u32 prev_caret = compositor->caret_pos;
+		switch (event->key.key_code) {
+		/*end of edit mode*/
+		case GF_KEY_ENTER:
+		case GF_KEY_ESCAPE:
+			is_end = 1;
+			break;
+		case GF_KEY_LEFT:
+			if (compositor->caret_pos) {
+				if (event->key.flags & GF_KEY_MOD_CTRL) {
+					while (compositor->caret_pos && (compositor->sel_buffer[compositor->caret_pos] != ' '))
+						compositor->caret_pos--;
+				} else {
+					compositor->caret_pos--;
+				}
+			}
+			else {
+				load_text_node(compositor, -1);
+				return;
+			}
+			break;
+		case GF_KEY_RIGHT:
+			if (compositor->caret_pos+1<compositor->sel_buffer_len) {
+				if (event->key.flags & GF_KEY_MOD_CTRL) {
+					while ((compositor->caret_pos+1<compositor->sel_buffer_len)
+						&& (compositor->sel_buffer[compositor->caret_pos] != ' '))
+						compositor->caret_pos++;
+				} else {
+					compositor->caret_pos++;
+				}
+			}
+			else {
+				load_text_node(compositor, +1);
+				return;
+			}
+			break;
+		case GF_KEY_HOME:
+			compositor->caret_pos = 0;
+			break;
+		case GF_KEY_END:
+			compositor->caret_pos = compositor->sel_buffer_len-1;
+			break;
+
+		case GF_KEY_TAB:
+			load_text_node(compositor, (event->key.flags & GF_KEY_MOD_SHIFT) ? -1 : 1);
+			return;
+		case GF_KEY_BACKSPACE:
+			if (compositor->caret_pos) {
+				if (compositor->sel_buffer_len) compositor->sel_buffer_len--;
+				memmove(&compositor->sel_buffer[compositor->caret_pos-1], &compositor->sel_buffer[compositor->caret_pos], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos+1));
+				compositor->sel_buffer[compositor->sel_buffer_len]=0;
+				compositor->caret_pos--;
+				flush_text_node_edit(compositor, 0);
+				return;
+			}
+			break;
+		case GF_KEY_DEL:
+			if (compositor->caret_pos+1<compositor->sel_buffer_len) {
+				if (compositor->sel_buffer_len) compositor->sel_buffer_len--;
+				memmove(&compositor->sel_buffer[compositor->caret_pos+1], &compositor->sel_buffer[compositor->caret_pos+2], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos-1));
+				compositor->sel_buffer[compositor->sel_buffer_len]=0;
+				flush_text_node_edit(compositor, 0);
+				return;
+			}
+			break;
+		}
+		if (!is_end) {
+			if (compositor->caret_pos==prev_caret) return;
+			memmove(&compositor->sel_buffer[prev_caret], &compositor->sel_buffer[prev_caret+1], sizeof(u16)*(compositor->sel_buffer_len-prev_caret));
+			memmove(&compositor->sel_buffer[compositor->caret_pos+1], &compositor->sel_buffer[compositor->caret_pos], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos));
+			compositor->sel_buffer[compositor->caret_pos]='|';
+		}
+	}
+
+	flush_text_node_edit(compositor, is_end);
+}
+
+static Bool hit_node_editable(GF_Compositor *compositor) 
+{
+#ifndef GPAC_DISABLE_SVG
+	SVGAllAttributes atts;
+	u32 tag;
+	/*no hit or not a text*/
+	if (!compositor->hit_text || !compositor->hit_node) return 0;
+	if (compositor->hit_node==compositor->focus_node) return compositor->focus_text_type ? 1 : 0;
+
+	tag = gf_node_get_tag(compositor->hit_node);
+	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) return 0;
+	gf_svg_flatten_attributes((SVG_Element *)compositor->hit_node, &atts);
+	if (!atts.editable || !*atts.editable) return 0;
+	switch (tag) {
+	case TAG_SVG_text:
+	case TAG_SVG_textArea:
+		compositor->focus_text_type = 1;
+		compositor->focus_node = compositor->hit_node;
+		return 1;
+	case TAG_SVG_tspan:
+		compositor->focus_text_type = 2;
+		compositor->focus_node = compositor->hit_node;
+		return 1;
+	default:
+		break;
+	}
+#endif
 	return 0;
 }
 
@@ -104,6 +344,10 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				compositor->num_clicks = 0;
 				break;
 			case GF_EVENT_MOUSEDOWN:
+				if (hit_node_editable(compositor)) {
+					exec_text_input(compositor, NULL);
+					return 1;
+				}
 				if ((compositor->grab_x != X) || (compositor->grab_y != Y)) compositor->num_clicks = 0;
 				evt.type = GF_EVENT_MOUSEDOWN;
 				evt.detail = event->mouse.button;
@@ -158,45 +402,53 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 		}
 	}
 	else if (event->type==GF_EVENT_TEXTINPUT) {
+		if (compositor->edited_text) {
+			exec_text_input(compositor, event);
+			return 1;
+		}
 	} 
 	else if ((event->type>=GF_EVENT_KEYUP) && (event->type<=GF_EVENT_LONGKEYPRESS)) {
-		GF_Node *target;
-		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.key_flags = event->key.flags;
-		evt.bubbles = 1;
-		evt.cancelable = 1;
-		evt.type = event->type;
-		evt.detail = event->key.key_code;
-		evt.key_hw_code = event->key.hw_code;
-		target = compositor->focus_node;
-		if (!target) target = gf_sg_get_root_node(compositor->scene);
-		ret += gf_dom_event_fire(target, NULL, &evt);
 
-		if (event->type==GF_EVENT_KEYDOWN) {
-			switch (event->key.key_code) {
-			case GF_KEY_ENTER:
-				evt.type = GF_EVENT_ACTIVATE;
-				evt.detail = 0;
-				ret += gf_dom_event_fire(target, NULL, &evt);
-				break;
-			case GF_KEY_TAB:
-				ret += gf_sc_svg_focus_switch_ring(compositor, (event->key.flags & GF_KEY_MOD_SHIFT) ? 1 : 0);
-				break;
-			case GF_KEY_UP:
-			case GF_KEY_DOWN:
-			case GF_KEY_LEFT:
-			case GF_KEY_RIGHT:
-				ret += gf_sc_svg_focus_navigate(compositor, event->key.key_code);
-				break;
-			}
-		} 
-
-/*		else if (event->event_type==GF_EVENT_CHAR) {
+		if (compositor->edited_text) {
+			exec_text_input(compositor, event);
+			return 1;
 		} else {
-			evt.type = ((event->event_type==GF_EVENT_VKEYDOWN) || (event->event_type==GF_EVENT_KEYDOWN)) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
-			evt.detail = event->key.virtual_code;
+			GF_Node *target;
+			memset(&evt, 0, sizeof(GF_DOM_Event));
+			evt.key_flags = event->key.flags;
+			evt.bubbles = 1;
+			evt.cancelable = 1;
+			evt.type = event->type;
+			evt.detail = event->key.key_code;
+			evt.key_hw_code = event->key.hw_code;
+			target = compositor->focus_node;
+			if (!target) target = gf_sg_get_root_node(compositor->scene);
+			ret += gf_dom_event_fire(target, NULL, &evt);
+
+			if (event->type==GF_EVENT_KEYDOWN) {
+				switch (event->key.key_code) {
+				case GF_KEY_ENTER:
+					if (compositor->focus_text_type) {
+						exec_text_input(compositor, NULL);
+						ret = 1;
+					} else {
+						evt.type = GF_EVENT_ACTIVATE;
+						evt.detail = 0;
+						ret += gf_dom_event_fire(target, NULL, &evt);
+					}
+					break;
+				case GF_KEY_TAB:
+					ret += gf_sc_svg_focus_switch_ring(compositor, (event->key.flags & GF_KEY_MOD_SHIFT) ? 1 : 0);
+					break;
+				case GF_KEY_UP:
+				case GF_KEY_DOWN:
+				case GF_KEY_LEFT:
+				case GF_KEY_RIGHT:
+					ret += gf_sc_svg_focus_navigate(compositor, event->key.key_code);
+					break;
+				}
+			} 
 		}
-*/
 	}
 	return ret;
 #else
@@ -292,6 +544,7 @@ static Bool exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
 {
 	Bool ret;
+	Bool reset_sel = 0;
 	GF_Compositor *compositor = visual->compositor;
 	tr_state->traversing_mode = TRAVERSE_PICK;
 #ifndef GPAC_DISABLE_3D
@@ -302,26 +555,32 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 	compositor->hit_text = NULL;
 
 	if (compositor->text_selection) {
-		if (ev->type==GF_EVENT_MOUSEUP) {
+		if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 			if (!compositor->store_text_sel) compositor->store_text_sel = 1;
 			else {
-				compositor->store_text_sel = 0;
-				compositor->text_selection = NULL;
-				if (compositor->selected_text) free(compositor->selected_text);
-				compositor->selected_text = NULL;
-				if (compositor->sel_buffer) free(compositor->sel_buffer);
-				compositor->sel_buffer = NULL;
-				compositor->sel_buffer_alloc = 0;
-				compositor->sel_buffer_len = 0;
-
-				compositor->draw_next_frame = 1;
+				reset_sel = 1;
 			}
 		}
-		else if (ev->type==GF_EVENT_MOUSEDOWN) {
-			compositor->store_text_sel = 0;
-			compositor->text_selection = NULL;
-			compositor->draw_next_frame = 1;
+		else if ((ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+			reset_sel = 1;
 		}
+	} else if (compositor->edited_text) {
+		if ((ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT))
+			reset_sel = 1;
+	}
+	if (reset_sel) {
+		flush_text_node_edit(compositor, 1);
+
+		compositor->store_text_sel = 0;
+		compositor->text_selection = NULL;
+		if (compositor->selected_text) free(compositor->selected_text);
+		compositor->selected_text = NULL;
+		if (compositor->sel_buffer) free(compositor->sel_buffer);
+		compositor->sel_buffer = NULL;
+		compositor->sel_buffer_alloc = 0;
+		compositor->sel_buffer_len = 0;
+
+		compositor->draw_next_frame = 1;
 	}
 	
 	/*pick node*/

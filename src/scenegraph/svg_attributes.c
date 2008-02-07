@@ -2039,7 +2039,8 @@ static void svg_parse_fontvariant(SVG_FontVariant *value, char *value_string)
 
 static void svg_parse_boolean(SVG_Boolean *value, char *value_string)
 {
-	if (!strcmp(value_string, "1") || !strcmp(value_string, "true"))
+	/*simple for text editable*/
+	if (!strcmp(value_string, "1") || !strcmp(value_string, "true") || !strcmp(value_string, "simple"))
 		*value = 1;
 	else
 		*value = 0;

@@ -48,7 +48,10 @@ typedef struct
 static void svg_check_focus_upon_destroy(GF_Node *n)
 {
 	GF_Compositor *compositor = gf_sc_get_compositor(n);
-	if (compositor && (compositor->focus_node==n)) compositor->focus_node = NULL;
+	if (compositor && (compositor->focus_node==n)) {
+		compositor->focus_node = NULL;
+		compositor->focus_text_type = 0;
+	}
 }
 
 static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *stack, GF_TraverseState *tr_state, SVGAllAttributes *atts) 
@@ -647,6 +650,24 @@ static void svg_traverse_a(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->svg_flags = backup_flags;
 }
 
+static Bool is_timing_target(GF_Node *n)
+{
+	if (!n) return 0;
+	switch (gf_node_get_tag(n)) {
+	case TAG_SVG_set:
+	case TAG_SVG_animate:
+	case TAG_SVG_animateColor:
+	case TAG_SVG_animateTransform:
+	case TAG_SVG_animateMotion:
+	case TAG_SVG_discard:
+	case TAG_SVG_animation:
+	case TAG_SVG_video:
+	case TAG_SVG_audio:
+		return 1;
+	}
+	return 0;
+}
+
 static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 {
 	GF_Compositor *compositor;
@@ -692,6 +713,13 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 			}
 
 			if (evt.navigate.to_url[0] == '#') {
+				all_atts.xlink_href->target = gf_sg_find_node_by_name(gf_node_get_graph(handler), (char *) evt.navigate.to_url+1);
+				if (is_timing_target(all_atts.xlink_href->target)) {
+					all_atts.xlink_href->type = XMLRI_ELEMENTID;
+					free((char *)evt.navigate.to_url);
+					goto process_a_timing;
+				}
+
 				gf_inline_set_fragment_uri(handler, evt.navigate.to_url+1);
 				/*force recompute viewbox of root SVG - FIXME in full this should be the parent svg*/
 				gf_node_dirty_set(gf_sg_get_root_node(gf_node_get_graph(handler)), 0, 0);
@@ -708,24 +736,17 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 			}
 			free((char *)evt.navigate.to_url);
 		}
-	} else {
-		u32 tag;
-		if (!all_atts.xlink_href->target) {
-			/* TODO: check if href can be resolved */
-			return;
-		} 
-		tag = gf_node_get_tag((GF_Node *)all_atts.xlink_href->target);
-		if (tag == TAG_SVG_set ||
-			tag == TAG_SVG_animate ||
-			tag == TAG_SVG_animateColor ||
-			tag == TAG_SVG_animateTransform ||
-			tag == TAG_SVG_animateMotion || 
-			tag == TAG_SVG_discard) {
+		return;
+	} 
+	
+	if (!all_atts.xlink_href->target) {
+		/* TODO: check if href can be resolved */
+		return;
+	} 
+	if (!is_timing_target(all_atts.xlink_href->target)) return;
 
-			gf_smil_timing_insert_clock(all_atts.xlink_href->target, 0, gf_node_get_scene_time((GF_Node *)handler) );
-
-		}
-	}
+process_a_timing:
+	gf_smil_timing_insert_clock(all_atts.xlink_href->target, 0, gf_node_get_scene_time((GF_Node *)handler) );
 	return;
 }
 

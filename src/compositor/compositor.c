@@ -663,6 +663,7 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	compositor->grab_node = NULL;
 	compositor->grab_use = NULL;
 	compositor->focus_node = NULL;
+	compositor->focus_text_type = 0;
 	compositor->frame_number = 0;
 
 #ifdef GROUP_2D_USE_CACHE

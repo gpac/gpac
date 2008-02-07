@@ -54,6 +54,9 @@ char *gf_term_resolve_xlink(GF_Node *node, char *the_url)
 		node = gf_node_get_parent(node, 0);
 	}
 
+	/*if this is a fragment and no XML:BASE was found, this is a fragment of the current document*/
+	if (url[0]=='#') return url;
+
 	if (is) {
 		char *the_url = gf_url_concatenate(is->root_od->net_service->url, url);
 		free(url);
