@@ -103,6 +103,7 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 			else if (!strcmp(rtype, "XMT-A")) handled = 1;
 			else if (!strcmp(rtype, "X3D")) handled = 1;
 			else if (!strcmp(rtype, "svg")) handled = 1;
+			else if (!strcmp(rtype, "bindings")) handled = 1;
 			free(rtype);
 			return handled;
 		}
@@ -121,8 +122,11 @@ void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	e = param->error;
 
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
-	}
-	else if (!e && (param->msg_type!=GF_NETIO_DATA_EXCHANGE)) return;
+	} else if (param->msg_type==GF_NETIO_PARSE_HEADER) {
+		if (!strcmp(param->name, "Content-Type")) {
+			if (!strcmp(param->value, "image/svg+xml")) read->oti = 0x02;
+		}
+	} else if (!e && (param->msg_type!=GF_NETIO_DATA_EXCHANGE)) return;
 
 	/*OK confirm*/
 	if (!read->is_service_connected) {
@@ -185,6 +189,8 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		/*XML LASeR*/
 		else if (!stricmp(ext, "xsr"))
 			read->oti = 0x03;
+		else if (!stricmp(ext, "xbl"))
+			read->oti = 0x04;
 	}
 
 	if (!read->oti && (!strnicmp(url, "file://", 7) || !strstr(url, "://"))) {
@@ -194,6 +200,7 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			else if (!strcmp(rtype, "svg")) read->oti = 0x02;
 			else if (!strcmp(rtype, "XMT-A")) read->oti = 0x01;
 			else if (!strcmp(rtype, "X3D")) read->oti = 0x01;
+			else if (!strcmp(rtype, "bindings")) read->oti = 0x04;
 			free(rtype);
 		}
 	}
