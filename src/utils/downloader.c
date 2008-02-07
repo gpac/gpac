@@ -250,8 +250,13 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 
 	for (i=0; i<strlen(tmp); i++) {
 		if (tmp[i] == '/') tmp[i] = '_';
-		else if (tmp[i] == '?') tmp[i] = '_';
-		else if (tmp[i] == '&') tmp[i] = '_';
+		else if (tmp[i] == '?') {
+			/* if we encounter a ?, it means the URL is requesting some user generated content 
+			and therefore caching is unlikely to be useful. Additionally, URL with ? may be too long as a file name. */
+			tmp[i] = 0;
+			sprintf(tmp, "%s%d%d", tmp, (u32)sess, gf_sys_clock());
+			break;
+		} else if (tmp[i] == '&') tmp[i] = '_';
 		else if (tmp[i] == '=') tmp[i] = '_';
 		else if (tmp[i] == '[') tmp[i] = '_';
 		else if (tmp[i] == ']') tmp[i] = '_';
@@ -1298,6 +1303,8 @@ void http_do_requests(GF_DownloadSession *sess)
 				is_ice = 1;
 			else if (!stricmp(hdr, "X-UserProfileID") ) 
 				gf_cfg_set_key(sess->dm->cfg, "Downloader", "UserProfileID", hdr_val);
+/*			else if (!stricmp(hdr, "Connection") ) 
+				if (strstr(hdr_val, "close")) sess->http_read_type = 1; */
 
 
 			if (sep) sep[0]=':';
