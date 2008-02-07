@@ -2454,13 +2454,12 @@ void wxOsmo4Frame::OnUpdateChapterMenu(wxUpdateUIEvent & event)
 
 void wxOsmo4Frame::OnFileCopy(wxCommandEvent &event)
 {
-	wxClipboard clip;
 	const char *text = gf_term_get_text_selection(m_term, 0);
 	if (!text) return;
-	if (!clip.Open()) return;
+	if (!wxTheClipboard->Open()) return;
 
-	clip.SetData( new wxTextDataObject(text) );
-	clip.Close();
+	wxTheClipboard->SetData( new wxTextDataObject(text) );
+	wxTheClipboard->Close();
 }
 
 void wxOsmo4Frame::OnUpdateFileCopy(wxUpdateUIEvent &event)

@@ -150,8 +150,10 @@ void visual_2d_drawable_delete(GF_VisualManager *visual, struct _drawable *node)
 	if (visual->compositor->grab_node==node->node) 
 		visual->compositor->grab_node = NULL;
 
-	if (visual->compositor->focus_node==node->node) 
+	if (visual->compositor->focus_node==node->node) {
 		visual->compositor->focus_node = NULL;
+		visual->compositor->focus_text_type = 0;
+	}
 }
 
 Bool visual_2d_node_cull(GF_TraverseState *tr_state, GF_Rect *bounds)

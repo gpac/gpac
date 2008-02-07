@@ -337,7 +337,6 @@ typedef struct __xml_ri {
 /*the same structure is used to watch for IDREF changes (LASeR node replace)*/
 typedef struct __xml_ri XML_IDREF;
 
-
 enum
 {
 	SVG_FOCUS_AUTO = 0, 

@@ -124,7 +124,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 
 		tspan = gf_font_manager_create_span(ft_mgr, font, str, fontSize, 0, 0, NULL, 0, styles);
 		len = tspan->nb_glyphs;
-		tspan->horizontal = 1;
+		tspan->flags |= GF_TEXT_SPAN_HORIZONTAL;
 
 		first_char = 0;
 		for (j=0; j<len; j++) {
@@ -233,7 +233,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		tspan = gf_font_manager_create_span(ft_mgr, font, txt->string.vals[i], fontSize, 0, 0, NULL, 0, styles);
 		if (!tspan) continue;
 		
-		tspan->horizontal = horizontal;
+		if (horizontal) tspan->flags |= GF_TEXT_SPAN_HORIZONTAL;
 
 		if ((horizontal && !FSLTR) || (!horizontal && !FSTTB)) {
 			for (k=0; k<tspan->nb_glyphs/2; k++) {

@@ -58,6 +58,17 @@ static void svg_finalize_sort(DrawableContext *ctx, SVG_TextStack *st, GF_Traver
 	} else 
 #endif
 	{
+		if (!tr_state->direct_draw && !tr_state->visual->compositor->store_text_sel) {
+			GF_TextSpan *span;
+			u32 i = 0;
+			Bool unselect = (tr_state->visual->compositor->text_selection!=tr_state->text_parent) ? 1 : 0;
+			while ((span = gf_list_enum(st->spans, &i))) {
+				if (span->flags & GF_TEXT_SPAN_SELECTED) {
+					if (unselect) span->flags &= ~GF_TEXT_SPAN_SELECTED;
+					ctx->flags |= CTX_APP_DIRTY;
+				}
+			}
+		}
 		drawable_finalize_sort(ctx, tr_state, &st->bounds);
 	}
 }
@@ -219,7 +230,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 	tr_state->last_char_was_space = (j && (dup_text[j-1]==' ')) ? 1 : 0;
 	span = gf_font_manager_create_span(fm, font, dup_text, font_size, x_offsets, y_offsets, lang, 1, 0);
 	free(dup_text);
-	if (span) span->horizontal = 1;
+	if (span) span->flags |= GF_TEXT_SPAN_HORIZONTAL;
 	return span;
 }
 

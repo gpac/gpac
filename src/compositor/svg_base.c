@@ -54,11 +54,12 @@ static Bool svg_is_focus_target(GF_Node *elt)
 
 static GF_Node *svg_set_focus_prev(GF_Compositor *compositor, GF_Node *elt, Bool current_focus)
 {
-	u32 i, count;
+	u32 i, count, tag;
 	GF_Node *n;
 	SVGAllAttributes atts;
 
-	if (gf_node_get_tag(elt) <= GF_NODE_FIRST_DOM_NODE_TAG) return NULL;
+	tag = gf_node_get_tag(elt);
+	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) return NULL;
 
 	gf_svg_flatten_attributes((SVG_Element *)elt, &atts);
 
@@ -71,6 +72,20 @@ static GF_Node *svg_set_focus_prev(GF_Compositor *compositor, GF_Node *elt, Bool
 			if (*atts.focusable==SVG_FOCUSABLE_FALSE) is_auto = 0;
 		}
 		if (is_auto && svg_is_focus_target(elt)) return elt;
+
+		if (atts.editable && *atts.editable) {
+			switch (tag) {
+			case TAG_SVG_text:
+			case TAG_SVG_textArea:
+				compositor->focus_text_type = 1;
+				return elt;
+			case TAG_SVG_tspan:
+				compositor->focus_text_type = 2;
+				return elt;
+			default:
+				break;
+			}
+		}
 	}
 
 	/**/
@@ -130,11 +145,13 @@ static GF_Node *svg_browse_parent_for_focus_prev(GF_Compositor *compositor, GF_N
 
 static GF_Node *svg_set_focus_next(GF_Compositor *compositor, GF_Node *elt, Bool current_focus)
 {
+	u32 tag;
 	GF_ChildNodeItem *child;
 	GF_Node *n;
 	SVGAllAttributes atts;
 
-	if (gf_node_get_tag(elt) <= GF_NODE_FIRST_DOM_NODE_TAG) return NULL;
+	tag = gf_node_get_tag(elt);
+	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) return NULL;
 
 	gf_svg_flatten_attributes((SVG_Element *)elt, &atts);
 
@@ -147,6 +164,20 @@ static GF_Node *svg_set_focus_next(GF_Compositor *compositor, GF_Node *elt, Bool
 			if (*atts.focusable==SVG_FOCUSABLE_FALSE) is_auto = 0;
 		}
 		if (is_auto && svg_is_focus_target(elt)) return elt;
+
+		if (atts.editable && *atts.editable) {
+			switch (tag) {
+			case TAG_SVG_text:
+			case TAG_SVG_textArea:
+				compositor->focus_text_type = 1;
+				return elt;
+			case TAG_SVG_tspan:
+				compositor->focus_text_type = 2;
+				return elt;
+			default:
+				break;
+			}
+		}
 	}
 
 	/*check next*/
@@ -212,6 +243,7 @@ u32 gf_sc_svg_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 	GF_Node *n, *prev;
 
 	prev = compositor->focus_node;
+	compositor->focus_text_type = 0;
 
 	if (!compositor->focus_node) {
 		compositor->focus_node = gf_sg_get_root_node(compositor->scene);

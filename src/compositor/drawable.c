@@ -799,11 +799,12 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	u32 prev_mode;
 	GF_Rect *bounds;
 	GF_Matrix2D cur;
-	if (tr_state->visual->compositor->focus_node!=node) return;
+	GF_Compositor *compositor = tr_state->visual->compositor;
 
-	if (!tr_state->visual->compositor->focus_highlight) return;
+	if (compositor->focus_node!=node) return;
 
-	hlight = tr_state->visual->compositor->focus_highlight;
+	hlight = compositor->focus_highlight;
+	if (!hlight) return;
 
 	/*check if focus node has changed*/
 	prev_node = gf_node_get_private(hlight->node);
@@ -834,12 +835,20 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	}
 	hl_ctx = visual_2d_get_drawable_context(tr_state->visual);
 	hl_ctx->drawable = hlight;
-	hl_ctx->aspect.fill_color = tr_state->visual->compositor->highlight_fill;
-	hl_ctx->aspect.line_color = tr_state->visual->compositor->highlight_stroke;
+	hl_ctx->aspect.fill_color = compositor->highlight_fill;
+	hl_ctx->aspect.line_color = compositor->highlight_stroke;
 	hl_ctx->aspect.line_scale = 0;
 	hl_ctx->aspect.pen_props.width = 1;
 	hl_ctx->aspect.pen_props.join = GF_LINE_JOIN_BEVEL;
 	hl_ctx->aspect.pen_props.dash = GF_DASH_STYLE_DOT;
+
+	/*editing this node - move to solid stroke*/
+	if (compositor->edited_text) {
+		hl_ctx->aspect.pen_props.width = 2;
+		hl_ctx->aspect.pen_props.dash = 1;
+		hl_ctx->aspect.line_color = compositor->highlight_stroke;
+	}
+
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {

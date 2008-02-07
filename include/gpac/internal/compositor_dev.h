@@ -327,6 +327,11 @@ struct __tag_compositor
 	u16 *sel_buffer;
 	u8 *selected_text;
 
+	/*set whenever the focus node is a text node*/
+	u32 focus_text_type;
+	Bool edit_is_tspan;
+	GF_DOMText *edited_text;
+	u32 caret_pos, dom_text_pos;
 
 #ifndef GPAC_DISABLE_3D
 	/*options*/
@@ -969,6 +974,17 @@ struct _gf_font
 	struct _gf_ft_mgr *ft_mgr;
 };
 
+enum 
+{
+	/*span direction is horizontal*/
+	GF_TEXT_SPAN_HORIZONTAL = 1,
+	/*span is underlined*/
+	GF_TEXT_SPAN_UNDERLINE = 1<<1,
+	/*span is fliped (coord systems with Y-axis pointing downwards like SVG)*/
+	GF_TEXT_SPAN_FLIP = 1<<2,
+	/*span is in the current text selection*/
+	GF_TEXT_SPAN_SELECTED = 1<<3
+};
 
 typedef struct __text_span
 {
@@ -976,6 +992,8 @@ typedef struct __text_span
 	
 	GF_Glyph **glyphs;
 	u32 nb_glyphs;
+
+	u32 flags;
 
 	Fixed font_size;
 
@@ -991,15 +1009,8 @@ typedef struct __text_span
 	/*per-glyph positioning - when allocated, this is the same number as the glyphs*/
 	Fixed *dx, *dy;
 
-	Bool horizontal;
-
-	Bool underlined;
-
 	/*span language*/
 //	const char *lang;
-
-	/*for coord systems with Y-axis pointing downwards*/
-	Bool flip;
 
 	/*span texturing and 3D tools*/
 	struct _span_internal *ext;
