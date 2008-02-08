@@ -40,6 +40,14 @@ enum
 	GROUP_PERMANENT_CACHE		=	1<<6,
 };
 
+/*this is only used for type-casting of the common 2D/3D stacks to get the flags*/
+typedef struct
+{
+	u32 flags;
+} BaseGroupingStack;
+
+
+
 #ifdef GROUP_2D_USE_CACHE
 
 #define GROUPING_NODE_STACK_2D		\

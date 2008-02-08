@@ -1,5 +1,14 @@
-Latest CVS changes - 06/02/08:
-  - Added support for text selection in MPEG4 (non standard) / SVGT (no copy for text+tspan)
+Latest CVS changes - 08/02/08:
+  - Unified focus model for SVG and MPEG-4. MPEG-4 focus can only be used through tab/-tab (no north/east/.. navigation)
+      * The MPEG-4 focus is based on the groups (2D/3D) presenting interactive features (sensors)
+        * keyboard mapping for sensor is activate (ENTER key) and direction keys with or without SHIFT. 
+        * Not all sensors are mapped yet
+      * The focus is by default on the UA (GPAC), not on the content.              
+  - Added support for inplace text edition in SVGT and in MPEG4
+      * support for clipboard paste at current caret pos (win32, wxWidgets - no WinCE/symbian yet) 
+      * VRML/MPEG4/X3D: this is not standard, enabled with "EDITABLE" present in text->fontStyle->styles. 
+            Added because StringSensor does not allow for in-place editing of the string
+  - Added support for text selection in MPEG4 (non standard) / SVGT with clipboard copy (win32, wxWidgets - no copy for text+tspan - no WinCE/symbian yet)
   - Better support for SVG <animation>, added support for SVG->svg linking (ElementID and svgView) and many svg fixes 
   - Added support for MPEG-4 over MPEG-2 TS in mp42ts (MPEG-4 SL in MPEG-2 PES)
   - Added support for MPEG-4 AAC/LOAS/LATM/ over MPEG-2 TS for import in ISO Media and in the player. 

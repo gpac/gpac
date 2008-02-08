@@ -445,6 +445,7 @@ void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fix
 {
 	Fixed ratio;
 	Fixed old_tx, old_ty, old_z;
+	GF_Node *root;
 	
 	gf_sc_lock(compositor, 1);
 	old_tx = tx;
@@ -489,7 +490,9 @@ void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fix
 	compositor->traverse_state->invalidate_all = 1;
 
 #ifndef GPAC_DISABLE_SVG
-	if (compositor->root_uses_dom_events) {
+	root = gf_sg_get_root_node(compositor->scene);
+	/*if root node is DOM, sent a resize event*/
+	if (root && (gf_node_get_tag(root) >= GF_NODE_FIRST_DOM_NODE_TAG)) {
 		GF_DOM_Event evt;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.prev_scale = compositor->scale_x*old_z;

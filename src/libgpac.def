@@ -1094,6 +1094,7 @@ EXPORTS
 	gf_term_get_service_interface
 	gf_term_get_service_info
 	gf_term_get_text_selection
+	gf_term_paste_text
 
 ;compositor.h exports
 	gf_sc_new

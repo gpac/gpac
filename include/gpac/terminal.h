@@ -114,9 +114,12 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com);
 */
 GF_Err gf_term_set_size(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
 
-/*returns current text selection if any, or NULL otherwise. If probe mode is set, retruns a non-NULL string ("") 
+/*returns current text selection if any, or NULL otherwise. If probe mode is set, returns a non-NULL string ("") 
 if some text is selected*/
 const char *gf_term_get_text_selection(GF_Terminal *term, Bool probe_only);
+/*pastes text into current selection if any. If probe mode is set, only check if text is currently edited
+if some text is selected*/
+GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only);
 
 
 /*decodes pending media and render frame. 

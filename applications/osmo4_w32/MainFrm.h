@@ -208,6 +208,8 @@ protected:
 	afx_msg void OnUpdateViewCPU(CCmdUI* pCmdUI);
 	afx_msg void OnFileCopy();
 	afx_msg void OnUpdateFileCopy(CCmdUI* pCmdUI);
+	afx_msg void OnFilePaste();
+	afx_msg void OnUpdateFilePaste(CCmdUI* pCmdUI);
 
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()

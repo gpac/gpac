@@ -551,44 +551,64 @@ void VS3D_DrawAABBNodeBounds(GF_TraverseState *tr_state, AABBNode *node)
 	}
 }
 
-void VS3D_DrawMeshBoundingVolume(GF_TraverseState *tr_state, GF_Mesh *mesh)
-{
 #ifndef GPAC_USE_TINYGL
-
+void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box)
+{
 	SFVec3f c, s;
 #ifdef GPAC_USE_OGL_ES
 	u32 atts = ogles_push_enable(GL_LIGHTING);
 #else
 	glPushAttrib(GL_ENABLE_BIT);
 #endif
+	gf_vec_diff(s, box->max_edge, box->min_edge);
+	c.x = box->min_edge.x + s.x/2;
+	c.y = box->min_edge.y + s.y/2;
+	c.z = box->min_edge.z + s.z/2;
 
-	if (mesh->aabb_root && (tr_state->visual->compositor->draw_bvol==GF_BOUNDS_AABB)) {
-		glDisable(GL_LIGHTING);
-		VS3D_DrawAABBNodeBounds(tr_state, mesh->aabb_root);
-	} else {
-		gf_vec_diff(s, mesh->bounds.max_edge, mesh->bounds.min_edge);
-		c.x = mesh->bounds.min_edge.x + s.x/2;
-		c.y = mesh->bounds.min_edge.y + s.y/2;
-		c.z = mesh->bounds.min_edge.z + s.z/2;
-
-		glPushMatrix();
-		
+	visual_3d_set_material_2d_argb(tr_state->visual, tr_state->visual->compositor->highlight_stroke);
+	glPushMatrix();
+	
 #ifdef GPAC_USE_OGL_ES
-		glTranslatex(c.x, c.y, c.z);
-		glScalex(s.x, s.y, s.z);
+	glTranslatex(c.x, c.y, c.z);
+	glScalex(s.x, s.y, s.z);
 #else
-		glTranslatef(FIX2FLT(c.x), FIX2FLT(c.y), FIX2FLT(c.z));
-		glScalef(FIX2FLT(s.x), FIX2FLT(s.y), FIX2FLT(s.z));
+	glTranslatef(FIX2FLT(c.x), FIX2FLT(c.y), FIX2FLT(c.z));
+	glScalef(FIX2FLT(s.x), FIX2FLT(s.y), FIX2FLT(s.z));
 #endif
-		VS3D_DrawMeshIntern(tr_state, tr_state->visual->compositor->unit_bbox);
-		glPopMatrix();
-	}
+	VS3D_DrawMeshIntern(tr_state, tr_state->visual->compositor->unit_bbox);
+	glPopMatrix();
 
 #ifdef GPAC_USE_OGL_ES
 	ogles_pop_enable(atts);
 #else
 	glPopAttrib();
 #endif
+
+}
+#endif
+
+
+void VS3D_DrawMeshBoundingVolume(GF_TraverseState *tr_state, GF_Mesh *mesh)
+{
+#ifndef GPAC_USE_TINYGL
+
+
+	if (mesh->aabb_root && (tr_state->visual->compositor->draw_bvol==GF_BOUNDS_AABB)) {
+#ifdef GPAC_USE_OGL_ES
+		u32 atts = ogles_push_enable(GL_LIGHTING);
+#else
+		glPushAttrib(GL_ENABLE_BIT);
+#endif
+		glDisable(GL_LIGHTING);
+		VS3D_DrawAABBNodeBounds(tr_state, mesh->aabb_root);
+#ifdef GPAC_USE_OGL_ES
+		ogles_pop_enable(atts);
+#else
+		glPopAttrib();
+#endif
+	} else {
+		visual_3d_draw_bbox(tr_state, &mesh->bounds);
+	}
 
 
 #endif /*GPAC_USE_TINYGL*/

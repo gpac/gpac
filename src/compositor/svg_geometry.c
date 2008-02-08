@@ -28,12 +28,11 @@
 #ifndef GPAC_DISABLE_SVG
 #include "nodes_stacks.h"
 
-Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, GF_Path *path, DrawAspect2D *asp, GF_TraverseState *tr_state, Bool is_text)
+Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *asp, GF_TraverseState *tr_state, GF_Rect *glyph_rc)
 {
 	Bool check_fill, check_stroke, check_over, check_outline, check_vis, inside;
 	GF_Rect rc;
 	u8 ptr_evt;
-	if (!path) path = drawable->path;
 
 	ptr_evt = *tr_state->svg_props->pointer_events;
 
@@ -41,7 +40,11 @@ Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, GF_Path *path, D
 		return 0;
 	}
 
-	gf_path_get_bounds(path, &rc);
+	if (glyph_rc) {
+		rc = *glyph_rc;
+	} else {
+		gf_path_get_bounds(drawable->path, &rc);
+	}
 	inside = ( (x >= rc.x) && (y <= rc.y) && (x <= rc.x + rc.width) && (y >= rc.y - rc.height) ) ? 1 : 0;
 	
 	if (ptr_evt==SVG_POINTEREVENTS_BOUNDINGBOX) return inside;
@@ -122,17 +125,17 @@ Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, GF_Path *path, D
 	if (check_fill) {
 		/*painted or don't care about fill*/
 		if ((check_fill!=2) || asp->fill_texture || asp->fill_color) {
-			if (is_text) return 1;
+			if (glyph_rc) return 1;
 			/*point is over path*/
-			if (gf_path_point_over(path, x, y)) return 1;
+			if (gf_path_point_over(drawable->path, x, y)) return 1;
 		}
 	}
 	if (check_stroke) {
 		StrikeInfo2D *si;
 		/*not painted or don't care about stroke*/
 		if ((check_stroke!=2) || asp->line_texture || asp->line_color) {
-			if (is_text) return 1;
-			si = drawable_get_strikeinfo(tr_state->visual->compositor, drawable, asp, tr_state->appear, path, 0, NULL);
+			if (glyph_rc) return 1;
+			si = drawable_get_strikeinfo(tr_state->visual->compositor, drawable, asp, tr_state->appear, NULL, 0, NULL);
 			/*point is over outline*/
 			if (si && si->outline && gf_path_point_over(si->outline, x, y)) 
 				return 1;
@@ -191,7 +194,7 @@ void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAs
 	}
 	node_is_over = 0;
 	if (compositor_get_2d_plane_intersection(&r, &local_pt)) {
-		node_is_over = svg_drawable_is_over(drawable, local_pt.x, local_pt.y, NULL, asp, tr_state, 0);
+		node_is_over = svg_drawable_is_over(drawable, local_pt.x, local_pt.y, asp, tr_state, NULL);
 	}
 
 	if (!node_is_over) return;
@@ -286,7 +289,7 @@ void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_s
 	y = tr_state->ray.orig.y;
 	gf_mx2d_apply_coords(&inv_2d, &x, &y);
 
-	picked = svg_drawable_is_over(drawable, x, y, NULL, &asp, tr_state, 0);
+	picked = svg_drawable_is_over(drawable, x, y, &asp, tr_state, NULL);
 
 	if (picked) {
 		u32 count, i;

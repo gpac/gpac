@@ -1055,3 +1055,11 @@ const char *gf_term_get_text_selection(GF_Terminal *term, Bool probe_only)
 }
 
 
+GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only)
+{
+	if (!term) return GF_BAD_PARAM;
+	if (probe_only) return gf_sc_paste_text(term->compositor, NULL);
+	return gf_sc_paste_text(term->compositor, txt);
+}
+
+

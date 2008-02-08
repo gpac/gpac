@@ -809,6 +809,7 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	/*check if focus node has changed*/
 	prev_node = gf_node_get_private(hlight->node);
 	if (prev_node != node) {
+		/*this is a grouping node, get its bounds*/
 		if (!orig_bounds) {
 			gf_mx2d_copy(cur, tr_state->transform);
 			gf_mx2d_init(tr_state->transform);
@@ -817,9 +818,7 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 			tr_state->bounds.width = tr_state->bounds.height = 0;
 			tr_state->bounds.x = tr_state->bounds.y = 0;
 
-#ifndef GPAC_DISABLE_SVG
-			gf_sc_svg_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
-#endif
+			gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
 			
 			tr_state->traversing_mode = prev_mode;
 			gf_mx2d_copy(tr_state->transform, cur);

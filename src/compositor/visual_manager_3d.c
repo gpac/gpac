@@ -51,6 +51,50 @@ void drawable_3d_del(GF_Node *n)
 	}
 }
 
+
+void drawable3d_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, GF_BBox *orig_bounds)
+{
+	Drawable *hlight;
+	GF_Node *prev_node;
+	u32 prev_mode;
+	GF_BBox *bounds;
+	GF_Matrix cur;
+	GF_Compositor *compositor = tr_state->visual->compositor;
+
+	if (compositor->focus_node!=node) return;
+
+	hlight = compositor->focus_highlight;
+	if (!hlight) return;
+
+	/*check if focus node has changed*/
+	prev_node = gf_node_get_private(hlight->node);
+	if (prev_node != node) {
+		gf_node_set_private(hlight->node, node);
+
+		drawable_reset_path(hlight);
+		gf_path_reset(hlight->path);
+	}
+	/*this is a grouping node, get its bounds*/
+	if (!orig_bounds) {
+		gf_mx_copy(cur, tr_state->model_matrix);
+		gf_mx_init(tr_state->model_matrix);
+		prev_mode = tr_state->traversing_mode;
+		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
+		tr_state->bbox.is_set = 0;
+
+		gf_node_allow_cyclic_traverse(node);
+		gf_node_traverse(node, tr_state);
+	
+		tr_state->traversing_mode = prev_mode;
+		gf_mx_copy(tr_state->model_matrix, cur);
+		bounds = &tr_state->bbox;
+	} else {
+		bounds = orig_bounds;
+	}
+	visual_3d_draw_bbox(tr_state, bounds);
+}
+
+
 static void visual_3d_setup_traversing_state(GF_VisualManager *visual, GF_TraverseState *tr_state)
 {
 	tr_state->visual = visual;
@@ -130,8 +174,26 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	tr_state->camera->z_near = tr_state->camera->avatar_size.x ; 
 	if (tr_state->camera->z_near<=0) tr_state->camera->z_near = FIX_ONE/2;
 	tr_state->camera->z_far = tr_state->camera->visibility; 
+
+	/*z_far is selected so that an object the size of the viewport measures
+	one pixel when located at the far plane. It can be found through the projection 
+	transformation (projection matrix) of x and y
+		x transformation is: x'= (1/(ar*tg(fov/2)) )*x/z 
+		y transformation is: y'=(1/(tg(fov/2)))*x/z
+
+	therefore when z=z_far and x=max(width/2, height/2), then 
+	x' = 1/max(vp_size.x, vp_size.y) (transformed OpenGL viewport measures one)
+
+	this yields z_far = max(vp_size.x, vp_size.y) * max(width/2, height/2) * max(1/(ar*tg(fov/2)), 1/tg(fov/2))
+		z_far = max(vp_size.x, vp_size.y) * max(width, height) / (2*min(1, ar)*tg(fov/2)) )
+	
+	to choose a z_far so that the size is more than one pixel, then z_far' = z_far/n_pixels*/
 	if (tr_state->camera->z_far<=0) {
-		tr_state->camera->z_far = gf_muldiv(tr_state->vp_size.x, tr_state->camera->width, 2*gf_tan(fieldOfView)/2);
+		tr_state->camera->z_far = gf_muldiv(
+			MAX(tr_state->vp_size.x,tr_state->vp_size.y), 
+			MAX(tr_state->camera->width, tr_state->camera->height), 
+			MIN(1,tr_state->vp_size.x/tr_state->vp_size.y)*2*gf_tan(fieldOfView/2) 
+		);
 	}
 
 	if (vp) {

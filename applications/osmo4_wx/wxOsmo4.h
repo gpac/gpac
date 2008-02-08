@@ -85,6 +85,7 @@ enum {
 	FILE_NEXT,
 	FILE_PROPERTIES,
 	FILE_COPY,
+	FILE_PASTE,
 	TERM_RELOAD,
 	FILE_QUIT,
 	VIEW_FULLSCREEN,
@@ -344,6 +345,8 @@ private:
 
 	void OnFileCopy(wxCommandEvent &event);
 	void OnUpdateFileCopy(wxUpdateUIEvent &event);
+	void OnFilePaste(wxCommandEvent &event);
+	void OnUpdateFilePaste(wxUpdateUIEvent &event);
 
 
 	void CheckVideoOut();

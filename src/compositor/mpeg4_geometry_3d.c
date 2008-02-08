@@ -48,6 +48,7 @@ void drawable_3d_base_traverse(GF_Node *n, void *rs, Bool is_destroy, void (*bui
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_DRAW_3D:
 		visual_3d_draw(tr_state, stack->mesh);
+		drawable3d_check_focus_highlight(n, tr_state, &stack->mesh->bounds);
 		break;
 	case TRAVERSE_GET_BOUNDS:
 		tr_state->bbox = stack->mesh->bounds;
