@@ -58,7 +58,7 @@ static void svg_finalize_sort(DrawableContext *ctx, SVG_TextStack *st, GF_Traver
 	} else 
 #endif
 	{
-		if (!tr_state->direct_draw && !tr_state->visual->compositor->store_text_sel) {
+		if (!tr_state->direct_draw && (tr_state->visual->compositor->store_text_state!=1)) {
 			GF_TextSpan *span;
 			u32 i = 0;
 			Bool unselect = (tr_state->visual->compositor->text_selection!=tr_state->text_parent) ? 1 : 0;
@@ -1019,6 +1019,10 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (tr_state->traversing_mode==TRAVERSE_DRAW_2D) {
 		svg_text_draw_2d(st, tr_state);
+		return;
+	}
+	else if (tr_state->traversing_mode==TRAVERSE_GET_TEXT) {
+		gf_font_spans_get_selection(node, st->spans, tr_state);
 		return;
 	}
 

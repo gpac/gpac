@@ -141,13 +141,14 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 			tr_state->disable_cull = 1;
 		tr_state->text_split_mode = split_text_backup;
 	}
-#ifdef GROUP_2D_USE_CACHE
 	/*TRAVERSE_SORT */
 	else if (tr_state->traversing_mode==TRAVERSE_SORT) {
+#ifdef GROUP_2D_USE_CACHE
 		DrawableContext *first_ctx = tr_state->visual->cur_context;
 		Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? 1 : 0;
 		u32 traverse_time = gf_sys_clock();
 		u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->queue_cached_groups);
+#endif
 
 		child = ((GF_ParentNode *)node)->children;
 		while (child) {
@@ -155,14 +156,16 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 			child = child->next;
 		} 
 
+#ifdef GROUP_2D_USE_CACHE
 		/*get the traversal time for each group*/	
 		traverse_time = gf_sys_clock() - traverse_time;
 		group->traverse_time += traverse_time;
 		/*record the traversal information at the group level*/
 		group_cache_record_stats(node, group, tr_state, first_ctx, skip_first_ctx, last_cache_idx);
-	}
 #endif
 
+		drawable_check_focus_highlight(node, tr_state, NULL);
+	}
 	else {
 		child = ((GF_ParentNode *)node)->children;
 		while (child) {
@@ -273,6 +276,32 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		if (group->flags & GROUP_SKIP_CULLING) 
 			tr_state->disable_cull = 1;
 		tr_state->text_split_mode = split_text_backup;
+
+	/*TRAVERSE_SORT */
+	} else if (tr_state->traversing_mode==TRAVERSE_SORT) {
+#ifdef GROUP_2D_USE_CACHE
+		DrawableContext *first_ctx = tr_state->visual->cur_context;
+		Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? 1 : 0;
+		u32 traverse_time = gf_sys_clock();
+		u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->queue_cached_groups);
+#endif
+
+		list = ((GF_ParentNode *)node)->children;
+		count = gf_node_list_get_count(list);
+		for (i=0; i<count; i++) {
+			child = gf_node_list_get_child(list, positions[i]);
+			gf_node_traverse(child, tr_state);
+		} 
+
+#ifdef GROUP_2D_USE_CACHE
+		/*get the traversal time for each group*/	
+		traverse_time = gf_sys_clock() - traverse_time;
+		group->traverse_time += traverse_time;
+		/*record the traversal information at the group level*/
+		group_cache_record_stats(node, group, tr_state, first_ctx, skip_first_ctx, last_cache_idx);
+#endif
+
+		drawable_check_focus_highlight(node, tr_state, NULL);
 	} else {
 		list = ((GF_ParentNode *)node)->children;
 		count = gf_node_list_get_count(list);
@@ -487,6 +516,9 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 			gf_node_traverse(l->node, tr_state);
 			l = l->next;
 		}
+
+		if (tr_state->traversing_mode==TRAVERSE_SORT) 
+			drawable3d_check_focus_highlight(node, tr_state, NULL);
 	}
 	tr_state->cull_flag = mode_back;
 

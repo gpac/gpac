@@ -111,6 +111,7 @@ void drawable_3d_del(GF_Node *n);
 
 void drawable_3d_base_traverse(GF_Node *n, void *rs, Bool is_destroy, void (*build_shape)(GF_Node*,Drawable3D *,GF_TraverseState *) );
 
+void drawable3d_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, GF_BBox *orig_bounds);
 
 typedef struct 
 {
@@ -275,6 +276,9 @@ void visual_3d_matrix_get(GF_VisualManager *visual, u32 mat_type, Fixed *mat);
 void visual_3d_mesh_hatch(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 hatchStyle, SFColor hatchColor);
 
 #endif
+
+
+void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box);
 
 #endif /*GPAC_DISABLE_3D*/
 

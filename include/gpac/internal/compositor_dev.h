@@ -92,6 +92,8 @@ typedef struct
 
 #endif
 
+#define DOUBLECLICK_TIME_MS		250
+
 
 struct __tag_compositor
 {
@@ -230,6 +232,8 @@ struct __tag_compositor
 	GF_Node *grab_use;
 	/*current focus node if any*/
 	GF_Node *focus_node;
+	/*focus node uses dom events*/
+	Bool focus_uses_dom_events;
 	/*current sensor type*/
 	u32 sensor_type;
 	/*list of VRML sensors active before the picking phase (eg active at the previous pass)*/
@@ -251,9 +255,6 @@ struct __tag_compositor
 	Bool enable_yuv_hw;
 	/*disables partial hardware blit (eg during dirty rect) to avoid artefacts*/
 	Bool disable_partial_hw_blit;
-
-	/*root node uses dom events*/
-	Bool root_uses_dom_events;
 
 	/*user navigation mode*/
 	u32 navigate_mode;
@@ -311,26 +312,31 @@ struct __tag_compositor
 	/*distance from ray origin used to discards further hits - FIXME: may not properly work with transparent layer3D*/
 	Fixed hit_square_dist;
 
-	/*text selection*/
+	/*text selection and edition*/
 
 	/*the active parent text node under selection*/
 	GF_Node *text_selection;
 	/*text selection start/end in world coord system*/
 	SFVec2f start_sel, end_sel;	
-	/*text selection state: if set, text selection is not reevaluated*/
-	Bool store_text_sel;
+	/*text selection state: 
+		-1: selection is empty
+		0: selection is in process and not empty
+		1: selection is frozen
+	*/
+	s32 store_text_state;
 	/*parent text node when a text is hit (to handle tspan selection)*/
 	GF_Node *hit_text;
-	/*text selection color - reverse video not yet supported*/
-	u32 text_sel_color;
 	u32 sel_buffer_len, sel_buffer_alloc;
 	u16 *sel_buffer;
 	u8 *selected_text;
+	/*text selection color - reverse video not yet supported*/
+	u32 text_sel_color;
 
 	/*set whenever the focus node is a text node*/
 	u32 focus_text_type;
 	Bool edit_is_tspan;
-	GF_DOMText *edited_text;
+	/*pointer to edited text*/
+	char **edited_text;
 	u32 caret_pos, dom_text_pos;
 
 #ifndef GPAC_DISABLE_3D
@@ -916,10 +922,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *sr);
 #endif
 
 Bool gf_sc_exec_event(GF_Compositor *sr, GF_Event *evt);
-u32 gf_sc_svg_focus_switch_ring(GF_Compositor *sr, Bool move_prev);
-u32 gf_sc_svg_focus_navigate(GF_Compositor *sr, u32 key_code);
-void gf_sc_svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_TraverseState *tr_state);
-void gf_sc_svg_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_TraverseState *tr_state);
+void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_TraverseState *tr_state);
 
 
 void gf_sc_visual_register(GF_Compositor *sr, GF_VisualManager *surf);

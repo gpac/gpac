@@ -827,6 +827,7 @@ wxDEFAULT_FRAME_STYLE
 	menu->Append(0, wxT("&Streaming Cache"), smenu);
 	menu->AppendSeparator();
 	menu->Append(FILE_COPY, wxT("&Copy\tCtrl+C"), wxT("Copy selected text"));
+	menu->Append(FILE_PASTE, wxT("&Paste\tCtrl+V"), wxT("Copy selected text"));
 	menu->AppendSeparator();
 	menu->Append(FILE_QUIT, wxT("E&xit"), wxT("Quit the application"));
 	b->Append(menu, wxT("&File"));
@@ -1101,6 +1102,8 @@ BEGIN_EVENT_TABLE(wxOsmo4Frame, wxFrame)
 	EVT_UPDATE_UI(VIEW_PLAYLIST, wxOsmo4Frame::OnUpdatePlayList)
 	EVT_MENU(FILE_COPY, wxOsmo4Frame::OnFileCopy)
 	EVT_UPDATE_UI(FILE_COPY, wxOsmo4Frame::OnUpdateFileCopy)
+	EVT_MENU(FILE_PASTE, wxOsmo4Frame::OnFilePaste)
+	EVT_UPDATE_UI(FILE_PASTE, wxOsmo4Frame::OnUpdateFilePaste)
 
 	EVT_MENU(ID_CLEAR_NAV, wxOsmo4Frame::OnClearNav)
 	EVT_UPDATE_UI(ID_STREAM_MENU, wxOsmo4Frame::OnUpdateStreamMenu)
@@ -2467,7 +2470,32 @@ void wxOsmo4Frame::OnUpdateFileCopy(wxUpdateUIEvent &event)
 	if (gf_term_get_text_selection(m_term, 1)!=NULL) {
 		event.Enable(1);
 	} else {
-		event.Enable(1);
+		event.Enable(0);
 	}
+}
+
+void wxOsmo4Frame::OnFilePaste(wxCommandEvent &event)
+{
+	if (!wxTheClipboard->Open()) return;
+    if (wxTheClipboard->IsSupported( wxDF_TEXT )) {
+		wxTextDataObject data;
+		wxTheClipboard->GetData(data);
+		gf_term_paste_text(m_term, data.GetText(), 0);
+	}
+	wxTheClipboard->Close();
+}
+
+void wxOsmo4Frame::OnUpdateFilePaste(wxUpdateUIEvent &event)
+{
+	Bool ok = 0;
+	if (wxTheClipboard->Open()) {
+	    if (wxTheClipboard->IsSupported( wxDF_TEXT )) {
+			if (gf_term_paste_text(m_term, NULL, 1)==GF_OK) {
+				ok = 1;
+			}
+		}
+		wxTheClipboard->Close();
+	}
+	event.Enable(ok ? 1 : 0);
 }
 

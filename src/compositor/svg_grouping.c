@@ -122,7 +122,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 					bounds_state.for_node = target;
 					bounds_state.svg_props = tr_state->svg_props;
 					gf_mx2d_init(bounds_state.transform);
-					gf_sc_svg_get_nodes_bounds(node, ((GF_ParentNode *)node)->children, &bounds_state);
+					gf_sc_get_nodes_bounds(node, ((GF_ParentNode *)node)->children, &bounds_state);
 					gf_mx2d_from_mx(&mx, &tr_state->visual->compositor->hit_world_to_local);
 					gf_mx2d_apply_rect(&mx, &bounds_state.bounds);
 					ext_vb.x = bounds_state.bounds.x;
@@ -409,7 +409,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_sc_svg_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
+		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
 	} else {
 		compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
 	}
@@ -493,7 +493,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	
 	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_sc_svg_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
+		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
 		if (all_atts.opacity && (all_atts.opacity->value < FIX_ONE) ) {
 			Bool force_recompute = 0;
@@ -586,7 +586,7 @@ static void svg_traverse_switch(GF_Node *node, void *rs, Bool is_destroy)
 	
 	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_sc_svg_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
+		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
 	} else {
 		GF_ChildNodeItem *l = ((SVG_Element *)node)->children;
 		while (l) {
@@ -641,7 +641,7 @@ static void svg_traverse_a(GF_Node *node, void *rs, Bool is_destroy)
 	
 	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_sc_svg_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
+		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
 	} else {
 		compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
 	}

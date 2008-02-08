@@ -41,7 +41,8 @@ BEGIN
             MENUITEM "&Abort",                      ID_REC_ABORT
         END
         MENUITEM SEPARATOR
-        MENUITEM "Copy",                        ID_FILE_COPY
+        MENUITEM "Copy\tCtrl+C",                ID_FILE_COPY
+        MENUITEM "Paste\tCtrl+V",               ID_FILE_PASTE
         MENUITEM SEPARATOR
         MENUITEM "Exit",                        ID_FILE_EXIT
     END
@@ -150,6 +151,7 @@ BEGIN
     "R",            ID_FILE_RELOAD,         VIRTKEY, CONTROL, NOINVERT
     "S",            ID_FILE_STEP,           VIRTKEY, CONTROL, NOINVERT
     "U",            ID_OPEN_URL,            VIRTKEY, CONTROL, NOINVERT
+    "V",            ID_FILE_PASTE,          VIRTKEY, CONTROL, NOINVERT
     VK_NUMPAD1,     ID_AR_KEEP,             VIRTKEY, CONTROL, NOINVERT
     VK_NUMPAD2,     ID_AR_FILL,             VIRTKEY, CONTROL, NOINVERT
     VK_NUMPAD3,     ID_AR_43,               VIRTKEY, CONTROL, NOINVERT
@@ -391,6 +393,7 @@ END
 STRINGTABLE DISCARDABLE 
 BEGIN
     ID_FILE_COPY            "Copy selected text to clipboard"
+    ID_FILE_PASTE           "Paste clipboard"
 END
 
 #endif    // English (U.S.) resources

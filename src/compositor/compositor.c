@@ -1346,7 +1346,7 @@ static void gf_sc_forward_event(GF_Compositor *compositor, GF_Event *ev)
 		GF_Event event;
 		/*emulate doubleclick*/
 		now = gf_sys_clock();
-		if (now - compositor->last_click_time < 250) {
+		if (now - compositor->last_click_time < DOUBLECLICK_TIME_MS) {
 			event.type = GF_EVENT_MOUSEDOUBLECLICK;
 			event.mouse.key_states = compositor->key_states;
 			event.mouse.x = ev->mouse.x;
@@ -1373,7 +1373,6 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 		Bool was_3d = compositor->visual->type_3d;
 #endif
-		compositor->root_uses_dom_events = 1;
 		compositor->root_visual_setup = 1;
 		compositor->visual->center_coords = 1;
 
@@ -1388,7 +1387,6 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 			compositor->visual->type_3d = 0;
 			compositor->visual->camera.is_3D = 0;
 #endif
-			compositor->root_uses_dom_events = 0;
 			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(compositor->scene);
 			break;
 		case TAG_MPEG4_Group:
@@ -1397,14 +1395,12 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 			compositor->visual->type_3d = 2;
 			compositor->visual->camera.is_3D = 1;
 #endif
-			compositor->root_uses_dom_events = 0;
 			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(compositor->scene);
 			break;
 		case TAG_X3D_Group:
 #ifndef GPAC_DISABLE_3D
 			compositor->visual->type_3d = 3;
 #endif
-			compositor->root_uses_dom_events = 0;
 			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(compositor->scene);
 			break;
 #ifndef GPAC_DISABLE_SVG
@@ -1415,12 +1411,12 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #endif
 			compositor->visual->center_coords = 0;
 			compositor->root_visual_setup = 2;
-			/*by default we set the focus on the content*/
-			//compositor->focus_node = NULL;
-			gf_sc_svg_focus_switch_ring(compositor, 0);
 			break;
 #endif
 		}
+
+		/*!! by default we don't set the focus on the content - this is conform to SVG and avoids displaying the 
+		focus box for MPEG-4 !! */
 
 		/*setup OpenGL & camera mode*/
 #ifndef GPAC_DISABLE_3D
@@ -1449,7 +1445,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		}
 
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Main scene setup - Using DOM events: %d - pixel metrics %d - center coords %d\n", compositor->root_uses_dom_events, compositor->traverse_state->pixel_metrics, compositor->visual->center_coords));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Main scene setup - pixel metrics %d - center coords %d\n", compositor->traverse_state->pixel_metrics, compositor->visual->center_coords));
 
 #ifndef GPAC_DISABLE_3D
 		/*change in 2D/3D config, force AR recompute/video restup*/
@@ -2184,14 +2180,14 @@ Bool gf_sc_pick_in_clipper(GF_TraverseState *tr_state, GF_Rect *clip)
 
 Bool gf_sc_has_text_selection(GF_Compositor *compositor)
 {
-	return compositor->store_text_sel;
+	return (compositor->store_text_state==1)?1:0;
 }
 
 const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 {
 	u16 *srcp;
 	u32 len;
-	if (!compositor->store_text_sel) return NULL;
+	if (compositor->store_text_state!=1) return NULL;
 
 	gf_sc_lock(compositor, 1);
 
@@ -2215,4 +2211,5 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 
 	return compositor->selected_text;
 }
+
 

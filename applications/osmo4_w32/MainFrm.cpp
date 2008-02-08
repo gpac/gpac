@@ -146,6 +146,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 
 	ON_COMMAND(ID_FILE_COPY, OnFileCopy)
 	ON_UPDATE_COMMAND_UI(ID_FILE_COPY, OnUpdateFileCopy)
+	ON_COMMAND(ID_FILE_PASTE, OnFilePaste)
+	ON_UPDATE_COMMAND_UI(ID_FILE_PASTE, OnUpdateFilePaste)
 	
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
@@ -1470,9 +1472,42 @@ void CMainFrame::OnFileCopy()
 void CMainFrame::OnUpdateFileCopy(CCmdUI* pCmdUI)
 {
 	Osmo4 *app = GetApp();
-	if (app->m_term && (gf_term_get_text_selection(app->m_term, 1)!=NULL)) {
+	if (IsClipboardFormatAvailable(CF_TEXT)
+		&& app->m_term 
+		&& (gf_term_get_text_selection(app->m_term, 1)!=NULL)
+	) {
 		pCmdUI->Enable(TRUE);
 	} else {
 		pCmdUI->Enable(FALSE);
 	}
 }
+
+
+void CMainFrame::OnFilePaste()
+{
+	if (!IsClipboardFormatAvailable(CF_TEXT)) return;
+	if (!OpenClipboard()) return;
+
+	HGLOBAL hglbCopy = GetClipboardData(CF_TEXT);
+	if (hglbCopy) {
+		LPTSTR lptstrCopy = (char *) GlobalLock(hglbCopy);
+		gf_term_paste_text(GetApp()->m_term, lptstrCopy, 0);
+		GlobalUnlock(hglbCopy); 
+	}
+	CloseClipboard(); 
+}
+
+void CMainFrame::OnUpdateFilePaste(CCmdUI* pCmdUI)
+{
+	Osmo4 *app = GetApp();
+	if (IsClipboardFormatAvailable(CF_TEXT)
+		&& app->m_term 
+		&& (gf_term_paste_text(app->m_term, NULL, 1)==GF_OK)
+	) {
+		pCmdUI->Enable(TRUE);
+	} else {
+		pCmdUI->Enable(FALSE);
+	}
+}
+
+
