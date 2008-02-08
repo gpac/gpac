@@ -128,8 +128,8 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 
 static Bool ft_enum_fonts_dir(void *cbck, char *file_name, char *file_path)
 {
-	Bool ret = gf_enum_directory(file_path, 0, ft_enum_fonts, cbck, "ttf;ttc");
-	if (ret) return 1;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Scanning directory %s (%s)\n", file_name, file_path));
+	gf_enum_directory(file_path, 0, ft_enum_fonts, cbck, "ttf;ttc");
 	return gf_enum_directory(file_path, 1, ft_enum_fonts_dir, cbck, NULL);
 }
 
@@ -161,7 +161,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	strcpy(ftpriv->font_fixed, "");
 
 	gf_enum_directory(ftpriv->font_dir, 0, ft_enum_fonts, dr, "ttf;ttc");
-	gf_enum_directory(ftpriv->font_dir, 0, ft_enum_fonts_dir, dr, "ttf;ttc");
+	gf_enum_directory(ftpriv->font_dir, 1, ft_enum_fonts_dir, dr, NULL);
 
 	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", ftpriv->font_fixed);
 	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif", ftpriv->font_serif);
