@@ -2461,7 +2461,7 @@ void wxOsmo4Frame::OnFileCopy(wxCommandEvent &event)
 	if (!text) return;
 	if (!wxTheClipboard->Open()) return;
 
-	wxTheClipboard->SetData( new wxTextDataObject(text) );
+	wxTheClipboard->SetData( new wxTextDataObject( wxString(text, wxConvUTF8)) );
 	wxTheClipboard->Close();
 }
 
@@ -2480,7 +2480,7 @@ void wxOsmo4Frame::OnFilePaste(wxCommandEvent &event)
     if (wxTheClipboard->IsSupported( wxDF_TEXT )) {
 		wxTextDataObject data;
 		wxTheClipboard->GetData(data);
-		gf_term_paste_text(m_term, data.GetText(), 0);
+		gf_term_paste_text(m_term, data.GetText().mb_str(wxConvUTF8), 0);
 	}
 	wxTheClipboard->Close();
 }
