@@ -173,6 +173,7 @@ EXPORTS
 	gf_modules_close_interface
 	gf_modules_get_option
 	gf_modules_set_option
+	gf_modules_get_config
 
 ;utf.h exports
 	gf_utf8_wcstombs
@@ -1057,7 +1058,8 @@ EXPORTS
 	gf_term_set_simulation_frame_rate
 	gf_term_get_simulation_frame_rate
 	gf_term_get_service_interface
-	gf_term_set_mfurl_from_uri
+	gf_term_get_text_selection
+	gf_term_paste_text
 
 ;renderer.h exports
 	gf_sc_new
@@ -1188,5 +1190,3 @@ EXPORTS
 	gf_dom_event_fire
 	gf_dom_event_type_by_name
 	gf_dom_event_get_name
-
-	gf_term_set_mfurl_from_uri

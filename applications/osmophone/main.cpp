@@ -626,6 +626,39 @@ void set_svg_progressive()
 	}
 }
 
+void do_copy_paste()
+{
+	if (!OpenClipboard(g_hwnd)) return;
+
+	/*or we are editing text and clipboard is not empty*/
+	if (IsClipboardFormatAvailable(CF_TEXT) && (gf_term_paste_text(term, NULL, 1)==GF_OK)) {
+		HGLOBAL hglbCopy = GetClipboardData(CF_TEXT);
+		if (hglbCopy) {
+			char szString[1024];
+			LPCTSTR paste_string = (LPCTSTR) GlobalLock(hglbCopy);
+			CE_WideToChar((u16 *) paste_string, szString);
+			gf_term_paste_text(term, szString, 0);
+			GlobalUnlock(hglbCopy); 
+		}
+	}
+	/*we have something to copy*/
+	else if (gf_term_get_text_selection(term, 1)!=NULL) {
+		u32 len;
+		const char *text = gf_term_get_text_selection(term, 0);
+		if (text && strlen(text)) {
+			EmptyClipboard();
+			len = strlen(text);
+
+			HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, (len + 1) * sizeof(u16)); 
+			LPCTSTR new_string = (LPCTSTR) GlobalLock(hglbCopy);
+			CE_CharToWide((char*)text, (u16*)new_string); 
+			GlobalUnlock(hglbCopy); 
+			SetClipboardData(CF_TEXT, hglbCopy);
+		}
+	}
+	CloseClipboard(); 
+}
+
 BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 {
 	switch (LOWORD(wParam)) {
@@ -720,6 +753,9 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		menu_switched = !menu_switched;
 		do_layout(0);
 		break;
+	case ID_FILE_CUT_PASTE:
+		do_copy_paste();
+		break;
 
 	case IDM_OPEN_FILE1: 
 	case IDM_OPEN_FILE2: 
@@ -771,6 +807,17 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_16_9, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_16_9) ? MF_CHECKED : MF_UNCHECKED);
 
 	EnableMenuItem((HMENU)wParam, IDM_FILE_PAUSE, MF_BYCOMMAND| (is_connected ? MF_ENABLED : MF_GRAYED) );
+
+	if (/*we have something to copy*/
+		(gf_term_get_text_selection(term, 1)!=NULL) 
+		/*or we are editing text and clipboard is not empty*/
+		|| (IsClipboardFormatAvailable(CF_TEXT) && (gf_term_paste_text(term, NULL, 1)==GF_OK))
+	) {
+		EnableMenuItem((HMENU)wParam, ID_FILE_CUT_PASTE, MF_BYCOMMAND| MF_ENABLED);
+	} else {
+		EnableMenuItem((HMENU)wParam, ID_FILE_CUT_PASTE, MF_BYCOMMAND| MF_GRAYED);
+	}
+	
 	CheckMenuItem((HMENU)wParam, IDM_FILE_LOG_RTI, MF_BYCOMMAND| (log_rti) ? MF_CHECKED : MF_UNCHECKED);
 	
 	u32 type;

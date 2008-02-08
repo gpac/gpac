@@ -46,7 +46,7 @@ typedef struct
 {
 	GROUPING_NODE_STACK_2D
 
-	Bool enabled, active;
+	Bool enabled, active, over;
 	GF_SensorHandler hdl;
 
 } AnchorStack;
@@ -89,7 +89,11 @@ static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compos
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(sh->sensor);
 
 	if ((ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) st->active = 1;
-	else if (st->active && (ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT) ) {
+	else if ((ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER)) st->active = 1;
+	else if (st->active &&
+		(/*mouse*/(ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT) 
+		|| /*mouse*/(ev->type==GF_EVENT_KEYUP) && (ev->key.key_code==GF_KEY_ENTER) )
+	) {
 		u32 i;
 		if (gf_node_get_tag(sh->sensor)==TAG_MPEG4_Anchor) {
 			url = & ((M_Anchor *)sh->sensor)->url;
@@ -123,7 +127,8 @@ static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compos
 			}
 			i++;
 		}
-	} else if (ev->type==GF_EVENT_MOUSEMOVE) {
+	} else if (is_over && !st->over) {
+		st->over = 1;
 		if (compositor->user->EventProc) {
 			evt.type = GF_EVENT_NAVIGATE_INFO;
 			if (gf_node_get_tag(sh->sensor)==TAG_MPEG4_Anchor) {
@@ -136,6 +141,8 @@ static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compos
 			if (!evt.navigate.to_url || !strlen(evt.navigate.to_url)) evt.navigate.to_url = url->vals[0].url;
 			compositor->user->EventProc(compositor->user->opaque, &evt);
 		}
+	} else if (!is_over) {
+		st->over = 0;
 	}
 }
 
@@ -728,7 +735,7 @@ static void OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 		compositor->grabbed_sensor = 0;
 	}
 	/*mouse*/
-	if (is_mouse) {
+	else if (is_mouse) {
 		if (!ps->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT) ) {
 			gf_mx_copy(stack->initial_matrix, compositor->hit_local_to_world);
 			gf_vec_diff(stack->start_drag, compositor->hit_local_point, ps->offset);
@@ -769,12 +776,15 @@ static void OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 		else if (ps->isActive && (ev->type==GF_EVENT_KEYDOWN)) {
 			SFVec3f res;
 			Fixed diff = (ev->key.flags & GF_KEY_MOD_SHIFT) ? 5*FIX_ONE : FIX_ONE;
+			if (!gf_sg_use_pixel_metrics(gf_node_get_graph(sh->sensor)))
+				diff = gf_divfix(diff, compositor->vp_width/2);
+
 			res = stack->start_drag;
 			switch (ev->key.key_code) {
-			case GF_KEY_LEFT: res.x = -diff; break;
-			case GF_KEY_RIGHT: res.y = diff; break;
-			case GF_KEY_UP: res.y = diff; break;
-			case GF_KEY_DOWN: res.y = -diff; break;
+			case GF_KEY_LEFT: res.x -= diff; break;
+			case GF_KEY_RIGHT: res.x += diff; break;
+			case GF_KEY_UP: res.y += diff; break;
+			case GF_KEY_DOWN: res.y -= diff; break;
 			case GF_KEY_HOME: res = ps->offset; break;
 			default: return;
 			}
@@ -841,13 +851,14 @@ static Bool cs_is_enabled(GF_Node *n)
 
 static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
 {
+	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
 	M_CylinderSensor *cs = (M_CylinderSensor *)sh->sensor;
 	CylinderSensorStack *st = (CylinderSensorStack *) gf_node_get_private(sh->sensor);
 
-	/*not supported yet*/
-	if (ev->type>GF_EVENT_MOUSEWHEEL) return;
-
-	if (cs->isActive && (!cs->enabled || ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT))) ) {
+	if (cs->isActive && (!cs->enabled 
+		|| /*mouse*/((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) 
+		|| /*keyboar*/(!is_mouse && (!is_over|| ((ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER))))
+	) ) {
 		if (cs->autoOffset) {
 			cs->offset = cs->rotation_changed.q;
 			gf_node_event_out_str(sh->sensor, "offset");
@@ -856,89 +867,118 @@ static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, G
 		gf_node_event_out_str(sh->sensor, "isActive");
 		compositor->grabbed_sensor = 0;
 	}
-	else if (!cs->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
-		GF_Ray r;
-		SFVec3f yaxis;
-		Fixed acute, reva;
-		SFVec3f bearing;
+	else if (is_mouse) {
+		if (!cs->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+			GF_Ray r;
+			SFVec3f yaxis;
+			Fixed acute, reva;
+			SFVec3f bearing;
 
-		gf_mx_copy(st->init_matrix, compositor->hit_world_to_local);
-		/*get initial angle & check disk mode*/
-		r = compositor->hit_world_ray;
-		gf_vec_add(r.dir, r.orig, r.dir);
-		gf_mx_apply_vec(&compositor->hit_world_to_local, &r.orig);
-		gf_mx_apply_vec(&compositor->hit_world_to_local, &r.dir);
-		gf_vec_diff(bearing, r.orig, r.dir);
-		gf_vec_norm(&bearing);
-		yaxis.x = yaxis.z = 0;
-		yaxis.y = FIX_ONE;
-		acute = gf_vec_dot(bearing, yaxis);
-		if (acute < -FIX_ONE) acute = -FIX_ONE; 
-		else if (acute > FIX_ONE) acute = FIX_ONE;
-		acute = gf_acos(acute);
-		reva = ABS(GF_PI - acute);
-		if (reva<acute) acute = reva;
-		st->disk_mode = (acute < cs->diskAngle) ? 1 : 0;
-
-		st->grab_start = compositor->hit_local_point;
-		/*cos we're lazy*/
-		st->yplane.d = 0; st->yplane.normal.x = st->yplane.normal.z = st->yplane.normal.y = 0;
-		st->zplane = st->xplane = st->yplane;
-		st->xplane.normal.x = FIX_ONE;
-		st->yplane.normal.y = FIX_ONE;
-		st->zplane.normal.z = FIX_ONE;
-
-		cs->rotation_changed.x = 0;
-		cs->rotation_changed.y = FIX_ONE;
-		cs->rotation_changed.z = 0;
-
-		cs->isActive = 1;
-		gf_node_event_out_str(sh->sensor, "isActive");
-		compositor->grabbed_sensor = 1;
-	}
-	else if (cs->isActive) {
-		GF_Ray r;
-		Fixed radius, rot;
-		SFVec3f dir1, dir2, cx;
-
-		if (is_over) {
-			cs->trackPoint_changed = compositor->hit_local_point;
-			gf_node_event_out_str(sh->sensor, "trackPoint_changed");
-		} else {
-			GF_Plane project_to;
+			gf_mx_copy(st->init_matrix, compositor->hit_world_to_local);
+			/*get initial angle & check disk mode*/
 			r = compositor->hit_world_ray;
-			gf_mx_apply_ray(&st->init_matrix, &r);
+			gf_vec_add(r.dir, r.orig, r.dir);
+			gf_mx_apply_vec(&compositor->hit_world_to_local, &r.orig);
+			gf_mx_apply_vec(&compositor->hit_world_to_local, &r.dir);
+			gf_vec_diff(bearing, r.orig, r.dir);
+			gf_vec_norm(&bearing);
+			yaxis.x = yaxis.z = 0;
+			yaxis.y = FIX_ONE;
+			acute = gf_vec_dot(bearing, yaxis);
+			if (acute < -FIX_ONE) acute = -FIX_ONE; 
+			else if (acute > FIX_ONE) acute = FIX_ONE;
+			acute = gf_acos(acute);
+			reva = ABS(GF_PI - acute);
+			if (reva<acute) acute = reva;
+			st->disk_mode = (acute < cs->diskAngle) ? 1 : 0;
 
-			/*no intersection, use intersection with "main" fronting plane*/
-			if ( ABS(r.dir.z) > ABS(r.dir.y)) {
-				if (ABS(r.dir.x) > ABS(r.dir.x)) project_to = st->xplane;
-				else project_to = st->zplane;
-			} else project_to = st->yplane;
-			if (!gf_plane_intersect_line(&project_to, &r.orig, &r.dir, &compositor->hit_local_point)) return;
-		}
+			st->grab_start = compositor->hit_local_point;
+			/*cos we're lazy*/
+			st->yplane.d = 0; st->yplane.normal.x = st->yplane.normal.z = st->yplane.normal.y = 0;
+			st->zplane = st->xplane = st->yplane;
+			st->xplane.normal.x = FIX_ONE;
+			st->yplane.normal.y = FIX_ONE;
+			st->zplane.normal.z = FIX_ONE;
 
-  		dir1.x = compositor->hit_local_point.x; dir1.y = 0; dir1.z = compositor->hit_local_point.z;
-		if (st->disk_mode) {
-			radius = FIX_ONE;
-		} else {
-			radius = gf_vec_len(dir1);
-		}
-		gf_vec_norm(&dir1);
-       	dir2.x = st->grab_start.x; dir2.y = 0; dir2.z = st->grab_start.z;
-		gf_vec_norm(&dir2);
-		cx = gf_vec_cross(dir2, dir1);
-		gf_vec_norm(&cx);
-		if (gf_vec_len(cx)<FIX_EPSILON) return;
-		rot = gf_mulfix(radius, gf_acos(gf_vec_dot(dir2, dir1)) );
-		if (fabs(cx.y + FIX_ONE) < FIX_EPSILON) rot = -rot;
-		if (cs->autoOffset) rot += cs->offset;
+			cs->rotation_changed.x = 0;
+			cs->rotation_changed.y = FIX_ONE;
+			cs->rotation_changed.z = 0;
 
-		if (cs->minAngle < cs->maxAngle) {
-			if (rot < cs->minAngle) rot = cs->minAngle;
-			else if (rot > cs->maxAngle) rot = cs->maxAngle;
+			cs->isActive = 1;
+			gf_node_event_out_str(sh->sensor, "isActive");
+			compositor->grabbed_sensor = 1;
 		}
-		cs->rotation_changed.q = rot;
-		gf_node_event_out_str(sh->sensor, "rotation_changed");
+		else if (cs->isActive) {
+			GF_Ray r;
+			Fixed radius, rot;
+			SFVec3f dir1, dir2, cx;
+
+			if (is_over) {
+				cs->trackPoint_changed = compositor->hit_local_point;
+				gf_node_event_out_str(sh->sensor, "trackPoint_changed");
+			} else {
+				GF_Plane project_to;
+				r = compositor->hit_world_ray;
+				gf_mx_apply_ray(&st->init_matrix, &r);
+
+				/*no intersection, use intersection with "main" fronting plane*/
+				if ( ABS(r.dir.z) > ABS(r.dir.y)) {
+					if (ABS(r.dir.x) > ABS(r.dir.x)) project_to = st->xplane;
+					else project_to = st->zplane;
+				} else project_to = st->yplane;
+				if (!gf_plane_intersect_line(&project_to, &r.orig, &r.dir, &compositor->hit_local_point)) return;
+			}
+
+  			dir1.x = compositor->hit_local_point.x; dir1.y = 0; dir1.z = compositor->hit_local_point.z;
+			if (st->disk_mode) {
+				radius = FIX_ONE;
+			} else {
+				radius = gf_vec_len(dir1);
+			}
+			gf_vec_norm(&dir1);
+       		dir2.x = st->grab_start.x; dir2.y = 0; dir2.z = st->grab_start.z;
+			gf_vec_norm(&dir2);
+			cx = gf_vec_cross(dir2, dir1);
+			gf_vec_norm(&cx);
+			if (gf_vec_len(cx)<FIX_EPSILON) return;
+			rot = gf_mulfix(radius, gf_acos(gf_vec_dot(dir2, dir1)) );
+			if (fabs(cx.y + FIX_ONE) < FIX_EPSILON) rot = -rot;
+			if (cs->autoOffset) rot += cs->offset;
+
+			if (cs->minAngle < cs->maxAngle) {
+				if (rot < cs->minAngle) rot = cs->minAngle;
+				else if (rot > cs->maxAngle) rot = cs->maxAngle;
+			}
+			cs->rotation_changed.q = rot;
+			gf_node_event_out_str(sh->sensor, "rotation_changed");
+		} 
+	} else {
+		if (!cs->isActive && is_over && (ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER)) {
+			cs->isActive = 1;
+			cs->rotation_changed.q = cs->offset;
+			cs->rotation_changed.x = cs->rotation_changed.z = 0;
+			cs->rotation_changed.y = FIX_ONE;
+			gf_node_event_out_str(sh->sensor, "isActive");
+		}
+		else if (cs->isActive && (ev->type==GF_EVENT_KEYDOWN)) {
+			SFFloat res;
+			Fixed diff = (ev->key.flags & GF_KEY_MOD_SHIFT) ? GF_PI/8 : GF_PI/64;
+
+			res = cs->rotation_changed.q;
+			switch (ev->key.key_code) {
+			case GF_KEY_LEFT: res -= diff; break;
+			case GF_KEY_RIGHT: res += diff; break;
+			case GF_KEY_HOME: res = cs->offset; break;
+			default: return;
+			}
+			/*clip*/
+			if (cs->minAngle <= cs->maxAngle) {
+				if (res < cs->minAngle) res = cs->minAngle;
+				if (res > cs->maxAngle) res = cs->maxAngle;
+			}
+			cs->rotation_changed.q = res;
+			gf_node_event_out_str(sh->sensor, "rotation_changed");
+		}
 	}
 }
 
@@ -989,13 +1029,15 @@ static Bool sphere_is_enabled(GF_Node *n)
 
 static void OnSphereSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
 {
+	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
 	M_SphereSensor *sphere = (M_SphereSensor *)sh->sensor;
 	SphereSensorStack *st = (SphereSensorStack *) gf_node_get_private(sh->sensor);
 
-	/*not supported yet*/
-	if (ev->type>GF_EVENT_MOUSEWHEEL) return;
 
-	if (sphere->isActive && (!sphere->enabled || ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) ) ) {
+	if (sphere->isActive && (!sphere->enabled 
+		|| /*mouse*/((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) 
+		|| /*keyboar*/(!is_mouse && (!is_over|| ((ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER))))
+	) ) {
 		if (sphere->autoOffset) {
 			sphere->offset = sphere->rotation_changed;
 			gf_node_event_out_str(sh->sensor, "offset");
@@ -1004,55 +1046,99 @@ static void OnSphereSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_
 		gf_node_event_out_str(sh->sensor, "isActive");
 		compositor->grabbed_sensor = 0;
 	}
-	else if (!sphere->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
-		st->center.x = st->center.y = st->center.z = 0;
-		gf_mx_apply_vec(&compositor->hit_local_to_world, &st->center);
-		st->radius = gf_vec_len(compositor->hit_local_point);
-		if (!st->radius) st->radius = FIX_ONE;
-		st->grab_vec = gf_vec_scale(compositor->hit_local_point, gf_invfix(st->radius));
+	else if (is_mouse) {
+		if (!sphere->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+			st->center.x = st->center.y = st->center.z = 0;
+			gf_mx_apply_vec(&compositor->hit_local_to_world, &st->center);
+			st->radius = gf_vec_len(compositor->hit_local_point);
+			if (!st->radius) st->radius = FIX_ONE;
+			st->grab_vec = gf_vec_scale(compositor->hit_local_point, gf_invfix(st->radius));
 
-		sphere->isActive = 1;
-		gf_node_event_out_str(sh->sensor, "isActive");
-		compositor->grabbed_sensor = 1;
-	}
-	else if (sphere->isActive) {
-		SFVec3f vec, axis;
-		SFVec4f q1, q2;
-		SFRotation r;
-		Fixed cl;
-		if (is_over) {
-			sphere->trackPoint_changed = compositor->hit_local_point;
-			gf_node_event_out_str(sh->sensor, "trackPoint_changed");
-		} else {
-			GF_Ray r;
-			r = compositor->hit_world_ray;
-			gf_mx_apply_ray(&compositor->hit_world_to_local, &r);
-			if (!gf_ray_hit_sphere(&r, NULL, st->radius, &compositor->hit_local_point)) {
-				vec.x = vec.y = vec.z = 0;
-				/*doesn't work properly...*/
-				compositor->hit_local_point = gf_closest_point_to_line(r.orig, r.dir, vec);
+			sphere->isActive = 1;
+			gf_node_event_out_str(sh->sensor, "isActive");
+			compositor->grabbed_sensor = 1;
+		}
+		else if (sphere->isActive) {
+			SFVec3f vec, axis;
+			SFVec4f q1, q2;
+			SFRotation r;
+			Fixed cl;
+			if (is_over) {
+				sphere->trackPoint_changed = compositor->hit_local_point;
+				gf_node_event_out_str(sh->sensor, "trackPoint_changed");
+			} else {
+				GF_Ray r;
+				r = compositor->hit_world_ray;
+				gf_mx_apply_ray(&compositor->hit_world_to_local, &r);
+				if (!gf_ray_hit_sphere(&r, NULL, st->radius, &compositor->hit_local_point)) {
+					vec.x = vec.y = vec.z = 0;
+					/*doesn't work properly...*/
+					compositor->hit_local_point = gf_closest_point_to_line(r.orig, r.dir, vec);
+				}
 			}
+
+			vec = gf_vec_scale(compositor->hit_local_point, gf_invfix(st->radius));
+			axis = gf_vec_cross(st->grab_vec, vec);
+			cl = gf_vec_len(axis);
+
+			if (cl < -FIX_ONE) cl = -FIX_ONE;
+			else if (cl > FIX_ONE) cl = FIX_ONE;
+			r.q = gf_asin(cl);
+			if (gf_vec_dot(st->grab_vec, vec) < 0) r.q += GF_PI / 2;
+
+			gf_vec_norm(&axis);
+			r.x = axis.x; r.y = axis.y; r.z = axis.z;
+			q1 = gf_quat_from_rotation(r);
+			if (sphere->autoOffset) {
+				q2 = gf_quat_from_rotation(sphere->offset);
+				q1 = gf_quat_multiply(&q1, &q2);
+			}
+			sphere->rotation_changed = gf_quat_to_rotation(&q1);
+			gf_node_event_out_str(sh->sensor, "rotation_changed");
+		} 
+	} else {
+		if (!sphere->isActive && is_over && (ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER)) {
+			sphere->isActive = 1;
+			sphere->rotation_changed = sphere->offset;
+			gf_node_event_out_str(sh->sensor, "isActive");
 		}
+		else if (sphere->isActive && (ev->type==GF_EVENT_KEYDOWN)) {
+			SFVec4f res, rot;
+			Fixed diff = GF_PI/64;
 
-		vec = gf_vec_scale(compositor->hit_local_point, gf_invfix(st->radius));
-		axis = gf_vec_cross(st->grab_vec, vec);
-		cl = gf_vec_len(axis);
-
-		if (cl < -FIX_ONE) cl = -FIX_ONE;
-		else if (cl > FIX_ONE) cl = FIX_ONE;
-		r.q = gf_asin(cl);
-		if (gf_vec_dot(st->grab_vec, vec) < 0) r.q += GF_PI / 2;
-
-		gf_vec_norm(&axis);
-		r.x = axis.x; r.y = axis.y; r.z = axis.z;
-		q1 = gf_quat_from_rotation(r);
-		if (sphere->autoOffset) {
-			q2 = gf_quat_from_rotation(sphere->offset);
-			q1 = gf_quat_multiply(&q1, &q2);
+			res = sphere->rotation_changed;
+			switch (ev->key.key_code) {
+			case GF_KEY_LEFT: 
+				diff = -diff;
+			case GF_KEY_RIGHT: 
+				rot.x = 0; rot.y = FIX_ONE; rot.z = 0; rot.q = diff;
+				res = gf_quat_from_rotation(res);
+				rot = gf_quat_from_rotation(rot);
+				rot = gf_quat_multiply(&rot, &res);
+				res = gf_quat_to_rotation(&rot);
+				break;
+			case GF_KEY_DOWN:
+				diff = -diff;
+			case GF_KEY_UP:
+				if (ev->key.flags & GF_KEY_MOD_SHIFT) {
+					rot.x = 0; rot.z = FIX_ONE; 
+				} else {
+					rot.x = FIX_ONE; rot.z = 0; 
+				}
+				rot.y = 0; rot.q = diff;
+				res = gf_quat_from_rotation(res);
+				rot = gf_quat_from_rotation(rot);
+				rot = gf_quat_multiply(&rot, &res);
+				res = gf_quat_to_rotation(&rot);
+				break;
+			case GF_KEY_HOME: res = sphere->offset; break;
+			default: return;
+			}
+			sphere->rotation_changed = res;
+			gf_node_event_out_str(sh->sensor, "rotation_changed");
 		}
-		sphere->rotation_changed = gf_quat_to_rotation(&q1);
-		gf_node_event_out_str(sh->sensor, "rotation_changed");
 	}
+
 }
 
 static GF_SensorHandler *sphere_get_handler(GF_Node *n)

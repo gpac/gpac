@@ -2,13 +2,9 @@
 // Microsoft eMbedded Visual C++ generated include file.
 // Used by osmophone.rc
 //
-#define IDS_APP_TITLE                   1
 #define IDS_CLASSNAME                   1
-#define IDS_HELLO                       2
-#define IDC_KEYTEST2                    3
 #define IDS_WINDOWNAME                  4
 #define IDS_APPNAME                     5
-#define IDI_KEYTEST2                    101
 #define IDI_ICON                        101
 #define IDM_MENU                        102
 #define IDM_MAIN_MENU                   102
@@ -113,13 +109,14 @@
 #define IDM_VIEW_DIRECT                 40101
 #define IDM_VIEW_SVG_LOAD               40102
 #define IDS_CAP_DISABLE_PLAYLIST        40103
+#define ID_FILE_CUT_PASTE               40104
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        111
-#define _APS_NEXT_COMMAND_VALUE         40103
+#define _APS_NEXT_COMMAND_VALUE         40105
 #define _APS_NEXT_CONTROL_VALUE         1004
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
