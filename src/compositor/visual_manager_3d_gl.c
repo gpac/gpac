@@ -574,6 +574,7 @@ void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box)
 #else
 	glTranslatef(FIX2FLT(c.x), FIX2FLT(c.y), FIX2FLT(c.z));
 	glScalef(FIX2FLT(s.x), FIX2FLT(s.y), FIX2FLT(s.z));
+//	glScalef(1.1f, 1.1f, 1.1f);
 #endif
 	VS3D_DrawMeshIntern(tr_state, tr_state->visual->compositor->unit_bbox);
 	glPopMatrix();

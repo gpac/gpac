@@ -112,7 +112,7 @@ BEGIN
         END
         MENUITEM SEPARATOR
         MENUITEM "Pause",                       IDM_FILE_PAUSE
-        MENUITEM "Log RTI",                     IDM_FILE_LOG_RTI
+        MENUITEM "Copy/Paste",                  ID_FILE_CUT_PASTE
         MENUITEM SEPARATOR
         MENUITEM "Exit",                        IDM_ITEM_QUIT
     END
@@ -147,7 +147,6 @@ BEGIN
             MENUITEM "Ratio 16/9",                  IDM_VIEW_AR_16_9
         END
         MENUITEM SEPARATOR
-        MENUITEM "Disable Playlist",            IDS_CAP_DISABLE_PLAYLIST
         MENUITEM "Options",                     IDM_MENU_SWITCH
     END
 END
@@ -161,19 +160,21 @@ IDM_MAIN_MENU2 MENU DISCARDABLE
 BEGIN
     POPUP "Options"
     BEGIN
-        MENUITEM "2D OpenGL",                   IDM_VIEW_3DREND
         MENUITEM "15.0 FPS",                    IDM_VIEW_LOW_RATE
         MENUITEM "Direct Draw",                 IDM_VIEW_DIRECT
         MENUITEM SEPARATOR
         MENUITEM "Status Bar",                  IDM_VIEW_STATUS
         MENUITEM "CPU usage",                   IDM_VIEW_CPU
+        MENUITEM "Log RTI",                     IDM_FILE_LOG_RTI
         MENUITEM SEPARATOR
         MENUITEM "Close",                       IDM_MENU_SWITCH
     END
     POPUP "?"
     BEGIN
+        MENUITEM "2D OpenGL",                   IDM_VIEW_3DREND
         MENUITEM "Progressive SVG ",            IDM_VIEW_SVG_LOAD
         MENUITEM SEPARATOR
+        MENUITEM "Disable Playlist",            IDS_CAP_DISABLE_PLAYLIST
         MENUITEM "About",                       IDM_VIEW_ABOUT
     END
 END
@@ -217,7 +218,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_CAP_DISABLE_PLAYLIST "Disable Playlist"
+    IDS_CAP_DISABLE_PLAYLIST "Copy/Paste"
 END
 
 #endif    // English (U.S.) resources
@@ -303,7 +304,8 @@ CAPTION "About Osmophone"
 FONT 8, "System"
 BEGIN
     ICON            IDI_ICON,IDC_STATIC,6,4,20,20
-    LTEXT           "Osmo4/GPAC\nv0.4.5-DEV",IDC_STATIC,33,6,46,17
+    LTEXT           "Osmo4/GPAC\n""0.4.5-DEV"" (build ""18"")",IDC_STATIC,33,
+                    6,46,17
     CTEXT           "Copyright (c) 2007 ENST\nAll Rights Reserved\n\nLicensed under LGPL",
                     IDC_STATIC,2,28,87,39
 END
@@ -317,6 +319,52 @@ BEGIN
     LISTBOX         IDC_FILELIST,1,18,102,65,LBS_NOINTEGRALHEIGHT | 
                     WS_VSCROLL | WS_TABSTOP
 END
+
+
+#ifndef _MAC
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040c04b0"
+        BEGIN
+            VALUE "Comments", "\0"
+            VALUE "CompanyName", "ENST\0"
+            VALUE "FileDescription", "osmophone\0"
+            VALUE "FileVersion", "1, 0, 0, 1\0"
+            VALUE "InternalName", "osmophone\0"
+            VALUE "LegalCopyright", "Copyright © 2008\0"
+            VALUE "LegalTrademarks", "\0"
+            VALUE "OriginalFilename", "osmophone.exe\0"
+            VALUE "PrivateBuild", "\0"
+            VALUE "ProductName", "ENST GPAC\0"
+            VALUE "ProductVersion", "1, 0, 0, 1\0"
+            VALUE "SpecialBuild", "\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x40c, 1200
+    END
+END
+
+#endif    // !_MAC
 
 
 /////////////////////////////////////////////////////////////////////////////

@@ -82,8 +82,8 @@ void drawable3d_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state,
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
 		tr_state->bbox.is_set = 0;
 
-		gf_node_allow_cyclic_traverse(node);
-		gf_node_traverse(node, tr_state);
+//		gf_sc_get_nodes_bounds(node, ((GF_ParentNode *)node)->children, tr_state, 1);
+		gf_node_traverse_children(node, tr_state);
 	
 		tr_state->traversing_mode = prev_mode;
 		gf_mx_copy(tr_state->model_matrix, cur);
