@@ -1023,6 +1023,8 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 	Fixed dx, dy, sx, sy, width, ascent, descent;
 	GF_Compositor *compositor = tr_state->visual->compositor;
 
+	if (first_span) rc->width = 0;
+
 	if (!(span->flags & GF_TEXT_SPAN_SELECTED) ) return;
 
 
@@ -1042,7 +1044,7 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 	}
 
 	/*compute sel rectangle*/
-	if (first_span) {
+	if (!rc->width) {
 		*rc = font_get_sel_rect(tr_state);
 	}
 
@@ -1111,7 +1113,7 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 		if (ctx) {
 			visual_2d_fill_rect(tr_state->visual, ctx, &g_rc, color, 0, tr_state);
 			ctx->flags = flags;
-			compositor->store_text_state = 0;
+			compositor->store_text_state = GF_SC_TSEL_ACTIVE;
 		} else {
 			if (!compositor->sel_buffer_alloc || compositor->sel_buffer_len == compositor->sel_buffer_alloc) {
 				if (!compositor->sel_buffer_alloc) compositor->sel_buffer_alloc ++;
@@ -1217,7 +1219,7 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 
 	if (compositor->text_selection) {
 		if (compositor->text_selection != tr_state->text_parent) return;
-		if (compositor->store_text_state==1) return;
+		if (compositor->store_text_state==GF_SC_TSEL_FROZEN) return;
 	}
 	
 	/*TODO: pick the real glyph and not just the bounds of the text span*/

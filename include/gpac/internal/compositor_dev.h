@@ -94,6 +94,17 @@ typedef struct
 
 #define DOUBLECLICK_TIME_MS		250
 
+enum
+{
+	/*no text selection*/
+	GF_SC_TSEL_NONE = 0,
+	/*text selection in progress*/
+	GF_SC_TSEL_ACTIVE,
+	/*text selection frozen*/
+	GF_SC_TSEL_FROZEN,
+	/*text selection has just been released*/
+	GF_SC_TSEL_RELEASED,
+};
 
 struct __tag_compositor
 {
@@ -318,12 +329,8 @@ struct __tag_compositor
 	GF_Node *text_selection;
 	/*text selection start/end in world coord system*/
 	SFVec2f start_sel, end_sel;	
-	/*text selection state: 
-		-1: selection is empty
-		0: selection is in process and not empty
-		1: selection is frozen
-	*/
-	s32 store_text_state;
+	/*text selection state*/ 
+	u32 store_text_state;
 	/*parent text node when a text is hit (to handle tspan selection)*/
 	GF_Node *hit_text;
 	u32 sel_buffer_len, sel_buffer_alloc;
