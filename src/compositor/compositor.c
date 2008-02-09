@@ -2180,14 +2180,14 @@ Bool gf_sc_pick_in_clipper(GF_TraverseState *tr_state, GF_Rect *clip)
 
 Bool gf_sc_has_text_selection(GF_Compositor *compositor)
 {
-	return (compositor->store_text_state==1)?1:0;
+	return (compositor->store_text_state==GF_SC_TSEL_FROZEN) ? 1 : 0;
 }
 
 const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 {
 	u16 *srcp;
 	u32 len;
-	if (compositor->store_text_state!=1) return NULL;
+	if (compositor->store_text_state != GF_SC_TSEL_FROZEN) return NULL;
 
 	gf_sc_lock(compositor, 1);
 

@@ -633,10 +633,7 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	recompute_layout = 0;
-	if (gf_node_dirty_get(node)) {
-		recompute_layout = 1;
-		gf_node_dirty_clear(node, 0);
-	}
+	if (gf_node_dirty_get(node)) recompute_layout = 1;
 
 	/*setup clipping*/
 	prev_clip = tr_state->visual->top_clipper;

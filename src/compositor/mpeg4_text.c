@@ -570,6 +570,26 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 		ctx->aspect.pen_props.join = GF_LINE_JOIN_MITER;
 		ctx->aspect.pen_props.cap = GF_LINE_CAP_FLAT;
 	}
+
+	/*if text selection mode, we must force redraw of the entire text span because we don't
+	if glyphs have been (un)selected*/
+	if (!tr_state->direct_draw && 
+		/*text selection on*/
+		(tr_state->visual->compositor->text_selection 
+		/*text sel release*/
+		|| (tr_state->visual->compositor->store_text_state==GF_SC_TSEL_RELEASED)) 
+	) {
+		GF_TextSpan *span;
+		u32 i = 0;
+		Bool unselect = (tr_state->visual->compositor->store_text_state==GF_SC_TSEL_RELEASED) ? 1 : 0;
+		while ((span = gf_list_enum(st->spans, &i))) {
+			if (span->flags & GF_TEXT_SPAN_SELECTED) {
+				if (unselect) span->flags &= ~GF_TEXT_SPAN_SELECTED;
+				ctx->flags |= CTX_APP_DIRTY;
+			}
+		}
+	}
+
 	if (ctx->sub_path_index) {
 		GF_TextSpan *span = (GF_TextSpan *)gf_list_get(st->spans, ctx->sub_path_index-1);
 		if (span) drawable_finalize_sort(ctx, tr_state, &span->bounds);

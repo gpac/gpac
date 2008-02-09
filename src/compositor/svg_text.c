@@ -55,22 +55,28 @@ static void svg_finalize_sort(DrawableContext *ctx, SVG_TextStack *st, GF_Traver
 
 		drawable_check_focus_highlight(ctx->drawable->node, tr_state, &st->bounds);
 		ctx->drawable = NULL;
-	} else 
+		return;
+	} 
 #endif
-	{
-		if (!tr_state->direct_draw && (tr_state->visual->compositor->store_text_state!=1)) {
-			GF_TextSpan *span;
-			u32 i = 0;
-			Bool unselect = (tr_state->visual->compositor->text_selection!=tr_state->text_parent) ? 1 : 0;
-			while ((span = gf_list_enum(st->spans, &i))) {
-				if (span->flags & GF_TEXT_SPAN_SELECTED) {
-					if (unselect) span->flags &= ~GF_TEXT_SPAN_SELECTED;
-					ctx->flags |= CTX_APP_DIRTY;
-				}
+	/*if text selection mode, we must force redraw of the entire text span because we don't
+	if glyphs have been (un)selected*/
+	if (!tr_state->direct_draw && 
+		/*text selection on*/
+		(tr_state->visual->compositor->text_selection 
+		/*text sel release*/
+		|| (tr_state->visual->compositor->store_text_state==GF_SC_TSEL_RELEASED)) 
+	) {
+		GF_TextSpan *span;
+		u32 i = 0;
+		Bool unselect = (tr_state->visual->compositor->store_text_state==GF_SC_TSEL_RELEASED) ? 1 : 0;
+		while ((span = gf_list_enum(st->spans, &i))) {
+			if (span->flags & GF_TEXT_SPAN_SELECTED) {
+				if (unselect) span->flags &= ~GF_TEXT_SPAN_SELECTED;
+				ctx->flags |= CTX_APP_DIRTY;
 			}
 		}
-		drawable_finalize_sort(ctx, tr_state, &st->bounds);
 	}
+	drawable_finalize_sort(ctx, tr_state, &st->bounds);
 }
 
 /*@styles indicates font styles (PLAIN, BOLD, ITALIC, BOLDITALIC and UNDERLINED, STRIKEOUT)*/

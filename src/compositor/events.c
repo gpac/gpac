@@ -127,14 +127,33 @@ GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text)
 
 	return GF_OK;
 }
-static void load_text_node(GF_Compositor *compositor, s32 node_idx_inc)
+static void load_text_node(GF_Compositor *compositor, u32 cmd_type)
 {
 	char **res = NULL;
 	u32 prev_pos, pos;
+	Bool append;
 	GF_ChildNodeItem *child;
 
-	if ((s32)compositor->dom_text_pos + node_idx_inc < 0) return;
-	pos = compositor->dom_text_pos + node_idx_inc;
+	append = 0;
+	switch (cmd_type) {
+	/*load last text chunk*/
+	case 0:
+		pos = 0;
+		break;
+	/*load prev text chunk*/
+	case 1:
+		if (compositor->dom_text_pos ==0) return;
+		pos = compositor->dom_text_pos - 1;
+		break;
+	/*load next text chunk*/
+	case 2:
+		pos = compositor->dom_text_pos + 1;
+		break;
+	/*split text chunk/append new*/
+	case 3:
+		/*not supported yet*/
+		return;
+	}
 	prev_pos = compositor->dom_text_pos;
 
 	compositor->dom_text_pos = 0;
@@ -142,10 +161,13 @@ static void load_text_node(GF_Compositor *compositor, s32 node_idx_inc)
 	if (compositor->focus_text_type==3) {
 		MFString *mf = &((M_Text*)compositor->focus_node)->string;
 
-		if (!node_idx_inc) {
+		if (append) {
+			gf_sg_vrml_mf_append(mf, GF_SG_VRML_MFSTRING, res);
+			compositor->dom_text_pos = mf->count;
+		} else if (!cmd_type) {
 			compositor->dom_text_pos = mf->count;
 		} else if (pos <= mf->count) {
-			compositor->dom_text_pos = node_idx_inc;
+			compositor->dom_text_pos = pos;
 		} else {
 			compositor->dom_text_pos = prev_pos;
 			return;
@@ -163,7 +185,7 @@ static void load_text_node(GF_Compositor *compositor, s32 node_idx_inc)
 				continue;
 			}
 			compositor->dom_text_pos++;
-			if (!node_idx_inc) res = &((GF_DOMText *)child->node)->textContent;
+			if (!cmd_type) res = &((GF_DOMText *)child->node)->textContent;
 			else if (pos==compositor->dom_text_pos) {
 				res = &((GF_DOMText *)child->node)->textContent;
 				break;
@@ -186,7 +208,7 @@ static void load_text_node(GF_Compositor *compositor, s32 node_idx_inc)
 		compositor->sel_buffer_alloc = 2+strlen(src);
 		compositor->sel_buffer = malloc(sizeof(u16)*compositor->sel_buffer_alloc);
 
-		if (node_idx_inc<=0) {
+		if (cmd_type!=2) {
 			compositor->sel_buffer_len = gf_utf8_mbstowcs(compositor->sel_buffer, compositor->sel_buffer_alloc, &src);
 			compositor->sel_buffer[compositor->sel_buffer_len]='|';
 			compositor->caret_pos = compositor->sel_buffer_len;
@@ -253,7 +275,7 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 				}
 			}
 			else {
-				load_text_node(compositor, -1);
+				load_text_node(compositor, 1);
 				return;
 			}
 			break;
@@ -268,7 +290,7 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 				}
 			}
 			else {
-				load_text_node(compositor, +1);
+				load_text_node(compositor, 2);
 				return;
 			}
 			break;
@@ -280,7 +302,7 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 			break;
 
 		case GF_KEY_TAB:
-			load_text_node(compositor, (event->key.flags & GF_KEY_MOD_SHIFT) ? -1 : 1);
+			load_text_node(compositor, (event->key.flags & GF_KEY_MOD_SHIFT) ? 1 : 2);
 			return;
 		case GF_KEY_BACKSPACE:
 			if (compositor->caret_pos) {
@@ -619,8 +641,8 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 	if ((ev->type<GF_EVENT_MOUSEWHEEL) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		if (compositor->text_selection) {
 			if (ev->type==GF_EVENT_MOUSEUP) {
-				if (!compositor->store_text_state)
-					compositor->store_text_state = 1;
+				if (compositor->store_text_state==GF_SC_TSEL_ACTIVE)
+					compositor->store_text_state = GF_SC_TSEL_FROZEN;
 				else {
 					reset_sel = 1;
 				}
@@ -645,7 +667,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 		if (reset_sel) {
 			flush_text_node_edit(compositor, 1);
 
-			compositor->store_text_state = -1;
+			compositor->store_text_state = GF_SC_TSEL_RELEASED;
 			compositor->text_selection = NULL;
 			if (compositor->selected_text) free(compositor->selected_text);
 			compositor->selected_text = NULL;
@@ -655,7 +677,10 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 			compositor->sel_buffer_len = 0;
 
 			compositor->draw_next_frame = 1;
+		} else if (compositor->store_text_state == GF_SC_TSEL_RELEASED) {
+			compositor->store_text_state = GF_SC_TSEL_NONE;
 		}
+
 	}
 
 	/*pick node*/

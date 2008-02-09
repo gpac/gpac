@@ -402,6 +402,8 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 		else if (ps->isActive && (ev->type==GF_EVENT_KEYDOWN)) {
 			SFVec2f res;
 			Fixed diff = (ev->key.flags & GF_KEY_MOD_SHIFT) ? 5*FIX_ONE : FIX_ONE;
+			if (!gf_sg_use_pixel_metrics(gf_node_get_graph(sh->sensor)))
+				diff = gf_divfix(diff, compositor->vp_width/2);
 			res = stack->start_drag;
 			switch (ev->key.key_code) {
 			case GF_KEY_LEFT: res.x += -diff; break;
