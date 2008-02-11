@@ -558,7 +558,9 @@ static void OnTouchSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 {
 	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL);
 	M_TouchSensor *ts = (M_TouchSensor *)sh->sensor;
-	//assert(ts->enabled);
+	
+	/*this is not specified in VRML, however we consider that a de-enabled sensor will not sent deactivation events*/
+	if (!ts->enabled) return;
 
 	/*isActive becomes false, send touch time*/
 	if (ts->isActive) {
