@@ -592,9 +592,8 @@ static Bool exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 
 static Bool exec_vrml_key_event(GF_Compositor *compositor, GF_Node *node, GF_Event *ev, Bool is_focus_out)
 {
-	GF_SensorHandler *hdl;
+	GF_SensorHandler *hdl = NULL;
 	GF_ChildNodeItem *child;
-	u32 *flags;
 	u32 ret = 0;
 	if (!node) node = compositor->focus_node;
 	if (!node) return 0;
@@ -603,15 +602,18 @@ static Bool exec_vrml_key_event(GF_Compositor *compositor, GF_Node *node, GF_Eve
 	case TAG_MPEG4_Text:
 	case TAG_X3D_Text:
 		return 0;
+	case TAG_MPEG4_Layout:
+		hdl = compositor_mpeg4_layout_get_sensor_handler(node);
+		break;
+	case TAG_MPEG4_Anchor:
+	case TAG_X3D_Anchor:
+		hdl = compositor_mpeg4_get_sensor_handler(node);
+		break;
 	}
 	child = ((GF_ParentNode*)node)->children;
-	flags = gf_node_get_private(node);
-	if (flags && (*flags & GROUP_IS_ANCHOR)) {
-		hdl = compositor_mpeg4_get_sensor_handler(node);
-		if (hdl) {
-			ret++;
-			hdl->OnUserEvent(hdl, is_focus_out ? 0 : 1, ev, compositor);
-		}
+	if (hdl) {
+		ret++;
+		hdl->OnUserEvent(hdl, is_focus_out ? 0 : 1, ev, compositor);
 	} else {
 		while (child) {
 			hdl = compositor_mpeg4_get_sensor_handler(child->node);
@@ -716,7 +718,9 @@ u32 gf_sc_svg_focus_navigate(GF_Compositor *compositor, u32 key_code)
 	GF_Node *n;
 	SVG_Focus *focus = NULL;
 
-	if (!compositor->focus_node) return 0;
+	/*only for dom-based nodes*/
+	if (!compositor->focus_node || !compositor->focus_uses_dom_events) return 0;
+
 	n=NULL;
 	gf_svg_flatten_attributes((SVG_Element *)compositor->focus_node, &atts);
 	switch (key_code) {
@@ -813,7 +817,6 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		case TAG_MPEG4_ColorTransform:
 		case TAG_MPEG4_Layer3D:
 		case TAG_MPEG4_Layer2D:
-		case TAG_MPEG4_Layout:
 		case TAG_MPEG4_PathLayout:
 		case TAG_MPEG4_Form:
 		case TAG_MPEG4_Anchor: case TAG_X3D_Anchor:
@@ -836,6 +839,9 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			}
 			return NULL;
 			if (!current_focus) return elt;
+			break;
+		case TAG_MPEG4_Layout:
+			if (!current_focus && (compositor_mpeg4_layout_get_sensor_handler(elt)!=NULL)) return elt;
 			break;
 		default:
 			return NULL;

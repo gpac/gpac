@@ -1340,6 +1340,47 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	faces_info = NULL;
 	pts_info = NULL;
 
+	zDimension = (u32) eg->zDimension;
+	xDimension = (u32) eg->xDimension;
+	cur_face = 0;
+	pt_idx = 0;
+
+	/*basic case: nothing specified but the points*/
+	if (!smooth_normals && !has_color && !has_normal && !has_txcoord) {
+		for (j=0; j<zDimension; j++) {
+			for (i=0; i<xDimension; i++) {
+				vx.pos.z = eg->zSpacing * j;
+				vx.pos.y = eg->height.vals[i +j*xDimension];
+				vx.pos.x = eg->xSpacing * i;
+				vx.texcoords.x = INT2FIX(i) / (xDimension - 1);
+				vx.texcoords.y = INT2FIX(j) / (zDimension - 1);
+
+				mesh_set_vertex_vx(mesh, &vx);
+			}
+		}
+		for (j=0; j<zDimension-1; j++) {
+			u32 z0 = (j)*xDimension;
+			u32 z1 = (j+1)*xDimension;
+			for (i=0; i<xDimension-1; i++) {
+				mesh_set_triangle(mesh, i+z0, i+z1, i+z1+1);
+				mesh_set_triangle(mesh, i+z0, i+z1+1, i+z0+1);
+
+				gf_vec_diff(v1, mesh->vertices[i+z0].pos, mesh->vertices[i+z0+1].pos);
+				gf_vec_diff(v2, mesh->vertices[i+z1+1].pos, mesh->vertices[i+z0+1].pos);
+				n = gf_vec_cross(v1, v2);
+				gf_vec_norm(&n);
+				mesh->vertices[i+z0].normal = n; mesh->vertices[i+z0+1].normal = n;
+				mesh->vertices[i+z1].normal = n; mesh->vertices[i+z1+1].normal = n;
+			}
+		}
+		mesh->mesh_type = MESH_TRIANGLES;
+		mesh_update_bounds(mesh);
+		if (!eg->ccw) mesh->flags |= MESH_IS_CW;
+		if (eg->solid) mesh->flags |= MESH_IS_SOLID;
+		gf_mesh_build_aabbtree(mesh);
+		return;
+	}
+
 	/*alloc face & normals tables*/
 	if (smooth_normals) {
 		faces = (GF_Mesh **)malloc(sizeof(GF_Mesh *)*face_count);
@@ -1347,14 +1388,8 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 		memset(faces_info, 0, sizeof(struct face_info)*face_count);
 		pts_info = (struct pt_info*)malloc(sizeof(struct pt_info)*pt_count);
 		memset(pts_info, 0, sizeof(struct pt_info)*pt_count);
+		faces[cur_face] = new_mesh();
 	}
-
-
-	zDimension = (u32) eg->zDimension;
-	xDimension = (u32) eg->xDimension;
-	cur_face = 0;
-	pt_idx = 0;
-	if (smooth_normals) faces[cur_face] = new_mesh();
 
 	for (j=0; j<zDimension-1; j++) {
 		for (i = 0; i < xDimension-1; i++) {

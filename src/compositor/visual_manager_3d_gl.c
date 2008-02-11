@@ -377,8 +377,9 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	default: prim_type = GL_TRIANGLES; break;
 	}
 
+#if 1
 	/*if inside or no aabb for the mesh draw vertex array*/
-	if ( (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos) {
+	if ((tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos) {
 #ifdef GPAC_USE_OGL_ES
 		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, mesh->indices);
 #else
@@ -404,6 +405,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		VS3D_DrawAABBNode(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->pos);
 		VS3D_DrawAABBNode(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
 	}
+#endif
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	if (has_col) glDisableClientState(GL_COLOR_ARRAY);

@@ -166,6 +166,7 @@ void compositor_init_form(GF_Compositor *compositor, GF_Node *node);
 
 void compositor_init_layout(GF_Compositor *compositor, GF_Node *node);
 void compositor_layout_modified(GF_Compositor *compositor, GF_Node *node);
+GF_SensorHandler *compositor_mpeg4_layout_get_sensor_handler(GF_Node *node);
 
 void compositor_init_path_layout(GF_Compositor *compositor, GF_Node *node);
 
