@@ -1263,16 +1263,24 @@ void gf_sg_vrml_field_copy(void *dest, void *orig, u32 field_type)
 		break;
 
 
-	//MFFields
+	//simple MFFields, do a memcpy
 	case GF_SG_VRML_MFBOOL:
 	case GF_SG_VRML_MFFLOAT:
 	case GF_SG_VRML_MFTIME:
 	case GF_SG_VRML_MFINT32:
-	case GF_SG_VRML_MFSTRING:
 	case GF_SG_VRML_MFVEC3F:
 	case GF_SG_VRML_MFVEC2F:
 	case GF_SG_VRML_MFCOLOR:
 	case GF_SG_VRML_MFROTATION:
+		size = gf_sg_vrml_get_sf_size(field_type) * ((GenMFField *)orig)->count;
+		if (((GenMFField *)orig)->count != ((GenMFField *)dest)->count) {
+			((GenMFField *)dest)->array = realloc(((GenMFField *)dest)->array, size);
+			((GenMFField *)dest)->count = ((GenMFField *)orig)->count;
+		}
+		memcpy(((GenMFField *)dest)->array, ((GenMFField *)orig)->array, size);
+		break;
+	//complex MFFields
+	case GF_SG_VRML_MFSTRING:
 	case GF_SG_VRML_MFIMAGE:
 	case GF_SG_VRML_MFURL:
 	case GF_SG_VRML_MFSCRIPT:

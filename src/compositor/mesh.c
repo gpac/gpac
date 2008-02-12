@@ -26,6 +26,7 @@
 
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
+#include <gpac/color.h>
 
 #ifndef GPAC_DISABLE_3D
 /*for GPAC_HAS_GLU*/
@@ -161,12 +162,18 @@ void mesh_clone(GF_Mesh *dest, GF_Mesh *orig)
 
 static GFINLINE GF_Vertex set_vertex(Fixed x, Fixed y, Fixed z, Fixed nx, Fixed ny, Fixed nz, Fixed u, Fixed v)
 {
+	SFVec3f nor;
 	GF_Vertex res;
 	res.pos.x = x; res.pos.y = y; res.pos.z = z;
-	res.normal.x = nx; res.normal.y = ny; res.normal.z = nz;
-	gf_vec_norm(&res.normal);
+	nor.x = nx; nor.y = ny; nor.z = nz; gf_vec_norm(&nor);
+	MESH_SET_NORMAL(res, nor);
+
 	res.texcoords.x = u; res.texcoords.y = v;
+#ifdef MESH_USE_SFCOLOR
 	res.color.blue = res.color.red = res.color.green = res.color.alpha = FIX_ONE;
+#else
+	res.color = 0xFFFFFFFF;
+#endif
 	return res;
 }
 void mesh_set_vertex(GF_Mesh *mesh, Fixed x, Fixed y, Fixed z, Fixed nx, Fixed ny, Fixed nz, Fixed u, Fixed v)
@@ -181,9 +188,9 @@ void mesh_set_vertex_v(GF_Mesh *mesh, SFVec3f pt, SFVec3f nor, SFVec2f tx, SFCol
 	MESH_CHECK_VERTEX(mesh);
 	mesh->vertices[mesh->v_count].pos = pt;
 	mesh->vertices[mesh->v_count].texcoords = tx;
-	mesh->vertices[mesh->v_count].color = col;
+	mesh->vertices[mesh->v_count].color = MESH_MAKE_COL(col);
 	gf_vec_norm(&nor);
-	mesh->vertices[mesh->v_count].normal = nor;
+	MESH_SET_NORMAL(mesh->vertices[mesh->v_count], nor);
 	mesh->v_count++;
 }
 
@@ -202,7 +209,7 @@ void mesh_set_point(GF_Mesh *mesh, Fixed x, Fixed y, Fixed z, SFColorRGBA col)
 	mesh->vertices[mesh->v_count].pos.z = z;
 	mesh->vertices[mesh->v_count].normal.x = mesh->vertices[mesh->v_count].normal.y = mesh->vertices[mesh->v_count].normal.z = 0;
 	mesh->vertices[mesh->v_count].texcoords.x = mesh->vertices[mesh->v_count].texcoords.y = 0;
-	mesh->vertices[mesh->v_count].color = col;
+	mesh->vertices[mesh->v_count].color = MESH_MAKE_COL(col);
 	mesh->v_count++;
 }
 void mesh_set_index(GF_Mesh *mesh, u32 idx)
@@ -234,9 +241,9 @@ void mesh_recompute_normals(GF_Mesh *mesh)
 		gf_vec_diff(v2, mesh->vertices[mesh->indices[i+2]].pos, mesh->vertices[mesh->indices[i]].pos);
 		v3 = gf_vec_cross(v1, v2);
 		gf_vec_norm(&v3);
-		mesh->vertices[mesh->indices[i]].normal = v3;
-		mesh->vertices[mesh->indices[i+1]].normal = v3;
-		mesh->vertices[mesh->indices[i+2]].normal = v3;
+		MESH_SET_NORMAL(mesh->vertices[mesh->indices[i]], v3);
+		MESH_SET_NORMAL(mesh->vertices[mesh->indices[i+1]], v3);
+		MESH_SET_NORMAL(mesh->vertices[mesh->indices[i+2]], v3);
 	}
 }
 
@@ -757,11 +764,11 @@ void mesh_get_outline(GF_Mesh *mesh, GF_Path *path)
 
 #define COL_TO_RGBA(res, col) { res.red = col.red; res.green = col.green; res.blue = col.blue; res.alpha = FIX_ONE; }
 
+
 #define MESH_GET_COL(thecol, index)	{\
 	if (colorRGB && ((u32) index < colorRGB->color.count) ) COL_TO_RGBA(thecol, colorRGB->color.vals[index])	\
 	else if (colorRGBA && (u32) index < colorRGBA->color.count) thecol = colorRGBA->color.vals[index]; \
 	} \
-
 
 void mesh_new_ils(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex, GF_Node *__color, MFInt32 *colorIndex, Bool colorPerVertex, Bool do_close)
 {
@@ -1237,8 +1244,8 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 			else cosCrease = gf_cos(creaseAngle);
 
 			for (i=0; i<face_count; i++) { for (j=0; j<faces[i]->v_count; j++) {
-					faces[i]->vertices[j].normal = smooth_face_normals(pts_info, c_count, faces_info, face_count, 
-											j, i, cosCrease); 
+					SFVec3f n = smooth_face_normals(pts_info, c_count, faces_info, face_count, j, i, cosCrease); 
+					MESH_SET_NORMAL(faces[i]->vertices[j], n);
 			} } 
 
 			if (faces_info) {
@@ -1258,7 +1265,8 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 				n = gf_vec_cross(v1, v2);
 				if (!n.x && !n.y && !n.z) n.z = FIX_ONE;
 				else gf_vec_norm(&n);
-				for (j=0; j<faces[i]->v_count; j++) faces[i]->vertices[j].normal = n;
+				for (j=0; j<faces[i]->v_count; j++) 
+					MESH_SET_NORMAL(faces[i]->vertices[j], n);
 			}
 		}
 	}
@@ -1313,6 +1321,7 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	M_Normal *norm = (M_Normal *)eg->normal;
 	M_Color *colorRGB = (M_Color *)eg->color;
 	X_ColorRGBA *colorRGBA = (X_ColorRGBA *)eg->color;
+	SFColorRGBA rgba;
 	M_TextureCoordinate *txc = (M_TextureCoordinate *)eg->texCoord;
 
 	mesh_reset(mesh);
@@ -1369,8 +1378,8 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 				gf_vec_diff(v2, mesh->vertices[i+z1+1].pos, mesh->vertices[i+z0+1].pos);
 				n = gf_vec_cross(v1, v2);
 				gf_vec_norm(&n);
-				mesh->vertices[i+z0].normal = n; mesh->vertices[i+z0+1].normal = n;
-				mesh->vertices[i+z1].normal = n; mesh->vertices[i+z1+1].normal = n;
+				MESH_SET_NORMAL(mesh->vertices[i+z0], n); MESH_SET_NORMAL(mesh->vertices[i+z0+1], n);
+				MESH_SET_NORMAL(mesh->vertices[i+z1], n); MESH_SET_NORMAL(mesh->vertices[i+z1+1], n);
 			}
 		}
 		mesh->mesh_type = MESH_TRIANGLES;
@@ -1397,14 +1406,16 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 			/*get face color*/
             if (has_color && !eg->colorPerVertex) {
 				idx = i + j * (xDimension-1);
-				MESH_GET_COL(vx.color, idx);
+				MESH_GET_COL(rgba, idx);
+				vx.color = MESH_MAKE_COL(rgba);
             }
 			/*get face normal*/
 			if (has_normal && !eg->normalPerVertex) {
 				idx = i + j * (xDimension-1);
 				if (idx<norm->vector.count) {
-					vx.normal = norm->vector.vals[idx];
-					gf_vec_norm(&vx.normal);
+					SFVec3f n = norm->vector.vals[idx];
+					gf_vec_norm(&n);
+					MESH_SET_NORMAL(vx, n);
 				}
 			}
 
@@ -1418,7 +1429,8 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 					/*get color per vertex*/
 					if (has_color && eg->colorPerVertex) {
 						idx = i+l + (j+k) * xDimension;
-						MESH_GET_COL(vx.color, idx);
+						MESH_GET_COL(rgba, idx);
+						vx.color = MESH_MAKE_COL(rgba);
 					}
 					/*get tex coord*/
 					if (!has_txcoord) {
@@ -1432,8 +1444,9 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 					if (has_normal && eg->normalPerVertex) {
 						idx = (i+l) + (j+k) * xDimension;
 						if (idx<norm->vector.count) {
-							vx.normal = norm->vector.vals[idx];
-							gf_vec_norm(&vx.normal);
+							SFVec3f n = norm->vector.vals[idx];
+							gf_vec_norm(&n);
+							MESH_SET_NORMAL(vx, n);
 						}
 					}
 					/*update face to point and point to face structures*/
@@ -1468,8 +1481,8 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 					gf_vec_diff(v2, mesh->vertices[pt_idx+3].pos, mesh->vertices[pt_idx+1].pos);
 					n = gf_vec_cross(v1, v2);
 					gf_vec_norm(&n);
-					mesh->vertices[pt_idx+0].normal = n; mesh->vertices[pt_idx+1].normal = n;
-					mesh->vertices[pt_idx+2].normal = n; mesh->vertices[pt_idx+3].normal = n;
+					MESH_SET_NORMAL(mesh->vertices[pt_idx+0], n); MESH_SET_NORMAL(mesh->vertices[pt_idx+1], n);
+					MESH_SET_NORMAL(mesh->vertices[pt_idx+2], n); MESH_SET_NORMAL(mesh->vertices[pt_idx+3], n);
 				}
 				pt_idx+=4;
 			}
@@ -1484,8 +1497,8 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 		else cosCrease = gf_cos(eg->creaseAngle);
 
 		for (i=0; i<face_count; i++) { for (j=0; j<faces[i]->v_count; j++) {
-				faces[i]->vertices[j].normal = smooth_face_normals(pts_info, pt_count, faces_info, face_count, 
-										j, i, cosCrease); 
+			SFVec3f n = smooth_face_normals(pts_info, pt_count, faces_info, face_count, j, i, cosCrease); 
+			MESH_SET_NORMAL(faces[i]->vertices[j], n);
 		} } 
 
 		if (faces_info) {
@@ -1928,7 +1941,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 		n = gf_vec_cross(v1, v2);
 		gf_vec_norm(&n);
 		for (j=0; j<faces[i]->v_count; j++) {
-			faces[i]->vertices[j].normal = n;
+			MESH_SET_NORMAL(faces[i]->vertices[j], n);
 			if (smooth_normals) faces_info[i].nor = n;
 		}
 	}
@@ -1936,26 +1949,29 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 
 	/*generate begin cap*/
 	if (begin_face) {
+		SFVec3f n;
 		scale.x = scale.y = FIX_ONE;
 		if (spine_scale && spine_scale->count) scale = spine_scale->vals[0];
 
 		/*get first SCP after rotation*/
 		SCPbegin = SCPs[0];
 
-		vx.normal = SCPbegin.yaxis;
-		gf_vec_norm(&vx.normal);
+		n = SCPbegin.yaxis;
+		gf_vec_norm(&n);
+		MESH_SET_NORMAL(vx, n);
 
 		convexity = gf_polygone2d_get_convexity(path->points, path->n_points);
 		switch (convexity) {
 		case GF_POLYGON_CONVEX_CCW:
 		case GF_POLYGON_COMPLEX_CCW:
 			gf_vec_rev(vx.normal);
+			gf_vec_rev(n);
 			break;
 		}
 
 		if (smooth_normals) {
-			faces_info[begin_face].nor = vx.normal;
-			assert(gf_vec_len(vx.normal));
+			faces_info[begin_face].nor = n;
+			assert(gf_vec_len(n));
 		}
 		cur_pts_in_cross = 0;
 		cur = 0;
@@ -1992,24 +2008,27 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 
 	/*generate end cap*/
 	if (end_face) {
+		SFVec3f n;
 		scale.x = scale.y = FIX_ONE;
 		if (spine_scale && (nb_spine-1<spine_scale->count)) scale = spine_scale->vals[nb_spine-1];
 		/*get last SCP after rotation*/
 		SCPend = SCPs[nb_spine-1];
 
-		vx.normal = SCPend.yaxis;
-		gf_vec_norm(&vx.normal);
+		n = SCPend.yaxis;
+		gf_vec_norm(&n);
+		MESH_SET_NORMAL(vx, n);
 		convexity = gf_polygone2d_get_convexity(path->points, path->n_points);
 		switch (convexity) {
 		case GF_POLYGON_CONVEX_CCW:
 		case GF_POLYGON_COMPLEX_CCW:
 			gf_vec_rev(vx.normal);
+			gf_vec_rev(n);
 			break;
 		}
 
 		if (smooth_normals) {
-			faces_info[end_face].nor = vx.normal;
-			assert(gf_vec_len(vx.normal));
+			faces_info[end_face].nor = n;
+			assert(gf_vec_len(n));
 		}
 		cur_pts_in_cross = 0;
 
@@ -2054,8 +2073,8 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 		else cosCrease = gf_cos(creaseAngle);
 
 		for (i=0; i<face_count; i++) { for (j=0; j<faces[i]->v_count; j++) {
-				faces[i]->vertices[j].normal = smooth_face_normals(pts_info, pt_count, faces_info, face_count, 
-										j, i, cosCrease); 
+				SFVec3f n = smooth_face_normals(pts_info, pt_count, faces_info, face_count, j, i, cosCrease); 
+				MESH_SET_NORMAL(faces[i]->vertices[j], n);
 		} } 
 
 		if (faces_info) {

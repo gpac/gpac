@@ -3001,6 +3001,8 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 		if (parent && !skip_cache && priv->js_cache) {
 			jsf->obj = obj;
 			JS_AddRoot(priv->js_ctx, &jsf->obj);
+			/*protect the JSArray object if any*/
+			if (jsf->js_list) JS_AddRoot(priv->js_ctx, &jsf->js_list);
 			gf_list_add(priv->js_cache, obj);
 		}
 	}
@@ -3008,25 +3010,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 }
 
-#if 0
-static void JS_Protect(GF_ScriptPriv *priv)
-{
-	if (priv->js_cache) {
-		u32 i, count = gf_list_count(priv->js_cache);
-		for (i=0; i<count; i++) {
-			GF_JSField *jsf;
-			JSObject *obj = gf_list_get(priv->js_cache, i);
-			jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);
-			if (!jsf->obj) {
-				jsf->obj = obj;
-				JS_AddRoot(priv->js_ctx, &jsf->obj);
-			}
-		}
-	}
-}
-#endif
-
-static void JS_Unprotect(GF_ScriptPriv *priv)
+static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 {
 	/*do not force GC, only do it if needed. Otherwise this would extremely slow down eventIn handling, 
 	especially periodic events (timers & co)*/
@@ -3040,6 +3024,11 @@ static void JS_Unprotect(GF_ScriptPriv *priv)
 			jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);
 			if (jsf->obj) {
 				JS_RemoveRoot(priv->js_ctx, &jsf->obj);
+				/*unprotect the JSArray object if any*/
+				if (jsf->js_list) {
+					JS_RemoveRoot(priv->js_ctx, &jsf->js_list);
+					jsf->js_list = NULL;
+				}
 				jsf->obj = NULL;
 			}
 		}
@@ -3057,7 +3046,7 @@ static void JS_PreDestroy(GF_Node *node)
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 
 	/*unprotect all cached objects from GC*/
-	JS_Unprotect(priv);
+	JS_ReleaseRootObjects(priv);
 	gf_sg_ecmascript_del(priv->js_ctx);
 #ifndef GPAC_DISABLE_SVG
 	dom_js_unload();
@@ -3161,7 +3150,8 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	if (JSVAL_IS_GCTHING(argv[1])) JS_RemoveRoot(priv->js_ctx, &argv[1]);
 	
 	flush_event_out(node, priv);
-//	JS_MaybeGC(priv->js_ctx);
+	/*perform JS cleanup*/
+	JS_MaybeGC(priv->js_ctx);
 }
 
 void JSScriptFromFile(GF_Node *node);
@@ -3376,7 +3366,8 @@ static void JSScript_LoadVRML(GF_Node *node)
 	JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 
 	flush_event_out(node, priv);
-//	JS_Cleanup(priv);
+	/*perform JS cleanup*/
+	JS_MaybeGC(priv->js_ctx);
 }
 
 static void JSScript_Load(GF_Node *node)

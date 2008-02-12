@@ -24,6 +24,7 @@
 
 
 #include <gpac/internal/mesh.h>
+#include <gpac/color.h>
 
 #ifndef GPAC_DISABLE_3D
 
@@ -75,11 +76,15 @@ static void CALLBACK mesh_tess_combine(GLdouble coords[3], void* vertex_data[4],
 	if (tess->mesh->flags & MESH_HAS_COLOR) {
 		for (i=0; i<4; i++) {
 			if (weight[i]) {
+				SFColorRGBA rgba;
 				Fixed _weight = FLT2FIX(weight[i]);
 				idx = * (u32 *) vertex_data[i];
-				col.red += gf_mulfix(_weight, tess->mesh->vertices[idx].color.red);
-				col.green += gf_mulfix(_weight, tess->mesh->vertices[idx].color.green);
-				col.blue += gf_mulfix(_weight, tess->mesh->vertices[idx].color.blue);
+
+				MESH_GET_COLOR(rgba, tess->mesh->vertices[idx]);
+
+				col.red += gf_mulfix(_weight, rgba.red);
+				col.green += gf_mulfix(_weight, rgba.green);
+				col.blue += gf_mulfix(_weight, rgba.blue);
 			}
 		}
 	}
@@ -319,7 +324,12 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 	if (orig->flags & MESH_IS_2D) {
 		nor.x = nor.y = 0; nor.z = FIX_ONE;
 	} else {
-		nor = orig->vertices[0].normal;
+		nor.x = orig->vertices[0].normal.x;
+		nor.y = orig->vertices[0].normal.y;
+		nor.z = orig->vertices[0].normal.z;
+#ifndef MESH_USE_FIXED_NORMAL
+		gf_vec_norm(&nor);
+#endif
 	}
 
 	/*select projection direction*/
