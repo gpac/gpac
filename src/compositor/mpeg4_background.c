@@ -122,7 +122,7 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 	Bool pad;
 	u32 step_div_h;
 	GF_Vertex vx;
-	SFColorRGBA start_col, end_col;
+	SFColorRGBA start_col, end_col, fcol;
 	Fixed start_angle, next_angle, angle, r, frac, first_angle;
 
 	start_angle = 0;
@@ -138,9 +138,11 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 
 	start_col.alpha = end_col.alpha = FIX_ONE;
 	vx.texcoords.x = vx.texcoords.y = 0;
-	vx.color = start_col;
+	vx.color = MESH_MAKE_COL(start_col);
 	vx.pos.x = vx.pos.z = 0; vx.pos.y = FIX_ONE;
-	vx.normal.x = vx.normal.z = 0; vx.normal.y = -FIX_ONE;
+	vx.normal.x = vx.normal.z = 0; 
+	vx.normal.y = -MESH_NORMAL_UNIT;
+
 	mesh_set_vertex_vx(mesh, &vx);
 	last_idx = 0;
 	ang_idx = 0;
@@ -187,23 +189,28 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 		}
 
 		if (pad) {
-			vx.color = end_col;
+			fcol = end_col;
 		} else {
 			frac = gf_divfix(angle - start_angle, next_angle - start_angle) ;
-			vx.color.red = gf_mulfix(end_col.red - start_col.red, frac) + start_col.red;
-			vx.color.green = gf_mulfix(end_col.green - start_col.green, frac) + start_col.green;
-			vx.color.blue = gf_mulfix(end_col.blue - start_col.blue, frac) + start_col.blue;
+			fcol.red = gf_mulfix(end_col.red - start_col.red, frac) + start_col.red;
+			fcol.green = gf_mulfix(end_col.green - start_col.green, frac) + start_col.green;
+			fcol.blue = gf_mulfix(end_col.blue - start_col.blue, frac) + start_col.blue;
+			fcol.alpha = FIX_ONE;
 		}
+		vx.color = MESH_MAKE_COL(fcol);
+
         vx.pos.y = gf_sin(GF_PI2 - angle);
         r = gf_sqrt(FIX_ONE - gf_mulfix(vx.pos.y, vx.pos.y));
 	
 		new_idx = mesh->v_count;
         for (j = 0; j < step_div_h; j++) {
+			SFVec3f n;
             Fixed lon = 2 * GF_PI * j / step_div_h;
             vx.pos.x = gf_mulfix(gf_sin(lon), r);
             vx.pos.z = gf_mulfix(gf_cos(lon), r);
-			vx.normal = gf_vec_scale(vx.pos, FIX_ONE /*-FIX_ONE*/);
-			gf_vec_norm(&vx.normal);
+			n = gf_vec_scale(vx.pos, FIX_ONE /*-FIX_ONE*/);
+			gf_vec_norm(&n);
+			MESH_SET_NORMAL(vx, n);
 			mesh_set_vertex_vx(mesh, &vx);
 
 			if (j) {
@@ -227,7 +234,8 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 	if (!ground_dome) {
 		new_idx = mesh->v_count;
 		vx.pos.x = vx.pos.z = 0; vx.pos.y = -FIX_ONE;
-		vx.normal.x = vx.normal.z = 0; vx.normal.y = FIX_ONE;
+		vx.normal.x = vx.normal.z = 0; 
+		vx.normal.y = MESH_NORMAL_UNIT;
 		mesh_set_vertex_vx(mesh, &vx);
 
 		for (j=1; j < step_div_h; j++) {

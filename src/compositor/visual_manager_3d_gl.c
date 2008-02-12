@@ -281,13 +281,22 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		has_col = 1;
 
 #if defined (GPAC_USE_OGL_ES)
+
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			glEnable(GL_BLEND);
 			tr_state->mesh_is_transparent = 1;
 		}
+#ifdef MESH_USE_SFCOLOR
 		/*glES only accepts full RGBA colors*/
 		glColorPointer(4, GL_FIXED, sizeof(GF_Vertex), &mesh->vertices[0].color);
+#else
+		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), &mesh->vertices[0].color);
+#endif	/*MESH_USE_SFCOLOR*/
+
 #elif defined (GPAC_FIXED_POINT)
+
+
+#ifdef MESH_USE_SFCOLOR
 		/*this is a real pain: we cannot "scale" colors through openGL, and our components are 16.16 (32 bytes) ranging
 		from [0 to 65536] mapping to [0, 1.0], but openGL assumes for s32 a range from [-2^31 2^31] mapping to [0, 1.0]
 		we must thus rebuild a dedicated array...*/
@@ -311,7 +320,14 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 			}
 			glColorPointer(3, GL_FLOAT, 3*sizeof(Float), color_array);
 		}
+#else
+		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), &mesh->vertices[0].color);
+#endif /*MESH_USE_SFCOLOR*/
+
 #else	
+
+		
+#ifdef MESH_USE_SFCOLOR
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			glEnable(GL_BLEND);
 			glColorPointer(4, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].color);
@@ -319,6 +335,16 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		} else {
 			glColorPointer(3, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].color);
 		}
+#else
+		if (mesh->flags & MESH_HAS_ALPHA) {
+			glEnable(GL_BLEND);
+			tr_state->mesh_is_transparent = 1;
+			glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), &mesh->vertices[0].color);
+		} else {
+			glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), &mesh->vertices[0].color);
+		}
+#endif /*MESH_USE_SFCOLOR*/
+
 #endif
 	}
 
@@ -350,15 +376,24 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 	
 	} else {
+		u32 normal_type = GL_FLOAT;
 		has_norm = 1;
 		glEnableClientState(GL_NORMAL_ARRAY );
+#ifdef MESH_USE_FIXED_NORMAL
+
 #if defined(GPAC_USE_OGL_ES)
-		glNormalPointer(GL_FIXED, sizeof(GF_Vertex), &mesh->vertices[0].normal);
+		normal_type = GL_FIXED;
 #elif defined(GPAC_FIXED_POINT)
-		glNormalPointer(GL_INT, sizeof(GF_Vertex), &mesh->vertices[0].normal);
+		normal_type = GL_INT;
 #else
-		glNormalPointer(GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].normal);
+		normal_type = GL_FLOAT;
 #endif
+
+#else /*MESH_USE_FIXED_NORMAL*/
+		/*normals are stored on signed bytes*/
+		normal_type = GL_BYTE;
+#endif
+		glNormalPointer(normal_type, sizeof(GF_Vertex), &mesh->vertices[0].normal);
 
 		if (!mesh->mesh_type) {
 			if (tr_state->visual->compositor->backcull 
@@ -481,7 +516,8 @@ void VS3D_DrawNormals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		for (i=0; i<mesh->i_count; i+=3) {
 			for (j=0; j<3; j++) {
 				pt = mesh->vertices[idx[j]].pos;
-				end = gf_vec_scale(mesh->vertices[idx[j]].normal, scale);
+				MESH_GET_NORMAL(end, mesh->vertices[idx[j]]);
+				end = gf_vec_scale(end, scale);
 				gf_vec_add(end, pt, end);
 #ifdef GPAC_USE_OGL_ES
 				va[0] = pt;
@@ -505,7 +541,8 @@ void VS3D_DrawNormals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 			gf_vec_add(pt, mesh->vertices[idx[0]].pos, mesh->vertices[idx[1]].pos);
 			gf_vec_add(pt, pt, mesh->vertices[idx[2]].pos);
 			pt = gf_vec_scale(pt, FIX_ONE/3);
-			end = gf_vec_scale(mesh->vertices[idx[0]].normal, scale);
+			MESH_GET_NORMAL(end, mesh->vertices[idx[0]]);
+			end = gf_vec_scale(end, scale);
 			gf_vec_add(end, pt, end);
 #ifdef GPAC_USE_OGL_ES
 				va[0] = pt;

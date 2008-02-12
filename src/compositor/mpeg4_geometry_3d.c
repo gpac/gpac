@@ -388,6 +388,7 @@ static void NLD_Apply(M_NonLinearDeformer *nld, GF_Mesh *mesh)
 {
 	u32 i;
 	GF_Matrix mx;
+	SFVec3f n;
 	Fixed param, z_min, z_max, v_min, v_max, f_min, f_max, frac, val, a_cos, a_sin;
 	Bool needs_transform = NLD_GetMatrix(nld, &mx);
 
@@ -401,7 +402,10 @@ static void NLD_Apply(M_NonLinearDeformer *nld, GF_Mesh *mesh)
 	if (needs_transform) {
 		for (i=0; i<mesh->v_count; i++) {
 			gf_mx_apply_vec(&mx, &mesh->vertices[i].pos);
-			gf_mx_rotate_vector(&mx, &mesh->vertices[i].normal);
+			MESH_GET_NORMAL(n, mesh->vertices[i]);
+			gf_mx_rotate_vector(&mx, &n);
+			MESH_SET_NORMAL(mesh->vertices[i], n);
+
 			if (mesh->vertices[i].pos.z<z_min) z_min = mesh->vertices[i].pos.z;
 			if (mesh->vertices[i].pos.z>z_max) z_max = mesh->vertices[i].pos.z;
 		}
@@ -427,10 +431,12 @@ static void NLD_Apply(M_NonLinearDeformer *nld, GF_Mesh *mesh)
 		case 0:
 			mesh->vertices[i].pos.x = gf_mulfix(mesh->vertices[i].pos.x, val);
 			mesh->vertices[i].pos.y = gf_mulfix(mesh->vertices[i].pos.y, val);
-			old = mesh->vertices[i].normal;
-			mesh->vertices[i].normal.x = gf_mulfix(mesh->vertices[i].normal.x, val);
-			mesh->vertices[i].normal.y = gf_mulfix(mesh->vertices[i].normal.y, val);
-			gf_vec_norm(&mesh->vertices[i].normal);
+			MESH_GET_NORMAL(old, mesh->vertices[i]);
+			n=old;
+			n.x = gf_mulfix(n.x, val);
+			n.y = gf_mulfix(n.y, val);
+			gf_vec_norm(&n);
+			MESH_SET_NORMAL(mesh->vertices[i], n);
 			break;
 		/*twist*/
 		case 1:
@@ -438,10 +444,12 @@ static void NLD_Apply(M_NonLinearDeformer *nld, GF_Mesh *mesh)
 			a_sin = gf_sin(val);
 			mesh->vertices[i].pos.x = gf_mulfix(a_cos, old.x) - gf_mulfix(a_sin, old.y);
 			mesh->vertices[i].pos.y = gf_mulfix(a_sin, old.x) + gf_mulfix(a_cos, old.y);
-			old = mesh->vertices[i].normal;
-			mesh->vertices[i].normal.x = gf_mulfix(a_cos, old.x) -  gf_mulfix(a_sin, old.y);
-			mesh->vertices[i].normal.y = gf_mulfix(a_sin, old.x) + gf_mulfix(a_cos, old.y);
-			gf_vec_norm(&mesh->vertices[i].normal);
+			MESH_GET_NORMAL(old, mesh->vertices[i]);
+			n=old;
+			n.x = gf_mulfix(a_cos, old.x) -  gf_mulfix(a_sin, old.y);
+			n.y = gf_mulfix(a_sin, old.x) + gf_mulfix(a_cos, old.y);
+			gf_vec_norm(&n);
+			MESH_SET_NORMAL(mesh->vertices[i], n);
 			break;
 		/*bend*/
 		case 2:
@@ -449,17 +457,21 @@ static void NLD_Apply(M_NonLinearDeformer *nld, GF_Mesh *mesh)
 			a_sin = gf_sin(val);
 			mesh->vertices[i].pos.x = gf_mulfix(a_sin, old.z) + gf_mulfix(a_cos, old.x);
 			mesh->vertices[i].pos.z = gf_mulfix(a_cos, old.z) - gf_mulfix(a_sin, old.x);
-			old = mesh->vertices[i].normal;
-			mesh->vertices[i].normal.x = gf_mulfix(a_sin, old.z) +  gf_mulfix(a_cos, old.x);
-			mesh->vertices[i].normal.z = gf_mulfix(a_cos, old.z) - gf_mulfix(a_sin, old.x);
-			gf_vec_norm(&mesh->vertices[i].normal);
+			MESH_GET_NORMAL(old, mesh->vertices[i]);
+			n=old;
+			n.x = gf_mulfix(a_sin, old.z) +  gf_mulfix(a_cos, old.x);
+			n.z = gf_mulfix(a_cos, old.z) - gf_mulfix(a_sin, old.x);
+			gf_vec_norm(&n);
+			MESH_SET_NORMAL(mesh->vertices[i], n);
 			break;
 		/*pinch, not standard  (taper on X dim only)*/
 		case 3:
 			mesh->vertices[i].pos.x = gf_mulfix(mesh->vertices[i].pos.x, val);
-			old = mesh->vertices[i].normal;
-			mesh->vertices[i].normal.x = gf_mulfix(mesh->vertices[i].normal.x, val);
-			gf_vec_norm(&mesh->vertices[i].normal);
+			MESH_GET_NORMAL(old, mesh->vertices[i]);
+			n=old;
+			n.x = gf_mulfix(n.x, val);
+			gf_vec_norm(&n);
+			MESH_SET_NORMAL(mesh->vertices[i], n);
 			break;
 		}
 	}
@@ -467,7 +479,9 @@ static void NLD_Apply(M_NonLinearDeformer *nld, GF_Mesh *mesh)
 		gf_mx_inverse(&mx);
 		for (i=0; i<mesh->v_count; i++) {
 			gf_mx_apply_vec(&mx, &mesh->vertices[i].pos);
-			gf_mx_rotate_vector(&mx, &mesh->vertices[i].normal);
+			MESH_GET_NORMAL(n, mesh->vertices[i]);
+			gf_mx_rotate_vector(&mx, &n);
+			MESH_SET_NORMAL(mesh->vertices[i], n);
 		}
 	}
 	mesh_update_bounds(mesh);

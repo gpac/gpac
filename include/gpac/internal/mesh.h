@@ -29,16 +29,55 @@
 #include <gpac/scenegraph_vrml.h>
 #include <gpac/path2d.h>
 
+/*by default we store each color on 32 bit rather than 4 floats (128 bits)*/
+
+//#define MESH_USE_SFCOLOR
+#ifdef MESH_USE_SFCOLOR
+#define MESH_MAKE_COL(_argb) _argb
+#define MESH_GET_COLOR(_argb, _vertex) _argb = (_vertex).color;
+#else
+#define MESH_MAKE_COL(_argb) GF_COL_ARGB(FIX2INT(255*(_argb.alpha)), FIX2INT(255*(_argb.blue)), FIX2INT(255*(_argb.green)), FIX2INT(255*(_argb.red)))
+#define MESH_GET_COLOR(_argb, _vertex) { _argb.alpha = INT2FIX(GF_COL_A((_vertex).color))/255; _argb.red = INT2FIX(GF_COL_R((_vertex).color))/255; _argb.green = INT2FIX(GF_COL_G((_vertex).color))/255; _argb.blue = INT2FIX(GF_COL_B((_vertex).color))/255; }
+#endif
+
+/*by default we store normals as signed bytes rather than floats*/
+
+//#define MESH_USE_FIXED_NORMAL
+#ifdef MESH_USE_FIXED_NORMAL
+#define MESH_SET_NORMAL(_vertex, _nor) _vertex.normal = _nor;
+#define MESH_GET_NORMAL(_nor, _vertex) _nor = _vertex.normal;
+#define MESH_NORMAL_UNIT	FIX_ONE
+#else
+
+typedef struct
+{
+	s8 x, y, z;
+	s8 __dummy;
+} SFVec3f_bytes;
+
+#define MESH_SET_NORMAL(_vertex, _nor) { SFVec3f_bytes __nor; __nor.x = (s8) (_nor.x*100); __nor.y = (s8) (_nor.y*100); __nor.z = (s8) (_nor.z*100); _vertex.normal = __nor; }
+#define MESH_GET_NORMAL(_nor, _vertex) { (_nor).x = _vertex.normal.x; (_nor).y = _vertex.normal.y; (_nor).z = _vertex.normal.z; gf_vec_norm(&(_nor)); }
+#define MESH_NORMAL_UNIT	1
+#endif
+
 typedef struct
 {
 	/*position*/
 	SFVec3f pos;	
-	/*normal*/
-	SFVec3f normal;	
-	/*color if used by mesh object*/
-	SFColorRGBA color;
 	/*texture coordinates*/
 	SFVec2f texcoords;
+	/*normal*/
+#ifdef MESH_USE_FIXED_NORMAL
+	SFVec3f normal;
+#else
+	SFVec3f_bytes normal;
+#endif
+	/*color if used by mesh object*/
+#ifdef MESH_USE_SFCOLOR
+	SFColorRGBA color;
+#else
+	u32 color;
+#endif
 } GF_Vertex;
 
 /*mesh type used*/

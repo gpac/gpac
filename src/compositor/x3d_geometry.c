@@ -254,14 +254,17 @@ static void TraverseTriangleSet2D(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 	case TRAVERSE_DRAW_3D:
 		if (!stack->mesh) {
+			SFColorRGBA col;
 			u32 i, count, idx;
 			GF_Vertex v1, v2, v3;
 			X_TriangleSet2D *p = (X_TriangleSet2D *)node;
 
 			stack->mesh = new_mesh();
 			stack->mesh->mesh_type = MESH_TRIANGLES;
-			v1.color.red = v1.color.green = v1.color.blue = 0;
-			v1.normal.x = v1.normal.y = 0; v1.normal.z = FIX_ONE;
+			col.red = col.green = col.blue = 0; col.alpha = FIX_ONE;
+			v1.color = MESH_MAKE_COL(col);
+			v1.normal.x = v1.normal.y = 0; 
+			v1.normal.z = MESH_NORMAL_UNIT;
 			v1.pos.z = 0;
 			v3 = v2 = v1;
 			count = p->vertices.count;
@@ -348,6 +351,7 @@ static void build_line_set(GF_Node *node, Drawable3D *stack, GF_TraverseState *t
 	GenMFField *cols;
 	GF_Vertex vx;
 	Bool rgba_col;
+	SFColorRGBA rgba;
 	X_LineSet *p = (X_LineSet *)node;
 	X_Coordinate *c = (X_Coordinate *) p->coord;
 
@@ -372,10 +376,11 @@ static void build_line_set(GF_Node *node, Drawable3D *stack, GF_TraverseState *t
 			vx.pos = c->point.vals[c_idx];
 			if (cols && (cols->count>c_idx)) {
 				if (rgba_col) {
-					vx.color = ((MFColorRGBA *)cols)->vals[c_idx];
+					rgba = ((MFColorRGBA *)cols)->vals[c_idx];
 				} else {
-					vx.color = gf_sg_sfcolor_to_rgba( ((MFColor *)cols)->vals[c_idx]);
+					rgba = gf_sg_sfcolor_to_rgba( ((MFColor *)cols)->vals[c_idx]);
 				}
+				vx.color = MESH_MAKE_COL(rgba);
 			}
 			mesh_set_vertex_vx(stack->mesh, &vx);
 			if (j) {
@@ -410,6 +415,7 @@ static void BuildTriangleSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color, G
 	MFVec3f *norms;
 	MFVec2f *txcoords;
 	Bool rgba_col;
+	SFColorRGBA rgba;
 	X_Coordinate *c = (X_Coordinate *) _coords;
 	
 	mesh_reset(mesh);
@@ -459,14 +465,16 @@ static void BuildTriangleSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color, G
 		vx.pos = c->point.vals[idx];
 		if (cols && (cols->count>idx)) {
 			if (rgba_col) {
-				vx.color = ((MFColorRGBA *)cols)->vals[idx];
+				rgba = ((MFColorRGBA *)cols)->vals[idx];
 			} else {
-				vx.color = gf_sg_sfcolor_to_rgba( ((MFColor *)cols)->vals[idx]);
+				rgba = gf_sg_sfcolor_to_rgba( ((MFColor *)cols)->vals[idx]);
 			}
+			vx.color = MESH_MAKE_COL(rgba);
 		}
 		if (norms && (norms->count>idx)) {
-			vx.normal = norms->vals[idx];
-			gf_vec_norm(&vx.normal);
+			SFVec3f n = norms->vals[idx];
+			gf_vec_norm(&n);
+			MESH_SET_NORMAL(vx, n);
 		}
 		if (txcoords) {
 			if (txcoords->count>idx) vx.texcoords = txcoords->vals[idx];
@@ -551,6 +559,7 @@ static void BuildTriangleStripSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_col
 	MFVec3f *norms;
 	MFVec2f *txcoords;
 	Bool rgba_col;
+	SFColorRGBA rgba;
 	X_Coordinate *c = (X_Coordinate *) _coords;
 	
 	mesh_reset(mesh);
@@ -604,15 +613,17 @@ static void BuildTriangleStripSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_col
 
 			if (cols && (cols->count>idx)) {
 				if (rgba_col) {
-					vx.color = ((MFColorRGBA *)cols)->vals[idx];
+					rgba = ((MFColorRGBA *)cols)->vals[idx];
 				} else {
-					vx.color = gf_sg_sfcolor_to_rgba( ((MFColor *)cols)->vals[idx]);
+					rgba = gf_sg_sfcolor_to_rgba( ((MFColor *)cols)->vals[idx]);
 				}
+				vx.color = MESH_MAKE_COL(rgba);
 			}
 			/*according to X3D spec, if normal field is set, it is ALWAYS as normal per vertex*/
 			if (norms && (norms->count>idx)) {
-				vx.normal = norms->vals[idx];
-				gf_vec_norm(&vx.normal);
+				SFVec3f n = norms->vals[idx];
+				gf_vec_norm(&n);
+				MESH_SET_NORMAL(vx, n);
 			}
 			if (txcoords) {
 				if (txcoords->count>idx) vx.texcoords = txcoords->vals[idx];
@@ -659,10 +670,11 @@ static void BuildTriangleStripSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_col
 			if ((ccw && (cur_face%2)) || (!ccw && !(cur_face%2))) {
 				SFVec3f v;
 				u32 idx;
-				v = gf_vec_scale(mesh->vertices[mesh->indices[i]].normal,-1);
-				mesh->vertices[mesh->indices[i]].normal = v;
-				mesh->vertices[mesh->indices[i+1]].normal = v;
-				mesh->vertices[mesh->indices[i+2]].normal = v;
+				MESH_GET_NORMAL(v, mesh->vertices[mesh->indices[i]]);
+				v = gf_vec_scale(v,-1);
+				MESH_SET_NORMAL(mesh->vertices[mesh->indices[i]], v);
+				mesh->vertices[mesh->indices[i+1]].normal = mesh->vertices[mesh->indices[i]].normal;
+				mesh->vertices[mesh->indices[i+2]].normal = mesh->vertices[mesh->indices[i]].normal;
 				idx = mesh->indices[i+2];
 				mesh->indices[i+2] = mesh->indices[i+1];
 				mesh->indices[i+1] = idx;
@@ -678,28 +690,29 @@ static void BuildTriangleStripSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_col
 				if (stripList->vals[strip] <= 3) { cur_face ++; continue; }
 
 				/*first face normal*/
-				n_0 = mesh->vertices[mesh->indices[3*cur_face]].normal;
+				MESH_GET_NORMAL(n_0, mesh->vertices[mesh->indices[3*cur_face]]);
 				/*second face normal*/
-				n_1 = mesh->vertices[mesh->indices[3*(cur_face+1)]].normal;
+				MESH_GET_NORMAL(n_1, mesh->vertices[mesh->indices[3*(cur_face+1)]]);
+
 				gf_vec_add(n_avg, n_0, n_1);
 				gf_vec_norm(&n_avg);
 				/*assign to second point of first face and first of second face*/
-				mesh->vertices[mesh->indices[3*cur_face+1]].normal = n_avg;
-				mesh->vertices[mesh->indices[3*(cur_face+1)]].normal = n_avg;
+				MESH_SET_NORMAL(mesh->vertices[mesh->indices[3*cur_face+1]], n_avg);
+				MESH_SET_NORMAL(mesh->vertices[mesh->indices[3*(cur_face+1)]], n_avg);
 				nb_face = stripList->vals[strip] - 2;
 				cur_face++;
 				for (i=1; i<nb_face-1; i++) {
 					/*get normal (use second pt of current face since first has been updated)*/
-					n_2 = mesh->vertices[mesh->indices[3*cur_face + 1]].normal;
+					MESH_GET_NORMAL(n_2, mesh->vertices[mesh->indices[3*cur_face + 1]]);
 					gf_vec_add(n_avg, n_0, n_1);
 					gf_vec_add(n_avg, n_avg, n_2);
 					gf_vec_norm(&n_avg);
 					/*last of prev face*/
-					mesh->vertices[mesh->indices[3*cur_face - 1]].normal = n_avg;
+					MESH_SET_NORMAL(mesh->vertices[mesh->indices[3*cur_face - 1]], n_avg);
 					/*second of current face*/
-					mesh->vertices[mesh->indices[3*cur_face + 1]].normal = n_avg;
+					mesh->vertices[mesh->indices[3*cur_face + 1]].normal = mesh->vertices[mesh->indices[3*cur_face - 1]].normal;
 					/*first of next face*/
-					mesh->vertices[mesh->indices[3*cur_face + 3]].normal = n_avg;
+					mesh->vertices[mesh->indices[3*cur_face + 3]].normal = mesh->vertices[mesh->indices[3*cur_face - 1]].normal;
 					n_0 = n_1;
 					n_1 = n_2;
 					cur_face++;
@@ -790,6 +803,7 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 	MFVec3f *norms;
 	MFVec2f *txcoords;
 	Bool rgba_col;
+	SFColorRGBA rgba;
 	X_Coordinate *c = (X_Coordinate *) _coords;
 	mesh_reset(mesh);
 		
@@ -842,15 +856,17 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 
 			if (cols && (cols->count>idx)) {
 				if (rgba_col) {
-					vx.color = ((MFColorRGBA *)cols)->vals[idx];
+					rgba = ((MFColorRGBA *)cols)->vals[idx];
 				} else {
-					vx.color = gf_sg_sfcolor_to_rgba( ((MFColor *)cols)->vals[idx]);
+					rgba = gf_sg_sfcolor_to_rgba( ((MFColor *)cols)->vals[idx]);
 				}
+				vx.color = MESH_MAKE_COL(rgba);
 			}
 			/*according to X3D spec, if normal field is set, it is ALWAYS as normal per vertex*/
 			if (norms && (norms->count>idx)) {
-				vx.normal = norms->vals[idx];
-				gf_vec_norm(&vx.normal);
+				SFVec3f n = norms->vals[idx];
+				gf_vec_norm(&n);
+				MESH_SET_NORMAL(vx, n);
 			}
 			if (txcoords) {
 				if (txcoords->count>idx) vx.texcoords = txcoords->vals[idx];
@@ -899,15 +915,15 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 				start_face = cur_face;
 
 				/*first face normal*/
-				n_0 = mesh->vertices[mesh->indices[3*cur_face]].normal;
+				MESH_GET_NORMAL(n_0, mesh->vertices[mesh->indices[3*cur_face]]);
 				n_tot = n_0;
 				cur_face++;
 				nb_face = fanList->vals[fan] - 2;
 				for (i=1; i<nb_face; i++) {
-					n_1 = mesh->vertices[mesh->indices[3*cur_face + 1]].normal;
+					MESH_GET_NORMAL(n_1, mesh->vertices[mesh->indices[3*cur_face + 1]]);
 					gf_vec_add(n_avg, n_0, n_1);
 					gf_vec_norm(&n_avg);
-					mesh->vertices[mesh->indices[3*cur_face + 1]].normal = n_avg;
+					MESH_SET_NORMAL(mesh->vertices[mesh->indices[3*cur_face + 1]], n_avg);
 					gf_vec_add(n_tot, n_tot, n_1);
 					n_0 = n_1;
 					cur_face++;
@@ -915,7 +931,7 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 				/*and assign center normal*/
 				gf_vec_norm(&n_tot);
 				for (i=0; i<nb_face; i++) {
-					mesh->vertices[mesh->indices[3*(i+start_face)]].normal = n_tot;
+					MESH_SET_NORMAL(mesh->vertices[mesh->indices[3*(i+start_face)]], n_tot);
 				}
 			}
 		}

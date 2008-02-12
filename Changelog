@@ -1,8 +1,12 @@
-Latest CVS changes - 08/02/08:
+Latest CVS changes - 12/02/08:
+  - Changed 3D mesh object to be slightly more compact (colors and normal)
   - Unified focus model for SVG and MPEG-4. MPEG-4 focus can only be used through tab/-tab (no north/east/.. navigation)
       * The MPEG-4 focus is based on the groups (2D/3D) presenting interactive features (sensors)
-        * keyboard mapping for sensor is activate (ENTER key) and direction keys with or without SHIFT. 
-        * Not all sensors are mapped yet
+        * keyboard mapping for sensors is:
+            isOver triggered when focus moves in(isOver=TRUE) and out (isOver=FALSE)
+            isActive triggered when ENTER key is pressed (isActive=TRUE) and released (isActive=TRUE) 
+            direction keys with or without SHIFT to simulate mouse move
+        * Layout node is considered as a sensor when scroll_rate is 0, so that the user can scroll the layout
       * The focus is by default on the UA (GPAC), not on the content.              
   - Added support for inplace text edition in SVGT and in MPEG4
       * support for clipboard paste at current caret pos (win32, wxWidgets - no WinCE/symbian yet) 
