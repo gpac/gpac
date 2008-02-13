@@ -893,6 +893,9 @@ GF_Node *dom_get_node(JSContext *c, JSObject *obj, Bool *is_doc);
 JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 
+void dom_node_set_textContent(GF_Node *n, char *text);
+char *dom_node_flatten_text(GF_Node *n);
+
 #endif	/*GPAC_HAS_SPIDERMONKEY*/
 
 

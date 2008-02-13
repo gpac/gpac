@@ -274,8 +274,15 @@ JSBool svg_udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 		strcat(fullName, ":");
 		strcat(fullName, JS_GetStringBytes(JSVAL_TO_STRING(argv[1])) );
 		e = gf_node_get_field_by_name(n, fullName, &info);
-	} else if (argc==2) {
-		e = gf_node_get_field_by_name(n, JS_GetStringBytes(JSVAL_TO_STRING(argv[0])), &info);
+	} else if (argc==1) {
+		char *name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		if (!strcmp(name, "#text")) {
+			char *res = dom_node_flatten_text(n);
+			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
+			free(res);
+			return JS_TRUE;
+		}
+		e = gf_node_get_field_by_name(n, name, &info);
 	} else return JS_FALSE;
 
 	if (e!=GF_OK) return JS_FALSE;
@@ -546,9 +553,18 @@ JSBool svg_udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 		e = gf_node_get_field_by_name(n, fullName, &info);
 		val = JS_GetStringBytes(JSVAL_TO_STRING(argv[2]));
 	} else if (argc==2) {
-		e = gf_node_get_field_by_name(n, JS_GetStringBytes(JSVAL_TO_STRING(argv[0])), &info);
-		val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+		val = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		if (!strcmp(val, "#text")) {
+			if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
+			dom_node_set_textContent(n, JS_GetStringBytes(JSVAL_TO_STRING(argv[1])) );
+			return JS_TRUE;
+		} else {
+			e = gf_node_get_field_by_name(n, val, &info);
+			val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+		}
+
 	} else e = GF_BAD_PARAM;
+
 	if (!val || (e!=GF_OK)) return JS_FALSE;
 	*rval = JSVAL_VOID;
 
@@ -1793,7 +1809,6 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	dom_js_load(scene->svg_js->js_ctx, scene->svg_js->global);
 	/*create document object, and remember it*/
 	dom_js_define_document(scene->svg_js->js_ctx, scene->svg_js->global, scene);
-	dom_js_define_svg_document(scene->svg_js->js_ctx, scene->svg_js->global, scene);
 	/*create event object, and remember it*/
 	scene->svg_js->event = dom_js_define_event(scene->svg_js->js_ctx, scene->svg_js->global);
 
@@ -1984,6 +1999,13 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 	fclose(jsf);
 	jsscript[fsize] = 0;
 
+	/*for handler, only load code*/
+	if (script->sgprivate->tag==TAG_SVG_handler) {
+		GF_DOMText *txt = gf_dom_add_text_node(script, jsscript);
+		txt->type = GF_DOM_TEXT_INSERTED;
+		return 1;
+	}
+
 	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, jsscript, sizeof(char)*fsize, 0, 0, &rval);
 	if (ret==JS_FALSE) success = 0;
 
@@ -2038,8 +2060,6 @@ void JSScript_LoadSVG(GF_Node *node)
 	jsval rval;
 	GF_FieldInfo href_info;
 
-	if (node->sgprivate->tag == TAG_SVG_handler) return;
-
 	if (!node->sgprivate->scenegraph->svg_js) {
 		if (JSScript_CreateSVGContext(node->sgprivate->scenegraph) != GF_OK) return;
 	}
@@ -2052,7 +2072,7 @@ void JSScript_LoadSVG(GF_Node *node)
 		svg_js->nb_scripts++;
 		node->sgprivate->UserCallback = svg_script_predestroy;
 	}
-
+	/*if href download the script file*/
 	if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &href_info) == GF_OK) {
 		GF_JSAPIParam par;
 		char *url;
@@ -2084,7 +2104,9 @@ void JSScript_LoadSVG(GF_Node *node)
 				free(jsdnload);
 			}
 		}
-	} else {
+	} 
+	/*for scripts only, execute*/
+	else if (node->sgprivate->tag == TAG_SVG_script) {
 		txt = svg_get_text_child(node);
 		if (!txt) return;
 		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, strlen(txt->textContent), 0, 0, &rval);

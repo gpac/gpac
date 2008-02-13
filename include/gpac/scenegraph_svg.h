@@ -83,12 +83,20 @@ typedef struct __dom_full_node
 	char *ns;
 } GF_DOMFullNode;
 
+enum
+{
+	GF_DOM_TEXT_REGULAR = 0,
+	GF_DOM_TEXT_CDATA,
+	/*inserted text node (typically external script)*/
+	GF_DOM_TEXT_INSERTED
+};
+
 typedef struct
 {
 	BASE_NODE
 	CHILDREN
 	char *textContent;
-	Bool is_cdata;
+	u32 type;
 } GF_DOMText;
 
 /*creates a new text node, assign string (does NOT duplicate it) and register node with parent if desired*/

@@ -319,7 +319,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	if ((stack->prev_vp_w != tr_state->vp_size.x) || (stack->prev_vp_h != tr_state->vp_size.y))
 		is_dirty = 1;
 
-	if (is_dirty || tr_state->visual->compositor->recompute_ar) 
+//	if (is_dirty || tr_state->visual->compositor->recompute_ar) 
 		svg_recompute_viewport_transformation(node, stack, tr_state, &all_atts);
 
 	gf_mx2d_copy(tr_state->vb_transform, stack->viewbox_mx);
