@@ -26,6 +26,7 @@
 #include "nodes_stacks.h"
 #include "mpeg4_grouping.h"
 #include <gpac/options.h>
+#include <gpac/internal/terminal_dev.h>
 #include <gpac/utf.h>
 
 static void gf_sc_reset_collide_cursor(GF_Compositor *compositor)
@@ -705,7 +706,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 		ret = exec_event_dom(compositor, ev);
 		if (ret) return 1;
 		/*no vrml sensors above*/
-		if (!gf_list_count(compositor->sensors)) return 0;
+		if (!gf_list_count(compositor->sensors) && !gf_list_count(compositor->previous_sensors)) return 0;
 	}
 	return exec_event_vrml(compositor, ev);
 }
@@ -843,6 +844,12 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		case TAG_MPEG4_Layout:
 			if (!current_focus && (compositor_mpeg4_layout_get_sensor_handler(elt)!=NULL)) return elt;
 			break;
+		case TAG_ProtoNode:
+			return set_focus(compositor, gf_node_get_proto_root(elt), current_focus, 0);
+
+		case TAG_MPEG4_Inline: case TAG_X3D_Inline: 
+			return set_focus(compositor, gf_inline_get_subscene_root(elt), current_focus, 0);
+
 		default:
 			return NULL;
 		}
@@ -945,7 +952,11 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 	GF_Node *n;
 	GF_Node *par = gf_node_get_parent(elt, 0);
 	/*root, return NULL if next, current otherwise*/
-	if (!par) return NULL;
+	if (!par) {
+		par = gf_node_get_proto_parent(elt);
+		if (!par) par = gf_inline_get_parent_node(elt, 0);
+		if (!par) return NULL;
+	}
 
 	tag = gf_node_get_tag(par);
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) {

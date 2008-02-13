@@ -728,6 +728,7 @@ struct _traversing_state
 	GF_Node *layer3d;
 #endif
 
+	Fixed depth;
 };
 
 /*
@@ -941,6 +942,8 @@ Bool gf_sc_pick_in_clipper(GF_TraverseState *tr_state, GF_Rect *clip);
 void compositor_gradient_update(GF_TextureHandler *txh);
 void compositor_set_ar_scale(GF_Compositor *sr, Fixed scaleX, Fixed scaleY);
 
+/*reset focus if node being deleted has the focus - must be called for each focusable node (internally called for 2D & 3D drawable nodes)*/
+void gf_sc_check_focus_upon_destroy(GF_Node *n);
 
 #ifndef GPAC_DISABLE_SVG
 

@@ -35,6 +35,7 @@ static void TraverseGroup(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GroupingNode2D *group = (GroupingNode2D *) gf_node_get_private(node);
 	if (is_destroy) {
+		gf_sc_check_focus_upon_destroy(node);
 		free(group);
 	} else {
 		group_2d_traverse(node, group, (GF_TraverseState*)rs);
@@ -60,6 +61,7 @@ static void TraverseGroup(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GroupingNode *group = (GroupingNode *) gf_node_get_private(node);
 	if (is_destroy) {
+		gf_sc_check_focus_upon_destroy(node);
 		group_3d_delete(node);
 	} else {
 		group_3d_traverse(node, group, (GF_TraverseState*)rs);
@@ -95,6 +97,7 @@ void TraverseCollision(GF_Node *node, void *rs, Bool is_destroy)
 	GroupingNode *group = (GroupingNode *) gf_node_get_private(node);
 
 	if (is_destroy) {
+		gf_sc_check_focus_upon_destroy(node);
 		group_3d_delete(node);
 		return;
 	}
@@ -152,6 +155,7 @@ typedef struct
 static void DestroyTransform(GF_Node *n)
 {
 	TransformStack *ptr = (TransformStack *)gf_node_get_private(n);
+	gf_sc_check_focus_upon_destroy(n);
 	free(ptr);
 }
 
@@ -336,6 +340,7 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		free(prev_child);
+		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
 

@@ -30,7 +30,6 @@
 
 #ifndef GPAC_DISABLE_3D
 
-
 /*PathExtrusion hardcoded proto*/
 
 typedef struct
@@ -537,6 +536,80 @@ void compositor_init_offscreen_group(GF_Compositor *compositor, GF_Node *node)
 #endif /*GROUP_2D_USE_CACHE*/
 
 
+
+#ifdef GPAC_TRISCOPE_MODE
+
+/*DepthGroup hardcoded proto*/
+typedef struct
+{
+	BASE_NODE
+	CHILDREN
+
+	Fixed depth;
+} DepthGroup;
+
+typedef struct
+{
+	GROUPING_NODE_STACK_2D
+	DepthGroup dg;
+} DepthGroupStack;
+
+static Bool DepthGroup_GetNode(GF_Node *node, DepthGroup *dg)
+{
+	GF_FieldInfo field;
+	memset(dg, 0, sizeof(DepthGroup));
+	dg->sgprivate = node->sgprivate;
+
+	if (gf_node_get_field(node, 0, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_MFNODE) return 0;
+	dg->children = *(GF_ChildNodeItem **) field.far_ptr;
+
+	if (gf_node_get_field(node, 1, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFFLOAT) return 0;
+	dg->depth = * (SFFloat *) field.far_ptr;
+	return 1;
+}
+
+
+static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
+{
+	Fixed depth;
+	DepthGroupStack *stack = (DepthGroupStack *)gf_node_get_private(node);
+	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+
+	if (is_destroy) {
+		free(stack);
+		return;
+	}
+
+	if (tr_state->traversing_mode==TRAVERSE_SORT) {
+		if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
+			DepthGroup_GetNode(node, &stack->dg);
+			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
+			/*flag is not set for PROTO*/
+			gf_node_dirty_set(node, GF_SG_CHILD_DIRTY, 0);
+		}
+	}
+	depth = tr_state->depth;
+	tr_state->depth += stack->dg.depth;
+	group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
+	tr_state->depth = depth;
+}
+
+void compositor_init_depth_group(GF_Compositor *compositor, GF_Node *node)
+{
+	DepthGroup dg;
+	if (DepthGroup_GetNode(node, &dg)) {
+		DepthGroupStack *stack;
+		GF_SAFEALLOC(stack, DepthGroupStack);
+		gf_node_set_private(node, stack);
+		gf_node_set_callback_function(node, TraverseDepthGroup);
+		stack->dg = dg;
+	}
+}
+
+#endif /*GPAC_TRISCOPE_MODE*/
+
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
 void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 {
@@ -571,6 +644,12 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 #ifdef GROUP_2D_USE_CACHE
 		if (!strcmp(url, "urn:inet:gpac:builtin:OffscreenGroup")) {
 			compositor_init_offscreen_group(compositor, node);
+			return;
+		}
+#endif
+#ifdef GPAC_TRISCOPE_MODE
+		if (!strcmp(url, "urn:inet:gpac:builtin:DepthGroup")) {
+			compositor_init_depth_group(compositor, node);
 			return;
 		}
 #endif

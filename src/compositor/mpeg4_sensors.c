@@ -58,6 +58,7 @@ static void TraverseAnchor(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		mpeg4_sensor_deleted(node, &st->hdl);
+		gf_sc_check_focus_upon_destroy(node);
 		free(st);
 		return;
 	}
@@ -560,7 +561,10 @@ static void OnTouchSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 	M_TouchSensor *ts = (M_TouchSensor *)sh->sensor;
 	
 	/*this is not specified in VRML, however we consider that a de-enabled sensor will not sent deactivation events*/
-	if (!ts->enabled) return;
+	if (!ts->enabled) {
+		if (ts->isActive) compositor->grabbed_sensor = 0;
+		return;
+	}
 
 	/*isActive becomes false, send touch time*/
 	if (ts->isActive) {

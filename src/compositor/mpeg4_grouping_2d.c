@@ -44,6 +44,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state = (GF_TraverseState *)rs;
 
 	if (is_destroy) {
+		gf_sc_check_focus_upon_destroy(node);
 		free(st);
 		return;
 	}
@@ -161,6 +162,7 @@ static void TraverseTransform2D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state;
 	
 	if (is_destroy) {
+		gf_sc_check_focus_upon_destroy(node);
 		free(ptr);
 		return;
 	}
@@ -218,6 +220,7 @@ static void TraverseTransformMatrix2D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 
 	if (is_destroy) {
+		gf_sc_check_focus_upon_destroy(node);
 		free(ptr);
 		return;
 	}
@@ -263,6 +266,7 @@ static void TraverseColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state = (GF_TraverseState *) rs;
 
 	if (is_destroy) {
+		gf_sc_check_focus_upon_destroy(node);
 		free(ptr);
 		return;
 	}
@@ -343,6 +347,7 @@ static void TraverseOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		if (stack->positions) free(stack->positions);
+		gf_sc_check_focus_upon_destroy(node);
 		free(stack);
 		return;
 	}
