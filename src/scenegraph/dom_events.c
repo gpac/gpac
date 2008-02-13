@@ -173,6 +173,7 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 				SVGAllAttributes atts;
 				gf_svg_flatten_attributes((SVG_Element*)listen, &atts);
 				listened_event = atts.event;
+				if (!listened_event) continue;
 				if (atts.handler) handler = atts.handler->target;
 			}
 				break;

@@ -1473,7 +1473,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 
 	if (!skip_text) {
 		text = gf_dom_add_text_node((GF_Node *)elt, strdup(text_content));
-		text->is_cdata = is_cdata;
+		text->type = is_cdata ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
 		gf_node_changed((GF_Node *)text, NULL);
 	}
 }

@@ -2576,11 +2576,11 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		{
 			GF_DOMText *txt = (GF_DOMText *)n;
 			if (txt->textContent) {
-				if (txt->is_cdata) {
+				if (txt->type=GF_DOM_TEXT_CDATA) {
 					fprintf(sdump->trace, "<![CDATA[\n");
 					fprintf(sdump->trace, "%s", txt->textContent);
 					fprintf(sdump->trace, "]]>\n");
-				} else {
+				} else if (txt->type==GF_DOM_TEXT_REGULAR) {
 					DumpUTFString(sdump, txt->textContent);
 				}
 			}

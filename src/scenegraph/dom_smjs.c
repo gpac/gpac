@@ -297,7 +297,7 @@ static jsval dom_node_get_sibling(JSContext *c, GF_Node *n, Bool is_prev)
 	return dom_node_construct(c, gf_node_list_get_child(par->children, idx) );
 }
 
-static char *dom_flatten_text(GF_Node *n)
+char *dom_node_flatten_text(GF_Node *n)
 {
 	u32 len = 0;
 	char *res = NULL;
@@ -305,7 +305,7 @@ static char *dom_flatten_text(GF_Node *n)
 	if (n->sgprivate->tag==TAG_DOMText) return strdup(((GF_DOMText*)n)->textContent);
 	list = ((GF_ParentNode *)n)->children;
 	while (list) {
-		char *t = dom_flatten_text(list->node);
+		char *t = dom_node_flatten_text(list->node);
 		if (t) {
 			u32 sub_len = strlen(t);
 			res = realloc(res, sizeof(char)*(len+sub_len+1));
@@ -785,7 +785,7 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	case 0:
 		if (tag==TAG_DOMText) {
 			GF_DOMText *txt = (GF_DOMText *)n;
-			if (txt->is_cdata) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#cdata-section") );
+			if (txt->type=GF_DOM_TEXT_CDATA) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#cdata-section") );
 			else *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#text") );
 		}
 		else if (is_doc) {
@@ -803,7 +803,7 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	case 2:
 		if (tag==TAG_DOMText) {
 			GF_DOMText *txt = (GF_DOMText *)n;
-			if (txt->is_cdata) *vp = INT_TO_JSVAL(4);
+			if (txt->type==GF_DOM_TEXT_CDATA) *vp = INT_TO_JSVAL(4);
 			else *vp = INT_TO_JSVAL(3);
 		}
 		else if (is_doc) *vp = INT_TO_JSVAL(9);
@@ -884,7 +884,7 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	/*"textContent"*/
 	case 15:
 	{
-		char *res = dom_flatten_text(n);
+		char *res = dom_node_flatten_text(n);
 		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
 		free(res);
 	}
@@ -892,6 +892,15 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	}
 	/*not supported*/
 	return JS_FALSE;
+}
+
+void dom_node_set_textContent(GF_Node *n, char *text)
+{
+	GF_ParentNode *par = (GF_ParentNode *)n;
+	gf_node_unregister_children(n, par->children);
+	par->children = NULL;
+	gf_dom_add_text_node(n, strdup( text) );
+	dom_node_changed(n, 1, NULL);
 }
 
 static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
@@ -921,11 +930,7 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	/*"textContent"*/
 	case 15:
 		if (!JSVAL_IS_STRING(*vp)) return JS_FALSE;
-		/*reset all children*/
-		gf_node_unregister_children(n, par->children);
-		par->children = NULL;
-		gf_dom_add_text_node(n, strdup( JS_GetStringBytes(JSVAL_TO_STRING(*vp)) ) );
-		dom_node_changed(n, 1, NULL);
+		dom_node_set_textContent(n, JS_GetStringBytes(JSVAL_TO_STRING(*vp)) );
 		return JS_TRUE;
 	}
 	
@@ -2019,7 +2024,7 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 		if (i==len) return;
 
 		txt = gf_dom_add_text_node((GF_Node *)par, strdup(content) );
-		txt->is_cdata = is_cdata;
+		txt->type = is_cdata ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
 	}
 }
 
@@ -2685,10 +2690,6 @@ static void dom_js_define_document_ex(JSContext *c, JSObject *global, GF_SceneGr
 void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
 {
 	dom_js_define_document_ex(c, global, doc, "document");
-}
-void dom_js_define_svg_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
-{
-//	dom_js_define_document_ex(c, global, doc, "SVGDocument");
 }
 
 JSObject *dom_js_define_event(JSContext *c, JSObject *global)
