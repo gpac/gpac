@@ -184,6 +184,54 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 				list = list->next;
 			}
 		}
+		/*for uncompressed files (bt/xmt/laserML), also reset command lists*/
+		else if (info.fieldType==GF_SG_VRML_SFCOMMANDBUFFER) {
+			u32 j, count2;
+			SFCommandBuffer *cb = (SFCommandBuffer*)info.far_ptr;
+			count2 = gf_list_count(cb->commandList);
+			for (j=0; j<count2; j++) {
+				u32 k = 0;
+				GF_CommandField *f;
+				GF_Command *com = gf_list_get(cb->commandList, j);
+				while ((f=gf_list_enum(com->command_fields, &k))) {
+					switch (f->fieldType) {
+					case GF_SG_VRML_SFNODE:
+						if (f->new_node) {
+							if (f->new_node->sgprivate->scenegraph==sg) {
+								/*if root of graph, skip*/
+								if (sg->RootNode!=f->new_node) {
+									gf_node_unregister(f->new_node, node);
+									/*don't forget to remove node...*/
+									f->new_node = NULL;
+								}
+							} else {
+								SG_GraphRemoved(f->new_node, sg);
+							}
+						}
+						break;
+					case GF_SG_VRML_MFNODE:
+						if (f->node_list) {
+							GF_ChildNodeItem *cur, *prev, *list = f->node_list;
+							prev = NULL;
+							while (list) {
+								if (list->node->sgprivate->scenegraph==sg) {
+									gf_node_unregister(list->node, node);
+								
+									if (prev) prev->next = list->next;
+									else f->node_list = list->next;
+									cur = list;
+									free(cur);
+								} else {
+									SG_GraphRemoved(list->node, sg);
+								}
+								list = list->next;
+							}
+						}
+						break;
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -805,21 +853,26 @@ void gf_node_traverse(GF_Node *node, void *renderStack)
 		if (!proto_inst->proto_interface || proto_inst->is_loaded) return;
 		/*try to load the code*/
 		gf_sg_proto_instanciate(proto_inst);
-		if (!proto_inst->RenderingNode) {
-			gf_node_dirty_set(node, 0, 1);
-			return;
-		}
 
-		/*resolve all top-level proto until we find the first traversable node*/
-		while (node->sgprivate->tag == TAG_ProtoNode) {
-			node = ((GF_ProtoInstance *) node)->RenderingNode;
-			if (!node) {
+		/*if user callback is set, this is an hardcoded proto. If not, locate the first traversable node*/
+		if (!node->sgprivate->UserCallback) {
+			if (!proto_inst->RenderingNode) {
 				gf_node_dirty_set(node, 0, 1);
 				return;
 			}
+
+			/*resolve all top-level proto until we find the first traversable node*/
+			while (node->sgprivate->tag == TAG_ProtoNode) {
+				GF_Node *sub_root = ((GF_ProtoInstance *) node)->RenderingNode;
+				if (!sub_root) {
+					gf_node_dirty_set(node, 0, 1);
+					return;
+				}
+				node = sub_root;
+			}
+			proto_inst->RenderingNode = node;
+			node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, node, NULL);
 		}
-		proto_inst->RenderingNode = node;
-		node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, node, NULL);
 	}
 	if (node->sgprivate->UserCallback) {
 #ifdef GF_CYCLIC_TRAVERSE_ON

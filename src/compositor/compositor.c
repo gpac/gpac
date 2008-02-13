@@ -2213,3 +2213,13 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 }
 
 
+void gf_sc_check_focus_upon_destroy(GF_Node *n)
+{
+	GF_Compositor *compositor = gf_sc_get_compositor(n);
+	if (compositor && (compositor->focus_node==n)) {
+		compositor->focus_node = NULL;
+		compositor->focus_text_type = 0;
+		compositor->focus_uses_dom_events = 0;
+	}
+}
+

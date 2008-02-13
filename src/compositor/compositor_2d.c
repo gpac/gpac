@@ -409,7 +409,9 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	compositor->vp_y = (compositor->display_height - compositor->vp_height) / 2;
 
 	scaleX = gf_divfix(INT2FIX(compositor->vp_width), INT2FIX(compositor->scene_width));
+	if (!scaleX) scaleX = FIX_ONE;
 	scaleY = gf_divfix(INT2FIX(compositor->vp_height), INT2FIX(compositor->scene_height));
+	if (!scaleY) scaleY = FIX_ONE;
 
 	if (!compositor->scalable_zoom) {
 		compositor->output_width = compositor->scene_width;

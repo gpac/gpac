@@ -552,6 +552,12 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 values*/
 void gf_sg_proto_mark_field_loaded(GF_Node *proto_inst, GF_FieldInfo *info);
 
+/*returns root node (the one and only one being traversed) of this proto instance if any*/
+GF_Node *gf_node_get_proto_root(GF_Node *node);
+
+/*returns parent ProtoInstance node if this node is in a proto*/
+GF_Node *gf_node_get_proto_parent(GF_Node *node);
+
 /*
 			JavaScript tools
 */

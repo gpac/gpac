@@ -45,14 +45,6 @@ typedef struct
 	Fixed prev_vp_w, prev_vp_h;
 } SVGsvgStack;
 
-static void svg_check_focus_upon_destroy(GF_Node *n)
-{
-	GF_Compositor *compositor = gf_sc_get_compositor(n);
-	if (compositor && (compositor->focus_node==n)) {
-		compositor->focus_node = NULL;
-		compositor->focus_text_type = 0;
-	}
-}
 
 static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *stack, GF_TraverseState *tr_state, SVGAllAttributes *atts) 
 {
@@ -289,7 +281,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 			gf_svg_properties_reset_pointers(stack->svg_props);
 			free(stack->svg_props);
 		}
-		svg_check_focus_upon_destroy(node);
+		gf_sc_check_focus_upon_destroy(node);
 		if (stack->vp_fill) drawable_del(stack->vp_fill);
 		free(stack);
 		return;
@@ -467,7 +459,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		GroupCache *gc = gf_node_get_private(node);
 		if (gc) group_cache_del(gc);
 
-		svg_check_focus_upon_destroy(node);
+		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
 	/*group cache traverse routine*/
@@ -536,7 +528,7 @@ static void svg_traverse_defs(GF_Node *node, void *rs, Bool is_destroy)
 	SVGAllAttributes all_atts;
 
 	if (is_destroy) {
-		svg_check_focus_upon_destroy(node);
+		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
@@ -569,7 +561,7 @@ static void svg_traverse_switch(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
 	if (is_destroy) {
-		svg_check_focus_upon_destroy(node);
+		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
 
@@ -620,7 +612,7 @@ static void svg_traverse_a(GF_Node *node, void *rs, Bool is_destroy)
 	SVGAllAttributes all_atts;
 
 	if (is_destroy) {
-		svg_check_focus_upon_destroy(node);
+		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
 

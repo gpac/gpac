@@ -1204,3 +1204,21 @@ void gf_sg_proto_mark_field_loaded(GF_Node *proto_inst, GF_FieldInfo *info)
 	if (pf) pf->has_been_accessed = 1;
 }
 
+
+GF_EXPORT
+GF_Node *gf_node_get_proto_root(GF_Node *node)
+{
+	if (!node || (node->sgprivate->tag!=TAG_ProtoNode)) return NULL;
+	return ((GF_ProtoInstance *)node)->RenderingNode;
+}
+
+GF_EXPORT
+GF_Node *gf_node_get_proto_parent(GF_Node *node)
+{
+	if (!node) return NULL;
+	if (node->sgprivate->scenegraph->pOwningProto) {
+		GF_Node *the_node = (GF_Node *) node->sgprivate->scenegraph->pOwningProto;
+		if (the_node != node) return the_node;
+	} 
+	return NULL;
+}

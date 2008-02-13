@@ -49,6 +49,7 @@ void drawable_3d_del(GF_Node *n)
 		if (d->mesh) mesh_free(d->mesh);
 		free(d);
 	}
+	gf_sc_check_focus_upon_destroy(n);
 }
 
 

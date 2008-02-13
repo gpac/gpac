@@ -204,6 +204,8 @@ void gf_inline_sample_time(GF_InlineScene *is);
 /*compares object URL with another URL - ONLY USE THIS WITH DYNAMIC ODs*/
 Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *inline_url);
 
+GF_Node *gf_inline_get_subscene_root(GF_Node *inline_node);
+GF_Node *gf_inline_get_parent_node(GF_Node *node, u32 idx);
 
 const char *gf_inline_get_fragment_uri(GF_Node *node);
 void gf_inline_set_fragment_uri(GF_Node *node, const char *uri);
