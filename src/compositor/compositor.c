@@ -253,6 +253,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->sensors = gf_list_new();
 	compositor->previous_sensors = gf_list_new();
 	compositor->hit_use_stack = gf_list_new();
+	compositor->focus_ancestors = gf_list_new();
 	
 	/*setup main visual*/
 	compositor->visual = visual_new(compositor);
@@ -467,6 +468,8 @@ void gf_sc_del(GF_Compositor *compositor)
 	gf_list_del(compositor->visuals);
 	gf_list_del(compositor->strike_bank);
 	gf_list_del(compositor->hit_use_stack);
+	gf_list_del(compositor->focus_ancestors);
+	
 
 	gf_list_del(compositor->traverse_state->vrml_sensors);
 	gf_list_del(compositor->traverse_state->use_stack);
@@ -578,6 +581,7 @@ Fixed gf_sc_svg_convert_length_to_display(GF_Compositor *compositor, SVG_Length 
 {
 	/* Assuming the environment is 90dpi*/
 	u32 dpi = 90;
+	if (!length) return 0;
 
 	switch (length->type) {
 	case SVG_NUMBER_PERCENTAGE:
@@ -665,6 +669,7 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	compositor->focus_node = NULL;
 	compositor->focus_text_type = 0;
 	compositor->frame_number = 0;
+	gf_list_reset(compositor->focus_ancestors);
 
 #ifdef GROUP_2D_USE_CACHE
 	gf_list_reset(compositor->cached_groups);
@@ -2220,6 +2225,7 @@ void gf_sc_check_focus_upon_destroy(GF_Node *n)
 		compositor->focus_node = NULL;
 		compositor->focus_text_type = 0;
 		compositor->focus_uses_dom_events = 0;
+		gf_list_reset(compositor->focus_ancestors);
 	}
 }
 

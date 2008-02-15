@@ -493,11 +493,11 @@ void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner
 			return;
 		}
 		/*field has changed, set routes...*/
-  if (parent->sgprivate->tag == TAG_ProtoNode)gf_sg_proto_check_field_change(parent, field->fieldIndex);
-  else {
- 		gf_node_event_out(parent, field->fieldIndex);
-	 	gf_node_changed_internal(parent, field, 0);
-	 }
+		if (parent->sgprivate->tag == TAG_ProtoNode)gf_sg_proto_check_field_change(parent, field->fieldIndex);
+		else {
+			gf_node_event_out(parent, field->fieldIndex);
+			gf_node_changed_internal(parent, field, 0);
+		}
 		return;
 	}
 	/*otherwise mark field if eventOut*/
@@ -1654,6 +1654,7 @@ static JSBool MFArrayConstructor(JSContext *c, JSObject *obj, uintN argc, jsval 
 	GF_JSField *ptr = NewJSField();
 	ptr->field.fieldType = fieldType;
 	ptr->js_list = JS_NewArrayObject(c, (jsint) argc, argv);
+	JS_AddRoot(c, &ptr->js_list);
 	JS_SetPrivate(c, obj, ptr);
 	*rval = OBJECT_TO_JSVAL(obj);
 	return obj == 0 ? JS_FALSE : JS_TRUE;
@@ -1695,6 +1696,8 @@ static void array_finalize(JSContext *c, JSObject *obj)
 	JS_ObjectDestroyed(c, obj);
 	if (!ptr) return;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering MFField %s\n", ptr->field.name));
+
+	if (ptr->js_list) JS_RemoveRoot(c, &ptr->js_list);
 
 	/*MFNode*/
 	if (ptr->temp_list) {
@@ -2976,10 +2979,6 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 			vrml_node_register(n, parent);
 			JS_SetPrivate(priv->js_ctx, pf, slot);
 
-			//slot->obj = pf;
-			//JS_AddRoot(priv->js_ctx, &slot->obj);
-			//gf_list_add(priv->js_cache, pf);
-
 			newVal = OBJECT_TO_JSVAL(pf);
 			JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
 			f = f->next;
@@ -3001,8 +3000,6 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 		if (parent && !skip_cache && priv->js_cache) {
 			jsf->obj = obj;
 			JS_AddRoot(priv->js_ctx, &jsf->obj);
-			/*protect the JSArray object if any*/
-			if (jsf->js_list) JS_AddRoot(priv->js_ctx, &jsf->js_list);
 			gf_list_add(priv->js_cache, obj);
 		}
 	}
@@ -3024,12 +3021,11 @@ static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 			jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);
 			if (jsf->obj) {
 				JS_RemoveRoot(priv->js_ctx, &jsf->obj);
-				/*unprotect the JSArray object if any*/
+				jsf->obj = NULL;
 				if (jsf->js_list) {
 					JS_RemoveRoot(priv->js_ctx, &jsf->js_list);
 					jsf->js_list = NULL;
 				}
-				jsf->obj = NULL;
 			}
 		}
 	}

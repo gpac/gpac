@@ -210,6 +210,9 @@ enum
 	GF_M2TS_ES_IS_SL = 1<<2,
 	/*ES is an mpeg-4 Object Descriptor SL-packetized stream*/
 	GF_M2TS_ES_IS_MPEG4_OD = 1<<3,
+	
+	/*all flags above this mask are used by importers & co*/
+	GF_M2TS_ES_STATIC_FLAGS_MASK = 0x0000FFFF,
 
 	/*Flag used by importers*/
 	GF_M2TS_ES_FIRST_DTS = 1<<20,

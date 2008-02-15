@@ -1219,35 +1219,6 @@ void compositor_init_visibility_sensor(GF_Compositor *compositor, GF_Node *node)
 
 #endif
 
-
-
-Bool compositor_mpeg4_is_sensor_node(GF_Node *node)
-{
-	switch (gf_node_get_tag(node)) {
-	case TAG_MPEG4_DiscSensor: 
-	case TAG_MPEG4_PlaneSensor2D: 
-	case TAG_MPEG4_ProximitySensor2D:
-	case TAG_MPEG4_TouchSensor:
-	case TAG_X3D_TouchSensor:
-#ifndef GPAC_DISABLE_3D
-	case TAG_MPEG4_CylinderSensor: 
-	case TAG_X3D_CylinderSensor: 
-	case TAG_MPEG4_PlaneSensor: 
-	case TAG_X3D_PlaneSensor: 
-	case TAG_MPEG4_ProximitySensor: 
-	case TAG_X3D_ProximitySensor: 
-	case TAG_MPEG4_SphereSensor: 
-	case TAG_X3D_SphereSensor: 
-	case TAG_MPEG4_VisibilitySensor: 
-	case TAG_X3D_VisibilitySensor: 
-#endif
-		return 1;
-	/*NOTE: anchor is not considered as a child sensor node when picking sensors*/
-	default:
-		return 0;
-	}
-}
-
 GF_SensorHandler *compositor_mpeg4_get_sensor_handler(GF_Node *n)
 {
 	GF_SensorHandler *hs;
@@ -1289,4 +1260,11 @@ GF_SensorHandler *compositor_mpeg4_get_sensor_handler(GF_Node *n)
 	}
 	if (hs && hs->IsEnabled(n)) return hs;
 	return NULL;
+}
+
+Bool compositor_mpeg4_is_sensor_node(GF_Node *node)
+{
+	GF_SensorHandler *sh = compositor_mpeg4_get_sensor_handler(node);
+	if (sh && sh->IsEnabled(node)) return 1;
+	return 0;
 }

@@ -796,6 +796,14 @@ static Bool is_focus_target(GF_Node *elt)
 	return 0;
 }
 
+#define CALL_SET_FOCUS(__child)	{	\
+	gf_list_add(compositor->focus_ancestors, elt);	\
+	n = set_focus(compositor, __child, current_focus, prev_focus);	\
+	if (n) return n;	\
+	gf_list_rem_last(compositor->focus_ancestors);	\
+	return NULL;	\
+	}	\
+
 static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_focus, Bool prev_focus)
 {
 	u32 tag;
@@ -824,11 +832,29 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			if (!current_focus) {
 				/*get the base grouping stack (*/
 				BaseGroupingStack *grp = (BaseGroupingStack*)gf_node_get_private(elt);
-				if (grp && (grp->flags & (GROUP_HAS_SENSORS | GROUP_IS_ANCHOR) )) return elt;
+				if (grp && (grp->flags & (GROUP_HAS_SENSORS | GROUP_IS_ANCHOR) )) 
+					return elt;
 			}
 			break;
-		case TAG_MPEG4_Shape: case TAG_X3D_Shape:
-			return set_focus(compositor, ((M_Shape*) elt)->geometry, current_focus, 0);
+		case TAG_MPEG4_Switch: case TAG_X3D_Switch:
+		{
+			s32 i, wc;
+			GF_ChildNodeItem *child;
+			if (tag==TAG_X3D_Switch) {
+				child = ((X_Switch*)elt)->children;
+				wc = ((X_Switch*)elt)->whichChoice;
+			} else {
+				child = ((M_Switch*)elt)->choice;
+				wc = ((M_Switch*)elt)->whichChoice;
+			}
+			if (wc==-1) return NULL;
+			i=0;
+			while (child) {
+				if (i==wc) CALL_SET_FOCUS(child->node);
+				child = child->next;
+			}
+			return NULL;
+		}
 
 		case TAG_MPEG4_Text: case TAG_X3D_Text:
 			if (!current_focus) {
@@ -839,16 +865,38 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 				return elt;
 			}
 			return NULL;
-			if (!current_focus) return elt;
-			break;
 		case TAG_MPEG4_Layout:
-			if (!current_focus && (compositor_mpeg4_layout_get_sensor_handler(elt)!=NULL)) return elt;
+			if (!current_focus && (compositor_mpeg4_layout_get_sensor_handler(elt)!=NULL)) 
+				return elt;
 			break;
-		case TAG_ProtoNode:
-			return set_focus(compositor, gf_node_get_proto_root(elt), current_focus, 0);
 
+		case TAG_ProtoNode:
+			CALL_SET_FOCUS(gf_node_get_proto_root(elt));
+		
 		case TAG_MPEG4_Inline: case TAG_X3D_Inline: 
-			return set_focus(compositor, gf_inline_get_subscene_root(elt), current_focus, 0);
+			CALL_SET_FOCUS(gf_inline_get_subscene_root(elt));
+
+		case TAG_MPEG4_Shape: case TAG_X3D_Shape:
+			gf_list_add(compositor->focus_ancestors, elt);
+			n = set_focus(compositor, ((M_Shape*)elt)->geometry, current_focus, prev_focus);
+			if (n) return n;
+			n = set_focus(compositor, ((M_Shape*)elt)->appearance, current_focus, prev_focus);
+			if (n) return n;
+			gf_list_rem_last(compositor->focus_ancestors);
+			return NULL;
+
+		case TAG_MPEG4_Appearance: case TAG_X3D_Appearance: 
+			CALL_SET_FOCUS(((M_Appearance*)elt)->texture);
+
+		case TAG_MPEG4_CompositeTexture2D: case TAG_MPEG4_CompositeTexture3D:
+			/*CompositeTextures are not grouping nodes per say*/
+			child = ((GF_ParentNode*)elt)->children;
+			while (child) {
+				if (compositor_mpeg4_get_sensor_handler(child->node) != NULL)
+					return elt;
+				child = child->next;
+			}
+			break;
 
 		default:
 			return NULL;
@@ -925,6 +973,7 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		u32 count, i;
 		/*check all children except if current focus*/
 		if (current_focus) return NULL;
+		gf_list_add(compositor->focus_ancestors, elt);
 		count = gf_node_list_get_count(child);
 		for (i=count; i>0; i--) {
 			/*get in the subtree*/
@@ -934,6 +983,7 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		}
 	} else {
 		/*check all children */
+		gf_list_add(compositor->focus_ancestors, elt);
 		while (child) {
 			/*get in the subtree*/
 			n = set_focus(compositor, child->node, 0, 0);
@@ -941,6 +991,8 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			child = child->next;
 		}
 	}
+	gf_list_rem_last(compositor->focus_ancestors);
+
 	return NULL;
 }
 
@@ -950,13 +1002,10 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 	s32 idx = 0;
 	GF_ChildNodeItem *child;
 	GF_Node *n;
-	GF_Node *par = gf_node_get_parent(elt, 0);
-	/*root, return NULL if next, current otherwise*/
-	if (!par) {
-		par = gf_node_get_proto_parent(elt);
-		if (!par) par = gf_inline_get_parent_node(elt, 0);
-		if (!par) return NULL;
-	}
+	GF_Node *par;
+
+	par = gf_list_last(compositor->focus_ancestors);
+	if (!par) return NULL;
 
 	tag = gf_node_get_tag(par);
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) {
@@ -976,22 +1025,26 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 		case TAG_MPEG4_PathLayout:
 		case TAG_MPEG4_Form:
 		case TAG_MPEG4_Anchor: case TAG_X3D_Anchor:
+		case TAG_MPEG4_CompositeTexture2D: case TAG_MPEG4_CompositeTexture3D:
 			child = ((GF_ParentNode*)par)->children;
 			break;
 		/*for all other node, locate parent*/
 		default:
+			gf_list_rem_last(compositor->focus_ancestors);
 			return browse_parent_for_focus(compositor, par, prev_focus);
 		}
 	} else {
 		child = ((SVG_Element*)par)->children;
 	}
 
+	/*locate element*/
+	idx = gf_node_list_find_child(child, elt);
+	assert(idx>=0);
+
 	if (prev_focus) {
 		u32 i, count;
-		/*locate element*/
 		count = gf_node_list_get_count(child);
-		idx = gf_node_list_find_child(child, elt);
-		if (idx<0) idx=count;
+		/*!! this may happen when walking up PROTO nodes !!*/
 		for (i=idx; i>0; i--) {
 			n = gf_node_list_get_child(child, i-1);
 			/*get in the subtree*/
@@ -999,8 +1052,7 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 			if (n) return n;
 		}
 	} else {
-		/*locate element*/
-		idx = gf_node_list_find_child(child, elt);
+		/*!! this may happen when walking up PROTO nodes !!*/
 		while (child) {
 			if (idx<0) {
 				/*get in the subtree*/
@@ -1012,6 +1064,7 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 		}
 	}
 	/*up one level*/
+	gf_list_rem_last(compositor->focus_ancestors);
 	return browse_parent_for_focus(compositor, (GF_Node*)par, prev_focus);
 }
 
@@ -1038,7 +1091,11 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 	if (!n) n = browse_parent_for_focus(compositor, compositor->focus_node, move_prev);
 	compositor->focus_node = n;
 
-	if (!n) n = gf_sg_get_root_node(compositor->scene);
+	if (!n) {
+		n = gf_sg_get_root_node(compositor->scene);
+		gf_list_del(compositor->focus_ancestors);
+		compositor->focus_ancestors = NULL;
+	}
 	if (gf_node_get_tag(n)>=GF_NODE_FIRST_DOM_NODE_TAG) {
 		compositor->focus_uses_dom_events = 1;
 	}

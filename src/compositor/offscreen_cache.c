@@ -55,6 +55,10 @@ GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node)
 {
 	GroupCache *cache;
 	GF_SAFEALLOC(cache, GroupCache);
+
+	/*add texture to compositor so that we're sure it is inserted last - otherwise we could modify the order of textures
+	if we get called in a composite texture*/
+	gf_list_add(compositor->textures, &cache->txh);
 	gf_sc_texture_setup(&cache->txh, compositor, node);
 	cache->drawable = drawable_new();
 	/*draw the cache through traverse callback*/
@@ -143,10 +147,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		tr_state->visual->type_3d = 0;
 #endif
 
-		/*step 2: insert a DrawableContext for this group in the display list*/
-		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
-
-		/*step 3: collect the bounds of all children*/		
+		/*step 2: collect the bounds of all children*/		
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
 		cache_bounds.width = cache_bounds.height = 0;
 		l = ((GF_ParentNode*)node)->children;
@@ -156,7 +157,19 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 			gf_rect_union(&cache_bounds, &tr_state->bounds);
 		}
 		tr_state->traversing_mode = TRAVERSE_SORT;
+		
+		if (!tr_state->bounds.width || !tr_state->bounds.height) {
+			gf_mx2d_copy(tr_state->transform, backup);
+			tr_state->in_group_cache = 0;
+			tr_state->direct_draw = prev_flags;
+#ifndef GPAC_DISABLE_3D
+			tr_state->visual->type_3d = type_3d;
+#endif
+			return 0;
+		}
 
+		/*step 3: insert a DrawableContext for this group in the display list*/
+		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
 
 		/*step 4: now we have the bounds:
 			allocate the offscreen memory

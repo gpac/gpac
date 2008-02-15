@@ -699,11 +699,16 @@ force_scene_rap:
 		while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
 			samp = gf_isom_sample_new();
 			/*time in sec conversion*/
-			if (au->timing_sec) au->timing = (u64) (au->timing_sec * esd->slConfig->timestampResolution);
+			if (au->timing_sec) au->timing = (u64) (au->timing_sec * esd->slConfig->timestampResolution + 0.0005);
 
 			if (j==1) init_offset = (u32) au->timing;
 
 			samp->DTS = au->timing - init_offset;
+			if ((j>1) && (samp->DTS == prev_dts)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[OD-SL] Same sample time %d for Access Unit %d and %d\n", au->timing, j, j-1));
+				e = GF_BAD_PARAM;
+				goto exit;
+			}
 			samp->IsRAP = au->is_rap;
 			if (samp->IsRAP) last_rap = au->timing;
 
@@ -858,7 +863,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 	GF_StreamContext *sc;
 	GF_AUContext *au;
 	u32 count, track, rate, di;
-	u64 dur, time_slice, init_offset, avg_rate, last_rap, last_not_shadow;
+	u64 dur, time_slice, init_offset, avg_rate, last_rap, last_not_shadow, prev_dts;
 	Bool is_in_iod, delete_desc, rap_inband, rap_shadow;
 	GF_ISOSample *samp;
 	GF_Err e;
@@ -954,6 +959,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 		last_rap = 0;
 		rap_delay = 0;
 		last_not_shadow = 0;
+		prev_dts = 0;
 		if (opts) rap_delay = opts->rap_freq * esd->slConfig->timestampResolution / 1000;
 
 		/*encode all samples and perform import - FIXME this is destructive...*/
@@ -1040,13 +1046,21 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 			if (e) goto err_exit;
 
 			/*time in sec conversion*/
-			if (au->timing_sec) au->timing = (u64) (au->timing_sec * esd->slConfig->timestampResolution);
+			if (au->timing_sec) au->timing = (u64) (au->timing_sec * esd->slConfig->timestampResolution + 0.0005);
 
 			if (j==1) init_offset = au->timing;
 
 			samp = gf_isom_sample_new();
 			samp->DTS = au->timing - init_offset;
 			samp->IsRAP = au->is_rap;
+
+			if ((j>1) && (samp->DTS == prev_dts)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[OD-SL] Same sample time %d for Access Unit %d and %d\n", au->timing, j, j-1));
+				e = GF_BAD_PARAM;
+				goto err_exit;
+			}
+
+
 
 			last_not_shadow = samp->DTS;
 
@@ -1089,6 +1103,8 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 
 				last_not_shadow = 0;
 			}
+
+			prev_dts = samp->DTS;
 
 			gf_isom_sample_del(&samp);
 			if (e) goto err_exit;

@@ -2392,6 +2392,15 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 		/*check descr*/
 		desc = (GF_Descriptor*)gf_list_last(parser->descriptors);
 		if (desc && (desc->tag == gf_odf_get_tag_by_name((char *)name)) ) {
+
+			/*assign timescales once the ESD has been parsed*/
+			if (desc->tag == GF_ODF_ESD_TAG) {
+				GF_ESD *esd = (GF_ESD*)desc;
+				GF_StreamContext *sc = gf_sm_stream_new(parser->load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+				if (sc && esd->slConfig && esd->slConfig->timestampResolution)
+					sc->timeScale = esd->slConfig->timestampResolution;
+			}
+
 			gf_list_rem_last(parser->descriptors);
 			if (gf_list_count(parser->descriptors)) return;
 

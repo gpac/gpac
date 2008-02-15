@@ -197,7 +197,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		group->flags &= ~GROUP_HAS_SENSORS;
 		/*special case for anchor which is a parent node acting as a sensor*/
 		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
-			group->flags |= GROUP_HAS_SENSORS;
+			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
 		} else {
 			list = ((GF_ParentNode *)node)->children;
 			count = gf_node_list_get_count(list);
@@ -622,7 +622,7 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 		group->flags &= ~GROUP_HAS_SENSORS;
 		/*special case for anchor which is a parent node acting as a sensor*/
 		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
-			group->flags |= GROUP_HAS_SENSORS;
+			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
 		} else {
 			l = ((GF_ParentNode *)node)->children;
 			while (l) {

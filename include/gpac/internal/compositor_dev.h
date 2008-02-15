@@ -243,6 +243,8 @@ struct __tag_compositor
 	GF_Node *grab_use;
 	/*current focus node if any*/
 	GF_Node *focus_node;
+	/*current parent focus node if any - needed to navigate within PROTOs*/
+	GF_List *focus_ancestors;
 	/*focus node uses dom events*/
 	Bool focus_uses_dom_events;
 	/*current sensor type*/
