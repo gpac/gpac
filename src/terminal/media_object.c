@@ -140,6 +140,11 @@ GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 
 	default: obj_type = GF_MEDIA_OBJECT_UNDEF; break;
 	}
+
+	/*move to primary resource handler*/
+	while (is->secondary_resource && is->root_od->parentscene)
+		is = is->root_od->parentscene;
+
 	res = gf_inline_get_media_object_ex(is, url, obj_type, lock_timelines, syncRef, 0);
 
 	return res;

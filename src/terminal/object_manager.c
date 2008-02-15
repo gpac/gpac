@@ -57,6 +57,11 @@ void gf_odm_del(GF_ObjectManager *odm)
 	u32 i;
 	MediaSensorStack *media_sens;
 
+	/*make sure we are not in the media queue*/
+	gf_mx_p(odm->term->net_mx);
+	gf_list_del_item(odm->term->media_queue, odm);
+	gf_mx_v(odm->term->net_mx);
+
 	gf_mx_p(odm->mx);
 	i=0;
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i))) {
@@ -65,6 +70,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 		media_sens->is_init = 0;
 	}
 	if (odm->mo) odm->mo->odm = NULL;
+
 
 	gf_list_del(odm->channels);
 	gf_list_del(odm->ms_stack);

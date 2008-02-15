@@ -42,15 +42,17 @@ typedef struct
 	GF_Matrix2D viewbox_mx;
 	Drawable *vp_fill;
 	u32 prev_color;
-	Fixed prev_vp_w, prev_vp_h;
+	/*previous parent VP size used to compute the vp->ViewBox matrix*/
+	SFVec2f prev_vp;
+	/*current VP size used by all children*/
+	SFVec2f vp;
 } SVGsvgStack;
 
 
 static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *stack, GF_TraverseState *tr_state, SVGAllAttributes *atts) 
 {
 	GF_Matrix2D mx;
-	SVG_ViewBox ext_vb;
-	SVG_ViewBox *vb;
+	SVG_ViewBox ext_vb, *vb;
 	SVG_PreserveAspectRatio par;
 	Fixed scale, vp_w, vp_h;
 	Fixed parent_width, parent_height, doc_width, doc_height;
@@ -76,8 +78,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 		doc_height = atts->height ? atts->height->value : 0;
 	}
 
-	stack->prev_vp_w = tr_state->vp_size.x;
-	stack->prev_vp_h = tr_state->vp_size.y;
+	stack->prev_vp = tr_state->vp_size;
 
 	vb = atts->viewBox;
 
@@ -146,7 +147,8 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 		gf_mx2d_copy(stack->viewbox_mx, mx);
 		return;
 	}
-
+	stack->vp.x = vb->width;
+	stack->vp.y = vb->height;
 
 	/*setup default*/
 	par.defer = 0;
@@ -250,7 +252,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 				rc.x = dx;
 				rc.y = dy + parent_height;
 			}
-			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
+//			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
 		}
 	}
 	gf_mx2d_add_matrix(&stack->viewbox_mx, &mx);
@@ -267,6 +269,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 	Bool is_dirty;
 	GF_IRect top_clip;
+	SFVec2f prev_vp;
 	SVGPropertiesPointers backup_props, *prev_props;
 	u32 backup_flags;
 	Bool invalidate_flag;
@@ -286,7 +289,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 		free(stack);
 		return;
 	}
-	
+
 	prev_props = tr_state->svg_props;
 	/*SVG props not set: we are either the root-most <svg> of the compositor
 	or an <svg> inside an <animation>*/
@@ -316,10 +319,10 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 	is_dirty = gf_node_dirty_get(node);
 	gf_node_dirty_clear(node, 0);
-	if ((stack->prev_vp_w != tr_state->vp_size.x) || (stack->prev_vp_h != tr_state->vp_size.y))
+	if ((stack->prev_vp.x != tr_state->vp_size.x) || (stack->prev_vp.y != tr_state->vp_size.y))
 		is_dirty = 1;
 
-//	if (is_dirty || tr_state->visual->compositor->recompute_ar) 
+	if (is_dirty || tr_state->visual->compositor->recompute_ar) 
 		svg_recompute_viewport_transformation(node, stack, tr_state, &all_atts);
 
 	gf_mx2d_copy(tr_state->vb_transform, stack->viewbox_mx);
@@ -400,11 +403,16 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 		gf_mx2d_pre_multiply(&tr_state->transform, &tr_state->vb_transform);
 	}
 
+	/*store VP and move it to current VP (eg, the one used to compute the vb_transform)*/
+	prev_vp = tr_state->vp_size;
+	tr_state->vp_size = stack->vp;
+
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
 	} else {
 		compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
 	}
+	tr_state->vp_size = prev_vp;
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
@@ -784,6 +792,7 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	SVGAllAttributes all_atts;
 	SVGlinkStack *stack = gf_node_get_private(node);
+	SFVec2f prev_vp;
 
 	if (is_destroy) {
 		if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
@@ -828,10 +837,18 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 	translate.m[2] = (all_atts.x ? all_atts.x->value : 0);
 	translate.m[5] = (all_atts.y ? all_atts.y->value : 0);
 
+
+	/*update VP size (SVG 1.1)*/
+	prev_vp = tr_state->vp_size;
+	if (all_atts.width && all_atts.height) {
+		tr_state->vp_size.x = gf_sc_svg_convert_length_to_display(tr_state->visual->compositor, all_atts.width);
+		tr_state->vp_size.y = gf_sc_svg_convert_length_to_display(tr_state->visual->compositor, all_atts.height);
+	}
+
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 		if (!compositor_svg_is_display_off(tr_state->svg_props)) {
-			if (all_atts.xlink_href) gf_node_traverse(all_atts.xlink_href->target, tr_state);
+			if (stack->used_node) gf_node_traverse(stack->used_node, tr_state);
 			gf_mx2d_apply_rect(&translate, &tr_state->bounds);
 		} 
 		compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
@@ -863,6 +880,7 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	gf_list_rem_last(tr_state->use_stack);
 	gf_list_rem_last(tr_state->use_stack);
+	tr_state->vp_size = prev_vp;
 
 
 end:
@@ -989,6 +1007,7 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*update VP size*/
 	prev_vp = tr_state->vp_size;
+
 	tr_state->vp_size.x = gf_sc_svg_convert_length_to_display(tr_state->visual->compositor, all_atts.width);
 	tr_state->vp_size.y = gf_sc_svg_convert_length_to_display(tr_state->visual->compositor, all_atts.height);
 

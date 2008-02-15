@@ -1004,13 +1004,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, un
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
 				break;
 		}
-		
+
 		if (es) {
 			es->stream_type = stream_type; 
 			es->program = pmt->program;
 			es->pid = pid;
-			ts->ess[es->pid] = es;
-			gf_list_add(pmt->program->streams, es);
 		}
 
 		pos += 5;
@@ -1051,6 +1049,32 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, un
 			}
 			desc_len-=len+2;
 		}
+
+		if (!es) continue;
+
+		/*watchout for pmt update*/
+		if ((status==GF_M2TS_TABLE_UPDATE) && ts->ess[pid]) {
+			GF_M2TS_ES *o_es = ts->ess[es->pid];
+
+			if ((o_es->stream_type == es->stream_type) 
+				&& ((o_es->flags & GF_M2TS_ES_STATIC_FLAGS_MASK) == (es->flags & GF_M2TS_ES_STATIC_FLAGS_MASK))
+				&& (o_es->mpeg4_es_id == es->mpeg4_es_id)
+				&& ((o_es->flags & GF_M2TS_ES_IS_SECTION) || ((GF_M2TS_PES *)o_es)->lang == ((GF_M2TS_PES *)es)->lang)
+			) {
+				free(es);
+				es = NULL;
+
+			}
+		}
+
+		if (es) {
+			es->stream_type = stream_type; 
+			es->program = pmt->program;
+			es->pid = pid;
+			ts->ess[es->pid] = es;
+			gf_list_add(pmt->program->streams, es);
+		}
+		
 		if (es && !(es->flags & GF_M2TS_ES_IS_SECTION) ) gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
 	}
 	evt_type = (status==GF_M2TS_TABLE_FOUND) ? GF_M2TS_EVT_PMT_FOUND : GF_M2TS_EVT_PMT_UPDATE;

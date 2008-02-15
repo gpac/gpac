@@ -1222,3 +1222,13 @@ GF_Node *gf_node_get_proto_parent(GF_Node *node)
 	} 
 	return NULL;
 }
+
+GF_EXPORT
+Bool gf_node_is_proto_root(GF_Node *node)
+{
+	if (!node) return 0;
+	if (!node->sgprivate->scenegraph->pOwningProto) return 0;
+
+	if (gf_list_find(node->sgprivate->scenegraph->pOwningProto->node_code, node)>=0) return 1;
+	return 0;
+}

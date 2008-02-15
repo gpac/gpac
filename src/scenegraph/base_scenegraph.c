@@ -146,6 +146,8 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 
 
 	tag = node->sgprivate->tag;
+	if (tag == TAG_ProtoNode) return;
+
 	/*not possible in DOM ?*/
 	if (tag>GF_NODE_RANGE_LAST_VRML) return;
 
@@ -1307,10 +1309,15 @@ u32 gf_node_get_parent_count(GF_Node *node)
 GF_EXPORT
 GF_Node *gf_node_get_parent(GF_Node *node, u32 idx)
 {
+
 	GF_ParentList *nlist = node->sgprivate->parents;
+	/*break cyclic graphs*/
+	if (node->sgprivate->scenegraph->RootNode==node) return NULL;
+	if (node->sgprivate->scenegraph->pOwningProto && node->sgprivate->scenegraph->pOwningProto->RenderingNode==node) 
+		return NULL;
 	if (!nlist) return NULL;
 	while (idx) { nlist = nlist->next; idx--;}
-	return nlist->node;
+	return nlist ? nlist->node : NULL;
 }
 
 static GFINLINE void dirty_children(GF_Node *node, u32 val)
