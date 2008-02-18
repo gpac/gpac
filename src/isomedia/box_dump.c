@@ -3007,7 +3007,7 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_BOX_TYPE_TMPO: name = "Tempo"; break;
 	case GF_ISOM_BOX_TYPE_CPIL: name = "Compilation"; break;
 	case GF_ISOM_BOX_TYPE_COVR: name = "CoverArt"; no_dump = 1; break;
-	case GF_ISOM_BOX_TYPE_iTunesSpecificInfo: name = "iTunes Specific"; no_dump = 1; break;
+	case GF_ISOM_BOX_TYPE_iTunesSpecificInfo: name = "iTunesSpecific"; no_dump = 1; break;
 	case GF_ISOM_BOX_TYPE_0xA9GRP: name = "Group"; break;
 	case GF_ISOM_ITUNE_ENCODER: name = "Encoder"; break;
 	}

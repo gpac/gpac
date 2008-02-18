@@ -145,10 +145,6 @@ static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers
 	while (is->secondary_resource && is->root_od->parentscene)
 		is = is->root_od->parentscene;
 
-	/*
-		creates the media object if not already created at the InlineScene level
-		TODO FIX ME: do it at the terminal level
-	*/
 	mo = gf_inline_get_media_object_ex(is, &url, GF_MEDIA_OBJECT_SCENE, lock_timelines, NULL, primary_resource);
 	gf_sg_vrml_mf_reset(&url, GF_SG_VRML_MFURL);
 
@@ -185,6 +181,7 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 	if (!xlinkp.href) return NULL;
 
 	if (xlinkp.href->type == XMLRI_ELEMENTID) return NULL;
+	else if (xlinkp.href->string && (xlinkp.href->string[0]=='#')) return NULL;
 
 	new_resource = gf_svg_get_subscene(node, &xlinkp, &syncp, primary_resource ? 1 : 0, primary_resource);
 	if (!new_resource) return NULL;

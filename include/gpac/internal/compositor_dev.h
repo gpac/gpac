@@ -48,6 +48,7 @@
 /*if defined, events are queued before being processed, otherwise they are handled whenever triggered*/
 #define GF_SR_EVENT_QUEUE	
 
+
 /*use 2D caching for groups*/
 //#define GROUP_2D_USE_CACHE
 
@@ -385,6 +386,11 @@ struct __tag_compositor
 	GLCaps gl_caps;
 
 	u32 offscreen_width, offscreen_height;
+
+#ifdef GPAC_USE_TINYGL
+	void *tgl_ctx;
+#endif
+
 #endif
 
 

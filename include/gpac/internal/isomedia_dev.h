@@ -101,6 +101,7 @@ enum
 	GF_ISOM_BOX_TYPE_UUID	= GF_4CC( 'u', 'u', 'i', 'd' ),
 	GF_ISOM_BOX_TYPE_FREE	= GF_4CC( 'f', 'r', 'e', 'e' ),
 	GF_ISOM_BOX_TYPE_HDLR	= GF_4CC( 'h', 'd', 'l', 'r' ),
+	GF_ISOM_BOX_TYPE_GMHD	= GF_4CC( 'g', 'm', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_HMHD	= GF_4CC( 'h', 'm', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_HINT	= GF_4CC( 'h', 'i', 'n', 't' ),
 	GF_ISOM_BOX_TYPE_MDIA	= GF_4CC( 'm', 'd', 'i', 'a' ),
@@ -952,6 +953,7 @@ typedef struct __tag_media_info_box
 	GF_Box *InfoHeader;
 	struct __tag_data_map *dataHandler;
 	u32 dataEntryIndex;
+	GF_List *boxes;
 } GF_MediaInformationBox;
 
 

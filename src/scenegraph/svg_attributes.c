@@ -2629,10 +2629,24 @@ GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if
 GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type)
 {
 	if (info->fieldType != SVG_String_datatype) {
-		u32 len;
-		while (*attribute_content == ' ') attribute_content++;
+		u32 i, len;
+		/*remove spaces at the begining*/
+		while (strchr("\r\n\t ", attribute_content[0])) 
+			attribute_content++;
+
+		/*change all special chars in spaces*/
+		i=0;
 		len = strlen(attribute_content);
-		while (attribute_content[len-1] == ' ') { attribute_content[len-1] = 0; len--; }
+		while (i<len) {
+			if (strchr("\r\n\t", attribute_content[i])) 
+				attribute_content[i] = ' ';
+			i++;
+		}
+		/*remove spaces in the end*/
+		while (len && attribute_content[len-1]==' ') {
+			attribute_content[len-1] = 0;
+			len--;
+		}
 	}
 
 	switch (info->fieldType) {
