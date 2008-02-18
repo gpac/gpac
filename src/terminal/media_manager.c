@@ -318,7 +318,7 @@ u32 MM_Loop(void *par)
 
 	gf_th_set_priority(term->mm_thread, term->priority);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[MediaManager] Entering thread ID %d\n", gf_th_id() ));
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("(RTI] Terminal Cycle Log\tServices\tDecoders\tCompositor\tSleep\n"));
+//	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("(RTI] Terminal Cycle Log\tServices\tDecoders\tCompositor\tSleep\n"));
 
 	current_dec = 0;
 	while (term->flags & GF_TERM_RUNNING) {
