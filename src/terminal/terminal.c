@@ -642,13 +642,20 @@ void gf_term_unqueue_node_traverse(GF_Terminal *term, GF_Node *node)
 
 void gf_term_close_services(GF_Terminal *term, GF_ClientService *ns)
 {
-	GF_Err e = ns->ifce->CloseService(ns->ifce);
+	GF_Err e;
+
+	/*prevent the media manager / term to access the list of services to destroy
+	results are unpredictable if the structure/pointer-to-function is freed when 
+	returning the call stack - cf any "stress mode" playback of a playlist*/
+	gf_mx_p(term->net_mx);
 	ns->owner = NULL;
+	e = ns->ifce->CloseService(ns->ifce);
 	/*if error don't wait for ACK to remove from main list*/
 	if (e) {
 		gf_list_del_item(term->net_services, ns);
 		gf_list_add(term->net_services_to_remove, ns);
 	}
+	gf_mx_v(term->net_mx);
 }
 
 void gf_term_lock_compositor(GF_Terminal *term, Bool LockIt)

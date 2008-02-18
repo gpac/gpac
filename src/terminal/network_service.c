@@ -702,6 +702,7 @@ void NM_DeleteService(GF_ClientService *ns)
 
 	assert(!ns->nb_odm_users);
 	assert(!ns->nb_ch_users);
+	assert(!ns->owner);
 
 	/*delete all the clocks*/
 	while (gf_list_count(ns->Clocks)) {
