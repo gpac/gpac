@@ -3052,6 +3052,7 @@ void minf_del(GF_Box *s)
 	if (ptr->InfoHeader) gf_isom_box_del((GF_Box *)ptr->InfoHeader);
 	if (ptr->dataInformation) gf_isom_box_del((GF_Box *)ptr->dataInformation);
 	if (ptr->sampleTable) gf_isom_box_del((GF_Box *)ptr->sampleTable);
+	gf_isom_box_array_del(ptr->boxes);
 	free(ptr);
 }
 
@@ -3063,6 +3064,7 @@ GF_Err minf_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_VMHD:
 	case GF_ISOM_BOX_TYPE_SMHD:
 	case GF_ISOM_BOX_TYPE_HMHD:
+	case GF_ISOM_BOX_TYPE_GMHD:
 		if (ptr->InfoHeader) return GF_ISOM_INVALID_FILE;
 		ptr->InfoHeader = a;
 		return GF_OK;
@@ -3076,8 +3078,9 @@ GF_Err minf_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->sampleTable ) return GF_ISOM_INVALID_FILE;
 		ptr->sampleTable = (GF_SampleTableBox *)a;
 		return GF_OK;
+	default:
+		return gf_list_add(ptr->boxes, a);
 	}
-	gf_isom_box_del(a);
 	return GF_OK;
 }
 
@@ -3093,6 +3096,7 @@ GF_Box *minf_New()
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_MediaInformationBox));
 	tmp->type = GF_ISOM_BOX_TYPE_MINF;
+	tmp->boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
@@ -3123,8 +3127,8 @@ GF_Err minf_Write(GF_Box *s, GF_BitStream *bs)
 	if (ptr->sampleTable) {
 		e = gf_isom_box_write((GF_Box *) ptr->sampleTable, bs);
 		if (e) return e;
-	}	
-	return GF_OK;
+	}
+	return gf_isom_box_array_write(s, ptr->boxes, bs);
 }
 
 GF_Err minf_Size(GF_Box *s)
@@ -3149,7 +3153,7 @@ GF_Err minf_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->sampleTable->size;
 	}	
-	return GF_OK;
+	return gf_isom_box_array_size(s, ptr->boxes);
 }
 
 #endif //GPAC_READ_ONLY

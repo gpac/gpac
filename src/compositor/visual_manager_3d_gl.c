@@ -326,7 +326,6 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 #else	
 
-		
 #ifdef MESH_USE_SFCOLOR
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			glEnable(GL_BLEND);
@@ -590,11 +589,12 @@ void VS3D_DrawAABBNodeBounds(GF_TraverseState *tr_state, AABBNode *node)
 	}
 }
 
-#ifndef GPAC_USE_TINYGL
 void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box)
 {
 	SFVec3f c, s;
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_TINYGL
+
+#elif defined(GPAC_USE_OGL_ES)
 	u32 atts = ogles_push_enable(GL_LIGHTING);
 #else
 	glPushAttrib(GL_ENABLE_BIT);
@@ -618,21 +618,21 @@ void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box)
 	VS3D_DrawMeshIntern(tr_state, tr_state->visual->compositor->unit_bbox);
 	glPopMatrix();
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_TINYGL
+
+#elif defined(GPAC_USE_OGL_ES)
 	ogles_pop_enable(atts);
 #else
 	glPopAttrib();
 #endif
 
 }
-#endif
+//#endif
 
 
 void VS3D_DrawMeshBoundingVolume(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 #ifndef GPAC_USE_TINYGL
-
-
 	if (mesh->aabb_root && (tr_state->visual->compositor->draw_bvol==GF_BOUNDS_AABB)) {
 #ifdef GPAC_USE_OGL_ES
 		u32 atts = ogles_push_enable(GL_LIGHTING);

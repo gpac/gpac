@@ -290,8 +290,14 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		glTexParameterx(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	}
 #else
+
+#ifdef GPAC_USE_TINYGL
+	glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, GL_REPEAT);
+#else
 	glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP);
 	glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP);
+#endif
 	if (txh->tx_io->gl_type == GL_TEXTURE_2D) {
 		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
 		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);

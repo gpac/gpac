@@ -35,19 +35,19 @@
 	single step memory array
 	#define GF_LIST_ARRAY
 
-	default mode is array with step aloc of GF_LIST_STEP_ALLOC
+	multi-step memory array withou realloc on remove, using the GF_LIST_REALLOC macro
+	GF_LIST_ARRAY_GROW
 */
 
 /*after some tuning, this seems to be the fastest mode on WINCE*/
 #ifdef _WIN32_WCE
 #define GF_LIST_LINKED
 #else
-#define GF_LIST_LINKED
-//#define GF_LIST_ARRAY
+#define GF_LIST_ARRAY_GROW
 #endif
 
-//#define GF_LIST_STEP_ALLOC	10
-#define GF_LIST_STEP_ALLOC	1
+//#define GF_LIST_REALLOC(a) (a ? (3*a/2) : 10)
+#define GF_LIST_REALLOC(a) (a++)
 
 
 #if defined(GF_LIST_LINKED)
@@ -583,7 +583,7 @@ void gf_list_reset(GF_List *ptr)
 	}
 }
 
-#else
+#else	/*GF_LIST_ARRAY_GROW*/
 
 
 struct _tag_array
@@ -617,7 +617,7 @@ void gf_list_del(GF_List *ptr)
 
 static void realloc_chain(GF_List *ptr)
 {
-	ptr->allocSize += GF_LIST_STEP_ALLOC;
+	GF_LIST_REALLOC(ptr->allocSize);
 	ptr->slots = realloc(ptr->slots, ptr->allocSize*sizeof(void*));
 }
 
@@ -671,7 +671,6 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 GF_EXPORT
 GF_Err gf_list_rem_last(GF_List *ptr)
 {
-	u32 i;
 	if ( !ptr || !ptr->slots || !ptr->entryCount) return GF_BAD_PARAM;
 	ptr->slots[ptr->entryCount-1] = NULL;
 	ptr->entryCount -= 1;

@@ -1433,10 +1433,6 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 			compositor->visual->type_3d = 0;
 			compositor->visual->camera.is_3D = 0;
 		}
-
-#ifdef GPAC_USE_TINYGL
-		compositor->visual->type_3d = 0;
-#endif
 		compositor->visual->camera.is_3D = (compositor->visual->type_3d>1) ? 1 : 0;
 		camera_invalidate(&compositor->visual->camera);
 #endif

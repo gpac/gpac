@@ -31,7 +31,6 @@
 
 #ifndef GPAC_DISABLE_3D
 
-
 #ifdef GPAC_USE_OGL_ES
 
 #ifndef GPAC_FIXED_POINT
