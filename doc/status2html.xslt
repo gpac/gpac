@@ -19,11 +19,11 @@
         	</head>
             <body>
     
-                <h1>SVG 1.1 Test Suite Implementation Results</h1>
+                <h1>SVG Tiny 1.1 Test Suite Implementation Results</h1>
                 <h1>Profile: <xsl:value-of select="@profile"/></h1>
                 <h1>Date : <xsl:value-of select="@date"/></h1>
                 <h2><xsl:value-of select="@company"/> - <xsl:value-of select="@product"/> - <xsl:value-of select="@version"/></h2>
- 				<h2>Global results</h2>
+ 				<h2>Global tiny results</h2>
 				<table>
 					<tbody>
 						<tr>
@@ -47,7 +47,7 @@
 						</tr>
 					</tbody>
 				</table>
-				<h2>SVG 1.1 results</h2>
+				<h2>SVG Tiny 1.1 results</h2>
 				<table>
 					<tbody>
 						<tr>
@@ -71,7 +71,7 @@
 						</tr>
 					</tbody>
 				</table>
-				<h2>SVG 1.2 results</h2>
+				<h2>SVG Tiny 1.2 results</h2>
 				<table>
 					<tbody>
 						<tr>
@@ -95,7 +95,7 @@
 						</tr>
 					</tbody>
 				</table>
-        <h2>Detailled Results for SVG 1.1</h2>
+        <h2>Detailled Results for SVG Tiny 1.1</h2>
                 <table>
     				<thead>
     					<tr>
@@ -109,7 +109,7 @@
                     <xsl:apply-templates select="./test[@svg-version='1.1']"/>
                     </tbody>
                 </table>
-        <h2>Detailled Results for SVG 1.2</h2>
+        <h2>Detailled Results for SVG Tiny 1.2</h2>
                 <table>
     				<thead>
     					<tr>
