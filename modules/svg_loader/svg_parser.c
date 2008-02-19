@@ -508,9 +508,7 @@ static void parse_attributename(SVG_SA_Element *animation_element, char *value_s
 	targetElement = ((XMLRI *)xlink_href.far_ptr)->target;
 
 	if (!targetElement) {
-#ifdef PRINT_WARNING
-		fprintf(stderr, "Warning: element only forward references supported.\n");
-#endif
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] only forward references supported.\n"));
 		return;
 	}
 	if (!gf_node_get_field_by_name((GF_Node *)targetElement, value_string, &targetAttribute)) {
@@ -519,9 +517,7 @@ static void parse_attributename(SVG_SA_Element *animation_element, char *value_s
 		attributename_value->type = targetAttribute.fieldType;
 		attributename_value->field_ptr = targetAttribute.far_ptr;
 	} else {
-#ifdef PRINT_WARNING
-		fprintf(stderr, "Error: Attribute %s does not belong to target element %s of type %s.\n", value_string, gf_node_get_class_name((GF_Node *)targetElement), gf_node_get_class_name((GF_Node *)targetElement) );
-#endif
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Attribute %s does not belong to element %s of type %s.\n", value_string, gf_node_get_class_name((GF_Node *)targetElement), gf_node_get_class_name((GF_Node *)targetElement)));
 	}
 }
 

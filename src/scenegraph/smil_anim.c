@@ -169,7 +169,7 @@ static void gf_smil_anim_set(SMIL_Anim_RTI *rai)
 		   because inheritance is applied after animations in the compositor. */
 
 		gf_svg_attributes_copy(&rai->interpolated_value, &to_info, 0);
-		rai->previous_coef = 1;
+		rai->previous_coef = FIX_ONE;
 	}
 }
 
@@ -302,7 +302,9 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 	}
 
 	if (rai->change_detection_mode) {
-		if (rai->previous_key_index == (s32)keyValueIndex && rai->previous_coef == interpolation_coefficient) 
+		if (real_calcMode == SMIL_CALCMODE_DISCRETE && rai->previous_key_index == (s32)keyValueIndex && rai->previous_coef != -FIX_ONE) {
+			rai->interpolated_value_changed = 0;
+		} else if (rai->previous_key_index == (s32)keyValueIndex && rai->previous_coef == interpolation_coefficient) 
 			rai->interpolated_value_changed = 0;
 		else 
 			rai->interpolated_value_changed = 1;
@@ -391,6 +393,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 			from_info.far_ptr = animp->from->value;
 		} else {
 			from_info.fieldType = 0;
+			from_info.far_ptr = NULL;
 		}
 
 		if (rai->is_first_anim) 
@@ -411,6 +414,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 			to_info.far_ptr = animp->to->value;
 		} else {
 			to_info.fieldType = 0;
+			to_info.far_ptr = NULL;
 		}
 
 		if (rai->is_first_anim) 
@@ -483,6 +487,7 @@ static void gf_smil_anim_animate_from_by(SMIL_Anim_RTI *rai, Fixed normalized_si
 			from_coef = FIX_ONE;
 		} else {
 			from_info.fieldType = 0;
+			from_info.far_ptr = NULL;
 			/* this is a by animation only, then, it is always additive, 
 			   we don't need the from value*/
 			from_coef = 0; 
@@ -507,6 +512,7 @@ static void gf_smil_anim_animate_from_by(SMIL_Anim_RTI *rai, Fixed normalized_si
 			by_info.far_ptr = animp->by->value;
 		} else {
 			by_info.fieldType = 0;
+			by_info.far_ptr = NULL;
 		}
 		
 		if (rai->owner->is_property && gf_svg_attribute_is_interpolatable(from_info.fieldType)) {
@@ -799,7 +805,7 @@ void gf_smil_anim_reset_variables(SMIL_Anim_RTI *rai)
 	   when the animation restarts */
 	rai->interpolated_value_changed = 0;
 	rai->previous_key_index = -1;
-	rai->previous_coef = -1;
+	rai->previous_coef = -FIX_ONE;
 	rai->previous_iteration = -1;
 	rai->previous_keytime_index = 0;
 	rai->anim_done = 0;
@@ -889,6 +895,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 	u32 count_all, i;
 #ifndef GPAC_DISABLE_LOG
 	u32 time;
+	u32 active_anim;
 
 	if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RTI)) { 
 		time = gf_sys_clock();
@@ -946,7 +953,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 			}
 		}
 
-
+		active_anim = 0;
 		if (aa->presentation_value_changed) {
 			/* If the result of all the combined animations will produce a different result compared to the previous frame,
 			we start in the forward order from the j were the previous step stopped (i.e. the first anim in replace mode)
@@ -961,6 +968,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 				if (rti->evaluate_status) {
 					rai->change_detection_mode = 0;
 					rti->evaluate(rti, rti->normalized_simple_time, rti->evaluate_status);
+					active_anim++;
 				}
 			}
 		}
@@ -990,7 +998,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 				gf_node_dirty_set(node, aa->dirty_flags, aa->dirty_parents);
 			} else {
 				/* WARNING - This does not work for use elements because apply_animations may be called several times */
-				gf_node_dirty_clear(node, aa->dirty_flags);
+				if (active_anim) gf_node_dirty_clear(node, aa->dirty_flags);
 			}
 		}
 	}
