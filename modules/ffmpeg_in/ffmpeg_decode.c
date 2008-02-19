@@ -584,8 +584,7 @@ redecode:
 		if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
 
 		if (gotpic) {
-//#if defined(_WIN32_WCE) ||  defined(__SYMBIAN32__)
-#if 1
+#if defined(_WIN32_WCE) ||  defined(__SYMBIAN32__)
 			if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
 				memcpy(outBuffer, ffd->frame->data[0], sizeof(char)*3*ffd->ctx->width);
 			} else {
