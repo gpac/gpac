@@ -8,7 +8,7 @@
 <!-- version=The version number of the product being tested                               -->
 <!-- platform=The platform(s) that the product is tested on                               -->
 <!-- date=The date of the submission in the form year/month/day, eg. 2002/08/30           -->
-<svg-status-query company="ENST" date="2008/01/18" product="GPAC Player" version="0.4.5-DEV (build 10)" shortsvg-version="1.1" name="Osmo4" profile="tiny" platform="WindowsXP"	>
+<svg-status-query company="ENST" date="2008/02/19" product="GPAC Player" version="0.4.5-DEV (build 18)" shortsvg-version="1.1" name="Osmo4" profile="tiny" platform="WindowsXP"	>
 <!-- test attributes:                                                                   -->
 <!--    status=must be one of 'OK', 'PARTIAL', or 'FAIL'                                -->
 <!--    comment=optional comment to publish with the result, like why you don't pass :) -->
@@ -39,17 +39,17 @@
 	<test svg-version="1.1" name="animate-elem-27-t" revision="1.7" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-28-t" revision="1.8" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-29-t" revision="1.6" status="OK" comment=""/>
-	<test svg-version="1.1" name="animate-elem-30-t" revision="1.6" status="PARTIAL" comment="pAR on image"/>
-	<test svg-version="1.1" name="animate-elem-31-t" revision="1.6" status="PARTIAL" comment="visibility animations"/>
+	<test svg-version="1.1" name="animate-elem-30-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-31-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-32-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-33-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-34-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-35-t" revision="1.4" status="PARTIAL" comment="stroke animation is not correctly supported"/>
-	<test svg-version="1.1" name="animate-elem-36-t" revision="1.6" status="OK" comment="Rendering problem when rotating images"/>
+	<test svg-version="1.1" name="animate-elem-36-t" revision="1.6" status="PARTIAL" comment="Rendering problem when rotating images"/>
 	<test svg-version="1.1" name="animate-elem-37-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-38-t" revision="1.8" status="OK" comment=""/>
-	<test svg-version="1.1" name="animate-elem-39-t" revision="1.6" status="FAIL" comment="xlink:href animations on use"/>
-	<test svg-version="1.1" name="animate-elem-40-t" revision="1.7" status="PARTIAL" comment="clipping on text using SVG Fonts"/>
+	<test svg-version="1.1" name="animate-elem-39-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="animate-elem-40-t" revision="1.7" status="PARTIAL" comment="Bug in clipping of animated text using SVG Fonts"/>
 	<test svg-version="1.1" name="animate-elem-41-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-44-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-46-t" revision="1.6" status="OK" comment=""/>
@@ -67,7 +67,7 @@
 	<test svg-version="1.1" name="animate-elem-68-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-69-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-70-t" revision="1.7" status="OK" comment=""/>
-	<test svg-version="1.1" name="animate-elem-77-t" revision="1.6" status="PARTIAL" comment="text-anchor problem"/>
+	<test svg-version="1.1" name="animate-elem-77-t" revision="1.6" status="PARTIAL" comment="text-anchor, font-family and font-style problem"/>
 	<test svg-version="1.1" name="animate-elem-78-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-80-t" revision="1.7" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-81-t" revision="1.7" status="OK" comment=""/>
@@ -75,9 +75,9 @@
 	<test svg-version="1.1" name="animate-elem-83-t" revision="1.8" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-84-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="animate-elem-85-t" revision="1.7" status="OK" comment=""/>
-	
   <test svg-version="1.1" name="animate-elem-86-t" revision="1.4" status="OK" comment=""/>
-	<test svg-version="1.2" name="animate-elem-201-t" revision="1.3" status="PARTIAL" comment=""/>
+
+	<test svg-version="1.2" name="animate-elem-201-t" revision="1.3" status="OK" comment=""/>
 	<test svg-version="1.2" name="animate-elem-202-t" revision="1.3" status="OK" comment=""/>
 	<test svg-version="1.2" name="animate-elem-203-t" revision="1.3" status="PARTIAL" comment="Precision problem in additive animations"/>
 	<test svg-version="1.2" name="animate-elem-204-t" revision="1.1" status="PARTIAL" comment="Misalignement of shapes during the animation"/>
@@ -114,12 +114,12 @@
 	<test svg-version="1.1" name="coords-trans-08-t" revision="1.2" status="OK" comment=""/>
 	<test svg-version="1.1" name="coords-trans-09-t" revision="1.2" status="OK" comment=""/>
 	<test svg-version="1.1" name="coords-units-01-t" revision="1.9" status="OK" comment=""/>
-	<test svg-version="1.1" name="coords-viewattr-05-t" revision="1.11" status="FAIL" comment=""/>
+	<test svg-version="1.1" name="coords-viewattr-05-t" revision="1.11" status="OK" comment=""/>
 	<test svg-version="1.1" name="coords-viewattr-06-t" revision="1.2" status="OK" comment="Not a Tiny test (use of overflow)"/>
 	<test svg-version="1.2" name="coords-constr-201-t" revision="1.4" status="OK" comment=""/>
 	<test svg-version="1.2" name="coords-constr-202-t" revision="1.4" status="OK" comment=""/>
 	<test svg-version="1.2" name="coords-constr-203-t" revision="1.4" status="OK" comment=""/>
-	<test svg-version="1.2" name="coords-constr-204-t" revision="1.4" status="FAIL" comment="order between animateMotion and transform=ref"/>
+	<test svg-version="1.2" name="coords-constr-204-t" revision="1.4" status="OK" comment=""/>
 	<test svg-version="1.2" name="coords-pAR-201-t" revision="1.4" status="OK" comment=""/>
 
 	<test svg-version="1.1" name="extend-namespace-02-t" revision="1.2" status="FAIL" comment=""/>
@@ -127,7 +127,7 @@
 	<test svg-version="1.1" name="fonts-desc-01-t" revision="1.2" status="OK" comment=""/>
 	<test svg-version="1.1" name="fonts-desc-02-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.1" name="fonts-desc-03-t" revision="1.2" status="OK" comment=""/>
-	<test svg-version="1.1" name="fonts-desc-05-t" revision="1.2" status="FAIL" comment="Crash"/>
+	<test svg-version="1.1" name="fonts-desc-05-t" revision="1.2" status="OK" comment=""/>
 	<test svg-version="1.1" name="fonts-elem-01-t" revision="1.7" status="OK" comment=""/>
 	<test svg-version="1.1" name="fonts-elem-02-t" revision="1.7" status="OK" comment=""/>
 	<test svg-version="1.1" name="fonts-elem-03-t" revision="1.6" status="OK" comment=""/>
@@ -135,27 +135,31 @@
 	<test svg-version="1.1" name="fonts-elem-06-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.1" name="fonts-glyph-02-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.1" name="fonts-glyph-04-t" revision="1.5" status="OK" comment=""/>
-	<test svg-version="1.2" name="fonts-glyph-201-t" revision="1.3" status="PARTIAL" comment=""/>
-	<test svg-version="1.2" name="fonts-glyph-202-t" revision="1.5" status="PARTIAL" comment=""/>
 	<test svg-version="1.1" name="fonts-kern-01-t" revision="1.6" status="PARTIAL" comment="kerning not supported."/>
+
+	<test svg-version="1.2" name="fonts-glyph-201-t" revision="1.3" status="OK" comment=""/>
+	<test svg-version="1.2" name="fonts-glyph-202-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.2" name="fonts-overview-201-t" revision="1.5" status="OK" comment=""/>
 
 	<test svg-version="1.1" name="interact-dom-02-t" revision="1.8" status="OK" comment=""/>
 	<test svg-version="1.1" name="interact-events-02-t" revision="1.2" status="OK" comment=""/>
 	<test svg-version="1.1" name="interact-order-04-t" revision="1.8" status="OK" comment=""/>
-	<test svg-version="1.1" name="interact-order-05-t" revision="1.8" status="PARTIAL" comment=""/>
-	<test svg-version="1.1" name="interact-order-06-t" revision="1.8" status="PARTIAL" comment="Strings are not selectable"/>
-	<test svg-version="1.1" name="interact-pevents-01-t" revision="1.2" status="PARTIAL" comment="Some text is not pointed correctly."/>
-	<test svg-version="1.1" name="interact-pevents-02-t" revision="1.8" status="PARTIAL" comment="Some text is not pointed correctly."/>
-	<test svg-version="1.1" name="interact-pevents-03-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-order-05-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-order-06-t" revision="1.8" status="OK" comment=""/>
+
+	<test svg-version="1.1" name="interact-pevents-01-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-pevents-02-t" revision="1.8" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-pevents-03-t" revision="1.2" status="OK" comment="letter-spacing not compliant with Tiny 1.2"/>
 	<test svg-version="1.1" name="interact-pevents-04-t" revision="1.2" status="OK" comment=""/>
-	<test svg-version="1.1" name="interact-pevents-05-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test svg-version="1.1" name="interact-pevents-06-t" revision="1.5" status="PARTIAL" comment=""/>
+	<test svg-version="1.1" name="interact-pevents-05-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-pevents-06-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.1" name="interact-pevents-07-t" revision="1.5" status="OK" comment=""/>
-	<test svg-version="1.1" name="interact-pevents-08-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="interact-pevents-08-t" revision="1.7" status="OK" comment="dy on glyphs not compliant with Tiny 1.2"/>
+
 	<test svg-version="1.1" name="interact-zoom-01-t" revision="1.8" status="OK" comment=""/>
 	<test svg-version="1.1" name="interact-zoom-02-t" revision="1.8" status="OK" comment=""/>
 	<test svg-version="1.1" name="interact-zoom-03-t" revision="1.9" status="OK" comment=""/>
+	
 	<test svg-version="1.2" name="interact-event-201-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.2" name="interact-event-202-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.2" name="interact-event-203-t" revision="1.4" status="OK" comment=""/>
@@ -186,26 +190,25 @@
 	<test svg-version="1.2" name="jpeg-required-210-t" revision="1.4" status="OK" comment=""/>
 
 	<test svg-version="1.1" name="linking-a-01-t" revision="1.6" status="OK" comment=""/>
-	<test svg-version="1.1" name="linking-a-03-t" revision="1.2" status="FAIL" comment="Fragment views not supported"/>
-	<test svg-version="1.1" name="linking-a-04-t" revision="1.8" status="PARTIAL" comment="Fragment"/>
-	<test svg-version="1.1" name="linking-a-05-t" revision="1.6" status="PARTIAL" comment="Centering on the circle doesn't work"/>
+	<test svg-version="1.1" name="linking-a-03-t" revision="1.2" status="OK" comment=""/>
+	<test svg-version="1.1" name="linking-a-04-t" revision="1.8" status="OK" comment="BUG #internal and http://"/>
+	<test svg-version="1.1" name="linking-a-05-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="linking-a-07-t" revision="1.2" status="FAIL" comment="target attribute is not supported"/>
-	<test svg-version="1.1" name="linking-a-08-t" revision="1.4" status="FAIL" comment="link inside text"/>
-	<test svg-version="1.1" name="linking-a-09-b" revision="1.1" status="FAIL" comment=""/>
+	<test svg-version="1.1" name="linking-a-08-t" revision="1.4" status="OK" comment=""/>
+	<!--test svg-version="1.1" name="linking-uri-01-t" revision="1.2" status="FAIL" comment="Not tiny compliant: the view element is not supported"/ -->
+	<!--test svg-version="1.1" name="linking-uri-02-t" revision="1.2" status="FAIL" comment="Not tiny compliant: the view element is not supported"/-->
+	<test svg-version="1.1" name="linking-uri-03-t" revision="1.8" status="OK" comment=""/>
 
 	<test svg-version="1.2" name="linking-frag-201-t" revision="1.4" status="FAIL" comment=""/>
 	<test svg-version="1.2" name="linking-frag-202-t" revision="1.4" status="FAIL" comment=""/>
+
 	<test svg-version="1.2" name="linking-refs-201-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.2" name="linking-refs-202-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.2" name="linking-refs-203-t" revision="1.7" status="PARTIAL" comment=""/>
 	<test svg-version="1.2" name="linking-refs-204-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.2" name="linking-refs-205-t" revision="1.6" status="FAIL" comment="xml:base"/>
 
-	<test svg-version="1.1" name="linking-uri-01-t" revision="1.2" status="FAIL" comment=""/>
-	<test svg-version="1.1" name="linking-uri-02-t" revision="1.2" status="FAIL" comment=""/>
-	<test svg-version="1.1" name="linking-uri-03-t" revision="1.8" status="FAIL" comment=""/>
-
-	<test svg-version="1.1" name="masking-opacity-01-t" revision="1.1" status="FAIL" comment=""/>
+	<test svg-version="1.1" name="masking-opacity-01-t" revision="1.1" status="OK" comment=""/>
 
 	<test svg-version="1.2" name="media-alevel-201-t" revision="1.9" status="OK" comment=""/>
 	<test svg-version="1.2" name="media-alevel-202-t" revision="1.9" status="OK" comment=""/>
@@ -304,21 +307,22 @@
 	<test svg-version="1.1" name="paint-grad-15-t" revision="1.7" status="OK" comment=""/>
 	<test svg-version="1.1" name="paint-grad-16-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.1" name="paint-grad-17-t" revision="1.8" status="FAIL" comment="gradient on lines with fallback"/>
-	<test svg-version="1.1" name="paint-grad-18-t" revision="1.6" status="OK" comment=""/>
-	<test svg-version="1.1" name="paint-grad-19-t" revision="1.7" status="PARTIAL" comment="??"/>
-	<test svg-version="1.2" name="paint-grad-201-t" revision="1.5" status="FAIL" comment="stop-opacity animation"/>
+	<test svg-version="1.1" name="paint-grad-18-t" revision="1.6" status="OK" comment="BUG"/>
+	<test svg-version="1.1" name="paint-grad-19-t" revision="1.7" status="OK" comment="BUG"/>
+	
+  <test svg-version="1.2" name="paint-grad-201-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.2" name="paint-grad-202-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.2" name="paint-grad-203-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.2" name="paint-grad-204-t" revision="1.6" status="OK" comment=""/>
 	<test svg-version="1.2" name="paint-grad-205-t" revision="1.5" status="OK" comment=""/>
 	
   <test svg-version="1.2" name="paint-nsstroke-201-t" revision="1.4" status="OK" comment=""/>
-	<test svg-version="1.2" name="paint-nsstroke-202-t" revision="1.5" status="FAIL" comment=""/>
+	<test svg-version="1.2" name="paint-nsstroke-202-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.2" name="paint-nsstroke-203-t" revision="1.4" status="OK" comment=""/>
 	
   <test svg-version="1.2" name="paint-other-201-t" revision="1.4" status="OK" comment=""/>
-	<test svg-version="1.2" name="paint-other-202-t" revision="1.5" status="PARTIAL" comment="solid-opacity animation"/>
-	<test svg-version="1.2" name="paint-other-203-t" revision="1.5" status="PARTIAL" comment="solid-color animation"/>
+	<test svg-version="1.2" name="paint-other-202-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="paint-other-203-t" revision="1.5" status="OK" comment=""/>
 	
   <test svg-version="1.1" name="paint-stroke-01-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.1" name="paint-stroke-02-t" revision="1.5" status="OK" comment=""/>
@@ -368,12 +372,13 @@
 	<test svg-version="1.1" name="render-groups-01-t" revision="1.8" status="OK" comment=""/>
 	<test svg-version="1.1" name="render-groups-03-t" revision="1.7" status="OK" comment=""/>
 	
-  <test svg-version="1.2" name="script-element-201-t" revision="1.5" status="OK" comment=""/>
-	<test svg-version="1.2" name="script-element-202-t" revision="1.4" status="FAIL" comment=""/>
 	<test svg-version="1.1" name="script-handle-05-t" revision="1.9" status="OK" comment=""/>
 	<test svg-version="1.1" name="script-handle-06-t" revision="1.8" status="PARTIAL" comment="activate event problem"/>
 	<test svg-version="1.1" name="script-handle-07-t" revision="1.8" status="OK" comment=""/>
 	<test svg-version="1.1" name="script-handle-08-t" revision="1.9" status="OK" comment=""/>
+
+  <test svg-version="1.2" name="script-element-201-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.2" name="script-element-202-t" revision="1.4" status="FAIL" comment=""/>
 	<test svg-version="1.2" name="script-handle-201-t" revision="1.5" status="PARTIAL" comment=""/>
 	<test svg-version="1.2" name="script-handle-202-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.2" name="script-listener-201-t" revision="1.4" status="FAIL" comment=""/>
@@ -420,7 +425,7 @@
 	<test svg-version="1.1" name="struct-frag-02-t" revision="1.4" status="OK" comment=""/>
 	<test svg-version="1.1" name="struct-frag-03-t" revision="1.4" status="OK" comment=""/>
 	<test svg-version="1.1" name="struct-frag-04-t" revision="1.4" status="OK" comment=""/>
-	<test svg-version="1.1" name="struct-frag-05-t" revision="1.6" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-frag-05-t" revision="1.6" status="FAIL" comment="Bad namespace handling"/>
 	<test svg-version="1.1" name="struct-frag-06-t" revision="1.5" status="OK" comment=""/>
 	
   <test svg-version="1.1" name="struct-group-01-t" revision="1.8" status="OK" comment=""/>
@@ -430,8 +435,8 @@
 	<test svg-version="1.1" name="struct-image-03-t" revision="1.8" status="OK" comment=""/>
 	<test svg-version="1.1" name="struct-image-04-t" revision="1.8" status="OK" comment=""/>
 	<test svg-version="1.1" name="struct-image-05-t" revision="1.2" status="OK" comment=""/>
-	<test svg-version="1.1" name="struct-image-06-t" revision="1.5" status="FAIL" comment="pAR"/>
-	<test svg-version="1.1" name="struct-image-07-t" revision="1.5" status="FAIL" comment="xml:base"/>
+	<test svg-version="1.1" name="struct-image-06-t" revision="1.5" status="OK" comment=""/>
+	<test svg-version="1.1" name="struct-image-07-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.1" name="struct-image-08-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.1" name="struct-image-09-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.1" name="struct-image-10-t" revision="1.5" status="OK" comment=""/>
@@ -451,8 +456,9 @@
 	<test svg-version="1.1" name="struct-use-03-t" revision="1.5" status="OK" comment=""/>
 	<test svg-version="1.1" name="struct-use-04-t" revision="1.5" status="PARTIAL" comment="property handling not correct"/>
 	<test svg-version="1.1" name="struct-use-05-t" revision="1.5" status="OK" comment=""/>
-	<test svg-version="1.1" name="struct-use-06-t" revision="1.1" status="PARTIAL" comment=""/>
-	<test svg-version="1.1" name="struct-use-07-t" revision="1.1" status="PARTIAL" comment=""/>
+	<!--test svg-version="1.1" name="struct-use-06-t" revision="1.1" status="PARTIAL" comment=""/-->
+	<!--test svg-version="1.1" name="struct-use-07-t" revision="1.1" status="PARTIAL" comment=""/-->
+	
 	<test svg-version="1.2" name="struct-use-201-t" revision="1.4" status="PARTIAL" comment="reference restrictions in use"/>
 	<test svg-version="1.2" name="struct-use-202-t" revision="1.3" status="PARTIAL" comment=""/>
 	
@@ -460,10 +466,12 @@
 	<test svg-version="1.1" name="styling-pres-01-t" revision="1.2" status="OK" comment=""/>
 	
   <test svg-version="1.1" name="text-align-01-t" revision="1.6" status="OK" comment=""/>
+	<!--test svg-version="1.1" name="text-align-04-t" revision="1.1" status="PARTIAL" comment="tref and toap not in Tiny"/-->
 	<test svg-version="1.1" name="text-align-03-t" revision="1.7" status="PARTIAL" comment="Bug in text-anchor and tspan"/>
 	<test svg-version="1.1" name="text-align-07-t" revision="1.5" status="OK" comment=""/>
-	<test svg-version="1.1" name="text-align-08-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test svg-version="1.2" name="text-align-201-t" revision="1.2" status="PARTIAL" comment="last space in tspan not rendered properly."/>
+	<test svg-version="1.1" name="text-align-08-t" revision="1.5" status="OK" comment=""/>
+	
+  <test svg-version="1.2" name="text-align-201-t" revision="1.2" status="PARTIAL" comment="last space in tspan not rendered properly."/>
 	<test svg-version="1.2" name="text-align-202-t" revision="1.8" status="PARTIAL" comment="arabic glyph substitution problem and hebrew alignment"/>
 	
   <test svg-version="1.2" name="text-area-201-t" revision="1.5" status="OK" comment=""/>
@@ -483,12 +491,13 @@
 	<test svg-version="1.2" name="text-area-221-t" revision="1.5" status="PARTIAL" comment="display-align not supported"/>
 	<test svg-version="1.2" name="text-area-222-t" revision="1.5" status="FAIL" comment="editable not supported"/>
 	
-  <test svg-version="1.1" name="text-deco-01-t" revision="1.1" status="PARTIAL" comment="Not in tiny"/>
+  <test svg-version="1.1" name="text-deco-01-t" revision="1.1" status="OK" comment="text-decoration not in tiny"/>
 	
-  <test svg-version="1.1" name="text-fonts-01-t" revision="1.7" status="PARTIAL" comment="Japanese glyphs not displayed"/>
-	<test svg-version="1.1" name="text-fonts-02-t" revision="1.7" status="PARTIAL" comment="bold and number equivalent are not correct"/>
+  <test svg-version="1.1" name="text-fonts-01-t" revision="1.7" status="OK" comment=""/>
+	<test svg-version="1.1" name="text-fonts-02-t" revision="1.7" status="OK" comment=""/>
 	<test svg-version="1.1" name="text-fonts-03-t" revision="1.5" status="OK" comment="  "/>
 	<test svg-version="1.1" name="text-fonts-04-t" revision="1.2" status="OK" comment=""/>
+	
 	<test svg-version="1.2" name="text-fonts-202-t" revision="1.4" status="OK" comment=""/>
 	
   <test svg-version="1.1" name="text-intro-01-t" revision="1.7" status="FAIL" comment=""/>
@@ -497,20 +506,22 @@
 	<test svg-version="1.1" name="text-intro-06-t" revision="1.2" status="OK" comment="Using GDI+ Font Engine  / FAIL with FreeType"/>
 	<test svg-version="1.2" name="text-intro-201-t" revision="1.3" status="OK" comment="Using GDI+ Font Engine  / FAIL with FreeType"/>
 	
-  <test svg-version="1.1" name="text-text-03-t" revision="1.1" status="PARTIAL" comment=""/>
+  <test svg-version="1.1" name="text-text-03-t" revision="1.1" status="OK" comment="line-through and underline not in tiny"/>
 	<test svg-version="1.1" name="text-text-04-t" revision="1.5" status="PARTIAL" comment="Problem with y alignment"/>
-	<test svg-version="1.1" name="text-text-05-t" revision="1.2" status="PARTIAL" comment=""/>
-	<test svg-version="1.1" name="text-text-06-t" revision="1.6" status="PARTIAL" comment=""/>
+	<test svg-version="1.1" name="text-text-05-t" revision="1.2" status="PARTIAL" comment="Problem with y alignment"/>
+	<test svg-version="1.1" name="text-text-06-t" revision="1.6" status="PARTIAL" comment="Problem with y alignment"/>
 	<test svg-version="1.1" name="text-text-07-t" revision="1.5" status="PARTIAL" comment="rotate text glyphs not supported and clipping problems"/>
 	<test svg-version="1.1" name="text-text-08-t" revision="1.8" status="OK" comment=""/>
 	<test svg-version="1.1" name="text-text-09-t" revision="1.4" status="PARTIAL" comment="rotate text glyphs not supported and clipping problems"/>
-	<test svg-version="1.1" name="text-tref-01-b" revision="1.1" status="FAIL" comment=""/>
+	<!--test svg-version="1.1" name="text-tref-01-b" revision="1.1" status="FAIL" comment="Not a tiny test"/-->
 	
   <test svg-version="1.1" name="text-tselect-03-t" revision="1.7" status="FAIL" comment="text is not selectable."/>
+  
 	<test svg-version="1.1" name="text-ws-01-t" revision="1.6" status="OK" comment=""/>
-	<test svg-version="1.1" name="text-ws-02-t" revision="1.7" status="FAIL" comment=""/>
+	<test svg-version="1.1" name="text-ws-02-t" revision="1.7" status="OK" comment=""/>
 	
-  <test svg-version="1.1" name="types-basicDOM-02-t" revision="1.2" status="OK" comment=""/>
+  <!--test svg-version="1.1" name="types-basicDOM-02-t" revision="1.2" status="OK" comment=""/-->
+  
 	<test svg-version="1.2" name="types-data-201-t" revision="1.1" status="PARTIAL" comment=""/>
 	<test svg-version="1.2" name="types-data-202-t" revision="1.1" status="FAIL" comment=""/>
 	<test svg-version="1.2" name="types-data-203-t" revision="1.1" status="FAIL" comment=""/>
