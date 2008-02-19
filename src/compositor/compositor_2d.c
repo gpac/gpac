@@ -215,7 +215,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	/*avoid partial redraw that don't come close to src pixels with the bliter, this leads to 
 	ugly artefacts - fall back to rasterizer*/
 	if (!use_blit && (src_wnd.x || src_wnd.y) ) return 0;
-	return 0;
 
 	if (src_wnd.w>txh->width) src_wnd.w=txh->width;
 	if (src_wnd.h>txh->height) src_wnd.h=txh->height;
