@@ -1437,15 +1437,6 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		camera_invalidate(&compositor->visual->camera);
 #endif
 
-		if (compositor->has_size_info) {
-			compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
-			compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
-		} else {
-			compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
-			compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
-		}
-
-
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Main scene setup - pixel metrics %d - center coords %d\n", compositor->traverse_state->pixel_metrics, compositor->visual->center_coords));
 
 #ifndef GPAC_DISABLE_3D
@@ -1476,14 +1467,6 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 
 		compositor->draw_next_frame = 0;
 
-		if (compositor->has_size_info) {
-			compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
-			compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
-		} else {
-			compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
-			compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
-		}
-
 #ifndef GPAC_DISABLE_LOG
 		if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RTI)) { 
 			compositor->visual_config_time = gf_sys_clock() - time;
@@ -1499,7 +1482,11 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 	compositor->traverse_state->direct_draw = flags;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Drawing done\n"));
 
-	compositor->recompute_ar = 0;
+	/*only send the resize notification once the frame has been dra*/
+	if (compositor->recompute_ar) {
+		compositor_send_resize_event(compositor, 0, 0, 0, 1);
+		compositor->recompute_ar = 0;
+	}
 }
 
 
@@ -2105,8 +2092,14 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 	case GF_JSAPI_OP_SET_TIME: /*seek_to(param->time);*/ return 0;
 	/*FIXME - this will not work for inline docs, we will have to store the clipper at the <svg> level*/
 	case GF_JSAPI_OP_GET_VIEWPORT: 
-		param->rc = gf_rect_ft(&compositor->visual->top_clipper); 
-		if (!compositor->visual->center_coords) param->rc.y = param->rc.height - param->rc.y;
+#ifndef GPAC_DISABLE_SVG
+		if (compositor_svg_get_viewport(n, &param->rc)) return 1;
+#endif
+		param->rc = gf_rect_center(compositor->traverse_state->vp_size.x, compositor->traverse_state->vp_size.y); 
+		if (!compositor->visual->center_coords) {
+			param->rc.x = 0;
+			param->rc.y = 0;
+		}
 		return 1;
 	case GF_JSAPI_OP_SET_FOCUS: compositor->focus_node = param->node; return 1;
 	case GF_JSAPI_OP_GET_FOCUS: param->node = compositor->focus_node; return 1;

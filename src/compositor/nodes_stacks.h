@@ -274,6 +274,7 @@ void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node)
 GF_TextureHandler *compositor_svg_get_gradient_texture(GF_Node *node);
 GF_TextureHandler *compositor_svg_get_image_texture(GF_Node *node);
 
+Bool compositor_svg_get_viewport(GF_Node *n, GF_Rect *rc);
 #endif
 
 GF_TextureHandler *compositor_mpeg4_get_gradient_texture(GF_Node *node);

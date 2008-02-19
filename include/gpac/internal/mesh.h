@@ -42,7 +42,7 @@
 
 /*by default we store normals as signed bytes rather than floats*/
 
-//#define MESH_USE_FIXED_NORMAL
+#define MESH_USE_FIXED_NORMAL
 #ifdef MESH_USE_FIXED_NORMAL
 #define MESH_SET_NORMAL(_vertex, _nor) _vertex.normal = _nor;
 #define MESH_GET_NORMAL(_nor, _vertex) _nor = _vertex.normal;

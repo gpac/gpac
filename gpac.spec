@@ -1,4 +1,4 @@
-# $Id: gpac.spec,v 1.3 2007-05-31 17:27:07 jeanlf Exp $
+# $Id: gpac.spec,v 1.4 2008-02-19 13:06:00 jeanlf Exp $
 Summary: GPAC is a multimedia framework covering MPEG-4, VRML/X3D and SVG.
 Name: gpac
 Version: 0.4.4
@@ -17,6 +17,7 @@ Requires: SDL
 %{!?_without_mad:Requires: libmad}
 %{!?_without_xvid:Requires: xvidcore}
 %{!?_without_ffmpeg:Requires: ffmpeg}
+%{!?_without_jack:Requires: libjack}
 BuildRequires: SDL-devel
 %{!?_without_js:BuildRequires: js-devel}
 %{!?_without_freetype:BuildRequires: freetype-devel}
@@ -26,6 +27,7 @@ BuildRequires: SDL-devel
 %{!?_without_mad:BuildRequires: libmad-devel}
 %{!?_without_xvid:BuildRequires: xvidcore-devel}
 %{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
+%{!?_without_jack:BuildRequires: libjack-devel}
 
 %description
 GPAC is a multimedia framework for MPEG-4, VRML/X3D and SVG/SMIL. GPAC is built upon an implementation of the MPEG-4 Systems 
@@ -69,7 +71,7 @@ cd ../../..
 %endif
 
 %build
-%configure     --enable-oss-audio     %{?_with_amr: --enable-amr-nb}     %{?_without_js: --disable-js}     %{?_without_freetype: --disable-ft}     %{?_without_faad: --disable-faad}     %{?_without_jpeg: --disable-jpeg}     %{?_without_png: --disable-png}     %{?_without_mad: --disable-mad}     %{?_without_xvid: --disable-xvid}     %{?_without_ffmpeg: --disable-ffmpeg}
+%configure     --enable-oss-audio     %{?_with_amr: --enable-amr-nb}     %{?_without_js: --disable-js}     %{?_without_freetype: --disable-ft}     %{?_without_faad: --disable-faad}     %{?_without_jpeg: --disable-jpeg}     %{?_without_png: --disable-png}     %{?_without_mad: --disable-mad}     %{?_without_xvid: --disable-xvid}     %{?_without_ffmpeg: --disable-ffmpeg} %{?_without_jack: --disable-jack}
 make
 
 %install
@@ -92,6 +94,8 @@ rm -rf %{buildroot}
 %{_mandir}/man1/*
 
 %changelog
+* Wed Feb 13 2008 Pierre Souchay
+- Added libjack
 * Wed Jul 13 2005 Jean Le Feuvre
 - Updated for GPAC LGPL release
 * Mon Aug 09 2004 Sverker Abrahamsson <sverker@abrahamsson.com>

@@ -57,6 +57,7 @@ has_vorbis="no"
 has_theora="no"
 has_oss_audio="no"
 has_alsa="no"
+has_jack="no"
 has_x11="no"
 has_x11_shm="no"
 disable_svg="no"
@@ -802,7 +803,16 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_alsa="yes"
 fi
 
+# look for alsa
+cat > $TMPC << EOF
+#include <jack/jack.h>
+int main( void ) {
+}
+EOF
 
+if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+has_jack="yes"
+fi
 
 
 
@@ -811,6 +821,8 @@ for opt do
   --sdl-cfg=*) sdl_path=`echo $opt | cut -d '=' -f 2`; sdl_local="yes"
   ;;
   --enable-sdl-static=*) sdl_static="yes"
+  ;;
+  --enable-jack=*) has_jack="yes"
   ;;
   --X11-path=*) X11_PATH=`echo $opt | cut -d '=' -f 2`
   ;;
@@ -827,6 +839,8 @@ for opt do
   --enable-amr) has_amr_wb="yes"; has_amr_nb="yes"
   ;;
   --disable-oggvorbis) has_oggvorbis="no"
+  ;;
+  --disable-jack=*) has_jack="no"
   ;;
   --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
   ;;
@@ -1060,6 +1074,7 @@ else
 echo "OSS Audio: yes"
 fi
 echo "ALSA Audio: $has_alsa"
+echo "Jack Audio: $has_jack"
 echo "X11 Shared Memory support: $has_x11_shm (path: $X11_PATH)"
 fi
 
@@ -1251,6 +1266,7 @@ echo "CONFIG_THEORA=$has_theora" >> config.mak
 echo "CONFIG_FFMPEG=$has_ffmpeg" >> config.mak
 echo "CONFIG_OSS_AUDIO=$has_oss_audio" >> config.mak
 echo "CONFIG_ALSA=$has_alsa" >> config.mak
+echo "CONFIG_JACK=$has_jack" >> config.mak
 echo "DISABLE_SVG=$disable_svg" >> config.mak
 echo "HAS_OPENGL=$has_opengl" >> config.mak
 if test "$has_opengl" = "yes" ; then

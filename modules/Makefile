@@ -51,6 +51,10 @@ ifeq ($(CONFIG_ALSA), yes)
 PLUGDIRS+=alsa
 endif
 
+ifeq ($(CONFIG_JACK), yes)
+PLUGDIRS+=jack
+endif
+
 ifeq ($(CONFIG_SDL), yes)
 PLUGDIRS+=sdl_out
 endif

@@ -344,16 +344,13 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 {
 	Double ratio;
 	GF_Event evt;
+	GF_Err e;
 	Fixed scaleX, scaleY;
-
-/*
-	if (!compositor->scene_height || !compositor->scene_width) return GF_OK;
-	if (!compositor->display_height || !compositor->display_width) return GF_OK;
-*/
 
 	compositor->output_width = compositor->scene_width;
 	compositor->output_height = compositor->scene_height;
 	compositor->vp_x = compositor->vp_y = 0;
+	scaleX = scaleY = FIX_ONE;
 
 	/*force complete clean*/
 	compositor->traverse_state->invalidate_all = 1;
@@ -363,92 +360,127 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 		compositor->output_height = compositor->display_height;
 		compositor->vp_width = compositor->visual->width = compositor->output_width;
 		compositor->vp_height = compositor->visual->height = compositor->output_height;
-		compositor_set_ar_scale(compositor, FIX_ONE, FIX_ONE);
-		/*and resize hardware surface*/
-		evt.type = GF_EVENT_VIDEO_SETUP;
-		evt.setup.width = compositor->output_width;
-		evt.setup.height = compositor->output_height;
-		evt.setup.opengl_mode = 0;
-		return compositor->video_out->ProcessEvent(compositor->video_out, &evt);
-	}
-	compositor->vp_width = compositor->display_width;
-	compositor->vp_height = compositor->display_height;
-
-	switch (compositor->aspect_ratio) {
-	case GF_ASPECT_RATIO_FILL_SCREEN:
-		break;
-	case GF_ASPECT_RATIO_16_9:
-		compositor->vp_width = compositor->display_width;
-		compositor->vp_height = 9 * compositor->display_width / 16;
-		if (compositor->vp_height>compositor->display_height) {
-			compositor->vp_height = compositor->display_height;
-			compositor->vp_width = 16 * compositor->display_height / 9;
-		}
-		break;
-	case GF_ASPECT_RATIO_4_3:
-		compositor->vp_width = compositor->display_width;
-		compositor->vp_height = 3 * compositor->display_width / 4;
-		if (compositor->vp_height>compositor->display_height) {
-			compositor->vp_height = compositor->display_height;
-			compositor->vp_width = 4 * compositor->display_height / 3;
-		}
-		break;
-	default:
-		ratio = compositor->scene_height;
-		ratio /= compositor->scene_width;
-		if (compositor->vp_width * ratio > compositor->vp_height) {
-			compositor->vp_width = compositor->vp_height * compositor->scene_width;
-			compositor->vp_width /= compositor->scene_height;
-		}
-		else {
-			compositor->vp_height = compositor->vp_width * compositor->scene_height;
-			compositor->vp_height /= compositor->scene_width;
-		}
-		break;
-	}
-	compositor->vp_x = (compositor->display_width - compositor->vp_width) / 2;
-	compositor->vp_y = (compositor->display_height - compositor->vp_height) / 2;
-
-	scaleX = gf_divfix(INT2FIX(compositor->vp_width), INT2FIX(compositor->scene_width));
-	if (!scaleX) scaleX = FIX_ONE;
-	scaleY = gf_divfix(INT2FIX(compositor->vp_height), INT2FIX(compositor->scene_height));
-	if (!scaleY) scaleY = FIX_ONE;
-
-	if (!compositor->scalable_zoom) {
-		compositor->output_width = compositor->scene_width;
-		compositor->output_height = compositor->scene_height;
-		compositor->vp_width = FIX2INT(gf_divfix(INT2FIX(compositor->display_width), scaleX));
-		compositor->vp_height = FIX2INT(gf_divfix(INT2FIX(compositor->display_height), scaleY));
-
-		compositor->vp_x = (compositor->vp_width - compositor->output_width) / 2;
-		compositor->vp_y = (compositor->vp_height - compositor->output_height) / 2;
-
-		scaleX = scaleY = FIX_ONE;
 	} else {
-		compositor->output_width = compositor->vp_width;
-		compositor->output_height = compositor->vp_height;
 		compositor->vp_width = compositor->display_width;
 		compositor->vp_height = compositor->display_height;
+
+		switch (compositor->aspect_ratio) {
+		case GF_ASPECT_RATIO_FILL_SCREEN:
+			break;
+		case GF_ASPECT_RATIO_16_9:
+			compositor->vp_width = compositor->display_width;
+			compositor->vp_height = 9 * compositor->display_width / 16;
+			if (compositor->vp_height>compositor->display_height) {
+				compositor->vp_height = compositor->display_height;
+				compositor->vp_width = 16 * compositor->display_height / 9;
+			}
+			break;
+		case GF_ASPECT_RATIO_4_3:
+			compositor->vp_width = compositor->display_width;
+			compositor->vp_height = 3 * compositor->display_width / 4;
+			if (compositor->vp_height>compositor->display_height) {
+				compositor->vp_height = compositor->display_height;
+				compositor->vp_width = 4 * compositor->display_height / 3;
+			}
+			break;
+		default:
+			ratio = compositor->scene_height;
+			ratio /= compositor->scene_width;
+			if (compositor->vp_width * ratio > compositor->vp_height) {
+				compositor->vp_width = compositor->vp_height * compositor->scene_width;
+				compositor->vp_width /= compositor->scene_height;
+			}
+			else {
+				compositor->vp_height = compositor->vp_width * compositor->scene_height;
+				compositor->vp_height /= compositor->scene_width;
+			}
+			break;
+		}
+		compositor->vp_x = (compositor->display_width - compositor->vp_width) / 2;
+		compositor->vp_y = (compositor->display_height - compositor->vp_height) / 2;
+
+		scaleX = gf_divfix(INT2FIX(compositor->vp_width), INT2FIX(compositor->scene_width));
+		if (!scaleX) scaleX = FIX_ONE;
+		scaleY = gf_divfix(INT2FIX(compositor->vp_height), INT2FIX(compositor->scene_height));
+		if (!scaleY) scaleY = FIX_ONE;
+
+		if (!compositor->scalable_zoom) {
+			compositor->output_width = compositor->scene_width;
+			compositor->output_height = compositor->scene_height;
+			compositor->vp_width = FIX2INT(gf_divfix(INT2FIX(compositor->display_width), scaleX));
+			compositor->vp_height = FIX2INT(gf_divfix(INT2FIX(compositor->display_height), scaleY));
+
+			compositor->vp_x = (compositor->vp_width - compositor->output_width) / 2;
+			compositor->vp_y = (compositor->vp_height - compositor->output_height) / 2;
+
+			scaleX = scaleY = FIX_ONE;
+		} else {
+			compositor->output_width = compositor->vp_width;
+			compositor->output_height = compositor->vp_height;
+			compositor->vp_width = compositor->display_width;
+			compositor->vp_height = compositor->display_height;
+		}
+		compositor->visual->width = compositor->output_width;
+		compositor->visual->height = compositor->output_height;
 	}
-	compositor->visual->width = compositor->output_width;
-	compositor->visual->height = compositor->output_height;
-	/*set scale factor*/
-	compositor_set_ar_scale(compositor, scaleX, scaleY);
-//	gf_sc_invalidate(compositor, NULL);
-	compositor->draw_next_frame = 0;
-	/*and resize hardware surface*/
+
+	/*resize hardware surface*/
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	evt.setup.width = compositor->vp_width;
 	evt.setup.height = compositor->vp_height;
 	evt.setup.opengl_mode = 0;
-	return compositor->video_out->ProcessEvent(compositor->video_out, &evt);
+	e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
+	if (e) return e;
+
+	if (compositor->has_size_info) {
+		compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
+		compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
+	} else {
+		compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
+		compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
+	}
+	/*set scale factor*/
+	compositor_set_ar_scale(compositor, scaleX, scaleY);
+	return GF_OK;
 }
 
+void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed old_tx, Fixed old_ty, Bool is_resize)
+{
+	GF_Node *root;
+
+#ifndef GPAC_DISABLE_SVG
+	root = gf_sg_get_root_node(compositor->scene);
+	/*if root node is DOM, sent a resize event*/
+	if (root && (gf_node_get_tag(root) >= GF_NODE_FIRST_DOM_NODE_TAG)) {
+		GF_DOM_Event evt;
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.prev_scale = compositor->scale_x*old_z;
+		evt.new_scale = compositor->scale_x*compositor->zoom;
+
+		if (is_resize) {
+			evt.type = GF_EVENT_RESIZE;
+		} else if (evt.prev_scale == evt.new_scale) {
+			/*cannot get params for scroll events*/
+			evt.type = GF_EVENT_SCROLL;
+		} else {
+			evt.screen_rect.x = INT2FIX(compositor->vp_x);
+			evt.screen_rect.y = INT2FIX(compositor->vp_y);
+			evt.screen_rect.width = INT2FIX(compositor->output_width);
+			evt.screen_rect.height = INT2FIX(compositor->output_height);
+			evt.prev_translate.x = old_tx;
+			evt.prev_translate.y = old_ty;
+			evt.new_translate.x = compositor->trans_x;
+			evt.new_translate.y = compositor->trans_y;
+			evt.type = GF_EVENT_ZOOM;
+		}
+		gf_dom_event_fire(gf_sg_get_root_node(compositor->scene), NULL, &evt);
+	}
+#endif
+}
 void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fixed tx, Fixed ty, Bool is_resize) 
 {
 	Fixed ratio;
 	Fixed old_tx, old_ty, old_z;
-	GF_Node *root;
 	
 	gf_sc_lock(compositor, 1);
 	old_tx = tx;
@@ -492,37 +524,13 @@ void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fix
 	compositor->draw_next_frame = 1;
 	compositor->traverse_state->invalidate_all = 1;
 
-#ifndef GPAC_DISABLE_SVG
-	root = gf_sg_get_root_node(compositor->scene);
-	/*if root node is DOM, sent a resize event*/
-	if (root && (gf_node_get_tag(root) >= GF_NODE_FIRST_DOM_NODE_TAG)) {
-		GF_DOM_Event evt;
-		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.prev_scale = compositor->scale_x*old_z;
-		evt.new_scale = compositor->scale_x*compositor->zoom;
-
-		if (is_resize) {
-			evt.type = GF_EVENT_RESIZE;
-		} else if (evt.prev_scale == evt.new_scale) {
-			/*cannot get params for scroll events*/
-			evt.type = GF_EVENT_SCROLL;
-		} else {
-			evt.screen_rect.x = INT2FIX(compositor->vp_x);
-			evt.screen_rect.y = INT2FIX(compositor->vp_y);
-			evt.screen_rect.width = INT2FIX(compositor->output_width);
-			evt.screen_rect.height = INT2FIX(compositor->output_height);
-			evt.prev_translate.x = old_tx;
-			evt.prev_translate.y = old_ty;
-			evt.new_translate.x = compositor->trans_x;
-			evt.new_translate.y = compositor->trans_y;
-			evt.type = GF_EVENT_ZOOM;
-		}
-		gf_dom_event_fire(gf_sg_get_root_node(compositor->scene), NULL, &evt);
-	}
-#endif
-
+	/*for zoom&pan, send the event right away. For resize/scroll, wait for the frame to be drawn before sending it
+	otherwise viewport info of SVG nodes won't be correct*/
+	if (!is_resize) compositor_send_resize_event(compositor, old_z, old_tx, old_ty, 0);
 	gf_sc_lock(compositor, 0);
 }
+
+
 
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer)
 {

@@ -42,8 +42,8 @@ typedef struct
 	GF_Matrix2D viewbox_mx;
 	Drawable *vp_fill;
 	u32 prev_color;
-	/*previous parent VP size used to compute the vp->ViewBox matrix*/
-	SFVec2f prev_vp;
+	/*parent VP size used to compute the vp->ViewBox matrix*/
+	SFVec2f parent_vp;
 	/*current VP size used by all children*/
 	SFVec2f vp;
 } SVGsvgStack;
@@ -78,7 +78,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 		doc_height = atts->height ? atts->height->value : 0;
 	}
 
-	stack->prev_vp = tr_state->vp_size;
+	stack->vp = stack->parent_vp = tr_state->vp_size;
 
 	vb = atts->viewBox;
 
@@ -319,7 +319,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 	is_dirty = gf_node_dirty_get(node);
 	gf_node_dirty_clear(node, 0);
-	if ((stack->prev_vp.x != tr_state->vp_size.x) || (stack->prev_vp.y != tr_state->vp_size.y))
+	if ((stack->parent_vp.x != tr_state->vp_size.x) || (stack->parent_vp.y != tr_state->vp_size.y))
 		is_dirty = 1;
 
 	if (is_dirty || tr_state->visual->compositor->recompute_ar) 
@@ -448,6 +448,18 @@ void compositor_init_svg_svg(GF_Compositor *compositor, GF_Node *node)
 
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_svg);
+}
+
+Bool compositor_svg_get_viewport(GF_Node *n, GF_Rect *rc) 
+{
+	SVGsvgStack *stack;
+	if (gf_node_get_tag(n) != TAG_SVG_svg) return 0;
+	stack = gf_node_get_private(n);
+	rc->width = stack->parent_vp.x;
+	rc->height = stack->parent_vp.y;
+	/*not supported yet*/
+	rc->x = rc->y = 0;
+	return 1;
 }
 
 
