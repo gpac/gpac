@@ -50,8 +50,8 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 	compositor->vp_x = 0;
 	compositor->vp_y = 0;
 
+	scaleX = scaleY = FIX_ONE;
 	if (!compositor->has_size_info) {
-		compositor_set_ar_scale(compositor, FIX_ONE, FIX_ONE);
 		compositor->visual->width = compositor->vp_width;
 		compositor->visual->height = compositor->vp_height;
 	} else {
@@ -88,8 +88,17 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 		/*scaling is still needed for bitmap*/
 		scaleX = gf_divfix(INT2FIX(compositor->vp_width), INT2FIX(compositor->scene_width));
 		scaleY = gf_divfix(INT2FIX(compositor->vp_height), INT2FIX(compositor->scene_height));
-		compositor_set_ar_scale(compositor, scaleX, scaleY);
 	}
+
+	if (compositor->has_size_info) {
+		compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
+		compositor->traverse_state->vp_size.y = INT2FIX(compositor->scene_height);
+	} else {
+		compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
+		compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
+	}
+	compositor_set_ar_scale(compositor, scaleX, scaleY);
+
 
 	/*and resetup OpenGL*/
 	evt.type = GF_EVENT_VIDEO_SETUP;

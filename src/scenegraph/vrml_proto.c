@@ -563,6 +563,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 
 		/*this is an hardcoded proto - all routes, node modifications and co are handled internally*/
 		if (extern_lib == GF_SG_INTERNAL_PROTO) {
+			proto_node->sgprivate->flags |= GF_SG_NODE_DIRTY;
 			owner->parent_graph->NodeCallback(owner->parent_graph->userpriv, GF_SG_CALLBACK_INIT, (GF_Node *) proto_node, NULL);
 			return;
 		}
@@ -762,6 +763,7 @@ u32 gf_sg_proto_get_num_fields(GF_Node *node, u8 code_mode)
 
 void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 {
+	GF_SceneGraph *sg;
 	GF_ProtoField *field;
 	GF_Node *node;
 	u32 index;
@@ -808,7 +810,7 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 
 	if (inst->proto_interface) gf_list_del_item(inst->proto_interface->instances, inst);
 
-	gf_sg_del(inst->sgprivate->scenegraph);
+	sg = inst->sgprivate->scenegraph;
 
 #ifdef GF_NODE_USE_POINTERS
 	/*this is duplicated for proto since a proto declaration may be destroyed while instances are active*/
@@ -818,6 +820,9 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 #endif
 
 	gf_node_free((GF_Node *)inst);
+	/*and finally destroy the scene graph - do it last to handle the case of hardcoded protos which may need
+	the scenegraph pointer when being destroyed*/
+	gf_sg_del(sg);
 }
 
 /*Note on ISed fields: we cannot support fan-in on proto, eg we assume only one eventIn field can recieve events

@@ -921,6 +921,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res);
 
+void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed old_tx, Fixed old_ty, Bool is_resize);
+
 #ifndef GPAC_DISABLE_3D
 
 GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *sr);
