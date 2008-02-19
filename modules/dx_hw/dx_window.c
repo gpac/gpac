@@ -760,7 +760,7 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		switch (evt->setup.opengl_mode) {
 		case 0:
 			ctx->output_3d_type = 0;
-			return DD_SetBackBufferSize(dr, evt->size.width, evt->size.height);
+			return DD_SetBackBufferSize(dr, evt->setup.width, evt->setup.height, evt->setup.system_memory);
 		case 1:
 			ctx->output_3d_type = 1;
 			ctx->width = evt->setup.width;

@@ -66,6 +66,8 @@ enum
 	/*HW supports OpenGL offscreen rendering with alpha. Whether this is OpenGL or OpenGL-ES depends on compilation settings
 	and cannot be changed at runtime*/
 	GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA = (1<<6),
+	/*HW supports YUV overlays*/
+	GF_VIDEO_HW_HAS_YUV_OVERLAY = (1<<7),
 };
 
 /*interface name and version for video output*/
@@ -148,8 +150,9 @@ typedef struct _video_out
 	/*blit surface src to backbuffer - if a window is not specified, the full surface is used
 	the blitter MUST support stretching and RGB24 sources. Support for YUV is indicated in the hw caps
 	of the driver. If none is supported, just set this function to NULL and let gpac performs software blitting.
-	Whenever this function fails, the blit will be performed in software mode*/
-	GF_Err (*Blit)(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, GF_ColorKey *key);
+	Whenever this function fails, the blit will be performed in software mode
+	if is_overlay is set, this is an overlay on the video memory (Flush would have been called before)*/
+	GF_Err (*Blit)(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, GF_ColorKey *key, Bool is_overlay);
 
 	/*set of above HW flags*/
 	u32 hw_caps;

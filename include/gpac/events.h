@@ -454,6 +454,8 @@ typedef struct
 	u16 width, height;
 	/*indicates whether double buffering is desired*/
 	Bool back_buffer;
+	/*indicates whether system memory for the backbuffer is desired (no video blitting)*/
+	Bool system_memory;
 	/*indicates whether opengl context shall be created. Values are:
 		0: no opengl context shall be created
 		1: opengl context shall be created for the main window and set as the current one

@@ -236,6 +236,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	/*reset display list*/
 	visual->cur_context = visual->context;
 	if (visual->context) visual->context->drawable = NULL;
+	visual->has_modif = 0;
 
 	visual_2d_setup_projection(visual, tr_state);
 
@@ -467,6 +468,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 #ifndef TRACK_OPAQUE_REGIONS
 	DrawableContext *first_opaque = NULL;
 #endif
+	Bool has_clear = 0;
 	Bool has_changed = 0;
 
 	/*in direct mode the visual is always redrawn*/
@@ -535,6 +537,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			if (!redraw_all) {
 				ra_union_rect(&visual->to_redraw, &refreshRect);
 //				CHECK_MAX_NODE
+				has_clear=1;
 			}
 		}
 		/*if node is marked as undrawn, remove from visual*/
@@ -582,8 +585,10 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 
 #ifndef TRACK_OPAQUE_REGIONS
-	if (first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0]))
+	if (first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0])) {
+		visual->has_modif=0;
 		goto skip_background;
+	}
 #endif
 
 	/*redraw everything*/
@@ -614,6 +619,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			visual_2d_clear(visual, &rc, 0);
 		}
 	}
+	if (!redraw_all && !has_clear) visual->has_modif=0;
 
 #ifndef TRACK_OPAQUE_REGIONS
 skip_background:

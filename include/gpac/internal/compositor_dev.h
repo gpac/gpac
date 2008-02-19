@@ -293,6 +293,7 @@ struct __tag_compositor
 	/*user rotation angle - ALWAYS CENTERED*/
 	Fixed rotation;
 
+	Bool skip_flush;
 #ifndef GPAC_DISABLE_SVG
 	u32 num_clicks;
 #endif

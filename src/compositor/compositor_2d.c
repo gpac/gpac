@@ -96,9 +96,9 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	GF_VideoSurface video_src;
 	Fixed w_scale, h_scale, tmp;
 	GF_Err e;
-	Bool use_soft_stretch, use_blit;
+	Bool use_soft_stretch, use_blit, use_overlay, flush_video;
 	GF_Window src_wnd, dst_wnd;
-	u32 output_width, output_height;
+	u32 output_width, output_height, hw_caps;
 	GF_IRect clipped_final = *clip;
 	GF_Rect final = *unclip;
 
@@ -212,10 +212,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	
 #undef ROUND_FIX
 
-	/*avoid partial redraw that don't come close to src pixels with the bliter, this leads to 
-	ugly artefacts - fall back to rasterizer*/
-	if (!use_blit && (src_wnd.x || src_wnd.y) ) return 0;
-
 	if (src_wnd.w>txh->width) src_wnd.w=txh->width;
 	if (src_wnd.h>txh->height) src_wnd.h=txh->height;
 
@@ -225,48 +221,99 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	if (src_wnd.y + src_wnd.h>txh->height) src_wnd.h = txh->height - src_wnd.y;
 
 	/*can we use hardware blitter ?*/
+	hw_caps = visual->compositor->video_out->hw_caps;
+	use_overlay = 0;
+	flush_video = 0;
 	use_soft_stretch = 1;
-	if (!visual->compositor->disable_partial_hw_blit 
-		|| ((src_wnd.w==txh->width) && (src_wnd.h==txh->height) )) {
-		if (!ctx->col_mat && (alpha==0xFF) && visual->compositor->video_out->Blit) {
-			u32 hw_caps = visual->compositor->video_out->hw_caps;
 
-			switch (txh->pixelformat) {
-			case GF_PIXEL_RGB_24:
-			case GF_PIXEL_BGR_24:
-				use_soft_stretch = 0;
-				break;
-			case GF_PIXEL_YV12:
-			case GF_PIXEL_IYUV:
-			case GF_PIXEL_I420:
-				if (visual->compositor->enable_yuv_hw && (hw_caps & GF_VIDEO_HW_HAS_YUV))
-					use_soft_stretch = 0;
-				break;
-			default:
-				break;
-			}
-			/*disable HW color keying*/
-			if (col_key) {
-//				if ((col_key->alpha!=0xFF) || !(hw_caps & GF_VIDEO_HW_HAS_COLOR_KEY)) use_soft_stretch = 1;
-				use_soft_stretch = 1;
-			}
+	switch (txh->pixelformat) {
+	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_BGR_24:
+		use_soft_stretch = 0;
+		break;
+	case GF_PIXEL_YV12:
+	case GF_PIXEL_IYUV:
+	case GF_PIXEL_I420:
+		if (hw_caps & GF_VIDEO_HW_HAS_YUV) use_soft_stretch = 0;
+		if (hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) use_overlay = 1;
+		break;
+	default:
+		break;
+	}
+	/*disable based on settings*/
+	if (!visual->compositor->enable_yuv_hw
+		|| (ctx->col_mat || (alpha!=0xFF) || !visual->compositor->video_out->Blit) 
+		) {
+		use_soft_stretch = 1;
+		use_overlay = 0;
+	}
+	if (visual->compositor->disable_partial_hw_blit || ((src_wnd.w==txh->width) && (src_wnd.h==txh->height) )) {
+		use_soft_stretch = 1;
+	}
+
+	/*disable HW color keying - not compatible with MPEG-4 MaterialKey*/
+	if (col_key) {
+//		if ((col_key->alpha!=0xFF) || !(hw_caps & GF_VIDEO_HW_HAS_COLOR_KEY)) use_soft_stretch = 1;
+		use_soft_stretch = 1;
+		use_overlay = 0;
+	}
+
+	if (use_overlay) {
+		if (ctx->next && ctx->next->drawable) {
+			use_overlay = 0;
+		}
+		/*OK we can overlay this video - if full display, don't flush*/
+		if (use_overlay) {
+			if (dst_wnd.w==visual->compositor->display_width) flush_video = 0;
+			else if (dst_wnd.h==visual->compositor->display_height) flush_video = 0;
+			else flush_video = visual->has_modif;
 		}
 	}
 
-	/*most graphic cards can't perform bliting on locked surface - force unlock by releasing the hardware*/
-	visual_2d_release_raster(visual);
+	/*avoid partial redraw that don't come close to src pixels with the bliter, this leads to  ugly artefacts - 
+	fall back to rasterizer*/
+	else if (!use_blit && (src_wnd.x || src_wnd.y) ) 
+		return 0;
 
 	video_src.height = txh->height;
 	video_src.width = txh->width;
 	video_src.pitch = txh->stride;
 	video_src.pixel_format = txh->pixelformat;
 	video_src.video_buffer = txh->data;
+	if (use_overlay) {
+		use_soft_stretch = 0;
+		if (flush_video) {
+			GF_Window rc;
+			rc.x = rc.y = 0; 
+			rc.w = visual->compositor->display_width;	
+			rc.h = visual->compositor->display_height;
+
+			visual_2d_release_raster(visual);
+			visual->compositor->video_out->Flush(visual->compositor->video_out, &rc);
+			visual_2d_init_raster(visual);
+		}
+		visual->compositor->skip_flush = 1;
+
+		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, col_key, 1);
+		if (!e) {
+			visual->has_overlays = 1;
+			return 1;
+		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during overlay blit - trying with soft one\n"));
+		visual->compositor->skip_flush = 0;
+	}
+	
+	/*most graphic cards can't perform bliting on locked surface - force unlock by releasing the hardware*/
+	visual_2d_release_raster(visual);
+
 	if (!use_soft_stretch) {
-		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, col_key);
+		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, col_key, 0);
 		/*HW pb, try soft*/
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during hardware blit - trying with soft one\n"));
 			use_soft_stretch = 1;
+		} else {
+			visual->has_modif = 1;
 		}
 	}
 	if (use_soft_stretch) {
@@ -341,6 +388,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 
 GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 {
+	u32 i, count;
 	Double ratio;
 	GF_Event evt;
 	GF_Err e;
@@ -428,6 +476,17 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.setup.width = compositor->vp_width;
 	evt.setup.height = compositor->vp_height;
 	evt.setup.opengl_mode = 0;
+	evt.setup.system_memory = 1;
+
+	count = gf_list_count(compositor->textures);
+	for (i=0; i<count; i++) {
+		GF_TextureHandler *txh = gf_list_get(compositor->textures, i);
+		if ((txh->pixelformat==GF_PIXEL_YV12) && txh->stream) {
+			evt.setup.system_memory = 0;
+			break;
+		}
+	}
+
 	e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 	if (e) return e;
 

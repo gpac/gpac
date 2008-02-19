@@ -144,6 +144,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 		}
 		ctx->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
 	}
+	tr_state->visual->has_modif = 1;
 }
 
 #ifndef GPAC_DISABLE_3D
