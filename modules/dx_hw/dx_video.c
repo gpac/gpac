@@ -304,12 +304,11 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 }
 
 
-static GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
+GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
 	RECT rc;
 	HRESULT hr;
 	DDCONTEXT;
-
 
 	if (!dd) return GF_BAD_PARAM;
 	if (dd->output_3d_type==1) {
@@ -335,6 +334,9 @@ static GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		dr->LockOSContext(dr, 0);
 		return GF_OK;
 	}
+
+	IDirectDraw_WaitForVerticalBlank(dd->pDD, DDWAITVB_BLOCKBEGIN, NULL);
+	
 	if (dest) {
 		POINT pt;
 		pt.x = dest->x;
@@ -343,9 +345,9 @@ static GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		dest->x = pt.x;
 		dest->y = pt.y;
 		MAKERECT(rc, dest);
-		hr = IDirectDrawSurface_Blt(dd->pPrimary, &rc, dd->pBack, NULL, DDBLT_WAIT, NULL );
+		hr = IDirectDrawSurface_Blt(dd->pPrimary, &rc, dd->pBack, NULL, DDBLT_WAIT, NULL);
 	} else {
-		hr = IDirectDrawSurface_Blt(dd->pPrimary, NULL, dd->pBack, NULL, DDBLT_WAIT, NULL );
+		hr = IDirectDrawSurface_Blt(dd->pPrimary, NULL, dd->pBack, NULL, DDBLT_WAIT, NULL);
 	}
 	if (hr == DDERR_SURFACELOST) {
 		IDirectDrawSurface_Restore(dd->pPrimary);

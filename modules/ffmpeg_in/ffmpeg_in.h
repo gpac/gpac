@@ -72,6 +72,7 @@ typedef struct
     AVCodec *codec;
 	AVFrame *frame;
 	u32 pix_fmt;
+	u32 out_pix_fmt;
 
 	/*for audio packed frames*/
 	u32 frame_start;

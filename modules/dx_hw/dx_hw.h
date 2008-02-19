@@ -83,7 +83,6 @@ typedef struct
 	Bool fullscreen;
 	Bool systems_memory;
 
-
 	u32 width, height;
 	u32 fs_width, fs_height;
 	u32 fs_store_width, fs_store_height;
@@ -140,8 +139,9 @@ void DD_SetupDDraw(GF_VideoOutput *driv);
 GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height);
 void DD_InitYUV(GF_VideoOutput *dr);
 
-GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height);
+GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_system_memory);
 
+GF_Err DD_FlushEx(GF_VideoOutput *dr, GF_Window *dest, Bool wait_for_sync);
 
 void dx_copy_pixels(GF_VideoSurface *dst_s, GF_VideoSurface *src_s, GF_Window *src_wnd);
 

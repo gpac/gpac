@@ -84,6 +84,8 @@ struct _visual_manager
 	/*signals that the hardware surface is attached to buffer/device/stencil*/
 	Bool is_attached;
 	Bool center_coords;
+	Bool has_modif;
+	Bool has_overlays;
 
 	/*gets access to graphics handle (either OS-specific or raw memory)*/
 	GF_Err (*GetSurfaceAccess)(GF_VisualManager *);

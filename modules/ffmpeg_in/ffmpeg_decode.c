@@ -273,7 +273,14 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 			break;
 		}
 		ffd->out_size = ffd->ctx->width * ffd->ctx->height * 3;
-		if (ffd->pix_fmt!=GF_PIXEL_RGB_24) ffd->out_size /= 2;
+
+		ffd->out_pix_fmt = ffd->pix_fmt;
+#if defined(_WIN32_WCE) ||  defined(__SYMBIAN32__)
+#else
+//		if (ffd->pix_fmt == GF_PIXEL_YV12) ffd->out_pix_fmt = GF_PIXEL_RGB_24;
+#endif
+
+		if (ffd->out_pix_fmt != GF_PIXEL_RGB_24) ffd->out_size /= 2;
 	}
 
 #if 0
@@ -353,7 +360,8 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueInt = ffd->ctx->height;
 		break;
 	case GF_CODEC_STRIDE:
-		capability->cap.valueInt = (ffd->pix_fmt==GF_PIXEL_RGB_24) ? ffd->ctx->width*3 : ffd->ctx->width;
+		capability->cap.valueInt = ffd->ctx->width;
+		if (ffd->out_pix_fmt==GF_PIXEL_RGB_24) capability->cap.valueInt *= 3;
 		break;
 	case GF_CODEC_FPS:
 		capability->cap.valueFloat = 30.0f;
@@ -362,9 +370,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueInt = ffd->previous_par;
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
-		if (ffd->ctx->width) {
-			capability->cap.valueInt = ffd->pix_fmt;
-		}
+		if (ffd->ctx->width) capability->cap.valueInt = ffd->out_pix_fmt;
 		break;
 	/*ffmpeg performs frame reordering internally*/
 	case GF_CODEC_REORDER:
@@ -561,7 +567,7 @@ redecode:
 		/*recompute outsize in case on-the-fly change*/
 		if ((w != ffd->ctx->width) || (h != ffd->ctx->height)) {
 			outsize = ffd->ctx->width * ffd->ctx->height * 3;
-			if (ffd->pix_fmt!=GF_PIXEL_RGB_24) outsize /= 2;
+			if (ffd->out_pix_fmt != GF_PIXEL_RGB_24) outsize /= 2;
 			ffd->out_size = outsize;
 			*outBufferLength = ffd->out_size;
 			if (ffd->check_h264_isma) {
@@ -618,7 +624,7 @@ redecode:
 			AVPicture pict;
 			u32 pix_out;
 			memset(&pict, 0, sizeof(pict));
-			if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
+			if (ffd->out_pix_fmt==GF_PIXEL_RGB_24) {
 				pict.data[0] = outBuffer;
 				pict.linesize[0] = 3*ffd->ctx->width;
 				pix_out = PIX_FMT_RGB24;
@@ -632,6 +638,7 @@ redecode:
 				if (!mmlevel && ffd->frame->interlaced_frame) {
 					avpicture_deinterlace((AVPicture *) ffd->frame, (AVPicture *) ffd->frame, ffd->ctx->pix_fmt, ffd->ctx->width, ffd->ctx->height);
 				}
+
 			}
 			pict.data[3] = 0;
 			pict.linesize[3] = 0;
