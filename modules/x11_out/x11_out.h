@@ -49,22 +49,15 @@ extern "C"
 #include <sys/shm.h>
 #endif
 
-#define X11VID()	XWindow *xWindow = (XWindow *)vout->opaque;
+#ifdef GPAC_HAS_X11_XV
+#include <X11/extensions/Xv.h>
+#include <X11/extensions/Xvlib.h>
+#endif
 
-#define VIDEO_XI_STANDARD     0x00	/* Use standard Xlib calls */
-#define VIDEO_XI_SHMSTD       0x01	/* Use Xlib shared memory extension */
-#define VIDEO_XI_SHMPIXMAP    0x02	/* Use shared memory pixmap */
+#define X11VID()	XWindow *xWindow = (XWindow *)vout->opaque;
 
 #define RGB555(r,g,b) (((r&248)<<7) + ((g&248)<<2)  + (b>>3))
 #define RGB565(r,g,b) (((r&248)<<8) + ((g&252)<<3)  + (b>>3))
-
-typedef struct
-{
-	unsigned char *buffer;	//surface buffer
-	u32 pitch, pixel_format, width, height, BPP;	//
-	u32 id;		//
-}
-X11WrapSurface;
 
 typedef struct
 {
@@ -80,16 +73,20 @@ typedef struct
 	XImage *surface;	//main drawing image: software mode
 	Atom WM_DELETE_WINDOW;	//window deletion
 
-	X11WrapSurface *back_buffer;	//back buffer
-	Colormap colormap;	//not for now
-	int videoaccesstype;	//
+	Bool use_shared_memory;	//
+	/*screensaver state*/
+        int ss_t, ss_b, ss_i, ss_e;
 
 #ifdef GPAC_HAS_X11_SHM
-	Pixmap pixmap;		//main drawing image : local sharememory mode
 	XShmSegmentInfo *shmseginfo;
 #endif
-	
-	GF_List *surfaces;	//surfaces list
+
+	/*YUV overlay*/	
+#ifdef GPAC_HAS_X11_XV
+	int xvport;
+	u32 xv_pf_format;
+	XvImage *overlay;
+#endif
 
 	Bool is_init, fullscreen, has_focus;
 

@@ -28,6 +28,184 @@
 
 void X11_SetupWindow (GF_VideoOutput * vout);
 
+
+#ifdef GPAC_HAS_X11_XV
+static void X11_DestroyOverlay(XWindow *xwin)
+{
+	if (xwin->overlay) XFree(xwin->overlay);
+	xwin->overlay = NULL;
+	xwin->xv_pf_format = 0;	
+	if (xwin->xvport>=0) {
+		XvUngrabPort(xwin->display, xwin->xvport, CurrentTime );
+		xwin->xvport = -1;
+	}
+}
+
+static Bool is_same_yuv(u32 pf, u32 a_pf)
+{
+	if (pf==a_pf) return 1;
+	return 0;
+	switch (pf) {
+	case GF_PIXEL_YV12:
+	case GF_PIXEL_I420:
+	case GF_PIXEL_IYUV:
+		switch (a_pf) {
+		case GF_PIXEL_YV12:
+		case GF_PIXEL_I420:
+		case GF_PIXEL_IYUV:
+			return 1;
+		default:
+			return 0;
+		}
+	case GF_PIXEL_UYVY:
+	case GF_PIXEL_UYNV:
+	case GF_PIXEL_Y422:
+		switch (a_pf) {
+		case GF_PIXEL_UYVY:
+		case GF_PIXEL_UYNV:
+		case GF_PIXEL_Y422:
+			return 1;
+		default:
+			return 0;
+		}
+	case GF_PIXEL_YUY2:
+	case GF_PIXEL_YUNV:
+		switch (a_pf) {
+		case GF_PIXEL_YUY2:
+		case GF_PIXEL_YUNV:
+			return 1;
+		default:
+			return 0;
+		}
+	}
+	return 0;
+}
+static u32 X11_GetPixelFormat(u32 pf)
+{
+	return GF_4CC((pf)&0xff, (pf>>8)&0xff, (pf>>16)&0xff, (pf>>24)&0xff);
+}
+static int X11_GetXVideoPort(XWindow *xwin, u32 pixel_format)
+{
+	XvAdaptorInfo *adaptors;
+	unsigned int i;
+	unsigned int nb_adaptors;
+	int selected_port;
+
+    if (XvQueryExtension(xwin->display, &i, &i, &i, &i, &i ) != Success) return -1;
+    if (XvQueryAdaptors(xwin->display, DefaultRootWindow(xwin->display), &nb_adaptors, &adaptors) != Success) return -1;
+
+    selected_port = -1;
+    for (i=0; i < nb_adaptors; i++) {
+        XvImageFormatValues *formats;
+        int j, num_formats, port;
+
+        if( !( adaptors[i].type & XvInputMask ) || !(adaptors[i].type & XvImageMask ) )
+            continue;
+
+        /* Check for our format... */
+        formats = XvListImageFormats(xwin->display, adaptors[i].base_id, &num_formats);
+
+        for (j=0; j<num_formats && (selected_port == -1 ); j++) {
+		XvAttribute *attr;
+		int k, nb_attributes;
+		u32 pformat = X11_GetPixelFormat(formats[j].id);
+
+		if( !is_same_yuv(pformat, pixel_format) ) continue;
+
+		/* Grab first port  supporting this format */
+		for (port=adaptors[i].base_id; (port < (int)(adaptors[i].base_id + adaptors[i].num_ports) ) && (selected_port == -1); port++) {
+			if (XvGrabPort(xwin->display, port, CurrentTime) == Success) {
+				selected_port = port;
+				xwin->xv_pf_format = formats[j].id;
+			}
+		}
+		if (selected_port == -1 )
+	                continue;
+
+		/* turn on XV_AUTOPAINT_COLORKEY */
+		attr = XvQueryPortAttributes(xwin->display, selected_port, &nb_attributes);
+		for (k=0; k<nb_attributes; k++ ) {
+	                if (!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
+        	            const Atom paint = XInternAtom(xwin->display, "XV_AUTOPAINT_COLORKEY", False);
+        	            XvSetPortAttribute(xwin->display, selected_port, paint, 1);
+        	            break;
+			}
+		}
+		if (attr != NULL) XFree(attr);
+        }
+        if (formats != NULL) XFree(formats);
+    }
+    if (nb_adaptors > 0) 
+	XvFreeAdaptorInfo(adaptors);
+
+   return selected_port;
+}
+static GF_Err X11_InitOverlay(GF_VideoOutput *vout, u32 VideoWidth, u32 VideoHeight)
+{
+	XWindow *xwin = (XWindow *)vout->opaque;
+	if (xwin->overlay && (VideoWidth<=xwin->overlay->width) && (VideoHeight<=xwin->overlay->height)) {
+		return GF_OK;	
+	}
+
+	X11_DestroyOverlay(xwin);
+
+	xwin->xvport = X11_GetXVideoPort(xwin, GF_PIXEL_I420);
+	if (xwin->xvport<0) 
+		xwin->xvport = X11_GetXVideoPort(xwin, GF_PIXEL_YUY2);
+
+	if (xwin->xvport<0) {
+		return GF_NOT_SUPPORTED;
+	}
+	vout->yuv_pixel_format = X11_GetPixelFormat(xwin->xv_pf_format);
+
+        /* Create overlay image */
+	xwin->overlay = XvCreateImage(xwin->display, xwin->xvport, xwin->xv_pf_format, NULL, VideoWidth, VideoHeight);
+	if (!xwin->overlay) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Xv Overlay Creation Failure\n"));
+		return GF_IO_ERR;
+	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Overlay init %d x %d - pixel format %s\n", 
+			VideoWidth, VideoHeight, 
+			gf_4cc_to_str(vout->yuv_pixel_format) ));
+	return GF_OK;
+}
+
+GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src, GF_Window *dest, GF_ColorKey *key, Bool is_overlay)
+{
+	GF_Err e;
+	Window cur_wnd;
+	XWindow *xwin = (XWindow *)vout->opaque;
+	if (!is_overlay) return GF_BAD_PARAM;
+
+	if (video_src->pixel_format != GF_PIXEL_YV12) return GF_NOT_SUPPORTED;
+
+	cur_wnd = xwin->fullscreen ? xwin->full_wnd : xwin->wnd;
+	/*init if needed*/
+	if ((xwin->xvport<0) || !xwin->overlay) {
+		e = X11_InitOverlay(vout, video_src->width, video_src->height);
+		if (e) return e;
+	}
+	/*different size, recreate an image*/
+	if ((xwin->overlay->width != video_src->width) || (xwin->overlay->height != video_src->height)) {
+		if (xwin->overlay) XFree(xwin->overlay);
+		xwin->overlay = XvCreateImage(xwin->display, xwin->xvport, xwin->xv_pf_format, NULL, video_src->width, video_src->height);
+		if (!xwin->overlay) return GF_IO_ERR;
+	}
+	xwin->overlay->num_planes = 3;
+	xwin->overlay->pitches[0] = video_src->width;
+	xwin->overlay->pitches[1] = xwin->overlay->pitches[2] = video_src->width/2;
+	xwin->overlay->offsets[0] = 0;
+	xwin->overlay->offsets[1] = video_src->width*video_src->height;
+	xwin->overlay->offsets[2] = 5*video_src->width*video_src->height/4;
+	xwin->overlay->data = video_src->video_buffer;
+        XvPutImage(xwin->display, xwin->xvport, cur_wnd, xwin->the_gc, xwin->overlay, 
+		src->x, src->y, src->w, src->h,
+		dest->x, dest->y, dest->w, dest->h);
+	return GF_OK;
+}
+#endif
+
 //=====================================
 /*
  * Flush video: draw main image(surface/pixmap) -> os_handle
@@ -54,21 +232,15 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
 		return GF_OK;
 	}
 
-	switch (xWindow->videoaccesstype) {
+	if (xWindow->use_shared_memory) {
 #ifdef GPAC_HAS_X11_SHM
-	case VIDEO_XI_SHMSTD:
 	  XShmPutImage (xWindow->display, cur_wnd, xWindow->the_gc, xWindow->surface,
 			0, 0, dest->x, dest->y, dest->w, dest->h, True);
-		break;
-	case VIDEO_XI_SHMPIXMAP:
-		XClearWindow(xWindow->display, cur_wnd);
-		break;
 #endif
-	case VIDEO_XI_STANDARD:
+	} else {
 		XRaiseWindow(xWindow->display, xWindow->wnd);
 		XPutImage (xWindow->display, cur_wnd, xWindow->the_gc, xWindow->surface,
 			0, 0, dest->x, dest->y, dest->w, dest->h);
-		break;
 	}
 	return GF_OK;
 }
@@ -325,7 +497,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		  switch (xevent.type) {
 		    /*
 		     * X11 window resized event
-		     * must inform GPAC to resize os_handle wnd
+		     * must inform GPAC
 		     */
 		  case ConfigureNotify:
 		    if ((unsigned int) xevent.xconfigure.width != xWindow->w_width
@@ -451,11 +623,13 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 {
   GF_Event evt;
   XWindow *xWin = (XWindow *)vout->opaque;
+
   XSync(xWin->display, False);
   xWin->glx_context = glXCreateContext(xWin->display,xWin->glx_visualinfo, NULL, True);
   XSync(xWin->display, False);
   if (!xWin->glx_context) return GF_IO_ERR;
   if (xWin->output_3d_mode==2)  return GF_IO_ERR;
+
   if ( ! glXMakeCurrent(xWin->display, xWin->fullscreen ? xWin->full_wnd : xWin->wnd, xWin->glx_context) ) return GF_IO_ERR;
   XSync(xWin->display, False);
   evt.type = GF_EVENT_VIDEO_SETUP;
@@ -479,7 +653,7 @@ static GF_Err X11_SetupGLPixmap(GF_VideoOutput *vout, u32 width, u32 height)
   xWin->gl_pixmap = 0;
 
   if (xWin->offscreen_type) {
-	  fprintf(stdout, "using offscreen GL context through XWindow\n");
+	  GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using offscreen GL context through XWindow\n"));
 	  if (xWin->offscreen_type==2) {
 		XSync(xWin->display, False);
 		XMapWindow (xWin->display, (Window) xWin->gl_wnd);
@@ -496,7 +670,7 @@ static GF_Err X11_SetupGLPixmap(GF_VideoOutput *vout, u32 width, u32 height)
 	  XSync(xWin->display, False);
 
   } else {
-  fprintf(stdout, "using offscreen GL context through glXPixmap\n");
+  GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using offscreen GL context through glXPixmap\n"));
   xWin->gl_pixmap = XCreatePixmap(xWin->display, xWin->gl_wnd, width, height, xWin->depth);
   if (!xWin->gl_pixmap) return GF_IO_ERR;
  
@@ -513,7 +687,7 @@ static GF_Err X11_SetupGLPixmap(GF_VideoOutput *vout, u32 width, u32 height)
  glXMakeCurrent(xWin->display, xWin->gl_offscreen, xWin->glx_context);
   }
 
-  fprintf(stdout, "Offscreen GL context setup\n");
+  GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Offscreen GL context setup\n"));
   return GF_OK;
 }
 
@@ -536,9 +710,8 @@ static void X11_ReleaseBackBuffer (GF_VideoOutput * vout)
 {
 	X11VID ();
 	if (xWindow->is_init == 1) {
-		switch (xWindow->videoaccesstype) {
+		if (xWindow->use_shared_memory) {
 #ifdef GPAC_HAS_X11_SHM
-		case VIDEO_XI_SHMSTD:
 			XShmDetach (xWindow->display, xWindow->shmseginfo);
 			if (xWindow->surface) XDestroyImage(xWindow->surface);
 			xWindow->surface = NULL;
@@ -547,25 +720,21 @@ static void X11_ReleaseBackBuffer (GF_VideoOutput * vout)
 				shmctl (xWindow->shmseginfo->shmid, IPC_RMID, NULL);
 			free (xWindow->shmseginfo);
 			xWindow->shmseginfo = NULL;
-			break;
-		case VIDEO_XI_SHMPIXMAP:
-			XShmDetach(xWindow->display, xWindow->shmseginfo);
-			XFreePixmap(xWindow->display, xWindow->pixmap);
-			if (xWindow->shmseginfo->shmaddr) shmdt (xWindow->shmseginfo->shmaddr);
-			if (xWindow->shmseginfo->shmid >= 0) shmctl (xWindow->shmseginfo->shmid, IPC_RMID, NULL);
-			free (xWindow->shmseginfo);
-			xWindow->shmseginfo = NULL;
-			break;
 #endif
-		case VIDEO_XI_STANDARD:
-			if (xWindow->back_buffer->buffer) free (xWindow->back_buffer->buffer);
-			xWindow->back_buffer->buffer = NULL;
-			if (xWindow->surface) XFree(xWindow->surface);
-			xWindow->surface = NULL;
-			break;
+		} else {
+			if (xWindow->surface) {
+				if (xWindow->surface->data)
+					free (xWindow->surface->data);
+				XFree(xWindow->surface);
+				xWindow->surface = NULL;
+			}
 		}
 		xWindow->is_init = 0;
 	}
+#ifdef GPAC_HAS_X11_XV
+	X11_DestroyOverlay(xWindow);
+#endif
+	
 }
 
 /*
@@ -586,32 +755,14 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 
 	X11_ReleaseBackBuffer(vout);
 	/*WATCHOUT seems we need even width when using shared memory extensions*/
-	if ((xWindow->videoaccesstype!=VIDEO_XI_STANDARD) && (VideoWidth%2)) 
+	if (xWindow->use_shared_memory && (VideoWidth%2)) 
 	  VideoWidth++;
 
-	xWindow->back_buffer->BPP = xWindow->bpp;
-	xWindow->back_buffer->width = VideoWidth;
-	xWindow->back_buffer->height = VideoHeight;
-	xWindow->back_buffer->pitch = VideoWidth * xWindow->bpp;
 	size = VideoWidth * VideoHeight * xWindow->bpp;
 	cur_wnd = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
 
-	switch (xWindow->videoaccesstype) {
+	if (xWindow->use_shared_memory) {
 #ifdef GPAC_HAS_X11_SHM
-	case VIDEO_XI_SHMPIXMAP:
-		GF_SAFEALLOC(xWindow->shmseginfo, XShmSegmentInfo);
-		xWindow->shmseginfo->shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0777);
-		xWindow->shmseginfo->shmaddr = shmat(xWindow->shmseginfo->shmid, 0, 0);
-		xWindow->back_buffer->buffer = (unsigned char *) xWindow->shmseginfo->shmaddr;
-		xWindow->shmseginfo->readOnly = False;
-		XShmAttach (xWindow->display, xWindow->shmseginfo);
-		xWindow->pixmap = XShmCreatePixmap (xWindow->display, cur_wnd,
-								xWindow->back_buffer->buffer, xWindow->shmseginfo,
-								VideoWidth, VideoHeight, xWindow->depth);
-		XSetWindowBackgroundPixmap (xWindow->display, cur_wnd, xWindow->pixmap);
-		break;
-
-	case VIDEO_XI_SHMSTD:
 		GF_SAFEALLOC(xWindow->shmseginfo, XShmSegmentInfo);
 		xWindow->surface = XShmCreateImage (xWindow->display, xWindow->visual,
 										 xWindow->depth, ZPixmap, NULL, xWindow->shmseginfo, 
@@ -621,20 +772,18 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 									 IPC_CREAT | 0777);
 
 		xWindow->surface->data = xWindow->shmseginfo->shmaddr = shmat(xWindow->shmseginfo->shmid, NULL, 0);
-		xWindow->back_buffer->buffer = (unsigned char *) xWindow->surface->data;
 		xWindow->shmseginfo->readOnly = False;
 		XShmAttach (xWindow->display, xWindow->shmseginfo);
-		break;
 #endif
-
-	case VIDEO_XI_STANDARD:
-		xWindow->back_buffer->buffer = (char *) malloc(sizeof(char)*size);
+	} else {
+		char *data = (char *) malloc(sizeof(char)*size);
 		xWindow->surface = XCreateImage (xWindow->display, xWindow->visual,
 				      xWindow->depth, ZPixmap,
 				      0,
-				      xWindow->back_buffer->buffer,
+				      data,
 				      VideoWidth, VideoHeight,
-				      xWindow->bpp*8, xWindow->back_buffer->pitch);
+				      xWindow->bpp*8, xWindow->bpp*VideoWidth);
+		if (!xWindow->surface) free(data);
 	}
 	xWindow->is_init = 1;
 	return GF_OK;
@@ -646,7 +795,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 GF_Err X11_ResizeBackBuffer (struct _video_out *vout, u32 newWidth, u32 newHeight)
 {
 	X11VID ();
-	if ((newWidth != xWindow->back_buffer->width) || (newHeight != xWindow->back_buffer->height)) {
+	if (!xWindow->surface || (newWidth != xWindow->surface->width) || (newHeight != xWindow->surface->height)) {
 		if ((newWidth >= 32) && (newHeight >= 32))
 			return X11_InitBackBuffer (vout, newWidth, newHeight);
 	}
@@ -764,12 +913,12 @@ GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, u32 do
 
 	if (do_lock) {
 		if (!vi) return GF_BAD_PARAM;
-		vi->width = xWindow->back_buffer->width;
-		vi->height = xWindow->back_buffer->height;
-		vi->pitch = xWindow->back_buffer->pitch;
+		vi->width = xWindow->surface->width;
+		vi->height = xWindow->surface->height;
+		vi->pitch = xWindow->surface->width*xWindow->bpp;
 		vi->pixel_format = xWindow->pixel_format;
-		vi->video_buffer = xWindow->back_buffer->buffer;
-		vi->is_hardware_memory = (xWindow->videoaccesstype==VIDEO_XI_STANDARD) ? 0 : 1;
+		vi->video_buffer = xWindow->surface->data;
+		vi->is_hardware_memory = (xWindow->use_shared_memory) ? 1 : 0;
 		return GF_OK;
 	} else {
 		return GF_OK;
@@ -796,6 +945,20 @@ static int X11_BadAccess_ByPass(Display * display,
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Error %s\n",msg));
 	}
 	return 0;
+}
+
+
+static void X11_XScreenSaverState(XWindow *xwin, Bool turn_on)
+{
+ 	if (turn_on) {
+		if (!xwin->ss_t) return;
+	        XSetScreenSaver(xwin->display, xwin->ss_t, xwin->ss_i, xwin->ss_b, xwin->ss_e);
+	} else {
+		/* Save state information */
+		XGetScreenSaver(xwin->display, &xwin->ss_t, &xwin->ss_i, &xwin->ss_b, &xwin->ss_e);
+		if (xwin->ss_t)
+		        XSetScreenSaver(xwin->display, 0, xwin->ss_i, xwin->ss_b, xwin->ss_e);
+	}
 }
 
 /*
@@ -880,7 +1043,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	XSync(xWindow->display, False);
 	XSetErrorHandler(old_handler);
 	if (selectinput_err) {
-       	XSelectInput(xWindow->display, xWindow->wnd,
+	       	XSelectInput(xWindow->display, xWindow->wnd,
 			StructureNotifyMask | PropertyChangeMask | ExposureMask |
 			KeyPressMask | KeyReleaseMask);
 
@@ -905,7 +1068,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	XSetWMNormalHints (xWindow->display, xWindow->full_wnd, Hints);
 
 	xWindow->the_gc = XCreateGC (xWindow->display, xWindow->wnd, 0, NULL);
-	xWindow->videoaccesstype = VIDEO_XI_STANDARD;
+	xWindow->use_shared_memory = 0;
 
 #ifdef GPAC_HAS_X11_SHM
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseHardwareMemory");
@@ -913,21 +1076,21 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	  int XShmMajor, XShmMinor;
 	  Bool XShmPixmaps;
 	  if (XShmQueryVersion(xWindow->display, &XShmMajor, &XShmMinor, &XShmPixmaps)) {
-	    /*this is disabled due to flip pb (we cannot reposition backbuffer)*/
-	    if (0 && XShmPixmaps && (XShmPixmapFormat(xWindow->display) == ZPixmap)) {
-		xWindow->videoaccesstype = VIDEO_XI_SHMPIXMAP;
-	    } else {
-	      xWindow->videoaccesstype = VIDEO_XI_SHMSTD;
-	      GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using X11 Hardware Blit\n"));
-	    }
+		xWindow->use_shared_memory = 1;
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using X11 Hardware Blit\n"));
 	  }
 	}
 
 #endif
 
-	GF_SAFEALLOC(xWindow->back_buffer, X11WrapSurface);
-	xWindow->back_buffer->id = -1;
-
+#ifdef GPAC_HAS_X11_XV
+	xWindow->xvport = -1;
+	if (X11_InitOverlay(vout, 320, 240) == GF_OK) {
+		vout->Blit = X11_BlitOverlay;
+		vout->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
+		X11_DestroyOverlay(xWindow);
+	} 
+#endif
 
 	XSetWindowAttributes xsw;
 	xsw.border_pixel = WhitePixel (xWindow->display, xWindow->screennum);
@@ -1009,8 +1172,11 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		xWindow->offscreen_type = 0;
 	}
 #endif
-	xWindow->setup_done = 1;
 
+	/*turn off xscreensaver*/
+	X11_XScreenSaverState(xWindow, 0);
+
+	xWindow->setup_done = 1;
 	XFree (Hints);
 }
 
@@ -1038,7 +1204,7 @@ void X11_Shutdown (struct _video_out *vout)
 	} else {
 		X11_ReleaseBackBuffer (vout);
 	}
-	free(xWindow->back_buffer);
+
 	XFreeGC (xWindow->display, xWindow->the_gc);
 	XUnmapWindow (xWindow->display, (Window) xWindow->wnd);
 	XDestroyWindow (xWindow->display, (Window) xWindow->wnd);
@@ -1049,9 +1215,15 @@ void X11_Shutdown (struct _video_out *vout)
 	XUnmapWindow (xWindow->display, (Window) xWindow->gl_wnd);
 	XDestroyWindow (xWindow->display, (Window) xWindow->gl_wnd);
 #endif
+
+	/*restore xscreen saver*/
+	X11_XScreenSaverState(xWindow, 1);
+
 	XCloseDisplay (xWindow->display);
 	free (xWindow);
 }
+
+
 
 
 void *NewX11VideoOutput ()
@@ -1126,3 +1298,4 @@ ShutdownInterface (GF_BaseInterface *ifce)
 		break;
 	}
 }
+

@@ -60,6 +60,7 @@ has_alsa="no"
 has_jack="no"
 has_x11="no"
 has_x11_shm="no"
+has_x11_xv="no"
 disable_svg="no"
 no_gcc_opt="no"
 use_fixed_point="no"
@@ -134,6 +135,7 @@ echo "  --disable-ipv6           disable IPV6 support"
 echo "  --disable-wx             disable wxWidgets support"
 echo "  --disable-oss-audio      disable OSS audio"
 echo "  --disable-x11-shm        disable X11 shared memory support"
+echo "  --disable-x11-xv         disable X11 Xvideo support"
 echo "  --disable-fragments      disable movie fragments in ISO media support"
 echo "  --enable-readonly        force ISO media to be read-only"
 echo "  --disable-svg            disable SVG support"
@@ -862,6 +864,8 @@ for opt do
   ;;
   --disable-x11-shm) has_x11_shm="no"
   ;;
+  --disable-x11-xv) has_x11_xv="no"
+  ;;
   --disable-svg) disable_svg="yes"
   ;;
   --enable-fixed-point) use_fixed_point="yes"
@@ -923,6 +927,18 @@ EOF
 
 if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
 has_x11_shm="yes"
+fi
+
+#look for XVideo support
+cat > $TMPC << EOF
+#include <X11/Xlib.h>
+#include <X11/extensions/Xv.h>
+#include <X11/extensions/Xvlib.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
+has_x11_xv="yes"
 fi
 
 fi
@@ -1076,6 +1092,7 @@ fi
 echo "ALSA Audio: $has_alsa"
 echo "Jack Audio: $has_jack"
 echo "X11 Shared Memory support: $has_x11_shm (path: $X11_PATH)"
+echo "X11 XVideo support: $has_x11_xv"
 fi
 
 echo "SDL Support: $has_sdl"
@@ -1326,6 +1343,9 @@ fi
 echo "CONFIG_X11=$has_x11" >> config.mak
 if test "$has_x11_shm" = "yes"; then
 echo "USE_X11_SHM=$has_x11_shm" >> config.mak
+fi
+if test "$has_x11_xv" = "yes"; then
+echo "USE_X11_XV=$has_x11_xv" >> config.mak
 fi
 
 if test "$is_64" = "yes"; then
