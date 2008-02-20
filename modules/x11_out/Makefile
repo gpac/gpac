@@ -31,6 +31,10 @@ CFLAGS+=-DGPAC_HAS_X11_SHM
 LDFLAGS+=-lXext
 endif
 
+ifeq ($(USE_X11_XV), yes)
+CFLAGS+=-DGPAC_HAS_X11_XV
+LDFLAGS+=-lXv
+endif
 
 ifeq ($(HAS_OPENGL), yes)
 CFLAGS +=-DGPAC_HAS_OPENGL
