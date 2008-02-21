@@ -163,6 +163,9 @@ typedef struct _video_out
 	/*maximum resolution of the screen*/
 	u32 max_screen_width, max_screen_height;
 
+	/*overlay color key used by the hardware bliter - if not set, only top-level overlay can be used*/
+	u32 overlay_color_key;
+
 	/*driver private*/
 	void *opaque;
 } GF_VideoOutput;
