@@ -71,6 +71,8 @@ typedef struct
 	Visual *visual;		//...
 	GC the_gc;			//graphics context
 	XImage *surface;	//main drawing image: software mode
+	Pixmap pixmap;
+	u32 pwidth, pheight;
 	Atom WM_DELETE_WINDOW;	//window deletion
 
 	Bool use_shared_memory;	//
