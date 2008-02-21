@@ -91,12 +91,22 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 	}
 }
 
-static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHandler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, GF_ColorKey *col_key)
+
+typedef struct _yuv_overlay 
+{
+	struct _yuv_overlay *next;
+	GF_Window src, dst;
+	DrawableContext *ctx;
+} GF_OverlayStack;
+
+
+static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHandler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, GF_ColorKey *col_key, GF_TraverseState *tr_state)
 {
 	GF_VideoSurface video_src;
 	Fixed w_scale, h_scale, tmp;
 	GF_Err e;
-	Bool use_soft_stretch, use_blit, use_overlay, flush_video;
+	Bool use_soft_stretch, use_blit, flush_video;
+	u32 overlay_type;
 	GF_Window src_wnd, dst_wnd;
 	u32 output_width, output_height, hw_caps;
 	GF_IRect clipped_final = *clip;
@@ -222,7 +232,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 	/*can we use hardware blitter ?*/
 	hw_caps = visual->compositor->video_out->hw_caps;
-	use_overlay = 0;
+	overlay_type = 0;
 	flush_video = 0;
 	use_soft_stretch = 1;
 
@@ -235,7 +245,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
 		if (hw_caps & GF_VIDEO_HW_HAS_YUV) use_soft_stretch = 0;
-		if (hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) use_overlay = 1;
+		if (hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) overlay_type = 1;
 		break;
 	default:
 		break;
@@ -245,7 +255,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		|| (ctx->col_mat || (alpha!=0xFF) || !visual->compositor->video_out->Blit) 
 		) {
 		use_soft_stretch = 1;
-		use_overlay = 0;
+		overlay_type = 0;
 	}
 	if (visual->compositor->disable_partial_hw_blit || ((src_wnd.w==txh->width) && (src_wnd.h==txh->height) )) {
 		use_soft_stretch = 1;
@@ -255,15 +265,16 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	if (col_key) {
 //		if ((col_key->alpha!=0xFF) || !(hw_caps & GF_VIDEO_HW_HAS_COLOR_KEY)) use_soft_stretch = 1;
 		use_soft_stretch = 1;
-		use_overlay = 0;
+		overlay_type = 0;
 	}
 
-	if (use_overlay) {
-		if (ctx->next && ctx->next->drawable) {
-			use_overlay = 0;
+	if (overlay_type) {
+		/*direct draw or not last context: we must queue the overlay*/
+		if (tr_state->direct_draw || (ctx->next && ctx->next->drawable)) {
+			overlay_type = 2;
 		}
 		/*OK we can overlay this video - if full display, don't flush*/
-		if (use_overlay) {
+		if (overlay_type==1) {
 			if (dst_wnd.w==visual->compositor->display_width) flush_video = 0;
 			else if (dst_wnd.h==visual->compositor->display_height) flush_video = 0;
 			else flush_video = visual->has_modif;
@@ -280,7 +291,37 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	video_src.pitch = txh->stride;
 	video_src.pixel_format = txh->pixelformat;
 	video_src.video_buffer = txh->data;
-	if (use_overlay) {
+	if (overlay_type) {
+		if (overlay_type==2) {
+			GF_IRect o_rc;
+			GF_OverlayStack *ol;
+
+			/*queue overlay*/
+			GF_SAFEALLOC(ol, GF_OverlayStack);
+			ol->ctx = ctx;
+			ol->dst = dst_wnd;
+			ol->src = src_wnd;
+			/*overlays are sorted in reverse order*/
+			ol->next = visual->compositor->overlays;
+			visual->compositor->overlays = ol;
+
+			if (visual->center_coords) {
+				o_rc.x = dst_wnd.x - output_width/2;
+				o_rc.y = output_height/2- dst_wnd.y;
+			} else {
+				o_rc.x = dst_wnd.x;
+				o_rc.y = dst_wnd.y;
+			}
+			o_rc.width = dst_wnd.w;
+			o_rc.height = dst_wnd.h;
+			visual_2d_clear(visual, &o_rc, visual->compositor->video_out->overlay_color_key);
+
+			/*prevents this context from being removed in direct draw mode by requesting a new one
+			but not allocating it*/
+			if (tr_state->direct_draw) 
+				visual_2d_get_drawable_context(visual);
+			return 1;
+		}
 		use_soft_stretch = 0;
 		if (flush_video) {
 			GF_Window rc;
@@ -327,6 +368,27 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 }
 
 
+void compositor_2d_draw_overlays(GF_Compositor *compositor)
+{
+	GF_TextureHandler *txh;
+	GF_VideoSurface video_src;
+	while (1) {
+		GF_OverlayStack *ol = compositor->overlays;
+		if (!ol) return;
+		compositor->overlays = ol->next;
+		
+		txh = ol->ctx->aspect.fill_texture;
+		video_src.height = txh->height;
+		video_src.width = txh->width;
+		video_src.pitch = txh->stride;
+		video_src.pixel_format = txh->pixelformat;
+		video_src.video_buffer = txh->data;
+		compositor->video_out->Blit(compositor->video_out, &video_src, &ol->src, &ol->dst, 0, 1);
+		free(ol);
+	}
+}
+
+
 Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
 {
 	u8 alpha = 0xFF;
@@ -363,7 +425,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 
 	/*direct drawing, no clippers */
 	if (tr_state->direct_draw) {
-		return compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key);
+		return compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state);
 	}
 	/*draw bitmap for all dirty rects*/
 	else {
@@ -377,7 +439,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, col_key))
+				if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, col_key, tr_state))
 					return 0;
 			}
 		}

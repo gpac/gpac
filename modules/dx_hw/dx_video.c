@@ -335,7 +335,8 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		return GF_OK;
 	}
 
-	IDirectDraw_WaitForVerticalBlank(dd->pDD, DDWAITVB_BLOCKBEGIN, NULL);
+	IDirectDraw_WaitForVerticalBlank(dd->pDD, DDWAITVB_BLOCKEND, NULL);
+	//return GF_OK;
 	
 	if (dest) {
 		POINT pt;

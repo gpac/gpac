@@ -459,6 +459,8 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 			dd->yuv_pool.format = dr->yuv_pixel_format;
 			dd->yuv_pool.width = width;
 			dd->yuv_pool.height = height;
+
+
 			return &dd->yuv_pool;
 		}
 	}
@@ -522,6 +524,8 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	if (e) return e;
 
 	if (is_overlay) {
+		DDOVERLAYFX     ddofx;
+		DDBLTFX ddfx;
 		HRESULT hr;
 		RECT rc, src_rc;
 		POINT pt;
@@ -534,7 +538,24 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 		src_wnd->x = src_wnd->y = 0;
 		MAKERECT(src_rc, src_wnd);
 		
-		hr = IDirectDrawSurface_Blt(dd->pPrimary, &rc, pool->pSurface, &src_rc, DDBLT_WAIT, NULL);
+#if 0
+		memset(&ddofx, 0, sizeof(DDOVERLAYFX));
+		ddofx.dwSize = sizeof(DDOVERLAYFX);
+		ddofx.dckDestColorkey.dwColorSpaceLowValue = dr->overlay_color_key;
+		ddofx.dckDestColorkey.dwColorSpaceHighValue = dr->overlay_color_key;
+		hr = IDirectDrawSurface2_UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &rc, DDOVER_SHOW | DDOVER_KEYDESTOVERRIDE, &ddofx);
+		if (FAILED(hr)) return GF_IO_ERR;
+		hr = IDirectDrawSurface2_Flip(pool->pSurface, NULL, 0);
+#else
+		memset(&ddfx, 0, sizeof(DDBLTFX));
+		ddfx.dwSize = sizeof(DDBLTFX);
+		ddfx.ddckDestColorkey.dwColorSpaceLowValue = dr->overlay_color_key;
+		ddfx.ddckDestColorkey.dwColorSpaceHighValue = dr->overlay_color_key;
+
+		hr = IDirectDrawSurface_Blt(dd->pPrimary, &rc, pool->pSurface, &src_rc, DDBLT_WAIT | DDBLT_KEYDESTOVERRIDE, &ddfx);
+//		hr = IDirectDrawSurface_Blt(dd->pPrimary, &rc, pool->pSurface, &src_rc, DDBLT_WAIT , NULL);
+		if (FAILED(hr)) fprintf(stdout, "Failed!!\n");
+#endif
 		return FAILED(hr) ? GF_IO_ERR : GF_OK;
 	}
 
@@ -691,8 +712,12 @@ rem_fmt:
 		min_planar = min_packed;
 		dr->yuv_pixel_format = best_packed;
 	} 
+	dr->yuv_pixel_format = GF_PIXEL_YV12;
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Picked YUV format %s - drawn in %d ms\n", gf_4cc_to_str(dr->yuv_pixel_format), min_planar));
 	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY;
+	dr->overlay_color_key = 0xFF0101FE;
+
 }
 
 GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_system_memory)

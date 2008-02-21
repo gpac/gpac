@@ -350,6 +350,9 @@ struct __tag_compositor
 	char **edited_text;
 	u32 caret_pos, dom_text_pos;
 
+	/*list of video overlays sorted from first to last*/
+	struct _yuv_overlay *overlays;
+
 #ifndef GPAC_DISABLE_3D
 	/*options*/
 	/*emulate power-of-2 for video texturing by using a po2 texture and texture scaling. If any textureTransform
@@ -920,6 +923,8 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *surf);
 void compositor_2d_release_video_access(GF_VisualManager *surf);
 Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, GF_ColorKey *col_key);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
+void compositor_2d_draw_overlays(GF_Compositor *compositor);
+
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res);
 
 void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed old_tx, Fixed old_ty, Bool is_resize);
