@@ -1480,7 +1480,10 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 	gf_list_reset(compositor->queue_cached_groups);
 #endif
 	flags = compositor->traverse_state->direct_draw;
-	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
+	if ( !visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1) ) {
+		/*for 2D skip flush if no changes in case of overlays*/
+		if (!compositor->visual->type_3d) compositor->skip_flush = 1;
+	}
 	compositor->traverse_state->direct_draw = flags;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Drawing done\n"));
 
@@ -1659,6 +1662,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			rc.h = compositor->display_height;		
 			compositor->video_out->Flush(compositor->video_out, &rc);
 		}
+		compositor->skip_flush = 0;
 #ifndef GPAC_DISABLE_LOG
 		flush_time = gf_sys_clock() - flush_time;
 #endif
@@ -1965,7 +1969,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 
 	switch (event->type) {
 	case GF_EVENT_REFRESH:
-		if (!compositor->draw_next_frame) {
+		if (0 && !compositor->draw_next_frame) {
 			/*when refreshing the window in 3D we redraw the scene since we don't know the GL doublebuffer config*/
 			if (compositor->visual->has_overlays) {
 				compositor->draw_next_frame = 1;
