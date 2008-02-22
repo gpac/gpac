@@ -177,13 +177,14 @@ static GF_Err X11_InitOverlay(GF_VideoOutput *vout, u32 VideoWidth, u32 VideoHei
 
 #if 0
 	xwin->xvport2 = X11_GetXVideoPort(xwin, GF_PIXEL_I420);
-	xwin->overlay2 = XvCreateImage(xwin->display, xwin->xvport2, xwin->xv_pf_format, NULL, VideoWidth, VideoHeight);
-	fprintf(stdout, "OL 2 created on port %d\n", xwin->xvport2);
+	if (xwin->xvport2>=0) {
+		xwin->overlay2 = XvCreateImage(xwin->display, xwin->xvport2, xwin->xv_pf_format, NULL, VideoWidth, VideoHeight);
+		fprintf(stdout, "OL 2 created on port %d\n", xwin->xvport2);
+	}
 #endif
 	return GF_OK;
 }
 
-u32 count = 0;
 GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src, GF_Window *dest, GF_ColorKey *key, Bool is_overlay)
 {
 	XvImage *overlay;
@@ -200,6 +201,7 @@ GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_W
 		e = X11_InitOverlay(vout, video_src->width, video_src->height);
 		if (e) return e;
 	}
+
 	/*different size, recreate an image*/
 	if ((xwin->overlay->width != video_src->width) || (xwin->overlay->height != video_src->height)) {
 		if (xwin->overlay) XFree(xwin->overlay);
@@ -207,14 +209,13 @@ GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_W
 		if (!xwin->overlay) return GF_IO_ERR;
 	}
 
-	if (dest->w <= 200) {
+	if ((dest->w <= 200) && xwin->overlay2) {
 		overlay = xwin->overlay2;
 		xvport = xwin->xvport2;
 	} else {
 		overlay = xwin->overlay;
 		xvport = xwin->xvport;
 	}
-	count++;
 	overlay->data = video_src->video_buffer;
 
 	overlay->num_planes = 3;
@@ -234,7 +235,6 @@ GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_W
         XvPutImage(xwin->display, xvport, dst_dr, xwin->the_gc, overlay, 
 		src->x, src->y, src->w, src->h,
 		dest->x, dest->y, dest->w, dest->h);
-	XSync(xwin->display, False);
 	return GF_OK;
 }
 #endif
@@ -263,17 +263,15 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
 #endif
 		return GF_OK;
 	}
-
 	if (xWindow->use_shared_memory) {
 #ifdef GPAC_HAS_X11_SHM
 		if (xWindow->pixmap) {
-			Status res;
 			XClearWindow(xWindow->display, cur_wnd);
 			XSync(xWindow->display, False);
 		} else {
-			XSync(xWindow->display, False);
 			  XShmPutImage (xWindow->display, cur_wnd, xWindow->the_gc, xWindow->surface,
 				0, 0, dest->x, dest->y, dest->w, dest->h, True);
+			XSync(xWindow->display, False);
 		}
 #endif
 	} else {
@@ -1169,12 +1167,13 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	if (X11_InitOverlay(vout, 320, 240) == GF_OK) {
 		X11_DestroyOverlay(xWindow);
 		vout->Blit = X11_BlitOverlay;
-		if (0) {
-			vout->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
-			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using XV YUV Overlays\n"));
-		} else {
+		vout->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using XV YUV Overlays\n"));
+		
+		sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "EnableOffscreenYUV");
+		if (sOpt && !strcmp(sOpt, "yes")) {
 			vout->hw_caps |= GF_VIDEO_HW_HAS_YUV;
-			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using XV YUV2RGB acceleration\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using XV Offscreen YUV2RGB acceleration\n"));
 		}
 	} 
 #endif
