@@ -88,8 +88,6 @@ typedef struct
 	int xvport;
 	u32 xv_pf_format;
 	XvImage *overlay;
-	int xvport2;
-	XvImage *overlay2;
 #endif
 
 	Bool is_init, fullscreen, has_focus;

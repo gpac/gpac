@@ -245,7 +245,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
 		if (hw_caps & GF_VIDEO_HW_HAS_YUV) use_soft_stretch = 0;
-		if (hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) overlay_type = 1;
+		else if (hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) overlay_type = 1;
 		break;
 	default:
 		break;
@@ -257,7 +257,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		use_soft_stretch = 1;
 		overlay_type = 0;
 	}
-	if (visual->compositor->disable_partial_hw_blit || ((src_wnd.w==txh->width) && (src_wnd.h==txh->height) )) {
+	if (visual->compositor->disable_partial_hw_blit && ((src_wnd.w!=txh->width) || (src_wnd.h!=txh->height) )) {
 		use_soft_stretch = 1;
 	}
 
@@ -279,12 +279,14 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			else if (dst_wnd.h==visual->compositor->display_height) flush_video = 0;
 			else flush_video = visual->has_modif;
 		}
+		/*if no color keying, we cannot queue the overlay*/
+		else if (!visual->compositor->video_out->overlay_color_key) {
+			overlay_type = 0;
+		}
 	}
-
 	/*avoid partial redraw that don't come close to src pixels with the bliter, this leads to  ugly artefacts - 
 	fall back to rasterizer*/
-	else if (!use_blit && (src_wnd.x || src_wnd.y) ) 
-		return 0;
+	else if (!use_blit && (src_wnd.x || src_wnd.y) ) return 0;
 
 	video_src.height = txh->height;
 	video_src.width = txh->width;
@@ -294,17 +296,25 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	if (overlay_type) {
 		if (overlay_type==2) {
 			GF_IRect o_rc;
-			GF_OverlayStack *ol;
+			GF_OverlayStack *ol, *first;
 
 			/*queue overlay*/
 			GF_SAFEALLOC(ol, GF_OverlayStack);
 			ol->ctx = ctx;
 			ol->dst = dst_wnd;
 			ol->src = src_wnd;
-			/*overlays are sorted in reverse order*/
+#if 1
+			first = visual->compositor->overlays;
+			if (first) {
+				while (first->next) first = first->next;
+				first->next = ol;
+			} else {
+				visual->compositor->overlays = ol;
+			}
+#else
 			ol->next = visual->compositor->overlays;
 			visual->compositor->overlays = ol;
-
+#endif
 			if (visual->center_coords) {
 				o_rc.x = dst_wnd.x - output_width/2;
 				o_rc.y = output_height/2- dst_wnd.y;
@@ -322,7 +332,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 				visual_2d_get_drawable_context(visual);
 			return 1;
 		}
-		use_soft_stretch = 0;
 		if (flush_video) {
 			GF_Window rc;
 			rc.x = rc.y = 0; 
