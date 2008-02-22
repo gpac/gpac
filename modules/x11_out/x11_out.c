@@ -34,10 +34,16 @@ static void X11_DestroyOverlay(XWindow *xwin)
 {
 	if (xwin->overlay) XFree(xwin->overlay);
 	xwin->overlay = NULL;
+	if (xwin->overlay2) XFree(xwin->overlay2);
+	xwin->overlay2 = NULL;
 	xwin->xv_pf_format = 0;	
 	if (xwin->xvport>=0) {
 		XvUngrabPort(xwin->display, xwin->xvport, CurrentTime );
 		xwin->xvport = -1;
+	}
+	if (xwin->xvport2>=0) {
+		XvUngrabPort(xwin->display, xwin->xvport2, CurrentTime );
+		xwin->xvport2 = -1;
 	}
 }
 
@@ -114,6 +120,7 @@ static int X11_GetXVideoPort(XWindow *xwin, u32 pixel_format)
 
 		/* Grab first port  supporting this format */
 		for (port=adaptors[i].base_id; (port < (int)(adaptors[i].base_id + adaptors[i].num_ports) ) && (selected_port == -1); port++) {
+			if (port==xwin->xvport) continue;
 			if (XvGrabPort(xwin->display, port, CurrentTime) == Success) {
 				selected_port = port;
 				xwin->xv_pf_format = formats[j].id;
@@ -124,14 +131,14 @@ static int X11_GetXVideoPort(XWindow *xwin, u32 pixel_format)
 
 		attr = XvQueryPortAttributes(xwin->display, selected_port, &nb_attributes);
 		for (k=0; k<nb_attributes; k++ ) {
+			fprintf(stdout, "XAttr %s\n", attr[k].name);
 	                if (!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
         	            const Atom paint = XInternAtom(xwin->display, "XV_AUTOPAINT_COLORKEY", False);
-        	            XvSetPortAttribute(xwin->display, selected_port, paint, 0);
+        	            XvSetPortAttribute(xwin->display, selected_port, paint, 1);
         	            break;
 			}
 		}
-		if (attr != NULL) XFree(attr);
-        }
+       }
         if (formats != NULL) XFree(formats);
     }
     if (nb_adaptors > 0) 
@@ -164,14 +171,23 @@ static GF_Err X11_InitOverlay(GF_VideoOutput *vout, u32 VideoWidth, u32 VideoHei
 		return GF_IO_ERR;
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Overlay init %d x %d - pixel format %s\n", 
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Overlay init %d x %d - pixel format %s - XV port %d\n", 
 			VideoWidth, VideoHeight, 
-			gf_4cc_to_str(vout->yuv_pixel_format) ));
+			gf_4cc_to_str(vout->yuv_pixel_format), xwin->xvport ));
+
+#if 0
+	xwin->xvport2 = X11_GetXVideoPort(xwin, GF_PIXEL_I420);
+	xwin->overlay2 = XvCreateImage(xwin->display, xwin->xvport2, xwin->xv_pf_format, NULL, VideoWidth, VideoHeight);
+	fprintf(stdout, "OL 2 created on port %d\n", xwin->xvport2);
+#endif
 	return GF_OK;
 }
 
+u32 count = 0;
 GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src, GF_Window *dest, GF_ColorKey *key, Bool is_overlay)
 {
+	XvImage *overlay;
+	int xvport;
 	Drawable dst_dr;
 	GF_Err e;
 	Window cur_wnd;
@@ -190,24 +206,35 @@ GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_W
 		xwin->overlay = XvCreateImage(xwin->display, xwin->xvport, xwin->xv_pf_format, NULL, video_src->width, video_src->height);
 		if (!xwin->overlay) return GF_IO_ERR;
 	}
-	xwin->overlay->data = video_src->video_buffer;
 
-	xwin->overlay->num_planes = 3;
-	xwin->overlay->pitches[0] = video_src->width;
-	xwin->overlay->pitches[1] = xwin->overlay->pitches[2] = video_src->width/2;
-	xwin->overlay->offsets[0] = 0;
-	xwin->overlay->offsets[1] = video_src->width*video_src->height;
-	xwin->overlay->offsets[2] = 5*video_src->width*video_src->height/4;
+	if (dest->w <= 200) {
+		overlay = xwin->overlay2;
+		xvport = xwin->xvport2;
+	} else {
+		overlay = xwin->overlay;
+		xvport = xwin->xvport;
+	}
+	count++;
+	overlay->data = video_src->video_buffer;
+
+	overlay->num_planes = 3;
+	overlay->pitches[0] = video_src->width;
+	overlay->pitches[1] = xwin->overlay->pitches[2] = video_src->width/2;
+	overlay->offsets[0] = 0;
+	overlay->offsets[1] = video_src->width*video_src->height;
+	overlay->offsets[2] = 5*video_src->width*video_src->height/4;
 
 	dst_dr = cur_wnd;
 	if (!is_overlay) {
+		fprintf(stdout, "Using HW YUV->RGB\n");
 		if (!xwin->pixmap) return GF_BAD_PARAM;
 		dst_dr = xwin->pixmap;
 	}
 
-        XvPutImage(xwin->display, xwin->xvport, dst_dr, xwin->the_gc, xwin->overlay, 
+        XvPutImage(xwin->display, xvport, dst_dr, xwin->the_gc, overlay, 
 		src->x, src->y, src->w, src->h,
 		dest->x, dest->y, dest->w, dest->h);
+	XSync(xwin->display, False);
 	return GF_OK;
 }
 #endif
@@ -225,13 +252,12 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
 	 */
 	X11VID ();
 
-	XSync(xWindow->display, False);
-
 	if (!xWindow->is_init) return GF_OK;
 	cur_wnd = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
 
 	if (xWindow->output_3d_mode==1) {
 #ifdef GPAC_HAS_OPENGL
+		XSync(xWindow->display, False);
 		glFlush();
 		glXSwapBuffers(xWindow->display, cur_wnd);
 #endif
@@ -241,13 +267,17 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
 	if (xWindow->use_shared_memory) {
 #ifdef GPAC_HAS_X11_SHM
 		if (xWindow->pixmap) {
+			Status res;
 			XClearWindow(xWindow->display, cur_wnd);
+			XSync(xWindow->display, False);
 		} else {
+			XSync(xWindow->display, False);
 			  XShmPutImage (xWindow->display, cur_wnd, xWindow->the_gc, xWindow->surface,
 				0, 0, dest->x, dest->y, dest->w, dest->h, True);
 		}
 #endif
 	} else {
+		XSync(xWindow->display, False);
 		XRaiseWindow(xWindow->display, xWindow->wnd);
 		XPutImage (xWindow->display, cur_wnd, xWindow->the_gc, xWindow->surface,
 			0, 0, dest->x, dest->y, dest->w, dest->h);
@@ -719,33 +749,31 @@ static void X11_ReleaseGL(XWindow *xWin)
 static void X11_ReleaseBackBuffer (GF_VideoOutput * vout)
 {
 	X11VID ();
-	if (xWindow->is_init == 1) {
-		if (xWindow->use_shared_memory) {
 #ifdef GPAC_HAS_X11_SHM
-			XShmDetach (xWindow->display, xWindow->shmseginfo);
-			if (xWindow->pixmap) {
-				XFreePixmap(xWindow->display, xWindow->pixmap);
-				xWindow->pixmap = 0L;
-			} else {
-				if (xWindow->surface) XDestroyImage(xWindow->surface);
-				xWindow->surface = NULL;
-			}
-			if (xWindow->shmseginfo->shmaddr) shmdt(xWindow->shmseginfo->shmaddr);
-			if (xWindow->shmseginfo->shmid >= 0)
-				shmctl (xWindow->shmseginfo->shmid, IPC_RMID, NULL);
-			free (xWindow->shmseginfo);
-			xWindow->shmseginfo = NULL;
-#endif
-		} else {
-			if (xWindow->surface) {
-				if (xWindow->surface->data)
-					free (xWindow->surface->data);
-				XFree(xWindow->surface);
-				xWindow->surface = NULL;
-			}
-		}
-		xWindow->is_init = 0;
+	if (xWindow->shmseginfo) XShmDetach (xWindow->display, xWindow->shmseginfo);
+	if (xWindow->pixmap) {
+		XFreePixmap(xWindow->display, xWindow->pixmap);
+		xWindow->pixmap = 0L;
+		xWindow->pwidth = xWindow->pheight = 0;
+	} else {
+		if (xWindow->surface) XDestroyImage(xWindow->surface);
+		xWindow->surface = NULL;
 	}
+	if (xWindow->shmseginfo) {
+		if (xWindow->shmseginfo->shmaddr) shmdt(xWindow->shmseginfo->shmaddr);
+		if (xWindow->shmseginfo->shmid >= 0)
+			shmctl (xWindow->shmseginfo->shmid, IPC_RMID, NULL);
+		free (xWindow->shmseginfo);
+		xWindow->shmseginfo = NULL;
+	}
+#endif
+	if (xWindow->surface) {
+		if (xWindow->surface->data)
+			free (xWindow->surface->data);
+		XFree(xWindow->surface);
+		xWindow->surface = NULL;
+	}
+	xWindow->is_init = 0;
 #ifdef GPAC_HAS_X11_XV
 	X11_DestroyOverlay(xWindow);
 #endif
@@ -781,17 +809,20 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 		GF_SAFEALLOC(xWindow->shmseginfo, XShmSegmentInfo);
 		/*if we're using YUV blit to offscreen, we must use a pixmap*/
 		if (vout->hw_caps & GF_VIDEO_HW_HAS_YUV) {
-			xWindow->shmseginfo->shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0777);
+			xWindow->shmseginfo->shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0776);
 			xWindow->shmseginfo->shmaddr = shmat(xWindow->shmseginfo->shmid, 0, 0);
 			xWindow->shmseginfo->readOnly = False;
-			XShmAttach (xWindow->display, xWindow->shmseginfo);
+			if (!XShmAttach (xWindow->display, xWindow->shmseginfo)) {
+				fprintf(stdout, "Failed to attach shared memory!!\n");
+			}
 			xWindow->pixmap = XShmCreatePixmap(xWindow->display, cur_wnd,
 								(unsigned char *) xWindow->shmseginfo->shmaddr, xWindow->shmseginfo,
 								VideoWidth, VideoHeight, xWindow->depth);
+			memset((unsigned char *) xWindow->shmseginfo->shmaddr, 0, sizeof(char)*size);
 			XSetWindowBackgroundPixmap (xWindow->display, cur_wnd, xWindow->pixmap);
 			xWindow->pwidth = VideoWidth;
 			xWindow->pheight = VideoHeight;
-			fprintf(stdout, "Using X11 Pixmap\n");
+			fprintf(stdout, "Using X11 Pixmap %08x\n", (u32)xWindow->pixmap);
 		} else {
 			xWindow->surface = XShmCreateImage (xWindow->display, xWindow->visual,
 										 xWindow->depth, ZPixmap, NULL, xWindow->shmseginfo, 
@@ -812,7 +843,11 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 				      data,
 				      VideoWidth, VideoHeight,
 				      xWindow->bpp*8, xWindow->bpp*VideoWidth);
-		if (!xWindow->surface) free(data);
+		if (!xWindow->surface) {
+			free(data);
+			return GF_IO_ERR;
+		}
+
 	}
 	xWindow->is_init = 1;
 	return GF_OK;
@@ -824,7 +859,9 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 GF_Err X11_ResizeBackBuffer (struct _video_out *vout, u32 newWidth, u32 newHeight)
 {
 	X11VID ();
-	if (!xWindow->surface || (newWidth != xWindow->surface->width) || (newHeight != xWindow->surface->height)) {
+	u32 w = xWindow->surface ? xWindow->surface->width : xWindow->pwidth;
+	u32 h = xWindow->surface ? xWindow->surface->height : xWindow->pheight;
+	if (!xWindow->is_init || (newWidth != w) || (newHeight != h)) {
 		if ((newWidth >= 32) && (newHeight >= 32))
 			return X11_InitBackBuffer (vout, newWidth, newHeight);
 	}
@@ -951,11 +988,12 @@ GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, u32 do
 		} else {
 			vi->width = xWindow->pwidth;
 			vi->height = xWindow->pheight;
-			vi->pitch = vi->width*xWindow->bpp;
+			vi->pitch = xWindow->pwidth*xWindow->bpp;
 			vi->pixel_format = xWindow->pixel_format;
 			vi->video_buffer = (unsigned char *) xWindow->shmseginfo->shmaddr;
 		}
 		vi->is_hardware_memory = (xWindow->use_shared_memory) ? 1 : 0;
+		//fprintf(stdout, "X11 Lock Back Buffer: %d x %d (pitch %d) pf %s buffer %08x\n", vi->width, vi->height, vi->pitch, gf_4cc_to_str(vi->pixel_format), (u32) vi->video_buffer);
 		return GF_OK;
 	} else {
 		return GF_OK;
@@ -987,6 +1025,7 @@ static int X11_BadAccess_ByPass(Display * display,
 
 static void X11_XScreenSaverState(XWindow *xwin, Bool turn_on)
 {
+	return;
  	if (turn_on) {
 		if (!xwin->ss_t) return;
 	        XSetScreenSaver(xwin->display, xwin->ss_t, xwin->ss_i, xwin->ss_b, xwin->ss_e);
@@ -1049,7 +1088,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 
 	if (!xWindow->par_wnd) {
 		xWindow->w_width = 320;
-		xWindow->w_height = 20;
+		xWindow->w_height = 240;
 		xWindow->wnd = XCreateWindow (xWindow->display,
 					   RootWindowOfScreen(xWindow->screenptr), 0, 0,
 					   xWindow->w_width, xWindow->w_height, 0,
@@ -1078,7 +1117,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		PointerMotionMask | ButtonReleaseMask | ButtonPressMask |
 		KeyPressMask | KeyReleaseMask);
 	XSync(xWindow->display, False);
-	XSetErrorHandler(old_handler);
+//	XSetErrorHandler(old_handler);
 	if (selectinput_err) {
 	       	XSelectInput(xWindow->display, xWindow->wnd,
 			StructureNotifyMask | PropertyChangeMask | ExposureMask |
@@ -1091,8 +1130,8 @@ X11_SetupWindow (GF_VideoOutput * vout)
 
 	XSizeHints *Hints = XAllocSizeHints ();
 	Hints->flags = PSize | PMinSize;
-	Hints->min_width = 32;
-	Hints->min_height = 32;
+	Hints->min_width = 64;
+	Hints->min_height = 64;
 	Hints->max_height = 4096;
 	Hints->max_width = 4096;
 	if (!xWindow->par_wnd) {
@@ -1114,7 +1153,10 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	  Bool XShmPixmaps;
 	  if (XShmQueryVersion(xWindow->display, &XShmMajor, &XShmMinor, &XShmPixmaps)) {
 		xWindow->use_shared_memory = 1;
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using X11 Hardware Blit\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using X11 Shared Memory\n"));
+		if ((XShmPixmaps==True) && (XShmPixmapFormat(xWindow->display)==ZPixmap)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] X11 Shared Memory Pixmaps available\n"));
+		}
 	  }
 	}
 
@@ -1122,13 +1164,18 @@ X11_SetupWindow (GF_VideoOutput * vout)
 
 #ifdef GPAC_HAS_X11_XV
 	xWindow->xvport = -1;
+	xWindow->xvport2 = -1;
 	vout->overlay_color_key = 0xFF0101FE;
 	if (X11_InitOverlay(vout, 320, 240) == GF_OK) {
-		vout->Blit = X11_BlitOverlay;
-		vout->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
-//		vout->hw_caps |= GF_VIDEO_HW_HAS_YUV;
 		X11_DestroyOverlay(xWindow);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using XV acceleration\n"));
+		vout->Blit = X11_BlitOverlay;
+		if (0) {
+			vout->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using XV YUV Overlays\n"));
+		} else {
+			vout->hw_caps |= GF_VIDEO_HW_HAS_YUV;
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using XV YUV2RGB acceleration\n"));
+		}
 	} 
 #endif
 
