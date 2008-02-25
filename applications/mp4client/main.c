@@ -67,6 +67,7 @@ static u32 Volume=100;
 static char the_url[GF_MAX_PATH];
 static Bool no_mime_check = 0;
 static Bool be_quiet = 0;
+static u32 log_time_start = 0;
 
 static u32 forced_width=0;
 static u32 forced_height=0;
@@ -837,6 +838,7 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 		vsprintf(szMsg, fmt, list);
 		UpdateRTInfo(szMsg + 6 /*"[RTI] "*/);
 	} else {
+		if (log_time_start) fprintf(logs, "[At %d]", gf_sys_clock() - log_time_start);
 		vfprintf(logs, fmt, list);
 		fflush(logs);
 	}
@@ -859,6 +861,8 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 			gf_log_set_tools(GF_LOG_RTI);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log"));
+		} else if (log_time_start) {
+			log_time_start = gf_sys_clock();
 		}
 	}
 }
@@ -943,6 +947,8 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-log-tools") || !strcmp(arg, "-lt")) {
 			gf_log_set_tools(parse_log_tools(argv[i+1]));
 			i++;
+		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
+			log_time_start = 1;
 		} else if (!strcmp(arg, "-align")) {
 			if (argv[i+1][0]=='m') align_mode = 1;
 			else if (argv[i+1][0]=='b') align_mode = 2;

@@ -1480,10 +1480,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 	gf_list_reset(compositor->queue_cached_groups);
 #endif
 	flags = compositor->traverse_state->direct_draw;
-	if ( !visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1) ) {
-		/*for 2D skip flush if no changes in case of overlays*/
-		if (!compositor->visual->type_3d) compositor->skip_flush = 1;
-	}
+	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
 	compositor->traverse_state->direct_draw = flags;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Drawing done\n"));
 
@@ -1612,6 +1609,27 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 
 #ifndef GPAC_DISABLE_LOG
+	time_node_time = gf_sys_clock();
+#endif
+	/*update all timed nodes */
+	count = gf_list_count(compositor->time_nodes);
+	for (i=0; i<count; i++) {
+		GF_TimeNode *tn = (GF_TimeNode *)gf_list_get(compositor->time_nodes, i);
+		if (!tn->needs_unregister) tn->UpdateTimeNode(tn);
+		if (tn->needs_unregister) {
+			tn->is_registered = 0;
+			tn->needs_unregister = 0;
+			gf_list_rem(compositor->time_nodes, i);
+			i--;
+			count--;
+			continue;
+		}
+	}
+#ifndef GPAC_DISABLE_LOG
+	time_node_time = gf_sys_clock() - time_node_time;
+#endif
+
+#ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock();
 #endif
 	/*update all textures*/
@@ -1692,27 +1710,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		gf_sc_texture_release_stream(txh);
 		if (frame_drawn && txh->tx_io && !(txh->flags & GF_SR_TEXTURE_USED)) gf_sc_texture_reset(txh);
 	}
-
-#ifndef GPAC_DISABLE_LOG
-	time_node_time = gf_sys_clock();
-#endif
-	/*update all timed nodes */
-	count = gf_list_count(compositor->time_nodes);
-	for (i=0; i<count; i++) {
-		GF_TimeNode *tn = (GF_TimeNode *)gf_list_get(compositor->time_nodes, i);
-		if (!tn->needs_unregister) tn->UpdateTimeNode(tn);
-		if (tn->needs_unregister) {
-			tn->is_registered = 0;
-			tn->needs_unregister = 0;
-			gf_list_rem(compositor->time_nodes, i);
-			i--;
-			count--;
-			continue;
-		}
-	}
-#ifndef GPAC_DISABLE_LOG
-	time_node_time = gf_sys_clock() - time_node_time;
-#endif
 
 	end_time = gf_sys_clock() - in_time;
 
@@ -1969,7 +1966,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 
 	switch (event->type) {
 	case GF_EVENT_REFRESH:
-		if (0 && !compositor->draw_next_frame) {
+		if (!compositor->draw_next_frame) {
 			/*when refreshing the window in 3D we redraw the scene since we don't know the GL doublebuffer config*/
 			if (compositor->visual->has_overlays) {
 				compositor->draw_next_frame = 1;

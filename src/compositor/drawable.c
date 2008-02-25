@@ -259,9 +259,12 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, GF_
 	return bi;
 }
 
-void drawable_mark_modified(Drawable *st, GF_TraverseState *tr_state)
+void drawable_mark_modified(Drawable *drawable, GF_TraverseState *tr_state)
 {
-	st->flags |= tr_state->visual->bounds_tracker_modif_flag;
+	/*mark drawable as modified*/
+	drawable->flags |= tr_state->visual->bounds_tracker_modif_flag;
+	/*and remove overlay flag*/
+	drawable->flags &= ~DRAWABLE_IS_OVERLAY;
 }
 
 /*move current bounds to previous bounds*/
@@ -689,6 +692,10 @@ void drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_s
 		
 		tr_state->ctx = NULL;
 		tr_state->traversing_mode = TRAVERSE_SORT;
+	}
+	/*if the drawable is an overlay, always mark it as dirty to avoid flickering*/
+	else if (ctx->drawable->flags & DRAWABLE_IS_OVERLAY) {
+		ctx->flags |= CTX_TEXTURE_DIRTY;
 	}
 }
 

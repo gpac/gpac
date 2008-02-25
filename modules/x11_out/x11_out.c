@@ -175,7 +175,7 @@ static GF_Err X11_InitOverlay(GF_VideoOutput *vout, u32 VideoWidth, u32 VideoHei
 	return GF_OK;
 }
 
-GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src, GF_Window *dest, GF_ColorKey *key, Bool is_overlay)
+GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src, GF_Window *dest, GF_ColorKey *key, u32 overlay_type)
 {
 	XvImage *overlay;
 	int xvport;
@@ -213,12 +213,12 @@ GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_W
 	overlay->offsets[2] = 5*video_src->width*video_src->height/4;
 
 	dst_dr = cur_wnd;
-	if (!is_overlay) {
+	if (!overlay_type) {
 		if (!xwin->pixmap) return GF_BAD_PARAM;
 		dst_dr = xwin->pixmap;
 	}
 
-        XvPutImage(xwin->display, xvport, dst_dr, xwin->the_gc, overlay, 
+     XvPutImage(xwin->display, xvport, dst_dr, xwin->the_gc, overlay, 
 		src->x, src->y, src->w, src->h,
 		dest->x, dest->y, dest->w, dest->h);
 
