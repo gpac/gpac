@@ -116,6 +116,7 @@ static GF_Err DD_ClearBackBuffer(GF_VideoOutput *dr, u32 color)
 
 GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_system_memory)
 {
+	Bool force_reinit;
 	HRESULT hr;
 	const char *opt; 
 #ifdef USE_DX_3
@@ -127,7 +128,10 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 	DDCONTEXT;
 
 
-	if (dd->pBack && !dd->fullscreen && (dd->width == Width) && (dd->height == Height) ) {
+	force_reinit = 0;
+	if (use_system_memory && !dd->systems_memory) force_reinit = 1;
+	else if (!use_system_memory && dd->systems_memory) force_reinit = 1;
+	if (dd->pBack && !force_reinit&& !dd->fullscreen && (dd->width == Width) && (dd->height == Height) ) {
 		return GF_OK;
 	}
 
@@ -143,9 +147,11 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 	} else {
 		opt = NULL;
-		if (use_system_memory) opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
-
-		if (!use_system_memory || (opt && !strcmp(opt, "yes"))) {
+		if (use_system_memory) {
+			opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
+			if (opt && !strcmp(opt, "yes")) use_system_memory = 0;
+		}
+		if (!use_system_memory) {
 			dd->systems_memory = 0;
 			ddsd.ddsCaps.dwCaps |= DDSCAPS_VIDEOMEMORY;
 		} else {
@@ -416,7 +422,6 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
 
-
 static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 pixel_format)
 {
 #ifdef USE_DX_3
@@ -430,14 +435,16 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 	/*yuv format*/
 	if (pixelformat_yuv(pixel_format)) {
 		if (dr->yuv_pixel_format) {
+			DDSurface *yuvp = &dd->yuv_pool;		
+
 			/*don't recreate a surface if not needed*/
-			if (dd->yuv_pool.pSurface && (dd->yuv_pool.width >= width) && (dd->yuv_pool.height >= height) ) return &dd->yuv_pool;
+			if (yuvp->pSurface && (yuvp->width >= width) && (yuvp->height >= height) ) return yuvp;
 
-			width = MAX(dd->yuv_pool.width, width);
-			height = MAX(dd->yuv_pool.height, height);
+			width = MAX(yuvp->width, width);
+			height = MAX(yuvp->height, height);
 
-			SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
-			memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+			SAFE_DD_RELEASE(yuvp->pSurface);
+			memset(yuvp, 0, sizeof(DDSurface));
 
 			memset (&ddsd, 0, sizeof(ddsd));
 			ddsd.dwSize = sizeof(ddsd);
@@ -450,18 +457,18 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 			ddsd.ddpfPixelFormat.dwFourCC = get_win_4CC(dr->yuv_pixel_format);
 
 #ifdef USE_DX_3
-			if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &dd->yuv_pool.pSurface, NULL ) ) )
+			if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &yuvp->pSurface, NULL ) ) )
 				return NULL;
 #else
-			if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &dd->yuv_pool.pSurface, NULL ) ) )
+			if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &yuvp->pSurface, NULL ) ) )
 				return NULL;
 #endif
-			dd->yuv_pool.format = dr->yuv_pixel_format;
-			dd->yuv_pool.width = width;
-			dd->yuv_pool.height = height;
+			yuvp->format = dr->yuv_pixel_format;
+			yuvp->width = width;
+			yuvp->height = height;
 
 
-			return &dd->yuv_pool;
+			return yuvp;
 		}
 	}
 
@@ -493,7 +500,7 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 	return &dd->rgb_pool;
 }
 
-static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, GF_ColorKey *key, Bool is_overlay)
+static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
 {
 	GF_VideoSurface temp_surf;
 	GF_Err e;
@@ -510,7 +517,7 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 		h = video_src->height;
 	}
 	/*get RGB or YUV pool surface*/
-	pool = DD_GetSurface(dr, w, h, key ? dd->pixelFormat : video_src->pixel_format);
+	pool = DD_GetSurface(dr, w, h, video_src->pixel_format);
 	if (!pool) return GF_IO_ERR;
 
 	temp_surf.pixel_format = pool->format;
@@ -523,38 +530,45 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	e = DD_UnlockSurface(dd, pool->pSurface);
 	if (e) return e;
 
-	if (is_overlay) {
-		DDOVERLAYFX     ddofx;
-		DDBLTFX ddfx;
+	if (overlay_type) {
 		HRESULT hr;
-		RECT rc, src_rc;
+		RECT dst_rc, src_rc;
 		POINT pt;
-		pt.x = dst_wnd->x;
-		pt.y = dst_wnd->y;
-		ClientToScreen(dd->cur_hwnd, &pt);
-		dst_wnd->x = pt.x;
-		dst_wnd->y = pt.y;
-		MAKERECT(rc, dst_wnd);
-		src_wnd->x = src_wnd->y = 0;
-		MAKERECT(src_rc, src_wnd);
-		
-#if 0
-		memset(&ddofx, 0, sizeof(DDOVERLAYFX));
-		ddofx.dwSize = sizeof(DDOVERLAYFX);
-		ddofx.dckDestColorkey.dwColorSpaceLowValue = dr->overlay_color_key;
-		ddofx.dckDestColorkey.dwColorSpaceHighValue = dr->overlay_color_key;
-		hr = IDirectDrawSurface2_UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &rc, DDOVER_SHOW | DDOVER_KEYDESTOVERRIDE, &ddofx);
-		if (FAILED(hr)) return GF_IO_ERR;
-		hr = IDirectDrawSurface2_Flip(pool->pSurface, NULL, 0);
-#else
-		memset(&ddfx, 0, sizeof(DDBLTFX));
-		ddfx.dwSize = sizeof(DDBLTFX);
-		ddfx.ddckDestColorkey.dwColorSpaceLowValue = dr->overlay_color_key;
-		ddfx.ddckDestColorkey.dwColorSpaceHighValue = dr->overlay_color_key;
+		GF_Window dst = *dst_wnd;
+		GF_Window src = *src_wnd;
 
-		hr = IDirectDrawSurface_Blt(dd->pPrimary, &rc, pool->pSurface, &src_rc, DDBLT_WAIT | DDBLT_KEYDESTOVERRIDE, &ddfx);
-//		hr = IDirectDrawSurface_Blt(dd->pPrimary, &rc, pool->pSurface, &src_rc, DDBLT_WAIT , NULL);
-		if (FAILED(hr)) fprintf(stdout, "Failed!!\n");
+		src.x = src.y = 0;
+		MAKERECT(src_rc, (&src));
+		pt.x = dst.x;
+		pt.y = dst.y;
+		ClientToScreen(dd->cur_hwnd, &pt);
+		dst.x = pt.x;
+		dst.y = pt.y;
+		MAKERECT(dst_rc, (&dst));
+
+#if 1
+		if (overlay_type==1) {
+			hr = IDirectDrawSurface2_UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW, NULL);
+		} else {
+			DDOVERLAYFX ddofx;
+			memset(&ddofx, 0, sizeof(DDOVERLAYFX));
+			ddofx.dwSize = sizeof(DDOVERLAYFX);
+			ddofx.dckDestColorkey.dwColorSpaceLowValue = dr->overlay_color_key;
+			ddofx.dckDestColorkey.dwColorSpaceHighValue = dr->overlay_color_key;
+			hr = IDirectDrawSurface2_UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW | DDOVER_KEYDESTOVERRIDE, &ddofx);
+		}
+#else
+		if (overlay_type==1) {
+			hr = IDirectDrawSurface_Blt(dd->pPrimary, &dst_rc, pool->pSurface, &src_rc, 0, NULL);
+		} else {
+			DDBLTFX ddfx;
+			memset(&ddfx, 0, sizeof(DDBLTFX));
+			ddfx.dwSize = sizeof(DDBLTFX);
+			ddfx.ddckDestColorkey.dwColorSpaceLowValue = dr->overlay_color_key;
+			ddfx.ddckDestColorkey.dwColorSpaceHighValue = dr->overlay_color_key;
+
+			hr = IDirectDrawSurface_Blt(dd->pPrimary, &dst_rc, pool->pSurface, &src_rc, DDBLT_WAIT | DDBLT_KEYDESTOVERRIDE, &ddfx);
+		}
 #endif
 		return FAILED(hr) ? GF_IO_ERR : GF_OK;
 	}
@@ -568,7 +582,7 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 		src_wnd_2.h = video_src->height;
 	}
 	/*and blit surface*/
-	return DD_BlitSurface(dd, pool, &src_wnd_2, dst_wnd, key);
+	return DD_BlitSurface(dd, pool, &src_wnd_2, dst_wnd, NULL);
 }
 
 
@@ -715,8 +729,17 @@ rem_fmt:
 	dr->yuv_pixel_format = GF_PIXEL_YV12;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Picked YUV format %s - drawn in %d ms\n", gf_4cc_to_str(dr->yuv_pixel_format), min_planar));
-	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY;
+	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
 	dr->overlay_color_key = 0xFF0101FE;
+
+#if 0
+	{
+	const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV");
+	if (opt && !strcmp(opt, "yes")) dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
+	}
+#else
+	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
+#endif
 
 }
 

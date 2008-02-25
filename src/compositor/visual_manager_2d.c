@@ -237,6 +237,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	visual->cur_context = visual->context;
 	if (visual->context) visual->context->drawable = NULL;
 	visual->has_modif = 0;
+	visual->has_overlays = 0;
 
 	visual_2d_setup_projection(visual, tr_state);
 

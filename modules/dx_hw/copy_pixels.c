@@ -82,7 +82,7 @@ static Bool is_planar_yuv(u32 pf)
 
 
 static void VR_write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *src, u32 src_stride, u32 src_pf,
-								 u32 src_width, u32 src_height, GF_Window *src_wnd)
+								 u32 src_width, u32 src_height, const GF_Window *src_wnd)
 {
 	unsigned char *pY, *pU, *pV;
 	pY = src;
@@ -225,7 +225,7 @@ u32 get_bpp(u32 pf)
 	return 0;
 }
 
-void rgb_to_24(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_w, u32 src_h, u32 src_pf, GF_Window *src_wnd)
+void rgb_to_24(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_w, u32 src_h, u32 src_pf, const GF_Window *src_wnd)
 {
 	u32 i;
 	u32 BPP = get_bpp(src_pf);
@@ -244,7 +244,7 @@ void rgb_to_24(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_
 }
 
 
-void rgb_to_555(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_w, u32 src_h, u32 src_pf, GF_Window *src_wnd)
+void rgb_to_555(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_w, u32 src_h, u32 src_pf, const GF_Window *src_wnd)
 {
 	u32 i, j, r, g, b;
 	u32 BPP = get_bpp(src_pf);
@@ -278,7 +278,7 @@ void rgb_to_555(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src
 	}
 }
 
-void rgb_to_565(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_w, u32 src_h, u32 src_pf, GF_Window *src_wnd)
+void rgb_to_565(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_w, u32 src_h, u32 src_pf, const GF_Window *src_wnd)
 {
 	u32 i, j, r, g, b;
 	u32 BPP = get_bpp(src_pf);
@@ -312,7 +312,7 @@ void rgb_to_565(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src
 	}
 }
 
-void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_w, u32 src_h, u32 src_pf, GF_Window *src_wnd)
+void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_w, u32 src_h, u32 src_pf, const GF_Window *src_wnd)
 {
 	u32 i, j;
 	Bool isBGR;
@@ -376,7 +376,7 @@ void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_
 	}
 }
 
-void dx_copy_pixels(GF_VideoSurface *dst_s, GF_VideoSurface *src_s, GF_Window *src_wnd)
+void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const GF_Window *src_wnd)
 {
 	/*handle YUV input*/
 	if (get_yuv_base(src_s->pixel_format)==GF_PIXEL_YV12) {
@@ -384,7 +384,7 @@ void dx_copy_pixels(GF_VideoSurface *dst_s, GF_VideoSurface *src_s, GF_Window *s
 			/*generic YV planar to YUV (planar or not) */
 			VR_write_yv12_to_yuv(dst_s, src_s->video_buffer, src_s->pitch, src_s->pixel_format, src_s->width, src_s->height, src_wnd);
 		} else {
-			gf_stretch_bits(dst_s, src_s, NULL, src_wnd, 0, 0xFF, 0, NULL, NULL);
+			gf_stretch_bits(dst_s, (GF_VideoSurface*) src_s, NULL, (GF_Window *)src_wnd, 0, 0xFF, 0, NULL, NULL);
 		}
 	} else {
 		switch (dst_s->pixel_format) {

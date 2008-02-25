@@ -151,8 +151,11 @@ typedef struct _video_out
 	the blitter MUST support stretching and RGB24 sources. Support for YUV is indicated in the hw caps
 	of the driver. If none is supported, just set this function to NULL and let gpac performs software blitting.
 	Whenever this function fails, the blit will be performed in software mode
-	if is_overlay is set, this is an overlay on the video memory (Flush would have been called before)*/
-	GF_Err (*Blit)(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, GF_ColorKey *key, Bool is_overlay);
+	if is_overlay is set, this is an overlay on the video memory (Flush would have been called before)
+		overlay_type 1: this is regular overlay without color keying
+		overlay_type 2: this is overlay with color keying
+	*/
+	GF_Err (*Blit)(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type);
 
 	/*set of above HW flags*/
 	u32 hw_caps;

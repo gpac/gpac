@@ -83,7 +83,11 @@ enum {
 	the flag is only set during a visual_draw_frame pass*/
 	DRAWABLE_REGISTERED_WITH_VISUAL = 1<<4,
 
-	DRAWABLE_IS_CACHED = 1<<5,
+	/*drawable is an overlay surface*/
+	DRAWABLE_IS_OVERLAY = 1<<5,
+
+	/**/
+	DRAWABLE_IS_CACHED = 1<<6,
 };
 
 struct _drawable

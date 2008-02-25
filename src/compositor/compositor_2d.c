@@ -222,6 +222,10 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	
 #undef ROUND_FIX
 
+	/*avoid partial redraw that don't come close to src pixels with the bliter, this leads to ugly artefacts - 
+	fall back to rasterizer*/
+	if (!(ctx->flags & CTX_TEXTURE_DIRTY) && !use_blit && (src_wnd.x || src_wnd.y) ) return 0;
+
 	if (src_wnd.w>txh->width) src_wnd.w=txh->width;
 	if (src_wnd.h>txh->height) src_wnd.h=txh->height;
 
@@ -269,8 +273,12 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	}
 
 	if (overlay_type) {
+		/*no more than one overlay is supported at the current time*/
+		if (visual->compositor->overlays) {
+			overlay_type = 0;
+		}
 		/*direct draw or not last context: we must queue the overlay*/
-		if (tr_state->direct_draw || (ctx->next && ctx->next->drawable)) {
+		else if (tr_state->direct_draw || (ctx->next && ctx->next->drawable)) {
 			overlay_type = 2;
 		}
 		/*OK we can overlay this video - if full display, don't flush*/
@@ -284,9 +292,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			overlay_type = 0;
 		}
 	}
-	/*avoid partial redraw that don't come close to src pixels with the bliter, this leads to  ugly artefacts - 
-	fall back to rasterizer*/
-	else if (!use_blit && (src_wnd.x || src_wnd.y) ) return 0;
 
 	video_src.height = txh->height;
 	video_src.width = txh->width;
@@ -298,12 +303,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			GF_IRect o_rc;
 			GF_OverlayStack *ol, *first;
 
-			/*queue overlay*/
+			/*queue overlay in order*/
 			GF_SAFEALLOC(ol, GF_OverlayStack);
 			ol->ctx = ctx;
 			ol->dst = dst_wnd;
 			ol->src = src_wnd;
-#if 1
 			first = visual->compositor->overlays;
 			if (first) {
 				while (first->next) first = first->next;
@@ -311,10 +315,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			} else {
 				visual->compositor->overlays = ol;
 			}
-#else
-			ol->next = visual->compositor->overlays;
-			visual->compositor->overlays = ol;
-#endif
+
 			if (visual->center_coords) {
 				o_rc.x = dst_wnd.x - output_width/2;
 				o_rc.y = output_height/2- dst_wnd.y;
@@ -325,6 +326,9 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			o_rc.width = dst_wnd.w;
 			o_rc.height = dst_wnd.h;
 			visual_2d_clear(visual, &o_rc, visual->compositor->video_out->overlay_color_key);
+			visual->has_overlays = 1;
+			/*mark drawable as overlay*/
+			ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;
 
 			/*prevents this context from being removed in direct draw mode by requesting a new one
 			but not allocating it*/
@@ -344,7 +348,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 		visual->compositor->skip_flush = 1;
 
-		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, col_key, 1);
+		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 1);
 		if (!e) {
 			visual->has_overlays = 1;
 			return 1;
@@ -357,7 +361,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	visual_2d_release_raster(visual);
 
 	if (!use_soft_stretch) {
-		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, col_key, 0);
+		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 0);
 		/*HW pb, try soft*/
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during hardware blit - trying with soft one\n"));
@@ -369,8 +373,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	if (use_soft_stretch) {
 		GF_VideoSurface backbuffer;
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 1);
-		gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, 0, alpha, 0, col_key, ctx->col_mat);
-		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 0);
+		if (!e) {
+			fprintf(stdout, "Soft Stretch Blt\n");
+			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, 0, alpha, 0, col_key, ctx->col_mat);
+			e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 0);
+		}
 	}
 	visual_2d_init_raster(visual);
 	return 1;
@@ -379,8 +386,10 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 void compositor_2d_draw_overlays(GF_Compositor *compositor)
 {
+	GF_Err e;
 	GF_TextureHandler *txh;
 	GF_VideoSurface video_src;
+
 	while (1) {
 		GF_OverlayStack *ol = compositor->overlays;
 		if (!ol) return;
@@ -392,7 +401,9 @@ void compositor_2d_draw_overlays(GF_Compositor *compositor)
 		video_src.pitch = txh->stride;
 		video_src.pixel_format = txh->pixelformat;
 		video_src.video_buffer = txh->data;
-		compositor->video_out->Blit(compositor->video_out, &video_src, &ol->src, &ol->dst, 0, 1);
+		e = compositor->video_out->Blit(compositor->video_out, &video_src, &ol->src, &ol->dst, 2);
+		if (e) GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error %s during overlay update\n", gf_error_to_string(e) ));
+
 		free(ol);
 	}
 }
@@ -549,15 +560,23 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.setup.opengl_mode = 0;
 	evt.setup.system_memory = 1;
 
-	count = gf_list_count(compositor->textures);
-	for (i=0; i<count; i++) {
-		GF_TextureHandler *txh = gf_list_get(compositor->textures, i);
-		if ((txh->pixelformat==GF_PIXEL_YV12) && txh->stream) {
-			evt.setup.system_memory = 0;
-			break;
+	if (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_YUV) {
+		/*look for all textures, check for natural ones (stream associated)*/
+		count = gf_list_count(compositor->textures);
+		for (i=0; i<count; i++) {
+			GF_TextureHandler *txh = gf_list_get(compositor->textures, i);
+			if (!txh->stream) continue;
+			/*if look for all textures, check for natural ones (stream associated)*/
+			if (!txh->pixelformat) {
+				compositor->root_visual_setup = 0;
+				break;
+			}
+			if (txh->pixelformat==GF_PIXEL_YV12) {
+				evt.setup.system_memory = 0;
+				break;
+			}
 		}
 	}
-
 	e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 	if (e) return e;
 
