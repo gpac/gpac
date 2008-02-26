@@ -661,7 +661,7 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	gf_cmx_init(&compositor->traverse_state->color_mat);
 	compositor->traverse_state->direct_draw = direct_draw;
 
-	assert(!compositor->overlays);
+	assert(!compositor->visual->overlays);
 
 	compositor->reset_graphics = 0;
 	compositor->trans_x = compositor->trans_y = 0;
@@ -1685,7 +1685,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		flush_time = gf_sys_clock() - flush_time;
 #endif
 
-		compositor_2d_draw_overlays(compositor);
+		visual_2d_draw_overlays(compositor->visual);
 
 		if (compositor->stress_mode) {
 			compositor->draw_next_frame = 1;

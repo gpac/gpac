@@ -609,6 +609,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	u8 ka, kr, kg, kb, kl, kh;
 	s32 src_row;
 	u32 i, yuv_type = 0;
+	Bool yuv_init = 0;
 	Bool has_alpha = (alpha!=0xFF) ? 1 : 0;
 	u32 dst_bpp, dst_w_size;
 	s32 pos_y, inc_y, inc_x, prev_row, x_off;
@@ -704,6 +705,8 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	dst_w = dst_wnd ? dst_wnd->w : dst->width;
 	dst_h = dst_wnd ? dst_wnd->h : dst->height;
 
+	if (yuv_type && (src_w%2)) src_w++;
+
 	tmp = (u8 *) malloc(sizeof(u8) * src_w * (yuv_type ? 8 : 4) );
 	rows = tmp;
 
@@ -753,6 +756,18 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 			u32 the_row = src_row - 1;
 			if (yuv_type) {
 				if ( (src_row - 1) % 2) {
+					if (!yuv_init) {
+						yuv_init = 1;
+						the_row --;
+						if (flip) the_row = src->height-2 - the_row;
+						if (yuv_type==1) {
+							load_line_yv12(src->video_buffer, x_off, the_row, src->pitch, src_w, src->height, tmp);
+						} else {
+							load_line_yuva(src->video_buffer, x_off, the_row, src->pitch, src_w, src->height, tmp);
+						}
+						the_row = src_row - 1;
+					}
+
 					rows = flip ? tmp : tmp + src_w * 4;
 				} else {
 					if (flip) the_row = src->height-2 - the_row;

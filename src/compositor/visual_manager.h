@@ -108,6 +108,9 @@ struct _visual_manager
 
 	u32 num_nodes_prev_frame, num_nodes_current_frame;
 
+	/*list of video overlays sorted from first to last*/
+	struct _video_overlay *overlays;
+
 #ifndef GPAC_DISABLE_3D
 	/*
 	 *	Visual Manager part for 3D drawing 

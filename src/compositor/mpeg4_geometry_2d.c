@@ -317,7 +317,7 @@ static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 
 	ctx = drawable_init_context_mpeg4(stack, tr_state);
 	if (!ctx) return;
-	
+
 	/*if alpha or not filled, transparent*/
 	if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) {
 	} 

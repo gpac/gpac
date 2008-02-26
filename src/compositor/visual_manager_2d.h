@@ -26,8 +26,11 @@
 #define _VISUAL_MANAGER_2D_
 
 Bool gf_irect_overlaps(GF_IRect *rc1, GF_IRect *rc2);
+/*intersects @rc1 with @rc2 - the new @rc1 is the intersection*/
 void gf_irect_intersect(GF_IRect *rc1, GF_IRect *rc2);
 GF_Rect gf_rect_ft(GF_IRect *rc);
+/*@rc2 fully contained in @rc1*/
+Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2);
 
 /*@rc1 equales @rc2*/
 #define gf_rect_equal(rc1, rc2) ((rc1.width == rc2.width) && (rc1.height == rc2.height) && (rc1.x == rc2.x)  && (rc1.y == rc2.y)) 
@@ -64,6 +67,12 @@ typedef struct
 	if ((ra)->count==(ra)->alloc) { (ra)->alloc += RA_DEFAULT_STEP; (ra)->list = (GF_IRect*)realloc((ra)->list, sizeof(GF_IRect) * (ra)->alloc); }	\
 	(ra)->list[(ra)->count] = *rc; (ra)->count++;	}
 
+
+
+/*adds rectangle to the list performing union test*/
+void ra_union_rect(GF_RectArray *ra, GF_IRect *rc);
+/*refreshes the content of the array to have only non-overlapping rects*/
+void ra_refresh(GF_RectArray *ra);
 
 struct _drawable_store
 {
@@ -114,6 +123,23 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx, GF_TraverseState *tr_state);
 void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_STENCIL brush, GF_STENCIL pen, GF_TraverseState *tr_state, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx);
 
+
+/*video overlay context*/
+typedef struct _video_overlay 
+{
+	struct _video_overlay *next;
+	GF_Window src, dst;
+	DrawableContext *ctx;
+	GF_RectArray ra;
+} GF_OverlayStack;
+
+/*check if the object is over an overlay. If so, adds its cliper to the list of rectangles to redraw for the overlay 
+and returns 1 (in which case it shouldn't be drawn)*/
+Bool visual_2d_overlaps_overlay(GF_VisualManager *visual, DrawableContext *ctx, GF_TraverseState *tr_state);
+/*draw all partial overlays in software and all overlaping objects*/
+void visual_2d_flush_overlay_areas(GF_VisualManager *visual, GF_TraverseState *tr_state);
+/*finally blit the overlays - MUST be called once the main visual has been flushed*/
+void visual_2d_draw_overlays(GF_VisualManager *visual);
 
 #endif	/*_VISUAL_MANAGER_2D_*/
 
