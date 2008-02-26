@@ -649,8 +649,10 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	return ctx;
 }
 
-void drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_state)
+static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_state)
 {
+	/*if direct draw we can remove the context*/
+	Bool res = tr_state->direct_draw;
 	/*copy final transform, once all parent layout is done*/
 	gf_mx2d_copy(ctx->transform, tr_state->transform);
 
@@ -660,7 +662,8 @@ void drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_s
 		ctx->bi->clip.width = 0;
 		/*remove if this is the last context*/
 		if (tr_state->visual->cur_context == ctx) tr_state->visual->cur_context->drawable = NULL;
-		return;
+
+		return res;
 	}
 
 	/*keep track of node drawn, whether direct or indirect drawing*/
@@ -677,8 +680,19 @@ void drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_s
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Registering new drawn node %s on visual\n", gf_node_get_class_name(it->drawable->node)));
 		ctx->drawable->flags |= DRAWABLE_REGISTERED_WITH_VISUAL;
 	}
+	
+	/*if the drawable is an overlay, always mark it as dirty to avoid flickering*/
+	if (ctx->drawable->flags & DRAWABLE_IS_OVERLAY) {
+		ctx->flags |= CTX_TEXTURE_DIRTY;
+	}
 
-	if (tr_state->direct_draw) {
+	/*we are in direct draw mode, draw ...*/
+	if (res) {
+
+		/*if over an overlay we cannot remove the context and cannot draw directly*/
+		if (visual_2d_overlaps_overlay(tr_state->visual, ctx, tr_state))
+			return 0;
+
 		assert(!tr_state->traversing_mode);
 		tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 		tr_state->ctx = ctx;
@@ -693,10 +707,8 @@ void drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_s
 		tr_state->ctx = NULL;
 		tr_state->traversing_mode = TRAVERSE_SORT;
 	}
-	/*if the drawable is an overlay, always mark it as dirty to avoid flickering*/
-	else if (ctx->drawable->flags & DRAWABLE_IS_OVERLAY) {
-		ctx->flags |= CTX_TEXTURE_DIRTY;
-	}
+	/*if direct draw we can remove the context*/
+	return res;
 }
 
 void drawable_check_bounds(struct _drawable_context *ctx, GF_VisualManager *visual)
@@ -725,6 +737,7 @@ void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp)
 
 void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds, Bool skip_focus)
 {
+	Bool can_remove;
 	Fixed pw;
 	GF_Rect unclip, store_orig_bounds;
 
@@ -784,12 +797,12 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 		ctx->bi->clip.width = 0;
 	}
 
-	drawable_finalize_end(ctx, tr_state);
+	can_remove = drawable_finalize_end(ctx, tr_state);
 	if (ctx->drawable && !skip_focus)
 		drawable_check_focus_highlight(ctx->drawable->node, tr_state, &store_orig_bounds);
 
 	/*remove if this is the last context*/
-	if (tr_state->direct_draw && (tr_state->visual->cur_context == ctx)) 
+	if (can_remove && (tr_state->visual->cur_context == ctx)) 
 		tr_state->visual->cur_context->drawable = NULL;
 }
 

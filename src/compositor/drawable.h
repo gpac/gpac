@@ -131,9 +131,6 @@ void drawable_finalize_sort(DrawableContext *ctx, GF_TraverseState *tr_state, GF
 /*same as drawable_finalize_sort but skips focus check*/
 void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds, Bool skip_focus);
 
-/*performs final task common to drawable_finalize_sort and layout node traversing (cf grouping.c)*/
-void drawable_finalize_end(DrawableContext *ctx, GF_TraverseState *tr_state);
-
 /*base constructor for geometry objects that work without overloading the drawable stuff*/
 Drawable *drawable_stack_new(GF_Compositor *compositor, GF_Node *node);
 /*reset all paths (main path and any outline) of the stack*/

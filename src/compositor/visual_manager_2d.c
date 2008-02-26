@@ -315,16 +315,16 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 
 
 
-#ifdef TRACK_OPAQUE_REGIONS
-
 /*@rc2 fully contained in @rc1*/
-static GFINLINE Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2) 
+Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2) 
 {
 	if (!rc1->width || !rc1->height) return 0;
 	if ( (rc1->x <= rc2->x)  && (rc1->y >= rc2->y)  && (rc1->x + rc1->width >= rc2->x + rc2->width) && (rc1->y - rc1->height <= rc2->y - rc2->height) )
 		return 1;
 	return 0;
 }
+
+#ifdef TRACK_OPAQUE_REGIONS
 
 #define CHECK_UNCHANGED		0
 
@@ -412,7 +412,7 @@ static GFINLINE void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2)
 }
 
 /*adds rectangle to the list performing union test*/
-static GFINLINE void ra_union_rect(GF_RectArray *ra, GF_IRect *rc) 
+void ra_union_rect(GF_RectArray *ra, GF_IRect *rc) 
 {
 	u32 i;
 
@@ -426,7 +426,7 @@ static GFINLINE void ra_union_rect(GF_RectArray *ra, GF_IRect *rc)
 }
 
 /*refreshes the content of the array to have only non-overlapping rects*/
-static void ra_refresh(GF_RectArray *ra)
+void ra_refresh(GF_RectArray *ra)
 {
 	u32 i, j, k;
 	for (i=0; i<ra->count; i++) {
@@ -474,6 +474,9 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 
 	/*in direct mode the visual is always redrawn*/
 	if (tr_state->direct_draw) {
+		/*flush pending contexts due to overlays*/
+		visual_2d_flush_overlay_areas(visual, tr_state);
+
 		visual_2d_release_raster(visual);
 		visual_clean_contexts(visual);
 		visual->num_nodes_prev_frame = visual->num_nodes_current_frame;
@@ -649,14 +652,20 @@ skip_background:
 #endif
 			tr_state->ctx = ctx;
 
-			if (ctx->drawable->flags & DRAWABLE_USE_TRAVERSE_DRAW) {
-				gf_node_traverse(ctx->drawable->node, tr_state);
-			} else {
-				drawable_draw(ctx->drawable, tr_state);
+			/*if overlay we cannot remove the context and cannot draw directly*/
+			if (! visual_2d_overlaps_overlay(tr_state->visual, ctx, tr_state)) {
+
+				if (ctx->drawable->flags & DRAWABLE_USE_TRAVERSE_DRAW) {
+					gf_node_traverse(ctx->drawable->node, tr_state);
+				} else {
+					drawable_draw(ctx->drawable, tr_state);
+				}
 			}
 		}
 		ctx = ctx->next;
 	}
+	/*flush pending contexts due to overlays*/
+	visual_2d_flush_overlay_areas(visual, tr_state);
 
 exit:
 	/*clear dirty rects*/

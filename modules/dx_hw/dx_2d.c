@@ -732,14 +732,15 @@ rem_fmt:
 	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
 	dr->overlay_color_key = 0xFF0101FE;
 
-#if 0
 	{
 	const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV");
-	if (opt && !strcmp(opt, "yes")) dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
+	/*no set is the default*/
+	if (!opt) {
+		opt = "yes";
+		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV", "yes");
 	}
-#else
-	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
-#endif
+	if (!opt || !strcmp(opt, "yes")) dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
+	}
 
 }
 
