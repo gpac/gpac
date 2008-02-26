@@ -536,9 +536,6 @@ void compositor_init_offscreen_group(GF_Compositor *compositor, GF_Node *node)
 #endif /*GROUP_2D_USE_CACHE*/
 
 
-
-#ifdef GPAC_TRISCOPE_MODE
-
 /*DepthGroup hardcoded proto*/
 typedef struct
 {
@@ -608,8 +605,6 @@ void compositor_init_depth_group(GF_Compositor *compositor, GF_Node *node)
 	}
 }
 
-#endif /*GPAC_TRISCOPE_MODE*/
-
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
 void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 {
@@ -647,12 +642,10 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 			return;
 		}
 #endif
-#ifdef GPAC_TRISCOPE_MODE
 		if (!strcmp(url, "urn:inet:gpac:builtin:DepthGroup")) {
 			compositor_init_depth_group(compositor, node);
 			return;
 		}
-#endif
 	}
 }
 

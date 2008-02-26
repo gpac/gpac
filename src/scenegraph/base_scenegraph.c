@@ -865,7 +865,11 @@ void gf_node_traverse(GF_Node *node, void *renderStack)
 
 			/*resolve all top-level proto until we find the first traversable node*/
 			while (node->sgprivate->tag == TAG_ProtoNode) {
-				GF_Node *sub_root = ((GF_ProtoInstance *) node)->RenderingNode;
+				GF_Node *sub_root;
+				/*this is a hardcoded proto, use it*/
+				if (node->sgprivate->UserCallback) 
+					break;
+				sub_root = ((GF_ProtoInstance *) node)->RenderingNode;
 				if (!sub_root) {
 					gf_node_dirty_set(node, 0, 1);
 					return;
