@@ -181,7 +181,6 @@ GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_W
 	int xvport;
 	Drawable dst_dr;
 	GF_Err e;
-	XShmSegmentInfo sinfo;
 	Window cur_wnd;
 	XWindow *xwin = (XWindow *)vout->opaque;
 
@@ -217,7 +216,6 @@ GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_W
 		if (!xwin->pixmap) return GF_BAD_PARAM;
 		dst_dr = xwin->pixmap;
 	}
-
      XvPutImage(xwin->display, xvport, dst_dr, xwin->the_gc, overlay, 
 		src->x, src->y, src->w, src->h,
 		dest->x, dest->y, dest->w, dest->h);
