@@ -126,11 +126,11 @@ static int X11_GetXVideoPort(GF_VideoOutput *vout, u32 pixel_format, Bool check_
 					has_color_key = 1;
 					vout->overlay_color_key |= 0xFF000000;
 				}
-			        else if (!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
+/*			        else if (!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
 			            const Atom paint = XInternAtom(xwin->display, "XV_AUTOPAINT_COLORKEY", False);
 			            XvSetPortAttribute(xwin->display, port, paint, 1);
 				}
-			}
+*/			}
 			if (check_color && !has_color_key) continue;
 
 			if (XvGrabPort(xwin->display, port, CurrentTime) == Success) {
@@ -180,7 +180,7 @@ static GF_Err X11_InitOverlay(GF_VideoOutput *vout, u32 VideoWidth, u32 VideoHei
 	return GF_OK;
 }
 
-GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src, GF_Window *dest, GF_ColorKey *key, u32 overlay_type)
+GF_Err X11_Blit(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src, GF_Window *dest, u32 overlay_type)
 {
 	XvImage *overlay;
 	int xvport;
@@ -203,6 +203,9 @@ GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_W
 		xwin->overlay = XvCreateImage(xwin->display, xwin->xvport, xwin->xv_pf_format, NULL, video_src->width, video_src->height);
 		if (!xwin->overlay) return GF_IO_ERR;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[X11] Blit surface - overlay type %s\n", 
+					(overlay_type==0)? "none" : ((overlay_type==1) ? "Top-Level" : "ColorKey") 
+	));
 
 	overlay = xwin->overlay;
 	xvport = xwin->xvport;
@@ -218,7 +221,10 @@ GF_Err X11_BlitOverlay(struct _video_out *vout, GF_VideoSurface *video_src, GF_W
 
 	dst_dr = cur_wnd;
 	if (!overlay_type) {
-		if (!xwin->pixmap) return GF_BAD_PARAM;
+		if (!xwin->pixmap) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Back buffer not configured for Blt\n"));
+			return GF_BAD_PARAM;
+		}
 		dst_dr = xwin->pixmap;
 	}
      XvPutImage(xwin->display, xvport, dst_dr, xwin->the_gc, overlay, 
@@ -241,7 +247,7 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
 
 	if (!xWindow->is_init) return GF_OK;
 	cur_wnd = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
-	
+
 	if (xWindow->output_3d_mode==1) {
 #ifdef GPAC_HAS_OPENGL
 		XSync(xWindow->display, False);
@@ -531,6 +537,11 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 			evt.type = GF_EVENT_SIZE;
 			xWindow->w_width = evt.size.width = xevent.xconfigure.width;
 			xWindow->w_height = evt.size.height = xevent.xconfigure.height;
+			vout->on_event(vout->evt_cbk_hdl, &evt);
+		      } else {
+			evt.type = GF_EVENT_MOVE;
+			evt.move.x = xevent.xconfigure.x;
+			evt.move.y = xevent.xconfigure.y;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
 		      }
 		    break;
@@ -1160,7 +1171,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		XvUngrabPort(xWindow->display, xWindow->xvport, CurrentTime );
 		xWindow->xvport = -1;
 		vout->yuv_pixel_format = X11_GetPixelFormat(xWindow->xv_pf_format);
-		vout->Blit = X11_BlitOverlay;
+		vout->Blit = X11_Blit;
 		vout->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using XV YUV Overlays\n"));
 
