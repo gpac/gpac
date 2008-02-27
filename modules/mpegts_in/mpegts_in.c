@@ -34,29 +34,24 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+//#include <sys/poll.h>
 #include <linux/dvb/dmx.h>
 #include <linux/dvb/frontend.h>
-
-// DVB devices definition
-// TODO: using adapter0/..0 by default; multi-frontend to be done
-#define DMX   "/dev/dvb/adapter0/demux0"
-#define FRONT "/dev/dvb/adapter0/frontend0"
-#define DVR   "/dev/dvb/adapter0/dvr0"
 
 typedef struct {
 	u32 freq;
 	u16 vpid;
 	u16 apid; 
-    fe_spectral_inversion_t specInv;
-    fe_modulation_t modulation;
-    fe_bandwidth_t bandwidth;
-    fe_transmit_mode_t TransmissionMode;
-    fe_guard_interval_t guardInterval;
-    fe_code_rate_t HP_CodeRate;
-    fe_code_rate_t LP_CodeRate;
-    fe_hierarchy_t hierarchy;
-    
-    int ts_fd;
+	fe_spectral_inversion_t specInv;
+	fe_modulation_t modulation;
+	fe_bandwidth_t bandwidth;
+	fe_transmit_mode_t TransmissionMode;
+	fe_guard_interval_t guardInterval;
+	fe_code_rate_t HP_CodeRate;
+	fe_code_rate_t LP_CodeRate;
+	fe_hierarchy_t hierarchy;
+
+	int ts_fd;
 } GF_Tuner;
 
 #define DVB_BUFFER_SIZE 3760							// DVB buffer size 188x20
@@ -102,18 +97,33 @@ typedef struct
 
 static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 	struct dmx_pes_filter_params pesFilterParams;
-    struct dvb_frontend_parameters frp;
-    int demux1, front1;
-    FILE *chanfile;
-    char line[255], chan_name_t[255];
-	char freq_str[255], inv[255], bw[255], lcr[255], hier[255], cr[255], mod[255], transm[255], gi[255], apid_str[255], vpid_str[255];
-    const char *chan_conf = ":%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:";
-    char *chan_name;
+	struct dvb_frontend_parameters frp;
+	int demux1, front1;
+	FILE *chanfile;
+	char line[255], chan_name_t[255];
+	char freq_str[255], inv[255], bw[255], lcr[255], hier[255], cr[255], 
+		 mod[255], transm[255], gi[255], apid_str[255], vpid_str[255];
+	const char *chan_conf = ":%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:";
+	char *chan_name;
+	char *tmp;
+	char frontend_name[100], demux_name[100], dvr_name[100];
+	u32 adapter_num;
+
+	chanfile = fopen(chan_path, "r");
+	if (!chanfile) return GF_BAD_PARAM;
+
+	chan_name = url+6; // 6 = strlen("dvb://")
 	
-    if((chanfile=fopen(chan_path, "r"))==NULL) {
-		return GF_BAD_PARAM;
+	// support for multiple frontends
+	tmp = strchr(chan_name, '@');
+	if (tmp) {
+		adapter_num = atoi(tmp+1);
+		tmp[0] = 0;
+	} else {
+		adapter_num = 0;
 	}
-	chan_name=url+6;
+	fprintf(stderr, "Channel name %s\n", chan_name);
+
 	while(!feof(chanfile)) {
 		if ( fgets(line, 255, chanfile) != NULL) {
 			if (line[0]=='#') continue;
@@ -181,18 +191,28 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 			}
 		}
 	}
-    fclose(chanfile);
+	fclose(chanfile);
         
-    // Open frontend
-    if((front1 = open(FRONT,O_RDWR)) < 0){
-    	return GF_IO_ERR;
-    }
-    // Open demuxes
-    if ((demux1=open(DMX, O_RDWR|O_NONBLOCK)) < 0){
-        return GF_IO_ERR;
-    }
+	sprintf(frontend_name, "/dev/dvb/adapter%d/frontend0", adapter_num);
+	sprintf(demux_name, "/dev/dvb/adapter%d/demux0", adapter_num);
+	sprintf(dvr_name, "/dev/dvb/adapter%d/dvr0", adapter_num);
+
+	// Open frontend
+	if((front1 = open(frontend_name,O_RDWR|O_NONBLOCK)) < 0){
+		fprintf(stderr, "Cannot open frontend %s.\n", frontend_name);
+		return GF_IO_ERR;
+	} else {
+		fprintf(stderr, "Frontend %s opened.\n", frontend_name);
+	}
+	// Open demuxes
+	if ((demux1=open(demux_name, O_RDWR|O_NONBLOCK)) < 0){
+		fprintf(stderr, "Cannot open demux %s\n", demux_name);
+		return GF_IO_ERR;
+	} else {
+		fprintf(stderr, "Demux %s opened.\n", demux_name);
+	}
 	// Set FrontendParameters - DVB-T
-    frp.frequency = tuner->freq;
+	frp.frequency = tuner->freq;
 	frp.inversion = tuner->specInv;
 	frp.u.ofdm.bandwidth = tuner->bandwidth;
 	frp.u.ofdm.code_rate_HP = tuner->HP_CodeRate;
@@ -201,10 +221,13 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 	frp.u.ofdm.transmission_mode = tuner->TransmissionMode;
 	frp.u.ofdm.guard_interval = tuner->guardInterval;
 	frp.u.ofdm.hierarchy_information = tuner->hierarchy;
-    // Set frontend
-    if (ioctl(front1, FE_SET_FRONTEND, &frp) < 0){
+	// Set frontend
+	if (ioctl(front1, FE_SET_FRONTEND, &frp) < 0){
    		return GF_IO_ERR;
 	}
+
+//	gf_dvb_check_status(front1, 30);
+
 	// Set dumex
 	pesFilterParams.pid      = 0x2000;				// Linux-DVB API take PID=2000 for FULL/RAW TS flag
 	pesFilterParams.input    = DMX_IN_FRONTEND;
@@ -214,7 +237,8 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 	if (ioctl(demux1, DMX_SET_PES_FILTER, &pesFilterParams) < 0){
   		return GF_IO_ERR;
 	}
-	if ((tuner->ts_fd = open(DVR, O_RDONLY/*|O_NONBLOCK*/)) < 0){
+	/* The following code differs from mplayer and alike because the device is opened in blocking mode */
+	if ((tuner->ts_fd = open(dvr_name, O_RDONLY/*|O_NONBLOCK*/)) < 0){
 	        return GF_IO_ERR;
   	}	
 	return GF_OK;
@@ -225,6 +249,7 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	
+
 	if (!strnicmp(url, "udp://", 6) 
 		|| !strnicmp(url, "mpegts-udp://", 13) 
 		|| !strnicmp(url, "mpegts-tcp://", 13) 
@@ -589,6 +614,7 @@ void M2TS_SetupDVB(GF_InputService *plug, M2TSIn *m2ts, char *url)
 		e = GF_NOT_SUPPORTED;
 		goto exit;
 	}
+
 	chan_conf = gf_modules_get_option((GF_BaseInterface *)plug, "DVB", "ChannelsFile");
 	if (!chan_conf) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[DVBIn] Cannot locate channel configuration file\n"));
@@ -596,9 +622,7 @@ void M2TS_SetupDVB(GF_InputService *plug, M2TSIn *m2ts, char *url)
 		goto exit;
 	}
 	
-	if (m2ts->tuner == NULL) { 
-		m2ts->tuner = malloc(sizeof(GF_Tuner));
-	}
+	if (!m2ts->tuner) GF_SAFEALLOC(m2ts->tuner, GF_Tuner);
 
 	e = gf_dvb_tune(m2ts->tuner, url, chan_conf);
 	if (e) goto exit;
@@ -608,9 +632,7 @@ void M2TS_SetupDVB(GF_InputService *plug, M2TSIn *m2ts, char *url)
 	gf_th_run(m2ts->th, M2TS_Run, m2ts);
 
 exit:
-	if (e) {
-		gf_term_on_connect(m2ts->service, NULL, e);
-	}
+	if (e) gf_term_on_connect(m2ts->service, NULL, e);
 }
 #endif
 
