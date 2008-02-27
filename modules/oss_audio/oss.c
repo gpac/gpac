@@ -131,10 +131,13 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
         ctx->sr = (*SampleRate);
 	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&ctx->sr)==-1) return GF_IO_ERR;
 
-	frag_spec = 7;
-	ctx->buf_size = 0x01 << frag_spec;
 	nb_bufs = ctx->num_buffers ? ctx->num_buffers : 8;
-	if (nb_bufs<8) nb_bufs = 8;
+	ctx->buf_size = (*SampleRate * blockalign * ctx->total_duration) / (1000 * nb_bufs);
+	frag_spec = 4;
+	while (ctx->buf_size > (1<<(frag_spec+1))) 
+		frag_spec++;
+
+	ctx->buf_size = 1<<frag_spec;
 
 	ctx->delay = (1000*ctx->buf_size) / (*SampleRate * blockalign);
 	frag_spec = ((nb_bufs<<16) & 0xFFFF0000) | frag_spec;

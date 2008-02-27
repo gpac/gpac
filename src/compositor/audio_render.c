@@ -81,9 +81,9 @@ u32 gf_ar_proc(void *p)
 		main mixer mutex and it takes forever before it can be grabed by another thread, 
 		for instance when reconfiguring scene*/
 		gf_sleep(0);
-		
+
 		gf_mixer_lock(ar->mixer, 1);
-		if (ar->Frozen) {
+		if (ar->Frozen || gf_mixer_empty(ar->mixer) ) {
 			gf_mixer_lock(ar->mixer, 0);
 			gf_sleep(33);
 		} else {

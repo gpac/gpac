@@ -796,6 +796,7 @@ u32 gf_mixer_get_src_count(GF_AudioMixer *am);
 void gf_mixer_force_chanel_out(GF_AudioMixer *am, u32 num_channels);
 u32 gf_mixer_get_block_align(GF_AudioMixer *am);
 Bool gf_mixer_must_reconfig(GF_AudioMixer *am);
+Bool gf_mixer_empty(GF_AudioMixer *am);
 
 /*the audio renderer*/
 typedef struct _audio_render
