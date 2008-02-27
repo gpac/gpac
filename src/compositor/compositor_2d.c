@@ -268,6 +268,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		if (overlay_type) {
 			/*no more than one overlay is supported at the current time*/
 			if (visual->overlays) {
+				ctx->drawable->flags &= ~DRAWABLE_IS_OVERLAY;
 				overlay_type = 0;
 			}
 			/*direct draw or not last context: we must queue the overlay*/
@@ -379,6 +380,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		if (!e) {
 			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, 0, alpha, 0, col_key, ctx->col_mat);
 			e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 0);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
 		}
 	}
 	visual_2d_init_raster(visual);
@@ -762,21 +765,30 @@ void visual_2d_flush_overlay_areas(GF_VisualManager *visual, GF_TraverseState *t
 	ol = visual->overlays;
 	while (ol) {
 		u32 i;
-		GF_IRect the_clip;
-		GF_IRect *clip = &ol->ctx->bi->clip;
+		Bool needs_draw = 1;
+		GF_IRect the_clip, vid_clip;
 
 		ra_refresh(&ol->ra);
 
 		for (i=0; i<ol->ra.count; i++) {
 			the_clip = ol->ra.list[i];
-			gf_irect_intersect(&the_clip, clip);
-			compositor_2d_draw_bitmap_ex(visual, ol->ctx->aspect.fill_texture, ol->ctx, &the_clip, &ol->ctx->bi->unclip, 0xFF, NULL, tr_state, 1);
-			the_clip = ol->ra.list[i];
 
+			/*draw all objects above this overlay*/
 			ctx = ol->ctx->next;			
 			while (ctx && ctx->drawable) {
-				if (!(ctx->drawable->flags & DRAWABLE_IS_OVERLAY) && gf_irect_overlaps(&ctx->bi->clip, &the_clip)) {
+				if (gf_irect_overlaps(&ctx->bi->clip, &the_clip)) {
 					GF_IRect prev_clip = ctx->bi->clip;
+
+					if (needs_draw) {
+						/*if first object above is not transparent and completely covers the overlay skip video redraw*/
+						if ((ctx->flags & CTX_IS_TRANSPARENT) || !gf_irect_inside(&prev_clip, &the_clip))
+{
+							vid_clip = ol->ra.list[i];
+							gf_irect_intersect(&vid_clip, &ol->ctx->bi->clip);
+							compositor_2d_draw_bitmap_ex(visual, ol->ctx->aspect.fill_texture, ol->ctx, &vid_clip, &ol->ctx->bi->unclip, 0xFF, NULL, tr_state, 1);
+						}
+						needs_draw = 0;
+					}
 					gf_irect_intersect(&ctx->bi->clip, &the_clip);
 					tr_state->ctx = ctx;
 
@@ -819,3 +831,4 @@ void visual_2d_draw_overlays(GF_VisualManager *visual)
 		free(ol);
 	}
 }
+
