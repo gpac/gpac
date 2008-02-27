@@ -90,6 +90,7 @@ static GF_Err ALSA_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCh
 
 	/*close device*/
 	if (ctx->playback_handle) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[ALSA] Closing audio device %s\n", ctx->dev_name ));
 		snd_pcm_close(ctx->playback_handle);
 		ctx->playback_handle = NULL;
 	}
@@ -213,7 +214,15 @@ static void ALSA_WriteAudio(GF_AudioOutput*dr)
 
 	/*wait ctx delay for device interrupt*/
 	err = snd_pcm_wait(ctx->playback_handle, 1);
-	if (err<0) return;
+	if (err<0) {
+		if (err == -EPIPE) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[ALSA] Broken connection to sound card - restoring!\n"));
+			snd_pcm_prepare(ctx->playback_handle);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[ALSA] error %s while waiting!\n", snd_strerror(err) ));
+			return;
+		}
+	}
 
 	nb_frames = snd_pcm_avail_update(ctx->playback_handle);
 	if (nb_frames < 0) {
@@ -225,7 +234,10 @@ static void ALSA_WriteAudio(GF_AudioOutput*dr)
 		}
 		return;
 	}
-	if (!nb_frames) return;
+	if (!nb_frames) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[ALSA] no frame to write\n" ));
+		return;
+	}
 	
 	//assert(nb_frames*ctx->block_align<=ctx->buf_size);
 	written = dr->FillBuffer(dr->audio_renderer, ctx->wav_buf, (u32) (ctx->block_align*nb_frames) );
