@@ -226,7 +226,8 @@ u32 gf_clock_time(GF_Clock *ck)
 
 u32 gf_clock_ellapse_time(GF_Clock *ck)
 {
-	return gf_clock_time(ck) - ck->init_time;
+	if (ck->no_time_ctrl) return gf_clock_time(ck) - ck->init_time;
+	return gf_clock_time(ck);
 }
 
 
