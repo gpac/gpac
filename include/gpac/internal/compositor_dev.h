@@ -263,6 +263,8 @@ struct __tag_compositor
 	Bool hw_locked;
 	/*screen buffer for direct access*/
 	GF_VideoSurface hw_surface;
+	/*output buffer is configured in video memory*/
+	Bool video_memory;
 
 	/*options*/
 	Bool scalable_zoom;

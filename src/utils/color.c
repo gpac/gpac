@@ -747,7 +747,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	}
 
 	while (dst_h) {
-		while ( pos_y > 0x10000L ) {
+		while ( pos_y >= 0x10000L ) {
 			src_row++;
 			pos_y -= 0x10000L;
 		}

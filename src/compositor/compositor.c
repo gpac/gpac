@@ -671,6 +671,7 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	compositor->focus_node = NULL;
 	compositor->focus_text_type = 0;
 	compositor->frame_number = 0;
+	compositor->video_memory = 0;
 	gf_list_reset(compositor->focus_ancestors);
 
 #ifdef GROUP_2D_USE_CACHE
