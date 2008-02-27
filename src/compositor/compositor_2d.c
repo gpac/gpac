@@ -370,8 +370,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 				visual->compositor->video_memory = 1;
 				visual->compositor->root_visual_setup = 0;
 			}
-		} else {
-			visual->has_modif = 1;
 		}
 	}
 	if (use_soft_stretch) {
@@ -384,6 +382,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
 		}
 	}
+	visual->has_modif = 1;
 	visual_2d_init_raster(visual);
 	return 1;
 }
@@ -781,8 +780,7 @@ void visual_2d_flush_overlay_areas(GF_VisualManager *visual, GF_TraverseState *t
 
 					if (needs_draw) {
 						/*if first object above is not transparent and completely covers the overlay skip video redraw*/
-						if ((ctx->flags & CTX_IS_TRANSPARENT) || !gf_irect_inside(&prev_clip, &the_clip))
-{
+						if ((ctx->flags & CTX_IS_TRANSPARENT) || !gf_irect_inside(&prev_clip, &the_clip)) {
 							vid_clip = ol->ra.list[i];
 							gf_irect_intersect(&vid_clip, &ol->ctx->bi->clip);
 							compositor_2d_draw_bitmap_ex(visual, ol->ctx->aspect.fill_texture, ol->ctx, &vid_clip, &ol->ctx->bi->unclip, 0xFF, NULL, tr_state, 1);
