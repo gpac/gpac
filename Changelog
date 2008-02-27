@@ -1,7 +1,8 @@
-Latest CVS changes - 26/02/08:
+Latest CVS changes - 27/02/08:
+  - Fixed bugs in OSS audio (100% CPU usage when no audio to play) and ALSA (broken playback)
   - Initial support for YUV overlays on Win32 and Linux (Needs XVideo) 
       * only one overlay at the moment
-      * Vector graphics can be drawn above the overlay if the video output supports dest color keying
+      * Vector graphics /images can be drawn above the overlay if the video output supports dest color keying
   - Changed 3D mesh object to be slightly more compact (colors and normal)
   - Unified focus model for SVG and MPEG-4. MPEG-4 focus can only be used through tab/-tab (no north/east/.. navigation)
       * The MPEG-4 focus is based on the groups (2D/3D) presenting interactive features (sensors)
