@@ -319,6 +319,12 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.size.height = HIWORD(lParam);
 		vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
+	case WM_MOVE:
+		evt.type = GF_EVENT_MOVE;
+		evt.move.x = LOWORD(lParam);
+		evt.move.y = HIWORD(lParam);
+		vout->on_event(vout->evt_cbk_hdl, &evt);
+		break;
 	case WM_CLOSE:
 		if (hWnd==ctx->os_hwnd) {
 			evt.type = GF_EVENT_QUIT;

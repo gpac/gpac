@@ -1680,13 +1680,15 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			rc.w = compositor->display_width;	
 			rc.h = compositor->display_height;		
 			compositor->video_out->Flush(compositor->video_out, &rc);
+		} else {
+			compositor->skip_flush = 0;
 		}
-		compositor->skip_flush = 0;
 #ifndef GPAC_DISABLE_LOG
 		flush_time = gf_sys_clock() - flush_time;
 #endif
 
 		visual_2d_draw_overlays(compositor->visual);
+		compositor->last_had_overlays = compositor->visual->has_overlays;
 
 		if (compositor->stress_mode) {
 			compositor->draw_next_frame = 1;
@@ -1966,15 +1968,16 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	if (compositor->msg_type & GF_SR_IN_RECONFIG) return 0;
 
 	switch (event->type) {
+	case GF_EVENT_MOVE:
 	case GF_EVENT_REFRESH:
 		if (!compositor->draw_next_frame) {
-			/*when refreshing the window in 3D we redraw the scene since we don't know the GL doublebuffer config*/
-			if (compositor->visual->has_overlays) {
+			/*when refreshing the window in 3D or with overlays we redraw the scene */
+			if (compositor->last_had_overlays || compositor->visual->type_3d) {
 				compositor->draw_next_frame = 1;
-				compositor->traverse_state->invalidate_all = 1;
 			}
-			else if (compositor->visual->type_3d) compositor->draw_next_frame = 1;
-			else compositor->draw_next_frame = 2;
+			/*reflush only*/
+			else 
+				compositor->draw_next_frame = 2;
 		}
 		break;
 	case GF_EVENT_VIDEO_SETUP:

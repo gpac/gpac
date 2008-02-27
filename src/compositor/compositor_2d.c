@@ -331,6 +331,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 				visual_2d_get_drawable_context(visual);
 			return 1;
 		}
+		/*top level overlay*/
 		if (flush_video) {
 			GF_Window rc;
 			rc.x = rc.y = 0; 
@@ -345,6 +346,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 1);
 		if (!e) {
+			/*mark drawable as overlay*/
+			ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;
 			visual->has_overlays = 1;
 			return 1;
 		}

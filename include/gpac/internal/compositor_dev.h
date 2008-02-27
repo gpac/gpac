@@ -265,6 +265,8 @@ struct __tag_compositor
 	GF_VideoSurface hw_surface;
 	/*output buffer is configured in video memory*/
 	Bool video_memory;
+	/*indicate if overlays were prezsent in the previous frame*/
+	Bool last_had_overlays;
 
 	/*options*/
 	Bool scalable_zoom;
