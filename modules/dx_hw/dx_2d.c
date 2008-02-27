@@ -557,6 +557,9 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 			ddofx.dckDestColorkey.dwColorSpaceHighValue = dr->overlay_color_key;
 			hr = IDirectDrawSurface2_UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW | DDOVER_KEYDESTOVERRIDE, &ddofx);
 		}
+		if (FAILED(hr)) {
+			IDirectDrawSurface2_UpdateOverlay(pool->pSurface, NULL, dd->pPrimary, NULL, DDOVER_HIDE, NULL);
+		}
 #else
 		if (overlay_type==1) {
 			hr = IDirectDrawSurface_Blt(dd->pPrimary, &dst_rc, pool->pSurface, &src_rc, 0, NULL);

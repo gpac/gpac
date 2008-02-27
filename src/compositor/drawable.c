@@ -681,14 +681,8 @@ static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseStat
 		ctx->drawable->flags |= DRAWABLE_REGISTERED_WITH_VISUAL;
 	}
 	
-	/*if the drawable is an overlay, always mark it as dirty to avoid flickering*/
-	if (ctx->drawable->flags & DRAWABLE_IS_OVERLAY) {
-		ctx->flags |= CTX_TEXTURE_DIRTY;
-	}
-
 	/*we are in direct draw mode, draw ...*/
 	if (res) {
-
 		/*if over an overlay we cannot remove the context and cannot draw directly*/
 		if (visual_2d_overlaps_overlay(tr_state->visual, ctx, tr_state))
 			return 0;
@@ -706,6 +700,10 @@ static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseStat
 		
 		tr_state->ctx = NULL;
 		tr_state->traversing_mode = TRAVERSE_SORT;
+	}
+	/*if the drawable is an overlay, always mark it as dirty to avoid flickering*/
+	else if (ctx->drawable->flags & DRAWABLE_IS_OVERLAY) {
+		ctx->flags |= CTX_APP_DIRTY;
 	}
 	/*if direct draw we can remove the context*/
 	return res;
@@ -1312,7 +1310,6 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
 	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
 
-	//ctx->flags |= CTX_HAS_LISTENERS;
 	return ctx;
 }
 
