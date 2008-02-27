@@ -84,8 +84,9 @@ static u32 X11_GetPixelFormat(u32 pf)
 {
 	return GF_4CC((pf)&0xff, (pf>>8)&0xff, (pf>>16)&0xff, (pf>>24)&0xff);
 }
-static int X11_GetXVideoPort(XWindow *xwin, u32 pixel_format, Bool check_color)
+static int X11_GetXVideoPort(GF_VideoOutput *vout, u32 pixel_format, Bool check_color)
 {
+	XWindow *xwin = (XWindow *)vout->opaque;
 	Bool has_color_key = 0;
 	XvAdaptorInfo *adaptors;
 	unsigned int i;
@@ -119,11 +120,15 @@ static int X11_GetXVideoPort(XWindow *xwin, u32 pixel_format, Bool check_color)
 
 			attr = XvQueryPortAttributes(xwin->display, port, &nb_attributes);
 			for (k=0; k<nb_attributes; k++ ) {
-			        if (!strcmp(attr[k].name, "XV_COLORKEY")) 	
+			        if (!strcmp(attr[k].name, "XV_COLORKEY")) {
+					const Atom ckey = XInternAtom(xwin->display, "XV_COLORKEY", False);
+					XvGetPortAttribute(xwin->display, port, ckey, &vout->overlay_color_key);
 					has_color_key = 1;
+					vout->overlay_color_key |= 0xFF000000;
+				}
 			        else if (!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
 			            const Atom paint = XInternAtom(xwin->display, "XV_AUTOPAINT_COLORKEY", False);
-			            XvSetPortAttribute(xwin->display, selected_port, paint, 1);
+			            XvSetPortAttribute(xwin->display, port, paint, 1);
 				}
 			}
 			if (check_color && !has_color_key) continue;
@@ -153,9 +158,9 @@ static GF_Err X11_InitOverlay(GF_VideoOutput *vout, u32 VideoWidth, u32 VideoHei
 
 	X11_DestroyOverlay(xwin);
 
-	xwin->xvport = X11_GetXVideoPort(xwin, GF_PIXEL_I420, 0);
+	xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
 	if (xwin->xvport<0) 
-		xwin->xvport = X11_GetXVideoPort(xwin, GF_PIXEL_YUY2, 0);
+		xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YUY2, 0);
 
 	if (xwin->xvport<0) {
 		return GF_NOT_SUPPORTED;
@@ -1097,7 +1102,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		PointerMotionMask | ButtonReleaseMask | ButtonPressMask |
 		KeyPressMask | KeyReleaseMask);
 	XSync(xWindow->display, False);
-//	XSetErrorHandler(old_handler);
+	XSetErrorHandler(old_handler);
 	if (selectinput_err) {
 	       	XSelectInput(xWindow->display, xWindow->wnd,
 			StructureNotifyMask | PropertyChangeMask | ExposureMask |
@@ -1143,12 +1148,13 @@ X11_SetupWindow (GF_VideoOutput * vout)
 #endif
 
 #ifdef GPAC_HAS_X11_XV
-	vout->overlay_color_key = 0xFF0101FE;
-	xWindow->xvport = X11_GetXVideoPort(xWindow, GF_PIXEL_I420, 1);
+	xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 1);
 	if (xWindow->xvport<0) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware has no color keying\n"));
 		vout->overlay_color_key = 0;
-		xWindow->xvport = X11_GetXVideoPort(xWindow, GF_PIXEL_I420, 0);
+		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware uses color key %08x\n", vout->overlay_color_key));
 	}
 	if (xWindow->xvport>=0) {
 		XvUngrabPort(xWindow->display, xWindow->xvport, CurrentTime );

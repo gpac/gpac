@@ -747,7 +747,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	}
 
 	while (dst_h) {
-		while ( pos_y >= 0x10000L ) {
+		while ( pos_y > 0x10000L ) {
 			src_row++;
 			pos_y -= 0x10000L;
 		}
@@ -755,7 +755,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		if (prev_row != src_row) {
 			u32 the_row = src_row - 1;
 			if (yuv_type) {
-				if ( (src_row - 1) % 2) {
+				if ( the_row % 2) {
 					if (!yuv_init) {
 						yuv_init = 1;
 						the_row --;
@@ -767,7 +767,6 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 						}
 						the_row = src_row - 1;
 					}
-
 					rows = flip ? tmp : tmp + src_w * 4;
 				} else {
 					if (flip) the_row = src->height-2 - the_row;
