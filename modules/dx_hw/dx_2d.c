@@ -629,7 +629,8 @@ void DD_InitYUV(GF_VideoOutput *dr)
 	u32 now, min_packed = 0xFFFFFFFF, min_planar = 0xFFFFFFFF;
 	u32 best_packed = 0, best_planar = 0;
 	Bool checkPacked = TRUE;
-	
+	const char *opt;
+
 	DDCONTEXT;
 
 	w = 720;
@@ -733,18 +734,29 @@ rem_fmt:
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Picked YUV format %s - drawn in %d ms\n", gf_4cc_to_str(dr->yuv_pixel_format), min_planar));
 	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
-	dr->overlay_color_key = 0xFF0101FE;
 
-	{
-	const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV");
+	/*enable YUV->RGB on the backbuffer ?*/
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV");
 	/*no set is the default*/
 	if (!opt) {
 		opt = "yes";
 		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV", "yes");
 	}
-	if (!opt || !strcmp(opt, "yes")) dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
+	if (!strcmp(opt, "yes")) dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
+	
+	/*get YUV overlay key*/
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "OverlayColorKey");
+	/*no set is the default*/
+	if (!opt) {
+		opt = "0101FE";
+		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "OverlayColorKey", "0101FE");
 	}
-
+	sscanf(opt, "%06x", &dr->overlay_color_key);
+	if (dr->overlay_color_key) dr->overlay_color_key |= 0xFF000000;
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] YUV->RGB enabled: %s - ColorKey enabled: %s (key %x)\n", 
+									(dr->hw_caps & GF_VIDEO_HW_HAS_YUV) ? "Yes" : "No",
+									dr->overlay_color_key ? "Yes" : "No", dr->overlay_color_key
+							));
 }
 
 GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_system_memory)
