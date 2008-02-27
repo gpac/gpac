@@ -845,6 +845,11 @@ void gf_node_traverse(GF_Node *node, void *renderStack)
 	/*proto only traverses its first child*/
 	if (((GF_ProtoInstance *) node)->RenderingNode) {
 		node = ((GF_ProtoInstance *) node)->RenderingNode;
+		/*if rendering node is a proto and not a hardcoded proto, traverse it*/
+		if (!node->sgprivate->UserCallback && (node->sgprivate->tag == TAG_ProtoNode)) {
+			gf_node_traverse(node, renderStack);
+			return;
+		}
 	}
 	/*if no rendering function is assigned this is a real proto (otherwise this is an hardcoded one)*/
 	else if (!node->sgprivate->UserCallback) {
@@ -862,21 +867,7 @@ void gf_node_traverse(GF_Node *node, void *renderStack)
 				gf_node_dirty_set(node, 0, 1);
 				return;
 			}
-
-			/*resolve all top-level proto until we find the first traversable node*/
-			while (node->sgprivate->tag == TAG_ProtoNode) {
-				GF_Node *sub_root;
-				/*this is a hardcoded proto, use it*/
-				if (node->sgprivate->UserCallback) 
-					break;
-				sub_root = ((GF_ProtoInstance *) node)->RenderingNode;
-				if (!sub_root) {
-					gf_node_dirty_set(node, 0, 1);
-					return;
-				}
-				node = sub_root;
-			}
-			proto_inst->RenderingNode = node;
+			/*signal we have been loaded*/
 			node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, node, NULL);
 		}
 	}
