@@ -261,7 +261,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 		/*disable HW color keying - not compatible with MPEG-4 MaterialKey*/
 		if (col_key) {
-	//		if ((col_key->alpha!=0xFF) || !(hw_caps & GF_VIDEO_HW_HAS_COLOR_KEY)) use_soft_stretch = 1;
 			use_soft_stretch = 1;
 			overlay_type = 0;
 		}
@@ -362,6 +361,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during hardware blit - trying with soft one\n"));
 			use_soft_stretch = 1;
+			if (!visual->compositor->video_memory) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Reconfiguring video output to use video memory\n"));
+				visual->compositor->video_memory = 1;
+				visual->compositor->root_visual_setup = 0;
+			}
 		} else {
 			visual->has_modif = 1;
 		}
@@ -441,7 +445,6 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 
 GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 {
-	u32 i, count;
 	Double ratio;
 	GF_Event evt;
 	GF_Err e;
@@ -529,25 +532,8 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.setup.width = compositor->vp_width;
 	evt.setup.height = compositor->vp_height;
 	evt.setup.opengl_mode = 0;
-	evt.setup.system_memory = 1;
+	evt.setup.system_memory = compositor->video_memory ? 0 : 1;
 
-	if (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_YUV) {
-		/*look for all textures, check for natural ones (stream associated)*/
-		count = gf_list_count(compositor->textures);
-		for (i=0; i<count; i++) {
-			GF_TextureHandler *txh = gf_list_get(compositor->textures, i);
-			if (!txh->stream) continue;
-			/*if look for all textures, check for natural ones (stream associated)*/
-			if (!txh->pixelformat) {
-				compositor->root_visual_setup = 0;
-				break;
-			}
-			if (txh->pixelformat==GF_PIXEL_YV12) {
-				evt.setup.system_memory = 0;
-				break;
-			}
-		}
-	}
 	e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 	if (e) return e;
 
