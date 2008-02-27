@@ -157,6 +157,10 @@ void gf_mixer_lock(GF_AudioMixer *am, Bool lockIt)
 	}
 }
 
+Bool gf_mixer_empty(GF_AudioMixer *am)
+{
+	return am->isEmpty;
+}
 
 void gf_mixer_add_input(GF_AudioMixer *am, GF_AudioInterface *src)
 {

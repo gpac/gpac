@@ -62,8 +62,8 @@ static GF_Err ALSA_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u3
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[ALSA] Cannot open audio device %s: %s\n", ctx->dev_name, snd_strerror (err)) );
 		return GF_IO_ERR;
 	}
-	ctx->num_buffers = num_buffers;
-	ctx->total_duration = total_duration;
+	ctx->num_buffers = num_buffers ? num_buffers : 2;
+	ctx->total_duration = total_duration ? total_duration : 100;
 	return GF_OK;
 }
 
@@ -83,7 +83,7 @@ static GF_Err ALSA_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCh
 {
 	snd_pcm_hw_params_t *hw_params = NULL;
 	int err;
-	int nb_bufs, sr, val, period_time;
+	int nb_bufs, sr, period_time;
 	ALSAContext *ctx = (ALSAContext*)dr->opaque;
 
 	if (!ctx) return GF_BAD_PARAM;
@@ -155,40 +155,35 @@ static GF_Err ALSA_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCh
 		ctx->nb_ch = *NbChannels;
 		ctx->block_align *= ctx->nb_ch;
 	}
-	err = snd_pcm_hw_params(ctx->playback_handle, hw_params);
-	if (err < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[ALSA] Cannot set parameters: %s\n", snd_strerror (err)) );
-		goto err_exit;
-	}
-
 	/* Set number of buffers*/
-	snd_pcm_hw_params_get_periods_min(hw_params, &val, 0);
-	nb_bufs = (ctx->num_buffers>val) ? ctx->num_buffers : val;
+	nb_bufs = ctx->num_buffers;
 	err = snd_pcm_hw_params_set_periods_near(ctx->playback_handle, hw_params, &nb_bufs, 0);
 	if (err < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[ALSA] Cannot set number of HW buffers (%d): %s\n", nb_bufs, snd_strerror(err) ));
 		goto err_exit;
 	}
-
 	/* Set total buffer size*/
-	if (ctx->total_duration) {
-		ctx->buf_size = (sr * ctx->total_duration)/1000;
-	} else {
-		ctx->buf_size = 2048;
-	}
-	ctx->buf_size /= nb_bufs;
-
+	ctx->buf_size = (sr * ctx->total_duration)/1000 / nb_bufs;
 	err = snd_pcm_hw_params_set_period_size_near(ctx->playback_handle, hw_params, (snd_pcm_uframes_t *)&ctx->buf_size, 0);
 	if (err < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[ALSA] Cannot set HW buffer size (%d): %s\n", ctx->buf_size, snd_strerror(err) ));
 		goto err_exit;
 	}
-	/*get complete buffer size*/
-	snd_pcm_hw_params_get_buffer_size(hw_params, (snd_pcm_uframes_t *)&ctx->buf_size);
+
+	err = snd_pcm_hw_params_get_buffer_size(hw_params, (snd_pcm_uframes_t *)&ctx->buf_size);
+	if (err < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[ALSA] Cannot get HW buffer size (%d): %s\n", ctx->buf_size, snd_strerror(err) ));
+		goto err_exit;
+	}
 	ctx->buf_size *= ctx->block_align;
 	/*get period time*/
 	snd_pcm_hw_params_get_period_time(hw_params, &period_time, 0);
 	
+	err = snd_pcm_hw_params(ctx->playback_handle, hw_params);
+	if (err < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[ALSA] Cannot set parameters: %s\n", snd_strerror (err)) );
+		goto err_exit;
+	}
 	snd_pcm_hw_params_free (hw_params);
 	hw_params = NULL;
 
