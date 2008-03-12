@@ -126,6 +126,14 @@ enum
 		THIS MUST BE CLEANED UP
 	*/
 	GF_M2TS_EVT_AAC_CFG,
+	/* An EIT message for the present or following event on this TS has been received */
+	GF_M2TS_EVT_EIT_ACTUAL_PF,
+	/* An EIT message for the schedule of this TS has been received */
+	GF_M2TS_EVT_EIT_ACTUAL_SCHEDULE,
+	/* An EIT message for the present or following event of an other TS has been received */
+	GF_M2TS_EVT_EIT_OTHER_PF,
+	/* An EIT message for the schedule of an other TS has been received */
+	GF_M2TS_EVT_EIT_OTHER_SCHEDULE,
 };
 
 enum
@@ -135,7 +143,7 @@ enum
 	GF_M2TS_TABLE_REPEAT
 };
 
-typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u32 status); 
+typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status); 
 
 
 typedef struct __m2ts_demux_table
@@ -287,6 +295,24 @@ typedef struct
 	char *provider, *service;
 } GF_M2TS_SDT;
 
+
+/*EIT information objects*/
+typedef struct
+{
+	u16 event_id;
+	u64 start_time;
+	u32 duration;
+	u8 running_status;
+	u8 free_CA_mode;
+} GF_M2TS_EIT_Event;
+
+typedef struct
+{
+	u32 transport_stream_id;
+	u32 original_network_id;
+	GF_List *events;
+} GF_M2TS_EIT;
+
 /*MPEG-2 TS packet*/
 typedef struct
 {
@@ -324,7 +350,7 @@ struct tag_m2ts_demux
 	char *buffer;
 	u32 buffer_size, alloc_size;
 	/*default transport PID filters*/
-	GF_M2TS_SectionFilter *pat, *nit, *sdt;
+	GF_M2TS_SectionFilter *pat, *nit, *sdt, *eit;
 
 	/* Structure to hold all the INT tables if the TS contains IP streams */
 	GF_List *ip_mac_not_tables;
@@ -379,12 +405,36 @@ enum
 	GF_M2TS_DVB_TIME_SHIFTED_EVENT_DESCRIPTOR	= 0x4F,
 	GF_M2TS_DVB_COMPONENT_DESCRIPTOR			= 0x50,
 	GF_M2TS_DVB_MOSAIC_DESCRIPTOR				= 0x51,
+	GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR	= 0x52,
+	GF_M2TS_DVB_CA_IDENTIFIER_DESCRIPTOR		= 0x53,
+	GF_M2TS_DVB_CONTENT_DESCRIPTOR				= 0x54,
+	GF_M2TS_DVB_PARENTAL_RATING_DESCRIPTOR		= 0x55,
 	/* ... */
 	GF_M2TS_DVB_DATA_BROADCAST_DESCRIPTOR		= 0x64,
 	/* ... */
 	GF_M2TS_DVB_DATA_BROADCAST_ID_DESCRIPTOR	= 0x66,
 	/* ... */
 	
+};
+
+/* Reserved PID values */
+enum {
+	GF_M2TS_PID_PAT			= 0x0000,
+	GF_M2TS_PID_CAT			= 0x0001,
+	GF_M2TS_PID_TSDT		= 0x0002,
+	/* reserved 0x0003 to 0x000F */ 
+	GF_M2TS_PID_NIT_ST		= 0x0010,
+	GF_M2TS_PID_SDT_BAT_ST	= 0x0011,
+	GF_M2TS_PID_EIT_ST_CIT	= 0x0012,
+	GF_M2TS_PID_RST_ST		= 0x0013,
+	GF_M2TS_PID_TDT_TOT_ST	= 0x0014,
+	GF_M2TS_PID_NET_SYNC	= 0x0015,
+	GF_M2TS_PID_RNT			= 0x0016,
+	/* reserved 0x0017 to 0x001B */ 
+	GF_M2TS_PID_IN_SIG		= 0x001C,
+	GF_M2TS_PID_MEAS		= 0x001D,
+	GF_M2TS_PID_DIT			= 0x001E,
+	GF_M2TS_PID_SIT			= 0x001F
 };
 
 /* max size includes first header, second header, payload and CRC */
@@ -412,6 +462,10 @@ enum {
 	GF_M2TS_TABLE_ID_EIT_ACTUAL_PF	= 0x4E, /* max size for section 4096 */
 	GF_M2TS_TABLE_ID_EIT_OTHER_PF	= 0x4F,
 	/* 0x50 - 0x6f EIT SCHEDULE */
+	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN= 0x50,
+	GF_M2TS_TABLE_ID_EIT_SCHEDULE_ACTUAL_MAX= 0x5F,
+	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX= 0x6F,
+
 	GF_M2TS_TABLE_ID_TDT			= 0x70,
 	GF_M2TS_TABLE_ID_RST			= 0x71, /* max size for section 1024 */
 	GF_M2TS_TABLE_ID_ST 			= 0x72, /* max size for section 4096 */
