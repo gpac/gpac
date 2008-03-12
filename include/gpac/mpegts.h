@@ -300,7 +300,8 @@ typedef struct
 typedef struct
 {
 	u16 event_id;
-	u64 start_time;
+	u32 start_date;
+	u32 start_time;
 	u32 duration;
 	u8 running_status;
 	u8 free_CA_mode;

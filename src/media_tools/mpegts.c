@@ -25,6 +25,7 @@
 #include <gpac/mpegts.h>
 #include <gpac/constants.h>
 #include <gpac/internal/media_dev.h>
+#include <gpac/math.h>
 
 #define DEBUG_TS_PACKET 1
 
@@ -670,7 +671,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 				t->section_number = 0;
 			}
 			/*send each section of the table and not the aggregated table*/
-			sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, t->version_number, t->last_section_number, status);
+			sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, t->version_number, t->last_section_number - 1, status);
 
 		} else {
 		
@@ -699,12 +700,12 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 
 			if (t->current_next_indicator) {
 				if (t->data) {
-					sec->process_section(ts, ses, t->data, t->data_size, t->table_id, extended_table_id, t->version_number, t->last_section_number, status);
+					sec->process_section(ts, ses, t->data, t->data_size, t->table_id, extended_table_id, t->version_number, t->last_section_number - 1, status);
 					free(t->data);
 					t->data = NULL;
 					t->data_size = 0;
 				} else {
-					sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, t->version_number, t->last_section_number, status);
+					sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, t->version_number, t->last_section_number - 1, status);
 				}
 			}
 		}
@@ -890,8 +891,11 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, un
 
 static void gf_m2ts_process_eit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *eit_ses, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
+#if 0
+	/* TODO: Fix the following once the sub table mechanism is handled properly */
 	u32 pos, evt_type;
 	GF_M2TS_EIT *eit;
+	u32 i, eit_events_count;
 	u32 service_id = ex_table_id;
 	u8 segment_last_section_number, last_table_id;
 
@@ -907,39 +911,61 @@ static void gf_m2ts_process_eit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *eit_ses
 		return;
 	}
 
+
 	GF_SAFEALLOC(eit, GF_M2TS_EIT);
 	eit->events = gf_list_new();
 
-	eit->transport_stream_id = (data[0] << 8) | data[1];
-	eit->original_network_id = (data[2] << 8) | data[3];
-	segment_last_section_number = data[4];
-	last_table_id = data[5];
-
-#if 0
-	fprintf(stderr, "\nEIT Table\n");
-	fprintf(stderr, "Version Number: %d - Last Section Number: %d\n", version_number, last_section_number);
-	fprintf(stderr, "Table ID: %d - Ext. Table ID (service ID): %d\n", table_id, ex_table_id);
-	fprintf(stderr, "TS ID: %d - Orig. Net ID: %d\n", eit->transport_stream_id, eit->original_network_id);
-	fprintf(stderr, "Segment Last Section Number: %d - Last Table ID: %d\n", segment_last_section_number, last_table_id);
-	
-	/* TODO: Fix the following once the sub table mechanism is handled properly */
 	pos = 0; 
 	while (pos < data_size) {
 		u32 descs_size, d_pos, ulen;
-
 		GF_M2TS_EIT_Event *evt;
+
+		eit->transport_stream_id = (data[pos] << 8) | data[pos+1];
+		eit->original_network_id = (data[pos+2] << 8) | data[pos+3];
+		segment_last_section_number = data[pos+4];
+		last_table_id = data[pos+5];
+
+		fprintf(stderr, "\nEIT Table\n");
+		fprintf(stderr, "Version Number: %d - Last Section Number: %d\n", version_number, last_section_number);
+		fprintf(stderr, "Table ID: %d - Ext. Table ID (service ID): %d\n", table_id, ex_table_id);
+		fprintf(stderr, "TS ID: %d - Orig. Net ID: %d\n", eit->transport_stream_id, eit->original_network_id);
+		fprintf(stderr, "Segment Last Section Number: %d - Last Table ID: %d\n", segment_last_section_number, last_table_id);
+	
 		GF_SAFEALLOC(evt, GF_M2TS_EIT_Event);
 		gf_list_add(eit->events, evt);
 
-		/* TODO: FIXME - This is a very bad handling of subtables ...*/
 		pos += 6; 
 		
 		evt->event_id = (data[pos] << 8) | data[pos+1];
-		evt->start_time = ((data[pos+2] << 32) | (data[pos+3] << 24) | (data[pos+4] << 16) | (data[pos+5] << 8) | data[pos+6]);
+		evt->start_date = (data[pos+2] << 8) | data[pos+3];
+		evt->start_time = (data[pos+4] << 16) | (data[pos+5] << 8) | data[pos+6];
 		evt->duration = (data[pos+7] << 16) | (data[pos+8] << 8) | data[pos+9];
 		evt->running_status = (data[pos+10]>>5) & 0x7;
 		evt->free_CA_mode = (data[pos+10]>>4) & 0x1;
 		descs_size = ((data[pos+10]&0xf)<<8) | data[pos+11];		
+
+		{
+			u32 year, month, day;
+			u32 yp, mp, k;
+			yp = (u32)gf_floor((evt->start_date - 15078.2)/365.25);
+			mp = (u32)gf_floor((evt->start_date - 14956.1 - gf_floor(yp * 365.25))/30.6001);
+			day = (u32)(evt->start_date - 14956 - gf_floor(yp * 365.25) - gf_floor(mp * 30.6001));		
+			if (mp == 14 || mp == 15) k = 1;
+			else k = 0;
+			year = yp + k + 1900;
+			month = mp - 1 - k*12;
+
+			fprintf(stderr, "Event: %d - Start: %02d/%02d/%04d %02x:%02x:%02x - Duration: %02x:%02x:%02x\n", evt->event_id, 
+				day, 
+				month, 
+				year,
+				(0xFF & evt->start_time>>16), 
+				(0xFF & evt->start_time>>8), 
+				(0xFF & evt->start_time), 
+				(0xFF & evt->duration>>16), 
+				(0xFF & evt->duration>>8), 
+				(0xFF & evt->duration));
+		}
 
 		pos += 12;
 		d_pos = 0;
@@ -1046,10 +1072,16 @@ static void gf_m2ts_process_eit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *eit_ses
 		}
 		pos += descs_size;
 	}
-#endif
 	if (ts->on_event) ts->on_event(ts, evt_type, eit);
 
 	/* TODO: free the event if not done in on_event */
+	eit_events_count = gf_list_count(eit->events);
+	for (i = 0; i < eit_events_count; i++) {
+		GF_M2TS_EIT_Event *evt = gf_list_get(eit->events, i);
+		free (evt);
+	}
+	gf_list_del(eit->events);
+#endif
 }
 
 static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
