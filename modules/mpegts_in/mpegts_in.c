@@ -496,7 +496,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
 		
 		/*do not setup if we've been asked for a dedicated program*/
-		if (gf_list_count(m2ts->requested_progs)) MP2TS_SetupProgram(m2ts, param);
+		if (!gf_list_count(m2ts->requested_progs)) MP2TS_SetupProgram(m2ts, param);
 		break;
 	case GF_M2TS_EVT_PAT_UPDATE:
 	case GF_M2TS_EVT_PMT_UPDATE:
