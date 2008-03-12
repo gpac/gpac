@@ -670,7 +670,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 				t->section_number = 0;
 			}
 			/*send each section of the table and not the aggregated table*/
-			sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, status);
+			sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, t->version_number, t->last_section_number, status);
 
 		} else {
 		
@@ -699,12 +699,12 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 
 			if (t->current_next_indicator) {
 				if (t->data) {
-					sec->process_section(ts, ses, t->data, t->data_size, t->table_id, extended_table_id, status);
+					sec->process_section(ts, ses, t->data, t->data_size, t->table_id, extended_table_id, t->version_number, t->last_section_number, status);
 					free(t->data);
 					t->data = NULL;
 					t->data_size = 0;
 				} else {
-					sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, status);
+					sec->process_section(ts, ses, sec->section + section_start, sec->length - section_start, t->table_id, extended_table_id, t->version_number, t->last_section_number, status);
 				}
 			}
 		}
@@ -725,11 +725,15 @@ static Bool gf_m2ts_is_long_section(u8 table_id)
 	case GF_M2TS_TABLE_ID_MPEG4_BIFS:
 	case GF_M2TS_TABLE_ID_MPEG4_OD:
 	case GF_M2TS_TABLE_ID_EIT_ACTUAL_PF:
+	case GF_M2TS_TABLE_ID_EIT_OTHER_PF:
 	case GF_M2TS_TABLE_ID_ST:
 	case GF_M2TS_TABLE_ID_SIT:
 		return 1;
 	default:
-		return 0;
+		if (table_id >= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN && table_id <= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX) 
+			return 1;
+		else 
+			return 0;
 	}
 }
 
@@ -808,7 +812,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 	gf_m2ts_section_complete(ts, sec, ses);
 }
 
-static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u32 status)
+static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	u32 orig_net_id, pos, evt_type;
 
@@ -884,7 +888,171 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, un
 	if (ts->on_event) ts->on_event(ts, evt_type, NULL);
 }
 
-static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u32 status)
+static void gf_m2ts_process_eit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *eit_ses, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
+{
+	u32 pos, evt_type;
+	GF_M2TS_EIT *eit;
+	u32 service_id = ex_table_id;
+	u8 segment_last_section_number, last_table_id;
+
+	if (table_id == GF_M2TS_TABLE_ID_EIT_ACTUAL_PF) {
+		evt_type = GF_M2TS_EVT_EIT_ACTUAL_PF;
+	} else if (table_id == GF_M2TS_TABLE_ID_EIT_OTHER_PF) {
+		evt_type = GF_M2TS_EVT_EIT_OTHER_PF;
+	} else if (table_id >= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN && table_id <= GF_M2TS_TABLE_ID_EIT_SCHEDULE_ACTUAL_MAX) {
+		evt_type = GF_M2TS_EVT_EIT_ACTUAL_SCHEDULE; 
+	} else if (table_id > GF_M2TS_TABLE_ID_EIT_SCHEDULE_ACTUAL_MAX && table_id <= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX) {
+		evt_type = GF_M2TS_EVT_EIT_OTHER_SCHEDULE;
+	} else {
+		return;
+	}
+
+	GF_SAFEALLOC(eit, GF_M2TS_EIT);
+	eit->events = gf_list_new();
+
+	eit->transport_stream_id = (data[0] << 8) | data[1];
+	eit->original_network_id = (data[2] << 8) | data[3];
+	segment_last_section_number = data[4];
+	last_table_id = data[5];
+
+#if 0
+	fprintf(stderr, "\nEIT Table\n");
+	fprintf(stderr, "Version Number: %d - Last Section Number: %d\n", version_number, last_section_number);
+	fprintf(stderr, "Table ID: %d - Ext. Table ID (service ID): %d\n", table_id, ex_table_id);
+	fprintf(stderr, "TS ID: %d - Orig. Net ID: %d\n", eit->transport_stream_id, eit->original_network_id);
+	fprintf(stderr, "Segment Last Section Number: %d - Last Table ID: %d\n", segment_last_section_number, last_table_id);
+	
+	/* TODO: Fix the following once the sub table mechanism is handled properly */
+	pos = 0; 
+	while (pos < data_size) {
+		u32 descs_size, d_pos, ulen;
+
+		GF_M2TS_EIT_Event *evt;
+		GF_SAFEALLOC(evt, GF_M2TS_EIT_Event);
+		gf_list_add(eit->events, evt);
+
+		/* TODO: FIXME - This is a very bad handling of subtables ...*/
+		pos += 6; 
+		
+		evt->event_id = (data[pos] << 8) | data[pos+1];
+		evt->start_time = ((data[pos+2] << 32) | (data[pos+3] << 24) | (data[pos+4] << 16) | (data[pos+5] << 8) | data[pos+6]);
+		evt->duration = (data[pos+7] << 16) | (data[pos+8] << 8) | data[pos+9];
+		evt->running_status = (data[pos+10]>>5) & 0x7;
+		evt->free_CA_mode = (data[pos+10]>>4) & 0x1;
+		descs_size = ((data[pos+10]&0xf)<<8) | data[pos+11];		
+
+		pos += 12;
+		d_pos = 0;
+
+		while (d_pos < descs_size) {
+			u8 d_tag = data[pos+d_pos];
+			u8 d_len = data[pos+d_pos+1];
+
+			d_pos += 2;
+			switch (d_tag) {
+			case GF_M2TS_DVB_SHORT_EVENT_DESCRIPTOR:
+				{
+					u32 lang;
+					char *event_name, *event_text;
+
+					lang = (data[pos+d_pos] << 16) | (data[pos+d_pos+1] << 8) | data[pos+d_pos+2];
+					d_pos += 3;
+					ulen = data[pos+d_pos];
+					d_pos++;
+					event_name = (char*)malloc(sizeof(char)*(ulen+1));
+					memcpy(event_name, data+pos+d_pos, sizeof(char)*ulen);
+					event_name[ulen] = 0;
+					d_pos += ulen;
+
+					ulen = data[pos+d_pos];
+					d_pos++;
+					event_text = (char*)malloc(sizeof(char)*(ulen+1));
+					memcpy(event_text, data+pos+d_pos, sizeof(char)*ulen);
+					event_text[ulen] = 0;
+					d_pos += ulen;
+
+					fprintf(stderr, "event %s - %s \n", event_name, event_text);
+					free(event_name);
+					free(event_text);
+				}
+				break;
+			case GF_M2TS_DVB_EXTENDED_EVENT_DESCRIPTOR:
+				{
+					u32 i, lang, number, last, nb_items;
+					char *item_description, *item, *text;
+
+					number = (data[pos+d_pos] >> 4) & 0xF;
+					last = data[pos+d_pos] & 0xF;
+					d_pos++;
+
+					lang = (data[pos+d_pos] << 16) | (data[pos+d_pos+1] << 8) | data[pos+d_pos+2];
+					d_pos += 3;
+
+					nb_items = data[pos+d_pos];
+					d_pos++;
+
+					for (i = 0; i < nb_items; i++) {
+						ulen = data[pos+d_pos];
+						d_pos++;
+						item_description = (char*)malloc(sizeof(char)*(ulen+1));
+						memcpy(item_description, data+pos+d_pos, sizeof(char)*ulen);
+						item_description[ulen] = 0;
+						d_pos += ulen;
+
+						ulen = data[pos+d_pos];
+						d_pos++;
+						item = (char*)malloc(sizeof(char)*(ulen+1));
+						memcpy(item, data+pos+d_pos, sizeof(char)*ulen);
+						item[ulen] = 0;
+						d_pos += ulen;						
+
+						fprintf(stderr, "item %s - %s \n", item_description, item);
+						free(item_description);
+						free(item);
+					}
+
+					ulen = data[pos+d_pos];
+					d_pos++;
+					text = (char*)malloc(sizeof(char)*(ulen+1));
+					memcpy(text, data+pos+d_pos, sizeof(char)*ulen);
+					text[ulen] = 0;
+					d_pos += ulen;
+
+					fprintf(stderr, "item text %s \n", text);
+					free(text);
+				}
+				break;
+			case GF_M2TS_DVB_COMPONENT_DESCRIPTOR:
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping Component descriptor in EIT\n"));
+				d_pos += d_len;
+				if (d_len == 0) d_pos = descs_size;
+				break;
+			case GF_M2TS_DVB_CONTENT_DESCRIPTOR:
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping Content descriptor in EIT\n"));
+				d_pos += d_len;
+				if (d_len == 0) d_pos = descs_size;
+				break;
+			case GF_M2TS_DVB_PARENTAL_RATING_DESCRIPTOR:
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping Parental Rating descriptor in EIT\n"));
+				d_pos += d_len;
+				if (d_len == 0) d_pos = descs_size;
+				break;
+			default:
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping descriptor (0x%x) not supported\n", d_tag));
+				d_pos += d_len;
+				if (d_len == 0) d_pos = descs_size;
+				break;
+			}
+		}
+		pos += descs_size;
+	}
+#endif
+	if (ts->on_event) ts->on_event(ts, evt_type, eit);
+
+	/* TODO: free the event if not done in on_event */
+}
+
+static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	GF_M2TS_SL_PCK sl_pck;
 
@@ -898,23 +1066,23 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 	if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
 }
 
-static void gf_m2ts_process_int(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ip_not_table, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u32 status)
+static void gf_m2ts_process_int(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ip_not_table, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	fprintf(stdout, "Processing IP/MAC Notification table (PID %d) %s\n", ip_not_table->pid, (status==GF_M2TS_TABLE_REPEAT)?"repeated":"");
 }
 
 #if 0
-static void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *mpe, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u32 status)
+static void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *mpe, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	fprintf(stdout, "Processing MPE Datagram (PID %d)\n", mpe->pid);
 }
 #endif
 
-static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *mpe, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u32 status)
+static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *nit_es, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 }
 
-static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u32 status)
+static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	u32 info_length, pos, desc_len, evt_type;
 
@@ -1082,7 +1250,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, un
 }
 
 
-static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u32 status)
+static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	GF_M2TS_Program *prog;
 	GF_M2TS_SECTION_ES *pmt;
@@ -1353,26 +1521,26 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	data += pos;
 
 	/*PAT*/
-	if (hdr.pid == 0) {
+	if (hdr.pid == GF_M2TS_PID_PAT) {
 		gf_m2ts_gather_section(ts, ts->pat, NULL, &hdr, data, payload_size);
 		return;
-	}
-	else {
+	} else {
 		es = ts->ess[hdr.pid];
 
 		/*check for DVB reserved PIDs*/
 		if (!es) {
-			/*SDT*/
-			if (hdr.pid == 0x0011) {
+			if (hdr.pid == GF_M2TS_PID_SDT_BAT_ST) {
 				gf_m2ts_gather_section(ts, ts->sdt, NULL, &hdr, data, payload_size);
 				return;
-			}
-			/*NIT for DVB*/
-			else if (hdr.pid == 0x0010) {
+			} else if (hdr.pid == GF_M2TS_PID_NIT_ST) {
 				/*ignore them, unused at application level*/
 				//if (!hdr.error) gf_m2ts_gather_section(ts, ts->nit, NULL, &hdr, data, payload_size);
 				return;
-			} 
+			} else if (hdr.pid == GF_M2TS_PID_EIT_ST_CIT) {
+				/* ignore EIT messages for the moment */
+				gf_m2ts_gather_section(ts, ts->eit, NULL, &hdr, data, payload_size); 
+				return;
+			}
 		} else if (es->flags & GF_M2TS_ES_IS_SECTION) { 	/* The stream uses sections to carry its payload */
 			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
 			if (ses->sec) gf_m2ts_gather_section(ts, ses->sec, ses, &hdr, data, payload_size);
@@ -1381,7 +1549,6 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			/* let the pes reassembler decide if packets with error shall be discarded*/
 			gf_m2ts_process_pes(ts, (GF_M2TS_PES *)es, &hdr, data, payload_size, paf);
 		}
-
 	}
 	if (paf && paf->PCR_flag) {
 		GF_M2TS_PES_PCK pck;
@@ -1546,6 +1713,8 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 
 	ts->pat = gf_m2ts_section_filter_new(gf_m2ts_process_pat);
 	ts->sdt = gf_m2ts_section_filter_new(gf_m2ts_process_sdt);
+	//ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit);
+	ts->eit = gf_m2ts_section_filter_new(gf_m2ts_process_eit);
 	return ts;
 }
 
@@ -1555,6 +1724,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	if (ts->pat) gf_m2ts_section_filter_del(ts->pat);
 	if (ts->sdt) gf_m2ts_section_filter_del(ts->sdt);
 	if (ts->nit) gf_m2ts_section_filter_del(ts->nit);
+	if (ts->eit) gf_m2ts_section_filter_del(ts->eit);
 
 	for (i=0; i<8192; i++) {
 		if (ts->ess[i]) gf_m2ts_es_del(ts->ess[i]);
