@@ -147,7 +147,7 @@ void TTIn_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	if (tti->needs_connection) {
 		tti->needs_connection = 0;
 		gf_term_on_connect(tti->service, NULL, e);
-		if (!e) tti_setup_object(tti);
+		if (!e && !tti->od_done) tti_setup_object(tti);
 	}
 }
 
@@ -181,7 +181,7 @@ static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	}
 	e = TTIn_LoadFile(plug, url, 0);
 	gf_term_on_connect(serv, NULL, e);
-	if (!e) tti_setup_object(tti);
+	if (!e && !tti->od_done) tti_setup_object(tti);
 	return GF_OK;
 }
 
@@ -212,6 +212,7 @@ static GF_Descriptor *TTIn_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		GF_ESD *esd = tti_get_esd(tti);
 		od->objectDescriptorID = esd->ESID;
 		gf_list_add(od->ESDescriptors, esd);
+		tti->od_done = 1;
 		return (GF_Descriptor *) od;
 	}
 	return NULL;
