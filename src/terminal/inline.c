@@ -1330,6 +1330,7 @@ static Bool check_odm_deactivate(SFURL *url, GF_ObjectManager *odm, GF_Node *n)
 
 void gf_inline_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 {
+	char *url;
 	if (!is->is_dynamic_scene || !is->graph_attached || !odm) return;
 	
 	if (!odm->codec) return;
@@ -1349,9 +1350,10 @@ void gf_inline_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 		if (!ac->url.count) gf_sg_vrml_mf_alloc(&ac->url, GF_SG_VRML_MFURL, 1);
 		ac->url.vals[0].OD_ID = odm->OD->objectDescriptorID;
 		if (ac->url.vals[0].url) free(ac->url.vals[0].url);
-		if (odm->OD->URLString) {
-			is->audio_url.url = strdup(odm->OD->URLString);
-			ac->url.vals[0].url = strdup(odm->OD->URLString);
+		url = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
+		if (url) {
+			is->audio_url.url = strdup(url);
+			ac->url.vals[0].url = strdup(url);
 		}
 		ac->startTime = gf_inline_get_time(is);
 		gf_node_changed((GF_Node *)ac, NULL);
@@ -1367,9 +1369,10 @@ void gf_inline_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 		if (!mt->url.count) gf_sg_vrml_mf_alloc(&mt->url, GF_SG_VRML_MFURL, 1);
 		mt->url.vals[0].OD_ID = odm->OD->objectDescriptorID;
 		if (mt->url.vals[0].url) free(mt->url.vals[0].url);
-		if (odm->OD->URLString) {
-			is->visual_url.url = strdup(odm->OD->URLString);
-			mt->url.vals[0].url = strdup(odm->OD->URLString);
+		url = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
+		if (url) {
+			is->visual_url.url = strdup(url);
+			mt->url.vals[0].url = strdup(url);
 		}
 		mt->startTime = gf_inline_get_time(is);
 		gf_node_changed((GF_Node *)mt, NULL);
@@ -1387,9 +1390,10 @@ void gf_inline_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 		if (!as->url.count) gf_sg_vrml_mf_alloc(&as->url, GF_SG_VRML_MFURL, 1);
 		as->url.vals[0].OD_ID = odm->OD->objectDescriptorID;
 		if (as->url.vals[0].url) free(as->url.vals[0].url);
-		if (odm->OD->URLString) {
-			is->text_url.url = strdup(odm->OD->URLString);
-			as->url.vals[0].url = strdup(odm->OD->URLString);
+		url = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
+		if (url) {
+			is->text_url.url = strdup(url);
+			as->url.vals[0].url = strdup(url);
 		}
 		as->startTime = gf_inline_get_time(is);
 		gf_node_changed((GF_Node *)as, NULL);
