@@ -164,12 +164,28 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 	ddsd.dwHeight = Height;
 
 #ifdef USE_DX_3
-    if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL ) ) )
-        return GF_IO_ERR;
+    hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL );
 #else
-    if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL ) ) )
-        return GF_IO_ERR;
+    hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL );
 #endif
+	if (FAILED(hr)) {
+		if (!dd->systems_memory) {
+			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
+			ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+			dd->systems_memory = 1;
+			if (opt && !strcmp(opt, "yes")) {
+				gf_modules_set_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory", "no");
+
+				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Hardware Video not available for backbuffer)\n"));
+			}
+#ifdef USE_DX_3
+		    hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL );
+#else
+		    hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL );
+#endif
+		}
+		if (FAILED(hr)) return GF_IO_ERR;
+	}
 
 	/*store size*/
 	if (!dd->fullscreen) {
@@ -308,7 +324,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
     }
 	IDirectDrawClipper_Release(pcClipper);
 	dd->ddraw_init = 1;
-	return CreateBackBuffer(dr, Width, Height, 0);
+	return CreateBackBuffer(dr, Width, Height, 1);
 }
 
 static GF_Err DD_LockSurface(DDContext *dd, GF_VideoSurface *vi, void *surface)
@@ -721,6 +737,7 @@ rem_fmt:
 	if (!num_yuv) {
 		dr->hw_caps &= ~(GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY);
 		dr->yuv_pixel_format = 0;
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] YUV hardware not available\n"));
 		return;
 	}
 
