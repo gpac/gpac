@@ -2262,3 +2262,24 @@ const u32 *gf_isom_get_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber
 	return (const u32 *) tsel->attributeList;
 }
 
+
+GF_EXPORT
+GF_Err gf_isom_get_timed_meta_data_info(GF_ISOFile *file, u32 track, u32 sampleDescription, Bool *is_xml, const char **mime_or_namespace, const char **content_encoding, const char **schema_loc)
+{
+	GF_TrackBox *trak;
+	GF_MetaDataSampleEntryBox *ptr;
+	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak || !sampleDescription) return GF_BAD_PARAM;
+	ptr = (GF_MetaDataSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, sampleDescription-1);
+	if (!ptr) return GF_BAD_PARAM;
+
+	if (ptr->type==GF_ISOM_BOX_TYPE_METX) {
+		if (is_xml) *is_xml = 1;
+		if (schema_loc) *schema_loc = ptr->xml_schema_loc;
+	} else {
+		if (schema_loc) *schema_loc = NULL;
+	}
+	if (mime_or_namespace) *mime_or_namespace = ptr->mime_type_or_namespace;
+	if (content_encoding) *content_encoding = ptr->content_encoding;
+	return GF_OK;
+}

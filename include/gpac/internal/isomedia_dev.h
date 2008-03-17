@@ -204,6 +204,9 @@ enum
 	GF_ISOM_BOX_TYPE_SCHM	= GF_4CC( 's', 'c', 'h', 'm' ),
 	GF_ISOM_BOX_TYPE_SCHI	= GF_4CC( 's', 'c', 'h', 'i' ),
 
+	GF_ISOM_BOX_TYPE_METX	= GF_4CC( 'm', 'e', 't', 'x' ),
+	GF_ISOM_BOX_TYPE_METT	= GF_4CC( 'm', 'e', 't', 't' ),
+
 	/* ISMA 1.0 Encryption and Authentication V 1.0 */
 	GF_ISOM_BOX_TYPE_IKMS	= GF_4CC( 'i', 'K', 'M', 'S' ),
 	GF_ISOM_BOX_TYPE_ISFM	= GF_4CC( 'i', 'S', 'F', 'M' ),
@@ -702,6 +705,7 @@ void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ent, GF_BitStream
 void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent);
 #endif
 
+
 typedef struct
 {
 	GF_ISOM_BOX
@@ -816,6 +820,16 @@ typedef struct
 	u32 data_size;
 } GF_GenericAudioSampleEntryBox;
 
+
+/*base sample entry box (never used but for typecasting)*/
+typedef struct
+{
+	GF_ISOM_SAMPLE_ENTRY_FIELDS
+	char *content_encoding;	//optional
+	char *mime_type_or_namespace;	//not optional
+	char *xml_schema_loc;	// optional
+	GF_MPEG4BitRateBox *bitrate; // optional
+} GF_MetaDataSampleEntryBox;
 
 typedef struct
 {
@@ -3024,6 +3038,14 @@ GF_Err pasp_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err pasp_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err pasp_Size(GF_Box *s);
 GF_Err pasp_dump(GF_Box *a, FILE * trace);
+
+GF_Box *metx_New(u32 type);
+void metx_del(GF_Box *s);
+GF_Err metx_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err metx_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err metx_Size(GF_Box *s);
+GF_Err metx_dump(GF_Box *a, FILE * trace);
+
 
 
 GF_Box *tsel_New();

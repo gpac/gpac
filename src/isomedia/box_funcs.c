@@ -529,6 +529,10 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_PASP: return pasp_New();
 	case GF_ISOM_BOX_TYPE_TSEL: return tsel_New();
 
+
+	case GF_ISOM_BOX_TYPE_METX:
+	case GF_ISOM_BOX_TYPE_METT:
+		return metx_New(boxType);
 	default:
 		a = defa_New();
 		if (a) a->type = boxType;
@@ -753,6 +757,11 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_PASP: pasp_del(a); return;
 	case GF_ISOM_BOX_TYPE_TSEL: tsel_del(a); return;
 
+	case GF_ISOM_BOX_TYPE_METX:
+	case GF_ISOM_BOX_TYPE_METT:
+		metx_del(a);
+		return;
+
 	default:
 		defa_del(a);
 		return;
@@ -960,6 +969,10 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 
 	case GF_ISOM_BOX_TYPE_PASP: return pasp_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TSEL: return tsel_Read(a, bs);
+
+	case GF_ISOM_BOX_TYPE_METX:
+	case GF_ISOM_BOX_TYPE_METT:
+		return metx_Read(a, bs);
 
 	default:
 		return defa_Read(a, bs);
@@ -1171,6 +1184,10 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_PASP: return pasp_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TSEL: return tsel_Write(a, bs);
 
+	case GF_ISOM_BOX_TYPE_METX:
+	case GF_ISOM_BOX_TYPE_METT:
+		return metx_Write(a, bs);
+
 	default:
 		return defa_Write(a, bs);
 	}
@@ -1376,6 +1393,10 @@ GF_Err gf_isom_box_size(GF_Box *a)
 
 	case GF_ISOM_BOX_TYPE_PASP: return pasp_Size(a);
 	case GF_ISOM_BOX_TYPE_TSEL: return tsel_Size(a);
+
+	case GF_ISOM_BOX_TYPE_METX:
+	case GF_ISOM_BOX_TYPE_METT:
+		return metx_Size(a);
 
 	default: return defa_Size(a);
 	}
