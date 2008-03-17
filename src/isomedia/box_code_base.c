@@ -4988,6 +4988,8 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_TX3G:
 	case GF_ISOM_BOX_TYPE_ENCT:
+	case GF_ISOM_BOX_TYPE_METX:
+	case GF_ISOM_BOX_TYPE_METT:
 		return gf_list_add(ptr->boxList, a);
 	/*for 3GP config, we must set the type*/
 	case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -7124,6 +7126,159 @@ GF_Err pasp_Size(GF_Box *s)
 	GF_Err e = gf_isom_box_get_size(s);
 	if (e) return e;
 	s->size += 8;
+	return GF_OK;
+}
+
+#endif //GPAC_READ_ONLY
+
+
+
+
+GF_Box *metx_New(u32 type)
+{
+	GF_MetaDataSampleEntryBox *tmp;
+	GF_SAFEALLOC(tmp, GF_MetaDataSampleEntryBox);
+	if (tmp == NULL) return NULL;
+	tmp->type = type;
+	return (GF_Box *)tmp;
+}
+
+
+void metx_del(GF_Box *s)
+{
+	GF_MetaDataSampleEntryBox *ptr = (GF_MetaDataSampleEntryBox*)s;
+	if (ptr == NULL) return;
+	if (ptr->content_encoding) free(ptr->content_encoding);
+	if (ptr->mime_type_or_namespace) free(ptr->mime_type_or_namespace);
+	if (ptr->xml_schema_loc) free(ptr->xml_schema_loc);
+	if (ptr->bitrate) gf_isom_box_del((GF_Box *) ptr->bitrate);
+	free(ptr);
+}
+
+
+GF_Err metx_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
+	switch (a->type) {
+	case GF_ISOM_BOX_TYPE_SINF:
+		if (ptr->protection_info) return GF_ISOM_INVALID_FILE;
+		ptr->protection_info = (GF_ProtectionInfoBox*)a;
+		break;
+	case GF_ISOM_BOX_TYPE_BTRT:
+		if (ptr->bitrate) return GF_ISOM_INVALID_FILE;
+		ptr->bitrate = (GF_MPEG4BitRateBox *)a;
+		break;
+	default:
+		gf_isom_box_del(a);
+		break;
+	}
+	return GF_OK;
+}
+
+GF_Err metx_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 size, i;
+	char *str;
+	GF_MetaDataSampleEntryBox *ptr = (GF_MetaDataSampleEntryBox*)s;
+	size = (u32) ptr->size;
+	str = malloc(sizeof(char)*size);
+	i=0;
+	while (i<size) {
+		str[i] = gf_bs_read_u8(bs);
+		size--;
+		if (!str[i])
+			break;
+		i++;
+	}
+	if (i) ptr->content_encoding = strdup(str);
+
+	i=0;
+	while (i<size) {
+		str[i] = gf_bs_read_u8(bs);
+		size--;
+		if (!str[i])
+			break;
+		i++;
+	}
+	if (i) ptr->mime_type_or_namespace = strdup(str);
+
+	if (ptr->type==GF_ISOM_BOX_TYPE_METX) {
+		i=0;
+		while (i<size) {
+			str[i] = gf_bs_read_u8(bs);
+			size--;
+			if (!str[i])
+				break;
+			i++;
+		}
+		if (i) ptr->xml_schema_loc = strdup(str);
+	}
+	ptr->size = size;
+	return gf_isom_read_box_list(s, bs, metx_AddBox);
+}
+
+//from here, for write/edit versions
+#ifndef GPAC_READ_ONLY
+
+GF_Err metx_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_MetaDataSampleEntryBox *ptr = (GF_MetaDataSampleEntryBox *)s;
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_data(bs, ptr->reserved, 6);
+	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
+
+	if (ptr->content_encoding) 
+		gf_bs_write_data(bs, ptr->content_encoding, strlen(ptr->content_encoding));
+	gf_bs_write_u8(bs, 0);
+
+	if (ptr->mime_type_or_namespace) 
+		gf_bs_write_data(bs, ptr->mime_type_or_namespace, strlen(ptr->mime_type_or_namespace));
+	gf_bs_write_u8(bs, 0);
+	
+	if (ptr->xml_schema_loc) 
+		gf_bs_write_data(bs, ptr->xml_schema_loc, strlen(ptr->xml_schema_loc));
+	gf_bs_write_u8(bs, 0);
+
+	if (ptr->bitrate) {
+		e = gf_isom_box_write((GF_Box *)ptr->bitrate, bs);
+		if (e) return e;
+	}
+	if (ptr->protection_info) {
+		e = gf_isom_box_write((GF_Box *)ptr->protection_info, bs);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
+GF_Err metx_Size(GF_Box *s)
+{
+	GF_MetaDataSampleEntryBox *ptr = (GF_MetaDataSampleEntryBox *)s;
+	GF_Err e = gf_isom_box_get_size(s);
+	if (e) return e;
+	ptr->size += 8;
+
+	if (ptr->content_encoding)
+		ptr->size += strlen(ptr->content_encoding);
+	ptr->size++;
+	if (ptr->mime_type_or_namespace)
+		ptr->size += strlen(ptr->mime_type_or_namespace);
+	ptr->size++;
+	if (ptr->xml_schema_loc)
+		ptr->size += strlen(ptr->xml_schema_loc);
+	ptr->size++;
+
+	if (ptr->bitrate) {
+		e = gf_isom_box_size((GF_Box *)ptr->bitrate);
+		if (e) return e;
+		ptr->size += ptr->bitrate->size;
+	}
+	if (ptr->protection_info) {
+		e = gf_isom_box_size((GF_Box *)ptr->protection_info);
+		if (e) return e;
+		ptr->size += ptr->protection_info->size;
+	}
 	return GF_OK;
 }
 

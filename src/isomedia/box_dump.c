@@ -274,6 +274,8 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_ODAF: return iSFM_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_TSEL: return tsel_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_METX: return metx_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_METT: return metx_dump(a, trace);
 
 	default: return defa_dump(a, trace);
 	}
@@ -3201,6 +3203,29 @@ GF_Err tsel_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "\">\n");
 	gf_full_box_dump((GF_Box *)a, trace);
 	fprintf(trace, "</TrackSelectionBox>\n");
+	return GF_OK;
+}
+
+GF_Err metx_dump(GF_Box *a, FILE * trace)
+{
+	GF_MetaDataSampleEntryBox *ptr = (GF_MetaDataSampleEntryBox*)a;
+	const char *name = (ptr->type==GF_ISOM_BOX_TYPE_METX) ? "XMLMetaDataSampleEntryBox" : "TextMetaDataSampleEntryBox";
+
+	fprintf(trace, "<%s ", name);
+	if (ptr->type==GF_ISOM_BOX_TYPE_METX) {
+		fprintf(trace, "namespace=\"%s\" ", ptr->mime_type_or_namespace);
+		if (ptr->xml_schema_loc) fprintf(trace, "schema_location=\"%s\" ", ptr->xml_schema_loc);
+	} else {
+		fprintf(trace, "mime_type=\"%s\" ", ptr->mime_type_or_namespace);
+	}
+	if (ptr->content_encoding) fprintf(trace, "content_encoding=\"%s\" ", ptr->content_encoding);
+	fprintf(trace, ">\n");
+	DumpBox(a, trace);
+
+	if (ptr->bitrate) gf_box_dump(ptr->bitrate, trace);
+	if (ptr->protection_info) gf_box_dump(ptr->protection_info, trace);
+
+	fprintf(trace, "</%s>\n", name);
 	return GF_OK;
 }
 

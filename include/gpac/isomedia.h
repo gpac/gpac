@@ -131,6 +131,8 @@ enum
 	GF_ISOM_REF_OCR				= GF_4CC( 's', 'y', 'n', 'c' ),
 	/*ref type for IPI (Intellectual Property Information) dependencies*/
 	GF_ISOM_REF_IPI				= GF_4CC( 'i', 'p', 'i', 'r' ),
+	/*ref type for timed Meta Data tracks*/
+	GF_ISOM_REF_META		= GF_4CC( 'c', 'd', 's', 'c' ),
 	/*ref type for Hint tracks*/
 	GF_ISOM_REF_HINT		= GF_4CC( 'h', 'i', 'n', 't' ),
 	/*ref type for QT Chapter tracks*/
@@ -154,6 +156,7 @@ enum
 	GF_ISOM_MEDIA_VISUAL	= GF_4CC( 'v', 'i', 'd', 'e' ),
 	GF_ISOM_MEDIA_AUDIO		= GF_4CC( 's', 'o', 'u', 'n' ),
 	GF_ISOM_MEDIA_HINT		= GF_4CC( 'h', 'i', 'n', 't' ),
+	GF_ISOM_MEDIA_META		= GF_4CC( 'm', 'e', 't', 'a' ),
 	GF_ISOM_MEDIA_TEXT		= GF_4CC( 't', 'e', 'x', 't' ),
 	GF_ISOM_MEDIA_SUBPIC	= GF_4CC( 's', 'u', 'b', 'p' ),
 
@@ -1688,6 +1691,18 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 /*sets the given item as the primary one. You SHALL NOT use this if the meta has a valid XML data*/
 GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num);
 
+#endif
+
+
+/********************************************************************
+				Timed Meta-Data extensions
+********************************************************************/
+
+GF_Err gf_isom_get_timed_meta_data_info(GF_ISOFile *file, u32 track, u32 sampleDescription, Bool *is_xml, const char **mime_or_namespace, const char **content_encoding, const char **schema_loc);
+
+#ifndef GPAC_READ_ONLY
+/*create a new timed metat data sample description for this track*/
+GF_Err gf_isom_timed_meta_data_config_new(GF_ISOFile *movie, u32 trackNumber, Bool is_xml, char *mime_or_namespace, char *content_encoding, char *schema_loc, char *URLname, char *URNname, u32 *outDescriptionIndex);
 #endif
 
 
