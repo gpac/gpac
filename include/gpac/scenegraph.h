@@ -557,6 +557,10 @@ enum
 	/*same as NodeDelete, and also updates OrderedGroup.order when deleting a child*/
 	GF_SG_NODE_DELETE_EX,
 
+	/*BIFS*/
+	GF_SG_FIELD_REPLACE_OP, 
+	GF_SG_INDEXED_REPLACE_OP,
+
 	GF_SG_LAST_BIFS_COMMAND,
 
 

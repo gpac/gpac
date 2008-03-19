@@ -103,7 +103,6 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 	gf_sg_vrml_mf_alloc(&p->outMFVec3f, GF_SG_VRML_MFVEC3F, count);
 
 	/*set all MF outputs*/
-	assert(count);
 	for (i=0; i<count; i++) {
 		if (inType) {
 			switch (inType) {
