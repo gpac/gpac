@@ -1403,7 +1403,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 					xmt_parse_mf_field(parser, &info, NULL, value);
 				}
 			} else if (gf_sg_vrml_get_sf_type(fType) != GF_SG_VRML_SFNODE) {
-				gf_sg_proto_field_set_value_undefined(parser->proto_field);
+				/*value not specified for exter proto*/
 			} 
 			/*SF/MFNode proto field: push node stack with container info but no parent*/
 			else {
@@ -1528,7 +1528,6 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			} else {
 				xmt_parse_mf_field(parser, &info, parent->node, value);
 			}
-			gf_sg_proto_mark_field_loaded(parent->node, &info);
 		} else if (gf_sg_vrml_get_sf_type(info.fieldType) == GF_SG_VRML_SFNODE) {
 			parent->container_field = info;
 			parent->last = NULL;

@@ -696,7 +696,7 @@ static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNod
 GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup)
 {
 	u32 type;
-	Bool replace_root;
+	Bool replace_root, replace_proto;
 	GF_Node *par;
 	GF_SceneGraph *pSG = node->sgprivate->scenegraph;
 
@@ -714,6 +714,11 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 
 	/*first check if this is the root node*/
 	replace_root = (node->sgprivate->scenegraph->RootNode == node) ? 1 : 0;
+	replace_proto = 0;
+	if (node->sgprivate->scenegraph->pOwningProto
+		&& (gf_list_find(node->sgprivate->scenegraph->pOwningProto->node_code, node)>=0)) {
+		replace_proto = 1;
+	}
 
 	while (node->sgprivate->parents) {
 		Bool do_break = node->sgprivate->parents->next ? 0 : 1;
@@ -737,6 +742,13 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 		gf_node_unregister(node, NULL);
 		pSG->RootNode = new_node;
 	}
+	if (replace_proto) {
+		pSG = node->sgprivate->scenegraph;
+		gf_list_del_item(pSG->pOwningProto->node_code, node);
+		if (pSG->pOwningProto->RenderingNode==node) pSG->pOwningProto->RenderingNode = NULL;
+		gf_node_unregister(node, NULL);
+	}
+
 	return GF_OK;
 }
 

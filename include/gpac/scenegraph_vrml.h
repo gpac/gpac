@@ -502,11 +502,6 @@ void *gf_sg_proto_field_get_private(GF_ProtoFieldInterface *field);
 /*returns field info of the field - this is typically used to setup the default value of the field*/
 GF_Err gf_sg_proto_field_get_field(GF_ProtoFieldInterface *field, GF_FieldInfo *info);
 
-/*indicates that the default field value of this proto field is undefined - this is needed
-when VRML externProto doesn't indicate its default field values, in which case they will be copied
-over from real proto one upon instanciation*/
-void gf_sg_proto_field_set_value_undefined(GF_ProtoFieldInterface *protofield);
-
 /*
 	NOTE on proto instances:
 		The proto instance is handled as an GF_Node outside the scenegraph lib, and is manipulated with the same functions 
@@ -547,10 +542,6 @@ Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field);
 /*set an ISed field in a proto instance (not a proto) - this is needed with dynamic node creation inside a proto
 instance (conditionals)*/
 GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF_Node *node, u32 nodeFieldIndex);
-
-/*indicates proto field has been parsed and its value is valid - this is needed for externProtos not specifying default
-values*/
-void gf_sg_proto_mark_field_loaded(GF_Node *proto_inst, GF_FieldInfo *info);
 
 /*returns root node (the one and only one being traversed) of this proto instance if any*/
 GF_Node *gf_node_get_proto_root(GF_Node *node);

@@ -637,9 +637,6 @@ struct _protofield
 	GF_Node *def_sfnode_value;
 	GF_ChildNodeItem *def_mfnode_value;
 
-	/*for instanciation - if externProto dit not specify field val*/
-	u8 val_not_loaded;
-
 	/*coding indexes*/
 	u32 IN_index, OUT_index, DEF_index, ALL_index;
 

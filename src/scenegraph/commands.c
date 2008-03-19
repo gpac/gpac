@@ -216,6 +216,21 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		if (inf->new_node) gf_node_register(inf->new_node, NULL);
 		break;
 
+	case GF_SG_FIELD_REPLACE_OP:
+	{
+		GF_FieldInfo src;
+		e = gf_node_get_field(com->node, com->toFieldIndex, &field);
+		if (e) return e;
+		def = gf_sg_find_node(com->in_scene, com->fromNodeID);
+		if (!def) return GF_SG_UNKNOWN_NODE;
+		e = gf_node_get_field(def, com->fromFieldIndex, &src);
+		if (e) return e;
+		gf_sg_vrml_field_copy(field.far_ptr, src.far_ptr, src.fieldType);
+
+		SG_CheckFieldChange(com->node, &field);
+	}
+		break;
+
 	case GF_SG_MULTIPLE_REPLACE:
 	case GF_SG_FIELD_REPLACE:
 	{
