@@ -1093,8 +1093,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 
 	if (!n) {
 		n = gf_sg_get_root_node(compositor->scene);
-		gf_list_del(compositor->focus_ancestors);
-		compositor->focus_ancestors = NULL;
+		gf_list_reset(compositor->focus_ancestors);
 	}
 	if (gf_node_get_tag(n)>=GF_NODE_FIRST_DOM_NODE_TAG) {
 		compositor->focus_uses_dom_events = 1;
