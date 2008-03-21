@@ -218,14 +218,35 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 
 	case GF_SG_FIELD_REPLACE_OP:
 	{
+		void *src_ptr;
+		u32 src_type;
+		u32 j=0;
 		GF_FieldInfo src;
-		e = gf_node_get_field(com->node, com->toFieldIndex, &field);
-		if (e) return e;
 		def = gf_sg_find_node(com->in_scene, com->fromNodeID);
 		if (!def) return GF_SG_UNKNOWN_NODE;
 		e = gf_node_get_field(def, com->fromFieldIndex, &src);
 		if (e) return e;
-		gf_sg_vrml_field_copy(field.far_ptr, src.far_ptr, src.fieldType);
+
+		src_type = src.fieldType;
+		src_ptr = src.far_ptr;
+		if (com->send_event_x>=0) {
+			src_type = gf_sg_vrml_get_sf_type(src.fieldType);
+			e = gf_sg_vrml_mf_get_item(src.far_ptr, src.fieldType, &src_ptr, com->send_event_x);
+			if (e) return e;
+		}
+
+		while ((inf = (GF_CommandField*)gf_list_enum(com->command_fields, &j))) {
+			e = gf_node_get_field(com->node, inf->fieldIndex, &field);
+			if (e) return e;
+			if (inf->pos>=0) {
+				void *slot_ptr;
+				e = gf_sg_vrml_mf_get_item(field.far_ptr, field.fieldType, & slot_ptr, inf->pos);
+				if (e) return e;
+				gf_sg_vrml_field_copy(slot_ptr, src_ptr, src_type);
+			} else {
+				gf_sg_vrml_field_copy(field.far_ptr, src_ptr, src_type);
+			}
+		}
 
 		SG_CheckFieldChange(com->node, &field);
 	}
