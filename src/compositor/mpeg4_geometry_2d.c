@@ -228,7 +228,7 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
 
-	if (ctx->aspect.fill_texture) {
+	if (ctx->aspect.fill_texture && 0) {
 		Bool res;
 		GF_Rect orig_unclip;
 		GF_IRect orig_clip;

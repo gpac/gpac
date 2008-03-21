@@ -23,6 +23,7 @@
  */
 
 #include "visual_manager.h"
+#include <gpac/nodes_mpeg4.h>
 
 
 static Bool visual_draw_bitmap_stub(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, GF_ColorKey *col_key)
@@ -154,10 +155,22 @@ Bool visual_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState
 
 void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_TraverseState *tr_state)
 {
+	SFVec2f size;
 	GF_Rect rc;
 	GF_Matrix2D cur_mx;
 
 	if (tr_state->abort_bounds_traverse) return;
+
+	size.x = -FIX_ONE;
+	switch (gf_node_get_tag(self)) {
+	case TAG_MPEG4_Layer2D: size = ((M_Layer2D *)self)->size; break;
+	case TAG_MPEG4_Layer3D: size = ((M_Layer3D *)self)->size; break;
+	case TAG_MPEG4_Form: size = ((M_Form *)self)->size; break;
+	}
+	if ((size.x>=0) && (size.y>=0)) {
+		tr_state->bounds = gf_rect_center(size.x, size.y);
+		return;
+	}
 
 	gf_mx2d_copy(cur_mx, tr_state->transform);
 	rc = gf_rect_center(0,0);

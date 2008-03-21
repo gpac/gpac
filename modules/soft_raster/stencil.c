@@ -227,7 +227,7 @@ static void lgb_fill_run(EVGStencil *p, EVGSurface *surf, s32 x, s32 y, u32 coun
 {
 	Bool has_cmat, has_a;
 	Fixed _res;
-	s32 val, inc;
+	s32 val;
 	u32 col, ca;
 	u32 *data = surf->stencil_pix_run;
 	u32 shifter = (EVGGRADIENTSCALEBITS - EVGGRADIENTBITS);
@@ -238,10 +238,10 @@ static void lgb_fill_run(EVGStencil *p, EVGSurface *surf, s32 x, s32 y, u32 coun
 
 	/*no need to move x & y to fixed*/
 	_res = (Fixed) (x * _this->smat.m[0] + y * _this->smat.m[1] + _this->smat.m[2]);
-	/*but remove val to int*/
-	val = FIX2INT(_res);
-	inc = FIX2INT(_this->smat.m[0]);
 	while (count) {
+		val = FIX2INT(_res);
+		_res += _this->smat.m[0];
+
 		if (has_cmat) {
 			col = gradient_get_color((EVG_BaseGradient *)_this, (val >> shifter) );
 			*data++ = gf_cmx_apply(&p->cmat, col);
@@ -252,7 +252,6 @@ static void lgb_fill_run(EVGStencil *p, EVGSurface *surf, s32 x, s32 y, u32 coun
 		} else {
 			*data++ = gradient_get_color((EVG_BaseGradient *)_this, (val >> shifter) );
 		}
-		val += inc;
 		count--;
 	}
 }

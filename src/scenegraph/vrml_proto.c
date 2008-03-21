@@ -591,14 +591,11 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 			proto_node->is_loaded = 1;
 			return;
 		}
+		/*cf VRML: once an external proto is loaded, copy back the field values of the external proto*/
 		count = gf_list_count(owner->proto_fields);
 		for (i=0; i<count; i++) {
 			GF_ProtoField *pf = (GF_ProtoField *)gf_list_get(proto_node->fields, i);
 			pfi = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
-//			if (!pf->has_been_accessed) {
-//				pfi = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
-//				gf_sg_vrml_field_copy(pf->field_pointer, pfi->def_value, pfi->FieldType);
-//			}
 			gf_sg_vrml_field_copy(pf->field_pointer, pfi->def_value, pfi->FieldType);
 		}
 
