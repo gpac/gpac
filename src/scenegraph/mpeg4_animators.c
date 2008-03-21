@@ -524,8 +524,8 @@ static void PA2D_SetFraction(GF_Node *node)
 		switch (stack->anim_type) {
 		case ANIM_DEFAULT:
 			if (nbKeys != nbVals) return;
-			if (frac<pa->key.vals[0]) { i=0; frac = 0; }
-			else if (frac>pa->key.vals[nbKeys-1]) { i=nbVals-2; frac=FIX_ONE; }
+			if (frac<=pa->key.vals[0]) { i=0; frac = 0; }
+			else if (frac>=pa->key.vals[nbKeys-1]) { i=nbVals-2; frac=FIX_ONE; }
 			else {
 				for (i=0; i<nbKeys-1; i++) {
 					if ((frac>=pa->key.vals[i]) && (frac<pa->key.vals[i+1])) break;

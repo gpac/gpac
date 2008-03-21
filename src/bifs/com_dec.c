@@ -180,6 +180,110 @@ static GF_Err BD_DecNodeDeleteEx(GF_BifsDecoder * codec, GF_BitStream *bs)
 	return gf_node_replace(node, NULL, 1);
 }
 
+static GF_Err BD_DecOperandReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
+{
+	s32 pos;
+	GF_FieldInfo field;
+	GF_FieldInfo src_field;
+	GF_Err e;
+	u32 NodeID, NumBits, ind, field_ind, type, src_type, dst_type;
+	GF_Node *node, *src;
+	void *src_ptr, *dst_ptr;
+
+	NodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
+	node = gf_sg_find_node(codec->current_graph, NodeID);
+	if (!node) return GF_NON_COMPLIANT_BITSTREAM;
+	NumBits = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_IN)-1);
+	ind = gf_bs_read_int(bs, NumBits);
+	e = gf_bifs_get_field_index(node, ind, GF_SG_FIELD_CODING_IN, &field_ind);
+	if (e) return e;
+	e = gf_node_get_field(node, field_ind, &field);
+	if (e) return e;
+
+	dst_type = field.fieldType;
+	dst_ptr = field.far_ptr;
+	pos = -2;
+	if (! gf_sg_vrml_is_sf_field(field.fieldType)) {
+		type = gf_bs_read_int(bs, 2);
+		switch (type) {
+		/*no index*/
+		case 0:
+			break;
+		/*specified*/
+		case 1:
+			pos = gf_bs_read_int(bs, 8);
+			break;
+		/*first*/
+		case 2:
+			pos = 0;
+			break;
+		/*last*/
+		case 3:
+			/*-1 means append*/
+			pos = ((GenMFField *)field.far_ptr)->count;
+			if (!pos) 
+				return GF_NON_COMPLIANT_BITSTREAM;
+			pos -= 1;
+			break;
+		default:
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		if (pos>-2) {
+			dst_type = gf_sg_vrml_get_sf_type(field.fieldType);
+			e = gf_sg_vrml_mf_get_item(field.far_ptr, field.fieldType, &dst_ptr, pos);
+			if (e) return e;
+		}
+	}
+
+	NodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
+	src = gf_sg_find_node(codec->current_graph, NodeID);
+	if (!src) return GF_NON_COMPLIANT_BITSTREAM;
+	NumBits = gf_get_bit_size(gf_node_get_num_fields_in_mode(src, GF_SG_FIELD_CODING_IN)-1);
+	ind = gf_bs_read_int(bs, NumBits);
+	e = gf_bifs_get_field_index(src, ind, GF_SG_FIELD_CODING_IN, &field_ind);
+	if (e) return e;
+	e = gf_node_get_field(src, field_ind, &src_field);
+	if (e) return e;
+
+	src_type = src_field.fieldType;
+	src_ptr = src_field.far_ptr;
+	pos = -2;
+	if (! gf_sg_vrml_is_sf_field(src_field.fieldType)) {
+		type = gf_bs_read_int(bs, 2);
+		switch (type) {
+		/*no index*/
+		case 0:
+			break;
+		/*specified*/
+		case 1:
+			pos = gf_bs_read_int(bs, 8);
+			break;
+		/*first*/
+		case 2:
+			pos = 0;
+			break;
+		/*last*/
+		case 3:
+			/*-1 means append*/
+			pos = ((GenMFField *)src_field.far_ptr)->count;
+			if (!pos) 
+				return GF_NON_COMPLIANT_BITSTREAM;
+			pos -= 1;
+			break;
+		default:
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		if (pos>-2) {
+			src_type = gf_sg_vrml_get_sf_type(src_field.fieldType);
+			e = gf_sg_vrml_mf_get_item(src_field.far_ptr, src_field.fieldType, &src_ptr, pos);
+			if (e) return e;
+		}
+	}
+	if (src_type!=dst_type) return GF_NON_COMPLIANT_BITSTREAM;
+	gf_sg_vrml_field_copy(dst_ptr, src_ptr, src_type);
+	return GF_OK;
+}
+
 static GF_Err BD_DecExtendedUpdate(GF_BifsDecoder * codec, GF_BitStream *bs)
 {
 	u32 type;
@@ -200,6 +304,8 @@ static GF_Err BD_DecExtendedUpdate(GF_BifsDecoder * codec, GF_BitStream *bs)
 		return BD_DecGlobalQuantizer(codec, bs);
 	case 6:
 		return BD_DecNodeDeleteEx(codec, bs);
+	case 7:
+		return BD_DecOperandReplace(codec, bs);
 	default:
 		return GF_BIFS_UNKNOWN_VERSION;
 	}

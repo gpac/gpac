@@ -1914,7 +1914,6 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 	pos = -2;
 	/*REPLACE commands*/
  	if (!strcmp(str, "REPLACE")) {
-		u32 op_field_idx = 0;
 		Bool is_op = 0;
 		str = gf_bt_get_next(parser, 1);
 		if (!strcmp(str, "ROUTE")) {
@@ -1983,7 +1982,8 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			return parser->last_error;
 		}
 		str = gf_bt_get_next(parser, 0);
-		if (!strcmp(str, "FROM")) is_op = 1;
+		if (!strcmp(str, "FROM")) 
+			is_op = 1;
 		else if (strcmp(str, "BY")) return gf_bt_report(parser, GF_BAD_PARAM, "BY expected got %s", str);
 
 		parser->last_error = gf_node_get_field_by_name(n, field, &info);
@@ -1991,6 +1991,9 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			return gf_bt_report(parser, parser->last_error, "%s: Unknown node field", field);
 
 		if (is_op) {
+			u32 op_type;
+			u32 op_field_idx = 0;
+			s32 op_idx = -1;
 			GF_FieldInfo src;
 			str = gf_bt_get_next(parser, 0);
 			sep = strchr(str, '.');
@@ -2000,27 +2003,49 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			if (!opnode) return gf_bt_report(parser, GF_BAD_PARAM, "%s: unknown node", str);
 			sep[0] = '.';
 			sep++;
+
+			if (gf_bt_check_code(parser, '[')) {
+				if ( (parser->last_error = gf_bt_parse_int(parser, "index", &op_idx)) ) return parser->last_error;
+				if (!gf_bt_check_code(parser, ']')) 
+					return gf_bt_report(parser, GF_BAD_PARAM, "] expected");
+			}
 			parser->last_error = gf_node_get_field_by_name(opnode, sep, &src);
 			if (parser->last_error) 
 				return gf_bt_report(parser, parser->last_error, "%s: Unknown node field", sep);
-			if (src.fieldType != info.fieldType) 
-				return gf_bt_report(parser, parser->last_error, "Field type mismatch between %s and %s", info.name, src.name);
+
+			op_type = src.fieldType;
+			if (op_idx>=0) op_type = gf_sg_vrml_get_sf_type(src.fieldType);
+
+			if (pos>=0) {
+				if (op_type != gf_sg_vrml_get_sf_type(info.fieldType) ) 
+					return gf_bt_report(parser, parser->last_error, "Field type mismatch between %s and %s", info.name, src.name);
+			} else {
+				if (src.fieldType != info.fieldType) 
+					return gf_bt_report(parser, parser->last_error, "Field type mismatch between %s and %s", info.name, src.name);
+			}
 			op_field_idx = src.fieldIndex;
+
+			com = gf_sg_command_new(parser->load->scene_graph, GF_SG_FIELD_REPLACE);
+			bd_set_com_node(com, n);
+
+			inf = gf_sg_command_field_new(com);
+			inf->fieldIndex = info.fieldIndex;
+			inf->fieldType = info.fieldType;
+
+			com->tag = GF_SG_FIELD_REPLACE_OP;
+			com->fromNodeID = gf_node_get_id(opnode);
+			com->fromFieldIndex = op_field_idx;
+			com->send_event_x = op_idx;
+			gf_list_add(cmdList, com);
+			parser->cur_com = com;
+			return parser->last_error;
 		}
 
 		/*field replace*/
 		if (pos==-2) {
 			com = gf_sg_command_new(parser->load->scene_graph, GF_SG_FIELD_REPLACE);
 			bd_set_com_node(com, n);
-			if (is_op) {
-				com->tag = GF_SG_FIELD_REPLACE_OP;
-				com->fromNodeID = gf_node_get_id(opnode);
-				com->fromFieldIndex = op_field_idx;
-				com->toFieldIndex = info.fieldIndex;
-				gf_list_add(cmdList, com);
-				parser->cur_com = com;
-				return parser->last_error;
-			}
+
 			inf = gf_sg_command_field_new(com);
 			inf->fieldIndex = info.fieldIndex;
 			inf->fieldType = info.fieldType;
