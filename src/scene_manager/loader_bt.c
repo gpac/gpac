@@ -1992,7 +1992,6 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 
 		if (is_op) {
 			u32 op_type;
-			u32 op_field_idx = 0;
 			s32 op_idx = -1;
 			GF_FieldInfo src;
 			str = gf_bt_get_next(parser, 0);
@@ -2023,19 +2022,16 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 				if (src.fieldType != info.fieldType) 
 					return gf_bt_report(parser, parser->last_error, "Field type mismatch between %s and %s", info.name, src.name);
 			}
-			op_field_idx = src.fieldIndex;
-
-			com = gf_sg_command_new(parser->load->scene_graph, GF_SG_FIELD_REPLACE);
+			com = gf_sg_command_new(parser->load->scene_graph, GF_SG_FIELD_REPLACE_OP);
 			bd_set_com_node(com, n);
+			com->fromNodeID = gf_node_get_id(opnode);
+			com->fromFieldIndex = src.fieldIndex;
+			com->send_event_x = op_idx;
 
 			inf = gf_sg_command_field_new(com);
 			inf->fieldIndex = info.fieldIndex;
 			inf->fieldType = info.fieldType;
-
-			com->tag = GF_SG_FIELD_REPLACE_OP;
-			com->fromNodeID = gf_node_get_id(opnode);
-			com->fromFieldIndex = op_field_idx;
-			com->send_event_x = op_idx;
+			inf->pos = pos;
 			gf_list_add(cmdList, com);
 			parser->cur_com = com;
 			return parser->last_error;
