@@ -799,6 +799,12 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
 	dest->fromFieldIndex = com->fromFieldIndex;
 	dest->toNodeID = com->toNodeID;
 	dest->toFieldIndex = com->toFieldIndex;
+	dest->send_event_integer = com->send_event_integer;
+	dest->send_event_x = com->send_event_x;
+	dest->send_event_y = com->send_event_y;
+	if (com->send_event_string)
+		dest->send_event_string = strdup(com->send_event_string);
+
 	dest->del_proto_list_size = com->del_proto_list_size;
 	if (com->del_proto_list_size) {
 		dest->del_proto_list = (u32*)malloc(sizeof(u32) * com->del_proto_list_size);
