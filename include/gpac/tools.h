@@ -625,7 +625,7 @@ enum
 Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
 
 
-Bool gf_sys_get_battery_state(Bool *onBattery, u32 *state, u32*level);
+Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32 *level);
 
 /*! @} */
 

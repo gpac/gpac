@@ -155,6 +155,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 		/*special case when initing ISed routes on eventOuts: skip*/
 		if (r->IS_route) {
 			if (r->FromField.eventType == GF_SG_EVENT_OUT) return 0;
+			if (r->ToField.eventType == GF_SG_EVENT_OUT) return 0;
 		}
 	}
 #ifndef GPAC_DISABLE_LOG

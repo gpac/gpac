@@ -418,7 +418,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		glGenTextures(1, &txh->tx_io->id);
 		tx_setup_format(txh);
 		first_load = 1;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texturing] Allcoating OpenGL texture %d\n", txh->tx_io->id));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texturing] Allocating OpenGL texture %d\n", txh->tx_io->id));
 	}
 	if (!txh->tx_io->gl_type) return 0;
 	

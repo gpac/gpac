@@ -221,7 +221,7 @@ static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_
 
 	if (ctx->flags & CTX_HAS_APPEARANCE) {
 		visual_2d_get_texture_transform(ctx->appear, txh, &txt_mat, (txh == ctx->aspect.fill_texture) ? 0 : 1, INT2FIX(txh->width), INT2FIX(txh->height));
-		gf_mx2d_add_matrix(&g_mat, &txt_mat);
+//		gf_mx2d_add_matrix(&g_mat, &txt_mat);
 	}
 	/*move to bottom-left corner of bounds */
 	if (ext_mx) gf_mx2d_add_matrix(&g_mat, ext_mx);

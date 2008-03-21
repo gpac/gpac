@@ -88,6 +88,8 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 		txh->needs_refresh = 0;
 		return;
 	}
+	if (lg->key.count > lg->keyValue.count) return;
+
 	if (!txh->tx_io) gf_sc_texture_allocate(txh);
 
 	stencil = gf_sc_texture_get_stencil(txh);
@@ -510,6 +512,7 @@ static void UpdateRadialGradient(GF_TextureHandler *txh)
 		txh->needs_refresh = 0;
 		return;
 	}
+	if (rg->key.count > rg->keyValue.count) return;
 
 	if (!txh->tx_io) gf_sc_texture_allocate(txh);
 
