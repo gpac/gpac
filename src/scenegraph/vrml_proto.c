@@ -595,8 +595,10 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 		count = gf_list_count(owner->proto_fields);
 		for (i=0; i<count; i++) {
 			GF_ProtoField *pf = (GF_ProtoField *)gf_list_get(proto_node->fields, i);
-			pfi = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
-			gf_sg_vrml_field_copy(pf->field_pointer, pfi->def_value, pfi->FieldType);
+			if (!pf->has_been_accessed) {
+				pfi = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
+				gf_sg_vrml_field_copy(pf->field_pointer, pfi->def_value, pfi->FieldType);
+			}
 		}
 
 		/*unregister from prev and reg with real proto*/
@@ -659,6 +661,13 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 			gf_sg_route_activate(route);
 	}
 	proto_node->is_loaded = 1;
+}
+
+void gf_sg_proto_mark_field_loaded(GF_Node *proto_inst, GF_FieldInfo *info)
+{	
+	GF_ProtoInstance *inst= (proto_inst->sgprivate->tag==TAG_ProtoNode) ? (GF_ProtoInstance *)proto_inst : NULL;
+	GF_ProtoField *pf = inst ? (GF_ProtoField *)gf_list_get(inst->fields, info->fieldIndex) : NULL;
+	if (pf) pf->has_been_accessed = 1;
 }
 
 GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_ProtoInstance *from_inst)

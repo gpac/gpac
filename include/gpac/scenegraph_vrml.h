@@ -549,6 +549,10 @@ GF_Node *gf_node_get_proto_root(GF_Node *node);
 /*returns parent ProtoInstance node if this node is in a proto*/
 GF_Node *gf_node_get_proto_parent(GF_Node *node);
 
+/*indicates proto field has been parsed and its value is valid - this is needed for externProtos not specifying default
+values*/
+void gf_sg_proto_mark_field_loaded(GF_Node *proto_inst, GF_FieldInfo *info);
+
 /*
 			JavaScript tools
 */
