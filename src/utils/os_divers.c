@@ -464,7 +464,7 @@ u64 gf_f64_tell(FILE *fp)
 		return ((u64) pos);
 #elif defined(CONFIG_LINUX)
 	return (u64) ftello64(fp);
-#elif defined(CONFIG_FREEBSD)
+#elif (defined(CONFIG_FREEBSD) || defined(CONFIG_DARWIN))
 	return (u64) ftell(fp);
 #else
 	return (u64) ftell(fp);
@@ -488,7 +488,7 @@ u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
 	return fsetpos(fp, &pos);
 #elif defined(CONFIG_LINUX)
 	return fseeko64(fp, (off64_t) offset, whence);
-#elif defined(CONFIG_FREEBSD)
+#elif (defined(CONFIG_FREEBSD) || defined(CONFIG_DARWIN))
 	return fseek(fp, offset, whence);
 #else
 	return fseek(fp, (s32) offset, whence);
@@ -501,7 +501,7 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 	return fopen(file_name, mode);
 #elif defined(CONFIG_LINUX)
 	return fopen64(file_name, mode);
-#elif defined(CONFIG_FREEBSD)
+#elif (defined(CONFIG_FREEBSD) || defined(CONFIG_DARWIN))
 	return fopen(file_name, mode);
 #else
 	return fopen(file_name, mode);

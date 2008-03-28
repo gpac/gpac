@@ -1243,13 +1243,19 @@ echo "VERSION=$version" >>config.mak
 
 if test "$win32" = "yes" ; then
   echo "CONFIG_WIN32=yes" >> config.mak
+  echo "CONFIG_OS=CONFIG_WIN32" >> config.mak
 elif test "$linux" = "yes" ; then
   echo "CONFIG_LINUX=yes" >> config.mak
+  echo "CONFIG_OS=CONFIG_LINUX" >> config.mak
 elif test "$freebsd" = "yes" ; then
   echo "CONFIG_FREEBSD=yes" >> config.mak
+  echo "CONFIG_OS=CONFIG_FREEBSD" >> config.mak
 elif test "$darwin" = "yes" ; then
- echo "CONFIG_DARWIN=yes" >> config.mak
- echo "mac_apps=$Mac_Applications" >> config.mak
+  echo "CONFIG_DARWIN=yes" >> config.mak
+  echo "CONFIG_OS=CONFIG_DARWIN" >> config.mak
+  echo "mac_apps=$Mac_Applications" >> config.mak
+else
+  echo "CONFIG_OS=CONFIG_GEN" >> config.mak
 fi
 
 if test "$win32" = "no" ; then
