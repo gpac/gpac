@@ -198,6 +198,10 @@ compositor: $(LIBGPAC_COMPOSITOR)
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 
 
+#64bit
+utils/os_divers.o: utils/os_divers.c
+	$(CC) $(CFLAGS) -D$(CONFIG_OS) -c -o $@ $< 
+
 #IPV6
 utils/os_net.o: utils/os_net.c
 ifeq ($(CONFIG_IPV6), yes)
