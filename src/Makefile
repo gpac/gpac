@@ -199,11 +199,15 @@ compositor: $(LIBGPAC_COMPOSITOR)
 	$(CC) $(CFLAGS) -c -o $@ $< 
 
 #64bit
-utils/os_divers.o: utils/os_divers.c
+utils/os_divers.o: 
+utils/os_divers.opic: 
+	utils/os_divers.c
 	$(CC) $(CFLAGS) -D$(CONFIG_OS) -c -o $@ $< 
 
 #IPV6
-utils/os_net.o: utils/os_net.c
+utils/os_net.o: 
+utils/os_net.opic: 
+	utils/os_net.c
 ifeq ($(CONFIG_IPV6), yes)
 	$(CC) $(CFLAGS) -DGPAC_IPV6 -c -o $@ $< 
 else
@@ -211,7 +215,9 @@ else
 endif
 
 #OpenSSL
-utils/downloader.o: utils/downloader.c
+utils/downloader.o: 
+utils/downloader.opic: 
+	utils/downloader.c
 ifeq ($(HAS_OPENSSL), yes)
 	$(CC) $(CFLAGS) -DGPAC_HAS_SSL -c -o $@ $< 
 else
