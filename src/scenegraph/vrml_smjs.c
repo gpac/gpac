@@ -783,12 +783,15 @@ static JSBool node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		/*fieldID indexing*/
 		if (!strnicmp(fieldName, "_field", 6)) {
 			index = atoi(fieldName+6);
-			if ( gf_node_get_field(n, index, &info) != GF_OK) return JS_FALSE;
+			if ( gf_node_get_field(n, index, &info) != GF_OK) 
+				return JS_TRUE;
 		} else {
-			if ( gf_node_get_field_by_name(n, fieldName, &info) != GF_OK) return JS_FALSE;
+			if ( gf_node_get_field_by_name(n, fieldName, &info) != GF_OK) {
+				return JS_TRUE;
+			}
 		}
 		*vp = gf_sg_script_to_smjs_field(JS_GetScriptStack(c), &info, n, 0);
-		return (*vp == JSVAL_NULL) ? JS_FALSE : JS_TRUE;
+		return JS_TRUE;
     }
 	return JS_FALSE;
 }
@@ -802,6 +805,14 @@ static JSBool node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 	GF_JSField *ptr;
 	if (! JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
 	ptr = (GF_JSField *) JS_GetPrivate(c, obj);
+
+	/*this is the prototype*/
+	if (!ptr) {
+		if (! JSVAL_IS_STRING(id)) return JS_FALSE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] setting new prop/func %s for object prototype\n", JS_GetStringBytes(JSVAL_TO_STRING(id)) ));
+		return JS_TRUE;
+	}
+
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 	n = * ((GF_Node **)ptr->field.far_ptr);
 
@@ -812,14 +823,15 @@ static JSBool node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		/*fieldID indexing*/
 		if (!strnicmp(fieldname, "_field", 6)) {
 			index = atoi(fieldname+6);
-			if ( gf_node_get_field(n, index, &info) != GF_OK) return JS_FALSE;
+			if ( gf_node_get_field(n, index, &info) != GF_OK) return JS_TRUE;
 		} else {
 			if (gf_node_get_field_by_name(n, fieldname, &info) != GF_OK) {
 				/*VRML style*/
 				if (!strnicmp(fieldname, "set_", 4)) {
 					fieldname+=4;
-					if (gf_node_get_field_by_name(n, fieldname, &info) != GF_OK) return JS_FALSE;
-				} else return JS_FALSE;
+					if (gf_node_get_field_by_name(n, fieldname, &info) != GF_OK) return JS_TRUE;
+				} else 
+					return JS_TRUE;
 			}
 		}
 		gf_sg_script_to_node_field(c, *vp, &info, n, ptr);
@@ -908,7 +920,9 @@ static JSBool image_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 {
 	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	GF_JSField *val = (GF_JSField *) JS_GetPrivate(c, obj);
-	SFImage *sfi = (SFImage*)val->field.far_ptr;
+	SFImage *sfi;
+	if (!val) return JS_FALSE;
+	sfi = (SFImage*)val->field.far_ptr;
 	if (JSVAL_IS_INT(id)) {
 		switch (JSVAL_TO_INT(id)) {
 		case 0: *vp = INT_TO_JSVAL( sfi->width ); break;
@@ -925,7 +939,8 @@ static JSBool image_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			}
 		}
 			break;
-		default: return JS_FALSE;
+		default: 
+			return JS_TRUE;
 		}
 	}
 	return JS_TRUE;
@@ -936,7 +951,15 @@ static JSBool image_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 	u32 ival;
 	Bool changed = 0;
 	GF_JSField *ptr = (GF_JSField *) JS_GetPrivate(c, obj);
-	SFImage *sfi = (SFImage*)ptr->field.far_ptr;
+	SFImage *sfi;
+	
+	/*this is the prototype*/
+	if (!ptr) {
+		if (! JSVAL_IS_STRING(id)) return JS_FALSE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] setting new prop/func %s for object prototype\n", JS_GetStringBytes(JSVAL_TO_STRING(id)) ));
+		return JS_TRUE;
+	}
+	sfi = (SFImage*)ptr->field.far_ptr;
 
 	if (JSVAL_IS_INT(id) && JSVAL_TO_INT(id) >= 0 && JSVAL_TO_INT(id) < 4) {
 		switch (JSVAL_TO_INT(id)) {
@@ -1009,7 +1032,7 @@ static JSBool vec2f_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		switch (JSVAL_TO_INT(id)) {
 		case 0: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFVec2f*)val->field.far_ptr)->x) )); break;
 		case 1: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFVec2f*)val->field.far_ptr)->y) )); break;
-		default: return JS_FALSE;
+		default: return JS_TRUE;
 		}
 	}
 	return JS_TRUE;
@@ -1021,6 +1044,13 @@ static JSBool vec2f_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 	Fixed v;
 	Bool changed = 0;
 	GF_JSField *ptr = (GF_JSField *) JS_GetPrivate(c, obj);
+
+	/*this is the prototype*/
+	if (!ptr) {
+		if (! JSVAL_IS_STRING(id)) return JS_FALSE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] setting new prop/func %s for object prototype\n", JS_GetStringBytes(JSVAL_TO_STRING(id)) ));
+		return JS_TRUE;
+	}
 
 	if (JSVAL_IS_INT(id) && JSVAL_TO_INT(id) >= 0 && JSVAL_TO_INT(id) < 2 && JS_ValueToNumber(c, *vp, &d)) {
 		switch (JSVAL_TO_INT(id)) {
@@ -1034,7 +1064,8 @@ static JSBool vec2f_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			changed = ! ( ((SFVec2f*)ptr->field.far_ptr)->y == v);
 			((SFVec2f*)ptr->field.far_ptr)->y = v;
 			break;
-		default: return JS_FALSE;
+		default:
+			return JS_TRUE;
 		}
 		if (changed) Script_FieldChanged(c, NULL, ptr, NULL);
 		return JS_TRUE;
@@ -1176,7 +1207,7 @@ static JSBool vec3f_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		case 0: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFVec3f*)val->field.far_ptr)->x) )); break;
 		case 1: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFVec3f*)val->field.far_ptr)->y) )); break;
 		case 2: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFVec3f*)val->field.far_ptr)->z) )); break;
-		default: return JS_FALSE;
+		default: return JS_TRUE;
 		}
 	}
 	return JS_TRUE;
@@ -1187,6 +1218,13 @@ static JSBool vec3f_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 	Fixed v;
 	Bool changed = 0;
 	GF_JSField *ptr = (GF_JSField *) JS_GetPrivate(c, obj);
+
+	/*this is the prototype*/
+	if (!ptr) {
+		if (! JSVAL_IS_STRING(id)) return JS_FALSE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] setting new prop/func %s for object prototype\n", JS_GetStringBytes(JSVAL_TO_STRING(id)) ));
+		return JS_TRUE;
+	}
 
 	if (JSVAL_IS_INT(id) && JSVAL_TO_INT(id) >= 0 && JSVAL_TO_INT(id) < 3 && JS_ValueToNumber(c, *vp, &d)) {
 		switch (JSVAL_TO_INT(id)) {
@@ -1205,7 +1243,7 @@ static JSBool vec3f_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			changed = ! ( ((SFVec3f*)ptr->field.far_ptr)->z == v);
 			((SFVec3f*)ptr->field.far_ptr)->z = v;
 			break;
-		default: return JS_FALSE;
+		default: return JS_TRUE;
 		}
 		if (changed) Script_FieldChanged(c, NULL, ptr, NULL);
 		return JS_TRUE;
@@ -1400,7 +1438,7 @@ static JSBool rot_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		case 1: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFRotation*)val->field.far_ptr)->y)) ); break;
 		case 2: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFRotation*)val->field.far_ptr)->z)) ); break;
 		case 3: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFRotation*)val->field.far_ptr)->q)) ); break;
-		default: return JS_FALSE;
+		default: return JS_TRUE;
 		}
 	}
 	return JS_TRUE;
@@ -1411,6 +1449,13 @@ static JSBool rot_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 	Fixed v;
 	Bool changed = 0;
 	GF_JSField *ptr = (GF_JSField *) JS_GetPrivate(c, obj);
+
+	/*this is the prototype*/
+	if (!ptr) {
+		if (! JSVAL_IS_STRING(id)) return JS_FALSE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] setting new prop/func %s for object prototype\n", JS_GetStringBytes(JSVAL_TO_STRING(id)) ));
+		return JS_TRUE;
+	}
 
 	if (JSVAL_IS_INT(id) && JSVAL_TO_INT(id) >= 0 && JSVAL_TO_INT(id) < 4 && JS_ValueToNumber(c, *vp, &d)) {
 		switch (JSVAL_TO_INT(id)) {
@@ -1434,7 +1479,7 @@ static JSBool rot_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 			changed = ! ( ((SFRotation*)ptr->field.far_ptr)->q == v);
 			((SFRotation*)ptr->field.far_ptr)->q = v;
 			break;
-		default: return JS_FALSE;
+		default: return JS_TRUE;
 		}
 		if (changed) Script_FieldChanged(c, NULL, ptr, NULL);
 		return JS_TRUE;
@@ -1575,7 +1620,7 @@ static JSBool color_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		case 0: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFColor*)val->field.far_ptr)->red)) ); break;
 		case 1: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFColor*)val->field.far_ptr)->green)) ); break;
 		case 2: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFColor*)val->field.far_ptr)->blue)) ); break;
-		default: return JS_FALSE;
+		default: return JS_TRUE;
 		}
 	}
 	return JS_TRUE;
@@ -1587,6 +1632,12 @@ static JSBool color_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 	Fixed v;
 	Bool changed = 0;
 	GF_JSField *ptr = (GF_JSField *) JS_GetPrivate(c, obj);
+	/*this is the prototype*/
+	if (!ptr) {
+		if (! JSVAL_IS_STRING(id)) return JS_FALSE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] setting new prop/func %s for object prototype\n", JS_GetStringBytes(JSVAL_TO_STRING(id)) ));
+		return JS_TRUE;
+	}
 
 	if (JSVAL_IS_INT(id) && JSVAL_TO_INT(id) >= 0 && JSVAL_TO_INT(id) < 3 && JS_ValueToNumber(c, *vp, &d)) {
 		switch (JSVAL_TO_INT(id)) {
@@ -1605,7 +1656,8 @@ static JSBool color_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			changed = ! ( ((SFColor*)ptr->field.far_ptr)->blue == v);
 			((SFColor*)ptr->field.far_ptr)->blue = v;
 			break;
-		default: return JS_FALSE;
+		default: 
+			return JS_TRUE;
 		}
 		if (changed) Script_FieldChanged(c, NULL, ptr, NULL);
 		return JS_TRUE;
