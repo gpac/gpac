@@ -5045,7 +5045,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				break;
 			case GF_M2TS_SYSTEMS_MPEG4_PES:
 			case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
-				if (prog->pmt_iod) {
+				if (prog->pmt_iod && !import->esd) {
 					import->esd = m2ts_get_esd(es);
 					m2ts_set_track_mpeg4_creation_info(import, &mtype, &stype, &oti);
 					is_in_iod = 1;
@@ -5347,12 +5347,14 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 						samp->data = sl_pck->data + hdr_len;
 						samp->dataLength = sl_pck->data_len - hdr_len;
+
 						e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
 						if (e) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error adding sample\n"));
 						}
 						if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90))
 							import->flags |= GF_IMPORT_DO_ABORT;
+
 					} else {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] negative time sample - skipping\n"));
 						sl_pck->stream->first_dts = samp->DTS;

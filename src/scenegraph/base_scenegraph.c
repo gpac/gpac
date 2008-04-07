@@ -803,12 +803,15 @@ GF_Err gf_node_set_id(GF_Node *p, u32 ID, const char *name)
 	/*new DEF ID*/
 	if (!(p->sgprivate->flags & GF_NODE_IS_DEF) ) {
 		p->sgprivate->flags |= GF_NODE_IS_DEF;
+		insert_node_def(pSG, p, ID, name);
 	} 
 	/*reassigning ID, remove node def*/
 	else {
+		char *_name = strdup(name);
 		remove_node_id(pSG, p);
+		insert_node_def(pSG, p, ID, _name);
+		free(_name);
 	}
-	insert_node_def(pSG, p, ID, name);
 	return GF_OK;
 }
 
