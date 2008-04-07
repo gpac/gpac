@@ -1008,7 +1008,7 @@ u32 gf_bt_get_def_id(GF_BTParser *parser, char *defName)
 			u32 id;
 			u32 nID = gf_bt_get_next_node_id(parser);
 			const char *name = gf_node_get_name_and_id(n, &id);
-			gf_bt_report(parser, GF_OK, "changing node \"%s\" ID from %d to %d", name, id -1, nID-1);
+			gf_bt_report(parser, GF_OK, "changing node \"%s\" Binary ID from %d to %d", name, id -1, nID-1);
 			gf_node_set_id(n, nID, name);
 		}
 		if (parser->load->ctx && (parser->load->ctx->max_node_id<ID)) parser->load->ctx->max_node_id=ID;

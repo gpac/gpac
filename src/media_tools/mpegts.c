@@ -1116,7 +1116,8 @@ static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *nit_es,
 
 static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
-	u32 info_length, pos, desc_len, evt_type;
+	u32 info_length, pos, desc_len, evt_type, nb_es;
+	nb_es = 0;
 
 	/*skip if already received*/
 	if (status==GF_M2TS_TABLE_REPEAT) {
@@ -1253,7 +1254,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, un
 		if (!es) continue;
 
 		/*watchout for pmt update*/
-		if ((status==GF_M2TS_TABLE_UPDATE) && ts->ess[pid]) {
+		if (/*(status==GF_M2TS_TABLE_UPDATE) && */ts->ess[pid]) {
 			GF_M2TS_ES *o_es = ts->ess[es->pid];
 
 			if ((o_es->stream_type == es->stream_type) 
@@ -1273,12 +1274,16 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, un
 			es->pid = pid;
 			ts->ess[es->pid] = es;
 			gf_list_add(pmt->program->streams, es);
+
+			if (!(es->flags & GF_M2TS_ES_IS_SECTION) ) gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
+
+			nb_es++;
 		}
-		
-		if (es && !(es->flags & GF_M2TS_ES_IS_SECTION) ) gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
 	}
-	evt_type = (status==GF_M2TS_TABLE_FOUND) ? GF_M2TS_EVT_PMT_FOUND : GF_M2TS_EVT_PMT_UPDATE;
-	if (ts->on_event) ts->on_event(ts, evt_type, pmt->program);
+	if (nb_es) {
+		evt_type = (status==GF_M2TS_TABLE_FOUND) ? GF_M2TS_EVT_PMT_FOUND : GF_M2TS_EVT_PMT_UPDATE;
+		if (ts->on_event) ts->on_event(ts, evt_type, pmt->program);
+	}
 }
 
 

@@ -1734,6 +1734,11 @@ void m2ts_export_dump(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK *)par;
 		fwrite(pck->data, pck->data_len, 1, dst);
 	}
+	else if (evt_type == GF_M2TS_EVT_SL_PCK) {
+		FILE *dst = (FILE*)ts->user;
+		GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)par;
+		fwrite(pck->data + 5, pck->data_len - 5, 1, dst);
+	}
 }
 
 GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
@@ -1776,10 +1781,10 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		if (pes->pid == dumper->trackID) {
 			stream = pes;
 			gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_RAW);
+			break;
 		} else {
 			gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 		}
-		break;
 	}
 	if (!stream) {
 		fclose(src);

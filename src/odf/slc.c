@@ -419,7 +419,7 @@ void gf_sl_depacketize (GF_SLConfig *slConfig, GF_SLHeader *Header, char *PDU, u
 		Header->paddingFlag = gf_bs_read_int(bs, 1);
 		if (Header->paddingFlag) Header->paddingBits = gf_bs_read_int(bs, 3);
 	}
-	if (!Header->idleFlag && (!Header->paddingFlag || Header->paddingBits != 0)) {
+	if (!Header->paddingFlag || (Header->paddingBits != 0)) {
 
 		if (slConfig->packetSeqNumLength > 0) Header->packetSequenceNumber = gf_bs_read_int(bs, slConfig->packetSeqNumLength);
 		if (slConfig->degradationPriorityLength > 0) {

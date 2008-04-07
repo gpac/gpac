@@ -820,6 +820,7 @@ EXPORTS
 	gf_m4a_get_config
 	gf_m4a_object_type_name
 	gf_m4a_get_profile_name
+	gf_m4a_write_config 
 	gf_vorbis_parse_header
 	gf_vorbis_check_frame
 	gf_img_parse

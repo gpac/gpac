@@ -101,7 +101,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 
 
 	//unpack the DTSs and locate new sample...
-	DTSs = (u64*)malloc(sizeof(u64) * (stbl->SampleSize->sampleCount+1) );
+	DTSs = (u64*)malloc(sizeof(u64) * (stbl->SampleSize->sampleCount+2) );
 	if (!DTSs) return GF_OUT_OF_MEM;
 	curDTS = 0;
 	sampNum = 0;
@@ -120,6 +120,10 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 			curDTS += ent->sampleDelta;
 			sampNum ++;
 		}
+	}
+	if (!inserted) {
+		free(DTSs);
+		return GF_BAD_PARAM;
 	}
 
 	/*we will at most insert 2 new entries*/

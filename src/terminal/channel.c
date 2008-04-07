@@ -587,11 +587,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	Bool EndAU, NewAU;
 	char *payload;
 
-	if (ch->skip_sl) {
-		Channel_ReceiveSkipSL(serv, ch, StreamBuf, StreamLength);
-		return;
-	}
-
 	/*physical SL-PDU - depacketize*/
 	if (!header) {
 		if (!StreamLength) return;
@@ -602,6 +597,11 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		SLHdrLen = 0;
 	}
 	payload = StreamBuf + SLHdrLen;
+
+	if (ch->skip_sl) {
+		Channel_ReceiveSkipSL(serv, ch, payload, StreamLength);
+		return;
+	}
 
 	/*check state*/
 	if (!ch->codec_resilient && (reception_status==GF_CORRUPTED_DATA)) {

@@ -328,8 +328,6 @@ Bool InitScalarInterpolator(M_ScalarInterpolator *node)
 	return 1;
 }
 
-
-/*taken from freeWRL*/
 GF_EXPORT
 SFRotation gf_sg_sfrotation_interpolate(SFRotation kv1, SFRotation kv2, Fixed fraction)
 {
@@ -351,29 +349,11 @@ SFRotation gf_sg_sfrotation_interpolate(SFRotation kv1, SFRotation kv2, Fixed fr
 		newa = -kv2.q;
 	}
 	olda = kv1.q;
-	testa = newa - olda;
-	/* make it so we smoothly transition */
-	if (ABS(testa) > GF_PI) {
-		if (ABS(testa) > GF_2PI) {
-			if (testa>0) {
-				olda += 2*GF_2PI;
-			} else {
-				newa += 2*GF_2PI; 
-			}
-		} else {
-			if (testa>0) {
-				olda += GF_2PI;
-			} else { 
-				newa += GF_2PI; 
-			}
-		}
-	}
 	if (stzero || endzero) {
 		res.x = stzero ? kv2.x : kv1.x;
 		res.y = stzero ? kv2.y : kv1.y;
 		res.z = stzero ? kv2.z : kv1.z;
 	}
-	/* now that we have angles straight (hah!) bounds check result */
 	res.q = olda + gf_mulfix(fraction, newa - olda);
 	if (res.q > GF_2PI) { 
 		res.q -= GF_2PI;

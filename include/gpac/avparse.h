@@ -135,7 +135,7 @@ enum
     GF_M4A_ER_HILN = 26,
     GF_M4A_ER_PARAMETRIC = 27,
     GF_M4A_SSC = 28,
-    GF_M4A_PS = 29,
+    //GF_M4A_PS = 29,
     GF_M4A_LAYER1 = 32,
     GF_M4A_LAYER2 = 33,
     GF_M4A_LAYER3 = 34,
@@ -166,6 +166,8 @@ GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg);
 u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg);
 const char *gf_m4a_object_type_name(u32 objectType);
 const char *gf_m4a_get_profile_name(u8 audio_pl);
+
+GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size);
 
 
 typedef struct
