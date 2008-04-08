@@ -72,6 +72,8 @@ typedef struct
 	char cur_buffer[500];
 	s32 line_size, line_pos, line_start_pos;
 
+	u32 block_comment;
+
 	/*set when parsing proto*/
 	GF_Proto *parsing_proto;
 	Bool is_extern_proto_field;
@@ -306,8 +308,18 @@ next_line:
 					gf_list_add(parser->def_symbols, def);
 				}
 			}
+			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#if 0", 5)) {
+				parser->block_comment++;
+			}
+			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#endif", 6)) {
+				if (parser->block_comment) 
+					parser->block_comment--;
+			}
 			goto next_line;
 		}
+
+		if (parser->block_comment) 
+			goto next_line;
 
 		/*brute-force replacement of defined symbols (!!FIXME - no mem checking done !!)*/
 		if (parser->line_pos < parser->line_size) {
