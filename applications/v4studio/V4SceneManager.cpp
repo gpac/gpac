@@ -16,42 +16,57 @@ V4SceneManager::V4SceneManager(V4StudioFrame *parent) : frame(parent)
 
 V4SceneManager::~V4SceneManager()
 {
-	// m_pIs should be deleted here or by the terminal
+	GF_SceneGraph *tmp = m_pIs->graph;
 
-	// m_pSm should be deleted here or by the terminal
-	// TODO : pquoi fallait il commenter cette ligne ?
-	//if (m_pSm) gf_sm_del(m_pSm);
+	/* Deletion of the SceneManager 
+	   This is done before deleting the GF_InlineScene in the GF_Terminal in the GPAC Panel
+	   but for that we need to register the root node one more time to avoid the deletion of the scene graph 
+	   But this is temporary, this register of the root node should be done at loading time.
+	*/
+	if (m_pSm) {
+		gf_node_register(m_pSm->scene_graph->RootNode, NULL);
+		gf_sm_del(m_pSm);
+		m_pSm = NULL;
+	}
+
+	/* Destruction of the GPAC panel and of the associated service and terminal */
 	delete m_gpac_panel;
 	m_gpac_panel = NULL;
+	
 }
 
-void v4s_node_init(void *cbkObject, u32 type, GF_Node *node, void *param)
+void V4SceneManager::LoadCommon()
 {
-	if (type==GF_SG_CALLBACK_INIT) {
-		switch (gf_node_get_tag(node)) {
-		case TAG_MPEG4_Conditional:
-		case TAG_MPEG4_QuantizationParameter:
-			break;
-		default:
-			gf_sc_on_node_init(((V4SceneManager *)cbkObject)->GetSceneCompositor(), node);
-			break;
-		}
-	}
+	/* Creation and initialization of the structure InlineScene, including the SceneGraph */
+	m_pIs = gf_inline_new(NULL);
+
+	/* Creation of the GPAC Panel which includes the creation of the terminal */
+	m_gpac_panel = new wxGPACPanel(this, NULL);
+
+	/* Connection of the InlineScene to the terminal */
+	GF_Terminal *term = m_gpac_panel->GetMPEG4Terminal();
+	term->root_scene = m_pIs;
+
+/*
+	gf_sc_set_scene(term->compositor, m_pIs->graph);
+	m_pIs->graph_attached = 1;
+*/
+
+	/* Creation of a SceneManager to manipulate the scene and streams */
+	m_pSm = gf_sm_new(m_pIs->graph);
+
+	/* Creation of main ObjectManager to manipulate the media */
+	m_pIs->root_od = gf_odm_new();
+	m_pIs->root_od->parentscene = NULL;
+	m_pIs->root_od->subscene = m_pIs;
+	m_pIs->root_od->term = term;
 }
 
 void V4SceneManager::LoadNew() 
 {
-	m_pIs = gf_inline_new(NULL);
-	gf_sg_set_private(m_pIs->graph, this);
-	gf_sg_set_node_callback(m_pIs->graph, v4s_node_init);
-	m_gpac_panel = new wxGPACPanel(this, NULL);
-	GF_Terminal *term = m_gpac_panel->GetMPEG4Terminal();
-	/* Cannot set the new scene because no root node 
-	   gf_sr_set_scene(term->renderer, m_pIs->graph);
-	   */
-
-	m_pSm = gf_sm_new(m_pIs->graph);
-	/* Create a BIFS stream with one AU with on ReplaceScene */
+	LoadCommon();
+	
+	/* Create a BIFS stream with one AU with one ReplaceScene */
 	GF_StreamContext *sc = gf_sm_stream_new(m_pSm, 1, GF_STREAM_SCENE, 0);
 	GF_AUContext *au = gf_sm_stream_au_new(sc, 0, 0, 1);
 	GF_Command *command = gf_sg_command_new(m_pIs->graph, GF_SG_SCENE_REPLACE);
@@ -64,78 +79,11 @@ void V4SceneManager::LoadNew()
 	pools.Clear();
 }
 
-void V4SceneManager::LoadFileOld(const char *path) 
-{
-	m_gpac_panel = new wxGPACPanel(this, path);
-	GF_Terminal *term = m_gpac_panel->GetMPEG4Terminal();
-
-	// Get the RootScene created by the terminal.
-	m_pIs = term->root_scene;
-
-
-	if (0) {
-		//Create a Scene Manager based on the current scene_graph
-		m_pSm = gf_sm_new(m_pIs->graph);
-
-		/* Loading of a file (BT, MP4 ...) and modification of the SceneManager */
-		GF_SceneLoader load;
-		memset(&load, 0, sizeof(GF_SceneLoader));
-		load.fileName = path;
-		load.ctx = m_pSm;
-		if (strstr(path, ".mp4") || strstr(path, ".MP4") ) load.isom = gf_isom_open(path, GF_ISOM_OPEN_READ, NULL);
-		gf_sm_load_init(&load);
-		gf_sm_load_run(&load);
-		gf_sm_load_done(&load);
-		if (load.isom) gf_isom_delete(load.isom);
-
-		/* SceneManager should be initialized and filled correctly */
-		gf_sg_set_scene_size_info(m_pIs->graph, m_pSm->scene_width, m_pSm->scene_height, m_pSm->is_pixel_metrics);
-
-		// TODO : replace with GetBifsStream
-		GF_StreamContext *sc = (GF_StreamContext *) gf_list_get(m_pSm->streams,0);
-		gf_list_count(m_pSm->streams);
-
-		if (sc->streamType == 3) {
-			GF_AUContext *au = (GF_AUContext *) gf_list_get(sc->AUs,0);
-		gf_list_count(sc->AUs);
-			GF_Command *c = (GF_Command *) gf_list_get(au->commands,0);
-		gf_list_count(au->commands);
-			gf_sg_command_apply(m_pIs->graph, c, 0);
-			/* This is a patch to solve the save pb:
-				When ApplyCommand is made on a Scene Replace Command
-				The command node is set to NULL
-				When we save a BIFS stream whose first command is of this kind,
-				the file saver thinks the bifs commands should come from an NHNT file 
-			   This is a temporary patch */
-			if (c->tag == GF_SG_SCENE_REPLACE) { c->node = m_pIs->graph->RootNode; }
-		}
-		gf_sc_set_scene(term->compositor, m_pIs->graph);
-
-		// retrieves all the node from the tree and adds them to the node pool
-		GF_Node * root = gf_sg_get_root_node(m_pIs->graph);
-		CreateDictionnary();
-
-	}
-
-}
-
 void V4SceneManager::LoadFile(const char *path) 
 {	
-	m_gpac_panel = new wxGPACPanel(this, NULL);
+	LoadCommon();
 	GF_Terminal *term = m_gpac_panel->GetMPEG4Terminal();
 
-	// initializes a new scene
-	// We need an GF_InlineScene, a SceneManager and an GF_ObjectManager
-	m_pIs = gf_inline_new(NULL);
-	m_pSm = gf_sm_new(m_pIs->graph);
-
-	m_pIs->root_od = gf_odm_new();
-	m_pIs->root_od->parentscene = NULL;
-	m_pIs->root_od->subscene = m_pIs;
-	m_pIs->root_od->term = term;
-
-	term->root_scene = m_pIs;
-	
 	/* Loading of a file (BT, MP4 ...) and modification of the SceneManager */
 	GF_SceneLoader load;
 	memset(&load, 0, sizeof(GF_SceneLoader));
@@ -157,7 +105,7 @@ void V4SceneManager::LoadFile(const char *path)
 	if (sc->streamType == 3) {
 		GF_AUContext *au = (GF_AUContext *) gf_list_get(sc->AUs,0);
 		GF_Command *c = (GF_Command *) gf_list_get(au->commands,0);
-		gf_sg_command_apply(m_pIs->graph, c, 0);
+		//gf_sg_command_apply(m_pIs->graph, c, 0);
 		/* This is a patch to solve the save pb:
 		    When ApplyCommand is made on a Scene Replace Command
 		    The command node is set to NULL
@@ -166,7 +114,9 @@ void V4SceneManager::LoadFile(const char *path)
 		   This is a temporary patch */
 		if (c->tag == GF_SG_SCENE_REPLACE) { c->node = m_pIs->graph->RootNode; }
 	}
+
 	gf_sc_set_scene(term->compositor, m_pIs->graph);
+	m_pIs->graph_attached = 1;
 
 	// TODO : read actual values from file
 	SetLength(50);
@@ -174,20 +124,36 @@ void V4SceneManager::LoadFile(const char *path)
 
 	// retrieves all the node from the tree and adds them to the node pool
 	GF_Node * root = gf_sg_get_root_node(m_pIs->graph);
-	CreateDictionnary();
+//	CreateDictionnary();
 }
 
 void V4SceneManager::SaveFile(const char *path) 
 {
 	GF_SMEncodeOptions opts;
 	char rad_name[5000];
+
+	/* First dump the scene in a BT file */
 	strcpy(rad_name, "dump");
+	m_pSm->scene_graph->RootNode = NULL;
 	gf_sm_dump(m_pSm, rad_name, 0);
+
+	/* Then reload properly (overriding the current SceneManager)*/
+	GF_SceneLoader load;
+	memset(&load, 0, sizeof(GF_SceneLoader));
+	load.fileName = "dump.bt";
+	load.ctx = m_pSm;
+	gf_sm_load_init(&load);
+	gf_sm_load_run(&load);
+	gf_sm_load_done(&load);
+
+	/* Finally encode the file */
 	GF_ISOFile *mp4 = gf_isom_open(path, GF_ISOM_WRITE_EDIT, NULL);
 	m_pSm->max_node_id = gf_sg_get_max_node_id(m_pSm->scene_graph);
 	memset(&opts, 0, sizeof(opts));
 	opts.flags = GF_SM_LOAD_MPEG4_STRICT;
 	gf_sm_encode_to_file(m_pSm, mp4, &opts);
+	gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_MP42, 1);
+	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_ISOM, 1);
 	gf_isom_close(mp4);
 }
 
@@ -196,6 +162,7 @@ void V4SceneManager::SetSceneSize(int w, int h)
 	gf_sg_set_scene_size_info(m_pIs->graph, w,h, 1);
 	/*reassign scene graph to update scene size in renderer*/
 	gf_sc_set_scene(m_gpac_panel->GetMPEG4Terminal()->compositor, m_pIs->graph);
+	m_pIs->graph_attached = 1;
 }
 
 void V4SceneManager::GetSceneSize(wxSize &size) 
@@ -205,11 +172,25 @@ void V4SceneManager::GetSceneSize(wxSize &size)
 
 GF_Node *V4SceneManager::SetTopNode(u32 tag) 
 {
-	M_OrderedGroup * root = (M_OrderedGroup *)NewNode(TAG_MPEG4_OrderedGroup);
-	gf_sg_set_root_node(m_pIs->graph, (GF_Node *)root);
-	return (GF_Node *)root;
+	GF_Node *root = NewNode(tag);
+	gf_sg_set_root_node(m_pIs->graph, root);
+	GF_StreamContext *sc = (GF_StreamContext *) gf_list_get(m_pSm->streams,0);
+	if (sc->streamType == 3) {
+		GF_AUContext *au = (GF_AUContext *) gf_list_get(sc->AUs,0);
+		GF_Command *c = (GF_Command *) gf_list_get(au->commands,0);
+		/* This is a patch to solve the save pb:
+		    When ApplyCommand is made on a Scene Replace Command
+		    The command node is set to NULL
+		    When we save a BIFS stream whose first command is of this kind,
+		    the file saver thinks the bifs commands should come from an NHNT file 
+		   This is a temporary patch */
+		if (c->tag == GF_SG_SCENE_REPLACE) { 
+			c->node = m_pIs->graph->RootNode; 
+			gf_node_register(m_pIs->graph->RootNode, NULL);
+		}
+	}
+	return root;
 }
-
 
 GF_Node *V4SceneManager::NewNode(u32 tag)
 {

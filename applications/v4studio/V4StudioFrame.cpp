@@ -230,9 +230,8 @@ void V4StudioFrame::OnChangeSize(wxCommandEvent &event)
 // Dispatchs the new scene graph to all the sub components who need it.
 void V4StudioFrame::SceneGraphChanged() 
 {
-	if (!m_pV4sm) return;
 	m_parentSelection = NULL;
-	m_selection = m_pV4sm->GetRootNode();
+	m_selection = (!m_pV4sm ? NULL : m_pV4sm->GetRootNode());
 	Layout();
 	Update();
 }
@@ -354,6 +353,8 @@ void V4StudioFrame::OnNew(wxCommandEvent &event)
 	Layout();
 	SetStatusText("New scene", 0);
 	SceneGraphChanged();
+
+	OnChangeSize(event);
 }
 
 // Opens an existing file
@@ -897,7 +898,7 @@ void V4StudioFrame::OnAddToTimeLine(wxCommandEvent &event) {
 		m_pV4sm->CreateIDandAddToPool(m_selection);
 	
 	// Adds the node to the dictionnary
-	m_pV4sm->AddToDictionnary(m_selection);
+//	m_pV4sm->AddToDictionnary(m_selection);
 
 	// calls timeline function to add the line
 	char c[50];

@@ -212,7 +212,7 @@ void V4StudioTree::SetSelectedItem(GF_Node *node)
 
 wxTreeItemId V4StudioTree::FindNodeItem(wxTreeItemId itemId, GF_Node *node) 
 {
-	long cookie;
+	void* cookie;
 	V4StudioTreeItemData *data = (V4StudioTreeItemData *)GetItemData(itemId);
 	if (data != NULL) {
 		if (data->GetNode() == node) return itemId;

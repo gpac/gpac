@@ -34,10 +34,10 @@ public:
 	/* file management functions */
 
 	void SaveFile(const char * path);
+	
+	void LoadCommon(); 
 	void LoadNew(); 
 	void LoadFile(const char *path); 
-	void LoadFileOld(const char *path); 
-
 
 	/* Node management functions */
 

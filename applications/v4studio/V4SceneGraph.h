@@ -45,18 +45,6 @@ public:
 	GF_Node *CopyNode(GF_Node *node, GF_Node *parent, bool copy);
 	GF_Node *SetTopNode(u32 tag);  // TODO : will destroy dictionnary
 
-
-	/* Dictionnary functions */
-
-	// adds a node to the dictionnary, increases its reference count, the node must already have an ID
-	void AddToDictionnary(GF_Node * node);
-
-	// removes a node from the dictionnary = DELETES it's ID
-	void RemoveFromDictionnary(GF_Node * node);
-
-	GF_Node * GetDictionnary() const;
-
-
 	/* Various */
 
 	void LoadCommand(u32 commandNumber); // ?
@@ -84,37 +72,6 @@ public:
 	// SceneGraph
 	GF_SceneGraph *GetSceneGraph() { return m_pSg; }
 	GF_Node *GetRootNode() { return gf_sg_get_root_node(m_pSg); }
-
-	// TODO : terminal
-	private:
-
-	/* dictionnary function */
-
-	// initializes the dictionnary node
-	void CreateDictionnary();
-
-	// Finds all node with an ID from the given node and adds them to the node pool and the dictionnary
-	void AddRecursive(GF_Node * node, bool parentAdded = false);
-
-	// calls a proper function to add the node according to its type
-	void AddEffective(GF_Node * node);
-
-	// Create a dummy node of type tag and it to the specified field (or reimplace if the field is single valued)
-	GF_Node * CreateDummyNode(const u32 tag, GF_Node * parent, const u32 fieldIndex);
-
-	// Sets the first node as a child of the second using the given field
-	void MakeChild(GF_Node * child, GF_Node * parent, const u32 fieldIndex);
-
-	// Checks is specified node as a parent with an ID
-	GF_Node * V4SceneGraph::HasDefParent(GF_Node * node);
-
-	// adds a node to the dictionnary
-	void AddGen(GF_Node * node);
-	void AddGeometry(GF_Node * node);
-	void AddAppearance(GF_Node * node);
-	void AddTexture(GF_Node * node);
-	void AddMaterial(GF_Node * node);
-
 
 protected:
 

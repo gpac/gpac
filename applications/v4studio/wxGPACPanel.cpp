@@ -58,7 +58,7 @@ Bool V4S_EventProc(void *par, GF_Event *evt)
 		break;
 	case GF_EVENT_SCENE_SIZE:
 	case GF_EVENT_SIZE:
-//		gf_sc_set_size(panel->GetSceneCompositor(), evt->size.width, evt->size.height);
+		gf_sc_set_size(panel->GetSceneCompositor(), evt->size.width, evt->size.height);
 		panel->Update();
 		break;
 	case GF_EVENT_MOUSEDOWN:
