@@ -3107,6 +3107,13 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 			} else {
 				gf_node_insert_child(vrml_root_node, node, -1);
 			}
+
+			/*
+			if (!gf_sg_get_root_node(parser->load->scene_graph)) {
+				gf_node_register(node, NULL);
+				gf_sg_set_root_node(parser->load->scene_graph, node);
+			}
+			*/
 		} 
 
 		/*if in command, check command end*/
