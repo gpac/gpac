@@ -213,7 +213,7 @@ static JSBool dom_imp_has_feature(JSContext *c, JSObject *obj, uintN argc, jsval
 
 static Bool svg_udom_smil_check_instance(JSContext *c, JSObject *obj)
 {
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return 0;
 	switch (n->sgprivate->tag) {
 	case TAG_SVG_animate:
@@ -262,7 +262,7 @@ JSBool svg_udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	char attValue[1024];
 	GF_Err e;
 	GF_FieldInfo info;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
@@ -383,7 +383,7 @@ JSBool svg_udom_get_float_trait(JSContext *c, JSObject *obj, uintN argc, jsval *
 {
 	char *szName;
 	GF_FieldInfo info;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (argc!=1) return JS_FALSE;
@@ -415,7 +415,7 @@ JSBool svg_udom_get_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsval 
 	char *szName;
 	JSObject *mO;
 	GF_FieldInfo info;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (argc!=1) return JS_FALSE;
@@ -441,7 +441,7 @@ JSBool svg_udom_get_rect_trait(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	JSObject *newObj;
 	char *szName;
 	GF_FieldInfo info;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (argc!=1) return JS_FALSE;
@@ -469,7 +469,7 @@ JSBool svg_udom_get_path_trait(JSContext *c, JSObject *obj, uintN argc, jsval *a
 {
 	char *szName;
 	GF_FieldInfo info;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (argc!=1) return JS_FALSE;
@@ -490,7 +490,7 @@ JSBool svg_udom_get_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, jsv
 	GF_FieldInfo info;
 	rgbCI *rgb;
 	JSObject *newObj;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (argc!=1) return JS_FALSE;
@@ -539,7 +539,7 @@ JSBool svg_udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	GF_Err e;
 	GF_FieldInfo info;
 	char *val = NULL;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
@@ -643,7 +643,7 @@ JSBool svg_udom_set_float_trait(JSContext *c, JSObject *obj, uintN argc, jsval *
 {
 	GF_FieldInfo info;
 	jsdouble d;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (argc!=2) return JS_FALSE;
@@ -677,7 +677,7 @@ JSBool svg_udom_set_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsval 
 	char *szName;
 	GF_FieldInfo info;
 	GF_Matrix2D *mx;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (argc!=2) return JS_FALSE;
@@ -704,7 +704,7 @@ JSBool svg_udom_set_rect_trait(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	char *szName;
 	GF_FieldInfo info;
 	rectCI *rc;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (argc!=2) return JS_FALSE;
@@ -734,7 +734,7 @@ JSBool svg_udom_set_path_trait(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	pathCI *path;
 	GF_FieldInfo info;
 	JSObject *pO;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (argc!=2) return JS_FALSE;
@@ -792,7 +792,7 @@ JSBool svg_udom_set_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, jsv
 	GF_FieldInfo info;
 	rgbCI *rgb;
 	JSObject *colO;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (argc!=2) return JS_FALSE;
@@ -835,7 +835,7 @@ JSBool svg_udom_set_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, jsv
 static JSBool svg_get_bbox(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, Bool get_screen)
 {
 	GF_JSAPIParam par;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n || argc) return JS_FALSE;
 
 	par.bbox.is_set = 0;
@@ -866,7 +866,7 @@ JSBool svg_udom_get_screen_bbox(JSContext *c, JSObject *obj, uintN argc, jsval *
 JSBool svg_udom_get_screen_ctm(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_JSAPIParam par;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n || argc) return JS_FALSE;
 
 	if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_TRANSFORM, (GF_Node *)n, &par)) {
@@ -885,7 +885,7 @@ JSBool svg_udom_create_matrix_components(JSContext *c, JSObject *obj, uintN argc
 	GF_Matrix2D *mx;
 	JSObject *mat;
 	jsdouble v;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 	if (argc!=6) return JS_FALSE;
 	
@@ -911,7 +911,7 @@ JSBool svg_udom_create_rect(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 {
 	rectCI *rc;
 	JSObject *r;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n || argc) return JS_FALSE;
 
 	GF_SAFEALLOC(rc, rectCI);
@@ -924,7 +924,7 @@ JSBool svg_udom_create_path(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 {
 	pathCI *path;
 	JSObject *p;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n || argc) return JS_FALSE;
 
 	GF_SAFEALLOC(path, pathCI);
@@ -937,7 +937,7 @@ JSBool svg_udom_create_color(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 {
 	rgbCI *col;
 	JSObject *p;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 	if (argc!=3) return JS_FALSE;
 
@@ -954,7 +954,7 @@ JSBool svg_udom_create_color(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 JSBool svg_udom_move_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_JSAPIParam par;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 	if ((argc!=1) || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 
@@ -966,11 +966,11 @@ JSBool svg_udom_move_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv,
 JSBool svg_udom_set_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_JSAPIParam par;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 	if ((argc!=1) || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 
-	par.node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]), NULL);
+	par.node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
 
 	/*NOT IN THE GRAPH*/
 	if (!par.node || !par.node->sgprivate->num_instances) return JS_FALSE;
@@ -981,7 +981,7 @@ JSBool svg_udom_set_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 JSBool svg_udom_get_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_JSAPIParam par;
-	GF_Node *n = dom_get_node(c, obj, NULL);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n || argc) return JS_FALSE;
 	
 	*rval = JSVAL_VOID;
