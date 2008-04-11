@@ -4,7 +4,7 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 PROJECT_NAME           = libgpac
-PROJECT_NUMBER         = 0.4.4
+PROJECT_NUMBER         = 0.4.5
 OUTPUT_DIRECTORY       = .
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
@@ -81,7 +81,8 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = ../include/gpac
+INPUT                  = ../include/gpac \
+                         ../include/gpac/internal
 FILE_PATTERNS          = *.c \
                          *.cc \
                          *.cxx \

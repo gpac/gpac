@@ -413,7 +413,12 @@ void gf_term_disconnect(GF_Terminal *term)
 	/*resume*/
 	if (term->play_state) gf_term_set_play_state(term, GF_STATE_PLAYING, 1, 1);
 
-	gf_odm_disconnect(term->root_scene->root_od, 1);
+	if (term->root_scene->root_od) {
+		gf_odm_disconnect(term->root_scene->root_od, 1);
+	} else {
+		gf_inline_del(term->root_scene);
+		term->root_scene = NULL;
+	}
 	while (term->root_scene || gf_list_count(term->net_services_to_remove)) {
 		gf_term_handle_services(term);
 		gf_sleep(10);

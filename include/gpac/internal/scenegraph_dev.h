@@ -885,7 +885,7 @@ void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc);
 JSObject *dom_js_define_event(JSContext *c, JSObject *global);
 
 jsval dom_element_construct(JSContext *c, GF_Node *n);
-GF_Node *dom_get_node(JSContext *c, JSObject *obj, Bool *is_doc);
+GF_Node *dom_get_node(JSContext *c, JSObject *obj);
 
 JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);

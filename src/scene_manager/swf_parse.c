@@ -1137,6 +1137,7 @@ GF_Err swf_def_button(SWFReader *read, u32 revision)
 			swf_get_16(read);
 			while (1) {
 				u32 act_type = gf_bs_read_u8(read->bs);
+				if (!act_type) break;
 				if (act_type > 0x80) {
 					u32 len = swf_get_16(read); 
 					gf_bs_skip_bytes(read->bs, len);

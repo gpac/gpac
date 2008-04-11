@@ -1732,7 +1732,7 @@ static JSBool svg_mx2d_scale(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	GF_Matrix2D *mx1;
 	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_FALSE;
 	mx1 = JS_GetPrivate(c, obj);
-	if (!mx1 || (argc!=2)) return JS_FALSE;
+	if (!mx1 || (argc!=1)) return JS_FALSE;
 	JS_ValueToNumber(c, argv[0], &scale);
 	gf_mx2d_add_scale(mx1, FLT2FIX(scale), FLT2FIX(scale));
 	*vp = OBJECT_TO_JSVAL(obj);
@@ -1745,9 +1745,9 @@ static JSBool svg_mx2d_rotate(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 	GF_Matrix2D *mx1;
 	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_FALSE;
 	mx1 = JS_GetPrivate(c, obj);
-	if (!mx1 || (argc!=2)) return JS_FALSE;
+	if (!mx1 || (argc!=1)) return JS_FALSE;
 	JS_ValueToNumber(c, argv[0], &angle);
-	gf_mx2d_add_rotation(mx1, 0, 0, FLT2FIX(angle));
+	gf_mx2d_add_rotation(mx1, 0, 0, gf_mulfix(FLT2FIX(angle/180), GF_PI));
 	*vp = OBJECT_TO_JSVAL(obj);
 	return JS_TRUE;
 }

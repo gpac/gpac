@@ -93,6 +93,9 @@ typedef struct
 	u64 pcr_last;
 	u32 stb_at_last_pcr;
 	u32 nb_pck;
+
+	Bool has_eit;
+	LPNETCHANNEL eit_channel;
 } M2TSIn;
 
 #define M2TS_BUFFER_MAX 400
@@ -530,6 +533,49 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			}
 		}
 		break;
+	case GF_M2TS_EVT_EIT_ACTUAL_PF:
+		if (!m2ts->has_eit) {
+			/* declaring a special stream for displaying eit */
+			GF_ObjectDescriptor *od;
+			GF_ESD *esd;
+
+			/*create a stream description for this channel*/
+			esd = gf_odf_desc_esd_new(0);
+			esd->ESID = GF_M2TS_PID_EIT_ST_CIT;
+			esd->decoderConfig->streamType = GF_STREAM_TEXT;
+			esd->decoderConfig->objectTypeIndication = 0x24;
+			esd->decoderConfig->bufferSizeDB = 0;
+
+			/*we only use AUstart indicator*/
+			esd->slConfig->useAccessUnitStartFlag = 1;
+			esd->slConfig->useAccessUnitEndFlag = 0;
+			esd->slConfig->useRandomAccessPointFlag = 1;
+			esd->slConfig->AUSeqNumLength = 0;
+			esd->slConfig->timestampResolution = 90000;
+	
+			/*declare object to terminal*/
+			od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
+			gf_list_add(od->ESDescriptors, esd);
+			od->objectDescriptorID = GF_M2TS_PID_EIT_ST_CIT;	
+
+			/*declare but don't regenerate scene*/
+			gf_term_add_media(m2ts->service, (GF_Descriptor*)od, 0);
+			m2ts->has_eit = 1;
+		}
+		if (m2ts->eit_channel) {
+			GF_M2TS_Section *section = param;
+			GF_SLHeader slh;
+			memset(&slh, 0, sizeof(GF_SLHeader));
+			slh.accessUnitStartFlag = 1;
+			slh.accessUnitEndFlag = 1;
+			slh.compositionTimeStampFlag = 1;
+			slh.compositionTimeStamp = 0;
+			slh.decodingTimeStampFlag = 1;
+			slh.decodingTimeStamp = 0;
+			slh.randomAccessPointFlag = 1;
+			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, section->data, section->data_size, &slh, GF_OK);
+		}
+		break;
 	case GF_M2TS_EVT_PES_PCK:
 		MP2TS_SendPacket(m2ts, param);
 		break;
@@ -965,7 +1011,10 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 			}
 		} 
 
-		if ((ES_ID<GF_M2TS_MAX_STREAMS) && m2ts->ts->ess[ES_ID]) {
+		if (ES_ID == 18) {
+			e = GF_OK; /* 18 is the PID of EIT packets */
+			m2ts->eit_channel = channel;
+		} else if ((ES_ID<GF_M2TS_MAX_STREAMS) && m2ts->ts->ess[ES_ID]) {
 			GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[ES_ID];
 			if (pes->user) e = GF_SERVICE_ERROR;
 			else {

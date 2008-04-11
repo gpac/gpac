@@ -1499,6 +1499,7 @@ extern u32 time_spent_in_anim;
 
 void gf_sc_simulation_tick(GF_Compositor *compositor)
 {	
+	GF_SceneGraph *sg;
 	u32 in_time, end_time, i, count;
 	Bool frame_drawn;
 #ifndef GPAC_DISABLE_LOG
@@ -1596,13 +1597,13 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	if (gf_smil_notify_timed_elements(compositor->scene)) {
 		compositor->draw_next_frame = 1;
 	}
-#if 0
-	for (i=0; i<gf_list_count(compositor->secondary_scenes); i++) {
-		if (gf_smil_notify_timed_elements(gf_list_get(compositor->secondary_scenes, i))) {
+	i = 0;
+	while ((sg = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
+		if (gf_smil_notify_timed_elements(sg)) {
 			compositor->draw_next_frame = 1;
 		}
 	}
-#endif
+
 #ifndef GPAC_DISABLE_LOG
 	smil_timing_time = gf_sys_clock() - smil_timing_time;
 #endif

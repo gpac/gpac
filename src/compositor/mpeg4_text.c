@@ -120,9 +120,11 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 	for (i=0; i < txt->string.count; i++) {
 
 		char *str = txt->string.vals[i];
-		if (!str) continue;
+		if (!str || !strlen(str)) continue;
 
 		tspan = gf_font_manager_create_span(ft_mgr, font, str, fontSize, 0, 0, NULL, 0, styles);
+		if (!tspan) continue;
+
 		len = tspan->nb_glyphs;
 		tspan->flags |= GF_TEXT_SPAN_HORIZONTAL;
 

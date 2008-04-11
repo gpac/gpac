@@ -974,6 +974,7 @@ EXPORTS
 	gf_node_changed
 	gf_node_new
 	gf_node_clone
+	gf_node_clone_no_id
 	gf_sg_vrml_get_event_type_name
 	gf_sg_vrml_get_field_type_by_name
 	gf_sg_vrml_field_pointer_new
@@ -1182,7 +1183,8 @@ EXPORTS
 	gf_m2ts_set_pes_framing
 	gf_m2ts_get_stream_name
 	gf_m2ts_crc32
-
+	gf_m2ts_decode_eit_section
+	gf_m2ts_delele_eit
 
 ;laser.h exports
 	gf_laser_decoder_new

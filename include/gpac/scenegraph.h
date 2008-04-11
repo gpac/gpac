@@ -74,10 +74,10 @@ enum {
 	
 	/*full node*/
 	TAG_DOMFullNode = GF_NODE_FIRST_DOM_NODE_TAG,
+
 	/*range for SVG*/
 	GF_NODE_RANGE_FIRST_SVG, 
 	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+100,
-
 };
 
 
@@ -390,6 +390,8 @@ Note:
 GF_Node *gf_node_new(GF_SceneGraph *sg, u32 tag);
 /*clones a node in the given graph and register with parent cloned. The cloning respects DEF/USE nodes*/
 GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent);
+/*clones a node in the given graph and register with parent cloned. The cloning removes DEF/USE nodes*/
+GF_Node *gf_node_clone_no_id(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent);
 /*inits node (either internal stack or user-defined) - usually called once the node has been fully loaded*/
 void gf_node_init(GF_Node *node);
 /*gets scene time for scene this node belongs too, 0 if timeline not specified*/
