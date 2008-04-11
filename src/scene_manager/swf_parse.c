@@ -225,7 +225,6 @@ void swf_get_colormatrix(SWFReader *read, GF_ColorMatrix *cmat)
 	memset(cmat, 0, sizeof(GF_ColorMatrix));
 	cmat->m[0] = cmat->m[6] = cmat->m[12] = cmat->m[18] = FIX_ONE;
 
-	swf_align(read);
 	has_add = swf_read_int(read, 1);
 	has_mul = swf_read_int(read, 1);
 	nbbits = swf_read_int(read, 4);
@@ -1024,7 +1023,7 @@ GF_Err swf_func_skip(SWFReader *read)
 }
 GF_Err swf_unknown_tag(SWFReader *read)
 {
-	swf_report(read, GF_NOT_SUPPORTED, "Tag not implemented - skipping");
+	swf_report(read, GF_NOT_SUPPORTED, "Tag %s not implemented - skipping", swf_get_tag(read->tag));
 	return swf_func_skip(read);
 }
 GF_Err swf_set_backcol(SWFReader *read)
@@ -1117,7 +1116,10 @@ GF_Err swf_def_button(SWFReader *read, u32 revision)
 		rec->character_id = swf_get_16(read);
 		rec->depth = swf_get_16(read);
 		swf_get_matrix(read, &rec->mx, 0);
-		if (revision==1) swf_get_colormatrix(read, &rec->cmx);
+		if (revision==1) {
+			swf_align(read);
+			swf_get_colormatrix(read, &rec->cmx);
+		}
 		else gf_cmx_init(&rec->cmx);
 		gf_bs_align(read->bs);
 		nb_but_rec++;
@@ -1195,13 +1197,13 @@ GF_Err swf_place_obj(SWFReader *read, u32 revision)
 	u32 depth, type;
 	Bool had_depth, is_sprite;
 	/*SWF flags*/
-	Bool has_clip, has_name, has_ratio, has_cmat, has_mat, has_id, has_move;
+	Bool has_clip_actions, has_clip, has_name, has_ratio, has_cmat, has_mat, has_id, has_move;
 	
 	name = NULL;
 	clip_depth = 0;
 	ID = 0;
 	depth = 0;
-	has_clip = has_name = has_ratio = has_cmat = has_mat = has_id = has_move = 0;
+	has_clip_actions = has_clip = has_name = has_ratio = has_cmat = has_mat = has_id = has_move = 0;
 
 	gf_cmx_init(&cmat);
 	gf_mx2d_init(mat);
@@ -1216,6 +1218,7 @@ GF_Err swf_place_obj(SWFReader *read, u32 revision)
 		bitsize = 32;
 		bitsize += swf_get_matrix(read, &mat, 0);
 		has_mat = 1;
+		bitsize += swf_align(read);
 		/*size exceeds matrix, parse col mat*/
 		if (bitsize < read->size*8) {
 			swf_get_colormatrix(read, &cmat);
@@ -1226,7 +1229,7 @@ GF_Err swf_place_obj(SWFReader *read, u32 revision)
 	/*SWF 3.0*/
 	else if (revision==1) {
 		/*reserved*/
-		swf_read_int(read, 1);
+		has_clip_actions = swf_read_int(read, 1);
 		has_clip = swf_read_int(read, 1);
 		has_name = swf_read_int(read, 1);
 		has_ratio = swf_read_int(read, 1);
@@ -1242,6 +1245,7 @@ GF_Err swf_place_obj(SWFReader *read, u32 revision)
 			swf_align(read);
 		}
 		if (has_cmat) {
+			swf_align(read);
 			swf_get_colormatrix(read, &cmat);
 			swf_align(read);
 		}
@@ -1251,6 +1255,10 @@ GF_Err swf_place_obj(SWFReader *read, u32 revision)
 		if (has_name) {
 			name = swf_get_string(read);
 			free(name);
+		}
+		if (has_clip_actions) {
+			swf_get_16(read);
+			swf_get_16(read);
 		}
 		/*replace*/
 		if (has_id && has_move) type = SWF_REPLACE;
@@ -2481,6 +2489,9 @@ GF_Err SWF_InitContext(SWFReader *read)
 
 	/*background*/
 	n = SWF_NewNode(read, TAG_MPEG4_Background2D);
+	((M_Background2D *)n)->backColor.red = FIX_ONE;
+	((M_Background2D *)n)->backColor.green = FIX_ONE;
+	((M_Background2D *)n)->backColor.blue = FIX_ONE;
 	gf_node_set_id(n, 1, "BACKGROUND");
 	gf_node_insert_child(read->root, n, -1);
 	gf_node_register(n, read->root);
