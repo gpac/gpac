@@ -341,8 +341,7 @@ s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *na
 	return -1;
 }
 
-GF_EXPORT
-GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent)
+GF_Node *gf_node_clone_ex(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, Bool use_id)
 {
 	u32 i, count, id;
 	const char *orig_name;
@@ -360,7 +359,7 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 
 	/*check for DEF/USE*/
 	orig_name  = gf_node_get_name_and_id(orig, &id);
-	if (id) {
+	if (use_id && id) {
 		node = gf_sg_find_node(inScene, id);
 		/*node already created, USE*/
 		if (node) {
@@ -396,14 +395,14 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 		/*duplicate it*/
 		switch (field.fieldType) {
 		case GF_SG_VRML_SFNODE:
-			child = gf_node_clone(inScene, (* ((GF_Node **) field_orig.far_ptr)), node);
+			child = gf_node_clone_ex(inScene, (* ((GF_Node **) field_orig.far_ptr)), node, use_id);
 			*((GF_Node **) field.far_ptr) = child;
 			break;
 		case GF_SG_VRML_MFNODE:
 			last = NULL;
 			list = *( (GF_ChildNodeItem **) field_orig.far_ptr);
 			while (list) {
-				child = gf_node_clone(inScene, list->node, node);
+				child = gf_node_clone_ex(inScene, list->node, node, use_id);
 				gf_node_list_add_child_last((GF_ChildNodeItem **) field.far_ptr, child, &last);
 				list = list->next;
 			}
@@ -437,7 +436,7 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 	}
 
 	/*register node*/
-	if (id ) {
+	if (use_id && id) {
 		gf_node_set_id(node, id, orig_name);
 	}
 	gf_node_register(node, cloned_parent);
@@ -489,6 +488,17 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 	return node;
 }
 
+GF_EXPORT
+GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent)
+{
+	return gf_node_clone_ex(inScene, orig, cloned_parent, 1);
+}
+
+GF_EXPORT
+GF_Node *gf_node_clone_no_id(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent)
+{
+	return gf_node_clone_ex(inScene, orig, cloned_parent, 0);
+}
 
 #ifdef GF_NODE_USE_POINTERS
 static GF_Err protoinst_get_field(GF_Node *node, GF_FieldInfo *info)

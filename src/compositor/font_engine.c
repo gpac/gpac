@@ -890,7 +890,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 	dy = gf_mulfix(span->off_y, span->y_scale);
 	sx = gf_mulfix(span->font_scale, span->x_scale);
 	sy = gf_mulfix(span->font_scale, span->y_scale);
-	flip_text = (! tr_state->visual->center_coords) ? 1 : 0;
+	flip_text = (!tr_state->visual->center_coords) ? 1 : 0;
 
 	bline = gf_mulfix(span->font->baseline, span->font_scale);
 	lscale = ctx->aspect.line_scale;

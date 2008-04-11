@@ -186,15 +186,8 @@ static void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info)
 		n->sgprivate->scenegraph->NodeCallback(n->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, n, info);
 }
 
-GF_Node *dom_get_node(JSContext *c, JSObject *obj, Bool *is_doc)
+GF_Node *dom_get_node(JSContext *c, JSObject *obj)
 {
-	if (is_doc) *is_doc = 0;
-	if (JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL)) {
-		GF_SceneGraph *sg = (GF_SceneGraph *)JS_GetPrivate(c, obj);
-		if (!sg) return NULL;
-		if (is_doc) *is_doc = 1;
-		return sg->RootNode;
-	}
 	if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) 
 		|| JS_InstanceOf(c, obj, &dom_rt->domTextClass, NULL)
 		|| JS_InstanceOf(c, obj, &dom_rt->domNodeClass, NULL) 
@@ -618,22 +611,21 @@ static void dom_node_inserted(GF_Node *par, GF_Node *n, s32 pos)
 
 static JSBool xml_node_insert_before(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	Bool is_doc;
 	s32 idx;
 	u32 tag;
 	GF_Node *n, *target, *new_node;
 	GF_ParentNode *par;
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj, &is_doc);
-	if (!n || is_doc) return JS_FALSE;
+	n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
 
-	new_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]), &is_doc);
-	if (!new_node || is_doc) return JS_FALSE;
+	new_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
+	if (!new_node) return JS_FALSE;
 
 	target = NULL;
 	if ((argc==2) && JSVAL_IS_OBJECT(argv[1])) {
-		target = dom_get_node(c, JSVAL_TO_OBJECT(argv[1]), &is_doc);
-		if (!target || is_doc) return JS_FALSE;
+		target = dom_get_node(c, JSVAL_TO_OBJECT(argv[1]));
+		if (!target) return JS_FALSE;
 	}
 	tag = gf_node_get_tag(n);
 	if (tag==TAG_DOMText) return JS_FALSE;
@@ -647,15 +639,14 @@ static JSBool xml_node_insert_before(JSContext *c, JSObject *obj, uintN argc, js
 
 static JSBool xml_node_append_child(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	Bool is_doc;
 	u32 tag;
 	GF_Node *n, *new_node;
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj, &is_doc);
-	if (!n || is_doc) return JS_FALSE;
+	n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
 
-	new_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]), &is_doc);
-	if (!new_node || is_doc) return JS_FALSE;
+	new_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
+	if (!new_node) return JS_FALSE;
 	tag = gf_node_get_tag(n);
 	if (tag==TAG_DOMText) return JS_FALSE;
 
@@ -667,19 +658,18 @@ static JSBool xml_node_append_child(JSContext *c, JSObject *obj, uintN argc, jsv
 
 static JSBool xml_node_replace_child(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	Bool is_doc;
 	s32 idx;
 	u32 tag;
 	GF_Node *n, *new_node, *old_node;
 	GF_ParentNode *par;
 	if ((argc!=2) || !JSVAL_IS_OBJECT(argv[0]) || !JSVAL_IS_OBJECT(argv[1])) return JS_FALSE;
-	n = dom_get_node(c, obj, &is_doc);
-	if (!n || is_doc) return JS_FALSE;
+	n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
 
-	new_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]), &is_doc);
-	if (!new_node || is_doc) return JS_FALSE;
-	old_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[1]), &is_doc);
-	if (!old_node || is_doc) return JS_FALSE;
+	new_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
+	if (!new_node) return JS_FALSE;
+	old_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[1]));
+	if (!old_node) return JS_FALSE;
 	tag = gf_node_get_tag(n);
 	if (tag==TAG_DOMText) return JS_FALSE;
 	par = (GF_ParentNode*)n;
@@ -697,16 +687,15 @@ static JSBool xml_node_replace_child(JSContext *c, JSObject *obj, uintN argc, js
 
 static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	Bool is_doc;
 	u32 tag;
 	GF_Node *n, *old_node;
 	GF_ParentNode *par;
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj, &is_doc);
-	if (!n || is_doc) return JS_FALSE;
+	n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
 
-	old_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]), &is_doc);
-	if (!old_node || is_doc) return JS_FALSE;
+	old_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
+	if (!old_node) return JS_FALSE;
 	tag = gf_node_get_tag(n);
 	if (tag==TAG_DOMText) return JS_FALSE;
 	par = (GF_ParentNode*)n;
@@ -727,21 +716,19 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 
 static JSBool xml_node_has_children(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	Bool is_doc;
 	GF_Node *n;
-	n = dom_get_node(c, obj, &is_doc);
-	if (!n || is_doc) return JS_FALSE;
+	n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
 	*rval = BOOLEAN_TO_JSVAL( ((GF_ParentNode*)n)->children ? JS_TRUE : JS_FALSE );
 	return JS_TRUE;
 }
 
 static JSBool xml_node_has_attributes(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	Bool is_doc;
 	u32 tag;
 	GF_Node *n;
-	n = dom_get_node(c, obj, &is_doc);
-	if (!n || is_doc) return JS_FALSE;
+	n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
 	tag = gf_node_get_tag(n);
 	if (tag>=GF_NODE_FIRST_DOM_NODE_TAG) {
 		*rval = BOOLEAN_TO_JSVAL( ((GF_DOMNode*)n)->attributes ? JS_TRUE : JS_FALSE );
@@ -754,12 +741,11 @@ static JSBool xml_node_has_attributes(JSContext *c, JSObject *obj, uintN argc, j
 
 static JSBool xml_node_is_same_node(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	Bool is_doc;
 	GF_Node *n, *a_node;
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj, &is_doc);
+	n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
-	a_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]), &is_doc);
+	a_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
 	if (!a_node) return JS_FALSE;
 	*rval = BOOLEAN_TO_JSVAL( (a_node==n) ? JS_TRUE : JS_FALSE);
 	return JS_TRUE;
@@ -768,11 +754,10 @@ static JSBool xml_node_is_same_node(JSContext *c, JSObject *obj, uintN argc, jsv
 static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	u32 tag;
-	Bool is_doc;
 	GF_Node *n;
 	GF_ParentNode *par;
 	
-	n = dom_get_node(c, obj, &is_doc);
+	n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
@@ -787,9 +772,6 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 			GF_DOMText *txt = (GF_DOMText *)n;
 			if (txt->type=GF_DOM_TEXT_CDATA) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#cdata-section") );
 			else *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#text") );
-		}
-		else if (is_doc) {
-			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#document") );
 		}
 		else {
 			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_node_get_class_name(n) ) );
@@ -806,16 +788,11 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 			if (txt->type==GF_DOM_TEXT_CDATA) *vp = INT_TO_JSVAL(4);
 			else *vp = INT_TO_JSVAL(3);
 		}
-		else if (is_doc) *vp = INT_TO_JSVAL(9);
 		else *vp = INT_TO_JSVAL(1);
 		return JS_TRUE;
 	/*"parentNode"*/
 	case 3:
-		if (is_doc) {
-			*vp = JSVAL_VOID;
-		} else {
-			*vp = dom_node_construct(c, gf_node_get_parent(n, 0) );
-		}
+		*vp = dom_node_construct(c, gf_node_get_parent(n, 0) );
 		return JS_TRUE;
 	/*"childNodes"*/
 	case 4:
@@ -906,11 +883,10 @@ void dom_node_set_textContent(GF_Node *n, char *text)
 static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	u32 tag;
-	Bool is_doc;
 	GF_Node *n;
 	GF_ParentNode *par;
 
-	n = dom_get_node(c, obj, &is_doc);
+	n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
@@ -964,16 +940,88 @@ static void dom_document_finalize(JSContext *c, JSObject *obj)
 
 static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
-	Bool is_doc;
+	GF_SceneGraph *sg;
 	u32 prop_id;
-	GF_Node *n = dom_get_node(c, obj, &is_doc);
-	if (!n || !is_doc) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) 
+		return JS_TRUE;
+
+	sg = (GF_SceneGraph*) JS_GetPrivate(c, obj);
+	/*the JS proto of the svgClass or a destroyed object*/
+	if (!sg) return JS_TRUE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
-	if (prop_id<=JS_DOM3_NODE_LAST_PROP) return dom_node_getProperty(c, obj, id, vp);
 
 	switch (prop_id) {
+	/*"nodeName"*/
+	case 0:
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#document") );
+		return JS_TRUE;
+	/*"nodeValue"*/
+	case 1:
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	/*"nodeType"*/
+	case 2:
+		*vp = INT_TO_JSVAL(9);
+		return JS_TRUE;
+	/*"parentNode"*/
+	case 3:
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	/*"childNodes"*/
+	case 4:
+		/*NOT SUPPORTED YET*/
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	/*"firstChild"*/
+	case 5:
+		*vp = dom_node_construct(c, sg->RootNode);
+		return JS_TRUE;
+	/*"lastChild"*/
+	case 6:
+		*vp = dom_node_construct(c, sg->RootNode);
+		return JS_TRUE;
+	/*"previousSibling"*/
+	case 7:
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	/*"nextSibling"*/
+	case 8:
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	/*"attributes"*/
+	case 9:
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	/*"ownerDocument"*/
+	case 10:
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	/*"namespaceURI"*/
+	case 11:
+		/*NOT SUPPORTED YET*/
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	/*"prefix"*/
+	case 12:
+		/*NOT SUPPORTED YET*/
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	/*"localName"*/
+	case 13:
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	/*"baseURI"*/
+	case 14:
+		/*NOT SUPPORTED YET*/
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	/*"textContent"*/
+	case 15:
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+
 	/*"doctype"*/
 	case JS_DOM3_NODE_LAST_PROP+1:
 		/*NOT SUPPORTED YET*/
@@ -988,7 +1036,7 @@ static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, jsval id, js
 
 	/*"documentElement"*/
 	case JS_DOM3_NODE_LAST_PROP+3:
-		*vp = dom_element_construct(c, n);
+		*vp = dom_element_construct(c, sg->RootNode);
 		return JS_TRUE;
 	/*"inputEncoding"*/
 	case JS_DOM3_NODE_LAST_PROP+4:
@@ -1032,19 +1080,31 @@ static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, jsval id, js
 	}
 	return JS_FALSE;
 }
+
 static JSBool dom_document_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
+	GF_SceneGraph *sg;
 	u32 prop_id;
-	Bool is_doc;
-	GF_Node *n = dom_get_node(c, obj, &is_doc);
-//	if (!n || !is_doc) return JS_FALSE;
-	if (!n || !is_doc) return JS_TRUE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) 
+		return JS_TRUE;
+
+	sg = (GF_SceneGraph*) JS_GetPrivate(c, obj);
+	/*the JS proto of the svgClass or a destroyed object*/
+	if (!sg) return JS_TRUE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
-	if (id<=JS_DOM3_NODE_LAST_PROP) return dom_node_setProperty(c, obj, id, vp);
 
 	switch (prop_id) {
+	/*"nodeValue"*/
+	case 1:
+		break;
+	/*"prefix"*/
+	case 12:
+		break;
+	/*"textContent"*/
+	case 15:
+		break;
 	/*"xmlStandalone"*/
 	case JS_DOM3_NODE_LAST_PROP+6:
 		break;
@@ -1180,7 +1240,6 @@ static JSBool xml_document_element_by_id(JSContext *c, JSObject *obj, uintN argc
 static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	u32 prop_id;
-	Bool is_doc;
 	GF_Node *n;
 	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 
@@ -1188,7 +1247,7 @@ static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 	prop_id = JSVAL_TO_INT(id);
 	if (prop_id<=JS_DOM3_NODE_LAST_PROP) return dom_node_getProperty(c, obj, id, vp);
 
-	n = dom_get_node(c, obj, &is_doc);
+	n = dom_get_node(c, obj);
 
 	switch (prop_id) {
 	/*"tagName"*/
@@ -1229,7 +1288,7 @@ static JSBool dom_element_setProperty(JSContext *c, JSObject *obj, jsval id, jsv
 	case JS_DOM3_NODE_LAST_PROP+7:
 	case JS_DOM3_NODE_LAST_PROP+8:
 	case JS_DOM3_NODE_LAST_PROP+9:
-		return svg_udom_set_property(c, dom_get_node(c, obj, NULL), prop_id-(JS_DOM3_NODE_LAST_PROP+3), vp);
+		return svg_udom_set_property(c, dom_get_node(c, obj), prop_id-(JS_DOM3_NODE_LAST_PROP+3), vp);
 	default:
 		/*rest is read only*/
 		return JS_FALSE;
@@ -1243,7 +1302,7 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 	char *name;
 	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj, NULL);
+	n = dom_get_node(c, obj);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	/*NS version*/
 	if (argc==2) {
@@ -1282,7 +1341,7 @@ static JSBool xml_element_has_attribute(JSContext *c, JSObject *obj, uintN argc,
 	char *name;
 	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj, NULL);
+	n = dom_get_node(c, obj);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	/*NS version*/
 	if (argc==2) {
@@ -1323,7 +1382,7 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 	char *name;
 	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj, NULL);
+	n = dom_get_node(c, obj);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	/*NS version*/
 	if (argc==2) {
@@ -1371,7 +1430,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 	char *name, *val;
 	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if ((argc < 2) || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
-	n = dom_get_node(c, obj, NULL);
+	n = dom_get_node(c, obj);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	/*may not be a string in DOM*/
 	val = JS_GetStringBytes(JS_ValueToString(c, argv[1]));
@@ -1455,7 +1514,7 @@ static JSBool xml_element_elements_by_tag(JSContext *c, JSObject *obj, uintN arg
 	char *name;
 	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj, NULL);
+	n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
@@ -1482,7 +1541,7 @@ static JSBool xml_element_set_id(JSContext *c, JSObject *obj, uintN argc, jsval 
 	Bool is_id;
 	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
 	if ((argc<2) || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj, NULL);
+	n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
@@ -1524,7 +1583,7 @@ static JSBool dom_text_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	prop_id = JSVAL_TO_INT(id);
 	if (prop_id<=JS_DOM3_NODE_LAST_PROP) return dom_node_getProperty(c, obj, id, vp);
 
-	txt = (GF_DOMText*)dom_get_node(c, obj, NULL);
+	txt = (GF_DOMText*)dom_get_node(c, obj);
 	if (!txt) return JS_FALSE;
 
 	switch (prop_id) {
@@ -1560,7 +1619,7 @@ static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	prop_id = JSVAL_TO_INT(id);
 	if (prop_id<=JS_DOM3_NODE_LAST_PROP) return dom_node_setProperty(c, obj, id, vp);
 
-	txt = (GF_DOMText*)dom_get_node(c, obj, NULL);
+	txt = (GF_DOMText*)dom_get_node(c, obj);
 	if (!txt) return JS_FALSE;
 
 	switch (prop_id) {
@@ -1979,14 +2038,21 @@ static void xml_http_sax_start(void *sax_cbck, const char *node_name, const char
 
 	node->name = strdup(node_name);
 	for (i=0; i<nb_attributes; i++) {
-		GF_DOMFullAttribute *att;
-		GF_SAFEALLOC(att, GF_DOMFullAttribute);
-		att->tag = TAG_DOM_ATTRIBUTE_FULL;
-		att->name = strdup(attributes[i].name);
-		att->data = strdup(attributes[i].value);
-		if (prev) prev->next = (GF_DOMAttribute*)att;
-		else node->attributes = (GF_DOMAttribute*)att;
-		prev = att;
+		/* special case for 'xml:id' to be parsed as an ID 
+		NOTE: we do not test for the 'id' attribute because without DTD we are not sure that it's an ID */ 
+		if (!stricmp(attributes[i].name, "xml:id")) {
+			u32 id = gf_sg_get_max_node_id(ctx->document) + 1;
+			gf_node_set_id((GF_Node *)node, id, attributes[i].value);
+		} else {
+			GF_DOMFullAttribute *att;
+			GF_SAFEALLOC(att, GF_DOMFullAttribute);
+			att->tag = TAG_DOM_ATTRIBUTE_FULL;
+			att->name = strdup(attributes[i].name);
+			att->data = strdup(attributes[i].value);
+			if (prev) prev->next = (GF_DOMAttribute*)att;
+			else node->attributes = (GF_DOMAttribute*)att;
+			prev = att;
+		}
 	}
 	par = gf_list_last(ctx->node_stack);
 	gf_node_register((GF_Node*)node, (GF_Node*)par);

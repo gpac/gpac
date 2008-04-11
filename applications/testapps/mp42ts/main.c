@@ -1044,7 +1044,7 @@ M2TS_Mux *m2ts_mux_new(u32 mux_rate, Bool real_time)
 	GF_BitStream *bs;
 	M2TS_Mux *muxer;
 	GF_SAFEALLOC(muxer, M2TS_Mux);
-	muxer->pat = m2ts_stream_new(0); /* 0 = PAT_PID */
+	muxer->pat = m2ts_stream_new(GF_M2TS_PID_PAT);
 	muxer->pat->process = m2ts_stream_process_pat;
 	muxer->pat->refresh_rate_ms = M2TS_PSI_REFRESH_RATE;
 	muxer->real_time = real_time;

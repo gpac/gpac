@@ -1064,7 +1064,7 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 			while(str[i] != 0 && str[i] == ' ') i++;
 			if (str[i] == ')') i++;
 		} 
-		/*vor svgView parsing*/
+		/*for svgView parsing*/
 		if (str[i] == ')') i++;
 	}
 }

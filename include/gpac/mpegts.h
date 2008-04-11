@@ -29,7 +29,6 @@
 #include <gpac/list.h>
 #include <gpac/internal/odf_dev.h>
 
-
 typedef struct tag_m2ts_demux GF_M2TS_Demuxer;
 typedef struct tag_m2ts_es GF_M2TS_ES;
 typedef struct tag_m2ts_section_es GF_M2TS_SECTION_ES;
@@ -44,20 +43,20 @@ enum
 	GF_M2TS_VIDEO_MPEG2				= 0x02,
 	GF_M2TS_AUDIO_MPEG1				= 0x03,
 	GF_M2TS_AUDIO_MPEG2				= 0x04, 
-	GF_M2TS_PRIVATE_SECTION			= 0x05,
-	GF_M2TS_PRIVATE_DATA			= 0x06,
-	GF_M2TS_AUDIO_AAC				= 0x0f,
+	GF_M2TS_PRIVATE_SECTION				= 0x05,
+	GF_M2TS_PRIVATE_DATA				= 0x06,
+	GF_M2TS_AUDIO_AAC				= 0x0F,
 	GF_M2TS_VIDEO_MPEG4				= 0x10,
-	GF_M2TS_AUDIO_LATM_AAC			= 0x11,
+	GF_M2TS_AUDIO_LATM_AAC				= 0x11,
 
-	GF_M2TS_SYSTEMS_MPEG4_PES		= 0x12,
-	GF_M2TS_SYSTEMS_MPEG4_SECTIONS	= 0x13,
+	GF_M2TS_SYSTEMS_MPEG4_PES			= 0x12,
+	GF_M2TS_SYSTEMS_MPEG4_SECTIONS			= 0x13,
 
-	GF_M2TS_VIDEO_H264				= 0x1b,
+	GF_M2TS_VIDEO_H264				= 0x1B,
 
 	GF_M2TS_AUDIO_AC3				= 0x81,
-	GF_M2TS_AUDIO_DTS				= 0x8a,
-	GF_M2TS_SUBTITLE_DVB			= 0x100,
+	GF_M2TS_AUDIO_DTS				= 0x8A,
+	GF_M2TS_SUBTITLE_DVB				= 0x100,
 };
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);
@@ -138,35 +137,45 @@ enum
 
 enum
 {
-	GF_M2TS_TABLE_FOUND,
-	GF_M2TS_TABLE_UPDATE,
-	GF_M2TS_TABLE_REPEAT
+	GF_M2TS_TABLE_START		= 1,
+	GF_M2TS_TABLE_END		= 1<<1,
+	GF_M2TS_TABLE_FOUND		= 1<<2,
+	GF_M2TS_TABLE_UPDATE	= 1<<3,
+	GF_M2TS_TABLE_REPEAT	= 1<<4,
 };
 
-typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, unsigned char *data, u32 data_size, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status); 
+typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status); 
 
+typedef struct __m2ts_demux_section
+{
+	unsigned char *data;
+	u32 data_size;
+} GF_M2TS_Section;
 
 typedef struct __m2ts_demux_table
 {
 	struct __m2ts_demux_table *next;
-	/*reconstructed table*/
-	unsigned char *data;
-	u32 data_size;
+
+	Bool is_init;
+
 	/*table id*/
 	u8 table_id;
+	u16 ex_table_id;
+
 	/*reassembler state*/
 	u8 version_number;
+	u8 last_version_number;
+
 	u8 current_next_indicator;
+
 	u8 section_number;
 	u8 last_section_number;
 
-	/*set to 1 once the section has been parsed and loaded - used to discard carousel'ed data*/
-	u8 is_init;
-	u8 last_version_number;
+	GF_List *sections;
+
 } GF_M2TS_Table;
 
 
-/*MPEG-2 TS section object (PAT, PMT, etc..)*/
 typedef struct GF_M2TS_SectionFilter
 {
 	/*section reassembler*/
@@ -182,6 +191,8 @@ typedef struct GF_M2TS_SectionFilter
 
 	/*section->table aggregator*/
 	GF_M2TS_Table *table;
+	
+	Bool process_individual_section;
 
 	gf_m2ts_section_callback process_section; 
 } GF_M2TS_SectionFilter;
@@ -292,27 +303,56 @@ typedef struct
 	u32 running_status;
 	u32 free_CA_mode;
 	u8 service_type;
-	char *provider, *service;
+	unsigned char *provider, *service;
 } GF_M2TS_SDT;
 
+#define GF_M2TS_BASE_DESCRIPTOR u32 tag;
+typedef struct {
+	GF_M2TS_BASE_DESCRIPTOR
+} GF_M2TS_Descriptor;
+
+typedef struct {
+	GF_M2TS_BASE_DESCRIPTOR
+	unsigned char lang[4];
+	unsigned char *event_name, *event_text;
+} GF_M2TS_EIT_Short_Event_Descriptor;
+
+typedef struct {
+	unsigned char *item;
+	unsigned char *description;
+} GF_M2TS_EIT_Extended_Event_Item;
+
+typedef struct {
+	GF_M2TS_BASE_DESCRIPTOR
+	unsigned char lang[4];
+	GF_List *items;
+	unsigned char *text;
+} GF_M2TS_EIT_Extended_Event_Descriptor;
 
 /*EIT information objects*/
 typedef struct
 {
 	u16 event_id;
-	u32 start_date;
+	u32 start_year;
+	u32 start_month;
+	u32 start_day;
 	u32 start_time;
 	u32 duration;
 	u8 running_status;
 	u8 free_CA_mode;
+	GF_List *descriptors;
 } GF_M2TS_EIT_Event;
 
 typedef struct
 {
-	u32 transport_stream_id;
 	u32 original_network_id;
+	u32 transport_stream_id;
+	u16 service_id;
 	GF_List *events;
 } GF_M2TS_EIT;
+
+GF_M2TS_EIT *gf_m2ts_decode_eit_section(unsigned char *data, u32 data_size);
+void gf_m2ts_delele_eit(GF_M2TS_EIT *);
 
 /*MPEG-2 TS packet*/
 typedef struct
@@ -447,10 +487,10 @@ enum {
 	GF_M2TS_TABLE_ID_MPEG4_BIFS		= 0x04, /* max size for section 4096 */
 	GF_M2TS_TABLE_ID_MPEG4_OD		= 0x05, /* max size for section 4096 */
 	GF_M2TS_TABLE_ID_METADATA		= 0x06, 
-	GF_M2TS_TABLE_ID_IPMP_CONTROL	= 0x07, 
+	GF_M2TS_TABLE_ID_IPMP_CONTROL		= 0x07, 
 	/* 0x08 - 0x37 reserved */
 	/* 0x38 - 0x3D DSM-CC defined */
-	GF_M2TS_TABLE_ID_DSM_CC_PRIVATE	= 0x3E, /* used for MPE (only, not MPE-FEC) */
+	GF_M2TS_TABLE_ID_DSM_CC_PRIVATE		= 0x3E, /* used for MPE (only, not MPE-FEC) */
 	/* 0x3F DSM-CC defined */
 	GF_M2TS_TABLE_ID_NIT_ACTUAL		= 0x40, /* max size for section 1024 */
 	GF_M2TS_TABLE_ID_NIT_OTHER		= 0x41,
@@ -460,20 +500,20 @@ enum {
 	/* 0x47 - 0x49 reserved */
 	GF_M2TS_TABLE_ID_BAT			= 0x4a, /* max size for section 1024 */
 	/* 0x4b - 0x4d reserved */
-	GF_M2TS_TABLE_ID_EIT_ACTUAL_PF	= 0x4E, /* max size for section 4096 */
-	GF_M2TS_TABLE_ID_EIT_OTHER_PF	= 0x4F,
+	GF_M2TS_TABLE_ID_EIT_ACTUAL_PF		= 0x4E, /* max size for section 4096 */
+	GF_M2TS_TABLE_ID_EIT_OTHER_PF		= 0x4F,
 	/* 0x50 - 0x6f EIT SCHEDULE */
-	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN= 0x50,
+	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN	= 0x50,
 	GF_M2TS_TABLE_ID_EIT_SCHEDULE_ACTUAL_MAX= 0x5F,
-	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX= 0x6F,
+	GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX	= 0x6F,
 
 	GF_M2TS_TABLE_ID_TDT			= 0x70,
 	GF_M2TS_TABLE_ID_RST			= 0x71, /* max size for section 1024 */
 	GF_M2TS_TABLE_ID_ST 			= 0x72, /* max size for section 4096 */
 	GF_M2TS_TABLE_ID_TOT			= 0x73,
-	GF_M2TS_TABLE_ID_AI				= 0x74,
+	GF_M2TS_TABLE_ID_AI			= 0x74,
 	GF_M2TS_TABLE_ID_CONT			= 0x75,
-	GF_M2TS_TABLE_ID_RC				= 0x76,
+	GF_M2TS_TABLE_ID_RC			= 0x76,
 	GF_M2TS_TABLE_ID_CID			= 0x77,
 	GF_M2TS_TABLE_ID_MPE_FEC		= 0x78,
 	GF_M2TS_TABLE_ID_RES_NOT		= 0x79,
@@ -488,7 +528,7 @@ enum {
 	M2TS_ADAPTATION_RESERVED	= 0,
 	M2TS_ADAPTATION_NONE		= 1,
 	M2TS_ADAPTATION_ONLY		= 2,
-	M2TS_ADAPTATION_AND_PAYLOAD = 3,
+	M2TS_ADAPTATION_AND_PAYLOAD 	= 3,
 };
 
 
