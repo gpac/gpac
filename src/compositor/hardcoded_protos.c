@@ -446,8 +446,6 @@ void compositor_init_plane_clipper(GF_Compositor *compositor, GF_Node *node)
 #endif
 
 
-#ifdef GROUP_2D_USE_CACHE
-
 /*OffscreenGroup hardcoded proto*/
 typedef struct
 {
@@ -461,6 +459,11 @@ typedef struct
 typedef struct
 {
 	GROUPING_NODE_STACK_2D
+
+#ifndef GF_SR_USE_VIDEO_CACHE
+	struct _group_cache *cache;
+#endif
+
 	OffscreenGroup og;
 } OffscreenGroupStack;
 
@@ -532,8 +535,6 @@ void compositor_init_offscreen_group(GF_Compositor *compositor, GF_Node *node)
 		if (og.offscreen) stack->flags |= GROUP_IS_CACHED;
 	}
 }
-
-#endif /*GROUP_2D_USE_CACHE*/
 
 
 /*DepthGroup hardcoded proto*/
@@ -636,12 +637,10 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 			compositor_init_texture_text(compositor, node);
 			return;
 		}
-#ifdef GROUP_2D_USE_CACHE
 		if (!strcmp(url, "urn:inet:gpac:builtin:OffscreenGroup")) {
 			compositor_init_offscreen_group(compositor, node);
 			return;
 		}
-#endif
 		if (!strcmp(url, "urn:inet:gpac:builtin:DepthGroup")) {
 			compositor_init_depth_group(compositor, node);
 			return;

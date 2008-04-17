@@ -31,7 +31,7 @@
 void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
 {
 	Bool split_text_backup;
-#ifdef GROUP_2D_USE_CACHE
+#ifdef GF_SR_USE_VIDEO_CACHE
 	Bool group_cached;
 #endif
 	GF_List *sensor_backup;
@@ -65,8 +65,8 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	}
 
 
-#ifdef GROUP_2D_USE_CACHE
-	group_cached = mpeg4_group2d_cache_traverse(node, group, tr_state);
+#ifdef GF_SR_USE_VIDEO_CACHE
+	group_cached = group_2d_cache_traverse(node, group, tr_state);
 #endif
 
 	/*now here is the trick: ExternProtos may not be loaded at this point, in which case we can't
@@ -76,7 +76,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
 
 
-#ifdef GROUP_2D_USE_CACHE
+#ifdef GF_SR_USE_VIDEO_CACHE
 	if (group_cached) return;
 #endif
 
@@ -143,25 +143,35 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	}
 	/*TRAVERSE_SORT */
 	else if (tr_state->traversing_mode==TRAVERSE_SORT) {
-#ifdef GROUP_2D_USE_CACHE
+#ifdef GF_SR_USE_VIDEO_CACHE
 		DrawableContext *first_ctx = tr_state->visual->cur_context;
 		Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? 1 : 0;
+		u32 cache_too_small = 0;
 		u32 traverse_time = gf_sys_clock();
-		u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->queue_cached_groups);
+		u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->cached_groups_queue);
+		tr_state->cache_too_small = 0;
 #endif
 
 		child = ((GF_ParentNode *)node)->children;
 		while (child) {
 			gf_node_traverse(child->node, tr_state);
 			child = child->next;
+#ifdef GF_SR_USE_VIDEO_CACHE
+			if (tr_state->cache_too_small) 
+				cache_too_small++;
+#endif
 		} 
 
-#ifdef GROUP_2D_USE_CACHE
-		/*get the traversal time for each group*/	
-		traverse_time = gf_sys_clock() - traverse_time;
-		group->traverse_time += traverse_time;
-		/*record the traversal information at the group level*/
-		group_cache_record_stats(node, group, tr_state, first_ctx, skip_first_ctx, last_cache_idx);
+#ifdef GF_SR_USE_VIDEO_CACHE
+		if (cache_too_small) {
+			tr_state->cache_too_small = 1;
+		} else {
+			/*get the traversal time for each group*/	
+			traverse_time = gf_sys_clock() - traverse_time;
+			group->traverse_time += traverse_time;
+			/*record the traversal information and turn cache on if possible*/
+			group_2d_cache_evaluate(node, group, tr_state, first_ctx, skip_first_ctx, last_cache_idx);
+		}
 #endif
 
 		drawable_check_focus_highlight(node, tr_state, NULL);
@@ -190,6 +200,9 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 	GF_List *sensor_backup;
 	GF_Node *child;
 	GF_ChildNodeItem *list;
+#ifdef GF_SR_USE_VIDEO_CACHE
+	Bool group_cached;
+#endif
 
 	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
 		/*never trigger bounds recompute in 2D since we don't cull 2D groups*/
@@ -209,12 +222,6 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 				}
 			}
 		}
-
-		/*now here is the trick: ExternProtos may not be loaded at this point, in which case we can't
-		perform proper culling. Unloaded ExternProto signal themselves by invalidating their parent
-		graph to get a new traversal. We must therefore reset the CHILD_DIRTY flag before computing 
-		bounds otherwise we'll never re-invalidate the subgraph anymore*/
-		gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
 	}
 	/*not parent (eg form, layout...) sub-tree not dirty and getting bounds, direct copy */
 	else if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
@@ -222,7 +229,20 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		return;
 	}
 
-	/*no culling in 2d*/
+#ifdef GF_SR_USE_VIDEO_CACHE
+	group_cached = group_2d_cache_traverse(node, group, tr_state);
+#endif
+
+	/*now here is the trick: ExternProtos may not be loaded at this point, in which case we can't
+	perform proper culling. Unloaded ExternProto signal themselves by invalidating their parent
+	graph to get a new traversal. We must therefore reset the CHILD_DIRTY flag before computing 
+	bounds otherwise we'll never re-invalidate the subgraph anymore*/
+	gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
+
+
+#ifdef GF_SR_USE_VIDEO_CACHE
+	if (group_cached) return;
+#endif
 
 	/*picking: collect sensors*/
 	sensor_backup = NULL;
@@ -279,11 +299,13 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 
 	/*TRAVERSE_SORT */
 	} else if (tr_state->traversing_mode==TRAVERSE_SORT) {
-#ifdef GROUP_2D_USE_CACHE
+#ifdef GF_SR_USE_VIDEO_CACHE
 		DrawableContext *first_ctx = tr_state->visual->cur_context;
+		u32 cache_too_small = 0;
 		Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? 1 : 0;
 		u32 traverse_time = gf_sys_clock();
-		u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->queue_cached_groups);
+		u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->cached_groups_queue);
+		tr_state->cache_too_small = 0;
 #endif
 
 		list = ((GF_ParentNode *)node)->children;
@@ -291,14 +313,22 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		for (i=0; i<count; i++) {
 			child = gf_node_list_get_child(list, positions[i]);
 			gf_node_traverse(child, tr_state);
+#ifdef GF_SR_USE_VIDEO_CACHE
+			if (tr_state->cache_too_small) 
+				cache_too_small++;
+#endif
 		} 
 
-#ifdef GROUP_2D_USE_CACHE
-		/*get the traversal time for each group*/	
-		traverse_time = gf_sys_clock() - traverse_time;
-		group->traverse_time += traverse_time;
-		/*record the traversal information at the group level*/
-		group_cache_record_stats(node, group, tr_state, first_ctx, skip_first_ctx, last_cache_idx);
+#ifdef GF_SR_USE_VIDEO_CACHE
+		if (cache_too_small) {
+			tr_state->cache_too_small = 1;
+		} else {
+			/*get the traversal time for each group*/	
+			traverse_time = gf_sys_clock() - traverse_time;
+			group->traverse_time += traverse_time;
+			/*record the traversal information and turn cache on if possible*/
+			group_2d_cache_evaluate(node, group, tr_state, first_ctx, skip_first_ctx, last_cache_idx);
+		}
 #endif
 
 		drawable_check_focus_highlight(node, tr_state, NULL);

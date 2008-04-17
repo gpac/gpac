@@ -385,9 +385,9 @@ static GF_Compositor *gf_sc_create(GF_User *user)
 	tmp->ev_mx = gf_mx_new("EventQueue");
 #endif
 
-#ifdef GROUP_2D_USE_CACHE
+#ifdef GF_SR_USE_VIDEO_CACHE
 	tmp->cached_groups = gf_list_new();
-	tmp->queue_cached_groups = gf_list_new();
+	tmp->cached_groups_queue = gf_list_new();
 #endif
 	
 	gf_sc_reset_framerate(tmp);	
@@ -497,9 +497,9 @@ void gf_sc_del(GF_Compositor *compositor)
 
 	if (compositor->font_manager) gf_font_manager_del(compositor->font_manager);
 
-#ifdef GROUP_2D_USE_CACHE
+#ifdef GF_SR_USE_VIDEO_CACHE
 	gf_list_del(compositor->cached_groups);
-	gf_list_del(compositor->queue_cached_groups);
+	gf_list_del(compositor->cached_groups_queue);
 #endif
 
 	gf_list_del(compositor->textures);
@@ -620,6 +620,7 @@ void compositor_set_ar_scale(GF_Compositor *compositor, Fixed scaleX, Fixed scal
 
 	compositor->scale_x = scaleX;
 	compositor->scale_y = scaleY;
+	compositor->zoom_changed = 1;
 
 	compositor_2d_set_user_transform(compositor, compositor->zoom, compositor->trans_x, compositor->trans_y, 1);
 }
@@ -674,10 +675,10 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	compositor->video_memory = 0;
 	gf_list_reset(compositor->focus_ancestors);
 
-#ifdef GROUP_2D_USE_CACHE
+#ifdef GF_SR_USE_VIDEO_CACHE
 	gf_list_reset(compositor->cached_groups);
-	compositor->kbytes_cache_total = 0;
-	gf_list_reset(compositor->queue_cached_groups);
+	compositor->video_cache_current_size = 0;
+	gf_list_reset(compositor->cached_groups_queue);
 #endif
 
 	/*force resetup in case we're switching coord system*/
@@ -948,6 +949,18 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		compositor->audio_renderer->disable_multichannel = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	}
 
+#ifdef GF_SR_USE_VIDEO_CACHE
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "VideoCacheSize");
+	compositor->video_cache_max_size = sOpt ? atoi(sOpt) : 0;
+	compositor->video_cache_max_size *= 1024;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "CacheScale");
+	compositor->cache_scale = sOpt ? atoi(sOpt) : 100;
+	if (!compositor->cache_scale) compositor->cache_scale = 100;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "CacheTolerance");
+	compositor->cache_tolerance = sOpt ? atoi(sOpt) : 30;
+#endif
 
 #ifndef GPAC_DISABLE_3D
 
@@ -1190,6 +1203,14 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		break;	
 #endif
 
+	case GF_OPT_VIDEO_CACHE_SIZE:
+#ifdef GF_SR_USE_VIDEO_CACHE
+		compositor_set_cache_memory(compositor, 1024*value);
+#else
+		e = GF_NOT_SUPPORTED;
+#endif
+		break;
+
 	default: 
 		e = GF_BAD_PARAM;
 		break;
@@ -1249,6 +1270,14 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	case GF_OPT_HEADLIGHT: return 0;
 	case GF_OPT_COLLISION: return GF_COLLISION_NONE;
 	case GF_OPT_GRAVITY: return 0;
+
+	case GF_OPT_VIDEO_CACHE_SIZE:
+#ifdef GF_SR_USE_VIDEO_CACHE
+		return compositor->video_cache_max_size/1024;
+#else
+		return 0;
+#endif
+		break;
 	default: return 0;
 	}
 }
@@ -1477,12 +1506,17 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #endif
 	} 
 
-#ifdef GROUP_2D_USE_CACHE
-	gf_list_reset(compositor->queue_cached_groups);
+#ifdef GF_SR_USE_VIDEO_CACHE
+	if (!compositor->video_cache_max_size)
+		compositor->traverse_state->in_group_cache = 1;
 #endif
+
 	flags = compositor->traverse_state->direct_draw;
 	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
 	compositor->traverse_state->direct_draw = flags;
+#ifdef GF_SR_USE_VIDEO_CACHE
+	gf_list_reset(compositor->cached_groups_queue);
+#endif
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Drawing done\n"));
 
 	/*only send the resize notification once the frame has been dra*/
@@ -1490,6 +1524,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		compositor_send_resize_event(compositor, 0, 0, 0, 1);
 		compositor->recompute_ar = 0;
 	}
+	compositor->zoom_changed = 0;
 }
 
 
@@ -1973,7 +2008,11 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	case GF_EVENT_REFRESH:
 		if (!compositor->draw_next_frame) {
 			/*when refreshing the window in 3D or with overlays we redraw the scene */
-			if (compositor->last_had_overlays || compositor->visual->type_3d) {
+			if (compositor->last_had_overlays 
+#ifndef GPAC_DISABLE_3D
+				|| compositor->visual->type_3d
+#endif
+				) {
 				compositor->draw_next_frame = 1;
 			}
 			/*reflush only*/

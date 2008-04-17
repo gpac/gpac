@@ -800,8 +800,8 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 		drawable_check_focus_highlight(ctx->drawable->node, tr_state, &store_orig_bounds);
 
 	/*remove if this is the last context*/
-	if (can_remove && (tr_state->visual->cur_context == ctx)) 
-		tr_state->visual->cur_context->drawable = NULL;
+//	if (can_remove && (tr_state->visual->cur_context == ctx)) 
+//		tr_state->visual->cur_context->drawable = NULL;
 }
 
 void drawable_finalize_sort(struct _drawable_context *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds)

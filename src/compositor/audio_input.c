@@ -24,7 +24,7 @@
 
 #include <gpac/internal/compositor_dev.h>
 
-#define MIN_RESYNC_TIME		1000
+#define MIN_RESYNC_TIME		500
 
 static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
 {
@@ -47,13 +47,14 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	}
 	ai->need_release = 1;
 	
+	
 	gf_mo_get_object_time(ai->stream, &obj_time);
 	obj_time += audio_delay_ms;
 	drift = (s32)obj_time;
 	drift -= (s32)ts;
 
 	/*too early (silence insertions), skip*/
-	if (drift + (s32) audio_delay_ms + MIN_RESYNC_TIME < 0) {
+	if (drift + (s32) (audio_delay_ms + ai->is_open) < 0) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Audio Input] audio too early %d (CTS %d)\n", drift + audio_delay_ms + MIN_RESYNC_TIME, ts));
 		ai->need_release = 0;
 		gf_mo_release_data(ai->stream, 0, 0);
@@ -80,6 +81,8 @@ static void gf_audio_input_release_frame(void *callback, u32 nb_bytes)
 	if (!ai->stream) return;
 	gf_mo_release_data(ai->stream, nb_bytes, 1);
 	ai->need_release = 0;
+	/*as soon as we have released a frame for this audio stream, update resynbc tolerance*/
+	ai->is_open = MIN_RESYNC_TIME;
 }
 
 static Fixed gf_audio_input_get_speed(void *callback)

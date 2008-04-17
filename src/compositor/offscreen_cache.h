@@ -30,21 +30,18 @@
 
 #include "drawable.h"
 
-
 typedef struct _group_cache
 {
 	/*gpac texture object*/
 	GF_TextureHandler txh;
-
-	/*the priority to determine the overlapping*/
-	u8 priority;
 	/*drawable representing the cached group*/
 	Drawable *drawable;
 
 	Fixed opacity;
 	Bool force_recompute;
+	/*user scale (zoom and AR) of the group*/
+	Fixed scale;
 } GroupCache;
-
 
 GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node);
 void group_cache_del(GroupCache *cache);
@@ -53,6 +50,7 @@ void group_cache_del(GroupCache *cache);
 Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute);
 
 void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state);
+Fixed group_cache_check_coverage_increase(GF_Rect *ctx, GF_Rect *grp_bounds, DrawableContext *curr, DrawableContext* first_child);
 
 
 

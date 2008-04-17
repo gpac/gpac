@@ -1023,8 +1023,7 @@ const char *gf_node_get_name(GF_Node*p)
 {
 	GF_SceneGraph *sg; 
 	NodeIDedItem *reg_node;
-	assert(p);
-	if (!(p->sgprivate->flags & GF_NODE_IS_DEF)) return NULL;
+	if (!p || !(p->sgprivate->flags & GF_NODE_IS_DEF)) return NULL;
 
 	sg = p->sgprivate->scenegraph;
 	/*if this is a proto, look in parent graph*/

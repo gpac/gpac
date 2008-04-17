@@ -111,6 +111,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		gf_list_del(st->backs);
 		gf_list_del(st->views);
+		group_2d_destroy(node, (GroupingNode2D*)st);
 		free(st);
 		return;
 	}
@@ -327,6 +328,10 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 		gf_bbox_from_rect(&tr_state->bbox, &st->clip);
 #endif
+		break;
+
+	case TRAVERSE_DRAW_2D:
+		group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
 		break;
 
 #ifndef GPAC_DISABLE_3D

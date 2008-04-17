@@ -48,21 +48,22 @@ typedef struct
 
 
 
-#ifdef GROUP_2D_USE_CACHE
+#ifdef GF_SR_USE_VIDEO_CACHE
+
 
 #define GROUPING_NODE_STACK_2D		\
 	u32 flags;						\
 	GF_Rect bounds;					\
 	struct _group_cache *cache;		\
-	u16 traverse_time;				\
-	u8 changed;						\
-	u8 nb_stats_frame;				\
+	u16 traverse_time;		\
+	u8 changed;				\
+	u8 nb_stats_frame;		\
 	/*cache candidates are sorted by priority*/		\
-	Fixed priority;					\
-	/*size of offscreen cache */	\
-	u32 kbytes_cached;			\
-	/*nb  of objects in the cache*/	\
-	u32 nb_objects;					\
+	Fixed priority;			\
+	/*size of offscreen cache in kbytes*/		\
+	u32 cached_size;		\
+	/*number of objects in cache - for debug purposes only*/		\
+	u32 nb_objects;		\
 
 
 #else
@@ -84,10 +85,15 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 /*traverse all children of the node with the given traversing order*/
 void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, u32 *positions);
 
-#ifdef GROUP_2D_USE_CACHE
-Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state);
-void group_cache_record_stats(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, struct _drawable_context *first_child, Bool skip_first_child, u32 last_cache_idx);
+#ifdef GF_SR_USE_VIDEO_CACHE
+/*traverse the grouping node - returns 1 if the group is cached, in which case children nodes should not need
+to be traversed in SORT mode - this function takes care of zoom changes & stats resetup if needed*/
+Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state);
+/*record the traversal information and turn cache on if possible*/
+void group_2d_cache_evaluate(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, struct _drawable_context *first_child, Bool skip_first_child, u32 last_cache_idx);
 #endif
+
+void group_2d_destroy(GF_Node *node, GroupingNode2D *group);
 
 #ifndef GPAC_DISABLE_3D
 

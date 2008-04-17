@@ -74,6 +74,10 @@ void ra_union_rect(GF_RectArray *ra, GF_IRect *rc);
 /*refreshes the content of the array to have only non-overlapping rects*/
 void ra_refresh(GF_RectArray *ra);
 
+
+/*adds @rc2 to @rc1 - the new @rc1 contains the old @rc1 and @rc2*/
+void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2);
+
 struct _drawable_store
 {
 	struct _drawable *drawable;

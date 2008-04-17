@@ -47,7 +47,7 @@ void SWF_InsertAppearance(SWFReader *read, GF_Node *app)
 	s->appearance = app;
 	gf_node_register(app, (GF_Node *) s);
 
-	SWF_InsertNode(read, (GF_Node *)s);
+	swf_insert_symbol(read, (GF_Node *)s);
 }
 
 Bool col_equal(SFColor c1, SFColor c2)
@@ -138,9 +138,10 @@ GF_Node *SWF_GetAppearance(SWFReader *read, GF_Node *parent, u32 fill_col, Fixed
 }
 
 
-GF_Rect SWF_GetCenteredBounds(SWFShapeRec *srec)
+static GF_Rect SWF_GetCenteredBounds(SWFShape *shape, SWFShapeRec *srec)
 {
 	GF_Rect rc;
+#if 1
 	u32 i;
 	Fixed xm, ym, xM, yM;
 	xM = yM = FIX_MIN;
@@ -154,12 +155,18 @@ GF_Rect SWF_GetCenteredBounds(SWFShapeRec *srec)
 	}
 	rc.width = xM-xm;
 	rc.height = yM-ym;
-	rc.x = xm + rc.width/2;
-	rc.y = ym + rc.height/2;
+	rc.x = xm;
+	rc.y = yM;
+#else
+	rc.width = shape->rc.w;
+	rc.height = shape->rc.h;
+	rc.x = shape->rc.x;
+	rc.y = shape->rc.y + rc.height;
+#endif
 	return rc;
 }
 
-GF_Node *SWF_GetGradient(SWFReader *read, GF_Node *parent, SWFShapeRec *srec)
+static GF_Node *SWF_GetGradient(SWFReader *read, GF_Node *parent, SWFShape *shape, SWFShapeRec *srec)
 {
 	Bool is_radial, has_alpha;
 	GF_Rect rc;
@@ -211,40 +218,75 @@ GF_Node *SWF_GetGradient(SWFReader *read, GF_Node *parent, SWFShapeRec *srec)
 		gf_node_register(((M_Material2D *)app->material)->lineProps, app->material);
 	}
 
-	/*
-		FIXME - THIS IS WRONG, don't have time to investigate how to map gradients into (u, v) space
-	*/
+	rc = SWF_GetCenteredBounds(shape, srec);
 
-	/*get bounds in local coord system*/
-	rc = SWF_GetCenteredBounds(srec);
-
-	/*remove positioning*/
-	srec->mat.m[2] -= rc.x;
-	srec->mat.m[5] -= rc.y;
-	/*set positioning in TEX coords (0,1) and not shape coords*/
-	srec->mat.m[2] = gf_divfix(srec->mat.m[2] , rc.width);
-	srec->mat.m[5] = gf_divfix(srec->mat.m[5], rc.height);
-
-	/*remove gradient square to local shape scaling*/
 	gf_mx2d_init(mx);
-	gf_mx2d_add_scale(&mx, gf_divfix(INT2FIX(32768), rc.width), gf_divfix(INT2FIX(32768), rc.height) );
-	gf_mx2d_add_matrix(&mx, &srec->mat);
+	mx.m[0] = 1/rc.width;
+	mx.m[2] = - rc.x/rc.width;
+	mx.m[4] = 1/rc.height;
+	mx.m[5] = 1 - rc.y/rc.height;
 
-	/*adjust center for radial gradient*/
-	if (rc.width > rc.height) {
-		Fixed ar = gf_divfix(rc.width, rc.height);
-		mx.m[5] += (FIX_ONE-ar)/2;
+	gf_mx2d_pre_multiply(&mx, &srec->mat);
+
+	/*define gradient in SWF pixel coordinates*/
+	if (is_radial ) {
+		gf_node_get_field_by_name(app->texture, "center", &info);
+		((SFVec2f*)info.far_ptr)->x = 0;
+		((SFVec2f*)info.far_ptr)->y = 0;
+
+		gf_node_get_field_by_name(app->texture, "radius", &info);
+		*((SFFloat*)info.far_ptr) = FLT2FIX(819.20);
 	} else {
-		Fixed ar = gf_divfix(rc.height,rc.width);
-		mx.m[2] += (FIX_ONE-ar)/2;
+		gf_node_get_field_by_name(app->texture, "startPoint", &info);
+		((SFVec2f*)info.far_ptr)->x = FLT2FIX(-819.20);
+
+		gf_node_get_field_by_name(app->texture, "endPoint", &info);
+		((SFVec2f*)info.far_ptr)->x = FLT2FIX(819.20);
 	}
 
-	gf_node_get_field_by_name(app->texture, "spreadMethod", &info);
-	*((SFInt32*)info.far_ptr) = 1;
+	/*matrix from local coordinates to texture coordiantes (Y-flip for BIFS texture coordinates)*/
+	gf_mx2d_init(mx);
+	mx.m[0] = 1/rc.width;
+	mx.m[2] = - rc.x/rc.width;
+	mx.m[4] = 1/rc.height;
+	mx.m[5] = 1 - rc.y/rc.height;
+	/*pre-multiply SWF->local coords matrix*/
+	gf_mx2d_pre_multiply(&mx, &srec->mat);
 
 	gf_node_get_field_by_name(app->texture, "transform", &info);
 	*((GF_Node **)info.far_ptr) = SWF_GetBIFSMatrix(read, &mx);
 	gf_node_register(*((GF_Node **)info.far_ptr), app->texture);
+	return (GF_Node *) app;
+}
+
+static GF_Node *SWF_GetBitmap(SWFReader *read, GF_Node *parent, SWFShape *shape, SWFShapeRec *srec)
+{
+	GF_Matrix2D mx;
+	GF_Node *bmp;
+	GF_FieldInfo info;
+	M_Appearance *app;
+	char szDEF[100];
+
+	sprintf(szDEF, "Bitmap%d", srec->img_id);
+	bmp = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
+	if (!bmp) return NULL;
+	app = (M_Appearance *) SWF_NewNode(read, TAG_MPEG4_Appearance);
+	gf_node_register((GF_Node *)app, parent);
+	app->material = SWF_NewNode(read, TAG_MPEG4_Material2D);
+	gf_node_register(app->material, (GF_Node *)app);
+	((M_Material2D *)app->material)->filled = 1;
+
+	app->texture = bmp;
+	gf_node_register(bmp, (GF_Node *)app);
+
+	gf_mx2d_copy(mx, srec->mat);
+	mx.m[0] *= SWF_TWIP_SCALE;
+	mx.m[4] *= SWF_TWIP_SCALE;
+	gf_mx2d_add_scale(&mx, FIX_ONE, -FIX_ONE);
+
+	gf_node_get_field_by_name((GF_Node*)app, "textureTransform", &info);
+	*((GF_Node **)info.far_ptr) = SWF_GetBIFSMatrix(read, &mx);
+	gf_node_register(*((GF_Node **)info.far_ptr), (GF_Node*)app);
 	return (GF_Node *) app;
 }
 
@@ -264,11 +306,17 @@ void SWFShape_SetAppearance(SWFReader *read, SWFShape *shape, M_Shape *n, SWFSha
 				col |= 0xFF000000;
 				n->appearance = SWF_GetAppearance(read, (GF_Node *) n, col, 0, 0);
 			} else {
-				n->appearance = SWF_GetGradient(read, (GF_Node *) n, srec);
+				n->appearance = SWF_GetGradient(read, (GF_Node *) n, shape, srec);
 			}
 			break;
+		case 0x40:
+		case 0x41:
+		case 0x42:
+		case 0x43:
+			n->appearance = SWF_GetBitmap(read, (GF_Node *) n, shape, srec);
+			break;
 		default:
-			swf_report(read, GF_NOT_SUPPORTED, "Bitmap fill_style not supported");
+			swf_report(read, GF_NOT_SUPPORTED, "fill_style %x not supported", srec->type);
 			break;
 		}
 	} else {
@@ -463,36 +511,30 @@ void SWFShape_InsertBIFSShape(M_OrderedGroup *og, M_Shape *n)
 }
 
 /*this is the core of the parser, translates flash to BIFS shapes*/
-GF_Node *SWFShapeToBIFS(SWFReader *read, SWFShape *shape)
+GF_Node *SWFShapeToBIFS(SWFReader *read, SWFShape *shape, GF_Node *_self, Bool last_shape)
 {
 	GF_Node *n;
 	GF_Node *og;
-	u32 i, count;
+	u32 i;
 	SWFShapeRec *srec;
 
-	count = gf_list_count(shape->fill_left);
-	count += gf_list_count(shape->lines);
-	/*empty, return empty shape*/
-	if (!count) {
-		M_Shape *s = (M_Shape *) SWF_NewNode(read, TAG_MPEG4_Shape);
-		s->geometry = SWF_NewNode(read, TAG_MPEG4_Curve2D);
-		gf_node_register(s->geometry, (GF_Node *)s);
-		return (GF_Node *)s;
-	}
-
-	/*direct match, no top group*/
-	if (count == 1) {
-		Bool is_fill = 1;
-		srec = (SWFShapeRec*)gf_list_get(shape->fill_left, 0);
-		if (!srec) {
-			srec = (SWFShapeRec*)gf_list_get(shape->lines, 0);
-			is_fill = 0;
-		}
-		return SWFShapeToCurve2D(read, shape, srec, is_fill);
-	}
-
+	og = _self;
 	/*we need a grouping node*/
-	og = SWF_NewNode(read, TAG_MPEG4_OrderedGroup);
+	if (!_self) {
+
+		/*direct match, no top group*/
+		if (last_shape && (gf_list_count(shape->fill_left) + gf_list_count(shape->lines)==1)) {
+			Bool is_fill = 1;
+			srec = (SWFShapeRec*)gf_list_get(shape->fill_left, 0);
+			if (!srec) {
+				srec = (SWFShapeRec*)gf_list_get(shape->lines, 0);
+				is_fill = 0;
+			}
+			return SWFShapeToCurve2D(read, shape, srec, is_fill);
+		}
+		og = SWF_NewNode(read, TAG_MPEG4_OrderedGroup);
+	}
+
 	i=0;
 	while ((srec = (SWFShapeRec*)gf_list_enum(shape->fill_left, &i))) {
 		n = SWFShapeToCurve2D(read, shape, srec, 1);
@@ -586,7 +628,7 @@ GF_Node *SWF_GetGlyph(SWFReader *read, u32 fontID, u32 gl_index, GF_Node *par)
 	gf_node_register(glyph, par);
 
 	/*also insert glyph*/
-	SWF_InsertNode(read, n);
+	swf_insert_symbol(read, n);
 
 	return glyph;
 }

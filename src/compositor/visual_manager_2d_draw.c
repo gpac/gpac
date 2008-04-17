@@ -94,7 +94,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 	/*background & direct drawing : use ctx clip*/
 	if ((ctx->flags & CTX_IS_BACKGROUND) || tr_state->direct_draw) {
 		if (ctx->bi->clip.width && ctx->bi->clip.height) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s (direct draw)\n", gf_node_get_log_name(ctx->drawable->node) ));
+			//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s (direct draw)\n", gf_node_get_log_name(ctx->drawable->node) ));
 			raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
 			raster->surface_fill(visual->raster_surface, stencil);
 
@@ -112,7 +112,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &visual->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s (indirect draw)\n", gf_node_get_log_name(ctx->drawable->node) ));
+				//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s (indirect draw)\n", gf_node_get_log_name(ctx->drawable->node) ));
 				raster->surface_set_clipper(visual->raster_surface, &clip);
 				raster->surface_fill(visual->raster_surface, stencil);
 
@@ -221,7 +221,7 @@ static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_
 
 	if (ctx->flags & CTX_HAS_APPEARANCE) {
 		visual_2d_get_texture_transform(ctx->appear, txh, &txt_mat, (txh == ctx->aspect.fill_texture) ? 0 : 1, INT2FIX(txh->width), INT2FIX(txh->height));
-//		gf_mx2d_add_matrix(&g_mat, &txt_mat);
+		gf_mx2d_add_matrix(&g_mat, &txt_mat);
 	}
 	/*move to bottom-left corner of bounds */
 	if (ext_mx) gf_mx2d_add_matrix(&g_mat, ext_mx);
