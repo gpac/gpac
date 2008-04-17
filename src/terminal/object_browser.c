@@ -121,7 +121,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 {
 	GF_Channel *ch;
 
-	if (!term || !odm || !info) return GF_BAD_PARAM;
+	if (!term || !odm || !odm->OD || !info) return GF_BAD_PARAM;
 	if (!gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
 
 	memset(info, 0, sizeof(ODInfo));

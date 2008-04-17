@@ -370,6 +370,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 			priv->load_flags = 1;
 			e = gf_sm_load_init(&priv->load);
 			if (!e) {
+				CTXLoad_CheckStreams(priv);
 				gf_sg_set_scene_size_info(priv->inline_scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
 				/*VRML, override base clock*/
 				if ((priv->load.type==GF_SM_LOAD_VRML) || (priv->load.type==GF_SM_LOAD_X3DV) || (priv->load.type==GF_SM_LOAD_X3D)) {

@@ -403,16 +403,15 @@ GF_Err evg_stencil_set_radial_gradient(GF_STENCIL st, Fixed cx, Fixed cy, Fixed 
 }
 
 /*
-	Texture stencil 
+	Texture stencil - this is just a crude texture mapper, it lacks precision and filtering ...
 */
+
+#if 0
 static s32
 mul255(s32 a, s32 b)
 {
 	return ((a+1) * b) >> 8;
 }
-
-#if 0
-/*thx to charcoal for the bilinear filter*/
 static u32 EVG_LERP(u32 c0, u32 c1, u8 t)
 {
 	s32 a0, r0, g0, b0;
@@ -445,18 +444,14 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	u32 *data = surf->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
-//	if (_y<150) return;
-
 	/* reverse to texture coords*/
 	x = INT2FIX(_x);
 	y = INT2FIX(_y);
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);
 
 	/*ugly hack we may have a numerical stability issue*/
-#ifdef GPAC_FIXED_POINT
-	x += FIX_ONE/1000;
-	y += FIX_ONE/1000;
-#endif
+	if (ABS(x) < FIX_ONE/10) x = 0;
+	if (ABS(y) < FIX_ONE/10) y = 0;
 	
 	_fd = INT2FIX(_this->width); 
 	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
@@ -466,7 +461,7 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	_fd = INT2FIX(_this->height); 
 	repeat_t = _this->mod & GF_TEXTURE_REPEAT_T;
 	if (!repeat_t && (y < - _fd)) y = 0;
-	while (y<0) y += _fd;
+	while (y<0) y += _fd;	
 
 	y0 = (s32) FIX2INT(y);
 	has_alpha = (_this->alpha != 255) ? 1 : 0;
@@ -555,29 +550,18 @@ static void bmp_fill_run_straight(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _
 	y = _this->smat.m[4]*_y + _this->smat.m[5];
 
 	/*ugly hack we may have a numerical stability issue*/
-#ifdef GPAC_FIXED_POINT
-	x += FIX_ONE/1000;
-	y += FIX_ONE/1000;
-#endif
+	if (ABS(x)< FIX_ONE/10) x = 0;
+	if (ABS(y)< FIX_ONE/10) y = 0;
 
 	/* and move in absolute coords*/
 	_fdim = INT2FIX(_this->width);
-	if (!(_this->mod & GF_TEXTURE_REPEAT_S)) {
-		if (x<- _fdim) x=0;
-		repeat_s = 0;
-	} else repeat_s = 1;
-
+	repeat_s = (_this->mod & GF_TEXTURE_REPEAT_S);
+	if (!repeat_s && (x <- _fdim)) x=0;
 	while (x<0) x += _fdim;
+
 	_fdim = INT2FIX(_this->height);
-	if (!(_this->mod & GF_TEXTURE_REPEAT_T) && (y<- _fdim)) y=0;
-	while (y<0) {
-		y += _fdim;
-		/*small hack to realign to Y origin - this happens because the raster draws lines between pixels*/
-		if (y<0 && y>=-FIX_ONE/2) {
-			y=0;
-			break;
-		}
-	}
+	if (!(_this->mod & GF_TEXTURE_REPEAT_T) && (y <- _fdim)) y = 0;
+	while (y<0) y += _fdim;
 
 	y0 = FIX2INT(y);
 	y0 = y0 % _this->height;

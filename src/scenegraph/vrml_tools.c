@@ -40,6 +40,7 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 po
 		if ((pos<0) || (cur_pos!=(u32)pos)) {
 			prev = child;
 			child = child->next;
+			cur_pos++;
 			continue;
 		}
 		break;

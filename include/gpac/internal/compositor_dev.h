@@ -50,7 +50,7 @@
 
 
 /*use 2D caching for groups*/
-//#define GROUP_2D_USE_CACHE
+//#define GF_SR_USE_VIDEO_CACHE
 
 
 /*FPS computed on this number of frame*/
@@ -235,6 +235,8 @@ struct __tag_compositor
 	*/
 	u32 recompute_ar;
 
+	Bool zoom_changed;
+
 	/*traversing context*/
 	struct _traversing_state *traverse_state;
 
@@ -408,12 +410,14 @@ struct __tag_compositor
 	u32 traverse_and_direct_draw_time;
 	u32 indirect_draw_time;
 
-#ifdef GROUP_2D_USE_CACHE
-	/*sorted list of cached groups - never rested*/
+#ifdef GF_SR_USE_VIDEO_CACHE
+	/*video cache size / max size in kbytes*/
+	u32 video_cache_current_size, video_cache_max_size;
+	u32 cache_scale, cache_tolerance;
+	/*sorted list (by cache priority) of cached groups - permanent for the lifetime of the scene/cache object*/
 	GF_List *cached_groups;
-	u32 kbytes_cache_total;
-	/*list of groups beiong cached - reseted before each traversal*/
-	GF_List *queue_cached_groups;
+	/*list of groups being cached in one frame */
+	GF_List *cached_groups_queue;
 #endif
 
 };
@@ -742,6 +746,12 @@ struct _traversing_state
 #endif
 
 	Fixed depth;
+
+#ifdef GF_SR_USE_VIDEO_CACHE
+	/*set to 1 if cache evaluation can be skipped - this is only set when there is not enough memory 
+	to cache a sub-group, in which case the group cannot be cached (we're caching in display coordinates)*/
+	Bool cache_too_small;
+#endif
 };
 
 /*
@@ -878,7 +888,8 @@ typedef struct
 	Bool stream_finished;
 	Bool need_release;
 	MFURL url;
-	Bool is_open, is_muted;
+	u32 is_open;
+	Bool is_muted;
 	Bool register_with_renderer, register_with_parent;
 
 	GF_SoundInterface *snd;
@@ -930,6 +941,9 @@ Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res);
 
 void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed old_tx, Fixed old_ty, Bool is_resize);
 
+
+void compositor_set_cache_memory(GF_Compositor *compositor, u32 memory);
+
 #ifndef GPAC_DISABLE_3D
 
 GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *sr);
@@ -974,7 +988,6 @@ void compositor_svg_restore_parent_transformation(GF_TraverseState *tr_state, GF
 void compositor_svg_traverse_children(GF_ChildNodeItem *children, GF_TraverseState *tr_state);
 
 #endif
-
 
 
 /*Text handling*/

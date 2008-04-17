@@ -606,6 +606,7 @@ void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fix
 		compositor->trans_x = gf_mulfix(compositor->trans_x, ratio);
 		compositor->trans_y = gf_mulfix(compositor->trans_y, ratio);
 		compositor->zoom = zoom;
+		compositor->zoom_changed = 1;
 
 		/*recenter visual*/
 		if (!compositor->visual->center_coords) {

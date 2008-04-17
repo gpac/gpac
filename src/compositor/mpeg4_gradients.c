@@ -133,7 +133,7 @@ static void LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2
 	if (!txh->tx_io) return;
 
 	GradientGetMatrix((GF_Node *) lg->transform, mat);
-	
+
 	/*move line to object space*/
 	start.x = gf_mulfix(start.x, bounds->width);
 	end.x = gf_mulfix(end.x, bounds->width);

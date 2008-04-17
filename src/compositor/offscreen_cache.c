@@ -31,13 +31,11 @@
 #include "texturing.h"
 
 #define NUM_STATS_FRAMES		2
-
-#define MIN_OBJECTS_IN_CACHE	1
-#define MAX_CACHED_MEMORY		60		/*maximum allowed memory in kB for the cache*/
-#define PRIORITY_THRESHOLD		0.25		/*FIXME: should be adaptive based on the run-time situation*/
+#define MIN_OBJECTS_IN_CACHE	2
 
 
-
+//#define CACHE_DEBUG_ALPHA
+//#define CACHE_DEBUG_CENTER
 
 void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state) 
 {
@@ -55,10 +53,6 @@ GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node)
 {
 	GroupCache *cache;
 	GF_SAFEALLOC(cache, GroupCache);
-
-	/*add texture to compositor so that we're sure it is inserted last - otherwise we could modify the order of textures
-	if we get called in a composite texture*/
-	gf_list_add(compositor->textures, &cache->txh);
 	gf_sc_texture_setup(&cache->txh, compositor, node);
 	cache->drawable = drawable_new();
 	/*draw the cache through traverse callback*/
@@ -87,11 +81,17 @@ void group_cache_setup(GroupCache *cache, GF_Rect *path_bounds, GF_IRect *pix_bo
 
 	cache->txh.stride = pix_bounds->width * 4;
 	cache->txh.pixelformat = for_gl ? GF_PIXEL_RGBA : GF_PIXEL_ARGB;
+	cache->txh.transparent = 1;
 
 	if (cache->txh.data) free(cache->txh.data);
+#ifdef CACHE_DEBUG_ALPHA
+	cache->txh.stride = pix_bounds->width * 3;
+	cache->txh.pixelformat = GF_PIXEL_RGB_24;
+	cache->txh.transparent = 0;
+#endif
 
 	cache->txh.data = (u8 *) malloc (sizeof(char) * cache->txh.stride * cache->txh.height);
-	memset(cache->txh.data, 0, sizeof(char) * cache->txh.stride * cache->txh.height);
+	memset(cache->txh.data, 0x0, sizeof(char) * cache->txh.stride * cache->txh.height);
 	/*the path of drawable_cache is a rectangle one that is the the bound of the object*/
 	gf_path_reset(cache->drawable->path);
 
@@ -118,8 +118,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 	}
 	else if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
 		force_recompute = 1;
-	} 
-
+	}
 
 	/*we need to redraw the group in an offscreen visual*/
 	if (force_recompute) {
@@ -147,56 +146,58 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		tr_state->visual->type_3d = 0;
 #endif
 
-		/*step 2: collect the bounds of all children*/		
+		/*step 2: insert a DrawableContext for this group in the display list*/
+		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
+
+		/*step 3: collect the bounds of all children*/		
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
 		cache_bounds.width = cache_bounds.height = 0;
 		l = ((GF_ParentNode*)node)->children;
 		while (l) {
+			tr_state->bounds.width = tr_state->bounds.height = 0;
 			gf_node_traverse(l->node, tr_state);
 			l = l->next;
 			gf_rect_union(&cache_bounds, &tr_state->bounds);
 		}
 		tr_state->traversing_mode = TRAVERSE_SORT;
-		
-		if (!tr_state->bounds.width || !tr_state->bounds.height) {
-			gf_mx2d_copy(tr_state->transform, backup);
-			tr_state->in_group_cache = 0;
-			tr_state->direct_draw = prev_flags;
-#ifndef GPAC_DISABLE_3D
-			tr_state->visual->type_3d = type_3d;
-#endif
-			return 0;
-		}
 
-		/*step 3: insert a DrawableContext for this group in the display list*/
-		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
 
 		/*step 4: now we have the bounds:
 			allocate the offscreen memory
 			create temp raster visual & attach to buffer
 			override the tr_state->visual->the_surface with the temp raster
-			!! SAME AS DRAWABLE CACHE: WATCHOUT FOR NON-CENTERED RECT (add translation to visual and 
-			build proper path)
+			add translation (shape is not always centered)
 			setup top clipers
 		*/
 		old_surf = tr_state->visual->raster_surface;
 		offscreen_surface = r2d->surface_new(r2d, tr_state->visual->center_coords);	/*a new temp raster visual*/
 		tr_state->visual->raster_surface = offscreen_surface;
 
-		/*don't waste memory: if scale down is setup at root level, apply it*/
-		scale_x = MIN(tr_state->visual->compositor->scale_x, FIX_ONE);
-		scale_y = MIN(tr_state->visual->compositor->scale_y, FIX_ONE);
+		/*use current surface coordinate scaling to compute the cache*/
+#ifdef GF_SR_USE_VIDEO_CACHE
+		scale_x = tr_state->visual->compositor->cache_scale * backup.m[0] / 100;
+		scale_y = tr_state->visual->compositor->cache_scale * backup.m[4] / 100;
+#else
+		scale_x = backup.m[0];
+		scale_y = backup.m[4];
+#endif
 
+		if (scale_x<0) scale_x = -scale_x;
+		if (scale_y<0) scale_y = -scale_y;
+
+		cache->scale = MAX(scale_x, scale_y);
 		tr_state->bounds = cache_bounds;
 		gf_mx2d_add_scale(&tr_state->transform, scale_x, scale_y);
 		gf_mx2d_apply_rect(&tr_state->transform, &cache_bounds);
+
 		rc1 = gf_rect_pixelize(&cache_bounds);
-		if (rc1.width%2) rc1.width++;
+		if (rc1.width % 2) rc1.width++;
 		if (rc1.height%2) rc1.height++;
 
 		/* Initialize the group cache with the scaled pixelized bounds for texture but the original bounds for path*/
 		group_cache_setup(cache, &tr_state->bounds, &rc1, tr_state->visual->compositor, type_3d);
-			
+
+
 		/*attach the buffer to visual*/
 		r2d->surface_attach_to_buffer(offscreen_surface, cache->txh.data,
 										cache->txh.width, 
@@ -204,6 +205,15 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 										cache->txh.stride, 
 										cache->txh.pixelformat);
 		
+
+		/*recompute the bounds with the final scaling used*/
+		scale_x = gf_divfix(INT2FIX(rc1.width), tr_state->bounds.width);
+		scale_y = gf_divfix(INT2FIX(rc1.height), tr_state->bounds.height);
+		gf_mx2d_init(tr_state->transform);
+		gf_mx2d_add_scale(&tr_state->transform, scale_x, scale_y);
+		cache_bounds = tr_state->bounds;
+		gf_mx2d_apply_rect(&tr_state->transform, &cache_bounds);
+
 		/*centered the bitmap on the visual*/
 		temp_x = -cache_bounds.x;
 		temp_y = -cache_bounds.y;
@@ -285,6 +295,13 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 	if (gf_node_dirty_get(node)) group_ctx->flags |= CTX_TEXTURE_DIRTY;
 
+	{
+#ifdef CACHE_DEBUG_CENTER
+	GF_Matrix2D mx;
+	gf_mx2d_copy(mx, tr_state->transform);
+	gf_mx2d_init(tr_state->transform);
+#endif
+
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		if (!cache->drawable->mesh) {
@@ -297,12 +314,16 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 #endif
 		drawable_finalize_sort(group_ctx, tr_state, NULL);
 	
+#ifdef CACHE_DEBUG_CENTER
+	gf_mx2d_copy(tr_state->transform, mx);
+#endif
+	}
+
 	return (force_recompute==1);
 }
 
 
-#ifdef GROUP_2D_USE_CACHE
-
+#ifdef GF_SR_USE_VIDEO_CACHE
 
 /*guarentee the tr_state->candidate has the lowest delta value*/
 static void group_cache_insert_entry(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
@@ -318,58 +339,87 @@ static void group_cache_insert_entry(GF_Node *node, GroupingNode2D *group, GF_Tr
 		/*if entry's priority is higher than our group, insert our group here*/
 		if (current->priority >= group->priority) {
 			gf_list_insert(cache_candidates, group, i);
-			tr_state->visual->compositor->kbytes_cache_total += group->kbytes_cached;
-			return;
+			break;
 		}
 	}
-	gf_list_add(cache_candidates, group);
-	tr_state->visual->compositor->kbytes_cache_total += group->kbytes_cached;
+	if (i==count)
+		gf_list_add(cache_candidates, group);
+
+	tr_state->visual->compositor->video_cache_current_size += group->cached_size;
+	/*log the information*/
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE]\tAdding object %s\tObjects: %d\tSlope: %g\tSize: %d\tTime: %d\n",
+								gf_node_get_log_name(node),
+								group->nb_objects,	
+								FIX2FLT(group->priority),
+								group->cached_size,
+								group->traverse_time));
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Status (KB): Max: %d\tUsed: %d\tNb Groups: %d\n",
+								tr_state->visual->compositor->video_cache_max_size,
+								tr_state->visual->compositor->video_cache_current_size,
+								gf_list_count(tr_state->visual->compositor->cached_groups)
+								));
 }	
 
 
-static void gf_cache_remove_entry(GF_TraverseState *tr_state, GroupingNode2D *group)
+static Bool gf_cache_remove_entry(GF_Compositor *compositor, GF_Node *node, GroupingNode2D *group)
 {
-	u32 kbytes_remove;
-	GF_List *cache_candidates = tr_state->visual->compositor->cached_groups;
+	u32 bytes_remove = 0;
+	GF_List *cache_candidates = compositor->cached_groups;
 
 	/*auto mode*/
 	if (!group) {
 		group = gf_list_get(cache_candidates, 0);
-		if (!group) return;
+		if (!group) return 0;
 		/*remove entry*/
 		gf_list_rem(cache_candidates, 0);
+		node = NULL;
 	} else {
-		/*remove entry*/
-		gf_list_del_item(cache_candidates, group);
+		/*remove entry if present*/
+		if (gf_list_del_item(cache_candidates, group)<0)
+			return 0;
 	}
 
 	/*disable the caching flag of the group if it was marked as such*/
-	group->flags &= ~GROUP_IS_CACHABLE;
+	if(group->flags & GROUP_IS_CACHABLE) {
+		group->flags &= ~GROUP_IS_CACHABLE;
+		/*the discarded bytes*/
+		bytes_remove = group->cached_size;
+	}
+	
 	/*indicates cache destruction for next frame*/
-	if (group->cache) {
-		fprintf(stdout, "tagging group cache for destruction\n");
+	if (group->cache && (group->flags & GROUP_IS_CACHED)) {
 		group->flags &= ~GROUP_IS_CACHED;
+		/*the discarded bytes*/
+		bytes_remove = group->cached_size;
 	}
 
-	/*the discarded bytes*/
-	kbytes_remove = group->kbytes_cached;
+	if (bytes_remove == 0) return 0;
 
-	/*count back the bytes for paths*/
-/*
-	kbytes_remove -= grp_stats->num_objects * NUM_BYTES_FOR_PATH;
-	if(kbytes_remove < 0)	kbytes_remove = 0;
-*/
+	assert(compositor->video_cache_current_size >= bytes_remove);
+	compositor->video_cache_current_size -= bytes_remove;
 
-	if(tr_state->visual->compositor->kbytes_cache_total < kbytes_remove) return;
-	assert(tr_state->visual->compositor->kbytes_cache_total >= kbytes_remove);
-	tr_state->visual->compositor->kbytes_cache_total -= kbytes_remove;
-	fprintf(stdout, "%d bytes used in cache\n", tr_state->visual->compositor->kbytes_cache_total);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Removing cache %s:\t Objects: %d\tSlope: %g\tBytes: %d\tTime: %d\n",
+										gf_node_get_log_name(node),
+										group->nb_objects,	
+										FIX2FLT(group->priority),
+										group->cached_size,
+										FIX2FLT(group->traverse_time)));
+	
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Status (B): Max: %d\tUsed: %d\tNb Groups: %d\n",
+								compositor->video_cache_max_size,
+								compositor->video_cache_current_size,
+								gf_list_count(compositor->cached_groups)
+								));
+	return 1;
 }
 
+
 /**/
-Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
+Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
 {
 	Bool is_dirty = gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY;
+	Bool zoom_changed = tr_state->visual->compositor->zoom_changed;
 	Bool needs_recompute = 0;
 
 	/*we are currently in a group cache, regular traversing*/
@@ -394,7 +444,7 @@ Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_Trave
 		if (!is_dirty && (group->flags & GROUP_IS_CACHABLE)) {
 			group->flags |= GROUP_IS_CACHED;
 			group->flags &= ~GROUP_IS_CACHABLE;
-			fprintf(stdout, "Turning group %s cache on - size %d\n", gf_node_get_log_name(node), group->kbytes_cached );
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Turning group %s cache on - size %d\n", gf_node_get_log_name(node), group->cached_size ));
 			cache_on = 1;
 		}
 		/*group cache has been turned off in the previous frame*/
@@ -404,7 +454,7 @@ Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_Trave
 			group->changed = is_dirty;
 			group->nb_stats_frame = 0;
 			group->traverse_time = 0;
-			fprintf(stdout, "Turning group %s cache off\n", gf_node_get_log_name(node) );
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Turning group %s cache off\n", gf_node_get_log_name(node) ));
 			return 0;
 		}
 
@@ -414,17 +464,20 @@ Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_Trave
 			} 
 			/*ask for stats again*/
 			else if (group->changed) {
-				fprintf(stdout, "Reseting stats (prev %d frames) for node %s\n", group->nb_stats_frame, gf_node_get_log_name(node) );
 				group->changed = 0;
+				group->nb_stats_frame = 0;
+				group->traverse_time = 0;
+			} else if (zoom_changed) {
 				group->nb_stats_frame = 0;
 				group->traverse_time = 0;
 			}
 			if (is_dirty || (group->nb_stats_frame < NUM_STATS_FRAMES)) {
 				/*force direct draw mode*/
-				if (!is_dirty) tr_state->visual->compositor->traverse_state->invalidate_all = 1;
+				if (!is_dirty)
+					tr_state->visual->compositor->traverse_state->invalidate_all = 1;
 				/*force redraw*/
 				tr_state->visual->compositor->draw_next_frame = 1;
-			}
+			} 			
 			return 0;
 		}
 	}
@@ -437,20 +490,52 @@ Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_Trave
 		}
 		/*otherwise destroy the cache*/
 		else if (group->cache) {
-			gf_cache_remove_entry(tr_state, group);
+			gf_cache_remove_entry(tr_state->visual->compositor, node, group);
 			group_cache_del(group->cache);
 			group->cache = NULL;
 			group->flags &= ~GROUP_IS_CACHED;
 			group->changed = 0;
 			group->nb_stats_frame = 0;
 			group->traverse_time = 0;
-			fprintf(stdout, "Turning group %s cache off due to sub-tree modifications\n", gf_node_get_log_name(node) );
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Turning group %s cache off due to sub-tree modifications\n", gf_node_get_log_name(node) ));
 			return 0;
+		}
+	}
+	/*zoom has changed*/
+	else if (zoom_changed) {
+		/*permanent cache, just recompute*/
+		if (group->flags & GROUP_PERMANENT_CACHE) {
+			group->changed = 1;
+			group->cache->force_recompute = 1;
+		}
+		/*otherwise check if we accept this scale ratio or if we must recompute*/
+		else if (group->cache) {
+			Fixed scale = MAX(tr_state->transform.m[0], tr_state->transform.m[4]);
+
+			if (100*scale >= group->cache->scale*(100 + tr_state->visual->compositor->cache_tolerance)) 
+				zoom_changed = 1;
+			else if ((100+tr_state->visual->compositor->cache_tolerance)*scale <= 100*group->cache->scale) 
+				zoom_changed = 1;
+			else
+				zoom_changed = 0;
+
+			if (zoom_changed) {
+				gf_cache_remove_entry(tr_state->visual->compositor, node, group);
+				group_cache_del(group->cache);
+				group->cache = NULL;
+				group->flags &= ~GROUP_IS_CACHED;
+				group->changed = 0;
+				group->nb_stats_frame = 0;
+				group->traverse_time = 0;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Turning group %s cache off due to zoom changes\n", gf_node_get_log_name(node) ));
+				return 0;
+			}
 		}
 	}
 
 	/*keep track of this cache object for later removal*/
-	gf_list_add(tr_state->visual->compositor->queue_cached_groups, group);
+	if (!(group->flags & GROUP_PERMANENT_CACHE))
+		gf_list_add(tr_state->visual->compositor->cached_groups_queue, group);
 
 	if (!group->cache) {
 		/*ALLOCATE THE CACHE*/
@@ -466,147 +551,108 @@ Bool mpeg4_group2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_Trave
 
 Bool group_cache_compute_stats(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, DrawableContext *first_child, Bool skip_first_child)
 {
-	GF_Rect rc, gr_bounds;
-	GF_Matrix2D mx;
+	GF_Rect group_bounds;
 	DrawableContext *ctx;
-	u32 nb_seg_opaque, nb_seg_alpha, nb_objects, avg_time, nb_obj_prev;
-	Fixed alpha_pixels, opaque_pixels, area_world, area_local, priority;
-	u32 kbytes_incr_sys, prev_sys_size;
+	u32 nb_segments, nb_objects;
+	u32 alpha_pixels, opaque_pixels, area_world;
+	u32 video_cache_max_size, cache_size, prev_cache_size;
+	u32 i;
+	GF_RectArray ra;
 
 	/*compute stats*/
 	nb_objects = 0;
-	nb_seg_opaque = nb_seg_alpha = 0;
+	nb_segments = 0;
 	alpha_pixels = opaque_pixels = 0;
-	prev_sys_size = group->kbytes_cached;
+	prev_cache_size = group->cached_size;
 	/*reset bounds*/
-	gr_bounds.width = gr_bounds.height = 0;
+	group_bounds.width = group_bounds.height = 0;
+	video_cache_max_size = tr_state->visual->compositor->video_cache_max_size;
+
+	/*never cache root node - this should be refined*/
+	if (gf_node_get_parent(node, 0) == NULL) goto group_reject;
+	if (!group->traverse_time) goto group_reject;
+
+	ra_init(&ra);
 
 	ctx = first_child;
 	if (!first_child) ctx = tr_state->visual->context;
 	if (skip_first_child) ctx = ctx->next;
 	/*compute properties for the sub display list*/
 	while (ctx && ctx->drawable) {
-		Fixed area;
+		//Fixed area;
 		u32 alpha_comp;
-
-		/*add to group area*/
-		gf_rect_union(&gr_bounds, &ctx->bi->unclip);
-		nb_objects++;
 		
 		/*get area and compute alpha/opaque coverage*/
-		area = ctx->bi->unclip.width * ctx->bi->unclip.height;
 		alpha_comp = GF_COL_A(ctx->aspect.fill_color);
+
+		/*add to group area*/
+		gf_rect_union(&group_bounds, &ctx->bi->unclip);
+		nb_objects++;
 
 		/*no alpha*/
 		if ((alpha_comp==0xFF) 
 			/*no transparent texture*/
 			&& (!ctx->aspect.fill_texture || !ctx->aspect.fill_texture->transparent)
 		) {
-			Fixed coverage;
-			/*transparent context: ellipse or any path - compute coverage*/
-			if (ctx->flags & CTX_IS_TRANSPARENT) {
-				/*FIXME: we need to get a better fast approximation of the covered area of the path
-				for now, we only estimate to 75%*/
-				coverage = INT2FIX(3) / 4;
-			}
-			/*non-transparent context: rectangle or bitmap*/
-			else {
-				coverage = FIX_ONE;
-			}
-			opaque_pixels += gf_mulfix(area, coverage);
-			nb_seg_opaque += ctx->drawable->path->n_points;
-		} else if (alpha_comp) {
-			alpha_pixels += area;
-			nb_seg_alpha += ctx->drawable->path->n_points;
-		} else {
-			/*don't count stroke areas, this will automatically lower the group coverage and we will
-			not cache groups with mainly strokes*/
+
+			ra_union_rect(&ra, &ctx->bi->clip);		
 		}
+		nb_segments += ctx->drawable->path->n_points;
+
 		ctx = ctx->next;
 	}
-	/*TEST 1: discard visually empty groups*/
-	if (!gr_bounds.width || !gr_bounds.height) goto group_reject;
-	/*TEST 2: discard small groups*/
-	if (nb_objects<MIN_OBJECTS_IN_CACHE) goto group_reject;
-	/*TEST 3: never cache root node - this should be refined*/
-	if (gf_node_get_parent(node, 0) == NULL) goto group_reject;
-	/*TEST 4: low complexity group*/
-	if (nb_seg_alpha+nb_seg_opaque<10) goto group_reject;
 
-	/*compute coverage info in world coords*/
-	area_world = gf_mulfix(gr_bounds.width, gr_bounds.height);
-	area_world = gf_mulfix(area_world, FLT2FIX(0.6));
-	/*TEST 5: discard low coverage groups in world coords (plenty of space wasted)*/
-	if (opaque_pixels+alpha_pixels < area_world) goto group_reject;
-
-	/*and recompute for local coordinate system 
-		!! if skew factors, we have to get the more precise bounds, inverting the matrix won't work !!
-	*/
-	if (tr_state->transform.m[1] || tr_state->transform.m[3]) {
-		GF_ChildNodeItem *l = ((GF_ParentNode*)node)->children;
-
-		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
-		rc.width = rc.height = 0;
-		while (l) {
-			gf_node_traverse(l->node, tr_state);
-			l = l->next;
-			gf_rect_union(&rc, &tr_state->bounds);
-		}
-		tr_state->traversing_mode = TRAVERSE_SORT;
-	} else {
-		gf_mx2d_copy(mx, tr_state->transform);
-		gf_mx2d_inverse(&mx);
-		rc = gr_bounds;
-		gf_mx2d_apply_rect(&mx, &rc);
+	if (
+		/*TEST 1: discard visually empty groups*/
+		(!group_bounds.width || !group_bounds.height) 
+		|| 
+		/*TEST 2: discard small groups*/
+		(nb_objects<MIN_OBJECTS_IN_CACHE) 
+		||	
+		/*TEST 3: low complexity group*/
+		(nb_segments && (nb_segments<10))
+	) {
+		ra_del(&ra);
+		goto group_reject;
 	}
-	area_local = gf_mulfix(rc.width, rc.height);
-
-	/*the memory size system allocates*/
-	kbytes_incr_sys = FIX2INT(area_local / 256);		/*area_local * 4 / 1024 */
-	/*TEST 6: cache is less than 1k (32x32 pixels): discard*/
-	if (!kbytes_incr_sys) goto group_reject;
-	/*TEST 7: cache is larger than our allowed memory: discard*/
-	if (kbytes_incr_sys>=MAX_CACHED_MEMORY) goto group_reject;
-
-	avg_time = group->traverse_time;
-	avg_time /= group->nb_stats_frame;
-	nb_obj_prev = tr_state->visual->num_nodes_prev_frame;
-
-	/*compute the delta value for measuring the group importance*/
-	priority = INT2FIX(avg_time) / kbytes_incr_sys; //(avg_time - Tcache) / (size_cache - drawable_gain)
-
-	/*TEST 8: priority is too low*/
-//	if (priority < PRIORITY_THRESHOLD) goto group_reject;
 	
+	ra_refresh(&ra);
+	opaque_pixels = 0;
+	for (i=0; i<ra.count; i++) {
+		opaque_pixels += ra.list[i].width * ra.list[i].height;
+	}
+	ra_del(&ra);
+	
+	/*get coverage in world coords*/
+	area_world = FIX2INT(group_bounds.width) * FIX2INT(group_bounds.height);
+	
+	/*TEST 4: discard low coverage groups in world coords (plenty of space wasted)
+		we consider that this % of the area is actually drawn - this is of course wrong, 
+		we would need to compute each path coverage in local coords then get the ratio
+	*/
+	if (10*opaque_pixels < 7*area_world) goto group_reject;
 
+	/*the memory size allocated for the cache - cache is drawn in final coordinate system !!*/
+	group_bounds.width = tr_state->visual->compositor->cache_scale * group_bounds.width / 100;
+	group_bounds.height = tr_state->visual->compositor->cache_scale * group_bounds.height / 100;
+	cache_size = FIX2INT(group_bounds.width) * FIX2INT(group_bounds.height) * 4 /* pixelFormat is ARGB*/;
+
+	/*TEST 5: cache is less than 10x10 pixels: discard*/
+	if (cache_size < 400) goto group_reject;
+	/*TEST 6: cache is larger than our allowed memory: discard*/
+	if (cache_size>=video_cache_max_size) {
+		tr_state->cache_too_small = 1;
+		goto group_reject;
+	}
+
+	/*compute the delta value for measuring the group importance for later discard
+		(avg_time - Tcache) / (size_cache - drawable_gain)
+	*/
+	group->priority = INT2FIX(nb_objects*1024*group->traverse_time) / cache_size / group->nb_stats_frame; 
 	/*OK, group is a good candidate for caching*/
 	group->nb_objects = nb_objects;
-	group->kbytes_cached = kbytes_incr_sys;
+	group->cached_size = cache_size;
 
-#if 1
-	fprintf(stdout, "Local stats for cachable group %s at frame %d:\n"
-					"\tNb of Modifications %d\n"
-					"\tNb of Objects %d\n"
-					"\tAverage Traverse Time %g\n"
-					"\tPixel Area: Local %g (World %g)\n"
-					"\tOpaque Pixels %d (%g %%) - %d segments\n"
-					"\tAlpha Pixels %d (%g %%) - %d segments\n"
-					"\tTotal Pixels %d (%g %%) - %d segments\n"
-					"\tGroup Priority %g - Cached Size %d\n"
-					"\n"
-		
-			, gf_node_get_log_name(node)
-			, tr_state->visual->compositor->frame_number
-			, group->changed
-			, nb_objects
-			, INT2FIX(group->traverse_time) / tr_state->visual->compositor->frame_number
-			, area_local, area_world
-			, FIX2INT(opaque_pixels), gf_divfix(100*opaque_pixels, area_local), nb_seg_opaque
-			, FIX2INT(alpha_pixels), gf_divfix(100*alpha_pixels, area_local), nb_seg_alpha
-			, FIX2INT(opaque_pixels+alpha_pixels), gf_divfix(100*(opaque_pixels+alpha_pixels), area_local), nb_seg_alpha+nb_seg_opaque
-			, FIX2FLT(group->priority), group->kbytes_cached
-	);
-#endif
 
 	/*we're moving from non-cached to cached*/
 	if (!(group->flags & GROUP_IS_CACHABLE)) {
@@ -616,19 +662,24 @@ Bool group_cache_compute_stats(GF_Node *node, GroupingNode2D *group, GF_Traverse
 		/*insert the candidate and then update the list in order*/
 		group_cache_insert_entry(node, group, tr_state);
 		/*keep track of this cache object for later removal*/
-		gf_list_add(tr_state->visual->compositor->queue_cached_groups, group);
+		gf_list_add(tr_state->visual->compositor->cached_groups_queue, group);
 
-		fprintf(stdout, "Turning cache on during stat pass for node %s - %d kb used in all caches\n", gf_node_get_log_name(node), tr_state->visual->compositor->kbytes_cache_total );
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Turning cache on during stat pass for node %s - %d kb used in all caches\n", gf_node_get_log_name(node), tr_state->visual->compositor->video_cache_current_size ));
 	}
 	/*update memory occupation*/
 	else {
-		tr_state->visual->compositor->kbytes_cache_total -= prev_sys_size;
-		tr_state->visual->compositor->kbytes_cache_total += group->kbytes_cached;
+		tr_state->visual->compositor->video_cache_current_size -= prev_cache_size;
+		tr_state->visual->compositor->video_cache_current_size += group->cached_size;
+
+		if (group->cache)
+			group->cache->force_recompute = 1;
 	}
 	return 1;
 
 
 group_reject:
+	group->nb_objects = nb_objects;
+	
 	if ((group->flags & GROUP_IS_CACHABLE) || group->cache) {
 		group->flags &= ~GROUP_IS_CACHABLE;
 
@@ -638,29 +689,44 @@ group_reject:
 			group->flags &= ~GROUP_IS_CACHED;
 		}
 		gf_list_del_item(tr_state->visual->compositor->cached_groups, group);
-		tr_state->visual->compositor->kbytes_cache_total -= prev_sys_size;
-
-		fprintf(stdout, "Turning cache off during stat pass for node %s\n", gf_node_get_log_name(node) );
+		tr_state->visual->compositor->video_cache_current_size -= cache_size;
 	}
+	
+#if 0
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] REJECT %s\tObjects: %d\tSlope: %g\tBytes: %d\tTime: %d\n",
+										gf_node_get_log_name(node),
+										group->nb_objects,	
+										FIX2FLT(group->priority),
+										group->cached_size,
+										group->traverse_time
+										));
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Status (B): Max: %d\tUsed: %d\tNb Groups: %d\n",
+								tr_state->visual->compositor->video_cache_max_size,
+								tr_state->visual->compositor->video_cache_current_size,
+								gf_list_count(tr_state->visual->compositor->cached_groups)
+								));
+#endif
 	return 0;
 }
 
 
-void group_cache_record_stats(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, DrawableContext *first_child, Bool skip_first_child, u32 last_cache_idx)
+void group_2d_cache_evaluate(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, DrawableContext *first_child, Bool skip_first_child, u32 last_cache_idx)
 {
 	u32 nb_cache_added, i;
-	GF_Compositor *compositor;
+	Fixed priority;
+	GF_Compositor *compositor = tr_state->visual->compositor;
 
 	/*first frame is unusable for stats because lot of time is being spent building the path and allocating 
 	the drawable contexts*/
-	if (!tr_state->visual->compositor->frame_number || group->changed || tr_state->in_group_cache) {
+	if (!compositor->video_cache_max_size || !compositor->frame_number || group->changed || tr_state->in_group_cache) {
 		group->traverse_time = 0;
 		return;
 	}
 
 	if (group->nb_stats_frame < NUM_STATS_FRAMES) {
 		group->nb_stats_frame++;
-		tr_state->visual->compositor->draw_next_frame = 1;
+		tr_state->visual->compositor->draw_next_frame = 1; 
 		return;
 	}
 	if (group->nb_stats_frame > NUM_STATS_FRAMES) return;
@@ -669,39 +735,62 @@ void group_cache_record_stats(GF_Node *node, GroupingNode2D *group, GF_TraverseS
 	/*the way to produce the result of memory-computation optimization*/
 	if (group_cache_compute_stats(node, group, tr_state, first_child, skip_first_child)) {
 		Fixed avg_time;
-		compositor = tr_state->visual->compositor;
-		nb_cache_added = gf_list_count(compositor->queue_cached_groups) - last_cache_idx - 1;
+		nb_cache_added = gf_list_count(compositor->cached_groups_queue) - last_cache_idx - 1;
 
 		/*force redraw*/
 		tr_state->visual->compositor->draw_next_frame = 1;
 
 		/*update priority by adding cache priorities */
-		avg_time = group->priority * group->kbytes_cached;
+		avg_time = group->priority * group->cached_size / (1024*group->nb_objects);
 
 		/*remove all queued cached groups of this node's children*/
 		for (i=0; i<nb_cache_added; i++) {
 			Fixed cache_time;
-			GroupingNode2D *cache = gf_list_get(compositor->queue_cached_groups, last_cache_idx);
+			GroupingNode2D *cache = gf_list_get(compositor->cached_groups_queue, last_cache_idx);
 			/*we have been computed the prioirity of the group using a cached subtree, update
 			the priority to reflect that the new cache won't use a cached subtree*/
 			if (cache->cache) {
 				/*fixme - this assumes cache draw time is 0*/
-				cache_time = cache->priority * cache->kbytes_cached;
+				cache_time = cache->priority * cache->cached_size / (1024*group->nb_objects);
 				avg_time += cache_time;
 			}
-			gf_cache_remove_entry(tr_state, cache);
+			gf_cache_remove_entry(compositor, NULL, cache);
 			cache->nb_stats_frame = 0;
 			cache->traverse_time = 0;
-			gf_list_rem(compositor->queue_cached_groups, last_cache_idx);
+			gf_list_rem(compositor->cached_groups_queue, last_cache_idx);
 		}
-		group->priority = avg_time / group->kbytes_cached;
-
+		priority = INT2FIX (group->nb_objects*1024*1024*avg_time) / group->cached_size;
+		
 		/*when the memory exceeds the constraint, remove the subgroups that have the lowest deltas*/
-		while (compositor->kbytes_cache_total > MAX_CACHED_MEMORY)	{
-			gf_cache_remove_entry(tr_state, NULL);
-			fprintf(stdout, "removing low priority cache - current total size %d\n", compositor->kbytes_cache_total);
+		while (compositor->video_cache_current_size > compositor->video_cache_max_size)	{
+			gf_cache_remove_entry(compositor, node, NULL);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Removing low priority cache - current total size %d\n", compositor->video_cache_current_size));
 		}
 	}
 }
 
-#endif /*GROUP_2D_USE_CACHE*/
+void compositor_set_cache_memory(GF_Compositor *compositor, u32 memory)
+{
+	/*when the memory exceeds the constraint, remove the subgroups that have the lowest deltas*/
+	while (compositor->video_cache_current_size) {
+		gf_cache_remove_entry(compositor, NULL, NULL);
+	}
+	compositor->video_cache_max_size = memory;
+	/*and force recompute*/
+	compositor->zoom_changed = 1;
+}
+
+#endif /*GF_SR_USE_VIDEO_CACHE*/
+
+void group_2d_destroy(GF_Node *node, GroupingNode2D *group)
+{
+#ifdef GF_SR_USE_VIDEO_CACHE
+	GF_Compositor *compositor = gf_sc_get_compositor(node);
+	if (gf_cache_remove_entry(compositor, node, group)) {
+		/*simulate a zoom changed for cache recompute*/
+		compositor->zoom_changed = 1;
+		compositor->draw_next_frame = 1;
+	}
+	if (group->cache) group_cache_del(group->cache);
+#endif
+}

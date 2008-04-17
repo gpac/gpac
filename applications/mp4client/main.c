@@ -179,7 +179,7 @@ void PrintHelp()
 		"\t7: forces original Aspect Ratio (default)\n"
 		"\n"
 		"\tL: changes to new log level. CF MP4Client usage for possible values\n"
-		"\tM: select new tools to log. CF MP4Client usage for possible values\n"
+		"\tT: select new tools to log. CF MP4Client usage for possible values\n"
 		"\n"
 		"\tl: list available modules\n"
 		"\tc: prints some GPAC configuration info\n"
@@ -773,6 +773,7 @@ static u32 parse_log_tools(char *val)
 		else if (!stricmp(val, "none")) flags = 0;
 		else if (!stricmp(val, "all")) flags = 0xFFFFFFFF;
 		else if (!stricmp(val, "rti")) flags |= GF_LOG_RTI;
+		else if (!stricmp(val, "cache")) flags |= GF_LOG_CACHE;
 		if (!sep) break;
 		sep[0] = ':';
 		val = sep+1;
@@ -1364,7 +1365,7 @@ force_input:
 			gf_log_set_level(parse_log_level(szLog));
 		}
 			break;
-		case 'M':
+		case 'T':
 		{
 			char szLog[1024];
 			fprintf(stdout, "Enter new log tools:\n");
@@ -1377,6 +1378,14 @@ force_input:
 			GF_SystemRTInfo rti;
 			gf_sys_get_rti(rti_update_time_ms, &rti, 0);
 			fprintf(stdout, "GPAC allocated memory "LLD"\n", rti.gpac_memory);
+		}
+			break;
+		case 'M':
+		{
+			u32 size;
+			fprintf(stdout, "Enter new video cache memory in kBytes (current %d):\n", gf_term_get_option(term, GF_OPT_VIDEO_CACHE_SIZE));
+			scanf("%d", &size);
+			gf_term_set_option(term, GF_OPT_VIDEO_CACHE_SIZE, size);
 		}
 			break;
 

@@ -3004,7 +3004,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 				}
 			}
 			/*done loading init frame*/
-			if (init_com) break;
+			if (init_com && parser->au_time) break;
 		}
 		else if (!strcmp(str, "PROTO") || !strcmp(str, "EXTERNPROTO")) {
 			gf_bt_parse_proto(parser, str, init_com ? init_com->new_proto_list : NULL);

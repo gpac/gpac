@@ -641,11 +641,13 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 	//if no private scene is associated	get the node parent graph, retrieve the IS and find the OD
 	if (!is) {
-		Inline_SetScene((M_Inline *) n);
+		M_Inline *inl = (M_Inline *)n;
+		Inline_SetScene(inl);
 		is = (GF_InlineScene *)gf_node_get_private(n);
 		if (!is) {
 			/*just like protos, we must invalidate parent graph until attached*/
-			gf_node_dirty_set(n, 0, 1);
+			if (inl->url.count)
+				gf_node_dirty_set(n, 0, 1);
 			return;
 		}
 	}

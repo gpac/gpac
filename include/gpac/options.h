@@ -249,6 +249,10 @@ enum
 	GF_OPT_YUV_HARDWARE,
 	/*get (set not supported yet) hardware YUV format (value: YUV 4CC) */
 	GF_OPT_YUV_FORMAT,
+
+	/*max video cache size in kbytes*/
+	GF_OPT_VIDEO_CACHE_SIZE,
+
 	
 	/*		3D ONLY OPTIONS		*/
 	/*set/get raster outline flag (value: boolean) - when set, no vectorial outlining is done, only 

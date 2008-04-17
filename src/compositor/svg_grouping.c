@@ -34,6 +34,9 @@
 #include <gpac/nodes_svg_da.h>
 #include <gpac/compositor.h>
 
+/*for svg <g> caching*/
+#include "mpeg4_grouping.h"
+
 
 typedef struct 
 {
@@ -462,6 +465,14 @@ Bool compositor_svg_get_viewport(GF_Node *n, GF_Rect *rc)
 	return 1;
 }
 
+typedef struct
+{
+	GROUPING_NODE_STACK_2D
+#ifndef GF_SR_USE_VIDEO_CACHE
+	struct _group_cache *cache;
+#endif
+
+} SVGgStack;
 
 static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 {
@@ -476,15 +487,20 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	SVGAllAttributes all_atts;
 
 	if (is_destroy) {
-		GroupCache *gc = gf_node_get_private(node);
-		if (gc) group_cache_del(gc);
-
+		SVGgStack *group = gf_node_get_private(node);
+#ifdef GF_SR_USE_VIDEO_CACHE
+		group_2d_destroy(node, group);
+#else
+		if (group->cache) group_cache_del(group->cache);
+#endif
+		free(group);
 		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
 	/*group cache traverse routine*/
 	else if (tr_state->traversing_mode == TRAVERSE_DRAW_2D) {
-		group_cache_draw((GroupCache *) gf_node_get_private(node), tr_state);
+		SVGgStack *group = gf_node_get_private(node);
+		group_cache_draw(group->cache, tr_state);
 		return;
 	}
 
@@ -507,19 +523,61 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
+		SVGgStack *group = gf_node_get_private(node);
+
 		if (all_atts.opacity && (all_atts.opacity->value < FIX_ONE) ) {
-			Bool force_recompute = 0;
-			GroupCache *gc = gf_node_get_private(node);
-			if (!gc) {
-				force_recompute = 1;
-				gc = group_cache_new(tr_state->visual->compositor, node);
-				gf_node_set_private(node, gc);
+			if (!group->cache) {
+				group->cache = group_cache_new(tr_state->visual->compositor, node);
+				group->cache->force_recompute = 1;
 			}
-			gc->opacity = all_atts.opacity->value;
-			group_cache_traverse(node, gc, tr_state, force_recompute);
+			group->cache->opacity = all_atts.opacity->value;
+			if (tr_state->visual->compositor->zoom_changed)
+				group->cache->force_recompute = 1;
+			group->flags |= GROUP_IS_CACHED | GROUP_PERMANENT_CACHE;
+#ifdef GF_SR_USE_VIDEO_CACHE
+			group_2d_cache_traverse(node, group, tr_state);
+#else
+			group_cache_traverse(node, group->cache, tr_state, group->cache->force_recompute);
+#endif
 			gf_node_dirty_clear(node, 0);
+
 		} else {
+#ifdef GF_SR_USE_VIDEO_CACHE
+			Bool group_cached;
+
+			group_cached = group_2d_cache_traverse(node, group, tr_state);
+			gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
+			/*group is not cached, traverse the children*/
+			if (!group_cached) {
+				GF_ChildNodeItem *child;
+				DrawableContext *first_ctx = tr_state->visual->cur_context;
+				u32 cache_too_small = 0;
+				Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? 1 : 0;
+				u32 traverse_time = gf_sys_clock();
+				u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->cached_groups_queue);
+				tr_state->cache_too_small = 0;
+
+				child = ((GF_ParentNode *)node)->children;
+				while (child) {
+					gf_node_traverse(child->node, tr_state);
+					child = child->next;
+					if (tr_state->cache_too_small) 
+						cache_too_small++;
+				}
+
+				if (cache_too_small) {
+					tr_state->cache_too_small = 1;
+				} else {
+					/*get the traversal time for each group*/	
+					traverse_time = gf_sys_clock() - traverse_time;
+					group->traverse_time += traverse_time;
+					/*record the traversal information and turn cache on if possible*/
+					group_2d_cache_evaluate(node, group, tr_state, first_ctx, skip_first_ctx, last_cache_idx);
+				}
+			}
+#else
 			compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
+#endif
 		}
 		drawable_check_focus_highlight(node, tr_state, NULL);
 	} else {
@@ -533,6 +591,10 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 
 void compositor_init_svg_g(GF_Compositor *compositor, GF_Node *node)
 {
+	SVGgStack *stack;
+	GF_SAFEALLOC(stack, SVGgStack);
+	gf_node_set_private(node, stack);
+
 	gf_node_set_callback_function(node, svg_traverse_g);
 }
 

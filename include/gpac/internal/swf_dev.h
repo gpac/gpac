@@ -125,6 +125,9 @@ typedef struct _swf_reader
 	u32 flatten_points;
 
 	u16 prev_od_id, prev_es_id;
+
+	u8 *jpeg_hdr;
+	u32 jpeg_hdr_size;
 } SWFReader;
 
 GF_Node *SWF_NewNode(SWFReader *read, u32 tag);
@@ -166,10 +169,11 @@ typedef struct
 {
 	GF_List *fill_left, *fill_right, *lines;
 	u32 ID;
+	SWFRec rc;
 } SWFShape;
 
 /*converts SWF shape to BIFS shape*/
-GF_Node *SWFShapeToBIFS(SWFReader *read, SWFShape *shape);
+GF_Node *SWFShapeToBIFS(SWFReader *read, SWFShape *shape, GF_Node *_self, Bool last_shape);
 
 /*returns new appearance or USE any existing one (base fill/strike only)*/
 GF_Node *SWF_GetAppearance(SWFReader *read, GF_Node *parent, u32 fill_col, Fixed line_width, u32 l_col);
@@ -234,7 +238,7 @@ GF_Node *SWFTextToBIFS(SWFReader *read, SWFText *text);
 SWFFont *SWF_FindFont(SWFReader *read, u32 fontID);
 
 /*insert node in dictionary*/
-GF_Err SWF_InsertNode(SWFReader *read, GF_Node *n);
+GF_Err swf_insert_symbol(SWFReader *read, GF_Node *n);
 
 GF_Node *SWF_GetBIFSMatrix(SWFReader *read, GF_Matrix2D *mat);
 GF_Node *SWF_GetBIFSColorMatrix(SWFReader *read, GF_ColorMatrix *cmat);
@@ -296,20 +300,6 @@ enum
 	SWF_MX4 = 63,
 	SWF_REFLEX = 777
 };
-
-u32 swf_read_int(SWFReader *read, u32 nbBits);
-u32 swf_align(SWFReader *read);
-void swf_skip_data(SWFReader *read, u32 size);
-void swf_get_rec(SWFReader *read, SWFRec *rc);
-u32 swf_get_32(SWFReader *read);
-u16 swf_get_16(SWFReader *read);
-u32 swf_get_matrix(SWFReader *read, GF_Matrix2D *mat, Bool rescale);
-void swf_get_colormatrix(SWFReader *read, GF_ColorMatrix *cmat);
-GF_Err swf_seek_file_to(SWFReader *read, u32 size);
-u32 swf_get_file_pos(SWFReader *read);
-
-
-GF_Err swf_define_button(SWFReader *read, u32 revision);
 
 
 #endif /*_GF_SWF_DEV_H_*/
