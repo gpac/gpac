@@ -56,8 +56,6 @@
 
 /*other platforms should be setup through configure*/
 
-#include <jsapi.h> 
-
 #endif
 
 
@@ -232,7 +230,7 @@ struct __tag_scene_graph
 	/*DOM nodes*/
 	GF_List *objects;
 	/*DOM document*/
-	JSObject *document;
+	struct JSObject *document;
 #endif
 };
 
@@ -770,7 +768,7 @@ typedef struct
 
 
 #ifdef GPAC_HAS_SPIDERMONKEY
-	JSContext *js_ctx;
+	struct JSContext *js_ctx;
 	struct JSObject *js_obj;
 	struct JSObject *js_browser;
 	/*all attached objects (eg, not created by the script) are stored here so that we don't
@@ -825,20 +823,19 @@ typedef struct
 	GF_DownloadSession *sess;
 } JSFileDownload;
 
-JSContext *gf_sg_ecmascript_new();
-void gf_sg_ecmascript_del(JSContext *);
+struct JSContext *gf_sg_ecmascript_new();
+void gf_sg_ecmascript_del(struct JSContext *);
 
 void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script);
-JSBool gf_sg_script_eventout_set_prop(JSContext *c, JSObject *obj, jsval id, jsval *val);
 
 typedef struct 
 {
 	GF_FieldInfo field;
 	GF_Node *owner;
-	JSObject *obj;
+	struct JSObject *obj;
 
 	/*JS list for MFFields or NULL*/
-	JSObject *js_list;
+	struct JSObject *js_list;
 
 	/*when creating SFnode from inside the script, the node is stored here untill attached to an object*/
 	GF_Node *temp_node;
@@ -848,9 +845,6 @@ typedef struct
 
 	Bool reevaluate;
 } GF_JSField;
-
-void gf_sg_script_to_node_field(JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
-jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool no_cache);
 
 
 #ifndef GPAC_DISABLE_SVG
@@ -862,11 +856,11 @@ typedef struct __tag_svg_script_ctx
 	Bool (*handler_execute)(GF_Node *n, GF_DOM_Event *event);
 	u32 nb_scripts;
 	/*global script context for the scene*/
-	JSContext *js_ctx;
+	struct JSContext *js_ctx;
 	/*global object*/
-	JSObject *global;
+	struct JSObject *global;
 	/*global event object - used to update the associated DOMEvent (JS private stack) when dispatching events*/
-	JSObject *event;
+	struct JSObject *event;
 } GF_SVGJS;
 
 #endif	/*GPAC_DISABLE_SVG*/
@@ -874,24 +868,15 @@ typedef struct __tag_svg_script_ctx
 /*initialize DOM Core (subset) + xmlHTTPRequest API. The global object MUST have private data storage
 and its private data MUST be a scenegraph. This scenegraph is only used to create new documents
 and setup the callback pointers*/
-void dom_js_load(JSContext *c, JSObject *global);
+void dom_js_load(struct JSContext *c, struct JSObject *global);
 /*unloads the DOM core support (to be called upon destruction only, once the JSContext has been destroyed
 to releases all resources used by DOM JS)*/
 void dom_js_unload();
 
 /*defines a new global object "document" of type Document*/
-void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc);
+void dom_js_define_document(struct JSContext *c, struct JSObject *global, GF_SceneGraph *doc);
 /*defines a new global object "evt" of type Event*/
-JSObject *dom_js_define_event(JSContext *c, JSObject *global);
-
-jsval dom_element_construct(JSContext *c, GF_Node *n);
-GF_Node *dom_get_node(JSContext *c, JSObject *obj);
-
-JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-
-void dom_node_set_textContent(GF_Node *n, char *text);
-char *dom_node_flatten_text(GF_Node *n);
+struct JSObject *dom_js_define_event(struct JSContext *c, struct JSObject *global);
 
 #endif	/*GPAC_HAS_SPIDERMONKEY*/
 

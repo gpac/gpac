@@ -32,6 +32,18 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
+#include <jsapi.h> 
+
+jsval dom_element_construct(JSContext *c, GF_Node *n);
+GF_Node *dom_get_node(JSContext *c, JSObject *obj);
+
+JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
+JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
+
+void dom_node_set_textContent(GF_Node *n, char *text);
+char *dom_node_flatten_text(GF_Node *n);
+
+
 #define uDOM_SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
 	memset(&the_class, 0, sizeof(the_class));	\
 	the_class.name = cname;	\
