@@ -36,7 +36,7 @@
 
 #include <gpac/terminal.h>
 #include <gpac/user.h>
-#include <gpac/config.h>
+#include <gpac/config_file.h>
 #include <gpac/module.h>
 #include <gpac/options.h>
 

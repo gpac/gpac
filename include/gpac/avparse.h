@@ -180,14 +180,21 @@ typedef struct
 
 Bool gf_ac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Header *out_hdr);
 
+
+GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
+
+const char *gf_avc_get_profile_name(u8 video_prof);
+
+
 /*gets image size (bs must contain the whole image) 
 @OTI: image type (JPEG=0x6C, PNG=0x6D)
 @width, height: image resolution - for jpeg max size if thumbnail included*/
 void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height, char **dsi, u32 *dsi_len);
 
-GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
+GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size, u32 dst_nb_comp);
 
-const char *gf_avc_get_profile_name(u8 video_prof);
+GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size);
+GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char *dst, u32 *dst_size);
 
 #ifdef __cplusplus
 }

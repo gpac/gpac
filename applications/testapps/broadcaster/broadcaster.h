@@ -13,7 +13,7 @@
 
 /* includes pour gpac library*/
 #include <gpac/bifsengine.h>
-#include <gpac/config.h>
+#include <gpac/config_file.h>
 #include <gpac/thread.h>
 #include <gpac/network.h>
 #include <gpac/ietf.h>

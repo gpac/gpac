@@ -64,7 +64,7 @@ extern "C" {
  *	@{
  */
 
-#include <gpac/config.h>
+#include <gpac/config_file.h>
 
 typedef struct __tag_mod_man GF_ModuleManager;
 
