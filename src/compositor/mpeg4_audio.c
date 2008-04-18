@@ -36,7 +36,8 @@ typedef struct
 
 static void audioclip_activate(AudioClipStack *st, M_AudioClip *ac)
 {
-	gf_sc_audio_open(&st->input, &ac->url, 0, -1);
+	if (gf_sc_audio_open(&st->input, &ac->url, 0, -1) != GF_OK)
+		return;
 	ac->isActive = 1;
 	gf_node_event_out_str((GF_Node *)ac, "isActive");
 
@@ -173,7 +174,8 @@ typedef struct
 
 static void audiosource_activate(AudioSourceStack *st, M_AudioSource *as)
 {
-	gf_sc_audio_open(&st->input, &as->url, 0, -1);
+	if (gf_sc_audio_open(&st->input, &as->url, 0, -1) != GF_OK)
+		return;
 	st->is_active = 1;
 	gf_mo_set_speed(st->input.stream, st->input.speed);
 	/*traverse all graph to get parent audio group*/
