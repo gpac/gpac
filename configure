@@ -1294,12 +1294,12 @@ echo "CONFIG_ZLIB=$has_zlib" >> config.mak
 echo "CONFIG_FT=$has_ft" >> config.mak
 
 echo "CONFIG_JPEG=$has_jpeg" >> config.mak
-if test "$has_jpeg" = "yes" ; then
+if test "$has_jpeg" != "no" ; then
 echo "#define GPAC_HAS_JPEG" >> $TMPH
 fi
 
 echo "CONFIG_PNG=$has_png" >> config.mak
-if test "$has_png" = "yes" ; then
+if test "$has_png" != "no" ; then
 echo "#define GPAC_HAS_PNG" >> $TMPH
 fi
 
