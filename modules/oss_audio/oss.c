@@ -158,7 +158,7 @@ static void OSS_WriteAudio(GF_AudioOutput*dr)
 	OSSCTX();
 	written = dr->FillBuffer(dr->audio_renderer, ctx->wav_buf, ctx->buf_size);
 	/*this will also perform sleep*/
-	write(ctx->audio_dev, ctx->wav_buf, written);
+	if (written) write(ctx->audio_dev, ctx->wav_buf, written);
 }
 
 static void OSS_SetVolume(GF_AudioOutput*dr, u32 Volume) {}
