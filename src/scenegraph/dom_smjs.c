@@ -177,10 +177,14 @@ static void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info)
 		gf_node_changed(n, NULL);
 	} else if (child_modif) {
 		gf_node_dirty_set(n, GF_SG_CHILD_DIRTY, 0);
-	} else {
+	} 
+#ifndef GPAC_DISABLE_SVG
+	else {
 		u32 flag = gf_svg_get_modification_flags((SVG_Element *)n, info);
 		gf_node_dirty_set(n, flag, 0);
 	}
+#endif
+
 	/*trigger rendering*/
 	if (n->sgprivate->scenegraph->NodeCallback)
 		n->sgprivate->scenegraph->NodeCallback(n->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, n, info);
@@ -481,7 +485,9 @@ JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 	((XMLEV_Event*)info.far_ptr)->type = evtType;
 
 	gf_dom_add_text_node((GF_Node *)handler, strdup(callback));
+#ifndef GPAC_DISABLE_SVG
 	handler->handle_event = gf_sg_handle_dom_event;
+#endif
 	/*don't add listener directly, post it and wait for event processing*/
 	gf_dom_listener_post_add((GF_Node *) node, listener);
 	return JS_TRUE;

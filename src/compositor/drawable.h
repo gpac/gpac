@@ -300,4 +300,6 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 
 void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp);
 
+Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *asp, GF_TraverseState *tr_state, GF_Rect *glyph_rc);
+
 #endif

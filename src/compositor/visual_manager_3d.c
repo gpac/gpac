@@ -595,7 +595,7 @@ static void visual_3d_draw_node(GF_TraverseState *tr_state, GF_Node *root_node)
 
 Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual)
 {
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LOG
 	u32 time = gf_sys_clock();
 #endif
 	visual_3d_setup(visual);

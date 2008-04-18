@@ -417,7 +417,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_PAYT: return payt_New();
 	case GF_ISOM_BOX_TYPE_NAME: return name_New();
 	
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: return mvex_New();
 	case GF_ISOM_BOX_TYPE_MEHD: return mehd_New();
 	case GF_ISOM_BOX_TYPE_TREX: return trex_New();
@@ -643,7 +643,7 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_PAYT: payt_del(a); return;
 	case GF_ISOM_BOX_TYPE_NAME: name_del(a); return;
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: mvex_del(a); return;
 	case GF_ISOM_BOX_TYPE_MEHD: mehd_del(a); return;
 	case GF_ISOM_BOX_TYPE_TREX: trex_del(a); return;
@@ -862,7 +862,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_PAYT: return payt_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_NAME: return name_Read(a, bs);
 	
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: return mvex_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_MEHD: return mehd_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TREX: return trex_Read(a, bs);
@@ -1076,7 +1076,7 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_PAYT: return payt_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_NAME: return name_Write(a, bs);
 	
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: return mvex_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_MEHD: return mehd_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TREX: return trex_Write(a, bs);
@@ -1287,7 +1287,7 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_PAYT: return payt_Size(a);
 	case GF_ISOM_BOX_TYPE_NAME: return name_Size(a);
 		
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: return mvex_Size(a);
 	case GF_ISOM_BOX_TYPE_MEHD: return mehd_Size(a);
 	case GF_ISOM_BOX_TYPE_TREX: return trex_Size(a);

@@ -23,7 +23,7 @@
  */
 
 #include "module_wrap.h"
-#include <gpac/config.h>
+#include <gpac/config_file.h>
 
 GF_EXPORT
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)

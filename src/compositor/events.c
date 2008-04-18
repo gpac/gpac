@@ -64,7 +64,6 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 {
 	u8 *txt;
-	u16 *lptr;
 	u32 len;
 	if (!compositor->edited_text) return;
 
@@ -78,6 +77,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 	if (!compositor->sel_buffer_len) {
 		*compositor->edited_text = NULL;
 	} else {
+		const u16 *lptr;
 		txt = malloc(sizeof(char)*2*compositor->sel_buffer_len);
 		lptr = compositor->sel_buffer;
 		len = gf_utf8_wcstombs(txt, 2*compositor->sel_buffer_len, &lptr);
@@ -133,7 +133,6 @@ static void load_text_node(GF_Compositor *compositor, u32 cmd_type)
 	char **res = NULL;
 	u32 prev_pos, pos;
 	Bool append;
-	GF_ChildNodeItem *child;
 
 	append = 0;
 	switch (cmd_type) {
@@ -163,7 +162,7 @@ static void load_text_node(GF_Compositor *compositor, u32 cmd_type)
 		MFString *mf = &((M_Text*)compositor->focus_node)->string;
 
 		if (append) {
-			gf_sg_vrml_mf_append(mf, GF_SG_VRML_MFSTRING, res);
+			gf_sg_vrml_mf_append(mf, GF_SG_VRML_MFSTRING, (void **)res);
 			compositor->dom_text_pos = mf->count;
 		} else if (!cmd_type) {
 			compositor->dom_text_pos = mf->count;
@@ -175,7 +174,8 @@ static void load_text_node(GF_Compositor *compositor, u32 cmd_type)
 		}
 		res = &mf->vals[compositor->dom_text_pos-1];
 	} else {
-		child = ((GF_ParentNode *) compositor->focus_node)->children;
+#ifndef GPAC_DISABLE_SVG
+		GF_ChildNodeItem *child = ((GF_ParentNode *) compositor->focus_node)->children;
 
 		while (child) {
 			switch (gf_node_get_tag(child->node)) {
@@ -198,6 +198,7 @@ static void load_text_node(GF_Compositor *compositor, u32 cmd_type)
 			compositor->dom_text_pos = prev_pos;
 			return;
 		}
+#endif
 	}
 
 	if (compositor->edited_text) {
@@ -205,7 +206,7 @@ static void load_text_node(GF_Compositor *compositor, u32 cmd_type)
 	}
 
 	if (*res) {
-		u8 *src = *res;
+		const char *src = *res;
 		compositor->sel_buffer_alloc = 2+strlen(src);
 		compositor->sel_buffer = malloc(sizeof(u16)*compositor->sel_buffer_alloc);
 
@@ -713,6 +714,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 
 u32 gf_sc_svg_focus_navigate(GF_Compositor *compositor, u32 key_code)
 {
+#ifndef GPAC_DISABLE_SVG
 	SVGAllAttributes atts;
 	GF_DOM_Event evt;
 	u32 ret = 0;
@@ -762,6 +764,9 @@ u32 gf_sc_svg_focus_navigate(GF_Compositor *compositor, u32 key_code)
 		gf_sc_invalidate(compositor, NULL);
 	}
 	return ret;
+#else
+	return 0;
+#endif /*GPAC_DISABLE_SVG*/
 }
 
 /*focus management*/
@@ -771,7 +776,9 @@ static Bool is_focus_target(GF_Node *elt)
 	
 	tag = gf_node_get_tag(elt);
 	switch (tag) {
+#ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_a:
+#endif
 	case TAG_MPEG4_Anchor:
 	case TAG_X3D_Anchor:
 		return 1;
@@ -780,6 +787,7 @@ static Bool is_focus_target(GF_Node *elt)
 	}
 	if (tag<=GF_NODE_FIRST_DOM_NODE_TAG) return 0;
 
+#ifndef GPAC_DISABLE_SVG
 	count = gf_dom_listener_count(elt);	
 	for (i=0; i<count; i++) {
 		GF_FieldInfo info;
@@ -793,6 +801,7 @@ static Bool is_focus_target(GF_Node *elt)
 			}
 		}
 	}
+#endif /*GPAC_DISABLE_SVG*/
 	return 0;
 }
 
@@ -904,6 +913,7 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 
 		child = ((GF_ParentNode*)elt)->children;
 	} else {
+#ifndef GPAC_DISABLE_SVG
 		SVGAllAttributes atts;
 		gf_svg_flatten_attributes((SVG_Element *)elt, &atts);
 
@@ -966,7 +976,8 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 				}
 			}
 		}
-		child = ((SVG_Element*)elt)->children;
+#endif /*GPAC_DISABLE_SVG*/
+		child = ((GF_ParentNode *)elt)->children;
 	}
 
 	if (prev_focus) {
@@ -977,7 +988,7 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		count = gf_node_list_get_count(child);
 		for (i=count; i>0; i--) {
 			/*get in the subtree*/
-			n = gf_node_list_get_child( ((SVG_Element*)elt)->children, i-1);
+			n = gf_node_list_get_child( ((GF_ParentNode *)elt)->children, i-1);
 			n = set_focus(compositor, n, 0, 1);
 			if (n) return n;
 		}
@@ -1034,7 +1045,7 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 			return browse_parent_for_focus(compositor, par, prev_focus);
 		}
 	} else {
-		child = ((SVG_Element*)par)->children;
+		child = ((GF_ParentNode *)par)->children;
 	}
 
 	/*locate element*/
@@ -1100,6 +1111,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 	}
 
 	ret = 0;
+#ifndef GPAC_DISABLE_SVG
 	if (prev != compositor->focus_node) {
 		GF_DOM_Event evt;
 		GF_Event ev;
@@ -1133,6 +1145,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 		/*invalidate in case we draw focus rect*/
 		gf_sc_invalidate(compositor, NULL);
 	}
+#endif /*GPAC_DISABLE_SVG*/
 	return ret;
 }
 

@@ -29,6 +29,8 @@
 u32 time_spent_in_anim = 0;
 #endif
 
+#ifndef GPAC_DISABLE_SVG
+
 
 /**************************************************************************************
  * Each GF_Node holds the (SVG/SMIL) animation elements which target itself in a list *
@@ -708,7 +710,7 @@ static void gf_smil_anim_apply_accumulate(SMIL_Anim_RTI *rai)
 	if (rai->change_detection_mode) {
 		if ((animp->accumulate && *animp->accumulate == SMIL_ACCUMULATE_SUM) 
 			&& nb_iterations > 0
-			&& rai->previous_iteration != nb_iterations) {
+			&& rai->previous_iteration != (s32) nb_iterations) {
 			/* if we actually do accumulation and the number of iteration is different, 
 			then we force the result as changed regardless of the result of the interpolation
 			(TODO: check if this need to be improved)*/
@@ -717,7 +719,7 @@ static void gf_smil_anim_apply_accumulate(SMIL_Anim_RTI *rai)
 			/* if we don't accumulate we leave the value of interpolated_value_changed unchanged */
 		}
 	} else {
-		if (nb_iterations > 0 && rai->previous_iteration != nb_iterations) {
+		if (nb_iterations > 0 && rai->previous_iteration != (s32) nb_iterations) {
 			rai->previous_iteration = nb_iterations;
 		}
 
@@ -958,7 +960,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 			/* If the result of all the combined animations will produce a different result compared to the previous frame,
 			we start in the forward order from the j were the previous step stopped (i.e. the first anim in replace mode)
 			and evaluate each animation, in the computation mode (change_detection_mode = 0)*/
-			for (j++; j<count; j++) {
+			for (j++; j<(s32)count; j++) {
 				SMIL_Anim_RTI *rai = (SMIL_Anim_RTI *)gf_list_get(aa->anims, j);			
 				SMIL_Timing_RTI *rti = rai->timingp->runtime;
 
@@ -1391,3 +1393,4 @@ void gf_smil_anim_init_node(GF_Node *node)
 
 
 
+#endif /*GPAC_DISABLE_SVG*/

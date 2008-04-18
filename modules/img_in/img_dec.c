@@ -31,12 +31,8 @@ static Bool DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectT
 	if (StreamType != GF_STREAM_VISUAL) return 0;
 
 	switch (ObjectType) {
-#ifdef GPAC_HAS_PNG
 	case 0x6D: return NewPNGDec(dec);
-#endif
-#ifdef GPAC_HAS_JPEG
 	case 0x6C: return NewJPEGDec(dec);
-#endif
 #ifdef GPAC_HAS_JP2
 	case 0x6E: return NewJP2Dec(dec);
 #endif
@@ -79,17 +75,12 @@ void DeleteBaseDecoder(GF_BaseDecoder *ifcd)
 {
 	IMGDec *wrap = (IMGDec *)ifcd->privateStack;
 	switch (wrap->type) {
-#ifdef GPAC_HAS_PNG
 	case DEC_PNG:
 		DeletePNGDec(ifcd);
 		break;
-#endif
-
-#ifdef GPAC_HAS_JPEG
 	case DEC_JPEG:
 		DeleteJPEGDec(ifcd);
 		break;
-#endif
 #ifdef GPAC_HAS_JP2
 	case DEC_JP2:
 		DeleteJP2Dec(ifcd);

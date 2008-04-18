@@ -282,7 +282,6 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	stack = gf_node_get_private(node);
 
 	if (is_destroy) {
-		SVGPropertiesPointers *svgp = gf_node_get_private(node);
 		if (stack->svg_props) {
 			gf_svg_properties_reset_pointers(stack->svg_props);
 			free(stack->svg_props);
@@ -334,7 +333,6 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode == TRAVERSE_SORT) {
 		SVG_Paint *vp_fill = NULL;
 		Fixed vp_opacity;
-		GF_IRect *clip = NULL;
 
 		if (tr_state->parent_anim_atts) {
 			vp_fill = tr_state->parent_anim_atts->viewport_fill;

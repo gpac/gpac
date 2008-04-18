@@ -91,10 +91,10 @@ static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compos
 
 	if ((ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) st->active = 1;
 	else if ((ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER)) st->active = 1;
-	else if (st->active &&
-		(/*mouse*/(ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT) 
-		|| /*mouse*/(ev->type==GF_EVENT_KEYUP) && (ev->key.key_code==GF_KEY_ENTER) )
-	) {
+	else if (st->active && (
+		/*mouse*/ ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT))
+		|| /*mouse*/((ev->type==GF_EVENT_KEYUP) && (ev->key.key_code==GF_KEY_ENTER)) 
+	) ) {
 		u32 i;
 		if (gf_node_get_tag(sh->sensor)==TAG_MPEG4_Anchor) {
 			url = & ((M_Anchor *)sh->sensor)->url;

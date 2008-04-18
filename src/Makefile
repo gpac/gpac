@@ -30,30 +30,19 @@ LIBGPAC_ISOM=isomedia/avc_ext.o isomedia/box_code_3gpp.o isomedia/box_code_apple
 LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/ipmpx_code.o odf/ipmpx_dump.o odf/ipmpx_parse.o odf/oci_codec.o odf/odf_code.o odf/odf_codec.o odf/odf_command.o odf/odf_dump.o odf/odf_parse.o odf/qos.o odf/slc.o 
 
 ## libgpac objects gathering: src/scenegraph
-LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o 
-
-ifeq ($(DISABLE_SVG), no)
-LIBGPAC_SCENE+=scenegraph/svg_attributes.o scenegraph/svg_nodes_da.o scenegraph/svg_tools_da.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o
-endif
-
+LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_nodes_da.o scenegraph/svg_tools_da.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o
 
 ## libgpac objects gathering: src/mcrypt
 LIBGPAC_MCRYPT=mcrypt/cbc.o mcrypt/cfb.o mcrypt/ctr.o mcrypt/des.o mcrypt/ecb.o mcrypt/g_crypt.o mcrypt/ncfb.o mcrypt/nofb.o mcrypt/ofb.o mcrypt/rijndael-128.o mcrypt/rijndael-192.o mcrypt/rijndael-256.o mcrypt/stream.o mcrypt/tripledes.o mcrypt/sha1.o 
 
 ## libgpac objects gathering: src/media tools
-LIBGPAC_MEDIATOOLS=media_tools/av_parsers.o media_tools/avilib.o media_tools/gpac_ogg.o media_tools/ismacryp.o media_tools/isom_hinter.o media_tools/isom_tools.o media_tools/media_export.o media_tools/media_import.o media_tools/mpeg2_ps.o media_tools/text_import.o media_tools/saf.o media_tools/mpegts.o media_tools/vobsub.o
+LIBGPAC_MEDIATOOLS=media_tools/av_parsers.o media_tools/avilib.o media_tools/gpac_ogg.o media_tools/img.o media_tools/ismacryp.o media_tools/isom_hinter.o media_tools/isom_tools.o media_tools/media_export.o media_tools/media_import.o media_tools/mpeg2_ps.o media_tools/text_import.o media_tools/saf.o media_tools/mpegts.o media_tools/vobsub.o
 
 ## libgpac objects gathering: src/scene_manager
-LIBGPAC_SCENEMANAGER=scene_manager/loader_bt.o scene_manager/loader_isom.o scene_manager/loader_qt.o scene_manager/loader_xmt.o scene_manager/scene_dump.o scene_manager/scene_manager.o scene_manager/scene_stats.o scene_manager/swf_parse.o scene_manager/swf_shape.o scene_manager/text_to_bifs.o scene_manager/encode_cbk.o scene_manager/encode_isom.o 
-ifeq ($(DISABLE_SVG), no)
-LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg_da.o
-endif
+LIBGPAC_SCENEMANAGER=scene_manager/loader_bt.o scene_manager/loader_isom.o scene_manager/loader_qt.o scene_manager/loader_xmt.o scene_manager/scene_dump.o scene_manager/scene_manager.o scene_manager/scene_stats.o scene_manager/swf_parse.o scene_manager/swf_shape.o scene_manager/text_to_bifs.o scene_manager/encode_cbk.o scene_manager/encode_isom.o scene_manager/loader_svg_da.o
 
 ## libgpac objects gathering: src/terminal
-LIBGPAC_TERMINAL=terminal/channel.o terminal/clock.o terminal/decoder.o terminal/term_node_init.o terminal/inline.o terminal/input_sensor.o terminal/media_control.o terminal/media_manager.o terminal/media_memory.o terminal/media_object.o terminal/media_sensor.o terminal/network_service.o terminal/object_browser.o terminal/object_manager.o terminal/terminal.o 
-ifeq ($(DISABLE_SVG), no)
-LIBGPAC_TERMINAL+=terminal/svg_external.o
-endif
+LIBGPAC_TERMINAL=terminal/channel.o terminal/clock.o terminal/decoder.o terminal/term_node_init.o terminal/inline.o terminal/input_sensor.o terminal/media_control.o terminal/media_manager.o terminal/media_memory.o terminal/media_object.o terminal/media_sensor.o terminal/network_service.o terminal/object_browser.o terminal/object_manager.o terminal/terminal.o terminal/svg_external.o
 
 ## libgpac objects gathering: src/compositor
 LIBGPAC_COMPOSITOR=compositor/audio_input.o compositor/audio_mixer.o compositor/audio_render.o compositor/bindable.o compositor/camera.o compositor/compositor.o compositor/compositor_2d.o compositor/compositor_3d.o compositor/compositor_node_init.o compositor/drawable.o compositor/events.o compositor/font_engine.o compositor/hardcoded_protos.o compositor/mesh.o compositor/mesh_collide.o compositor/mesh_tesselate.o compositor/mpeg4_animstream.o compositor/mpeg4_audio.o compositor/mpeg4_background.o compositor/mpeg4_background2d.o compositor/mpeg4_bitmap.o compositor/mpeg4_composite.o compositor/mpeg4_form.o compositor/mpeg4_geometry_2d.o compositor/mpeg4_geometry_3d.o compositor/mpeg4_geometry_ifs2d.o compositor/mpeg4_geometry_ils2d.o compositor/mpeg4_gradients.o compositor/mpeg4_grouping.o compositor/mpeg4_grouping_2d.o compositor/mpeg4_grouping_3d.o compositor/mpeg4_layer_2d.o compositor/mpeg4_layer_3d.o compositor/mpeg4_layout.o compositor/mpeg4_lighting.o compositor/mpeg4_path_layout.o compositor/mpeg4_sensors.o compositor/mpeg4_sound.o compositor/mpeg4_text.o compositor/mpeg4_textures.o compositor/mpeg4_timesensor.o compositor/mpeg4_viewport.o compositor/navigate.o compositor/offscreen_cache.o compositor/svg_base.o compositor/svg_font.o compositor/svg_geometry.o compositor/svg_grouping.o compositor/svg_media.o compositor/svg_paint_servers.o compositor/svg_text.o compositor/texturing.o compositor/texturing_gl.o compositor/visual_manager.o compositor/visual_manager_2d.o compositor/visual_manager_2d_draw.o compositor/visual_manager_3d.o compositor/visual_manager_3d_gl.o compositor/x3d_geometry.o
@@ -68,86 +57,65 @@ endif
 OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_MCRYPT) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER)
 
 
-## libgpac global compilation and linking options
-#1- zlib support
+CFLAGS+=-DGPAC_HAVE_CONFIG_H
+NEED_LOCAL_LIB="no"
+LINKLIBS=
+SCENEGRAPH_CFLAGS=
+MEDIATOOLS_CFLAGS=
+
+#1 - zlib support
 ifeq ($(CONFIG_ZLIB), local)
 CFLAGS+= -I$(LOCAL_INC_PATH)/zlib
-EXTRALIBS+=-L../extra_lib/lib/gcc
+NEED_LOCAL_LIB="yes"
 endif
-EXTRALIBS+=-lz
+LINKLIBS+=-lz
 
-#2- ssl support
+#2 - ssl support
 ifeq ($(HAS_OPENSSL), yes)
-EXTRALIBS+=$(SSL_LIBS)
+LINKLIBS+=$(SSL_LIBS)
 endif
 
-#3- big-endian config
-ifeq ($(IS_BIGENDIAN), yes)
-CFLAGS+=-DGPAC_BIG_ENDIAN
-endif
-
-
-## libgpac scenegraph compilation and linking options
-SCENEGRAPH_CFLAGS=
+#3 - spidermonkey support
 ifeq ($(CONFIG_JS),no)
 else
-SCENEGRAPH_CFLAGS+=-DGPAC_HAS_SPIDERMONKEY $(JS_FLAGS)
+SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
 ifeq ($(CONFIG_JS),local)
-EXTRALIBS+= -L../extra_lib/lib/gcc
+NEED_LOCAL_LIB="yes"
 endif
-EXTRALIBS+= $(JS_LIBS)
-endif
-
-ifeq ($(DISABLE_SVG), yes)
-SCENEGRAPH_CFLAGS+=-DGPAC_DISABLE_SVG
+LINKLIBS+= $(JS_LIBS)
 endif
 
-## libgpac isomedia compilation options
-ISOMEDIA_CFLAGS=
-ifeq ($(GPACREADONLY), yes)
-ISOMEDIA_CFLAGS=-DGPAC_READ_ONLY
-endif
-ifeq ($(ISOFRAGMENTS), no)
-ISOMEDIA_CFLAGS+= -DGF_ISOM_NO_FRAGMENTS
-endif
 
-## libgpac terminal compilation options
-TERMINAL_CFLAGS=
-ifeq ($(GPACREADONLY), yes)
-TERMINAL_CFLAGS+=-DGPAC_READ_ONLY
-endif
-ifeq ($(DISABLE_SVG), yes)
-TERMINAL_CFLAGS+=-DGPAC_DISABLE_SVG
-endif
-
-## libgpac compositor compilation options
-COMPOSITOR_CFLAGS=
-## SVG disabled
-ifeq ($(DISABLE_SVG), yes)
-COMPOSITOR_CFLAGS+=-DGPAC_DISABLE_SVG
-endif
-## OpenGL not available
+#4 - OpenGL support
 ifeq ($(HAS_OPENGL),yes)
 EXTRALIBS+= $(OGL_LIBS)
+endif
+
+#5 - JPEG support
+ifeq ($(CONFIG_JPEG), no)
 else
-COMPOSITOR_CFLAGS+=-DGPAC_DISABLE_3D
+LINKLIBS+= -ljpeg
+#local lib
+ifeq ($(CONFIG_JPEG), local)
+NEED_LOCAL_LIB="yes"
+MEDIATOOLS_CFLAGS+=-I$(LOCAL_INC_PATH)/jpeg
+endif
 endif
 
-
-## libgpac media tools compilation options
-MEDIATOOLS_CFLAGS=
-ifeq ($(GPACREADONLY), yes)
-MEDIATOOLS_CFLAGS=-DGPAC_READ_ONLY
+#6 - PNG support
+ifeq ($(CONFIG_PNG), no)
+else
+LINKLIBS+= -lpng
+ifeq ($(CONFIG_PNG), local)
+NEED_LOCAL_LIB="yes"
+MEDIATOOLS_CFLAGS+=-I$(LOCAL_INC_PATH)/png
+endif
 endif
 
-## libgpac scene manager compilation options
-SCENEMANAGER_CFLAGS=
-ifeq ($(GPACREADONLY), yes)
-SCENEMANAGER_CFLAGS=-DGPAC_READ_ONLY
+ifeq ($(NEED_LOCAL_LIB), "yes")
+EXTRALIBS+=-L../extra_lib/lib/gcc
 endif
-ifeq ($(DISABLE_SVG), yes)
-SCENEMANAGER_CFLAGS+=-DGPAC_DISABLE_SVG
-endif
+EXTRALIBS+=$(LINKLIBS)
 
 
 ##libgpac library output
@@ -180,51 +148,14 @@ mcrypt: $(LIBGPAC_MCRYPT)
 scenegraph: CFLAGS += $(SCENEGRAPH_CFLAGS)
 scenegraph: $(LIBGPAC_SCENE)
 
-isomedia: CFLAGS+=$(ISOMEDIA_CFLAGS)
-isomedia: $(LIBGPAC_ISOM)
-
-mediatools: CFLAGS+=$(MEDIATOOLS_CFLAGS)
+mediatools: CFLAGS += $(MEDIATOOLS_CFLAGS)
 mediatools: $(LIBGPAC_MEDIATOOLS)
-
-sceneman: CFLAGS+=$(SCENEMANAGER_CFLAGS)
-sceneman: $(LIBGPAC_SCENEMANAGER)
-
-term: CFLAGS+=$(TERMINAL_CFLAGS)
-term: $(LIBGPAC_TERMINAL)
-
-compositor: CFLAGS+=$(COMPOSITOR_CFLAGS)
-compositor: $(LIBGPAC_COMPOSITOR)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 
 
-#64bit
-utils/os_divers.o: 
-utils/os_divers.opic: 
-	utils/os_divers.c
-	$(CC) $(CFLAGS) -D$(CONFIG_OS) -c -o $@ $< 
 
-#IPV6
-utils/os_net.o: 
-utils/os_net.opic: 
-	utils/os_net.c
-ifeq ($(CONFIG_IPV6), yes)
-	$(CC) $(CFLAGS) -DGPAC_IPV6 -c -o $@ $< 
-else
-	$(CC) $(CFLAGS) -c -o $@ $< 
-endif
-
-#OpenSSL
-utils/downloader.o: 
-utils/downloader.opic: 
-	utils/downloader.c
-ifeq ($(HAS_OPENSSL), yes)
-	$(CC) $(CFLAGS) -DGPAC_HAS_SSL -c -o $@ $< 
-else
-	$(CC) $(CFLAGS) -c -o $@ $< 
-endif
-
-$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) isomedia scenegraph mcrypt mediatools sceneman term compositor $(OBJSPIC)
+$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) scenegraph mediatools mcrypt $(OBJSPIC)
 	ar cr ../bin/gcc/libgpac_static.a $(OBJS)
 	ranlib ../bin/gcc/libgpac_static.a
 	$(CC) $(SHFLAGS) -Wl,-soname,$(LIB) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS)

@@ -205,7 +205,7 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 	//write our movie to the file
 	if (movie->openMode != GF_ISOM_OPEN_READ) {
 		gf_isom_get_duration(movie);
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 		//movie fragment mode, just store the fragment
 		if ( (movie->openMode == GF_ISOM_OPEN_WRITE) && (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) {
 			e = StoreFragment(movie);
@@ -1722,7 +1722,7 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 GF_EXPORT
 GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes)
 {
-#ifdef	GF_ISOM_NO_FRAGMENTS
+#ifdef	GPAC_ISOM_NO_FRAGMENTS
 	return GF_NOT_SUPPORTED;
 #else
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;

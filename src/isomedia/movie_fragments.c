@@ -24,7 +24,7 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 GF_TrackExtendsBox *GetTrex(GF_MovieBox *moov, u32 TrackID)
 {

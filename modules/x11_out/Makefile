@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/x11_out
 
-CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H
 # -I/usr/local/arm/3.3.2/include
 
 
@@ -37,7 +37,6 @@ LDFLAGS+=-lXv
 endif
 
 ifeq ($(HAS_OPENGL), yes)
-CFLAGS +=-DGPAC_HAS_OPENGL
 LDFLAGS+=-lGL
 endif
 

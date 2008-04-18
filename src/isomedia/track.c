@@ -338,7 +338,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 }
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset)
 {

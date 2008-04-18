@@ -1038,7 +1038,7 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 	width = 0;
 	flags = 0;
 	if (ctx) {
-		ctx->aspect.pen_props.width;
+		width = ctx->aspect.pen_props.width;
 		ctx->aspect.pen_props.width = 0;
 		flags = ctx->flags;
 	}
@@ -1201,8 +1201,6 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 	}
 	if (is_rv) tr_state->ctx->aspect.fill_color = hl_color;
 }
-
-Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *asp, GF_TraverseState *tr_state, GF_Rect *glyph_rc);
 
 void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events, Drawable *drawable)
 {

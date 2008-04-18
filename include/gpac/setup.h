@@ -225,6 +225,11 @@ char * my_str_lwr(char *str);
 
 /*UNIX likes*/
 
+#ifdef GPAC_HAVE_CONFIG_H
+#include <gpac/internal/config.h>
+#endif
+
+
 /*force large file support*/
 #ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64

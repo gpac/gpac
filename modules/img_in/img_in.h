@@ -50,15 +50,11 @@ typedef struct
 	return 1 for success, 0 otherwise
 all destructors only destroy their private stacks (eg not the interface nor the wraper)
 */
-#ifdef GPAC_HAS_PNG
 Bool NewPNGDec(GF_BaseDecoder *dec);
 void DeletePNGDec(GF_BaseDecoder *dec);
-#endif
 
-#ifdef GPAC_HAS_JPEG
 Bool NewJPEGDec(GF_BaseDecoder *dec);
 void DeleteJPEGDec(GF_BaseDecoder *dec);
-#endif
 
 #ifdef GPAC_HAS_JP2
 Bool NewJP2Dec(GF_BaseDecoder *dec);

@@ -754,7 +754,6 @@ Bool visual_2d_overlaps_overlay(GF_VisualManager *visual, DrawableContext *ctx, 
 
 void visual_2d_flush_overlay_areas(GF_VisualManager *visual, GF_TraverseState *tr_state)
 {
-	u32 res = 0;
 	DrawableContext *ctx;
 	GF_OverlayStack *ol;
 	GF_Compositor *compositor = visual->compositor;
