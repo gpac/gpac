@@ -89,7 +89,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 js32.lib zlib.lib winmm.lib ws2_32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /pdbtype:sept /libpath:"../gpac/extra_lib/lib/w32_deb"
-# ADD LINK32 js32.lib zlib.lib winmm.lib ws2_32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /out:"../../bin/w32_rel/GPAX.dll" /pdbtype:sept /libpath:"../../extra_lib/lib/w32_rel"
+# ADD LINK32 /nologo /subsystem:windows /dll /debug /machine:I386 /out:"../../bin/w32_rel/GPAX.dll" /pdbtype:sept /libpath:"../../extra_lib/lib/w32_rel"
 # Begin Custom Build - Performing registration
 OutDir=.\obj/w32_rel
 TargetPath=\CVS\gpac\bin\w32_rel\GPAX.dll

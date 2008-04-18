@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O1 /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /I "../../src/compositor" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O1 /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /I "../../extra_lib/include/jpeg" /I "../../extra_lib/include/png" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAVE_CONFIG_H" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x40c /d "NDEBUG"
 # ADD RSC /l 0x40c /d "NDEBUG"
@@ -67,7 +67,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /I "../../extra_lib/include/jpeg" /I "../../extra_lib/include/png" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAVE_CONFIG_H" /FD /GZ /c
 # SUBTRACT CPP /Fr /YX
 # ADD BASE RSC /l 0x40c /d "_DEBUG"
 # ADD RSC /l 0x40c /d "_DEBUG"
@@ -586,6 +586,10 @@ SOURCE=..\..\include\gpac\internal\avilib.h
 # Begin Source File
 
 SOURCE=..\..\src\media_tools\gpac_ogg.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\media_tools\img.c
 # End Source File
 # Begin Source File
 
@@ -1205,7 +1209,11 @@ SOURCE=..\..\include\gpac\compositor.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\include\gpac\config.h
+SOURCE=..\..\include\gpac\config_file.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\internal\config_static.h
 # End Source File
 # Begin Source File
 

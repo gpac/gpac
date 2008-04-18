@@ -24,7 +24,7 @@
 
 #include <gpac/isomedia.h>
 #include <gpac/ietf.h>
-#include <gpac/config.h>
+#include <gpac/config_file.h>
 #include <gpac/base_coding.h>
 
 GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file, 

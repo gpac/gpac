@@ -22,15 +22,15 @@
  *
  */
 
-#ifndef _GF_CONFIG_H_
-#define _GF_CONFIG_H_
+#ifndef _GF_CONFIG_FILE_H_
+#define _GF_CONFIG_FILE_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*!
- *	\file <gpac/config.h>
+ *	\file <gpac/config_file.h>
  *	\brief configuration file functions.
  */
 
@@ -154,5 +154,5 @@ void gf_cfg_del_section(GF_Config *cfgFile, const char *secName);
 #endif
 
 
-#endif		/*_GF_CONFIG_H_*/
+#endif		/*_GF_CONFIG_FILE_H_*/
 

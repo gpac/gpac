@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <aygshell.h>
 
-#include <gpac/config.h>
+#include <gpac/config_file.h>
 #include "resource.h"
 
 static HINSTANCE g_hInst = NULL;

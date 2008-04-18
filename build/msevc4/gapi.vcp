@@ -50,7 +50,7 @@ RSC=rc.exe
 # ADD BASE RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "NDEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "NDEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD BASE CPP /nologo /W3 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "GAPI_EXPORTS" /YX /O2 /M$(CECrtMT) /c
-# ADD CPP /nologo /W3 /Oxt /I "../../include" /I "../../extra_lib/include" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "GPAC_USE_OGL_ES" /M$(CECrtMT) /c
+# ADD CPP /nologo /W3 /Oxt /I "../../include" /I "../../extra_lib/include" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "GPAC_HAVE_CONFIG_H" /M$(CECrtMT) /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
@@ -81,7 +81,7 @@ LINK32=link.exe
 # ADD BASE RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "DEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "DEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD BASE CPP /nologo /W3 /Zi /Od /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_USRDLL" /D "GAPI_EXPORTS" /YX /M$(CECrtMTDebug) /c
-# ADD CPP /nologo /W3 /Zi /Od /I "../../include" /I "../../extra_lib/include/" /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_USRDLL" /D "GPAC_USE_OGL_ES" /FR /M$(CECrtMTDebug) /c
+# ADD CPP /nologo /W3 /Zi /Od /I "../../include" /I "../../extra_lib/include/" /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_USRDLL" /D "GPAC_HAVE_CONFIG_H" /FR /M$(CECrtMTDebug) /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
@@ -105,9 +105,10 @@ DEP_CPP_GAPI_=\
 	"..\..\extra_lib\include\GLES\egl.h"\
 	"..\..\extra_lib\include\GLES\gl.h"\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -119,10 +120,8 @@ DEP_CPP_GAPI_=\
 	{$(INCLUDE)}"aygshell.h"\
 	{$(INCLUDE)}"gx.h"\
 	{$(INCLUDE)}"sipapi.h"\
+	{$(INCLUDE)}"vibrate.h"\
 	{$(INCLUDE)}"winuserm.h"\
-	
-NODEP_CPP_GAPI_=\
-	"C:\Program Files\Windows CE Tools\wce420\POCKET PC 2003\Include\ARMV4\vibrate.h"\
 	
 # End Source File
 # Begin Source File

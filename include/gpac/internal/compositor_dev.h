@@ -666,7 +666,6 @@ struct _traversing_state
 	/*SVG text rendering state*/
 	Bool in_svg_text;
 	Bool in_svg_text_area;
-	GF_Node *text_parent;
 
 	/* current chunk & position of last placed text chunk*/
 	u32 chunk_index;
@@ -685,6 +684,7 @@ struct _traversing_state
 	flattening the DOMText nodes*/
 	Bool last_char_was_space;
 #endif
+	GF_Node *text_parent;
 
 	/*current context to be drawn - only set when drawing in 2D mode or 3D for SVG*/
 	struct _drawable_context *ctx;
@@ -988,7 +988,6 @@ void compositor_svg_restore_parent_transformation(GF_TraverseState *tr_state, GF
 void compositor_svg_traverse_children(GF_ChildNodeItem *children, GF_TraverseState *tr_state);
 
 #endif
-
 
 /*Text handling*/
 

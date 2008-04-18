@@ -33,6 +33,16 @@ extern "C" {
 /*WIN32 and WinCE config*/
 #if defined(WIN32) || defined(_WIN32_WCE)
 
+#ifdef GPAC_HAVE_CONFIG_H
+
+#if defined(__GNUC__)
+#include <gpac/internal/config.h>
+#else
+#include <gpac/internal/config_static.h>
+#endif
+
+#endif
+
 /*common win32 parts*/
 #include <stdio.h>
 #include <stdlib.h>
