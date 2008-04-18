@@ -130,7 +130,7 @@ enum
 	GF_ISOM_BOX_TYPE_PDIN	= GF_4CC( 'p', 'd', 'i', 'n' ),
 	GF_ISOM_BOX_TYPE_SDTP	= GF_4CC( 's', 'd', 't', 'p' ),
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	/*Movie Fragments*/
 	GF_ISOM_BOX_TYPE_MVEX	= GF_4CC( 'm', 'v', 'e', 'x' ),
 	GF_ISOM_BOX_TYPE_MEHD	= GF_4CC( 'm', 'e', 'h', 'd' ),
@@ -392,7 +392,7 @@ typedef struct
 	GF_MovieHeaderBox *mvhd;
 	GF_ObjectDescriptorBox *iods;
 	GF_UserDataBox *udta;
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	struct __tag_mvex_box *mvex;
 #endif
 	/*meta box if any*/
@@ -1281,7 +1281,7 @@ typedef struct __tag_meta_box
 
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 /*V2 boxes - Movie Fragments*/
 
@@ -1771,7 +1771,7 @@ GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, char *data, u32 dataSize);
 /*time def for MP4/QT/MJ2K files*/
 #define GF_ISOM_MAC_TIME_OFFSET 2082758400/*208284480 */
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 #define GF_ISOM_FORMAT_FRAG_FLAGS(pad, sync, deg) ( ( (pad) << 17) | ( ( !(sync) ) << 16) | (deg) );
 #define GF_ISOM_GET_FRAG_PAD(flag) ( (flag) >> 17) & 0x7
 #define GF_ISOM_GET_FRAG_SYNC(flag) ( ! ( ( (flag) >> 16) & 0x1))
@@ -1824,7 +1824,7 @@ struct __tag_isom {
 	/*meta box if any*/
 	GF_MetaBox *meta;
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	u32 FragmentsFlags, NextMoofNumber;
 	/*active fragment*/
 	GF_MovieFragmentBox *moof;
@@ -1967,7 +1967,7 @@ GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSampleFragments(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber);
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 GF_Err StoreFragment(GF_ISOFile *movie);
 #endif
 
@@ -2595,7 +2595,7 @@ GF_Err gppc_Size(GF_Box *s);
 #endif
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 GF_Box *mvex_New();
 GF_Box *trex_New();
 GF_Box *moof_New();
@@ -2933,7 +2933,7 @@ GF_Err rtpo_dump(GF_Box *a, FILE * trace);
 
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 GF_Err mvex_dump(GF_Box *a, FILE * trace);
 GF_Err mehd_dump(GF_Box *a, FILE * trace);
 GF_Err trex_dump(GF_Box *a, FILE * trace);

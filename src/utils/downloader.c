@@ -31,10 +31,6 @@
 #include <gpac/list.h>
 #include <gpac/base_coding.h>
 
-#ifdef WIN32
-//#define GPAC_HAS_SSL
-#endif
-
 
 #ifdef GPAC_HAS_SSL
 #include <openssl/ssl.h>

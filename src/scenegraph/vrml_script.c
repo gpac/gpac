@@ -27,6 +27,13 @@
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
+#if defined(GPAC_HAS_SPIDERMONKEY) && !defined(__GNUC__)
+# if defined(_WIN32_WCE)
+#  pragma comment(lib, "js")
+# elif defined (WIN32)
+#  pragma comment(lib, "js32")
+# endif
+#endif
 
 static u32 script_get_nb_static_field(GF_Node *node) 
 {

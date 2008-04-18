@@ -854,9 +854,13 @@ EXPORTS
 	gf_m4a_get_profile_name
 	gf_vorbis_parse_header
 	gf_vorbis_check_frame
-	gf_img_parse
 	gf_avc_get_sps_info
 	gf_avc_get_profile_name
+	gf_img_parse
+	gf_img_jpeg_dec
+	gf_img_png_dec
+	gf_img_png_enc
+
 
 ;ismacryp.h exports
 	gf_ismacryp_crypt_file
@@ -1143,7 +1147,7 @@ EXPORTS
 	gf_sc_audio_stop
 	gf_sc_audio_restart
 	gf_sc_get_compositor
-	gf_sc_svg_convert_length_to_display
+	
 
 ;terminal_dev exports
 	gf_inline_new
@@ -1201,45 +1205,18 @@ EXPORTS
 	gf_laser_encoder_get_config
 	gf_laser_encoder_get_rap
 
-;SVG exports
-	gf_svg_create_attribute_value
-	gf_svg_delete_attribute_value
-	gf_svg_attributes_equal
-	gf_svg_attributes_copy
-	gf_svg_attributes_add
-	gf_svg_attributes_interpolate
-	gf_svg_attributes_muladd
+;SVG exports for SVG->BIFS
+	gf_svg_get_attribute_by_tag
 	gf_svg_parse_attribute
 	gf_svg_parse_style
+	gf_svg_flatten_attributes
+	gf_svg_apply_inheritance
 	gf_svg_properties_init_pointers
 	gf_svg_properties_reset_pointers
-	gf_svg_apply_animations
 	gf_svg_register_iri
 	gf_svg_unregister_iri
-	gf_svg_path_build
-	gf_svg_store_embedded_data
-	gf_svg_has_appearance_flag_dirty
-	gf_svg_flatten_attributes
-	gf_svg_get_attribute_by_tag
-	gf_svg_apply_inheritance
 
-	gf_smil_timing_init_runtime_info
-	gf_smil_timing_get_normalized_simple_time
-	gf_smil_timing_is_active
-	gf_smil_timing_insert_clock
-	gf_smil_set_media_duration
-	gf_smil_notify_timed_elements
 
-	gf_dom_listener_build
-	gf_dom_listener_add
-	gf_dom_listener_del
-	gf_dom_listener_count
-	gf_dom_listener_get
-	gf_dom_event_fire
-	gf_dom_event_type_by_name
-	gf_dom_event_get_name
-
-	gf_term_get_mfurl_from_xlink
 
 ;	gf_svg_sa_apply_inheritance
 ;	gf_svg_sa_node_type_by_class_name

@@ -42,9 +42,8 @@
 
 #include <GL/gl.h>
 
-#ifndef GPAC_USE_TINYGL
+#ifdef GPAC_HAS_GLU
 #include <GL/glu.h>
-#define GPAC_HAS_GLU
 #endif
 
 #endif

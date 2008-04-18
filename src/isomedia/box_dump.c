@@ -170,7 +170,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_FTYP: return ftyp_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_FADB: return padb_dump(a, trace);
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: return mvex_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_MEHD: return mehd_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_TREX: return trex_dump(a, trace);
@@ -319,7 +319,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 		case GF_ISOM_BOX_TYPE_FREE:
 		case GF_ISOM_BOX_TYPE_META:
 		case GF_ISOM_BOX_TYPE_SKIP:
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_MOOF:
 #endif
 			break;
@@ -414,7 +414,7 @@ GF_Err moov_dump(GF_Box *a, FILE * trace)
 	if (p->meta) gf_box_dump(p->meta, trace);
 	gf_box_dump(p->mvhd, trace);
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	if (p->mvex) gf_box_dump(p->mvex, trace);
 #endif
 
@@ -2018,7 +2018,7 @@ GF_Err rtpo_dump(GF_Box *a, FILE * trace)
 
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 GF_Err mvex_dump(GF_Box *a, FILE * trace)
 {

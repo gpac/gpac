@@ -27,8 +27,18 @@
 #ifndef GPAC_DISABLE_3D
 
 #include <gpac/options.h>
-
 #include "gl_inc.h"
+
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
+# if defined(GPAC_USE_TINYGL)
+#  pragma comment(lib, "TinyGL")
+# elif defined(GPAC_USE_OGL_ES)
+#  pragma comment(lib, "libGLES_CM")
+# else
+#  pragma comment(lib, "opengl32")
+#  pragma comment(lib, "glu32")
+# endif
+#endif
 
 /*!! HORRIBLE HACK, but on my test devices, it seems that glClipPlanex is missing on the device but not in the SDK lib !!*/
 #if defined(GL_MAX_CLIP_PLANES) && defined(__SYMBIAN32__)

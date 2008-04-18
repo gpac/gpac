@@ -27,6 +27,10 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/bitstream.h>
 #include <gpac/math.h>
+
+#ifndef GPAC_DISABLE_SVG
+
+
 #include <gpac/events.h>
 
 
@@ -3933,3 +3937,4 @@ static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool r
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_SVG*/

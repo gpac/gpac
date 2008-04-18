@@ -32,6 +32,7 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg_da.h>
 #include <gpac/compositor.h>
+#include <gpac/network.h>
 
 
 char *gf_term_resolve_xlink(GF_Node *node, char *the_url)

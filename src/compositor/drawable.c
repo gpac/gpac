@@ -836,7 +836,7 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 			tr_state->bounds.width = tr_state->bounds.height = 0;
 			tr_state->bounds.x = tr_state->bounds.y = 0;
 
-			gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
+			gf_sc_get_nodes_bounds(node, ((GF_ParentNode *)node)->children, tr_state);
 			
 			tr_state->traversing_mode = prev_mode;
 			gf_mx2d_copy(tr_state->transform, cur);
@@ -1094,17 +1094,14 @@ void compositor_init_lineprops(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, DestroyLineProps);
 }
 
-#ifndef GPAC_DISABLE_SVG
+#ifdef GPAC_DISABLE_SVG
 
-#if 0
-static GF_Node *svg_get_texture_target(GF_Node *node, DOM_String uri)
+Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *tr_state)
 {
-	GF_Node *target = NULL;
-	if (uri[0]=='#') target = gf_sg_find_node_by_name(gf_node_get_graph(node), uri+1);
-	return target;
+	return 0;
 }
-#endif
 
+#else
 
 Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *tr_state)
 {

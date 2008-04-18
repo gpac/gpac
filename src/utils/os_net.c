@@ -27,21 +27,32 @@
 
 #ifdef _WIN32_WCE
 #include <winsock.h>
+
+#if !defined(__GNUC__)
+#pragma comment(lib, "winsock")
+#endif
+
 #else
+
 #include <sys/timeb.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+
+#if !defined(__GNUC__)
+#pragma comment(lib, "ws2_32")
+#endif
+
 #endif
 
 #include <windows.h>
 
 #if !defined(__GNUC__)
 
-#if 0 && defined(IPV6_MULTICAST_IF)
-#define GPAC_IPV6 1
+#if defined(IPV6_MULTICAST_IF)
+#define GPAC_HAS_IPV6 1
 #pragma message("Using WinSock IPV6")
 #else
-#undef GPAC_IPV6
+#undef GPAC_HAS_IPV6
 #pragma message("Using WinSock IPV4")
 #endif
 
@@ -110,7 +121,7 @@ typedef s32 SOCKET;
 
 #define SOCK_MICROSEC_WAIT	500
 
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 static u32 ipv6_check_state = 0;
 #endif
 
@@ -131,7 +142,7 @@ struct __tag_socket
 	u32 flags;
 	SOCKET socket;
 	/*destination address for sendto/recvfrom*/
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	struct sockaddr_storage dest_addr;
 #else
 	struct sockaddr_in dest_addr;
@@ -156,7 +167,7 @@ void gf_net_get_ntp(u32 *sec, u32 *frac)
 
 u32 gf_net_has_ipv6()
 {
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	if (!ipv6_check_state) {
 		SOCKET s;
 #ifdef WIN32
@@ -194,7 +205,7 @@ Bool gf_net_is_ipv6(char *address)
 	return sep ? 1 : 0;
 }
 
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 static struct addrinfo *gf_sk_get_ipv6_addr(char *PeerName, u16 PortNumber, int family, int flags, int sock_type)
 {
 	struct	addrinfo *res=NULL;
@@ -251,7 +262,7 @@ GF_Err gf_sk_get_host_name(char *buffer)
 
 GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer)
 {
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	char clienthost[NI_MAXHOST];
 	if (sock->flags & GF_SOCK_HAS_PEER) {
 		if (getnameinfo((struct sockaddr *)&sock->dest_addr, sock->dest_addr_len, clienthost, sizeof(clienthost), NULL, 0, NI_NUMERICHOST)) 
@@ -296,7 +307,7 @@ GF_Socket *gf_sk_new(u32 SocketType)
 	if (!tmp) return NULL;
 	if (SocketType == GF_SOCK_TYPE_TCP) tmp->flags |= GF_SOCK_IS_TCP;
 
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	memset(&tmp->dest_addr, 0, sizeof(struct sockaddr_storage));
 #else
 	memset(&tmp->dest_addr, 0, sizeof(struct sockaddr_in));
@@ -347,7 +358,7 @@ static void gf_sk_free(GF_Socket *sock)
 	/*leave multicast*/
 	if (sock->socket && (sock->flags & GF_SOCK_IS_MULTICAST) ) {
 		struct ip_mreq mreq;
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 		struct sockaddr *addr = (struct sockaddr *)&sock->dest_addr;
 		if (addr->sa_family==AF_INET6) {
 		    struct ipv6_mreq mreq6; 
@@ -396,7 +407,7 @@ s32 gf_sk_get_handle(GF_Socket *sock)
 GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 {
 	s32 ret;
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	u32 type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
 	struct addrinfo *res, *aip;
 
@@ -476,7 +487,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 //this will enable reuse of ports on a single machine
 GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32 options)
 {
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	struct addrinfo *res, *aip;
 	int af;
 	u32 type;
@@ -491,7 +502,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 
 	if (!sock || sock->socket) return GF_BAD_PARAM;
 
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
 	af = (options & GF_SOCK_FORCE_IPV6) ? PF_INET6 : PF_UNSPEC;
 	if (!gf_net_has_ipv6()) af = PF_INET;
@@ -678,7 +689,7 @@ GF_Err gf_sk_send(GF_Socket *sock, char *buffer, u32 length)
 
 u32 gf_sk_is_multicast_address(char *multi_IPAdd)
 {
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	u32 val;
  	char *sep;
 	struct addrinfo *res;
@@ -710,7 +721,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 	u32 flag; 
 	struct ip_mreq M_req;
 	u32 optval;
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	struct sockaddr *addr;
 	struct addrinfo *res, *aip;
 	u32 type;
@@ -725,7 +736,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 	/*check the address*/
 	if (!gf_sk_is_multicast_address(multi_IPAdd)) return GF_BAD_PARAM;
 
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
 	res = gf_sk_get_ipv6_addr(local_interface_ip, MultiPortNumber, AF_UNSPEC, AI_PASSIVE, type);
 	if (!res) {
@@ -999,7 +1010,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	if (!ready || !FD_ISSET(sock->socket, &Group)) return GF_IP_NETWORK_EMPTY;
 #endif
 
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	client_address_size = sizeof(struct sockaddr_in6);
 #else
 	client_address_size = sizeof(struct sockaddr_in);
@@ -1020,7 +1031,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	(*newConnection) = (GF_Socket *) malloc(sizeof(GF_Socket));
 	(*newConnection)->socket = sk;
 	(*newConnection)->flags = sock->flags & ~GF_SOCK_IS_LISTENING;
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	memcpy( &(*newConnection)->dest_addr, &sock->dest_addr, client_address_size);
 	memset(&sock->dest_addr, 0, sizeof(struct sockaddr_in6));
 #else
@@ -1033,7 +1044,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 
 GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *Port, u32 *Familly)
 {
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	struct sockaddr_in6 the_add;
 #else
 	struct sockaddr_in the_add;
@@ -1043,7 +1054,7 @@ GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *Port, u32 *Familly)
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
 
 	if (Port) {
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 		size = sizeof(struct sockaddr_in6);
 		if (getsockname(sock->socket, (struct sockaddr *) &the_add, &size) == SOCKET_ERROR) return GF_IP_NETWORK_FAILURE;
 		*Port = (u32) ntohs(the_add.sin6_port);
@@ -1083,7 +1094,7 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 
 GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 {
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	char clienthost[NI_MAXHOST];
  	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)(&sock->dest_addr_len);
 	if (!sock || sock->socket) return GF_BAD_PARAM;
@@ -1104,7 +1115,7 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 GF_Err gf_sk_send_to(GF_Socket *sock, char *buffer, u32 length, char *remoteHost, u16 remotePort)
 {
 	u32 Count, Res, remote_add_len;
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	struct sockaddr_storage remote_add;
 #else
 	struct sockaddr_in remote_add;
@@ -1141,7 +1152,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, char *buffer, u32 length, char *remoteHost
 
 
 	/*setup the address*/
-#ifdef GPAC_IPV6
+#ifdef GPAC_HAS_IPV6
 	remote_add.ss_family = AF_INET6;
 	//if a remote host is specified, use it. Otherwise use the default host
 	if (remoteHost) {

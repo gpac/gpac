@@ -461,7 +461,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		}
 	} else {
 
-#ifndef GPAC_USE_OGL_ES
+#ifdef GPAC_HAS_GLU
 		if (!txh->compositor->disable_glu_scale) {
 			gluScaleImage(txh->tx_io->gl_format, txh->width, txh->height, GL_UNSIGNED_BYTE, data, txh->tx_io->rescale_width, txh->tx_io->rescale_height, GL_UNSIGNED_BYTE, txh->tx_io->scale_data);
 		} else 

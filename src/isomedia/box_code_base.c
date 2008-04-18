@@ -2977,7 +2977,7 @@ GF_Err mdia_Size(GF_Box *s)
 #endif //GPAC_READ_ONLY
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 void mfhd_del(GF_Box *s)
 {
@@ -3037,7 +3037,7 @@ GF_Err mfhd_Size(GF_Box *s)
 
 #endif /*GPAC_READ_ONLY*/
 
-#endif /*GF_ISOM_NO_FRAGMENTS*/
+#endif /*GPAC_ISOM_NO_FRAGMENTS*/
 
 
 void minf_del(GF_Box *s)
@@ -3158,7 +3158,7 @@ GF_Err minf_Size(GF_Box *s)
 
 #endif //GPAC_READ_ONLY
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 void moof_del(GF_Box *s)
 {
@@ -3253,7 +3253,7 @@ void moov_del(GF_Box *s)
 	if (ptr->meta) gf_isom_box_del((GF_Box *)ptr->meta);
 	if (ptr->iods) gf_isom_box_del((GF_Box *)ptr->iods);
 	if (ptr->udta) gf_isom_box_del((GF_Box *)ptr->udta);
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	if (ptr->mvex) gf_isom_box_del((GF_Box *)ptr->mvex);
 #endif
 
@@ -3287,7 +3287,7 @@ GF_Err moov_AddBox(GF_Box *s, GF_Box *a)
 		ptr->udta = (GF_UserDataBox *)a;
 		return GF_OK;
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX:
 		if (ptr->mvex) return GF_ISOM_INVALID_FILE;
 		ptr->mvex = (GF_MovieExtendsBox *)a;
@@ -3361,7 +3361,7 @@ GF_Err moov_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->meta, bs);
 		if (e) return e;
 	}
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	if (ptr->mvex) {
 		e = gf_isom_box_write((GF_Box *) ptr->mvex, bs);
 		if (e) return e;
@@ -3405,7 +3405,7 @@ GF_Err moov_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->meta->size;
 	}
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	if (ptr->mvex) {
 		e = gf_isom_box_size((GF_Box *) ptr->mvex);
 		if (e) return e;
@@ -3854,7 +3854,7 @@ GF_Err mp4v_Size(GF_Box *s)
 
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 void mvex_del(GF_Box *s)
 {
@@ -5661,7 +5661,7 @@ GF_Err stts_Size(GF_Box *s)
 #endif //GPAC_READ_ONLY
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 void tfhd_del(GF_Box *s)
 {
@@ -5934,7 +5934,7 @@ GF_Err tkhd_Size(GF_Box *s)
 
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 void traf_del(GF_Box *s)
 {
@@ -6424,7 +6424,7 @@ GF_Err reftype_Size(GF_Box *s)
 
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 void trex_del(GF_Box *s)
 {
@@ -6497,7 +6497,7 @@ GF_Err trex_Size(GF_Box *s)
 #endif
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 void trun_del(GF_Box *s)
 {

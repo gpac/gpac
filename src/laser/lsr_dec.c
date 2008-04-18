@@ -29,6 +29,9 @@
 #include <gpac/math.h>
 #include <gpac/events.h>
 
+#ifndef GPAC_DISABLE_SVG
+
+
 #define GF_LSR_READ_INT(_codec, _val, _nbBits, _str)	{\
 	(_val) = gf_bs_read_int(_codec->bs, _nbBits);	\
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", _str, _nbBits, _val)); \
@@ -5223,3 +5226,4 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 	return e;
 }
 
+#endif /*GPAC_DISABLE_SVG*/

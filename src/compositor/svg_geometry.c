@@ -24,9 +24,16 @@
  */
 
 #include "visual_manager.h"
-
-#ifndef GPAC_DISABLE_SVG
 #include "nodes_stacks.h"
+
+#ifdef GPAC_DISABLE_SVG
+
+Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *asp, GF_TraverseState *tr_state, GF_Rect *glyph_rc)
+{
+	return 0;
+}
+
+#else
 
 Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *asp, GF_TraverseState *tr_state, GF_Rect *glyph_rc)
 {

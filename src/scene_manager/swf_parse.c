@@ -27,6 +27,7 @@
 #include <gpac/internal/swf_dev.h>
 #include <gpac/avparse.h>
 
+#include <zlib.h>
 
 #ifndef GPAC_READ_ONLY
 
@@ -275,8 +276,17 @@ Bool SWF_CheckDepth(SWFReader *read, u32 depth)
 {
 	GF_Node *disp, *empty;
 	if (read->max_depth > depth) return 1;
+
+	/*modify sprite display list*/
+	if (read->current_sprite_id) {
+		char szDEF[100];
+		sprintf(szDEF, "Sprite%d_displaylist", read->current_sprite_id);
+		disp = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
+	} 
 	/*modify display list*/
-	disp = gf_sg_find_node_by_name(read->load->scene_graph, "DISPLAYLIST");
+	else {
+		disp = gf_sg_find_node_by_name(read->load->scene_graph, "DISPLAYLIST");
+	}
 
 	empty = gf_sg_find_node_by_name(read->load->scene_graph, "EMPTYSHAPE");
 	while (read->max_depth<=depth) {
@@ -1312,7 +1322,7 @@ GF_Err swf_place_obj(SWFReader *read, u32 revision)
 	if (!shape) {
 		/*this may be a sprite*/
 		if (type != SWF_MOVE) {
-			sprintf(szDEF, "Sprite%d_root", ID);
+			sprintf(szDEF, "Sprite%d_displaylist", ID);
 			shape = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 			if (shape) is_sprite = 1;
 		}
@@ -1374,8 +1384,8 @@ GF_Err swf_place_obj(SWFReader *read, u32 revision)
 	/*and write command*/
 	com = gf_sg_command_new(read->load->scene_graph, GF_SG_INDEXED_REPLACE);
 	/*in sprite definiton, modify at sprite root level*/
-	if (0 && read->current_sprite_id) {
-		sprintf(szDEF, "Sprite%d_root", read->current_sprite_id);
+	if (read->current_sprite_id) {
+		sprintf(szDEF, "Sprite%d_displaylist", read->current_sprite_id);
 		com->node = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 		depth = 0;
 	} else {
@@ -1817,7 +1827,7 @@ GF_Err swf_def_sprite(SWFReader *read)
 	u32 spriteID, ID;
 	u32 frame_count;
 	Bool prev_sprite;
-	u32 prev_frame;
+	u32 prev_frame, prev_depth;
 	GF_Node *n, *par;
 	GF_FieldInfo info;
 	char szDEF[100];
@@ -1880,7 +1890,7 @@ GF_Err swf_def_sprite(SWFReader *read)
 
 	/*create sprite grouping node*/
 	n = SWF_NewNode(read, TAG_MPEG4_Group);
-	sprintf(szDEF, "Sprite%d_root", spriteID);
+	sprintf(szDEF, "Sprite%d_displaylist", spriteID);
 
 	read->load->ctx->max_node_id++;
 	ID = read->load->ctx->max_node_id;
@@ -1909,6 +1919,9 @@ GF_Err swf_def_sprite(SWFReader *read)
 	snd = read->sound_stream;
 	read->sound_stream = NULL;
 
+	prev_depth = read->max_depth;
+	read->max_depth = 0;
+
 	/*and parse*/
 	while (1) {
 		e = SWF_ParseTag(read);
@@ -1926,6 +1939,7 @@ GF_Err swf_def_sprite(SWFReader *read)
 	swf_delete_sound_stream(read);
 	/*restore sound stream*/
 	read->sound_stream = snd;
+	read->max_depth = prev_depth;
 
 	read->tag = SWF_DEFINESPRITE;
 	return GF_OK;
@@ -2302,7 +2316,7 @@ GF_Err swf_def_hdr_jpeg(SWFReader *read)
 	return GF_OK;
 }
 
-#include <zlib.h>
+
 
 GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 {
@@ -2335,7 +2349,10 @@ GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 	} else {
 		sprintf(szName, "swf_jpeg_%d.jpg", ID);
 	}
-	file = fopen(szName, "wb");
+	
+	if (version!=3)
+		file = fopen(szName, "wb");
+
 	if (version==1) {
 		/*remove JPEG EOI*/
 		fwrite(read->jpeg_hdr, 1, read->jpeg_hdr_size-2, file);
@@ -2354,43 +2371,62 @@ GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 				&& (buf[i]==0xFF) && (buf[i+1]==0xD9)
 				&& (buf[i+2]==0xFF) && (buf[i+3]==0xD8)
 			) {
-				i+= 4;
+				memmove(buf+i, buf+i+4, sizeof(char)*(size-i-4));
+				size -= 4;
 				break;
 			}
-
-			fwrite(buf+i, 1, 1, file);
 		}
-		fwrite(buf+i, 1, size-i, file);
-
+		if (version==2)
+			fwrite(buf, 1, size, file);
 	}
-	fclose(file);
+	if (version!=3)
+		fclose(file);
 
 	if (version==3) {
-		char *dst;
+		char *dst, *raw;
 		u8 oti;
-		u32 osize, w, h;
+		u32 osize, w, h, j, pf;
 		GF_BitStream *bs;
 
+		/*decompress jpeg*/
 		bs = gf_bs_new(buf, size, GF_BITSTREAM_READ);
 		gf_img_parse(bs, &oti, &osize, &w, &h, NULL, NULL);
 		gf_bs_del(bs);
 
+		osize = w*h*4;
+		raw = malloc(sizeof(char)*osize);
+		memset(raw, 0, sizeof(char)*osize);
+		e = gf_img_jpeg_dec(buf, size, &w, &h, &pf, raw, &osize, 4);
+
+		/*read alpha map and decompress it*/
 		if (size<AlphaPlaneSize) buf = realloc(buf, sizeof(u8)*AlphaPlaneSize);
 		swf_read_data(read, buf, AlphaPlaneSize);
 
 		osize = w*h;
 		dst = malloc(sizeof(char)*osize);
 		uncompress(dst, &osize, buf, AlphaPlaneSize);
-
-		if (read->load->localPath) {
-			sprintf(szName, "%s/swf_jpeg_%d_alpha.raw", read->load->localPath, ID);
-		} else {
-			sprintf(szName, "swf_jpeg_%d_alpha.raw", ID);
+		/*write alpha channel*/
+		for (j=0; j<osize; j++) {
+			raw[4*j + 3] = dst[j];
 		}
-		file = fopen(szName, "wb");
-		fwrite(dst, 1, osize, file);
-		fclose(file);
 		free(dst);
+
+		/*write png*/
+		if (read->load->localPath) {
+			sprintf(szName, "%s/swf_png_%d.png", read->load->localPath, ID);
+		} else {
+			sprintf(szName, "swf_png_%d.png", ID);
+		}
+
+		osize = w*h*4;
+		buf = realloc(buf, sizeof(char)*osize);
+		gf_img_png_enc(raw, w, h, GF_PIXEL_RGBA, buf, &osize);
+		
+		file = fopen(szName, "wb");
+		fwrite(buf, 1, osize, file);
+		fclose(file);
+		
+		free(raw);
 	}
 	free(buf);
 

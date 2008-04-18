@@ -1,17 +1,5 @@
 TARGET gm_img_in.dll
 
-//comment if you don't have libpng
-MACRO GPAC_HAS_PNG
-SYSTEMINCLUDE ..\..\extra_lib\include\png
-STATICLIBRARY libpng.lib 
-LIBRARY ezlib.lib 
-
-//comment if you don't have libjpeg
-MACRO GPAC_HAS_JPEG
-SYSTEMINCLUDE ..\..\extra_lib\include\jpeg
-STATICLIBRARY libjpeg.lib 
-
-
 //comment if you don't have libopenjpeg
 MACRO GPAC_HAS_JP2
 SYSTEMINCLUDE ..\..\extra_lib\include\openjpeg

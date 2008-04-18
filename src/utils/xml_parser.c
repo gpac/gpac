@@ -29,6 +29,11 @@
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
 #include <zlib.h>
 
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
+#pragma comment(lib, "zlib")
+#endif
+
+
 static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current);
 
 static char *xml_translate_xml_string(char *str)

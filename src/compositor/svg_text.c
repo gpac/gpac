@@ -22,9 +22,10 @@
  *
  */
 
+#include <gpac/utf.h>
+
 #ifndef GPAC_DISABLE_SVG
 
-#include <gpac/utf.h>
 #include "visual_manager.h"
 #include "nodes_stacks.h"
 

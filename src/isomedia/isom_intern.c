@@ -30,7 +30,7 @@
 **************************************************************/
 GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpected);
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 
 GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 {
@@ -91,7 +91,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 	totSize = 0;
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	/*restart from where we stoped last*/
 	totSize = mov->current_top_box_start;
 	gf_bs_seek(mov->movieFileMap->bs, mov->current_top_box_start);
@@ -101,7 +101,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 	/*while we have some data, parse our boxes*/
 	while (gf_bs_available(mov->movieFileMap->bs)) {
 		*bytesMissing = 0;
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs);
 #endif
 
@@ -149,7 +149,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 					e = gf_list_add(mov->TopBoxes, mov->mdat);
 					if (e) return e;
 				}
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 				else if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) gf_list_add(mov->TopBoxes, a);
 #endif
 				else gf_isom_box_del(a);
@@ -189,7 +189,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 			break;
 
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_MOOF:
 			((GF_MovieFragmentBox *)a)->mov = mov;
 
@@ -236,7 +236,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 		/*set the default interleaving time*/
 		mov->interleavingTime = mov->moov->mvhd->timeScale;
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 		/*not in open mode and successfully loaded the entire file, destroy all fragment
 		FIXME: we may need to keet it when trying http streaming of fragments...*/
 		if (!(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) && mov->moov->mvex) {
@@ -302,7 +302,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 			return NULL;
 		}
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 		if (OpenMode == GF_ISOM_OPEN_READ_DUMP) mov->FragmentsFlags |= GF_ISOM_FRAG_READ_DEBUG;
 #endif
 

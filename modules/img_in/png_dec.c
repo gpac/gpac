@@ -24,19 +24,10 @@
 
 
 #include "img_in.h"
-
-#ifdef GPAC_HAS_PNG
-
-#include "png.h"
-
+#include <gpac/avparse.h>
 
 typedef struct
 {
-	/*io part for PNG lib*/
-	void *in_data;
-	u32 in_length, current_pos;
-
-	/*no support for scalability with PNG yet*/
 	u16 ES_ID;
 	u32 BPP, width, height, out_size, pixel_format;
 } PNGDec;
@@ -103,21 +94,6 @@ static GF_Err PNG_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capab
 	return GF_NOT_SUPPORTED;
 }
 
-static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
-{
-	PNGDec *ctx = (PNGDec *)png_ptr->io_ptr;
-
-	if (ctx->current_pos + length > ctx->in_length) {
-		png_error(png_ptr, "Read Error");
-	} else {
-		memcpy(data, (char*) ctx->in_data + ctx->current_pos, length);
-		ctx->current_pos += length;
-	}
-}
-static void user_error_fn(png_structp png_ptr,png_const_charp error_msg)
-{
-	longjmp(png_ptr->jmpbuf, 1);
-}
 
 static GF_Err PNG_ProcessData(GF_MediaDecoder *ifcg, 
 		char *inBuffer, u32 inBufferLength,
@@ -125,94 +101,23 @@ static GF_Err PNG_ProcessData(GF_MediaDecoder *ifcg,
 		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
-	png_struct *png_ptr;
-	png_info *info_ptr;
-	png_byte **rows;
-	u32 i, stride;
-
+	GF_Err e;
 	PNGCTX();
-	if ((inBufferLength<8) || png_sig_cmp(inBuffer, 0, 8) ) return GF_NON_COMPLIANT_BITSTREAM;
 
-	ctx->in_data = inBuffer;
-	ctx->in_length = inBufferLength;
-	ctx->current_pos = 0;
-
-	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, (png_voidp) ctx, NULL, NULL);
-	if (!png_ptr) return GF_IO_ERR;
-	info_ptr = png_create_info_struct(png_ptr);
-	if (info_ptr == NULL) {
-		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-		return GF_IO_ERR;
+	e = gf_img_png_dec(inBuffer, inBufferLength, &ctx->width, &ctx->height, &ctx->pixel_format, outBuffer, outBufferLength);
+	switch (ctx->pixel_format) {
+	case GF_PIXEL_GREYSCALE: ctx->BPP = 1; break;
+	case GF_PIXEL_ALPHAGREY: ctx->BPP = 2; break;
+	case GF_PIXEL_RGB_24: ctx->BPP = 3; break;
+	case GF_PIXEL_RGBA: ctx->BPP = 4; break;
 	}
-	if (setjmp(png_ptr->jmpbuf)) {
-		png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
-		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-		return GF_IO_ERR;
-	}
-    png_set_read_fn(png_ptr, ctx, (png_rw_ptr) user_read_data);
-	png_set_error_fn(png_ptr, ctx, (png_error_ptr) user_error_fn, NULL);
-
-	png_read_info(png_ptr, info_ptr);
-
-	/*unpaletize*/
-	if (info_ptr->color_type==PNG_COLOR_TYPE_PALETTE) {
-		png_set_expand(png_ptr);
-		png_read_update_info(png_ptr, info_ptr);
-	}
-	if (info_ptr->num_trans) {
-		png_set_tRNS_to_alpha(png_ptr);
-		png_read_update_info(png_ptr, info_ptr);
-	}
-
-	ctx->BPP = info_ptr->pixel_depth / 8;
-	ctx->width = info_ptr->width;
-	ctx->height = info_ptr->height;
-
-	switch (ctx->BPP) {
-	case 1:
-		ctx->pixel_format = GF_PIXEL_GREYSCALE;
-		break;
-	case 2:
-		ctx->pixel_format = GF_PIXEL_ALPHAGREY;
-		break;
-	case 3:
-		ctx->pixel_format = GF_PIXEL_RGB_24;
-		break;
-	case 4:
-		ctx->pixel_format = GF_PIXEL_RGBA;
-		break;
-	}
-
-	/*new cfg, reset*/
-	if (ctx->out_size != ctx->width * ctx->height * ctx->BPP) {
-		ctx->out_size = ctx->width * ctx->height * ctx->BPP;
-		*outBufferLength = ctx->out_size;
-		png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
-		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-		return GF_BUFFER_TOO_SMALL;
-	}
-
-	/*read*/
-	stride = png_get_rowbytes(png_ptr, info_ptr);
-	rows = (png_bytepp) malloc(sizeof(png_bytep) * ctx->height);
-	for (i=0; i<ctx->height; i++) {
-		rows[i] = outBuffer + i*stride;
-	}
-	png_read_image(png_ptr, rows);
-	png_read_end(png_ptr, NULL);
-	free(rows);
-
-	png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
-	png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-	*outBufferLength = ctx->out_size;
-
-	
-	return GF_OK;
+	ctx->out_size = *outBufferLength;
+	return e;
 }
 
 static const char *PNG_GetCodecName(GF_BaseDecoder *dec)
 {
-	return "LibPNG " PNG_LIBPNG_VER_STRING;
+	return "LibPNG";
 }
 
 Bool NewPNGDec(GF_BaseDecoder *ifcd)
@@ -238,5 +143,3 @@ void DeletePNGDec(GF_BaseDecoder *ifcg)
 	PNGCTX();
 	free(ctx);
 }
-
-#endif

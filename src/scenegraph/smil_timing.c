@@ -26,6 +26,8 @@
 #include <gpac/events.h>
 #include <gpac/nodes_svg_da.h>
 
+#ifndef GPAC_DISABLE_SVG
+
 static void gf_smil_timing_null_timed_function(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 state)
 {
 }
@@ -854,3 +856,5 @@ Double gf_smil_get_media_duration(SMIL_Timing_RTI *rti)
 	return rti->media_duration;
 }
 
+
+#endif /*GPAC_DISABLE_SVG*/
