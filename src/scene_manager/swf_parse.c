@@ -2135,6 +2135,9 @@ GF_Err swf_setup_sound(SWFReader *read, SWFSound *snd)
 	gf_sg_vrml_mf_alloc(info.far_ptr, info.fieldType, 1);
 	((MFURL *)info.far_ptr)->vals[0].OD_ID = od->objectDescriptorID;
 
+	gf_node_get_field_by_name(n, "startTime", &info);
+	*((SFTime *)info.far_ptr) = FLT2FIX(snd->frame_delay_ms/1000.0f);
+
 	snd->is_setup = 1;
 	return GF_OK;
 }
