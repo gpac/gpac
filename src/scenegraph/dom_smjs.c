@@ -37,6 +37,9 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
+#include <jsapi.h> 
+
+
 #define DOM_CORE_SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
 	memset(&the_class, 0, sizeof(the_class));	\
 	the_class.name = cname;	\

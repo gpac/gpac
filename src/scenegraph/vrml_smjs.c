@@ -35,6 +35,11 @@
 #include <gpac/nodes_svg_da.h>
 #endif
 
+#include <jsapi.h> 
+
+void gf_sg_script_to_node_field(struct JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
+jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool no_cache);
+
 
 #define _ScriptMessage(_c, _e, _msg) {	\
 		GF_Node *_n = (GF_Node *) JS_GetContextPrivate(_c);	\
