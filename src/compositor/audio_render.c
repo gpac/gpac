@@ -54,14 +54,11 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 
 static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 {
-	u32 res = 0;
 	GF_AudioRenderer *ar = (GF_AudioRenderer *) ptr;
-	gf_mixer_lock(ar->mixer, 1);
 	if (!ar->need_reconfig) {
-		res = gf_mixer_get_output(ar->mixer, buffer, buffer_size);
+		return gf_mixer_get_output(ar->mixer, buffer, buffer_size);
 	}
-	gf_mixer_lock(ar->mixer, 1);
-	return res;
+	return 0;
 }
 
 u32 gf_ar_proc(void *p)
@@ -85,11 +82,14 @@ u32 gf_ar_proc(void *p)
 		for instance when reconfiguring scene*/
 		gf_sleep(0);
 
+		gf_mixer_lock(ar->mixer, 1);
 		if (ar->Frozen || gf_mixer_empty(ar->mixer) ) {
+			gf_mixer_lock(ar->mixer, 0);
 			gf_sleep(10);
 		} else {
 			if (ar->need_reconfig) gf_sc_ar_reconfig(ar);
 			ar->audio_out->WriteAudio(ar->audio_out);
+			gf_mixer_lock(ar->mixer, 0);
 		}
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] Exiting audio thread\n"));
