@@ -1046,7 +1046,7 @@ GF_Err swf_func_skip(SWFReader *read)
 }
 GF_Err swf_unknown_tag(SWFReader *read)
 {
-	swf_report(read, GF_NOT_SUPPORTED, "Tag %s not implemented - skipping", swf_get_tag(read->tag));
+	swf_report(read, GF_NOT_SUPPORTED, "Tag %s (0x%2x) not implemented - skipping", swf_get_tag(read->tag), read->tag);
 	return swf_func_skip(read);
 }
 GF_Err swf_set_backcol(SWFReader *read)
@@ -1113,6 +1113,73 @@ typedef struct
 	GF_ColorMatrix cmx;
 } SWF_ButtonRecord;
 
+GF_Err swf_actions(SWFReader *read)
+{
+	u8 action_code = swf_read_int(read, 8);
+	u16 length = 0;
+	while (action_code) {
+		if (action_code > 0x80) length = swf_get_16(read);
+		else length = 0;
+
+		switch (action_code) {
+			/* SWF 3 Action Model */
+		case 0x81: /* goto frame */ 
+			{
+				u32 frame_index;
+				assert (length == 2);
+				frame_index = swf_get_32(read);
+			}
+			break;
+		case 0x83: /* get URL */ 
+			{
+				char *urlstring = swf_get_string(read);
+				char *targetstring = swf_get_string(read);
+				free(urlstring);
+				free(targetstring);
+			}
+			break;
+		case 0x04: /* next frame */ 
+			break;
+		case 0x05: /* previous frame */ 
+			break;
+		case 0x06: /* play */ 
+			break;
+		case 0x07: /* stop */ 
+			break;
+		case 0x08: /* toggle quality */ 
+			break;
+		case 0x09: /* stop sounds */ 
+			break;
+		case 0x8A: /* wait for frame */ 
+			{
+				u32 frame_index;
+				u8 skip_count;
+				assert (length == 3);
+				frame_index = swf_get_32(read);
+				skip_count = swf_read_int(read, 8);
+			}
+			break;
+		case 0x8B: /* set target */ 
+			{
+				char *targetname = swf_get_string(read);
+				free(targetname);
+			}
+			break;
+		case 0x8C: /* goto label */ 
+			{
+				char *framelabel = swf_get_string(read);
+				free(framelabel);
+			}
+			break;
+		default:
+			if (length) swf_skip_data(read, length);
+		}
+
+		action_code = swf_read_int(read, 8);
+	}
+	return GF_OK; 
+}
+
 GF_Err swf_def_button(SWFReader *read, u32 revision)
 {
 	char szName[1024];
@@ -1149,26 +1216,12 @@ GF_Err swf_def_button(SWFReader *read, u32 revision)
 		nb_but_rec++;
 	}
 	if (revision==0) {
-		while (1) {
-			u32 act_type = gf_bs_read_u8(read->bs);
-			if (!act_type) break; 
-			if (act_type > 0x80) {
-				u32 len = swf_get_16(read); 
-				gf_bs_skip_bytes(read->bs, len);
-			}
-		}
+		swf_actions(read);
 	} else {
 		while (has_actions) {
 			has_actions = swf_get_16(read);
 			swf_get_16(read);
-			while (1) {
-				u32 act_type = gf_bs_read_u8(read->bs);
-				if (!act_type) break;
-				if (act_type > 0x80) {
-					u32 len = swf_get_16(read); 
-					gf_bs_skip_bytes(read->bs, len);
-				}
-			}
+			swf_actions(read);
 		}
 	}
 	button = (M_Switch *) SWF_NewNode(read, TAG_MPEG4_Switch);
@@ -2519,8 +2572,18 @@ GF_Err swf_process_tag(SWFReader *read)
 	case SWF_DEFINEBUTTONSOUND:
 	case SWF_DOACTION:
 		read->has_interact = 1;
+#if 0
 		swf_report(read, GF_OK, "skipping tag %s", swf_get_tag(read->tag) );
 		return swf_func_skip(read);
+#else
+		return swf_actions(read);
+#endif
+	case SWF_FRAMELABEL: 
+		{
+			char *framelabel = swf_get_string(read);
+			free(framelabel);
+			return GF_OK;
+		}
 
 	case SWF_JPEGTABLES: return swf_def_hdr_jpeg(read);
 	case SWF_DEFINEBITSJPEG: return swf_def_bits_jpeg(read, 1);
@@ -2530,7 +2593,6 @@ GF_Err swf_process_tag(SWFReader *read)
 	case SWF_SOUNDSTREAMBLOCK: return swf_sound_block(read);
 	case SWF_DEFINEBITSLOSSLESS: return swf_def_bits_lossless(read);
 	case SWF_DEFINEBITSLOSSLESS2: return swf_def_bits_losslessV2(read);
-	case SWF_FRAMELABEL: return swf_def_frame_label(read);
 */	default: return swf_unknown_tag(read);
 	}
 }
