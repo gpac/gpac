@@ -3000,6 +3000,10 @@ NODEP_CPP_SCENE_S=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\scene_manager\swf_bifs.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\gpac\internal\swf_dev.h
 # End Source File
 # Begin Source File
@@ -3025,29 +3029,6 @@ DEP_CPP_SWF_P=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scene_manager\swf_shape.c
-DEP_CPP_SWF_S=\
-	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\internal\config_static.h"\
-	"..\..\include\gpac\internal\swf_dev.h"\
-	"..\..\include\gpac\isomedia.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\scene_manager.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\sync_layer.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\utf.h"\
 	
 # End Source File
 # Begin Source File

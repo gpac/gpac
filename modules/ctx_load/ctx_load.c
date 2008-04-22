@@ -285,14 +285,14 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 	i=0;
 	while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
 		/*all streams in root OD are handled with ESID 0 to differentiate with any animation streams*/
-		if (CTXLoad_StreamInRootOD(priv->ctx->root_od, sc->ESID)) sc->ESID = 0;
+		if (CTXLoad_StreamInRootOD(priv->ctx->root_od, sc->ESID)) sc->in_root_od = 1;
 		if (!sc->timeScale) sc->timeScale = 1000;
 
 		j=0;
 		while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
 			if (!au->timing) au->timing = (u64) (sc->timeScale*au->timing_sec);
 		}
-		if (au && !sc->ESID && (au->timing>max_dur)) max_dur = (u32) (au->timing * 1000 / sc->timeScale);
+		if (au && sc->in_root_od && (au->timing>max_dur)) max_dur = (u32) (au->timing * 1000 / sc->timeScale);
 	}
 	if (max_dur) {
 		priv->inline_scene->root_od->duration = max_dur;
@@ -408,16 +408,16 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 	i=0;
 	while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
 		/*not our stream*/
-		if (sc->ESID && (sc->ESID != ES_ID)) continue;
+		if (!sc->in_root_od && (sc->ESID != ES_ID)) continue;
 		/*not the base stream*/
-		if (!sc->ESID && (priv->base_stream_id != ES_ID)) continue;
+		if (sc->in_root_od && (priv->base_stream_id != ES_ID)) continue;
 		/*handle SWF media extraction*/
 		if ((sc->streamType == GF_STREAM_OD) && (priv->load_flags==1)) continue;
 
 		/*check for seek*/
 		if (sc->last_au_time > 1 + stream_time) {
 			/*root streams shall not seek this way*/
-			if (!sc->ESID) assert(0);
+			if (sc->in_root_od) assert(0);
 			/*on other streams, we assume the stream is 100% RAP wrt to the base stream*/
 			else {
 				sc->last_au_time = 0;
@@ -425,7 +425,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 		}
 
 		can_delete_com = 0;
-		if (!sc->ESID && (priv->load_flags==2)) can_delete_com = 1;
+		if (sc->in_root_od && (priv->load_flags==2)) can_delete_com = 1;
 
 		/*we're in the right stream, apply update*/
 		j=0;
@@ -599,7 +599,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 			if (e) return e;
 
 			/*for root streams remove completed AUs (no longer needed)*/
-			if (!sc->ESID && !gf_list_count(au->commands) ) {
+			if (sc->in_root_od && !gf_list_count(au->commands) ) {
 				j--;
 				gf_list_rem(sc->AUs, j);
 				gf_list_del(au->commands);

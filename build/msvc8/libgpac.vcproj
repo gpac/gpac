@@ -4533,6 +4533,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\src\media_tools\img.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\media_tools\ismacryp.c"
 				>
 				<FileConfiguration
@@ -5317,51 +5321,15 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\src\scene_manager\swf_bifs.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\internal\swf_dev.h"
 				>
 			</File>
 			<File
 				RelativePath="..\..\src\scene_manager\swf_parse.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Smartphone 2003 (ARMV4)"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\src\scene_manager\swf_shape.c"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -6838,6 +6806,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\compositor\svg_base.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\compositor\svg_font.c"
 				>
 			</File>
 			<File

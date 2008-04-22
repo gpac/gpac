@@ -35,7 +35,8 @@
 /*since 0.2.2, we use zlib for bt reading to handle wrl.gz files*/
 #include <zlib.h>
 
-void gf_sm_load_done_BT(GF_SceneLoader *load);
+
+void gf_sm_load_done_bt(GF_SceneLoader *load);
 
 #define BT_LINE_SIZE	4000
 
@@ -3138,7 +3139,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 	return parser->last_error;
 }
 
-GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
+GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
 {
 	u32 size;
 	gzFile gzInput;
@@ -3210,7 +3211,7 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 		u32 i;
 		GF_StreamContext *sc;
 		if (!load->ctx) {
-			gf_sm_load_done_BT(load);
+			gf_sm_load_done_bt(load);
 			return GF_BAD_PARAM;
 		}
 		
@@ -3225,7 +3226,7 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 		}
 		/*need at least one scene stream*/
 		if (!parser->bifs_es) {
-			gf_sm_load_done_BT(load);
+			gf_sm_load_done_bt(load);
 			return GF_BAD_PARAM;
 		}
 		parser->base_bifs_id = parser->bifs_es->ESID;
@@ -3258,11 +3259,11 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 		gf_list_add(parser->bifs_au->commands, com);
 	}
 	e = gf_bt_loader_run_intern(parser, com, 1);
-	if (e) gf_sm_load_done_BT(load);
+	if (e) gf_sm_load_done_bt(load);
 	return e;
 }
 
-void gf_sm_load_done_BT(GF_SceneLoader *load)
+void gf_sm_load_done_bt(GF_SceneLoader *load)
 {
 	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
 	if (!parser) return;
@@ -3288,7 +3289,7 @@ void gf_sm_load_done_BT(GF_SceneLoader *load)
 	return;
 }
 
-GF_Err gf_sm_load_run_BT(GF_SceneLoader *load)
+GF_Err gf_sm_load_run_bt(GF_SceneLoader *load)
 {
 	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
 	if (!parser) return GF_BAD_PARAM;
@@ -3330,7 +3331,7 @@ GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str)
 
 
 
-GF_Err gf_sm_load_done_BTString(GF_SceneLoader *load)
+GF_Err gf_sm_load_done_bt_string(GF_SceneLoader *load)
 {
 	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
 	if (!parser) return GF_OK;
@@ -3344,7 +3345,7 @@ GF_Err gf_sm_load_done_BTString(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str)
+GF_Err gf_sm_load_init_bt_string(GF_SceneLoader *load, char *str)
 {
 	GF_Err e;
 	GF_BTParser *parser;
@@ -3380,7 +3381,7 @@ GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str)
 		u32 i;
 		GF_StreamContext *sc;
 		if (!load->ctx) {
-			gf_sm_load_done_BT(load);
+			gf_sm_load_done_bt(load);
 			return GF_BAD_PARAM;
 		}
 		
@@ -3419,6 +3420,6 @@ GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str)
 	com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
 	gf_list_add(parser->bifs_au->commands, com);
 	e = gf_bt_loader_run_intern(parser, com, 1);
-	if (e) gf_sm_load_done_BTString(load);
+	if (e) gf_sm_load_done_bt_string(load);
 	return e;
 }

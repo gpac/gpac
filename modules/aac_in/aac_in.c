@@ -469,6 +469,9 @@ static GF_Descriptor *AAC_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 	AACReader *read = plug->priv;
 	/*since we don't handle multitrack in aac, we don't need to check sub_url, only use expected type*/
 
+	/*override default*/
+	if (expect_type==GF_MEDIA_OBJECT_UNDEF) expect_type=GF_MEDIA_OBJECT_AUDIO;
+
 	/*audio object*/
 	if (expect_type==GF_MEDIA_OBJECT_AUDIO) {
 		GF_ESD *esd;

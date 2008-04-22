@@ -244,20 +244,20 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 }
 
 
-GF_Err gf_sm_load_init_BT(GF_SceneLoader *load);
-void gf_sm_load_done_BT(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_BT(GF_SceneLoader *load);
-GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str);
-GF_Err gf_sm_load_done_BTString(GF_SceneLoader *load);
+GF_Err gf_sm_load_init_bt(GF_SceneLoader *load);
+void gf_sm_load_done_bt(GF_SceneLoader *load);
+GF_Err gf_sm_load_run_bt(GF_SceneLoader *load);
+GF_Err gf_sm_load_init_bt_string(GF_SceneLoader *load, char *str);
+GF_Err gf_sm_load_done_bt_string(GF_SceneLoader *load);
 
 GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load);
 void gf_sm_load_done_xmt(GF_SceneLoader *load);
 GF_Err gf_sm_load_run_xmt(GF_SceneLoader *load);
 GF_Err gf_sm_load_init_xmt_string(GF_SceneLoader *load, char *str);
 
-GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load);
-void gf_sm_load_done_MP4(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load);
+GF_Err gf_sm_load_init_isom(GF_SceneLoader *load);
+void gf_sm_load_done_isom(GF_SceneLoader *load);
+GF_Err gf_sm_load_run_isom(GF_SceneLoader *load);
 
 #ifndef GPAC_DISABLE_SVG
 
@@ -270,13 +270,13 @@ GF_Err gf_sm_load_init_svg_string(GF_SceneLoader *load, char *str);
 
 #ifndef GPAC_READ_ONLY
 
-GF_Err gf_sm_load_init_SWF(GF_SceneLoader *load);
-void gf_sm_load_done_SWF(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_SWF(GF_SceneLoader *load);
+GF_Err gf_sm_load_init_swf(GF_SceneLoader *load);
+void gf_sm_load_done_swf(GF_SceneLoader *load);
+GF_Err gf_sm_load_run_swf(GF_SceneLoader *load);
 
-GF_Err gf_sm_load_init_QT(GF_SceneLoader *load);
-void gf_sm_load_done_QT(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_QT(GF_SceneLoader *load);
+GF_Err gf_sm_load_init_qt(GF_SceneLoader *load);
+void gf_sm_load_done_qt(GF_SceneLoader *load);
+GF_Err gf_sm_load_run_qt(GF_SceneLoader *load);
 #endif
 
 
@@ -294,7 +294,7 @@ static GF_Err gf_sm_load_init_from_string(GF_SceneLoader *load, char *str)
 	case GF_SM_LOAD_BT: 
 	case GF_SM_LOAD_VRML:
 	case GF_SM_LOAD_X3DV:
-		return gf_sm_load_init_BTString(load, str);
+		return gf_sm_load_init_bt_string(load, str);
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_init_xmt_string(load, str);
@@ -319,7 +319,7 @@ static void gf_sm_load_done_string(GF_SceneLoader *load, Bool do_clean)
 	case GF_SM_LOAD_BT:
 	case GF_SM_LOAD_VRML:
 	case GF_SM_LOAD_X3DV:
-		gf_sm_load_done_BTString(load); 
+		gf_sm_load_done_bt_string(load); 
 		break;
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
@@ -401,7 +401,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_BT: 
 	case GF_SM_LOAD_VRML:
 	case GF_SM_LOAD_X3DV:
-		return gf_sm_load_init_BT(load);
+		return gf_sm_load_init_bt(load);
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_init_xmt(load);
@@ -412,11 +412,11 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 #endif
 #ifndef GPAC_READ_ONLY
 	case GF_SM_LOAD_SWF: 
-		return gf_sm_load_init_SWF(load);
+		return gf_sm_load_init_swf(load);
 	case GF_SM_LOAD_QT: 
-		return gf_sm_load_init_QT(load);
+		return gf_sm_load_init_qt(load);
 	case GF_SM_LOAD_MP4:
-		return gf_sm_load_init_MP4(load);
+		return gf_sm_load_init_isom(load);
 #endif
 	}
 	return GF_NOT_SUPPORTED;
@@ -429,7 +429,7 @@ void gf_sm_load_done(GF_SceneLoader *load)
 	case GF_SM_LOAD_BT:
 	case GF_SM_LOAD_VRML:
 	case GF_SM_LOAD_X3DV:
-		gf_sm_load_done_BT(load); 
+		gf_sm_load_done_bt(load); 
 		break;
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
@@ -443,13 +443,13 @@ void gf_sm_load_done(GF_SceneLoader *load)
 #endif
 #ifndef GPAC_READ_ONLY
 	case GF_SM_LOAD_SWF: 
-		gf_sm_load_done_SWF(load); 
+		gf_sm_load_done_swf(load); 
 		break;
 	case GF_SM_LOAD_QT: 
-		gf_sm_load_done_QT(load); 
+		gf_sm_load_done_qt(load); 
 		break;
 	case GF_SM_LOAD_MP4: 
-		gf_sm_load_done_MP4(load); 
+		gf_sm_load_done_isom(load); 
 		break;
 #endif
 	}
@@ -462,7 +462,7 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 	case GF_SM_LOAD_BT:
 	case GF_SM_LOAD_VRML:
 	case GF_SM_LOAD_X3DV:
-		return gf_sm_load_run_BT(load);
+		return gf_sm_load_run_bt(load);
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_run_xmt(load);
@@ -474,11 +474,11 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 
 #ifndef GPAC_READ_ONLY
 	case GF_SM_LOAD_SWF:
-		return gf_sm_load_run_SWF(load);
+		return gf_sm_load_run_swf(load);
 	case GF_SM_LOAD_QT: 
-		return gf_sm_load_run_QT(load);
+		return gf_sm_load_run_qt(load);
 	case GF_SM_LOAD_MP4: 
-		return gf_sm_load_run_MP4(load);
+		return gf_sm_load_run_isom(load);
 #endif
 	default:
 		return GF_BAD_PARAM;

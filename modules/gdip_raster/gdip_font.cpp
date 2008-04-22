@@ -225,6 +225,7 @@ static GF_Glyph *gdip_load_glyph(GF_FontReader *dr, u32 glyph_name)
 	GpPath *path_tmp;
 	GpStringFormat *fmt;
 	GpMatrix *mat;
+	Float est_advance_h;
 	unsigned short str[4];
 	int i;
 	FontPriv *ctx = (FontPriv *)dr->udta;
@@ -239,15 +240,19 @@ static GF_Glyph *gdip_load_glyph(GF_FontReader *dr, u32 glyph_name)
 	GdipSetStringFormatAlign(fmt, StringAlignmentNear);
 	GdipCreatePath(FillModeAlternate, &path_tmp);
 
-	/*to compute first glyph alignment (say 'x', we figure out its bounding full box by using the '_' char as wrapper (eg, "_x_")
-	then the bounding box starting from xMin of the glyph ('x_'). The difference between both will give us a good approx 
-	of the glyph alignment*/
-	str[0] = glyph_name;
-	str[1] = (unsigned short) '_';
-	str[2] = (unsigned short) 0;
-	GdipAddPathString(path_tmp, (const WCHAR *)str, -1, ctx->font, ctx->font_style, ctx->em_size, &rc, fmt);
-	GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
-	Float est_advance_h = rc.Width - ctx->underscore_width;
+	if (glyph_name==0x20) {
+		est_advance_h = ctx->whitespace_width;
+	} else {
+		/*to compute first glyph alignment (say 'x', we figure out its bounding full box by using the '_' char as wrapper (eg, "_x_")
+		then the bounding box starting from xMin of the glyph ('x_'). The difference between both will give us a good approx 
+		of the glyph alignment*/
+		str[0] = glyph_name;
+		str[1] = (unsigned short) '_';
+		str[2] = (unsigned short) 0;
+		GdipAddPathString(path_tmp, (const WCHAR *)str, -1, ctx->font, ctx->font_style, ctx->em_size, &rc, fmt);
+		GdipGetPathWorldBounds(path_tmp, &rc, NULL, NULL);
+		est_advance_h = rc.Width - ctx->underscore_width;
+	}
 	
 	GdipResetPath(path_tmp);
 

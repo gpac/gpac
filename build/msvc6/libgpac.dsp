@@ -693,15 +693,15 @@ SOURCE=..\..\src\scene_manager\scene_stats.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\scene_manager\swf_bifs.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\gpac\internal\swf_dev.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scene_manager\swf_parse.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scene_manager\swf_shape.c
 # End Source File
 # Begin Source File
 
