@@ -25,27 +25,26 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
-#ifdef GPAC_HAS_JPEG
-
-#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
-#pragma comment(lib, "libjpeg")
-#endif
-
-#include <setjmp.h>
-#include "jpeglib.h"
-#include <zlib.h>
-
-#endif
-
 #ifdef GPAC_HAS_PNG
 
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
 #pragma comment(lib, "libpng")
 #endif
 
-#include "png.h"
+/*include png.h before setjmp.h, otherwise we get compilation errors*/
+#include <png.h>
 #endif
 
+
+#ifdef GPAC_HAS_JPEG
+
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
+#pragma comment(lib, "libjpeg")
+#endif
+
+#include <jpeglib.h>
+#include <setjmp.h>
+#endif
 
 
 GF_EXPORT
