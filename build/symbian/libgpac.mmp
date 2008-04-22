@@ -201,8 +201,8 @@ SOURCE loader_xmt.c
 SOURCE scene_dump.c
 SOURCE scene_manager.c
 SOURCE scene_stats.c
+SOURCE swf_bifs.c
 SOURCE swf_parse.c
-SOURCE swf_shape.c
 SOURCE text_to_bifs.c
 SOURCE encode_cbk.c
 SOURCE encode_isom.c

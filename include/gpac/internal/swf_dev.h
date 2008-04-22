@@ -34,33 +34,16 @@
 #define SWF_TEXT_SCALE				(1/1024.0f)
 
 
-enum
-{
-	SWF_SND_UNCOMP = 0,
-	SWF_SND_ADPCM,
-	SWF_SND_MP3
-};
+typedef struct SWFReader SWFReader;
+typedef struct SWFSound SWFSound;
+typedef struct SWFText SWFText;
+typedef struct SWFEditText SWFEditText;
+typedef struct SWF_Button SWF_Button;
+typedef struct SWFShape SWFShape;
+typedef struct SWFFont SWFFont;
 
-typedef struct
-{
-	u32 ID;
-	u8 format;
-	/*0: 5.5k - 1: 11k - 2: 22k - 3: 44k*/
-	u8 sound_rate;
-	u8 bits_per_sample;
-	Bool stereo;
-	u16 sample_count;
-	u32 frame_delay_ms;
 
-	/*IO*/
-	FILE *output;
-	char *szFileName;
-
-	/*set when sound is setup (OD inserted)*/
-	Bool is_setup;
-} SWFSound;
-
-typedef struct _swf_reader
+struct SWFReader
 {
 	GF_SceneLoader *load;
 	FILE *input;
@@ -102,12 +85,17 @@ typedef struct _swf_reader
 	GF_StreamContext *bifs_es;
 	GF_AUContext *bifs_au;
 
+	GF_StreamContext *bifs_dict_es;
+	GF_AUContext *bifs_dict_au;
+
 	/*for sound insert*/
 	GF_Node *root;
 
 	/*current OD AU*/
 	GF_StreamContext *od_es;
 	GF_AUContext *od_au;
+
+	GF_Node *cur_shape;
 
 	u32 current_frame;
 	GF_Err ioerr;	
@@ -128,11 +116,40 @@ typedef struct _swf_reader
 
 	u8 *jpeg_hdr;
 	u32 jpeg_hdr_size;
-} SWFReader;
 
-GF_Node *SWF_NewNode(SWFReader *read, u32 tag);
+
+	/*callback functions for translator*/
+	GF_Err (*set_backcol)(SWFReader *read, u32 xrgb);
+	GF_Err (*show_frame)(SWFReader *read);
+
+	/*checks if display list is large enough - returns 1 if yes, 0 otherwise (and allocate space)*/
+	Bool (*allocate_depth)(SWFReader *read, u32 depth); 
+	GF_Err (*place_obj)(SWFReader *read, u32 depth, u32 ID, u32 type, GF_Matrix2D *mat, GF_ColorMatrix *cmat);
+	GF_Err (*remove_obj)(SWFReader *read, u32 depth);
+
+	GF_Err (*define_shape)(SWFReader *read, SWFShape *shape, SWFFont *parent_font, Bool last_sub_shape);
+	GF_Err (*define_sprite)(SWFReader *read, u32 nb_frames);
+	GF_Err (*define_button)(SWFReader *read, SWF_Button *button);
+	GF_Err (*define_text)(SWFReader *read, SWFText *text);
+	GF_Err (*define_edit_text)(SWFReader *read, SWFEditText *text);
+
+	GF_Err (*setup_image)(SWFReader *read, u32 ID, char *fileName);
+	GF_Err (*setup_sound)(SWFReader *read, SWFSound *snd);
+	GF_Err (*start_sound)(SWFReader *read, SWFSound *snd, Bool stop);
+
+	void (*finalize)(SWFReader *read);
+
+};
+
 
 void swf_report(SWFReader *read, GF_Err e, char *format, ...);
+SWFFont *swf_find_font(SWFReader *read, u32 fontID);
+GF_Err swf_parse_sprite(SWFReader *read);
+
+
+GF_Err swf_to_bifs_init(SWFReader *read);
+
+
 
 typedef struct
 {
@@ -150,6 +167,14 @@ typedef struct
 	u32 nbPts;
 } SWFPath;
 
+enum
+{
+	GF_SWF_IS_MOVE = 1,
+	GF_SWF_IS_REPLACE = 1<<1,
+	GF_SWF_HAD_MATRIX = 1<<2,
+	GF_SWF_HAD_COLORMATRIX = 1<<3,
+};
+
 typedef struct
 {
 	u32 type;
@@ -164,31 +189,15 @@ typedef struct
 	SWFPath *path;
 } SWFShapeRec;
 
-
-typedef struct
+struct SWFShape 
 {
 	GF_List *fill_left, *fill_right, *lines;
 	u32 ID;
 	SWFRec rc;
-} SWFShape;
-
-/*converts SWF shape to BIFS shape*/
-GF_Node *SWFShapeToBIFS(SWFReader *read, SWFShape *shape, GF_Node *_self, Bool last_shape);
-
-/*returns new appearance or USE any existing one (base fill/strike only)*/
-GF_Node *SWF_GetAppearance(SWFReader *read, GF_Node *parent, u32 fill_col, Fixed line_width, u32 l_col);
-
-/*display list item (one per layer only)*/
-typedef struct
-{
-	GF_Matrix2D mat;
-	GF_ColorMatrix cmat;
-	u32 depth;
-	GF_Node *n;
-} DispShape;
+};
 
 /*SWF font object*/
-typedef struct
+struct SWFFont
 {
 	u32 fontID;
 	u32 nbGlyphs;
@@ -210,7 +219,7 @@ typedef struct
 
 	/*font familly*/
 	char *fontName;
-} SWFFont;
+};
 
 /*chunk of text with the same aspect (font, col)*/
 typedef struct
@@ -227,21 +236,70 @@ typedef struct
 	Fixed *dx;
 } SWFGlyphRec;
 
-typedef struct
+struct SWFText
 {
+	u32 ID;
 	GF_Matrix2D mat;
 	GF_List *text;
-} SWFText;
+};
 
-GF_Node *SWFTextToBIFS(SWFReader *read, SWFText *text);
+struct SWFEditText 
+{
+	u32 ID;
+	char *init_value;
+	Bool word_wrap, multiline, password, read_only, auto_size, no_select, html, outlines, has_layout, border;
+	u32 color;
+	Fixed max_length, font_height;
+	u32 fontID;
 
-SWFFont *SWF_FindFont(SWFReader *read, u32 fontID);
+	u32 align;
+	Fixed left, right, indent, leading;
+};
 
-/*insert node in dictionary*/
-GF_Err swf_insert_symbol(SWFReader *read, GF_Node *n);
 
-GF_Node *SWF_GetBIFSMatrix(SWFReader *read, GF_Matrix2D *mat);
-GF_Node *SWF_GetBIFSColorMatrix(SWFReader *read, GF_ColorMatrix *cmat);
+enum
+{
+	SWF_SND_UNCOMP = 0,
+	SWF_SND_ADPCM,
+	SWF_SND_MP3
+};
+
+struct SWFSound
+{
+	u32 ID;
+	u8 format;
+	/*0: 5.5k - 1: 11k - 2: 22k - 3: 44k*/
+	u8 sound_rate;
+	u8 bits_per_sample;
+	Bool stereo;
+	u16 sample_count;
+	u32 frame_delay_ms;
+
+	/*IO*/
+	FILE *output;
+	char *szFileName;
+
+	/*set when sound is setup (OD inserted)*/
+	Bool is_setup;
+};
+
+typedef struct 
+{
+	Bool hitTest, down, over, up;
+	u32 character_id;
+	u16 depth;
+	GF_Matrix2D mx;
+	GF_ColorMatrix cmx;
+} SWF_ButtonRecord;
+
+
+struct SWF_Button 
+{
+	u32 count;
+	SWF_ButtonRecord buttons[40];
+	u32 ID;
+};
+
 
 enum
 {

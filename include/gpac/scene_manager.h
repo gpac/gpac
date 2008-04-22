@@ -71,6 +71,8 @@ typedef struct _stream_context
 
 	/*last stream AU time, when playing the context directly*/
 	u64 last_au_time;
+	/*set if stream is part of root OD (playback only)*/
+	Bool in_root_od;
 } GF_StreamContext;
 
 /*generic presentation context*/

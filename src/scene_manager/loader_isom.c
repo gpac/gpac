@@ -132,7 +132,7 @@ static void mp4_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 #endif
 }
 
-GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
+GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 {
 	GF_Err e;
 	FILE *logs;
@@ -285,7 +285,7 @@ exit:
 	return e;
 }
 
-GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
+GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 {
 	u32 i, track;
 	GF_BIFSConfig *bc;
@@ -359,7 +359,7 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-void gf_sm_load_done_MP4(GF_SceneLoader *load)
+void gf_sm_load_done_isom(GF_SceneLoader *load)
 {
 	/*nothing to do the file is not ours*/
 }

@@ -48,7 +48,7 @@ static GF_Err gf_qt_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 
 
 /*import cubic QTVR to mp4*/
-GF_Err gf_sm_load_init_QT(GF_SceneLoader *load)
+GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 {
 	u32 i, di, w, h, tk, pano_t, nb_samp;
 	Bool has_qtvr;
@@ -179,10 +179,10 @@ GF_Err gf_sm_load_init_QT(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-void gf_sm_load_done_QT(GF_SceneLoader *load)
+void gf_sm_load_done_qt(GF_SceneLoader *load)
 {
 }
-GF_Err gf_sm_load_run_QT(GF_SceneLoader *load)
+GF_Err gf_sm_load_run_qt(GF_SceneLoader *load)
 {
 	return GF_OK;
 }

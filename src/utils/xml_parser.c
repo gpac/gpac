@@ -973,7 +973,12 @@ GF_EXPORT
 GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM)
 {
 	u32 offset;
-	if (!BOM) parser->unicode_type = 0;
+	if (!BOM) {
+		parser->unicode_type = 0;
+		parser->sax_state = SAX_STATE_ELEMENT;
+		return GF_OK;
+	}
+
 	if (parser->unicode_type >= 0) return gf_xml_sax_parse(parser, BOM);
 
 	offset = 0;
