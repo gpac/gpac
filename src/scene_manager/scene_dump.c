@@ -2815,6 +2815,7 @@ GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes
 
 static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_dump)
 {
+	u64 autime, time;
 	u32 i;
 	Bool has_base;
 	GF_AUContext *ptr;
@@ -2835,14 +2836,16 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 		au->timing = (u64) (au->timing_sec * au->owner->timeScale);
 	}
 
+	autime = au->timing + au->owner->dump_time_offset;
 	has_base = 0;
 	i=0; 
 	while ((ptr = (GF_AUContext*)gf_list_enum(sample_list, &i))) {
+		time = ptr->timing + ptr->owner->dump_time_offset;
 		if (
 			/*time ordered*/
-			(ptr->timing_sec > au->timing_sec) 
+			(time > autime) 
 			/*set bifs first for first AU*/
-			|| (!has_base && (ptr->timing_sec == au->timing_sec) && (ptr->owner->streamType < au->owner->streamType) )
+			|| (!has_base && (time == autime) && (ptr->owner->streamType < au->owner->streamType) )
 			/*set OD first for laser*/
 			|| (lsr_dump && (au->owner->streamType==GF_STREAM_OD))
 		) {
@@ -2851,7 +2854,7 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 		}
 
 		has_base = 0;
-		if ( (ptr->owner->streamType == au->owner->streamType) && (ptr->timing_sec == au->timing_sec) ) has_base = 1;
+		if ( (ptr->owner->streamType == au->owner->streamType) && (time == autime) ) has_base = 1;
 	}
 	gf_list_add(sample_list, au);
 }

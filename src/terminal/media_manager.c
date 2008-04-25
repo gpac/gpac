@@ -110,8 +110,11 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 	GF_CodecCapability cap;
 	assert(codec);
 
-	/*we need REAL exclusive access when adding a dec*/
+	/*caution: the mutex can be grabbed by a decoder waiting for a mutex owned by the calling thread
+	this happens when several scene codecs are running concurently and triggering play/pause on media*/
 	locked = gf_mx_try_lock(term->mm_mx);
+		if (!locked)
+			locked  = 0;
 
 	cd = mm_get_codec(term->codecs, codec);
 	if (cd) goto exit;
@@ -195,10 +198,13 @@ exit:
 void gf_term_remove_codec(GF_Terminal *term, GF_Codec *codec)
 {
 	u32 i;
+	Bool locked;
 	CodecEntry *ce;
 
-	/*we need REAL exclusive access when removing a dec*/
-	gf_mx_p(term->mm_mx);
+	/*cf note above*/
+	locked = gf_mx_try_lock(term->mm_mx);
+		if (!locked)
+			locked  = 0;
 
 	i=0;
 	while ((ce = (CodecEntry*)gf_list_enum(term->codecs, &i))) {
@@ -217,7 +223,7 @@ void gf_term_remove_codec(GF_Terminal *term, GF_Codec *codec)
 		gf_list_rem(term->codecs, i-1);
 		break;
 	}
-	gf_mx_v(term->mm_mx);
+	if (locked) gf_mx_v(term->mm_mx);
 	return;
 }
 
@@ -409,13 +415,19 @@ void gf_term_start_codec(GF_Codec *codec)
 
 void gf_term_stop_codec(GF_Codec *codec)
 {
+	Bool locked = 0;
 	CodecEntry *ce;
 	GF_Terminal *term = codec->odm->term;
 	ce = mm_get_codec(term->codecs, codec);
 	if (!ce) return;
 
 	if (ce->mx) gf_mx_p(ce->mx);
-	else gf_mx_p(term->mm_mx);
+	/*cf note above*/
+	else {
+		locked = gf_mx_try_lock(term->mm_mx);
+		if (!locked)
+			locked  = 0;
+	}
 	
 	if (codec->decio && codec->odm->mo && (codec->odm->mo->flags & GF_MO_DISPLAY_REMOVE) ) {
 		GF_CodecCapability cap;
@@ -435,7 +447,8 @@ void gf_term_stop_codec(GF_Codec *codec)
 	}
 
 	if (ce->mx) gf_mx_v(ce->mx);
-	else gf_mx_v(term->mm_mx);
+	/*cf note above*/
+	else if (locked) gf_mx_v(term->mm_mx);
 }
 
 void gf_term_set_threading(GF_Terminal *term, u32 mode)

@@ -220,6 +220,10 @@ enum
 	only used for offscreen rendering of Layer3D*/
 	GF_SG_VRML_BINDABLE_DIRTY = 1<<2,
 
+	/*flag set whenever a ColorTransform node is removed from a parent node*/
+	GF_SG_VRML_COLOR_DIRTY = 1<<3,
+
+
 	/*SVG-specific flags due to mix of geometry and appearance & co attributes*/
 	/*SVG geometry changed is the same as base flag*/
 	GF_SG_SVG_GEOMETRY_DIRTY		= GF_SG_NODE_DIRTY,

@@ -21,13 +21,18 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  */
-
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/utf.h>
 #include <gpac/xml.h>
 #include <gpac/internal/swf_dev.h>
 
 #ifndef GPAC_READ_ONLY
+
+typedef struct
+{
+	u32 btn_id;
+	u32 sprite_up_id;
+} S2BBtnRec;
 
 static GF_Err s2b_insert_symbol(SWFReader *read, GF_Node *n)
 {
@@ -365,10 +370,10 @@ static GF_Node *s2b_get_bitmap(SWFReader *read, GF_Node *parent, SWFShape *shape
 	app->texture = bmp;
 	gf_node_register(bmp, (GF_Node *)app);
 
-	gf_mx2d_copy(mx, srec->mat);
-	mx.m[0] *= SWF_TWIP_SCALE;
-	mx.m[4] *= SWF_TWIP_SCALE;
+	gf_mx2d_init(mx);
 	gf_mx2d_add_scale(&mx, FIX_ONE, -FIX_ONE);
+//	gf_mx2d_add_scale(&mx, SWF_TWIP_SCALE, -SWF_TWIP_SCALE);
+//	gf_mx2d_pre_multiply(&mx, &srec->mat);
 
 	gf_node_get_field_by_name((GF_Node*)app, "textureTransform", &info);
 	*((GF_Node **)info.far_ptr) = s2b_get_matrix(read, &mx);
@@ -606,19 +611,25 @@ static GF_Err swf_bifs_define_shape(SWFReader *read, SWFShape *shape, SWFFont *p
 	/*we need a grouping node*/
 	if (!read->cur_shape) {
 
-		/*empty shape*/
+		/*empty shape - for fonts, not a mistake, that's likelly space char*/
 		if (!shape) {
+			if (!parent_font) 
+				return GF_OK;
 			n = s2b_new_node(read, TAG_MPEG4_Shape);
 		} 
 		/*direct match, no top group*/
-		else if (last_sub_shape && (gf_list_count(shape->fill_left) + gf_list_count(shape->lines)==1)) {
+		else if (last_sub_shape && (gf_list_count(shape->fill_left) + gf_list_count(shape->lines)<=1)) {
 			Bool is_fill = 1;
 			srec = (SWFShapeRec*)gf_list_get(shape->fill_left, 0);
 			if (!srec) {
 				srec = (SWFShapeRec*)gf_list_get(shape->lines, 0);
 				is_fill = 0;
 			}
-			n = s2b_shape_to_curve2d(read, shape, srec, is_fill);
+			if (!srec) {
+				n = s2b_new_node(read, TAG_MPEG4_Shape);
+			} else {
+				n = s2b_shape_to_curve2d(read, shape, srec, is_fill);
+			}
 		} else {
 			og = s2b_new_node(read, TAG_MPEG4_OrderedGroup);
 			n = og;
@@ -627,8 +638,6 @@ static GF_Err swf_bifs_define_shape(SWFReader *read, SWFShape *shape, SWFFont *p
 
 		if (n) {
 			if (parent_font) {
-				/*not a mistake, that's likelly space char*/
-				//if (!glyph) glyph = s2b_new_node(read, TAG_MPEG4_Shape);
 				gf_list_add(parent_font->glyphs, n);
 				gf_node_register(n, NULL);
 			} else {
@@ -642,8 +651,6 @@ static GF_Err swf_bifs_define_shape(SWFReader *read, SWFShape *shape, SWFFont *p
 				s2b_insert_symbol(read, n);
 			}
 		}
-
-		/**/
 		if (!og) return GF_OK;
 	}
 
@@ -890,11 +897,13 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 	tr->scale.y = -FIX_ONE;
 
 	use_layout = 0;
-	if (text->align==3)
-		use_layout = 0;
+	if (text->align==3) use_layout = 1;
+	else if (text->multiline) use_layout = 1;
 
 	if (use_layout) {
 		layout = (M_Layout *) s2b_new_node(read, TAG_MPEG4_Layout);
+		tr->translation.x = read->width/2;
+		tr->translation.y = read->height/2;
 	}
 
 	t = (M_Text *) s2b_new_node(read, TAG_MPEG4_Text);
@@ -959,7 +968,25 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 	txt->geometry = (GF_Node *) t;
 	gf_node_register(txt->geometry, (GF_Node *) txt);
 
-	if (layout) {
+	if (layout) {		
+		gf_sg_vrml_mf_reset(&layout->justify, GF_SG_VRML_MFSTRING);
+		gf_sg_vrml_mf_append(&layout->justify, GF_SG_VRML_MFSTRING, NULL);
+		switch (text->align) {
+		case 0:
+			layout->justify.vals[0] = strdup("BEGIN"); 
+			break;
+		case 1:
+			layout->justify.vals[0] = strdup("END"); 
+			break;
+		case 3:
+			layout->justify.vals[0] = strdup("JUSTIFY"); 
+			break;
+		default:
+			layout->justify.vals[0] = strdup("MIDDLE"); 
+			break;
+		}
+		if (text->multiline || text->word_wrap) layout->wrap = 1;
+
 		gf_node_insert_child((GF_Node *) layout, (GF_Node *)txt, -1);
 		gf_node_register((GF_Node *) txt, (GF_Node *) layout);
 
@@ -994,19 +1021,15 @@ static void swf_bifs_end_of_clip(SWFReader *read)
 	
 	return;
 
-	empty = gf_sg_find_node_by_name(read->load->scene_graph, "EMPTYSHAPE");
+	empty = gf_sg_find_node_by_name(read->load->scene_graph, "Shape0");
 
 	au = gf_list_get(read->bifs_es->AUs, 0);
 	for (i=0; i<read->max_depth; i++) {
 		/*and write command*/
 		com = gf_sg_command_new(read->load->scene_graph, GF_SG_INDEXED_REPLACE);
-		/*in sprite definiton, modify at sprite root level*/
-		if (read->current_sprite_id) {
-			sprintf(szDEF, "Sprite%d_displaylist", read->current_sprite_id);
-			com->node = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
-		} else {
-			com->node = gf_sg_find_node_by_name(read->load->scene_graph, "DISPLAYLIST");
-		}
+		sprintf(szDEF, "CLIP%d_DL", read->current_sprite_id);
+		com->node = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
+
 		gf_node_register(com->node, NULL);
 		f = gf_sg_command_field_new(com);
 		f->field_ptr = &f->new_node;
@@ -1022,21 +1045,14 @@ static void swf_bifs_end_of_clip(SWFReader *read)
 
 static Bool swf_bifs_allocate_depth(SWFReader *read, u32 depth)
 {
+	char szDEF[100];
 	GF_Node *disp, *empty;
 	if (read->max_depth > depth) return 1;
 
-	/*modify sprite display list*/
-	if (read->current_sprite_id) {
-		char szDEF[100];
-		sprintf(szDEF, "Sprite%d_displaylist", read->current_sprite_id);
-		disp = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
-	} 
-	/*modify display list*/
-	else {
-		disp = gf_sg_find_node_by_name(read->load->scene_graph, "DISPLAYLIST");
-	}
+	sprintf(szDEF, "CLIP%d_DL", read->current_sprite_id);
+	disp = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 
-	empty = gf_sg_find_node_by_name(read->load->scene_graph, "EMPTYSHAPE");
+	empty = gf_sg_find_node_by_name(read->load->scene_graph, "Shape0");
 	while (read->max_depth<=depth) {
 		gf_node_insert_child(disp, empty, -1);
 		gf_node_register(empty, disp);
@@ -1161,8 +1177,16 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 
 	/*create AS for sprite - all AS are created in initial scene replace*/
 	n = s2b_new_node(read, TAG_MPEG4_AnimationStream);
-	sprintf(szDEF, "Sprite%d_ctrl", read->current_sprite_id);
+	gf_node_insert_child(read->root, n, 0);
+	gf_node_register(n, read->root);
+	/*assign URL*/
+	gf_node_get_field_by_name(n, "url", &info);
+	gf_sg_vrml_mf_alloc(info.far_ptr, info.fieldType, 1);
+	((MFURL*)info.far_ptr)->vals[0].OD_ID = od->objectDescriptorID;
+	((M_AnimationStream *)n)->startTime = 0;
 
+	n = s2b_new_node(read, TAG_MPEG4_MediaControl);
+	sprintf(szDEF, "CLIP%d_CTRL", read->current_sprite_id);
 	read->load->ctx->max_node_id++;
 	ID = read->load->ctx->max_node_id;
 	gf_node_set_id(n, ID, szDEF);
@@ -1174,13 +1198,12 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 	gf_sg_vrml_mf_alloc(info.far_ptr, info.fieldType, 1);
 	((MFURL*)info.far_ptr)->vals[0].OD_ID = od->objectDescriptorID;
 	/*inactive by default (until inserted)*/
-	((M_AnimationStream *)n)->startTime = -1;
-	/*loop by default - not 100% sure from SWF spec, I believe a sprite loops until removed from DList*/
-	((M_AnimationStream *)n)->loop = 0;
+	((M_MediaControl *)n)->mediaSpeed = 0;
+	((M_MediaControl *)n)->loop = 1;
 
 	/*create sprite grouping node*/
 	n = s2b_new_node(read, TAG_MPEG4_Group);
-	sprintf(szDEF, "Sprite%d_displaylist", read->current_sprite_id);
+	sprintf(szDEF, "CLIP%d_DL", read->current_sprite_id);
 
 	read->load->ctx->max_node_id++;
 	ID = read->load->ctx->max_node_id;
@@ -1189,7 +1212,7 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 	assert(par);
 	gf_node_list_add_child(&((M_Switch *)par)->choice, n);
 	gf_node_register(n, par);
-	par = gf_sg_find_node_by_name(read->load->scene_graph, "EMPTYSHAPE");
+	par = gf_sg_find_node_by_name(read->load->scene_graph, "Shape0");
 	gf_node_insert_child(n, par, -1);
 	gf_node_register(par, n);
 
@@ -1199,6 +1222,8 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 	/*create new BIFS stream*/
 	read->bifs_es = gf_sm_stream_new(read->load->ctx, esd->ESID, GF_STREAM_SCENE, 1);
 	read->bifs_es->timeScale = prev_sc->timeScale;
+	read->bifs_es->dump_time_offset = prev_sc->dump_time_offset + prev_au->timing;
+
 	/*create first AU*/
 	read->bifs_au = gf_sm_stream_au_new(read->bifs_es, 0, 0, 1);
 
@@ -1214,7 +1239,7 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 	return GF_OK;
 }
 
-static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd)
+static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd, Bool soundstream_first_block)
 {
 	GF_Err e;
 	GF_ObjectDescriptor *od;
@@ -1224,6 +1249,19 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd)
 	GF_FieldInfo info;
 	u32 ID;
 	char szDEF[100];
+
+	/*soundstream header, only declare the associated MediaControl node for later actions*/
+	if (!snd->ID && !soundstream_first_block) {
+		n = s2b_new_node(read, TAG_MPEG4_MediaControl);
+		sprintf(szDEF, "CLIP%d_SND", read->current_sprite_id);
+		read->load->ctx->max_node_id++;
+		ID = read->load->ctx->max_node_id;
+		gf_node_set_id(n, ID, szDEF);
+
+		gf_node_insert_child(read->root, n, 0);
+		gf_node_register(n, read->root);
+		return GF_OK;
+	}
 
 	e = swf_init_od(read, 0);
 	if (e) return e;
@@ -1241,13 +1279,15 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd)
 	} else {
 		/*soundstream runs on movie/sprite timeline*/
 		esd->OCRESID = read->bifs_es->ESID;
+		esd->OCRESID = esd->ESID;
 	}
 	gf_list_add(od->ESDescriptors, esd);
 
 	/*setup mux info*/
 	mux = (GF_MuxInfo*)gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
 	mux->file_name = strdup(snd->szFileName);
-	mux->startTime = snd->frame_delay_ms;
+//	mux->startTime = snd->frame_delay_ms;
+	mux->startTime = 0;
 	/*MP3 in, destroy file once done*/
 	if (snd->format==2) mux->delete_file = 1;
 	gf_list_add(esd->extensionDescriptors, mux);
@@ -1265,13 +1305,6 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd)
 	gf_node_register(n, read->root);
 	par = n;
 	n = s2b_new_node(read, TAG_MPEG4_AudioClip);
-	/*soundStream doesn't have ID and doesn't need to be accessed*/
-	if (snd->ID) {
-		sprintf(szDEF, "Sound%d", snd->ID);
-		read->load->ctx->max_node_id++;
-		ID = read->load->ctx->max_node_id;
-		gf_node_set_id(n, ID, szDEF);
-	}
 	((M_Sound2D *)par)->source = n;
 	gf_node_register(n, par);
 	/*assign URL*/
@@ -1279,53 +1312,43 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd)
 	gf_sg_vrml_mf_alloc(info.far_ptr, info.fieldType, 1);
 	((MFURL *)info.far_ptr)->vals[0].OD_ID = od->objectDescriptorID;
 
-	gf_node_get_field_by_name(n, "startTime", &info);
-	*((SFTime *)info.far_ptr) = FLT2FIX(snd->frame_delay_ms/1000.0f);
+	((M_AudioClip*)n)->startTime = -1.0;
 
-	snd->is_setup = 1;
-	return GF_OK;
-}
-
-static GF_Err swf_bifs_start_sound(SWFReader *read, SWFSound *snd, Bool stop)
-{
-	char szDEF[100];
-	GF_Command *com;
-	GF_FieldInfo info;
-	GF_Node *sound2D;
-	GF_CommandField *f;
-
-	sprintf(szDEF, "Sound%d", snd->ID);
-	sound2D = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
-	/*check flags*/
-	if (stop) {
-		/*need a STOP*/
-		com = gf_sg_command_new(read->load->scene_graph, GF_SG_FIELD_REPLACE);
-		com->node = sound2D;
-		gf_node_register(com->node, NULL);
-		gf_node_get_field_by_name(sound2D, "stopTime", &info);
-		f = gf_sg_command_field_new(com);
-		f->field_ptr = gf_sg_vrml_field_pointer_new(GF_SG_VRML_SFTIME);
-		f->fieldType = GF_SG_VRML_SFTIME;
-		f->fieldIndex = info.fieldIndex;
-		/*replace by "now"*/
-		*(SFTime *)f->field_ptr = ((Double)(s64) read->bifs_au->timing) / read->bifs_es->timeScale;
-		*(SFTime *)f->field_ptr = 0;
-		gf_list_add(read->bifs_au->commands, com);
+	/*regular sound: set an ID to do play/stop*/
+	if (snd->ID) {
+		sprintf(szDEF, "Sound%d", snd->ID);
+		read->load->ctx->max_node_id++;
+		ID = read->load->ctx->max_node_id;
+		gf_node_set_id(n, ID, szDEF);
 	}
+	/*soundStream - add a MediaControl*/
+	else {
+		/*if sprite always have the media active but controled by its mediaControl*/
+		if (read->current_sprite_id) {
+			((M_AudioClip*)n)->startTime = 0;
+		} 
+		/*otherwise start the media at the first soundstream block*/
+		else {
+			((M_AudioClip*)n)->startTime = snd->frame_delay_ms/1000.0;
+			((M_AudioClip*)n)->startTime = 0;
+		}
 
-	com = gf_sg_command_new(read->load->scene_graph, GF_SG_FIELD_REPLACE);
-	com->node = sound2D;
-	gf_node_register(com->node, NULL);
-	gf_node_get_field_by_name(sound2D, "startTime", &info);
-	f = gf_sg_command_field_new(com);
-	f->field_ptr = gf_sg_vrml_field_pointer_new(GF_SG_VRML_SFTIME);
-	f->fieldType = GF_SG_VRML_SFTIME;
-	f->fieldIndex = info.fieldIndex;
-	/*replace by "now"*/
-	*(SFTime *)f->field_ptr = ((Double)(s64) read->bifs_au->timing) / read->bifs_es->timeScale;
-	*(SFTime *)f->field_ptr = 0;
-	gf_list_add(read->bifs_au->commands, com);
+		sprintf(szDEF, "CLIP%d_SND", read->current_sprite_id);
+		n = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 
+		/*assign URL*/
+		gf_node_get_field_by_name(n, "url", &info);
+		gf_sg_vrml_mf_alloc(info.far_ptr, info.fieldType, 1);
+		((MFURL*)info.far_ptr)->vals[0].OD_ID = od->objectDescriptorID;
+		((M_MediaControl *)n)->loop = 0;
+
+		/*inactive by default (until inserted)*/
+		if (read->current_sprite_id) {
+			((M_MediaControl *)n)->mediaSpeed = 0;
+		} else {
+			((M_MediaControl *)n)->mediaSpeed = FIX_ONE;
+		}
+	}
 	return GF_OK;
 }
 
@@ -1395,75 +1418,168 @@ static GF_Err swf_bifs_setup_image(SWFReader *read, u32 ID, char *fileName)
 	return GF_OK;
 }
 
-static GF_Err swf_bifs_set_backcol(SWFReader *read, u32 xrgb)
+
+static GF_Node *s2b_wrap_node(SWFReader *read, GF_Node *node, GF_Matrix2D *mat, GF_ColorMatrix *cmat)
 {
-	GF_Command *com;
-	GF_CommandField *f;
-	com = gf_sg_command_new(read->load->scene_graph, GF_SG_FIELD_REPLACE);
-	com->node = gf_sg_find_node_by_name(read->load->scene_graph, "BACKGROUND");
-	gf_node_register(com->node, NULL);
-	f = gf_sg_command_field_new(com);
-	f->field_ptr = gf_sg_vrml_field_pointer_new(GF_SG_VRML_SFCOLOR);
-	f->fieldType = GF_SG_VRML_SFCOLOR;
-	f->fieldIndex = 1;	/*backColor index*/
-	((SFColor *)f->field_ptr)->red = INT2FIX((xrgb>>16) & 0xFF) / 255;
-	((SFColor *)f->field_ptr)->green = INT2FIX((xrgb>>8) & 0xFF) / 255;
-	((SFColor *)f->field_ptr)->blue = INT2FIX((xrgb) & 0xFF) / 255;
-	return gf_list_add(read->bifs_au->commands, com);
-}
-
-
-static GF_Err swf_bifs_place_obj(SWFReader *read, u32 depth, u32 ID, u32 type, GF_Matrix2D *mat, GF_ColorMatrix *cmat)
-{
-	GF_Command *com;
-	GF_CommandField *f;
-	GF_Node *shape, *par;
-	char szDEF[100];
-	Bool is_sprite;
-
-	shape = s2b_get_node(read, ID);
-	is_sprite = 0;
-	if (!shape) {
-		sprintf(szDEF, "Sprite%d_displaylist", ID);
-		shape = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
-		if (shape) is_sprite = 1;
-	}
-	if (!shape) return GF_BAD_PARAM;
+	GF_Node *par;
+	if (mat && gf_mx2d_is_identity(*mat)) mat = NULL;
+	if (cmat && cmat->identity) cmat = NULL;
 
 	/*then add cmat/mat and node*/
 	par = NULL;
 	if (!mat && !cmat) {
-		par = shape;
+		par = node;
 	} else {
 		if (mat) par = s2b_get_matrix(read, mat);
 		if (cmat) {
 			GF_Node *cm = s2b_get_color_matrix(read, cmat);
 			if (!par) {
 				par = cm;
-				gf_node_insert_child(par, shape, -1);
-				gf_node_register(shape, par);
+				gf_node_insert_child(par, node, -1);
+				gf_node_register(node, par);
 			} else {
 				gf_node_insert_child(par, cm, -1);
 				gf_node_register(cm, par);
-				gf_node_insert_child(cm, shape, -1);
-				gf_node_register(shape, cm);
+				gf_node_insert_child(cm, node, -1);
+				gf_node_register(node, cm);
 			}
 		} else {
-			gf_node_insert_child(par, shape, -1);
-			gf_node_register(shape, par);
+			gf_node_insert_child(par, node, -1);
+			gf_node_register(node, par);
 		}
 	}
+	return par;
+}
+
+
+
+static void s2b_set_field(SWFReader *read, GF_List *dst, GF_Node *n, char *fieldName, s32 pos, u32 type, void *val, Bool insert)
+{
+	u32 i, count;
+	GF_FieldInfo info;
+	GF_Command *com = NULL;
+	GF_CommandField *f;
+
+	gf_node_get_field_by_name(n, fieldName, &info);
+
+	count = gf_list_count(dst);
+	for (i=0; i<count; i++) {
+		com = gf_list_get(dst, i);
+		if (com->node!=n) continue;
+		f = gf_list_get(com->command_fields, 0);
+		if (f->fieldIndex != info.fieldIndex) continue;
+		if (f->pos != pos) continue;
+
+		if (insert) return;
+
+		if (type==GF_SG_VRML_SFSTRING) {
+			if (((SFString*)f->field_ptr)->buffer)
+				free(((SFString*)f->field_ptr)->buffer);
+			((SFString*)f->field_ptr)->buffer = strdup( (char *) val);
+		} else {
+			gf_sg_vrml_field_copy(f->field_ptr, val, type);
+		}
+		gf_list_rem(dst, i);
+		gf_list_add(dst, com);
+		return;
+	}
+
+	com = gf_sg_command_new(read->load->scene_graph, (pos<0) ? GF_SG_FIELD_REPLACE : GF_SG_INDEXED_REPLACE);
+	com->node = n;
+	gf_node_register(com->node, NULL);
+	f = gf_sg_command_field_new(com);
+	f->field_ptr = gf_sg_vrml_field_pointer_new(type);
+	if (type==GF_SG_VRML_SFSTRING) {
+		((SFString*)f->field_ptr)->buffer = strdup( (char *) val);
+	} else {
+		gf_sg_vrml_field_copy(f->field_ptr, val, type);
+	}
+	f->fieldType = type;
+	f->pos = pos;
+	f->fieldIndex = info.fieldIndex;
+
+	if (insert) 
+		gf_list_insert(dst, com, 0);
+	else
+		gf_list_add(dst, com);
+}
+
+static GF_Err swf_bifs_set_backcol(SWFReader *read, u32 xrgb)
+{
+	SFColor rgb;
+	GF_Node *bck = gf_sg_find_node_by_name(read->load->scene_graph, "BACKGROUND");
+
+	rgb.red = INT2FIX((xrgb>>16) & 0xFF) / 255;
+	rgb.green = INT2FIX((xrgb>>8) & 0xFF) / 255;
+	rgb.blue = INT2FIX((xrgb) & 0xFF) / 255;
+	s2b_set_field(read, read->bifs_au->commands, bck, "backColor", -1, GF_SG_VRML_SFCOLOR, &rgb, 0);
+	return GF_OK;
+}
+
+static GF_Err swf_bifs_start_sound(SWFReader *read, SWFSound *snd, Bool stop)
+{
+	GF_Node *sound2D;
+	SFTime t = 0;
+	char szDEF[100];
+
+	sprintf(szDEF, "Sound%d", snd->ID);
+	sound2D = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
+	/*check flags*/
+	if (sound2D)
+		s2b_set_field(read, read->bifs_au->commands, sound2D, stop ? "stopTime" : "startTime", -1, GF_SG_VRML_SFTIME, &t, 0);
+
+	return GF_OK;
+}
+
+static void s2b_control_sprite(SWFReader *read, GF_List *dst, u32 ID, Bool stop, Bool set_time, SFTime mediaStartTime, Bool rev_order)
+{
+	GF_Node *obj;
+	char szDEF[100];
+	SFFloat t;
+	sprintf(szDEF, "CLIP%d_CTRL", ID);
+	obj = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
+	if (!obj) return;
+	if (set_time)
+		s2b_set_field(read, dst, obj, "mediaStartTime", -1, GF_SG_VRML_SFTIME, &mediaStartTime, rev_order);
+	t = stop ? 0 : FIX_ONE;
+	s2b_set_field(read, dst, obj, "mediaSpeed", -1, GF_SG_VRML_SFFLOAT, &t, rev_order);
+
+	sprintf(szDEF, "CLIP%d_SND", ID);
+	obj = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
+	if (!obj) return;
+	if (set_time) {
+		mediaStartTime -= read->sound_stream->frame_delay_ms/1000.0;
+		if (mediaStartTime<0) mediaStartTime = 0;
+		s2b_set_field(read, dst, obj, "mediaStartTime", -1, GF_SG_VRML_SFTIME, &mediaStartTime, rev_order);
+	}
+	t = stop ? 0 : FIX_ONE;
+	s2b_set_field(read, dst, obj, "mediaSpeed", -1, GF_SG_VRML_SFFLOAT, &t, rev_order);
+}
+
+static GF_Err swf_bifs_place_obj(SWFReader *read, u32 depth, u32 ID, u32 prev_id, u32 type, GF_Matrix2D *mat, GF_ColorMatrix *cmat, GF_Matrix2D *prev_mat, GF_ColorMatrix *prev_cmat)
+{
+	GF_Command *com;
+	GF_CommandField *f;
+	GF_Node *obj, *par;
+	char szDEF[100];
+	Bool is_sprite;
+
+	obj = s2b_get_node(read, ID);
+	is_sprite = 0;
+	if (!obj) {
+		sprintf(szDEF, "CLIP%d_DL", ID);
+		obj = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
+		if (obj) is_sprite = 1;
+	}
+	if (!obj) return GF_BAD_PARAM;
+
+	/*then add cmat/mat and node*/
+	par = s2b_wrap_node(read, obj, mat, cmat);
 
 	/*and write command*/
 	com = gf_sg_command_new(read->load->scene_graph, GF_SG_INDEXED_REPLACE);
-	/*in sprite definiton, modify at sprite root level*/
-	if (read->current_sprite_id) {
-		sprintf(szDEF, "Sprite%d_displaylist", read->current_sprite_id);
-		com->node = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
-		depth = 0;
-	} else {
-		com->node = gf_sg_find_node_by_name(read->load->scene_graph, "DISPLAYLIST");
-	}
+	sprintf(szDEF, "CLIP%d_DL", read->current_sprite_id);
+	com->node = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	gf_node_register(com->node, NULL);
 	f = gf_sg_command_field_new(com);
 	f->field_ptr = &f->new_node;
@@ -1474,38 +1590,52 @@ static GF_Err swf_bifs_place_obj(SWFReader *read, u32 depth, u32 ID, u32 type, G
 	gf_node_register(f->new_node, com->node);
 	gf_list_add(read->bifs_au->commands, com);
 
+	if (ID==prev_id) return GF_OK;
+
+	strcpy(szDEF, gf_node_get_name(obj));
+	/*when inserting a button, trigger a pause*/
+	if (!strnicmp(szDEF, "Button", 6)) {
+		u32 i, count;
+		s2b_control_sprite(read, read->bifs_au->commands, read->current_sprite_id, 1, 0, 0, 1);
+
+		count = gf_list_count(read->buttons);
+		for (i=0; i<count; i++) {
+			S2BBtnRec *btnrec = gf_list_get(read->buttons, i);
+			if (btnrec->btn_id==ID) {
+				s2b_control_sprite(read, read->bifs_au->commands, btnrec->sprite_up_id, 0, 0, 0, 1);
+			}
+		}
+	}
 	/*starts anim*/
-	if (is_sprite) {
-		sprintf(szDEF, "Sprite%d_ctrl", ID);
-		com = gf_sg_command_new(read->load->scene_graph, GF_SG_FIELD_REPLACE);
-		com->node = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
-		gf_node_register(com->node, NULL);
-		f = gf_sg_command_field_new(com);
-		f->field_ptr = gf_sg_vrml_field_pointer_new(GF_SG_VRML_SFTIME);
-		*(SFTime *)f->field_ptr = ((Double) (s64) read->bifs_au->timing) / read->bifs_es->timeScale;
-		f->fieldType = GF_SG_VRML_SFTIME;
-		f->fieldIndex = 2;	/*startTime index*/
-		gf_list_add(read->bifs_au->commands, com);
+	else if (is_sprite) {
+		s2b_control_sprite(read, read->bifs_au->commands, ID, 0, 1, 0, 0);
+		if (prev_id) {
+			s2b_control_sprite(read, read->bifs_au->commands, prev_id, 1, 0, 0, 0);
+		}
 	}
 	return GF_OK;
 }
 
-static GF_Err swf_bifs_remove_obj(SWFReader *read, u32 depth)
+static GF_Err swf_bifs_remove_obj(SWFReader *read, u32 depth, u32 ID)
 {
+	char szDEF[100];
 	GF_Command *com;
 	GF_CommandField *f;
 
 	com = gf_sg_command_new(read->load->scene_graph, GF_SG_INDEXED_REPLACE);
-	com->node = gf_sg_find_node_by_name(read->load->scene_graph, "DISPLAYLIST");
+	sprintf(szDEF, "CLIP%d_DL", read->current_sprite_id);
+	com->node = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	gf_node_register(com->node, NULL);
 	f = gf_sg_command_field_new(com);
 	f->field_ptr = &f->new_node;
 	f->fieldType = GF_SG_VRML_SFNODE;
 	f->pos = depth;
 	f->fieldIndex = 2;	/*children index*/
-	f->new_node = gf_sg_find_node_by_name(read->load->scene_graph, "EMPTYSHAPE");
+	f->new_node = gf_sg_find_node_by_name(read->load->scene_graph, "Shape0");
 	gf_node_register(f->new_node, com->node);
 	gf_list_add(read->bifs_au->commands, com);
+
+	s2b_control_sprite(read, read->bifs_au->commands, ID, 1, 0, 0, 0);
 	return GF_OK;
 }
 
@@ -1533,7 +1663,7 @@ static GF_Err swf_bifs_show_frame(SWFReader *read)
 	/*create a new AU for next frame*/
 	ts = (read->current_frame + 1) * 100;
 
-#if 0
+#if 1
 	/*all frames in sprites are RAP (define is not allowed in sprites)
 	if we use a ctrl stream, all AUs are RAP (defines are placed in a static dictionary)
 	*/
@@ -1547,35 +1677,190 @@ static GF_Err swf_bifs_show_frame(SWFReader *read)
 	/*if we use ctrl stream, same thing*/
 	read->bifs_au = gf_sm_stream_au_new(read->bifs_es, ts, 0, is_rap);
 
-	/*not in a sprite def, using a control stream and no static dictionary: create a new AU for new symbols*/
-	if (!read->current_sprite_id 
-		&& (read->flags & GF_SM_SWF_SPLIT_TIMELINE) 
-		&& !(read->flags & GF_SM_SWF_STATIC_DICT) 
-	)
-		read->bifs_dict_au = gf_sm_stream_au_new(read->bifs_dict_es, ts, 0, 0);
+	/*not in a sprite def, using a control stream and no wait_frame: create a new AU for new symbols
+	*/
+	if (!read->current_sprite_id) {
+		if (read->bifs_dict_au && !read->wait_frame) {
+			read->bifs_dict_au = gf_sm_stream_au_new(read->bifs_dict_es, ts, 0, 0);
+		}
+		/*if wait_frame is specified, aggregate all dictionary commands until frame is reached*/
+		if (read->wait_frame && read->wait_frame<=read->current_frame) 
+			read->wait_frame = 0;
+	}
 	
 	return GF_OK;
 }
 
+
+static GF_Node *s2b_button_add_child(SWFReader *read, GF_Node *button, u32 tag, char *def_name, s32 pos)
+{
+	GF_Node *n = s2b_new_node(read, tag);
+	
+	if (def_name) {
+		u32 ID;
+		read->load->ctx->max_node_id++;
+		ID = read->load->ctx->max_node_id;
+		gf_node_set_id((GF_Node *)n, ID, def_name);
+	}
+	
+	gf_node_insert_child((GF_Node *)button, (GF_Node *)n, pos);
+	gf_node_register((GF_Node *) n, (GF_Node *) button);
+	return n;
+}
+
+static void s2b_button_add_route(SWFReader *read, GF_Node *fromNode, u32 fromField, GF_Node *toNode, u32 toField)
+{
+	GF_Command *com = gf_sg_command_new(read->load->scene_graph, GF_SG_ROUTE_INSERT);
+	com->fromNodeID = gf_node_get_id(fromNode);
+	com->fromFieldIndex = fromField;
+	com->toNodeID = gf_node_get_id(toNode);
+	com->toFieldIndex = toField;
+
+	if (read->bifs_dict_au)
+		gf_list_add(read->bifs_dict_au->commands, com);
+	else
+		gf_list_add(read->bifs_au->commands, com);
+}
+
+
 static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 {
 	char szName[1024];
-	u32 i, ID;
-	M_Switch *button = (M_Switch *) s2b_new_node(read, TAG_MPEG4_Switch);
+	M_Switch *button;
+	SWF_ButtonRecord *br;
+	GF_Node *btn_root, *n, *btn_ts;
+	u32 i, ID, pos;
+
+	if (!btn) {
+		read->btn = NULL;
+		read->btn_over = read->btn_not_over = read->btn_active = read->btn_not_active = NULL;
+		return GF_OK;
+	}
+
+	read->btn = btn;
+
+	btn_root = s2b_new_node(read, TAG_MPEG4_Transform2D);
 	sprintf(szName, "Button%d", btn->ID);
 	read->load->ctx->max_node_id++;
 	ID = read->load->ctx->max_node_id;
-	gf_node_set_id((GF_Node *)button, ID, szName);
-	s2b_insert_symbol(read, (GF_Node *)button);
-	/*by default show first character*/
-	button->whichChoice = 0;
+	gf_node_set_id((GF_Node *)btn_root, ID, szName);
+
+	n = s2b_button_add_child(read, btn_root, TAG_MPEG4_ColorTransform, NULL, -1);
+	((M_ColorTransform*)n)->maa = ((M_ColorTransform*)n)->mab = ((M_ColorTransform*)n)->mar = ((M_ColorTransform*)n)->mag = ((M_ColorTransform*)n)->ta = 0; 
+
+	/*locate hit buttons and add them to the color transform*/
 	for (i=0; i<btn->count; i++) {
-		GF_Node *character = s2b_get_node(read, btn->buttons[i].character_id);
+		GF_Node *character;
+		br = &btn->buttons[i];
+		if (!br->hitTest) continue;
+		character = s2b_get_node(read, br->character_id);
+		if (!character) {
+			sprintf(szName, "CLIP%d_DL", br->character_id);
+			character = gf_sg_find_node_by_name(read->load->scene_graph, szName);
+		}
 		if (character) {
-			gf_node_list_add_child(&button->choice, character);
-			gf_node_register(character, (GF_Node *)button);
+			gf_node_list_add_child(&((GF_ParentNode*)n)->children, character);
+			gf_node_register(character, (GF_Node *)n);
 		}
 	}
+	/*add touch sensor to the color transform*/
+	sprintf(szName, "BTN%d_TS", read->btn->ID);
+	btn_ts = s2b_button_add_child(read, n, TAG_MPEG4_TouchSensor, szName, -1);
+
+	s2b_insert_symbol(read, (GF_Node *)btn_root);
+
+	/*isActive handler*/
+	sprintf(szName, "BTN%d_CA", read->btn->ID);
+	n = s2b_button_add_child(read, btn_root, TAG_MPEG4_Conditional, szName, -1);
+	read->btn_active = ((M_Conditional*)n)->buffer.commandList;
+	s2b_button_add_route(read, btn_ts, 4, n, 0);
+
+	/*!isActive handler*/
+	sprintf(szName, "BTN%d_CNA", read->btn->ID);
+	n = s2b_button_add_child(read, btn_root, TAG_MPEG4_Conditional, szName, -1);
+	read->btn_not_active = ((M_Conditional*)n)->buffer.commandList;
+	s2b_button_add_route(read, btn_ts, 4, n, 1);
+
+	/*isOver handler*/
+	sprintf(szName, "BTN%d_CO", read->btn->ID);
+	n = s2b_button_add_child(read, btn_root, TAG_MPEG4_Conditional, szName, -1);
+	read->btn_over = ((M_Conditional*)n)->buffer.commandList;
+	s2b_button_add_route(read, btn_ts, 5, n, 0);
+
+	/*!isOver handler*/
+	sprintf(szName, "BTN%d_CNO", read->btn->ID);
+	n = s2b_button_add_child(read, btn_root, TAG_MPEG4_Conditional, szName, -1);
+	read->btn_not_over = ((M_Conditional*)n)->buffer.commandList;
+	s2b_button_add_route(read, btn_ts, 5, n, 1);
+
+	/*by default show first character*/
+	pos = 0;
+	for (i=0; i<btn->count; i++) {
+		GF_Node *sprite_ctrl = NULL;
+		GF_Node *character;
+		br = &btn->buttons[i];
+		if (!br->up && !br->down && !br->over) continue;
+
+		character = s2b_get_node(read, br->character_id);
+
+		if (!character) {
+			sprintf(szName, "CLIP%d_DL", br->character_id);
+			character = gf_sg_find_node_by_name(read->load->scene_graph, szName);
+			if (character) {
+				sprintf(szName, "CLIP%d_CTRL", br->character_id);
+				sprite_ctrl = gf_sg_find_node_by_name(read->load->scene_graph, szName);
+			}
+		}
+		if (character) {
+			SFInt32 choice = 0;
+			GF_Node *n = s2b_wrap_node(read, character, &br->mx, &br->cmx);
+
+			sprintf(szName, "BTN%d_R%d", btn->ID, i+1);
+			button = (M_Switch *) s2b_button_add_child(read, btn_root, TAG_MPEG4_Switch, szName, pos);
+			pos++;
+
+			gf_node_list_add_child(&button->choice, n);
+			gf_node_register(n, (GF_Node *)button);
+			/*initial state*/
+			if (br->up) {
+				button->whichChoice = 0;
+				/*register this button for sprite start upon place_obj*/
+				if (sprite_ctrl) {
+					S2BBtnRec *btnrec;
+					if (!read->buttons) read->buttons = gf_list_new();
+					btnrec = malloc(sizeof(S2BBtnRec));
+					btnrec->btn_id = btn->ID;
+					btnrec->sprite_up_id = br->character_id;
+					gf_list_add(read->buttons, btnrec);
+				}
+
+			} else {
+				button->whichChoice = -1;
+			}
+
+			choice = br->up ? 0 : -1;
+			s2b_set_field(read, read->btn_not_over, (GF_Node *)button, "whichChoice", -1, GF_SG_VRML_SFINT32, &choice, 0);
+			/*start or stop sprite if button is up or not*/
+			if (sprite_ctrl) {
+				s2b_control_sprite(read, read->btn_not_over, br->character_id, choice, 1, 0, 0);
+			}
+
+			choice = br->down ? 0 : -1;
+			s2b_set_field(read, read->btn_active, (GF_Node *)button, "whichChoice", -1, GF_SG_VRML_SFINT32, &choice, 0);
+			if (sprite_ctrl) {
+				s2b_control_sprite(read, read->btn_active, br->character_id, choice, 1, 0, 0);
+			}
+
+			choice = br->over ? 0 : -1;
+			s2b_set_field(read, read->btn_not_active, (GF_Node *)button, "whichChoice", -1, GF_SG_VRML_SFINT32, &choice, 0);
+			s2b_set_field(read, read->btn_over, (GF_Node *)button, "whichChoice", -1, GF_SG_VRML_SFINT32, &choice, 0);
+			if (sprite_ctrl) {
+				s2b_control_sprite(read, read->btn_over, br->character_id, choice, 1, 0, 0);
+				s2b_control_sprite(read, read->btn_not_active, br->character_id, choice, 1, 0, 0);
+			}
+		}
+	}
+
 	return GF_OK;
 }
 
@@ -1584,6 +1869,12 @@ static void swf_bifs_finalize(SWFReader *read)
 	u32 i, count;
 
 	swf_bifs_end_of_clip(read);	
+
+	while (gf_list_count(read->buttons)) {
+		S2BBtnRec *btnrec = gf_list_get(read->buttons, 0);
+		gf_list_rem(read->buttons, 0);
+		free(btnrec);
+	}
 
 	count = gf_list_count(read->fonts);
 	for (i=0;i<count; i++) {
@@ -1594,6 +1885,61 @@ static void swf_bifs_finalize(SWFReader *read)
 			gf_node_unregister(gl, NULL);
 		}
 	}
+}
+
+Bool swf_bifs_action(SWFReader *read, SWFAction *act)
+{
+	GF_List *dst;
+	MFURL url;
+	SFURL sfurl;
+	MFString str;
+	SFString sfstr;
+	Bool bval;
+	GF_Node *n;
+	Double time;
+
+	dst = read->bifs_au->commands;
+	if (read->btn) {
+		if (act->button_mask & GF_SWF_COND_OVERUP_TO_OVERDOWN) dst = read->btn_active;
+		else if (act->button_mask & GF_SWF_COND_IDLE_TO_OVERUP) dst = read->btn_over;
+		else if (act->button_mask & GF_SWF_COND_OVERUP_TO_IDLE) dst = read->btn_not_over;
+		else dst = read->btn_not_active;
+	}
+
+	switch (act->type) {
+	case GF_SWF_AS3_WAIT_FOR_FRAME:
+		/*while correct, this is not optimal, we set the wait-frame upon GOTO frame*/
+//		read->wait_frame = act->frame_number;
+		break;
+	case GF_SWF_AS3_GOTO_FRAME:
+		if (act->frame_number>read->current_frame)
+			read->wait_frame = act->frame_number;
+
+		time = act->frame_number ? act->frame_number +1: 0;
+		time /= read->frame_rate;
+		s2b_control_sprite(read, dst, read->current_sprite_id, 0, 1, time, 0);
+		break;
+	case GF_SWF_AS3_GET_URL:
+		n = gf_sg_find_node_by_name(read->load->scene_graph, "MOVIE_URL");
+		sfurl.OD_ID = 0; sfurl.url = act->url;
+		url.count = 1; url.vals = &sfurl;
+		s2b_set_field(read, dst, n, "url", -1, GF_SG_VRML_MFURL, &url, 0);
+
+		sfstr.buffer = act->target;
+		str.count = 1; str.vals = &act->target;
+		s2b_set_field(read, dst, n, "parameter", -1, GF_SG_VRML_MFSTRING, &url, 0);
+		
+		bval = 1;
+		s2b_set_field(read, dst, n, "activate", -1, GF_SG_VRML_SFBOOL, &bval, 0);
+		break;
+	case GF_SWF_AS3_PLAY:
+		s2b_control_sprite(read, dst, read->current_sprite_id, 0, 1, -1, 0);
+		break;
+	default:
+		return 0;
+	}
+
+	return 1;
 }
 
 GF_Err swf_to_bifs_init(SWFReader *read)
@@ -1622,6 +1968,7 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	read->setup_sound = swf_bifs_setup_sound;
 	read->start_sound = swf_bifs_start_sound;
 	read->setup_image = swf_bifs_setup_image;
+	read->action = swf_bifs_action;
 	read->finalize = swf_bifs_finalize;
 
 	/*create BIFS stream*/
@@ -1663,6 +2010,12 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	gf_node_insert_child(read->root, n, -1);
 	gf_node_register(n, read->root);
 	
+	/*movie anchor*/
+	n = s2b_new_node(read, TAG_MPEG4_Anchor);
+	gf_node_set_id(n, 1, "MOVIE_URL");
+	gf_node_insert_child(read->root, n, -1);
+	gf_node_register(n, read->root);
+	
 	/*dictionary*/
 	n = s2b_new_node(read, TAG_MPEG4_Switch);
 	gf_node_set_id(n, 2, "DICTIONARY");
@@ -1670,13 +2023,13 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	gf_node_register(n, read->root);
 	/*empty shape to fill depth levels & sprites roots*/
 	n2 = s2b_new_node(read, TAG_MPEG4_Shape);
-	gf_node_set_id(n2, 3, "EMPTYSHAPE");
+	gf_node_set_id(n2, 3, "Shape0");
 	gf_node_list_add_child( &((M_Switch *)n)->choice, n2);
 	gf_node_register(n2, n);
 
 	/*display list*/
 	n = s2b_new_node(read, TAG_MPEG4_Transform2D);
-	gf_node_set_id(n, 4, "DISPLAYLIST");
+	gf_node_set_id(n, 4, "CLIP0_DL");
 	gf_node_insert_child(read->root, n, -1);
 	gf_node_register(n, read->root);
 	/*update w/h transform*/
@@ -1734,14 +2087,8 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	/*create first AU*/
 	read->bifs_au = gf_sm_stream_au_new(read->bifs_es, 0, 0, 1);
 
-	if (read->flags & GF_SM_SWF_NO_ANIM_STREAM) return GF_OK;
-
 	/*setup the animationStream node*/
 	n = s2b_new_node(read, TAG_MPEG4_AnimationStream);
-	read->load->ctx->max_node_id++;
-	ID = read->load->ctx->max_node_id;
-	gf_node_set_id(n, ID, "MovieControl");
-
 	gf_node_insert_child(read->root, n, 0);
 	gf_node_register(n, read->root);
 	/*assign URL*/
@@ -1751,6 +2098,20 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	/*run from start*/
 	((M_AnimationStream *)n)->startTime = 0;
 	((M_AnimationStream *)n)->loop = 0;
+
+	/*setup the MediaControl node*/
+	n = s2b_new_node(read, TAG_MPEG4_MediaControl);
+	read->load->ctx->max_node_id++;
+	ID = read->load->ctx->max_node_id;
+	gf_node_set_id(n, ID, "CLIP0_CTRL");
+	gf_node_insert_child(read->root, n, 0);
+	gf_node_register(n, read->root);
+	/*assign URL*/
+	gf_node_get_field_by_name(n, "url", &info);
+	gf_sg_vrml_mf_alloc(info.far_ptr, info.fieldType, 1);
+	((MFURL*)info.far_ptr)->vals[0].OD_ID = 1;
+	/*run from start*/
+	((M_MediaControl *)n)->loop = 0;
 
 	return GF_OK;
 }

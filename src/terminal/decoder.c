@@ -355,7 +355,7 @@ check_unit:
 		/*hack for RTSP streaming of systems streams, except InputSensor*/
 		if (!ch->is_pulling && (codec->type != GF_STREAM_INTERACT) && (AU->dataLength == codec->prev_au_size)) {
 			gf_es_drop_au(ch);
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Decoder] Same MPEG-4 Systems AU detected - dropping\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[SysDec] Same MPEG-4 Systems AU detected - dropping\n"));
 			goto check_unit;
 		}
 		/*seeking for systems is done by not releasing the graph until seek is done*/
@@ -385,7 +385,7 @@ check_unit:
 	updates in time*/
 	codec->odm->current_time = gf_clock_time(codec->ck);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SysDec] Codec %s Processing AU CTS %d\n", sdec->module_name , AU->CTS));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[SysDec] Codec %s AU CTS %d channel %d OTB %d\n", sdec->module_name , AU->CTS, ch->esd->ESID, codec->odm->current_time));
 	now = gf_term_get_time(codec->odm->term);
 	e = sdec->ProcessData(sdec, AU->data, AU->dataLength, ch->esd->ESID, au_time, mm_level);
 	now = gf_term_get_time(codec->odm->term) - now;
@@ -415,7 +415,7 @@ check_unit:
 			gf_inline_regenerate(is);
 			is->graph_attached = 2;
 			is->is_dynamic_scene = prev_dyn;
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Decoder] Got OD resources before scene - generating temporary scene\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Decoder] Got OD resources before scene - generating temporary scene\n"));
 		}
 	}
 
@@ -453,6 +453,8 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	/*init channel clock*/
 	if (!ch->IsClockInit) {
 		gf_es_init_dummy(ch);
+		/*signal seek*/
+		sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, -1, GF_CODEC_LEVEL_NORMAL);
 		if (!gf_clock_is_started(ch->clock)) return GF_OK;
 		/*let's be nice to the scene loader (that usually involves quite some parsing), pause clock while
 		parsing*/
@@ -463,10 +465,10 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	codec->odm->current_time = codec->last_unit_cts = gf_clock_time(codec->ck);
 
 	/*lock scene*/
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[PrivateDec] Codec %s Processing at %d\n", sdec->module_name , codec->odm->current_time));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[PrivateDec] Codec %s Processing at %d\n", sdec->module_name , codec->odm->current_time));
 	gf_term_lock_compositor(codec->odm->term, 1);
 	now = gf_term_get_time(codec->odm->term);
-	e = sdec->ProcessData(sdec, NULL, codec->odm->current_time, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
+	e = sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
 	now = gf_term_get_time(codec->odm->term) - now;
 	codec->last_unit_dts ++;
 	/*resume on error*/
@@ -638,7 +640,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			 NOTE: the 100 ms safety gard is to avoid discarding audio*/
 			if (!ch->skip_sl && (AU->CTS + 100 < obj_time) ) {
 				mmlevel = GF_CODEC_LEVEL_DROP;
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Decoder] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Decoder] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
 			}
 			/*we are late according to the media manager*/
 			else if (codec->PriorityBoost) {
@@ -744,7 +746,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 drop:
 		gf_es_drop_au(ch);
 		if (e) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Decoder %s] ODM%d: decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Decoder %s] ODM%d: decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));
 			return e;
 		}
 
@@ -862,7 +864,6 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	u32 cfg_size;
 	GF_Terminal *term = codec->odm->term;
 
-
 	if (esd->decoderConfig->decoderSpecificInfo) {
 		cfg = esd->decoderConfig->decoderSpecificInfo->data;
 		cfg_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
@@ -939,6 +940,8 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 
 GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
 {
+	if (!esd->decoderConfig->objectTypeIndication) return GF_NON_COMPLIANT_BITSTREAM;
+
 	switch (esd->decoderConfig->streamType) {
 	/*OCR has no codec, just a channel*/
 	case GF_STREAM_OCR:

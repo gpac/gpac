@@ -85,7 +85,7 @@ u32 gf_ar_proc(void *p)
 		gf_mixer_lock(ar->mixer, 1);
 		if (ar->Frozen || gf_mixer_empty(ar->mixer) ) {
 			gf_mixer_lock(ar->mixer, 0);
-			gf_sleep(10);
+			gf_sleep(33);
 		} else {
 			if (ar->need_reconfig) gf_sc_ar_reconfig(ar);
 			ar->audio_out->WriteAudio(ar->audio_out);

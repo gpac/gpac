@@ -412,9 +412,18 @@ void MC_Modified(GF_Node *node)
 {
 	MediaControlStack *stack =(MediaControlStack *) gf_node_get_private(node);
 	if (!stack) return;
-	if (!stack->changed) {
+	if (stack->changed!=2) {
+		/*check URL*/
 		if (MC_URLChanged(&stack->url, &stack->control->url)) stack->changed = 2;
-		else if (stack->media_start != stack->control->mediaStartTime) stack->changed = 2;
+		/*check speed (play/pause)*/
+		else if (stack->media_speed != stack->control->mediaSpeed) 
+			stack->changed = 1;
+		/*check mediaStartTime (seek)*/
+		else if (stack->media_start != stack->control->mediaStartTime) {
+			/*do not reevaluate if mediaStartTime is reset to -1 (current time)*/
+			if (stack->control->mediaStartTime!=-1.0)
+				stack->changed = 2;
+		}
 		else stack->changed = 1;
 	}
 

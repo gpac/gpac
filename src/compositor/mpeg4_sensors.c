@@ -48,7 +48,7 @@ typedef struct
 
 	Bool enabled, active, over;
 	GF_SensorHandler hdl;
-
+	GF_Compositor *compositor;
 } AnchorStack;
 
 static void TraverseAnchor(GF_Node *node, void *rs, Bool is_destroy)
@@ -83,6 +83,45 @@ static void TraverseAnchor(GF_Node *node, void *rs, Bool is_destroy)
 	group_2d_traverse(node, (GroupingNode2D*)st, tr_state);
 }
 
+static void anchor_activation(GF_Node *node, AnchorStack *st, GF_Compositor *compositor)
+{
+	GF_Event evt;
+	MFURL *url;
+	u32 i;
+	if (gf_node_get_tag(node)==TAG_MPEG4_Anchor) {
+		url = & ((M_Anchor *)node)->url;
+		evt.navigate.param_count = ((M_Anchor *)node)->parameter.count;
+		evt.navigate.parameters = (const char **) ((M_Anchor *)node)->parameter.vals;
+	} else {
+		url = & ((X_Anchor *)node)->url;
+		evt.navigate.param_count = ((X_Anchor *)node)->parameter.count;
+		evt.navigate.parameters = (const char **) ((X_Anchor *)node)->parameter.vals;
+	}
+	evt.type = GF_EVENT_NAVIGATE;
+	i=0;
+	while (i<url->count) {
+		evt.navigate.to_url = url->vals[i].url;
+		if (!evt.navigate.to_url) break;
+		/*current scene navigation*/
+		if (evt.navigate.to_url[0] == '#') {
+			GF_Node *bindable;
+			evt.navigate.to_url++;
+			bindable = gf_sg_find_node_by_name(gf_node_get_graph(node), (char *) evt.navigate.to_url);
+			if (bindable) {
+				Bindable_SetSetBind(bindable, 1);
+				break;
+			}
+		} else if (compositor->term) {
+			if (gf_inline_process_anchor(node, &evt))
+				break;
+		} else if (compositor->user->EventProc) {
+			if (compositor->user->EventProc(compositor->user->opaque, &evt))
+				break;
+		}
+		i++;
+	}
+}
+
 static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
 {
 	GF_Event evt;
@@ -95,39 +134,7 @@ static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compos
 		/*mouse*/ ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT))
 		|| /*mouse*/((ev->type==GF_EVENT_KEYUP) && (ev->key.key_code==GF_KEY_ENTER)) 
 	) ) {
-		u32 i;
-		if (gf_node_get_tag(sh->sensor)==TAG_MPEG4_Anchor) {
-			url = & ((M_Anchor *)sh->sensor)->url;
-			evt.navigate.param_count = ((M_Anchor *)sh->sensor)->parameter.count;
-			evt.navigate.parameters = (const char **) ((M_Anchor *)sh->sensor)->parameter.vals;
-		} else {
-			url = & ((X_Anchor *)sh->sensor)->url;
-			evt.navigate.param_count = ((X_Anchor *)sh->sensor)->parameter.count;
-			evt.navigate.parameters = (const char **) ((X_Anchor *)sh->sensor)->parameter.vals;
-		}
-		evt.type = GF_EVENT_NAVIGATE;
-		i=0;
-		while (i<url->count) {
-			evt.navigate.to_url = url->vals[i].url;
-			if (!evt.navigate.to_url) break;
-			/*current scene navigation*/
-			if (evt.navigate.to_url[0] == '#') {
-				GF_Node *bindable;
-				evt.navigate.to_url++;
-				bindable = gf_sg_find_node_by_name(gf_node_get_graph(sh->sensor), (char *) evt.navigate.to_url);
-				if (bindable) {
-					Bindable_SetSetBind(bindable, 1);
-					break;
-				}
-			} else if (compositor->term) {
-				if (gf_inline_process_anchor(sh->sensor, &evt))
-					break;
-			} else if (compositor->user->EventProc) {
-				if (compositor->user->EventProc(compositor->user->opaque, &evt))
-					break;
-			}
-			i++;
-		}
+		anchor_activation(sh->sensor, st, compositor);
 	} else if (is_over && !st->over) {
 		st->over = 1;
 		if (compositor->user->EventProc) {
@@ -155,14 +162,10 @@ static Bool anchor_is_enabled(GF_Node *node)
 
 static void on_activate_anchor(GF_Node *node)
 {
-	GF_Event ev;
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(node);
 	if (!((M_Anchor *)node)->on_activate) return;
 
-	ev.type = GF_EVENT_MOUSEUP;
-	ev.mouse.x = ev.mouse.y = 0;
-	ev.mouse.button = GF_MOUSE_LEFT;
-	OnAnchor(&st->hdl, 0, &ev, NULL);
+	anchor_activation(node, st, st->compositor);
 }
 
 GF_SensorHandler *gf_sc_anchor_get_handler(GF_Node *n)
@@ -183,6 +186,7 @@ void compositor_init_anchor(GF_Compositor *compositor, GF_Node *node)
 	if (gf_node_get_tag(node)==TAG_MPEG4_Anchor) {
 		((M_Anchor *)node)->on_activate = on_activate_anchor;
 	}
+	stack->compositor = compositor;
 	compositor->interaction_sensors++;
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, TraverseAnchor);

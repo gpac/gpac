@@ -264,8 +264,8 @@ static void TraverseColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 	Bool c_changed;
 	M_ColorTransform *tr = (M_ColorTransform *)node;
 	ColorTransformStack *ptr = (ColorTransformStack  *)gf_node_get_private(node);
-	GF_TraverseState *tr_state;
-	tr_state = (GF_TraverseState *) rs;
+	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+	Bool prev_inv;
 
 	if (is_destroy) {
 		gf_sc_check_focus_upon_destroy(node);
@@ -278,6 +278,7 @@ static void TraverseColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
+	prev_inv = tr_state->invalidate_all;
 	c_changed = 0;
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		gf_cmx_set(&ptr->cmat, 
@@ -288,21 +289,32 @@ static void TraverseColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 		c_changed = 1;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
+
+	if ((tr_state->traversing_mode==TRAVERSE_SORT) 
+		&& !tr->maa && !tr->mar && !tr->mag && !tr->mab && !tr->ta)
+		return; 
+	else if ((tr_state->traversing_mode==TRAVERSE_PICK) 
+		&& !tr->maa && !tr->mar && !tr->mag && !tr->mab && !tr->ta) {
+		u32 i = 0; 
+	}
+
+	/*if modified redraw all nodes*/
+	if (c_changed) tr_state->invalidate_all = 1;
+
 	/*note we don't clear dirty flag, this is done in traversing*/
 	if (ptr->cmat.identity) {
 		group_2d_traverse(node, (GroupingNode2D *) ptr, tr_state);
 	} else {
 		GF_ColorMatrix gf_cmx_bck;
-		Bool prev_inv = tr_state->invalidate_all;
-		/*if modified redraw all nodes*/
-		if (c_changed) tr_state->invalidate_all = 1;
 		gf_cmx_copy(&gf_cmx_bck, &tr_state->color_mat);
 		gf_cmx_multiply(&tr_state->color_mat, &ptr->cmat);
+
+
 		group_2d_traverse(node, (GroupingNode2D *) ptr, tr_state);
 		/*restore traversing state*/
 		gf_cmx_copy(&tr_state->color_mat, &gf_cmx_bck);
-		tr_state->invalidate_all = prev_inv;
 	}
+	tr_state->invalidate_all = prev_inv;
 }
 
 void compositor_init_colortransform(GF_Compositor *compositor, GF_Node *node)

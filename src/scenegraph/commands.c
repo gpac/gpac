@@ -328,7 +328,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				}
 				if (e) return e;
 				gf_sg_vrml_field_copy(field.far_ptr, inf->field_ptr, field.fieldType);
-				if (field.fieldType==GF_SG_VRML_SFTIME) *(SFTime *)field.far_ptr = *(SFTime *)field.far_ptr + time_offset;
+				
+				if ((field.fieldType==GF_SG_VRML_SFTIME) && !strstr(field.name, "media"))
+					*(SFTime *)field.far_ptr = *(SFTime *)field.far_ptr + time_offset;
 				break;
 			}
 			SG_CheckFieldChange(com->node, &field);
