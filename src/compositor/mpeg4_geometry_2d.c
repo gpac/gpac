@@ -61,12 +61,13 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode==TRAVERSE_LIGHTING) return;
 #endif
 
-	/*reset this node dirty flag (because bitmap may trigger bounds invalidation on the fly)*/
-	gf_node_dirty_clear(node, 0);
-
 	shape = (M_Shape *) node;
 	if (!shape->geometry) return;
 
+	/*reset this node dirty flag (because bitmap may trigger bounds invalidation on the fly)*/
+	gf_node_dirty_clear(node, 0);
+
+	
 	/*check traverse mode, and take care of switch-off flag*/
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		GF_Node *m;

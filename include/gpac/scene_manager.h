@@ -69,6 +69,7 @@ typedef struct _stream_context
 	u32 timeScale;
 	GF_List *AUs;
 
+	u64 dump_time_offset;
 	/*last stream AU time, when playing the context directly*/
 	u64 last_au_time;
 	/*set if stream is part of root OD (playback only)*/
@@ -145,9 +146,6 @@ enum
 	/*use a dedicated BIFS stream to control display list. This allows positioning in the movie
 	(jump to frame, etc..) as well as looping from inside the movie (set by default)*/
 	GF_SM_SWF_SPLIT_TIMELINE = (1<<7),
-	/*when using SplitTimeline, this flag will prevent generating an AnimationStream in the scene (this is used
-	by direct playback only)*/
-	GF_SM_SWF_NO_ANIM_STREAM = (1<<8),
 	/*enable appearance reuse*/
 	GF_SM_SWF_REUSE_APPEARANCE = (1<<9)
 };

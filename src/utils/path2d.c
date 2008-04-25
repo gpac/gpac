@@ -680,6 +680,11 @@ static void gf_cubic_check(Fixed p1, Fixed p2, Fixed p3, Fixed p4, Fixed *min, F
 		Fixed y3 = arc[2];
 		Fixed y4 = arc[3];
 		
+		if (ABS(y1)<FIX_EPSILON) arc[0] = y1 = 0;
+		if (ABS(y2)<FIX_EPSILON) arc[1] = y2 = 0;
+		if (ABS(y3)<FIX_EPSILON) arc[2] = y3 = 0;
+		if (ABS(y4)<FIX_EPSILON) arc[3] = y4 = 0;
+
 		if ( y1 == y4 ) {
 			/* flat */
 			if ((y1 == y2) && (y1 == y3)) goto Test;

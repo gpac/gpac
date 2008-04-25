@@ -2026,6 +2026,8 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 		/*fix payload size due to emulation prevention bytes*/
 		size_fix = 0;
 		num_zero = 0;
+		if (psize%255 == 0) num_zero = 1;
+
 		for (i = 0; i < psize + size_fix; i++)
 		{
 			if (!buffer[start + i])

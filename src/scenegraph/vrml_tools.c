@@ -32,6 +32,7 @@
 GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 pos, GF_Node *newNode)
 {
 	GF_ChildNodeItem *child, *prev;
+	u32 tag;
 	u32 cur_pos = 0;
 
 	child = *container;
@@ -45,9 +46,12 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 po
 		}
 		break;
 	}
+	tag = child->node->sgprivate->tag;
 	gf_node_unregister(child->node, node);
 	if (newNode) {
 		child->node = newNode;
+		if (tag==TAG_MPEG4_ColorTransform) 
+			node->sgprivate->flags |= GF_SG_VRML_COLOR_DIRTY;
 	} else {
 		if (prev) prev->next = child->next;
 		else *container = child->next;

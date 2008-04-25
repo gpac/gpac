@@ -30,14 +30,15 @@
 /*This is the generic routine for child traversing*/
 void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
 {
-	Bool split_text_backup;
+	u32 backup;
 #ifdef GF_SR_USE_VIDEO_CACHE
 	Bool group_cached;
 #endif
 	GF_List *sensor_backup;
 	GF_ChildNodeItem *child;
 
-	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
+	backup = gf_node_dirty_get(node);
+	if (backup & GF_SG_CHILD_DIRTY) {
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
 
@@ -109,7 +110,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		child = ((GF_ParentNode *)node)->children;
-		split_text_backup = tr_state->text_split_mode;
+		backup = tr_state->text_split_mode;
 		if (tr_state->text_split_mode && (gf_node_list_get_count(child)>1) ) tr_state->text_split_mode = 0;
 		group->flags &= ~GROUP_SKIP_CULLING;
 		group->bounds.width = group->bounds.height = 0;
@@ -139,10 +140,11 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 
 		if (group->flags & GROUP_SKIP_CULLING) 
 			tr_state->disable_cull = 1;
-		tr_state->text_split_mode = split_text_backup;
+		tr_state->text_split_mode = backup;
 	}
 	/*TRAVERSE_SORT */
 	else if (tr_state->traversing_mode==TRAVERSE_SORT) {
+		Bool prev_inv = tr_state->invalidate_all;
 #ifdef GF_SR_USE_VIDEO_CACHE
 		DrawableContext *first_ctx = tr_state->visual->cur_context;
 		Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? 1 : 0;
@@ -151,6 +153,11 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->cached_groups_queue);
 		tr_state->cache_too_small = 0;
 #endif
+
+		if (backup & GF_SG_VRML_COLOR_DIRTY) {
+			tr_state->invalidate_all = 1;
+			gf_node_dirty_clear(node, GF_SG_VRML_COLOR_DIRTY);
+		}
 
 		child = ((GF_ParentNode *)node)->children;
 		while (child) {
@@ -161,6 +168,8 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 				cache_too_small++;
 #endif
 		} 
+
+		tr_state->invalidate_all = prev_inv;
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 		if (cache_too_small) {
@@ -177,11 +186,14 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		drawable_check_focus_highlight(node, tr_state, NULL);
 	}
 	else {
+		if (!strcmp(gf_node_get_log_name(node), "CLIP219_DL"))
+			child = ((GF_ParentNode *)node)->children;
 		child = ((GF_ParentNode *)node)->children;
 		while (child) {
 			gf_node_traverse(child->node, tr_state);
 			child = child->next;
 		} 
+
 	}
 
 	if (sensor_backup) {
@@ -196,7 +208,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, u32 *positions)
 {
 	u32 i, count;
-	Bool split_text_backup;
+	Bool backup;
 	GF_List *sensor_backup;
 	GF_Node *child;
 	GF_ChildNodeItem *list;
@@ -204,7 +216,8 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 	Bool group_cached;
 #endif
 
-	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
+	backup = gf_node_dirty_get(node);
+	if (backup & GF_SG_CHILD_DIRTY) {
 		/*never trigger bounds recompute in 2D since we don't cull 2D groups*/
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
@@ -265,7 +278,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		list = ((GF_ParentNode *)node)->children;
-		split_text_backup = tr_state->text_split_mode;
+		backup = tr_state->text_split_mode;
 		if (tr_state->text_split_mode && (gf_node_list_get_count(list)>1) ) tr_state->text_split_mode = 0;
 		group->flags &= ~GROUP_SKIP_CULLING;
 		group->bounds.width = group->bounds.height = 0;
@@ -295,10 +308,11 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 
 		if (group->flags & GROUP_SKIP_CULLING) 
 			tr_state->disable_cull = 1;
-		tr_state->text_split_mode = split_text_backup;
+		tr_state->text_split_mode = backup;
 
 	/*TRAVERSE_SORT */
 	} else if (tr_state->traversing_mode==TRAVERSE_SORT) {
+		Bool prev_inv = tr_state->invalidate_all;
 #ifdef GF_SR_USE_VIDEO_CACHE
 		DrawableContext *first_ctx = tr_state->visual->cur_context;
 		u32 cache_too_small = 0;
@@ -307,6 +321,11 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->cached_groups_queue);
 		tr_state->cache_too_small = 0;
 #endif
+
+		if (backup & GF_SG_VRML_COLOR_DIRTY) {
+			tr_state->invalidate_all = 1;
+			gf_node_dirty_clear(node, GF_SG_VRML_COLOR_DIRTY);
+		}
 
 		list = ((GF_ParentNode *)node)->children;
 		count = gf_node_list_get_count(list);
@@ -318,6 +337,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 				cache_too_small++;
 #endif
 		} 
+		tr_state->invalidate_all = prev_inv;
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 		if (cache_too_small) {

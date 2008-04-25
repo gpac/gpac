@@ -521,7 +521,8 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	if (flag) {
 		gf_bs_write_int(bs, gf_node_get_id(node) - 1, codec->info->config.NodeIDBits);
 		new_node = gf_bifs_enc_find_node(codec, gf_node_get_id(node) );
-		if (!new_node) return codec->LastError = GF_SG_UNKNOWN_NODE;
+		if (!new_node) 
+			return codec->LastError = GF_SG_UNKNOWN_NODE;
 		
 		/*restore QP14 length*/
 		switch (gf_node_get_tag(new_node)) {

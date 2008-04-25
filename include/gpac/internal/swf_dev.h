@@ -41,6 +41,14 @@ typedef struct SWFEditText SWFEditText;
 typedef struct SWF_Button SWF_Button;
 typedef struct SWFShape SWFShape;
 typedef struct SWFFont SWFFont;
+typedef struct SWFAction SWFAction;
+
+enum
+{
+	SWF_PLACE ,
+	SWF_REPLACE,
+	SWF_MOVE,
+};
 
 
 struct SWFReader
@@ -50,36 +58,87 @@ struct SWFReader
 
 	char *localPath;
 	/*file header*/
-	u8 sig[3];
-	u8 version;
 	u32 length;
+	char *mem;
 	u32 frame_rate;
 	u32 frame_count;
 	Fixed width, height;
+	Bool has_interact, no_as;
 
-	Bool compressed, has_interact;
-	
+	/*copy of the swf import flags*/	
 	u32 flags;
-	u32 max_depth;
+
+	/*bit reader*/
+	GF_BitStream *bs;
+	GF_Err ioerr;	
+	
+	u32 current_frame;
+
+	/*current tag*/
+	u32 tag, size;
 
 	GF_List *display_list;
+	u32 max_depth;
 
-	/*all fonts*/
+	/*defined fonts*/
 	GF_List *fonts;
-	/*all simple appearances (no texture)*/
-	GF_List *apps;
 
-	/*all sounds*/
+	/*define sounds*/
 	GF_List *sounds;
 
 	/*the one and only sound stream for current timeline*/
 	SWFSound *sound_stream;
 
-	/*bit reader*/
-	GF_BitStream *bs;
-	
-	/*current tag*/
-	u32 tag, size;
+	/*when creating sprites: 
+		1- all BIFS AUs in sprites are random access
+		2- depth is ignored in Sprites
+	*/
+	u32 current_sprite_id;
+
+	/*the parser can decide to remove nearly aligned pppoints in lineTo sequences*/
+	/*flatten limit - 0 means no flattening*/
+	Fixed flat_limit;
+	/*number of points removed*/
+	u32 flatten_points;
+
+	u8 *jpeg_hdr;
+	u32 jpeg_hdr_size;
+
+
+	/*callback functions for translator*/
+	GF_Err (*set_backcol)(SWFReader *read, u32 xrgb);
+	GF_Err (*show_frame)(SWFReader *read);
+
+	/*checks if display list is large enough - returns 1 if yes, 0 otherwise (and allocate space)*/
+	Bool (*allocate_depth)(SWFReader *read, u32 depth); 
+	GF_Err (*place_obj)(SWFReader *read, u32 depth, u32 ID, u32 prev_id, u32 type, GF_Matrix2D *mat, GF_ColorMatrix *cmat, GF_Matrix2D *prev_mat, GF_ColorMatrix *prev_cmat);
+	GF_Err (*remove_obj)(SWFReader *read, u32 depth, u32 ID);
+
+	GF_Err (*define_shape)(SWFReader *read, SWFShape *shape, SWFFont *parent_font, Bool last_sub_shape);
+	GF_Err (*define_sprite)(SWFReader *read, u32 nb_frames);
+	GF_Err (*define_text)(SWFReader *read, SWFText *text);
+	GF_Err (*define_edit_text)(SWFReader *read, SWFEditText *text);
+	/*@button is NULL to signal end of button declaration, non-null otherwise. "action" callback will be 
+	called inbetween*/
+	GF_Err (*define_button)(SWFReader *read, SWF_Button *button);
+
+	GF_Err (*setup_image)(SWFReader *read, u32 ID, char *fileName);
+	/*called whenever a sound is found. For soundstreams, called twice, once on the header (declaration), 
+	and one on the first soundstream block for offset signaling*/
+	GF_Err (*setup_sound)(SWFReader *read, SWFSound *snd, Bool soundstream_first_block);
+	GF_Err (*start_sound)(SWFReader *read, SWFSound *snd, Bool stop);
+	/*performs an action, returns 0 if action not supported*/
+	Bool (*action)(SWFReader *read, SWFAction *act);
+
+	void (*finalize)(SWFReader *read);
+
+
+	/* <BIFS conversion state> */
+
+	/*all simple appearances (no texture)*/
+	GF_List *apps;
+
+	GF_List *buttons;
 
 	/*current BIFS stream*/
 	GF_StreamContext *bifs_es;
@@ -96,49 +155,13 @@ struct SWFReader
 	GF_AUContext *od_au;
 
 	GF_Node *cur_shape;
-
-	u32 current_frame;
-	GF_Err ioerr;	
-
-	/*when creating sprites: 
-		1- all BIFS AUs in sprites are random access
-		2- depth is ignored in Sprites
-	*/
-	u32 current_sprite_id;
-
-	/*the parser can decide to remove nearly aligned pppoints in lineTo sequences*/
-	/*flatten limit - 0 means no flattening*/
-	Fixed flat_limit;
-	/*number of points removed*/
-	u32 flatten_points;
-
 	u16 prev_od_id, prev_es_id;
 
-	u8 *jpeg_hdr;
-	u32 jpeg_hdr_size;
+	u32 wait_frame;
+	SWF_Button *btn;
+	GF_List *btn_over, *btn_not_over, *btn_active, *btn_not_active;
 
-
-	/*callback functions for translator*/
-	GF_Err (*set_backcol)(SWFReader *read, u32 xrgb);
-	GF_Err (*show_frame)(SWFReader *read);
-
-	/*checks if display list is large enough - returns 1 if yes, 0 otherwise (and allocate space)*/
-	Bool (*allocate_depth)(SWFReader *read, u32 depth); 
-	GF_Err (*place_obj)(SWFReader *read, u32 depth, u32 ID, u32 type, GF_Matrix2D *mat, GF_ColorMatrix *cmat);
-	GF_Err (*remove_obj)(SWFReader *read, u32 depth);
-
-	GF_Err (*define_shape)(SWFReader *read, SWFShape *shape, SWFFont *parent_font, Bool last_sub_shape);
-	GF_Err (*define_sprite)(SWFReader *read, u32 nb_frames);
-	GF_Err (*define_button)(SWFReader *read, SWF_Button *button);
-	GF_Err (*define_text)(SWFReader *read, SWFText *text);
-	GF_Err (*define_edit_text)(SWFReader *read, SWFEditText *text);
-
-	GF_Err (*setup_image)(SWFReader *read, u32 ID, char *fileName);
-	GF_Err (*setup_sound)(SWFReader *read, SWFSound *snd);
-	GF_Err (*start_sound)(SWFReader *read, SWFSound *snd, Bool stop);
-
-	void (*finalize)(SWFReader *read);
-
+	/* </BIFS conversion state> */
 };
 
 
@@ -166,14 +189,6 @@ typedef struct
 	SFVec2f *pts;
 	u32 nbPts;
 } SWFPath;
-
-enum
-{
-	GF_SWF_IS_MOVE = 1,
-	GF_SWF_IS_REPLACE = 1<<1,
-	GF_SWF_HAD_MATRIX = 1<<2,
-	GF_SWF_HAD_COLORMATRIX = 1<<3,
-};
 
 typedef struct
 {
@@ -247,6 +262,7 @@ struct SWFEditText
 {
 	u32 ID;
 	char *init_value;
+	SWFRec bounds;
 	Bool word_wrap, multiline, password, read_only, auto_size, no_select, html, outlines, has_layout, border;
 	u32 color;
 	Fixed max_length, font_height;
@@ -300,64 +316,45 @@ struct SWF_Button
 	u32 ID;
 };
 
+/*AS codes.*/
+enum
+{
+	GF_SWF_AS3_GOTO_FRAME,
+	GF_SWF_AS3_GET_URL,
+	GF_SWF_AS3_NEXT_FRAME,
+	GF_SWF_AS3_PREV_FRAME,
+	GF_SWF_AS3_PLAY,
+	GF_SWF_AS3_STOP,
+	GF_SWF_AS3_TOGGLE_QUALITY,
+	GF_SWF_AS3_STOP_SOUNDS,
+	GF_SWF_AS3_WAIT_FOR_FRAME,
+	GF_SWF_AS3_SET_TARGET,
+	GF_SWF_AS3_GOTO_LABEL,
+};
 
 enum
 {
-	SWF_END = 0,
-	SWF_SHOWFRAME = 1,
-	SWF_DEFINESHAPE = 2,
-	SWF_FREECHARACTER = 3,
-	SWF_PLACEOBJECT = 4,
-	SWF_REMOVEOBJECT = 5,
-	SWF_DEFINEBITS = 6,
-	SWF_DEFINEBITSJPEG = 6,
-	SWF_DEFINEBUTTON = 7,
-	SWF_JPEGTABLES = 8,
-	SWF_SETBACKGROUNDCOLOR = 9,
-	SWF_DEFINEFONT = 10,
-	SWF_DEFINETEXT = 11,
-	SWF_DOACTION = 12,
-	SWF_DEFINEFONTINFO = 13,
-	SWF_DEFINESOUND = 14,
-	SWF_STARTSOUND = 15,
-	SWF_DEFINEBUTTONSOUND = 17,
-	SWF_SOUNDSTREAMHEAD = 18,
-	SWF_SOUNDSTREAMBLOCK = 19,
-	SWF_DEFINEBITSLOSSLESS = 20,
-	SWF_DEFINEBITSJPEG2 = 21,
-	SWF_DEFINESHAPE2 = 22,
-	SWF_DEFINEBUTTONCXFORM = 23,
-	SWF_PROTECT = 24,
-	SWF_PLACEOBJECT2 = 26,
-	SWF_REMOVEOBJECT2 = 28,
-	SWF_DEFINESHAPE3 = 32,
-	SWF_DEFINETEXT2 = 33,
-	SWF_DEFINEBUTTON2 = 34,
-	SWF_DEFINEBITSJPEG3 = 35,
-	SWF_DEFINEBITSLOSSLESS2 = 36,
-	SWF_DEFINEEDITTEXT = 37,
-	SWF_DEFINEMOVIE = 38,
-	SWF_DEFINESPRITE = 39,
-	SWF_NAMECHARACTER = 40,
-	SWF_SERIALNUMBER = 41,
-	SWF_GENERATORTEXT = 42,
-	SWF_FRAMELABEL = 43,
-	SWF_SOUNDSTREAMHEAD2 = 45,
-	SWF_DEFINEMORPHSHAPE = 46,
-	SWF_DEFINEFONT2 = 48,
-	SWF_TEMPLATECOMMAND = 49,
-	SWF_GENERATOR3 = 51,
-	SWF_EXTERNALFONT = 52,
-	SWF_EXPORTASSETS = 56,
-	SWF_IMPORTASSETS	= 57,
-	SWF_ENABLEDEBUGGER = 58,
-	SWF_MX0 = 59,
-	SWF_MX1 = 60,
-	SWF_MX2 = 61,
-	SWF_MX3 = 62,
-	SWF_MX4 = 63,
-	SWF_REFLEX = 777
+	GF_SWF_COND_IDLE_TO_OVERDOWN = 1,
+	GF_SWF_COND_OUTDOWN_TO_IDLE = 1<<1,
+	GF_SWF_COND_OUTDOWN_TO_OVERDOWN = 1<<2,
+	GF_SWF_COND_OVERDOWN_TO_OUTDOWN = 1<<3,
+	GF_SWF_COND_OVERDOWN_TO_OUTUP = 1<<4,
+	GF_SWF_COND_OVERUP_TO_OVERDOWN = 1<<5,
+	GF_SWF_COND_OVERUP_TO_IDLE = 1<<6,
+	GF_SWF_COND_IDLE_TO_OVERUP = 1<<7,
+	GF_SWF_COND_OVERDOWN_TO_IDLE = 1<<8,
 };
+
+struct SWFAction
+{
+	u32 type;
+	u32 frame_number;
+	u32 button_mask, button_key;
+	/*target (geturl/set_target), label (goto_frame)*/
+	char *target;
+	char *url;
+};
+
 
 
 #endif /*_GF_SWF_DEV_H_*/
