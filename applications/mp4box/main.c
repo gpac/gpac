@@ -460,8 +460,8 @@ void PrintSWFUsage()
 			"\n"
 			" -global:             all SWF defines are placed in first scene replace\n"
 			"                       * Note: By default SWF defines are sent when needed\n"
-			" -ctrl:               uses a dedicated stream for movie control\n"
-			"                       * Note: Forces \'-global\'\n"
+			" -no-ctrl:            uses a single stream for movie control and dictionary\n"
+			"                       * Note: this will disable ActionScript\n"
 			" -no-text:            removes all SWF text\n"
 			" -no-font:            removes all embedded SWF Fonts (terminal fonts used)\n"
 			" -no-line:            removes all lines from SWF shapes\n"
@@ -1097,7 +1097,7 @@ int main(int argc, char **argv)
 	do_flat = 0;
 	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = NULL;
 
-	swf_flags = 0;
+	swf_flags = GF_SM_SWF_SPLIT_TIMELINE;
 	swf_flatten_angle = 0.0f;
 	tmpdir = NULL;
 	
@@ -1235,7 +1235,7 @@ int main(int argc, char **argv)
 #ifndef GPAC_READ_ONLY
 		/*SWF importer options*/
 		else if (!stricmp(arg, "-global")) swf_flags |= GF_SM_SWF_STATIC_DICT;
-		else if (!stricmp(arg, "-ctrl")) swf_flags |= GF_SM_SWF_SPLIT_TIMELINE;
+		else if (!stricmp(arg, "-no-ctrl")) swf_flags &= ~GF_SM_SWF_SPLIT_TIMELINE;
 		else if (!stricmp(arg, "-no-text")) swf_flags |= GF_SM_SWF_NO_TEXT;
 		else if (!stricmp(arg, "-no-font")) swf_flags |= GF_SM_SWF_NO_FONT;
 		else if (!stricmp(arg, "-no-line")) swf_flags |= GF_SM_SWF_NO_LINE;

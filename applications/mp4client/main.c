@@ -65,7 +65,7 @@ static Bool Run;
 static Bool CanSeek = 0;
 static u32 Volume=100;
 static char the_url[GF_MAX_PATH];
-static Bool no_mime_check = 0;
+static Bool no_mime_check = 1;
 static Bool be_quiet = 0;
 static u32 log_time_start = 0;
 
@@ -1047,7 +1047,7 @@ int main (int argc, char **argv)
 		if (!strcmp(str, "No Audio Output Available")) fprintf(stdout, "WARNING: no audio output availble - make sure no other program is locking the sound card\n");
 
 		str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
-		no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
+		no_mime_check = (!str || !stricmp(str, "yes")) ? 1 : 0;
 	}
 
 	str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Enabled");
