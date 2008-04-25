@@ -464,7 +464,7 @@ void COsmo4::SetOptions()
 	m_disable_backlight = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	gf_term_set_option(m_term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
 	sOpt = gf_cfg_get_key(m_user.config, "General", "NoMIMETypeFetch");
-	m_no_mime_fetch = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+	m_no_mime_fetch = (!sOpt || !stricmp(sOpt, "yes")) ? 1 : 0;
 
 	//gf_term_set_option(m_term, GF_OPT_AUDIO_VOLUME, 100);
 }
