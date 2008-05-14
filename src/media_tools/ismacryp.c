@@ -110,6 +110,13 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 					if (tkc->sel_enc_range==1) tkc->sel_enc_range = 0;
 					else tkc->sel_enc_type = GF_ISMACRYP_SELENC_RANGE;
 				}
+				else if (!strnicmp(att->value, "Preview", 7)) {
+					tkc->sel_enc_type = GF_ISMACRYP_SELENC_PREVIEW;
+				}
+			}
+			else if (!stricmp(att->name, "Preview")) {
+				tkc->sel_enc_type = GF_ISMACRYP_SELENC_PREVIEW;
+				sscanf(att->value, "%d", &tkc->sel_enc_range);
 			}
 			else if (!stricmp(att->name, "ipmpType")) {
 				if (!stricmp(att->value, "None")) tkc->ipmp_type = 0;
@@ -549,7 +556,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	GF_ISMASample *isamp;
 	GF_Crypt *mc;
 	u32 i, count, di, track, IV_size, rand, avc_size_length;
-	u64 BSO;
+	u64 BSO, range_end;
 	GF_ESD *esd;
 	GF_IPMPPtr *ipmpdp;
 	GF_IPMP_Descriptor *ipmpd;
@@ -637,6 +644,11 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		e = gf_isom_set_ismacryp_protection(mp4, track, 1, GF_ISOM_ISMACRYP_SCHEME, 1, 
 			tci->Scheme_URI, tci->KMS_URI, (tci->sel_enc_type!=0) ? 1 : 0, 0, IV_size);	 
 	} else {
+		if ((tci->sel_enc_type==GF_ISMACRYP_SELENC_PREVIEW) && tci->sel_enc_range) {
+			char *szPreview = tci->TextualHeaders + tci->TextualHeadersLen;
+			sprintf(szPreview, "PreviewRange:%d", tci->sel_enc_range);
+			tci->TextualHeadersLen += strlen(szPreview)+1;
+		}
 		e = gf_isom_set_oma_protection(mp4, track, 1, 
 			strlen(tci->Scheme_URI) ? tci->Scheme_URI : NULL,
 			tci->KMS_URI, 
@@ -650,6 +662,11 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	has_crypted_samp = 0;
 	BSO = 0;
 	prev_sample_encryped = 1;
+	range_end = 0;
+	if (tci->sel_enc_type==GF_ISMACRYP_SELENC_PREVIEW) {
+		range_end = gf_isom_get_media_timescale(mp4, track) * tci->sel_enc_range;
+	}
+
 	if (gf_isom_has_time_offset(mp4, track)) gf_isom_set_cts_packing(mp4, track, 1);
 
 	count = gf_isom_get_sample_count(mp4, track);
@@ -688,6 +705,10 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		/*every sel_freq samples*/
 		case GF_ISMACRYP_SELENC_RANGE:
 			if (!(i%tci->sel_enc_type)) isamp->flags |= GF_ISOM_ISMA_IS_ENCRYPTED;
+			break;
+		case GF_ISMACRYP_SELENC_PREVIEW:
+			if (samp->DTS + samp->CTS_Offset >= range_end) 
+				isamp->flags |= GF_ISOM_ISMA_IS_ENCRYPTED;
 			break;
 		case 0:
 			isamp->flags |= GF_ISOM_ISMA_IS_ENCRYPTED;
@@ -734,6 +755,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	}
 	gf_isom_set_cts_packing(mp4, track, 0);
 	gf_crypt_close(mc);
+
 
 	/*format as IPMP(X) - note that the ISMACryp spec is broken since it always uses IPMPPointers to a 
 	single desc which would assume the same protection (eg key & salt) for all streams using it...*/
