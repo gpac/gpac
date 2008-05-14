@@ -29,6 +29,7 @@
 #include <gpac/constants.h>
 
 #include "media_memory.h"
+#include "media_control.h"
 
 static void ch_buffer_off(GF_Channel *ch)
 {
@@ -945,7 +946,17 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 
 			/*we discard undecrypted AU*/
 			if (e) {
-				if (e==GF_EOS) gf_es_on_eos(ch);
+				if (e==GF_EOS) {
+					gf_es_on_eos(ch);
+					/*restart*/
+					if (evt.restart_requested) {
+						if (ch->odm->parentscene->is_dynamic_scene) {
+							gf_inline_restart_dynamic(ch->odm->parentscene, 0);
+						} else {
+							MC_Restart(ch->odm);
+						}
+					}
+				}
 				gf_term_channel_release_sl_packet(ch->service, ch);
 				return NULL;
 			}
