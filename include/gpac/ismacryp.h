@@ -45,7 +45,9 @@ enum
 	/*selective encryption of a random sample in given range*/
 	GF_ISMACRYP_SELENC_RAND_RANGE = 4,
 	/*selective encryption of first sample in given range*/
-	GF_ISMACRYP_SELENC_RANGE = 5
+	GF_ISMACRYP_SELENC_RANGE = 5,
+	/*encryption of all samples but the preview range*/
+	GF_ISMACRYP_SELENC_PREVIEW = 6,
 };
 
 typedef struct
