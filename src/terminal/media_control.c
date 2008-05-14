@@ -71,7 +71,11 @@ void MC_Restart(GF_ObjectManager *odm)
 
 	/*if clock is main scene clock do nothing*/
 	scene_ck = gf_odm_get_media_clock(odm->parentscene->root_od);
-	if (gf_odm_shares_clock(odm, scene_ck)) return;
+	if (gf_odm_shares_clock(odm, scene_ck)) {
+		if (odm->parentscene->is_dynamic_scene)
+			gf_inline_restart_dynamic(odm->parentscene, 0);
+		return;
+	}
 
 	/*otherwise locate all objects sharing the clock*/
 	ck = gf_odm_get_media_clock(odm);
