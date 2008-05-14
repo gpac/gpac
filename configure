@@ -1423,9 +1423,9 @@ fi
 if test "$source_path_used" = "yes" ; then
 
     echo "Creating compilation tree image"
-    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/terminal src/mcrypt src/media_tools src/scene_manager src/renderer src/laser" 
+    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/terminal src/mcrypt src/media_tools src/scene_manager src/compositor src/laser" 
     
-    APP_DIRS="applications applications/mp4box applications/mp4client applications/mp4box applications/osmozilla applications/osmo4_wx applications/testapps applications/testapps/mp4_streamer applications/testapps/mp42ts"
+    APP_DIRS="applications/mp4box applications/mp4client applications/mp4box applications/osmozilla applications/osmo4_wx  applications/testapps/mp4_streamer applications/testapps/mp42ts"
 
     for dir in $SRC_DIRS ; do
          mkdir -p $dir
@@ -1434,12 +1434,16 @@ if test "$source_path_used" = "yes" ; then
     ln -sf $source_path/src/Makefile src/Makefile
     ln -sf $source_path/src/libgpac.def src/libgpac.def
 
+    mkdir -p applications
+    ln -sf $source_path/applications/Makefile applications/Makefile
+    mkdir -p applications/testapps
+
     for dir in $APP_DIRS ; do
          mkdir -p $dir
          ln -sf $source_path/$dir/Makefile $dir/Makefile
     done
 
-    MOD_DIRS="modules modules/aac_in modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/img_in modules/ismacryp modules/isom_in modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/raw_out modules/render2d modules/render3d modules/render_full modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/svg_loader modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec"
+    MOD_DIRS="modules modules/aac_in modules/alsa modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/img_in modules/ismacryp modules/isom_in modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/raw_out modules/render2d modules/render3d modules/render_full modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/svg_loader modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec"
     cur_dir="`pwd`"
     for dir in $MOD_DIRS ; do
             mkdir -p $dir
