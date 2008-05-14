@@ -286,8 +286,10 @@ static GF_Err ISMA_Process(GF_IPMPTool *plug, GF_IPMPEvent *evt)
 		break;
 	case GF_IPMP_TOOL_PROCESS_DATA:
 		if (priv->is_oma) {
-			if (evt->is_encrypted) 
+			if (evt->is_encrypted) {
+				evt->restart_requested = 1;
 				return GF_EOS;
+			}
 			return GF_OK;
 		}
 		return ISMA_ProcessData(priv, evt);

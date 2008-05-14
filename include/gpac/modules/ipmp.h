@@ -90,6 +90,8 @@ typedef struct
 	/*config data (GF_IPMP_TOOL_SETUP). Type depends on the config_data_code*/
 	void *config_data;
 
+	Bool restart_requested;
+
 	/*data manipulation (GF_IPMP_TOOL_PROCESS_DATA) - data is always processed in-place in a
 	synchronous way*/
 	char *data;
