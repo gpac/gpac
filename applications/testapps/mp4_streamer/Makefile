@@ -1,6 +1,6 @@
 include ../../../config.mak
 
-vpath %.c $(SRC_PATH)/applications/test_apps/mp4_streamer
+vpath %.c $(SRC_PATH)/applications/testapps/mp4_streamer
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 

@@ -1,6 +1,6 @@
 include ../../config.mak
 
-vpath %.c $(SRC_PATH)/applications/osmozilla
+vpath %.cpp $(SRC_PATH)/applications/osmozilla
 
 GECKO_PATH=$(SRC_PATH)/extra_lib/include/gecko-sdk
 
@@ -63,11 +63,11 @@ $(LIB): $(OBJS)
 ifeq ($(CONFIG_WIN32),yes)
 	windres osmozilla.rc osmoz.o
 	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) osmoz.o $(LINKLIBS)
-	cp nsIOsmozilla.xpt_w32 ../../bin/gcc/nposmozilla.xpt
+	cp $(SRC_PATH)/applications/osmozilla/nsIOsmozilla.xpt_w32 ../../bin/gcc/nposmozilla.xpt
 	chmod +w ../../bin/gcc/nposmozilla.xpt
 else
 	$(CXX) $(SHFLAGS) $(LDFLAGS) $(OBJS) $(LINKLIBS) -o ../../bin/gcc/$@ 
-	cp nsIOsmozilla.xpt_linux ../../bin/gcc/nposmozilla.xpt
+	cp $(SRC_PATH)/applications/osmozilla/nsIOsmozilla.xpt_linux ../../bin/gcc/nposmozilla.xpt
 	chmod +w ../../bin/gcc/nposmozilla.xpt
 endif
 	@echo $(USER_ROOT)
