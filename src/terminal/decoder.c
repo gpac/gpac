@@ -318,6 +318,9 @@ check_unit:
 	/*fetch next AU in DTS order for this codec*/
 	Decoder_GetNextAU(codec, &ch, &AU);
 
+	if (ch->odm->media_ctrl && !ch->odm->media_ctrl->media_speed) 
+		goto exit;
+
 	/*get the object time*/
 	obj_time = gf_clock_time(codec->ck);
 
@@ -385,7 +388,7 @@ check_unit:
 	updates in time*/
 	codec->odm->current_time = gf_clock_time(codec->ck);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[SysDec] Codec %s AU CTS %d channel %d OTB %d\n", sdec->module_name , AU->CTS, ch->esd->ESID, codec->odm->current_time));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SysDec] Codec %s AU CTS %d channel %d OTB %d\n", sdec->module_name , AU->CTS, ch->esd->ESID, codec->odm->current_time));
 	now = gf_term_get_time(codec->odm->term);
 	e = sdec->ProcessData(sdec, AU->data, AU->dataLength, ch->esd->ESID, au_time, mm_level);
 	now = gf_term_get_time(codec->odm->term) - now;
@@ -465,7 +468,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	codec->odm->current_time = codec->last_unit_cts = gf_clock_time(codec->ck);
 
 	/*lock scene*/
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[PrivateDec] Codec %s Processing at %d\n", sdec->module_name , codec->odm->current_time));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[PrivateDec] Codec %s Processing at %d\n", sdec->module_name , codec->odm->current_time));
 	gf_term_lock_compositor(codec->odm->term, 1);
 	now = gf_term_get_time(codec->odm->term);
 	e = sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
