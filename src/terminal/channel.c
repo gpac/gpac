@@ -849,6 +849,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	}
 	
 	if (ch->ipmp_tool) {
+		GF_Err e;
 		GF_IPMPEvent evt;
 		memset(&evt, 0, sizeof(evt));
 		evt.event_type=GF_IPMP_TOOL_PROCESS_DATA;
@@ -857,7 +858,23 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		evt.data_size = StreamLength;
 		evt.is_encrypted = hdr.isma_encrypted;
 		evt.isma_BSO = hdr.isma_BSO;
-		ch->ipmp_tool->process(ch->ipmp_tool, &evt);
+		e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
+
+		/*we discard undecrypted AU*/
+		if (e) {
+			if (e==GF_EOS) {
+				gf_es_on_eos(ch);
+				/*restart*/
+				if (evt.restart_requested) {
+					if (ch->odm->parentscene->is_dynamic_scene) {
+						gf_inline_restart_dynamic(ch->odm->parentscene, 0);
+					} else {
+						MC_Restart(ch->odm);
+					}
+				}
+			}
+			return;
+		}
 	}
 
 	if (hdr.paddingFlag && !EndAU) {	
