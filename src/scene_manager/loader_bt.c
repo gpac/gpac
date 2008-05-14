@@ -1329,6 +1329,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 				goto err;
 			}
 			
+			if (proto) gf_sg_proto_mark_field_loaded(node, &info);
 			if (parser->parsing_proto && gf_bt_set_field_is(parser, &info, node)) continue;
 
 			switch (info.fieldType) {
@@ -1386,7 +1387,6 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 			}
 			/*VRML seems to allow that*/
 			gf_bt_check_code(parser, ',');
-			if (proto) gf_sg_proto_mark_field_loaded(node, &info);
 		}
 	}
 	/*VRML seems to allow that*/

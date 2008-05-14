@@ -146,10 +146,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		tr_state->visual->type_3d = 0;
 #endif
 
-		/*step 2: insert a DrawableContext for this group in the display list*/
-		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
-
-		/*step 3: collect the bounds of all children*/		
+		/*step 2: collect the bounds of all children*/		
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
 		cache_bounds.width = cache_bounds.height = 0;
 		l = ((GF_ParentNode*)node)->children;
@@ -161,6 +158,18 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		}
 		tr_state->traversing_mode = TRAVERSE_SORT;
 
+		if (!cache_bounds.width || !cache_bounds.height) {
+			tr_state->in_group_cache = 0;
+			tr_state->direct_draw = prev_flags;
+			gf_mx2d_copy(tr_state->transform, backup);
+#ifndef GPAC_DISABLE_3D
+			tr_state->visual->type_3d = type_3d;
+#endif
+			return 0;
+		}
+
+		/*step 3: insert a DrawableContext for this group in the display list*/
+		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
 
 		/*step 4: now we have the bounds:
 			allocate the offscreen memory
