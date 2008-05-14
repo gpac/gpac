@@ -601,7 +601,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 			proto_node->is_loaded = 1;
 			return;
 		}
-		/*cf VRML: once an external proto is loaded, copy back the field values of the external proto*/
+		/*cf VRML: once an external proto is loaded, copy back the default field values of the external proto*/
 		count = gf_list_count(owner->proto_fields);
 		for (i=0; i<count; i++) {
 			GF_ProtoField *pf = (GF_ProtoField *)gf_list_get(proto_node->fields, i);
@@ -716,10 +716,9 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 	/*instanciate fields*/
 	i=0;
 	while ((field = (GF_ProtoFieldInterface*)gf_list_enum(proto->proto_fields, &i))) {
-		inst = (GF_ProtoField *)malloc(sizeof(GF_ProtoField));
+		GF_SAFEALLOC(inst, GF_ProtoField);
 		inst->EventType = field->EventType;
 		inst->FieldType = field->FieldType;
-		inst->has_been_accessed = 0;
 
 		/*this is OK to call on GF_Node (returns NULL) and MFNode (returns gf_list_new() )*/
 		inst->field_pointer = gf_sg_vrml_field_pointer_new(inst->FieldType);
@@ -730,6 +729,7 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 			if (from_inst) {
 				from_field = (GF_ProtoField *)gf_list_get(from_inst->fields, i-1);
 				gf_sg_vrml_field_copy(inst->field_pointer, from_field->field_pointer, inst->FieldType);
+				inst->has_been_accessed = from_field->has_been_accessed;
 			} else {
 				gf_sg_vrml_field_copy(inst->field_pointer, field->def_value, inst->FieldType);
 			}
