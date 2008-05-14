@@ -942,7 +942,10 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 			evt.isma_BSO = slh.isma_BSO;
 			evt.channel = ch;
 			e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
-			if (e && 0) {
+
+			/*we discard undecrypted AU*/
+			if (e) {
+				if (e==GF_EOS) gf_es_on_eos(ch);
 				gf_term_channel_release_sl_packet(ch->service, ch);
 				return NULL;
 			}

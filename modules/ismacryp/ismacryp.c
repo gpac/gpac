@@ -49,6 +49,7 @@ typedef struct
 	u32 state;
 	u32 nb_allow_play;
 	Bool is_oma;
+	u32 preview_range;
 } ISMAEAPriv;
 
 
@@ -232,6 +233,7 @@ static GF_Err ISMA_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 #ifdef OMA_DRM_MP4MC
 static GF_Err OMA_DRM_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 {
+	u32 hdr_pos;
 	GF_OMADRM2Config *cfg = (GF_OMADRM2Config*)evt->config_data;
 
 	priv->state = ISMAEA_STATE_ERROR;
@@ -239,14 +241,27 @@ static GF_Err OMA_DRM_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	if (cfg->scheme_type != GF_4CC('o','d','k','m')) return GF_NOT_SUPPORTED;
 	if (cfg->scheme_version != 0x00000200) return GF_NOT_SUPPORTED;
 
+	hdr_pos = 0;
+	while (hdr_pos<cfg->oma_drm_textual_headers_len) {
+		u32 len;
+		char *sep;
+		if (!strncmp(cfg->oma_drm_textual_headers + hdr_pos, "PreviewRange", 12)) {
+			sep = strchr(cfg->oma_drm_textual_headers + hdr_pos, ':');
+			if (sep) priv->preview_range = atoi(sep+1);
+		}
+		len = strlen(cfg->oma_drm_textual_headers + hdr_pos);
+		hdr_pos += len+1;
+	}
 	priv->is_oma = 1;
-	return GF_NOT_SUPPORTED;
 
 	/*TODO: call DRM agent, fetch keys*/
 	if (!cfg->kms_uri) return GF_NON_COMPLIANT_BITSTREAM;
 	priv->state = ISMAEA_STATE_SETUP;
 	//priv->nb_allow_play = 1;
-	return GF_OK;
+	
+	/*we have preview*/
+	if (priv->preview_range) return GF_OK;
+	return GF_NOT_SUPPORTED;
 }
 #endif
 
@@ -268,7 +283,13 @@ static GF_Err ISMA_Process(GF_IPMPTool *plug, GF_IPMPEvent *evt)
 		} else {
 			return ISMA_Access(priv, evt);
 		}
+		break;
 	case GF_IPMP_TOOL_PROCESS_DATA:
+		if (priv->is_oma) {
+			if (evt->is_encrypted) 
+				return GF_EOS;
+			return GF_OK;
+		}
 		return ISMA_ProcessData(priv, evt);
 	}
 	return GF_OK;

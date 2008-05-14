@@ -1122,7 +1122,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 	while ( (ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
 		Double ck_time;
 
-
 		if (ch->ipmp_tool) {
 			GF_IPMPEvent evt;
 			GF_Err e;

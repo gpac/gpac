@@ -28,6 +28,9 @@
 
 #ifndef GPAC_READ_ONLY
 
+#define SWF_TEXT_SCALE				(1/1024.0f)
+
+
 typedef struct
 {
 	u32 btn_id;
@@ -752,8 +755,7 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 		}
 
 		if (!use_text) {
-			par->scale.x = gr->fontHeight;
-			par->scale.y = gr->fontHeight;
+			par->scale.y = par->scale.x = FLT2FIX(gr->fontSize * SWF_TEXT_SCALE);
 		} else {
 			/*don't forget we're flipped at top level...*/
 			par->scale.y = -FIX_ONE;
@@ -771,7 +773,7 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 			gf_node_register(t->fontStyle, (GF_Node *) t);
 
 			/*restore back the font height in pixels (it's currently in SWF glyph design units)*/
-			f->size = gf_mulfix(gr->fontHeight, FLT2FIX(SWF_TWIP_SCALE / SWF_TEXT_SCALE));
+			f->size = FLT2FIX(gr->fontSize * SWF_TWIP_SCALE);
 
 			if (ft->fontName) {
 				gf_sg_vrml_mf_reset(&f->family, GF_SG_VRML_MFSTRING);
@@ -831,7 +833,7 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 				gl_par = (M_Transform2D *) s2b_new_node(read, TAG_MPEG4_Transform2D);
 				gl->appearance = s2b_get_appearance(read, (GF_Node *) gl, gr->col, 0, 0);
 
-				gl_par->translation.x = gf_divfix(dx, gr->fontHeight);
+				gl_par->translation.x = gf_divfix(dx, FLT2FIX(gr->fontSize * SWF_TEXT_SCALE) );
 				dx += gr->dx[j];
 
 				gf_node_insert_child((GF_Node *) gl_par, (GF_Node *)gl, -1);
@@ -1533,12 +1535,26 @@ static GF_Err swf_bifs_start_sound(SWFReader *read, SWFSound *snd, Bool stop)
 
 static void s2b_control_sprite(SWFReader *read, GF_List *dst, u32 ID, Bool stop, Bool set_time, SFTime mediaStartTime, Bool rev_order)
 {
+	u32 i;
 	GF_Node *obj;
 	char szDEF[100];
 	SFFloat t;
 	sprintf(szDEF, "CLIP%d_CTRL", ID);
 	obj = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	if (!obj) return;
+
+	/*filter the current control sequence: if the sprite is marked as started, skip the control. This happens
+	when a sprite is used in the different states of a button*/
+	for (i=0; i<gf_list_count(dst); i++) {
+		GF_Command *com = gf_list_get(dst, i);
+		if (com->node==obj) {
+			GF_CommandField *f = gf_list_get(com->command_fields, 0);
+			if ((f->fieldIndex == 3) && (*((SFFloat*)f->field_ptr) != 0))
+				return;
+		}
+	}
+
+
 	if (set_time)
 		s2b_set_field(read, dst, obj, "mediaStartTime", -1, GF_SG_VRML_SFTIME, &mediaStartTime, rev_order);
 	t = stop ? 0 : FIX_ONE;
@@ -1847,7 +1863,7 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 
 			choice = br->down ? 0 : -1;
 			s2b_set_field(read, read->btn_active, (GF_Node *)button, "whichChoice", -1, GF_SG_VRML_SFINT32, &choice, 0);
-			if (sprite_ctrl) {
+			if (sprite_ctrl && !br->over) {
 				s2b_control_sprite(read, read->btn_active, br->character_id, choice, 1, 0, 0);
 			}
 
@@ -1856,7 +1872,8 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 			s2b_set_field(read, read->btn_over, (GF_Node *)button, "whichChoice", -1, GF_SG_VRML_SFINT32, &choice, 0);
 			if (sprite_ctrl) {
 				s2b_control_sprite(read, read->btn_over, br->character_id, choice, 1, 0, 0);
-				s2b_control_sprite(read, read->btn_not_active, br->character_id, choice, 1, 0, 0);
+				if (!br->down)
+					s2b_control_sprite(read, read->btn_not_active, br->character_id, choice, 1, 0, 0);
 			}
 		}
 	}
@@ -1934,6 +1951,9 @@ Bool swf_bifs_action(SWFReader *read, SWFAction *act)
 		break;
 	case GF_SWF_AS3_PLAY:
 		s2b_control_sprite(read, dst, read->current_sprite_id, 0, 1, -1, 0);
+		break;
+	case GF_SWF_AS3_STOP:
+		s2b_control_sprite(read, dst, read->current_sprite_id, 1, 0, 0, 0);
 		break;
 	default:
 		return 0;
@@ -2042,10 +2062,10 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 
 	swf_init_od(read, 1);
 
-	/*always reserve OD_ID=1 for main ctrl stream if any*/
-	read->prev_od_id = 1;
 	/*always reserve ES_ID=2 for OD stream, 3 for main ctrl stream if any*/
 	read->prev_es_id = 3;
+	/*always reserve OD_ID=1 for main ctrl stream if any - use same IDs are ESs*/
+	read->prev_od_id = 3;
 
 	/*no control stream*/
 	if (!(read->flags & GF_SM_SWF_SPLIT_TIMELINE)) return GF_OK;

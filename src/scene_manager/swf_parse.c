@@ -282,6 +282,8 @@ static u32 swf_get_matrix(SWFReader *read, GF_Matrix2D *mat)
 	return bits_read;
 }
 
+#define SWF_COLOR_SCALE				(1/256.0f)
+
 static void swf_get_colormatrix(SWFReader *read, GF_ColorMatrix *cmat)
 {
 	Bool has_add, has_mul;
@@ -1158,6 +1160,7 @@ static GF_Err swf_def_button(SWFReader *read, u32 revision)
 	SWF_Button button;
 	Bool has_actions;
 
+	memset(&button, 0, sizeof(SWF_Button));
 	has_actions = 0;
 	button.count = 0;
 	button.ID = swf_get_16(read);
@@ -1551,8 +1554,8 @@ static GF_Err swf_def_text(SWFReader *read, u32 revision)
 	SWFRec rc;
 	SWFText txt;
 	Bool flag;
-	u32 nbits_adv, nbits_glyph, i, col, fontID, count;
-	Fixed offX, offY, fontHeight;
+	u32 nbits_adv, nbits_glyph, i, col, fontID, count, font_height;
+	Fixed offX, offY;
 	GF_Err e;
 
 	txt.ID = swf_get_16(read);
@@ -1564,7 +1567,8 @@ static GF_Err swf_def_text(SWFReader *read, u32 revision)
 	nbits_glyph = swf_read_int(read, 8);
 	nbits_adv = swf_read_int(read, 8);
 	fontID = 0;
-	offX = offY = fontHeight = 0;
+	offX = offY = 0;
+	font_height = 0;
 	col = 0xFF000000;
 	e = GF_OK;
 
@@ -1585,7 +1589,7 @@ static GF_Err swf_def_text(SWFReader *read, u32 revision)
 			GF_SAFEALLOC(gr, SWFGlyphRec);
 			gf_list_add(txt.text, gr);
 			gr->fontID = fontID;
-			gr->fontHeight = fontHeight;
+			gr->fontSize = font_height;
 			gr->col = col;
 			gr->orig_x = offX;
 			gr->orig_y = offY;
@@ -1618,7 +1622,7 @@ static GF_Err swf_def_text(SWFReader *read, u32 revision)
 			/*openSWF spec seems to have wrong order here*/
 			if (has_x_off) offX = FLT2FIX( swf_get_s16(read) * SWF_TWIP_SCALE );
 			if (has_y_off) offY = FLT2FIX( swf_get_s16(read) * SWF_TWIP_SCALE );
-			if (has_font) fontHeight = FLT2FIX( swf_get_16(read) * SWF_TEXT_SCALE );
+			if (has_font) font_height = swf_get_16(read);
 		}
 	}
 

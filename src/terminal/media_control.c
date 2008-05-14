@@ -371,6 +371,10 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			if (!shall_restart) MC_SetSpeed(odm, stack->control->mediaSpeed);
 			need_restart += shall_restart;
 		}
+		/*init state was paused*/
+		else if (!stack->media_speed) {
+			need_restart ++;
+		}
 		stack->media_speed = stack->control->mediaSpeed;
 	}
 	/*check start/stop changes*/
@@ -424,7 +428,7 @@ void MC_Modified(GF_Node *node)
 			if (stack->control->mediaStartTime!=-1.0)
 				stack->changed = 2;
 		}
-		else stack->changed = 1;
+//		else stack->changed = 1;
 	}
 
 	/*invalidate scene, we recompute MC state in render*/

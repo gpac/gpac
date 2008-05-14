@@ -28,10 +28,7 @@
 #include <gpac/scene_manager.h>
 #include <gpac/color.h>
 
-
-#define SWF_COLOR_SCALE				(1/256.0f)
 #define SWF_TWIP_SCALE				(1/20.0f)
-#define SWF_TEXT_SCALE				(1/1024.0f)
 
 
 typedef struct SWFReader SWFReader;
@@ -241,8 +238,8 @@ typedef struct
 {
 	u32 fontID;
 	u32 col;
-	/*font size scaling (so that glyph coords * fontHeight is in TWIPs) */
-	Fixed fontHeight;
+	/*font size*/
+	u32 fontSize;
 	/*origin point in local metrics*/
 	Fixed orig_x, orig_y;
 
@@ -301,11 +298,13 @@ struct SWFSound
 
 typedef struct 
 {
+	/*interaction states*/
 	Bool hitTest, down, over, up;
 	u32 character_id;
 	u16 depth;
 	GF_Matrix2D mx;
 	GF_ColorMatrix cmx;
+	Bool skip;
 } SWF_ButtonRecord;
 
 

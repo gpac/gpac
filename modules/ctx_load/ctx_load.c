@@ -157,7 +157,7 @@ static GF_Err CTXLoad_Setup(GF_BaseDecoder *plug)
 	priv->load.fileName = priv->file_name;
 	priv->load.flags = GF_SM_LOAD_FOR_PLAYBACK;
 	priv->load.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
-	priv->load.swf_import_flags = GF_SM_SWF_STATIC_DICT | GF_SM_SWF_QUAD_CURVE | GF_SM_SWF_SCALABLE_LINE;
+	priv->load.swf_import_flags = GF_SM_SWF_STATIC_DICT | GF_SM_SWF_QUAD_CURVE | GF_SM_SWF_SCALABLE_LINE | GF_SM_SWF_SPLIT_TIMELINE;
 	return GF_OK;
 }
 
