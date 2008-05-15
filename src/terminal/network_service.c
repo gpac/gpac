@@ -233,6 +233,8 @@ static void term_on_slp_recieved(void *user_priv, GF_ClientService *service, LPN
 
 static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
 {
+	u32 i;
+	GF_MediaObject *the_mo;
 	GF_InlineScene *is;
 	GF_ObjectManager *odm, *root;
 	GF_ObjectDescriptor *od;
@@ -261,14 +263,63 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 
 	gf_term_lock_net(term, 1);
 	odm = gf_inline_find_odm(is, od->objectDescriptorID);
-	/*remove the old OD*/
-	if (odm) gf_odm_disconnect(odm, 1);
-	odm = gf_odm_new();
+
+	/*check if we have a mediaObject in the scene not attached and matching this object*/
+	the_mo = NULL;
+	for (i=0; i<gf_list_count(is->media_objects); i++) {
+		char *frag, *ext;
+		GF_ESD *esd;
+		GF_MediaObject *mo = gf_list_get(is->media_objects, i);
+		if (!mo->odm) continue;
+		if (mo->OD_ID != GF_ESM_DYNAMIC_OD_ID) continue;
+		if (!mo->URLs.count || !mo->URLs.vals[0].url) continue;
+
+		frag = NULL;
+		ext = strrchr(mo->URLs.vals[0].url, '#');
+		if (ext) {
+			frag = strchr(ext, '=');
+			ext[0] = 0;
+		}
+		if (!strstr(service->url, mo->URLs.vals[0].url)) {
+			if (ext) ext[0] = '#';
+			continue;
+		}
+		if (ext) ext[0] = '#';
+
+		esd = gf_list_get(od->ESDescriptors, 0);
+		/*match type*/
+		switch (esd->decoderConfig->streamType) {
+		case GF_STREAM_VISUAL:
+			if (mo->type != GF_MEDIA_OBJECT_VIDEO) continue;
+			break;
+		case GF_STREAM_AUDIO:
+			if (mo->type != GF_MEDIA_OBJECT_AUDIO) continue;
+			break;
+		default:
+			continue;
+		}
+		if (frag) {
+			u32 frag_id = 0;
+			u32 ID = od->objectDescriptorID;
+			if (ID==GF_ESM_DYNAMIC_OD_ID) ID = esd->ESID;
+			frag++;
+			frag_id = atoi(frag);
+			if (ID!=frag_id) continue;
+		}
+		the_mo = mo;
+		odm = mo->odm;
+		break;
+	}
+
+	if (!odm) {
+		odm = gf_odm_new();
+		odm->term = term;
+		odm->parentscene = is;
+		gf_list_add(is->ODlist, odm);
+	}
 	odm->OD = od;
-	odm->term = term;
-	odm->parentscene = is;
+	odm->mo = the_mo;
 	odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
-	gf_list_add(is->ODlist, odm);
 	gf_term_lock_net(term, 0);
 
 	gf_odm_setup_object(odm, service);

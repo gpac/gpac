@@ -905,14 +905,8 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 	e = GF_OK;
 
 	*BytesRead = 0;
-	if (!sock->socket) {
-		assert(0);
-		return GF_BAD_PARAM;
-	}
-	if (startFrom >= length) {
-		assert(0);
-		return GF_IO_ERR;
-	}
+	if (!sock->socket) return GF_BAD_PARAM;
+	if (startFrom >= length) return GF_IO_ERR;
 
 #ifndef __SYMBIAN32__
 	//can we read?

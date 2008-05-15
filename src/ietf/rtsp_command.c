@@ -208,6 +208,18 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 					RTSP_WRITE_INT(buffer, size, cur_pos, trans->rtcpID, 0);
 				}
 			}
+			if (trans->port_first) {
+				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, trans->IsUnicast ? ";server_port=" : ";port=");
+				RTSP_WRITE_INT(buffer, size, cur_pos, trans->port_first, 0);
+				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");
+				RTSP_WRITE_INT(buffer, size, cur_pos, trans->port_last, 0);
+			}
+			if (/*trans->IsUnicast && */trans->client_port_first) {
+				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";client_port=");
+				RTSP_WRITE_INT(buffer, size, cur_pos, trans->client_port_first, 0);
+				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");
+				RTSP_WRITE_INT(buffer, size, cur_pos, trans->client_port_last, 0);
+			}
 			//multicast specific
 			if (!trans->IsUnicast) {
 				if (trans->MulticastLayers) {
@@ -218,18 +230,6 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 					RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";ttl=");
 					RTSP_WRITE_INT(buffer, size, cur_pos, trans->TTL, 0);
 				}
-			}
-			if (trans->port_first) {
-				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, trans->IsUnicast ? ";server_port=" : ";port=");
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->port_first, 0);
-				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->port_last, 0);
-			}
-			if (trans->IsUnicast && trans->client_port_first) {
-				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";client_port=");
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->client_port_first, 0);
-				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->client_port_last, 0);
 			}
 			if (trans->SSRC) {
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";ssrc=");
