@@ -2060,7 +2060,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 
 	ts->pat = gf_m2ts_section_filter_new(gf_m2ts_process_pat);
 	ts->sdt = gf_m2ts_section_filter_new(gf_m2ts_process_sdt);
-	//ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit);
+	ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit);
 	ts->eit = gf_m2ts_section_filter_new(gf_m2ts_process_eit);
 	ts->eit->process_individual_section = 1;
 	return ts;
