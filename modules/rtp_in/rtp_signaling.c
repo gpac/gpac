@@ -90,24 +90,52 @@ static void RP_QueueCommand(RTSPSession *sess, RTPStream *ch, GF_RTSPCommand *co
 
 void RP_Setup(RTPStream *ch)
 {
+	u16 def_first_port;
+	const char *opt;
 	GF_RTSPCommand *com;
 	GF_RTSPTransport *trans;
 
 	com = gf_rtsp_command_new();	
 	com->method = strdup(GF_RTSP_SETUP);
 
-	//setup ports if unicast non interleaved
+	def_first_port = 0;
+	opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceFirstPort");
+	if (opt) def_first_port = atoi(opt);
+
+	opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceMulticastIP");
+
+	//setup ports if unicast non interleaved or multicast
 	if (gf_rtp_is_unicast(ch->rtp_ch) && (ch->owner->transport_mode != 1) && !gf_rtp_is_interleaved(ch->rtp_ch) ) {
-		u16 def_first_port = 0;
-		const char *opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceFirstPort");
-		if (opt) def_first_port = atoi(opt);
+		gf_rtp_set_ports(ch->rtp_ch, def_first_port);
+	} else if (opt) {
 		gf_rtp_set_ports(ch->rtp_ch, def_first_port);
 	}
 
 	trans = gf_rtsp_transport_clone(gf_rtp_get_transport(ch->rtp_ch));
 
-	/*override transport*/
-	if (ch->rtsp->flags & RTSP_FORCE_INTER) {
+	/*some servers get confused when trying to resetup on the same remote ports, so reset info*/
+	trans->port_first = trans->port_last = 0;
+	trans->SSRC = 0;
+
+	/*override transport: */
+		/*1: multicast forced*/
+	opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceMulticastIP");
+	if (opt) {
+		trans->IsUnicast = 0;
+		trans->destination = strdup(opt);
+		opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceMulticastTTL");
+		trans->TTL = opt ? atoi(opt) : 127;
+		if (trans->Profile) free(trans->Profile);
+		trans->Profile = strdup(GF_RTSP_PROFILE_RTP_AVP);
+		if (!(ch->rtsp->flags & RTSP_DSS_SERVER) ) {
+			trans->port_first = trans->client_port_first;
+			trans->port_last = trans->client_port_last;
+			trans->client_port_first = trans->client_port_last = 0;
+		}
+		gf_rtp_setup_transport(ch->rtp_ch, trans, NULL);
+	}
+		/*2: RTP over RTSP forced*/
+	else if (ch->rtsp->flags & RTSP_FORCE_INTER) {
 		if (trans->Profile) free(trans->Profile);
 		trans->Profile = strdup(GF_RTSP_PROFILE_RTP_AVP_TCP);
 		gf_rtp_setup_transport(ch->rtp_ch, trans, NULL);
@@ -117,9 +145,6 @@ void RP_Setup(RTPStream *ch)
 		free(trans->source);
 		trans->source = NULL;
 	}
-	/*some servers get confused when trying to resetup on the same remote ports, so reset info*/
-	trans->port_first = trans->port_last = 0;
-	trans->SSRC = 0;
 
 	/*turn off interleaving in case of re-setup, some servers don't like it (we still signal it
 	through RTP/AVP/TCP profile so it's OK)*/
@@ -394,7 +419,7 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 	if (!ch_ctrl) return 1;
 	ch = ch_ctrl->ch;
 	
-	if (!channel_is_valid(sess->owner, ch)) {
+	if (!ch->channel || !channel_is_valid(sess->owner, ch)) {
 		free(ch_ctrl);
 		com->user_data = NULL;
 		return 0;
@@ -467,7 +492,7 @@ void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	ch_ctrl = (ChannelControl *)com->user_data;
 	ch = ch_ctrl->ch;
 
-	if (!channel_is_valid(sess->owner, ch)) {
+	if (!ch->channel || !channel_is_valid(sess->owner, ch)) {
 		free(ch_ctrl);
 		com->user_data = NULL;
 		return;
@@ -566,7 +591,6 @@ process_reply:
 		SkipCommandOnSession(ch);
 		ch->flags &= ~RTP_SKIP_NEXT_COM;
 	} else if (ch_ctrl->com.command_type == GF_NET_CHAN_STOP) {
-		assert(0);
 	}
 	free(ch_ctrl);
 	com->user_data = NULL;
@@ -715,14 +739,23 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 	else if (command->command_type==GF_NET_CHAN_STOP) {
 		ch->current_start = 0;
 		ch->stat_stop_time = gf_sys_clock();
+
+#if 1
+		range = gf_rtsp_range_new();
+		range->start = 0;
+		range->end = -1;
+		com->method = strdup(GF_RTSP_PAUSE);
+		com->Range = range;
+		/*only pause the specified stream*/
+		if (ch->control) com->ControlString = strdup(ch->control);
+#else
 		RP_StopChannel(ch);
 		if (com) gf_rtsp_command_del(com);
-
 		/*use stream-control*/
 		switch (ch->owner->stream_control_type) {
 		case RTSP_CONTROL_AGGREGATE:
 			/*last stream running*/
-			//if (!RP_SessionActive(ch)) RP_FlushAndTearDown(sess);
+			if (!RP_SessionActive(ch)) RP_FlushAndTearDown(sess);
 			break;
 		/*FIXME - according to trhe current draft, the stream's session must be paused before ...*/
 		case RTSP_CONTROL_RTSP_V2:
@@ -732,6 +765,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 			break;
 		}
 		return;
+#endif
 	} else {
 		gf_term_on_command(sess->owner->service, command, GF_NOT_SUPPORTED);
 		gf_rtsp_command_del(com);

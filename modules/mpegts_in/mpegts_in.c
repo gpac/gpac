@@ -62,6 +62,8 @@ typedef struct {
 typedef struct {
 	char *fragment;
 	u32 id;
+	/*if only pid is requested*/
+	u32 pid;
 } M2TSIn_Prog;
 
 typedef struct
@@ -70,6 +72,7 @@ typedef struct
 	GF_M2TS_Demuxer *ts;
 
 	GF_List *requested_progs;
+	GF_List *requested_pids;
 
 	/*demuxer thread*/
 	GF_Thread *th;
@@ -349,7 +352,7 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 	}
 }
 
-static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 dsi_size)
+static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 dsi_size, u32 *streamType)
 {
 	GF_ObjectDescriptor *od;
 	GF_ESD *esd;
@@ -392,7 +395,7 @@ static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u3
 			/*turn on parsing*/
 			gf_m2ts_set_pes_framing(stream, GF_M2TS_PES_FRAMING_DEFAULT);
 			gf_odf_desc_del((GF_Descriptor *)esd);
-			return;
+			return NULL;
 		}
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		esd->decoderConfig->objectTypeIndication = 0x40;
@@ -400,7 +403,7 @@ static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u3
 	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 	default:
 		gf_odf_desc_del((GF_Descriptor *)esd);
-		return;
+		return NULL;
 	}
 	esd->decoderConfig->bufferSizeDB = 0;
 
@@ -421,7 +424,15 @@ static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u3
 	/*declare object to terminal*/
 	od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
 	gf_list_add(od->ESDescriptors, esd);
-	od->objectDescriptorID = stream->pid;	
+	od->objectDescriptorID = stream->pid;
+	if (streamType) *streamType = esd->decoderConfig->streamType;
+	return od;
+}
+
+static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 dsi_size)
+{
+	GF_ObjectDescriptor *od = MP2TS_GetOD(m2ts, stream, dsi, dsi_size, NULL);
+	if (!od) return;
 	/*declare but don't regenerate scene*/
 	gf_term_add_media(m2ts->service, (GF_Descriptor*)od, 1);
 }
@@ -495,11 +506,44 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
+	{
+		u32 count;
 		if (gf_list_count(m2ts->ts->programs) == 1)
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
 		
+		count = gf_list_count(m2ts->requested_pids);
+
+		if (count) {
+			u32 i;
+			GF_M2TS_Program *prog = param;
+			count = gf_list_count(m2ts->requested_pids);
+			for (i=0; i<count; i++) {
+				u32 j, nb_str;
+				M2TSIn_Prog *req_pid = gf_list_get(m2ts->requested_pids, i);
+				nb_str = gf_list_count(prog->streams);
+
+				for (j=0; j<nb_str; j++) {
+					GF_M2TS_ES *es = gf_list_get(prog->streams, j);
+					if (es->pid==req_pid->pid) {
+						/*move to skip mode for all PES until asked for playback*/
+						if (!(es->flags & GF_M2TS_ES_IS_SECTION)) gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
+						MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
+						/*force scene regeneration*/
+						gf_term_add_media(m2ts->service, NULL, 0);
+						gf_list_rem(m2ts->requested_pids, i);
+						free(req_pid);
+						return;
+					}
+				}
+			}
+		}
 		/*do not setup if we've been asked for a dedicated program*/
-		if (!gf_list_count(m2ts->requested_progs)) MP2TS_SetupProgram(m2ts, param);
+		if (gf_list_count(m2ts->requested_progs)) break;
+		
+		if (!gf_list_count(m2ts->requested_pids)) {
+//			MP2TS_SetupProgram(m2ts, param);
+		}
+	}
 		break;
 	case GF_M2TS_EVT_PAT_UPDATE:
 	case GF_M2TS_EVT_PMT_UPDATE:
@@ -526,6 +570,9 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 						ts_prog = gf_list_get(ts->programs, i);
 						if (ts_prog->number==req_prog->id) {
 							MP2TS_SetupProgram(m2ts, ts_prog);
+							free(req_prog->fragment);
+							free(req_prog);
+							gf_list_rem(m2ts->requested_progs, i);
 							break;
 						}
 					}
@@ -534,7 +581,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 		break;
 	case GF_M2TS_EVT_EIT_ACTUAL_PF:
-		if (!m2ts->has_eit) {
+		if (0 && !m2ts->has_eit) {
 			/* declaring a special stream for displaying eit */
 			GF_ObjectDescriptor *od;
 			GF_ESD *esd;
@@ -905,18 +952,12 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 {
 	char szURL[2048];
 	char *ext;
-	M2TSIn_Prog *prog;
 	M2TSIn *m2ts = plug->priv;
 	m2ts->service = serv;
 
 	strcpy(szURL, url);
 	ext = strrchr(szURL, '#');
-	if (ext) {
-		GF_SAFEALLOC(prog, M2TSIn_Prog);
-		gf_list_add(m2ts->requested_progs, prog);
-		prog->fragment = strdup(ext+1);
-		ext[0] = 0;
-	}
+	if (ext) ext[0] = 0;
 
 	m2ts->file_regulate = 0;
 	m2ts->duration = 0;
@@ -961,20 +1002,85 @@ static GF_Err M2TS_CloseService(GF_InputService *plug)
 
 static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	u32 i=0;
+	GF_M2TS_Program *ts_prog;
+	M2TSIn_Prog *prog;
+	u32 i, count, pid, prog_id;
 	M2TSIn *m2ts = plug->priv;
 	GF_Descriptor *desc = NULL;
-	if (gf_list_count(m2ts->ts->programs) == 1) {
-		GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, 0);
-		if (prog->pmt_iod) {
-			gf_odf_desc_copy((GF_Descriptor *)prog->pmt_iod, &desc);
-			return desc;
+	char *ext;
+
+	if (expect_type==GF_MEDIA_OBJECT_SCENE) {	
+		if (gf_list_count(m2ts->ts->programs) == 1) {
+			GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, 0);
+			if (prog->pmt_iod) {
+				gf_odf_desc_copy((GF_Descriptor *)prog->pmt_iod, &desc);
+				return desc;
+			}
+		} 
+		/*returning an empty IOD means "no scene description", let the terminal handle all media objects*/
+		desc = gf_odf_desc_new(GF_ODF_IOD_TAG);
+		((GF_ObjectDescriptor *) desc)->objectDescriptorID = 1;
+		return desc;
+	}
+
+	ext = strrchr(sub_url, '#');
+	/*we have been requested the entire TS*/
+	if (!ext) return NULL;
+		
+	ext++;
+	if (!strnicmp(ext, "pid=", 4)) {
+		pid = atoi(ext+4);
+
+		if (0 && m2ts->ts->ess[pid]) {
+			return (GF_Descriptor*)MP2TS_GetOD(m2ts, (GF_M2TS_PES *)m2ts->ts->ess[pid], NULL, 0, NULL);
 		}
+		/*PMT not found yet, queue for updates*/
+		GF_SAFEALLOC(prog, M2TSIn_Prog);
+		prog->pid = pid;
+		gf_list_add(m2ts->requested_pids, prog);
+		return NULL;
 	} 
-	/*returning an empty IOD means "no scene description", let the terminal handle all media objects*/
-	desc = gf_odf_desc_new(GF_ODF_IOD_TAG);
-	((GF_ObjectDescriptor *) desc)->objectDescriptorID = 1;
-	return desc;
+	
+	prog_id = 0;
+	pid = atoi(ext);
+	count = gf_list_count(m2ts->ts->SDTs);
+	count = 0;
+	for (i=0; i<count; i++) {
+		GF_M2TS_SDT *sdt = gf_list_get(m2ts->ts->SDTs, i);
+		if (!stricmp(sdt->service, ext)) {
+			prog_id = sdt->service_id;
+			break;
+		}
+		else if (sdt->service_id==pid) {
+			prog_id = sdt->service_id;
+			break;
+		}
+	}
+	if (!prog_id) {
+		GF_SAFEALLOC(prog, M2TSIn_Prog);
+		gf_list_add(m2ts->requested_progs, prog);
+		prog->fragment = strdup(ext);
+		return NULL;
+	}
+	/*ok get the stream*/
+	count = gf_list_count(m2ts->ts->programs);
+	for (i=0; i<count; i++) {
+		ts_prog = gf_list_get(m2ts->ts->programs, i);
+		if (ts_prog->number!=prog_id) continue;
+
+		count = gf_list_count(ts_prog->streams);
+		for (i=0;i<count; i++) {
+			u32 st;
+			GF_M2TS_ES *es = gf_list_get(ts_prog->streams, i);
+			GF_Descriptor *od = (GF_Descriptor *)MP2TS_GetOD(m2ts, (GF_M2TS_PES *)es, NULL, 0, &st);
+			if (!od) continue;
+
+			if ((expect_type==GF_MEDIA_OBJECT_VIDEO) && (st==GF_STREAM_VISUAL)) return od;
+			if ((expect_type==GF_MEDIA_OBJECT_AUDIO) && (st==GF_STREAM_AUDIO)) return od;
+			gf_odf_desc_del(od);
+		}
+	}
+	return NULL;
 }
 
 static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
@@ -1055,6 +1161,12 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	GF_M2TS_PES *pes;
 	M2TSIn *m2ts = plug->priv;
 
+	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
+		char *frag = strchr(gf_term_get_service_url(m2ts->service), '#');
+		if (frag && !strnicmp(frag, "#pid=", 5)) return GF_NOT_SUPPORTED;
+		//return GF_NOT_SUPPORTED;
+		return GF_OK;
+	}
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 	switch (com->command_type) {
 	/*we cannot pull complete AUs from the stream*/
@@ -1126,6 +1238,7 @@ GF_InputService *NewM2TSReader()
 	memset(reader, 0, sizeof(M2TSIn));
 	plug->priv = reader;
 	reader->requested_progs = gf_list_new();
+	reader->requested_pids = gf_list_new();
 	reader->ts = gf_m2ts_demux_new();
 	reader->ts->on_event = M2TS_OnEvent;
 	reader->ts->user = reader;
@@ -1146,6 +1259,12 @@ void DeleteM2TSReader(void *ifce)
 		free(prog);
 	}
 	gf_list_del(m2ts->requested_progs);
+	count = gf_list_count(m2ts->requested_pids);
+	for (i = 0; i < count; i++) {
+		M2TSIn_Prog *prog = gf_list_get(m2ts->requested_pids, i);
+		free(prog);
+	}
+	gf_list_del(m2ts->requested_pids);
 	gf_m2ts_demux_del(m2ts->ts);
 	free(m2ts);
 	free(plug);

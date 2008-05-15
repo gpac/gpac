@@ -82,10 +82,15 @@ GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, c
 	if (trans_info->Profile) 
 		ch->net_info.Profile = strdup(trans_info->Profile);
 
-	if (trans_info->source) {
-		ch->net_info.source = strdup(trans_info->source);
-	} else if (!ch->net_info.IsUnicast && trans_info->destination) {
+	if (!ch->net_info.IsUnicast && trans_info->destination) {
 		ch->net_info.source = strdup(trans_info->destination);
+		if (ch->net_info.client_port_first) {
+			ch->net_info.port_first = ch->net_info.client_port_first;
+			ch->net_info.port_last = ch->net_info.client_port_last;
+		}
+		ch->net_info.source = strdup(trans_info->destination);
+	} else if (trans_info->source) {
+		ch->net_info.source = strdup(trans_info->source);
 	} else {
 		ch->net_info.source = strdup(remote_address);
 	}

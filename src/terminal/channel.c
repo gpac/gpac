@@ -588,6 +588,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	Bool EndAU, NewAU;
 	char *payload;
 
+	if (ch->es_state != GF_ESM_ES_RUNNING) return;
+
 	/*physical SL-PDU - depacketize*/
 	if (!header) {
 		if (!StreamLength) return;

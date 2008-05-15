@@ -100,7 +100,8 @@ enum
 	RTSP_AGG_CONTROL = 1,
 	RTSP_TCP_FLUSH = 1<<1,
 	RTSP_FORCE_INTER = 1<<2,
-	RTSP_WAIT_REPLY = 1<<3
+	RTSP_WAIT_REPLY = 1<<3,
+	RTSP_DSS_SERVER = 1<<4,
 };
 
 /*rtsp session*/

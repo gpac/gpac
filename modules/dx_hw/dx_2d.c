@@ -324,7 +324,8 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
     }
 	IDirectDrawClipper_Release(pcClipper);
 	dd->ddraw_init = 1;
-	return CreateBackBuffer(dr, Width, Height, 1);
+	/*if YUV not initialize, init using HW video memory to setup HW caps*/
+	return CreateBackBuffer(dr, Width, Height, dd->yuv_init);
 }
 
 static GF_Err DD_LockSurface(DDContext *dd, GF_VideoSurface *vi, void *surface)
