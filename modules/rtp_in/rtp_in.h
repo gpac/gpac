@@ -89,8 +89,6 @@ typedef struct
 	/*for single-object control*/
 	u32 media_type;
 
-	u32 stream_control_type;
-
 	/*if set ANNOUNCE (sent by server) will be handled*/
 //	Bool handle_announce;
 } RTPClient;

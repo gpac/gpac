@@ -720,6 +720,7 @@ u32 gf_mo_get_last_frame_time(GF_MediaObject *mo)
 GF_EXPORT
 Bool gf_mo_has_audio(GF_MediaObject *mo)
 {
+	char *sub_url, *ext;
 	u32 i;
 	GF_NetworkCommand com;
 	GF_ClientService *ns;
@@ -729,15 +730,24 @@ Bool gf_mo_has_audio(GF_MediaObject *mo)
 
 	ns = mo->odm->net_service;
 	is = mo->odm->parentscene;
+	sub_url = strchr(ns->url, '#');
 	for (i=0; i<gf_list_count(is->ODlist); i++) {
 		GF_ObjectManager *odm = gf_list_get(is->ODlist, i);
 		if (odm->net_service != ns) continue;
 		if (!odm->mo) continue;
+
+		if (sub_url) {
+			ext = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
+			if (ext) ext = strchr(ext, '#');
+			if (!ext || strcmp(sub_url, ext)) continue;
+		} 
 		/*there is already an audio object in this service, do not recreate one*/
 		if (odm->mo->type == GF_MEDIA_OBJECT_AUDIO) return 0;
 	}
 	memset(&com, 0, sizeof(GF_NetworkCommand) );
 	com.command_type = GF_NET_SERVICE_HAS_AUDIO;
+	com.audio.base_url = mo->URLs.count ? mo->URLs.vals[0].url : NULL;
+	if (!com.audio.base_url) com.audio.base_url = ns->url;
 	if (gf_term_service_command(ns, &com) == GF_OK) return 1;
 	return 0;
 }

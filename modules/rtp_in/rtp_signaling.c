@@ -64,15 +64,7 @@ Bool RP_SessionActive(RTPStream *ch)
 static void RP_QueueCommand(RTSPSession *sess, RTPStream *ch, GF_RTSPCommand *com, Bool needs_sess_id)
 {
 	if (needs_sess_id) {
-		switch (sess->owner->stream_control_type) {
-		case RTSP_CONTROL_INDEPENDENT:
-			if (!ch) com->Session = sess->session_id;
-			else com->Session = ch->session_id;
-			break;
-		default:
-			com->Session = sess->session_id;
-			break;
-		}
+		com->Session = sess->session_id;
 	}
 	if (gf_mx_try_lock(sess->owner->mx)) {
 		gf_list_add(sess->rtsp_commands, com);
@@ -130,7 +122,9 @@ void RP_Setup(RTPStream *ch)
 		if (!(ch->rtsp->flags & RTSP_DSS_SERVER) ) {
 			trans->port_first = trans->client_port_first;
 			trans->port_last = trans->client_port_last;
-			trans->client_port_first = trans->client_port_last = 0;
+			/*this is correct but doesn't work with DSS: the server expects "client_port" to indicate 
+			the multicast port, not "port" - this will send both*/
+			//trans->client_port_first = trans->client_port_last = 0;
 		}
 		gf_rtp_setup_transport(ch->rtp_ch, trans, NULL);
 	}
@@ -213,24 +207,12 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	if (!ch) goto exit;
 
 	/*assign session ID*/
-	switch (sess->owner->stream_control_type) {
-	case RTSP_CONTROL_INDEPENDENT:
-		if (!sess->rtsp_rsp->Session) {
-			e = GF_SERVICE_ERROR;
-			goto exit;
-		}
-		if (!ch->session_id) ch->session_id = strdup(sess->rtsp_rsp->Session);
-		assert(!sess->session_id);
-		break;
-	default:
-		if (!sess->rtsp_rsp->Session) {
-			e = GF_SERVICE_ERROR;
-			goto exit;
-		}
-		if (!sess->session_id) sess->session_id = strdup(sess->rtsp_rsp->Session);
-		assert(!ch->session_id);
-		break;
+	if (!sess->rtsp_rsp->Session) {
+		e = GF_SERVICE_ERROR;
+		goto exit;
 	}
+	if (!sess->session_id) sess->session_id = strdup(sess->rtsp_rsp->Session);
+	assert(!ch->session_id);
 
 	/*transport setup: break at the first correct transport */
 	i=0;
@@ -427,16 +409,6 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 
 	assert(ch->rtsp == sess);
 	assert(ch->channel==ch_ctrl->com.base.on_channel);
-
-	if (sess->owner->stream_control_type == RTSP_CONTROL_INDEPENDENT) {
-		/*re-SETUP failed*/
-		if (!ch->session_id) {
-			e = GF_SERVICE_ERROR;
-			goto err_exit;
-		}
-		com->Session = ch->session_id;
-		return 1;
-	}
 
 	skip_it = 0;
 	if (!com->Session) {
@@ -648,8 +620,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 	/*we may need to re-setup stream/session*/
 	if ( (command->command_type==GF_NET_CHAN_PLAY) || (command->command_type==GF_NET_CHAN_RESUME) || (command->command_type==GF_NET_CHAN_PAUSE)) {
 		if (ch->status == RTP_Disconnected) {
-			if ( (sess->owner->stream_control_type==RTSP_CONTROL_AGGREGATE)
-				&& (sess->flags & RTSP_AGG_CONTROL)) {
+			if (sess->flags & RTSP_AGG_CONTROL) {
 				i=0;
 				while ((a_ch = (RTPStream *)gf_list_enum(sess->owner->channels, &i))) {
 					if (a_ch->rtsp != sess) continue;
@@ -714,7 +685,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		if (RP_SessionActive(ch)) {
 			if (!com->ControlString && ch->control) com->ControlString = strdup(ch->control);
 		} else {
-			if ((sess->owner->stream_control_type!=RTSP_CONTROL_INDEPENDENT) && com->ControlString) {
+			if (com->ControlString) {
 				free(com->ControlString);
 				com->ControlString=NULL;
 			}
@@ -801,26 +772,15 @@ void RP_Teardown(RTSPSession *sess, RTPStream *ch)
 {
 	GF_RTSPCommand *com;
 
-	switch (sess->owner->stream_control_type) {
-	case RTSP_CONTROL_AGGREGATE:
-		/*we need a session id*/
-		if (!sess->session_id) return;
-		/*ignore teardown on channels*/
-		if ((sess->flags & RTSP_AGG_CONTROL) && ch) return;
-		break;
-	case RTSP_CONTROL_RTSP_V2:
-		/*we need a session id*/
-		if (!sess->session_id) return;
-		/*do not ignore teardown on channels*/
-		break;
-	case RTSP_CONTROL_INDEPENDENT:
-		/*todo*/
-		break;
-	}
+	/*we need a session id*/
+	if (!sess->session_id) return;
+	/*ignore teardown on channels*/
+	if ((sess->flags & RTSP_AGG_CONTROL) && ch) return;
 
 	com = gf_rtsp_command_new();
 	com->method = strdup(GF_RTSP_TEARDOWN);
-	if (ch && ch->control && (sess->owner->stream_control_type == RTSP_CONTROL_RTSP_V2)) {
+	/*this only works in RTSP2*/
+	if (ch && ch->control) {
 		com->ControlString = strdup(ch->control);
 		com->user_data = ch;
 	}

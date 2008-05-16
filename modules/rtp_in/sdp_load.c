@@ -161,14 +161,8 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 	esd->slConfig->useRandomAccessPointFlag = 1;
 	esd->slConfig->useTimestampsFlag = 1;
 	esd->ESID = ch->ES_ID;
-	/*if independent control, force each channel to be its own clock*/
-	if (ch->owner->stream_control_type==RTSP_CONTROL_INDEPENDENT) {
-		esd->OCRESID = ch->ES_ID;
-		esd->OCRESID = 0;
-	} else {
-		/*otherwise let the app decide...*/
-		esd->OCRESID = 0;
-	}
+	esd->OCRESID = 0;
+
 	esd->decoderConfig->streamType = ch->depacketizer->sl_map.StreamType;
 	esd->decoderConfig->objectTypeIndication = ch->depacketizer->sl_map.ObjectTypeIndication;
 	if (ch->depacketizer->sl_map.config) {

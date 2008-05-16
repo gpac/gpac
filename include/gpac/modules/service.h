@@ -272,6 +272,13 @@ typedef struct __netinfocom
 	const char *writer;
 } GF_NetComInfo;
 
+/*GF_NET_CHAN_GET_PIXEL_AR*/
+typedef struct
+{
+	u32 command_type;
+	char *base_url;
+} GF_NetComHasAudio;
+
 typedef union __netcommand
 {
 	u32 command_type;
@@ -288,6 +295,7 @@ typedef union __netcommand
 	GF_NetComGetESD cache_esd;
 	GF_NetComInfo info;
 	GF_NetComPixelAR par;
+	GF_NetComHasAudio audio;
 } GF_NetworkCommand;
 
 /*
