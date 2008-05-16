@@ -69,17 +69,6 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 		rtp->time_out = 30000;
 	}
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "StreamControl");
-	if (sOpt && !stricmp(sOpt, "independent")) {
-		rtp->stream_control_type = RTSP_CONTROL_INDEPENDENT;
-	} else if (sOpt && !stricmp(sOpt, "RTSP2")) {
-		rtp->stream_control_type = RTSP_CONTROL_RTSP_V2;
-	} else {
-		rtp->stream_control_type = RTSP_CONTROL_AGGREGATE;
-	}
-
-
-
 	/*packet drop emulation*/
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "FirstPacketDrop");
 	if (sOpt) {

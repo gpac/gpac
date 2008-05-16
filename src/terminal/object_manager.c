@@ -209,6 +209,8 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 
 //	assert(odm->OD==NULL);
 
+	term = odm->term;
+
 	odm->net_service->nb_odm_users++;
 	if (odm->subscene) od_type = GF_MEDIA_OBJECT_SCENE;
 	else if (odm->mo) {
@@ -294,8 +296,6 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		}
 	}
 
-	/*keep track of term since the setup may fail and the OD may be destroyed*/
-	term = odm->term;
 	gf_term_lock_net(term, 1);
 	gf_odm_setup_object(odm, odm->net_service);
 	gf_term_lock_net(term, 0);
@@ -714,7 +714,10 @@ clock_setup:
 		}
 		/*OD codec acts as main scene codec when used to generate scene graph*/
 		if (! odm->subscene->od_codec) {
+			if (!esd->decoderConfig->objectTypeIndication)
+				esd->decoderConfig->objectTypeIndication = 1;
 			odm->subscene->od_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
+			if (e) return e;
 			gf_term_add_codec(odm->term, odm->subscene->od_codec);
 		} 
 		dec = odm->subscene->od_codec;

@@ -140,7 +140,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 			gf_list_del(ODs);
 		} else {
 			/*setup od*/
-			gf_odm_setup_entry_point(root, NULL);
+			gf_odm_setup_entry_point(root, service->url);
 		}
 		/*load cache if requested*/
 		if (!err && term->enable_cache) {
@@ -231,6 +231,18 @@ static void term_on_slp_recieved(void *user_priv, GF_ClientService *service, LPN
 	gf_es_receive_sl_packet(service, ch, data, data_size, hdr, reception_status);
 }
 
+static Bool is_same_od(GF_ObjectDescriptor *od1, GF_ObjectDescriptor *od2)
+{
+	GF_ESD *esd1, *esd2;
+	if (gf_list_count(od1->ESDescriptors) != gf_list_count(od2->ESDescriptors)) return 0;
+	esd1 = gf_list_get(od1->ESDescriptors, 0);
+	if (!esd1) return 0;
+	esd2 = gf_list_get(od2->ESDescriptors, 0);
+	if (!esd2) return 0;
+	if (esd1->ESID==esd2->ESID) return 1;
+	return 0;
+}
+
 static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
 {
 	u32 i;
@@ -262,15 +274,28 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	}
 
 	gf_term_lock_net(term, 1);
-	odm = gf_inline_find_odm(is, od->objectDescriptorID);
+	/*object declared this way are not part of an OD stream and are considered as dynamic*/
+	od->objectDescriptorID = GF_ESM_DYNAMIC_OD_ID;
 
 	/*check if we have a mediaObject in the scene not attached and matching this object*/
 	the_mo = NULL;
+	odm = NULL;
 	for (i=0; i<gf_list_count(is->media_objects); i++) {
 		char *frag, *ext;
 		GF_ESD *esd;
 		GF_MediaObject *mo = gf_list_get(is->media_objects, i);
 		if (!mo->odm) continue;
+		/*already assigned object - this may happen since the compositor has no control on when objects are declared by the service, 
+		therefore opening file#video and file#audio may result in the objects being declared twice if the service doesn't
+		keep track of declared objects*/
+		if (mo->odm->OD) {
+			if (is_same_od(mo->odm->OD, od)) {
+				gf_odf_desc_del(media_desc);
+				gf_term_lock_net(term, 0);
+				return;
+			}
+			continue;
+		}
 		if (mo->OD_ID != GF_ESM_DYNAMIC_OD_ID) continue;
 		if (!mo->URLs.count || !mo->URLs.vals[0].url) continue;
 

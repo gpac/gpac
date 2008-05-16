@@ -71,13 +71,14 @@ typedef struct
 	GF_ClientService *service;
 	GF_M2TS_Demuxer *ts;
 
+	Bool request_all_pids;
 	GF_List *requested_progs;
 	GF_List *requested_pids;
 
 	/*demuxer thread*/
 	GF_Thread *th;
 	u32 run_state;
-
+	GF_Mutex *mx;
 	/*net playing*/
 	GF_Socket *sock;
 	
@@ -315,6 +316,7 @@ static u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char
 
 static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
+	Bool ret = 0;
 	M2TSIn *m2ts = (M2TSIn *)plug->priv;
 
 #ifdef GPAC_HAS_LINUX_DVB
@@ -322,15 +324,15 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 		const char *chan_conf = gf_modules_get_option((GF_BaseInterface *)plug, "DVB", "ChannelsFile");
 		if (!chan_conf) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[DVBIn] Cannot locate channel configuration file\n"));
-			return 0;
+			ret = 0;
 		}
 
 		/* if the tuner is already tuned to the same frequence, nothing needs to be done */
-		if (m2ts->tuner->freq != 0 && m2ts->tuner->freq == gf_dvb_get_freq_from_url(chan_conf, url)) {
+		else if (m2ts->tuner->freq != 0 && m2ts->tuner->freq == gf_dvb_get_freq_from_url(chan_conf, url)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DVBIn] Reusing the same tuner for %s\n", url));
-			return 1;
+			ret = 1;
 		} else {
-			return 0;
+			ret = 0;
 		}
 	} else 
 #endif
@@ -339,17 +341,14 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 		|| !strnicmp(url, "mpegts-tcp://", 13))
 	{	
 		/* TODO: check IP address ...*/
-		return 0;
-	} else {
-		char *frag;
-		Bool ret;
 		ret = 0;
-		frag = strchr(url, '#');
+	} else {
+		char *frag = strchr(url, '#');
 		if (frag) frag[0] = 0;
 		if (!strcmp(url, m2ts->filename)) ret = 1;
 		if (frag) frag[0] = '#';
-		return ret;
 	}
+	return ret;
 }
 
 static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 dsi_size, u32 *streamType)
@@ -437,7 +436,7 @@ static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u3
 	gf_term_add_media(m2ts->service, (GF_Descriptor*)od, 1);
 }
 
-static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog)
+static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regenerate_scene, Bool no_declare)
 {
 	u32 i, count;
 
@@ -453,17 +452,19 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog)
 		if (!found) return;
 	}
 #endif	
-	m2ts->file_regulate = 1;
+	m2ts->file_regulate = no_declare ? 0 : 1;
 
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
 		/*move to skip mode for all PES until asked for playback*/
-		if (!(es->flags & GF_M2TS_ES_IS_SECTION)) gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
-		if (!prog->pmt_iod) MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
+		if (!(es->flags & GF_M2TS_ES_IS_SECTION) && !es->user)
+			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
+		if (!prog->pmt_iod && !no_declare) MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
 	}
 	/*force scene regeneration*/
-	gf_term_add_media(m2ts->service, NULL, 0);
+	if (regenerate_scene) 
+		gf_term_add_media(m2ts->service, NULL, 0);
 }
 
 static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
@@ -496,89 +497,92 @@ static GFINLINE void MP2TS_SendSLPacket(M2TSIn *m2ts, GF_M2TS_SL_PCK *pck)
 	gf_term_on_sl_packet(m2ts->service, pck->stream->user, pck->data, pck->data_len, NULL, GF_OK);
 }
 
+static void M2TS_FlushRequested(M2TSIn *m2ts)
+{
+	u32 i, j, req_prog_count, count, prog_id, found;
+
+	gf_mx_p(m2ts->mx);
+
+	found = 0;
+	count = gf_list_count(m2ts->requested_pids);
+	for (i=0; i<count; i++) {
+		M2TSIn_Prog *req_pid = gf_list_get(m2ts->requested_pids, i);
+		GF_M2TS_ES *es = m2ts->ts->ess[req_pid->pid];
+		if (es==NULL) continue;
+
+		/*move to skip mode for all PES until asked for playback*/
+		if (!(es->flags & GF_M2TS_ES_IS_SECTION) && !es->user) 
+			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
+		MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
+		gf_list_rem(m2ts->requested_pids, i);
+		free(req_pid);
+		i--;
+		count--;
+		found++;
+	}
+	req_prog_count = gf_list_count(m2ts->requested_progs);
+	for (i = 0; i < req_prog_count; i++) {
+		M2TSIn_Prog *req_prog = gf_list_get(m2ts->requested_progs, i);
+		prog_id = atoi(req_prog->fragment);
+		count = gf_list_count(m2ts->ts->SDTs);
+		for (j=0; j<count; j++) {
+			GF_M2TS_SDT *sdt = gf_list_get(m2ts->ts->SDTs, j);
+			if (!stricmp(sdt->service, req_prog->fragment)) req_prog->id = sdt->service_id;
+			else if (sdt->service_id==prog_id)  req_prog->id = sdt->service_id;
+		}
+		if (req_prog->id) {
+			GF_M2TS_Program *ts_prog;
+			count = gf_list_count(m2ts->ts->programs);
+			for (j=0; j<count; j++) {
+				ts_prog = gf_list_get(m2ts->ts->programs, j);
+				if (ts_prog->number==req_prog->id) {
+					MP2TS_SetupProgram(m2ts, ts_prog, 0, 0);
+					found++;
+					free(req_prog->fragment);
+					free(req_prog);
+					gf_list_rem(m2ts->requested_progs, i);
+					req_prog_count--;
+					i--;
+					break;
+				}
+			}
+		}
+	}
+	/*force scene regeneration*/
+	if (found)
+		gf_term_add_media(m2ts->service, NULL, 0);
+
+	gf_mx_v(m2ts->mx);
+}
+
 static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
 	M2TSIn *m2ts = (M2TSIn *) ts->user;
 	switch (evt_type) {
+	case GF_M2TS_EVT_PAT_UPDATE:
+		break;
 	case GF_M2TS_EVT_PAT_FOUND:
 		/* In case the TS has one program, wait for the PMT to send connect, in case of IOD in PMT */
 		if (gf_list_count(m2ts->ts->programs) != 1)
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
-	{
-		u32 count;
 		if (gf_list_count(m2ts->ts->programs) == 1)
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
 		
-		count = gf_list_count(m2ts->requested_pids);
+		/*do not declare if  single program was requested for playback*/
+		MP2TS_SetupProgram(m2ts, param, m2ts->request_all_pids, m2ts->request_all_pids ? 0 : 1);
 
-		if (count) {
-			u32 i;
-			GF_M2TS_Program *prog = param;
-			count = gf_list_count(m2ts->requested_pids);
-			for (i=0; i<count; i++) {
-				u32 j, nb_str;
-				M2TSIn_Prog *req_pid = gf_list_get(m2ts->requested_pids, i);
-				nb_str = gf_list_count(prog->streams);
-
-				for (j=0; j<nb_str; j++) {
-					GF_M2TS_ES *es = gf_list_get(prog->streams, j);
-					if (es->pid==req_pid->pid) {
-						/*move to skip mode for all PES until asked for playback*/
-						if (!(es->flags & GF_M2TS_ES_IS_SECTION)) gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
-						MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
-						/*force scene regeneration*/
-						gf_term_add_media(m2ts->service, NULL, 0);
-						gf_list_rem(m2ts->requested_pids, i);
-						free(req_pid);
-						return;
-					}
-				}
-			}
-		}
-		/*do not setup if we've been asked for a dedicated program*/
-		if (gf_list_count(m2ts->requested_progs)) break;
-		
-		if (!gf_list_count(m2ts->requested_pids)) {
-//			MP2TS_SetupProgram(m2ts, param);
-		}
-	}
+		M2TS_FlushRequested(m2ts);
 		break;
-	case GF_M2TS_EVT_PAT_UPDATE:
+	case GF_M2TS_EVT_PMT_REPEAT:
 	case GF_M2TS_EVT_PMT_UPDATE:
-	case GF_M2TS_EVT_SDT_UPDATE:
+		M2TS_FlushRequested(m2ts);
 		break;
+	case GF_M2TS_EVT_SDT_REPEAT:
+	case GF_M2TS_EVT_SDT_UPDATE:
 	case GF_M2TS_EVT_SDT_FOUND:
-		{
-			u32 i, req_prog_count;
-			req_prog_count = gf_list_count(m2ts->requested_progs);
-			for (i = 0; i < req_prog_count; i++) {
-				M2TSIn_Prog *req_prog = gf_list_get(m2ts->requested_progs, i);
-				u32 i, count, prog_id;
-				prog_id = atoi(req_prog->fragment);
-				count = gf_list_count(ts->SDTs);
-				for (i=0; i<count; i++) {
-					GF_M2TS_SDT *sdt = gf_list_get(ts->SDTs, i);
-					if (!stricmp(sdt->service, req_prog->fragment)) req_prog->id = sdt->service_id;
-					else if (sdt->service_id==prog_id)  req_prog->id = sdt->service_id;
-				}
-				if (req_prog->id) {
-					GF_M2TS_Program *ts_prog;
-					count = gf_list_count(ts->programs);
-					for (i=0; i<count; i++) {
-						ts_prog = gf_list_get(ts->programs, i);
-						if (ts_prog->number==req_prog->id) {
-							MP2TS_SetupProgram(m2ts, ts_prog);
-							free(req_prog->fragment);
-							free(req_prog);
-							gf_list_rem(m2ts->requested_progs, i);
-							break;
-						}
-					}
-				}
-			}
-		}
+		M2TS_FlushRequested(m2ts);
 		break;
 	case GF_M2TS_EVT_EIT_ACTUAL_PF:
 		if (0 && !m2ts->has_eit) {
@@ -1002,12 +1006,42 @@ static GF_Err M2TS_CloseService(GF_InputService *plug)
 
 static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	GF_M2TS_Program *ts_prog;
-	M2TSIn_Prog *prog;
-	u32 i, count, pid, prog_id;
 	M2TSIn *m2ts = plug->priv;
 	GF_Descriptor *desc = NULL;
 	char *ext;
+
+	ext = sub_url ? strrchr(sub_url, '#') : NULL;
+	/*we have been requested the entire TS*/
+	if (!ext) {
+		m2ts->request_all_pids = 1;
+	} else {
+		M2TSIn_Prog *prog;
+		ext++;
+
+		/*we need exclusive access*/
+		gf_mx_p(m2ts->mx);
+		if (!strnicmp(ext, "pid=", 4)) {
+			GF_SAFEALLOC(prog, M2TSIn_Prog);
+			prog->pid = atoi(ext+4);
+			gf_list_add(m2ts->requested_pids, prog);
+		} else {
+			u32 i, count;
+			count = gf_list_count(m2ts->requested_progs);
+			prog = NULL;
+			for (i=0; i<count; i++) {
+				prog = gf_list_get(m2ts->requested_progs, i);
+				if (!strcmp(prog->fragment, ext))
+					break;
+				prog = NULL;
+			}
+			if (!prog) {
+				GF_SAFEALLOC(prog, M2TSIn_Prog);
+				gf_list_add(m2ts->requested_progs, prog);
+				prog->fragment = strdup(ext);
+			}
+		}
+		gf_mx_v(m2ts->mx);
+	}
 
 	if (expect_type==GF_MEDIA_OBJECT_SCENE) {	
 		if (gf_list_count(m2ts->ts->programs) == 1) {
@@ -1023,63 +1057,6 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		return desc;
 	}
 
-	ext = strrchr(sub_url, '#');
-	/*we have been requested the entire TS*/
-	if (!ext) return NULL;
-		
-	ext++;
-	if (!strnicmp(ext, "pid=", 4)) {
-		pid = atoi(ext+4);
-
-		if (0 && m2ts->ts->ess[pid]) {
-			return (GF_Descriptor*)MP2TS_GetOD(m2ts, (GF_M2TS_PES *)m2ts->ts->ess[pid], NULL, 0, NULL);
-		}
-		/*PMT not found yet, queue for updates*/
-		GF_SAFEALLOC(prog, M2TSIn_Prog);
-		prog->pid = pid;
-		gf_list_add(m2ts->requested_pids, prog);
-		return NULL;
-	} 
-	
-	prog_id = 0;
-	pid = atoi(ext);
-	count = gf_list_count(m2ts->ts->SDTs);
-	count = 0;
-	for (i=0; i<count; i++) {
-		GF_M2TS_SDT *sdt = gf_list_get(m2ts->ts->SDTs, i);
-		if (!stricmp(sdt->service, ext)) {
-			prog_id = sdt->service_id;
-			break;
-		}
-		else if (sdt->service_id==pid) {
-			prog_id = sdt->service_id;
-			break;
-		}
-	}
-	if (!prog_id) {
-		GF_SAFEALLOC(prog, M2TSIn_Prog);
-		gf_list_add(m2ts->requested_progs, prog);
-		prog->fragment = strdup(ext);
-		return NULL;
-	}
-	/*ok get the stream*/
-	count = gf_list_count(m2ts->ts->programs);
-	for (i=0; i<count; i++) {
-		ts_prog = gf_list_get(m2ts->ts->programs, i);
-		if (ts_prog->number!=prog_id) continue;
-
-		count = gf_list_count(ts_prog->streams);
-		for (i=0;i<count; i++) {
-			u32 st;
-			GF_M2TS_ES *es = gf_list_get(ts_prog->streams, i);
-			GF_Descriptor *od = (GF_Descriptor *)MP2TS_GetOD(m2ts, (GF_M2TS_PES *)es, NULL, 0, &st);
-			if (!od) continue;
-
-			if ((expect_type==GF_MEDIA_OBJECT_VIDEO) && (st==GF_STREAM_VISUAL)) return od;
-			if ((expect_type==GF_MEDIA_OBJECT_AUDIO) && (st==GF_STREAM_AUDIO)) return od;
-			gf_odf_desc_del(od);
-		}
-	}
 	return NULL;
 }
 
@@ -1122,8 +1099,9 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 			m2ts->eit_channel = channel;
 		} else if ((ES_ID<GF_M2TS_MAX_STREAMS) && m2ts->ts->ess[ES_ID]) {
 			GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[ES_ID];
-			if (pes->user) e = GF_SERVICE_ERROR;
-			else {
+			if (pes->user) {
+				e = GF_SERVICE_ERROR;
+			} else {
 				pes->user = channel;
 				e = GF_OK;
 			}
@@ -1162,9 +1140,8 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	M2TSIn *m2ts = plug->priv;
 
 	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
-		char *frag = strchr(gf_term_get_service_url(m2ts->service), '#');
+		char *frag = strchr(com->audio.base_url, '#');
 		if (frag && !strnicmp(frag, "#pid=", 5)) return GF_NOT_SUPPORTED;
-		//return GF_NOT_SUPPORTED;
 		return GF_OK;
 	}
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
@@ -1177,6 +1154,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_BUFFER:
 		com->buffer.max = M2TS_BUFFER_MAX;
+		com->buffer.max = 0;
 		com->buffer.min = 0;
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
@@ -1242,6 +1220,7 @@ GF_InputService *NewM2TSReader()
 	reader->ts = gf_m2ts_demux_new();
 	reader->ts->on_event = M2TS_OnEvent;
 	reader->ts->user = reader;
+	reader->mx = gf_mx_new("MPEG2 Demux");
 	return plug;
 }
 
@@ -1266,6 +1245,7 @@ void DeleteM2TSReader(void *ifce)
 	}
 	gf_list_del(m2ts->requested_pids);
 	gf_m2ts_demux_del(m2ts->ts);
+	gf_mx_del(m2ts->mx);
 	free(m2ts);
 	free(plug);
 }
