@@ -59,7 +59,7 @@ void gf_sg_route_del(GF_Route *r)
 	/*remove declared routes*/
 	ind = gf_list_del_item(r->graph->Routes, r);
 	/*remove route from node*/
-	if (r->FromNode && r->FromNode->sgprivate->interact && r->FromNode->sgprivate->interact->events) {
+	if (r->is_setup && r->FromNode && r->FromNode->sgprivate->interact && r->FromNode->sgprivate->interact->events) {
 		gf_list_del_item(r->FromNode->sgprivate->interact->events, r);
 		if (!gf_list_count(r->FromNode->sgprivate->interact->events)) {
 			gf_list_del(r->FromNode->sgprivate->interact->events);

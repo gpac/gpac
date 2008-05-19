@@ -1676,7 +1676,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		/*signal graphics reset before updating*/
 		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
 		txh->update_texture_fcnt(txh);
-		txh->flags &= ~GF_SR_TEXTURE_USED;
 	}
 	compositor->reset_graphics = 0;
 
@@ -1748,6 +1747,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
 		gf_sc_texture_release_stream(txh);
 		if (frame_drawn && txh->tx_io && !(txh->flags & GF_SR_TEXTURE_USED)) gf_sc_texture_reset(txh);
+		/*remove the use flag*/
+		txh->flags &= ~GF_SR_TEXTURE_USED;
 	}
 
 	end_time = gf_sys_clock() - in_time;
