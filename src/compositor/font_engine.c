@@ -886,8 +886,8 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 	gf_mx2d_copy(mx, ctx->transform);
 
 	flags = ctx->flags;
-	dx = gf_mulfix(span->off_x, span->x_scale);
-	dy = gf_mulfix(span->off_y, span->y_scale);
+	dx = span->off_x;
+	dy = span->off_y;
 	sx = gf_mulfix(span->font_scale, span->x_scale);
 	sy = gf_mulfix(span->font_scale, span->y_scale);
 	flip_text = (!tr_state->visual->center_coords) ? 1 : 0;

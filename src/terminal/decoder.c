@@ -943,8 +943,6 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 
 GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
 {
-	if (!esd->decoderConfig->objectTypeIndication) return GF_NON_COMPLIANT_BITSTREAM;
-
 	switch (esd->decoderConfig->streamType) {
 	/*OCR has no codec, just a channel*/
 	case GF_STREAM_OCR:
@@ -957,6 +955,10 @@ GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		return GF_OK;
 
 	/*load decoder module*/
+	case GF_STREAM_VISUAL:
+	case GF_STREAM_AUDIO:
+		if (!esd->decoderConfig->objectTypeIndication) 
+			return GF_NON_COMPLIANT_BITSTREAM;
 	default:
 		return Codec_LoadModule(codec, esd, PL);
 	}

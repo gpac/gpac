@@ -421,7 +421,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 
 	/*check bindables*/
-	if (!prev_cam) gf_mx_from_mx2d(&tr_state->model_matrix, &tr_state->transform);
+	if (!prev_cam) gf_mx_init(tr_state->model_matrix);
 	l3d_CheckBindables(node, tr_state, st->first);
 
 

@@ -171,10 +171,12 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	Fixed dist;
 	SFVec3f d;
 
-
-	/*update znear&zfar*/
+	/*update znear & zfar*/
 	tr_state->camera->z_near = tr_state->camera->avatar_size.x; 
 	if (tr_state->camera->z_near<=0) tr_state->camera->z_near = FIX_ONE/2;
+	/*if pixel metrics, the default znear may be way too far and lead to weird navigation*/
+	else if (tr_state->camera->z_near>=FIX_ONE) tr_state->camera->z_near = FIX_ONE/2;
+	tr_state->camera->z_near /= 2;
 	tr_state->camera->z_far = tr_state->camera->visibility; 
 
 	/*z_far is selected so that an object the size of the viewport measures

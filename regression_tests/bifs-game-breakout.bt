@@ -45,7 +45,7 @@ OrderedGroup {
     "This game was translated from" "the site http://javascript.internet.com'" 
     "Written and designed by Nick Young (ywing9787@aol.com)" 
     "Translated and adapted by " "Cyril Concolato (cyril.concolato@enst.fr), June 2003"
-    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"
+    "GPAC Regression Tests" "$Date: 2008-05-19 15:28:18 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"
     ]
    title "Breakout using MPEG-4 BIFS and Javascript"
   }
@@ -834,12 +834,12 @@ function initG() {
 }
 function set_X(value) {
  if (loadFLG==1) {
-  tmpRL=value.x-20;
-  if (tmpRL<16) {
-   tmpRL=16;
+  tmpRL=value.x + 197;
+  if (tmpRL<21) {
+   tmpRL=21;
   }
-  if (tmpRL>370) {
-   tmpRL=370;
+  if (tmpRL>373) {
+   tmpRL=373;
   }
  }
 }

@@ -3058,6 +3058,9 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 			jsf->obj = obj;
 			JS_AddRoot(priv->js_ctx, &jsf->obj);
 			gf_list_add(priv->js_cache, obj);
+
+			if (jsf->js_list)
+				JS_AddRoot(priv->js_ctx, &jsf->js_list);
 		}
 	}
 	return OBJECT_TO_JSVAL(obj);
@@ -3066,10 +3069,6 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 {
-	/*do not force GC, only do it if needed. Otherwise this would extremely slow down eventIn handling, 
-	especially periodic events (timers & co)*/
-	//JS_MaybeGC(priv->js_ctx);
-
 	if (priv->js_cache) {
 		u32 i, count = gf_list_count(priv->js_cache);
 		for (i=0; i<count; i++) {

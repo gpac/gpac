@@ -714,8 +714,6 @@ clock_setup:
 		}
 		/*OD codec acts as main scene codec when used to generate scene graph*/
 		if (! odm->subscene->od_codec) {
-			if (!esd->decoderConfig->objectTypeIndication)
-				esd->decoderConfig->objectTypeIndication = 1;
 			odm->subscene->od_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
 			if (e) return e;
 			gf_term_add_codec(odm->term, odm->subscene->od_codec);

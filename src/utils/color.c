@@ -775,6 +775,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 					} else {
 						load_line_yuva(src->video_buffer, x_off, the_row, src->pitch, src_w, src->height, tmp);
 					}
+					yuv_init = 1;
 					rows = flip ? tmp + src_w * 4 : tmp;
 						
 					if (cmat) {

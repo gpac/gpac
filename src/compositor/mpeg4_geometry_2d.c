@@ -76,34 +76,36 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 		/*this is done regardless of switch flag*/
 		gf_node_traverse((GF_Node *) shape->geometry, tr_state);
 
-		/*apply line width*/
-		m = ((M_Appearance *)tr_state->appear)->material;
-		if (m && (gf_node_get_tag(m)==TAG_MPEG4_Material2D) ) {
-			DrawAspect2D asp;
-			Fixed width = 0;
-			asp.line_scale = FIX_ONE;
-			m = ((M_Material2D *)m)->lineProps;
-			if (m) {
-				switch (gf_node_get_tag(m)) {
-				case TAG_MPEG4_LineProperties:
-					width = ((M_LineProperties *) m)->width;
-					drawable_compute_line_scale(tr_state, &asp);
-					break;
-				case TAG_MPEG4_XLineProperties:
-					if ( ((M_XLineProperties *) m)->isCenterAligned)
-						width = ((M_XLineProperties *) m)->width;
-					if ( ((M_XLineProperties *) m)->isScalable)
+		if (tr_state->appear) {
+			/*apply line width*/
+			m = ((M_Appearance *)tr_state->appear)->material;
+			if (m && (gf_node_get_tag(m)==TAG_MPEG4_Material2D) ) {
+				DrawAspect2D asp;
+				Fixed width = 0;
+				asp.line_scale = FIX_ONE;
+				m = ((M_Material2D *)m)->lineProps;
+				if (m) {
+					switch (gf_node_get_tag(m)) {
+					case TAG_MPEG4_LineProperties:
+						width = ((M_LineProperties *) m)->width;
 						drawable_compute_line_scale(tr_state, &asp);
-					break;
+						break;
+					case TAG_MPEG4_XLineProperties:
+						if ( ((M_XLineProperties *) m)->isCenterAligned)
+							width = ((M_XLineProperties *) m)->width;
+						if ( ((M_XLineProperties *) m)->isScalable)
+							drawable_compute_line_scale(tr_state, &asp);
+						break;
+					}
+					width = gf_mulfix(width, asp.line_scale);
+					tr_state->bounds.width += width;
+					tr_state->bounds.height += width;
+					tr_state->bounds.y += width/2;
+					tr_state->bounds.x -= width/2;
 				}
-				width = gf_mulfix(width, asp.line_scale);
-				tr_state->bounds.width += width;
-				tr_state->bounds.height += width;
-				tr_state->bounds.y += width/2;
-				tr_state->bounds.x -= width/2;
 			}
+			tr_state->appear = NULL;
 		}
-		tr_state->appear = NULL;
 	} else {
 		if (tr_state->switched_off) return;
 

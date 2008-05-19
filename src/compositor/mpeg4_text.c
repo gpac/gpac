@@ -262,7 +262,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 				tspan->x_scale = gf_divfix(txt->length.vals[i], tspan->bounds.width);
 				tspan->bounds.width = txt->length.vals[i];
 			}
-			if (tot_width < tspan->bounds.width ) tot_width = tspan->bounds.width ;
+			if (tot_width < tspan->bounds.width ) tot_width = tspan->bounds.width;
 		} else {
 			tspan->bounds.height = tspan->font_scale * size;
 
@@ -405,6 +405,8 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 			span->off_y = start_y - gf_mulfix(st->ascent, span->y_scale);
 			span->bounds.y = start_y;
 		}
+		span->off_x = gf_mulfix(span->off_x, max_scale);
+		span->off_y = gf_mulfix(span->off_y, max_scale);
 
 		if (horizontal) {
 			start_y += FSTTB ? -line_spacing : line_spacing;
