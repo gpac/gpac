@@ -152,6 +152,7 @@ GF_Err gf_bifs_dec_node_mask(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 /*called once a field has been modified through a command, send eventOut or propagate eventIn if needed*/
 void gf_bifs_check_field_change(GF_Node *node, GF_FieldInfo *field);
 
+GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec);
 
 struct __tag_bifs_enc
 {

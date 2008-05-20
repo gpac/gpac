@@ -207,20 +207,16 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		//notify the node - this is needed in case an enhencement layer replaces the buffer, in which case 
 		//the # ID Bits may change
 		SFCommandBufferChanged(codec, node);
-		/*memory mode, register command buffer for later parsing*/
-		if (codec->dec_memory_mode) {
+
+		/*
+		 1 - memory mode, register command buffer for later parsing
+		 2 - InputSensor only works on decompressed commands
+		*/
+		if (codec->dec_memory_mode || (node->sgprivate->tag==TAG_MPEG4_InputSensor)) {
 			CommandBufferItem *cbi = (CommandBufferItem *)malloc(sizeof(CommandBufferItem));
 			cbi->node = node;
 			cbi->cb = sfcb;
 			gf_list_add(codec->command_buffers, cbi);
-		}
-		/*InputSensor only work on decompressed commands*/
-		else if (node->sgprivate->tag==TAG_MPEG4_InputSensor) {
-			GF_Err BM_ParseCommand(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_list);
-			GF_BitStream *is_bs;
-			is_bs = gf_bs_new((char*)sfcb->buffer, sfcb->bufferSize, GF_BITSTREAM_READ);
-			e = BM_ParseCommand(codec, is_bs, sfcb->commandList);
-			gf_bs_del(is_bs);
 		}
 	} 
 		break;
