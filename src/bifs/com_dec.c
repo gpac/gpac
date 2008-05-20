@@ -1133,6 +1133,8 @@ GF_Err gf_bifs_dec_command(GF_BifsDecoder * codec, GF_BitStream *bs)
 	while (gf_list_count(codec->QPs)) {
 		gf_bifs_dec_qp_remove(codec, 1);
 	}
+	gf_bifs_flush_command_list(codec);
+
 	return GF_OK;
 }
 

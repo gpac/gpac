@@ -90,10 +90,10 @@ GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec)
 
 	tmp->pCurrentProto = NULL;
 	tmp->scenegraph = scenegraph;
+	tmp->command_buffers = gf_list_new();
 	if (command_dec) {
 		tmp->dec_memory_mode = 1;
 		tmp->force_keep_qp = 1;
-		tmp->command_buffers = gf_list_new();
 	}
 	tmp->current_graph = NULL;
 	return tmp;
@@ -206,10 +206,14 @@ void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 		gf_list_rem(codec->streamInfo, 0);
 	}
 	gf_list_del(codec->streamInfo);
-	if (codec->dec_memory_mode) {
-		assert(gf_list_count(codec->command_buffers) == 0);
-		gf_list_del(codec->command_buffers);
+
+	while (gf_list_count(codec->command_buffers)) {
+		CommandBufferItem *cbi = (CommandBufferItem *)gf_list_get(codec->command_buffers, 0);
+		free(cbi);
+		gf_list_rem(codec->command_buffers, 0);
 	}
+	gf_list_del(codec->command_buffers);
+
 //	gf_mx_del(codec->mx);
 	free(codec);
 }
@@ -252,7 +256,6 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_l
 	/*reset current config*/
 	codec->info = NULL;
 	codec->current_graph = NULL;
-
 //	gf_mx_v(codec->mx);
 	return e;
 }
