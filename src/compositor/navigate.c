@@ -554,8 +554,8 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 					visual->compositor->trans_x -= visual->compositor->grab_x;
 					visual->compositor->trans_y -= visual->compositor->grab_y;
 				} else {
-					visual->compositor->trans_x -= visual->compositor->grab_x - visual->width/2;
-					visual->compositor->trans_y += visual->height/2 - visual->compositor->grab_y;
+					visual->compositor->trans_x -= visual->compositor->grab_x - INT2FIX(visual->width)/2;
+					visual->compositor->trans_y += INT2FIX(visual->height)/2 - visual->compositor->grab_y;
 				}
 				nav_set_zoom_trans_2d(visual, visual->compositor->zoom, 0, 0);
 			}

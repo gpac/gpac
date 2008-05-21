@@ -1023,10 +1023,12 @@ void gf_es_drop_au(GF_Channel *ch)
 		return;
 	}
 
-	if (!ch->AU_buffer_first) return;
-
 	/*lock the channel before touching the queue*/
 	gf_es_lock(ch, 1);
+	if (!ch->AU_buffer_first) {
+		gf_es_lock(ch, 0);
+		return;
+	}
 	ch->first_au_fetched = 1;
 
 	au = ch->AU_buffer_first;

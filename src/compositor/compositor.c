@@ -1874,7 +1874,7 @@ static void compositor_traverse_inline(GF_Compositor *compositor, GF_Node *inlin
 			GF_Matrix2D mx_bck, mx;
 			gf_mx2d_copy(mx_bck, tr_state->transform);
 			gf_mx2d_init(mx);
-			gf_mx2d_add_scale(&mx, 1, -1);
+			gf_mx2d_add_scale(&mx, FIX_ONE, -FIX_ONE);
 			gf_mx2d_add_translation(&mx, -tr_state->vp_size.x/2, tr_state->vp_size.y/2);
 			gf_mx2d_pre_multiply(&tr_state->transform, &mx);
 			gf_node_traverse(inline_root, rs);

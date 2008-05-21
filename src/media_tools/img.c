@@ -339,14 +339,14 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
         ptr = scan_line;
 		/*for each line in the scan*/
 		for (k = 0; k < scans; k++) {
-			if (dst_nb_comp==jpx.cinfo.num_components) {
+			if (dst_nb_comp==(u32)jpx.cinfo.num_components) {
 				memcpy(tmp, ptr, sizeof(char) * stride);
 				ptr += stride;
 				tmp += stride;
 			} else {
 				u32 z, c;
 				for (z=0; z<*width; z++) {
-					for (c=0; c<jpx.cinfo.num_components; c++) {
+					for (c=0; c<(u32)jpx.cinfo.num_components; c++) {
 						if (c >= dst_nb_comp) break;
 						tmp[c] = ptr[c];
 					}

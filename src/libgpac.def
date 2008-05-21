@@ -28,10 +28,6 @@ EXPORTS
 	gf_set_progress_callback
 	gf_temp_file_new
 	gf_delete_file
-;	gf_malloc
-;	gf_realloc
-;	gf_free
-;	gf_strdup
 	gf_f64_open
 	gf_f64_seek
 	gf_f64_tell

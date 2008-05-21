@@ -335,17 +335,17 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 			if (span->glyphs[i]) {
 				/*look for word boundaries*/
 				if ( (span->glyphs[i]->utf_name==' ') || (span->glyphs[i]->utf_name=='-') ) {
-					last_char_size = gf_mulfix(span->glyphs[i]->horiz_advance, span->font_scale);
+					last_char_size = span->glyphs[i]->horiz_advance * span->font_scale;
 					i++;
 					break;
 				}
-				glyph_size = gf_mulfix(span->glyphs[i]->horiz_advance, span->font_scale);
+				glyph_size = span->glyphs[i]->horiz_advance * span->font_scale;
 				if (word_size + glyph_size> tr_state->max_length) {
 					break_glyph = i;
 					break;
 				}
 				word_size += glyph_size;
-				h = gf_mulfix(span->glyphs[i]->vert_advance, span->font_scale);
+				h = span->glyphs[i]->vert_advance * span->font_scale;
 				if (h>word_height) word_height = h;
 			}
 			i++;
@@ -385,7 +385,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 		for (j=word_start; j<i; j++) {
 			span->dx[j] = offset;
 			span->dy[j] = tr_state->base_y + tr_state->text_end_y;
-			offset += gf_mulfix(span->glyphs[j] ? span->glyphs[j]->horiz_advance : font->max_advance_h, span->font_scale);
+			offset += (span->glyphs[j] ? span->glyphs[j]->horiz_advance : font->max_advance_h) * span->font_scale;
 		}
 		tr_state->text_end_x += word_size;
 //		if (tr_state->y_step < word_height) tr_state->y_step = word_height;
@@ -423,7 +423,7 @@ static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_Traverse
 	while ( (i<span->nb_glyphs)
 		&& ( (tr_state->count_x>1) || (tr_state->count_y>1) )
 	) {
-		block_width = gf_mulfix(span->glyphs[i] ? span->glyphs[i]->horiz_advance : font->max_advance_h, span->font_scale);
+		block_width = (span->glyphs[i] ? span->glyphs[i]->horiz_advance : font->max_advance_h) * span->font_scale;
 
 		//store width in tr_state->x_anchors
 		entry = (Fixed*)malloc(sizeof(Fixed));
@@ -439,7 +439,7 @@ static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_Traverse
 	if (i<span->nb_glyphs) {
 		block_width = 0;
 		while (i<span->nb_glyphs) {
-			block_width += gf_mulfix(span->glyphs[i] ? span->glyphs[i]->horiz_advance : font->max_advance_h, span->font_scale);
+			block_width += (span->glyphs[i] ? span->glyphs[i]->horiz_advance : font->max_advance_h) * span->font_scale;
 			i++;
 		}
 		//if last indicated position, create a new item
@@ -551,7 +551,7 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 		else span->off_y = y;
 
 		/*update last glyph position*/
-		block_width = gf_mulfix(span->glyphs[i] ? span->glyphs[i]->horiz_advance : font->max_advance_h, span->font_scale);
+		block_width = (span->glyphs[i] ? span->glyphs[i]->horiz_advance : font->max_advance_h) * span->font_scale;
 		tr_state->text_end_x = x+block_width;
 		tr_state->text_end_y = y;
 		(tr_state->chunk_index)++;
@@ -586,7 +586,7 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 		while (i<span->nb_glyphs) {
 			if (span->dx) span->dx[i] = offset + block_width;
 			if (span->dy) span->dy[i] = y;
-			block_width += gf_mulfix(span->glyphs[i] ? span->glyphs[i]->horiz_advance : font->max_advance_h, span->font_scale);
+			block_width += (span->glyphs[i] ? span->glyphs[i]->horiz_advance : font->max_advance_h) * span->font_scale;
 
 			i++;
 		}

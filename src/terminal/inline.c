@@ -732,11 +732,12 @@ void gf_inline_attach_to_compositor(GF_InlineScene *is)
 	if (url) is->fragment_uri = strdup(url+1);
 }
 
-static GF_MediaObject *IS_CheckExistingObject(GF_InlineScene *is, MFURL *urls)
+static GF_MediaObject *IS_CheckExistingObject(GF_InlineScene *is, MFURL *urls, u32 type)
 {
 	GF_MediaObject *obj;
 	u32 i = 0;
 	while ((obj = (GF_MediaObject *)gf_list_enum(is->media_objects, &i))) {
+		if (type && (type != obj->type)) continue;
 		if ((obj->OD_ID == GF_ESM_DYNAMIC_OD_ID) && gf_mo_is_same_url(obj, urls)) return obj;
 		else if ((obj->OD_ID != GF_ESM_DYNAMIC_OD_ID) && (obj->OD_ID == urls->vals[0].OD_ID)) return obj;
 	}
@@ -1085,7 +1086,7 @@ static void IS_UpdateVideoPos(GF_InlineScene *is)
 
 	url.count = 1;
 	url.vals = &is->visual_url;
-	mo = IS_CheckExistingObject(is, &url);
+	mo = IS_CheckExistingObject(is, &url, GF_MEDIA_OBJECT_VIDEO);
 	if (!mo) return;
 	tr = (M_Transform2D *) gf_sg_find_node_by_name(is->graph, "DYN_TRANS");
 	if (!tr) return;

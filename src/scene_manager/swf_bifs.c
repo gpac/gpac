@@ -284,8 +284,7 @@ static GF_Node *s2b_get_gradient(SWFReader *read, GF_Node *parent, SWFShape *sha
 	gf_sg_vrml_mf_alloc(info.far_ptr, info.fieldType, srec->nbGrad);
 	keys = (MFFloat *)info.far_ptr;
 	for (i=0; i<srec->nbGrad; i++) {
-		keys->vals[i] = srec->grad_ratio[i];
-		keys->vals[i] /= 255;
+		keys->vals[i] = INT2FIX(srec->grad_ratio[i])/255;
 	}
 
 	/*set colors*/
@@ -315,10 +314,10 @@ static GF_Node *s2b_get_gradient(SWFReader *read, GF_Node *parent, SWFShape *sha
 	rc = s2b_get_center_bounds(shape, srec);
 
 	gf_mx2d_init(mx);
-	mx.m[0] = 1/rc.width;
-	mx.m[2] = - rc.x/rc.width;
-	mx.m[4] = 1/rc.height;
-	mx.m[5] = 1 - rc.y/rc.height;
+	mx.m[0] = gf_invfix(rc.width);
+	mx.m[2] = - gf_divfix(rc.x, rc.width);
+	mx.m[4] = gf_invfix(rc.height);
+	mx.m[5] = FIX_ONE - gf_divfix(rc.y, rc.height);
 
 	gf_mx2d_pre_multiply(&mx, &srec->mat);
 
@@ -340,10 +339,10 @@ static GF_Node *s2b_get_gradient(SWFReader *read, GF_Node *parent, SWFShape *sha
 
 	/*matrix from local coordinates to texture coordiantes (Y-flip for BIFS texture coordinates)*/
 	gf_mx2d_init(mx);
-	mx.m[0] = 1/rc.width;
-	mx.m[2] = - rc.x/rc.width;
-	mx.m[4] = 1/rc.height;
-	mx.m[5] = 1 - rc.y/rc.height;
+	mx.m[0] = gf_invfix(rc.width);
+	mx.m[2] = - gf_divfix(rc.x, rc.width);
+	mx.m[4] = gf_invfix(rc.height);
+	mx.m[5] = FIX_ONE - gf_divfix(rc.y, rc.height);
 	/*pre-multiply SWF->local coords matrix*/
 	gf_mx2d_pre_multiply(&mx, &srec->mat);
 
@@ -1650,8 +1649,9 @@ static GF_Err swf_bifs_remove_obj(SWFReader *read, u32 depth, u32 ID)
 	f->new_node = gf_sg_find_node_by_name(read->load->scene_graph, "Shape0");
 	gf_node_register(f->new_node, com->node);
 	gf_list_add(read->bifs_au->commands, com);
-
-	s2b_control_sprite(read, read->bifs_au->commands, ID, 1, 0, 0, 0);
+	/*check if this is a sprite*/
+	if (ID)
+		s2b_control_sprite(read, read->bifs_au->commands, ID, 1, 0, 0, 0);
 	return GF_OK;
 }
 

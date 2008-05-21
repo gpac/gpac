@@ -96,7 +96,7 @@ static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph
 					child = child->next;
 					continue;
 				}
-				
+
 				if (st->glyph.utf_name==glyph_buffer[i]) {
 					u32 j, count;
 					gf_svg_flatten_attributes((SVG_Element*)child->node, &atts);
@@ -150,7 +150,8 @@ static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph
 		}
 		prev_c = glyph_buffer[i];
 
-		if (!st) st = missing_glyph;
+		if (!st) 
+			st = missing_glyph;
 		glyph_buffer[gl_idx] = st ? st->glyph.ID : 0;
 		if (st && st->uni_len>1) i++;
 		
@@ -198,8 +199,24 @@ static void svg_traverse_font(GF_Node *node, void *rs, Bool is_destroy)
 	}
 }
 
+static void svg_font_on_load(GF_Node *handler, GF_DOM_Event *event)
+{
+	GF_Compositor *compositor;
+	GF_Font *font;
+	assert(gf_node_get_tag(event->currentTarget)==TAG_SVG_font);
+	font = gf_node_get_private(event->currentTarget);
+	font->not_loaded = 0;
+	compositor = (GF_Compositor *)gf_node_get_private((GF_Node *)handler);
+
+	/*brute-force signaling that all fonts have changed and texts must be recomputed*/
+	compositor->reset_fonts = 1;
+	compositor->draw_next_frame = 1;
+
+}
+
 void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node)
 {
+	SVG_handlerElement *handler;
 	GF_Err e;
 	SVGAllAttributes atts;
 	GF_Font *font;
@@ -271,11 +288,13 @@ void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node)
 
 	gf_svg_flatten_attributes((SVG_Element*)node_font, &atts);
 	font->max_advance_h = atts.horiz_adv_x ? FIX2INT( gf_ceil(atts.horiz_adv_x->value) ) : 0;
-	font->max_advance_v = font->max_advance_h;
+	
+	font->not_loaded = 1;
 
-	/*brute-force signaling that all fonts have changed and texts must be recomputed*/
-	compositor->reset_fonts = 1;
-	compositor->draw_next_frame = 1;
+	/*wait for onLoad event before activating the font, otherwise we may not have all the glyphs*/
+	handler = gf_dom_listener_build(node_font, GF_EVENT_LOAD, 0, NULL);
+	handler->handle_event = svg_font_on_load;
+	gf_node_set_private((GF_Node *)handler, compositor);
 }
 
 
@@ -410,6 +429,9 @@ static Bool svg_font_uri_check(GF_Node *node, FontURIStack *st)
 	font = gf_node_get_private(font_elt);
 	if (!font) return 0;
 	st->alias = font;
+
+	gf_mo_is_done(st->mo);
+	font->not_loaded = 0;
 	return 1;
 }
 
@@ -489,6 +511,7 @@ void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_font_face_uri);
 
+	font->not_loaded = 1;
 	svg_font_uri_check(node, stack);
 }
 
