@@ -28,10 +28,15 @@
 #include <gpac/options.h>
 #include <gpac/utf.h>
 
+#ifdef GPAC_TRISCOPE_MODE
+#include "../src/compositor/triscope_renoir/triscope_renoir.h"
+#endif
+
 #include "nodes_stacks.h"
 
 #include "visual_manager.h"
 #include "texturing.h"
+
 
 #define SC_DEF_WIDTH	320
 #define SC_DEF_HEIGHT	240
@@ -196,10 +201,17 @@ static u32 gf_sc_proc(void *par)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Compositor] Entering thread ID %d\n", gf_th_id() ));
 
+	
+
+#ifdef GPAC_TRISCOPE_MODE	
+/* scene creation*/	
+	compositor->RenoirHandler = CreateRenoirScene();
+#endif	
+	
 	while (compositor->video_th_state == 1) {
 		if (compositor->is_hidden) 
 			gf_sleep(compositor->frame_duration);
-		else
+		else	
 			gf_sc_simulation_tick(compositor);
 	}
 	/*destroy video out here if w're using openGL, to avoid threading issues*/
@@ -259,7 +271,9 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->visual = visual_new(compositor);
 	compositor->visual->GetSurfaceAccess = compositor_2d_get_video_access;
 	compositor->visual->ReleaseSurfaceAccess = compositor_2d_release_video_access;
+
 	compositor->visual->DrawBitmap = compositor_2d_draw_bitmap;
+
 
 	gf_list_add(compositor->visuals, compositor->visual);
 
@@ -334,6 +348,14 @@ static GF_Compositor *gf_sc_create(GF_User *user)
 		free(tmp);
 		return NULL;
 	}
+#ifdef ENABLE_JOYSTICK
+	sOpt = gf_cfg_get_key(user->config, "General", "JoystickCenteredMode");
+	if (sOpt) {
+		if (!stricmp(sOpt, "no")) tmp->video_out->centered_mode=0; 
+		else tmp->video_out->centered_mode=1;
+	} else tmp->video_out->centered_mode=1;
+#endif
+
 
 	/*try to load a raster driver*/
 	sOpt = gf_cfg_get_key(user->config, "Compositor", "Raster2D");
@@ -1292,18 +1314,18 @@ void gf_sc_map_point(GF_Compositor *compositor, s32 X, s32 Y, Fixed *bifsX, Fixe
 }
 
 
-GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, Bool depth_buffer)
+GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, u32 depth_dump_mode)
 {
 	GF_Err e;
 	if (!compositor || !framebuffer) return GF_BAD_PARAM;
 	gf_mx_p(compositor->mx);
 
 #ifndef GPAC_DISABLE_3D
-	if (compositor->visual->type_3d) e = compositor_3d_get_screen_buffer(compositor, framebuffer, depth_buffer);
+	if (compositor->visual->type_3d) e = compositor_3d_get_screen_buffer(compositor, framebuffer, depth_dump_mode);
 	else
 #endif
 	/*no depth dump in 2D mode*/
-	if (depth_buffer) e = GF_NOT_SUPPORTED;
+	if (depth_dump_mode) e = GF_NOT_SUPPORTED;
 	else e = compositor->video_out->LockBackBuffer(compositor->video_out, framebuffer, 1);
 	
 	if (e != GF_OK) gf_mx_v(compositor->mx);
@@ -1513,6 +1535,10 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 
 	flags = compositor->traverse_state->direct_draw;
 	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
+#ifdef GPAC_TRISCOPE_MODE
+	/*here comes renoir rendering*/
+	RenderRenoirScene (compositor->RenoirHandler);	
+#endif
 	compositor->traverse_state->direct_draw = flags;
 #ifdef GF_SR_USE_VIDEO_CACHE
 	gf_list_reset(compositor->cached_groups_queue);
@@ -1584,9 +1610,11 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	event_time = gf_sys_clock() - event_time;
 #endif
+
 #endif
 
 	gf_term_sample_clocks(compositor->term);
+	
 
 #ifndef GPAC_DISABLE_LOG
 	route_time = gf_sys_clock();
@@ -1942,16 +1970,18 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 	Bool ret;
 #endif
 
-	if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVENT_MOUSEWHEEL))
-		gf_term_mouse_input(compositor->term, &event->mouse);
+	if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVENT_MOUSEWHEEL)) {
+		GF_Event evt = *event;
+		gf_term_mouse_input(compositor->term, &evt.mouse);
+	}
 
-	if (!compositor->interaction_level || (compositor->interaction_level==GF_INTERACT_INPUT_SENSOR) ) {
+/*	if (!compositor->interaction_level || (compositor->interaction_level==GF_INTERACT_INPUT_SENSOR) ) {
 		if (!from_user) {
 			GF_USER_SENDEVENT(compositor->user, event);
 		}
 		return 0;
 	}
-
+*/
 #ifdef GF_SR_EVENT_QUEUE
 	switch (event->type) {
 	case GF_EVENT_MOUSEMOVE:

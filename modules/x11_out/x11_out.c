@@ -26,6 +26,7 @@
 #include "x11_out.h"
 #include <gpac/constants.h>
 
+
 void X11_SetupWindow (GF_VideoOutput * vout);
 
 
@@ -518,7 +519,9 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 	X11VID();
 	unsigned char keybuf[32];
 	XEvent xevent;
-
+#ifdef ENABLE_JOYSTICK
+	struct js_event jsevent;
+#endif
 	the_window = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
 	XSync(xWindow->display, False);
 
@@ -562,8 +565,11 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    }
 		    break;
 
-		  case KeyPress:
-		  case KeyRelease:
+#ifdef ENABLE_JOYSTICK
+		  	
+#else
+		      case KeyPress:
+		      case KeyRelease:
 		    x11_translate_key(XKeycodeToKeysym (xWindow->display, xevent.xkey.keycode, 0), &evt.key);
 			evt.type = (xevent.type ==KeyPress) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
 			vout->on_event (vout->evt_cbk_hdl, &evt);
@@ -623,7 +629,6 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    evt.mouse.y = xevent.xmotion.y;
 		    vout->on_event (vout->evt_cbk_hdl, &evt);
 		    break;
-		    
 		  case PropertyNotify:
 		    break;
 		  case MapNotify:
@@ -648,8 +653,115 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    
 		  default:
 		    break;
+#endif
 		  }
 	 }
+
+#ifdef ENABLE_JOYSTICK
+	while (read (xWindow->fd, &jsevent, sizeof(struct js_event)) > 0){
+    	s32 mul;
+	
+		switch (jsevent.type) {
+		  case JS_EVENT_BUTTON:
+		    
+		    if (jsevent.value){
+		    /*pressed event*/
+		    	if (!xWindow->fullscreen && !xWindow->has_focus) {
+			  /*is this necessary?*/
+			  xWindow->has_focus = 1;
+		//	  XSetInputFocus(xWindow->display, xWindow->wnd, RevertToParent, CurrentTime);
+		       }
+		    }
+		    else {
+		    /*release event*/
+		      evt.mouse.x = xWindow->prev_x;
+		      evt.mouse.y = xWindow->prev_y;
+		      evt.type = (xevent.type == ButtonRelease) ? GF_EVENT_MOUSEUP : GF_EVENT_MOUSEDOWN;
+		      switch (jsevent.number){
+		        case 0:
+			     evt.mouse.button = GF_MOUSE_LEFT;
+		         vout->on_event (vout->evt_cbk_hdl, &evt);
+		      //   printf("LEFT BUTTON PRESSED\n");
+			      break;
+
+				case 1:
+				 evt.mouse.button = GF_MOUSE_MIDDLE;
+				 vout->on_event (vout->evt_cbk_hdl, &evt);
+				 break;
+	
+				case 2:
+				 evt.mouse.button = GF_MOUSE_RIGHT;
+			     vout->on_event (vout->evt_cbk_hdl, &evt);
+			     break;
+				 default:
+				 break;
+		      }
+
+		    }
+		  break;
+		  case JS_EVENT_AXIS:
+			  if (ABS(jsevent.value)>16000) mul = 6;
+			  else if (ABS(jsevent.value)>1024) mul = 2;
+			  else mul = 1;
+			  if (jsevent.number==0) {
+				  if (jsevent.value>0) xWindow->prev_x += mul;
+				  else if (jsevent.value<0) {
+					  xWindow->prev_x -= mul;
+					//  if (xWindow->prev_x <0) xWindow->prev_x=0;
+				  }
+			  if (vout->centered_mode==1){	  
+				  xWindow->prev_x = ((0xFFFF/2) + jsevent.value) * xWindow->w_width;
+				  xWindow->prev_x /= 0xFFFF; 
+			  }
+			
+			  }
+			  else if (jsevent.number==1) {
+				  if (jsevent.value>0) xWindow->prev_y += mul;
+				  else if (jsevent.value<0) {
+					  xWindow->prev_y -= mul;
+				//	  if (xWindow->prev_y <0) xWindow->prev_y=0;
+				  }
+				  if (vout->centered_mode==1) {
+				  xWindow->prev_y = ((0xFFFF/2) + jsevent.value) * xWindow->w_height;
+				  xWindow->prev_y /= 0xFFFF; 
+				  }
+		/*		  if (jsevent.value>0) xWindow->prev_y += mul;
+				  else xWindow->prev_y -= mul; */
+
+			  } 
+			/*  fprintf(stdout, "X %d - y %d\n", xWindow->prev_x, xWindow->prev_y); */
+		    evt.type = GF_EVENT_MOUSEMOVE;
+		    evt.mouse.x = xWindow->prev_x;
+		    evt.mouse.y = xWindow->prev_y;
+		    vout->on_event (vout->evt_cbk_hdl, &evt); 
+		    break;
+
+		  case PropertyNotify:
+		    break;
+		  case MapNotify:
+		    break;
+		  case CirculateNotify:
+		    break;
+		  case UnmapNotify:
+		    break;
+		  case ReparentNotify:
+		    break;
+		  case FocusOut:
+			if (!xWindow->fullscreen) xWindow->has_focus = 0;
+		    break;
+		  case FocusIn:
+			if (!xWindow->fullscreen) xWindow->has_focus = 1;
+		    break;
+		    
+		  case DestroyNotify:
+		      evt.type = GF_EVENT_QUIT;
+		      vout->on_event(vout->evt_cbk_hdl, &evt);
+		    break;
+	
+		//  case JS_EVENT_INIT:
+		}	
+	}
+#endif
 }
 
 
@@ -1279,9 +1391,14 @@ GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32
 	X11VID ();
 	/*assign window if any, NEVER display*/
 	xWindow->par_wnd = (Window) os_handle;
+
 	/*OSMOZILLA HACK*/
 	if (os_display) xWindow->no_select_input = 1;
 
+#ifdef ENABLE_JOYSTICK
+	xWindow->fd = open ("/dev/input/js0", O_NONBLOCK);	
+  
+#endif
 	/*the rest is done THROUGH THE MAIN RENDERER TRHEAD!!*/
 	return GF_OK;
 }
@@ -1298,7 +1415,9 @@ void X11_Shutdown (struct _video_out *vout)
 	} else {
 		X11_ReleaseBackBuffer (vout);
 	}
-
+#ifdef ENABLE_JOYSTICK
+	close(xWindow->fd);	
+#endif
 	XFreeGC (xWindow->display, xWindow->the_gc);
 	XUnmapWindow (xWindow->display, (Window) xWindow->wnd);
 	XDestroyWindow (xWindow->display, (Window) xWindow->wnd);

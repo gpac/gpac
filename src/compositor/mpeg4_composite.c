@@ -29,7 +29,8 @@
 #include "texturing.h"
 
 #ifdef GPAC_USE_TINYGL
-#include <GL/oscontext.h>
+//#include <GL/oscontext.h>
+#include "../../TinyGL/include/GL/oscontext.h"
 #endif
 
 typedef struct
@@ -175,6 +176,7 @@ static void composite_update(GF_TextureHandler *txh)
 	back = gf_list_get(st->visual->back_stack, 0);
 	if (back && back->isBound) new_pixel_format = GF_PIXEL_RGB_24;
 	else new_pixel_format = GF_PIXEL_RGBA;
+	
 
 #ifdef GPAC_USE_TINYGL
 	/*TinyGL pixel format is fixed at compile time, we cannot override it !*/
@@ -192,6 +194,12 @@ static void composite_update(GF_TextureHandler *txh)
 
 #endif
 
+	/*in triscope all our images are RGB+Depth+bitshape*/
+
+#ifdef GPAC_TRISCOPE_MODE
+	if (st->visual->type_3d) new_pixel_format = GF_PIXEL_RGBDS;
+#endif
+	
 
 #ifndef GPAC_DISABLE_3D
 	if (st->visual->type_3d>1) {
@@ -252,7 +260,14 @@ static void composite_update(GF_TextureHandler *txh)
 		} else if (new_pixel_format==GF_PIXEL_RGB_565) {
 			txh->stride = txh->width * 2;
 			txh->transparent = 0;
-		} else {
+#ifdef GPAC_TRISCOPE_MODE
+		} else if (new_pixel_format==GF_PIXEL_RGBDS) {
+				txh->stride = txh->width * 4;
+				txh->transparent = 1;	
+#endif
+		}
+		/*RGB24*/
+		else {
 			txh->stride = txh->width * 3;
 			txh->transparent = 0;
 		}
@@ -297,15 +312,20 @@ static void composite_update(GF_TextureHandler *txh)
 			txh->data = (char*)malloc(sizeof(unsigned char) * txh->stride * txh->height);
 			memset(txh->data, 0, sizeof(unsigned char) * txh->stride * txh->height);
 			e = raster->stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat, txh->pixelformat, 0);
+#ifdef GPAC_TRISCOPE_MODE
+			e = GF_OK;
+#endif
 			if (e) {
 				raster->stencil_delete(stencil);
 				gf_sc_texture_release(txh);
 				free(txh->data);
 				txh->data = NULL;
+				return;
 			}
 #ifdef GPAC_USE_TINYGL
 			if (st->visual->type_3d && !compositor->visual->type_3d) {
-				st->tgl_ctx = ostgl_create_context(txh->width, txh->height, txh->transparent ? 32 : 16, &txh->data, 1);
+				st->tgl_ctx = ostgl_create_context(txh->width, txh->height, txh->transparent ? 32 : 24, &txh->data, 1);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Creating TinyGL Offscreen context 0x%08x (%d %d - pf %s)\n", st->tgl_ctx, txh->width, txh->width, gf_4cc_to_str(txh->pixelformat)));
 			}
 #endif
 
@@ -347,7 +367,7 @@ static void composite_update(GF_TextureHandler *txh)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Entering draw cycle\n"));
 
 	txh->needs_refresh = visual_draw_frame(st->visual, st->txh.owner, tr_state, 0);
-
+	
 	/*set active viewport in image coordinates top-left=(0, 0), not in BIFS*/
 	if (gf_list_count(st->visual->view_stack)) {
 		M_Viewport *vp = (M_Viewport *)gf_list_get(st->visual->view_stack, 0);
@@ -362,6 +382,7 @@ static void composite_update(GF_TextureHandler *txh)
 	} 
 
 	if (txh->needs_refresh) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] First 4 pixel %x %x %x %x\n", txh->data[0], txh->data[4], txh->data[8], txh->data[12]));
 #ifndef GPAC_DISABLE_3D
 		if (st->visual->camera.is_3D) {
 			if (st->visual->compositor->visual->type_3d) {
@@ -372,8 +393,14 @@ static void composite_update(GF_TextureHandler *txh)
 				gf_sc_texture_push_image(&st->txh, 0, 0);
 #endif
 			} else {
+				
 #ifndef GPAC_USE_TINYGL
 				gf_sc_copy_to_stencil(&st->txh);
+				
+#else 
+#ifdef GPAC_TRISCOPE_MODE				
+			if (txh->pixelformat==GF_PIXEL_RGBDS) gf_get_tinygl_depth(&st->txh); 
+#endif				
 #endif
 			}
 		} else 
@@ -461,6 +488,10 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 	gf_node_set_callback_function(node, composite_traverse);
 	gf_sc_visual_register(compositor, st->visual);
 
+#ifdef GPAC_USE_TINYGL
+	st->visual->type_3d = 2;
+	st->visual->camera.is_3D = 1;
+#else
 	if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
 		st->visual->type_3d = 0;
 		st->visual->camera.is_3D = 0;
@@ -468,6 +499,7 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 		st->visual->type_3d = 2;
 		st->visual->camera.is_3D = 1;
 	}
+#endif
 	camera_invalidate(&st->visual->camera);
 }
 #endif

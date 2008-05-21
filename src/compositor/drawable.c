@@ -646,6 +646,9 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	}
 	ctx->flags |= CTX_HAS_APPEARANCE;
 	//setup clipper if needed
+#ifdef GPAC_TRISCOPE_MODE
+	ctx->depth = tr_state->depth;
+#endif
 	return ctx;
 }
 

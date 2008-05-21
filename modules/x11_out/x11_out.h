@@ -39,7 +39,7 @@ extern "C"
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 
-#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_OGL_ES)
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
 #define GPAC_HAS_OPENGL
 #endif
 
@@ -56,6 +56,12 @@ extern "C"
 #ifdef GPAC_HAS_X11_XV
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
+#endif
+
+#ifdef ENABLE_JOYSTICK
+#include <linux/joystick.h>
+#include <unistd.h>
+#include <fcntl.h>
 #endif
 
 #define X11VID()	XWindow *xWindow = (XWindow *)vout->opaque;
@@ -110,6 +116,11 @@ typedef struct
 	GLXPixmap gl_offscreen;
 	Window gl_wnd;
 	u32 offscreen_type;
+#endif
+#ifdef ENABLE_JOYSTICK
+	/*joystick device file descriptor*/
+	u32 fd;
+	s32 prev_x, prev_y;
 #endif
 } XWindow;
 

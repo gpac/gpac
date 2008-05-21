@@ -226,7 +226,7 @@ char * my_str_lwr(char *str);
 /*UNIX likes*/
 
 #ifdef GPAC_HAVE_CONFIG_H
-#include <gpac/internal/config.h>
+#include "config.h"
 #endif
 
 

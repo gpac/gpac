@@ -27,6 +27,9 @@
 #include "nodes_stacks.h"
 #include "visual_manager.h"
 
+#include "triscope_renoir/ViRenAPI.h"
+#include "triscope_renoir/ViRenAPI_err.h"
+
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res)
 {
 	GF_Plane p;
@@ -259,7 +262,8 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
 
-	if (ctx->aspect.fill_texture && 0) {
+
+	if (ctx->aspect.fill_texture) {
 		Bool res;
 		GF_Rect orig_unclip;
 		GF_IRect orig_clip;

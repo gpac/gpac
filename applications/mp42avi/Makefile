@@ -31,7 +31,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac -lz
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/$(TARGET_BIN_DIR) -lgpac -lz
 
 
 %.o: %.c

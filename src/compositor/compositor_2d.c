@@ -28,6 +28,9 @@
 #include "nodes_stacks.h"
 #include <gpac/options.h>
 
+#ifdef GPAC_TRISCOPE_MODE
+#include "../src/compositor/triscope_renoir/triscope_renoir.h"
+#endif
 
 GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 {
@@ -65,6 +68,10 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		if (!e) {
 			visual->is_attached = 1;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Video surface memory attached to raster\n"));
+#ifdef GPAC_TRISCOPE_MODE 
+		/*CALL SNOUTPUT FOR RENOIR*/
+		SetRenoirOutput(compositor);
+#endif
 			return GF_OK;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface memory to raster: %s\n", gf_error_to_string(e) ));
@@ -392,8 +399,10 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
 {
 	u8 alpha = 0xFF;
+	
 
 	if (!ctx->aspect.fill_texture) return 1;
+	/*regarde si la texture est updated*/
 	if (!ctx->aspect.fill_texture->data) return 0;
 	if ((ctx->transform.m[0]<0) || (ctx->transform.m[4]<0)) return 0;
 	if (ctx->transform.m[1] || ctx->transform.m[3]) return 0;
@@ -416,6 +425,9 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
+#ifdef GPAC_TRISCOPE_MODE
+	case GF_PIXEL_RGBDS:	
+#endif
 		break;
 	/*the rest has to be displayed through brush for now, we only use YUV and RGB pool*/
 	default:
@@ -425,7 +437,15 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 
 	/*direct drawing, no clippers */
 	if (tr_state->direct_draw) {
+		
+#ifdef GPAC_TRISCOPE_MODE
+		return SetRenoirTexture(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0);
+		
+#else 		
 		return compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0);
+
+#endif
+
 	}
 	/*draw bitmap for all dirty rects*/
 	else {

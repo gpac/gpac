@@ -269,6 +269,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 
 	has_col = has_tx = has_norm = 0;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh 0x%08x\n", mesh));
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 #if defined(GPAC_USE_OGL_ES)
@@ -1408,7 +1409,7 @@ void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color
 	glDisable(GL_BLEND);
 }
 
-GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb, Bool depth_buffer)
+GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb, u32 depth_dump_mode)
 {
 	/*FIXME*/
 #ifndef GPAC_USE_TINYGL
@@ -1418,16 +1419,32 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 	fb->width = compositor->vp_width;
 	fb->height = compositor->vp_height;
 
-	if (depth_buffer) {
+	/*depthmap-only dump*/
+	if (depth_dump_mode==1) {
+		const char *sOpt;
+		float OGL_depthGain;
 #ifdef GPAC_USE_OGL_ES
 		return GF_NOT_SUPPORTED;
 #else
 		fb->pitch = compositor->vp_width; /* multiply by 4 if float depthbuffer */
-		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch * fb->height); 
+#ifndef GPAC_USE_TINYGL
+		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch * fb->height);
+#else
+		fb->video_buffer = (char*)malloc(sizeof(char)* 2 * fb->pitch * fb->height);
+#endif
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
 		/*
 		glPixelTransferf(GL_DEPTH_SCALE, 10000.0);
 		glPixelTransferf(GL_DEPTH_BIAS, -9999); */  /* these were optimal values for elevation grid with old znear */ 
+	
+		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffGain");
+		if (sOpt) sscanf(sOpt, "%f", &OGL_depthGain);
+
+			/*let's inverse depthbuffer d=128 -> foreground*/
+		glPixelTransferf(GL_DEPTH_SCALE, -OGL_depthGain); 
+		glPixelTransferf(GL_DEPTH_BIAS, OGL_depthGain); 
+	//			glPixelTransferf(GL_DEPTH_SCALE, -20.0); /* -x+1 to inverse: -(8x-7)+1  */
+	//			glPixelTransferf(GL_DEPTH_BIAS, 20.0);  
 		/*
 		glPixelTransferf(GL_DEPTH_SCALE, 182.85);
 		glPixelTransferf(GL_DEPTH_BIAS, -181.5);  */ /* optimal values for box, cones etc with old znear */
@@ -1435,6 +1452,68 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		/* GL_FLOAT for float depthbuffer */
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, fb->video_buffer); 
 #endif
+		
+	/* RGBDS or RGBD dump*/
+	} else if (depth_dump_mode==2 || depth_dump_mode==3){
+		const char *sOpt;
+		float OGL_depthGain;
+		char *depth_data=NULL;
+		int i;
+
+#ifdef GPAC_USE_OGL_ES
+		return GF_NOT_SUPPORTED;
+#else
+		fb->pitch = compositor->vp_width*4; /* 4 bytes for each rgbds pixel */
+#ifndef GPAC_USE_TINYGL
+		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch * fb->height);
+#else
+		fb->video_buffer = (char*)malloc(sizeof(char)* 2 * fb->pitch * fb->height);
+#endif
+
+
+		
+#ifndef GPAC_USE_TINYGL	
+		
+		glReadPixels(0, 0, fb->width, fb->height, GL_RGBA, GL_UNSIGNED_BYTE, fb->video_buffer);
+
+		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffGain");
+		if (sOpt) sscanf(sOpt, "%f", &OGL_depthGain);
+
+		/*let's inverse depthbuffer d=128 -> foreground*/
+		glPixelTransferf(GL_DEPTH_SCALE, -OGL_depthGain); 
+	    glPixelTransferf(GL_DEPTH_BIAS, OGL_depthGain); 
+		
+		depth_data = (char*) malloc(sizeof(char)*fb->width*fb->height);
+		glReadPixels(0, 0, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, depth_data);
+
+		if (depth_dump_mode==2) {
+		fb->pixel_format = GF_PIXEL_RGBDS;
+		/*this corresponds to the RGBDS ordering*/
+			for (i=0; i<fb->height*fb->width; i++) {
+				u8 ds;
+				/* erase lowest-weighted depth bit */
+				u8 depth = depth_data[i] & 0xfe; 
+				/*get alpha*/
+				ds = (fb->video_buffer[i*4 + 3]);
+				/* if heaviest-weighted alpha bit is set (>128) , turn on shape bit*/
+				if (ds & 0x80) depth |= 0x01;
+				fb->video_buffer[i*4+3] = depth; /*insert depth onto alpha*/ 
+			}
+		/*this corresponds to RGBD ordering*/	
+		} else if (depth_dump_mode==3) {
+			fb->pixel_format = GF_PIXEL_RGBD;
+			for (i=0; i<fb->height*fb->width; i++) fb->video_buffer[i*4+3] = depth_data[i];
+			
+		}
+		
+#else
+		printf("ERROR: RGBD format not implemented in TinyGL \n");
+		return GF_NOT_SUPPORTED;
+
+#endif
+		
+#endif
+		
 	} else {
 		fb->pitch = 3*compositor->vp_width;
 		fb->video_buffer = (char*)malloc(sizeof(char) * fb->pitch * fb->height);
