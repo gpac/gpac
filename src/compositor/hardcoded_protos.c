@@ -582,12 +582,13 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (tr_state->traversing_mode==TRAVERSE_SORT) {
 		if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
-			DepthGroup_GetNode(node, &stack->dg);
+			//DepthGroup_GetNode(node, &stack->dg); /*lets place it below*/
 			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 			/*flag is not set for PROTO*/
 			gf_node_dirty_set(node, GF_SG_CHILD_DIRTY, 0);
 		}
 	}
+	DepthGroup_GetNode(node, &stack->dg);
 	depth = tr_state->depth;
 	tr_state->depth += stack->dg.depth;
 	group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
@@ -641,10 +642,13 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 			compositor_init_offscreen_group(compositor, node);
 			return;
 		}
+
 		if (!strcmp(url, "urn:inet:gpac:builtin:DepthGroup")) {
 			compositor_init_depth_group(compositor, node);
 			return;
 		}
+
 	}
+
 }
 

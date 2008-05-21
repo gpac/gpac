@@ -32,7 +32,9 @@
 #ifndef GPAC_DISABLE_3D
 
 #ifdef GPAC_USE_TINYGL
-#include <GL/oscontext.h>
+//#include <GL/oscontext.h>
+#include "../../TinyGL/include/GL/oscontext.h"
+
 #endif
 
 typedef struct
@@ -169,6 +171,10 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 
 #endif
 
+#ifdef GPAC_TRISCOPE_MODE
+	new_pixel_format = GF_PIXEL_RGBDS;
+#endif
+	
 	w = (u32) FIX2INT(gf_ceil(width));
 	h = (u32) FIX2INT(gf_ceil(height));
 
@@ -210,6 +216,12 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 		st->txh.stride = w * 3;
 		st->txh.transparent = 0;
 	}
+#ifdef GPAC_TRISCOPE_MODE
+	if (new_pixel_format==GF_PIXEL_RGBDS) {
+			st->txh.stride = w * 4;
+			st->txh.transparent = 0;
+	}
+#endif
 
 	st->visual->width = w;
 	st->visual->height = h;
@@ -242,6 +254,10 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	st->txh.data = (char*)malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
 	memset(st->txh.data, 0, sizeof(unsigned char) * st->txh.stride * st->txh.height);
 	e = compositor->rasterizer->stencil_set_texture(stencil, st->txh.data, st->txh.width, st->txh.height, st->txh.stride, st->txh.pixelformat, st->txh.pixelformat, 0);
+#ifdef GPAC_TRISCOPE_MODE
+			e = GF_OK;
+#endif
+
 	if (e) {
 		compositor->rasterizer->stencil_delete(stencil);
 		gf_sc_texture_release(&st->txh);
@@ -518,6 +534,11 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 			/*with TinyGL we draw directly to the offscreen buffer*/
 #ifndef GPAC_USE_TINYGL
 			gf_sc_copy_to_stencil(&st->txh);
+#else
+/*with TinyGL, need to recover depth for triscope*/			
+#ifdef GPAC_TRISCOPE_MODE				
+			if (st->txh.pixelformat==GF_PIXEL_RGBDS) gf_get_tinygl_depth(&st->txh); 
+#endif				
 #endif
 
 			if (tr_state->visual->compositor->rasterizer->stencil_texture_modified) 

@@ -67,6 +67,10 @@ struct __texture_wrapper
 	/*gl textures vars (gl_type: 2D texture or rectangle (NV ext) )*/
 	u32 nb_comp, gl_format, gl_type;
 #endif
+#ifdef GPAC_TRISCOPE_MODE
+	char *depth_data;
+#endif
+	
 };
 
 GF_Err gf_sc_texture_allocate(GF_TextureHandler *txh)
@@ -90,6 +94,10 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 	if (txh->tx_io->scale_data) free(txh->tx_io->scale_data);
 	if (txh->tx_io->conv_data) free(txh->tx_io->conv_data);
 #endif
+
+#ifdef GPAC_TRISCOPE_MODE
+	if (txh->tx_io->depth_data) free(txh->tx_io->depth_data);
+#endif
 	free(txh->tx_io);
 	txh->tx_io = NULL;
 }
@@ -111,6 +119,19 @@ void gf_sc_texture_reset(GF_TextureHandler *txh)
 	}
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 #endif
+#ifdef GPAC_TRISCOPE_MODE
+	/* remove renoir texture from the display list */
+	if (txh->RenoirObject) {
+		DestroyRenoirObject(txh->RenoirObject, txh->compositor->RenoirHandler);
+		if (txh->tx_io->depth_data) {
+			free(txh->tx_io->depth_data);
+			txh->tx_io->depth_data = NULL;
+		}
+	}
+	txh->RenoirObject = NULL;
+	
+#endif
+	
 }
 
 #ifndef GPAC_DISABLE_3D
@@ -525,7 +546,11 @@ void gf_sc_copy_to_texture(GF_TextureHandler *txh)
 void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 {
 	u32 i, hy;
-	char *tmp;
+	char *tmp=NULL;
+//	char alpha_byte;
+	const char *sOpt;
+	float OGL_depthGain;
+
 
 	/*in case the ID has been lost, resetup*/
 	if (!txh->data || !txh->tx_io->tx_raster) return;
@@ -536,8 +561,57 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGBA, GL_UNSIGNED_BYTE, txh->data);
 	} else if (txh->pixelformat==GF_PIXEL_RGB_24) {
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGB, GL_UNSIGNED_BYTE, txh->data);
-	}
+	/* for triscope mode */
+#ifdef GPAC_TRISCOPE_MODE
+	} else if (txh->pixelformat==GF_PIXEL_RGBDS) {
+		/*we'll work with one alpha bit (=shape). we'll take the heaviest weighted as this threshold*/
+		glReadPixels(0, 0, txh->width, txh->height, GL_RGBA, GL_UNSIGNED_BYTE, txh->data);
+		
+		/*depth buffer inversion*/ /*inverse transform MUST be done here necessarily - not enough precision with byte representation, need for float manipulation*/
+	//	glPixelTransferf(GL_DEPTH_SCALE, -20.0); /* -x+1 to inverse the [0..1] range to [1..0]: -(Gx +Offs) +1  */
+	//	glPixelTransferf(GL_DEPTH_BIAS, 20.0);  
+		/*NOTES on OpenGL's z-buffer perspective inversion:
+		 * option 1: extract float depth buffer, undoing depth perspective transform PIXEL per PIXEL and then
+		 * convert to byte (computationally costly)
+		 * 
+		 * option 2: use gain and offset to make up an approximation of the linear z-buffer (the original)
+		 * it can be achieved by scaling the interval where the inflection point is located
+		 * i.e. z' = G*z - (G - 1), the offset so that z still belongs to [0..1]*
+		 */
+		
+		/* -x+1 to inverse the [0..1] range to [1..0]: -(Gx +Offs) +1  */
+		
+		/*scale and inverse depth buffer, all at once*/
+		sOpt = gf_cfg_get_key(txh->compositor->user->config, "Compositor", "OGLDepthBuffGain");
+		if (sOpt) sscanf(sOpt, "%f", &OGL_depthGain);
+	//	glPixelTransferf(GL_DEPTH_SCALE, -OGL_depthGain); 
+	//	glPixelTransferf(GL_DEPTH_BIAS, OGL_depthGain); 
+		
+		glPixelTransferf(GL_DEPTH_SCALE, OGL_depthGain); 
+		glPixelTransferf(GL_DEPTH_BIAS, 0); 
+		
+		/*obtain depthmap*/ /*NOTE: could txt width, height change once allocated?*/
+		if (!txh->tx_io->depth_data) txh->tx_io->depth_data = (char*)malloc(sizeof(char)*txh->width*txh->height);
+		glReadPixels(0, 0, txh->width, txh->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, txh->tx_io->depth_data);
+	    /*	depth = alpha & 0xfe 
+		    shape = plan alpha & 0x01 */
+		/*at the moment RENOIR WORKS WITH DSRGB - need to recombine components*/
 
+#if 1		/*this corresponds to the RGBDS ordering*/
+		for (i=0; i<txh->height*txh->width; i++) {
+			u8 ds;
+			/* erase lowest-weighted depth bit */
+			u8 depth = txh->tx_io->depth_data[i] & 0xfe; 
+			/*get alpha*/
+			ds = (txh->data[i*4 + 3]);
+			/* if heaviest-weighted alpha bit is set (>128) , turn on shape bit*/
+			if (ds & 0x80) depth |= 0x01;
+			txh->data[i*4+3] = depth; /*insert depth onto alpha*/ 
+		}
+
+#endif		
+#endif
+	}
 	/*flip image because of openGL*/
 	tmp = (char*)malloc(sizeof(char)*txh->stride);
 	hy = txh->height/2;
@@ -547,6 +621,14 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 		memcpy(txh->data + (txh->height - 1 - i) * txh->stride, tmp, txh->stride);
 	}
 	free(tmp);
+
+}
+#else
+
+void gf_get_tinygl_depth(GF_TextureHandler *txh) {
+	
+	glReadPixels(0, 0, txh->width, txh->height, GL_RGBDS, GL_UNSIGNED_BYTE, txh->data);
+
 }
 #endif
 

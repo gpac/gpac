@@ -131,6 +131,13 @@ void PrintUsage()
 		"\t-bmp [times]:   dumps given frames to bmp\n"
 		"\t-raw [times]:   dumps given frames to bmp\n"
 		"\t-avi [times]:   dumps given file to raw avi\n"
+		"\t-rgbds:         dumps the RGBDS pixel format texture\n"
+		"                   with -avi [times]: dumps an rgbds-format .avi\n"
+		"\t-rgbd:          dumps the RGBD pixel format texture\n"
+		"					with -avi [times]: dumps an rgbd-format .avi\n"		
+		"\t-depth:         dumps depthmap (z-buffer) frames\n"
+		"                   with -avi [times]: dumps depthmap in grayscale .avi\n"		
+		"                   with -bmp: dumps depthmap in grayscale .bmp\n"		
 		"\t-fps FPS:       specifies frame rate for AVI dumping (default: 25.0)\n"
 		"\t-2d:            uses 2D compositor\n"
 		"\t-3d:            uses 3D compositor\n"
@@ -283,6 +290,9 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "Network", "UDPNotAvailable", "no");
 	gf_cfg_set_key(cfg, "Network", "UDPTimeout", "10000");
 	gf_cfg_set_key(cfg, "Network", "BufferLength", "3000");
+#ifdef GPAC_TRISCOPE_MODE
+	gf_cfg_set_key(cfg, "Compositor", "OGLDepthBuffGain", "5");
+#endif
 
 	/*store and reload*/
 	gf_cfg_del(cfg);
@@ -875,6 +885,9 @@ int main (int argc, char **argv)
 	u32 simulation_time = 0;
 	Bool start_fs = 0;
 	Bool use_rtix = 0;
+	Bool rgbds_dump = 0;
+	Bool rgbd_dump = 0;
+	Bool depth_dump = 0;
 	Double fps = 25.0;
 	Bool ret, fill_ar, visible;
 	char *url_arg, *the_cfg, *rti_file;
@@ -914,17 +927,32 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-show")) {
 			visible = 1;
 		} else if (!strcmp(arg, "-avi")) {
-			dump_mode = 1;
+			if (rgbds_dump) dump_mode = 5;
+			else if (depth_dump) dump_mode = 8;
+			else if (rgbd_dump) dump_mode = 10;
+			else dump_mode=1;
 			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!strcmp(arg, "-rgbds")) { /*get dump in rgbds pixel format*/
+			rgbds_dump = 1;
+			dump_mode=6;                    /* rgbds texture directly*/
+			if (dump_mode==1) dump_mode = 5;    /* .avi rgbds dump*/
+		} else if (!strcmp(arg, "-rgbd")) { /*get dump in rgbd pixel format*/
+			rgbd_dump = 1;
+			dump_mode=9;  /* rgbd texture directly*/
+			if (dump_mode==1) dump_mode = 10;    /* .avi rgbds dump*/
+		} else if (!strcmp(arg, "-depth")) {
+			depth_dump = 1;        
+			if (dump_mode==2) dump_mode=7; /* grayscale .bmp depth dump*/
+			else if (dump_mode==1) dump_mode=8; /* .avi depth dump*/
+			else dump_mode=4;   /*depth dump*/
 		} else if (!strcmp(arg, "-bmp")) {
-			dump_mode = 2;
+			if(depth_dump) dump_mode=7; /*grayscale depth .bmp dump*/
+			else dump_mode=2;
 			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
 		} else if (!strcmp(arg, "-raw")) {
 			dump_mode = 3;
 			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-		} else if (!strcmp(arg, "-depth")) {
-			dump_mode = 4;
-			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+
 		} else if (!stricmp(arg, "-size")) {
 			if (sscanf(argv[i+1], "%dx%d", &forced_width, &forced_height) != 2) {
 				forced_width = forced_height = 0;

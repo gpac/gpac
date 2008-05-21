@@ -124,7 +124,7 @@ static u32 put_pixel(FILE *fout, u32 type, u32 pf, char *ptr)
 		/* bmp always needs 3 pixels */
 		fputc(ptr[0], fout);
 		fputc(ptr[0], fout);
-		fputc(ptr[0], fout);
+		fputc(ptr[0], fout); 
 		/* if printing the characters corresponding to the float depth buffer: */
 		/*
 		while (ptr[i]!='\0') {
@@ -134,6 +134,8 @@ static u32 put_pixel(FILE *fout, u32 type, u32 pf, char *ptr)
 		fputc('\b', fout);
 		*/
 		return 1;
+
+
 	case 0:
 		fputc(ptr[0], fout);
 		return 1;
@@ -168,7 +170,8 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	fi.biWidth = fb->width;
 	fi.biHeight = fb->height;
 	fi.biPlanes = 1;
-	fi.biBitCount = 24;
+	if (fb->pixel_format==GF_PIXEL_GREYSCALE) fi.biBitCount = 24;
+	else fi.biBitCount = 24;
 	fi.biCompression = BI_RGB;
 	fi.biSizeImage = fb->pitch * fb->height;
 
@@ -196,38 +199,62 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 /*it's also possible to write a float depthbuffer by passing the floats to strings and writing chars in putpixel - see comments*/
 void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 {
-	char str[GF_MAX_PATH];
-	FILE *fout;
-	char *ptr, *prev;
 
-	/*if float depth buffer: */
-	/* float *ptr; */
-	u32 j, i;
 	
-	prev = strrchr(rad_name, '.');
-	if (prev) prev[0] = '\0'; 
-	sprintf(str, "%s_%d_depth", rad_name, img_num);
-	fout = fopen(str, "wb");
-	if (!fout) return;
-	(*fb).pixel_format=0;
+	
+	FILE *fout;
+ 	int i, j;
+ 	char val;
+	unsigned char *depth;
 
-	for (j=fb->height; j>0; j--) {
-		ptr = fb->video_buffer; /* needs cast to float if float depth buffer */
-		ptr += (j - 1) *fb->pitch;
-		for (i=0;i<fb->width; i++) {
-			/* for float depthbuffer: */
-			/* sprintf(tmp, "%f", *ptr); 
-			u32 res = put_pixel(fout, 0, fb->pixel_format, tmp); */
-			u32 res = put_pixel(fout, 0, fb->pixel_format, ptr);
-			assert(res);
-			/*for float depth buffer: (we'll advance 4 bytes) */
-			/* ptr += 1; */
-			ptr += res;
-		}
-		/* float: fputc('\n', fout); */
-	}
-	fclose(fout);
+	depth = (unsigned char *) fb->video_buffer;
+	
+	fout = fopen("dump_depth", "wb");
+		 	if (!fout) return;
+
+		 	for (j=0; j<fb->height;  j++) {
+		 
+		 		for (i=0;i<fb->width; i++) {
+		 
+	#ifdef GPAC_USE_TINYGL
+		 			val = fputc(depth[2*i+j*fb->width*sizeof(unsigned short)], fout);
+		 			val = fputc(depth[2*i+j*fb->width*sizeof(unsigned short) + 1], fout);
+	#else
+		 			val = fputc(depth[i+j*fb->width], fout);
+	#endif
+		 	
+		 		}
+		 		
+		 	}
+		 	fclose(fout);
 }
+void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 dump_mode)
+{
+
+	FILE *fout;
+ 	int i, j;
+ 	char val;
+	unsigned char *buf;
+
+	buf = (unsigned char *) fb->video_buffer;
+	
+	if (dump_mode==6) fout = fopen("dump_rgbds", "wb");
+	else if (dump_mode==9) fout = fopen("dump_rgbd", "wb");
+	else return;
+		 	if (!fout) return;
+
+		 	for (j=0; j<fb->height;  j++) {
+		 
+		 		for (i=0;i<fb->width*4; i++) {
+	
+		 			val = fputc(buf[i+j*fb->pitch], fout);
+
+		 		}
+		 		
+		 	}
+		 	fclose(fout);
+}
+
 
 void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 {
@@ -272,6 +299,7 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 	/*export frame*/
 	switch (dump_type) {
 	case 1:
+	case 8:
 		/*reverse frame*/
 		for (k=0; k<fb.height; k++) {
 			char *dst, *src;
@@ -288,6 +316,7 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 					dst[2] = src[2];
 					src+=4;
 					break;
+			
 				case GF_PIXEL_BGR_32:
 				case GF_PIXEL_RGBA:
 					dst[0] = src[3];
@@ -320,6 +349,13 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 					dst[1] = colmask(src_16 >> 2/*(5 - 3)*/, 3);
 					dst[0] = colmask(src_16 << 3, 3);
 					src+=2;
+					break;
+					/*for depth .avi*/
+				case GF_PIXEL_GREYSCALE:
+					dst[0] = src[0];
+					dst[1] = src[0];
+					dst[2] = src[0];
+					src+=1;
 					break;
 				}
 				dst += 3;
@@ -335,9 +371,12 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 		write_raw(&fb, rad_name, frameNum);
 		break;
 	case 4:
-		write_bmp(&fb, rad_name, frameNum);
 		write_depthfile(&fb, rad_name, frameNum);
 		break;
+	case 7:
+		write_bmp(&fb, rad_name, frameNum);
+		break;	
+		
 	}
 	/*unlock it*/
 	gf_sc_release_screen_buffer(term->compositor, &fb);
@@ -349,15 +388,20 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 	GF_VideoSurface fb;
 
 	/*lock it*/
-	gf_sc_get_screen_buffer(term->compositor, &fb, 0);
+	if (dump_type==5 || dump_type==6) gf_sc_get_screen_buffer(term->compositor, &fb, 2);
+	else if (dump_type== 9 || dump_type==10) gf_sc_get_screen_buffer(term->compositor, &fb, 3);
+	else gf_sc_get_screen_buffer(term->compositor, &fb, 0);
 	/*export frame*/
 	switch (dump_type) {
 	case 1:
+	case 5:
+	case 10:
 		/*reverse frame*/
 		for (k=0; k<fb.height; k++) {
 			char *dst, *src;
 			u16 src_16;
-			dst = conv_buf + k*fb.width*3;
+			if (dump_type==5 || dump_type==10) dst = conv_buf + k*fb.width*4;
+			else dst = conv_buf + k*fb.width*3;
 			src = fb.video_buffer + (fb.height-k-1) * fb.pitch;
 
 			for (i=0;i<fb.width; i++) {
@@ -369,6 +413,22 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 					dst[2] = src[2];
 					src+=4;
 					break;
+				case GF_PIXEL_RGBDS:
+					dst[0] = src[2];
+					dst[1] = src[1];
+					dst[2] = src[0];
+					dst[3] = src[3];
+					dst +=1;
+					src+=4;
+					break;		
+				case GF_PIXEL_RGBD:
+					dst[0] = src[2];
+					dst[1] = src[1];
+					dst[2] = src[0];
+					dst[3] = src[3];
+					dst +=1;
+					src+=4;
+					break;				
 				case GF_PIXEL_BGR_32:
 				case GF_PIXEL_RGBA:
 					dst[0] = src[3];
@@ -402,16 +462,27 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 					dst[0] = colmask(src_16 << 3, 3);
 					src+=2;
 					break;
+			
 				}
 				dst += 3;
 			}
 		}
-		if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*3, 1) <0)
+		if (dump_type!=5 && dump_type!= 10) { 
+			if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*3, 1) <0)
 			printf("Error writing frame\n");
+		} else {
+			if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*4, 1) <0)
+			printf("Error writing frame\n");				
+		}
 		break;
 	case 2:
 		write_bmp(&fb, rad_name, frameNum);
 		break;
+	case 6:
+	case 9:
+		write_texture_file(&fb, rad_name, frameNum, dump_type);
+		break;
+	
 	case 3:
 		write_raw(&fb, rad_name, frameNum);
 		break;
@@ -426,10 +497,12 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 	u32 i = 0;
 	GF_VideoSurface fb;
 	char szPath[GF_MAX_PATH];
-	char *prev = strrchr(url, '/');
+	char *prev=NULL;  
+	/*
+	prev=strrchr(url, '/');
 
-	if (!prev) prev = strrchr(url, '\\');
-	if (!prev) prev = url;
+	if (!prev) prev = strrchr(url, '\\'); */
+	if (!prev) prev = url; 
 	strcpy(szPath, prev);
 	prev = strrchr(szPath, '.');
 	if (prev) prev[0] = 0;
@@ -479,7 +552,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 		gf_sc_release_screen_buffer(term->compositor, &fb);
 	}
 
-	if (dump_mode==1) {
+	if (dump_mode==1 || dump_mode==5 || dump_mode==8 || dump_mode==10) {
 		u32 time, prev_time, nb_frames, dump_dur;
 		char *conv_buf;
 		avi_t *avi_out = NULL; 
@@ -507,8 +580,8 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 
 		comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
 		AVI_set_video(avi_out, width, height, fps, comp);
-		conv_buf = malloc(sizeof(char) * width * height * 3);
-
+		if (dump_mode != 5 && dump_mode!=10) conv_buf = malloc(sizeof(char) * width * height * 3);
+		else conv_buf = malloc(sizeof(char) * width * height * 4);
 		/*step to first frame*/
 		if (prev_time) gf_term_step_clocks(term, prev_time);
 
@@ -518,7 +591,8 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 			}
 			fprintf(stdout, "Dumping %02d/100\r", (u32) ((100.0*prev_time)/dump_dur) );
 
-			dump_frame(term, szPath, dump_mode, i+1, conv_buf, avi_out);
+			if (dump_mode==8) dump_depth(term, szPath, dump_mode, i+1, conv_buf, avi_out);
+			else dump_frame(term, szPath, dump_mode, i+1, conv_buf, avi_out);
 
 			nb_frames++;
 			time = (u32) (nb_frames*1000/fps);
@@ -536,7 +610,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 				gf_term_process_flush(term);
 			}
 
-			if (dump_mode==4) {
+			if (dump_mode==4 || dump_mode==7) {
 				dump_depth(term, szPath, dump_mode, i+1, NULL, NULL);
 			} else {
 				dump_frame(term, url, dump_mode, i+1, NULL, NULL);

@@ -168,6 +168,9 @@ typedef struct _video_out
 
 	/*overlay color key used by the hardware bliter - if not set, only top-level overlay can be used*/
 	u32 overlay_color_key;
+#ifdef ENABLE_JOYSTICK
+	u32 centered_mode;
+#endif
 
 	/*driver private*/
 	void *opaque;

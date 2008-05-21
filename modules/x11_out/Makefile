@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/x11_out
 
-CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H
+CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H -I../../
 # -I/usr/local/arm/3.3.2/include
 
 
@@ -31,13 +31,24 @@ CFLAGS+=-DGPAC_HAS_X11_SHM
 LDFLAGS+=-lXext
 endif
 
+ifeq ($(ENABLE_JOYSTICK), yes)
+CFLAGS+=-DENABLE_JOYSTICK
+#DFLAGS+=-lXext
+endif
+
+
 ifeq ($(USE_X11_XV), yes)
 CFLAGS+=-DGPAC_HAS_X11_XV
 LDFLAGS+=-lXv
 endif
 
 ifeq ($(HAS_OPENGL), yes)
-LDFLAGS+=-lGL
+ifeq ($(GPAC_USE_TINYGL), yes)
+else
+CFLAGS +=-DGPAC_HAS_OPENGL
+LDFLAGS+=-lGL 
+#LDFLAGS+=-lTinyGL -L$(SRC_PATH)../../TinyGL/lib/ 
+endif
 endif
 
 #common obj

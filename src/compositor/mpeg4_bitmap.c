@@ -162,6 +162,7 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 		visual_2d_texture_path(tr_state->visual, st->graph->path, ctx, tr_state);
 		return;
 	}
+
 }
 
 static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)

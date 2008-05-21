@@ -171,8 +171,10 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	Fixed dist;
 	SFVec3f d;
 
-	/*update znear & zfar*/
-	tr_state->camera->z_near = tr_state->camera->avatar_size.x; 
+	/*update znear&zfar*/
+	tr_state->camera->z_near = tr_state->camera->avatar_size.x ; 
+//	tr_state->camera->z_near = 1 ; 
+
 	if (tr_state->camera->z_near<=0) tr_state->camera->z_near = FIX_ONE/2;
 	/*if pixel metrics, the default znear may be way too far and lead to weird navigation*/
 	else if (tr_state->camera->z_near>=FIX_ONE) tr_state->camera->z_near = FIX_ONE/2;
@@ -193,11 +195,13 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	
 	to choose a z_far so that the size is more than one pixel, then z_far' = z_far/n_pixels*/
 	if (tr_state->camera->z_far<=0) {
+
 		tr_state->camera->z_far = gf_muldiv(
 			MAX(tr_state->vp_size.x,tr_state->vp_size.y), 
 			MAX(tr_state->camera->width, tr_state->camera->height), 
 			MIN(1,tr_state->vp_size.x/tr_state->vp_size.y)*2*gf_tan(fieldOfView/2) 
 		);
+
 	}
 
 	if (vp) {
@@ -216,8 +220,12 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	in pixel metrics. We set z so that we see just the whole visual*/
 	else if (tr_state->pixel_metrics) {
 		position.z = gf_divfix(tr_state->camera->width, 2*gf_tan(fieldOfView/2) );
-	}
+	
 
+	}
+	/*HACK, LET'S PUSH NEAR PLANE TO CENTER OF COORDINATES*/
+//	tr_state->camera->z_near = position.z ; 
+		
 	gf_vec_diff(d, position, local_center);
 	dist = gf_vec_len(d);
 

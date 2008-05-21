@@ -1349,8 +1349,10 @@ void gf_mx_perspective(GF_Matrix *mx, Fixed fieldOfView, Fixed aspectRatio, Fixe
 	mx->m[0] = gf_divfix(f, aspectRatio);
 	mx->m[5] = f;
 	mx->m[10] = gf_divfix(z_far+z_near, z_near-z_far);
+
 	mx->m[11] = -FIX_ONE;
 	mx->m[14] = 2*gf_muldiv(z_near, z_far, z_near-z_far);
+
 	mx->m[15] = 0;
 }
 
@@ -1896,7 +1898,7 @@ Bool gf_ray_hit_sphere(GF_Ray *ray, GF_Vec *center, Fixed radius, GF_Vec *outPoi
 }
 
 /*
- *		Tomas Möller and Ben Trumbore.
+ *		Tomas Mï¿½ller and Ben Trumbore.
  *	 Fast, minimum storage ray-triangle intersection. 
  *		Journal of graphics tools, 2(1):21-28, 1997
  *

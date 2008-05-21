@@ -285,6 +285,7 @@ GF_Config *loadconfigfile()
 	return cfg;
 }
 
+/*generates an intertwined bmp from a scene file with 5 different viewpoints*/
 void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, char *rad_name, u32 dump_type, char *out_dir, Double fps, s32 frameID, s32 dump_time)
 {
 	GF_User user;

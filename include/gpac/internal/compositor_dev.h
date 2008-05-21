@@ -45,7 +45,9 @@
 #include <gpac/scenegraph_svg.h>
 #endif
 
+
 /*if defined, events are queued before being processed, otherwise they are handled whenever triggered*/
+
 #define GF_SR_EVENT_QUEUE	
 
 
@@ -399,9 +401,7 @@ struct __tag_compositor
 #endif
 
 #endif
-
-
-
+	
 	u32 networks_time;
 	u32 decoders_time;
 
@@ -420,6 +420,10 @@ struct __tag_compositor
 	GF_List *cached_groups_queue;
 #endif
 
+#ifdef GPAC_TRISCOPE_MODE
+	void *RenoirHandler;
+#endif
+	
 };
 
 
@@ -498,6 +502,14 @@ typedef struct _gf_sc_texture_handler
 
 	/*matteTexture parent if any*/
 	GF_Node *matteTexture;
+	
+#ifdef GPAC_TRISCOPE_MODE
+
+	void *RenoirObject;
+	
+#endif
+	
+	
 } GF_TextureHandler;
 
 /*setup texturing object*/
@@ -703,6 +715,7 @@ struct _traversing_state
 	/*set when traversing a cached group during offscreen bitmap construction.*/
 	Bool in_group_cache;
 
+
 #ifndef GPAC_DISABLE_3D
 	/*the current camera*/
 	GF_Camera *camera;
@@ -745,6 +758,8 @@ struct _traversing_state
 	GF_Node *layer3d;
 #endif
 
+	
+	/*depth z-axis info for 2D scenes in triscope mode*/
 	Fixed depth;
 
 #ifdef GF_SR_USE_VIDEO_CACHE

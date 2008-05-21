@@ -193,8 +193,15 @@ typedef enum
 	/*!YUV planar format*/
 	GF_PIXEL_I420		=	GF_4CC('I','4','2','0'),
 
+	/*used in triscope mode and dumping rgbds textures in non-triscope mode*/
+    GF_PIXEL_RGBDS		=	GF_4CC('3', 'C', 'D', 'S'),
+    
+    /*used for dumping rgbds textures in non-triscope mode*/
+    GF_PIXEL_RGBD		=	GF_4CC('R', 'G', 'B', 'D'),
+		
 	/*!YV12 + Alpha plane*/
 	GF_PIXEL_YUVA		=	GF_4CC('Y', 'U', 'V', 'A')
+
 
 } GF_PixelFormat;
 

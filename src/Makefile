@@ -57,7 +57,7 @@ endif
 OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_MCRYPT) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER)
 
 
-CFLAGS+=-DGPAC_HAVE_CONFIG_H
+CFLAGS+=-I../ -DGPAC_HAVE_CONFIG_H 
 NEED_LOCAL_LIB="no"
 LINKLIBS=
 SCENEGRAPH_CFLAGS=
@@ -102,6 +102,30 @@ MEDIATOOLS_CFLAGS+=-I$(LOCAL_INC_PATH)/jpeg
 endif
 endif
 
+## libgpac compositor compilation options
+COMPOSITOR_CFLAGS=
+## SVG disabled
+ifeq ($(DISABLE_SVG), yes)
+COMPOSITOR_CFLAGS+=-DGPAC_DISABLE_SVG
+endif
+ifeq ($(TRISCOPE_MODE), yes)
+COMPOSITOR_CFLAGS+=-DGPAC_TRISCOPE_MODE
+EXTRALIBS+= -Lcompositor/triscope_renoir
+EXTRALIBS+= -lViRen_linux -lViRenDrivers_linux -lEmulRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath
+LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/triscope_renoir.o
+endif
+## OpenGL not available
+ifeq ($(HAS_OPENGL),yes)
+EXTRALIBS+= $(OGL_LIBS)
+endif
+
+ifeq ($(GPAC_USE_TINYGL), yes)
+COMPOSITOR_CFLAGS+=-I$(SRC_PATH)/../../TinyGL/include
+endif
+ifeq ($(ENABLE_JOYSTICK), yes)
+COMPOSITOR_CFLAGS+=-DENABLE_JOYSTICK
+endif
+
 #6 - PNG support
 ifeq ($(CONFIG_PNG), no)
 else
@@ -110,6 +134,12 @@ ifeq ($(CONFIG_PNG), local)
 NEED_LOCAL_LIB="yes"
 MEDIATOOLS_CFLAGS+=-I$(LOCAL_INC_PATH)/png
 endif
+endif
+
+## libgpac media tools compilation options
+MEDIATOOLS_CFLAGS=
+ifeq ($(GPACREADONLY), yes)
+MEDIATOOLS_CFLAGS=-DGPAC_READ_ONLY
 endif
 
 ifeq ($(NEED_LOCAL_LIB), "yes")
@@ -151,11 +181,14 @@ scenegraph: $(LIBGPAC_SCENE)
 mediatools: CFLAGS += $(MEDIATOOLS_CFLAGS)
 mediatools: $(LIBGPAC_MEDIATOOLS)
 
+compositor: CFLAGS+=$(COMPOSITOR_CFLAGS)
+compositor: $(LIBGPAC_COMPOSITOR)
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 
 
 
-$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) scenegraph mediatools mcrypt $(OBJSPIC)
+$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph mediatools mcrypt $(OBJSPIC)
 	ar cr ../bin/gcc/libgpac_static.a $(OBJS)
 	ranlib ../bin/gcc/libgpac_static.a
 	$(CC) $(SHFLAGS) -Wl,-soname,$(LIB) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS)
@@ -168,7 +201,7 @@ depend:
 
 clean: 
 	rm -f $(OBJS) $(LIB)
-	rm -rf ../bin/gcc/libgpac_static.a
+	rm -rf ../bin/${TARGET_BIN_DIR}/libgpac_static.a
 
 distclean: clean
 	rm -f Makefile.bak .depend

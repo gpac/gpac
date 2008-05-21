@@ -40,7 +40,13 @@
 
 #else
 
+
+#ifndef GPAC_USE_TINYGL
 #include <GL/gl.h>
+#else
+#include "../../../TinyGL/include/GL/gl.h"
+#endif
+
 
 #ifdef GPAC_HAS_GLU
 #include <GL/glu.h>

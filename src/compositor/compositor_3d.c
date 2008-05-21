@@ -32,7 +32,8 @@
 #ifndef GPAC_DISABLE_3D
 
 #ifdef GPAC_USE_TINYGL
-#include <GL/oscontext.h>
+#include "../../TinyGL/include/GL/oscontext.h"
+//#include <GL/oscontext.h>
 #endif
 
 GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)

@@ -243,6 +243,12 @@ struct _drawable_context
 		for SVG: parent <use> node if any
 	*/
 	GF_Node *appear;
+	
+	/*depth z-axis info for 2d scenes in triscope mode*/
+#ifdef GPAC_TRISCOPE_MODE
+	Fixed depth;
+#endif
+	
 };	
 
 DrawableContext *NewDrawableContext();

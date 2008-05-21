@@ -174,7 +174,7 @@ static void visual_2d_get_texture_transform(GF_Node *__appear, GF_TextureHandler
 	}
 	node_tag = gf_node_get_tag(txtrans);
 	if (node_tag==TAG_MPEG4_TextureTransform) {
-		/*VRML: Tc' = -C × S × R × C × T × Tc*/
+		/*VRML: Tc' = -C ï¿½ S ï¿½ R ï¿½ C ï¿½ T ï¿½ Tc*/
 		M_TextureTransform *txt = (M_TextureTransform *) txtrans;
 		SFVec2f scale = txt->scale;
 		if (!scale.x) scale.x = FIX_ONE/100;
@@ -326,6 +326,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	if (!txh) txh = ctx->aspect.fill_texture;
 	if (!txh || !txh->tx_io) return;
 
+
 	/*this is gradient draw*/
 	if (txh->compute_gradient_matrix) {
 		visual_2d_draw_gradient(visual, path, txh, ctx, tr_state, ext_mx, orig_bounds);
@@ -396,6 +397,9 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	raster->surface_set_path(visual->raster_surface, path);
 	visual_2d_fill_path(visual, ctx, tx_raster, tr_state);
 	raster->surface_set_path(visual->raster_surface, NULL);
+
+
+	
 	ctx->flags |= CTX_PATH_FILLED;
 }
 
