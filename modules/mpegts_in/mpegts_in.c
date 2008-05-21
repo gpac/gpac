@@ -585,7 +585,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		M2TS_FlushRequested(m2ts);
 		break;
 	case GF_M2TS_EVT_EIT_ACTUAL_PF:
-		if (0 && !m2ts->has_eit) {
+		if (!m2ts->has_eit) {
 			/* declaring a special stream for displaying eit */
 			GF_ObjectDescriptor *od;
 			GF_ESD *esd;
