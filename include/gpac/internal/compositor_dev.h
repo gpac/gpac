@@ -1028,6 +1028,8 @@ struct _gf_font
 	GF_Glyph *(*load_glyph)(void *udta, u32 glyph_name);
 	void *udta;
 
+	Bool not_loaded;
+
 	struct _gf_ft_mgr *ft_mgr;
 };
 

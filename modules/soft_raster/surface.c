@@ -593,7 +593,8 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 			gf_mx2d_add_matrix(&sten->smat, &mat);
 			gf_mx2d_inverse(&sten->smat);
 			gf_mx2d_add_translation(&sten->smat, -rad->center.x, -rad->center.y);
-			gf_mx2d_add_scale(&sten->smat, gf_divfix(FIX_ONE, rad->radius.x), gf_invfix(rad->radius.y));
+			gf_mx2d_add_scale(&sten->smat, gf_invfix(rad->radius.x), gf_invfix(rad->radius.y));
+
 			rad->d_f.x = gf_divfix(rad->focus.x - rad->center.x, rad->radius.x);
 			rad->d_f.y = gf_divfix(rad->focus.y - rad->center.y, rad->radius.y);
 			/*init*/

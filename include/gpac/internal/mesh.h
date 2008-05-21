@@ -55,9 +55,16 @@ typedef struct
 	s8 __dummy;
 } SFVec3f_bytes;
 
+#define MESH_NORMAL_UNIT	1
+
+#ifdef GPAC_FIXED_POINT
+#define MESH_SET_NORMAL(_vertex, _nor) { SFVec3f_bytes __nor; __nor.x = (s8) FIX2INT(_nor.x*100); __nor.y = (s8) FIX2INT(_nor.y*100); __nor.z = (s8) FIX2INT(_nor.z*100); _vertex.normal = __nor; }
+#define MESH_GET_NORMAL(_nor, _vertex) { (_nor).x = INT2FIX(_vertex.normal.x); (_nor).y = INT2FIX(_vertex.normal.y); (_nor).z = INT2FIX(_vertex.normal.z); gf_vec_norm(&(_nor)); }
+#else
 #define MESH_SET_NORMAL(_vertex, _nor) { SFVec3f_bytes __nor; __nor.x = (s8) (_nor.x*100); __nor.y = (s8) (_nor.y*100); __nor.z = (s8) (_nor.z*100); _vertex.normal = __nor; }
 #define MESH_GET_NORMAL(_nor, _vertex) { (_nor).x = _vertex.normal.x; (_nor).y = _vertex.normal.y; (_nor).z = _vertex.normal.z; gf_vec_norm(&(_nor)); }
-#define MESH_NORMAL_UNIT	1
+#endif
+
 #endif
 
 typedef struct

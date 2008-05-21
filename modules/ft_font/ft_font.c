@@ -92,26 +92,30 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 
 			/*try to assign default fixed fonts*/
 			if (!bold && !italic) {
+				Bool store = 0;
+				char szFont[1024];
+				strcpy(szFont, face->family_name);
+				strlwr(szFont);
+
 				if (!strlen(ftpriv->font_fixed)) {
-					Bool store = 0;
 					if (face->face_flags & FT_FACE_FLAG_FIXED_WIDTH) store = 1;
 					else if (!strnicmp(face->family_name, "Courier", 15)) store = 1;
+					else if (strstr(szFont, "monospace")) store = 1;
 
 					if (store) strcpy(ftpriv->font_fixed, face->family_name);
 				}
-				if (!strlen(ftpriv->font_serif)) {
-					Bool store = 0;
-					if (!strnicmp(face->family_name, "Times New Roman", 15)) 
-						store = 1;
-
-					if (store) strcpy(ftpriv->font_serif, face->family_name);
-				}
-				if (!strlen(ftpriv->font_sans)) {
-					Bool store = 0;
+				if (!store && !strlen(ftpriv->font_sans)) {
 					if (!strnicmp(face->family_name, "Arial", 5)) store = 1;
 					else if (!strnicmp(face->family_name, "Verdana", 7)) store = 1;
+					else if (strstr(szFont, "sans")) store = 1;
 
 					if (store) strcpy(ftpriv->font_sans, face->family_name);
+				}
+				if (!store && !strlen(ftpriv->font_serif)) {
+					if (!strnicmp(face->family_name, "Times New Roman", 15)) store = 1;
+					else if (strstr(szFont, "serif")) store = 1;
+
+					if (store) strcpy(ftpriv->font_serif, face->family_name);
 				}
 			}
 		}

@@ -159,12 +159,12 @@ enum
 		scrips will be queued in their parent command for later loading
 		SFTime (MPEG-4 only) fields will be handled correctly when inserting/creating nodes based on AU timing
 	*/
-	GF_SM_LOAD_FOR_PLAYBACK = 2,
+	GF_SM_LOAD_FOR_PLAYBACK = 1<<1,
 
 	/*special flag indicating that the context is already loaded & valid (eg no default stream creations & co)
 	this is used when performing diff encoding (eg the file to load only has updates).
 	When set, gf_sm_load_init will NOT attempt to parse first frame*/
-	GF_SM_LOAD_CONTEXT_READY = 4
+	GF_SM_LOAD_CONTEXT_READY = 1<<2,
 };
 
 /*loader type, usually detected based on file ext*/

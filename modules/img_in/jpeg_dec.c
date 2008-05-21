@@ -39,6 +39,7 @@ static GF_Err JPEG_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 	JPEGCTX();
 	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
 	ctx->ES_ID = ES_ID;
+	ctx->BPP = 3;
 	return GF_OK;
 }
 static GF_Err JPEG_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
@@ -103,10 +104,10 @@ static GF_Err JPEG_ProcessData(GF_MediaDecoder *ifcg,
 	GF_Err e;
 	JPEGCTX();
 
-	e = gf_img_jpeg_dec(inBuffer, inBufferLength, &ctx->width, &ctx->height, &ctx->pixel_format, outBuffer, outBufferLength, 3);
+	e = gf_img_jpeg_dec(inBuffer, inBufferLength, &ctx->width, &ctx->height, &ctx->pixel_format, outBuffer, outBufferLength, ctx->BPP);
 	switch (ctx->pixel_format) {
-	case GF_PIXEL_GREYSCALE: ctx->BPP = 1;
-	case GF_PIXEL_RGB_24: ctx->BPP = 3;
+	case GF_PIXEL_GREYSCALE: ctx->BPP = 1; break;
+	case GF_PIXEL_RGB_24: ctx->BPP = 3; break;
 	}
 	ctx->out_size = *outBufferLength;
 	return e;
