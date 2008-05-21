@@ -1143,7 +1143,7 @@ static GF_Err swf_actions(SWFReader *read, u32 mask, u32 key)
 				free(act.target);
 				break;
 			default:
-				swf_report(read, GF_OK, "Skipping unsupported action %x", action_code);
+//				swf_report(read, GF_OK, "Skipping unsupported action %x", action_code);
 				if (length) swf_skip_data(read, length);
 				break;
 			}
@@ -1367,7 +1367,8 @@ static GF_Err swf_place_obj(SWFReader *read, u32 revision)
 	memcpy(&ds->cmat, &cmat, sizeof(GF_ColorMatrix));
 	ds->char_id = shape_id;
 
-	return e;
+	if (e) swf_report(read, e, "Error %s object ID %d", (type==SWF_MOVE) ? "Moving" : ((type==SWF_PLACE) ? "Placing" : "Replacing"), shape_id);
+	return GF_OK;
 }
 
 static GF_Err swf_remove_obj(SWFReader *read, u32 revision)
@@ -1474,7 +1475,7 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 
 			checkpos = swf_get_file_pos(read);
 			if (checkpos != start + code_offset) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[SWF Parsing] bad code offset in font\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SWF Parsing] bad code offset in font\n"));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 
@@ -1679,17 +1680,17 @@ static GF_Err swf_def_edit_text(SWFReader *read)
 	
 	if (has_font) {
 		txt.fontID = swf_get_16(read);
-		txt.font_height = swf_get_16(read) * SWF_TWIP_SCALE;
+		txt.font_height = FLT2FIX( swf_get_16(read) * SWF_TWIP_SCALE );
 	}
 	if (has_text_color) txt.color = swf_get_argb(read);
-	if (has_max_length) txt.max_length = swf_get_16(read) * SWF_TWIP_SCALE;
+	if (has_max_length) txt.max_length = FLT2FIX( swf_get_16(read) * SWF_TWIP_SCALE );
 
 	if (txt.has_layout) {
 		txt.align = swf_read_int(read, 8);
-		txt.left = swf_get_16(read) * SWF_TWIP_SCALE;
-		txt.right = swf_get_16(read) * SWF_TWIP_SCALE;
-		txt.indent = swf_get_16(read) * SWF_TWIP_SCALE;
-		txt.leading = swf_get_16(read) * SWF_TWIP_SCALE;
+		txt.left = FLT2FIX( swf_get_16(read) * SWF_TWIP_SCALE );
+		txt.right = FLT2FIX( swf_get_16(read) * SWF_TWIP_SCALE );
+		txt.indent = FLT2FIX( swf_get_16(read) * SWF_TWIP_SCALE );
+		txt.leading = FLT2FIX( swf_get_16(read) * SWF_TWIP_SCALE );
 	}
 	var_name = swf_get_string(read);
 	if (has_text) txt.init_value = swf_get_string(read);
@@ -2342,8 +2343,9 @@ GF_Err gf_sm_load_run_swf(GF_SceneLoader *load)
 
 	/*parse all tags*/
 	e = GF_OK;
-	while (e == GF_OK) {
+	while (1) {
 		e = swf_parse_tag(read);
+		if (e) break;
 	}
 	gf_set_progress("SWF Parsing", read->length, read->length);
 

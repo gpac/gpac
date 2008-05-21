@@ -195,15 +195,18 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	
 	to choose a z_far so that the size is more than one pixel, then z_far' = z_far/n_pixels*/
 	if (tr_state->camera->z_far<=0) {
-
+		Fixed ar = gf_divfix(tr_state->vp_size.x, tr_state->vp_size.y);
+		if (ar>FIX_ONE) ar = FIX_ONE;
 		tr_state->camera->z_far = gf_muldiv(
 			MAX(tr_state->vp_size.x,tr_state->vp_size.y), 
 			MAX(tr_state->camera->width, tr_state->camera->height), 
-			MIN(1,tr_state->vp_size.x/tr_state->vp_size.y)*2*gf_tan(fieldOfView/2) 
+			gf_mulfix(ar*2, gf_tan(fieldOfView/2)) 
 		);
-
+		/*fixed-point overflow*/
+		if (tr_state->camera->z_far <0) {
+			tr_state->camera->z_far = FIX_MAX/4;
+		}
 	}
-
 	if (vp) {
 		/*now check if vp is in pixel metrics. If not then:
 		- either it's in the main scene, there's nothing to do
@@ -713,7 +716,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *no
 	if (tr_state->camera->collide_flags & CF_GRAVITY) {
 		diff = tr_state->camera->ground_dist - tr_state->camera->avatar_size.y;
 		if (tr_state->camera->last_had_ground && (-diff>tr_state->camera->avatar_size.z)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] Obstacle detected - too high (dist %g)\n", diff));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] Obstacle detected - too high (dist %g)\n", FIX2FLT(diff)));
 			tr_state->camera->position = tr_state->camera->last_pos;
 			tr_state->camera->flags |= CAM_IS_DIRTY;
 		} else {
@@ -721,7 +724,9 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *no
 				|| (!tr_state->camera->jumping && (ABS(diff)>FIX_ONE/1000) )) {
 				tr_state->camera->last_had_ground = 1;
 				n = gf_vec_scale(tr_state->camera->up, -diff);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] Ground detected camera position: %g %g %g - offset: %g %g %g (dist %g)\n", tr_state->camera->position.x, tr_state->camera->position.y, tr_state->camera->position.z, n.x, n.y, n.z, diff));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] Ground detected camera position: %g %g %g - offset: %g %g %g (dist %g)\n", 
+					FIX2FLT(tr_state->camera->position.x), FIX2FLT(tr_state->camera->position.y), FIX2FLT(tr_state->camera->position.z),
+					FIX2FLT(n.x), FIX2FLT(n.y), FIX2FLT(n.z), FIX2FLT(diff)));
 
 				gf_vec_add(tr_state->camera->position, tr_state->camera->position, n);
 				gf_vec_add(tr_state->camera->target, tr_state->camera->target, n);
@@ -749,7 +754,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *no
 			/*camera displacement collision*/
 			if (tr_state->camera->collide_dist) {
 				if (tr_state->camera->collide_dist>=tr_state->camera->avatar_size.x)
-					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Collision] Collision distance %g greater than avatar collide size %g\n", tr_state->camera->collide_dist, tr_state->camera->avatar_size.x));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Collision] Collision distance %g greater than avatar collide size %g\n", FIX2FLT(tr_state->camera->collide_dist), FIX2FLT(tr_state->camera->avatar_size.x)));
 
 				/*safety check due to precision, always stay below collide dist*/
 				if (tr_state->camera->collide_dist>=tr_state->camera->avatar_size.x) tr_state->camera->collide_dist = tr_state->camera->avatar_size.x;
@@ -757,7 +762,10 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *no
 				gf_vec_diff(n, tr_state->camera->position, tr_state->camera->collide_point);
 				gf_vec_norm(&n);
 				n = gf_vec_scale(n, tr_state->camera->avatar_size.x - tr_state->camera->collide_dist);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] offseting camera: position: %g %g %g - offset: %g %g %g\n", tr_state->camera->position.x, tr_state->camera->position.y, tr_state->camera->position.z, n.x, n.y, n.z));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] offseting camera: position: %g %g %g - offset: %g %g %g\n", 
+					FIX2FLT(tr_state->camera->position.x), FIX2FLT(tr_state->camera->position.y), FIX2FLT(tr_state->camera->position.z),
+					FIX2FLT(n.x), FIX2FLT(n.y), FIX2FLT(n.z)));
+
 				gf_vec_add(tr_state->camera->position, tr_state->camera->position, n);
 				gf_vec_add(tr_state->camera->target, tr_state->camera->target, n);
 			} else {
@@ -1136,14 +1144,14 @@ void visual_3d_drawable_collide(GF_Node *node, GF_TraverseState *tr_state)
 				gf_vec_diff(v1, pos, collide_pt);
 				gf_vec_norm(&v1);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] found at %g %g %g (WC) - dist (%g) - local normal %g %g %g\n", 
-					tr_state->camera->collide_point.x, tr_state->camera->collide_point.y, tr_state->camera->collide_point.z, 
-					dist, 
-					v1.x, v1.y, v1.z));
+					FIX2FLT(tr_state->camera->collide_point.x), FIX2FLT(tr_state->camera->collide_point.y), FIX2FLT(tr_state->camera->collide_point.z), 
+					FIX2FLT(dist), 
+					FIX2FLT(v1.x), FIX2FLT(v1.y), FIX2FLT(v1.z)));
 			}
 #endif
 		} 
 		else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] Existing collision (dist %g) closer than current collsion (dist %g)\n", tr_state->camera->collide_dist, dist));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] Existing collision (dist %g) closer than current collsion (dist %g)\n", FIX2FLT(tr_state->camera->collide_dist), FIX2FLT(dist) ));
 		}
 	}
 
@@ -1165,12 +1173,12 @@ void visual_3d_drawable_collide(GF_Node *node, GF_TraverseState *tr_state)
 				tr_state->camera->collide_flags |= CF_GRAVITY;
 				tr_state->camera->ground_point = collide_pt;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] Ground found at %g %g %g (WC) - dist %g - local normal %g %g %g\n", 
-					tr_state->camera->ground_point.x, tr_state->camera->ground_point.y, tr_state->camera->ground_point.z, 
-					dist, 
-					v1.x, v1.y, v1.z));
+					FIX2FLT(tr_state->camera->ground_point.x), FIX2FLT(tr_state->camera->ground_point.y), FIX2FLT(tr_state->camera->ground_point.z), 
+					FIX2FLT(dist), 
+					FIX2FLT(v1.x), FIX2FLT(v1.y), FIX2FLT(v1.z)));
 			} 
 			else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] Existing ground (dist %g) closer than current (dist %g)\n", tr_state->camera->ground_dist, dist));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] Existing ground (dist %g) closer than current (dist %g)\n", FIX2FLT(tr_state->camera->ground_dist), FIX2FLT(dist)));
 			}
 		} 
 	}
@@ -1293,13 +1301,13 @@ void visual_3d_draw_from_context(DrawableContext *ctx, GF_TraverseState *tr_stat
 }
 
 
-static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 mesh_type)
+static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 mesh_type, Fixed *diffuse_alpha)
 {
 	SFColor def;
 	GF_Node *__mat;
 	def.red = def.green = def.blue = FIX_ONE;
-	/*temp storage of diffuse alpha*/
-	tr_state->ray.orig.x = FIX_ONE;
+	/*store diffuse alpha*/
+	if (diffuse_alpha) *diffuse_alpha = FIX_ONE;
 
 	if (!tr_state->appear) {
 		/*use material2D to disable lighting*/
@@ -1394,7 +1402,7 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 		visual_3d_set_material(tr_state->visual, V3D_MATERIAL_EMISSIVE, vec);
 
 		visual_3d_set_shininess(tr_state->visual, mat->shininess);
-		tr_state->ray.orig.x = diff_a;
+		if (diffuse_alpha) *diffuse_alpha = diff_a;
 	}
 		break;
 	case TAG_MPEG4_Material2D:
@@ -1433,7 +1441,7 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 	return 1;
 }
 
-Bool visual_3d_setup_texture(GF_TraverseState *tr_state)
+Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 {
 	GF_TextureHandler *txh;
 	tr_state->mesh_has_texture = 0;
@@ -1450,12 +1458,12 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state)
 			switch (txh->pixelformat) {
 			/*override diffuse color with full intensity, but keep material alpha (cf VRML lighting)*/
 			case GF_PIXEL_RGB_24:
-				v[0] = v[1] = v[2] = 1; v[3] = tr_state->ray.orig.x;
+				v[0] = v[1] = v[2] = FIX_ONE; v[3] = diffuse_alpha;
 				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
 				break;
 			/*override diffuse color AND material alpha (cf VRML lighting)*/
 			case GF_PIXEL_RGBA:
-				v[0] = v[1] = v[2] = v[3] = 1;
+				v[0] = v[1] = v[2] = v[3] = FIX_ONE;
 				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
 				tr_state->mesh_is_transparent = 1;
 				break;
@@ -1479,10 +1487,11 @@ void visual_3d_disable_texture(GF_TraverseState *tr_state)
 
 Bool visual_3d_setup_appearance(GF_TraverseState *tr_state)
 {
+	Fixed diff_a;
 	/*setup material and check if 100% transparent - in which case don't draw*/
-	if (!visual_3d_setup_material(tr_state, 0)) return 0;
+	if (!visual_3d_setup_material(tr_state, 0, &diff_a)) return 0;
 	/*setup texture*/
-	visual_3d_setup_texture(tr_state);
+	visual_3d_setup_texture(tr_state, diff_a);
 	return 1;
 }
 
@@ -1490,7 +1499,7 @@ Bool visual_3d_setup_appearance(GF_TraverseState *tr_state)
 void visual_3d_draw(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 	if (mesh->mesh_type) {
-		if (visual_3d_setup_material(tr_state, mesh->mesh_type)) {
+		if (visual_3d_setup_material(tr_state, mesh->mesh_type, NULL)) {
 			visual_3d_mesh_paint(tr_state, mesh);
 		}
 	} else if (visual_3d_setup_appearance(tr_state)) {

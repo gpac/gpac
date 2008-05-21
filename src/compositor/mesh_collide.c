@@ -331,9 +331,7 @@ Bool gf_mesh_aabb_ray_hit(GF_Mesh *mesh, AABBNode *n, GF_Ray *ray, Fixed *closes
 				*outNormal = gf_vec_cross(v1, v2);
 				gf_vec_norm(outNormal);
 			} else {
-				outNormal->x = mesh->vertices[idx[0]].normal.x;
-				outNormal->y = mesh->vertices[idx[0]].normal.y;
-				outNormal->z = mesh->vertices[idx[0]].normal.z;
+				MESH_GET_NORMAL((*outNormal), mesh->vertices[idx[0]]);
 #ifndef MESH_USE_FIXED_NORMAL
 				gf_vec_norm(outNormal);
 #endif
@@ -398,9 +396,7 @@ Bool gf_mesh_intersect_ray(GF_Mesh *mesh, GF_Ray *ray, SFVec3f *outPoint, SFVec3
 				*outNormal = gf_vec_cross(v1, v2);
 				gf_vec_norm(outNormal);
 			} else {
-				outNormal->x = mesh->vertices[idx[0]].normal.x;
-				outNormal->y = mesh->vertices[idx[0]].normal.y;
-				outNormal->z = mesh->vertices[idx[0]].normal.z;
+				MESH_GET_NORMAL((*outNormal), mesh->vertices[idx[0]]);
 #ifndef MESH_USE_FIXED_NORMAL
 				gf_vec_norm(outNormal);
 #endif
@@ -508,9 +504,7 @@ Bool gf_mesh_closest_face_aabb(GF_Mesh *mesh, AABBNode *node, SFVec3f pos, Fixed
 			n = gf_vec_cross(v1, v2);
 			gf_vec_norm(&n);
 		} else {
-			n.x = mesh->vertices[idx[0]].normal.x;
-			n.y = mesh->vertices[idx[0]].normal.y;
-			n.z = mesh->vertices[idx[0]].normal.z;
+			MESH_GET_NORMAL(n, mesh->vertices[idx[0]]);
 #ifndef MESH_USE_FIXED_NORMAL
 			gf_vec_norm(&n);
 #endif
@@ -574,6 +568,7 @@ Bool gf_mesh_closest_face(GF_Mesh *mesh, SFVec3f pos, Fixed min_dist, SFVec3f *o
 			n = gf_vec_cross(v1, v2);
 			gf_vec_norm(&n);
 		} else {
+			MESH_GET_NORMAL(n, mesh->vertices[idx[0]]);
 			n.x = mesh->vertices[idx[0]].normal.x;
 			n.y = mesh->vertices[idx[0]].normal.y;
 			n.z = mesh->vertices[idx[0]].normal.z;

@@ -262,7 +262,6 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	Bool has_col, has_tx, has_norm;
 	u32 prim_type;
 #if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
-	u32 i;
 	Float *color_array = NULL;
 	Float fix_scale = 1.0f;
 	fix_scale /= FIX_ONE;
@@ -312,6 +311,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		from [0 to 65536] mapping to [0, 1.0], but openGL assumes for s32 a range from [-2^31 2^31] mapping to [0, 1.0]
 		we must thus rebuild a dedicated array...*/
 		if (mesh->flags & MESH_HAS_ALPHA) {
+			u32 i;
 			color_array = malloc(sizeof(Float)*4*mesh->v_count);
 			for (i=0; i<mesh->v_count; i++) {
 				color_array[4*i] = FIX2FLT(mesh->vertices[i].color.red);

@@ -96,10 +96,12 @@ static void CALLBACK mesh_tess_combine(GLdouble coords[3], void* vertex_data[4],
 		for (i=0; i<4; i++) {
 			if (weight[i]) {
 				Fixed _weight = FLT2FIX(weight[i]);
+				SFVec3f _n;
 				idx = * (u32 *) vertex_data[i];
-				n.x += gf_mulfix(_weight, tess->mesh->vertices[idx].normal.x);
-				n.y += gf_mulfix(_weight, tess->mesh->vertices[idx].normal.y);
-				n.z += gf_mulfix(_weight, tess->mesh->vertices[idx].normal.z);
+				MESH_GET_NORMAL(_n, tess->mesh->vertices[idx]);
+				n.x += gf_mulfix(_weight, _n.x);
+				n.y += gf_mulfix(_weight, _n.y);
+				n.z += gf_mulfix(_weight, _n.z);
 			}
 		}
 	}
@@ -324,12 +326,7 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 	if (orig->flags & MESH_IS_2D) {
 		nor.x = nor.y = 0; nor.z = FIX_ONE;
 	} else {
-		nor.x = orig->vertices[0].normal.x;
-		nor.y = orig->vertices[0].normal.y;
-		nor.z = orig->vertices[0].normal.z;
-#ifndef MESH_USE_FIXED_NORMAL
-		gf_vec_norm(&nor);
-#endif
+		MESH_GET_NORMAL(nor, orig->vertices[0]);
 	}
 
 	/*select projection direction*/

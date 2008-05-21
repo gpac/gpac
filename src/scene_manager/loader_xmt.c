@@ -2792,6 +2792,7 @@ GF_Err gf_sm_load_done_xmt(GF_SceneLoader *load)
 		gf_node_unregister(st->node, NULL);
 		free(st);
 	}
+	if (parser->x3d_root) free(parser->x3d_root);
 	gf_list_del(parser->nodes);
 	gf_list_del(parser->descriptors);
 	gf_list_del(parser->def_nodes);

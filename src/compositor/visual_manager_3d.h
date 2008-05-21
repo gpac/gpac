@@ -76,7 +76,7 @@ void visual_3d_set_2d_strike(GF_TraverseState *tr_state, DrawAspect2D *asp);
 Bool visual_3d_setup_appearance(GF_TraverseState *tr_state);
 /*sets 3D texture. Returns true if a texture is found and successfully bound
 	- exported for text drawing*/
-Bool visual_3d_setup_texture(GF_TraverseState *tr_state);
+Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha);
 /*disables texture 
 	- exported for text drawing*/
 void visual_3d_disable_texture(GF_TraverseState *tr_state);

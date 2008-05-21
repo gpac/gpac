@@ -117,7 +117,6 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 static void LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat, Bool for_3d)
 {
 	GF_STENCIL stencil;
-	SFVec2f start, end;
 	M_LinearGradient *lg = (M_LinearGradient *) txh->owner;
 
 	stencil = gf_sc_texture_get_stencil(txh);
@@ -126,30 +125,18 @@ static void LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2
 	if (lg->key.count<2) return;
 	if (lg->key.count != lg->keyValue.count) return;
 
-	start = lg->startPoint;
-	end = lg->endPoint;
-
 	/*create gradient brush if needed*/
 	if (!txh->tx_io) return;
 
 	GradientGetMatrix((GF_Node *) lg->transform, mat);
 
-	/*move line to object space*/
-	start.x = gf_mulfix(start.x, bounds->width);
-	end.x = gf_mulfix(end.x, bounds->width);
-	start.y = gf_mulfix(start.y, bounds->height);
-	end.y = gf_mulfix(end.y, bounds->height);
-
-	/*move transform to object space*/
-	mat->m[2] = gf_mulfix(mat->m[2], bounds->width);
-	mat->m[5] = gf_mulfix(mat->m[5], bounds->height);
-	mat->m[1] = gf_muldiv(mat->m[1], bounds->width, bounds->height);
-	mat->m[3] = gf_muldiv(mat->m[3], bounds->height, bounds->width);
-
 	/*translate to the center of the bounds*/
-	gf_mx2d_add_translation(mat, bounds->x, bounds->y - bounds->height);
+	gf_mx2d_add_translation(mat, gf_divfix(bounds->x, bounds->width), gf_divfix(bounds->y - bounds->height, bounds->height));
+	/*scale back to object coordinates - the gradient is still specified in texture coordinates
+	i order to avoid overflows in fixed point*/
+	gf_mx2d_add_scale(mat, bounds->width, bounds->height);
 
-	txh->compositor->rasterizer->stencil_set_linear_gradient(stencil, start.x, start.y, end.x, end.y);
+	txh->compositor->rasterizer->stencil_set_linear_gradient(stencil, lg->startPoint.x, lg->startPoint.y, lg->endPoint.x, lg->endPoint.y);
 }
 
 static void BuildLinearGradientTexture(GF_TextureHandler *txh)
@@ -503,8 +490,10 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 
 static void UpdateRadialGradient(GF_TextureHandler *txh)
 {
+	Bool const_a;
 	GF_STENCIL stencil;
-	u32 i;
+	u32 i, *cols;
+	Fixed a;
 	M_RadialGradient *rg = (M_RadialGradient*) txh->owner;
 	GradientStack *st = (GradientStack *) gf_node_get_private(txh->owner);
 
@@ -531,15 +520,23 @@ static void UpdateRadialGradient(GF_TextureHandler *txh)
 			break;
 		}
 	}
+
+	const_a = (rg->opacity.count == 1) ? 1 : 0;
+	cols = (u32*)malloc(sizeof(u32) * rg->key.count);
+	for (i=0; i<rg->key.count; i++) {
+		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);
+		cols[i] = GF_COL_ARGB_FIXED(a, rg->keyValue.vals[i].red, rg->keyValue.vals[i].green, rg->keyValue.vals[i].blue);
+	}
+	txh->compositor->rasterizer->stencil_set_gradient_interpolation(stencil, rg->key.vals, cols, rg->key.count);
+	free(cols);
+
+	txh->compositor->rasterizer->stencil_set_gradient_mode(stencil, (GF_GradientMode) rg->spreadMethod);
+
 }
 
 static void RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat, Bool for_3d)
 {
-	SFVec2f center, focal;
-	u32 i, *cols;
-	Fixed a;
 	GF_STENCIL stencil;
-	Bool const_a;
 	M_RadialGradient *rg = (M_RadialGradient *) txh->owner;
 
 	if (rg->key.count<2) return;
@@ -552,35 +549,12 @@ static void RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2
 
 	GradientGetMatrix((GF_Node *) rg->transform, mat);
 
-	center = rg->center;
-	focal = rg->focalPoint;
-
-	/*move circle to object space*/
-	center.x = gf_mulfix(center.x, bounds->width);
-	center.y = gf_mulfix(center.y, bounds->height);
-	focal.x = gf_mulfix(focal.x, bounds->width);
-	focal.y = gf_mulfix(focal.y, bounds->height);
-
-	/*move transform to object space*/
-	mat->m[2] = gf_mulfix(mat->m[2], bounds->width);
-	mat->m[5] = gf_mulfix(mat->m[5], bounds->height);
-	mat->m[1] = gf_muldiv(mat->m[1], bounds->width, bounds->height);
-	mat->m[3] = gf_muldiv(mat->m[3], bounds->height, bounds->width);
-
-	
-	txh->compositor->rasterizer->stencil_set_radial_gradient(stencil, center.x, center.y, focal.x, focal.y, gf_mulfix(rg->radius, bounds->width), gf_mulfix(rg->radius, bounds->height));
-
-	const_a = (rg->opacity.count == 1) ? 1 : 0;
-	cols = (u32*)malloc(sizeof(u32) * rg->key.count);
-	for (i=0; i<rg->key.count; i++) {
-		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);
-		cols[i] = GF_COL_ARGB_FIXED(a, rg->keyValue.vals[i].red, rg->keyValue.vals[i].green, rg->keyValue.vals[i].blue);
-	}
-	txh->compositor->rasterizer->stencil_set_gradient_interpolation(stencil, rg->key.vals, cols, rg->key.count);
-	free(cols);
-
-	txh->compositor->rasterizer->stencil_set_gradient_mode(stencil, (GF_GradientMode) rg->spreadMethod);
-	gf_mx2d_add_translation(mat, bounds->x, bounds->y - bounds->height);
+	txh->compositor->rasterizer->stencil_set_radial_gradient(stencil, rg->center.x, rg->center.y, rg->focalPoint.x, rg->focalPoint.y, rg->radius, rg->radius);
+	/*move to center of bounds*/
+	gf_mx2d_add_translation(mat, gf_divfix(bounds->x, bounds->width), gf_divfix(bounds->y - bounds->height, bounds->height));
+	/*scale back to object coordinates - the gradient is still specified in texture coordinates
+	i order to avoid overflows in fixed point*/
+	gf_mx2d_add_scale(mat, bounds->width, bounds->height);
 }
 
 

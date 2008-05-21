@@ -735,11 +735,11 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 
 		if (sec->process_individual_section) {
 			/*send each section of the table and not the aggregated table*/
-			sec->process_section(ts, ses, t->sections, t->table_id, t->ex_table_id, t->version_number, t->last_section_number - 1, status);
+			sec->process_section(ts, ses, t->sections, t->table_id, t->ex_table_id, t->version_number, (u8) (t->last_section_number - 1), status);
 			gf_m2ts_reset_sections(t->sections);
 		} else {
 			if (status&GF_M2TS_TABLE_END) {
-				sec->process_section(ts, ses, t->sections, t->table_id, t->ex_table_id, t->version_number, t->last_section_number - 1, status);
+				sec->process_section(ts, ses, t->sections, t->table_id, t->ex_table_id, t->version_number, (u8) (t->last_section_number - 1), status);
 				gf_m2ts_reset_sections(t->sections);
 			}
 		}
@@ -1097,9 +1097,9 @@ static u32 gf_m2ts_eit_decode_text(unsigned char *data, u32 offset, unsigned cha
 static void gf_m2ts_decode_mjd_date(u32 date, u32 *year, u32 *month, u32 *day)
 {
 	u32 yp, mp, k;
-	yp = (u32)gf_floor((date - 15078.2)/365.25);
-	mp = (u32)gf_floor((date - 14956.1 - gf_floor(yp * 365.25))/30.6001);
-	*day = (u32)(date - 14956 - gf_floor(yp * 365.25) - gf_floor(mp * 30.6001));		
+	yp = (u32)floor((date - 15078.2)/365.25);
+	mp = (u32)floor((date - 14956.1 - floor(yp * 365.25))/30.6001);
+	*day = (u32)(date - 14956 - floor(yp * 365.25) - floor(mp * 30.6001));		
 	if (mp == 14 || mp == 15) k = 1;
 	else k = 0;
 	*year = yp + k + 1900;

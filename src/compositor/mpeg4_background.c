@@ -388,7 +388,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 		gf_mx_init(mx);
 		gf_mx_add_translation(&mx, res.x, res.y, res.z);
 #ifdef GPAC_FIXED_POINT
-		scale = (tr_state->camera->z_far/100)*70;
+		scale = (tr_state->camera->z_far/100)*99;
 		gf_mx_add_scale(&mx, scale, scale, scale);
 #else
 		gf_mx_add_scale(&mx, tr_state->camera->z_far, tr_state->camera->z_far, tr_state->camera->z_far);

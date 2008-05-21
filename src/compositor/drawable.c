@@ -858,13 +858,13 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	hl_ctx->aspect.fill_color = compositor->highlight_fill;
 	hl_ctx->aspect.line_color = compositor->highlight_stroke;
 	hl_ctx->aspect.line_scale = 0;
-	hl_ctx->aspect.pen_props.width = 1;
+	hl_ctx->aspect.pen_props.width = FIX_ONE;
 	hl_ctx->aspect.pen_props.join = GF_LINE_JOIN_BEVEL;
 	hl_ctx->aspect.pen_props.dash = GF_DASH_STYLE_DOT;
 
 	/*editing this node - move to solid stroke*/
 	if (compositor->edited_text) {
-		hl_ctx->aspect.pen_props.width = 2;
+		hl_ctx->aspect.pen_props.width = 2*FIX_ONE;
 		hl_ctx->aspect.pen_props.dash = 1;
 		hl_ctx->aspect.line_color = compositor->highlight_stroke;
 	}

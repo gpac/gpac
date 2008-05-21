@@ -1598,13 +1598,11 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	for (i=0; i<path->n_contours; i++) {
 		nb_pts = 1 + path->contours[i] - cur;
 		pts_per_cross += nb_pts;
-		for (j=0; j<nb_pts; j++) {
-			if (j) {
-				v1.z = 0;
-				v1.x = path->points[j+cur].x - path->points[j-1+cur].x;
-				v1.y = path->points[j+cur].y - path->points[j-1+cur].y;
-				cross_len += gf_vec_len(v1);
-			}
+		v1.z = 0;
+		for (j=1; j<nb_pts; j++) {
+			v1.x = path->points[j+cur].x - path->points[j-1+cur].x;
+			v1.y = path->points[j+cur].y - path->points[j-1+cur].y;
+			cross_len += gf_vec_len(v1);
 		}
 	}
 
@@ -1721,7 +1719,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 				cos_g = gf_cos(gamma);
 				if (NEAR_ZERO(cos_g)) {
 					cos_g = 0;
-					sin_g = 1;
+					sin_g = FIX_ONE;
 				} else {
 					sin_g = gf_sin(gamma);
 				}

@@ -178,7 +178,7 @@ GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_f
 		GF_Font *best_font = NULL;
 		GF_Font *font = fm->font;
 		while (font) {
-			if (font->name && !stricmp(font->name, alt_fonts[i])) {
+			if (!font->not_loaded && font->name && !stricmp(font->name, alt_fonts[i])) {
 				s32 fw;
 				s32 w;
 				u32 diff;
@@ -415,8 +415,8 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 		return;
 	}
 	descent = 0;
-	if (span->font->descent<0) descent = -gf_mulfix(span->font->descent, span->font_scale);
-	ascent = gf_mulfix(span->font->ascent, span->font_scale);
+	if (span->font->descent<0) descent = -span->font_scale * span->font->descent;
+	ascent = span->font->ascent * span->font_scale;
 
 	/*if fliped text (SVG), the min_y is at the ascent side*/
 	if (span->flags & GF_TEXT_SPAN_FLIP) {
@@ -425,7 +425,7 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 		descent = tmp;
 	}
 
-	width = (span->flags	& GF_TEXT_SPAN_HORIZONTAL) ? 0 : gf_mulfix(span->font->max_advance_h, span->font_scale);
+	width = (span->flags	& GF_TEXT_SPAN_HORIZONTAL) ? 0 : span->font->max_advance_h*span->font_scale;
 
 	min_x = span->dx ? FIX_MAX : span->off_x;
 	min_y = span->dy ? FIX_MAX : span->off_y - descent;
@@ -438,11 +438,11 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 		}
 		/*if last glyph of the span, increase by width only*/
 		if (i+1==span->nb_glyphs) {
-			size += gf_mulfix(span->glyphs[i] ? span->glyphs[i]->width: span->font->max_advance_h, span->font_scale);
+			size += (span->glyphs[i] ? span->glyphs[i]->width: span->font->max_advance_h) * span->font_scale;
 		}
 		/*otherwise increase by the horizontal advance*/
 		else {
-			size += gf_mulfix(span->glyphs[i] ? span->glyphs[i]->horiz_advance : span->font->max_advance_h, span->font_scale);
+			size += (span->glyphs[i] ? span->glyphs[i]->horiz_advance : span->font->max_advance_h) * span->font_scale;
 		}
 		if (span->dx) {
 			if (span->dx[i]<min_x) {
@@ -458,7 +458,7 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 			if (span->dy[i] + descent > max_y) max_y = span->dy[i] + ascent;
 		} 
 		else if (span->glyphs[i]) {
-			size = gf_mulfix(span->glyphs[i]->height, span->font_scale);
+			size = span->glyphs[i]->height * span->font_scale;
 			if (size > max_y-min_y) max_y = size + min_y;
 		}
 	}
@@ -467,12 +467,12 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 
 	span->bounds.y = max_y;
 /*	if (span->font->descent<0) {
-		span->bounds.y += height - gf_mulfix(span->font->ascent, span->font_scale);
+		span->bounds.y += height - span->font->ascent*span->font_scale;
 	}
 */
 	span->bounds.height = max_y - min_y;
 	if (span->font->baseline) {
-		Fixed bline = gf_mulfix(span->font->baseline, span->font_scale);
+		Fixed bline = span->font->baseline * span->font_scale;
 		span->bounds.y += bline;
 		span->bounds.height += bline;
 	}
@@ -548,7 +548,7 @@ static void span_build_mesh(GF_TextSpan *span)
 /*don't build too large textures*/
 #define MAX_TX_SIZE		512
 /*and don't build too small ones otherwise result is as crap as non-textured*/
-#define MIN_TX_SIZE		16
+#define MIN_TX_SIZE		32
 
 static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Bool for_3d, GF_TraverseState *tr_state)
 {
@@ -806,7 +806,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 	}
 
 	/*setup texture*/
-	visual_3d_setup_texture(tr_state);
+	visual_3d_setup_texture(tr_state, FIX_ONE);
 	can_texture_text = 0;
 	if (fill_2d || !asp) {
 		/*check if we can use text texturing*/
@@ -892,7 +892,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 	sy = gf_mulfix(span->font_scale, span->y_scale);
 	flip_text = (!tr_state->visual->center_coords) ? 1 : 0;
 
-	bline = gf_mulfix(span->font->baseline, span->font_scale);
+	bline = span->font->baseline*span->font_scale;
 	lscale = ctx->aspect.line_scale;
 	ctx->aspect.line_scale = gf_divfix(ctx->aspect.line_scale, span->font_scale);
 
@@ -1032,8 +1032,8 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 	dy = gf_mulfix(span->off_y, span->y_scale);
 	sx = gf_mulfix(span->font_scale, span->x_scale);
 	sy = gf_mulfix(span->font_scale, span->y_scale);
-	ascent = gf_mulfix(span->font->ascent, sy);
-	descent = gf_mulfix(span->font->descent, sy);
+	ascent = span->font->ascent*sy;
+	descent = span->font->descent*sy;
 
 	width = 0;
 	flags = 0;
