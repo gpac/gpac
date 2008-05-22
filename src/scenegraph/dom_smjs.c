@@ -411,7 +411,7 @@ static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, jsval id, js
 {
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	/*no write prop*/
-	return JS_FALSE;
+	return JS_TRUE;
 }
 
 
