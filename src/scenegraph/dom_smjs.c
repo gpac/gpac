@@ -779,7 +779,7 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	case 0:
 		if (tag==TAG_DOMText) {
 			GF_DOMText *txt = (GF_DOMText *)n;
-			if (txt->type=GF_DOM_TEXT_CDATA) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#cdata-section") );
+			if (txt->type==GF_DOM_TEXT_CDATA) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#cdata-section") );
 			else *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#text") );
 		}
 		else {

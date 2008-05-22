@@ -179,7 +179,7 @@ static void gf_smil_anim_use_keypoints_keytimes(SMIL_Anim_RTI *rai, Fixed normal
 												Fixed *interpolation_coefficient, u32 *keyValueIndex)
 {
 	SMILAnimationAttributesPointers *animp = rai->animp;
-	u32 keyTimeIndex;
+	u32 keyTimeIndex = 0;
 	Fixed interval_duration;
 
 	*interpolation_coefficient = normalized_simple_time;
@@ -896,7 +896,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 {
 	u32 count_all, i;
 #ifndef GPAC_DISABLE_LOG
-	u32 time;
+	u32 time=0;
 	u32 active_anim;
 
 	if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RTI)) { 

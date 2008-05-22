@@ -1327,6 +1327,8 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	mesh_reset(mesh);
 	if (!eg->height.count || (eg->xDimension<2) || (eg->zDimension<2)) return;
 
+	memset(&vx, 0, sizeof(GF_Vertex));
+	memset(&rgba, 0, sizeof(SFColorRGBA));
 	has_txcoord = txc ? txc->point.count : 0;
 	has_normal = norm ? norm->vector.count : 0;
 	has_color = 0;
@@ -1592,6 +1594,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 
 	gf_path_flatten(path);
 
+	memset(&vx, 0, sizeof(GF_Vertex));
 	pts_per_cross = 0;
 	cross_len = 0;
 	cur = 0;

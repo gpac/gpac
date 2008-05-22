@@ -511,7 +511,7 @@ static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
 }
 
 
-static Bool check_extension(char *szExtList, char *szExt)
+static Bool check_extension(const char *szExtList, char *szExt)
 {
 	char szExt2[500];
 	if (szExtList[0] != '"') return 0;
@@ -630,7 +630,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 			if (!sMime) continue;
 			sKey = gf_cfg_get_key(term->user->config, "MimeTypes", sMime);
 			if (!sKey) continue;
-			if (!check_extension((char *)sKey, szExt)) continue;
+			if (!check_extension(sKey, szExt)) continue;
 			sPlug = strrchr(sKey, '"');
 			if (!sPlug) continue;	/*bad format entry*/
 			sPlug += 2;

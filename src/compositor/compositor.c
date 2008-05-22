@@ -1506,7 +1506,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #endif
 	if (compositor->recompute_ar) {
 #ifndef GPAC_DISABLE_LOG
-		u32 time;
+		u32 time=0;
 		
 		if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RTI)) { 
 			time = gf_sys_clock();

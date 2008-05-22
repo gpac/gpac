@@ -79,7 +79,6 @@ static GFINLINE u8 colmask(s32 a, s32 n)
 static u32 put_pixel(FILE *fout, u32 type, u32 pf, char *ptr)
 {
 	u16 col;
-	u32 i = 0;
 	switch (pf) {
 	case GF_PIXEL_RGB_32:
 	case GF_PIXEL_ARGB:
@@ -127,11 +126,14 @@ static u32 put_pixel(FILE *fout, u32 type, u32 pf, char *ptr)
 		fputc(ptr[0], fout); 
 		/* if printing the characters corresponding to the float depth buffer: */
 		/*
+		{
+		u32 i=0;
 		while (ptr[i]!='\0') {
 			fputc(ptr[i], fout);
 			i++;
 		}
 		fputc('\b', fout);
+		}
 		*/
 		return 1;
 

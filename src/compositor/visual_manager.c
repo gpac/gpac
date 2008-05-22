@@ -161,7 +161,7 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 
 	if (tr_state->abort_bounds_traverse) return;
 
-	size.x = -FIX_ONE;
+	size.x = size.y = -FIX_ONE;
 	switch (gf_node_get_tag(self)) {
 	case TAG_MPEG4_Layer2D: size = ((M_Layer2D *)self)->size; break;
 	case TAG_MPEG4_Layer3D: size = ((M_Layer3D *)self)->size; break;

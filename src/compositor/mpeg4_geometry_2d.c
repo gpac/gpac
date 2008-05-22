@@ -261,11 +261,11 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 
 	if (ctx->aspect.fill_texture) {
 		Bool res;
-		GF_Rect orig_unclip;
-		GF_IRect orig_clip;
 
 		/*get image size WITHOUT line size*/
 		if (ctx->aspect.pen_props.width) {
+			GF_Rect orig_unclip;
+			GF_IRect orig_clip;
 			orig_unclip = ctx->bi->unclip;
 			orig_clip = ctx->bi->clip;
 
@@ -273,18 +273,18 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 			gf_mx2d_apply_rect(&ctx->transform, &ctx->bi->unclip);
 			ctx->bi->clip = gf_rect_pixelize(&ctx->bi->unclip);
 			gf_irect_intersect(&ctx->bi->clip, &orig_clip);
-		}
 
-		res = tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL);
+			res = tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL);
 
-		/*strike path*/
-		if (ctx->aspect.pen_props.width) {
+			/*strike path*/
 			ctx->bi->unclip = orig_unclip;
 			ctx->bi->clip = orig_clip;
 			if (res) {
 				ctx->flags |= CTX_PATH_FILLED;
 				visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 			}
+		} else {
+			res = tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL);
 		}
 		/*if failure retry with raster*/
 		if (res) return;

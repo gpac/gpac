@@ -313,7 +313,7 @@ void EndElement(GF_SceneDumper *sdump, const char *name, Bool had_sub_el)
 	}
 }
 
-void StartAttribute(GF_SceneDumper *sdump, char *name)
+void StartAttribute(GF_SceneDumper *sdump, const char *name)
 {
 	if (!sdump->trace) return;
 	if (!sdump->XMLDump) {
@@ -335,7 +335,7 @@ void EndAttribute(GF_SceneDumper *sdump)
 }
 
 
-void StartList(GF_SceneDumper *sdump, char *name)
+void StartList(GF_SceneDumper *sdump, const char *name)
 {
 	if (!sdump->trace) return;
 	DUMP_IND(sdump);
@@ -349,7 +349,7 @@ void StartList(GF_SceneDumper *sdump, char *name)
 	}
 }
 
-void EndList(GF_SceneDumper *sdump, char *name)
+void EndList(GF_SceneDumper *sdump, const char *name)
 {
 	if (!sdump->trace) return;
 	DUMP_IND(sdump);
@@ -723,7 +723,7 @@ void DumpField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 				sdump->indent++;
 			}
 		} else {
-			StartAttribute(sdump, (char *)field.name);
+			StartAttribute(sdump, field.name);
 		}
 		DumpNode(sdump, *(GF_Node **)field.far_ptr, 0, NULL);
 		
@@ -744,14 +744,14 @@ void DumpField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 		}
 		list = * ((GF_ChildNodeItem **) field.far_ptr);
 		assert(list);
-		if (!sdump->XMLDump || !sdump->X3DDump) StartList(sdump, (char *) field.name);
+		if (!sdump->XMLDump || !sdump->X3DDump) StartList(sdump, field.name);
 		sdump->indent++;
 		while (list) {
 			DumpNode(sdump, list->node, 1, needs_field_container ? (char *) field.name : NULL);
 			list = list->next;
 		}
 		sdump->indent--;
-		if (!sdump->XMLDump || !sdump->X3DDump) EndList(sdump, (char *) field.name);
+		if (!sdump->XMLDump || !sdump->X3DDump) EndList(sdump, field.name);
 		return;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 	{
@@ -775,7 +775,7 @@ void DumpField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 		return;
 	}
 	if (gf_sg_vrml_is_sf_field(field.fieldType)) {
-		StartAttribute(sdump, (char *) field.name);
+		StartAttribute(sdump, field.name);
 		DumpSFField(sdump, field.fieldType, field.far_ptr, 0);
 		EndAttribute(sdump);
 	} else {
@@ -790,11 +790,11 @@ void DumpField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 				fprintf(sdump->trace, " %s=\'", (char *) field.name);
 				break;
 			default:
-				StartAttribute(sdump, (char *) field.name);
+				StartAttribute(sdump, field.name);
 				break;
 			}
 		} else {
-			StartAttribute(sdump, (char *) field.name);
+			StartAttribute(sdump, field.name);
 		}
 
 		if (!sdump->XMLDump) fprintf(sdump->trace, "[");
@@ -2576,7 +2576,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		{
 			GF_DOMText *txt = (GF_DOMText *)n;
 			if (txt->textContent) {
-				if (txt->type=GF_DOM_TEXT_CDATA) {
+				if (txt->type==GF_DOM_TEXT_CDATA) {
 					fprintf(sdump->trace, "<![CDATA[\n");
 					fprintf(sdump->trace, "%s", txt->textContent);
 					fprintf(sdump->trace, "]]>\n");

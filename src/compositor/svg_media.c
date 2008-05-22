@@ -194,20 +194,6 @@ static void svg_play_texture(SVG_video_stack *stack, SVGAllAttributes *atts)
 		lock_scene);
 }
 
-static Bool svg_check_iri_change(GF_Terminal *term, MFURL *url, XMLRI *iri)
-{
-	if (iri->type==XMLRI_STREAMID) {
-		if (!url->count) return 1;
-		if (url->vals[0].OD_ID!=iri->lsr_stream_id) return 1;
-		return 0;
-	}
-	if (url->count && !iri->string) return 1;
-	if (!url->count && iri->string) return 1;
-	if (!url->count) return 0;
-	if (!strcmp(url->vals[0].url, iri->string)) return 0;
-	return 1;
-}
-
 static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 {
 	/*video stack is just an extension of image stack, type-casting is OK*/

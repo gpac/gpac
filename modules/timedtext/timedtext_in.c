@@ -151,7 +151,7 @@ void TTIn_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	}
 }
 
-void TTIn_download_file(GF_InputService *plug, char *url)
+void TTIn_download_file(GF_InputService *plug, const char *url)
 {
 	TTIn *tti = (TTIn *) plug->priv;
 
@@ -176,7 +176,7 @@ static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 
 	/*remote fetch*/
 	if (!TTIn_is_local(url)) {
-		TTIn_download_file(plug, (char *) url);
+		TTIn_download_file(plug, url);
 		return GF_OK;
 	}
 	e = TTIn_LoadFile(plug, url, 0);

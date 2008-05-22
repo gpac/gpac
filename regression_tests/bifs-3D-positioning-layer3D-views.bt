@@ -36,7 +36,7 @@ OrderedGroup {
 
   WorldInfo {
    title "Layer3D test"
-   info ["This shows several Layer3D nodes" "offering different views of the same scene" "navigation is not enabled on all layers" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.4 $" "(C) 2002-2004 GPAC Team"]
+   info ["This shows several Layer3D nodes" "offering different views of the same scene" "navigation is not enabled on all layers" "" "GPAC Regression Tests" "$Date: 2008-05-22 13:30:48 $ - $Revision: 1.5 $" "(C) 2002-2004 GPAC Team"]
   }
 
 	Transform2D {
@@ -63,7 +63,7 @@ OrderedGroup {
 				children [
 						DEF TR Transform {
 	  					children [
-								DEF NEF Inline { url "D:\CVS\gpac\regression_tests\auxiliary_files\nefertiti.wrl" }
+								DEF NEF Inline { url "auxiliary_files/nefertiti.wrl" }
 							]
 						}
 				]

@@ -524,9 +524,7 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 	return GF_OK;
 }
 
-static void gray_spans_stub(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
-{
-}
+//static void gray_spans_stub(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf){}
 
 GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 {

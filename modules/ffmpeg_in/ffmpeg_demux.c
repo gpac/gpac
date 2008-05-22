@@ -316,7 +316,7 @@ opaque_audio:
 			if (dec->extradata_size) {
 				gf_bs_write_data(bs, dec->extradata, dec->extradata_size);
 			}
-			gf_bs_get_content(bs, (unsigned char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_bs_get_content(bs, (char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_bs_del(bs);
 			break;
 		}
@@ -359,7 +359,7 @@ opaque_video:
 			if (dec->extradata_size) {
 				gf_bs_write_data(bs, dec->extradata, dec->extradata_size);
 			}
-			gf_bs_get_content(bs, (unsigned char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_bs_get_content(bs, (char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_bs_del(bs);
 			break;
 		}
@@ -403,18 +403,11 @@ static void FFD_SetupObjects(FFDemux *ffd)
 	}
 }
 
-static int ff_url_open(URLContext *h, const char *filename, int flags)
-{
-	int res = 0;
-
-	return res;
-}
-static int ff_url_read(URLContext *h, unsigned char *buf, int size)
+static int ff_url_read(void *h, unsigned char *buf, int size)
 {
 	u32 read;
 	int full_size;
-	FFDemux *ffd = h->priv_data;
-	int res = 0;
+	FFDemux *ffd = (FFDemux *)h;
 
 	full_size = 0;
 	if (ffd->buffer_used) {
@@ -487,22 +480,12 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	    AVProbeData   pd;
 
 		/*setup wraper for FFMPEG I/O*/
-		ffd->url.priv_data = ffd;
-		ffd->url.prot = &ffd->prot;
-		ffd->url.prot->name = "GPAC FFMPEG I/O";
-		ffd->url.prot->url_open = 0;
-		ffd->url.prot->url_read = ff_url_read;
-		ffd->url.prot->url_write = 0;
-		ffd->url.prot->url_seek = 0;
-		ffd->url.prot->url_close = 0;
-		ffd->url.prot->next = 0;
-
 		ffd->buffer_size = 8192;
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "IOBufferSize"); 
 		if (sOpt) ffd->buffer_size = atoi(sOpt);
 		ffd->buffer = malloc(sizeof(char)*ffd->buffer_size);
 
-		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, &ffd->url, ff_url_read, NULL, NULL);
+		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, &ffd, ff_url_read, NULL, NULL);
 
 		ffd->dnload = gf_term_download_new(ffd->service, url, GF_NETIO_SESSION_NOT_THREADED  | GF_NETIO_SESSION_NOT_CACHED, FFD_NetIO, ffd);
 		if (!ffd->dnload) return GF_URL_ERROR;

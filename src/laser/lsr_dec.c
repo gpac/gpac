@@ -4210,6 +4210,8 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 		} else {
 			Bool is_default, is_escape;
 			u32 escape_val, ID;
+			escape_val = ID = 0;
+			is_escape = 0;
 			GF_LSR_READ_INT(lsr, is_default, 1, "isDefault");
 			if (!is_default) {
 				GF_LSR_READ_INT(lsr, is_escape, 1, "isEscape");
@@ -4482,7 +4484,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 		} else {
 			GF_Point2D matrix_tmp;
 			SVG_Point_Angle matrix_tmp_rot;
-			u32 fieldIndex;
+			u32 fieldIndex = 0;
 			u32 field_type = 0;
 			Bool text_content = 0;
 			Bool is_lsr_transform = 0;

@@ -293,10 +293,6 @@ static void TraverseColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 	if ((tr_state->traversing_mode==TRAVERSE_SORT) 
 		&& !tr->maa && !tr->mar && !tr->mag && !tr->mab && !tr->ta)
 		return; 
-	else if ((tr_state->traversing_mode==TRAVERSE_PICK) 
-		&& !tr->maa && !tr->mar && !tr->mag && !tr->mab && !tr->ta) {
-		u32 i = 0; 
-	}
 
 	/*if modified redraw all nodes*/
 	if (c_changed) tr_state->invalidate_all = 1;

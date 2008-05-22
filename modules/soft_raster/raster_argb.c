@@ -453,6 +453,7 @@ void evg_rgba_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	col_no_a = surf->fill_col & 0x00FFFFFF;
 
 	for (i=0; i<count; i++) {
+		if (spans[i].coverage<aa_lev) continue;
 		fin = mul255(a, spans[i].coverage);
 		fin = (fin<<24) | col_no_a;
 		overmask_rgba_const_run(fin, (char*) &dst[spans[i].x], spans[i].len);

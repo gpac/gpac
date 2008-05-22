@@ -141,7 +141,7 @@ void IMG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	if (!e) IMG_SetupObject(read);
 }
 
-void jp_download_file(GF_InputService *plug, char *url)
+void jp_download_file(GF_InputService *plug, const char *url)
 {
 	IMGLoader *read = (IMGLoader *) plug->priv;
 
@@ -167,7 +167,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 	/*remote fetch*/
 	if (!jp_is_local(url)) {
-		jp_download_file(plug, (char *) url);
+		jp_download_file(plug, url);
 		return GF_OK;
 	}
 

@@ -461,7 +461,7 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 	u32 i, nb_lines;
 	Fixed scrolled, rate, ellapsed, scroll_diff;
 	Bool smooth, do_scroll, stop_anim;
-	Double time;
+	Double time = 0;
 	ChildGroup *cg;
 
 	/*not scrolling*/
