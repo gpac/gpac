@@ -258,7 +258,6 @@ strip="${cross_prefix}${strip}"
 
 
 # find source path
-# find source path
 source_path="`echo $0 | sed -e 's#/configure##'`"
 source_path_used="yes"
 if test -z "$source_path" -o "$source_path" = "." ; then

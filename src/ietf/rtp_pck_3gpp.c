@@ -115,7 +115,7 @@ GF_Err gp_rtp_builder_do_amr(GP_RTPPacketizer *builder, char *data, u32 data_siz
 	return GF_OK;
 }
 
-static GFINLINE u8 qes_get_rate_size(u32 idx, u32 *rates, u32 nb_rates)
+static GFINLINE u8 qes_get_rate_size(u32 idx, const u32 *rates, u32 nb_rates)
 {
 	u32 i;
 	for (i=0; i<nb_rates; i++) {
@@ -142,7 +142,7 @@ GF_Err gp_rtp_builder_do_qcelp(GP_RTPPacketizer *builder, char *data, u32 data_s
 	offset = 0;
 	while (data_size>offset) {
 		u8 frame_type = data[offset];
-		u8 size = qes_get_rate_size(frame_type, (u32 *)GF_QCELP_RATE_TO_SIZE, GF_QCELP_RATE_TO_SIZE_NB);
+		u8 size = qes_get_rate_size(frame_type, GF_QCELP_RATE_TO_SIZE, GF_QCELP_RATE_TO_SIZE_NB);
 		/*reserved, not sent)*/
 		if (frame_type>=5) {
 			offset += size;

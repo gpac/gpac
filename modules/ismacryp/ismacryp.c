@@ -57,7 +57,7 @@ static void ISMA_KMS_NetIO(void *cbck, GF_NETIO_Parameter *par)
 {
 }
 
-static GF_Err ISMA_GetGPAC_KMS(ISMAEAPriv *priv, GF_Channel *ch, char *kms_url)
+static GF_Err ISMA_GetGPAC_KMS(ISMAEAPriv *priv, GF_Channel *ch, const char *kms_url)
 {
 	GF_Err e;
 	FILE *t;
@@ -71,7 +71,7 @@ static GF_Err ISMA_GetGPAC_KMS(ISMAEAPriv *priv, GF_Channel *ch, char *kms_url)
 	t = (strstr(kms_url, "://") == NULL) ? fopen(kms_url, "r") : NULL;
 	if (t) {
 		fclose(t);
-		return gf_ismacryp_gpac_get_info(ch->esd->ESID, kms_url, priv->key, priv->salt);
+		return gf_ismacryp_gpac_get_info(ch->esd->ESID, (char *)kms_url, priv->key, priv->salt);
 	}
 	/*note that gpac doesn't have TLS support -> not really usefull. As a general remark, ISMACryp
 	is supported as a proof of concept, crypto and IPMP being the last priority on gpac...*/
@@ -142,7 +142,7 @@ static GF_Err ISMA_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	}
 	/*gpac default scheme is used, fetch file from KMS and load keys*/
 	else if (cfg->scheme_uri && !stricmp(cfg->scheme_uri, "urn:gpac:isma:encryption_scheme")) {
-		e = ISMA_GetGPAC_KMS(priv, evt->channel, (char *) cfg->kms_uri);
+		e = ISMA_GetGPAC_KMS(priv, evt->channel, cfg->kms_uri);
 		if (e) return e;
 	}
 	/*hardcoded keys*/

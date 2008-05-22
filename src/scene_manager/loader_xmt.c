@@ -571,7 +571,7 @@ static u32 xmt_get_node_id(GF_XMTParser *parser, char *name)
 	return ID;
 }
 
-static u32 xmt_get_node_tag(GF_XMTParser *parser, char *node_name) 
+static u32 xmt_get_node_tag(GF_XMTParser *parser, const char *node_name) 
 {
 	u32 tag;
 	/*if VRML and allowing non MPEG4 nodes, use X3D*/
@@ -1154,7 +1154,7 @@ static void xmt_update_timenode(GF_XMTParser *parser, GF_Node *node)
 	}
 }
 
-static void xmt_strip_name(char *in, char *out)
+static void xmt_strip_name(const char *in, char *out)
 {
 	while (in[0]==' ') in++;
 	strcpy(out, in);
@@ -1164,7 +1164,7 @@ static void xmt_strip_name(char *in, char *out)
 static u32 xmt_get_ft_by_name(const char *_name)
 {
 	char name[1024];
-	xmt_strip_name((char *)_name, name);
+	xmt_strip_name(_name, name);
 
 	if (!strcmp(name, "Boolean") || !strcmp(name, "SFBool")) return GF_SG_VRML_SFBOOL;
 	else if (!strcmp(name, "Integer") || !strcmp(name, "SFInt32")) return GF_SG_VRML_SFINT32;
@@ -1860,7 +1860,7 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 	return desc;
 }
 
-static void xmt_parse_command(GF_XMTParser *parser, char *name, const GF_XMLAttribute *attributes, u32 nb_attributes)
+static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	GF_Err e;
 	GF_FieldInfo info;
@@ -2352,7 +2352,7 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 			desc = xmt_parse_descriptor(parser, (char *) name, attributes, nb_attributes, par);
 			if (desc) gf_list_add(parser->descriptors, desc);
 		} else {
-			xmt_parse_command(parser, (char *) name, attributes, nb_attributes);
+			xmt_parse_command(parser, name, attributes, nb_attributes);
 		}
 		return;
 	}
@@ -2510,7 +2510,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 		return;
 	}
 	/*only remove created nodes ... */
-	tag = xmt_get_node_tag(parser, (char *) name);
+	tag = xmt_get_node_tag(parser, name);
 	if (!tag) {
 		if (top->container_field.name && !strcmp(name, top->container_field.name)) {
 

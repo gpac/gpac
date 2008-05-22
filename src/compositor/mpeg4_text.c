@@ -208,6 +208,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		if (!tr_state->pixel_metrics) fontSize = gf_divfix(fontSize, tr_state->visual->compositor->output_width);
     }
 	horizontal = FSHORIZ;
+	start_x = start_y = 0;
 
 	styles = 0;
 	if (fs && fs->style.buffer) {

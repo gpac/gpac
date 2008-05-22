@@ -112,7 +112,7 @@ static void swf_init_decompress(SWFReader *read)
 	memset(dst, 0, sizeof(char)*8);
 	gf_bs_read_data(read->bs, src, size);
 	dst_size -= 8;
-	uncompress(dst+8, &dst_size, src, size);
+	uncompress(dst+8, (uLongf *)&dst_size, src, size);
 	dst_size += 8;
 	free(src);
 	read->mem = dst;
@@ -1399,7 +1399,7 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 	u32 i, count;
 	GF_Err e;
 	SWFFont *ft;
-	u32 *offset_table;
+	u32 *offset_table = NULL;
 	u32 start;
 
 	GF_SAFEALLOC(ft, SWFFont);
@@ -1895,10 +1895,6 @@ static GF_Err swf_start_sound(SWFReader *read)
 	return read->start_sound(read, snd, (si.sync_flags & 0x2) ? 1 : 0);
 }
 
-static void swf_soundstream_init(SWFReader *read) 
-{
-}
-
 static GF_Err swf_soundstream_hdr(SWFReader *read)
 {
 	char szName[1024];
@@ -2031,7 +2027,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 {
 	GF_Err e;
 	u32 ID;
-	FILE *file;
+	FILE *file = NULL;
 	char szName[1024];
 	u8 *buf;
 	u32 skip = 0;
@@ -2111,7 +2107,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 		osize = w*h;
 		dst = malloc(sizeof(char)*osize);
-		uncompress(dst, &osize, buf, AlphaPlaneSize);
+		uncompress(dst, (uLongf *) &osize, buf, AlphaPlaneSize);
 		/*write alpha channel*/
 		for (j=0; j<osize; j++) {
 			raw[4*j + 3] = dst[j];

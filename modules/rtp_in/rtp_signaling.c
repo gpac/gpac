@@ -578,6 +578,7 @@ err_exit:
 	com->user_data = NULL;
 }
 
+#if 0
 static void RP_FlushAndTearDown(RTSPSession *sess)
 {
 	GF_RTSPCommand *com;
@@ -604,7 +605,7 @@ static void RP_FlushAndTearDown(RTSPSession *sess)
 	com->method = strdup(GF_RTSP_TEARDOWN);
 	RP_QueueCommand(sess, NULL, com, 1);
 }
-
+#endif
 
 
 void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command)

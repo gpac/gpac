@@ -263,6 +263,7 @@ void MO_UpdateCaps(GF_MediaObject *mo)
 	}
 	else if (mo->type == GF_MEDIA_OBJECT_AUDIO) {
 		u32 sr, nb_ch, bps;
+		sr = nb_ch = bps = 0;
 		gf_mo_get_audio_info(mo, &sr, &bps, &nb_ch, NULL);
 		mo->odm->codec->bytes_per_sec = sr * nb_ch * bps / 8;
 	}

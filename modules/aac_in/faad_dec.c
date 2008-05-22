@@ -67,7 +67,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 
 	e = gf_m4a_get_config((unsigned char *) decSpecInfo, decSpecInfoSize, &a_cfg);
 	if (e) return e;
-	if ( (s8) faacDecInit2(ctx->codec, (unsigned char *) decSpecInfo, decSpecInfoSize, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels) < 0) 
+	if ( (s8) faacDecInit2(ctx->codec, (unsigned char *) decSpecInfo, decSpecInfoSize, (u32 *) &ctx->sample_rate, (u8 *) &ctx->num_channels) < 0) 
 	{
 		s8 res;
 		char *dsi;
@@ -88,7 +88,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 		a_cfg.nb_chan = 1;
 
 		gf_m4a_write_config(&a_cfg, &dsi, &dsi_len);
-		res = faacDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
+		res = faacDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (u32 *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
 		free(dsi);
 		if (res < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing stream %d\n", ES_ID));

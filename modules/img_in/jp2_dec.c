@@ -92,7 +92,6 @@ static GF_Err JP2_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInf
 }
 static GF_Err JP2_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
-	JP2CTX();
 	return GF_OK;
 }
 static GF_Err JP2_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)

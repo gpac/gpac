@@ -3382,6 +3382,7 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 	strcpy(attValue, "");
 
 	contour = path->contours;
+	last_pt.x = last_pt.y = 0;
 
 	for (i=0; i<path->n_points; ) {
 		switch (path->tags[i]) {

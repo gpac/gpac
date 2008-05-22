@@ -547,10 +547,10 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 {
 	u32 i, hy;
 	char *tmp=NULL;
-//	char alpha_byte;
+#ifdef GPAC_TRISCOPE_MODE
 	const char *sOpt;
 	float OGL_depthGain;
-
+#endif
 
 	/*in case the ID has been lost, resetup*/
 	if (!txh->data || !txh->tx_io->tx_raster) return;

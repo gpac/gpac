@@ -558,7 +558,7 @@ Bool m2ts_stream_process_pmt(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 		} else {
 			u32 len;
 			GF_BitStream *bs_iod;
-			u8 *iod_data;
+			char *iod_data;
 			u32 iod_data_len;
 
 			bs_iod = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);

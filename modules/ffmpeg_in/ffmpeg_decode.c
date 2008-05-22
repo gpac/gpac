@@ -25,13 +25,14 @@
 #include "ffmpeg_in.h"
 #include <gpac/avparse.h>
 
+#if 0
 static void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl)
 {
 	char szMsg[1024];
 	vsprintf(szMsg, fmt, vl);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, (szMsg));
 }
-
+#endif
 
 static AVCodec *ffmpeg_get_codec(u32 codec_4cc)
 {

@@ -304,7 +304,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
-	u32 i, j, k, nb_updates, last_rap;
+	u32 i, j, k, nb_updates, last_rap=0;
 	GF_AUContext *au;
 	Bool can_delete_com;
 	GF_StreamContext *sc;

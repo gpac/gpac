@@ -814,7 +814,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 			if (fps) sec = ((Double)f) / fps;
 			sec += 3600*h + 60*m + s;
 			times[*nb_times] = (u32) (1000*sec);
-			*nb_times ++;
+			(*nb_times) ++;
 			return 1;
 		}
 	}

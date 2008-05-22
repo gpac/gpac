@@ -327,9 +327,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 		u32 break_glyph = 0;
 
 		word_start = i;
-		word_height = 0;
-		word_size = 0;
-		last_char_size = 0;
+		word_height = word_size = last_char_size = h = 0;
 		while (i<span->nb_glyphs) {
 			Fixed glyph_size;
 			if (span->glyphs[i]) {

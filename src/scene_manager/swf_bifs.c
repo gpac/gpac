@@ -917,7 +917,7 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 	f->spacing = text->font_height + text->leading;
 
 	gf_sg_vrml_mf_reset(&f->justify, GF_SG_VRML_MFSTRING);
-	gf_sg_vrml_mf_append(&f->justify, GF_SG_VRML_MFSTRING, &ptr);
+	gf_sg_vrml_mf_append(&f->justify, GF_SG_VRML_MFSTRING, (void**)&ptr);
 	switch (text->align) {
 	case 0:
 		((SFString*)ptr)->buffer = strdup("BEGIN"); 
@@ -942,7 +942,7 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 
 	if (text->init_value) {
 		gf_sg_vrml_mf_reset(&t->string, GF_SG_VRML_MFSTRING);
-		gf_sg_vrml_mf_append(&t->string, GF_SG_VRML_MFSTRING, &ptr);
+		gf_sg_vrml_mf_append(&t->string, GF_SG_VRML_MFSTRING, (void**)&ptr);
 
 		if (text->html) {
 			GF_SAXParser *xml;
@@ -1363,8 +1363,6 @@ static GF_Err swf_bifs_setup_image(SWFReader *read, u32 ID, char *fileName)
 	GF_Node *n, *par;
 	GF_FieldInfo info;
 	char szDEF[100];
-	u32 AlphaPlaneSize = 0;
-	
 	
 	e = swf_init_od(read, 0);
 	if (e) return e;

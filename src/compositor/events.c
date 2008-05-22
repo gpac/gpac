@@ -131,7 +131,7 @@ GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text)
 static void load_text_node(GF_Compositor *compositor, u32 cmd_type)
 {
 	char **res = NULL;
-	u32 prev_pos, pos;
+	u32 prev_pos, pos=0;
 	Bool append;
 
 	append = 0;

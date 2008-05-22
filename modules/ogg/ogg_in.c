@@ -467,7 +467,7 @@ void OGG_Process(OGGReader *read)
 			}
 			gf_bs_write_u16(bs, oggpacket.bytes);
 			gf_bs_write_data(bs, oggpacket.packet, oggpacket.bytes);
-			gf_bs_get_content(bs, (unsigned char **)&st->dsi, &st->dsi_len);
+			gf_bs_get_content(bs, (char **)&st->dsi, &st->dsi_len);
 			gf_bs_del(bs);
 			st->parse_headers--;
 			if (!st->parse_headers) {
@@ -611,7 +611,8 @@ Bool OGG_CheckFile(OGGReader *read)
 	Bool has_stream = 0;
 	fseek(read->ogfile, 0, SEEK_SET);
 
-    ogg_sync_init(&read->oy);
+	ogg_sync_init(&read->oy);
+	memset(&the_info, 0, sizeof(OGGInfo));	
 	max_gran = 0;
 	while (1) {
 		if (!OGG_ReadPage(read, &oggpage)) break;

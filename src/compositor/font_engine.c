@@ -759,7 +759,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 	} else {
 		fill_2d = (asp->fill_color) ? 1 : 0;
 	}
-
+	memset(&hl_color, 0, sizeof(SFColorRGBA));
 
 	if (text_hl && (fill_2d || !asp) ) {
 		/*reverse video: highlighting uses the text color, and text color is inverted (except alpha channel)
@@ -972,6 +972,7 @@ void gf_font_underline_span(GF_TraverseState *tr_state, GF_TextSpan *span, Drawa
 	ctx->aspect.pen_props.width = width;
 }
 
+#if 0
 static u32 col_reverse_video(u32 col) 
 {
 	u32 a, r, g, b;
@@ -981,6 +982,7 @@ static u32 col_reverse_video(u32 col)
 	b = GF_COL_B(col);
 	return GF_COL_ARGB(a, 255-r, 255-g, 255-b);
 }
+#endif
 
 static GF_Rect font_get_sel_rect(GF_TraverseState *tr_state)
 {
