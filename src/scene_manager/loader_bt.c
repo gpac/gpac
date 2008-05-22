@@ -2923,7 +2923,6 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 	Bool has_id;
 	char szDEFName[1000];
 
-	if (parser->done) return GF_EOS;
 	vrml_root_node = NULL;
 	has_id = 0;
 	in_com = init_com ? 0 : 1;

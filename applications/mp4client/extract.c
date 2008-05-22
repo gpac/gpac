@@ -199,40 +199,34 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 /*it's also possible to write a float depthbuffer by passing the floats to strings and writing chars in putpixel - see comments*/
 void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 {
-
-	
-	
 	FILE *fout;
- 	int i, j;
+ 	u32 i, j;
  	char val;
 	unsigned char *depth;
 
 	depth = (unsigned char *) fb->video_buffer;
 	
 	fout = fopen("dump_depth", "wb");
-		 	if (!fout) return;
+	if (!fout) return;
+	for (j=0; j<fb->height;  j++) {
+		for (i=0;i<fb->width; i++) {
 
-		 	for (j=0; j<fb->height;  j++) {
-		 
-		 		for (i=0;i<fb->width; i++) {
-		 
-	#ifdef GPAC_USE_TINYGL
-		 			val = fputc(depth[2*i+j*fb->width*sizeof(unsigned short)], fout);
-		 			val = fputc(depth[2*i+j*fb->width*sizeof(unsigned short) + 1], fout);
-	#else
-		 			val = fputc(depth[i+j*fb->width], fout);
-	#endif
-		 	
-		 		}
-		 		
-		 	}
-		 	fclose(fout);
+#ifdef GPAC_USE_TINYGL
+			val = fputc(depth[2*i+j*fb->width*sizeof(unsigned short)], fout);
+			val = fputc(depth[2*i+j*fb->width*sizeof(unsigned short) + 1], fout);
+#else
+			val = fputc(depth[i+j*fb->width], fout);
+#endif
+		}
+	}
+	fclose(fout);
 }
+
 void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 dump_mode)
 {
 
 	FILE *fout;
- 	int i, j;
+ 	u32 i, j;
  	char val;
 	unsigned char *buf;
 
@@ -241,18 +235,14 @@ void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 du
 	if (dump_mode==6) fout = fopen("dump_rgbds", "wb");
 	else if (dump_mode==9) fout = fopen("dump_rgbd", "wb");
 	else return;
-		 	if (!fout) return;
-
-		 	for (j=0; j<fb->height;  j++) {
-		 
-		 		for (i=0;i<fb->width*4; i++) {
 	
-		 			val = fputc(buf[i+j*fb->pitch], fout);
-
-		 		}
-		 		
-		 	}
-		 	fclose(fout);
+	if (!fout) return;
+	for (j=0; j<fb->height;  j++) {
+		for (i=0;i<fb->width*4; i++) {
+			val = fputc(buf[i+j*fb->pitch], fout);
+		}
+	}
+	fclose(fout);
 }
 
 

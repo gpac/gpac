@@ -1261,8 +1261,11 @@ retry:
 			strcpy(szLine, cur_line);
 			continue;
 		}
-		while ( (sep[0] != '\"') && (sep[0] != '\"') ) sep++;
+		while (sep[0] && (sep[0] != '\"') ) sep++;
+		if (!sep[0]) continue;
 		sep++;
+		while (sep[0] && strchr(" \n\r\t", sep[0]) ) sep++;
+		if (!sep[0]) continue;
 
 		/*found*/
 		if (!strncmp(sep, att_value, att_len)) {
