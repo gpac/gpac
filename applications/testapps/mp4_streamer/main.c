@@ -820,12 +820,12 @@ u16 check_next_port(Streamer *streamer, u16 first_port)
 
 GF_Err configuration(Streamer *streamer, char *cfg_file, char *src_file, char *ip_dest, u16 port, Bool loop, Bool force_mpeg4)
 {
-	GF_Err e;
+	GF_Err e = GF_OK;
 	RTP_Session *session, *last_sess;
 	u32 nb_sessions;
-	const char *opt;
+	const char *opt = NULL;
 	const char *dest_ip;
-	GF_Config *configFile;	
+	GF_Config *configFile = NULL;	
 	u32 i, j;					
 
 	if (cfg_file) {
