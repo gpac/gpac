@@ -14,15 +14,6 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-#file format is read-only
-ifeq ($(GPACREADONLY), yes)
-CFLAGS+= -DGPAC_READ_ONLY
-endif
-
-ifeq ($(DISABLE_SVG), yes)
-CFLAGS+=-DGPAC_DISABLE_SVG
-endif
-
 #common obj
 OBJS= main.o
 
@@ -35,8 +26,8 @@ LINKFLAGS+=-lgpac
 else
 EXT=
 PROG=mp42ts
-#LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz
-LINKFLAGS+=-lgpac -lz $(OGL_LIBS)
+#LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz $(OGL_LIBS)
+LINKFLAGS+=-lgpac
 endif
 
 
