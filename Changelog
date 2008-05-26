@@ -1,4 +1,5 @@
-Latest CVS changes - 27/02/08:
+Latest CVS changes - 26/05/08:
+  - Added support for YCbCr OpenGL texturing 
   - Fixed bugs in OSS audio (100% CPU usage when no audio to play) and ALSA (broken playback)
   - Initial support for YUV overlays on Win32 and Linux (Needs XVideo) 
       * only one overlay at the moment

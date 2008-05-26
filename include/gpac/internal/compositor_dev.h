@@ -91,6 +91,7 @@ typedef struct
 	Bool abgr_texture;
 	Bool npot_texture;
 	Bool rect_texture;
+	u32 yuv_texture;
 } GLCaps;
 
 #endif
@@ -385,6 +386,10 @@ struct __tag_compositor
 	u32 collide_mode;
 	/*gravity enabled*/
 	Bool gravity_on;
+	/*AABB tree-based culling is disabled*/
+	Bool disable_gl_cull;
+	/*YUV textures in OpenGL are disabled (soft YUV->RGB )*/
+	Bool disable_yuvgl;
 
 	/*unit box (1.0 size) and unit sphere (1.0 radius)*/
 	GF_Mesh *unit_bbox;

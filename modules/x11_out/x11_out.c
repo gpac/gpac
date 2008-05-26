@@ -1338,11 +1338,11 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	  i=0;
 	  attribs[i++] = GLX_RGBA;
 	  attribs[i++] = GLX_RED_SIZE;
-	  attribs[i++] = 5;
+	  attribs[i++] = 4;
 	  attribs[i++] = GLX_GREEN_SIZE;
-	  attribs[i++] = 5;
+	  attribs[i++] = 4;
 	  attribs[i++] = GLX_BLUE_SIZE;
-	  attribs[i++] = 5;
+	  attribs[i++] = 4;
 	  attribs[i++] = GLX_DEPTH_SIZE;
 	  attribs[i++] = 16;
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering");

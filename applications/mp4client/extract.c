@@ -283,11 +283,14 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 /* creates a .bmp format greyscale image of the byte depthbuffer and a binary with only the content of the depthbuffer */
 void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, avi_t *avi_out)
 {
+	GF_Err e;
 	u32 i, k;
 	GF_VideoSurface fb;
 
 	/*lock it*/
-	gf_sc_get_screen_buffer(term->compositor, &fb, 1);
+	e = gf_sc_get_screen_buffer(term->compositor, &fb, 1);
+	if (e) fprintf(stdout, "Error grabbing depth buffer: %s\n", gf_error_to_string(e));
+	else  fprintf(stdout, "OK\n");
 	/*export frame*/
 	switch (dump_type) {
 	case 1:
@@ -376,13 +379,15 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 
 void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, avi_t *avi_out)
 {
+	GF_Err e = GF_OK;
 	u32 i, k;
 	GF_VideoSurface fb;
 
 	/*lock it*/
-	if (dump_type==5 || dump_type==6) gf_sc_get_screen_buffer(term->compositor, &fb, 2);
-	else if (dump_type== 9 || dump_type==10) gf_sc_get_screen_buffer(term->compositor, &fb, 3);
-	else gf_sc_get_screen_buffer(term->compositor, &fb, 0);
+	if (dump_type==5 || dump_type==6) e = gf_sc_get_screen_buffer(term->compositor, &fb, 2);
+	else if (dump_type== 9 || dump_type==10) e = gf_sc_get_screen_buffer(term->compositor, &fb, 3);
+	else e = gf_sc_get_screen_buffer(term->compositor, &fb, 0);
+	if (e) fprintf(stdout, "Error grabbing frame buffer: %s\n", gf_error_to_string(e));
 	/*export frame*/
 	switch (dump_type) {
 	case 1:

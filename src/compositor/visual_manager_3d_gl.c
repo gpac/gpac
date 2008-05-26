@@ -73,9 +73,12 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 	if (CHECK_GL_EXT("GL_EXT_bgra")) 
 		compositor->gl_caps.bgra_texture = 1;
 
-	if (CHECK_GL_EXT("GL_EXT_texture_rectangle") || CHECK_GL_EXT("GL_NV_texture_rectangle")) 
+	if (CHECK_GL_EXT("GL_EXT_texture_rectangle") || CHECK_GL_EXT("GL_NV_texture_rectangle")) {
 		compositor->gl_caps.rect_texture = 1;
 
+		if (CHECK_GL_EXT("GL_MESA_ycbcr_texture")) compositor->gl_caps.yuv_texture = YCBCR_MESA;
+		else if (CHECK_GL_EXT("GL_APPLE_ycbcr_422")) compositor->gl_caps.yuv_texture = YCBCR_422_APPLE;
+	}
 #endif
 }
 
@@ -85,7 +88,6 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 		glHint(GL_LINE_SMOOTH_HINT, GL_FASTEST);
-		glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
 #ifdef GL_POLYGON_SMOOTH_HINT
 		glHint(GL_POLYGON_SMOOTH_HINT, GL_FASTEST);
 #endif
@@ -93,7 +95,6 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-		glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
 #ifdef GL_POLYGON_SMOOTH_HINT
 		glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 #endif
@@ -101,7 +102,6 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 
 	if (visual->compositor->antiAlias == GF_ANTIALIAS_FULL) {
 		glEnable(GL_LINE_SMOOTH);
-		glEnable(GL_POINT_SMOOTH);
 #ifndef GPAC_USE_OGL_ES
 		if (visual->compositor->poly_aa)
 			glEnable(GL_POLYGON_SMOOTH);
@@ -110,7 +110,6 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 #endif
 	} else {
 		glDisable(GL_LINE_SMOOTH);
-		glDisable(GL_POINT_SMOOTH);
 #ifndef GPAC_USE_OGL_ES
 		glDisable(GL_POLYGON_SMOOTH);
 #endif
@@ -120,13 +119,13 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 void visual_3d_setup(GF_VisualManager *visual)
 {
 #ifndef GPAC_USE_TINYGL
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDepthFunc(GL_LEQUAL);
 #endif
 	glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glFrontFace(GL_CCW);
-    glCullFace(GL_BACK);
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CCW);
+	glCullFace(GL_BACK);
 
 #ifdef GPAC_USE_OGL_ES
 	glClearDepthx(FIX_ONE);
@@ -139,7 +138,7 @@ void visual_3d_setup(GF_VisualManager *visual)
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, (float) (0.2 * 128));
 #endif
 
-    glShadeModel(GL_SMOOTH);
+	glShadeModel(GL_SMOOTH);
 	glGetIntegerv(GL_MAX_LIGHTS, (GLint*)&visual->max_lights);
 #ifdef GL_MAX_CLIP_PLANES
 	glGetIntegerv(GL_MAX_CLIP_PLANES, &visual->max_clips);
@@ -147,6 +146,7 @@ void visual_3d_setup(GF_VisualManager *visual)
 
 	visual_3d_setup_quality(visual);
 
+	glDisable(GL_POINT_SMOOTH);
 	glDisable(GL_COLOR_MATERIAL);
 	glDisable(GL_LIGHTING);
 	glDisable(GL_BLEND);
@@ -167,23 +167,36 @@ void visual_3d_set_background_state(GF_VisualManager *visual, Bool on)
 		glDisable(GL_LIGHTING);
 		glDisable(GL_FOG);
 		glDisable(GL_LINE_SMOOTH);
-		glDisable(GL_POINT_SMOOTH);
 		glDisable(GL_BLEND);
 #ifndef GPAC_USE_OGL_ES
 		glDisable(GL_POLYGON_SMOOTH);
 #endif
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-		glHint(GL_LINE_SMOOTH_HINT, GL_FASTEST);
-		glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
-#ifdef GL_POLYGON_SMOOTH_HINT
-		glHint(GL_POLYGON_SMOOTH_HINT, GL_FASTEST);
-#endif
 	} else {
 		visual_3d_setup_quality(visual);
 	}
 }
 
+
+
+void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
+{
+	if (bOn) {
+		glEnable(GL_LINE_SMOOTH);
+#ifndef GPAC_USE_OGL_ES
+		if (visual->compositor->poly_aa)
+			glEnable(GL_POLYGON_SMOOTH);
+		else
+			glDisable(GL_POLYGON_SMOOTH);
+#endif
+	} else {
+		glDisable(GL_LINE_SMOOTH);
+#ifndef GPAC_USE_OGL_ES
+		glDisable(GL_POLYGON_SMOOTH);
+#endif
+	}
+}
 
 void visual_3d_enable_depth_buffer(GF_VisualManager *visual, Bool on)
 {
@@ -261,6 +274,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 	Bool has_col, has_tx, has_norm;
 	u32 prim_type;
+	GF_Compositor *compositor = tr_state->visual->compositor;
 #if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
 	Float *color_array = NULL;
 	Float fix_scale = 1.0f;
@@ -373,7 +387,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
 #endif
 	}
-	
+
 	if (mesh->mesh_type) {
 		glNormal3f(0, 0, 1.0f);
 		glDisable(GL_CULL_FACE);
@@ -406,8 +420,8 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glNormalPointer(normal_type, sizeof(GF_Vertex), &mesh->vertices[0].normal);
 
 		if (!mesh->mesh_type) {
-			if (tr_state->visual->compositor->backcull 
-				&& (!tr_state->mesh_is_transparent || (tr_state->visual->compositor->backcull ==GF_BACK_CULL_ALPHA) )
+			if (compositor->backcull 
+				&& (!tr_state->mesh_is_transparent || (compositor->backcull ==GF_BACK_CULL_ALPHA) )
 				&& (mesh->flags & MESH_IS_SOLID)) {
 				glEnable(GL_CULL_FACE);
 				glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
@@ -416,6 +430,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 			}
 		}
 	}
+
 	switch (mesh->mesh_type) {
 	case MESH_LINESET: prim_type = GL_LINES; break;
 	case MESH_POINTSET: prim_type = GL_POINTS; break;
@@ -424,7 +439,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 #if 1
 	/*if inside or no aabb for the mesh draw vertex array*/
-	if ((tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos) {
+	if (compositor->disable_gl_cull || (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos)	{
 #ifdef GPAC_USE_OGL_ES
 		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, mesh->indices);
 #else
@@ -450,6 +465,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		VS3D_DrawAABBNode(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->pos);
 		VS3D_DrawAABBNode(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
 	}
+
 #endif
 
 	glDisableClientState(GL_VERTEX_ARRAY);
@@ -905,27 +921,6 @@ void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 #else
 	glColor4f(GF_COL_R(col)/255.0f, GF_COL_G(col)/255.0f, GF_COL_B(col)/255.0f, a/255.0f);
 #endif
-}
-
-
-void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
-{
-	if (bOn) {
-		glEnable(GL_LINE_SMOOTH);
-		glEnable(GL_POINT_SMOOTH);
-#ifndef GPAC_USE_OGL_ES
-		if (visual->compositor->poly_aa)
-			glEnable(GL_POLYGON_SMOOTH);
-		else
-			glDisable(GL_POLYGON_SMOOTH);
-#endif
-	} else {
-		glDisable(GL_LINE_SMOOTH);
-		glDisable(GL_POINT_SMOOTH);
-#ifndef GPAC_USE_OGL_ES
-		glDisable(GL_POLYGON_SMOOTH);
-#endif
-	}
 }
 
 void visual_3d_clear(GF_VisualManager *visual, SFColor color, Fixed alpha)
@@ -1422,7 +1417,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 	/*depthmap-only dump*/
 	if (depth_dump_mode==1) {
 		const char *sOpt;
-		float OGL_depthGain;
+		float OGL_depthGain = 40;
 #ifdef GPAC_USE_OGL_ES
 		return GF_NOT_SUPPORTED;
 #else
@@ -1440,7 +1435,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffGain");
 		if (sOpt) sscanf(sOpt, "%f", &OGL_depthGain);
 
-			/*let's inverse depthbuffer d=128 -> foreground*/
+		/*let's inverse depthbuffer d=128 -> foreground*/
 		glPixelTransferf(GL_DEPTH_SCALE, -OGL_depthGain); 
 		glPixelTransferf(GL_DEPTH_BIAS, OGL_depthGain); 
 	//			glPixelTransferf(GL_DEPTH_SCALE, -20.0); /* -x+1 to inverse: -(8x-7)+1  */

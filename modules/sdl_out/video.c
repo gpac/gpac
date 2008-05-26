@@ -432,12 +432,11 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
 		if (!ctx->screen) ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, ctx->screen->format->BitsPerPixel);
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
-		SDL_GL_SetAttribute(SDL_GL_ACCUM_RED_SIZE, 0);
-		SDL_GL_SetAttribute(SDL_GL_ACCUM_GREEN_SIZE, 0);
-		SDL_GL_SetAttribute(SDL_GL_ACCUM_BLUE_SIZE, 0);
-		SDL_GL_SetAttribute(SDL_GL_ACCUM_ALPHA_SIZE, 0);
+		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
+		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
 
 		assert(width);
 		assert(height);
