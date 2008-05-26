@@ -332,9 +332,6 @@ Bool gf_mesh_aabb_ray_hit(GF_Mesh *mesh, AABBNode *n, GF_Ray *ray, Fixed *closes
 				gf_vec_norm(outNormal);
 			} else {
 				MESH_GET_NORMAL((*outNormal), mesh->vertices[idx[0]]);
-#ifndef MESH_USE_FIXED_NORMAL
-				gf_vec_norm(outNormal);
-#endif
 			}
 		}
 		if (outTexCoords) {
@@ -397,9 +394,6 @@ Bool gf_mesh_intersect_ray(GF_Mesh *mesh, GF_Ray *ray, SFVec3f *outPoint, SFVec3
 				gf_vec_norm(outNormal);
 			} else {
 				MESH_GET_NORMAL((*outNormal), mesh->vertices[idx[0]]);
-#ifndef MESH_USE_FIXED_NORMAL
-				gf_vec_norm(outNormal);
-#endif
 			}
 		}
 		if (outTexCoords) {
@@ -484,7 +478,7 @@ Bool gf_mesh_closest_face_aabb(GF_Mesh *mesh, AABBNode *node, SFVec3f pos, Fixed
 	GF_Ray r;
 	u32 i;
 	SFVec3f v1, v2, n, resn;
-	Bool inters, has_inter, need_norm;
+	Bool inters, has_inter, need_norm = 0;
 	Fixed d;
 	if (!sphere_box_overlap(pos, min_sq_dist, node->min, node->max)) return 0;
 	if (node->pos) {
@@ -493,7 +487,6 @@ Bool gf_mesh_closest_face_aabb(GF_Mesh *mesh, AABBNode *node, SFVec3f pos, Fixed
 	}
 
 	need_norm = (mesh->flags & MESH_IS_SMOOTHED) ? 1 : 0,
-
 	r.orig = pos;
 	has_inter = 0;
 	for (i=0; i<node->nb_idx; i++) {
@@ -505,9 +498,6 @@ Bool gf_mesh_closest_face_aabb(GF_Mesh *mesh, AABBNode *node, SFVec3f pos, Fixed
 			gf_vec_norm(&n);
 		} else {
 			MESH_GET_NORMAL(n, mesh->vertices[idx[0]]);
-#ifndef MESH_USE_FIXED_NORMAL
-			gf_vec_norm(&n);
-#endif
 		}
 
 		/*intersect inverse normal from position to face with face*/
@@ -572,9 +562,6 @@ Bool gf_mesh_closest_face(GF_Mesh *mesh, SFVec3f pos, Fixed min_dist, SFVec3f *o
 			n.x = mesh->vertices[idx[0]].normal.x;
 			n.y = mesh->vertices[idx[0]].normal.y;
 			n.z = mesh->vertices[idx[0]].normal.z;
-#ifndef MESH_USE_FIXED_NORMAL
-			gf_vec_norm(&n);
-#endif
 		}
 
 		d = -gf_vec_dot(mesh->vertices[idx[0]].pos, n);

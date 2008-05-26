@@ -331,8 +331,6 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	}
-	glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	if (txh->tx_io->gl_type == GL_TEXTURE_2D) {
 		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
