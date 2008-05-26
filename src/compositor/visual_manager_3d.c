@@ -796,6 +796,10 @@ static const char *szPlaneNames [] =
 
 Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_near) 
 {
+#ifdef DISABLE_VIEW_CULL
+	tr_state->cull_flag = CULL_INSIDE;
+	return 1;
+#else
 	GF_BBox b;
 	Fixed irad, rad;
 	GF_Camera *cam;
@@ -805,11 +809,6 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 
 	if (!tr_state->camera || (tr_state->cull_flag == CULL_INSIDE)) return 1;
 	assert(tr_state->cull_flag != CULL_OUTSIDE);
-
-#ifdef DISABLE_VIEW_CULL
-	tr_state->cull_flag = CULL_INSIDE;
-	return 1;
-#endif
 
 	/*empty bounds*/
 	if (!bbox->is_set) {
@@ -890,6 +889,7 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 	tr_state->cull_flag = CULL_INSIDE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node inside (%s test)\n", do_sphere ? "sphere-planes" : "n-p vertex"));
 	return 1;
+#endif
 }
 
 void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)

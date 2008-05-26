@@ -42,6 +42,7 @@ void drawable_3d_base_traverse(GF_Node *n, void *rs, Bool is_destroy, void (*bui
 	}
 	if (gf_node_dirty_get(n)) {
 		mesh_reset(stack->mesh);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Rebuilding mesh %s\n", gf_node_get_class_name(n)));
 		build_shape(n, stack, tr_state);
 		gf_node_dirty_clear(n, 0);
 	}

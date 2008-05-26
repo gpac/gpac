@@ -32,6 +32,7 @@
 /*by default we store each color on 32 bit rather than 4 floats (128 bits)*/
 
 //#define MESH_USE_SFCOLOR
+
 #ifdef MESH_USE_SFCOLOR
 #define MESH_MAKE_COL(_argb) _argb
 #define MESH_GET_COLOR(_argb, _vertex) _argb = (_vertex).color;
@@ -43,6 +44,7 @@
 /*by default we store normals as signed bytes rather than floats*/
 
 //#define MESH_USE_FIXED_NORMAL
+
 #ifdef MESH_USE_FIXED_NORMAL
 #define MESH_SET_NORMAL(_vertex, _nor) _vertex.normal = _nor;
 #define MESH_GET_NORMAL(_nor, _vertex) _nor = _vertex.normal;
