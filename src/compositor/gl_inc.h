@@ -65,13 +65,26 @@
 #define GL_BGR_EXT 0x80E0
 #endif
 
-/*rectangle texture (non-pow2) - GL_TEXTURE_RECTANGLE_NV*/
+/*rectangle texture (non-pow2) - same as GL_TEXTURE_RECTANGLE_NV*/
 #ifndef GL_TEXTURE_RECTANGLE_EXT
 #define GL_TEXTURE_RECTANGLE_EXT 0x84F5
 #endif
 
 #ifndef GL_RESCALE_NORMAL
 #define GL_RESCALE_NORMAL 0x803A
+#endif
+
+#ifndef YCBCR_MESA
+#define YCBCR_MESA	0x8757
+#endif
+
+#ifndef YCBCR_422_APPLE
+#define YCBCR_422_APPLE			0x85B9
+#endif
+
+#ifndef UNSIGNED_SHORT_8_8_MESA
+#define UNSIGNED_SHORT_8_8_MESA      0x85BA /* same as Apple's */
+#define UNSIGNED_SHORT_8_8_REV_MESA  0x85BB /* same as Apple's */
 #endif
 
 

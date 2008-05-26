@@ -1031,6 +1031,12 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableRectExt");
 	compositor->disable_rect_ext = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableGLCulling");
+	compositor->disable_gl_cull = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableYUVGL");
+	compositor->disable_yuvgl = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+
 #endif
 	
 	/*RECT texture support - we must reload HW*/

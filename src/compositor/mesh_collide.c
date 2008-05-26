@@ -236,7 +236,7 @@ void gf_mesh_build_aabbtree(GF_Mesh *mesh)
 	memset(&pars, 0, sizeof(pars));
 	pars.min_tri_limit = 8;
 	pars.max_depth = 0;
-	pars.split_type = AABB_SPLATTER;
+	pars.split_type = AABB_BALANCED;
 
 	if (mesh->i_count <= pars.min_tri_limit) return;
 
