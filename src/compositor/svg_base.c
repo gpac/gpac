@@ -62,7 +62,7 @@ void compositor_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAl
 				GF_Matrix tmp;
 				gf_mx_init(tmp);
 				gf_mx_add_translation(&tmp, -tr_state->camera->width/2, tr_state->camera->height/2, 0);
-				gf_mx_add_scale(&tmp, 1, -1, 1);
+				gf_mx_add_scale(&tmp, FIX_ONE, -FIX_ONE, FIX_ONE);
 				gf_mx_add_matrix(&tmp, &tr_state->model_matrix);
 				visual_3d_matrix_load(tr_state->visual, tmp.m);
 			}

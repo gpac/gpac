@@ -209,6 +209,7 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
+	memset(&rc, 0, sizeof(rc));
 	Bitmap_BuildGraph(node, st, tr_state, &rc, 1);
 
 	ctx = drawable_init_context_mpeg4(st->graph, tr_state);
