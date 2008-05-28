@@ -354,7 +354,7 @@ enum {
 	GF_KEY_PIPE, /*"U+007C"    The Vertical Line (Vertical Bar, Pipe) key (|).*/
 	GF_KEY_RIGHTCURLYBRACKET, /*"U+007D"    The Right Curly Bracket (Closing Curly Bracket, Closing Brace, Brace Right) key (}).*/
 	GF_KEY_DEL, /*"U+007F"    The Delete (Del) Key.*/
-	GF_KEY_INVERTEXCLAMATION, /*"U+00A1"    The Inverted Exclamation Mark key (¡).*/
+	GF_KEY_INVERTEXCLAMATION, /*"U+00A1"    The Inverted Exclamation Mark key (ï¿½).*/
 	GF_KEY_DEADGRAVE, /*"U+0300"    The Combining Grave Accent (Greek Varia, Dead Grave) key.*/
 	GF_KEY_DEADEACUTE, /*"U+0301"    The Combining Acute Accent (Stress Mark, Greek Oxia, Tonos, Dead Eacute) key.*/
 	GF_KEY_DEADCIRCUM, /*"U+0302"    The Combining Circumflex Accent (Hat, Dead Circumflex) key.*/
@@ -369,13 +369,16 @@ enum {
 	GF_KEY_DEADCEDILLA, /*"U+0327"    The Combining Cedilla (Dead Cedilla) key.*/
 	GF_KEY_DEADOGONEK, /*"U+0328"    The Combining Ogonek (Nasal Hook, Dead Ogonek) key.*/
 	GF_KEY_DEADIOTA, /*"U+0345"    The Combining Greek Ypogegrammeni (Greek Non-Spacing Iota Below, Iota Subscript, Dead Iota) key.*/
-	GF_KEY_EURO, /*"U+20AC"    The Euro Currency Sign key (€).*/
+	GF_KEY_EURO, /*"U+20AC"    The Euro Currency Sign key (ï¿½).*/
 	GF_KEY_DEADVOICESOUND, /*"U+3099"    The Combining Katakana-Hiragana Voiced Sound Mark (Dead Voiced Sound) key.*/
 	GF_KEY_DEADSEMIVOICESOUND, /*"U+309A"    The Combining Katakana-Hiragana Semi-Voiced Sound Mark (Dead Semivoiced Sound) key. */
 
 	/*non-dom keys, used in LASeR*/
 	GF_KEY_CELL_SOFT1,	/*soft1 key of cell phones*/
 	GF_KEY_CELL_SOFT2,	/*soft2 key of cell phones*/
+	
+	/*for joystick handling*/
+	GF_KEY_JOYSTICK
 };
 
 

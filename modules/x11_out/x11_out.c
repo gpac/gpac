@@ -666,27 +666,49 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    if (jsevent.value){
 		      /*pressed event*/
 		      if (!xWindow->fullscreen && !xWindow->has_focus ) xWindow->has_focus = 1;
-		       evt.type = GF_EVENT_MOUSEDOWN;   
-		    } else evt.type =  GF_EVENT_MOUSEUP; 
-		      evt.mouse.x = xWindow->prev_x;
-		      evt.mouse.y = xWindow->prev_y;
+		      if (jsevent.number<4) evt.type = GF_EVENT_MOUSEDOWN;
+		      else evt.type = GF_EVENT_KEYDOWN;
+		      
+		    } else { 
+		    	
+			  if (jsevent.number<4) evt.type = GF_EVENT_MOUSEUP;
+			  else evt.type = GF_EVENT_KEYUP;
+			      
+		    }
+
 		     
 		      switch (jsevent.number){
 		        case 0:
 			     evt.mouse.button = GF_MOUSE_LEFT;
+			     evt.mouse.x = xWindow->prev_x;
+			     evt.mouse.y = xWindow->prev_y;
 		         vout->on_event (vout->evt_cbk_hdl, &evt);
 			      break;
 
 				case 1:
 				 evt.mouse.button = GF_MOUSE_MIDDLE;
+			     evt.mouse.x = xWindow->prev_x;
+			     evt.mouse.y = xWindow->prev_y;
 				 vout->on_event (vout->evt_cbk_hdl, &evt);
 				 break;
 	
 				case 2:
 				 evt.mouse.button = GF_MOUSE_RIGHT;
+			     evt.mouse.x = xWindow->prev_x;
+			     evt.mouse.y = xWindow->prev_y;
 			     vout->on_event (vout->evt_cbk_hdl, &evt);
 			     break;
-				 default:
+			     
+				case 4:
+				case 5:
+				case 6:
+				case 7:
+				 evt.key.key_code = GF_KEY_JOYSTICK; 
+				 evt.key.hw_code = jsevent.number;
+				 vout->on_event (vout->evt_cbk_hdl, &evt);
+			     break;
+			     
+				default:
 				 break;
 		      }
 
