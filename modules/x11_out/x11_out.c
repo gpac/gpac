@@ -565,9 +565,8 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    }
 		    break;
 
-#ifdef ENABLE_JOYSTICK
+#ifndef ENABLE_JOYSTICK
 		  	
-#else
 		      case KeyPress:
 		      case KeyRelease:
 		    x11_translate_key(XKeycodeToKeysym (xWindow->display, xevent.xkey.keycode, 0), &evt.key);
@@ -665,23 +664,17 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		  case JS_EVENT_BUTTON:
 		    
 		    if (jsevent.value){
-		    /*pressed event*/
-		    	if (!xWindow->fullscreen && !xWindow->has_focus) {
-			  /*is this necessary?*/
-			  xWindow->has_focus = 1;
-		//	  XSetInputFocus(xWindow->display, xWindow->wnd, RevertToParent, CurrentTime);
-		       }
-		    }
-		    else {
-		    /*release event*/
+		      /*pressed event*/
+		      if (!xWindow->fullscreen && !xWindow->has_focus ) xWindow->has_focus = 1;
+		       evt.type = GF_EVENT_MOUSEDOWN;   
+		    } else evt.type =  GF_EVENT_MOUSEUP; 
 		      evt.mouse.x = xWindow->prev_x;
 		      evt.mouse.y = xWindow->prev_y;
-		      evt.type = (xevent.type == ButtonRelease) ? GF_EVENT_MOUSEUP : GF_EVENT_MOUSEDOWN;
+		     
 		      switch (jsevent.number){
 		        case 0:
 			     evt.mouse.button = GF_MOUSE_LEFT;
 		         vout->on_event (vout->evt_cbk_hdl, &evt);
-		      //   printf("LEFT BUTTON PRESSED\n");
 			      break;
 
 				case 1:
@@ -697,7 +690,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 				 break;
 		      }
 
-		    }
+		    
 		  break;
 		  case JS_EVENT_AXIS:
 			  if (ABS(jsevent.value)>16000) mul = 6;
@@ -747,10 +740,10 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		  case ReparentNotify:
 		    break;
 		  case FocusOut:
-			if (!xWindow->fullscreen) xWindow->has_focus = 0;
+		//	if (!xWindow->fullscreen) xWindow->has_focus = 0;
 		    break;
 		  case FocusIn:
-			if (!xWindow->fullscreen) xWindow->has_focus = 1;
+		//	if (!xWindow->fullscreen) xWindow->has_focus = 1;
 		    break;
 		    
 		  case DestroyNotify:
@@ -996,6 +989,11 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 		/*if owning the window and not in fullscreen, resize it (initial scene size)*/
 	xWindow->w_width = evt->size.width;
 	xWindow->w_height = evt->size.height;
+#ifdef ENABLE_JOYSTICK
+    xWindow->prev_x = xWindow->w_width/2;
+    xWindow->prev_y = xWindow->w_height/2;
+#endif     
+        
 	  if (!xWindow->fullscreen) {
 	    if (xWindow->par_wnd) {
 	      XWindowAttributes pwa;
@@ -1379,6 +1377,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	}
 #endif
 
+
 	/*turn off xscreensaver*/
 	X11_XScreenSaverState(xWindow, 0);
 
@@ -1397,7 +1396,6 @@ GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32
 
 #ifdef ENABLE_JOYSTICK
 	xWindow->fd = open ("/dev/input/js0", O_NONBLOCK);	
-  
 #endif
 	/*the rest is done THROUGH THE MAIN RENDERER TRHEAD!!*/
 	return GF_OK;

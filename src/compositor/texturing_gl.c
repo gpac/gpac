@@ -627,10 +627,7 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 	} else if (txh->pixelformat==GF_PIXEL_RGBDS) {
 		/*we'll work with one alpha bit (=shape). we'll take the heaviest weighted as this threshold*/
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGBA, GL_UNSIGNED_BYTE, txh->data);
-		
-		/*depth buffer inversion*/ /*inverse transform MUST be done here necessarily - not enough precision with byte representation, need for float manipulation*/
-	//	glPixelTransferf(GL_DEPTH_SCALE, -20.0); /* -x+1 to inverse the [0..1] range to [1..0]: -(Gx +Offs) +1  */
-	//	glPixelTransferf(GL_DEPTH_BIAS, 20.0);  
+	
 		/*NOTES on OpenGL's z-buffer perspective inversion:
 		 * option 1: extract float depth buffer, undoing depth perspective transform PIXEL per PIXEL and then
 		 * convert to byte (computationally costly)
@@ -640,16 +637,8 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 		 * i.e. z' = G*z - (G - 1), the offset so that z still belongs to [0..1]*
 		 */
 		
-		/* -x+1 to inverse the [0..1] range to [1..0]: -(Gx +Offs) +1  */
-		
-		/*scale and inverse depth buffer, all at once*/
-		sOpt = gf_cfg_get_key(txh->compositor->user->config, "Compositor", "OGLDepthBuffGain");
-		if (sOpt) sscanf(sOpt, "%f", &OGL_depthGain);
-	//	glPixelTransferf(GL_DEPTH_SCALE, -OGL_depthGain); 
-	//	glPixelTransferf(GL_DEPTH_BIAS, OGL_depthGain); 
-		
-		glPixelTransferf(GL_DEPTH_SCALE, OGL_depthGain); 
-		glPixelTransferf(GL_DEPTH_BIAS, 0); 
+		glPixelTransferf(GL_DEPTH_SCALE, txh->compositor->OGLDepthGain); 
+		glPixelTransferf(GL_DEPTH_BIAS, txh->compositor->OGLDepthOffset); 
 		
 		/*obtain depthmap*/ /*NOTE: could txt width, height change once allocated?*/
 		if (!txh->tx_io->depth_data) txh->tx_io->depth_data = (char*)malloc(sizeof(char)*txh->width*txh->height);

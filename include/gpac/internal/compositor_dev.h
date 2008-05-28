@@ -425,6 +425,10 @@ struct __tag_compositor
 	GF_List *cached_groups_queue;
 #endif
 
+	/*used for -depth dump*/
+	Fixed OGLDepthGain; /*gain applied to OpenGL depth buffer, a float [0..1])*/
+	Fixed OGLDepthOffset; /*offset applied to OpenGL depth buffer*/
+	
 #ifdef GPAC_TRISCOPE_MODE
 	void *RenoirHandler;
 #endif
@@ -508,6 +512,7 @@ typedef struct _gf_sc_texture_handler
 	/*matteTexture parent if any*/
 	GF_Node *matteTexture;
 	
+
 #ifdef GPAC_TRISCOPE_MODE
 
 	void *RenoirObject;

@@ -374,7 +374,8 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 		
 	}
 	/*unlock it*/
-	gf_sc_release_screen_buffer(term->compositor, &fb);
+	/*in -depth -avi mode, do not release it yet*/
+	if (dump_type!=8) gf_sc_release_screen_buffer(term->compositor, &fb);
 }
 
 void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, avi_t *avi_out)
@@ -393,6 +394,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 	case 1:
 	case 5:
 	case 10:
+	case 8:
 		/*reverse frame*/
 		for (k=0; k<fb.height; k++) {
 			char *dst, *src;
@@ -553,13 +555,25 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 		u32 time, prev_time, nb_frames, dump_dur;
 		char *conv_buf;
 		avi_t *avi_out = NULL; 
+		avi_t *depth_avi_out = NULL; 
+		char szPath_depth[GF_MAX_PATH];
 		char comp[5];
+		strcpy(szPath_depth, szPath);
 		strcat(szPath, ".avi");
 		avi_out = AVI_open_output_file(szPath);
 		if (!avi_out) {
 			fprintf(stdout, "Error creating AVI file %s\n", szPath);
 			return 1;
 		}
+		if (dump_mode==8) {
+			strcat(szPath_depth, "_depth.avi");
+			depth_avi_out = AVI_open_output_file(szPath_depth);
+			if (!depth_avi_out) {
+				fprintf(stdout, "Error creating AVI file %s\n", szPath);
+				return 1;
+			}	
+		}
+		
 		if (!fps) fps = 25.0;
 		time = prev_time = 0;
 		nb_frames = 0;
@@ -577,6 +591,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 
 		comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
 		AVI_set_video(avi_out, width, height, fps, comp);
+		if (dump_mode==8) AVI_set_video(depth_avi_out, width, height, fps, comp);
 		if (dump_mode != 5 && dump_mode!=10) conv_buf = malloc(sizeof(char) * width * height * 3);
 		else conv_buf = malloc(sizeof(char) * width * height * 4);
 		/*step to first frame*/
@@ -588,15 +603,24 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 			}
 			fprintf(stdout, "Dumping %02d/100\r", (u32) ((100.0*prev_time)/dump_dur) );
 
-			if (dump_mode==8) dump_depth(term, szPath, dump_mode, i+1, conv_buf, avi_out);
+			if (dump_mode==8) {
+				/*we'll dump both buffers at once*/
+				gf_mx_p(term->compositor->mx);
+				dump_depth(term, szPath_depth, dump_mode, i+1, conv_buf, depth_avi_out);
+				dump_frame(term, szPath, dump_mode, i+1, conv_buf, avi_out);
+				gf_mx_v(term->compositor->mx);
+
+			}
 			else dump_frame(term, szPath, dump_mode, i+1, conv_buf, avi_out);
 
+			
 			nb_frames++;
 			time = (u32) (nb_frames*1000/fps);
 			gf_term_step_clocks(term, time - prev_time);
 			prev_time = time;
 		}
 		AVI_close(avi_out);
+		if (dump_mode==8) AVI_close(depth_avi_out);
 		free(conv_buf);
 		fprintf(stdout, "AVI Extraction 100/100\n");
 	} else {

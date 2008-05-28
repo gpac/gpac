@@ -1416,8 +1416,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 	/*depthmap-only dump*/
 	if (depth_dump_mode==1) {
-		const char *sOpt;
-		float OGL_depthGain = 40;
+
 #ifdef GPAC_USE_OGL_ES
 		return GF_NOT_SUPPORTED;
 #else
@@ -1428,30 +1427,17 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		fb->video_buffer = (char*)malloc(sizeof(char)* 2 * fb->pitch * fb->height);
 #endif
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
-		/*
-		glPixelTransferf(GL_DEPTH_SCALE, 10000.0);
-		glPixelTransferf(GL_DEPTH_BIAS, -9999); */  /* these were optimal values for elevation grid with old znear */ 
+
+		glPixelTransferf(GL_DEPTH_SCALE, compositor->OGLDepthGain); 
+		glPixelTransferf(GL_DEPTH_BIAS, compositor->OGLDepthOffset); 
 	
-		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffGain");
-		if (sOpt) sscanf(sOpt, "%f", &OGL_depthGain);
-
-		/*let's inverse depthbuffer d=128 -> foreground*/
-		glPixelTransferf(GL_DEPTH_SCALE, -OGL_depthGain); 
-		glPixelTransferf(GL_DEPTH_BIAS, OGL_depthGain); 
-	//			glPixelTransferf(GL_DEPTH_SCALE, -20.0); /* -x+1 to inverse: -(8x-7)+1  */
-	//			glPixelTransferf(GL_DEPTH_BIAS, 20.0);  
-		/*
-		glPixelTransferf(GL_DEPTH_SCALE, 182.85);
-		glPixelTransferf(GL_DEPTH_BIAS, -181.5);  */ /* optimal values for box, cones etc with old znear */
-
 		/* GL_FLOAT for float depthbuffer */
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, fb->video_buffer); 
 #endif
 		
 	/* RGBDS or RGBD dump*/
 	} else if (depth_dump_mode==2 || depth_dump_mode==3){
-		const char *sOpt;
-		float OGL_depthGain;
+
 		char *depth_data=NULL;
 		int i;
 
@@ -1471,12 +1457,8 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		
 		glReadPixels(0, 0, fb->width, fb->height, GL_RGBA, GL_UNSIGNED_BYTE, fb->video_buffer);
 
-		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffGain");
-		if (sOpt) sscanf(sOpt, "%f", &OGL_depthGain);
-
-		/*let's inverse depthbuffer d=128 -> foreground*/
-		glPixelTransferf(GL_DEPTH_SCALE, -OGL_depthGain); 
-	    glPixelTransferf(GL_DEPTH_BIAS, OGL_depthGain); 
+		glPixelTransferf(GL_DEPTH_SCALE, compositor->OGLDepthGain); 
+		glPixelTransferf(GL_DEPTH_BIAS, compositor->OGLDepthOffset); 
 		
 		depth_data = (char*) malloc(sizeof(char)*fb->width*fb->height);
 		glReadPixels(0, 0, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, depth_data);
