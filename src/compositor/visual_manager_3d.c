@@ -173,7 +173,6 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 
 	/*update znear&zfar*/
 	tr_state->camera->z_near = tr_state->camera->avatar_size.x ; 
-//	tr_state->camera->z_near = 1 ; 
 
 	if (tr_state->camera->z_near<=0) tr_state->camera->z_near = FIX_ONE/2;
 	/*if pixel metrics, the default znear may be way too far and lead to weird navigation*/
@@ -202,6 +201,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 			MAX(tr_state->camera->width, tr_state->camera->height), 
 			gf_mulfix(ar*2, gf_tan(fieldOfView/2)) 
 		);
+		
 		/*fixed-point overflow*/
 		if (tr_state->camera->z_far <0) {
 			tr_state->camera->z_far = FIX_MAX/4;

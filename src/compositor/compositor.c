@@ -1039,6 +1039,20 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 #endif
 	
+#ifdef GPAC_TRISCOPE_MODE
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3dsDepthBuffGain");
+	if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthGain); else ((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthGain = 1;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3dsDepthBuffOffset");
+	if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthOffset); else ((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthOffset = 0;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FlatDepthBuffGain");
+	if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->FlatDepthGain); else ((GF_RenoirHandler *) compositor->RenoirHandler)->FlatDepthGain = 1.0;
+#endif
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffGain");
+	if (sOpt) sscanf(sOpt, "%f", &compositor->OGLDepthGain); else compositor->OGLDepthGain = 1.0;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffOffset");
+	if (sOpt) sscanf(sOpt, "%f", &compositor->OGLDepthOffset); else compositor->OGLDepthOffset = 0;
+
+	
 	/*RECT texture support - we must reload HW*/
 	compositor->reset_graphics = 1;
 
@@ -1743,6 +1757,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 		flush_time = gf_sys_clock();
 #endif
+
+		if(compositor->user->init_flags & GF_TERM_INIT_HIDE) compositor->skip_flush = 1;
 
 		if (!compositor->skip_flush) {
 			rc.x = rc.y = 0; 
