@@ -162,6 +162,7 @@ EXPORTS
 ;config.h exports
 	gf_cfg_new
 	gf_cfg_del
+	gf_cfg_save
 	gf_cfg_get_key
 	gf_cfg_set_key
 	gf_cfg_get_section_count
