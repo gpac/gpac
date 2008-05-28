@@ -839,6 +839,9 @@ static JSBool node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 					return JS_TRUE;
 			}
 		}
+		if (gf_node_get_tag(n)==TAG_ProtoNode)
+			gf_sg_proto_mark_field_loaded(n, &info);
+
 		gf_sg_script_to_node_field(c, *vp, &info, n, ptr);
 	}
 	return JS_TRUE;
