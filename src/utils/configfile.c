@@ -155,7 +155,8 @@ static void DelSection(IniSection *ptr)
 }
 
 
-static GF_Err WriteIniFile(GF_Config *iniFile)
+GF_EXPORT 
+GF_Err gf_cfg_save(GF_Config *iniFile)
 {
 	u32 i, j;
 	IniSection *sec;
@@ -187,7 +188,7 @@ void gf_cfg_del(GF_Config *iniFile)
 	IniSection *p;
 	if (!iniFile) return;
 
-	WriteIniFile(iniFile);
+	gf_cfg_save(iniFile);
 	while (gf_list_count(iniFile->sections)) {
 		p = (IniSection *) gf_list_get(iniFile->sections, 0);
 		DelSection(p);
