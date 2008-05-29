@@ -60,68 +60,6 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 po
 	return GF_OK;
 }
 
-void gf_sg_destroy_routes(GF_SceneGraph *sg)
-{
-	while (gf_list_count(sg->routes_to_destroy) ) {
-		GF_Route *r = (GF_Route *)gf_list_get(sg->routes_to_destroy, 0);
-		gf_list_rem(sg->routes_to_destroy, 0);
-		gf_sg_route_unqueue(sg, r);
-		if (r->name) free(r->name);
-		free(r);
-	}
-}
-
-
-void gf_sg_route_queue(GF_SceneGraph *sg, GF_Route *r)
-{
-	u32 now;
-	if (!sg) return;
-
-	/*get the top level scene (that's the only reliable one regarding simulatioin tick)*/
-	while (sg->parent_scene) sg = sg->parent_scene;
-	/*a single route may not be activated more than once in a simulation tick*/
-	now = 1 + sg->simulation_tick;
-	if (r->lastActivateTime >= now) return;
-	r->lastActivateTime = now;
-	gf_list_add(sg->routes_to_activate, r);
-}
-
-/*activate all routes in the order they where triggered*/
-GF_EXPORT
-void gf_sg_activate_routes(GF_SceneGraph *sg)
-{
-	GF_Route *r;
-	GF_Node *targ;
-	if (!sg) return;
-
-	sg->simulation_tick++;
-
-	while (gf_list_count(sg->routes_to_activate)) {
-		r = (GF_Route *)gf_list_get(sg->routes_to_activate, 0);
-		gf_list_rem(sg->routes_to_activate, 0);
-		if (r) {
-			targ = r->ToNode;
-			if (gf_sg_route_activate(r)) {
-#ifdef GF_SELF_REPLACE_ENABLE
-				if (sg->graph_has_been_reset) {
-					sg->graph_has_been_reset = 0;
-					return;
-				}
-#endif
-				if (r->is_setup) gf_node_changed(targ, &r->ToField);
-			}
-		}
-	}
-	gf_sg_destroy_routes(sg);
-}
-
-void gf_sg_route_unqueue(GF_SceneGraph *sg, GF_Route *r)
-{
-	/*get the top level scene*/
-	while (sg->parent_scene) sg = sg->parent_scene;
-	/*remove route from queue list*/
-	gf_list_del_item(sg->routes_to_activate, r);
-}
 
 static void Node_on_add_children(GF_Node *node)
 {

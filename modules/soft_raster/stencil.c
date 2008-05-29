@@ -242,16 +242,13 @@ static void lgb_fill_run(EVGStencil *p, EVGSurface *surf, s32 x, s32 y, u32 coun
 		val = FIX2INT(_res);
 		_res += _this->smat.m[0];
 
-		if (has_cmat) {
-			col = gradient_get_color((EVG_BaseGradient *)_this, (val >> shifter) );
-			*data++ = gf_cmx_apply(&p->cmat, col);
-		} else if (has_a) {
-			col = gradient_get_color((EVG_BaseGradient *)_this, (val >> shifter) );
+		col = gradient_get_color((EVG_BaseGradient *)_this, (val >> shifter) );
+		if (has_a) {
 			ca = ((GF_COL_A(col) + 1) * _this->alpha) >> 8;
-			*data++ = ( ((ca<<24) & 0xFF000000) ) | (col & 0x00FFFFFF);
-		} else {
-			*data++ = gradient_get_color((EVG_BaseGradient *)_this, (val >> shifter) );
-		}
+			col = ( ((ca<<24) & 0xFF000000) ) | (col & 0x00FFFFFF);
+		} 
+		if (has_cmat) col = gf_cmx_apply(&p->cmat, col);
+		*data++ = col;
 		count--;
 	}
 }
@@ -332,18 +329,15 @@ static void rg_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 cou
 		val = gf_mulfix(b, b) + gf_mulfix(_this->rad, gf_mulfix(dx, dx)+gf_mulfix(dy, dy));
 		b += gf_sqrt(val);
 		pos = FIX2INT(EVGGRADIENTBUFFERSIZE*b);
-		if (has_cmat) {
-			col = gradient_get_color((EVG_BaseGradient *)_this, pos);
-			*data++ = gf_cmx_apply(&p->cmat, col);
-		} else if (has_a) {
-			col = gradient_get_color((EVG_BaseGradient *)_this, pos);
-			if (col)
-				col = col;
+
+		col = gradient_get_color((EVG_BaseGradient *)_this, pos);
+		if (has_a) {
 			ca = ((GF_COL_A(col) + 1) * _this->alpha) >> 8;
-			*data++ = ( ((ca<<24) & 0xFF000000) ) | (col & 0x00FFFFFF);
-		} else {
-			*data++ = gradient_get_color((EVG_BaseGradient *)_this, pos);
-		}
+			col = ( ((ca<<24) & 0xFF000000) ) | (col & 0x00FFFFFF);
+		} 
+		if (has_cmat) col = gf_cmx_apply(&p->cmat, col);		
+		*data++ = col;
+
 		dx += _this->d_i.x;
 		dy += _this->d_i.y;
 		count--;

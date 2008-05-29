@@ -326,6 +326,8 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffer
 		}
 	}
 
+	gf_term_lock_compositor(priv->scene->root_od->term, 1);
+
 	/*apply it*/
 	i=0;
 	while ((st = (ISStack*)gf_list_enum(priv->is_nodes, &i))) {
@@ -345,6 +347,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffer
 			}
 		}
 	}
+	gf_term_lock_compositor(priv->scene->root_od->term, 0);
 	return e;
 }
 
