@@ -29,7 +29,7 @@
 #include <gpac/nodes_mpeg4.h>
 /*X3D tags (for internal nodes)*/
 #include <gpac/nodes_x3d.h>
-
+#include <gpac/events.h>
 #include <gpac/nodes_svg_da.h>
 
 static void ReplaceDEFNode(GF_Node *FromNode, GF_Node *node, GF_Node *newNode, Bool updateOrderedGroup);
@@ -567,11 +567,14 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 			}
 		}
 	}
-	if (pNode->sgprivate->scenegraph && (pNode->sgprivate->scenegraph->RootNode==pNode))
-		pNode->sgprivate->scenegraph->RootNode = NULL;
-
 	/*delete the node*/
-	gf_node_del(pNode);
+	if (pNode->sgprivate->scenegraph && (pNode->sgprivate->scenegraph->RootNode==pNode)) {
+		pSG = pNode->sgprivate->scenegraph;
+		gf_node_del(pNode);
+		pSG->RootNode = NULL;
+	} else {
+		gf_node_del(pNode);
+	}
 	return GF_OK;
 }
 
@@ -1492,6 +1495,14 @@ GF_EXPORT
 void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 {
 	gf_node_changed_internal(node, field, 1);
+
+	if (node->sgprivate->tag >= GF_NODE_RANGE_FIRST_SVG && node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) {		
+		GF_DOM_Event evt;
+		evt.type = GF_EVENT_TREE_MODIFIED;
+		evt.bubbles = 0;
+		evt.relatedNode = node;
+		gf_dom_event_fire(node, NULL, &evt);
+	}
 }
 
 void gf_node_del(GF_Node *node)
@@ -1560,8 +1571,6 @@ u32 gf_node_get_field_count(GF_Node *node)
 	return 0;
 }
 
-
-
 GF_EXPORT
 const char *gf_node_get_class_name(GF_Node *node)
 {
@@ -1593,8 +1602,29 @@ const char *gf_node_get_class_name_by_tag(u32 tag)
 	else if (tag==TAG_ProtoNode) return "Proto";
 	else if (tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(tag);
 	else if (tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(tag);
+#ifndef GPAC_DISABLE_SVG
+	else if (tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_element_name(tag);
+#endif
 	else return "UnsupportedNode";
 #endif
+}
+
+GF_EXPORT
+u32 gf_sg_node_get_tag_by_class_name(const char *name, const char *name_space)
+{
+	u32 tag;
+
+	/* TODO: handle name spaces */
+	tag = gf_node_mpeg4_type_by_class_name(name);
+	if (tag) return tag;
+
+	tag = gf_node_x3d_type_by_class_name(name);	
+	if (tag) return tag;
+
+	tag = gf_svg_get_element_tag(name);
+	if (tag != TAG_UndefinedNode) return tag;
+
+	return 	TAG_UndefinedNode;
 }
 
 GF_EXPORT
