@@ -916,5 +916,12 @@ void gf_dom_listener_post_add(GF_Node *obs, GF_Node *listener);
 /*process all pending add_listener request*/
 void gf_dom_listener_process_add(GF_SceneGraph *sg);
 
+typedef GF_DOMNode XBL_Element;
+const char *gf_xbl_get_element_name(u32 tag);
+u32 gf_xbl_get_element_tag(const char *element_name);
+XBL_Element *gf_xbl_create_node(u32 ElementTag);
+u32 gf_xbl_get_attribute_tag(u32 element_tag, const char *attribute_name);
+GF_DOMAttribute *gf_xbl_create_attribute(GF_DOMNode *elt, u32 tag);
+
 #endif	/*_GF_SCENEGRAPH_DEV_H_*/
 

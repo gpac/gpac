@@ -710,7 +710,41 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 		i=0;
 		while ((sg = (GF_SceneGraph*)gf_list_enum(visual->compositor->extra_scenes, &i))) {
 			GF_Node *n = gf_sg_get_root_node(sg);
-			if (n) gf_node_traverse(n, tr_state);
+			if (n) {
+				Bool use_pm, flip_coords;
+				flip_coords = 0;
+				switch (gf_node_get_tag(n)) {
+				case TAG_MPEG4_Layer2D:
+				case TAG_MPEG4_OrderedGroup:
+				case TAG_MPEG4_Layer3D:
+				case TAG_MPEG4_Group:
+				case TAG_X3D_Group:
+					use_pm = gf_sg_use_pixel_metrics(sg);
+					break;
+				default:
+					flip_coords = 1;
+					use_pm = 1;
+					break;
+				}
+				if (use_pm == tr_state->pixel_metrics) {
+					if (flip_coords) {
+						GF_Matrix2D mx_bck, mx;
+						gf_mx2d_copy(mx_bck, tr_state->transform);
+						gf_mx2d_init(mx);
+						gf_mx2d_add_scale(&mx, 1, -1);
+						gf_mx2d_add_translation(&mx, -tr_state->vp_size.x/2, tr_state->vp_size.y/2);
+						gf_mx2d_pre_multiply(&tr_state->transform, &mx);
+						tr_state->visual->center_coords = 0;
+						gf_node_traverse(n, tr_state);
+						gf_mx2d_copy(tr_state->transform, mx_bck);
+						tr_state->visual->center_coords = 1;
+					} else {
+						gf_node_traverse(n, tr_state);
+					}
+				} else {
+					gf_node_traverse(n, tr_state);
+				}
+			}
 		}
 	} else {
 		gf_node_traverse(root, tr_state);
@@ -766,7 +800,12 @@ void visual_2d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 			children = children->next;
 		}
 	} else {
-		gf_node_traverse(gf_sg_get_root_node(visual->compositor->scene), tr_state);
+		u32 i = 0;
+		GF_SceneGraph *sg = visual->compositor->scene;
+		gf_node_traverse(gf_sg_get_root_node(sg), tr_state);
+		while ((sg = (GF_SceneGraph*)gf_list_enum(visual->compositor->extra_scenes, &i))) {
+			gf_node_traverse(gf_sg_get_root_node(sg), tr_state);
+		}
 	}
 	gf_mx2d_copy(tr_state->transform, backup);
 }
