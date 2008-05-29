@@ -1181,6 +1181,8 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 			asp->fill_color |= ((u32) (clamped_fill_opacity*255) ) << 24;
 		}
 	}
+	if (!tr_state->color_mat.identity) 
+		asp->fill_color = gf_cmx_apply(&tr_state->color_mat, asp->fill_color);
 
 	asp->line_color = 0;
 	asp->pen_props.width = (props->stroke->type != SVG_PAINT_NONE) ? props->stroke_width->value : 0;
@@ -1238,6 +1240,9 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 			asp->line_color |= ((u32) (clamped_stroke_opacity*255)) << 24;
 		}
 	}
+	if (!tr_state->color_mat.identity) 
+		asp->line_color = gf_cmx_apply(&tr_state->color_mat, asp->line_color);
+
 	if (props->stroke_dasharray->type != SVG_STROKEDASHARRAY_NONE) {
 		asp->pen_props.dash = GF_DASH_STYLE_SVG;
 		asp->pen_props.dash_offset = props->stroke_dashoffset->value;

@@ -621,6 +621,23 @@ typedef struct
 	u32 sys_colors[28];
 } GF_EventSysColors;
 
+/*Mutation AttrChangeType Signaling*/
+enum
+{
+	GF_MUTATION_ATTRCHANGE_MODIFICATION = 0x01,
+	GF_MUTATION_ATTRCHANGE_ADDITION = 0x02,
+	GF_MUTATION_ATTRCHANGE_REMOVAL = 0x03,
+};
+
+typedef struct {
+	/* GF_EVENT_TREE_MODIFIED, GF_EVENT_NODE_INSERTED, GF_EVENT_NODE_REMOVED, GF_EVENT_NODE_INSERTED_DOC, GF_EVENT_NODE_REMOVED_DOC, GF_EVENT_ATTR_MODIFIED, GF_EVENT_CHAR_DATA_MODIFIED */
+	u8 type;
+	void *relatedNode;
+	void *prevValue;
+	void *newValue;
+	void *attrName;
+	u8 attrChange;
+} GF_EventMutation;
 
 typedef union
 {
@@ -641,6 +658,7 @@ typedef union
 	GF_EventSysColors sys_cols;
 	GF_EventMove move;
 	GF_EventVideoSetup setup;
+	GF_EventMutation mutation;
 } GF_Event;
 
 

@@ -480,7 +480,10 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 		rysq = gf_mulfix(r_y, r_y);
 	} 
 
-	/*FIXME - this can be 0*/
+#if 0
+	/* Old code with overflow problems in fixed point, 
+	   sign was sometimes negative (cf tango SVG icons appointment-new.svg)*/
+
 	sign = gf_mulfix(rxsq,ymidpsq) + gf_mulfix(rysq, xmidpsq);
 	scale = FIX_ONE;
 	/*FIXME - what if scale is 0 ??*/
@@ -488,6 +491,22 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 					(gf_mulfix(rxsq,rysq) - gf_mulfix(rxsq, ymidpsq) - gf_mulfix(rysq,xmidpsq)),
 					sign
 			);
+#else
+	/* New code: the sign variable computation is split into simpler cases and 
+	   the expression is divided by rxsq to reduce the range */	   
+	if ((rxsq == 0 || ymidpsq ==0) && (rysq == 0 || xmidpsq == 0)) {
+		scale = FIX_ONE;
+	} else if (rxsq == 0 || ymidpsq ==0) {
+		scale = gf_divfix(rxsq,xmidpsq) - FIX_ONE;
+	} else if (rysq == 0 || xmidpsq == 0) {
+		scale = gf_divfix(rysq,ymidpsq) - FIX_ONE;
+	} else {
+		Fixed tmp;
+		tmp = gf_mulfix(gf_divfix(rysq, rxsq), xmidpsq);
+		sign = ymidpsq + tmp;
+		scale = gf_divfix((rysq - ymidpsq - tmp),sign);
+	}
+#endif
 	/* precision problem may lead to negative value around zero, we need to take care of it before sqrt */
 	scale = gf_sqrt(ABS(scale));
 

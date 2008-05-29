@@ -1145,8 +1145,8 @@ GF_M2TS_EIT *gf_m2ts_decode_eit_section(unsigned char *data, u32 data_size)
 		
 		evt->descriptors = gf_list_new();
 		evt->event_id = (data[pos] << 8) | data[pos+1];
-		gf_m2ts_decode_mjd_date((data[pos+2] << 8) | data[pos+3], &evt->start_year, &evt->start_month, &evt->start_day);
-		evt->start_time = (data[pos+4] << 16) | (data[pos+5] << 8) | data[pos+6];
+		gf_m2ts_decode_mjd_date((data[pos+2] << 8) | data[pos+3], &evt->start.year, &evt->start.month, &evt->start.day);
+		evt->start.time = (data[pos+4] << 16) | (data[pos+5] << 8) | data[pos+6];
 		evt->duration = (data[pos+7] << 16) | (data[pos+8] << 8) | data[pos+9];
 		evt->running_status = (data[pos+10]>>5) & 0x7;
 		evt->free_CA_mode = (data[pos+10]>>4) & 0x1;
@@ -1311,6 +1311,7 @@ GF_EXPORT void gf_m2ts_delele_eit(GF_M2TS_EIT *eit)
 
 static void gf_m2ts_process_eit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *eit_ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
+	GF_M2TS_EIT *eit;
 	u32 nb_sections;
 	GF_M2TS_Section *section;
 
@@ -1344,8 +1345,13 @@ static void gf_m2ts_process_eit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *eit_ses
 	} else {
 		return;
 	}
-
+	
+#if 0
 	if (ts->on_event) ts->on_event(ts, evt_type, section);
+#else
+	eit = gf_m2ts_decode_eit_section(section->data, section->data_size);
+	if (ts->on_event) ts->on_event(ts, evt_type, eit);
+#endif
 
 	/* free the events if not done in on_event */
 }
@@ -1371,6 +1377,59 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 	sl_pck.data_len = section->data_size;
 	sl_pck.stream = (GF_M2TS_ES *)es;
 	if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
+}
+
+static void gf_m2ts_process_tdt_tot_st(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
+{
+	u32 nb_sections;
+	GF_M2TS_Section *section;
+	u8 *data;
+	nb_sections = gf_list_count(sections);
+	if (nb_sections > 1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("TDT, TOT or ST Sections should be handled one by one\n"));
+		return;
+	}
+
+	section = (GF_M2TS_Section *)gf_list_get(sections, 0);
+	data = section->data;
+
+	if (table_id == GF_M2TS_TABLE_ID_TDT || table_id == GF_M2TS_TABLE_ID_TOT) {
+		GF_M2TS_DateTime_Event now;
+		gf_m2ts_decode_mjd_date((data[0] << 8) | data[1], &now.year, &now.month, &now.day);
+		now.time = (data[2] << 16) | (data[3] << 8) | data[4];
+
+/*
+		sprintf(output, "%02d/%02d/%04d %02x:%02x:%02x", day, month, year, 
+			(0xFF & time>>16), (0xFF & time>>8), (0xFF & time));
+*/
+		if (table_id == GF_M2TS_TABLE_ID_TDT) {
+			if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TDT, &now);
+		} else {
+			GF_M2TS_TOT_Event tot;
+			tot.now = now;
+			tot.descriptors = gf_list_new();
+
+			/* TODO parse descriptors */
+			/*
+			u32 pos, loop_len;
+			pos = 0;
+			loop_len = ((data[5]&0x0f) << 8) | (data[6] & 0xff);
+			data += 6;
+			while (pos < loop_) {
+				u8 tag = data[pos];
+				u8 len = data[pos+1];
+				pos += 2;
+				if (tag == GF_M2TS_DVB_LOCAL_TIME_OFFSET_DESCRIPTOR) {
+					u32 n = len / 13; // 13 is the size in bytes of each loop
+					u32 country_code = 
+				} 
+				pos+= len;
+			}*/
+			if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TOT, &tot);
+		} 
+	} else if (table_id == GF_M2TS_TABLE_ID_ST) {
+		/* skip stuffing table */
+	}
 }
 
 static void gf_m2ts_process_int(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ip_not_table, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
@@ -1886,6 +1945,8 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				/* ignore EIT messages for the moment */
 				gf_m2ts_gather_section(ts, ts->eit, NULL, &hdr, data, payload_size); 
 				return;
+			} else if (hdr.pid == GF_M2TS_PID_TDT_TOT_ST) {
+				gf_m2ts_gather_section(ts, ts->tdt_tot_st, NULL, &hdr, data, payload_size); 
 			}
 		} else if (es->flags & GF_M2TS_ES_IS_SECTION) { 	/* The stream uses sections to carry its payload */
 			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
@@ -2063,6 +2124,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit);
 	ts->eit = gf_m2ts_section_filter_new(gf_m2ts_process_eit);
 	ts->eit->process_individual_section = 1;
+	ts->tdt_tot_st = gf_m2ts_section_filter_new(gf_m2ts_process_tdt_tot_st);
 	return ts;
 }
 
@@ -2073,6 +2135,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	if (ts->sdt) gf_m2ts_section_filter_del(ts->sdt);
 	if (ts->nit) gf_m2ts_section_filter_del(ts->nit);
 	if (ts->eit) gf_m2ts_section_filter_del(ts->eit);
+	if (ts->tdt_tot_st) gf_m2ts_section_filter_del(ts->tdt_tot_st);
 
 	for (i=0; i<8192; i++) {
 		if (ts->ess[i]) gf_m2ts_es_del(ts->ess[i]);

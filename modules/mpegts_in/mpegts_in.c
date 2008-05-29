@@ -98,6 +98,7 @@ typedef struct
 	u32 stb_at_last_pcr;
 	u32 nb_pck;
 
+	Bool epg_requested;
 	Bool has_eit;
 	LPNETCHANNEL eit_channel;
 } M2TSIn;
@@ -497,6 +498,33 @@ static GFINLINE void MP2TS_SendSLPacket(M2TSIn *m2ts, GF_M2TS_SL_PCK *pck)
 	gf_term_on_sl_packet(m2ts->service, pck->stream->user, pck->data, pck->data_len, NULL, GF_OK);
 }
 
+static GF_ObjectDescriptor *M2TS_GenerateEPG_OD(M2TSIn *m2ts) 
+{
+	/* declaring a special stream for displaying eit */
+	GF_ObjectDescriptor *od;
+	GF_ESD *esd;
+
+	/*create a stream description for this channel*/
+	esd = gf_odf_desc_esd_new(0);
+	esd->ESID = GF_M2TS_PID_EIT_ST_CIT;
+	esd->decoderConfig->streamType = GF_STREAM_PRIVATE_SCENE;
+	esd->decoderConfig->objectTypeIndication = 0x24;
+	esd->decoderConfig->bufferSizeDB = 0;
+
+	/*we only use AUstart indicator
+	esd->slConfig->useAccessUnitStartFlag = 1;
+	esd->slConfig->useAccessUnitEndFlag = 0;
+	esd->slConfig->useRandomAccessPointFlag = 1;
+	esd->slConfig->AUSeqNumLength = 0;
+	esd->slConfig->timestampResolution = 90000;*/
+
+	/*declare object to terminal*/
+	od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
+	gf_list_add(od->ESDescriptors, esd);
+	od->objectDescriptorID = GF_M2TS_PID_EIT_ST_CIT;	
+	return od;
+}
+
 static void M2TS_FlushRequested(M2TSIn *m2ts)
 {
 	u32 i, j, req_prog_count, count, prog_id, found;
@@ -548,9 +576,19 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 			}
 		}
 	}
-	/*force scene regeneration*/
-	if (found)
-		gf_term_add_media(m2ts->service, NULL, 0);
+
+	if (m2ts->epg_requested) {
+		if (!m2ts->has_eit) {
+			GF_ObjectDescriptor *od = M2TS_GenerateEPG_OD(m2ts);
+			/*declare but don't regenerate scene*/
+			gf_term_add_media(m2ts->service, (GF_Descriptor*)od, 0);
+			m2ts->has_eit = 1;
+		}
+	} else {
+		/*force scene regeneration only when EPG is not requested*/
+		if (found)
+			gf_term_add_media(m2ts->service, NULL, 0);
+	}
 
 	gf_mx_v(m2ts->mx);
 }
@@ -585,47 +623,16 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		M2TS_FlushRequested(m2ts);
 		break;
 	case GF_M2TS_EVT_EIT_ACTUAL_PF:
-		if (!m2ts->has_eit) {
-			/* declaring a special stream for displaying eit */
-			GF_ObjectDescriptor *od;
-			GF_ESD *esd;
-
-			/*create a stream description for this channel*/
-			esd = gf_odf_desc_esd_new(0);
-			esd->ESID = GF_M2TS_PID_EIT_ST_CIT;
-			esd->decoderConfig->streamType = GF_STREAM_TEXT;
-			esd->decoderConfig->objectTypeIndication = 0x24;
-			esd->decoderConfig->bufferSizeDB = 0;
-
-			/*we only use AUstart indicator*/
-			esd->slConfig->useAccessUnitStartFlag = 1;
-			esd->slConfig->useAccessUnitEndFlag = 0;
-			esd->slConfig->useRandomAccessPointFlag = 1;
-			esd->slConfig->AUSeqNumLength = 0;
-			esd->slConfig->timestampResolution = 90000;
-	
-			/*declare object to terminal*/
-			od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
-			gf_list_add(od->ESDescriptors, esd);
-			od->objectDescriptorID = GF_M2TS_PID_EIT_ST_CIT;	
-
-			/*declare but don't regenerate scene*/
-			gf_term_add_media(m2ts->service, (GF_Descriptor*)od, 0);
-			m2ts->has_eit = 1;
-		}
-		if (m2ts->eit_channel) {
-			GF_M2TS_Section *section = param;
-			GF_SLHeader slh;
-			memset(&slh, 0, sizeof(GF_SLHeader));
-			slh.accessUnitStartFlag = 1;
-			slh.accessUnitEndFlag = 1;
-			slh.compositionTimeStampFlag = 1;
-			slh.compositionTimeStamp = 0;
-			slh.decodingTimeStampFlag = 1;
-			slh.decodingTimeStamp = 0;
-			slh.randomAccessPointFlag = 1;
-			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, section->data, section->data_size, &slh, GF_OK);
-		}
+		if (m2ts->eit_channel) 
+			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, 0, NULL, GF_OK);
+		break;
+	case GF_M2TS_EVT_TDT:
+		if (m2ts->eit_channel) 
+			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, 1, NULL, GF_OK);
+		break;
+	case GF_M2TS_EVT_TOT:
+		if (m2ts->eit_channel) 
+			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, 2, NULL, GF_OK);
 		break;
 	case GF_M2TS_EVT_PES_PCK:
 		MP2TS_SendPacket(m2ts, param);
@@ -1010,6 +1017,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	GF_Descriptor *desc = NULL;
 	char *ext;
 
+
 	ext = sub_url ? strrchr(sub_url, '#') : NULL;
 	/*we have been requested the entire TS*/
 	if (!ext) {
@@ -1024,6 +1032,8 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			GF_SAFEALLOC(prog, M2TSIn_Prog);
 			prog->pid = atoi(ext+4);
 			gf_list_add(m2ts->requested_pids, prog);
+		} else if (!strnicmp(ext, "EPG", 3)) {
+			m2ts->epg_requested = 1;
 		} else {
 			u32 i, count;
 			count = gf_list_count(m2ts->requested_progs);
@@ -1051,10 +1061,15 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 				return desc;
 			}
 		} 
-		/*returning an empty IOD means "no scene description", let the terminal handle all media objects*/
-		desc = gf_odf_desc_new(GF_ODF_IOD_TAG);
-		((GF_ObjectDescriptor *) desc)->objectDescriptorID = 1;
-		return desc;
+		if (m2ts->epg_requested) {
+			GF_ObjectDescriptor *od = M2TS_GenerateEPG_OD(m2ts);
+			return (GF_Descriptor *)od;
+		} else {
+			/*returning an empty IOD means "no scene description", let the terminal handle all media objects*/
+			desc = gf_odf_desc_new(GF_ODF_IOD_TAG);
+			((GF_ObjectDescriptor *) desc)->objectDescriptorID = 1;
+			return desc;
+		}
 	}
 
 	return NULL;

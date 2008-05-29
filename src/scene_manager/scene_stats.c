@@ -240,6 +240,8 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 {
 	u32 i = 0;
 
+	stat->nb_svg_attributes++;
+
 	switch (field->fieldType) {
 	case SVG_PathData_datatype:
 		{

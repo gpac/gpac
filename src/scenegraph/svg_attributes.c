@@ -67,6 +67,15 @@ u32 gf_dom_event_type_by_name(const char *name)
 	if (!strcmp(name, "unload"))	return GF_EVENT_UNLOAD;
 	if (!strcmp(name, "zoom"))		return GF_EVENT_ZOOM;
 
+	/* DOM Mutation events */
+	if (!strcmp(name, "DOMSubtreeModified"))			return GF_EVENT_TREE_MODIFIED;
+	if (!strcmp(name, "DOMNodeInserted"))				return GF_EVENT_NODE_INSERTED;
+	if (!strcmp(name, "DOMNodeRemoved"))				return GF_EVENT_NODE_REMOVED;
+	if (!strcmp(name, "DOMNodeRemovedFromDocument"))	return GF_EVENT_NODE_REMOVED_DOC;
+	if (!strcmp(name, "DOMNodeInsertedIntoDocument"))	return GF_EVENT_NODE_INSERTED_DOC;
+	if (!strcmp(name, "DOMAttrModified"))				return GF_EVENT_ATTR_MODIFIED;
+	if (!strcmp(name, "DOMCharacterDataModified"))		return GF_EVENT_CHAR_DATA_MODIFIED;
+
 	/*LASeR events*/
 	if (!strcmp(name, "activatedEvent"))	return GF_EVENT_ACTIVATED;
 	if (!strcmp(name, "deactivatedEvent"))	return GF_EVENT_DEACTIVATED;
@@ -1325,7 +1334,7 @@ next_command:
 				end.x += rel_ref_pt.x;
 				end.y += rel_ref_pt.y;
 			}
-			gf_path_add_svg_arc_to(path, end.x, end.y, orig.x, orig.y, x_axis_rotation , (large_arc_flag == 1 ? 1 : 0), (sweep_flag == 1 ? 1 : 0));
+			gf_path_add_svg_arc_to(path, end.x, end.y, orig.x, orig.y, x_axis_rotation , (large_arc_flag == FIX_ONE ? 1 : 0), (sweep_flag == FIX_ONE ? 1 : 0));
 			rel_ref_pt = end;
 			ct_orig = end;
 			prev_c = c;

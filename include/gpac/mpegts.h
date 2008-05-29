@@ -133,6 +133,10 @@ enum
 	GF_M2TS_EVT_EIT_OTHER_PF,
 	/* An EIT message for the schedule of an other TS has been received */
 	GF_M2TS_EVT_EIT_OTHER_SCHEDULE,
+	/* A message to inform about the current date and time in the TS */
+	GF_M2TS_EVT_TDT,
+	/* A message to inform about the current time offset in the TS */
+	GF_M2TS_EVT_TOT,
 };
 
 enum
@@ -332,11 +336,19 @@ typedef struct {
 /*EIT information objects*/
 typedef struct
 {
+	u32 year, month, day, time;
+} GF_M2TS_DateTime_Event;
+
+typedef struct
+{
+	GF_M2TS_DateTime_Event now;
+	GF_List *descriptors;
+} GF_M2TS_TOT_Event;
+
+typedef struct
+{
 	u16 event_id;
-	u32 start_year;
-	u32 start_month;
-	u32 start_day;
-	u32 start_time;
+	GF_M2TS_DateTime_Event start;
 	u32 duration;
 	u8 running_status;
 	u8 free_CA_mode;
@@ -391,7 +403,7 @@ struct tag_m2ts_demux
 	char *buffer;
 	u32 buffer_size, alloc_size;
 	/*default transport PID filters*/
-	GF_M2TS_SectionFilter *pat, *nit, *sdt, *eit;
+	GF_M2TS_SectionFilter *pat, *nit, *sdt, *eit, *tdt_tot_st;
 
 	/* Structure to hold all the INT tables if the TS contains IP streams */
 	GF_List *ip_mac_not_tables;
@@ -450,6 +462,8 @@ enum
 	GF_M2TS_DVB_CA_IDENTIFIER_DESCRIPTOR		= 0x53,
 	GF_M2TS_DVB_CONTENT_DESCRIPTOR				= 0x54,
 	GF_M2TS_DVB_PARENTAL_RATING_DESCRIPTOR		= 0x55,
+	/* ... */
+	GF_M2TS_DVB_LOCAL_TIME_OFFSET_DESCRIPTOR	= 0x58,
 	/* ... */
 	GF_M2TS_DVB_DATA_BROADCAST_DESCRIPTOR		= 0x64,
 	/* ... */
