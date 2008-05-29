@@ -67,6 +67,13 @@ GF_Config *gf_cfg_new(const char *filePath, const char *fileName);
  */
 void gf_cfg_del(GF_Config *cfgFile);
 /*!
+ *	\brief configuration saving
+ *
+ *Saves the configuration file if modified.
+ *\param cfgFile the target configuration file
+ */
+GF_Err gf_cfg_save(GF_Config *iniFile);
+/*!
  *	\brief key value query
  *
  *Gets a key value from its section and name.

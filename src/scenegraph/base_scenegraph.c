@@ -54,6 +54,7 @@ GF_SceneGraph *gf_sg_new()
 	tmp->Routes = gf_list_new();
 	tmp->routes_to_activate = gf_list_new();
 	tmp->routes_to_destroy = gf_list_new();
+	tmp->exported_nodes = gf_list_new();
 #ifndef GPAC_DISABLE_SVG
 	tmp->xlink_hrefs = gf_list_new();
 	tmp->smil_timed_elements = gf_list_new();
@@ -132,6 +133,7 @@ void gf_sg_del(GF_SceneGraph *sg)
 	gf_list_del(sg->unregistered_protos);
 	gf_list_del(sg->routes_to_activate);
 	gf_list_del(sg->routes_to_destroy);
+	gf_list_del(sg->exported_nodes);
 	free(sg);
 }
 
@@ -265,12 +267,14 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	NodeIDedItem *reg_node;
 	if (!sg) return;
 
+#if 0
 	/*inlined graph, remove any of this graph nodes from the parent graph*/
 	if (!sg->pOwningProto && sg->parent_scene) {
 		GF_SceneGraph *par = sg->parent_scene;
 		while (par->parent_scene) par = par->parent_scene;
 		if (par->RootNode) SG_GraphRemoved(par->RootNode, sg);
 	}
+#endif
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 	/*scripts are the first source of cylic references in the graph. In order to clean properly
@@ -292,6 +296,13 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	/*flush any pending add_listener*/
 	gf_dom_listener_process_add(sg);
 #endif
+
+
+	while (gf_list_count(sg->exported_nodes)) {
+		GF_Node *n = gf_list_get(sg->exported_nodes, 0);
+		gf_list_rem(sg->exported_nodes, 0);
+		gf_node_replace(n, NULL, 0);
+	}
 
 	while (gf_list_count(sg->routes_to_activate)) {
 		gf_list_rem(sg->routes_to_activate, 0);
@@ -524,6 +535,9 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 				break;
 			}
 		}
+		if (parentNode->sgprivate->scenegraph != pSG) {
+			gf_list_del_item(pSG->exported_nodes, pNode);
+		}
 	}
 
 	/*unregister the instance*/
@@ -585,6 +599,9 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 			item->next = NULL;
 			item->node = parentNode;
 			nlist->next = item;
+		}
+		if (parentNode->sgprivate->scenegraph != pSG) {
+			gf_list_add(pSG->exported_nodes, node);
 		}
 	}
 	return GF_OK;

@@ -837,10 +837,16 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 	free((char *) inst->proto_name);
 #endif
 
-	gf_node_free((GF_Node *)inst);
-	/*and finally destroy the scene graph - do it last to handle the case of hardcoded protos which may need
-	the scenegraph pointer when being destroyed*/
-	gf_sg_del(sg);
+	sg->pOwningProto = NULL;
+	/*and finally destroy the node. If the proto is a hardcoded one (UserCallback set), destroy the node first
+	since the hardcoded proto may need the scene graph when being destroyed*/
+	if (inst->sgprivate->UserCallback) {
+		gf_node_free((GF_Node *)inst);
+		gf_sg_del(sg);
+	} else {
+		gf_sg_del(sg);
+		gf_node_free((GF_Node *)inst);
+	}
 }
 
 /*Note on ISed fields: we cannot support fan-in on proto, eg we assume only one eventIn field can recieve events

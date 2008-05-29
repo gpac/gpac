@@ -142,6 +142,9 @@ struct __tag_scene_graph
 	/*all routes available*/
 	GF_List *Routes;
 
+	/*all routes available*/
+	GF_List *exported_nodes;
+
 	/*when a proto is instanciated it creates its own scene graph. BIFS/VRML specify that the namespace is the same 
 	(eg cannot reuse a NodeID or route name/ID), but this could be done differently by some other stds
 	if NULL this is the main scenegraph*/

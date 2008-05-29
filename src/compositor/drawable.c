@@ -1248,6 +1248,11 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 	asp->pen_props.cap = (u8) *props->stroke_linecap;
 	asp->pen_props.join = (u8) *props->stroke_linejoin;
 	asp->pen_props.miterLimit = props->stroke_miterlimit->value;
+
+	if (!tr_state->color_mat.identity) {
+		asp->fill_color = gf_cmx_apply(&tr_state->color_mat, asp->fill_color);
+		asp->line_color = gf_cmx_apply(&tr_state->color_mat, asp->line_color);
+	}
 	return ret;
 }
 
