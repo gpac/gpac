@@ -267,6 +267,11 @@ GF_Err gf_sm_load_run_svg(GF_SceneLoader *load);
 GF_Err gf_sm_load_init_svg_string(GF_SceneLoader *load, char *str);
 #endif
 
+#ifndef GPAC_DISABLE_XBL
+GF_Err gf_sm_load_init_xbl(GF_SceneLoader *load);
+GF_Err gf_sm_load_done_xbl(GF_SceneLoader *load);
+GF_Err gf_sm_load_run_xbl(GF_SceneLoader *load);
+#endif
 
 #ifndef GPAC_READ_ONLY
 
@@ -381,12 +386,14 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 			else if (strstr(szExt, "mov")) load->type = GF_SM_LOAD_QT;
 			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG_DA;
 			else if (strstr(szExt, "xsr")) load->type = GF_SM_LOAD_XSR;
+			else if (strstr(szExt, "xbl")) load->type = GF_SM_LOAD_XBL;
 			else if (strstr(szExt, "xml")) {
 				char *rtype = gf_xml_get_root_type(load->fileName, &e);
 				if (rtype) {
 					if (!strcmp(rtype, "SAFSession")) load->type = GF_SM_LOAD_XSR;
 					else if (!strcmp(rtype, "XMT-A")) load->type = GF_SM_LOAD_XMTA;
 					else if (!strcmp(rtype, "X3D")) load->type = GF_SM_LOAD_X3D;
+					else if (!strcmp(rtype, "bindings")) load->type = GF_SM_LOAD_XBL;
 
 					free(rtype);
 				}
@@ -409,6 +416,10 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_SVG_DA:
 	case GF_SM_LOAD_XSR:
 		return gf_sm_load_init_svg(load);
+#endif
+#ifndef GPAC_DISABLE_XBL
+	case GF_SM_LOAD_XBL: 
+		return gf_sm_load_init_xbl(load);
 #endif
 #ifndef GPAC_READ_ONLY
 	case GF_SM_LOAD_SWF: 
@@ -441,6 +452,12 @@ void gf_sm_load_done(GF_SceneLoader *load)
 		gf_sm_load_done_svg(load);
 		break;
 #endif
+#ifndef GPAC_DISABLE_XBL
+	case GF_SM_LOAD_XBL:
+		gf_sm_load_done_xbl(load);
+		break;
+#endif
+
 #ifndef GPAC_READ_ONLY
 	case GF_SM_LOAD_SWF: 
 		gf_sm_load_done_swf(load); 
@@ -471,7 +488,10 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 	case GF_SM_LOAD_SVG_DA:
 		return gf_sm_load_run_svg(load);
 #endif
-
+#ifndef GPAC_DISABLE_SVG
+	case GF_SM_LOAD_XBL:
+		return gf_sm_load_run_xbl(load);
+#endif
 #ifndef GPAC_READ_ONLY
 	case GF_SM_LOAD_SWF:
 		return gf_sm_load_run_swf(load);

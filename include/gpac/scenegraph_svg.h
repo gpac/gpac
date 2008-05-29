@@ -42,7 +42,8 @@ enum
 {
 	/*this tag is set for a full dom attribute only - attribute name is then available*/
 	TAG_DOM_ATTRIBUTE_FULL = 0,
-	TAG_SVG_ATT_RANGE_FIRST, 
+	TAG_SVG_ATT_RANGE_FIRST,
+	TAG_XBL_ATT_RANGE_FIRST = TAG_SVG_ATT_RANGE_FIRST + 256,
 };
 
 
@@ -158,6 +159,8 @@ typedef struct
 	u32 batteryState, batteryLevel;
 	/*smil event time*/
 	Double smil_event_time;
+	/* mutation event */
+	GF_Node *relatedNode;
 } GF_DOM_Event;
 
 /*fires event on the specified node

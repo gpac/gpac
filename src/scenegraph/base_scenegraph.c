@@ -1587,6 +1587,9 @@ const char *gf_node_get_class_name(GF_Node *node)
 #ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_element_name(node->sgprivate->tag);
 #endif
+#ifndef GPAC_DISABLE_XBL
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_XBL) return gf_xbl_get_element_name(node->sgprivate->tag);
+#endif
 	else return "UnsupportedNode";
 #endif
 }
@@ -1605,6 +1608,9 @@ const char *gf_node_get_class_name_by_tag(u32 tag)
 #ifndef GPAC_DISABLE_SVG
 	else if (tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_element_name(tag);
 #endif
+#ifndef GPAC_DISABLE_XBL
+	else if (tag <= GF_NODE_RANGE_LAST_XBL) return gf_xbl_get_element_name(tag);
+#endif
 	else return "UnsupportedNode";
 #endif
 }
@@ -1622,6 +1628,9 @@ u32 gf_sg_node_get_tag_by_class_name(const char *name, const char *name_space)
 	if (tag) return tag;
 
 	tag = gf_svg_get_element_tag(name);
+	if (tag != TAG_UndefinedNode) return tag;
+
+	tag = gf_xbl_get_element_tag(name);
 	if (tag != TAG_UndefinedNode) return tag;
 
 	return 	TAG_UndefinedNode;
@@ -1651,6 +1660,9 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 	}
 #ifndef GPAC_DISABLE_SVG
 	else if (tag <= GF_NODE_RANGE_LAST_SVG) node = (GF_Node *) gf_svg_create_node(tag);
+#endif
+#ifndef GPAC_DISABLE_XBL
+	else if (tag <= GF_NODE_RANGE_LAST_XBL) node = (GF_Node *) gf_xbl_create_node(tag);
 #endif
 	else node = NULL;
 

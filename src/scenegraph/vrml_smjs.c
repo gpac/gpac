@@ -238,7 +238,6 @@ static JSBool getWorldURL(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *r
 }
 static JSBool getScript(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *rval)
 {
-	GF_JSAPIParam par;
 	GF_Node *node = JS_GetContextPrivate(c);
 	*rval = OBJECT_TO_JSVAL(node);
 	return JS_TRUE;

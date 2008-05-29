@@ -78,6 +78,10 @@ enum {
 	/*range for SVG*/
 	GF_NODE_RANGE_FIRST_SVG, 
 	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+100,
+
+	/*range for XBL*/
+	GF_NODE_RANGE_FIRST_XBL, 
+	GF_NODE_RANGE_LAST_XBL = GF_NODE_RANGE_FIRST_XBL+100,
 };
 
 
@@ -151,6 +155,8 @@ u32 gf_node_get_id(GF_Node*);
 const char *gf_node_get_class_name(GF_Node *Node);
 /* gets node built-in name from a tag value (eg 'Appearance', ..) */
 const char *gf_node_get_class_name_by_tag(u32 tag);
+
+u32 gf_sg_node_get_tag_by_class_name(const char *name, const char *name_space);
 
 /*unset the node ID*/
 GF_Err gf_node_remove_id(GF_Node *p);

@@ -179,7 +179,8 @@ enum
 	GF_SM_LOAD_XSR, /*LASeR+XML loader*/
 	GF_SM_LOAD_SWF, /*SWF->MPEG-4 converter*/
 	GF_SM_LOAD_QT, /*MOV->MPEG-4 converter (only cubic QTVR for now)*/
-	GF_SM_LOAD_MP4 /*MP4 memory loader*/
+	GF_SM_LOAD_MP4, /*MP4 memory loader*/
+	GF_SM_LOAD_XBL
 };
 
 typedef struct
@@ -368,6 +369,8 @@ typedef struct _scenestat
 	u32 count_2f;
 	/*all SFVec3f other than MFVec3fs elements*/
 	u32 count_3f;
+
+	u32 nb_svg_attributes;
 } GF_SceneStatistics;
 
 typedef struct _statman GF_StatManager;
