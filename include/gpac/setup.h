@@ -64,7 +64,7 @@ typedef char s8;
 #endif
 
 #define GF_PATH_SEPARATOR	'\\'
-#define GF_MAX_PATH	260
+#define GF_MAX_PATH	1024
 
 /*WINCE config*/
 #if defined(_WIN32_WCE)

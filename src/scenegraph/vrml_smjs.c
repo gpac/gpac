@@ -236,6 +236,13 @@ static JSBool getWorldURL(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *r
 	}
 	return JS_FALSE;
 }
+static JSBool getScript(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *rval)
+{
+	GF_JSAPIParam par;
+	GF_Node *node = JS_GetContextPrivate(c);
+	*rval = OBJECT_TO_JSVAL(node);
+	return JS_TRUE;
+}
 static JSBool replaceWorld(JSContext*c, JSObject*o, uintN n, jsval *v, jsval *rv)
 {
 	return JS_TRUE;
@@ -2225,6 +2232,7 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 		  {"print",           JSPrint,          0},
 		  {"getOption",  getOption,          0},
 		  {"setOption",  setOption,          0},
+		  {"getScript",  getScript,          0},
 		  {0}
 		};
 		JS_DefineFunctions(sc->js_ctx, sc->js_browser, browserFunctions);

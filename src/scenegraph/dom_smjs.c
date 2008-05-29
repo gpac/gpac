@@ -303,6 +303,7 @@ char *dom_node_flatten_text(GF_Node *n)
 	char *res = NULL;
 	GF_ChildNodeItem *list;
 	if (n->sgprivate->tag==TAG_DOMText) return strdup(((GF_DOMText*)n)->textContent);
+	else if (n->sgprivate->tag==TAG_SVG_handler) return res;
 	list = ((GF_ParentNode *)n)->children;
 	while (list) {
 		char *t = dom_node_flatten_text(list->node);
@@ -310,6 +311,7 @@ char *dom_node_flatten_text(GF_Node *n)
 			u32 sub_len = strlen(t);
 			res = realloc(res, sizeof(char)*(len+sub_len+1));
 			if (!len) res[0] = 0;
+			len += sub_len;
 			strcat(res, t);
 			free(t);
 		}

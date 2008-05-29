@@ -523,7 +523,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
 		SVGgStack *group = gf_node_get_private(node);
 
-		if (all_atts.opacity && (all_atts.opacity->value < FIX_ONE) ) {
+		if (0 && all_atts.opacity && (all_atts.opacity->value < FIX_ONE) ) {
 			if (!group->cache) {
 				group->cache = group_cache_new(tr_state->visual->compositor, node);
 				group->cache->force_recompute = 1;

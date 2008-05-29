@@ -490,6 +490,10 @@ struct _es_channel
 	setup as fast as possible.*/
 	Bool direct_dispatch;
 
+	/*indicates that decoding can be called directly when receiving an AU on this channel
+	This is used to bypass SL for EIT internal streams*/
+	Bool direct_decode;
+
 	GF_IPMPTool *ipmp_tool;
 	Bool is_protected;
 
