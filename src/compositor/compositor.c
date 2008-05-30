@@ -812,6 +812,11 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 			width = compositor->scene_width;
 			height = compositor->scene_height;
 
+			opt = gf_cfg_get_key(compositor->user->config, "Compositor", "ScreenWidth");
+			if (opt) width = atoi(opt);
+			opt = gf_cfg_get_key(compositor->user->config, "Compositor", "ScreenHeight");
+			if (opt) height = atoi(opt);
+
 			if (!compositor->user->os_window_handler) {
 				/*only notify user if we are attached to a window*/
 				//do_notif = 0;
@@ -2051,9 +2056,6 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 
 static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool from_user)
 {
-	/*to scan config options*/
-	const char *sOpt;
-	
 	/*not assigned yet*/
 	if (!compositor || !compositor->visual) return 0;
 	/*we're reconfiguring the video output, cancel all messages*/
@@ -2122,11 +2124,12 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			}
 			break;
 		
+#ifdef GPAC_TRISCOPE_MODE
 		case GF_KEY_JOYSTICK:
 			if (event->type==GF_EVENT_KEYUP) {
+				const char *sOpt;
 				switch (event->key.hw_code) {
 				case 4:
-	#ifdef GPAC_TRISCOPE_MODE
 					sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3dsDepthBuffGain");
 					if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthGain); else ((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthGain = 1;
 					((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthGain -= 5;
@@ -2136,11 +2139,8 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 					gf_cfg_set_key(compositor->user->config, "Compositor", "FlatDepthBuffGain", sOpt);	
 					gf_cfg_save(compositor->user->config);
 					return 0;
-	#endif
-					
-					
+
 				case 5:
-	#ifdef GPAC_TRISCOPE_MODE
 					sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3dsDepthBuffOffset");
 					if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthOffset); else ((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthOffset = 0;
 					((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthOffset -= 5;
@@ -2148,11 +2148,8 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 					gf_cfg_set_key(compositor->user->config, "Compositor", "3dsDepthBuffOffset", sOpt);
 					gf_cfg_save(compositor->user->config);
 					return 0;
-	#endif
-					
 					
 				case 6:
-	#ifdef GPAC_TRISCOPE_MODE
 					sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3dsDepthBuffGain");
 					if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthGain); else ((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthGain = 1;
 					((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthGain += 5;
@@ -2162,11 +2159,8 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 					gf_cfg_set_key(compositor->user->config, "Compositor", "FlatDepthBuffGain", sOpt);
 					gf_cfg_save(compositor->user->config);
 					return 0;
-	#endif
-					
 					
 				case 7:
-	#ifdef GPAC_TRISCOPE_MODE
 					sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3dsDepthBuffOffset");
 					if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthOffset); else ((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthOffset = 0;
 					((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthOffset += 5;
@@ -2174,14 +2168,13 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 					gf_cfg_set_key(compositor->user->config, "Compositor", "3dsDepthBuffOffset", sOpt);
 					gf_cfg_save(compositor->user->config);
 					return 0;
-	#endif
 					
 				default:
 				    break;
-					
 				}
 			}
 			break;
+#endif
 		}	
 		
 		event->key.flags |= compositor->key_states;
