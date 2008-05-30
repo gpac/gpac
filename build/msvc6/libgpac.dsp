@@ -567,6 +567,14 @@ SOURCE=..\..\src\scenegraph\vrml_tools.c
 
 SOURCE=..\..\src\scenegraph\x3d_nodes.c
 # End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\xbl_nodes.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\xbl_process.c
+# End Source File
 # End Group
 # Begin Group "media_tools"
 

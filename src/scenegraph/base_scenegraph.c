@@ -297,13 +297,6 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	gf_dom_listener_process_add(sg);
 #endif
 
-
-	while (gf_list_count(sg->exported_nodes)) {
-		GF_Node *n = gf_list_get(sg->exported_nodes, 0);
-		gf_list_rem(sg->exported_nodes, 0);
-		gf_node_replace(n, NULL, 0);
-	}
-
 	while (gf_list_count(sg->routes_to_activate)) {
 		gf_list_rem(sg->routes_to_activate, 0);
 	}
@@ -316,8 +309,16 @@ void gf_sg_reset(GF_SceneGraph *sg)
 
 	}
 
+	/*reset the main tree*/
 	if (sg->RootNode) gf_node_unregister(sg->RootNode, NULL);
 	sg->RootNode = NULL;
+
+	/*THEN reset all exported symbols (we must do it after the reset in case of scripts)*/
+	while (gf_list_count(sg->exported_nodes)) {
+		GF_Node *n = gf_list_get(sg->exported_nodes, 0);
+		gf_list_rem(sg->exported_nodes, 0);
+		gf_node_replace(n, NULL, 0);
+	}
 
 	/*WATCHOUT: we may have cyclic dependencies due to
 	1- a node referencing itself (forbidden in VRML)

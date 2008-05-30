@@ -527,6 +527,7 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 	if (tr_state->text_split_mode) {
 		gf_node_dirty_clear(n, 0);
+		text_clean_paths(tr_state->visual->compositor, st);
 		build_text_split(st, txt, tr_state);
 		return;
 	}

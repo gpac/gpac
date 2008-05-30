@@ -717,11 +717,14 @@ static JSBool SFNodeConstructor(JSContext *c, JSObject *obj, uintN argc, jsval *
 	node_name = JS_GetStringBytes(str);
 	if (!strnicmp(node_name, "_proto", 6)) {
 		ID = atoi(node_name+6);
+		node_name = NULL;
+
+locate_proto:
 
 		/*locate proto in current graph and all parents*/
 		sg = sc->sgprivate->scenegraph;
 		while (1) {
-			proto = gf_sg_find_proto(sg, ID, NULL);
+			proto = gf_sg_find_proto(sg, ID, node_name);
 			if (proto) break;
 			if (!sg->parent_scene) break;
 			sg = sg->parent_scene;
@@ -741,7 +744,7 @@ static JSBool SFNodeConstructor(JSContext *c, JSObject *obj, uintN argc, jsval *
 		} else {
 			tag = gf_node_x3d_type_by_class_name(node_name);
 		}
-		if (!tag) return JS_FALSE;
+		if (!tag) goto locate_proto;
 		new_node = gf_node_new(sc->sgprivate->scenegraph, tag);
 		if (!new_node) return JS_FALSE;
 		gf_node_init(new_node);
@@ -1409,11 +1412,11 @@ static JSBool SFRotationConstructor(JSContext *c, JSObject *obj, uintN argc, jsv
 		SFRotation_Create(c, obj, FLT2FIX(x), FLT2FIX(y), FIX_ONE, FLT2FIX(a) );
 		return JS_TRUE;
 	}
-	if ((argc>0) && JSVAL_IS_DOUBLE(argv[0])) {
+	if ((argc>0) && JSVAL_IS_NUMBER(argv[0])) {
 		if (argc > 0) JS_ValueToNumber(c, argv[0], &x);
 		if (argc > 1) JS_ValueToNumber(c, argv[1], &y);
 		if (argc > 2) JS_ValueToNumber(c, argv[2], &z);
-		if (argc > 3) JS_ValueToNumber(c, argv[2], &a);
+		if (argc > 3) JS_ValueToNumber(c, argv[3], &a);
 		SFRotation_Create(c, obj, FLT2FIX(x), FLT2FIX(y), FLT2FIX(z), FLT2FIX(a));
 		return JS_TRUE;
 	}
@@ -1959,7 +1962,15 @@ JSBool array_setLength(JSContext *c, JSObject *obj, jsval v, jsval *val)
 	ret = JS_SetArrayLength(c, ptr->js_list, len);
 	if (ret==JS_FALSE) return ret;
 
-	
+/*
+	if (!len) {
+		if (ptr->field.fieldType==GF_SG_VRML_MFNODE) {
+			gf_node_unregister_children(ptr->owner, *(GF_ChildNodeItem**)ptr->field.far_ptr);
+		} else {
+			gf_sg_vrml_mf_reset(ptr->field.far_ptr, ptr->field.fieldType);
+		}
+	}
+*/	
 #if 0
 	/*insert till index if needed*/
 	if (ptr->field.fieldType != GF_SG_VRML_MFNODE) {
