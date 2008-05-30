@@ -1051,11 +1051,11 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthOffset); else ((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthOffset = 0;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FlatDepthBuffGain");
 	if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->FlatDepthGain); else ((GF_RenoirHandler *) compositor->RenoirHandler)->FlatDepthGain = 1.0;
-#endif
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffGain");
 	if (sOpt) sscanf(sOpt, "%f", &compositor->OGLDepthGain); else compositor->OGLDepthGain = 1.0;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffOffset");
 	if (sOpt) sscanf(sOpt, "%f", &compositor->OGLDepthOffset); else compositor->OGLDepthOffset = 0;
+#endif
 
 	
 	/*RECT texture support - we must reload HW*/

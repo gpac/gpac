@@ -95,9 +95,13 @@ SOURCE=..\..\src\utils\base_encoding.c
 DEP_CPP_BASE_=\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_BASE_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -105,9 +109,13 @@ DEP_CPP_BASE_=\
 SOURCE=..\..\src\utils\bitstream.c
 DEP_CPP_BITST=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_BITST=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -118,6 +126,7 @@ DEP_CPP_COLOR=\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -125,17 +134,24 @@ DEP_CPP_COLOR=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	
+NODEP_CPP_COLOR=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\utils\configfile.c
 DEP_CPP_CONFI=\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_CONFI=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -145,6 +161,7 @@ DEP_CPP_DOWNL=\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
@@ -154,33 +171,48 @@ DEP_CPP_DOWNL=\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_DOWNL=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\utils\error.c
 DEP_CPP_ERROR=\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_ERROR=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\utils\list.c
 DEP_CPP_LIST_=\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_LIST_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\utils\math.c
 DEP_CPP_MATH_=\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MATH_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -188,12 +220,16 @@ DEP_CPP_MATH_=\
 SOURCE=..\..\src\utils\module.c
 DEP_CPP_MODUL=\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\utils\module_wrap.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -204,9 +240,13 @@ SOURCE=..\..\src\utils\module_wrap.h
 
 SOURCE=..\..\src\utils\os_divers.c
 DEP_CPP_OS_DI=\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_OS_DI=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -214,6 +254,7 @@ DEP_CPP_OS_DI=\
 SOURCE=..\..\src\utils\os_module.c
 DEP_CPP_OS_MO=\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
@@ -221,26 +262,37 @@ DEP_CPP_OS_MO=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\utils\module_wrap.h"\
 	
+NODEP_CPP_OS_MO=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\utils\os_net.c
 DEP_CPP_OS_NE=\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_OS_NE=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\utils\os_thread.c
 DEP_CPP_OS_TH=\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_OS_TH=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -248,11 +300,15 @@ DEP_CPP_OS_TH=\
 SOURCE=..\..\src\utils\path2d.c
 DEP_CPP_PATH2=\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_PATH2=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -260,51 +316,71 @@ DEP_CPP_PATH2=\
 SOURCE=..\..\src\utils\path2d_stroker.c
 DEP_CPP_PATH2D=\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_PATH2D=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\utils\token.c
 DEP_CPP_TOKEN=\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_TOKEN=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\utils\uni_bidi.c
 DEP_CPP_UNI_B=\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
+	
+NODEP_CPP_UNI_B=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\utils\url.c
 DEP_CPP_URL_C=\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_URL_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\utils\utf.c
 DEP_CPP_UTF_C=\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
+	
+NODEP_CPP_UTF_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -313,12 +389,16 @@ SOURCE=..\..\src\utils\xml_parser.c
 DEP_CPP_XML_P=\
 	"..\..\extra_lib\include\zlib\zconf.h"\
 	"..\..\extra_lib\include\zlib\zlib.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
 	"..\..\include\gpac\xml.h"\
+	
+NODEP_CPP_XML_P=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Group
@@ -330,6 +410,7 @@ DEP_CPP_XML_P=\
 SOURCE=..\..\src\odf\desc_private.c
 DEP_CPP_DESC_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -338,6 +419,9 @@ DEP_CPP_DESC_=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_DESC_=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -345,6 +429,7 @@ SOURCE=..\..\src\odf\descriptors.c
 DEP_CPP_DESCR=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
@@ -355,12 +440,16 @@ DEP_CPP_DESCR=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_DESCR=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\odf\ipmpx_code.c
 DEP_CPP_IPMPX=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -368,6 +457,9 @@ DEP_CPP_IPMPX=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_IPMPX=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -375,6 +467,7 @@ DEP_CPP_IPMPX=\
 SOURCE=..\..\src\odf\ipmpx_parse.c
 DEP_CPP_IPMPX_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -382,6 +475,9 @@ DEP_CPP_IPMPX_=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_IPMPX_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -389,6 +485,7 @@ DEP_CPP_IPMPX_=\
 SOURCE=..\..\src\odf\oci_codec.c
 DEP_CPP_OCI_C=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -397,12 +494,16 @@ DEP_CPP_OCI_C=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_OCI_C=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\odf\odf_code.c
 DEP_CPP_ODF_C=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -412,12 +513,16 @@ DEP_CPP_ODF_C=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
 	
+NODEP_CPP_ODF_C=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\odf\odf_codec.c
 DEP_CPP_ODF_CO=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -426,12 +531,16 @@ DEP_CPP_ODF_CO=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_ODF_CO=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\odf\odf_command.c
 DEP_CPP_ODF_COM=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -439,6 +548,9 @@ DEP_CPP_ODF_COM=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_ODF_COM=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -452,6 +564,7 @@ DEP_CPP_ODF_P=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -463,12 +576,16 @@ DEP_CPP_ODF_P=\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_ODF_P=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\odf\qos.c
 DEP_CPP_QOS_C=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -477,12 +594,16 @@ DEP_CPP_QOS_C=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_QOS_C=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\odf\slc.c
 DEP_CPP_SLC_C=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -490,6 +611,9 @@ DEP_CPP_SLC_C=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_SLC_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Group
@@ -503,6 +627,7 @@ DEP_CPP_ARITH=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -516,6 +641,9 @@ DEP_CPP_ARITH=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
 	
+NODEP_CPP_ARITH=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -524,6 +652,7 @@ DEP_CPP_BIFS_=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -536,6 +665,9 @@ DEP_CPP_BIFS_=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_BIFS_=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -546,6 +678,7 @@ SOURCE=..\..\include\gpac\internal\bifs_dev.h
 SOURCE=..\..\src\bifs\bifs_node_tables.c
 DEP_CPP_BIFS_N=\
 	"..\..\include\gpac\internal\bifs_tables.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -554,6 +687,9 @@ DEP_CPP_BIFS_N=\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_BIFS_N=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -564,21 +700,13 @@ SOURCE=..\..\include\gpac\internal\bifs_tables.h
 
 SOURCE=..\..\src\bifs\com_dec.c
 DEP_CPP_COM_D=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -599,29 +727,20 @@ DEP_CPP_COM_D=\
 	"..\..\src\bifs\quant.h"\
 	
 NODEP_CPP_COM_D=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\bifs\com_enc.c
 DEP_CPP_COM_E=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -642,29 +761,20 @@ DEP_CPP_COM_E=\
 	"..\..\src\bifs\quant.h"\
 	
 NODEP_CPP_COM_E=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\bifs\conditional.c
 DEP_CPP_CONDI=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -684,29 +794,20 @@ DEP_CPP_CONDI=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_CONDI=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\bifs\field_decode.c
 DEP_CPP_FIELD=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -728,23 +829,13 @@ DEP_CPP_FIELD=\
 	"..\..\src\bifs\script.h"\
 	
 NODEP_CPP_FIELD=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\bifs\field_encode.c
 DEP_CPP_FIELD_=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
@@ -752,6 +843,7 @@ DEP_CPP_FIELD_=\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
 	"..\..\include\gpac\internal\bifs_tables.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -773,29 +865,20 @@ DEP_CPP_FIELD_=\
 	"..\..\src\bifs\script.h"\
 	
 NODEP_CPP_FIELD_=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\bifs\memory_decoder.c
 DEP_CPP_MEMOR=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -816,8 +899,7 @@ DEP_CPP_MEMOR=\
 	"..\..\src\bifs\quant.h"\
 	
 NODEP_CPP_MEMOR=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -827,6 +909,7 @@ DEP_CPP_PREDI=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -839,6 +922,9 @@ DEP_CPP_PREDI=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
+	
+NODEP_CPP_PREDI=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -852,6 +938,7 @@ DEP_CPP_QUANT=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -865,6 +952,9 @@ DEP_CPP_QUANT=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
 	
+NODEP_CPP_QUANT=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -877,6 +967,7 @@ DEP_CPP_SCRIP=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -890,26 +981,21 @@ DEP_CPP_SCRIP=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\script.h"\
 	
+NODEP_CPP_SCRIP=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\bifs\script_enc.c
 DEP_CPP_SCRIPT=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -930,8 +1016,7 @@ DEP_CPP_SCRIPT=\
 	"..\..\src\bifs\script.h"\
 	
 NODEP_CPP_SCRIPT=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -941,6 +1026,7 @@ DEP_CPP_UNQUA=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -954,6 +1040,9 @@ DEP_CPP_UNQUA=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
 	
+NODEP_CPP_UNQUA=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # End Group
 # Begin Group "isomedia"
@@ -965,6 +1054,7 @@ SOURCE=..\..\src\isomedia\avc_ext.c
 DEP_CPP_AVC_E=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -973,6 +1063,9 @@ DEP_CPP_AVC_E=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_AVC_E=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -980,6 +1073,7 @@ DEP_CPP_AVC_E=\
 SOURCE=..\..\src\isomedia\box_code_3gpp.c
 DEP_CPP_BOX_C=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -988,6 +1082,9 @@ DEP_CPP_BOX_C=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_BOX_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -995,6 +1092,7 @@ DEP_CPP_BOX_C=\
 SOURCE=..\..\src\isomedia\box_code_apple.c
 DEP_CPP_BOX_CO=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1003,6 +1101,9 @@ DEP_CPP_BOX_CO=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_BOX_CO=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1010,6 +1111,7 @@ DEP_CPP_BOX_CO=\
 SOURCE=..\..\src\isomedia\box_code_base.c
 DEP_CPP_BOX_COD=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1018,6 +1120,9 @@ DEP_CPP_BOX_COD=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_BOX_COD=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1025,6 +1130,7 @@ DEP_CPP_BOX_COD=\
 SOURCE=..\..\src\isomedia\box_code_isma.c
 DEP_CPP_BOX_CODE=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1033,6 +1139,9 @@ DEP_CPP_BOX_CODE=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_BOX_CODE=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1040,6 +1149,7 @@ DEP_CPP_BOX_CODE=\
 SOURCE=..\..\src\isomedia\box_code_meta.c
 DEP_CPP_BOX_CODE_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1048,6 +1158,9 @@ DEP_CPP_BOX_CODE_=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_BOX_CODE_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1055,6 +1168,7 @@ DEP_CPP_BOX_CODE_=\
 SOURCE=..\..\src\isomedia\box_funcs.c
 DEP_CPP_BOX_F=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1063,6 +1177,9 @@ DEP_CPP_BOX_F=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_BOX_F=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1070,6 +1187,7 @@ DEP_CPP_BOX_F=\
 SOURCE=..\..\src\isomedia\data_map.c
 DEP_CPP_DATA_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1079,6 +1197,9 @@ DEP_CPP_DATA_=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_DATA_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1086,6 +1207,7 @@ DEP_CPP_DATA_=\
 SOURCE=..\..\src\isomedia\hint_track.c
 DEP_CPP_HINT_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1094,6 +1216,9 @@ DEP_CPP_HINT_=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_HINT_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1101,6 +1226,7 @@ DEP_CPP_HINT_=\
 SOURCE=..\..\src\isomedia\hinting.c
 DEP_CPP_HINTI=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1109,6 +1235,9 @@ DEP_CPP_HINTI=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_HINTI=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1116,6 +1245,7 @@ DEP_CPP_HINTI=\
 SOURCE=..\..\src\isomedia\isma_sample.c
 DEP_CPP_ISMA_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1125,12 +1255,16 @@ DEP_CPP_ISMA_=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_ISMA_=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\isomedia\isom_intern.c
 DEP_CPP_ISOM_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1141,12 +1275,16 @@ DEP_CPP_ISOM_=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_ISOM_=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\isomedia\isom_read.c
 DEP_CPP_ISOM_R=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1155,6 +1293,9 @@ DEP_CPP_ISOM_R=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_ISOM_R=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1162,6 +1303,7 @@ DEP_CPP_ISOM_R=\
 SOURCE=..\..\src\isomedia\isom_store.c
 DEP_CPP_ISOM_S=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1171,12 +1313,16 @@ DEP_CPP_ISOM_S=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_ISOM_S=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\isomedia\isom_write.c
 DEP_CPP_ISOM_W=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1185,6 +1331,9 @@ DEP_CPP_ISOM_W=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_ISOM_W=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1196,6 +1345,7 @@ SOURCE=..\..\include\gpac\internal\isomedia_dev.h
 SOURCE=..\..\src\isomedia\media.c
 DEP_CPP_MEDIA=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1204,6 +1354,9 @@ DEP_CPP_MEDIA=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_MEDIA=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1211,6 +1364,7 @@ DEP_CPP_MEDIA=\
 SOURCE=..\..\src\isomedia\media_odf.c
 DEP_CPP_MEDIA_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1219,6 +1373,9 @@ DEP_CPP_MEDIA_=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_MEDIA_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1226,6 +1383,7 @@ DEP_CPP_MEDIA_=\
 SOURCE=..\..\src\isomedia\meta.c
 DEP_CPP_META_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1234,6 +1392,9 @@ DEP_CPP_META_=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_META_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1241,6 +1402,7 @@ DEP_CPP_META_=\
 SOURCE=..\..\src\isomedia\movie_fragments.c
 DEP_CPP_MOVIE=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1249,6 +1411,9 @@ DEP_CPP_MOVIE=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_MOVIE=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1256,6 +1421,7 @@ DEP_CPP_MOVIE=\
 SOURCE=..\..\src\isomedia\sample_descs.c
 DEP_CPP_SAMPL=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1264,6 +1430,9 @@ DEP_CPP_SAMPL=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_SAMPL=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1271,6 +1440,7 @@ DEP_CPP_SAMPL=\
 SOURCE=..\..\src\isomedia\stbl_read.c
 DEP_CPP_STBL_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1279,6 +1449,9 @@ DEP_CPP_STBL_=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_STBL_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1286,6 +1459,7 @@ DEP_CPP_STBL_=\
 SOURCE=..\..\src\isomedia\stbl_write.c
 DEP_CPP_STBL_W=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1295,12 +1469,16 @@ DEP_CPP_STBL_W=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_STBL_W=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\isomedia\track.c
 DEP_CPP_TRACK=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1309,6 +1487,9 @@ DEP_CPP_TRACK=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_TRACK=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1317,6 +1498,7 @@ SOURCE=..\..\src\isomedia\tx3g.c
 DEP_CPP_TX3G_=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -1325,6 +1507,9 @@ DEP_CPP_TX3G_=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_TX3G_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Group
@@ -1341,6 +1526,7 @@ SOURCE=..\..\src\ietf\rtcp.c
 DEP_CPP_RTCP_=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1350,6 +1536,9 @@ DEP_CPP_RTCP_=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_RTCP_=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -1357,6 +1546,7 @@ SOURCE=..\..\src\ietf\rtp.c
 DEP_CPP_RTP_C=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1365,6 +1555,9 @@ DEP_CPP_RTP_C=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_RTP_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1377,6 +1570,7 @@ DEP_CPP_RTP_D=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\esi.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1387,6 +1581,9 @@ DEP_CPP_RTP_D=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_RTP_D=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -1395,6 +1592,7 @@ DEP_CPP_RTP_P=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1405,6 +1603,9 @@ DEP_CPP_RTP_P=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_RTP_P=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -1413,6 +1614,7 @@ DEP_CPP_RTP_PC=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1421,6 +1623,9 @@ DEP_CPP_RTP_PC=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_RTP_PC=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1430,6 +1635,7 @@ DEP_CPP_RTP_PCK=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1438,6 +1644,9 @@ DEP_CPP_RTP_PCK=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_RTP_PCK=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1447,6 +1656,7 @@ DEP_CPP_RTP_PCK_=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1455,6 +1665,9 @@ DEP_CPP_RTP_PCK_=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_RTP_PCK_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1463,6 +1676,7 @@ SOURCE=..\..\src\ietf\rtsp_command.c
 DEP_CPP_RTSP_=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1472,6 +1686,9 @@ DEP_CPP_RTSP_=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_RTSP_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1480,6 +1697,7 @@ SOURCE=..\..\src\ietf\rtsp_common.c
 DEP_CPP_RTSP_C=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1490,6 +1708,9 @@ DEP_CPP_RTSP_C=\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_RTSP_C=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -1497,6 +1718,7 @@ SOURCE=..\..\src\ietf\rtsp_response.c
 DEP_CPP_RTSP_R=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1506,6 +1728,9 @@ DEP_CPP_RTSP_R=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_RTSP_R=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1515,6 +1740,7 @@ DEP_CPP_RTSP_S=\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1524,6 +1750,9 @@ DEP_CPP_RTSP_S=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_RTSP_S=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -1531,6 +1760,7 @@ SOURCE=..\..\src\ietf\sdp.c
 DEP_CPP_SDP_C=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\network.h"\
@@ -1538,6 +1768,9 @@ DEP_CPP_SDP_C=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_SDP_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Group
@@ -1548,18 +1781,11 @@ DEP_CPP_SDP_C=\
 
 SOURCE=..\..\src\scenegraph\base_scenegraph.c
 DEP_CPP_BASE_S=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1578,27 +1804,18 @@ DEP_CPP_BASE_S=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_BASE_S=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\commands.c
 DEP_CPP_COMMA=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\laser_dev.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
@@ -1620,27 +1837,18 @@ DEP_CPP_COMMA=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_COMMA=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\dom_events.c
 DEP_CPP_DOM_E=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1658,8 +1866,7 @@ DEP_CPP_DOM_E=\
 	"..\..\include\gpac\xml.h"\
 	
 NODEP_CPP_DOM_E=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1679,6 +1886,7 @@ DEP_CPP_DOM_S=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1698,24 +1906,17 @@ DEP_CPP_DOM_S=\
 NODEP_CPP_DOM_S=\
 	"..\..\extra_lib\include\js\jsstddef.h"\
 	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\mpeg4_animators.c
 DEP_CPP_MPEG4=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1732,26 +1933,17 @@ DEP_CPP_MPEG4=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_MPEG4=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\mpeg4_nodes.c
 DEP_CPP_MPEG4_=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1768,26 +1960,17 @@ DEP_CPP_MPEG4_=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_MPEG4_=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\mpeg4_valuator.c
 DEP_CPP_MPEG4_V=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1804,8 +1987,7 @@ DEP_CPP_MPEG4_V=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_MPEG4_V=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -1820,18 +2002,10 @@ SOURCE=..\..\include\gpac\internal\scenegraph_dev.h
 
 SOURCE=..\..\src\scenegraph\smil_anim.c
 DEP_CPP_SMIL_=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1848,27 +2022,18 @@ DEP_CPP_SMIL_=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SMIL_=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\smil_timing.c
 DEP_CPP_SMIL_T=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1885,28 +2050,19 @@ DEP_CPP_SMIL_T=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SMIL_T=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\svg_attributes.c
 DEP_CPP_SVG_A=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1922,26 +2078,17 @@ DEP_CPP_SVG_A=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SVG_A=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\svg_nodes_da.c
 DEP_CPP_SVG_N=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1958,26 +2105,17 @@ DEP_CPP_SVG_N=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SVG_N=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\svg_properties.c
 DEP_CPP_SVG_P=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -1994,8 +2132,7 @@ DEP_CPP_SVG_P=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SVG_P=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -2015,6 +2152,7 @@ DEP_CPP_SVG_S=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -2033,24 +2171,17 @@ DEP_CPP_SVG_S=\
 NODEP_CPP_SVG_S=\
 	"..\..\extra_lib\include\js\jsstddef.h"\
 	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\svg_tools_da.c
 DEP_CPP_SVG_T=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -2067,27 +2198,18 @@ DEP_CPP_SVG_T=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SVG_T=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\svg_types.c
 DEP_CPP_SVG_TY=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -2103,26 +2225,17 @@ DEP_CPP_SVG_TY=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SVG_TY=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\vrml_interpolators.c
 DEP_CPP_VRML_=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -2140,26 +2253,17 @@ DEP_CPP_VRML_=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_VRML_=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\vrml_proto.c
 DEP_CPP_VRML_P=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -2177,26 +2281,17 @@ DEP_CPP_VRML_P=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_VRML_P=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\vrml_route.c
 DEP_CPP_VRML_R=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -2214,26 +2309,17 @@ DEP_CPP_VRML_R=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_VRML_R=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\vrml_script.c
 DEP_CPP_VRML_S=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -2251,8 +2337,7 @@ DEP_CPP_VRML_S=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_VRML_S=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -2271,6 +2356,7 @@ DEP_CPP_VRML_SM=\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -2291,24 +2377,17 @@ DEP_CPP_VRML_SM=\
 NODEP_CPP_VRML_SM=\
 	"..\..\extra_lib\include\js\jsstddef.h"\
 	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\vrml_tools.c
 DEP_CPP_VRML_T=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -2326,26 +2405,17 @@ DEP_CPP_VRML_T=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_VRML_T=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\x3d_nodes.c
 DEP_CPP_X3D_N=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -2363,8 +2433,68 @@ DEP_CPP_X3D_N=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_X3D_N=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\xbl_nodes.c
+DEP_CPP_XBL_N=\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
+	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\network.h"\
+	"..\..\include\gpac\nodes_xbl.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_XBL_N=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\xbl_process.c
+DEP_CPP_XBL_P=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
+	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
+	"..\..\include\gpac\isomedia.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
+	"..\..\include\gpac\nodes_xbl.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scene_manager.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\utf.h"\
+	"..\..\include\gpac\xml.h"\
+	
+NODEP_CPP_XBL_P=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Group
@@ -2378,6 +2508,7 @@ DEP_CPP_AV_PA=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\media_dev.h"\
 	"..\..\include\gpac\internal\ogg.h"\
@@ -2390,15 +2521,22 @@ DEP_CPP_AV_PA=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_AV_PA=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\media_tools\avilib.c
 DEP_CPP_AVILI=\
 	"..\..\include\gpac\internal\avilib.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_AVILI=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -2409,10 +2547,14 @@ SOURCE=..\..\include\gpac\internal\avilib.h
 
 SOURCE=..\..\src\media_tools\gpac_ogg.c
 DEP_CPP_GPAC_=\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ogg.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_GPAC_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -2429,6 +2571,7 @@ DEP_CPP_IMG_C=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\media_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2443,6 +2586,7 @@ NODEP_CPP_IMG_C=\
 	"..\..\extra_lib\include\jpeg\jerror.h"\
 	"..\..\extra_lib\include\jpeg\jpegint.h"\
 	"..\..\extra_lib\include\png\alloc.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -2453,6 +2597,7 @@ DEP_CPP_ISMAC=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\ismacryp.h"\
@@ -2464,6 +2609,9 @@ DEP_CPP_ISMAC=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\xml.h"\
 	
+NODEP_CPP_ISMAC=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -2474,6 +2622,7 @@ DEP_CPP_ISOM_H=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
@@ -2485,6 +2634,9 @@ DEP_CPP_ISOM_H=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_ISOM_H=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -2493,6 +2645,7 @@ DEP_CPP_ISOM_T=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
@@ -2501,6 +2654,9 @@ DEP_CPP_ISOM_T=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_ISOM_T=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -2515,6 +2671,7 @@ DEP_CPP_MEDIA_E=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\avilib.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\media_dev.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
@@ -2529,6 +2686,9 @@ DEP_CPP_MEDIA_E=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_MEDIA_E=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -2540,6 +2700,7 @@ DEP_CPP_MEDIA_I=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\avilib.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\media_dev.h"\
 	"..\..\include\gpac\internal\odf_dev.h"\
@@ -2556,6 +2717,9 @@ DEP_CPP_MEDIA_I=\
 	"..\..\include\gpac\xml.h"\
 	"..\..\src\media_tools\mpeg2_ps.h"\
 	
+NODEP_CPP_MEDIA_I=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -2563,10 +2727,14 @@ SOURCE=..\..\src\media_tools\mpeg2_ps.c
 DEP_CPP_MPEG2=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\media_tools\mpeg2_ps.h"\
+	
+NODEP_CPP_MPEG2=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -2580,6 +2748,7 @@ DEP_CPP_TEXT_=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\internal\media_dev.h"\
@@ -2593,6 +2762,9 @@ DEP_CPP_TEXT_=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
 	"..\..\include\gpac\xml.h"\
+	
+NODEP_CPP_TEXT_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -2611,6 +2783,7 @@ DEP_CPP_ENCOD=\
 	"..\..\include\gpac\bifsengine.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
@@ -2624,26 +2797,21 @@ DEP_CPP_ENCOD=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_ENCOD=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scene_manager\encode_isom.c
 DEP_CPP_ENCODE=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2667,23 +2835,13 @@ DEP_CPP_ENCODE=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_ENCODE=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scene_manager\loader_bt.c
 DEP_CPP_LOADE=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\extra_lib\include\zlib\zconf.h"\
 	"..\..\extra_lib\include\zlib\zlib.h"\
 	"..\..\include\gpac\bifs.h"\
@@ -2693,6 +2851,7 @@ DEP_CPP_LOADE=\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2717,8 +2876,7 @@ DEP_CPP_LOADE=\
 	"..\..\include\gpac\utf.h"\
 	
 NODEP_CPP_LOADE=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -2728,6 +2886,7 @@ DEP_CPP_LOADER=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\laser.h"\
@@ -2746,6 +2905,9 @@ DEP_CPP_LOADER=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_LOADER=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -2754,6 +2916,7 @@ DEP_CPP_LOADER_=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\media_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2769,25 +2932,20 @@ DEP_CPP_LOADER_=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_LOADER_=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scene_manager\loader_svg_da.c
 DEP_CPP_LOADER_S=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\laser_dev.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
@@ -2812,29 +2970,20 @@ DEP_CPP_LOADER_S=\
 	"..\..\include\gpac\xml.h"\
 	
 NODEP_CPP_LOADER_S=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scene_manager\loader_xmt.c
 DEP_CPP_LOADER_X=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2860,23 +3009,13 @@ DEP_CPP_LOADER_X=\
 	"..\..\src\bifs\quant.h"\
 	
 NODEP_CPP_LOADER_X=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scene_manager\scene_dump.c
 DEP_CPP_SCENE=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
@@ -2884,6 +3023,7 @@ DEP_CPP_SCENE=\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2909,29 +3049,20 @@ DEP_CPP_SCENE=\
 	"..\..\src\bifs\quant.h"\
 	
 NODEP_CPP_SCENE=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scene_manager\scene_manager.c
 DEP_CPP_SCENE_=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2954,27 +3085,18 @@ DEP_CPP_SCENE_=\
 	"..\..\include\gpac\xml.h"\
 	
 NODEP_CPP_SCENE_=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scene_manager\scene_stats.c
 DEP_CPP_SCENE_S=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2994,13 +3116,36 @@ DEP_CPP_SCENE_S=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SCENE_S=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scene_manager\swf_bifs.c
+DEP_CPP_SWF_B=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
+	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\swf_dev.h"\
+	"..\..\include\gpac\isomedia.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\scene_manager.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\utf.h"\
+	"..\..\include\gpac\xml.h"\
+	
+NODEP_CPP_SWF_B=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3016,6 +3161,7 @@ DEP_CPP_SWF_P=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\swf_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -3030,6 +3176,9 @@ DEP_CPP_SWF_P=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_SWF_P=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3038,6 +3187,7 @@ DEP_CPP_TEXT_T=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\media_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -3054,6 +3204,9 @@ DEP_CPP_TEXT_T=\
 	"..\..\include\gpac\utf.h"\
 	"..\..\include\gpac\xml.h"\
 	
+NODEP_CPP_TEXT_T=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # End Group
 # Begin Group "mcrypt"
@@ -3064,10 +3217,14 @@ DEP_CPP_TEXT_T=\
 SOURCE=..\..\src\mcrypt\cbc.c
 DEP_CPP_CBC_C=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_CBC_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3075,10 +3232,14 @@ DEP_CPP_CBC_C=\
 SOURCE=..\..\src\mcrypt\cfb.c
 DEP_CPP_CFB_C=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_CFB_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3090,10 +3251,14 @@ SOURCE=..\..\include\gpac\internal\crypt_dev.h
 SOURCE=..\..\src\mcrypt\ctr.c
 DEP_CPP_CTR_C=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_CTR_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3101,10 +3266,14 @@ DEP_CPP_CTR_C=\
 SOURCE=..\..\src\mcrypt\des.c
 DEP_CPP_DES_C=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_DES_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3112,10 +3281,14 @@ DEP_CPP_DES_C=\
 SOURCE=..\..\src\mcrypt\ecb.c
 DEP_CPP_ECB_C=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_ECB_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3123,10 +3296,14 @@ DEP_CPP_ECB_C=\
 SOURCE=..\..\src\mcrypt\g_crypt.c
 DEP_CPP_G_CRY=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_G_CRY=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3134,10 +3311,14 @@ DEP_CPP_G_CRY=\
 SOURCE=..\..\src\mcrypt\ncfb.c
 DEP_CPP_NCFB_=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_NCFB_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3145,10 +3326,14 @@ DEP_CPP_NCFB_=\
 SOURCE=..\..\src\mcrypt\nofb.c
 DEP_CPP_NOFB_=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_NOFB_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3156,10 +3341,14 @@ DEP_CPP_NOFB_=\
 SOURCE=..\..\src\mcrypt\ofb.c
 DEP_CPP_OFB_C=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_OFB_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3167,10 +3356,14 @@ DEP_CPP_OFB_C=\
 SOURCE="..\..\src\mcrypt\rijndael-128.c"
 DEP_CPP_RIJND=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_RIJND=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3178,10 +3371,14 @@ DEP_CPP_RIJND=\
 SOURCE="..\..\src\mcrypt\rijndael-192.c"
 DEP_CPP_RIJNDA=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_RIJNDA=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3189,10 +3386,14 @@ DEP_CPP_RIJNDA=\
 SOURCE="..\..\src\mcrypt\rijndael-256.c"
 DEP_CPP_RIJNDAE=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_RIJNDAE=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3200,9 +3401,13 @@ DEP_CPP_RIJNDAE=\
 SOURCE=..\..\src\mcrypt\sha1.c
 DEP_CPP_SHA1_=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_SHA1_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3210,10 +3415,14 @@ DEP_CPP_SHA1_=\
 SOURCE=..\..\src\mcrypt\stream.c
 DEP_CPP_STREA=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_STREA=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3221,10 +3430,14 @@ DEP_CPP_STREA=\
 SOURCE=..\..\src\mcrypt\tripledes.c
 DEP_CPP_TRIPL=\
 	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\crypt_dev.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_TRIPL=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Group
@@ -3244,6 +3457,7 @@ DEP_CPP_CHANN=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -3259,6 +3473,7 @@ DEP_CPP_CHANN=\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -3270,7 +3485,11 @@ DEP_CPP_CHANN=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
+	"..\..\src\terminal\media_control.h"\
 	"..\..\src\terminal\media_memory.h"\
+	
+NODEP_CPP_CHANN=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3283,6 +3502,7 @@ DEP_CPP_CLOCK=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -3302,6 +3522,9 @@ DEP_CPP_CLOCK=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	
+NODEP_CPP_CLOCK=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3316,6 +3539,7 @@ DEP_CPP_DECOD=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -3347,6 +3571,9 @@ DEP_CPP_DECOD=\
 	"..\..\src\terminal\media_control.h"\
 	"..\..\src\terminal\media_memory.h"\
 	
+NODEP_CPP_DECOD=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3359,6 +3586,7 @@ DEP_CPP_INLIN=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -3381,6 +3609,9 @@ DEP_CPP_INLIN=\
 	"..\..\include\gpac\user.h"\
 	"..\..\src\terminal\media_control.h"\
 	
+NODEP_CPP_INLIN=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3393,6 +3624,7 @@ DEP_CPP_INPUT=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -3416,6 +3648,9 @@ DEP_CPP_INPUT=\
 	"..\..\include\gpac\utf.h"\
 	"..\..\src\terminal\input_sensor.h"\
 	
+NODEP_CPP_INPUT=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3431,6 +3666,7 @@ DEP_CPP_MEDIA_C=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -3452,6 +3688,9 @@ DEP_CPP_MEDIA_C=\
 	"..\..\include\gpac\user.h"\
 	"..\..\src\terminal\media_control.h"\
 	
+NODEP_CPP_MEDIA_C=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3470,6 +3709,7 @@ DEP_CPP_MEDIA_M=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -3498,6 +3738,9 @@ DEP_CPP_MEDIA_M=\
 	"..\..\include\gpac\user.h"\
 	"..\..\src\terminal\media_memory.h"\
 	
+NODEP_CPP_MEDIA_M=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3509,6 +3752,7 @@ DEP_CPP_MEDIA_ME=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -3531,6 +3775,9 @@ DEP_CPP_MEDIA_ME=\
 	"..\..\src\terminal\media_control.h"\
 	"..\..\src\terminal\media_memory.h"\
 	
+NODEP_CPP_MEDIA_ME=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3540,15 +3787,6 @@ SOURCE=..\..\src\terminal\media_memory.h
 
 SOURCE=..\..\src\terminal\media_object.c
 DEP_CPP_MEDIA_O=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\compositor.h"\
@@ -3558,6 +3796,7 @@ DEP_CPP_MEDIA_O=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
@@ -3593,8 +3832,7 @@ DEP_CPP_MEDIA_O=\
 	"..\..\src\terminal\media_memory.h"\
 	
 NODEP_CPP_MEDIA_O=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3607,6 +3845,7 @@ DEP_CPP_MEDIA_S=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -3628,6 +3867,9 @@ DEP_CPP_MEDIA_S=\
 	"..\..\include\gpac\user.h"\
 	"..\..\src\terminal\media_control.h"\
 	
+NODEP_CPP_MEDIA_S=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3639,6 +3881,7 @@ DEP_CPP_NETWO=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -3659,6 +3902,9 @@ DEP_CPP_NETWO=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	
+NODEP_CPP_NETWO=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3670,6 +3916,7 @@ DEP_CPP_OBJEC=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -3698,6 +3945,9 @@ DEP_CPP_OBJEC=\
 	"..\..\include\gpac\user.h"\
 	"..\..\src\terminal\media_memory.h"\
 	
+NODEP_CPP_OBJEC=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3709,6 +3959,7 @@ DEP_CPP_OBJECT=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
@@ -3732,20 +3983,14 @@ DEP_CPP_OBJECT=\
 	"..\..\src\terminal\media_control.h"\
 	"..\..\src\terminal\media_memory.h"\
 	
+NODEP_CPP_OBJECT=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\terminal\svg_external.c
 DEP_CPP_SVG_E=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\compositor.h"\
@@ -3753,6 +3998,7 @@ DEP_CPP_SVG_E=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -3779,8 +4025,7 @@ DEP_CPP_SVG_E=\
 	"..\..\include\gpac\user.h"\
 	
 NODEP_CPP_SVG_E=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3796,6 +4041,7 @@ DEP_CPP_TERM_=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -3827,6 +4073,9 @@ DEP_CPP_TERM_=\
 	"..\..\include\gpac\user.h"\
 	"..\..\src\terminal\input_sensor.h"\
 	
+NODEP_CPP_TERM_=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3841,6 +4090,7 @@ DEP_CPP_TERMI=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -3872,6 +4122,9 @@ DEP_CPP_TERMI=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	
+NODEP_CPP_TERMI=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -3889,20 +4142,12 @@ SOURCE=..\..\include\gpac\internal\laser_dev.h
 
 SOURCE=..\..\src\laser\lsr_dec.c
 DEP_CPP_LSR_D=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\laser_dev.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
@@ -3923,28 +4168,19 @@ DEP_CPP_LSR_D=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_LSR_D=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\laser\lsr_enc.c
 DEP_CPP_LSR_E=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\laser_dev.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
@@ -3965,8 +4201,7 @@ DEP_CPP_LSR_E=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_LSR_E=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -3975,6 +4210,7 @@ SOURCE=..\..\src\laser\lsr_tables.c
 DEP_CPP_LSR_T=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\laser_dev.h"\
 	"..\..\include\gpac\laser.h"\
@@ -3989,6 +4225,9 @@ DEP_CPP_LSR_T=\
 	"..\..\include\gpac\svg_types.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_LSR_T=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Group
@@ -4230,6 +4469,7 @@ DEP_CPP_AUDIO=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4249,6 +4489,9 @@ DEP_CPP_AUDIO=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
+	
+NODEP_CPP_AUDIO=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -4262,6 +4505,7 @@ DEP_CPP_AUDIO_=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4281,6 +4525,9 @@ DEP_CPP_AUDIO_=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
+	
+NODEP_CPP_AUDIO_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -4294,6 +4541,7 @@ DEP_CPP_AUDIO_R=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4314,6 +4562,9 @@ DEP_CPP_AUDIO_R=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	
+NODEP_CPP_AUDIO_R=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -4326,6 +4577,7 @@ DEP_CPP_BINDA=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4351,12 +4603,16 @@ DEP_CPP_BINDA=\
 	"..\..\src\compositor\drawable.h"\
 	"..\..\src\compositor\nodes_stacks.h"\
 	
+NODEP_CPP_BINDA=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\compositor\camera.c
 DEP_CPP_CAMER=\
 	"..\..\include\gpac\internal\camera.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -4365,6 +4621,9 @@ DEP_CPP_CAMER=\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_CAMER=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -4388,6 +4647,7 @@ DEP_CPP_COMPO=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -4426,6 +4686,10 @@ DEP_CPP_COMPO=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_COMPO=\
+	"..\..\include\gpac\config.h"\
+	"..\..\src\src\compositor\triscope_renoir\triscope_renoir.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -4438,6 +4702,7 @@ DEP_CPP_COMPOS=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4467,11 +4732,16 @@ DEP_CPP_COMPOS=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_COMPOS=\
+	"..\..\include\gpac\config.h"\
+	"..\..\src\src\compositor\triscope_renoir\triscope_renoir.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\compositor\compositor_3d.c
 DEP_CPP_COMPOSI=\
+	"..\..\..\TinyGL\include\GL\oscontext.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config_file.h"\
@@ -4479,6 +4749,7 @@ DEP_CPP_COMPOSI=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4509,6 +4780,9 @@ DEP_CPP_COMPOSI=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_COMPOSI=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -4525,6 +4799,7 @@ DEP_CPP_COMPOSIT=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4550,6 +4825,9 @@ DEP_CPP_COMPOSIT=\
 	"..\..\src\compositor\drawable.h"\
 	"..\..\src\compositor\nodes_stacks.h"\
 	
+NODEP_CPP_COMPOSIT=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -4562,6 +4840,7 @@ DEP_CPP_DRAWA=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4589,6 +4868,9 @@ DEP_CPP_DRAWA=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_DRAWA=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -4608,6 +4890,7 @@ DEP_CPP_EVENT=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -4646,6 +4929,9 @@ DEP_CPP_EVENT=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_EVENT=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -4658,6 +4944,7 @@ DEP_CPP_FONT_=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4687,6 +4974,9 @@ DEP_CPP_FONT_=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_FONT_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -4704,6 +4994,7 @@ DEP_CPP_HARDC=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4734,15 +5025,20 @@ DEP_CPP_HARDC=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_HARDC=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\compositor\mesh.c
 DEP_CPP_MESH_=\
+	"..\..\..\TinyGL\include\GL\gl.h"\
 	"..\..\extra_lib\include\GLES\egl.h"\
 	"..\..\extra_lib\include\GLES\gl.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4756,6 +5052,9 @@ DEP_CPP_MESH_=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\compositor\gl_inc.h"\
 	
+NODEP_CPP_MESH_=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -4766,6 +5065,7 @@ SOURCE=..\..\include\gpac\internal\mesh.h
 SOURCE=..\..\src\compositor\mesh_collide.c
 DEP_CPP_MESH_C=\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4776,15 +5076,20 @@ DEP_CPP_MESH_C=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	
+NODEP_CPP_MESH_C=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\compositor\mesh_tesselate.c
 DEP_CPP_MESH_T=\
+	"..\..\..\TinyGL\include\GL\gl.h"\
 	"..\..\extra_lib\include\GLES\egl.h"\
 	"..\..\extra_lib\include\GLES\gl.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4795,6 +5100,9 @@ DEP_CPP_MESH_T=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\compositor\gl_inc.h"\
+	
+NODEP_CPP_MESH_T=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -4808,6 +5116,7 @@ DEP_CPP_MPEG4_A=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4832,6 +5141,9 @@ DEP_CPP_MPEG4_A=\
 	"..\..\include\gpac\user.h"\
 	"..\..\src\compositor\drawable.h"\
 	"..\..\src\compositor\nodes_stacks.h"\
+	
+NODEP_CPP_MPEG4_A=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -4845,6 +5157,7 @@ DEP_CPP_MPEG4_AU=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4869,6 +5182,9 @@ DEP_CPP_MPEG4_AU=\
 	"..\..\include\gpac\user.h"\
 	"..\..\src\compositor\drawable.h"\
 	"..\..\src\compositor\nodes_stacks.h"\
+	
+NODEP_CPP_MPEG4_AU=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -4882,6 +5198,7 @@ DEP_CPP_MPEG4_B=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4910,6 +5227,9 @@ DEP_CPP_MPEG4_B=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_MPEG4_B=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -4923,6 +5243,7 @@ DEP_CPP_MPEG4_BA=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4952,6 +5273,9 @@ DEP_CPP_MPEG4_BA=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_MPEG4_BA=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -4965,6 +5289,7 @@ DEP_CPP_MPEG4_BI=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -4994,11 +5319,15 @@ DEP_CPP_MPEG4_BI=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_BI=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\compositor\mpeg4_composite.c
 DEP_CPP_MPEG4_C=\
+	"..\..\..\TinyGL\include\GL\oscontext.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config_file.h"\
@@ -5006,6 +5335,7 @@ DEP_CPP_MPEG4_C=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5034,6 +5364,9 @@ DEP_CPP_MPEG4_C=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_MPEG4_C=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -5047,6 +5380,7 @@ DEP_CPP_MPEG4_F=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5076,6 +5410,9 @@ DEP_CPP_MPEG4_F=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_F=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5088,6 +5425,7 @@ DEP_CPP_MPEG4_G=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5116,6 +5454,9 @@ DEP_CPP_MPEG4_G=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_G=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5128,6 +5469,7 @@ DEP_CPP_MPEG4_GE=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5157,6 +5499,9 @@ DEP_CPP_MPEG4_GE=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_GE=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5169,6 +5514,7 @@ DEP_CPP_MPEG4_GEO=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5196,6 +5542,9 @@ DEP_CPP_MPEG4_GEO=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_MPEG4_GEO=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -5209,6 +5558,7 @@ DEP_CPP_MPEG4_GEOM=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5237,6 +5587,9 @@ DEP_CPP_MPEG4_GEOM=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_GEOM=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5249,6 +5602,7 @@ DEP_CPP_MPEG4_GR=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5275,6 +5629,9 @@ DEP_CPP_MPEG4_GR=\
 	"..\..\src\compositor\nodes_stacks.h"\
 	"..\..\src\compositor\texturing.h"\
 	
+NODEP_CPP_MPEG4_GR=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5287,6 +5644,7 @@ DEP_CPP_MPEG4_GRO=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5315,6 +5673,9 @@ DEP_CPP_MPEG4_GRO=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_MPEG4_GRO=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -5332,6 +5693,7 @@ DEP_CPP_MPEG4_GROU=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5360,6 +5722,9 @@ DEP_CPP_MPEG4_GROU=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_MPEG4_GROU=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -5373,6 +5738,7 @@ DEP_CPP_MPEG4_GROUP=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5401,6 +5767,9 @@ DEP_CPP_MPEG4_GROUP=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_MPEG4_GROUP=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -5414,6 +5783,7 @@ DEP_CPP_MPEG4_L=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5443,11 +5813,15 @@ DEP_CPP_MPEG4_L=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_L=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\compositor\mpeg4_layer_3d.c
 DEP_CPP_MPEG4_LA=\
+	"..\..\..\TinyGL\include\GL\oscontext.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\compositor.h"\
 	"..\..\include\gpac\config_file.h"\
@@ -5455,6 +5829,7 @@ DEP_CPP_MPEG4_LA=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5485,6 +5860,9 @@ DEP_CPP_MPEG4_LA=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_LA=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5497,6 +5875,7 @@ DEP_CPP_MPEG4_LAY=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5525,6 +5904,9 @@ DEP_CPP_MPEG4_LAY=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_MPEG4_LAY=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -5538,6 +5920,7 @@ DEP_CPP_MPEG4_LI=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5566,6 +5949,9 @@ DEP_CPP_MPEG4_LI=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_LI=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5578,6 +5964,7 @@ DEP_CPP_MPEG4_P=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5606,6 +5993,9 @@ DEP_CPP_MPEG4_P=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_MPEG4_P=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -5621,6 +6011,7 @@ DEP_CPP_MPEG4_S=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -5657,6 +6048,9 @@ DEP_CPP_MPEG4_S=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_S=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5669,6 +6063,7 @@ DEP_CPP_MPEG4_SO=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5697,6 +6092,9 @@ DEP_CPP_MPEG4_SO=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_SO=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5709,6 +6107,7 @@ DEP_CPP_MPEG4_T=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5741,6 +6140,9 @@ DEP_CPP_MPEG4_T=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_T=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5753,6 +6155,7 @@ DEP_CPP_MPEG4_TE=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5776,6 +6179,9 @@ DEP_CPP_MPEG4_TE=\
 	"..\..\include\gpac\user.h"\
 	"..\..\src\compositor\texturing.h"\
 	
+NODEP_CPP_MPEG4_TE=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5788,6 +6194,7 @@ DEP_CPP_MPEG4_TI=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5813,6 +6220,9 @@ DEP_CPP_MPEG4_TI=\
 	"..\..\src\compositor\drawable.h"\
 	"..\..\src\compositor\nodes_stacks.h"\
 	
+NODEP_CPP_MPEG4_TI=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5827,6 +6237,7 @@ DEP_CPP_MPEG4_VI=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -5863,6 +6274,9 @@ DEP_CPP_MPEG4_VI=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_MPEG4_VI=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -5875,6 +6289,7 @@ DEP_CPP_NAVIG=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5903,6 +6318,9 @@ DEP_CPP_NAVIG=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_NAVIG=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -5920,6 +6338,7 @@ DEP_CPP_OFFSC=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5946,6 +6365,9 @@ DEP_CPP_OFFSC=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_OFFSC=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -5963,6 +6385,7 @@ DEP_CPP_SVG_B=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -5991,6 +6414,9 @@ DEP_CPP_SVG_B=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_SVG_B=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -6003,6 +6429,7 @@ DEP_CPP_SVG_F=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6032,6 +6459,9 @@ DEP_CPP_SVG_F=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_SVG_F=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -6044,6 +6474,7 @@ DEP_CPP_SVG_G=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6072,6 +6503,9 @@ DEP_CPP_SVG_G=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_SVG_G=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -6086,6 +6520,7 @@ DEP_CPP_SVG_GR=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -6123,6 +6558,9 @@ DEP_CPP_SVG_GR=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_SVG_GR=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -6135,6 +6573,7 @@ DEP_CPP_SVG_M=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6163,6 +6602,9 @@ DEP_CPP_SVG_M=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_SVG_M=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -6175,6 +6617,7 @@ DEP_CPP_SVG_PA=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6204,6 +6647,9 @@ DEP_CPP_SVG_PA=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_SVG_PA=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -6216,6 +6662,7 @@ DEP_CPP_SVG_TE=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6245,6 +6692,9 @@ DEP_CPP_SVG_TE=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_SVG_TE=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -6259,6 +6709,7 @@ DEP_CPP_TEXTU=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
@@ -6293,6 +6744,10 @@ DEP_CPP_TEXTU=\
 	"..\..\src\compositor\nodes_stacks.h"\
 	"..\..\src\compositor\texturing.h"\
 	
+NODEP_CPP_TEXTU=\
+	"..\..\include\gpac\config.h"\
+	"..\..\src\src\compositor\triscope_renoir\triscope_renoir.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -6302,6 +6757,7 @@ SOURCE=..\..\src\compositor\texturing.h
 
 SOURCE=..\..\src\compositor\texturing_gl.c
 DEP_CPP_TEXTUR=\
+	"..\..\..\TinyGL\include\GL\gl.h"\
 	"..\..\extra_lib\include\GLES\egl.h"\
 	"..\..\extra_lib\include\GLES\gl.h"\
 	"..\..\include\gpac\color.h"\
@@ -6311,6 +6767,7 @@ DEP_CPP_TEXTUR=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6341,6 +6798,9 @@ DEP_CPP_TEXTUR=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_TEXTUR=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -6353,6 +6813,7 @@ DEP_CPP_VISUA=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6377,6 +6838,9 @@ DEP_CPP_VISUA=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_VISUA=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -6394,6 +6858,7 @@ DEP_CPP_VISUAL=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6421,6 +6886,9 @@ DEP_CPP_VISUAL=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_VISUAL=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -6438,6 +6906,7 @@ DEP_CPP_VISUAL_=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6467,6 +6936,9 @@ DEP_CPP_VISUAL_=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_VISUAL_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -6480,6 +6952,7 @@ DEP_CPP_VISUAL_M=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6510,6 +6983,9 @@ DEP_CPP_VISUAL_M=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_VISUAL_M=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -6519,6 +6995,7 @@ SOURCE=..\..\src\compositor\visual_manager_3d.h
 
 SOURCE=..\..\src\compositor\visual_manager_3d_gl.c
 DEP_CPP_VISUAL_MA=\
+	"..\..\..\TinyGL\include\GL\gl.h"\
 	"..\..\extra_lib\include\GLES\egl.h"\
 	"..\..\extra_lib\include\GLES\gl.h"\
 	"..\..\include\gpac\color.h"\
@@ -6528,6 +7005,7 @@ DEP_CPP_VISUAL_MA=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6554,6 +7032,9 @@ DEP_CPP_VISUAL_MA=\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
 	
+NODEP_CPP_VISUAL_MA=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -6566,6 +7047,7 @@ DEP_CPP_X3D_G=\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\camera.h"\
 	"..\..\include\gpac\internal\compositor_dev.h"\
+	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
 	"..\..\include\gpac\list.h"\
@@ -6593,6 +7075,9 @@ DEP_CPP_X3D_G=\
 	"..\..\src\compositor\visual_manager.h"\
 	"..\..\src\compositor\visual_manager_2d.h"\
 	"..\..\src\compositor\visual_manager_3d.h"\
+	
+NODEP_CPP_X3D_G=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Group
