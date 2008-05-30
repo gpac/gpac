@@ -155,6 +155,8 @@ SOURCE svg_tools_da.c
 SOURCE svg_types.c
 SOURCE svg_smjs.c
 SOURCE svg_properties.c
+SOURCE xbl_nodes.c
+SOURCE xbl_process.c
 
 //mcrypt
 SOURCEPATH ..\..\src\mcrypt
