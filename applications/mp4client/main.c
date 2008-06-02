@@ -1020,7 +1020,7 @@ int main (int argc, char **argv)
 	/*setup dumping options*/
 	if (dump_mode) {
 		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
-		if (!visible) user.init_flags |= GF_TERM_INIT_HIDE;
+		if (visible || dump_mode==8) user.init_flags |= GF_TERM_INIT_HIDE;
 	} else {
 		init_w = forced_width;
 		init_h = forced_height;
