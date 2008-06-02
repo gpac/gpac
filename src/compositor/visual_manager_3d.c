@@ -202,6 +202,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 			gf_mulfix(ar*2, gf_tan(fieldOfView/2)) 
 		);
 		
+
 		/*fixed-point overflow*/
 		if (tr_state->camera->z_far <0) {
 			tr_state->camera->z_far = FIX_MAX/4;

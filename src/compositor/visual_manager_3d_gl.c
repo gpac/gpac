@@ -1426,15 +1426,33 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 #else
 		fb->video_buffer = (char*)malloc(sizeof(char)* 2 * fb->pitch * fb->height);
 #endif
+
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
 
 		glPixelTransferf(GL_DEPTH_SCALE, compositor->OGLDepthGain); 
 		glPixelTransferf(GL_DEPTH_BIAS, compositor->OGLDepthOffset); 
-	
+
+		/*the following is the inverse z-transform of OpenGL*/		
+#if 0		
 		/* GL_FLOAT for float depthbuffer */
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, fb->video_buffer); 
-#endif
+#else
+		{
+		float *buff = (float *) malloc(sizeof(float)* fb->width * fb->height);
+		Fixed n = compositor->traverse_state->camera->z_near;
+		Fixed f = compositor->traverse_state->camera->z_far;
 		
+		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_FLOAT, buff); 
+
+		for (i=0; i<fb->height*fb->width; i++) 
+			fb->video_buffer[i] = (char) (255 * (1.0 - buff[i]) / (1 - buff[i]*(1-(n/f))));
+
+		free(buff);
+		
+		}
+		
+#endif
+#endif		
 	/* RGBDS or RGBD dump*/
 	} else if (depth_dump_mode==2 || depth_dump_mode==3){
 
