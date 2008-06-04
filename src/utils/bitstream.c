@@ -281,9 +281,14 @@ GF_EXPORT
 u64 gf_bs_read_long_int(GF_BitStream *bs, u32 nBits)
 {
 	u64 ret = 0;
-	while (nBits-- > 0) {
-		ret <<= 1;
-		ret |= gf_bs_read_bit(bs);
+	if (nBits>64) {
+		gf_bs_read_long_int(bs, nBits-64);
+		ret = gf_bs_read_long_int(bs, 64);
+	} else {
+		while (nBits-- > 0) {
+			ret <<= 1;
+			ret |= gf_bs_read_bit(bs);
+		}
 	}
 	return ret;
 }
@@ -400,10 +405,15 @@ void gf_bs_write_int(GF_BitStream *bs, s32 value, s32 nBits)
 GF_EXPORT
 void gf_bs_write_long_int(GF_BitStream *bs, s64 value, s32 nBits)
 {
-	value <<= sizeof (s64) * 8 - nBits;
-	while (--nBits >= 0) {
-		BS_WriteBit (bs, value < 0);
-		value <<= 1;
+	if (nBits>64) {
+		gf_bs_write_int(bs, 0, nBits-64);
+		gf_bs_write_long_int(bs, value, 64);
+	} else {
+		value <<= sizeof (s64) * 8 - nBits;
+		while (--nBits >= 0) {
+			BS_WriteBit (bs, value < 0);
+			value <<= 1;
+		}
 	}
 }
 
