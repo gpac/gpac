@@ -230,7 +230,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		gf_set_progress(sTitle, evt->progress.done, evt->progress.total);
 	}
 		break;
-	
 	case GF_EVENT_KEYDOWN:
 		if (app->m_can_seek && (evt->key.flags & GF_KEY_MOD_ALT)) {
 			s32 res;
@@ -298,6 +297,14 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	{
 		wxGPACEvent wxevt(app);
 		wxevt.to_url = wxString(evt->navigate.to_url, wxConvUTF8);
+		wxevt.gpac_evt.type = evt->type;
+		app->AddPendingEvent(wxevt);
+	}
+		return 1;
+	case GF_EVENT_SET_CAPTION:
+	{
+		wxGPACEvent wxevt(app);
+		wxevt.to_url = wxString(evt->caption.caption, wxConvUTF8);
 		wxevt.gpac_evt.type = evt->type;
 		app->AddPendingEvent(wxevt);
 	}
@@ -1614,6 +1621,9 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 		break;
 	case GF_EVENT_QUIT:
 		Close(TRUE);
+		break;
+	case GF_EVENT_SET_CAPTION:
+		SetTitle(event.to_url);
 		break;
 	case GF_EVENT_CONNECT:
 		BuildStreamList(0);
