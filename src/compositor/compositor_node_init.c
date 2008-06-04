@@ -63,6 +63,7 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 	case TAG_MPEG4_RadialGradient: compositor_init_radial_gradient(compositor, node); break;
 
 	case TAG_MPEG4_CompositeTexture2D: compositor_init_compositetexture2d(compositor, node); break;
+	case TAG_MPEG4_MatteTexture: compositor_init_mattetexture(compositor, node); break;
 
 	case TAG_MPEG4_Form: compositor_init_form(compositor, node); break;
 	case TAG_MPEG4_Layer2D: compositor_init_layer2d(compositor, node); break;

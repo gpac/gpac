@@ -814,13 +814,13 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 			if (fill_2d && asp->pen_props.width) {
 				can_texture_text = 0;
 			} else {
-				can_texture_text = tr_state->mesh_has_texture ? 0 : 1;
+				can_texture_text = tr_state->mesh_num_textures ? 0 : 1;
 			}
 		}
 	}
 
 	visual_3d_enable_antialias(tr_state->visual, compositor->antiAlias);
-	if (fill_2d || !asp || tr_state->mesh_has_texture) {
+	if (fill_2d || !asp || tr_state->mesh_num_textures) {
 		if (fill_2d) visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
 
 		i = tr_state->text_split_idx ? tr_state->text_split_idx-1 : 0;
@@ -834,7 +834,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 			}
 
 			if (can_texture_text && span_setup_texture(tr_state->visual->compositor, span, 1, tr_state)) {
-				tr_state->mesh_has_texture = 1;
+				tr_state->mesh_num_textures = 1;
 				gf_sc_texture_enable(span->ext->txh, NULL);
 				visual_3d_mesh_paint(tr_state, span->ext->tx_mesh);
 				gf_sc_texture_disable(span->ext->txh);

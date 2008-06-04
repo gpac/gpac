@@ -196,8 +196,8 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 	if (!use_texture || (!is_layer && st->txh.transparent) ) visual_3d_set_material_2d(tr_state->visual, bck->backColor, FIX_ONE);
 	if (use_texture) {
 		visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, !is_layer);
-		tr_state->mesh_has_texture = gf_sc_texture_enable(&st->txh, NULL);
-		if (!tr_state->mesh_has_texture) visual_3d_set_material_2d(tr_state->visual, bck->backColor, FIX_ONE);
+		tr_state->mesh_num_textures = gf_sc_texture_enable(&st->txh, NULL);
+		if (!tr_state->mesh_num_textures) visual_3d_set_material_2d(tr_state->visual, bck->backColor, FIX_ONE);
 	}
 
 	/*create mesh object if needed*/
@@ -241,9 +241,9 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 	}
 	visual_3d_matrix_add(tr_state->visual, mx.m);
 	visual_3d_mesh_paint(tr_state, st->mesh);
-	if (tr_state->mesh_has_texture) {
+	if (tr_state->mesh_num_textures) {
 		gf_sc_texture_disable(&st->txh);
-		tr_state->mesh_has_texture = 0;
+		tr_state->mesh_num_textures = 0;
 	}
 
 	visual_3d_matrix_pop(tr_state->visual);

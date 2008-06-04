@@ -173,11 +173,6 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 
 	/*3D driver changed message, recheck extensions*/
 	if (compositor->reset_graphics) {
-#ifndef GPAC_DISABLE_3D
-		gf_sc_load_opengl_extensions(compositor);
-		compositor->offscreen_width = compositor->offscreen_height = 0;
-#endif
-
 		evt.type = GF_EVENT_SYS_COLORS;
 		if (compositor->user->EventProc && compositor->user->EventProc(compositor->user->opaque, &evt) ) {
 			u32 i;
@@ -1539,7 +1534,11 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #endif
 
 #ifndef GPAC_DISABLE_3D
-		if (compositor->visual->type_3d) compositor_3d_set_aspect_ratio(compositor);
+		if (compositor->visual->type_3d) {
+			compositor->offscreen_width = compositor->offscreen_height = 0;
+			compositor_3d_set_aspect_ratio(compositor);
+			gf_sc_load_opengl_extensions(compositor);
+		}
 		else
 #endif
 			compositor_2d_set_aspect_ratio(compositor);
@@ -2306,6 +2305,15 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		}
 		return 0;
 	}
+	case GF_JSAPI_OP_GET_FPS:
+		param->time = gf_sc_get_fps(compositor, 0);
+		return 1;
+	case GF_JSAPI_OP_GET_SPEED:
+		param->time = 0;
+		if (compositor->visual->type_3d==2) {
+			param->time = FIX2FLT(compositor->visual->camera.speed);
+		}
+		return 1;
 	}
 	return 0;
 }

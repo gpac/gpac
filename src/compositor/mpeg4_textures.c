@@ -378,3 +378,19 @@ GF_TextureHandler *pt_get_texture(GF_Node *node)
 	return &st->txh;
 }
 
+static void matte_update(GF_TextureHandler *txh)
+{
+	/*nothing to do*/
+}
+
+void compositor_init_mattetexture(GF_Compositor *compositor, GF_Node *node)
+{
+	M_MatteTexture *matte = (M_MatteTexture *)node;
+	ImageTextureStack *st;
+	GF_SAFEALLOC(st, ImageTextureStack);
+	gf_sc_texture_setup(&st->txh, compositor, node);
+	st->txh.flags = GF_SR_TEXTURE_MATTE;
+	st->txh.update_texture_fcnt = matte_update;
+	gf_node_set_private(node, st);
+	gf_node_set_callback_function(node, imagetexture_destroy);
+}

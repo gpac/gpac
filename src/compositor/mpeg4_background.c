@@ -251,10 +251,10 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 static void back_draw_texture(GF_TraverseState *tr_state, GF_TextureHandler *txh, GF_Mesh *mesh)
 {
 	if (gf_sc_texture_enable(txh, NULL)) {
-		tr_state->mesh_has_texture = 1;
+		tr_state->mesh_num_textures = 1;
 		visual_3d_mesh_paint(tr_state, mesh);
 		gf_sc_texture_disable(txh);
-		tr_state->mesh_has_texture = 0;
+		tr_state->mesh_num_textures = 0;
 	}
 }
 

@@ -1200,11 +1200,11 @@ static GF_TextureHandler *visual_3d_setup_texture_2d(GF_TraverseState *tr_state,
 	if (is_svg) {
 		GF_Rect rc;
 		gf_rect_from_bbox(&rc, &mesh->bounds);
-		tr_state->mesh_has_texture = gf_sc_texture_enable_ex(asp->fill_texture, NULL, &rc);
+		tr_state->mesh_num_textures = gf_sc_texture_enable_ex(asp->fill_texture, NULL, &rc);
 	} else {
-		tr_state->mesh_has_texture = gf_sc_texture_enable(asp->fill_texture, ((M_Appearance *)tr_state->appear)->textureTransform);
+		tr_state->mesh_num_textures = gf_sc_texture_enable(asp->fill_texture, ((M_Appearance *)tr_state->appear)->textureTransform);
 	}
-	if (tr_state->mesh_has_texture) return asp->fill_texture;
+	if (tr_state->mesh_num_textures) return asp->fill_texture;
 	return NULL;
 }
 
@@ -1222,8 +1222,8 @@ void visual_3d_set_2d_strike(GF_TraverseState *tr_state, DrawAspect2D *asp)
 			gf_sc_texture_set_blend_mode(asp->txh, TX_REPLACE);
 		}
 #endif
-		tr_state->mesh_has_texture = gf_sc_texture_enable(asp->line_texture, NULL/*asp->tx_trans*/);
-		if (tr_state->mesh_has_texture) return;
+		tr_state->mesh_num_textures = gf_sc_texture_enable(asp->line_texture, NULL/*asp->tx_trans*/);
+		if (tr_state->mesh_num_textures) return;
 	}
 	/*no texture or not ready, use color*/
 	if (asp->line_color)
@@ -1247,9 +1247,9 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 		
 		visual_3d_mesh_paint(tr_state, st->mesh);
 		/*reset texturing in case of line texture*/
-		if (tr_state->mesh_has_texture) {
+		if (tr_state->mesh_num_textures) {
 			gf_sc_texture_disable(fill_txh);
-			tr_state->mesh_has_texture = 0;
+			tr_state->mesh_num_textures = 0;
 		}
 	}
 
@@ -1271,7 +1271,7 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 	}
 
 	visual_3d_set_2d_strike(tr_state, asp);
-	if (asp->line_texture) tr_state->mesh_has_texture = 1;
+	if (asp->line_texture) tr_state->mesh_num_textures = 1;
 
 	if (!si->is_vectorial) {
 		visual_3d_mesh_strike(tr_state, si->mesh_outline, asp->pen_props.width, asp->line_scale, asp->pen_props.dash);
@@ -1280,7 +1280,7 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 	}
 	if (asp->line_texture) {
 		gf_sc_texture_disable(asp->line_texture);
-		tr_state->mesh_has_texture = 0;
+		tr_state->mesh_num_textures = 0;
 	}		
 }
 
@@ -1445,7 +1445,7 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 {
 	GF_TextureHandler *txh;
-	tr_state->mesh_has_texture = 0;
+	tr_state->mesh_num_textures = 0;
 	if (!tr_state->appear) return 0;
 
 	gf_node_dirty_reset(tr_state->appear);
@@ -1453,8 +1453,8 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 	txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
 	if (txh) {
 		gf_sc_texture_set_blend_mode(txh, gf_sc_texture_is_transparent(txh) ? TX_MODULATE : TX_REPLACE);
-		tr_state->mesh_has_texture = gf_sc_texture_enable(txh, ((M_Appearance *)tr_state->appear)->textureTransform);
-		if (tr_state->mesh_has_texture) {
+		tr_state->mesh_num_textures = gf_sc_texture_enable(txh, ((M_Appearance *)tr_state->appear)->textureTransform);
+		if (tr_state->mesh_num_textures) {
 			Fixed v[4];
 			switch (txh->pixelformat) {
 			/*override diffuse color with full intensity, but keep material alpha (cf VRML lighting)*/
@@ -1468,21 +1468,22 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
 				tr_state->mesh_is_transparent = 1;
 				break;
-			case GF_PIXEL_GREYSCALE:
-				tr_state->mesh_has_texture = 2;
+/*			case GF_PIXEL_GREYSCALE:
+				tr_state->mesh_num_textures = 2;
 				break;
+*/
 			}
 		}
-		return tr_state->mesh_has_texture;
+		return tr_state->mesh_num_textures;
 	}
 	return 0;
 }
 
 void visual_3d_disable_texture(GF_TraverseState *tr_state)
 {
-	if (tr_state->mesh_has_texture) {
+	if (tr_state->mesh_num_textures) {
 		gf_sc_texture_disable(gf_sc_texture_get_handler( ((M_Appearance *)tr_state->appear)->texture) );
-		tr_state->mesh_has_texture = 0;
+		tr_state->mesh_num_textures = 0;
 	}
 }
 
