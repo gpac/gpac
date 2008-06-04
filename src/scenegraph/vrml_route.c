@@ -59,8 +59,8 @@ void gf_sg_route_del(GF_Route *r)
 
 	/*remove declared routes*/
 	ind = gf_list_del_item(r->graph->Routes, r);
-	/*remove route from node*/
-	if (r->is_setup && r->FromNode && r->FromNode->sgprivate->interact && r->FromNode->sgprivate->interact->events) {
+	/*remove route from node - do this regardless of setup state since the route is registered upon creation*/
+	if (r->FromNode && r->FromNode->sgprivate->interact && r->FromNode->sgprivate->interact->events) {
 		gf_list_del_item(r->FromNode->sgprivate->interact->events, r);
 		if (!gf_list_count(r->FromNode->sgprivate->interact->events)) {
 			gf_list_del(r->FromNode->sgprivate->interact->events);
@@ -107,10 +107,6 @@ void gf_sg_route_queue(GF_SceneGraph *sg, GF_Route *r)
 	now = 1 + sg->simulation_tick;
 	if (r->lastActivateTime >= now) return;
 	r->lastActivateTime = now;
-	if (gf_list_find(sg->routes_to_activate, r)>=0) {
-		fprintf(stdout, "WTF 1!!\n\n");
-		return;
-	}
 	gf_list_add(sg->routes_to_activate, r);
 }
 
@@ -149,8 +145,6 @@ void gf_sg_route_unqueue(GF_SceneGraph *sg, GF_Route *r)
 	while (sg->parent_scene) sg = sg->parent_scene;
 	/*remove route from queue list*/
 	gf_list_del_item(sg->routes_to_activate, r);
-	if (gf_list_find(sg->routes_to_activate, r)>=0)
-		fprintf(stdout, "WTF 2!!\n\n");
 }
 
 
@@ -315,8 +309,6 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 	GF_Route *r;
 	if (!node) return;
 	
-	//this is not an ISed
-	if (!(node->sgprivate->flags & GF_NODE_IS_DEF) && !node->sgprivate->scenegraph->pOwningProto) return;
 	if (!node->sgprivate->interact) return;
 	
 	//search for routes to activate in the order they where declared
