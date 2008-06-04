@@ -71,6 +71,14 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		param->dnld_man = term->downloader;
 		return 1;
 	}
+	if (type==GF_JSAPI_OP_SET_TITLE) {
+		GF_Event evt;
+		if (!term->user->EventProc) return 0;
+		evt.type = GF_EVENT_SET_CAPTION;
+		evt.caption.caption = param->uri.url;
+		term->user->EventProc(term->user->opaque, &evt);
+		return 1;
+	}
 
 	if (type==GF_JSAPI_OP_GET_SCENE_URI) {
 		GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph(n));
