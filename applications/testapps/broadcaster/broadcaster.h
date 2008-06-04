@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#undef USE_TCP_STANDARD
+
 #ifdef USE_TCP_STANDARD
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -35,7 +38,7 @@
 #include "sdp_generator.h"
 
 /* definitions */
-#define MAX_BUF 1500
+#define MAX_BUF 4096
 
 /* données de configuration */
 #define MAIN_SECTION "Broadcaster"
