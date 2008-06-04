@@ -597,6 +597,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			fprintf(stdout, "Navigation destination not supported\nGo to URL: %s\n", evt->navigate.to_url);
 		}
 		break;
+	case GF_EVENT_SET_CAPTION:
+		gf_term_user_event(term, evt);
+		break;
 	case GF_EVENT_AUTHORIZATION:
 		if (!strlen(evt->auth.user)) {
 			fprintf(stdout, "Authorization required for site %s\n", evt->auth.site_url);
