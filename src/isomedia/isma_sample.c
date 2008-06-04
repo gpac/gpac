@@ -105,7 +105,7 @@ GF_Err gf_isom_ismacryp_sample_to_sample(GF_ISMASample *s, GF_ISOSample *dest)
 		gf_bs_write_int(bs, 0, 7);
 	} 
 	if (s->flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
-		if (s->IV_length) gf_bs_write_long_int(bs, s->IV, 8*s->IV_length);
+		if (s->IV_length) gf_bs_write_long_int(bs, (s64) s->IV, 8*s->IV_length);
 		if (s->KI_length) gf_bs_write_data(bs, (char*)s->key_indicator, s->KI_length);
 	}
 	gf_bs_write_data(bs, s->data, s->dataLength);
