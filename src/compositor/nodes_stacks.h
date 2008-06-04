@@ -159,6 +159,7 @@ void compositor_init_sound2d(GF_Compositor *compositor, GF_Node *node);
 
 void compositor_init_radial_gradient(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_linear_gradient(GF_Compositor *compositor, GF_Node *node);
+void compositor_init_mattetexture(GF_Compositor *compositor, GF_Node *node);
 
 void compositor_init_layer2d(GF_Compositor *compositor, GF_Node *node);
 

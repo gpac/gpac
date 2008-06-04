@@ -31,8 +31,10 @@ GF_List *Bindable_GetStack(GF_Node *bindable)
 	st = gf_node_get_private(bindable);
 	switch (gf_node_get_tag(bindable)) {
 	case TAG_MPEG4_Background2D: return ((Background2DStack*)st)->reg_stacks;
-	case TAG_MPEG4_Viewport: return ((ViewStack*)st)->reg_stacks;
-	case TAG_MPEG4_NavigationInfo: case TAG_X3D_NavigationInfo: 
+	case TAG_MPEG4_Viewport:
+	case TAG_MPEG4_NavigationInfo: 
+	case TAG_X3D_NavigationInfo: 
+		return ((ViewStack*)st)->reg_stacks;
 #ifndef GPAC_DISABLE_3D
 	case TAG_MPEG4_Background: case TAG_X3D_Background: return ((BackgroundStack*)st)->reg_stacks;
 	case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: 

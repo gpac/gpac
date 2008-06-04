@@ -229,6 +229,13 @@ GF_TextureHandler *gf_sc_texture_get_handler(GF_Node *n)
 	case TAG_MPEG4_RadialGradient: 
 		return compositor_mpeg4_get_gradient_texture(n);
 
+	case TAG_MPEG4_MatteTexture:
+	{
+		GF_TextureHandler *hdl = gf_sc_texture_get_handler( ((M_MatteTexture*)n)->surfaceB );
+		if (hdl) hdl->matteTexture = n;
+		return hdl;
+	}
+
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_linearGradient: 
 	case TAG_SVG_radialGradient: 

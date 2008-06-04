@@ -398,8 +398,8 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	oldn = tr_state->navigations;
 	tr_state->backgrounds = st->visual->back_stack;
 	tr_state->viewpoints = st->visual->view_stack;
-	tr_state->fogs = st->visual->navigation_stack;
-	tr_state->navigations = st->visual->fog_stack;
+	tr_state->navigations = st->visual->navigation_stack;
+	tr_state->fogs = st->visual->fog_stack;
 
 	prev_cam = tr_state->camera;
 	tr_state->camera = &st->visual->camera;

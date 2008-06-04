@@ -55,6 +55,15 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 	compositor->gl_caps.rect_texture = 1;
 	compositor->gl_caps.npot_texture = 1;
 #else
+
+#if defined (GPAC_USE_OGL_ES)
+#define GET_GLFUN(__name) (PFNGLARBMULTITEXTUREPROC) eglGetProcAddress(__name) 
+#elif defined (WIN32)
+#define GET_GLFUN(__name) (PFNGLARBMULTITEXTUREPROC) wglGetProcAddress(__name) 
+#else
+#define GET_GLFUN(__name) (PFNGLARBMULTITEXTUREPROC) glXGetProcAddress(__name) 
+#endif
+
 	const char *ext;
 	if (!compositor->visual->type_3d) return;
 
@@ -79,6 +88,12 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 		if (CHECK_GL_EXT("GL_MESA_ycbcr_texture")) compositor->gl_caps.yuv_texture = YCBCR_MESA;
 		else if (CHECK_GL_EXT("GL_APPLE_ycbcr_422")) compositor->gl_caps.yuv_texture = YCBCR_422_APPLE;
 	}
+
+	if (CHECK_GL_EXT("GL_ARB_multitexture")) {
+		compositor->gl_caps.glActiveTextureARB = GET_GLFUN("glActiveTextureARB");
+		compositor->gl_caps.glClientActiveTextureARB = GET_GLFUN("glClientActiveTextureARB");
+	}
+
 #endif
 }
 
@@ -296,7 +311,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex),  &mesh->vertices[0].pos);
 #endif
 
-	if ((tr_state->mesh_has_texture != 1) && (mesh->flags & MESH_HAS_COLOR)) {
+	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR)) {
 		glEnable(GL_COLOR_MATERIAL);
 #if !defined (GPAC_USE_OGL_ES)
 		glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
@@ -372,19 +387,30 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 	}
 
-	if (tr_state->mesh_has_texture && !mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)) {
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY );
+	if (tr_state->mesh_num_textures && !mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)) {
 		has_tx = 1;
 #if defined(GPAC_USE_OGL_ES)
 		glTexCoordPointer(2, GL_FIXED, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY );
 #elif defined(GPAC_FIXED_POINT)
 		glMatrixMode(GL_TEXTURE);
 		glPushMatrix();
 		glScalef(fix_scale, fix_scale, fix_scale);
 		glMatrixMode(GL_MODELVIEW);
 		glTexCoordPointer(2, GL_INT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY );
 #else
-		glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
+		if (tr_state->mesh_num_textures>1) {
+			u32 i;
+			for (i=0; i<tr_state->mesh_num_textures; i++) {
+				compositor->gl_caps.glClientActiveTextureARB(GL_TEXTURE0_ARB + i);
+				glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
+				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			}
+		} else {
+			glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY );
+		}
 #endif
 	}
 
