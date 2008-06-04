@@ -514,6 +514,12 @@ enum
 	GF_JSAPI_OP_SET_OPT,
 	/*!retrieve download manager*/
 	GF_JSAPI_OP_GET_DOWNLOAD_MANAGER,
+	/*!get navigation speed if any*/
+	GF_JSAPI_OP_GET_SPEED,
+	/*!get current frame rate*/
+	GF_JSAPI_OP_GET_FPS,
+	/*!set current title*/
+	GF_JSAPI_OP_SET_TITLE,
 };
 /*
 interface to various get/set options:
