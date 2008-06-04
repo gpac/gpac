@@ -83,6 +83,12 @@ typedef struct _gf_ft_mgr GF_FontManager;
 #include <gpac/internal/camera.h>
 #include <gpac/internal/mesh.h>
 
+#ifdef WIN32
+#include <windows.h>
+typedef void (APIENTRY * PFNGLARBMULTITEXTUREPROC)(unsigned int target);
+#else
+typedef void (*PFNGLARBMULTITEXTUREPROC) (unsigned int target);
+#endif
 
 typedef struct 
 {
@@ -92,6 +98,8 @@ typedef struct
 	Bool npot_texture;
 	Bool rect_texture;
 	u32 yuv_texture;
+	PFNGLARBMULTITEXTUREPROC glActiveTextureARB;
+	PFNGLARBMULTITEXTUREPROC glClientActiveTextureARB;
 } GLCaps;
 
 #endif
@@ -740,8 +748,8 @@ struct _traversing_state
 
 	/*when drawing, signals the mesh is transparent (enables blending)*/
 	Bool mesh_is_transparent;
-	/*when drawing, signals the mesh has texture*/
-	Bool mesh_has_texture;
+	/*when drawing, signals the number of textures used by the mesh*/
+	u32 mesh_num_textures;
 
 	/*bounds for TRAVERSE_GET_BOUNDS and background rendering*/
 	GF_BBox bbox;
@@ -952,8 +960,6 @@ Fixed gf_sc_svg_convert_length_to_display(GF_Compositor *sr, SVG_Length *length)
 
 char *gf_term_resolve_xlink(GF_Node *node, char *the_url);
 #endif
-
-void gf_sc_load_opengl_extensions(GF_Compositor *sr);
 
 GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *sr);
 void compositor_2d_set_user_transform(GF_Compositor *sr, Fixed zoom, Fixed tx, Fixed ty, Bool is_resize) ;
