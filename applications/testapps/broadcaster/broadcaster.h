@@ -3,17 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#undef USE_TCP_STANDARD
-
-#ifdef USE_TCP_STANDARD
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <netdb.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#endif
-
 /* includes pour gpac library*/
 #include <gpac/bifsengine.h>
 #include <gpac/config_file.h>

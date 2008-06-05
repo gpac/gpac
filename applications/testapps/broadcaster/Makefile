@@ -2,7 +2,7 @@ include ../../../config.mak
 
 vpath %.c $(SRC_PATH)/applications/testapps/broadcaster
 
-CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include -DUSE_TCP_STANDARD
+CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
 SOURCES=
 APPNAME=broadcaster
