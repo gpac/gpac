@@ -111,92 +111,20 @@ u32 tcp_server(void *par)
 	u32 byte_read;
 	int ret;
 	GF_Config *gf_config_file;
-	
-#ifdef USE_TCP_STANDARD	
-	int fd, conn_fd;
-	struct sockaddr_in servaddr;
-#else
 	GF_Socket *TCP_socket;
 	GF_Socket *conn_socket;
 	GF_Err e;
-#endif	
 	
 	input->status = 1;
 
-#ifdef USE_TCP_STANDARD	
-	fd = socket(AF_INET, SOCK_STREAM, 0);
-	bzero(&servaddr, sizeof(servaddr));
-	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servaddr.sin_port = htons(input->port);
-	bind(fd, (struct sockaddr *) &servaddr, sizeof(servaddr));
-	listen(fd, 1);
-#else
 	TCP_socket = gf_sk_new(GF_SOCK_TYPE_TCP);
 	e = gf_sk_bind(TCP_socket, input->port, NULL, 0, 0);
 	e = gf_sk_listen(TCP_socket, 1);
-	gf_sk_set_block_mode(TCP_socket, 0);
+	e = gf_sk_set_block_mode(TCP_socket, 0);
 	e = gf_sk_server_mode(TCP_socket, 0);
-#endif	
 	
 	while(input->status == 1) {	
-		memset(buffer, 0, sizeof(buffer));
-#ifdef USE_TCP_STANDARD		
-		conn_fd = accept(fd, (struct sockaddr *) NULL, NULL);
-		
-		if (*(input->config_flag) == 0)	{
-			byte_read = read(conn_fd, buffer, sizeof(buffer));
-				
-			/* waiting for the configuration info */
-			fp = fopen("temp.cfg", "w+");
-			if (!fp) {
-				fprintf(stdout, "[broadcaster] : Error opening temp file for the configuration\n");
-				exit(1);
-			}
-			ret = fwrite(buffer, 1, byte_read, fp);
-			fclose(fp);
-			
-			/* parsing config info */
-			gf_config_file = gf_cfg_new(".", "temp.cfg");
-			input->config->scene_init_file = gf_cfg_get_key(gf_config_file, MAIN_SECTION, SCENE_INIT);
-			input->config->rap_timer = gf_cfg_get_key(gf_config_file, MAIN_SECTION, RAP_TIMER);
-			input->config->config_input_port = gf_cfg_get_key(gf_config_file, MAIN_SECTION, PORT_CONFIG);
-			input->config->modif_input_port = gf_cfg_get_key(gf_config_file, MAIN_SECTION, PORT_MODIF);
-	
-			input->config->dest_ip = gf_cfg_get_key(gf_config_file, DEST_SECTION, DEST_ADDRESS);
-			input->config->dest_port = gf_cfg_get_key(gf_config_file, DEST_SECTION, PORT_OUTPUT);
-	
-			input->config->feedback_ip = gf_cfg_get_key(gf_config_file, FEEDBACK_SECTION, IP_FEEDBACK);
-			input->config->feedback_port = gf_cfg_get_key(gf_config_file, FEEDBACK_SECTION, PORT_FEEDBACK);
-
-			gf_delete_file("temp.cfg");
-			
-			/* Acknowledging the configuration */ 
-			ret = write(conn_fd, "OK\n", 3);
-			
-			/* Writing the initial scene */ 
-			memset(temp, 0, sizeof(temp));
-			fp = fopen(input->config->scene_init_file, "w+");
-			if(!fp) {
-				fprintf(stdout, "[broadcaster] : Error opening temp file for the initial scene\n");
-				exit(1);
-			}
-			while((byte_read = read(conn_fd, temp, sizeof(temp))) > 0) {
-				ret = fwrite(temp, 1, byte_read, fp);
-			}
-			fclose(fp);
-			*(input->config_flag) = 1;
-		}
-
-		/* we only wait now for the config updates */
-		if((*(input->config_flag)) == 1) {
-			while((byte_read = read(conn_fd, buffer, sizeof(buffer))) > 0) {
-				ret = sscanf(buffer, "DelaiMax=%d\n", timer);
-				fprintf(stdout, "[broadcaster] : RAP timer changed, now : %d\n", *timer);
-			}
-		}
-		close(conn_fd);
-#else	
+		memset(buffer, 0, sizeof(buffer));	
 		e = gf_sk_accept(TCP_socket, &conn_socket);
 		if (e == GF_OK) {
 			memset(buffer, 0, sizeof(buffer));
@@ -210,10 +138,10 @@ u32 tcp_server(void *par)
 		case GF_OK:					
 			break;
 		default:
-      		fprintf(stdout, "[broadcaster] : Error with TCP socket : %d\n", e);
-      		exit(1);
-      		break;
-	    }
+	      		fprintf(stdout, "[broadcaster] : Error with TCP socket : %d\n", e);
+	      		exit(1);
+	      		break;
+		}
 
 		if((*(input->config_flag)) == 0) {
 			u32 num_retry;
@@ -225,7 +153,7 @@ u32 tcp_server(void *par)
 			}
 			ret = fwrite(buffer, 1, byte_read, fp);
 			fclose(fp);
-						
+			
 			/* parsing config info */
 			gf_config_file = gf_cfg_new(".", "temp.cfg");
 			input->config->scene_init_file = gf_cfg_get_key(gf_config_file, MAIN_SECTION, SCENE_INIT);
@@ -248,7 +176,6 @@ u32 tcp_server(void *par)
 				fprintf(stdout, "[broadcaster] : Error opening temp file for the initial scene\n");
 				exit(1);
 			}
-			
 			num_retry=10;
 			while (1) {
 				GF_Err e = gf_sk_receive(conn_socket, temp, sizeof(temp), 0, &byte_read);
@@ -265,13 +192,12 @@ u32 tcp_server(void *par)
 			fclose(fp);
 			*(input->config_flag) = 1;
 		}
-
 		/* we only wait now for the config updates */
 		if ( (*(input->config_flag)) == 1) {
 			ret = sscanf(buffer, "DelaiMax=%d\n", timer);							
 			fprintf(stdout, "[broadcaster] : RAP timer changed, now : %d\n", *timer);
 		}
-#endif
+		close(conn_fd);
 	}
 
 	input->status = 2;
@@ -326,8 +252,13 @@ int main (int argc, char** argv)
 	
 	/* controle si les deux parametres necessaires ont ete specifies */
 	tcp_conf->config_flag = &config_flag;
+<<<<<<< broadcaster.c
 	
 	gf_config_file = NULL;
+=======
+	
+	gf_config_file = NULL;
+>>>>>>> 1.4
 	/* controle pour savoir ou il faut prendre la configuration */
 	if(config_flag == 1)
 	{
@@ -446,9 +377,15 @@ int main (int argc, char** argv)
 	free(conf);
 	fprintf(stdout, "[broadcaster] : structures freed\n");
 	
+<<<<<<< broadcaster.c
 	if (gf_config_file)
 		gf_cfg_del(gf_config_file);
 	gf_delete_file("temp.cfg");
+=======
+	if (gf_config_file)
+		gf_cfg_del(gf_config_file);
+	gf_delete_file("temp.cfg");
+>>>>>>> 1.4
 	gf_th_del(tcp_thread);
 	gf_th_del(rap_thread);
 
