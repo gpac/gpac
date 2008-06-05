@@ -1,5 +1,6 @@
 #include "broadcaster.h"
 
+
 extern GF_Err SampleCallBack(void *calling_object, char *data, u32 size, u64 ts);
 
 /* fonction de gestion de la ligne de commande */
@@ -144,7 +145,9 @@ u32 tcp_server(void *par)
 		}
 
 		if((*(input->config_flag)) == 0) {
+
 			u32 num_retry;
+
 			/* waiting for the configuration info */
 			fp = fopen("temp.cfg", "w+");
 			if (!fp) {
@@ -177,16 +180,26 @@ u32 tcp_server(void *par)
 				exit(1);
 			}
 			num_retry=10;
+
 			while (1) {
+
 				GF_Err e = gf_sk_receive(conn_socket, temp, sizeof(temp), 0, &byte_read);
+
 				if (e == GF_OK) {
 					fwrite(temp, 1, byte_read, fp);
+
 				} else if (e==GF_IP_NETWORK_EMPTY) {
+
 					num_retry--;
+
 					if (!num_retry)
+
 						break;
+
 					gf_sleep(1);
+
 				} else 
+
 					break;
 			}
 			fclose(fp);
@@ -197,7 +210,7 @@ u32 tcp_server(void *par)
 			ret = sscanf(buffer, "DelaiMax=%d\n", timer);							
 			fprintf(stdout, "[broadcaster] : RAP timer changed, now : %d\n", *timer);
 		}
-		close(conn_fd);
+		gf_sk_del(conn_socket);
 	}
 
 	input->status = 2;
@@ -252,13 +265,9 @@ int main (int argc, char** argv)
 	
 	/* controle si les deux parametres necessaires ont ete specifies */
 	tcp_conf->config_flag = &config_flag;
-<<<<<<< broadcaster.c
 	
 	gf_config_file = NULL;
-=======
-	
-	gf_config_file = NULL;
->>>>>>> 1.4
+
 	/* controle pour savoir ou il faut prendre la configuration */
 	if(config_flag == 1)
 	{
@@ -377,15 +386,10 @@ int main (int argc, char** argv)
 	free(conf);
 	fprintf(stdout, "[broadcaster] : structures freed\n");
 	
-<<<<<<< broadcaster.c
 	if (gf_config_file)
 		gf_cfg_del(gf_config_file);
 	gf_delete_file("temp.cfg");
-=======
-	if (gf_config_file)
-		gf_cfg_del(gf_config_file);
-	gf_delete_file("temp.cfg");
->>>>>>> 1.4
+
 	gf_th_del(tcp_thread);
 	gf_th_del(rap_thread);
 
