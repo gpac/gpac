@@ -992,7 +992,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	timeout.tv_usec = SOCK_MICROSEC_WAIT;
 
 	res = 0;
-	ready = select(sock->socket, &Group, NULL, NULL, &timeout);
+	ready = select(sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
@@ -1309,93 +1309,3 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, char *buffer, u32 length, u32 Second )
 	return GF_OK;
 }
 
-
-#if 0
-
-//Socket Group for select(). The group is a collection of sockets ready for reading / writing
-typedef struct __tag_sock_group
-{
-	//the max time value before a select returns
-	struct timeval timeout;
-	fd_set ReadGroup;
-	fd_set WriteGroup;
-} GF_SocketGroup;
-
-
-#define GF_SOCK_GROUP_READ 0
-#define GF_SOCK_GROUP_WRITE 1
-
-GF_SocketGroup *NewSockGroup()
-{	
-	GF_SocketGroup *tmp = (GF_SocketGroup*)malloc(sizeof(GF_SocketGroup));
-	if (!tmp) return NULL;
-	FD_ZERO(&tmp->ReadGroup);
-	FD_ZERO(&tmp->WriteGroup);
-	return tmp;
-}
-
-void SKG_Delete(GF_SocketGroup *group)
-{
-	free(group);
-}
-
-void SKG_SetWatchTime(GF_SocketGroup *group, u32 DelayInS, u32 DelayInMicroS)
-{
-	group->timeout.tv_sec = DelayInS;
-	group->timeout.tv_usec = DelayInMicroS;
-}
-
-void SKG_AddSocket(GF_SocketGroup *group, GF_Socket *sock, u32 GroupType)
-{
-
-	switch (GroupType) {
-	case GF_SOCK_GROUP_READ:
-		FD_SET(sock->socket, &group->ReadGroup);
-		return;
-	case GF_SOCK_GROUP_WRITE:
-		FD_SET(sock->socket, &group->WriteGroup);
-		return;
-	default:
-		return;
-	}
-}
-
-void SKG_RemoveSocket(GF_SocketGroup *group, GF_Socket *sock, u32 GroupType)
-{
-	switch (GroupType) {
-	case GF_SOCK_GROUP_READ:
-		FD_CLR(sock->socket, &group->ReadGroup);
-		return;
-	case GF_SOCK_GROUP_WRITE:
-		FD_CLR(sock->socket, &group->WriteGroup);
-		return;
-	default:
-		return;
-	}
-}
-
-
-Bool SKG_IsSocketIN(GF_SocketGroup *group, GF_Socket *sock, u32 GroupType)
-{
-
-	switch (GroupType) {
-	case GF_SOCK_GROUP_READ:
-		if (FD_ISSET(sock->socket, &group->ReadGroup)) return 1;
-		return 0;
-	case GF_SOCK_GROUP_WRITE:
-		if (FD_ISSET(sock->socket, &group->WriteGroup)) return 1;
-		return 0;
-	default:
-		return 0;
-	}
-}
-
-u32 SKG_Select(GF_SocketGroup *group)
-{
-	u32 ready, rien = 0;
-	ready = select(rien, &group->ReadGroup, &group->WriteGroup, NULL, &group->timeout);
-	if (ready == SOCKET_ERROR) return 0;
-	return ready;
-}
-
-#endif
