@@ -138,6 +138,14 @@ static GF_Node *create_appearance(SVGPropertiesPointers *svg_props, GF_SceneGrap
 		xlp->transparency = FIX_ONE - svg_props->stroke_opacity->value;
 		xlp->lineCap = *svg_props->stroke_linecap;
 		xlp->lineJoin = *svg_props->stroke_linejoin;
+		if (svg_props->stroke_dasharray->type == SVG_STROKEDASHARRAY_ARRAY) {
+			u32 i;
+			xlp->lineStyle = 6;
+			gf_sg_vrml_mf_alloc(&xlp->dashes, GF_SG_VRML_MFFLOAT, svg_props->stroke_dasharray->array.count);
+			for (i = 0; i < svg_props->stroke_dasharray->array.count; i++) {
+				xlp->dashes.vals[i] = svg_props->stroke_dasharray->array.vals[i] / svg_props->stroke_width->value;
+			}
+		}
 		xlp->miterLimit = svg_props->stroke_miterlimit->value;
 	}
 	
@@ -1030,7 +1038,7 @@ int main(int argc, char **argv)
 	gf_svg_properties_reset_pointers(&converter->svg_props);
 
 	gf_sg_del(converter->svg_sg);
-	gf_sg_del(converter->bifs_sg);
+//	gf_sg_del(converter->bifs_sg);
 
 	gf_xml_sax_del(converter->sax_parser);
 	
