@@ -27,7 +27,7 @@ else
 EXT=
 PROG=mp4_streamer
 #LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz $(OGL_LIBS)
-LINKFLAGS+=-lgpac
+LINKFLAGS+=-lgpac $(OGL_LIBS)
 endif
 
 
