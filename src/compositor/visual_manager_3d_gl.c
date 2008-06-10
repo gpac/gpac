@@ -1433,7 +1433,6 @@ void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color
 GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb, u32 depth_dump_mode)
 {
 	/*FIXME*/
-#ifndef GPAC_USE_TINYGL
 	u32 i, hy;
 	char *tmp;
 
@@ -1454,10 +1453,10 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 #endif
 
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
-
+#ifndef GPAC_USE_TINYGL
 		glPixelTransferf(GL_DEPTH_SCALE, compositor->OGLDepthGain); 
 		glPixelTransferf(GL_DEPTH_BIAS, compositor->OGLDepthOffset); 
-
+#endif
 		/*the following is the inverse z-transform of OpenGL*/		
 #if 0		
 		/* GL_FLOAT for float depthbuffer */
@@ -1552,7 +1551,6 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		memcpy(fb->video_buffer + (fb->height - 1 - i) * fb->pitch, tmp, fb->pitch);
 	}
 	free(tmp);
-#endif
 	return GF_OK;
 }
 

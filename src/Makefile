@@ -2,7 +2,7 @@ include ../config.mak
 
 vpath %.c $(SRC_PATH)/src
 
-CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include 
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -137,7 +137,6 @@ endif
 endif
 
 ## libgpac media tools compilation options
-MEDIATOOLS_CFLAGS=
 ifeq ($(GPACREADONLY), yes)
 MEDIATOOLS_CFLAGS=-DGPAC_READ_ONLY
 endif
