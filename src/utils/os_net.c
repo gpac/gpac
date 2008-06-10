@@ -1032,6 +1032,11 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	memcpy( &(*newConnection)->dest_addr, &sock->dest_addr, client_address_size);
 	memset(&sock->dest_addr, 0, sizeof(struct sockaddr_in));
 #endif
+
+#if defined(WIN32) || defined(_WIN32_WCE)
+	wsa_init++;
+#endif
+
 	(*newConnection)->dest_addr_len = client_address_size;
 	return GF_OK;
 }
