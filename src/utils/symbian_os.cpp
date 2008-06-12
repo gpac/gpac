@@ -267,6 +267,9 @@ struct __tag_thread
 	/* the thread procedure */
 	u32 (*Run)(void *param);
 	void *args;
+#ifndef GPAC_DISABLE_LOG
+	char *log_name;
+#endif
 	/* lock for signal */
 	GF_Semaphore *_signal;
 };
@@ -277,6 +280,16 @@ GF_Thread *gf_th_new(const char *name)
 	GF_Thread *tmp = (GF_Thread *) malloc(sizeof(GF_Thread));
 	memset((void *)tmp, 0, sizeof(GF_Thread));
 	tmp->status = GF_THREAD_STATUS_STOP;
+#ifndef GPAC_DISABLE_LOG
+	if (name) {
+		tmp->log_name = strdup(name);
+	} else {
+		char szN[20];
+		sprintf(szN, "0x%08x", (u32) tmp);
+		tmp->log_name = strdup(szN);
+	}
+#endif
+
 	return tmp;
 }
 

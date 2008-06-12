@@ -1,5 +1,5 @@
 Installation instructions for GPAC 0.4.4 on Symbian 9.1 (S60 3rd Edition) platform
-last modified: Mai 2007
+last modified: June 2008
 
 0 Foreword
 	Compilation has only been tested with GCCE & Nokia S60 SDK
@@ -16,7 +16,7 @@ last modified: Mai 2007
 	What is currently supported on symbian:
     * all GPAC core, with audio and video output
     * MP4 demux, AAC demux, MP3 demux, AMR demux
-    * native audio media codec from the phone through MMF
+    * native audio media codec from the phone through MMF: AAC and AMR
     * MPEG-4 ASP video decoding through xvid
     * JPEG and PNG decoding through libjpeg and libpng    
     * MP3 decoding through MAD
@@ -49,9 +49,9 @@ II GPAC compilation
   
   II.1 Configuring extra libs
     * If you don't have freetype for symbian, comment ft_font.mmp in file bld.inf
-    * If you don't have libpng or libjpeg for symbian, comment indicated lines in img_in.mmp
     * If you don't have libmad for symbian, comment indicated lines in mp3_in.mmp
     * If you don't have libjs for symbian, comment indicated lines in libgpac.mmp
+    * If you don't have libpng or libjpeg for symbian, comment indicated lines in libgpac.mmp
 
   II.2 Compiling GPAC
    	cd gpac/build/symbian
@@ -75,7 +75,7 @@ You will get a .SIS package that installs properly on a symbian device.
 NOTES:
 * The app and plugins are all installed in \sys\bin on the device. DO NOT change this path, since it won't work otherwise (due to symbian 9.1 caged data stuff) 
 * If you create/succeed to compile a new plugin for GPAC, you must:
-    - edit /build/symbian/sis/osmo4_gcce.pkg to add your plugin in the installer
-    - edit /build/symbian/sis/GPAC.cfg to instruct the player of this new plugin (enumeration of DLLs on Symbian 9.1 is just not possible without a good amount of $$)
+    - edit build/symbian/sis/osmo4_gcce.pkg to add your plugin in the installer
+    - edit build/symbian/sis/GPAC.cfg to instruct the player of this new plugin (enumeration of DLLs on Symbian 9.1 is just not possible without a good amount of $$)
     
   
