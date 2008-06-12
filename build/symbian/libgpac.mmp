@@ -16,7 +16,6 @@ EPOCALLOWDLLDATA
 MACRO GPAC_HAS_PNG
 SYSTEMINCLUDE ..\..\extra_lib\include\png
 STATICLIBRARY libpng.lib 
-LIBRARY ezlib.lib 
 
 //comment if you don't have libjpeg
 MACRO GPAC_HAS_JPEG
