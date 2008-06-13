@@ -176,18 +176,22 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 #define RTSP_WRITE_STEPALLOC	250
 
 #define RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str)		\
+	if (str) { \
 		if (strlen((const char *) str)+pos >= buf_size) {	\
 			buf_size += RTSP_WRITE_STEPALLOC;	\
 			buf = (char *) realloc(buf, buf_size);		\
 		}	\
 		strcpy(buf+pos, (const char *) str);		\
 		pos += strlen((const char *) str);		\
+	}\
 
 #define RTSP_WRITE_HEADER(buf, buf_size, pos, type, str)		\
-	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, type);		\
-	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, ": ");		\
-	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str);		\
-	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, "\r\n");		\
+	if (str) { \
+		RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, type);		\
+		RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, ": ");		\
+		RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str);		\
+		RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, "\r\n");		\
+	} \
 
 #define RTSP_WRITE_INT(buf, buf_size, pos, d, sig)		\
 	if (sig) { \
