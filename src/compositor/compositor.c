@@ -1954,8 +1954,18 @@ static void compositor_traverse_inline(GF_Compositor *compositor, GF_Node *inlin
 		}
 		tr_state->pixel_metrics = use_pm;
 		gf_mx2d_add_matrix(&tr_state->transform, &mx);
-		gf_node_traverse(inline_root, rs);
-		gf_mx2d_copy(tr_state->transform, mx_bck);
+
+		if (flip_coords) {
+			gf_mx2d_init(mx);
+			gf_mx2d_add_scale(&mx, FIX_ONE, -FIX_ONE);
+			gf_mx2d_add_translation(&mx, -tr_state->vp_size.x/2, tr_state->vp_size.y/2);
+			gf_mx2d_pre_multiply(&tr_state->transform, &mx);
+			gf_node_traverse(inline_root, rs);
+			gf_mx2d_copy(tr_state->transform, mx_bck);
+		} else {
+			gf_node_traverse(inline_root, rs);
+			gf_mx2d_copy(tr_state->transform, mx_bck);
+		}
 	}
 	tr_state->pixel_metrics = !use_pm;
 	tr_state->min_hsize = min_hsize;
