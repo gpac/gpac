@@ -804,6 +804,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 
 
 #define SDP_WRITE_ALLOC_STR(str, space)		\
+	if (str) { \
 		if (strlen(str)+pos + (space ? 1 : 0) >= buf_size) {	\
 			buf_size += SDP_WRITE_STEPALLOC;	\
 			buf = (char*)realloc(buf, sizeof(char)*buf_size);		\
@@ -814,6 +815,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 			strcat(buf+pos, " ");	\
 			pos += 1;		\
 		}		\
+	}		\
 
 #define SDP_WRITE_ALLOC_INT(d, spa, sig)		\
 	if (sig) { \
