@@ -526,6 +526,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		return;
 	}
 
+	if (odm->mo && (odm->mo->type == GF_MEDIA_OBJECT_BIFS)) {
+		hasInline = 0;
+	}
+
 	/*if there is a BIFS stream in the OD, we need an GF_InlineScene (except if we already 
 	have one, which means this is the first IOD)*/
 	if (hasInline && !odm->subscene) {
@@ -819,7 +823,19 @@ clock_setup:
 	if (dec->decio && (dec->decio->InterfaceType==GF_SCENE_DECODER_INTERFACE) ) {
 		GF_SceneDecoder *sdec = (GF_SceneDecoder *) dec->decio;
 		is = odm->subscene ? odm->subscene : odm->parentscene;
-		if (sdec->AttachScene) sdec->AttachScene(sdec, is, (is->scene_codec==dec) ? 1: 0);
+		if (sdec->AttachScene) {
+			/*if a node asked for this media object, use the scene graph of the node (AnimationStream in PROTO)*/
+			if (odm->mo && odm->mo->node_ptr) {
+				GF_SceneGraph *sg = is->graph;
+				/*FIXME - this MUST be cleaned up*/
+				is->graph = gf_node_get_graph((GF_Node*)odm->mo->node_ptr);
+				sdec->AttachScene(sdec, is, (is->scene_codec==dec) ? 1: 0);
+				is->graph = sg;
+				odm->mo->node_ptr = NULL;
+			} else {
+				sdec->AttachScene(sdec, is, (is->scene_codec==dec) ? 1: 0);
+			}
+		}
 	}
 
 	ch->es_state = GF_ESM_ES_SETUP;

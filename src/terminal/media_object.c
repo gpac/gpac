@@ -92,6 +92,7 @@ GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 	Bool post_pone;
 	GF_FieldInfo info;
 	GF_InlineScene *is;
+	GF_Node *scene_node = NULL;
 	GF_MediaObject *res, *syncRef;
 	GF_SceneGraph *sg = gf_node_get_graph(node);
 	if (!sg) return NULL;
@@ -104,7 +105,11 @@ GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 	switch (gf_node_get_tag(node)) {
 	/*MPEG4 only*/
 	case TAG_MPEG4_AudioSource: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
-	case TAG_MPEG4_AnimationStream: obj_type = GF_MEDIA_OBJECT_BIFS; break;
+	case TAG_MPEG4_AnimationStream: 
+		obj_type = GF_MEDIA_OBJECT_BIFS; 
+		scene_node = node;
+		break;
+
 	case TAG_MPEG4_InputSensor: obj_type = GF_MEDIA_OBJECT_INTERACT; break;
 
 	/*MPEG4/X3D*/
@@ -145,7 +150,7 @@ GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines)
 	while (is->secondary_resource && is->root_od->parentscene)
 		is = is->root_od->parentscene;
 
-	res = gf_inline_get_media_object_ex(is, url, obj_type, lock_timelines, syncRef, 0);
+	res = gf_inline_get_media_object_ex(is, url, obj_type, lock_timelines, syncRef, 0, scene_node);
 
 	return res;
 }

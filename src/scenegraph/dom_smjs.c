@@ -1995,6 +1995,7 @@ static JSBool xml_http_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 	/*concatenate URL*/
 	scene = xml_get_scenegraph(c);
+	while (scene->pOwningProto && scene->parent_scene) scene = scene->parent_scene;
 	ScriptAction(scene, GF_JSAPI_OP_GET_SCENE_URI, scene->RootNode, &par);
 
 	if (par.uri.url) ctx->url = gf_url_concatenate(par.uri.url, val);
@@ -2164,9 +2165,10 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		xml_http_append_recv_header(ctx, parameter->name, parameter->value);
 		/*prepare DOM*/
 		if (strcmp(parameter->name, "Content-Type")) return;
-		if (!strcmp(parameter->value, "application/xml")
-			|| !strcmp(parameter->value, "text/xml")
+		if (!strncmp(parameter->value, "application/xml", 15)
+			|| !strncmp(parameter->value, "text/xml", 8)
 			|| strstr(parameter->value, "+xml")
+			|| !strncmp(parameter->value, "text/plain", 10)
 		) {
 			assert(!ctx->sax);
 			ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);

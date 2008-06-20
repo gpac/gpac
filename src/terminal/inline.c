@@ -522,6 +522,7 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
 	ext = strrchr(szURL1, '#');
 	if (ext) ext[0] = 0;
 	for (i=0; i<an_url->count; i++) {
+		if (!an_url->vals[i].url) return 0;
 		strcpy(szURL2, an_url->vals[i].url);
 		ext = strrchr(szURL2, '#');
 		if (ext) ext[0] = 0;
@@ -753,7 +754,7 @@ static GFINLINE Bool is_match_obj_type(u32 type, u32 hint_type)
 	return 0;
 }
 
-GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref, Bool always_load_new)
+GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref, Bool always_load_new, GF_Node *node)
 {
 	GF_MediaObject *obj;
 	u32 i, OD_ID;
@@ -785,6 +786,8 @@ GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u3
 	obj = gf_mo_new();
 	obj->OD_ID = OD_ID;
 	obj->type = obj_type_hint;
+	obj->node_ptr = node;
+
 	gf_list_add(is->media_objects, obj);
 	if (OD_ID == GF_ESM_DYNAMIC_OD_ID) {
 		gf_sg_vrml_field_copy(&obj->URLs, url, GF_SG_VRML_MFURL);
@@ -798,7 +801,7 @@ GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u3
 
 GF_MediaObject *gf_inline_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines)
 {
-	return gf_inline_get_media_object_ex(is, url, obj_type_hint, lock_timelines, NULL, 0);
+	return gf_inline_get_media_object_ex(is, url, obj_type_hint, lock_timelines, NULL, 0, NULL);
 }
 
 GF_EXPORT
