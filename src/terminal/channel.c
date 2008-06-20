@@ -499,7 +499,10 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 			break;
 		case GF_STREAM_SCENE:
 			gf_mx_p(term->mm_mx);
-			gf_codec_process(ch->odm->subscene->scene_codec, 100);
+			if (ch->odm->codec) 
+				gf_codec_process(ch->odm->codec, 100);
+			else
+				gf_codec_process(ch->odm->subscene->scene_codec, 100);
 			gf_mx_v(term->mm_mx);
 			break;
 		}
@@ -587,6 +590,12 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	u32 nbAU, OldLength, size, AUSeqNum, SLHdrLen;
 	Bool EndAU, NewAU;
 	char *payload;
+
+	if (ch->direct_decode) {
+		GF_SceneDecoder *sdec = (GF_SceneDecoder *)ch->odm->codec->decio;
+		sdec->ProcessData(sdec, StreamBuf, StreamLength, ch->esd->ESID, 0, 0);
+		return;
+	}
 
 	if (ch->es_state != GF_ESM_ES_RUNNING) return;
 
@@ -1164,6 +1173,10 @@ void gf_es_on_connect(GF_Channel *ch)
 			ch->MinBuffer = com.buffer.min;
 			ch->MaxBuffer = com.buffer.max;
 		}
+	}
+	if (ch->esd->decoderConfig->streamType == GF_STREAM_TEXT &&
+		ch->esd->decoderConfig->objectTypeIndication == 0x24) { /* EIT Streams OTI for private scenes */
+		ch->direct_decode = 1;
 	}
 	if (ch->clock->no_time_ctrl) {
 		switch (ch->esd->decoderConfig->streamType) {

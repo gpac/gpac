@@ -146,7 +146,7 @@ static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers
 	while (is->secondary_resource && is->root_od->parentscene)
 		is = is->root_od->parentscene;
 
-	mo = gf_inline_get_media_object_ex(is, &url, GF_MEDIA_OBJECT_SCENE, lock_timelines, NULL, primary_resource);
+	mo = gf_inline_get_media_object_ex(is, &url, GF_MEDIA_OBJECT_SCENE, lock_timelines, NULL, primary_resource, NULL);
 	gf_sg_vrml_mf_reset(&url, GF_SG_VRML_MFURL);
 
 	if (!mo || !mo->odm) return NULL;
