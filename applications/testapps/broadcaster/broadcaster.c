@@ -272,7 +272,7 @@ int main (int argc, char** argv)
 	if(config_flag == 1)
 	{
 		/* ici il faut lire du fichier de configuration */
-		gf_config_file = gf_cfg_new(".", config_file);
+		gf_config_file = gf_cfg_new(NULL, config_file);
 		conf->scene_init_file = gf_cfg_get_key(gf_config_file, MAIN_SECTION, SCENE_INIT);
 		conf->rap_timer = gf_cfg_get_key(gf_config_file, MAIN_SECTION, RAP_TIMER);
 		conf->config_input_port = gf_cfg_get_key(gf_config_file, MAIN_SECTION, PORT_CONFIG);
