@@ -272,7 +272,7 @@ static GF_Descriptor *RP_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 	RTPClient *priv = (RTPClient *)plug->priv;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[RTP] Fetching service descriptor\n"));
-	if ((expect_type!=GF_MEDIA_OBJECT_UNDEF) && (expect_type!=GF_MEDIA_OBJECT_SCENE)) {
+	if ((expect_type!=GF_MEDIA_OBJECT_UNDEF) && (expect_type!=GF_MEDIA_OBJECT_SCENE) && (expect_type!=GF_MEDIA_OBJECT_BIFS)) {
 		/*ignore the SDP IOD and regenerate one*/
 		if (priv->session_desc) gf_odf_desc_del(priv->session_desc);
 		priv->session_desc = NULL;
