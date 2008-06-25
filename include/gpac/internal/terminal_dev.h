@@ -167,7 +167,7 @@ void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for
 void gf_inline_buffering_info(GF_InlineScene *is);
 void gf_inline_attach_to_compositor(GF_InlineScene *is);
 struct _mediaobj *gf_inline_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
-struct _mediaobj *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref, Bool always_load_new, void *node_ptr);
+struct _mediaobj *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref, Bool always_load_new, GF_Node *node_ptr);
 void gf_inline_setup_object(GF_InlineScene *is, GF_ObjectManager *odm);
 /*restarts inline scene - care has to be taken not to remove the scene while it is traversed*/
 void gf_inline_restart(GF_InlineScene *is);
