@@ -187,6 +187,8 @@ struct __tag_scene_graph
 	u32 width, height;
 	Bool usePixelMetrics;
 
+	Bool modified;
+
 	/*application interface for javascript*/
 	gf_sg_script_action script_action;
 	void *script_action_cbck;
@@ -234,6 +236,8 @@ struct __tag_scene_graph
 	GF_List *objects;
 	/*DOM document*/
 	struct JSObject *document;
+
+	Bool dcci_doc;
 #endif
 };
 
@@ -778,6 +782,7 @@ typedef struct
 	allocate them again and again when getting properties. Garbage collection is performed (if needed)
 	on these objects after each eventIn execution*/
 	GF_List *js_cache;
+	struct JSObject *event;
 #endif
 
 	void (*JS_PreDestroy)(GF_Node *node);
@@ -871,7 +876,7 @@ typedef struct __tag_svg_script_ctx
 /*initialize DOM Core (subset) + xmlHTTPRequest API. The global object MUST have private data storage
 and its private data MUST be a scenegraph. This scenegraph is only used to create new documents
 and setup the callback pointers*/
-void dom_js_load(struct JSContext *c, struct JSObject *global);
+void dom_js_load(GF_SceneGraph *scene, struct JSContext *c, struct JSObject *global);
 /*unloads the DOM core support (to be called upon destruction only, once the JSContext has been destroyed
 to releases all resources used by DOM JS)*/
 void dom_js_unload();
@@ -881,8 +886,12 @@ void dom_js_define_document(struct JSContext *c, struct JSObject *global, GF_Sce
 /*defines a new global object "evt" of type Event*/
 struct JSObject *dom_js_define_event(struct JSContext *c, struct JSObject *global);
 
+
+void gf_sg_handle_dom_event_for_vrml(GF_Node *hdl, GF_DOM_Event *event);
+
 #endif	/*GPAC_HAS_SPIDERMONKEY*/
 
+GF_Err gf_sg_reload_xml_doc(const char *src, GF_SceneGraph *scene);
 
 SVG_Element *gf_svg_create_node(u32 tag);
 Bool gf_svg_node_init(GF_Node *node);

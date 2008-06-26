@@ -1363,7 +1363,8 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 	GF_M2TS_Section *section;
 
 	/*skip if already received*/
-	if (status&GF_M2TS_TABLE_REPEAT) return;
+	if (status & GF_M2TS_TABLE_REPEAT) 
+		return;
 
 	nb_sections = gf_list_count(sections);
 	if (nb_sections > 1) {

@@ -30,7 +30,7 @@ OrderedGroup {
    info [
     "This test uses a Viewport node, Gradient nodes and animation and TransformMatrix2D node in a text mirroring-like effect."
     "" 
-    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.5 $" 
+    "GPAC Regression Tests" "$Date: 2008-06-26 07:55:39 $ - $Revision: 1.6 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Text Mirroring Effect"
@@ -103,12 +103,12 @@ OrderedGroup {
     Shape {
      appearance Appearance {
       texture RadialGradient {
-       center 0.1 1
-       focalPoint 1.1 1
+       center 0.5 1
+       focalPoint 0.5 1
        key [0 0.5 1]
        keyValue [1 1 0 0.8 0 0.2 0.8 0 0.2]
        opacity [0.8 1 1]
-       radius 1
+       radius 1.2
       }
      }
      geometry Rectangle {

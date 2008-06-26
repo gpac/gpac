@@ -64,7 +64,7 @@ enum
 	GF_XML_CDATA_TYPE,
 };
 
-typedef struct
+typedef struct _xml_node
 {
 	u32 type;
 	/*
@@ -141,6 +141,9 @@ GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser);
 const char *gf_xml_dom_get_error(GF_DOMParser *parser);
 u32 gf_xml_dom_get_line(GF_DOMParser *parser);
 
+
+GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser);
+void gf_xml_dom_node_del(GF_XMLNode *node);
 
 /*! @} */
 

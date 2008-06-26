@@ -31,7 +31,7 @@ InitialObjectDescriptor {
 Group {
  children [
   WorldInfo {
-   info ["This shows Background with transparent texture on all back planes" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
+   info ["This shows Background with transparent texture on all back planes" "" "GPAC Regression Tests" "$Date: 2008-06-26 07:55:39 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
    title "Background Test"
   }
   Viewpoint {}
@@ -48,6 +48,7 @@ Group {
    bottomUrl ["20"]
   }
 
+#if 0
   Transform {
    children [
     Shape {
@@ -63,6 +64,7 @@ Group {
     }
    ]
   }
+#endif
  ]
 }
 

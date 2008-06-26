@@ -78,12 +78,14 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace);
 
 GF_EXPORT
-GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char indent_char, u32 dump_mode)
+GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char indent_char, u32 dump_mode)
 {
+	char rad_name[GF_MAX_PATH];
 	GF_SceneDumper *tmp;
 	if (!graph) return NULL;
 	GF_SAFEALLOC(tmp, GF_SceneDumper);
 
+	strcpy(rad_name, _rad_name ? _rad_name : "");
 	/*store original*/
 	tmp->dump_mode = dump_mode;
 
@@ -92,8 +94,10 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char inde
 	|| (dump_mode==GF_SM_DUMP_LASER) || (dump_mode==GF_SM_DUMP_SVG)) {
 		tmp->XMLDump = 1;
 		if (dump_mode==GF_SM_DUMP_LASER) tmp->LSRDump = 1;
-		if (rad_name) {
-			strcat(rad_name, tmp->LSRDump ? ".xsr" : ".svg");
+		if (_rad_name) {
+			if (!strrchr(rad_name, '.'))
+				strcat(rad_name, tmp->LSRDump ? ".xsr" : ".svg");
+
 			tmp->trace = fopen(rad_name, "wt");
 			if (!tmp->trace) {
 				free(tmp);
@@ -121,7 +125,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char inde
 			}
 		}
 
-		if (rad_name) {
+		if (_rad_name) {
 			switch (dump_mode) {
 			case GF_SM_DUMP_X3D_XML: strcat(rad_name, ".x3d"); tmp->XMLDump = 1; tmp->X3DDump = 1; break;
 			case GF_SM_DUMP_XMTA: strcat(rad_name, ".xmt"); tmp->XMLDump = 1; break;
@@ -172,6 +176,7 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 {
 	if (sdump->XMLDump) {
 		fprintf(sdump->trace, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		if (sdump->dump_mode==GF_SM_DUMP_XML) return;
 		fprintf(sdump->trace, "<!-- %s Scene Dump - GPAC version " GPAC_FULL_VERSION " -->\n", 
 			(sdump->dump_mode==GF_SM_DUMP_SVG) ? "SVG" : 
 			(sdump->dump_mode==GF_SM_DUMP_LASER) ? "LASeR" : 
@@ -2748,6 +2753,62 @@ GF_Err SD_SetSceneGraph(GF_SceneDumper *sdump, GF_SceneGraph *sg)
 	return GF_OK;
 }
 
+GF_Err SD_DumpDOMElement(GF_SceneDumper *sdump, GF_DOMFullNode *node)
+{
+	u32 child_type = 0;
+	GF_DOMFullAttribute *att;
+	GF_ChildNodeItem *child;
+	GF_DOMText *txt;
+
+	DUMP_IND(sdump);
+	if (node->ns) fprintf(sdump->trace, "<%s:%s", node->ns, node->name);
+	else fprintf(sdump->trace, "<%s", node->name);
+	att = (GF_DOMFullAttribute *)node->attributes;
+	while (att) {
+		fprintf(sdump->trace, " %s=\"%s\"", att->name, att->data);
+		att = (GF_DOMFullAttribute *)att->next;
+	}
+	if (!node->children) {
+		fprintf(sdump->trace, "/>\n");
+		return GF_OK;
+	}
+	fprintf(sdump->trace, ">");
+	sdump->indent++;
+	child = node->children;
+	while (child) {
+		switch(child->node->sgprivate->tag) {
+		case TAG_DOMFullNode:
+			if (!child_type) fprintf(sdump->trace, "\n");
+			child_type = 1;
+			SD_DumpDOMElement(sdump, (GF_DOMFullNode*)child->node);
+			break;
+		case TAG_DOMText:
+			child_type = 2;
+			txt = (GF_DOMText *)child->node;
+			if (txt->type==GF_DOM_TEXT_REGULAR) {
+				DumpUTFString(sdump, txt->textContent);
+			} else if (txt->type==GF_DOM_TEXT_CDATA) {
+				fprintf(sdump->trace, "<![CDATA[\n");
+				fprintf(sdump->trace, "%s", txt->textContent);
+				fprintf(sdump->trace, "]]>");
+			}
+			break;
+		}
+		child = child->next;
+	}
+
+	sdump->indent--;
+	if (child_type!=2) {
+		DUMP_IND(sdump);
+	}
+
+	if (node->ns) fprintf(sdump->trace, "</%s:%s>\n", node->ns, node->name);
+	else fprintf(sdump->trace, "</%s>\n", node->name);
+
+	return GF_OK;
+}
+
+
 GF_EXPORT
 GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes)
 {
@@ -2804,6 +2865,11 @@ GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes
 		SD_SetupDump(sdump, NULL);
 		SD_DumpSVG_Element(sdump, sdump->sg->RootNode, NULL, 1);
 		return GF_OK;
+	}
+	else if (tag==TAG_DOMFullNode) {
+		sdump->dump_mode = GF_SM_DUMP_XML;
+		SD_SetupDump(sdump, NULL);
+		SD_DumpDOMElement(sdump, (GF_DOMFullNode*)sdump->sg->RootNode);
 	}
 #endif
 

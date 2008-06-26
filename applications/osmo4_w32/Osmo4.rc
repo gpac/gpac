@@ -125,6 +125,7 @@ BEGIN
         MENUITEM "Reload File\tCtrl+R",         ID_FILE_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "Clear History",               ID_CLEAR_NAV
+        MENUITEM "Reload Config",               ID_CONFIG_RELOAD
     END
     POPUP "?"
     BEGIN

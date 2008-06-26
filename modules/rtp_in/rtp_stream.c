@@ -82,16 +82,6 @@ GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 	return GF_OK;
 }
 
-void RP_DisconnectStream(RTPStream *ch)
-{
-	/*no check for teardown, this is done at STOP stage*/
-#if 0
-	ch->status = RTP_Disconnected;
-	ch->flags &= ~RTP_CONNECTED;
-#endif
-	ch->channel = NULL;
-}
-
 void RP_DeleteStream(RTPStream *ch)
 {
 	if (ch->rtsp) {

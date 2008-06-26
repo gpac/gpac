@@ -270,7 +270,6 @@ BOOL COsmo4::InitInstance()
 			}
 			/*setup UDP traffic autodetect*/
 			gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
-			gf_cfg_set_key(m_user.config, "Network", "UDPNotAvailable", "no");
 			gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
 			gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
 

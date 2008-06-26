@@ -41,13 +41,6 @@
 #define RTSP_LANGUAGE		"English"
 
 
-enum
-{
-	RTSP_CONTROL_AGGREGATE = 0,
-	RTSP_CONTROL_INDEPENDENT,
-	RTSP_CONTROL_RTSP_V2,
-};
-
 /*the rtsp/rtp client*/
 typedef struct
 {
@@ -100,6 +93,7 @@ enum
 	RTSP_FORCE_INTER = 1<<2,
 	RTSP_WAIT_REPLY = 1<<3,
 	RTSP_DSS_SERVER = 1<<4,
+	RTSP_AGG_ONLY = 1<<5,
 };
 
 /*rtsp session*/
@@ -221,6 +215,7 @@ typedef struct
 	u32 last_udp_time;
 	/*RTP stats*/
 	u32 rtp_bytes, rtcp_bytes, stat_start_time, stat_stop_time;
+	u32 ts_res;
 } RTPStream;
 
 /*creates new RTP stream from SDP info*/
@@ -229,8 +224,6 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 void RP_DeleteStream(RTPStream *ch);
 /*resets stream state and inits RTP sockets if ResetOnly is false*/
 GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly);
-/*disconnect stream but keeps its config alive*/
-void RP_DisconnectStream(RTPStream *ch);
 
 /*RTSP -> RTP de-interleaving callback*/
 GF_Err RP_DataOnTCP(GF_RTSPSession *sess, void *cbck, char *buffer, u32 bufferSize, Bool IsRTCP);

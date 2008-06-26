@@ -1818,7 +1818,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	}
 
 	/*initialize DOM core */
-	dom_js_load(scene->svg_js->js_ctx, scene->svg_js->global);
+	dom_js_load(scene, scene->svg_js->js_ctx, scene->svg_js->global);
 	/*create document object, and remember it*/
 	dom_js_define_document(scene->svg_js->js_ctx, scene->svg_js->global, scene);
 	/*create event object, and remember it*/
@@ -2145,6 +2145,9 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	svg_js = node->sgprivate->scenegraph->svg_js;
 
 	prev_event = JS_GetPrivate(svg_js->js_ctx, svg_js->event);
+	/*break loops*/
+	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target)) 
+		return 0;
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
 
 	if (JS_LookupProperty(svg_js->js_ctx, svg_js->global, txt->textContent, &fval) && !JSVAL_IS_VOID(fval) ) {

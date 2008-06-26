@@ -88,6 +88,7 @@ public:
 	afx_msg void OnFileStep();
 	afx_msg void OnOpenUrl();
 	afx_msg void OnFileReload();
+	afx_msg void OnConfigReload();
 	afx_msg void OnFilePlay();
 	afx_msg void OnUpdateFilePlay(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateFileStep(CCmdUI* pCmdUI);

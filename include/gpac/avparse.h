@@ -168,7 +168,7 @@ const char *gf_m4a_object_type_name(u32 objectType);
 const char *gf_m4a_get_profile_name(u8 audio_pl);
 
 GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size);
-
+GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_known);
 
 typedef struct
 {

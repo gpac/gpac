@@ -471,6 +471,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 	if (sock->flags & GF_SOCK_IS_TCP) {
 		ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 		if (ret == SOCKET_ERROR) {
+			GF_LOG(GF_LOG_CORE, GF_LOG_ERROR, ("[Core] Couldn't connect socket - last sock error %d\n", LASTSOCKERROR));
 			switch (LASTSOCKERROR) {
 			case EAGAIN: return GF_IP_SOCK_WOULD_BLOCK;
 			case EISCONN: return GF_OK;

@@ -343,6 +343,9 @@ void gf_sg_del(GF_SceneGraph *sg);
 /*reset the full graph - all nodes, routes and protos are destroyed*/
 void gf_sg_reset(GF_SceneGraph *sg);
 
+/*parses the given XML document and returns a scene graph composed of GF_DOMFullNode*/
+GF_Err gf_sg_new_from_xml_doc(const char *src, GF_SceneGraph **scene);
+
 /*set/get user private data*/
 void gf_sg_set_private(GF_SceneGraph *sg, void *user_priv);
 void *gf_sg_get_private(GF_SceneGraph *sg);
@@ -465,6 +468,7 @@ typedef union
 	GF_JSAPIOPT gpac_cfg;
 	GF_Node *node;
 	struct __gf_download_manager *dnld_man;
+	GF_SceneGraph *scene;
 	GF_JSAPIINFO info;
 } GF_JSAPIParam;
 
@@ -520,6 +524,8 @@ enum
 	GF_JSAPI_OP_GET_FPS,
 	/*!set current title*/
 	GF_JSAPI_OP_SET_TITLE,
+	/*!gets DCCI root node if any*/
+	GF_JSAPI_OP_GET_DCCI,
 };
 /*
 interface to various get/set options:

@@ -88,6 +88,7 @@ typedef struct
 	JSClass domNodeListClass;
 	JSClass domEventClass;
 	JSClass xmlHTTPRequestClass;
+	JSClass DCCIClass;
 } GF_DOMRuntime;
 
 static GF_DOMRuntime *dom_rt = NULL;
@@ -198,6 +199,7 @@ GF_Node *dom_get_node(JSContext *c, JSObject *obj)
 	if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) 
 		|| JS_InstanceOf(c, obj, &dom_rt->domTextClass, NULL)
 		|| JS_InstanceOf(c, obj, &dom_rt->domNodeClass, NULL) 
+		|| JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) 
 	)
 		return (GF_Node *) JS_GetPrivate(c, obj);
 
@@ -244,24 +246,27 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 }
 static jsval dom_node_construct(JSContext *c, GF_Node *n)
 {
+	JSClass *__class = &dom_rt->domElementClass;
+	if (n->sgprivate->scenegraph->dcci_doc)
+		__class = &dom_rt->DCCIClass;
+
 	/*in our implementation ONLY ELEMENTS are created, never attributes. We therefore always
 	create Elements when asked to create a node !!*/
-	return dom_base_node_construct(c, &dom_rt->domElementClass, n);
+	return dom_base_node_construct(c, __class, n);
 }
 jsval dom_element_construct(JSContext *c, GF_Node *n)
 {
+	JSClass *__class = &dom_rt->domElementClass;
+	if (n->sgprivate->scenegraph->dcci_doc)
+		__class = &dom_rt->DCCIClass;
+
 	/*in our implementation ONLY ELEMENTS are created, never attributes. We therefore always
 	create Elements when asked to create a node !!*/
-	return dom_base_node_construct(c, &dom_rt->domElementClass, n);
+	return dom_base_node_construct(c, __class, n);
 }
 static jsval dom_text_construct(JSContext *c, GF_Node *n)
 {
 	return dom_base_node_construct(c, &dom_rt->domTextClass, n);
-}
-Bool dom_is_element(JSContext *c, JSObject *obj)
-{
-	if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL)) return 1;
-	return 0;
 }
 
 static void dom_unregister_node(GF_Node *n)
@@ -442,7 +447,8 @@ JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 		GF_SceneGraph *sg = JS_GetPrivate(c, obj);
 		node = sg->RootNode;
 	}
-	else if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) {
+	else if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) 
+		|| JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) {
 		node = JS_GetPrivate(c, obj);
 	}
 	/*FIXME - SVG uDOM conection not supported yet*/
@@ -472,11 +478,16 @@ JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 	if (evtType==GF_EVENT_UNKNOWN) return JS_FALSE;
 
 	listener = gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
-	handler = (SVG_handlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_handler);
 	gf_node_register(listener, node);
 	gf_node_list_add_child(& ((GF_ParentNode *)node)->children, listener);
-	gf_node_register((GF_Node *)handler, node);
-	gf_node_list_add_child(& ((GF_ParentNode *)node)->children, (GF_Node*)handler);
+
+	/*!!! create the handler in the scene owning the script context !!! */
+	{
+		GF_SceneGraph *sg = xml_get_scenegraph(c);
+		handler = (SVG_handlerElement *) gf_node_new(sg, TAG_SVG_handler);
+		gf_node_register((GF_Node *)handler, node);
+		gf_node_list_add_child(& ((GF_ParentNode *)node)->children, (GF_Node*)handler);
+	}
 
 	/*create attributes if needed*/
 	gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_event, 1, 0, &info);
@@ -491,8 +502,15 @@ JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 
 	gf_dom_add_text_node((GF_Node *)handler, strdup(callback));
 #ifndef GPAC_DISABLE_SVG
-	handler->handle_event = gf_sg_handle_dom_event;
+	if (handler->sgprivate->scenegraph->svg_js)
+		handler->handle_event = gf_sg_handle_dom_event;
 #endif
+	
+	if (!handler->handle_event) {
+		handler->handle_event = gf_sg_handle_dom_event_for_vrml;
+		handler->js_context = c;
+	}
+
 	/*don't add listener directly, post it and wait for event processing*/
 	gf_dom_listener_post_add((GF_Node *) node, listener);
 	return JS_TRUE;
@@ -509,7 +527,9 @@ JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval 
 		GF_SceneGraph *sg = JS_GetPrivate(c, obj);
 		node = sg->RootNode;
 	}
-	else if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) {
+	else if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) 
+		|| JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) 
+		) {
 		node = JS_GetPrivate(c, obj);
 	} 
 	/*FIXME - SVG uDOM conection not supported yet*/
@@ -573,6 +593,7 @@ static void dom_node_finalize(JSContext *c, JSObject *obj)
 	if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) 
 		|| JS_InstanceOf(c, obj, &dom_rt->domTextClass, NULL)
 		|| JS_InstanceOf(c, obj, &dom_rt->domNodeClass, NULL)
+		|| JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL)
 		) {
 		GF_Node *n = (GF_Node *) JS_GetPrivate(c, obj);
 		/*the JS proto of the svgClass or a destroyed object*/
@@ -879,7 +900,7 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		return JS_TRUE;
 	}
 	/*not supported*/
-	return JS_FALSE;
+	return JS_TRUE;
 }
 
 void dom_node_set_textContent(GF_Node *n, char *text)
@@ -1251,14 +1272,13 @@ static JSBool xml_document_element_by_id(JSContext *c, JSObject *obj, uintN argc
 static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	u32 prop_id;
-	GF_Node *n;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
+	GF_Node *n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
 	if (prop_id<=JS_DOM3_NODE_LAST_PROP) return dom_node_getProperty(c, obj, id, vp);
 
-	n = dom_get_node(c, obj);
 
 	switch (prop_id) {
 	/*"tagName"*/
@@ -1285,7 +1305,8 @@ static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 static JSBool dom_element_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	u32 prop_id;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
+	GF_Node *n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
@@ -1299,7 +1320,7 @@ static JSBool dom_element_setProperty(JSContext *c, JSObject *obj, jsval id, jsv
 	case JS_DOM3_NODE_LAST_PROP+7:
 	case JS_DOM3_NODE_LAST_PROP+8:
 	case JS_DOM3_NODE_LAST_PROP+9:
-		return svg_udom_set_property(c, dom_get_node(c, obj), prop_id-(JS_DOM3_NODE_LAST_PROP+3), vp);
+		return svg_udom_set_property(c, n, prop_id-(JS_DOM3_NODE_LAST_PROP+3), vp);
 	default:
 		/*rest is read only*/
 		return JS_FALSE;
@@ -1309,11 +1330,11 @@ static JSBool dom_element_setProperty(JSContext *c, JSObject *obj, jsval id, jsv
 
 static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	GF_Node *n;
 	char *name;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
+	GF_Node *n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
+
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	/*NS version*/
 	if (argc==2) {
@@ -1348,11 +1369,11 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 
 static JSBool xml_element_has_attribute(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	GF_Node *n;
 	char *name;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
+	GF_Node *n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
+
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	/*NS version*/
 	if (argc==2) {
@@ -1389,11 +1410,11 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 	u32 tag;
 	GF_DOMFullNode *node;
 	GF_DOMFullAttribute *prev, *att;
-	GF_Node *n;
 	char *name;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
+	GF_Node *n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
+
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	/*NS version*/
 	if (argc==2) {
@@ -1437,11 +1458,11 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	u32 evtType;
-	GF_Node *n;
 	char *name, *val;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
+	GF_Node *n = dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
+
 	if ((argc < 2) || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
-	n = dom_get_node(c, obj);
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	/*may not be a string in DOM*/
 	val = JS_GetStringBytes(JS_ValueToString(c, argv[1]));
@@ -1520,13 +1541,12 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 static JSBool xml_element_elements_by_tag(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	DOMNodeList *nl;
-	GF_Node *n;
 	JSObject *new_obj;
 	char *name;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
-	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
+
+	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	/*NS version*/
@@ -1545,16 +1565,14 @@ static JSBool xml_element_elements_by_tag(JSContext *c, JSObject *obj, uintN arg
 
 static JSBool xml_element_set_id(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	GF_Node *n;
 	const char *node_name;
 	u32 node_id;
 	char *name;
 	Bool is_id;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) ) return JS_FALSE;
-	if ((argc<2) || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	n = dom_get_node(c, obj);
+	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
+	if ((argc<2) || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 
 	/*NS version*/
@@ -2445,8 +2463,258 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 }
 
 
-void dom_js_load(JSContext *c, JSObject *global)
+static JSBool dcci_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
+	GF_DOMFullAttribute *att;
+	GF_ChildNodeItem *child;
+	GF_DOMFullNode *n;
+	char *value;
+	JSString *s;
+	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_FALSE;
+	n = (GF_DOMFullNode*) dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
+
+	if (JSVAL_IS_INT(id)) {
+		switch (JSVAL_TO_INT(id)) {
+		/*value*/
+		case 0:
+			child = n->children;
+			while (child) {
+				if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
+					GF_DOMText *txt = (GF_DOMText *)child->node;
+					if (txt->type==GF_DOM_TEXT_REGULAR) {
+						s = JS_NewStringCopyZ(c, txt->textContent);
+						*vp = STRING_TO_JSVAL( s );
+						return JS_TRUE;
+					}
+				}
+				child = child->next;
+			}
+			*vp = JSVAL_NULL;
+			return JS_TRUE;
+		/*valueType*/
+		case 1: 
+			value = "DOMString";
+			att = (GF_DOMFullAttribute*) n->attributes;
+			while (att) {
+				if (att->name && !strcmp(att->name, "valueType") && att->data) {
+					value = (char *)att->data;
+					break;
+				}
+				att = (GF_DOMFullAttribute*) att->next;
+			}
+			s = JS_NewStringCopyZ(c, value);
+			*vp = STRING_TO_JSVAL( s );
+			return JS_TRUE;
+		/*propertyType*/
+		case 2: 
+			value = "DOMString";
+			att = (GF_DOMFullAttribute*) n->attributes;
+			while (att) {
+				if (att->name && !strcmp(att->name, "propertyType") && att->data) {
+					value = (char *)att->data;
+					break;
+				}
+				att = (GF_DOMFullAttribute*) att->next;
+			}
+			s = JS_NewStringCopyZ(c, value);
+			*vp = STRING_TO_JSVAL( s );
+			return JS_TRUE;
+		/*readOnly*/
+		case 3: 
+			att = (GF_DOMFullAttribute*) n->attributes;
+			while (att) {
+				if (att->name && !strcmp(att->name, "readOnly") && att->data && !strcmp(att->data, "true")) {
+					*vp = BOOLEAN_TO_JSVAL(JS_TRUE);
+					return JS_TRUE;
+				}
+				att = (GF_DOMFullAttribute*) att->next;
+			}
+			*vp = BOOLEAN_TO_JSVAL(JS_FALSE);
+			return JS_TRUE;
+		/*DCCIMetadataInterfaceType*/
+		case 4: 
+			*vp = JSVAL_NULL;
+			return JS_TRUE;
+		/*DCCIMetadataInterface*/
+		case 5: 
+			*vp = JSVAL_NULL;
+			return JS_TRUE;
+		/*version*/
+		case 6: 
+			s = JS_NewStringCopyZ(c, "1.0");
+			*vp = STRING_TO_JSVAL( s );
+			return JS_TRUE;
+		default:
+			return JS_FALSE;
+		}
+	}
+	return JS_PropertyStub(c, obj, id, vp);
+}
+
+static JSBool dcci_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+{
+	GF_ChildNodeItem *child;
+	GF_DOMFullNode *n;
+	GF_DOM_Event evt;
+	char *str;
+	jsval readonly;
+	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_FALSE;
+	n = (GF_DOMFullNode*) dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
+
+	str = JS_GetStringBytes(JSVAL_TO_STRING( *vp));
+	if (!str) return JS_FALSE;
+
+	if (JSVAL_IS_INT(id)) {
+		switch (JSVAL_TO_INT(id)) {
+		/*value*/
+		case 0: 
+			dcci_getProperty(c, obj, INT_TO_JSVAL(3), &readonly);
+			if (JSVAL_TO_BOOLEAN(readonly) == JS_TRUE) return JS_TRUE;
+			child = n->children;
+			while (child) {
+				if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
+					GF_DOMText *txt = (GF_DOMText *)child->node;
+					if (txt->type==GF_DOM_TEXT_REGULAR) {
+						if (txt->textContent) free(txt->textContent);
+						txt->textContent = strdup(str);
+						break;
+
+					}
+				}
+				child = child->next;
+			}
+			if (!child)
+				gf_dom_add_text_node((GF_Node*)n, strdup(str) );
+
+			memset(&evt, 0, sizeof(GF_DOM_Event));
+			evt.type = GF_EVENT_DCCI_PROP_CHANGE;
+			evt.bubbles = 1;
+			evt.relatedNode = (GF_Node*)n;
+			gf_dom_event_fire((GF_Node*)n, NULL, &evt);
+			n->sgprivate->scenegraph->modified = 1;
+			return JS_TRUE;
+		/*propertyType*/
+		case 2: 
+			return JS_TRUE;
+
+		/*all other properties are read-only*/
+		default:
+			return JS_FALSE;
+		}
+		return JS_FALSE;
+	}
+	return JS_TRUE;
+}
+
+Bool dcci_prop_lookup(GF_DOMFullNode *n, char *ns, char *name, Bool deep, Bool first)
+{
+	Bool ok = 1;
+	GF_ChildNodeItem *child = n->children;
+	/*ns mismatch*/
+	if (strcmp(ns, "*") && n->ns && strcmp(ns, n->ns))
+		ok = 0;
+	/*name mismatch*/
+	if (strcmp(name, "*") && n->name && strcmp(name, n->name))
+		ok = 0;
+	
+	/*"Some DCCIProperty nodes may not have a value"*/
+	if (ok) return 1;
+
+	/*not found*/
+	if (!first && !deep) return 0;
+
+	while (child) {
+		if (child->node && (child->node->sgprivate->tag==TAG_DOMFullNode)) {
+			ok = dcci_prop_lookup((GF_DOMFullNode *)child->node, ns, name, deep, 0);
+			if (ok) return 1;
+		}
+		child = child->next;
+	}
+	return 0;
+}
+
+static JSBool dcci_has_property(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_DOMFullNode *n;
+	Bool deep;
+	char *ns, *name;
+	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_FALSE;
+	n = (GF_DOMFullNode*) dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
+	if (argc!=3) return JS_FALSE;
+	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
+	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
+	ns = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+
+	deep = JSVAL_TO_BOOLEAN(argv[2]) ? 1 : 0;
+	deep = dcci_prop_lookup(n, ns, name, deep, 1);
+	*rval = BOOLEAN_TO_JSVAL(deep ? JS_TRUE : JS_FALSE);
+
+	return JS_TRUE;
+}
+
+void dcci_prop_collect(DOMNodeList *nl, GF_DOMFullNode *n, char *ns, char *name, Bool deep, Bool first)
+{
+	Bool ok = 1;
+	GF_ChildNodeItem *child = n->children;
+	/*ns mismatch*/
+	if (strcmp(ns, "*") && n->ns && strcmp(ns, n->ns))
+		ok = 0;
+	/*name mismatch*/
+	if (strcmp(name, "*") && n->name && strcmp(name, n->name))
+		ok = 0;
+	
+	/*"Some DCCIProperty nodes may not have a value"*/
+	if (ok) {
+		gf_node_register((GF_Node*)n, NULL);
+		if (n->sgprivate->scenegraph->reference_count)
+			n->sgprivate->scenegraph->reference_count++;
+		gf_node_list_add_child(&nl->child, (GF_Node*)n);
+	}
+
+	/*not found*/
+	if (!first && !deep) return;
+
+	while (child) {
+		if (child->node && (child->node->sgprivate->tag==TAG_DOMFullNode)) {
+			dcci_prop_collect(nl, (GF_DOMFullNode *)child->node, ns, name, 1, 0);
+		}
+		child = child->next;
+	}
+}
+
+static JSBool dcci_search_property(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	JSObject *new_obj;
+	DOMNodeList *nl;
+	GF_DOMFullNode *n;
+	Bool deep;
+	char *ns, *name;
+	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_FALSE;
+	n = (GF_DOMFullNode*) dom_get_node(c, obj);
+	if (!n) return JS_FALSE;
+	if (argc!=4) return JS_FALSE;
+	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
+	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
+	ns = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+	/*todo - DCCI prop filter*/
+	deep = JSVAL_TO_BOOLEAN(argv[3]) ? 1 : 0;
+
+	GF_SAFEALLOC(nl, DOMNodeList);
+	dcci_prop_collect(nl, n, ns, name, deep, 1);
+	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass, 0, 0);
+	JS_SetPrivate(c, new_obj, nl);
+	*rval = OBJECT_TO_JSVAL(new_obj);
+	return JS_TRUE;
+}
+
+void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
+{
+	JSObject *dom_element_proto = NULL;
 	if (!dom_rt) {
 		GF_SAFEALLOC(dom_rt, GF_DOMRuntime);
 		DOM_CORE_SETUP_CLASS(dom_rt->domNodeClass, "Node", JSCLASS_HAS_PRIVATE, dom_node_getProperty, dom_node_setProperty, dom_node_finalize);
@@ -2459,6 +2727,8 @@ void dom_js_load(JSContext *c, JSObject *global)
 		DOM_CORE_SETUP_CLASS(dom_rt->domEventClass , "Event", JSCLASS_HAS_PRIVATE, event_getProperty, JS_PropertyStub, JS_FinalizeStub);
 		DOM_CORE_SETUP_CLASS(dom_rt->domNodeListClass, "NodeList", JSCLASS_HAS_PRIVATE, dom_nodelist_getProperty, dom_nodelist_setProperty, dom_nodelist_finalize);
 		DOM_CORE_SETUP_CLASS(dom_rt->xmlHTTPRequestClass, "XMLHttpRequest", JSCLASS_HAS_PRIVATE, xml_http_getProperty, xml_http_setProperty, xml_http_finalize);
+
+		DOM_CORE_SETUP_CLASS(dom_rt->DCCIClass, "DCCI", JSCLASS_HAS_PRIVATE, dcci_getProperty, dcci_setProperty, dom_node_finalize);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] dom run-time allocated\n"));
 	}
@@ -2626,7 +2896,7 @@ void dom_js_load(JSContext *c, JSObject *global)
 			{"ownerSVGElement",			JS_DOM3_NODE_LAST_PROP+10, 0},
 			{0}
 		};
-		JS_InitClass(c, global, 0, &dom_rt->domElementClass, 0, 0, elementProps, elementFuncs, 0, 0);
+		dom_element_proto = JS_InitClass(c, global, 0, &dom_rt->domElementClass, 0, 0, elementProps, elementFuncs, 0, 0);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] element class initialized\n"));
 	}
 
@@ -2740,6 +3010,45 @@ void dom_js_load(JSContext *c, JSObject *global)
 		JS_InitClass(c, global, 0, &dom_rt->xmlHTTPRequestClass, xml_http_constructor, 0, xmlHTTPRequestClassProps, xmlHTTPRequestClassFuncs, 0, 0);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] XMLHttpRequest class initialized\n"));
 	}
+
+
+	{
+		GF_SceneGraph *dcci;
+		jsval dcci_root;
+
+		dcci = NULL;
+		if (scene->script_action) {
+			GF_JSAPIParam par;
+			par.node = NULL;
+			scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_DCCI, NULL, &par);
+			dcci = par.scene;
+		}
+		if (dcci && dcci->RootNode) {
+
+			JSPropertySpec DCCIClassProps[] = {
+				{"value",							0,       JSPROP_ENUMERATE | JSPROP_PERMANENT  },
+				{"valueType",						1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+				{"propertyType",					2,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+				{"readOnly",						3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+				{"DCCIMetadataInterfaceType",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+				{"DCCIMetadataInterface",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+				{"version",							6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+				{0}
+			};
+			JSFunctionSpec DCCIClassFuncs[] = {
+				{"hasProperty",			dcci_has_property, 3},
+				{"searchProperty",		dcci_search_property, 4},
+				{0}
+			};
+
+			JS_InitClass(c, global, dom_element_proto, &dom_rt->DCCIClass, 0, 0, DCCIClassProps, DCCIClassFuncs, 0, 0);
+			dcci_root = dom_base_node_construct(c, &dom_rt->DCCIClass, dcci->RootNode);
+			JS_DefineProperty(c, global, "DCCIRoot", dcci_root, 0, 0, JSPROP_READONLY | JSPROP_PERMANENT );
+
+			dcci->dcci_doc = 1;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] DCCI class initialized\n"));
+		}
+	}
 }
 
 void dom_js_unload()
@@ -2778,3 +3087,262 @@ JSObject *dom_js_define_event(JSContext *c, JSObject *global)
 
 #endif
 
+
+
+GF_Err gf_sg_new_from_xml_doc(const char *src, GF_SceneGraph **scene)
+{
+#ifdef GPAC_HAS_SPIDERMONKEY
+	GF_Err e;
+	XMLHTTPContext *ctx;
+	GF_SceneGraph *sg;
+
+	GF_SAFEALLOC(ctx, XMLHTTPContext);
+	ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);
+	ctx->node_stack = gf_list_new();
+	sg = gf_sg_new();
+	ctx->document = sg;
+	e = gf_xml_sax_parse_file(ctx->sax, src, NULL);
+	gf_xml_sax_del(ctx->sax);
+	gf_list_del(ctx->node_stack);
+	free(ctx);
+
+	*scene = NULL;
+	if (e<0) {
+		gf_sg_del(sg);
+		return e;
+	}
+	*scene = sg;
+	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
+#ifdef GPAC_HAS_SPIDERMONKEY
+
+typedef struct
+{
+	GF_SAXParser *sax;
+	GF_List *node_stack;
+	/*dom graph*/
+	GF_SceneGraph *document;
+} XMLReloadContext;
+
+static void xml_reload_node_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
+{
+	GF_DOM_Event evt;
+	Bool is_root = 0;
+	Bool modified = 0;
+	Bool atts_modified = 0;
+	Bool new_node = 0;
+	u32 i;
+	GF_DOMFullAttribute *prev = NULL;
+	GF_DOMFullNode *par = NULL;
+	XMLReloadContext *ctx = (XMLReloadContext *)sax_cbck;
+	GF_DOMFullNode *node;
+	
+	node = gf_list_last(ctx->node_stack);
+	if (!node) {
+		is_root = 1;
+		node = (GF_DOMFullNode *) ctx->document->RootNode;
+	}
+
+	if (is_root) {
+		Bool same_node = 1;
+		if (strcmp(node->name, node_name)) same_node = 0;
+		if (node->ns && name_space && strcmp(node->ns, name_space)) same_node = 0;
+
+		if (!same_node) {
+			if (node->name) free(node->name);
+			node->name = strdup(node_name);
+			if (node->ns) free(node->ns);
+			node->ns = name_space ? strdup(name_space) : NULL;
+			modified = 1;
+		}
+	} else {
+		GF_ChildNodeItem *child = node->children;
+		node = NULL;
+		/*locate the node in the children*/
+		while (child) {
+			Bool same_node = 1;
+			node = (GF_DOMFullNode*)child->node;
+			if (strcmp(node->name, node_name)) same_node = 0;
+			if (node->ns && name_space && strcmp(node->ns, name_space)) same_node = 0;
+			if (same_node) {
+				break;
+			}
+			node = NULL;
+			child = child->next;
+		}
+		if (!node) {
+			modified = 1;
+
+			/*create the new node*/
+			node = (GF_DOMFullNode *) gf_node_new(ctx->document, TAG_DOMFullNode);
+			node->name = strdup(node_name);
+			if (name_space) node->ns = strdup(name_space);
+
+			par = gf_list_last(ctx->node_stack);
+			gf_node_register((GF_Node*)node, (GF_Node*)par);
+			gf_node_list_add_child(&par->children, (GF_Node*)node);
+			new_node = 1;
+		}
+	}
+	gf_list_add(ctx->node_stack, node);
+
+	if (!modified) {
+		u32 count = 0;
+		GF_DOMFullAttribute *att = (GF_DOMFullAttribute *)node->attributes;
+		while (att) {
+			Bool found = 0;
+			for (i=0; i<nb_attributes; i++) {
+				if (!stricmp(attributes[i].name, "xml:id")) {
+					const char *id = gf_node_get_name((GF_Node*)node);
+					if (!id || strcmp(id, attributes[i].value))
+						modified = 1;
+				} else if (!strcmp(att->name, attributes[i].name)) {
+					found = 1;
+					if (strcmp(att->data, attributes[i].value)) {
+						atts_modified = 1;
+						free(att->data);
+						att->data = strdup(attributes[i].value);
+					}
+				}
+			}
+			if (!found) {
+				modified = 1;
+				break;
+			}
+			count++;
+			att = (GF_DOMFullAttribute *)att->next;
+		}
+		if (count != nb_attributes)
+			modified = 1;
+	}
+
+
+	if (modified) {
+		GF_DOMFullAttribute *tmp, *att;
+		att = (GF_DOMFullAttribute *)node->attributes;
+		while (att) {
+			if (att->name) free(att->name);
+			if (att->data) free(att->data);
+			tmp = att;
+			att = (GF_DOMFullAttribute *)att->next;
+			free(tmp);
+		}
+
+		/*parse all atts*/
+		for (i=0; i<nb_attributes; i++) {
+			if (!stricmp(attributes[i].name, "xml:id")) {
+				u32 id = gf_sg_get_max_node_id(ctx->document) + 1;
+				gf_node_set_id((GF_Node *)node, id, attributes[i].value);
+			} else {
+				GF_DOMFullAttribute *att;
+				GF_SAFEALLOC(att, GF_DOMFullAttribute);
+				att->tag = TAG_DOM_ATTRIBUTE_FULL;
+				att->name = strdup(attributes[i].name);
+				att->data = strdup(attributes[i].value);
+				if (prev) prev->next = (GF_DOMAttribute*)att;
+				else node->attributes = (GF_DOMAttribute*)att;
+				prev = att;
+			}
+		}
+		atts_modified = 1;
+	}
+
+	if (atts_modified || new_node) {
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.type = new_node ? GF_EVENT_NODE_INSERTED : GF_EVENT_ATTR_MODIFIED;
+		evt.bubbles = 1;
+		evt.relatedNode = (GF_Node*) (GF_EVENT_NODE_INSERTED ? par : node);
+		gf_dom_event_fire((GF_Node*)node, NULL, &evt);
+	}
+}
+
+static void xml_reload_node_end(void *sax_cbck, const char *node_name, const char *name_space)
+{
+	XMLReloadContext *ctx = (XMLReloadContext *)sax_cbck;
+	GF_DOMFullNode *par = gf_list_last(ctx->node_stack);
+	if (par) {
+		/*depth mismatch*/
+		if (strcmp(par->name, node_name)) return;
+		gf_list_rem_last(ctx->node_stack);
+	}
+}
+static void xml_reload_text_content(void *sax_cbck, const char *content, Bool is_cdata)
+{
+	GF_DOM_Event evt;
+	u32 i, len;
+	GF_ChildNodeItem *child;
+	GF_DOMText *txt = NULL;
+	XMLReloadContext *ctx = (XMLReloadContext *)sax_cbck;
+	GF_DOMFullNode *par = gf_list_last(ctx->node_stack);
+	if (!par) return;
+
+	/*basic check, remove all empty text nodes*/
+	len = strlen(content);
+	for (i=0; i<len; i++) {
+		if (!strchr(" \n\r\t", content[i])) break;
+	}
+	if (i==len) return;
+
+	child = par->children;
+	while (child) {
+		if (child->node->sgprivate->tag == TAG_DOMText) {
+			txt = (GF_DOMText *)child->node;
+			if (!strcmp(txt->textContent, content) && ((txt->type==GF_DOM_TEXT_REGULAR) || is_cdata))
+				return;
+			if (txt->textContent) free(txt->textContent);
+			txt->textContent = strdup(content);
+			txt->type = is_cdata ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
+			break;
+		}
+		child = child->next;
+	}
+	if (!txt) {
+		txt = gf_dom_add_text_node((GF_Node *)par, strdup(content) );
+		txt->type = is_cdata ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
+
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.type = GF_EVENT_NODE_INSERTED;
+		evt.bubbles = 1;
+		evt.relatedNode = (GF_Node*) par;
+		gf_dom_event_fire((GF_Node*)txt, NULL, &evt);
+	}
+
+	memset(&evt, 0, sizeof(GF_DOM_Event));
+	evt.type = GF_EVENT_CHAR_DATA_MODIFIED;
+	evt.bubbles = 1;
+	evt.relatedNode = (GF_Node*)par;
+	gf_dom_event_fire((GF_Node*)par, NULL, &evt);
+
+	memset(&evt, 0, sizeof(GF_DOM_Event));
+	evt.type = GF_EVENT_DCCI_PROP_CHANGE;
+	evt.bubbles = 1;
+	evt.relatedNode = (GF_Node*)par;
+	gf_dom_event_fire((GF_Node*)par, NULL, &evt);
+}
+#endif
+
+GF_Err gf_sg_reload_xml_doc(const char *src, GF_SceneGraph *scene)
+{
+#ifndef GPAC_HAS_SPIDERMONKEY
+	return GF_NOT_SUPPORTED;
+#else
+	GF_Err e;
+	XMLReloadContext ctx;
+
+	if (!src || !scene) return GF_BAD_PARAM;
+	memset(&ctx, 0, sizeof(XMLReloadContext));
+	ctx.document = scene;
+	ctx.node_stack = gf_list_new();
+
+	ctx.sax = gf_xml_sax_new(xml_reload_node_start, xml_reload_node_end, xml_reload_text_content, &ctx);
+	e = gf_xml_sax_parse_file(ctx.sax, src, NULL);
+	gf_list_del(ctx.node_stack);
+	gf_xml_sax_del(ctx.sax);
+	if (e<0) return e;
+	return GF_OK;
+#endif
+}

@@ -27,11 +27,11 @@ Group {
 	Background2D { backColor 1 1 1}
   WorldInfo {
    title "Collision Test"
-   info ["This shows the collision node  " "used without proxy" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
+   info ["This shows the collision node  " "used without proxy" "" "GPAC Regression Tests" "$Date: 2008-06-26 07:55:39 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
   }
   DEF C Collision {
   	children [
-     Shape {
+     DEF B Shape {
      	appearance Appearance {
      		material DEF MAT Material { diffuseColor 0 1 0 }
      	}

@@ -51,7 +51,11 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 	*/
 	/*if UDP not available don't try it*/
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "UDPNotAvailable");
-	if (!rtp->transport_mode && sOpt && !stricmp(sOpt, "yes")) rtp->transport_mode = 1;
+	if (sOpt && !stricmp(sOpt, "yes")) {
+		if (!rtp->transport_mode) rtp->transport_mode = 1;
+		/*turn it off*/
+		gf_modules_set_option((GF_BaseInterface *)plug, "Network", "UDPNotAvailable", "no");
+	}
 	
 	if (!rtp->transport_mode) {
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "UDPTimeout");
@@ -358,7 +362,8 @@ static GF_Err RP_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	if (!ch) return GF_STREAM_NOT_FOUND;
 	gf_mx_p(priv->mx);
 	/*disconnect stream BUT DO NOT DELETE IT since we don't store SDP*/
-	RP_DisconnectStream(ch);
+	ch->flags &= ~RTP_CONNECTED;
+	ch->channel = NULL;
 	gf_mx_v(priv->mx);
 	gf_term_on_disconnect(priv->service, channel, GF_OK);
 	return GF_OK;
@@ -416,6 +421,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	however we must store some info not carried in SDP*/
 	case GF_NET_CHAN_CONFIG:
 		if (com->cfg.frame_duration) ch->depacketizer->sl_hdr.au_duration = com->cfg.frame_duration;
+		ch->ts_res = com->cfg.sl_config.timestampResolution;
 		return GF_OK;
 
 	case GF_NET_CHAN_PLAY:
@@ -435,6 +441,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			} else {
 				/*direct channel, store current start*/
 				ch->current_start = com->play.start_range;
+				ch->flags |= GF_RTP_NEW_AU;
 				gf_rtp_depacketizer_reset(ch->depacketizer, 0);
 			}
 		}
@@ -512,7 +519,7 @@ static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char
 		memset(out_sl_hdr, 0, sizeof(GF_SLHeader));
 		out_sl_hdr->accessUnitEndFlag = 1;
 		out_sl_hdr->accessUnitStartFlag = 1;
-		out_sl_hdr->compositionTimeStamp = (u64) (ch->current_start * 1000);
+		out_sl_hdr->compositionTimeStamp = (u64) (ch->current_start * ch->ts_res);
 		out_sl_hdr->compositionTimeStampFlag = 1;
 		out_sl_hdr->randomAccessPointFlag = 1;
 		*out_reception_status = GF_OK;

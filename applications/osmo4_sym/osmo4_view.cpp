@@ -356,7 +356,6 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 		gf_cfg_set_key(m_user.config, "General", "StartupFile", GPAC_CFG_DIR"gpac.mp4");
 		/*setup UDP traffic autodetect*/
 		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
-		gf_cfg_set_key(m_user.config, "Network", "UDPNotAvailable", "no");
 		gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
 		gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
 		
