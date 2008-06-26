@@ -76,6 +76,8 @@ u32 gf_dom_event_type_by_name(const char *name)
 	if (!strcmp(name, "DOMAttrModified"))				return GF_EVENT_ATTR_MODIFIED;
 	if (!strcmp(name, "DOMCharacterDataModified"))		return GF_EVENT_CHAR_DATA_MODIFIED;
 
+	if (!strcmp(name, "DCCI-prop-change"))	return GF_EVENT_DCCI_PROP_CHANGE;
+
 	/*LASeR events*/
 	if (!strcmp(name, "activatedEvent"))	return GF_EVENT_ACTIVATED;
 	if (!strcmp(name, "deactivatedEvent"))	return GF_EVENT_DEACTIVATED;
@@ -123,6 +125,8 @@ const char *gf_dom_event_get_name(u32 type)
 	case GF_EVENT_TEXTINPUT: return "textInput";
 	case GF_EVENT_UNLOAD: return "unload";
 	case GF_EVENT_ZOOM: return "zoom";
+
+	case GF_EVENT_DCCI_PROP_CHANGE: return "DCCI-prop-change";
 
 	/*LASeR events*/
 	case GF_EVENT_ACTIVATED: return "activatedEvent";

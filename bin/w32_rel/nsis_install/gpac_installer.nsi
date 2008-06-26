@@ -85,6 +85,7 @@ Section "Osmo4/GPAC Player"
   File "..\gm_dummy_in.dll"
   File "..\gm_dx_hw.dll"
   File "..\js32.dll"
+;  File "..\gvm.dll"
 
   ;create default cache
   SetOutPath $INSTDIR\cache
@@ -417,14 +418,14 @@ Function AddToPath
     Goto AddToPath_done
 
   AddToPath_NT:
-    ReadRegStr $1 HKCU "Environment" "PATH"
+    ReadRegStr $1 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "PATH"
     StrCpy $2 $1 1 -1 # copy last char
     StrCmp $2 ";" 0 +2 # if last char == ;
       StrCpy $1 $1 -1 # remove last char
     StrCmp $1 "" AddToPath_NTdoIt
       StrCpy $0 "$1;$0"
     AddToPath_NTdoIt:
-      WriteRegExpandStr HKCU "Environment" "PATH" $0
+      WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "PATH" $0
       SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
   AddToPath_done:
@@ -485,7 +486,7 @@ Function un.RemoveFromPath
       Goto unRemoveFromPath_done
 
   unRemoveFromPath_NT:
-    ReadRegStr $1 HKCU "Environment" "PATH"
+    ReadRegStr $1 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "PATH"
     StrCpy $5 $1 1 -1 # copy last char
     StrCmp $5 ";" +2 # if last char != ;
       StrCpy $1 "$1;" # append ;
@@ -507,7 +508,7 @@ Function un.RemoveFromPath
       StrCmp $5 ";" 0 +2 # if last char == ;
         StrCpy $3 $3 -1 # remove last char
 
-      WriteRegExpandStr HKCU "Environment" "PATH" $3
+      WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "PATH" $3
       SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
   unRemoveFromPath_done:

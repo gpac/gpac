@@ -257,6 +257,11 @@ GF_Err gf_rtsp_parse_header(char *buffer, u32 BufferSize, u32 BodyStart, GF_RTSP
 		Pos += 1;
 		//a server should normally reply with a space, but check it
 		if (LineBuffer[Pos] == ' ') Pos += 1;
+		/*!! empty value !! - DSS may send these for CSeq if something goes wrong*/
+		if (!strcmp(LineBuffer+Pos, "\r\n")) {
+			HeaderBuf[0] = 0;
+			continue;
+		}
 		Pos = gf_token_get(LineBuffer, Pos, "\r\n", ValBuf, 400);
 		if (Pos <= 0) break;
 

@@ -3436,7 +3436,7 @@ retry:
 				GF_JSAPIParam par;
 				par.info.e = e;
 				par.info.msg = "Cannot fetch script";
-				ScriptAction(NULL, script->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
+				ScriptAction(NULL, script->sgprivate->scenegraph, GF_JSAPI_OP_GET_DCCI, NULL, &par);
 				return;
 			}
 			free(script->url.vals[0].script_text);
@@ -3500,7 +3500,9 @@ static void JSScript_LoadVRML(GF_Node *node)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Built-in classes initialized\n"));
 #ifndef GPAC_DISABLE_SVG
 	/*initialize DOM*/
-	dom_js_load(priv->js_ctx, priv->js_obj);
+	dom_js_load(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj);
+	/*create event object, and remember it*/
+	priv->event = dom_js_define_event(priv->js_ctx, priv->js_obj);
 #endif
 
 	priv->js_cache = gf_list_new();
@@ -3613,6 +3615,58 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 			}
 		}
 	}
+}
+
+void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event)
+{
+	GF_ScriptPriv *priv;
+	GF_DOMText *txt;
+	JSBool ret = JS_FALSE;
+	GF_DOM_Event *prev_event = NULL;
+	SVG_handlerElement *handler;
+	jsval fval, rval;
+	GF_ChildNodeItem *child;
+
+	txt = NULL;
+	child = ((SVG_Element*)node)->children;
+	if (! child) return;
+	while (child) {
+		txt = (GF_DOMText*)child->node;
+		if ((txt->sgprivate->tag==TAG_DOMText) && txt->textContent) break;
+		txt = NULL;
+		child = child->next;
+	}
+	if (!txt) return;
+	handler = (SVG_handlerElement *) node;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events] Executing script code from VRML handler\n"));
+
+	priv = JS_GetScriptStack(handler->js_context);
+	prev_event = JS_GetPrivate(priv->js_ctx, priv->event);
+	/*break loops*/
+	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target)) 
+		return;
+
+	JS_SetPrivate(priv->js_ctx, priv->event, event);
+
+	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
+
+	if (JS_LookupProperty(priv->js_ctx, priv->js_obj, txt->textContent, &fval) && !JSVAL_IS_VOID(fval) ) {
+		char szFuncName[1024], *fun;
+		char *sep = strchr(txt->textContent, '(');
+		fun = txt->textContent;
+		if (!sep) {
+			strcpy(szFuncName, txt->textContent);
+			strcat(szFuncName, "(evt)");
+			fun = szFuncName;
+		}
+		ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, fun, strlen(fun), 0, 0, &rval);
+	} else {
+		ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
+	}
+	
+	JS_SetPrivate(priv->js_ctx, priv->event, prev_event);
+
 }
 
 #endif

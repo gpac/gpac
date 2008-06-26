@@ -177,7 +177,6 @@ u32 gf_dom_get_key_type(char *key_name);
 
 
 /*listener is simply a node added to the node events list. 
-	THIS SHALL NOT BE USED WITH VRML-BASED GRAPHS: either one uses listeners or one uses routes
 Only one observer can be attached to a listener. The listener will remove itself from the observer
 event list when destructed.*/
 
@@ -185,6 +184,8 @@ typedef struct __xml_ev_handler
 {
 	GF_DOM_BASE_NODE
 	void (*handle_event)(GF_Node *hdl, GF_DOM_Event *event);
+	/*if handler targets a VRML script, point to the script here*/
+	void *js_context;
 } GF_DOMHandler;
 
 /*adds a listener to the node.

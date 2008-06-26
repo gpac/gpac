@@ -1797,7 +1797,7 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 		GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 		if (!att->value || !strlen(att->value)) continue;
 		if (!strcmp(att->name, "binaryID")) binaryID = atoi(att->value);
-		else if (!strcmp(att->name, "objectDescriptorID")) xmt_desc_name = att->value;
+		else if (!stricmp(att->name, "objectDescriptorID")) xmt_desc_name = att->value;
 		else if (!strcmp(att->name, "ES_ID")) xmt_desc_name = att->value;
 		else if (!strcmp(att->name, "OCR_ES_ID")) ocr_ref = att->value;
 		else if (!strcmp(att->name, "dependsOn_ES_ID")) dep_ref = att->value;
@@ -2217,7 +2217,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 			if (!att->value || !strlen(att->value)) continue;
 			if (!strcmp(att->name, "begin")) au_time = atoi(att->value);
 			else if (!strcmp(att->name, "isRAP")) au_is_rap = !strcmp(att->value, "yes") ? 1 : 0;
-			else if (!strcmp(att->name, "objectDescriptorId")) od_ids = att->value;
+			else if (!stricmp(att->name, "objectDescriptorId")) od_ids = att->value;
 			else if (!strcmp(att->name, "ES_ID")) es_ids = att->value;
 		}
 

@@ -287,6 +287,9 @@ struct _tag_terminal
 	/*special list used by nodes needing a call to RenderNode but not in the traverese scene graph (VRML/MPEG-4 protos only). 
 	For these nodes, the traverse effect passed will be NULL. This is only used by InputSensor node at the moment*/
 	GF_List *nodes_pending;
+
+	/*root node of the user prefs*/
+	GF_SceneGraph *dcci_doc;
 };
 
 

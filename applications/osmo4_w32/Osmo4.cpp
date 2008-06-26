@@ -23,6 +23,7 @@ BEGIN_MESSAGE_MAP(Osmo4, CWinApp)
 	ON_COMMAND(ID_FILE_STEP, OnFileStep)
 	ON_COMMAND(ID_OPEN_URL, OnOpenUrl)
 	ON_COMMAND(ID_FILE_RELOAD, OnFileReload)
+	ON_COMMAND(ID_CONFIG_RELOAD, OnConfigReload)
 	ON_COMMAND(ID_FILE_PLAY, OnFilePlay)
 	ON_UPDATE_COMMAND_UI(ID_FILE_PLAY, OnUpdateFilePlay)
 	ON_UPDATE_COMMAND_UI(ID_FILE_STEP, OnUpdateFileStep)
@@ -501,7 +502,6 @@ BOOL Osmo4::InitInstance()
 			}
 			/*setup UDP traffic autodetect*/
 			gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
-			gf_cfg_set_key(m_user.config, "Network", "UDPNotAvailable", "no");
 			gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
 			gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
 
@@ -959,6 +959,11 @@ void Osmo4::OnFileReload()
 {
 	gf_term_disconnect(m_term);
 	m_pMainWnd->PostMessage(WM_OPENURL);
+}
+
+void Osmo4::OnConfigReload() 
+{
+	gf_term_set_option(m_term, GF_OPT_RELOAD_CONFIG, 1); 
 }
 
 void Osmo4::UpdatePlayButton(Bool force_play)

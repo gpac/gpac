@@ -46,20 +46,16 @@ static void term_on_message(void *user_priv, GF_ClientService *service, GF_Err e
 	if (error==GF_IP_UDP_TIMEOUT) {
 		const char *sOpt = gf_cfg_get_key(term->user->config, "Network", "AutoReconfigUDP");
 		if (sOpt && !stricmp(sOpt, "yes")) {
-			sOpt = gf_cfg_get_key(term->user->config, "Network", "UDPNotAvailable");
-			/*if option is already set don't bother try reconfig*/
-			if (!sOpt || stricmp(sOpt, "yes")) {
-				char szMsg[1024];
-				sprintf(szMsg, "!! UDP down (%s) - Retrying with TCP !!\n", message);
-				gf_term_message(term, service->url, szMsg, GF_OK);
+			char szMsg[1024];
+			sprintf(szMsg, "!! UDP down (%s) - Retrying with TCP !!\n", message);
+			gf_term_message(term, service->url, szMsg, GF_OK);
 
-				/*reload scene*/
-				if (term->reload_url) free(term->reload_url);
-				term->reload_state = 1;
-				term->reload_url = strdup(term->root_scene->root_od->net_service->url);
-				gf_cfg_set_key(term->user->config, "Network", "UDPNotAvailable", "yes");
-				return;
-			}
+			/*reload scene*/
+			if (term->reload_url) free(term->reload_url);
+			term->reload_state = 1;
+			term->reload_url = strdup(term->root_scene->root_od->net_service->url);
+			gf_cfg_set_key(term->user->config, "Network", "UDPNotAvailable", "yes");
+			return;
 		}
 	}
 	gf_term_message(term, service->url, message, error);

@@ -1372,7 +1372,8 @@ struct _tag_dom_parser
 };
 
 
-static void gf_xml_dom_node_del(GF_XMLNode *node)
+GF_EXPORT
+void gf_xml_dom_node_del(GF_XMLNode *node)
 {
 	if (node->attributes) {
 		while (gf_list_count(node->attributes)) {
@@ -1493,6 +1494,14 @@ void gf_xml_dom_del(GF_DOMParser *parser)
 {
 	gf_xml_dom_reset(parser, 1);
 	free(parser);
+}
+
+GF_EXPORT
+GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser)
+{
+	GF_XMLNode *root = parser->root;
+	parser->root = NULL;
+	return root;
 }
 
 static void dom_on_progress(void *cbck, u32 done, u32 tot)

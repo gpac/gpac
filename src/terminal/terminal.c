@@ -25,9 +25,11 @@
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
+#include <gpac/internal/scenegraph_dev.h>
 #include <gpac/constants.h>
 #include <gpac/options.h>
 #include <gpac/network.h>
+#include <gpac/xml.h>
 /*textual command processing*/
 #include <gpac/scene_manager.h>
 
@@ -77,6 +79,10 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		evt.type = GF_EVENT_SET_CAPTION;
 		evt.caption.caption = param->uri.url;
 		term->user->EventProc(term->user->opaque, &evt);
+		return 1;
+	}
+	if (type==GF_JSAPI_OP_GET_DCCI) {
+		param->scene = term->dcci_doc;
 		return 1;
 	}
 
@@ -167,6 +173,11 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 	if (sOpt) term->net_data_timeout = atoi(sOpt);
 
 	if (term->root_scene) gf_inline_set_duration(term->root_scene);
+
+	if (term->dcci_doc) {
+		sOpt = gf_cfg_get_key(term->user->config, "General", "EnvironmentFile");
+		gf_sg_reload_xml_doc(sOpt, term->dcci_doc);
+	}
 	/*reload compositor config*/
 	gf_sc_set_option(term->compositor, GF_OPT_RELOAD_CONFIG, 1);
 }
@@ -239,6 +250,18 @@ GF_Terminal *gf_term_new(GF_User *user)
 	gf_term_init_scheduler(tmp, GF_TERM_THREAD_FREE);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Terminal created - loading config\n"));
 	gf_term_reload_cfg(tmp);
+
+
+	
+	cf = gf_cfg_get_key(user->config, "General", "EnvironmentFile");
+	if (cf) {
+		GF_Err e = gf_sg_new_from_xml_doc(cf, &tmp->dcci_doc);
+		if (e!=GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Error %s while loading file %s - user environment disabled\n", gf_error_to_string(e), cf));
+		} else {
+			gf_sg_set_script_action(tmp->dcci_doc, term_script_action, tmp);
+		}
+	}
 	return tmp;
 }
 
@@ -288,7 +311,19 @@ GF_Err gf_term_del(GF_Terminal * term)
 	assert(!term->nodes_pending);
 	gf_list_del(term->media_queue);
 	if (term->downloader) gf_dm_del(term->downloader);
+
+	if (term->dcci_doc) {
+		if (term->dcci_doc->modified) {
+			char *pref_file = (char *)gf_cfg_get_key(term->user->config, "General", "EnvironmentFile");
+			GF_SceneDumper *dumper = gf_sm_dumper_new(term->dcci_doc, pref_file, ' ', GF_SM_DUMP_AUTO_XML);
+			if (!dumper) return GF_IO_ERR;
+			e = gf_sm_dump_graph(dumper, 1, 0);
+			gf_sm_dumper_del(dumper);
+		}
+		gf_sg_del(term->dcci_doc);
+	}
 	gf_mx_del(term->net_mx);
+
 	gf_sys_close();
 	free(term);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Terminal destroyed\n"));

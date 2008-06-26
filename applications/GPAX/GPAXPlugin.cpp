@@ -256,7 +256,6 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 		sprintf((char *) cfg_file, "%s\\cache", config_path);
 		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) cfg_file);
 		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "no");
-		gf_cfg_set_key(m_user.config, "Network", "UDPNotAvailable", "no");
 		gf_cfg_set_key(m_user.config, "Network", "BufferLength", "0");
 		gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "yes");
 		gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");

@@ -347,6 +347,14 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 		ch = RP_FindChannel(sess->owner, channel, 0, esd_url, 0);
 		if (ch) {
 			if (!ch->channel) ch->channel = channel;
+			switch (ch->status) {
+			case RTP_Connected:
+			case RTP_Running:
+				RP_ConfirmChannelConnect(ch, GF_OK);
+				return;
+			default:
+				break;
+			}
 			ch_desc = (ChannelDescribe *)malloc(sizeof(ChannelDescribe));
 			ch_desc->esd_url = esd_url ? strdup(esd_url) : NULL;
 			ch_desc->channel = channel;
@@ -478,6 +486,9 @@ void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 		if (!strcmp(com->method, GF_RTSP_TEARDOWN)) {
 			goto process_reply;
 		} else {
+			if (sess->rtsp_rsp->ResponseCode == NC_RTSP_Only_Aggregate_Operation_Allowed) {
+				sess->flags |= RTSP_AGG_ONLY;
+			}
 			goto err_exit;
 		}
 	}
@@ -613,13 +624,28 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 	RTPStream *a_ch;
 	ChannelControl *ch_ctrl;
 	u32 i;
+	Bool needs_setup = 0;
 	GF_RTSPCommand *com;
 	GF_RTSPRange *range;
 
 	assert(ch->rtsp==sess);
+
+	switch (command->command_type) {
+	case GF_NET_CHAN_PLAY:
+	case GF_NET_CHAN_RESUME:
+	case GF_NET_CHAN_PAUSE:
+		needs_setup = 1;
+		break;
+	case GF_NET_CHAN_STOP:
+		break;
+	default:
+		gf_term_on_command(sess->owner->service, command, GF_NOT_SUPPORTED);
+		return;
+	}
+
 	
 	/*we may need to re-setup stream/session*/
-	if ( (command->command_type==GF_NET_CHAN_PLAY) || (command->command_type==GF_NET_CHAN_RESUME) || (command->command_type==GF_NET_CHAN_PAUSE)) {
+	if (needs_setup) {
 		if (ch->status == RTP_Disconnected) {
 			if (sess->flags & RTSP_AGG_CONTROL) {
 				i=0;
@@ -682,7 +708,11 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 			com->Range = range;
 		}
 
-		if (!(sess->flags & RTSP_AGG_CONTROL) && strlen(ch->control)) com->ControlString = strdup(ch->control);
+		if (sess->flags & RTSP_AGG_CONTROL) 
+			SkipCommandOnSession(ch);
+		else if (strlen(ch->control)) 
+			com->ControlString = strdup(ch->control);
+
 		if (RP_SessionActive(ch)) {
 			if (!com->ControlString && ch->control) com->ControlString = strdup(ch->control);
 		} else {
@@ -706,38 +736,32 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		ch->stat_stop_time = gf_sys_clock();
 
 	}
-	//nb: we could actually send a PAUSE in order to keep the session alive
-	//but let's be nice to the server
 	else if (command->command_type==GF_NET_CHAN_STOP) {
 		ch->current_start = 0;
 		ch->stat_stop_time = gf_sys_clock();
 
-#if 1
-		range = gf_rtsp_range_new();
-		range->start = 0;
-		range->end = -1;
-		com->method = strdup(GF_RTSP_PAUSE);
-		com->Range = range;
-		/*only pause the specified stream*/
-		if (ch->control) com->ControlString = strdup(ch->control);
-#else
-		RP_StopChannel(ch);
-		if (com) gf_rtsp_command_del(com);
-		/*use stream-control*/
-		switch (ch->owner->stream_control_type) {
-		case RTSP_CONTROL_AGGREGATE:
-			/*last stream running*/
-			if (!RP_SessionActive(ch)) RP_FlushAndTearDown(sess);
-			break;
-		/*FIXME - according to trhe current draft, the stream's session must be paused before ...*/
-		case RTSP_CONTROL_RTSP_V2:
-		case RTSP_CONTROL_INDEPENDENT:
-		default:
-			RP_Teardown(sess, ch);
-			break;
+		ch->status = RTP_Connected;
+		RP_InitStream(ch, 1);
+
+		/*if server only support aggregation on pause, skip the command or issue
+		a teardown if last active stream*/
+		if (ch->rtsp->flags & RTSP_AGG_ONLY) {
+			RP_StopChannel(ch);
+			if (com) gf_rtsp_command_del(com);
+			if (!RP_SessionActive(ch))
+				RP_Teardown(sess, ch);
+			return;
+		} 
+		/* otherwise send a PAUSE on the stream */
+		else {
+			range = gf_rtsp_range_new();
+			range->start = 0;
+			range->end = -1;
+			com->method = strdup(GF_RTSP_PAUSE);
+			com->Range = range;
+			/*only pause the specified stream*/
+			if (ch->control) com->ControlString = strdup(ch->control);
 		}
-		return;
-#endif
 	} else {
 		gf_term_on_command(sess->owner->service, command, GF_NOT_SUPPORTED);
 		gf_rtsp_command_del(com);

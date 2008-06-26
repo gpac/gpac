@@ -287,7 +287,6 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 #endif
 	gf_cfg_set_key(cfg, "Video", "SwitchResolution", "no");
 	gf_cfg_set_key(cfg, "Network", "AutoReconfigUDP", "yes");
-	gf_cfg_set_key(cfg, "Network", "UDPNotAvailable", "no");
 	gf_cfg_set_key(cfg, "Network", "UDPTimeout", "10000");
 	gf_cfg_set_key(cfg, "Network", "BufferLength", "3000");
 #ifdef GPAC_TRISCOPE_MODE
@@ -1418,6 +1417,10 @@ force_input:
 			scanf("%d", &size);
 			gf_term_set_option(term, GF_OPT_VIDEO_CACHE_SIZE, size);
 		}
+			break;
+
+		case 'E':
+			gf_term_set_option(term, GF_OPT_RELOAD_CONFIG, 1); 
 			break;
 
 		case 'h':

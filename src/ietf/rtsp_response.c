@@ -358,6 +358,7 @@ GF_EXPORT
 GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 {
 	GF_Err e;
+	Bool force_reset = 0;
 	u32 BodyStart, size;
 	
 	if (!sess || !rsp) return GF_BAD_PARAM;
@@ -421,7 +422,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	//check the CSeq is in the right range. The server should ALWAYS reply in sequence
 	//to an aggreagated sequence of requests
 	//if we have reseted the connection (due to an APP error) return empty
-	if (sess->CSeq > rsp->CSeq + sess->NbPending) {
+	if (rsp->CSeq && sess->CSeq > rsp->CSeq + sess->NbPending) {
 		gf_mx_v(sess->mx);
 		return gf_rtsp_get_response(sess, rsp);
 	}
@@ -443,7 +444,13 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 		sess->last_session_id = NULL;
 	}
 
-	if (rsp->Connection && !stricmp(rsp->Connection, "Close")) {
+exit:
+	if (rsp->Connection && !stricmp(rsp->Connection, "Close"))
+		force_reset = 1;
+	else if (e && (e != GF_IP_NETWORK_EMPTY))
+		force_reset = 1;
+
+	if (force_reset) {
 		gf_rtsp_session_reset(sess, 0);
 		//destroy the socket
 		if (sess->connection) gf_sk_del(sess->connection);
@@ -456,7 +463,6 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 		}
 	}	
 	
-exit:
 	gf_mx_v(sess->mx);
 	return e;
 }
