@@ -612,7 +612,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	GF_Err e;
 	const char *tag;
 	u32 tag_len;
-	GF_ESD *esd;
 	GF_ISOFile *output;
 	GF_ISOSample *sample, *next;
 	GF_List *fragmenters;
@@ -665,19 +664,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	MaxFragmentDuration = (u32) (max_duration * 1000);
 	//duplicates all tracks
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
-		TrackNum = gf_isom_new_track(output, gf_isom_get_track_id(input, i+1), gf_isom_get_media_type(input, i+1), gf_isom_get_media_timescale(input, i+1));
-		if (!TrackNum) {
-			e = gf_isom_last_error(output);
-			goto err_exit;
-		}
-
-		esd = gf_isom_get_esd(input, i+1, 1);
-		if (esd) {
-			gf_isom_new_mpeg4_description(output, TrackNum, esd, NULL, NULL, &descIndex);
-			gf_odf_desc_del((GF_Descriptor *) esd);
-		} else {
-			gf_isom_clone_sample_description(output, TrackNum, input, i+1, 1, NULL, NULL, &descIndex);
-		}
+		e = gf_isom_clone_track(input, i+1, output, 0, &TrackNum);
+		if (e) goto err_exit;
 
 		//if few samples don't fragment track
 		count = gf_isom_get_sample_count(input, i+1);
