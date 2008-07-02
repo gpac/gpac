@@ -1345,6 +1345,7 @@ void stbl_AppendSampleToChunk(GF_SampleTableBox *stbl, u32 DescIndex, u32 sample
 	ent->firstChunk = nextChunk;
 	ent->sampleDescriptionIndex = DescIndex;
 	ent->samplesPerChunk = samplesInChunk;
+	ent->isEdited = 0;
 	stsc->nb_entries++;
 }
 
