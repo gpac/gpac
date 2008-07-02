@@ -718,7 +718,7 @@ static GF_Err BD_DecRouteReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 
 	if (r) {
 		if (r->FromNode->sgprivate->interact)
-			gf_list_del_item(r->FromNode->sgprivate->interact->events, r);
+			gf_list_del_item(r->FromNode->sgprivate->interact->routes, r);
 
 		r->is_setup = 0;
 		r->lastActivateTime = 0;
@@ -729,8 +729,8 @@ static GF_Err BD_DecRouteReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 		r->ToField.fieldIndex = toID;
 
 		if (!r->FromNode->sgprivate->interact) GF_SAFEALLOC(r->FromNode->sgprivate->interact, struct _node_interactive_ext);
-		if (!r->FromNode->sgprivate->interact->events) r->FromNode->sgprivate->interact->events = gf_list_new();
-		gf_list_add(r->FromNode->sgprivate->interact->events, r);
+		if (!r->FromNode->sgprivate->interact->routes) r->FromNode->sgprivate->interact->routes = gf_list_new();
+		gf_list_add(r->FromNode->sgprivate->interact->routes, r);
 	} else {
 		r = gf_sg_route_new(codec->current_graph, OutNode, fromID, InNode, toID);
 		if (!r) return GF_OUT_OF_MEM;

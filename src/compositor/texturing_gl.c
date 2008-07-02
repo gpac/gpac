@@ -767,6 +767,9 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 
 static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 {
+#ifdef GPAC_DISABLE_3D
+	return 0;
+#else
 	GF_TextureHandler *matte_hdl;
 	GF_TextureHandler *b_surf;
 	GF_TextureHandler *a_surf;
@@ -1075,6 +1078,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 	tx_bind(b_surf);
 	return 1;
+#endif
 }
 
 

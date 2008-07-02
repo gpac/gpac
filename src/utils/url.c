@@ -109,6 +109,10 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	pathSepCount = 0;
 	name = NULL;
 	if (pathName[0] == '.') {
+		if (!strcmp(pathName, "..")) {
+			pathSepCount = 1;
+			name = "";
+		}
 		for (i = 0; i< strlen(pathName) - 2; i++) {
 			/*current dir*/
 			if ( (pathName[i] == '.') 
@@ -122,6 +126,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 				) {
 				pathSepCount ++;
 				i+=2;
+				name = (char *) &pathName[i+1];
 			} else {
 				name = (char *) &pathName[i];
 				break;

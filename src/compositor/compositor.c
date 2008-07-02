@@ -2320,9 +2320,11 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		return 1;
 	case GF_JSAPI_OP_GET_SPEED:
 		param->time = 0;
+#ifndef GPAC_DISABLE_3D
 		if (compositor->visual->type_3d==2) {
 			param->time = FIX2FLT(compositor->visual->camera.speed);
 		}
+#endif
 		return 1;
 	}
 	return 0;

@@ -43,8 +43,8 @@ GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, G
 	r->graph = sg;
 
 	if (!fromNode->sgprivate->interact) GF_SAFEALLOC(fromNode->sgprivate->interact, struct _node_interactive_ext);
-	if (!fromNode->sgprivate->interact->events) fromNode->sgprivate->interact->events = gf_list_new();
-	gf_list_add(fromNode->sgprivate->interact->events, r);
+	if (!fromNode->sgprivate->interact->routes) fromNode->sgprivate->interact->routes = gf_list_new();
+	gf_list_add(fromNode->sgprivate->interact->routes, r);
 	gf_list_add(sg->Routes, r);
 	return r;
 }
@@ -60,11 +60,11 @@ void gf_sg_route_del(GF_Route *r)
 	/*remove declared routes*/
 	ind = gf_list_del_item(r->graph->Routes, r);
 	/*remove route from node - do this regardless of setup state since the route is registered upon creation*/
-	if (r->FromNode && r->FromNode->sgprivate->interact && r->FromNode->sgprivate->interact->events) {
-		gf_list_del_item(r->FromNode->sgprivate->interact->events, r);
-		if (!gf_list_count(r->FromNode->sgprivate->interact->events)) {
-			gf_list_del(r->FromNode->sgprivate->interact->events);
-			r->FromNode->sgprivate->interact->events = NULL;
+	if (r->FromNode && r->FromNode->sgprivate->interact && r->FromNode->sgprivate->interact->routes) {
+		gf_list_del_item(r->FromNode->sgprivate->interact->routes, r);
+		if (!gf_list_count(r->FromNode->sgprivate->interact->routes)) {
+			gf_list_del(r->FromNode->sgprivate->interact->routes);
+			r->FromNode->sgprivate->interact->routes = NULL;
 		}
 	}
 	r->is_setup = 0;
@@ -313,7 +313,7 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 	
 	//search for routes to activate in the order they where declared
 	i=0;
-	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->events, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->routes, &i))) {
 		if (r->FromNode != node) continue;
 		if (r->FromField.fieldIndex != FieldIndex) continue;
 
@@ -343,7 +343,7 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName)
 	
 	//search for routes to activate in the order they where declared
 	i=0;
-	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->events, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->routes, &i))) {
 		if (!r->is_setup) gf_sg_route_setup(r);
 		if (stricmp(r->FromField.name, eventName)) continue;
 

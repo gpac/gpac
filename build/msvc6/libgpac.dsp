@@ -493,6 +493,10 @@ SOURCE=..\..\src\scenegraph\dom_smjs.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\scenegraph\gpac_js.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\scenegraph\mpeg4_animators.c
 # End Source File
 # Begin Source File

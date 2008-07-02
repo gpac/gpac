@@ -30,7 +30,7 @@
 #include <gpac/nodes_svg_da.h>
 #include <gpac/events.h>
 
-#ifndef GPAC_READ_ONLY
+//#ifndef GPAC_READ_ONLY
 
 #ifndef __SYMBIAN32__
 #include <wchar.h>
@@ -186,6 +186,7 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 	if (sdump->dump_mode==GF_SM_DUMP_SVG) return;
 	if (sdump->LSRDump) {
 		fprintf(sdump->trace, "<saf:SAFSession xmlns:saf=\"urn:mpeg:mpeg4:SAF:2005\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:lsr=\"urn:mpeg:mpeg4:LASeR:2005\" xmlns=\"http://www.w3.org/2000/svg\">\n");
+#ifndef GPAC_READ_ONLY
 		if (root_od) {
 			GF_ObjectDescriptor *iod = (GF_ObjectDescriptor *)root_od;
 			u32 i, count;
@@ -202,6 +203,7 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 			}
 			fprintf(sdump->trace, "</saf:sceneHeader>\n");
 		}
+#endif
 		return;
 	}
 
@@ -210,7 +212,9 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 		if (sdump->XMLDump) {
 			fprintf(sdump->trace, "<XMT-A xmlns=\"urn:mpeg:mpeg4:xmta:schema:2002\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"urn:mpeg:mpeg4:xmta:schema:2002 xmt-a.xsd\">\n");
 			fprintf(sdump->trace, " <Header>\n");
+#ifndef GPAC_READ_ONLY
 			if (root_od) gf_odf_dump_desc(root_od, sdump->trace, 1, 1);
+#endif
 			fprintf(sdump->trace, " </Header>\n");
 			fprintf(sdump->trace, " <Body>\n");
 			if (!root_od) {
@@ -221,7 +225,9 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 				fprintf(sdump->trace, "#VRML V2.0\n");
 			} else {
 				/*dump root OD*/
+#ifndef GPAC_READ_ONLY
 				if (root_od) gf_odf_dump_desc(root_od, sdump->trace, 0, 0);
+#endif
 			}
 			fprintf(sdump->trace, "\n");
 		}
@@ -1125,9 +1131,9 @@ GF_Route *SD_GetISedField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo *fi
 		if (!r->IS_route) continue;
 		if ((r->ToNode==node) && (r->ToField.fieldIndex==field->fieldIndex)) return r;
 	}
-	if (!node || !node->sgprivate->interact || !node->sgprivate->interact->events) return NULL;
+	if (!node || !node->sgprivate->interact || !node->sgprivate->interact->routes) return NULL;
 	i=0;
-	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->events, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->routes, &i))) {
 		if (!r->IS_route) continue;
 		if (r->FromField.fieldIndex == field->fieldIndex) return r;
 	}
@@ -3016,7 +3022,9 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 				if (dumper->LSRDump) {
 					dump_od_to_saf(dumper, au, indent);
 				} else {
+#ifndef GPAC_READ_ONLY
 					e = gf_odf_dump_com_list(au->commands, dumper->trace, indent+1, 0);
+#endif				
 				}
 				break;
 			case GF_STREAM_SCENE:
@@ -3060,7 +3068,9 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 				if (dumper->LSRDump) {
 					dump_od_to_saf(dumper, au, indent+1);
 				} else {
+#ifndef GPAC_READ_ONLY
 					e = gf_odf_dump_com_list(au->commands, dumper->trace, indent+1, 1);
+#endif
 				}
 				break;
 			case GF_STREAM_SCENE:
@@ -3108,5 +3118,5 @@ exit:
 	return e;
 }
 
-#endif
+//#endif
 

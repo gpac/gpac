@@ -432,7 +432,7 @@ static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, jsval id, js
 	{"dispatchEvent", xml_dom3_not_implemented, 1},
 
 /*eventListeners routines used by document, element and connection interfaces*/
-JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node)
 {
 	GF_FieldInfo info;
 	GF_Node *listener;
@@ -451,10 +451,13 @@ JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 		|| JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) {
 		node = JS_GetPrivate(c, obj);
 	}
-	/*FIXME - SVG uDOM conection not supported yet*/
+	/*FIXME - SVG uDOM connection not supported yet*/
 	else {
 	}
-	if (!node) return JS_FALSE;
+	if (!node) {
+		if (!vrml_node) return JS_FALSE;
+		node = vrml_node;
+	}
 
 	if (argc==4) {
 		if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
@@ -515,7 +518,12 @@ JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 	gf_dom_listener_post_add((GF_Node *) node, listener);
 	return JS_TRUE;
 }
-JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	return dom_event_add_listener_ex(c, obj, argc, argv, rval, NULL);
+}
+
+JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node)
 {
 	char *type, *callback;
 	u32 of = 0;
@@ -535,6 +543,8 @@ JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval 
 	/*FIXME - SVG uDOM conection not supported yet*/
 	else  {
 	}
+	if (!node) node = vrml_node;
+
 	if (!node || !node->sgprivate->interact || !node->sgprivate->interact->events) return JS_FALSE;
 
 	if (argc==4) {
@@ -585,7 +595,10 @@ JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval 
 	}
 	return JS_FALSE;
 }
-
+JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	return dom_event_remove_listener_ex(c, obj, argc, argv, rval, NULL);
+}
 
 /*dom3 node*/
 static void dom_node_finalize(JSContext *c, JSObject *obj)
@@ -1701,10 +1714,14 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			break;
 		/*target*/
 		case 1: 
+			if (evt->is_vrml) return JS_FALSE;
 			*vp = dom_element_construct(c, evt->target); 
 			return JS_TRUE;
 		/*currentTarget*/
-		case 2: *vp = dom_element_construct(c, evt->currentTarget); return JS_TRUE;
+		case 2: 
+			if (evt->is_vrml) return JS_FALSE;
+			*vp = dom_element_construct(c, evt->currentTarget); 
+			return JS_TRUE;
 		/*namespaceURI*/
 		case 3: return JS_FALSE;
 		/*bubbles*/
@@ -1722,7 +1739,10 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		/*button*/
 		case 11: *vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
 		/*relatedTarget*/
-		case 12: *vp = dom_element_construct(c, evt->relatedTarget); return JS_TRUE;
+		case 12:
+			if (evt->is_vrml) return JS_FALSE;
+			*vp = dom_element_construct(c, evt->relatedTarget); 
+			return JS_TRUE;
 		/*DOM3 event keyIndentifier*/
 		case 14: 
 			s = JS_NewStringCopyZ(c, gf_dom_get_key_name(evt->detail) );
@@ -1733,6 +1753,7 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 
 		/*zoomRectScreen*/
 		case 21:
+			if (evt->is_vrml) return JS_FALSE;
 			*vp = svg_udom_new_rect(c, evt->screen_rect.x, evt->screen_rect.y, evt->screen_rect.width, evt->screen_rect.height);
 			return JS_TRUE;
 		/*previousScale*/
@@ -1741,6 +1762,7 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			return JS_TRUE;
 		/*previousTranslate*/
 		case 23:
+			if (evt->is_vrml) return JS_FALSE;
 			*vp = svg_udom_new_point(c, evt->prev_translate.x, evt->prev_translate.y);
 			return JS_TRUE;
 		/*newScale*/
@@ -1749,8 +1771,28 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			return JS_TRUE;
 		/*newTranslate*/
 		case 25:
+			if (evt->is_vrml) return JS_FALSE;
 			*vp = svg_udom_new_point(c, evt->new_translate.x, evt->new_translate.y);
 			return JS_TRUE;
+
+		/*VRML ones*/
+		/*width*/
+		case 26:
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->screen_rect.width) );
+			return JS_TRUE;
+		/*height*/
+		case 27:
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->screen_rect.height) );
+			return JS_TRUE;
+		/*h_translation*/
+		case 28:
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_translate.x) );
+			return JS_TRUE;
+		/*v_translation*/
+		case 29:
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_translate.y) );
+			return JS_TRUE;
+
 		default: return JS_FALSE;
 		}
 	}
@@ -2968,6 +3010,11 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			{"previousTranslate",	23,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			{"newScale",		24,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			{"newTranslate",	25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+
+			{"width",	26,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"height",	27,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"translation_x",	28,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"translation_y",	29,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			{0}
 		};
 		JS_InitClass(c, global, 0, &dom_rt->domEventClass, 0, 0, eventProps, eventFuncs, 0, 0);

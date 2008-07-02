@@ -85,7 +85,9 @@ typedef struct _parent_list
 struct _node_interactive_ext
 {
 	/*routes on eventOut, ISed routes, ... for VRML-based scene graphs
-	event listeners for all others - THIS IS DYNAMICALLY CREATED*/
+	THIS IS DYNAMICALLY CREATED*/
+	GF_List *routes;
+	/*event listeners - THIS IS DYNAMICALLY CREATED*/
 	GF_List *events;
 
 	/* SVG animations are registered in the target node  - THIS IS DYNAMICALLY CREATED*/
@@ -783,6 +785,7 @@ typedef struct
 	on these objects after each eventIn execution*/
 	GF_List *js_cache;
 	struct JSObject *event;
+	struct JSObject *gpac_js;
 #endif
 
 	void (*JS_PreDestroy)(GF_Node *node);
@@ -854,6 +857,8 @@ typedef struct
 	Bool reevaluate;
 } GF_JSField;
 
+struct JSObject *gpac_js_load(GF_SceneGraph *scene, struct JSContext *c, struct JSObject *global);
+void gpac_js_unload(struct JSObject *obj);
 
 #ifndef GPAC_DISABLE_SVG
 void JSScript_LoadSVG(GF_Node *node);

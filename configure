@@ -1,3 +1,5 @@
+#!/bin/sh
+#
 # GPAC MPEG-4 SDK configure script (c) 2003-2005 Jean Le Feuvre
 #		inspired from ffmpeg configure by Fabrice Bellard (c) 2000-2002
 #set -v

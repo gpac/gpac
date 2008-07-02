@@ -161,6 +161,9 @@ typedef struct
 	Double smil_event_time;
 	/* mutation event */
 	GF_Node *relatedNode;
+
+	/*DOM event used in VRML (GPAC's internal)*/
+	Bool is_vrml;
 } GF_DOM_Event;
 
 /*fires event on the specified node
