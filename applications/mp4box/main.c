@@ -594,6 +594,10 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 		copy = copy_data;
 		/*skip emty tracks (mainly MPEG-4 interaction streams...*/
 		if (!gf_isom_get_sample_count(file, i+1)) continue;
+		if (!gf_isom_is_track_enabled(file, i+1)) {
+			fprintf(stdout, "Track ID %d disabled - skipping hint\n", gf_isom_get_track_id(file, i+1) );
+			continue;
+		}
 
 		mtype = gf_isom_get_media_type(file, i+1);
 		switch (mtype) {

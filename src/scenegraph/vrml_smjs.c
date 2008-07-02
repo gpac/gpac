@@ -51,7 +51,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 		}	\
 		}
 
-static GFINLINE Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
+Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
 {
 	if (!scene) {
 		GF_Node *n = (GF_Node *) JS_GetContextPrivate(c);
@@ -422,7 +422,7 @@ static JSBool deleteRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsva
 	}
 
 	i=0;
-	while ((r = gf_list_enum(n1->sgprivate->interact->events, &i))) {
+	while ((r = gf_list_enum(n1->sgprivate->interact->routes, &i))) {
 		if (r->FromField.fieldIndex != f_id1) continue;
 		if (r->ToNode != n2) continue;
 		if (r->ToField.fieldIndex != f_id2) continue;
@@ -2213,6 +2213,36 @@ static JSBool MFColorConstructor(JSContext *c, JSObject *obj, uintN argc, jsval 
 	return obj == 0 ? JS_FALSE : JS_TRUE;
 }
 
+JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node);
+JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node);
+
+JSBool vrml_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_Node *node;
+	GF_JSField *ptr;
+	if (! JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
+	ptr = (GF_JSField *) JS_GetPrivate(c, obj);
+	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
+	node = * ((GF_Node **)ptr->field.far_ptr);
+	
+	return dom_event_add_listener_ex(c, obj, argc, argv, rval, node);
+}
+JSBool vrml_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_Node *node;
+	GF_JSField *ptr;
+	if (! JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
+	ptr = (GF_JSField *) JS_GetPrivate(c, obj);
+	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
+	node = * ((GF_Node **)ptr->field.far_ptr);
+
+	return dom_event_remove_listener_ex(c, obj, argc, argv, rval, node);
+}
+static JSBool vrml_dom3_not_implemented(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{	
+	return JS_FALSE;
+}
+
 
 void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 {
@@ -2342,6 +2372,11 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 	{
 		JSFunctionSpec SFNodeMethods[] = {
 			{"toString", node_toString, 0},
+			{"addEventListenerNS", vrml_event_add_listener, 4},
+			{"removeEventListenerNS", vrml_event_remove_listener, 4},
+			{"addEventListener", vrml_event_add_listener, 3},
+			{"removeEventListener", vrml_event_remove_listener, 3},
+			{"dispatchEvent", vrml_dom3_not_implemented, 1},
 			{0}
 		};
 		JSPropertySpec SFNodeProps[] = {
@@ -3215,6 +3250,7 @@ static void JS_PreDestroy(GF_Node *node)
 #ifndef GPAC_DISABLE_SVG
 	dom_js_unload();
 #endif
+	gpac_js_unload(priv->gpac_js);
 	if (priv->js_cache) gf_list_del(priv->js_cache);
 	priv->js_ctx = NULL;
 	/*unregister script from parent scene (cf base_scenegraph::sg_reset) */
@@ -3504,6 +3540,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	/*create event object, and remember it*/
 	priv->event = dom_js_define_event(priv->js_ctx, priv->js_obj);
 #endif
+	priv->gpac_js = gpac_js_load(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj);
 
 	priv->js_cache = gf_list_new();
 
@@ -3620,6 +3657,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event)
 {
 	GF_ScriptPriv *priv;
+	Bool prev_type;
 	GF_DOMText *txt;
 	JSBool ret = JS_FALSE;
 	GF_DOM_Event *prev_event = NULL;
@@ -3647,6 +3685,8 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event)
 	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target)) 
 		return;
 
+	prev_type = event->is_vrml;
+	event->is_vrml = 1;
 	JS_SetPrivate(priv->js_ctx, priv->event, event);
 
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
@@ -3665,6 +3705,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event)
 		ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
 	}
 	
+	event->is_vrml = prev_type;
 	JS_SetPrivate(priv->js_ctx, priv->event, prev_event);
 
 }

@@ -643,8 +643,6 @@ struct _traversing_state
 
 	/*current graph traversed is in pixel metrics*/
 	Bool pixel_metrics;
-	/*current graph traversed uses centered coordinates*/
-//	Bool center_coords;
 	/*minimal half-dimension (w/2, h/2)*/
 	Fixed min_hsize;
 

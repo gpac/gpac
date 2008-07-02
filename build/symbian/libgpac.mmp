@@ -148,6 +148,7 @@ SOURCE smil_anim.c
 SOURCE smil_timing.c
 SOURCE dom_events.c
 SOURCE dom_smjs.c
+SOURCE gpac_js.c
 SOURCE svg_attributes.c
 SOURCE svg_nodes_da.c
 SOURCE svg_tools_da.c
@@ -295,9 +296,9 @@ SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
 LIBRARY euser.lib estlib.lib ezlib.lib hal.lib
 
 //comment if you don't have OpenGL ES 
-MACRO GPAC_USE_OGL_ES
-LIBRARY libgles_cm.lib
-//MACRO GPAC_DISABLE_3D
+//MACRO GPAC_USE_OGL_ES
+//LIBRARY libgles_cm.lib
+MACRO GPAC_DISABLE_3D
 
 #if defined(WINS)
     deffile ..\..\build\symbian\libgpac_symbian.def

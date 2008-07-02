@@ -1911,6 +1911,58 @@ NODEP_CPP_DOM_S=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\scenegraph\gpac_js.c
+DEP_CPP_GPAC_=\
+	"..\..\extra_lib\include\js\jsapi.h"\
+	"..\..\extra_lib\include\js\jsautocfg.h"\
+	"..\..\extra_lib\include\js\jscompat.h"\
+	"..\..\extra_lib\include\js\jscpucfg.h"\
+	"..\..\extra_lib\include\js\jslong.h"\
+	"..\..\extra_lib\include\js\jsosdep.h"\
+	"..\..\extra_lib\include\js\jsotypes.h"\
+	"..\..\extra_lib\include\js\jspubtd.h"\
+	"..\..\extra_lib\include\js\jstypes.h"\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
+	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\ipmp.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
+	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\terminal.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\include\gpac\xml.h"\
+	
+NODEP_CPP_GPAC_=\
+	"..\..\extra_lib\include\js\jsstddef.h"\
+	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\scenegraph\mpeg4_animators.c
 DEP_CPP_MPEG4=\
 	"..\..\include\gpac\config_file.h"\
@@ -2546,14 +2598,14 @@ SOURCE=..\..\include\gpac\internal\avilib.h
 # Begin Source File
 
 SOURCE=..\..\src\media_tools\gpac_ogg.c
-DEP_CPP_GPAC_=\
+DEP_CPP_GPAC_O=\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ogg.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	
-NODEP_CPP_GPAC_=\
+NODEP_CPP_GPAC_O=\
 	"..\..\include\gpac\config.h"\
 	
 # End Source File
@@ -4093,6 +4145,7 @@ DEP_CPP_TERMI=\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\mesh.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
@@ -4121,6 +4174,7 @@ DEP_CPP_TERMI=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
+	"..\..\include\gpac\xml.h"\
 	
 NODEP_CPP_TERMI=\
 	"..\..\include\gpac\config.h"\

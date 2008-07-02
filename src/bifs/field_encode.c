@@ -302,9 +302,9 @@ GF_Route *gf_bifs_enc_is_field_ised(GF_BifsEncoder *codec, GF_Node *node, u32 fi
 	u32 i;
 	if (!codec->encoding_proto) return NULL;
 
-	if (node->sgprivate->interact && node->sgprivate->interact->events) {
+	if (node->sgprivate->interact && node->sgprivate->interact->routes) {
 		i=0;
-		while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->events, &i))) {
+		while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->routes, &i))) {
 			if (!r->IS_route) continue;
 			if ((r->ToNode == node) && (r->ToField.fieldIndex==fieldIndex)) return r;
 			else if ((r->FromNode == node) && (r->FromField.fieldIndex==fieldIndex)) return r;

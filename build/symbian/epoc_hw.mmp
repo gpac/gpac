@@ -1,6 +1,8 @@
 TARGET gm_epoc_hw.dll
 
-MACRO GPAC_USE_OGL_ES
+//MACRO GPAC_USE_OGL_ES
+//OpenGL libs
+//LIBRARY libgles_cm.lib
 
 //common config of all modules
 #include ".\module_base.mmp"
@@ -18,6 +20,4 @@ LIBRARY fbscli.lib
 LIBRARY MediaClientAudioStream.lib
 //codec libs
 LIBRARY mmfserverbaseclasses.lib
-//OpenGL libs
-LIBRARY libgles_cm.lib
 

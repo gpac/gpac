@@ -61,6 +61,10 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		gf_term_message(term, term->root_scene->root_od->net_service->url, param->info.msg, param->info.e);
 		return 1;
 	}
+	if (type==GF_JSAPI_OP_GET_TERM) {
+		param->term = term;
+		return 1;
+	}
 	if (type==GF_JSAPI_OP_GET_OPT) {
 		param->gpac_cfg.key_val = gf_cfg_get_key(term->user->config, param->gpac_cfg.section, param->gpac_cfg.key);
 		return 1;

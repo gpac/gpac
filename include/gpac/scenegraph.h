@@ -469,6 +469,7 @@ typedef union
 	GF_Node *node;
 	struct __gf_download_manager *dnld_man;
 	GF_SceneGraph *scene;
+	void *term;
 	GF_JSAPIINFO info;
 } GF_JSAPIParam;
 
@@ -524,8 +525,10 @@ enum
 	GF_JSAPI_OP_GET_FPS,
 	/*!set current title*/
 	GF_JSAPI_OP_SET_TITLE,
-	/*!gets DCCI root node if any*/
+	/*!gets DCCI scenegraph if any*/
 	GF_JSAPI_OP_GET_DCCI,
+	/*!gets GPAC terminal*/
+	GF_JSAPI_OP_GET_TERM,
 };
 /*
 interface to various get/set options:

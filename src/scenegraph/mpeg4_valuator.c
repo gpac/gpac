@@ -265,7 +265,7 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 
 	/*valuator is a special case, all routes are triggered*/
 	i=0;
-	while ((r = (GF_Route*)gf_list_enum(p->sgprivate->interact->events, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(p->sgprivate->interact->routes, &i))) {
 		if (r->FromNode != (GF_Node *)p) continue;
 
 		if (r->IS_route) {

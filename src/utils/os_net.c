@@ -88,6 +88,7 @@ static int wsa_init = 0;
 
 #ifndef __DARWIN__
 #include <sys/time.h>
+#include <sys/types.h>
 #endif
 
 #include <netinet/in.h>

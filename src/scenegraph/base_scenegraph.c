@@ -1311,9 +1311,10 @@ void gf_node_free(GF_Node *node)
 	if (node->sgprivate->UserCallback) node->sgprivate->UserCallback(node, NULL, 1);
 
 	if (node->sgprivate->interact) {
+		if (node->sgprivate->interact->routes) {
+			gf_list_del(node->sgprivate->interact->routes);
+		}
 		if (node->sgprivate->interact->events) {
-			/*true for VRML-based graphs, not true for SVG yet*/
-			//assert(gf_list_count(node->sgprivate->events)==0);
 			gf_list_del(node->sgprivate->interact->events);
 		}
 		if (node->sgprivate->interact->animations) {

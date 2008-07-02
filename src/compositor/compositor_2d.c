@@ -138,27 +138,15 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 	/*take care of pixel rounding for odd width/height and make sure we strictly draw in the clipped bounds*/
 	if (visual->center_coords) {
-		if (0 && output_width % 2) {
-			clipped_final.x += (output_width-1) / 2;
-			final.x += INT2FIX( (output_width-1) / 2 );
-		} else {
-			clipped_final.x += output_width / 2;
-			final.x += INT2FIX( output_width / 2 );
-		}
-		if (0 && output_height % 2) {
-			clipped_final.y = (output_height-1) / 2 - clipped_final.y;
-			final.y = INT2FIX( (output_height - 1) / 2) - final.y;
-		} else {
-			clipped_final.y = output_height/ 2 - clipped_final.y;
-			final.y = INT2FIX( output_height / 2) - final.y;
-		}
-	} else if (1) {
+		clipped_final.x += output_width / 2;
+		final.x += INT2FIX( output_width / 2 );
+
+		clipped_final.y = output_height/ 2 - clipped_final.y;
+		final.y = INT2FIX( output_height / 2) - final.y;
+
+	} else {
 		final.y -= final.height;
 		clipped_final.y -= clipped_final.height;
-//		final.x -= visual->compositor->vp_x;
-//		clipped_final.x -= visual->compositor->vp_x;
-//		final.y -= visual->compositor->vp_y;
-//		clipped_final.y -= visual->compositor->vp_y;
 	}
 
 	/*make sure we lie in the final rect (this is needed for directdraw mode)*/
@@ -581,7 +569,7 @@ void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed 
 #ifndef GPAC_DISABLE_SVG
 	root = gf_sg_get_root_node(compositor->scene);
 	/*if root node is DOM, sent a resize event*/
-	if (root && (gf_node_get_tag(root) >= GF_NODE_FIRST_DOM_NODE_TAG)) {
+	if (root /* && (gf_node_get_tag(root) >= GF_NODE_FIRST_DOM_NODE_TAG) */) {
 		GF_DOM_Event evt;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.prev_scale = compositor->scale_x*old_z;
@@ -589,6 +577,8 @@ void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed 
 
 		if (is_resize) {
 			evt.type = GF_EVENT_RESIZE;
+			evt.screen_rect.width = INT2FIX(compositor->display_width);
+			evt.screen_rect.height = INT2FIX(compositor->display_height);
 		} else if (evt.prev_scale == evt.new_scale) {
 			/*cannot get params for scroll events*/
 			evt.type = GF_EVENT_SCROLL;
