@@ -1001,6 +1001,7 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 		|| !stricmp(comp, "SEDG") /*Samsung - not tested*/
 		|| !stricmp(comp, "RMP4") /*Sigma - not tested*/
 		|| !stricmp(comp, "MP43") /*not tested*/
+		|| !stricmp(comp, "FMP4") /*not tested*/
 		) {
 		e = GF_OK;
 	}
