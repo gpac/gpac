@@ -795,56 +795,63 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 
 	stts = stbl->TimeToSample;
 
-	//gasp, we're removing the only sample: empty the sample table 
+	//we're removing the only sample: empty the sample table 
 	if (stbl->SampleSize->sampleCount == 1) {
 		stts->nb_entries = 0;
 		stts->r_FirstSampleInEntry = stts->r_currentEntryIndex = 0;
 		stts->r_CurrentDTS = 0;
 		return GF_OK;
 	}
-	//unpack the DTSs...
-	DTSs = (u64*)malloc(sizeof(u64) * (stbl->SampleSize->sampleCount - 1));
-	if (!DTSs) return GF_OUT_OF_MEM;
-	curDTS = 0;
-	sampNum = 0;
-	ent = NULL;
-	k=0;
-	for (i=0; i<stts->nb_entries; i++) {
-		ent = & stts->entries[i];
-		for (j=0; j<ent->sampleCount; j++) {
-			if (sampNum == sampleNumber - 1) {
-				k=1;
-			} else {
-				DTSs[sampNum-k] = curDTS;
-			}
-			curDTS += ent->sampleDelta;
-			sampNum ++;
-		}
-	}
-	j=0;
-	stts->nb_entries = 1;
-	stts->entries[0].sampleCount = 1;
-	if (stbl->SampleSize->sampleCount == 2) {
-		stts->entries[0].sampleDelta = LastAUDefDuration;
+	//we're removing the last sample
+	if (sampleNumber == stbl->SampleSize->sampleCount) {
+		ent = &stts->entries[stts->nb_entries-1];
+		ent->sampleCount--;
+		if (!ent->sampleCount) stts->nb_entries--;
 	} else {
-		stts->entries[0].sampleDelta = (u32) DTSs[1] /*- DTS[0]==0 */;
-	}
-	for (i=0; i<stbl->SampleSize->sampleCount-1; i++) {
-		if (i+1 == stbl->SampleSize->sampleCount-1) {
-			//and by default, our last sample has the same delta as the prev
-			stts->entries[j].sampleCount++;
-		} else if (DTSs[i+1] - DTSs[i] == stts->entries[j].sampleDelta) {
-			stts->entries[j].sampleCount += 1;
-		} else {
-			j++;
-			stts->nb_entries++;
-			stts->entries[j].sampleCount = 1;
-			stts->entries[j].sampleDelta = (u32) (DTSs[i+1] - DTSs[i]);
+		//unpack the DTSs...
+		DTSs = (u64*)malloc(sizeof(u64) * (stbl->SampleSize->sampleCount - 1));
+		if (!DTSs) return GF_OUT_OF_MEM;
+		curDTS = 0;
+		sampNum = 0;
+		ent = NULL;
+		k=0;
+		for (i=0; i<stts->nb_entries; i++) {
+			ent = & stts->entries[i];
+			for (j=0; j<ent->sampleCount; j++) {
+				if (sampNum == sampleNumber - 1) {
+					k=1;
+				} else {
+					DTSs[sampNum-k] = curDTS;
+				}
+				curDTS += ent->sampleDelta;
+				sampNum ++;
+			}
 		}
-		i++;
+		j=0;
+		stts->nb_entries = 1;
+		stts->entries[0].sampleCount = 1;
+		if (stbl->SampleSize->sampleCount == 2) {
+			stts->entries[0].sampleDelta = LastAUDefDuration;
+		} else {
+			stts->entries[0].sampleDelta = (u32) DTSs[1] /*- DTS[0]==0 */;
+		}
+		for (i=0; i<stbl->SampleSize->sampleCount-1; i++) {
+			if (i+1 == stbl->SampleSize->sampleCount-1) {
+				//and by default, our last sample has the same delta as the prev
+	//			stts->entries[j].sampleCount++;
+			} else if (DTSs[i+1] - DTSs[i] == stts->entries[j].sampleDelta) {
+				stts->entries[j].sampleCount += 1;
+			} else {
+				j++;
+				stts->nb_entries++;
+				stts->entries[j].sampleCount = 1;
+				stts->entries[j].sampleDelta = (u32) (DTSs[i+1] - DTSs[i]);
+			}
+		}
+		stts->w_LastDTS = DTSs[stbl->SampleSize->sampleCount - 2];
+		free(DTSs);
+
 	}
-	stts->w_LastDTS = DTSs[stbl->SampleSize->sampleCount - 2];
-	free(DTSs);
 	//reset write the cache to the end
 	stts->w_currentSampleNum = stbl->SampleSize->sampleCount - 1;
 	//reset read the cache to the begining

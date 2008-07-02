@@ -1411,7 +1411,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 			}
 			/*only 1 MPEG-4 visual max and 1 MPEG-4 audio max for ISMA compliancy*/
 			if (!has_v && !has_a && (has_i_v<=1) && (has_i_a<=1)) {
-				sprintf(sdpLine, "a=isma-compliance=1,1.0,1");
+				sprintf(sdpLine, "a=isma-compliance:1,1.0,1");
 				gf_isom_sdp_add_line(file, sdpLine);
 			}
 		}
