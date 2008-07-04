@@ -70,6 +70,8 @@ typedef enum
 	GF_TEXTURE_REPEAT_S = (1<<1),
 	/*texture is repeated in its horizontal direction*/
 	GF_TEXTURE_REPEAT_T = (1<<2),
+	/*texture is fliped vertically*/
+	GF_TEXTURE_FLIP = (1<<3),
 } GF_TextureTiling;
 
 /*filter levels for texturing - up to the graphics engine but the following levels are used by

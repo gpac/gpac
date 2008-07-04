@@ -194,6 +194,7 @@ static void nav_fit_screen(GF_Compositor *compositor)
 	}
 	memset(&tr_state, 0, sizeof(GF_TraverseState));
 	tr_state.traversing_mode = TRAVERSE_GET_BOUNDS;
+	tr_state.visual = compositor->visual;
 	gf_node_traverse(top, &tr_state);
 	if (!tr_state.bbox.is_set) {
 		gf_mx_v(compositor->mx);

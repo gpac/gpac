@@ -437,8 +437,11 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 
 	assert(tr_state->traversing_mode == TRAVERSE_SORT);
 
-	/*if 2D draw in declared order. Otherwise, if no alpha or node is a layer, draw directly*/
-	if (!tr_state->camera->is_3D || !visual_3d_has_alpha(tr_state, geometry)) {
+	drawable = (Drawable3D*)gf_node_get_private(geometry);
+
+	/*if 2D draw in declared order. Otherwise, if no alpha or node is a layer, draw directly
+	if mesh is not setup yet, consider it as opaque*/
+	if (!tr_state->camera->is_3D || !visual_3d_has_alpha(tr_state, geometry) || !drawable->mesh) {
 		tr_state->traversing_mode = TRAVERSE_DRAW_3D;
 		/*layout/form clipper, set it in world coords only*/
 		if (tr_state->has_clip) {
@@ -484,7 +487,6 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 		memcpy(ctx->clip_planes, tr_state->clip_planes, sizeof(GF_Plane)*MAX_USER_CLIP_PLANES);
 
 	/*get bbox and and insert from further to closest*/
-	drawable = (Drawable3D*)gf_node_get_private(geometry);
 	tr_state->bbox = drawable->mesh->bounds;
 		
 	gf_mx_apply_bbox(&ctx->model_matrix, &tr_state->bbox);

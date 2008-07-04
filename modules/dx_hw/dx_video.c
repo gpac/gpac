@@ -171,7 +171,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
     pfd.dwLayerMask = PFD_MAIN_PLANE;
     pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = 32;
-	pfd.cDepthBits = 32;
+	pfd.cDepthBits = 16;
 	/*we need alpha support for composite textures...*/
 	pfd.cAlphaBits = 8;
     if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 

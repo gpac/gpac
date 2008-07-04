@@ -150,10 +150,12 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	}
 #endif
 
+/*
 	if (tr_state->visual->compositor->recompute_ar) {
 		gf_node_dirty_set(node, 0, 0);
 		return 0;
 	}
+*/
 
 	new_pixel_format = GF_PIXEL_RGBA;
 #ifndef GPAC_USE_TINYGL
@@ -181,7 +183,10 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	/*1- some implementation of glReadPixel crash if w||h are not multiple of 4*/
 	/*2- some implementation of glReadPixel don't behave properly here when texture is not a power of 2*/
 	w = gf_get_next_pow2(w);
+	if (w>1024) w = 1024;
 	h = gf_get_next_pow2(h);
+	if (h>1024) h = 1024;
+
 
 	if (!w || !h) return 0;
 
@@ -425,6 +430,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	} else {
 		gf_mx2d_apply_rect(&tr_state->transform, &rc);
+
 /*		if (tr_state->visual->compositor->visual==tr_state->visual) {
 			gf_mx2d_init(mx2d_backup);
 			gf_mx2d_add_scale(&mx2d_backup, tr_state->visual->compositor->scale_x, tr_state->visual->compositor->scale_y);

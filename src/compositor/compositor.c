@@ -1534,8 +1534,8 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #endif
 
 #ifndef GPAC_DISABLE_3D
+		compositor->offscreen_width = compositor->offscreen_height = 0;
 		if (compositor->visual->type_3d) {
-			compositor->offscreen_width = compositor->offscreen_height = 0;
 			compositor_3d_set_aspect_ratio(compositor);
 			gf_sc_load_opengl_extensions(compositor);
 		}
@@ -1871,66 +1871,118 @@ void gf_sc_visual_unregister(GF_Compositor *compositor, GF_VisualManager *visual
 	gf_list_del_item(compositor->visuals, visual);
 }
 
-/*traverse inline scene*/
-static void compositor_traverse_inline(GF_Compositor *compositor, GF_Node *inline_parent, GF_Node *inline_root, void *rs)
+void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, GF_SceneGraph *subscene, void *rs)
 {
 	Fixed min_hsize;
-	Bool use_pm, flip_coords;
-	u32 h, w;
+	Bool use_pm, prev_pm;
+	SFVec2f prev_vp;
+	s32 flip_coords;
+	u32 h, w, tag;
+	GF_Matrix2D transf;
 	GF_SceneGraph *in_scene;
+	GF_Node *inline_root = gf_sg_get_root_node(subscene);
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
+	if (!inline_root) return;
 
 	flip_coords = 0;
 	in_scene = gf_node_get_graph(inline_root);
-	switch (gf_node_get_tag(inline_root)) {
-	case TAG_MPEG4_Layer2D:
-	case TAG_MPEG4_OrderedGroup:
-	case TAG_MPEG4_Layer3D:
-	case TAG_MPEG4_Group:
-	case TAG_X3D_Group:
+
+	/*check parent/child doc orientation*/
+
+	/*check child doc*/
+	tag = gf_node_get_tag(inline_root);
+	if (tag < GF_NODE_RANGE_LAST_VRML) {
+		u32 new_tag = 0;
 		use_pm = gf_sg_use_pixel_metrics(in_scene);
-		break;
-	default:
-		flip_coords = 1;
-		use_pm = 1;
-		break;
-	}
-	if (use_pm == tr_state->pixel_metrics) {
-		if (flip_coords) {
-			GF_Matrix2D mx_bck, mx;
-			gf_mx2d_copy(mx_bck, tr_state->transform);
-			gf_mx2d_init(mx);
-			gf_mx2d_add_scale(&mx, FIX_ONE, -FIX_ONE);
-			gf_mx2d_add_translation(&mx, -tr_state->vp_size.x/2, tr_state->vp_size.y/2);
-			gf_mx2d_pre_multiply(&tr_state->transform, &mx);
-			gf_node_traverse(inline_root, rs);
-			gf_mx2d_copy(tr_state->transform, mx_bck);
-		} else {
-			gf_node_traverse(inline_root, rs);
+		if (gf_node_get_tag(inline_parent)>GF_NODE_RANGE_LAST_VRML) {
+			/*moving from SVG to VRML-based, need positive translation*/
+			flip_coords = 1;
+
+			/*if our root nodes are not LayerXD ones, insert one. This prevents mixing
+			of bindable stacks and gives us free 2D/3D integration*/
+			if (tag==TAG_MPEG4_OrderedGroup) {
+				new_tag = TAG_MPEG4_Layer2D;
+			} else if ((tag==TAG_MPEG4_Group) || (tag==TAG_X3D_Group)) {
+				new_tag = TAG_MPEG4_Layer3D;
+			}
 		}
-		return;
+#ifndef GPAC_DISABLE_3D
+		/*if the inlined root node is a 3D one except Layer3D and we are not in a 3D context, insert 
+		a Layer3D at the root*/
+		else if (!tr_state->visual->type_3d && ((tag==TAG_MPEG4_Group) || (tag==TAG_X3D_Group))) {
+			new_tag = TAG_MPEG4_Layer3D;
+		}
+#endif
+
+		/*create new root*/
+		if (new_tag) {
+			GF_SceneGraph *sg = gf_node_get_graph(inline_root);
+			GF_Node *new_root = gf_node_new(sg, new_tag);
+			gf_node_register(new_root, NULL);
+			gf_sg_set_root_node(sg, new_root);
+			gf_node_list_add_child(& ((GF_ParentNode*)new_root)->children, inline_root);
+			gf_node_register(inline_root, new_root);
+			gf_node_unregister(inline_root, NULL);
+			inline_root = new_root;
+			gf_node_init(new_root);
+		}
+
+	} else {
+		use_pm = 1;
+		if (gf_node_get_tag(inline_parent)<GF_NODE_RANGE_LAST_VRML) {
+			/*moving from VRML-based to SVG, need negative translation*/
+			flip_coords = -1;
+		}
 	}
-	/*override aspect ratio if any size info is given in the scene*/
+
 	min_hsize = tr_state->min_hsize;
-	if (gf_sg_get_scene_size_info(in_scene, &w, &h)) {
-		Fixed scale = INT2FIX( MIN(w, h) / 2);
-		if (scale) tr_state->min_hsize = scale;
+	prev_pm = tr_state->pixel_metrics;
+	prev_vp = tr_state->vp_size;
+	w = h = 0;
+	gf_sg_get_scene_size_info(in_scene, &w, &h);
+
+	/*compute pixel<->meter transform*/
+	gf_mx2d_init(transf);
+	if (use_pm != tr_state->pixel_metrics) {
+		/*override aspect ratio if any size info is given in the scene*/
+		if (w && h) {
+			Fixed scale = INT2FIX( MIN(w, h) / 2);
+			if (scale) tr_state->min_hsize = scale;
+		}
+		if (!use_pm) {
+			gf_mx2d_add_scale(&transf, tr_state->min_hsize, tr_state->min_hsize);
+		} else {
+			Fixed inv_scale = gf_invfix(tr_state->min_hsize);
+			gf_mx2d_add_scale(&transf, inv_scale, inv_scale);
+		}
+		tr_state->pixel_metrics = use_pm;
 	}
+
+	/*compute center<->top-left transform*/
+	if (flip_coords)
+		gf_mx2d_add_scale(&transf, FIX_ONE, -FIX_ONE);
+	/*if scene size is given in the child document, scale to fit the entire vp*/
+	if (w && h) gf_mx2d_add_scale(&transf, tr_state->vp_size.x/w, tr_state->vp_size.y/h);
+	if (flip_coords)
+		gf_mx2d_add_translation(&transf, flip_coords * tr_state->vp_size.x/2, tr_state->vp_size.y/2);
+	/*if scene size is given in the child document, scale back vp to take into account the above scale
+	otherwise the scene won't be properly clipped*/
+	if (w && h) {
+		tr_state->vp_size.x = INT2FIX(w);
+		tr_state->vp_size.y = INT2FIX(h);
+	}
+
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		GF_Matrix mx_bck, mx;
 		gf_mx_copy(mx_bck, tr_state->model_matrix);
-		gf_mx_init(mx);
-		/*apply meterMetrics<->pixelMetrics scale*/
-		if (!use_pm) {
-			gf_mx_add_scale(&mx, tr_state->min_hsize, tr_state->min_hsize, tr_state->min_hsize);
-		} else {
-			Fixed inv_scale = gf_invfix(tr_state->min_hsize);
-			gf_mx_add_scale(&mx, inv_scale, inv_scale, inv_scale);
-		}
-		tr_state->pixel_metrics = use_pm;
-		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
+		gf_mx_from_mx2d(&mx, &transf);
+		/*copy over z scale*/
+		mx.m[10] = mx.m[5];
+		gf_mx_add_matrix(&mx, &tr_state->model_matrix);
+		gf_mx_copy(tr_state->model_matrix, mx);
+
 		if (tr_state->traversing_mode==TRAVERSE_SORT) {
 			visual_3d_matrix_push(tr_state->visual);
 			visual_3d_matrix_add(tr_state->visual, mx.m);
@@ -1940,61 +1992,20 @@ static void compositor_traverse_inline(GF_Compositor *compositor, GF_Node *inlin
 			gf_node_traverse(inline_root, rs);
 		}
 		gf_mx_copy(tr_state->model_matrix, mx_bck);
-	} else 
+
+	} else
 #endif
 	{
-		GF_Matrix2D mx_bck, mx;
+		GF_Matrix2D mx_bck;
 		gf_mx2d_copy(mx_bck, tr_state->transform);
-		gf_mx2d_init(mx);
-		if (!use_pm) {
-			gf_mx2d_add_scale(&mx, tr_state->min_hsize, tr_state->min_hsize);
-		} else {
-			Fixed inv_scale = gf_invfix(tr_state->min_hsize);
-			gf_mx2d_add_scale(&mx, inv_scale, inv_scale);
-		}
-		tr_state->pixel_metrics = use_pm;
-		gf_mx2d_add_matrix(&tr_state->transform, &mx);
-
-		if (flip_coords) {
-			gf_mx2d_init(mx);
-			gf_mx2d_add_scale(&mx, FIX_ONE, -FIX_ONE);
-			gf_mx2d_add_translation(&mx, -tr_state->vp_size.x/2, tr_state->vp_size.y/2);
-			gf_mx2d_pre_multiply(&tr_state->transform, &mx);
-			gf_node_traverse(inline_root, rs);
-			gf_mx2d_copy(tr_state->transform, mx_bck);
-		} else {
-			gf_node_traverse(inline_root, rs);
-			gf_mx2d_copy(tr_state->transform, mx_bck);
-		}
+		gf_mx2d_pre_multiply(&tr_state->transform, &transf);
+		gf_node_traverse(inline_root, rs);
+		gf_mx2d_copy(tr_state->transform, mx_bck);
 	}
-	tr_state->pixel_metrics = !use_pm;
+
+	tr_state->pixel_metrics = prev_pm;
 	tr_state->min_hsize = min_hsize;
-}
-
-void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, GF_Node *inline_root, void *rs)
-{
-	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
-	if (!inline_root) return;
-
-#ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d ) {
-		Bool needs_3d_switch = 0;
-		switch (gf_node_get_tag(inline_root)) {
-		case TAG_MPEG4_Layer3D:
-//		case TAG_MPEG4_Group:
-//		case TAG_X3D_Group:
-			needs_3d_switch = 1;
-			break;
-		}
-		if (needs_3d_switch) {
-		}
-	}
-#endif
-	switch (gf_node_get_tag(inline_parent)) {
-	default:
-		compositor_traverse_inline(compositor, inline_parent, inline_root, rs);
-		break;
-	}
+	tr_state->vp_size = prev_vp;
 }
 
 
