@@ -219,6 +219,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 
 			prev_clip = tr_state->visual->top_clipper;
 			rc = st->clip;
+			
 			/*get clipper in world coordinate*/
 			gf_mx2d_apply_rect(&tr_state->transform, &rc);
 

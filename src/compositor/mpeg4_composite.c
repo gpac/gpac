@@ -161,11 +161,12 @@ static void composite_update(GF_TextureHandler *txh)
 	if (st->unsupported) return;
 
 
+/*
 	if (compositor->recompute_ar) {
 		gf_node_dirty_set(txh->owner, 0, 0);
 		return;
 	}
-
+*/
 	if (!gf_node_dirty_get(txh->owner)) {
 		txh->needs_refresh = 0;
 		return;

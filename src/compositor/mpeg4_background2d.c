@@ -266,6 +266,16 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	bck = (M_Background2D *)node;
 
+	/*special case for background in Layer2D: the background is seen as a regular drawable, so 
+	RENDER_BINDABLE is not used*/
+	if (tr_state->traversing_mode==TRAVERSE_DRAW_2D) {
+		DrawBackground2D_2D(tr_state->ctx, tr_state);
+		return;
+	}
+	else if (tr_state->traversing_mode==TRAVERSE_PICK) {
+		return;
+	}
+
 	/*first traverse, bound if needed*/
 	if (gf_list_find(tr_state->backgrounds, node) < 0) {
 		gf_list_add(tr_state->backgrounds, node);
@@ -286,17 +296,6 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (!bck->isBound) return;
-
-
-	/*special case for background in Layer2D: the background is seen as a regular drawable, so 
-	RENDER_BINDABLE is not used*/
-	if (tr_state->traversing_mode==TRAVERSE_DRAW_2D) {
-		DrawBackground2D_2D(tr_state->ctx, tr_state);
-		return;
-	}
-	else if (tr_state->traversing_mode==TRAVERSE_PICK) {
-		return;
-	}
 
 	status = b2d_get_status(stack, tr_state->backgrounds);
 	if (!status) return;

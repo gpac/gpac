@@ -90,6 +90,7 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 		pFormat = PixelFormat32bppARGB;
 		BPP = 4;
 		copy = 1;
+		_sten->orig_buf = (unsigned char *) pixels;
 		break;
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
@@ -382,6 +383,9 @@ GF_Err gdip_get_texture(GF_STENCIL _this, unsigned char **pixels, u32 *width, u3
 void gdip_texture_modified(GF_STENCIL _this)
 {
 	GPSTEN();
+	if (_sten->orig_buf && (_sten->format == PixelFormat32bppARGB)) {
+		gdip_set_texture(_this, (char *) _sten->orig_buf, _sten->width, _sten->height, _sten->width * 4, GF_PIXEL_RGBA, GF_PIXEL_RGBA, 0);
+	}
 	_sten->texture_invalid = 1;
 }
 

@@ -560,7 +560,12 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 		switch (sten->type) {
 		case GF_STENCIL_TEXTURE:
 			if (! ((EVG_Texture *)sten)->pixels) return GF_BAD_PARAM;
-			if (surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
+
+			if (((EVG_Texture *)sten)->mod & GF_TEXTURE_FLIP) {
+				if (!surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
+			} else {
+				if (surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
+			}
 			evg_set_texture_active(sten);
 			gf_mx2d_add_matrix(&sten->smat, &st_mat);
 			gf_mx2d_add_matrix(&sten->smat, &mat);

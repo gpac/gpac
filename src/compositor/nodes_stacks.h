@@ -262,6 +262,7 @@ void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_audio(GF_Compositor *compositor, GF_Node *node, Bool slaved_timing);
 void compositor_init_svg_use(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_animation(GF_Compositor *compositor, GF_Node *node);
+void compositor_init_svg_foreign_object(GF_Compositor *compositor, GF_Node *node);
 
 
 void compositor_init_svg_text(GF_Compositor *compositor, GF_Node *node);

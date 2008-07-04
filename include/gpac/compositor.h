@@ -129,7 +129,7 @@ GF_Err gf_sc_set_viewpoint(GF_Compositor *sr, u32 viewpoint_idx, const char *vie
 
 /*render subscene root node. rs is the current traverse stack
 this is needed to handle graph metrics changes between scenes...*/
-void gf_sc_traverse_subscene(GF_Compositor *sr, GF_Node *inline_parent, GF_Node *inline_root, void *rs);
+void gf_sc_traverse_subscene(GF_Compositor *sr, GF_Node *inline_parent, GF_SceneGraph *subscene, void *rs);
 
 /*set outupt size*/
 GF_Err gf_sc_set_size(GF_Compositor *sr, u32 NewWidth, u32 NewHeight);

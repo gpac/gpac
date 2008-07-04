@@ -602,10 +602,8 @@ static void IS_CheckMediaRestart(GF_InlineScene *is)
 	}
 }
 
-
 static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 {
-	GF_Node *root;
 	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(n);
 
 	if (is_destroy) {
@@ -698,10 +696,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 	/*clear dirty flags for any sub-inlines, bitmaps or protos*/
 	gf_node_dirty_clear(n, 0);
 	
-	root = gf_sg_get_root_node(is->graph);
-	if (root) {
-		gf_sc_traverse_subscene(is->root_od->term->compositor, n, root, rs);
-	}
+	gf_sc_traverse_subscene(is->root_od->term->compositor, n, is->graph, rs);
 }
 
 GF_EXPORT

@@ -854,7 +854,7 @@ typedef struct
 } SVGlinkStack;
 
 
-static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool is_foreign_object)
 {
 	GF_Matrix2D backup_matrix;
 	GF_Matrix mx_3d;
@@ -877,7 +877,7 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
-		GF_MediaObject *new_res = gf_mo_load_xlink_resource(node, 0, 0, -1);
+		GF_MediaObject *new_res = gf_mo_load_xlink_resource(node, is_foreign_object, 0, -1);
 		if (new_res != stack->resource) {
 			if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
 			stack->resource = new_res;
@@ -890,10 +890,10 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 	if (!stack->used_node && all_atts.xlink_href) {
 		if (all_atts.xlink_href->type == XMLRI_ELEMENTID) {
 			stack->used_node = all_atts.xlink_href->target;
-		} else if (stack->resource ) {
+		} else if (stack->resource) {
 			GF_SceneGraph *sg = gf_mo_get_scenegraph(stack->resource);
 			char *fragment = strchr(all_atts.xlink_href->string, '#');
-			if (fragment) {
+			if (!is_foreign_object && fragment) {
 				stack->used_node = gf_sg_find_node_by_name(sg, fragment+1);
 			} else {
 				stack->used_node = gf_sg_get_root_node(sg);
@@ -908,7 +908,6 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx2d_init(translate);
 	translate.m[2] = (all_atts.x ? all_atts.x->value : 0);
 	translate.m[5] = (all_atts.y ? all_atts.y->value : 0);
-
 
 	/*update VP size (SVG 1.1)*/
 	prev_vp = tr_state->vp_size;
@@ -945,7 +944,11 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 			gf_mx2d_pre_multiply(&tr_state->transform, &translate);
 
 
-		gf_node_traverse(stack->used_node, tr_state);
+			if (is_foreign_object) {
+				gf_sc_traverse_subscene(tr_state->visual->compositor, node, gf_mo_get_scenegraph(stack->resource), tr_state);
+			} else {
+				gf_node_traverse(stack->used_node, tr_state);
+			}
 	
 		compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);  
 
@@ -958,6 +961,11 @@ static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 end:
 	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	tr_state->svg_flags = backup_flags;
+}
+
+static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
+{
+	svg_traverse_resource(node, rs, is_destroy, 0);
 }
 
 void compositor_init_svg_use(GF_Compositor *compositor, GF_Node *node)
@@ -1121,6 +1129,21 @@ void compositor_init_svg_animation(GF_Compositor *compositor, GF_Node *node)
 
 	gf_smil_set_evaluation_callback(node, svg_animation_smil_evaluate);
 
+	/*force first processing of xlink-href*/
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+}
+
+static void svg_traverse_foreign_object(GF_Node *node, void *rs, Bool is_destroy)
+{
+	svg_traverse_resource(node, rs, is_destroy, 1);
+}
+
+void compositor_init_svg_foreign_object(GF_Compositor *compositor, GF_Node *node)
+{
+	SVGlinkStack *stack;
+	GF_SAFEALLOC(stack, SVGlinkStack);
+	gf_node_set_private(node, stack);
+	gf_node_set_callback_function(node, svg_traverse_foreign_object);
 	/*force first processing of xlink-href*/
 	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
 }

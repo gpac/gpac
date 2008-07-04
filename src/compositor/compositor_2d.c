@@ -392,7 +392,12 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	if (!ctx->aspect.fill_texture) return 1;
 	/*regarde si la texture est updated*/
 	if (!ctx->aspect.fill_texture->data) return 0;
-	if ((ctx->transform.m[0]<0) || (ctx->transform.m[4]<0)) return 0;
+	if (ctx->transform.m[0]<0) return 0;
+	if (ctx->transform.m[4]<0) {
+		if (!(ctx->flags & CTX_FLIPED_COORDS)) return 0;
+	} else {
+		if (ctx->flags & CTX_FLIPED_COORDS) return 0;
+	}
 	if (ctx->transform.m[1] || ctx->transform.m[3]) return 0;
 	if ((ctx->flags & CTX_HAS_APPEARANCE) && ctx->appear && ((M_Appearance*)ctx->appear)->textureTransform)
 		return 0;
