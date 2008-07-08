@@ -182,7 +182,7 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 	if (!xlinkp.href) return NULL;
 
 	if (xlinkp.href->type == XMLRI_ELEMENTID) return NULL;
-	else if (xlinkp.href->string && (xlinkp.href->string[0]=='#')) return NULL;
+//	else if (xlinkp.href->string && (xlinkp.href->string[0]=='#')) return NULL;
 
 	new_resource = gf_svg_get_subscene(node, &xlinkp, &syncp, primary_resource ? 1 : 0, primary_resource);
 	if (!new_resource) return NULL;

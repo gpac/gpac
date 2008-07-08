@@ -1254,6 +1254,11 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		}
 	}
 
+	if (!parent && !parser->command && (parser->load->flags & GF_SM_LOAD_CONTEXT_DIMS)) {
+		gf_sg_reset(parser->load->scene_graph);
+		parser->has_root = 0;
+	} 
+
 	if (parser->has_root) {
 		assert(parent || parser->command);
 	}

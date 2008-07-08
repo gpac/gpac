@@ -32,14 +32,16 @@
 #ifndef GPAC_DISABLE_SVG
 
 enum {
-	/*defined by dummy_in plugin*/
+	/*defined by dummy_in plugin / streamType = PRIVATE_SCENE */
 	SVG_IN_OTI_SVG = 2,
-	/*defined by dummy_in plugin*/
+	/*defined by dummy_in plugin / streamType = PRIVATE_SCENE */
 	SVG_IN_OTI_LASERML = 3,
 	/*defined by ourselves - streamType 3 (scene description) for SVG streaming*/
 	SVG_IN_OTI_STREAMING_SVG	  = 10,
 	/*defined by ourselves - streamType 3 (scene description) for SVG streaming*/
-	SVG_IN_OTI_STREAMING_SVG_GZ	  = 11
+	SVG_IN_OTI_STREAMING_SVG_GZ	  = 11,
+	/*defined by ourselves - streamType 3 (scene description) for SVG streaming*/
+	SVG_IN_OTI_STREAMING_DIMS	  = 12
 };
 
 typedef struct
@@ -131,6 +133,11 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 	case SVG_IN_OTI_STREAMING_SVG:
 		e = gf_sm_load_string(&svgin->loader, inBuffer, 0);
 		break;
+
+	case SVG_IN_OTI_STREAMING_DIMS:
+		e = gf_sm_load_string(&svgin->loader, inBuffer, 0);
+		break;
+		
 	case SVG_IN_OTI_STREAMING_SVG_GZ:
 	{
 		char svg_data[2049];
@@ -219,6 +226,10 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 	case SVG_IN_OTI_STREAMING_SVG_GZ:
 		/*no decSpecInfo defined for streaming svg yet*/
 		break;
+	case SVG_IN_OTI_STREAMING_DIMS:
+		svgin->loader.flags |= GF_SM_LOAD_CONTEXT_DIMS;
+		/*decSpecInfo not yet supported for DIMS svg */
+		break;
 	default:
 		if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
 		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
@@ -268,6 +279,7 @@ const char *SVG_GetName(struct _basedecoder *plug)
 	if (svgin->oti==SVG_IN_OTI_STREAMING_SVG) return "GPAC Streaming SVG Parser";
 	if (svgin->oti==SVG_IN_OTI_STREAMING_SVG_GZ) return "GPAC Streaming SVGZ Parser";
 	if (svgin->oti==SVG_IN_OTI_LASERML) return "GPAC LASeRML Parser";
+	if (svgin->oti==SVG_IN_OTI_STREAMING_DIMS) return "GPAC DIMS Parser";	
 	return "INTERNAL ERROR";
 }
 
@@ -279,7 +291,8 @@ Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, c
 		return 0;
 	} else if (StreamType==GF_STREAM_SCENE) {
 		if (ObjectType==SVG_IN_OTI_STREAMING_SVG) return 1;
-		if (ObjectType==SVG_IN_OTI_STREAMING_SVG_GZ	) return 1;
+		if (ObjectType==SVG_IN_OTI_STREAMING_SVG_GZ) return 1;
+		if (ObjectType==SVG_IN_OTI_STREAMING_DIMS) return 1;	
 		return 0;
 	}
 	return 0;

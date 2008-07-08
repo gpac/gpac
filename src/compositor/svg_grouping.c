@@ -1101,6 +1101,10 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 	clip = gf_rect_pixelize(&rc);
 //	gf_irect_intersect(&tr_state->visual->top_clipper, &clip);
 
+	/* if sub scene is replaced by a new sub scene, the used node changes,
+	   therefore, we force re-evaluation of the sub scene root node */
+	stack->used_node = NULL;
+
 	if (!stack->used_node && stack->resource) 
 		stack->used_node = gf_sg_get_root_node(gf_mo_get_scenegraph(stack->resource));
 

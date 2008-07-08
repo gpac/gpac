@@ -165,6 +165,9 @@ enum
 	this is used when performing diff encoding (eg the file to load only has updates).
 	When set, gf_sm_load_init will NOT attempt to parse first frame*/
 	GF_SM_LOAD_CONTEXT_READY = 1<<2,
+
+	/* in this mode, each svg tag will be interpreted as a REPLACE SCENE */
+	GF_SM_LOAD_CONTEXT_DIMS = 1<<3,
 };
 
 /*loader type, usually detected based on file ext*/
