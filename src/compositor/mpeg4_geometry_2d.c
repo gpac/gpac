@@ -227,7 +227,7 @@ static void TraverseEllipse(GF_Node *node, void *rs, Bool is_destroy)
 	case TRAVERSE_DRAW_3D:
 		if (!stack->mesh) {
 			stack->mesh = new_mesh();
-			mesh_new_ellipse(stack->mesh, ((M_Ellipse *) node)->radius.x, ((M_Ellipse *) node)->radius.y, tr_state->visual->compositor->high_speed);
+			mesh_new_ellipse(stack->mesh, ((M_Ellipse *) node)->radius.x * 2, ((M_Ellipse *) node)->radius.y * 2, tr_state->visual->compositor->high_speed);
 		}
 		visual_3d_draw_2d(stack, tr_state);
 		return;

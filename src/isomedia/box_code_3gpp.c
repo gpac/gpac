@@ -1005,3 +1005,259 @@ GF_Err tsel_Size(GF_Box *s)
 }
 
 #endif //GPAC_READ_ONLY
+
+
+
+GF_Box *dimC_New()
+{
+	GF_DIMSSceneConfigBox *tmp;
+	
+	GF_SAFEALLOC(tmp, GF_DIMSSceneConfigBox);
+	if (tmp == NULL) return NULL;
+	gf_isom_full_box_init((GF_Box *)tmp);
+	tmp->type = GF_ISOM_BOX_TYPE_DIMC;
+	return (GF_Box *)tmp;
+}
+void dimC_del(GF_Box *s)
+{
+	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
+	if (p->contentEncoding) free(p->contentEncoding);
+	if (p->textEncoding) free(p->textEncoding);
+	free(p);
+}
+
+GF_Err dimC_Read(GF_Box *s, GF_BitStream *bs)
+{
+	char str[1024];
+	u32 i;
+	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
+	GF_Err e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	p->profile = gf_bs_read_u8(bs);
+	p->level = gf_bs_read_u8(bs);
+	p->pathComponents = gf_bs_read_int(bs, 4);
+	p->fullRequestHost = gf_bs_read_int(bs, 1);
+	p->streamType = gf_bs_read_int(bs, 1);
+	p->containsRedundant = gf_bs_read_int(bs, 2);
+	s->size -= 3;
+	
+	i=0;
+	str[0]=0;
+	while (1) {
+		str[i] = gf_bs_read_u8(bs);
+		if (!str[i]) break;
+		i++;
+	}
+	if (s->size < i) return GF_ISOM_INVALID_FILE;
+	s->size -= i;
+	p->textEncoding = strdup(str);
+
+	i=0;
+	str[0]=0;
+	while (1) {
+		str[i] = gf_bs_read_u8(bs);
+		if (!str[i]) break;
+		i++;
+	}
+	if (s->size < i) return GF_ISOM_INVALID_FILE;
+	s->size -= i;
+	p->contentEncoding = strdup(str);
+	return GF_OK;
+}
+
+#ifndef GPAC_READ_ONLY
+GF_Err dimC_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
+	GF_Err e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, p->profile);
+	gf_bs_write_u8(bs, p->level);
+	gf_bs_write_int(bs, p->pathComponents, 4);
+	gf_bs_write_int(bs, p->fullRequestHost, 1);
+	gf_bs_write_int(bs, p->streamType, 1);
+	gf_bs_write_int(bs, p->containsRedundant, 2);
+	gf_bs_write_data(bs, p->textEncoding, strlen(p->textEncoding)+1);
+	gf_bs_write_data(bs, p->contentEncoding, strlen(p->contentEncoding)+1);
+	return GF_OK;
+}
+GF_Err dimC_Size(GF_Box *s)
+{
+	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
+	GF_Err e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	s->size += 3 + 1 + strlen(p->textEncoding) + 1 + strlen(p->contentEncoding);
+	return GF_OK;
+}
+#endif
+
+
+
+GF_Box *diST_New()
+{
+	GF_DIMSScriptTypesBox *tmp;
+	
+	GF_SAFEALLOC(tmp, GF_DIMSScriptTypesBox);
+	if (tmp == NULL) return NULL;
+	tmp->type = GF_ISOM_BOX_TYPE_DIST;
+	return (GF_Box *)tmp;
+}
+void diST_del(GF_Box *s)
+{
+	GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;
+	if (p->content_script_types) free(p->content_script_types);
+	free(p);
+}
+
+GF_Err diST_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i;
+	char str[1024];
+	GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;
+
+	i=0;
+	str[0]=0;
+	while (1) {
+		str[i] = gf_bs_read_u8(bs);
+		if (!str[i]) break;
+		i++;
+	}
+	if (s->size < i) return GF_ISOM_INVALID_FILE;
+	s->size -= i;
+	p->content_script_types = strdup(str);
+	return GF_OK;
+}
+
+#ifndef GPAC_READ_ONLY
+GF_Err diST_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	if (p->content_script_types)
+		gf_bs_write_data(bs, p->content_script_types, strlen(p->content_script_types)+1);
+	else
+		gf_bs_write_u8(bs, 0);
+	return GF_OK;
+}
+GF_Err diST_Size(GF_Box *s)
+{
+	GF_Err e = gf_isom_box_get_size(s);
+	GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;
+	if (e) return e;
+	s->size += p->content_script_types ? (strlen(p->content_script_types)+1) : 1;
+	return GF_OK;
+}
+#endif
+
+
+GF_Box *dims_New()
+{
+	GF_DIMSSampleEntryBox *tmp;
+	GF_SAFEALLOC(tmp, GF_DIMSSampleEntryBox);
+	tmp->type = GF_ISOM_BOX_TYPE_DIMS;
+	return (GF_Box*)tmp;
+}
+void dims_del(GF_Box *s)
+{
+	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
+	if (p->config) gf_isom_box_del((GF_Box *)p->config);
+	if (p->bitrate ) gf_isom_box_del((GF_Box *)p->bitrate);
+	if (p->protection_info) gf_isom_box_del((GF_Box *)p->protection_info);
+	if (p->scripts) gf_isom_box_del((GF_Box *)p->scripts);
+	free(p);
+}
+
+static GF_Err dims_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox  *)s;
+	switch (a->type) {
+	case GF_ISOM_BOX_TYPE_DIMC:
+		if (p->config) return GF_ISOM_INVALID_FILE;
+		p->config = (GF_DIMSSceneConfigBox*)a;
+		break;
+	case GF_ISOM_BOX_TYPE_DIST:
+		if (p->scripts) return GF_ISOM_INVALID_FILE;
+		p->scripts = (GF_DIMSScriptTypesBox*)a;
+		break;
+	case GF_ISOM_BOX_TYPE_BTRT:
+		if (p->bitrate) return GF_ISOM_INVALID_FILE;
+		p->bitrate = (GF_MPEG4BitRateBox*)a;
+		break;
+	case GF_ISOM_BOX_TYPE_SINF:
+		if (p->protection_info) return GF_ISOM_INVALID_FILE;
+		p->protection_info = (GF_ProtectionInfoBox*)a;
+		break;
+	default:
+		gf_isom_box_del(a);
+		break;
+	}
+	return GF_OK;
+}
+GF_Err dims_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
+	gf_bs_read_data(bs, p->reserved, 6);
+	p->dataReferenceIndex = gf_bs_read_u16(bs);
+	p->size -= 8;
+	return gf_isom_read_box_list(s, bs, dims_AddBox);
+}
+
+#ifndef GPAC_READ_ONLY
+GF_Err dims_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_data(bs, p->reserved, 6);
+	gf_bs_write_u16(bs, p->dataReferenceIndex);
+	if (p->config) {
+		e = gf_isom_box_write((GF_Box *)p->config, bs);
+		if (e) return e;
+	}
+	if (p->scripts) {
+		e = gf_isom_box_write((GF_Box *)p->scripts, bs);
+		if (e) return e;
+	}
+	if (p->bitrate) {
+		e = gf_isom_box_write((GF_Box *)p->bitrate, bs);
+		if (e) return e;
+	}
+	if (p->protection_info) {
+		e = gf_isom_box_write((GF_Box *)p->protection_info, bs);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
+GF_Err dims_Size(GF_Box *s)
+{
+	GF_Err e = gf_isom_box_get_size(s);
+	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
+	if (e) return e;
+	s->size += 8;
+	
+	if (p->config) {
+		e = gf_isom_box_size((GF_Box *) p->config); 
+		if (e) return e;
+		p->size += p->config->size;
+	}
+	if (p->protection_info) {
+		e = gf_isom_box_size((GF_Box *) p->protection_info); 
+		if (e) return e;
+		p->size += p->protection_info->size;
+	}
+	if (p->bitrate) {
+		e = gf_isom_box_size((GF_Box *) p->bitrate); 
+		if (e) return e;
+		p->size += p->bitrate->size;
+	}
+	if (p->scripts) {
+		e = gf_isom_box_size((GF_Box *) p->scripts); 
+		if (e) return e;
+		p->size += p->scripts->size;
+	}
+	return GF_OK;
+}
+#endif

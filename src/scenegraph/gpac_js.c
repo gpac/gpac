@@ -38,6 +38,7 @@
 #ifdef GPAC_HAS_SPIDERMONKEY
 
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 
 #include <jsapi.h> 
 
@@ -79,6 +80,22 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		res = gf_cfg_get_key(term->user->config, "General", "LastWorkingDir");
 		if (!res) res = "";
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, res)); 
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "scale_x")) {
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->zoom) * FIX2FLT(term->compositor->scale_x)) );
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "scale_y")) {
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->zoom) * FIX2FLT(term->compositor->scale_y)) );
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "translation_x")) {
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_x)) );
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "translation_y")) {
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_y)) );
 		return JS_TRUE;
 	}
 
@@ -204,6 +221,39 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 	return JS_TRUE;
 }
 
+static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	Bool override_size_info = 0;
+	u32 w, h;
+	jsdouble d;
+	char *url = NULL;
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
+	if (!term) return JS_FALSE;
+
+	w = h = 0;
+	if ((argc >= 1) && JSVAL_IS_NUMBER(argv[0])) {
+		JS_ValueToNumber(c, argv[0], &d);
+		w = (u32) d;
+	}
+	if ((argc >= 2) && JSVAL_IS_NUMBER(argv[1])) {
+		JS_ValueToNumber(c, argv[1], &d);
+		h = (u32) d;
+	}
+	if ((argc >= 3) && JSVAL_IS_BOOLEAN(argv[2]) && (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) ) 
+		override_size_info = 1;
+
+	if (w && h) {
+		if (override_size_info) {
+			term->compositor->scene_width = w;
+			term->compositor->scene_height = h;
+			term->compositor->has_size_info = 1;
+		}
+		gf_term_set_size(term, w, h);
+	}
+
+	return JS_TRUE;
+}
+
 JSObject *gpac_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 {
 	JSObject *obj;
@@ -224,6 +274,7 @@ JSObject *gpac_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			{"getOption",		gpac_getOption, 3},
 			{"setOption",		gpac_setOption, 4},
 			{"enum_directory",	gpac_enum_directory, 1},
+			{"set_size",		gpac_set_size, 1},
 			{0}
 		};
 		JS_InitClass(c, global, 0, &gpac_rt->gpacClass, 0, 0, gpacClassProps, gpacClassFuncs, 0, 0);

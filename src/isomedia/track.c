@@ -526,7 +526,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 		break;
 	case GF_ISOM_MEDIA_SCENE:
 		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
-		str = "GPAC MPEG-4 BIFS Handler";
+		str = "GPAC MPEG-4 Scene Description Handler";
 		break;
 	case GF_ISOM_MEDIA_MPEG7:
 		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
@@ -547,6 +547,11 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 	case GF_ISOM_MEDIA_TEXT:
 		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
 		str = "GPAC Streaming Text Handler";
+		break;
+	case GF_ISOM_MEDIA_DIMS:
+		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_VMHD);
+		MediaType = GF_ISOM_MEDIA_SCENE;
+		str = "GPAC DIMS Handler";
 		break;
 	default:
 		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);

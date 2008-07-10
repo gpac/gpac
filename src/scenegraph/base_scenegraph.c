@@ -1315,6 +1315,12 @@ void gf_node_free(GF_Node *node)
 			gf_list_del(node->sgprivate->interact->routes);
 		}
 		if (node->sgprivate->interact->events) {
+			while (gf_list_count(node->sgprivate->interact->events)) {
+				GF_Node *n = gf_list_get(node->sgprivate->interact->events, 0);
+				gf_list_rem(node->sgprivate->interact->events, 0);
+				gf_node_register(n, NULL);
+				gf_node_unregister(n, NULL);
+			}
 			gf_list_del(node->sgprivate->interact->events);
 		}
 		if (node->sgprivate->interact->animations) {

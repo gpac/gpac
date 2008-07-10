@@ -322,3 +322,129 @@ GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPCo
 
 #endif	//GPAC_READ_ONLY
 
+
+
+
+GF_Err gf_isom_get_dims_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_DIMSDescription *desc)
+{
+	GF_DIMSSampleEntryBox *dims;
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !descriptionIndex || !desc) return GF_BAD_PARAM;
+
+	dims = (GF_DIMSSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, descriptionIndex-1);
+	if (!dims) return GF_BAD_PARAM;
+	if (dims->type != GF_ISOM_BOX_TYPE_DIMS) return GF_BAD_PARAM;
+
+	memset(desc, 0, sizeof(GF_DIMSDescription));
+	if (dims->config) {
+		desc->profile = dims->config->profile;
+		desc->level = dims->config->level;
+		desc->pathComponents = dims->config->pathComponents;
+		desc->fullRequestHost = dims->config->fullRequestHost;
+		desc->containsRedundant = dims->config->containsRedundant;
+		desc->streamType = dims->config->streamType;
+		desc->textEncoding = dims->config->textEncoding;
+		desc->contentEncoding = dims->config->contentEncoding;
+	}
+	if (dims->scripts) {
+		desc->content_script_types = dims->scripts->content_script_types;
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_READ_ONLY
+GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 *outDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	u32 dataRefIndex;
+	GF_DIMSSampleEntryBox *dims;
+
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
+
+	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_SCENE) return GF_BAD_PARAM;
+
+	//get or create the data ref
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	if (e) return e;
+	if (!dataRefIndex) {
+		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		if (e) return e;
+	}
+	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	dims = (GF_DIMSSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DIMS);
+	dims->dataReferenceIndex = dataRefIndex;
+	gf_list_add(trak->Media->information->sampleTable->SampleDescription->boxList, dims);
+	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+
+	dims->config = (GF_DIMSSceneConfigBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_DIMC);
+	dims->config->profile = desc->profile;
+	dims->config->level = desc->level;
+	dims->config->pathComponents = desc->pathComponents;
+	dims->config->fullRequestHost = desc->fullRequestHost;
+	dims->config->containsRedundant = desc->containsRedundant;
+	if (!dims->config->containsRedundant) dims->config->containsRedundant = 1;
+	dims->config->streamType = desc->streamType;
+	dims->config->textEncoding = strdup(desc->textEncoding ? desc->textEncoding : "");
+	dims->config->contentEncoding = strdup(desc->contentEncoding ? desc->contentEncoding : "");
+
+	if (desc->content_script_types) {
+		dims->scripts = (GF_DIMSScriptTypesBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_DIST);
+		dims->scripts->content_script_types = strdup(desc->content_script_types);
+	}
+	return e;
+}
+
+
+GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 DescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	GF_DIMSSampleEntryBox *dims;
+
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !trak->Media || !desc || !DescriptionIndex) return GF_BAD_PARAM;
+
+	dims = (GF_DIMSSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
+	if (!dims) return GF_BAD_PARAM;
+	if (dims->type != GF_ISOM_BOX_TYPE_DIMS) return GF_BAD_PARAM;
+	if (!dims->config)
+		dims->config = (GF_DIMSSceneConfigBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_DIMC);
+
+	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	dims->config->profile = desc->profile;
+	dims->config->level = desc->level;
+	dims->config->pathComponents = desc->pathComponents;
+	dims->config->fullRequestHost = desc->fullRequestHost;
+	dims->config->containsRedundant = desc->containsRedundant;
+	dims->config->streamType = desc->streamType;
+
+	if (dims->config->textEncoding) free(dims->config->textEncoding);
+	dims->config->textEncoding = strdup(desc->textEncoding ? desc->textEncoding : "");
+
+	if (dims->config->contentEncoding) free(dims->config->contentEncoding);
+	dims->config->contentEncoding = strdup(desc->contentEncoding ? desc->contentEncoding : "");
+
+	if (desc->content_script_types) {
+		if (!dims->scripts)
+			dims->scripts = (GF_DIMSScriptTypesBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_DIST);
+		if (dims->scripts->content_script_types) free(dims->scripts->content_script_types);
+		dims->scripts->content_script_types = strdup(desc->content_script_types ? desc->content_script_types  :"");
+	} else if (dims->scripts) {
+		gf_isom_box_del((GF_Box *) dims->scripts);
+		dims->scripts = NULL;
+	}
+	return e;
+}
+#endif //GPAC_READ_ONLY
+

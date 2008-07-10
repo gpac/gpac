@@ -1084,7 +1084,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					}
 				} 
 				/*OGG media*/
-				else if (esd->decoderConfig->objectTypeIndication==GPAC_OGG_MEDIA_OTI) {
+				else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_MEDIA_OGG) {
 					char *szName;
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stdout, "\t");
@@ -1134,7 +1134,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					}
 					break;
 				/*OGG media*/
-				case GPAC_OGG_MEDIA_OTI:
+				case GPAC_OTI_MEDIA_OGG:
 				{
 					char *szName;
 					if (full_dump) fprintf(stdout, "\t");
@@ -1258,6 +1258,18 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		fprintf(stdout, "\t3GPP QCELP stream - Sample Rate %d - %d channel(s) %d bits per samples\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_SMV) {
 		fprintf(stdout, "\t3GPP SMV stream - Sample Rate %d - %d channel(s) %d bits per samples\n", sr, nb_ch, (u32) bps);
+	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_DIMS) {
+		u32 w, h;
+		GF_DIMSDescription dims;
+		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+
+		gf_isom_get_dims_description(file, trackNum, 1, &dims);
+		fprintf(stdout, "\t3GPP DIMS stream - size %d x %d - Profile %d - Level %d\n", w, h, dims.profile, dims.level);
+		fprintf(stdout, "\tpathComponents: %d - useFullRequestHost: %s\n", dims.pathComponents, dims.fullRequestHost ? "yes" : "no");
+		fprintf(stdout, "\tstream type: %s - redundant: %s\n", dims.streamType ? "primary" : "secondary", (dims.containsRedundant==1) ? "main" : ((dims.containsRedundant==2) ? "redundant" : "main+redundant") );
+		if (dims.textEncoding[0]) fprintf(stdout, "\ttext encoding %s\n", dims.textEncoding);
+		if (dims.contentEncoding[0]) fprintf(stdout, "\tcontent encoding %s\n", dims.contentEncoding);
+		if (dims.content_script_types) fprintf(stdout, "\tscript languages %s\n", dims.content_script_types);
 	} else if (mtype==GF_ISOM_MEDIA_HINT) {
 		u32 refTrack;
 		s32 i, refCount = gf_isom_get_reference_count(file, trackNum, GF_ISOM_REF_HINT);

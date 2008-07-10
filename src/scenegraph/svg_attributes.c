@@ -5596,6 +5596,27 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	}
 		return GF_OK;
 
+	case SMIL_Times_datatype:
+	{
+		u32 i, count;
+		GF_List *dst = *(GF_List **)a->far_ptr;
+		GF_List *src = *(GF_List **)b->far_ptr;
+		while (gf_list_count(dst)) {
+			SMIL_Time *t = gf_list_get(dst, 0);
+			gf_list_rem(dst, 0);
+			free(t);
+		}
+		count = gf_list_count(src);
+		for (i=0;i<count;i++) {
+			SMIL_Time *t2;
+			SMIL_Time *t = gf_list_get(src, i);
+			t2 = (SMIL_Time*)malloc(sizeof(SMIL_Time));
+			memcpy(t2, t, sizeof(SMIL_Time));
+			gf_list_add(dst, t2);
+		}
+	}
+		return GF_OK;
+
 	/* Unsupported types */
 	case SVG_ListOfIRI_datatype:
 	case SVG_FormatList_datatype:
@@ -5610,7 +5631,6 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SMIL_AnimateValue_datatype:
 	case SMIL_AnimateValues_datatype:
 	case SMIL_AttributeName_datatype:
-	case SMIL_Times_datatype:
 	case SMIL_Duration_datatype:
 	case SMIL_RepeatCount_datatype:
 	default:

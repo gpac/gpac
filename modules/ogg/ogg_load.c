@@ -31,7 +31,7 @@ static Bool OGG_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectT
 	if (StreamType == GF_STREAM_VISUAL) {
 		switch (ObjectType) {
 #ifdef GPAC_HAS_THEORA
-		case GPAC_OGG_MEDIA_OTI: 
+		case GPAC_OTI_MEDIA_OGG: 
 			if (decSpecInfo && (decSpecInfoSize>=9)  && !strncmp((char *) &decSpecInfo[3], "theora", 6)) {
 				return NewTheoraDecoder(dec);
 			}
@@ -45,7 +45,7 @@ static Bool OGG_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectT
 	if (StreamType == GF_STREAM_AUDIO) {
 		switch (ObjectType) {
 #ifdef GPAC_HAS_VORBIS
-		case GPAC_OGG_MEDIA_OTI: 
+		case GPAC_OTI_MEDIA_OGG: 
 			if (decSpecInfo && (decSpecInfoSize>=9)  && !strncmp((char *) &decSpecInfo[3], "vorbis", 6)) {
 				return NewVorbisDecoder(dec);
 			}

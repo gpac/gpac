@@ -481,15 +481,26 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 	if (evtType==GF_EVENT_UNKNOWN) return JS_FALSE;
 
 	listener = gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
-	gf_node_register(listener, node);
-	gf_node_list_add_child(& ((GF_ParentNode *)node)->children, listener);
+	/*for vrml nodes, we don't register the listener with the parent node because the node
+	may not be a parent one - listeners will be destroyed with the node*/
+	if (!vrml_node) {
+		gf_node_register(listener, node);
+		gf_node_list_add_child(& ((GF_ParentNode *)node)->children, listener);
+	}
 
 	/*!!! create the handler in the scene owning the script context !!! */
 	{
 		GF_SceneGraph *sg = xml_get_scenegraph(c);
 		handler = (SVG_handlerElement *) gf_node_new(sg, TAG_SVG_handler);
-		gf_node_register((GF_Node *)handler, node);
-		gf_node_list_add_child(& ((GF_ParentNode *)node)->children, (GF_Node*)handler);
+		/*for vrml nodes, we don't register the handler with the parent node because the node
+		may not be a parent one - we register the handler with the listener*/
+		if (vrml_node) {
+			gf_node_register((GF_Node *)handler, listener);
+			gf_node_list_add_child(& ((GF_ParentNode *)listener)->children, (GF_Node*)handler);
+		} else {
+			gf_node_register((GF_Node *)handler, node);
+			gf_node_list_add_child(& ((GF_ParentNode *)node)->children, (GF_Node*)handler);
+		}
 	}
 
 	/*create attributes if needed*/

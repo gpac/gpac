@@ -867,6 +867,10 @@ SOURCE=..\..\src\terminal\term_node_init.c
 
 SOURCE=..\..\src\terminal\terminal.c
 # End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\internal\terminal_dev.h
+# End Source File
 # End Group
 # Begin Group "compositor"
 
@@ -1106,10 +1110,6 @@ SOURCE=..\..\src\compositor\svg_paint_servers.c
 # Begin Source File
 
 SOURCE=..\..\src\compositor\svg_text.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\internal\terminal_dev.h
 # End Source File
 # Begin Source File
 

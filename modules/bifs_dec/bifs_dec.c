@@ -114,10 +114,12 @@ Bool BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, 
 	if (StreamType!=GF_STREAM_SCENE) return 0;
 	switch (ObjectType) {
 	case 0x00:
-	case 0x01:
-	case 0x02:
-	case 0xFE:
-	case 0xFF:
+		return 1;
+	case GPAC_OTI_SCENE_BIFS:
+	case GPAC_OTI_SCENE_BIFS_V2:
+	/*Streams with this value with a StreamType indicating a systems stream (values 1,2,3, 6, 7, 8, 9) 
+		shall be treated as if the ObjectTypeIndication had been set to 0x01*/
+	case 0xFF:	
 		priv->PL = PL;
 		return 1;
 	default:

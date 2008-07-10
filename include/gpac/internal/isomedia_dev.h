@@ -193,8 +193,6 @@ enum
 	GF_ISOM_BOX_TYPE_IPRO	= GF_4CC( 'i', 'p', 'r', 'o' ),
 	GF_ISOM_BOX_TYPE_INFE	= GF_4CC( 'i', 'n', 'f', 'e' ),
 	GF_ISOM_BOX_TYPE_IINF	= GF_4CC( 'i', 'i', 'n', 'f' ),
-	GF_ISOM_BOX_TYPE_IMIF	= GF_4CC( 'i', 'm', 'i', 'f' ),
-	GF_ISOM_BOX_TYPE_IPMC	= GF_4CC( 'i', 'p', 'm', 'c' ),
 	GF_ISOM_BOX_TYPE_ENCA	= GF_4CC( 'e', 'n', 'c', 'a' ),
 	GF_ISOM_BOX_TYPE_ENCV	= GF_4CC( 'e', 'n', 'c', 'v' ),
 	GF_ISOM_BOX_TYPE_ENCT	= GF_4CC( 'e', 'n', 'c', 't' ),
@@ -278,6 +276,11 @@ enum
 	GF_ISOM_BOX_TYPE_ODRB	= GF_4CC( 'o', 'd', 'r', 'b' ),
 	GF_ISOM_BOX_TYPE_ODKM	= GF_4CC( 'o', 'd', 'k', 'm' ),
 	GF_ISOM_BOX_TYPE_ODAF	= GF_4CC( 'o', 'd', 'a', 'f' ),
+
+	/*3GPP DIMS */
+	GF_ISOM_BOX_TYPE_DIMS	= GF_4CC( 'd', 'i', 'm', 's' ),
+	GF_ISOM_BOX_TYPE_DIMC	= GF_4CC( 'd', 'i', 'm', 'C' ),
+	GF_ISOM_BOX_TYPE_DIST	= GF_4CC( 'd', 'i', 'S', 'T' ),
 
 
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
@@ -705,7 +708,6 @@ void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ent, GF_BitStream
 void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent);
 #endif
 
-
 typedef struct
 {
 	GF_ISOM_BOX
@@ -819,6 +821,35 @@ typedef struct
 	char *data;
 	u32 data_size;
 } GF_GenericAudioSampleEntryBox;
+
+
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 profile;
+	u8 level;
+	u8 pathComponents;
+	Bool fullRequestHost;
+	Bool streamType;
+	u8 containsRedundant;
+	char *textEncoding;
+	char *contentEncoding;
+} GF_DIMSSceneConfigBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	char *content_script_types;
+} GF_DIMSScriptTypesBox;
+
+typedef struct
+{
+	GF_ISOM_SAMPLE_ENTRY_FIELDS
+	GF_DIMSSceneConfigBox *config;
+	GF_MPEG4BitRateBox *bitrate;
+	GF_DIMSScriptTypesBox *scripts;
+} GF_DIMSSampleEntryBox;
 
 
 /*base sample entry box (never used but for typecasting)*/
@@ -2740,8 +2771,6 @@ GF_Box *pitm_New();
 GF_Box *ipro_New();
 GF_Box *infe_New();
 GF_Box *iinf_New();
-GF_Box *imif_New();
-GF_Box *ipmc_New();
 GF_Box *sinf_New();
 GF_Box *frma_New();
 GF_Box *schm_New();
@@ -2758,8 +2787,6 @@ void pitm_del(GF_Box *s);
 void ipro_del(GF_Box *s);
 void infe_del(GF_Box *s);
 void iinf_del(GF_Box *s);
-void imif_del(GF_Box *s);
-void ipmc_del(GF_Box *s);
 void sinf_del(GF_Box *s);
 void frma_del(GF_Box *s);
 void schm_del(GF_Box *s);
@@ -2773,8 +2800,6 @@ GF_Err pitm_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err ipro_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err infe_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err iinf_Read(GF_Box *s, GF_BitStream *bs);
-GF_Err imif_Read(GF_Box *s, GF_BitStream *bs);
-GF_Err ipmc_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err sinf_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err frma_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err schm_Read(GF_Box *s, GF_BitStream *bs);
@@ -2789,8 +2814,6 @@ GF_Err pitm_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err ipro_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err infe_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err iinf_Write(GF_Box *s, GF_BitStream *bs);
-GF_Err imif_Write(GF_Box *s, GF_BitStream *bs);
-GF_Err ipmc_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err sinf_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err frma_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err schm_Write(GF_Box *s, GF_BitStream *bs);
@@ -2804,8 +2827,6 @@ GF_Err pitm_Size(GF_Box *s);
 GF_Err ipro_Size(GF_Box *s);
 GF_Err infe_Size(GF_Box *s);
 GF_Err iinf_Size(GF_Box *s);
-GF_Err imif_Size(GF_Box *s);
-GF_Err ipmc_Size(GF_Box *s);
 GF_Err sinf_Size(GF_Box *s);
 GF_Err frma_Size(GF_Box *s);
 GF_Err schm_Size(GF_Box *s);
@@ -2974,8 +2995,6 @@ GF_Err pitm_dump(GF_Box *a, FILE * trace);
 GF_Err ipro_dump(GF_Box *a, FILE * trace);
 GF_Err infe_dump(GF_Box *a, FILE * trace);
 GF_Err iinf_dump(GF_Box *a, FILE * trace);
-GF_Err imif_dump(GF_Box *a, FILE * trace);
-GF_Err ipmc_dump(GF_Box *a, FILE * trace);
 GF_Err sinf_dump(GF_Box *a, FILE * trace);
 GF_Err frma_dump(GF_Box *a, FILE * trace);
 GF_Err schm_dump(GF_Box *a, FILE * trace);
@@ -3054,6 +3073,28 @@ GF_Err tsel_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err tsel_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err tsel_Size(GF_Box *s);
 GF_Err tsel_dump(GF_Box *a, FILE * trace);
+
+
+GF_Box *dimC_New();
+void dimC_del(GF_Box *s);
+GF_Err dimC_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err dimC_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err dimC_Size(GF_Box *s);
+GF_Err dimC_dump(GF_Box *a, FILE * trace);
+
+GF_Box *dims_New();
+void dims_del(GF_Box *s);
+GF_Err dims_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err dims_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err dims_Size(GF_Box *s);
+GF_Err dims_dump(GF_Box *a, FILE * trace);
+
+GF_Box *diST_New();
+void diST_del(GF_Box *s);
+GF_Err diST_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err diST_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err diST_Size(GF_Box *s);
+GF_Err diST_dump(GF_Box *a, FILE * trace);
 
 #ifdef __cplusplus
 }

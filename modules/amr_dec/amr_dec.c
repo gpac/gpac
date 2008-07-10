@@ -55,7 +55,6 @@ typedef struct
 
 static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
-	GF_BitStream *bs;
 	u32 packed_size;
 	AMRCTX();
 	if (DependsOnES_ID) return GF_NOT_SUPPORTED;
@@ -69,14 +68,7 @@ static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInf
 	ctx->speech_decoder_state = NULL;
 	if (Speech_Decode_Frame_init(&ctx->speech_decoder_state, "Decoder")) return GF_IO_ERR;
 
-	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
-	gf_bs_read_u32(bs);
-	gf_bs_read_u16(bs);
-	gf_bs_read_u16(bs);
-	gf_bs_read_u8(bs);
-	gf_bs_read_u8(bs);
-	packed_size = (u32) gf_bs_read_u8(bs);
-	gf_bs_del(bs);
+	packed_size = (u32) (decSpecInfoSize>14) ? decSpecInfo[13] : 0;
 	/*max possible frames in a sample are seen in MP4, that's 15*/
 	if (!packed_size) packed_size = 15;
 	
@@ -237,7 +229,7 @@ static u32 AMR_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectTy
 	if (!ObjectType) return (StreamType==GF_STREAM_AUDIO) ? 1 : 0;
 
 	/*audio dec*/
-	if (!decSpecInfo || (StreamType != GF_STREAM_AUDIO) || (ObjectType != GPAC_EXTRA_CODECS_OTI)) return 0;
+	if (!decSpecInfo || (StreamType != GF_STREAM_AUDIO) || (ObjectType != GPAC_OTI_MEDIA_GENERIC)) return 0;
 	if (decSpecInfoSize<4) return 0;
 	if (!strnicmp(decSpecInfo, "samr", 4) || !strnicmp(decSpecInfo, "amr ", 4)) return 1;
 	return 0;

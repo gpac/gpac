@@ -181,26 +181,26 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			|| !stricmp(ext, "x3dv") || !stricmp(ext, "x3dv.gz") || !stricmp(ext, "x3dvz") 
 			|| !stricmp(ext, "swf")
 			) 
-			read->oti = 0x01;
+			read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
 
 		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz") || !stricmp(ext, "svg.gz")) {
-			read->oti = 0x02;
+			read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
 		}
 		/*XML LASeR*/
 		else if (!stricmp(ext, "xsr"))
-			read->oti = 0x03;
+			read->oti = GPAC_OTI_PRIVATE_SCENE_LASER;
 		else if (!stricmp(ext, "xbl"))
-			read->oti = 0x04;
+			read->oti = GPAC_OTI_PRIVATE_SCENE_XBL;
 	}
 
 	if (!read->oti && (!strnicmp(url, "file://", 7) || !strstr(url, "://"))) {
 		char *rtype = gf_xml_get_root_type(url, NULL);
 		if (rtype) {
-			if (!strcmp(rtype, "SAFSession")) read->oti = 0x03;
-			else if (!strcmp(rtype, "svg")) read->oti = 0x02;
-			else if (!strcmp(rtype, "XMT-A")) read->oti = 0x01;
-			else if (!strcmp(rtype, "X3D")) read->oti = 0x01;
-			else if (!strcmp(rtype, "bindings")) read->oti = 0x04;
+			if (!strcmp(rtype, "SAFSession")) read->oti = GPAC_OTI_PRIVATE_SCENE_LASER;
+			else if (!strcmp(rtype, "svg")) read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
+			else if (!strcmp(rtype, "XMT-A")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			else if (!strcmp(rtype, "X3D")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			else if (!strcmp(rtype, "bindings")) read->oti = GPAC_OTI_PRIVATE_SCENE_XBL;
 			free(rtype);
 		}
 	}

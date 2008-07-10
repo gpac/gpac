@@ -302,17 +302,18 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 			break;
 		default:
 opaque_audio:
-			esd->decoderConfig->objectTypeIndication = GPAC_FFMPEG_CODECS_OTI;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_FFMPEG;
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_u32(bs, dec->codec_id);
 			gf_bs_write_u32(bs, dec->sample_rate);
 			gf_bs_write_u16(bs, dec->channels);
-			gf_bs_write_u16(bs, dec->bits_per_sample);
 			gf_bs_write_u16(bs, dec->frame_size);
+			gf_bs_write_u8(bs, dec->bits_per_sample);
+			gf_bs_write_u8(bs, 0);
+			/*ffmpeg specific*/
 			gf_bs_write_u16(bs, dec->block_align);
-
-			gf_bs_write_u32(bs, dec->codec_tag);
 			gf_bs_write_u32(bs, dec->bit_rate);
+			gf_bs_write_u32(bs, dec->codec_tag);
 			if (dec->extradata_size) {
 				gf_bs_write_data(bs, dec->extradata, dec->extradata_size);
 			}
@@ -348,13 +349,14 @@ opaque_audio:
 			break;
 		default:
 opaque_video:
-			esd->decoderConfig->objectTypeIndication = GPAC_FFMPEG_CODECS_OTI;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_FFMPEG;
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_u32(bs, dec->codec_id);
-			gf_bs_write_u32(bs, dec->width);
-			gf_bs_write_u32(bs, dec->height);
-			gf_bs_write_u32(bs, dec->codec_tag);
+			gf_bs_write_u16(bs, dec->width);
+			gf_bs_write_u16(bs, dec->height);
+			/*ffmpeg specific*/
 			gf_bs_write_u32(bs, dec->bit_rate);
+			gf_bs_write_u32(bs, dec->codec_tag);
 
 			if (dec->extradata_size) {
 				gf_bs_write_data(bs, dec->extradata, dec->extradata_size);

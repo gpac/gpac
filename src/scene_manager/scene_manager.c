@@ -306,6 +306,7 @@ static GF_Err gf_sm_load_init_from_string(GF_SceneLoader *load, char *str)
 #ifndef GPAC_DISABLE_SVG
 	case GF_SM_LOAD_SVG_DA: 
 	case GF_SM_LOAD_XSR: 
+	case GF_SM_LOAD_DIMS: 
 		return gf_sm_load_init_svg_string(load, str);
 #endif
 	case GF_SM_LOAD_SWF: 
@@ -335,6 +336,7 @@ static void gf_sm_load_done_string(GF_SceneLoader *load, Bool do_clean)
 	/*we do not reset it here to enable SAX parsing*/
 	case GF_SM_LOAD_SVG_DA:
 	case GF_SM_LOAD_XSR:
+	case GF_SM_LOAD_DIMS:
 		break;
 #endif
 	default: 
@@ -415,6 +417,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 #ifndef GPAC_DISABLE_SVG
 	case GF_SM_LOAD_SVG_DA:
 	case GF_SM_LOAD_XSR:
+	case GF_SM_LOAD_DIMS:
 		return gf_sm_load_init_svg(load);
 #endif
 #ifndef GPAC_DISABLE_XBL
@@ -447,8 +450,9 @@ void gf_sm_load_done(GF_SceneLoader *load)
 		gf_sm_load_done_xmt(load); 
 		break;
 #ifndef GPAC_DISABLE_SVG
-	case GF_SM_LOAD_XSR:
 	case GF_SM_LOAD_SVG_DA:
+	case GF_SM_LOAD_XSR:
+	case GF_SM_LOAD_DIMS:
 		gf_sm_load_done_svg(load);
 		break;
 #endif
@@ -484,8 +488,9 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_run_xmt(load);
 #ifndef GPAC_DISABLE_SVG
-	case GF_SM_LOAD_XSR:
 	case GF_SM_LOAD_SVG_DA:
+	case GF_SM_LOAD_XSR:
+	case GF_SM_LOAD_DIMS:
 		return gf_sm_load_run_svg(load);
 #endif
 #ifndef GPAC_DISABLE_SVG

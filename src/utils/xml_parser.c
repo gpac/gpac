@@ -1540,3 +1540,82 @@ u32 gf_xml_dom_get_line(GF_DOMParser *parser)
 	return gf_xml_sax_get_line(parser->parser);
 }
 
+
+static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char **str, u32 *alloc_size, u32 *size)
+{
+	u32 i, count, vlen;
+	char *name;
+	
+#define SET_STRING(v)	\
+	vlen = strlen(v);	\
+	if (vlen+ (*size) >= (*alloc_size)) {	\
+		(*alloc_size) += 1024;	\
+		(*str) = realloc((*str), (*alloc_size));	\
+		(*str)[(*size)] = 0;	\
+	}	\
+	strcat((*str), v);	\
+	*size += vlen;	\
+
+	switch (node->type) {
+	case GF_XML_CDATA_TYPE:
+		SET_STRING("![CDATA[");
+		SET_STRING(node->name);
+		SET_STRING("]]>");
+		return;
+	case GF_XML_TEXT_TYPE:
+		name = node->name;
+		if ((name[0]=='\r') && (name[1]=='\n'))
+			name++;
+		SET_STRING(name);
+		return;
+	}
+
+	if (!content_only) {
+		SET_STRING("<");
+		if (node->ns) {
+			SET_STRING(node->ns);
+			SET_STRING(":");
+		}
+		SET_STRING(node->name);
+		SET_STRING(" ");
+		count = gf_list_count(node->attributes);
+		for (i=0; i<count; i++) {
+			GF_XMLAttribute *att = gf_list_get(node->attributes, i);
+			SET_STRING(att->name);
+			SET_STRING("=\"");
+			SET_STRING(att->value);
+			SET_STRING("\" ");
+		}
+	
+		if (!gf_list_count(node->content)) {
+			SET_STRING("/>");
+			return;
+		}
+		SET_STRING(">");
+	}
+
+	count = gf_list_count(node->content);
+	for (i=0; i<count; i++) {
+		GF_XMLNode *child = gf_list_get(node->content, i);
+		gf_xml_dom_node_serialize(child, 0, str, alloc_size, size);
+	}
+	if (!content_only) {
+		SET_STRING("</");
+		if (node->ns) {
+			SET_STRING(node->ns);
+			SET_STRING(":");
+		}
+		SET_STRING(node->name);
+		SET_STRING(">");
+	}
+}
+
+GF_EXPORT
+char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only)
+{
+	u32 alloc_size = 0;
+	u32 size = 0;
+	char *str = NULL;
+	gf_xml_dom_node_serialize(node, content_only, &str, &alloc_size, &size);
+	return str;
+}

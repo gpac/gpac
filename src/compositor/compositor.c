@@ -1605,7 +1605,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	gf_sc_reconfig_task(compositor);
 
 	/* if there is no scene, we draw a black screen to flush the screen */
-	if (!compositor->scene) {
+	if (!compositor->scene && !gf_list_count(compositor->extra_scenes) ) {
 		gf_sc_draw_scene(compositor);
 		gf_sc_lock(compositor, 0);
 		gf_sleep(compositor->frame_duration);
@@ -1646,6 +1646,10 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	/*execute all routes before updating textures, otherwise nodes inside composite texture may never see their
 	dirty flag set*/
 	gf_sg_activate_routes(compositor->scene);
+	i = 0;
+	while ((sg = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
+		gf_sg_activate_routes(sg);
+	}
 #ifndef GPAC_DISABLE_LOG
 	route_time = gf_sys_clock() - route_time;
 #endif

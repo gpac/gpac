@@ -661,11 +661,16 @@ const char *CTXLoad_GetName(struct _basedecoder *plug)
 Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
-		if (ObjectType==1) return 1;
+		switch (ObjectType) {
+		case GPAC_OTI_PRIVATE_SCENE_GENERIC:
+			return 1;
 		/*LASeR ML: we use this plugin since it has command handling*/
-		if (ObjectType==3) return 1;
+		case GPAC_OTI_PRIVATE_SCENE_LASER:
+			return 1;
 		/* XBL */
-		if (ObjectType==4) return 1;
+		case GPAC_OTI_PRIVATE_SCENE_XBL:
+			return 1;
+		}
 	}
 	/*SVG*/
 	//if ((StreamType==GF_STREAM_PRIVATE_SCENE) && (ObjectType==2)) return 1;
