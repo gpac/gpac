@@ -89,6 +89,12 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		param->scene = term->dcci_doc;
 		return 1;
 	}
+	if (type==GF_JSAPI_OP_GET_SUBSCENE) {
+		GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(n);
+		param->scene = is->graph;
+		return 1;
+	}
+	
 
 	if (type==GF_JSAPI_OP_GET_SCENE_URI) {
 		GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph(n));
@@ -196,6 +202,89 @@ static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr
 	return term->user->EventProc(term->user->opaque, &evt);
 }
 
+
+void gf_term_pause_all_clocks(GF_Terminal *term, Bool pause)
+{
+	u32 i, j;
+	GF_ClientService *ns;
+	/*pause all clocks on all services*/
+	i=0;
+	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+		GF_Clock *ck;
+		j=0;
+		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
+			if (pause) gf_clock_pause(ck);
+			else gf_clock_resume(ck);
+		}
+	}
+}
+
+static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_audio, Bool pause_clocks)
+{
+	/*only play/pause if connected*/
+	if (!term || !term->root_scene) return;
+	/*and if not already paused/playing*/
+	if (!term->play_state && !PlayState) return;
+	if (term->play_state && (PlayState==GF_STATE_PAUSED)) return;
+
+	/*pause compositor*/
+	if ((PlayState==GF_STATE_PLAYING) && reset_audio)
+		gf_sc_set_option(term->compositor, GF_OPT_PLAY_STATE, 0xFF);
+	else
+		gf_sc_set_option(term->compositor, GF_OPT_PLAY_STATE, PlayState);
+
+	if (PlayState==GF_STATE_STEP_PAUSE) PlayState = term->play_state ? GF_STATE_PLAYING : GF_STATE_PAUSED;
+	if (term->play_state == PlayState) return;
+	term->play_state = PlayState;
+
+	if (!pause_clocks) return;
+
+	gf_term_pause_all_clocks(term, PlayState ? 1 : 0);
+}
+
+static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u64 startTime, Bool pause_at_first_frame, Bool secondary_scene)
+{
+	GF_InlineScene *is;
+	GF_ObjectManager *odm;
+	const char *main_url;
+	if (!URL || !strlen(URL)) return;
+
+	if (term->root_scene) {
+		if (term->root_scene->root_od && term->root_scene->root_od->net_service) {
+			main_url = term->root_scene->root_od->net_service->url;
+			if (main_url && !strcmp(main_url, URL)) {
+				gf_term_play_from_time(term, 0, pause_at_first_frame);
+				return;
+			}
+		}
+		/*disconnect*/
+		gf_term_disconnect(term);
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Connecting to %s\n", URL));
+
+	gf_term_lock_net(term, 1);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Creating new root scene\n", URL));
+	/*create a new scene*/
+	is = gf_inline_new(NULL);
+	gf_sg_set_script_action(is->graph, term_script_action, term);
+	odm = gf_odm_new();
+
+	is->root_od =  odm;
+	term->root_scene = is;
+	odm->parentscene = NULL;
+	odm->subscene = is;
+	odm->term = term;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] root scene created\n", URL));
+	gf_term_lock_net(term, 0);
+
+	odm->media_start_time = startTime;
+	/*render first visual frame and pause*/
+	if (pause_at_first_frame)
+		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
+	/*connect - we don't have any parentID */
+	gf_term_connect_object(term, odm, (char *) URL, NULL);
+}
+
 GF_EXPORT
 GF_Terminal *gf_term_new(GF_User *user)
 {
@@ -265,6 +354,10 @@ GF_Terminal *gf_term_new(GF_User *user)
 		} else {
 			gf_sg_set_script_action(tmp->dcci_doc, term_script_action, tmp);
 		}
+	}
+	cf = gf_cfg_get_key(user->config, "General", "GUIFile");
+	if (cf) {
+		gf_term_connect_from_time_ex(tmp, cf, 0, 0, 1);
 	}
 	return tmp;
 }
@@ -341,45 +434,6 @@ void gf_term_message(GF_Terminal *term, const char *service, const char *message
 	GF_USER_MESSAGE(term->user, service, message, error);
 }
 
-void gf_term_pause_all_clocks(GF_Terminal *term, Bool pause)
-{
-	u32 i, j;
-	GF_ClientService *ns;
-	/*pause all clocks on all services*/
-	i=0;
-	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
-		GF_Clock *ck;
-		j=0;
-		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
-			if (pause) gf_clock_pause(ck);
-			else gf_clock_resume(ck);
-		}
-	}
-}
-
-static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_audio, Bool pause_clocks)
-{
-	/*only play/pause if connected*/
-	if (!term || !term->root_scene) return;
-	/*and if not already paused/playing*/
-	if (!term->play_state && !PlayState) return;
-	if (term->play_state && (PlayState==GF_STATE_PAUSED)) return;
-
-	/*pause compositor*/
-	if ((PlayState==GF_STATE_PLAYING) && reset_audio)
-		gf_sc_set_option(term->compositor, GF_OPT_PLAY_STATE, 0xFF);
-	else
-		gf_sc_set_option(term->compositor, GF_OPT_PLAY_STATE, PlayState);
-
-	if (PlayState==GF_STATE_STEP_PAUSE) PlayState = term->play_state ? GF_STATE_PLAYING : GF_STATE_PAUSED;
-	if (term->play_state == PlayState) return;
-	term->play_state = PlayState;
-
-	if (!pause_clocks) return;
-
-	gf_term_pause_all_clocks(term, PlayState ? 1 : 0);
-}
-
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 {
 	u32 i, j;
@@ -406,45 +460,7 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 GF_EXPORT
 void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u64 startTime, Bool pause_at_first_frame)
 {
-	GF_InlineScene *is;
-	GF_ObjectManager *odm;
-	const char *main_url;
-	if (!URL || !strlen(URL)) return;
-
-	if (term->root_scene) {
-		if (term->root_scene->root_od && term->root_scene->root_od->net_service) {
-			main_url = term->root_scene->root_od->net_service->url;
-			if (main_url && !strcmp(main_url, URL)) {
-				gf_term_play_from_time(term, 0, pause_at_first_frame);
-				return;
-			}
-		}
-		/*disconnect*/
-		gf_term_disconnect(term);
-	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Connecting to %s\n", URL));
-
-	gf_term_lock_net(term, 1);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Creating new root scene\n", URL));
-	/*create a new scene*/
-	is = gf_inline_new(NULL);
-	gf_sg_set_script_action(is->graph, term_script_action, term);
-	odm = gf_odm_new();
-
-	is->root_od =  odm;
-	term->root_scene = is;
-	odm->parentscene = NULL;
-	odm->subscene = is;
-	odm->term = term;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] root scene created\n", URL));
-	gf_term_lock_net(term, 0);
-
-	odm->media_start_time = startTime;
-	/*render first visual frame and pause*/
-	if (pause_at_first_frame)
-		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
-	/*connect - we don't have any parentID */
-	gf_term_connect_object(term, odm, (char *) URL, NULL);
+	gf_term_connect_from_time_ex(term, URL, startTime, pause_at_first_frame, 0);
 }
 
 GF_EXPORT

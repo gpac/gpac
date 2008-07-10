@@ -476,12 +476,17 @@ u32 gf_isom_new_track(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScal
 
 	
 	//some default properties for Audio, Visual or private tracks
-	if (MediaType == GF_ISOM_MEDIA_VISUAL) {
+	switch (MediaType) {
+	case GF_ISOM_MEDIA_VISUAL:
+	case GF_ISOM_MEDIA_SCENE:
+	case GF_ISOM_MEDIA_TEXT:
 		/*320-240 pix in 16.16*/
 		tkhd->width = 0x01400000;
 		tkhd->height = 0x00F00000;
-	} else if (MediaType == GF_ISOM_MEDIA_AUDIO) {
+		break;
+	case GF_ISOM_MEDIA_AUDIO:
 		tkhd->volume = 0x0100;
+		break;
 	}
 
 	mdia->mediaHeader->creationTime = mdia->mediaHeader->modificationTime = now;

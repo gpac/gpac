@@ -527,6 +527,8 @@ enum
 	GF_JSAPI_OP_SET_TITLE,
 	/*!gets DCCI scenegraph if any*/
 	GF_JSAPI_OP_GET_DCCI,
+	/*!gets subscene for current node if any*/
+	GF_JSAPI_OP_GET_SUBSCENE,
 	/*!gets GPAC terminal*/
 	GF_JSAPI_OP_GET_TERM,
 };

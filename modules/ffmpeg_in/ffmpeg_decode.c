@@ -116,41 +116,45 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 	ffd->ctx = avcodec_alloc_context();
 	
 	/*private FFMPEG DSI*/
-	if (ffd->oti == GPAC_FFMPEG_CODECS_OTI) {
+	if (ffd->oti == GPAC_OTI_MEDIA_FFMPEG) {
 		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		if (ffd->st==GF_STREAM_AUDIO) {
 			ffd->ctx->codec_type = CODEC_TYPE_AUDIO;
 			ffd->ctx->sample_rate = gf_bs_read_u32(bs);
 			ffd->ctx->channels = gf_bs_read_u16(bs);
-			ffd->ctx->bits_per_sample = gf_bs_read_u16(bs);
+			ffd->ctx->frame_size = gf_bs_read_u16(bs);
+			ffd->ctx->bits_per_sample = gf_bs_read_u8(bs);
+			/*num_frames_per_au*/ gf_bs_read_u8(bs);
+
 			/*force 16 bits output*/
 			ffd->ctx->bits_per_sample = 16;
-			ffd->ctx->frame_size = gf_bs_read_u16(bs);
+			/*ffmpeg specific*/
 			ffd->ctx->block_align = gf_bs_read_u16(bs);
 		} else if (ffd->st==GF_STREAM_VISUAL) {
 			ffd->ctx->codec_type = CODEC_TYPE_VIDEO;
-			ffd->ctx->width = gf_bs_read_u32(bs);
-			ffd->ctx->height = gf_bs_read_u32(bs);
+			ffd->ctx->width = gf_bs_read_u16(bs);
+			ffd->ctx->height = gf_bs_read_u16(bs);
 		}
-		ffd->ctx->codec_tag = gf_bs_read_u32(bs);
 		ffd->ctx->bit_rate = gf_bs_read_u32(bs);
+
+		ffd->ctx->codec_tag = gf_bs_read_u32(bs);
 
 		ffd->codec = avcodec_find_decoder(codec_id);
 		FFDEC_LoadDSI(ffd, bs, 1);
 		gf_bs_del(bs);
 	} 
 	/*private QT DSI*/
-	else if (ffd->oti == GPAC_EXTRA_CODECS_OTI) {
+	else if (ffd->oti == GPAC_OTI_MEDIA_GENERIC) {
 		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		if (ffd->st==GF_STREAM_AUDIO) {
 			ffd->ctx->codec_type = CODEC_TYPE_AUDIO;
-			ffd->ctx->sample_rate = gf_bs_read_u16(bs);
+			ffd->ctx->sample_rate = gf_bs_read_u32(bs);
+			ffd->ctx->channels = gf_bs_read_u16(bs);
 			ffd->ctx->frame_size = gf_bs_read_u16(bs);
-			ffd->ctx->channels = gf_bs_read_u8(bs);
 			ffd->ctx->bits_per_sample = gf_bs_read_u8(bs);
-			/*packed mode*/ gf_bs_read_u8(bs);
+			/*num_frames_per_au*/ gf_bs_read_u8(bs);
 			/*just in case...*/
 			if (codec_id == GF_4CC('a', 'm', 'r', ' ')) {
 			  ffd->ctx->sample_rate = 8000;
@@ -671,13 +675,13 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 	check_4cc = 0;
 	
 	/*private from FFMPEG input*/
-	if (ObjectType == GPAC_FFMPEG_CODECS_OTI) {
+	if (ObjectType == GPAC_OTI_MEDIA_FFMPEG) {
 		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		gf_bs_del(bs);
 	}
 	/*private from IsoMedia input*/
-	else if (ObjectType == GPAC_EXTRA_CODECS_OTI) {
+	else if (ObjectType == GPAC_OTI_MEDIA_GENERIC) {
 		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		check_4cc = 1;

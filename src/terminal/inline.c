@@ -33,6 +33,10 @@
 
 void MO_UpdateCaps(GF_MediaObject *mo);
 
+/*SVG properties*/
+#ifndef GPAC_DISABLE_SVG
+#include <gpac/scenegraph_svg.h>
+#endif
 
 /*extern proto fetcher*/
 typedef struct
@@ -699,6 +703,29 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 	gf_sc_traverse_subscene(is->root_od->term->compositor, n, is->graph, rs);
 }
 
+
+static void gf_is_resize_event(GF_InlineScene *is)
+{
+	/*fire resize event*/
+#ifndef GPAC_DISABLE_SVG
+	u32 i, count;
+	u32 w, h;
+	GF_DOM_Event evt;
+	memset(&evt, 0, sizeof(GF_DOM_Event));
+	w = h = 0;
+	gf_sg_get_scene_size_info(is->graph, &w, &h);
+	evt.type = GF_EVENT_RESIZE;
+	evt.screen_rect.width = INT2FIX(w);
+	evt.screen_rect.height = INT2FIX(h);
+	gf_dom_event_fire(gf_sg_get_root_node(is->graph), NULL, &evt);
+	
+	count=gf_list_count(is->inline_nodes);
+	for (i=0;i<count; i++) {
+		gf_dom_event_fire( gf_list_get(is->inline_nodes, i), NULL, &evt );
+	}
+#endif
+}
+
 GF_EXPORT
 void gf_inline_attach_to_compositor(GF_InlineScene *is)
 {
@@ -717,6 +744,12 @@ void gf_inline_attach_to_compositor(GF_InlineScene *is)
 		for (i=0;i<count; i++) 
 			gf_node_dirty_parents( gf_list_get(is->inline_nodes, i) );
 		gf_term_invalidate_compositor(is->root_od->term);
+
+		if (is->root_od->parentscene->is_dynamic_scene) {
+			u32 w, h;
+			gf_sg_get_scene_size_info(is->graph, &w, &h);
+			gf_sc_set_size(is->root_od->term->compositor, w, h);
+		}
 	}
 	/*locate fragment IRI*/
 	if (!is->root_od || !is->root_od->net_service || !is->root_od->net_service->url) return;
@@ -726,6 +759,8 @@ void gf_inline_attach_to_compositor(GF_InlineScene *is)
 	}
 	url = strchr(is->root_od->net_service->url, '#');
 	if (url) is->fragment_uri = strdup(url+1);
+
+	gf_is_resize_event(is);
 }
 
 static GF_MediaObject *IS_CheckExistingObject(GF_InlineScene *is, MFURL *urls, u32 type)
@@ -1143,6 +1178,7 @@ void gf_inline_regenerate(GF_InlineScene *is)
 	M_AudioClip *ac;
 	M_MovieTexture *mt;
 	M_AnimationStream *as;
+	M_Inline *dims;
 
 	if (!is->is_dynamic_scene) return;
 
@@ -1154,6 +1190,7 @@ void gf_inline_regenerate(GF_InlineScene *is)
 	gf_sg_reset(is->graph);
 	gf_sg_get_scene_size_info(is->graph, &w, &h);
 	gf_sg_set_scene_size_info(is->graph, w, h, 1);
+
 	n1 = is_create_node(is->graph, TAG_MPEG4_OrderedGroup, NULL);
 	gf_sg_set_root_node(is->graph, n1);
 	gf_node_register(n1, NULL);
@@ -1275,7 +1312,7 @@ void gf_inline_regenerate(GF_InlineScene *is)
 			is->text_url.url = NULL;
 
 			gf_sg_vrml_mf_append(&as->url, GF_SG_VRML_MFURL, (void **) &sfu);
-			sfu->OD_ID = is->visual_url.OD_ID = odm->OD->objectDescriptorID;
+			sfu->OD_ID = is->text_url.OD_ID = odm->OD->objectDescriptorID;
 			if (odm->OD->objectDescriptorID == GF_ESM_DYNAMIC_OD_ID) {
 				sfu->url = strdup(odm->net_service->url);
 				is->text_url.url = strdup(odm->net_service->url);
@@ -1298,6 +1335,26 @@ void gf_inline_regenerate(GF_InlineScene *is)
 		if (!is->dyn_ck) is->dyn_ck = first_odm->codec->ck;
 	}
 
+
+	/*3GPP DIMS streams controlled */
+	n1 = gf_sg_get_root_node(is->graph);
+	dims = (M_Inline *) is_create_node(is->graph, TAG_MPEG4_Inline, "DYN_SCENE");
+	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)dims);
+	gf_node_register((GF_Node *)dims, n1);
+
+	i=0;
+	while ((odm = (GF_ObjectManager*)gf_list_enum(is->ODlist, &i))) {
+		if (!odm->subscene || !odm->subscene->scene_codec) continue;
+
+		gf_sg_vrml_mf_append(&dims->url, GF_SG_VRML_MFURL, (void **) &sfu);
+		sfu->OD_ID = odm->OD->objectDescriptorID;
+		if (odm->OD->objectDescriptorID == GF_ESM_DYNAMIC_OD_ID) {
+			sfu->url = strdup(odm->net_service->url);
+		}
+		if (!is->dyn_ck) is->dyn_ck = odm->subscene->scene_codec->ck;
+		break;
+	}
+	
 	/*disconnect to force resize*/
 	if (is->root_od->term->root_scene == is) {
 		if (is->graph_attached) gf_sc_set_scene(is->root_od->term->compositor, NULL);
@@ -1409,8 +1466,11 @@ void gf_inline_force_scene_size(GF_InlineScene *is, u32 width, u32 height)
 	/*for now only allowed when no scene info*/
 	if (!is->is_dynamic_scene) return;
 	gf_sg_set_scene_size_info(is->graph, width, height, gf_sg_use_pixel_metrics(is->graph));
-	if (is->root_od->term->root_scene != is) return;
-	gf_sc_set_scene(is->root_od->term->compositor, is->graph);
+	
+	if (is->root_od->term->root_scene == is) 
+		gf_sc_set_scene(is->root_od->term->compositor, is->graph);
+
+	gf_is_resize_event(is);
 
 	IS_UpdateVideoPos(is);
 }

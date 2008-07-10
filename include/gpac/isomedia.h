@@ -171,6 +171,9 @@ enum
 	/*GPAC-defined, for any track using MPEG-4 systems signaling but with undefined streaml types*/
 	GF_ISOM_MEDIA_ESM		= GF_4CC( 'g', 'e', 's', 'm' ),
 
+	/*DIMS media type (same as scene but with a different mediaInfo)*/
+	GF_ISOM_MEDIA_DIMS		= GF_4CC( 'd', 'i', 'm', 's' ),
+
 	GF_ISOM_MEDIA_FLASH		= GF_4CC( 'f', 'l', 's', 'h' )
 };
 
@@ -201,7 +204,11 @@ enum
 	GF_ISOM_SUBTYPE_3GP_AMR_WB	= GF_4CC( 's', 'a', 'w', 'b' ),
 	GF_ISOM_SUBTYPE_3GP_EVRC		= GF_4CC( 's', 'e', 'v', 'c' ),
 	GF_ISOM_SUBTYPE_3GP_QCELP	= GF_4CC( 's', 'q', 'c', 'p' ),
-	GF_ISOM_SUBTYPE_3GP_SMV		= GF_4CC( 's', 's', 'm', 'v' )
+	GF_ISOM_SUBTYPE_3GP_SMV		= GF_4CC( 's', 's', 'm', 'v' ),
+
+	/*3GPP DIMS*/
+	GF_ISOM_SUBTYPE_3GP_DIMS		= GF_4CC( 'd', 'i', 'm', 's' )
+
 };
 
 
@@ -465,6 +472,8 @@ WARNING: the sample may not be sync even though the sync was requested (depends 
 the SampleNum is optional. If non-NULL, will contain the sampleNumber*/
 GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, u64 desiredTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *SampleNum);
 
+/*retrieves given sample DTS*/
+u32 gf_isom_get_sample_from_dts(GF_ISOFile *the_file, u32 trackNumber, u64 dts);
 
 /*Track Edition functions*/
 
@@ -1791,6 +1800,36 @@ GF_Err gf_isom_reset_switch_parameters(GF_ISOFile *movie);
 
 #endif
 
+
+typedef struct
+{
+	u8 profile;
+	u8 level;
+	u8 pathComponents;
+	Bool fullRequestHost;
+	Bool streamType;
+	u8 containsRedundant;
+	const char *textEncoding;
+	const char *contentEncoding;
+	const char *content_script_types;
+} GF_DIMSDescription;
+
+/*DIMS unit flags */
+enum
+{
+	GF_DIMS_UNIT_S = 1,
+	GF_DIMS_UNIT_M = 1<<1,
+	GF_DIMS_UNIT_I = 1<<2,
+	GF_DIMS_UNIT_D = 1<<3,
+	GF_DIMS_UNIT_P = 1<<4,
+	GF_DIMS_UNIT_C = 1<<5
+};
+
+GF_Err gf_isom_get_dims_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_DIMSDescription *desc);
+#ifndef GPAC_READ_ONLY
+GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 *outDescriptionIndex);
+GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 DescriptionIndex);
+#endif
 
 
 #ifdef __cplusplus

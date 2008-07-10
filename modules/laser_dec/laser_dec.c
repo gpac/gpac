@@ -111,7 +111,7 @@ static GF_Err LSR_ProcessData(GF_SceneDecoder*plug, char *inBuffer, u32 inBuffer
 
 Bool LSR_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
-	if ((StreamType==GF_STREAM_SCENE) && (ObjectType == 0x09)) return 1;
+	if ((StreamType==GF_STREAM_SCENE) && (ObjectType == GPAC_OTI_SCENE_LASER)) return 1;
 	return 0;
 }
 

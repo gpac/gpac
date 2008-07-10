@@ -506,7 +506,8 @@ GF_Path *gf_font_span_create_path(GF_TextSpan *span)
 			if (span->dx) dx = gf_divfix(span->dx[i], mat.m[0]);
 			if (span->dy) dy = gf_divfix(span->dy[i], mat.m[4]);
 
-			gf_path_add_subpath(path, span->glyphs[i]->path, dx, dy);
+			if (span->glyphs[i]->utf_name != ' ')
+				gf_path_add_subpath(path, span->glyphs[i]->path, dx, dy);
 
 			if (span->flags & GF_TEXT_SPAN_HORIZONTAL) {
 				dx += INT2FIX(span->glyphs[i]->horiz_advance);
@@ -684,7 +685,6 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	gf_path_add_line_to(span->ext->path, bounds.x+bounds.width, bounds.y);
 	gf_path_add_line_to(span->ext->path, bounds.x, bounds.y);
 	gf_path_close(span->ext->path);
-
 
 	gf_sc_texture_set_stencil(span->ext->txh, stencil);
 	gf_sc_texture_set_data(span->ext->txh);

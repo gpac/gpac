@@ -230,8 +230,6 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_IPRO: return ipro_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_INFE: return infe_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_IINF: return iinf_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_IMIF: return imif_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_IPMC: return ipmc_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_SINF: return sinf_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_FRMA: return frma_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_SCHM: return schm_dump(a, trace);
@@ -276,6 +274,10 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_TSEL: return tsel_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_METX: return metx_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_METT: return metx_dump(a, trace);
+
+	case GF_ISOM_BOX_TYPE_DIMS: return dims_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DIMC: return dimC_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DIST: return diST_dump(a, trace);
 
 	default: return defa_dump(a, trace);
 	}
@@ -1681,42 +1683,6 @@ GF_Err iloc_dump(GF_Box *a, FILE * trace)
 		}
 	}
 	fprintf(trace, "</ItemLocationBox>\n");
-	return GF_OK;
-}
-
-
-GF_Err imif_dump(GF_Box *a, FILE * trace)
-{
-	u32 i, count;
-	GF_IPMPInfoBox *p = (GF_IPMPInfoBox*)a;
-	fprintf(trace, "<IPMPInfoBox>\n");
-	DumpBox(a, trace);
-	gf_full_box_dump(a, trace);
-	count = gf_list_count(p->descriptors);
-	for (i=0; i<count; i++) {
-		GF_Descriptor *d = (GF_Descriptor *)gf_list_get(p->descriptors, i);
-		gf_odf_dump_desc(d, trace, 0, 1);
-	}
-	fprintf(trace, "</IPMPInfoBox>\n");
-	return GF_OK;
-}
-
-
-GF_Err ipmc_dump(GF_Box *a, FILE * trace)
-{
-	u32 i, count;
-	GF_IPMPControlBox *p = (GF_IPMPControlBox*)a;
-	fprintf(trace, "<IPMPControlBox>\n");
-	DumpBox(a, trace);
-	gf_full_box_dump(a, trace);
-
-	if (p->ipmp_tools) gf_odf_dump_desc(p->ipmp_tools, trace, 0, 1);
-	count = gf_list_count(p->descriptors);
-	for (i=0; i<count; i++) {
-		GF_Descriptor *d = (GF_Descriptor *)gf_list_get(p->descriptors, i);
-		gf_odf_dump_desc(d, trace, 0, 1);
-	}
-	fprintf(trace, "</IPMPControlBox>\n");
 	return GF_OK;
 }
 
@@ -3226,6 +3192,41 @@ GF_Err metx_dump(GF_Box *a, FILE * trace)
 	if (ptr->protection_info) gf_box_dump(ptr->protection_info, trace);
 
 	fprintf(trace, "</%s>\n", name);
+	return GF_OK;
+}
+
+
+GF_Err dims_dump(GF_Box *a, FILE * trace)
+{
+	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox*)a;
+
+	fprintf(trace, "<DIMSSampleEntryBox dataReferenceIndex=\"%d\">\n", p->dataReferenceIndex);
+	DumpBox(a, trace);
+	if (p->config) gf_box_dump(p->config, trace);
+	if (p->scripts) gf_box_dump(p->scripts, trace);
+	if (p->bitrate) gf_box_dump(p->bitrate, trace);
+	if (p->protection_info) gf_box_dump(p->protection_info, trace);
+	fprintf(trace, "</DIMSSampleEntryBox>\n");
+	return GF_OK;
+}
+
+GF_Err diST_dump(GF_Box *a, FILE * trace)
+{
+	GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox*)a;
+
+	fprintf(trace, "<DIMSScriptTypesBox types=\"%s\">\n", p->content_script_types);
+	DumpBox(a, trace);
+	fprintf(trace, "</DIMSScriptTypesBox>\n");
+	return GF_OK;
+}
+GF_Err dimC_dump(GF_Box *a, FILE * trace)
+{
+	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)a;
+
+	fprintf(trace, "<DIMSSceneConfigBox profile=\"%d\" level=\"%d\" pathComponents=\"%d\" useFullRequestHosts=\"%d\" streamType=\"%d\" containsRedundant=\"%d\" textEncoding=\"%s\" contentEncoding=\"%s\" >\n", 
+		p->profile, p->level, p->pathComponents, p->fullRequestHost, p->streamType, p->containsRedundant, p->textEncoding, p->contentEncoding);
+	DumpBox(a, trace);
+	fprintf(trace, "</DIMSSceneConfigBox>\n");
 	return GF_OK;
 }
 

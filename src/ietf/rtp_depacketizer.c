@@ -977,19 +977,20 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		{
 			GF_BitStream *bs;
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-			rtp->sl_map.ObjectTypeIndication = GPAC_EXTRA_CODECS_OTI;
+			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
 			/*create DSI*/
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (rtp->payt == GF_RTP_PAYT_AMR) {
 				gf_bs_write_u32(bs, GF_4CC('s', 'a', 'm', 'r'));
-				gf_bs_write_u16(bs, 8000);
+				gf_bs_write_u32(bs, 8000);
+				gf_bs_write_u16(bs, 1);
 				gf_bs_write_u16(bs, 160);
 			} else {
 				gf_bs_write_u32(bs, GF_4CC('s', 'a', 'w', 'b'));
-				gf_bs_write_u16(bs, 16000);
+				gf_bs_write_u32(bs, 16000);
+				gf_bs_write_u16(bs, 1);
 				gf_bs_write_u16(bs, 320);
 			}
-			gf_bs_write_u8(bs, 1);
 			gf_bs_write_u8(bs, 16);
 			gf_bs_write_u8(bs, 1);
 			gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
@@ -1012,7 +1013,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			}
 
 			rtp->sl_map.StreamType = GF_STREAM_VISUAL;
-			rtp->sl_map.ObjectTypeIndication = GPAC_EXTRA_CODECS_OTI;
+			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
 			/*create DSI*/
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_u32(bs, GF_4CC('h', '2', '6', '3'));

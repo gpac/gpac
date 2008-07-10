@@ -1091,6 +1091,24 @@ Bool gf_isom_is_self_contained(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 	return Media_IsSelfContained(trak->Media, sampleDescriptionIndex);
 }
 
+/*retrieves given sample DTS*/
+u32 gf_isom_get_sample_from_dts(GF_ISOFile *the_file, u32 trackNumber, u64 dts)
+{
+	GF_Err e;
+	u32 sampleNumber, prevSampleNumber;
+	GF_TrackBox *trak;
+	GF_SampleTableBox *stbl;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return 0;
+
+	stbl = trak->Media->information->sampleTable;
+	
+	e = findEntryForTime(stbl, dts, 1, &sampleNumber, &prevSampleNumber);
+	if (e) return 0;
+	return sampleNumber;
+}
+
 
 //return a sample given a desired display time IN MEDIA TIME SCALE
 //and set the StreamDescIndex of this sample

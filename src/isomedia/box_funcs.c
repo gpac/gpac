@@ -476,8 +476,6 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_IPRO: return ipro_New();
 	case GF_ISOM_BOX_TYPE_INFE: return infe_New();
 	case GF_ISOM_BOX_TYPE_IINF: return iinf_New();
-	case GF_ISOM_BOX_TYPE_IMIF: return imif_New();
-	case GF_ISOM_BOX_TYPE_IPMC: return ipmc_New();
 	case GF_ISOM_BOX_TYPE_SINF: return sinf_New();
 	case GF_ISOM_BOX_TYPE_FRMA: return frma_New();
 	case GF_ISOM_BOX_TYPE_SCHM: return schm_New();
@@ -529,6 +527,9 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_PASP: return pasp_New();
 	case GF_ISOM_BOX_TYPE_TSEL: return tsel_New();
 
+	case GF_ISOM_BOX_TYPE_DIMS: return dims_New();
+	case GF_ISOM_BOX_TYPE_DIMC: return dimC_New();
+	case GF_ISOM_BOX_TYPE_DIST: return diST_New();
 
 	case GF_ISOM_BOX_TYPE_METX:
 	case GF_ISOM_BOX_TYPE_METT:
@@ -701,8 +702,6 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_IPRO: ipro_del(a); return;
 	case GF_ISOM_BOX_TYPE_INFE: infe_del(a); return;
 	case GF_ISOM_BOX_TYPE_IINF: iinf_del(a); return;
-	case GF_ISOM_BOX_TYPE_IMIF: imif_del(a); return;
-	case GF_ISOM_BOX_TYPE_IPMC: ipmc_del(a); return;
 	case GF_ISOM_BOX_TYPE_SINF:	sinf_del(a); return;
 	case GF_ISOM_BOX_TYPE_FRMA:	frma_del(a); return;
 	case GF_ISOM_BOX_TYPE_SCHM:		schm_del(a); return;
@@ -761,6 +760,10 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_METT:
 		metx_del(a);
 		return;
+
+	case GF_ISOM_BOX_TYPE_DIMS: dims_del(a); return;
+	case GF_ISOM_BOX_TYPE_DIMC: dimC_del(a); return;
+	case GF_ISOM_BOX_TYPE_DIST: diST_del(a); return;
 
 	default:
 		defa_del(a);
@@ -920,8 +923,6 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_IPRO: return ipro_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_INFE: return infe_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_IINF: return iinf_Read(a, bs);
-	case GF_ISOM_BOX_TYPE_IMIF: return imif_Read(a, bs);
-	case GF_ISOM_BOX_TYPE_IPMC: return ipmc_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_SINF: return sinf_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_FRMA: return frma_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_SCHM: return schm_Read(a, bs);
@@ -973,6 +974,10 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_METX:
 	case GF_ISOM_BOX_TYPE_METT:
 		return metx_Read(a, bs);
+
+	case GF_ISOM_BOX_TYPE_DIMS: return dims_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_DIMC: return dimC_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_DIST: return diST_Read(a, bs);
 
 	default:
 		return defa_Read(a, bs);
@@ -1134,8 +1139,6 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_IPRO: return ipro_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_INFE: return infe_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_IINF: return iinf_Write(a, bs);
-	case GF_ISOM_BOX_TYPE_IMIF: return imif_Write(a, bs);
-	case GF_ISOM_BOX_TYPE_IPMC: return ipmc_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_SINF: return sinf_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_FRMA: return frma_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_SCHM: return schm_Write(a, bs);
@@ -1187,6 +1190,10 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_METX:
 	case GF_ISOM_BOX_TYPE_METT:
 		return metx_Write(a, bs);
+
+	case GF_ISOM_BOX_TYPE_DIMS: return dims_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_DIMC: return dimC_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_DIST: return diST_Write(a, bs);
 
 	default:
 		return defa_Write(a, bs);
@@ -1344,8 +1351,6 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_IPRO: return ipro_Size(a);
 	case GF_ISOM_BOX_TYPE_INFE: return infe_Size(a);
 	case GF_ISOM_BOX_TYPE_IINF: return iinf_Size(a);
-	case GF_ISOM_BOX_TYPE_IMIF: return imif_Size(a);
-	case GF_ISOM_BOX_TYPE_IPMC: return ipmc_Size(a);
 	case GF_ISOM_BOX_TYPE_SINF: return sinf_Size(a);
 	case GF_ISOM_BOX_TYPE_FRMA: return frma_Size(a);
 	case GF_ISOM_BOX_TYPE_SCHM: return schm_Size(a);
@@ -1397,6 +1402,10 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_METX:
 	case GF_ISOM_BOX_TYPE_METT:
 		return metx_Size(a);
+
+	case GF_ISOM_BOX_TYPE_DIMS: return dims_Size(a);
+	case GF_ISOM_BOX_TYPE_DIMC: return dimC_Size(a);
+	case GF_ISOM_BOX_TYPE_DIST: return diST_Size(a);
 
 	default: return defa_Size(a);
 	}

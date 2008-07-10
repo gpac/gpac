@@ -177,6 +177,21 @@ Package=<4>
 
 ###############################################################################
 
+Project: "bsac_dec"=..\..\modules\bsac_dec\bsac_dec.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "ctx_load"=.\ctx_load.dsp - Package Owner=<4>
 
 Package=<5>
@@ -253,6 +268,21 @@ Package=<4>
 ###############################################################################
 
 Project: "gdip_raster"=.\gdip_raster.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "gvm"=.\gvm.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

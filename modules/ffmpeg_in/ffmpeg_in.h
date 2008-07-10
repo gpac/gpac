@@ -133,9 +133,6 @@ typedef struct
 void *New_FFMPEG_Demux();
 void Delete_FFMPEG_Demux(void *ifce);
 
-/*this is the OTI (user-priv) used for all undefined codec used by ffmpeg (carrying specific info from
-AVContext*/
-#define GPAC_FFMPEG_CODECS_OTI			0x81
 
 /*The DSI sent is:
 

@@ -1,5 +1,15 @@
-Latest CVS changes - 26/05/08:
-  - Added support for YCbCr OpenGL texturing 
+Latest CVS changes - 10/07/08:
+  - Initial support for 3GPP DIMS (file creation and dumping + playback)
+      * Currently only SVG as overlay is supported for DIMS files, we are not sure about the specification on this topic
+      * RTP hinting /playback is not supported yet      
+  - Support for SVG foreignObject - all GPAC supported content can be played in a foreign object
+  - Added automatic switch between 2D and 3D context for VRML/BIFS Inline node 
+  - Basic support for DCCI queries: 
+    * the DCCI object is exposed in scripts as 'DCCIRoot'
+    * the related document can be specified in GPAC configuration file in the [General] section with the 'EnvironmentFile' key 
+      pointing to an XML file to use as the ontology context
+    * DCCI's propertyFilters are NOT supported yet.   
+  - Added support for YCbCr OpenGL texturing (only tested with GL_MESA_ycbcr_texture)
   - Fixed bugs in OSS audio (100% CPU usage when no audio to play) and ALSA (broken playback)
   - Initial support for YUV overlays on Win32 and Linux (Needs XVideo) 
       * only one overlay at the moment

@@ -765,6 +765,13 @@ void remove_systems_tracks(GF_ISOFile *file)
 		/*only remove real systems tracks (eg, delaing with scene description & presentation)
 		but keep meta & all unknown tracks*/
 		case GF_ISOM_MEDIA_SCENE:
+			switch (gf_isom_get_media_subtype(file, i+1, 1)) {
+			case GF_ISOM_MEDIA_DIMS:
+				gf_isom_remove_track_from_root_od(file, i+1);
+				continue;
+			default:
+				break;
+			}
 		case GF_ISOM_MEDIA_OD:
 		case GF_ISOM_MEDIA_OCR:
 		case GF_ISOM_MEDIA_MPEGJ:
@@ -2255,6 +2262,11 @@ int main(int argc, char **argv)
 
 
 	if (!encode) {
+		if (!file) {
+			fprintf(stdout, "Nothing to do - exiting\n");
+			gf_sys_close();
+			return 0;
+		}
 		if (outName) {
 			strcpy(outfile, outName);
 		} else {

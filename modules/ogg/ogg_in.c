@@ -172,7 +172,7 @@ static GF_ObjectDescriptor *OGG_GetOD(OGGStream *st)
 	od->objectDescriptorID = (st->info.streamType==GF_STREAM_AUDIO) ? 3 : 2;
 	esd = gf_odf_desc_esd_new(0);
 	esd->decoderConfig->streamType = st->info.streamType;
-	esd->decoderConfig->objectTypeIndication = GPAC_OGG_MEDIA_OTI;
+	esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_OGG;
 	esd->decoderConfig->avgBitrate = st->info.bitrate;
 	esd->ESID = st->ESID;
 

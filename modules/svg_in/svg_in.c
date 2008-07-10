@@ -31,19 +31,6 @@
 
 #ifndef GPAC_DISABLE_SVG
 
-enum {
-	/*defined by dummy_in plugin / streamType = PRIVATE_SCENE */
-	SVG_IN_OTI_SVG = 2,
-	/*defined by dummy_in plugin / streamType = PRIVATE_SCENE */
-	SVG_IN_OTI_LASERML = 3,
-	/*defined by ourselves - streamType 3 (scene description) for SVG streaming*/
-	SVG_IN_OTI_STREAMING_SVG	  = 10,
-	/*defined by ourselves - streamType 3 (scene description) for SVG streaming*/
-	SVG_IN_OTI_STREAMING_SVG_GZ	  = 11,
-	/*defined by ourselves - streamType 3 (scene description) for SVG streaming*/
-	SVG_IN_OTI_STREAMING_DIMS	  = 12
-};
-
 typedef struct
 {
 	GF_SceneLoader loader;
@@ -76,7 +63,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 	GF_Err e = GF_OK;
 	SVGIn *svgin = (SVGIn *)plug->privateStack;
 	switch (svgin->oti) {
-	case SVG_IN_OTI_SVG:
+	case GPAC_OTI_PRIVATE_SCENE_SVG:
 		/*full doc parsing*/
 		if ((svgin->sax_max_duration==(u32) -1) && svgin->file_size) {
 			/*init step*/
@@ -130,15 +117,28 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 			}
 		}
 		break;
-	case SVG_IN_OTI_STREAMING_SVG:
+	case GPAC_OTI_SCENE_SVG:
 		e = gf_sm_load_string(&svgin->loader, inBuffer, 0);
 		break;
 
-	case SVG_IN_OTI_STREAMING_DIMS:
-		e = gf_sm_load_string(&svgin->loader, inBuffer, 0);
+	case GPAC_OTI_SCENE_DIMS:
+		{
+			GF_BitStream *bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
+			while (gf_bs_available(bs)) {
+				u32 pos = (u32) gf_bs_get_position(bs);
+				u16 size = gf_bs_read_u16(bs);
+				u8 dims_hdr = gf_bs_read_u8(bs);
+				u8 prev = inBuffer[pos+2+size];
+				inBuffer[pos+2+size] = 0;
+				e = gf_sm_load_string(&svgin->loader, inBuffer + pos + 3, 0);
+				inBuffer[pos+2+size] = prev;
+				gf_bs_skip_bytes(bs, size-1);
+			}
+			gf_bs_del(bs);
+		}
 		break;
 		
-	case SVG_IN_OTI_STREAMING_SVG_GZ:
+	case GPAC_OTI_SCENE_SVG_GZ:
 	{
 		char svg_data[2049];
 		int err;
@@ -171,7 +171,6 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 		}
 	}
 		break;
-	case SVG_IN_OTI_LASERML: return GF_NOT_SUPPORTED;
 	default: return GF_BAD_PARAM;
 	}
 
@@ -220,15 +219,18 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 	SVGIn *svgin = (SVGIn *)plug->privateStack;
 	if (Upstream) return GF_NOT_SUPPORTED;
 
+	svgin->loader.type = GF_SM_LOAD_SVG_DA;
 	/* decSpecInfo is not null only when reading from an SVG file (local or distant, cached or not) */
 	switch (objectTypeIndication) {
-	case SVG_IN_OTI_STREAMING_SVG:
-	case SVG_IN_OTI_STREAMING_SVG_GZ:
+	case GPAC_OTI_SCENE_SVG:
+	case GPAC_OTI_SCENE_SVG_GZ:
 		/*no decSpecInfo defined for streaming svg yet*/
 		break;
-	case SVG_IN_OTI_STREAMING_DIMS:
+	case GPAC_OTI_SCENE_DIMS:
+		svgin->loader.type = GF_SM_LOAD_DIMS;
 		svgin->loader.flags |= GF_SM_LOAD_CONTEXT_DIMS;
-		/*decSpecInfo not yet supported for DIMS svg */
+		/*decSpecInfo not yet supported for DIMS svg - we need properties at the scene level to store the 
+		various indications*/
 		break;
 	default:
 		if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
@@ -258,8 +260,6 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 	} else {
 		svgin->sax_max_duration = (u32) -1;
 	}
-
-	svgin->loader.type = GF_SM_LOAD_SVG_DA;
 	return GF_OK;
 }
 
@@ -275,24 +275,22 @@ static GF_Err SVG_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 const char *SVG_GetName(struct _basedecoder *plug)
 {
 	SVGIn *svgin = (SVGIn *)plug->privateStack;
-	if (svgin->oti==SVG_IN_OTI_SVG) return ((svgin->sax_max_duration==(u32)-1) && svgin->file_size) ? "GPAC SVG SAX Parser" : "GPAC SVG Progressive Parser";
-	if (svgin->oti==SVG_IN_OTI_STREAMING_SVG) return "GPAC Streaming SVG Parser";
-	if (svgin->oti==SVG_IN_OTI_STREAMING_SVG_GZ) return "GPAC Streaming SVGZ Parser";
-	if (svgin->oti==SVG_IN_OTI_LASERML) return "GPAC LASeRML Parser";
-	if (svgin->oti==SVG_IN_OTI_STREAMING_DIMS) return "GPAC DIMS Parser";	
+	if (svgin->oti==GPAC_OTI_PRIVATE_SCENE_SVG) return ((svgin->sax_max_duration==(u32)-1) && svgin->file_size) ? "GPAC SVG SAX Parser" : "GPAC SVG Progressive Parser";
+	if (svgin->oti==GPAC_OTI_SCENE_SVG) return "GPAC Streaming SVG Parser";
+	if (svgin->oti==GPAC_OTI_SCENE_SVG_GZ) return "GPAC Streaming SVGZ Parser";
+	if (svgin->oti==GPAC_OTI_SCENE_DIMS) return "GPAC DIMS Parser";	
 	return "INTERNAL ERROR";
 }
 
 Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
-		if (ObjectType==SVG_IN_OTI_SVG) return 1;
-		//if (ObjectType==SVG_IN_OTI_LASERML) return 1;
+		if (ObjectType==GPAC_OTI_PRIVATE_SCENE_SVG) return 1;
 		return 0;
 	} else if (StreamType==GF_STREAM_SCENE) {
-		if (ObjectType==SVG_IN_OTI_STREAMING_SVG) return 1;
-		if (ObjectType==SVG_IN_OTI_STREAMING_SVG_GZ) return 1;
-		if (ObjectType==SVG_IN_OTI_STREAMING_DIMS) return 1;	
+		if (ObjectType==GPAC_OTI_SCENE_SVG) return 1;
+		if (ObjectType==GPAC_OTI_SCENE_SVG_GZ) return 1;
+		if (ObjectType==GPAC_OTI_SCENE_DIMS) return 1;	
 		return 0;
 	}
 	return 0;

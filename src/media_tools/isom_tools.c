@@ -378,7 +378,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 GF_EXPORT
 GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 {
-	u32 Tracks, i, mType, stype, nb_vid, nb_avc, nb_aud, nb_txt, nb_non_mp4;
+	u32 Tracks, i, mType, stype, nb_vid, nb_avc, nb_aud, nb_txt, nb_non_mp4, nb_dims;
 	Bool is_3g2 = 0;
 
 	switch (gf_isom_get_mode(mp4file)) {
@@ -391,12 +391,13 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 	}
 
 	Tracks = gf_isom_get_track_count(mp4file);
-	nb_vid = nb_aud = nb_txt = nb_avc = nb_non_mp4 = 0;
+	nb_vid = nb_aud = nb_txt = nb_avc = nb_non_mp4 = nb_dims = 0;
 
 	for (i=0; i<Tracks; i++) {
 		gf_isom_remove_track_from_root_od(mp4file, i+1);
 
 		mType = gf_isom_get_media_type(mp4file, i+1);
+		stype = gf_isom_get_media_subtype(mp4file, i+1, 1);
 		switch (mType) {
 		case GF_ISOM_MEDIA_VISUAL:
 			/*remove image tracks if wanted*/
@@ -405,7 +406,6 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 				goto remove_track;
 			}
 
-			stype = gf_isom_get_media_subtype(mp4file, i+1, 1);
 			if (stype == GF_ISOM_SUBTYPE_MPEG4_CRYP) gf_isom_get_ismacryp_info(mp4file, i+1, 1, &stype, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 			switch (stype) {
@@ -436,7 +436,6 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 			}
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
-			stype = gf_isom_get_media_subtype(mp4file, i+1, 1);
 			if (stype == GF_ISOM_SUBTYPE_MPEG4_CRYP) gf_isom_get_ismacryp_info(mp4file, i+1, 1, &stype, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 			switch (stype) {
 			case GF_ISOM_SUBTYPE_3GP_EVRC:
@@ -476,6 +475,11 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 		case GF_ISOM_MEDIA_TEXT:
 			nb_txt++;
 			break;
+		case GF_ISOM_MEDIA_SCENE:
+			if (stype == GF_ISOM_MEDIA_DIMS) {
+				nb_dims++;
+				break;
+			} 
 		/*clean file*/
 		default:
 			if (mType==GF_ISOM_MEDIA_HINT) {
@@ -981,13 +985,13 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		/*use private DSI*/
-		esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*format ext*/
 		gf_bs_write_u32(bs, subtype);
-		gf_bs_write_u16(bs, (subtype == GF_ISOM_SUBTYPE_3GP_AMR) ? 8000 : 16000);
+		gf_bs_write_u32(bs, (subtype == GF_ISOM_SUBTYPE_3GP_AMR) ? 8000 : 16000);
+		gf_bs_write_u16(bs, 1);
 		gf_bs_write_u16(bs, (subtype == GF_ISOM_SUBTYPE_3GP_AMR) ? 160 : 320);
-		gf_bs_write_u8(bs, 1);
 		gf_bs_write_u8(bs, 16);
 		gf_bs_write_u8(bs, gpc ? gpc->frames_per_sample : 0);
 		if (gpc) free(gpc);
@@ -1004,13 +1008,38 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 		/*use private DSI*/
-		esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*format ext*/
 		gf_bs_write_u32(bs, GF_4CC('h', '2', '6', '3'));
 		gf_isom_get_visual_info(mp4, track, 1, &w, &h);
 		gf_bs_write_u16(bs, w);
 		gf_bs_write_u16(bs, h);
+		gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+		gf_bs_del(bs);
+		return esd;
+	}
+
+	if (subtype == GF_ISOM_SUBTYPE_3GP_DIMS) {
+		GF_DIMSDescription dims;
+		esd = gf_odf_desc_esd_new(0);
+		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
+		esd->ESID = gf_isom_get_track_id(mp4, track);
+		esd->OCRESID = esd->ESID;
+		esd->decoderConfig->streamType = GF_STREAM_SCENE;
+		/*use private DSI*/
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_DIMS;
+		gf_isom_get_dims_description(mp4, track, 1, &dims);
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		/*format ext*/
+		gf_bs_write_u8(bs, dims.profile);
+		gf_bs_write_u8(bs, dims.level);
+		gf_bs_write_int(bs, dims.pathComponents, 4);
+		gf_bs_write_int(bs, dims.fullRequestHost, 1);
+		gf_bs_write_int(bs, dims.streamType, 1);
+		gf_bs_write_int(bs, dims.containsRedundant, 2);
+		gf_bs_write_data(bs, (char*)dims.textEncoding, strlen(dims.textEncoding)+1);
+		gf_bs_write_data(bs, (char*)dims.contentEncoding, strlen(dims.contentEncoding)+1);
 		gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 		return esd;
@@ -1023,16 +1052,16 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	esd->OCRESID = esd->ESID = gf_isom_get_track_id(mp4, track);
 	esd->slConfig->useTimestampsFlag = 1;
 	esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
-	esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
+	esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
 	/*format ext*/
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(bs, subtype);
 	udesc = gf_isom_get_generic_sample_description(mp4, track, 1);
 	if (type==GF_ISOM_MEDIA_AUDIO) {
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		gf_bs_write_u16(bs, udesc->samplerate);
+		gf_bs_write_u32(bs, udesc->samplerate);
+		gf_bs_write_u16(bs, udesc->nb_channels);
 		gf_bs_write_u16(bs, 0);
-		gf_bs_write_u8(bs, udesc->nb_channels);
 		gf_bs_write_u8(bs, udesc->bits_per_sample);
 		gf_bs_write_u8(bs, 0);
 	} else {

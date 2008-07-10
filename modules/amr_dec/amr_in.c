@@ -70,12 +70,12 @@ static GF_ESD *AMR_GetESD(AMR_Reader *read)
 	esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 
 	if ((read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) || (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR_WB)) {
-		esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
 		dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(dsi, read->mtype);
-		gf_bs_write_u16(dsi, (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) ? 8000 : 16000);
+		gf_bs_write_u32(dsi, (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) ? 8000 : 16000);
+		gf_bs_write_u16(dsi, 1);
 		gf_bs_write_u16(dsi, (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) ? 160 : 320);
-		gf_bs_write_u8(dsi, 1);
 		gf_bs_write_u8(dsi, 16);
 		gf_bs_write_u8(dsi, 1);
 		gf_bs_get_content(dsi, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);

@@ -52,7 +52,7 @@ static GF_Err THEO_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 	
 	if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
 
-	if (objectTypeIndication != GPAC_OGG_MEDIA_OTI) return GF_NON_COMPLIANT_BITSTREAM;
+	if (objectTypeIndication != GPAC_OTI_MEDIA_OGG) return GF_NON_COMPLIANT_BITSTREAM;
 	if ( (decSpecInfoSize<9) || strncmp(&decSpecInfo[3], "theora", 6)) return GF_NON_COMPLIANT_BITSTREAM;
 
 	oggpacket.granulepos = -1;

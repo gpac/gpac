@@ -83,8 +83,8 @@ enum
 
 	/*!GPAC Private Scene streams\n
 	*\n\note
-	*this streamtype (MPEG-4 user-private) is reserved for streams only used to create a scene decoder handling the service 
-	*by itself, as is the case of the BT/VRML reader and can be used by many other things.\n
+	*this stream type (MPEG-4 user-private) is reserved for streams only used to create a scene decoder 
+	*handling the scene without input streams, as is the case for file readers (BT/VRML/XML..).\n
 	*The decoderSpecificInfo carried is as follows:
 	 \code 
 		u32 file_size:	total file size 
@@ -93,16 +93,13 @@ enum
 		downloaded before parsing if needed.
 	 \endcode 
 	*The inBufferLength param for decoders using these streams is the stream clock in ms (no input data is given).\n
-	*There is a dummy module available generating this stream and taking care of proper clock init in case of seeking.\n
-	*This is a reentrant streamtype: if any media object with this streamtype also exist in the scene, they will be 
+	*The "dummy_in" module is available to generate these streams for common files, and also takes care of proper 
+	clock init in case of seeking.\n
+	*This is a reentrant stream type: if any media object with this streamtype also exist in the scene, they will be 
 	*attached to the scene decoder (except when a new inline scene is detected, in which case a new decoder will 
 	*be created). This allows for animation/sprite usage along with the systems timing/stream management.\n
 	*\n
-	*the objectTypeIndication currently in use for these streams are\n
-	*0x00	-	 Forbidden\n
-	*0x01	-	 VRML/BT/XMT/SWF loader (similar to MP4Box context loading)\n
-	*0x02	-	 SVG loader\n
-	*0x03	-	 LASeR XML loader\n
+	*the objectTypeIndication currently in use for these streams are documented below\n
 	*/
 	GF_STREAM_PRIVATE_SCENE	= 0x20,
 };
@@ -205,6 +202,129 @@ typedef enum
 
 } GF_PixelFormat;
 
+
+/*!
+ * \brief Scene ObjectTypeIndication Formats
+ * 
+ *	Supported ObjectTypeIndication for scene description streams. *_FILE_* are only used with private scene streams
+ * and only carry the file name for the scene. Other internal stream types can be used in a real streaming environment
+*/
+enum
+{
+	/*!OTI for BIFS v1*/
+	GPAC_OTI_SCENE_BIFS = 0x01,
+	/*!OTI for BIFS v2*/
+	GPAC_OTI_SCENE_BIFS_V2 = 0x02,
+	/*!OTI for BIFS InputSensor streams*/
+	GPAC_OTI_SCENE_INTERACT = 0x03,
+	/*!OTI forLASeR streams*/
+	GPAC_OTI_SCENE_LASER = 0x09,
+
+	/*!OTI for dummy streams (dsi = file name) using the generci context loader (BIFS/VRML/SWF/...) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_GENERIC = 0xC0,
+	/*!OTI for SVG dummy stream (dsi = file name) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_SVG = 0xC1,
+	/*!OTI for LASeR/SAF+XML dummy stream (dsi = file name) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_LASER = 0xC2,
+	/*!OTI for XBL dummy streams (dsi = file name) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_XBL = 0xC3,
+
+	/*!OTI for streaming SVG - GPAC internal*/
+	GPAC_OTI_SCENE_SVG = 0xD0,
+	/*!OTI for streaming SVG + gz - GPAC internal*/
+	GPAC_OTI_SCENE_SVG_GZ = 0xD1,
+	/*!OTI for DMIS (dsi = 3GPP DIMS configuration) - GPAC internal*/
+	GPAC_OTI_SCENE_DIMS = 0xD2,
+};
+
+
+/*!
+ * \brief Extra ObjectTypeIndication
+ *
+ *	ObjectTypeIndication for media (audio/video) codecs not defined in MPEG-4. Since GPAC signals streams through MPEG-4 Descriptions,
+ *	it needs extensions for non-MPEG-4 streams such as AMR, H263 , etc.\n
+ *\note The decoder specific info for such streams is always carried encoded, with the following syntax:\n
+ *	DSI Syntax for audio streams
+ \code 
+ *	u32 codec_four_cc: the codec 4CC reg code / codec id for ffmpeg
+ *	u32 sample_rate: sampling rate or 0 if unknown
+ *	u16 nb_channels: num channels or 0 if unknown
+ *	u16 frame_size: num audio samples per frame or 0 if unknown
+ *	u8 nb_bits_per_sample: nb bits or 0 if unknown
+ *	u8 num_frames_per_au: num audio frames per AU (used in 3GPP, max 15), 0 if unknown
+ *	char *data: per-codec extensions till end of DSI bitstream
+ \endcode
+ \n
+ *	DSI Syntax for video streams
+ \code 
+ *	u32 codec_four_cc: the codec 4CC reg code  / codec id for ffmpeg
+ *	u16 width: video width or 0 if unknown
+ *	u16 height: video height or 0 if unknown
+ *	char *data: per-codec extensions till end of DSI bitstream
+ \endcode
+*/
+#define GPAC_OTI_MEDIA_GENERIC				0x80
+
+/*!
+ * \brief FFMPEG ObjectTypeIndication
+ *
+ *	ObjectTypeIndication for FFMPEG codecs not defined in MPEG-4. FFMPEG uses the base GPAC_OTI_MEDIA_GENERIC specific info formats, and extends it as follows:
+ \code 
+ *	u32 bit_rate: the stream rate or 0 if unknown
+ *	u32 codec_tag: FFMPEG codec tag as defined in libavcodec
+ *	char *data: codec extensions till end of DSI bitstream
+ \endcode
+ */
+#define GPAC_OTI_MEDIA_FFMPEG				0x81
+
+
+/*!
+ * \brief OGG ObjectTypeIndication
+ *
+ *	Object type indication for all OGG media. The DSI contains all intitialization ogg packets for the codec
+ * and is formated as follows:\n
+ *\code 
+	while (dsi_size) {
+		bit(16) packet_size;
+		char packet[packet_size];
+		dsi_size -= packet_size;
+	}\endcode
+*/
+#define GPAC_OTI_MEDIA_OGG				0xDD
+
+
+
+/*channel cfg flags - DECODERS MUST OUTPUT STEREO/MULTICHANNEL IN THIS ORDER*/
+/*!
+ * \brief Audio Channel Configuration
+ *
+ *	Audio channel flags for spatialization.
+ \note Decoders must output stereo/multichannel audio channels in this order in the decoded audio frame.
+ */
+enum
+{
+	/*!Left Audio Channel*/
+	GF_AUDIO_CH_FRONT_LEFT = (1),
+	/*!Right Audio Channel*/
+	GF_AUDIO_CH_FRONT_RIGHT = (1<<1),
+	/*!Center Audio Channel - may also be used to signal monophonic audio*/
+	GF_AUDIO_CH_FRONT_CENTER = (1<<2),
+	/*!LFE Audio Channel*/
+	GF_AUDIO_CH_LFE = (1<<3),
+	/*!Back Left Audio Channel*/
+	GF_AUDIO_CH_BACK_LEFT = (1<<4),
+	/*!Back Right Audio Channel*/
+	GF_AUDIO_CH_BACK_RIGHT = (1<<5),
+	/*!Back Center Audio Channel*/
+	GF_AUDIO_CH_BACK_CENTER = (1<<6),
+	/*!Side Left Audio Channel*/
+	GF_AUDIO_CH_SIDE_LEFT = (1<<7),
+	/*!Side Right Audio Channel*/
+	GF_AUDIO_CH_SIDE_RIGHT = (1<<8)
+};
+
+
+
 /*!
  \cond DUMMY_DOXY_SECTION
 */
@@ -248,80 +368,6 @@ static const u32 GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60
 /*!
  \endcond
 */
-
-
-/*!
- * \brief Extra ObjectTypeIndication
- *
- *	ObjectTypeIndication for codecs not defined in MPEG-4. Since GPAC signals streams through MPEG-4 Descriptions,
- *	it needs extensions for non-MPEG-4 streams such as AMR, H263 , etc.\n
- *\note The decoder specific info for such streams is always carried encoded, with the following syntax:\n
- *	DSI Syntax for audio streams
- \code 
- *	u32 codec_four_cc: the codec 4CC reg code
- *	u16 sample_rate: sampling rate or 0 if unknown
- *	u16 num_samples: num audio samples per frame or 0 if unknown
- *	u8 nb_channels: num channels or 0 if unknown
- *	u8 nb_bits_per_sample: nb bits or 0 if unknown
- *	u8 num_frames_per_au: num audio frames per AU (used in 3GPP, max 15), 0 if unknown
- *	char *data: per-codec extensions till end of DSI bitstream
- \endcode
- \n
- *	DSI Syntax for video streams
- \code 
- *	u32 codec_four_cc: the codec 4CC reg code
- *	u16 width: video width or 0 if unknown
- *	u16 height: video height or 0 if unknown
- *	char *data: per-codec extensions till end of DSI bitstream
- \endcode
-*/
-#define GPAC_EXTRA_CODECS_OTI				0x80
-
-
-/*!
- * \brief OGG ObjectTypeIndication
- *
- *	Object type indication for all OGG media. The DSI contains all intitialization ogg packets for the codec
- * and is formated as follows:\n
- *\code 
-	while (dsi_size) {
-		bit(16) packet_size;
-		char packet[packet_size];
-		dsi_size -= packet_size;
-	}\endcode
-*/
-#define GPAC_OGG_MEDIA_OTI		0xDD
-
-
-
-/*channel cfg flags - DECODERS MUST OUTPUT STEREO/MULTICHANNEL IN THIS ORDER*/
-/*!
- * \brief Audio Channel Configuration
- *
- *	Audio channel flags for spatialization.
- \note Decoders must output stereo/multichannel audio channels in this order in the decoded audio frame.
- */
-enum
-{
-	/*!Left Audio Channel*/
-	GF_AUDIO_CH_FRONT_LEFT = (1),
-	/*!Right Audio Channel*/
-	GF_AUDIO_CH_FRONT_RIGHT = (1<<1),
-	/*!Center Audio Channel - may also be used to signal monophonic audio*/
-	GF_AUDIO_CH_FRONT_CENTER = (1<<2),
-	/*!LFE Audio Channel*/
-	GF_AUDIO_CH_LFE = (1<<3),
-	/*!Back Left Audio Channel*/
-	GF_AUDIO_CH_BACK_LEFT = (1<<4),
-	/*!Back Right Audio Channel*/
-	GF_AUDIO_CH_BACK_RIGHT = (1<<5),
-	/*!Back Center Audio Channel*/
-	GF_AUDIO_CH_BACK_CENTER = (1<<6),
-	/*!Side Left Audio Channel*/
-	GF_AUDIO_CH_SIDE_LEFT = (1<<7),
-	/*!Side Right Audio Channel*/
-	GF_AUDIO_CH_SIDE_RIGHT = (1<<8)
-};
 
 
 /*! @} */

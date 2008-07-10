@@ -141,6 +141,8 @@ GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser);
 const char *gf_xml_dom_get_error(GF_DOMParser *parser);
 u32 gf_xml_dom_get_line(GF_DOMParser *parser);
 
+char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only);
+
 
 GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser);
 void gf_xml_dom_node_del(GF_XMLNode *node);

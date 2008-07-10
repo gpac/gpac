@@ -190,7 +190,7 @@ retry_no_sbr:
 		ctx->out_size = ctx->num_channels * ctx->num_samples * 2;
 		break;
 	/*non-mpeg4 codecs*/
-	case GPAC_EXTRA_CODECS_OTI:
+	case GPAC_OTI_MEDIA_GENERIC:
 		if (decSpecInfoSize<4) return GF_BAD_PARAM;
 		if (!strnicmp(decSpecInfo, "samr", 4) || !strnicmp(decSpecInfo, "amr ", 4)) {
 			TRAP(err, ctx->dec = CMMFCodec::NewL(KMMFFourCCCodeAMR, KMMFFourCCCodePCM16));
@@ -364,7 +364,7 @@ static Bool EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, u32 Objec
 			/* NOT SUPPORTED YET if (ctx->caps & GF_EPOC_HAS_MP3) return 1; */
 			break;
 		/*non-mpeg4 codecs*/
-		case GPAC_EXTRA_CODECS_OTI:
+		case GPAC_OTI_MEDIA_GENERIC:
 			if (!decSpecInfoSize || !decSpecInfo) return 0;
 			if (decSpecInfoSize<4) return 0;
 			if (!strnicmp(decSpecInfo, "samr", 4) || !strnicmp(decSpecInfo, "amr ", 4)) {
