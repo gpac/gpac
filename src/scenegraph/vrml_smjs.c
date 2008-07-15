@@ -35,6 +35,9 @@
 #include <gpac/nodes_svg_da.h>
 #endif
 
+#include <gpac/internal/terminal_dev.h>
+#include <gpac/modules/js_usr.h>
+
 #include <jsapi.h> 
 
 void gf_sg_script_to_node_field(struct JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
@@ -61,6 +64,8 @@ Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *node, G
 		return scene->script_action(scene->script_action_cbck, type, node, param);
 	return 0;
 }
+
+
 
 #define GF_SETUP_JS(the_class, cname, flag, addp, delp, getp, setp, enump, resp, conv, fin)	\
 	memset(&the_class, 0, sizeof(the_class));	\
@@ -99,9 +104,28 @@ typedef struct
 	JSClass MFStringClass;
 	JSClass MFUrlClass;
 	JSClass MFNodeClass;
+
+	/*extensions are loaded for the lifetime of the runtime NOT of the context - this avoids nasty
+	crashes with multiple contexts in SpiderMonkey (root'ing bug with InitStandardClasses)*/
+	GF_List *extensions;
 } GF_JSRuntime;
 
 static GF_JSRuntime *js_rt = NULL;
+
+
+
+
+void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj, Bool unload)
+{
+	u32 i, count;
+	count = gf_list_count(js_rt->extensions); 
+	for (i=0; i<count; i++) {
+		GF_JSUserExtension *ext = (GF_JSUserExtension *) gf_list_get(js_rt->extensions, i);
+		ext->load(ext, sg, c, obj, unload);
+	}
+}
+
+
 
 void SFColor_fromHSV(SFColor *col)
 {
@@ -1819,10 +1843,13 @@ static JSBool color_getHSV(JSContext *c, JSObject *obj, uintN n, jsval *va, jsva
 
 static JSBool MFArrayConstructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, u32 fieldType)
 {
+	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	GF_JSField *ptr = NewJSField();
 	ptr->field.fieldType = fieldType;
 	ptr->js_list = JS_NewArrayObject(c, (jsint) argc, argv);
 	JS_AddRoot(c, &ptr->js_list);
+	gf_list_add(priv->js_cache, obj);
+
 	JS_SetPrivate(c, obj, ptr);
 	*rval = OBJECT_TO_JSVAL(obj);
 	return obj == 0 ? JS_FALSE : JS_TRUE;
@@ -3253,26 +3280,28 @@ static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 			GF_JSField *jsf;
 			JSObject *obj = gf_list_get(priv->js_cache, i);
 			jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);
+
+			/*				!!! WARNING !!!
+
+			SpiderMonkey GC is handled at the JSRuntime level, not at the JSContext level. 
+			Objects may not be finalized until the runtime is destroyed/GC'ed, which is not what we want. 
+			We therefore destroy by hand all SFNode/MFNode
+			*/
 			if (jsf->obj) {
 				JS_RemoveRoot(priv->js_ctx, &jsf->obj);
 				jsf->obj = NULL;
 
-				/*				!!! WARNING !!!
-
-				SpiderMonkey GC is handled at the JSRuntime level, not at the JSContext level. 
-				Objects may not be finalized until the runtime is destroyed/GC'ed, which is not what we want. 
-				We therefore destroy by hand all SFNode/MFNode
-				*/
 				if (jsf->temp_node) {
 					node_finalize_ex(priv->js_ctx, obj, 0);
 					JS_SetPrivate(priv->js_ctx, obj, NULL);
-				} else if (jsf->js_list) {
-					JS_RemoveRoot(priv->js_ctx, &jsf->js_list);
-					jsf->js_list = NULL;
-					if (jsf->temp_list) {
-						array_finalize_ex(priv->js_ctx, obj, 0);
-						JS_SetPrivate(priv->js_ctx, obj, NULL);
-					}
+				} 
+			}
+			if (jsf->js_list) {
+				JS_RemoveRoot(priv->js_ctx, &jsf->js_list);
+				jsf->js_list = NULL;
+				if (jsf->temp_list) {
+					array_finalize_ex(priv->js_ctx, obj, 0);
+					JS_SetPrivate(priv->js_ctx, obj, NULL);
 				}
 			}
 		}
@@ -3292,9 +3321,9 @@ static void JS_PreDestroy(GF_Node *node)
 	/*unprotect all cached objects from GC*/
 	JS_ReleaseRootObjects(priv);
 
+	gf_sg_load_script_extensions(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj, 1);
 	gf_sg_ecmascript_del(priv->js_ctx);
 
-	gpac_js_unload(priv->gpac_js);
 #ifndef GPAC_DISABLE_SVG
 	dom_js_unload();
 #endif
@@ -3573,7 +3602,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	}
 	local_script = str ? 1 : 0;
 
-	priv->js_ctx = gf_sg_ecmascript_new();
+	priv->js_ctx = gf_sg_ecmascript_new(node->sgprivate->scenegraph);
 	if (!priv->js_ctx) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Cannot allocate ECMAScript context for node\n"));
 		return;
@@ -3588,7 +3617,8 @@ static void JSScript_LoadVRML(GF_Node *node)
 	/*create event object, and remember it*/
 	priv->event = dom_js_define_event(priv->js_ctx, priv->js_obj);
 #endif
-	priv->gpac_js = gpac_js_load(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj);
+
+	gf_sg_load_script_extensions(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj, 0);
 
 	priv->js_cache = gf_list_new();
 
@@ -3640,6 +3670,41 @@ static void JSScript_Load(GF_Node *node)
 }
 
 
+
+
+static void gf_sg_load_script_modules(GF_SceneGraph *sg)
+{
+	GF_Terminal *term;
+	u32 i, count;
+	GF_JSAPIParam par;
+
+	js_rt->extensions = gf_list_new();
+
+	if (!sg->script_action) return;
+	if (!sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, sg->RootNode, &par))
+		return;
+
+	term = par.term;
+
+	count = gf_modules_get_count(term->user->modules); 
+	for (i=0; i<count; i++) {
+		GF_JSUserExtension *ext = (GF_JSUserExtension *) gf_modules_load_interface(term->user->modules, i, GF_JS_USER_EXT_INTERFACE);
+		if (!ext) continue;
+		gf_list_add(js_rt->extensions, ext);
+	}
+}
+
+static void gf_sg_unload_script_modules()
+{
+	while (gf_list_count(js_rt->extensions)) {
+		GF_JSUserExtension *ext = gf_list_last(js_rt->extensions);
+		gf_list_rem_last(js_rt->extensions);
+		gf_modules_close_interface((GF_BaseInterface *) ext);
+	}
+	gf_list_del(js_rt->extensions);
+}
+
+
 #ifdef __SYMBIAN32__
 const long MAX_HEAP_BYTES = 256 * 1024L;
 #else
@@ -3647,7 +3712,7 @@ const long MAX_HEAP_BYTES = 4*1024 * 1024L;
 #endif
 const long STACK_CHUNK_BYTES = 8*1024L;
 
-JSContext *gf_sg_ecmascript_new()
+JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 {
 	if (!js_rt) {
 		JSRuntime *js_runtime = JS_NewRuntime(MAX_HEAP_BYTES);
@@ -3658,6 +3723,7 @@ JSContext *gf_sg_ecmascript_new()
 		GF_SAFEALLOC(js_rt, GF_JSRuntime);
 		js_rt->js_runtime = js_runtime;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated 0x%08x\n", js_runtime));
+		gf_sg_load_script_modules(sg);
 	}
 	js_rt->nb_inst++;
 	return JS_NewContext(js_rt->js_runtime, STACK_CHUNK_BYTES);
@@ -3665,12 +3731,14 @@ JSContext *gf_sg_ecmascript_new()
 
 void gf_sg_ecmascript_del(JSContext *ctx)
 {
+	JS_SetGlobalObject(ctx, NULL);
 	JS_DestroyContext(ctx);
 	if (js_rt) {
 		js_rt->nb_inst --;
 		if (js_rt->nb_inst == 0) {
 			JS_DestroyRuntime(js_rt->js_runtime);
 			JS_ShutDown();
+			gf_sg_unload_script_modules();
 			free(js_rt);
 			js_rt = NULL;
 		}

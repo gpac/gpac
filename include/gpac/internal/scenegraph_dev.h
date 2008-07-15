@@ -785,7 +785,6 @@ typedef struct
 	on these objects after each eventIn execution*/
 	GF_List *js_cache;
 	struct JSObject *event;
-	struct JSObject *gpac_js;
 #endif
 
 	void (*JS_PreDestroy)(GF_Node *node);
@@ -834,7 +833,7 @@ typedef struct
 	GF_DownloadSession *sess;
 } JSFileDownload;
 
-struct JSContext *gf_sg_ecmascript_new();
+struct JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg);
 void gf_sg_ecmascript_del(struct JSContext *);
 
 void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script);
@@ -856,9 +855,6 @@ typedef struct
 
 	Bool reevaluate;
 } GF_JSField;
-
-struct JSObject *gpac_js_load(GF_SceneGraph *scene, struct JSContext *c, struct JSObject *global);
-void gpac_js_unload(struct JSObject *obj);
 
 #ifndef GPAC_DISABLE_SVG
 void JSScript_LoadSVG(GF_Node *node);
@@ -891,8 +887,9 @@ void dom_js_define_document(struct JSContext *c, struct JSObject *global, GF_Sce
 /*defines a new global object "evt" of type Event*/
 struct JSObject *dom_js_define_event(struct JSContext *c, struct JSObject *global);
 
-
 void gf_sg_handle_dom_event_for_vrml(GF_Node *hdl, GF_DOM_Event *event);
+
+void gf_sg_load_script_extensions(GF_SceneGraph *sg, struct JSContext *c, struct JSObject *obj, Bool unload);
 
 #endif	/*GPAC_HAS_SPIDERMONKEY*/
 

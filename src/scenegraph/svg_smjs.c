@@ -1824,6 +1824,9 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	/*create event object, and remember it*/
 	scene->svg_js->event = dom_js_define_event(scene->svg_js->js_ctx, scene->svg_js->global);
 
+	/*user-defined extensions*/
+	gf_sg_load_script_extensions(scene, scene->svg_js->js_ctx, scene->svg_js->global, 0);
+
 	/*RGBColor class*/
 	{
 		JSPropertySpec rgbClassProps[] = {
@@ -1929,6 +1932,8 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 		if (svg_js->nb_scripts) {
 			svg_js->nb_scripts--;
 			if (!svg_js->nb_scripts) {
+				/*user-defined extensions*/
+				gf_sg_load_script_extensions(n->sgprivate->scenegraph, svg_js->js_ctx, svg_js->global, 1);
 				gf_sg_ecmascript_del(svg_js->js_ctx);
 				dom_js_unload(svg_js->js_ctx, svg_js->global);
 				free(svg_js);
@@ -1949,7 +1954,7 @@ static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 	GF_SVGJS *svg_js;
 	GF_SAFEALLOC(svg_js, GF_SVGJS);
 	/*create new ecmascript context*/
-	svg_js->js_ctx = gf_sg_ecmascript_new();
+	svg_js->js_ctx = gf_sg_ecmascript_new(sg);
 	if (!svg_js->js_ctx) {
 		free(svg_js);
 		return GF_SCRIPT_ERROR;
