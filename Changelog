@@ -1,4 +1,5 @@
-Latest CVS changes - 10/07/08:
+Latest CVS changes - 15/07/08:
+  - Added support for user extensions (global class only) in JS through modules - cf gpac_js for sample code.
   - Initial support for 3GPP DIMS (file creation and dumping + playback)
       * Currently only SVG as overlay is supported for DIMS files, we are not sure about the specification on this topic
       * RTP hinting /playback is not supported yet      

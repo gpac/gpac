@@ -282,7 +282,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "gvm"=.\gvm.dsp - Package Owner=<4>
+Project: "gpac_js"=.\gpac_js.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
