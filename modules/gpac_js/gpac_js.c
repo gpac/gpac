@@ -23,6 +23,7 @@
  *
  */
 
+#include <gpac/modules/js_usr.h>
 #include <gpac/internal/scenegraph_dev.h>
 
 /*base SVG type*/
@@ -37,6 +38,15 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
+
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE)
+#  pragma comment(lib, "js")
+# elif defined (WIN32)
+#  pragma comment(lib, "js32")
+# endif
+#endif
+
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 
@@ -44,11 +54,8 @@
 
 typedef struct
 {
-	u32 nb_inst;
 	JSClass gpacClass;
-} GF_GPACRuntime;
-
-static GF_GPACRuntime *gpac_rt = NULL;
+} GF_GPACJSExt;
 
 
 #define _SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
@@ -254,49 +261,95 @@ static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	return JS_TRUE;
 }
 
-JSObject *gpac_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
+
+static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, struct JSContext *c, struct JSObject *global, Bool unload)
 {
+	GF_GPACJSExt *gjs;
 	JSObject *obj;
-	if (!scene) return NULL;
 
-	if (!gpac_rt) {
-		GF_SAFEALLOC(gpac_rt, GF_GPACRuntime);
-		_SETUP_CLASS(gpac_rt->gpacClass, "Node", JSCLASS_HAS_PRIVATE, gpac_getProperty, gpac_setProperty, JS_FinalizeStub);
-	}
-	gpac_rt->nb_inst++;
+	GF_JSAPIParam par;
+	JSPropertySpec gpacClassProps[] = {
+		{0}
+	};
+	JSFunctionSpec gpacClassFuncs[] = {
+		{"getOption",		gpac_getOption, 3},
+		{"setOption",		gpac_setOption, 4},
+		{"enum_directory",	gpac_enum_directory, 1},
+		{"set_size",		gpac_set_size, 1},
+		{0}
+	};
 
-	{
-		GF_JSAPIParam par;
-		JSPropertySpec gpacClassProps[] = {
-			{0}
-		};
-		JSFunctionSpec gpacClassFuncs[] = {
-			{"getOption",		gpac_getOption, 3},
-			{"setOption",		gpac_setOption, 4},
-			{"enum_directory",	gpac_enum_directory, 1},
-			{"set_size",		gpac_set_size, 1},
-			{0}
-		};
-		JS_InitClass(c, global, 0, &gpac_rt->gpacClass, 0, 0, gpacClassProps, gpacClassFuncs, 0, 0);
-		obj = JS_DefineObject(c, global, "gpac", &gpac_rt->gpacClass, 0, 0);
+	/*nothing to do on unload*/
+	if (unload) return;
 
-	
-		ScriptAction(c, NULL, GF_JSAPI_OP_GET_TERM, scene->RootNode, &par);
+	if (!scene) return;
+
+	gjs = jsext->udta;
+
+	_SETUP_CLASS(gjs->gpacClass, "GPAC", JSCLASS_HAS_PRIVATE, gpac_getProperty, gpac_setProperty, JS_FinalizeStub);
+
+	JS_InitClass(c, global, 0, &gjs->gpacClass, 0, 0, gpacClassProps, gpacClassFuncs, 0, 0);
+	obj = JS_DefineObject(c, global, "gpac", &gjs->gpacClass, 0, 0);
+
+	if (scene->script_action) {
+		if (!scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_TERM, scene->RootNode, &par))
+			return;
 		JS_SetPrivate(c, obj, par.term);
 	}
-	return obj;
 }
 
 
-void gpac_js_unload(JSObject *obj)
+#else
+static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, struct JSContext *c, struct JSObject *global, Bool unload)
 {
-	if (!gpac_rt || !obj) return;
-	gpac_rt->nb_inst--;
-	if (!gpac_rt->nb_inst) {
-		free(gpac_rt);
-		gpac_rt = NULL;
-	}
 }
-
 #endif
 
+
+
+GF_JSUserExtension *gjs_new()
+{
+	GF_JSUserExtension *dr;
+	GF_GPACJSExt *gjs;
+	dr = malloc(sizeof(GF_JSUserExtension));
+	memset(dr, 0, sizeof(GF_JSUserExtension));
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_JS_USER_EXT_INTERFACE, "GPAC JavaScript Bindings", "gpac distribution");
+
+	GF_SAFEALLOC(gjs, GF_GPACJSExt);
+	dr->load = gjs_load;
+	dr->udta = gjs;
+	return dr;
+}
+
+
+void gjs_delete(GF_BaseInterface *ifce)
+{
+	GF_JSUserExtension *dr = (GF_JSUserExtension *) ifce;
+	GF_GPACJSExt *gjs = dr->udta;
+	free(gjs);
+	free(dr);
+}
+
+GF_EXPORT
+Bool QueryInterface(u32 InterfaceType) 
+{
+	if (InterfaceType == GF_JS_USER_EXT_INTERFACE) return 1;
+	return 0;
+}
+
+GF_EXPORT
+GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+{
+	if (InterfaceType == GF_JS_USER_EXT_INTERFACE) return (GF_BaseInterface *)gjs_new();
+	return NULL;
+}
+
+GF_EXPORT
+void ShutdownInterface(GF_BaseInterface *ifce)
+{
+	switch (ifce->InterfaceType) {
+	case GF_JS_USER_EXT_INTERFACE:
+		gjs_delete(ifce);
+		break;
+	}
+}

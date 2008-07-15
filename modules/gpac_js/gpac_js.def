@@ -1,0 +1,6 @@
+LIBRARY     gm_gpac_js.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface
