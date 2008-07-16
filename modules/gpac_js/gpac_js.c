@@ -23,9 +23,6 @@
  *
  */
 
-#include <gpac/modules/js_usr.h>
-#include <gpac/internal/scenegraph_dev.h>
-
 /*base SVG type*/
 #include <gpac/nodes_svg_da.h>
 /*dom events*/
@@ -47,10 +44,12 @@
 # endif
 #endif
 
+#include <jsapi.h> 
+
+#include <gpac/modules/js_usr.h>
+#include <gpac/internal/scenegraph_dev.h>
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
-
-#include <jsapi.h> 
 
 typedef struct
 {
@@ -233,7 +232,6 @@ static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	Bool override_size_info = 0;
 	u32 w, h;
 	jsdouble d;
-	char *url = NULL;
 	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (!term) return JS_FALSE;
 
@@ -262,7 +260,7 @@ static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 }
 
 
-static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, struct JSContext *c, struct JSObject *global, Bool unload)
+static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
 {
 	GF_GPACJSExt *gjs;
 	JSObject *obj;
@@ -300,7 +298,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, struct JSC
 
 
 #else
-static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, struct JSContext *c, struct JSObject *global, Bool unload)
+static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
 {
 }
 #endif
