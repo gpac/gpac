@@ -330,10 +330,15 @@ static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 static void Channel_UpdateBuffering(GF_Channel *ch, Bool update_info)
 {
 	if (update_info && ch->MaxBuffer) gf_inline_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+
+	gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_DATA_PROGRESS);
+	
 	if (!Channel_NeedsBuffering(ch, 0)) {
 		ch_buffer_off(ch);
 		if (ch->MaxBuffer && update_info) gf_inline_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 		if (ch->clock->no_time_ctrl) ch->clock->no_time_ctrl = 2;
+
+		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PLAYABLE);
 	}
 }
 
@@ -371,6 +376,7 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 /*dispatch the AU in the DB*/
 static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 {
+	u32 time;
 	GF_DBUnit *au;
 	if (!ch->buffer || !ch->len) {
 		if (ch->buffer) {
@@ -527,9 +533,16 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		}
 	}
 
+	time = gf_term_get_time(ch->odm->term);
 	if (ch->BufferOn) {
-		ch->last_au_time = gf_term_get_time(ch->odm->term);
+		ch->last_au_time = time;
 		Channel_UpdateBuffering(ch, 1);
+	} else {
+		/*trigger the data progress every 500 ms*/
+		if (ch->last_au_time + 500 > time) {
+			gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_DATA_PROGRESS);
+			ch->last_au_time = time;
+		}
 	}
 
 	gf_es_lock(ch, 0);
@@ -1056,6 +1069,7 @@ void gf_es_drop_au(GF_Channel *ch)
 	/*if we get under our limit, rebuffer EXCEPT WHEN EOS is signaled*/
 	if (!ch->IsEndOfStream && Channel_NeedsBuffering(ch, 1)) {
 		ch_buffer_on(ch);
+		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_NOT_PLAYABLE);
 	}
 
 	/*unlock the channel*/

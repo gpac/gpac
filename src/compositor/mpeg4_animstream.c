@@ -59,7 +59,7 @@ static void animationstream_check_url(AnimationStreamStack *stack, M_AnimationSt
 	if (!stack->stream) {
 		gf_sg_vrml_mf_reset(&stack->current_url, GF_SG_VRML_MFURL);
 		gf_sg_vrml_field_copy(&stack->current_url, &as->url, GF_SG_VRML_MFURL);
-		stack->stream = gf_mo_find((GF_Node *)as, &as->url, 0);
+		stack->stream = gf_mo_register((GF_Node *)as, &as->url, 0);
 		gf_sc_invalidate(stack->compositor, NULL);
 
 		/*if changed while playing trigger*/
@@ -78,7 +78,9 @@ static void animationstream_check_url(AnimationStreamStack *stack, M_AnimationSt
 			gf_mo_set_flag(stack->stream, GF_MO_DISPLAY_REMOVE, 1);
 			gf_mo_stop(stack->stream);
 		}
-		stack->stream = gf_mo_find((GF_Node *)as, &as->url, 0);
+		gf_mo_unregister((GF_Node *)as, stack->stream);
+
+		stack->stream = gf_mo_register((GF_Node *)as, &as->url, 0);
 		/*if changed while playing play new source*/
 		if (as->isActive) {
 			gf_mo_play(stack->stream, 0, -1, 0);

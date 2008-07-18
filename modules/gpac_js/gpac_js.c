@@ -44,10 +44,10 @@
 # endif
 #endif
 
+#include <gpac/internal/scenegraph_dev.h>
 #include <jsapi.h> 
 
 #include <gpac/modules/js_usr.h>
-#include <gpac/internal/scenegraph_dev.h>
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 

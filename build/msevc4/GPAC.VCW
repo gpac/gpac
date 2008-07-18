@@ -153,6 +153,21 @@ Package=<4>
 
 ###############################################################################
 
+Project: "gpac_js"=.\gpac_js.vcp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "img_in"=.\img_in.vcp - Package Owner=<4>
 
 Package=<5>

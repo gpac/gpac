@@ -80,7 +80,7 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 	gf_sg_vrml_field_copy(&txh->current_url, url, GF_SG_VRML_MFURL);
 
 	/*get media object*/
-	txh->stream = gf_mo_find(txh->owner, url, lock_scene_timeline);
+	txh->stream = gf_mo_register(txh->owner, url, lock_scene_timeline);
 	/*bad/Empty URL*/
 	if (!txh->stream) return GF_NOT_SUPPORTED;
 	/*request play*/
@@ -99,7 +99,7 @@ GF_Err gf_sc_texture_play(GF_TextureHandler *txh, MFURL *url)
 	Bool loop = 0;
 	if (txh->compositor->term && (txh->compositor->term->play_state!=GF_STATE_PLAYING)) {
 		offset = gf_node_get_scene_time(txh->owner);
-		loop = gf_mo_get_loop(gf_mo_find(txh->owner, url, 0), 0);
+		loop = /*gf_mo_get_loop(gf_mo_register(txh->owner, url, 0), 0)*/ 1;
 	}
 	return gf_sc_texture_play_from_to(txh, url, offset, -1, loop, 0);
 }
@@ -120,6 +120,7 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 	txh->is_open = 0;
 
 	/*and deassociate object*/
+	gf_mo_unregister(txh->owner, txh->stream);
 	txh->stream = NULL;
 }
 

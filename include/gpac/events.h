@@ -56,7 +56,7 @@ enum {
 	GF_EVENT_MOUSEOUT, 
 	/*!! ALL MOUSE EVENTS SHALL BE DECLARED BEFORE MOUSEMOVE !! */
 	GF_EVENT_MOUSEMOVE, 
-	/*mouse wheel event - technically not DOM3 but used in SVG*/
+	/*mouse wheel event*/
 	GF_EVENT_MOUSEWHEEL,
 
 	/*Key Events*/
@@ -72,11 +72,15 @@ enum {
 		Events used for DOM Events only
 
 	*******************************************************/
+	GF_EVENT_TEXTSELECT,
 
 	/*DOM UIEvents*/
 	GF_EVENT_FOCUSIN,
 	GF_EVENT_FOCUSOUT, 
 	GF_EVENT_ACTIVATE, 
+	GF_EVENT_CHANGE, 
+	GF_EVENT_FOCUS, 
+	GF_EVENT_BLUR, 
 	/*SVG (HTML) Events*/
 	GF_EVENT_LOAD, 
 	GF_EVENT_UNLOAD,
@@ -100,6 +104,8 @@ enum {
 	GF_EVENT_NODE_REMOVED_DOC,
 	GF_EVENT_ATTR_MODIFIED,
 	GF_EVENT_CHAR_DATA_MODIFIED,
+	GF_EVENT_NODE_NAME_CHANGED,
+	GF_EVENT_ATTR_NAME_CHANGED,
 
 	GF_EVENT_DCCI_PROP_CHANGE,
 
@@ -112,9 +118,19 @@ enum {
 	GF_EVENT_REPEAT_KEY,
 	GF_EVENT_RESUME_EVENT,
 	GF_EVENT_SHORT_ACCESSKEY,
-
 	/*pseudo-event, only used in LASeR coding*/
 	GF_EVENT_EXECUTION_TIME,
+
+	/*MediaAccess events - cf http://www.w3.org/TR/MediaAccessEvents*/
+	GF_EVENT_MEDIA_BEGIN_SESSION_SETUP,
+	GF_EVENT_MEDIA_END_SESSION_SETUP,
+	GF_EVENT_MEDIA_DATA_REQUEST,
+	GF_EVENT_MEDIA_PLAYABLE,
+	GF_EVENT_MEDIA_NOT_PLAYABLE,
+	GF_EVENT_MEDIA_DATA_PROGRESS,
+	GF_EVENT_MEDIA_END_OF_DATA,
+	GF_EVENT_MEDIA_STOP,
+	GF_EVENT_MEDIA_ERROR,
 
 	GF_EVENT_BATTERY,
 	GF_EVENT_CPU,
@@ -128,7 +144,7 @@ enum {
 	*******************************************************/
 
 	/*same as mousedown, generated internally by GPAC*/
-	GF_EVENT_MOUSEDOUBLECLICK,
+	GF_EVENT_DBLCLICK,
 	
 	/*window events*/
 	/*size has changed - indicate new w & h in .x end .y fields of event. 

@@ -118,6 +118,17 @@ typedef struct
 /*creates a new updates node and register node with parent*/
 GF_DOMUpdates *gf_dom_add_updates_node(GF_Node *parent);
 
+typedef struct
+{
+	Bool bufferValid;
+	u32 level;
+	Fixed remaining_time;
+	u16 status;
+	const char *session_name;
+	u32 nb_streams;
+	struct mae_item {u32 streamType; u32 mediaType; u32 transport; } streams[20];
+} GF_DOMMediaAccessEvent;
+
 
 /* 
 	DOM event handling
@@ -164,6 +175,8 @@ typedef struct
 
 	/*DOM event used in VRML (GPAC's internal)*/
 	Bool is_vrml;
+
+	GF_DOMMediaAccessEvent *mae;
 } GF_DOM_Event;
 
 /*fires event on the specified node
@@ -207,6 +220,37 @@ GF_DOMHandler *gf_dom_listener_build(GF_Node *observer, u32 event_type, u32 even
 
 
 
+enum
+{
+	/*basic DOM events*/
+	GF_DOM_EVENT_DOM = 1,
+	/*DOM mutation events*/
+	GF_DOM_EVENT_MUTATION = 1<<1,
+	/*DOM mouse events*/
+	GF_DOM_EVENT_MOUSE = 1<<2,
+	/*DOM focus events*/
+	GF_DOM_EVENT_FOCUS = 1<<3,
+	/*DOM key events*/
+	GF_DOM_EVENT_KEY = 1<<4,
+	/*DOM/SVG/HTML UI events (resize, scroll, ...)*/
+	GF_DOM_EVENT_UI = 1<<5,
+	/*text events*/
+	GF_DOM_EVENT_TEXT = 1<<6,
+	/*SVG events*/
+	GF_DOM_EVENT_SVG = 1<<7,
+	/*SMIL events*/
+	GF_DOM_EVENT_SMIL = 1<<8,
+	/*LASeR events*/
+	GF_DOM_EVENT_LASER = 1<<9,
+	/*MediaAccess events*/
+	GF_DOM_EVENT_MEDIA_ACCESS = 1<<10,
+
+	/*fake events - these events are NEVER fired*/
+	GF_DOM_EVENT_FAKE = 1<<31,
+};
+u32 gf_dom_event_get_category(u32 type);
+u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg);
+u32 gf_node_get_dom_event_filter(GF_Node *node);
 
 
 /**************************************************

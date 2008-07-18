@@ -157,7 +157,7 @@ GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double 
 	if (ai->is_open) return GF_BAD_PARAM;
 
 	/*get media object*/
-	ai->stream = gf_mo_find(ai->owner, url, 0);
+	ai->stream = gf_mo_register(ai->owner, url, 0);
 	/*bad URL*/
 	if (!ai->stream) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Audio Input] Cannot find stream\n"));
@@ -189,6 +189,7 @@ void gf_sc_audio_stop(GF_AudioInput *ai)
 	gf_mo_stop(ai->stream);
 	gf_sg_vrml_mf_reset(&ai->url, GF_SG_VRML_MFURL);
 	ai->is_open = 0;
+	gf_mo_unregister(ai->owner, ai->stream);
 	ai->stream = NULL;
 
 	gf_mixer_lock(ai->compositor->audio_renderer->mixer, 0);

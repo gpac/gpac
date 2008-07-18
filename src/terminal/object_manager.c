@@ -1242,6 +1242,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 		return;
 	}
 
+	gf_term_service_media_event(odm, GF_EVENT_MEDIA_DATA_REQUEST);
+
 
 	/*start codecs last (otherwise we end up pulling data from channels not yet connected->pbs when seeking)*/
 	if (odm->codec) {
@@ -1333,6 +1335,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH %d At OTB %d requesting STOP\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
 		}
 	}
+	gf_term_service_media_event(odm, GF_EVENT_MEDIA_STOP);
 
 	/*stop channels*/
 	i=0;
@@ -1362,6 +1365,8 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 {
 	if (gf_odm_check_segment_switch(odm)) return;
+
+	gf_term_service_media_event(odm, GF_EVENT_MEDIA_END_OF_DATA);
 	
 	if (odm->codec && (on_channel->esd->decoderConfig->streamType==odm->codec->type)) {
 		gf_codec_set_status(odm->codec, GF_ESM_CODEC_EOS);

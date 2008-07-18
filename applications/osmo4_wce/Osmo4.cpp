@@ -132,7 +132,7 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 			break;
 		}
 		break;
-	case GF_EVENT_MOUSEDOUBLECLICK:
+	case GF_EVENT_DBLCLICK:
 		pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
 		return 0;
 	}

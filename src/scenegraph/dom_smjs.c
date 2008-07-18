@@ -481,26 +481,16 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 	if (evtType==GF_EVENT_UNKNOWN) return JS_FALSE;
 
 	listener = gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
-	/*for vrml nodes, we don't register the listener with the parent node because the node
-	may not be a parent one - listeners will be destroyed with the node*/
-	if (!vrml_node) {
-		gf_node_register(listener, node);
-		gf_node_list_add_child(& ((GF_ParentNode *)node)->children, listener);
-	}
+	/*we don't register the listener with the parent node , it will be registered 
+	on gf_dom_listener__add*/
 
 	/*!!! create the handler in the scene owning the script context !!! */
 	{
 		GF_SceneGraph *sg = xml_get_scenegraph(c);
 		handler = (SVG_handlerElement *) gf_node_new(sg, TAG_SVG_handler);
-		/*for vrml nodes, we don't register the handler with the parent node because the node
-		may not be a parent one - we register the handler with the listener*/
-		if (vrml_node) {
-			gf_node_register((GF_Node *)handler, listener);
-			gf_node_list_add_child(& ((GF_ParentNode *)listener)->children, (GF_Node*)handler);
-		} else {
-			gf_node_register((GF_Node *)handler, node);
-			gf_node_list_add_child(& ((GF_ParentNode *)node)->children, (GF_Node*)handler);
-		}
+		/*we register the handler with the listener node to avoid modifying the DOM*/
+		gf_node_register((GF_Node *)handler, listener);
+		gf_node_list_add_child(& ((GF_ParentNode *)listener)->children, (GF_Node*)handler);
 	}
 
 	/*create attributes if needed*/
@@ -597,11 +587,8 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 		if (txt->sgprivate->tag != TAG_DOMText) continue;
 		if (!txt->textContent || strcmp(txt->textContent, callback)) continue;
 
+		/*this will destroy the listener and its child handler*/
 		gf_dom_listener_del(node, el);
-		gf_node_list_del_child( & ((GF_ParentNode *)node)->children, (GF_Node *) hdl);
-		gf_node_unregister((GF_Node *) hdl, node);
-		gf_node_list_del_child( & ((GF_ParentNode *)node)->children, el);
-		gf_node_unregister(el, node);
 		return JS_TRUE;
 	}
 	return JS_FALSE;
@@ -1802,6 +1789,28 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		/*v_translation*/
 		case 29:
 			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_translate.y) );
+			return JS_TRUE;
+
+		/*MAE*/
+		/*bufferLevelValid*/
+		case 30:
+			if (!evt->mae) return JS_FALSE;
+			*vp = BOOLEAN_TO_JSVAL( evt->mae->bufferValid ? JS_TRUE : JS_FALSE);
+			return JS_TRUE;
+		/*bufferLevel*/
+		case 31:
+			if (!evt->mae) return JS_FALSE;
+			*vp = INT_TO_JSVAL( evt->mae->level);
+			return JS_TRUE;
+		/*bufferRemainingTime*/
+		case 32:
+			if (!evt->mae) return JS_FALSE;
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->mae->remaining_time) );
+			return JS_TRUE;
+		/*status*/
+		case 33:
+			if (!evt->mae) return JS_FALSE;
+			*vp = INT_TO_JSVAL( evt->mae->status);
 			return JS_TRUE;
 
 		default: return JS_FALSE;
@@ -3026,6 +3035,12 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			{"height",	27,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			{"translation_x",	28,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			{"translation_y",	29,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+
+			{"bufferLevelValid",	30,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"bufferLevel",			31,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"bufferRemainingTime",	32,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"status",				33,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+
 			{0}
 		};
 		JS_InitClass(c, global, 0, &dom_rt->domEventClass, 0, 0, eventProps, eventFuncs, 0, 0);

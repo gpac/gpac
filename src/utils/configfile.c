@@ -25,7 +25,6 @@
 #include <gpac/module.h>
 #include <gpac/list.h>
 
-
 #define MAX_SECTION_NAME		500
 #define MAX_INI_LINE			2046
 

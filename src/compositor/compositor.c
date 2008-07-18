@@ -1426,7 +1426,7 @@ static void gf_sc_forward_event(GF_Compositor *compositor, GF_Event *ev)
 		/*emulate doubleclick*/
 		now = gf_sys_clock();
 		if (now - compositor->last_click_time < DOUBLECLICK_TIME_MS) {
-			event.type = GF_EVENT_MOUSEDOUBLECLICK;
+			event.type = GF_EVENT_DBLCLICK;
 			event.mouse.key_states = compositor->key_states;
 			event.mouse.x = ev->mouse.x;
 			event.mouse.y = ev->mouse.y;

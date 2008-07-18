@@ -1911,58 +1911,6 @@ NODEP_CPP_DOM_S=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scenegraph\gpac_js.c
-DEP_CPP_GPAC_=\
-	"..\..\extra_lib\include\js\jsapi.h"\
-	"..\..\extra_lib\include\js\jsautocfg.h"\
-	"..\..\extra_lib\include\js\jscompat.h"\
-	"..\..\extra_lib\include\js\jscpucfg.h"\
-	"..\..\extra_lib\include\js\jslong.h"\
-	"..\..\extra_lib\include\js\jsosdep.h"\
-	"..\..\extra_lib\include\js\jsotypes.h"\
-	"..\..\extra_lib\include\js\jspubtd.h"\
-	"..\..\extra_lib\include\js\jstypes.h"\
-	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config_file.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\config.h"\
-	"..\..\include\gpac\internal\config_static.h"\
-	"..\..\include\gpac\internal\scenegraph_dev.h"\
-	"..\..\include\gpac\internal\terminal_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\codec.h"\
-	"..\..\include\gpac\modules\ipmp.h"\
-	"..\..\include\gpac\modules\service.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\sync_layer.h"\
-	"..\..\include\gpac\terminal.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	"..\..\include\gpac\xml.h"\
-	
-NODEP_CPP_GPAC_=\
-	"..\..\extra_lib\include\js\jsstddef.h"\
-	"..\..\extra_lib\include\js\platform.h"\
-	"..\..\include\gpac\config.h"\
-	
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\src\scenegraph\mpeg4_animators.c
 DEP_CPP_MPEG4=\
 	"..\..\include\gpac\config_file.h"\
@@ -2405,15 +2353,25 @@ DEP_CPP_VRML_SM=\
 	"..\..\extra_lib\include\js\jsotypes.h"\
 	"..\..\extra_lib\include\js\jspubtd.h"\
 	"..\..\extra_lib\include\js\jstypes.h"\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
 	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\ipmp.h"\
+	"..\..\include\gpac\modules\js_usr.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\nodes_svg_da.h"\
@@ -2424,7 +2382,11 @@ DEP_CPP_VRML_SM=\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\terminal.h"\
+	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
 	
 NODEP_CPP_VRML_SM=\
 	"..\..\extra_lib\include\js\jsstddef.h"\
@@ -2598,14 +2560,14 @@ SOURCE=..\..\include\gpac\internal\avilib.h
 # Begin Source File
 
 SOURCE=..\..\src\media_tools\gpac_ogg.c
-DEP_CPP_GPAC_O=\
+DEP_CPP_GPAC_=\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\ogg.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	
-NODEP_CPP_GPAC_O=\
+NODEP_CPP_GPAC_=\
 	"..\..\include\gpac\config.h"\
 	
 # End Source File
@@ -3651,9 +3613,12 @@ DEP_CPP_INLIN=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
@@ -4283,230 +4248,6 @@ DEP_CPP_LSR_T=\
 NODEP_CPP_LSR_T=\
 	"..\..\include\gpac\config.h"\
 	
-# End Source File
-# End Group
-# Begin Group "include"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=..\..\include\gpac\modules\audio_out.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\avparse.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\base_coding.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\bifs.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\bifsengine.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\bitstream.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\modules\codec.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\compositor.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\config.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\config_file.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\internal\config_static.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\constants.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\crypt.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\download.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\esi.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\events.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\modules\font.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\ietf.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\modules\ipmp.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\ismacryp.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\isomedia.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\laser.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\list.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\math.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\media_tools.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\mediaobject.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\module.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\mpeg4_odf.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\mpegts.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\network.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\nodes_mpeg4.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\nodes_svg.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\nodes_x3d.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\options.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\path2d.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\modules\raster2d.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\renderer.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\scene_manager.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\scenegraph.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\scenegraph_svg.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\scenegraph_vrml.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\modules\service.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\setup.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\svg_types.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\sync_layer.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\term_info.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\terminal.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\thread.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\token.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\tools.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\user.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\utf.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\modules\video_out.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\xml.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\yuv.h
 # End Source File
 # End Group
 # Begin Group "compositor"
@@ -7133,6 +6874,230 @@ DEP_CPP_X3D_G=\
 NODEP_CPP_X3D_G=\
 	"..\..\include\gpac\config.h"\
 	
+# End Source File
+# End Group
+# Begin Group "include"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=..\..\include\gpac\modules\audio_out.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\avparse.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\base_coding.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\bifs.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\bifsengine.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\bitstream.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\modules\codec.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\compositor.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\config.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\config_file.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\internal\config_static.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\constants.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\crypt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\download.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\esi.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\events.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\modules\font.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\ietf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\modules\ipmp.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\ismacryp.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\isomedia.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\laser.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\list.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\math.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\media_tools.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\mediaobject.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\module.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\mpeg4_odf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\mpegts.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\network.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\nodes_mpeg4.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\nodes_svg.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\nodes_x3d.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\options.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\path2d.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\modules\raster2d.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\renderer.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\scene_manager.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\scenegraph.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\scenegraph_svg.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\scenegraph_vrml.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\modules\service.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\setup.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\svg_types.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\sync_layer.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\term_info.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\terminal.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\thread.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\token.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\tools.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\user.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\utf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\modules\video_out.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\xml.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\yuv.h
 # End Source File
 # End Group
 # End Target

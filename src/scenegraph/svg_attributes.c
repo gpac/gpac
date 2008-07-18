@@ -30,121 +30,135 @@
 
 #define DUMP_COORDINATES 1
 
-/*
-	    list of supported events in Tiny 1.2 as of 2005/09/10:
-		repeat is somehow a special case ...
-*/
+
+static const struct dom_event_def {u32 event;  const char *name; u32 category; } defined_dom_events [] = 
+{
+	{ GF_EVENT_ABORT, "abort", GF_DOM_EVENT_DOM },
+	{ GF_EVENT_ERROR, "error", GF_DOM_EVENT_DOM },
+	{ GF_EVENT_LOAD, "load", GF_DOM_EVENT_DOM },
+	{ GF_EVENT_UNLOAD, "unload", GF_DOM_EVENT_DOM },
+
+	/*focus - we differentiate from UI/key events to avoid browing focus if no listener is on place*/
+	{ GF_EVENT_FOCUSIN, "DOMFocusIn", GF_DOM_EVENT_FOCUS },
+	{ GF_EVENT_FOCUSIN, "focusin", GF_DOM_EVENT_FOCUS },
+	{ GF_EVENT_FOCUSOUT, "DOMFocusOut", GF_DOM_EVENT_FOCUS },
+	{ GF_EVENT_FOCUSOUT, "focusout", GF_DOM_EVENT_FOCUS },
+	{ GF_EVENT_CHANGE, "change", GF_DOM_EVENT_FOCUS },
+	{ GF_EVENT_FOCUS, "focus", GF_DOM_EVENT_FOCUS },
+	{ GF_EVENT_BLUR, "blur", GF_DOM_EVENT_FOCUS },
+
+	/*key events*/
+	{ GF_EVENT_KEYDOWN, "keydown", GF_DOM_EVENT_KEY },
+	{ GF_EVENT_KEYDOWN, "accesskey", GF_DOM_EVENT_KEY },
+	{ GF_EVENT_KEYDOWN, "keypress", GF_DOM_EVENT_KEY },
+	{ GF_EVENT_KEYUP, "keyup", GF_DOM_EVENT_KEY },
+	{ GF_EVENT_LONGKEYPRESS, "longaccesskey", GF_DOM_EVENT_KEY },
+
+	{ GF_EVENT_CLICK, "click", GF_DOM_EVENT_MOUSE },
+	{ GF_EVENT_DBLCLICK, "dblclick", GF_DOM_EVENT_MOUSE },
+	{ GF_EVENT_MOUSEDOWN, "mousedown", GF_DOM_EVENT_MOUSE },
+	{ GF_EVENT_MOUSEMOVE, "mousemove", GF_DOM_EVENT_MOUSE },
+	{ GF_EVENT_MOUSEOUT, "mouseout", GF_DOM_EVENT_MOUSE },
+	{ GF_EVENT_MOUSEOVER, "mouseover", GF_DOM_EVENT_MOUSE },
+	{ GF_EVENT_MOUSEUP, "mouseup", GF_DOM_EVENT_MOUSE },
+	{ GF_EVENT_MOUSEWHEEL, "SVGMousewheel", GF_DOM_EVENT_MOUSE },
+	{ GF_EVENT_MOUSEWHEEL, "mousewheel", GF_DOM_EVENT_MOUSE },
+
+	/*activate is not a basic DOM but a MOUSE and KEY event*/
+	{ GF_EVENT_ACTIVATE, "activate", GF_DOM_EVENT_MOUSE | GF_DOM_EVENT_KEY },
+
+	/*text events*/
+	{ GF_EVENT_TEXTINPUT, "textInput", GF_DOM_EVENT_TEXT },
+	{ GF_EVENT_TEXTSELECT, "select", GF_DOM_EVENT_TEXT },
+
+	/*SMIL events*/
+	{ GF_EVENT_BEGIN, "begin", GF_DOM_EVENT_FAKE },
+	{ GF_EVENT_BEGIN_EVENT, "beginEvent", GF_DOM_EVENT_SMIL },
+	{ GF_EVENT_END, "end", GF_DOM_EVENT_FAKE },
+	{ GF_EVENT_END_EVENT, "endEvent", GF_DOM_EVENT_SMIL },
+	{ GF_EVENT_REPEAT, "repeat", GF_DOM_EVENT_FAKE },
+	{ GF_EVENT_REPEAT_EVENT, "repeatEvent", GF_DOM_EVENT_SMIL },
+
+	/*all SVG/HTML/... UI events*/
+	{ GF_EVENT_RESIZE, "resize", GF_DOM_EVENT_UI },
+	{ GF_EVENT_SCROLL, "scroll", GF_DOM_EVENT_UI },
+	{ GF_EVENT_ZOOM, "zoom", GF_DOM_EVENT_UI },
+
+	/*mutation events and DCCI*/
+	{ GF_EVENT_TREE_MODIFIED, "DOMSubtreeModified", GF_DOM_EVENT_MUTATION },
+	{ GF_EVENT_NODE_INSERTED, "DOMNodeInserted", GF_DOM_EVENT_MUTATION },
+	{ GF_EVENT_NODE_REMOVED, "DOMNodeRemoved", GF_DOM_EVENT_MUTATION },
+	{ GF_EVENT_NODE_REMOVED_DOC, "DOMNodeRemovedFromDocument", GF_DOM_EVENT_MUTATION },
+	{ GF_EVENT_NODE_INSERTED_DOC, "DOMNodeInsertedIntoDocument", GF_DOM_EVENT_MUTATION },
+	{ GF_EVENT_ATTR_MODIFIED, "DOMAttrModified", GF_DOM_EVENT_MUTATION },
+	{ GF_EVENT_CHAR_DATA_MODIFIED, "DOMCharacterDataModified", GF_DOM_EVENT_MUTATION },
+	{ GF_EVENT_NODE_NAME_CHANGED, "DOMElementNameChanged", GF_DOM_EVENT_MUTATION },
+	{ GF_EVENT_ATTR_NAME_CHANGED, "DOMAttributeNameChanged", GF_DOM_EVENT_MUTATION },
+	{ GF_EVENT_DCCI_PROP_CHANGE, "DCCI-prop-change", GF_DOM_EVENT_MUTATION },
+
+	/*LASeR events - some events are attached to other categorues*/
+	{ GF_EVENT_ACTIVATED, "activatedEvent", GF_DOM_EVENT_LASER },
+	{ GF_EVENT_DEACTIVATED, "deactivatedEvent", GF_DOM_EVENT_LASER },
+	{ GF_EVENT_EXECUTION_TIME, "executionTime", GF_DOM_EVENT_FAKE },
+	{ GF_EVENT_PAUSE, "pause", GF_DOM_EVENT_SMIL },
+	{ GF_EVENT_PAUSED_EVENT, "pausedEvent", GF_DOM_EVENT_SMIL },
+	{ GF_EVENT_PLAY, "play", GF_DOM_EVENT_SMIL },
+	{ GF_EVENT_RESUME_EVENT, "resumedEvent", GF_DOM_EVENT_SMIL },
+	{ GF_EVENT_REPEAT_KEY, "repeatKey", GF_DOM_EVENT_KEY },
+	{ GF_EVENT_SHORT_ACCESSKEY, "shortAccessKey", GF_DOM_EVENT_KEY },
+
+	/*LASeR unofficial events*/
+	{ GF_EVENT_BATTERY, "battery", GF_DOM_EVENT_LASER },
+	{ GF_EVENT_CPU, "cpu", GF_DOM_EVENT_LASER },
+
+	/*MediaAccess events*/
+	{ GF_EVENT_MEDIA_BEGIN_SESSION_SETUP, "BeginSessionSetup", GF_DOM_EVENT_MEDIA_ACCESS },
+	{ GF_EVENT_MEDIA_END_SESSION_SETUP, "EndSessionSetup", GF_DOM_EVENT_MEDIA_ACCESS },
+	{ GF_EVENT_MEDIA_DATA_REQUEST, "DataRequest", GF_DOM_EVENT_MEDIA_ACCESS },
+	{ GF_EVENT_MEDIA_PLAYABLE, "Playable", GF_DOM_EVENT_MEDIA_ACCESS },
+	{ GF_EVENT_MEDIA_NOT_PLAYABLE, "NotPlayable", GF_DOM_EVENT_MEDIA_ACCESS },
+	{ GF_EVENT_MEDIA_DATA_PROGRESS, "DataReceptionProgress", GF_DOM_EVENT_MEDIA_ACCESS },
+	{ GF_EVENT_MEDIA_END_OF_DATA, "EndOfDataReception", GF_DOM_EVENT_MEDIA_ACCESS },
+	{ GF_EVENT_MEDIA_STOP, "Stop", GF_DOM_EVENT_MEDIA_ACCESS },
+	{ GF_EVENT_MEDIA_ERROR, "Error", GF_DOM_EVENT_MEDIA_ACCESS },
+
+};
+
 u32 gf_dom_event_type_by_name(const char *name)
 {
+	u32 i, count;
+	count = sizeof(defined_dom_events) / sizeof(struct dom_event_def);
+	if (!name) return GF_EVENT_UNKNOWN;
 	if ((name[0]=='o') && (name[1]=='n')) name += 2;
-
-	if (!strcmp(name, "abort"))	return GF_EVENT_ABORT;
-	if (!strcmp(name, "activate"))	return GF_EVENT_ACTIVATE;
-	if (!strcmp(name, "begin"))		return GF_EVENT_BEGIN;
-	if (!strcmp(name, "beginEvent"))	return GF_EVENT_BEGIN_EVENT;
-	if (!strcmp(name, "click"))		return GF_EVENT_CLICK;
-	if (!strcmp(name, "end"))		return GF_EVENT_END;
-	if (!strcmp(name, "endEvent"))	return GF_EVENT_END_EVENT;
-	if (!strcmp(name, "error"))		return GF_EVENT_ERROR;
-	if (!strcmp(name, "focusin") || !strcmp(name, "DOMFocusIn"))	return GF_EVENT_FOCUSIN;
-	if (!strcmp(name, "focusout") || !strcmp(name, "DOMFocusOut"))	return GF_EVENT_FOCUSOUT;
-	if (!strcmp(name, "keydown"))	return GF_EVENT_KEYDOWN;
-	if (!strcmp(name, "keypress") || !stricmp(name, "accesskey"))	return GF_EVENT_KEYDOWN;
-	if (!strcmp(name, "keyup"))		return GF_EVENT_KEYUP;
-	if (!strcmp(name, "load"))		return GF_EVENT_LOAD;
-	if (!strcmp(name, "SVGLoad"))	return GF_EVENT_LOAD;
-	if (!strcmp(name, "longkeypress") || !stricmp(name, "longaccesskey"))	return GF_EVENT_LONGKEYPRESS;
-	if (!strcmp(name, "mousedown")) return GF_EVENT_MOUSEDOWN;
-	if (!strcmp(name, "mousemove")) return GF_EVENT_MOUSEMOVE;
-	if (!strcmp(name, "mouseout"))	return GF_EVENT_MOUSEOUT;
-	if (!strcmp(name, "mouseover")) return GF_EVENT_MOUSEOVER;
-	if (!strcmp(name, "mouseup"))	return GF_EVENT_MOUSEUP;
-	if (!strcmp(name, "repeat"))	return GF_EVENT_REPEAT;
-	if (!strcmp(name, "repeatEvent"))	return GF_EVENT_REPEAT_EVENT;
-	if (!strcmp(name, "resize"))	return GF_EVENT_RESIZE;
-	if (!strcmp(name, "scroll"))	return GF_EVENT_SCROLL;
-	if (!strcmp(name, "textInput"))	return GF_EVENT_TEXTINPUT;
-	if (!strcmp(name, "unload"))	return GF_EVENT_UNLOAD;
-	if (!strcmp(name, "zoom"))		return GF_EVENT_ZOOM;
-
-	/* DOM Mutation events */
-	if (!strcmp(name, "DOMSubtreeModified"))			return GF_EVENT_TREE_MODIFIED;
-	if (!strcmp(name, "DOMNodeInserted"))				return GF_EVENT_NODE_INSERTED;
-	if (!strcmp(name, "DOMNodeRemoved"))				return GF_EVENT_NODE_REMOVED;
-	if (!strcmp(name, "DOMNodeRemovedFromDocument"))	return GF_EVENT_NODE_REMOVED_DOC;
-	if (!strcmp(name, "DOMNodeInsertedIntoDocument"))	return GF_EVENT_NODE_INSERTED_DOC;
-	if (!strcmp(name, "DOMAttrModified"))				return GF_EVENT_ATTR_MODIFIED;
-	if (!strcmp(name, "DOMCharacterDataModified"))		return GF_EVENT_CHAR_DATA_MODIFIED;
-
-	if (!strcmp(name, "DCCI-prop-change"))	return GF_EVENT_DCCI_PROP_CHANGE;
-
-	/*LASeR events*/
-	if (!strcmp(name, "activatedEvent"))	return GF_EVENT_ACTIVATED;
-	if (!strcmp(name, "deactivatedEvent"))	return GF_EVENT_DEACTIVATED;
-	if (!strcmp(name, "executionTime"))	return GF_EVENT_EXECUTION_TIME;
-	if (!strcmp(name, "pause"))	return GF_EVENT_PAUSE;
-	if (!strcmp(name, "pausedEvent"))	return GF_EVENT_PAUSED_EVENT;
-	if (!strcmp(name, "play"))	return GF_EVENT_PLAY;
-	if (!strcmp(name, "repeatKey"))	return GF_EVENT_REPEAT_KEY;
-	if (!strcmp(name, "resumedEvent"))	return GF_EVENT_RESUME_EVENT;
-	if (!strcmp(name, "shortAccessKey"))	return GF_EVENT_SHORT_ACCESSKEY;
-	/*LASeR unofficial events*/
-	if (!strcmp(name, "battery"))		return GF_EVENT_BATTERY;
-	if (!strcmp(name, "cpu"))		return GF_EVENT_CPU;
-	GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[DOM Events] Unknown event found \"%s\"\n", name));
+	for (i=0;i<count;i++) {
+		if (!strcmp(name, defined_dom_events[i].name))
+			return defined_dom_events[i].event;
+	}
 	return GF_EVENT_UNKNOWN;
 }
 
 const char *gf_dom_event_get_name(u32 type)
 {
-
-	switch (type) {
-	case GF_EVENT_ABORT: return "abort";
-	case GF_EVENT_ACTIVATE: return "activate";
-	case GF_EVENT_BEGIN: return "begin";
-	case GF_EVENT_BEGIN_EVENT: return "beginEvent";
-	case GF_EVENT_CLICK: return "click";
-	case GF_EVENT_END: return "end";
-	case GF_EVENT_END_EVENT: return "endEvent";
-	case GF_EVENT_ERROR: return "error";
-	case GF_EVENT_FOCUSIN: return "focusin";
-	case GF_EVENT_FOCUSOUT: return "focusout";
-	case GF_EVENT_KEYDOWN: return "keydown";
-	case GF_EVENT_KEYUP: return "keyup";
-	case GF_EVENT_LOAD: return "load";
-	case GF_EVENT_LONGKEYPRESS: return "longaccesskey";
-	case GF_EVENT_MOUSEDOWN: return "mousedown";
-	case GF_EVENT_MOUSEMOVE: return "mousemove";
-	case GF_EVENT_MOUSEOUT: return "mouseout";
-	case GF_EVENT_MOUSEOVER: return "mouseover";
-	case GF_EVENT_MOUSEUP: return "mouseup";
-	case GF_EVENT_REPEAT: return "repeat";
-	case GF_EVENT_REPEAT_EVENT: return "repeatEvent";
-	case GF_EVENT_RESIZE: return "resize";
-	case GF_EVENT_SCROLL: return "scroll";
-	case GF_EVENT_TEXTINPUT: return "textInput";
-	case GF_EVENT_UNLOAD: return "unload";
-	case GF_EVENT_ZOOM: return "zoom";
-
-	case GF_EVENT_DCCI_PROP_CHANGE: return "DCCI-prop-change";
-
-	/*LASeR events*/
-	case GF_EVENT_ACTIVATED: return "activatedEvent";
-	case GF_EVENT_DEACTIVATED: return "deactivatedEvent";
-	case GF_EVENT_EXECUTION_TIME: return "executionTime";
-	case GF_EVENT_PAUSE: return "pause";
-	case GF_EVENT_PAUSED_EVENT: return "pausedEvent";
-	case GF_EVENT_PLAY: return "play";
-	case GF_EVENT_REPEAT_KEY: return "repeatKey";
-	case GF_EVENT_RESUME_EVENT: return "resumedEvent";
-	case GF_EVENT_SHORT_ACCESSKEY: return "shortAccessKey";
-	/*LASeR unofficial events*/
-	case GF_EVENT_BATTERY: return "battery";
-	case GF_EVENT_CPU: return "cpu";
-
-	default: return "unknown";
+	u32 i, count;
+	count = sizeof(defined_dom_events) / sizeof(struct dom_event_def);
+	for (i=0;i<count;i++) {
+		if (defined_dom_events[i].event == type)
+			return defined_dom_events[i].name;
 	}
+	return "unknown";
 }
+
+u32 gf_dom_event_get_category(u32 type)
+{
+	u32 i, count;
+	count = sizeof(defined_dom_events) / sizeof(struct dom_event_def);
+	for (i=0;i<count;i++) {
+		if (defined_dom_events[i].event == type)
+			return defined_dom_events[i].category;
+	}
+	return 0;
+}
+
 
 static const struct predef_keyid {u32 key_code;  const char *name; } predefined_key_identifiers[] = 
 {

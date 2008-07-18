@@ -321,7 +321,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		app->AddPendingEvent(wxevt);
 	}
 		break;
-	case GF_EVENT_MOUSEDOUBLECLICK:
+	case GF_EVENT_DBLCLICK:
 		gf_term_set_option(app->m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(app->m_term, GF_OPT_FULLSCREEN));
 		return 0;
 	case GF_EVENT_MOUSEDOWN:
