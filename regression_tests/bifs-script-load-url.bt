@@ -27,7 +27,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows script loading URL" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
+   info ["This shows script loading URL" "" "GPAC Regression Tests" "$Date: 2008-07-18 17:27:50 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
    title "Script URL loading"
   }
   Transform2D {
@@ -52,7 +52,13 @@ OrderedGroup {
   DEF SCRIPT Script {
    eventIn SFBool act
    field SFNode t USE TR
-   url ["javascript: function act(value, timestamp) {if (!value) return; str = new MFString('http://gpac.sourceforge.net'); Browser.loadURL(str) ;}"   ]
+   url ["javascript: 
+    function act(value, timestamp) {
+     if (!value) return; 
+     str = new MFString('http://gpac.sourceforge.net'); 
+     Browser.loadURL(str) ;
+    }
+    "   ]
   }
  ]
 }

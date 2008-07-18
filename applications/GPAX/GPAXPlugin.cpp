@@ -101,7 +101,7 @@ Bool CGPAXPlugin::EventProc(GF_Event *evt)
 		m_height = evt->size.height;
         gf_term_set_size(m_term, m_width, m_height);
         break;
-	case GF_EVENT_MOUSEDOUBLECLICK:
+	case GF_EVENT_DBLCLICK:
 		gf_term_set_option(m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(m_term, GF_OPT_FULLSCREEN));
 		break;
 	case GF_EVENT_KEYDOWN:

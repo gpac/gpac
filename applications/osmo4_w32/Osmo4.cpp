@@ -316,7 +316,7 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	case GF_EVENT_SET_CAPTION:
 		pFrame->SetWindowText(evt->caption.caption);
 		break;
-	case GF_EVENT_MOUSEDOUBLECLICK:
+	case GF_EVENT_DBLCLICK:
 		pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
 		return 0;
 	case GF_EVENT_AUTHORIZATION:

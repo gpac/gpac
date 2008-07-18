@@ -76,24 +76,25 @@ Bool DC_RemoveChannel(DCReader *read, LPNETCHANNEL ch)
 Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt = strrchr(url, '.');
-	if (!sExt) return 0;
-	if (!strnicmp(sExt, ".gz", 3)) sExt = strrchr(sExt, '.');
-	if (!strnicmp(url, "rtsp://", 7)) return 0;
+	if (sExt) {
+		if (!strnicmp(sExt, ".gz", 3)) sExt = strrchr(sExt, '.');
+		if (!strnicmp(url, "rtsp://", 7)) return 0;
 
 
-	/*the mpeg-4 mime types for bt/xmt are NOT registered at all :)*/
-	if (gf_term_check_extension(plug, "application/x-bt", "bt bt.gz btz", "MPEG-4 Text (BT)", sExt)) return 1;
-	if (gf_term_check_extension(plug, "application/x-xmt", "xmt xmt.gz xmtz", "MPEG-4 Text (XMT)", sExt)) return 1;
-	//if (gf_term_check_extension(plug, "application/x-xmta", "xmta xmta.gz xmtaz", "MPEG-4 Text (XMT)", sExt)) return 1;
-	/*but all these ones are*/
-	if (gf_term_check_extension(plug, "model/vrml", "wrl wrl.gz", "VRML World", sExt)) return 1;
-	if (gf_term_check_extension(plug, "x-model/x-vrml", "wrl wrl.gz", "VRML World", sExt)) return 1;
-	if (gf_term_check_extension(plug, "model/x3d+vrml", "x3dv x3dv.gz x3dvz", "X3D/VRML World", sExt)) return 1;
-	if (gf_term_check_extension(plug, "model/x3d+xml", "x3d x3d.gz x3dz", "X3D/XML World", sExt)) return 1;
-	if (gf_term_check_extension(plug, "application/x-shockwave-flash", "swf", "Macromedia Flash Movie", sExt)) return 1;
-	if (gf_term_check_extension(plug, "image/svg+xml", "svg svg.gz svgz", "SVG Document", sExt)) return 1;
-	if (gf_term_check_extension(plug, "image/x-svgm", "svgm", "SVGM Document", sExt)) return 1;
-	if (gf_term_check_extension(plug, "application/x-LASeR+xml", "xsr", "LASeR Document", sExt)) return 1;
+		/*the mpeg-4 mime types for bt/xmt are NOT registered at all :)*/
+		if (gf_term_check_extension(plug, "application/x-bt", "bt bt.gz btz", "MPEG-4 Text (BT)", sExt)) return 1;
+		if (gf_term_check_extension(plug, "application/x-xmt", "xmt xmt.gz xmtz", "MPEG-4 Text (XMT)", sExt)) return 1;
+		//if (gf_term_check_extension(plug, "application/x-xmta", "xmta xmta.gz xmtaz", "MPEG-4 Text (XMT)", sExt)) return 1;
+		/*but all these ones are*/
+		if (gf_term_check_extension(plug, "model/vrml", "wrl wrl.gz", "VRML World", sExt)) return 1;
+		if (gf_term_check_extension(plug, "x-model/x-vrml", "wrl wrl.gz", "VRML World", sExt)) return 1;
+		if (gf_term_check_extension(plug, "model/x3d+vrml", "x3dv x3dv.gz x3dvz", "X3D/VRML World", sExt)) return 1;
+		if (gf_term_check_extension(plug, "model/x3d+xml", "x3d x3d.gz x3dz", "X3D/XML World", sExt)) return 1;
+		if (gf_term_check_extension(plug, "application/x-shockwave-flash", "swf", "Macromedia Flash Movie", sExt)) return 1;
+		if (gf_term_check_extension(plug, "image/svg+xml", "svg svg.gz svgz", "SVG Document", sExt)) return 1;
+		if (gf_term_check_extension(plug, "image/x-svgm", "svgm", "SVGM Document", sExt)) return 1;
+		if (gf_term_check_extension(plug, "application/x-LASeR+xml", "xsr", "LASeR Document", sExt)) return 1;
+	}
 
 	if (!strnicmp(url, "file://", 7) || !strstr(url, "://")) {
 		char *rtype = gf_xml_get_root_type(url, NULL);
@@ -124,9 +125,19 @@ void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 	} else if (param->msg_type==GF_NETIO_PARSE_HEADER) {
 		if (!strcmp(param->name, "Content-Type")) {
-			if (!strcmp(param->value, "image/svg+xml")) read->oti = 0x02;
+			if (!strcmp(param->value, "application/x-bt")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (!strcmp(param->value, "application/x-xmt")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (!strcmp(param->value, "model/vrml")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (!strcmp(param->value, "model/x3d+vrml")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (!strcmp(param->value, "application/x-shockwave-flash")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (!strcmp(param->value, "image/svg+xml")) read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
+			if (!strcmp(param->value, "image/x-svgm")) read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
+			if (!strcmp(param->value, "application/x-LASeR+xml")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
 		}
 	} else if (!e && (param->msg_type!=GF_NETIO_DATA_EXCHANGE)) return;
+
+	if (!e && !read->oti)
+		return;
 
 	/*OK confirm*/
 	if (!read->is_service_connected) {
@@ -165,14 +176,13 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		ext[0] = '.';
 		ext = anext;
 	}
-	ext += 1;
-	if (ext) {
-		tmp = strchr(ext, '#');
-		if (tmp) tmp[0] = 0;
-	}
 	read->service = serv;
 	
 	if (ext) {
+		ext += 1;
+		if (ext) {
+			tmp = strchr(ext, '#'); if (tmp) tmp[0] = 0;
+		}
 		if (!stricmp(ext, "bt") || !stricmp(ext, "btz") || !stricmp(ext, "bt.gz") 
 			|| !stricmp(ext, "xmta") 
 			|| !stricmp(ext, "xmt") || !stricmp(ext, "xmt.gz") || !stricmp(ext, "xmtz") 

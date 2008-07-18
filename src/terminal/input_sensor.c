@@ -407,11 +407,14 @@ GF_BaseDecoder *NewISCodec(u32 PL)
 /*
 				input sensor node handling
 */
-static void IS_Unregister(ISStack *st)
+static void IS_Unregister(GF_Node *node, ISStack *st)
 {
 	u32 i;
 	GF_ObjectManager *odm;
 	ISPriv *is_dec;
+
+	gf_mo_unregister(node, st->mo);
+	
 	odm = st->mo->odm;
 	if (!odm) return;
 
@@ -462,13 +465,13 @@ static void TraverseInputSensor(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		GF_InlineScene *is;
-		if (st->registered) IS_Unregister(st);
+		if (st->registered) IS_Unregister(node, st);
 		is = (GF_InlineScene*)gf_sg_get_private(gf_node_get_graph(node));
 		gf_term_unqueue_node_traverse(is->root_od->term, node);
 		free(st);
 	} else {
 		/*get decoder object */
-		if (!st->mo) st->mo = gf_mo_find(node, &is->url, 0);
+		if (!st->mo) st->mo = gf_mo_register(node, &is->url, 0);
 		/*register with decoder*/
 		if (st->mo && !st->registered) IS_Register(node);
 	}
@@ -495,10 +498,10 @@ void InputSensorModified(GF_Node *node)
 	GF_MediaObject *mo;
 	ISStack *st = (ISStack *)gf_node_get_private(node);
 
-	mo = gf_mo_find(node, &st->is->url, 0);
+	mo = gf_mo_register(node, &st->is->url, 0);
 	if ((mo!=st->mo) || !st->registered){
 		if (mo!=st->mo) {
-			if (st->mo) IS_Unregister(st);
+			if (st->mo) IS_Unregister(node, st);
 			st->mo = mo;
 		}
 		if (st->is->enabled) 
@@ -506,8 +509,7 @@ void InputSensorModified(GF_Node *node)
 		else
 			return;
 	} else if (!st->is->enabled) {
-		IS_Unregister(st);
-		st->mo = NULL;
+		IS_Unregister(node, st);
 		return;
 	}
 

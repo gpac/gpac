@@ -145,6 +145,7 @@ void gf_inline_del(GF_InlineScene *is)
 		if (obj->odm) obj->odm->mo = NULL;
 		gf_list_rem(is->media_objects, 0);
 		gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
+		gf_list_del(obj->nodes);
 		free(obj);
 	}
 	gf_list_del(is->media_objects);
@@ -189,6 +190,7 @@ void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 		i=0;
 		while ((obj = (GF_MediaObject*)gf_list_enum(is->media_objects, &i))) {
 			gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
+			gf_list_reset(obj->nodes);
 		}
 	} else {
 		while (gf_list_count(is->ODlist)) {
@@ -231,6 +233,7 @@ void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 		gf_list_rem(is->media_objects, 0);
 		if (obj->odm) obj->odm->mo = NULL;
 		gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
+		gf_list_del(obj->nodes);
 		free(obj);
 	}
 }
@@ -356,6 +359,7 @@ void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for
 				}
 				gf_list_rem(is->media_objects, i-1);
 				gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
+				gf_list_del(obj->nodes);
 				free(obj);
 			} else if (!for_shutdown) {
 				/*if dynamic OD and more than 1 URLs resetup*/
@@ -630,6 +634,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 					is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) n) );
 					gf_list_del_item(is->media_objects, mo);
 					gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
+					gf_list_del(mo->nodes);
 					free(mo);
 				} else {
 					gf_odm_stop(is->root_od, 1);
@@ -796,17 +801,24 @@ GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u3
 		obj = NULL;
 		i=0;
 		while ((obj = (GF_MediaObject *)gf_list_enum(is->media_objects, &i))) {
-			/*regular OD scheme*/
-			if (OD_ID != GF_ESM_DYNAMIC_OD_ID && (obj->OD_ID==OD_ID)) return obj;
-
-			/*dynamic OD scheme*/
-			if ((OD_ID == GF_ESM_DYNAMIC_OD_ID) && (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID)
-				/*if object type unknown (media control, media sensor), return first obj matching URL
-				otherwise check types*/
-				&& is_match_obj_type(obj->type, obj_type_hint)
-				/*locate sub-url in given one (handles viewpoint/segments)*/
-				&& gf_mo_is_same_url(obj, url) 
-				) return obj;
+			if (
+				/*regular OD scheme*/
+				(OD_ID != GF_ESM_DYNAMIC_OD_ID && (obj->OD_ID==OD_ID)) 
+			||
+				/*dynamic OD scheme*/
+				((OD_ID == GF_ESM_DYNAMIC_OD_ID) && (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID)
+					/*if object type unknown (media control, media sensor), return first obj matching URL
+					otherwise check types*/
+					&& is_match_obj_type(obj->type, obj_type_hint)
+					/*locate sub-url in given one (handles viewpoint/segments)*/
+					&& gf_mo_is_same_url(obj, url) 
+				)
+			) {
+				
+				if (gf_list_find(obj->nodes, node)<0)
+					gf_list_add(obj->nodes, node);
+				return obj;
+			}
 		}
 	}
 	/*we cannot create an OD manager at this point*/
@@ -816,7 +828,16 @@ GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u3
 	obj = gf_mo_new();
 	obj->OD_ID = OD_ID;
 	obj->type = obj_type_hint;
-	obj->node_ptr = node;
+
+	/*register node with object*/
+	if (node)
+		gf_list_add(obj->nodes, node);
+	
+	/*if animation stream object, remember originating node
+		!! FIXME - this should be cleaned up !! 
+	*/
+	if (obj->type == GF_MEDIA_OBJECT_BIFS)
+		obj->node_ptr = node;
 
 	gf_list_add(is->media_objects, obj);
 	if (OD_ID == GF_ESM_DYNAMIC_OD_ID) {

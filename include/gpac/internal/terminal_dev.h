@@ -788,6 +788,8 @@ struct _mediaobj
 	u32 framesize;
 	/*pointer to data frame */
 	char *frame;
+	/*nodes currently registered with the media object - used to dispatch MediaAccessEvents*/
+	GF_List *nodes;
 	/*pointer to the node responsible for the creation of this media object
 	ONLY used for scene media type (animationStreams) 
 	Reset upon creation of the decoder.
@@ -813,7 +815,8 @@ GF_Err gf_odm_post_es_setup(struct _es_channel *ch, struct _generic_codec *dec, 
 */
 void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl);
 
-
+/*media access events */
+void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type);
 
 u32 URL_GetODID(MFURL *url);
 

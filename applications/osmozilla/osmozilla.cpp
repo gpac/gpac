@@ -358,7 +358,7 @@ Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
 		m_bCanSeek = evt->duration.can_seek;
 		m_Duration = evt->duration.duration;
 		break;
-	case GF_EVENT_MOUSEDOUBLECLICK:
+	case GF_EVENT_DBLCLICK:
 		gf_term_set_option(m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(m_term, GF_OPT_FULLSCREEN));
 		break;
 	case GF_EVENT_KEYDOWN:

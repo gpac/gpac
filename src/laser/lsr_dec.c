@@ -3887,7 +3887,7 @@ static GF_Node *lsr_read_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *pa
 	default:
 		break;
 	}
-	if (n) {
+	if (n && n->sgprivate->interact && n->sgprivate->interact->events) {
 		GF_DOM_Event evt;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = GF_EVENT_LOAD;
@@ -3959,7 +3959,7 @@ static GF_Node *lsr_read_update_content_model(GF_LASeRCodec *lsr, SVG_Element *p
 		case LSR_UPDATE_CONTENT_MODEL_listener: n = lsr_read_listener(lsr, parent); break;
 		}
 	}
-	if (n) {
+	if (n && n->sgprivate->interact && n->sgprivate->interact->events) {
 		GF_DOM_Event evt;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = GF_EVENT_LOAD;

@@ -674,9 +674,10 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		SVG_Element *listener;
 		u32 type;
 		GF_FieldInfo info;
-		listener = (SVG_Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
-		gf_node_register((GF_Node *)listener, node);
-		gf_node_list_add_child( & ((GF_ParentNode *)node)->children, (GF_Node*) listener);
+		listener = (SVG_Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener)
+		/*do not register the listener, this will be done in gf_dom_listener_add. We don't want to
+		insert the implicit listener in the DOM*/;
+
 		/* this listener listens to the given type of event */
 		type = gf_dom_event_type_by_name(ev_event);
 		gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_ev_event, 1, 0, &info);
@@ -1364,10 +1365,13 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		gf_list_rem_last(parser->node_stack);
 
 		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
-			GF_DOM_Event evt;
-			memset(&evt, 0, sizeof(GF_DOM_Event));
-			evt.type = GF_EVENT_LOAD;
-			gf_dom_event_fire((GF_Node*)node, NULL, &evt);
+			/*if we have associated event listeners, trigger the onLoad*/
+			if (node->sgprivate->interact && node->sgprivate->interact->events) {
+				GF_DOM_Event evt;
+				memset(&evt, 0, sizeof(GF_DOM_Event));
+				evt.type = GF_EVENT_LOAD;
+				gf_dom_event_fire((GF_Node*)node, NULL, &evt);
+			}
 
 			switch (node->sgprivate->tag) {
 			case TAG_SVG_animateMotion:
@@ -1594,6 +1598,13 @@ GF_Err gf_sm_load_done_svg(GF_SceneLoader *load)
 	gf_list_del(parser->defered_hrefs);
 	/*FIXME - if there still are som defered listeners, we should pass them to the scene graph
 	and wait for the parent to be defined*/
+	while (gf_list_count(parser->defered_listeners)) {
+		GF_Node *l = gf_list_last(parser->defered_listeners);
+		gf_list_rem_last(parser->defered_listeners);
+		/*listeners not resolved are not inserted in the tree - destroy them*/
+		gf_node_register(l, NULL);
+		gf_node_unregister(l, NULL);
+	}
 	gf_list_del(parser->defered_listeners);
 	gf_list_del(parser->peeked_nodes);
 	/* reset animations */

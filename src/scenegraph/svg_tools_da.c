@@ -90,9 +90,7 @@ void gf_svg_node_del(GF_Node *node)
 		GF_Node *obs = node->sgprivate->UserPrivate;
 		node->sgprivate->UserPrivate = NULL;
 		if (obs && obs->sgprivate->num_instances) {
-			if (obs->sgprivate->interact && obs->sgprivate->interact->events) {
-				gf_list_del_item(obs->sgprivate->interact->events, node);
-			}
+			gf_dom_listener_del(obs, node);
 		}
 	}
 	/*remove this node from associated listeners*/

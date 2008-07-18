@@ -217,6 +217,18 @@ struct __tag_scene_graph
 #ifdef GPAC_HAS_SPIDERMONKEY
 	struct __tag_svg_script_ctx *svg_js;
 #endif
+
+	u32 nb_evts_focus;
+	u32 nb_evts_mouse;
+	u32 nb_evts_key;
+	u32 nb_evts_ui;
+	u32 nb_evts_text;
+	u32 nb_evts_smil;
+	u32 nb_evts_mutation;
+	u32 nb_evts_laser;
+	u32 nb_evts_mae;
+	u32 nb_evts_svg;
+	u32 dom_evt_filter;
 #endif
 
 #ifdef GPAC_HAS_SPIDERMONKEY

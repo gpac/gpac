@@ -30,6 +30,7 @@
 #include <gpac/thread.h>
 #include <gpac/list.h>
 #include <gpac/base_coding.h>
+#include <gpac/crypt.h>
 
 
 #ifdef GPAC_HAS_SSL
@@ -228,47 +229,49 @@ static Bool gf_dm_can_handle_url(GF_DownloadManager *dm, const char *url)
 
 void gf_dm_configure_cache(GF_DownloadSession *sess)
 {
-	u32 i, last_sep;
-	char cache_name[GF_MAX_PATH], tmp[GF_MAX_PATH];
+	u32 i, len;
+	char *tmp, *ext;
+	u8 hash[20];
 	const char *opt;
-	char *doubledots;
 
 	if (!sess->dm->cache_directory) return;
 	if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) return;
 
-	strcpy(cache_name, sess->dm->cache_directory);
+	len = strlen(sess->server_name) + strlen(sess->remote_path) + 1;
+	tmp = malloc(sizeof(char)*len);
+	tmp[0] = 0;
 
+	/*generate hash of the full url*/
 	strcpy(tmp, sess->server_name);
-	while ( (doubledots = strchr(tmp, ':')) )
-		*doubledots = '_';
 	strcat(tmp, sess->remote_path);
-	last_sep = 0;
-
-	for (i=0; i<strlen(tmp); i++) {
-		if (tmp[i] == '/') tmp[i] = '_';
-		else if (tmp[i] == '?') {
-			/* if we encounter a ?, it means the URL is requesting some user generated content 
-			and therefore caching is unlikely to be useful. Additionally, URL with ? may be too long as a file name. */
-			tmp[i] = 0;
-			sprintf(tmp, "%s%d%d", tmp, (u32)sess, gf_sys_clock());
-			break;
-		} else if (tmp[i] == '&') tmp[i] = '_';
-		else if (tmp[i] == '=') tmp[i] = '_';
-		else if (tmp[i] == '[') tmp[i] = '_';
-		else if (tmp[i] == ']') tmp[i] = '_';
-		else if (tmp[i] == ':') tmp[i] = '_';
-		else if (tmp[i] == '.') {
-			tmp[i] = '_';
-			last_sep = i;
-		}
+	gf_sha1_csum(tmp, strlen(tmp), hash);
+	tmp[0] = 0;
+	for (i=0; i<20; i++) {
+		char t[3];
+		t[2] = 0;
+		sprintf(t, "%02X", hash[i]);
+		strcat(tmp, t);
 	}
-	if (last_sep) tmp[last_sep] = '.';
-	strcat(cache_name, tmp);
+
+	len += strlen(sess->dm->cache_directory) + 6;
+	sess->cache_name = malloc(sizeof(char)*len);
+	sess->cache_name[0] = 0;
+
+	strcpy(sess->cache_name, sess->dm->cache_directory);
+	strcat(sess->cache_name, tmp);
+
+	/*try to locate an extension*/
+	strcpy(tmp, sess->remote_path);
+	ext = strchr(tmp, '?');
+	if (ext) ext[0] = 0;
+	ext = strchr(tmp, '.');
+	if (ext && (strlen(ext)<6) ) strcat(sess->cache_name, ext);
+	free(tmp);
 
 	/*first try, check cached file*/
 	if (!sess->cache_start_size) {
 		/*if file present figure out how much of the file is downloaded - we assume 2^31 byte file max*/
-		FILE *the_cache = fopen(cache_name, "rb");
+		FILE *the_cache = fopen(sess->cache_name, "rb");
 		if (the_cache) {
 			fseek(the_cache, 0, SEEK_END);
 			sess->cache_start_size = ftell(the_cache);
@@ -279,7 +282,6 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	else {
 		sess->cache_start_size = 0;
 	}
-	sess->cache_name = strdup(cache_name);
 
 	/*are we using existing cached files ?*/
 	opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "RestartFiles");
@@ -371,7 +373,7 @@ GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess)
 
 static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 {
-	char *tmp, tmp_url[GF_MAX_PATH];
+	char *tmp, *tmp_url;
 	const char *opt;
 	if (!strnicmp(url, "http://", 7)) {
 		url += 7;
@@ -412,10 +414,10 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 	sess->remote_path = strdup(tmp ? tmp : "/");
 	if (tmp) {
 		tmp[0] = 0;
-		strcpy(tmp_url, url);
+		tmp_url = strdup(url);
 		tmp[0] = '/';
 	} else {
-		strcpy(tmp_url, url);
+		tmp_url = strdup(url);
 	}
 	
 	tmp = strrchr(tmp_url, ':');
@@ -441,6 +443,7 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 	} else {
 		sess->server_name = strdup(tmp_url);
 	}
+	free(tmp_url);
 
 	/*setup BW limiter*/
 	sess->limit_data_rate = 0;
@@ -1421,7 +1424,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			sess->status = GF_NETIO_DISCONNECTED;
 			sess->http_read_type = 0;
 		}
-		/*no range header, Accep-Ranges deny or dumb server : restart*/
+		/*no range header, Accept-Ranges deny or dumb server : restart*/
 		else if (!range || !first_byte || (first_byte != sess->cache_start_size) ) {
 			sess->cache_start_size = sess->bytes_done = 0;
 			sess->total_size = ContentLength;

@@ -374,6 +374,17 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	RTPStream *ch;
 	RTPClient *priv = (RTPClient *)plug->priv;
 
+
+	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
+		u32 i;
+		for (i=0; i<gf_list_count(priv->channels); i++) {
+			ch = gf_list_get(priv->channels, i);
+			if (ch->depacketizer->sl_map.StreamType==GF_STREAM_AUDIO)
+				return GF_OK;
+		}
+		return GF_NOT_SUPPORTED;
+	}
+
 	/*ignore commands other than channels one*/
 	if (!com->base.on_channel) {
 		if (com->command_type==GF_NET_IS_CACHABLE) return GF_OK;

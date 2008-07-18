@@ -742,6 +742,92 @@ void gf_term_lock_net(GF_Terminal *term, Bool LockIt)
 	}
 }
 
+static void mae_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_DOMMediaAccessEvent *mae, u32 transport, u32 *min_time, u32 *min_buffer)
+{
+	u32 i=0;
+	GF_Channel *ch;
+
+	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
+		u32 val;
+		if (ch->service != net) continue;
+
+		mae->bufferValid = 1;
+		if (ch->BufferTime>0) {
+			if (ch->MaxBuffer) {
+				val = (ch->BufferTime * 100) / ch->MaxBuffer;
+				if (*min_buffer > val) *min_buffer = val;
+			} else {
+				if (*min_buffer > 100) *min_buffer = 100;
+			}
+			if (*min_time > ch->BufferTime) 
+				*min_time = ch->BufferTime;
+		} else {
+			*min_time = 0;
+			*min_buffer = 0;
+		}
+		if (mae->nb_streams<20) {
+			mae->streams[mae->nb_streams].streamType = ch->esd->decoderConfig->streamType;
+			mae->streams[mae->nb_streams].mediaType = ch->esd->decoderConfig->objectTypeIndication;
+			mae->streams[mae->nb_streams].transport = transport;
+			mae->nb_streams ++;
+		}
+	}
+}
+
+void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
+{
+#ifndef GPAC_DISABLE_SVG
+	u32 i, count, min_buffer, min_time, transport;
+	GF_DOMMediaAccessEvent mae;
+	GF_DOM_Event evt;
+	GF_ObjectManager *an_od;
+	GF_InlineScene *is;
+
+	if (!odm || !odm->mo) return;
+	count = gf_list_count(odm->mo->nodes);
+	if (!count) return;
+
+	if (!(gf_node_get_dom_event_filter(gf_list_get(odm->mo->nodes, 0)) & GF_DOM_EVENT_MEDIA_ACCESS))
+		return;
+
+	memset(&mae, 0, sizeof(GF_DOMMediaAccessEvent));
+	transport = 0;
+	mae.bufferValid = 0;
+	mae.session_name = odm->net_service->url;
+	if (!strnicmp(mae.session_name, "rtsp:", 5) 
+		|| !strnicmp(mae.session_name, "sdp:", 4)
+		|| !strnicmp(mae.session_name, "rtp:", 4)
+	) 
+		transport = 1;
+	else if (!strnicmp(mae.session_name, "dvb:", 4)) 
+		transport = 2;
+
+	min_time = min_buffer = (u32) -1;
+	is = odm->subscene ? odm->subscene : odm->parentscene;
+	/*get buffering on root OD*/
+	mae_collect_info(odm->net_service, is->root_od, &mae, transport, &min_time, &min_buffer);
+	/*get buffering on all ODs*/
+	i=0;
+	while ((an_od = (GF_ObjectManager*)gf_list_enum(is->ODlist, &i))) {
+		mae_collect_info(odm->net_service, an_od, &mae, transport, &min_time, &min_buffer);
+	}
+
+	mae.level = min_buffer;
+	mae.remaining_time = INT2FIX(min_time) / 60;
+	mae.status = 0;
+
+	memset(&evt, 0, sizeof(GF_DOM_Event));
+	evt.mae = &mae;
+	evt.type = event_type;
+	evt.bubbles = 0;	/*the spec says yes but we force it to NO*/
+
+	for (i=0; i<count; i++) {
+		GF_Node *node = gf_list_get(odm->mo->nodes, i);
+		gf_dom_event_fire(node, NULL, &evt);
+	}
+#endif
+}
+
 
 /*connects given OD manager to its URL*/
 void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, GF_ClientService *ParentService)
@@ -787,6 +873,7 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	gf_term_lock_net(term, 0);
 
 	/*OK connect*/
+	gf_term_service_media_event(odm, GF_EVENT_MEDIA_BEGIN_SESSION_SETUP);
 	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
 }
 

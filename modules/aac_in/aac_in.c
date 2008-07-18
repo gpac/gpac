@@ -314,7 +314,7 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		if (read->stream) {
 			read->is_remote = 0;
 			e = GF_EOS;
-		} else {
+		} else if (!read->needs_connection) {
 			return;
 		}
 	} else if (param->msg_type==GF_NETIO_PARSE_HEADER) {

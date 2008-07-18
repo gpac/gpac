@@ -32,8 +32,42 @@
 
 static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event *evt, Bool is_end);
 
+
+static void gf_dom_refresh_event_filter(GF_SceneGraph *sg)
+{
+	GF_SceneGraph *par;
+	u32 prev_flags = sg->dom_evt_filter;
+
+	sg->dom_evt_filter = 0;
+	if (sg->nb_evts_mouse) sg->dom_evt_filter |= GF_DOM_EVENT_MOUSE;
+	if (sg->nb_evts_focus) sg->dom_evt_filter |= GF_DOM_EVENT_FOCUS;
+	if (sg->nb_evts_key) sg->dom_evt_filter |= GF_DOM_EVENT_KEY;
+	if (sg->nb_evts_ui) sg->dom_evt_filter |= GF_DOM_EVENT_UI;
+	if (sg->nb_evts_mutation) sg->dom_evt_filter |= GF_DOM_EVENT_MUTATION;
+	if (sg->nb_evts_text) sg->dom_evt_filter |= GF_DOM_EVENT_TEXT;
+	if (sg->nb_evts_smil) sg->dom_evt_filter |= GF_DOM_EVENT_SMIL;
+	if (sg->nb_evts_laser) sg->dom_evt_filter |= GF_DOM_EVENT_LASER;
+	if (sg->nb_evts_svg) sg->dom_evt_filter |= GF_DOM_EVENT_SVG;
+	if (sg->nb_evts_mae) sg->dom_evt_filter |= GF_DOM_EVENT_MEDIA_ACCESS;
+
+	par = sg;
+	while (par->parent_scene) par = par->parent_scene;
+	par->dom_evt_filter &= ~prev_flags;
+	par->dom_evt_filter |= sg->dom_evt_filter;
+}
+
+u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg)
+{
+	return sg->dom_evt_filter;
+}
+u32 gf_node_get_dom_event_filter(GF_Node *node)
+{
+	return node->sgprivate->scenegraph->dom_evt_filter;
+}
+
 GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener)
 {
+	GF_FieldInfo info;
 	if (!node || !listener) return GF_BAD_PARAM;
 	if (listener->sgprivate->tag!=TAG_SVG_listener)
 		return GF_BAD_PARAM;
@@ -44,13 +78,58 @@ GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener)
 	/*only one observer per listener*/
 	if (listener->sgprivate->UserPrivate!=NULL) return GF_NOT_SUPPORTED;
 	listener->sgprivate->UserPrivate = node;
+
+	/*register with NULL parent*/
+	gf_node_register((GF_Node *)listener, NULL);
+
+	if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_event, 0, 0, &info) == GF_OK) {
+		GF_SceneGraph *sg = node->sgprivate->scenegraph;
+		u32 type = ((XMLEV_Event *)info.far_ptr)->type;
+		type = gf_dom_event_get_category(type);
+		if (type & GF_DOM_EVENT_MOUSE) sg->nb_evts_mouse++;
+		if (type & GF_DOM_EVENT_FOCUS) sg->nb_evts_focus++;
+		if (type & GF_DOM_EVENT_KEY) sg->nb_evts_key++;
+		if (type & GF_DOM_EVENT_UI) sg->nb_evts_ui++;
+		if (type & GF_DOM_EVENT_MUTATION) sg->nb_evts_mutation++;
+		if (type & GF_DOM_EVENT_TEXT) sg->nb_evts_text++;
+		if (type & GF_DOM_EVENT_SMIL) sg->nb_evts_smil++;
+		if (type & GF_DOM_EVENT_LASER) sg->nb_evts_laser++;
+		if (type & GF_DOM_EVENT_SVG) sg->nb_evts_svg++;
+		if (type & GF_DOM_EVENT_MEDIA_ACCESS) sg->nb_evts_mae++;
+
+		gf_dom_refresh_event_filter(sg);
+	}
+
 	return gf_list_add(node->sgprivate->interact->events, listener);
 }
 
 GF_Err gf_dom_listener_del(GF_Node *node, GF_Node *listener)
 {
+	GF_FieldInfo info;
 	if (!node || !node->sgprivate->interact || !node->sgprivate->interact->events || !listener) return GF_BAD_PARAM;
-	return (gf_list_del_item(node->sgprivate->interact->events, listener)<0) ? GF_BAD_PARAM : GF_OK;
+	if (gf_list_del_item(node->sgprivate->interact->events, listener)<0) return GF_BAD_PARAM;
+
+	if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_event, 0, 0, &info) == GF_OK) {
+		GF_SceneGraph *sg = node->sgprivate->scenegraph;
+		u32 type = ((XMLEV_Event *)info.far_ptr)->type;
+		type = gf_dom_event_get_category(type);
+		if (sg->nb_evts_mouse && (type & GF_DOM_EVENT_MOUSE)) sg->nb_evts_mouse--;
+		if (sg->nb_evts_focus && (type & GF_DOM_EVENT_FOCUS)) sg->nb_evts_focus--;
+		if (sg->nb_evts_key && (type & GF_DOM_EVENT_KEY)) sg->nb_evts_key--;
+		if (sg->nb_evts_ui && (type & GF_DOM_EVENT_UI)) sg->nb_evts_ui--;
+		if (sg->nb_evts_mutation && (type & GF_DOM_EVENT_MUTATION)) sg->nb_evts_mutation--;
+		if (sg->nb_evts_text && (type & GF_DOM_EVENT_TEXT)) sg->nb_evts_text--;
+		if (sg->nb_evts_smil && (type & GF_DOM_EVENT_SMIL)) sg->nb_evts_smil--;
+		if (sg->nb_evts_laser && (type & GF_DOM_EVENT_LASER)) sg->nb_evts_laser--;
+		if (sg->nb_evts_text && (type & GF_DOM_EVENT_TEXT)) sg->nb_evts_text--;
+		if (sg->nb_evts_svg && (type & GF_DOM_EVENT_SVG)) sg->nb_evts_svg--;
+		if (sg->nb_evts_mae && (type & GF_DOM_EVENT_MEDIA_ACCESS)) sg->nb_evts_mae--;
+
+		gf_dom_refresh_event_filter(sg);
+	}
+
+	gf_node_unregister((GF_Node *)listener, NULL);
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -190,12 +269,25 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 			if (event->type==GF_EVENT_LOAD) {
 				svg_process_event(listen, event);
 
+				/*protect listener & handler from deletion*/
+				listen->sgprivate->num_instances++;
+				if (handler) handler->sgprivate->num_instances++;
+
+				/*delete listener*/
+				gf_node_unregister(listen, NULL);
 				gf_list_rem(node->sgprivate->interact->events, i);
 				count--;
 				i--;
-				/*delete listener first, since it may be a child of the handler*/
 				gf_node_replace((GF_Node *) listen, NULL, 0);
-				if (handler) gf_node_replace(handler, NULL, 0);
+
+				/*unprotect listener from deletion (this will likely destroy it)*/
+				gf_node_unregister(listen, NULL);
+
+				if (handler) {
+					gf_node_replace(handler, NULL, 0);
+					/*unprotect handler from deletion (this will likely destroy it)*/
+					gf_node_unregister(handler, NULL);
+				}
 			} else {
 				assert(node->sgprivate->num_instances);
 				/*protect node*/
@@ -328,10 +420,12 @@ GF_DOMHandler *gf_dom_listener_build(GF_Node *node, u32 event_type, u32 event_pa
 	tag = gf_node_get_tag(node);
 	listener = (SVG_Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
 	handler = (SVG_handlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_handler);
-	gf_node_register((GF_Node *)listener, owner);
-	gf_node_list_add_child_last( & ((GF_ParentNode *)owner)->children, (GF_Node*)listener, &last);
-	gf_node_register((GF_Node *)handler, owner);
-	gf_node_list_add_child_last(& ((GF_ParentNode *)owner)->children, (GF_Node*)handler, &last);
+
+	/*don't register the listener, this will be done when adding to the node events list*/
+
+	/*register the handler as a child of the listener*/
+	gf_node_register((GF_Node *)handler, (GF_Node *) listener);
+	gf_node_list_add_child_last(& ((GF_ParentNode *)listener)->children, (GF_Node*)handler, &last);
 
 	gf_svg_get_attribute_by_tag((GF_Node*)handler, TAG_SVG_ATT_ev_event, 1, 0, &info);
 	((XMLEV_Event *)info.far_ptr)->type = event_type;
