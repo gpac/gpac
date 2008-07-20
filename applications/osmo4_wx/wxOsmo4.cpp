@@ -900,6 +900,7 @@ wxDEFAULT_FRAME_STYLE
 	menu->Append(FILE_STEP, wxT("&Step-by-Step\tCtrl+S"), wxT("Play/Pause/Resume Presentation"));
 	menu->Append(FILE_STOP, wxT("&Stop"), wxT("Stop Presentation"));
 	menu->AppendSeparator();
+	menu->Append(FILE_RELOAD_CONFIG, wxT("&Reload Config\tCtrl+R"), wxT("Reload Configuration File"));
 	menu->Append(FILE_RELOAD, wxT("&Reload File\tCtrl+R"), wxT("Reload Presentation"));
 	b->Append(menu, wxT("&Play"));
 
@@ -1094,6 +1095,7 @@ BEGIN_EVENT_TABLE(wxOsmo4Frame, wxFrame)
 	EVT_CLOSE(wxOsmo4Frame::OnCloseApp)
 	EVT_MENU(FILE_OPEN, wxOsmo4Frame::OnFileOpen)
 	EVT_MENU(FILE_OPEN_URL, wxOsmo4Frame::OnFileOpenURL)
+	EVT_MENU(FILE_RELOAD_CONFIG, wxOsmo4Frame::OnFileReloadConfig)
 	EVT_MENU(FILE_RELOAD, wxOsmo4Frame::OnFileReload)
 	EVT_MENU(FILE_PROPERTIES, wxOsmo4Frame::OnFileProperties)
 	EVT_MENU(FILE_QUIT, wxOsmo4Frame::OnFileQuit)
@@ -1352,6 +1354,11 @@ void wxOsmo4Frame::OnFileReload(wxCommandEvent & WXUNUSED(event))
 	gf_term_disconnect(m_term); 
 	m_connected = 0;
 	DoConnect();
+}
+
+void wxOsmo4Frame::OnFileReloadConfig(wxCommandEvent & WXUNUSED(event))
+{
+	gf_term_set_option(m_term, GF_OPT_RELOAD_CONFIG, 1);
 }
 
 void wxOsmo4Frame::OnFileQuit(wxCommandEvent & WXUNUSED(event))

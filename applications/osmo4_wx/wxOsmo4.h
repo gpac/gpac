@@ -78,6 +78,7 @@ enum {
 	FILE_OPEN = wxID_HIGHEST+1,
 	FILE_OPEN_URL,
 	FILE_RELOAD,
+	FILE_RELOAD_CONFIG,
 	FILE_PLAY,
 	FILE_STEP,
 	FILE_STOP,
@@ -278,6 +279,7 @@ private:
 	void OnFileOpen(wxCommandEvent &event);
 	void OnFileOpenURL(wxCommandEvent &event);
 	void OnFileReload(wxCommandEvent &event);
+	void OnFileReloadConfig(wxCommandEvent & event);
 	void OnFileProperties(wxCommandEvent &event);
 	void OnFileQuit(wxCommandEvent &event);
 	void OnFullScreen(wxCommandEvent &event);
