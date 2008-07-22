@@ -211,7 +211,7 @@ enum
 	CTX_PATH_STROKE = 1<<8,
 	/*indicates SVG path outline geometry has been modified*/
 	CTX_SVG_OUTLINE_GEOMETRY_DIRTY = 1<<9,
-	/*indicates the context is in a flip coord state (used for image flip)*/
+	/*indicates the context is in a flip coord state (used for image and text flip)*/
 	CTX_FLIPED_COORDS = 1<<10,
 };
 

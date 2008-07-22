@@ -646,6 +646,9 @@ struct _traversing_state
 	/*minimal half-dimension (w/2, h/2)*/
 	Fixed min_hsize;
 
+	/*indicates if the current subtree is fliped compared to the target visual*/
+	Bool fliped_coords;
+
 	/*current size of viewport being traverse (root scene, layers)*/
 	SFVec2f vp_size;
 

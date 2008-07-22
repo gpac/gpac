@@ -38,7 +38,14 @@ static void mpeg4_sensor_deleted(GF_Node *node, GF_SensorHandler *hdl)
 	if (compositor) {
 		gf_list_del_item(compositor->previous_sensors, hdl);
 		if (compositor->interaction_sensors) compositor->interaction_sensors--;
+		gf_node_unregister_event_type(node, GF_DOM_EVENT_MOUSE|GF_DOM_EVENT_KEY);
 	}
+}
+
+static void mpeg4_sensor_created(GF_Compositor *compositor, GF_Node *node)
+{
+	compositor->interaction_sensors--;
+	gf_node_register_event_type(node, GF_DOM_EVENT_MOUSE|GF_DOM_EVENT_KEY);
 }
 
 
@@ -187,7 +194,7 @@ void compositor_init_anchor(GF_Compositor *compositor, GF_Node *node)
 		((M_Anchor *)node)->on_activate = on_activate_anchor;
 	}
 	stack->compositor = compositor;
-	compositor->interaction_sensors++;
+	mpeg4_sensor_created(compositor, node);
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, TraverseAnchor);
 }
@@ -316,7 +323,7 @@ void compositor_init_disc_sensor(GF_Compositor *compositor, GF_Node *node)
 	st->hdl.OnUserEvent = OnDiscSensor;
 	st->hdl.sensor = node;
 	st->compositor = compositor;
-	compositor->interaction_sensors++;
+	mpeg4_sensor_created(compositor, node);
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, DestroyDiscSensor);
 }
@@ -449,7 +456,7 @@ void compositor_init_plane_sensor2d(GF_Compositor *compositor, GF_Node *node)
 	st->hdl.OnUserEvent = OnPlaneSensor2D;
 	st->hdl.sensor = node;
 	st->compositor = compositor;
-	st->compositor->interaction_sensors++;
+	mpeg4_sensor_created(compositor, node);
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, DestroyPlaneSensor2D);
 }
@@ -533,7 +540,7 @@ void compositor_init_proximity_sensor2d(GF_Compositor *compositor, GF_Node *node
 	st->hdl.OnUserEvent = OnProximitySensor2D;
 	st->hdl.sensor = node;
 	st->compositor = compositor;
-	st->compositor->interaction_sensors++;
+	mpeg4_sensor_created(compositor, node);
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, DestroyProximitySensor2D);
 }
@@ -624,7 +631,7 @@ void compositor_init_touch_sensor(GF_Compositor *compositor, GF_Node *node)
 	st->hdl.OnUserEvent = OnTouchSensor;
 	st->hdl.sensor = node;
 	st->compositor = compositor;
-	st->compositor->interaction_sensors++;
+	mpeg4_sensor_created(compositor, node);
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, DestroyTouchSensor);
 }
@@ -831,7 +838,7 @@ void compositor_init_plane_sensor(GF_Compositor *compositor, GF_Node *node)
 	st->hdl.OnUserEvent = OnPlaneSensor;
 	st->hdl.sensor = node;
 	st->compositor = compositor;
-	st->compositor->interaction_sensors++;
+	mpeg4_sensor_created(compositor, node);
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, DestroyPlaneSensor);
 }
@@ -1009,7 +1016,7 @@ void compositor_init_cylinder_sensor(GF_Compositor *compositor, GF_Node *node)
 	st->hdl.OnUserEvent = OnCylinderSensor;
 	st->hdl.sensor = node;
 	st->compositor = compositor;
-	st->compositor->interaction_sensors++;
+	mpeg4_sensor_created(compositor, node);
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, DestroyCylinderSensor);
 }
@@ -1168,7 +1175,7 @@ void compositor_init_sphere_sensor(GF_Compositor *compositor, GF_Node *node)
 	st->hdl.OnUserEvent = OnSphereSensor;
 	st->hdl.sensor = node;
 	st->compositor = compositor;
-	st->compositor->interaction_sensors++;
+	mpeg4_sensor_created(compositor, node);
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, DestroySphereSensor);
 }
