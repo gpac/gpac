@@ -1878,7 +1878,7 @@ void gf_sc_visual_unregister(GF_Compositor *compositor, GF_VisualManager *visual
 void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, GF_SceneGraph *subscene, void *rs)
 {
 	Fixed min_hsize;
-	Bool use_pm, prev_pm;
+	Bool use_pm, prev_pm, prev_coord;
 	SFVec2f prev_vp;
 	s32 flip_coords;
 	u32 h, w, tag;
@@ -1942,6 +1942,7 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	min_hsize = tr_state->min_hsize;
 	prev_pm = tr_state->pixel_metrics;
 	prev_vp = tr_state->vp_size;
+	prev_coord = tr_state->fliped_coords;
 	w = h = 0;
 	gf_sg_get_scene_size_info(in_scene, &w, &h);
 
@@ -1967,8 +1968,11 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 		gf_mx2d_add_scale(&transf, FIX_ONE, -FIX_ONE);
 	/*if scene size is given in the child document, scale to fit the entire vp*/
 	if (w && h) gf_mx2d_add_scale(&transf, tr_state->vp_size.x/w, tr_state->vp_size.y/h);
-	if (flip_coords)
+	if (flip_coords) {
 		gf_mx2d_add_translation(&transf, flip_coords * tr_state->vp_size.x/2, tr_state->vp_size.y/2);
+
+		tr_state->fliped_coords = !tr_state->fliped_coords;
+	}
 	/*if scene size is given in the child document, scale back vp to take into account the above scale
 	otherwise the scene won't be properly clipped*/
 	if (w && h) {
@@ -2010,6 +2014,7 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	tr_state->pixel_metrics = prev_pm;
 	tr_state->min_hsize = min_hsize;
 	tr_state->vp_size = prev_vp;
+	tr_state->fliped_coords = prev_coord;
 }
 
 

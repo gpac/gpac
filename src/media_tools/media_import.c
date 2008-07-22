@@ -2461,7 +2461,8 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	dictionary = NULL;
 	use_dict = 0;
 	memset(&sdesc, 0, sizeof(GF_GenericSampleDescription));
-	tkID = mtype = streamType = oti = timescale = par_den = par_num = 0;
+	tkID = mtype = streamType = oti = par_den = par_num = 0;
+	timescale = 1000;
 	i=0;
 	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
 		if (!strcmp(att->name, "streamType")) streamType = atoi(att->value);

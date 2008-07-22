@@ -1636,7 +1636,12 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 				u32 pos = (u32) gf_bs_get_position(bs);
 				u16 size = gf_bs_read_u16(bs);
 				u8 flags = gf_bs_read_u8(bs);
-				u8 prev = samp->data[pos+2+size];
+				u8 prev;
+				
+				if (pos+size+2>samp->dataLength)
+					break;
+
+				prev = samp->data[pos+2+size];
 				samp->data[pos+2+size] = 0;
 
 

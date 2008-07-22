@@ -647,7 +647,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	ctx->flags |= CTX_HAS_APPEARANCE;
 
 	/*we are drawing on a fliped coord surface, remember to flip the texture*/
-	if (!tr_state->visual->center_coords)
+	if (tr_state->fliped_coords)
 		ctx->flags |= CTX_FLIPED_COORDS;
 
 #ifdef GPAC_TRISCOPE_MODE
@@ -1325,7 +1325,7 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
 
 	/*we are drawing on a centered coord surface, remember to flip the texture*/
-	if (tr_state->visual->center_coords)
+	if (tr_state->fliped_coords)
 		ctx->flags |= CTX_FLIPED_COORDS;
 	return ctx;
 }

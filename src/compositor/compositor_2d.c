@@ -393,6 +393,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	/*regarde si la texture est updated*/
 	if (!ctx->aspect.fill_texture->data) return 0;
 	if (ctx->transform.m[0]<0) return 0;
+	/*check if the <0 value is due to a flip in he scene description or 
+	due to bifs<->svg... context switching*/
 	if (ctx->transform.m[4]<0) {
 		if (!(ctx->flags & CTX_FLIPED_COORDS)) return 0;
 	} else {

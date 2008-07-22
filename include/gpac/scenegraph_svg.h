@@ -252,6 +252,8 @@ u32 gf_dom_event_get_category(u32 type);
 u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg);
 u32 gf_node_get_dom_event_filter(GF_Node *node);
 
+void gf_node_register_event_type(GF_Node *node, u32 type);
+void gf_node_unregister_event_type(GF_Node *node, u32 type);
 
 /**************************************************
  *  SVG's styling properties (see 6.1 in REC 1.1) *

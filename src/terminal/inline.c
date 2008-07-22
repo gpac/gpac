@@ -483,7 +483,7 @@ static Bool Inline_SetScene(M_Inline *root)
 	parent = (GF_InlineScene *)gf_sg_get_private(graph);
 	if (!parent) return 0;
 
-	mo = gf_inline_get_media_object(parent, &root->url, GF_MEDIA_OBJECT_SCENE, 0);
+	mo = gf_inline_get_media_object_ex(parent, &root->url, GF_MEDIA_OBJECT_SCENE, 0, NULL, 0, (GF_Node*)root);
 	if (!mo || !mo->odm) return 0;
 
 	if (!mo->odm->subscene) {
@@ -815,7 +815,7 @@ GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u3
 				)
 			) {
 				
-				if (gf_list_find(obj->nodes, node)<0)
+				if (node && (gf_list_find(obj->nodes, node)<0))
 					gf_list_add(obj->nodes, node);
 				return obj;
 			}

@@ -50,10 +50,13 @@ static void gf_dom_refresh_event_filter(GF_SceneGraph *sg)
 	if (sg->nb_evts_svg) sg->dom_evt_filter |= GF_DOM_EVENT_SVG;
 	if (sg->nb_evts_mae) sg->dom_evt_filter |= GF_DOM_EVENT_MEDIA_ACCESS;
 
-	par = sg;
-	while (par->parent_scene) par = par->parent_scene;
-	par->dom_evt_filter &= ~prev_flags;
-	par->dom_evt_filter |= sg->dom_evt_filter;
+	/*for each graph until top, update event filter*/
+	par = sg->parent_scene;
+	while (par) {
+		par->dom_evt_filter &= ~prev_flags;
+		par->dom_evt_filter |= sg->dom_evt_filter;
+		par = par->parent_scene;
+	}
 }
 
 u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg)
@@ -63,6 +66,23 @@ u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg)
 u32 gf_node_get_dom_event_filter(GF_Node *node)
 {
 	return node->sgprivate->scenegraph->dom_evt_filter;
+}
+
+void gf_node_register_event_type(GF_Node *node, u32 type)
+{
+	GF_SceneGraph *sg = node->sgprivate->scenegraph;
+	if (type & GF_DOM_EVENT_MOUSE) sg->nb_evts_mouse++;
+	if (type & GF_DOM_EVENT_FOCUS) sg->nb_evts_focus++;
+	if (type & GF_DOM_EVENT_KEY) sg->nb_evts_key++;
+	if (type & GF_DOM_EVENT_UI) sg->nb_evts_ui++;
+	if (type & GF_DOM_EVENT_MUTATION) sg->nb_evts_mutation++;
+	if (type & GF_DOM_EVENT_TEXT) sg->nb_evts_text++;
+	if (type & GF_DOM_EVENT_SMIL) sg->nb_evts_smil++;
+	if (type & GF_DOM_EVENT_LASER) sg->nb_evts_laser++;
+	if (type & GF_DOM_EVENT_SVG) sg->nb_evts_svg++;
+	if (type & GF_DOM_EVENT_MEDIA_ACCESS) sg->nb_evts_mae++;
+
+	gf_dom_refresh_event_filter(sg);
 }
 
 GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener)
@@ -83,24 +103,29 @@ GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener)
 	gf_node_register((GF_Node *)listener, NULL);
 
 	if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_event, 0, 0, &info) == GF_OK) {
-		GF_SceneGraph *sg = node->sgprivate->scenegraph;
 		u32 type = ((XMLEV_Event *)info.far_ptr)->type;
-		type = gf_dom_event_get_category(type);
-		if (type & GF_DOM_EVENT_MOUSE) sg->nb_evts_mouse++;
-		if (type & GF_DOM_EVENT_FOCUS) sg->nb_evts_focus++;
-		if (type & GF_DOM_EVENT_KEY) sg->nb_evts_key++;
-		if (type & GF_DOM_EVENT_UI) sg->nb_evts_ui++;
-		if (type & GF_DOM_EVENT_MUTATION) sg->nb_evts_mutation++;
-		if (type & GF_DOM_EVENT_TEXT) sg->nb_evts_text++;
-		if (type & GF_DOM_EVENT_SMIL) sg->nb_evts_smil++;
-		if (type & GF_DOM_EVENT_LASER) sg->nb_evts_laser++;
-		if (type & GF_DOM_EVENT_SVG) sg->nb_evts_svg++;
-		if (type & GF_DOM_EVENT_MEDIA_ACCESS) sg->nb_evts_mae++;
-
-		gf_dom_refresh_event_filter(sg);
+		gf_node_register_event_type(node, gf_dom_event_get_category(type));
 	}
 
 	return gf_list_add(node->sgprivate->interact->events, listener);
+}
+
+void gf_node_unregister_event_type(GF_Node *node, u32 type)
+{
+	GF_SceneGraph *sg = node->sgprivate->scenegraph;
+	if (sg->nb_evts_mouse && (type & GF_DOM_EVENT_MOUSE)) sg->nb_evts_mouse--;
+	if (sg->nb_evts_focus && (type & GF_DOM_EVENT_FOCUS)) sg->nb_evts_focus--;
+	if (sg->nb_evts_key && (type & GF_DOM_EVENT_KEY)) sg->nb_evts_key--;
+	if (sg->nb_evts_ui && (type & GF_DOM_EVENT_UI)) sg->nb_evts_ui--;
+	if (sg->nb_evts_mutation && (type & GF_DOM_EVENT_MUTATION)) sg->nb_evts_mutation--;
+	if (sg->nb_evts_text && (type & GF_DOM_EVENT_TEXT)) sg->nb_evts_text--;
+	if (sg->nb_evts_smil && (type & GF_DOM_EVENT_SMIL)) sg->nb_evts_smil--;
+	if (sg->nb_evts_laser && (type & GF_DOM_EVENT_LASER)) sg->nb_evts_laser--;
+	if (sg->nb_evts_text && (type & GF_DOM_EVENT_TEXT)) sg->nb_evts_text--;
+	if (sg->nb_evts_svg && (type & GF_DOM_EVENT_SVG)) sg->nb_evts_svg--;
+	if (sg->nb_evts_mae && (type & GF_DOM_EVENT_MEDIA_ACCESS)) sg->nb_evts_mae--;
+
+	gf_dom_refresh_event_filter(sg);
 }
 
 GF_Err gf_dom_listener_del(GF_Node *node, GF_Node *listener)
@@ -110,24 +135,9 @@ GF_Err gf_dom_listener_del(GF_Node *node, GF_Node *listener)
 	if (gf_list_del_item(node->sgprivate->interact->events, listener)<0) return GF_BAD_PARAM;
 
 	if (gf_svg_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_event, 0, 0, &info) == GF_OK) {
-		GF_SceneGraph *sg = node->sgprivate->scenegraph;
 		u32 type = ((XMLEV_Event *)info.far_ptr)->type;
-		type = gf_dom_event_get_category(type);
-		if (sg->nb_evts_mouse && (type & GF_DOM_EVENT_MOUSE)) sg->nb_evts_mouse--;
-		if (sg->nb_evts_focus && (type & GF_DOM_EVENT_FOCUS)) sg->nb_evts_focus--;
-		if (sg->nb_evts_key && (type & GF_DOM_EVENT_KEY)) sg->nb_evts_key--;
-		if (sg->nb_evts_ui && (type & GF_DOM_EVENT_UI)) sg->nb_evts_ui--;
-		if (sg->nb_evts_mutation && (type & GF_DOM_EVENT_MUTATION)) sg->nb_evts_mutation--;
-		if (sg->nb_evts_text && (type & GF_DOM_EVENT_TEXT)) sg->nb_evts_text--;
-		if (sg->nb_evts_smil && (type & GF_DOM_EVENT_SMIL)) sg->nb_evts_smil--;
-		if (sg->nb_evts_laser && (type & GF_DOM_EVENT_LASER)) sg->nb_evts_laser--;
-		if (sg->nb_evts_text && (type & GF_DOM_EVENT_TEXT)) sg->nb_evts_text--;
-		if (sg->nb_evts_svg && (type & GF_DOM_EVENT_SVG)) sg->nb_evts_svg--;
-		if (sg->nb_evts_mae && (type & GF_DOM_EVENT_MEDIA_ACCESS)) sg->nb_evts_mae--;
-
-		gf_dom_refresh_event_filter(sg);
+		gf_node_unregister_event_type(node, gf_dom_event_get_category(type));
 	}
-
 	gf_node_unregister((GF_Node *)listener, NULL);
 	return GF_OK;
 }

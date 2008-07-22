@@ -33,9 +33,6 @@ Package=<4>
     Project_Dep_Name aac_in
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name amr_float_dec
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name bifs_dec
     End Project Dependency
     Begin Project Dependency
@@ -163,21 +160,6 @@ Package=<4>
 ###############################################################################
 
 Project: "broadcaster"=..\..\applications\testapps\broadcaster\broadcaster.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libgpac_dll
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "bsac_dec"=..\..\modules\bsac_dec\bsac_dec.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

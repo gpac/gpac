@@ -621,21 +621,14 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 
 	if (is_root_visual) {
 		GF_SceneGraph *sg;
-		u32 i, tag;
+		u32 i;
 		visual_3d_draw_node(tr_state, root);
 
 		/*extra scene graphs*/
 		i=0; 
 		while ((sg = (GF_SceneGraph*)gf_list_enum(visual->compositor->extra_scenes, &i))) {
-			GF_Node *n = gf_sg_get_root_node(sg);
-			if (!n) continue;
-			
-			tag = gf_node_get_tag(n);
-
-			visual_3d_setup_traversing_state(visual, tr_state);
-
 			tr_state->traversing_mode = TRAVERSE_SORT;
-			gf_node_traverse(n, tr_state);
+			gf_sc_traverse_subscene(visual->compositor, root, sg, tr_state);
 		}
 	} else {
 		visual_3d_draw_node(tr_state, root);
