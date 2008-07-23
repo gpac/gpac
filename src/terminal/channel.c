@@ -1021,15 +1021,21 @@ void gf_es_init_dummy(GF_Channel *ch)
 	GF_SLHeader slh;
 	Bool comp, is_new_data;
 	GF_Err e, state;
-	if (!ch->is_pulling) return;
 	/*pull from stream - resume clock if needed*/
 	ch_buffer_off(ch);
 
 	ch->ts_res = 1000;
-	e = gf_term_channel_get_sl_packet(ch->service, ch, (char **) &ch->AU_buffer_pull->data, &ch->AU_buffer_pull->dataLength, &slh, &comp, &state, &is_new_data);
-	if (e) state = e;
-	if ((state==GF_OK) && is_new_data) gf_es_receive_sl_packet(ch->service, ch, NULL, 0, &slh, GF_OK);
-	gf_term_channel_release_sl_packet(ch->service, ch);
+	if (ch->is_pulling) {
+		e = gf_term_channel_get_sl_packet(ch->service, ch, (char **) &ch->AU_buffer_pull->data, &ch->AU_buffer_pull->dataLength, &slh, &comp, &state, &is_new_data);
+		if (e) state = e;
+		if ((state==GF_OK) && is_new_data) gf_es_receive_sl_packet(ch->service, ch, NULL, 0, &slh, GF_OK);
+		gf_term_channel_release_sl_packet(ch->service, ch);
+	} else {
+		memset(&slh, 0, sizeof(GF_SLHeader));
+		slh.accessUnitStartFlag = 1;
+		slh.compositionTimeStampFlag = 1;
+		gf_es_receive_sl_packet(ch->service, ch, NULL, 0, &slh, GF_OK);
+	}
 }
 
 void gf_es_drop_au(GF_Channel *ch)

@@ -2465,30 +2465,30 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	timescale = 1000;
 	i=0;
 	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
-		if (!strcmp(att->name, "streamType")) streamType = atoi(att->value);
-		else if (!strcmp(att->name, "mediaType") && (strlen(att->value)==4)) {
+		if (!stricmp(att->name, "streamType")) streamType = atoi(att->value);
+		else if (!stricmp(att->name, "mediaType") && (strlen(att->value)==4)) {
 			mtype = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		}
-		else if (!strcmp(att->name, "mediaSubType") && (strlen(att->value)==4)) {
+		else if (!stricmp(att->name, "mediaSubType") && (strlen(att->value)==4)) {
 			sdesc.codec_tag = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		}
-		else if (!strcmp(att->name, "objectTypeIndication")) oti = atoi(att->value);
-		else if (!strcmp(att->name, "timeScale")) timescale = atoi(att->value);
-		else if (!strcmp(att->name, "width")) sdesc.width = atoi(att->value);
-		else if (!strcmp(att->name, "height")) sdesc.height = atoi(att->value);
-		else if (!strcmp(att->name, "parNum")) par_num = atoi(att->value);
-		else if (!strcmp(att->name, "parDen")) par_den = atoi(att->value);
-		else if (!strcmp(att->name, "sampleRate")) sdesc.samplerate = atoi(att->value);
-		else if (!strcmp(att->name, "numChannels")) sdesc.nb_channels = atoi(att->value);
-		else if (!strcmp(att->name, "baseMediaFile")) strcpy(szMedia, att->value);
-		else if (!strcmp(att->name, "specificInfoFile")) strcpy(szInfo, att->value);
-		else if (!strcmp(att->name, "trackID")) tkID = atoi(att->value);
-		else if (!strcmp(att->name, "inRootOD")) inRootOD = (!strcmp(att->value, "yes") );
-		else if (!strcmp(att->name, "DTS_increment")) dts_inc = atoi(att->value);
-		else if (!strcmp(att->name, "gzipSamples")) do_compress = (!strcmp(att->value, "yes")) ? 1 : 0;
-		else if (!strcmp(att->name, "gzipDictionary")) {
+		else if (!stricmp(att->name, "objectTypeIndication")) oti = atoi(att->value);
+		else if (!stricmp(att->name, "timeScale")) timescale = atoi(att->value);
+		else if (!stricmp(att->name, "width")) sdesc.width = atoi(att->value);
+		else if (!stricmp(att->name, "height")) sdesc.height = atoi(att->value);
+		else if (!stricmp(att->name, "parNum")) par_num = atoi(att->value);
+		else if (!stricmp(att->name, "parDen")) par_den = atoi(att->value);
+		else if (!stricmp(att->name, "sampleRate")) sdesc.samplerate = atoi(att->value);
+		else if (!stricmp(att->name, "numChannels")) sdesc.nb_channels = atoi(att->value);
+		else if (!stricmp(att->name, "baseMediaFile")) strcpy(szMedia, att->value);
+		else if (!stricmp(att->name, "specificInfoFile")) strcpy(szInfo, att->value);
+		else if (!stricmp(att->name, "trackID")) tkID = atoi(att->value);
+		else if (!stricmp(att->name, "inRootOD")) inRootOD = (!stricmp(att->value, "yes") );
+		else if (!stricmp(att->name, "DTS_increment")) dts_inc = atoi(att->value);
+		else if (!stricmp(att->name, "gzipSamples")) do_compress = (!stricmp(att->value, "yes")) ? 1 : 0;
+		else if (!stricmp(att->name, "gzipDictionary")) {
 			u32 d_size;
-			if (strcmp(att->value, "self")) {
+			if (stricmp(att->value, "self")) {
 				FILE *d = fopen(att->value, "rb");
 				if (!d) {
 					gf_import_message(import, GF_IO_ERR, "Cannot open dictionary file %s", att->value);
@@ -2504,33 +2504,33 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			use_dict = 1;
 		}
 		/*unknow desc related*/
-		else if (!strcmp(att->name, "compressorName")) strcpy(sdesc.compressor_name, att->value);
-		else if (!strcmp(att->name, "codecVersion")) sdesc.version = atoi(att->value);
-		else if (!strcmp(att->name, "codecRevision")) sdesc.revision = atoi(att->value);
-		else if (!strcmp(att->name, "codecVendor") && (strlen(att->value)==4)) {
+		else if (!stricmp(att->name, "compressorName")) strcpy(sdesc.compressor_name, att->value);
+		else if (!stricmp(att->name, "codecVersion")) sdesc.version = atoi(att->value);
+		else if (!stricmp(att->name, "codecRevision")) sdesc.revision = atoi(att->value);
+		else if (!stricmp(att->name, "codecVendor") && (strlen(att->value)==4)) {
 			sdesc.vendor_code = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		}
-		else if (!strcmp(att->name, "temporalQuality")) sdesc.temporal_quality = atoi(att->value);
-		else if (!strcmp(att->name, "spatialQuality")) sdesc.spacial_quality = atoi(att->value);
-		else if (!strcmp(att->name, "horizontalResolution")) sdesc.h_res = atoi(att->value);
-		else if (!strcmp(att->name, "verticalResolution")) sdesc.v_res = atoi(att->value);
-		else if (!strcmp(att->name, "bitDepth")) sdesc.depth = atoi(att->value);
-		else if (!strcmp(att->name, "bitsPerSample")) sdesc.bits_per_sample = atoi(att->value);
+		else if (!stricmp(att->name, "temporalQuality")) sdesc.temporal_quality = atoi(att->value);
+		else if (!stricmp(att->name, "spatialQuality")) sdesc.spacial_quality = atoi(att->value);
+		else if (!stricmp(att->name, "horizontalResolution")) sdesc.h_res = atoi(att->value);
+		else if (!stricmp(att->name, "verticalResolution")) sdesc.v_res = atoi(att->value);
+		else if (!stricmp(att->name, "bitDepth")) sdesc.depth = atoi(att->value);
+		else if (!stricmp(att->name, "bitsPerSample")) sdesc.bits_per_sample = atoi(att->value);
 
 		/*DIMS stuff*/
-		else if (!strcmp(att->name, "profile")) dims.profile = atoi(att->value);
-		else if (!strcmp(att->name, "level")) dims.level = atoi(att->value);
-		else if (!strcmp(att->name, "pathComponents")) dims.pathComponents = atoi(att->value);
-		else if (!strcmp(att->name, "useFullRequestHost") && !strcmp(att->value, "yes")) dims.fullRequestHost = 1;
-		else if (!strcmp(att->name, "stream_type") && !strcmp(att->value, "secondary")) dims.streamType = 0;
-		else if (!strcmp(att->name, "containsRedundant")) {
-			if (!strcmp(att->value, "main")) dims.containsRedundant = 1;
-			else if (!strcmp(att->value, "redundant")) dims.containsRedundant = 2;
-			else if (!strcmp(att->value, "main+redundant")) dims.containsRedundant = 3;
+		else if (!stricmp(att->name, "profile")) dims.profile = atoi(att->value);
+		else if (!stricmp(att->name, "level")) dims.level = atoi(att->value);
+		else if (!stricmp(att->name, "pathComponents")) dims.pathComponents = atoi(att->value);
+		else if (!stricmp(att->name, "useFullRequestHost") && !stricmp(att->value, "yes")) dims.fullRequestHost = 1;
+		else if (!stricmp(att->name, "stream_type") && !stricmp(att->value, "secondary")) dims.streamType = 0;
+		else if (!stricmp(att->name, "containsRedundant")) {
+			if (!stricmp(att->value, "main")) dims.containsRedundant = 1;
+			else if (!stricmp(att->value, "redundant")) dims.containsRedundant = 2;
+			else if (!stricmp(att->value, "main+redundant")) dims.containsRedundant = 3;
 		}
-		else if (!strcmp(att->name, "textEncoding")) dims.textEncoding = att->value;
-		else if (!strcmp(att->name, "contentEncoding")) dims.contentEncoding = att->value;
-		else if (!strcmp(att->name, "scriptTypes")) dims.content_script_types = att->value;
+		else if (!stricmp(att->name, "textEncoding")) dims.textEncoding = att->value;
+		else if (!stricmp(att->name, "contentEncoding")) dims.contentEncoding = att->value;
+		else if (!stricmp(att->name, "scriptTypes")) dims.content_script_types = att->value;
 	
 	}
 	if (sdesc.samplerate && !timescale) timescale = sdesc.samplerate;
@@ -2684,7 +2684,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		u32 j, dims_flags;
 		Bool append;
 		if (node->type) continue;
-		if (strcmp(node->name, szSampleName) ) continue;
+		if (stricmp(node->name, szSampleName) ) continue;
 
 		strcpy(szMediaTemp, "");
 		strcpy(szXmlFrom, "");
@@ -2698,7 +2698,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 
 		j=0;
 		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
-			if (!strcmp(att->name, "DTS") || !strcmp(att->name, "time")) {
+			if (!stricmp(att->name, "DTS") || !stricmp(att->name, "time")) {
 				u32 h, m, s, ms;
 				if (sscanf(att->value, "%d:%d:%d.%d", &h, &m, &s, &ms) == 4) {
 					samp->DTS = (u64) ( (Double) ( ((h*3600 + m*60 + s)*1000 + ms) / 1000.0) * timescale );
@@ -2706,22 +2706,22 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 					samp->DTS = atoi(att->value);
 				}
 			}
-			else if (!strcmp(att->name, "CTSOffset")) samp->CTS_Offset = atoi(att->value);
-			else if (!strcmp(att->name, "isRAP") && !samp->IsRAP) {
+			else if (!stricmp(att->name, "CTSOffset")) samp->CTS_Offset = atoi(att->value);
+			else if (!stricmp(att->name, "isRAP") && !samp->IsRAP) {
 				samp->IsRAP = (!stricmp(att->value, "yes")) ? 1 : 0;
 			}
-			else if (!strcmp(att->name, "isSyncShadow")) samp->IsRAP = !stricmp(att->value, "yes") ? 2 : 0;
-			else if (!strcmp(att->name, "mediaOffset")) offset = (s64) atof(att->value) ;
-			else if (!strcmp(att->name, "dataLength")) samp->dataLength = atoi(att->value);
-			else if (!strcmp(att->name, "mediaFile")) strcpy(szMediaTemp, att->value);
-			else if (!strcmp(att->name, "xmlFrom")) strcpy(szXmlFrom, att->value);
-			else if (!strcmp(att->name, "xmlTo")) strcpy(szXmlTo, att->value);
+			else if (!stricmp(att->name, "isSyncShadow")) samp->IsRAP = !stricmp(att->value, "yes") ? 2 : 0;
+			else if (!stricmp(att->name, "mediaOffset")) offset = (s64) atof(att->value) ;
+			else if (!stricmp(att->name, "dataLength")) samp->dataLength = atoi(att->value);
+			else if (!stricmp(att->name, "mediaFile")) strcpy(szMediaTemp, att->value);
+			else if (!stricmp(att->name, "xmlFrom")) strcpy(szXmlFrom, att->value);
+			else if (!stricmp(att->name, "xmlTo")) strcpy(szXmlTo, att->value);
 			/*DIMS flags*/
-			else if (!strcmp(att->name, "isRedundant") && !stricmp(att->value, "yes"))
+			else if (!stricmp(att->name, "isRedundant") && !stricmp(att->value, "yes"))
 				dims_flags |= GF_DIMS_UNIT_I;
-			else if (!strcmp(att->name, "redundantExit") && !stricmp(att->value, "yes")) 
+			else if (!stricmp(att->name, "redundantExit") && !stricmp(att->value, "yes")) 
 				dims_flags |= GF_DIMS_UNIT_D;
-			else if (!strcmp(att->name, "nonCritical") && !stricmp(att->value, "yes")) 
+			else if (!stricmp(att->name, "nonCritical") && !stricmp(att->value, "yes")) 
 				dims_flags |= GF_DIMS_UNIT_P;
 
 		}
@@ -2739,7 +2739,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			else xml_file = szMedia;
 			samp->dataLength = max_size;
 			e = gf_import_sample_from_xml(import, samp, xml_file, szXmlFrom, szXmlTo, &max_size);
-		} else if (is_dims) {
+		} else if (is_dims && !strlen(szMediaTemp)) {
 			GF_BitStream *bs;
 			char *content = gf_xml_dom_serialize(node, 1);
 
@@ -2780,12 +2780,29 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				gf_f64_seek(f, cur_pos, SEEK_SET);
 			}
 
-			if (samp->dataLength>max_size) {
-				samp->data = (char*)realloc(samp->data, sizeof(char) * samp->dataLength);
-				max_size = samp->dataLength;
-			}
 			gf_f64_seek(f, offset, SEEK_SET);
-			fread( samp->data, samp->dataLength, 1, f); 
+			if (is_dims) {
+				GF_BitStream *bs;
+				if (samp->dataLength+3>max_size) {
+					samp->data = (char*)realloc(samp->data, sizeof(char) * (samp->dataLength+3));
+					max_size = samp->dataLength+3;
+				}
+				bs = gf_bs_new(samp->data, samp->dataLength+3, GF_BITSTREAM_WRITE);
+				gf_bs_write_u16(bs, samp->dataLength+1);
+				gf_bs_write_u8(bs, (u8) dims_flags);
+				fread( samp->data+3, samp->dataLength, 1, f); 
+				gf_bs_del(bs);					
+				samp->dataLength+=3;
+				/*same DIMS unit*/
+				if (gf_isom_get_sample_from_dts(import->dest, track, samp->DTS))
+					append = 1;
+			} else {
+				if (samp->dataLength>max_size) {
+					samp->data = (char*)realloc(samp->data, sizeof(char) * samp->dataLength);
+					max_size = samp->dataLength;
+				}
+				fread( samp->data, samp->dataLength, 1, f); 
+			}
 			if (close) fclose(f);
 		}
 		if (e) goto exit;
