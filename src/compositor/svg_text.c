@@ -235,6 +235,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 	}
 	dup_text[j] = 0;
 	tr_state->last_char_was_space = (j && (dup_text[j-1]==' ')) ? 1 : 0;
+	/*SVG text is fliped by default (text y-axis is the inverse of SVG y-axis*/
 	span = gf_font_manager_create_span(fm, font, dup_text, font_size, x_offsets, y_offsets, lang, 1, 0);
 	free(dup_text);
 	if (span) span->flags |= GF_TEXT_SPAN_HORIZONTAL;
