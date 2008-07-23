@@ -855,7 +855,9 @@ void compositor_init_svg_a(GF_Compositor *compositor, GF_Node *node)
 typedef struct
 {
 	GF_MediaObject *resource;
-	GF_Node *used_node;
+//	GF_Node *used_node;
+	GF_SceneGraph *inline_sg;
+	const char *fragment_id;
 } SVGlinkStack;
 
 
@@ -866,6 +868,8 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
   	GF_Matrix2D translate;
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
+	Bool is_fragment;
+	GF_Node *used_node;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	SVGAllAttributes all_atts;
 	SVGlinkStack *stack = gf_node_get_private(node);
@@ -887,27 +891,37 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 			if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
 			stack->resource = new_res;
 		}
-		stack->used_node = NULL;
+		stack->fragment_id = NULL;
+		stack->inline_sg = NULL;
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
 	}
 
 	/*locate the used node - this is done at each step to handle progressive loading*/
-	if (!stack->used_node && all_atts.xlink_href) {
+	is_fragment = 0;
+	used_node = NULL;
+	if (!stack->inline_sg && !stack->fragment_id && all_atts.xlink_href) {
 		if (all_atts.xlink_href->type == XMLRI_ELEMENTID) {
-			stack->used_node = all_atts.xlink_href->target;
+			used_node = all_atts.xlink_href->target;
+			is_fragment = 1;
 		} else if (stack->resource) {
-			GF_SceneGraph *sg = gf_mo_get_scenegraph(stack->resource);
-			char *fragment = strchr(all_atts.xlink_href->string, '#');
-			if (!is_foreign_object && fragment) {
-				stack->used_node = gf_sg_find_node_by_name(sg, fragment+1);
-			} else {
-				stack->used_node = gf_sg_get_root_node(sg);
+			stack->inline_sg = gf_mo_get_scenegraph(stack->resource);
+			if (!is_foreign_object) {
+				stack->fragment_id = strchr(all_atts.xlink_href->string, '#');
 			}
 		}
-		if (!stack->used_node) goto end;
 	}
+	if (!used_node && stack->inline_sg && stack->fragment_id) {
+		if (stack->fragment_id) {
+			used_node = gf_sg_find_node_by_name(stack->inline_sg, (char *) stack->fragment_id+1);
+			is_fragment = 1;
+		} else {
+			used_node = gf_sg_get_root_node(stack->inline_sg);
+		}
+	}
+	if (!used_node) goto end;
 
-	gf_list_add(tr_state->use_stack, stack->used_node);
+	/*stack use nodes for picking*/
+	gf_list_add(tr_state->use_stack, used_node);
 	gf_list_add(tr_state->use_stack, node);
 
 	gf_mx2d_init(translate);
@@ -924,7 +938,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 		if (!compositor_svg_is_display_off(tr_state->svg_props)) {
-			if (stack->used_node) gf_node_traverse(stack->used_node, tr_state);
+			gf_node_traverse(used_node, tr_state);
 			gf_mx2d_apply_rect(&translate, &tr_state->bounds);
 		} 
 		compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
@@ -949,12 +963,11 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 			gf_mx2d_pre_multiply(&tr_state->transform, &translate);
 
 
-			if (is_foreign_object) {
-				gf_sc_traverse_subscene(tr_state->visual->compositor, node, gf_mo_get_scenegraph(stack->resource), tr_state);
-			} else {
-				gf_node_traverse(stack->used_node, tr_state);
-			}
-	
+		if (is_fragment) {
+			gf_node_traverse(used_node, tr_state);
+		} else {
+			gf_sc_traverse_subscene(tr_state->visual->compositor, node, stack->inline_sg, tr_state);
+		}
 		compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);  
 
 	}
@@ -1003,7 +1016,8 @@ static void svg_animation_smil_update(GF_Node *node, SVGlinkStack *stack, Fixed 
 		if (new_res != stack->resource) {
 			if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
 			stack->resource = new_res;
-			stack->used_node = NULL;
+			stack->fragment_id = NULL;
+			stack->inline_sg = NULL;
 		}
 		gf_node_dirty_clear(node, 0);
 	}
@@ -1106,14 +1120,11 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 	clip = gf_rect_pixelize(&rc);
 //	gf_irect_intersect(&tr_state->visual->top_clipper, &clip);
 
-	/* if sub scene is replaced by a new sub scene, the used node changes,
-	   therefore, we force re-evaluation of the sub scene root node */
-	stack->used_node = NULL;
+	if (!stack->inline_sg && stack->resource) 
+		stack->inline_sg = gf_mo_get_scenegraph(stack->resource);
 
-	if (!stack->used_node && stack->resource) 
-		stack->used_node = gf_sg_get_root_node(gf_mo_get_scenegraph(stack->resource));
-
-	if (stack->used_node) gf_node_traverse(stack->used_node, rs);
+	if (stack->inline_sg) 
+		gf_sc_traverse_subscene(tr_state->visual->compositor, node, stack->inline_sg, tr_state);
 
 	tr_state->svg_props = old_props;
 	tr_state->visual->top_clipper = prev_clip;
