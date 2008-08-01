@@ -108,7 +108,7 @@ struct _composition_memory
 	/*OD manager ruling this CB*/
 	struct _od_manager *odm;
 
-	/*set when EOS is recieved by decoder*/
+	/*set when EOS is received by decoder*/
 	Bool HasSeenEOS;
 
 	/*trick for temporal scalability: this is the last rendered CTS*/

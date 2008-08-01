@@ -25,7 +25,6 @@
 
 
 #include <gpac/internal/bifs_dev.h>
-#include <gpac/internal/scenegraph_dev.h>
 #include <gpac/internal/bifs_tables.h>
 #include "quant.h" 
 #include "script.h" 
@@ -502,7 +501,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 {
 	u32 NDTBits, node_type, node_tag, BVersion, node_id;
 	const char *node_name;
-	Bool flag;
+	Bool flag, reset_qp14;
 	GF_Node *new_node;
 	GF_Err e;
 
@@ -575,6 +574,9 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 
 	/*no updates of time fields for now - NEEDED FOR A LIVE ENCODER*/
 
+	/*if coords were not stored for QP14 before coding this node, reset QP14 it when leaving*/
+	reset_qp14 = !codec->coord_stored;
+
 	/*QP14 case*/
 	switch (node_tag) {
 	case TAG_MPEG4_Coordinate:
@@ -585,13 +587,10 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	e = EncNodeFields(codec, bs, node);
 	if (e) return e;
 
-	switch (node_tag) {
-	case TAG_MPEG4_IndexedFaceSet:
-	case TAG_MPEG4_IndexedFaceSet2D:
-	case TAG_MPEG4_IndexedLineSet:
-	case TAG_MPEG4_IndexedLineSet2D:
+	if (codec->coord_stored && reset_qp14) 
 		gf_bifs_enc_qp14_reset(codec);
-		break;
+
+	switch (node_tag) {
 	case TAG_MPEG4_Coordinate:
 	case TAG_MPEG4_Coordinate2D:
 		gf_bifs_enc_qp14_enter(codec, 0);

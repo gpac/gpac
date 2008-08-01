@@ -26,8 +26,6 @@
 
 #include <gpac/internal/bifs_dev.h>
 
-#include <gpac/internal/scenegraph_dev.h>
-
 /*private stack for conditional*/
 typedef struct
 {

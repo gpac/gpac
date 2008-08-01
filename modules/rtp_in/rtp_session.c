@@ -248,6 +248,13 @@ RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 	tmp->owner = rtp;
 	tmp->session = rtsp;
 
+
+	szCtrl = (char *)gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Network", "MobileIPEnabled");
+	if (szCtrl && !strcmp(szCtrl, "yes")) {
+		char *ip = (char *)gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Network", "MobileIP");
+		gf_rtsp_set_mobile_ip(rtsp, ip);
+	}
+
 	if (rtp->transport_mode) {
 		gf_rtsp_set_buffer_size(rtsp, RTSP_TCP_BUFFER_SIZE);
 	} else {

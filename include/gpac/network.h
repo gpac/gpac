@@ -180,22 +180,24 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn);
  *\brief socket binding
  *
  *Binds the given socket to the specified port.
+ *\param local_ip the local interface IP address if desired. If NULL, the default interface will be used.
  *\param sock the socket object
  *\param port port number to bind this socket to
  *\param peer_name the remote server address
  *\param peer_port remote port number to connect the socket to
  *\param options list of option for the bind operation.
  */
-GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32 options);
+GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u16 peer_port, u32 options);
 /*!
  *\brief connects a socket 
  *
- *Connetcs a socket to a remote peer on a given port 
+ *Connects a socket to a remote peer on a given port 
  *\param sock the socket object
  *\param peer_name the remote server address (IP or DNS)
  *\param port remote port number to connect the socket to
+ *\param local_ip the local (client) address (IP or DNS) if any, NULL otherwise.
  */
-GF_Err gf_sk_connect(GF_Socket *sock, char *peer_name, u16 port);
+GF_Err gf_sk_connect(GF_Socket *sock, char *peer_name, u16 port, char *local_ip);
 /*!
  *\brief data emission
  *
@@ -280,7 +282,7 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buffer);
 /*!
  *\brief set remote address
  *
- *Sets the remote address of a socket. This is used by connectionless sockets using SendTo and RecieveFrom
+ *Sets the remote address of a socket. This is used by connectionless sockets using SendTo and ReceiveFrom
  *\param sock the socket object
  *\param address the remote peer address
  *\param port the remote peer port
@@ -320,7 +322,7 @@ u32 gf_sk_is_multicast_address(char *multi_ip_add);
  *\return If the operation timeed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
  */
 GF_Err gf_sk_send_wait(GF_Socket *sock, char *buffer, u32 length, u32 delay_sec);
-/* recieve data with a max wait delay of Second - used for http / ftp sockets mainly*/
+/* receive data with a max wait delay of Second - used for http / ftp sockets mainly*/
 /*!
  *\brief receive data with wait delay
  *

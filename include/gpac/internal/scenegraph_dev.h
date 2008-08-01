@@ -206,6 +206,8 @@ struct __tag_scene_graph
 	/*to detect replace scene from within conditionals*/
 	Bool graph_has_been_reset;
 #endif
+	/*global qp used in BIFS coding*/
+	GF_Node *global_qp;
 
 #ifndef GPAC_DISABLE_SVG
 	GF_List *xlink_hrefs;
@@ -674,6 +676,8 @@ struct _protofield
 
 GF_ProtoFieldInterface *gf_sg_proto_new_field_interface(u32 FieldType);
 
+/*set QP and anim info for a proto field (BIFS allows for that in proto coding)*/
+GF_Err gf_bifs_proto_field_set_aq_info(GF_ProtoFieldInterface *field, u32 QP_Type, u32 hasMinMax, u32 QPSFType, void *qp_min_value, void *qp_max_value, u32 QP13_NumBits);
 
 /*proto field instance. since it is useless to duplicate all coding info, names and the like
 we seperate proto declaration and proto instanciation*/

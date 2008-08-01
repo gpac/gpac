@@ -185,6 +185,8 @@ typedef struct
 	u32 *types;
 	SFVec2f *pts;
 	u32 nbPts;
+	/*used by SWF->BIFS for IndexedCurveSet*/
+	u32 *idx;
 } SWFPath;
 
 typedef struct

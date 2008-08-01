@@ -40,7 +40,7 @@ void RP_StopChannel(RTPStream *ch)
 	if (!ch || !ch->rtsp) return;
 
 	ch->flags &= ~RTP_SKIP_NEXT_COM;
-	ch->status = RTP_Disconnected;
+	//ch->status = RTP_Disconnected;
 	//remove interleaved
 	if (gf_rtp_is_interleaved(ch->rtp_ch)) {
 		gf_rtsp_unregister_interleave(ch->rtsp->session, gf_rtp_get_low_interleave_id(ch->rtp_ch));
@@ -486,10 +486,15 @@ void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 		if (!strcmp(com->method, GF_RTSP_TEARDOWN)) {
 			goto process_reply;
 		} else {
+			/*spec is not really clear about what happens if the server doesn't support 
+			non aggregated operations. Since this happen only on pause/play, we consider 
+			that no error occured and wait for next play*/
 			if (sess->rtsp_rsp->ResponseCode == NC_RTSP_Only_Aggregate_Operation_Allowed) {
 				sess->flags |= RTSP_AGG_ONLY;
+				sess->rtsp_rsp->ResponseCode = NC_RTSP_OK;
+			} else {
+				goto err_exit;
 			}
-			goto err_exit;
 		}
 	}
 

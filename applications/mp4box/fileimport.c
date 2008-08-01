@@ -1184,31 +1184,71 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 	e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
 
-	if (opts->auto_qant) {
+	if (opts->auto_quant) {
 		fprintf(stdout, "Analysing Scene for Automatic Quantization\n");
 		statsman = gf_sm_stats_new();
 		e = gf_sm_stats_for_scene(statsman, ctx);
 		if (!e) {
 			GF_SceneStatistics *stats = gf_sm_stats_get(statsman);
-			if (opts->resolution > (s32)stats->frac_res_2d) {
-				fprintf(stdout, " Given resolution %d is (unnecessarily) too high, using %d instead.\n", opts->resolution, stats->frac_res_2d);
-				opts->resolution = stats->frac_res_2d;
-			} else if (stats->int_res_2d + opts->resolution <= 0) {
-				fprintf(stdout, " Given resolution %d is too low, using %d instead.\n", opts->resolution, stats->int_res_2d - 1);
-				opts->resolution = 1 - stats->int_res_2d;
-			}				
-			opts->coord_bits = stats->int_res_2d + opts->resolution;
-			fprintf(stdout, " Coordinates & Lengths encoded using ");
-			if (opts->resolution < 0) fprintf(stdout, "only the %d most significant bits (of %d).\n", opts->coord_bits, stats->int_res_2d);
-			else fprintf(stdout, "a %d.%d representation\n", stats->int_res_2d, opts->resolution);
+			/*LASeR*/
+			if (opts->auto_quant==1) {
+				if (opts->resolution > (s32)stats->frac_res_2d) {
+					fprintf(stdout, " Given resolution %d is (unnecessarily) too high, using %d instead.\n", opts->resolution, stats->frac_res_2d);
+					opts->resolution = stats->frac_res_2d;
+				} else if (stats->int_res_2d + opts->resolution <= 0) {
+					fprintf(stdout, " Given resolution %d is too low, using %d instead.\n", opts->resolution, stats->int_res_2d - 1);
+					opts->resolution = 1 - stats->int_res_2d;
+				}				
+				opts->coord_bits = stats->int_res_2d + opts->resolution;
+				fprintf(stdout, " Coordinates & Lengths encoded using ");
+				if (opts->resolution < 0) fprintf(stdout, "only the %d most significant bits (of %d).\n", opts->coord_bits, stats->int_res_2d);
+				else fprintf(stdout, "a %d.%d representation\n", stats->int_res_2d, opts->resolution);
 
-			fprintf(stdout, " Matrix Scale & Skew Coefficients ");
-			if (opts->coord_bits - 8 < stats->scale_int_res_2d) {
-				opts->scale_bits = stats->scale_int_res_2d - opts->coord_bits + 8;
-				fprintf(stdout, "encoded using a %d.8 representation\n", stats->scale_int_res_2d);
-			} else  {
-				opts->scale_bits = 0;
-				fprintf(stdout, "encoded using a %d.8 representation\n", opts->coord_bits - 8);
+				fprintf(stdout, " Matrix Scale & Skew Coefficients ");
+				if (opts->coord_bits - 8 < stats->scale_int_res_2d) {
+					opts->scale_bits = stats->scale_int_res_2d - opts->coord_bits + 8;
+					fprintf(stdout, "encoded using a %d.8 representation\n", stats->scale_int_res_2d);
+				} else  {
+					opts->scale_bits = 0;
+					fprintf(stdout, "encoded using a %d.8 representation\n", opts->coord_bits - 8);
+				}
+			} 
+			/*BIFS*/
+			else if (stats->base_layer) {
+				GF_AUContext *au;
+				GF_CommandField *inf;
+				M_QuantizationParameter *qp;
+				GF_Command *com = gf_sg_command_new(ctx->scene_graph, GF_SG_GLOBAL_QUANTIZER);
+				qp = (M_QuantizationParameter *) gf_node_new(ctx->scene_graph, TAG_MPEG4_QuantizationParameter);
+	
+				inf = gf_sg_command_field_new(com);
+				inf->new_node = (GF_Node *)qp;
+				inf->field_ptr = &inf->new_node;
+				inf->fieldType = GF_SG_VRML_SFNODE;
+				gf_node_register(inf->new_node, NULL);
+				au = gf_list_get(stats->base_layer->AUs, 0);
+				gf_list_insert(au->commands, com, 0);
+				qp->useEfficientCoding = 1;
+				qp->textureCoordinateQuant = 0;
+				if ((stats->count_2f+stats->count_2d) && opts->resolution) {
+					qp->position2DMin = stats->min_2d;
+					qp->position2DMax = stats->max_2d;
+					qp->position2DNbBits = opts->resolution;
+					qp->position2DQuant = 1;
+				}
+				if ((stats->count_3f+stats->count_3d) &&  opts->resolution) {
+					qp->position3DMin = stats->min_3d;
+					qp->position3DMax = stats->max_3d;
+					qp->position3DQuant = opts->resolution;
+					qp->position3DQuant = 1;
+					qp->textureCoordinateQuant = 1;
+				}
+				if (0 && stats->count_float && opts->resolution) {
+					qp->scaleMin = stats->min_fixed;
+					qp->scaleMax = stats->max_fixed;
+					qp->scaleNbBits = 2*opts->resolution;
+					qp->scaleQuant = 1;
+				}
 			}
 		}
 	}

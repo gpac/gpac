@@ -113,7 +113,7 @@ enum
 	/*This is only called on scene decoders to signal that potential overlay scene should be 
 	showed (cap.valueINT=1) or hidden (cap.valueINT=0). Currently only used with SetCap*/
 	GF_CODEC_SHOW_SCENE,
-	/*This is only called on scene decoders, GetCap only. If the decoder may continue modifying the scene once the last AU is recieved,
+	/*This is only called on scene decoders, GetCap only. If the decoder may continue modifying the scene once the last AU is received,
 	it must set cap.valueINT to 1 (typically, text stream decoder will hold the scene for a given duration
 	after the last AU). Otherwise the decoder will be stoped and ask to remove any extra scene being displayed*/
 	GF_CODEC_MEDIA_NOT_OVER,

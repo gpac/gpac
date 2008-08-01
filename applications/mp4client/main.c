@@ -1028,7 +1028,7 @@ int main (int argc, char **argv)
 		init_h = forced_height;
 	}
 
-	fprintf(stdout, "Loading modules ... ");
+	fprintf(stdout, "Loading modules\n");
 	str = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
 
 	user.modules = gf_modules_new((const unsigned char *) str, cfg_file);
@@ -1041,7 +1041,7 @@ int main (int argc, char **argv)
 		if (logfile) fclose(logfile);
 		return 1;
 	}
-	fprintf(stdout, "OK (%d found in %s)\n", i, str);
+	fprintf(stdout, "Modules Loaded (%d found in %s)\n", i, str);
 
 	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
@@ -1051,7 +1051,7 @@ int main (int argc, char **argv)
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 
-	fprintf(stdout, "Loading GPAC Terminal ... ");	
+	fprintf(stdout, "Loading GPAC Terminal\n");	
 	term = gf_term_new(&user);
 	if (!term) {
 		fprintf(stdout, "\nInit error - check you have at least one video out and one rasterizer...\nFound modules:\n");
@@ -1062,7 +1062,7 @@ int main (int argc, char **argv)
 		if (logfile) fclose(logfile);
 		return 1;
 	}
-	fprintf(stdout, "OK\n");
+	fprintf(stdout, "Terminal Loaded\n");
 
 
 	if (dump_mode) {
@@ -1168,6 +1168,15 @@ force_input:
 		switch (c) {
 		case 'q':
 			Run = 0;
+			str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");
+			if (str && !strcmp(str, "yes"))
+				gf_cfg_set_key(cfg_file, "Network", "SessionMigration", "no");
+			break;
+		case 'Q':
+			Run = 0;
+			str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");
+			if (!str || !strcmp(str, "no"))
+				gf_cfg_set_key(cfg_file, "Network", "SessionMigration", "yes");
 			break;
 		case 'o':
 			startup_file = 0;

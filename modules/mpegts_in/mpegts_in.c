@@ -826,7 +826,7 @@ exit:
 }
 #endif
 
-void M2TS_SetupLive(M2TSIn *m2ts, char *url)
+void M2TS_SetupLive(GF_InputService *plug, M2TSIn *m2ts, char *url)
 {
 	GF_Err e = GF_OK;
 	char *str;
@@ -860,10 +860,18 @@ void M2TS_SetupLive(M2TSIn *m2ts, char *url)
 
 	/*do we have a source ?*/
 	if (strlen(url) && strcmp(url, "localhost") ) {
+		const char *mob_ip = NULL;
+		const char *mob_on = gf_modules_get_option((GF_BaseInterface*)plug, "Network", "MobileIPEnabled");
+		if (mob_on && !strcmp(mob_on, "yes"))
+			mob_ip = gf_modules_get_option((GF_BaseInterface*)plug, "Network", "MobileIP");
+
 		if (gf_sk_is_multicast_address(url)) {
-			gf_sk_setup_multicast(m2ts->sock, url, port, 0, 0, NULL);
+			const char *mcast_ifce = gf_modules_get_option((GF_BaseInterface *) plug, "Network", "DefaultMCastInterface");
+			if (mcast_ifce) mob_ip = mcast_ifce;
+
+			gf_sk_setup_multicast(m2ts->sock, url, port, 0, 0, (char*)mob_ip);
 		} else {
-			gf_sk_bind(m2ts->sock, port, url, 0, GF_SOCK_REUSE_PORT);
+			gf_sk_bind(m2ts->sock, (char*)mob_ip, port, url, 0, GF_SOCK_REUSE_PORT);
 		}
 	}
 	if (str) str[0] = ':';
@@ -977,7 +985,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 		|| !strnicmp(url, "mpegts-udp://", 13) 
 		|| !strnicmp(url, "mpegts-tcp://", 13) 
 		) {
-		M2TS_SetupLive(m2ts, (char *) szURL);
+		M2TS_SetupLive(plug, m2ts, (char *) szURL);
 	} 
 #ifdef GPAC_HAS_LINUX_DVB
 	else if (!strnicmp(url, "dvb://", 6)) {

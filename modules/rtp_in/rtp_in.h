@@ -82,6 +82,8 @@ typedef struct
 	/*for single-object control*/
 	u32 media_type;
 
+	/*temp location of the session state (SDP file)*/
+	char *session_state;
 	/*if set ANNOUNCE (sent by server) will be handled*/
 //	Bool handle_announce;
 } RTPClient;
@@ -135,7 +137,7 @@ void RP_ProcessCommands(RTSPSession *sess);
 enum
 {
 	/*channel is setup and waits for connection request*/
-	RTP_Setup = 0,
+	RTP_Setup,
 	/*waiting for server reply*/
 	RTP_WaitingForAck,
 	/*connection OK*/
@@ -145,7 +147,10 @@ enum
 	/*deconnection OK - a download channel can automatically disconnect when download is done*/
 	RTP_Disconnected,
 	/*service/channel is not (no longer) available/found and should be removed*/
-	RTP_Unavailable
+	RTP_Unavailable,
+
+	RTP_SessionResume
+
 };
 
 
@@ -201,7 +206,7 @@ typedef struct
 	u32 ES_ID;
 	char *control;
 
-	/*rtp recieve buffer*/
+	/*rtp receive buffer*/
 	char buffer[RTP_BUFFER_SIZE];
 	/*set at seek stages to resync app NPT to RTP time*/
 	u32 check_rtp_time;
@@ -317,6 +322,9 @@ typedef struct _sdp_fetch
 
 	char *remote_url;
 } SDPFetch;
+
+
+void RP_SaveSessionState(RTPClient *rtp);
 
 #endif
 

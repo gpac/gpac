@@ -587,11 +587,11 @@ void SFE_PutIdentifier(ScriptEnc *sc_enc, char *id)
 		nbBits = 0;
 		length = gf_list_count(sc_enc->identifiers) - 1;
 		while (length > 0) { length >>= 1; nbBits ++; }
-		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "recieved", str);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "received", str);
 		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, i-1, nbBits, "identifierCode", str);
 		return;
 	} 
-	GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "recieved", id);
+	GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "received", id);
 	gf_list_add(sc_enc->identifiers, strdup(id));
 	gf_bifs_enc_name(sc_enc->codec, sc_enc->bs, id);
 }

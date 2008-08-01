@@ -562,6 +562,7 @@ static void swf_free_shape_rec(SWFShapeRec *ptr)
 	if (ptr->path) {
 		if (ptr->path->pts) free(ptr->path->pts);
 		if (ptr->path->types) free(ptr->path->types);
+		if (ptr->path->idx) free(ptr->path->idx);
 		free(ptr->path);
 	}
 	free(ptr);

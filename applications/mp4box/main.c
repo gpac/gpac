@@ -290,14 +290,14 @@ void PrintEncodeUsage()
 			" -ctx-out file:       specifies storage of updated context (MP4/BT/XMT)\n"
 			"\n"
 			"LASeR Encoding options\n"
-			" -auto_quant res:     resolution is given as if using -resolution\n"
-			"                       but coord-bits and scale-bits are infered\n"
 			" -resolution res:     resolution factor (-8 to 7, default 0)\n"
 			"                       all coords are multiplied by 2^res before truncation\n"
 			" -coord-bits bits:    bits used for encoding truncated coordinates\n"
 			"                       (0 to 31, default 12)\n"
 			" -scale-bits bits:    extra bits used for encoding truncated scales\n"
 			"                       (0 to 4, default 0)\n"
+			" -auto-quant res:     resolution is given as if using -resolution\n"
+			"                       but coord-bits and scale-bits are infered\n"
 			);
 }
 
@@ -1253,6 +1253,8 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-no-grad")) swf_flags |= GF_SM_SWF_NO_GRADIENT;
 		else if (!stricmp(arg, "-quad")) swf_flags |= GF_SM_SWF_QUAD_CURVE;
 		else if (!stricmp(arg, "-xlp")) swf_flags |= GF_SM_SWF_SCALABLE_LINE;
+		else if (!stricmp(arg, "-ic2d")) swf_flags |= GF_SM_SWF_USE_IC2D;
+		else if (!stricmp(arg, "-same-app")) swf_flags |= GF_SM_SWF_REUSE_APPEARANCE;
 		else if (!stricmp(arg, "-flatten")) {
 			CHECK_NEXT_ARG
 			swf_flatten_angle = (Float) atof(argv[i+1]);
@@ -1528,10 +1530,10 @@ int main(int argc, char **argv)
 			opts.resolution = atoi(argv[i+1]);
 			i++;
 		}
-		else if (!stricmp(arg, "-auto_quant")) {
+		else if (!stricmp(arg, "-auto-quant")) {
 			CHECK_NEXT_ARG
 			opts.resolution = atoi(argv[i+1]);
-			opts.auto_qant = 1;
+			opts.auto_quant = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-coord-bits")) {
@@ -1542,6 +1544,12 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-scale-bits")) {
 			CHECK_NEXT_ARG
 			opts.scale_bits = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-global-quant")) {
+			CHECK_NEXT_ARG
+			opts.resolution = atoi(argv[i+1]);
+			opts.auto_quant = 2;
 			i++;
 		}
 		/*chunk encoding*/

@@ -30,7 +30,7 @@ GF_Err gf_bifs_enc_qp_set(GF_BifsEncoder *codec, GF_Node *qp)
 	if (gf_node_get_tag(qp) != TAG_MPEG4_QuantizationParameter) return GF_BAD_PARAM;
 
 	/*if we have an active QP, push it into the stack*/
-	if (codec->ActiveQP && (codec->ActiveQP != codec->GlobalQP) ) 
+	if (codec->ActiveQP && ((GF_Node*)codec->ActiveQP != codec->scene_graph->global_qp) ) 
 		gf_list_insert(codec->QPs, codec->ActiveQP, 0);
 	
 	codec->ActiveQP = (M_QuantizationParameter *)qp;
@@ -45,8 +45,8 @@ GF_Err gf_bifs_enc_qp_remove(GF_BifsEncoder *codec, Bool ActivatePrev)
 	if (gf_list_count(codec->QPs)) {
 		codec->ActiveQP = (M_QuantizationParameter*)gf_list_get(codec->QPs, 0);
 		gf_list_rem(codec->QPs, 0);
-	} else if (codec->GlobalQP) {
-		codec->ActiveQP = codec->GlobalQP;
+	} else if (codec->scene_graph->global_qp) {
+		codec->ActiveQP = (M_QuantizationParameter *)codec->scene_graph->global_qp;
 	}
 	return GF_OK;
 }

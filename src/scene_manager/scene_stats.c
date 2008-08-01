@@ -156,7 +156,7 @@ static void StatFixed(GF_SceneStatistics *stat, Fixed v, Bool scale)
 	if (stat->min_fixed > v) stat->min_fixed = v;
 }
 
-static void StatSFVec2f(GF_SceneStatistics *stat, SFVec2f *val)
+static void StatSVGPoint(GF_SceneStatistics *stat, SFVec2f *val)
 {
 	if (!stat) return;
 	if (stat->max_2d.x < val->x) stat->max_2d.x = val->x;
@@ -165,6 +165,15 @@ static void StatSFVec2f(GF_SceneStatistics *stat, SFVec2f *val)
 	if (stat->min_2d.y > val->y) stat->min_2d.y = val->y;
 	StatFixed(stat, val->x, 0);
 	StatFixed(stat, val->y, 0);
+}	
+
+static void StatSFVec2f(GF_SceneStatistics *stat, SFVec2f *val)
+{
+	if (!stat) return;
+	if (stat->max_2d.x < val->x) stat->max_2d.x = val->x;
+	if (stat->max_2d.y < val->y) stat->max_2d.y = val->y;
+	if (stat->min_2d.x > val->x) stat->min_2d.x = val->x;
+	if (stat->min_2d.y > val->y) stat->min_2d.y = val->y;
 }	
 
 static void StatSFVec3f(GF_SceneStatistics *stat, SFVec3f *val)
@@ -185,15 +194,21 @@ static void StatField(GF_SceneStatistics *stat, GF_FieldInfo *field)
 	switch (field->fieldType) {
 	case GF_SG_VRML_SFFLOAT:
 		stat->count_float++;
+		if (stat->max_fixed < *(SFFloat*)field->far_ptr)
+			stat->max_fixed = *(SFFloat*)field->far_ptr;
+		if (stat->min_fixed > *(SFFloat*)field->far_ptr)
+			stat->min_fixed = *(SFFloat*)field->far_ptr;
 		break;
 	case GF_SG_VRML_SFCOLOR:
 		stat->count_color++;
 		break;
 	case GF_SG_VRML_SFVEC2F:
 		stat->count_2f++;
+		StatSFVec2f(stat, field->far_ptr);
 		break;
 	case GF_SG_VRML_SFVEC3F:
 		stat->count_3f++;
+		StatSFVec3f(stat, field->far_ptr);
 		break;
 
 	case GF_SG_VRML_MFFLOAT:
@@ -248,14 +263,14 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 #if USE_GF_PATH
 			SVG_PathData *d = (SVG_PathData *)field->far_ptr;
 			for (i=0; i<d->n_points; i++) {
-				StatSFVec2f(stat, &(d->points[i]));
+				StatSVGPoint(stat, &(d->points[i]));
 				stat->count_2d ++;
 			}		
 #else
 			SVG_PathData *d = (SVG_PathData *)field->far_ptr;
 			for (i=0; i<gf_list_count(d->points); i++) {
 				SVG_Point *p = (SVG_Point *)gf_list_get(d->points, i);
-				StatSFVec2f(stat, (SFVec2f *)p);
+				StatSVGPoint(stat, (SFVec2f *)p);
 				stat->count_2d ++;
 			}
 #endif
@@ -276,7 +291,7 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 			GF_List *points = *((GF_List **)field->far_ptr);
 			for (i=0; i<gf_list_count(points); i++) {
 				SVG_Point *p = (SVG_Point *)gf_list_get(points, i);
-				StatSFVec2f(stat, (SFVec2f *)p);
+				StatSVGPoint(stat, (SFVec2f *)p);
 				stat->count_2d ++;
 			}
 		}
@@ -538,6 +553,10 @@ GF_Err gf_sm_stats_for_scene(GF_StatManager *stat, GF_SceneManager *sm)
 		while ((sc = (GF_StreamContext*)gf_list_enum(sm->streams, &i))) {
 			GF_AUContext *au;
 			if (sc->streamType != GF_STREAM_SCENE) continue;
+			
+			if (!stat->stats->base_layer)
+				stat->stats->base_layer = sc;
+
 			j=0;
 			while ((au = (GF_AUContext*)gf_list_enum(sc->AUs, &j))) {
 				e = gf_sm_stat_au(au->commands, stat);

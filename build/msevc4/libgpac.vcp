@@ -160,6 +160,7 @@ SOURCE=..\..\src\utils\downloader.c
 DEP_CPP_DOWNL=\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
@@ -626,16 +627,25 @@ SOURCE=..\..\src\bifs\arith_decoder.c
 DEP_CPP_ARITH=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -651,16 +661,25 @@ SOURCE=..\..\src\bifs\bifs_codec.c
 DEP_CPP_BIFS_=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -908,16 +927,25 @@ SOURCE=..\..\src\bifs\predictive_mffield.c
 DEP_CPP_PREDI=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -937,16 +965,25 @@ SOURCE=..\..\src\bifs\quantize.c
 DEP_CPP_QUANT=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -966,16 +1003,25 @@ SOURCE=..\..\src\bifs\script_dec.c
 DEP_CPP_SCRIP=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -1025,16 +1071,25 @@ SOURCE=..\..\src\bifs\unquantize.c
 DEP_CPP_UNQUA=\
 	"..\..\include\gpac\bifs.h"\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\bifs_dev.h"\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -3139,19 +3194,27 @@ SOURCE=..\..\src\scene_manager\swf_bifs.c
 DEP_CPP_SWF_B=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\internal\swf_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scene_manager.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
@@ -4123,6 +4186,7 @@ DEP_CPP_TERMI=\
 	"..\..\include\gpac\modules\ipmp.h"\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\modules\term_ext.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\

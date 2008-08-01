@@ -31,6 +31,7 @@
 #include <gpac/bitstream.h>
 #include <gpac/bifs.h>
 #include <gpac/thread.h>
+#include <gpac/internal/scenegraph_dev.h>
 
 typedef struct {
 	/*node this mask is for*/
@@ -101,15 +102,11 @@ struct __tag_bifs_dec
 	/*active QP*/
 	M_QuantizationParameter *ActiveQP;
 
-	/*QP 14 stuff: we need to store the last numb of fields in the last recieved Coord //field (!!!)*/
+	/*QP 14 stuff: we need to store the last numb of fields in the last received Coord //field (!!!)*/
 	
 	/*number of iten in the Coord field*/
 	u32 NumCoord;
 	Bool coord_stored, storing_coord;
-
-	/*active QP*/
-	M_QuantizationParameter *GlobalQP;
-
 
 	/*only set at SceneReplace during proto parsing, NULL otherwise*/
 	GF_Proto *pCurrentProto;
@@ -175,9 +172,6 @@ struct __tag_bifs_enc
 	/*active QP*/
 	M_QuantizationParameter *ActiveQP;
 
-	/*active QP*/
-	M_QuantizationParameter *GlobalQP;
-
 	u32 NumCoord;
 	Bool coord_stored, storing_coord;
 
@@ -224,9 +218,6 @@ GF_Err gf_bifs_field_index_by_mode(GF_Node *node, u32 all_ind, u8 indexMode, u32
 u32 gf_bifs_get_ndt_bits(u32 NDT_Tag, u32 Version);
 /*return absolute node tag given its type in the NDT and the NDT version number*/
 u32 gf_bifs_ndt_get_node_type(u32 NDT_Tag, u32 NodeType, u32 Version);
-
-/*set QP and anim info for a proto field (BIFS allows for that in proto coding)*/
-GF_Err gf_bifs_proto_field_set_aq_info(GF_ProtoFieldInterface *field, u32 QP_Type, u32 hasMinMax, u32 QPSFType, void *qp_min_value, void *qp_max_value, u32 QP13_NumBits);
 
 #endif	//_GF_BIFS_DEV_H_
 

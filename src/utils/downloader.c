@@ -589,7 +589,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 {
 	GF_Err e;
 	u16 proxy_port = 0;
-	const char *proxy;
+	const char *proxy, *ip;
 	if (!sess->sock) {
 		//sess->num_retry = 40;
 		sess->sock = gf_sk_new(GF_SOCK_TYPE_TCP);
@@ -610,10 +610,18 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		proxy = NULL;
 	}
 
-	if (proxy) {
-		e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port);
+
+	ip = gf_cfg_get_key(sess->dm->cfg, "Network", "MobileIPEnabled");
+	if (ip && !strcmp(ip, "yes")) {
+		ip = gf_cfg_get_key(sess->dm->cfg, "Network", "MobileIP");
 	} else {
-		e = gf_sk_connect(sess->sock, sess->server_name, sess->port);
+		ip = NULL;
+	}
+
+	if (proxy) {
+		e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, (char *)ip);
+	} else {
+		e = gf_sk_connect(sess->sock, sess->server_name, sess->port, (char *)ip);
 	}
 	/*retry*/
 	if ((e == GF_IP_SOCK_WOULD_BLOCK) && sess->num_retry) {
@@ -760,7 +768,7 @@ void gf_dm_del(GF_DownloadManager *dm)
 }
 
 
-static GFINLINE void gf_dm_data_recieved(GF_DownloadSession *sess, char *data, u32 nbBytes)
+static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, char *data, u32 nbBytes)
 {
 	GF_NETIO_Parameter par;
 	u32 runtime, rcv;
@@ -903,7 +911,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 
 	e = gf_dm_read_data(sess, buffer, buffer_size, read_size);
 	if (e) return e;
-	gf_dm_data_recieved(sess, buffer, *read_size);
+	gf_dm_data_received(sess, buffer, *read_size);
 	return GF_OK;
 }
 
@@ -1222,7 +1230,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		is_ice = 0;
 		if (!strncmp("ICY", comp, 4)) {
 			is_ice = 1;
-			/*be prepared not to recieve any mime type from ShoutCast servers*/
+			/*be prepared not to receive any mime type from ShoutCast servers*/
 			sess->mime_type = strdup("audio/mpeg");
 		} else if ((strncmp("HTTP", comp, 4) != 0)) {
 			e = GF_REMOTE_SERVICE_ERROR;
@@ -1457,7 +1465,7 @@ void http_do_requests(GF_DownloadSession *sess)
 
 		//we may have existing data in this buffer ...
 		if (!e && (BodyStart < (s32) bytesRead)) {
-			gf_dm_data_recieved(sess, sHTTP + BodyStart, bytesRead - BodyStart);
+			gf_dm_data_received(sess, sHTTP + BodyStart, bytesRead - BodyStart);
 			/*store data if no callbacks or cache*/
 //			if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) {
 				if (sess->init_data) free(sess->init_data);
@@ -1503,7 +1511,7 @@ exit:
 			gf_dm_sess_notify_state(sess, sess->status, e);
 			return;
 		}
-		gf_dm_data_recieved(sess, sHTTP, size);
+		gf_dm_data_received(sess, sHTTP, size);
 		/*socket empty*/
 		if (size < GF_DOWNLOAD_BUFFER_SIZE) return;
 	}

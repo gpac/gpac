@@ -376,21 +376,23 @@ void compositor_init_rectangle(GF_Compositor  *compositor, GF_Node *node)
 }
 
 
-#define CHECK_VALID_C2D(nbPts) if (cur_index+nbPts>=pt_count) { gf_path_reset(stack->path); return; }
+#define CHECK_VALID_C2D(nbPts) if (!idx && cur_index+nbPts>=pt_count) { gf_path_reset(stack->path); return; }
 //#define CHECK_VALID_C2D(nbPts)
+#define GET_IDX(_i)	((idx && idx->count>_i) ? idx->vals[_i] : _i)
 
-static void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
+void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state, MFInt32 *idx)
 {
 	M_Curve2D *c2D;
 	SFVec2f orig, ct_orig, ct_end, end;
 	u32 cur_index, i, remain, type_count, pt_count;
 	SFVec2f *pts;
 	M_Coordinate2D *coord;
-	if (! gf_node_dirty_get(node)) return;
 
 	c2D = (M_Curve2D *)node;
 	coord = (M_Coordinate2D *)c2D->point;
 	drawable_reset_path(stack);
+	if (!coord) return;
+
 	stack->path->fineness = c2D->fineness;
 	if (tr_state->visual->compositor->high_speed)  stack->path->fineness /= 2;
 
@@ -402,11 +404,10 @@ static void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseSta
 	cur_index = c2D->type.count ? 1 : 0;
 	/*if the first type is a moveTo skip initial moveTo*/
 	i=0;
-	i=0;
 	if (cur_index) {
 		while (c2D->type.vals[i]==0) i++;
 	}
-	ct_orig = orig = pts[i];
+	ct_orig = orig = pts[ GET_IDX(i) ];
 
 	gf_path_add_move_to(stack->path, orig.x, orig.y);
 
@@ -418,14 +419,14 @@ static void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseSta
 		/*moveTo, 1 point*/
 		case 0:
 			CHECK_VALID_C2D(0);
-			orig = pts[cur_index];
+			orig = pts[ GET_IDX(cur_index) ];
 			if (i) gf_path_add_move_to(stack->path, orig.x, orig.y);
 			cur_index += 1;
 			break;
 		/*lineTo, 1 point*/
 		case 1:
 			CHECK_VALID_C2D(0);
-			end = pts[cur_index];
+			end = pts[ GET_IDX(cur_index) ];
 			gf_path_add_line_to(stack->path, end.x, end.y);
 			orig = end;
 			cur_index += 1;
@@ -433,9 +434,9 @@ static void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseSta
 		/*curveTo, 3 points*/
 		case 2:
 			CHECK_VALID_C2D(2);
-			ct_orig = pts[cur_index];
-			ct_end = pts[cur_index+1];
-			end = pts[cur_index+2];
+			ct_orig = pts[ GET_IDX(cur_index) ];
+			ct_end = pts[ GET_IDX(cur_index+1) ];
+			end = pts[ GET_IDX(cur_index+2) ];
 			gf_path_add_cubic_to(stack->path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
 			cur_index += 3;
 			ct_orig = ct_end;
@@ -446,8 +447,8 @@ static void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseSta
 			CHECK_VALID_C2D(1);
 			ct_orig.x = 2*orig.x - ct_orig.x;
 			ct_orig.y = 2*orig.y - ct_orig.y;
-			ct_end = pts[cur_index];
-			end = pts[cur_index+1];
+			ct_end = pts[ GET_IDX(cur_index) ];
+			end = pts[ GET_IDX(cur_index+1) ];
 			gf_path_add_cubic_to(stack->path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
 			cur_index += 2;
 			ct_orig = ct_end;
@@ -460,9 +461,9 @@ static void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseSta
 		case 4:
 		case 5:
 			CHECK_VALID_C2D(2);
-			ct_orig = pts[cur_index];
-			ct_end = pts[cur_index+1];
-			end = pts[cur_index+2];
+			ct_orig = pts[ GET_IDX(cur_index) ];
+			ct_end = pts[ GET_IDX(cur_index+1) ];
+			end = pts[ GET_IDX(cur_index+2) ];
 			gf_path_add_arc_to(stack->path, end.x, end.y, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, (c2D->type.vals[i]==5) ? 1 : 0);
 			cur_index += 3;
 			ct_orig = ct_end;
@@ -475,8 +476,8 @@ static void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseSta
 		/*quadratic CurveTo, 2 points*/
 		case 7:
 			CHECK_VALID_C2D(1);
-			ct_end = pts[cur_index];
-			end = pts[cur_index+1];
+			ct_end = pts[ GET_IDX(cur_index) ];
+			end = pts[ GET_IDX(cur_index+1) ];
 			gf_path_add_quadratic_to(stack->path, ct_end.x, ct_end.y, end.x, end.y);
 			cur_index += 2;
 			ct_orig = ct_end;
@@ -486,7 +487,7 @@ static void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseSta
 	}
 
 	/*what's left is an N-bezier spline*/
-	if (pt_count > cur_index) {
+	if (!idx && (pt_count > cur_index) ) {
 		/*first moveto*/
 		if (!cur_index) cur_index++;
 
@@ -511,9 +512,9 @@ static void TraverseCurve2D(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_node_del(node);
 		return;
 	}
-	if (!c2D->point) return;
-
-	curve2d_check_changes(node, stack, tr_state);
+	if (gf_node_dirty_get(node)) {
+		curve2d_check_changes(node, stack, tr_state, NULL);
+	}
 
 	switch (tr_state->traversing_mode) {
 #ifndef GPAC_DISABLE_3D

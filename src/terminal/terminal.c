@@ -26,6 +26,7 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
+#include <gpac/modules/term_ext.h>
 #include <gpac/constants.h>
 #include <gpac/options.h>
 #include <gpac/network.h>
@@ -288,6 +289,7 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 GF_EXPORT
 GF_Terminal *gf_term_new(GF_User *user)
 {
+	u32 i;
 	GF_Terminal *tmp;
 	const char *cf;
 
@@ -344,8 +346,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Terminal created - loading config\n"));
 	gf_term_reload_cfg(tmp);
 
-
-	
 	cf = gf_cfg_get_key(user->config, "General", "EnvironmentFile");
 	if (cf) {
 		GF_Err e = gf_sg_new_from_xml_doc(cf, &tmp->dcci_doc);
@@ -355,6 +355,28 @@ GF_Terminal *gf_term_new(GF_User *user)
 			gf_sg_set_script_action(tmp->dcci_doc, term_script_action, tmp);
 		}
 	}
+
+	/*load extensions*/
+	tmp->extensions = gf_list_new();
+	for (i=0; i< gf_modules_get_count(user->modules); i++) {
+		GF_TermExt *ifce = (GF_TermExt *) gf_modules_load_interface(user->modules, i, GF_TERM_EXT_INTERFACE);
+		if (ifce) gf_list_add(tmp->extensions, ifce);
+	}
+	tmp->unthreaded_extensions = gf_list_new();
+	for (i=0; i< gf_list_count(tmp->extensions); i++) {
+		GF_TermExt *ifce = gf_list_get(tmp->extensions, i);
+		if (!ifce->process(ifce, tmp, GF_TERM_EXT_START)) {
+			gf_list_rem(tmp->extensions, i);
+			i--;
+		} else if (ifce->caps & GF_TERM_EXT_CAP_NOT_THREADED) {
+			gf_list_add(tmp->unthreaded_extensions, ifce);
+		}
+	}
+	if (!gf_list_count(tmp->unthreaded_extensions)) {
+		gf_list_del(tmp->unthreaded_extensions);
+		tmp->unthreaded_extensions = NULL;
+	}
+
 	cf = gf_cfg_get_key(user->config, "General", "GUIFile");
 	if (cf) {
 		gf_term_connect_from_time_ex(tmp, cf, 0, 0, 1);
@@ -366,7 +388,7 @@ GF_EXPORT
 GF_Err gf_term_del(GF_Terminal * term)
 {
 	GF_Err e;
-	u32 timeout;
+	u32 timeout, i;
 
 	if (!term) return GF_BAD_PARAM;
 
@@ -391,10 +413,24 @@ GF_Err gf_term_del(GF_Terminal * term)
 	} 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] All network services deleted\n"));
 
+	/*unload extensions*/
+	for (i=0; i< gf_list_count(term->extensions); i++) {
+		GF_TermExt *ifce = gf_list_get(term->extensions, i);
+		ifce->process(ifce, term, GF_TERM_EXT_STOP);
+	}
+
 	/*stop the media manager */
 	gf_term_stop_scheduler(term);
 
-	/*delete compositor before the input sensor stacks to avoid recieving events from the compositor
+	/*unload extensions*/
+	for (i=0; i< gf_list_count(term->extensions); i++) {
+		GF_TermExt *ifce = gf_list_get(term->extensions, i);
+		gf_modules_close_interface((GF_BaseInterface *) ifce);
+	}
+	gf_list_del(term->extensions);
+	if (term->unthreaded_extensions) gf_list_del(term->unthreaded_extensions);
+
+	/*delete compositor before the input sensor stacks to avoid receiving events from the compositor
 	when destroying these stacks*/
 	gf_sc_del(term->compositor);
 
@@ -672,6 +708,16 @@ void gf_term_handle_services(GF_Terminal *term)
 	}
 	gf_sc_lock(term->compositor, 0);
 
+	/*extensions*/
+	if (!term->reload_state && term->unthreaded_extensions) {
+		u32 i, count;
+		count = gf_list_count(term->unthreaded_extensions);
+		for (i=0; i<count; i++) {
+			GF_TermExt *ifce = gf_list_get(term->unthreaded_extensions, i);
+			ifce->process(ifce, term, GF_TERM_EXT_PROCESS);
+		}
+	}
+
 	
 	/*need to reload*/
 	if (term->reload_state == 1) {
@@ -759,7 +805,7 @@ static void mae_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_DO
 			} else {
 				if (*min_buffer > 100) *min_buffer = 100;
 			}
-			if (*min_time > ch->BufferTime) 
+			if (*min_time > (u32) ch->BufferTime) 
 				*min_time = ch->BufferTime;
 		} else {
 			*min_time = 0;

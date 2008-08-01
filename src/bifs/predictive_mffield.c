@@ -292,7 +292,7 @@ GF_Err PMF_UpdateArrayQP(PredMF *pmf, GF_BitStream *bs)
 		}
 		break;
 	}
-	/*reset all models when new settings are recieved*/
+	/*reset all models when new settings are received*/
 	PMF_ResetModels(pmf);
 	return GF_OK;
 }

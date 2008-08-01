@@ -194,8 +194,6 @@ GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID)
 GF_EXPORT
 void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 {	
-	if (codec->GlobalQP) gf_node_unregister((GF_Node *) codec->GlobalQP, NULL);
-	
 	assert(gf_list_count(codec->QPs)==0);
 	gf_list_del(codec->QPs);
 
@@ -303,7 +301,6 @@ static BIFSStreamInfo *BE_GetStream(GF_BifsEncoder * codec, u16 ESID)
 GF_EXPORT
 void gf_bifs_encoder_del(GF_BifsEncoder *codec)
 {	
-	if (codec->GlobalQP) gf_node_unregister((GF_Node *) codec->GlobalQP, NULL);
 	assert(gf_list_count(codec->QPs)==0);
 	gf_list_del(codec->QPs);
 	/*destroy all config*/

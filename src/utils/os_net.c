@@ -48,7 +48,7 @@
 
 #if !defined(__GNUC__)
 
-#if defined(IPV6_MULTICAST_IF)
+#if defined(IPV6_MULTICAST_IF11)
 #define GPAC_HAS_IPV6 1
 #pragma message("Using WinSock IPV6")
 #else
@@ -405,17 +405,26 @@ s32 gf_sk_get_handle(GF_Socket *sock)
 
 
 //connects a socket to a remote peer on a given port
-GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
+GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *local_ip)
 {
 	s32 ret;
 #ifdef GPAC_HAS_IPV6
 	u32 type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
-	struct addrinfo *res, *aip;
+	struct addrinfo *res, *aip, *lip;
 
 	gf_sk_free(sock);
 
 	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, AI_PASSIVE, type);
 	if (!res) return GF_IP_CONNECTION_FAILURE;
+
+	lip = NULL;
+	if (local_ip) {
+		lip = gf_sk_get_ipv6_addr(local_ip, PortNumber, AF_UNSPEC, AI_PASSIVE, type);
+		if (!lip && local_ip) {
+			lip = gf_sk_get_ipv6_addr(NULL, PortNumber, AF_UNSPEC, AI_PASSIVE, type);
+			local_ip = NULL;
+		}
+	}
 
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
@@ -429,6 +438,15 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 		if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 		else sock->flags &= ~GF_SOCK_IS_IPV6;
 
+		if (lip) {
+			ret = bind(sock->socket, lip->ai_addr, lip->ai_addrlen);
+			if (ret == SOCKET_ERROR) {
+				closesocket(sock->socket);
+				sock->socket = (SOCKET)NULL;
+				continue;
+			}
+		}
+
 		ret = connect(sock->socket, aip->ai_addr, aip->ai_addrlen);
 		if (ret == SOCKET_ERROR) {
 			closesocket(sock->socket);
@@ -439,14 +457,20 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 		memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
 		sock->dest_addr_len = aip->ai_addrlen;
 		freeaddrinfo(res);
+		if (lip) freeaddrinfo(lip);
 		return GF_OK;
 	}
 	freeaddrinfo(res);
+	if (lip) freeaddrinfo(lip);
 	return GF_IP_CONNECTION_FAILURE;
 
 #else	
 	struct hostent *Host;
 	
+	if (local_ip) {
+		GF_Err e = gf_sk_bind(sock, local_ip, PortNumber, PeerName, PortNumber, GF_SOCK_REUSE_PORT);
+		if (e) return e;
+	}
 	if (!sock->socket) 
 		sock->socket = socket(AF_INET, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
 
@@ -487,13 +511,14 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 
 //binds the given socket to the specified port. If ReUse is true
 //this will enable reuse of ports on a single machine
-GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32 options)
+GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u16 peer_port, u32 options)
 {
 #ifdef GPAC_HAS_IPV6
 	struct addrinfo *res, *aip;
 	int af;
 	u32 type;
 #else
+	u32 ip_add;
 	size_t addrlen;
 	struct sockaddr_in LocalAdd;
 	struct hostent *Host;
@@ -522,8 +547,14 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 		freeaddrinfo(res);
 	}
 	
-	res = gf_sk_get_ipv6_addr(NULL, port, af, AI_PASSIVE, type);
-	if (!res) return GF_IP_CONNECTION_FAILURE;
+	res = gf_sk_get_ipv6_addr(local_ip, port, af, AI_PASSIVE, type);
+	if (!res) {
+		if (local_ip) {
+			res = gf_sk_get_ipv6_addr(NULL, port, af, AI_PASSIVE, type);
+			local_ip = NULL;
+		}
+		if (!res) return GF_IP_CONNECTION_FAILURE;
+	}
 
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
@@ -584,9 +615,15 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 		return GF_IP_ADDRESS_NOT_FOUND;
 	}
 	/*setup the address*/
+	ip_add = 0;
+	if (local_ip) ip_add = inet_addr(local_ip);
+	if (!ip_add) {
+		ip_add = htonl(INADDR_ANY);
+		local_ip = NULL;
+	}
 	memcpy((char *) &LocalAdd.sin_addr, Host->h_addr_list[0], sizeof(LocalAdd.sin_addr));
 	LocalAdd.sin_family = AF_INET;
-	LocalAdd.sin_addr.s_addr = INADDR_ANY;
+	LocalAdd.sin_addr.s_addr = ip_add;
 	LocalAdd.sin_port = htons(port);
 	addrlen = sizeof(struct sockaddr_in);
 	if (options & GF_SOCK_REUSE_PORT) {

@@ -10,7 +10,7 @@
 <br/>
 <b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.5-DEV</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified $Date: 2008-05-16 16:24:07 $</span></b>
+<b><span style="Font-Size: 18pt">Last Modified $Date: 2008-08-01 15:11:34 $</span></b>
 </p>
 
 <br/><br/>
@@ -426,6 +426,15 @@ Specifies the length of the decoding buffer in milliseconds. The client will wai
 Specifies rebuffering length of the decoding buffer in milliseconds. Whenever the decoding buffer fullness is less than this value, the object clock is paused and 
 the stream rebuffered till BufferLength. Therefore a value of 0 means no rebuffering. A module may decide to use a different value based on protocol and network jitters.
 </p>
+<b>MobileIP</b> [value: <i>IP Address</i>]
+<p style="text-indent: 5%">
+Specifies a Mobile IP interface overriding the default IP. If set, all sockets will be locally bound to this IP address.</p>
+</p>
+<b>DefaultMCastInterface</b> [value: <i>IP Address</i>]
+<p style="text-indent: 5%">
+Specifies a default IP interface for Multicast overriding the default IP.If not set, the multicast will be setup using the default IP. </p>
+</p>
+
 
 <br/><br/>
 <a name="FontEngine"></a>

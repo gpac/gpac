@@ -250,15 +250,22 @@ static void RP_FlushCommands(RTPClient *rtp)
 static GF_Err RP_CloseService(GF_InputService *plug)
 {
 	u32 i;
+	const char *opt;
 	RTSPSession *sess;
 	RTPClient *rtp = (RTPClient *)plug->priv;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[RTP] Closing service\n"));
 
 	RP_FlushCommands(rtp);
-	/*send teardown on all sessions*/
-	i=0;
-	while ((sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i))) {
-		RP_Teardown(sess, NULL);
+
+	opt = gf_modules_get_option((GF_BaseInterface *) plug, "Network", "SessionMigration");
+	if (opt && !strcmp(opt, "yes")) {
+		RP_SaveSessionState(rtp);
+	} else {
+		/*send teardown on all sessions*/
+		i=0;
+		while ((sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i))) {
+			RP_Teardown(sess, NULL);
+		}
 	}
 	RP_FlushCommands(rtp);
 
@@ -340,7 +347,13 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 
 		return GF_OK;
 	}
-	
+	/*session migration resume - don't send data to the server*/
+	if (ch->status==RTP_SessionResume) {
+		ch->flags |= RTP_CONNECTED;
+		RP_InitStream(ch, 0);
+		RP_ConfirmChannelConnect(ch, GF_OK);
+		return GF_OK;
+	}
 	/*send a DESCRIBE (not a setup) on the channel. If the channel is already created then the
 	describe is skipped and a SETUP is sent directly, otherwise the channel is first described then setup*/
 	if (sess) RP_Describe(sess, es_url, channel);
@@ -440,6 +453,10 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		/*is this RTSP or direct RTP?*/
 		ch->flags &= ~RTP_EOS;
 		if (ch->rtsp) {
+			if (ch->status==RTP_SessionResume) {
+				ch->status = RTP_Running;
+				return GF_OK;
+			}
 			RP_UserCommand(ch->rtsp, ch, com);
 		} else {
 			ch->status = RTP_Running;
@@ -635,6 +652,8 @@ void RTP_Delete(GF_BaseInterface *bi)
 		retry--;
 	}
 	assert(retry);
+
+	if (rtp->session_state) free(rtp->session_state);
 
 	RP_cleanup(rtp);
 	gf_th_del(rtp->th);

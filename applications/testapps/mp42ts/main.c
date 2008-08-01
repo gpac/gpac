@@ -1733,7 +1733,7 @@ FILE *ts_file;
 		if (gf_sk_is_multicast_address((char *)ts_out)) {
 			e = gf_sk_setup_multicast(ts_udp, (char *)ts_out, port, 0, 0, NULL);
 		} else {
-			e = gf_sk_bind(ts_udp, port, (char *)ts_out, port, GF_SOCK_REUSE_PORT);
+			e = gf_sk_bind(ts_udp, NULL, port, (char *)ts_out, port, GF_SOCK_REUSE_PORT);
 		}
 		if (e) {
 			fprintf(stdout, "Error inhitializing UDP socket: %s\n", gf_error_to_string(e));

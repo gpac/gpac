@@ -24,7 +24,6 @@
 
 #include "isom_in.h"
 
-
 void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 {
 	GF_Segment *prev_seg;

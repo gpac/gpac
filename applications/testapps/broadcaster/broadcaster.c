@@ -119,7 +119,7 @@ u32 tcp_server(void *par)
 	input->status = 1;
 
 	TCP_socket = gf_sk_new(GF_SOCK_TYPE_TCP);
-	e = gf_sk_bind(TCP_socket, input->port, NULL, 0, 0);
+	e = gf_sk_bind(TCP_socket, NULL, input->port, NULL, 0, 0);
 	e = gf_sk_listen(TCP_socket, 1);
 	e = gf_sk_set_block_mode(TCP_socket, 0);
 	e = gf_sk_server_mode(TCP_socket, 0);
@@ -330,9 +330,9 @@ int main (int argc, char** argv)
 	
 	// preparation du socket pour envoyer le données de débit à l'interface
 	UDP_feedback_socket = gf_sk_new(GF_SOCK_TYPE_UDP);
-	e = gf_sk_bind(UDP_feedback_socket, (u16) atoi(conf->feedback_port),  (char *) conf->feedback_ip, (u16) atoi(conf->feedback_port), 0);
+	e = gf_sk_bind(UDP_feedback_socket, NULL, (u16) atoi(conf->feedback_port),  (char *) conf->feedback_ip, (u16) atoi(conf->feedback_port), 0);
 	// fprintf(stdout, "[broadcaster] : bind udp for feedback : %d, port : %d\n", e, atoi(port_feedback));
-	//e = gf_sk_connect(UDP_feedback_socket, (char *) conf->feedback_ip, (u16) atoi(conf->feedback_port));
+	//e = gf_sk_connect(UDP_feedback_socket, (char *) conf->feedback_ip, (u16) atoi(conf->feedback_port, NULL));
 	// fprintf(stdout, "[broadcaster] : connect udp feedback socket : %d, host : %s\n", e, ip_feedback);
 	gf_sk_set_block_mode(UDP_feedback_socket, 0);
 	data->feedback_socket = UDP_feedback_socket;

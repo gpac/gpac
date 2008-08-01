@@ -275,7 +275,7 @@ struct _tag_terminal
 	
 	/*options (cf config doc)*/
 	Bool enable_cache;
-	/*data timeout for network buffering in ms - if no data is recieved within this timeout
+	/*data timeout for network buffering in ms - if no data is received within this timeout
 	the initial buffering aborts. */
 	u32 net_data_timeout;
 
@@ -290,6 +290,9 @@ struct _tag_terminal
 
 	/*root node of the user prefs*/
 	GF_SceneGraph *dcci_doc;
+
+	GF_List *extensions;
+	GF_List *unthreaded_extensions;
 };
 
 
@@ -439,10 +442,10 @@ struct _es_channel
 	Bool BufferOn;
 	/*min level to trigger buffering on, max to trigger it off. */
 	u32 MinBuffer, MaxBuffer;
-	/*amount of buffered media - this is the DTS of the last recieved AU minus the onject clock time, to make sure
+	/*amount of buffered media - this is the DTS of the last received AU minus the onject clock time, to make sure
 	we always have MaxBuffer ms ready for composition when resuming the clock*/
 	s32 BufferTime;
-	/*last recieved AU time - if exceeding a certain time and buffering is on, buffering is turned off.
+	/*last received AU time - if exceeding a certain time and buffering is on, buffering is turned off.
 	This is needed for streams with very short duration (less than buffer time) and stream with only one AU (BIFS/OD)*/
 	u32 last_au_time;
 	/*Current reassemnbling buffer - currently packets are NOT reordered, only AUs are*/
@@ -484,7 +487,7 @@ struct _es_channel
 	/*flag for clock init. Only a channel owning the clock will set this flag on clock init*/
 	Bool IsClockInit;
 
-	/*duration of last recieved AU if any, 0 if not known (most of the time)*/
+	/*duration of last received AU if any, 0 if not known (most of the time)*/
 	u32 au_duration;
 	Bool skip_sl;
 
@@ -500,7 +503,7 @@ struct _es_channel
 	GF_IPMPTool *ipmp_tool;
 	Bool is_protected;
 
-	/*TSs as recieved from network - these are used for cache storage*/
+	/*TSs as received from network - these are used for cache storage*/
 	u64 net_dts, net_cts;
 };
 
@@ -526,7 +529,7 @@ void gf_es_drop_au(GF_Channel *ch);
 void gf_es_on_connect(GF_Channel *ch);
 /*reconfigure SL for this channel*/
 void gf_es_reconfig_sl(GF_Channel *ch, GF_SLConfig *slc);
-/*hack for streaming: whenever a time map (media time <-> TS time) event is recieved on the channel reset decoding buffer
+/*hack for streaming: whenever a time map (media time <-> TS time) event is received on the channel reset decoding buffer
 this is needed because all server tested resend packets on already running channel*/
 void gf_es_map_time(GF_Channel *ch, Bool reset);
 /*dummy channels are used by scene decoders which don't use ESM but load directly the scene graph themselves

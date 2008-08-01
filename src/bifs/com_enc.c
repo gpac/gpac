@@ -24,7 +24,6 @@
 
 
 #include <gpac/internal/bifs_dev.h>
-#include <gpac/internal/scenegraph_dev.h>
 #include "quant.h" 
 
 GF_Err BE_EncProtoList(GF_BifsEncoder *codec, GF_List *protoList, GF_BitStream *bs);
@@ -140,16 +139,20 @@ static GF_Err BE_GlobalQuantizer(GF_BifsEncoder * codec, GF_Command *com, GF_Bit
 	if (e) return e;
 
 	/*reset global QP*/
-	if (codec->GlobalQP) gf_node_unregister((GF_Node *) codec->GlobalQP, NULL);
-	codec->GlobalQP = codec->ActiveQP = NULL;
+	if (codec->scene_graph->global_qp) {
+		gf_node_unregister(codec->scene_graph->global_qp, NULL);
+		codec->scene_graph->global_qp = NULL;
+	}
+	codec->ActiveQP = NULL;
 	
 	/*no QP*/
 	if (!inf->new_node) return GF_OK;
 
 	/*register global QP*/
-	codec->GlobalQP = codec->ActiveQP = (M_QuantizationParameter *) inf->new_node;
-	codec->GlobalQP->isLocal = 0;
+	codec->scene_graph->global_qp = inf->new_node;
 	gf_node_register(inf->new_node, NULL);
+	codec->ActiveQP = (M_QuantizationParameter *) inf->new_node;
+	codec->ActiveQP->isLocal = 0;
 	return GF_OK;
 }
 
@@ -648,8 +651,13 @@ GF_Err BE_SceneReplaceEx(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *b
 	GF_BIFS_WRITE_INT(codec, bs, 0, 6, "reserved", NULL);
 	GF_BIFS_WRITE_INT(codec, bs, codec->UseName ? 1 : 0, 1, "useName", NULL);
 
-	e = BE_EncProtoList(codec, com->new_proto_list, bs);
-	if (e) goto exit;
+	if (gf_list_count(com->new_proto_list)) {
+		e = BE_EncProtoList(codec, com->new_proto_list, bs);
+		if (e) goto exit;
+	} else {
+		e = BE_EncProtoList(codec, com->in_scene->protos, bs);
+		if (e) goto exit;
+	}
 
 	/*NULL root is valid for ProtoLibraries*/
 	e = gf_bifs_enc_node(codec, com->node, NDT_SFTopNode, bs);
