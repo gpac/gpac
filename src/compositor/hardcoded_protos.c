@@ -607,6 +607,99 @@ void compositor_init_depth_group(GF_Compositor *compositor, GF_Node *node)
 	}
 }
 
+
+
+/*PathExtrusion hardcoded proto*/
+
+typedef struct
+{
+	BASE_NODE
+
+    GF_Node *point;
+    Fixed fineness;
+    MFInt32 type;
+    MFInt32 index;
+} IndexedCurve2D;
+
+static Bool IndexedCurve2D_GetNode(GF_Node *node, IndexedCurve2D *ic2d)
+{
+	GF_FieldInfo field;
+	memset(ic2d, 0, sizeof(IndexedCurve2D));
+
+	ic2d->sgprivate = node->sgprivate;
+
+	if (gf_node_get_field(node, 0, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFNODE) return 0;
+	ic2d->point = * (GF_Node **) field.far_ptr;
+	
+	if (gf_node_get_field(node, 1, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFFLOAT) return 0;
+	ic2d->fineness = *(SFFloat *) field.far_ptr;
+
+	if (gf_node_get_field(node, 2, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_MFINT32) return 0;
+	ic2d->type = *(MFInt32 *) field.far_ptr;
+
+	if (gf_node_get_field(node, 3, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_MFINT32) return 0;
+	ic2d->index = *(MFInt32 *) field.far_ptr;
+
+	return 1;
+}
+
+void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state, MFInt32 *idx);
+
+static void TraverseIndexedCurve2D(GF_Node *node, void *rs, Bool is_destroy)
+{
+	DrawableContext *ctx;
+	IndexedCurve2D ic2d;
+	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
+	Drawable *stack = (Drawable *)gf_node_get_private(node);
+	
+	if (is_destroy) {
+		drawable_node_del(node);
+		return;
+	}
+
+	if (gf_node_dirty_get(node)) {
+		if (!IndexedCurve2D_GetNode(node, &ic2d)) return;
+		curve2d_check_changes((GF_Node*) &ic2d, stack, tr_state, &ic2d.index);
+	}
+
+	switch (tr_state->traversing_mode) {
+#ifndef GPAC_DISABLE_3D
+	case TRAVERSE_DRAW_3D:
+		if (!stack->mesh) {
+			stack->mesh = new_mesh();
+			mesh_from_path(stack->mesh, stack->path);
+		}
+		visual_3d_draw_2d(stack, tr_state);
+		return;
+#endif
+	case TRAVERSE_PICK:
+		drawable_pick(stack, tr_state);
+		return;
+	case TRAVERSE_GET_BOUNDS:
+		gf_path_get_bounds(stack->path, &tr_state->bounds);
+		return;
+	case TRAVERSE_SORT:
+#ifndef GPAC_DISABLE_3D
+		if (tr_state->visual->type_3d) return;
+#endif
+		ctx = drawable_init_context_mpeg4(stack, tr_state);
+		if (!ctx) return;
+		drawable_finalize_sort(ctx, tr_state, NULL);
+		return;
+	}
+}
+
+static void compositor_init_idx_curve2d(GF_Compositor *compositor, GF_Node *node)
+{
+	drawable_stack_new(compositor, node);
+	gf_node_set_callback_function(node, TraverseIndexedCurve2D);
+}
+
+
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
 void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 {
@@ -642,12 +735,14 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 			compositor_init_offscreen_group(compositor, node);
 			return;
 		}
-
 		if (!strcmp(url, "urn:inet:gpac:builtin:DepthGroup")) {
 			compositor_init_depth_group(compositor, node);
 			return;
 		}
-
+		if (!strcmp(url, "urn:inet:gpac:builtin:IndexedCurve2D")) {
+			compositor_init_idx_curve2d(compositor, node);
+			return;
+		}
 	}
 
 }

@@ -359,7 +359,7 @@ s32 gf_sk_get_handle(GF_Socket *sock)
 
 
 //connects a socket to a remote peer on a given port
-GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
+GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *local_ip)
 {
 	s32 ret;
 #ifdef GPAC_HAS_IPV6
@@ -440,7 +440,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 
 //binds the given socket to the specified port. If ReUse is true
 //this will enable reuse of ports on a single machine
-GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32 options)
+GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u16 peer_port, u32 options)
 {
 #ifdef GPAC_HAS_IPV6
 	struct addrinfo *res, *aip;

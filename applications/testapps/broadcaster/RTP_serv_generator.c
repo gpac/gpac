@@ -27,8 +27,8 @@ PNC_CallbackData * PNC_Init_SceneGenerator(GF_RTPChannel * p_chan, GF_RTPHeader 
 	  data->codec= gf_beng_init(data, default_scene);
 	  fprintf(stdout, "[carrousel] : command socket: listening on port %d\n", socketPort);
 	  data->socket = gf_sk_new(GF_SOCK_TYPE_UDP); // on cree le socket UDP de commande
-	  fprintf(stdout, "[carrousel] : socket bind: %d\n", gf_sk_bind(data->socket, socketPort, NULL, 0, 0));
-	  // fprintf(stdout, "[carrousel] : socket connect: %d\n", gf_sk_connect(data->socket, "127.0.0.1", socketPort));
+	  fprintf(stdout, "[carrousel] : socket bind: %d\n", gf_sk_bind(data->socket, NULL, socketPort, NULL, 0, 0));
+	  // fprintf(stdout, "[carrousel] : socket connect: %d\n", gf_sk_connect(data->socket, "127.0.0.1", socketPort, NULL));
 	  // fprintf(stdout, "[carrousel] : socket listen: %d\n", gf_sk_listen(data->socket, 1)); 
 	  fprintf(stdout, "[carrousel] : gf_sk_set_block_mode: %d\n", gf_sk_set_block_mode(data->socket,0)); 
 	

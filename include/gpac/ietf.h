@@ -181,7 +181,7 @@ void gf_rtsp_transport_del(GF_RTSPTransport *transp);
 
 /*
 				RTSP Command
-		the RTSP Response is sent by a client / recieved by a server
+		the RTSP Response is sent by a client / received by a server
 	text Allocation is done by the lib when parsing a command, and
 	is automatically freed when calling reset / delete. Therefore you must
 	set/allocate the fields yourself when writing a command (client)
@@ -273,7 +273,7 @@ void gf_rtsp_command_reset(GF_RTSPCommand *com);
 
 /*
 				RTSP Response
-		the RTSP Response is recieved by a client / sent by a server
+		the RTSP Response is received by a client / sent by a server
 	text Allocation is done by the lib when parsing a response, and
 	is automatically freed when calling reset / delete. Therefore you must
 	allocate the fields yourself when writing a response (server)
@@ -380,6 +380,9 @@ void gf_rtsp_session_del(GF_RTSPSession *sess);
 
 GF_Err gf_rtsp_set_buffer_size(GF_RTSPSession *sess, u32 BufferSize);
 
+/*force the IP address the client is using*/
+void gf_rtsp_set_mobile_ip(GF_RTSPSession *sess, char *MobileIP);
+
 
 /*Reset state machine, invalidate SessionID
 NOTE: RFC2326 requires that the session is reseted when all RTP streams
@@ -422,7 +425,7 @@ enum
 
 u32 gf_rtsp_get_session_state(GF_RTSPSession *sess);
 /*aggregate command state-machine: the PLAY/PAUSE can be aggregated 
-(sent before the reply is recieved). This function gets the last command sent*/
+(sent before the reply is received). This function gets the last command sent*/
 char *gf_rtsp_get_last_request(GF_RTSPSession *sess);
 /*foce a reset in case of pbs*/
 void gf_rtsp_reset_aggregation(GF_RTSPSession *sess);
@@ -566,7 +569,7 @@ app you should set N as large as possible. The device MUST be reseted for the pa
 ReorederingSize: max number of packets to queue for reordering. 0 means no reordering
 MaxReorderDelay: max time to wait in ms before releasing first packet in reoderer when only one packet is present.
 If 0 and reordering size is specified, defaults to 200 ms (usually enough).
-IsSource: if true, the channel is a sender (media data, sender report, Reciever report processing)
+IsSource: if true, the channel is a sender (media data, sender report, Receiver report processing)
 if source, you must specify the Path MTU size. The RTP lib won't send any packet bigger than this size
 your application shall perform payload size splitting if needed
 local_interface_ip: local interface address to use for multicast. If NULL, default address is used
@@ -597,8 +600,8 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 /*decodes an RTCP packet and update timing info, send RR too*/
 GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size);
 
-/*computes and send Reciever report. If the channel is a TCP channel, you must specify
-the callback function. NOTE: many RTP implementation do NOT process RTCP info recieved on TCP...
+/*computes and send Receiver report. If the channel is a TCP channel, you must specify
+the callback function. NOTE: many RTP implementation do NOT process RTCP info received on TCP...
 the lib will decide whether the report shall be sent or not, therefore you should call
 this function at regular times*/
 GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch, 
@@ -818,7 +821,7 @@ typedef struct
 	/*0 if not present*/
 	u32 PacketTime;
 	/*0: none - 1: recv, 2: send, 3 both*/
-	u32 SendRecieve;
+	u32 SendReceive;
 	char *orientation, *sdplang, *lang;
 	/*for video only, 0.0 if not present*/
 	Double FrameRate;
@@ -858,7 +861,7 @@ typedef struct
 	/*all possible attributes (a=), session level*/
 	char *a_cat, *a_keywds, *a_tool;
 	/*0: none, 1: recv, 2: send, 3 both*/
-	u32 a_SendRecieve;
+	u32 a_SendReceive;
 	/*should be `broadcast', `meeting', `moderated', `test' or `H332'*/
 	char *a_type;
 	char *a_charset;
@@ -1148,7 +1151,7 @@ typedef struct __tag_rtp_packetizer GP_RTPPacketizer;
 	@OnData: to call each time data is added to current RTP packet (either extra data from payload or
 		data from input when not using referencing)
 		@is_head: signal the data added MUST be inserted at the begining of the payload. Otherwise data
-		is concatenated as recieved
+		is concatenated as received
 */
 GP_RTPPacketizer *gf_rtp_builder_new(u32 hintType, 
 						GF_SLConfig *slc, 

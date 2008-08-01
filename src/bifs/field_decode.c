@@ -25,7 +25,6 @@
 
 
 #include <gpac/internal/bifs_dev.h>
-#include <gpac/internal/scenegraph_dev.h>
 #include "quant.h" 
 #include "script.h" 
 
@@ -644,11 +643,14 @@ static void UpdateTimeNode(GF_BifsDecoder * codec, GF_Node *node)
 	}
 }
 
+u32 nb_ndt_bits_all = 0;
+u32 nb_ndt_bits_v2 = 0;
+
 GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 {
 	u32 nodeID, NDTBits, node_type, node_tag, ProtoID, BVersion;
 	u8 node_flag;
-	Bool skip_init;
+	Bool skip_init, reset_qp14;
 	GF_Node *new_node;
 	GF_Err e;
 	GF_Proto *proto;
@@ -720,6 +722,10 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 		}
 
 		node_type = gf_bs_read_int(bs, NDTBits);
+
+		nb_ndt_bits_all += NDTBits;
+		if (BVersion>2) nb_ndt_bits_v2 += NDTBits;
+
 		if (node_type) break;
 
 		//increment BIFS version
@@ -803,6 +809,7 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 	
 	if (!new_node) {
 		if (proto) {
+			skip_init = 1;
 			/*create proto interface*/
 			new_node = gf_sg_proto_create_instance(codec->current_graph, proto);
 		} else {
@@ -829,6 +836,11 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 
 	/*update default time fields except in proto parsing*/
 	if (!codec->pCurrentProto) UpdateTimeNode(codec, new_node);
+	/*nodes are only init outside protos */
+	else skip_init = 1;
+
+	/*if coords were not stored for QP14 before coding this node, reset QP14 it when leaving*/
+	reset_qp14 = !codec->coord_stored;
 
 	/*QP 14 is a special quant mode for IndexFace/Line(2D)Set to quantize the 
 	coordonate(2D) child, based on the first field parsed
@@ -844,6 +856,9 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 	} else {
 		e = gf_bifs_dec_node_list(codec, bs, new_node);
 	}
+	if (codec->coord_stored && reset_qp14) 
+		gf_bifs_dec_qp14_reset(codec);
+
 	if (e) {
 		codec->LastError = e;
 		/*register*/
@@ -853,16 +868,10 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 		return NULL;
 	}
 
-	/*nodes are only init outside protos */
-	if (!proto && !codec->pCurrentProto && new_node && !skip_init) gf_node_init(new_node);
+	if (!skip_init) 
+		gf_node_init(new_node);
 
 	switch (node_tag) {
-	case TAG_MPEG4_IndexedFaceSet:
-	case TAG_MPEG4_IndexedFaceSet2D:
-	case TAG_MPEG4_IndexedLineSet:
-	case TAG_MPEG4_IndexedLineSet2D:
-		gf_bifs_dec_qp14_reset(codec);
-		break;
 	case TAG_MPEG4_Coordinate:
 	case TAG_MPEG4_Coordinate2D:
 		gf_bifs_dec_qp14_enter(codec, 0);
@@ -880,7 +889,7 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 	}
 
 	/*if new node is a proto and we're in the top scene, load proto code*/
-	if (proto && new_node && (codec->scenegraph == codec->current_graph)) {
+	if (proto && (codec->scenegraph == codec->current_graph)) {
 		codec->LastError = gf_sg_proto_load_code(new_node);
 	}
 	return new_node;

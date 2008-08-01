@@ -58,7 +58,7 @@ GF_Err gf_bifs_dec_qp_set(GF_BifsDecoder *codec, GF_Node *qp)
 	assert(gf_node_get_tag(qp) == TAG_MPEG4_QuantizationParameter);
 
 	/*if we have an active QP, push it into the stack*/
-	if (codec->ActiveQP && (codec->ActiveQP != codec->GlobalQP) ) 
+	if (codec->ActiveQP && ((GF_Node*)codec->ActiveQP != codec->scenegraph->global_qp) ) 
 		gf_list_insert(codec->QPs, codec->ActiveQP, 0);
 	
 	codec->ActiveQP = (M_QuantizationParameter *)qp;
@@ -67,7 +67,7 @@ GF_Err gf_bifs_dec_qp_set(GF_BifsDecoder *codec, GF_Node *qp)
 
 GF_Err gf_bifs_dec_qp_remove(GF_BifsDecoder *codec, Bool ActivatePrev)
 {
-	if (!codec->force_keep_qp && codec->ActiveQP && (codec->ActiveQP != codec->GlobalQP) ) {
+	if (!codec->force_keep_qp && codec->ActiveQP && ((GF_Node*)codec->ActiveQP != codec->scenegraph->global_qp) ) {
 		gf_node_unregister((GF_Node *) codec->ActiveQP, NULL);
 	}
 	codec->ActiveQP = NULL;
@@ -76,8 +76,8 @@ GF_Err gf_bifs_dec_qp_remove(GF_BifsDecoder *codec, Bool ActivatePrev)
 	if (gf_list_count(codec->QPs)) {
 		codec->ActiveQP = (M_QuantizationParameter*)gf_list_get(codec->QPs, 0);
 		gf_list_rem(codec->QPs, 0);
-	} else if (codec->GlobalQP) {
-		codec->ActiveQP = codec->GlobalQP;
+	} else if (codec->scenegraph->global_qp) {
+		codec->ActiveQP = (M_QuantizationParameter *)codec->scenegraph->global_qp;
 	}
 	return GF_OK;
 }
@@ -351,6 +351,7 @@ GF_Err Q_DecNormal(GF_BifsDecoder *codec, GF_BitStream *bs, u32 NbBits, void *fi
 	return GF_OK;
 }
 
+u32 bifs_quantized_bits = 0;
 
 GF_Err gf_bifs_dec_unquant_field(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field)
 {
@@ -428,6 +429,36 @@ GF_Err gf_bifs_dec_unquant_field(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Nod
 	default:
 		return GF_BAD_PARAM;
 	}
+
+	switch (QType) {
+	case QC_ORDER:
+	case QC_ANGLE:
+	case QC_SCALE:
+	case QC_INTERPOL_KEYS:
+		bifs_quantized_bits += NbBits;
+		break;
+	case QC_2DPOS:
+	case QC_TEXTURE_COORD:
+	case QC_SIZE_2D:
+		bifs_quantized_bits += 2*NbBits;
+		break;
+	case QC_COLOR:
+	case QC_3DPOS:
+	case QC_SIZE_3D:
+		bifs_quantized_bits += 3*NbBits;
+		break;
+	case QC_LINEAR_SCALAR:
+	case QC_COORD_INDEX:
+		bifs_quantized_bits += NbBits;
+		break;
+	case QC_NORMALS:
+		bifs_quantized_bits += 2*NbBits;
+		break;
+	case QC_ROTATION:
+		bifs_quantized_bits += 3*NbBits;
+		break;
+	}
+
 	if (e) return e;
 	return GF_OK;
 }

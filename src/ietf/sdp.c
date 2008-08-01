@@ -105,25 +105,25 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	}
 	if (!strcmp(comp, "recvonly")) {
 		if (!media) {
-			sdp->a_SendRecieve = 1;
+			sdp->a_SendReceive = 1;
 		} else {
-			media->SendRecieve = 1;
+			media->SendReceive = 1;
 		}
 		return;
 	}
 	if (!strcmp(comp, "sendonly")) {
 		if (!media) {
-			sdp->a_SendRecieve = 2;
+			sdp->a_SendReceive = 2;
 		} else {
-			media->SendRecieve = 2;
+			media->SendReceive = 2;
 		}
 		return;
 	}
 	if (!strcmp(comp, "sendrecv")) {
 		if (!media) {
-			sdp->a_SendRecieve = 3;
+			sdp->a_SendReceive = 3;
 		} else {
-			media->SendRecieve = 3;
+			media->SendReceive = 3;
 		}
 		return;
 	}
@@ -406,7 +406,7 @@ void gf_sdp_info_reset(GF_SDPInfo *sdp)
 		gf_sdp_conn_del(sdp->c_connection);
 		sdp->c_connection = NULL;
 	}
-	sdp->a_SendRecieve = 0;
+	sdp->a_SendReceive = 0;
 }
 
 GF_EXPORT
@@ -765,7 +765,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 		HasSeveralPorts = 0;
 
 		//m= : force non-null port, profile and fmt_list
-		if (!media->PortNumber || !media->Profile) return GF_REMOTE_SERVICE_ERROR;
+		if (/*!media->PortNumber || */ !media->Profile) return GF_REMOTE_SERVICE_ERROR;
 		if (media->NumPorts) HasSeveralPorts = 1;
 
 		//no connections specified - THIS IS AN ERROR IN SDP BUT NOT IN ALL RTSP SESSIONS...
@@ -961,7 +961,7 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 	//a=tool
 	TEST_SDP_WRITE_SINGLE("a=tool", sdp->a_tool, 1);
 	//a=SendRecv
-	switch (sdp->a_SendRecieve) {
+	switch (sdp->a_SendReceive) {
 	case 1:
 		TEST_SDP_WRITE_SINGLE("a=", "recvonly", 0);
 		break;
@@ -1105,7 +1105,7 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 			SDP_WRITE_ALLOC_STR("\r\n", 0);
 		}
 		//a=SendRecv
-		switch (media->SendRecieve) {
+		switch (media->SendReceive) {
 		case 1:
 			TEST_SDP_WRITE_SINGLE("a=", "recvonly", 0);
 			break;

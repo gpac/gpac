@@ -396,8 +396,8 @@ command can also be triggered from the service (QoS, broadcast announcements)
 cf above for command usage
 */
 void gf_term_on_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Err response);
-/*to call when data packet is recieved. 
-@data, data_size: data recieved
+/*to call when data packet is received. 
+@data, data_size: data received
 @hdr: uncompressed SL header passed with data for stream sync - if not present then data shall be a valid SL packet 
 	(header + PDU). Note that using an SLConfig resulting in an empty GF_SLHeader allows sending raw data directly
 @reception_status: data reception status. To signal end of stream, set this to GF_EOS

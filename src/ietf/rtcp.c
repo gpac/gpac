@@ -449,8 +449,7 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
-	//pck were recieved/sent send the RR/SR - note we don't wait for next Report
-	//and force its emission now
+	/*k were received/sent send the RR/SR - note we don't wait for next Repor and force its emission now*/
 	if (ch->last_num_pck_rcv || ch->pck_sent_since_last_sr) {
 		RTCP_FormatReport(ch, bs, gf_rtp_get_report_time());
 	}
@@ -495,7 +494,7 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
-	//pck were recieved/sent send the RR/SR
+	//pck were received/sent send the RR/SR
 	if (ch->last_num_pck_rcv || ch->pck_sent_since_last_sr) {
 		RTCP_FormatReport(ch, bs, Time);
 	}

@@ -142,7 +142,7 @@ GF_Err gf_rtp_set_info_rtp(GF_RTPChannel *ch, u32 seq_num, u32 rtp_time, u32 ssr
 }
 
 GF_EXPORT
-GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u32 PathMTU, u32 ReorederingSize, u32 MaxReorderDelay, char *local_interface_ip)
+GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u32 PathMTU, u32 ReorederingSize, u32 MaxReorderDelay, char *local_ip)
 {
 	GF_Err e;
 
@@ -173,20 +173,20 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		if (ch->net_info.IsUnicast) {
 			//if client, bind and connect the socket
 			if (!IsSource) {
-				e = gf_sk_bind(ch->rtp, ch->net_info.client_port_first, ch->net_info.source, ch->net_info.port_first, GF_SOCK_REUSE_PORT);
+				e = gf_sk_bind(ch->rtp, local_ip, ch->net_info.client_port_first, ch->net_info.source, ch->net_info.port_first, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			}
 			//else bind and set remote destination
 			else {
 				if (!ch->net_info.port_first) ch->net_info.port_first = ch->net_info.client_port_first;
-				e = gf_sk_bind(ch->rtp, ch->net_info.port_first, ch->net_info.destination, ch->net_info.client_port_first, GF_SOCK_REUSE_PORT);
+				e = gf_sk_bind(ch->rtp, local_ip,ch->net_info.port_first, ch->net_info.destination, ch->net_info.client_port_first, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			}
 		} else {
 			//Bind to multicast (auto-join the group). 
 			//we do not bind the socket if this is a source-only channel because some servers
 			//don't like that on local loop ...
-			e = gf_sk_setup_multicast(ch->rtp, ch->net_info.source, ch->net_info.port_first, ch->net_info.TTL, (IsSource==2), local_interface_ip);
+			e = gf_sk_setup_multicast(ch->rtp, ch->net_info.source, ch->net_info.port_first, ch->net_info.TTL, (IsSource==2), local_ip);
 			if (e) return e;
 		
 			//destination is used for multicast interface addressing - TO DO
@@ -201,7 +201,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		}
 		
 
-		//create re-ordering queue for UDP only, and recieve
+		//create re-ordering queue for UDP only, and receive
 		if (ReorederingSize && !IsSource) {
 			if (!MaxReorderDelay) MaxReorderDelay = 200;
 			ch->po = gf_rtp_reorderer_new(ReorederingSize, MaxReorderDelay);
@@ -214,16 +214,16 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		if (!ch->rtcp) return GF_IP_NETWORK_FAILURE;
 		if (ch->net_info.IsUnicast) {
 			if (!IsSource) {
-				e = gf_sk_bind(ch->rtcp, ch->net_info.client_port_last, ch->net_info.source, ch->net_info.port_last, GF_SOCK_REUSE_PORT);
+				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.client_port_last, ch->net_info.source, ch->net_info.port_last, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			} else {
-				e = gf_sk_bind(ch->rtcp, ch->net_info.port_last, ch->net_info.destination, ch->net_info.client_port_last, GF_SOCK_REUSE_PORT);
+				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.port_last, ch->net_info.destination, ch->net_info.client_port_last, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			}
 		} else {
 			if (!ch->net_info.port_last) ch->net_info.port_last = ch->net_info.client_port_last;
 			//Bind to multicast (auto-join the group)
-			e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, (IsSource==2), local_interface_ip);
+			e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, (IsSource==2), local_ip);
 			if (e) return e;
 			//destination is used for multicast interface addressing - TO DO
 		}
@@ -621,7 +621,7 @@ GF_Err gf_rtp_set_ports(GF_RTPChannel *ch, u16 first_port)
 	retry = 100;
 	while (1) {
 		/*try to bind without reuse. If fails this means the port is used on the machine, don't reuse it*/
-		GF_Err e = gf_sk_bind(sock, p, NULL, 0, 0);
+		GF_Err e = gf_sk_bind(sock, NULL, p, NULL, 0, 0);
 		if (e==GF_OK) break;
 		if (e!=GF_IP_CONNECTION_FAILURE) {
 			gf_sk_del(sock);
@@ -832,7 +832,7 @@ discard:
 }
 
 //retrieve the first available packet. Note that the behavior will be undefined if the first
-//ever recieved packet if its SeqNum was unknown
+//ever received packet if its SeqNum was unknown
 //the BUFFER is yours, you must delete it
 void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size)
 {
@@ -847,7 +847,7 @@ void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size)
 	//empty queue
 	if (!po->in) return NULL;
 
-	//check we have recieved the first packet
+	//check we have received the first packet
 	if ( po->head_seqnum && po->MaxCount
 		&& (po->MaxCount > po->Count) 
 		&& (po->in->pck_seq_num != po->head_seqnum)) 
@@ -861,7 +861,7 @@ void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size)
 
 	//release the output if SN in order or maxCount reached
 	if (( (u16) (po->in->pck_seq_num + bounds + 1) == (u16) (po->in->next->pck_seq_num + bounds)) 
-		|| (po->MaxCount && po->Count == po->MaxCount) ) {
+		|| (po->MaxCount && (po->Count >= po->MaxCount)) ) {
 
 #ifndef GPAC_DISABLE_LOG
 		if (po->in->pck_seq_num + 1 != po->in->next->pck_seq_num) 

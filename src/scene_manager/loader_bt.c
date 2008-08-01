@@ -1960,10 +1960,19 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
 			while (gf_list_count(parser->def_nodes)) gf_list_rem(parser->def_nodes, 0);
 
-			/*note we're extremely lucky in BT, REPLACE SCENE can't use protos, it's just a top scene*/
-			n = gf_bt_sf_node(parser, NULL, NULL, NULL);
-			if (parser->last_error) goto err;
+			while (1) {
+				str = gf_bt_get_next(parser, 0);
+				if (!strcmp(str, "PROTO") || !strcmp(str, "EXTERNPROTO")) {
+					gf_bt_parse_proto(parser, str, com->new_proto_list);
+					if (parser->last_error) goto err;
+				} else {
+					break;
+				}
+			}
+			n = gf_bt_sf_node(parser, str, NULL, NULL);
 			com->node = n;
+
+			if (parser->last_error) goto err;
 			gf_list_add(cmdList, com);
 			parser->cur_com = com;
 			return GF_OK;

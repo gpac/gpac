@@ -147,7 +147,9 @@ enum
 	(jump to frame, etc..) as well as looping from inside the movie (set by default)*/
 	GF_SM_SWF_SPLIT_TIMELINE = (1<<7),
 	/*enable appearance reuse*/
-	GF_SM_SWF_REUSE_APPEARANCE = (1<<9)
+	GF_SM_SWF_REUSE_APPEARANCE = (1<<9),
+	/*enable IndexedCurve2D proto*/
+	GF_SM_SWF_USE_IC2D = (1<<10),
 };
 
 /*general loader flags*/
@@ -292,7 +294,12 @@ typedef struct
 	s32 resolution;
 	/*coordBits, scaleBits*/
 	u32 coord_bits, scale_bits;
-	Bool auto_qant;
+	/*auto quantification type:
+		0: none
+		1: LASeR
+		2: BIFS
+	*/
+	u32 auto_quant;
 } GF_SMEncodeOptions;
 
 /*
@@ -377,6 +384,8 @@ typedef struct _scenestat
 	u32 count_3f;
 
 	u32 nb_svg_attributes;
+
+	GF_StreamContext *base_layer;
 } GF_SceneStatistics;
 
 typedef struct _statman GF_StatManager;

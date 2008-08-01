@@ -109,10 +109,10 @@ struct __tag_rtp_channel
 
 	
 	/*the seq number of the first packet as signaled by the server if any, or first
-	RTP SN recieved (RTP multicast)*/
+	RTP SN received (RTP multicast)*/
 	u32 rtp_first_SN;
 	/*the TS of the associated first packet as signaled by the server if any, or first
-	RTP TS recieved (RTP multicast)*/
+	RTP TS received (RTP multicast)*/
 	u32 rtp_time;
 	/*NPT from the rtp_time*/
 	u32 CurrentTime;
@@ -273,6 +273,8 @@ struct _tag_rtsp_session
 	GF_List *TCPChannels;
 	/*thread-safe, full duplex library for PLAY and RECORD*/
 	GF_Mutex *mx;
+
+	char *MobileIP;	
 };
 
 GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort);
@@ -288,7 +290,7 @@ GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, char *buffer, u32 Size);
 
 /*locate body-start and body size in response/commands*/
 void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size);
-/*read TCP until a full command/response is recieved*/
+/*read TCP until a full command/response is received*/
 GF_Err gf_rtsp_read_reply(GF_RTSPSession *sess);
 /*fill the TCP buffer*/
 GF_Err gf_rtsp_fill_buffer(GF_RTSPSession *sess);

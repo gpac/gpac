@@ -153,7 +153,7 @@ void gf_rtsp_reset_aggregation(GF_RTSPSession *sess)
 	gf_mx_p(sess->mx);
 	if (sess->RTSP_State == GF_RTSP_STATE_WAIT_FOR_CONTROL) {
 		strcpy(sess->RTSPLastRequest, "RESET");
-		//skip all we haven't recieved
+		//skip all we haven't received
 		sess->CSeq += sess->NbPending;
 		sess->NbPending = 0;
 	}
@@ -216,6 +216,7 @@ void gf_rtsp_session_del(GF_RTSPSession *sess)
 	if (sess->Service) free(sess->Service);
 	gf_list_del(sess->TCPChannels);
 	if (sess->rtsp_pck_buf) free(sess->rtsp_pck_buf);
+	if (sess->MobileIP) free(sess->MobileIP);
 	gf_mx_del(sess->mx);
 	free(sess);
 }
@@ -231,6 +232,15 @@ u32 gf_rtsp_get_session_state(GF_RTSPSession *sess)
 	gf_mx_v(sess->mx);
 	return state;
 }
+
+GF_EXPORT
+void gf_rtsp_set_mobile_ip(GF_RTSPSession *sess, char *MobileIP)
+{
+	if (sess->MobileIP) free(sess->MobileIP);
+	sess->MobileIP = NULL;
+	if (MobileIP) sess->MobileIP = strdup(MobileIP);
+}
+
 
 GF_EXPORT
 char *gf_rtsp_get_last_request(GF_RTSPSession *sess)
@@ -295,7 +305,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 		if (!sess->connection) return GF_OUT_OF_MEM;
 	}
 	//the session is down, reconnect
-	e = gf_sk_connect(sess->connection, sess->Server, sess->Port);
+	e = gf_sk_connect(sess->connection, sess->Server, sess->Port, sess->MobileIP);
 	if (e) return e;
 
 	if (sess->SockBufferSize) gf_sk_set_buffer_size(sess->connection, 0, sess->SockBufferSize);
@@ -615,7 +625,9 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	//	3. send "POST /sample.mov HTTP/1.0\r\n ..."
 	sess->http = gf_sk_new(GF_SOCK_TYPE_TCP);
 	if (!sess->http ) return GF_IP_NETWORK_FAILURE;
-	if (gf_sk_connect(sess->http, sess->Server, sess->Port)) return GF_IP_CONNECTION_FAILURE; 
+
+	/*mobileIP is enabled, bind first*/
+	if (gf_sk_connect(sess->http, sess->Server, sess->Port, sess->MobileIP)) return GF_IP_CONNECTION_FAILURE; 
 
 	memset(buffer, 0, GF_RTSP_DEFAULT_BUFFER);
 	pos = 0;

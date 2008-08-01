@@ -849,8 +849,8 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 	}
 }
 
-/*Note on ISed fields: we cannot support fan-in on proto, eg we assume only one eventIn field can recieve events
-thus situations where a proto recieves eventIn from outside and the node with ISed eventIn recieves event 
+/*Note on ISed fields: we cannot support fan-in on proto, eg we assume only one eventIn field can receive events
+thus situations where a proto receives eventIn from outside and the node with ISed eventIn receives event 
 from inside the proto are undefined*/
 GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node *node, u32 nodeFieldIndex)
 {

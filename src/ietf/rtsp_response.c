@@ -406,7 +406,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	if (sess->NbPending) sess->NbPending -= 1;
 
 	if (sess->RTSP_State == GF_RTSP_STATE_WAITING) sess->RTSP_State = GF_RTSP_STATE_INIT;
-	//control, and everything is recieved
+	//control, and everything is received
 	else if (sess->RTSP_State == GF_RTSP_STATE_WAIT_FOR_CONTROL) {
 		if (!sess->NbPending) sess->RTSP_State = GF_RTSP_STATE_INIT;
 	}

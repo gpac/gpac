@@ -863,7 +863,7 @@ clock_setup:
 	if (esd->URLString) {
 		GF_ChannelSetup *cs;
 		/*here we have a pb with the MPEG4 model: streams are supposed to be attachable as soon as the OD 
-		update is recieved, but this is not true with ESD URLs, where service setup may take some time (file
+		update is received, but this is not true with ESD URLs, where service setup may take some time (file
 		downloading, authentification, etc...). We therefore need to wait for the service connect response before 
 		setting up the channel...*/
 		cs = (GF_ChannelSetup*)malloc(sizeof(GF_ChannelSetup));

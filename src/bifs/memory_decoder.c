@@ -24,8 +24,6 @@
 
 
 #include <gpac/internal/bifs_dev.h>
-/*for scene replace tricks*/
-#include <gpac/internal/scenegraph_dev.h>
 #include "quant.h"
 
 GF_Err ParseMFFieldList(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field);
@@ -168,8 +166,11 @@ static GF_Err BM_ParseGlobalQuantizer(GF_BifsDecoder *codec, GF_BitStream *bs, G
 	node = gf_bifs_dec_node(codec, bs, NDT_SFWorldNode);
 
 	/*reset global QP*/
-	if (codec->GlobalQP) gf_node_unregister((GF_Node *) codec->GlobalQP, NULL);
-	codec->GlobalQP = codec->ActiveQP = NULL;
+	if (codec->scenegraph->global_qp) {
+		gf_node_unregister(codec->scenegraph->global_qp, NULL);
+	}
+	codec->ActiveQP = NULL;
+	codec->scenegraph->global_qp = NULL;
 	
 	if (node && (gf_node_get_tag(node) != TAG_MPEG4_QuantizationParameter)) {
 		gf_node_unregister(node, NULL);
@@ -177,10 +178,11 @@ static GF_Err BM_ParseGlobalQuantizer(GF_BifsDecoder *codec, GF_BitStream *bs, G
 	}
 
 	/*register global QP*/
-	codec->GlobalQP = codec->ActiveQP = (M_QuantizationParameter *) node;
-	codec->GlobalQP->isLocal = 0;
+	codec->ActiveQP = (M_QuantizationParameter *) node;
+	codec->ActiveQP->isLocal = 0;
+	codec->scenegraph->global_qp = node;
 	if (node) {
-		/*register TWICE: once for the command, and for the codec*/
+		/*register TWICE: once for the command, and for the scenegraph globalQP*/
 		node->sgprivate->num_instances = 2;
 	}
 	com = gf_sg_command_new(codec->current_graph, GF_SG_GLOBAL_QUANTIZER);
@@ -886,6 +888,8 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 	assert(codec->scenegraph);
 	/*setup current scene graph*/
 	codec->current_graph = codec->scenegraph;
+
+	codec->ActiveQP = (M_QuantizationParameter*) codec->scenegraph->global_qp;
 
 	bs = gf_bs_new(data, data_length, GF_BITSTREAM_READ);
 	gf_bs_set_eos_callback(bs, BM_EndOfStream, codec);

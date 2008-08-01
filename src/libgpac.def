@@ -713,6 +713,7 @@ EXPORTS
 	gf_rtsp_session_new
 	gf_rtsp_session_del
 	gf_rtsp_set_buffer_size
+	gf_rtsp_set_mobile_ip
 	gf_rtsp_session_reset
 	gf_rtsp_is_my_session
 	gf_rtsp_get_last_session_id
@@ -1098,6 +1099,7 @@ EXPORTS
 	gf_term_get_service_info
 	gf_term_get_text_selection
 	gf_term_paste_text
+	gf_term_get_url
 
 ;compositor.h exports
 	gf_sc_new

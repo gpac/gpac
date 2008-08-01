@@ -1065,6 +1065,8 @@ EXPORTS
 	gf_term_get_service_interface
 	gf_term_get_text_selection
 	gf_term_paste_text
+	gf_term_get_service_info
+	gf_term_get_url
 
 ;renderer.h exports
 	gf_sc_new

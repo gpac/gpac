@@ -1369,6 +1369,10 @@ SOURCE=..\..\include\gpac\sync_layer.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\gpac\modules\term_ext.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\gpac\term_info.h
 # End Source File
 # Begin Source File

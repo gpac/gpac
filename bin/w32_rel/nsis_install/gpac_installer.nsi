@@ -102,9 +102,10 @@ SectionEnd
 
 SubSection "GPAC Plugins"
 
+
 ;
 ;	2 install modes, normal one and full one
-;
+
 Section "MPEG-4 BIFS Decoder"
   SectionIn 1
   File "..\gm_bifs_dec.dll"
@@ -213,6 +214,7 @@ Section "Xiph Ogg Reader - Vorbis and Theora Decoders"
   File "..\gm_ogg_xiph.dll"
 SectionEnd
 
+
 SubSectionEnd
 
 SubSection "Osmo4 Shortcuts"
@@ -318,6 +320,30 @@ Section "MP4Client (GPAC Command-line client/grabber)"
   File "..\MP4Client.exe"
 SectionEnd
 
+
+SubSection "Proprietary Plugins"
+Section "BSAC Decoder"
+  SectionIn 1
+  File /nonfatal "..\gm_bsac_dec.dll"
+SectionEnd
+
+Section "TI's MobileIP"
+  SectionIn 1
+  File /nonfatal "..\gm_mobile_ip.dll"
+  File /nonfatal "..\MobileSession.dll"
+SectionEnd
+
+Section "UPnP Renderer"
+  SectionIn 1
+  File /nonfatal "..\gm_upnp.dll"
+SectionEnd
+
+Section "JNI Wrapper"
+  SectionIn 1
+  File /nonfatal "..\gvm.dll"
+SectionEnd
+
+SubSectionEnd
 
 
 ; Function .onInstSuccess

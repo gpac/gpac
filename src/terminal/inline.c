@@ -1187,7 +1187,7 @@ void gf_inline_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo)
 
 /*regenerates the scene graph for dynamic scene.
 This will also try to reload any previously presented streams. Note that in the usual case the scene is generated
-just once when recieving the first OD AU (ressources are NOT destroyed when seeking), but since the network may need
+just once when receiving the first OD AU (ressources are NOT destroyed when seeking), but since the network may need
 to update the OD ressources, we still kake care of it*/
 void gf_inline_regenerate(GF_InlineScene *is)
 {

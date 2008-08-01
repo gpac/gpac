@@ -213,7 +213,7 @@ static void term_on_disconnect(void *user_priv, GF_ClientService *service, LPNET
 	ch->es_state = GF_ESM_ES_DISCONNECTED;
 }
 
-static void term_on_slp_recieved(void *user_priv, GF_ClientService *service, LPNETCHANNEL netch, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
+static void term_on_slp_received(void *user_priv, GF_ClientService *service, LPNETCHANNEL netch, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
 	GF_Channel *ch;
 	GET_TERM();
@@ -752,7 +752,7 @@ GF_EXPORT
 void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
 	assert(service);
-	term_on_slp_recieved(service->term, service, ns, data, data_size, hdr, reception_status);
+	term_on_slp_received(service->term, service, ns, data, data_size, hdr, reception_status);
 }
 
 GF_EXPORT

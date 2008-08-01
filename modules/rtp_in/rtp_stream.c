@@ -23,6 +23,7 @@
  */
 
 #include "rtp_in.h"
+#include <gpac/internal/ietf_dev.h>
 
 
 void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
@@ -59,13 +60,12 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 	}
 }
 
-
 GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 {
 	gf_rtp_depacketizer_reset(ch->depacketizer, !ResetOnly);
 
 	if (!ResetOnly) {
-		const char *mcast_ifce = NULL;
+		const char *ip_ifce = NULL;
 		u32 reorder_size = 0;
 		if (!ch->owner->transport_mode) {
 			const char *sOpt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ReorderSize");
@@ -73,9 +73,14 @@ GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 			else reorder_size = 10;
 
 		
-			mcast_ifce = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "DefaultMCastInterface");
+			ip_ifce = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Network", "DefaultMCastInterface");
+			if (!ip_ifce) {
+				const char *mob_on = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Network", "MobileIPEnabled");
+				if (mob_on && !strcmp(mob_on, "yes"))
+					ip_ifce = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Network", "MobileIP");
+			}
 		}
-		return gf_rtp_initialize(ch->rtp_ch, RTP_BUFFER_SIZE, 0, 0, reorder_size, 200, (char *)mcast_ifce);
+		return gf_rtp_initialize(ch->rtp_ch, RTP_BUFFER_SIZE, 0, 0, reorder_size, 200, (char *)ip_ifce);
 	}
 	//just reset the sockets
 	gf_rtp_reset_buffers(ch->rtp_ch);
@@ -119,9 +124,10 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	GF_RTSPRange *range;
 	RTPStream *tmp;
 	GF_RTPMap *map;
-	u32 i, ESID;
+	u32 i, ESID, ssrc, rtp_seq, rtp_time;
 	Bool force_bcast = 0;
-	Double Start, End;
+	Double Start, End, CurrentTime;
+	u32 s_port_first, s_port_last;
 	GF_X_Attribute *att;
 	char *ctrl;
 	GF_SDPConnection *conn;
@@ -130,15 +136,22 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	//extract all relevant info from the GF_SDPMedia
 	Start = 0.0;
 	End = -1.0;
+	CurrentTime = 0.0;
 	ESID = 0;
 	ctrl = NULL;
 	range = NULL;
+	s_port_first = s_port_last = 0;
+	ssrc = rtp_seq = rtp_time = 0;
 	i=0;
 	while ((att = (GF_X_Attribute*)gf_list_enum(media->Attributes, &i))) {
 		if (!stricmp(att->Name, "control")) ctrl = att->Value;
 		else if (!stricmp(att->Name, "gpac-broadcast")) force_bcast = 1;
 		else if (!stricmp(att->Name, "mpeg4-esid") && att->Value) ESID = atoi(att->Value);
 		else if (!stricmp(att->Name, "range") && !range) range = gf_rtsp_range_parse(att->Value);
+		else if (!stricmp(att->Name, "x-stream-state") ) {
+			sscanf(att->Value, "server-port=%d-%d;ssrc=%X;npt=%g;seq=%d;rtptime=%d", 
+				&s_port_first, &s_port_last, &ssrc, &CurrentTime, &rtp_seq, &rtp_time);
+		}
 	}
 
 	if (range) {
@@ -200,6 +213,8 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	} else {
 		trans.client_port_first = media->PortNumber;
 		trans.client_port_last = media->PortNumber + 1;
+		trans.port_first = s_port_first;
+		trans.port_last = s_port_last;
 	}
 
 	if (gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL) != GF_OK) {
@@ -229,6 +244,13 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	if (End != -1.0) tmp->flags |= RTP_HAS_RANGE;
 
 	if (force_bcast) tmp->flags |= RTP_FORCE_BROADCAST;
+
+	if (s_port_first) {
+		tmp->current_start = CurrentTime;
+		tmp->check_rtp_time = 1;
+		gf_rtp_set_info_rtp(tmp->rtp_ch, rtp_seq, rtp_time, ssrc);
+		tmp->status = RTP_SessionResume;
+	}
 	return tmp;
 }
 
@@ -254,7 +276,19 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 
 	/*if we must notify some timing, do it now. If the channel has no range, this should NEVER be called*/
 	if (ch->check_rtp_time /*&& gf_rtp_is_active(ch->rtp_ch)*/) {
-		Double ch_time = gf_rtp_get_current_time(ch->rtp_ch);
+		Double ch_time;
+
+		/*it may happen that we still receive packets from a previous "play" request. If this is the case,
+		filter until we reach the indicated rtptime*/
+		if (ch->rtp_ch->rtp_time 
+			&& (ch->rtp_ch->rtp_time < hdr.TimeStamp) 
+		) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Rejecting too early packet (TS %d vs signaled rtp time %d - diff %d ms)\n",
+				hdr.TimeStamp, ch->rtp_ch->rtp_time, ((hdr.TimeStamp - ch->rtp_ch->rtp_time)*1000) / ch->rtp_ch->TimeScale));
+			return;
+		}
+
+		ch_time = gf_rtp_get_current_time(ch->rtp_ch);
 
 		/*this is the first packet on the channel (no PAUSE)*/
 		if (ch->check_rtp_time == 1) {
@@ -272,6 +306,10 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 			com.map_time.timestamp = hdr.TimeStamp;
 			com.map_time.reset_buffers = 1;
 			gf_term_on_command(ch->owner->service, &com, GF_OK);
+
+			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Mapping RTP Time seq %d TS %d - rtp info seq %d TS %d\n",
+				hdr.SequenceNumber, hdr.TimeStamp, ch->rtp_ch->rtp_first_SN, ch->rtp_ch->rtp_time
+				));
 
 //			if (ch->depacketizer->payt==GF_RTP_PAYT_H264_AVC) ch->depacketizer->flags |= GF_RTP_AVC_WAIT_RAP;
 		}
@@ -377,7 +415,7 @@ void RP_ReadStream(RTPStream *ch)
 			u32 diff = gf_sys_clock() - ch->last_udp_time;
 			if (diff >= ch->owner->udp_time_out) {
 				char szMessage[1024];
-				sprintf(szMessage, "No data recieved in %d ms", diff);
+				sprintf(szMessage, "No data received in %d ms", diff);
 				gf_term_on_message(ch->owner->service, GF_IP_UDP_TIMEOUT, szMessage);
 				ch->status = RTP_Unavailable;
 			}

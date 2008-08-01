@@ -116,6 +116,10 @@ void gf_sg_del(GF_SceneGraph *sg)
 {	
 	if (!sg) return;
 
+	if (sg->global_qp) {
+		gf_node_unregister(sg->global_qp, NULL);
+		sg->global_qp = NULL;
+	}
 	gf_sg_reset(sg);
 
 #ifndef GPAC_DISABLE_SVG
@@ -330,7 +334,7 @@ restart:
 	while (reg_node) {
 		Bool ignore = 0;
 		GF_Node *node = reg_node->node;
-		if (!node) {
+		if (!node || (node==sg->global_qp) ) {
 			reg_node = reg_node->next;
 			continue;
 		}
@@ -375,7 +379,7 @@ restart:
 		if (count != get_num_id_nodes(sg)) goto restart;
 		reg_node = reg_node->next;
 	}
-	assert(sg->id_node==NULL);
+	assert((sg->id_node==NULL) || sg->global_qp);
 
 	/*destroy all proto*/
 	while (gf_list_count(sg->protos)) {

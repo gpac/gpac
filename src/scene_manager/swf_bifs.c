@@ -25,11 +25,11 @@
 #include <gpac/utf.h>
 #include <gpac/xml.h>
 #include <gpac/internal/swf_dev.h>
+#include <gpac/internal/scenegraph_dev.h>
 
 #ifndef GPAC_READ_ONLY
 
 #define SWF_TEXT_SCALE				(1/1024.0f)
-
 
 typedef struct
 {
@@ -418,30 +418,55 @@ static void s2b_set_appearance(SWFReader *read, SWFShape *shape, M_Shape *n, SWF
 }
 
 /*translate a flash sub shape with only one path (eg one looking style) to a BIFS Shape node*/
-static GF_Node *s2b_shape_to_curve2d(SWFReader *read, SWFShape *shape, SWFShapeRec *srec, Bool is_fill)
+static GF_Node *s2b_shape_to_curve2d(SWFReader *read, SWFShape *shape, SWFShapeRec *srec, Bool is_fill, M_Coordinate2D *c)
 {
 	u32 pt_idx, i;
 	Bool use_xcurve;
 	void *fptr;
-	SFVec2f ct1, ct2, ct, pt, move_orig;
-	M_Curve2D *curve;
+	SFVec2f ct1, ct2, ct, pt;
+	MFInt32 *types, *idx;
 	M_Coordinate2D *points;
+	GF_Node *ic2d = NULL;
 	M_Shape *n = (M_Shape *) s2b_new_node(read, TAG_MPEG4_Shape);
 
 	s2b_set_appearance(read, shape, n, srec, is_fill);
 
 	use_xcurve = (read->flags & GF_SM_SWF_QUAD_CURVE) ? 1 : 0;
-	if (use_xcurve) {
-		curve = (M_Curve2D *) s2b_new_node(read, TAG_MPEG4_XCurve2D);
+	if (c) {
+		GF_FieldInfo info;
+		ic2d = gf_sg_proto_create_instance(read->load->scene_graph, gf_sg_find_proto(read->load->scene_graph, 0, "IndexedCurve2D"));
+		points = c;
+
+		gf_node_get_field_by_name(ic2d, "type", &info);
+		types = (MFInt32 *)info.far_ptr;
+
+		gf_node_get_field_by_name(ic2d, "coordIndex", &info);
+		idx = (MFInt32 *)info.far_ptr;
+
+		gf_node_get_field_by_name(ic2d, "coord", &info);
+		*(GF_Node **)info.far_ptr = (GF_Node *)c;
+		gf_node_register((GF_Node *)c, ic2d);
+
+		n->geometry = ic2d;
+		gf_node_register(ic2d, (GF_Node *)n);
 	} else {
-		curve = (M_Curve2D *) s2b_new_node(read, TAG_MPEG4_Curve2D);
+		M_Curve2D *curve;
+		if (use_xcurve) {
+			curve = (M_Curve2D *) s2b_new_node(read, TAG_MPEG4_XCurve2D);
+		} else {
+			curve = (M_Curve2D *) s2b_new_node(read, TAG_MPEG4_Curve2D);
+		}
+		points = (M_Coordinate2D *) s2b_new_node(read, TAG_MPEG4_Coordinate2D);
+		curve->point = (GF_Node *) points;
+
+		gf_node_register((GF_Node *) points, (GF_Node *) curve);
+		curve->fineness = FIX_ONE;
+		types = &curve->type;
+		idx = NULL;
+		n->geometry = (GF_Node *) curve;
+		gf_node_register((GF_Node *) curve, (GF_Node *)n);
 	}
-	points = (M_Coordinate2D *) s2b_new_node(read, TAG_MPEG4_Coordinate2D);
-	n->geometry = (GF_Node *) curve;
-	gf_node_register((GF_Node *) curve, (GF_Node *)n);
-	curve->point = (GF_Node *) points;
-	gf_node_register((GF_Node *) points, (GF_Node *) curve);
-	curve->fineness = FIX_ONE;
+
 
 	assert(srec->path->nbType);
 
@@ -452,39 +477,57 @@ static GF_Node *s2b_shape_to_curve2d(SWFReader *read, SWFShape *shape, SWFShapeR
 		case 0:
 			/*first moveTo implicit in BIFS*/
 			if (i) {
-				gf_sg_vrml_mf_append(&curve->type, GF_SG_VRML_MFINT32, &fptr);
+				gf_sg_vrml_mf_append(types, GF_SG_VRML_MFINT32, &fptr);
 				*((SFInt32 *)fptr) = 0;
 			}
-			gf_sg_vrml_mf_append(&points->point, GF_SG_VRML_MFVEC2F, &fptr);
-			((SFVec2f *)fptr)->x = srec->path->pts[pt_idx].x;
-			((SFVec2f *)fptr)->y = srec->path->pts[pt_idx].y;
-			move_orig = srec->path->pts[pt_idx];
+			if (c) {
+				gf_sg_vrml_mf_append(idx, GF_SG_VRML_MFINT32, &fptr);
+				*((SFInt32 *)fptr) = srec->path->idx[pt_idx];
+			} else {
+				gf_sg_vrml_mf_append(&points->point, GF_SG_VRML_MFVEC2F, &fptr);
+				((SFVec2f *)fptr)->x = srec->path->pts[pt_idx].x;
+				((SFVec2f *)fptr)->y = srec->path->pts[pt_idx].y;
+			}
 			pt_idx++;
 			break;
 		/*lineTo*/
 		case 1:
-			gf_sg_vrml_mf_append(&curve->type, GF_SG_VRML_MFINT32, &fptr);
+			gf_sg_vrml_mf_append(types, GF_SG_VRML_MFINT32, &fptr);
 			*((SFInt32 *)fptr) = 1;
-			gf_sg_vrml_mf_append(&points->point, GF_SG_VRML_MFVEC2F, &fptr);
-			((SFVec2f *)fptr)->x = srec->path->pts[pt_idx].x;
-			((SFVec2f *)fptr)->y = srec->path->pts[pt_idx].y;
+			if (c) {
+				gf_sg_vrml_mf_append(idx, GF_SG_VRML_MFINT32, &fptr);
+				*((SFInt32 *)fptr) = srec->path->idx[pt_idx];
+			} else {
+				gf_sg_vrml_mf_append(&points->point, GF_SG_VRML_MFVEC2F, &fptr);
+				((SFVec2f *)fptr)->x = srec->path->pts[pt_idx].x;
+				((SFVec2f *)fptr)->y = srec->path->pts[pt_idx].y;
+			}
 			pt_idx++;
 			break;
 		/*curveTo*/
 		case 2:
 			/*XCurve2D has quad arcs*/
-			if (use_xcurve) {
-				gf_sg_vrml_mf_append(&curve->type, GF_SG_VRML_MFINT32, &fptr);
+			if (c || use_xcurve) {
+				gf_sg_vrml_mf_append(types, GF_SG_VRML_MFINT32, &fptr);
 				*((SFInt32 *)fptr) = 7;
-				gf_sg_vrml_mf_append(&points->point, GF_SG_VRML_MFVEC2F, &fptr);
-				((SFVec2f *)fptr)->x = srec->path->pts[pt_idx].x;
-				((SFVec2f *)fptr)->y = srec->path->pts[pt_idx].y;
-				gf_sg_vrml_mf_append(&points->point, GF_SG_VRML_MFVEC2F, &fptr);
-				((SFVec2f *)fptr)->x = srec->path->pts[pt_idx+1].x;
-				((SFVec2f *)fptr)->y = srec->path->pts[pt_idx+1].y;
+
+				if (c) {
+					gf_sg_vrml_mf_append(idx, GF_SG_VRML_MFINT32, &fptr);
+					*((SFInt32 *)fptr) = srec->path->idx[pt_idx];
+					gf_sg_vrml_mf_append(idx, GF_SG_VRML_MFINT32, &fptr);
+					*((SFInt32 *)fptr) = srec->path->idx[pt_idx+1];
+				} else {
+					gf_sg_vrml_mf_append(&points->point, GF_SG_VRML_MFVEC2F, &fptr);
+					((SFVec2f *)fptr)->x = srec->path->pts[pt_idx].x;
+					((SFVec2f *)fptr)->y = srec->path->pts[pt_idx].y;
+					gf_sg_vrml_mf_append(&points->point, GF_SG_VRML_MFVEC2F, &fptr);
+					((SFVec2f *)fptr)->x = srec->path->pts[pt_idx+1].x;
+					((SFVec2f *)fptr)->y = srec->path->pts[pt_idx+1].y;
+				}
+
 				pt_idx+=2;
 			} else {
-				gf_sg_vrml_mf_append(&curve->type, GF_SG_VRML_MFINT32, &fptr);
+				gf_sg_vrml_mf_append(types, GF_SG_VRML_MFINT32, &fptr);
 				*((SFInt32 *)fptr) = 2;
 				/*recompute cubic from quad*/
 				ct.x = srec->path->pts[pt_idx].x;
@@ -512,6 +555,9 @@ static GF_Node *s2b_shape_to_curve2d(SWFReader *read, SWFShape *shape, SWFShapeR
 			break;
 		}
 	}
+
+	if (ic2d) gf_node_init(ic2d);
+
 	return (GF_Node *) n;
 }
 
@@ -583,22 +629,44 @@ static void s2b_merge_curve2d(M_Curve2D *s, M_Curve2D *tomerge)
 	}
 }
 
-static void s2b_insert_shape(M_OrderedGroup *og, M_Shape *n)
+static void s2b_insert_shape(M_OrderedGroup *og, M_Shape *n, Bool is_proto)
 {
 	M_Shape *prev;
 	GF_ChildNodeItem *l = og->children;
-	while (l) {
-		prev = (M_Shape*)l->node;
-		if (prev->appearance == n->appearance) {
-			s2b_merge_curve2d( (M_Curve2D *)prev->geometry, (M_Curve2D *)n->geometry);
-			gf_node_register((GF_Node *)n, NULL);
-			gf_node_unregister((GF_Node *)n, NULL);
-			return;
+	if (!is_proto) {
+		while (l) {
+			prev = (M_Shape*)l->node;
+			if (prev->appearance == n->appearance) {
+				s2b_merge_curve2d( (M_Curve2D *)prev->geometry, (M_Curve2D *)n->geometry);
+				gf_node_register((GF_Node *)n, NULL);
+				gf_node_unregister((GF_Node *)n, NULL);
+				return;
+			}
+			l = l->next;
 		}
-		l = l->next;
 	}
 	gf_node_insert_child((GF_Node *)og, (GF_Node *)n, -1);
 	gf_node_register((GF_Node *) n, (GF_Node *) og);
+}
+
+static void s2b_insert_rec_in_coord(M_Coordinate2D *c, SWFShapeRec *srec)
+{
+	u32 i, j;
+	srec->path->idx = malloc(sizeof(u32)*srec->path->nbPts);
+
+	for (i=0; i<srec->path->nbPts; i++) {
+		for (j=0; j<c->point.count; j++) {
+			if ( (c->point.vals[j].x == srec->path->pts[i].x) && (c->point.vals[j].y == srec->path->pts[i].y)) {
+				break;
+			}
+		}
+		if (j==c->point.count) {
+			c->point.count++;
+			c->point.vals = realloc(c->point.vals, sizeof(SFVec2f)*c->point.count);
+			c->point.vals[j] = srec->path->pts[i];
+		}
+		srec->path->idx[i] = j; 
+	}
 }
 
 /*translates flash to BIFS shapes*/
@@ -606,6 +674,9 @@ static GF_Err swf_bifs_define_shape(SWFReader *read, SWFShape *shape, SWFFont *p
 {
 	GF_Node *n;
 	GF_Node *og;
+	M_Coordinate2D *c;
+	char szDEF[1024];
+	u32 ID;
 	u32 i;
 	SWFShapeRec *srec;
 
@@ -630,7 +701,7 @@ static GF_Err swf_bifs_define_shape(SWFReader *read, SWFShape *shape, SWFFont *p
 			if (!srec) {
 				n = s2b_new_node(read, TAG_MPEG4_Shape);
 			} else {
-				n = s2b_shape_to_curve2d(read, shape, srec, is_fill);
+				n = s2b_shape_to_curve2d(read, shape, srec, is_fill, NULL);
 			}
 		} else {
 			og = s2b_new_node(read, TAG_MPEG4_OrderedGroup);
@@ -643,8 +714,6 @@ static GF_Err swf_bifs_define_shape(SWFReader *read, SWFShape *shape, SWFFont *p
 				gf_list_add(parent_font->glyphs, n);
 				gf_node_register(n, NULL);
 			} else {
-				char szDEF[1024];
-				u32 ID;
 				sprintf(szDEF, "Shape%d", shape->ID);
 				read->load->ctx->max_node_id++;
 				ID = read->load->ctx->max_node_id;
@@ -656,15 +725,30 @@ static GF_Err swf_bifs_define_shape(SWFReader *read, SWFShape *shape, SWFFont *p
 		if (!og) return GF_OK;
 	}
 
+	c = NULL;
+	if (read->flags & GF_SM_SWF_USE_IC2D) {
+		c = (M_Coordinate2D *)gf_node_new(read->load->scene_graph, TAG_MPEG4_Coordinate2D);
+		sprintf(szDEF, "ShapePts%d", shape->ID);
+		read->load->ctx->max_node_id++;
+		ID = read->load->ctx->max_node_id;
+		gf_node_set_id((GF_Node*)c, ID, szDEF);
+	}
+
 	i=0;
 	while ((srec = (SWFShapeRec*)gf_list_enum(shape->fill_left, &i))) {
-		n = s2b_shape_to_curve2d(read, shape, srec, 1);
-		if (n) s2b_insert_shape((M_OrderedGroup*)og, (M_Shape *)n);
+		if (c)
+			s2b_insert_rec_in_coord(c, srec);
+
+		n = s2b_shape_to_curve2d(read, shape, srec, 1, c);
+		if (n) s2b_insert_shape((M_OrderedGroup*)og, (M_Shape *)n, c ? 1 : 0);
 	}
 	i=0;
 	while ((srec = (SWFShapeRec*)gf_list_enum(shape->lines, &i))) {
-		n = s2b_shape_to_curve2d(read, shape, srec, 0);
-		if (n) s2b_insert_shape((M_OrderedGroup*)og, (M_Shape *)n);
+		if (c)
+			s2b_insert_rec_in_coord(c, srec);
+
+		n = s2b_shape_to_curve2d(read, shape, srec, 0, c);
+		if (n) s2b_insert_shape((M_OrderedGroup*)og, (M_Shape *)n, c ? 1 : 0);
 	}
 
 	if (last_sub_shape) read->cur_shape = NULL;
@@ -2030,24 +2114,24 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	
 	/*movie anchor*/
 	n = s2b_new_node(read, TAG_MPEG4_Anchor);
-	gf_node_set_id(n, 1, "MOVIE_URL");
+	gf_node_set_id(n, 2, "MOVIE_URL");
 	gf_node_insert_child(read->root, n, -1);
 	gf_node_register(n, read->root);
 	
 	/*dictionary*/
 	n = s2b_new_node(read, TAG_MPEG4_Switch);
-	gf_node_set_id(n, 2, "DICTIONARY");
+	gf_node_set_id(n, 3, "DICTIONARY");
 	gf_node_insert_child(read->root, n, -1);
 	gf_node_register(n, read->root);
 	/*empty shape to fill depth levels & sprites roots*/
 	n2 = s2b_new_node(read, TAG_MPEG4_Shape);
-	gf_node_set_id(n2, 3, "Shape0");
+	gf_node_set_id(n2, 4, "Shape0");
 	gf_node_list_add_child( &((M_Switch *)n)->choice, n2);
 	gf_node_register(n2, n);
 
 	/*display list*/
 	n = s2b_new_node(read, TAG_MPEG4_Transform2D);
-	gf_node_set_id(n, 4, "CLIP0_DL");
+	gf_node_set_id(n, 5, "CLIP0_DL");
 	gf_node_insert_child(read->root, n, -1);
 	gf_node_register(n, read->root);
 	/*update w/h transform*/
@@ -2064,6 +2148,36 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	read->prev_es_id = 3;
 	/*always reserve OD_ID=1 for main ctrl stream if any - use same IDs are ESs*/
 	read->prev_od_id = 3;
+
+
+	/*setup IndexedCurve2D proto*/
+	if (read->flags & GF_SM_SWF_USE_IC2D) {
+		GF_ProtoFieldInterface *pfield;
+		GF_FieldInfo info;
+		SFURL *url;
+		Fixed ftMin, ftMax;
+		GF_Proto *proto = gf_sg_proto_new(read->load->scene_graph, 1, "IndexedCurve2D", 0);
+		if (read->load->ctx) read->load->ctx->max_proto_id = 1;
+		gf_sg_vrml_mf_reset(&proto->ExternProto, GF_SG_VRML_MFURL);
+		gf_sg_vrml_mf_append(&proto->ExternProto, GF_SG_VRML_MFURL, (void **) &url);
+		url->url = strdup("urn:inet:gpac:builtin:IndexedCurve2D");
+
+		gf_sg_proto_field_new(proto, GF_SG_VRML_SFNODE, GF_SG_EVENT_EXPOSED_FIELD, "coord");
+		
+		pfield = gf_sg_proto_field_new(proto, GF_SG_VRML_SFFLOAT, GF_SG_EVENT_EXPOSED_FIELD, "fineness");
+		gf_sg_proto_field_get_field(pfield, &info);
+		*((SFFloat*)info.far_ptr) = FIX_ONE/2;
+
+		pfield = gf_sg_proto_field_new(proto, GF_SG_VRML_MFINT32, GF_SG_EVENT_EXPOSED_FIELD, "type");
+		ftMin = 0;
+		ftMax = 15*FIX_ONE;
+		gf_bifs_proto_field_set_aq_info(pfield, 13, 1, GF_SG_VRML_SFINT32, &ftMin, &ftMax, 4);
+		
+		pfield = gf_sg_proto_field_new(proto, GF_SG_VRML_MFINT32, GF_SG_EVENT_EXPOSED_FIELD, "coordIndex");
+		ftMin = 0;
+		ftMax = FIX_MAX;
+		gf_bifs_proto_field_set_aq_info(pfield, 14, 1, GF_SG_VRML_SFINT32, &ftMin, &ftMax, 0);
+	}
 
 	/*no control stream*/
 	if (!(read->flags & GF_SM_SWF_SPLIT_TIMELINE)) return GF_OK;

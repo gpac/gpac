@@ -231,7 +231,7 @@ void SFS_Identifier(ScriptParser *parser)
 
 	if (parser->codec->LastError) return;
 
-	//recieved
+	//received
 	if (gf_bs_read_int(parser->bs, 1)) {
 		index = gf_bs_read_int(parser->bs, gf_get_bit_size(gf_list_count(parser->identifiers) - 1));
 		SFS_AddString(parser, (char *)gf_list_get(parser->identifiers, index));
