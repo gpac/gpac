@@ -32,6 +32,7 @@ BEGIN_MESSAGE_MAP(Osmo4, CWinApp)
 	ON_COMMAND(ID_SWITCH_RENDER, OnSwitchRender)
 	ON_UPDATE_COMMAND_UI(ID_FILE_RELOAD, OnUpdateFileStop)
 	ON_COMMAND(ID_H_ABOUT, OnAbout)
+	ON_COMMAND(ID_FILE_MIGRATE, OnFileMigrate)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -556,6 +557,11 @@ BOOL Osmo4::InitInstance()
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "dx_hw");
 	}
 
+	/*reset session migration*/
+	str = gf_cfg_get_key(m_user.config, "Network", "SessionMigration");
+	if (str && !strcmp(str, "yes"))
+		gf_cfg_set_key(m_user.config, "Network", "SessionMigration", "no");
+
 	/*check log file*/
 	str = gf_cfg_get_key(m_user.config, "General", "LogFile");
 	if (str) {
@@ -959,6 +965,14 @@ void Osmo4::OnFileReload()
 {
 	gf_term_disconnect(m_term);
 	m_pMainWnd->PostMessage(WM_OPENURL);
+}
+
+void Osmo4::OnFileMigrate() 
+{
+	const char *str = gf_cfg_get_key(m_user.config, "Network", "SessionMigration");
+	if (!str || !strcmp(str, "no"))
+		gf_cfg_set_key(m_user.config, "Network", "SessionMigration", "yes");
+	m_pMainWnd->DestroyWindow();
 }
 
 void Osmo4::OnConfigReload() 

@@ -325,21 +325,17 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 	}
 
 	if (sdp) {
-		char *opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), 
-			"Network", "MobileIPEnabled");
+		char *cache = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), 
+			"Streaming", "SessionMigrationFile");
 
-		if (opt && !strcmp(opt, "yes") ) {
+		if (cache) {
 			char *out = NULL;
-			char szPath[GF_MAX_PATH];
-			char *cache = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), 
-				"General", "CacheDirectory");
-			sprintf(szPath, "%s\\%s.sdp", cache, opt);
 			gf_sdp_info_write(sdp, &out);
 			if (out) {
-				FILE *f = fopen(szPath, "wb");
+				FILE *f = fopen(cache, "wb");
 				if (f) {
 					fprintf(f, out);
-					rtp->session_state = strdup(szPath);
+					rtp->session_state = strdup(cache);
 					fclose(f);
 				}
 				free(out);

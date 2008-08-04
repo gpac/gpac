@@ -1137,6 +1137,10 @@ int main (int argc, char **argv)
 			startup_file = 1;
 		}
 	}
+	/*reset session migration*/
+	str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");
+	if (str && !strcmp(str, "yes"))
+		gf_cfg_set_key(cfg_file, "Network", "SessionMigration", "no");
 
 	if (start_fs) gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
 
@@ -1168,9 +1172,6 @@ force_input:
 		switch (c) {
 		case 'q':
 			Run = 0;
-			str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");
-			if (str && !strcmp(str, "yes"))
-				gf_cfg_set_key(cfg_file, "Network", "SessionMigration", "no");
 			break;
 		case 'Q':
 			Run = 0;

@@ -147,6 +147,7 @@ BEGIN
     "C",            ID_FILE_COPY,           VIRTKEY, CONTROL, NOINVERT
     "I",            ID_FILE_PROP,           VIRTKEY, CONTROL, NOINVERT
     "L",            ID_VIEW_PL,             VIRTKEY, CONTROL, NOINVERT
+    "M",            ID_FILE_MIGRATE,        VIRTKEY, CONTROL, NOINVERT
     "O",            ID_FILEOPEN,            VIRTKEY, CONTROL, NOINVERT
     "P",            ID_FILE_PLAY,           VIRTKEY, CONTROL, NOINVERT
     "R",            ID_FILE_RELOAD,         VIRTKEY, CONTROL, NOINVERT
