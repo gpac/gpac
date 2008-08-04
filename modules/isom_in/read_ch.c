@@ -145,7 +145,7 @@ fetch_next:
 	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
 
 	if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
 		ch->last_state = GF_EOS;
 	}
 

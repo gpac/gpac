@@ -780,7 +780,6 @@ static u32 parse_log_tools(char *val)
 		else if (!stricmp(val, "script")) flags |= GF_LOG_SCRIPT;
 		else if (!stricmp(val, "interact")) flags |= GF_LOG_INTERACT;
 		else if (!stricmp(val, "compose")) flags |= GF_LOG_COMPOSE;
-		else if (!stricmp(val, "service")) flags |= GF_LOG_SERVICE;
 		else if (!stricmp(val, "mmio")) flags |= GF_LOG_MMIO;
 		else if (!stricmp(val, "none")) flags = 0;
 		else if (!stricmp(val, "all")) flags = 0xFFFFFFFF;

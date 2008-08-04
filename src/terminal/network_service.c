@@ -254,7 +254,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	root = service->owner;
 	is = root->subscene ? root->subscene : root->parentscene;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[Service %s] %s\n", service->url, media_desc ? "Adding new media object" : "Regenerating scene graph"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Service %s] %s\n", service->url, media_desc ? "Adding new media object" : "Regenerating scene graph"));
 	if (!media_desc) {
 		if (!no_scene_check) gf_inline_regenerate(is);
 		return;

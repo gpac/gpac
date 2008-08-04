@@ -604,7 +604,6 @@ BOOL Osmo4::InitInstance()
 			else if (!stricmp(val, "script")) m_log_tools |= GF_LOG_SCRIPT;
 			else if (!stricmp(val, "interact")) m_log_tools |= GF_LOG_INTERACT;
 			else if (!stricmp(val, "compose")) m_log_tools |= GF_LOG_COMPOSE;
-			else if (!stricmp(val, "service")) m_log_tools |= GF_LOG_SERVICE;
 			else if (!stricmp(val, "mmio")) m_log_tools |= GF_LOG_MMIO;
 			else if (!stricmp(val, "none")) m_log_tools = 0;
 			else if (!stricmp(val, "all")) m_log_tools = 0xFFFFFFFF;

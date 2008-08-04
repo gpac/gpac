@@ -394,9 +394,9 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 #ifndef GPAC_DISABLE_LOG
 			GF_Err e = gf_isom_last_error(read->mov);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_SERVICE, ("[IsoMedia] Cannot fetch MPEG-4 IOD (error %s) - generating one\n", gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] Cannot fetch MPEG-4 IOD (error %s) - generating one\n", gf_error_to_string(e) ));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[IsoMedia] No MPEG-4 IOD found in file - generating one\n"));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] No MPEG-4 IOD found in file - generating one\n"));
 			}
 #endif
 		}
@@ -749,7 +749,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (com->play.end_range >= 0) ch->end = (u64) (s64) (com->play.end_range*ch->time_scale);
 		}
 		ch->is_playing = 1;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
 		isor_reset_reader(ch);

@@ -281,6 +281,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 		/*it may happen that we still receive packets from a previous "play" request. If this is the case,
 		filter until we reach the indicated rtptime*/
 		if (ch->rtp_ch->rtp_time 
+			&& (ch->rtp_ch->rtp_first_SN > hdr.SequenceNumber) 
 			&& (ch->rtp_ch->rtp_time < hdr.TimeStamp) 
 		) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Rejecting too early packet (TS %d vs signaled rtp time %d - diff %d ms)\n",
