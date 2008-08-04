@@ -566,11 +566,11 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 				fseek(read->stream, read->data_size-4, SEEK_CUR);
 			}
 			read->start_range = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[MP3Demux] Seeking to frame size %d - TS %d - file pos %d\n", read->data_size, read->current_time, ftell(read->stream)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[MP3Demux] Seeking to frame size %d - TS %d - file pos %d\n", read->data_size, read->current_time, ftell(read->stream)));
 		}
 
 		read->sl_hdr.compositionTimeStamp = read->current_time;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SERVICE, ("[MP3Demux] Found new frame size %d - TS %d - file pos %d\n", read->data_size, read->current_time, ftell(read->stream)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[MP3Demux] Found new frame size %d - TS %d - file pos %d\n", read->data_size, read->current_time, ftell(read->stream)));
 
 		read->current_time += gf_mp3_window_size(hdr);
 

@@ -284,7 +284,7 @@ enum
 	GF_LOG_CODING= 1<<1,
 	/*! Log message from a bitstream parser (IsoMedia, MPEG-2 TS, OGG, ...)*/
 	GF_LOG_CONTAINER = 1<<2,
-	/*! Log message from the network stack (messages & co)*/
+	/*! Log message from the network/service stack (messages & co)*/
 	GF_LOG_NETWORK = 1<<3,
 	/*! Log message from the RTP/RTCP stack (TS info) and packet structure & hinting (debug)*/
 	GF_LOG_RTP = 1<<4,
@@ -306,14 +306,12 @@ enum
 	GF_LOG_INTERACT = 1<<12,
 	/*! Log message from compositor*/
 	GF_LOG_COMPOSE = 1<<13,
-	/*! Log message from a media service*/
-	GF_LOG_SERVICE = 1<<14,
+	/*! Log for video object cache */
+	GF_LOG_CACHE = 1<<14,
 	/*! Log message from multimedia I/O devices (audio/video input/output, ...)*/
 	GF_LOG_MMIO = 1<<15,
 	/*! Log for runtime info (times, memory, CPU usage)*/
 	GF_LOG_RTI = 1<<16,
-	/*! Log for video object cache */
-	GF_LOG_CACHE = 1<<17
 };
 
 /*!

@@ -172,7 +172,7 @@ void COsmo4::EnableLogs(Bool turn_on)
 		} else {
 			gf_log_set_level(GF_LOG_DEBUG);
 //			gf_log_set_tools(0xFFFFFFFF);
-			gf_log_set_tools(GF_LOG_CORE|GF_LOG_NETWORK|GF_LOG_RTP|GF_LOG_SYNC|GF_LOG_CODEC|GF_LOG_MEDIA|GF_LOG_SERVICE);
+			gf_log_set_tools(GF_LOG_CORE|GF_LOG_NETWORK|GF_LOG_RTP|GF_LOG_SYNC|GF_LOG_CODEC|GF_LOG_MEDIA);
 			gf_log_set_callback(m_logs, osmo4_do_log);
 			gf_cfg_set_key(m_user.config, "General", "LogLevel", "debug");
 		}
