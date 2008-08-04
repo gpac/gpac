@@ -184,6 +184,7 @@ static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 
 static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
+	char *session_cache;
 	RTSPSession *sess;
 	RTPClient *priv = (RTPClient *)plug->priv;
 
@@ -201,12 +202,24 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 	/*start thread*/
 	gf_th_run(priv->th, RP_Thread, priv);
 
+	session_cache = (char *) gf_modules_get_option((GF_BaseInterface *) plug, "Streaming", "SessionMigrationFile");
+	if (session_cache) {
+		FILE *f = fopen(session_cache, "rb");
+		if (f) {
+			fclose(f);
+			RP_FetchSDP(plug, (char *) session_cache, NULL);
+			return GF_OK;
+		}
+	}
+
 	/*local or remote SDP*/
 	if (strstr(url, "data:application/sdp") || (strnicmp(url, "rtsp", 4) && strstr(url, ".sdp")) ) {
 		RP_FetchSDP(plug, (char *) url, NULL);
+		return GF_OK;
 	}
+	
 	/*rtsp and rtsp over udp*/
-	else if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8)) {
+	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8)) {
 		char *the_url = strdup(url);
 		char *the_ext = strrchr(the_url, '#');
 		if (the_ext) {
@@ -221,13 +234,13 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 		} else {
 			RP_Describe(sess, 0, NULL);
 		}
+		return GF_OK;
 	}
+
 	/*direct RTP (no control) or embedded data - this means the service is attached to a single channel (no IOD)
 	reply right away*/
-	else {
-		gf_term_on_connect(serv, NULL, GF_OK);
-		RP_SetupObjects(priv);
-	}
+	gf_term_on_connect(serv, NULL, GF_OK);
+	RP_SetupObjects(priv);
 	return GF_OK;
 }
 
@@ -261,6 +274,10 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 	if (opt && !strcmp(opt, "yes")) {
 		RP_SaveSessionState(rtp);
 	} else {
+		/*remove session state file*/
+		if (rtp->session_state) {
+			gf_delete_file(rtp->session_state);
+		}
 		/*send teardown on all sessions*/
 		i=0;
 		while ((sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i))) {
@@ -477,7 +494,11 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_STOP:
 		/*is this RTSP or direct RTP?*/
 		if (ch->rtsp) {
-			RP_UserCommand(ch->rtsp, ch, com);
+			const char *opt = gf_modules_get_option((GF_BaseInterface *) plug, "Network", "SessionMigration");
+			if (opt && !strcmp(opt, "yes")) {
+			} else {
+				RP_UserCommand(ch->rtsp, ch, com);
+			}
 		} else {
 			ch->status = RTP_Connected;
 		}

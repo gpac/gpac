@@ -162,6 +162,7 @@
 #define ID_AR_FILL                      1142
 #define ID_AR_43                        1143
 #define ID_AR_169                       1144
+#define ID_FILE_MIGRATE					1145
 #define ID_NAV_RESET                    1151
 #define ID_FILE_STOP                    1152
 #define ID_FILE_PREV                    1155
