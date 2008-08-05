@@ -55,11 +55,19 @@ endif
 ifeq ($(CONFIG_SDL), yes)
 PLUGDIRS+=sdl_out
 endif
+ifeq ($(CONFIG_PULSEAUDIO), yes)
+PLUGDIRS+=pulseaudio
+endif
+
 
 ifeq ($(CONFIG_X11),yes)
 PLUGDIRS+=x11_out
 endif
 
+ifeq ($(CONFIG_JS),no)
+else
+PLUGDIRS+=gpac_js
+endif
 
 #w32 plugins
 ifeq ($(CONFIG_WIN32),yes)

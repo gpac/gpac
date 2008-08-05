@@ -4,6 +4,13 @@
  *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *			Copyright (c) Pierre Souchay 2008
+ *  History:
+ *
+ *  2008/02/19 - v1.1 (Pierre Souchay)
+ *    first revision
+ *  2008/03/11 - v1.2 (Pierre Souchay)
+ *    added volume control
+ *    fixed possible bug in latency computation (did not return the max value)
  *
  *  Jack audio output module : output audio thru the jackd daemon
  *
@@ -42,7 +49,6 @@ getPid ()
   return getpid ();
 }
 #else
-#include <stdlib.h>
 	// FIXME : get handle under WIN32 ?
 int
 getPid ()
@@ -69,9 +75,8 @@ typedef struct
   char autoConnect;
   char autoStartJackd;
   jack_default_audio_sample_t **channels;
+  float volume;
 } JackContext;
-
-#define RING_BUFFER_DEFAULT_SIZE 8192
 
 #ifndef TRUE
 #define TRUE 1
@@ -98,7 +103,7 @@ Jack_cleanup (JackContext * ctx)
       ctx->bufferSz = 0;
       ctx->buffer = NULL;
     }
-  if (ctx->jackPorts != 0L)
+  if (ctx->jackPorts != NULL)
     {
       for (channels = 0; channels < ctx->numChannels; channels++)
 	{
@@ -155,7 +160,7 @@ process_callback (jack_nframes_t nframes, void *arg)
 	{
 	  for (i = 0; i < ctx->numChannels; i++)
 	    ctx->channels[i][channel] =
-	      (float) (1.0 / 32768.0 *
+	      (float) (ctx->volume / 32768.0 *
 		       (tmpBuffer[channel * ctx->numChannels + i]));
 	}
     }
@@ -165,7 +170,7 @@ process_callback (jack_nframes_t nframes, void *arg)
 	{
 	  for (i = 0; i < ctx->numChannels; i++)
 	    ctx->channels[i][channel] =
-	      (float) (1.0 / 255.0 *
+	      (float) (ctx->volume / 255.0 *
 		       (ctx->buffer[channel * ctx->numChannels + i]));
 	}
     }
@@ -238,13 +243,15 @@ static const char *AUTO_CONNECT_OPTION = "AutoConnect";
 
 static const char *AUTO_START_JACKD_OPTION = "AutoStartJackd";
 
-static const char *TRUE_OPTION = "yes";
+static const char *TRUE_OPTION = "true";
+
+static const char *YES_OPTION = "yes";
 
 static char
 optionIsTrue (const char *optionValue)
 {
   return (0 == strcasecmp (TRUE_OPTION, optionValue) ||
-	  0 == strcasecmp ("yes", optionValue)
+	  0 == strcasecmp (YES_OPTION, optionValue)
 	  || 0 == strcmp ("1", optionValue));
 }
 
@@ -276,7 +283,7 @@ Jack_Setup (GF_AudioOutput * dr, void *os_handle, u32 num_buffers,
     {
       ctx->autoConnect = TRUE;
       gf_modules_set_option ((GF_BaseInterface *) dr, MODULE_NAME,
-			     AUTO_CONNECT_OPTION, TRUE_OPTION);
+			     AUTO_CONNECT_OPTION, YES_OPTION);
     }
   opt = gf_modules_get_option ((GF_BaseInterface *) dr, MODULE_NAME,
 			       AUTO_START_JACKD_OPTION);
@@ -291,7 +298,7 @@ Jack_Setup (GF_AudioOutput * dr, void *os_handle, u32 num_buffers,
     {
       ctx->autoStartJackd = TRUE;
       gf_modules_set_option ((GF_BaseInterface *) dr, MODULE_NAME,
-			     AUTO_START_JACKD_OPTION, TRUE_OPTION);
+			     AUTO_START_JACKD_OPTION, YES_OPTION);
     }
   if (!ctx->autoStartJackd)
     {
@@ -411,16 +418,34 @@ exit_cleanup:
 static void
 Jack_SetVolume (GF_AudioOutput * dr, u32 Volume)
 {
+  JackContext *ctx = (JackContext *) dr->opaque;
+  if (ctx == NULL)
+    {
+      return;
+    }
+  /* We support ajust the volume to more than 100, up to +6dB even
+   * if frontends don't support it, it may be useful */
+  if (Volume > 400)
+    Volume = 400;
+  ctx->volume = (float) Volume / 100.0;
+  GF_LOG (GF_LOG_DEBUG, GF_LOG_MMIO,
+	  ("[Jack] Jack_SetVolume: Volume set to %d%%.\n", Volume));
 }
 
 static void
 Jack_SetPan (GF_AudioOutput * dr, u32 Pan)
 {
+  GF_LOG (GF_LOG_INFO, GF_LOG_MMIO, ("[Jack] Jack_SetPan: Not supported.\n"));
+
 }
 
 static void
 Jack_SetPriority (GF_AudioOutput * dr, u32 Priority)
 {
+  /**
+   * Jack manages the priority itself, we don't need
+   * to interfere here...
+   */
 }
 
 static u32
@@ -442,7 +467,7 @@ Jack_GetAudioDelay (GF_AudioOutput * dr)
       if (latency > max)
 	max = latency;
     }
-  channel = latency * 1000 / jack_get_sample_rate (ctx->jack);
+  channel = max * 1000 / jack_get_sample_rate (ctx->jack);
   GF_LOG (GF_LOG_DEBUG, GF_LOG_MMIO,
 	  ("[Jack] Jack_GetAudioDelay latency = %d ms.\n", channel));
   return channel;
@@ -496,6 +521,7 @@ NewJackOutput ()
   ctx->isActive = FALSE;
   ctx->autoConnect = FALSE;
   ctx->autoStartJackd = FALSE;
+  ctx->volume = 1.0;
 
   GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE,
 				"Jack Audio Output", "gpac distribution");
