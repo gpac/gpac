@@ -58,6 +58,7 @@ has_amr_wb="no"
 has_ogg="no"
 has_vorbis="no"
 has_theora="no"
+has_pulseaudio="no"
 has_oss_audio="no"
 has_alsa="no"
 has_jack="no"
@@ -827,7 +828,7 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_dvb4linux="yes"
 fi
 
-# look for alsa
+# look for jack
 cat > $TMPC << EOF
 #include <alsa/asoundlib.h>	      
 int main( void ) {
@@ -838,17 +839,25 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_alsa="yes"
 fi
 
-# look for alsa
+# look for pulseaudio
+cat > $TMPC << EOF
+#include <pulse/pulseaudio.h>
+int main( void ) {
+}
+EOF
+if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+has_pulseaudio="yes"
+fi
+
+#look for jack
 cat > $TMPC << EOF
 #include <jack/jack.h>
 int main( void ) {
 }
 EOF
-
 if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_jack="yes"
 fi
-
 
 
 for opt do
@@ -866,6 +875,8 @@ for opt do
   --mozdir=*) moz_path=`echo $opt | cut -d '=' -f 2`
   ;;
   --enable-amr-nb-fixed) has_amr_nb_fixed="yes"
+  ;;
+  --disable-pulseaudio=*) has_pulseaudio="no"
   ;;
   --enable-amr-nb) has_amr_nb="yes"
   ;;
@@ -942,6 +953,8 @@ for opt do
   --enable-joystick) enable_joystick="yes"
   ;;
   --enable-renoir) enable_renoir="yes"
+  ;;
+  --enable-pulseaudio=*) has_pulseaudio="yes"
   ;;
   esac
 done
@@ -1168,6 +1181,7 @@ echo "OSS Audio: yes"
 fi
 echo "ALSA Audio: $has_alsa"
 echo "Jack Audio: $has_jack"
+echo "PulseAudio Audio: $has_pulseaudio"
 echo "X11 Shared Memory support: $has_x11_shm (path: $X11_PATH)"
 echo "X11 XVideo support: $has_x11_xv"
 fi
@@ -1312,6 +1326,7 @@ echo "SHFLAGS=$SHFLAGS" >> config.mak
 if test "$cpu" = "x86" ; then
   echo "TARGET_ARCH_X86=yes" >> config.mak
 elif test "$cpu" = "armv4l" ; then
+echo "CONFIG_PULSEAUDIO=$has_pulseaudio" >> config.mak
   echo "TARGET_ARCH_ARMV4L=yes" >> config.mak
 elif test "$cpu" = "alpha" ; then
   echo "TARGET_ARCH_ALPHA=yes" >> config.mak

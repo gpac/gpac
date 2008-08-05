@@ -100,7 +100,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 #endif
 	inst->lib_handle = dlopen(path, _flags);
 	if (!inst->lib_handle) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s\n", path));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s, error is %s\n", path, dlerror()));
 		return 0;
 	}
 	inst->query_func = (QueryInterface) dlsym(inst->lib_handle, "QueryInterface");

@@ -1,8 +1,8 @@
 include ../../config.mak
 
-vpath %.c $(SRC_PATH)/modules/jack
+vpath %.c $(SRC_PATH)/modules/pulseaudio
 
-CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include $(OSS_CFLAGS)
+CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -15,16 +15,16 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS= jack.o
+OBJS= pulseaudio.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_jack.$(DYN_LIB_SUFFIX)
+LIB=gm_pulseaudio.$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac -L/usr/lib  -ljack
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac -L/usr/lib -lpulse-simple
 
 
 %.o: %.c
