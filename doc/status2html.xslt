@@ -19,7 +19,7 @@
         	</head>
             <body>
     
-                <h1>SVG Tiny 1.1 Test Suite Implementation Results</h1>
+                <h1>SVG Test Suite - GPAC Implementation Results</h1>
                 <h1>Profile: <xsl:value-of select="@profile"/></h1>
                 <h1>Date : <xsl:value-of select="@date"/></h1>
                 <h2><xsl:value-of select="@company"/> - <xsl:value-of select="@product"/> - <xsl:value-of select="@version"/></h2>
