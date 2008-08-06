@@ -787,6 +787,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
   GF_Event evt;
   XWindow *xWin = (XWindow *)vout->opaque;
 
+  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[X11] Selecting GL display\n"));
   XSync(xWin->display, False);
   xWin->glx_context = glXCreateContext(xWin->display,xWin->glx_visualinfo, NULL, True);
   XSync(xWin->display, False);
@@ -1353,18 +1354,22 @@ X11_SetupWindow (GF_VideoOutput * vout)
 #ifdef GPAC_HAS_OPENGL
 	{
 	  int attribs[64];
-	  int i;
+	  int i, nb_bits;
 
+	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsPerComponent");
+	  nb_bits = sOpt ? atoi(sOpt) : 5;
 	  i=0;
 	  attribs[i++] = GLX_RGBA;
 	  attribs[i++] = GLX_RED_SIZE;
-	  attribs[i++] = 4;
+	  attribs[i++] = nb_bits;
 	  attribs[i++] = GLX_GREEN_SIZE;
-	  attribs[i++] = 4;
+	  attribs[i++] = nb_bits;
 	  attribs[i++] = GLX_BLUE_SIZE;
-	  attribs[i++] = 4;
+	  attribs[i++] = nb_bits;
 	  attribs[i++] = GLX_DEPTH_SIZE;
-	  attribs[i++] = 16;
+	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth");
+	  nb_bits = sOpt ? atoi(sOpt) : 16;
+	  attribs[i++] = nb_bits;
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering");
 	if (sOpt && !strcmp(sOpt, "yes")) attribs[i++] = GLX_DOUBLEBUFFER;
 	  attribs[i++] = None;
