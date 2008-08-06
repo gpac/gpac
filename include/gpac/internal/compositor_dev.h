@@ -993,7 +993,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *sr);
 #endif
 
 Bool gf_sc_exec_event(GF_Compositor *sr, GF_Event *evt);
-void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_TraverseState *tr_state);
+void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_TraverseState *tr_state, s32 *child_idx);
 
 
 void gf_sc_visual_register(GF_Compositor *sr, GF_VisualManager *surf);
@@ -1012,12 +1012,20 @@ void gf_sc_check_focus_upon_destroy(GF_Node *n);
 
 void compositor_svg_build_gradient_texture(GF_TextureHandler *txh);
 
-void compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *all_atts, GF_TraverseState *tr_state, SVGPropertiesPointers *backup_props, u32 *backup_flags);
+/*base routine fo all svg elements:
+	- check for conditional processing (requiredXXX, ...)
+	- apply animation and inheritance
+
+	returns 0 if the node shall not be traversed due to conditional processing
+*/
+Bool compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *all_atts, GF_TraverseState *tr_state, SVGPropertiesPointers *backup_props, u32 *backup_flags);
 Bool compositor_svg_is_display_off(SVGPropertiesPointers *props);
 void compositor_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAllAttributes *atts, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix);
 void compositor_svg_restore_parent_transformation(GF_TraverseState *tr_state, GF_Matrix2D *backup_matrix_2d, GF_Matrix *backup_matrix);
 
 void compositor_svg_traverse_children(GF_ChildNodeItem *children, GF_TraverseState *tr_state);
+
+Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttributes *all_atts);
 
 #endif
 

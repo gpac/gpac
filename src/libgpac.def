@@ -1168,6 +1168,7 @@ EXPORTS
 	gf_odm_remove_es
 	gf_term_message
 	gf_term_node_callback
+	gf_clock_time
 
 ;mpegts.h exports
 	gf_m2ts_demux_new

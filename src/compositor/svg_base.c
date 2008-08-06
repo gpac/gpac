@@ -139,27 +139,225 @@ static void gf_svg_apply_inheritance_no_inheritance(SVGAllAttributes *all_atts, 
 	CHECK_PROP(render_svg_props->visibility, all_atts->visibility);
 }
 
-void compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *all_atts, GF_TraverseState *tr_state, 
+static const struct svg_11_feature { const char *name; Bool supported; } svg11_features[] = 
+{
+	{ "Animation", 1},
+	{ "AnimationEventsAttribute", 1},
+	{ "BasicClip", 0},
+	{ "BasicFilter", 0},
+	{ "BasicFont", 1},
+	{ "BasicGraphicsAttribute", 1},
+	{ "BasicPaintAttribute", 1},
+	{ "BasicStructure", 1},
+	{ "BasicText", 1},
+	{ "Clip", 0},
+	{ "ColorProfile", 0},
+	{ "ConditionalProcessing", 1},
+	{ "ContainerAttribute", 1},
+	{ "CoreAttribute", 1},
+	{ "Cursor", 0},
+	{ "DocumentEventsAttribute", 1},
+	{ "Extensibility", 1},
+	{ "ExternalResourcesRequired", 0},
+	{ "Font", 1},
+	{ "Filter", 0},
+	{ "Gradient", 1},
+	{ "GraphicalEventsAttribute", 1},
+	{ "GraphicsAttribute", 1},
+	{ "Hyperlinking", 1},
+	{ "Image", 1},
+	{ "Marker", 0},
+	{ "Mask", 0},
+	{ "OpacityAttribute", 1},
+	{ "PaintAttribute", 1},
+	{ "Pattern", 0},
+	{ "Script", 1},
+	{ "Scripting", 1},
+	{ "Shape", 1},
+	{ "View", 0},	/*no support for <view> element, the rest is OK ...*/
+	{ "ViewportAttribute", 1},
+	{ "Structure", 1},
+	{ "Style", 0},
+	{ "Text", 1},
+	{ "View", 1},
+	{ "XlinkAttribute", 1},
+
+	{ "SVG", 1},
+	{ "SVG-animation", 1},
+	{ "SVG-dynamic", 1},
+	{ "SVG-static", 1},
+	/*we don't support SVG DOM, only uDOM*/
+	{ "SVGDOM", 0},
+	{ "SVGDOM-animation", 0},
+	{ "SVGDOM-dynamic", 0},
+	{ "SVGDOM-static", 0},
+};
+static const struct svg_12_feature { const char *name; Bool supported; } svg12_features[] = 
+{
+	{ "CoreAttribute", 1}, 
+	{ "NavigationAttribute", 1}, 
+	{ "Structure", 1}, 
+	{ "ConditionalProcessing", 1}, 
+	{ "ConditionalProcessingAttribute", 1}, 
+	{ "Image", 1}, 
+	{ "Prefetch", 1}, 
+	{ "Discard", 1}, 
+	{ "Shape", 1}, 
+	{ "Text", 1}, 
+	{ "PaintAttribute", 1}, 
+	{ "OpacityAttribute", 1}, 
+	{ "GraphicsAttribute", 1}, 
+	{ "Gradient", 1}, 
+	{ "SolidColor", 1}, 
+	{ "Hyperlinking", 1}, 
+	{ "XlinkAttribute", 1}, 
+	{ "ExternalResourcesRequired", 1}, 
+	{ "Scripting", 1}, 
+	{ "Handler", 1}, 
+	{ "Listener", 1}, 
+	{ "TimedAnimation", 1}, 
+	{ "Animation", 1}, 
+	{ "Audio", 1}, 
+	{ "Video", 1}, 
+	{ "Font", 1}, 
+	{ "Extensibility", 1}, 
+	{ "MediaAttribute", 1}, 
+	{ "TextFlow", 1}, 
+	{ "TransformedVideo", 1}, 
+	{ "ComposedVideo", 1}, 
+
+	{ "SVG-static", 1}, 
+	{ "SVG-static-DOM", 1}, 
+	{ "SVG-animated", 1}, 
+	{ "SVG-all", 1}, 
+};
+
+
+Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttributes *atts)
+{
+	u32 i, count;
+	Bool found;
+	const char *lang_3cc, *lang_2cc;
+
+	/*process required features*/
+	count = atts->requiredFeatures ? gf_list_count(*atts->requiredFeatures) : 0;
+	for (i=0;i<count;i++) {
+		char *feat = NULL;
+		XMLRI *iri = gf_list_get(*atts->requiredFeatures, i);
+		if (!iri->string) continue;
+
+		if (!strnicmp(iri->string, "org.w3c.svg", 11)) {
+			feat = iri->string+12;
+			if (feat) {
+				if (!stricmp(feat, "animation")) {}
+				else if (!stricmp(feat, "dynamic")) {}
+				/*no support for filters, clipping & co - SVG 1.0 featureStrings are badly designed*/
+				else return 0;
+			}
+		}
+		else if (!strnicmp(iri->string, "http://www.w3.org/TR/SVG11/feature", 34)) {
+			feat = iri->string+35;
+			if (feat) {
+				Bool found = 0;
+				u32 j, nbf;
+				nbf  = sizeof(svg11_features) / sizeof(struct svg_11_feature);
+				for (j=0; j<nbf; j++) {
+					if (!strcmp(svg11_features[j].name, feat)) {
+						found = 1;
+						if (!svg11_features[j].supported) return 0;
+						break;
+					}
+				}
+				if (!found) return 0;
+			}
+		}
+		else if (!strnicmp(iri->string, "http://www.w3.org/Graphics/SVG/feature/1.2/", 43)) {
+			feat = iri->string+44;
+			if (feat) {
+				Bool found = 0;
+				u32 j, nbf;
+				nbf  = sizeof(svg12_features) / sizeof(struct svg_12_feature);
+				for (j=0; j<nbf; j++) {
+					if (!strcmp(svg12_features[j].name, feat)) {
+						found = 1;
+						if (!svg12_features[j].supported) return 0;
+						break;
+					}
+				}
+				if (!found) return 0;
+			}
+		}
+		/*unrecognized feature*/
+		else {
+			return 0;
+		}
+	}
+
+	/*process required extensions*/
+	count = atts->requiredExtensions ? gf_list_count(*atts->requiredExtensions) : 0;
+	if (count) return 0;
+
+	/*process system language*/
+	count = atts->systemLanguage ? gf_list_count(*atts->systemLanguage) : 0;
+	if (count) {
+		found = 0;
+		lang_3cc = gf_cfg_get_key(compositor->user->config, "Systems", "Language3CC");
+		if (!lang_3cc) lang_3cc = "und";
+		lang_2cc = gf_cfg_get_key(compositor->user->config, "Systems", "Language2CC");
+		if (!lang_2cc) lang_2cc = "un";
+	} else {
+		lang_3cc = "und";
+		lang_2cc = "un";
+		found = 1;
+	}
+
+	for (i=0;i<count;i++) {
+		char *lang = gf_list_get(*atts->systemLanguage, i);
+		/*3 char-code*/
+		if (strlen(lang)==3) {
+			if (!stricmp(lang, lang_3cc)) { found = 1; break; }
+		}
+		/*2 char-code, only check first 2 chars - TODO FIXME*/
+		else if (!strnicmp(lang, lang_2cc, 2)) { found = 1; break; }
+	}
+	if (!found) return 0;
+	/*process required formats*/
+
+	/*process required fonts*/
+	
+	/*OK, we can render this one*/
+	return 1;
+}
+
+Bool compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *atts, GF_TraverseState *tr_state, 
 					 SVGPropertiesPointers *backup_props, u32 *backup_flags)
 {
 	u32 inherited_flags_mask;
+
+	if (atts->requiredFeatures || atts->requiredExtensions || atts->systemLanguage 
+	|| atts->requiredFonts || atts->requiredFormats) {
+		if (!compositor_svg_evaluate_conditional(tr_state->visual->compositor, atts))
+			return 0;
+	}
 
 	memcpy(backup_props, tr_state->svg_props, sizeof(SVGPropertiesPointers));
 	*backup_flags = tr_state->svg_flags;
 
 #if 0
 	// applying inheritance and determining which group of properties are being inherited
-	inherited_flags_mask = gf_svg_apply_inheritance(all_atts, tr_state->svg_props);	
+	inherited_flags_mask = gf_svg_apply_inheritance(atts, tr_state->svg_props);	
 	gf_svg_apply_animations(node, tr_state->svg_props); // including again inheritance if values are 'inherit'
 #else
 	/* animation (including possibly inheritance) then full inheritance */
 	gf_svg_apply_animations(node, tr_state->svg_props); 
-	inherited_flags_mask = gf_svg_apply_inheritance(all_atts, tr_state->svg_props);
-//	gf_svg_apply_inheritance_no_inheritance(all_atts, tr_state->svg_props);
+	inherited_flags_mask = gf_svg_apply_inheritance(atts, tr_state->svg_props);
+//	gf_svg_apply_inheritance_no_inheritance(atts, tr_state->svg_props);
 //	inherited_flags_mask = 0xFFFFFFFF;
 #endif
 	tr_state->svg_flags &= inherited_flags_mask;
 	tr_state->svg_flags |= gf_node_dirty_get(node);
+
+	return 1;
 }
 #endif
 

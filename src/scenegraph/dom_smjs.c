@@ -1469,7 +1469,8 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	u32 evtType;
-	char *name, *val;
+	char *name, *val, *ns;
+	char szAttname[1024];
 	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_FALSE;
 
@@ -1479,13 +1480,24 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 	val = JS_GetStringBytes(JS_ValueToString(c, argv[1]));
 	/*NS version*/
 	if (argc==3) {
+		ns = name;
 		name = val;
 		val = JS_GetStringBytes(JS_ValueToString(c, argv[2]));
 	}
 	if (!name || !val) return JS_FALSE;
 
-	if ((name[0]=='o') && (name[1]=='n')) {
-		evtType = gf_dom_event_type_by_name(name + 2);
+	if (ns) {
+		/*!!!! UGLY UGLY UGLY UGLY UGLY UGLY UGLY !!!!*/
+		if (!strcmp(ns, "http://www.w3.org/1999/xlink")) strcpy(szAttname, "xlink:");
+		else if (!strcmp(ns, "http://www.w3.org/2001/xml-events")) strcpy(szAttname, "ev:");
+		else strcpy(szAttname, "");
+		strcat(szAttname, name);
+	} else {
+		strcpy(szAttname, name);
+	}
+
+	if ((szAttname[0]=='o') && (szAttname[1]=='n')) {
+		evtType = gf_dom_event_type_by_name(szAttname + 2);
 		if (evtType != GF_EVENT_UNKNOWN) {
 			/*check if we're modifying an existing listener*/
 			SVG_handlerElement *handler;
@@ -1519,7 +1531,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 		GF_DOMFullNode *node = (GF_DOMFullNode*)n;
 		GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
 		while (att) {
-			if ((att->tag==TAG_DOM_ATTRIBUTE_FULL) && !strcmp(att->name, name)) {
+			if ((att->tag==TAG_DOM_ATTRIBUTE_FULL) && !strcmp(att->name, szAttname)) {
 				if (att->data) free(att->data);
 				att->data = strdup(val);
 				dom_node_changed(n, 0, NULL);
@@ -1530,7 +1542,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 		}
 		/*create new att*/
 		GF_SAFEALLOC(att, GF_DOMFullAttribute);
-		att->name = strdup(name);
+		att->name = strdup(szAttname);
 		att->data = strdup(val);
 		if (prev) prev->next = (GF_DOMAttribute*) att;
 		else node->attributes = (GF_DOMAttribute*) att;
@@ -1539,7 +1551,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 	
 	if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
 		GF_FieldInfo info;
-		if (gf_svg_get_attribute_by_name(n, name, 1, 1, &info)==GF_OK) {
+		if (gf_svg_get_attribute_by_name(n, szAttname, 1, 1, &info)==GF_OK) {
 			gf_svg_parse_attribute(n, &info, val, 0);
 			dom_node_changed(n, 0, &info);
 			return JS_TRUE;

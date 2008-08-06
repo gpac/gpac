@@ -362,7 +362,8 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 
 	/*flatten attributes and apply animations + inheritance*/
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
-	compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags))
+		return;
 	
 	/* Recreates the path (i.e the shape) only if the node is dirty */
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {

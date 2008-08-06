@@ -660,8 +660,12 @@ void gf_term_handle_services(GF_Terminal *term)
 {
 	GF_ClientService *ns;
 
+	/*we could run into a deadlock if some thread has requested opening of a URL. If we cannot
+	grab the network now, we'll do our management at the next cycle*/
+	if (!gf_mx_try_lock(term->net_mx))
+		return;
+
 	/*play ODs that need it*/
-	gf_mx_p(term->net_mx);
 	while (gf_list_count(term->media_queue)) {
 		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(term->media_queue, 0);
 		gf_list_rem(term->media_queue, 0);

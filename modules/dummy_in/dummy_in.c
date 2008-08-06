@@ -134,6 +134,7 @@ void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			if (!strcmp(param->value, "image/x-svgm")) read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
 			if (!strcmp(param->value, "application/x-LASeR+xml")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
 		}
+		return;
 	} else if (!e && (param->msg_type!=GF_NETIO_DATA_EXCHANGE)) return;
 
 	if (!e && !read->oti)

@@ -2393,8 +2393,11 @@ static void svg_parse_strings(GF_List *values, char *value_string, u32 string_ty
 		if (!sep) break;
 		next = strchr(sep, ';');
 		if (!next) {
-			svg_string_list_add(values, sep, string_type);
-			break;
+			next = strchr(sep, ' ');
+			if (!next) {
+				svg_string_list_add(values, sep, string_type);
+				break;
+			}
 		}
 		next[0]=0;
 		svg_string_list_add(values, sep, string_type);

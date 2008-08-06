@@ -211,6 +211,8 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 
 	term = odm->term;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Setting up root object for %s\n", odm->net_service->url));
+
 	odm->net_service->nb_odm_users++;
 	if (odm->subscene) od_type = GF_MEDIA_OBJECT_SCENE;
 	else if (odm->mo) {
@@ -504,6 +506,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		gf_odf_desc_del((GF_Descriptor *)odm->OD);
 		odm->OD = NULL;
 		odm->net_service = NULL;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Object redirection to %s\n", url));
 		gf_term_connect_object(odm->term, odm, url, parent);
 		free(url);
 		return;
@@ -544,6 +547,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		assert(odm->subscene->root_od==odm);
 		odm->subscene->is_dynamic_scene = 1;
 	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Setting up object streams\n"));
 		/*avoid channels PLAY request when confirming connection (sync network service)*/
 		odm->state = GF_ODM_STATE_IN_SETUP;
 
@@ -577,6 +581,9 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	} else {
 		/*othewise send a connect ack for top level*/
 		GF_Event evt;
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Root object connected !\n", odm->net_service->url));
+		
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = 1;
 		GF_USER_SENDEVENT(odm->term->user, &evt);
@@ -705,6 +712,8 @@ clock_setup:
 	if (!ch) return GF_OUT_OF_MEM;
 	ch->clock = ck;
 	ch->service = serv;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Creating codec for stream %d\n", ch->esd->ESID));
 
 	/*setup the decoder for this stream or find the existing one.*/
 	e = GF_OK;

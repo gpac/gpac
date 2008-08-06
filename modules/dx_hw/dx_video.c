@@ -114,12 +114,23 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 	EGLint major, minor;
 	EGLint n;
 	EGLConfig configs[1];
-	static int egl_atts[] = {EGL_RED_SIZE, 5, EGL_GREEN_SIZE, 5, EGL_BLUE_SIZE, 5, 
-				/*alpha for compositeTexture*/
-				EGL_ALPHA_SIZE,     1,
-                EGL_DEPTH_SIZE,     16,
-                EGL_STENCIL_SIZE,   EGL_DONT_CARE,
-                EGL_NONE};
+	u32 nb_bits;
+	u32 i=0;
+	static int egl_atts[20];
+
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent");
+	nb_bits = sOpt ? atoi(sOpt) : 5;
+
+	egl_atts[i++] = EGL_RED_SIZE; egl_atts[i++] = nb_bits;
+	egl_atts[i++] = EGL_GREEN_SIZE; egl_atts[i++] = nb_bits;
+	egl_atts[i++] = EGL_BLUE_SIZE; egl_atts[i++] = nb_bits;
+	/*alpha for compositeTexture*/
+	egl_atts[i++] = EGL_ALPHA_SIZE; egl_atts[i++] = 1;
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+	nb_bits = sOpt ? atoi(sOpt) : 5;
+	egl_atts[i++] = EGL_DEPTH_SIZE; egl_atts[i++] = nb_bits;
+	egl_atts[i++] = EGL_STENCIL_SIZE; egl_atts[i++] = EGL_DONT_CARE;
+	egl_atts[i++] = EGL_NONE;
 
 	/*already setup*/
 	DestroyObjects(dd);
@@ -171,7 +182,8 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
     pfd.dwLayerMask = PFD_MAIN_PLANE;
     pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = 32;
-	pfd.cDepthBits = 16;
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+	pfd.cDepthBits = sOpt ? atoi(sOpt) : 16;
 	/*we need alpha support for composite textures...*/
 	pfd.cAlphaBits = 8;
     if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 

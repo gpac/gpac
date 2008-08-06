@@ -282,6 +282,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	else {
 		sess->cache_start_size = 0;
 	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Cache setup to %s\n", sess->cache_name));
 
 	/*are we using existing cached files ?*/
 	opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "RestartFiles");
@@ -618,11 +619,14 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		ip = NULL;
 	}
 
-	if (proxy) {
-		e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, (char *)ip);
-	} else {
-		e = gf_sk_connect(sess->sock, sess->server_name, sess->port, (char *)ip);
+	if (!proxy) {
+		proxy = sess->server_name;
+		proxy_port = sess->port;
 	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connecting to %s:%d\n", proxy, proxy_port));
+
+	e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, (char *)ip);
+
 	/*retry*/
 	if ((e == GF_IP_SOCK_WOULD_BLOCK) && sess->num_retry) {
 		sess->status = GF_NETIO_SETUP;
@@ -1268,6 +1272,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			par.msg_type = GF_NETIO_PARSE_HEADER;
 			par.name = hdr;
 			par.value = hdr_val;
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Processing header %s: %s\n", hdr, hdr_val));
 			gf_dm_sess_user_io(sess, &par);
 
 			if (!stricmp(hdr, "Content-Length") ) ContentLength = (u32) atoi(hdr_val);
@@ -1398,6 +1403,8 @@ void http_do_requests(GF_DownloadSession *sess)
 
 		if (!ContentLength && sess->mime_type && strstr(sess->mime_type, "ogg")) is_ice = 1;
 
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connected to %s - error %s\n", sess->server_name, gf_error_to_string(e) ));
+
 		/*some servers may reply without content length, but we MUST have it*/
 //		if (!is_ice && !ContentLength) e = GF_REMOTE_SERVICE_ERROR;
 		if (e) goto exit;
@@ -1410,7 +1417,6 @@ void http_do_requests(GF_DownloadSession *sess)
 				sess->mime_type = strdup("audio/aac");
 			}
 		}
-
 
 		/*done*/
 		if (sess->cache_start_size 
@@ -1476,6 +1482,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		}
 exit:
 		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Error parsing reply: %s\n", gf_error_to_string(e) ));
 			gf_dm_disconnect(sess);
 			sess->status = GF_NETIO_STATE_ERROR;
 			sess->last_error = e;
