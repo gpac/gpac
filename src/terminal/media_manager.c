@@ -110,11 +110,13 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 	GF_CodecCapability cap;
 	assert(codec);
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Registering codec %s\n", codec->decio ? codec->decio->module_name : "Unknown"));
+
 	/*caution: the mutex can be grabbed by a decoder waiting for a mutex owned by the calling thread
 	this happens when several scene codecs are running concurently and triggering play/pause on media*/
 	locked = gf_mx_try_lock(term->mm_mx);
-		if (!locked)
-			locked  = 0;
+	if (!locked)
+		locked  = 0;
 
 	cd = mm_get_codec(term->codecs, codec);
 	if (cd) goto exit;
@@ -200,6 +202,8 @@ void gf_term_remove_codec(GF_Terminal *term, GF_Codec *codec)
 	u32 i;
 	Bool locked;
 	CodecEntry *ce;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Unregistering codec %s\n", codec->decio ? codec->decio->module_name : "Unknown"));
 
 	/*cf note above*/
 	locked = gf_mx_try_lock(term->mm_mx);

@@ -160,8 +160,9 @@ Bool visual_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState
 	return visual_2d_draw_frame(visual, root, tr_state, is_root_visual);
 }
 
-void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_TraverseState *tr_state)
+void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_TraverseState *tr_state, s32 *child_idx)
 {
+	u32 i;
 	SFVec2f size;
 	GF_Rect rc;
 	GF_Matrix2D cur_mx;
@@ -181,7 +182,13 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 
 	gf_mx2d_copy(cur_mx, tr_state->transform);
 	rc = gf_rect_center(0,0);
+
+	i = 0;
 	while (children) {
+		if (child_idx && (i != (u32) *child_idx)) {
+			children = children->next;
+			continue;
+		}
 		gf_mx2d_init(tr_state->transform);
 		tr_state->bounds = gf_rect_center(0,0);
 
@@ -197,9 +204,10 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 		gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
 		gf_rect_union(&rc, &tr_state->bounds);
 		children = children->next;
+		if (child_idx) 
+			break;
 	}
 	gf_mx2d_copy(tr_state->transform, cur_mx);
 	gf_mx2d_apply_rect(&tr_state->transform, &rc);
 	tr_state->bounds = rc;
 }
-

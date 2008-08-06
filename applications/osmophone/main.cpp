@@ -185,10 +185,19 @@ static void on_gpac_rti_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list 
 	if (fmt) vfprintf(rti_file, fmt+6 /*[RTI] "*/, list);
 }
 
+static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+{
+	if (rti_file && fmt) vfprintf(rti_file, fmt, list);	
+}
+
 static void setup_logs()
 {
 	if (rti_file) fclose(rti_file);
 	rti_file = NULL;
+
+	gf_log_set_level(GF_LOG_ERROR);
+	gf_log_set_tools(0);
+	gf_log_set_callback(NULL, NULL);
 
 	if (log_rti) {
 		rti_file = fopen("\\gpac_rti.txt", "a+t");
@@ -201,9 +210,51 @@ static void setup_logs()
 		gf_log_set_callback(rti_file, on_gpac_rti_log);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
 	} else {
-		gf_log_set_level(GF_LOG_ERROR);
-		gf_log_set_tools(0);
-		gf_log_set_callback(NULL, NULL);
+		u32 lt, ll;
+		const char *str = gf_cfg_get_key(user.config, "General", "LogLevel");
+		ll=0;
+		if (str && stricmp(str, "none")) {
+			if (!stricmp(str, "debug")) ll = GF_LOG_DEBUG;
+			else if (!stricmp(str, "info")) ll = GF_LOG_INFO;
+			else if (!stricmp(str, "warning")) ll = GF_LOG_WARNING;
+			else if (!stricmp(str, "error")) ll = GF_LOG_ERROR;
+			gf_log_set_level(ll);
+		}
+		lt = 0;
+		str = gf_cfg_get_key(user.config, "General", "LogTools");
+		if (str) {
+			char *sep;
+			char *val = (char *) str;
+			while (val) {
+				sep = strchr(val, ':');
+				if (sep) sep[0] = 0;
+				if (!stricmp(val, "core")) lt |= GF_LOG_CODING;
+				else if (!stricmp(val, "coding")) lt |= GF_LOG_CODING;
+				else if (!stricmp(val, "container")) lt |= GF_LOG_CONTAINER;
+				else if (!stricmp(val, "network")) lt |= GF_LOG_NETWORK;
+				else if (!stricmp(val, "rtp")) lt |= GF_LOG_RTP;
+				else if (!stricmp(val, "author")) lt |= GF_LOG_AUTHOR;
+				else if (!stricmp(val, "sync")) lt |= GF_LOG_SYNC;
+				else if (!stricmp(val, "codec")) lt |= GF_LOG_CODEC;
+				else if (!stricmp(val, "parser")) lt |= GF_LOG_PARSER;
+				else if (!stricmp(val, "media")) lt |= GF_LOG_MEDIA;
+				else if (!stricmp(val, "scene")) lt |= GF_LOG_SCENE;
+				else if (!stricmp(val, "script")) lt |= GF_LOG_SCRIPT;
+				else if (!stricmp(val, "interact")) lt |= GF_LOG_INTERACT;
+				else if (!stricmp(val, "compose")) lt |= GF_LOG_COMPOSE;
+				else if (!stricmp(val, "mmio")) lt |= GF_LOG_MMIO;
+				else if (!stricmp(val, "none")) ll = 0;
+				else if (!stricmp(val, "all")) lt = 0xFFFFFFFF;
+				if (!sep) break;
+				sep[0] = ':';
+				val = sep+1;
+			}
+			gf_log_set_tools(lt);
+		}
+		if (ll && (rti_file = fopen("\\gpac_logs.txt", "wt"))) {
+			gf_log_set_callback(rti_file, on_gpac_log);
+		}
+
 	}
 }
 
@@ -373,6 +424,8 @@ Bool LoadTerminal()
 		strcpy(the_url, str);
 		gf_term_connect(term, str);
 	}
+
+	setup_logs();
 	return 1;
 }
 

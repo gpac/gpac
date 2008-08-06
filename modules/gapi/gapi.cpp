@@ -562,12 +562,14 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 	HDC dc;
 	GAPICTX(dr)
 	static int atts[15];
+	const char *opt;
 	atts[0] = EGL_RED_SIZE; atts[1] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
 	atts[2] = EGL_GREEN_SIZE; atts[3] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : (gctx->pixel_format==GF_PIXEL_RGB_565) ? 6 : 5;
 	atts[4] = EGL_BLUE_SIZE; atts[5] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
 	/*not supported...*/
 	atts[6] = EGL_ALPHA_SIZE; atts[7] = EGL_DONT_CARE;
-	atts[8] = EGL_DEPTH_SIZE; atts[9] = 32;
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+	atts[8] = EGL_DEPTH_SIZE; atts[9] = opt ? atoi(opt) : 16;
 	atts[10] = EGL_STENCIL_SIZE; atts[11] = EGL_DONT_CARE;
 	atts[12] = EGL_SURFACE_TYPE; atts[13] = EGL_PIXMAP_BIT;
 	atts[14] = EGL_NONE;
@@ -626,7 +628,8 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 
 GF_Err GAPI_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 height) 
 {
-	static int atts[15];
+	int atts[15];
+	const char *opt;
 	EGLint n, maj, min;
 	HDC dc;
 
@@ -646,16 +649,13 @@ GF_Err GAPI_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 height)
 		gctx->egldpy = NULL;
 		return GF_IO_ERR;
 	}
-
-/*	atts[0] = EGL_RED_SIZE; atts[1] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
-	atts[2] = EGL_GREEN_SIZE; atts[3] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : (gctx->pixel_format==GF_PIXEL_RGB_565) ? 6 : 5;
-	atts[4] = EGL_BLUE_SIZE; atts[5] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
-*/
 	atts[0] = EGL_RED_SIZE; atts[1] = 8;
 	atts[2] = EGL_GREEN_SIZE; atts[3] = 8;
 	atts[4] = EGL_BLUE_SIZE; atts[5] = 8;
 	atts[6] = EGL_ALPHA_SIZE; atts[7] = (dr->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA) ? 8 : EGL_DONT_CARE;
-	atts[8] = EGL_DEPTH_SIZE; atts[9] = 16;
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+	atts[8] = EGL_DEPTH_SIZE; atts[9] = opt ? atoi(opt) : 16;
+
 	atts[10] = EGL_STENCIL_SIZE; atts[11] = EGL_DONT_CARE;
 	atts[12] = EGL_SURFACE_TYPE; atts[13] = gctx->use_pbuffer ? EGL_PBUFFER_BIT : EGL_PIXMAP_BIT;
 	atts[14] = EGL_NONE;

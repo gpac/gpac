@@ -67,6 +67,8 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 	GF_ObjectManager *root;
 	GET_TERM();
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Connection ACK received from %s (channel %d) - %s\n", service->url, (u32) netch, gf_error_to_string(err) ));
+
 	root = service->owner;
 	if (root && (root->net_service != service)) {
 		gf_term_message(term, service->url, "Incomaptible module type", GF_SERVICE_ERROR);
@@ -574,13 +576,14 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		}
 	}
 	
-	if (mime_type && (!stricmp(mime_type, "text/plain") || !stricmp(mime_type, "video/quicktime")) ) {
+	if (mime_type && 
+		(!stricmp(mime_type, "text/plain") 
+			|| !stricmp(mime_type, "video/quicktime")
+			|| !stricmp(mime_type, "application/octet-stream")
+		) 
+	) {
 		free(mime_type);
 		mime_type = NULL;
-/*
-	} else if (mime_type && !strlen(mime_type)) {
-		mime_type = strdup("video/mp4");
-*/
 	}
 
 	ifce = NULL;

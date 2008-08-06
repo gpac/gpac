@@ -118,7 +118,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 					bounds_state.for_node = target;
 					bounds_state.svg_props = tr_state->svg_props;
 					gf_mx2d_init(bounds_state.transform);
-					gf_sc_get_nodes_bounds(node, ((GF_ParentNode *)node)->children, &bounds_state);
+					gf_sc_get_nodes_bounds(node, ((GF_ParentNode *)node)->children, &bounds_state, NULL);
 					gf_mx2d_from_mx(&mx, &tr_state->visual->compositor->hit_world_to_local);
 					gf_mx2d_apply_rect(&mx, &bounds_state.bounds);
 					ext_vb.x = bounds_state.bounds.x;
@@ -303,7 +303,10 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	if (!tr_state->svg_props) tr_state->svg_props = stack->svg_props;
 	
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
-	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags)) {
+		tr_state->svg_props = prev_props;
+		return;
+	}
 
 	/*enable or disable navigation*/
 	tr_state->visual->compositor->navigation_disabled = (all_atts.zoomAndPan && *all_atts.zoomAndPan == SVG_ZOOMANDPAN_DISABLE) ? 1 : 0;
@@ -414,7 +417,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->vp_size = stack->vp;
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
+		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state, NULL);
 	} else {
 		compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
 	}
@@ -509,7 +512,8 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 
-	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags))
+		return;
 
 	if (compositor_svg_is_display_off(tr_state->svg_props)) {
 /*		u32 prev_flags = tr_state->switched_off;
@@ -524,7 +528,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	
 	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
+		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state, NULL);
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
 		SVGgStack *group = gf_node_get_private(node);
 
@@ -618,7 +622,8 @@ static void svg_traverse_defs(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 
-	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags))
+		return;
 
 	prev_flags = tr_state->switched_off;
 	tr_state->switched_off = 1;
@@ -635,54 +640,74 @@ void compositor_init_svg_defs(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, svg_traverse_defs);
 }
 
+
+
+
 static void svg_traverse_switch(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Matrix2D backup_matrix;
 	GF_Matrix mx_3d;
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
+	s32 *selected_idx = gf_node_get_private(node);
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGAllAttributes all_atts;
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
 	if (is_destroy) {
+		free(selected_idx);
 		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
 
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+	if (gf_node_dirty_get(node)) {
+		u32 pos = 0;
+		GF_ChildNodeItem *child = ((SVG_Element*)node)->children;
+		*selected_idx = -1;
+		while (child) {
+			SVGAllAttributes atts;
+			gf_svg_flatten_attributes((SVG_Element *)child->node, &atts);
+			if (compositor_svg_evaluate_conditional(tr_state->visual->compositor, &atts)) {
+				*selected_idx = pos;
+				break;
+			}
+			pos++;
+			child = child->next;
+		}
+		gf_node_dirty_clear(node, 0);
+	}
 
-	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags))
+		return;
 
 	if (compositor_svg_is_display_off(tr_state->svg_props)) {
-//		compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 		memcpy(tr_state->svg_props, &backup_props, styling_size);
 		tr_state->svg_flags = backup_flags;
 		return;
 	}
 	
-	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
-	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
-	} else {
-		GF_ChildNodeItem *l = ((SVG_Element *)node)->children;
-		while (l) {
-			if (1 /*eval_conditional(tr_state->visual->compositor, (SVG_Element*)l->node)*/) {
-				gf_node_traverse((GF_Node*)l->node, tr_state);
-				break;
-			}
-			l = l->next;
+	if (*selected_idx >= 0) {
+		compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
+		if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
+			gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state, selected_idx);
+		} else if (*selected_idx >= 0) {
+			GF_Node *child = gf_node_list_get_child(((SVG_Element *)node)->children, *selected_idx);
+			gf_node_traverse(child, tr_state);
 		}
+		compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 	}
 
-
-	compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 	memcpy(tr_state->svg_props, &backup_props, styling_size);
 	tr_state->svg_flags = backup_flags;
 }
 
 void compositor_init_svg_switch(GF_Compositor *compositor, GF_Node *node)
 {
+	s32 *selected_idx;
+	GF_SAFEALLOC(selected_idx, u32);
+	*selected_idx = -1;
+	gf_node_set_private(node, selected_idx);
 	gf_node_set_callback_function(node, svg_traverse_switch);
 }
 
@@ -703,7 +728,8 @@ static void svg_traverse_a(GF_Node *node, void *rs, Bool is_destroy)
 
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 
-	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags))
+		return;
 
 	if (compositor_svg_is_display_off(tr_state->svg_props)) {
 		/*u32 prev_flags = tr_state->switched_off;
@@ -718,7 +744,7 @@ static void svg_traverse_a(GF_Node *node, void *rs, Bool is_destroy)
 	
 	compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
-		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state);
+		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state, NULL);
 	} else {
 		compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
 	}
@@ -883,7 +909,8 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 
 
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
-	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags))
+		return;
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
 		GF_MediaObject *new_res = gf_mo_load_xlink_resource(node, is_foreign_object, 0, -1);
@@ -1070,7 +1097,8 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 	if (!all_atts.width || !all_atts.height) return;
 	if (!all_atts.width->value || !all_atts.height->value) return;
 
-	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags))
+		return;
 	
 	if (compositor_svg_is_display_off(tr_state->svg_props) ||
 		*(tr_state->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {

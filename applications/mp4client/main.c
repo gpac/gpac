@@ -908,6 +908,24 @@ int main (int argc, char **argv)
 	nb_times = 0;
 	times[0] = 0;
 
+	/*first locate config file if specified*/
+	for (i=1; i<(u32) argc; i++) {
+		char *arg = argv[i];
+		if (!strcmp(arg, "-c") || !strcmp(arg, "-cfg")) {
+			the_cfg = argv[i+1];
+			i++;
+			break;
+		}
+	}
+	cfg_file = loadconfigfile(the_cfg);
+	if (!cfg_file) {
+		fprintf(stdout, "Error: Configuration File \"GPAC.cfg\" not found\n");
+		if (logfile) fclose(logfile);
+		return 1;
+	}
+
+
+
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
 //		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
@@ -992,6 +1010,26 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
+		else if (!strcmp(arg, "-opt")) {
+			char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
+			sep = strchr(argv[i+1], ':');
+			if (sep) {
+				sep[0] = 0;
+				strcpy(szSec, argv[i+1]);
+				sep[0] = ':'; sep ++;
+				sep2 = strchr(sep, '=');
+				if (sep2) {
+					sep2[0] = 0;
+					strcpy(szKey, sep);
+					strcpy(szVal, sep2+1);
+					sep2[0] = '='; 
+					if (!stricmp(szVal, "null")) szVal[0]=0;
+					gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
+				}
+			}
+			gf_cfg_set_key(cfg_file, szSec, szKey, szVal);
+			i++;
+		}
 		else if (!strncmp(arg, "-run-for=", 9)) simulation_time = atoi(arg+9);
 		else {
 			PrintUsage();
@@ -1005,13 +1043,6 @@ int main (int argc, char **argv)
 		return 1;
 	}
 	if (dump_mode) rti_file = NULL;
-	cfg_file = loadconfigfile(the_cfg);
-	if (!cfg_file) {
-		fprintf(stdout, "Error: Configuration File \"GPAC.cfg\" not found\n");
-		if (logfile) fclose(logfile);
-		return 1;
-	}
-
 	gf_sys_init();
 	
 	gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);

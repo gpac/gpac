@@ -39,6 +39,39 @@ typedef struct
 	Bool stop_requested;
 } SVG_video_stack;
 
+
+
+static Bool svg_video_get_transform_behavior(GF_TraverseState *tr_state, SVGAllAttributes *atts, Fixed *cx, Fixed *cy, Fixed *angle)
+{
+	SFVec2f pt;
+	if (!atts->transformBehavior) return 0;
+	if (*atts->transformBehavior == SVG_TRANSFORMBEHAVIOR_GEOMETRIC)
+		return 0;
+
+	pt.x = atts->x ? atts->x->value : 0;
+	pt.y = atts->y ? atts->y->value : 0;
+	gf_mx2d_apply_point(&tr_state->transform, &pt);
+	*cx = pt.x;
+	*cy = pt.y;
+
+	*angle = 0;
+	switch (*atts->transformBehavior) {
+	case SVG_TRANSFORMBEHAVIOR_PINNED:
+		break;
+	case SVG_TRANSFORMBEHAVIOR_PINNED180:
+		*angle = GF_PI;
+		break;
+	case SVG_TRANSFORMBEHAVIOR_PINNED270:
+		*angle = -GF_PI/2;
+		break;
+	case SVG_TRANSFORMBEHAVIOR_PINNED90:
+		*angle = GF_PI/2;
+		break;
+	}
+	return 1;
+}
+
+
 static void SVG_Draw_bitmap(GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
@@ -196,6 +229,7 @@ static void svg_play_texture(SVG_video_stack *stack, SVGAllAttributes *atts)
 
 static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 {
+	Fixed cx, cy, angle;
 	/*video stack is just an extension of image stack, type-casting is OK*/
 	SVG_video_stack *stack = (SVG_video_stack*)gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
@@ -232,7 +266,8 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*flatten attributes and apply animations + inheritance*/
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
-	compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags))
+		return;
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
 		gf_term_get_mfurl_from_xlink(node, &stack->txurl);
@@ -249,21 +284,46 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	} 
 
-	/*FIXME: setup aspect ratio*/
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props)) {
 			gf_path_get_bounds(stack->graph->path, &tr_state->bounds);
 			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
-			gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
+
+			if (svg_video_get_transform_behavior(tr_state, &all_atts, &cx, &cy, &angle)) {
+				GF_Matrix2D mx;
+				tr_state->bounds.width = INT2FIX(stack->txh.width);
+				tr_state->bounds.height = INT2FIX(stack->txh.height);
+				tr_state->bounds.x = cx - tr_state->bounds.width/2;
+				tr_state->bounds.y = cy + tr_state->bounds.height/2;
+				gf_mx2d_init(mx);
+				gf_mx2d_add_rotation(&mx, 0, 0, angle);
+				gf_mx2d_apply_rect(&mx, &tr_state->bounds);
+			} else {
+				gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
+			}
+
 			compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 		}
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props) && ( *(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) ) {
+			GF_Matrix mx_bck;
+			Bool restore_mx = 0;
 
 			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
 			ctx = drawable_init_context_svg(stack->graph, tr_state);
 			if (!ctx || !ctx->aspect.fill_texture ) return;
+
+			if (svg_video_get_transform_behavior(tr_state, &all_atts, &cx, &cy, &angle)) {
+				drawable_reset_path(stack->graph);			
+				gf_path_add_rect_center(stack->graph->path, cx, cy, INT2FIX(stack->txh.width), INT2FIX(stack->txh.height));
+
+				gf_mx2d_copy(mx_bck, tr_state->transform);
+				restore_mx = 1;
+				
+				gf_mx2d_init(tr_state->transform);
+				gf_mx2d_add_rotation(&tr_state->transform, cx, cy, angle);
+			}
 
 			/*even if set this is not true*/
 			ctx->aspect.pen_props.width = 0;
@@ -295,6 +355,8 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			{
 				drawable_finalize_sort(ctx, tr_state, NULL);
 			}
+
+			if (restore_mx) gf_mx2d_copy(tr_state->transform, mx_bck);
 			compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 		}
 	}
@@ -561,7 +623,8 @@ static void svg_traverse_audio(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
-	compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags))
+		return;
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
 		gf_term_get_mfurl_from_xlink(node, &(stack->aurl));

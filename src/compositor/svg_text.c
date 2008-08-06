@@ -243,6 +243,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 }
 
 
+
 typedef struct
 {
 	GF_TextSpan *span;
@@ -468,7 +469,8 @@ static void get_tspan_width(GF_Node *node, void *rs)
 	GF_ChildNodeItem *child;
 
 	gf_svg_flatten_attributes(tspan, &atts);
-	compositor_svg_traverse_base(node, &atts, tr_state, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &atts, tr_state, &backup_props, &backup_flags))
+		return;
 
 	child = ((GF_ParentNode *) tspan)->children;
 	while (child) {
@@ -488,7 +490,6 @@ static void get_tspan_width(GF_Node *node, void *rs)
 	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	tr_state->svg_flags = backup_flags;
 }
-
 
 void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseState *tr_state, GF_List *spans, GF_Node *anchor_node)
 {
@@ -598,6 +599,77 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 }
 
 
+static void svg_compute_text_width(GF_Node *node, SVGAllAttributes *atts, GF_TraverseState *tr_state )
+{
+	GF_ChildNodeItem *child;
+	Bool is_switch = 0;
+	/*compute length of all text blocks*/
+	switch  (gf_node_get_tag(node)) {
+	case TAG_DOMText:
+		get_domtext_width(node, atts, tr_state); 
+		break;
+	case TAG_SVG_tspan:
+		get_tspan_width(node, tr_state); 
+		break;
+	case TAG_SVG_switch:
+		is_switch = 1;
+	case TAG_SVG_a:
+		child = ((GF_ParentNode *)node)->children;
+		while (child) {
+			if (is_switch) {
+				SVGAllAttributes a_atts;
+				gf_svg_flatten_attributes((SVG_Element*)child->node, &a_atts);
+				if (compositor_svg_evaluate_conditional(tr_state->visual->compositor, &a_atts)) {
+					svg_compute_text_width(child->node, atts, tr_state);
+					break;
+				}
+			} else {
+				svg_compute_text_width(child->node, atts, tr_state);
+			}
+			child = child->next;
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+static void svg_traverse_text_block(GF_Node *node, SVGAllAttributes *atts, GF_TraverseState *tr_state, GF_List *spans)
+{
+	GF_ChildNodeItem *child;
+	Bool is_switch = 0;
+	switch  (gf_node_get_tag(node)) {
+	case TAG_DOMText:
+		svg_traverse_domtext(node, atts, tr_state, spans, NULL); 
+		break;
+	case TAG_SVG_tspan:
+		/*mark tspan as dirty to force rebuild*/
+		gf_node_dirty_set(node, 0, 0);
+		gf_node_traverse(node, tr_state); 
+		break;
+	case TAG_SVG_switch:
+		is_switch = 1;
+	case TAG_SVG_a:
+		child = ((GF_ParentNode *)node)->children;
+		while (child) {
+			if (is_switch) {
+				SVGAllAttributes a_atts;
+				gf_svg_flatten_attributes((SVG_Element*)child->node, &a_atts);
+				if (compositor_svg_evaluate_conditional(tr_state->visual->compositor, &a_atts)) {
+					svg_traverse_text_block(child->node, atts, tr_state, spans);
+					break;
+				}
+			} else if (gf_node_get_tag(child->node)==TAG_DOMText) {
+				svg_traverse_domtext(child->node, atts, tr_state, spans, node); 
+			}
+			child = child->next;
+		}
+		break;
+	default:
+		break;
+	}
+}
+
 static void svg_text_draw_2d(SVG_TextStack *st, GF_TraverseState *tr_state)
 {
 	gf_font_spans_draw_2d(st->spans, tr_state, 0, 0, &st->bounds);
@@ -616,13 +688,14 @@ static void svg_update_bounds(SVG_TextStack *st)
 	}
 }
 
+
 static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	GF_Matrix2D backup_matrix;
 	GF_Matrix mx3d;
-	GF_ChildNodeItem *child, *a_child;
+	GF_ChildNodeItem *child;
 	DrawableContext *ctx;
 	SVG_TextStack *st = (SVG_TextStack *)gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
@@ -661,7 +734,8 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	gf_svg_flatten_attributes(text, &atts);
-	compositor_svg_traverse_base(node, &atts, tr_state, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &atts, tr_state, &backup_props, &backup_flags))
+		return;
 
 	tr_state->in_svg_text++;
 	tr_state->text_parent = node;
@@ -722,27 +796,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 
 		/*compute length of all text blocks*/
 		while (child) {
-			switch  (gf_node_get_tag(child->node)) {
-			case TAG_DOMText:
-				get_domtext_width(child->node, &atts, tr_state); 
-				break;
-			case TAG_SVG_tspan:
-				get_tspan_width(child->node, tr_state); 
-				break;
-			case TAG_SVG_a:
-				a_child = ((GF_ParentNode *)child->node)->children;
-				while (a_child) {
-					switch  (gf_node_get_tag(a_child->node)) {
-					case TAG_DOMText:
-						get_domtext_width(a_child->node, &atts, tr_state); 
-						break;
-					}
-					a_child = a_child->next;
-				}
-				break;
-			default:
-				break;
-			}
+			svg_compute_text_width(child->node, &atts, tr_state);
 			child=child->next;
 		}
 
@@ -784,29 +838,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 
 		child = ((GF_ParentNode *) text)->children;
 		while (child) {
-			switch  (gf_node_get_tag(child->node)) {
-			case TAG_DOMText:
-				svg_traverse_domtext(child->node, &atts, tr_state, st->spans, NULL); 
-				break;
-			case TAG_SVG_tspan:
-				/*mark tspan as dirty to force rebuild*/
-				gf_node_dirty_set(child->node, 0, 0);
-				gf_node_traverse(child->node, tr_state); 
-				break;
-			case TAG_SVG_a:
-				a_child = ((GF_ParentNode *)child->node)->children;
-				while (a_child) {
-					switch  (gf_node_get_tag(a_child->node)) {
-					case TAG_DOMText:
-						svg_traverse_domtext(a_child->node, &atts, tr_state, st->spans, child->node); 
-						break;
-					}
-					a_child = a_child->next;
-				}
-				break;
-			default:
-				break;
-			}
+			svg_traverse_text_block(child->node, &atts, tr_state, st->spans);
 			child = child->next;
 		}
 		tr_state->traversing_mode = mode;
@@ -843,6 +875,9 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		while (child) {
 			switch  (gf_node_get_tag(child->node)) {
 			case TAG_SVG_tspan:
+				gf_node_traverse(child->node, tr_state); 
+				break;
+			case TAG_SVG_switch:
 				gf_node_traverse(child->node, tr_state); 
 				break;
 			}
@@ -903,7 +938,8 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 	if (!tr_state->in_svg_text && !tr_state->in_svg_text_area) return;
 
 	gf_svg_flatten_attributes(tspan, &atts);
-	compositor_svg_traverse_base(node, &atts, tr_state, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &atts, tr_state, &backup_props, &backup_flags))
+		return;
 
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {
 		if (*tr_state->svg_props->pointer_events!=SVG_POINTEREVENTS_NONE) 
@@ -934,6 +970,8 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 				svg_traverse_domtext(child->node, &atts, tr_state, st->spans, NULL); 
 				break;
 			case TAG_SVG_tspan:
+			case TAG_SVG_switch:
+			case TAG_SVG_a:
 				gf_node_traverse(child->node, tr_state); 
 				break;
 			case TAG_SVG_tbreak:
@@ -975,6 +1013,8 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		while (child) {
 			switch  (gf_node_get_tag(child->node)) {
 			case TAG_SVG_tspan:
+			case TAG_SVG_switch:
+			case TAG_SVG_a:
 				gf_node_traverse(child->node, tr_state); 
 				break;
 			default:
@@ -1034,7 +1074,8 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 
 
 	gf_svg_flatten_attributes(text, &atts);
-	compositor_svg_traverse_base(node, &atts, tr_state, &backup_props, &backup_flags);
+	if (!compositor_svg_traverse_base(node, &atts, tr_state, &backup_props, &backup_flags))
+		return;
 
 	tr_state->text_parent = node;
 
@@ -1086,6 +1127,8 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 				svg_traverse_dom_text_area(child->node, &atts, tr_state, st->spans); 
 				break;
 			case TAG_SVG_tspan:
+			case TAG_SVG_switch:
+			case TAG_SVG_a:
 				gf_node_traverse(child->node, tr_state); 
 				break;
 			case TAG_SVG_tbreak:
@@ -1133,6 +1176,8 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 			case TAG_DOMText:
 				break;
 			case TAG_SVG_tspan:
+			case TAG_SVG_switch:
+			case TAG_SVG_a:
 				gf_node_traverse(child->node, tr_state); 
 				break;
 			default:

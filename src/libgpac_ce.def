@@ -1142,6 +1142,7 @@ EXPORTS
 	gf_mo_get_flags
 	gf_mo_has_audio
 	gf_mo_get_last_frame_time
+	gf_clock_time
 
 
 ;laser.h exports

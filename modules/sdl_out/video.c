@@ -423,7 +423,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 	gf_mx_p(ctx->evt_mx);
 
 	if (ctx->output_3d_type==1) {
-		u32 flags;
+		u32 flags, nb_bits;
+		const char *opt;
 		if ((ctx->width==width) && (ctx->height==height) ) {
 			gf_mx_v(ctx->evt_mx);
 			return GF_OK;
@@ -432,11 +433,16 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
 		if (!ctx->screen) ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+
+		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+		nb_bits = opt ? atoi(opt) : 16;
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, nb_bits);
 		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
-		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
-		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
-		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
+		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent");
+		nb_bits = opt ? atoi(opt) : 5;
+		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, nb_bits);
+		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, nb_bits);
+		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, nb_bits);
 
 		assert(width);
 		assert(height);
