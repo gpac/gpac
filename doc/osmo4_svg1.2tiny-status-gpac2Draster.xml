@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="application/xslt+xml" href="status2html.xslt"?>
+<?xml-stylesheet type="text/xsl" href="status2html.xslt"?>
 <!-- shortsvg-version="1.1" name=A unique abbreviation to be used for a file name for this file             -->
 <!--        and column header for the matrix.  MUST be a legal xml id prefix and fileName -->
 <!--       (shortName.xml) please make it 3-12 characters and do not use spaces.          -->
@@ -8,7 +8,7 @@
 <!-- version=The version number of the product being tested                               -->
 <!-- platform=The platform(s) that the product is tested on                               -->
 <!-- date=The date of the submission in the form year/month/day, eg. 2002/08/30           -->
-<svg-status-query company="ENST" date="2008/02/19" product="GPAC Player" version="0.4.5-DEV (build 18)" shortsvg-version="1.1" name="Osmo4" profile="tiny" platform="WindowsXP"	>
+<svg-status-query company="ENST" date="2008/02/19" product="GPAC Player" version="0.4.5-DEV (build 18)" shortsvg-version="1.2" name="Osmo4" profile="tiny" platform="WindowsXP"	>
 <!-- test attributes:                                                                   -->
 <!--    status=must be one of 'OK', 'PARTIAL', or 'FAIL'                                -->
 <!--    comment=optional comment to publish with the result, like why you don't pass :) -->
