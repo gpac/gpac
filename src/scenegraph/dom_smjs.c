@@ -1478,6 +1478,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	/*may not be a string in DOM*/
 	val = JS_GetStringBytes(JS_ValueToString(c, argv[1]));
+	ns = NULL;
 	/*NS version*/
 	if (argc==3) {
 		ns = name;
