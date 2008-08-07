@@ -228,6 +228,8 @@ enum
 	GPAC_OTI_PRIVATE_SCENE_LASER = 0xC2,
 	/*!OTI for XBL dummy streams (dsi = file name) - GPAC internal*/
 	GPAC_OTI_PRIVATE_SCENE_XBL = 0xC3,
+	/*!OTI for EPG dummy streams (dsi = null) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_EPG = 0xC4,
 
 	/*!OTI for streaming SVG - GPAC internal*/
 	GPAC_OTI_SCENE_SVG = 0xD0,
