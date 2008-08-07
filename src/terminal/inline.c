@@ -288,12 +288,12 @@ static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_ti
 		esd->ESID = esd->OCRESID = 65534;
 		gf_list_add(odm->OD->ESDescriptors, esd);
 	} else {
-		if (mo->type==GF_MEDIA_OBJECT_SCENE) {
+/*		if (mo->type==GF_MEDIA_OBJECT_SCENE) {
 			char *frag = strrchr(mo->URLs.vals[0].url, '#');
 			if (frag) frag[0] = 0;
 			odm->OD->URLString = strdup(mo->URLs.vals[0].url);
 			if (frag) frag[0] = '#';
-		} else {
+		} else */{
 			odm->OD->URLString = strdup(mo->URLs.vals[0].url);
 		}
 		if (lock_timelines) odm->flags |= GF_ODM_INHERIT_TIMELINE;

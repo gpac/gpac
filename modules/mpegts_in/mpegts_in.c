@@ -508,7 +508,7 @@ static GF_ObjectDescriptor *M2TS_GenerateEPG_OD(M2TSIn *m2ts)
 	esd = gf_odf_desc_esd_new(0);
 	esd->ESID = GF_M2TS_PID_EIT_ST_CIT;
 	esd->decoderConfig->streamType = GF_STREAM_PRIVATE_SCENE;
-	esd->decoderConfig->objectTypeIndication = 0x24;
+	esd->decoderConfig->objectTypeIndication = GPAC_OTI_PRIVATE_SCENE_EPG;
 	esd->decoderConfig->bufferSizeDB = 0;
 
 	/*we only use AUstart indicator

@@ -605,7 +605,12 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	char *payload;
 
 	if (ch->direct_decode) {
-		GF_SceneDecoder *sdec = (GF_SceneDecoder *)ch->odm->codec->decio;
+		GF_SceneDecoder *sdec;
+		if (ch->odm->subscene) {
+			sdec = (GF_SceneDecoder *)ch->odm->subscene->scene_codec->decio;
+		} else {
+			sdec = (GF_SceneDecoder *)ch->odm->codec->decio;
+		}
 		sdec->ProcessData(sdec, StreamBuf, StreamLength, ch->esd->ESID, 0, 0);
 		return;
 	}
@@ -1194,8 +1199,8 @@ void gf_es_on_connect(GF_Channel *ch)
 			ch->MaxBuffer = com.buffer.max;
 		}
 	}
-	if (ch->esd->decoderConfig->streamType == GF_STREAM_TEXT &&
-		ch->esd->decoderConfig->objectTypeIndication == 0x24) { /* EIT Streams OTI for private scenes */
+	if (ch->esd->decoderConfig->streamType == GF_STREAM_PRIVATE_SCENE &&
+		ch->esd->decoderConfig->objectTypeIndication == GPAC_OTI_PRIVATE_SCENE_EPG) { 
 		ch->direct_decode = 1;
 	}
 	if (ch->clock->no_time_ctrl) {
