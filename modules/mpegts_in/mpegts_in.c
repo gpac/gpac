@@ -321,8 +321,9 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 	M2TSIn *m2ts = (M2TSIn *)plug->priv;
 
 #ifdef GPAC_HAS_LINUX_DVB
-	if (!stricmp(url, "dvb://EPG") return 1;
+	if (!stricmp(url, "dvb://EPG")) return 1;
 	if (!strnicmp(url, "dvb://", 6)) {		
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DVBIn] Checking reuse of the same tuner for %s\n", url));
 		const char *chan_conf = gf_modules_get_option((GF_BaseInterface *)plug, "DVB", "ChannelsFile");
 		if (!chan_conf) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[DVBIn] Cannot locate channel configuration file\n"));
@@ -330,12 +331,15 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 		}
 
 		/* if the tuner is already tuned to the same frequence, nothing needs to be done */
-		else if (m2ts->tuner->freq != 0 && m2ts->tuner->freq == gf_dvb_get_freq_from_url(chan_conf, url)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DVBIn] Reusing the same tuner for %s\n", url));
-			ret = 1;
-		} else {
-			ret = 0;
-		}
+		else if (m2ts->tuner->freq != 0) {
+			char *frag = strchr(url, '#');
+			if (frag) frag[0] = 0;
+			if (m2ts->tuner->freq == gf_dvb_get_freq_from_url(chan_conf, url)) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DVBIn] Reusing the same tuner for %s\n", url));
+				ret = 1;
+			}
+			if (frag) frag[0] = '#';
+		} 
 	} else 
 #endif
 	if (!strnicmp(url, "udp://", 6) 
@@ -347,7 +351,10 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 	} else {
 		char *frag = strchr(url, '#');
 		if (frag) frag[0] = 0;
-		if (!strcmp(url, m2ts->filename)) ret = 1;
+		if (!strcmp(url, m2ts->filename)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DVBIn] Reusing the same input file for %s\n", url));
+ 			ret = 1;
+		}
 		if (frag) frag[0] = '#';
 	}
 	return ret;
@@ -1026,10 +1033,9 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	GF_Descriptor *desc = NULL;
 	char *frag;
 
-
 	frag = sub_url ? strrchr(sub_url, '#') : NULL;
 	/*we have been requested the entire TS*/
-	if (stricmp(sub_url, "dvb://EPG")) {
+	if (!stricmp(sub_url, "dvb://EPG")) {
 		m2ts->epg_requested = 1;
 	} else if (!frag) {
 		m2ts->request_all_pids = 1;
