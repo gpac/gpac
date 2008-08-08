@@ -288,7 +288,7 @@ static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_ti
 		esd->ESID = esd->OCRESID = 65534;
 		gf_list_add(odm->OD->ESDescriptors, esd);
 	} else {
-		if (mo->type==GF_MEDIA_OBJECT_SCENE) {
+		if (0 && mo->type==GF_MEDIA_OBJECT_SCENE) {
 			char *frag = strrchr(mo->URLs.vals[0].url, '#');
 			if (frag) frag[0] = 0;
 			odm->OD->URLString = strdup(mo->URLs.vals[0].url);
@@ -504,10 +504,6 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
 	u32 i;
 	char szURL1[GF_MAX_PATH], szURL2[GF_MAX_PATH], *ext;
 
-	/*don't analyse audio/video to locate segments or viewports*/
-	if (obj->type==GF_MEDIA_OBJECT_AUDIO) include_sub_url = 1;
-	if (obj->type==GF_MEDIA_OBJECT_VIDEO) include_sub_url = 1;
-
 	if (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID) {
 		if (!obj->URLs.count) {
 			if (!obj->odm) return 0;
@@ -518,6 +514,28 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
 	} else {
 		if (!obj->URLs.count) return 0;
 		strcpy(szURL1, obj->URLs.vals[0].url);
+	}
+
+	/*don't analyse audio/video to locate segments or viewports*/
+	if (obj->type==GF_MEDIA_OBJECT_AUDIO) 
+		include_sub_url = 1;
+	else if (obj->type==GF_MEDIA_OBJECT_VIDEO) 
+		include_sub_url = 1;
+	else if (obj->type==GF_MEDIA_OBJECT_SCENE) {
+		GF_ClientService *ns;
+		u32 j;
+		/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
+		for (i=0; i<an_url->count; i++) {
+			j=0;
+			/*this is the same object (may need some refinement)*/
+			if (!stricmp(szURL1, an_url->vals[i].url)) return 1;
+			while ( (ns = (GF_ClientService*)gf_list_enum(obj->odm->term->net_services, &j)) ) {
+				/*sub-service of an existing service*/
+				if (gf_term_service_can_handle_url(ns, an_url->vals[i].url)) {
+					return 0;
+				}
+			}
+		}
 	}
 
 	/*check on full URL without removing fragment IDs*/

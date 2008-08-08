@@ -321,7 +321,8 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 	M2TSIn *m2ts = (M2TSIn *)plug->priv;
 
 #ifdef GPAC_HAS_LINUX_DVB
-	if (!strnicmp(url, "dvb://", 6)) {
+	if (!stricmp(url, "dvb://EPG") return 1;
+	if (!strnicmp(url, "dvb://", 6)) {		
 		const char *chan_conf = gf_modules_get_option((GF_BaseInterface *)plug, "DVB", "ChannelsFile");
 		if (!chan_conf) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[DVBIn] Cannot locate channel configuration file\n"));
@@ -970,13 +971,13 @@ void M2TS_SetupFile(M2TSIn *m2ts, char *url)
 static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	char szURL[2048];
-	char *ext;
+	char *frag;
 	M2TSIn *m2ts = plug->priv;
 	m2ts->service = serv;
 
 	strcpy(szURL, url);
-	ext = strrchr(szURL, '#');
-	if (ext) ext[0] = 0;
+	frag = strrchr(szURL, '#');
+	if (frag) frag[0] = 0;
 
 	m2ts->file_regulate = 0;
 	m2ts->duration = 0;
@@ -1023,24 +1024,26 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 {
 	M2TSIn *m2ts = plug->priv;
 	GF_Descriptor *desc = NULL;
-	char *ext;
+	char *frag;
 
 
-	ext = sub_url ? strrchr(sub_url, '#') : NULL;
+	frag = sub_url ? strrchr(sub_url, '#') : NULL;
 	/*we have been requested the entire TS*/
-	if (!ext) {
+	if (stricmp(sub_url, "dvb://EPG")) {
+		m2ts->epg_requested = 1;
+	} else if (!frag) {
 		m2ts->request_all_pids = 1;
 	} else {
 		M2TSIn_Prog *prog;
-		ext++;
+		frag++;
 
 		/*we need exclusive access*/
 		gf_mx_p(m2ts->mx);
-		if (!strnicmp(ext, "pid=", 4)) {
+		if (!strnicmp(frag, "pid=", 4)) {
 			GF_SAFEALLOC(prog, M2TSIn_Prog);
-			prog->pid = atoi(ext+4);
+			prog->pid = atoi(frag+4);
 			gf_list_add(m2ts->requested_pids, prog);
-		} else if (!strnicmp(ext, "EPG", 3)) {
+		} else if (!strnicmp(frag, "EPG", 3)) {
 			m2ts->epg_requested = 1;
 		} else {
 			u32 i, count;
@@ -1048,14 +1051,14 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			prog = NULL;
 			for (i=0; i<count; i++) {
 				prog = gf_list_get(m2ts->requested_progs, i);
-				if (!strcmp(prog->fragment, ext))
+				if (!strcmp(prog->fragment, frag))
 					break;
 				prog = NULL;
 			}
 			if (!prog) {
 				GF_SAFEALLOC(prog, M2TSIn_Prog);
 				gf_list_add(m2ts->requested_progs, prog);
-				prog->fragment = strdup(ext);
+				prog->fragment = strdup(frag);
 			}
 		}
 		gf_mx_v(m2ts->mx);
@@ -1071,6 +1074,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		} 
 		if (m2ts->epg_requested) {
 			GF_ObjectDescriptor *od = M2TS_GenerateEPG_OD(m2ts);
+			m2ts->epg_requested = 0;
 			return (GF_Descriptor *)od;
 		} else {
 			/*returning an empty IOD means "no scene description", let the terminal handle all media objects*/
