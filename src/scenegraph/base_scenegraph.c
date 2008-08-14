@@ -55,15 +55,17 @@ GF_SceneGraph *gf_sg_new()
 	tmp->routes_to_activate = gf_list_new();
 	tmp->routes_to_destroy = gf_list_new();
 	tmp->exported_nodes = gf_list_new();
+
 #ifndef GPAC_DISABLE_SVG
+	tmp->dom_evt.evt_list = gf_list_new();
+	tmp->dom_evt.ptr = tmp;
+	tmp->dom_evt.ptr_type = GF_DOM_EVENT_DOCUMENT;
 	tmp->xlink_hrefs = gf_list_new();
 	tmp->smil_timed_elements = gf_list_new();
 	tmp->modified_smil_timed_elements = gf_list_new();
 	tmp->listeners_to_add = gf_list_new();
-	tmp->dom_evt.evt_list = gf_list_new();
-	tmp->dom_evt.ptr = tmp;
-	tmp->dom_evt.ptr_type = GF_DOM_EVENT_DOCUMENT;
 #endif
+
 #ifdef GPAC_HAS_SPIDERMONKEY
 	tmp->scripts = gf_list_new();
 	tmp->objects = gf_list_new();
@@ -126,11 +128,11 @@ void gf_sg_del(GF_SceneGraph *sg)
 	gf_sg_reset(sg);
 
 #ifndef GPAC_DISABLE_SVG
+	gf_list_del(sg->dom_evt.evt_list);
 	gf_list_del(sg->xlink_hrefs);
 	gf_list_del(sg->smil_timed_elements);
 	gf_list_del(sg->modified_smil_timed_elements);
 	gf_list_del(sg->listeners_to_add);
-	gf_list_del(sg->dom_evt.evt_list);
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	gf_list_del(sg->scripts);
@@ -1340,6 +1342,7 @@ void gf_node_free(GF_Node *node)
 		if (node->sgprivate->interact->routes) {
 			gf_list_del(node->sgprivate->interact->routes);
 		}
+#ifndef GPAC_DISABLE_SVG
 		if (node->sgprivate->interact->dom_evt) {
 			while (gf_list_count(node->sgprivate->interact->dom_evt->evt_list)) {
 				GF_Node *n = gf_list_get(node->sgprivate->interact->dom_evt->evt_list, 0);
@@ -1351,6 +1354,7 @@ void gf_node_free(GF_Node *node)
 		if (node->sgprivate->interact->animations) {
 			gf_list_del(node->sgprivate->interact->animations);
 		}
+#endif
 		free(node->sgprivate->interact);
 	}
 	assert(! node->sgprivate->parents);
@@ -1529,13 +1533,15 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 {
 	gf_node_changed_internal(node, field, 1);
 
+#ifndef GPAC_DISABLE_SVG
 	if (node->sgprivate->tag >= GF_NODE_RANGE_FIRST_SVG && node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) {		
 		GF_DOM_Event evt;
 		evt.type = GF_EVENT_TREE_MODIFIED;
 		evt.bubbles = 0;
 		evt.relatedNode = node;
-gf_dom_event_fire(node, NULL, &evt);
+		gf_dom_event_fire(node, NULL, &evt);
 	}
+#endif
 }
 
 void gf_node_del(GF_Node *node)
@@ -1626,8 +1632,10 @@ u32 gf_sg_node_get_tag_by_class_name(const char *name, u32 ns)
 	tag = gf_node_x3d_type_by_class_name(name);	
 	if (tag) return tag;
 
+#ifndef GPAC_DISABLE_SVG
 	tag = gf_xml_get_element_tag(name, ns);
 	if (tag != TAG_UndefinedNode) return tag;
+#endif
 
 	return 	TAG_UndefinedNode;
 }
@@ -1656,8 +1664,6 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 	}
 #ifndef GPAC_DISABLE_SVG
 	else if (tag <= GF_NODE_RANGE_LAST_SVG) node = (GF_Node *) gf_svg_create_node(tag);
-#endif
-#ifndef GPAC_DISABLE_XBL
 	else if (tag <= GF_NODE_RANGE_LAST_XBL) node = (GF_Node *) gf_xbl_create_node(tag);
 #endif
 	else node = NULL;

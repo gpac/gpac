@@ -2243,6 +2243,7 @@ static JSBool MFColorConstructor(JSContext *c, JSObject *obj, uintN argc, jsval 
 	return obj == 0 ? JS_FALSE : JS_TRUE;
 }
 
+#ifndef GPAC_DISABLE_SVG
 JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node);
 JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node);
 
@@ -2268,6 +2269,8 @@ JSBool vrml_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval
 
 	return dom_event_remove_listener_ex(c, obj, argc, argv, rval, node);
 }
+#endif
+
 static JSBool vrml_dom3_not_implemented(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {	
 	return JS_FALSE;
@@ -2383,11 +2386,13 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 	{
 		JSFunctionSpec SFNodeMethods[] = {
 			{"toString", node_toString, 0},
+#ifndef GPAC_DISABLE_SVG
 			{"addEventListenerNS", vrml_event_add_listener, 4},
 			{"removeEventListenerNS", vrml_event_remove_listener, 4},
 			{"addEventListener", vrml_event_add_listener, 3},
 			{"removeEventListener", vrml_event_remove_listener, 3},
 			{"dispatchEvent", vrml_dom3_not_implemented, 1},
+#endif
 			{0}
 		};
 		JSPropertySpec SFNodeProps[] = {

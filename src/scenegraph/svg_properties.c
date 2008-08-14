@@ -24,6 +24,9 @@
  */
 
 #include <gpac/scenegraph_svg.h>
+
+#ifndef GPAC_DISABLE_SVG
+
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg.h>
 /* 
@@ -943,4 +946,6 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		att = att->next;
 	}
 }
+
+#endif
 

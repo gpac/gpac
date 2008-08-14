@@ -67,8 +67,12 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		return 1;
 	}
 	if (type==GF_JSAPI_OP_RESOLVE_XLINK) {
+#ifndef GPAC_DISABLE_SVG
 		param->uri.url = (char *) gf_term_resolve_xlink(n, (char *) param->uri.url);
 		return 1;
+#else
+		return 0;
+#endif
 	}
 	if (type==GF_JSAPI_OP_GET_OPT) {
 		param->gpac_cfg.key_val = gf_cfg_get_key(term->user->config, param->gpac_cfg.section, param->gpac_cfg.key);
@@ -201,10 +205,13 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 
 	if (term->root_scene) gf_inline_set_duration(term->root_scene);
 
+#ifndef GPAC_DISABLE_SVG
 	if (term->dcci_doc) {
 		sOpt = gf_cfg_get_key(term->user->config, "General", "EnvironmentFile");
 		gf_sg_reload_xml_doc(sOpt, term->dcci_doc);
 	}
+#endif
+	
 	/*reload compositor config*/
 	gf_sc_set_option(term->compositor, GF_OPT_RELOAD_CONFIG, 1);
 }
@@ -362,6 +369,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Terminal created - loading config\n"));
 	gf_term_reload_cfg(tmp);
 
+#ifndef GPAC_DISABLE_SVG
 	cf = gf_cfg_get_key(user->config, "General", "EnvironmentFile");
 	if (cf) {
 		GF_Err e = gf_sg_new_from_xml_doc(cf, &tmp->dcci_doc);
@@ -371,6 +379,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 			gf_sg_set_script_action(tmp->dcci_doc, term_script_action, tmp);
 		}
 	}
+#endif
 
 	/*load extensions*/
 	tmp->extensions = gf_list_new();

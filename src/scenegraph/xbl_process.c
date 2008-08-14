@@ -26,6 +26,9 @@
 #include <gpac/utf.h>
 #include <gpac/xml.h>
 #include <gpac/scenegraph_svg.h>
+
+#ifndef GPAC_DISABLE_SVG
+
 #include <gpac/nodes_xbl.h>
 
 typedef struct
@@ -230,3 +233,4 @@ void apply(GF_Node *bound_doc, GF_Node *binding_doc)
 
 }
 
+#endif

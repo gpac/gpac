@@ -89,11 +89,14 @@ struct _node_interactive_ext
 	THIS IS DYNAMICALLY CREATED*/
 	GF_List *routes;
 
+#ifndef GPAC_DISABLE_SVG
 	/*event listeners - THIS IS DYNAMICALLY CREATED*/
 	GF_DOMEventTarget *dom_evt;
 
 	/* SVG animations are registered in the target node  - THIS IS DYNAMICALLY CREATED*/
 	GF_List *animations;
+#endif
+
 };
 
 typedef struct _nodepriv
@@ -218,20 +221,9 @@ struct __tag_scene_graph
 	/*global qp used in BIFS coding*/
 	GF_Node *global_qp;
 
+
 #ifndef GPAC_DISABLE_SVG
-	GF_List *xlink_hrefs;
-	GF_List *smil_timed_elements;
-	GF_List *modified_smil_timed_elements;
-	Bool update_smil_timing;
-
 	GF_DOMEventTarget dom_evt;
-
-	/*listeners to add*/
-	GF_List *listeners_to_add;
-#ifdef GPAC_HAS_SPIDERMONKEY
-	struct __tag_svg_script_ctx *svg_js;
-#endif
-
 	u32 nb_evts_focus;
 	u32 nb_evts_mouse;
 	u32 nb_evts_key;
@@ -243,6 +235,18 @@ struct __tag_scene_graph
 	u32 nb_evts_mae;
 	u32 nb_evts_svg;
 	u32 dom_evt_filter;
+
+	GF_List *xlink_hrefs;
+	GF_List *smil_timed_elements;
+	GF_List *modified_smil_timed_elements;
+	Bool update_smil_timing;
+
+	/*listeners to add*/
+	GF_List *listeners_to_add;
+#ifdef GPAC_HAS_SPIDERMONKEY
+	struct __tag_svg_script_ctx *svg_js;
+#endif
+
 #endif
 
 #ifdef GPAC_HAS_SPIDERMONKEY
