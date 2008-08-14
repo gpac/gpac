@@ -27,8 +27,6 @@
 #ifndef _GF_SCENEGRAPH_DEV_H_
 #define _GF_SCENEGRAPH_DEV_H_
 
-//#define GF_NODE_USE_POINTERS
-
 /*defined this macro to enable cyclic render*/
 #define GF_CYCLIC_TRAVERSE_ON
 
@@ -46,6 +44,9 @@
 #if defined(WIN32) || defined(_WIN32_WCE) || defined(__SYMBIAN32__)
 #ifndef XP_PC
 #define XP_PC
+#endif
+#ifndef XP_WIN
+#define XP_WIN
 #endif
 /*WINCE specific config*/
 #if defined(_WIN32_WCE)
@@ -87,8 +88,9 @@ struct _node_interactive_ext
 	/*routes on eventOut, ISed routes, ... for VRML-based scene graphs
 	THIS IS DYNAMICALLY CREATED*/
 	GF_List *routes;
+
 	/*event listeners - THIS IS DYNAMICALLY CREATED*/
-	GF_List *events;
+	GF_DOMEventTarget *dom_evt;
 
 	/* SVG animations are registered in the target node  - THIS IS DYNAMICALLY CREATED*/
 	GF_List *animations;
@@ -98,26 +100,19 @@ typedef struct _nodepriv
 {
 	/*node type*/
 	u16 tag;
-	/*number of instances of this node in the graph (VRML/MPEG-4 only)*/
+	/*number of instances of this node in the graph*/
 	u16 num_instances;
 	/*node flags*/
 	u32 flags;
 	/*scenegraph holding the node*/
 	struct __tag_scene_graph *scenegraph;
 
-#ifdef GF_NODE_USE_POINTERS
-	const char *name;
-	u32 (*get_field_count)(struct _base_node *node, u8 IndexMode);
-	void (*node_del)(struct _base_node *node);
-	GF_Err (*get_field) (struct _base_node *node, GF_FieldInfo *info);
-#endif
-
 	/*user defined callback function */
 	void (*UserCallback)(struct _base_node *node, void *render_stack, Bool node_destroy);
 	/*user defined stack*/
 	void *UserPrivate;
 
-	/*list of all parent nodes (whether DEF or not, needed to invalidate parent tree)*/
+	/*list of all parent nodes (needed to invalidate parent tree)*/
 	GF_ParentList *parents;
 	
 	/*holder for all interactive stuff - THIS IS DYNAMICALLY CREATED*/
@@ -136,8 +131,18 @@ typedef struct __tag_node_id
 	char *NodeName;
 } NodeIDedItem;
 
+typedef struct
+{
+	char *name;
+	char *qname;
+	u32 xmlns_id;
+} GF_XMLNS;
+
 struct __tag_scene_graph 
 {
+	/*used to discriminate between node and scenegraph*/
+	u64 __reserved_null;
+
 	/*all DEF nodes (explicit)*/
 	NodeIDedItem *id_node, *id_node_last;
 
@@ -202,6 +207,10 @@ struct __tag_scene_graph
 
 	u32 max_defined_route_id;
 
+	/*namespaces are handled globaly in GPAC, we don't use hierarchical xmlns on subtrees. This
+	could be a problem on some content, maybe a finer approach should be used ?*/
+	GF_List *ns;
+
 #ifdef GF_SELF_REPLACE_ENABLE
 	/*to detect replace scene from within conditionals*/
 	Bool graph_has_been_reset;
@@ -214,6 +223,9 @@ struct __tag_scene_graph
 	GF_List *smil_timed_elements;
 	GF_List *modified_smil_timed_elements;
 	Bool update_smil_timing;
+
+	GF_DOMEventTarget dom_evt;
+
 	/*listeners to add*/
 	GF_List *listeners_to_add;
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -296,23 +308,19 @@ void gf_sg_destroy_routes(GF_SceneGraph *sg);
 GF_Node *gf_sg_mpeg4_node_new(u32 NodeTag);
 u32 gf_sg_mpeg4_node_get_child_ndt(GF_Node *node);
 GF_Err gf_sg_mpeg4_node_get_field_index(GF_Node *node, u32 inField, u8 code_mode, u32 *fieldIndex);
-#ifndef GF_NODE_USE_POINTERS
 GF_Err gf_sg_mpeg4_node_get_field(GF_Node *node, GF_FieldInfo *field);
 u32 gf_sg_mpeg4_node_get_field_count(GF_Node *node, u8 code_mode);
 void gf_sg_mpeg4_node_del(GF_Node *node);
 const char *gf_sg_mpeg4_node_get_class_name(u32 NodeTag);
-#endif
 Bool gf_sg_mpeg4_node_get_aq_info(GF_Node *node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits);
 s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name);
 
 /*X3D def*/
 GF_Node *gf_sg_x3d_node_new(u32 NodeTag);
-#ifndef GF_NODE_USE_POINTERS
 GF_Err gf_sg_x3d_node_get_field(GF_Node *node, GF_FieldInfo *field);
 u32 gf_sg_x3d_node_get_field_count(GF_Node *node);
 void gf_sg_x3d_node_del(GF_Node *node);
 const char *gf_sg_x3d_node_get_class_name(u32 NodeTag);
-#endif
 s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name);
 
 void gf_sg_mfint32_del(MFInt32 par);
@@ -354,8 +362,8 @@ void gf_svg_delete_coordinates	(GF_List *l);
 /*for keyTimes, keyPoints and keySplines*/
 void gf_smil_delete_key_types	(GF_List *l);
 
-u32 gf_svg_get_attribute_count(GF_Node *node);
-GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info) ;
+u32 gf_node_get_attribute_count(GF_Node *node);
+GF_Err gf_node_get_attribute_info(GF_Node *node, GF_FieldInfo *info) ;
 
 
 /*SMIL anim tools*/
@@ -741,10 +749,8 @@ typedef struct _proto_instance
 	/*node for proto rendering, first of all declared nodes*/
 	GF_Node *RenderingNode;
 
-#ifndef GF_NODE_USE_POINTERS
 	/*in case the PROTO is destroyed*/
 	char *proto_name;
-#endif
 
 	/*scripts are loaded once all IS routes are activated and node code is loaded*/
 	GF_List *scripts_to_load;
@@ -784,13 +790,6 @@ typedef struct
 
 	//BIFS coding stuff
 	u32 numIn, numDef, numOut;
-
-	/*pointer to original tables*/
-#ifdef GF_NODE_USE_POINTERS
-	GF_Err (*gf_sg_script_get_field)(GF_Node *node, GF_FieldInfo *info);
-	GF_Err (*gf_sg_script_get_field_index)(GF_Node *node, u32 inField, u8 IndexMode, u32 *allField);
-#endif
-
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 	struct JSContext *js_ctx;
@@ -842,6 +841,21 @@ struct _scriptfield
 
 #include <gpac/download.h>
 #include <gpac/network.h>
+
+
+#define JS_SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
+	memset(&the_class, 0, sizeof(the_class));	\
+	the_class.name = cname;	\
+	the_class.flags = flag;	\
+	the_class.addProperty = JS_PropertyStub;	\
+	the_class.delProperty = JS_PropertyStub;	\
+	the_class.getProperty = getp;	\
+	the_class.setProperty = setp;	\
+	the_class.enumerate = JS_EnumerateStub;	\
+	the_class.resolve = JS_ResolveStub;		\
+	the_class.convert = JS_ConvertStub;		\
+	the_class.finalize = fin;	
+
 
 typedef struct
 {
@@ -903,6 +917,38 @@ void dom_js_define_document(struct JSContext *c, struct JSObject *global, GF_Sce
 /*defines a new global object "evt" of type Event*/
 struct JSObject *dom_js_define_event(struct JSContext *c, struct JSObject *global);
 
+struct JSObject *gf_dom_new_event(struct JSContext *c);
+
+struct JSObject *dom_js_get_node_proto(struct JSContext *c);
+struct JSObject *dom_js_get_element_proto(struct JSContext *c);
+struct JSObject *dom_js_get_document_proto(struct JSContext *c);
+struct JSObject *dom_js_get_event_proto(struct JSContext *c);
+
+void dom_set_class_selector(struct JSContext *c, struct JSClass *(*get_element_class)(GF_Node *n), struct JSClass *(*get_document_class)(GF_SceneGraph *n) );
+
+enum
+{
+	GF_DOM_EXC_INDEX_SIZE_ERR = 1,
+	GF_DOM_EXC_DOMSTRING_SIZE_ERR = 2,
+	GF_DOM_EXC_HIERARCHY_REQUEST_ERR = 3,
+	GF_DOM_EXC_WRONG_DOCUMENT_ERR = 4,
+	GF_DOM_EXC_INVALID_CHARACTER_ERR = 5,
+	GF_DOM_EXC_NO_DATA_ALLOWED_ERR = 6,
+	GF_DOM_EXC_NO_MODIFICATION_ALLOWED_ERR = 7,
+	GF_DOM_EXC_NOT_FOUND_ERR = 8,
+	GF_DOM_EXC_NOT_SUPPORTED_ERR = 9,
+	GF_DOM_EXC_INUSE_ATTRIBUTE_ERR = 10,
+	GF_DOM_EXC_INVALID_STATE_ERR = 11,
+	GF_DOM_EXC_SYNTAX_ERR = 12,
+	GF_DOM_EXC_INVALID_MODIFICATION_ERR = 13,
+	GF_DOM_EXC_NAMESPACE_ERR = 14,
+	GF_DOM_EXC_INVALID_ACCESS_ERR = 15,
+	GF_DOM_EXC_VALIDATION_ERR = 16,
+	GF_DOM_EXC_TYPE_MISMATCH_ERR = 17,
+};
+
+int dom_throw_exception(struct JSContext *c, u32 code);
+
 void gf_sg_handle_dom_event_for_vrml(GF_Node *hdl, GF_DOM_Event *event);
 
 void gf_sg_load_script_extensions(GF_SceneGraph *sg, struct JSContext *c, struct JSObject *obj, Bool unload);
@@ -915,11 +961,11 @@ SVG_Element *gf_svg_create_node(u32 tag);
 Bool gf_svg_node_init(GF_Node *node);
 void gf_svg_node_del(GF_Node *node);
 Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field);
-const char *gf_svg_get_element_name(u32 tag);
+const char *gf_xml_get_element_name(GF_Node *node);
 
-SVGAttribute *gf_svg_create_attribute_from_datatype(u32 data_type, u32 attribute_tag);
+SVGAttribute *gf_node_create_attribute_from_datatype(u32 data_type, u32 attribute_tag);
 
-GF_Err gf_svg_get_attribute_by_name(GF_Node *node, char *name, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
+GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
 void *gf_svg_get_property_pointer_from_tag(SVGPropertiesPointers *output_property_context, u32 prop_tag);
 void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
 								   SVGPropertiesPointers *output_property_context);
@@ -943,12 +989,20 @@ void gf_dom_listener_post_add(GF_Node *obs, GF_Node *listener);
 /*process all pending add_listener request*/
 void gf_dom_listener_process_add(GF_SceneGraph *sg);
 
+
+void gf_node_delete_attributes(GF_Node *node);
+
+
 typedef GF_DOMNode XBL_Element;
 const char *gf_xbl_get_element_name(u32 tag);
 u32 gf_xbl_get_element_tag(const char *element_name);
 XBL_Element *gf_xbl_create_node(u32 ElementTag);
 u32 gf_xbl_get_attribute_tag(u32 element_tag, const char *attribute_name);
 GF_DOMAttribute *gf_xbl_create_attribute(GF_DOMNode *elt, u32 tag);
+
+
+
+GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target);
 
 #endif	/*_GF_SCENEGRAPH_DEV_H_*/
 

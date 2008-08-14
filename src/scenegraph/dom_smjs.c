@@ -26,9 +26,11 @@
 #include <gpac/internal/scenegraph_dev.h>
 
 /*base SVG type*/
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 /*dom events*/
 #include <gpac/events.h>
+/*dom text event*/
+#include <gpac/utf.h>
 
 #include <gpac/download.h>
 #include <gpac/network.h>
@@ -39,19 +41,6 @@
 
 #include <jsapi.h> 
 
-
-#define DOM_CORE_SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
-	memset(&the_class, 0, sizeof(the_class));	\
-	the_class.name = cname;	\
-	the_class.flags = flag;	\
-	the_class.addProperty = JS_PropertyStub;	\
-	the_class.delProperty = JS_PropertyStub;	\
-	the_class.getProperty = getp;	\
-	the_class.setProperty = setp;	\
-	the_class.enumerate = JS_EnumerateStub;	\
-	the_class.resolve = JS_ResolveStub;		\
-	the_class.convert = JS_ConvertStub;		\
-	the_class.finalize = fin;
 
 
 static GFINLINE Bool ScriptAction(GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
@@ -71,6 +60,9 @@ static GFINLINE GF_SceneGraph *xml_get_scenegraph(JSContext *c)
 	return scene;
 }
 
+#define JSVAL_CHECK_STRING(_v) (JSVAL_IS_STRING(_v) || JSVAL_IS_NULL(_v))
+#define JSVAL_GET_STRING(_v) (JSVAL_IS_NULL(_v) ? NULL : JS_GetStringBytes(JSVAL_TO_STRING(_v)) )
+
 /************************************************************
  *
  *				DOM3 core implementation
@@ -87,92 +79,28 @@ typedef struct
 	JSClass domTextClass;
 	JSClass domNodeListClass;
 	JSClass domEventClass;
+
 	JSClass xmlHTTPRequestClass;
 	JSClass DCCIClass;
+
+	JSObject *dom_node_proto;
+	JSObject *dom_document_proto;
+	JSObject *dom_element_proto;
+	JSObject *dom_event_proto;
+
+	JSClass *(*get_element_class)(GF_Node *n);
+	JSClass *(*get_document_class)(GF_SceneGraph *n);
 } GF_DOMRuntime;
 
 static GF_DOMRuntime *dom_rt = NULL;
 
-/*SVG uDOM declarations*/
-JSBool svg_udom_set_property(JSContext *c, GF_Node *n, u32 svg_prop_id, jsval *vp);
-JSBool svg_udom_get_property(JSContext *c, GF_Node *_n, u32 svg_prop_id, jsval *vp);
-JSBool svg_udom_smil_begin(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_smil_end(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_smil_pause(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_smil_resume(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_get_float_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_get_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_get_rect_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_get_path_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_get_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_set_float_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_set_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_set_rect_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_set_path_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_set_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_get_local_bbox(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_get_screen_bbox(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_get_screen_ctm(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_create_matrix_components(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_create_rect(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_create_path(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_create_color(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_move_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_set_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool svg_udom_get_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-jsval svg_udom_new_rect(JSContext *c, Fixed x, Fixed y, Fixed width, Fixed h);
-jsval svg_udom_new_point(JSContext *c, Fixed x, Fixed y);
-
 
 static JSBool xml_dom3_not_implemented(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {	
-	return JS_FALSE;
+	return JS_TRUE;
 }
 
-/*DOM Node functions*/
-#define JS_DOM3_NODE_FUNCS	\
-	{"insertBefore",			xml_node_insert_before, 2},	\
-	{"replaceChild",			xml_node_replace_child, 2},	\
-	{"removeChild",				xml_node_remove_child, 1},	\
-	{"appendChild",				xml_node_append_child, 1},	\
-	{"hasChildNodes",			xml_node_has_children, 0},	\
-	{"cloneNode",				xml_dom3_not_implemented, 1},	\
-	{"normalize",				xml_dom3_not_implemented, 0},	\
-	{"isSupported",				xml_dom3_not_implemented, 2},	\
-	{"hasAttributes",			xml_node_has_attributes, 0},	\
-	{"compareDocumentPosition", xml_dom3_not_implemented, 1},	\
-	{"isSameNode",				xml_node_is_same_node, 1},	\
-	{"lookupPrefix",			xml_dom3_not_implemented, 1},	\
-	{"isDefaultNamespace",		xml_dom3_not_implemented, 1},	\
-	{"lookupNamespaceURI",		xml_dom3_not_implemented, 1},	\
-	/*we don't support full node compare*/	\
-	{"isEqualNode",				xml_node_is_same_node, 1},	\
-	{"getFeature",				xml_dom3_not_implemented, 2},	\
-	{"setUserData",				xml_dom3_not_implemented, 3},	\
-	{"getUserData",				xml_dom3_not_implemented, 1},
 
-/*DOM Node properties*/
-#define JS_DOM3_NODE_PROPS	\
-	{"nodeName",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"nodeValue",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT},	\
-	{"nodeType",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"parentNode",		3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"childNodes",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"firstChild",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"lastChild",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"previousSibling",	7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"nextSibling",		8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"attributes",		9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"ownerDocument",	10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"namespaceURI",	11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"prefix",			12,       JSPROP_ENUMERATE | JSPROP_PERMANENT},						\
-	{"localName",		13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"baseURI",			14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},	\
-	{"textContent",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT},			
-
-#define JS_DOM3_NODE_LAST_PROP		15
 #define JS_DOM3_uDOM_FIRST_PROP		18
 
 static void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info)
@@ -194,27 +122,84 @@ static void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info)
 		n->sgprivate->scenegraph->NodeCallback(n->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, n, info);
 }
 
+static void define_dom_exception(JSContext *c, JSObject *global)
+{
+#define DEF_EXC(_val)	\
+	JS_DefineProperty(c, obj, #_val, INT_TO_JSVAL(GF_DOM_EXC_##_val), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+
+	JSObject *obj = JS_DefineObject(c, global, "DOMException", NULL, 0, 0);
+
+	DEF_EXC(INDEX_SIZE_ERR);
+	DEF_EXC(DOMSTRING_SIZE_ERR);
+	DEF_EXC(HIERARCHY_REQUEST_ERR);
+	DEF_EXC(WRONG_DOCUMENT_ERR);
+	DEF_EXC(INVALID_CHARACTER_ERR);
+	DEF_EXC(NO_DATA_ALLOWED_ERR);
+	DEF_EXC(NO_MODIFICATION_ALLOWED_ERR);
+	DEF_EXC(NOT_FOUND_ERR);
+	DEF_EXC(NOT_SUPPORTED_ERR);
+	DEF_EXC(INUSE_ATTRIBUTE_ERR);
+	DEF_EXC(INVALID_STATE_ERR);
+	DEF_EXC(SYNTAX_ERR);
+	DEF_EXC(INVALID_MODIFICATION_ERR);
+	DEF_EXC(NAMESPACE_ERR);
+	DEF_EXC(INVALID_ACCESS_ERR);
+	DEF_EXC(VALIDATION_ERR);
+	DEF_EXC(TYPE_MISMATCH_ERR);
+#undef  DEF_EXC
+
+	obj = JS_DefineObject(c, global, "EventException", NULL, 0, 0);
+	JS_DefineProperty(c, obj, "UNSPECIFIED_EVENT_TYPE_ERR", INT_TO_JSVAL(0), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, obj, "DISPATCH_REQUEST_ERR", INT_TO_JSVAL(1), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+}
+
+
+JSBool dom_throw_exception(JSContext *c, u32 code)
+{
+	JSObject *obj = JS_NewObject(c, NULL, 0, 0);
+	JS_DefineProperty(c, obj, "code", INT_TO_JSVAL(code), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_SetPendingException(c, OBJECT_TO_JSVAL(obj));
+	return JS_FALSE;
+}
+
+
 GF_Node *dom_get_node(JSContext *c, JSObject *obj)
 {
-	if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) 
-		|| JS_InstanceOf(c, obj, &dom_rt->domTextClass, NULL)
-		|| JS_InstanceOf(c, obj, &dom_rt->domNodeClass, NULL) 
-		|| JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) 
-	)
-		return (GF_Node *) JS_GetPrivate(c, obj);
+	GF_Node *n = JS_GetPrivate(c, obj);
+	if (n->sgprivate) return n;
+	return NULL;
+}
 
+GF_Node *dom_get_element(JSContext *c, JSObject *obj)
+{
+	GF_Node *n = JS_GetPrivate(c, obj);
+	if (!n || !n->sgprivate) return NULL;
+	if (n->sgprivate->tag==TAG_DOMText) return NULL;
+	return n;
+}
+
+GF_SceneGraph *dom_get_doc(JSContext *c, JSObject *obj)
+{
+	GF_SceneGraph *sg = JS_GetPrivate(c, obj);
+	if (sg && !sg->__reserved_null) return sg;
 	return NULL;
 }
 
 static jsval dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 {
+	JSClass *jsclass;
 	JSObject *new_obj;
 	if (sg->document) return OBJECT_TO_JSVAL(sg->document);
 
 	if (sg->reference_count)
 		sg->reference_count++;
 	gf_node_register(sg->RootNode, NULL);
-	new_obj = JS_NewObject(c, &dom_rt->domDocumentClass, 0, 0);
+
+	jsclass = &dom_rt->domDocumentClass;
+	if (dom_rt->get_document_class)
+		jsclass = dom_rt->get_document_class(sg);
+
+	new_obj = JS_NewObject(c, jsclass, 0, 0);
 	JS_SetPrivate(c, new_obj, sg);
 	sg->document = new_obj;
 	return OBJECT_TO_JSVAL(new_obj);
@@ -247,8 +232,11 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 static jsval dom_node_construct(JSContext *c, GF_Node *n)
 {
 	JSClass *__class = &dom_rt->domElementClass;
+	if (!n) return JSVAL_NULL;
 	if (n->sgprivate->scenegraph->dcci_doc)
 		__class = &dom_rt->DCCIClass;
+	else if (dom_rt->get_element_class)
+		__class = dom_rt->get_element_class(n);
 
 	/*in our implementation ONLY ELEMENTS are created, never attributes. We therefore always
 	create Elements when asked to create a node !!*/
@@ -257,13 +245,15 @@ static jsval dom_node_construct(JSContext *c, GF_Node *n)
 jsval dom_element_construct(JSContext *c, GF_Node *n)
 {
 	JSClass *__class = &dom_rt->domElementClass;
+	if (!n) return JSVAL_VOID;
 	if (n->sgprivate->scenegraph->dcci_doc)
 		__class = &dom_rt->DCCIClass;
+	else if (dom_rt->get_element_class)
+		__class = dom_rt->get_element_class(n);
 
-	/*in our implementation ONLY ELEMENTS are created, never attributes. We therefore always
-	create Elements when asked to create a node !!*/
 	return dom_base_node_construct(c, __class, n);
 }
+
 static jsval dom_text_construct(JSContext *c, GF_Node *n)
 {
 	return dom_base_node_construct(c, &dom_rt->domTextClass, n);
@@ -284,22 +274,46 @@ static void dom_unregister_node(GF_Node *n)
 	}
 }
 
-static jsval dom_node_get_sibling(JSContext *c, GF_Node *n, Bool is_prev)
+jsval dom_node_get_sibling(JSContext *c, GF_Node *n, Bool is_prev, Bool elt_only)
 {
-	s32 idx;
+	GF_Node *val;
+	GF_ChildNodeItem *child;
+	s32 idx, cur;
 	GF_ParentNode *par;
-	if (!n) return JSVAL_VOID;
+	if (!n) return JSVAL_NULL;
 	par = (GF_ParentNode *)gf_node_get_parent(n, 0);
-	if (!par) return JSVAL_VOID;
+	if (!par) return JSVAL_NULL;
 
 	idx = gf_node_list_find_child(par->children, n);
-	if (idx<0) return JSVAL_VOID;
-	if (is_prev) {
-		idx--;
-		if (idx<0) return JSVAL_VOID;
+	if (idx<0) return JSVAL_NULL;
+
+	if (!elt_only) {
+		if (is_prev) {
+			idx--;
+			if (idx<0) return JSVAL_NULL;
+		}
+		else idx++;
+		return dom_node_construct(c, gf_node_list_get_child(par->children, idx) );
 	}
-	else idx++;
-	return dom_node_construct(c, gf_node_list_get_child(par->children, idx) );
+	cur = 0;
+	val = NULL;
+	child = par->children;
+	while (child) {
+		if ((idx!=cur) && (child->node->sgprivate->tag!=TAG_DOMText)) {
+			val = child->node;
+		}
+		if (is_prev) {
+			if (idx<=cur) 
+				break;
+		} else {
+			if (idx>=cur) val = NULL;
+			if (val && idx<cur) 
+				break;
+		}
+		child = child->next;
+		cur++;
+	}
+	return dom_node_construct(c, val);
 }
 
 char *dom_node_flatten_text(GF_Node *n)
@@ -307,8 +321,14 @@ char *dom_node_flatten_text(GF_Node *n)
 	u32 len = 0;
 	char *res = NULL;
 	GF_ChildNodeItem *list;
-	if (n->sgprivate->tag==TAG_DOMText) return strdup(((GF_DOMText*)n)->textContent);
-	else if (n->sgprivate->tag==TAG_SVG_handler) return res;
+
+	if (n->sgprivate->tag==TAG_DOMText) {
+		if ( ((GF_DOMText*)n)->type == GF_DOM_TEXT_REGULAR) {
+			res = strdup(((GF_DOMText*)n)->textContent);
+			len = strlen(res);
+		}
+	}
+	
 	list = ((GF_ParentNode *)n)->children;
 	while (list) {
 		char *t = dom_node_flatten_text(list->node);
@@ -380,8 +400,10 @@ static JSBool dom_nodelist_item(JSContext *c, JSObject *obj, uintN argc, jsval *
 	GF_Node *n;
 	u32 idx, count;
 	DOMNodeList *nl;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL) ) return JS_FALSE;
-	if ((argc!=1) || !JSVAL_IS_INT(argv[0])) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL) ) 
+		return JS_TRUE;
+	if ((argc!=1) || !JSVAL_IS_INT(argv[0])) 
+		return JS_TRUE;
 
 	nl = (DOMNodeList *)JS_GetPrivate(c, obj);
 	count = gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child);
@@ -402,7 +424,7 @@ static JSBool dom_nodelist_getProperty(JSContext *c, JSObject *obj, jsval id, js
 	DOMNodeList *nl;
 	if (!JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL) 
 	)
-		return JS_FALSE;
+		return JS_TRUE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 
@@ -412,7 +434,7 @@ static JSBool dom_nodelist_getProperty(JSContext *c, JSObject *obj, jsval id, js
 		*vp = INT_TO_JSVAL( gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child) );
 		return JS_TRUE;
 	}
-	return JS_FALSE;
+	return JS_TRUE;
 }
 static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
@@ -424,7 +446,7 @@ static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, jsval id, js
 
 /*dom event listener*/
 
-#define JS_DOM3_EVEN_TARGET_FUNC	\
+#define JS_DOM3_EVEN_TARGET_INTERFACE	\
 	{"addEventListenerNS", dom_event_add_listener, 4},	\
 	{"removeEventListenerNS", dom_event_remove_listener, 4},	\
 	{"addEventListener", dom_event_add_listener, 3},		\
@@ -434,6 +456,7 @@ static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, jsval id, js
 /*eventListeners routines used by document, element and connection interfaces*/
 JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node)
 {
+	GF_DOMEventTarget *target;
 	GF_FieldInfo info;
 	GF_Node *listener;
 	SVG_handlerElement *handler;
@@ -441,46 +464,48 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 	u32 of = 0;
 	u32 evtType;
 	char *inNS = NULL;
-	GF_Node *node = NULL;
+	GF_SceneGraph *sg = NULL;
+	GF_Node *n = NULL;
+	JSFunction *fun;
 
-	if (JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) {
-		GF_SceneGraph *sg = JS_GetPrivate(c, obj);
-		node = sg->RootNode;
-	}
-	else if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) 
-		|| JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) {
-		node = JS_GetPrivate(c, obj);
+	target = NULL;
+	/*document interface*/
+	sg = dom_get_doc(c, obj);
+	if (sg) {
+		target = &sg->dom_evt;
+	} else {
+		n = dom_get_element(c, obj);
+		if (!n) n = vrml_node;
+
+		if (n) sg = n->sgprivate->scenegraph;
 	}
 	/*FIXME - SVG uDOM connection not supported yet*/
-	else {
-	}
-	if (!node) {
-		if (!vrml_node) return JS_FALSE;
-		node = vrml_node;
-	}
 
-	if (argc==4) {
-		if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-		inNS = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	if (!sg) return JS_TRUE;
+
+	/*NS version*/
+	if (argc==5) {
+		if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+		inNS = JSVAL_GET_STRING(argv[0]);
 		of = 1;
 	}
 
-	if (!JSVAL_IS_STRING(argv[of])) return JS_FALSE;
-	type = JS_GetStringBytes(JSVAL_TO_STRING(argv[of]));
+	if (!JSVAL_CHECK_STRING(argv[of])) return JS_TRUE;
+	type = JSVAL_GET_STRING(argv[of]);
 	callback = NULL;
-	if (JSVAL_IS_STRING(argv[of+1])) {
-		callback = JS_GetStringBytes(JSVAL_TO_STRING(argv[of+1]));
+	fun = NULL;
+	if (JSVAL_CHECK_STRING(argv[of+1])) {
+		callback = JSVAL_GET_STRING(argv[of+1]);
 	} else if (JSVAL_IS_OBJECT(argv[of+1])) {
-		JSFunction *fun = JS_ValueToFunction(c, argv[of+1]);
-		if (!fun) return JS_FALSE;
-		callback = (char *) JS_GetFunctionName(fun);
+		fun = JS_ValueToFunction(c, argv[of+1]);
+		if (!fun) return JS_TRUE;
 	}
-	if(!callback) return JS_FALSE;
+	if (!callback && !fun) return JS_TRUE;
 
 	evtType = gf_dom_event_type_by_name(type);
-	if (evtType==GF_EVENT_UNKNOWN) return JS_FALSE;
+	if (evtType==GF_EVENT_UNKNOWN) return JS_TRUE;
 
-	listener = gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
+	listener = gf_node_new(sg, TAG_SVG_listener);
 	/*we don't register the listener with the parent node , it will be registered 
 	on gf_dom_listener__add*/
 
@@ -491,20 +516,29 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 		/*we register the handler with the listener node to avoid modifying the DOM*/
 		gf_node_register((GF_Node *)handler, listener);
 		gf_node_list_add_child(& ((GF_ParentNode *)listener)->children, (GF_Node*)handler);
+
+		if (!callback) {
+			handler->js_fun_val = argv[of+1];
+			handler->js_fun = fun;
+			handler->js_obj = obj;
+		}
 	}
 
 	/*create attributes if needed*/
-	gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_event, 1, 0, &info);
+	gf_node_get_attribute_by_tag(listener, TAG_SVG_ATT_event, 1, 0, &info);
 	((XMLEV_Event*)info.far_ptr)->type = evtType;
-	gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_handler, 1, 0, &info);
+	gf_node_get_attribute_by_tag(listener, TAG_SVG_ATT_handler, 1, 0, &info);
 	((XMLRI*)info.far_ptr)->target = (GF_Node*)handler;
-	gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_listener_target, 1, 0, &info);
-	((XMLRI*)info.far_ptr)->target = node;
+	if (n) {
+		gf_node_get_attribute_by_tag(listener, TAG_SVG_ATT_listener_target, 1, 0, &info);
+		((XMLRI*)info.far_ptr)->target = n;
+	}
 
-	gf_svg_get_attribute_by_tag((GF_Node*)handler, TAG_SVG_ATT_ev_event, 1, 0, &info);
+	gf_node_get_attribute_by_tag((GF_Node*)handler, TAG_XMLEV_ATT_event, 1, 0, &info);
 	((XMLEV_Event*)info.far_ptr)->type = evtType;
 
-	gf_dom_add_text_node((GF_Node *)handler, strdup(callback));
+	if (callback) gf_dom_add_text_node((GF_Node *)handler, strdup(callback));
+
 #ifndef GPAC_DISABLE_SVG
 	if (handler->sgprivate->scenegraph->svg_js)
 		handler->handle_event = gf_sg_handle_dom_event;
@@ -516,7 +550,11 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 	}
 
 	/*don't add listener directly, post it and wait for event processing*/
-	gf_dom_listener_post_add((GF_Node *) node, listener);
+	if (n) {
+		gf_dom_listener_post_add((GF_Node *) n, listener);
+	} else {
+		gf_dom_listener_add(listener, target);
+	}
 	return JS_TRUE;
 }
 JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -531,68 +569,80 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 	u32 evtType, i, count;
 	char *inNS = NULL;
 	GF_Node *node = NULL;
+	JSFunction *fun = NULL;
+	GF_SceneGraph *sg = NULL;
+	GF_DOMEventTarget *target = NULL;
 
-	if (JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) {
-		GF_SceneGraph *sg = JS_GetPrivate(c, obj);
-		node = sg->RootNode;
-	}
-	else if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) 
-		|| JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) 
-		) {
-		node = JS_GetPrivate(c, obj);
-	} 
-	/*FIXME - SVG uDOM conection not supported yet*/
-	else  {
-	}
-	if (!node) node = vrml_node;
 
-	if (!node || !node->sgprivate->interact || !node->sgprivate->interact->events) return JS_FALSE;
+	sg = dom_get_doc(c, obj);
+	if (sg) target = &sg->dom_evt;
+	else {
+		node = dom_get_element(c, obj);
+		if (!node) node = vrml_node;
+
+		if (node) {
+			sg = node->sgprivate->scenegraph;
+			if (node->sgprivate->interact) target = node->sgprivate->interact->dom_evt;
+		}
+	}
+	/*FIXME - SVG uDOM connection not supported yet*/
+
+	if (!sg || !target) return JS_TRUE;
+
+	gf_dom_listener_process_add(sg);
 
 	if (argc==4) {
-		if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-		inNS = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+		inNS = JSVAL_GET_STRING(argv[0]);
 		of = 1;
 	}
 
-	if (!JSVAL_IS_STRING(argv[of])) return JS_FALSE;
-	type = JS_GetStringBytes(JSVAL_TO_STRING(argv[of]));
+	if (!JSVAL_CHECK_STRING(argv[of])) return JS_TRUE;
+	type = JSVAL_GET_STRING(argv[of]);
 	callback = NULL;
-	if (JSVAL_IS_STRING(argv[of+1])) {
-		callback = JS_GetStringBytes(JSVAL_TO_STRING(argv[of+1]));
+	if (JSVAL_CHECK_STRING(argv[of+1])) {
+		callback = JSVAL_GET_STRING(argv[of+1]);
 	} else if (JSVAL_IS_OBJECT(argv[of+1])) {
-		JSFunction *fun = JS_ValueToFunction(c, argv[of+1]);
-		if (!fun) return JS_FALSE;
-		callback = (char *) JS_GetFunctionName(fun);
+		fun = JS_ValueToFunction(c, argv[of+1]);
+		if (!fun) return JS_TRUE;
 	}
-	if(!callback) return JS_FALSE;
+	if (!callback && !fun) return JS_TRUE;
 
 	evtType = gf_dom_event_type_by_name(type);
-	if (evtType==GF_EVENT_UNKNOWN) return JS_FALSE;
+	if (evtType==GF_EVENT_UNKNOWN) return JS_TRUE;
 	
-	count = gf_list_count(node->sgprivate->interact->events);
+	count = gf_list_count(target->evt_list);
 	for (i=0; i<count; i++) {
 		GF_FieldInfo info;
 		GF_DOMText *txt;
 		SVG_handlerElement *hdl;
-		GF_Node *el = gf_dom_listener_get(node, i);
-		gf_svg_get_attribute_by_tag(el, TAG_SVG_ATT_event, 0, 0, &info);
+		GF_Node *el = gf_list_get(target->evt_list, i);
+
+		gf_node_get_attribute_by_tag(el, TAG_SVG_ATT_event, 0, 0, &info);
 		if (!info.far_ptr) continue;
 		if (((XMLEV_Event*)info.far_ptr)->type != evtType) continue;
 
-		gf_svg_get_attribute_by_tag(el, TAG_SVG_ATT_handler, 0, 0, &info);
+		gf_node_get_attribute_by_tag(el, TAG_SVG_ATT_handler, 0, 0, &info);
 		if (!info.far_ptr) continue;
 		hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 		if (!hdl) continue;
-		txt = (GF_DOMText *) hdl->children->node;
-		if (txt->sgprivate->tag != TAG_DOMText) continue;
-		if (!txt->textContent || strcmp(txt->textContent, callback)) continue;
+		if (fun) {
+			if (fun != hdl->js_fun) continue;
+		} else if (hdl->children) {
+			txt = (GF_DOMText *) hdl->children->node;
+			if (txt->sgprivate->tag != TAG_DOMText) continue;
+			if (!txt->textContent || strcmp(txt->textContent, callback)) continue;
+		} else {
+			continue;
+		}
 
 		/*this will destroy the listener and its child handler*/
-		gf_dom_listener_del(node, el);
+		gf_dom_listener_del(el, target);
 		return JS_TRUE;
 	}
-	return JS_FALSE;
+	return JS_TRUE;
 }
+
 JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	return dom_event_remove_listener_ex(c, obj, argc, argv, rval, NULL);
@@ -601,19 +651,32 @@ JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval 
 /*dom3 node*/
 static void dom_node_finalize(JSContext *c, JSObject *obj)
 {
-	if (JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) 
-		|| JS_InstanceOf(c, obj, &dom_rt->domTextClass, NULL)
-		|| JS_InstanceOf(c, obj, &dom_rt->domNodeClass, NULL)
-		|| JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL)
-		) {
-		GF_Node *n = (GF_Node *) JS_GetPrivate(c, obj);
-		/*the JS proto of the svgClass or a destroyed object*/
-		if (!n) return;
-		gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
-		dom_unregister_node(n);
-	}
+	GF_Node *n = (GF_Node *) JS_GetPrivate(c, obj);
+	/*the JS proto of the svgClass or a destroyed object*/
+	if (!n) return;
+	if (!n->sgprivate) return;
+	gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
+	dom_unregister_node(n);
 }
 
+static Bool check_dom_parents(JSContext *c, GF_Node *n, GF_Node *parent)
+{
+	GF_ParentList *par = n->sgprivate->parents;
+	if (n->sgprivate->scenegraph != parent->sgprivate->scenegraph) {
+		dom_throw_exception(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
+		return 0;
+	}
+	while (par) {
+		if (par->node==parent) {
+			dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+			return 0;
+		}
+		if (!check_dom_parents(c, par->node, parent))
+			return 0;
+		par = par->next;
+	}
+	return 1;
+}
 
 static void dom_node_inserted(GF_Node *par, GF_Node *n, s32 pos)
 {
@@ -629,7 +692,7 @@ static void dom_node_inserted(GF_Node *par, GF_Node *n, s32 pos)
 		gf_node_unregister(n, (GF_Node*)old_par);
 		n->sgprivate->num_instances--;
 	} else {
-		do_init = n->sgprivate->UserCallback ? 0 : 1;
+		do_init = (n->sgprivate->UserCallback || n->sgprivate->UserPrivate) ? 0 : 1;
 	}
 
 	if (pos<0) gf_node_list_add_child( & ((GF_ParentNode *)par)->children, n);
@@ -639,7 +702,7 @@ static void dom_node_inserted(GF_Node *par, GF_Node *n, s32 pos)
 	if (do_init) {
 		gf_node_init(n);
 
-		if (n->sgprivate->interact && n->sgprivate->interact->events) {
+		if (n->sgprivate->interact && n->sgprivate->interact->dom_evt) {
 			GF_DOM_Event evt;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.type = GF_EVENT_LOAD;
@@ -658,23 +721,36 @@ static JSBool xml_node_insert_before(JSContext *c, JSObject *obj, uintN argc, js
 	u32 tag;
 	GF_Node *n, *target, *new_node;
 	GF_ParentNode *par;
-	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
+	if (!argc || !JSVAL_IS_OBJECT(argv[0])) 
+		return JS_TRUE;
+
 	n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) {
+		return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	}
 
 	new_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
-	if (!new_node) return JS_FALSE;
+	if (!new_node) return JS_TRUE;
 
 	target = NULL;
-	if ((argc==2) && JSVAL_IS_OBJECT(argv[1])) {
+	if ((argc==2) && JSVAL_IS_OBJECT(argv[1]) && !JSVAL_IS_NULL(argv[1])) {
 		target = dom_get_node(c, JSVAL_TO_OBJECT(argv[1]));
-		if (!target) return JS_FALSE;
+		if (!target) return JS_TRUE;
 	}
 	tag = gf_node_get_tag(n);
-	if (tag==TAG_DOMText) return JS_FALSE;
+	if (tag==TAG_DOMText) return JS_TRUE;
+
+	if (!check_dom_parents(c, n, new_node))
+		return JS_FALSE;
+
 	par = (GF_ParentNode*)n;
 	idx = -1;
-	if (target) idx = gf_node_list_find_child(par->children, target);
+	if (target) {
+		idx = gf_node_list_find_child(par->children, target);
+		if (idx<0) {
+			return dom_throw_exception(c, GF_DOM_EXC_NOT_FOUND_ERR);
+		}
+	}
 	dom_node_inserted(n, new_node, idx);
 	*rval = argv[0];
 	return JS_TRUE;
@@ -684,14 +760,19 @@ static JSBool xml_node_append_child(JSContext *c, JSObject *obj, uintN argc, jsv
 {
 	u32 tag;
 	GF_Node *n, *new_node;
-	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
+	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
 	n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) {
+		return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	}
 
 	new_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
-	if (!new_node) return JS_FALSE;
+	if (!new_node) return JS_TRUE;
 	tag = gf_node_get_tag(n);
-	if (tag==TAG_DOMText) return JS_FALSE;
+	if (tag==TAG_DOMText) return JS_TRUE;
+
+	if (!check_dom_parents(c, n, new_node))
+		return JS_FALSE;
 
 	dom_node_inserted(n, new_node, -1);
 
@@ -705,19 +786,19 @@ static JSBool xml_node_replace_child(JSContext *c, JSObject *obj, uintN argc, js
 	u32 tag;
 	GF_Node *n, *new_node, *old_node;
 	GF_ParentNode *par;
-	if ((argc!=2) || !JSVAL_IS_OBJECT(argv[0]) || !JSVAL_IS_OBJECT(argv[1])) return JS_FALSE;
+	if ((argc!=2) || !JSVAL_IS_OBJECT(argv[0]) || !JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
 	n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) return JS_TRUE;
 
 	new_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
-	if (!new_node) return JS_FALSE;
+	if (!new_node) return JS_TRUE;
 	old_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[1]));
-	if (!old_node) return JS_FALSE;
+	if (!old_node) return JS_TRUE;
 	tag = gf_node_get_tag(n);
-	if (tag==TAG_DOMText) return JS_FALSE;
+	if (tag==TAG_DOMText) return JS_TRUE;
 	par = (GF_ParentNode*)n;
 	idx = gf_node_list_find_child(par->children, old_node);
-	if (idx<0) return JS_FALSE;
+	if (idx<0) return JS_TRUE;
 
 	gf_node_list_del_child(&par->children, old_node);
 	gf_node_unregister(old_node, n);
@@ -733,19 +814,21 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 	u32 tag;
 	GF_Node *n, *old_node;
 	GF_ParentNode *par;
-	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
+	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
 	n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) return JS_TRUE;
 
 	old_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
-	if (!old_node) return JS_FALSE;
+	if (!old_node) return JS_TRUE;
 	tag = gf_node_get_tag(n);
-	if (tag==TAG_DOMText) return JS_FALSE;
+	if (tag==TAG_DOMText) return JS_TRUE;
 	par = (GF_ParentNode*)n;
 
 	/*if node is present in parent, unregister*/
 	if (gf_node_list_del_child(&par->children, old_node)) {
 		gf_node_unregister(old_node, n);
+	} else {
+		return dom_throw_exception(c, GF_DOM_EXC_NOT_FOUND_ERR);
 	}
 	
 	/*deactivate node sub-tree*/
@@ -757,12 +840,86 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 }
 
 
+static GF_Node *clone_node(GF_Node *node, GF_Node *parent, Bool deep)
+{
+	GF_DOMAttribute *att;
+	GF_Node *clone = gf_node_new(node->sgprivate->scenegraph, node->sgprivate->tag);
+	if (!clone) return NULL;
+
+	if (node->sgprivate->tag == TAG_DOMText) {
+		GF_DOMText *n_src,*n_dst;
+		n_src = (GF_DOMText *)node;
+		n_dst = (GF_DOMText *)clone;
+		n_dst->type = n_src->type;
+		n_dst->textContent = strdup(n_src->textContent);
+	} else if (node->sgprivate->tag == TAG_DOMFullNode) {
+		GF_DOMFullNode *n_src,*n_dst;
+		n_src = (GF_DOMFullNode *)node;
+		n_dst = (GF_DOMFullNode *)clone;
+		n_dst->ns = n_src->ns;
+		n_dst->name = strdup(n_dst->name);
+	}
+	
+	att = ((GF_DOMNode *)node)->attributes;
+	while (att) {
+		GF_FieldInfo dst, src;
+		/*create by name*/
+		if (att->tag==TAG_DOM_ATT_any) {
+			gf_node_get_attribute_by_name(clone, ((GF_DOMFullAttribute*)att)->name, 0, 1, 0, &dst);
+		} else {
+			gf_node_get_attribute_by_tag(clone, att->tag, 1, 0, &dst);
+		}
+		src.far_ptr = att->data;
+		src.fieldType = att->data_type;
+		src.fieldIndex = att->tag;
+		gf_svg_attributes_copy(&dst, &src, 0);
+		if (att->tag==TAG_XLINK_ATT_href) {
+			XMLRI *iri = (XMLRI *)att->data;
+			if (iri->target == gf_node_get_parent(node, 0)) {
+				((XMLRI *)dst.far_ptr)->target = parent;
+			} else {
+				((XMLRI *)dst.far_ptr)->target = NULL;
+			}
+		}
+		att = att->next;
+	}	
+	if (parent) {
+		gf_node_list_add_child( & ((GF_ParentNode*)parent)->children, clone);
+		gf_node_register(clone, parent);
+		/*TO CLARIFY: can we init the node right now or should we wait for insertion in the scene tree ?*/
+		gf_node_init(clone);
+	}
+	if (deep) {
+		GF_ChildNodeItem *child = ((GF_ParentNode *)node)->children;
+		while (child) {
+			clone_node(child->node, clone, 1);
+			child = child->next;
+		}
+	}
+	return clone;
+}
+
+
+static JSBool xml_clone_node(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	Bool deep;
+	GF_Node *n, *clone;
+	n = dom_get_node(c, obj);
+	if (!n) return JS_TRUE;
+	deep = argc ? JSVAL_TO_BOOLEAN(argv[0]) : 0;
+	
+	clone = clone_node(n, NULL, deep);
+	*rval = dom_node_construct(c, clone);
+	return JS_TRUE;
+}
+
+
 static JSBool xml_node_has_children(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_Node *n;
 	n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
-	*rval = BOOLEAN_TO_JSVAL( ((GF_ParentNode*)n)->children ? JS_TRUE : JS_FALSE );
+	if (!n) return JS_TRUE;
+	*rval = BOOLEAN_TO_JSVAL( ((GF_ParentNode*)n)->children ? JS_TRUE : JS_FALSE);
 	return JS_TRUE;
 }
 
@@ -771,13 +928,13 @@ static JSBool xml_node_has_attributes(JSContext *c, JSObject *obj, uintN argc, j
 	u32 tag;
 	GF_Node *n;
 	n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) return JS_TRUE;
 	tag = gf_node_get_tag(n);
 	if (tag>=GF_NODE_FIRST_DOM_NODE_TAG) {
-		*rval = BOOLEAN_TO_JSVAL( ((GF_DOMNode*)n)->attributes ? JS_TRUE : JS_FALSE );
+		*rval = BOOLEAN_TO_JSVAL( ((GF_DOMNode*)n)->attributes ? JS_TRUE : JS_FALSE);
 	} else {
 		/*not supported for other node types*/
-		*rval = BOOLEAN_TO_JSVAL( JS_FALSE );
+		*rval = BOOLEAN_TO_JSVAL( JS_FALSE);
 	}
 	return JS_TRUE;
 }
@@ -785,11 +942,11 @@ static JSBool xml_node_has_attributes(JSContext *c, JSObject *obj, uintN argc, j
 static JSBool xml_node_is_same_node(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_Node *n, *a_node;
-	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
+	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
 	n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) return JS_TRUE;
 	a_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
-	if (!a_node) return JS_FALSE;
+	if (!a_node) return JS_TRUE;
 	*rval = BOOLEAN_TO_JSVAL( (a_node==n) ? JS_TRUE : JS_FALSE);
 	return JS_TRUE;
 }
@@ -798,20 +955,31 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 {
 	u32 tag;
 	GF_Node *n;
+	GF_SceneGraph *sg = NULL;
 	GF_ParentNode *par;
 	
 	n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) {
+		sg = dom_get_doc(c, obj);
+		if (!sg) return JS_TRUE;
+	}
 
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
+	/*not supported*/
+	if (!JSVAL_IS_INT(id)) {
+		char *str = JS_GetStringBytes(JSVAL_TO_STRING(id));
+		return JS_TRUE;
+	}
 
-	tag = gf_node_get_tag(n);
+	tag = n ? gf_node_get_tag(n) : 0;
 	par = (GF_ParentNode*)n;
 
 	switch (JSVAL_TO_INT(id)) {
 	/*"nodeName"*/
 	case 0:
-		if (tag==TAG_DOMText) {
+		if (sg) {
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#document") );
+		}
+		else if (tag==TAG_DOMText) {
 			GF_DOMText *txt = (GF_DOMText *)n;
 			if (txt->type==GF_DOM_TEXT_CDATA) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#cdata-section") );
 			else *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#text") );
@@ -826,7 +994,8 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		return JS_TRUE;
 	/*"nodeType"*/
 	case 2:
-		if (tag==TAG_DOMText) {
+		if (sg) *vp = INT_TO_JSVAL(9);
+		else if (tag==TAG_DOMText) {
 			GF_DOMText *txt = (GF_DOMText *)n;
 			if (txt->type==GF_DOM_TEXT_CDATA) *vp = INT_TO_JSVAL(4);
 			else *vp = INT_TO_JSVAL(3);
@@ -835,39 +1004,46 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		return JS_TRUE;
 	/*"parentNode"*/
 	case 3:
-		*vp = dom_node_construct(c, gf_node_get_parent(n, 0) );
+		if (sg) {
+			*vp = JSVAL_NULL;
+		}
+		/*if root node of the tree, the parentNode is the document*/
+		else if (n->sgprivate->scenegraph->RootNode==n) {
+			*vp = dom_document_construct(c, n->sgprivate->scenegraph);
+		} else {
+			*vp = dom_node_construct(c, gf_node_get_parent(n, 0) );
+		}
 		return JS_TRUE;
 	/*"childNodes"*/
 	case 4:
-		if (tag==TAG_DOMText) *vp = JSVAL_VOID;
+		/*NOT SUPPORTED YET*/
+		if (sg) *vp = JSVAL_VOID;
+		else if (tag==TAG_DOMText) *vp = JSVAL_NULL;
 		else *vp = dom_nodelist_construct(c, par);
 		return JS_TRUE;
 	/*"firstChild"*/
 	case 5:
-		if (tag==TAG_DOMText) *vp = JSVAL_VOID;
+		if (sg) *vp = dom_node_construct(c, sg->RootNode);
+		else if (tag==TAG_DOMText) *vp = JSVAL_NULL;
 		else if (!par->children) {
-			/*our imp always remove empty text node, create one*/
-		/*
-			GF_DOMText *txt = gf_dom_add_text_node(n, NULL);
-			*vp = dom_node_construct(c, (GF_Node*)txt);
-		*/
-			/*svg uDOM*/
-			*vp = JSVAL_VOID;
+			*vp = JSVAL_NULL;
 		}
 		else *vp = dom_node_construct(c, par->children->node);
 		return JS_TRUE;
 	/*"lastChild"*/
 	case 6:
-		if ((tag==TAG_DOMText) || !par->children) *vp = JSVAL_VOID;
+		if (sg) *vp = dom_node_construct(c, sg->RootNode);
+		else if ((tag==TAG_DOMText) || !par->children) *vp = JSVAL_VOID;
 		else *vp = dom_node_construct(c, gf_node_list_get_child(par->children, -1) );
 		return JS_TRUE;
 	/*"previousSibling"*/
 	case 7:
-		*vp = dom_node_get_sibling(c, n, 1);
+		/*works for doc as well since n is NULL*/
+		*vp = dom_node_get_sibling(c, n, 1, 0);
 		return JS_TRUE;
 	/*"nextSibling"*/
 	case 8:
-		*vp = dom_node_get_sibling(c, n, 0);
+		*vp = dom_node_get_sibling(c, n, 0, 0);
 		return JS_TRUE;
 	/*"attributes"*/
 	case 9:
@@ -876,38 +1052,50 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		return JS_TRUE;
 	/*"ownerDocument"*/
 	case 10:
-		*vp = dom_document_construct(c, n->sgprivate->scenegraph);
+		if (sg) *vp = JSVAL_NULL;
+		else *vp = dom_document_construct(c, n->sgprivate->scenegraph);
 		return JS_TRUE;
 	/*"namespaceURI"*/
 	case 11:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
+		if (sg) tag = gf_sg_get_namespace_code(sg, NULL);
+		else tag = gf_xml_get_element_namespace(n);
+		if (tag) {
+			char *xmlns = (char *)gf_sg_get_namespace(sg ? sg : n->sgprivate->scenegraph, tag);
+			*vp = xmlns ? STRING_TO_JSVAL( JS_NewStringCopyZ(c, xmlns) ) : JSVAL_VOID;
+		} else {
+			*vp = JSVAL_NULL;
+		}
 		return JS_TRUE;
 	/*"prefix"*/
 	case 12:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
+		if (sg) tag = gf_sg_get_namespace_code(sg, NULL);
+		else tag = gf_xml_get_element_namespace(n);
+		*vp = JSVAL_NULL;
+		if (tag) {
+			char *xmlns = (char *)gf_sg_get_namespace_qname(sg ? sg : n->sgprivate->scenegraph, tag);
+			if (xmlns) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, xmlns) );
+		}
 		return JS_TRUE;
 	/*"localName"*/
 	case 13:
-		if (tag!=TAG_DOMText) {
+		*vp = JSVAL_NULL;
+		if (!sg && (tag!=TAG_DOMText)) {
 			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_node_get_class_name(n) ) );
-		} else {
-			*vp = JSVAL_VOID;
 		}
 		return JS_TRUE;
 	/*"baseURI"*/
 	case 14:
 		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
+		*vp = JSVAL_NULL;
 		return JS_TRUE;
 	/*"textContent"*/
 	case 15:
-	{
-		char *res = dom_node_flatten_text(n);
-		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
-		free(res);
-	}
+		*vp = JSVAL_VOID;
+		if (!sg)  {
+			char *res = dom_node_flatten_text(n);
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
+			free(res);
+		}
 		return JS_TRUE;
 	}
 	/*not supported*/
@@ -930,31 +1118,31 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	GF_ParentNode *par;
 
 	n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	/*note an element - we don't support property setting on document yet*/
+	if (!n) return JS_TRUE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 
-	tag = gf_node_get_tag(n);
+	tag = n ? gf_node_get_tag(n) : 0;
 	par = (GF_ParentNode*)n;
 
 	switch (JSVAL_TO_INT(id)) {
 	/*"nodeValue"*/
 	case 1:
 		/*we only support element and sg in the Node interface, no set*/
-		return JS_FALSE;
+		return JS_TRUE;
 	/*"prefix"*/
 	case 12:
 		/*NOT SUPPORTED YET*/
 		return JS_TRUE;
 	/*"textContent"*/
 	case 15:
-		if (!JSVAL_IS_STRING(*vp)) return JS_FALSE;
-		dom_node_set_textContent(n, JS_GetStringBytes(JSVAL_TO_STRING(*vp)) );
+		if (!JSVAL_CHECK_STRING(*vp)) return JS_TRUE;
+		dom_node_set_textContent(n, JSVAL_GET_STRING(*vp) );
 		return JS_TRUE;
 	}
-	
 	/*not supported*/
-	return JS_FALSE;
+	return JS_TRUE;
 }
 
 
@@ -962,11 +1150,9 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 
 /*don't attempt to do anything with the scenegraph, it may be destroyed
 fortunately a sg cannot be created like that...*/
-static void dom_document_finalize(JSContext *c, JSObject *obj)
+void dom_document_finalize(JSContext *c, JSObject *obj)
 {
-	GF_SceneGraph *sg;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) 
-		return;
+	GF_SceneGraph *sg = dom_get_doc(c, obj);
 
 	sg = (GF_SceneGraph*) JS_GetPrivate(c, obj);
 	/*the JS proto of the svgClass or a destroyed object*/
@@ -983,212 +1169,109 @@ static void dom_document_finalize(JSContext *c, JSObject *obj)
 
 static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
-	GF_SceneGraph *sg;
 	u32 prop_id;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) 
-		return JS_TRUE;
-
-	sg = (GF_SceneGraph*) JS_GetPrivate(c, obj);
-	/*the JS proto of the svgClass or a destroyed object*/
+	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_TRUE;
 
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
+	if (!JSVAL_IS_INT(id)) {
+		char *str = JS_GetStringBytes(JSVAL_TO_STRING(id));
+		return JS_TRUE;
+	}
 	prop_id = JSVAL_TO_INT(id);
 
 	switch (prop_id) {
-	/*"nodeName"*/
-	case 0:
-		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#document") );
-		return JS_TRUE;
-	/*"nodeValue"*/
-	case 1:
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"nodeType"*/
-	case 2:
-		*vp = INT_TO_JSVAL(9);
-		return JS_TRUE;
-	/*"parentNode"*/
-	case 3:
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"childNodes"*/
-	case 4:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"firstChild"*/
-	case 5:
-		*vp = dom_node_construct(c, sg->RootNode);
-		return JS_TRUE;
-	/*"lastChild"*/
-	case 6:
-		*vp = dom_node_construct(c, sg->RootNode);
-		return JS_TRUE;
-	/*"previousSibling"*/
-	case 7:
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"nextSibling"*/
-	case 8:
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"attributes"*/
-	case 9:
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"ownerDocument"*/
-	case 10:
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"namespaceURI"*/
-	case 11:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"prefix"*/
-	case 12:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"localName"*/
-	case 13:
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"baseURI"*/
-	case 14:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"textContent"*/
-	case 15:
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-
-	/*"doctype"*/
-	case JS_DOM3_NODE_LAST_PROP+1:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-
-	/*implementation - FIXME, this is wrong, we should have our own implementation
+	case 2:/*implementation*/
+		/*FIXME, this is wrong, we should have our own implementation
 		but at the current time we rely on the global object to provide it*/
-	case JS_DOM3_NODE_LAST_PROP+2:
 		*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) ); 
 		return JS_TRUE;
-
-	/*"documentElement"*/
-	case JS_DOM3_NODE_LAST_PROP+3:
+	case 3: /*"documentElement"*/
 		*vp = dom_element_construct(c, sg->RootNode);
 		return JS_TRUE;
-	/*"inputEncoding"*/
-	case JS_DOM3_NODE_LAST_PROP+4:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"xmlEncoding"*/
-	case JS_DOM3_NODE_LAST_PROP+5:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"xmlStandalone"*/
-	case JS_DOM3_NODE_LAST_PROP+6:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"xmlVersion"*/
-	case JS_DOM3_NODE_LAST_PROP+7:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"strictErrorChecking"*/
-	case JS_DOM3_NODE_LAST_PROP+8:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"documentURI"*/
-	case JS_DOM3_NODE_LAST_PROP+9:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*"domConfig"*/
-	case JS_DOM3_NODE_LAST_PROP+10:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	/*global*/
-	case JS_DOM3_NODE_LAST_PROP+11:
+
+	case 11:/*global*/
 		*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) ); 
 		return JS_TRUE;
+
+		
+	/*NOT SUPPORTED YET*/
+
+	case 1: /*"doctype"*/
+	case 4: /*"inputEncoding"*/
+	case 5: /*"xmlEncoding"*/
+	case 6: /*"xmlStandalone"*/
+	case 7: /*"xmlVersion"*/
+	case 8: /*"strictErrorChecking"*/
+	case 9: /*"documentURI"*/
+	case 10: /*"domConfig"*/
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
 	}
-	return JS_FALSE;
+	return JS_TRUE;
 }
 
 static JSBool dom_document_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
-	GF_SceneGraph *sg;
 	u32 prop_id;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) 
-		return JS_TRUE;
-
-	sg = (GF_SceneGraph*) JS_GetPrivate(c, obj);
-	/*the JS proto of the svgClass or a destroyed object*/
+	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_TRUE;
 
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
-
+	
 	switch (prop_id) {
-	/*"nodeValue"*/
-	case 1:
+	case 6:/*"xmlStandalone"*/
 		break;
-	/*"prefix"*/
-	case 12:
+	case 7:/*"xmlVersion"*/
 		break;
-	/*"textContent"*/
-	case 15:
+	case 8:/*"strictErrorChecking"*/
 		break;
-	/*"xmlStandalone"*/
-	case JS_DOM3_NODE_LAST_PROP+6:
+	case 9:/*"documentURI"*/
 		break;
-	/*"xmlVersion"*/
-	case JS_DOM3_NODE_LAST_PROP+7:
+	case 10:/*"domConfig"*/
 		break;
-	/*"strictErrorChecking"*/
-	case JS_DOM3_NODE_LAST_PROP+8:
-		break;
-	/*"documentURI"*/
-	case JS_DOM3_NODE_LAST_PROP+9:
-		break;
-	/*"domConfig"*/
-	case JS_DOM3_NODE_LAST_PROP+10:
-		break;
+
 	/*the rest is read-only*/
 	}
-	return JS_FALSE;
+	return JS_TRUE;
 }
 
 static JSBool xml_document_create_element(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	u32 tag;
+	u32 tag, ns;
 	GF_Node *n;
-	GF_SceneGraph *sg;
-	char *name;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) || !argc || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
-	sg = (GF_SceneGraph *) JS_GetPrivate(c, obj);
-	if (!sg) return JS_FALSE;
-	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	if (!name) return JS_FALSE;
+	char *name, *xmlns;
+	GF_SceneGraph *sg = dom_get_doc(c, obj);
+
+	if (!sg || !argc || !JSVAL_CHECK_STRING(argv[0]) ) 
+		return JS_TRUE;
+
+	name = JSVAL_GET_STRING(argv[0]);
 	/*NS version*/
+	ns = 0;
+	xmlns = NULL;
 	if (argc==2) {
-		if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-		name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+		if (!JSVAL_CHECK_STRING(argv[1])) 
+			return JS_TRUE;
+		xmlns = name;
+		ns = gf_sg_get_namespace_code_from_name(sg, xmlns);
+		name = JSVAL_GET_STRING(argv[1]);
 	}
-	if (!name) return JS_FALSE;
+	if (!name) 
+		return JS_TRUE;
 	/*browse all our supported DOM implementations*/
-	tag = gf_svg_get_element_tag(name);
+	tag = gf_xml_get_element_tag(name, ns);
 	if (!tag) tag = TAG_DOMFullNode;
 	n = gf_node_new(sg, tag);
+	if (n && (tag == TAG_DOMFullNode)) {
+		char *qname = NULL;
+		GF_DOMFullNode *elt = (GF_DOMFullNode *)n;
+		elt->name = strdup(name);
+		if (xmlns) {
+			gf_sg_add_namespace(sg, xmlns, NULL);
+			elt->ns	= gf_sg_get_namespace_code_from_name(sg, xmlns);
+		}
+	}
 	*rval = dom_element_construct(c, n);
 	return JS_TRUE;
 }
@@ -1196,14 +1279,12 @@ static JSBool xml_document_create_element(JSContext *c, JSObject *obj, uintN arg
 static JSBool xml_document_create_text(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_Node *n;
-	GF_SceneGraph *sg;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) return JS_FALSE;
-	sg = (GF_SceneGraph *) JS_GetPrivate(c, obj);
-	if (!sg) return JS_FALSE;
+	GF_SceneGraph *sg = dom_get_doc(c, obj);
+	if (!sg) return JS_TRUE;
 
 	n = gf_node_new(sg, TAG_DOMText);
 	if (argc) {
-		((GF_DOMText*)n)->textContent = strdup( JS_GetStringBytes(JS_ValueToString(c, argv[0])) );
+		((GF_DOMText*)n)->textContent = strdup( JSVAL_GET_STRING(argv[0]) );
 	}
 	*rval = dom_text_construct(c, n);
 	return JS_TRUE;
@@ -1236,19 +1317,17 @@ static void xml_doc_gather_nodes(GF_ParentNode *node, char *name, DOMNodeList *n
 static JSBool xml_document_elements_by_tag(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	DOMNodeList *nl;
-	GF_SceneGraph *sg;
 	JSObject *new_obj;
 	char *name;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) return JS_FALSE;
-	sg = (GF_SceneGraph *) JS_GetPrivate(c, obj);
-	if (!sg) return JS_FALSE;
+	GF_SceneGraph *sg = dom_get_doc(c, obj);
+	if (!sg) return JS_TRUE;
 
-	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	name = JSVAL_GET_STRING(argv[0]);
 	/*NS version*/
 	if (argc==2) {
-		if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-		name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+		name = JSVAL_GET_STRING(argv[1]);
 	}
 
 	GF_SAFEALLOC(nl, DOMNodeList);
@@ -1262,116 +1341,109 @@ static JSBool xml_document_elements_by_tag(JSContext *c, JSObject *obj, uintN ar
 
 static JSBool xml_document_element_by_id(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
+	NodeIDedItem *reg_node;
 	GF_Node *n;
-	GF_SceneGraph *sg;
 	char *id;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) ) return JS_FALSE;
-	sg = (GF_SceneGraph *) JS_GetPrivate(c, obj);
-	if (!sg) return JS_FALSE;
+	GF_SceneGraph *sg = dom_get_doc(c, obj);
 
-	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	id = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	n = gf_sg_find_node_by_name(sg, id);
+	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	id = JSVAL_GET_STRING(argv[0]);
+
+	/*we don't use the regular gf_sg_find_node_by_name because we may have nodes defined with the 
+	same ID and we need to locate the first one which is inserted in the tree*/
+	n = NULL;
+	reg_node = sg->id_node;
+	while (reg_node) {
+		if (reg_node->NodeName && !strcmp(reg_node->NodeName, id)) {
+			n = reg_node->node;
+			/*element is not inserted - fixme, we should check all parents*/
+			if (n && (n->sgprivate->scenegraph->RootNode!=n) && !n->sgprivate->parents) n = NULL;
+			else break;
+		}
+		reg_node = reg_node->next;
+	}
 	*rval = dom_element_construct(c, n);
 	return JS_TRUE;
 }
 
-
-
 /*dom3 element*/
+void dom_element_finalize(JSContext *c, JSObject *obj)
+{
+	dom_node_finalize(c, obj);
+}
 
 static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	u32 prop_id;
 	GF_Node *n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) return JS_TRUE;
 
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
+	if (!JSVAL_IS_INT(id)) {
+		char *str = JS_GetStringBytes(JSVAL_TO_STRING(id));
+		return JS_TRUE;
+	}
 	prop_id = JSVAL_TO_INT(id);
-	if (prop_id<=JS_DOM3_NODE_LAST_PROP) return dom_node_getProperty(c, obj, id, vp);
-
-
 	switch (prop_id) {
-	/*"tagName"*/
-	case JS_DOM3_NODE_LAST_PROP+1:
+	case 1: /*"tagName"*/
 		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_node_get_class_name(n) ) );
 		return JS_TRUE;
-	/*"schemaTypeInfo"*/
-	case JS_DOM3_NODE_LAST_PROP+2:
+	case 2: /*"schemaTypeInfo"*/
 		/*NOT SUPPORTED YET*/
 		*vp = JSVAL_VOID;
 		return JS_TRUE;
-	case JS_DOM3_NODE_LAST_PROP+3:
-	case JS_DOM3_NODE_LAST_PROP+4:
-	case JS_DOM3_NODE_LAST_PROP+5:
-	case JS_DOM3_NODE_LAST_PROP+6:
-	case JS_DOM3_NODE_LAST_PROP+7:
-	case JS_DOM3_NODE_LAST_PROP+8:
-	case JS_DOM3_NODE_LAST_PROP+9:
-	case JS_DOM3_NODE_LAST_PROP+10:
-		return svg_udom_get_property(c, n, prop_id-(JS_DOM3_NODE_LAST_PROP+3), vp);
 	}
-	return JS_FALSE;
+	return JS_TRUE;
 }
-static JSBool dom_element_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
-{
-	u32 prop_id;
-	GF_Node *n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
-
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
-	prop_id = JSVAL_TO_INT(id);
-	if (prop_id<=JS_DOM3_NODE_LAST_PROP) return dom_node_setProperty(c, obj, id, vp);
-
-	switch (prop_id) {
-	case JS_DOM3_NODE_LAST_PROP+3:
-	case JS_DOM3_NODE_LAST_PROP+4:
-	case JS_DOM3_NODE_LAST_PROP+5:
-	case JS_DOM3_NODE_LAST_PROP+6:
-	case JS_DOM3_NODE_LAST_PROP+7:
-	case JS_DOM3_NODE_LAST_PROP+8:
-	case JS_DOM3_NODE_LAST_PROP+9:
-		return svg_udom_set_property(c, n, prop_id-(JS_DOM3_NODE_LAST_PROP+3), vp);
-	default:
-		/*rest is read only*/
-		return JS_FALSE;
-	}
-}
-
 
 static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char *name;
+	char *name, *ns;
 	GF_Node *n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) 
+		return JS_TRUE;
 
-	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	if (!argc || !JSVAL_CHECK_STRING(argv[0])) 
+		return JS_TRUE;
+	name = JSVAL_GET_STRING(argv[0]);
+	ns = NULL;
 	/*NS version*/
 	if (argc==2) {
-		if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-		name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+		ns = name;
+		if (!JSVAL_CHECK_STRING(argv[1])) 
+			return JS_TRUE;
+		name = JSVAL_GET_STRING(argv[1]);
 	}
-	if (!name) return JS_FALSE;
+	if (!name) 
+		return JS_TRUE;
+	/*ugly ugly hack ...*/
+	if (!strcmp(name, "id") || !strcmp(name, "xml:id") ) {
+		char *sID = (char *) gf_node_get_name(n);
+		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, sID ? sID : "") );
+		return JS_TRUE;
+	}
+
 	if (n->sgprivate->tag==TAG_DOMFullNode) {
 		GF_DOMFullNode *node = (GF_DOMFullNode*)n;
 		GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
 		while (att) {
-			if ((att->tag==TAG_DOM_ATTRIBUTE_FULL) && !strcmp(att->name, name)) {
+			if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
 				*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, (char*)att->data ) );
 				return JS_TRUE;
 			}
 			att = (GF_DOMFullAttribute *) att->next;
 		}
 	}
-	else if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
+	else if (n->sgprivate->tag==TAG_DOMText) {
+
+	} else if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
 		GF_FieldInfo info;
-		if (gf_svg_get_attribute_by_name(n, name, 0, 0, &info)==GF_OK) {
+		if (gf_node_get_attribute_by_name(n, name, gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns), 0, 0, &info)==GF_OK)
+		{
 			char szAtt[4096];
 			gf_svg_dump_attribute(n, &info, szAtt);
 			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) );
 			return JS_TRUE;
-		}
+		} 
 	}
 	*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "") );
 	return JS_TRUE;
@@ -1380,32 +1452,37 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 
 static JSBool xml_element_has_attribute(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char *name;
+	char *name, *ns;
 	GF_Node *n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) 
+		return JS_TRUE;
 
-	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	name = JSVAL_GET_STRING(argv[0]);
+	ns = NULL;
 	/*NS version*/
 	if (argc==2) {
-		if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-		name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+		ns = name;
+		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+		name = JSVAL_GET_STRING(argv[1]);
 	}
-	if (!name) return JS_FALSE;
+	if (!name) return JS_TRUE;
 	if (n->sgprivate->tag==TAG_DOMFullNode) {
 		GF_DOMFullNode *node = (GF_DOMFullNode*)n;
 		GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
 		while (att) {
-			if ((att->tag==TAG_DOM_ATTRIBUTE_FULL) && !strcmp(att->name, name)) {
+			if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
 				*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
 				return JS_TRUE;
 			}
 			att = (GF_DOMFullAttribute *) att->next;
 		}
 	}
+	else if (n->sgprivate->tag==TAG_DOMText) {
+	}
 	else if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
 		GF_FieldInfo info;
-		if (gf_svg_get_attribute_by_name(n, name, 0, 0, &info)==GF_OK) {
+		if (gf_node_get_attribute_by_name(n, name, gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns), 0, 0, &info)==GF_OK) {
 			*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
 			return JS_TRUE;
 		}
@@ -1421,29 +1498,35 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 	u32 tag;
 	GF_DOMFullNode *node;
 	GF_DOMFullAttribute *prev, *att;
-	char *name;
+	char *name, *ns;
 	GF_Node *n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) return JS_TRUE;
 
-	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	name = JSVAL_GET_STRING(argv[0]);
+	ns = NULL;
 	/*NS version*/
 	if (argc==2) {
-		if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-		name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+		ns = name;
+		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+		name = JSVAL_GET_STRING(argv[1]);
 	}
-	if (!name) return JS_FALSE;
+	if (!name) return JS_TRUE;
 
-	tag = TAG_DOM_ATTRIBUTE_FULL;
+	tag = TAG_DOM_ATT_any;
 	node = (GF_DOMFullNode*)n;
 	prev = NULL;
 	att = (GF_DOMFullAttribute*)node->attributes;
 
-	if (n->sgprivate->tag==TAG_DOMFullNode) tag = TAG_DOM_ATTRIBUTE_FULL;
-	else if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) tag = gf_svg_get_attribute_tag(n->sgprivate->tag, name);
+	if (n->sgprivate->tag==TAG_DOMFullNode) tag = TAG_DOM_ATT_any;
+	else if (n->sgprivate->tag==TAG_DOMText) {
+		return JS_TRUE;
+	} else if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
+		tag = gf_xml_get_attribute_tag(n, name, gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns) );
+	}
 
 	while (att) {
-		if ((att->tag==TAG_DOM_ATTRIBUTE_FULL) && !strcmp(att->name, name)) {
+		if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
 			if (prev) prev->next = att->next;
 			else node->attributes = att->next;
 			if (att->data) free(att->data);
@@ -1468,49 +1551,61 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 
 static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	u32 evtType;
+	u32 evtType, idx;
 	char *name, *val, *ns;
-	char szAttname[1024];
+	char szVal[100];
 	GF_Node *n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) return JS_TRUE;
+	if ((argc < 2)) return JS_TRUE;
 
-	if ((argc < 2) || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
-	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	/*may not be a string in DOM*/
-	val = JS_GetStringBytes(JS_ValueToString(c, argv[1]));
+	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	name = JSVAL_GET_STRING(argv[0]);
+
+	idx = 1;
 	ns = NULL;
 	/*NS version*/
 	if (argc==3) {
+		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
 		ns = name;
-		name = val;
-		val = JS_GetStringBytes(JS_ValueToString(c, argv[2]));
+		gf_sg_add_namespace(n->sgprivate->scenegraph, ns, NULL);
+		name = JSVAL_GET_STRING(argv[1]);
+		idx = 2;
 	}
-	if (!name || !val) return JS_FALSE;
 
-	if (ns) {
-		/*!!!! UGLY UGLY UGLY UGLY UGLY UGLY UGLY !!!!*/
-		if (!strcmp(ns, "http://www.w3.org/1999/xlink")) strcpy(szAttname, "xlink:");
-		else if (!strcmp(ns, "http://www.w3.org/2001/xml-events")) strcpy(szAttname, "ev:");
-		else strcpy(szAttname, "");
-		strcat(szAttname, name);
+	val = NULL;
+	if (JSVAL_CHECK_STRING(argv[idx])) {
+		val = JSVAL_GET_STRING(argv[idx]);
+	} else if (JSVAL_IS_INT(argv[idx])) {
+		sprintf(szVal, "%d", JSVAL_TO_INT(argv[idx]));
+		val = szVal;
+	} else if (JSVAL_IS_NUMBER(argv[idx])) {
+		jsdouble d;
+		JS_ValueToNumber(c, argv[idx], &d);
+		sprintf(szVal, "%g", d);
+		val = szVal;
+	} else if (JSVAL_IS_BOOLEAN(argv[idx])) {
+		sprintf(szVal, "%s", JSVAL_TO_BOOLEAN(argv[idx]) ? "true" : "false");
+		val = szVal;
 	} else {
-		strcpy(szAttname, name);
+		return JS_TRUE;
 	}
+	if (!name || !val) return JS_TRUE;
 
-	if ((szAttname[0]=='o') && (szAttname[1]=='n')) {
-		evtType = gf_dom_event_type_by_name(szAttname + 2);
+
+	if ((name[0]=='o') && (name[1]=='n')) {
+		evtType = gf_dom_event_type_by_name(name + 2);
 		if (evtType != GF_EVENT_UNKNOWN) {
 			/*check if we're modifying an existing listener*/
 			SVG_handlerElement *handler;
-			u32 i, count = (n->sgprivate->interact && n->sgprivate->interact->events) ? gf_list_count(n->sgprivate->interact->events) : 0;
+			u32 i, count = gf_dom_listener_count(n);
 			for (i=0;i<count; i++) {
 				GF_FieldInfo info;
 				GF_DOMText *text;
-				GF_Node *listen = gf_list_get(n->sgprivate->interact->events, i);
+				GF_Node *listen = gf_dom_listener_get(n, i);
 
-				gf_svg_get_attribute_by_tag(listen, TAG_SVG_ATT_event, 0, 0, &info);
+				gf_node_get_attribute_by_tag(listen, TAG_SVG_ATT_event, 0, 0, &info);
 				if (!info.far_ptr || (((XMLEV_Event*)info.far_ptr)->type != evtType)) continue;
-				gf_svg_get_attribute_by_tag(listen, TAG_SVG_ATT_handler, 0, 0, &info);
+				gf_node_get_attribute_by_tag(listen, TAG_SVG_ATT_handler, 0, 0, &info);
 				assert(info.far_ptr);
 				handler = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 				text = (GF_DOMText*)handler->children->node;
@@ -1521,7 +1616,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 				return JS_TRUE;
 			}
 			/*nope, create a listener*/
-			handler = gf_dom_listener_build(n, evtType, 0, NULL);
+			handler = gf_dom_listener_build(n, evtType, 0);
 			gf_dom_add_text_node((GF_Node*)handler, strdup(val) );
 			return JS_TRUE;
 		}
@@ -1532,7 +1627,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 		GF_DOMFullNode *node = (GF_DOMFullNode*)n;
 		GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
 		while (att) {
-			if ((att->tag==TAG_DOM_ATTRIBUTE_FULL) && !strcmp(att->name, szAttname)) {
+			if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
 				if (att->data) free(att->data);
 				att->data = strdup(val);
 				dom_node_changed(n, 0, NULL);
@@ -1543,17 +1638,25 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 		}
 		/*create new att*/
 		GF_SAFEALLOC(att, GF_DOMFullAttribute);
-		att->name = strdup(szAttname);
+		att->name = strdup(name);
 		att->data = strdup(val);
 		if (prev) prev->next = (GF_DOMAttribute*) att;
 		else node->attributes = (GF_DOMAttribute*) att;
 		return JS_TRUE;
 	}
 	
+	if (n->sgprivate->tag==TAG_DOMText) {
+		return JS_TRUE;
+	}
+
 	if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
 		GF_FieldInfo info;
-		if (gf_svg_get_attribute_by_name(n, szAttname, 1, 1, &info)==GF_OK) {
+		if (gf_node_get_attribute_by_name(n, name, gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns),  1, 1, &info)==GF_OK) {
 			gf_svg_parse_attribute(n, &info, val, 0);
+
+			if (info.fieldType==SVG_ID_datatype) {
+				gf_svg_parse_element_id(n, *(SVG_String*)info.far_ptr, 0);
+			}
 			dom_node_changed(n, 0, &info);
 			return JS_TRUE;
 		}
@@ -1568,15 +1671,15 @@ static JSBool xml_element_elements_by_tag(JSContext *c, JSObject *obj, uintN arg
 	JSObject *new_obj;
 	char *name;
 	GF_Node *n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) return JS_TRUE;
 
-	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
+	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 
-	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	name = JSVAL_GET_STRING(argv[0]);
 	/*NS version*/
 	if (argc==2) {
-		if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-		name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+		name = JSVAL_GET_STRING(argv[1]);
 	}
 	GF_SAFEALLOC(nl, DOMNodeList);
 	if (name && !strcmp(name, "*")) name = NULL;
@@ -1594,15 +1697,15 @@ static JSBool xml_element_set_id(JSContext *c, JSObject *obj, uintN argc, jsval 
 	char *name;
 	Bool is_id;
 	GF_Node *n = dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) return JS_TRUE;
 
-	if ((argc<2) || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	if ((argc<2) || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	name = JSVAL_GET_STRING(argv[0]);
 
 	/*NS version*/
 	if (argc==2) {
-		if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-		name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+		name = JSVAL_GET_STRING(argv[1]);
 		is_id = (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) ? 1 : 0;
 	} else {
 		is_id = (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE) ? 1 : 0;
@@ -1610,10 +1713,10 @@ static JSBool xml_element_set_id(JSContext *c, JSObject *obj, uintN argc, jsval 
 	node_name = gf_node_get_name_and_id(n, &node_id);
 	if (node_id && is_id) {
 		/*we only support ONE ID per node*/
-		return JS_FALSE;
+		return JS_TRUE;
 	}
 	if (is_id) {
-		if (!name) return JS_FALSE;
+		if (!name) return JS_TRUE;
 		gf_node_set_id(n, gf_sg_get_max_node_id(n->sgprivate->scenegraph) + 1, strdup(name) );
 	} else if (node_id) {
 		gf_node_remove_id(n);
@@ -1626,89 +1729,71 @@ static JSBool xml_element_set_id(JSContext *c, JSObject *obj, uintN argc, jsval 
 
 static JSBool dom_text_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
-	GF_DOMText *txt;
 	u32 prop_id;
-
-	if (!JS_InstanceOf(c, obj, &dom_rt->domTextClass, NULL))
-		return JS_FALSE;
-
+	GF_DOMText *txt = (GF_DOMText*)dom_get_node(c, obj);
+	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_TRUE;
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
-	if (prop_id<=JS_DOM3_NODE_LAST_PROP) return dom_node_getProperty(c, obj, id, vp);
-
-	txt = (GF_DOMText*)dom_get_node(c, obj);
-	if (!txt) return JS_FALSE;
 
 	switch (prop_id) {
-	/*"data"*/
-	case JS_DOM3_NODE_LAST_PROP+1:
+	case 1: /*"data"*/
 		if (txt->textContent) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, txt->textContent ) );
 		else *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "") );
 		return JS_TRUE;
-	/*"length"*/
-	case JS_DOM3_NODE_LAST_PROP+2:
+	case 2:/*"length"*/
 		*vp = INT_TO_JSVAL(txt->textContent ? strlen(txt->textContent) : 0);
 		return JS_TRUE;
-	/*"isElementContentWhitespace"*/
-	case JS_DOM3_NODE_LAST_PROP+3:
+	case 3:/*"isElementContentWhitespace"*/
 		*vp = BOOLEAN_TO_JSVAL(JS_FALSE);
 		return JS_TRUE;
-	/*"wholeText"*/
-	case JS_DOM3_NODE_LAST_PROP+4:
+	case 4:/*"wholeText"*/
 		/*FIXME - this is wrong*/
 		*vp = INT_TO_JSVAL(txt->textContent ? strlen(txt->textContent) : 0);
 		return JS_TRUE;
 	}
-	return JS_FALSE;
+	return JS_TRUE;
 }
 static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
-	GF_DOMText *txt;
 	u32 prop_id;
-	if (!JS_InstanceOf(c, obj, &dom_rt->domTextClass, NULL))
-		return JS_FALSE;
-
+	GF_DOMText *txt = (GF_DOMText*)dom_get_node(c, obj);
+	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_TRUE;
 	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
-	if (prop_id<=JS_DOM3_NODE_LAST_PROP) return dom_node_setProperty(c, obj, id, vp);
-
-	txt = (GF_DOMText*)dom_get_node(c, obj);
-	if (!txt) return JS_FALSE;
 
 	switch (prop_id) {
-	/*"data"*/
-	case JS_DOM3_NODE_LAST_PROP+1:
+	case 1: /*"data"*/
 		if (txt->textContent) free(txt->textContent);
 		txt->textContent = NULL;
-		if (JSVAL_IS_STRING(*vp)) {
-			txt->textContent = strdup( JS_GetStringBytes(JSVAL_TO_STRING(*vp)) );
+		if (JSVAL_CHECK_STRING(*vp)) {
+			txt->textContent = strdup( JSVAL_GET_STRING(*vp) );
 		}
 		dom_node_changed((GF_Node*)txt, 0, NULL);
 		return JS_TRUE;
 	/*the rest is read-only*/
 	}
-	return JS_FALSE;
+	return JS_TRUE;
 }
 
 static JSBool event_stop_propagation(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
-	if (!evt) return JS_FALSE;
-	evt->event_phase = 3;
+	if (!evt) return JS_TRUE;
+	evt->event_phase |= GF_DOM_EVENT_PHASE_CANCEL;
+	return JS_TRUE;
+}
+static JSBool event_stop_immediate_propagation(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
+	if (!evt) return JS_TRUE;
+	evt->event_phase |= GF_DOM_EVENT_PHASE_CANCEL_ALL;
 	return JS_TRUE;
 }
 static JSBool event_prevent_default(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
-	if (!evt) return JS_FALSE;
-	evt->event_phase = 4;
-	return JS_TRUE;
-}
-static JSBool event_is_default_prevented(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
-	if (!evt) return JS_FALSE;
-	*rval = (evt->event_phase == 4) ? JS_TRUE : JS_FALSE;
+	if (!evt) return JS_TRUE;
+	evt->event_phase |= GF_DOM_EVENT_PHASE_PREVENT;
 	return JS_TRUE;
 }
 
@@ -1718,115 +1803,128 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
 	if (JSVAL_IS_INT(id)) {
 		switch (JSVAL_TO_INT(id)) {
-		/*type*/
-		case 0:
+		case 0: /*type*/
 			s = JS_NewStringCopyZ(c, gf_dom_event_get_name(evt->type) );
 			*vp = STRING_TO_JSVAL( s );
 			break;
-		/*target*/
-		case 1: 
-			if (evt->is_vrml) return JS_FALSE;
-			*vp = dom_element_construct(c, evt->target); 
+		case 1: /*target*/
+			if (evt->is_vrml) return JS_TRUE;
+			switch (evt->target_type) {
+			case GF_DOM_EVENT_NODE:
+				*vp = dom_element_construct(c, (GF_Node*) evt->target); 
+				break;
+			case GF_DOM_EVENT_DOCUMENT:
+				*vp = dom_document_construct(c, (GF_SceneGraph *) evt->target); 
+				break;
+			}
 			return JS_TRUE;
-		/*currentTarget*/
-		case 2: 
-			if (evt->is_vrml) return JS_FALSE;
-			*vp = dom_element_construct(c, evt->currentTarget); 
+		case 2:	/*currentTarget*/
+			if (evt->is_vrml) return JS_TRUE;
+			switch (evt->currentTarget->ptr_type) {
+			case GF_DOM_EVENT_NODE:
+				*vp = dom_element_construct(c, (GF_Node*) evt->currentTarget->ptr); 
+				break;
+			case GF_DOM_EVENT_DOCUMENT:
+				*vp = dom_document_construct(c, (GF_SceneGraph *) evt->currentTarget->ptr); 
+				break;
+			}
 			return JS_TRUE;
-		/*namespaceURI*/
-		case 3: return JS_FALSE;
-		/*bubbles*/
-		case 4: *vp = evt->bubbles ? JS_TRUE : JS_FALSE; return JS_TRUE;
-		/*cancelable*/
-		case 5: *vp = evt->cancelable ? JS_TRUE : JS_FALSE; return JS_TRUE;
-		/*screenX*/
-		case 7: *vp = INT_TO_JSVAL(evt->screenX); return JS_TRUE;
-		/*screenY*/
-		case 8: *vp = INT_TO_JSVAL(evt->screenY); return JS_TRUE;
-		/*clientX*/
-		case 9: *vp = INT_TO_JSVAL(evt->clientX); return JS_TRUE;
-		/*clientY*/
-		case 10: *vp = INT_TO_JSVAL(evt->clientY); return JS_TRUE;
-		/*button*/
-		case 11: *vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
-		/*relatedTarget*/
-		case 12:
-			if (evt->is_vrml) return JS_FALSE;
+		/*eventPhase */
+		case 3:
+			*vp = INT_TO_JSVAL( (evt->event_phase & 0x3) ); return JS_TRUE;
+		case 4: /*bubbles*/
+			*vp = BOOLEAN_TO_JSVAL(evt->bubbles ? JS_TRUE : JS_FALSE); return JS_TRUE;
+		case 5: /*cancelable*/
+			*vp = BOOLEAN_TO_JSVAL(evt->cancelable ? JS_TRUE : JS_FALSE); return JS_TRUE;			
+		case 6: /*namespaceURI*/
+			*vp = JSVAL_NULL;
+			return JS_TRUE;
+		/*timeStamp */
+		case 7:
+			*vp = JSVAL_VOID;
+			return JS_TRUE;
+		/*defaultPrevented */
+		case 8:
+			*vp = BOOLEAN_TO_JSVAL((evt->event_phase & GF_DOM_EVENT_PHASE_PREVENT) ? JS_TRUE : JS_FALSE); return JS_TRUE;
+
+		
+		case 20:/*detail*/
+			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
+
+		case 25: /*data*/
+		{
+			u32 len;
+			s16 txt[2], *srcp;
+			char szData[5];;
+			txt[0] = evt->detail;
+			txt[1] = 0;
+			srcp = txt;
+			len = gf_utf8_wcstombs(szData, 5, &srcp);
+			szData[len] = 0;
+			s = JS_NewStringCopyZ(c, szData);
+			*vp = STRING_TO_JSVAL( s );
+		}
+			return JS_TRUE;
+
+		case 30:/*screenX*/
+			*vp = INT_TO_JSVAL(evt->screenX); return JS_TRUE;
+		case 31: /*screenY*/
+			*vp = INT_TO_JSVAL(evt->screenY); return JS_TRUE;
+		case 32: /*clientX*/
+			*vp = INT_TO_JSVAL(evt->clientX); return JS_TRUE;
+		case 33: /*clientY*/
+			*vp = INT_TO_JSVAL(evt->clientY); return JS_TRUE;
+		case 34:/*button*/
+			*vp = INT_TO_JSVAL(evt->button); return JS_TRUE;
+		case 35:/*relatedTarget*/
+			if (evt->is_vrml) return JS_TRUE;
 			*vp = dom_element_construct(c, evt->relatedTarget); 
 			return JS_TRUE;
+
 		/*DOM3 event keyIndentifier*/
-		case 14: 
+		case 40: 
 			s = JS_NewStringCopyZ(c, gf_dom_get_key_name(evt->detail) );
 			*vp = STRING_TO_JSVAL( s );
 			 return JS_TRUE;
 		/*Mozilla keyChar, charCode: wrap up to same value*/
-		case 15: *vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
-
-		/*zoomRectScreen*/
-		case 21:
-			if (evt->is_vrml) return JS_FALSE;
-			*vp = svg_udom_new_rect(c, evt->screen_rect.x, evt->screen_rect.y, evt->screen_rect.width, evt->screen_rect.height);
-			return JS_TRUE;
-		/*previousScale*/
-		case 22:
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->prev_scale) );
-			return JS_TRUE;
-		/*previousTranslate*/
-		case 23:
-			if (evt->is_vrml) return JS_FALSE;
-			*vp = svg_udom_new_point(c, evt->prev_translate.x, evt->prev_translate.y);
-			return JS_TRUE;
-		/*newScale*/
-		case 24:
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_scale) );
-			return JS_TRUE;
-		/*newTranslate*/
-		case 25:
-			if (evt->is_vrml) return JS_FALSE;
-			*vp = svg_udom_new_point(c, evt->new_translate.x, evt->new_translate.y);
-			return JS_TRUE;
-
-		/*VRML ones*/
-		/*width*/
-		case 26:
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->screen_rect.width) );
-			return JS_TRUE;
-		/*height*/
-		case 27:
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->screen_rect.height) );
-			return JS_TRUE;
-		/*h_translation*/
-		case 28:
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_translate.x) );
-			return JS_TRUE;
-		/*v_translation*/
-		case 29:
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_translate.y) );
-			return JS_TRUE;
+		case 41:
+		case 42:
+			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
 
 		/*MAE*/
-		/*bufferLevelValid*/
-		case 30:
-			if (!evt->mae) return JS_FALSE;
+		case 54:/*bufferLevelValid*/
+			if (!evt->mae) return JS_TRUE;
 			*vp = BOOLEAN_TO_JSVAL( evt->mae->bufferValid ? JS_TRUE : JS_FALSE);
 			return JS_TRUE;
-		/*bufferLevel*/
-		case 31:
-			if (!evt->mae) return JS_FALSE;
+		case 55:/*bufferLevel*/
+			if (!evt->mae) return JS_TRUE;
 			*vp = INT_TO_JSVAL( evt->mae->level);
 			return JS_TRUE;
-		/*bufferRemainingTime*/
-		case 32:
-			if (!evt->mae) return JS_FALSE;
+		case 56:/*bufferRemainingTime*/
+			if (!evt->mae) return JS_TRUE;
 			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->mae->remaining_time) );
 			return JS_TRUE;
-		/*status*/
-		case 33:
-			if (!evt->mae) return JS_FALSE;
+		case 57:/*status*/
+			if (!evt->mae) return JS_TRUE;
 			*vp = INT_TO_JSVAL( evt->mae->status);
 			return JS_TRUE;
 
-		default: return JS_FALSE;
+		/*VRML ones*/
+		case 60:/*width*/
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->screen_rect.width) );
+			return JS_TRUE;
+		case 61:/*height*/
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->screen_rect.height) );
+			return JS_TRUE;
+		case 62:/*h_translation*/
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_translate.x) );
+			return JS_TRUE;
+		case 63:/*v_translation*/
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_translate.y) );
+			return JS_TRUE;
+
+
+		default: return JS_TRUE;
 		}
 	}
 	return JS_TRUE;
@@ -2037,7 +2135,7 @@ static void xml_http_finalize(JSContext *c, JSObject *obj)
 static JSBool xml_http_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	XMLHTTPContext *p;
-	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	GF_SAFEALLOC(p, XMLHTTPContext);
 	p->c = c;
 	p->_this = obj;
@@ -2064,28 +2162,28 @@ static JSBool xml_http_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	XMLHTTPContext *ctx;
 	GF_SceneGraph *scene;
 
-	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
-	if (!ctx) return JS_FALSE;
+	if (!ctx) return JS_TRUE;
 
 	/*reset*/
 	if (ctx->readyState) xml_http_reset(ctx);
 
-	if (argc<2) return JS_FALSE;
+	if (argc<2) return JS_TRUE;
 	/*method is a string*/
-	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
+	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 	/*url is a string*/
-	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
+	if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
 
 	xml_http_reset(ctx);
-	val = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	val = JSVAL_GET_STRING(argv[0]);
 	if (strcmp(val, "GET") && strcmp(val, "POST") && strcmp(val, "HEAD")
 	&& strcmp(val, "PUT") && strcmp(val, "DELETE") && strcmp(val, "OPTIONS") )
-		return JS_FALSE;
+		return JS_TRUE;
 
 	ctx->method = strdup(val);
 
-	val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+	val = JSVAL_GET_STRING(argv[1]);
 	/*concatenate URL*/
 	scene = xml_get_scenegraph(c);
 	while (scene->pOwningProto && scene->parent_scene) scene = scene->parent_scene;
@@ -2099,12 +2197,12 @@ static JSBool xml_http_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	if (argc>2) {
 		ctx->async = (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) ? 1 : 0;
 		if (argc>3) {
-			if (!JSVAL_IS_STRING(argv[3])) return JS_FALSE;
-			val = JS_GetStringBytes(JSVAL_TO_STRING(argv[3]));
+			if (!JSVAL_CHECK_STRING(argv[3])) return JS_TRUE;
+			val = JSVAL_GET_STRING(argv[3]);
 			/*TODO*/
 			if (argc>4) {
-				if (!JSVAL_IS_STRING(argv[3])) return JS_FALSE;
-				val = JS_GetStringBytes(JSVAL_TO_STRING(argv[3]));
+				if (!JSVAL_CHECK_STRING(argv[3])) return JS_TRUE;
+				val = JSVAL_GET_STRING(argv[3]);
 				/*TODO*/
 			}
 		}
@@ -2119,17 +2217,17 @@ static JSBool xml_http_set_header(JSContext *c, JSObject *obj, uintN argc, jsval
 {
 	char *hdr, *val;
 	XMLHTTPContext *ctx;
-	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
-	if (!ctx) return JS_FALSE;
+	if (!ctx) return JS_TRUE;
 
-	if (ctx->readyState!=1) return JS_FALSE;
-	if (argc!=2) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
+	if (ctx->readyState!=1) return JS_TRUE;
+	if (argc!=2) return JS_TRUE;
+	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
 
-	hdr = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+	hdr = JSVAL_GET_STRING(argv[0]);
+	val = JSVAL_GET_STRING(argv[1]);
 	xml_http_append_send_header(ctx, hdr, val);
 	return JS_TRUE;
 }
@@ -2151,7 +2249,7 @@ static void xml_http_sax_start(void *sax_cbck, const char *node_name, const char
 		} else {
 			GF_DOMFullAttribute *att;
 			GF_SAFEALLOC(att, GF_DOMFullAttribute);
-			att->tag = TAG_DOM_ATTRIBUTE_FULL;
+			att->tag = TAG_DOM_ATT_any;
 			att->name = strdup(attributes[i].name);
 			att->data = strdup(attributes[i].value);
 			if (prev) prev->next = (GF_DOMAttribute*)att;
@@ -2320,37 +2418,37 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	XMLHTTPContext *ctx;
 	GF_Err e;
 
-	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
-	if (!ctx) return JS_FALSE;
+	if (!ctx) return JS_TRUE;
 
-	if (ctx->readyState!=1) return JS_FALSE;
-	if (ctx->sess) return JS_FALSE;
+	if (ctx->readyState!=1) return JS_TRUE;
+	if (ctx->sess) return JS_TRUE;
 
 	if (argc) {
 		if (JSVAL_IS_NULL(argv[0])) {
 		} else  if (JSVAL_IS_OBJECT(argv[0])) {
-//			if (!JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &documentClass, NULL) ) return JS_FALSE;
+//			if (!JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &documentClass, NULL) ) return JS_TRUE;
 			
 			/*NOT SUPPORTED YET, we must serialize the sg*/
-			return JS_FALSE;
+			return JS_TRUE;
 		} else {
-			if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-			data = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+			if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+			data = JSVAL_GET_STRING(argv[0]);
 		}
 	}
 
 	scene = xml_get_scenegraph(c);
 	par.dnld_man = NULL;
 	ScriptAction(scene, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
-	if (!par.dnld_man) return JS_FALSE;
+	if (!par.dnld_man) return JS_TRUE;
 
 	/*reset previous text*/
 	if (ctx->data) free(ctx->data);
 
 	ctx->data = data ? strdup(data) : NULL;
 	ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, GF_NETIO_SESSION_NOT_CACHED, xml_http_on_data, ctx, &e);
-	if (!ctx->sess) return JS_FALSE;
+	if (!ctx->sess) return JS_TRUE;
 
 	/*just wait for destruction*/
 	if (!ctx->async) {
@@ -2365,9 +2463,9 @@ static JSBool xml_http_abort(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 {
 	GF_DownloadSession *sess;
 	XMLHTTPContext *ctx;
-	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
-	if (!ctx) return JS_FALSE;
+	if (!ctx) return JS_TRUE;
 
 	sess = ctx->sess;
 	ctx->sess = NULL;
@@ -2382,12 +2480,12 @@ static JSBool xml_http_get_all_headers(JSContext *c, JSObject *obj, uintN argc, 
 	u32 nb_hdr;
 	char szVal[4096];
 	XMLHTTPContext *ctx;
-	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
-	if (!ctx) return JS_FALSE;
+	if (!ctx) return JS_TRUE;
 
 	/*must be received or loaded*/
-	if (ctx->readyState<3) return JS_FALSE;
+	if (ctx->readyState<3) return JS_TRUE;
 	szVal[0] = 0;
 	nb_hdr = 0;
 	if (ctx->recv_headers) {
@@ -2416,14 +2514,14 @@ static JSBool xml_http_get_header(JSContext *c, JSObject *obj, uintN argc, jsval
 	char *hdr;
 	char szVal[2048];
 	XMLHTTPContext *ctx;
-	if (!argc || !JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!argc || !JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
-	if (!ctx) return JS_FALSE;
+	if (!ctx) return JS_TRUE;
 
-	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	hdr = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	hdr = JSVAL_GET_STRING(argv[0]);
 	/*must be received or loaded*/
-	if (ctx->readyState<3) return JS_FALSE;
+	if (ctx->readyState<3) return JS_TRUE;
 	szVal[0] = 0;
 	nb_hdr = 0;
 	if (ctx->recv_headers) {
@@ -2450,9 +2548,9 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 {
 	JSString *s;
 	XMLHTTPContext *ctx;
-	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
-	if (!ctx) return JS_FALSE;
+	if (!ctx) return JS_TRUE;
 
 	if (JSVAL_IS_INT(id)) {
 		switch (JSVAL_TO_INT(id)) {
@@ -2469,7 +2567,7 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 			*vp = INT_TO_JSVAL(ctx->readyState); return JS_TRUE;
 		/*responseText*/
 		case 2: 
-			if (ctx->readyState<3) return JS_FALSE;
+			if (ctx->readyState<3) return JS_TRUE;
 			if (ctx->data) {
 				s = JS_NewStringCopyZ(c, ctx->data);
 				*vp = STRING_TO_JSVAL( s );
@@ -2479,7 +2577,7 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 			return JS_TRUE;
 		/*responseXML*/
 		case 3: 
-			if (ctx->readyState<3) return JS_FALSE;
+			if (ctx->readyState<3) return JS_TRUE;
 			*vp = dom_document_construct(c, ctx->document);
 			return JS_TRUE;
 		/*status*/
@@ -2495,7 +2593,7 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 			}
 			return JS_TRUE;
 		default:
-			return JS_FALSE;
+			return JS_TRUE;
 		}
 	}
 	return JS_PropertyStub(c, obj, id, vp);
@@ -2505,9 +2603,9 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	XMLHTTPContext *ctx;
-	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
-	if (!ctx) return JS_FALSE;
+	if (!ctx) return JS_TRUE;
 
 	if (JSVAL_IS_INT(id)) {
 		switch (JSVAL_TO_INT(id)) {
@@ -2516,23 +2614,23 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 			break;
 		/*all other properties are read-only*/
 		default:
-			return JS_FALSE;
+			return JS_TRUE;
 		}
 		if (JSVAL_IS_VOID(*vp)) {
 			ctx->onreadystatechange = NULL;
 			return JS_TRUE;
 		}
-		else if (JSVAL_IS_STRING(*vp)) {
+		else if (JSVAL_CHECK_STRING(*vp)) {
 			jsval fval;
-			char *callback = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
-			if (! JS_LookupProperty(c, JS_GetGlobalObject(c), callback, &fval)) return JS_FALSE;
+			char *callback = JSVAL_GET_STRING(*vp);
+			if (! JS_LookupProperty(c, JS_GetGlobalObject(c), callback, &fval)) return JS_TRUE;
 			ctx->onreadystatechange = JS_ValueToFunction(c, fval);
 			if (ctx->onreadystatechange) return JS_TRUE;
 		} else if (JSVAL_IS_OBJECT(*vp)) {
 			ctx->onreadystatechange = JS_ValueToFunction(c, *vp);
 			if (ctx->onreadystatechange) return JS_TRUE;
 		}
-		return JS_FALSE;
+		return JS_TRUE;
 	}
 	return JS_TRUE;
 }
@@ -2545,9 +2643,9 @@ static JSBool dcci_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 	GF_DOMFullNode *n;
 	char *value;
 	JSString *s;
-	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
 	n = (GF_DOMFullNode*) dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) return JS_TRUE;
 
 	if (JSVAL_IS_INT(id)) {
 		switch (JSVAL_TO_INT(id)) {
@@ -2621,7 +2719,7 @@ static JSBool dcci_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 			*vp = STRING_TO_JSVAL( s );
 			return JS_TRUE;
 		default:
-			return JS_FALSE;
+			return JS_TRUE;
 		}
 	}
 	return JS_PropertyStub(c, obj, id, vp);
@@ -2634,12 +2732,12 @@ static JSBool dcci_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 	GF_DOM_Event evt;
 	char *str;
 	jsval readonly;
-	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
 	n = (GF_DOMFullNode*) dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
+	if (!n) return JS_TRUE;
 
-	str = JS_GetStringBytes(JSVAL_TO_STRING( *vp));
-	if (!str) return JS_FALSE;
+	str = JSVAL_GET_STRING( *vp);
+	if (!str) return JS_TRUE;
 
 	if (JSVAL_IS_INT(id)) {
 		switch (JSVAL_TO_INT(id)) {
@@ -2676,9 +2774,9 @@ static JSBool dcci_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 
 		/*all other properties are read-only*/
 		default:
-			return JS_FALSE;
+			return JS_TRUE;
 		}
-		return JS_FALSE;
+		return JS_TRUE;
 	}
 	return JS_TRUE;
 }
@@ -2688,7 +2786,7 @@ Bool dcci_prop_lookup(GF_DOMFullNode *n, char *ns, char *name, Bool deep, Bool f
 	Bool ok = 1;
 	GF_ChildNodeItem *child = n->children;
 	/*ns mismatch*/
-	if (strcmp(ns, "*") && n->ns && strcmp(ns, n->ns))
+	if (strcmp(ns, "*") && n->ns && strcmp(ns, gf_sg_get_namespace(n->sgprivate->scenegraph, n->ns) ))
 		ok = 0;
 	/*name mismatch*/
 	if (strcmp(name, "*") && n->name && strcmp(name, n->name))
@@ -2715,14 +2813,14 @@ static JSBool dcci_has_property(JSContext *c, JSObject *obj, uintN argc, jsval *
 	GF_DOMFullNode *n;
 	Bool deep;
 	char *ns, *name;
-	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
 	n = (GF_DOMFullNode*) dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
-	if (argc!=3) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-	ns = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+	if (!n) return JS_TRUE;
+	if (argc!=3) return JS_TRUE;
+	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+	ns = JSVAL_GET_STRING(argv[0]);
+	name = JSVAL_GET_STRING(argv[1]);
 
 	deep = JSVAL_TO_BOOLEAN(argv[2]) ? 1 : 0;
 	deep = dcci_prop_lookup(n, ns, name, deep, 1);
@@ -2736,7 +2834,7 @@ void dcci_prop_collect(DOMNodeList *nl, GF_DOMFullNode *n, char *ns, char *name,
 	Bool ok = 1;
 	GF_ChildNodeItem *child = n->children;
 	/*ns mismatch*/
-	if (strcmp(ns, "*") && n->ns && strcmp(ns, n->ns))
+	if (strcmp(ns, "*") && n->ns && strcmp(ns, gf_sg_get_namespace(n->sgprivate->scenegraph, n->ns) ))
 		ok = 0;
 	/*name mismatch*/
 	if (strcmp(name, "*") && n->name && strcmp(name, n->name))
@@ -2768,14 +2866,14 @@ static JSBool dcci_search_property(JSContext *c, JSObject *obj, uintN argc, jsva
 	GF_DOMFullNode *n;
 	Bool deep;
 	char *ns, *name;
-	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_FALSE;
+	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
 	n = (GF_DOMFullNode*) dom_get_node(c, obj);
-	if (!n) return JS_FALSE;
-	if (argc!=4) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-	ns = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+	if (!n) return JS_TRUE;
+	if (argc!=4) return JS_TRUE;
+	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
+	if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+	ns = JSVAL_GET_STRING(argv[0]);
+	name = JSVAL_GET_STRING(argv[1]);
 	/*todo - DCCI prop filter*/
 	deep = JSVAL_TO_BOOLEAN(argv[3]) ? 1 : 0;
 
@@ -2789,41 +2887,82 @@ static JSBool dcci_search_property(JSContext *c, JSObject *obj, uintN argc, jsva
 
 void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 {
-	JSObject *dom_element_proto = NULL;
 	if (!dom_rt) {
 		GF_SAFEALLOC(dom_rt, GF_DOMRuntime);
-		DOM_CORE_SETUP_CLASS(dom_rt->domNodeClass, "Node", JSCLASS_HAS_PRIVATE, dom_node_getProperty, dom_node_setProperty, dom_node_finalize);
-		DOM_CORE_SETUP_CLASS(dom_rt->domDocumentClass, "Document", JSCLASS_HAS_PRIVATE, dom_document_getProperty, dom_document_setProperty, dom_document_finalize);
+		JS_SETUP_CLASS(dom_rt->domNodeClass, "Node", JSCLASS_HAS_PRIVATE, dom_node_getProperty, dom_node_setProperty, dom_node_finalize);
+		JS_SETUP_CLASS(dom_rt->domDocumentClass, "Document", JSCLASS_HAS_PRIVATE, dom_document_getProperty, dom_document_setProperty, dom_document_finalize);
 		/*Element uses the same destructor as node*/
-		DOM_CORE_SETUP_CLASS(dom_rt->domElementClass, "Element", JSCLASS_HAS_PRIVATE, dom_element_getProperty, dom_element_setProperty, dom_node_finalize);
+		JS_SETUP_CLASS(dom_rt->domElementClass, "Element", JSCLASS_HAS_PRIVATE, dom_element_getProperty, JS_PropertyStub, dom_node_finalize);
 		/*Text uses the same destructor as node*/
-		DOM_CORE_SETUP_CLASS(dom_rt->domTextClass, "Text", JSCLASS_HAS_PRIVATE, dom_text_getProperty, dom_text_setProperty, dom_node_finalize);
+		JS_SETUP_CLASS(dom_rt->domTextClass, "Text", JSCLASS_HAS_PRIVATE, dom_text_getProperty, dom_text_setProperty, dom_node_finalize);
 		/*Event class*/
-		DOM_CORE_SETUP_CLASS(dom_rt->domEventClass , "Event", JSCLASS_HAS_PRIVATE, event_getProperty, JS_PropertyStub, JS_FinalizeStub);
-		DOM_CORE_SETUP_CLASS(dom_rt->domNodeListClass, "NodeList", JSCLASS_HAS_PRIVATE, dom_nodelist_getProperty, dom_nodelist_setProperty, dom_nodelist_finalize);
-		DOM_CORE_SETUP_CLASS(dom_rt->xmlHTTPRequestClass, "XMLHttpRequest", JSCLASS_HAS_PRIVATE, xml_http_getProperty, xml_http_setProperty, xml_http_finalize);
+		JS_SETUP_CLASS(dom_rt->domEventClass , "Event", JSCLASS_HAS_PRIVATE, event_getProperty, JS_PropertyStub, JS_FinalizeStub);
 
-		DOM_CORE_SETUP_CLASS(dom_rt->DCCIClass, "DCCI", JSCLASS_HAS_PRIVATE, dcci_getProperty, dcci_setProperty, dom_node_finalize);
+
+		JS_SETUP_CLASS(dom_rt->domNodeListClass, "NodeList", JSCLASS_HAS_PRIVATE, dom_nodelist_getProperty, dom_nodelist_setProperty, dom_nodelist_finalize);
+		JS_SETUP_CLASS(dom_rt->xmlHTTPRequestClass, "XMLHttpRequest", JSCLASS_HAS_PRIVATE, xml_http_getProperty, xml_http_setProperty, xml_http_finalize);
+
+		JS_SETUP_CLASS(dom_rt->DCCIClass, "DCCI", JSCLASS_HAS_PRIVATE, dcci_getProperty, dcci_setProperty, dom_node_finalize);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] dom run-time allocated\n"));
 	}
 	dom_rt->nb_inst++;
+	
+	define_dom_exception(c, global);
 
 	{
 		JSFunctionSpec nodeFuncs[] = {
-			JS_DOM3_NODE_FUNCS
+			{"insertBefore",			xml_node_insert_before, 2},
+			{"replaceChild",			xml_node_replace_child, 2},
+			{"removeChild",				xml_node_remove_child, 1},
+			{"appendChild",				xml_node_append_child, 1},
+			{"hasChildNodes",			xml_node_has_children, 0},
+			{"cloneNode",				xml_clone_node, 1},
+			{"normalize",				xml_dom3_not_implemented, 0},
+			{"isSupported",				xml_dom3_not_implemented, 2},
+			{"hasAttributes",			xml_node_has_attributes, 0},
+			{"compareDocumentPosition", xml_dom3_not_implemented, 1},
+			{"isSameNode",				xml_node_is_same_node, 1},
+			{"lookupPrefix",			xml_dom3_not_implemented, 1},
+			{"isDefaultNamespace",		xml_dom3_not_implemented, 1},
+			{"lookupNamespaceURI",		xml_dom3_not_implemented, 1},
+			/*we don't support full node compare*/
+			{"isEqualNode",				xml_node_is_same_node, 1},
+			{"getFeature",				xml_dom3_not_implemented, 2},
+			{"setUserData",				xml_dom3_not_implemented, 3},
+			{"getUserData",				xml_dom3_not_implemented, 1},
 			{0}
 		};
 		JSPropertySpec nodeProps[] = {
-			JS_DOM3_NODE_PROPS
+			{"nodeName",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"nodeValue",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"nodeType",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"parentNode",		3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"childNodes",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"firstChild",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"lastChild",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"previousSibling",	7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"nextSibling",		8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"attributes",		9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"ownerDocument",	10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"namespaceURI",	11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"prefix",			12,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"localName",		13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"baseURI",			14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"textContent",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT},	
 			{0}
 		};
-		JS_InitClass(c, global, 0, &dom_rt->domNodeClass, 0, 0, nodeProps, nodeFuncs, 0, 0);
+		dom_rt->dom_node_proto = JS_InitClass(c, global, 0, &dom_rt->domNodeClass, 0, 0, nodeProps, nodeFuncs, 0, 0);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] node class initialized\n"));
+
+		JS_DefineProperty(c, dom_rt->dom_node_proto, "ELEMENT_NODE", INT_TO_JSVAL(1), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, dom_rt->dom_node_proto, "TEXT_NODE", INT_TO_JSVAL(3), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, dom_rt->dom_node_proto, "CDATA_SECTION_NODE", INT_TO_JSVAL(4), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, dom_rt->dom_node_proto, "DOCUMENT_NODE", INT_TO_JSVAL(9), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+
 	}
 	{
 		JSFunctionSpec documentFuncs[] = {
-			JS_DOM3_NODE_FUNCS
 			{"createElement",				xml_document_create_element, 1},
 			{"createDocumentFragment",		xml_dom3_not_implemented, 0},
 			{"createTextNode",				xml_document_create_text, 1},
@@ -2842,36 +2981,32 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			{"normalizeDocument",			xml_dom3_not_implemented, 0},
 			{"renameNode",					xml_dom3_not_implemented, 3},
 			/*eventTarget interface*/
-			JS_DOM3_EVEN_TARGET_FUNC
+			JS_DOM3_EVEN_TARGET_INTERFACE
 			/*DocumentEvent interface*/
-			{"createEvent", xml_dom3_not_implemented, 1},
+			{"createEvent",					xml_dom3_not_implemented, 1},
 			{0}
 		};
 
 		JSPropertySpec documentProps[] = {
-			JS_DOM3_NODE_PROPS
-			{"doctype",				JS_DOM3_NODE_LAST_PROP+1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"implementation",		JS_DOM3_NODE_LAST_PROP+2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"documentElement",		JS_DOM3_NODE_LAST_PROP+3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"inputEncoding",		JS_DOM3_NODE_LAST_PROP+4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"xmlEncoding",			JS_DOM3_NODE_LAST_PROP+5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"xmlStandalone",		JS_DOM3_NODE_LAST_PROP+6,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"xmlVersion",			JS_DOM3_NODE_LAST_PROP+7,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"strictErrorChecking",	JS_DOM3_NODE_LAST_PROP+8,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"documentURI",			JS_DOM3_NODE_LAST_PROP+9,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"domConfig",			JS_DOM3_NODE_LAST_PROP+10,      JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			/*svgDocument interface*/
-			{"global",				JS_DOM3_NODE_LAST_PROP+11,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"doctype",				1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"implementation",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"documentElement",		3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"inputEncoding",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"xmlEncoding",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"xmlStandalone",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"xmlVersion",			7,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"strictErrorChecking",	8,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"documentURI",			9,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"domConfig",			10,      JSPROP_ENUMERATE | JSPROP_PERMANENT},
 			{0}
 		};
 
-		JS_InitClass(c, global, 0, &dom_rt->domDocumentClass, 0, 0, documentProps, documentFuncs, 0, 0);
+		dom_rt->dom_document_proto = JS_InitClass(c, global, dom_rt->dom_node_proto, &dom_rt->domDocumentClass, 0, 0, documentProps, documentFuncs, 0, 0);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] document class initialized\n"));
 	}
 	
 	{
 		JSFunctionSpec elementFuncs[] = {
-			JS_DOM3_NODE_FUNCS
 			{"getAttribute",				xml_element_get_attribute, 1},
 			{"setAttribute",				xml_element_set_attribute, 2},
 			{"removeAttribute",				xml_element_remove_attribute, 1},
@@ -2891,93 +3026,22 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			{"setAttributeNodeNS",			xml_dom3_not_implemented, 1},
 			{"setIdAttributeNode",			xml_dom3_not_implemented, 2},
 			/*eventTarget interface*/
-			JS_DOM3_EVEN_TARGET_FUNC	
-
-			/*SVG uDOM extensions*/
-
-			/*timeControl interface*/
-			{"beginElementAt", svg_udom_smil_begin, 1},
-			{"beginElement", svg_udom_smil_begin, 0},
-			{"endElementAt", svg_udom_smil_end, 1},
-			{"endElement", svg_udom_smil_end, 0},
-			{"pauseElement", svg_udom_smil_pause, 0},
-			{"resumeElement", svg_udom_smil_resume, 0},
-			/*trait access interface*/
-			{"getTrait", svg_udom_get_trait, 1},
-			{"getTraitNS", svg_udom_get_trait, 2},
-			{"getFloatTrait", svg_udom_get_float_trait, 1},
-			{"getMatrixTrait", svg_udom_get_matrix_trait, 1},
-			{"getRectTrait", svg_udom_get_rect_trait, 1},
-			{"getPathTrait", svg_udom_get_path_trait, 1},
-			{"getRGBColorTrait", svg_udom_get_rgb_color_trait, 1},
-			/*FALLBACK TO BASE-VALUE FOR NOW - WILL NEED EITHER DOM TREE-CLONING OR A FAKE RENDER
-			PASS FOR EACH PRESENTATION VALUE ACCESS*/
-			{"getPresentationTrait", svg_udom_get_trait, 1},
-			{"getPresentationTraitNS", svg_udom_get_trait, 2},
-			{"getFloatPresentationTrait", svg_udom_get_float_trait, 1},
-			{"getMatrixPresentationTrait", svg_udom_get_matrix_trait, 1},
-			{"getRectPresentationTrait", svg_udom_get_rect_trait, 1},
-			{"getPathPresentationTrait", svg_udom_get_path_trait, 1},
-			{"getRGBColorPresentationTrait", svg_udom_get_rgb_color_trait, 1},
-			{"setTrait", svg_udom_set_trait, 2},
-			{"setTraitNS", svg_udom_set_trait, 3},
-			{"setFloatTrait", svg_udom_set_float_trait, 2},
-			{"setMatrixTrait", svg_udom_set_matrix_trait, 2},
-			{"setRectTrait", svg_udom_set_rect_trait, 2},
-			{"setPathTrait", svg_udom_set_path_trait, 2},
-			{"setRGBColorTrait", svg_udom_set_rgb_color_trait, 2},
-			/*locatable interface*/
-			{"getBBox", svg_udom_get_local_bbox, 0},
-			{"getScreenCTM", svg_udom_get_screen_ctm, 0},
-			{"getScreenBBox", svg_udom_get_screen_bbox, 0},
-			/*svgSVGElement interface*/
-			{"createSVGMatrixComponents", svg_udom_create_matrix_components, 0},
-			{"createSVGRect", svg_udom_create_rect, 0},
-			{"createSVGPath", svg_udom_create_path, 0},
-			{"createSVGRGBColor", svg_udom_create_color, 0},
-			{"moveFocus", svg_udom_move_focus, 0},
-			{"setFocus", svg_udom_set_focus, 0},
-			{"getCurrentFocusedObject", svg_udom_get_focus, 0},
+			JS_DOM3_EVEN_TARGET_INTERFACE
 			{0}
 		};
 
 		JSPropertySpec elementProps[] = {
-			JS_DOM3_NODE_PROPS
-			{"tagName",				JS_DOM3_NODE_LAST_PROP+1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"schemaTypeInfo",		JS_DOM3_NODE_LAST_PROP+2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-
-			/*SVG uDOM extensions*/
-
-			/*elementTraversal interface - mapped to node interface*/
-			/*= firstChild (id=5)*/
-			{"firstElementChild",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			/*= lastChild (id=6)*/
-			{"lastElementChild",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			/*= previousSibling (id=7)*/
-			{"previousElementSibling",	7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			/*= nextSibling (id=8)*/
-			{"nextElementSibling",		8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			/*svgElement interface*/
-			{"id",						JS_DOM3_NODE_LAST_PROP+3,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			/*svgSVGElement interface*/
-			{"currentScale",			JS_DOM3_NODE_LAST_PROP+4,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"currentRotate",			JS_DOM3_NODE_LAST_PROP+5,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"currentTranslate",		JS_DOM3_NODE_LAST_PROP+6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"viewport",				JS_DOM3_NODE_LAST_PROP+7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"currentTime",				JS_DOM3_NODE_LAST_PROP+8,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			/*timeControl interface*/
-			{"isPaused",				JS_DOM3_NODE_LAST_PROP+9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			/*old SVG1.1 stuff*/
-			{"ownerSVGElement",			JS_DOM3_NODE_LAST_PROP+10, 0},
+			{"tagName",				1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"schemaTypeInfo",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			{0}
 		};
-		dom_element_proto = JS_InitClass(c, global, 0, &dom_rt->domElementClass, 0, 0, elementProps, elementFuncs, 0, 0);
+		dom_rt->dom_element_proto = JS_InitClass(c, global, dom_rt->dom_node_proto, &dom_rt->domElementClass, 0, 0, elementProps, elementFuncs, 0, 0);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] element class initialized\n"));
 	}
 
 	{
 		JSFunctionSpec textFuncs[] = {
-			JS_DOM3_NODE_FUNCS
+#if 0
 			{"substringData",			xml_dom3_not_implemented, 2},
 			{"appendData",				xml_dom3_not_implemented, 1},
 			{"insertData",				xml_dom3_not_implemented, 2},
@@ -2986,79 +3050,95 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			/*text*/
 			{"splitText",				xml_dom3_not_implemented, 1},
 			{"replaceWholeText",		xml_dom3_not_implemented, 1},
+#endif
 			{0}
 		};
 		JSPropertySpec textProps[] = {
-			JS_DOM3_NODE_PROPS
-			{"data",						JS_DOM3_NODE_LAST_PROP+1,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"length",						JS_DOM3_NODE_LAST_PROP+2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"data",						1,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"length",						2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			/*text*/
-			{"isElementContentWhitespace",	JS_DOM3_NODE_LAST_PROP+3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"wholeText",					JS_DOM3_NODE_LAST_PROP+4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"isElementContentWhitespace",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"wholeText",					4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			{0}
 		};
-		JS_InitClass(c, global, 0, &dom_rt->domTextClass, 0, 0, textProps, textFuncs, 0, 0);
+		JS_InitClass(c, global, dom_rt->dom_node_proto, &dom_rt->domTextClass, 0, 0, textProps, textFuncs, 0, 0);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] text class initialized\n"));
 	}
 	
+	/*event API*/
 	{
 		JSFunctionSpec eventFuncs[] = {
 			{"stopPropagation", event_stop_propagation, 0},
+			{"stopImmediatePropagation", event_stop_immediate_propagation, 0},
 			{"preventDefault", event_prevent_default, 0},
-			{"isDefaultPrevented", event_is_default_prevented, 0},
-			/*TODO - all event initXXX methods*/
+#if 0
+			{"initEvent", event_prevent_default, 3},
+			{"initEventNS", event_prevent_default, 4},
+#endif
 			{0},
 		};
 		JSPropertySpec eventProps[] = {
-			{"type",			0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"target",			1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"currentTarget",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"namespaceURI",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"bubbles",			4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"cancelable",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"detail",			6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			/*mouse*/
-			{"screenX",			7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"screenY",			8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"clientX",			9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"clientY",			10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"button",			11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"relatedTarget",	12,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"type",			 0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"target",			 1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"currentTarget",	 2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"eventPhase",		 3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"bubbles",			 4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"cancelable",		 5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"timeStamp",		 6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"namespaceURI",	 7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"defaultPrevented", 8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+
+			/*UIEvent*/
+			{"detail",			20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			/*text, connectionEvent*/
-			{"data",			13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			/*keyboard*/
-			{"keyIdentifier",	14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"keyChar",			15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"charCode",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"data",			25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*MouseEvent*/
+			{"screenX",			30,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"screenY",			31,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"clientX",			32,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"clientY",			33,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"button",			34,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"relatedTarget",	35,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			/*wheelEvent*/
-			{"wheelDelta",		16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"wheelDelta",		36,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+
+			/*keyboard*/
+			{"keyIdentifier",	40,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"keyChar",			41,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"charCode",		42,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+		
 			/*progress*/
-			{"lengthComputable",17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"typeArg",			18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"loaded",			19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"total",			20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			/*zoom*/
-			{"zoomRectScreen",	21,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"previousScale",	22,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"previousTranslate",	23,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"newScale",		24,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"newTranslate",	25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"lengthComputable",50,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"typeArg",			51,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"loaded",			52,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"total",			53,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"bufferLevelValid",	54,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"bufferLevel",			55,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"bufferRemainingTime",	56,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"status",				57,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 
-			{"width",	26,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"height",	27,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"translation_x",	28,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"translation_y",	29,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			/*used by vrml*/
+			{"width",			60,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"height",			61,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"translation_x",	62,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"translation_y",	63,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 
-			{"bufferLevelValid",	30,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"bufferLevel",			31,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"bufferRemainingTime",	32,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"status",				33,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-
-			{0}
+			
+			{0},
 		};
-		JS_InitClass(c, global, 0, &dom_rt->domEventClass, 0, 0, eventProps, eventFuncs, 0, 0);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] event class initialized\n"));
+		dom_rt->dom_event_proto = JS_InitClass(c, global, 0, &dom_rt->domEventClass, 0, 0, eventProps, eventFuncs, 0, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] Event class initialized\n"));
+
+		JS_DefineProperty(c, dom_rt->dom_event_proto, "CAPTURING_PHASE", INT_TO_JSVAL(1), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, dom_rt->dom_event_proto, "AT_TARGET", INT_TO_JSVAL(2), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, dom_rt->dom_event_proto, "BUBBLING_PHASE", INT_TO_JSVAL(3), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+
+		JS_DefineProperty(c, dom_rt->dom_event_proto, "DOM_KEY_LOCATION_STANDARD ", INT_TO_JSVAL(0), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, dom_rt->dom_event_proto, "DOM_KEY_LOCATION_LEFT", INT_TO_JSVAL(1), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, dom_rt->dom_event_proto, "DOM_KEY_LOCATION_RIGHT", INT_TO_JSVAL(2), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, dom_rt->dom_event_proto, "DOM_KEY_LOCATION_NUMPAD", INT_TO_JSVAL(3), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	}
+
 
 	{
 		JSFunctionSpec nodeListFuncs[] = {
@@ -3127,7 +3207,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 				{0}
 			};
 
-			JS_InitClass(c, global, dom_element_proto, &dom_rt->DCCIClass, 0, 0, DCCIClassProps, DCCIClassFuncs, 0, 0);
+			JS_InitClass(c, global, dom_rt->dom_element_proto, &dom_rt->DCCIClass, 0, 0, DCCIClassProps, DCCIClassFuncs, 0, 0);
 			dcci_root = dom_base_node_construct(c, &dom_rt->DCCIClass, dcci->RootNode);
 			JS_DefineProperty(c, global, "DCCIRoot", dcci_root, 0, 0, JSPROP_READONLY | JSPROP_PERMANENT );
 
@@ -3149,13 +3229,18 @@ void dom_js_unload()
 
 static void dom_js_define_document_ex(JSContext *c, JSObject *global, GF_SceneGraph *doc, const char *name)
 {
+	JSClass *__class;
 	JSObject *obj;
 	if (!doc || !doc->RootNode) return;
 
 	if (doc->reference_count)
 		doc->reference_count++;
 
-	obj = JS_DefineObject(c, global, name, &dom_rt->domDocumentClass, 0, 0 );
+	__class = &dom_rt->domDocumentClass;
+	if (dom_rt->get_document_class)
+		__class = dom_rt->get_document_class(doc);
+
+	obj = JS_DefineObject(c, global, name, __class, 0, 0 );
 	gf_node_register(doc->RootNode, NULL);
 	JS_SetPrivate(c, obj, doc);
 	doc->document = obj;
@@ -3169,6 +3254,23 @@ void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
 JSObject *dom_js_define_event(JSContext *c, JSObject *global)
 {
 	return JS_DefineObject(c, global, "evt", &dom_rt->domEventClass, 0, 0 );
+}
+
+JSObject *gf_dom_new_event(JSContext *c)
+{
+	return JS_NewObject(c, &dom_rt->domEventClass, 0, 0);
+}
+JSObject *dom_js_get_node_proto(JSContext *c) { return dom_rt->dom_node_proto; }
+JSObject *dom_js_get_element_proto(JSContext *c) { return dom_rt->dom_element_proto; }
+JSObject *dom_js_get_document_proto(JSContext *c) { return dom_rt->dom_document_proto; }
+JSObject *dom_js_get_event_proto(JSContext *c) { return dom_rt->dom_event_proto; }
+
+void dom_set_class_selector(JSContext *c, JSClass *(*get_element_class)(GF_Node *n), JSClass *(*get_document_class)(GF_SceneGraph *n) )
+{
+	if (dom_rt) {
+		dom_rt->get_document_class = get_document_class;
+		dom_rt->get_element_class = get_element_class;
+	}
 }
 
 #endif
@@ -3236,13 +3338,16 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 	if (is_root) {
 		Bool same_node = 1;
 		if (strcmp(node->name, node_name)) same_node = 0;
-		if (node->ns && name_space && strcmp(node->ns, name_space)) same_node = 0;
+		if (node->ns && name_space && strcmp(gf_sg_get_namespace(node->sgprivate->scenegraph, node->ns), name_space)) same_node = 0;
 
 		if (!same_node) {
 			if (node->name) free(node->name);
 			node->name = strdup(node_name);
-			if (node->ns) free(node->ns);
-			node->ns = name_space ? strdup(name_space) : NULL;
+			node->ns = 0;
+			if (name_space) {
+				gf_sg_add_namespace(node->sgprivate->scenegraph, (char *) name_space, NULL);
+				node->ns = gf_sg_get_namespace_code_from_name(node->sgprivate->scenegraph, (char*)name_space);
+			}
 			modified = 1;
 		}
 	} else {
@@ -3253,7 +3358,7 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 			Bool same_node = 1;
 			node = (GF_DOMFullNode*)child->node;
 			if (strcmp(node->name, node_name)) same_node = 0;
-			if (node->ns && name_space && strcmp(node->ns, name_space)) same_node = 0;
+			if (node->ns && name_space && strcmp(gf_sg_get_namespace(node->sgprivate->scenegraph, node->ns), name_space)) same_node = 0;
 			if (same_node) {
 				break;
 			}
@@ -3266,7 +3371,10 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 			/*create the new node*/
 			node = (GF_DOMFullNode *) gf_node_new(ctx->document, TAG_DOMFullNode);
 			node->name = strdup(node_name);
-			if (name_space) node->ns = strdup(name_space);
+			if (name_space) {
+				gf_sg_add_namespace(node->sgprivate->scenegraph, (char *)name_space, NULL);
+				node->ns = gf_sg_get_namespace_code(node->sgprivate->scenegraph, (char *)name_space);
+			}
 
 			par = gf_list_last(ctx->node_stack);
 			gf_node_register((GF_Node*)node, (GF_Node*)par);
@@ -3326,7 +3434,7 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 			} else {
 				GF_DOMFullAttribute *att;
 				GF_SAFEALLOC(att, GF_DOMFullAttribute);
-				att->tag = TAG_DOM_ATTRIBUTE_FULL;
+				att->tag = TAG_DOM_ATT_any;
 				att->name = strdup(attributes[i].name);
 				att->data = strdup(attributes[i].value);
 				if (prev) prev->next = (GF_DOMAttribute*)att;

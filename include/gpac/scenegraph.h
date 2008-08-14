@@ -33,18 +33,14 @@ extern "C" {
 #include <gpac/list.h>
 #include <gpac/math.h>
 
-
-
 /*
 	TAG definitions are static, in order to be able to mix nodes from different standard
 	in a single scenegraph. These TAGs are only used internally (they do not match any
 	binary encoding)
 */
 enum {
-	/*no node shall use this tag*/
-	TAG_ForbiddenZero = 0,
 	/*undefined node: just the base node class, used for parsing*/
-	TAG_UndefinedNode = 1,
+	TAG_UndefinedNode = 0,
 	/*all MPEG-4/VRML/X3D proto instances have this tag*/
 	TAG_ProtoNode,
 
@@ -81,7 +77,26 @@ enum {
 
 	/*range for XBL*/
 	GF_NODE_RANGE_FIRST_XBL, 
-	GF_NODE_RANGE_LAST_XBL = GF_NODE_RANGE_FIRST_XBL+100,
+	TAG_XBL_bindings = GF_NODE_RANGE_FIRST_XBL,
+	TAG_XBL_binding,
+	TAG_XBL_content,
+	TAG_XBL_children,
+	TAG_XBL_implementation,
+	TAG_XBL_constructor,
+	TAG_XBL_destructor,
+	TAG_XBL_field,
+	TAG_XBL_property,
+	TAG_XBL_getter,
+	TAG_XBL_setter,
+	TAG_XBL_method,
+	TAG_XBL_parameter,
+	TAG_XBL_body,
+	TAG_XBL_handlers,
+	TAG_XBL_handler,
+	TAG_XBL_resources,
+	TAG_XBL_stylesheet,
+	TAG_XBL_image,
+	GF_NODE_RANGE_LAST_XBL,
 };
 
 
@@ -153,10 +168,8 @@ const char *gf_node_get_log_name(GF_Node*);
 u32 gf_node_get_id(GF_Node*);
 /* gets node built-in name (eg 'Appearance', ..) */
 const char *gf_node_get_class_name(GF_Node *Node);
-/* gets node built-in name from a tag value (eg 'Appearance', ..) */
-const char *gf_node_get_class_name_by_tag(u32 tag);
 
-u32 gf_sg_node_get_tag_by_class_name(const char *name, const char *name_space);
+u32 gf_sg_node_get_tag_by_class_name(const char *name, u32 xmlns);
 
 /*unset the node ID*/
 GF_Err gf_node_remove_id(GF_Node *p);
@@ -509,8 +522,6 @@ enum
 	GF_JSAPI_OP_GET_FOCUS,
 	/*!set focus to given node.*/
 	GF_JSAPI_OP_SET_FOCUS,
-	/*!get target scene URL*/
-	GF_JSAPI_OP_GET_URL,
 	/*!replace target scene URL*/
 	GF_JSAPI_OP_LOAD_URL,
 	/*!get option by section and key*/
@@ -529,6 +540,12 @@ enum
 	GF_JSAPI_OP_GET_DCCI,
 	/*!gets subscene for current node if any*/
 	GF_JSAPI_OP_GET_SUBSCENE,
+	/*!resolves relative Xlink based on xml:base*/
+	GF_JSAPI_OP_RESOLVE_XLINK,
+	/*!evaluates if the given IRI is available for playback (returns 1) or not. If the IRI is
+	NULL, this evaluates whether the scene is ready for composition (canvas setup) or not.*/
+	GF_JSAPI_OP_EVAL_IRI,
+
 	/*!gets GPAC terminal*/
 	GF_JSAPI_OP_GET_TERM,
 };

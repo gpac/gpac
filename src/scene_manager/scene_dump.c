@@ -27,7 +27,7 @@
 #include <gpac/utf.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_x3d.h>
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 #include <gpac/events.h>
 
 //#ifndef GPAC_READ_ONLY
@@ -185,7 +185,7 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 	}
 	if (sdump->dump_mode==GF_SM_DUMP_SVG) return;
 	if (sdump->LSRDump) {
-		fprintf(sdump->trace, "<saf:SAFSession xmlns:saf=\"urn:mpeg:mpeg4:SAF:2005\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:lsr=\"urn:mpeg:mpeg4:LASeR:2005\" xmlns=\"http://www.w3.org/2000/svg\">\n");
+		fprintf(sdump->trace, "<saf:SAFSession xmlns:saf=\"urn:mpeg:mpeg4:SAF:2005\" >\n");
 #ifndef GPAC_READ_ONLY
 		if (root_od) {
 			GF_ObjectDescriptor *iod = (GF_ObjectDescriptor *)root_od;
@@ -2256,11 +2256,24 @@ static char *lsr_format_node_id(GF_Node *n, u32 NodeID, char *str)
 	return str;
 }
 
+static char szLSRName[1024];
+
+static char *sd_get_lsr_namespace(GF_SceneGraph *sg)
+{
+	char *lsrns = (char *) gf_sg_get_namespace_qname(sg, GF_XMLNS_LASER);
+	if (lsrns) {
+		sprintf(szLSRName, "%s:", lsrns);
+		return szLSRName;
+	}
+	return "";
+}
+
 GF_Err DumpLSRNewScene(GF_SceneDumper *sdump, GF_Command *com)
 {
-	fprintf(sdump->trace, "<lsr:NewScene>\n");
+	char *lsrns = sd_get_lsr_namespace(com->in_scene);
+	fprintf(sdump->trace, "<%sNewScene>\n", lsrns);
 	SD_DumpSVG_Element(sdump, com->node, NULL, 0);
-	fprintf(sdump->trace, "</lsr:NewScene>\n");
+	fprintf(sdump->trace, "</%sNewScene>\n", lsrns);
 	return GF_OK;
 }
 
@@ -2269,12 +2282,13 @@ GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 	char szAtt[80000];
 	Bool is_text = 0;
 	GF_CommandField *f;
+	char *lsrns = sd_get_lsr_namespace(com->in_scene);
 
 	const char *com_name = (com->tag==GF_SG_LSR_REPLACE) ? "Replace" : ( (com->tag==GF_SG_LSR_ADD) ? "Add" : "Insert" );
 
 	DUMP_IND(sdump);
 
-	fprintf(sdump->trace, "<lsr:%s ref=\"%s\" ", com_name, lsr_format_node_id(com->node, com->RouteID, szAtt));
+	fprintf(sdump->trace, "<%s%s ref=\"%s\" ", lsrns, com_name, lsr_format_node_id(com->node, com->RouteID, szAtt));
 	f = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 	if (f && (f->pos>=0) ) fprintf(sdump->trace, "index=\"%d\" ", f->pos);
 	if (f) {
@@ -2285,7 +2299,7 @@ GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 			else if (f->fieldType==SVG_Transform_Rotate_datatype) att_name = "rotation";
 			else if (f->fieldType==SVG_Transform_Translate_datatype) att_name = "translation";
 			else if (f->fieldIndex==(u32) -1) att_name = "textContent";
-			else att_name = (char*) gf_svg_get_attribute_name(f->fieldIndex);
+			else att_name = (char*) gf_svg_get_attribute_name(com->node, f->fieldIndex);
 
 			fprintf(sdump->trace, "attributeName=\"%s\" ", att_name);
 			if (f->field_ptr) {
@@ -2336,7 +2350,7 @@ GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 	}
 	sdump->indent--;
 	if (!is_text) DUMP_IND(sdump);
-	fprintf(sdump->trace, "</lsr:%s>\n", com_name);
+	fprintf(sdump->trace, "</%s%s>\n", lsrns, com_name);
 	return GF_OK;
 }
 GF_Err DumpLSRClean(GF_SceneDumper *sdump, GF_Command *com)
@@ -2347,8 +2361,9 @@ GF_Err DumpLSRDelete(GF_SceneDumper *sdump, GF_Command *com)
 {
 	char szID[1024];
 	GF_CommandField *f;
+	char *lsrns = sd_get_lsr_namespace(com->in_scene);
 	DUMP_IND(sdump);
-	fprintf(sdump->trace, "<lsr:Delete ref=\"%s\" ", lsr_format_node_id(com->node, com->RouteID, szID));
+	fprintf(sdump->trace, "<%sDelete ref=\"%s\" ", lsrns, lsr_format_node_id(com->node, com->RouteID, szID));
 	f = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 	if (f && (f->pos>=0) ) fprintf(sdump->trace, "index=\"%d\" ", f->pos);
 	fprintf(sdump->trace, "/>\n");
@@ -2369,8 +2384,9 @@ GF_Err DumpLSRSave(GF_SceneDumper *sdump, GF_Command *com)
 GF_Err DumpLSRSendEvent(GF_SceneDumper *sdump, GF_Command *com)
 {
 	char szID[1024];
+	char *lsrns = sd_get_lsr_namespace(com->in_scene);
 	DUMP_IND(sdump);
-	fprintf(sdump->trace, "<lsr:SendEvent ref=\"%s\" event=\"%s\"", 
+	fprintf(sdump->trace, "<%sSendEvent ref=\"%s\" event=\"%s\"", lsrns, 
 		lsr_format_node_id(com->node, com->RouteID, szID),
 		gf_dom_event_get_name(com->send_event_name)
 		);
@@ -2400,11 +2416,12 @@ GF_Err DumpLSRSendEvent(GF_SceneDumper *sdump, GF_Command *com)
 GF_Err DumpLSRActivate(GF_SceneDumper *sdump, GF_Command *com)
 {
 	char szID[1024];
+	char *lsrns = sd_get_lsr_namespace(com->in_scene);
 	DUMP_IND(sdump);
 	if (com->tag==GF_SG_LSR_ACTIVATE) {
-		fprintf(sdump->trace, "<lsr:Activate ref=\"%s\" />\n", lsr_format_node_id(com->node, com->RouteID, szID));
+		fprintf(sdump->trace, "<%sActivate ref=\"%s\" />\n", lsrns, lsr_format_node_id(com->node, com->RouteID, szID));
 	} else {
-		fprintf(sdump->trace, "<lsr:Deactivate ref=\"%s\" />\n", lsr_format_node_id(com->node, com->RouteID, szID));
+		fprintf(sdump->trace, "<%sDeactivate ref=\"%s\" />\n", lsrns, lsr_format_node_id(com->node, com->RouteID, szID));
 	}
 	return GF_OK;
 }
@@ -2576,13 +2593,16 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 	if (!nID) {
 		switch (tag) {
 		case TAG_SVG_listener:
-			if (gf_svg_get_attribute_by_tag(n, TAG_SVG_ATT_handler, 0, 0, &info)==GF_OK) {
+			if (gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_handler, 0, 0, &info)==GF_OK) {
 				if (((XMLRI*)info.far_ptr)->target && !gf_node_get_id(((XMLRI*)info.far_ptr)->target) ) 
 					return;
 			}
 			break;
 		case TAG_SVG_handler:
-			return;
+			/*this handler was not declared in the graph*/
+			if (!n->sgprivate->parents || (n->sgprivate->parents->node != parent))
+				return;
+			break;
 		case TAG_DOMText:
 		{
 			GF_DOMText *txt = (GF_DOMText *)n;
@@ -2606,8 +2626,16 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 
 	fprintf(sdump->trace, "<%s", gf_node_get_class_name(n));
 
-	if (is_root) 
-		fprintf(sdump->trace, " xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"");
+	if (is_root) {
+		for (i=0; i<gf_list_count(n->sgprivate->scenegraph->ns); i++) {
+			GF_XMLNS *ns = gf_list_get(n->sgprivate->scenegraph->ns, i);
+			if (ns->qname) {
+				fprintf(sdump->trace, " xmlns:%s=\"%s\"", ns->qname, ns->name);
+			} else {
+				fprintf(sdump->trace, " xmlns=\"%s\"", ns->name);
+			}
+		}
+	}
 	
 	if (nID) fprintf(sdump->trace, " id=\"%s\"", lsr_format_node_id(n, 0, attValue));
 
@@ -2637,7 +2665,11 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		}
 		info.fieldIndex = att->tag;
 		info.fieldType = att->data_type;
-		info.name = gf_svg_get_attribute_name(att->tag);
+		if (att->tag==TAG_DOM_ATT_any) {
+			info.name = ((GF_DOMFullAttribute*)att)->name;
+		} else {
+			info.name = gf_svg_get_attribute_name(n, att->tag);
+		}
 		info.far_ptr = att->data;
 		gf_svg_dump_attribute((GF_Node*)svg, &info, attValue);
 		if ((info.fieldType = strlen(attValue)))
@@ -2647,19 +2679,26 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 	}
 
 	/*re-translate dynamically created listeners/handlers */
-	if (n->sgprivate->interact && n->sgprivate->interact->events) {
-		count = gf_list_count(n->sgprivate->interact->events);
+	if (n->sgprivate->interact && n->sgprivate->interact->dom_evt) {
+		count = gf_list_count(n->sgprivate->interact->dom_evt->evt_list);
 		for (i=0; i<count; i++) {
 			SVG_handlerElement *hdl;
-			GF_Node *listener = (GF_Node *)gf_list_get(n->sgprivate->interact->events, i);
-			if (!(listener->sgprivate->flags & 0x7FFFFFFF) ) continue;
-			if (gf_svg_get_attribute_by_tag(listener, TAG_SVG_ATT_handler, 0, 0, &info)==GF_OK) {
+			GF_Node *listener = (GF_Node *)gf_list_get(n->sgprivate->interact->dom_evt->evt_list, i);
+			/*this listener has been created for internal use*/
+			if (listener->sgprivate->parents) continue;
+			if (gf_node_get_attribute_by_tag(listener, TAG_SVG_ATT_handler, 0, 0, &info)==GF_OK) {
 				GF_DOMText *txt;
 				hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 				if (!hdl) continue;
+				/*this handler was declared in the graph*/
+				if (hdl->sgprivate->parents 
+					&& (hdl->sgprivate->parents->next || (hdl->sgprivate->parents->node != listener))
+				)
+					continue;
+
 				txt = hdl->children ? (GF_DOMText*)hdl->children->node : NULL;
 				if (!txt || (txt->sgprivate->tag!=TAG_DOMText) || !txt->textContent) continue;
-				if (gf_svg_get_attribute_by_tag((GF_Node*)hdl, TAG_SVG_ATT_ev_event, 0, 0, &info)==GF_OK) {
+				if (gf_node_get_attribute_by_tag((GF_Node*)hdl, TAG_XMLEV_ATT_event, 0, 0, &info)==GF_OK) {
 					fprintf(sdump->trace, " on%s=\"%s\"", gf_dom_event_get_name( ((XMLEV_Event*)info.far_ptr)->type), txt->textContent);
 				}
 			}
@@ -2671,7 +2710,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		return;
 	}
 
-	if (n->sgprivate->tag==TAG_SVG_conditional) {
+	if (n->sgprivate->tag==TAG_LSR_conditional) {
 		GF_DOMUpdates *up = svg->children ? (GF_DOMUpdates *)svg->children->node : NULL;
 		sdump->indent++;
 		if (up && (up->sgprivate->tag==TAG_DOMUpdates)) {
@@ -2761,17 +2800,19 @@ GF_Err SD_SetSceneGraph(GF_SceneDumper *sdump, GF_SceneGraph *sg)
 
 GF_Err SD_DumpDOMElement(GF_SceneDumper *sdump, GF_DOMFullNode *node)
 {
+	const char *ns;
 	u32 child_type = 0;
 	GF_DOMFullAttribute *att;
 	GF_ChildNodeItem *child;
 	GF_DOMText *txt;
+	ns = gf_sg_get_namespace_qname(node->sgprivate->scenegraph, node->ns);
 
 	DUMP_IND(sdump);
-	if (node->ns) fprintf(sdump->trace, "<%s:%s", node->ns, node->name);
+	if (ns) fprintf(sdump->trace, "<%s:%s", ns, node->name);
 	else fprintf(sdump->trace, "<%s", node->name);
 	att = (GF_DOMFullAttribute *)node->attributes;
 	while (att) {
-		fprintf(sdump->trace, " %s=\"%s\"", att->name, att->data);
+		fprintf(sdump->trace, " %s=\"%s\"", att->name, (char *) att->data);
 		att = (GF_DOMFullAttribute *)att->next;
 	}
 	if (!node->children) {
@@ -2808,7 +2849,7 @@ GF_Err SD_DumpDOMElement(GF_SceneDumper *sdump, GF_DOMFullNode *node)
 		DUMP_IND(sdump);
 	}
 
-	if (node->ns) fprintf(sdump->trace, "</%s:%s>\n", node->ns, node->name);
+	if (ns) fprintf(sdump->trace, "</%s:%s>\n", ns, node->name);
 	else fprintf(sdump->trace, "</%s>\n", node->name);
 
 	return GF_OK;

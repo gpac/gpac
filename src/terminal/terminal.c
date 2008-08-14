@@ -66,6 +66,10 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		param->term = term;
 		return 1;
 	}
+	if (type==GF_JSAPI_OP_RESOLVE_XLINK) {
+		param->uri.url = (char *) gf_term_resolve_xlink(n, (char *) param->uri.url);
+		return 1;
+	}
 	if (type==GF_JSAPI_OP_GET_OPT) {
 		param->gpac_cfg.key_val = gf_cfg_get_key(term->user->config, param->gpac_cfg.section, param->gpac_cfg.key);
 		return 1;
@@ -94,6 +98,18 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(n);
 		param->scene = is->graph;
 		return 1;
+	}
+	if (type==GF_JSAPI_OP_EVAL_IRI) {
+		GF_InlineScene *is;
+		if (!n) return 0;
+		is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph(n));
+		if (!param->uri.url) {
+			/*wait for compositor to be completely setup*/
+			if (is->graph_attached && term->compositor->scene && !term->compositor->msg_type) return 1;
+			return 0;
+		}
+		/*todo*/
+		return 0;
 	}
 	
 

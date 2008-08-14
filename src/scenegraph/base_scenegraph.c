@@ -30,7 +30,7 @@
 /*X3D tags (for internal nodes)*/
 #include <gpac/nodes_x3d.h>
 #include <gpac/events.h>
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 
 static void ReplaceDEFNode(GF_Node *FromNode, GF_Node *node, GF_Node *newNode, Bool updateOrderedGroup);
 
@@ -60,6 +60,9 @@ GF_SceneGraph *gf_sg_new()
 	tmp->smil_timed_elements = gf_list_new();
 	tmp->modified_smil_timed_elements = gf_list_new();
 	tmp->listeners_to_add = gf_list_new();
+	tmp->dom_evt.evt_list = gf_list_new();
+	tmp->dom_evt.ptr = tmp;
+	tmp->dom_evt.ptr_type = GF_DOM_EVENT_DOCUMENT;
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	tmp->scripts = gf_list_new();
@@ -127,6 +130,7 @@ void gf_sg_del(GF_SceneGraph *sg)
 	gf_list_del(sg->smil_timed_elements);
 	gf_list_del(sg->modified_smil_timed_elements);
 	gf_list_del(sg->listeners_to_add);
+	gf_list_del(sg->dom_evt.evt_list);
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	gf_list_del(sg->scripts);
@@ -297,6 +301,13 @@ void gf_sg_reset(GF_SceneGraph *sg)
 #endif
 
 #ifndef GPAC_DISABLE_SVG
+
+	/*remove listeners attached to the doc*/
+	while (gf_list_count(sg->dom_evt.evt_list)) {
+		GF_Node *n = gf_list_get(sg->dom_evt.evt_list, 0);
+		gf_dom_listener_del(n, &sg->dom_evt);
+	}
+
 	/*flush any pending add_listener*/
 	gf_dom_listener_process_add(sg);
 #endif
@@ -394,12 +405,23 @@ restart:
 		gf_sg_proto_del(p);
 	}
 #ifndef GPAC_DISABLE_SVG
-	assert(gf_list_count(sg->xlink_hrefs) == 0);
+//	assert(gf_list_count(sg->xlink_hrefs) == 0);
 #endif
 
 	/*last destroy all routes*/
 	gf_sg_destroy_routes(sg);
 	sg->simulation_tick = 0;
+
+	while (gf_list_count(sg->ns)) {
+		GF_XMLNS *ns = gf_list_get(sg->ns, 0);
+		gf_list_rem(sg->ns, 0);
+		if (ns->name) free(ns->name);
+		if (ns->qname) free(ns->qname);
+		free(ns);
+	}
+	gf_list_del(sg->ns);
+	sg->ns = 0;
+
 #ifdef GF_SELF_REPLACE_ENABLE
 	sg->graph_has_been_reset = 1;
 #endif
@@ -1318,12 +1340,13 @@ void gf_node_free(GF_Node *node)
 		if (node->sgprivate->interact->routes) {
 			gf_list_del(node->sgprivate->interact->routes);
 		}
-		if (node->sgprivate->interact->events) {
-			while (gf_list_count(node->sgprivate->interact->events)) {
-				GF_Node *n = gf_list_get(node->sgprivate->interact->events, 0);
-				gf_dom_listener_del(node, n);
+		if (node->sgprivate->interact->dom_evt) {
+			while (gf_list_count(node->sgprivate->interact->dom_evt->evt_list)) {
+				GF_Node *n = gf_list_get(node->sgprivate->interact->dom_evt->evt_list, 0);
+				gf_dom_listener_del(n, node->sgprivate->interact->dom_evt);
 			}
-			gf_list_del(node->sgprivate->interact->events);
+			gf_list_del(node->sgprivate->interact->dom_evt->evt_list);
+			free(node->sgprivate->interact->dom_evt);
 		}
 		if (node->sgprivate->interact->animations) {
 			gf_list_del(node->sgprivate->interact->animations);
@@ -1511,16 +1534,12 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 		evt.type = GF_EVENT_TREE_MODIFIED;
 		evt.bubbles = 0;
 		evt.relatedNode = node;
-		gf_dom_event_fire(node, NULL, &evt);
+gf_dom_event_fire(node, NULL, &evt);
 	}
 }
 
 void gf_node_del(GF_Node *node)
 {
-#ifdef GF_NODE_USE_POINTERS
-	node->sgprivate->node_del(node);
-#else
-
 	if (node->sgprivate->tag==TAG_UndefinedNode) gf_node_free(node);
 	else if (node->sgprivate->tag==TAG_DOMText) {
 		GF_DOMText *t = (GF_DOMText *)node;
@@ -1546,7 +1565,7 @@ void gf_node_del(GF_Node *node)
 		while (n->attributes) {
 			GF_DOMAttribute *att = n->attributes;
 			n->attributes = att->next;
-			if (att->tag==TAG_DOM_ATTRIBUTE_FULL) {
+			if (att->tag==TAG_DOM_ATT_any) {
 				GF_DOMFullAttribute *fa = (GF_DOMFullAttribute *)att;
 				free(fa->data);
 				free(fa->name);
@@ -1554,7 +1573,6 @@ void gf_node_del(GF_Node *node)
 			free(att);
 		}
 		if (n->name) free(n->name);
-		if (n->ns) free(n->ns);
 		gf_sg_parent_reset(node);
 		gf_node_free(node);
 	}
@@ -1565,7 +1583,6 @@ void gf_node_del(GF_Node *node)
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) gf_svg_node_del(node);
 #endif
 	else gf_node_free(node);
-#endif
 }
 
 GF_EXPORT
@@ -1576,7 +1593,7 @@ u32 gf_node_get_field_count(GF_Node *node)
 	/*for both MPEG4 & X3D*/
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_ALL);
 #ifndef GPAC_DISABLE_SVG
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_count(node);
+	else if (node->sgprivate->tag >= GF_NODE_FIRST_DOM_NODE_TAG) return gf_node_get_attribute_count(node);
 #endif
 	return 0;
 }
@@ -1585,9 +1602,6 @@ GF_EXPORT
 const char *gf_node_get_class_name(GF_Node *node)
 {
 	assert(node && node->sgprivate->tag);
-#ifdef GF_NODE_USE_POINTERS
-	return node->sgprivate->name;
-#else
 	if (node->sgprivate->tag==TAG_UndefinedNode) return "UndefinedNode";
 	else if (node->sgprivate->tag==TAG_ProtoNode) return ((GF_ProtoInstance*)node)->proto_name;
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(node->sgprivate->tag);
@@ -1595,38 +1609,13 @@ const char *gf_node_get_class_name(GF_Node *node)
 	else if (node->sgprivate->tag==TAG_DOMText) return "";
 	else if (node->sgprivate->tag==TAG_DOMFullNode) return ((GF_DOMFullNode*)node)->name;
 #ifndef GPAC_DISABLE_SVG
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_element_name(node->sgprivate->tag);
+	else return gf_xml_get_element_name(node);
 #endif
-#ifndef GPAC_DISABLE_XBL
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_XBL) return gf_xbl_get_element_name(node->sgprivate->tag);
-#endif
-	else return "UnsupportedNode";
-#endif
+	return "UnsupportedNode";
 }
 
 GF_EXPORT
-const char *gf_node_get_class_name_by_tag(u32 tag)
-{
-	assert(tag);
-#ifdef GF_NODE_USE_POINTERS
-	return "NOT SUPPORTED";
-#else
-	if (tag==TAG_UndefinedNode) return "UndefinedNode";
-	else if (tag==TAG_ProtoNode) return "Proto";
-	else if (tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(tag);
-	else if (tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(tag);
-#ifndef GPAC_DISABLE_SVG
-	else if (tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_element_name(tag);
-#endif
-#ifndef GPAC_DISABLE_XBL
-	else if (tag <= GF_NODE_RANGE_LAST_XBL) return gf_xbl_get_element_name(tag);
-#endif
-	else return "UnsupportedNode";
-#endif
-}
-
-GF_EXPORT
-u32 gf_sg_node_get_tag_by_class_name(const char *name, const char *name_space)
+u32 gf_sg_node_get_tag_by_class_name(const char *name, u32 ns)
 {
 	u32 tag;
 
@@ -1637,10 +1626,7 @@ u32 gf_sg_node_get_tag_by_class_name(const char *name, const char *name_space)
 	tag = gf_node_x3d_type_by_class_name(name);	
 	if (tag) return tag;
 
-	tag = gf_svg_get_element_tag(name);
-	if (tag != TAG_UndefinedNode) return tag;
-
-	tag = gf_xbl_get_element_tag(name);
+	tag = gf_xml_get_element_tag(name, ns);
 	if (tag != TAG_UndefinedNode) return tag;
 
 	return 	TAG_UndefinedNode;
@@ -1691,18 +1677,15 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 	memset(info, 0, sizeof(GF_FieldInfo));
 	info->fieldIndex = FieldIndex;
 
-#ifdef GF_NODE_USE_POINTERS
-	return node->sgprivate->get_field(node, info);
-#else
 	if (node->sgprivate->tag==TAG_UndefinedNode) return GF_BAD_PARAM;
 	else if (node->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_get_field(NULL, node, info);
 	else if ((node->sgprivate->tag == TAG_MPEG4_Script) || (node->sgprivate->tag == TAG_X3D_Script) )
 		return gf_sg_script_get_field(node, info);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_field(node, info);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_field(node, info);
+
 #ifndef GPAC_DISABLE_SVG
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_info(node, info);
-#endif
+	else if (node->sgprivate->tag >= GF_NODE_FIRST_DOM_NODE_TAG) return gf_node_get_attribute_info(node, info);
 #endif
 	return GF_NOT_SUPPORTED;
 }
@@ -1727,9 +1710,6 @@ static GF_Err gf_node_get_field_by_name_enum(GF_Node *node, char *name, GF_Field
 
 GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 {
-#ifdef GF_NODE_USE_POINTERS
-	return gf_node_get_field_by_name_enum(node, name, field);
-#else
 	s32 res = -1;
 
 	if (node->sgprivate->tag==TAG_UndefinedNode) return GF_BAD_PARAM;
@@ -1742,11 +1722,10 @@ GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) res = gf_sg_mpeg4_node_get_field_index_by_name(node, name);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) res = gf_sg_x3d_node_get_field_index_by_name(node, name);
 #ifndef GPAC_DISABLE_SVG
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_by_name(node, name, 1, 0, field);
+	else if (node->sgprivate->tag >= GF_NODE_FIRST_DOM_NODE_TAG) return gf_node_get_attribute_by_name(node, name, 0, 1, 0, field);
 #endif
 	if (res==-1) return GF_BAD_PARAM;
 	return gf_node_get_field(node, (u32) res, field);
-#endif
 }
 
 static char log_node_name[10];
@@ -1840,5 +1819,104 @@ GF_Err gf_node_activate(GF_Node *node)
 	GF_Err e = gf_node_activate_ex(node);
 	gf_node_changed(node, NULL);
 	return e;
+}
+
+
+GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
+{
+	u32 i, count, id, first_foreign;
+	GF_XMLNS *ns;
+	if (!name) return GF_BAD_PARAM;
+
+	first_foreign = GF_XMLNS_FOREIGN_FIRST;
+	id = GF_XMLNS_NONE;
+	if (!strcmp(name, "http://www.w3.org/XML/1998/namespace")) id = GF_XMLNS_XML;
+	else if (!strcmp(name, "http://www.w3.org/2001/xml-events")) id = GF_XMLNS_XMLEV;
+	else if (!strcmp(name, "http://www.w3.org/1999/xlink")) id = GF_XMLNS_XLINK;
+	else if (!strcmp(name, "http://www.w3.org/2000/svg")) id = GF_XMLNS_SVG;
+	else if (!strcmp(name, "urn:mpeg:mpeg4:laser:2005")) id = GF_XMLNS_LASER;
+	else if (!strcmp(name, "http://www.w3.org/ns/xbl")) id = GF_XMLNS_XBL;
+
+	if (!sg->ns) sg->ns = gf_list_new();
+
+	count = gf_list_count(sg->ns);
+	for (i=0; i<count; i++) {
+		ns = gf_list_get(sg->ns, i);
+		if (!ns->qname && !qname) {
+			if (!strcmp(ns->name, name)) return GF_OK;
+		}
+		if (ns->qname && qname && !strcmp(ns->qname, qname)) {
+			if (!strcmp(ns->name, name)) return GF_OK;
+		}
+		if (ns->xmlns_id >= first_foreign)
+			first_foreign = ns->xmlns_id+1;
+	}
+	GF_SAFEALLOC(ns, GF_XMLNS);
+	ns->name = strdup(name);
+	if (qname) ns->qname = strdup(qname);
+	ns->xmlns_id = id ? id : first_foreign;
+	
+	return gf_list_add(sg->ns, ns);
+}
+
+u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname)
+{
+	GF_XMLNS *ns;
+	u32 i, count;
+	count = sg->ns ? gf_list_count(sg->ns) : 0;
+	for (i=0; i<count; i++) {
+		ns = gf_list_get(sg->ns, i);
+		if (!ns->qname && !qname) 
+			return ns->xmlns_id;
+		
+		if (ns->qname && qname && !strcmp(ns->qname, qname)) 
+			return ns->xmlns_id;
+	}
+	if (qname) {
+		if (!strcmp(qname, "xml")) return GF_XMLNS_XML;
+		/*we could also add the basic namespaces in case this has been forgotten ?*/
+	}
+	return GF_XMLNS_NONE;
+}
+
+u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name)
+{
+	GF_XMLNS *ns;
+	u32 i, count;
+	count = sg->ns ? gf_list_count(sg->ns) : 0;
+	for (i=0; i<count; i++) {
+		ns = gf_list_get(sg->ns, i);
+		if (ns->name && name && !strcmp(ns->name, name)) 
+			return ns->xmlns_id;
+	}
+	return GF_XMLNS_NONE;
+}
+
+const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, u32 xmlns_id)
+{
+	GF_XMLNS *ns;
+	u32 i, count;
+	count = sg->ns ? gf_list_count(sg->ns) : 0;
+	for (i=0; i<count; i++) {
+		ns = gf_list_get(sg->ns, i);
+		if (ns->xmlns_id == xmlns_id) 
+			return ns->qname;
+	}
+	if (xmlns_id==GF_XMLNS_XML) return "xml";
+	return NULL;
+}
+
+
+const char *gf_sg_get_namespace(GF_SceneGraph *sg, u32 xmlns_id)
+{
+	GF_XMLNS *ns;
+	u32 i, count;
+	count = sg->ns ? gf_list_count(sg->ns) : 0;
+	for (i=0; i<count; i++) {
+		ns = gf_list_get(sg->ns, i);
+		if (ns->xmlns_id == xmlns_id) 
+			return ns->name;
+	}
+	return NULL;
 }
 

@@ -4,7 +4,7 @@
  *			Authors: Cyril Concolato - Jean Le Feuvre
  *    Copyright (c)2004-200X ENST - All rights reserved
  *
- *  This file is part of GPAC / SVG Scene Graph sub-project
+ *  This file is part of GPAC / XML-based Scene Graph sub-project
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -22,15 +22,8 @@
  *
  */
 
-
-/*
-	DO NOT MOFIFY - File generated on GMT Tue May 15 11:18:46 2007
-
-	BY SVGGen for GPAC Version 0.4.3-DEV
-*/
-
-#ifndef _GF_SVG_NODES_H
-#define _GF_SVG_NODES_H
+#ifndef _GF_XML_NODES_H
+#define _GF_XML_NODES_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,9 +31,6 @@ extern "C" {
 
 #include <gpac/scenegraph_svg.h>
 
-
-/* Definition of SVG 3 Alternate element internal tags */
-/* TAG names are made of "TAG_SVG" + SVG element name (with - replaced by _) */
 enum {
 	TAG_SVG_a = GF_NODE_RANGE_FIRST_SVG,
 	TAG_SVG_animate,
@@ -50,8 +40,6 @@ enum {
 	TAG_SVG_animation,
 	TAG_SVG_audio,
 	TAG_SVG_circle,
-	TAG_SVG_conditional,
-	TAG_SVG_cursorManager,
 	TAG_SVG_defs,
 	TAG_SVG_desc,
 	TAG_SVG_discard,
@@ -78,11 +66,8 @@ enum {
 	TAG_SVG_prefetch,
 	TAG_SVG_radialGradient,
 	TAG_SVG_rect,
-	TAG_SVG_rectClip,
 	TAG_SVG_script,
-	TAG_SVG_selector,
 	TAG_SVG_set,
-	TAG_SVG_simpleLayout,
 	TAG_SVG_solidColor,
 	TAG_SVG_stop,
 	TAG_SVG_svg,
@@ -94,6 +79,14 @@ enum {
 	TAG_SVG_tspan,
 	TAG_SVG_use,
 	TAG_SVG_video,
+
+	
+	TAG_LSR_conditional,
+	TAG_LSR_cursorManager,
+	TAG_LSR_rectClip,
+	TAG_LSR_selector,
+	TAG_LSR_simpleLayout,
+
 	/*undefined elements (when parsing) use this tag*/
 	TAG_SVG_UndefinedElement
 };
@@ -103,10 +96,7 @@ enum {
 enum {
 	TAG_SVG_ATT_id = TAG_SVG_ATT_RANGE_FIRST,
 	TAG_SVG_ATT__class,
-	TAG_SVG_ATT_xml_id,
-	TAG_SVG_ATT_xml_base,
-	TAG_SVG_ATT_xml_lang,
-	TAG_SVG_ATT_xml_space,
+
 	TAG_SVG_ATT_requiredFeatures,
 	TAG_SVG_ATT_requiredExtensions,
 	TAG_SVG_ATT_requiredFormats,
@@ -164,18 +154,10 @@ enum {
 	TAG_SVG_ATT_nav_left,
 	TAG_SVG_ATT_nav_up_left,
 	TAG_SVG_ATT_transform,
-	TAG_SVG_ATT_xlink_type,
-	TAG_SVG_ATT_xlink_role,
-	TAG_SVG_ATT_xlink_arcrole,
-	TAG_SVG_ATT_xlink_title,
-	TAG_SVG_ATT_xlink_href,
-	TAG_SVG_ATT_xlink_show,
-	TAG_SVG_ATT_xlink_actuate,
 	TAG_SVG_ATT_target,
 	TAG_SVG_ATT_attributeName,
 	TAG_SVG_ATT_attributeType,
 	TAG_SVG_ATT_begin,
-	TAG_SVG_ATT_lsr_enabled,
 	TAG_SVG_ATT_dur,
 	TAG_SVG_ATT_end,
 	TAG_SVG_ATT_repeatCount,
@@ -249,7 +231,6 @@ enum {
 	TAG_SVG_ATT_glyph_name,
 	TAG_SVG_ATT_arabic_form,
 	TAG_SVG_ATT_lang,
-	TAG_SVG_ATT_ev_event,
 	TAG_SVG_ATT_u1,
 	TAG_SVG_ATT_g1,
 	TAG_SVG_ATT_u2,
@@ -301,17 +282,24 @@ enum {
 	TAG_SVG_ATT_overlay,
 	TAG_SVG_ATT_fullscreen,
 	TAG_SVG_ATT_motionTransform,
-	/*undefined attributes (when parsing) use this tag*/
-	TAG_SVG_ATT_Unknown
 };
 
 struct _all_atts {
+	XML_Space *xml_space;
+	XMLRI *xml_base;
+	SVG_ID *xml_id;
+	SVG_LanguageID *xml_lang;
+
+	DOM_String *xlink_type;
+	XMLRI *xlink_role;
+	XMLRI *xlink_arcrole;
+	DOM_String *xlink_title;
+	XMLRI *xlink_href;
+	DOM_String *xlink_show;
+	DOM_String *xlink_actuate;
+
 	SVG_ID *id;
 	SVG_String *_class;
-	SVG_ID *xml_id;
-	XMLRI *xml_base;
-	SVG_LanguageID *xml_lang;
-	XML_Space *xml_space;
 	SVG_ListOfIRI *requiredFeatures;
 	SVG_ListOfIRI *requiredExtensions;
 	SVG_FormatList *requiredFormats;
@@ -369,13 +357,6 @@ struct _all_atts {
 	SVG_Focus *nav_left;
 	SVG_Focus *nav_up_left;
 	SVG_Transform *transform;
-	SVG_String *xlink_type;
-	XMLRI *xlink_role;
-	XMLRI *xlink_arcrole;
-	SVG_String *xlink_title;
-	XMLRI *xlink_href;
-	SVG_String *xlink_show;
-	SVG_String *xlink_actuate;
 	SVG_String *target;
 	SMIL_AttributeName *attributeName;
 	SMIL_AttributeType *attributeType;

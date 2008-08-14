@@ -521,19 +521,11 @@ SOURCE=..\..\src\scenegraph\svg_attributes.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scenegraph\svg_nodes_da.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\src\scenegraph\svg_properties.c
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\svg_smjs.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scenegraph\svg_tools_da.c
 # End Source File
 # Begin Source File
 
@@ -569,11 +561,11 @@ SOURCE=..\..\src\scenegraph\x3d_nodes.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scenegraph\xbl_nodes.c
+SOURCE=..\..\src\scenegraph\xbl_process.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scenegraph\xbl_process.c
+SOURCE=..\..\src\scenegraph\xml_ns.c
 # End Source File
 # End Group
 # Begin Group "media_tools"
@@ -681,7 +673,7 @@ SOURCE=..\..\src\scene_manager\loader_qt.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scene_manager\loader_svg_da.c
+SOURCE=..\..\src\scene_manager\loader_svg.c
 # End Source File
 # Begin Source File
 
@@ -1309,19 +1301,15 @@ SOURCE=..\..\include\gpac\nodes_mpeg4.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\include\gpac\nodes_svg_da.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\nodes_svg_sa.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\nodes_svg_sani.h
+SOURCE=..\..\include\gpac\nodes_svg.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\include\gpac\nodes_x3d.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\nodes_xbl.h
 # End Source File
 # Begin Source File
 

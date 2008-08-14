@@ -154,6 +154,7 @@ void gf_inline_del(GF_InlineScene *is)
 	if (is->visual_url.url) free(is->visual_url.url);
 	if (is->text_url.url) free(is->text_url.url);
 	if (is->fragment_uri) free(is->fragment_uri);
+	if (is->redirect_xml_base) free(is->redirect_xml_base);
 	free(is);
 }
 

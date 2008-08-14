@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Mon Sep 17 15:41:17 2007
+	DO NOT MOFIFY - File generated on GMT Thu Aug 07 11:43:26 2008
 
 	BY MPEG4Gen for GPAC Version 0.4.5-DEV
 */
@@ -166,14 +166,6 @@ GF_Node *Anchor_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Anchor);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Anchor";
-	((GF_Node *)p)->sgprivate->node_del = Anchor_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Anchor_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Anchor_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -311,14 +303,6 @@ GF_Node *AnimationStream_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AnimationStream);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "AnimationStream";
-	((GF_Node *)p)->sgprivate->node_del = AnimationStream_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = AnimationStream_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = AnimationStream_get_field;
-#endif
-
-
 	/*default field values*/
 	p->speed = FLT2FIX(1.0);
 	p->startTime = 0;
@@ -425,14 +409,6 @@ GF_Node *Appearance_Create()
 	GF_SAFEALLOC(p, M_Appearance);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Appearance);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Appearance";
-	((GF_Node *)p)->sgprivate->node_del = Appearance_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Appearance_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Appearance_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -619,14 +595,6 @@ GF_Node *AudioBuffer_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioBuffer);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "AudioBuffer";
-	((GF_Node *)p)->sgprivate->node_del = AudioBuffer_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = AudioBuffer_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = AudioBuffer_get_field;
-#endif
-
-
 	/*default field values*/
 	p->pitch = FLT2FIX(1);
 	p->startTime = 0;
@@ -780,14 +748,6 @@ GF_Node *AudioClip_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioClip);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "AudioClip";
-	((GF_Node *)p)->sgprivate->node_del = AudioClip_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = AudioClip_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = AudioClip_get_field;
-#endif
-
-
 	/*default field values*/
 	p->pitch = FLT2FIX(1.0);
 	p->startTime = 0;
@@ -931,14 +891,6 @@ GF_Node *AudioDelay_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioDelay);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "AudioDelay";
-	((GF_Node *)p)->sgprivate->node_del = AudioDelay_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = AudioDelay_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = AudioDelay_get_field;
-#endif
-
 
 	/*default field values*/
 	p->delay = 0;
@@ -1110,14 +1062,6 @@ GF_Node *AudioFX_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioFX);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "AudioFX";
-	((GF_Node *)p)->sgprivate->node_del = AudioFX_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = AudioFX_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = AudioFX_get_field;
-#endif
-
-
 	/*default field values*/
 	p->numChan = 1;
 	return (GF_Node *)p;
@@ -1284,14 +1228,6 @@ GF_Node *AudioMix_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioMix);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "AudioMix";
-	((GF_Node *)p)->sgprivate->node_del = AudioMix_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = AudioMix_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = AudioMix_get_field;
-#endif
-
 
 	/*default field values*/
 	p->numInputs = 1;
@@ -1481,14 +1417,6 @@ GF_Node *AudioSource_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioSource);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "AudioSource";
-	((GF_Node *)p)->sgprivate->node_del = AudioSource_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = AudioSource_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = AudioSource_get_field;
-#endif
-
-
 	/*default field values*/
 	p->pitch = FLT2FIX(1);
 	p->speed = FLT2FIX(1);
@@ -1642,14 +1570,6 @@ GF_Node *AudioSwitch_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioSwitch);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "AudioSwitch";
-	((GF_Node *)p)->sgprivate->node_del = AudioSwitch_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = AudioSwitch_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = AudioSwitch_get_field;
-#endif
-
 
 	/*default field values*/
 	p->numChan = 1;
@@ -1852,14 +1772,6 @@ GF_Node *Background_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Background);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Background";
-	((GF_Node *)p)->sgprivate->node_del = Background_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Background_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Background_get_field;
-#endif
-
-
 	/*default field values*/
 	p->skyColor.vals = (SFColor*)malloc(sizeof(SFColor)*1);
 	p->skyColor.count = 1;
@@ -1981,14 +1893,6 @@ GF_Node *Background2D_Create()
 	GF_SAFEALLOC(p, M_Background2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Background2D);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Background2D";
-	((GF_Node *)p)->sgprivate->node_del = Background2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Background2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Background2D_get_field;
-#endif
-
 
 	/*default field values*/
 	p->backColor.red = FLT2FIX(0);
@@ -2113,14 +2017,6 @@ GF_Node *Billboard_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Billboard);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Billboard";
-	((GF_Node *)p)->sgprivate->node_del = Billboard_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Billboard_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Billboard_get_field;
-#endif
-
-
 	/*default field values*/
 	p->axisOfRotation.x = FLT2FIX(0);
 	p->axisOfRotation.y = FLT2FIX(1);
@@ -2218,14 +2114,6 @@ GF_Node *Bitmap_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Bitmap);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Bitmap";
-	((GF_Node *)p)->sgprivate->node_del = Bitmap_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Bitmap_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Bitmap_get_field;
-#endif
-
-
 	/*default field values*/
 	p->scale.x = FLT2FIX(-1);
 	p->scale.y = FLT2FIX(-1);
@@ -2309,14 +2197,6 @@ GF_Node *Box_Create()
 	GF_SAFEALLOC(p, M_Box);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Box);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Box";
-	((GF_Node *)p)->sgprivate->node_del = Box_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Box_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Box_get_field;
-#endif
-
 
 	/*default field values*/
 	p->size.x = FLT2FIX(2);
@@ -2414,14 +2294,6 @@ GF_Node *Circle_Create()
 	GF_SAFEALLOC(p, M_Circle);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Circle);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Circle";
-	((GF_Node *)p)->sgprivate->node_del = Circle_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Circle_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Circle_get_field;
-#endif
-
 
 	/*default field values*/
 	p->radius = FLT2FIX(1);
@@ -2552,14 +2424,6 @@ GF_Node *Collision_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Collision);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Collision";
-	((GF_Node *)p)->sgprivate->node_del = Collision_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Collision_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Collision_get_field;
-#endif
-
-
 	/*default field values*/
 	p->collide = 1;
 	return (GF_Node *)p;
@@ -2655,14 +2519,6 @@ GF_Node *Color_Create()
 	GF_SAFEALLOC(p, M_Color);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Color);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Color";
-	((GF_Node *)p)->sgprivate->node_del = Color_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Color_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Color_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -2783,14 +2639,6 @@ GF_Node *ColorInterpolator_Create()
 	GF_SAFEALLOC(p, M_ColorInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ColorInterpolator);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "ColorInterpolator";
-	((GF_Node *)p)->sgprivate->node_del = ColorInterpolator_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = ColorInterpolator_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = ColorInterpolator_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -2956,14 +2804,6 @@ GF_Node *CompositeTexture2D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CompositeTexture2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "CompositeTexture2D";
-	((GF_Node *)p)->sgprivate->node_del = CompositeTexture2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = CompositeTexture2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = CompositeTexture2D_get_field;
-#endif
-
 
 	/*default field values*/
 	p->pixelWidth = -1;
@@ -3151,14 +2991,6 @@ GF_Node *CompositeTexture3D_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CompositeTexture3D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "CompositeTexture3D";
-	((GF_Node *)p)->sgprivate->node_del = CompositeTexture3D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = CompositeTexture3D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = CompositeTexture3D_get_field;
-#endif
-
-
 	/*default field values*/
 	p->pixelWidth = -1;
 	p->pixelHeight = -1;
@@ -3272,14 +3104,6 @@ GF_Node *Conditional_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Conditional);
 	p->buffer.commandList = gf_list_new();	
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Conditional";
-	((GF_Node *)p)->sgprivate->node_del = Conditional_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Conditional_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Conditional_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -3389,14 +3213,6 @@ GF_Node *Cone_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Cone);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Cone";
-	((GF_Node *)p)->sgprivate->node_del = Cone_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Cone_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Cone_get_field;
-#endif
-
-
 	/*default field values*/
 	p->bottomRadius = FLT2FIX(1);
 	p->height = FLT2FIX(2);
@@ -3496,14 +3312,6 @@ GF_Node *Coordinate_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Coordinate);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Coordinate";
-	((GF_Node *)p)->sgprivate->node_del = Coordinate_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Coordinate_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Coordinate_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -3598,14 +3406,6 @@ GF_Node *Coordinate2D_Create()
 	GF_SAFEALLOC(p, M_Coordinate2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Coordinate2D);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Coordinate2D";
-	((GF_Node *)p)->sgprivate->node_del = Coordinate2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Coordinate2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Coordinate2D_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -3728,14 +3528,6 @@ GF_Node *CoordinateInterpolator_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CoordinateInterpolator);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "CoordinateInterpolator";
-	((GF_Node *)p)->sgprivate->node_del = CoordinateInterpolator_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = CoordinateInterpolator_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = CoordinateInterpolator_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -3857,14 +3649,6 @@ GF_Node *CoordinateInterpolator2D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CoordinateInterpolator2D);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "CoordinateInterpolator2D";
-	((GF_Node *)p)->sgprivate->node_del = CoordinateInterpolator2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = CoordinateInterpolator2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = CoordinateInterpolator2D_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -3983,14 +3767,6 @@ GF_Node *Curve2D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Curve2D);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Curve2D";
-	((GF_Node *)p)->sgprivate->node_del = Curve2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Curve2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Curve2D_get_field;
-#endif
-
-
 	/*default field values*/
 	p->fineness = FLT2FIX(0.5);
 	return (GF_Node *)p;
@@ -4107,14 +3883,6 @@ GF_Node *Cylinder_Create()
 	GF_SAFEALLOC(p, M_Cylinder);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Cylinder);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Cylinder";
-	((GF_Node *)p)->sgprivate->node_del = Cylinder_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Cylinder_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Cylinder_get_field;
-#endif
-
 
 	/*default field values*/
 	p->bottom = 1;
@@ -4285,14 +4053,6 @@ GF_Node *CylinderSensor_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CylinderSensor);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "CylinderSensor";
-	((GF_Node *)p)->sgprivate->node_del = CylinderSensor_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = CylinderSensor_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = CylinderSensor_get_field;
-#endif
-
-
 	/*default field values*/
 	p->autoOffset = 1;
 	p->diskAngle = FLT2FIX(0.262);
@@ -4436,14 +4196,6 @@ GF_Node *DirectionalLight_Create()
 	GF_SAFEALLOC(p, M_DirectionalLight);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_DirectionalLight);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "DirectionalLight";
-	((GF_Node *)p)->sgprivate->node_del = DirectionalLight_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = DirectionalLight_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = DirectionalLight_get_field;
-#endif
-
 
 	/*default field values*/
 	p->ambientIntensity = FLT2FIX(0);
@@ -4604,14 +4356,6 @@ GF_Node *DiscSensor_Create()
 	GF_SAFEALLOC(p, M_DiscSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_DiscSensor);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "DiscSensor";
-	((GF_Node *)p)->sgprivate->node_del = DiscSensor_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = DiscSensor_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = DiscSensor_get_field;
-#endif
-
 
 	/*default field values*/
 	p->autoOffset = 1;
@@ -4838,14 +4582,6 @@ GF_Node *ElevationGrid_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ElevationGrid);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "ElevationGrid";
-	((GF_Node *)p)->sgprivate->node_del = ElevationGrid_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = ElevationGrid_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = ElevationGrid_get_field;
-#endif
-
-
 	/*default field values*/
 	p->ccw = 1;
 	p->colorPerVertex = 1;
@@ -5068,14 +4804,6 @@ GF_Node *Extrusion_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Extrusion);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Extrusion";
-	((GF_Node *)p)->sgprivate->node_del = Extrusion_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Extrusion_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Extrusion_get_field;
-#endif
-
-
 	/*default field values*/
 	p->beginCap = 1;
 	p->ccw = 1;
@@ -5242,14 +4970,6 @@ GF_Node *Fog_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Fog);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Fog";
-	((GF_Node *)p)->sgprivate->node_del = Fog_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Fog_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Fog_get_field;
-#endif
-
-
 	/*default field values*/
 	p->color.red = FLT2FIX(1);
 	p->color.green = FLT2FIX(1);
@@ -5411,14 +5131,6 @@ GF_Node *FontStyle_Create()
 	GF_SAFEALLOC(p, M_FontStyle);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_FontStyle);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "FontStyle";
-	((GF_Node *)p)->sgprivate->node_del = FontStyle_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = FontStyle_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = FontStyle_get_field;
-#endif
-
 
 	/*default field values*/
 	p->family.vals = (char**)malloc(sizeof(SFString)*1);
@@ -5595,14 +5307,6 @@ GF_Node *Form_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Form);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Form";
-	((GF_Node *)p)->sgprivate->node_del = Form_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Form_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Form_get_field;
-#endif
-
-
 	/*default field values*/
 	p->size.x = FLT2FIX(-1);
 	p->size.y = FLT2FIX(-1);
@@ -5710,14 +5414,6 @@ GF_Node *Group_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Group);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Group";
-	((GF_Node *)p)->sgprivate->node_del = Group_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Group_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Group_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -5816,14 +5512,6 @@ GF_Node *ImageTexture_Create()
 	GF_SAFEALLOC(p, M_ImageTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ImageTexture);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "ImageTexture";
-	((GF_Node *)p)->sgprivate->node_del = ImageTexture_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = ImageTexture_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = ImageTexture_get_field;
-#endif
-
 
 	/*default field values*/
 	p->repeatS = 1;
@@ -6080,14 +5768,6 @@ GF_Node *IndexedFaceSet_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedFaceSet);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "IndexedFaceSet";
-	((GF_Node *)p)->sgprivate->node_del = IndexedFaceSet_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = IndexedFaceSet_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = IndexedFaceSet_get_field;
-#endif
-
-
 	/*default field values*/
 	p->ccw = 1;
 	p->colorPerVertex = 1;
@@ -6281,14 +5961,6 @@ GF_Node *IndexedFaceSet2D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedFaceSet2D);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "IndexedFaceSet2D";
-	((GF_Node *)p)->sgprivate->node_del = IndexedFaceSet2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = IndexedFaceSet2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = IndexedFaceSet2D_get_field;
-#endif
-
-
 	/*default field values*/
 	p->colorPerVertex = 1;
 	p->convex = 1;
@@ -6439,14 +6111,6 @@ GF_Node *IndexedLineSet_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedLineSet);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "IndexedLineSet";
-	((GF_Node *)p)->sgprivate->node_del = IndexedLineSet_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = IndexedLineSet_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = IndexedLineSet_get_field;
-#endif
-
-
 	/*default field values*/
 	p->colorPerVertex = 1;
 	return (GF_Node *)p;
@@ -6596,14 +6260,6 @@ GF_Node *IndexedLineSet2D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedLineSet2D);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "IndexedLineSet2D";
-	((GF_Node *)p)->sgprivate->node_del = IndexedLineSet2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = IndexedLineSet2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = IndexedLineSet2D_get_field;
-#endif
-
-
 	/*default field values*/
 	p->colorPerVertex = 1;
 	return (GF_Node *)p;
@@ -6689,14 +6345,6 @@ GF_Node *Inline_Create()
 	GF_SAFEALLOC(p, M_Inline);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Inline);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Inline";
-	((GF_Node *)p)->sgprivate->node_del = Inline_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Inline_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Inline_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -6810,14 +6458,6 @@ GF_Node *LOD_Create()
 	GF_SAFEALLOC(p, M_LOD);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_LOD);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "LOD";
-	((GF_Node *)p)->sgprivate->node_del = LOD_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = LOD_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = LOD_get_field;
-#endif
-
 
 	/*default field values*/
 	p->center.x = FLT2FIX(0);
@@ -6961,14 +6601,6 @@ GF_Node *Layer2D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Layer2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Layer2D";
-	((GF_Node *)p)->sgprivate->node_del = Layer2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Layer2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Layer2D_get_field;
-#endif
-
 
 	/*default field values*/
 	p->size.x = FLT2FIX(-1);
@@ -7129,14 +6761,6 @@ GF_Node *Layer3D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Layer3D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Layer3D";
-	((GF_Node *)p)->sgprivate->node_del = Layer3D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Layer3D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Layer3D_get_field;
-#endif
-
 
 	/*default field values*/
 	p->size.x = FLT2FIX(-1);
@@ -7359,14 +6983,6 @@ GF_Node *Layout_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Layout);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Layout";
-	((GF_Node *)p)->sgprivate->node_del = Layout_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Layout_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Layout_get_field;
-#endif
-
-
 	/*default field values*/
 	p->size.x = FLT2FIX(-1);
 	p->size.y = FLT2FIX(-1);
@@ -7500,14 +7116,6 @@ GF_Node *LineProperties_Create()
 	GF_SAFEALLOC(p, M_LineProperties);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_LineProperties);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "LineProperties";
-	((GF_Node *)p)->sgprivate->node_del = LineProperties_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = LineProperties_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = LineProperties_get_field;
-#endif
-
 
 	/*default field values*/
 	p->lineColor.red = FLT2FIX(0);
@@ -7655,14 +7263,6 @@ GF_Node *ListeningPoint_Create()
 	GF_SAFEALLOC(p, M_ListeningPoint);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ListeningPoint);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "ListeningPoint";
-	((GF_Node *)p)->sgprivate->node_del = ListeningPoint_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = ListeningPoint_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = ListeningPoint_get_field;
-#endif
-
 
 	/*default field values*/
 	p->jump = 1;
@@ -7831,14 +7431,6 @@ GF_Node *Material_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Material);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Material";
-	((GF_Node *)p)->sgprivate->node_del = Material_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Material_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Material_get_field;
-#endif
-
-
 	/*default field values*/
 	p->ambientIntensity = FLT2FIX(0.2);
 	p->diffuseColor.red = FLT2FIX(0.8);
@@ -7973,14 +7565,6 @@ GF_Node *Material2D_Create()
 	GF_SAFEALLOC(p, M_Material2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Material2D);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Material2D";
-	((GF_Node *)p)->sgprivate->node_del = Material2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Material2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Material2D_get_field;
-#endif
-
 
 	/*default field values*/
 	p->emissiveColor.red = FLT2FIX(0.8);
@@ -8136,14 +7720,6 @@ GF_Node *MovieTexture_Create()
 	GF_SAFEALLOC(p, M_MovieTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MovieTexture);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "MovieTexture";
-	((GF_Node *)p)->sgprivate->node_del = MovieTexture_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = MovieTexture_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = MovieTexture_get_field;
-#endif
-
 
 	/*default field values*/
 	p->speed = FLT2FIX(1.0);
@@ -8301,14 +7877,6 @@ GF_Node *NavigationInfo_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_NavigationInfo);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "NavigationInfo";
-	((GF_Node *)p)->sgprivate->node_del = NavigationInfo_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = NavigationInfo_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = NavigationInfo_get_field;
-#endif
-
-
 	/*default field values*/
 	p->avatarSize.vals = (SFFloat*)malloc(sizeof(SFFloat)*3);
 	p->avatarSize.count = 3;
@@ -8415,14 +7983,6 @@ GF_Node *Normal_Create()
 	GF_SAFEALLOC(p, M_Normal);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Normal);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Normal";
-	((GF_Node *)p)->sgprivate->node_del = Normal_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Normal_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Normal_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -8545,14 +8105,6 @@ GF_Node *NormalInterpolator_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_NormalInterpolator);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "NormalInterpolator";
-	((GF_Node *)p)->sgprivate->node_del = NormalInterpolator_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = NormalInterpolator_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = NormalInterpolator_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -8671,14 +8223,6 @@ GF_Node *OrderedGroup_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_OrderedGroup);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "OrderedGroup";
-	((GF_Node *)p)->sgprivate->node_del = OrderedGroup_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = OrderedGroup_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = OrderedGroup_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -8800,14 +8344,6 @@ GF_Node *OrientationInterpolator_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_OrientationInterpolator);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "OrientationInterpolator";
-	((GF_Node *)p)->sgprivate->node_del = OrientationInterpolator_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = OrientationInterpolator_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = OrientationInterpolator_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -8910,14 +8446,6 @@ GF_Node *PixelTexture_Create()
 	GF_SAFEALLOC(p, M_PixelTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PixelTexture);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PixelTexture";
-	((GF_Node *)p)->sgprivate->node_del = PixelTexture_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PixelTexture_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PixelTexture_get_field;
-#endif
-
 
 	/*default field values*/
 	p->repeatS = 1;
@@ -9071,14 +8599,6 @@ GF_Node *PlaneSensor_Create()
 	GF_SAFEALLOC(p, M_PlaneSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PlaneSensor);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PlaneSensor";
-	((GF_Node *)p)->sgprivate->node_del = PlaneSensor_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PlaneSensor_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PlaneSensor_get_field;
-#endif
-
 
 	/*default field values*/
 	p->autoOffset = 1;
@@ -9239,14 +8759,6 @@ GF_Node *PlaneSensor2D_Create()
 	GF_SAFEALLOC(p, M_PlaneSensor2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PlaneSensor2D);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PlaneSensor2D";
-	((GF_Node *)p)->sgprivate->node_del = PlaneSensor2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PlaneSensor2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PlaneSensor2D_get_field;
-#endif
-
 
 	/*default field values*/
 	p->autoOffset = 1;
@@ -9422,14 +8934,6 @@ GF_Node *PointLight_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PointLight);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PointLight";
-	((GF_Node *)p)->sgprivate->node_del = PointLight_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PointLight_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PointLight_get_field;
-#endif
-
-
 	/*default field values*/
 	p->ambientIntensity = FLT2FIX(0);
 	p->attenuation.x = FLT2FIX(1);
@@ -9538,14 +9042,6 @@ GF_Node *PointSet_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PointSet);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PointSet";
-	((GF_Node *)p)->sgprivate->node_del = PointSet_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PointSet_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PointSet_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -9640,14 +9136,6 @@ GF_Node *PointSet2D_Create()
 	GF_SAFEALLOC(p, M_PointSet2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PointSet2D);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PointSet2D";
-	((GF_Node *)p)->sgprivate->node_del = PointSet2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PointSet2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PointSet2D_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -9769,14 +9257,6 @@ GF_Node *PositionInterpolator_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PositionInterpolator);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PositionInterpolator";
-	((GF_Node *)p)->sgprivate->node_del = PositionInterpolator_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PositionInterpolator_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PositionInterpolator_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -9896,14 +9376,6 @@ GF_Node *PositionInterpolator2D_Create()
 	GF_SAFEALLOC(p, M_PositionInterpolator2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PositionInterpolator2D);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PositionInterpolator2D";
-	((GF_Node *)p)->sgprivate->node_del = PositionInterpolator2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PositionInterpolator2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PositionInterpolator2D_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -10049,14 +9521,6 @@ GF_Node *ProximitySensor2D_Create()
 	GF_SAFEALLOC(p, M_ProximitySensor2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ProximitySensor2D);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "ProximitySensor2D";
-	((GF_Node *)p)->sgprivate->node_del = ProximitySensor2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = ProximitySensor2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = ProximitySensor2D_get_field;
-#endif
-
 
 	/*default field values*/
 	p->center.x = FLT2FIX(0);
@@ -10207,14 +9671,6 @@ GF_Node *ProximitySensor_Create()
 	GF_SAFEALLOC(p, M_ProximitySensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ProximitySensor);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "ProximitySensor";
-	((GF_Node *)p)->sgprivate->node_del = ProximitySensor_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = ProximitySensor_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = ProximitySensor_get_field;
-#endif
-
 
 	/*default field values*/
 	p->center.x = FLT2FIX(0);
@@ -10750,14 +10206,6 @@ GF_Node *QuantizationParameter_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_QuantizationParameter);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "QuantizationParameter";
-	((GF_Node *)p)->sgprivate->node_del = QuantizationParameter_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = QuantizationParameter_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = QuantizationParameter_get_field;
-#endif
-
-
 	/*default field values*/
 	p->position3DMin.x = FIX_MIN;
 	p->position3DMin.y = FIX_MIN;
@@ -10891,14 +10339,6 @@ GF_Node *Rectangle_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Rectangle);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Rectangle";
-	((GF_Node *)p)->sgprivate->node_del = Rectangle_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Rectangle_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Rectangle_get_field;
-#endif
-
-
 	/*default field values*/
 	p->size.x = FLT2FIX(2);
 	p->size.y = FLT2FIX(2);
@@ -11021,14 +10461,6 @@ GF_Node *ScalarInterpolator_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ScalarInterpolator);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "ScalarInterpolator";
-	((GF_Node *)p)->sgprivate->node_del = ScalarInterpolator_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = ScalarInterpolator_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = ScalarInterpolator_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -11128,14 +10560,6 @@ GF_Node *Script_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Script);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Script";
-	((GF_Node *)p)->sgprivate->node_del = Script_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Script_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Script_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -11230,14 +10654,6 @@ GF_Node *Shape_Create()
 	GF_SAFEALLOC(p, M_Shape);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Shape);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Shape";
-	((GF_Node *)p)->sgprivate->node_del = Shape_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Shape_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Shape_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -11440,14 +10856,6 @@ GF_Node *Sound_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Sound);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Sound";
-	((GF_Node *)p)->sgprivate->node_del = Sound_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Sound_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Sound_get_field;
-#endif
-
-
 	/*default field values*/
 	p->direction.x = FLT2FIX(0);
 	p->direction.y = FLT2FIX(0);
@@ -11584,14 +10992,6 @@ GF_Node *Sound2D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Sound2D);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Sound2D";
-	((GF_Node *)p)->sgprivate->node_del = Sound2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Sound2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Sound2D_get_field;
-#endif
-
-
 	/*default field values*/
 	p->intensity = FLT2FIX(1);
 	p->location.x = FLT2FIX(0);
@@ -11677,14 +11077,6 @@ GF_Node *Sphere_Create()
 	GF_SAFEALLOC(p, M_Sphere);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Sphere);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Sphere";
-	((GF_Node *)p)->sgprivate->node_del = Sphere_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Sphere_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Sphere_get_field;
-#endif
-
 
 	/*default field values*/
 	p->radius = FLT2FIX(1);
@@ -11811,14 +11203,6 @@ GF_Node *SphereSensor_Create()
 	GF_SAFEALLOC(p, M_SphereSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_SphereSensor);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "SphereSensor";
-	((GF_Node *)p)->sgprivate->node_del = SphereSensor_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = SphereSensor_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = SphereSensor_get_field;
-#endif
-
 
 	/*default field values*/
 	p->autoOffset = 1;
@@ -12031,14 +11415,6 @@ GF_Node *SpotLight_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_SpotLight);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "SpotLight";
-	((GF_Node *)p)->sgprivate->node_del = SpotLight_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = SpotLight_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = SpotLight_get_field;
-#endif
-
-
 	/*default field values*/
 	p->ambientIntensity = FLT2FIX(0);
 	p->attenuation.x = FLT2FIX(1);
@@ -12157,14 +11533,6 @@ GF_Node *Switch_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Switch);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Switch";
-	((GF_Node *)p)->sgprivate->node_del = Switch_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Switch_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Switch_get_field;
-#endif
-
-
 	/*default field values*/
 	p->whichChoice = -1;
 	return (GF_Node *)p;
@@ -12278,14 +11646,6 @@ GF_Node *TermCap_Create()
 	GF_SAFEALLOC(p, M_TermCap);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TermCap);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "TermCap";
-	((GF_Node *)p)->sgprivate->node_del = TermCap_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = TermCap_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = TermCap_get_field;
-#endif
-
 
 	/*default field values*/
 	p->capability = 0;
@@ -12413,14 +11773,6 @@ GF_Node *Text_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Text);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Text";
-	((GF_Node *)p)->sgprivate->node_del = Text_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Text_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Text_get_field;
-#endif
-
-
 	/*default field values*/
 	p->maxExtent = FLT2FIX(0.0);
 	return (GF_Node *)p;
@@ -12516,14 +11868,6 @@ GF_Node *TextureCoordinate_Create()
 	GF_SAFEALLOC(p, M_TextureCoordinate);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TextureCoordinate);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "TextureCoordinate";
-	((GF_Node *)p)->sgprivate->node_del = TextureCoordinate_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = TextureCoordinate_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = TextureCoordinate_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -12657,14 +12001,6 @@ GF_Node *TextureTransform_Create()
 	GF_SAFEALLOC(p, M_TextureTransform);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TextureTransform);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "TextureTransform";
-	((GF_Node *)p)->sgprivate->node_del = TextureTransform_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = TextureTransform_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = TextureTransform_get_field;
-#endif
-
 
 	/*default field values*/
 	p->center.x = FLT2FIX(0);
@@ -12813,14 +12149,6 @@ GF_Node *TimeSensor_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TimeSensor);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "TimeSensor";
-	((GF_Node *)p)->sgprivate->node_del = TimeSensor_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = TimeSensor_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = TimeSensor_get_field;
-#endif
-
-
 	/*default field values*/
 	p->cycleInterval = 1;
 	p->enabled = 1;
@@ -12950,14 +12278,6 @@ GF_Node *TouchSensor_Create()
 	GF_SAFEALLOC(p, M_TouchSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TouchSensor);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "TouchSensor";
-	((GF_Node *)p)->sgprivate->node_del = TouchSensor_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = TouchSensor_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = TouchSensor_get_field;
-#endif
-
 
 	/*default field values*/
 	p->enabled = 1;
@@ -13129,14 +12449,6 @@ GF_Node *Transform_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Transform);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Transform";
-	((GF_Node *)p)->sgprivate->node_del = Transform_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Transform_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Transform_get_field;
-#endif
-
 
 	/*default field values*/
 	p->center.x = FLT2FIX(0);
@@ -13328,14 +12640,6 @@ GF_Node *Transform2D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Transform2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Transform2D";
-	((GF_Node *)p)->sgprivate->node_del = Transform2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Transform2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Transform2D_get_field;
-#endif
-
 
 	/*default field values*/
 	p->center.x = FLT2FIX(0);
@@ -13789,14 +13093,6 @@ GF_Node *Valuator_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Valuator);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Valuator";
-	((GF_Node *)p)->sgprivate->node_del = Valuator_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Valuator_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Valuator_get_field;
-#endif
-
-
 	/*default field values*/
 	p->Factor1 = FLT2FIX(1.0);
 	p->Factor2 = FLT2FIX(1.0);
@@ -13960,14 +13256,6 @@ GF_Node *Viewpoint_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Viewpoint);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Viewpoint";
-	((GF_Node *)p)->sgprivate->node_del = Viewpoint_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Viewpoint_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Viewpoint_get_field;
-#endif
-
-
 	/*default field values*/
 	p->fieldOfView = FLT2FIX(0.785398);
 	p->jump = 1;
@@ -14112,14 +13400,6 @@ GF_Node *VisibilitySensor_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_VisibilitySensor);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "VisibilitySensor";
-	((GF_Node *)p)->sgprivate->node_del = VisibilitySensor_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = VisibilitySensor_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = VisibilitySensor_get_field;
-#endif
-
-
 	/*default field values*/
 	p->center.x = FLT2FIX(0);
 	p->center.y = FLT2FIX(0);
@@ -14211,14 +13491,6 @@ GF_Node *WorldInfo_Create()
 	GF_SAFEALLOC(p, M_WorldInfo);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_WorldInfo);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "WorldInfo";
-	((GF_Node *)p)->sgprivate->node_del = WorldInfo_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = WorldInfo_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = WorldInfo_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -14435,14 +13707,6 @@ GF_Node *AcousticMaterial_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AcousticMaterial);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "AcousticMaterial";
-	((GF_Node *)p)->sgprivate->node_del = AcousticMaterial_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = AcousticMaterial_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = AcousticMaterial_get_field;
-#endif
-
-
 	/*default field values*/
 	p->ambientIntensity = FLT2FIX(0.2);
 	p->diffuseColor.red = FLT2FIX(0.8);
@@ -14628,14 +13892,6 @@ GF_Node *AcousticScene_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AcousticScene);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "AcousticScene";
-	((GF_Node *)p)->sgprivate->node_del = AcousticScene_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = AcousticScene_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = AcousticScene_get_field;
-#endif
-
-
 	/*default field values*/
 	p->center.x = FLT2FIX(0);
 	p->center.y = FLT2FIX(0);
@@ -14800,14 +14056,6 @@ GF_Node *ApplicationWindow_Create()
 	GF_SAFEALLOC(p, M_ApplicationWindow);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ApplicationWindow);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "ApplicationWindow";
-	((GF_Node *)p)->sgprivate->node_del = ApplicationWindow_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = ApplicationWindow_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = ApplicationWindow_get_field;
-#endif
-
 
 	/*default field values*/
 	p->startTime = 0;
@@ -15040,14 +14288,6 @@ GF_Node *DirectiveSound_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_DirectiveSound);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "DirectiveSound";
-	((GF_Node *)p)->sgprivate->node_del = DirectiveSound_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = DirectiveSound_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = DirectiveSound_get_field;
-#endif
-
-
 	/*default field values*/
 	p->direction.x = FLT2FIX(0);
 	p->direction.y = FLT2FIX(0);
@@ -15182,14 +14422,6 @@ GF_Node *Hierarchical3DMesh_Create()
 	GF_SAFEALLOC(p, M_Hierarchical3DMesh);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Hierarchical3DMesh);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Hierarchical3DMesh";
-	((GF_Node *)p)->sgprivate->node_del = Hierarchical3DMesh_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Hierarchical3DMesh_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Hierarchical3DMesh_get_field;
-#endif
-
 
 	/*default field values*/
 	p->level = FLT2FIX(1);
@@ -15338,14 +14570,6 @@ GF_Node *MaterialKey_Create()
 	GF_SAFEALLOC(p, M_MaterialKey);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MaterialKey);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "MaterialKey";
-	((GF_Node *)p)->sgprivate->node_del = MaterialKey_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = MaterialKey_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = MaterialKey_get_field;
-#endif
-
 
 	/*default field values*/
 	p->isKeyed = 1;
@@ -15686,14 +14910,6 @@ GF_Node *PerceptualParameters_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PerceptualParameters);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PerceptualParameters";
-	((GF_Node *)p)->sgprivate->node_del = PerceptualParameters_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PerceptualParameters_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PerceptualParameters_get_field;
-#endif
-
-
 	/*default field values*/
 	p->sourcePresence = FLT2FIX(1.0);
 	p->sourceWarmth = FLT2FIX(1.0);
@@ -15931,14 +15147,6 @@ GF_Node *TemporalTransform_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TemporalTransform);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "TemporalTransform";
-	((GF_Node *)p)->sgprivate->node_del = TemporalTransform_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = TemporalTransform_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = TemporalTransform_get_field;
-#endif
-
-
 	/*default field values*/
 	p->startTime = -1.0;
 	p->optimalDuration = -1.0;
@@ -16105,14 +15313,6 @@ GF_Node *TemporalGroup_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TemporalGroup);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "TemporalGroup";
-	((GF_Node *)p)->sgprivate->node_del = TemporalGroup_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = TemporalGroup_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = TemporalGroup_get_field;
-#endif
-
-
 	/*default field values*/
 	p->costart = 1;
 	return (GF_Node *)p;
@@ -16222,14 +15422,6 @@ GF_Node *ServerCommand_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ServerCommand);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "ServerCommand";
-	((GF_Node *)p)->sgprivate->node_del = ServerCommand_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = ServerCommand_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = ServerCommand_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -16337,14 +15529,6 @@ GF_Node *InputSensor_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_InputSensor);
 	p->buffer.commandList = gf_list_new();	
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "InputSensor";
-	((GF_Node *)p)->sgprivate->node_del = InputSensor_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = InputSensor_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = InputSensor_get_field;
-#endif
-
 
 	/*default field values*/
 	p->enabled = 1;
@@ -16481,14 +15665,6 @@ GF_Node *MatteTexture_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MatteTexture);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "MatteTexture";
-	((GF_Node *)p)->sgprivate->node_del = MatteTexture_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = MatteTexture_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = MatteTexture_get_field;
-#endif
-
-
 	/*default field values*/
 	p->fraction = FLT2FIX(0);
 	p->parameter.vals = (SFFloat*)malloc(sizeof(SFFloat)*1);
@@ -16612,14 +15788,6 @@ GF_Node *MediaBuffer_Create()
 	GF_SAFEALLOC(p, M_MediaBuffer);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MediaBuffer);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "MediaBuffer";
-	((GF_Node *)p)->sgprivate->node_del = MediaBuffer_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = MediaBuffer_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = MediaBuffer_get_field;
-#endif
-
 
 	/*default field values*/
 	p->bufferSize = FLT2FIX(0.0);
@@ -16766,14 +15934,6 @@ GF_Node *MediaControl_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MediaControl);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "MediaControl";
-	((GF_Node *)p)->sgprivate->node_del = MediaControl_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = MediaControl_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = MediaControl_get_field;
-#endif
-
-
 	/*default field values*/
 	p->mediaStartTime = -1;
 	p->mediaStopTime = FIX_MAX;
@@ -16900,14 +16060,6 @@ GF_Node *MediaSensor_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MediaSensor);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "MediaSensor";
-	((GF_Node *)p)->sgprivate->node_del = MediaSensor_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = MediaSensor_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = MediaSensor_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -17029,14 +16181,6 @@ GF_Node *CoordinateInterpolator4D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CoordinateInterpolator4D);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "CoordinateInterpolator4D";
-	((GF_Node *)p)->sgprivate->node_del = CoordinateInterpolator4D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = CoordinateInterpolator4D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = CoordinateInterpolator4D_get_field;
-#endif
-
-
 	/*default field values*/
 	return (GF_Node *)p;
 }
@@ -17151,14 +16295,6 @@ GF_Node *NonLinearDeformer_Create()
 	GF_SAFEALLOC(p, M_NonLinearDeformer);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_NonLinearDeformer);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "NonLinearDeformer";
-	((GF_Node *)p)->sgprivate->node_del = NonLinearDeformer_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = NonLinearDeformer_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = NonLinearDeformer_get_field;
-#endif
-
 
 	/*default field values*/
 	p->axis.x = FLT2FIX(0);
@@ -17360,14 +16496,6 @@ GF_Node *PositionAnimator_Create()
 	GF_SAFEALLOC(p, M_PositionAnimator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PositionAnimator);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PositionAnimator";
-	((GF_Node *)p)->sgprivate->node_del = PositionAnimator_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PositionAnimator_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PositionAnimator_get_field;
-#endif
-
 
 	/*default field values*/
 	p->fromTo.x = FLT2FIX(0);
@@ -17577,14 +16705,6 @@ GF_Node *PositionAnimator2D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PositionAnimator2D);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PositionAnimator2D";
-	((GF_Node *)p)->sgprivate->node_del = PositionAnimator2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PositionAnimator2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PositionAnimator2D_get_field;
-#endif
-
-
 	/*default field values*/
 	p->fromTo.x = FLT2FIX(0);
 	p->fromTo.y = FLT2FIX(1);
@@ -17717,14 +16837,6 @@ GF_Node *PositionInterpolator4D_Create()
 	GF_SAFEALLOC(p, M_PositionInterpolator4D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PositionInterpolator4D);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PositionInterpolator4D";
-	((GF_Node *)p)->sgprivate->node_del = PositionInterpolator4D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PositionInterpolator4D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PositionInterpolator4D_get_field;
-#endif
-
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -17901,14 +17013,6 @@ GF_Node *ScalarAnimator_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ScalarAnimator);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "ScalarAnimator";
-	((GF_Node *)p)->sgprivate->node_del = ScalarAnimator_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = ScalarAnimator_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = ScalarAnimator_get_field;
-#endif
-
-
 	/*default field values*/
 	p->fromTo.x = FLT2FIX(0);
 	p->fromTo.y = FLT2FIX(1);
@@ -18056,14 +17160,6 @@ GF_Node *Clipper2D_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Clipper2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Clipper2D";
-	((GF_Node *)p)->sgprivate->node_del = Clipper2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Clipper2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Clipper2D_get_field;
-#endif
-
 
 	/*default field values*/
 	p->inside = 1;
@@ -18435,14 +17531,6 @@ GF_Node *ColorTransform_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ColorTransform);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "ColorTransform";
-	((GF_Node *)p)->sgprivate->node_del = ColorTransform_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = ColorTransform_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = ColorTransform_get_field;
-#endif
-
-
 	/*default field values*/
 	p->mrr = FLT2FIX(1);
 	p->mrg = FLT2FIX(0);
@@ -18556,14 +17644,6 @@ GF_Node *Ellipse_Create()
 	GF_SAFEALLOC(p, M_Ellipse);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Ellipse);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Ellipse";
-	((GF_Node *)p)->sgprivate->node_del = Ellipse_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Ellipse_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Ellipse_get_field;
-#endif
-
 
 	/*default field values*/
 	p->radius.x = FLT2FIX(1);
@@ -18738,14 +17818,6 @@ GF_Node *LinearGradient_Create()
 	GF_SAFEALLOC(p, M_LinearGradient);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_LinearGradient);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "LinearGradient";
-	((GF_Node *)p)->sgprivate->node_del = LinearGradient_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = LinearGradient_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = LinearGradient_get_field;
-#endif
-
 
 	/*default field values*/
 	p->endPoint.x = FLT2FIX(1);
@@ -18942,14 +18014,6 @@ GF_Node *PathLayout_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PathLayout);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "PathLayout";
-	((GF_Node *)p)->sgprivate->node_del = PathLayout_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = PathLayout_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = PathLayout_get_field;
-#endif
-
-
 	/*default field values*/
 	p->alignment.vals = (SFInt32*)malloc(sizeof(SFInt32)*1);
 	p->alignment.count = 1;
@@ -19141,14 +18205,6 @@ GF_Node *RadialGradient_Create()
 	GF_SAFEALLOC(p, M_RadialGradient);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_RadialGradient);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "RadialGradient";
-	((GF_Node *)p)->sgprivate->node_del = RadialGradient_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = RadialGradient_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = RadialGradient_get_field;
-#endif
-
 
 	/*default field values*/
 	p->center.x = FLT2FIX(0.5);
@@ -19346,14 +18402,6 @@ GF_Node *TransformMatrix2D_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TransformMatrix2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "TransformMatrix2D";
-	((GF_Node *)p)->sgprivate->node_del = TransformMatrix2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = TransformMatrix2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = TransformMatrix2D_get_field;
-#endif
-
-
 	/*default field values*/
 	p->mxx = FLT2FIX(1);
 	p->mxy = FLT2FIX(0);
@@ -19539,14 +18587,6 @@ GF_Node *Viewport_Create()
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Viewport);
 
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "Viewport";
-	((GF_Node *)p)->sgprivate->node_del = Viewport_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = Viewport_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = Viewport_get_field;
-#endif
-
-
 	/*default field values*/
 	p->position.x = FLT2FIX(0);
 	p->position.y = FLT2FIX(0);
@@ -19673,14 +18713,6 @@ GF_Node *XCurve2D_Create()
 	GF_SAFEALLOC(p, M_XCurve2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_XCurve2D);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "XCurve2D";
-	((GF_Node *)p)->sgprivate->node_del = XCurve2D_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = XCurve2D_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = XCurve2D_get_field;
-#endif
-
 
 	/*default field values*/
 	p->fineness = FLT2FIX(0.5);
@@ -19905,14 +18937,6 @@ GF_Node *XFontStyle_Create()
 	GF_SAFEALLOC(p, M_XFontStyle);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_XFontStyle);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "XFontStyle";
-	((GF_Node *)p)->sgprivate->node_del = XFontStyle_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = XFontStyle_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = XFontStyle_get_field;
-#endif
-
 
 	/*default field values*/
 	p->fontName.vals = (char**)malloc(sizeof(SFString)*1);
@@ -20167,14 +19191,6 @@ GF_Node *XLineProperties_Create()
 	GF_SAFEALLOC(p, M_XLineProperties);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_XLineProperties);
-
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *)p)->sgprivate->name = "XLineProperties";
-	((GF_Node *)p)->sgprivate->node_del = XLineProperties_Del;
-	((GF_Node *)p)->sgprivate->get_field_count = XLineProperties_get_field_count;
-	((GF_Node *)p)->sgprivate->get_field = XLineProperties_get_field;
-#endif
-
 
 	/*default field values*/
 	p->lineColor.red = FLT2FIX(0);
@@ -20449,7 +19465,6 @@ GF_Node *gf_sg_mpeg4_node_new(u32 NodeTag)
 	}
 }
 
-#ifndef GF_NODE_USE_POINTERS
 const char *gf_sg_mpeg4_node_get_class_name(u32 NodeTag)
 {
 	switch (NodeTag) {
@@ -21219,10 +20234,6 @@ GF_Err gf_sg_mpeg4_node_get_field(GF_Node *node, GF_FieldInfo *field)
 		return GF_BAD_PARAM;
 	}
 }
-
-
-
-#endif
 
 GF_Err gf_sg_mpeg4_node_get_field_index(GF_Node *node, u32 inField, u8 code_mode, u32 *fieldIndex)
 {

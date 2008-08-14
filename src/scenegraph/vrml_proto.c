@@ -500,18 +500,6 @@ GF_Node *gf_node_clone_no_id(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clo
 	return gf_node_clone_ex(inScene, orig, cloned_parent, 0);
 }
 
-#ifdef GF_NODE_USE_POINTERS
-static GF_Err protoinst_get_field(GF_Node *node, GF_FieldInfo *info)
-{
-	info->NDTtype = NDT_SFWorldNode;
-	return gf_sg_proto_get_field(NULL, node, info);
-}
-static void protoinst_del(GF_Node *n)
-{
-	gf_sg_proto_del_instance((GF_ProtoInstance *)n);
-}
-#endif
-
 GF_Err gf_sg_proto_get_field_ind_static(GF_Node *Node, u32 inField, u8 IndexMode, u32 *allField)
 {
 	return gf_sg_proto_get_field_index((GF_ProtoInstance *)Node, inField, IndexMode, allField);
@@ -698,15 +686,7 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 	proto_node->proto_interface = proto;
 	gf_list_add(proto->instances, proto_node);
 
-#ifdef GF_NODE_USE_POINTERS
-	proto_node->sgprivate->node_del = protoinst_del;
-	proto_node->sgprivate->get_field = protoinst_get_field;
-	proto_node->sgprivate->get_field_count = gf_sg_proto_get_num_fields;
-	proto_node->sgprivate->name = strdup(proto->Name);
-#else
 	proto_node->proto_name = strdup(proto->Name);
-#endif
-
 
 	/*create the namespace*/
 	proto_node->sgprivate->scenegraph = gf_sg_new_subscene(scene);
@@ -830,12 +810,7 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 
 	sg = inst->sgprivate->scenegraph;
 
-#ifdef GF_NODE_USE_POINTERS
-	/*this is duplicated for proto since a proto declaration may be destroyed while instances are active*/
-	free((char *) inst->sgprivate->name);
-#else
 	free((char *) inst->proto_name);
-#endif
 
 	sg->pOwningProto = NULL;
 	/*and finally destroy the node. If the proto is a hardcoded one (UserCallback set), destroy the node first

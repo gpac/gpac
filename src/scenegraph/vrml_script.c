@@ -132,11 +132,7 @@ GF_Err gf_sg_script_get_field_index(GF_Node *node, u32 inField, u8 IndexMode, u3
 		}
 	}
 	/*try with default*/
-#ifdef GF_NODE_USE_POINTERS
-	return priv->gf_sg_script_get_field_index(node, inField, IndexMode, allField);
-#else
 	return gf_sg_mpeg4_node_get_field_index(node, inField, IndexMode, allField);
-#endif
 }
 
 
@@ -153,12 +149,8 @@ GF_Err gf_sg_script_get_field(GF_Node *node, GF_FieldInfo *info)
 
 	//static fields
 	if (info->fieldIndex < nb_static) {
-#ifdef GF_NODE_USE_POINTERS
-		return priv->gf_sg_script_get_field(node, info);
-#else
 		if (nb_static==3) return gf_sg_mpeg4_node_get_field(node, info);
 		return gf_sg_x3d_node_get_field(node, info);
-#endif
 	}
 
 	//dyn fields
@@ -195,13 +187,6 @@ void gf_sg_script_init(GF_Node *node)
 
 	gf_node_set_private(node, priv);
 	node->sgprivate->UserCallback = Script_PreDestroy;
-
-#ifdef GF_NODE_USE_POINTERS
-	/*store original table and provide replacement */
-	priv->gf_sg_script_get_field = node->sgprivate->get_field;
-	node->sgprivate->get_field = gf_sg_script_get_field;
-	node->sgprivate->get_field_count = gf_sg_script_get_num_fields;
-#endif
 
 	//URL is exposedField (in, out Def)
 	priv->numDef = priv->numIn = priv->numOut = script_get_nb_static_field(node) - 2;

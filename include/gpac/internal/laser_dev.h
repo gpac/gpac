@@ -105,19 +105,6 @@ u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts);
 /*transform*/
 #define RARE_TRANSFORM				47
 
-enum {
-	TAG_LSR_ATT_children = TAG_SVG_ATT_Unknown+1,
-	TAG_LSR_ATT_overflow,
-	TAG_LSR_ATT_rotation,
-	TAG_LSR_ATT_scale,
-	TAG_LSR_ATT_translation,
-	TAG_LSR_ATT_svg_width,
-	TAG_LSR_ATT_svg_height,
-	TAG_LSR_ATT_textContent,
-	/*WHAT THE HECK IS THIS THING IN THE SDL BUT NOWHERE IN THE SPEC ?*/
-	TAG_LSR_ATT_text_display,
-};
-
 enum
 {
 	LSR_EVT_abort = 0,

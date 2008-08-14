@@ -599,12 +599,15 @@ void PrintNode(const char *name, u32 graph_type)
 			tlast = GF_NODE_RANGE_LAST_MPEG4;
 		}
 		for (i=tfirst; i<tlast;i++) {
+			GF_Node *tmp = gf_node_new(sg, i);
+			gf_node_register(tmp, NULL);
 			if (node_in_table_by_tag(i, f.NDTtype)) {
-				const char *nname = gf_node_get_class_name_by_tag(i);
+				const char *nname = gf_node_get_class_name(tmp);
 				if (nname && strcmp(nname, "Unknown Node")) {
 					fprintf(stdout, "\t%s\n", nname); 
 				}
 			}
+			gf_node_unregister(tmp, NULL);
 		}
 		return;
 	}

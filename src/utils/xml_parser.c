@@ -1035,7 +1035,6 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 	if (!parser->gz_in) return GF_BAD_PARAM;
 #endif
 
-	parser->file_pos = 0;
 
 	while (!parser->suspended) {
 #ifdef NO_GZIP
@@ -1103,6 +1102,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	szLine[4] = szLine[5] = 0;
 	e = gf_xml_sax_init(parser, szLine);
 	if (e) return e;
+	parser->file_pos = 4;
 	return xml_sax_read_file(parser);
 }
 

@@ -761,9 +761,9 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
 			GF_FieldInfo info;
 			is_svg = 1;
-			if (gf_svg_get_attribute_by_tag(top_node, TAG_SVG_ATT_width, 0, 0, &info)==GF_OK) 
+			if (gf_node_get_attribute_by_tag(top_node, TAG_SVG_ATT_width, 0, 0, &info)==GF_OK) 
 				w = info.far_ptr;
-			if (gf_svg_get_attribute_by_tag(top_node, TAG_SVG_ATT_height, 0, 0, &info)==GF_OK) 
+			if (gf_node_get_attribute_by_tag(top_node, TAG_SVG_ATT_height, 0, 0, &info)==GF_OK) 
 				h = info.far_ptr;
 		}
 		/*default back color is white*/
@@ -2311,13 +2311,20 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		memset(&tr_state, 0, sizeof(tr_state));
 		tr_state.traversing_mode = TRAVERSE_GET_BOUNDS;
 		tr_state.visual = compositor->visual;
+		tr_state.vp_size = compositor->traverse_state->vp_size;
 		tr_state.for_node = n;
 		gf_mx2d_init(tr_state.transform);
+		gf_mx2d_init(tr_state.mx_at_node);
 		gf_node_traverse(gf_sg_get_root_node(compositor->scene), &tr_state);
-		if (type==GF_JSAPI_OP_GET_LOCAL_BBOX) gf_bbox_from_rect(&param->bbox, &tr_state.bounds);
-		else if (type==GF_JSAPI_OP_GET_TRANSFORM) gf_mx_from_mx2d(&param->mx, &tr_state.transform);
-		else {
-			gf_mx2d_apply_rect(&tr_state.transform, &tr_state.bounds);
+
+		gf_mx2d_pre_multiply(&tr_state.mx_at_node, &compositor->traverse_state->transform);
+
+		if (type==GF_JSAPI_OP_GET_LOCAL_BBOX) {
+			gf_bbox_from_rect(&param->bbox, &tr_state.bounds);
+		} else if (type==GF_JSAPI_OP_GET_TRANSFORM) {
+			gf_mx_from_mx2d(&param->mx, &tr_state.mx_at_node);
+		} else {
+			gf_mx2d_apply_rect(&tr_state.mx_at_node, &tr_state.bounds);
 			gf_bbox_from_rect(&param->bbox, &tr_state.bounds);
 		}
 	}

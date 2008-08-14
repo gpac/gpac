@@ -29,7 +29,7 @@
 #include <gpac/nodes_x3d.h>
 #include "media_memory.h"
 #include "media_control.h"
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 
 
 static GF_MediaObject *get_sync_reference(GF_InlineScene *is, XMLRI *iri, u32 o_type, GF_Node *orig_ref, Bool *post_pone)
@@ -58,13 +58,13 @@ static GF_MediaObject *get_sync_reference(GF_InlineScene *is, XMLRI *iri, u32 o_
 #ifndef GPAC_DISABLE_SVG
 			case TAG_SVG_audio:
 				o_type = GF_MEDIA_OBJECT_AUDIO; 
-				if (gf_svg_get_attribute_by_tag(ref, TAG_SVG_ATT_xlink_href, 0, 0, &info)==GF_OK) {
+				if (gf_node_get_attribute_by_tag(ref, TAG_XLINK_ATT_href, 0, 0, &info)==GF_OK) {
 					return get_sync_reference(is, info.far_ptr, o_type, orig_ref ? orig_ref : ref, post_pone);
 				}
 				return NULL;
 			case TAG_SVG_video:
 				o_type = GF_MEDIA_OBJECT_VIDEO; 
-				if (gf_svg_get_attribute_by_tag(ref, TAG_SVG_ATT_xlink_href, 0, 0, &info)==GF_OK) {
+				if (gf_node_get_attribute_by_tag(ref, TAG_XLINK_ATT_href, 0, 0, &info)==GF_OK) {
 					return get_sync_reference(is, info.far_ptr, o_type, orig_ref ? orig_ref : ref, post_pone);
 				}
 				return NULL;
@@ -122,7 +122,7 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines)
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_audio: 
 		obj_type = GF_MEDIA_OBJECT_AUDIO; 
-		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_syncReference, 0, 0, &info)==GF_OK) {
+		if (gf_node_get_attribute_by_tag(node, TAG_SVG_ATT_syncReference, 0, 0, &info)==GF_OK) {
 			syncRef = get_sync_reference(is, info.far_ptr, GF_MEDIA_OBJECT_UNDEF, node, &post_pone);
 			/*syncRef is specified but doesn't exist yet, post-pone*/
 			if (post_pone) return NULL;
@@ -130,7 +130,7 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines)
 		break;
 	case TAG_SVG_video: 
 		obj_type = GF_MEDIA_OBJECT_VIDEO; 
-		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_syncReference, 0, 0, &info)==GF_OK) {
+		if (gf_node_get_attribute_by_tag(node, TAG_SVG_ATT_syncReference, 0, 0, &info)==GF_OK) {
 			syncRef = get_sync_reference(is, info.far_ptr, GF_MEDIA_OBJECT_UNDEF, node, &post_pone);
 			/*syncRef is specified but doesn't exist yet, post-pone*/
 			if (post_pone) return NULL;

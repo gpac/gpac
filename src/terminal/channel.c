@@ -611,7 +611,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		} else {
 			sdec = (GF_SceneDecoder *)ch->odm->codec->decio;
 		}
+		gf_mx_p(ch->mx);
 		sdec->ProcessData(sdec, StreamBuf, StreamLength, ch->esd->ESID, 0, 0);
+		gf_mx_v(ch->mx);
 		return;
 	}
 

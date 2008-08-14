@@ -23,7 +23,7 @@
  */
 
 #include <gpac/internal/scenegraph_dev.h>
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 
 #ifndef GPAC_DISABLE_LOG
 u32 time_spent_in_anim = 0;
@@ -928,7 +928,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 
 			/* Storing also the pointer to the presentation value of the color property 
 			   (special handling of the keyword 'currentColor' if used in animation values) */
-			gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_color, 1, 1, &info);
+			gf_node_get_attribute_by_tag(node, TAG_SVG_ATT_color, 1, 1, &info);
 			aa->current_color_value.far_ptr = info.far_ptr;
 		}
 
@@ -987,7 +987,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 				assert(strlen(str) < 1000);
 				gf_log("[SMIL Animation] Time %f - Element %s - Presentation value changed for attribute %s, new value: %s - dirty flags %x\n", 
 					gf_node_get_scene_time(node), gf_node_get_log_name(node), 
-					gf_svg_get_attribute_name(aa->presentation_value.fieldIndex), str, aa->dirty_flags);
+					gf_svg_get_attribute_name(node, aa->presentation_value.fieldIndex), str, aa->dirty_flags);
 			}
 		}
 #endif
@@ -1040,7 +1040,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 		NOTE: in the mode Dynamic Allocation of Attributes, this means that the animated 
 		attribute is created with a default value, if it was not specified on the target element */
 		if (animp->attributeName->tag) {
-			gf_svg_get_attribute_by_tag(target, animp->attributeName->tag, 1, 1, &target_attribute);
+			gf_node_get_attribute_by_tag(target, animp->attributeName->tag, 1, 1, &target_attribute);
 		} else {
 			gf_node_get_field_by_name(target, animp->attributeName->name, &target_attribute);
 		}
@@ -1054,7 +1054,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 		switch (e->sgprivate->tag) {
 		case TAG_SVG_animateMotion:
 			/* Explicit creation of the pseudo 'motionTransform' attribute since it cannot be specified */
-			gf_svg_get_attribute_by_tag(target, TAG_SVG_ATT_motionTransform, 1, 0, &target_attribute);
+			gf_node_get_attribute_by_tag(target, TAG_SVG_ATT_motionTransform, 1, 0, &target_attribute);
 			gf_mx2d_init(*(GF_Matrix2D *)target_attribute.far_ptr);
 			break;
 		default:
@@ -1102,7 +1102,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 		if (!animp->additive) { 
 			/* this case can only happen with dynamic allocation of attributes */
 			GF_FieldInfo info;
-			gf_svg_get_attribute_by_tag(e, TAG_SVG_ATT_additive, 1, 0, &info);
+			gf_node_get_attribute_by_tag(e, TAG_SVG_ATT_additive, 1, 0, &info);
 			animp->additive = info.far_ptr;
 		}
 		*animp->additive = SMIL_ADDITIVE_SUM;
@@ -1132,12 +1132,12 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 		GF_ChildNodeItem *child = NULL;
 
 		GF_FieldInfo info;
-		if (gf_svg_get_attribute_by_tag(e, TAG_SVG_ATT_rotate, 0, 0, &info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag(e, TAG_SVG_ATT_rotate, 0, 0, &info) == GF_OK) {
 			rai->rotate = ((SVG_Rotate *)info.far_ptr)->type;
 		} else {
 			rai->rotate = SVG_NUMBER_VALUE;
 		}
-		if (gf_svg_get_attribute_by_tag(e, TAG_SVG_ATT_path, 0, 0, &info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag(e, TAG_SVG_ATT_path, 0, 0, &info) == GF_OK) {
 			the_path = ((SVG_PathData *)info.far_ptr);
 		}
 		child = ((SVG_Element *)e)->children;
@@ -1165,13 +1165,13 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 					u32 child_tag = gf_node_get_tag(child->node);
 					if (child_tag == TAG_SVG_mpath) {
 						GF_FieldInfo info;
-						if (gf_svg_get_attribute_by_tag(child->node, TAG_SVG_ATT_xlink_href, 0, 0, &info) == GF_OK) {
+						if (gf_node_get_attribute_by_tag(child->node, TAG_XLINK_ATT_href, 0, 0, &info) == GF_OK) {
 							XMLRI *iri = (XMLRI *)info.far_ptr;
 							if (iri->target) used_path = iri->target;
 							else if (iri->string) used_path = 
 								(GF_Node *)gf_sg_find_node_by_name(gf_node_get_graph(child->node), iri->string);
 							if (used_path && gf_node_get_tag(used_path) == TAG_SVG_path) {
-								gf_svg_get_attribute_by_tag(used_path, TAG_SVG_ATT_d, 1, 0, &info);
+								gf_node_get_attribute_by_tag(used_path, TAG_SVG_ATT_d, 1, 0, &info);
 #if USE_GF_PATH
 								rai->path = (SVG_PathData *)info.far_ptr;
 #else
@@ -1378,7 +1378,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 			if (n) {
 				xlinkp->href->type = XMLRI_ELEMENTID;
 				xlinkp->href->target = n;
-				gf_svg_register_iri(node->sgprivate->scenegraph, xlinkp->href);
+				gf_node_register_iri(node->sgprivate->scenegraph, xlinkp->href);
 			} else {
 				return;
 			}

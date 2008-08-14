@@ -1848,7 +1848,7 @@ DEP_CPP_BASE_S=\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -1881,7 +1881,7 @@ DEP_CPP_COMMA=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -1910,7 +1910,7 @@ DEP_CPP_DOM_E=\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -1948,7 +1948,7 @@ DEP_CPP_DOM_S=\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -1956,6 +1956,7 @@ DEP_CPP_DOM_S=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\svg_types.h"\
 	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\utf.h"\
 	"..\..\include\gpac\xml.h"\
 	
 NODEP_CPP_DOM_S=\
@@ -2047,10 +2048,6 @@ NODEP_CPP_MPEG4_V=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\include\gpac\nodes_svg_da.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\include\gpac\internal\scenegraph_dev.h
 # End Source File
 # Begin Source File
@@ -2067,7 +2064,7 @@ DEP_CPP_SMIL_=\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -2095,7 +2092,7 @@ DEP_CPP_SMIL_T=\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -2138,33 +2135,6 @@ NODEP_CPP_SVG_A=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scenegraph\svg_nodes_da.c
-DEP_CPP_SVG_N=\
-	"..\..\include\gpac\config_file.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config.h"\
-	"..\..\include\gpac\internal\config_static.h"\
-	"..\..\include\gpac\internal\scenegraph_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\tools.h"\
-	
-NODEP_CPP_SVG_N=\
-	"..\..\include\gpac\config.h"\
-	
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\src\scenegraph\svg_properties.c
 DEP_CPP_SVG_P=\
 	"..\..\include\gpac\config_file.h"\
@@ -2177,7 +2147,7 @@ DEP_CPP_SVG_P=\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -2214,7 +2184,7 @@ DEP_CPP_SVG_S=\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -2231,7 +2201,7 @@ NODEP_CPP_SVG_S=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scenegraph\svg_tools_da.c
+SOURCE=..\..\src\scenegraph\svg_types.c
 DEP_CPP_SVG_T=\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
@@ -2243,7 +2213,7 @@ DEP_CPP_SVG_T=\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -2253,33 +2223,6 @@ DEP_CPP_SVG_T=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SVG_T=\
-	"..\..\include\gpac\config.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\scenegraph\svg_types.c
-DEP_CPP_SVG_TY=\
-	"..\..\include\gpac\base_coding.h"\
-	"..\..\include\gpac\config_file.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config.h"\
-	"..\..\include\gpac\internal\config_static.h"\
-	"..\..\include\gpac\internal\scenegraph_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\tools.h"\
-	
-NODEP_CPP_SVG_TY=\
 	"..\..\include\gpac\config.h"\
 	
 # End Source File
@@ -2429,7 +2372,7 @@ DEP_CPP_VRML_SM=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -2507,33 +2450,6 @@ NODEP_CPP_X3D_N=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scenegraph\xbl_nodes.c
-DEP_CPP_XBL_N=\
-	"..\..\include\gpac\config_file.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config.h"\
-	"..\..\include\gpac\internal\config_static.h"\
-	"..\..\include\gpac\internal\scenegraph_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_xbl.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\svg_types.h"\
-	"..\..\include\gpac\tools.h"\
-	
-NODEP_CPP_XBL_N=\
-	"..\..\include\gpac\config.h"\
-	
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\src\scenegraph\xbl_process.c
 DEP_CPP_XBL_P=\
 	"..\..\include\gpac\bitstream.h"\
@@ -2563,6 +2479,34 @@ DEP_CPP_XBL_P=\
 	"..\..\include\gpac\xml.h"\
 	
 NODEP_CPP_XBL_P=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\xml_ns.c
+DEP_CPP_XML_N=\
+	"..\..\include\gpac\base_coding.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
+	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\network.h"\
+	"..\..\include\gpac\nodes_svg.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\svg_types.h"\
+	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_XML_N=\
 	"..\..\include\gpac\config.h"\
 	
 # End Source File
@@ -2892,7 +2836,7 @@ DEP_CPP_ENCODE=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scene_manager.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -2963,7 +2907,7 @@ DEP_CPP_LOADER=\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scene_manager.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -3007,7 +2951,7 @@ NODEP_CPP_LOADER_=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scene_manager\loader_svg_da.c
+SOURCE=..\..\src\scene_manager\loader_svg.c
 DEP_CPP_LOADER_S=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
@@ -3025,7 +2969,7 @@ DEP_CPP_LOADER_S=\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scene_manager.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -3102,7 +3046,7 @@ DEP_CPP_SCENE=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scene_manager.h"\
@@ -3895,7 +3839,7 @@ DEP_CPP_MEDIA_O=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -4009,7 +3953,7 @@ DEP_CPP_OBJEC=\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scene_manager.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -4091,7 +4035,7 @@ DEP_CPP_SVG_E=\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -4138,7 +4082,7 @@ DEP_CPP_TERM_=\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -4240,7 +4184,7 @@ DEP_CPP_LSR_D=\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -4273,7 +4217,7 @@ DEP_CPP_LSR_E=\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -4300,7 +4244,7 @@ DEP_CPP_LSR_T=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -4448,7 +4392,7 @@ DEP_CPP_BINDA=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -4523,7 +4467,7 @@ DEP_CPP_COMPO=\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -4573,7 +4517,7 @@ DEP_CPP_COMPOS=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -4620,7 +4564,7 @@ DEP_CPP_COMPOSI=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -4670,7 +4614,7 @@ DEP_CPP_COMPOSIT=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -4711,7 +4655,7 @@ DEP_CPP_DRAWA=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -4766,7 +4710,7 @@ DEP_CPP_EVENT=\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -4815,7 +4759,7 @@ DEP_CPP_FONT_=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -4865,7 +4809,7 @@ DEP_CPP_HARDC=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -4987,7 +4931,7 @@ DEP_CPP_MPEG4_A=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5028,7 +4972,7 @@ DEP_CPP_MPEG4_AU=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5069,7 +5013,7 @@ DEP_CPP_MPEG4_B=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5114,7 +5058,7 @@ DEP_CPP_MPEG4_BA=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5160,7 +5104,7 @@ DEP_CPP_MPEG4_BI=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5206,7 +5150,7 @@ DEP_CPP_MPEG4_C=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5251,7 +5195,7 @@ DEP_CPP_MPEG4_F=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5296,7 +5240,7 @@ DEP_CPP_MPEG4_G=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5340,7 +5284,7 @@ DEP_CPP_MPEG4_GE=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -5385,7 +5329,7 @@ DEP_CPP_MPEG4_GEO=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5429,7 +5373,7 @@ DEP_CPP_MPEG4_GEOM=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5473,7 +5417,7 @@ DEP_CPP_MPEG4_GR=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5515,7 +5459,7 @@ DEP_CPP_MPEG4_GRO=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5564,7 +5508,7 @@ DEP_CPP_MPEG4_GROU=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5609,7 +5553,7 @@ DEP_CPP_MPEG4_GROUP=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5654,7 +5598,7 @@ DEP_CPP_MPEG4_L=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5700,7 +5644,7 @@ DEP_CPP_MPEG4_LA=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5746,7 +5690,7 @@ DEP_CPP_MPEG4_LAY=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5791,7 +5735,7 @@ DEP_CPP_MPEG4_LI=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5835,7 +5779,7 @@ DEP_CPP_MPEG4_P=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5887,7 +5831,7 @@ DEP_CPP_MPEG4_S=\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5934,7 +5878,7 @@ DEP_CPP_MPEG4_SO=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -5978,7 +5922,7 @@ DEP_CPP_MPEG4_T=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -6065,7 +6009,7 @@ DEP_CPP_MPEG4_TI=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -6113,7 +6057,7 @@ DEP_CPP_MPEG4_VI=\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -6160,7 +6104,7 @@ DEP_CPP_NAVIG=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -6256,7 +6200,7 @@ DEP_CPP_SVG_B=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -6300,7 +6244,7 @@ DEP_CPP_SVG_F=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -6345,7 +6289,7 @@ DEP_CPP_SVG_G=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -6396,7 +6340,7 @@ DEP_CPP_SVG_GR=\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -6444,7 +6388,7 @@ DEP_CPP_SVG_M=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -6488,7 +6432,7 @@ DEP_CPP_SVG_PA=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -6533,7 +6477,7 @@ DEP_CPP_SVG_TE=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -6585,7 +6529,7 @@ DEP_CPP_TEXTU=\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -6638,7 +6582,7 @@ DEP_CPP_TEXTUR=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -6729,7 +6673,7 @@ DEP_CPP_VISUAL=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -6777,7 +6721,7 @@ DEP_CPP_VISUAL_=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -6823,7 +6767,7 @@ DEP_CPP_VISUAL_M=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -6918,7 +6862,7 @@ DEP_CPP_X3D_G=\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\

@@ -25,7 +25,7 @@
 
 #include <gpac/scenegraph_svg.h>
 #include <gpac/internal/scenegraph_dev.h>
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 /* 
 	Initialization of properties at the top level before any rendering 
 	The value shall not use the 'inherit' value, it uses the initial value.
@@ -408,37 +408,539 @@ Bool gf_svg_is_inherit(GF_FieldInfo *a)
 }
 
 
-GF_EXPORT
-Bool gf_svg_has_appearance_flag_dirty(u32 flags)
+u32 gf_svg_get_modification_flags(SVG_Element *n, GF_FieldInfo *info)
 {
-#if 0
-	/* fill-related */
-	if (flags & GF_SG_SVG_FILL_DIRTY)				return 1;
-	if (flags & GF_SG_SVG_FILLOPACITY_DIRTY)		return 1;
-	if (flags & GF_SG_SVG_FILLRULE_DIRTY)			return 1;
+//	return 0xFFFFFFFF;
+	switch (info->fieldType) {
+	case SVG_Paint_datatype: 
+		if (info->fieldIndex == TAG_SVG_ATT_fill)	return GF_SG_SVG_FILL_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_stroke) return GF_SG_SVG_STROKE_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_solid_color) return GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_stop_color) return GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_color) return GF_SG_SVG_COLOR_DIRTY;
+		break;
+	case SVG_Number_datatype:
+		if (info->fieldIndex == TAG_SVG_ATT_opacity) return GF_SG_SVG_OPACITY_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_fill_opacity) return GF_SG_SVG_FILLOPACITY_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_stroke_opacity) return GF_SG_SVG_STROKEOPACITY_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_solid_opacity) return GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_stop_opacity) return GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_line_increment) return GF_SG_SVG_LINEINCREMENT_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_stroke_miterlimit) return GF_SG_SVG_STROKEMITERLIMIT_DIRTY;
+		break;
+	case SVG_Length_datatype:
+		if (info->fieldIndex == TAG_SVG_ATT_stroke_dashoffset) return GF_SG_SVG_STROKEDASHOFFSET_DIRTY;
+		if (info->fieldIndex == TAG_SVG_ATT_stroke_width) return GF_SG_SVG_STROKEWIDTH_DIRTY;
+		break;
+	case SVG_DisplayAlign_datatype: 
+		return GF_SG_SVG_DISPLAYALIGN_DIRTY;		
+	case SVG_FillRule_datatype:
+		return GF_SG_SVG_FILLRULE_DIRTY;
+	case SVG_FontFamily_datatype:
+		return GF_SG_SVG_FONTFAMILY_DIRTY;
+	case SVG_FontSize_datatype:
+		return GF_SG_SVG_FONTSIZE_DIRTY;
+	case SVG_FontStyle_datatype:
+		return GF_SG_SVG_FONTSTYLE_DIRTY;
+	case SVG_FontVariant_datatype:
+		return GF_SG_SVG_FONTVARIANT_DIRTY;
+	case SVG_FontWeight_datatype:
+		return GF_SG_SVG_FONTWEIGHT_DIRTY;
+	case SVG_StrokeDashArray_datatype:
+		return GF_SG_SVG_STROKEDASHARRAY_DIRTY;
+	case SVG_StrokeLineCap_datatype:
+		return GF_SG_SVG_STROKELINECAP_DIRTY;
+	case SVG_StrokeLineJoin_datatype:
+		return GF_SG_SVG_STROKELINEJOIN_DIRTY;
+	case SVG_TextAlign_datatype:
+		return GF_SG_SVG_TEXTPOSITION_DIRTY;
+	case SVG_TextAnchor_datatype:
+		return GF_SG_SVG_TEXTPOSITION_DIRTY;
+	case SVG_Display_datatype:
+		return GF_SG_SVG_DISPLAY_DIRTY;
+	case SVG_VectorEffect_datatype:
+		return GF_SG_SVG_VECTOREFFECT_DIRTY;
+	}
 
-	/* stroke-related */
-	if (flags & GF_SG_SVG_STROKE_DIRTY)				return 1;
-	if (flags & GF_SG_SVG_STROKEDASHARRAY_DIRTY)	return 1;
-	if (flags & GF_SG_SVG_STROKEDASHOFFSET_DIRTY)	return 1;
-	if (flags & GF_SG_SVG_STROKELINECAP_DIRTY)		return 1;
-	if (flags & GF_SG_SVG_STROKELINEJOIN_DIRTY)		return 1;
-	if (flags & GF_SG_SVG_STROKEMITERLIMIT_DIRTY)	return 1;
-	if (flags & GF_SG_SVG_STROKEOPACITY_DIRTY)		return 1;
-	if (flags & GF_SG_SVG_STROKEWIDTH_DIRTY)		return 1;
-	if (flags & GF_SG_SVG_VECTOREFFECT_DIRTY)		return 1;
+	/* this is not a property but a regular attribute, the animatable attributes are at the moment:
+		focusable, focusHighlight, gradientUnits, nav-*, target, xlink:href, xlink:type, 
 
-	/* gradients stops and solidcolor do not affect appearance directly */
-	return 0;
-#else
-	if (flags & 
-		(GF_SG_SVG_FILL_DIRTY | GF_SG_SVG_FILLOPACITY_DIRTY | GF_SG_SVG_FILLRULE_DIRTY
-		| GF_SG_SVG_STROKE_DIRTY | GF_SG_SVG_STROKEDASHARRAY_DIRTY
-		| GF_SG_SVG_STROKEDASHOFFSET_DIRTY | GF_SG_SVG_STROKELINECAP_DIRTY
-		| GF_SG_SVG_STROKELINEJOIN_DIRTY | GF_SG_SVG_STROKEMITERLIMIT_DIRTY
-		| GF_SG_SVG_STROKEOPACITY_DIRTY | GF_SG_SVG_STROKEWIDTH_DIRTY
-		| GF_SG_SVG_VECTOREFFECT_DIRTY) )
-			return 1;
-	return 0;
-#endif
+
+		the following affect the geometry of the element (some affect the positioning):
+		cx, cy, d, height, offset, pathLength, points, r, rx, ry, width, x, x1, x2, y, y1, y2, rotate
+
+		the following affect the positioning and are computed at each frame:
+		transform, motion
+	*/
+	switch (info->fieldType) {
+		case SVG_Number_datatype:
+		case SVG_Length_datatype:
+		case SVG_Coordinate_datatype:
+		case SVG_Numbers_datatype:
+		case SVG_Points_datatype:
+		case SVG_Coordinates_datatype:
+		case SVG_PathData_datatype:
+		case SVG_Rotate_datatype:
+			return GF_SG_SVG_GEOMETRY_DIRTY;
+
+		case XMLRI_datatype:
+			return GF_SG_SVG_XLINK_HREF_DIRTY;
+		/*for viewbox & PAR, use node dirty to force recomputing of the viewbox*/
+		case SVG_PreserveAspectRatio_datatype:
+		case SVG_ViewBox_datatype:
+			return GF_SG_NODE_DIRTY;
+
+		//case SVG_Matrix_datatype:
+		//case SVG_Motion_datatype:
+
+		default:
+			return 0;
+	}
 }
+
+/* NOTE: Some properties (audio-level, display, opacity, solid*, stop*, vector-effect, viewport*) 
+         are inherited only when they are  specified with the value 'inherit'
+         otherwise they default to their initial value
+		 which for the function below means NULL, the compositor will take care of the rest
+ */
+GF_EXPORT
+u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *render_svg_props) 
+{
+	u32 inherited_flags_mask = GF_SG_NODE_DIRTY | GF_SG_CHILD_DIRTY;
+	if(!all_atts || !render_svg_props) return ~inherited_flags_mask;
+
+	if (all_atts->audio_level && all_atts->audio_level->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->audio_level = all_atts->audio_level;	
+	} else if (!all_atts->audio_level) {
+		render_svg_props->audio_level = NULL;
+	}
+	
+	if (all_atts->color && all_atts->color->type == SVG_PAINT_COLOR 
+		&& all_atts->color->color.type != SVG_COLOR_INHERIT) {
+		render_svg_props->color = all_atts->color;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_COLOR_DIRTY;
+	}
+	if (all_atts->color_rendering && *(all_atts->color_rendering) != SVG_RENDERINGHINT_INHERIT) {
+		render_svg_props->color_rendering = all_atts->color_rendering;
+	}
+	if (all_atts->display && *(all_atts->display) != SVG_DISPLAY_INHERIT) {
+		render_svg_props->display = all_atts->display;
+	} else if (!all_atts->display) {
+		render_svg_props->display = NULL;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_DISPLAY_DIRTY;
+	}
+
+	if (all_atts->display_align && *(all_atts->display_align) != SVG_DISPLAYALIGN_INHERIT) {
+		render_svg_props->display_align = all_atts->display_align;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_DISPLAYALIGN_DIRTY;
+	}
+	if (all_atts->fill && all_atts->fill->type != SVG_PAINT_INHERIT) {
+		render_svg_props->fill = all_atts->fill;
+		if (all_atts->fill->type == SVG_PAINT_COLOR && 
+			all_atts->fill->color.type == SVG_COLOR_CURRENTCOLOR &&
+			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
+			inherited_flags_mask |= GF_SG_SVG_FILL_DIRTY;
+		}
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_FILL_DIRTY;
+	}
+	if (all_atts->fill_opacity && all_atts->fill_opacity->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->fill_opacity = all_atts->fill_opacity;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_FILLOPACITY_DIRTY;
+	}
+	if (all_atts->fill_rule && *(all_atts->fill_rule) != SVG_FILLRULE_INHERIT) {
+		render_svg_props->fill_rule = all_atts->fill_rule;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_FILLRULE_DIRTY;
+	}
+	if (all_atts->font_family && all_atts->font_family->type != SVG_FONTFAMILY_INHERIT) {
+		render_svg_props->font_family = all_atts->font_family;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_FONTFAMILY_DIRTY;
+	}
+	if (all_atts->font_size && all_atts->font_size->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->font_size = all_atts->font_size;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_FONTSIZE_DIRTY;
+	}
+	if (all_atts->font_style && *(all_atts->font_style) != SVG_FONTSTYLE_INHERIT) {
+		render_svg_props->font_style = all_atts->font_style;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_FONTSTYLE_DIRTY;
+	}
+	if (all_atts->font_variant && *(all_atts->font_variant) != SVG_FONTVARIANT_INHERIT) {
+		render_svg_props->font_variant = all_atts->font_variant;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_FONTVARIANT_DIRTY;
+	}
+	if (all_atts->font_weight && *(all_atts->font_weight) != SVG_FONTWEIGHT_INHERIT) {
+		render_svg_props->font_weight = all_atts->font_weight;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_FONTWEIGHT_DIRTY;
+	}
+	if (all_atts->image_rendering && *(all_atts->image_rendering) != SVG_RENDERINGHINT_INHERIT) {
+		render_svg_props->image_rendering = all_atts->image_rendering;
+	}
+	if (all_atts->line_increment && all_atts->line_increment->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->line_increment = all_atts->line_increment;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_LINEINCREMENT_DIRTY;
+	}
+	if (all_atts->opacity && all_atts->opacity->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->opacity = all_atts->opacity;
+	} else if (!all_atts->opacity) {
+		render_svg_props->opacity = NULL;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_OPACITY_DIRTY;
+	}
+
+	if (all_atts->pointer_events && *(all_atts->pointer_events) != SVG_POINTEREVENTS_INHERIT) {
+		render_svg_props->pointer_events = all_atts->pointer_events;
+	}
+	if (all_atts->shape_rendering && *(all_atts->shape_rendering) != SVG_RENDERINGHINT_INHERIT) {
+		render_svg_props->shape_rendering = all_atts->shape_rendering;
+	}
+	if (all_atts->solid_color && all_atts->solid_color->type != SVG_PAINT_INHERIT) {
+		render_svg_props->solid_color = all_atts->solid_color;		
+		if (all_atts->solid_color->type == SVG_PAINT_COLOR && 
+			all_atts->solid_color->color.type == SVG_COLOR_CURRENTCOLOR &&
+			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
+			inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
+		}
+	} else if (!all_atts->solid_color) {
+		render_svg_props->solid_color = NULL;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
+	}
+	if (all_atts->solid_opacity && all_atts->solid_opacity->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->solid_opacity = all_atts->solid_opacity;
+	} else if (!all_atts->solid_opacity) {
+		render_svg_props->solid_opacity = NULL;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
+	}
+	if (all_atts->stop_color && all_atts->stop_color->type != SVG_PAINT_INHERIT) {
+		render_svg_props->stop_color = all_atts->stop_color;
+		if (all_atts->stop_color->type == SVG_PAINT_COLOR && 
+			all_atts->stop_color->color.type == SVG_COLOR_CURRENTCOLOR &&
+			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
+			inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
+		}
+	} else if (!all_atts->stop_color) {
+		render_svg_props->stop_color = NULL;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
+	}
+	if (all_atts->stop_opacity && all_atts->stop_opacity->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->stop_opacity = all_atts->stop_opacity;
+	} else if (!all_atts->stop_opacity) {
+		render_svg_props->stop_opacity = NULL;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
+	}
+	if (all_atts->stroke && all_atts->stroke->type != SVG_PAINT_INHERIT) {
+		render_svg_props->stroke = all_atts->stroke;
+		if (all_atts->stroke->type == SVG_PAINT_COLOR && 
+			all_atts->stroke->color.type == SVG_COLOR_CURRENTCOLOR &&
+			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
+			inherited_flags_mask |= GF_SG_SVG_STROKE_DIRTY;
+		}
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_STROKE_DIRTY;
+	}
+	if (all_atts->stroke_dasharray && all_atts->stroke_dasharray->type != SVG_STROKEDASHARRAY_INHERIT) {
+		render_svg_props->stroke_dasharray = all_atts->stroke_dasharray;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_STROKEDASHARRAY_DIRTY;
+	}
+	if (all_atts->stroke_dashoffset && all_atts->stroke_dashoffset->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->stroke_dashoffset = all_atts->stroke_dashoffset;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_STROKEDASHOFFSET_DIRTY;
+	}
+	if (all_atts->stroke_linecap && *(all_atts->stroke_linecap) != SVG_STROKELINECAP_INHERIT) {
+		render_svg_props->stroke_linecap = all_atts->stroke_linecap;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_STROKELINECAP_DIRTY;
+	}
+	if (all_atts->stroke_linejoin && *(all_atts->stroke_linejoin) != SVG_STROKELINEJOIN_INHERIT) {
+		render_svg_props->stroke_linejoin = all_atts->stroke_linejoin;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_STROKELINEJOIN_DIRTY;
+	}
+	if (all_atts->stroke_miterlimit && all_atts->stroke_miterlimit->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->stroke_miterlimit = all_atts->stroke_miterlimit;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_STROKEMITERLIMIT_DIRTY;
+	}
+	if (all_atts->stroke_opacity && all_atts->stroke_opacity->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->stroke_opacity = all_atts->stroke_opacity;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_STROKEOPACITY_DIRTY;
+	}
+	if (all_atts->stroke_width && all_atts->stroke_width->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->stroke_width = all_atts->stroke_width;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_STROKEWIDTH_DIRTY;
+	}
+	if (all_atts->text_align && *(all_atts->text_align) != SVG_TEXTALIGN_INHERIT) {
+		render_svg_props->text_align = all_atts->text_align;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_TEXTPOSITION_DIRTY;
+	}
+	if (all_atts->text_anchor && *(all_atts->text_anchor) != SVG_TEXTANCHOR_INHERIT) {
+		render_svg_props->text_anchor = all_atts->text_anchor;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_TEXTPOSITION_DIRTY;
+	}
+	if (all_atts->text_rendering && *(all_atts->text_rendering) != SVG_RENDERINGHINT_INHERIT) {
+		render_svg_props->text_rendering = all_atts->text_rendering;
+	}
+	if (all_atts->vector_effect && *(all_atts->vector_effect) != SVG_VECTOREFFECT_INHERIT) {
+		render_svg_props->vector_effect = all_atts->vector_effect;
+	} else if (!all_atts->vector_effect) {
+		render_svg_props->vector_effect = NULL;
+	} else {
+		inherited_flags_mask |= GF_SG_SVG_VECTOREFFECT_DIRTY;
+	}
+	if (all_atts->viewport_fill && all_atts->viewport_fill->type != SVG_PAINT_INHERIT) {
+		render_svg_props->viewport_fill = all_atts->viewport_fill;		
+	} else if (!all_atts->viewport_fill) {
+		render_svg_props->viewport_fill = NULL;
+	} 
+	if (all_atts->viewport_fill_opacity && all_atts->viewport_fill_opacity->type != SVG_NUMBER_INHERIT) {
+		render_svg_props->viewport_fill_opacity = all_atts->viewport_fill_opacity;
+	} else if (!all_atts->viewport_fill_opacity) {
+		render_svg_props->viewport_fill_opacity = NULL;
+	}
+	if (all_atts->visibility && *(all_atts->visibility) != SVG_VISIBILITY_INHERIT) {
+		render_svg_props->visibility = all_atts->visibility;
+	}
+	return inherited_flags_mask;
+}
+
+
+
+GF_EXPORT
+void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
+{
+	SVGAttribute *att;
+	memset(all_atts, 0, sizeof(SVGAllAttributes));
+	if (e->sgprivate->tag <= GF_NODE_FIRST_DOM_NODE_TAG) return;
+	att = e->attributes;
+	while (att) {
+		switch(att->tag) {
+		case TAG_XML_ATT_id: all_atts->xml_id = (SVG_ID *)att->data; break;
+		case TAG_XML_ATT_base: all_atts->xml_base = (XMLRI *)att->data; break;
+		case TAG_XML_ATT_lang: all_atts->xml_lang = (SVG_LanguageID *)att->data; break;
+		case TAG_XML_ATT_space: all_atts->xml_space = (XML_Space *)att->data; break;
+
+		case TAG_XLINK_ATT_type: all_atts->xlink_type = (SVG_String *)att->data; break;
+		case TAG_XLINK_ATT_role: all_atts->xlink_role = (XMLRI *)att->data; break;
+		case TAG_XLINK_ATT_arcrole: all_atts->xlink_arcrole = (XMLRI *)att->data; break;
+		case TAG_XLINK_ATT_title: all_atts->xlink_title = (SVG_String *)att->data; break;
+		case TAG_XLINK_ATT_href: all_atts->xlink_href = (XMLRI *)att->data; break;
+		case TAG_XLINK_ATT_show: all_atts->xlink_show = (SVG_String *)att->data; break;
+		case TAG_XLINK_ATT_actuate: all_atts->xlink_actuate = (SVG_String *)att->data; break;
+
+		case TAG_XMLEV_ATT_event: all_atts->ev_event = (XMLEV_Event *)att->data; break;
+
+		case TAG_LSR_ATT_enabled: all_atts->lsr_enabled = (SVG_Boolean *)att->data; break;
+
+		case TAG_SVG_ATT_id: all_atts->id = (SVG_ID *)att->data; break;
+		case TAG_SVG_ATT__class: all_atts->_class = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_requiredFeatures: all_atts->requiredFeatures = (SVG_ListOfIRI *)att->data; break;
+		case TAG_SVG_ATT_requiredExtensions: all_atts->requiredExtensions = (SVG_ListOfIRI *)att->data; break;
+		case TAG_SVG_ATT_requiredFormats: all_atts->requiredFormats = (SVG_FormatList *)att->data; break;
+		case TAG_SVG_ATT_requiredFonts: all_atts->requiredFonts = (SVG_FontList *)att->data; break;
+		case TAG_SVG_ATT_systemLanguage: all_atts->systemLanguage = (SVG_LanguageIDs *)att->data; break;
+		case TAG_SVG_ATT_display: all_atts->display = (SVG_Display *)att->data; break;
+		case TAG_SVG_ATT_visibility: all_atts->visibility = (SVG_Visibility *)att->data; break;
+		case TAG_SVG_ATT_image_rendering: all_atts->image_rendering = (SVG_RenderingHint *)att->data; break;
+		case TAG_SVG_ATT_pointer_events: all_atts->pointer_events = (SVG_PointerEvents *)att->data; break;
+		case TAG_SVG_ATT_shape_rendering: all_atts->shape_rendering = (SVG_RenderingHint *)att->data; break;
+		case TAG_SVG_ATT_text_rendering: all_atts->text_rendering = (SVG_RenderingHint *)att->data; break;
+		case TAG_SVG_ATT_audio_level: all_atts->audio_level = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_viewport_fill: all_atts->viewport_fill = (SVG_Paint *)att->data; break;
+		case TAG_SVG_ATT_viewport_fill_opacity: all_atts->viewport_fill_opacity = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_overflow: all_atts->overflow = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_fill_opacity: all_atts->fill_opacity = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_stroke_opacity: all_atts->stroke_opacity = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_fill: all_atts->fill = (SVG_Paint *)att->data; break;
+		case TAG_SVG_ATT_fill_rule: all_atts->fill_rule = (SVG_FillRule *)att->data; break;
+		case TAG_SVG_ATT_stroke: all_atts->stroke = (SVG_Paint *)att->data; break;
+		case TAG_SVG_ATT_stroke_dasharray: all_atts->stroke_dasharray = (SVG_StrokeDashArray *)att->data; break;
+		case TAG_SVG_ATT_stroke_dashoffset: all_atts->stroke_dashoffset = (SVG_Length *)att->data; break;
+		case TAG_SVG_ATT_stroke_linecap: all_atts->stroke_linecap = (SVG_StrokeLineCap *)att->data; break;
+		case TAG_SVG_ATT_stroke_linejoin: all_atts->stroke_linejoin = (SVG_StrokeLineJoin *)att->data; break;
+		case TAG_SVG_ATT_stroke_miterlimit: all_atts->stroke_miterlimit = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_stroke_width: all_atts->stroke_width = (SVG_Length *)att->data; break;
+		case TAG_SVG_ATT_color: all_atts->color = (SVG_Paint *)att->data; break;
+		case TAG_SVG_ATT_color_rendering: all_atts->color_rendering = (SVG_RenderingHint *)att->data; break;
+		case TAG_SVG_ATT_vector_effect: all_atts->vector_effect = (SVG_VectorEffect *)att->data; break;
+		case TAG_SVG_ATT_solid_color: all_atts->solid_color = (SVG_SVGColor *)att->data; break;
+		case TAG_SVG_ATT_solid_opacity: all_atts->solid_opacity = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_display_align: all_atts->display_align = (SVG_DisplayAlign *)att->data; break;
+		case TAG_SVG_ATT_line_increment: all_atts->line_increment = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_stop_color: all_atts->stop_color = (SVG_SVGColor *)att->data; break;
+		case TAG_SVG_ATT_stop_opacity: all_atts->stop_opacity = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_font_family: all_atts->font_family = (SVG_FontFamily *)att->data; break;
+		case TAG_SVG_ATT_font_size: all_atts->font_size = (SVG_FontSize *)att->data; break;
+		case TAG_SVG_ATT_font_style: all_atts->font_style = (SVG_FontStyle *)att->data; break;
+		case TAG_SVG_ATT_font_variant: all_atts->font_variant = (SVG_FontVariant *)att->data; break;
+		case TAG_SVG_ATT_font_weight: all_atts->font_weight = (SVG_FontWeight *)att->data; break;
+		case TAG_SVG_ATT_text_anchor: all_atts->text_anchor = (SVG_TextAnchor *)att->data; break;
+		case TAG_SVG_ATT_text_align: all_atts->text_align = (SVG_TextAlign *)att->data; break;
+		case TAG_SVG_ATT_text_decoration: all_atts->text_decoration = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_focusHighlight: all_atts->focusHighlight = (SVG_FocusHighlight *)att->data; break;
+		case TAG_SVG_ATT_externalResourcesRequired: all_atts->externalResourcesRequired = (SVG_Boolean *)att->data; break;
+		case TAG_SVG_ATT_focusable: all_atts->focusable = (SVG_Focusable *)att->data; break;
+		case TAG_SVG_ATT_nav_next: all_atts->nav_next = (SVG_Focus *)att->data; break;
+		case TAG_SVG_ATT_nav_prev: all_atts->nav_prev = (SVG_Focus *)att->data; break;
+		case TAG_SVG_ATT_nav_up: all_atts->nav_up = (SVG_Focus *)att->data; break;
+		case TAG_SVG_ATT_nav_up_right: all_atts->nav_up_right = (SVG_Focus *)att->data; break;
+		case TAG_SVG_ATT_nav_right: all_atts->nav_right = (SVG_Focus *)att->data; break;
+		case TAG_SVG_ATT_nav_down_right: all_atts->nav_down_right = (SVG_Focus *)att->data; break;
+		case TAG_SVG_ATT_nav_down: all_atts->nav_down = (SVG_Focus *)att->data; break;
+		case TAG_SVG_ATT_nav_down_left: all_atts->nav_down_left = (SVG_Focus *)att->data; break;
+		case TAG_SVG_ATT_nav_left: all_atts->nav_left = (SVG_Focus *)att->data; break;
+		case TAG_SVG_ATT_nav_up_left: all_atts->nav_up_left = (SVG_Focus *)att->data; break;
+		case TAG_SVG_ATT_transform: all_atts->transform = (SVG_Transform *)att->data; break;
+		case TAG_SVG_ATT_target: all_atts->target = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_attributeName: all_atts->attributeName = (SMIL_AttributeName *)att->data; break;
+		case TAG_SVG_ATT_attributeType: all_atts->attributeType = (SMIL_AttributeType *)att->data; break;
+		case TAG_SVG_ATT_begin: all_atts->begin = (SMIL_Times *)att->data; break;
+		case TAG_SVG_ATT_dur: all_atts->dur = (SMIL_Duration *)att->data; break;
+		case TAG_SVG_ATT_end: all_atts->end = (SMIL_Times *)att->data; break;
+		case TAG_SVG_ATT_repeatCount: all_atts->repeatCount = (SMIL_RepeatCount *)att->data; break;
+		case TAG_SVG_ATT_repeatDur: all_atts->repeatDur = (SMIL_Duration *)att->data; break;
+		case TAG_SVG_ATT_restart: all_atts->restart = (SMIL_Restart *)att->data; break;
+		case TAG_SVG_ATT_smil_fill: all_atts->smil_fill = (SMIL_Fill *)att->data; break;
+		case TAG_SVG_ATT_min: all_atts->min = (SMIL_Duration *)att->data; break;
+		case TAG_SVG_ATT_max: all_atts->max = (SMIL_Duration *)att->data; break;
+		case TAG_SVG_ATT_to: all_atts->to = (SMIL_AnimateValue *)att->data; break;
+		case TAG_SVG_ATT_calcMode: all_atts->calcMode = (SMIL_CalcMode *)att->data; break;
+		case TAG_SVG_ATT_values: all_atts->values = (SMIL_AnimateValues *)att->data; break;
+		case TAG_SVG_ATT_keyTimes: all_atts->keyTimes = (SMIL_KeyTimes *)att->data; break;
+		case TAG_SVG_ATT_keySplines: all_atts->keySplines = (SMIL_KeySplines *)att->data; break;
+		case TAG_SVG_ATT_from: all_atts->from = (SMIL_AnimateValue *)att->data; break;
+		case TAG_SVG_ATT_by: all_atts->by = (SMIL_AnimateValue *)att->data; break;
+		case TAG_SVG_ATT_additive: all_atts->additive = (SMIL_Additive *)att->data; break;
+		case TAG_SVG_ATT_accumulate: all_atts->accumulate = (SMIL_Accumulate *)att->data; break;
+		case TAG_SVG_ATT_path: all_atts->path = (SVG_PathData *)att->data; break;
+		case TAG_SVG_ATT_keyPoints: all_atts->keyPoints = (SMIL_KeyPoints *)att->data; break;
+		case TAG_SVG_ATT_rotate: all_atts->rotate = (SVG_Rotate *)att->data; break;
+		case TAG_SVG_ATT_origin: all_atts->origin = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_transform_type: all_atts->transform_type = (SVG_TransformType *)att->data; break;
+		case TAG_SVG_ATT_clipBegin: all_atts->clipBegin = (SVG_Clock *)att->data; break;
+		case TAG_SVG_ATT_clipEnd: all_atts->clipEnd = (SVG_Clock *)att->data; break;
+		case TAG_SVG_ATT_syncBehavior: all_atts->syncBehavior = (SMIL_SyncBehavior *)att->data; break;
+		case TAG_SVG_ATT_syncTolerance: all_atts->syncTolerance = (SMIL_SyncTolerance *)att->data; break;
+		case TAG_SVG_ATT_syncMaster: all_atts->syncMaster = (SVG_Boolean *)att->data; break;
+		case TAG_SVG_ATT_syncReference: all_atts->syncReference = (XMLRI *)att->data; break;
+		case TAG_SVG_ATT_x: all_atts->x = (SVG_Coordinate *)att->data; break;
+		case TAG_SVG_ATT_y: all_atts->y = (SVG_Coordinate *)att->data; break;
+		case TAG_SVG_ATT_width: all_atts->width = (SVG_Length *)att->data; break;
+		case TAG_SVG_ATT_height: all_atts->height = (SVG_Length *)att->data; break;
+		case TAG_SVG_ATT_preserveAspectRatio: all_atts->preserveAspectRatio = (SVG_PreserveAspectRatio *)att->data; break;
+		case TAG_SVG_ATT_initialVisibility: all_atts->initialVisibility = (SVG_InitialVisibility *)att->data; break;
+		case TAG_SVG_ATT_type: all_atts->type = (SVG_ContentType *)att->data; break;
+		case TAG_SVG_ATT_cx: all_atts->cx = (SVG_Coordinate *)att->data; break;
+		case TAG_SVG_ATT_cy: all_atts->cy = (SVG_Coordinate *)att->data; break;
+		case TAG_SVG_ATT_r: all_atts->r = (SVG_Length *)att->data; break;
+		case TAG_SVG_ATT_cursorManager_x: all_atts->cursorManager_x = (SVG_Length *)att->data; break;
+		case TAG_SVG_ATT_cursorManager_y: all_atts->cursorManager_y = (SVG_Length *)att->data; break;
+		case TAG_SVG_ATT_rx: all_atts->rx = (SVG_Length *)att->data; break;
+		case TAG_SVG_ATT_ry: all_atts->ry = (SVG_Length *)att->data; break;
+		case TAG_SVG_ATT_horiz_adv_x: all_atts->horiz_adv_x = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_horiz_origin_x: all_atts->horiz_origin_x = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_font_stretch: all_atts->font_stretch = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_unicode_range: all_atts->unicode_range = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_panose_1: all_atts->panose_1 = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_widths: all_atts->widths = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_bbox: all_atts->bbox = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_units_per_em: all_atts->units_per_em = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_stemv: all_atts->stemv = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_stemh: all_atts->stemh = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_slope: all_atts->slope = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_cap_height: all_atts->cap_height = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_x_height: all_atts->x_height = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_accent_height: all_atts->accent_height = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_ascent: all_atts->ascent = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_descent: all_atts->descent = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_ideographic: all_atts->ideographic = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_alphabetic: all_atts->alphabetic = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_mathematical: all_atts->mathematical = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_hanging: all_atts->hanging = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_underline_position: all_atts->underline_position = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_underline_thickness: all_atts->underline_thickness = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_strikethrough_position: all_atts->strikethrough_position = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_strikethrough_thickness: all_atts->strikethrough_thickness = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_overline_position: all_atts->overline_position = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_overline_thickness: all_atts->overline_thickness = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_d: all_atts->d = (SVG_PathData *)att->data; break;
+		case TAG_SVG_ATT_unicode: all_atts->unicode = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_glyph_name: all_atts->glyph_name = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_arabic_form: all_atts->arabic_form = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_lang: all_atts->lang = (SVG_LanguageIDs *)att->data; break;
+		case TAG_SVG_ATT_u1: all_atts->u1 = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_g1: all_atts->g1 = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_u2: all_atts->u2 = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_g2: all_atts->g2 = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_k: all_atts->k = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_opacity: all_atts->opacity = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_x1: all_atts->x1 = (SVG_Coordinate *)att->data; break;
+		case TAG_SVG_ATT_y1: all_atts->y1 = (SVG_Coordinate *)att->data; break;
+		case TAG_SVG_ATT_x2: all_atts->x2 = (SVG_Coordinate *)att->data; break;
+		case TAG_SVG_ATT_y2: all_atts->y2 = (SVG_Coordinate *)att->data; break;
+		case TAG_SVG_ATT_gradientUnits: all_atts->gradientUnits = (SVG_GradientUnit *)att->data; break;
+		case TAG_SVG_ATT_spreadMethod: all_atts->spreadMethod = (SVG_SpreadMethod *)att->data; break;
+		case TAG_SVG_ATT_gradientTransform: all_atts->gradientTransform = (SVG_Transform *)att->data; break;
+		case TAG_SVG_ATT_event: all_atts->event = (XMLEV_Event *)att->data; break;
+		case TAG_SVG_ATT_phase: all_atts->phase = (XMLEV_Phase *)att->data; break;
+		case TAG_SVG_ATT_propagate: all_atts->propagate = (XMLEV_Propagate *)att->data; break;
+		case TAG_SVG_ATT_defaultAction: all_atts->defaultAction = (XMLEV_DefaultAction *)att->data; break;
+		case TAG_SVG_ATT_observer: all_atts->observer = (XML_IDREF *)att->data; break;
+		case TAG_SVG_ATT_listener_target: all_atts->listener_target = (XML_IDREF *)att->data; break;
+		case TAG_SVG_ATT_handler: all_atts->handler = (XMLRI *)att->data; break;
+		case TAG_SVG_ATT_pathLength: all_atts->pathLength = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_points: all_atts->points = (SVG_Points *)att->data; break;
+		case TAG_SVG_ATT_mediaSize: all_atts->mediaSize = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_mediaTime: all_atts->mediaTime = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_mediaCharacterEncoding: all_atts->mediaCharacterEncoding = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_mediaContentEncodings: all_atts->mediaContentEncodings = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_bandwidth: all_atts->bandwidth = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_fx: all_atts->fx = (SVG_Coordinate *)att->data; break;
+		case TAG_SVG_ATT_fy: all_atts->fy = (SVG_Coordinate *)att->data; break;
+		case TAG_SVG_ATT_size: all_atts->size = (LASeR_Size *)att->data; break;
+		case TAG_SVG_ATT_choice: all_atts->choice = (LASeR_Choice *)att->data; break;
+		case TAG_SVG_ATT_delta: all_atts->delta = (LASeR_Size *)att->data; break;
+		case TAG_SVG_ATT_offset: all_atts->offset = (SVG_Number *)att->data; break;
+		case TAG_SVG_ATT_syncBehaviorDefault: all_atts->syncBehaviorDefault = (SMIL_SyncBehavior *)att->data; break;
+		case TAG_SVG_ATT_syncToleranceDefault: all_atts->syncToleranceDefault = (SMIL_SyncTolerance *)att->data; break;
+		case TAG_SVG_ATT_viewBox: all_atts->viewBox = (SVG_ViewBox *)att->data; break;
+		case TAG_SVG_ATT_zoomAndPan: all_atts->zoomAndPan = (SVG_ZoomAndPan *)att->data; break;
+		case TAG_SVG_ATT_version: all_atts->version = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_baseProfile: all_atts->baseProfile = (SVG_String *)att->data; break;
+		case TAG_SVG_ATT_contentScriptType: all_atts->contentScriptType = (SVG_ContentType *)att->data; break;
+		case TAG_SVG_ATT_snapshotTime: all_atts->snapshotTime = (SVG_Clock *)att->data; break;
+		case TAG_SVG_ATT_timelineBegin: all_atts->timelineBegin = (SVG_TimelineBegin *)att->data; break;
+		case TAG_SVG_ATT_playbackOrder: all_atts->playbackOrder = (SVG_PlaybackOrder *)att->data; break;
+		case TAG_SVG_ATT_editable: all_atts->editable = (SVG_Boolean *)att->data; break;
+		case TAG_SVG_ATT_text_x: all_atts->text_x = (SVG_Coordinates *)att->data; break;
+		case TAG_SVG_ATT_text_y: all_atts->text_y = (SVG_Coordinates *)att->data; break;
+		case TAG_SVG_ATT_text_rotate: all_atts->text_rotate = (SVG_Numbers *)att->data; break;
+		case TAG_SVG_ATT_transformBehavior: all_atts->transformBehavior = (SVG_TransformBehavior *)att->data; break;
+		case TAG_SVG_ATT_overlay: all_atts->overlay = (SVG_Overlay *)att->data; break;
+		case TAG_SVG_ATT_fullscreen: all_atts->fullscreen = (SVG_Boolean *)att->data; break;
+		case TAG_SVG_ATT_motionTransform: all_atts->motionTransform = (SVG_Motion *)att->data; break;
+		}
+		
+		att = att->next;
+	}
+}
+

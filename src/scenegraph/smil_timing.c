@@ -24,7 +24,7 @@
 
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/events.h>
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 
 #ifndef GPAC_DISABLE_SVG
 
@@ -189,7 +189,7 @@ static void gf_smil_timing_get_first_interval(SMIL_Timing_RTI *rti)
 	}
 	if (rti->current_interval->begin == -1 && count == 0) {
 		/* except for LASeR Conditional element*/
-		if (rti->timed_elt->sgprivate->tag != TAG_SVG_conditional) {
+		if (rti->timed_elt->sgprivate->tag != TAG_LSR_conditional) {
 			rti->current_interval->begin = 0;
 		} else {
 			return;
@@ -254,11 +254,15 @@ static Bool gf_smil_timing_add_to_sg(GF_SceneGraph *sg, SMIL_Timing_RTI *rti)
 /* when a timed element restarts, since the list of timed elements in the scene graph, 
    to which scene time is notified at each rendering cycle, is sorted, we need to remove 
    and reinsert this timed element as if it was a new one, to make sure the sorting is correct */
-static void gf_smil_mark_modified(SMIL_Timing_RTI *rti)
+static void gf_smil_mark_modified(SMIL_Timing_RTI *rti, Bool remove)
 {
 	GF_SceneGraph * sg = rti->timed_elt->sgprivate->scenegraph;
 	while (sg->parent_scene) sg = sg->parent_scene;
-	gf_list_add(sg->modified_smil_timed_elements, rti);
+	if (remove) {
+		gf_list_del_item(sg->modified_smil_timed_elements, rti);
+	} else {
+		gf_list_add(sg->modified_smil_timed_elements, rti);
+	}
 }
 
 /* Attributes from the timed elements are not easy to use during runtime, 
@@ -298,7 +302,7 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 		   have a defined duration."
 		TODO: Check if this should work with the animation element */
 		if (!e->timingp->dur) {
-			SVGAttribute *att = gf_svg_create_attribute((GF_Node *)e, TAG_SVG_ATT_dur);
+			SVGAttribute *att = gf_xml_create_attribute((GF_Node *)e, TAG_SVG_ATT_dur);
 			e->timingp->dur = (SMIL_Duration *)att->data;
 			e->timingp->dur->type = SMIL_DURATION_MEDIA;
 		}
@@ -332,6 +336,26 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 	gf_smil_timing_add_to_sg(sg, rti);
 }
 
+
+static void gf_smil_timing_reset_time_list(GF_List *times)
+{
+	GF_DOMEventTarget *evt;
+	u32 i;
+	for (i=0; i<gf_list_count(times); i++) {
+		SMIL_Time *t = gf_list_get(times, i);
+		if (!t->listener) continue;
+
+		/*detach the listener from the observed node*/
+		evt = t->listener->sgprivate->UserPrivate;
+		t->listener->sgprivate->UserPrivate = NULL;
+		gf_dom_listener_del(t->listener, evt);
+
+		/*release our listener*/
+		gf_node_unregister(t->listener, NULL);
+		t->listener = NULL;
+	}
+}
+
 void gf_smil_timing_delete_runtime_info(GF_Node *timed_elt, SMIL_Timing_RTI *rti)
 {
 	GF_SceneGraph *sg;
@@ -346,6 +370,10 @@ void gf_smil_timing_delete_runtime_info(GF_Node *timed_elt, SMIL_Timing_RTI *rti
 	sg = timed_elt->sgprivate->scenegraph;
 	while (sg->parent_scene) sg = sg->parent_scene;
 	gf_list_del_item(sg->smil_timed_elements, rti);
+
+	/*remove all associated listeners*/
+	gf_smil_timing_reset_time_list(* rti->timingp->begin);
+	gf_smil_timing_reset_time_list(* rti->timingp->end);
 	
 	free(rti);
 }
@@ -454,6 +482,8 @@ static Bool gf_smil_discard(SMIL_Timing_RTI *rti, Fixed scene_time)
 	if (begin->clock > scene_time) return 0;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SVG Composer] discarding element %s at time %f\n", gf_node_get_log_name(target), scene_time));
+
+	gf_smil_mark_modified(rti, 1);
 	
 	/*this takes care of cases where discard is a child of its target*/
 	gf_node_register(rti->timed_elt, NULL);
@@ -531,7 +561,7 @@ waiting_to_begin:
 			evt.smil_event_time = rti->current_interval->begin;
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 
-			if (rti->timed_elt->sgprivate->tag==TAG_SVG_conditional) {
+			if (rti->timed_elt->sgprivate->tag==TAG_LSR_conditional) {
 				SVG_Element *e = (SVG_Element *)rti->timed_elt;
 				/*activate conditional*/
 				if (e->children) gf_node_traverse(e->children->node, NULL);
@@ -586,7 +616,7 @@ waiting_to_begin:
 
 					/* mark that this element has been modified and 
 					   need to be reinserted at its proper place in the list of timed elements in the scenegraph */
-					gf_smil_mark_modified(rti);
+					gf_smil_mark_modified(rti, 0);
 
 					/* if this is animation, reinserting the animation in the list of animations 
 				       that targets this attribute, so that it is the last one */
@@ -652,7 +682,7 @@ waiting_to_begin:
 
 				/* mark that this element has been modified and 
 				   need to be reinserted at its proper place in the list of timed elements in the scenegraph */
-				gf_smil_mark_modified(rti);
+				gf_smil_mark_modified(rti, 0);
 
 				/*if chaining to new interval, go to wait_for begin right now*/
 				if (restart_timing) {
@@ -755,7 +785,7 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 
 	/* mark that this element has been modified and 
 	   need to be reinserted at its proper place in the list of timed elements in the scenegraph */
-	gf_smil_mark_modified(rti);
+	gf_smil_mark_modified(rti, 0);
 }
 
 

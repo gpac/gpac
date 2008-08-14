@@ -426,7 +426,7 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 		tag = gf_node_get_tag(txh->owner);
 		init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
 
-		if (gf_svg_get_attribute_by_tag(txh->owner, TAG_SVG_ATT_initialVisibility, 0, 0, &init_vis_info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag(txh->owner, TAG_SVG_ATT_initialVisibility, 0, 0, &init_vis_info) == GF_OK) {
 			init_vis = *(SVG_InitialVisibility *)init_vis_info.far_ptr;
 		}
 
@@ -447,8 +447,8 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 			GF_FieldInfo att_vid, att_aud;
 			stack->audio = gf_node_new(gf_node_get_graph(stack->txh.owner), TAG_SVG_audio);
 			gf_node_register(stack->audio, NULL);
-			if (gf_svg_get_attribute_by_tag(stack->txh.owner, TAG_SVG_ATT_xlink_href, 0, 0, &att_vid)==GF_OK) {
-				gf_svg_get_attribute_by_tag(stack->audio, TAG_SVG_ATT_xlink_href, 1, 0, &att_aud);
+			if (gf_node_get_attribute_by_tag(stack->txh.owner, TAG_XLINK_ATT_href, 0, 0, &att_vid)==GF_OK) {
+				gf_node_get_attribute_by_tag(stack->audio, TAG_XLINK_ATT_href, 1, 0, &att_aud);
 				gf_svg_attributes_copy(&att_aud, &att_vid, 0);
 			}
 			/*BYPASS SMIL TIMING MODULE!!*/

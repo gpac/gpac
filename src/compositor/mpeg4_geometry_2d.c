@@ -504,7 +504,6 @@ void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_
 static void TraverseCurve2D(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableContext *ctx;
-	M_Curve2D *c2D = (M_Curve2D *)node;
 	Drawable *stack = (Drawable *)gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 

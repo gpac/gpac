@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Sep 19 08:01:06 2007
+	DO NOT MOFIFY - File generated on GMT Thu Aug 07 11:44:22 2008
 
 	BY X3DGen for GPAC Version 0.4.5-DEV
 */

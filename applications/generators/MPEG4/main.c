@@ -901,14 +901,6 @@ void WriteNodeCode(GF_List *BNodes)
 			}
 		}
 
-		//setup pointers
-		fprintf(f, "\n#ifdef GF_NODE_USE_POINTERS\n");
-		fprintf(f, "\t((GF_Node *)p)->sgprivate->name = \"%s\";\n", n->name);
-		fprintf(f, "\t((GF_Node *)p)->sgprivate->node_del = %s_Del;\n", n->name);
-		fprintf(f, "\t((GF_Node *)p)->sgprivate->get_field_count = %s_get_field_count;\n", n->name);
-		fprintf(f, "\t((GF_Node *)p)->sgprivate->get_field = %s_get_field;\n", n->name);
-		fprintf(f, "#endif\n\n");
-
 		//check if we have a child node
 		for (i=0; i<gf_list_count(n->Fields); i++) {
 			bf = gf_list_get(n->Fields, i);
@@ -1239,8 +1231,6 @@ void WriteNodeCode(GF_List *BNodes)
 	}
 	fprintf(f, "\tdefault:\n\t\treturn NULL;\n\t}\n}\n\n");
 
-	fprintf(f, "#ifndef GF_NODE_USE_POINTERS\n");
-
 	fprintf(f, "const char *gf_sg_mpeg4_node_get_class_name(u32 NodeTag)\n{\n\tswitch (NodeTag) {\n");
 	for (i=0; i<gf_list_count(BNodes); i++) {
 		n = gf_list_get(BNodes, i);
@@ -1274,8 +1264,6 @@ void WriteNodeCode(GF_List *BNodes)
 		}
 	}
 	fprintf(f, "\tdefault:\n\t\treturn GF_BAD_PARAM;\n\t}\n}\n\n");
-
-	fprintf(f, "\n\n#endif\n\n");
 
 	fprintf(f, "GF_Err gf_sg_mpeg4_node_get_field_index(GF_Node *node, u32 inField, u8 code_mode, u32 *fieldIndex)\n{\n\tswitch (node->sgprivate->tag) {\n");
 	for (i=0; i<gf_list_count(BNodes); i++) {

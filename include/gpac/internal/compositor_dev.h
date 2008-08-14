@@ -688,6 +688,7 @@ struct _traversing_state
 	/*node for which bounds should be fetched - SVG only*/
 	GF_Node *for_node;
 	Bool abort_bounds_traverse;
+	GF_Matrix2D mx_at_node;
 	
 	GF_List *use_stack;
 	/* Styling Property and others for SVG context */

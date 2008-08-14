@@ -119,11 +119,6 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 	/* Constructor */
 	fprintf(output, "void *gf_svg_sani_new_%s()\n{\n\tSVG_SANI_%sElement *p;\n", svg_elt->implementation_name,svg_elt->implementation_name);
 	fprintf(output, "\tGF_SAFEALLOC(p, SVG_SANI_%sElement);\n\tif (!p) return NULL;\n\tgf_node_setup((GF_Node *)p, TAG_SVG_SANI_%s);\n\tgf_sg_parent_setup((GF_Node *) p);\n",svg_elt->implementation_name,svg_elt->implementation_name);
-	fprintf(output, "#ifdef GF_NODE_USE_POINTERS\n");
-	fprintf(output, "\t((GF_Node *p)->sgprivate->name = \"%s\";\n", svg_elt->implementation_name);
-	fprintf(output, "\t((GF_Node *p)->sgprivate->node_del = gf_svg_sani_%s_del;\n", svg_elt->implementation_name);
-	fprintf(output, "\t((GF_Node *p)->sgprivate->get_field = gf_svg_sani_%s_get_attribute;\n", svg_elt->implementation_name);
-	fprintf(output, "#endif\n");
 
 	fprintf(output, "\tgf_svg_sani_init_core((SVG_SANI_Element *)p);\n");		
 	if (svg_elt->has_focus) {

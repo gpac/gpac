@@ -35,60 +35,6 @@ extern "C" {
 
 #define XBL_String_datatype SVG_String_datatype 
 
-
-/* TAG names are made of "TAG_XBL" + XBL element name (with - replaced by _) */
-enum {
-	TAG_XBL_bindings = GF_NODE_RANGE_FIRST_XBL,
-	TAG_XBL_binding,
-	TAG_XBL_content,
-	TAG_XBL_children,
-	TAG_XBL_implementation,
-	TAG_XBL_constructor,
-	TAG_XBL_destructor,
-	TAG_XBL_field,
-	TAG_XBL_property,
-	TAG_XBL_getter,
-	TAG_XBL_setter,
-	TAG_XBL_method,
-	TAG_XBL_parameter,
-	TAG_XBL_body,
-	TAG_XBL_handlers,
-	TAG_XBL_handler,
-	TAG_XBL_resources,
-	TAG_XBL_stylesheet,
-	TAG_XBL_image
-};
-
-/* Definition of SVG 3 attribute internal tags - 200 defined */
-/* TAG names are made of "TAG_XBL_ATT_" + SVG attribute name (with - replaced by _) */
-enum {
-	TAG_XBL_ATT_id = TAG_SVG_ATT_RANGE_FIRST,
-	TAG_XBL_ATT_extends,
-	TAG_XBL_ATT_display,
-	TAG_XBL_ATT_inheritstyle,
-	TAG_XBL_ATT_includes,
-	TAG_XBL_ATT_name,
-	TAG_XBL_ATT_implements,
-	TAG_XBL_ATT_type,
-	TAG_XBL_ATT_readonly,
-	TAG_XBL_ATT_onget,
-	TAG_XBL_ATT_onset,
-	TAG_XBL_ATT_event,
-	TAG_XBL_ATT_action,
-	TAG_XBL_ATT_phase,
-	TAG_XBL_ATT_button,
-	TAG_XBL_ATT_modifiers,
-	TAG_XBL_ATT_keycode,
-	TAG_XBL_ATT_key,
-	TAG_XBL_ATT_charcode,
-	TAG_XBL_ATT_clickcount,
-	TAG_XBL_ATT_command,
-	TAG_XBL_ATT_preventdefault,
-	TAG_XBL_ATT_src,
-	/*undefined attributes (when parsing) use this tag*/
-	TAG_XBL_ATT_Unknown
-};
-
 struct _all_atts {
 	DOM_String *id;
 	DOM_String *extends;

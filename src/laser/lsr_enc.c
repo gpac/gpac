@@ -1203,9 +1203,9 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 	    case TAG_SVG_ATT_systemLanguage: 
 			lsr_write_byte_align_string_list(lsr, *(GF_List **)att->data, "systemLanguage", 0); 
 			break;
-	    case TAG_SVG_ATT_xml_base: lsr_write_byte_align_string(lsr, ((XMLRI*)att->data)->string, "xml:base"); break;
-	    case TAG_SVG_ATT_xml_lang: lsr_write_byte_align_string(lsr, *(SVG_String *)att->data, "xml:lang"); break;
-	    case TAG_SVG_ATT_xml_space: GF_LSR_WRITE_INT(lsr, *(XML_Space *)att->data, 1, "xml:space"); break;
+	    case TAG_XML_ATT_base: lsr_write_byte_align_string(lsr, ((XMLRI*)att->data)->string, "xml:base"); break;
+	    case TAG_XML_ATT_lang: lsr_write_byte_align_string(lsr, *(SVG_String *)att->data, "xml:lang"); break;
+	    case TAG_XML_ATT_space: GF_LSR_WRITE_INT(lsr, *(XML_Space *)att->data, 1, "xml:space"); break;
 		case TAG_SVG_ATT_nav_next: lsr_write_focus(lsr, (SVG_Focus*)att->data, "focusNext"); break;
 		case TAG_SVG_ATT_nav_up: lsr_write_focus(lsr, (SVG_Focus*)att->data, "focusNorth"); break;
 		case TAG_SVG_ATT_nav_up_left: lsr_write_focus(lsr, (SVG_Focus*)att->data, "focusNorthEast"); break;
@@ -1233,14 +1233,14 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 		case TAG_SVG_ATT_font_style: GF_LSR_WRITE_INT(lsr, *((SVG_FontStyle *)att->data), 3, "fontStyle"); break;
 		case TAG_SVG_ATT_font_weight: GF_LSR_WRITE_INT(lsr, *((SVG_FontWeight *)att->data), 4, "fontWeight"); break;
 
-		case TAG_SVG_ATT_xlink_title: lsr_write_byte_align_string(lsr, *(SVG_String *)att->data, "xlink:title"); break;
+		case TAG_XLINK_ATT_title: lsr_write_byte_align_string(lsr, *(SVG_String *)att->data, "xlink:title"); break;
 		/*TODO FIXME*/
-		case TAG_SVG_ATT_xlink_type: GF_LSR_WRITE_INT(lsr, 0, 3, "xlink:type"); break;
-		case TAG_SVG_ATT_xlink_role: lsr_write_any_uri(lsr, (XMLRI*)att->data, "xlink:role"); break;
-		case TAG_SVG_ATT_xlink_arcrole: lsr_write_any_uri(lsr, (XMLRI*)att->data, "xlink:arcrole"); break;
+		case TAG_XLINK_ATT_type: GF_LSR_WRITE_INT(lsr, 0, 3, "xlink:type"); break;
+		case TAG_XLINK_ATT_role: lsr_write_any_uri(lsr, (XMLRI*)att->data, "xlink:role"); break;
+		case TAG_XLINK_ATT_arcrole: lsr_write_any_uri(lsr, (XMLRI*)att->data, "xlink:arcrole"); break;
 		/*TODO FIXME*/
-		case TAG_SVG_ATT_xlink_actuate: GF_LSR_WRITE_INT(lsr, 0, 2, "xlink:actuate"); break;
-		case TAG_SVG_ATT_xlink_show: GF_LSR_WRITE_INT(lsr, 0, 3, "xlink:show"); break;
+		case TAG_XLINK_ATT_actuate: GF_LSR_WRITE_INT(lsr, 0, 2, "xlink:actuate"); break;
+		case TAG_XLINK_ATT_show: GF_LSR_WRITE_INT(lsr, 0, 3, "xlink:show"); break;
 		case TAG_SVG_ATT_end: lsr_write_smil_times(lsr, (GF_List **)att->data, "end", 0); break;
 		case TAG_SVG_ATT_min: lsr_write_duration_ex(lsr, (SMIL_Duration*)att->data, "min", 0); break;
 		case TAG_SVG_ATT_max: lsr_write_duration_ex(lsr, (SMIL_Duration*)att->data, "max", 0); break;
@@ -1319,8 +1319,8 @@ static void lsr_write_animatable(GF_LASeRCodec *lsr, SMIL_AttributeName *anim_ty
 
 	/*locate field - checkme, this may not work since anim is not setup...*/
 	assert(anim_type->name || anim_type->tag);
-	if (!anim_type->tag) anim_type->tag = gf_svg_get_attribute_tag(((GF_Node*)iri->target)->sgprivate->tag, anim_type->name);
-	if (!anim_type->type) anim_type->type = gf_svg_get_attribute_type(anim_type->tag);
+	if (!anim_type->tag) anim_type->tag = gf_xml_get_attribute_tag((GF_Node*)iri->target, anim_type->name, 0);
+	if (!anim_type->type) anim_type->type = gf_xml_get_attribute_type(anim_type->tag);
 	a_type = gf_lsr_anim_type_from_attribute(anim_type->tag);
 	if (a_type<0) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] Unsupported attributeName %s\n", anim_type->name));
@@ -1374,7 +1374,7 @@ static u32 svg_type_to_lsr_anim(u32 svg_type, u32 transform_type, GF_List *vals,
 {
 	switch (svg_type) {
 	/*all string types*/
-	case SVG_String_datatype:
+	case DOM_String_datatype:
 		return 0;
 	/*all length types*/
 	case SVG_Number_datatype:
@@ -2953,7 +2953,7 @@ static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *paren
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_circle, 6, "ch4"); 
 		lsr_write_circle(lsr, node); 
 		break;
-	case TAG_SVG_cursorManager: GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_cursorManager, 6, "ch4"); 
+	case TAG_LSR_cursorManager: GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_cursorManager, 6, "ch4"); 
 		lsr_write_cursorManager(lsr, node); 
 		break;
 	case TAG_SVG_defs: 
@@ -3057,19 +3057,19 @@ static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *paren
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_listener, 6, "ch4"); 
 		lsr_write_listener(lsr, node); 
 		break;
-	case TAG_SVG_conditional: 
+	case TAG_LSR_conditional: 
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_conditional, 6, "ch4"); 
 		lsr_write_conditional(lsr, node); 
 		break;
-	case TAG_SVG_rectClip: 
+	case TAG_LSR_rectClip: 
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_rectClip, 6, "ch4"); 
 		lsr_write_rectClip(lsr, node); 
 		break;
-	case TAG_SVG_selector: 
+	case TAG_LSR_selector: 
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_selector, 6, "ch4"); 
 		lsr_write_selector(lsr, node); 
 		break;
-	case TAG_SVG_simpleLayout: 
+	case TAG_LSR_simpleLayout: 
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_simpleLayout, 6, "ch4"); 
 		lsr_write_simpleLayout(lsr, node); 
 		break;
@@ -3101,23 +3101,23 @@ static void lsr_write_update_content_model(GF_LASeRCodec *lsr, SVG_Element *pare
 {
 	u32 tag = gf_node_get_tag((GF_Node*)node);
 	
-	if (tag==TAG_SVG_conditional) {
+	if (tag==TAG_LSR_conditional) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "ch4"); 
 		GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL2_conditional, 3, "ch61"); 
 		lsr_write_conditional(lsr, node);
-	} else if (tag==TAG_SVG_cursorManager) {
+	} else if (tag==TAG_LSR_cursorManager) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "ch4"); 
 		GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL2_cursorManager, 3, "ch61"); 
 		lsr_write_cursorManager(lsr, node);
-	} else if (tag==TAG_SVG_rectClip) {
+	} else if (tag==TAG_LSR_rectClip) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "ch4"); 
 		GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL2_rectClip, 3, "ch61"); 
 		lsr_write_rectClip(lsr, node);
-	} else if (tag==TAG_SVG_selector) {
+	} else if (tag==TAG_LSR_selector) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "ch4"); 
 		GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL2_selector, 3, "ch61"); 
 		lsr_write_selector(lsr, node);
-	} else if (tag==TAG_SVG_simpleLayout) {
+	} else if (tag==TAG_LSR_simpleLayout) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "ch4"); 
 		GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL2_simpleLayout, 3, "ch61"); 
 		lsr_write_simpleLayout(lsr, node);
@@ -3328,7 +3328,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 			lsr_write_float_list(lsr, (GF_List **)val, "val");
 			break;
 		case XMLRI_datatype:
-			if ((att_tag==TAG_SVG_ATT_xlink_href) || (att_tag==TAG_SVG_ATT_syncReference)) {
+			if ((att_tag==TAG_XLINK_ATT_href) || (att_tag==TAG_SVG_ATT_syncReference)) {
 				lsr_write_any_uri(lsr, (XMLRI*)val, "val");
 			} else if (((XMLRI*)val)->target) {
 				GF_LSR_WRITE_INT(lsr, 0, 1, "isDefault");
@@ -3352,7 +3352,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 			}
 			break;
 
-		case SVG_String_datatype:
+		case DOM_String_datatype:
 		case SVG_ContentType_datatype:
 		case SVG_LanguageID_datatype:
 			lsr_write_byte_align_string(lsr, val ? *(DOM_String *)val : (char *)"", "val");
@@ -3444,7 +3444,7 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 		field_type = field->fieldType;
 		attType = gf_lsr_anim_type_from_attribute(field->fieldIndex);
 		if (attType== -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[LASeR] Attribute %s of element %s is not updatable\n", gf_svg_get_attribute_name(field->fieldIndex), gf_node_get_class_name(com->node) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[LASeR] Attribute %s of element %s is not updatable\n", gf_svg_get_attribute_name(com->node, field->fieldIndex), gf_node_get_class_name(com->node) ));
 			return lsr->last_error = GF_BAD_PARAM;
 		}
 		GF_LSR_WRITE_INT(lsr, 1, 1, "has_attributeName");
@@ -3491,7 +3491,7 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 	} else if (is_text_node) {
 		GF_DOMText *t = (GF_DOMText *)field->new_node;
 		GF_LSR_WRITE_INT(lsr, 1, 1, "has_value");
-		lsr_write_update_value(lsr, (SVG_Element *)com->node, SVG_String_datatype, field->fieldIndex, 0, &t->textContent, (field->pos>=0) ? 1 : 0);
+		lsr_write_update_value(lsr, (SVG_Element *)com->node, DOM_String_datatype, field->fieldIndex, 0, &t->textContent, (field->pos>=0) ? 1 : 0);
 	} else {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "has_value");
 	}

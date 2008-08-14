@@ -24,7 +24,7 @@
  */
 
 /*base SVG type*/
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 /*dom events*/
 #include <gpac/events.h>
 

@@ -399,7 +399,9 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 				}
 			}
 			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, NULL);
-			gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
+			//gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
+			gf_sc_get_nodes_bounds(node, NULL, tr_state, NULL);
+
 			compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, NULL);
 		}
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {

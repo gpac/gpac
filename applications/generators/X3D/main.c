@@ -443,25 +443,6 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 			}
 		}
 
-		//setup pointers
-		fprintf(vrml_code, "\n#ifdef GF_NODE_USE_POINTERS\n\n");
-		fprintf(vrml_code, "\t((GF_Node *)p)->sgprivate->name = \"%s\";\n", n->name);
-		fprintf(vrml_code, "\t((GF_Node *)p)->sgprivate->node_del = %s_Del;\n", n->name);
-		fprintf(vrml_code, "\t((GF_Node *)p)->sgprivate->get_field_count = %s_get_field_count;\n", n->name);
-		fprintf(vrml_code, "\t((GF_Node *)p)->sgprivate->get_field = %s_get_field;\n", n->name);
-
-		//check if we have a child node
-		for (i=0; i<gf_list_count(n->Fields); i++) {
-			bf = gf_list_get(n->Fields, i);
-			if ( !strcmp(bf->name, "children") || 
-					( !strstr(bf->type, "event") && strstr(bf->familly, "MF") && strstr(bf->familly, "Node")) ) {
-
-				sprintf(n->Child_NDT_Name, "NDT_SF%s", bf->familly+2);
-				break;
-			}
-		}
-		fprintf(vrml_code, "\n#endif\n\n");
-
 		fprintf(vrml_code, "\n\t/*default field values*/\n");
 		
 		for (i=0; i<gf_list_count(n->Fields); i++) {
@@ -876,8 +857,6 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 	}
 	fprintf(vrml_code, "\tdefault:\n\t\treturn NULL;\n\t}\n}\n\n");
 
-	fprintf(vrml_code, "#ifndef GF_NODE_USE_POINTERS\n");
-
 	fprintf(vrml_code, "const char *gf_sg_x3d_node_get_class_name(u32 NodeTag)\n{\n\tswitch (NodeTag) {\n");
 	for (i=0; i<gf_list_count(BNodes); i++) {
 		n = gf_list_get(BNodes, i);
@@ -905,8 +884,6 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 		if (!n->skip_impl) fprintf(vrml_code, "\tcase TAG_X3D_%s: return %s_get_field(node, field);\n", n->name, n->name);
 	}
 	fprintf(vrml_code, "\tdefault:\n\t\treturn GF_BAD_PARAM;\n\t}\n}\n\n");
-
-	fprintf(vrml_code, "\n#endif\n\n");
 
 	fprintf(vrml_code, "\nu32 gf_node_x3d_type_by_class_name(const char *node_name)\n{\n\tif(!node_name) return 0;\n");
 	for (i=0; i<gf_list_count(BNodes); i++) {

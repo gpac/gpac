@@ -56,113 +56,111 @@ enum {
 	SVG_Unknown_datatype					= 0,
 
 	/* keyword enum types */
-	SVG_FillRule_datatype					= 1,
-	SVG_StrokeLineJoin_datatype				= 2,
-	SVG_StrokeLineCap_datatype				= 3,
-	SVG_FontStyle_datatype					= 4,
-	SVG_FontWeight_datatype					= 5,
-	SVG_FontVariant_datatype				= 6,
-	SVG_TextAnchor_datatype					= 7,
-	SVG_TransformType_datatype				= 8, 
-	SVG_Display_datatype					= 9, 
-	SVG_Visibility_datatype					= 10,
-	SVG_Overflow_datatype					= 11,
-	SVG_ZoomAndPan_datatype					= 12,
-	SVG_DisplayAlign_datatype				= 13,
-	SVG_PointerEvents_datatype				= 14,
-	SVG_RenderingHint_datatype				= 15,
-	SVG_VectorEffect_datatype				= 16,
-	SVG_PlaybackOrder_datatype				= 17,
-	SVG_TimelineBegin_datatype				= 18,
-	XML_Space_datatype						= 19,
-	XMLEV_Propagate_datatype				= 20,
-	XMLEV_DefaultAction_datatype			= 21,
-	XMLEV_Phase_datatype					= 22,
-	SMIL_SyncBehavior_datatype				= 23,
-	SMIL_SyncTolerance_datatype				= 24,
-	SMIL_AttributeType_datatype				= 25,
-	SMIL_CalcMode_datatype					= 26,
-	SMIL_Additive_datatype					= 27,
-	SMIL_Accumulate_datatype				= 28,
-	SMIL_Restart_datatype					= 29,
-	SMIL_Fill_datatype						= 30,	
-	SVG_GradientUnit_datatype				= 31,
-	SVG_InitialVisibility_datatype			= 32,
-	SVG_FocusHighlight_datatype				= 33,
-	SVG_Overlay_datatype					= 34,
-	SVG_TransformBehavior_datatype			= 35,
-	SVG_SpreadMethod_datatype				= 36,
-	SVG_TextAlign_datatype					= 37,
-	SVG_Focusable_datatype					= 38,
+	XML_Space_datatype,
+	XMLEV_Propagate_datatype,
+	XMLEV_DefaultAction_datatype,
+	XMLEV_Phase_datatype,
+	SVG_FillRule_datatype,
+	SVG_StrokeLineJoin_datatype,
+	SVG_StrokeLineCap_datatype,
+	SVG_FontStyle_datatype,
+	SVG_FontWeight_datatype,
+	SVG_FontVariant_datatype,
+	SVG_TextAnchor_datatype,
+	SVG_TransformType_datatype, 
+	SVG_Display_datatype, 
+	SVG_Visibility_datatype,
+	SVG_Overflow_datatype,
+	SVG_ZoomAndPan_datatype,
+	SVG_DisplayAlign_datatype,
+	SVG_PointerEvents_datatype,
+	SVG_RenderingHint_datatype,
+	SVG_VectorEffect_datatype,
+	SVG_PlaybackOrder_datatype,
+	SVG_TimelineBegin_datatype,
+	SVG_GradientUnit_datatype,
+	SVG_InitialVisibility_datatype,
+	SVG_FocusHighlight_datatype,
+	SVG_Overlay_datatype,
+	SVG_TransformBehavior_datatype,
+	SVG_SpreadMethod_datatype,
+	SVG_TextAlign_datatype,
+	SVG_Focusable_datatype,
+	SMIL_SyncBehavior_datatype,
+	SMIL_SyncTolerance_datatype,
+	SMIL_AttributeType_datatype,
+	SMIL_CalcMode_datatype,
+	SMIL_Additive_datatype,
+	SMIL_Accumulate_datatype,
+	SMIL_Restart_datatype,
+	SMIL_Fill_datatype,	
 
-	SVG_LAST_U8_PROPERTY					= 49,
+	SVG_LAST_U8_PROPERTY,
 
-	/* SVG Number */
-	SVG_Number_datatype						= 50,
-	SVG_FontSize_datatype					= 54,
-	SVG_Length_datatype						= 59,
-	SVG_Coordinate_datatype					= 60,
-	SVG_Rotate_datatype						= 61,
+	DOM_String_datatype,
+	XMLEV_Event_datatype,
+	XMLRI_datatype,
+	XML_IDREF_datatype,
 
-	/* List of */
-	SVG_Numbers_datatype					= 70,
-	SVG_Points_datatype						= 71,
-	SVG_Coordinates_datatype				= 72,
-	SVG_FeatureList_datatype				= 73,
-	SVG_ExtensionList_datatype				= 74,
-	SVG_FormatList_datatype					= 75,
-	SVG_FontList_datatype					= 76,
-	SVG_ListOfIRI_datatype					= 77,
-	SVG_LanguageIDs_datatype				= 78,
-	SMIL_KeyTimes_datatype					= 79,
-	SMIL_KeySplines_datatype				= 80,
-	SMIL_KeyPoints_datatype					= 81,
-	SMIL_Times_datatype						= 82,
+	SMIL_KeyTimes_datatype,
+	SMIL_KeySplines_datatype,
+	SMIL_KeyPoints_datatype,
+	SMIL_Times_datatype,
 
 	/* animated (untyped) value */
-	SMIL_AnimateValue_datatype				= 85,
-	SMIL_AnimateValues_datatype				= 86,
-	
-	SMIL_Duration_datatype					= 87,
-	SMIL_RepeatCount_datatype				= 88,
-	SMIL_AttributeName_datatype				= 89,
+	SMIL_AnimateValue_datatype,
+	SMIL_AnimateValues_datatype,
+	SMIL_Duration_datatype,
+	SMIL_RepeatCount_datatype,
+	SMIL_AttributeName_datatype,
+
+	/* SVG Number */
+	SVG_Number_datatype,
+	SVG_FontSize_datatype,
+	SVG_Length_datatype,
+	SVG_Coordinate_datatype,
+	SVG_Rotate_datatype,
+
+	/* List of */
+	SVG_Numbers_datatype,
+	SVG_Points_datatype,
+	SVG_Coordinates_datatype,
+	SVG_FeatureList_datatype,
+	SVG_ExtensionList_datatype,
+	SVG_FormatList_datatype,
+	SVG_FontList_datatype,
+	SVG_ListOfIRI_datatype,
+	SVG_LanguageIDs_datatype,
 
 	/*all other types*/
-	SVG_Boolean_datatype					= 90,
-	SVG_Color_datatype						= 91,
-	SVG_Paint_datatype						= 92,
-	/* SVG_SVGColor_datatype: to be removed */
-	SVG_SVGColor_datatype = SVG_Paint_datatype,
-	SVG_PathData_datatype					= 93,
-	SVG_FontFamily_datatype					= 94,
-	SVG_ID_datatype							= 95,
-	XMLRI_datatype							= 96,
-	XML_IDREF_datatype						= 97,
+	SVG_Boolean_datatype,
+	SVG_Color_datatype,
+	SVG_Paint_datatype,
+	SVG_PathData_datatype,
+	SVG_FontFamily_datatype,
+	SVG_ID_datatype,
 
-	SVG_StrokeDashArray_datatype			= 99,
-	SVG_PreserveAspectRatio_datatype		= 100,
-	SVG_ViewBox_datatype					= 101,
-	SVG_GradientOffset_datatype				= 102,
-	SVG_Focus_datatype						= 103,
-	SVG_Clock_datatype						= 104,
-	SVG_String_datatype						= 105,
-	SVG_ContentType_datatype				= 106,
-	SVG_LanguageID_datatype					= 107,
-	XMLEV_Event_datatype					= 108,
+	SVG_StrokeDashArray_datatype,
+	SVG_PreserveAspectRatio_datatype,
+	SVG_ViewBox_datatype,
+	SVG_GradientOffset_datatype,
+	SVG_Focus_datatype,
+	SVG_Clock_datatype,
+	SVG_ContentType_datatype,
+	SVG_LanguageID_datatype,
 
 	/* Matrix related types */
-	SVG_Transform_datatype					= 109,
-	SVG_Transform_Translate_datatype		= 110,
-	SVG_Transform_Scale_datatype			= 111,
-	SVG_Transform_SkewX_datatype			= 112,
-	SVG_Transform_SkewY_datatype			= 113,
-	SVG_Transform_Rotate_datatype			= 114,
-	SVG_Motion_datatype						= 116,
+	SVG_Transform_datatype,
+	SVG_Transform_Translate_datatype,
+	SVG_Transform_Scale_datatype,
+	SVG_Transform_SkewX_datatype,
+	SVG_Transform_SkewY_datatype,
+	SVG_Transform_Rotate_datatype,
+	SVG_Motion_datatype,
 
 	/*LASeR types*/
-	LASeR_Choice_datatype					= 135,
-	LASeR_Size_datatype						= 136,
-	LASeR_TimeAttribute_datatype			= 137
+	LASeR_Choice_datatype,
+	LASeR_Size_datatype,
 };
 
 /* Definition of SVG base data types */
@@ -240,6 +238,8 @@ typedef struct {
 	GF_Node *element; 
 	/* id of the element before resolution of the pointer to the element */
 	char *element_id; 
+	/* listener associated with event */
+	GF_Node *listener; 
 
 	/* event type and parameter */
 	XMLEV_Event event; 
@@ -879,12 +879,6 @@ typedef struct {
 typedef struct {
 	Fixed width, height;
 } LASeR_Size;
-
-enum {
-	LASeR_TIMEATTRIBUTE_BEGIN = 0,
-	LASeR_TIMEATTRIBUTE_END
-};
-typedef u8 LASeR_TimeAttribute;
 
 
 #ifdef __cplusplus

@@ -219,6 +219,21 @@ Package=<4>
 
 ###############################################################################
 
+Project: "eit_dec"=..\..\modules\eit_dec\eit_dec.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "ffmpeg_in"=.\ffmpeg_in.dsp - Package Owner=<4>
 
 Package=<5>

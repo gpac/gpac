@@ -38,14 +38,14 @@ static void mpeg4_sensor_deleted(GF_Node *node, GF_SensorHandler *hdl)
 	if (compositor) {
 		gf_list_del_item(compositor->previous_sensors, hdl);
 		if (compositor->interaction_sensors) compositor->interaction_sensors--;
-		gf_node_unregister_event_type(node, GF_DOM_EVENT_MOUSE|GF_DOM_EVENT_KEY);
+		gf_sg_unregister_event_type(gf_node_get_graph(node), GF_DOM_EVENT_MOUSE|GF_DOM_EVENT_KEY);
 	}
 }
 
 static void mpeg4_sensor_created(GF_Compositor *compositor, GF_Node *node)
 {
 	compositor->interaction_sensors--;
-	gf_node_register_event_type(node, GF_DOM_EVENT_MOUSE|GF_DOM_EVENT_KEY);
+	gf_sg_register_event_type(gf_node_get_graph(node), GF_DOM_EVENT_MOUSE|GF_DOM_EVENT_KEY);
 }
 
 
