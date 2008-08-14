@@ -23,9 +23,9 @@
  */
 
 
-#ifndef GPAC_DISABLE_SVG
-
 #include <gpac/internal/scenegraph_dev.h>
+
+#ifndef GPAC_DISABLE_SVG
 
 #include <gpac/nodes_svg.h>
 
@@ -805,13 +805,18 @@ GF_Err gf_node_get_attribute_by_tag(GF_Node *node, u32 attribute_tag, Bool creat
 GF_EXPORT
 void gf_node_register_iri(GF_SceneGraph *sg, XMLRI *target)
 {
+#ifndef GPAC_DISABLE_SVG
 	if (gf_list_find(sg->xlink_hrefs, target)<0) {
 		gf_list_add(sg->xlink_hrefs, target);
 	}
+#endif
 }
+
 void gf_node_unregister_iri(GF_SceneGraph *sg, XMLRI *target)
 {
+#ifndef GPAC_DISABLE_SVG
 	gf_list_del_item(sg->xlink_hrefs, target);
+#endif
 }
 
 

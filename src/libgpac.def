@@ -1195,14 +1195,15 @@ EXPORTS
 	gf_laser_encoder_get_config
 	gf_laser_encoder_get_rap
 
+
 ;SVG exports for SVG->BIFS
-	gf_node_get_attribute_by_tag
 	gf_svg_parse_attribute
-	gf_svg_parse_style
+	gf_svg_parse_style	
+	gf_node_get_attribute_by_tag
 	gf_svg_flatten_attributes
 	gf_svg_apply_inheritance
 	gf_svg_properties_init_pointers
 	gf_svg_properties_reset_pointers
-
 	gf_node_register_iri
 	gf_node_unregister_iri
+

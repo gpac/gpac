@@ -341,20 +341,6 @@ typedef struct __xml_ev_handler
 } GF_DOMHandler;
 
 
-/*adds a listener to the node.
-The listener node is NOT registered with the node (it may very well not be a direct child of the node)
-@listener is a listenerElement (XML event)
-*/
-GF_Err gf_node_dom_listener_add(GF_Node *node, GF_Node *listener);
-u32 gf_dom_listener_count(GF_Node *node);
-GF_Node *gf_dom_listener_get(GF_Node *node, u32 i);
-
-/*creates a default listener/handler for the given event on the given node, and return the 
-handler element to allow for handler function override
-Listener/handler are stored at the node level*/
-GF_DOMHandler *gf_dom_listener_build(GF_Node *observer, u32 event_type, u32 event_param);
-
-
 
 enum
 {
@@ -390,6 +376,19 @@ u32 gf_node_get_dom_event_filter(GF_Node *node);
 
 void gf_sg_register_event_type(GF_SceneGraph *sg, u32 type);
 void gf_sg_unregister_event_type(GF_SceneGraph *sg, u32 type);
+
+/*adds a listener to the node.
+The listener node is NOT registered with the node (it may very well not be a direct child of the node)
+@listener is a listenerElement (XML event)
+*/
+GF_Err gf_node_dom_listener_add(GF_Node *node, GF_Node *listener);
+u32 gf_dom_listener_count(GF_Node *node);
+GF_Node *gf_dom_listener_get(GF_Node *node, u32 i);
+
+/*creates a default listener/handler for the given event on the given node, and return the 
+handler element to allow for handler function override
+Listener/handler are stored at the node level*/
+GF_DOMHandler *gf_dom_listener_build(GF_Node *observer, u32 event_type, u32 event_param);
 
 
 void gf_node_register_iri(GF_SceneGraph *sg, XMLRI *iri);

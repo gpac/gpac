@@ -31,6 +31,9 @@
 /*for anchor processing, which needs to be filtered at the inline scene level*/
 #include <gpac/internal/terminal_dev.h>
 
+/*for event DOM filtering type ...*/
+#include <gpac/scenegraph_svg.h>
+
 
 static void mpeg4_sensor_deleted(GF_Node *node, GF_SensorHandler *hdl)
 {
@@ -38,14 +41,18 @@ static void mpeg4_sensor_deleted(GF_Node *node, GF_SensorHandler *hdl)
 	if (compositor) {
 		gf_list_del_item(compositor->previous_sensors, hdl);
 		if (compositor->interaction_sensors) compositor->interaction_sensors--;
+#ifndef GPAC_DISABLE_SVG
 		gf_sg_unregister_event_type(gf_node_get_graph(node), GF_DOM_EVENT_MOUSE|GF_DOM_EVENT_KEY);
+#endif
 	}
 }
 
 static void mpeg4_sensor_created(GF_Compositor *compositor, GF_Node *node)
 {
 	compositor->interaction_sensors--;
+#ifndef GPAC_DISABLE_SVG
 	gf_sg_register_event_type(gf_node_get_graph(node), GF_DOM_EVENT_MOUSE|GF_DOM_EVENT_KEY);
+#endif
 }
 
 

@@ -50,7 +50,9 @@ static GF_MediaObject *get_sync_reference(GF_InlineScene *is, XMLRI *iri, u32 o_
 		else ref = gf_sg_find_node_by_name(is->graph, iri->string);
 
 		if (ref) {
+#ifndef GPAC_DISABLE_SVG
 			GF_FieldInfo info;
+#endif
 			/*safety check, break cyclic references*/
 			if (ref==orig_ref) return NULL;
 
@@ -89,8 +91,10 @@ GF_EXPORT
 GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines)
 {
 	u32 obj_type;
+#ifndef GPAC_DISABLE_SVG
 	Bool post_pone;
 	GF_FieldInfo info;
+#endif
 	GF_InlineScene *is;
 	GF_MediaObject *res, *syncRef;
 	GF_SceneGraph *sg = gf_node_get_graph(node);

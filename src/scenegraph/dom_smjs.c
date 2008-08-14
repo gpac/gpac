@@ -36,6 +36,7 @@
 #include <gpac/network.h>
 #include <gpac/xml.h>
 
+#ifndef GPAC_DISABLE_SVG
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
@@ -472,7 +473,11 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 	/*document interface*/
 	sg = dom_get_doc(c, obj);
 	if (sg) {
+#ifndef GPAC_DISABLE_SVG
 		target = &sg->dom_evt;
+#else
+		return JS_TRUE;
+#endif
 	} else {
 		n = dom_get_element(c, obj);
 		if (!n) n = vrml_node;
@@ -564,6 +569,7 @@ JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 
 JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node)
 {
+#ifndef GPAC_DISABLE_SVG
 	char *type, *callback;
 	u32 of = 0;
 	u32 evtType, i, count;
@@ -575,8 +581,9 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 
 
 	sg = dom_get_doc(c, obj);
-	if (sg) target = &sg->dom_evt;
-	else {
+	if (sg) {
+		target = &sg->dom_evt;
+	} else {
 		node = dom_get_element(c, obj);
 		if (!node) node = vrml_node;
 
@@ -640,6 +647,7 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 		gf_dom_listener_del(el, target);
 		return JS_TRUE;
 	}
+#endif
 	return JS_TRUE;
 }
 
@@ -702,12 +710,14 @@ static void dom_node_inserted(GF_Node *par, GF_Node *n, s32 pos)
 	if (do_init) {
 		gf_node_init(n);
 
+#ifndef GPAC_DISABLE_SVG
 		if (n->sgprivate->interact && n->sgprivate->interact->dom_evt) {
 			GF_DOM_Event evt;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.type = GF_EVENT_LOAD;
 			gf_dom_event_fire(n, NULL, &evt);
 		}
+#endif
 	}
 	/*node is being re-inserted, activate it in case*/
 	if (!old_par) gf_node_activate(n);
@@ -3266,7 +3276,7 @@ void dom_set_class_selector(JSContext *c, void *(*get_element_class)(GF_Node *n)
 	}
 }
 
-#endif
+#endif	/*GPAC_HAS_SPIDERMONKEY*/
 
 
 
@@ -3533,3 +3543,5 @@ GF_Err gf_sg_reload_xml_doc(const char *src, GF_SceneGraph *scene)
 	return GF_OK;
 #endif
 }
+
+#endif	/*GPAC_DISABLE_SVG*/

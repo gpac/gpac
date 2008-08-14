@@ -148,15 +148,12 @@ SOURCE smil_anim.c
 SOURCE smil_timing.c
 SOURCE dom_events.c
 SOURCE dom_smjs.c
-SOURCE gpac_js.c
 SOURCE svg_attributes.c
-SOURCE svg_nodes_da.c
-SOURCE svg_tools_da.c
 SOURCE svg_types.c
 SOURCE svg_smjs.c
 SOURCE svg_properties.c
-SOURCE xbl_nodes.c
 SOURCE xbl_process.c
+SOURCE xml_ns.c
 
 //mcrypt
 SOURCEPATH ..\..\src\mcrypt
@@ -208,7 +205,7 @@ SOURCE swf_parse.c
 SOURCE text_to_bifs.c
 SOURCE encode_cbk.c
 SOURCE encode_isom.c
-SOURCE loader_svg_da.c
+SOURCE loader_svg.c
 
 //terminal
 SOURCEPATH ..\..\src\terminal

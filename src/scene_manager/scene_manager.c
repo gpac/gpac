@@ -265,9 +265,7 @@ GF_Err gf_sm_load_init_svg(GF_SceneLoader *load);
 GF_Err gf_sm_load_done_svg(GF_SceneLoader *load);
 GF_Err gf_sm_load_run_svg(GF_SceneLoader *load);
 GF_Err gf_sm_load_init_svg_string(GF_SceneLoader *load, char *str);
-#endif
 
-#ifndef GPAC_DISABLE_XBL
 GF_Err gf_sm_load_init_xbl(GF_SceneLoader *load);
 GF_Err gf_sm_load_done_xbl(GF_SceneLoader *load);
 GF_Err gf_sm_load_run_xbl(GF_SceneLoader *load);
@@ -419,8 +417,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_XSR:
 	case GF_SM_LOAD_DIMS:
 		return gf_sm_load_init_svg(load);
-#endif
-#ifndef GPAC_DISABLE_XBL
+
 	case GF_SM_LOAD_XBL: 
 		return gf_sm_load_init_xbl(load);
 #endif
@@ -455,8 +452,7 @@ void gf_sm_load_done(GF_SceneLoader *load)
 	case GF_SM_LOAD_DIMS:
 		gf_sm_load_done_svg(load);
 		break;
-#endif
-#ifndef GPAC_DISABLE_XBL
+
 	case GF_SM_LOAD_XBL:
 		gf_sm_load_done_xbl(load);
 		break;
