@@ -924,7 +924,7 @@ struct JSObject *dom_js_get_element_proto(struct JSContext *c);
 struct JSObject *dom_js_get_document_proto(struct JSContext *c);
 struct JSObject *dom_js_get_event_proto(struct JSContext *c);
 
-void dom_set_class_selector(struct JSContext *c, struct JSClass *(*get_element_class)(GF_Node *n), struct JSClass *(*get_document_class)(GF_SceneGraph *n) );
+void dom_set_class_selector(struct JSContext *c, /*struct JSClass*/void *(*get_element_class)(GF_Node *n), /*struct JSClass*/void *(*get_document_class)(GF_SceneGraph *n) );
 
 enum
 {
