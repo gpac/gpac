@@ -88,8 +88,8 @@ typedef struct
 	JSObject *dom_element_proto;
 	JSObject *dom_event_proto;
 
-	JSClass *(*get_element_class)(GF_Node *n);
-	JSClass *(*get_document_class)(GF_SceneGraph *n);
+	void *(*get_element_class)(GF_Node *n);
+	void *(*get_document_class)(GF_SceneGraph *n);
 } GF_DOMRuntime;
 
 static GF_DOMRuntime *dom_rt = NULL;
@@ -197,7 +197,7 @@ static jsval dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 
 	jsclass = &dom_rt->domDocumentClass;
 	if (dom_rt->get_document_class)
-		jsclass = dom_rt->get_document_class(sg);
+		jsclass = (JSClass *) dom_rt->get_document_class(sg);
 
 	new_obj = JS_NewObject(c, jsclass, 0, 0);
 	JS_SetPrivate(c, new_obj, sg);
@@ -236,7 +236,7 @@ static jsval dom_node_construct(JSContext *c, GF_Node *n)
 	if (n->sgprivate->scenegraph->dcci_doc)
 		__class = &dom_rt->DCCIClass;
 	else if (dom_rt->get_element_class)
-		__class = dom_rt->get_element_class(n);
+		__class = (JSClass *) dom_rt->get_element_class(n);
 
 	/*in our implementation ONLY ELEMENTS are created, never attributes. We therefore always
 	create Elements when asked to create a node !!*/
@@ -249,7 +249,7 @@ jsval dom_element_construct(JSContext *c, GF_Node *n)
 	if (n->sgprivate->scenegraph->dcci_doc)
 		__class = &dom_rt->DCCIClass;
 	else if (dom_rt->get_element_class)
-		__class = dom_rt->get_element_class(n);
+		__class = (JSClass *) dom_rt->get_element_class(n);
 
 	return dom_base_node_construct(c, __class, n);
 }
@@ -965,10 +965,7 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	}
 
 	/*not supported*/
-	if (!JSVAL_IS_INT(id)) {
-		char *str = JS_GetStringBytes(JSVAL_TO_STRING(id));
-		return JS_TRUE;
-	}
+	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 
 	tag = n ? gf_node_get_tag(n) : 0;
 	par = (GF_ParentNode*)n;
@@ -1173,10 +1170,7 @@ static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, jsval id, js
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_TRUE;
 
-	if (!JSVAL_IS_INT(id)) {
-		char *str = JS_GetStringBytes(JSVAL_TO_STRING(id));
-		return JS_TRUE;
-	}
+	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
 
 	switch (prop_id) {
@@ -1264,7 +1258,6 @@ static JSBool xml_document_create_element(JSContext *c, JSObject *obj, uintN arg
 	if (!tag) tag = TAG_DOMFullNode;
 	n = gf_node_new(sg, tag);
 	if (n && (tag == TAG_DOMFullNode)) {
-		char *qname = NULL;
 		GF_DOMFullNode *elt = (GF_DOMFullNode *)n;
 		elt->name = strdup(name);
 		if (xmlns) {
@@ -1284,7 +1277,8 @@ static JSBool xml_document_create_text(JSContext *c, JSObject *obj, uintN argc, 
 
 	n = gf_node_new(sg, TAG_DOMText);
 	if (argc) {
-		((GF_DOMText*)n)->textContent = strdup( JSVAL_GET_STRING(argv[0]) );
+		char *str = JSVAL_GET_STRING(argv[0]);
+		((GF_DOMText*)n)->textContent = strdup(str ? str : "");
 	}
 	*rval = dom_text_construct(c, n);
 	return JS_TRUE;
@@ -1378,10 +1372,7 @@ static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 
-	if (!JSVAL_IS_INT(id)) {
-		char *str = JS_GetStringBytes(JSVAL_TO_STRING(id));
-		return JS_TRUE;
-	}
+	if (!JSVAL_IS_INT(id)) return JS_TRUE;
 	prop_id = JSVAL_TO_INT(id);
 	switch (prop_id) {
 	case 1: /*"tagName"*/
@@ -1766,7 +1757,8 @@ static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		if (txt->textContent) free(txt->textContent);
 		txt->textContent = NULL;
 		if (JSVAL_CHECK_STRING(*vp)) {
-			txt->textContent = strdup( JSVAL_GET_STRING(*vp) );
+			char *str = JSVAL_GET_STRING(*vp);
+			txt->textContent = strdup( str ? str : "" );
 		}
 		dom_node_changed((GF_Node*)txt, 0, NULL);
 		return JS_TRUE;
@@ -1854,7 +1846,8 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		case 25: /*data*/
 		{
 			u32 len;
-			s16 txt[2], *srcp;
+			s16 txt[2];
+			const u16 *srcp;
 			char szData[5];;
 			txt[0] = evt->detail;
 			txt[1] = 0;
@@ -3265,7 +3258,7 @@ JSObject *dom_js_get_element_proto(JSContext *c) { return dom_rt->dom_element_pr
 JSObject *dom_js_get_document_proto(JSContext *c) { return dom_rt->dom_document_proto; }
 JSObject *dom_js_get_event_proto(JSContext *c) { return dom_rt->dom_event_proto; }
 
-void dom_set_class_selector(JSContext *c, JSClass *(*get_element_class)(GF_Node *n), JSClass *(*get_document_class)(GF_SceneGraph *n) )
+void dom_set_class_selector(JSContext *c, void *(*get_element_class)(GF_Node *n), void *(*get_document_class)(GF_SceneGraph *n) )
 {
 	if (dom_rt) {
 		dom_rt->get_document_class = get_document_class;

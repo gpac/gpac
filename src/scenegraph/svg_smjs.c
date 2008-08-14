@@ -222,8 +222,6 @@ static JSBool global_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *v
 		default:
 			return JS_TRUE;
 		}
-	} else {
-		char *str = JS_GetStringBytes(JSVAL_TO_STRING(id));
 	}
 	return JS_TRUE;
 }
@@ -1944,11 +1942,11 @@ jsval svg_udom_new_point(JSContext *c, Fixed x, Fixed y)
 	return OBJECT_TO_JSVAL(p);
 }
 
-JSClass *svg_get_element_class(GF_Node *n)
+void *svg_get_element_class(GF_Node *n)
 {
 	return &svg_rt->svgElement;
 }
-JSClass *svg_get_document_class(GF_SceneGraph *n)
+void *svg_get_document_class(GF_SceneGraph *n)
 {
 	return &svg_rt->svgDocument;
 }
