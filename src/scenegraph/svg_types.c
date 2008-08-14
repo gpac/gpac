@@ -25,6 +25,158 @@
 #include <gpac/internal/scenegraph_dev.h>
 
 #ifndef GPAC_DISABLE_SVG
+#include <gpac/nodes_svg.h>
+
+Bool gf_svg_is_animation_tag(u32 tag)
+{
+	return (tag == TAG_SVG_set ||
+			tag == TAG_SVG_animate ||
+			tag == TAG_SVG_animateColor ||
+			tag == TAG_SVG_animateTransform ||
+			tag == TAG_SVG_animateMotion || 
+			tag == TAG_SVG_discard
+			) ? 1 : 0;
+}
+
+Bool gf_svg_is_timing_tag(u32 tag)
+{
+	if (gf_svg_is_animation_tag(tag)) return 1;
+	else return (tag == TAG_SVG_animation ||
+			tag == TAG_SVG_audio ||
+			tag == TAG_LSR_conditional ||
+			tag == TAG_SVG_video)?1:0;
+}
+
+SVG_Element *gf_svg_create_node(u32 ElementTag)
+{
+	SVG_Element *p;
+	if (gf_svg_is_timing_tag(ElementTag)) {
+		SVGTimedAnimBaseElement *tap;
+		GF_SAFEALLOC(tap, SVGTimedAnimBaseElement); 
+		p = (SVG_Element *)tap;
+	} else if (ElementTag == TAG_SVG_handler) {
+		SVG_handlerElement *hdl;
+		GF_SAFEALLOC(hdl, SVG_handlerElement); 
+		p = (SVG_Element *)hdl;
+	} else {
+		GF_SAFEALLOC(p, SVG_Element);
+	}
+	gf_node_setup((GF_Node *)p, ElementTag);
+	gf_sg_parent_setup((GF_Node *) p);
+	return p;
+}
+
+void gf_svg_node_del(GF_Node *node)
+{
+	SVG_Element *p = (SVG_Element *)node;
+
+	if (p->sgprivate->interact && p->sgprivate->interact->animations) {
+		gf_smil_anim_delete_animations((GF_Node *)p);
+	}
+	if (p->sgprivate->tag==TAG_SVG_listener) {
+		/*remove from parent's listener list*/
+		GF_DOMEventTarget *evt = node->sgprivate->UserPrivate;
+		node->sgprivate->UserPrivate = NULL;
+		gf_dom_listener_del(node, evt);
+	}
+	/*remove this node from associated listeners*/
+	else if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) {
+		u32 i, count;
+		count = gf_dom_listener_count(node);
+		for (i=0; i<count; i++) {
+			GF_Node *listener = gf_list_get(node->sgprivate->interact->dom_evt->evt_list, i);
+			listener->sgprivate->UserPrivate = NULL;
+		}
+	}
+
+	if (gf_svg_is_timing_tag(node->sgprivate->tag)) {
+		SVGTimedAnimBaseElement *tap = (SVGTimedAnimBaseElement *)node;
+		if (tap->animp) {
+			free(tap->animp);
+			gf_smil_anim_remove_from_target((GF_Node *)tap, (GF_Node *)tap->xlinkp->href->target);
+		}
+		if (tap->timingp)		{
+			gf_smil_timing_delete_runtime_info((GF_Node *)tap, tap->timingp->runtime);
+			free(tap->timingp);
+		}	
+		if (tap->xlinkp)	free(tap->xlinkp);
+	}
+
+	gf_node_delete_attributes(node);
+	gf_sg_parent_reset(node);
+	gf_node_free(node);
+}
+
+Bool gf_svg_node_init(GF_Node *node)
+{
+	switch (node->sgprivate->tag) {
+	case TAG_SVG_script:
+		if (node->sgprivate->scenegraph->script_load) 
+			node->sgprivate->scenegraph->script_load(node);
+		return 1;
+
+	case TAG_SVG_handler:
+		if (node->sgprivate->scenegraph->script_load) 
+			node->sgprivate->scenegraph->script_load(node);
+		if (node->sgprivate->scenegraph->script_action)
+			((SVG_handlerElement*)node)->handle_event = gf_sg_handle_dom_event;
+		return 1;
+	case TAG_LSR_conditional:
+		gf_smil_timing_init_runtime_info(node);
+		gf_smil_setup_events(node);
+		return 1;
+	case TAG_SVG_animateMotion:
+	case TAG_SVG_set: 
+	case TAG_SVG_animate: 
+	case TAG_SVG_animateColor: 
+	case TAG_SVG_animateTransform: 
+		gf_smil_anim_init_node(node);
+		gf_smil_setup_events(node);
+		/*we may get called several times depending on xlink:href resoling for events*/
+		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
+	case TAG_SVG_audio: 
+	case TAG_SVG_video: 
+		gf_smil_timing_init_runtime_info(node);
+		gf_smil_setup_events(node);
+		/*we may get called several times depending on xlink:href resoling for events*/
+		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
+	case TAG_SVG_animation:
+		gf_smil_timing_init_runtime_info(node);
+		gf_smil_setup_events(node);
+		return 0;
+	/*discard is implemented as a special animation element */
+	case TAG_SVG_discard: 
+		gf_smil_anim_init_discard(node);
+		gf_smil_setup_events(node);
+		return 1;
+	default:
+		return 0;
+	}
+	return 0;
+}
+
+Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
+{
+	switch (node->sgprivate->tag) {
+	case TAG_SVG_animateMotion:
+	case TAG_SVG_discard: 
+	case TAG_SVG_set: 
+	case TAG_SVG_animate: 
+	case TAG_SVG_animateColor: 
+	case TAG_SVG_animateTransform: 
+	case TAG_LSR_conditional: 
+		gf_smil_timing_modified(node, field);
+		return 1;
+	case TAG_SVG_animation: 
+	case TAG_SVG_audio: 
+	case TAG_SVG_video: 
+		gf_smil_timing_modified(node, field);
+		/*used by compositors*/
+		return 0;
+	}
+	return 0;
+}
+
 
 void gf_svg_reset_path(SVG_PathData d) 
 {
@@ -167,7 +319,7 @@ void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI *iri)
 {
 	if (!iri) return;
 	if (iri->string) free(iri->string);
-	gf_svg_unregister_iri(sg, iri);
+	gf_node_unregister_iri(sg, iri);
 }
 
 void gf_svg_delete_paint(GF_SceneGraph *sg, SVG_Paint *paint) 
@@ -224,7 +376,8 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		free(value);
 #endif
 		break;
-	case SVG_String_datatype:
+	case SVG_ID_datatype:
+	case DOM_String_datatype:
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
 		if (*(SVG_String *)value) free(*(SVG_String *)value);
@@ -329,142 +482,5 @@ void gf_smil_delete_key_types(GF_List *l)
 	gf_list_del(l);
 }
 
-
-GF_EXPORT
-void gf_svg_register_iri(GF_SceneGraph *sg, XMLRI *target)
-{
-	if (gf_list_find(sg->xlink_hrefs, target)<0) {
-		gf_list_add(sg->xlink_hrefs, target);
-	}
-}
-void gf_svg_unregister_iri(GF_SceneGraph *sg, XMLRI *target)
-{
-	gf_list_del_item(sg->xlink_hrefs, target);
-}
-
-/*TODO FIXME, this is ugly, add proper cache system*/
-#include <gpac/base_coding.h>
-
-
-static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_size, u32 idx)
-{
-	char szFile[GF_MAX_PATH];
-	u32 fsize;
-	FILE *f;
-	
-	sprintf(szFile, "%s%04X%s", base_file, idx, ext);
-	
-	f = fopen(szFile, "rb");
-	if (!f) return 0;
-
-	fseek(f, 0, SEEK_END);
-	fsize = ftell(f);
-	if (fsize==data_size) {
-		u32 offset=0;
-		char cache[1024];
-		fseek(f, 0, SEEK_SET);
-		while (fsize) {
-			u32 read = fread(cache, 1, 1024, f);
-			fsize -= read;
-			if (memcmp(cache, data+offset, sizeof(char)*read)) break;
-			offset+=read;
-		}
-		fclose(f);
-		/*same file*/
-		if (!fsize) return 2;
-	}
-	fclose(f);
-	return 1;
-}
-
-
-GF_EXPORT
-GF_Err gf_svg_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *base_filename)
-{
-	char szFile[GF_MAX_PATH], buf[20], *sep, *data, *ext;
-	u32 data_size, idx;
-	Bool existing;
-	FILE *f;
-
-	if (!cache_dir || !base_filename || !iri || !iri->string || strncmp(iri->string, "data:", 5)) return GF_OK;
-
-	/*handle "data:" scheme when cache is specified*/
-	strcpy(szFile, cache_dir);
-	data_size = strlen(szFile);
-	if (szFile[data_size-1] != GF_PATH_SEPARATOR) {
-		szFile[data_size] = GF_PATH_SEPARATOR;
-		szFile[data_size+1] = 0;
-	}
-	if (base_filename) {
-		sep = strrchr(base_filename, GF_PATH_SEPARATOR);
-#ifdef WIN32
-		if (!sep) sep = strrchr(base_filename, '/');
-#endif
-		if (!sep) sep = (char *) base_filename;
-		else sep += 1;
-		strcat(szFile, sep);
-	}
-	sep = strrchr(szFile, '.');
-	if (sep) sep[0] = 0;
-	strcat(szFile, "_img_");
-
-	/*get mime type*/
-	sep = (char *)iri->string + 5;
-	if (!strncmp(sep, "image/jpg", 9) || !strncmp(sep, "image/jpeg", 10)) ext = ".jpg";
-	else if (!strncmp(sep, "image/png", 9)) ext = ".png";
-	else return GF_OK;
-
-
-	data = NULL;
-	sep = strchr(iri->string, ';');
-	if (!strncmp(sep, ";base64,", 8)) {
-		sep += 8;
-		data_size = 2*strlen(sep);
-		data = (char*)malloc(sizeof(char)*data_size);
-		if (!data) return GF_OUT_OF_MEM;
-		data_size = gf_base64_decode(sep, strlen(sep), data, data_size);
-	}
-	else if (!strncmp(sep, ";base16,", 8)) {
-		data_size = 2*strlen(sep);
-		data = (char*)malloc(sizeof(char)*data_size);
-		if (!data) return GF_OUT_OF_MEM;
-		sep += 8;
-		data_size = gf_base16_decode(sep, strlen(sep), data, data_size);
-	}
-	if (!data_size) return GF_OK;
-	
-	iri->type = XMLRI_STRING;
-	
-	existing = 0;
-	idx = 0;
-	while (1) {
-		u32 res = check_existing_file(szFile, ext, data, data_size, idx);
-		if (!res) break;
-		if (res==2) {
-			existing = 1;
-			break;
-		}
-		idx++;
-	}
-	sprintf(buf, "%04X", idx);
-	strcat(szFile, buf);
-	strcat(szFile, ext);
-
-	if (!existing) {
-		f = fopen(szFile, "wb");
-		if (!f) {
-			free(data);
-			free(iri->string);
-			iri->string = NULL;
-			return GF_IO_ERR;
-		}
-		fwrite(data, data_size, 1, f);
-		fclose(f);
-	}
-	free(data);
-	free(iri->string);
-	iri->string = strdup(szFile);
-	return GF_OK;
-}
 
 #endif /*GPAC_DISABLE_SVG*/

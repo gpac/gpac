@@ -25,7 +25,7 @@
 #include <gpac/scene_manager.h>
 #include <gpac/xml.h>
 #include <gpac/internal/scenegraph_dev.h>
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 #include <gpac/nodes_mpeg4.h>
 
 typedef struct {
@@ -197,17 +197,17 @@ static void svg_parse_animation(GF_SceneGraph *sg, SVG_DeferedAnimation *anim)
 			return;
 		} else { 
 			XMLRI *iri;
-			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_xlink_href, 1, 0, &info);
+			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_XLINK_ATT_href, 1, 0, &info);
 			iri = (XMLRI *)info.far_ptr;
 			iri->type = XMLRI_ELEMENTID;
 			iri->target = anim->target;
-			gf_svg_register_iri(sg, iri);
+			gf_node_register_iri(sg, iri);
 		}
 
 		tag = gf_node_get_tag((GF_Node *)anim->animation_elt);
 		/* get the attribute name attribute if specified */
 		if (anim->type && (tag== TAG_SVG_animateTransform) ) {
-			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_transform_type, 1, 0, &info);
+			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_transform_type, 1, 0, &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->type, 0);
 			switch(*(SVG_TransformType *) info.far_ptr) {
 			case SVG_TRANSFORM_TRANSLATE:
@@ -233,8 +233,8 @@ static void svg_parse_animation(GF_SceneGraph *sg, SVG_DeferedAnimation *anim)
 				return;
 			}
 		}
-		else if (gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_attributeName, 0, 0, &info) == GF_OK) {
-			gf_svg_get_attribute_by_name((GF_Node *)anim->target, ((SMIL_AttributeName *)info.far_ptr)->name, 1, 1, &info);
+		else if (gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_attributeName, 0, 0, &info) == GF_OK) {
+			gf_node_get_attribute_by_name((GF_Node *)anim->target, ((SMIL_AttributeName *)info.far_ptr)->name, 0, 1, 1, &info);
 			anim_value_type = info.fieldType;
 		} else {
 			if (tag == TAG_SVG_animateMotion) {
@@ -251,19 +251,19 @@ static void svg_parse_animation(GF_SceneGraph *sg, SVG_DeferedAnimation *anim)
 		}
 
 		if (anim->to) {
-			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_to, 1, 0, &info);
+			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_to, 1, 0, &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->to, anim_value_type);
 		} 
 		if (anim->from) {
-			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_from, 1, 0, &info);
+			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_from, 1, 0, &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->from, anim_value_type);
 		} 
 		if (anim->by) {
-			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_by, 1, 0, &info);
+			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_by, 1, 0, &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->by, anim_value_type);
 		} 
 		if (anim->values) {
-			gf_svg_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_values, 1, 0, &info);
+			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_values, 1, 0, &info);
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->values, anim_value_type);
 		}
 		anim->resolve_stage = 1;
@@ -281,7 +281,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 	SVG_Element *elt;
 	SVG_DeferedAnimation *anim = NULL;
 
-	tag = gf_svg_get_element_tag(name);
+	tag = gf_xml_get_element_tag(name, 0);
 	elt = (SVG_Element*)gf_node_new(converter->svg_sg, tag);
 	if (!gf_sg_get_root_node(converter->svg_sg)) {
 		gf_node_register((GF_Node *)elt, NULL);
@@ -299,7 +299,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
 		if (converter->svg_parent) {
-			anim->target = anim->anim_parent = converter->svg_parent;
+			anim->target = anim->anim_parent = (SVG_Element*) converter->svg_parent;
 		}
 	}
 

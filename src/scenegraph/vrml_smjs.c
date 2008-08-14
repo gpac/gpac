@@ -32,7 +32,7 @@
 
 #ifndef GPAC_DISABLE_SVG
 /*SVG tags for script handling*/
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 #endif
 
 #include <gpac/internal/terminal_dev.h>
@@ -65,20 +65,6 @@ Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *node, G
 	return 0;
 }
 
-
-
-#define GF_SETUP_JS(the_class, cname, flag, addp, delp, getp, setp, enump, resp, conv, fin)	\
-	memset(&the_class, 0, sizeof(the_class));	\
-	the_class.name = cname;	\
-	the_class.flags = flag;	\
-	the_class.addProperty = addp;	\
-	the_class.delProperty = delp;	\
-	the_class.getProperty = getp;	\
-	the_class.setProperty = setp;	\
-	the_class.enumerate = enump;	\
-	the_class.resolve = resp;		\
-	the_class.convert = conv;		\
-	the_class.finalize = fin;	
 
 
 typedef struct
@@ -2292,81 +2278,62 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 {
 	/*GCC port: classes are declared within code since JS_PropertyStub and co are exported symbols
 	from JS runtime lib, so with non-constant addresses*/
-	GF_SETUP_JS(js_rt->globalClass, "global", JSCLASS_HAS_PRIVATE, 
-		JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, 
-		JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, JS_FinalizeStub);
+	JS_SETUP_CLASS(js_rt->globalClass, "global", JSCLASS_HAS_PRIVATE, 
+		JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
 
-	GF_SETUP_JS(js_rt->browserClass , "Browser", 0,
-		JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub, JS_PropertyStub,
-		JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  JS_FinalizeStub);
+	JS_SETUP_CLASS(js_rt->browserClass , "Browser", 0,
+		JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
 
-	GF_SETUP_JS(js_rt->SFNodeClass, "SFNode", JSCLASS_HAS_PRIVATE,
-		JS_PropertyStub,  JS_PropertyStub,  node_getProperty, node_setProperty,
-		JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  node_finalize);
+	JS_SETUP_CLASS(js_rt->SFNodeClass, "SFNode", JSCLASS_HAS_PRIVATE,
+		node_getProperty, node_setProperty, node_finalize);
 
-	GF_SETUP_JS(js_rt->SFVec2fClass , "SFVec2f", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub,  vec2f_getProperty, vec2f_setProperty,
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  field_finalize);
+	JS_SETUP_CLASS(js_rt->SFVec2fClass , "SFVec2f", JSCLASS_HAS_PRIVATE,
+	  vec2f_getProperty, vec2f_setProperty, field_finalize);
 
-	GF_SETUP_JS(js_rt->SFVec3fClass , "SFVec3f", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub,  vec3f_getProperty, vec3f_setProperty,
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  field_finalize);
+	JS_SETUP_CLASS(js_rt->SFVec3fClass , "SFVec3f", JSCLASS_HAS_PRIVATE,
+	  vec3f_getProperty, vec3f_setProperty, field_finalize);
 
-	GF_SETUP_JS(js_rt->SFRotationClass , "SFRotation", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub,  rot_getProperty, rot_setProperty,
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  field_finalize);
+	JS_SETUP_CLASS(js_rt->SFRotationClass , "SFRotation", JSCLASS_HAS_PRIVATE,
+	  rot_getProperty, rot_setProperty,  field_finalize);
 
-	GF_SETUP_JS(js_rt->SFColorClass , "SFColor", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub,  color_getProperty, color_setProperty,
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  field_finalize);
+	JS_SETUP_CLASS(js_rt->SFColorClass , "SFColor", JSCLASS_HAS_PRIVATE,
+	  color_getProperty, color_setProperty, field_finalize);
 
-	GF_SETUP_JS(js_rt->SFImageClass , "SFImage", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub,  image_getProperty, image_setProperty,
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  field_finalize);
+	JS_SETUP_CLASS(js_rt->SFImageClass , "SFImage", JSCLASS_HAS_PRIVATE,
+	  image_getProperty, image_setProperty, field_finalize);
 
-	GF_SETUP_JS(js_rt->MFInt32Class , "MFInt32", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub, array_getElement,  array_setElement,  
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  array_finalize);
+	JS_SETUP_CLASS(js_rt->MFInt32Class , "MFInt32", JSCLASS_HAS_PRIVATE,
+	  array_getElement,  array_setElement, array_finalize);
 	
-	GF_SETUP_JS(js_rt->MFBoolClass , "MFBool", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub, array_getElement,  array_setElement,  
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  array_finalize);
+	JS_SETUP_CLASS(js_rt->MFBoolClass , "MFBool", JSCLASS_HAS_PRIVATE,
+	  array_getElement,  array_setElement, array_finalize);
 
-	GF_SETUP_JS(js_rt->MFTimeClass , "MFTime", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub, array_getElement,  array_setElement,  
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  array_finalize);
+	JS_SETUP_CLASS(js_rt->MFTimeClass , "MFTime", JSCLASS_HAS_PRIVATE,
+	  array_getElement,  array_setElement,  array_finalize);
 
-	GF_SETUP_JS(js_rt->MFFloatClass , "MFFloat", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub, array_getElement,  array_setElement,  
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  array_finalize);
+	JS_SETUP_CLASS(js_rt->MFFloatClass , "MFFloat", JSCLASS_HAS_PRIVATE,
+	  array_getElement,  array_setElement,  array_finalize);
 
-	GF_SETUP_JS(js_rt->MFUrlClass , "MFUrl", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub, array_getElement,  array_setElement,  
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  array_finalize);
+	JS_SETUP_CLASS(js_rt->MFUrlClass , "MFUrl", JSCLASS_HAS_PRIVATE,
+	  array_getElement,  array_setElement,  array_finalize);
 
-	GF_SETUP_JS(js_rt->MFStringClass , "MFString", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub, array_getElement,  array_setElement,  
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  array_finalize);
+	JS_SETUP_CLASS(js_rt->MFStringClass , "MFString", JSCLASS_HAS_PRIVATE,
+	  array_getElement,  array_setElement,  array_finalize);
 
-	GF_SETUP_JS(js_rt->MFNodeClass , "MFNode", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub, array_getElement,  array_setElement,  
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  array_finalize);
+	JS_SETUP_CLASS(js_rt->MFNodeClass , "MFNode", JSCLASS_HAS_PRIVATE,
+	  array_getElement,  array_setElement,  array_finalize);
 
-	GF_SETUP_JS(js_rt->MFVec2fClass , "MFVec2f", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub, array_getElement,  array_setElement,  
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  array_finalize);
+	JS_SETUP_CLASS(js_rt->MFVec2fClass , "MFVec2f", JSCLASS_HAS_PRIVATE,
+	  array_getElement,  array_setElement,  array_finalize);
 
-	GF_SETUP_JS(js_rt->MFVec3fClass , "MFVec3f", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub, array_getElement,  array_setElement,  
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  array_finalize);
+	JS_SETUP_CLASS(js_rt->MFVec3fClass , "MFVec3f", JSCLASS_HAS_PRIVATE,
+	  array_getElement,  array_setElement,  array_finalize);
 
-	GF_SETUP_JS(js_rt->MFRotationClass , "MFRotation", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub, array_getElement,  array_setElement,  
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  array_finalize);
+	JS_SETUP_CLASS(js_rt->MFRotationClass , "MFRotation", JSCLASS_HAS_PRIVATE,
+	  array_getElement,  array_setElement,  array_finalize);
 
-	GF_SETUP_JS(js_rt->MFColorClass , "MFColor", JSCLASS_HAS_PRIVATE,
-	  JS_PropertyStub,  JS_PropertyStub, array_getElement,  array_setElement,  
-	  JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,  array_finalize);
+	JS_SETUP_CLASS(js_rt->MFColorClass , "MFColor", JSCLASS_HAS_PRIVATE,
+	  array_getElement,  array_setElement,  array_finalize);
 
 	JS_SetErrorReporter(sc->js_ctx, script_error);
 

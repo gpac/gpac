@@ -31,7 +31,7 @@
 
 #include <gpac/internal/terminal_dev.h>
 
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 #include <gpac/compositor.h>
 
 /*for svg <g> caching*/
@@ -778,9 +778,10 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
 	SVG_Element *a;
 	SVGAllAttributes all_atts;
 
-	assert(gf_node_get_tag(event->currentTarget)==TAG_SVG_a);
+	if (event->event_phase & GF_DOM_EVENT_PHASE_PREVENT) return;
 
-	a = (SVG_Element *) event->currentTarget;
+	assert(gf_node_get_tag((GF_Node*)event->currentTarget->ptr)==TAG_SVG_a);
+	a = (SVG_Element *) event->currentTarget->ptr;
 	gf_svg_flatten_attributes(a, &all_atts);
 
 	compositor = (GF_Compositor *)gf_node_get_private((GF_Node *)handler);
@@ -859,19 +860,19 @@ void compositor_init_svg_a(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, svg_traverse_a);
 
 	/*listener for onClick event*/
-	handler = gf_dom_listener_build(node, GF_EVENT_CLICK, 0, NULL);
+	handler = gf_dom_listener_build(node, GF_EVENT_CLICK, 0);
 	/*and overwrite handler*/
 	handler->handle_event = svg_a_handle_event;
 	gf_node_set_private((GF_Node *)handler, compositor);
 
 	/*listener for activate event*/
-	handler = gf_dom_listener_build(node, GF_EVENT_ACTIVATE, 0, NULL);
+	handler = gf_dom_listener_build(node, GF_EVENT_ACTIVATE, 0);
 	/*and overwrite handler*/
 	handler->handle_event = svg_a_handle_event;
 	gf_node_set_private((GF_Node *)handler, compositor);
 
 	/*listener for mousemove event*/
-	handler = gf_dom_listener_build(node, GF_EVENT_MOUSEOVER, 0, NULL);
+	handler = gf_dom_listener_build(node, GF_EVENT_MOUSEOVER, 0);
 	/*and overwrite handler*/
 	handler->handle_event = svg_a_handle_event;
 	gf_node_set_private((GF_Node *)handler, compositor);
@@ -913,13 +914,18 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 		return;
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
-		GF_MediaObject *new_res = gf_mo_load_xlink_resource(node, is_foreign_object, 0, -1);
-		if (new_res != stack->resource) {
-			if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
-			stack->resource = new_res;
-		}
 		stack->fragment_id = NULL;
 		stack->inline_sg = NULL;
+		if (all_atts.xlink_href->string && (all_atts.xlink_href->string[0]=='#')) {
+			stack->fragment_id = all_atts.xlink_href->string;
+			stack->inline_sg = gf_node_get_graph(node);
+		} else {
+			GF_MediaObject *new_res = gf_mo_load_xlink_resource(node, is_foreign_object, 0, -1);
+			if (new_res != stack->resource) {
+				if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
+				stack->resource = new_res;
+			}
+		}
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
 	}
 

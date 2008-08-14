@@ -156,6 +156,8 @@ struct _inline_scene
 
 	/*secondary resource scene*/
 	Bool secondary_resource;
+
+	char *redirect_xml_base;
 };
 
 GF_InlineScene *gf_inline_new(GF_InlineScene *parentScene);

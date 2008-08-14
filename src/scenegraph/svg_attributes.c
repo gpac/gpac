@@ -84,6 +84,12 @@ static const struct dom_event_def {u32 event;  const char *name; u32 category; }
 	{ GF_EVENT_SCROLL, "scroll", GF_DOM_EVENT_UI },
 	{ GF_EVENT_ZOOM, "zoom", GF_DOM_EVENT_UI },
 
+
+	{ GF_EVENT_LOAD, "SVGLoad", GF_DOM_EVENT_DOM },
+	{ GF_EVENT_RESIZE, "SVGResize", GF_DOM_EVENT_UI },
+	{ GF_EVENT_SCROLL, "SVGScroll", GF_DOM_EVENT_UI },
+	{ GF_EVENT_ZOOM, "SVGZoom", GF_DOM_EVENT_UI },
+
 	/*mutation events and DCCI*/
 	{ GF_EVENT_TREE_MODIFIED, "DOMSubtreeModified", GF_DOM_EVENT_MUTATION },
 	{ GF_EVENT_NODE_INSERTED, "DOMNodeInserted", GF_DOM_EVENT_MUTATION },
@@ -1659,7 +1665,7 @@ static void svg_parse_iri(GF_Node *elt, XMLRI *iri, char *attribute_content)
 			iri->type = XMLRI_STRING;
 		} else {
 			iri->type = XMLRI_ELEMENTID;
-			gf_svg_register_iri(elt->sgprivate->scenegraph, iri);
+			gf_node_register_iri(elt->sgprivate->scenegraph, iri);
 		}
 	} else {
 		iri->type = XMLRI_STRING;
@@ -1674,7 +1680,7 @@ static void svg_parse_idref(GF_Node *elt, XML_IDREF *iri, char *attribute_conten
 	if (!iri->target) {
 		iri->string = strdup(attribute_content);
 	} else {
-		gf_svg_register_iri(elt->sgprivate->scenegraph, iri);
+		gf_node_register_iri(elt->sgprivate->scenegraph, iri);
 	}
 }
 
@@ -2658,7 +2664,7 @@ GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if
 /* Parse an SVG attribute */
 GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type)
 {
-	if (info->fieldType != SVG_String_datatype) {
+	if (info->fieldType != DOM_String_datatype) {
 		u32 i, len;
 		/*remove spaces at the begining*/
 		while (strchr("\r\n\t ", attribute_content[0])) 
@@ -2923,14 +2929,11 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		break;
 
 	case SVG_ID_datatype:
-		/* This should not be use when parsing a LASeR update */
-		/* If an ID is parsed outside from the parser (e.g. script), we may try to resolve animations ... */
-		gf_svg_parse_element_id(n, attribute_content, 0);
-		break;
-
-	case SVG_String_datatype:
+	case DOM_String_datatype:
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
+		if (*(SVG_String *)info->far_ptr) free(*(SVG_String *)info->far_ptr);
+
 		*(SVG_String *)info->far_ptr = strdup(attribute_content);
 		break;
 
@@ -2976,10 +2979,6 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		break;
 	case LASeR_Size_datatype:
 		laser_parse_size((LASeR_Size*)info->far_ptr, attribute_content);
-		break;
-	case LASeR_TimeAttribute_datatype:
-		if (!strcmp(attribute_content, "end")) *(u8 *)info->far_ptr = LASeR_TIMEATTRIBUTE_END;
-		else *(u8 *)info->far_ptr = LASeR_TIMEATTRIBUTE_BEGIN;
 		break;
 	case SVG_Clock_datatype:
 		svg_parse_clock_value(attribute_content, (SVG_Clock*)info->far_ptr);
@@ -3200,9 +3199,10 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 			return fontfamily;
 		}
 		break;
-	case SVG_String_datatype:
+	case DOM_String_datatype:
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
+	case SVG_ID_datatype:
 		{
 			SVG_String *string;
 			GF_SAFEALLOC(string, SVG_String)
@@ -3900,9 +3900,6 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 			strcat(attValue, szT);
 		}
 		break;
-	case LASeR_TimeAttribute_datatype:
-		strcpy(attValue, (intVal==LASeR_TIMEATTRIBUTE_END) ? "end" : "begin");
-		break;
 /* end of keyword type parsing */
 
 	/* inheritable floats */
@@ -4049,7 +4046,7 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 	case SVG_ID_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_GradientOffset_datatype:
-	case SVG_String_datatype:
+	case DOM_String_datatype:
 	case SVG_ContentType_datatype:
 		if (*(SVG_String *)info->far_ptr) 
 			strcpy(attValue, *(SVG_String *)info->far_ptr );
@@ -4176,7 +4173,7 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 			return GF_OK;
 		}
 		if (att_name->tag) {
-			strcpy(attValue, gf_svg_get_attribute_name(att_name->tag));
+			strcpy(attValue, gf_svg_get_attribute_name(elt, att_name->tag));
 			return GF_OK;
 		}
 
@@ -4539,7 +4536,6 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_SpreadMethod_datatype:
 	case SVG_InitialVisibility_datatype:
 	case LASeR_Choice_datatype:
-	case LASeR_TimeAttribute_datatype:
 		return (v1==v2) ? 1 : 0;
 	case SVG_Color_datatype:
 		return svg_colors_equal((SVG_Color *)f1->far_ptr, (SVG_Color *)f2->far_ptr);
@@ -4731,7 +4727,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_ID_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_GradientOffset_datatype:
-	case SVG_String_datatype:
+	case DOM_String_datatype:
 	case SVG_ContentType_datatype:
 	{
 		char *str1 = *(SVG_String *)f1->far_ptr;
@@ -5355,7 +5351,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 			return GF_NOT_SUPPORTED;
 		}
 
-	case SVG_String_datatype:
+	case DOM_String_datatype:
 	{
 		u32 len;
 		char *res;
@@ -5569,6 +5565,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SVG_TimelineBegin_datatype:
 	case SVG_TransformType_datatype:
 	case SVG_Focusable_datatype:
+	case SVG_FocusHighlight_datatype:
 		*(u8 *)a->far_ptr = *(u8 *)b->far_ptr;
 		return GF_OK;
 
@@ -5576,10 +5573,12 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		*(SMIL_SyncTolerance*)a->far_ptr = *(SMIL_SyncTolerance*)b->far_ptr;
 		return GF_OK;
 	/* Other types */
+	case SVG_ID_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_ContentType_datatype:
-	case SVG_String_datatype:
-		a->far_ptr = strdup((char *)b->far_ptr);
+	case DOM_String_datatype:
+		if (* (SVG_String *)a->far_ptr) free(* (SVG_String *)a->far_ptr);
+		* (SVG_String *)a->far_ptr = strdup(*(SVG_String *)b->far_ptr);
 		return GF_OK;
 
 	case SVG_FontFamily_datatype:
@@ -5601,7 +5600,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		if (((XMLRI *)a->far_ptr)->type == XMLRI_ELEMENTID) {
 			GF_Node *n = (GF_Node *) ((XMLRI *)b->far_ptr)->target;
 			/*TODO Check if assigning IRI from # scenegraph can happen*/
-			if (n) gf_svg_register_iri(gf_node_get_graph(n), (XMLRI*)a->far_ptr);
+			if (n) gf_node_register_iri(gf_node_get_graph(n), (XMLRI*)a->far_ptr);
 		}
 		return GF_OK;
 	
@@ -5633,22 +5632,51 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		}
 	}
 		return GF_OK;
+	case SMIL_AttributeName_datatype:
+	{
+		SMIL_AttributeName *saa = (SMIL_AttributeName *)a->far_ptr;
+		SMIL_AttributeName *sab = (SMIL_AttributeName *)b->far_ptr;
+		saa->tag = sab->tag;
+		saa->type = sab->type;
+		saa->name = sab->name ? strdup(sab->name) : NULL;
+	}
+		break;
+	case SMIL_Duration_datatype:
+	{
+		SMIL_Duration *da = (SMIL_Duration*)a->far_ptr;
+		SMIL_Duration *db = (SMIL_Duration*)b->far_ptr;
+		da->type = db->type;
+		da->clock_value = db->clock_value;
+	}
+		break;
+	case SMIL_AnimateValue_datatype:
+	{
+		SMIL_AnimateValue *sa = (SMIL_AnimateValue*)a->far_ptr;
+		SMIL_AnimateValue *sb = (SMIL_AnimateValue*)b->far_ptr;
+		sa->type = sb->type;
+		if (sb->value) {
+			GF_FieldInfo ava, avb;
+			sa->value = gf_svg_create_attribute_value(sa->type);
+			ava.fieldIndex = avb.fieldIndex = 0;
+			ava.fieldType = avb.fieldType = sb->type;
+			ava.far_ptr = sa->value;
+			avb.far_ptr = sb->value;
+			gf_svg_attributes_copy(&ava, &avb, 0);
+		}
+	}
+		break;
 
 	/* Unsupported types */
 	case SVG_ListOfIRI_datatype:
 	case SVG_FormatList_datatype:
 	case SVG_LanguageIDs_datatype:
 	case SVG_FontList_datatype:
-	case SVG_ID_datatype:
 	case SVG_GradientOffset_datatype:
 	case SVG_Clock_datatype:
 	case SMIL_KeyTimes_datatype:
 	case SMIL_KeyPoints_datatype:
 	case SMIL_KeySplines_datatype:
-	case SMIL_AnimateValue_datatype:
 	case SMIL_AnimateValues_datatype:
-	case SMIL_AttributeName_datatype:
-	case SMIL_Duration_datatype:
 	case SMIL_RepeatCount_datatype:
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[SVG Attributes] copy of attributes %s of type %s not supported\n", a->name, gf_svg_attribute_type_to_string(a->fieldType)));
@@ -5760,7 +5788,7 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	case SVG_TimelineBegin_datatype:
 
 	/* Other non keyword types but which can still be discretely interpolated */
-	case SVG_String_datatype:
+	case DOM_String_datatype:
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_FontFamily_datatype:
@@ -5773,7 +5801,6 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	case SVG_ID_datatype:
 	case SVG_GradientOffset_datatype:
 	case LASeR_Choice_datatype:
-	case LASeR_TimeAttribute_datatype:
 		if (coef < FIX_ONE/2) {
 			gf_svg_attributes_copy(c, a, clamp);
 		} else {
@@ -5895,7 +5922,7 @@ char *gf_svg_attribute_type_to_string(u32 att_type)
 	case SVG_GradientOffset_datatype:	return "GradientOffset"; 
 	case SVG_Focus_datatype	:			return "Focus"; 
 	case SVG_Clock_datatype	:			return "Clock"; 
-	case SVG_String_datatype	:		return "String"; 
+	case DOM_String_datatype	:		return "String"; 
 	case SVG_ContentType_datatype:		return "ContentType"; 
 	case SVG_LanguageID_datatype:		return "LanguageID"; 
 	case XMLEV_Event_datatype:			return "XMLEV_Event"; 
@@ -5908,7 +5935,6 @@ char *gf_svg_attribute_type_to_string(u32 att_type)
 	case SVG_Transform_Rotate_datatype:	return "Rotate"; 
 	case LASeR_Choice_datatype:			return "LASeR_Choice"; 
 	case LASeR_Size_datatype:			return "LASeR_Size"; 
-	case LASeR_TimeAttribute_datatype:	return "LASeR_TimeAttribute"; 
 	default:							return "UnknownType";
 	}
 }

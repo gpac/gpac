@@ -1137,7 +1137,7 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 			if (n) {
 				iri->type = XMLRI_ELEMENTID;
 				iri->target = n;
-				gf_svg_register_iri(sg, iri);
+				gf_node_register_iri(sg, iri);
 				free(iri->string);
 				iri->string = NULL;
 			}
@@ -1199,7 +1199,7 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 			if (n) {
 				iri->type = XMLRI_ELEMENTID;
 				iri->target = n;
-				gf_svg_register_iri(sg, iri);
+				gf_node_register_iri(sg, iri);
 				free(iri->string);
 				iri->string = NULL;
 			}
@@ -1265,6 +1265,40 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 	return ret;
 }
 
+static Bool svg_appearance_flag_dirty(u32 flags)
+{
+#if 0
+	/* fill-related */
+	if (flags & GF_SG_SVG_FILL_DIRTY)				return 1;
+	if (flags & GF_SG_SVG_FILLOPACITY_DIRTY)		return 1;
+	if (flags & GF_SG_SVG_FILLRULE_DIRTY)			return 1;
+
+	/* stroke-related */
+	if (flags & GF_SG_SVG_STROKE_DIRTY)				return 1;
+	if (flags & GF_SG_SVG_STROKEDASHARRAY_DIRTY)	return 1;
+	if (flags & GF_SG_SVG_STROKEDASHOFFSET_DIRTY)	return 1;
+	if (flags & GF_SG_SVG_STROKELINECAP_DIRTY)		return 1;
+	if (flags & GF_SG_SVG_STROKELINEJOIN_DIRTY)		return 1;
+	if (flags & GF_SG_SVG_STROKEMITERLIMIT_DIRTY)	return 1;
+	if (flags & GF_SG_SVG_STROKEOPACITY_DIRTY)		return 1;
+	if (flags & GF_SG_SVG_STROKEWIDTH_DIRTY)		return 1;
+	if (flags & GF_SG_SVG_VECTOREFFECT_DIRTY)		return 1;
+
+	/* gradients stops and solidcolor do not affect appearance directly */
+	return 0;
+#else
+	if (flags & 
+		(GF_SG_SVG_FILL_DIRTY | GF_SG_SVG_FILLOPACITY_DIRTY | GF_SG_SVG_FILLRULE_DIRTY
+		| GF_SG_SVG_STROKE_DIRTY | GF_SG_SVG_STROKEDASHARRAY_DIRTY
+		| GF_SG_SVG_STROKEDASHOFFSET_DIRTY | GF_SG_SVG_STROKELINECAP_DIRTY
+		| GF_SG_SVG_STROKELINEJOIN_DIRTY | GF_SG_SVG_STROKEMITERLIMIT_DIRTY
+		| GF_SG_SVG_STROKEOPACITY_DIRTY | GF_SG_SVG_STROKEWIDTH_DIRTY
+		| GF_SG_SVG_VECTOREFFECT_DIRTY) )
+			return 1;
+	return 0;
+#endif
+}
+
 DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx;
@@ -1281,7 +1315,7 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 
 	ctx->drawable = drawable;
 
-	if (tr_state->invalidate_all || gf_svg_has_appearance_flag_dirty(tr_state->svg_flags)) ctx->flags |= CTX_APP_DIRTY;
+	if (tr_state->invalidate_all || svg_appearance_flag_dirty(tr_state->svg_flags)) ctx->flags |= CTX_APP_DIRTY;
 	if (tr_state->svg_flags & (GF_SG_SVG_STROKEDASHARRAY_DIRTY | 
 						  GF_SG_SVG_STROKEDASHOFFSET_DIRTY |
 						  GF_SG_SVG_STROKELINECAP_DIRTY | 

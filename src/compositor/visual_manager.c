@@ -167,7 +167,12 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 	GF_Rect rc;
 	GF_Matrix2D cur_mx;
 
-	if (tr_state->abort_bounds_traverse) return;
+	if (tr_state->abort_bounds_traverse) {
+		if (self == tr_state->for_node) 
+			gf_mx2d_pre_multiply(&tr_state->mx_at_node, &tr_state->transform);
+		return;
+	}
+	if (!children) return;
 
 	size.x = size.y = -FIX_ONE;
 	switch (gf_node_get_tag(self)) {
@@ -192,14 +197,16 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 		gf_mx2d_init(tr_state->transform);
 		tr_state->bounds = gf_rect_center(0,0);
 
-		gf_node_traverse(children->node, tr_state);
 		/*we hit the target node*/
-		if (children->node == tr_state->for_node) {
+		if (children->node == tr_state->for_node) 
 			tr_state->abort_bounds_traverse = 1;
-			gf_mx_from_mx2d(&tr_state->visual->compositor->hit_world_to_local, &tr_state->transform);
+
+		gf_node_traverse(children->node, tr_state);
+
+		if (tr_state->abort_bounds_traverse) {
+			gf_mx2d_pre_multiply(&tr_state->mx_at_node, &cur_mx);
 			return;
 		}
-		if (tr_state->abort_bounds_traverse) return;
 
 		gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
 		gf_rect_union(&rc, &tr_state->bounds);

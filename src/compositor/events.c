@@ -427,19 +427,21 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 			case GF_EVENT_MOUSEDOWN:
 				if ((compositor->grab_x != X) || (compositor->grab_y != Y)) compositor->num_clicks = 0;
 				evt.type = GF_EVENT_MOUSEDOWN;
-				evt.detail = event->mouse.button;
+				compositor->num_clicks ++;
+				evt.button = event->mouse.button;
+				evt.detail = compositor->num_clicks;
+
 				ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
 				compositor->grab_x = X;
 				compositor->grab_y = Y;
 				break;
 			case GF_EVENT_MOUSEUP:
 				evt.type = GF_EVENT_MOUSEUP;
-				evt.detail = event->mouse.button;
+				evt.button = event->mouse.button;
+				evt.detail = compositor->num_clicks;
 				ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
 				if ((compositor->grab_x == X) && (compositor->grab_y == Y)) {
-					compositor->num_clicks ++;
 					evt.type = GF_EVENT_CLICK;
-					evt.detail = compositor->num_clicks;
 					ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
 				}
 				break;
@@ -500,6 +502,26 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				break;
 			}
 		} 
+	} else if (event->type == GF_EVENT_TEXTINPUT) {
+		GF_Node *target;
+		switch (event->character.unicode_char) {
+		case '\r':
+		case '\n':
+		case '\t':
+		case '\b':
+			break;
+		default:
+			memset(&evt, 0, sizeof(GF_DOM_Event));
+			evt.key_flags = event->key.flags;
+			evt.bubbles = 1;
+			evt.cancelable = 1;
+			evt.type = event->type;
+			evt.detail = event->character.unicode_char;
+			target = compositor->focus_node;
+			if (!target) target = gf_sg_get_root_node(compositor->scene);
+			ret += gf_dom_event_fire(target, NULL, &evt);
+			break;
+		}
 	}
 	return ret;
 #else
@@ -750,7 +772,6 @@ u32 gf_sc_svg_focus_navigate(GF_Compositor *compositor, u32 key_code)
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.bubbles = 1;
 		if (compositor->focus_node) {
-			evt.target = compositor->focus_node;
 			evt.type = GF_EVENT_FOCUSOUT;
 			gf_dom_event_fire(compositor->focus_node, NULL, &evt);
 		}
@@ -792,7 +813,7 @@ static Bool is_focus_target(GF_Node *elt)
 	for (i=0; i<count; i++) {
 		GF_FieldInfo info;
 		GF_Node *l = gf_dom_listener_get(elt, i);
-		if (gf_svg_get_attribute_by_tag(l, TAG_SVG_ATT_event, 0, 0, &info)==GF_OK) {
+		if (gf_node_get_attribute_by_tag(l, TAG_SVG_ATT_event, 0, 0, &info)==GF_OK) {
 			switch ( ((XMLEV_Event*)info.far_ptr)->type) {
 			case GF_EVENT_FOCUSIN:
 			case GF_EVENT_FOCUSOUT:
@@ -1100,12 +1121,13 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 	/*get focus in current doc order*/
 	n = set_focus(compositor, compositor->focus_node, current_focus, move_prev);
 	if (!n) n = browse_parent_for_focus(compositor, compositor->focus_node, move_prev);
-	compositor->focus_node = n;
 
 	if (!n) {
 		n = gf_sg_get_root_node(compositor->scene);
 		gf_list_reset(compositor->focus_ancestors);
 	}
+	compositor->focus_node = n;
+
 	if (gf_node_get_tag(n)>=GF_NODE_FIRST_DOM_NODE_TAG) {
 		compositor->focus_uses_dom_events = 1;
 	}
@@ -1125,7 +1147,6 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 		if (prev) {
 			if (prev_uses_dom_events) {
 				evt.bubbles = 1;
-				evt.target = prev;
 				evt.type = GF_EVENT_FOCUSOUT;
 				gf_dom_event_fire(prev, NULL, &evt);
 			} else {
@@ -1135,7 +1156,6 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 		if (compositor->focus_node) {
 			if (compositor->focus_uses_dom_events) {
 				evt.bubbles = 1;
-				evt.target = compositor->focus_node;
 				evt.type = GF_EVENT_FOCUSIN;
 				gf_dom_event_fire(compositor->focus_node, NULL, &evt);
 			} else {

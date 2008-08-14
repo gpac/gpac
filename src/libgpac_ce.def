@@ -691,6 +691,7 @@ EXPORTS
 	gf_rtsp_response_reset
 	gf_rtsp_session_new
 	gf_rtsp_session_del
+	gf_rtsp_set_mobile_ip
 	gf_rtsp_set_buffer_size
 	gf_rtsp_session_reset
 	gf_rtsp_is_my_session
@@ -1174,13 +1175,9 @@ EXPORTS
 	gf_svg_properties_init_pointers
 	gf_svg_properties_reset_pointers
 	gf_svg_apply_animations
-	gf_svg_register_iri
-	gf_svg_unregister_iri
 	gf_svg_path_build
-	gf_svg_store_embedded_data
-	gf_svg_has_appearance_flag_dirty
+	
 	gf_svg_flatten_attributes
-	gf_svg_get_attribute_by_tag
 	gf_svg_apply_inheritance
 
 	gf_smil_timing_init_runtime_info
@@ -1189,6 +1186,11 @@ EXPORTS
 	gf_smil_timing_insert_clock
 	gf_smil_set_media_duration
 	gf_smil_notify_timed_elements
+
+	gf_node_get_attribute_by_tag
+	gf_node_store_embedded_data
+	gf_node_register_iri
+	gf_node_unregister_iri
 
 	gf_dom_listener_build
 	gf_dom_listener_add

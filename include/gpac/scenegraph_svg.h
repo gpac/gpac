@@ -40,10 +40,97 @@ extern "C" {
 
 enum
 {
+	/*no NS specified, it will be evaluated from attribute/node name*/
+	GF_XMLNS_NONE,
+
+	GF_XMLNS_XML,
+	GF_XMLNS_XLINK,
+	GF_XMLNS_XMLEV,
+	GF_XMLNS_LASER,
+	GF_XMLNS_SVG,
+	GF_XMLNS_XBL,
+
+	/*any unsupported namespace */
+	GF_XMLNS_FOREIGN_FIRST,
+};
+GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname);
+u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname);
+u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name);
+const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, u32 xmlns_id);
+
+u32 gf_xml_get_element_namespace(GF_Node *n);
+const char *gf_sg_get_namespace(GF_SceneGraph *sg, u32 xmlns_id);
+
+
+enum
+{
+	/*should never be used, this is only a parsing error*/
+	TAG_DOM_ATTRIBUTE_NULL,
 	/*this tag is set for a full dom attribute only - attribute name is then available*/
-	TAG_DOM_ATTRIBUTE_FULL = 0,
+	TAG_DOM_ATT_any,
+
+	TAG_XML_ATT_RANGE_FIRST,
+	TAG_XML_ATT_id = TAG_XML_ATT_RANGE_FIRST,
+	TAG_XML_ATT_base,
+	TAG_XML_ATT_lang,
+	TAG_XML_ATT_space,
+	TAG_XML_ATT_RANGE_LAST,
+	TAG_XLINK_ATT_RANGE_FIRST,
+
+	TAG_XLINK_ATT_type = TAG_XLINK_ATT_RANGE_FIRST,
+	TAG_XLINK_ATT_role,
+	TAG_XLINK_ATT_arcrole,
+	TAG_XLINK_ATT_title,
+	TAG_XLINK_ATT_href,
+	TAG_XLINK_ATT_show,
+	TAG_XLINK_ATT_actuate,
+	TAG_XLINK_ATT_RANGE_LAST,
+
+	TAG_XMLEV_ATT_RANGE_FIRST,
+	TAG_XMLEV_ATT_event,
+	TAG_XMLEV_ATT_RANGE_LAST,
+
+	TAG_LSR_ATT_RANGE_FIRST,
+	TAG_LSR_ATT_enabled,
+	TAG_LSR_ATT_RANGE_LAST,
+	/*these attribute types are only use for binary purpose*/
+	TAG_LSR_ATT_children,
+	TAG_LSR_ATT_overflow,
+	TAG_LSR_ATT_rotation,
+	TAG_LSR_ATT_scale,
+	TAG_LSR_ATT_translation,
+	TAG_LSR_ATT_svg_width,
+	TAG_LSR_ATT_svg_height,
+	TAG_LSR_ATT_textContent,
+	/*WHAT THE HECK IS THIS THING IN THE SDL BUT NOWHERE IN THE SPEC ?*/
+	TAG_LSR_ATT_text_display,
+
 	TAG_SVG_ATT_RANGE_FIRST,
+
 	TAG_XBL_ATT_RANGE_FIRST = TAG_SVG_ATT_RANGE_FIRST + 256,
+	TAG_XBL_ATT_id = TAG_XBL_ATT_RANGE_FIRST,
+	TAG_XBL_ATT_extends,
+	TAG_XBL_ATT_display,
+	TAG_XBL_ATT_inheritstyle,
+	TAG_XBL_ATT_includes,
+	TAG_XBL_ATT_name,
+	TAG_XBL_ATT_implements,
+	TAG_XBL_ATT_type,
+	TAG_XBL_ATT_readonly,
+	TAG_XBL_ATT_onget,
+	TAG_XBL_ATT_onset,
+	TAG_XBL_ATT_event,
+	TAG_XBL_ATT_action,
+	TAG_XBL_ATT_phase,
+	TAG_XBL_ATT_button,
+	TAG_XBL_ATT_modifiers,
+	TAG_XBL_ATT_keycode,
+	TAG_XBL_ATT_key,
+	TAG_XBL_ATT_charcode,
+	TAG_XBL_ATT_clickcount,
+	TAG_XBL_ATT_command,
+	TAG_XBL_ATT_preventdefault,
+	TAG_XBL_ATT_src,
 };
 
 
@@ -81,7 +168,7 @@ typedef struct __dom_full_node
 {
 	GF_DOM_BASE_NODE
 	char *name;
-	char *ns;
+	u32 ns;
 } GF_DOMFullNode;
 
 enum
@@ -129,10 +216,42 @@ typedef struct
 	struct mae_item {u32 streamType; u32 mediaType; u32 transport; } streams[20];
 } GF_DOMMediaAccessEvent;
 
-
 /* 
 	DOM event handling
 */
+enum
+{
+	GF_DOM_EVENT_PHASE_CAPTURE = 1,
+	GF_DOM_EVENT_PHASE_AT_TARGET = 2,
+	GF_DOM_EVENT_PHASE_BUBBLE = 3,
+
+	/*special phase indicating the event has been canceled*/
+	GF_DOM_EVENT_PHASE_CANCEL = 1<<5,
+	/*special phase indicating the event has been canceled immediately*/
+	GF_DOM_EVENT_PHASE_CANCEL_ALL = 1<<6,
+	/*special phase indicating the default action of the event is prevented*/
+	GF_DOM_EVENT_PHASE_PREVENT = 1<<7,
+};
+
+/*possible event targets*/
+enum
+{
+	GF_DOM_EVENT_NODE,
+	GF_DOM_EVENT_DOCUMENT,
+	GF_DOM_EVENT_XHR,
+	GF_DOM_EVENT_TIMER,
+	GF_DOM_EVENT_CONNECTION,
+};
+
+typedef struct 
+{
+	GF_List *evt_list;
+	void *ptr;
+	u32 ptr_type;
+} GF_DOMEventTarget;
+
+GF_Err gf_dom_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target);
+
 
 typedef struct
 {
@@ -146,14 +265,24 @@ typedef struct
 	u8 cancelable;
 	/*output only - indicates UI events (mouse) have been detected*/
 	u8 has_ui_events;
-	GF_Node *target;
-	GF_Node *currentTarget;
+	
+	/*we don't use a GF_DOMEventTarget here since the structure is only created when events are attached */
+	void *target;
+	u32 target_type;
+
+	GF_DOMEventTarget *currentTarget;
 	Double timestamp;
-	/*UIEvent extension. For mouse extensions, stores button type. For key event, the key code*/
+	/*UIEvent extension.	
+		For mouse extensions: number of clicks 
+		For key event: the key code
+		For SMIL event: number of iteration (repeat)
+	*/
 	u32 detail;
+
 	/*MouseEvent extension*/
 	s32 screenX, screenY;
 	s32 clientX, clientY;
+	u32 button;
 	/*key flags*/
 	u32 key_flags;
 	/*key hardware code*/
@@ -175,7 +304,6 @@ typedef struct
 
 	/*DOM event used in VRML (GPAC's internal)*/
 	Bool is_vrml;
-
 	GF_DOMMediaAccessEvent *mae;
 } GF_DOM_Event;
 
@@ -202,21 +330,29 @@ typedef struct __xml_ev_handler
 	void (*handle_event)(GF_Node *hdl, GF_DOM_Event *event);
 	/*if handler targets a VRML script, point to the script here*/
 	void *js_context;
+	/*js function handler*/
+	void *js_fun;
+	/*associated object context (this) - not specified in DOM Events wether this is the global
+	object or the object the listener has been attached to !!*/
+	void *js_obj;
+	/*function value for spidermonkey - we cannot use JS_CallFunction since it does not work on closures
+	we use 64 bits to store the value for portability safety	*/
+	u64 js_fun_val;
 } GF_DOMHandler;
+
 
 /*adds a listener to the node.
 The listener node is NOT registered with the node (it may very well not be a direct child of the node)
 @listener is a listenerElement (XML event)
 */
-GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener);
-GF_Err gf_dom_listener_del(GF_Node *node, GF_Node *listener);
+GF_Err gf_node_dom_listener_add(GF_Node *node, GF_Node *listener);
 u32 gf_dom_listener_count(GF_Node *node);
 GF_Node *gf_dom_listener_get(GF_Node *node, u32 i);
 
 /*creates a default listener/handler for the given event on the given node, and return the 
 handler element to allow for handler function override
-owner is the node holding the created listener/handler. If null, they are registered with the observer*/
-GF_DOMHandler *gf_dom_listener_build(GF_Node *observer, u32 event_type, u32 event_param, GF_Node *owner);
+Listener/handler are stored at the node level*/
+GF_DOMHandler *gf_dom_listener_build(GF_Node *observer, u32 event_type, u32 event_param);
 
 
 
@@ -252,8 +388,16 @@ u32 gf_dom_event_get_category(u32 type);
 u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg);
 u32 gf_node_get_dom_event_filter(GF_Node *node);
 
-void gf_node_register_event_type(GF_Node *node, u32 type);
-void gf_node_unregister_event_type(GF_Node *node, u32 type);
+void gf_sg_register_event_type(GF_SceneGraph *sg, u32 type);
+void gf_sg_unregister_event_type(GF_SceneGraph *sg, u32 type);
+
+
+void gf_node_register_iri(GF_SceneGraph *sg, XMLRI *iri);
+void gf_node_unregister_iri(GF_SceneGraph *sg, XMLRI *iri);
+u32 gf_node_animation_count(GF_Node *node);
+
+GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *base_filename);
+
 
 /**************************************************
  *  SVG's styling properties (see 6.1 in REC 1.1) *
@@ -441,8 +585,6 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props);
 void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props);
 Bool gf_svg_has_appearance_flag_dirty(u32 flags);
 
-u32 gf_node_animation_count(GF_Node *node);
-
 Bool gf_svg_is_element_transformable(u32 tag);
 
 void *gf_svg_create_attribute_value(u32 attribute_type);
@@ -459,7 +601,7 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 /* c = alpha * a + beta * b */
 GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a, Fixed beta, GF_FieldInfo *b, GF_FieldInfo *c, Bool clamp);
 
-GF_Err gf_svg_get_attribute_by_tag(GF_Node *node, u32 attribute_tag, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
+GF_Err gf_node_get_attribute_by_tag(GF_Node *node, u32 attribute_tag, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
 
 char *gf_svg_attribute_type_to_string(u32 att_type);
 GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type);
@@ -468,10 +610,7 @@ void gf_svg_parse_style(GF_Node *n, char *style);
 GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue);
 GF_Err gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info, char *attValue);
 
-GF_Err gf_svg_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *base_filename);
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points);
-void gf_svg_register_iri(GF_SceneGraph *sg, XMLRI *iri);
-void gf_svg_unregister_iri(GF_SceneGraph *sg, XMLRI *iri);
 
 GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if_defined);
 
@@ -528,14 +667,15 @@ typedef struct __xml_ev_handler SVG_handlerElement;
 typedef struct _all_atts SVGAllAttributes;
 
 void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts);
-const char *gf_svg_get_attribute_name(u32 tag);
+const char *gf_svg_get_attribute_name(GF_Node *elt, u32 tag);
 u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *render_svg_props) ;
 
-u32 gf_svg_get_attribute_type(u32 tag);
+GF_DOMAttribute *gf_xml_create_attribute(GF_Node *node, u32 tag);
+u32 gf_xml_get_attribute_type(u32 tag);
+u32 gf_xml_get_attribute_tag(GF_Node *node, char *attribute_name, u32 ns);
 
-SVGAttribute *gf_svg_create_attribute(GF_Node *node, u32 tag);
-u32 gf_svg_get_attribute_tag(u32 element_tag, const char *attribute_name);
-u32 gf_svg_get_element_tag(const char *element_name);
+u32 gf_xml_get_element_tag(const char *element_name, u32 xmlns);
+
 
 #ifdef __cplusplus
 }

@@ -62,7 +62,7 @@ static GF_Node *svg_copy_gradient_attributes_from(GF_Node *node, SVGAllAttribute
 
 	/*check gradient redirection ...*/
 	href_node = node;
-	while (href_node && gf_svg_get_attribute_by_tag(href_node, TAG_SVG_ATT_xlink_href, 0, 0, &info)==GF_OK) {
+	while (href_node && gf_node_get_attribute_by_tag(href_node, TAG_XLINK_ATT_href, 0, 0, &info)==GF_OK) {
 		XMLRI*iri = (XMLRI*)info.far_ptr;
 
 		if (iri->type != XMLRI_ELEMENTID) {
@@ -71,7 +71,7 @@ static GF_Node *svg_copy_gradient_attributes_from(GF_Node *node, SVGAllAttribute
 			if (n) {
 				iri->type = XMLRI_ELEMENTID;
 				iri->target = n;
-				gf_svg_register_iri(sg, iri);
+				gf_node_register_iri(sg, iri);
 				free(iri->string);
 				iri->string = NULL;
 			} else {

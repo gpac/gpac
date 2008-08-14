@@ -126,7 +126,8 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	GF_RTPMap *map;
 	u32 i, ESID, ssrc, rtp_seq, rtp_time;
 	Bool force_bcast = 0;
-	Double Start, End, CurrentTime;
+	Double Start, End;
+	Float CurrentTime;
 	u32 s_port_first, s_port_last;
 	GF_X_Attribute *att;
 	char *ctrl;
@@ -136,7 +137,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	//extract all relevant info from the GF_SDPMedia
 	Start = 0.0;
 	End = -1.0;
-	CurrentTime = 0.0;
+	CurrentTime = 0.0f;
 	ESID = 0;
 	ctrl = NULL;
 	range = NULL;
@@ -246,7 +247,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	if (force_bcast) tmp->flags |= RTP_FORCE_BROADCAST;
 
 	if (s_port_first) {
-		tmp->current_start = CurrentTime;
+		tmp->current_start = (Double) CurrentTime;
 		tmp->check_rtp_time = 1;
 		gf_rtp_set_info_rtp(tmp->rtp_ch, rtp_seq, rtp_time, ssrc);
 		tmp->status = RTP_SessionResume;

@@ -947,7 +947,6 @@ EXPORTS
 	gf_node_get_parent_count
 	gf_node_get_parent
 	gf_node_get_class_name
-	gf_node_get_class_name_by_tag
 	gf_node_dirty_set
 	gf_node_dirty_clear
 	gf_node_dirty_get
@@ -1197,18 +1196,13 @@ EXPORTS
 	gf_laser_encoder_get_rap
 
 ;SVG exports for SVG->BIFS
-	gf_svg_get_attribute_by_tag
+	gf_node_get_attribute_by_tag
 	gf_svg_parse_attribute
 	gf_svg_parse_style
 	gf_svg_flatten_attributes
 	gf_svg_apply_inheritance
 	gf_svg_properties_init_pointers
 	gf_svg_properties_reset_pointers
-	gf_svg_register_iri
-	gf_svg_unregister_iri
 
-
-
-;	gf_svg_sa_apply_inheritance
-;	gf_svg_sa_node_type_by_class_name
-;	gf_svg_sani_apply_animations
+	gf_node_register_iri
+	gf_node_unregister_iri

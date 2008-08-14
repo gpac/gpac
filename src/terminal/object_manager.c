@@ -507,6 +507,15 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		odm->OD = NULL;
 		odm->net_service = NULL;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Object redirection to %s\n", url));
+		
+		/*if object is a scene, create the inline before connecting the object.
+			This is needed in irder to register the nodes using the resource for event
+			propagation (stored at the inline level)
+		*/
+		if (odm->mo && (odm->mo->type==GF_MEDIA_OBJECT_SCENE)) {
+			odm->subscene = gf_inline_new(odm->parentscene);
+			odm->subscene->root_od = odm;
+		}
 		gf_term_connect_object(odm->term, odm, url, parent);
 		free(url);
 		return;
@@ -1088,7 +1097,7 @@ void gf_odm_start(GF_ObjectManager *odm)
 	gf_term_lock_net(odm->term, 1);
 
 	/*only if not open & ready (not waiting for ACK on channel setup)*/
-	if (!odm->state && !odm->pending_channels) {
+	if (!odm->state && !odm->pending_channels && odm->OD) {
 		GF_Channel *ch;
 		u32 i = 0;
 		odm->state = GF_ODM_STATE_PLAY;

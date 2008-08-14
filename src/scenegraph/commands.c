@@ -636,7 +636,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					else if (inf->fieldType == SVG_TRANSFORM_ROTATE) gf_mx2d_add_rotation(dest, 0, 0, ((SVG_Point_Angle*)inf->field_ptr)->angle);
 				}
 			} else {
-				if ((inf->fieldIndex==(u32) -1) && (inf->fieldType==SVG_String_datatype)) {
+				if ((inf->fieldIndex==(u32) -1) && (inf->fieldType==DOM_String_datatype)) {
 					char *str = *(SVG_String*)inf->field_ptr;
 
 					if (com->tag == GF_SG_LSR_REPLACE) {
@@ -655,7 +655,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					|| (inf->fieldIndex==TAG_LSR_ATT_rotation)
 				) {
 					SVG_Transform *mx;
-					gf_svg_get_attribute_by_tag(com->node, TAG_SVG_ATT_transform, 1, 0, &a);
+					gf_node_get_attribute_by_tag(com->node, TAG_SVG_ATT_transform, 1, 0, &a);
 					mx = a.far_ptr;
 					if (com->tag == GF_SG_LSR_REPLACE) {
 						GF_Point2D scale, translate;
@@ -676,7 +676,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 						if (inf->fieldIndex==TAG_LSR_ATT_rotation) gf_mx2d_add_rotation(&mx->mat, 0, 0, ((SVG_Point_Angle*)inf->field_ptr)->angle);
 					}
 				}
-				else if (gf_svg_get_attribute_by_tag(com->node, inf->fieldIndex, 1, 0, &a) == GF_OK) {
+				else if (gf_node_get_attribute_by_tag(com->node, inf->fieldIndex, 1, 0, &a) == GF_OK) {
 					b = a;
 					b.far_ptr = inf->field_ptr;
 					if (com->tag == GF_SG_LSR_REPLACE) {
@@ -696,7 +696,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			if (!fromNode) return GF_NON_COMPLIANT_BITSTREAM;
 			if (gf_node_get_field(fromNode, com->fromFieldIndex, &b) != GF_OK) return GF_NON_COMPLIANT_BITSTREAM;
 
-			if ((inf->fieldIndex==(u32) -1) && (inf->fieldType==SVG_String_datatype)) {
+			if ((inf->fieldIndex==(u32) -1) && (inf->fieldType==DOM_String_datatype)) {
 				char *str = *(SVG_String*)inf->field_ptr;
 
 				if (com->tag == GF_SG_LSR_REPLACE) {

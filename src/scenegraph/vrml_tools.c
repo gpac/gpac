@@ -1355,18 +1355,12 @@ SFColorRGBA gf_sg_sfcolor_to_rgba(SFColor val)
 u32 gf_node_get_num_fields_in_mode(GF_Node *Node, u8 IndexMode)
 {
 	assert(Node);
-#ifdef GF_NODE_USE_POINTERS
-	return Node->sgprivate->get_field_count(Node, IndexMode);
-#else
-
 	if (Node->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_get_num_fields(Node, IndexMode);
 	else if ((Node->sgprivate->tag == TAG_MPEG4_Script) || (Node->sgprivate->tag == TAG_X3D_Script) )
 		return gf_sg_script_get_num_fields(Node, IndexMode);
 	else if (Node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_field_count(Node, IndexMode);
 	else if (Node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_field_count(Node);
 	else return 0;
-
-#endif
 }
 
 

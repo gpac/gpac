@@ -87,7 +87,7 @@ static XBL_Element *xbl_parse_element(GF_XBL_Parser *parser, const char *name, c
 	
 //	if (name_space && strlen(name_space)) return NULL;
 
-	tag = gf_sg_node_get_tag_by_class_name(name, NULL);
+	tag = gf_sg_node_get_tag_by_class_name(name, 0);
 	if (tag != TAG_UndefinedNode) {
 		elt = (XBL_Element *)gf_node_new(parser->load->scene_graph, tag);
 	} else {
@@ -99,9 +99,10 @@ static XBL_Element *xbl_parse_element(GF_XBL_Parser *parser, const char *name, c
 	for (i=0; i<nb_attributes; i++) {
 		GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
 		if (!att->value || !strlen(att->value)) continue;
-		attribute_tag = gf_xbl_get_attribute_tag(tag, att->name);
-		if (attribute_tag!=TAG_XBL_ATT_Unknown) {
-			GF_DOMAttribute *dom_att = gf_xbl_create_attribute(elt, attribute_tag);
+		attribute_tag = gf_xml_get_attribute_tag((GF_Node *)elt, att->name, 0);
+		if (attribute_tag!=TAG_DOM_ATT_any) {
+			/*FIXME do we need to check if the attribute is specified several times*/
+			GF_DOMAttribute *dom_att = gf_xml_create_attribute((GF_Node*)elt, attribute_tag);
 			dom_att->data = strdup(att->value);
 		} else {
 			xbl_parse_report(parser, GF_OK, "Skipping attribute %s on node %s", att->name, name);
@@ -147,11 +148,11 @@ static void xbl_node_end(void *sax_cbck, const char *name, const char *name_spac
 	XBL_NodeStack *top = (XBL_NodeStack *)gf_list_last(parser->node_stack);
 	
 	if (!top) return;
-	if (/*!name_space && */gf_sg_node_get_tag_by_class_name(name, NULL) != TAG_UndefinedNode) {
+	if (/*!name_space && */gf_sg_node_get_tag_by_class_name(name, 0) != TAG_UndefinedNode) {
 		const char *the_name;
 		XBL_Element *node = top->node;
 		/*check node name...*/
-		the_name = gf_node_get_class_name_by_tag(node->sgprivate->tag);
+		the_name = gf_node_get_class_name((GF_Node *) node);
 		if (strcmp(the_name, name)) {
 			if (top->unknown_depth) {
 				top->unknown_depth--;
@@ -228,3 +229,4 @@ void apply(GF_Node *bound_doc, GF_Node *binding_doc)
 {
 
 }
+

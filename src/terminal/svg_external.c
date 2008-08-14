@@ -30,7 +30,7 @@
 #ifndef GPAC_DISABLE_SVG
 
 #include <gpac/internal/scenegraph_dev.h>
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 #include <gpac/compositor.h>
 #include <gpac/network.h>
 
@@ -45,7 +45,7 @@ char *gf_term_resolve_xlink(GF_Node *node, char *the_url)
 	/*apply XML:base*/
 	while (node) {
 		GF_FieldInfo info;
-		if (gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xml_base, 0, 0, &info)==GF_OK) {
+		if (gf_node_get_attribute_by_tag(node, TAG_XML_ATT_base, 0, 0, &info)==GF_OK) {
 			char *new_url = gf_url_concatenate( ((XMLRI*)info.far_ptr)->string, url);
 			if (new_url) {
 				free(url);
@@ -59,7 +59,12 @@ char *gf_term_resolve_xlink(GF_Node *node, char *the_url)
 	if (url[0]=='#') return url;
 
 	if (is) {
-		char *the_url = gf_url_concatenate(is->root_od->net_service->url, url);
+		char *the_url;
+		if (is->redirect_xml_base) {
+			the_url = gf_url_concatenate(is->redirect_xml_base, url);
+		} else {
+			the_url = gf_url_concatenate(is->root_od->net_service->url, url);
+		}
 		free(url);
 		return the_url;
 	} 
@@ -79,7 +84,7 @@ GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 
 	gf_sg_vrml_mf_reset(mfurl, GF_SG_VRML_MFURL);
 
-	e = gf_svg_get_attribute_by_tag(node, TAG_SVG_ATT_xlink_href, 0, 0, &info);
+	e = gf_node_get_attribute_by_tag(node, TAG_XLINK_ATT_href, 0, 0, &info);
 	if (e) return e;
 
 	iri = (XMLRI*)info.far_ptr;
@@ -96,7 +101,7 @@ GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 
 	if (!strncmp(iri->string, "data:", 5)) {
 		const char *cache_dir = gf_cfg_get_key(is->root_od->term->user->config, "General", "CacheDirectory");
-		return gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
+		return gf_node_store_embedded_data(iri, cache_dir, "embedded_");
 	}
 	sfurl->url = gf_term_resolve_xlink(node, iri->string);
 	return e;

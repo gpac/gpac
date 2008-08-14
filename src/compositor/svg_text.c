@@ -342,6 +342,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 				glyph_size = span->glyphs[i]->horiz_advance * span->font_scale;
 				if (word_size + glyph_size> tr_state->max_length) {
 					break_glyph = i;
+					i++;
 					break;
 				}
 				word_size += glyph_size;

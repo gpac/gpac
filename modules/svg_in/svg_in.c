@@ -73,8 +73,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 				svgin->loader.fileName = svgin->file_name;
 				e = gf_sm_load_init(&svgin->loader);
 			} else {
-				/*should not be needed since SVG parser loads the entire file for now*/
-				e = /*gf_sm_load_run(&svgin->loader)*/GF_EOS;
+				e = gf_sm_load_run(&svgin->loader);
 			}
 		}
 		/*chunk parsing*/

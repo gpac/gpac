@@ -30,7 +30,7 @@
 #include <gpac/nodes_x3d.h>
 
 #ifndef GPAC_DISABLE_SVG
-#include <gpac/nodes_svg_da.h>
+#include <gpac/nodes_svg.h>
 #endif
 
 #include "drawable.h"

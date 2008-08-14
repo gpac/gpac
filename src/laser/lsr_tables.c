@@ -57,7 +57,7 @@ s32 gf_lsr_anim_type_from_attribute(u32 tag) {
 	case TAG_SVG_ATT_display_align: return 18;
 	case TAG_SVG_ATT_dur: return 19;
 	case TAG_SVG_ATT_editable: return 20;
-	case TAG_SVG_ATT_lsr_enabled: return 21;
+	case TAG_LSR_ATT_enabled: return 21;
 	case TAG_SVG_ATT_end: return 22;
 	case TAG_SVG_ATT_event: return 23;
 	case TAG_SVG_ATT_externalResourcesRequired: return 24;
@@ -156,15 +156,15 @@ s32 gf_lsr_anim_type_from_attribute(u32 tag) {
 	case TAG_SVG_ATT_x: return 117;
 	case TAG_SVG_ATT_x1: return 118;
 	case TAG_SVG_ATT_x2: return 119;
-	case TAG_SVG_ATT_xlink_actuate: return 120;
-	case TAG_SVG_ATT_xlink_arcrole: return 121;
-	case TAG_SVG_ATT_xlink_href: return 122;
-	case TAG_SVG_ATT_xlink_role: return 123;
-	case TAG_SVG_ATT_xlink_show: return 124;
-	case TAG_SVG_ATT_xlink_title: return 125;
-	case TAG_SVG_ATT_xlink_type: return 126;
-	case TAG_SVG_ATT_xml_base: return 127;
-	case TAG_SVG_ATT_xml_lang: return 128;
+	case TAG_XLINK_ATT_actuate: return 120;
+	case TAG_XLINK_ATT_arcrole: return 121;
+	case TAG_XLINK_ATT_href: return 122;
+	case TAG_XLINK_ATT_role: return 123;
+	case TAG_XLINK_ATT_show: return 124;
+	case TAG_XLINK_ATT_title: return 125;
+	case TAG_XLINK_ATT_type: return 126;
+	case TAG_XML_ATT_base: return 127;
+	case TAG_XML_ATT_lang: return 128;
 	case TAG_SVG_ATT_y: return 129;
 	case TAG_SVG_ATT_y1: return 130;
 	case TAG_SVG_ATT_y2: return 131;
@@ -210,9 +210,9 @@ s32 gf_lsr_rare_type_from_attribute(u32 tag) {
 	case TAG_SVG_ATT_requiredFeatures: return 30;
 	case TAG_SVG_ATT_requiredFormats: return 31;
 	case TAG_SVG_ATT_systemLanguage: return 32;
-	case TAG_SVG_ATT_xml_base: return 33;
-	case TAG_SVG_ATT_xml_lang: return 34;
-	case TAG_SVG_ATT_xml_space: return 35;
+	case TAG_XML_ATT_base: return 33;
+	case TAG_XML_ATT_lang: return 34;
+	case TAG_XML_ATT_space: return 35;
 	case TAG_SVG_ATT_nav_next: return 36;
 	case TAG_SVG_ATT_nav_up: return 37;
 	case TAG_SVG_ATT_nav_up_left: return 38;
@@ -236,12 +236,12 @@ s32 gf_lsr_rare_type_from_attribute(u32 tag) {
 	case TAG_SVG_ATT_font_size: return 52;
 	case TAG_SVG_ATT_font_style: return 53;
 	case TAG_SVG_ATT_font_weight: return 54;
-	case TAG_SVG_ATT_xlink_title: return 55;
-	case TAG_SVG_ATT_xlink_type: return 56;
-	case TAG_SVG_ATT_xlink_role: return 57;
-	case TAG_SVG_ATT_xlink_arcrole: return 58;
-	case TAG_SVG_ATT_xlink_actuate: return 59;
-	case TAG_SVG_ATT_xlink_show: return 60;
+	case TAG_XLINK_ATT_title: return 55;
+	case TAG_XLINK_ATT_type: return 56;
+	case TAG_XLINK_ATT_role: return 57;
+	case TAG_XLINK_ATT_arcrole: return 58;
+	case TAG_XLINK_ATT_actuate: return 59;
+	case TAG_XLINK_ATT_show: return 60;
 	case TAG_SVG_ATT_end: return 61;
 	case TAG_SVG_ATT_max: return 62;
 	case TAG_SVG_ATT_min: return 63;
@@ -274,7 +274,7 @@ s32 gf_lsr_anim_type_to_attribute(u32 tag) {
 	case 18: return TAG_SVG_ATT_display_align;
 	case 19: return TAG_SVG_ATT_dur;
 	case 20: return TAG_SVG_ATT_editable;
-	case 21: return TAG_SVG_ATT_lsr_enabled;
+	case 21: return TAG_LSR_ATT_enabled;
 	case 22: return TAG_SVG_ATT_end;
 	case 23: return TAG_SVG_ATT_event;
 	case 24: return TAG_SVG_ATT_externalResourcesRequired;
@@ -373,15 +373,15 @@ s32 gf_lsr_anim_type_to_attribute(u32 tag) {
 	case 117: return TAG_SVG_ATT_x;
 	case 118: return TAG_SVG_ATT_x1;
 	case 119: return TAG_SVG_ATT_x2;
-	case 120: return TAG_SVG_ATT_xlink_actuate;
-	case 121: return TAG_SVG_ATT_xlink_arcrole;
-	case 122: return TAG_SVG_ATT_xlink_href;
-	case 123: return TAG_SVG_ATT_xlink_role;
-	case 124: return TAG_SVG_ATT_xlink_show;
-	case 125: return TAG_SVG_ATT_xlink_title;
-	case 126: return TAG_SVG_ATT_xlink_type;
-	case 127: return TAG_SVG_ATT_xml_base;
-	case 128: return TAG_SVG_ATT_xml_lang;
+	case 120: return TAG_XLINK_ATT_actuate;
+	case 121: return TAG_XLINK_ATT_arcrole;
+	case 122: return TAG_XLINK_ATT_href;
+	case 123: return TAG_XLINK_ATT_role;
+	case 124: return TAG_XLINK_ATT_show;
+	case 125: return TAG_XLINK_ATT_title;
+	case 126: return TAG_XLINK_ATT_type;
+	case 127: return TAG_XML_ATT_base;
+	case 128: return TAG_XML_ATT_lang;
 	case 129: return TAG_SVG_ATT_y;
 	case 130: return TAG_SVG_ATT_y1;
 	case 131: return TAG_SVG_ATT_y2;
@@ -427,9 +427,9 @@ s32 gf_lsr_rare_type_to_attribute(u32 tag) {
 	case 30: return TAG_SVG_ATT_requiredFeatures;
 	case 31: return TAG_SVG_ATT_requiredFormats;
 	case 32: return TAG_SVG_ATT_systemLanguage;
-	case 33: return TAG_SVG_ATT_xml_base;
-	case 34: return TAG_SVG_ATT_xml_lang;
-	case 35: return TAG_SVG_ATT_xml_space;
+	case 33: return TAG_XML_ATT_base;
+	case 34: return TAG_XML_ATT_lang;
+	case 35: return TAG_XML_ATT_space;
 	case 36: return TAG_SVG_ATT_nav_next;
 	case 37: return TAG_SVG_ATT_nav_up;
 	case 38: return TAG_SVG_ATT_nav_up_left;
@@ -448,12 +448,12 @@ s32 gf_lsr_rare_type_to_attribute(u32 tag) {
 	case 52: return TAG_SVG_ATT_font_size;
 	case 53: return TAG_SVG_ATT_font_style;
 	case 54: return TAG_SVG_ATT_font_weight;
-	case 55: return TAG_SVG_ATT_xlink_title;
-	case 56: return TAG_SVG_ATT_xlink_type;
-	case 57: return TAG_SVG_ATT_xlink_role;
-	case 58: return TAG_SVG_ATT_xlink_arcrole;
-	case 59: return TAG_SVG_ATT_xlink_actuate;
-	case 60: return TAG_SVG_ATT_xlink_show;
+	case 55: return TAG_XLINK_ATT_title;
+	case 56: return TAG_XLINK_ATT_type;
+	case 57: return TAG_XLINK_ATT_role;
+	case 58: return TAG_XLINK_ATT_arcrole;
+	case 59: return TAG_XLINK_ATT_actuate;
+	case 60: return TAG_XLINK_ATT_show;
 	case 61: return TAG_SVG_ATT_end;
 	case 62: return TAG_SVG_ATT_max;
 	case 63: return TAG_SVG_ATT_min;
@@ -466,7 +466,7 @@ s32 gf_lsr_rare_type_to_attribute(u32 tag) {
 u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 {
 	GF_FieldInfo f_elt, f_base;
-	f_elt.fieldType = f_base.fieldType = SVG_String_datatype;
+	f_elt.fieldType = f_base.fieldType = DOM_String_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT__class;
 	f_elt.far_ptr = elt_atts->_class;
 	f_base.far_ptr = base_atts->_class;
@@ -538,7 +538,7 @@ u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 	f_base.far_ptr = base_atts->shape_rendering;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_SVGColor_datatype;
+	f_elt.fieldType = f_base.fieldType = SVG_Paint_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_solid_color;
 	f_elt.far_ptr = elt_atts->solid_color;
 	f_base.far_ptr = base_atts->solid_color;
@@ -550,7 +550,7 @@ u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 	f_base.far_ptr = base_atts->solid_opacity;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_SVGColor_datatype;
+	f_elt.fieldType = f_base.fieldType = SVG_Paint_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_stop_color;
 	f_elt.far_ptr = elt_atts->stop_color;
 	f_base.far_ptr = base_atts->stop_color;
@@ -665,19 +665,19 @@ u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
 	f_elt.fieldType = f_base.fieldType = XMLRI_datatype;
-	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xml_base;
+	f_elt.fieldIndex = f_base.fieldIndex = TAG_XML_ATT_base;
 	f_elt.far_ptr = elt_atts->xml_base;
 	f_base.far_ptr = base_atts->xml_base;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
 	f_elt.fieldType = f_base.fieldType = SVG_LanguageID_datatype;
-	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xml_lang;
+	f_elt.fieldIndex = f_base.fieldIndex = TAG_XML_ATT_lang;
 	f_elt.far_ptr = elt_atts->xml_lang;
 	f_base.far_ptr = base_atts->xml_lang;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
 	f_elt.fieldType = f_base.fieldType = XML_Space_datatype;
-	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xml_space;
+	f_elt.fieldIndex = f_base.fieldIndex = TAG_XML_ATT_space;
 	f_elt.far_ptr = elt_atts->xml_space;
 	f_base.far_ptr = base_atts->xml_space;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
@@ -754,7 +754,7 @@ u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 	f_base.far_ptr = base_atts->transform;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_String_datatype;
+	f_elt.fieldType = f_base.fieldType = DOM_String_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_text_decoration;
 	f_elt.far_ptr = elt_atts->text_decoration;
 	f_base.far_ptr = base_atts->text_decoration;
@@ -790,38 +790,38 @@ u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 	f_base.far_ptr = base_atts->font_weight;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_String_datatype;
-	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xlink_title;
+	f_elt.fieldType = f_base.fieldType = DOM_String_datatype;
+	f_elt.fieldIndex = f_base.fieldIndex = TAG_XLINK_ATT_title;
 	f_elt.far_ptr = elt_atts->xlink_title;
 	f_base.far_ptr = base_atts->xlink_title;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_String_datatype;
-	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xlink_type;
+	f_elt.fieldType = f_base.fieldType = DOM_String_datatype;
+	f_elt.fieldIndex = f_base.fieldIndex = TAG_XLINK_ATT_type;
 	f_elt.far_ptr = elt_atts->xlink_type;
 	f_base.far_ptr = base_atts->xlink_type;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
 	f_elt.fieldType = f_base.fieldType = XMLRI_datatype;
-	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xlink_role;
+	f_elt.fieldIndex = f_base.fieldIndex = TAG_XLINK_ATT_role;
 	f_elt.far_ptr = elt_atts->xlink_role;
 	f_base.far_ptr = base_atts->xlink_role;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
 	f_elt.fieldType = f_base.fieldType = XMLRI_datatype;
-	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xlink_arcrole;
+	f_elt.fieldIndex = f_base.fieldIndex = TAG_XLINK_ATT_arcrole;
 	f_elt.far_ptr = elt_atts->xlink_arcrole;
 	f_base.far_ptr = base_atts->xlink_arcrole;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_String_datatype;
-	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xlink_actuate;
+	f_elt.fieldType = f_base.fieldType = DOM_String_datatype;
+	f_elt.fieldIndex = f_base.fieldIndex = TAG_XLINK_ATT_actuate;
 	f_elt.far_ptr = elt_atts->xlink_actuate;
 	f_base.far_ptr = base_atts->xlink_actuate;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_String_datatype;
-	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_xlink_show;
+	f_elt.fieldType = f_base.fieldType = DOM_String_datatype;
+	f_elt.fieldIndex = f_base.fieldIndex = TAG_XLINK_ATT_show;
 	f_elt.far_ptr = elt_atts->xlink_show;
 	f_base.far_ptr = base_atts->xlink_show;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;

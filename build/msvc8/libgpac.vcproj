@@ -1117,6 +1117,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\src\utils\uni_bidi.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\utils\url.c"
 				>
 				<FileConfiguration
@@ -4105,19 +4109,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\scenegraph\svg_nodes_da.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\scenegraph\svg_properties.c"
 				>
 			</File>
 			<File
 				RelativePath="..\..\src\scenegraph\svg_smjs.c"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\scenegraph\svg_tools_da.c"
 				>
 			</File>
 			<File
@@ -4403,6 +4399,14 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\src\scenegraph\xbl_process.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\scenegraph\xml_ns.c"
+				>
 			</File>
 		</Filter>
 		<Filter
@@ -5157,7 +5161,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\..\src\scene_manager\loader_svg_da.c"
+				RelativePath="..\..\src\scene_manager\loader_svg.c"
 				>
 			</File>
 			<File
