@@ -1445,7 +1445,9 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 #ifdef GPAC_USE_OGL_ES
 		return GF_NOT_SUPPORTED;
 #else
+
 		fb->pitch = compositor->vp_width; /* multiply by 4 if float depthbuffer */
+
 #ifndef GPAC_USE_TINYGL
 		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch * fb->height);
 #else
@@ -1477,17 +1479,19 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		}
 		
 #endif
-#endif		
+
+#endif	/*GPAC_USE_OGL_ES*/
+	}	
+
 	/* RGBDS or RGBD dump*/
-	} else if (depth_dump_mode==2 || depth_dump_mode==3){
-
-		char *depth_data=NULL;
-		int i;
-
+	else if (depth_dump_mode==2 || depth_dump_mode==3){
 #ifdef GPAC_USE_OGL_ES
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor]: RGB+Depth format not implemented in OpenGL ES\n"));
 		return GF_NOT_SUPPORTED;
 #else
+		char *depth_data=NULL;
 		fb->pitch = compositor->vp_width*4; /* 4 bytes for each rgbds pixel */
+
 #ifndef GPAC_USE_TINYGL
 		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch * fb->height);
 #else
@@ -1507,8 +1511,10 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		glReadPixels(0, 0, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, depth_data);
 
 		if (depth_dump_mode==2) {
-		fb->pixel_format = GF_PIXEL_RGBDS;
-		/*this corresponds to the RGBDS ordering*/
+			u32 i;
+			fb->pixel_format = GF_PIXEL_RGBDS;
+			
+			/*this corresponds to the RGBDS ordering*/
 			for (i=0; i<fb->height*fb->width; i++) {
 				u8 ds;
 				/* erase lowest-weighted depth bit */
@@ -1521,18 +1527,17 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 			}
 		/*this corresponds to RGBD ordering*/	
 		} else if (depth_dump_mode==3) {
+			u32 i;
 			fb->pixel_format = GF_PIXEL_RGBD;
-			for (i=0; i<fb->height*fb->width; i++) fb->video_buffer[i*4+3] = depth_data[i];
-			
+			for (i=0; i<fb->height*fb->width; i++) 
+				fb->video_buffer[i*4+3] = depth_data[i];
 		}
-		
 #else
-		printf("ERROR: RGBD format not implemented in TinyGL \n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor]: RGB+Depth format not implemented in TinyGL\n"));
 		return GF_NOT_SUPPORTED;
-
 #endif
 		
-#endif
+#endif /*GPAC_USE_OGL_ES*/
 		
 	} else {
 		fb->pitch = 3*compositor->vp_width;

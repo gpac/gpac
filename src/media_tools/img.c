@@ -33,7 +33,8 @@
 
 /*include png.h before setjmp.h, otherwise we get compilation errors*/
 #include <png.h>
-#endif
+
+#endif /*GPAC_HAS_PNG*/
 
 
 #ifdef GPAC_HAS_JPEG
@@ -44,7 +45,8 @@
 
 #include <jpeglib.h>
 #include <setjmp.h>
-#endif
+
+#endif	/*GPAC_HAS_JPEG*/
 
 
 GF_EXPORT
@@ -366,12 +368,14 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 	return GF_OK;
 }
 #else
+
 GF_EXPORT
 GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size, u32 dst_nb_comp)
 {
 	return GF_NOT_SUPPORTED;
 }
-#endif
+
+#endif	/*GPAC_HAS_JPEG*/
 
 
 #ifdef GPAC_HAS_PNG
@@ -627,13 +631,17 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char 
 }
 
 #else
+GF_EXPORT
 GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size)
 {
 	return GF_NOT_SUPPORTED;
 }
+GF_EXPORT
 GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char *dst, u32 *dst_size)
 {
 	return GF_NOT_SUPPORTED;
 }
-#endif
+
+#endif	/*GPAC_HAS_PNG*/
+
 
