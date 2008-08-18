@@ -13,7 +13,7 @@ Build-Depends: debhelper (>= 6), libxvidcore4-dev, libsdl1.2-dev,
 
 Package: gpac
 Architecture: any
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, libgpac0.4.5 (>= 0.4.5)
 Description: multimedia framework based on the MPEG-4 Systems standard
  The main development goal is to provide a clean (a.k.a. readable by as many
  people as possible), small and flexible alternative to the MPEG-4 Systems
