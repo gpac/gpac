@@ -1,0 +1,119 @@
+#!/usr/bin/make -f
+
+#export DH_VERBOSE=1
+
+#include /usr/share/quilt/quilt.make
+
+DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+NCPUS := $(shell getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
+
+ifeq ($(NCPUS),-1)
+	NCPUS:=1
+endif
+
+ifeq ($(NCPUS),0)
+	NCPUS:=1
+endif
+
+CFLAGS = -Wall -g
+LDFLAGS=-Wl,--as-needed
+
+VERSION=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
+
+CC:=ccache $(CC)
+CXX:=ccache $(CXX)
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0 -fPIC -DPIC
+else
+	CFLAGS += -O2 -fPIC -DPIC
+endif
+
+configure: configure-stamp
+configure-stamp:
+	dh_testdir
+
+	chmod 755 configure
+	./configure --host=$(DEB_HOST_GNU_TYPE) --prefix=/usr \
+	--build=$(DEB_BUILD_GNU_TYPE) --mandir=\$${prefix}/share/man \
+	--extra-cflags="$(CFLAGS)" --cc="$(CC)" CXX="$(CXX)"
+
+	touch $@
+
+build: build-stamp
+build-stamp: configure-stamp
+	dh_testdir
+
+# -j doesn't work
+	$(MAKE)
+
+	touch $@
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp configure-stamp
+
+	-$(MAKE) distclean
+
+#	debian/rules unpatch
+
+	dh_clean bin/gcc/libgpac*
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k 
+	dh_installdirs
+
+	$(MAKE) install prefix=$(CURDIR)/debian/tmp/usr \
+	moddir=$(CURDIR)/debian/tmp/usr/lib/gpac
+
+	$(MAKE) install-lib prefix=$(CURDIR)/debian/tmp/usr
+
+	mv debian/tmp/usr/lib/libgpac-0.4.5-DEV.so \
+	debian/tmp/usr/lib/libgpac.so.0.4.5
+
+	rm debian/tmp/usr/lib/libgpac.so
+	dh_link -plibgpac-dev usr/lib/libgpac.so.0.4.5 usr/lib/libgpac.so
+
+	dh_install --fail-missing
+
+#	dh_movefiles --sourcedir=debian/gpac
+
+#	dh_install -pmozilla-gpac bin/gcc/nposmozilla.so usr/lib/mozilla/plugins
+#	dh_install -pmozilla-gpac bin/gcc/nposmozilla.xpt usr/lib/mozilla/plugins
+
+#	dh_install -pgpac bin/gcc/mp42ts usr/bin
+#	dh_install -pgpac bin/gcc/mp4_streamer usr/bin
+
+# Prune empty directories
+	find debian -type d | xargs rmdir -p --ignore-fail-on-non-empty
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs Changelog
+	dh_installdocs doc/configuration.html
+	dh_installmenu
+	dh_installman doc/man/*.1
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_makeshlibs -V --major=0.4.5
+	dh_installdeb
+	dh_shlibdeps -ldebian/libgpac0.4.5/usr/lib
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install
