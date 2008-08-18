@@ -385,7 +385,6 @@ static void matte_update(GF_TextureHandler *txh)
 
 void compositor_init_mattetexture(GF_Compositor *compositor, GF_Node *node)
 {
-	M_MatteTexture *matte = (M_MatteTexture *)node;
 	ImageTextureStack *st;
 	GF_SAFEALLOC(st, ImageTextureStack);
 	gf_sc_texture_setup(&st->txh, compositor, node);

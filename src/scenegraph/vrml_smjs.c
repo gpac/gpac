@@ -811,6 +811,7 @@ static JSBool SFNodeConstructor(JSContext *c, JSObject *obj, uintN argc, jsval *
 	str = JS_ValueToString(c, argv[0]);
 	if (!str) return JS_FALSE;
 
+	ID = 0;
 	node_name = JS_GetStringBytes(str);
 	if (!strnicmp(node_name, "_proto", 6)) {
 		ID = atoi(node_name+6);

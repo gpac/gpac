@@ -7,20 +7,35 @@ UID		0x1000008d 0xf01f9073
 EPOCALLOWDLLDATA
 
 //comment if you don't have JS
-//MACRO GPAC_HAS_SPIDERMONKEY
-//MACRO XP_PC
-//SYSTEMINCLUDE ..\..\extra_lib\include\js
-//STATICLIBRARY libjs.lib
+#if 1
+MACRO GPAC_HAS_SPIDERMONKEY
+MACRO XP_PC
+SYSTEMINCLUDE ..\..\extra_lib\include\js
+STATICLIBRARY libjs.lib
+#endif
 
 //comment if you don't have libpng
+#if 1
 MACRO GPAC_HAS_PNG
 SYSTEMINCLUDE ..\..\extra_lib\include\png
 STATICLIBRARY libpng.lib 
+#endif
+
 
 //comment if you don't have libjpeg
+#if 1
 MACRO GPAC_HAS_JPEG
 SYSTEMINCLUDE ..\..\extra_lib\include\jpeg
 STATICLIBRARY libjpeg.lib 
+#endif
+
+//comment if you don't have OpenGL ES 
+#if 0
+MACRO GPAC_USE_OGL_ES
+LIBRARY libgles_cm.lib
+#else
+MACRO GPAC_DISABLE_3D
+#endif
 
 
 //Common tools
@@ -291,11 +306,6 @@ SOURCE x3d_geometry.c
 SYSTEMINCLUDE \epoc32\include \epoc32\include\libc ..\..\include
 
 LIBRARY euser.lib estlib.lib ezlib.lib hal.lib
-
-//comment if you don't have OpenGL ES 
-//MACRO GPAC_USE_OGL_ES
-//LIBRARY libgles_cm.lib
-MACRO GPAC_DISABLE_3D
 
 #if defined(WINS)
     deffile ..\..\build\symbian\libgpac_symbian.def
