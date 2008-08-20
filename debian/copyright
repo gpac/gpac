@@ -1,24 +1,13 @@
 This package was debianized by Deji Aribuki <aribuki@enst.fr> on
-Thu, 14 Aug 2008 10:14:13 +0200.
+Fri, 15 Aug 2008 20:39:34 +0200.
 
-It was downloaded from <url://example.com>
+It was downloaded from http://sf.net/project/showfiles.php?group_id=84101
 
-Upstream Author(s): 
+Upstream Author: Jean Le Feuvre <jeanlf@users.sourceforge.net>
 
-    <put author's name and email here>
-    <likewise for another author>
+Copyright: 2000 - 200x Jean Le Feuvre
 
-Copyright: 
-
-    <Copyright (C) YYYY Name OfAuthor>
-    <likewise for another author>
-
-License:
-
-    <Put the license of the package here indented by 4 spaces>
-
-The Debian packaging is (C) 2008, Deji Aribuki <aribuki@enst.fr> and
-is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
-
-# Please also look if there are files or directories which have a
-# different copyright/license attached and list them here.
+  You should have received a copy of the GNU General Public License with the
+  Debian GNU/Linux distribution in file /usr/share/common-licenses/GPL; if
+  not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301, USA.
