@@ -78,6 +78,7 @@ install: build
 
 	rm debian/tmp/usr/lib/libgpac.so
 	dh_link -plibgpac-dev usr/lib/libgpac.so.0.4.5 usr/lib/libgpac.so
+	dh_link -pgpac usr/lib/libgpac.so.0.4.5 usr/lib/libgpac.so
 
 	dh_install --fail-missing
 
