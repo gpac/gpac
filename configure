@@ -37,6 +37,8 @@ debuginfo="no"
 sdl_path=""
 sdl_local="no"
 sdl_static="no"
+xulsdk_path="/usr/lib/xulrunner/sdk/include"
+xul_flags=""
 
 #GPAC module config
 js_flags="XP_UNIX"
@@ -81,6 +83,7 @@ gprof_build="no"
 PIC_CFLAGS=""
 want_pic="no"
 has_joystick="no"
+has_xul="no"
 enable_joystick="no"
 enable_renoir="no"
 
@@ -96,7 +99,7 @@ extralibs="-lm"
 bigendian="no"
 SHFLAGS=-shared
 need_inet_aton="no"
-LDFLAGS="$LDFLAGS -Wl,--warn-common"
+LDFLAGS="$LDFLAGS -Wl --warn-common"
 CFLAGS=""
 CPPFLAGS=""
 GPAC_SH_FLAGS=-lpthread
@@ -132,6 +135,7 @@ echo "  --sdl-cfg=SDL_PATH       specify path to sdl-config for local install [$
 echo "  --enable-sdl-static      use static SDL linking [default=no]"
 echo "  --X11-path=X11_PATH      specify path for X11 includes and libraries [$X11_PATH]"
 echo "  --dxsdk-path=DX_PATH     specify directX SDK for MinGW [$dxsdk_path]"
+echo "  --xulsdk-path=XUL_PATH   specify Mozilla XUL (Gecko) SDK include path [$xulsdk_path]"
 echo "  --mozdir=MOZ_PATH        specify mozilla main directory path for system install"
 echo ""
 echo "  --enable-debug           produce debug version"
@@ -468,10 +472,17 @@ if $cc -o $TMPO $TMPC $js_flags -lsmjs 2> /dev/null  ; then
 has_js="system"
 js_lib="-lsmjs"
 else
+#debian spidermonkey (mozjs)
+js_flags="-DXP_UNIX -I/usr/include/mozjs"
+if $cc -o $TMPO $TMPC $js_flags -lmozjs 2> /dev/null  ; then
+has_js="system"
+js_lib="-lmozjs"
+else
 #try local
 js_flags="-DXP_UNIX -I$local_inc/js"
 if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs 2> /dev/null  ; then
 has_js="local"
+fi
 fi
 fi
 fi
@@ -828,7 +839,7 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_dvb4linux="yes"
 fi
 
-# look for jack
+# look for alsa
 cat > $TMPC << EOF
 #include <alsa/asoundlib.h>	      
 int main( void ) {
@@ -871,6 +882,8 @@ for opt do
   --X11-path=*) X11_PATH=`echo $opt | cut -d '=' -f 2`
   ;;
   --dxsdk-path=*) dxsdk_path=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --xulsdk-path=*) xulsdk_path=`echo $opt | cut -d '=' -f 2`
   ;;
   --mozdir=*) moz_path=`echo $opt | cut -d '=' -f 2`
   ;;
@@ -1002,6 +1015,24 @@ if test "$enable_tinygl" = "yes"  ;then
       LINK3D="-L${source_path}/../../TinyGL/lib/$target_bin_dir -lTinyGL"
       INCL3D="-I${source_path}/../../TinyGL/include"
   fi
+fi
+
+
+#look for GECKO support
+cat > $TMPCPP << EOF
+#include <nsIServiceManager.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPCPP -I$xulsdk_path 2> /dev/null  ; then
+has_xul="system"
+xul_flags="-I$xulsdk_path"
+else
+geckopath="$local_inc/gecko-sdk"
+xul_flags="-I$geckopath -I$geckopath/plugin/include -I$geckopath/nspr/include -I$geckopath/java/include -I$geckopath/xpcom/include -DMOZILLA_STRICT_API"
+if $cc -o $TMPO $TMPCPP $xul_flags 2> /dev/null  ; then
+has_xul="local"
+fi
 fi
 
 
@@ -1193,6 +1224,8 @@ fi
 echo "OpenGL support: $has_opengl"
 echo "TinyGL support: $has_tinygl"
 echo "OpenSSL support: $has_ssl"
+
+echo "Mozilla XUL/GECKO support: $has_xul"
 
 echo "Joystick support: $has_joystick"
 echo "Renoir enabled: $enable_renoir"
@@ -1482,6 +1515,11 @@ echo "WX_LFLAGS=$wx_lflags" >> config.mak
 fi
 
 echo "MOZILLA_DIR=$moz_path" >> config.mak
+
+echo "CONFIG_XUL=$has_xul" >> config.mak
+if test "$has_xul" != "no"; then
+echo "XUL_CFLAGS=$xul_flags" >> config.mak
+fi
 
 echo "LINUX_DVB=$has_dvb4linux" >> config.mak
 
