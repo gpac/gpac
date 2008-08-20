@@ -1,6 +1,7 @@
 TARGET gm_img_in.dll
 
-//comment if you don't have libopenjpeg
+//disable if you don't have libopenjpeg
+#if 1
 MACRO GPAC_HAS_JP2
 SYSTEMINCLUDE ..\..\extra_lib\include\openjpeg
 STATICLIBRARY libopenjpeg.lib 
@@ -10,6 +11,9 @@ STATICLIBRARY libopenjpeg.lib
 #else
 LIBRARY egcc.lib
 #endif
+
+#endif
+
 
 //common config of all modules
 #include ".\module_base.mmp"

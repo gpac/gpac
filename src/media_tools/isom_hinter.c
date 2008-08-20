@@ -775,6 +775,10 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			oti = (TrackMediaSubType==GF_ISOM_SUBTYPE_3GP_EVRC) ? 0xA0 : 0xA1;
 			nb_ch = 1;
 			break;
+		case GF_ISOM_SUBTYPE_3GP_DIMS:
+			hintType = GF_RTP_PAYT_3GPP_DIMS;
+			streamType = GF_STREAM_SCENE;
+			break;
 		default:
 			/*ERROR*/
 			hintType = 0;
@@ -942,6 +946,7 @@ void gf_hinter_track_del(GF_RTPHinter *tkHinter)
 GF_EXPORT
 GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 {
+	GF_Err e;
 	u32 i, descIndex, duration;
 	u64 ts;
 	u8 PadBits;
@@ -1022,12 +1027,12 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 				tkHint->base_offset_in_sample = samp->dataLength-remain;
 				remain -= size;
 				tkHint->rtp_p->sl_header.accessUnitEndFlag = remain ? 0 : 1;
-				gf_rtp_builder_process(tkHint->rtp_p, ptr, size, (u8) !remain, samp->dataLength, duration, (u8) (descIndex + SIDX_OFFSET_3GPP) );
+				e = gf_rtp_builder_process(tkHint->rtp_p, ptr, size, (u8) !remain, samp->dataLength, duration, (u8) (descIndex + SIDX_OFFSET_3GPP) );
 				ptr += size;
 				tkHint->rtp_p->sl_header.accessUnitStartFlag = 0;
 			}
 		} else {
-			gf_rtp_builder_process(tkHint->rtp_p, samp->data, samp->dataLength, 1, samp->dataLength, duration, (u8) (descIndex + SIDX_OFFSET_3GPP) );
+			e = gf_rtp_builder_process(tkHint->rtp_p, samp->data, samp->dataLength, 1, samp->dataLength, duration, (u8) (descIndex + SIDX_OFFSET_3GPP) );
 		}
 		tkHint->rtp_p->sl_header.packetSequenceNumber += 1;
 
@@ -1036,6 +1041,8 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 
 		tkHint->rtp_p->sl_header.AU_sequenceNumber += 1;
 		gf_isom_sample_del(&samp);
+
+		if (e) return e;
 	}
 
 	//flush
@@ -1227,6 +1234,24 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, config_bytes, config_size); 
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine); 
 		free(config_bytes); 
+	}
+	/*MPEG-4 Audio LATM*/
+	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_3GPP_DIMS) { 
+		GF_DIMSDescription dims;
+		char fmt[200];
+		gf_isom_get_visual_info(tkHint->file, tkHint->TrackNum, 1, &Width, &Height);
+
+		gf_isom_get_dims_description(tkHint->file, tkHint->TrackNum, 1, &dims);
+		sprintf(sdpLine, "a=fmtp:%d Version-profile=%d", tkHint->rtp_p->PayloadType, dims.profile);
+		if (! dims.fullRequestHost) {
+			strcat(sdpLine, ";useFullRequestHost=0");
+			sprintf(fmt, ";pathComponents=%d", dims.pathComponents);
+			strcat(sdpLine, fmt);
+		}
+		if (!dims.streamType) strcat(sdpLine, ";stream-type=secondary");
+		if (dims.containsRedundant == 1) strcat(sdpLine, ";contains-redundant=main");
+		else if (dims.containsRedundant == 2) strcat(sdpLine, ";contains-redundant=redundant");
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
 	/*extensions for some mobile phones*/
 	if (Width && Height) {

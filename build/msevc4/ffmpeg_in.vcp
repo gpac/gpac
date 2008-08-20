@@ -114,9 +114,11 @@ DEP_CPP_FFMPE=\
 	"..\..\extra_lib\include\ffmpeg\rational.h"\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
+	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -133,6 +135,7 @@ NODEP_CPP_FFMPE=\
 	"..\..\extra_lib\include\ffmpeg\config.h"\
 	"..\..\extra_lib\include\ffmpeg\internal.h"\
 	"..\..\extra_lib\include\ffmpeg\os_support.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -150,9 +153,11 @@ DEP_CPP_FFMPEG=\
 	"..\..\extra_lib\include\ffmpeg\mathematics.h"\
 	"..\..\extra_lib\include\ffmpeg\rational.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
+	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -169,6 +174,7 @@ NODEP_CPP_FFMPEG=\
 	"..\..\extra_lib\include\ffmpeg\config.h"\
 	"..\..\extra_lib\include\ffmpeg\internal.h"\
 	"..\..\extra_lib\include\ffmpeg\os_support.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -194,9 +200,11 @@ DEP_CPP_FFMPEG_=\
 	"..\..\extra_lib\include\ffmpeg\mathematics.h"\
 	"..\..\extra_lib\include\ffmpeg\rational.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\config.h"\
+	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -213,6 +221,7 @@ NODEP_CPP_FFMPEG_=\
 	"..\..\extra_lib\include\ffmpeg\config.h"\
 	"..\..\extra_lib\include\ffmpeg\internal.h"\
 	"..\..\extra_lib\include\ffmpeg\os_support.h"\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Target

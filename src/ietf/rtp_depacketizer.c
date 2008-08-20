@@ -701,6 +701,71 @@ static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 	}
 }
 
+static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+{
+	GF_BitStream *bs;
+	u32 du_size, offset, dsize;
+	char *data;
+
+	u32 frag_state = ((payload[0]>>3) & 0x7);
+
+	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
+	rtp->sl_hdr.compositionTimeStampFlag = 1;
+
+	if (rtp->flags & GF_RTP_NEW_AU) {
+		rtp->flags &= ~GF_RTP_NEW_AU;
+		rtp->sl_hdr.accessUnitStartFlag = 1;
+	}
+	rtp->sl_hdr.accessUnitEndFlag = 0;
+	if (hdr->Marker) rtp->flags |= GF_RTP_NEW_AU;
+
+	rtp->sl_hdr.randomAccessPointFlag = (payload[0] & 0x40);
+	rtp->sl_hdr.AU_sequenceNumber = (payload[0] & 0x7);
+
+	offset = 1;
+	while (offset < size) {
+		switch (frag_state) {
+		case 0:
+			bs = gf_bs_new(payload+offset, 2, GF_BITSTREAM_READ);
+			du_size = 2 + gf_bs_read_u16(bs);
+			gf_bs_del(bs);
+			if (hdr->Marker && offset+du_size>=size) {
+				rtp->sl_hdr.accessUnitEndFlag = 1;
+			}
+			rtp->on_sl_packet(rtp->udta, payload + offset, du_size, &rtp->sl_hdr, GF_OK);
+			rtp->sl_hdr.accessUnitStartFlag = 0;
+			offset += du_size;
+			break;
+		case 1:
+			if (rtp->inter_bs) gf_bs_del(rtp->inter_bs);
+
+			rtp->inter_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_u16(rtp->inter_bs, 0);
+			gf_bs_write_data(rtp->inter_bs, payload+offset, size-offset);
+			return;
+		case 2:
+			if (!rtp->inter_bs) return;
+			gf_bs_write_data(rtp->inter_bs, payload+offset, size-offset);
+			return;
+		case 3:
+			if (!rtp->inter_bs) return;
+			gf_bs_write_data(rtp->inter_bs, payload+offset, size-offset);
+			gf_bs_get_content(rtp->inter_bs, &data, &dsize);
+			gf_bs_del(rtp->inter_bs);
+			rtp->inter_bs = NULL;
+			bs = gf_bs_new(data, dsize, GF_BITSTREAM_WRITE);
+			gf_bs_write_u16(bs, dsize - 2);
+			gf_bs_del(bs);
+
+			rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
+			rtp->on_sl_packet(rtp->udta, data, dsize, &rtp->sl_hdr, GF_OK);
+			rtp->sl_hdr.accessUnitStartFlag = 0;
+			free(data);
+			return;
+		}
+	}
+
+}
 
 static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 {
@@ -738,6 +803,7 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "AMR-WB")) return GF_RTP_PAYT_AMR_WB;
 	else if (!stricmp(map->payload_name, "3gpp-tt")) return GF_RTP_PAYT_3GPP_TEXT;
 	else if (!stricmp(map->payload_name, "H264")) return GF_RTP_PAYT_H264_AVC;
+	else if (!stricmp(map->payload_name, "richmedia+xml")) return GF_RTP_PAYT_3GPP_DIMS;
 	else return 0;
 }
 
@@ -1175,6 +1241,17 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	}
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_h264;
+		break;
+	/*todo - rewrite DIMS config*/
+	case GF_RTP_PAYT_3GPP_DIMS:
+		rtp->sl_map.StreamType = GF_STREAM_SCENE;
+		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_SCENE_DIMS;
+		/*we will signal RAPs*/
+		rtp->sl_map.RandomAccessIndication = 1;
+		/*we map DIMS CTR to AU seq num, hence 3 bits*/
+		rtp->sl_map.StreamStateIndication = 3;
+		/*assign depacketizer*/
+		rtp->depacketize = gf_rtp_parse_3gpp_dims;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;

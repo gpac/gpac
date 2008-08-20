@@ -1,8 +1,10 @@
 TARGET gm_epoc_hw.dll
 
-//MACRO GPAC_USE_OGL_ES
 //OpenGL libs
-//LIBRARY libgles_cm.lib
+#if 1
+MACRO GPAC_USE_OGL_ES
+LIBRARY libgles_cm.lib
+#endif
 
 //common config of all modules
 #include ".\module_base.mmp"

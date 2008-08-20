@@ -111,6 +111,8 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			}
 		}
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Codec] Attaching stream %d to codec %s\n", ch->esd->ESID, codec->decio->module_name));
+
 		/*lock the channel before setup in case we are using direct_decode */
 		gf_mx_p(ch->mx);
 		e = codec->decio->AttachStream(codec->decio, ch->esd->ESID, 
@@ -124,7 +126,10 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			ch->esd->decoderConfig->decoderSpecificInfo->dataLength = com.get_dsi.dsi_len;
 		}
 
-		if (e) return e;
+		if (e) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Codec] Attach Stream failed %s\n", gf_error_to_string(e) ));
+			return e;
+		}
 
 		/*ask codec for desired output capacity - note this may be 0 if stream is not yet configured*/
 		cap.CapCode = GF_CODEC_OUTPUT_SIZE;
@@ -155,6 +160,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		}
 		if ((codec->type==GF_STREAM_AUDIO) && (max<2)) max = 2;
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] Creating composition buffer for codec %s - %d units %d bytes each\n", codec->decio->module_name, max, CUsize));
 		/*setup CB*/
 		if (!codec->CB && max) {
 			codec->CB = gf_cm_new(CUsize, max);
@@ -404,13 +410,12 @@ check_unit:
 	gf_es_drop_au(ch);
 
 	if (e) {
-		ch->stream_state = 2;
+		if (e<0) ch->stream_state = 2;
 		goto exit;
 	}
-	/*OD acts as scene codec, regenerate scene*/
-	if (codec->flags & GF_ESM_CODEC_IS_SCENE_OD) gf_inline_regenerate(codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene);
+
 	/*in broadcast mode, generate a scene if none is available*/
-	else if (codec->ck->no_time_ctrl) {
+	if (codec->ck->no_time_ctrl) {
 		GF_InlineScene *is = codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene;
 
 		/*static OD resources (embedded in ESD) in broadcast mode, reset time*/

@@ -30,7 +30,7 @@ STATICLIBRARY libjpeg.lib
 #endif
 
 //comment if you don't have OpenGL ES 
-#if 0
+#if 1
 MACRO GPAC_USE_OGL_ES
 LIBRARY libgles_cm.lib
 #else

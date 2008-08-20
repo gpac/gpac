@@ -278,7 +278,7 @@ GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, char *data, u32 data_siz
 	return GF_OK;
 }
 
-GF_Err gp_rtp_builder_do_h264(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
+GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
 {
 	GF_BitStream *bs;
 	char hdr[2];
@@ -536,3 +536,126 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 	}
 	return GF_OK;
 }
+
+
+GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration)
+{
+	u32 frag_state;
+	GF_BitStream *bs;
+	u32 offset;
+	Bool is_last_du;
+	
+	/*the DIMS hinter doesn't perform inter-sample concatenation*/
+	if (!data) return GF_OK;
+
+	/*if DU doesn't fit in packet, flush packet*/
+	if (builder->bytesInPacket && (builder->bytesInPacket + 1 + builder->bytesInPacket > builder->Path_MTU) ) {
+		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+		builder->bytesInPacket = 0;
+	}
+
+	offset = 0;
+	builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
+	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+	while (offset < data_size) {
+		u32 du_offset = 0;
+		u32 orig_size, du_size;
+		
+		orig_size = du_size = 2+gf_bs_read_u16(bs);
+		gf_bs_skip_bytes(bs, du_size-2);
+
+		/*prepare M-bit*/
+		is_last_du = (offset+du_size==data_size) ? 1 : 0;
+
+		frag_state = 0;
+		while (du_size) {
+			u32 size_offset = 0;
+			u32 size = du_size;
+
+			/*does not fit, flush required*/
+			if (builder->bytesInPacket && (du_size + 1 + builder->bytesInPacket > builder->Path_MTU)) {
+				builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+				builder->bytesInPacket = 0;
+			}
+
+			/*fragmentation required*/
+			if (du_size + 1 > builder->Path_MTU) {
+				size = builder->Path_MTU - 1;
+				/*first fragment*/
+				if (!frag_state) {
+					/*size field is skipped !!*/
+					size_offset = 2;
+					frag_state = 1;
+
+					while (du_size - size_offset <= size) {
+						size--;
+					}
+				}
+				/*any middle fragment*/
+				else frag_state = 2;
+
+				builder->rtp_header.Marker = 0;
+			} 
+			/*last fragment*/
+			else if (frag_state) {
+				size = du_size;
+				frag_state = 3;
+				builder->rtp_header.Marker = is_last_du;
+			} else {
+				size = du_size;
+				builder->rtp_header.Marker = is_last_du;
+			}
+
+			if (frag_state && builder->bytesInPacket) {
+				builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+				builder->bytesInPacket = 0;
+			}
+
+			/*need a new packet*/
+			if (!builder->bytesInPacket) {
+				char dims_rtp_hdr[1];
+				
+				/*the unit is critical, increase counter (coded on 3 bits)*/
+				if (! (data[2] & (1<<4)) && (frag_state<=1) ) {
+					builder->last_au_sn++;
+					builder->last_au_sn %= 8;
+				}
+				/*set CTR value*/
+				dims_rtp_hdr[0] = builder->last_au_sn;
+				/*if M-bit is set in the dims unit header, replicate it*/
+				if (data[2] & (1<<1) ) dims_rtp_hdr[0] |= (1<<6);
+				/*add unit fragmentation type*/
+				dims_rtp_hdr[0] |= (frag_state<<3);
+
+				builder->rtp_header.SequenceNumber += 1;
+				builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+				builder->OnData(builder->cbk_obj, (char *) dims_rtp_hdr, 1, 1);
+				builder->bytesInPacket = 1;
+			}
+
+			/*add payload*/
+			if (builder->OnDataReference) 
+				builder->OnDataReference(builder->cbk_obj, size, offset+du_offset+size_offset);
+			else
+				builder->OnData(builder->cbk_obj, data+offset+du_offset+size_offset, size, 0);
+
+			/*if fragmentation, force packet flush even on last packet since aggregation unit do not 
+			use the same packet format*/
+			if (frag_state) {
+				builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+				builder->bytesInPacket = 0;
+			} else {
+				builder->bytesInPacket += size;
+			}
+			du_offset += size+size_offset;
+			assert(du_size>= size+size_offset);
+			du_size -= size+size_offset;
+		}
+		offset += orig_size;
+	}
+	builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+	builder->bytesInPacket = 0;
+	gf_bs_del(bs);
+	return GF_OK;
+}
+

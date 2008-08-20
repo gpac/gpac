@@ -159,10 +159,7 @@ GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double 
 	/*get media object*/
 	ai->stream = gf_mo_register(ai->owner, url, 0);
 	/*bad URL*/
-	if (!ai->stream) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Audio Input] Cannot find stream\n"));
-		return GF_NOT_SUPPORTED;
-	}
+	if (!ai->stream) return GF_NOT_SUPPORTED;
 
 	/*store url*/
 	gf_sg_vrml_field_copy(&ai->url, url, GF_SG_VRML_MFURL);

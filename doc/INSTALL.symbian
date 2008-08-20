@@ -48,10 +48,12 @@ II GPAC compilation
   Go to gpac/build/symbian
   
   II.1 Configuring extra libs
-    * If you don't have freetype for symbian, comment ft_font.mmp in file bld.inf
-    * If you don't have libmad for symbian, comment indicated lines in mp3_in.mmp
     * If you don't have libjs, libpng or libjpeg for symbian, comment indicated lines in libgpac.mmp (change #if 1 into #if 0)
     * If you don't have OpenGL ES for symbian, comment indicated lines in libgpac.mmp (change #if 1 into #if 0)
+    * If you don't have freetype for symbian, comment ft_font.mmp in file bld.inf
+    * If you don't have ffmpeg for symbian, comment ffmpeg_in.mmp in file bld.inf
+    * If you don't have libmad for symbian, comment indicated lines in mp3_in.mmp
+    * If you don't have libopenjpeg (JPEG 2000) for symbian, comment indicated lines in img_in.mmp (change #if 1 into #if 0)
 
   II.2 Compiling GPAC
    	cd gpac/build/symbian

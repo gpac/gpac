@@ -41,7 +41,8 @@ void * InitCodec(dword sx, dword sy, dword fcc){
    default:
       return NULL;
    }
-   S_decoder *dec = new(ELeave) S_decoder;
+   S_decoder *dec = new S_decoder;
+   if (!dec) return NULL;
    dec->size_x = sx;
 
    xvid_dec_frame_t &xvid_dec_frame = dec->xvid_dec_frame;

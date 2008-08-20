@@ -244,7 +244,8 @@ void Channel_WaitRAP(GF_Channel *ch)
 	ch->pck_sn = 0;
 
 	/*if using RAP signal and codec not resilient, wait for rap. If RAP isn't signaled DON'T wait for it :)*/
-	if (!ch->codec_resilient) ch->stream_state = 2;
+	if (!ch->codec_resilient) 
+		ch->stream_state = 2;
 	if (ch->buffer) free(ch->buffer);
 	ch->buffer = NULL;
 	ch->AULength = 0;

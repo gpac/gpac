@@ -568,10 +568,8 @@ enum
 	/*the codec uses the interface from another codec (only used by private scene streams to handle
 	any intern sprite/animation streams)*/
 	GF_ESM_CODEC_IS_USE = 1<<1,
-	/*set for OD codec when all ressources are static and scene graph is generated on the fly*/
-	GF_ESM_CODEC_IS_SCENE_OD = 1<<2,
 	/*set for OD codec when static (ressources are declared in OD stream esd a la ISMA*/
-	GF_ESM_CODEC_IS_STATIC_OD = 1<<3,
+	GF_ESM_CODEC_IS_STATIC_OD = 1<<2,
 };
 
 struct _generic_codec 

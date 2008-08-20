@@ -15,8 +15,7 @@ bifs_dec.mmp
 ctx_load.mmp
 dummy_in.mmp
 epoc_hw.mmp
-//doesn't work on symbian yet...
-//ffmpeg_in.mmp
+ffmpeg_in.mmp
 ft_font.mmp
 img_in.mmp
 ismacryp.mmp

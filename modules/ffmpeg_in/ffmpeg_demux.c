@@ -450,7 +450,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 {
 	GF_Err e;
 	s64 last_aud_pts;
-	s32 i;
+	u32 i;
 	Bool is_local;
 	const char *sOpt;
 	char *ext, szName[1000];
@@ -474,11 +474,14 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 	/*some extensions not supported by ffmpeg, overload input format*/
 	ext = strrchr(szName, '.');
-	strcpy(szExt, ext+1);
+	strcpy(szExt, ext ? ext+1 : "");
 	strlwr(szExt);
-	if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
+	if (!strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
 
 	is_local = (strnicmp(url, "file://", 7) && strstr(url, "://")) ? 0 : 1;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG] opening file %s - local %d - av_in %08x\n", url, is_local, av_in));
+
 	if (!is_local) {
 	    AVProbeData   pd;
 
@@ -524,8 +527,15 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	default: e = GF_SERVICE_ERROR; goto err_exit;
 	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG] looking for streams in %s - %d streams - type %s\n", ffd->ctx->filename, ffd->ctx->nb_streams, ffd->ctx->iformat->name));
 
-    if (av_find_stream_info(ffd->ctx) <0) goto err_exit;
+    if (av_find_stream_info(ffd->ctx) <0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG] cannot locate streams\n"));
+		e = GF_NOT_SUPPORTED;
+		goto err_exit;
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG] file %s opened - %d streams\n", url, ffd->ctx->nb_streams));
+
 	/*figure out if we can use codecs or not*/
 	ffd->audio_st = ffd->video_st = -1;
     for (i = 0; i < ffd->ctx->nb_streams; i++) {
@@ -549,7 +559,10 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
     }
 	if ((ffd->service_type==1) && (ffd->video_st<0)) goto err_exit;
 	if ((ffd->service_type==2) && (ffd->audio_st<0)) goto err_exit;
-	if ((ffd->video_st<0) && (ffd->audio_st<0)) goto err_exit;
+	if ((ffd->video_st<0) && (ffd->audio_st<0)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG] No supported streams in file\n"));
+		goto err_exit;
+	}
 
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "DataBufferMS"); 
@@ -588,6 +601,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	return GF_OK;
 
 err_exit:
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG] Error opening file %s: %s\n", url, gf_error_to_string(e)));
     if (ffd->ctx) av_close_input_file(ffd->ctx);
 	ffd->ctx = NULL;
 	gf_term_on_connect(serv, NULL, e);

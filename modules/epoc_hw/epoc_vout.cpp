@@ -194,13 +194,15 @@ static GF_Err EVID_InitSurface(GF_VideoOutput *dr)
 	    configList = (EGLConfig*) malloc(sizeof(EGLConfig)*configSize);
 
 		// Define properties for the wanted EGLSurface 
-		const EGLint attrib_list[] = { 
-						EGL_BUFFER_SIZE, gl_buffer_size,
-						EGL_SURFACE_TYPE, EGL_PIXMAP_BIT,
-						EGL_NONE
-		};
+		EGLint atts[7];
+		const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
 
-		if (eglChooseConfig(ctx->egl_display, attrib_list, configList, configSize, &numOfConfigs) == EGL_FALSE) {
+		atts[0] = EGL_BUFFER_SIZE; atts[1] = gl_buffer_size; 
+		atts[2] = EGL_DEPTH_SIZE; atts[3] = opt ? atoi(opt) : 16;
+		atts[4] = EGL_SURFACE_TYPE; atts[5] = EGL_PIXMAP_BIT;
+		atts[6] = EGL_NONE;
+
+		if (eglChooseConfig(ctx->egl_display, atts, configList, configSize, &numOfConfigs) == EGL_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Cannot choose OpenGL configuration\n"));
 			return GF_IO_ERR;
 		}
@@ -281,12 +283,14 @@ static GF_Err EVID_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 heig
 
 	// Define properties for the wanted EGLSurface 
 	EGLint atts[13];
+	const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
 	atts[0] = EGL_RED_SIZE;		atts[1] = 8;
 	atts[2] = EGL_GREEN_SIZE;	atts[3] = 8;
 	atts[4] = EGL_BLUE_SIZE;	atts[5] = 8;
 	atts[6] = EGL_ALPHA_SIZE;	atts[7] = (dr->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA) ? 8 : EGL_DONT_CARE;
 	atts[8] = EGL_SURFACE_TYPE; atts[9] = EGL_PBUFFER_BIT;
-	atts[10] = EGL_NONE;
+	atts[10] = EGL_DEPTH_SIZE; atts[11] = opt ? atoi(opt) : 16;
+	atts[12] = EGL_NONE;
 
 	if (eglChooseConfig(ctx->egl_display, atts, configList, configSize, &numOfConfigs) == EGL_FALSE) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Cannot choose Offscreen OpenGL configuration\n"));
