@@ -18,7 +18,7 @@ ifeq ($(NCPUS),0)
 endif
 
 CFLAGS = -Wall -g
-LDFLAGS=-Wl,--as-needed
+LDFLAGS= --as-needed
 
 VERSION=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
 
