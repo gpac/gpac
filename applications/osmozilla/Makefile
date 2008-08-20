@@ -2,8 +2,6 @@ include ../../config.mak
 
 vpath %.cpp $(SRC_PATH)/applications/osmozilla
 
-GECKO_PATH=$(SRC_PATH)/extra_lib/include/gecko-sdk
-
 ifeq ($(CONFIG_WIN32),yes)
 USER_NAME=root
 else
@@ -14,12 +12,7 @@ MOZILLA_DIR=local
 endif
 endif
 
-CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include \
-  -I$(GECKO_PATH) \
-  -I$(GECKO_PATH)/plugin/include  \
-  -I$(GECKO_PATH)/nspr/include \
-  -I$(GECKO_PATH)/java/include \
-  -I$(GECKO_PATH)/xpcom/include \
+CFLAGS=$(CPPFLAGS) -Wall $(XUL_CFLAGS) -I$(SRC_PATH)/include
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -40,11 +33,11 @@ else
 CFLAGS+=-DXP_UNIX -DMOZ_X11
 endif
 endif
-CFLAGS+=-DNPBASIC_EXPORTS -DMOZILLA_STRICT_API -DXPCOM_GLUE
+
+#CFLAGS+=-DNPBASIC_EXPORTS -DMOZILLA_STRICT_API -DXPCOM_GLUE
 
 
 LINKLIBS=-L../../bin/gcc -lgpac
-#LDFLAGS=     -L/usr/X11R6/lib  -lX11   -lSM -lICE -lXext -lX11 -lXpm -lXt -L/usr/lib/mozilla -lxpcom -lplds4 -lplc4 -lnspr4 -ldl -lc -lpthread   -lgtk-x11-2.0 -lgdk-x11-2.0 -latk-1.0 -lgdk_pixbuf-2.0 -lm -lpangoxft-1.0 -lpangox-1.0 -lpango-1.0 -lgobject-2.0 -lgmodule-2.0 -ldl -lglib-2.0   -pthread -lgthread-2.0 -lglib-2.0 -L../../../bin/gcc/ -lgpac
 
 OBJS= osmozilla.o npp_gate.o np_entry.o npn_gate.o
 

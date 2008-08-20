@@ -11,12 +11,10 @@ endif
 
 V4STUDIODIR=
 INSTDIRS=mp4client
-ifeq ($(TARGET_ARCH_ARMV4L),yes)
+ifeq ($(CONFIG_XUL),no)
 else
-ifeq ($(CONFIG_LINUX),yes)
-#INSTDIRS+=osmozilla
-#APPDIRS+=osmozilla
-endif
+INSTDIRS+=osmozilla
+APPDIRS+=osmozilla
 endif
 
 ifeq ($(USE_WXWIDGETS), yes)
