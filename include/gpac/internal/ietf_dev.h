@@ -310,7 +310,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent);
 
 /*packetization routines*/
 GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
-GF_Err gp_rtp_builder_do_h264(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_amr(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_mpeg12_audio(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
@@ -319,6 +319,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *data, u32 data_siz
 GF_Err gp_rtp_builder_do_qcelp(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration); 
+GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration);
 
 
 #endif	/*_GF_IETF_DEV_H_*/

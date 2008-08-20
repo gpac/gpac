@@ -1052,6 +1052,8 @@ enum
 	GF_RTP_PAYT_H264_AVC,
 	/*use LATM for AAC-LC*/
 	GF_RTP_PAYT_LATM,
+	/*use 3GPP DIMS format*/
+	GF_RTP_PAYT_3GPP_DIMS,
 };
 
 

@@ -279,7 +279,7 @@ static u32 MM_SimulationStep(GF_Terminal *term, u32 *last_dec)
 
 		/*avoid signaling errors too often...*/
 #ifndef GPAC_DISABLE_LOG
-		if (e) GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ODM%d] Decoding Error %s\n", ce->dec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));
+		if (e) GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Decoding Error %s\n", ce->dec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));
 #endif
 
 		time_taken = gf_sys_clock() - time_taken;

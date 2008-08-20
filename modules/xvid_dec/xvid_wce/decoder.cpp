@@ -20,7 +20,7 @@
  *  along with this program ; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
- * $Id: decoder.cpp,v 1.3 2006-12-13 15:12:25 jeanlf Exp $
+ * $Id: decoder.cpp,v 1.4 2008-08-20 13:57:54 jeanlf Exp $
  *
  ****************************************************************************/
 
@@ -155,8 +155,8 @@ int decoder_create(xvid_dec_create_t *create){
    if(XVID_VERSION_MAJOR(create->version) != 1)   /* v1.x.x */
       return XVID_ERR_VERSION;
 
-   //S_decoder *dec = (S_decoder*)xvid_malloc(sizeof(S_decoder), CACHE_LINE);
-   S_decoder *dec = new(ELeave) S_decoder(create);
+   S_decoder *dec = (S_decoder*)xvid_malloc(sizeof(S_decoder), CACHE_LINE);
+   //S_decoder *dec = new(ELeave) S_decoder(create);
    if(!dec)
       return XVID_ERR_MEMORY;
 

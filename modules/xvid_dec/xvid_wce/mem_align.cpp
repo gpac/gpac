@@ -19,7 +19,7 @@
  *  along with this program ; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
- * $Id: mem_align.cpp,v 1.1.1.1 2005-07-13 14:36:15 jeanlf Exp $
+ * $Id: mem_align.cpp,v 1.2 2008-08-20 13:57:54 jeanlf Exp $
  *
  ****************************************************************************/
 
@@ -53,11 +53,13 @@ void *xvid_malloc(long size, dword alignment){
 
 	byte *mem_ptr;
 
+
 	if (!alignment) {
 
 		/* We have not to satisfy any alignment */
       //mem_ptr = (byte*)malloc(size + 1);
-      mem_ptr = new(ELeave) byte[size+1];
+      //mem_ptr = new(ELeave) byte[size+1];
+      mem_ptr = new byte[size+1];
 		if(mem_ptr) {
 
 			/* Store (mem_ptr - "real allocated memory") in *(mem_ptr-1) */
@@ -72,7 +74,8 @@ void *xvid_malloc(long size, dword alignment){
 		/* Allocate the required size memory + alignment so we
 		 * can realign the data if necessary */
       //tmp = (byte *) malloc(size + alignment);
-      tmp = new(ELeave) byte[size + alignment];
+      //tmp = new(ELeave) byte[size + alignment];
+      tmp = new byte[size + alignment];
 		if(tmp) {
 
 			/* Align the tmp pointer */

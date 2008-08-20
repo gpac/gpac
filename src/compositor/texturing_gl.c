@@ -28,6 +28,19 @@
 #include "nodes_stacks.h"
 #include "gl_inc.h"
 
+#ifdef GPAC_USE_TINYGL
+# define GLTEXENV	glTexEnvi
+# define GLTEXPARAM	glTexParameteri
+#elif defined (GPAC_USE_OGL_ES)
+# define GLTEXENV	glTexEnvf
+# define GLTEXPARAM	glTexParameterx
+#else
+# define GLTEXENV	glTexEnvf
+# define GLTEXPARAM	glTexParameteri
+#endif
+
+
+
 /*tx flags*/
 enum
 {
@@ -146,12 +159,6 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode)
 {
 	if (!txh->tx_io || !txh->tx_io->id || !txh->tx_io->gl_type) return;
 	glEnable(txh->tx_io->gl_type);
-
-#ifdef GPAC_USE_TINYGL
-#define GLTEXENV	glTexEnvi
-#else
-#define GLTEXENV	glTexEnvf
-#endif
 
 	switch (blend_mode) {
 	case TX_BLEND:
@@ -310,34 +317,34 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
 
 #ifdef GPAC_USE_OGL_ES
-	glTexParameterx(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
-	glTexParameterx(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+	GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+	GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
 	if (txh->tx_io->gl_type == GL_TEXTURE_2D) {
-		glTexParameterx(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
-		glTexParameterx(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
 	} else {
-		glTexParameterx(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameterx(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	}
 #else
 
 #ifndef GPAC_USE_TINYGL
 	if (txh->tx_io->gl_type == GL_TEXTURE_2D) {
-		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP);
-		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP);
 	} else
 #endif
 	{
-		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	}
 
 	if (txh->tx_io->gl_type == GL_TEXTURE_2D) {
-		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
-		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
 	} else {
-		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	}
 #endif
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -770,8 +777,9 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 #ifdef GPAC_DISABLE_3D
 	return 0;
 #else
-	GF_TextureHandler *matte_hdl;
 	GF_TextureHandler *b_surf;
+#ifndef GPAC_USE_TINYGL
+	GF_TextureHandler *matte_hdl;
 	GF_TextureHandler *a_surf;
 	GF_TextureHandler *alpha_surf;
 	char * action ;
@@ -779,13 +787,20 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	u8 texture[4];
 	MFFloat coefficients ;
 	GF_Compositor *compositor;
+#endif
 	M_MatteTexture *matte = (M_MatteTexture *)n;
 	
+
 	b_surf = gf_sc_texture_get_handler(matte->surfaceB);
 	
 	if (!b_surf || !b_surf->tx_io) return 0;
 	glEnable(GL_BLEND);	
 	tx_set_image(b_surf, 0);
+
+#ifdef GPAC_USE_TINYGL
+	tx_bind(b_surf);
+	return 1;
+#else
 
 	compositor = b_surf->compositor;
 	if (!compositor->gl_caps.glActiveTextureARB) {
@@ -806,7 +821,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	
 	/* SCALE */
 	if (! strcmp(action,"SCALE") || !strcmp(action,"BIAS") ) {
-		u32 operand;
+		Float operand;
 		coefficients = (matte->parameter);
 		if (coefficients.count < 3) {
 			tx_bind(b_surf);
@@ -827,10 +842,10 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 		glEnable( GL_DEPTH_TEST );
 		glEnable( GL_TEXTURE_2D );
 		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,GL_REPEAT );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,GL_REPEAT );
+		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR );
+		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR );
+		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,GL_REPEAT );
+		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,GL_REPEAT );
 		glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,1,1,0,GL_RGBA,GL_UNSIGNED_BYTE,texture);
 
 		operand = GL_MODULATE;
@@ -838,15 +853,15 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 		compositor->gl_caps.glActiveTextureARB(GL_TEXTURE1_ARB);
 		tx_bind(b_surf);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,		COMBINE_ARB);
-		glTexEnvi(GL_TEXTURE_ENV, COMBINE_RGB_ARB,			operand);
-		glTexEnvi(GL_TEXTURE_ENV, SOURCE0_RGB_ARB ,			GL_TEXTURE1_ARB);
-		glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB,		GL_SRC_COLOR);
-		glTexEnvi(GL_TEXTURE_ENV, SOURCE1_RGB_ARB,			GL_TEXTURE0_ARB);
-		glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB_ARB,		GL_SRC_COLOR);
-		glTexEnvi(GL_TEXTURE_ENV, COMBINE_ALPHA_ARB,		GL_REPLACE );
-		glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_ALPHA_ARB,		GL_TEXTURE1_ARB  );
-		glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA_ARB,	GL_SRC_ALPHA);
+		GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,		COMBINE_ARB);
+		GLTEXENV(GL_TEXTURE_ENV, COMBINE_RGB_ARB,			operand);
+		GLTEXENV(GL_TEXTURE_ENV, SOURCE0_RGB_ARB ,			GL_TEXTURE1_ARB);
+		GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB,		GL_SRC_COLOR);
+		GLTEXENV(GL_TEXTURE_ENV, SOURCE1_RGB_ARB,			GL_TEXTURE0_ARB);
+		GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND1_RGB_ARB,		GL_SRC_COLOR);
+		GLTEXENV(GL_TEXTURE_ENV, COMBINE_ALPHA_ARB,		GL_REPLACE );
+		GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE1_ALPHA_ARB,		GL_TEXTURE1_ARB  );
+		GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA_ARB,	GL_SRC_ALPHA);
 		return 2;
 	}
 	/* end SCALE */
@@ -866,10 +881,10 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 		glBindTexture( GL_TEXTURE_2D, matte_hdl->tx_io->id);
 		glEnable( GL_TEXTURE_2D );
 		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,GL_REPEAT );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,GL_REPEAT );
+		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR );
+		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR );
+		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,GL_REPEAT );
+		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,GL_REPEAT );
 		glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,1,1,0,GL_RGBA,GL_UNSIGNED_BYTE,texture);
 		
 		/* fin de la génération de la texture donnée par la fraction ! */
@@ -882,14 +897,14 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 			compositor->gl_caps.glActiveTextureARB(GL_TEXTURE2_ARB);
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
-			glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
-			glTexEnvi(GL_TEXTURE_ENV,COMBINE_RGB_ARB,INTERPOLATE_ARB );
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE0_RGB_ARB , GL_TEXTURE1_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE1_RGB_ARB   , GL_TEXTURE2_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND1_RGB_ARB,GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV,SOURCE2_RGB_ARB, GL_TEXTURE0_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND2_RGB_ARB,GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
+			GLTEXENV(GL_TEXTURE_ENV,COMBINE_RGB_ARB,INTERPOLATE_ARB );
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE0_RGB_ARB , GL_TEXTURE1_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE1_RGB_ARB   , GL_TEXTURE2_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND1_RGB_ARB,GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV,SOURCE2_RGB_ARB, GL_TEXTURE0_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND2_RGB_ARB,GL_SRC_COLOR);
 		}	
 		return 3;
 	}	
@@ -910,14 +925,14 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
 			
-			glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
-			glTexEnvi(GL_TEXTURE_ENV,COMBINE_RGB_ARB,INTERPOLATE_ARB );
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE0_RGB_ARB , GL_TEXTURE0_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE1_RGB_ARB   , GL_TEXTURE2_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND1_RGB_ARB,GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV,SOURCE2_RGB_ARB, GL_TEXTURE1_ARB );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND2_RGB_ARB,GL_SRC_ALPHA);
+			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
+			GLTEXENV(GL_TEXTURE_ENV,COMBINE_RGB_ARB,INTERPOLATE_ARB );
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE0_RGB_ARB , GL_TEXTURE0_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE1_RGB_ARB   , GL_TEXTURE2_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND1_RGB_ARB,GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV,SOURCE2_RGB_ARB, GL_TEXTURE1_ARB );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND2_RGB_ARB,GL_SRC_ALPHA);
 			
 		}
 		return 3;
@@ -928,15 +943,15 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	if (! strcmp(action,"INVERT")) {
 		compositor->gl_caps.glActiveTextureARB(GL_TEXTURE0_ARB);
 		tx_bind(b_surf);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,	COMBINE_ARB);
-		glTexEnvi(GL_TEXTURE_ENV, COMBINE_RGB_ARB,		GL_REPLACE );
-		glTexEnvi(GL_TEXTURE_ENV, SOURCE0_RGB_ARB,		GL_TEXTURE0_ARB  );
-		glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB,	GL_ONE_MINUS_SRC_COLOR);
+		GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,	COMBINE_ARB);
+		GLTEXENV(GL_TEXTURE_ENV, COMBINE_RGB_ARB,		GL_REPLACE );
+		GLTEXENV(GL_TEXTURE_ENV, SOURCE0_RGB_ARB,		GL_TEXTURE0_ARB  );
+		GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB,	GL_ONE_MINUS_SRC_COLOR);
 
 		if (matte->parameter.count && matte->parameter.vals[0]) {
-			glTexEnvi(GL_TEXTURE_ENV, COMBINE_ALPHA_ARB,		GL_REPLACE );
-			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB,		GL_TEXTURE0_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA_ARB,	GL_ONE_MINUS_SRC_ALPHA);
+			GLTEXENV(GL_TEXTURE_ENV, COMBINE_ALPHA_ARB,		GL_REPLACE );
+			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB,		GL_TEXTURE0_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA_ARB,	GL_ONE_MINUS_SRC_ALPHA);
 		}
 		return 1;
 	}
@@ -952,12 +967,12 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 			compositor->gl_caps.glActiveTextureARB(GL_TEXTURE1_ARB);
 			tx_set_image(alpha_surf, 0);
 			tx_bind(alpha_surf);
-			glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
-			glTexEnvi(GL_TEXTURE_ENV,COMBINE_RGB_ARB,GL_REPLACE );
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE0_RGB_ARB   , GL_TEXTURE0_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV,COMBINE_ALPHA_ARB,GL_REPLACE );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND0_ALPHA_ARB,GL_SRC_ALPHA);
+			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
+			GLTEXENV(GL_TEXTURE_ENV,COMBINE_RGB_ARB,GL_REPLACE );
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE0_RGB_ARB   , GL_TEXTURE0_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV,COMBINE_ALPHA_ARB,GL_REPLACE );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND0_ALPHA_ARB,GL_SRC_ALPHA);
 		}
 		return 2;
 	}
@@ -967,21 +982,21 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	if (!strcmp(action,"MULTIPLY_ALPHA")) {
 		compositor->gl_caps.glActiveTextureARB(GL_TEXTURE0_ARB);
 		tx_bind(b_surf);
-		glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
+		GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
 
 		if (alpha_surf) {
 			compositor->gl_caps.glActiveTextureARB(GL_TEXTURE1_ARB);
 			tx_set_image(alpha_surf, 0);
 			tx_bind(alpha_surf);
-			glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
-			glTexEnvi(GL_TEXTURE_ENV,COMBINE_RGB_ARB,GL_REPLACE );
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE0_RGB_ARB   , GL_TEXTURE0_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV,COMBINE_ALPHA_ARB,GL_MODULATE );
-			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_ALPHA_ARB   , GL_TEXTURE1_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND1_ALPHA_ARB,GL_SRC_ALPHA);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB   , GL_TEXTURE0_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND0_ALPHA_ARB,GL_SRC_ALPHA);
+			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
+			GLTEXENV(GL_TEXTURE_ENV,COMBINE_RGB_ARB,GL_REPLACE );
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE0_RGB_ARB   , GL_TEXTURE0_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV,COMBINE_ALPHA_ARB,GL_MODULATE );
+			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE1_ALPHA_ARB   , GL_TEXTURE1_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND1_ALPHA_ARB,GL_SRC_ALPHA);
+			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB   , GL_TEXTURE0_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND0_ALPHA_ARB,GL_SRC_ALPHA);
 		}
 		return 2;
 	}
@@ -995,15 +1010,15 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 			compositor->gl_caps.glActiveTextureARB(GL_TEXTURE1_ARB);
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
-			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,		COMBINE_ARB);
-			glTexEnvi(GL_TEXTURE_ENV, COMBINE_RGB_ARB,			GL_ADD_SIGNED_ARB );
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE0_RGB_ARB,			GL_TEXTURE0_ARB );
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB,		GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE1_RGB_ARB,			GL_TEXTURE1_ARB );
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB_ARB,		GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, COMBINE_ALPHA_ARB,		GL_REPLACE );
-			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB,		GL_TEXTURE0_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA_ARB,	GL_SRC_ALPHA);
+			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,		COMBINE_ARB);
+			GLTEXENV(GL_TEXTURE_ENV, COMBINE_RGB_ARB,			GL_ADD_SIGNED_ARB );
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE0_RGB_ARB,			GL_TEXTURE0_ARB );
+			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB,		GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE1_RGB_ARB,			GL_TEXTURE1_ARB );
+			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND1_RGB_ARB,		GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV, COMBINE_ALPHA_ARB,		GL_REPLACE );
+			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB,		GL_TEXTURE0_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA_ARB,	GL_SRC_ALPHA);
 		}
 		return 2;
 	}
@@ -1017,15 +1032,15 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 			compositor->gl_caps.glActiveTextureARB(GL_TEXTURE1_ARB);
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
-			glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
-			glTexEnvi(GL_TEXTURE_ENV,COMBINE_RGB_ARB,GL_ADD );
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE0_RGB_ARB   , GL_TEXTURE0_ARB );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV,SOURCE1_RGB_ARB,GL_TEXTURE1_ARB );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND1_RGB_ARB,GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV,COMBINE_ALPHA_ARB,GL_REPLACE );
-			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB   , GL_TEXTURE0_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND0_ALPHA_ARB,GL_SRC_ALPHA);
+			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
+			GLTEXENV(GL_TEXTURE_ENV,COMBINE_RGB_ARB,GL_ADD );
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE0_RGB_ARB   , GL_TEXTURE0_ARB );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV,SOURCE1_RGB_ARB,GL_TEXTURE1_ARB );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND1_RGB_ARB,GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV,COMBINE_ALPHA_ARB,GL_REPLACE );
+			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB   , GL_TEXTURE0_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND0_ALPHA_ARB,GL_SRC_ALPHA);
 		}
 		return 2;
 	}
@@ -1039,15 +1054,15 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 			compositor->gl_caps.glActiveTextureARB(GL_TEXTURE1_ARB);
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
-			glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
-			glTexEnvi(GL_TEXTURE_ENV,COMBINE_RGB_ARB,GL_SUBTRACT_ARB);
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE0_RGB_ARB   , GL_TEXTURE0_ARB );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV,SOURCE1_RGB_ARB,GL_TEXTURE1_ARB );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND1_RGB_ARB,GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV,COMBINE_ALPHA_ARB,GL_REPLACE );
-			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB   , GL_TEXTURE0_ARB  );
-			glTexEnvi(GL_TEXTURE_ENV,GL_OPERAND0_ALPHA_ARB,GL_SRC_ALPHA);
+			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
+			GLTEXENV(GL_TEXTURE_ENV,COMBINE_RGB_ARB,GL_SUBTRACT_ARB);
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE0_RGB_ARB   , GL_TEXTURE0_ARB );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND0_RGB_ARB,GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV,SOURCE1_RGB_ARB,GL_TEXTURE1_ARB );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND1_RGB_ARB,GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV,COMBINE_ALPHA_ARB,GL_REPLACE );
+			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB   , GL_TEXTURE0_ARB  );
+			GLTEXENV(GL_TEXTURE_ENV,GL_OPERAND0_ALPHA_ARB,GL_SRC_ALPHA);
 		}
 		return 2;
 	}
@@ -1058,19 +1073,17 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 		compositor->gl_caps.glActiveTextureARB(GL_TEXTURE0_ARB);
 		tx_bind(b_surf);
 		if (a_surf) {
-			glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
+			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
 			compositor->gl_caps.glActiveTextureARB(GL_TEXTURE1_ARB);
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
-			glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_DECAL);
-
-		
-			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,		COMBINE_ARB);
-			glTexEnvi(GL_TEXTURE_ENV, COMBINE_RGB_ARB,			GL_MODULATE);
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE0_RGB_ARB,			GL_TEXTURE0_ARB );
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB,		GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, SOURCE1_RGB_ARB,			GL_TEXTURE1_ARB );
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB_ARB,		GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_DECAL);
+			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,		COMBINE_ARB);
+			GLTEXENV(GL_TEXTURE_ENV, COMBINE_RGB_ARB,			GL_MODULATE);
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE0_RGB_ARB,			GL_TEXTURE0_ARB );
+			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB,		GL_SRC_COLOR);
+			GLTEXENV(GL_TEXTURE_ENV, SOURCE1_RGB_ARB,			GL_TEXTURE1_ARB );
+			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND1_RGB_ARB,		GL_SRC_COLOR);
 		}
 		return 2;
 	}
@@ -1078,6 +1091,10 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 	tx_bind(b_surf);
 	return 1;
+
+#endif /*GPAC_USE_TINYGL*/
+
+#undef GLTEXPARAM
 #endif
 }
 

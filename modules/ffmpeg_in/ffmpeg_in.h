@@ -58,6 +58,8 @@
 /*include FFMPEG APIs*/
 #include <ffmpeg/avformat.h>
 
+void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl);
+
 /*FFMPEG decoder module */
 typedef struct 
 {

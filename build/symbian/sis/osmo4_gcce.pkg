@@ -34,7 +34,7 @@
 "Epoc32\release\GCCE\UREL\gm_ctx_load.dll"           -"c:\sys\bin\gm_ctx_load.dll"
 "Epoc32\release\GCCE\UREL\gm_dummy_in.dll"           -"c:\sys\bin\gm_dummy_in.dll"
 "Epoc32\release\GCCE\UREL\gm_epoc_hw.dll"           -"c:\sys\bin\gm_epoc_hw.dll"
-;"Epoc32\release\GCCE\UREL\gm_ffmpeg_in.dll"           -"c:\sys\bin\gm_ffmpeg_in.dll"
+"Epoc32\release\GCCE\UREL\gm_ffmpeg_in.dll"           -"c:\sys\bin\gm_ffmpeg_in.dll"
 "Epoc32\release\GCCE\UREL\gm_ft_font.dll"           -"c:\sys\bin\gm_ft_font.dll"
 "Epoc32\release\GCCE\UREL\gm_img_in.dll"           -"c:\sys\bin\gm_img_in.dll"
 "Epoc32\release\GCCE\UREL\gm_ismacryp.dll"           -"c:\sys\bin\gm_ismacryp.dll"

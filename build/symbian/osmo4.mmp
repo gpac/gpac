@@ -9,7 +9,9 @@ UID		0 0xf01f9075
 VENDORID	0
 
 CAPABILITY	NetworkServices
-EPOCSTACKSIZE	32768
+EPOCSTACKSIZE	0x8000
+/*up to 8M for gpac - this should be tuned per device !!*/
+EPOCHEAPSIZE 0x4000 0x800000
 
 #else
 /*config for symbian 8.x*/

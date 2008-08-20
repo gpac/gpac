@@ -92,7 +92,7 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 	case GF_RTP_PAYT_MPEG12_AUDIO:
 		return gp_rtp_builder_do_mpeg12_audio(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GF_RTP_PAYT_H263:
-		return gp_rtp_builder_do_h264(builder, data, data_size, IsAUEnd, FullAUSize);
+		return gp_rtp_builder_do_h263(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GF_RTP_PAYT_AMR:
 	case GF_RTP_PAYT_AMR_WB:
 		return gp_rtp_builder_do_amr(builder, data, data_size, IsAUEnd, FullAUSize);
@@ -106,6 +106,8 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 		return gp_rtp_builder_do_smv(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GF_RTP_PAYT_LATM: 
 		return gp_rtp_builder_do_latm(builder, data, data_size, IsAUEnd, FullAUSize, duration); 
+	case GF_RTP_PAYT_3GPP_DIMS: 
+		return gp_rtp_builder_do_dims(builder, data, data_size, IsAUEnd, FullAUSize, duration); 
  	default:
 		return GF_BAD_PARAM;
 	}
@@ -486,6 +488,10 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 	case GF_RTP_PAYT_LATM: 
 		strcpy(szMediaName, "audio"); 
 		strcpy(szPayloadName, "MP4A-LATM"); 
+		return 1; 
+	case GF_RTP_PAYT_3GPP_DIMS: 
+		strcpy(szMediaName, "video"); 
+		strcpy(szPayloadName, "richmedia+xml"); 
 		return 1; 
 	default:
 		strcpy(szMediaName, "");

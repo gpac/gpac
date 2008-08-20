@@ -43,7 +43,8 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 
 	GF_TimeToSampleBox *stts = stbl->TimeToSample;
 
-	//We don't update the reading cache when adding a sample
+	//reset the reading cache when adding a sample
+	stts->r_FirstSampleInEntry = 0;
 
 	*sampleNumber = 0;
 	//if we don't have an entry, that's the first one...

@@ -1553,8 +1553,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 		field = (GF_CommandField *)gf_list_get(parser->command->command_fields, 0);
 		if (parser->command->tag == GF_SG_LSR_NEW_SCENE || parser->command->tag == GF_SG_LSR_ADD) return;
 		
-		assert(field);
-		if (field->field_ptr) return;
+		if (!field || field->field_ptr) return;
 
 		if (field->new_node) {
 			svg_report(parser, GF_OK, "Warning: LASeR cannot replace children with a mix of text nodes and elements - ignoring text\n");

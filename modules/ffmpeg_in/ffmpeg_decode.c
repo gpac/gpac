@@ -25,15 +25,6 @@
 #include "ffmpeg_in.h"
 #include <gpac/avparse.h>
 
-#if 0
-static void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl)
-{
-	char szMsg[1024];
-	vsprintf(szMsg, fmt, vl);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, (szMsg));
-}
-#endif
-
 static AVCodec *ffmpeg_get_codec(u32 codec_4cc)
 {
 	char name[5];
@@ -287,13 +278,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 
 		if (ffd->out_pix_fmt != GF_PIXEL_RGB_24) ffd->out_size /= 2;
 	}
-
-#if 0
-	ffd->ctx->debug = FF_DEBUG_PICT_INFO | FF_DEBUG_BITSTREAM | FF_DEBUG_STARTCODE;
-	ffd->ctx->debug = 0xFFFFFFFF;
-	av_log_set_level(AV_LOG_DEBUG);
-	av_log_set_callback(gf_av_vlog);
-#endif
 	return GF_OK;
 }
 static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
@@ -595,7 +579,8 @@ redecode:
 		if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
 
 		if (gotpic) {
-#if defined(_WIN32_WCE) ||  defined(__SYMBIAN32__)
+#if 1
+//#if defined(_WIN32_WCE) ||  defined(__SYMBIAN32__)
 			if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
 				memcpy(outBuffer, ffd->frame->data[0], sizeof(char)*3*ffd->ctx->width);
 			} else {
