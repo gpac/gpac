@@ -109,7 +109,7 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines)
 	/*MPEG4 only*/
 	case TAG_MPEG4_AudioSource: obj_type = GF_MEDIA_OBJECT_AUDIO; break;
 	case TAG_MPEG4_AnimationStream: 
-		obj_type = GF_MEDIA_OBJECT_BIFS; 
+		obj_type = GF_MEDIA_OBJECT_UPDATES; 
 		break;
 
 	case TAG_MPEG4_InputSensor: obj_type = GF_MEDIA_OBJECT_INTERACT; break;

@@ -1190,7 +1190,7 @@ u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser)
 GF_EXPORT
 char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value, char *substitute, char *get_attr, char *end_pattern, Bool *is_substitute)
 {
-	u32 state, att_len;
+	u32 state, att_len, alloc_size;
 	z_off_t pos;
 	char szLine1[XML_INPUT_SIZE+2], szLine2[XML_INPUT_SIZE+2], *szLine, *cur_line, *sep, *start, first_c, *result;
 #ifdef NO_GZIP
@@ -1198,6 +1198,14 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 #else
 	if (!parser->gz_in) return NULL;
 #endif
+
+#define CPYCAT_ALLOC(__str, __is_copy) if ( strlen(__str) + (__is_copy ? 0 : strlen(szLine))>=alloc_size) {\
+								alloc_size = 1+strlen(__str);	\
+								if (!__is_copy) alloc_size += strlen(szLine); \
+								szLine = realloc(szLine, alloc_size);	\
+							}\
+							if (__is_copy) strcpy(szLine, __str);	\
+							else strcat(szLine, __str); \
 
 	result = NULL;
 
@@ -1209,7 +1217,8 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 #endif
 	att_len = strlen(parser->buffer + parser->att_name_start);
 	if (att_len<2*XML_INPUT_SIZE) att_len = 2*XML_INPUT_SIZE;
-	szLine = (char *) malloc(sizeof(char)*att_len);
+	alloc_size = att_len;
+	szLine = (char *) malloc(sizeof(char)*alloc_size);
 	strcpy(szLine, parser->buffer + parser->att_name_start);
 	cur_line = szLine;
 	att_len = strlen(att_value);
@@ -1234,13 +1243,13 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 #endif
 		cur_line[read] = cur_line[read+1] = 0;
 
-		strcat(szLine, cur_line);
+		CPYCAT_ALLOC(cur_line, 0);
 retry:
 		if (state == 2) goto fetch_attr;
 		sep = strstr(szLine, att_name);
 		if (!sep && !state) {
 			state = 0;
-			strcpy(szLine, cur_line);
+			CPYCAT_ALLOC(cur_line, 1);
 			if (end_pattern && strstr(szLine, end_pattern)) goto exit;
 			continue;
 		}
@@ -1252,13 +1261,13 @@ retry:
 			start = strrchr(szLine, '<');
 			if (!start) goto exit;
 			sep[0] = first_c;
-			strcpy(szLine, start);
+			CPYCAT_ALLOC(start, 1);
 			sep = strstr(szLine, att_name);
 		}
 		sep = strchr(sep, '=');
 		if (!sep) {
 			state = 0;
-			strcpy(szLine, cur_line);
+			CPYCAT_ALLOC(cur_line, 1);
 			continue;
 		}
 		while (sep[0] && (sep[0] != '\"') ) sep++;
@@ -1286,7 +1295,7 @@ retry:
 fetch_attr:
 			sep = strstr(szLine + 1, get_attr);
 			if (!sep) {
-				strcpy(szLine, cur_line);
+				CPYCAT_ALLOC(cur_line, 1);
 				continue;
 			}
 			sep += strlen(get_attr);
@@ -1300,7 +1309,7 @@ fetch_attr:
 			goto exit;
 		}
 		state = 0;
-		strcpy(szLine, sep);
+		CPYCAT_ALLOC(sep, 1);
 		goto retry;
 	}
 exit:

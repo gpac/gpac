@@ -38,7 +38,10 @@
 #include <mmsystem.h>
 #include <dsound.h>
 
+#ifndef _WIN32_WCE
 #include <vfw.h>
+#endif
+
 #include <ddraw.h>
 
 #ifdef GPAC_USE_OGL_ES

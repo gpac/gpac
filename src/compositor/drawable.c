@@ -60,9 +60,10 @@ void drawable_pick(Drawable *drawable, GF_TraverseState *tr_state)
 	memset(&asp, 0, sizeof(DrawAspect2D));
 	drawable_get_aspect_2d_mpeg4(drawable->node, &asp, tr_state);
 
+	/*MPEG-4 picking is always on regardless of color properties*/
 	if (/*tr_state->ctx->aspect.fill_texture */
 		/* (tr_state->pick_type<PICK_FULL) */
-		//GF_COL_A(asp.fill_color)
+		/* GF_COL_A(asp.fill_color)*/
 		1) {
 		if (gf_path_point_over(drawable->path, x, y)) {
 			goto picked;

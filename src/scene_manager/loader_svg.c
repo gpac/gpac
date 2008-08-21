@@ -1636,6 +1636,9 @@ static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)
 	load->loader_priv = parser;
 	if (load->ctx) load->ctx->is_pixel_metrics = 1;
 
+	/*to cope with old files not signaling XMLNS, add the SVG NS by default*/
+	gf_sg_add_namespace(parser->load->scene_graph, "http://www.w3.org/2000/svg", NULL);
+
 	return parser;
 }
 

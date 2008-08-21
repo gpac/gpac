@@ -72,8 +72,10 @@ typedef struct
 	Bool erase_dest;
 	u32 off_x, off_y;
 
-	HBITMAP bitmap;
+	HBITMAP bitmap, old_bitmap;
     DWORD * bits;
+	HDC hdcBitmap, hdc;
+
 
 #ifdef GPAC_USE_OGL_ES
 	u32 output_3d_type;

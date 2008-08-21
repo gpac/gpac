@@ -118,8 +118,8 @@ enum
 	GF_MEDIA_OBJECT_UNDEF = 0,
 	/*!service descriptor expected is of SCENE type and shall contain a scene stream and OD one if needed*/
 	GF_MEDIA_OBJECT_SCENE,
-	/*!service descriptor expected is of SCENE type (animation streams)*/
-	GF_MEDIA_OBJECT_BIFS,
+	/*!service descriptor expected is of SCENE UPDATES type (animation streams)*/
+	GF_MEDIA_OBJECT_UPDATES,
 	/*!service descriptor expected is of VISUAL type*/
 	GF_MEDIA_OBJECT_VIDEO,
 	/*!service descriptor expected is of AUDIO type*/

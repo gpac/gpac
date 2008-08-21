@@ -31,7 +31,27 @@
 #include "gapi.h"
 
 #ifdef GPAC_USE_OGL_ES
-#pragma message("Compiling GAPI with OpenGL-ES support")
+
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
+
+#if 0
+# pragma message("Using OpenGL-ES Common Lite Profile")
+# pragma comment(lib, "libGLES_CL")
+
+#define GLES_NO_PBUFFER
+#define GLES_NO_PIXMAP
+
+#else
+# pragma message("Using OpenGL-ES Common Profile")
+# pragma comment(lib, "libGLES_CM")
+
+//#define GLES_NO_PIXMAP
+
+#endif
+
+#pragma comment(lib, "gx.lib")
+#endif
+
 #endif
 
 static Bool is_landscape = 0;
@@ -314,21 +334,14 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		break;
 
 	case WM_ERASEBKGND:
-//		evt.type = GF_EVENT_REFRESH;
-//		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		evt.type = GF_EVENT_REFRESH;
+		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_PAINT:
 	{
-		PAINTSTRUCT ps;
-		HDC dc, hdcBitmap, old;
 		GAPIPriv *gctx = (GAPIPriv *)the_video_driver->opaque;
-		if (gctx->gx_mode) break;
-		dc = BeginPaint(gctx->hWnd, &ps);
-		hdcBitmap = CreateCompatibleDC((HDC)dc);
-		old = (HDC) SelectObject(hdcBitmap, gctx->bitmap);
-		BitBlt((HDC)dc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, hdcBitmap, 0, 0, SRCCOPY);
-		SelectObject(hdcBitmap, old);
-		EndPaint(gctx->hWnd, &ps);
+		if (gctx->gx_mode || !gctx->bitmap) break;
+		BitBlt(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, gctx->hdcBitmap, 0, 0, SRCCOPY);
 	}
 		break;
 
@@ -376,7 +389,7 @@ void GAPI_WindowThread(void *par)
 	GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
 
 	memset(&wc, 0, sizeof(WNDCLASS));
-	wc.hInstance = GetModuleHandle(_T("gapi.dll"));
+	wc.hInstance = GetModuleHandle(_T("gm_gapi.dll"));
 	wc.lpfnWndProc = GAPI_WindowProc;
 	wc.hCursor = LoadCursor (NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)GetStockObject (BLACK_BRUSH);
@@ -423,7 +436,9 @@ void GAPI_SetupWindow(GF_VideoOutput *dr)
 	e = GAPI_SetupOGL_ES_Offscreen(dr, 20, 20);
 	if (e!=GF_OK) {
 		dr->hw_caps &= ~GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+#ifndef GLES_NO_PIXMAP
 		e = GAPI_SetupOGL_ES_Offscreen(dr, 20, 20);
+#endif
 	}
 	if (!e) {
 		dr->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN;
@@ -489,7 +504,7 @@ GF_Err GAPI_Clear(GF_VideoOutput *dr, u32 color)
 	return GF_OK;
 }
 
-static void createPixmap(GAPIPriv *ctx, HDC dc, u32 pix_type)
+static void createPixmap(GAPIPriv *ctx, u32 pix_type)
 {
     const size_t    bmiSize = sizeof(BITMAPINFO) + 256U*sizeof(RGBQUAD);
     BITMAPINFO*     bmi;
@@ -517,14 +532,21 @@ static void createPixmap(GAPIPriv *ctx, HDC dc, u32 pix_type)
 		p[0] = 0x00ff0000; p[1] = 0x0000ff00; p[2] = 0x000000ff;
 		break;
 	}
+
+	ctx->hdc = GetDC(ctx->hWnd);
+	
 	if (pix_type==2) {
 #ifdef GPAC_USE_OGL_ES
-		ctx->gl_bitmap = CreateDIBSection(dc, bmi, DIB_RGB_COLORS, (void **) &ctx->gl_bits, NULL, 0);
+		ctx->gl_bitmap = CreateDIBSection(ctx->hdc, bmi, DIB_RGB_COLORS, (void **) &ctx->gl_bits, NULL, 0);
 #endif
 	} else if (pix_type==1) {
-		ctx->bitmap = CreateDIBSection(dc, bmi, DIB_RGB_COLORS, (void **) &ctx->bits, NULL, 0);
+		ctx->hdcBitmap = CreateCompatibleDC(ctx->hdc);
+		ctx->bitmap = CreateDIBSection(ctx->hdc, bmi, DIB_RGB_COLORS, (void **) &ctx->bits, NULL, 0);
+		ctx->old_bitmap = (HBITMAP) SelectObject(ctx->hdcBitmap, ctx->bitmap);
 	} else {
-		ctx->bitmap = CreateDIBSection(dc, bmi, DIB_RGB_COLORS, (void **) &ctx->backbuffer, NULL, 0);
+		ctx->hdcBitmap = CreateCompatibleDC(ctx->hdc);
+		ctx->bitmap = CreateDIBSection(ctx->hdc, bmi, DIB_RGB_COLORS, (void **) &ctx->backbuffer, NULL, 0);
+		ctx->old_bitmap = (HBITMAP) SelectObject(ctx->hdcBitmap, ctx->bitmap);
 		/*watchout - win32 always create DWORD align memory, so align our pitch*/
 		while ((ctx->bb_pitch % 4) != 0) ctx->bb_pitch ++;
 	}
@@ -558,21 +580,29 @@ void GAPI_ReleaseOGL_ES(GAPIPriv *ctx, Bool offscreen_only)
 GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr) 
 {
 	EGLint n, maj, min;
+	u32 i;
 	GF_Event evt;
-	HDC dc;
 	GAPICTX(dr)
-	static int atts[15];
+	static int atts[32];
 	const char *opt;
-	atts[0] = EGL_RED_SIZE; atts[1] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
-	atts[2] = EGL_GREEN_SIZE; atts[3] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : (gctx->pixel_format==GF_PIXEL_RGB_565) ? 6 : 5;
-	atts[4] = EGL_BLUE_SIZE; atts[5] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
-	/*not supported...*/
-	atts[6] = EGL_ALPHA_SIZE; atts[7] = EGL_DONT_CARE;
+
+	i=0;
+	atts[i++] = EGL_RED_SIZE; atts[i++] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
+	atts[i++] = EGL_GREEN_SIZE; atts[i++] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : (gctx->pixel_format==GF_PIXEL_RGB_565) ? 6 : 5;
+	atts[i++] = EGL_BLUE_SIZE; atts[i++] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
 	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
-	atts[8] = EGL_DEPTH_SIZE; atts[9] = opt ? atoi(opt) : 16;
-	atts[10] = EGL_STENCIL_SIZE; atts[11] = EGL_DONT_CARE;
-	atts[12] = EGL_SURFACE_TYPE; atts[13] = EGL_PIXMAP_BIT;
-	atts[14] = EGL_NONE;
+	atts[i++] = EGL_DEPTH_SIZE; atts[i++] = opt ? atoi(opt) : 16;
+	atts[i++] = EGL_SURFACE_TYPE; 
+
+#ifdef GLES_NO_PIXMAP
+	atts[i++] = EGL_WINDOW_BIT;
+#else
+	atts[i++] = EGL_PIXMAP_BIT;
+//	atts[i++] = gctx->fullscreen ? EGL_WINDOW_BIT : EGL_PIXMAP_BIT;
+#endif
+	atts[i++] = EGL_ALPHA_SIZE; atts[i++] = EGL_DONT_CARE;
+	atts[i++] = EGL_STENCIL_SIZE; atts[i++] = EGL_DONT_CARE;
+	atts[i++] = EGL_NONE;
 
 	/*whenever window is resized we must reinit OGL-ES*/
 	GAPI_ReleaseOGL_ES(gctx, 0);
@@ -582,43 +612,58 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 		::GetClientRect(gctx->hWnd, &rc);
 		gctx->bb_width = rc.right-rc.left;
 		gctx->bb_height = rc.bottom-rc.top;
-		dc = GetDC(gctx->hWnd);
-		createPixmap(gctx, dc, 1);
-		ReleaseDC(gctx->hWnd, dc);
+
+#ifndef GLES_NO_PIXMAP
+		createPixmap(gctx, 1);
+#endif
 	}
 
-	gctx->egldpy = eglGetDisplay(/*gctx->dpy*/EGL_DEFAULT_DISPLAY);
+	gctx->egldpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+	if (!gctx->egldpy) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GAPI] Cannot get OpenGL display\n"));
+		return GF_IO_ERR;
+	}
 	if (!eglInitialize(gctx->egldpy, &maj, &min)) {
 		gctx->egldpy = NULL;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GAPI] Cannot initialize OpenGL layer\n"));
 		return GF_IO_ERR;
 	}
 
-	eglGetConfigs(gctx->egldpy, NULL, 0, &n);
-	if (!eglChooseConfig(gctx->egldpy, atts, &gctx->eglconfig, 1, &n)) {
+	if (!eglChooseConfig(gctx->egldpy, atts, &gctx->eglconfig, 1, &n) || (eglGetError() != EGL_SUCCESS)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GAPI] Cannot choose OpenGL config\n"));
 		return GF_IO_ERR;
 	}
-	if (gctx->fullscreen) {
+
+	if (gctx->fullscreen
+#ifdef GLES_NO_PIXMAP
+		|| 1
+#endif
+		) {
 		gctx->surface = eglCreateWindowSurface(gctx->egldpy, gctx->eglconfig, gctx->hWnd, 0);
 	} else {
 		gctx->surface = eglCreatePixmapSurface(gctx->egldpy, gctx->eglconfig, gctx->bitmap, 0);
 	}
 
 	if (!gctx->surface) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GAPI] Cannot create OpenGL surface - error %d\n", eglGetError()));
 		return GF_IO_ERR; 
 	}
 	gctx->eglctx = eglCreateContext(gctx->egldpy, gctx->eglconfig, NULL, NULL);
 	if (!gctx->eglctx) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GAPI] Cannot create OpenGL context\n"));
 		eglDestroySurface(gctx->egldpy, gctx->surface);
 		gctx->surface = 0L;
 		return GF_IO_ERR; 
 	}
     if (!eglMakeCurrent(gctx->egldpy, gctx->surface, gctx->surface, gctx->eglctx)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GAPI] Cannot bind OpenGL context\n"));
 		eglDestroyContext(gctx->egldpy, gctx->eglctx);
 		gctx->eglctx = 0L;
 		eglDestroySurface(gctx->egldpy, gctx->surface);
 		gctx->surface = 0L;
 		return GF_IO_ERR;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[GAPI] OpenGL initialize - %d x %d \n", gctx->bb_width, gctx->bb_height));
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	dr->on_event(dr->evt_cbk_hdl, &evt);	
 	return GF_OK;
@@ -631,7 +676,6 @@ GF_Err GAPI_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 height)
 	int atts[15];
 	const char *opt;
 	EGLint n, maj, min;
-	HDC dc;
 
 	GAPICTX(dr)
 
@@ -639,9 +683,7 @@ GF_Err GAPI_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 height)
 
 	if (!gctx->use_pbuffer) {
 		SetWindowPos(gctx->gl_hwnd, NULL, 0, 0, width, height, SWP_NOZORDER | SWP_NOMOVE);
-		dc = GetDC(gctx->gl_hwnd);
-		createPixmap(gctx, dc, 2);
-		ReleaseDC(gctx->hWnd, dc);
+		createPixmap(gctx, 2);
 	}
 
 	gctx->egldpy = eglGetDisplay(/*gctx->dpy*/EGL_DEFAULT_DISPLAY);
@@ -707,6 +749,15 @@ void GAPI_ReleaseObjects(GAPIPriv *ctx)
 	else if (ctx->backbuffer) free(ctx->backbuffer);
 	ctx->backbuffer = NULL;
 	ctx->bitmap = NULL;
+
+	if (ctx->hdcBitmap) {
+		if (ctx->old_bitmap) SelectObject(ctx->hdcBitmap, ctx->old_bitmap);
+		ctx->old_bitmap = NULL;
+		DeleteDC(ctx->hdcBitmap);
+		ctx->hdcBitmap = NULL;
+	}
+	if (ctx->hdc) ReleaseDC(ctx->hWnd, ctx->hdc);
+	ctx->hdc = NULL;
 }
 
 GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool noover)
@@ -958,16 +1009,20 @@ static GF_Err GAPI_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	
 #ifdef GPAC_USE_OGL_ES
 	if (gctx->output_3d_type==1) {
+#ifndef GLES_NO_PIXMAP
 		if (gctx->fullscreen && gctx->surface && gctx->egldpy) {
+#endif
 			if (gctx->erase_dest) {
 				InvalidateRect(gctx->hWnd, NULL, TRUE);
 				gctx->erase_dest = 0;
 			}
 			eglSwapBuffers(gctx->egldpy, gctx->surface);
+#ifndef GLES_NO_PIXMAP
 		} else {
 		    InvalidateRect(gctx->hWnd, NULL, gctx->erase_dest);
 			gctx->erase_dest = 0;
 		}
+#endif
 		gf_mx_v(gctx->mx);
 		return GF_OK;
 	}
@@ -1052,9 +1107,7 @@ static GF_Err GAPI_InitBackBuffer(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoH
 		gctx->backbuffer = (char *) malloc(sizeof(unsigned char) * gctx->bb_size);
 		gctx->gx_mode = 1;
 	} else {
-		HDC dc = GetDC(gctx->hWnd);
-		createPixmap(gctx, dc, 0);
-		::ReleaseDC(gctx->hWnd, dc);
+		createPixmap(gctx, 0);
 		gctx->gx_mode = 0;
 	}
 	RECT rc;

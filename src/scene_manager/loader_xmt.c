@@ -855,7 +855,11 @@ static u32 xmt_parse_sf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node 
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 	{
 		SFCommandBuffer *cb = (SFCommandBuffer *)info->far_ptr;
-		cb->buffer = (unsigned char*)parser->command;
+		if (parser->command_buffer) {
+			cb->buffer = (unsigned char*)parser->command_buffer;
+		} else {
+			cb->buffer = (unsigned char*)parser->command;
+		}
 		parser->command_buffer = cb;
 	}
 		break;
@@ -2107,6 +2111,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 		parser->command = gf_sg_command_new(parser->load->scene_graph, tag);
 		if (parser->command_buffer) {
 			gf_list_add(parser->command_buffer->commandList, parser->command);
+			parser->command_buffer->bufferSize++;
 		} else {
 			GF_StreamContext *stream = gf_sm_stream_find(parser->load->ctx, (u16) stream_id);
 			if (!stream || (stream->streamType!=GF_STREAM_SCENE)) stream_id = parser->base_scene_id;
@@ -2512,17 +2517,31 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 	/*only remove created nodes ... */
 	tag = xmt_get_node_tag(parser, name);
 	if (!tag) {
-		if (top->container_field.name && !strcmp(name, top->container_field.name)) {
-
-			if (top->container_field.fieldType==GF_SG_VRML_SFCOMMANDBUFFER) {
-				parser->doc_state = 4;
-				parser->command = (GF_Command *) (void *) parser->command_buffer->buffer;
-				parser->command_buffer->buffer = NULL;
-				parser->command_buffer = NULL;
+		if (top->container_field.name) {
+			if (!strcmp(name, top->container_field.name)) {
+				if (top->container_field.fieldType==GF_SG_VRML_SFCOMMANDBUFFER) {
+					parser->doc_state = 4;
+					parser->command = (GF_Command *) (void *) parser->command_buffer->buffer;
+					parser->command_buffer->buffer = NULL;
+					parser->command_buffer = NULL;
+				}
+				top->container_field.far_ptr = NULL;
+				top->container_field.name = NULL;
+				top->last = NULL;
 			}
-			top->container_field.far_ptr = NULL;
-			top->container_field.name = NULL;
-			top->last = NULL;
+			/*end of command inside an command (conditional.buffer replace)*/
+			else if (!strcmp(name, "Replace") || !strcmp(name, "Insert") || !strcmp(name, "Delete") )  {
+				if (parser->command_buffer) {
+					if (parser->command_buffer->bufferSize) {
+						parser->command_buffer->bufferSize--;
+					} else {
+						SFCommandBuffer *prev = (SFCommandBuffer *) parser->command_buffer->buffer;
+						parser->command_buffer->buffer = NULL;
+						parser->command_buffer = prev;
+						parser->doc_state = 4;
+					}
+				}
+			}
 		}
 		/*SF/MFNode proto field, just pop node stack*/
 		else if (!top->node && !strcmp(name, "field")) {

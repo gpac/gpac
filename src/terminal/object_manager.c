@@ -538,7 +538,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		return;
 	}
 
-	if (odm->mo && (odm->mo->type == GF_MEDIA_OBJECT_BIFS)) {
+	if (odm->mo && (odm->mo->type == GF_MEDIA_OBJECT_UPDATES)) {
 		hasInline = 0;
 	}
 

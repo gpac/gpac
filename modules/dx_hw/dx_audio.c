@@ -25,8 +25,6 @@
 
 #include "dx_hw.h"
 
-#include <process.h>
-
 #if (DIRECTSOUND_VERSION >= 0x0800)
 #define USE_WAVE_EX
 #endif
@@ -245,7 +243,7 @@ retry:
 	/*reset*/
 	DS_ResetBuffer(ctx);
 	/*play*/
-	IDirectSoundBuffer_Play(ctx->pOutput, 0, 0, DSBPLAY_LOOPING );	
+	IDirectSoundBuffer_Play(ctx->pOutput, 0, 0, DSBPLAY_LOOPING);	
 	return GF_OK;
 }
 

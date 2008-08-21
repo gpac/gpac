@@ -81,6 +81,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 avcodec-51.lib avformat-51.lib /nologo /dll /debug /machine:I386 /out:"../../bin/w32_deb/gm_ffmpeg_in.dll" /pdbtype:sept /libpath:"../../extra_lib/lib/w32_deb"
+# SUBTRACT LINK32 /incremental:no /nodefaultlib
 
 !ENDIF 
 

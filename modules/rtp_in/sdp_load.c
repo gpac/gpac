@@ -195,7 +195,7 @@ GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, const char *sub_url)
 	u32 i;
 
 	if (rtp->media_type==GF_MEDIA_OBJECT_INTERACT) return NULL;
-	if (rtp->media_type==GF_MEDIA_OBJECT_BIFS) return NULL;
+	if (rtp->media_type==GF_MEDIA_OBJECT_UPDATES) return NULL;
 
 	/*single object generation*/
 	a_str = NULL;

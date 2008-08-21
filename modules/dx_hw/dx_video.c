@@ -27,7 +27,12 @@
 
 #include <gpac/user.h>
 
+#ifdef _WIN32_WCE
+#ifdef GPAC_USE_OGL_ES
+#endif
+#else
 #include <GL/gl.h>
+#endif
 
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
 
@@ -39,7 +44,9 @@ static void RestoreWindow(DDContext *dd)
 
 	dd->NeedRestore = 0;
 	if (dd->output_3d_type==1) {
+#ifndef _WIN32_WCE
 		ChangeDisplaySettings(NULL,0);
+#endif
 		SetForegroundWindow(GetDesktopWindow());
 		SetForegroundWindow(dd->cur_hwnd);
 	} else {
@@ -86,7 +93,7 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		dd->gl_HDC = 0L;
 		dd->egldpy = NULL;
 	}
-#else
+#elif !defined(_WIN32_WCE) 
 	if (dd->gl_HRC) {
 		wglMakeCurrent(dd->gl_HDC, NULL);
 		wglDeleteContext(dd->gl_HRC);
@@ -154,7 +161,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 		dd->surface = 0L;
 		return GF_IO_ERR;
 	}
-#else
+#elif !defined(_WIN32_WCE)
     PIXELFORMATDESCRIPTOR pfd; 
     s32 pixelformat; 
 
@@ -283,6 +290,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 			SetWindowPos(dd->cur_hwnd, NULL, 0, 0, dd->fs_width, dd->fs_height, SWP_NOZORDER | SWP_SHOWWINDOW);
 			SetForegroundWindow(dd->cur_hwnd);
 
+#ifndef _WIN32_WCE
 			memset(&settings, 0, sizeof(DEVMODE));
 			settings.dmSize = sizeof(DEVMODE);
 			settings.dmPelsWidth = dd->fs_width;
@@ -292,6 +300,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectDraw] cannot change display settings\n"));
 				e = GF_IO_ERR;
 			} 
+#endif
 
 			dd->NeedRestore = 1;
 			dd->fs_store_width = dd->fs_width;

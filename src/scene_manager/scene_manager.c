@@ -349,7 +349,7 @@ GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str, Bool do_clean)
 	if (e) return e;
 	e = gf_sm_load_run(load);
 	gf_sm_load_done_string(load, do_clean);
-	return e;
+	return (e<0) ? e : GF_OK;
 }
 
 

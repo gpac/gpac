@@ -286,13 +286,19 @@ void gf_sc_ar_add_src(GF_AudioRenderer *ar, GF_AudioInterface *source)
 	recfg = gf_mixer_reconfig(ar->mixer);
 	if (!ar->need_reconfig) ar->need_reconfig = recfg;
 
+	if (!gf_mixer_empty(ar->mixer) && ar->audio_out && ar->audio_out->Play) 
+		ar->audio_out->Play(ar->audio_out, 1);
 	/*unlock mixer*/
 	gf_mixer_lock(ar->mixer, 0);
 }
 
 void gf_sc_ar_remove_src(GF_AudioRenderer *ar, GF_AudioInterface *source)
 {
-	if (ar) gf_mixer_remove_input(ar->mixer, source);
+	if (ar) {
+		gf_mixer_remove_input(ar->mixer, source);
+		if (gf_mixer_empty(ar->mixer) && ar->audio_out && ar->audio_out->Play) 
+			ar->audio_out->Play(ar->audio_out, 0);
+	}
 }
 
 

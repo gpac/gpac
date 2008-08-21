@@ -239,7 +239,7 @@ void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	}
 }
 
-static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref)
+static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref, Bool keep_fragment)
 {
 	GF_ObjectManager *root_od;
 	GF_ObjectManager *odm;
@@ -289,7 +289,7 @@ static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_ti
 		esd->ESID = esd->OCRESID = 65534;
 		gf_list_add(odm->OD->ESDescriptors, esd);
 	} else {
-		if (0 && mo->type==GF_MEDIA_OBJECT_SCENE) {
+		if (!keep_fragment) {
 			char *frag = strrchr(mo->URLs.vals[0].url, '#');
 			if (frag) frag[0] = 0;
 			odm->OD->URLString = strdup(mo->URLs.vals[0].url);
@@ -315,7 +315,8 @@ static void IS_ReinsertObject(GF_InlineScene *is, GF_MediaObject *mo)
 	for (i=0; i<mo->URLs.count-1; i++) mo->URLs.vals[i].url = mo->URLs.vals[i+1].url;
 	mo->URLs.vals[mo->URLs.count-1].url = NULL;
 	mo->URLs.count-=1;
-	IS_InsertObject(is, mo, 0, NULL);
+	/*FIXME - we should re-ananlyse whether the fragment is important or not ...*/
+	IS_InsertObject(is, mo, 0, NULL, 0);
 }
 
 
@@ -499,7 +500,7 @@ static Bool Inline_SetScene(M_Inline *root)
 	return 1;
 }
 
-Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
+static Bool gf_mo_is_same_url_ex(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, u32 obj_hint_type)
 {
 	Bool include_sub_url = 0;
 	u32 i;
@@ -522,17 +523,35 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
 		include_sub_url = 1;
 	else if (obj->type==GF_MEDIA_OBJECT_VIDEO) 
 		include_sub_url = 1;
-	else if (obj->type==GF_MEDIA_OBJECT_SCENE) {
+	else if ((obj->type==GF_MEDIA_OBJECT_SCENE) && keep_fragment) {
 		GF_ClientService *ns;
 		u32 j;
 		/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
 		for (i=0; i<an_url->count; i++) {
+			char *frag = strrchr(an_url->vals[i].url, '#');
 			j=0;
 			/*this is the same object (may need some refinement)*/
 			if (!stricmp(szURL1, an_url->vals[i].url)) return 1;
+
+			/*fragment is a media segment, same URL*/
+			if (frag && obj->odm) {
+				/*if the expected type is a segment (undefined media type) 
+				and the fragment is a media segment, same URL
+				*/
+				if (obj->odm->subscene && (gf_sg_find_node_by_name(obj->odm->subscene->graph, frag+1)!=NULL) )
+					return 1;
+			
+				/*if the expected type is a segment (undefined media type) 
+				and the fragment is a media segment, same URL
+				*/
+				if (!obj_hint_type && gf_odm_find_segment(obj->odm, frag+1))
+					return 1;
+			}
+
 			while ( (ns = (GF_ClientService*)gf_list_enum(obj->odm->term->net_services, &j)) ) {
-				/*sub-service of an existing service*/
+				/*sub-service of an existing service - don't touch any fragment*/
 				if (gf_term_service_can_handle_url(ns, an_url->vals[i].url)) {
+					*keep_fragment = 1;
 					return 0;
 				}
 			}
@@ -556,6 +575,11 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
 		if (!stricmp(szURL1, szURL2)) return 1;
 	}
 	return 0;
+}
+
+Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
+{
+	return gf_mo_is_same_url_ex(obj, an_url, NULL, 0);
 }
 
 void gf_inline_on_modified(GF_Node *node)
@@ -804,13 +828,14 @@ static GFINLINE Bool is_match_obj_type(u32 type, u32 hint_type)
 	if (!hint_type) return 1;
 	if (type==hint_type) return 1;
 	/*TEXT are used by animation stream*/
-	if ((type==GF_MEDIA_OBJECT_TEXT) && (hint_type==GF_MEDIA_OBJECT_BIFS)) return 1;
+	if ((type==GF_MEDIA_OBJECT_TEXT) && (hint_type==GF_MEDIA_OBJECT_UPDATES)) return 1;
 	return 0;
 }
 
 GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref, Bool always_load_new, GF_Node *node)
 {
 	GF_MediaObject *obj;
+	Bool keep_fragment = 0;
 	u32 i, OD_ID;
 
 	OD_ID = URL_GetODID(url);
@@ -829,8 +854,8 @@ GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u3
 					/*if object type unknown (media control, media sensor), return first obj matching URL
 					otherwise check types*/
 					&& is_match_obj_type(obj->type, obj_type_hint)
-					/*locate sub-url in given one (handles viewpoint/segments)*/
-					&& gf_mo_is_same_url(obj, url) 
+					/*locate sub-url in given one and handle fragments (viewpoint/segments/...)*/
+					&& gf_mo_is_same_url_ex(obj, url, &keep_fragment, obj_type_hint) 
 				)
 			) {
 				
@@ -855,13 +880,13 @@ GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u3
 	/*if animation stream object, remember originating node
 		!! FIXME - this should be cleaned up !! 
 	*/
-	if (obj->type == GF_MEDIA_OBJECT_BIFS)
+	if (obj->type == GF_MEDIA_OBJECT_UPDATES)
 		obj->node_ptr = node;
 
 	gf_list_add(is->media_objects, obj);
 	if (OD_ID == GF_ESM_DYNAMIC_OD_ID) {
 		gf_sg_vrml_field_copy(&obj->URLs, url, GF_SG_VRML_MFURL);
-		IS_InsertObject(is, obj, lock_timelines, sync_ref);
+		IS_InsertObject(is, obj, lock_timelines, sync_ref, keep_fragment);
 		/*safety check!!!*/
 		if (gf_list_find(is->media_objects, obj)<0) 
 			return NULL;
@@ -913,7 +938,7 @@ existing:
 	else if (odm->codec->type == GF_STREAM_VISUAL) odm->mo->type = GF_MEDIA_OBJECT_VIDEO;
 	else if (odm->codec->type == GF_STREAM_AUDIO) odm->mo->type = GF_MEDIA_OBJECT_AUDIO;
 	else if (odm->codec->type == GF_STREAM_TEXT) odm->mo->type = GF_MEDIA_OBJECT_TEXT;
-	else if (odm->codec->type == GF_STREAM_SCENE) odm->mo->type = GF_MEDIA_OBJECT_BIFS;
+	else if (odm->codec->type == GF_STREAM_SCENE) odm->mo->type = GF_MEDIA_OBJECT_UPDATES;
 	
 	/*update info*/
 	MO_UpdateCaps(odm->mo);

@@ -32,8 +32,18 @@
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
 # if defined(GPAC_USE_TINYGL)
 #  pragma comment(lib, "TinyGL")
+
 # elif defined(GPAC_USE_OGL_ES)
-#  pragma comment(lib, "libGLES_CM")
+
+#  if 0
+#   pragma message("Using OpenGL-ES Common Lite Profile")
+#   pragma comment(lib, "libGLES_CL")
+#	define GL_ES_CL_PROFILE
+#  else
+#   pragma message("Using OpenGL-ES Common Profile")
+#   pragma comment(lib, "libGLES_CM")
+#  endif
+
 # else
 #  pragma comment(lib, "opengl32")
 #  pragma comment(lib, "glu32")
@@ -44,7 +54,6 @@
 #if defined(GL_MAX_CLIP_PLANES) && defined(__SYMBIAN32__)
 #undef GL_MAX_CLIP_PLANES
 #endif
-
 
 #define CHECK_GL_EXT(name) ((strstr(ext, name) != NULL) ? 1 : 0)
 
@@ -415,13 +424,17 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 
 	if (mesh->mesh_type) {
+#ifdef GPAC_USE_OGL_ES
+		glNormal3x(0, 0, FIX_ONE);
+#else
 		glNormal3f(0, 0, 1.0f);
+#endif
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_LIGHTING);
 		if (mesh->mesh_type==2) glDisable(GL_LINE_SMOOTH);
 		else glDisable(GL_POINT_SMOOTH);
 
-#ifndef GPAC_USE_TINYGL
+#if !defined(GPAC_USE_TINYGL) && !defined(GL_ES_CL_PROFILE)
 		glLineWidth(1.0f);
 #endif
 	
@@ -519,7 +532,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 u32 ogles_push_enable(u32 mask)
 {
 	u32 attrib = 0;
-#ifndef __SYMBIAN32__
+#if !defined(__SYMBIAN32__) && !defined(GL_ES_CL_PROFILE)
 	if ((mask & GL_LIGHTING) && glIsEnabled(GL_LIGHTING) ) attrib |= GL_LIGHTING;
 	if ((mask & GL_BLEND) && glIsEnabled(GL_BLEND) ) attrib |= GL_BLEND;
 	if ((mask & GL_COLOR_MATERIAL) && glIsEnabled(GL_COLOR_MATERIAL) ) attrib |= GL_COLOR_MATERIAL;
@@ -529,7 +542,7 @@ u32 ogles_push_enable(u32 mask)
 }
 void ogles_pop_enable(u32 mask)
 {
-#ifndef __SYMBIAN32__
+#if !defined(__SYMBIAN32__) && !defined(GL_ES_CL_PROFILE)
 	if (mask & GL_LIGHTING) glEnable(GL_LIGHTING);
 	if (mask & GL_BLEND) glEnable(GL_BLEND);
 	if (mask & GL_COLOR_MATERIAL) glEnable(GL_COLOR_MATERIAL);
@@ -635,8 +648,13 @@ void VS3D_DrawAABBNodeBounds(GF_TraverseState *tr_state, AABBNode *node)
 		gf_vec_add(c, node->min, c);
 
 		glPushMatrix();
+#ifdef GPAC_USE_OGL_ES
+		glTranslatex(c.x, c.y, c.z);
+		glScalex(s.x, s.y, s.z);
+#else
 		glTranslatef(FIX2FLT(c.x), FIX2FLT(c.y), FIX2FLT(c.z));
 		glScalef(FIX2FLT(s.x), FIX2FLT(s.y), FIX2FLT(s.z));
+#endif
 		VS3D_DrawMeshIntern(tr_state, tr_state->visual->compositor->unit_bbox);
 		glPopMatrix();
 	}
@@ -718,7 +736,11 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (tr_state->visual->compositor->draw_normals) VS3D_DrawNormals(tr_state, mesh);
 	if (!mesh->mesh_type && (tr_state->visual->compositor->wiremode != GF_WIREFRAME_NONE)) {
 		glDisable(GL_LIGHTING);
+#ifdef GPAC_USE_OGL_ES
+		if (mesh_drawn) glColor4x(0, 0, 0, FIX_ONE);
+#else
 		if (mesh_drawn) glColor4f(0, 0, 0, 1.0f);
+#endif
 		glEnableClientState(GL_VERTEX_ARRAY);
 #ifdef GPAC_USE_OGL_ES
 		glVertexPointer(3, GL_FIXED, sizeof(GF_Vertex),  &mesh->vertices[0].pos);
@@ -884,7 +906,7 @@ void visual_3d_mesh_strike(GF_TraverseState *tr_state, GF_Mesh *mesh, Fixed widt
 	if (mesh->mesh_type != MESH_LINESET) return;
 	if (line_scale) width = gf_mulfix(width, line_scale);
 	width/=2;
-#ifndef GPAC_USE_TINYGL
+#if !defined(GPAC_USE_TINYGL) && !defined(GL_ES_CL_PROFILE)
 	glLineWidth( FIX2FLT(width));
 #endif
 
@@ -951,7 +973,11 @@ void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 
 void visual_3d_clear(GF_VisualManager *visual, SFColor color, Fixed alpha)
 {
+#ifdef GPAC_USE_OGL_ES
+	glClearColorx(color.red, color.green, color.blue, alpha);
+#else
 	glClearColor(FIX2FLT(color.red), FIX2FLT(color.green), FIX2FLT(color.blue), FIX2FLT(alpha));
+#endif
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
@@ -1040,7 +1066,9 @@ void visual_3d_matrix_push(GF_VisualManager *visual)
 }
 void visual_3d_matrix_add(GF_VisualManager *visual, Fixed *mat)
 {
-#ifdef GPAC_FIXED_POINT
+#ifdef GPAC_USE_OGL_ES
+	glMultMatrixx(mat);
+#elif defined(GPAC_FIXED_POINT)
 	u32 i;
 	Float _mat[16];
 	for (i=0; i<16; i++) _mat[i] = FIX2FLT(mat[i]);
@@ -1057,7 +1085,9 @@ void visual_3d_matrix_pop(GF_VisualManager *visual)
 
 void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 {
-#ifdef GPAC_FIXED_POINT
+#ifdef GPAC_USE_OGL_ES
+	glLoadMatrixx(mat);
+#elif defined(GPAC_FIXED_POINT)
 	Float _mat[16];
 	u32 i;
 	for (i=0; i<16; i++) _mat[i] = FIX2FLT(mat[i]);
@@ -1202,7 +1232,11 @@ void visual_3d_set_material(GF_VisualManager *visual, u32 material_type, Fixed *
 
 void visual_3d_set_shininess(GF_VisualManager *visual, Fixed shininess)
 {
+#ifdef GPAC_USE_OGL_ES
+	glMaterialx(GL_FRONT_AND_BACK, GL_SHININESS, shininess * 128);
+#else
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, FIX2FLT(shininess) * 128);
+#endif
 }
 
 void visual_3d_set_state(GF_VisualManager *visual, u32 flag_mask, Bool setOn)
@@ -1226,7 +1260,11 @@ void visual_3d_set_state(GF_VisualManager *visual, u32 flag_mask, Bool setOn)
 Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed _ambientIntensity, SFVec3f attenuation, Fixed _beamWidth, 
 					   SFColor color, Fixed _cutOffAngle, SFVec3f direction, Fixed _intensity, SFVec3f location)
 {
+#ifdef GPAC_USE_OGL_ES
+	Fixed vals[4], exp;
+#else
 	Float vals[4], intensity, cutOffAngle, beamWidth, ambientIntensity, exp;
+#endif
 	GLint iLight;
 
 	if (!visual->num_lights) glEnable(GL_LIGHTING);
@@ -1235,13 +1273,39 @@ Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed _ambientIntensity,
 	visual->num_lights++;
 	glEnable(iLight);
 
+#ifndef GPAC_USE_OGL_ES
 	ambientIntensity = FIX2FLT(_ambientIntensity);
 	intensity = FIX2FLT(_intensity);
 	cutOffAngle = FIX2FLT(_cutOffAngle);
 	beamWidth = FIX2FLT(_beamWidth);
-	
+#endif
+
 	/*in case...*/
 	gf_vec_norm(&direction);
+
+#ifdef GPAC_USE_OGL_ES
+	vals[0] = direction.x; vals[1] = direction.y; vals[2] = direction.z; vals[3] = FIX_ONE;
+	glLightxv(iLight, GL_SPOT_DIRECTION, vals);
+	vals[0] = location.x; vals[1] = location.y; vals[2] = location.z; vals[3] = FIX_ONE;
+	glLightxv(iLight, GL_POSITION, vals);
+	glLightx(iLight, GL_CONSTANT_ATTENUATION, attenuation.x ? attenuation.x : FIX_ONE);
+	glLightx(iLight, GL_LINEAR_ATTENUATION, attenuation.y);
+	glLightx(iLight, GL_QUADRATIC_ATTENUATION, attenuation.z);
+	vals[0] = gf_mulfix(color.red, _intensity); vals[1] = gf_mulfix(color.green, _intensity); vals[2] = gf_mulfix(color.blue, _intensity); vals[3] = FIX_ONE;
+	glLightxv(iLight, GL_DIFFUSE, vals);
+	glLightxv(iLight, GL_SPECULAR, vals);
+	vals[0] = gf_mulfix(color.red, _ambientIntensity); vals[1] = gf_mulfix(color.green, _ambientIntensity); vals[2] = gf_mulfix(color.blue, _ambientIntensity); vals[3] = FIX_ONE;
+	glLightxv(iLight, GL_AMBIENT, vals);
+
+	if (!_beamWidth) exp = FIX_ONE;
+	else if (_beamWidth>_cutOffAngle) exp = 0;
+	else {
+		exp = FIX_ONE - gf_cos(_beamWidth);
+		if (exp>FIX_ONE) exp = FIX_ONE;
+	}
+	glLightx(iLight, GL_SPOT_EXPONENT,  exp*128);
+	glLightx(iLight, GL_SPOT_CUTOFF, gf_divfix(180*_cutOffAngle, GF_PI) );
+#else
 	vals[0] = FIX2FLT(direction.x); vals[1] = FIX2FLT(direction.y); vals[2] = FIX2FLT(direction.z); vals[3] = 1;
 	glLightfv(iLight, GL_SPOT_DIRECTION, vals);
 	vals[0] = FIX2FLT(location.x); vals[1] = FIX2FLT(location.y); vals[2] = FIX2FLT(location.z); vals[3] = 1;
@@ -1264,13 +1328,19 @@ Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed _ambientIntensity,
 	}
 	glLightf(iLight, GL_SPOT_EXPONENT,  exp*128);
 	glLightf(iLight, GL_SPOT_CUTOFF, 180*cutOffAngle/FIX2FLT(GF_PI));
+#endif
+	
 	return 1;
 }
 
 /*insert pointlight - returns 0 if too many lights*/
 Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed _ambientIntensity, SFVec3f attenuation, SFColor color, Fixed _intensity, SFVec3f location)
 {
+#ifdef GPAC_USE_OGL_ES
+	Fixed vals[4];
+#else
 	Float vals[4], ambientIntensity, intensity;
+#endif
 	u32 iLight;
 
 	if (!visual->num_lights) glEnable(GL_LIGHTING);
@@ -1279,9 +1349,24 @@ Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed _ambientIntensity
 	visual->num_lights++;
 	glEnable(iLight);
 
+#ifdef GPAC_USE_OGL_ES
+	vals[0] = location.x; vals[1] = location.y; vals[2] = location.z; vals[3] = FIX_ONE;
+	glLightxv(iLight, GL_POSITION, vals);
+	glLightx(iLight, GL_CONSTANT_ATTENUATION, attenuation.x ? attenuation.x : FIX_ONE);
+	glLightx(iLight, GL_LINEAR_ATTENUATION, attenuation.y);
+	glLightx(iLight, GL_QUADRATIC_ATTENUATION, attenuation.z);
+	vals[0] = gf_mulfix(color.red, _intensity); vals[1] = gf_mulfix(color.green, _intensity); vals[2] = gf_mulfix(color.blue, _intensity); vals[3] = FIX_ONE;
+	glLightxv(iLight, GL_DIFFUSE, vals);
+	glLightxv(iLight, GL_SPECULAR, vals);
+	vals[0] = gf_mulfix(color.red, _ambientIntensity); vals[1] = gf_mulfix(color.green, _ambientIntensity); vals[2] = gf_mulfix(color.blue, _ambientIntensity); vals[3] = FIX_ONE;
+	glLightxv(iLight, GL_AMBIENT, vals);
+
+	glLightx(iLight, GL_SPOT_EXPONENT, 0);
+	glLightx(iLight, GL_SPOT_CUTOFF, INT2FIX(180) );
+#else
 	ambientIntensity = FIX2FLT(_ambientIntensity);
 	intensity = FIX2FLT(_intensity);
-	
+
 	vals[0] = FIX2FLT(location.x); vals[1] = FIX2FLT(location.y); vals[2] = FIX2FLT(location.z); vals[3] = 1;
 	glLightfv(iLight, GL_POSITION, vals);
 
@@ -1296,12 +1381,17 @@ Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed _ambientIntensity
 
 	glLightf(iLight, GL_SPOT_EXPONENT, 0);
 	glLightf(iLight, GL_SPOT_CUTOFF, 180);
+#endif
 	return 1;
 }
 
 Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed _ambientIntensity, SFColor color, Fixed _intensity, SFVec3f direction)
 {
+#ifdef GPAC_USE_OGL_ES
+	Fixed vals[4];
+#else
 	Float vals[4], ambientIntensity, intensity;
+#endif
 	u32 iLight;
 	if (!visual->num_lights) glEnable(GL_LIGHTING);
 	if (visual->num_lights==visual->max_lights) return 0;
@@ -1309,11 +1399,25 @@ Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed _ambientInt
 	visual->num_lights++;
 	glEnable(iLight);
 
+	/*in case...*/
+	gf_vec_norm(&direction);
+#ifdef GPAC_USE_OGL_ES
+	vals[0] = -direction.x; vals[1] = -direction.y; vals[2] = -direction.z; vals[3] = 0;
+	glLightxv(iLight, GL_POSITION, vals);
+	vals[0] = gf_mulfix(color.red, _intensity); vals[1] = gf_mulfix(color.green, _intensity); vals[2] = gf_mulfix(color.blue, _intensity); vals[3] = FIX_ONE;
+	glLightxv(iLight, GL_DIFFUSE, vals);
+	glLightxv(iLight, GL_SPECULAR, vals);
+	vals[0] = gf_mulfix(color.red, _ambientIntensity); vals[1] = gf_mulfix(color.green, _ambientIntensity); vals[2] = gf_mulfix(color.blue, _ambientIntensity); vals[3] = FIX_ONE;
+	glLightxv(iLight, GL_AMBIENT, vals);
+
+	glLightx(iLight, GL_CONSTANT_ATTENUATION, FIX_ONE);
+	glLightx(iLight, GL_LINEAR_ATTENUATION, 0);
+	glLightx(iLight, GL_QUADRATIC_ATTENUATION, 0);
+	glLightx(iLight, GL_SPOT_CUTOFF, INT2FIX(180) );
+#else
 	ambientIntensity = FIX2FLT(_ambientIntensity);
 	intensity = FIX2FLT(_intensity);
 
-	/*in case...*/
-	gf_vec_norm(&direction);
 	vals[0] = -FIX2FLT(direction.x); vals[1] = -FIX2FLT(direction.y); vals[2] = -FIX2FLT(direction.z); vals[3] = 0;
 	glLightfv(iLight, GL_POSITION, vals);
 	vals[0] = FIX2FLT(color.red)*intensity; vals[1] = FIX2FLT(color.green)*intensity; vals[2] = FIX2FLT(color.blue)*intensity; vals[3] = 1;
@@ -1326,6 +1430,7 @@ Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed _ambientInt
 	glLightf(iLight, GL_LINEAR_ATTENUATION, 0);
 	glLightf(iLight, GL_QUADRATIC_ATTENUATION, 0);
 	glLightf(iLight, GL_SPOT_CUTOFF, 180);
+#endif
 	return 1;
 }
 
@@ -1385,9 +1490,9 @@ void visual_3d_set_fog(GF_VisualManager *visual, const char *type, SFColor color
 void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color)
 {
 	glDisable(GL_BLEND | GL_LIGHTING | GL_TEXTURE_2D);
-	glNormal3f(0, 0, 1);
 
 #ifdef GPAC_USE_OGL_ES
+	glNormal3x(0, 0, FIX_ONE);
 	if (color.alpha!=FIX_ONE) glEnable(GL_BLEND);
 	glColor4x(color.red, color.green, color.blue, color.alpha);
 	{
@@ -1411,6 +1516,7 @@ void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color
 		glDisableClientState(GL_VERTEX_ARRAY);
 	}
 #else
+	glNormal3f(0, 0, 1);
 	if (color.alpha!=FIX_ONE) {
 		glEnable(GL_BLEND);
 		glColor4f(FIX2FLT(color.red), FIX2FLT(color.green), FIX2FLT(color.blue), FIX2FLT(color.alpha));

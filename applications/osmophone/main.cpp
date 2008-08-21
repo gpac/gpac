@@ -81,7 +81,7 @@ static Bool reset_status = 1;
 static u32 last_state_time = 0;
 static Bool loop = 0;
 static Bool full_screen = 0;
-static Bool use_3D_renderer = 0;
+static Bool force_2d_gl = 0;
 static Bool ctrl_mod_down = 0;
 static Bool view_cpu = 0;
 static Bool menu_switched = 0;
@@ -396,6 +396,8 @@ Bool LoadTerminal()
 	/*by default use current dir*/
 	strcpy(the_url, ".");
 
+	setup_logs();
+
 	g_hwnd_disp = CreateWindow(TEXT("STATIC"), NULL, WS_CHILD | WS_VISIBLE , 0, 0, disp_w, disp_h, g_hwnd, NULL, g_hinst, NULL);
 
 	user.EventProc = GPAC_EventProc;
@@ -424,8 +426,6 @@ Bool LoadTerminal()
 		strcpy(the_url, str);
 		gf_term_connect(term, str);
 	}
-
-	setup_logs();
 	return 1;
 }
 
@@ -438,8 +438,11 @@ void do_layout(Bool notif_size)
 		::ShowWindow(g_hwnd_status, SW_HIDE);
 		::ShowWindow(g_hwnd_menu1, SW_HIDE);
 		::ShowWindow(g_hwnd_menu2, SW_HIDE);
+
+		SHFullScreen(g_hwnd, SHFS_HIDESIPBUTTON);
 		::MoveWindow(g_hwnd, 0, 0, screen_w, screen_h, 1);
 		::MoveWindow(g_hwnd_disp, 0, 0, screen_w, screen_h, 1);
+		SetForegroundWindow(g_hwnd_disp);
 	} else {
 		::ShowWindow(g_hwnd_menu1, menu_switched ? SW_HIDE : SW_SHOW);
 		::ShowWindow(g_hwnd_menu2, menu_switched ? SW_SHOW : SW_HIDE);
@@ -532,14 +535,17 @@ void freeze_display(Bool do_freeze)
 
 static void show_taskbar(Bool show_it)
 {
+	HWND wnd;
 	if (!is_ppc) return;
 
+	wnd = GetForegroundWindow();
+	wnd = g_hwnd;
 	if (show_it) {
-		SHFullScreen(GetForegroundWindow(), SHFS_SHOWSTARTICON | SHFS_SHOWTASKBAR| SHFS_SHOWSIPBUTTON);
+		SHFullScreen(wnd, SHFS_SHOWSTARTICON | SHFS_SHOWTASKBAR| SHFS_SHOWSIPBUTTON);
 		::ShowWindow(::FindWindow(_T("HHTaskbar"),NULL), SW_SHOWNA);
 	} else {
 		::ShowWindow(::FindWindow(_T("HHTaskbar"),NULL), SW_HIDE);
-		SHFullScreen(GetForegroundWindow(), SHFS_HIDESTARTICON | SHFS_HIDETASKBAR| SHFS_HIDESIPBUTTON);
+		SHFullScreen(wnd, SHFS_HIDESTARTICON | SHFS_HIDETASKBAR| SHFS_HIDESIPBUTTON);
 	}
 }
 
@@ -738,9 +744,10 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	case IDM_VIEW_CPU:
 		view_cpu = !view_cpu;
 		break;
-	case IDM_VIEW_3DREND:
-		use_3D_renderer = !use_3D_renderer;
-		gf_term_set_option(term, GF_OPT_USE_OPENGL, use_3D_renderer);
+	case IDM_VIEW_FORCEGL:
+		force_2d_gl = !force_2d_gl;
+		gf_cfg_set_key(user.config, "Compositor", "ForceOpenGL", force_2d_gl ? "yes" : "no");
+		gf_term_set_option(term, GF_OPT_USE_OPENGL, force_2d_gl);
 		break;
 	case IDM_NAV_RESET:
 		gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
@@ -840,13 +847,13 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 {
 	if (menu_switched) {
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_STATUS, MF_BYCOMMAND| (show_status ? MF_CHECKED : MF_UNCHECKED) );
-		CheckMenuItem((HMENU)wParam, IDM_VIEW_3DREND, MF_BYCOMMAND| (use_3D_renderer ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem((HMENU)wParam, IDM_VIEW_FORCEGL, MF_BYCOMMAND| (force_2d_gl ? MF_CHECKED : MF_UNCHECKED) );
 		EnableMenuItem((HMENU)wParam, IDM_VIEW_CPU, MF_BYCOMMAND| (show_status ? MF_ENABLED : MF_GRAYED) );
 		if (show_status) CheckMenuItem((HMENU)wParam, IDM_VIEW_CPU, MF_BYCOMMAND| (view_cpu ? MF_CHECKED : MF_UNCHECKED) );
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_LOW_RATE, MF_BYCOMMAND| (use_low_fps ? MF_CHECKED : MF_UNCHECKED) );
 
-		EnableMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!use_3D_renderer ? MF_ENABLED : MF_GRAYED) );
-		CheckMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!use_3D_renderer && gf_term_get_option(term, GF_OPT_DIRECT_DRAW) ? MF_CHECKED : MF_UNCHECKED) );
+		EnableMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!force_2d_gl ? MF_ENABLED : MF_GRAYED) );
+		CheckMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!force_2d_gl && gf_term_get_option(term, GF_OPT_DIRECT_DRAW) ? MF_CHECKED : MF_UNCHECKED) );
 
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_SVG_LOAD, MF_BYCOMMAND| (use_svg_prog ? MF_CHECKED : MF_UNCHECKED) );
 		return TRUE;
@@ -1178,8 +1185,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	str = gf_cfg_get_key(user.config, "General", "Loop");
 	loop = (str && !stricmp(str, "yes")) ? 1 : 0;
 
-	use_3D_renderer = 0;
-
 	str = gf_cfg_get_key(user.config, "SAXLoader", "Progressive");
 	use_svg_prog = (str && !strcmp(str, "yes")) ? 1 : 0;
 
@@ -1196,6 +1201,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	if (InitInstance(nShowCmd)) {
 		SetForegroundWindow(g_hwnd);
 		show_taskbar(0);
+
+		force_2d_gl = gf_term_get_option(term, GF_OPT_USE_OPENGL);
 
 		while (GetMessage(&msg, NULL, 0,0) == TRUE) {
 			TranslateMessage (&msg);
