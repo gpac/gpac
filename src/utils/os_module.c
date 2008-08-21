@@ -78,7 +78,11 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 #ifdef WIN32
 	inst->lib_handle = LoadLibrary(path);
 	if (!inst->lib_handle) {
+#ifdef _WIN32_WCE
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s\n", s_path));
+#else
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s\n", path));
+#endif
 		return 0;
 	}
 #if defined(_WIN32_WCE)

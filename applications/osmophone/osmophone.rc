@@ -171,7 +171,7 @@ BEGIN
     END
     POPUP "?"
     BEGIN
-        MENUITEM "2D OpenGL",                   IDM_VIEW_3DREND
+        MENUITEM "2D OpenGL",                   IDM_VIEW_FORCEGL
         MENUITEM "Progressive SVG ",            IDM_VIEW_SVG_LOAD
         MENUITEM SEPARATOR
         MENUITEM "Disable Playlist",            IDS_CAP_DISABLE_PLAYLIST

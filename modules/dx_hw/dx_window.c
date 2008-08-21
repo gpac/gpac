@@ -40,12 +40,22 @@ static const GF_VideoOutput *the_video_output = NULL;
 
 void DD_SetCursor(GF_VideoOutput *dr, u32 cursor_type);
 
+
+#ifdef _WIN32_WCE
+static void DD_GetCoordinates(DWORD lParam, GF_Event *evt)
+{
+	evt->mouse.x = LOWORD(lParam);
+	evt->mouse.y = HIWORD(lParam);
+}
+#else
+
 static void DD_GetCoordinates(DWORD lParam, GF_Event *evt)
 {
 	POINTS pt = MAKEPOINTS(lParam);
 	evt->mouse.x = pt.x;
 	evt->mouse.y = pt.y;
 }
+#endif
 
 static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
 {
@@ -67,9 +77,6 @@ static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
 	case VK_KANJI: evt->key_code = GF_KEY_KANJIMODE; break;
 	case VK_ESCAPE: evt->key_code = GF_KEY_ESCAPE; break;
 	case VK_CONVERT: evt->key_code = GF_KEY_CONVERT; break;
-	case VK_NONCONVERT: evt->key_code = GF_KEY_NONCONVERT; break;
-	case VK_ACCEPT: evt->key_code = GF_KEY_ACCEPT; break;
-	case VK_MODECHANGE: evt->key_code = GF_KEY_MODECHANGE; break;
 	case VK_SPACE: evt->key_code = GF_KEY_SPACE; break;
 	case VK_PRIOR: evt->key_code = GF_KEY_PAGEUP; break;
 	case VK_NEXT: evt->key_code = GF_KEY_PAGEDOWN; break;
@@ -87,6 +94,12 @@ static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
 	case VK_INSERT: evt->key_code = GF_KEY_INSERT; break;
 	case VK_DELETE: evt->key_code = GF_KEY_DEL; break;
 	case VK_HELP: evt->key_code = GF_KEY_HELP; break;
+
+#ifndef _WIN32_WCE
+	case VK_NONCONVERT: evt->key_code = GF_KEY_NONCONVERT; break;
+	case VK_ACCEPT: evt->key_code = GF_KEY_ACCEPT; break;
+	case VK_MODECHANGE: evt->key_code = GF_KEY_MODECHANGE; break;
+#endif
 
 /*	case '!': evt->key_code = GF_KEY_EXCLAMATION; break;
 	case '"': evt->key_code = GF_KEY_QUOTATION; break;
@@ -492,6 +505,10 @@ typedef BOOL (WINAPI* typSetLayeredWindowAttributes)(HWND,COLORREF,BYTE,DWORD);
 
 static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 {
+#ifdef _WIN32_WCE
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX Out] Windowloess mode not supported on Window CE\n"));
+	return;
+#else
 	const char *opt;
 	u32 a, r, g, b;
 	COLORREF ckey;
@@ -530,6 +547,7 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 		_SetLayeredWindowAttributes(hWnd, ckey, 0, LWA_COLORKEY);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Using color key %s\n", opt));
+#endif
 }
 
  
@@ -537,7 +555,9 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 u32 DD_WindowThread(void *par)
 {
 	u32 flags;
+#ifndef _WIN32_WCE
 	RECT rc;
+#endif
 	MSG msg;
 	WNDCLASS wc;
 	HINSTANCE hInst;
@@ -546,15 +566,24 @@ u32 DD_WindowThread(void *par)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[DirectXOutput] Entering thread ID %d\n", gf_th_id() ));
 
+#ifndef _WIN32_WCE
 	hInst = GetModuleHandle("gm_dx_hw.dll");
+#else
+	hInst = GetModuleHandle(_T("gm_dx_hw.dll"));
+#endif
+
 	memset(&wc, 0, sizeof(WNDCLASS));
+#ifndef _WIN32_WCE
 	wc.style = CS_BYTEALIGNWINDOW;
+	wc.hIcon = LoadIcon (NULL, IDI_APPLICATION);
+	wc.lpszClassName = "GPAC DirectDraw Output";
+#else
+	wc.lpszClassName = _T("GPAC DirectDraw Output");
+#endif
 	wc.hInstance = hInst;
 	wc.lpfnWndProc = DD_WindowProc;
-	wc.hIcon = LoadIcon (NULL, IDI_APPLICATION);
 	wc.hCursor = LoadCursor (NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)GetStockObject (BLACK_BRUSH);
-	wc.lpszClassName = "GPAC DirectDraw Output";
 	RegisterClass (&wc);
 
 	flags = ctx->switch_res;
@@ -563,8 +592,11 @@ u32 DD_WindowThread(void *par)
 	if (!ctx->os_hwnd) {
 		if (flags & GF_TERM_WINDOWLESS) ctx->windowless = 1;
 
+#ifdef _WIN32_WCE
+		ctx->os_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC DirectDraw Output"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#else
 		ctx->os_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", ctx->windowless ? WS_POPUP : WS_OVERLAPPEDWINDOW, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
-
+#endif
 		if (ctx->os_hwnd == NULL) {
 			ctx->th_state = 2;
 			return 1;
@@ -577,24 +609,37 @@ u32 DD_WindowThread(void *par)
 		}
 
 		/*get border & title bar sizes*/
+#ifdef _WIN32_WCE
+		ctx->off_w = 0;
+		ctx->off_h = 0;
+#else
 		rc.left = rc.top = 0;
 		rc.right = rc.bottom = 100;
 		AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, 0);
 		ctx->off_w = rc.right - rc.left - 100;
 		ctx->off_h = rc.bottom - rc.top - 100;
+#endif
 		ctx->owns_hwnd = 1;
 
 		if (ctx->windowless) SetWindowless(vout, ctx->os_hwnd);
 	}
 
+#ifdef _WIN32_WCE
+	ctx->fs_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC DirectDraw FS Output"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#else
 	ctx->fs_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#endif
 	if (!ctx->fs_hwnd) {
 		ctx->th_state = 2;
 		return 1;
 	}
 	ShowWindow(ctx->fs_hwnd, SW_HIDE);
 
+#ifdef _WIN32_WCE
+	ctx->gl_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC OpenGL Offscreen"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#else
 	ctx->gl_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC OpenGL Offscreen", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#endif
 	if (!ctx->gl_hwnd) {
 		ctx->th_state = 2;
 		return 1;
@@ -661,7 +706,11 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 	PostMessage(ctx->fs_hwnd, WM_DESTROY, 0, 0);
 	PostMessage(ctx->gl_hwnd, WM_DESTROY, 0, 0);
 	while (ctx->th_state!=2) gf_sleep(10);
+#ifdef _WIN32_WCE
+	UnregisterClass(_T("GPAC DirectDraw Output"), GetModuleHandle(_T("gm_dx_hw.dll")) );
+#else
 	UnregisterClass("GPAC DirectDraw Output", GetModuleHandle("gm_dx_hw.dll"));
+#endif
 	gf_th_del(ctx->th);
 	ctx->th = NULL;
 	ctx->os_hwnd = NULL;
@@ -718,7 +767,9 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		DD_SetCursor(dr, evt->cursor.cursor_type);
 		break;
 	case GF_EVENT_SET_CAPTION:
+#ifndef _WIN32_WCE
 		if (evt->caption.caption) SetWindowText(ctx->os_hwnd, evt->caption.caption);
+#endif
 		break;
 	case GF_EVENT_MOVE:
 		if (evt->move.relative == 2) {

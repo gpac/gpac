@@ -78,7 +78,7 @@ typedef struct
 	M_Transform2D *tr_track, *tr_box, *tr_scroll;
 	M_Material2D *mat_track, *mat_box;
 	M_Layer2D *dlist;
-	M_Rectangle *rec_box;
+	M_Rectangle *rec_box, *rec_track;
 
 	M_TimeSensor *ts_blink, *ts_scroll;
 	M_ScalarInterpolator *process_blink, *process_scroll;
@@ -288,10 +288,11 @@ static GF_Err TTD_AttachStream(GF_BaseDecoder *plug,
 	((M_Appearance *) ((M_Shape *)n1)->appearance)->material = (GF_Node *) priv->mat_track;
 	gf_node_register((GF_Node *) priv->mat_track, ((M_Shape *)n1)->appearance);
 	n2 = ttd_create_node(priv, TAG_MPEG4_Rectangle, NULL);
-	((M_Rectangle *)n2)->size.x = priv->cfg->text_width;
-	((M_Rectangle *)n2)->size.y = priv->cfg->text_height;
+	((M_Rectangle *)n2)->size.x = 0;
+	((M_Rectangle *)n2)->size.y = 0;
 	((M_Shape *)n1)->geometry = n2;
 	gf_node_register(n2, n1);
+	priv->rec_track = (M_Rectangle *)n2;
 
 	/*txt box background*/
 	priv->tr_box = (M_Transform2D *) ttd_create_node(priv, TAG_MPEG4_Transform2D, NULL);
@@ -306,8 +307,8 @@ static GF_Err TTD_AttachStream(GF_BaseDecoder *plug,
 	((M_Appearance *) ((M_Shape *)n1)->appearance)->material = (GF_Node *)priv->mat_box;
 	gf_node_register((GF_Node *)priv->mat_box, ((M_Shape *)n1)->appearance);
 	priv->rec_box = (M_Rectangle *) ttd_create_node(priv, TAG_MPEG4_Rectangle, NULL);
-	priv->rec_box->size.x = priv->cfg->text_width;
-	priv->rec_box->size.y = priv->cfg->text_height;
+	priv->rec_box->size.x = 0;
+	priv->rec_box->size.y = 0;
 	((M_Shape *)n1)->geometry = (GF_Node *) priv->rec_box;
 	gf_node_register((GF_Node *) priv->rec_box, n1);
 
@@ -768,6 +769,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		priv->mat_track->transparency = FIX_ONE;
 		n = priv->mat_box;
 	}
+
 	n->transparency = FIX_ONE - INT2FIX((td->back_color>>24) & 0xFF) / 255;
 	n->emissiveColor.red = INT2FIX((td->back_color>>16) & 0xFF) / 255;
 	n->emissiveColor.green = INT2FIX((td->back_color>>8) & 0xFF) / 255;
@@ -792,9 +794,31 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		thh = priv->cfg->text_height;
 	}
 
-	priv->dlist->size.x = priv->rec_box->size.x = INT2FIX(thw);
-	priv->dlist->size.y = priv->rec_box->size.y = INT2FIX(thh);
-	gf_node_changed((GF_Node *) priv->rec_box, NULL);
+	priv->dlist->size.x = INT2FIX(thw);
+	priv->dlist->size.y = INT2FIX(thh);
+
+	/*disable backgrounds if not used*/
+	if (priv->mat_track->transparency<FIX_ONE) {
+		if (priv->rec_track->size.x != priv->cfg->text_width) {
+			priv->rec_track->size.x = priv->cfg->text_width;
+			priv->rec_track->size.y = priv->cfg->text_height;
+			gf_node_changed((GF_Node *) priv->rec_track, NULL);
+		}
+	} else if (priv->rec_track->size.x) {
+		priv->rec_track->size.x = priv->rec_track->size.y = 0;
+		gf_node_changed((GF_Node *) priv->rec_box, NULL);
+	}
+	
+	if (priv->mat_box->transparency<FIX_ONE) {
+		if (priv->rec_box->size.x != priv->dlist->size.x) {
+			priv->rec_box->size.x = priv->dlist->size.x;
+			priv->rec_box->size.y = priv->dlist->size.y;
+			gf_node_changed((GF_Node *) priv->rec_box, NULL);
+		}
+	} else if (priv->rec_box->size.x) {
+		priv->rec_box->size.x = priv->rec_box->size.y = 0;
+		gf_node_changed((GF_Node *) priv->rec_box, NULL);
+	}
 
 	form = (M_Form *) ttd_create_node(priv, TAG_MPEG4_Form, NULL);
 	form->size.x = INT2FIX(thw);

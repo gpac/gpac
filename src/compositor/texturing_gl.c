@@ -31,12 +31,15 @@
 #ifdef GPAC_USE_TINYGL
 # define GLTEXENV	glTexEnvi
 # define GLTEXPARAM	glTexParameteri
+# define TexEnvType u32
 #elif defined (GPAC_USE_OGL_ES)
-# define GLTEXENV	glTexEnvf
+# define GLTEXENV	glTexEnvx
 # define GLTEXPARAM	glTexParameterx
+# define TexEnvType Fixed
 #else
 # define GLTEXENV	glTexEnvf
 # define GLTEXPARAM	glTexParameteri
+# define TexEnvType Float
 #endif
 
 
@@ -815,13 +818,13 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	if (!a_surf->tx_io) a_surf = NULL;
 	alpha_surf = gf_sc_texture_get_handler(matte->alphaSurface);
 	if (!alpha_surf->tx_io) alpha_surf = NULL;
-	
+
 	action = (matte->operation).buffer;
 	glDisable(GL_TEXTURE_2D);
 	
 	/* SCALE */
 	if (! strcmp(action,"SCALE") || !strcmp(action,"BIAS") ) {
-		Float operand;
+		TexEnvType operand;
 		coefficients = (matte->parameter);
 		if (coefficients.count < 3) {
 			tx_bind(b_surf);

@@ -71,7 +71,7 @@
 #define IDM_VIEW_ABOUT                  40054
 #define IDM_ABOUT_OK                    40055
 #define IDM_VIEW_STATUS                 40057
-#define IDM_VIEW_3DREND                 40058
+#define IDM_VIEW_FORCEGL                40058
 #define ID_NAVIGATE                     40059
 #define IDS_CAP_NAVIGATE                40061
 #define IDM_NAV_NONE                    40062

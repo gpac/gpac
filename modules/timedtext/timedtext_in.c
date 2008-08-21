@@ -207,13 +207,20 @@ static GF_Descriptor *TTIn_GetServiceDesc(GF_InputService *plug, u32 expect_type
 {
 	TTIn *tti = (TTIn *)plug->priv;
 	/*visual object*/
-	if (expect_type==GF_MEDIA_OBJECT_TEXT) {
+	switch (expect_type) {
+	case GF_MEDIA_OBJECT_UNDEF:
+	case GF_MEDIA_OBJECT_UPDATES:
+	case GF_MEDIA_OBJECT_TEXT:
+	{
 		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		GF_ESD *esd = tti_get_esd(tti);
 		od->objectDescriptorID = esd->ESID;
 		gf_list_add(od->ESDescriptors, esd);
 		tti->od_done = 1;
 		return (GF_Descriptor *) od;
+	}
+	default:
+		return NULL;
 	}
 	return NULL;
 }

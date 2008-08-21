@@ -100,6 +100,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 				if (!strlen(ftpriv->font_fixed)) {
 					if (face->face_flags & FT_FACE_FLAG_FIXED_WIDTH) store = 1;
 					else if (!strnicmp(face->family_name, "Courier", 15)) store = 1;
+					else if (strstr(szFont, "sans") || strstr(szFont, "serif")) store = 0;
 					else if (strstr(szFont, "monospace")) store = 1;
 
 					if (store) strcpy(ftpriv->font_fixed, face->family_name);
@@ -107,12 +108,14 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 				if (!store && !strlen(ftpriv->font_sans)) {
 					if (!strnicmp(face->family_name, "Arial", 5)) store = 1;
 					else if (!strnicmp(face->family_name, "Verdana", 7)) store = 1;
+					else if (strstr(szFont, "serif") || strstr(szFont, "fixed")) store = 0;
 					else if (strstr(szFont, "sans")) store = 1;
 
 					if (store) strcpy(ftpriv->font_sans, face->family_name);
 				}
 				if (!store && !strlen(ftpriv->font_serif)) {
 					if (!strnicmp(face->family_name, "Times New Roman", 15)) store = 1;
+					else if (strstr(szFont, "sans") || strstr(szFont, "fixed")) store = 0;
 					else if (strstr(szFont, "serif")) store = 1;
 
 					if (store) strcpy(ftpriv->font_serif, face->family_name);
@@ -325,16 +328,12 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	opt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", fname);
 	if (opt) {
 		FT_Face face;
-		if (!stricmp(opt, "UNKNOWN")) return GF_NOT_SUPPORTED;
-
 		if (FT_New_Face(ftpriv->library, opt, 0, & face )) return GF_IO_ERR;
 		if (!face) return GF_IO_ERR;
 		gf_list_add(ftpriv->loaded_fonts, face);
 		ftpriv->active_face = face;
 		return GF_OK;
 	}
-	/*font not on system...*/
-	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", fname, "UNKNOWN");
 
 	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Font %s not found\n", fname));
 	return GF_NOT_SUPPORTED;
