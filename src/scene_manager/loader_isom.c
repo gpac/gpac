@@ -359,18 +359,9 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-
-extern u32 nb_ndt_bits_all;
-extern u32 nb_ndt_bits_v2;
-extern u32 bifs_quantized_bits;
-
 void gf_sm_load_done_isom(GF_SceneLoader *load)
 {
 	/*nothing to do the file is not ours*/
-	fprintf(stdout, "\n\nNDTBits all %d - NDTBits v2 %d\n", nb_ndt_bits_all, nb_ndt_bits_v2);
-	fprintf(stdout, "Gain %g\n", nb_ndt_bits_v2*100.0 / nb_ndt_bits_all);
-	fprintf(stdout, "\nQuantized Bits %d (%d bytes)\n", bifs_quantized_bits, bifs_quantized_bits/8);
-	fprintf(stdout, "\n");
 
 }
 

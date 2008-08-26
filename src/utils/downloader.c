@@ -238,7 +238,8 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) return;
 
 	len = strlen(sess->server_name) + strlen(sess->remote_path) + 1;
-	tmp = malloc(sizeof(char)*len);
+	if (len<50) len = 50;
+	tmp = malloc(sizeof(char) * len);
 	tmp[0] = 0;
 
 	/*generate hash of the full url*/

@@ -523,7 +523,7 @@ static Bool gf_mo_is_same_url_ex(GF_MediaObject *obj, MFURL *an_url, Bool *keep_
 		include_sub_url = 1;
 	else if (obj->type==GF_MEDIA_OBJECT_VIDEO) 
 		include_sub_url = 1;
-	else if ((obj->type==GF_MEDIA_OBJECT_SCENE) && keep_fragment) {
+	else if ((obj->type==GF_MEDIA_OBJECT_SCENE) && keep_fragment && obj->odm) {
 		GF_ClientService *ns;
 		u32 j;
 		/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
@@ -534,7 +534,7 @@ static Bool gf_mo_is_same_url_ex(GF_MediaObject *obj, MFURL *an_url, Bool *keep_
 			if (!stricmp(szURL1, an_url->vals[i].url)) return 1;
 
 			/*fragment is a media segment, same URL*/
-			if (frag && obj->odm) {
+			if (frag ) {
 				/*if the expected type is a segment (undefined media type) 
 				and the fragment is a media segment, same URL
 				*/
@@ -1472,7 +1472,10 @@ void gf_inline_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 		is->audio_url.OD_ID = odm->OD->objectDescriptorID;
 		if (!ac->url.count) gf_sg_vrml_mf_alloc(&ac->url, GF_SG_VRML_MFURL, 1);
 		ac->url.vals[0].OD_ID = odm->OD->objectDescriptorID;
-		if (ac->url.vals[0].url) free(ac->url.vals[0].url);
+		if (ac->url.vals[0].url) {
+			free(ac->url.vals[0].url);
+			ac->url.vals[0].url = NULL; 
+		}
 		url = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
 		if (url) {
 			is->audio_url.url = strdup(url);

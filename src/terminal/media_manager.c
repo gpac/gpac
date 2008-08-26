@@ -80,7 +80,7 @@ void gf_term_stop_scheduler(GF_Terminal *term)
 	if (term->mm_thread) {
 		term->flags &= ~GF_TERM_RUNNING;
 		while (!(term->flags & GF_TERM_DEAD) ) 
-			gf_sleep(0);
+			gf_sleep(2);
 
 		assert(! gf_list_count(term->codecs));
 		gf_th_del(term->mm_thread);

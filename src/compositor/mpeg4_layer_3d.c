@@ -134,9 +134,6 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 {
 	GF_Err e;
 	GF_STENCIL stencil;
-#ifndef GPAC_USE_TINYGL
-	M_Background2D *back;
-#endif
 	u32 new_pixel_format, w, h;
 	GF_Compositor *compositor = (GF_Compositor *)st->visual->compositor;
 
@@ -159,8 +156,8 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 
 	new_pixel_format = GF_PIXEL_RGBA;
 #ifndef GPAC_USE_TINYGL
-	back = gf_list_get(tr_state->backgrounds, 0);
-	if (back && back->isBound) new_pixel_format = GF_PIXEL_RGB_24;
+	if (Bindable_GetIsBound(gf_list_get(tr_state->backgrounds, 0)) )
+		new_pixel_format = GF_PIXEL_RGB_24;
 
 	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
 #ifdef GPAC_USE_OGL_ES

@@ -276,7 +276,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 
 	gf_term_lock_net(term, 1);
 	/*object declared this way are not part of an OD stream and are considered as dynamic*/
-	od->objectDescriptorID = GF_ESM_DYNAMIC_OD_ID;
+//	od->objectDescriptorID = GF_ESM_DYNAMIC_OD_ID;
 
 	/*check if we have a mediaObject in the scene not attached and matching this object*/
 	the_mo = NULL;
@@ -291,13 +291,22 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		keep track of declared objects*/
 		if (mo->odm->OD) {
 			if (is_same_od(mo->odm->OD, od)) {
+				/*reassign OD ID*/
+				mo->OD_ID = od->objectDescriptorID;
 				gf_odf_desc_del(media_desc);
 				gf_term_lock_net(term, 0);
 				return;
 			}
 			continue;
 		}
-		if (mo->OD_ID != GF_ESM_DYNAMIC_OD_ID) continue;
+		if (mo->OD_ID != GF_ESM_DYNAMIC_OD_ID) {
+			if (mo->OD_ID == od->objectDescriptorID) {
+				the_mo = mo;
+				odm = mo->odm;
+				break;
+			}
+			continue;
+		}
 		if (!mo->URLs.count || !mo->URLs.vals[0].url) continue;
 
 		frag = NULL;
@@ -345,6 +354,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	}
 	odm->OD = od;
 	odm->mo = the_mo;
+	if (the_mo) the_mo->OD_ID = od->objectDescriptorID;
 	odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
 	gf_term_lock_net(term, 0);
 

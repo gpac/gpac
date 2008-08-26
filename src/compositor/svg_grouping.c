@@ -293,7 +293,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {
 		/*don't pick if no listeners*/
-		if (!(gf_node_get_dom_event_filter(node) & GF_DOM_EVENT_MOUSE))
+		if (!(gf_node_get_dom_event_filter(node) & GF_DOM_EVENT_MOUSE) && !gf_list_count(tr_state->vrml_sensors) )
 			return;
 	}
 
@@ -910,6 +910,8 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 
 
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+	if (!all_atts.xlink_href) return;
+
 	if (!compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags))
 		return;
 

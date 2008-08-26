@@ -351,8 +351,6 @@ GF_Err Q_DecNormal(GF_BifsDecoder *codec, GF_BitStream *bs, u32 NbBits, void *fi
 	return GF_OK;
 }
 
-u32 bifs_quantized_bits = 0;
-
 GF_Err gf_bifs_dec_unquant_field(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field)
 {
 	Bool HasQ;
@@ -428,35 +426,6 @@ GF_Err gf_bifs_dec_unquant_field(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Nod
 		break;
 	default:
 		return GF_BAD_PARAM;
-	}
-
-	switch (QType) {
-	case QC_ORDER:
-	case QC_ANGLE:
-	case QC_SCALE:
-	case QC_INTERPOL_KEYS:
-		bifs_quantized_bits += NbBits;
-		break;
-	case QC_2DPOS:
-	case QC_TEXTURE_COORD:
-	case QC_SIZE_2D:
-		bifs_quantized_bits += 2*NbBits;
-		break;
-	case QC_COLOR:
-	case QC_3DPOS:
-	case QC_SIZE_3D:
-		bifs_quantized_bits += 3*NbBits;
-		break;
-	case QC_LINEAR_SCALAR:
-	case QC_COORD_INDEX:
-		bifs_quantized_bits += NbBits;
-		break;
-	case QC_NORMALS:
-		bifs_quantized_bits += 2*NbBits;
-		break;
-	case QC_ROTATION:
-		bifs_quantized_bits += 3*NbBits;
-		break;
 	}
 
 	if (e) return e;

@@ -643,9 +643,6 @@ static void UpdateTimeNode(GF_BifsDecoder * codec, GF_Node *node)
 	}
 }
 
-u32 nb_ndt_bits_all = 0;
-u32 nb_ndt_bits_v2 = 0;
-
 GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 {
 	u32 nodeID, NDTBits, node_type, node_tag, ProtoID, BVersion;
@@ -722,10 +719,6 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 		}
 
 		node_type = gf_bs_read_int(bs, NDTBits);
-
-		nb_ndt_bits_all += NDTBits;
-		if (BVersion>2) nb_ndt_bits_v2 += NDTBits;
-
 		if (node_type) break;
 
 		//increment BIFS version
