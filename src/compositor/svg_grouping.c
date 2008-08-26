@@ -300,7 +300,10 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	prev_props = tr_state->svg_props;
 	/*SVG props not set: we are either the root-most <svg> of the compositor
 	or an <svg> inside an <animation>*/
-	if (!tr_state->svg_props) tr_state->svg_props = stack->svg_props;
+	if (!tr_state->svg_props) {
+		tr_state->svg_props = stack->svg_props;
+		if (!tr_state->svg_props) return;
+	}
 	
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 	if (!compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags)) {

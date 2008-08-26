@@ -1827,6 +1827,20 @@ GF_Err gf_node_activate(GF_Node *node)
 	return e;
 }
 
+GF_EXPORT
+GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *id, Bool deep)
+{
+	if (orig->sgprivate->tag < GF_NODE_RANGE_LAST_VRML) {
+		/*deep clone is always true for VRML*/
+		return gf_vrml_node_clone(inScene, orig, cloned_parent, id);
+	} else if (orig->sgprivate->tag == TAG_DOMUpdates) {
+		/*TODO*/
+		return NULL;
+	} else {
+		return gf_xml_node_clone(inScene, orig, cloned_parent, id, deep);
+	}
+}
+
 
 GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 {

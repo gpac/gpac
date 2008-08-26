@@ -396,6 +396,7 @@ void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
 GF_EXPORT
 Bool gf_dom_event_fire(GF_Node *node, GF_List *use_stack, GF_DOM_Event *event)
 {
+	GF_DOMEventTarget cur_target;
 	u32 cur_par_idx;
 	if (!node || !event) return 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events    ] Time %f - Firing event  %s.%s\n", gf_node_get_scene_time(node), gf_node_get_log_name(node), gf_dom_event_get_name(event->type)));
@@ -405,7 +406,15 @@ Bool gf_dom_event_fire(GF_Node *node, GF_List *use_stack, GF_DOM_Event *event)
 
 	event->target = node;
 	event->target_type = GF_DOM_EVENT_NODE;
-	event->currentTarget = NULL;
+	if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) {
+		event->currentTarget = node->sgprivate->interact->dom_evt;
+	} else {
+		cur_target.ptr_type = GF_DOM_EVENT_NODE;
+		cur_target.ptr = node;
+		cur_target.evt_list = NULL;
+		event->currentTarget = &cur_target;
+	}
+
 	/*capture phase - not 100% sure, the actual capture phase should be determined by the std using the DOM events
 	SVGT doesn't use this phase, so we don't add it for now.*/
 	if (0) {
@@ -523,7 +532,10 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 			if (proto->event.parameter!=evt->detail) continue;
 		}
 		/*only handle event if coming from the watched element*/
-		if (proto->element && (proto->element!=evt->target)) continue;
+		if (proto->element) {
+			if ((evt->currentTarget->ptr_type!=GF_DOM_EVENT_NODE) || (proto->element!= (GF_Node*)evt->currentTarget->ptr)) 
+				continue;
+		}
 
 		/*solve*/
 		GF_SAFEALLOC(resolved, SMIL_Time);

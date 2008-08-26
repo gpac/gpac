@@ -341,10 +341,11 @@ s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *na
 	return -1;
 }
 
-GF_Node *gf_node_clone_ex(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, Bool use_id)
+
+GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id_suffix)
 {
 	u32 i, count, id;
-	const char *orig_name;
+	char *szNodeName;
 	Bool is_script;
 	GF_Node *node, *child;
 	GF_ChildNodeItem *list, *last;
@@ -358,12 +359,27 @@ GF_Node *gf_node_clone_ex(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned
 	if (!orig) return NULL;
 
 	/*check for DEF/USE*/
-	orig_name  = gf_node_get_name_and_id(orig, &id);
-	if (use_id && id) {
-		node = gf_sg_find_node(inScene, id);
+	szNodeName = NULL;
+	if (!inst_id_suffix) id = 0;
+	else {
+		const char *orig_name = gf_node_get_name_and_id(orig, &id);
+		/*generate clone IDs based on original one*/
+		if (inst_id_suffix[0] && id) {
+			id = gf_sg_get_next_available_node_id(inScene);
+			if (orig_name) {
+				szNodeName = malloc(sizeof(char)*(strlen(orig_name)+strlen(inst_id_suffix)+1));
+				strcpy(szNodeName, orig_name);
+				strcat(szNodeName, inst_id_suffix);
+			}
+		}
+	}
+
+	if (id) {
+		node = szNodeName ? gf_sg_find_node_by_name(inScene, szNodeName) : gf_sg_find_node(inScene, id);
 		/*node already created, USE*/
 		if (node) {
 			gf_node_register(node, cloned_parent);
+			if (inst_id_suffix[0] && szNodeName) free(szNodeName);
 			return node;
 		}
 	}
@@ -395,14 +411,14 @@ GF_Node *gf_node_clone_ex(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned
 		/*duplicate it*/
 		switch (field.fieldType) {
 		case GF_SG_VRML_SFNODE:
-			child = gf_node_clone_ex(inScene, (* ((GF_Node **) field_orig.far_ptr)), node, use_id);
+			child = gf_node_clone(inScene, (* ((GF_Node **) field_orig.far_ptr)), node, inst_id_suffix, 1);
 			*((GF_Node **) field.far_ptr) = child;
 			break;
 		case GF_SG_VRML_MFNODE:
 			last = NULL;
 			list = *( (GF_ChildNodeItem **) field_orig.far_ptr);
 			while (list) {
-				child = gf_node_clone_ex(inScene, list->node, node, use_id);
+				child = gf_node_clone(inScene, list->node, node, inst_id_suffix, 1);
 				gf_node_list_add_child_last((GF_ChildNodeItem **) field.far_ptr, child, &last);
 				list = list->next;
 			}
@@ -436,8 +452,9 @@ GF_Node *gf_node_clone_ex(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned
 	}
 
 	/*register node*/
-	if (use_id && id) {
-		gf_node_set_id(node, id, orig_name);
+	if (id) {
+		gf_node_set_id(node, id, szNodeName);
+		if (inst_id_suffix[0] && szNodeName) free(szNodeName);
 	}
 	gf_node_register(node, cloned_parent);
 
@@ -486,18 +503,6 @@ GF_Node *gf_node_clone_ex(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned
 		gf_sg_proto_instanciate((GF_ProtoInstance *)node);
 	}
 	return node;
-}
-
-GF_EXPORT
-GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent)
-{
-	return gf_node_clone_ex(inScene, orig, cloned_parent, 1);
-}
-
-GF_EXPORT
-GF_Node *gf_node_clone_no_id(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent)
-{
-	return gf_node_clone_ex(inScene, orig, cloned_parent, 0);
 }
 
 GF_Err gf_sg_proto_get_field_ind_static(GF_Node *Node, u32 inField, u8 IndexMode, u32 *allField)
@@ -611,7 +616,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 	i=0;
 	while ((orig = (GF_Node*)gf_list_enum(proto->node_code, &i))) {
 		/*node is cloned in the new scenegraph and its parent is NULL */
-		node = gf_node_clone(proto_node->sgprivate->scenegraph, orig, NULL);
+		node = gf_node_clone(proto_node->sgprivate->scenegraph, orig, NULL, "", 1);
 		assert(node);
 
 		/*assign first rendering node*/

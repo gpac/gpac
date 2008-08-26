@@ -309,6 +309,8 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 						/*done parsing attr AND elements*/
 						if (!parser->init_state) {
 							xml_sax_node_start(parser);
+							/*move to SAX_STATE_TEXT_CONTENT to force text flush*/
+							parser->sax_state = SAX_STATE_TEXT_CONTENT;
 							xml_sax_node_end(parser, 0);
 						} else {
 							parser->nb_attrs = 0;
@@ -441,9 +443,16 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 			if (parser->current_pos == parser->line_size) return 1;
 		} 
 
+att_retry:
+
 		assert(parser->att_sep);
 		sep = strchr(parser->buffer + parser->current_pos, parser->att_sep);
-		if (!sep) return 1;
+		if (!sep || !sep[1]) return 1;
+
+		if (!parser->init_state && (strchr(" />\n\t\r", sep[1])==NULL)) {
+			parser->current_pos = sep - parser->buffer + 1;
+			goto att_retry;
+		}
 
 		parser->current_pos = sep - parser->buffer;
 		att->val_end = parser->current_pos + 1;
@@ -468,6 +477,7 @@ typedef struct
 {
 	char *name;
 	char *value;
+	u32 namelen;
 	u8 sep;
 } XML_Entity;
 
@@ -626,6 +636,7 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 			szName[i] = 0;
 			GF_SAFEALLOC(ent, XML_Entity);
 			ent->name = strdup(szName);
+			ent->namelen = strlen(ent->name);
 			ent->sep = c;
 			parser->current_pos += 1+i;
 			assert(parser->current_pos < parser->line_size);
@@ -869,6 +880,8 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 	u32 size = parser->line_size;
 	u32 nl_size = strlen(string);
 	
+	if (!nl_size) return GF_OK;
+
 	if ( (parser->alloc_size < size+nl_size+1) 
 		|| (parser->alloc_size / 2 ) > size+nl_size+1) 
 	{
@@ -882,57 +895,102 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 	return GF_OK;
 }
 
-static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
+static XML_Entity *gf_xml_locate_entity(GF_SAXParser *parser, char *ent_start, Bool *needs_text)
 {
 	u32 i, count;
+	u32 len = strlen(ent_start);
+
+	*needs_text = 0;
+	count = gf_list_count(parser->entities);
+
+	for (i=0; i<count; i++) {
+		XML_Entity *ent = (XML_Entity *)gf_list_get(parser->entities, i);
+		if (len < ent->namelen + 1) {
+			*needs_text = 1;
+			return NULL;
+		}
+		if (!strncmp(ent->name, ent_start, ent->namelen) && (ent_start[ent->namelen]==';')) {
+			return ent;
+		}
+	}
+	return NULL;
+}
+
+
+static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
+{
+	u32 count;
 	/*solve entities*/
 	count = gf_list_count(parser->entities);
 	while (count) {
-		char *entityEnd, szName[200];
+		char *entityEnd;
 		XML_Entity *ent;
 		char *entityStart = strstr(current, "&");
+		Bool needs_text;
+		u32 line_num;
 
+		/*if in entity, the start of the entity is in the buffer !!*/
 		if (parser->in_entity) {
+			u32 len;
+			char *name;
 			entityEnd = strstr(current, ";");
 			if (!entityEnd) return xml_sax_append_string(parser, current);
 			entityStart = strrchr(parser->buffer, '&');
 
-			strcpy(szName, entityStart+1);
-			entityStart[0] = 0;
 			entityEnd[0] = 0;
-			strcat(szName, current);
-			entityEnd[0] = ';';
+			len = strlen(entityStart) + strlen(current) + 1;
+			name = malloc(sizeof(char)*len);
+			sprintf(name, "%s%s;", entityStart+1, current);
+
+			ent = gf_xml_locate_entity(parser, name, &needs_text);
+			free(name);
+
+			if (!ent && !needs_text) {
+				xml_sax_append_string(parser, current);
+				xml_sax_parse(parser, 1);
+				entityEnd[0] = ';';
+				current = entityEnd;
+				continue;
+			}
+			assert(ent);
+			/*truncate input buffer*/
+			parser->line_size -= strlen(entityStart);
+			entityStart[0] = 0;
+
 			parser->in_entity = 0;
+			entityEnd[0] = ';';
 			current = entityEnd+1;
 		} else {
 			if (!entityStart) break;
-			entityEnd = strstr(entityStart, ";");
 
+			ent = gf_xml_locate_entity(parser, entityStart+1, &needs_text);
+
+			/*store current string before entity start*/
 			entityStart[0] = 0;
 			xml_sax_append_string(parser, current);
 			xml_sax_parse(parser, 1);
 			entityStart[0] = '&';
 
-			if (!entityEnd) {
+			/*this is not an entitiy*/
+			if (!ent && !needs_text) {
+				xml_sax_append_string(parser, "&");
+				current = entityStart+1;
+				continue;
+			}
+
+			if (!ent) {
 				parser->in_entity = 1;
 				/*store entity start*/
 				return xml_sax_append_string(parser, entityStart);
 			}
-			strncpy(szName, entityStart+1, entityEnd - entityStart - 1);
-			szName[entityEnd - entityStart - 1] = 0;
-			current = entityEnd + 1;
+			current = entityStart + ent->namelen + 2;
 		}
+		/*append entity*/
+		line_num = parser->line;
+		xml_sax_append_string(parser, ent->value);
+		xml_sax_parse(parser, 1);
+		parser->line = line_num;
 
-		for (i=0; i<count; i++) {
-			ent = (XML_Entity *)gf_list_get(parser->entities, i);
-			if (!strcmp(ent->name, szName)) {
-				u32 line_num = parser->line;
-				xml_sax_append_string(parser, ent->value);
-				xml_sax_parse(parser, 1);
-				parser->line = line_num;
-				break;
-			}
-		}
 	}
 	xml_sax_append_string(parser, current);
 	return xml_sax_parse(parser, 0);
@@ -1042,7 +1100,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 #else
 		s32 read = gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
 #endif
-		if (read<=0) break;
+		if ((read<=0) && !parser->node_depth) break;
 		szLine[read] = 0;
 		szLine[read+1] = 0;		
 		e = gf_xml_sax_parse(parser, szLine);

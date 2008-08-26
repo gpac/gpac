@@ -2367,6 +2367,10 @@ static void svg_parse_floats(GF_List *values, char *value_string, Bool is_angle)
 		Fixed *f;
 		GF_SAFEALLOC(f, Fixed)
 		i+=svg_parse_float(&(str[i]), f, is_angle);
+		if (!i) {
+			free(f);
+			return;
+		}
 		gf_list_add(values, f);
 	}
 }

@@ -975,7 +975,6 @@ EXPORTS
 	gf_node_changed
 	gf_node_new
 	gf_node_clone
-	gf_node_clone_no_id
 	gf_sg_vrml_get_event_type_name
 	gf_sg_vrml_get_field_type_by_name
 	gf_sg_vrml_field_pointer_new

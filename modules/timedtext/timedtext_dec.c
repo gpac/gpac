@@ -613,7 +613,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 
 				/*spliting lines, duplicate node*/
 
-				n2 = gf_node_clone(priv->sg, txt_model, NULL);
+				n2 = gf_node_clone(priv->sg, txt_model, NULL, "", 1);
 				if (tc->hlink && tc->hlink->URL) {
 					GF_Node *t = ((M_Anchor *)n2)->children->node;
 					text = (M_Text *) ((M_Shape *)t)->geometry;

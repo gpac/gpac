@@ -3494,7 +3494,7 @@ static GF_Node *lsr_read_stop(GF_LASeRCodec *lsr)
 	lsr_read_group_content(lsr, elt, 0);
 	return elt;
 }
-static GF_Node *lsr_read_svg(GF_LASeRCodec *lsr)
+static GF_Node *lsr_read_svg(GF_LASeRCodec *lsr, Bool init_node)
 {
 	GF_FieldInfo info;
 	SMIL_Duration snap;
@@ -3575,6 +3575,12 @@ static GF_Node *lsr_read_svg(GF_LASeRCodec *lsr)
 	lsr_read_any_attribute(lsr, elt, 1);
 	/*store current root for listeners with no focus target*/
 	lsr->current_root = elt;
+
+	if (init_node) {
+		gf_node_register(elt, NULL);
+		gf_sg_set_root_node(lsr->sg, elt);
+	}
+
 	lsr_read_group_content(lsr, elt, 0);
 	return elt;
 }
@@ -3949,7 +3955,7 @@ static GF_Node *lsr_read_update_content_model(GF_LASeRCodec *lsr, SVG_Element *p
 		case LSR_UPDATE_CONTENT_MODEL_script: n = lsr_read_script(lsr); break;
 		case LSR_UPDATE_CONTENT_MODEL_set: n = lsr_read_set(lsr, parent); break;
 		case LSR_UPDATE_CONTENT_MODEL_stop: n = lsr_read_stop(lsr); break;
-		case LSR_UPDATE_CONTENT_MODEL_svg: n = lsr_read_svg(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_svg: n = lsr_read_svg(lsr, 0); break;
 		case LSR_UPDATE_CONTENT_MODEL_switch: n = lsr_read_switch(lsr); break;
 		case LSR_UPDATE_CONTENT_MODEL_text: n = lsr_read_text(lsr, 0); break;
 		case LSR_UPDATE_CONTENT_MODEL_title: n = lsr_read_data(lsr, TAG_SVG_title); break;
@@ -4984,7 +4990,7 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 			if (type==5) lsr_read_vluimsbf5(lsr, "time");
 			lsr_read_any_attribute(lsr, NULL, 1);
 			if (com_list) {
-				n = lsr_read_svg(lsr);
+				n = lsr_read_svg(lsr, 0);
 				if (!n) 
 					return (lsr->last_error = GF_NON_COMPLIANT_BITSTREAM);
 				gf_node_register(n, NULL);
@@ -4993,12 +4999,10 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 				gf_list_add(com_list, com);
 			} else {
 				gf_sg_reset(lsr->sg);
-				n = lsr_read_svg(lsr);
+				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
+				n = lsr_read_svg(lsr, 1);
 				if (!n) 
 					return (lsr->last_error = GF_NON_COMPLIANT_BITSTREAM);
-				gf_node_register(n, NULL);
-				gf_sg_set_root_node(lsr->sg, n);
-				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 			}
 			break;
 		case LSR_UPDATE_TEXT_CONTENT:
