@@ -1347,7 +1347,13 @@ static void gf_m2ts_process_eit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *eit_ses
 	}
 	
 #if 0
-	if (ts->on_event) ts->on_event(ts, evt_type, section);
+	{
+	GF_M2TS_SL_PCK pck;
+	pck.data = section->data;
+	pck.data_len = section->data_size;
+	pck.stream = (GF_M2TS_ES *)eit_ses;
+	if (ts->on_event) ts->on_event(ts, evt_type, &pck);
+	}
 #else
 	eit = gf_m2ts_decode_eit_section(section->data, section->data_size);
 	if (ts->on_event) ts->on_event(ts, evt_type, eit);

@@ -41,14 +41,11 @@ static void RestoreWindow(DDContext *dd)
 {
 	if (!dd->NeedRestore) return;
 
-
 	dd->NeedRestore = 0;
 	if (dd->output_3d_type==1) {
 #ifndef _WIN32_WCE
 		ChangeDisplaySettings(NULL,0);
 #endif
-		SetForegroundWindow(GetDesktopWindow());
-		SetForegroundWindow(dd->cur_hwnd);
 	} else {
 #ifdef USE_DX_3
 		IDirectDraw_SetCooperativeLevel(dd->pDD, dd->cur_hwnd, DDSCL_NORMAL);
@@ -58,7 +55,7 @@ static void RestoreWindow(DDContext *dd)
 		dd->NeedRestore = 0;
 	}
 
-	SetForegroundWindow(dd->cur_hwnd);
+//	SetForegroundWindow(dd->cur_hwnd);
 	SetFocus(dd->cur_hwnd);
 }
 
@@ -180,7 +177,8 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
     pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
     pfd.nVersion = 1;
     pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL;
-	if (dd->gl_double_buffer) pfd.dwFlags |= PFD_DOUBLEBUFFER;
+	if (dd->gl_double_buffer) 
+		pfd.dwFlags |= PFD_DOUBLEBUFFER;
 	else {
 		sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseGLDoubleBuffering");
 		if (sOpt && !strcmp(sOpt, "yes")) pfd.dwFlags |= PFD_DOUBLEBUFFER;
@@ -271,9 +269,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	dd->timer = 0;
 	ShowWindow(dd->cur_hwnd, SW_HIDE);
 	dd->cur_hwnd = dd->fullscreen ? dd->fs_hwnd : dd->os_hwnd;
-	ShowWindow(dd->cur_hwnd, SW_SHOWNORMAL);
-	SetForegroundWindow(dd->cur_hwnd);
-
+	ShowWindow(dd->cur_hwnd, SW_SHOW);
 
 	if (dd->output_3d_type==1) {
 		DEVMODE settings;
@@ -285,10 +281,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 				dd->fs_width = MaxWidth;
 				dd->fs_height = MaxHeight;
 			}
-
-			/*force size change (we do it whether we own or not the window)*/
 			SetWindowPos(dd->cur_hwnd, NULL, 0, 0, dd->fs_width, dd->fs_height, SWP_NOZORDER | SWP_SHOWWINDOW);
-			SetForegroundWindow(dd->cur_hwnd);
 
 #ifndef _WIN32_WCE
 			memset(&settings, 0, sizeof(DEVMODE));
@@ -300,9 +293,9 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectDraw] cannot change display settings\n"));
 				e = GF_IO_ERR;
 			} 
+			dd->NeedRestore = 1;
 #endif
 
-			dd->NeedRestore = 1;
 			dd->fs_store_width = dd->fs_width;
 			dd->fs_store_height = dd->fs_height;
 		}
@@ -321,6 +314,8 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 		*outWidth = dd->store_width;
 		*outHeight = dd->store_height;
 	}
+	SetForegroundWindow(dd->cur_hwnd);
+	SetFocus(dd->cur_hwnd);
 	return e;
 }
 

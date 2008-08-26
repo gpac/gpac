@@ -591,10 +591,10 @@ void CMainFrame::OnDropFiles(HDROP hDropInfo)
 		}
 	}
 	
-	if (count==1) 
+/*	if (count==1) 
 		m_pPlayList->Truncate();
 	else
-		m_pPlayList->Clear();
+*/		m_pPlayList->Clear();
 
 	for (i=0; i<count; i++) {
 		::DragQueryFile (hDropInfo, i, fileName, MAX_PATH);
