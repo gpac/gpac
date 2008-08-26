@@ -850,66 +850,6 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 }
 
 
-static GF_Node *clone_node(GF_Node *node, GF_Node *parent, Bool deep)
-{
-	GF_DOMAttribute *att;
-	GF_Node *clone = gf_node_new(node->sgprivate->scenegraph, node->sgprivate->tag);
-	if (!clone) return NULL;
-
-	if (node->sgprivate->tag == TAG_DOMText) {
-		GF_DOMText *n_src,*n_dst;
-		n_src = (GF_DOMText *)node;
-		n_dst = (GF_DOMText *)clone;
-		n_dst->type = n_src->type;
-		n_dst->textContent = strdup(n_src->textContent);
-	} else if (node->sgprivate->tag == TAG_DOMFullNode) {
-		GF_DOMFullNode *n_src,*n_dst;
-		n_src = (GF_DOMFullNode *)node;
-		n_dst = (GF_DOMFullNode *)clone;
-		n_dst->ns = n_src->ns;
-		n_dst->name = strdup(n_dst->name);
-	}
-	
-	att = ((GF_DOMNode *)node)->attributes;
-	while (att) {
-		GF_FieldInfo dst, src;
-		/*create by name*/
-		if (att->tag==TAG_DOM_ATT_any) {
-			gf_node_get_attribute_by_name(clone, ((GF_DOMFullAttribute*)att)->name, 0, 1, 0, &dst);
-		} else {
-			gf_node_get_attribute_by_tag(clone, att->tag, 1, 0, &dst);
-		}
-		src.far_ptr = att->data;
-		src.fieldType = att->data_type;
-		src.fieldIndex = att->tag;
-		gf_svg_attributes_copy(&dst, &src, 0);
-		if (att->tag==TAG_XLINK_ATT_href) {
-			XMLRI *iri = (XMLRI *)att->data;
-			if (iri->target == gf_node_get_parent(node, 0)) {
-				((XMLRI *)dst.far_ptr)->target = parent;
-			} else {
-				((XMLRI *)dst.far_ptr)->target = NULL;
-			}
-		}
-		att = att->next;
-	}	
-	if (parent) {
-		gf_node_list_add_child( & ((GF_ParentNode*)parent)->children, clone);
-		gf_node_register(clone, parent);
-		/*TO CLARIFY: can we init the node right now or should we wait for insertion in the scene tree ?*/
-		gf_node_init(clone);
-	}
-	if (deep) {
-		GF_ChildNodeItem *child = ((GF_ParentNode *)node)->children;
-		while (child) {
-			clone_node(child->node, clone, 1);
-			child = child->next;
-		}
-	}
-	return clone;
-}
-
-
 static JSBool xml_clone_node(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	Bool deep;
@@ -918,7 +858,7 @@ static JSBool xml_clone_node(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	if (!n) return JS_TRUE;
 	deep = argc ? JSVAL_TO_BOOLEAN(argv[0]) : 0;
 	
-	clone = clone_node(n, NULL, deep);
+	clone = gf_node_clone(n->sgprivate->scenegraph, n, NULL, "", deep);
 	*rval = dom_node_construct(c, clone);
 	return JS_TRUE;
 }

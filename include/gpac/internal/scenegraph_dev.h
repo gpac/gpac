@@ -782,6 +782,8 @@ void gf_sg_proto_check_field_change(GF_Node *node, u32 fieldIndex);
 
 s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *name);
 
+GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id_suffix);
+
 
 /*
 		Script node
@@ -1005,6 +1007,7 @@ u32 gf_xbl_get_attribute_tag(u32 element_tag, const char *attribute_name);
 GF_DOMAttribute *gf_xbl_create_attribute(GF_DOMNode *elt, u32 tag);
 
 
+GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep);
 
 GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target);
 

@@ -793,7 +793,7 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
 	dest = gf_sg_command_new(inGraph, com->tag);
 
 	/*node the command applies to - may be NULL*/
-	dest->node = gf_node_clone(inGraph, com->node, NULL);
+	dest->node = gf_node_clone(inGraph, com->node, NULL, "", 0);
 	/*route insert, replace and delete*/
 	dest->RouteID = com->RouteID;
 	if (com->def_name) dest->def_name = strdup(com->def_name);
@@ -826,7 +826,7 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
 		}
 
 		if (fo->new_node) {
-			fd->new_node = gf_node_clone(inGraph, fo->new_node, dest->node);
+			fd->new_node = gf_node_clone(inGraph, fo->new_node, dest->node, "", 0);
 			fd->field_ptr = &fd->new_node;
 		}
 		if (fo->node_list) {
@@ -835,7 +835,7 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
 			child = fo->node_list;
 			while (child) {
 				cur = (GF_ChildNodeItem*) malloc(sizeof(GF_ChildNodeItem));
-				cur->node = gf_node_clone(inGraph, child->node, dest->node);
+				cur->node = gf_node_clone(inGraph, child->node, dest->node, "", 0);
 				cur->next = NULL;
 				if (prev) prev->next = cur;
 				else fd->node_list = cur;

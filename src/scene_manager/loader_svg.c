@@ -511,6 +511,8 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 	SVG_DeferedAnimation *anim = NULL;
 	char *ID = NULL;
 	
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[SVG Parsing] Parsing node %s\n", name));
+
 	/*parse all att for namespace*/
 	for (i=0; i<nb_attributes; i++) {
 		GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];

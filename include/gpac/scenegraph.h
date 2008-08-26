@@ -414,12 +414,17 @@ Note:
 	- this doesn't perform application setup for the node, this must be done by the caller
 */
 GF_Node *gf_node_new(GF_SceneGraph *sg, u32 tag);
-/*clones a node in the given graph and register with parent cloned. The cloning respects DEF/USE nodes*/
-GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent);
-/*clones a node in the given graph and register with parent cloned. The cloning removes DEF/USE nodes*/
-GF_Node *gf_node_clone_no_id(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent);
 /*inits node (either internal stack or user-defined) - usually called once the node has been fully loaded*/
 void gf_node_init(GF_Node *node);
+
+/*clones a node in the given graph and register with parent cloned. The cloning handles ID based on id_suffix:
+ id_suffix = NULL: all IDs are removed from the cloned subtree, (each node instance will become a hard copy)
+ id_suffix = "": ID will be kept exactly as they where in the original subtree - this may lead to errors due to 
+		the presence of the same ID depending on the standard (DOM, ...).
+ id_suffix = anything: all IDs are translated ($(name) -> $(name)id_suffix) and bynary IDs are generated on the fly
+*/
+GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *id_suffix, Bool deep);
+
 /*gets scene time for scene this node belongs too, 0 if timeline not specified*/
 Double gf_node_get_scene_time(GF_Node *node);
 

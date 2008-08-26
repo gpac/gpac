@@ -819,7 +819,64 @@ void gf_node_unregister_iri(GF_SceneGraph *sg, XMLRI *target)
 #endif
 }
 
+GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep)
+{
+	GF_DOMAttribute *att;
+	GF_Node *clone = gf_node_new(inScene, orig->sgprivate->tag);
+	if (!clone) return NULL;
 
+	if (orig->sgprivate->tag == TAG_DOMText) {
+		GF_DOMText *n_src,*n_dst;
+		n_src = (GF_DOMText *)orig;
+		n_dst = (GF_DOMText *)clone;
+		n_dst->type = n_src->type;
+		n_dst->textContent = strdup(n_src->textContent);
+	} else if (orig->sgprivate->tag == TAG_DOMFullNode) {
+		GF_DOMFullNode *n_src,*n_dst;
+		n_src = (GF_DOMFullNode *)orig;
+		n_dst = (GF_DOMFullNode *)clone;
+		n_dst->ns = n_src->ns;
+		n_dst->name = strdup(n_dst->name);
+	}
+	
+	att = ((GF_DOMNode *)orig)->attributes;
+	while (att) {
+		GF_FieldInfo dst, src;
+		/*create by name*/
+		if (att->tag==TAG_DOM_ATT_any) {
+			gf_node_get_attribute_by_name(clone, ((GF_DOMFullAttribute*)att)->name, 0, 1, 0, &dst);
+		} else {
+			gf_node_get_attribute_by_tag(clone, att->tag, 1, 0, &dst);
+		}
+		src.far_ptr = att->data;
+		src.fieldType = att->data_type;
+		src.fieldIndex = att->tag;
+		gf_svg_attributes_copy(&dst, &src, 0);
+		if (att->tag==TAG_XLINK_ATT_href) {
+			XMLRI *iri = (XMLRI *)att->data;
+			if (iri->target == gf_node_get_parent(orig, 0)) {
+				((XMLRI *)dst.far_ptr)->target = cloned_parent;
+			} else {
+				((XMLRI *)dst.far_ptr)->target = NULL;
+			}
+		}
+		att = att->next;
+	}	
+	if (cloned_parent) {
+		gf_node_list_add_child( & ((GF_ParentNode*)cloned_parent)->children, clone);
+		gf_node_register(clone, cloned_parent);
+		/*TO CLARIFY: can we init the node right now or should we wait for insertion in the scene tree ?*/
+		gf_node_init(clone);
+	}
+	if (deep) {
+		GF_ChildNodeItem *child = ((GF_ParentNode *)orig)->children;
+		while (child) {
+			gf_node_clone(inScene, child->node, clone, inst_id, 1);
+			child = child->next;
+		}
+	}
+	return clone;
+}
 
 /*TODO FIXME, this is ugly, add proper cache system*/
 #include <gpac/base_coding.h>
