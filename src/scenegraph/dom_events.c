@@ -117,7 +117,7 @@ GF_Err gf_dom_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target)
 	/*register with NULL parent*/
 	gf_node_register((GF_Node *)listener, NULL);
 
-	if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_event, 0, 0, &info) == GF_OK) {
+	if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_event, 0, 0, &info) == GF_OK) {
 		u32 type = ((XMLEV_Event *)info.far_ptr)->type;
 		gf_sg_register_event_type(listener->sgprivate->scenegraph, gf_dom_event_get_category(type));
 	}
@@ -150,7 +150,7 @@ GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target)
 
 	if (gf_list_del_item(target->evt_list, listener)<0) return GF_BAD_PARAM;
 
-	if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_event, 0, 0, &info) == GF_OK) {
+	if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_event, 0, 0, &info) == GF_OK) {
 		u32 type = ((XMLEV_Event *)info.far_ptr)->type;
 		gf_sg_unregister_event_type(listener->sgprivate->scenegraph, gf_dom_event_get_category(type));
 	}
@@ -217,7 +217,7 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event)
 	case TAG_SVG_listener:
 	{
 		GF_FieldInfo info;
-		if (gf_node_get_attribute_by_tag(listen, TAG_SVG_ATT_handler, 0, 0, &info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag(listen, TAG_XMLEV_ATT_handler, 0, 0, &info) == GF_OK) {
 			XMLRI *iri = (XMLRI *)info.far_ptr;
 			if (!iri->target && iri->string) {
 				iri->target = gf_sg_find_node_by_name(listen->sgprivate->scenegraph, iri->string+1);
@@ -303,9 +303,6 @@ static Bool sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_Sce
 				count--;
 				i--;
 				gf_node_replace((GF_Node *) listen, NULL, 0);
-
-				/*unprotect listener from deletion (this will likely destroy it)*/
-				gf_node_unregister(listen, NULL);
 
 				if (handler) {
 					gf_node_replace(handler, NULL, 0);
@@ -479,14 +476,14 @@ GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event
 	((XMLEV_Event *)info.far_ptr)->type = event_type;
 	((XMLEV_Event *)info.far_ptr)->parameter = event_parameter;
 	
-	gf_node_get_attribute_by_tag((GF_Node*)listener, TAG_SVG_ATT_event, 1, 0, &info);
+	gf_node_get_attribute_by_tag((GF_Node*)listener, TAG_XMLEV_ATT_event, 1, 0, &info);
 	((XMLEV_Event *)info.far_ptr)->type = event_type;
 	((XMLEV_Event *)info.far_ptr)->parameter = event_parameter;
 
-	gf_node_get_attribute_by_tag((GF_Node*)listener, TAG_SVG_ATT_handler, 1, 0, &info);
+	gf_node_get_attribute_by_tag((GF_Node*)listener, TAG_XMLEV_ATT_handler, 1, 0, &info);
 	((XMLRI *)info.far_ptr)->target = handler;
 
-	gf_node_get_attribute_by_tag((GF_Node*)listener, TAG_SVG_ATT_listener_target, 1, 0, &info);
+	gf_node_get_attribute_by_tag((GF_Node*)listener, TAG_XMLEV_ATT_target, 1, 0, &info);
 	((XMLRI *)info.far_ptr)->target = node;
 	
 	gf_node_dom_listener_add((GF_Node *) node, (GF_Node *) listener);

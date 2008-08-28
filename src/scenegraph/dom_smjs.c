@@ -530,12 +530,12 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 	}
 
 	/*create attributes if needed*/
-	gf_node_get_attribute_by_tag(listener, TAG_SVG_ATT_event, 1, 0, &info);
+	gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_event, 1, 0, &info);
 	((XMLEV_Event*)info.far_ptr)->type = evtType;
-	gf_node_get_attribute_by_tag(listener, TAG_SVG_ATT_handler, 1, 0, &info);
+	gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_handler, 1, 0, &info);
 	((XMLRI*)info.far_ptr)->target = (GF_Node*)handler;
 	if (n) {
-		gf_node_get_attribute_by_tag(listener, TAG_SVG_ATT_listener_target, 1, 0, &info);
+		gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_target, 1, 0, &info);
 		((XMLRI*)info.far_ptr)->target = n;
 	}
 
@@ -625,11 +625,11 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 		SVG_handlerElement *hdl;
 		GF_Node *el = gf_list_get(target->evt_list, i);
 
-		gf_node_get_attribute_by_tag(el, TAG_SVG_ATT_event, 0, 0, &info);
+		gf_node_get_attribute_by_tag(el, TAG_XMLEV_ATT_event, 0, 0, &info);
 		if (!info.far_ptr) continue;
 		if (((XMLEV_Event*)info.far_ptr)->type != evtType) continue;
 
-		gf_node_get_attribute_by_tag(el, TAG_SVG_ATT_handler, 0, 0, &info);
+		gf_node_get_attribute_by_tag(el, TAG_XMLEV_ATT_handler, 0, 0, &info);
 		if (!info.far_ptr) continue;
 		hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 		if (!hdl) continue;
@@ -1544,9 +1544,9 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 				GF_DOMText *text;
 				GF_Node *listen = gf_dom_listener_get(n, i);
 
-				gf_node_get_attribute_by_tag(listen, TAG_SVG_ATT_event, 0, 0, &info);
+				gf_node_get_attribute_by_tag(listen, TAG_XMLEV_ATT_event, 0, 0, &info);
 				if (!info.far_ptr || (((XMLEV_Event*)info.far_ptr)->type != evtType)) continue;
-				gf_node_get_attribute_by_tag(listen, TAG_SVG_ATT_handler, 0, 0, &info);
+				gf_node_get_attribute_by_tag(listen, TAG_XMLEV_ATT_handler, 0, 0, &info);
 				assert(info.far_ptr);
 				handler = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 				text = (GF_DOMText*)handler->children->node;

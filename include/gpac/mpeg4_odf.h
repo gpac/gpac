@@ -102,15 +102,17 @@ enum
 	/*internal descriptor for LASeR config input description*/
 	GF_ODF_LASER_CFG_TAG	= GF_ODF_USER_BEGIN_TAG + 6,
 
-
 	GF_ODF_USER_END_TAG		= 0xFE,
-
 
 	GF_ODF_OCI_BEGIN_TAG	= 0x40,
 	GF_ODF_OCI_END_TAG		= (GF_ODF_ISO_RES_BEGIN_TAG - 1),
 
 	GF_ODF_EXT_BEGIN_TAG	= 0x80,
 	GF_ODF_EXT_END_TAG		= 0xFE,
+
+
+	/*descriptor for aucilary video data*/
+	GF_ODF_AUX_VIDEO_DATA	= GF_ODF_EXT_BEGIN_TAG + 1,
 };
 
 
@@ -642,6 +644,20 @@ typedef struct
 
 } GF_ESD;
 
+
+/*Auxiliary Video Data Descriptor*/
+typedef struct {
+	BASE_DESCRIPTOR
+	u32 aux_video_type;
+	u32 position_offset_h;
+	u32 position_offset_v;
+	u32 knear;
+	u32 kfar;
+	u32 parallax_zero;
+	u32 parallax_scale;
+	u32 dref;
+	u32 wref;
+} GF_AuxVideoDescriptor;
 
 /*Content Classification Descriptor*/
 typedef struct {

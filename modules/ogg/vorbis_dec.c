@@ -43,7 +43,7 @@ typedef struct
 
 #define VORBISCTX() VorbDec *ctx = (VorbDec *) ((OGGWraper *)ifcg->privateStack)->opaque
 
-static GF_Err VORB_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err VORB_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
     ogg_packet oggpacket;
 	GF_BitStream *bs;
@@ -51,11 +51,11 @@ static GF_Err VORB_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 	VORBISCTX();
 	if (ctx->ES_ID) return GF_BAD_PARAM;
 	
-	if (!decSpecInfo || !decSpecInfoSize) return GF_NON_COMPLIANT_BITSTREAM;
-	if (objectTypeIndication != GPAC_OTI_MEDIA_OGG) return GF_NON_COMPLIANT_BITSTREAM;
-	if ((decSpecInfoSize<9) || strncmp(&decSpecInfo[3], "vorbis", 6)) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return GF_NON_COMPLIANT_BITSTREAM;
+	if (esd->decoderConfig->objectTypeIndication != GPAC_OTI_MEDIA_OGG) return GF_NON_COMPLIANT_BITSTREAM;
+	if ((esd->decoderConfig->decoderSpecificInfo->dataLength<9) || strncmp(&esd->decoderConfig->decoderSpecificInfo->data[3], "vorbis", 6)) return GF_NON_COMPLIANT_BITSTREAM;
 
-	ctx->ES_ID = ES_ID;
+	ctx->ES_ID = esd->ESID;
 
     vorbis_info_init(&ctx->vi);
     vorbis_comment_init(&ctx->vc);
@@ -65,7 +65,7 @@ static GF_Err VORB_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 	oggpacket.e_o_s = 0;
 	oggpacket.packetno = 0;
 
-	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+	bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
 		oggpacket.bytes = gf_bs_read_u16(bs);
 		oggpacket.packet = malloc(sizeof(char) * oggpacket.bytes);

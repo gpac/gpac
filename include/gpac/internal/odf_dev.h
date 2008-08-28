@@ -100,6 +100,8 @@ GF_Descriptor *gf_odf_New_ElemMask();
 GF_Descriptor *gf_odf_new_bifs_cfg();
 GF_Descriptor *gf_odf_new_ui_cfg();
 GF_Descriptor *gf_odf_new_laser_cfg();
+GF_Descriptor *gf_odf_new_auxvid();
+
 
 GF_Err gf_odf_del_iod(GF_InitialObjectDescriptor *iod);
 GF_Err gf_odf_del_esd(GF_ESD *esd);
@@ -139,6 +141,7 @@ GF_Err gf_odf_del_muxinfo(GF_MuxInfo *mi);
 GF_Err gf_odf_del_bifs_cfg(GF_BIFSConfig *desc);
 GF_Err gf_odf_del_ui_cfg(GF_UIConfig *desc);
 GF_Err gf_odf_del_laser_cfg(GF_LASERConfig *desc);
+GF_Err gf_odf_del_auxvid(GF_AuxVideoDescriptor *ld);
 
 GF_Err gf_odf_read_iod(GF_BitStream *bs, GF_InitialObjectDescriptor *iod, u32 DescSize);
 GF_Err gf_odf_read_esd(GF_BitStream *bs, GF_ESD *esd, u32 DescSize);
@@ -175,6 +178,7 @@ GF_Err gf_odf_read_mediatime(GF_BitStream *bs, GF_MediaTime *mt, u32 DescSize);
 GF_Err gf_odf_read_muxinfo(GF_BitStream *bs, GF_MuxInfo *mi, u32 DescSize);
 GF_Err gf_odf_read_ipmp_tool_list(GF_BitStream *bs, GF_IPMP_ToolList *ipmptl, u32 DescSize);
 GF_Err gf_odf_read_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmp, u32 DescSize);
+GF_Err gf_odf_read_auxvid(GF_BitStream *bs, GF_AuxVideoDescriptor *ld, u32 DescSize);
 
 GF_Err gf_odf_size_iod(GF_InitialObjectDescriptor *iod, u32 *outSize);
 GF_Err gf_odf_size_esd(GF_ESD *esd, u32 *outSize);
@@ -211,6 +215,7 @@ GF_Err gf_odf_size_mediatime(GF_MediaTime *mt, u32 *outSize);
 GF_Err gf_odf_size_muxinfo(GF_MuxInfo *mi, u32 *outSize);
 GF_Err gf_odf_size_ipmp_tool_list(GF_IPMP_ToolList *ipmptl, u32 *outSize);
 GF_Err gf_odf_size_ipmp_tool(GF_IPMP_Tool *ipmp, u32 *outSize);
+GF_Err gf_odf_size_auxvid(GF_AuxVideoDescriptor *ld, u32 *outSize);
 
 GF_Err gf_odf_write_iod(GF_BitStream *bs, GF_InitialObjectDescriptor *iod);
 GF_Err gf_odf_write_esd(GF_BitStream *bs, GF_ESD *esd);
@@ -247,6 +252,7 @@ GF_Err gf_odf_write_mediatime(GF_BitStream *bs, GF_MediaTime *mt);
 GF_Err gf_odf_write_muxinfo(GF_BitStream *bs, GF_MuxInfo *mi);
 GF_Err gf_odf_write_ipmp_tool_list(GF_BitStream *bs, GF_IPMP_ToolList *ipmptl);
 GF_Err gf_odf_write_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmp);
+GF_Err gf_odf_write_auxvid(GF_BitStream *bs, GF_AuxVideoDescriptor *ld);
 
 GF_Descriptor *gf_odf_new_text_cfg();
 GF_Err gf_odf_del_text_cfg(GF_TextConfig *desc);
@@ -343,6 +349,7 @@ GF_Err gf_odf_dump_ui_cfg(GF_UIConfig *dsi, FILE *trace, u32 indent, Bool XMTDum
 GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_ipmp_tool_list(GF_IPMP_ToolList *tl, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_ipmp_tool(GF_IPMP_Tool*t, FILE *trace, u32 indent, Bool XMTDump);
+GF_Err gf_odf_dump_aux_vid(GF_AuxVideoDescriptor *ld, FILE *trace, u32 indent, Bool XMTDump);
 
 
 GF_Err gf_odf_dump_od_update(GF_ODUpdate *com, FILE *trace, u32 indent, Bool XMTDump);

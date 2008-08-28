@@ -813,7 +813,7 @@ static Bool is_focus_target(GF_Node *elt)
 	for (i=0; i<count; i++) {
 		GF_FieldInfo info;
 		GF_Node *l = gf_dom_listener_get(elt, i);
-		if (gf_node_get_attribute_by_tag(l, TAG_SVG_ATT_event, 0, 0, &info)==GF_OK) {
+		if (gf_node_get_attribute_by_tag(l, TAG_XMLEV_ATT_event, 0, 0, &info)==GF_OK) {
 			switch ( ((XMLEV_Event*)info.far_ptr)->type) {
 			case GF_EVENT_FOCUSIN:
 			case GF_EVENT_FOCUSOUT:
@@ -1114,6 +1114,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 
 	if (!compositor->focus_node) {
 		compositor->focus_node = gf_sg_get_root_node(compositor->scene);
+		gf_list_reset(compositor->focus_ancestors);
 		if (!compositor->focus_node) return 0;
 		current_focus = 0;
 	}
@@ -1123,14 +1124,14 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 	if (!n) n = browse_parent_for_focus(compositor, compositor->focus_node, move_prev);
 
 	if (!n) {
-		n = gf_sg_get_root_node(compositor->scene);
+		if (!prev) n = gf_sg_get_root_node(compositor->scene);
 		gf_list_reset(compositor->focus_ancestors);
 	}
-	compositor->focus_node = n;
-
-	if (gf_node_get_tag(n)>=GF_NODE_FIRST_DOM_NODE_TAG) {
+	
+	if (n && gf_node_get_tag(n)>=GF_NODE_FIRST_DOM_NODE_TAG) {
 		compositor->focus_uses_dom_events = 1;
 	}
+	compositor->focus_node = n;
 
 	ret = 0;
 #ifndef GPAC_DISABLE_SVG

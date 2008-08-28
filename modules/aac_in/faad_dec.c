@@ -47,16 +47,16 @@ typedef struct
 
 #define FAADCTX() FAADDec *ctx = (FAADDec *) ifcg->privateStack
 
-static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	GF_Err e;
 	GF_M4ADecSpecInfo a_cfg;
 	FAADCTX();
 	
-	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
-	if (!decSpecInfoSize || !decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
+	if (ctx->ES_ID && ctx->ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
+	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->dataLength) return GF_NON_COMPLIANT_BITSTREAM;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Attaching stream %d\n", ES_ID));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Attaching stream %d\n", esd->ESID));
 
 	if (ctx->codec) faacDecClose(ctx->codec);
 	ctx->codec = faacDecOpen();
@@ -65,9 +65,9 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 		return GF_IO_ERR;
 	}
 
-	e = gf_m4a_get_config((unsigned char *) decSpecInfo, decSpecInfoSize, &a_cfg);
+	e = gf_m4a_get_config((unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 	if (e) return e;
-	if ( (s8) faacDecInit2(ctx->codec, (unsigned char *) decSpecInfo, decSpecInfoSize, (u32 *) &ctx->sample_rate, (u8 *) &ctx->num_channels) < 0) 
+	if ( (s8) faacDecInit2(ctx->codec, (unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (u32 *) &ctx->sample_rate, (u8 *) &ctx->num_channels) < 0) 
 	{
 		s8 res;
 		char *dsi;
@@ -78,7 +78,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 		case GF_M4A_AAC_SSR:
 		case GF_M4A_AAC_LTP:
 		case GF_M4A_AAC_SBR:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing stream %d\n", ES_ID));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing stream %d\n", esd->ESID));
 			return GF_NOT_SUPPORTED;
 		default:
 			break;
@@ -91,7 +91,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 		res = faacDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (u32 *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
 		free(dsi);
 		if (res < 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing stream %d\n", ES_ID));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing stream %d\n", esd->ESID));
 			return GF_NOT_SUPPORTED;
 		}
 	}
@@ -99,7 +99,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 	ctx->is_sbr = a_cfg.has_sbr;
 	ctx->num_samples = 1024;
 	ctx->out_size = 2 * ctx->num_samples * ctx->num_channels;
-	ctx->ES_ID = ES_ID;
+	ctx->ES_ID = esd->ESID;
 	ctx->signal_mc = ctx->num_channels>2 ? 1 : 0;
 	return GF_OK;
 }

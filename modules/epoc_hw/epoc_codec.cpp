@@ -103,27 +103,27 @@ static void EDEC_LoadCaps(GF_BaseDecoder *ifcg)
 }
 
 
-static GF_Err EDEC_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err EDEC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	RArray<TInt> configParams;
 	GF_M4ADecSpecInfo a_cfg;
 	Bool aac_sbr_upsample;
 	TInt err;
 	EPOCCodec *ctx = (EPOCCodec *)ifcg->privateStack;
-	if (DependsOnES_ID) return GF_NOT_SUPPORTED;
+	if (esd->dependsOnESID) return GF_NOT_SUPPORTED;
 	if (ctx->dec) return GF_BAD_PARAM;
 
 
 	/*audio decs*/	
-	switch (objectTypeIndication) {
+	switch (esd->decoderConfig->objectTypeIndication) {
 	/*MPEG2 aac*/
 	case 0x66:
 	case 0x67:
 	case 0x68:
 	/*MPEG4 aac*/
 	case 0x40: 
-		if (!decSpecInfoSize || !decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
-		if (gf_m4a_get_config(decSpecInfo, decSpecInfoSize, &a_cfg) != GF_OK) return GF_NON_COMPLIANT_BITSTREAM;
+		if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return GF_NON_COMPLIANT_BITSTREAM;
+		if (gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return GF_NON_COMPLIANT_BITSTREAM;
 		
 		aac_sbr_upsample = 0;
 #if !defined(__SYMBIAN32__) || defined(__SERIES60_3X__)
@@ -191,8 +191,8 @@ retry_no_sbr:
 		break;
 	/*non-mpeg4 codecs*/
 	case GPAC_OTI_MEDIA_GENERIC:
-		if (decSpecInfoSize<4) return GF_BAD_PARAM;
-		if (!strnicmp(decSpecInfo, "samr", 4) || !strnicmp(decSpecInfo, "amr ", 4)) {
+		if (!esd->decoderConfig->decoderSpecificInfo || esd->decoderConfig->decoderSpecificInfo->dataLength<4) return GF_BAD_PARAM;
+		if (!strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "samr", 4) || !strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "amr ", 4)) {
 			TRAP(err, ctx->dec = CMMFCodec::NewL(KMMFFourCCCodeAMR, KMMFFourCCCodePCM16));
 			if (err != KErrNone) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[EPOC Decoder] Unable to load native codec: error %d\n", err));
@@ -205,7 +205,7 @@ retry_no_sbr:
 			ctx->out_size = ctx->num_channels * ctx->num_samples * 2;
 			ctx->codec_name = "EPOC AMR Decoder";
 		}
-		else if (!strnicmp(decSpecInfo, "sawb", 4)) {
+		else if (!strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "sawb", 4)) {
 			TRAP(err, ctx->dec = CMMFCodec::NewL(KMMFFourCCCodeAWB, KMMFFourCCCodePCM16));
 			if (err != KErrNone) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[EPOC Decoder] Unable to load native codec: error %d\n", err));

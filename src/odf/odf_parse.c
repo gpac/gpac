@@ -121,6 +121,7 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	if (!stricmp(descName, "UIConfig")) return GF_ODF_UI_CFG_TAG;
 	if (!stricmp(descName, "ES_ID_Ref")) return GF_ODF_ESD_REF_TAG;
 	if (!stricmp(descName, "ES_ID_Inc")) return GF_ODF_ESD_INC_TAG;
+	if (!stricmp(descName, "AuxiliaryVideoData")) return GF_ODF_AUX_VIDEO_DATA;
 	if (!stricmp(descName, "DefaultDescriptor")) return GF_ODF_DSI_TAG;
 	return 0;
 }
@@ -307,7 +308,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			ret += sscanf(val, "%hd", &esd->ESID);
 		}
 		else if (!stricmp(fieldName, "streamPriority")) GET_U8(esd->streamPriority)
-		else if (!stricmp(fieldName, "dependsOn_ES_ID")) ret += sscanf(val, "%hd", &esd->dependsOnESID);
+		else if (!stricmp(fieldName, "dependsOn_ES_ID") || !stricmp(fieldName, "dependsOnESID")) ret += sscanf(val, "%hd", &esd->dependsOnESID);
 		else if (!stricmp(fieldName, "OCR_ES_ID")) ret += sscanf(val, "%hd", &esd->OCRESID);
 		else if (!stricmp(fieldName, "URLstring")) {
 			esd->URLString = strdup(val);
@@ -585,6 +586,20 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				ret++;
 			}
 		}
+		break;
+	case GF_ODF_AUX_VIDEO_DATA:
+	{
+		GF_AuxVideoDescriptor *avd = (GF_AuxVideoDescriptor *)desc;
+		if (!stricmp(fieldName, "aux_video_type"))  GET_U8(avd->aux_video_type)
+		if (!stricmp(fieldName, "position_offset_h"))  GET_U8(avd->aux_video_type)
+		if (!stricmp(fieldName, "position_offset_v"))  GET_U8(avd->aux_video_type)
+		if (!stricmp(fieldName, "knear"))  GET_U8(avd->aux_video_type)
+		if (!stricmp(fieldName, "kfar"))  GET_U8(avd->aux_video_type)
+		if (!stricmp(fieldName, "parallax_zero"))  GET_U16(avd->aux_video_type)
+		if (!stricmp(fieldName, "parallax_scale"))  GET_U16(avd->aux_video_type)
+		if (!stricmp(fieldName, "dref"))  GET_U16(avd->aux_video_type)
+		if (!stricmp(fieldName, "wref"))  GET_U16(avd->aux_video_type)
+	}
 		break;
 	case GF_ODF_IPMP_TOOL_TAG:
 	{

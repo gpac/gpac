@@ -71,13 +71,7 @@ static void add_field(ISPriv *priv, u32 fieldType, const char *fieldName)
 	gf_list_add(priv->ddf, field);
 }
 
-static GF_Err IS_AttachStream(GF_BaseDecoder *plug, 
-									 u16 ES_ID, 
-									 char *decSpecInfo, 
-									 u32 decSpecInfoSize, 
-									 u16 DependsOnES_ID,
-									 u32 objectTypeIndication, 
-									 Bool Upstream)
+static GF_Err IS_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 {
 	GF_BitStream *bs;
 	u32 len, size, i;
@@ -85,14 +79,14 @@ static GF_Err IS_AttachStream(GF_BaseDecoder *plug,
 	u16 termSeq[20];
 
 	ISPriv *is = (ISPriv *)plug->privateStack;
-	if (Upstream) return GF_NOT_SUPPORTED;
-	if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
+	if (esd->decoderConfig->upstream) return GF_NOT_SUPPORTED;
+	if (!esd->decoderConfig->decoderSpecificInfo || esd->decoderConfig->decoderSpecificInfo->dataLength) return GF_NON_COMPLIANT_BITSTREAM;
 
 	/*no more than one UI stream per object*/
 	if (is->ES_ID) return GF_NOT_SUPPORTED;
-	is->ES_ID = ES_ID;
+	is->ES_ID = esd->ESID;
 	/*parse config*/
-	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+	bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 	len = gf_bs_read_int(bs, 8);
 	for (i=0; i<len; i++) {
 		devName[i] = gf_bs_read_int(bs, 8);
@@ -120,9 +114,9 @@ static GF_Err IS_AttachStream(GF_BaseDecoder *plug,
 		is->delChar = '\b';
 
 		/*get escape chars if any specified*/
-		if (size<decSpecInfoSize) {
-			const char *src = decSpecInfo + size;
-			gf_utf8_mbstowcs(termSeq, decSpecInfoSize - size, &src);
+		if (size<esd->decoderConfig->decoderSpecificInfo->dataLength) {
+			const char *src = esd->decoderConfig->decoderSpecificInfo->data + size;
+			gf_utf8_mbstowcs(termSeq, esd->decoderConfig->decoderSpecificInfo->dataLength - size, &src);
 			is->termChar = termSeq[0];
 			is->delChar = termSeq[1];
 		}

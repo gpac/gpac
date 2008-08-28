@@ -755,6 +755,11 @@ static u32 svg_parse_float(char *d, Fixed *f, Bool is_angle)
 		is_negative = 1;
 		i++;
 	}
+	if ((d[i]=='N') && (d[i+1]=='a') && (d[i+2]=='N')) {
+		i+= 3;
+		_val = 0;
+		goto end;
+	}
 	while (d[i] >= '0' && d[i] <= '9' && d[i] != 0) {
 		_val = _val*10 + (d[i]-'0');
 		i++;
@@ -2306,8 +2311,14 @@ static void svg_parse_coordinates(GF_List *values, char *value_string)
 		free(c);
 	}
 	while (i < len) {
+		u32 sub;
 		GF_SAFEALLOC(c, SVG_Coordinate)
-		i+=svg_parse_number(c, &(str[i]), 0);
+		sub = svg_parse_number(c, &(str[i]), 0);
+		if (!sub) {
+			free(c);
+			return;
+		}
+		i+=sub;
 		gf_list_add(values, c);
 	}
 }

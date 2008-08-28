@@ -118,6 +118,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 					bounds_state.for_node = target;
 					bounds_state.svg_props = tr_state->svg_props;
 					gf_mx2d_init(bounds_state.transform);
+					gf_mx2d_init(bounds_state.mx_at_node);
 					gf_sc_get_nodes_bounds(node, ((GF_ParentNode *)node)->children, &bounds_state, NULL);
 					gf_mx2d_from_mx(&mx, &tr_state->visual->compositor->hit_world_to_local);
 					gf_mx2d_apply_rect(&mx, &bounds_state.bounds);

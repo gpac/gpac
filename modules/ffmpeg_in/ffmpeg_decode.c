@@ -92,7 +92,7 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, Bool from_ff_demux)
 	}
 }
 
-static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 {
 	u32 codec_id;
 	int gotpic;
@@ -100,15 +100,15 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
 	FFDec *ffd = (FFDec *)plug->privateStack;
-	if (ffd->ES_ID || DependsOnES_ID || UpStream) return GF_NOT_SUPPORTED;
+	if (ffd->ES_ID || esd->dependsOnESID || esd->decoderConfig->upstream) return GF_NOT_SUPPORTED;
 	if (!ffd->oti) return GF_NOT_SUPPORTED;
-	ffd->ES_ID = ES_ID;
+	ffd->ES_ID = esd->ESID;
 
 	ffd->ctx = avcodec_alloc_context();
 	
 	/*private FFMPEG DSI*/
 	if (ffd->oti == GPAC_OTI_MEDIA_FFMPEG) {
-		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		if (ffd->st==GF_STREAM_AUDIO) {
 			ffd->ctx->codec_type = CODEC_TYPE_AUDIO;
@@ -137,7 +137,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 	} 
 	/*private QT DSI*/
 	else if (ffd->oti == GPAC_OTI_MEDIA_GENERIC) {
-		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		if (ffd->st==GF_STREAM_AUDIO) {
 			ffd->ctx->codec_type = CODEC_TYPE_AUDIO;
@@ -216,11 +216,11 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 		if ((ffd->oti==0x20) || (ffd->oti == 0x21)) {
 			/*if not set this may be a remap of non-mpeg4 transport (eg, transport on MPEG-TS) where
 			the DSI is carried in-band*/
-			if (decSpecInfoSize && decSpecInfo) {
+			if (esd->decoderConfig->decoderSpecificInfo->data) {
 
 				/*for regular MPEG-4, try to decode and if this fails try H263 decoder at first frame*/
 				if (ffd->oti==0x20) {
-					e = gf_m4v_get_config(decSpecInfo, decSpecInfoSize, &dsi);
+					e = gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 					if (e) return e;
 					ffd->ctx->width = dsi.width;
 					ffd->ctx->height = dsi.height;
@@ -232,9 +232,9 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 				}
 
 				/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
-				ffd->ctx->extradata = malloc(sizeof(char)*decSpecInfoSize);
-				memcpy(ffd->ctx->extradata, decSpecInfo, decSpecInfoSize);
-				ffd->ctx->extradata_size = decSpecInfoSize;
+				ffd->ctx->extradata = malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+				memcpy(ffd->ctx->extradata, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				ffd->ctx->extradata_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 			}
 		}
 		ffd->frame = avcodec_alloc_frame();
@@ -261,7 +261,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, char *decSpecI
 			break;
 		case CODEC_ID_DVD_SUBTITLE:
 			ffd->frame = avcodec_alloc_frame();
-			avcodec_decode_video(ffd->ctx, ffd->frame, &gotpic, decSpecInfo, decSpecInfoSize);
+			avcodec_decode_video(ffd->ctx, ffd->frame, &gotpic, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 			ffd->pix_fmt = GF_PIXEL_YV12; 
 			break;
 		default:

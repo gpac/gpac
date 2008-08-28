@@ -95,7 +95,7 @@ enum {
 /* TAG names are made of "TAG_SVG_ATT_" + SVG attribute name (with - replaced by _) */
 enum {
 	TAG_SVG_ATT_id = TAG_SVG_ATT_RANGE_FIRST,
-	TAG_SVG_ATT__class,
+	TAG_SVG_ATT__class,	
 
 	TAG_SVG_ATT_requiredFeatures,
 	TAG_SVG_ATT_requiredExtensions,
@@ -244,13 +244,6 @@ enum {
 	TAG_SVG_ATT_gradientUnits,
 	TAG_SVG_ATT_spreadMethod,
 	TAG_SVG_ATT_gradientTransform,
-	TAG_SVG_ATT_event,
-	TAG_SVG_ATT_phase,
-	TAG_SVG_ATT_propagate,
-	TAG_SVG_ATT_defaultAction,
-	TAG_SVG_ATT_observer,
-	TAG_SVG_ATT_listener_target,
-	TAG_SVG_ATT_handler,
 	TAG_SVG_ATT_pathLength,
 	TAG_SVG_ATT_points,
 	TAG_SVG_ATT_mediaSize,
@@ -297,6 +290,14 @@ struct _all_atts {
 	XMLRI *xlink_href;
 	DOM_String *xlink_show;
 	DOM_String *xlink_actuate;
+
+	XMLEV_Event *event;
+	XMLEV_Phase *phase;
+	XMLEV_Propagate *propagate;
+	XMLEV_DefaultAction *defaultAction;
+	XML_IDREF *observer;
+	XML_IDREF *listener_target;
+	XMLRI *handler;
 
 	SVG_ID *id;
 	SVG_String *_class;
@@ -435,7 +436,6 @@ struct _all_atts {
 	SVG_String *glyph_name;
 	SVG_String *arabic_form;
 	SVG_LanguageIDs *lang;
-	XMLEV_Event *ev_event;
 	SVG_String *u1;
 	SVG_String *g1;
 	SVG_String *u2;
@@ -449,13 +449,6 @@ struct _all_atts {
 	SVG_GradientUnit *gradientUnits;
 	SVG_SpreadMethod *spreadMethod;
 	SVG_Transform *gradientTransform;
-	XMLEV_Event *event;
-	XMLEV_Phase *phase;
-	XMLEV_Propagate *propagate;
-	XMLEV_DefaultAction *defaultAction;
-	XML_IDREF *observer;
-	XML_IDREF *listener_target;
-	XMLRI *handler;
 	SVG_Number *pathLength;
 	SVG_Points *points;
 	SVG_Number *mediaSize;

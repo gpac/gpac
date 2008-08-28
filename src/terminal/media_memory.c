@@ -90,6 +90,7 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
 		}
 		cu->dataLength = 0;
 		cu->data = UnitSize ? (char*)malloc(sizeof(char)*UnitSize) : NULL;
+		if (cu->data) memset(cu->data, 0, sizeof(char)*UnitSize);
 		prev = cu;
 		capacity --;
 		i++;

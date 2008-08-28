@@ -35,11 +35,11 @@ typedef struct
 #define PNGCTX()	PNGDec *ctx = (PNGDec *) ((IMGDec *)ifcg->privateStack)->opaque
 
 
-static GF_Err PNG_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err PNG_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	PNGCTX();
-	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
-	ctx->ES_ID = ES_ID;
+	if (ctx->ES_ID && ctx->ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
+	ctx->ES_ID = esd->ESID;
 	return GF_OK;
 }
 static GF_Err PNG_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)

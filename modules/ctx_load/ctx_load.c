@@ -161,26 +161,20 @@ static GF_Err CTXLoad_Setup(GF_BaseDecoder *plug)
 	return GF_OK;
 }
 
-static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, 
-									 u16 ES_ID, 
-									 char *decSpecInfo, 
-									 u32 decSpecInfoSize, 
-									 u16 DependsOnES_ID,
-									 u32 objectTypeIndication, 
-									 Bool Upstream)
+static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 {
 	const char *ext;
 	GF_BitStream *bs;
 	u32 size;
 	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
-	if (Upstream) return GF_NOT_SUPPORTED;
+	if (esd->decoderConfig->upstream) return GF_NOT_SUPPORTED;
 
 	/*animation stream like*/
 	if (priv->ctx) {
 		GF_StreamContext *sc;
 		u32 i = 0;
 		while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
-			if (ES_ID == sc->ESID) {
+			if (esd->ESID == sc->ESID) {
 				priv->nb_streams++;
 				return GF_OK;
 			}
@@ -188,18 +182,18 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	/*main dummy stream we need a dsi*/
-	if (!decSpecInfo) 
+	if (!esd->decoderConfig->decoderSpecificInfo) 
 		return GF_NON_COMPLIANT_BITSTREAM;
-	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+	bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 	priv->file_size = gf_bs_read_u32(bs);
 	gf_bs_del(bs);
-	size = decSpecInfoSize - sizeof(u32);
+	size = esd->decoderConfig->decoderSpecificInfo->dataLength - sizeof(u32);
 	priv->file_name = (char *) malloc(sizeof(char)*(1 + size) );
-	memcpy(priv->file_name, decSpecInfo + sizeof(u32),  sizeof(char)*(decSpecInfoSize - sizeof(u32)) );
+	memcpy(priv->file_name, esd->decoderConfig->decoderSpecificInfo->data + sizeof(u32),  sizeof(char)*(esd->decoderConfig->decoderSpecificInfo->dataLength - sizeof(u32)) );
 	priv->file_name[size] = 0;
 	priv->nb_streams = 1;
 	priv->load_flags = 0;
-	priv->base_stream_id = ES_ID;
+	priv->base_stream_id = esd->ESID;
 
 	
 	CTXLoad_Setup(plug);

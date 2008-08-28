@@ -60,10 +60,10 @@ typedef struct
 #define MADCTX() MADDec *ctx = (MADDec *) ifcg->privateStack
 
 
-static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	MADCTX();
-	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
+	if (ctx->ES_ID && ctx->ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
 
 	if (ctx->configured) {
 		mad_stream_finish(&ctx->stream);
@@ -82,7 +82,7 @@ static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInf
 	ctx->num_channels = 0;
 	ctx->sample_rate = 0;
 	ctx->out_size = 2 * ctx->num_samples * ctx->num_channels;
-	ctx->ES_ID = ES_ID;
+	ctx->ES_ID = esd->ESID;
 	ctx->first = 1;
 	return GF_OK;
 }
