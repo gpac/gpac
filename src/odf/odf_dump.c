@@ -158,7 +158,6 @@ GF_Err gf_odf_dump_desc(void *ptr, FILE *trace, u32 indent, Bool XMTDump)
 		return gf_odf_dump_smpte_camera((GF_SMPTECamera *)desc, trace, indent, XMTDump);
 	case GF_ODF_SCI_TAG:
 		return gf_odf_dump_sup_cid((GF_SCIDesc *)desc, trace, indent, XMTDump);
-
 	case GF_ODF_SEGMENT_TAG:
 		return gf_odf_dump_segment((GF_Segment *)desc, trace, indent, XMTDump);
 	case GF_ODF_MEDIATIME_TAG:
@@ -177,6 +176,8 @@ GF_Err gf_odf_dump_desc(void *ptr, FILE *trace, u32 indent, Bool XMTDump)
 		return gf_odf_dump_ipmp_tool_list((GF_IPMP_ToolList*)desc, trace, indent, XMTDump);
 	case GF_ODF_IPMP_TOOL_TAG:
 		return gf_odf_dump_ipmp_tool((GF_IPMP_Tool*)desc, trace, indent, XMTDump);
+	case GF_ODF_AUX_VIDEO_DATA:
+		return gf_odf_dump_aux_vid((GF_AuxVideoDescriptor *)desc, trace, indent, XMTDump);
 	default:
 		return gf_odf_dump_default((GF_DefaultDescriptor *)desc, trace, indent, XMTDump);
 	}
@@ -1277,6 +1278,26 @@ GF_Err gf_odf_dump_lang(GF_Language *ld, FILE *trace, u32 indent, Bool XMTDump)
 	sLan[2] = (ld->langCode)&0xFF;
 	sLan[3] = 0;
 	DumpString(trace, "languageCode", sLan, indent, XMTDump);
+	indent--;
+	EndSubElement(trace, indent, XMTDump);	
+	if (!XMTDump) EndDescDump(trace, "LanguageDescriptor", indent, XMTDump);
+	return GF_OK;
+}
+
+GF_Err gf_odf_dump_aux_vid(GF_AuxVideoDescriptor *ld, FILE *trace, u32 indent, Bool XMTDump)
+{
+	StartDescDump(trace, "AuxiliaryVideoData", indent, XMTDump);
+	indent++;
+
+	DumpIntHex(trace, "aux_video_type", ld->aux_video_type, indent, XMTDump, 1);
+	DumpInt(trace, "position_offset_h", ld->position_offset_h, indent, XMTDump);
+	DumpInt(trace, "position_offset_v", ld->position_offset_v, indent, XMTDump);
+	DumpInt(trace, "knear", ld->knear, indent, XMTDump);
+	DumpInt(trace, "kfar", ld->kfar, indent, XMTDump);
+	DumpInt(trace, "parallax_zero", ld->parallax_zero, indent, XMTDump);
+	DumpInt(trace, "parallax_scale", ld->parallax_scale, indent, XMTDump);
+	DumpInt(trace, "dref", ld->dref, indent, XMTDump);
+	DumpInt(trace, "wref", ld->wref, indent, XMTDump);
 	indent--;
 	EndSubElement(trace, indent, XMTDump);	
 	if (!XMTDump) EndDescDump(trace, "LanguageDescriptor", indent, XMTDump);

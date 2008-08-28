@@ -717,14 +717,14 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 		GF_Node *listener = (GF_Node *)gf_list_get(lsr->defered_listeners, i);
 
 		par = NULL;
-		if (gf_node_get_attribute_by_tag(listener, TAG_SVG_ATT_observer, 0, 0, &info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_observer, 0, 0, &info) == GF_OK) {
 			observer = (XMLRI*)info.far_ptr;
 			if (observer->type == XMLRI_ELEMENTID) {
 				if (!observer->target) continue;
 				else par = observer->target;
 			}
 		}
-		if (gf_node_get_attribute_by_tag(listener, TAG_SVG_ATT_listener_target, 0, 0, &info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_target, 0, 0, &info) == GF_OK) {
 			if (((XMLRI*)info.far_ptr)->type == XMLRI_ELEMENTID) {
 				if (!((XMLRI*)info.far_ptr)->target) continue;
 				else if (!par) par = ((XMLRI*)info.far_ptr)->target;
@@ -732,7 +732,7 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 		}
 		/*FIXME - double check with XML events*/
 		if (!par && !observer) {
-			if (gf_node_get_attribute_by_tag(listener, TAG_SVG_ATT_event, 0, 0, &info) == GF_OK) {
+			if (gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_event, 0, 0, &info) == GF_OK) {
 				XMLEV_Event *ev = (XMLEV_Event *)info.far_ptr;
 				/*all non-UI get attched to root*/
 				if (ev && (ev->type>GF_EVENT_MOUSEWHEEL)) {
@@ -3747,17 +3747,17 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVG_Element *parent)
 	lsr_read_rare(lsr, elt);
 	GF_LSR_READ_INT(lsr, flag, 1, "hasDefaultAction");
 	if (flag) {
-		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_SVG_ATT_defaultAction, 1, 0, &info);
+		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_XMLEV_ATT_defaultAction, 1, 0, &info);
 		GF_LSR_READ_INT(lsr, *(XMLEV_DefaultAction*)info.far_ptr, 1, "defaultAction");
 	}
 	GF_LSR_READ_INT(lsr, flag, 1, "hasEvent");
 	if (flag) {
-		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_SVG_ATT_event, 1, 0, &info);
+		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_XMLEV_ATT_event, 1, 0, &info);
 		lsr_read_event_type(lsr, info.far_ptr);
 		ev = info.far_ptr;
 	}
 	/*create default handler but UNINITIALIZED*/
-	lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_SVG_ATT_handler, 1, 0, &info);
+	lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_XMLEV_ATT_handler, 1, 0, &info);
 	handler = info.far_ptr;
 	GF_LSR_READ_INT(lsr, flag, 1, "hasHandler");
 	if (flag) {
@@ -3766,24 +3766,24 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVG_Element *parent)
 	GF_LSR_READ_INT(lsr, flag, 1, "hasObserver");
 	/*TODO double check spec here*/
 	if (flag) {
-		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_SVG_ATT_observer, 1, 0, &info);
+		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_XMLEV_ATT_observer, 1, 0, &info);
 		lsr_read_codec_IDREF(lsr, info.far_ptr, "observer");
 		observer = info.far_ptr;
 	}
 
 	GF_LSR_READ_INT(lsr, flag, 1, "hasPhase");
 	if (flag) {
-		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_SVG_ATT_phase, 1, 0, &info);
+		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_XMLEV_ATT_phase, 1, 0, &info);
 		GF_LSR_READ_INT(lsr, *(XMLEV_Phase*)info.far_ptr, 1, "phase");
 	}
 	GF_LSR_READ_INT(lsr, flag, 1, "hasPropagate");
 	if (flag) {
-		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_SVG_ATT_propagate, 1, 0, &info);
+		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_XMLEV_ATT_propagate, 1, 0, &info);
 		GF_LSR_READ_INT(lsr, *(XMLEV_Propagate*)info.far_ptr, 1, "propagate");
 	}
 	GF_LSR_READ_INT(lsr, flag, 1, "hasTarget");
 	if (flag) {
-		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_SVG_ATT_listener_target, 1, 0, &info);
+		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_XMLEV_ATT_target, 1, 0, &info);
 		lsr_read_codec_IDREF(lsr, info.far_ptr, "target");
 		target = info.far_ptr;
 	}

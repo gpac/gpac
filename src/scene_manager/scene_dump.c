@@ -2593,7 +2593,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 	if (!nID) {
 		switch (tag) {
 		case TAG_SVG_listener:
-			if (gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_handler, 0, 0, &info)==GF_OK) {
+			if (gf_node_get_attribute_by_tag(n, TAG_XMLEV_ATT_handler, 0, 0, &info)==GF_OK) {
 				if (((XMLRI*)info.far_ptr)->target && !gf_node_get_id(((XMLRI*)info.far_ptr)->target) ) 
 					return;
 			}
@@ -2686,7 +2686,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 			GF_Node *listener = (GF_Node *)gf_list_get(n->sgprivate->interact->dom_evt->evt_list, i);
 			/*this listener has been created for internal use*/
 			if (listener->sgprivate->parents) continue;
-			if (gf_node_get_attribute_by_tag(listener, TAG_SVG_ATT_handler, 0, 0, &info)==GF_OK) {
+			if (gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_handler, 0, 0, &info)==GF_OK) {
 				GF_DOMText *txt;
 				hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 				if (!hdl) continue;

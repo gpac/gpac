@@ -205,22 +205,16 @@ static GF_Err SVG_ReleaseScene(GF_SceneDecoder *plug)
 	return GF_OK;
 }
 
-static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, 
-									 u16 ES_ID, 
-									 char *decSpecInfo, 
-									 u32 decSpecInfoSize, 
-									 u16 DependsOnES_ID,
-									 u32 objectTypeIndication, 
-									 Bool Upstream)
+static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 {
 	const char *sOpt;
 	GF_BitStream *bs;
 	SVGIn *svgin = (SVGIn *)plug->privateStack;
-	if (Upstream) return GF_NOT_SUPPORTED;
+	if (esd->decoderConfig->upstream) return GF_NOT_SUPPORTED;
 
 	svgin->loader.type = GF_SM_LOAD_SVG_DA;
 	/* decSpecInfo is not null only when reading from an SVG file (local or distant, cached or not) */
-	switch (objectTypeIndication) {
+	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_SCENE_SVG:
 	case GPAC_OTI_SCENE_SVG_GZ:
 		/*no decSpecInfo defined for streaming svg yet*/
@@ -232,19 +226,19 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 		various indications*/
 		break;
 	default:
-		if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
-		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+		if (!esd->decoderConfig->decoderSpecificInfo) return GF_NON_COMPLIANT_BITSTREAM;
+		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 		svgin->file_size = gf_bs_read_u32(bs);
 		svgin->file_pos = 0;
 		gf_bs_del(bs);
-		svgin->file_name =  (char *) malloc(sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
-		memcpy(svgin->file_name, decSpecInfo + sizeof(u32), decSpecInfoSize - sizeof(u32) );
-		svgin->file_name[decSpecInfoSize - sizeof(u32) ] = 0;
+		svgin->file_name =  (char *) malloc(sizeof(char)*(1 + esd->decoderConfig->decoderSpecificInfo->dataLength - sizeof(u32)) );
+		memcpy(svgin->file_name, esd->decoderConfig->decoderSpecificInfo->data + sizeof(u32), esd->decoderConfig->decoderSpecificInfo->dataLength - sizeof(u32) );
+		svgin->file_name[esd->decoderConfig->decoderSpecificInfo->dataLength - sizeof(u32) ] = 0;
 		break;
 	}
-	svgin->oti = objectTypeIndication;
+	svgin->oti = esd->decoderConfig->objectTypeIndication;
 
-	if (!DependsOnES_ID) svgin->base_es_id = ES_ID;
+	if (!esd->dependsOnESID) svgin->base_es_id = esd->ESID;
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "Progressive");
 	if (sOpt && !strcmp(sOpt, "yes")) {

@@ -29,6 +29,7 @@
 
 
 #include <gpac/module.h>
+#include <gpac/mpeg4_odf.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -146,7 +147,7 @@ enum
 
 #define GF_CODEC_BASE_INTERFACE(IFCE_NAME)		\
 	GF_DECL_MODULE_INTERFACE	\
-	GF_Err (*AttachStream)(IFCE_NAME, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream);\
+	GF_Err (*AttachStream)(IFCE_NAME, GF_ESD *esd);\
 	GF_Err (*DetachStream)(IFCE_NAME, u16 ES_ID);\
 	GF_Err (*GetCapabilities)(IFCE_NAME, GF_CodecCapability *capability);\
 	GF_Err (*SetCapabilities)(IFCE_NAME, GF_CodecCapability capability);\
@@ -161,7 +162,7 @@ typedef struct _basedecoder
 } GF_BaseDecoder;
 
 /*interface name and version for media decoder */
-#define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', 0x01)
+#define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', 0x02)
 
 /*the media module interface. A media module MUST be implemented in synchronous mode as time 
 and resources management is done by the terminal*/
@@ -189,7 +190,7 @@ typedef struct _mediadecoder
 typedef struct _inline_scene *LPINLINESCENE;
 
 /*interface name and version for scene decoder */
-#define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', 0x01)
+#define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', 0x02)
 
 typedef struct _scenedecoder
 {

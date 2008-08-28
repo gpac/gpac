@@ -88,6 +88,12 @@ enum
 
 	TAG_XMLEV_ATT_RANGE_FIRST,
 	TAG_XMLEV_ATT_event,
+	TAG_XMLEV_ATT_phase,
+	TAG_XMLEV_ATT_propagate,
+	TAG_XMLEV_ATT_defaultAction,
+	TAG_XMLEV_ATT_observer,
+	TAG_XMLEV_ATT_target,
+	TAG_XMLEV_ATT_handler,
 	TAG_XMLEV_ATT_RANGE_LAST,
 
 	TAG_LSR_ATT_RANGE_FIRST,

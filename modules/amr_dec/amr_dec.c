@@ -53,13 +53,14 @@ typedef struct
 #define AMRCTX() AMRDec *ctx = (AMRDec *) ifcg->privateStack
 
 
-static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	u32 packed_size;
 	AMRCTX();
-	if (DependsOnES_ID) return GF_NOT_SUPPORTED;
+	if (esd->dependsOnESID || !esd->decoderConfig->decoderSpecificInfo) return GF_NOT_SUPPORTED;
 	
-	if (strnicmp(decSpecInfo, "samr", 4) && strnicmp(decSpecInfo, "amr ", 4)) return GF_NOT_SUPPORTED;
+	if (strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "samr", 4) 
+		&& strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "amr ", 4)) return GF_NOT_SUPPORTED;
 
 	ctx->reset_flag = 0;
 	ctx->reset_flag_old = 1;
@@ -68,7 +69,7 @@ static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInf
 	ctx->speech_decoder_state = NULL;
 	if (Speech_Decode_Frame_init(&ctx->speech_decoder_state, "Decoder")) return GF_IO_ERR;
 
-	packed_size = (u32) (decSpecInfoSize>14) ? decSpecInfo[13] : 0;
+	packed_size = (u32) (esd->decoderConfig->decoderSpecificInfo->dataLength>14) ? esd->decoderConfig->decoderSpecificInfo->data[13] : 0;
 	/*max possible frames in a sample are seen in MP4, that's 15*/
 	if (!packed_size) packed_size = 15;
 	

@@ -58,20 +58,20 @@ typedef struct
 #define AMRFTCTX() AMRFTDec *ctx = (AMRFTDec *) ifcg->privateStack
 
 
-static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	GF_BitStream *bs;
 	u32 packed;
 	AMRFTCTX();
-	if (DependsOnES_ID) return GF_NOT_SUPPORTED;	
+	if (esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo) return GF_NOT_SUPPORTED;	
 
 	/*AMRWB dec is another module*/
-	if (!strnicmp(decSpecInfo, "sawb", 4)) ctx->is_amr_wb = 1;
-	else if (!strnicmp(decSpecInfo, "samr", 4) || !strnicmp(decSpecInfo, "amr ", 4)) ctx->is_amr_wb = 0;
+	if (!strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "sawb", 4)) ctx->is_amr_wb = 1;
+	else if (!strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "samr", 4) || !strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "amr ", 4)) ctx->is_amr_wb = 0;
 	else return GF_NOT_SUPPORTED;
 
 
-	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+	bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 	gf_bs_read_u32(bs);
 	gf_bs_read_u16(bs);
 	gf_bs_read_u16(bs);

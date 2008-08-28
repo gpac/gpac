@@ -510,7 +510,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 	/*connect in pause mode*/
 	gf_term_connect_from_time(term, url, 0, 1);
 
-	while (!term->compositor->scene) {
+	while (!term->compositor->scene || term->compositor->msg_type) {
 		if (last_error) return 1;
 		gf_term_process_flush(term);
 		gf_sleep(10);

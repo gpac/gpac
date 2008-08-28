@@ -44,7 +44,7 @@ typedef struct
 #define XVIDCTX()	XVIDDec *ctx = (XVIDDec *) (ifcg->privateStack)
 
 
-static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
@@ -53,22 +53,22 @@ static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 
 	XVIDCTX();
 
-	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
-	if (!decSpecInfoSize || !decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
+	if (ctx->ES_ID && ctx->ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
+	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return GF_NON_COMPLIANT_BITSTREAM;
 
 	/*decode DSI*/
-	e = gf_m4v_get_config((char *) decSpecInfo, decSpecInfoSize, &dsi);
+	e = gf_m4v_get_config((char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 	if (e) return e;
 	if (!dsi.width || !dsi.height) return GF_NON_COMPLIANT_BITSTREAM;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[XviD] Attaching Stream %d - framesize %d x %d\n", ES_ID, dsi.width, dsi.height ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[XviD] Attaching Stream %d - framesize %d x %d\n", esd->ESID, dsi.width, dsi.height ));
 
 	ctx->codec =  InitCodec(dsi.width, dsi.height, GF_4CC('x', 'v', 'i', 'd'));
 	if (!ctx->codec) return GF_OUT_OF_MEM;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[XviD] Decoding DecoderSpecificInfo\n"));
 
-	DecodeFrame(ctx->codec, decSpecInfo, decSpecInfoSize, ptr, ptr, ptr, pitch);
+	DecodeFrame(ctx->codec, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, ptr, ptr, ptr, pitch);
 
 	/*note that this may be irrelevant when used through systems (FPS is driven by systems CTS)*/
 	ctx->FPS = dsi.clock_rate;
@@ -78,7 +78,7 @@ static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 	ctx->height = dsi.height;
 	ctx->pixel_ar = (dsi.par_num<<16) | dsi.par_den;
 	ctx->pixel_ar = 0;
-	ctx->ES_ID = ES_ID;
+	ctx->ES_ID = esd->ESID;
 	ctx->first_frame = 1;
 	/*output in YV12 only - let the player handle conversion*/
 	ctx->out_size = 3 * ctx->width * ctx->height / 2;

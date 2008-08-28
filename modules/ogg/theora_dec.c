@@ -42,7 +42,7 @@ typedef struct
 
 #define THEORACTX() TheoraDec *ctx = (TheoraDec *) ((OGGWraper *)ifcg->privateStack)->opaque
 
-static GF_Err THEO_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err THEO_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
     ogg_packet oggpacket;
 	GF_BitStream *bs;
@@ -50,23 +50,23 @@ static GF_Err THEO_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 	THEORACTX();
 	if (ctx->ES_ID) return GF_BAD_PARAM;
 	
-	if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!esd->decoderConfig->decoderSpecificInfo) return GF_NON_COMPLIANT_BITSTREAM;
 
-	if (objectTypeIndication != GPAC_OTI_MEDIA_OGG) return GF_NON_COMPLIANT_BITSTREAM;
-	if ( (decSpecInfoSize<9) || strncmp(&decSpecInfo[3], "theora", 6)) return GF_NON_COMPLIANT_BITSTREAM;
+	if (esd->decoderConfig->objectTypeIndication != GPAC_OTI_MEDIA_OGG) return GF_NON_COMPLIANT_BITSTREAM;
+	if ( (esd->decoderConfig->decoderSpecificInfo->dataLength<9) || strncmp(&esd->decoderConfig->decoderSpecificInfo->data[3], "theora", 6)) return GF_NON_COMPLIANT_BITSTREAM;
 
 	oggpacket.granulepos = -1;
 	oggpacket.b_o_s = 1;
 	oggpacket.e_o_s = 0;
 	oggpacket.packetno = 0;
 
-	ctx->ES_ID = ES_ID;
+	ctx->ES_ID = esd->ESID;
 
     theora_info_init(&ctx->ti);
     theora_comment_init(&ctx->tc);
 
 
-	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+	bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
 		oggpacket.bytes = gf_bs_read_u16(bs);
 		oggpacket.packet = malloc(sizeof(char) * oggpacket.bytes);

@@ -428,7 +428,7 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 		SVG_Element *listener = (SVG_Element *)gf_list_get(parser->defered_listeners, i);
 
 		par = NULL;
-		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_observer, 0, 0, &info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_observer, 0, 0, &info) == GF_OK) {
 			XMLRI *observer = info.far_ptr;
 			if (observer->type == XMLRI_ELEMENTID) {
 				if (!observer->target && observer->string && !strcmp(observer->string, nodeID) ) {
@@ -438,7 +438,7 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 			if (observer->type == XMLRI_ELEMENTID) par = observer->target;
 			if (!par) continue;
 		}
-		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_listener_target, 0, 0, &info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_target, 0, 0, &info) == GF_OK) {
 			XMLRI *target = info.far_ptr;
 			if (target->type == XMLRI_ELEMENTID) {
 				if (!target->target) continue;
@@ -682,13 +682,11 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 				} 
 			}
 		} 
-		if (tag == TAG_SVG_handler) {
-			if (ns == GF_XMLNS_XMLEV) {
-				if (!stricmp(att_name, "event") ) {
-					ev_event = att->value;
-					continue;
-				} 
-			}
+		if ((tag == TAG_SVG_handler) && (ns == GF_XMLNS_XMLEV)) {
+			if (!stricmp(att_name, "event") ) {
+				ev_event = att->value;
+				continue;
+			} 
 		}
 
 		/*laser specific stuff*/
@@ -765,17 +763,17 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		type = gf_dom_event_type_by_name(ev_event);
 		gf_node_get_attribute_by_tag(node, TAG_XMLEV_ATT_event, 1, 0, &info);
 		((XMLEV_Event *)info.far_ptr)->type = type;
-		gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_event, 1, 0, &info);
+		gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_event, 1, 0, &info);
 		((XMLEV_Event *)info.far_ptr)->type = type;
-		gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_handler, 1, 0, &info);
+		gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_handler, 1, 0, &info);
 		((XMLRI *)info.far_ptr)->target = node;
 
 		if (ev_observer) {
-			gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_observer, 1, 0, &info);
+			gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_observer, 1, 0, &info);
 			gf_svg_parse_attribute((GF_Node *)elt, &info, (char*)ev_observer, 0);
 		} else {
 			/* this listener listens with the parent of the handler as the event target */
-			gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_listener_target, 1, 0, &info);
+			gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_target, 1, 0, &info);
 			((XMLRI *)info.far_ptr)->target = parent->node;
 		}
 		if ( ((XMLRI *)info.far_ptr)->target) 
@@ -825,7 +823,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		SVG_Element *par = NULL;
 		SVG_Element *listener = (SVG_Element *)elt;
 
-		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_observer, 0, 0, &info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_observer, 0, 0, &info) == GF_OK) {
 			XMLRI *observer = info.far_ptr;
 			if (observer->type == XMLRI_ELEMENTID) {
 				if (!observer->target) post_pone = 1;
@@ -833,7 +831,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			}
 		}
 
-		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_listener_target, 0, 0, &info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_target, 0, 0, &info) == GF_OK) {
 			XMLRI *target = info.far_ptr;
 			if (!par && (target->type == XMLRI_ELEMENTID)) {
 				if (!target->target) post_pone = 1;
@@ -841,14 +839,14 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			}
 		}
 		/*check handler, create it if not specified*/
-		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_handler, 1, 0, &info) == GF_OK) {
+		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_handler, 1, 0, &info) == GF_OK) {
 			XMLRI *handler = info.far_ptr;
 			if (!handler->target) {
 				if (!handler->string) handler->target = parent->node;
 			}
 		}
 		/*if event is a key event, register it with root*/
-		if (!par && gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_SVG_ATT_event, 0, 0, &info) == GF_OK) {
+		if (!par && gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_event, 0, 0, &info) == GF_OK) {
 			XMLEV_Event *ev = info.far_ptr;
 			if (ev->type>GF_EVENT_MOUSEWHEEL) par = (SVG_Element*) listener->sgprivate->scenegraph->RootNode;
 		}
@@ -1582,6 +1580,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	}
 	skip_text = 1;
 	switch (tag) {
+	case TAG_DOMFullNode:
 	case TAG_SVG_a:
 	case TAG_SVG_title:
 	case TAG_SVG_desc:

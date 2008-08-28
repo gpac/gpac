@@ -135,6 +135,9 @@ GF_Descriptor *gf_odf_create_descriptor(u8 tag)
 		desc->tag = GF_ODF_DSI_TAG;
 		return desc;
 
+	case GF_ODF_AUX_VIDEO_DATA:
+		return gf_odf_new_auxvid();
+
 	case 0:
 	case 0xFF:
 		return NULL;
@@ -241,6 +244,9 @@ GF_Err gf_odf_delete_descriptor(GF_Descriptor *desc)
 	case GF_ODF_LASER_CFG_TAG:
 		return gf_odf_del_laser_cfg((GF_LASERConfig *)desc);
 
+	case GF_ODF_AUX_VIDEO_DATA:
+		return gf_odf_del_auxvid((GF_AuxVideoDescriptor *)desc);
+
 	default:
 		return gf_odf_del_default((GF_DefaultDescriptor *)desc);
 	}
@@ -329,6 +335,9 @@ GF_Err gf_odf_read_descriptor(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSiz
 
 	case GF_ODF_MUXINFO_TAG:
 		return gf_odf_read_muxinfo(bs, (GF_MuxInfo *) desc, DescSize);
+
+	case GF_ODF_AUX_VIDEO_DATA:
+		return gf_odf_read_auxvid(bs, (GF_AuxVideoDescriptor *)desc, DescSize);
 
 	//default:
 	case GF_ODF_DSI_TAG:
@@ -423,6 +432,9 @@ GF_Err gf_odf_size_descriptor(GF_Descriptor *desc, u32 *outSize)
 	case GF_ODF_MUXINFO_TAG:
 		return gf_odf_size_muxinfo((GF_MuxInfo *) desc, outSize);
 		
+	case GF_ODF_AUX_VIDEO_DATA:
+		return gf_odf_size_auxvid((GF_AuxVideoDescriptor *)desc, outSize);
+
 	default:
 		return gf_odf_size_default((GF_DefaultDescriptor *)desc, outSize);
 	}
@@ -509,6 +521,9 @@ GF_Err gf_odf_write_descriptor(GF_BitStream *bs, GF_Descriptor *desc)
 
 	case GF_ODF_MUXINFO_TAG:
 		return gf_odf_write_muxinfo(bs, (GF_MuxInfo *) desc);
+
+	case GF_ODF_AUX_VIDEO_DATA:
+		return gf_odf_write_auxvid(bs, (GF_AuxVideoDescriptor *)desc);
 
 	default:
 		return gf_odf_write_default(bs, (GF_DefaultDescriptor *)desc);

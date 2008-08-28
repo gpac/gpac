@@ -72,18 +72,12 @@ GF_Err LSR_ReleaseScene(GF_SceneDecoder *plug)
 	return GF_OK;
 }
 
-static GF_Err LSR_AttachStream(GF_BaseDecoder *plug, 
-									 u16 ES_ID, 
-									 char *decSpecInfo, 
-									 u32 decSpecInfoSize, 
-									 u16 DependsOnES_ID,
-									 u32 objectTypeIndication, 
-									 Bool Upstream)
+static GF_Err LSR_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 {
 	LSRPriv *priv = (LSRPriv *)plug->privateStack;
 	GF_Err e;
-	if (Upstream) return GF_NOT_SUPPORTED;
-	e = gf_laser_decoder_configure_stream(priv->codec, ES_ID, decSpecInfo, decSpecInfoSize);
+	if (esd->decoderConfig->upstream) return GF_NOT_SUPPORTED;
+	e = gf_laser_decoder_configure_stream(priv->codec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 	if (!e) priv->nb_streams++;
 	return e;
 }

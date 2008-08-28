@@ -42,22 +42,30 @@ static Bool xvid_is_init = 0;
 
 typedef struct
 {
-	void *codec;
-	/*no support for scalability in XVID yet*/
-	u16 ES_ID;
+	void *base_codec;
+	u16 base_ES_ID;
+
 	u32 width, height, out_size, pixel_ar;
 	Bool first_frame;
 	s32 base_filters;
 	Float FPS;
+
+	/*demo for depth coding (auxiliary video data): the codec is pseudo-scalable with the depth data carried in
+	another stream - this is not very elegant ...*/
+	void *depth_codec;
+	u16 depth_ES_ID;
+	char *temp_uv;
+	u32 yuv_size;
 } XVIDDec;
 
 #define XVIDCTX()	XVIDDec *ctx = (XVIDDec *) ifcg->privateStack
 
 
-static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
+	void **codec;
 #ifdef XVID_USE_OLD_API
 	XVID_DEC_FRAME frame;
 	XVID_DEC_PARAM par;
@@ -68,12 +76,32 @@ static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 	
 	XVIDCTX();
 
-	if (ctx->ES_ID && ctx->ES_ID!=ES_ID) return GF_NOT_SUPPORTED;
-	if (!decSpecInfoSize || !decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
-	if (ctx->codec) xvid_decore(ctx->codec, XVID_DEC_DESTROY, NULL, NULL);
+	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return GF_NON_COMPLIANT_BITSTREAM;
+
+	/*locate any auxiliary video data descriptor on this stream*/
+	if (esd->dependsOnESID) {
+		u32 i = 0;
+		GF_Descriptor *d = NULL;
+		if (esd->dependsOnESID != ctx->base_ES_ID) return GF_NOT_SUPPORTED;
+#ifdef XVID_USE_OLD_API
+		return GF_NOT_SUPPORTED;
+#endif
+
+		while ((d = gf_list_enum(esd->extensionDescriptors, &i))) {
+			if (d->tag == GF_ODF_AUX_VIDEO_DATA) break;
+		}
+		if (!d) return GF_NOT_SUPPORTED;
+		codec = &ctx->depth_codec;
+		ctx->depth_ES_ID = esd->ESID;
+	} else {
+		if (ctx->base_ES_ID && ctx->base_ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
+		codec = &ctx->base_codec;
+		ctx->base_ES_ID = esd->ESID;
+	}
+	if (*codec) xvid_decore(*codec, XVID_DEC_DESTROY, NULL, NULL);
 
 	/*decode DSI*/
-	e = gf_m4v_get_config(decSpecInfo, decSpecInfoSize, &dsi);
+	e = gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 	if (e) return e;
 	if (!dsi.width || !dsi.height) return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -94,34 +122,46 @@ static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecIn
 
 	ctx->width = par.width;
 	ctx->height = par.height;
-	ctx->codec = par.handle;
+	*codec = par.handle;
 
 	/*init decoder*/
 	memset(&frame, 0, sizeof(frame));
-	frame.bitstream = (void *) decSpecInfo;
-	frame.length = decSpecInfoSize;
+	frame.bitstream = (void *) esd->decoderConfig->decoderSpecificInfo->data;
+	frame.length = esd->decoderConfig->decoderSpecificInfo->dataLength;
 #ifndef XVID_USE_OLD_API
 	frame.version = XVID_VERSION;
-	xvid_decore(ctx->codec, XVID_DEC_DECODE, &frame, NULL);
+	xvid_decore(*codec, XVID_DEC_DECODE, &frame, NULL);
 #else
 	/*don't perform error check, XviD doesn't like DSI only frame ...*/
-	xvid_decore(ctx->codec, XVID_DEC_DECODE, &frame, NULL);
+	xvid_decore(*codec, XVID_DEC_DECODE, &frame, NULL);
 #endif
 
-	ctx->ES_ID = ES_ID;
 	ctx->first_frame = 1;
 	/*output in YV12 only - let the player handle conversion*/
-	ctx->out_size = ctx->width * ctx->height * 3 / 2;
+	if (ctx->depth_codec) {
+		ctx->out_size = ctx->width * ctx->height * 5 / 2;
+		ctx->temp_uv = malloc(sizeof(char)*ctx->width * ctx->height / 2);
+	} else {
+		ctx->yuv_size = ctx->out_size = ctx->width * ctx->height * 3 / 2;
+	}
 	return GF_OK;
 }
 static GF_Err XVID_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
 	XVIDCTX();
-	if (ctx->ES_ID != ES_ID) return GF_BAD_PARAM;
-	if (ctx->codec) xvid_decore(ctx->codec, XVID_DEC_DESTROY, NULL, NULL);
-	ctx->codec = NULL;
-	ctx->ES_ID = 0;
-	ctx->width = ctx->height = ctx->out_size = 0;
+	if (ctx->base_ES_ID == ES_ID) {
+		if (ctx->base_codec) xvid_decore(ctx->base_codec, XVID_DEC_DESTROY, NULL, NULL);
+		ctx->base_codec = NULL;
+		ctx->base_ES_ID = 0;
+		ctx->width = ctx->height = ctx->out_size = 0;
+	} 
+	else if (ctx->depth_ES_ID == ES_ID) {
+		if (ctx->depth_codec) xvid_decore(ctx->depth_codec, XVID_DEC_DESTROY, NULL, NULL);
+		ctx->depth_codec = NULL;
+		ctx->depth_ES_ID = 0;
+		if (ctx->temp_uv) free(ctx->temp_uv);
+		ctx->temp_uv = NULL;
+	} 
 	return GF_OK;
 }
 static GF_Err XVID_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
@@ -151,7 +191,7 @@ static GF_Err XVID_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = ctx->out_size;
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
-		capability->cap.valueInt = GF_PIXEL_YV12;
+		capability->cap.valueInt = ctx->depth_codec ? GF_PIXEL_YUVA : GF_PIXEL_YV12;
 		break;
 	case GF_CODEC_BUFFER_MIN:
 		capability->cap.valueInt = 1;
@@ -197,11 +237,17 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 #else
 	xvid_dec_frame_t frame;
 #endif
+	void *codec;
 	s32 postproc;
 	XVIDCTX();
 
-	/*check not using scalabilty*/
-	if (ES_ID != ctx->ES_ID) return GF_BAD_PARAM;
+	if (ES_ID == ctx->base_ES_ID) {
+		codec = ctx->base_codec;
+	}
+	else if (ES_ID == ctx->depth_ES_ID) {
+		codec = ctx->depth_codec;
+	} else
+		return GF_BAD_PARAM;
 
 	if (*outBufferLength < ctx->out_size) {
 		*outBufferLength = ctx->out_size;
@@ -219,10 +265,22 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 	frame.image = (void *) outBuffer;
 #else
 	frame.version = XVID_VERSION;
-	frame.output.csp = XVID_CSP_I420;
-	frame.output.stride[0] = ctx->width;
-	frame.output.plane[0] = (void *) outBuffer;
+	if (ES_ID == ctx->depth_ES_ID) {
+		frame.output.csp = XVID_CSP_PLANAR;
+		frame.output.stride[0] = ctx->width;
+		frame.output.plane[0] = (void *) (outBuffer + ctx->yuv_size);
+		frame.output.stride[1] = ctx->width/4;
+		frame.output.plane[1] = (void *) ctx->temp_uv;
+		frame.output.stride[2] = ctx->width/4;
+		frame.output.plane[2] = (void *) ctx->temp_uv;
+	} else {
+		frame.output.csp = XVID_CSP_I420;
+		frame.output.stride[0] = ctx->width;
+		frame.output.plane[0] = (void *) outBuffer;
+	}
 #endif
+
+
 
 	/*to check, not convinced yet by results...*/
 	postproc = ctx->base_filters;
@@ -260,11 +318,10 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 	}
 	postproc = 0;
 
-	/*xvid is a real pain here, it may keep the first I frame and force a 1-frame delay, so we simply
-	trick it*/
+	/*xvid may keep the first I frame and force a 1-frame delay, so we simply trick it*/
 	if (ctx->first_frame) { outBuffer[0] = 'v'; outBuffer[1] = 'o'; outBuffer[2] = 'i'; outBuffer[3] = 'd'; }
 
-	if (xvid_decore(ctx->codec, XVID_DEC_DECODE, &frame, NULL) < 0) {
+	if (xvid_decore(codec, XVID_DEC_DECODE, &frame, NULL) < 0) {
 		*outBufferLength = 0;
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
@@ -273,7 +330,8 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 	switch (mmlevel) {
 	case GF_CODEC_LEVEL_SEEK:
 	case GF_CODEC_LEVEL_DROP:
-		*outBufferLength = 0;
+		if (ES_ID == ctx->base_ES_ID) 
+			*outBufferLength = 0;
 		break;
 	default:
 		*outBufferLength = ctx->out_size;
@@ -379,7 +437,8 @@ GF_BaseDecoder *NewXVIDDec()
 void DeleteXVIDDec(GF_BaseDecoder *ifcg)
 {
 	XVIDCTX();
-	if (ctx->codec) xvid_decore(ctx->codec, XVID_DEC_DESTROY, NULL, NULL);
+	if (ctx->base_codec) xvid_decore(ctx->base_codec, XVID_DEC_DESTROY, NULL, NULL);
+	if (ctx->depth_codec) xvid_decore(ctx->depth_codec, XVID_DEC_DESTROY, NULL, NULL);
 	free(ctx);
 	free(ifcg);
 }

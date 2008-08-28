@@ -38,14 +38,14 @@ typedef struct
 #define JP2CTX()	JP2Dec *ctx = (JP2Dec *) ((IMGDec *)ifcg->privateStack)->opaque
 
 
-static GF_Err JP2_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
+static GF_Err JP2_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	GF_BitStream *bs;
 	JP2CTX();
-	if (DependsOnES_ID || UpStream) return GF_NOT_SUPPORTED;
+	if (esd->dependsOnESID || esd->decoderConfig->upstream) return GF_NOT_SUPPORTED;
 
-	if (objectTypeIndication==0x6E) {
-		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+	if (esd->decoderConfig->objectTypeIndication==0x6E) {
+		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 		ctx->height = gf_bs_read_u32(bs);
 		ctx->width = gf_bs_read_u32(bs);
 		ctx->nb_comp = gf_bs_read_u16(bs);
@@ -61,9 +61,7 @@ static GF_Err JP2_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInf
 		default: return GF_NOT_SUPPORTED;
 		}
 	} else {
-		assert((decSpecInfoSize>=4) && (decSpecInfo[0]=='m') && (decSpecInfo[1]=='j') && (decSpecInfo[2]=='p') && (decSpecInfo[3]=='2'));
-
-		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 		gf_bs_read_u32(bs);
 		ctx->width = gf_bs_read_u16(bs);
 		ctx->height = gf_bs_read_u16(bs);
@@ -79,7 +77,7 @@ static GF_Err JP2_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, char *decSpecInf
 		gf_bs_write_u32(bs, 0);
 		gf_bs_write_u32(bs, GF_4CC('j','p','2',' ') );
 
-		gf_bs_write_data(bs, decSpecInfo+8, decSpecInfoSize-8);
+		gf_bs_write_data(bs, esd->decoderConfig->decoderSpecificInfo->data+8, esd->decoderConfig->decoderSpecificInfo->dataLength-8);
 		gf_bs_get_content(bs, &ctx->dsi, &ctx->dsi_size);
 		gf_bs_del(bs);
 

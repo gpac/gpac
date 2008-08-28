@@ -750,7 +750,13 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_XLINK_ATT_show: all_atts->xlink_show = (SVG_String *)att->data; break;
 		case TAG_XLINK_ATT_actuate: all_atts->xlink_actuate = (SVG_String *)att->data; break;
 
-		case TAG_XMLEV_ATT_event: all_atts->ev_event = (XMLEV_Event *)att->data; break;
+		case TAG_XMLEV_ATT_event: all_atts->event = (XMLEV_Event *)att->data; break;
+		case TAG_XMLEV_ATT_phase: all_atts->phase = (XMLEV_Phase *)att->data; break;
+		case TAG_XMLEV_ATT_propagate: all_atts->propagate = (XMLEV_Propagate *)att->data; break;
+		case TAG_XMLEV_ATT_defaultAction: all_atts->defaultAction = (XMLEV_DefaultAction *)att->data; break;
+		case TAG_XMLEV_ATT_observer: all_atts->observer = (XML_IDREF *)att->data; break;
+		case TAG_XMLEV_ATT_target: all_atts->listener_target = (XML_IDREF *)att->data; break;
+		case TAG_XMLEV_ATT_handler: all_atts->handler = (XMLRI *)att->data; break;
 
 		case TAG_LSR_ATT_enabled: all_atts->lsr_enabled = (SVG_Boolean *)att->data; break;
 
@@ -903,13 +909,6 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_gradientUnits: all_atts->gradientUnits = (SVG_GradientUnit *)att->data; break;
 		case TAG_SVG_ATT_spreadMethod: all_atts->spreadMethod = (SVG_SpreadMethod *)att->data; break;
 		case TAG_SVG_ATT_gradientTransform: all_atts->gradientTransform = (SVG_Transform *)att->data; break;
-		case TAG_SVG_ATT_event: all_atts->event = (XMLEV_Event *)att->data; break;
-		case TAG_SVG_ATT_phase: all_atts->phase = (XMLEV_Phase *)att->data; break;
-		case TAG_SVG_ATT_propagate: all_atts->propagate = (XMLEV_Propagate *)att->data; break;
-		case TAG_SVG_ATT_defaultAction: all_atts->defaultAction = (XMLEV_DefaultAction *)att->data; break;
-		case TAG_SVG_ATT_observer: all_atts->observer = (XML_IDREF *)att->data; break;
-		case TAG_SVG_ATT_listener_target: all_atts->listener_target = (XML_IDREF *)att->data; break;
-		case TAG_SVG_ATT_handler: all_atts->handler = (XMLRI *)att->data; break;
 		case TAG_SVG_ATT_pathLength: all_atts->pathLength = (SVG_Number *)att->data; break;
 		case TAG_SVG_ATT_points: all_atts->points = (SVG_Points *)att->data; break;
 		case TAG_SVG_ATT_mediaSize: all_atts->mediaSize = (SVG_Number *)att->data; break;

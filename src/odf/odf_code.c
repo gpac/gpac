@@ -2434,6 +2434,99 @@ GF_Err gf_odf_write_lang(GF_BitStream *bs, GF_Language *ld)
 }
 
 
+
+GF_Descriptor *gf_odf_new_auxvid()
+{
+	GF_AuxVideoDescriptor *newDesc;
+	GF_SAFEALLOC(newDesc, GF_AuxVideoDescriptor);
+	if (!newDesc) return NULL;
+	newDesc->tag = GF_ODF_AUX_VIDEO_DATA;
+	return (GF_Descriptor *) newDesc;
+}
+
+GF_Err gf_odf_del_auxvid(GF_AuxVideoDescriptor *ld)
+{
+	if (!ld) return GF_BAD_PARAM;
+	free(ld);
+	return GF_OK;
+}
+
+GF_Err gf_odf_read_auxvid(GF_BitStream *bs, GF_AuxVideoDescriptor *ld, u32 DescSize)
+{
+	u32 nbBytes = 0;
+	if (!ld) return GF_BAD_PARAM;
+
+	ld->aux_video_type = gf_bs_read_int(bs, 8);
+	ld->position_offset_h = gf_bs_read_int(bs, 8);
+	ld->position_offset_v = gf_bs_read_int(bs, 8);
+	nbBytes += 3;
+	switch (ld->aux_video_type) {
+	case 0x10:
+		ld->kfar = gf_bs_read_int(bs, 8);
+		ld->knear = gf_bs_read_int(bs, 8);
+		nbBytes += 2;
+		break;
+	case 0x11:
+		ld->parallax_zero = gf_bs_read_int(bs, 16);
+		ld->parallax_scale = gf_bs_read_int(bs, 16);
+		ld->dref = gf_bs_read_int(bs, 16);
+		ld->wref = gf_bs_read_int(bs, 16);
+		nbBytes += 8;
+		break;
+	}
+	while (nbBytes < DescSize) {
+		gf_bs_read_int(bs, 8);
+		nbBytes ++;
+	}
+	return GF_OK;
+}
+
+GF_Err gf_odf_size_auxvid(GF_AuxVideoDescriptor *ld, u32 *outSize)
+{
+	if (!ld) return GF_BAD_PARAM;
+	switch (ld->aux_video_type) {
+	case 0x10:
+		*outSize = 5;
+		break;
+	case 0x11:
+		*outSize = 11;
+		break;
+	default:
+		*outSize = 3;
+		break;
+	}
+	return GF_OK;
+}
+
+GF_Err gf_odf_write_auxvid(GF_BitStream *bs, GF_AuxVideoDescriptor *ld)
+{
+	GF_Err e;
+	u32 size;
+	if (!ld) return GF_BAD_PARAM;
+	e = gf_odf_size_descriptor((GF_Descriptor *)ld, &size);
+	if (e) return e;
+	e = gf_odf_write_base_descriptor(bs, ld->tag, size);
+	if (e) return e;
+
+	gf_bs_write_int(bs, ld->aux_video_type, 8);
+	gf_bs_write_int(bs, ld->position_offset_h, 8);
+	gf_bs_write_int(bs, ld->position_offset_v, 8);
+	switch (ld->aux_video_type) {
+	case 0x10:
+		gf_bs_write_int(bs, ld->kfar, 8);
+		gf_bs_write_int(bs, ld->knear, 8);
+		break;
+	case 0x11:
+		gf_bs_write_int(bs, ld->parallax_zero, 16);
+		gf_bs_write_int(bs, ld->parallax_scale, 16);
+		gf_bs_write_int(bs, ld->dref, 16);
+		gf_bs_write_int(bs, ld->wref, 16);
+		break;
+	}
+	return GF_OK;
+}
+
+
 GF_Descriptor *gf_odf_new_oci_date()
 {
 	GF_OCI_Data *newDesc = (GF_OCI_Data *) malloc(sizeof(GF_OCI_Data));

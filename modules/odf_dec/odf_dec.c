@@ -150,15 +150,9 @@ static GF_Err ODS_RemoveESD(ODPriv *priv, GF_ESDRemove *ESDs)
 	return GF_OK;
 }
 
-static GF_Err ODF_AttachStream(GF_BaseDecoder *plug, 
-									 u16 ES_ID, 
-									 char *decSpecInfo, 
-									 u32 decSpecInfoSize, 
-									 u16 DependsOnES_ID,
-									 u32 objectTypeIndication, 
-									 Bool Upstream)
+static GF_Err ODF_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 {
-	return Upstream ? GF_NOT_SUPPORTED : GF_OK;
+	return esd->decoderConfig->upstream ? GF_NOT_SUPPORTED : GF_OK;
 }
 
 

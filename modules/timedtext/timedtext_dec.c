@@ -236,28 +236,18 @@ static GFINLINE GF_Node *ttd_create_node(TTDPriv *ttd, u32 tag, const char *def_
 	return n;
 }
 
-static GF_Err TTD_AttachStream(GF_BaseDecoder *plug, 
-									 u16 ES_ID, 
-									 char *decSpecInfo, 
-									 u32 decSpecInfoSize, 
-									 u16 DependsOnES_ID,
-									 u32 objectTypeIndication, 
-									 Bool Upstream)
+static GF_Err TTD_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 {
 	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	GF_Err e;
-	GF_DefaultDescriptor dsi;
 	GF_Node *root, *n1, *n2;
 	const char *opt;
 	/*no scalable, no upstream*/
-	if (priv->nb_streams || Upstream) return GF_NOT_SUPPORTED;
-	if (!decSpecInfo || !decSpecInfoSize) return GF_NON_COMPLIANT_BITSTREAM;
+	if (priv->nb_streams || esd->decoderConfig->upstream) return GF_NOT_SUPPORTED;
+	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return GF_NON_COMPLIANT_BITSTREAM;
 
 	priv->cfg = (GF_TextConfig *) gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
-	dsi.tag = GF_ODF_DSI_TAG;
-	dsi.data = decSpecInfo;
-	dsi.dataLength = decSpecInfoSize;
-	e = gf_odf_get_text_config(&dsi, (u8) objectTypeIndication, priv->cfg);
+	e = gf_odf_get_text_config(esd->decoderConfig->decoderSpecificInfo, (u8) esd->decoderConfig->objectTypeIndication, priv->cfg);
 	if (e) {
 		gf_odf_desc_del((GF_Descriptor *) priv->cfg);
 		priv->cfg = NULL;

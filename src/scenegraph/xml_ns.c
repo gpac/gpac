@@ -45,11 +45,13 @@ enum
 
 static const struct xml_att_def { const char *name; u32 tag; u32 type; u32 opts; u32 xmlns; } xml_attributes [] = 
 {
+	/*XML base*/
 	{ "id", TAG_XML_ATT_id, SVG_ID_datatype, 0, GF_XMLNS_XML } ,
 	{ "base", TAG_XML_ATT_base, XMLRI_datatype, 0, GF_XMLNS_XML } ,
 	{ "lang", TAG_XML_ATT_lang, SVG_LanguageID_datatype, 0, GF_XMLNS_XML } ,
 	{ "space", TAG_XML_ATT_space, XML_Space_datatype, 0, GF_XMLNS_XML } ,
 
+	/*XLINK*/
 	{ "type", TAG_XLINK_ATT_type, DOM_String_datatype, 0, GF_XMLNS_XLINK },
 	{ "role", TAG_XLINK_ATT_role, XMLRI_datatype, 0, GF_XMLNS_XLINK },
 	{ "arcrole", TAG_XLINK_ATT_arcrole, XMLRI_datatype, 0, GF_XMLNS_XLINK },
@@ -58,7 +60,14 @@ static const struct xml_att_def { const char *name; u32 tag; u32 type; u32 opts;
 	{ "show", TAG_XLINK_ATT_show, DOM_String_datatype, 0, GF_XMLNS_XLINK },
 	{ "actuate", TAG_XLINK_ATT_actuate, DOM_String_datatype, 0, GF_XMLNS_XLINK },
 
+	/*XML Events*/
 	{ "event", TAG_XMLEV_ATT_event, XMLEV_Event_datatype, 0, GF_XMLNS_XMLEV },
+	{ "phase", TAG_XMLEV_ATT_phase, XMLEV_Phase_datatype, 0, GF_XMLNS_XMLEV },
+	{ "propagate", TAG_XMLEV_ATT_propagate, XMLEV_Propagate_datatype, 0, GF_XMLNS_XMLEV },
+	{ "defaultAction", TAG_XMLEV_ATT_defaultAction, XMLEV_DefaultAction_datatype, 0, GF_XMLNS_XMLEV },
+	{ "observer", TAG_XMLEV_ATT_observer, XML_IDREF_datatype, 0, GF_XMLNS_XMLEV },
+	{ "target", TAG_XMLEV_ATT_target, XML_IDREF_datatype, 0, GF_XMLNS_XMLEV },
+	{ "handler", TAG_XMLEV_ATT_handler, XMLRI_datatype, 0, GF_XMLNS_XMLEV },
 
 	
 	{ "id", TAG_SVG_ATT_id, SVG_ID_datatype, 0, GF_XMLNS_SVG } ,
@@ -201,13 +210,6 @@ static const struct xml_att_def { const char *name; u32 tag; u32 type; u32 opts;
 	{ "gradientUnits", TAG_SVG_ATT_gradientUnits, SVG_GradientUnit_datatype, 0, GF_XMLNS_SVG },
 	{ "spreadMethod", TAG_SVG_ATT_spreadMethod, SVG_SpreadMethod_datatype, 0, GF_XMLNS_SVG },
 	{ "gradientTransform", TAG_SVG_ATT_gradientTransform, SVG_Transform_datatype, 0, GF_XMLNS_SVG },
-	{ "event", TAG_SVG_ATT_event, XMLEV_Event_datatype, GF_SVG_ATTOPT_LISTENER, GF_XMLNS_SVG},
-	{ "phase", TAG_SVG_ATT_phase, XMLEV_Phase_datatype, 0, GF_XMLNS_SVG },
-	{ "propagate", TAG_SVG_ATT_propagate, XMLEV_Propagate_datatype, 0, GF_XMLNS_SVG },
-	{ "defaultAction", TAG_SVG_ATT_defaultAction, XMLEV_DefaultAction_datatype, 0, GF_XMLNS_SVG },
-	{ "observer", TAG_SVG_ATT_observer, XML_IDREF_datatype, 0, GF_XMLNS_SVG },
-	{ "target", TAG_SVG_ATT_listener_target, XML_IDREF_datatype, 0, GF_XMLNS_SVG },
-	{ "handler", TAG_SVG_ATT_handler, XMLRI_datatype, 0, GF_XMLNS_SVG },
 	{ "pathLength", TAG_SVG_ATT_pathLength, SVG_Number_datatype, 0, GF_XMLNS_SVG },
 	{ "points", TAG_SVG_ATT_points, SVG_Points_datatype, 0, GF_XMLNS_SVG },
 	{ "mediaSize", TAG_SVG_ATT_mediaSize, SVG_Number_datatype, 0, GF_XMLNS_SVG },
@@ -389,6 +391,7 @@ GF_DOMAttribute *gf_xml_create_attribute(GF_Node *node, u32 tag)
 
 static const struct xml_elt_def { const char *name; u32 tag; u32 xmlns; } xml_elements [] = 
 {
+	{ "listener", TAG_SVG_listener, GF_XMLNS_XMLEV},
 	/*SVG*/
 	{ "a", TAG_SVG_a, GF_XMLNS_SVG },
 	{ "animate", TAG_SVG_animate, GF_XMLNS_SVG },
@@ -414,7 +417,6 @@ static const struct xml_elt_def { const char *name; u32 tag; u32 xmlns; } xml_el
 	{ "image", TAG_SVG_image, GF_XMLNS_SVG },
 	{ "line", TAG_SVG_line, GF_XMLNS_SVG },
 	{ "linearGradient", TAG_SVG_linearGradient, GF_XMLNS_SVG },
-	{ "listener", TAG_SVG_listener, GF_XMLNS_SVG },
 	{ "metadata", TAG_SVG_metadata, GF_XMLNS_SVG },
 	{ "missing-glyph", TAG_SVG_missing_glyph, GF_XMLNS_SVG },
 	{ "mpath", TAG_SVG_mpath, GF_XMLNS_SVG },
@@ -473,10 +475,10 @@ u32 gf_xml_get_element_tag(const char *element_name, u32 ns)
 	if (!element_name) return TAG_UndefinedNode;
 	count = sizeof(xml_elements) / sizeof(struct xml_elt_def);
 	for (i=0; i<count; i++) {
-		if (!strcmp(xml_elements[i].name, element_name)
-			&& (!ns || (xml_elements[i].xmlns==ns) )
-		)
-			return xml_elements[i].tag;
+		if (!strcmp(xml_elements[i].name, element_name)) {
+			if (!ns || (xml_elements[i].xmlns==ns) )
+				return xml_elements[i].tag;
+		}
 	}
 	return TAG_UndefinedNode;
 }
@@ -734,7 +736,7 @@ static void attributes_set_default_value(u32 node_tag, SVGAttribute *att)
 	case TAG_SVG_ATT_smil_fill:
 		*((SMIL_Fill *)att->data) = SMIL_FILL_REMOVE;
 		break;
-	case TAG_SVG_ATT_defaultAction:
+	case TAG_XMLEV_ATT_defaultAction:
 		*((XMLEV_DefaultAction *)att->data) = XMLEVENT_DEFAULTACTION_PERFORM;
 		break;
 	case TAG_SVG_ATT_zoomAndPan:
