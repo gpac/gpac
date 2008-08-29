@@ -632,6 +632,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		M2TS_FlushRequested(m2ts);
 		break;
 	case GF_M2TS_EVT_EIT_ACTUAL_PF:
+	case GF_M2TS_EVT_EIT_OTHER_PF:
 		if (m2ts->eit_channel) 
 			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, 0, NULL, GF_OK);
 		break;
@@ -1195,7 +1196,12 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	case GF_NET_CHAN_PLAY:
 		pes = M2TS_GetChannel(m2ts, com->base.on_channel);
-		if (!pes) return GF_STREAM_NOT_FOUND;
+		if (!pes) {
+			if (com->base.on_channel == m2ts->eit_channel) {
+				return GF_OK;
+			}
+			return GF_STREAM_NOT_FOUND;
+		}
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Setting default reframing\n"));
 		/*this is a multplex, only trigger the play command for the first stream activated*/
@@ -1211,7 +1217,12 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
 		pes = M2TS_GetChannel(m2ts, com->base.on_channel);
-		if (!pes) return GF_STREAM_NOT_FOUND;
+		if (!pes) {
+			if (com->base.on_channel == m2ts->eit_channel) {
+				return GF_OK;
+			}
+			return GF_STREAM_NOT_FOUND;
+		}
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 		/*FIXME HOORIBLE HACK*/
 		return GF_OK;
