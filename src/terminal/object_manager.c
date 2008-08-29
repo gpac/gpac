@@ -213,7 +213,6 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Setting up root object for %s\n", odm->net_service->url));
 
-	odm->net_service->nb_odm_users++;
 	if (odm->subscene) od_type = GF_MEDIA_OBJECT_SCENE;
 	else if (odm->mo) {
 		od_type = odm->mo->type;
@@ -233,13 +232,16 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	}
 
 	desc = odm->net_service->ifce->GetServiceDescriptor(odm->net_service->ifce, od_type, sub_url); 
+	if (odm->OD) return;
 
-	/*create empty service descriptor, this will automatically create a dynamic scene*/
 	if (!desc) {
+		/*if desc is NULL for a media, the media will be declared later by the service (gf_term_media_add)*/
 		if (od_type != GF_MEDIA_OBJECT_SCENE)
 			return;
+		/*create empty service descriptor, this will automatically create a dynamic scene*/
 		desc = gf_odf_desc_new(GF_ODF_OD_TAG);
 	}
+	odm->net_service->nb_odm_users++;
 
 	if (!gf_list_count( ((GF_ObjectDescriptor*)desc)->ESDescriptors)) {
 		/*new subscene*/

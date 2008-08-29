@@ -46,7 +46,7 @@ static void ch_buffer_on(GF_Channel *ch)
 {
 	/*don't buffer on an already running clock*/
 	if (ch->clock->no_time_ctrl && ch->clock->clock_init && (ch->esd->ESID!=ch->clock->clockID) ) return;
-	if (ch->direct_dispatch) return;
+	if (ch->dispatch_after_db) return;
 
 	/*just in case*/
 	if (!ch->BufferOn) {
@@ -493,7 +493,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	/*little optimisation: if direct dispatching is possible, try to decode the AU
 	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or 
 	media resources*/
-	if (ch->direct_dispatch) {
+	if (ch->dispatch_after_db) {
 		u32 retry = 100;
 		u32 current_frame;
 		GF_Terminal *term = ch->odm->term;
@@ -605,8 +605,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	Bool EndAU, NewAU;
 	char *payload;
 
-	if (ch->direct_decode) {
+	if (ch->bypass_sl_and_db) {
 		GF_SceneDecoder *sdec;
+		ch->IsClockInit = 1;
 		if (ch->odm->subscene) {
 			sdec = (GF_SceneDecoder *)ch->odm->subscene->scene_codec->decio;
 		} else {
@@ -1204,7 +1205,7 @@ void gf_es_on_connect(GF_Channel *ch)
 	}
 	if (ch->esd->decoderConfig->streamType == GF_STREAM_PRIVATE_SCENE &&
 		ch->esd->decoderConfig->objectTypeIndication == GPAC_OTI_PRIVATE_SCENE_EPG) { 
-		ch->direct_decode = 1;
+		ch->bypass_sl_and_db = 1;
 	}
 	if (ch->clock->no_time_ctrl) {
 		switch (ch->esd->decoderConfig->streamType) {
@@ -1212,7 +1213,7 @@ void gf_es_on_connect(GF_Channel *ch)
 		case GF_STREAM_VISUAL:
 			break;
 		default:
-			ch->direct_dispatch = 1;
+			ch->dispatch_after_db = 1;
 			break;
 		}
 	}

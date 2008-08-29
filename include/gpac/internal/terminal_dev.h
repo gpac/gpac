@@ -491,16 +491,20 @@ struct _es_channel
 
 	/*duration of last received AU if any, 0 if not known (most of the time)*/
 	u32 au_duration;
+	/*A channel with this flag set considers each incoming packet as a complete AU and assigns timestamps 
+	upon reception matching the reception time, then dispatching it into the decoding buffer (only tested
+	with audi video). This flag is turned on by setting esd->slconfig->predefined to 'SLPredef_SkipSL' */
 	Bool skip_sl;
 
-	/*indicates that decoding can be called directly when receiving an AU on this channel
-	This is used by systems streams with no clock control (eg, MPEG-2 TS multiplexes) to make sure resources are 
-	setup as fast as possible.*/
-	Bool direct_dispatch;
+	/*indicates that decoding can be called directly when receiving a complete AU on this channel
+	This is used by systems streams in non-seekable (eg broadcast/multicast, MPEG-2 TS multiplexes) to 
+	make sure resources are setup as fast as possible. If the AU is too early, it will be kept in the 
+	decoding buffer*/
+	Bool dispatch_after_db;
 
-	/*indicates that decoding can be called directly when receiving an AU on this channel
-	This is used to bypass SL for EIT internal streams*/
-	Bool direct_decode;
+	/*indicates that decoding is called directly when receiving a packet on this channel
+	This is used to bypass SL defragmenting and decoding buffer for EIT internal streams*/
+	Bool bypass_sl_and_db;
 
 	GF_IPMPTool *ipmp_tool;
 	Bool is_protected;

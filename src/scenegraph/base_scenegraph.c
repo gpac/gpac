@@ -1787,16 +1787,18 @@ GF_Err gf_node_deactivate(GF_Node *node)
 	return e;
 }
 
-static GF_Err gf_node_activate_ex(GF_Node *node)
+static u32 gf_node_activate_ex(GF_Node *node)
 {
 #ifdef GPAC_DISABLE_SVG
-	return GF_NOT_SUPPORTED;
+	return 0;
 #else
+	u32 ret = 0;
 	GF_ChildNodeItem *item;
-	if (node->sgprivate->tag<GF_NODE_FIRST_DOM_NODE_TAG) return GF_BAD_PARAM;
+	if (node->sgprivate->tag<GF_NODE_FIRST_DOM_NODE_TAG) return 0;
 	if (node->sgprivate->flags & GF_NODE_IS_DEACTIVATED) {
 
 		node->sgprivate->flags &= ~GF_NODE_IS_DEACTIVATED;
+		ret ++;
 
 		/*deactivate anmiations*/
 		if (gf_svg_is_timing_tag(node->sgprivate->tag)) {
@@ -1813,18 +1815,19 @@ static GF_Err gf_node_activate_ex(GF_Node *node)
 	/*and deactivate children*/
 	item = ((GF_ParentNode*)node)->children;
 	while (item) {
-		gf_node_activate_ex(item->node);
+		ret += gf_node_activate_ex(item->node);
 		item = item->next;
 	}
-	return GF_OK;
+	return ret;
 #endif
 }
 
 GF_Err gf_node_activate(GF_Node *node)
 {
-	GF_Err e = gf_node_activate_ex(node);
-	gf_node_changed(node, NULL);
-	return e;
+	if (!node) return GF_BAD_PARAM;
+	if (gf_node_activate_ex(node))
+		gf_node_changed(node, NULL);
+	return GF_OK;
 }
 
 GF_EXPORT

@@ -506,6 +506,7 @@ static Bool gf_mo_is_same_url_ex(GF_MediaObject *obj, MFURL *an_url, Bool *keep_
 	u32 i;
 	char szURL1[GF_MAX_PATH], szURL2[GF_MAX_PATH], *ext;
 
+	if (keep_fragment) *keep_fragment = 0;
 	if (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID) {
 		if (!obj->URLs.count) {
 			if (!obj->odm) return 0;
@@ -835,7 +836,7 @@ static GFINLINE Bool is_match_obj_type(u32 type, u32 hint_type)
 GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref, Bool always_load_new, GF_Node *node)
 {
 	GF_MediaObject *obj;
-	Bool keep_fragment = 0;
+	Bool keep_fragment = 1;
 	u32 i, OD_ID;
 
 	OD_ID = URL_GetODID(url);
