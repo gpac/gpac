@@ -125,7 +125,7 @@ static void gf_yuv_load_lines(unsigned char *dst, s32 dststride, unsigned char *
 
 
 
-static void gf_yuva_load_lines(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *v_src, unsigned char * u_src, unsigned char *a_src,
+static void gf_yuva_load_lines(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char *v_src, unsigned char *a_src,
 				 s32 y_stride, s32 uv_stride, s32 width)
 {
 	u32 x, hw;
