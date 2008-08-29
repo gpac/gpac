@@ -398,7 +398,8 @@ Bool gf_dom_event_fire(GF_Node *node, GF_List *use_stack, GF_DOM_Event *event)
 	if (!node || !event) return 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events    ] Time %f - Firing event  %s.%s\n", gf_node_get_scene_time(node), gf_node_get_log_name(node), gf_dom_event_get_name(event->type)));
 
-	/*flush any pending add_listener*/
+	/*flush any pending add_listener
+	see "determine the current target's candidate event listeners" in http://www.w3.org/TR/DOM-Level-3-Events/events.html*/
 	gf_dom_listener_process_add(node->sgprivate->scenegraph);
 
 	event->target = node;

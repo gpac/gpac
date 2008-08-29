@@ -351,7 +351,7 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 	} else {
 		char *frag = strchr(url, '#');
 		if (frag) frag[0] = 0;
-		if (!strcmp(url, m2ts->filename)) {
+		if (!strlen(url) || !strcmp(url, m2ts->filename)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DVBIn] Reusing the same input file for %s\n", url));
  			ret = 1;
 		}
@@ -515,6 +515,7 @@ static GF_ObjectDescriptor *M2TS_GenerateEPG_OD(M2TSIn *m2ts)
 	/*create a stream description for this channel*/
 	esd = gf_odf_desc_esd_new(0);
 	esd->ESID = GF_M2TS_PID_EIT_ST_CIT;
+	esd->OCRESID = GF_M2TS_PID_EIT_ST_CIT;
 	esd->decoderConfig->streamType = GF_STREAM_PRIVATE_SCENE;
 	esd->decoderConfig->objectTypeIndication = GPAC_OTI_PRIVATE_SCENE_EPG;
 	esd->decoderConfig->bufferSizeDB = 0;
