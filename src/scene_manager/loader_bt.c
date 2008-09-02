@@ -390,6 +390,8 @@ char *gf_bt_get_next(GF_BTParser *parser, Bool point_break)
 			case 0:
 			case ' ':
 			case '\t':
+			case '\r':
+			case '\n':
 			case '{':
 			case '}':
 			case ']':
@@ -2927,7 +2929,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 {
 	char *str;
 	GF_Node *node, *vrml_root_node;
-	Bool in_com;
+	Bool in_com, force_new_com;
 	GF_Route *r;
 	Bool has_id;
 	char szDEFName[1000];
@@ -2936,6 +2938,9 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 	has_id = 0;
 	in_com = init_com ? 0 : 1;
 	parser->cur_com = init_com;
+
+	force_new_com = (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) ? 1 : 0;
+
 
 	/*create a default root node for all VRML nodes*/
 	if ((parser->is_wrl && !parser->top_nodes) && !vrml_root_node) {
@@ -2979,6 +2984,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 					break;
 				}
 			}
+			force_new_com = 0;
 			str = gf_bt_get_next(parser, 0);
 			if (str[0] == 'D') {
 				parser->au_time += atoi(&str[1]);
@@ -3085,6 +3091,13 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 					parser->bifs_au = NULL;
 				}
 			}
+			if (force_new_com) {
+				force_new_com = 0;
+				parser->bifs_au = gf_list_last(parser->bifs_es->AUs);
+				parser->au_time = parser->bifs_au->timing + 1;
+				parser->bifs_au = NULL;
+			}
+
 			if (!parser->bifs_au) parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, parser->au_time, 0, parser->au_is_rap);
 			gf_bt_parse_bifs_command(parser, str, parser->bifs_au->commands);
 			if (is_base_stream) parser->stream_id= 0;
