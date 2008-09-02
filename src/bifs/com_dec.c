@@ -354,7 +354,8 @@ static GF_Err BD_DecNodeInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 	if (!e) {
 		GF_FieldInfo field;
 		/*get it by name in case no add/removeChildren*/
-		gf_node_get_field_by_name(def, "children", &field);
+		e = gf_node_get_field_by_name(def, "children", &field);
+		if (e) return e;
 		gf_bifs_check_field_change(def, &field);
 	}
 	return e;
