@@ -843,6 +843,7 @@ static Bool gf_m2ts_is_long_section(u8 table_id)
 
 static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size)
 {
+	u32 offset = 0;
 	u8 expect_cc = (sec->cc<0) ? hdr->continuity_counter : (sec->cc + 1) & 0xf;
 	Bool disc = (expect_cc == hdr->continuity_counter) ? 0 : 1;
 	sec->cc = expect_cc;
@@ -888,6 +889,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 #if 0
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] skipping %d bytes of garbage in section\n", data_size - (sec->length - sec->received) ));
 #endif
+			offset = data_size - (sec->length - sec->received);
 			data_size = sec->length - sec->received;
 		}
 
@@ -914,6 +916,10 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 
 	/*OK done*/
 	gf_m2ts_section_complete(ts, sec, ses);
+
+	if (data_size) {
+		gf_m2ts_gather_section(ts, sec, ses, hdr, data + offset, data_size);
+	}
 }
 
 static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
