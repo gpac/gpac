@@ -181,18 +181,20 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		/*remove all protos and routes*/
 		while (gf_list_count(graph->routes_to_activate)) 
 			gf_list_rem(graph->routes_to_activate, 0);
-		
-		/*destroy all routes*/
-		while (gf_list_count(graph->Routes)) {
-			GF_Route *r = (GF_Route *)gf_list_get(graph->Routes, 0);
-			/*this will unregister the route from the graph, so don't delete the chain entry*/
-			gf_sg_route_del(r);
-		}
-		/*destroy all proto*/
-		while (gf_list_count(graph->protos)) {
-			GF_Proto *p = (GF_Proto*)gf_list_get(graph->protos, 0);
-			/*this will unregister the proto from the graph, so don't delete the chain entry*/
-			gf_sg_proto_del(p);
+
+		if (!com->aggregated) {
+			/*destroy all routes*/
+			while (gf_list_count(graph->Routes)) {
+				GF_Route *r = (GF_Route *)gf_list_get(graph->Routes, 0);
+				/*this will unregister the route from the graph, so don't delete the chain entry*/
+				gf_sg_route_del(r);
+			}
+			/*destroy all proto*/
+			while (gf_list_count(graph->protos)) {
+				GF_Proto *p = (GF_Proto*)gf_list_get(graph->protos, 0);
+				/*this will unregister the proto from the graph, so don't delete the chain entry*/
+				gf_sg_proto_del(p);
+			}
 		}
 		/*DO NOT TOUCH node registry*/
 		/*DO NOT TOUCH UNREGISTERED PROTOS*/

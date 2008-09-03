@@ -721,7 +721,7 @@ typedef struct
 		u32 toFieldIndex;
 		s32 send_event_y;
 //	};
-
+	Bool aggregated;
 } GF_Command;
 
 
