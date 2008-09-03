@@ -236,7 +236,9 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 			gf_list_del(com->new_proto_list);
 			com->new_proto_list = ctx->scene_graph->protos;
 			ctx->scene_graph->protos = NULL;
-			/*FIXME - check routes & protos*/
+			/*indicate the command is the aggregated scene graph, so that PROTOs and ROUTEs 
+			are taken from the scenegraph when encoding*/
+			com->aggregated = 1;
 			gf_list_add(au->commands, com);
 		}
 	}

@@ -759,22 +759,33 @@ GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStrea
 			while (gf_list_count(codec->encoded_nodes)) gf_list_rem(codec->encoded_nodes, 0);
 			GF_BIFS_WRITE_INT(codec, bs, 3, 2, "SceneReplace", NULL);
 		
-			routes = gf_list_new();
-			/*now the trick: get all following InsertRoutes and convert as routes*/
-			for (; i<count-1; i++) {
-				GF_Route *r;
-				GF_Command *rcom = (GF_Command*)gf_list_get(comList, i+1);
-				if (rcom->tag!=GF_SG_ROUTE_INSERT) break;
-				GF_SAFEALLOC(r, GF_Route);
-				r->FromField.fieldIndex = rcom->fromFieldIndex;
-				r->FromNode = gf_sg_find_node(codec->scene_graph, rcom->fromNodeID);
-				r->ToField.fieldIndex = rcom->toFieldIndex;
-				r->ToNode = gf_sg_find_node(codec->scene_graph, rcom->toNodeID);
-				r->ID = rcom->RouteID;
-				r->name = rcom->def_name;
-				gf_list_add(routes, r);
+			if (!com->aggregated) {
+				routes = gf_list_new();
+				/*now the trick: get all following InsertRoutes and convert as routes*/
+				for (; i<count-1; i++) {
+					GF_Route *r;
+					GF_Command *rcom = (GF_Command*)gf_list_get(comList, i+1);
+					if (rcom->tag!=GF_SG_ROUTE_INSERT) break;
+					GF_SAFEALLOC(r, GF_Route);
+					r->FromField.fieldIndex = rcom->fromFieldIndex;
+					r->FromNode = gf_sg_find_node(codec->scene_graph, rcom->fromNodeID);
+					r->ToField.fieldIndex = rcom->toFieldIndex;
+					r->ToNode = gf_sg_find_node(codec->scene_graph, rcom->toNodeID);
+					r->ID = rcom->RouteID;
+					r->name = rcom->def_name;
+					gf_list_add(routes, r);
+				}
+				e = BE_SceneReplaceEx(codec, com, bs, routes);
+
+				while (gf_list_count(routes)) {
+					GF_Route *r = (GF_Route*)gf_list_get(routes, 0);
+					gf_list_rem(routes, 0);
+					free(r);
+				}
+				gf_list_del(routes);
+			} else {
+				e = BE_SceneReplaceEx(codec, com, bs, codec->scene_graph->Routes);
 			}
-			e = BE_SceneReplaceEx(codec, com, bs, routes);
 		}
 			break;
 		/*replace commands*/
@@ -838,14 +849,6 @@ GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStrea
 		GF_BIFS_WRITE_INT(codec, bs, (i+1==count) ? 0 : 1, 1, "moreCommands", NULL);
 	}
 
-	if (routes) {
-		while (gf_list_count(routes)) {
-			GF_Route *r = (GF_Route*)gf_list_get(routes, 0);
-			gf_list_rem(routes, 0);
-			free(r);
-		}
-		gf_list_del(routes);
-	}
 	while (gf_list_count(codec->QPs)) gf_bifs_enc_qp_remove(codec, 1);
 	return e;
 }
