@@ -1538,6 +1538,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			case GF_M2TS_AUDIO_AC3:
 			case GF_M2TS_AUDIO_DTS:
 			case GF_M2TS_SUBTITLE_DVB:
+			case GF_M2TS_PRIVATE_DATA:
 				GF_SAFEALLOC(pes, GF_M2TS_PES);
 				es = (GF_M2TS_ES *)pes;
 				break;
@@ -1559,7 +1560,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				break;
 
 			case GF_M2TS_PRIVATE_SECTION:
-			case GF_M2TS_PRIVATE_DATA:
 			default:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
 				break;
@@ -1594,6 +1594,16 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					 		gf_list_add(ts->ip_mac_not_tables, es);
 						}
 					 }
+					break;
+				case GF_M2TS_DVB_SUBTITLING_DESCRIPTOR:
+					{
+						pes->sub.language[0] = data[2];
+						pes->sub.language[1] = data[3];
+						pes->sub.language[2] = data[4];
+						pes->sub.type = data[5];
+						pes->sub.composition_page_id = (data[6]<<8) | data[7];
+						pes->sub.ancillary_page_id = (data[8]<<8) | data[9];						
+					}
 					break;
 				default:
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] skipping descriptor (0x%x) not supported\n", tag));
@@ -2084,7 +2094,7 @@ static void gf_m2ts_reframe_skip(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS,
 
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 {
-	/*igbnore request for section PIDs*/
+	/*ignore request for section PIDs*/
 	if (pes->flags & GF_M2TS_ES_IS_SECTION) return GF_OK;
 
 	if (pes->pid==pes->program->pmt_pid) return GF_BAD_PARAM;
@@ -2111,6 +2121,8 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		case GF_M2TS_AUDIO_LATM_AAC:
 			pes->reframe = gf_m2ts_reframe_aac_latm;
 			break;
+		case GF_M2TS_PRIVATE_DATA:
+			/* TODO: handle DVB subtitle streams */
 		default:
 			pes->reframe = gf_m2ts_reframe_default;
 			break;
