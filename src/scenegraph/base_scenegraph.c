@@ -1833,6 +1833,7 @@ GF_Err gf_node_activate(GF_Node *node)
 GF_EXPORT
 GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *id, Bool deep)
 {
+	if (!orig) return NULL;
 	if (orig->sgprivate->tag < GF_NODE_RANGE_LAST_VRML) {
 		/*deep clone is always true for VRML*/
 		return gf_vrml_node_clone(inScene, orig, cloned_parent, id);
