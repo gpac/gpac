@@ -633,16 +633,18 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		break;
 	case GF_M2TS_EVT_EIT_ACTUAL_PF:
 	case GF_M2TS_EVT_EIT_OTHER_PF:
+	case GF_M2TS_EVT_EIT_ACTUAL_SCHEDULE:
+	case GF_M2TS_EVT_EIT_OTHER_SCHEDULE:
 		if (m2ts->eit_channel) 
-			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, 0, NULL, GF_OK);
+			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, evt_type, NULL, GF_OK);
 		break;
 	case GF_M2TS_EVT_TDT:
 		if (m2ts->eit_channel) 
-			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, 1, NULL, GF_OK);
+			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, evt_type, NULL, GF_OK);
 		break;
 	case GF_M2TS_EVT_TOT:
 		if (m2ts->eit_channel) 
-			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, 2, NULL, GF_OK);
+			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, evt_type, NULL, GF_OK);
 		break;
 	case GF_M2TS_EVT_PES_PCK:
 		MP2TS_SendPacket(m2ts, param);

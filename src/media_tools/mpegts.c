@@ -1126,11 +1126,8 @@ static void gf_m2ts_process_tdt_tot_st(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *
 	if (table_id == GF_M2TS_TABLE_ID_TDT || table_id == GF_M2TS_TABLE_ID_TOT) {
 		gf_m2ts_decode_mjd_date((data[0] << 8) | data[1], &now.year, &now.month, &now.day);
 		now.time = (data[2] << 16) | (data[3] << 8) | data[4];
-
-/*
-		sprintf(output, "%02d/%02d/%04d %02x:%02x:%02x", day, month, year, 
-			(0xFF & time>>16), (0xFF & time>>8), (0xFF & time));
-*/
+		/*sprintf(output, "%02d/%02d/%04d %02x:%02x:%02x", day, month, year, 
+			(0xFF & time>>16), (0xFF & time>>8), (0xFF & time));*/
 		if (table_id == GF_M2TS_TABLE_ID_TDT) {
 			if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TDT, &now);
 		} else {
