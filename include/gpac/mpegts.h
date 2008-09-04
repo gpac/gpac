@@ -330,39 +330,55 @@ typedef struct
 } GF_M2TS_SDT;
 
 #define GF_M2TS_BASE_DESCRIPTOR u32 tag;
-typedef struct {
-	GF_M2TS_BASE_DESCRIPTOR
-} GF_M2TS_Descriptor;
 
 typedef struct {
-	GF_M2TS_BASE_DESCRIPTOR
-	unsigned char lang[4];
+	u8 content_nibble_level_1, content_nibble_level_2, user_nibble;
+} GF_M2TS_DVB_Content_Descriptor;
+
+typedef struct {
+	char country_code[3];
+	u8 value;
+} GF_M2TS_DVB_Rating_Descriptor;
+
+typedef struct {
+	unsigned char lang[3];
 	unsigned char *event_name, *event_text;
-} GF_M2TS_EIT_Short_Event_Descriptor;
+} GF_M2TS_DVB_Short_Event_Descriptor;
 
 typedef struct {
 	unsigned char *item;
 	unsigned char *description;
-} GF_M2TS_EIT_Extended_Event_Item;
+} GF_M2TS_DVB_Extended_Event_Item;
 
 typedef struct {
-	GF_M2TS_BASE_DESCRIPTOR
-	unsigned char lang[4];
+	unsigned char lang[3];
+	u32 last;
 	GF_List *items;
 	unsigned char *text;
-} GF_M2TS_EIT_Extended_Event_Descriptor;
+} GF_M2TS_DVB_Extended_Event_Descriptor;
 
 /*EIT information objects*/
 typedef struct
 {
 	u32 year, month, day, time;
+
+	/* local time offset descriptor data */
+	char country_code[3];
+	u8 country_region_id;
+	u8 local_time_offset_polarity;
+	u16 local_time_offset;
+	/*time_of_change*/
+	u32 toc_year, toc_month, toc_day, toc_time;
+	u16 next_time_offset;
 } GF_M2TS_DateTime_Event;
 
-typedef struct
-{
-	GF_M2TS_DateTime_Event now;
-	GF_List *descriptors;
-} GF_M2TS_TOT_Event;
+typedef struct {
+	u8 stream_content;
+	u8 component_type;
+	u8 component_tag;
+	char language_code[3];
+	unsigned char *text;
+} GF_M2TS_Component;
 
 typedef struct
 {
@@ -371,7 +387,11 @@ typedef struct
 	u32 duration;
 	u8 running_status;
 	u8 free_CA_mode;
-	GF_List *descriptors;
+	GF_List *short_events;
+	GF_List *extended_events;
+	GF_List *components;
+	GF_List *contents;
+	GF_List *ratings;
 } GF_M2TS_EIT_Event;
 
 typedef struct
