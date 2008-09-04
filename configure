@@ -1558,6 +1558,28 @@ fi
 fi
 
 
+GPAC_ENST=no
+enst_dir="`ls src/ | grep enst`"
+if test "$enst_dir" = "enst"; then
+echo "GPAC Proprietary Extensions enabled"
+#we need libiconv for eit & co
+cat > $TMPC << EOF
+#include <iconv.h>
+int main( void ) {
+}
+EOF
+
+if $cc -o $TMPE $TMPC -liconv > /dev/null 2>&1  ; then
+GPAC_ENST=yes
+echo "LIBGPAC_ENST=`cd src; ls enst/*.c | sed -e 's/.c/.o/' | tr -s '\r\n' ' ' ; cd ..`" >> config.mak
+else
+echo "Couldn't find libiconv - disabling GPAC ENST extensions"
+GPAC_ENST="no"
+fi
+fi
+echo "GPAC_ENST=$GPAC_ENST" >> config.mak
+
+
 # build tree in object directory if source path is different from current one
 if test "$source_path_used" = "yes" ; then
 

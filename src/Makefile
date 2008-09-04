@@ -56,7 +56,6 @@ endif
 ## libgpac objects gathering: la totale ...
 OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_MCRYPT) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER)
 
-
 CFLAGS+=-I../ -DGPAC_HAVE_CONFIG_H 
 NEED_LOCAL_LIB="no"
 LINKLIBS=
@@ -145,6 +144,11 @@ ifeq ($(NEED_LOCAL_LIB), "yes")
 EXTRALIBS+=-L../extra_lib/lib/gcc
 endif
 EXTRALIBS+=$(LINKLIBS)
+
+ifeq ($(GPAC_ENST), yes)
+OBJS+=$(LIBGPAC_ENST)
+EXTRALIBS+=-liconv
+endif
 
 
 ##libgpac library output
