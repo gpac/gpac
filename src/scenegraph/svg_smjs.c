@@ -2238,11 +2238,12 @@ static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 	}
 	svg_rt->nb_inst++;
 
-	svg_js->script_execute = svg_script_execute;
-	svg_js->handler_execute = svg_script_execute_handler;
 	sg->svg_js = svg_js;
 	/*load SVG & DOM APIs*/
 	svg_init_js_api(sg);
+
+	svg_js->script_execute = svg_script_execute;
+	svg_js->handler_execute = svg_script_execute_handler;
 	return GF_OK;
 }
 
