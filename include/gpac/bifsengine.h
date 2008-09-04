@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-#include <gpac/tools.h>
+#include <gpac/scene_manager.h>
 
 #ifndef GPAC_READ_ONLY
 	
@@ -54,6 +54,15 @@ GF_BifsEngine *gf_beng_init(void *calling_object, char *inputContext);
  * must be called only one time (by process calling the DLL) before other calls
  */
 GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char *inputContext, u32 width, u32 height, Bool usePixelMetrics);
+
+
+/**
+ * @calling_object is the calling object on which call back will be called
+ * @ctx is an already loaded scene manager
+ *
+ * must be called only one time (by process calling the DLL) before other calls
+ */
+GF_BifsEngine *gf_beng_init_from_context(void *calling_object, GF_SceneManager *ctx);
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init

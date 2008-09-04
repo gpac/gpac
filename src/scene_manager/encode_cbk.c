@@ -38,7 +38,7 @@ struct __tag_bifs_engine
 	GF_SceneLoader load;
 	void *calling_object;
 	GF_StreamContext *sc;
-	
+	Bool owns_context;	
 	GF_BifsEncoder *bifsenc;
 	u32 stream_ts_res;
 	/* TODO: maybe the currentAUCount should be a GF_List of u32 
@@ -332,8 +332,11 @@ GF_EXPORT
 void gf_beng_terminate(GF_BifsEngine *codec)
 {
 	if (codec->bifsenc) gf_bifs_encoder_del(codec->bifsenc);
-	if (codec->ctx) gf_sm_del(codec->ctx);
-	if (codec->sg) gf_sg_del(codec->sg);
+
+	if (codec->owns_context) {
+		if (codec->ctx) gf_sm_del(codec->ctx);
+		if (codec->sg) gf_sg_del(codec->sg);
+	}
 	free(codec);
 }
 
@@ -361,6 +364,7 @@ GF_BifsEngine *gf_beng_init(void *calling_object, char * inputContext)
 	/*Step 1: create context and load input*/
 	codec->sg = gf_sg_new();
 	codec->ctx = gf_sm_new(codec->sg);
+	codec->owns_context = 1;
 	memset(&(codec->load), 0, sizeof(GF_SceneLoader));
 	codec->load.ctx = codec->ctx;
 	/*since we're encoding in BIFS we must get MPEG-4 nodes only*/
@@ -375,6 +379,36 @@ GF_BifsEngine *gf_beng_init(void *calling_object, char * inputContext)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] Cannot load context from %s (error %s)\n", inputContext, gf_error_to_string(e)));
 		goto exit;
 	}
+	e = gf_sm_live_setup(codec);
+	if (e!=GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot init scene encoder for context (error %s)\n", gf_error_to_string(e)));
+		goto exit;
+	}
+	return codec;
+
+exit:
+	gf_beng_terminate(codec);
+	return NULL;
+}
+
+GF_EXPORT
+GF_BifsEngine *gf_beng_init_from_context(void *calling_object, GF_SceneManager *ctx)
+{
+	GF_BifsEngine *codec;
+	GF_Err e = GF_OK;
+
+	if (!ctx) return NULL;
+
+	GF_SAFEALLOC(codec, GF_BifsEngine)
+	if (!codec) return NULL;
+
+	codec->calling_object = calling_object;
+
+	/*Step 1: create context and load input*/
+	codec->sg = ctx->scene_graph;
+	codec->ctx = ctx;
+	codec->owns_context = 0;
+
 	e = gf_sm_live_setup(codec);
 	if (e!=GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot init scene encoder for context (error %s)\n", gf_error_to_string(e)));
@@ -403,6 +437,7 @@ GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char * inputContex
 	/*Step 1: create context and load input*/
 	codec->sg = gf_sg_new();
 	codec->ctx = gf_sm_new(codec->sg);
+	codec->owns_context = 1;
 	memset(&(codec->load), 0, sizeof(GF_SceneLoader));
 	codec->load.ctx = codec->ctx;
 	/*since we're encoding in BIFS we must get MPEG-4 nodes only*/
