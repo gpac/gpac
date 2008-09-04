@@ -402,8 +402,8 @@ typedef struct
 	GF_List *events;
 } GF_M2TS_EIT;
 
-GF_M2TS_EIT *gf_m2ts_decode_eit_section(unsigned char *data, u32 data_size);
-void gf_m2ts_delele_eit(GF_M2TS_EIT *);
+void gf_m2ts_decode_mjd_date(u32 date, u32 *year, u32 *month, u32 *day);
+
 
 /*MPEG-2 TS packet*/
 typedef struct

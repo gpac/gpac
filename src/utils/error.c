@@ -364,6 +364,8 @@ const char *gf_error_to_string(GF_Err e)
 		return "UDP traffic timeout";
 	case GF_AUTHENTICATION_FAILURE:
 		return "Authentication failure";
+	case GF_SCRIPT_NOT_READY:
+		return "Script not ready for playback";
 
 	default:
 		return "Unknown Error";
