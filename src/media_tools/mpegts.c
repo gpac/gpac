@@ -847,7 +847,6 @@ static Bool gf_m2ts_is_long_section(u8 table_id)
 
 static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size)
 {
-	u32 copy_size = 0;
 	u32 payload_size = data_size;
 	u8 expect_cc = (sec->cc<0) ? hdr->continuity_counter : (sec->cc + 1) & 0xf;
 	Bool disc = (expect_cc == hdr->continuity_counter) ? 0 : 1;
@@ -1462,7 +1461,7 @@ GF_EXPORT void gf_m2ts_delele_eit(GF_M2TS_EIT *eit)
 	u32 i, eit_events_count;
 	eit_events_count = gf_list_count(eit->events);
 	for (i = 0; i < eit_events_count; i++) {
-		u32 desc_count;
+		u32 desc_count, comp_count;
 		GF_M2TS_EIT_Event *evt = gf_list_get(eit->events, i);
 		desc_count = gf_list_count(evt->short_events);
 		while (desc_count) {
@@ -1496,6 +1495,7 @@ GF_EXPORT void gf_m2ts_delele_eit(GF_M2TS_EIT *eit)
 		while (desc_count) {
 			GF_M2TS_Component *comp = (GF_M2TS_Component *)gf_list_get(evt->components, 0);
 			if (comp->text) free (comp->text);
+			free(comp);
 			gf_list_rem(evt->components, 0);
 			desc_count--;
 		}
@@ -1503,6 +1503,7 @@ GF_EXPORT void gf_m2ts_delele_eit(GF_M2TS_EIT *eit)
 		desc_count = gf_list_count(evt->contents);
 		while (desc_count) {
 			GF_M2TS_DVB_Content_Descriptor *content = (GF_M2TS_DVB_Content_Descriptor *)gf_list_get(evt->contents, 0);
+			free(content);
 			gf_list_rem(evt->contents, 0);
 			desc_count--;
 		}
@@ -1510,6 +1511,7 @@ GF_EXPORT void gf_m2ts_delele_eit(GF_M2TS_EIT *eit)
 		desc_count = gf_list_count(evt->ratings);
 		while (desc_count) {
 			GF_M2TS_DVB_Rating_Descriptor *rating = (GF_M2TS_DVB_Rating_Descriptor *)gf_list_get(evt->ratings, 0);
+			free(rating);
 			gf_list_rem(evt->ratings, 0);
 			desc_count--;
 		}
