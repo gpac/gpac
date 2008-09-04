@@ -224,6 +224,8 @@ typedef enum
 
 	/*! Authentication with the remote host has failed*/
 	GF_AUTHENTICATION_FAILURE				= -50,
+	/*! Script not ready for playback */
+	GF_SCRIPT_NOT_READY						= -51,
 } GF_Err;
 
 /*!

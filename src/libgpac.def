@@ -897,6 +897,7 @@ EXPORTS
 ;bifsengine exports
 	gf_beng_init
 	gf_beng_init_from_string
+	gf_beng_init_from_context
 	gf_beng_get_stream_config
 	gf_beng_encode_context
 	gf_beng_encode_from_file
@@ -1176,8 +1177,7 @@ EXPORTS
 	gf_m2ts_set_pes_framing
 	gf_m2ts_get_stream_name
 	gf_m2ts_crc32
-	gf_m2ts_decode_eit_section
-	gf_m2ts_delele_eit
+	gf_m2ts_decode_mjd_date
 
 ;laser.h exports
 	gf_laser_decoder_new

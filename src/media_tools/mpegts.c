@@ -26,8 +26,6 @@
 #include <gpac/constants.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/math.h>
-#include "iconv.h"
-#include "errno.h"
 
 #define DEBUG_TS_PACKET 1
 
@@ -1026,506 +1024,8 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	if (ts->on_event) ts->on_event(ts, evt_type, NULL);
 }
 
-static u32 gf_m2ts_eit_decode_text(unsigned char *data, u32 offset, unsigned char **decoded_text, u32 length)
-{
-	u32 real_length = length;
-	u32 pos, i;
-	char *from_encoding = "ISO-8859-1";
-
-	pos = 0;
-	if (!length) return pos;
-
-	if (data[offset+pos] >= 0x20) {
-		from_encoding = "ISO-8859-1";
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using default character table - Latin Alphabet\n"));
-	} else {
-//	if (data[offset+pos] < 0x20) {
-
-		switch(data[offset+pos]) {
-			case 0x01: 
-				from_encoding = "ISO-8859-5"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Latin/Cyrillic Alphabet\n")); 
-				break;
-			case 0x02: 
-				from_encoding = "ISO-8859-6"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Latin/Arabic Alphabet\n")); 
-				break;
-			case 0x03: 
-				from_encoding = "ISO-8859-7"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Latin/Greek Alphabet\n"));
-				break;
-			case 0x04: 
-				from_encoding = "ISO-8859-8"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Latin/Hebrew Alphabet\n"));
-				break;
-			case 0x05: 
-				from_encoding = "ISO-8859-9"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Latin Alphabet No.5\n"));
-				break;
-			case 0x06: 
-				from_encoding = "ISO-8859-10"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Latin Alphabet No.6\n")); 
-				break;
-			case 0x07: 
-				from_encoding = "ISO-8859-11"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Latin/Thai Alphabet\n")); 
-				break;
-			case 0x08: 
-				from_encoding = "ISO-8859-12"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Latin/Indian Alphabet\n")); 
-				break;
-			case 0x09: 
-				from_encoding = "ISO-8859-13"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Latin Alphabet No.7\n")); 
-				break;
-			case 0x0A: 
-				from_encoding = "ISO-8859-14"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Latin Alphabet No.8 (Celtic)\n")); 
-				break;
-			case 0x0B: 
-				from_encoding = "ISO-8859-15"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Latin Alphabet No.9\n")); 
-				break;
-			case 0x10: 
-				{
-					if (data[offset+pos+1] != 0) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Unsupported Character Coding\n"));
-					} else {
-						switch(data[offset+pos+2]) {
-							case 0x01: 
-								from_encoding = "ISO-8859-1"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-1\n")); 
-								break;
-							case 0x02: 
-								from_encoding = "ISO-8859-2"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-2\n")); 
-								break;
-							case 0x03: 
-								from_encoding = "ISO-8859-3"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-3\n")); 
-								break;
-							case 0x04: 
-								from_encoding = "ISO-8859-4"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-4\n")); 
-								break;
-							case 0x05: 
-								from_encoding = "ISO-8859-5"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-5\n")); 
-								break;
-							case 0x06: 
-								from_encoding = "ISO-8859-6";
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-6\n")); 
-								break;
-							case 0x07: 
-								from_encoding = "ISO-8859-7"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-7\n"));
-								break;
-							case 0x08: 
-								from_encoding = "ISO-8859-8"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-8\n"));
-								break;
-							case 0x09: 
-								from_encoding = "ISO-8859-9"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-9\n"));
-								break;
-							case 0x0A: 
-								from_encoding = "ISO-8859-10"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-10\n"));
-								break;
-							case 0x0B: 
-								from_encoding = "ISO-8859-11"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-11\n"));
-								break;
-							case 0x0C: 
-								from_encoding = "ISO-8859-12"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-12\n"));
-								break;
-							case 0x0D: 
-								from_encoding = "ISO-8859-13"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-13\n")); 
-								break;
-							case 0x0E: 
-								from_encoding = "ISO-8859-14"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-14\n"));
-								break;
-							case 0x0F: 
-								from_encoding = "ISO-8859-15"; 
-								GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using ISO/IEC 8859-15\n")); 
-								break;
-							default:
-								GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Unsupported Character Coding\n"));
-						}
-					}
-					pos++;
-					real_length--;
-					break;
-				}
-			case 0x11: 
-				from_encoding = "ISO10646-1"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Basic Multilingual Plane\n")); 
-				break;
-			case 0x12: 
-				from_encoding = "BIG5-HKSCS"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Korean Character Set\n"));
-				break;
-			case 0x13: 
-				from_encoding = "GB-2312"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Simplified Chinese Character Set\n")); 
-				break;
-			case 0x14: 
-				from_encoding = "ISO10646-1"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using Traditional Chinese Character Set in 10646-1\n"));
-				break;
-			case 0x15: 
-				from_encoding = "ISO10646-1"; 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Using UTF-8 encoding of 10646-1\n"));
-				break;
-			default: 
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Using reserved values for Character Set\n"));
-		}
-		pos++;
-		real_length--;
-	}
-
-	if (0) {
-		*decoded_text = (char*)malloc(sizeof(char)*(real_length+1));
-		memcpy(*decoded_text, data+offset+pos, sizeof(char)*real_length);
-		(*decoded_text)[real_length] = 0;
-		/* TODO FIXME - forces all characters to be US-ASCII */
-		for (i=0; i < real_length; i++) if ((*decoded_text)[i] >= 0x80) (*decoded_text)[i] = ' ';
-		//fprintf(stderr, "decoded text (length %d) |%s|\n", real_length, *decoded_text); 
-	} else {
-		iconv_t cd;
-		size_t inSize, outSize;
-		char *inBuf, *outBuf;
-
-		inSize = real_length;
-		inBuf = data+offset+pos;
-
-		outSize = 2*real_length;
-		if (*decoded_text) {
-			u32 actual_len = strlen(*decoded_text);
-			*decoded_text = (char*)realloc(*decoded_text, sizeof(char)*(actual_len+outSize+1));
-			outBuf = (*decoded_text)+actual_len;
-			outBuf[0] = 0;
-		} else {
-			*decoded_text = (char*)malloc(sizeof(char)*(outSize+1));
-			outBuf = *decoded_text;
-		}
-
-		cd = iconv_open( "UTF-8", from_encoding );
-		if (cd != (iconv_t)(-1)) {
-			iconv( cd, &inBuf, &inSize, &outBuf, &outSize );	
-			*outBuf = 0;
-			iconv_close( cd );
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Cannot create Iconv descriptor\n"));
-		}
-	}
-//	fprintf(stderr, "decoded text (length %d) |%s|\n", real_length, *decoded_text); 
-	return pos+real_length;
-}
-
-static void gf_m2ts_decode_mjd_date(u32 date, u32 *year, u32 *month, u32 *day)
-{
-	u32 yp, mp, k;
-	yp = (u32)floor((date - 15078.2)/365.25);
-	mp = (u32)floor((date - 14956.1 - floor(yp * 365.25))/30.6001);
-	*day = (u32)(date - 14956 - floor(yp * 365.25) - floor(mp * 30.6001));		
-	if (mp == 14 || mp == 15) k = 1;
-	else k = 0;
-	*year = yp + k + 1900;
-	*month = mp - 1 - k*12;
-}
-
-GF_EXPORT 
-GF_M2TS_EIT *gf_m2ts_decode_eit_section(unsigned char *data, u32 data_size)
-{
-	u32 pos;
-	u8 segment_last_section_number, last_table_id;
-	GF_M2TS_EIT* eit;
-
-	GF_SAFEALLOC(eit, GF_M2TS_EIT);
-	eit->events = gf_list_new();
-
-	pos = 0; 
-	
-	/* warning: hack to be able to decode an sl packet with service id */
-	eit->service_id = (data[pos]<<8) | data[pos+1];
-	pos+=2;
-
-	eit->transport_stream_id = (data[pos] << 8) | data[pos+1];
-	eit->original_network_id = (data[pos+2] << 8) | data[pos+3];
-	segment_last_section_number = data[pos+4];
-	last_table_id = data[pos+5];
-
-/*	fprintf(stderr, "\nEIT Table\n");
-	fprintf(stderr, "Version Number: %d - Last Section Number: %d\n", version_number, last_section_number);
-	fprintf(stderr, "Table ID: %d - Ext. Table ID (service ID): %d\n", table_id, eit->service_id);
-	fprintf(stderr, "TS ID: %d - Orig. Net ID: %d\n", eit->transport_stream_id, eit->original_network_id);
-	fprintf(stderr, "Segment Last Section Number: %d - Last Table ID: %d\n", segment_last_section_number, last_table_id);
-*/
-	pos += 6; 
-	while (pos < data_size) {
-		u32 descs_size, d_pos;
-		GF_M2TS_EIT_Event *evt;
-
-		GF_SAFEALLOC(evt, GF_M2TS_EIT_Event);
-		gf_list_add(eit->events, evt);
-		
-		evt->short_events = gf_list_new();
-		evt->extended_events = gf_list_new();
-		evt->components = gf_list_new();
-		evt->contents = gf_list_new();
-		evt->ratings = gf_list_new();
-		evt->event_id = (data[pos] << 8) | data[pos+1];
-		gf_m2ts_decode_mjd_date((data[pos+2] << 8) | data[pos+3], &evt->start.year, &evt->start.month, &evt->start.day);
-		evt->start.time = (data[pos+4] << 16) | (data[pos+5] << 8) | data[pos+6];
-		evt->duration = (data[pos+7] << 16) | (data[pos+8] << 8) | data[pos+9];
-		evt->running_status = (data[pos+10]>>5) & 0x7;
-		evt->free_CA_mode = (data[pos+10]>>4) & 0x1;
-		descs_size = ((data[pos+10]&0xf)<<8) | data[pos+11];		
-
-/*		fprintf(stderr, "Event: %d - Start: %02d/%02d/%04d %02x:%02x:%02x - Duration: %02x:%02x:%02x\n", evt->event_id, 
-			evt->start_day, 
-			evt->start_month, 
-			evt->start_year,
-			(0xFF & evt->start_time>>16), 
-			(0xFF & evt->start_time>>8), 
-			(0xFF & evt->start_time), 
-			(0xFF & evt->duration>>16), 
-			(0xFF & evt->duration>>8), 
-			(0xFF & evt->duration));*/
-
-		pos += 12;
-
-		d_pos = 0;
-		while (d_pos < descs_size) {
-			u8 d_tag = data[pos+d_pos];
-			u8 d_len = data[pos+d_pos+1];
-
-			d_pos += 2;
-			switch (d_tag) {
-			case GF_M2TS_DVB_SHORT_EVENT_DESCRIPTOR:
-				{
-					u32 decoded = 0;
-					u32 text_length;
-					GF_M2TS_DVB_Short_Event_Descriptor *desc;
-					GF_SAFEALLOC(desc, GF_M2TS_DVB_Short_Event_Descriptor);
-					gf_list_add(evt->short_events, desc);
-
-					memcpy(desc->lang, data+pos+d_pos, 3);
-					decoded = 3;
-					//fprintf(stderr, "\nShort Event (lang: %s)\n", desc->lang);
-
-					text_length = data[pos+d_pos+decoded];
-					decoded++;
-					decoded += gf_m2ts_eit_decode_text(data, pos+d_pos+decoded, &desc->event_name, text_length);
-					//fprintf(stderr, "Name: %s\n", desc->event_name);
-
-					text_length = data[pos+d_pos+decoded];
-					decoded++;
-					decoded += gf_m2ts_eit_decode_text(data, pos+d_pos+decoded, &desc->event_text, text_length);
-					//fprintf(stderr, "Text: %s\n", desc->event_text);
-					d_pos += d_len;
-				}
-				break;
-			case GF_M2TS_DVB_EXTENDED_EVENT_DESCRIPTOR:
-				{
-					u32 decoded = 0;
-					u32 text_length;
-					u32 idx, number, last, items_length, i_len;
-					char lang[3];
-					u32 count;
-					GF_M2TS_DVB_Extended_Event_Descriptor *desc = NULL, *found = NULL;
-
-					number = (data[pos+d_pos] >> 4) & 0xF;
-					last = data[pos+d_pos] & 0xF;
-					decoded++;
-
-					lang[0] = data[pos+d_pos+decoded];
-					lang[1] = data[pos+d_pos+decoded+1];
-					lang[2] = data[pos+d_pos+decoded+2];
-					decoded += 3;
-
-					count = gf_list_count(evt->extended_events);
-					for (idx = 0; idx < count; idx++) {
-						desc = gf_list_get(evt->extended_events, idx);
-						if (!strncmp(desc->lang, lang, 3)) {
-							found = desc;
-							break;
-						}
-					}
-					if (found == NULL) {
-						GF_SAFEALLOC(found, GF_M2TS_DVB_Extended_Event_Descriptor);
-						gf_list_add(evt->extended_events, found);
-						found->items = gf_list_new();
-						found->last = last;
-						found->lang[0] = lang[0];
-						found->lang[1] = lang[1];
-						found->lang[2] = lang[2];
-					}
-
-					items_length = data[pos+d_pos+decoded];
-					decoded++;
-
-					//fprintf(stderr, "\nExtended event (%d/%d) (lang: %s)\n", number, last, lang);
-					
-					i_len = 0;
-					while (i_len < items_length) {
-						GF_M2TS_DVB_Extended_Event_Item *item;
-						GF_SAFEALLOC(item, GF_M2TS_DVB_Extended_Event_Item);
-						gf_list_add(found->items, item);
-
-						text_length = data[pos+d_pos+decoded+i_len];
-						i_len++;
-						i_len += gf_m2ts_eit_decode_text(data, pos+d_pos+decoded+i_len, &item->description, text_length);
-						//fprintf(stderr, "item description: %s\n", item_description);
-						text_length = data[pos+d_pos+decoded+i_len];
-						i_len++;
-						i_len += gf_m2ts_eit_decode_text(data, pos+d_pos+decoded+i_len, &item->item, text_length);
-						//fprintf(stderr, "item text: %s\n", item);
-					}
-					decoded += items_length;
-
-					text_length = data[pos+d_pos+decoded];
-					decoded++;
-					decoded += gf_m2ts_eit_decode_text(data, pos+d_pos+decoded, &found->text, text_length);
-					//fprintf(stderr, "event text: %s \n", text);
-					//if (text) free(text);
-					d_pos += d_len;
-
-				}
-				break;
-			case GF_M2TS_DVB_CONTENT_DESCRIPTOR:
-				{
-					u32 decoded = 0;
-					while (decoded < d_len) {
-						GF_M2TS_DVB_Content_Descriptor *content;
-						GF_SAFEALLOC(content, GF_M2TS_DVB_Content_Descriptor);
-						gf_list_add(evt->contents, content);
-						content->content_nibble_level_1 = (data[pos+d_pos] & 0xF0)>>4;
-						content->content_nibble_level_2 = (data[pos+d_pos] & 0xF);
-						content->user_nibble = data[pos+d_pos+1];
-						decoded += 2;
-					}
-					d_pos += d_len;
-				}
-				break;
-			case GF_M2TS_DVB_COMPONENT_DESCRIPTOR:
-				{
-					GF_M2TS_Component *comp;
-					GF_SAFEALLOC(comp, GF_M2TS_Component);
-					comp->stream_content = (data[pos+d_pos] & 0xf);
-					comp->component_type = data[pos+d_pos+1];
-					comp->component_tag = data[pos+d_pos+2];
-					comp->language_code[0] = data[pos+d_pos+3];
-					comp->language_code[1] = data[pos+d_pos+4];
-					comp->language_code[2] = data[pos+d_pos+5];
-					gf_m2ts_eit_decode_text(data, pos+d_pos+6, &comp->text, d_len - 6);
-					gf_list_add(evt->components, comp);
-					d_pos += d_len;
-				}
-				break;
-			case GF_M2TS_DVB_PARENTAL_RATING_DESCRIPTOR:
-				{
-					u32 decoded = 0;
-					while (decoded<d_len) {
-						GF_M2TS_DVB_Rating_Descriptor *rating;
-						GF_SAFEALLOC(rating, GF_M2TS_DVB_Rating_Descriptor);
-						gf_list_add(evt->ratings, rating);
-						rating->country_code[0] = data[pos+d_pos];
-						rating->country_code[1] = data[pos+d_pos+1];
-						rating->country_code[2] = data[pos+d_pos+2];
-						rating->value = data[pos+d_pos+3];
-						decoded += 4;
-					}
-					d_pos += d_len;
-				}
-				break;
-			default:
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping descriptor (0x%x) not supported\n", d_tag));
-				d_pos += d_len;
-				if (d_len == 0) d_pos = descs_size;
-				break;
-			}
-		}
-		pos += descs_size;
-	}
-
-	return eit;
-}
-
-GF_EXPORT void gf_m2ts_delele_eit(GF_M2TS_EIT *eit)
-{
-	u32 i, eit_events_count;
-	eit_events_count = gf_list_count(eit->events);
-	for (i = 0; i < eit_events_count; i++) {
-		u32 desc_count, comp_count;
-		GF_M2TS_EIT_Event *evt = gf_list_get(eit->events, i);
-		desc_count = gf_list_count(evt->short_events);
-		while (desc_count) {
-			GF_M2TS_DVB_Short_Event_Descriptor *sev = (GF_M2TS_DVB_Short_Event_Descriptor*)gf_list_get(evt->short_events, 0);
-			if (sev->event_name) free(sev->event_name);
-			if (sev->event_text) free(sev->event_text);
-			free(sev);
-			desc_count--;
-		}
-		gf_list_del(evt->short_events);
-		desc_count = gf_list_count(evt->extended_events);
-		while (desc_count) {
-			u32 item_count;
-			GF_M2TS_DVB_Extended_Event_Descriptor *eev = (GF_M2TS_DVB_Extended_Event_Descriptor*)gf_list_get(evt->extended_events, 0);
-			if (eev->text) free(eev->text);
-			item_count = gf_list_count(eev->items);
-			while (item_count) {
-				GF_M2TS_DVB_Extended_Event_Item *item = gf_list_get(eev->items, 0);
-				gf_list_rem(eev->items, 0);
-				if (item->description) free(item->description);
-				if (item->item) free(item->item);
-				free(item);
-				item_count--;
-			}
-			gf_list_del(eev->items);
-			free(eev);
-			desc_count--;
-		}
-		gf_list_del(evt->extended_events);
-		desc_count = gf_list_count(evt->components);
-		while (desc_count) {
-			GF_M2TS_Component *comp = (GF_M2TS_Component *)gf_list_get(evt->components, 0);
-			if (comp->text) free (comp->text);
-			free(comp);
-			gf_list_rem(evt->components, 0);
-			desc_count--;
-		}
-		gf_list_del(evt->components);
-		desc_count = gf_list_count(evt->contents);
-		while (desc_count) {
-			GF_M2TS_DVB_Content_Descriptor *content = (GF_M2TS_DVB_Content_Descriptor *)gf_list_get(evt->contents, 0);
-			free(content);
-			gf_list_rem(evt->contents, 0);
-			desc_count--;
-		}
-		gf_list_del(evt->contents);
-		desc_count = gf_list_count(evt->ratings);
-		while (desc_count) {
-			GF_M2TS_DVB_Rating_Descriptor *rating = (GF_M2TS_DVB_Rating_Descriptor *)gf_list_get(evt->ratings, 0);
-			free(rating);
-			gf_list_rem(evt->ratings, 0);
-			desc_count--;
-		}
-		gf_list_del(evt->ratings);
-		free (evt);
-	}
-	gf_list_del(eit->events);
-	free(eit);
-
-}
-
 static void gf_m2ts_process_eit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *eit_ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
-	GF_M2TS_EIT *eit;
 	u32 nb_sections;
 	GF_M2TS_Section *section;
 
@@ -1541,13 +1041,14 @@ static void gf_m2ts_process_eit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *eit_ses
 	section = (GF_M2TS_Section *)gf_list_get(sections, 0);
 
 	/* warning: hack to be able to send an sl packet with service id */
-	section->data = realloc(section->data, section->data_size+2);
-	memmove(section->data+2, section->data, section->data_size);
-	section->data_size+=2;
-	section->data[0] = (ex_table_id>>8) & 0xFF;
-	section->data[1] = (ex_table_id & 0xFF);
+	section->data = realloc(section->data, section->data_size+3);
+	memmove(section->data+3, section->data, section->data_size);
+	section->data_size+=3;
+	section->data[0] = table_id;
+	section->data[1] = (ex_table_id>>8) & 0xFF;
+	section->data[2] = (ex_table_id & 0xFF);
 
-
+	/* TODO check if we need to distinguish between all these event type since we forward the table id */
 	if (table_id == GF_M2TS_TABLE_ID_EIT_ACTUAL_PF) {
 		evt_type = GF_M2TS_EVT_EIT_ACTUAL_PF;
 	} else if (table_id == GF_M2TS_TABLE_ID_EIT_OTHER_PF) {
@@ -1559,21 +1060,14 @@ static void gf_m2ts_process_eit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *eit_ses
 	} else {
 		return;
 	}
-	
-#if 0
-	{
-	GF_M2TS_SL_PCK pck;
-	pck.data = section->data;
-	pck.data_len = section->data_size;
-	pck.stream = (GF_M2TS_ES *)eit_ses;
-	if (ts->on_event) ts->on_event(ts, evt_type, &pck);
-	}
-#else
-	eit = gf_m2ts_decode_eit_section(section->data, section->data_size);
-	if (ts->on_event) ts->on_event(ts, evt_type, eit);
-#endif
 
-	/* free the events if not done in on_event */
+	if (ts->on_event) {
+		GF_M2TS_SL_PCK pck;
+		pck.data = section->data;
+		pck.data_len = section->data_size;
+		pck.stream = (GF_M2TS_ES *)eit_ses;
+		ts->on_event(ts, evt_type, &pck);
+	}
 }
 
 static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
@@ -1598,6 +1092,19 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 	sl_pck.data_len = section->data_size;
 	sl_pck.stream = (GF_M2TS_ES *)es;
 	if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
+}
+
+GF_EXPORT 
+void gf_m2ts_decode_mjd_date(u32 date, u32 *year, u32 *month, u32 *day)
+{
+	u32 yp, mp, k;
+	yp = (u32)floor((date - 15078.2)/365.25);
+	mp = (u32)floor((date - 14956.1 - floor(yp * 365.25))/30.6001);
+	*day = (u32)(date - 14956 - floor(yp * 365.25) - floor(mp * 30.6001));		
+	if (mp == 14 || mp == 15) k = 1;
+	else k = 0;
+	*year = yp + k + 1900;
+	*month = mp - 1 - k*12;
 }
 
 static void gf_m2ts_process_tdt_tot_st(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
