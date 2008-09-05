@@ -537,7 +537,8 @@ NPError nsOsmozillaInstance::DestroyStream(NPStream * stream, NPError reason)
 
 uint16 nsOsmozillaInstance::HandleEvent(void* event)
 {
-  return true;
+	fprintf(stdout, "event !\n");
+  return false;
 }
  
 void nsOsmozillaInstance::Pause()

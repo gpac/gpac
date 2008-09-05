@@ -143,8 +143,8 @@ GF_Err gf_bifs_dec_command(GF_BifsDecoder * codec, GF_BitStream *bs);
 and added to the list*/
 GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *proto_list);
 /*decodes field(s) of a node - exported for MultipleReplace*/
-GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node);
-GF_Err gf_bifs_dec_node_mask(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node);
+GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, Bool is_proto);
+GF_Err gf_bifs_dec_node_mask(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, Bool is_proto);
 
 /*called once a field has been modified through a command, send eventOut or propagate eventIn if needed*/
 void gf_bifs_check_field_change(GF_Node *node, GF_FieldInfo *field);

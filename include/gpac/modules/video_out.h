@@ -131,9 +131,10 @@ typedef struct _video_out
 	*/
 	GF_Err (*ProcessEvent)(struct _video_out *vout, GF_Event *event);
 
-	/*pass events to user (assigned before setup)*/
+	/*pass events to user (assigned before setup) - return 1 if the event has been processed by GPAC 
+	(eiher scene or navigation), 0 otherwise*/
 	void *evt_cbk_hdl;
-	void (*on_event)(void *hdl, GF_Event *event);
+	Bool (*on_event)(void *hdl, GF_Event *event);
 
 	/*
 			All the following are 2D specific and are NEVER called in 3D mode

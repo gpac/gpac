@@ -306,7 +306,8 @@ u32 gf_xml_get_attribute_tag(GF_Node *elt, char *attribute_name, u32 ns)
 			ns_sep[0] = ':';
 			attribute_name = ++ns_sep;
 		} else {
-			ns = gf_sg_get_namespace_code(elt->sgprivate->scenegraph, NULL);
+			ns = gf_xml_get_element_namespace(elt);
+			if (!ns) ns = gf_sg_get_namespace_code(elt->sgprivate->scenegraph, NULL);
 		}
 	}
 

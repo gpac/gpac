@@ -681,8 +681,14 @@ static void ReplaceDEFNode(GF_Node *FromNode, GF_Node *node, GF_Node *newNode, B
 				} else {
 					gf_node_list_del_child( (GF_ChildNodeItem **) field.far_ptr, list->node);
 					if (updateOrderedGroup && (FromNode->sgprivate->tag==TAG_MPEG4_OrderedGroup)) {
+						GF_FieldInfo info;
 						M_OrderedGroup *og = (M_OrderedGroup *)FromNode;
+						info.fieldIndex = 3;
+						info.fieldType = GF_SG_VRML_MFFLOAT;
+						info.on_event_in = NULL;
+						info.far_ptr = &og->order;
 						gf_sg_vrml_mf_remove(&og->order, GF_SG_VRML_SFINT32, j);
+						gf_node_changed_internal(FromNode, &info, 1);
 					}
 				}
 				goto exit;

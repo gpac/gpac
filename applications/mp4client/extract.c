@@ -381,7 +381,7 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, avi_t *avi_out)
 {
 	GF_Err e = GF_OK;
-	u32 i, k;
+	u32 i, k, out_size;
 	GF_VideoSurface fb;
 
 	/*lock it*/
@@ -389,6 +389,12 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 	else if (dump_type== 9 || dump_type==10) e = gf_sc_get_screen_buffer(term->compositor, &fb, 3);
 	else e = gf_sc_get_screen_buffer(term->compositor, &fb, 0);
 	if (e) fprintf(stdout, "Error grabbing frame buffer: %s\n", gf_error_to_string(e));
+
+	if (dump_type!=5 && dump_type!= 10) { 
+		out_size = fb.height*fb.width*3;
+	} else {
+		out_size = fb.height*fb.width*4;
+	}
 	/*export frame*/
 	switch (dump_type) {
 	case 1:
@@ -403,74 +409,92 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 			else dst = conv_buf + k*fb.width*3;
 			src = fb.video_buffer + (fb.height-k-1) * fb.pitch;
 
-			for (i=0;i<fb.width; i++) {
-				switch (fb.pixel_format) {
-				case GF_PIXEL_RGB_32:
-				case GF_PIXEL_ARGB:
+			switch (fb.pixel_format) {
+			case GF_PIXEL_RGB_32:
+			case GF_PIXEL_ARGB:
+				for (i=0;i<fb.width; i++) {
 					dst[0] = src[0];
 					dst[1] = src[1];
 					dst[2] = src[2];
 					src+=4;
-					break;
-				case GF_PIXEL_RGBDS:
+					dst += 3;
+				}
+				break;
+			case GF_PIXEL_RGBDS:
+				for (i=0;i<fb.width; i++) {
 					dst[0] = src[2];
 					dst[1] = src[1];
 					dst[2] = src[0];
 					dst[3] = src[3];
-					dst +=1;
+					dst +=4;
 					src+=4;
-					break;		
-				case GF_PIXEL_RGBD:
+				}
+				break;		
+			case GF_PIXEL_RGBD:
+				for (i=0;i<fb.width; i++) {
 					dst[0] = src[2];
 					dst[1] = src[1];
 					dst[2] = src[0];
 					dst[3] = src[3];
-					dst +=1;
+					dst += 4;
 					src+=4;
-					break;				
-				case GF_PIXEL_BGR_32:
-				case GF_PIXEL_RGBA:
+				}
+				break;				
+			case GF_PIXEL_BGR_32:
+			case GF_PIXEL_RGBA:
+				for (i=0;i<fb.width; i++) {
 					dst[0] = src[3];
 					dst[1] = src[2];
 					dst[2] = src[1];
 					src+=4;
-					break;
-				case GF_PIXEL_RGB_24:
+					dst+=3;
+				}
+				break;
+			case GF_PIXEL_RGB_24:
+				for (i=0;i<fb.width; i++) {
 					dst[0] = src[2];
 					dst[1] = src[1];
 					dst[2] = src[0];
 					src+=3;
-					break;
-				case GF_PIXEL_BGR_24:
+					dst+=3;
+				}
+				break;
+			case GF_PIXEL_BGR_24:
+				for (i=0;i<fb.width; i++) {
 					dst[0] = src[2];
 					dst[1] = src[1];
 					dst[2] = src[0];
 					src+=3;
-					break;
-				case GF_PIXEL_RGB_565:
+					dst+=3;
+				}
+				break;
+			case GF_PIXEL_RGB_565:
+				for (i=0;i<fb.width; i++) {
 					src_16 = * ( (u16 *)src );
 					dst[2] = colmask(src_16 >> 8/*(11 - 3)*/, 3);
 					dst[1] = colmask(src_16 >> 3/*(5 - 2)*/, 2);
 					dst[0] = colmask(src_16 << 3, 3);
 					src+=2;
-					break;
-				case GF_PIXEL_RGB_555:
+					dst+=3;
+				}
+				break;
+			case GF_PIXEL_RGB_555:
+				for (i=0;i<fb.width; i++) {
 					src_16 = * (u16 *)src;
 					dst[2] = colmask(src_16 >> 7/*(10 - 3)*/, 3);
 					dst[1] = colmask(src_16 >> 2/*(5 - 3)*/, 3);
 					dst[0] = colmask(src_16 << 3, 3);
 					src+=2;
-					break;
-			
+					dst +=3;
 				}
-				dst += 3;
+				break;
 			}
 		}
 		if (dump_type!=5 && dump_type!= 10) { 
-			if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*3, 1) <0)
+			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
 			printf("Error writing frame\n");
 		} else {
-			if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*4, 1) <0)
+			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
 			printf("Error writing frame\n");				
 		}
 		break;
@@ -612,7 +636,6 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 
 			}
 			else dump_frame(term, szPath, dump_mode, i+1, conv_buf, avi_out);
-
 			
 			nb_frames++;
 			time = (u32) (nb_frames*1000/fps);

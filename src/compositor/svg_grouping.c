@@ -534,14 +534,23 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state, NULL);
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
+		Fixed opacity = FIX_ONE;
 		SVGgStack *group = gf_node_get_private(node);
 
-		if (0 && all_atts.opacity && (all_atts.opacity->value < FIX_ONE) ) {
+		if (tr_state->parent_use_opacity) {
+			opacity = tr_state->parent_use_opacity->value;
+			tr_state->parent_use_opacity = NULL;
+		}
+		if (all_atts.opacity) {
+			opacity = gf_mulfix(opacity, all_atts.opacity->value);
+		}
+
+		if (opacity < FIX_ONE) {
 			if (!group->cache) {
 				group->cache = group_cache_new(tr_state->visual->compositor, node);
 				group->cache->force_recompute = 1;
 			}
-			group->cache->opacity = all_atts.opacity->value;
+			group->cache->opacity = opacity;
 			if (tr_state->visual->compositor->zoom_changed)
 				group->cache->force_recompute = 1;
 			group->flags |= GROUP_IS_CACHED | GROUP_PERMANENT_CACHE;
@@ -905,6 +914,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 	SVGAllAttributes all_atts;
 	SVGlinkStack *stack = gf_node_get_private(node);
 	SFVec2f prev_vp;
+	SVG_Number *prev_opacity;
 
 	if (is_destroy) {
 		if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
@@ -974,6 +984,9 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 		tr_state->vp_size.y = gf_sc_svg_convert_length_to_display(tr_state->visual->compositor, all_atts.height);
 	}
 
+	prev_opacity = tr_state->parent_use_opacity;
+	tr_state->parent_use_opacity = all_atts.opacity;
+
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 		if (!compositor_svg_is_display_off(tr_state->svg_props)) {
@@ -1014,6 +1027,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 	gf_list_rem_last(tr_state->use_stack);
 	tr_state->vp_size = prev_vp;
 
+	tr_state->parent_use_opacity = prev_opacity;
 
 end:
 	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));

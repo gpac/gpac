@@ -479,11 +479,14 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 		return JS_TRUE;
 #endif
 	} else {
-		n = dom_get_element(c, obj);
-		if (!n) n = vrml_node;
-
+		if (vrml_node) {
+			n = vrml_node;
+		} else {
+			n = dom_get_element(c, obj);
+		}
 		if (n) sg = n->sgprivate->scenegraph;
 	}
+	
 	/*FIXME - SVG uDOM connection not supported yet*/
 
 	if (!sg) return JS_TRUE;
@@ -584,8 +587,11 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 	if (sg) {
 		target = &sg->dom_evt;
 	} else {
-		node = dom_get_element(c, obj);
-		if (!node) node = vrml_node;
+		if (vrml_node) {
+			node = vrml_node;
+		} else {
+			node = dom_get_element(c, obj);
+		}
 
 		if (node) {
 			sg = node->sgprivate->scenegraph;

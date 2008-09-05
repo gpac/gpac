@@ -68,7 +68,7 @@ typedef struct
 
 typedef struct
 {
-	HWND os_hwnd, fs_hwnd, cur_hwnd;
+	HWND os_hwnd, fs_hwnd, cur_hwnd, parent_wnd;
 	Bool NeedRestore;
 	Bool switch_res;
 
@@ -102,6 +102,8 @@ typedef struct
 	/*if we own the window*/
 	GF_Thread *th;
 	u32 th_state;
+
+
 	Bool owns_hwnd;
 	u32 off_w, off_h, prev_styles;
 	LONG last_mouse_pos;
