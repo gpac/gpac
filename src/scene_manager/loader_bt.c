@@ -3266,7 +3266,7 @@ GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
 
 	/*create at least one empty BIFS stream*/
 	if (!parser->is_wrl) {
-		parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, 0);
+		parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
 		parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
 		parser->load->ctx->is_pixel_metrics = 1;
 	}
