@@ -133,6 +133,8 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 			u32 is_space = 0;
 			GF_TextSpan *span;
 
+			if (!tspan->glyphs[j]) continue;
+
 			/*we currently only split sentences at spaces*/
 			if (tspan->glyphs[j]->utf_name == (unsigned short) ' ') is_space = 1;
 			if (split_words && (j+1!=len) && !is_space) 
