@@ -49,6 +49,7 @@ typedef struct
 	Bool first_frame;
 	s32 base_filters;
 	Float FPS;
+	u32 offset;
 
 	/*demo for depth coding (auxiliary video data): the codec is pseudo-scalable with the depth data carried in
 	another stream - this is not very elegant ...*/
@@ -238,16 +239,20 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 	xvid_dec_frame_t frame;
 #endif
 	void *codec;
-	s32 postproc;
+	s32 postproc, res;
 	XVIDCTX();
 
-	if (ES_ID == ctx->base_ES_ID) {
+	if (!ES_ID) {
+		*outBufferLength = 0;
+		return GF_OK;
+	}
+
+	if (ES_ID == ctx->depth_ES_ID) {
+		codec = ctx->depth_codec;
+	} else {
 		codec = ctx->base_codec;
 	}
-	else if (ES_ID == ctx->depth_ES_ID) {
-		codec = ctx->depth_codec;
-	} else
-		return GF_BAD_PARAM;
+	if (!codec) return GF_OK;
 
 	if (*outBufferLength < ctx->out_size) {
 		*outBufferLength = ctx->out_size;
@@ -255,8 +260,9 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 	}
 
 	memset(&frame, 0, sizeof(frame));
-	frame.bitstream = (void *) inBuffer;
-	frame.length = inBufferLength;
+	frame.bitstream = (void *) (inBuffer + ctx->offset);
+	frame.length = inBufferLength -  ctx->offset;
+	ctx->offset = 0;
 
 
 #ifdef XVID_USE_OLD_API
@@ -321,9 +327,14 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 	/*xvid may keep the first I frame and force a 1-frame delay, so we simply trick it*/
 	if (ctx->first_frame) { outBuffer[0] = 'v'; outBuffer[1] = 'o'; outBuffer[2] = 'i'; outBuffer[3] = 'd'; }
 
-	if (xvid_decore(codec, XVID_DEC_DECODE, &frame, NULL) < 0) {
+	res = xvid_decore(codec, XVID_DEC_DECODE, &frame, NULL);
+	if (res < 0) {
 		*outBufferLength = 0;
 		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	if (0 && res <= 6) {
+		*outBufferLength = 0;
+		return GF_OK;
 	}
 
 	/*dispatch nothing if seeking or droping*/
@@ -337,8 +348,14 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 		*outBufferLength = ctx->out_size;
 		if (ctx->first_frame) {
 			ctx->first_frame = 0;
-			if ((outBuffer[0] == 'v') && (outBuffer[1] == 'o') && (outBuffer[2] == 'i') && (outBuffer[3] == 'd'))
+			if ((outBuffer[0] == 'v') && (outBuffer[1] == 'o') && (outBuffer[2] == 'i') && (outBuffer[3] == 'd')) {
 				*outBufferLength = 0;
+				return GF_OK;
+			}
+		}
+		if (res + 6 < frame.length) {
+			ctx->offset = res;
+			return GF_PACKED_FRAMES;
 		}
 		break;
 	}

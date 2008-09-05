@@ -338,12 +338,16 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, u32 NonBlockingOn)
 	s32 res;
 #ifdef WIN32
 	long val = NonBlockingOn;
-	res = ioctlsocket(sock->socket, FIONBIO, &val);
-	if (res) return GF_SERVICE_ERROR;
+	if (sock->socket) {
+		res = ioctlsocket(sock->socket, FIONBIO, &val);
+		if (res) return GF_SERVICE_ERROR;
+	}
 #else
 	s32 flag = fcntl(sock->socket, F_GETFL, 0);
-	res = fcntl(sock->socket, F_SETFL, flag | O_NONBLOCK);
-	if (res) return GF_SERVICE_ERROR;
+	if (sock->socket) {
+		res = fcntl(sock->socket, F_SETFL, flag | O_NONBLOCK);
+		if (res) return GF_SERVICE_ERROR;
+	}
 #endif
 	if (NonBlockingOn) {
 		sock->flags |= GF_SOCK_NON_BLOCKING;
@@ -471,8 +475,11 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *loca
 		GF_Err e = gf_sk_bind(sock, local_ip, PortNumber, PeerName, PortNumber, GF_SOCK_REUSE_PORT);
 		if (e) return e;
 	}
-	if (!sock->socket) 
+	if (!sock->socket) {
 		sock->socket = socket(AF_INET, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
+		if (sock->flags & GF_SOCK_NON_BLOCKING)		
+			gf_sk_set_block_mode(sock, 1);
+	}
 
 	/*setup the address*/
 	sock->dest_addr.sin_family = AF_INET;
@@ -496,10 +503,21 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *loca
 	if (sock->flags & GF_SOCK_IS_TCP) {
 		ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 		if (ret == SOCKET_ERROR) {
-			GF_LOG(GF_LOG_CORE, GF_LOG_ERROR, ("[Core] Couldn't connect socket - last sock error %d\n", LASTSOCKERROR));
-			switch (LASTSOCKERROR) {
+			DWORD res = LASTSOCKERROR;
+			GF_LOG(GF_LOG_CORE, GF_LOG_ERROR, ("[Core] Couldn't connect socket - last sock error %d\n", res));
+			switch (res) {
 			case EAGAIN: return GF_IP_SOCK_WOULD_BLOCK;
+#ifdef WIN32
+			case WSAEINVAL: 
+				if (sock->flags & GF_SOCK_NON_BLOCKING) 
+					return GF_IP_SOCK_WOULD_BLOCK;
+#endif
 			case EISCONN: return GF_OK;
+			case ENOTCONN: return GF_IP_CONNECTION_FAILURE;
+			case ECONNRESET: return GF_IP_CONNECTION_FAILURE;
+			case EMSGSIZE: return GF_IP_CONNECTION_FAILURE;
+			case ECONNABORTED: return GF_IP_CONNECTION_FAILURE;
+			case ENETDOWN: return GF_IP_CONNECTION_FAILURE;
 			default: return GF_IP_CONNECTION_FAILURE;
 			}
 		}

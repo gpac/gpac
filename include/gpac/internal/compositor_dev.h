@@ -47,8 +47,7 @@
 
 
 /*if defined, events are queued before being processed, otherwise they are handled whenever triggered*/
-
-#define GF_SR_EVENT_QUEUE	
+//#define GF_SR_EVENT_QUEUE	
 
 
 /*use 2D caching for groups*/
@@ -693,6 +692,7 @@ struct _traversing_state
 	GF_List *use_stack;
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
+	SVG_Number *parent_use_opacity;
 	SVGAllAttributes *parent_anim_atts;
 
 	/*SVG text rendering state*/

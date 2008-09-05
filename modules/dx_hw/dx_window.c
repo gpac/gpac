@@ -317,6 +317,7 @@ void release_mouse(DDContext *ctx, HWND hWnd, GF_VideoOutput *vout)
 
 LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 {
+	Bool ret = 0;
 	GF_Event evt;
 	DDContext *ctx;
 	GF_VideoOutput *vout = (GF_VideoOutput *) GetWindowLong(hWnd, GWL_USERDATA);
@@ -330,20 +331,20 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.type = GF_EVENT_SIZE;
 		evt.size.width = LOWORD(lParam);
 		evt.size.height = HIWORD(lParam);
-		vout->on_event(vout->evt_cbk_hdl, &evt);
+		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	case WM_MOVE:
 		evt.type = GF_EVENT_MOVE;
 		evt.move.x = LOWORD(lParam);
 		evt.move.y = HIWORD(lParam);
-		vout->on_event(vout->evt_cbk_hdl, &evt);
+		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	case WM_CLOSE:
 		if (hWnd==ctx->os_hwnd) {
 			evt.type = GF_EVENT_QUIT;
-			vout->on_event(vout->evt_cbk_hdl, &evt);
+			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
-		return 1;
+		break;
 	case WM_DESTROY:
 		if (ctx->owns_hwnd || (hWnd==ctx->fs_hwnd)) {
 			PostQuitMessage (0);
@@ -354,12 +355,10 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		}
 		break;
 	case WM_ACTIVATE:
-#if 1
 		if (ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) && (hWnd==ctx->fs_hwnd)) {
 			evt.type = GF_EVENT_SHOWHIDE;
-			vout->on_event(vout->evt_cbk_hdl, &evt);
+			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
-#endif
 		break;
 
 	case WM_SETCURSOR:
@@ -385,7 +384,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 			DD_SetCursor(vout, (ctx->cursor_type==GF_CURSOR_HIDE) ? ctx->cursor_type_backup : ctx->cursor_type);
 			evt.type = GF_EVENT_MOUSEMOVE;
 			DD_GetCoordinates(lParam, &evt);
-			vout->on_event(vout->evt_cbk_hdl, &evt);
+			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 			mouse_start_timer(ctx, hWnd, vout);
 		}
 		break;
@@ -408,7 +407,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.type = GF_EVENT_MOUSEDOWN;
 		DD_GetCoordinates(lParam, &evt);
 		evt.mouse.button = GF_MOUSE_LEFT;
-		vout->on_event(vout->evt_cbk_hdl, &evt);
+		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		if (!ctx->has_focus && (hWnd==ctx->os_hwnd)) {
 			ctx->has_focus = 1;
 			SetFocus(ctx->os_hwnd);
@@ -419,7 +418,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.type = GF_EVENT_MOUSEUP;
 		DD_GetCoordinates(lParam, &evt);
 		evt.mouse.button = GF_MOUSE_LEFT;
-		vout->on_event(vout->evt_cbk_hdl, &evt);
+		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	case WM_RBUTTONDOWN:
 	case WM_RBUTTONDBLCLK:
@@ -427,7 +426,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.type = GF_EVENT_MOUSEDOWN;
 		DD_GetCoordinates(lParam, &evt);
 		evt.mouse.button = GF_MOUSE_RIGHT;
-		vout->on_event(vout->evt_cbk_hdl, &evt);
+		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		if (!ctx->has_focus && (hWnd==ctx->os_hwnd)) {
 			ctx->has_focus = 1;
 			SetFocus(ctx->os_hwnd);
@@ -438,7 +437,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.type = GF_EVENT_MOUSEUP;
 		DD_GetCoordinates(lParam, &evt);
 		evt.mouse.button = GF_MOUSE_RIGHT;
-		vout->on_event(vout->evt_cbk_hdl, &evt);
+		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		mouse_start_timer(ctx, hWnd, vout);
 		break;
 	case WM_MBUTTONDOWN:
@@ -447,7 +446,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.type = GF_EVENT_MOUSEDOWN;
 		evt.mouse.button = GF_MOUSE_MIDDLE;
 		DD_GetCoordinates(lParam, &evt);
-		vout->on_event(vout->evt_cbk_hdl, &evt);
+		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		if (!ctx->has_focus && (hWnd==ctx->os_hwnd)) {
 			ctx->has_focus = 1;
 			SetFocus(ctx->os_hwnd);
@@ -458,7 +457,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.type = GF_EVENT_MOUSEUP;
 		DD_GetCoordinates(lParam, &evt);
 		evt.mouse.button = GF_MOUSE_MIDDLE;
-		vout->on_event(vout->evt_cbk_hdl, &evt);
+		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		mouse_start_timer(ctx, hWnd, vout);
 		break;
 	case WM_MOUSEWHEEL: 
@@ -467,10 +466,10 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 			evt.type = GF_EVENT_MOUSEWHEEL;
 			DD_GetCoordinates(lParam, &evt);
 			evt.mouse.wheel_pos = FLT2FIX( ((Float) (s16) HIWORD(wParam)) / WHEEL_DELTA );
-			vout->on_event(vout->evt_cbk_hdl, &evt);
+			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 			mouse_start_timer(ctx, hWnd, vout);
 		}
-		return 1;
+		break;
 
 	/*there's a bug on alt state (we miss one event)*/
 	case WM_SYSKEYDOWN:
@@ -479,15 +478,23 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	case WM_KEYDOWN:
 		w32_translate_key(wParam, lParam, &evt.key);
 		evt.type = ((msg==WM_SYSKEYDOWN) || (msg==WM_KEYDOWN)) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
-		vout->on_event(vout->evt_cbk_hdl, &evt);
+		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 
 	case WM_CHAR:
 		evt.type = GF_EVENT_TEXTINPUT;
 		evt.character.unicode_char = wParam;
-		vout->on_event(vout->evt_cbk_hdl, &evt);
+		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	}
+
+	if (ret) return 1;
+
+/*
+	if (ctx->parent_wnd && (hWnd==ctx->os_hwnd) ) {
+		return SendMessage(ctx->parent_wnd, msg, wParam, lParam);
+	}
+*/
 	return DefWindowProc (hWnd, msg, wParam, lParam);
 }
 
@@ -550,21 +557,15 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 #endif
 }
 
- 
 
-u32 DD_WindowThread(void *par)
+Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 {
 	u32 flags;
 #ifndef _WIN32_WCE
 	RECT rc;
 #endif
-	MSG msg;
 	WNDCLASS wc;
 	HINSTANCE hInst;
-	GF_VideoOutput *vout = par;
-	DDContext *ctx = (DDContext *)vout->opaque;
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[DirectXOutput] Entering thread ID %d\n", gf_th_id() ));
 
 #ifndef _WIN32_WCE
 	hInst = GetModuleHandle("gm_dx_hw.dll");
@@ -598,8 +599,7 @@ u32 DD_WindowThread(void *par)
 		ctx->os_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", ctx->windowless ? WS_POPUP : WS_OVERLAPPEDWINDOW, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #endif
 		if (ctx->os_hwnd == NULL) {
-			ctx->th_state = 2;
-			return 1;
+			return 0;
 		}
 		if (flags & GF_TERM_INIT_HIDE) {
 			ShowWindow(ctx->os_hwnd, SW_HIDE);
@@ -630,8 +630,7 @@ u32 DD_WindowThread(void *par)
 	ctx->fs_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #endif
 	if (!ctx->fs_hwnd) {
-		ctx->th_state = 2;
-		return 1;
+		return 0;
 	}
 	ShowWindow(ctx->fs_hwnd, SW_HIDE);
 
@@ -641,12 +640,9 @@ u32 DD_WindowThread(void *par)
 	ctx->gl_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC OpenGL Offscreen", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #endif
 	if (!ctx->gl_hwnd) {
-		ctx->th_state = 2;
-		return 1;
+		return 0;
 	}
 	ShowWindow(ctx->gl_hwnd, SW_HIDE);
-
-	ctx->th_state = 1;
 
 	/*if visible set focus*/
 	if (!ctx->switch_res) SetFocus(ctx->os_hwnd);
@@ -662,9 +658,24 @@ u32 DD_WindowThread(void *par)
 	ctx->curs_collide = LoadCursor(hInst, MAKEINTRESOURCE(IDC_COLLIDE));
 	ctx->cursor_type = GF_CURSOR_NORMAL;
 
-	while (GetMessage (&(msg), NULL, 0, 0)) {
-		TranslateMessage (&(msg));
-		DispatchMessage (&(msg));
+	return 1;
+}
+
+u32 DD_WindowThread(void *par)
+{
+	MSG msg;
+
+	GF_VideoOutput *vout = par;
+	DDContext *ctx = (DDContext *)vout->opaque;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[DirectXOutput] Entering thread ID %d\n", gf_th_id() ));
+
+	if (DD_InitWindows(vout, ctx)) {
+		ctx->th_state = 1;
+		while (GetMessage (&(msg), NULL, 0, 0)) {
+			TranslateMessage (&(msg));
+			DispatchMessage (&(msg));
+		}
 	}
 	ctx->th_state = 2;
 	return 0;
@@ -681,10 +692,11 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 			ctx->orig_wnd_proc = GetWindowLong(ctx->os_hwnd, GWL_WNDPROC);
 			SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
 		}
+		ctx->parent_wnd = GetParent(ctx->os_hwnd);
 	}
 	ctx->switch_res = flags;
-	/*create our event thread - since we always have a dedicated window for fullscreen, we need that
-	even when a window is passed to us*/
+
+	/*create event thread*/
 	ctx->th = gf_th_new("DirectX Video");
 	gf_th_run(ctx->th, DD_WindowThread, dr);
 	while (!ctx->th_state) gf_sleep(2);
@@ -692,27 +704,36 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 	if (!the_video_output) the_video_output = dr;
 }
 
+static void dd_closewindow(HWND hWnd)
+{
+	PostMessage(hWnd, WM_DESTROY, 0, 0);
+}
+
 void DD_ShutdownWindow(GF_VideoOutput *dr)
 {
 	DDContext *ctx = (DDContext *)dr->opaque;
 
 	if (ctx->owns_hwnd) {
-		PostMessage(ctx->os_hwnd, WM_DESTROY, 0, 0);
+		dd_closewindow(ctx->os_hwnd);
 	} else if (ctx->orig_wnd_proc) {
 		/*restore window proc*/
 		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
 		ctx->orig_wnd_proc = 0L;
 	}
-	PostMessage(ctx->fs_hwnd, WM_DESTROY, 0, 0);
-	PostMessage(ctx->gl_hwnd, WM_DESTROY, 0, 0);
-	while (ctx->th_state!=2) gf_sleep(10);
+	dd_closewindow(ctx->fs_hwnd);
+	dd_closewindow(ctx->gl_hwnd);
+
+	while (ctx->th_state!=2) 
+		gf_sleep(10);
+
+	gf_th_del(ctx->th);
+	ctx->th = NULL;
+
 #ifdef _WIN32_WCE
 	UnregisterClass(_T("GPAC DirectDraw Output"), GetModuleHandle(_T("gm_dx_hw.dll")) );
 #else
 	UnregisterClass("GPAC DirectDraw Output", GetModuleHandle("gm_dx_hw.dll"));
 #endif
-	gf_th_del(ctx->th);
-	ctx->th = NULL;
 	ctx->os_hwnd = NULL;
 	ctx->fs_hwnd = NULL;
 	ctx->gl_hwnd = NULL;
@@ -760,7 +781,10 @@ HWND DD_GetGlobalHWND()
 GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 {
 	DDContext *ctx = (DDContext *)dr->opaque;
-	if (!evt) return GF_OK;
+
+	if (!evt) {
+		return GF_OK;
+	}
 
 	switch (evt->type) {
 	case GF_EVENT_SET_CURSOR:

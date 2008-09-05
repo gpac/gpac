@@ -593,8 +593,9 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	u16 proxy_port = 0;
 	const char *proxy, *ip;
 	if (!sess->sock) {
-		//sess->num_retry = 40;
+		sess->num_retry = 40;
 		sess->sock = gf_sk_new(GF_SOCK_TYPE_TCP);
+		//gf_sk_set_block_mode(sess->sock, 1);
 	}
 
 	/*connect*/
@@ -645,7 +646,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	
 	sess->status = GF_NETIO_CONNECTED;
 	gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
-	gf_sk_set_block_mode(sess->sock, 1);
+	//gf_sk_set_block_mode(sess->sock, 1);
 	gf_sk_set_buffer_size(sess->sock, 0, GF_DOWNLOAD_BUFFER_SIZE);
 	gf_dm_configure_cache(sess);
 
@@ -699,6 +700,8 @@ const char *gf_dm_sess_mime_type(GF_DownloadSession *sess)
 		/*setup download*/
 		case GF_NETIO_SETUP:
 			gf_dm_connect(sess);
+			if (sess->status == GF_NETIO_SETUP)
+				gf_sleep(200);
 			break;
 		case GF_NETIO_WAIT_FOR_REPLY:
 			gf_sleep(20);

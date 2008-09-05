@@ -426,11 +426,16 @@ void gf_term_stop_codec(GF_Codec *codec)
 	if (!ce) return;
 
 	if (ce->mx) gf_mx_p(ce->mx);
-	/*cf note above*/
-	else {
+	/*We must make sure:
+		1- media codecs are synchrounously stop otherwise we could destroy the composition memory while 
+	the codec writes to it
+		2- prevent deadlock for other codecs waiting for the scene graph
+	*/
+	else if (codec->CB) {
+		locked = 1;
+		gf_mx_p(term->mm_mx);
+	} else {
 		locked = gf_mx_try_lock(term->mm_mx);
-		if (!locked)
-			locked  = 0;
 	}
 	
 	if (codec->decio && codec->odm->mo && (codec->odm->mo->flags & GF_MO_DISPLAY_REMOVE) ) {

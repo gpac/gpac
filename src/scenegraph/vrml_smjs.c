@@ -873,6 +873,7 @@ static void node_finalize_ex(JSContext *c, JSObject *obj, Bool is_js_call)
 	if (ptr) {
 		/*num_instances may be 0 if the node is the script being destroyed*/
 		if (ptr->temp_node && ptr->temp_node->sgprivate->num_instances) {
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering node %s (%s)\n", gf_node_get_name(ptr->temp_node), gf_node_get_class_name(ptr->temp_node)));
 			gf_node_unregister(ptr->temp_node, ptr->owner);
 		}
@@ -3230,6 +3231,8 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 	if (!obj) return JSVAL_NULL;
 	//store field associated with object if needed
 	if (jsf) {
+		if (parent) parent->sgprivate->flags |= GF_NODE_HAS_BINDING;
+		
 		JS_SetPrivate(priv->js_ctx, obj, jsf);
 		/*if this is the obj corresponding to an existing field/node, store it and prevent GC on object*/
 		if (parent && !skip_cache && priv->js_cache) {
@@ -3750,28 +3753,17 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event)
 {
 	GF_ScriptPriv *priv;
 	Bool prev_type;
-	GF_DOMText *txt;
 	JSBool ret = JS_FALSE;
 	GF_DOM_Event *prev_event = NULL;
-	SVG_handlerElement *handler;
-	jsval fval, rval;
-	GF_ChildNodeItem *child;
+	SVG_handlerElement *hdl;
+	jsval rval;
 
-	txt = NULL;
-	child = ((SVG_Element*)node)->children;
-	if (! child) return;
-	while (child) {
-		txt = (GF_DOMText*)child->node;
-		if ((txt->sgprivate->tag==TAG_DOMText) && txt->textContent) break;
-		txt = NULL;
-		child = child->next;
-	}
-	if (!txt) return;
-	handler = (SVG_handlerElement *) node;
+	hdl = (SVG_handlerElement *) node;
+	if (!hdl->js_fun_val) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events] Executing script code from VRML handler\n"));
 
-	priv = JS_GetScriptStack(handler->js_context);
+	priv = JS_GetScriptStack(hdl->js_context);
 	prev_event = JS_GetPrivate(priv->js_ctx, priv->event);
 	/*break loops*/
 	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target)) 
@@ -3781,18 +3773,15 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event)
 	event->is_vrml = 1;
 	JS_SetPrivate(priv->js_ctx, priv->event, event);
 
-	if (JS_LookupProperty(priv->js_ctx, priv->js_obj, txt->textContent, &fval) && !JSVAL_IS_VOID(fval) ) {
-		char szFuncName[1024], *fun;
-		char *sep = strchr(txt->textContent, '(');
-		fun = txt->textContent;
-		if (!sep) {
-			strcpy(szFuncName, txt->textContent);
-			strcat(szFuncName, "(evt)");
-			fun = szFuncName;
-		}
-		ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, fun, strlen(fun), 0, 0, &rval);
-	} else {
-		ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
+	{
+		JSObject *evt;
+		jsval argv[1], funval;
+		evt = gf_dom_new_event(priv->js_ctx);
+		JS_SetPrivate(priv->js_ctx, evt, event);
+		argv[0] = OBJECT_TO_JSVAL(evt);
+
+		funval = (JSWord) hdl->js_fun_val;
+		ret = JS_CallFunctionValue(priv->js_ctx, hdl->js_obj ? (JSObject *)hdl->js_obj : priv->js_obj, funval, 1, argv, &rval);
 	}
 	
 	event->is_vrml = prev_type;

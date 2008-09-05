@@ -208,6 +208,12 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 	sx = gf_divfix(rc.width, rc_bckup.width);
 	sy = gf_divfix(rc.height, rc_bckup.height);
 
+	/*viewport on root visual, remove compositor scale*/
+	if (!is_layer && (tr_state->visual->compositor->visual==tr_state->visual) ) {
+		sx = gf_divfix(sx, tr_state->visual->compositor->scale_x);
+		sy = gf_divfix(sy, tr_state->visual->compositor->scale_y);
+	}
+
 	rc.x = - rc.width/2;
 	rc.y = rc.height/2;
 

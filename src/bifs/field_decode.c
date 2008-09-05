@@ -502,7 +502,7 @@ GF_Err BD_SetProtoISed(GF_BifsDecoder * codec, u32 protofield, GF_Node *n, u32 n
 	}
 }
 
-GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node)
+GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, Bool is_proto)
 {
 	u8 flag;
 	GF_Err e;
@@ -546,11 +546,13 @@ GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 		e = gf_bifs_dec_field(codec, bs, node, &field);
 		if (e) return e;
 		flag = gf_bs_read_int(bs, 1);
+
+		if (is_proto) gf_sg_proto_mark_field_loaded(node, &field);
 	}
 	return codec->LastError;
 }
 
-GF_Err gf_bifs_dec_node_mask(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node)
+GF_Err gf_bifs_dec_node_mask(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, Bool is_proto)
 {
 	u32 i, numFields, numProtoFields, index, flag, nbBits;
 	GF_Err e;
@@ -584,7 +586,7 @@ GF_Err gf_bifs_dec_node_mask(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 			if (e) return e;
 		}
 	}
-	//Anim coding
+	//regular coding
 	else {
 		numFields = gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF);
 		for (i=0; i<numFields; i++) {
@@ -595,6 +597,8 @@ GF_Err gf_bifs_dec_node_mask(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 			if (e) return e;
 			e = gf_bifs_dec_field(codec, bs, node, &field);
 			if (e) return e;
+
+			if (is_proto) gf_sg_proto_mark_field_loaded(node, &field);
 		}
 	}
 	return GF_OK;
@@ -845,9 +849,9 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 	}
 
 	if (gf_bs_read_int(bs, 1)) {
-		e = gf_bifs_dec_node_mask(codec, bs, new_node);
+		e = gf_bifs_dec_node_mask(codec, bs, new_node, proto ? 1 : 0);
 	} else {
-		e = gf_bifs_dec_node_list(codec, bs, new_node);
+		e = gf_bifs_dec_node_list(codec, bs, new_node, proto ? 1 : 0);
 	}
 	if (codec->coord_stored && reset_qp14) 
 		gf_bifs_dec_qp14_reset(codec);

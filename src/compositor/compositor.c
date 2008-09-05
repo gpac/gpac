@@ -235,7 +235,7 @@ static void gf_sc_reset_framerate(GF_Compositor *compositor)
 	compositor->current_frame = 0;
 }
 
-static void gf_sc_on_event(void *cbck, GF_Event *event);
+static Bool gf_sc_on_event(void *cbck, GF_Event *event);
 
 static Bool gf_sc_set_check_raster2d(GF_Raster2D *ifce)
 {
@@ -1634,7 +1634,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	event_time = gf_sys_clock() - event_time;
 #endif
-
+#else
+	event_time = 0;
 #endif
 
 	gf_term_sample_clocks(compositor->term);
@@ -2124,7 +2125,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		}
 		/*otherwise let the user decide*/
 		else {
-			GF_USER_SENDEVENT(compositor->user, event);
+			return GF_USER_SENDEVENT(compositor->user, event);
 		}
 		break;
 
@@ -2217,6 +2218,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	case GF_EVENT_TEXTINPUT:
 		if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) )
 			gf_term_string_input(compositor->term , event->character.unicode_char);
+
 		return gf_sc_handle_event_intern(compositor, event, from_user);
 	/*switch fullscreen off!!!*/
 	case GF_EVENT_SHOWHIDE:
@@ -2237,15 +2239,15 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 
 	/*when we process events we don't forward them to the user*/
 	default:
-		GF_USER_SENDEVENT(compositor->user, event);
-		break;
+		return GF_USER_SENDEVENT(compositor->user, event);
 	}
+	/*if we get here, event has been consumed*/
 	return 1;
 }
 
-static void gf_sc_on_event(void *cbck, GF_Event *event)
+static Bool gf_sc_on_event(void *cbck, GF_Event *event)
 {
-	gf_sc_on_event_ex((GF_Compositor *)cbck, event, 0);
+	return gf_sc_on_event_ex((GF_Compositor *)cbck, event, 0);
 }
 
 Bool gf_sc_user_event(GF_Compositor *compositor, GF_Event *event)

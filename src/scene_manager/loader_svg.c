@@ -321,7 +321,7 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 			}
 		}
 		else if (gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_attributeName, 0, 0, &info) == GF_OK) {
-			gf_node_get_attribute_by_name((GF_Node *)anim->target, ((SMIL_AttributeName *)info.far_ptr)->name, 0, 1, 1, &info);
+			gf_node_get_attribute_by_name((GF_Node *)anim->target, ((SMIL_AttributeName *)info.far_ptr)->name, parser->current_ns, 1, 1, &info);
 			anim_value_type = info.fieldType;
 		} else {
 			if (tag == TAG_SVG_animateMotion) {
@@ -902,7 +902,7 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 				field->fieldIndex = 0;
 				field->fieldType = 0;
 			} else {
-				if (gf_node_get_attribute_by_name(parser->command->node, atAtt, 0, 0, 0, &info)==GF_OK) {
+				if (gf_node_get_attribute_by_name(parser->command->node, atAtt, parser->current_ns, 0, 0, &info)==GF_OK) {
 					field = gf_sg_command_field_new(parser->command);
 					field->pos = index;
 					field->fieldIndex = info.fieldIndex;
@@ -967,7 +967,8 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 				info.fieldIndex = TAG_LSR_ATT_rotation;
 			}
 		} else {
-			info.fieldIndex = gf_xml_get_attribute_tag(parser->command->node, atAtt, 0);
+			/*FIXME - handle namespace properly here !!*/
+			info.fieldIndex = gf_xml_get_attribute_tag(parser->command->node, atAtt, parser->current_ns);
 			info.fieldType = gf_xml_get_attribute_type(info.fieldIndex);
 
 			if (gf_lsr_anim_type_from_attribute(info.fieldIndex)<0) {
@@ -992,7 +993,8 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 			if (field->field_ptr) gf_svg_parse_attribute(parser->command->node, &nf, atValue, (u8) info.fieldType);
 		} else if (opNode) {
 			parser->command->fromNodeID = gf_node_get_id(opNode);
-			parser->command->fromFieldIndex = gf_xml_get_attribute_tag(opNode, atOperandAtt, 0);
+			/*FIXME - handle namespace properly here !!*/
+			parser->command->fromFieldIndex = gf_xml_get_attribute_tag(opNode, atOperandAtt, parser->current_ns);
 		}
 		gf_node_register(parser->command->node, NULL);
 		return GF_OK;
@@ -1639,7 +1641,7 @@ static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)
 
 	/*to cope with old files not signaling XMLNS, add the SVG NS by default*/
 	gf_sg_add_namespace(parser->load->scene_graph, "http://www.w3.org/2000/svg", NULL);
-
+	parser->current_ns = GF_XMLNS_SVG;
 	return parser;
 }
 

@@ -87,7 +87,7 @@ typedef struct
 
 
 /*macro for event forwarding*/
-#define GF_USER_SENDEVENT(_user, _evt)	if (_user->EventProc) _user->EventProc(_user->opaque, _evt)
+#define GF_USER_SENDEVENT(_user, _evt)	(_user->EventProc ? _user->EventProc(_user->opaque, _evt) : 0)
 
 /*macro for message event format/send*/
 #define GF_USER_MESSAGE(_user, _serv, _msg, _e)	\

@@ -311,6 +311,9 @@ typedef struct
 	/*DOM event used in VRML (GPAC's internal)*/
 	Bool is_vrml;
 	GF_DOMMediaAccessEvent *mae;
+
+	/*number of listeners triggered by the event*/
+	u32 consumed;
 } GF_DOM_Event;
 
 /*fires event on the specified node

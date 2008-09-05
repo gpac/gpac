@@ -80,7 +80,7 @@ static GF_Err IS_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 	ISPriv *is = (ISPriv *)plug->privateStack;
 	if (esd->decoderConfig->upstream) return GF_NOT_SUPPORTED;
-	if (!esd->decoderConfig->decoderSpecificInfo || esd->decoderConfig->decoderSpecificInfo->dataLength) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->dataLength) return GF_NON_COMPLIANT_BITSTREAM;
 
 	/*no more than one UI stream per object*/
 	if (is->ES_ID) return GF_NOT_SUPPORTED;

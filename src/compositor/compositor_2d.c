@@ -420,6 +420,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
+	case GF_PIXEL_YUVA:
 #ifdef GPAC_TRISCOPE_MODE
 	case GF_PIXEL_RGBDS:	
 #endif

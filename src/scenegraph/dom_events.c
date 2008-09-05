@@ -287,7 +287,8 @@ static Bool sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_Sce
 			if (listened_event->type != event->type) continue;
 			if (listened_event->parameter && (listened_event->parameter != event->detail)) continue;
 			event->currentTarget = et;
-			
+			event->consumed	++;
+
 			/*load event cannot bubble and can only be called once (on load :) ), remove it
 			to release some resources*/
 			if (event->type==GF_EVENT_LOAD) {
@@ -402,6 +403,7 @@ Bool gf_dom_event_fire(GF_Node *node, GF_List *use_stack, GF_DOM_Event *event)
 	see "determine the current target's candidate event listeners" in http://www.w3.org/TR/DOM-Level-3-Events/events.html*/
 	gf_dom_listener_process_add(node->sgprivate->scenegraph);
 
+	event->consumed = 0;
 	event->target = node;
 	event->target_type = GF_DOM_EVENT_NODE;
 	if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) {
@@ -452,7 +454,7 @@ Bool gf_dom_event_fire(GF_Node *node, GF_List *use_stack, GF_DOM_Event *event)
 		gf_sg_dom_event_bubble(node, event, use_stack, cur_par_idx);
 	}
 
-	return event->currentTarget ? 1 : 0;
+	return event->consumed ? 1 : 0;
 }
 
 GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event_parameter, GF_Node **out_listener)
@@ -631,10 +633,10 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 void gf_smil_setup_events(GF_Node *node)
 {
 	GF_FieldInfo info;
-	if (gf_node_get_field_by_name(node, "begin", &info) != GF_OK) return;
-	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 1);
-	if (gf_node_get_field_by_name(node, "end", &info) != GF_OK) return;
-	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 0);
+	if (gf_node_get_attribute_by_tag(node, TAG_SVG_ATT_begin, 0, 0, &info) == GF_OK)
+		gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 1);
+	if (gf_node_get_attribute_by_tag(node, TAG_SVG_ATT_end, 0, 0, &info) == GF_OK)
+		gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 0);
 }
 
 

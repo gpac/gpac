@@ -177,7 +177,7 @@ static GF_CMUnit *LocateAndOrderUnit(GF_CompositionMemory *cb, u32 TS)
 	GF_CMUnit *cu;
 
 	/*lock the buffer since we may move pointers*/
-	gf_cm_lock(cb, 1);
+	gf_odm_lock(cb->odm, 1);
 	unit = NULL;
 
 	/*1- locate cu*/
@@ -266,7 +266,7 @@ exit:
 	}
 
 	/*unlock the buffer*/
-	gf_cm_lock(cb, 0);
+	gf_odm_lock(cb->odm, 0);
 	return unit;
 
 #endif

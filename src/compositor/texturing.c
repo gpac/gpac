@@ -52,6 +52,9 @@ void gf_sc_texture_setup(GF_TextureHandler *txh, GF_Compositor *compositor, GF_N
 GF_EXPORT
 void gf_sc_texture_destroy(GF_TextureHandler *txh)
 {
+	GF_Compositor *compositor = txh->compositor;
+	gf_mx_p(compositor->mx);
+
 	if (txh->tx_io) gf_sc_texture_release(txh);
 	if (txh->is_open) gf_sc_texture_stop(txh);
 #ifdef GPAC_TRISCOPE_MODE
@@ -59,6 +62,8 @@ void gf_sc_texture_destroy(GF_TextureHandler *txh)
 	DestroyRenoirObject (txh->RenoirObject, ((GF_RenoirHandler *) txh->compositor->RenoirHandler)->SceneReference);
 #endif
 	gf_list_del_item(txh->compositor->textures, txh);
+
+	gf_mx_v(compositor->mx);
 }
 
 GF_EXPORT
