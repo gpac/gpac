@@ -1235,7 +1235,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine); 
 		free(config_bytes); 
 	}
-	/*MPEG-4 Audio LATM*/
+	/*3GPP DIMS*/
 	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_3GPP_DIMS) { 
 		GF_DIMSDescription dims;
 		char fmt[200];

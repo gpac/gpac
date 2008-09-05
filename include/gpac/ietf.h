@@ -1170,7 +1170,7 @@ void gf_rtp_builder_del(GP_RTPPacketizer *builder);
 
 /*
 		init the builder
-	@PathMTU: the network transmission unit size (UDP packet size for IP, ..)
+	@MaxPayloadSize: maximum payload size of RTP packets (eg MTU minus IP/UDP/RTP headers)
 	@max_ptime: maximum packet duration IN RTP TIMESCALE
 	@StreamType: MPEG-4 system stream type - MUST always be provided for payloads format specifying 
 		audio or video streams
@@ -1197,7 +1197,7 @@ specified is too close to the PathMTU
 	@pref_mode: MPEG-4 generic only, specifies the payload mode - can be NULL (mode generic)
 */
 
-void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU, u32 max_ptime,
+void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 MaxPayloadSize, u32 max_ptime,
 					   u32 StreamType, u32 OTI, u32 PL_ID,
 					   u32 avgSize, u32 maxSize, 
 					   u32 avgTS, u32 maxDTS,

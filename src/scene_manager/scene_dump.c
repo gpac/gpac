@@ -439,6 +439,7 @@ void DumpUTFString(GF_SceneDumper *sdump, char *str)
 	u16 *uniLine;
 	if (!str) return;
 	len = strlen(str);
+	if (!len) return;
 	uniLine = (u16*)malloc(sizeof(u16) * len);
 	len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
 	if (len != (size_t) (-1)) {
