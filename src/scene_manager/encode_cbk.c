@@ -49,41 +49,17 @@ struct __tag_bifs_engine
 	u32 encoded_bifs_config_size;
 };
 
-
-static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
+static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_InitialObjectDescriptor *iod)
 {
 	GF_Err e;
 	char *data;
 	u32 data_len;
-	GF_InitialObjectDescriptor *iod;
-	u32	i, j, count, nbb;
+	u32	j, nbb;
 	GF_ESD *esd;
 	Bool is_in_iod, delete_desc, encode_names, delete_bcfg;
 	GF_BIFSConfig *bcfg;
 
 	e = GF_OK;
-
-	iod = (GF_InitialObjectDescriptor *) codec->ctx->root_od;
-	/*if no iod check we only have one bifs*/
-	if (!iod) {
-		count = 0;
-		i=0;
-		while ((codec->sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i))) {
-			if (codec->sc->streamType == GF_STREAM_OD) count++;
-			codec->sc = NULL;
-		}
-		if (!iod && count>1) return GF_NOT_SUPPORTED;
-	}
-
-	codec->sc = NULL;
-	count = gf_list_count(codec->ctx->streams);
-	i=0;
-	while ((codec->sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i))) {
-		if (codec->sc->streamType == GF_STREAM_SCENE) break;
-	}
-	if (!codec->sc) return GF_NOT_SUPPORTED;
-	if (!codec->sc->ESID) codec->sc->ESID = 1;
-
 	codec->bifsenc = gf_bifs_encoder_new(codec->ctx->scene_graph);
 
 	delete_desc = 0;
@@ -180,10 +156,48 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 	codec->encoded_bifs_config_size = data_len;
 
 	esd->decoderConfig->objectTypeIndication = gf_bifs_encoder_get_version(codec->bifsenc, codec->sc->ESID);		
+	return GF_OK;
+}
+
+static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
+{
+	GF_Err e;
+	GF_InitialObjectDescriptor *iod;
+	u32	i, count;
+
+	e = GF_OK;
+
+	iod = (GF_InitialObjectDescriptor *) codec->ctx->root_od;
+	/*if no iod check we only have one bifs*/
+	if (!iod) {
+		count = 0;
+		i=0;
+		while ((codec->sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i))) {
+			if (codec->sc->streamType == GF_STREAM_OD) count++;
+			codec->sc = NULL;
+		}
+		if (!iod && count>1) return GF_NOT_SUPPORTED;
+	}
+
+	codec->sc = NULL;
+	count = gf_list_count(codec->ctx->streams);
+	i=0;
+	while ((codec->sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i))) {
+		if (codec->sc->streamType == GF_STREAM_SCENE) break;
+	}
+	if (!codec->sc) return GF_NOT_SUPPORTED;
+	if (!codec->sc->ESID) codec->sc->ESID = 1;
+
+	if (codec->sc->objectType <= GPAC_OTI_SCENE_BIFS_V2) {
+		return gf_sm_setup_bifsenc(codec, iod);
+	} else if (codec->sc->objectType == GPAC_OTI_SCENE_DIMS) {
+		/* TODO */
+		return GF_NOT_SUPPORTED;
+	}
 	return e;
 }
 
-static GF_Err gf_sm_live_encode_bifs_au(GF_BifsEngine *codec, u32 currentAUCount, 
+static GF_Err gf_sm_live_encode_scene_au(GF_BifsEngine *codec, u32 currentAUCount, 
 						  GF_Err (*AUCallback)(void *, char *, u32 , u64)
 						  )
 {
@@ -200,7 +214,17 @@ static GF_Err gf_sm_live_encode_bifs_au(GF_BifsEngine *codec, u32 currentAUCount
 		au = (GF_AUContext *)gf_list_get(codec->sc->AUs, j);
 		/*in case using XMT*/
 		if (au->timing_sec) au->timing = (u64) (au->timing_sec * codec->stream_ts_res);
-		e = gf_bifs_encode_au(codec->bifsenc, codec->sc->ESID, au->commands, &data, &size);
+		switch(codec->sc->objectType) {
+		case GPAC_OTI_SCENE_BIFS:
+		case GPAC_OTI_SCENE_BIFS_V2:
+			e = gf_bifs_encode_au(codec->bifsenc, codec->sc->ESID, au->commands, &data, &size);
+			break;
+		case GPAC_OTI_SCENE_DIMS:
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Cannot encode AU for Scene OTI %x\n", codec->sc->objectType));
+			break;
+		}
 		AUCallback(codec->calling_object, data, size, au->timing);
 		free(data);
 		data = NULL;
@@ -279,7 +303,7 @@ GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (
 	e = gf_sm_load_string(&codec->load, auString, 0);
 	if (e) goto exit;
 
-	e = gf_sm_live_encode_bifs_au(codec, codec->currentAUCount, AUCallback); 
+	e = gf_sm_live_encode_scene_au(codec, codec->currentAUCount, AUCallback); 
 exit:
 	return e;
 }
@@ -316,7 +340,7 @@ GF_Err gf_beng_encode_from_file(GF_BifsEngine *codec, char *auFile, GF_Err (*AUC
 		goto exit;
 	}
 
-	e = gf_sm_live_encode_bifs_au(codec, codec->currentAUCount, AUCallback); 
+	e = gf_sm_live_encode_scene_au(codec, codec->currentAUCount, AUCallback); 
 	if (e) goto exit;
 exit:
 	return e;
@@ -325,7 +349,7 @@ exit:
 GF_EXPORT
 GF_Err gf_beng_encode_context(GF_BifsEngine *codec, GF_Err (*AUCallback)(void *, char *, u32 , u64 ))
 {
-	return gf_sm_live_encode_bifs_au(codec, 0, AUCallback);
+	return gf_sm_live_encode_scene_au(codec, 0, AUCallback);
 } 
 
 GF_EXPORT
