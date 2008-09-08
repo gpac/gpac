@@ -544,6 +544,8 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 	GF_BitStream *bs;
 	u32 offset;
 	Bool is_last_du;
+
+	fprintf(stderr, "gp_rtp_builder_do_dims: data_size=%d, isEnd=%d, FullAUSize=%d, duration=%d\n", data_size, IsAUEnd, FullAUSize, duration);
 	
 	/*the DIMS hinter doesn't perform inter-sample concatenation*/
 	if (!data) return GF_OK;
@@ -610,7 +612,7 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 				char dims_rtp_hdr[1];
 				
 				/*the unit is critical, increase counter (coded on 3 bits)*/
-				if (! (data[2] & (1<<4)) && (frag_state<=1) ) {
+				if (! (data[2] & GF_DIMS_UNIT_P) && (frag_state <= 1) ) {
 					builder->last_au_sn++;
 					builder->last_au_sn %= 8;
 				}

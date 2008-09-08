@@ -366,6 +366,17 @@ static const u32 GF_AMR_FRAME_SIZE[16] = { 12, 13, 15, 17, 19, 20, 26, 31, 5, 0,
 static const u32 GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60, 5, 5, 0, 0, 0, 0, 0 };
 
 
+/*DIMS unit flags */
+enum
+{
+	GF_DIMS_UNIT_S = 1,
+	GF_DIMS_UNIT_M = 1<<1,
+	GF_DIMS_UNIT_I = 1<<2,
+	GF_DIMS_UNIT_D = 1<<3,
+	GF_DIMS_UNIT_P = 1<<4,
+	GF_DIMS_UNIT_C = 1<<5
+};
+
 
 /*!
  \endcond
