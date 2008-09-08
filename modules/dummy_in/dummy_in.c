@@ -183,6 +183,9 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		ext += 1;
 		if (ext) {
 			tmp = strchr(ext, '#'); if (tmp) tmp[0] = 0;
+			/* Warning the '?' sign should not be present in local files but it is convenient to have it 
+			   to test web content locally */
+			tmp = strchr(ext, '?'); if (tmp) tmp[0] = 0;
 		}
 		if (!stricmp(ext, "bt") || !stricmp(ext, "btz") || !stricmp(ext, "bt.gz") 
 			|| !stricmp(ext, "xmta") 
