@@ -548,12 +548,6 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 	/*the DIMS hinter doesn't perform inter-sample concatenation*/
 	if (!data) return GF_OK;
 
-	/*if DU doesn't fit in packet, flush packet*/
-	if (builder->bytesInPacket && (builder->bytesInPacket + 1 + builder->bytesInPacket > builder->Path_MTU) ) {
-		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
-		builder->bytesInPacket = 0;
-	}
-
 	offset = 0;
 	builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
@@ -653,8 +647,10 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 		}
 		offset += orig_size;
 	}
-	builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
-	builder->bytesInPacket = 0;
+	if (builder->bytesInPacket) {
+		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+		builder->bytesInPacket = 0;
+	}
 	gf_bs_del(bs);
 	return GF_OK;
 }
