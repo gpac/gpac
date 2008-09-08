@@ -1814,17 +1814,6 @@ typedef struct
 	const char *content_script_types;
 } GF_DIMSDescription;
 
-/*DIMS unit flags */
-enum
-{
-	GF_DIMS_UNIT_S = 1,
-	GF_DIMS_UNIT_M = 1<<1,
-	GF_DIMS_UNIT_I = 1<<2,
-	GF_DIMS_UNIT_D = 1<<3,
-	GF_DIMS_UNIT_P = 1<<4,
-	GF_DIMS_UNIT_C = 1<<5
-};
-
 GF_Err gf_isom_get_dims_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_DIMSDescription *desc);
 #ifndef GPAC_READ_ONLY
 GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 *outDescriptionIndex);
