@@ -704,8 +704,8 @@ static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
 	GF_BitStream *bs;
-	u32 du_size, offset, dsize;
-	char *data;
+	u32 du_size, offset, dsize, hdr_size;
+	char *data, dhdr[6];
 
 	u32 frag_state = ((payload[0]>>3) & 0x7);
 
@@ -740,7 +740,6 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 			if (rtp->inter_bs) gf_bs_del(rtp->inter_bs);
 
 			rtp->inter_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_u16(rtp->inter_bs, 0);
 			gf_bs_write_data(rtp->inter_bs, payload+offset, size-offset);
 			return;
 		case 2:
@@ -753,13 +752,26 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 			gf_bs_get_content(rtp->inter_bs, &data, &dsize);
 			gf_bs_del(rtp->inter_bs);
 			rtp->inter_bs = NULL;
-			bs = gf_bs_new(data, dsize, GF_BITSTREAM_WRITE);
-			gf_bs_write_u16(bs, dsize - 2);
-			gf_bs_del(bs);
+			
+
+			/*send unit header - if dims size is >0xFFFF, use our internal hack for large units*/
+			rtp->inter_bs = gf_bs_new(dhdr, 6, GF_BITSTREAM_WRITE);
+			if (dsize<=0xFFFF) {
+				gf_bs_write_u16(bs, dsize);
+				hdr_size = 2;
+			} else {
+				gf_bs_write_u16(bs, 0);
+				gf_bs_write_u32(bs, dsize);
+				hdr_size = 6;
+			}
+			gf_bs_del(rtp->inter_bs);
+			rtp->inter_bs = NULL;
+
+			rtp->on_sl_packet(rtp->udta, dhdr, hdr_size, &rtp->sl_hdr, GF_OK);
+			rtp->sl_hdr.accessUnitStartFlag = 0;
 
 			rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
 			rtp->on_sl_packet(rtp->udta, data, dsize, &rtp->sl_hdr, GF_OK);
-			rtp->sl_hdr.accessUnitStartFlag = 0;
 			free(data);
 			return;
 		}

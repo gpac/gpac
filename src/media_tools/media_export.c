@@ -32,6 +32,7 @@
 #include <gpac/internal/avilib.h>
 #include <gpac/internal/ogg.h>
 #include <gpac/internal/vobsub.h>
+#include <zlib.h>
 
 GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc);
 
@@ -341,6 +342,9 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	} else if (m_stype==GF_ISOM_SUBTYPE_3GP_H263) {
 		gf_export_message(dumper, GF_OK, "Extracting H263 Video sample%s", szNum);
 		strcpy(szEXT, ".263");
+	} else if (m_stype==GF_ISOM_SUBTYPE_3GP_DIMS) {
+		gf_export_message(dumper, GF_OK, "Extracting DIMS sample%s", szNum);
+		strcpy(szEXT, ".dims");
 	} else if (m_stype==GF_ISOM_SUBTYPE_AVC_H264) {
 		strcpy(szEXT, ".h264");
 		gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
@@ -1509,6 +1513,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	FILE *med, *inf, *nhml;
 	Bool full_dump;
 	u32 w, h;
+	Bool uncompress;
 	u32 track, i, di, count, pos, mstype;
 	const char *szRootName, *szSampleName;
 
@@ -1599,19 +1604,26 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 
 	if (gf_isom_is_track_in_root_od(dumper->file, track)) fprintf(nhml, "inRootOD=\"yes\" ");
 	fprintf(nhml, "trackID=\"%d\" ", dumper->trackID);
+	
+	uncompress = 0;
 
 	if (mstype == GF_ISOM_MEDIA_DIMS) {
 		GF_DIMSDescription dims;
+
+		fprintf(nhml, "xmlns=\"http://www.3gpp.org/richmedia\" ");
 		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
 		fprintf(nhml, "width=\"%d\" height=\"%d\" ", w, h);
 
 		gf_isom_get_dims_description(dumper->file, track, 1, &dims);
 		fprintf(nhml, "profile=\"%d\" level=\"%d\" pathComponents=\"%d\" ", dims.profile, dims.level, dims.pathComponents);
 		fprintf(nhml, "useFullRequestHost=\"%s\" stream_type=\"%s\" ", dims.fullRequestHost ? "yes" : "no", dims.streamType ? "primary" : "secondary");
-		fprintf(nhml, "containsRedundant=\"%s\" ", (dims.containsRedundant==1) ? "main" : (dims.containsRedundant==2) ? "redundant" : "main+redundant");
-		if (strlen(dims.textEncoding) ) fprintf(nhml, "textEncoding=\"%s\" ", dims.textEncoding);
-		if (strlen(dims.contentEncoding) ) fprintf(nhml, "contentEncoding=\"%s\" ", dims.contentEncoding);
-		if (dims.content_script_types) fprintf(nhml, "scriptTypes=\"%s\" ", dims.content_script_types);
+		fprintf(nhml, "contains_redundant=\"%s\" ", (dims.containsRedundant==1) ? "main" : (dims.containsRedundant==2) ? "redundant" : "main+redundant");
+		if (strlen(dims.textEncoding) ) fprintf(nhml, "text_encoding=\"%s\" ", dims.textEncoding);
+		if (strlen(dims.contentEncoding) ) {
+			fprintf(nhml, "content_encoding=\"%s\" ", dims.contentEncoding);
+			if (!strcmp(dims.contentEncoding, "deflate")) uncompress = 1;
+		}
+		if (dims.content_script_types) fprintf(nhml, "content_script_types=\"%s\" ", dims.content_script_types);
 	} else {
 		fprintf(nhml, "baseMediaFile=\"%s\" ", szMedia);
 	}
@@ -1647,12 +1659,43 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 
 				fprintf(nhml, "<DIMSUnit time=\""LLD"\"", LLD_CAST samp->DTS);
 				/*DIMS flags*/
-				fprintf(nhml, " isRAP=\"%s\"", (flags & GF_DIMS_UNIT_M) ? "yes" : "no");
-				fprintf(nhml, " isRedundant=\"%s\"", (flags & GF_DIMS_UNIT_I) ? "yes" : "no");
-				fprintf(nhml, " redundantExit=\"%s\"", (flags & GF_DIMS_UNIT_D) ? "yes" : "no");
-				fprintf(nhml, " nonCritical=\"%s\"", (flags & GF_DIMS_UNIT_P) ? "yes" : "no");
+				if (flags & GF_DIMS_UNIT_S) fprintf(nhml, " is-Scene=\"yes\"");
+				if (flags & GF_DIMS_UNIT_M) fprintf(nhml, " is-RAP=\"yes\"");
+				if (flags & GF_DIMS_UNIT_I) fprintf(nhml, " is-redundant=\"yes\"");
+				if (flags & GF_DIMS_UNIT_D) fprintf(nhml, " redundant-exit=\"yes\"");
+				if (flags & GF_DIMS_UNIT_P) fprintf(nhml, " priority=\"high\"");
+				if (flags & GF_DIMS_UNIT_C) fprintf(nhml, " compressed=\"yes\"");
 				fprintf(nhml, ">");
-				fwrite(samp->data+pos+3, size-1, 1, nhml);
+				if (uncompress && (flags & GF_DIMS_UNIT_C)) {
+					char svg_data[2049];
+					int err;
+					u32 done = 0;
+					z_stream d_stream;
+					d_stream.zalloc = (alloc_func)0;
+					d_stream.zfree = (free_func)0;
+					d_stream.opaque = (voidpf)0;
+					d_stream.next_in  = (Bytef*)samp->data+pos+3;
+					d_stream.avail_in = size-1;
+					d_stream.next_out = (Bytef*)svg_data;
+					d_stream.avail_out = 2048;
+
+					err = inflateInit(&d_stream);
+					if (err == Z_OK) {
+						while (d_stream.total_in < size-1) {
+							err = inflate(&d_stream, Z_NO_FLUSH);
+							if (err < Z_OK) break;
+							svg_data[d_stream.total_out - done] = 0;
+							fprintf(nhml, svg_data);
+							if (err== Z_STREAM_END) break;
+							done = d_stream.total_out;
+							d_stream.avail_out = 2048;
+							d_stream.next_out = (Bytef*)svg_data;
+						}
+						inflateEnd(&d_stream);
+					}
+				} else {
+					fwrite(samp->data+pos+3, size-1, 1, nhml);
+				}
 				fprintf(nhml, "</DIMSUnit>\n");
 				
 				samp->data[pos+2+size] = prev;

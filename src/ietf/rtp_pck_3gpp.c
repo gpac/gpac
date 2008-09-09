@@ -545,8 +545,6 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 	u32 offset;
 	Bool is_last_du;
 
-	fprintf(stderr, "gp_rtp_builder_do_dims: data_size=%d, isEnd=%d, FullAUSize=%d, duration=%d\n", data_size, IsAUEnd, FullAUSize, duration);
-	
 	/*the DIMS hinter doesn't perform inter-sample concatenation*/
 	if (!data) return GF_OK;
 

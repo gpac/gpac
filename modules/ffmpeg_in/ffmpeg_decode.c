@@ -257,6 +257,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		case CODEC_ID_MJPEG:
 		case CODEC_ID_MJPEGB:
 		case CODEC_ID_LJPEG:
+		case CODEC_ID_GIF:
 			ffd->pix_fmt = GF_PIXEL_RGB_24; 
 			break;
 		case CODEC_ID_DVD_SUBTITLE:
@@ -579,8 +580,7 @@ redecode:
 		if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
 
 		if (gotpic) {
-#if 1
-//#if defined(_WIN32_WCE) ||  defined(__SYMBIAN32__)
+#if defined(_WIN32_WCE) ||  defined(__SYMBIAN32__)
 			if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
 				memcpy(outBuffer, ffd->frame->data[0], sizeof(char)*3*ffd->ctx->width);
 			} else {

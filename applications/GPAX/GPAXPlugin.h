@@ -231,11 +231,13 @@ public:
     STDMETHODIMP Load(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog);
     STDMETHODIMP Save(LPPROPERTYBAG, BOOL, BOOL);
 
+
 private:
 	Bool ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog, WCHAR *name, char *buf, int bufsize);
 	void SetStatusText(char *msg);
 	void UpdateURL();
 	void UnloadTerm();
+	void LoadDATAUrl();
 
 	GF_Terminal *m_term;
     GF_User m_user;

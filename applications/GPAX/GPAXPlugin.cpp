@@ -29,9 +29,7 @@
 #include <gpac/network.h>
 #include <gpac/utf.h>
 
-
-
-
+#include <mshtml.h>
 
 /////////////////////////////////////////////////////////////////////////////
 // CGPAXPlugin
@@ -192,6 +190,67 @@ Bool CGPAXPlugin::ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog,
     return retval;
 }
 
+void CGPAXPlugin::LoadDATAUrl()
+{
+	HRESULT hr;
+	m_url[0] = 0;
+
+    /*get parent doc*/
+	CComPtr<IOleContainer> spContainer;
+	if (m_spClientSite->GetContainer(&spContainer) != S_OK)
+		return;
+    CComPtr<IHTMLDocument2> spDoc = CComQIPtr<IHTMLDocument2>(spContainer);
+    CComPtr<IHTMLElementCollection> spColl;
+	if (spDoc->get_all(&spColl) != S_OK)
+		return;
+	/*get HTML <object> in the doc*/
+    CComPtr<IDispatch> spDisp;
+	CComPtr<IHTMLElementCollection> sphtmlObjects;
+
+    CComPtr<IDispatch> spDispObjects;
+	if (spColl->tags(CComVariant("OBJECT"), &spDispObjects) != S_OK)
+		return;
+    CComPtr<IHTMLElementCollection> spObjs = CComQIPtr<IHTMLElementCollection>(spDispObjects);
+	
+	/*browse all objects and find us*/
+	long lCount = 0;
+	spObjs->get_length(&lCount);
+	for (long lCnt = 0; lCnt < lCount; lCnt++) {   
+		IDispatch *an_obj= NULL;
+		CComVariant varEmpty;
+		CComVariant varName;
+		varName.vt = VT_I4;
+		varName.lVal = lCnt;
+		hr = spObjs->item(varName, varEmpty, &an_obj);
+		varName.Clear();
+		varEmpty.Clear();
+		if (hr != S_OK) continue;
+
+		/*get the IHTMLObject*/
+		IHTMLObjectElement* pObjectElem=NULL;
+		an_obj->QueryInterface(IID_IHTMLObjectElement, (void**)&pObjectElem);
+		if (!pObjectElem) continue;
+
+		/*get its parent owner - it MUST be us*/
+		IDispatch *disp= NULL;
+		pObjectElem->get_object(&disp);
+		if (disp != this) continue;
+
+		BSTR data = NULL;
+		if ((pObjectElem->get_data(&data) == S_OK) && data) {
+			const u16 *srcp = (const u16 *) data;
+			u32 len = gf_utf8_wcstombs(m_url, MAXLEN_URL, &srcp);
+			if (len>=0) m_url[len] = 0;
+		}
+		SysFreeString(data);
+		break;
+	}
+
+	if (m_url) {
+		UpdateURL();
+	}
+}
+
 //Create window message fuction. when the window is created, also initialize a instance of
 //GPAC player instance.
 LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
@@ -203,7 +262,9 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
     const char *str;
 
     if (m_hWnd==NULL) return 0;
-    gpac_cfg = "GPAC.cfg";
+
+	
+	gpac_cfg = "GPAC.cfg";
 
 #if defined(_DEBUG) && !defined(_WIN32_WCE)
 	strcpy((char *) config_path, "D:\\cvs\\gpac\\bin\\w32_deb\\");
@@ -288,6 +349,8 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	
 	gf_term_set_option(m_term, GF_OPT_AUDIO_VOLUME, 100);
     
+	LoadDATAUrl();
+
 	RECT rc;
     ::GetWindowRect(m_hWnd, &rc);
     m_width = rc.right-rc.left;
@@ -348,7 +411,10 @@ STDMETHODIMP CGPAXPlugin::Load(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog)
 	char szOpt[1024];
     // examine the <embed>/<param> tag arguments
 
+	m_url[0] = 0;
     ReadParamString(pPropBag,pErrorLog,L"src", m_url, MAXLEN_URL);
+	if (!m_url[0])
+	    ReadParamString(pPropBag,pErrorLog,L"data", m_url, MAXLEN_URL);
 
     if (ReadParamString(pPropBag,pErrorLog,L"autostart", szOpt, 1024))
 		m_bAutoStart = (!stricmp(szOpt, "false") || !stricmp(szOpt, "no")) ? 0 : 1;

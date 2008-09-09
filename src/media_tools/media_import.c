@@ -2332,13 +2332,13 @@ exit:
 
 #define ZLIB_COMPRESS_SAFE	4
 
-static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dict)
+static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dict, u32 offset)
 {
     z_stream stream;
     int err;
 	char *dest = (char *)malloc(sizeof(char)*samp->dataLength*ZLIB_COMPRESS_SAFE);
-    stream.next_in = (Bytef*)samp->data;
-    stream.avail_in = (uInt)samp->dataLength;
+    stream.next_in = (Bytef*)samp->data + offset;
+    stream.avail_in = (uInt)samp->dataLength - offset;
     stream.next_out = ( Bytef*)dest;
     stream.avail_out = (uInt)samp->dataLength*ZLIB_COMPRESS_SAFE;
     stream.zalloc = (alloc_func)NULL;
@@ -2365,8 +2365,8 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 		free(dest);
         return GF_IO_ERR;
     }
-    if (samp->dataLength<stream.total_out) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import] compressed data (%d) bigger than input data (%d)\n", (u32) stream.total_out, (u32) samp->dataLength));
+    if (samp->dataLength - offset<stream.total_out) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import] compressed data (%d) bigger than input data (%d)\n", (u32) stream.total_out, (u32) samp->dataLength - offset));
 	}
 	if (dict) {
 		if (*dict) free(*dict);
@@ -2375,13 +2375,13 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 	}
 	if (*max_size < stream.total_out) {
 		*max_size = samp->dataLength*ZLIB_COMPRESS_SAFE;
-		free(samp->data);
-		samp->data = dest;
-	} else {
-		memcpy(samp->data, dest, sizeof(char)*stream.total_out);
-		samp->dataLength = stream.total_out;
-		free(dest);
-	}
+		samp->data = realloc(samp->data, *max_size * sizeof(char));
+	} 
+
+	memcpy(samp->data + offset, dest, sizeof(char)*stream.total_out);
+	samp->dataLength = offset + stream.total_out;
+	free(dest);
+
     deflateEnd(&stream);
     return GF_OK;
 }
@@ -2407,10 +2407,11 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	GF_GenericSampleDescription sdesc;
 	GF_DOMParser *parser;
 	GF_XMLNode *root, *node;
-	char *szRootName, *szSampleName;
+	char *szRootName, *szSampleName, *szImpName;
 
 	szRootName = dims_doc ? "DIMSStream" : "NHNTStream";
 	szSampleName = dims_doc ? "DIMSUnit" : "NHNTSample";
+	szImpName = dims_doc ? "DIMS" : "NHML";
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->nb_tracks = 1;
@@ -2420,7 +2421,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		return GF_OK;
 	}
 	nhml = fopen(import->in_name, "rt");
-	if (!nhml) return gf_import_message(import, GF_URL_ERROR, "Cannot find NHML file %s", szMedia);
+	if (!nhml) return gf_import_message(import, GF_URL_ERROR, "Cannot find %s file %s", szImpName, szMedia);
 
 	strcpy(szName, import->in_name);
 	ext = strrchr(szName, '.');
@@ -2435,7 +2436,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	e = gf_xml_dom_parse(parser, import->in_name, nhml_on_progress, import);
 	if (e) {
 		fclose(nhml);
-		gf_import_message(import, e, "Error parsing NHML file: Line %d - %s", gf_xml_dom_get_line(parser), gf_xml_dom_get_error(parser));
+		gf_import_message(import, e, "Error parsing %s file: Line %d - %s", szImpName, gf_xml_dom_get_line(parser), gf_xml_dom_get_error(parser));
 		gf_xml_dom_del(parser);
 		return e;
 	}
@@ -2455,7 +2456,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	dims.containsRedundant = 1;
 
 	if (stricmp(root->name, szRootName)) { 
-		e = gf_import_message(import, GF_BAD_PARAM, "Error parsing NHML file - \"%s\" root expected, got \"%s\"", szRootName, root->name);
+		e = gf_import_message(import, GF_BAD_PARAM, "Error parsing %s file - \"%s\" root expected, got \"%s\"", szImpName, szRootName, root->name);
 		goto exit; 
 	}
 	dictionary = NULL;
@@ -2523,14 +2524,19 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		else if (!stricmp(att->name, "pathComponents")) dims.pathComponents = atoi(att->value);
 		else if (!stricmp(att->name, "useFullRequestHost") && !stricmp(att->value, "yes")) dims.fullRequestHost = 1;
 		else if (!stricmp(att->name, "stream_type") && !stricmp(att->value, "secondary")) dims.streamType = 0;
-		else if (!stricmp(att->name, "containsRedundant")) {
+		else if (!stricmp(att->name, "contains_redundant")) {
 			if (!stricmp(att->value, "main")) dims.containsRedundant = 1;
 			else if (!stricmp(att->value, "redundant")) dims.containsRedundant = 2;
 			else if (!stricmp(att->value, "main+redundant")) dims.containsRedundant = 3;
 		}
-		else if (!stricmp(att->name, "textEncoding")) dims.textEncoding = att->value;
-		else if (!stricmp(att->name, "contentEncoding")) dims.contentEncoding = att->value;
-		else if (!stricmp(att->name, "scriptTypes")) dims.content_script_types = att->value;
+		else if (!stricmp(att->name, "text_encoding")) dims.textEncoding = att->value;
+		else if (!stricmp(att->name, "content_encoding")) {
+			if (!strcmp(att->value, "deflate")) {
+				dims.contentEncoding = att->value;
+				do_compress = 1;
+			}
+		}
+		else if (!stricmp(att->name, "content_script_types")) dims.content_script_types = att->value;
 	
 	}
 	if (sdesc.samplerate && !timescale) timescale = sdesc.samplerate;
@@ -2548,7 +2554,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 
 	specInfoSize = 0;
 	if (!streamType && !mtype && !sdesc.codec_tag) {
-		e = gf_import_message(import, GF_NOT_SUPPORTED, "Error parsing NHML file - StreamType or MediaType not specified");
+		e = gf_import_message(import, GF_NOT_SUPPORTED, "Error parsing %s file - StreamType or MediaType not specified", szImpName);
 		goto exit; 
 	}
 
@@ -2631,7 +2637,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		e = gf_isom_new_dims_description(import->dest, track, &dims, NULL, NULL, &di);
 		if (e) goto exit;
 
-		gf_import_message(import, GF_OK, "NHML import - 3GPP DIMS");
+		gf_import_message(import, GF_OK, "3GPP DIMS import");
 	} else {
 		char szT[5];
 		sdesc.extension_buf = specInfo;
@@ -2682,7 +2688,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	i=0;
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
 		u32 j, dims_flags;
-		Bool append;
+		Bool append, compress;
 		if (node->type) continue;
 		if (stricmp(node->name, szSampleName) ) continue;
 
@@ -2695,6 +2701,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		samp->dataLength = 0;
 		dims_flags = 0;
 		append = 0;
+		compress = do_compress;
 
 		j=0;
 		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
@@ -2717,17 +2724,27 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			else if (!stricmp(att->name, "xmlFrom")) strcpy(szXmlFrom, att->value);
 			else if (!stricmp(att->name, "xmlTo")) strcpy(szXmlTo, att->value);
 			/*DIMS flags*/
-			else if (!stricmp(att->name, "isRedundant") && !stricmp(att->value, "yes"))
+			else if (!stricmp(att->name, "is-Scene") && !stricmp(att->value, "yes"))
+				dims_flags |= GF_DIMS_UNIT_S;
+			else if (!stricmp(att->name, "is-RAP") && !stricmp(att->value, "yes")) {
+				dims_flags |= GF_DIMS_UNIT_M;
+				samp->IsRAP = 1;
+			}
+			else if (!stricmp(att->name, "is-redundant") && !stricmp(att->value, "yes"))
 				dims_flags |= GF_DIMS_UNIT_I;
-			else if (!stricmp(att->name, "redundantExit") && !stricmp(att->value, "yes")) 
+			else if (!stricmp(att->name, "redundant-exit") && !stricmp(att->value, "yes")) 
 				dims_flags |= GF_DIMS_UNIT_D;
-			else if (!stricmp(att->name, "nonCritical") && !stricmp(att->value, "yes")) 
+			else if (!stricmp(att->name, "priority") && !stricmp(att->value, "high")) 
 				dims_flags |= GF_DIMS_UNIT_P;
+			else if (!stricmp(att->name, "compress") && !stricmp(att->value, "yes")) 
+				dims_flags |= GF_DIMS_UNIT_C;
 
 		}
 		if (samp->IsRAP==1) 
 			dims_flags |= GF_DIMS_UNIT_M;
 		if (!count && samp->DTS) samp->DTS = 0;
+
+		if (!(dims_flags & GF_DIMS_UNIT_C)) compress = 0;
 		count++;
 
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
@@ -2744,10 +2761,12 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			char *content = gf_xml_dom_serialize(node, 1);
 
 			samp->dataLength = 3 + strlen(content);
+
 			if (samp->dataLength>max_size) {
 				samp->data = (char*)realloc(samp->data, sizeof(char) * samp->dataLength);
 				max_size = samp->dataLength;
 			}
+
 			bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_WRITE);
 			gf_bs_write_u16(bs, samp->dataLength-2);
 			gf_bs_write_u8(bs, (u8) dims_flags);
@@ -2769,7 +2788,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				if (!offset) offset = media_done;
 			}
 			if (!f) {
-				e = gf_import_message(import, GF_BAD_PARAM, "NHML import failure: file %s not found", close ? szMediaTemp : szMedia);
+				e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: file %s not found", szImpName, close ? szMediaTemp : szMedia);
 				goto exit;
 			}
 
@@ -2793,6 +2812,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				fread( samp->data+3, samp->dataLength, 1, f); 
 				gf_bs_del(bs);					
 				samp->dataLength+=3;
+
 				/*same DIMS unit*/
 				if (gf_isom_get_sample_from_dts(import->dest, track, samp->DTS))
 					append = 1;
@@ -2807,10 +2827,26 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		}
 		if (e) goto exit;
 
-		if (do_compress && !is_dims) {
-			e = compress_sample_data(samp, &max_size, use_dict ? &dictionary : NULL);
-			if (e) goto exit;
+		if (is_dims) {
+			if (strstr(samp->data+3, "svg ")) dims_flags |= GF_DIMS_UNIT_S;
+			if (dims_flags & GF_DIMS_UNIT_S) dims_flags |= GF_DIMS_UNIT_P;
+			samp->data[2] = dims_flags;
 		}
+
+		if (compress) {
+			e = compress_sample_data(samp, &max_size, use_dict ? &dictionary : NULL, is_dims ? 3 : 0);
+			if (e) goto exit;
+			if (is_dims) {
+				GF_BitStream *bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_WRITE);
+				gf_bs_write_u16(bs, samp->dataLength-2);
+				gf_bs_del(bs);
+			}
+		}
+		if (is_dims && (samp->dataLength > 0xFFFF)) {
+			e = gf_import_message(import, GF_BAD_PARAM, "DIMS import failure: sample data is too long - maximum size allowed: 65532 bytes");
+			goto exit;
+		}
+
 
 		if ((samp->IsRAP==2) && !is_dims) {
 			e = gf_isom_add_sample_shadow(import->dest, track, samp);
@@ -2824,11 +2860,11 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		samp->CTS_Offset = 0;
 		samp->DTS += dts_inc;
 		media_done += samp->dataLength;
-		gf_set_progress("Importing NHML", (u32) media_done, (u32) (media_size ? media_size : media_done+1) );
+		gf_set_progress(is_dims ? "Importing DIMS" : "Importing NHML", (u32) media_done, (u32) (media_size ? media_size : media_done+1) );
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
-	if (media_done!=media_size) gf_set_progress("Importing NHML", (u32) media_size, (u32) media_size);
+	if (media_done!=media_size) gf_set_progress(is_dims ? "Importing DIMS" : "Importing NHML", (u32) media_size, (u32) media_size);
 	MP4T_RecomputeBitRate(import->dest, track);
 
 	if (inRootOD) gf_isom_add_track_to_root_od(import->dest, track);

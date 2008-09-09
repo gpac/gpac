@@ -57,6 +57,42 @@ static Bool svg_check_download(SVGIn *svgin)
 
 #define SVG_PROGRESSIVE_BUFFER_SIZE		4096
 
+static GF_Err svgin_deflate(SVGIn *svgin, char *buffer, u32 buffer_len)
+{
+	GF_Err e;
+	char svg_data[2049];
+	int err;
+	u32 done = 0;
+	z_stream d_stream;
+	d_stream.zalloc = (alloc_func)0;
+	d_stream.zfree = (free_func)0;
+	d_stream.opaque = (voidpf)0;
+	d_stream.next_in  = (Bytef*)buffer;
+	d_stream.avail_in = buffer_len;
+	d_stream.next_out = (Bytef*)svg_data;
+	d_stream.avail_out = 2048;
+
+	err = inflateInit(&d_stream);
+	if (err == Z_OK) {
+		while (d_stream.total_in < buffer_len) {
+			err = inflate(&d_stream, Z_NO_FLUSH);
+			if (err < Z_OK) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
+			svg_data[d_stream.total_out - done] = 0;
+			e = gf_sm_load_string(&svgin->loader, svg_data, 0);
+			if (e || (err== Z_STREAM_END)) break;
+			done = d_stream.total_out;
+			d_stream.avail_out = 2048;
+			d_stream.next_out = (Bytef*)svg_data;
+		}
+		inflateEnd(&d_stream);
+		return GF_OK;
+	}
+	return GF_NON_COMPLIANT_BITSTREAM;
+}
+
 static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
@@ -122,15 +158,29 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 
 	case GPAC_OTI_SCENE_DIMS:
 		{
+			u8 prev, dims_hdr;
+			u32 nb_bytes, pos, size;
 			GF_BitStream *bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
 			while (gf_bs_available(bs)) {
-				u32 pos = (u32) gf_bs_get_position(bs);
-				u16 size = gf_bs_read_u16(bs);
-				u8 dims_hdr = gf_bs_read_u8(bs);
-				u8 prev = inBuffer[pos+2+size];
-				inBuffer[pos+2+size] = 0;
-				e = gf_sm_load_string(&svgin->loader, inBuffer + pos + 3, 0);
-				inBuffer[pos+2+size] = prev;
+				pos = (u32) gf_bs_get_position(bs);
+				size = gf_bs_read_u16(bs);
+				nb_bytes = 2;
+				/*GPAC internal hack*/
+				if (!nb_bytes) {
+					size = gf_bs_read_u32(bs);
+					nb_bytes = 6;
+				}
+
+				dims_hdr = gf_bs_read_u8(bs);
+				prev = inBuffer[pos + nb_bytes + size];
+
+				inBuffer[pos + nb_bytes + size] = 0;
+				if (dims_hdr & GF_DIMS_UNIT_C) {
+					e = svgin_deflate(svgin, inBuffer + pos + nb_bytes + 1, size - 1);
+				} else {
+					e = gf_sm_load_string(&svgin->loader, inBuffer + pos + nb_bytes + 1, 0);
+				}
+				inBuffer[pos + nb_bytes + size] = prev;
 				gf_bs_skip_bytes(bs, size-1);
 			}
 			gf_bs_del(bs);
@@ -138,39 +188,10 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 		break;
 		
 	case GPAC_OTI_SCENE_SVG_GZ:
-	{
-		char svg_data[2049];
-		int err;
-		u32 done = 0;
-		z_stream d_stream;
-		d_stream.zalloc = (alloc_func)0;
-		d_stream.zfree = (free_func)0;
-		d_stream.opaque = (voidpf)0;
-		d_stream.next_in  = (Bytef*)inBuffer;
-		d_stream.avail_in = inBufferLength;
-		d_stream.next_out = (Bytef*)svg_data;
-		d_stream.avail_out = 2048;
-
-		err = inflateInit(&d_stream);
-		if (err == Z_OK) {
-			while (d_stream.total_in < inBufferLength) {
-				err = inflate(&d_stream, Z_NO_FLUSH);
-				if (err < Z_OK) {
-					e = GF_NON_COMPLIANT_BITSTREAM;
-					break;
-				}
-				svg_data[d_stream.total_out - done] = 0;
-				e = gf_sm_load_string(&svgin->loader, svg_data, 0);
-				if (e || (err== Z_STREAM_END)) break;
-				done = d_stream.total_out;
-				d_stream.avail_out = 2048;
-				d_stream.next_out = (Bytef*)svg_data;
-			}
-			inflateEnd(&d_stream);
-		}
-	}
+		e = svgin_deflate(svgin, inBuffer, inBufferLength);
 		break;
-	default: return GF_BAD_PARAM;
+	default: 
+		return GF_BAD_PARAM;
 	}
 
 exit:

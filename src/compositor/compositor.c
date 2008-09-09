@@ -222,9 +222,9 @@ GF_EXPORT
 void gf_sc_reset_graphics(GF_Compositor *compositor)
 {	
 	if (compositor) {
-		gf_sc_lock(compositor, 1);
+		Bool locked = gf_mx_try_lock(compositor->mx);
 		compositor->reset_graphics = 1;
-		gf_sc_lock(compositor, 0);
+		if (locked) gf_mx_v(compositor->mx);
 	}
 }
 
