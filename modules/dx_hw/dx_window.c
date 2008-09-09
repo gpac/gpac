@@ -776,8 +776,9 @@ HWND DD_GetGlobalHWND()
 	return ((DDContext*)the_video_output->opaque)->os_hwnd;
 }
 
-
-
+/*Note: all calls to SetWindowPos are made in a non-blocking way using SWP_ASYNCWINDOWPOS. This avoids deadlocks
+when the compositor request a size change and the DX window thread has grabbed the main compositor mutex. 
+This typically happens when switching playlist items as fast as possible*/
 GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 {
 	DDContext *ctx = (DDContext *)dr->opaque;
@@ -808,15 +809,15 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 			if (evt->move.align_y==1) y = (fsh - ctx->height) / 2;
 			else if (evt->move.align_y==2) y = fsh - ctx->height;
 
-			SetWindowPos(ctx->os_hwnd, NULL, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+			SetWindowPos(ctx->os_hwnd, NULL, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
 		}
 		else if (evt->move.relative) {
 			POINT pt;
 			pt.x = pt.y = 0;
 			MapWindowPoints(ctx->os_hwnd, NULL, &pt, 1);
-			SetWindowPos(ctx->os_hwnd, NULL, evt->move.x + pt.x, evt->move.y + pt.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+			SetWindowPos(ctx->os_hwnd, NULL, evt->move.x + pt.x, evt->move.y + pt.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
 		} else {
-			SetWindowPos(ctx->os_hwnd, NULL, evt->move.x, evt->move.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+			SetWindowPos(ctx->os_hwnd, NULL, evt->move.x, evt->move.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
 		}
 		break;
 	case GF_EVENT_SHOWHIDE:
@@ -826,9 +827,9 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	case GF_EVENT_SIZE:
 		if (ctx->owns_hwnd) {
 			if (ctx->windowless)
-				SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
+				SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
 			else 
-				SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE);
+				SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
 
 			if (ctx->fullscreen) {
 				ctx->store_width = evt->size.width;
@@ -850,7 +851,7 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 			return DD_SetupOpenGL(dr);
 		case 2:
 			ctx->output_3d_type = 2;
-			SetWindowPos(ctx->gl_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
+			SetWindowPos(ctx->gl_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
 			ctx->gl_double_buffer = evt->setup.back_buffer;
 			return DD_SetupOpenGL(dr);
 		}

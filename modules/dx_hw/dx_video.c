@@ -281,7 +281,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 				dd->fs_width = MaxWidth;
 				dd->fs_height = MaxHeight;
 			}
-			SetWindowPos(dd->cur_hwnd, NULL, 0, 0, dd->fs_width, dd->fs_height, SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(dd->cur_hwnd, NULL, 0, 0, dd->fs_width, dd->fs_height, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_ASYNCWINDOWPOS);
 
 #ifndef _WIN32_WCE
 			memset(&settings, 0, sizeof(DEVMODE));

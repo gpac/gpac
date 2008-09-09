@@ -159,7 +159,8 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	/*cleanup paths sep for win32*/
 	if ((prot_type == GF_URL_TYPE_FILE) && (GF_PATH_SEPARATOR != '/')) {
 		for (i = 0; i<strlen(outPath); i++) 
-			if (outPath[i]=='/') outPath[i] = GF_PATH_SEPARATOR;
+//			if (outPath[i]=='/') outPath[i] = GF_PATH_SEPARATOR;
+			if (outPath[i]=='\\') outPath[i] = '/';
 	}
 
 check_spaces:

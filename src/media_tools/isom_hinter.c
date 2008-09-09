@@ -1251,6 +1251,19 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		if (!dims.streamType) strcat(sdpLine, ";stream-type=secondary");
 		if (dims.containsRedundant == 1) strcat(sdpLine, ";contains-redundant=main");
 		else if (dims.containsRedundant == 2) strcat(sdpLine, ";contains-redundant=redundant");
+
+		if (dims.textEncoding && strlen(dims.textEncoding)) {
+			strcat(sdpLine, ";text-encoding=");
+			strcat(sdpLine, dims.textEncoding);
+		}
+		if (dims.contentEncoding && strlen(dims.contentEncoding)) {
+			strcat(sdpLine, ";content-coding=");
+			strcat(sdpLine, dims.contentEncoding);
+		}
+		if (dims.content_script_types && strlen(dims.content_script_types) ) {
+			strcat(sdpLine, ";content-script-types=");
+			strcat(sdpLine, dims.contentEncoding);
+		}
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
 	/*extensions for some mobile phones*/

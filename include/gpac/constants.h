@@ -235,7 +235,7 @@ enum
 	GPAC_OTI_SCENE_SVG = 0xD0,
 	/*!OTI for streaming SVG + gz - GPAC internal*/
 	GPAC_OTI_SCENE_SVG_GZ = 0xD1,
-	/*!OTI for DMIS (dsi = 3GPP DIMS configuration) - GPAC internal*/
+	/*!OTI for DIMS (dsi = 3GPP DIMS configuration) - GPAC internal*/
 	GPAC_OTI_SCENE_DIMS = 0xD2,
 };
 
@@ -327,6 +327,29 @@ enum
 
 
 
+/*DIMS unit flags */
+/*!
+ * \brief DIMS Unit header flags
+ *
+ *	DIMS Unit header flags as 3GPP TS 26.142.
+ */
+enum
+{
+	/*!S: is-Scene: DIMS unit contains a complete document (<svg>*/
+	GF_DIMS_UNIT_S = 1,
+	/*!M: is-RAP: DIMS unit is a random access point*/
+	GF_DIMS_UNIT_M = 1<<1,
+	/*!I: is-Redundant: DIMS unit is made of redundant data*/
+	GF_DIMS_UNIT_I = 1<<2,
+	/*!D: redundant-exit: DIMS unit is the end of redundant data*/
+	GF_DIMS_UNIT_D = 1<<3,
+	/*!P: priority: DIMS unit is high priority*/
+	GF_DIMS_UNIT_P = 1<<4,
+	/*!C: compressed: DIMS unit is compressed*/
+	GF_DIMS_UNIT_C = 1<<5
+};
+
+
 /*!
  \cond DUMMY_DOXY_SECTION
 */
@@ -364,18 +387,6 @@ static const u32 GF_SMV_EVRC_RATE_TO_SIZE [] = {0, 1, 1, 3, 2, 6, 3, 11, 4, 23, 
 static const u32 GF_SMV_EVRC_RATE_TO_SIZE_NB = 6;
 static const u32 GF_AMR_FRAME_SIZE[16] = { 12, 13, 15, 17, 19, 20, 26, 31, 5, 0, 0, 0, 0, 0, 0, 0 };
 static const u32 GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60, 5, 5, 0, 0, 0, 0, 0 };
-
-
-/*DIMS unit flags */
-enum
-{
-	GF_DIMS_UNIT_S = 1,
-	GF_DIMS_UNIT_M = 1<<1,
-	GF_DIMS_UNIT_I = 1<<2,
-	GF_DIMS_UNIT_D = 1<<3,
-	GF_DIMS_UNIT_P = 1<<4,
-	GF_DIMS_UNIT_C = 1<<5
-};
 
 
 /*!
