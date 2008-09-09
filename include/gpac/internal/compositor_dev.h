@@ -454,7 +454,8 @@ typedef struct _time_node
 {
 	void (*UpdateTimeNode)(struct _time_node *);
 	Bool is_registered, needs_unregister;
-	GF_Node *obj;
+	/*user data*/
+	void *udta;
 } GF_TimeNode;
 
 void gf_sc_register_time_node(GF_Compositor *sr, GF_TimeNode *tn);

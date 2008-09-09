@@ -3759,7 +3759,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event)
 	jsval rval;
 
 	hdl = (SVG_handlerElement *) node;
-	if (!hdl->js_fun_val) return;
+	if (!hdl->js_fun_val && !hdl->evt_listen_obj) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events] Executing script code from VRML handler\n"));
 
@@ -3773,15 +3773,20 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event)
 	event->is_vrml = 1;
 	JS_SetPrivate(priv->js_ctx, priv->event, event);
 
+
 	{
 		JSObject *evt;
-		jsval argv[1], funval;
+		jsval argv[1];
 		evt = gf_dom_new_event(priv->js_ctx);
 		JS_SetPrivate(priv->js_ctx, evt, event);
 		argv[0] = OBJECT_TO_JSVAL(evt);
-
-		funval = (JSWord) hdl->js_fun_val;
-		ret = JS_CallFunctionValue(priv->js_ctx, hdl->js_obj ? (JSObject *)hdl->js_obj : priv->js_obj, funval, 1, argv, &rval);
+		
+		if (hdl->js_fun_val) {
+			jsval funval = (JSWord) hdl->js_fun_val;
+			ret = JS_CallFunctionValue(priv->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj: priv->js_obj, funval, 1, argv, &rval);
+		} else {
+			ret = JS_CallFunctionName(priv->js_ctx, hdl->evt_listen_obj, "handleEvent", 1, argv, &rval);
+		}
 	}
 	
 	event->is_vrml = prev_type;

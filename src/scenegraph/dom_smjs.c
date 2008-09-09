@@ -467,7 +467,8 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 	char *inNS = NULL;
 	GF_SceneGraph *sg = NULL;
 	GF_Node *n = NULL;
-	JSFunction *fun;
+	jsval funval = 0;
+	JSObject *evt_handler;
 
 	target = NULL;
 	/*document interface*/
@@ -491,24 +492,35 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 
 	if (!sg) return JS_TRUE;
 
-	/*NS version*/
-	if (argc==5) {
+	/*NS version (4 args in DOM2, 5 in DOM3 for evt_group param)*/
+	if (argc>=4) {
 		if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 		inNS = JSVAL_GET_STRING(argv[0]);
 		of = 1;
 	}
+	evt_handler = obj;
 
 	if (!JSVAL_CHECK_STRING(argv[of])) return JS_TRUE;
 	type = JSVAL_GET_STRING(argv[of]);
 	callback = NULL;
-	fun = NULL;
+
 	if (JSVAL_CHECK_STRING(argv[of+1])) {
 		callback = JSVAL_GET_STRING(argv[of+1]);
+		if (!callback) return JS_TRUE;
 	} else if (JSVAL_IS_OBJECT(argv[of+1])) {
-		fun = JS_ValueToFunction(c, argv[of+1]);
-		if (!fun) return JS_TRUE;
+		JSFunction *fun = JS_ValueToFunction(c, argv[of+1]);
+		funval = argv[of+1];
+		if (!fun) {
+			JSBool found;
+			jsval evt_fun;
+			evt_handler = JSVAL_TO_OBJECT(argv[of+1]);
+			found = JS_GetProperty(c, evt_handler, "handleEvent", &evt_fun);
+			if (!found || !JSVAL_IS_OBJECT(evt_fun) ) return JS_TRUE;
+			fun = JS_ValueToFunction(c, evt_fun);
+			if (!fun) return JS_TRUE;
+			funval = 0;
+		}
 	}
-	if (!callback && !fun) return JS_TRUE;
 
 	evtType = gf_dom_event_type_by_name(type);
 	if (evtType==GF_EVENT_UNKNOWN) return JS_TRUE;
@@ -526,9 +538,8 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 		gf_node_list_add_child(& ((GF_ParentNode *)listener)->children, (GF_Node*)handler);
 
 		if (!callback) {
-			handler->js_fun_val = argv[of+1];
-			handler->js_fun = fun;
-			handler->js_obj = obj;
+			handler->js_fun_val = funval;
+			handler->evt_listen_obj = evt_handler;
 		}
 	}
 
@@ -578,7 +589,7 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 	u32 evtType, i, count;
 	char *inNS = NULL;
 	GF_Node *node = NULL;
-	JSFunction *fun = NULL;
+	jsval funval = 0;
 	GF_SceneGraph *sg = NULL;
 	GF_DOMEventTarget *target = NULL;
 
@@ -616,10 +627,12 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 	if (JSVAL_CHECK_STRING(argv[of+1])) {
 		callback = JSVAL_GET_STRING(argv[of+1]);
 	} else if (JSVAL_IS_OBJECT(argv[of+1])) {
-		fun = JS_ValueToFunction(c, argv[of+1]);
-		if (!fun) return JS_TRUE;
+		if (!JS_ValueToFunction(c, argv[of+1])) {
+		} else {
+			funval = argv[of+1];
+		}
 	}
-	if (!callback && !fun) return JS_TRUE;
+	if (!callback && !funval) return JS_TRUE;
 
 	evtType = gf_dom_event_type_by_name(type);
 	if (evtType==GF_EVENT_UNKNOWN) return JS_TRUE;
@@ -639,8 +652,8 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 		if (!info.far_ptr) continue;
 		hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 		if (!hdl) continue;
-		if (fun) {
-			if (fun != hdl->js_fun) continue;
+		if (funval) {
+			if (funval != hdl->js_fun_val) continue;
 		} else if (hdl->children) {
 			txt = (GF_DOMText *) hdl->children->node;
 			if (txt->sgprivate->tag != TAG_DOMText) continue;
@@ -944,6 +957,10 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	/*"nodeValue"*/
 	case 1:
 		*vp = JSVAL_VOID;
+		if (tag==TAG_DOMText) {
+			GF_DOMText *txt = (GF_DOMText *)n;
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, txt->textContent) );
+		}
 		return JS_TRUE;
 	/*"nodeType"*/
 	case 2:
@@ -1082,6 +1099,12 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	switch (JSVAL_TO_INT(id)) {
 	/*"nodeValue"*/
 	case 1:
+		if ((tag==TAG_DOMText) && JSVAL_CHECK_STRING(*vp)) {
+			GF_DOMText *txt = (GF_DOMText *)n;
+			if (txt->textContent) free(txt->textContent);
+			txt->textContent = strdup(JSVAL_GET_STRING(*vp));
+			dom_node_changed(n, 1, NULL);
+		}
 		/*we only support element and sg in the Node interface, no set*/
 		return JS_TRUE;
 	/*"prefix"*/

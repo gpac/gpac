@@ -117,14 +117,14 @@ static void movietexture_update(GF_TextureHandler *txh)
 static void movietexture_update_time(GF_TimeNode *st)
 {
 	Double time;
-	M_MovieTexture *mt = (M_MovieTexture *)st->obj;
-	MovieTextureStack *stack = (MovieTextureStack *)gf_node_get_private(st->obj);
+	M_MovieTexture *mt = (M_MovieTexture *)st->udta;
+	MovieTextureStack *stack = (MovieTextureStack *)gf_node_get_private(st->udta);
 	
 	/*not active, store start time and speed*/
 	if ( ! mt->isActive) {
 		stack->start_time = mt->startTime;
 	}
-	time = gf_node_get_scene_time(st->obj);
+	time = gf_node_get_scene_time(st->udta);
 
 	if (time < stack->start_time ||
 		/*special case if we're getting active AFTER stoptime */
@@ -162,7 +162,7 @@ void compositor_init_movietexture(GF_Compositor *compositor, GF_Node *node)
 	gf_sc_texture_setup(&st->txh, compositor, node);
 	st->txh.update_texture_fcnt = movietexture_update;
 	st->time_handle.UpdateTimeNode = movietexture_update_time;
-	st->time_handle.obj = node;
+	st->time_handle.udta = node;
 	st->fetch_first_frame = 1;
 	st->txh.flags = 0;
 	if (((M_MovieTexture*)node)->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;

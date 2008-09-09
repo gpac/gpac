@@ -65,13 +65,13 @@ void timesensor_update_time(GF_TimeNode *st)
 	Double currentTime, cycleTime;
 	Fixed newFraction;
 	u32 inc;
-	M_TimeSensor *TS = (M_TimeSensor *)st->obj;
-	TimeSensorStack *stack = (TimeSensorStack *)gf_node_get_private(st->obj);
+	M_TimeSensor *TS = (M_TimeSensor *)st->udta;
+	TimeSensorStack *stack = (TimeSensorStack *)gf_node_get_private(st->udta);
 
 	if (! TS->enabled) {
 		if (TS->isActive) {
-			TS->cycleTime = gf_node_get_scene_time(st->obj);
-			gf_node_event_out(st->obj, 5);//"cycleTime"
+			TS->cycleTime = gf_node_get_scene_time(st->udta);
+			gf_node_event_out(st->udta, 5);//"cycleTime"
 			timesensor_deactivate(stack, TS);
 		}
 		return;
@@ -83,7 +83,7 @@ void timesensor_update_time(GF_TimeNode *st)
 		stack->cycle_interval = TS->cycleInterval;
 	}
 	
-	currentTime = gf_node_get_scene_time(st->obj);
+	currentTime = gf_node_get_scene_time(st->udta);
 	if (!TS->isActive) {
 		if (currentTime < stack->start_time) return;
 		/*special case: if we're greater than both start and stop time don't activate*/
@@ -102,7 +102,7 @@ void timesensor_update_time(GF_TimeNode *st)
 
 	if (TS->isActive) {
 		TS->time = currentTime;
-		gf_node_event_out(st->obj, 8);//"time"
+		gf_node_event_out(st->udta, 8);//"time"
 
 		/*VRML:
 			"f = fmod( (now - startTime) , cycleInterval) / cycleInterval
@@ -117,20 +117,20 @@ void timesensor_update_time(GF_TimeNode *st)
 			TS->fraction_changed = FLT2FIX( fmod(cycleTime, stack->cycle_interval) / stack->cycle_interval );
 			/*cf above*/
 			if (TS->fraction_changed < FIX_EPSILON) TS->fraction_changed = FIX_ONE;
-			gf_node_event_out(st->obj, 6);//"fraction_changed"
+			gf_node_event_out(st->udta, 6);//"fraction_changed"
 			timesensor_deactivate(stack, TS);
 			return;
 		}
 		if (! TS->loop) {
 			if (cycleTime >= stack->cycle_interval) {
 				TS->fraction_changed = FIX_ONE;
-				gf_node_event_out(st->obj, 6);//"fraction_changed"
+				gf_node_event_out(st->udta, 6);//"fraction_changed"
 				timesensor_deactivate(stack, TS);
 				return;
 			}
 		}
 		TS->fraction_changed = newFraction;
-		gf_node_event_out(st->obj, 6);//"fraction_changed"
+		gf_node_event_out(st->udta, 6);//"fraction_changed"
 	}
 
 	/*we're (about to be) active: VRML:
@@ -140,11 +140,11 @@ void timesensor_update_time(GF_TimeNode *st)
 	if (!TS->isActive) {
 		st->needs_unregister = 0;
 		TS->isActive = 1;
-		gf_node_event_out(st->obj, 7); //"isActive"
+		gf_node_event_out(st->udta, 7); //"isActive"
 		TS->cycleTime = currentTime;
-		gf_node_event_out(st->obj, 5);//"cycleTime"
+		gf_node_event_out(st->udta, 5);//"cycleTime"
 		TS->fraction_changed = newFraction;
-		gf_node_event_out(st->obj, 6);//"fraction_changed"
+		gf_node_event_out(st->udta, 6);//"fraction_changed"
 	}
 
 	//compute cycle time
@@ -153,7 +153,7 @@ void timesensor_update_time(GF_TimeNode *st)
 		stack->num_cycles += inc;
 		cycleTime -= inc*stack->cycle_interval;
 		TS->cycleTime = currentTime - cycleTime;
-		gf_node_event_out(st->obj, 5);//"cycleTime"
+		gf_node_event_out(st->udta, 5);//"cycleTime"
 	}
 }
 
@@ -162,7 +162,7 @@ void compositor_init_timesensor(GF_Compositor *compositor, GF_Node *node)
 	TimeSensorStack *st;
 	GF_SAFEALLOC(st, TimeSensorStack);
 	st->time_handle.UpdateTimeNode = timesensor_update_time;
-	st->time_handle.obj = node;
+	st->time_handle.udta = node;
 	st->store_info = 1;
 	st->compositor = compositor;
 	st->is_x3d = (gf_node_get_tag(node)==TAG_X3D_TimeSensor) ? 1 : 0;
