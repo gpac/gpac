@@ -339,11 +339,8 @@ typedef struct __xml_ev_handler
 	void (*handle_event)(GF_Node *hdl, GF_DOM_Event *event);
 	/*if handler targets a VRML script, point to the script here*/
 	void *js_context;
-	/*js function handler*/
-	void *js_fun;
-	/*associated object context (this) - not specified in DOM Events wether this is the global
-	object or the object the listener has been attached to !!*/
-	void *js_obj;
+	/*target EventListener object (this) */
+	void *evt_listen_obj;
 	/*function value for spidermonkey - we cannot use JS_CallFunction since it does not work on closures
 	we use 64 bits to store the value for portability safety	*/
 	u64 js_fun_val;

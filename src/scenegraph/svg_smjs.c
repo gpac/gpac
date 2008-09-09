@@ -2426,7 +2426,7 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	GF_DOMHandler *hdl = (GF_DOMHandler *)node;
 	jsval fval, rval;
 
-	if (!hdl->js_fun) {
+	if (!hdl->js_fun_val && !hdl->evt_listen_obj) {
 		txt = svg_get_text_child(node);
 		if (!txt) return 0;
 	}
@@ -2441,15 +2441,19 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 		return 0;
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
 
-	if (hdl->js_fun) {
+	if (hdl->js_fun_val || hdl->evt_listen_obj) {
 		JSObject *evt;
-		jsval argv[1], funval;
+		jsval argv[1];
 		evt = gf_dom_new_event(svg_js->js_ctx);
 		JS_SetPrivate(svg_js->js_ctx, evt, event);
 		argv[0] = OBJECT_TO_JSVAL(evt);
 
-		funval = (JSWord) hdl->js_fun_val;
-		ret = JS_CallFunctionValue(svg_js->js_ctx, hdl->js_obj ? (JSObject *)hdl->js_obj : svg_js->global, funval, 1, argv, &rval);
+		if (hdl->js_fun_val) {
+			jsval funval = (JSWord) hdl->js_fun_val;
+			ret = JS_CallFunctionValue(svg_js->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj : svg_js->global, funval, 1, argv, &rval);
+		} else {
+			ret = JS_CallFunctionName(svg_js->js_ctx, hdl->evt_listen_obj, "handleEvent", 1, argv, &rval);
+		}
 	} 
 	else if (JS_LookupProperty(svg_js->js_ctx, svg_js->global, txt->textContent, &fval) && !JSVAL_IS_VOID(fval) ) {
 		if (svg_script_execute(node->sgprivate->scenegraph, txt->textContent, event)) 

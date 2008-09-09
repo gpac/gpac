@@ -362,9 +362,11 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 
 	/*get the node's parent*/
 	parent = gf_node_get_parent(node, 0);
+
+	if (!parent) {
 	/*top of the graph, use Document*/
-	if (!parent && (node->sgprivate->scenegraph->RootNode==node)) {
-		sg_fire_dom_event(&node->sgprivate->scenegraph->dom_evt, event, node->sgprivate->scenegraph, NULL);
+		if (node->sgprivate->scenegraph->RootNode==node)
+			sg_fire_dom_event(&node->sgprivate->scenegraph->dom_evt, event, node->sgprivate->scenegraph, NULL);
 		return;
 	}
 	if (cur_par_idx) {

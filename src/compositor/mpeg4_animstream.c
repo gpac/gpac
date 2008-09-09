@@ -127,14 +127,14 @@ static void animationstream_deactivate(AnimationStreamStack *stack, M_AnimationS
 static void animationstream_update_time(GF_TimeNode *st)
 {
 	Double time;
-	M_AnimationStream *as = (M_AnimationStream *)st->obj;
-	AnimationStreamStack *stack = (AnimationStreamStack *)gf_node_get_private(st->obj);
+	M_AnimationStream *as = (M_AnimationStream *)st->udta;
+	AnimationStreamStack *stack = (AnimationStreamStack *)gf_node_get_private(st->udta);
 	
 	/*not active, store start time and speed*/
 	if ( ! as->isActive) {
 		stack->start_time = as->startTime;
 	}
-	time = gf_node_get_scene_time(st->obj);
+	time = gf_node_get_scene_time(st->udta);
 
 	if ((time < stack->start_time) || (stack->start_time < 0)) return;
 
@@ -166,7 +166,7 @@ void compositor_init_animationstream(GF_Compositor *compositor, GF_Node *node)
 	GF_SAFEALLOC(st, AnimationStreamStack);
 	st->compositor = compositor;
 	st->time_handle.UpdateTimeNode = animationstream_update_time;
-	st->time_handle.obj = node;
+	st->time_handle.udta = node;
 	
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, animationstream_destroy);
