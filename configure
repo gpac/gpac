@@ -1571,7 +1571,7 @@ EOF
 
 if $cc -o $TMPE $TMPC -liconv > /dev/null 2>&1  ; then
 GPAC_ENST=yes
-echo "LIBGPAC_ENST=`cd src; ls enst/*.c | sed -e 's/.c/.o/' | tr -s '\r\n' ' ' ; cd ..`" >> config.mak
+echo "LIBGPAC_ENST=`cd src; ls enst/*.c | sed -e 's/\.c/.o/' | tr -s '\r\n' ' ' ; cd ..`" >> config.mak
 else
 echo "Couldn't find libiconv - disabling GPAC ENST extensions"
 GPAC_ENST="no"
