@@ -529,6 +529,9 @@ EXPORTS
 	gf_isom_get_media_data_size
 	gf_isom_get_omadrm_info
 	gf_isom_is_omadrm_media
+	gf_isom_get_dims_description
+	gf_isom_new_dims_description
+	gf_isom_update_dims_description
 
 
 ;NON-READ-ONLY exports
