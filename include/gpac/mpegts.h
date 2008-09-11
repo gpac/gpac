@@ -137,6 +137,8 @@ enum
 	GF_M2TS_EVT_TDT,
 	/* A message to inform about the current time offset in the TS */
 	GF_M2TS_EVT_TOT,
+	/* A generic event message for EIT, TDT, TOT etc */
+	GF_M2TS_EVT_ALL,
 };
 
 enum
@@ -196,7 +198,12 @@ typedef struct GF_M2TS_SectionFilter
 	/*section->table aggregator*/
 	GF_M2TS_Table *table;
 	
-	Bool process_individual_section;
+	/* indicates that the section and last_section_number do not need to be checked */
+	Bool process_individual;
+
+	/* indicates that the section header with table id and extended table id ... is
+	   not parsed by the TS demuxer and left for the application  */
+	Bool direct_dispatch;
 
 	gf_m2ts_section_callback process_section; 
 } GF_M2TS_SectionFilter;
