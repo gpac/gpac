@@ -39,6 +39,7 @@ typedef struct
 	MFURL txurl;	
 	Bool first_frame_fetched;
 	GF_Node *audio;
+	Bool audio_dirty;
 	Bool stop_requested;
 } SVG_video_stack;
 
@@ -282,8 +283,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			gf_node_unregister(stack->audio, NULL);
 			stack->audio = NULL;
 		}
-		/*and force reevaluation of video to get new associated audio if any*/
-		stack->first_frame_fetched = 0;
+		stack->audio_dirty = 1;
 
 		svg_play_texture(stack, &all_atts);
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
@@ -456,17 +456,6 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 
 	/* only when needs_refresh = 1, first frame is fetched */
 	if (!stack->first_frame_fetched) {
-		if (!stack->audio && gf_mo_has_audio(stack->txh.stream)) {
-			GF_FieldInfo att_vid, att_aud;
-			stack->audio = gf_node_new(gf_node_get_graph(stack->txh.owner), TAG_SVG_audio);
-			gf_node_register(stack->audio, NULL);
-			if (gf_node_get_attribute_by_tag(stack->txh.owner, TAG_XLINK_ATT_href, 0, 0, &att_vid)==GF_OK) {
-				gf_node_get_attribute_by_tag(stack->audio, TAG_XLINK_ATT_href, 1, 0, &att_aud);
-				gf_svg_attributes_copy(&att_aud, &att_vid, 0);
-			}
-			/*BYPASS SMIL TIMING MODULE!!*/
-			compositor_init_svg_audio(stack->txh.compositor, stack->audio, 1);
-		}
 		if (txh->needs_refresh) {
 			stack->first_frame_fetched = 1;
 			/*stop stream if needed*/
@@ -477,6 +466,20 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 			}
 		}
 	}
+
+	if (!stack->audio && (gf_mo_has_audio(stack->txh.stream) || stack->audio_dirty)) {
+		GF_FieldInfo att_vid, att_aud;
+		stack->audio = gf_node_new(gf_node_get_graph(stack->txh.owner), TAG_SVG_audio);
+		gf_node_register(stack->audio, NULL);
+		if (gf_node_get_attribute_by_tag(stack->txh.owner, TAG_XLINK_ATT_href, 0, 0, &att_vid)==GF_OK) {
+			gf_node_get_attribute_by_tag(stack->audio, TAG_XLINK_ATT_href, 1, 0, &att_aud);
+			gf_svg_attributes_copy(&att_aud, &att_vid, 0);
+		}
+		/*BYPASS SMIL TIMING MODULE!!*/
+		compositor_init_svg_audio(stack->txh.compositor, stack->audio, 1);
+		stack->audio_dirty = 0;
+	}
+	
 	/*we have no choice but retraversing the graph until we're inactive since the movie framerate and
 	the compositor framerate are likely to be different */
 	if (!txh->stream_finished) 
