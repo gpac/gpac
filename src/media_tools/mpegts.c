@@ -616,7 +616,7 @@ static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 
 static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses)
 {
-	if (! sec->process_section) {
+	if (! sec->process_section && !sec->had_error) {
 		if (ts->on_event) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
@@ -625,6 +625,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			//pck.data[pck.data_len] = 0;
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_event(ts, GF_M2TS_EVT_ALL, &pck);
+			free(pck.data);
 		}
 	} else {
 		Bool has_syntax_indicator;
@@ -854,144 +855,6 @@ aggregated_section:
 	}
 }
 
-static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
-{
-	u32 orig_net_id, pos, evt_type;
-	u32 nb_sections;
-	u32 data_size;
-	unsigned char *data;
-	GF_M2TS_Section *section;
-
-	/*wait for the last section */
-	if (!(status&GF_M2TS_TABLE_END)) return;
-
-	/*skip if already received*/
-	if (status&GF_M2TS_TABLE_REPEAT) {
-		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SDT_REPEAT, NULL);
-		return;
-	}
-
-	if (table_id != GF_M2TS_TABLE_ID_SDT_ACTUAL) {
-		gf_m2ts_reset_sdt(ts);
-		return;
-	}
-
-	gf_m2ts_reset_sdt(ts);
-	
-	nb_sections = gf_list_count(sections);
-	if (nb_sections > 1) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("SDT on multiple sections not supported\n"));
-	}
-
-	section = (GF_M2TS_Section *)gf_list_get(sections, 0);
-	data = section->data;
-	data_size = section->data_size;				
-
-	orig_net_id = (data[0] << 8) | data[1];
-	pos = 3;
-	while (pos < data_size) {
-		GF_M2TS_SDT *sdt;
-		u32 descs_size, d_pos, ulen;
-		
-		GF_SAFEALLOC(sdt, GF_M2TS_SDT);
-		gf_list_add(ts->SDTs, sdt);
-
-		sdt->service_id = (data[pos]<<8) + data[pos+1];
-		sdt->EIT_schedule = (data[pos+2] & 0x2) ? 1 : 0;
-		sdt->EIT_present_following = (data[pos+2] & 0x1);
-		sdt->running_status = (data[pos+3]>>5) & 0x7;
-		sdt->free_CA_mode = (data[pos+3]>>4) & 0x1;
-		descs_size = ((data[pos+3]&0xf)<<8) | data[pos+4];
-		pos += 5;
-
-		d_pos = 0;
-		while (d_pos < descs_size) {
-			u8 d_tag = data[pos+d_pos];
-			u8 d_len = data[pos+d_pos+1];
-
-			switch (d_tag) {
-			case GF_M2TS_DVB_SERVICE_DESCRIPTOR: 
-				if (sdt->provider) free(sdt->provider);
-				sdt->provider = NULL;
-				if (sdt->service) free(sdt->service);
-				sdt->service = NULL;
-				
-				d_pos+=2;
-				sdt->service_type = data[pos+d_pos];
-				ulen = data[pos+d_pos+1];
-				d_pos += 2;
-				sdt->provider = (char*)malloc(sizeof(char)*(ulen+1));
-				memcpy(sdt->provider, data+pos+d_pos, sizeof(char)*ulen);
-				sdt->provider[ulen] = 0;
-				d_pos += ulen;
-
-				ulen = data[pos+d_pos];
-				d_pos += 1;
-				sdt->service = (char*)malloc(sizeof(char)*(ulen+1));
-				memcpy(sdt->service, data+pos+d_pos, sizeof(char)*ulen);
-				sdt->service[ulen] = 0;
-				d_pos += ulen;
-				break;
-
-			default:
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping descriptor (0x%x) not supported\n", d_tag));
-				d_pos += d_len;
-				if (d_len == 0) d_pos = descs_size;
-				break;
-			}
-		}
-		pos += descs_size;
-	}
-	evt_type = GF_M2TS_EVT_SDT_FOUND;
-	if (ts->on_event) ts->on_event(ts, evt_type, NULL);
-}
-
-static void gf_m2ts_process_eit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *eit_ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
-{
-	u32 nb_sections;
-	GF_M2TS_Section *section;
-
-	u32 evt_type;
-
-//	if (status&GF_M2TS_TABLE_REPEAT) return;
-
-	nb_sections = gf_list_count(sections);
-	if (nb_sections > 1) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("EIT Sections should be handled one by one\n"));
-	}
-
-	section = (GF_M2TS_Section *)gf_list_get(sections, 0);
-
-	/* warning: hack to be able to send an sl packet with service id */
-	section->data = realloc(section->data, section->data_size+3);
-	memmove(section->data+3, section->data, section->data_size);
-	section->data_size+=3;
-	section->data[0] = table_id;
-	section->data[1] = (ex_table_id>>8) & 0xFF;
-	section->data[2] = (ex_table_id & 0xFF);
-
-	/* TODO check if we need to distinguish between all these event type since we forward the table id */
-	if (table_id == GF_M2TS_TABLE_ID_EIT_ACTUAL_PF) {
-		evt_type = GF_M2TS_EVT_EIT_ACTUAL_PF;
-	} else if (table_id == GF_M2TS_TABLE_ID_EIT_OTHER_PF) {
-		evt_type = GF_M2TS_EVT_EIT_OTHER_PF;
-	} else if (table_id >= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN && table_id <= GF_M2TS_TABLE_ID_EIT_SCHEDULE_ACTUAL_MAX) {
-		evt_type = GF_M2TS_EVT_EIT_ACTUAL_SCHEDULE; 
-	} else if (table_id > GF_M2TS_TABLE_ID_EIT_SCHEDULE_ACTUAL_MAX && table_id <= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX) {
-		evt_type = GF_M2TS_EVT_EIT_OTHER_SCHEDULE;
-	} else {
-		return;
-	}
-
-	if (ts->on_event) {
-		GF_M2TS_SL_PCK pck;
-		pck.data = section->data;
-		pck.data_len = section->data_size;
-		pck.stream = (GF_M2TS_ES *)eit_ses;
-		ts->on_event(ts, evt_type, &pck);
-	}
-}
-
 static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	GF_M2TS_SL_PCK sl_pck;
@@ -1027,46 +890,6 @@ void gf_m2ts_decode_mjd_date(u32 date, u32 *year, u32 *month, u32 *day)
 	else k = 0;
 	*year = yp + k + 1900;
 	*month = mp - 1 - k*12;
-}
-
-static void gf_m2ts_process_tdt_tot_st(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
-{
-	u32 nb_sections;
-	GF_M2TS_Section *section;
-
-	u32 evt_type;
-
-//	if (status&GF_M2TS_TABLE_REPEAT) return;
-
-	nb_sections = gf_list_count(sections);
-	if (nb_sections > 1) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("EIT Sections should be handled one by one\n"));
-	}
-
-	section = (GF_M2TS_Section *)gf_list_get(sections, 0);
-
-	if (table_id == GF_M2TS_TABLE_ID_TDT || table_id == GF_M2TS_TABLE_ID_TOT) {
-		/* warning: hack to be able to send an sl packet with service id */
-		section->data = realloc(section->data, section->data_size+1);
-		memmove(section->data+1, section->data, section->data_size);
-		section->data_size+=1;
-		section->data[0] = table_id;
-
-		/* TODO check if we need to distinguish between all these event type since we forward the table id */
-		if (table_id == GF_M2TS_TABLE_ID_TDT) {
-			evt_type = GF_M2TS_EVT_TDT;
-		} else {
-			evt_type = GF_M2TS_EVT_TOT;
-		}
-
-		if (ts->on_event) {
-			GF_M2TS_SL_PCK pck;
-			pck.data = section->data;
-			pck.data_len = section->data_size;
-			pck.stream = (GF_M2TS_ES *)ses;
-			ts->on_event(ts, evt_type, &pck);
-		}
-	}
 }
 
 static void gf_m2ts_process_int(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ip_not_table, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
