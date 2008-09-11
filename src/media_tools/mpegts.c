@@ -1111,51 +1111,39 @@ static void gf_m2ts_process_tdt_tot_st(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *
 {
 	u32 nb_sections;
 	GF_M2TS_Section *section;
-	u8 *data;
-	GF_M2TS_DateTime_Event now;
+
+	u32 evt_type;
+
+//	if (status&GF_M2TS_TABLE_REPEAT) return;
 
 	nb_sections = gf_list_count(sections);
 	if (nb_sections > 1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("TDT, TOT or ST Sections should be handled one by one\n"));
-		return;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("EIT Sections should be handled one by one\n"));
 	}
 
 	section = (GF_M2TS_Section *)gf_list_get(sections, 0);
-	data = section->data;
 
 	if (table_id == GF_M2TS_TABLE_ID_TDT || table_id == GF_M2TS_TABLE_ID_TOT) {
-		gf_m2ts_decode_mjd_date((data[0] << 8) | data[1], &now.year, &now.month, &now.day);
-		now.time = (data[2] << 16) | (data[3] << 8) | data[4];
-		/*sprintf(output, "%02d/%02d/%04d %02x:%02x:%02x", day, month, year, 
-			(0xFF & time>>16), (0xFF & time>>8), (0xFF & time));*/
+		/* warning: hack to be able to send an sl packet with service id */
+		section->data = realloc(section->data, section->data_size+1);
+		memmove(section->data+1, section->data, section->data_size);
+		section->data_size+=1;
+		section->data[0] = table_id;
+
+		/* TODO check if we need to distinguish between all these event type since we forward the table id */
 		if (table_id == GF_M2TS_TABLE_ID_TDT) {
-			if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TDT, &now);
+			evt_type = GF_M2TS_EVT_TDT;
 		} else {
-			u32 pos, loop_len;
-			loop_len = ((data[5]&0x0f) << 8) | (data[6] & 0xff);
-			data += 7;
-			pos = 0;
-			while (pos < loop_len) {
-				u8 tag = data[pos];
-				u8 len = data[pos+1];
-				pos += 2;
-				if (tag == GF_M2TS_DVB_LOCAL_TIME_OFFSET_DESCRIPTOR) {
-					now.country_code[0] = data[pos];
-					now.country_code[1] = data[pos+1];
-					now.country_code[2] = data[pos+2];
-					now.country_region_id = data[pos+3]>>2;
-					now.local_time_offset_polarity = data[pos+3] & 1;
-					now.local_time_offset = (data[pos+4]<<8) | data[pos+5];
-					gf_m2ts_decode_mjd_date((data[pos+6] << 8) | data[pos+7], &now.toc_year, &now.toc_month, &now.toc_day);
-					now.toc_time = (data[pos+8] << 16) | (data[pos+9] << 8) | data[pos+10];
-					now.next_time_offset =  (data[pos+11]<<8) | data[pos+12];
-					pos+= 13;
-				} 
-			}
-			if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TOT, &now);
-		} 
-	} else if (table_id == GF_M2TS_TABLE_ID_ST) {
-		/* skip stuffing table */
+			evt_type = GF_M2TS_EVT_TOT;
+		}
+
+		if (ts->on_event) {
+			GF_M2TS_SL_PCK pck;
+			pck.data = section->data;
+			pck.data_len = section->data_size;
+			pck.stream = (GF_M2TS_ES *)ses;
+			ts->on_event(ts, evt_type, &pck);
+		}
 	}
 }
 
