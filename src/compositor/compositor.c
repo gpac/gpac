@@ -1891,6 +1891,7 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 
 	flip_coords = 0;
 	in_scene = gf_node_get_graph(inline_root);
+	w = h = 0;
 
 	/*check parent/child doc orientation*/
 
@@ -1932,6 +1933,7 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 			gf_node_init(new_root);
 		}
 
+		gf_sg_get_scene_size_info(in_scene, &w, &h);
 	} else {
 		use_pm = 1;
 		if (gf_node_get_tag(inline_parent)<GF_NODE_RANGE_LAST_VRML) {
@@ -1944,11 +1946,29 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	prev_pm = tr_state->pixel_metrics;
 	prev_vp = tr_state->vp_size;
 	prev_coord = tr_state->fliped_coords;
-	w = h = 0;
-	gf_sg_get_scene_size_info(in_scene, &w, &h);
+	gf_mx2d_init(transf);
+
+	/*compute center<->top-left transform*/
+	if (flip_coords)
+		gf_mx2d_add_scale(&transf, FIX_ONE, -FIX_ONE);
+
+	/*if scene size is given in the child document, scale to fit the entire vp*/
+	if (w && h) 
+		gf_mx2d_add_scale(&transf, tr_state->vp_size.x/w, tr_state->vp_size.y/h);
+	if (flip_coords) {
+		gf_mx2d_add_translation(&transf, flip_coords * tr_state->vp_size.x/2, tr_state->vp_size.y/2);
+		tr_state->fliped_coords = !tr_state->fliped_coords;
+	}
+
+	/*if scene size is given in the child document, scale back vp to take into account the above scale
+	otherwise the scene won't be properly clipped*/
+	if (w && h) {
+		tr_state->vp_size.x = INT2FIX(w);
+		tr_state->vp_size.y = INT2FIX(h);
+	}
+
 
 	/*compute pixel<->meter transform*/
-	gf_mx2d_init(transf);
 	if (use_pm != tr_state->pixel_metrics) {
 		/*override aspect ratio if any size info is given in the scene*/
 		if (w && h) {
@@ -1963,24 +1983,6 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 		}
 		tr_state->pixel_metrics = use_pm;
 	}
-
-	/*compute center<->top-left transform*/
-	if (flip_coords)
-		gf_mx2d_add_scale(&transf, FIX_ONE, -FIX_ONE);
-	/*if scene size is given in the child document, scale to fit the entire vp*/
-	if (w && h) gf_mx2d_add_scale(&transf, tr_state->vp_size.x/w, tr_state->vp_size.y/h);
-	if (flip_coords) {
-		gf_mx2d_add_translation(&transf, flip_coords * tr_state->vp_size.x/2, tr_state->vp_size.y/2);
-
-		tr_state->fliped_coords = !tr_state->fliped_coords;
-	}
-	/*if scene size is given in the child document, scale back vp to take into account the above scale
-	otherwise the scene won't be properly clipped*/
-	if (w && h) {
-		tr_state->vp_size.x = INT2FIX(w);
-		tr_state->vp_size.y = INT2FIX(h);
-	}
-
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
