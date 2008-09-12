@@ -238,10 +238,9 @@ static Bool gf_smil_timing_add_to_sg(GF_SceneGraph *sg, SMIL_Timing_RTI *rti)
 {
 	if (rti->current_interval->begin != -1) {
 		SMIL_Timing_RTI *cur_rti = NULL;
-		u32 i, count;
+		u32 i;
 
-		count = gf_list_count(sg->smil_timed_elements);
-		for (i = 0; i < count; i++) {
+		for (i = 0; i < gf_list_count(sg->smil_timed_elements); i++) {
 			cur_rti = (SMIL_Timing_RTI *)gf_list_get(sg->smil_timed_elements, i);
 			if (cur_rti->current_interval->begin > rti->current_interval->begin) break;
 		}

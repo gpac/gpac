@@ -123,10 +123,10 @@ void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity);
 
 /*locks available input for desired TS (needed for scalability) - return NULL if no 
 input is available (buffer full)*/
-GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS);
+GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reordering);
 /*dispatch data in input. If NbBytes is 0, no data is dispatched. TS is needed for re-ordering
 of buffers*/
-void gf_cm_unlock_input(GF_CompositionMemory *cb, u32 TS, u32 NbBytes);
+void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bool codec_reordering);
 /*rewind input of 1 unit - used when doing precise seeking*/
 void gf_cm_rewind_input(GF_CompositionMemory *cb);
 

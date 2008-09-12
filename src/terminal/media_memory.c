@@ -132,84 +132,85 @@ void gf_cm_rewind_input(GF_CompositionMemory *cb)
 }
 
 /*access to the input buffer - return NULL if no input is available (buffer full)*/
-GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS)
+GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reordering)
 {
-#if NO_TEMPORAL_SCALABLE
-	/*there is still something in the input buffer*/
-	if (cb->input->dataLength) {
-		if (cb->input->TS==TS) return cb->input;
-		return NULL;
-	}
-	return cb->input;
-
-#else	
 	GF_CMUnit *cu;
+
+	if (codec_reordering) {
+		/*there is still something in the input buffer*/
+		if (cb->input->dataLength) {
+			if (cb->input->TS==TS) 
+				return cb->input;
+			return NULL;
+		}
+		cb->input->TS = TS;
+		return cb->input;
+	}
 
 	/*spatial scalable, go backward to fetch same TS*/
 	cu = cb->input;
 	while (1) {
-		if (cu->TS == TS) return cu;
+		if (cu->TS == TS) 
+			return cu;
 		cu = cu->prev;
 		if (cu == cb->input) break;
 	}
 	/*temporal scalable (find empty slot)*/
 	cu = cb->input;
 	while (1) {
-		if (!cu->dataLength) return cu;
+		if (!cu->dataLength) {
+			assert(!cu->TS || (cb->Capacity==1));
+			cu->TS = TS;
+			return cu;
+		}
 		cu = cu->next;
 		if (cu == cb->input) return NULL;
 	}
 	return NULL;
-#endif
 
 }
 
-/*re-orders units in case of temporal scalability. Blocking call as it may change the output unit too*/
-static GF_CMUnit *LocateAndOrderUnit(GF_CompositionMemory *cb, u32 TS)
+#if 0
+static void check_temporal(GF_CompositionMemory *cb)
 {
-	GF_CMUnit *unit;
-#if NO_TEMPORAL_SCALABLE
-	unit = cb->input;
-	cb->input = cb->input->next;
-	return unit;
+	GF_CMUnit *cu;
+	cu = cb->output;
+	while (1) {
+		if (cu->next==cb->output) break;
+		assert(!cu->next->dataLength || (cu->TS < cu->next->TS));
+		assert(!cu(>TS || (cu->TS >= cb->LastRenderedTS));
+		cu = cu->next;
+	}
+}
+#endif
 
-#else
+/*re-orders units in case of temporal scalability. Blocking call as it may change the output unit too*/
+static GF_CMUnit *gf_cm_reorder_unit(GF_CompositionMemory *cb, GF_CMUnit *unit, Bool codec_reordering)
+{
 	GF_CMUnit *cu;
 
 	/*lock the buffer since we may move pointers*/
 	gf_odm_lock(cb->odm, 1);
-	unit = NULL;
 
-	/*1- locate cu*/
-	cu = cb->input;
-	while (1) {
-		if (cu->TS == TS) break;
-		cu = cu->next;
-		/*done (should never happen)*/
-		if (cu == cb->input) goto exit;
-	}
-	unit = cu;
+	/*1- unit is next on time axis (no temporal scalability)*/
+	if (!cb->input->dataLength || cb->input->TS < unit->TS) {
 
-	/*2- spatial scalability or input is our unit, no reordering*/
-	if (cu->dataLength || (cb->input->TS == TS) ) goto exit;
+		if (unit != cb->input) {
+			/*remove unit from the list*/
+			unit->prev->next = unit->next;
+			unit->next->prev = unit->prev;
 
-	/*3- unit is next on time axis (no temporal scalability)*/
-	if (!cb->input->dataLength || cb->input->TS < TS) {
-
-		/*remove unit from the list*/
-		unit->prev->next = unit->next;
-		unit->next->prev = unit->prev;
-
-		/*insert unit after input*/
-		unit->prev = cb->input;
-		unit->next = cb->input->next;
-		unit->next->prev = unit;
-		unit->prev->next = unit;
+			/*insert unit after input*/
+			unit->prev = cb->input;
+			unit->next = cb->input->next;
+			unit->next->prev = unit;
+			unit->prev->next = unit;
+		}
 		/*set input to our unit*/
 		cb->input = unit;
 		goto exit;
 	}
-	/*4- unit is before our last delivered input - temporal scalability*/
+	/*2- unit is before our last delivered input - temporal scalability*/
 	cu = cb->input;
 	while (1) {
 
@@ -234,7 +235,8 @@ static GF_CMUnit *LocateAndOrderUnit(GF_CompositionMemory *cb, u32 TS)
 		/*go on*/
 		cu = cu->prev;
 		/*done (should never happen)*/
-		if (cu == cb->input) goto exit;
+		if (cu == cb->input) 
+			goto exit;
 	}
 	
 	/*remove unit from the list*/
@@ -246,6 +248,7 @@ static GF_CMUnit *LocateAndOrderUnit(GF_CompositionMemory *cb, u32 TS)
 	unit->prev = cu->prev;
 	unit->next->prev = unit;
 	unit->prev->next = unit;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("Swapping CU buffer\n"));
 	
 exit:
 
@@ -263,30 +266,40 @@ exit:
 		else if (cb->output->TS > unit->TS) {
 			cb->output = unit;
 		}
+
 	}
 
+	//check_temporal(cb);
 	/*unlock the buffer*/
 	gf_odm_lock(cb->odm, 0);
 	return unit;
-
-#endif
 }
 
-void gf_cm_unlock_input(GF_CompositionMemory *cb, u32 TS, u32 NbBytes)
+void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bool codec_reordering)
 {
-	GF_CMUnit *cu;
-
 	/*nothing dispatched, ignore*/
-	if (!NbBytes) return;
+	if (!cu_size) {
+		cu->dataLength = 0;
+		cu->TS = 0;
+		return;
+	}
 	gf_odm_lock(cb->odm, 1);
 
-	/*insert/swap this CU*/
-	cu = LocateAndOrderUnit(cb, TS);
+	if (cu->TS < cb->input->TS)
+		cu = cu;
+
+
+	if (codec_reordering) {
+		cb->input = cb->input->next;
+	} else {
+		cu = gf_cm_reorder_unit(cb, cu, codec_reordering);
+		assert(cu);
+	}
 
 	if (cu) {
-		/*if the CU already has data, this is spatial scalability so same num buffers*/
+		/*FIXME - if the CU already has data, this is spatial scalability so same num buffers*/
 		if (!cu->dataLength) cb->UnitCount += 1;
-		cu->dataLength = NbBytes;
+		cu->dataLength = cu_size;
 		cu->RenderedLength = 0;
 
 		/*turn off buffering - this must be done now rather than when fetching first output frame since we're not 
@@ -411,6 +424,9 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 		/*only visual buffers deliver data when paused*/
 		if (cb->odm->codec->type != GF_STREAM_VISUAL) goto exit;
 		break;
+	case CB_BUFFER_DONE:
+		cb->Status = CB_PLAY;
+		break;
 	}
 
 	/*no output*/
@@ -441,6 +457,8 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 	}
 	out = cb->output;
 
+	assert(out->TS >= cb->LastRenderedTS);
+
 exit:
 	return out;
 }
@@ -455,7 +473,6 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 	cb->output->RenderedLength = 0;
 	cb->LastRenderedTS = cb->output->TS;
 
-
 	/*on visual streams, always keep the last AU*/
 	if (cb->output->dataLength && (cb->odm->codec->type == GF_STREAM_VISUAL) ) {
 		if ( !cb->output->next->dataLength || (cb->Capacity == 1) )  {
@@ -465,6 +482,7 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 	
 	/*reset the output*/
 	cb->output->dataLength = 0;
+	cb->output->TS = 0;
 	cb->output = cb->output->next;
 	cb->UnitCount -= 1;
 

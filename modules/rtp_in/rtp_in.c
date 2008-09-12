@@ -203,7 +203,7 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 	gf_th_run(priv->th, RP_Thread, priv);
 
 	session_cache = (char *) gf_modules_get_option((GF_BaseInterface *) plug, "Streaming", "SessionMigrationFile");
-	if (session_cache) {
+	if (session_cache && session_cache[0]) {
 		FILE *f = fopen(session_cache, "rb");
 		if (f) {
 			fclose(f);
@@ -272,7 +272,7 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 	RP_FlushCommands(rtp);
 
 	opt = gf_modules_get_option((GF_BaseInterface *) plug, "Network", "SessionMigration");
-	if (opt && !strcmp(opt, "yes")) {
+	if (opt && !strcmp(opt, "yes") ) {
 		RP_SaveSessionState(rtp);
 	} else {
 		/*remove session state file*/

@@ -63,6 +63,9 @@ void gf_mo_stop(GF_MediaObject *mo);
 to restart appropriated objects*/
 void gf_mo_restart(GF_MediaObject *mo);
 
+void gf_mo_pause(GF_MediaObject *mo);
+void gf_mo_resume(GF_MediaObject *mo);
+
 /*
 	Note on mediaControl: mediaControl is the media management app responsability, therefore
 is hidden from the rendering app. Since MediaControl overrides default settings of the node (speed and loop)
