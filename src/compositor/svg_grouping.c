@@ -1207,6 +1207,14 @@ void compositor_init_svg_animation(GF_Compositor *compositor, GF_Node *node)
 	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
 }
 
+void svg_pause_animation(GF_Node *n, Bool pause) 
+{
+	SVGlinkStack *st =  gf_node_get_private(n);
+	if (!st) return;
+	if (pause) gf_odm_pause(st->resource->odm);
+	else gf_odm_resume(st->resource->odm);
+}
+
 static void svg_traverse_foreign_object(GF_Node *node, void *rs, Bool is_destroy)
 {
 	svg_traverse_resource(node, rs, is_destroy, 1);
