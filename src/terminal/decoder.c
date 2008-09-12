@@ -165,10 +165,11 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			codec->CB->odm = codec->odm;
 		}
 
-		/*check re-ordering*/
+		/*check re-ordering - set by default on all codecs*/
+		codec->is_reordering = 1;
 		cap.CapCode = GF_CODEC_REORDER;
-		gf_codec_get_capability(codec, &cap);
-		if (cap.cap.valueInt) codec->is_reordering = 1;
+		if (gf_codec_get_capability(codec, &cap) == GF_OK);
+			codec->is_reordering = cap.cap.valueInt;
 
 		/*setup net channel config*/
 		if (ch->service) {
@@ -294,7 +295,8 @@ static void Decoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, GF_DB
 	}
 
 	/*FIXME - we're breaking sync (couple of frames delay)*/
-	if (*nextAU && codec->is_reordering) (*nextAU)->CTS = (*nextAU)->DTS;
+	if (*nextAU && codec->is_reordering) 
+		(*nextAU)->CTS = (*nextAU)->DTS;
 }
 
 
@@ -462,7 +464,9 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (!ch->IsClockInit) {
 		gf_es_init_dummy(ch);
 		/*signal seek*/
+		gf_term_lock_compositor(codec->odm->term, 1);
 		sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, -1, GF_CODEC_LEVEL_NORMAL);
+		gf_term_lock_compositor(codec->odm->term, 0);
 		if (!gf_clock_is_started(ch->clock)) return GF_OK;
 		/*let's be nice to the scene loader (that usually involves quite some parsing), pause clock while
 		parsing*/
@@ -502,31 +506,27 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	return e;
 }
 /*Get a pointer to the next CU buffer*/
-static GFINLINE GF_Err LockCompositionUnit(GF_Codec *dec, u32 CU_TS, char **outBuffer, u32 *availableSize)
+static GFINLINE GF_Err LockCompositionUnit(GF_Codec *dec, u32 CU_TS, GF_CMUnit **cu, u32 *cu_size)
 {
-	GF_CMUnit *cu;
-	*outBuffer = NULL;
-	*availableSize = 0;
-
 	if (!dec->CB) return GF_BAD_PARAM;
 	
-	cu = gf_cm_lock_input(dec->CB, CU_TS);
-	if (!cu ) return GF_OUT_OF_MEM;
-	
-	cu->TS = CU_TS;
-	*outBuffer = cu->data;
-	*availableSize = dec->CB->UnitSize;
+	*cu = gf_cm_lock_input(dec->CB, CU_TS, dec->is_reordering);
+	if (! *cu ) return GF_OUT_OF_MEM;
+	*cu_size = dec->CB->UnitSize;
 	return GF_OK;
 }
 
 
-static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, u32 CTS, u32 NbBytes)
+static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 cu_size)
 {
 	/*temporal scalability disabling: if we already rendered this, no point getting further*/
-	if (CTS < dec->CB->LastRenderedTS) NbBytes = 0;
+	if (CU->TS < dec->CB->LastRenderedTS) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] CU (TS %d) later than last frame drawn (TS %d) - droping\n", CU->TS, dec->CB->LastRenderedTS));
+		cu_size = 0;
+	} 
 
 	/*unlock the CB*/
-	gf_cm_unlock_input(dec->CB, CTS, NbBytes);
+	gf_cm_unlock_input(dec->CB, CU, cu_size, dec->is_reordering);
 	return GF_OK;
 }
 
@@ -579,11 +579,11 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 
 static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 {
+	GF_CMUnit *CU;
 	GF_DBUnit *AU;
 	GF_Channel *ch, *prev_ch;
-	char *cu_buf;
-	u32 cu_buf_size, mmlevel, cts;
-	u32 first, entryTime, now, obj_time;
+	u32 mmlevel, cts;
+	u32 first, entryTime, now, obj_time, unit_size;
 	GF_MediaDecoder *mdec = (GF_MediaDecoder*)codec->decio;
 	GF_Err e = GF_OK;
 
@@ -601,10 +601,10 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		if (codec->Status == GF_ESM_CODEC_EOS) {
 			/*if codec is reordering, try to flush it*/
 			if (codec->is_reordering) {
-				if ( LockCompositionUnit(codec, codec->last_unit_cts+1, &cu_buf, &cu_buf_size) == GF_OUT_OF_MEM) 
+				if ( LockCompositionUnit(codec, codec->last_unit_cts+1, &CU, &unit_size) == GF_OUT_OF_MEM) 
 					return GF_OK;
-				e = mdec->ProcessData(mdec, NULL, 0, 0, cu_buf, &cu_buf_size, 0, 0);
-				if (e==GF_OK) e = UnlockCompositionUnit(codec, codec->last_unit_cts+1, cu_buf_size);
+				e = mdec->ProcessData(mdec, NULL, 0, 0, CU->data, &unit_size, 0, 0);
+				if (e==GF_OK) e = UnlockCompositionUnit(codec, CU, unit_size);
 			}
 			gf_term_stop_codec(codec);
 			if (codec->CB) gf_cm_set_eos(codec->CB);
@@ -683,15 +683,14 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				AU->CTS = codec->last_unit_cts + ch->ts_offset + (u32) (codec->cur_video_frames * 1000 / codec->fps);
 			}
 		}
+		if ( LockCompositionUnit(codec, AU->CTS, &CU, &unit_size) == GF_OUT_OF_MEM) 
+			return GF_OK;
 
 scalable_retry:
-		if ( LockCompositionUnit(codec, AU->CTS, &cu_buf, &cu_buf_size) == GF_OUT_OF_MEM) 
-			return GF_OK;
 
 		now = gf_term_get_time(codec->odm->term);
 
-		e = mdec->ProcessData(mdec, AU->data, AU->dataLength, 
-			ch->esd->ESID, cu_buf, &cu_buf_size, AU->PaddingBits, mmlevel);
+		e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, CU->data, &unit_size, AU->PaddingBits, mmlevel);
 		now = gf_term_get_time(codec->odm->term) - now;
 		if (codec->Status == GF_ESM_CODEC_STOP) return GF_OK;
 
@@ -699,29 +698,30 @@ scalable_retry:
 		switch (e) {
 		case GF_BUFFER_TOO_SMALL:
 			/*release but no dispatch*/
-			UnlockCompositionUnit(codec, AU->CTS, 0);
-			ResizeCompositionBuffer(codec, cu_buf_size);
+			UnlockCompositionUnit(codec, CU, 0);
+			ResizeCompositionBuffer(codec, unit_size);
 			continue;
 
 		/*this happens a lot when using non-MPEG-4 streams (ex: ffmpeg demuxer)*/
 		case GF_PACKED_FRAMES:
 			/*in seek don't dispatch any output*/
-			if (mmlevel	== GF_CODEC_LEVEL_SEEK) 
-				cu_buf_size = 0;
-			e = UnlockCompositionUnit(codec, AU->CTS, cu_buf_size);
+//			if (mmlevel	== GF_CODEC_LEVEL_SEEK) 
+			if (mmlevel	>= GF_CODEC_LEVEL_DROP) 
+				unit_size = 0;
+			e = UnlockCompositionUnit(codec, CU, unit_size);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[RTI] ODM%d (%s) decoded packed frame TS %d in %d ms\n", codec->odm->OD->objectDescriptorID, codec->decio->module_name, AU->CTS, now));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded packed frame TS %d in %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, obj_time, AU->CTS, now));
 			if (ch->skip_sl) {
 				if (codec->bytes_per_sec) {
-					codec->cur_audio_bytes += cu_buf_size;
-				} else if (codec->fps && cu_buf_size) {
+					codec->cur_audio_bytes += unit_size;
+				} else if (codec->fps && unit_size) {
 					codec->cur_video_frames += 1;
 				}
 			} else {
 				u32 deltaTS = 0;
 				if (codec->bytes_per_sec) {
-					deltaTS = cu_buf_size * 1000 / codec->bytes_per_sec;
-				} /*else if (0 && codec->fps && cu_buf_size) {
+					deltaTS = unit_size * 1000 / codec->bytes_per_sec;
+				} /*else if (0 && codec->fps && unit_size) {
 					deltaTS = (u32) (1000.0f / codec->fps);
 				} */else {
 					deltaTS = (AU->DTS - codec->last_unit_dts);
@@ -734,28 +734,29 @@ scalable_retry:
 		/*for all cases below, don't release the composition buffer until we are sure we are not
 		processing a scalable stream*/
 		case GF_OK:
-			if (cu_buf_size) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[RTI] ODM%d (%s) decoded frame TS %d in %d ms\n", codec->odm->OD->objectDescriptorID, codec->decio->module_name, AU->CTS, now));
+			if (unit_size) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded frame TS %d in %d ms (DTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, obj_time, AU->CTS, now, AU->DTS));
 			}
 			/*in seek don't dispatch any output*/
-			if (mmlevel	== GF_CODEC_LEVEL_SEEK) 
-				cu_buf_size = 0;
+//			if (mmlevel	== GF_CODEC_LEVEL_SEEK) 
+			if (mmlevel	>= GF_CODEC_LEVEL_DROP) 
+				unit_size = 0;
 
 			codec_update_stats(codec, AU->dataLength, now);
 			if (ch->skip_sl) {
 				if (codec->bytes_per_sec) {
-					codec->cur_audio_bytes += cu_buf_size;
+					codec->cur_audio_bytes += unit_size;
 					while (codec->cur_audio_bytes>codec->bytes_per_sec) {
 						codec->cur_audio_bytes -= codec->bytes_per_sec;
 						codec->last_unit_cts += 1000;
 					}
-				} else if (codec->fps && cu_buf_size) {
+				} else if (codec->fps && unit_size) {
 					codec->cur_video_frames += 1;
 				}
 			}
 			break;
 		default:
-			cu_buf_size = 0;
+			unit_size = 0;
 			/*error - if the object is in intitial buffering resume it!!*/
 			gf_cm_abort_buffering(codec->CB);
 			break;
@@ -772,8 +773,7 @@ scalable_retry:
 drop:
 		gf_es_drop_au(ch);
 		if (e) {
-			UnlockCompositionUnit(codec, AU->CTS, cu_buf_size);
-			//UnlockCompositionUnit(codec, AU->CTS, cu_buf_size);
+			UnlockCompositionUnit(codec, CU, unit_size);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Decoder %s] ODM%d: decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));
 			return e;
 		}
@@ -783,13 +783,13 @@ drop:
 		if (AU && (AU->CTS == cts) && (ch !=prev_ch) )
 			goto scalable_retry;
 
-		UnlockCompositionUnit(codec, cts, cu_buf_size);
+		UnlockCompositionUnit(codec, CU, unit_size);
 		if (!ch || !AU) return GF_OK;
 
 		/*escape from decoding loop only if above critical limit - this is to avoid starvation on audio*/
 		if (!ch->esd->dependsOnESID && (codec->CB->UnitCount > codec->CB->Min)) {
 			now = gf_term_get_time(codec->odm->term);
-			if (now - entryTime + TIME_CHECK >= TimeAvailable) {
+			if (0 && now - entryTime + TIME_CHECK >= TimeAvailable) {
 				return GF_OK;
 			}
 		}

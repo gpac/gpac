@@ -98,6 +98,18 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 {
 	GF_Err e = GF_OK;
 	SVGIn *svgin = (SVGIn *)plug->privateStack;
+
+	if (stream_time==(u32)-1) {
+		if (svgin->src) gzclose(svgin->src);
+		svgin->src = NULL;
+		gf_sm_load_done(&svgin->loader);
+		svgin->loader.fileName = NULL;
+		svgin->file_pos = 0;
+		gf_sg_reset(svgin->inline_scene->graph);
+		return GF_OK;
+
+	}
+
 	switch (svgin->oti) {
 	case GPAC_OTI_PRIVATE_SCENE_SVG:
 		/*full doc parsing*/
@@ -126,22 +138,28 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 			entry_time = gf_sys_clock();
 			
 			while (1) {
-				u32 diff, nb_read;
+				u32 diff;
+				s32 nb_read;
 				nb_read = gzread(svgin->src, file_buf, SVG_PROGRESSIVE_BUFFER_SIZE);
-				file_buf[nb_read] = file_buf[nb_read+1] = 0;
-				if (!nb_read) {
-					if (gzeof(svgin->src)) {
+				/*we may have read nothing but we still need to call parse in case the parser got suspended*/
+				if (nb_read<=0) {
+					nb_read = 0;
+					e = gf_sm_load_run(&svgin->loader);
+					if ((e==GF_EOS) && gzeof(svgin->src)) {
 						gf_set_progress("SVG Parsing", svgin->file_pos, svgin->file_size);
 						gzclose(svgin->src);
 						svgin->src = NULL;
-						e = GF_EOS;
-						goto exit;
 					}
-					break;
+					goto exit;
 				}
+
+				file_buf[nb_read] = file_buf[nb_read+1] = 0;
 
 				e = gf_sm_load_string(&svgin->loader, file_buf, 0);
 				svgin->file_pos += nb_read;
+
+
+
 				/*handle decompression*/
 				if (svgin->file_pos > svgin->file_size) svgin->file_size = svgin->file_pos + 1;
 				if (e) break;

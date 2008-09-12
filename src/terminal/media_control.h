@@ -75,6 +75,8 @@ Bool ODM_SwitchMediaControl(GF_ObjectManager *odm, struct _media_control *ctrl);
 
 /*restart object and takes care of media control/clock dependencies*/
 void MC_Restart(GF_ObjectManager *odm);
+void MC_Pause(GF_ObjectManager *odm);
+void MC_Resume(GF_ObjectManager *odm);
 
 Bool MC_URLChanged(MFURL *old_url, MFURL *new_url);
 

@@ -30,6 +30,7 @@
 #include "offscreen_cache.h"
 
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/mediaobject.h>
 
 #include <gpac/nodes_svg.h>
 #include <gpac/compositor.h>
@@ -898,6 +899,7 @@ typedef struct
 //	GF_Node *used_node;
 	GF_SceneGraph *inline_sg;
 	const char *fragment_id;
+	Bool needs_play;
 } SVGlinkStack;
 
 
@@ -1057,7 +1059,7 @@ void compositor_init_svg_use(GF_Compositor *compositor, GF_Node *node)
 
 static void svg_animation_smil_update(GF_Node *node, SVGlinkStack *stack, Fixed normalized_scene_time)
 {
-	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY ) {
+	if (stack->needs_play || (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY )) {
 		SVGAllAttributes all_atts;
 		Double clipBegin, clipEnd;
 		GF_MediaObject *new_res;
@@ -1065,14 +1067,19 @@ static void svg_animation_smil_update(GF_Node *node, SVGlinkStack *stack, Fixed 
 		clipBegin = all_atts.clipBegin ? *all_atts.clipBegin : 0;
 		clipEnd = all_atts.clipEnd ? *all_atts.clipEnd : -1;
 
-		new_res = gf_mo_load_xlink_resource(node, 1, clipBegin, clipEnd);
-		if (new_res != stack->resource) {
-			if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
-			stack->resource = new_res;
-			stack->fragment_id = NULL;
-			stack->inline_sg = NULL;
+		if (stack->needs_play) {
+			gf_mo_play(stack->resource, clipBegin, clipEnd, 0);
+			stack->needs_play = 0;
+		} else {
+			new_res = gf_mo_load_xlink_resource(node, 1, clipBegin, clipEnd);
+			if (new_res != stack->resource) {
+				if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
+				stack->resource = new_res;
+				stack->fragment_id = NULL;
+				stack->inline_sg = NULL;
+			}
+			gf_node_dirty_clear(node, 0);
 		}
-		gf_node_dirty_clear(node, 0);
 	}
 }
 
@@ -1082,13 +1089,22 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 	SVGlinkStack *stack = gf_node_get_private(node);
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
-		svg_animation_smil_update(node, stack, normalized_scene_time);
+			svg_animation_smil_update(node, stack, normalized_scene_time);
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:
-		if (stack->resource) gf_mo_stop(stack->resource);
+		if (stack->resource) {
+			gf_mo_stop(stack->resource);
+			stack->needs_play = 1;
+		}
 		break;
 	case SMIL_TIMING_EVAL_REMOVE:
-		if (stack->resource) gf_mo_stop(stack->resource);
+		if (stack->resource) {
+			gf_mo_unload_xlink_resource(node, stack->resource);
+			stack->resource = NULL;
+			stack->fragment_id = NULL;
+			stack->inline_sg = NULL;
+			gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+		}
 		break;
 	case SMIL_TIMING_EVAL_REPEAT:
 		if (stack->resource) gf_mo_restart(stack->resource);
@@ -1211,8 +1227,8 @@ void svg_pause_animation(GF_Node *n, Bool pause)
 {
 	SVGlinkStack *st =  gf_node_get_private(n);
 	if (!st) return;
-	if (pause) gf_odm_pause(st->resource->odm);
-	else gf_odm_resume(st->resource->odm);
+	if (pause) gf_mo_pause(st->resource);
+	else gf_mo_resume(st->resource);
 }
 
 static void svg_traverse_foreign_object(GF_Node *node, void *rs, Bool is_destroy)

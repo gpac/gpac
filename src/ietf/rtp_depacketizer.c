@@ -569,7 +569,7 @@ static void gf_rtp_h264_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool m
 	/*set F-bit since nal is corrupted*/
 	if (missed_end) data[4] |= 0x80;
 
-	rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
+	rtp->sl_hdr.accessUnitEndFlag = (rtp->flags & GF_RTP_UNRELIABLE_M) ? 0 : hdr->Marker;
 	rtp->sl_hdr.compositionTimeStampFlag = 1;
 	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 	rtp->sl_hdr.decodingTimeStamp = hdr->TimeStamp;
@@ -590,6 +590,10 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 
 	/*set start*/
 	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp) {
+		if (rtp->flags & GF_RTP_UNRELIABLE_M) {
+			rtp->sl_hdr.accessUnitEndFlag = 1;
+			rtp->on_sl_packet(rtp->udta, NULL, 0, &rtp->sl_hdr, GF_OK);
+		}
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
@@ -597,6 +601,8 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		rtp->sl_hdr.decodingTimeStamp = hdr->TimeStamp;
 		rtp->sl_hdr.decodingTimeStampFlag = 1;
 		rtp->sl_hdr.randomAccessPointFlag = 0;
+	} else if (rtp->sl_hdr.accessUnitEndFlag) {
+//		rtp->flags |= GF_RTP_UNRELIABLE_M;
 	}
 
 	/*single NALU*/
@@ -605,7 +611,8 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 			rtp->sl_hdr.randomAccessPointFlag = 1;
 			rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
 		}
-		else if (rtp->flags & GF_RTP_AVC_WAIT_RAP) return;
+		else if (rtp->flags & GF_RTP_AVC_WAIT_RAP)
+			return;
 
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 		/*signal NALU size on 4 bytes*/
@@ -613,7 +620,8 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		rtp->on_sl_packet(rtp->udta, nalhdr, 4, &rtp->sl_hdr, GF_OK);
 		rtp->sl_hdr.accessUnitStartFlag = 0;
 		rtp->sl_hdr.compositionTimeStampFlag = 0;
-		rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
+		rtp->sl_hdr.accessUnitEndFlag = (rtp->flags & GF_RTP_UNRELIABLE_M) ? 0 : hdr->Marker;
+
 		/*send NAL payload*/
 		rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
 	}
@@ -637,7 +645,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 				rtp->sl_hdr.accessUnitStartFlag = 0;
 				rtp->sl_hdr.compositionTimeStampFlag = 0;
 			}
-			rtp->sl_hdr.accessUnitEndFlag = (hdr->Marker && (offset+nal_size==size)) ? 1 : 0;
+			rtp->sl_hdr.accessUnitEndFlag = (!(rtp->flags & GF_RTP_UNRELIABLE_M) && hdr->Marker && (offset+nal_size==size)) ? 1 : 0;
 			if (send) rtp->on_sl_packet(rtp->udta, payload+offset, nal_size, &rtp->sl_hdr, GF_OK);
 			offset += nal_size;
 		}
@@ -652,7 +660,8 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		if ((payload[1] & 0x1F) == 5) {
 			rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
 			rtp->sl_hdr.randomAccessPointFlag = 1;
-		} else if (rtp->flags & GF_RTP_AVC_WAIT_RAP) return;
+		} else if (rtp->flags & GF_RTP_AVC_WAIT_RAP)
+			return;
 
 		/*setup*/
 		if (!rtp->inter_bs) {

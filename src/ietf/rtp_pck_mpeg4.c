@@ -421,6 +421,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
 		builder->avc_non_idr = 1;
 	}
+
 	/*check NAL type to see if disposable or not*/
 	nal_type = nalu[0] & 0x1F;
 	switch (nal_type) {
@@ -440,7 +441,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 	/*pb: we don't know if next NALU from this AU will be small enough to fit in the packet, so we always
 	go for stap...*/
 	if (builder->bytesInPacket+nalu_size<builder->Path_MTU) {
-		Bool use_stap = 1;
+		Bool use_stap = 0;
 		/*if this is the AU end and no NALU in packet, go for single mode*/
 		if (IsAUEnd && !builder->bytesInPacket) use_stap = 0;
 		
@@ -508,7 +509,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 			bytesLeft -= size;
 
 			/*flush no matter what (FUs cannot be agreggated)*/
-			builder->rtp_header.Marker = bytesLeft ? 0 : 1;
+			builder->rtp_header.Marker = (IsAUEnd && !bytesLeft) ? 1 : 0;
 			builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
 			builder->bytesInPacket = 0;
 

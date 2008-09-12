@@ -207,8 +207,6 @@ void gf_term_remove_codec(GF_Terminal *term, GF_Codec *codec)
 
 	/*cf note above*/
 	locked = gf_mx_try_lock(term->mm_mx);
-		if (!locked)
-			locked  = 0;
 
 	i=0;
 	while ((ce = (CodecEntry*)gf_list_enum(term->codecs, &i))) {
@@ -314,7 +312,7 @@ static u32 MM_SimulationStep(GF_Terminal *term, u32 *last_dec)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("(RTI] Terminal Cycle Log\t%d\t%d\t%d\n", term->compositor->networks_time, term->compositor->decoders_time, 0));
 	}*/
 	if (!(term->user->init_flags & GF_TERM_NO_REGULATION)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("(RTI] Sleep %d ms\n", time_left));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_MEDIA, ("(RTI] Media Manager Sleep %d ms\n", time_left));
 		gf_sleep(time_left);
 	}
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Simulation step done in %d / %d ms\n", term->frame_duration-time_left, term->frame_duration));

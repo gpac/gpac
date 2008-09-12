@@ -1276,6 +1276,10 @@ void gf_odm_play(GF_ObjectManager *odm)
 	} else if (odm->subscene) {
 		if (odm->subscene->scene_codec) gf_term_start_codec(odm->subscene->scene_codec);
 		if (!skip_od_st && odm->subscene->od_codec) gf_term_start_codec(odm->subscene->od_codec);
+
+		if (odm->subscene->is_dynamic_scene) {
+			gf_inline_regenerate(odm->subscene);
+		}
 	}
 	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec);
 	if (odm->oci_codec) gf_term_start_codec(odm->oci_codec);

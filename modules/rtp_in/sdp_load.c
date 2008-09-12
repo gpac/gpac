@@ -328,7 +328,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 		char *cache = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), 
 			"Streaming", "SessionMigrationFile");
 
-		if (cache) {
+		if (cache && cache[0]) {
 			char *out = NULL;
 			gf_sdp_info_write(sdp, &out);
 			if (out) {
@@ -356,8 +356,9 @@ void RP_SaveSessionState(RTPClient *rtp)
 	GF_SDPInfo *sdp;
 	RTSPSession *sess = NULL;
 
-	sdp_buf = NULL;
+	if (!rtp->session_state) return;
 
+	sdp_buf = NULL;
 	f = fopen(rtp->session_state, "rt");
 	if (!f) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Cannot load session state %s\n", rtp->session_state));

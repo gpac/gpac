@@ -1677,36 +1677,13 @@ GF_Err gf_sm_load_init_svg(GF_SceneLoader *load)
 	return parser->last_error;
 }
 
-GF_Err gf_sm_load_init_svg_string(GF_SceneLoader *load, char *str_data)
-{
-	GF_Err e;
-	GF_SVG_Parser *parser = (GF_SVG_Parser *)load->loader_priv;
-
-	if (!parser) {
-		char BOM[6];
-		BOM[0] = str_data[0];
-		BOM[1] = str_data[1];
-		BOM[2] = str_data[2];
-		BOM[3] = str_data[3];
-		BOM[4] = BOM[5] = 0;
-		parser = svg_new_parser(load);
-		e = gf_xml_sax_init(parser->sax_parser, (unsigned char*)BOM);
-		if (e) {
-			svg_report(parser, e, "Error initializing SAX parser: %s", gf_xml_sax_get_error(parser->sax_parser) );
-			return e;
-		}
-		str_data += 4;
-	}
-	return gf_xml_sax_parse(parser->sax_parser, str_data);
-}
-
 
 GF_Err gf_sm_load_run_svg(GF_SceneLoader *load)
 {
 	GF_Err e;
 	GF_Node *node;
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)load->loader_priv;
-	if (!parser->suspended_at_node) return GF_EOS;
+	if (!parser || !parser->suspended_at_node) return GF_EOS;
 
 	node = parser->suspended_at_node;
 	switch (gf_node_get_tag(parser->suspended_at_node)) {
@@ -1734,6 +1711,29 @@ GF_Err gf_sm_load_run_svg(GF_SceneLoader *load)
 	svg_flush_animations(parser);
 
 	return parser->suspended_at_node ? GF_OK : GF_EOS;
+}
+
+GF_Err gf_sm_load_init_svg_string(GF_SceneLoader *load, char *str_data)
+{
+	GF_Err e;
+	GF_SVG_Parser *parser = (GF_SVG_Parser *)load->loader_priv;
+
+	if (!parser) {
+		char BOM[6];
+		BOM[0] = str_data[0];
+		BOM[1] = str_data[1];
+		BOM[2] = str_data[2];
+		BOM[3] = str_data[3];
+		BOM[4] = BOM[5] = 0;
+		parser = svg_new_parser(load);
+		e = gf_xml_sax_init(parser->sax_parser, (unsigned char*)BOM);
+		if (e) {
+			svg_report(parser, e, "Error initializing SAX parser: %s", gf_xml_sax_get_error(parser->sax_parser) );
+			return e;
+		}
+		str_data += 4;
+	}
+	return gf_xml_sax_parse(parser->sax_parser, str_data);
 }
 
 GF_Err gf_sm_load_done_svg(GF_SceneLoader *load)

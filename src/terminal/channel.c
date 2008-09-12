@@ -379,6 +379,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 {
 	u32 time;
 	GF_DBUnit *au;
+
 	if (!ch->buffer || !ch->len) {
 		if (ch->buffer) {
 			free(ch->buffer);
@@ -854,7 +855,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		if (ch->esd->slConfig->useAccessUnitStartFlag) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d: missed begin of AU\n", ch->esd->ESID));
 		}
-		return;
+		if (ch->codec_resilient) NewAU = 1;
+		else return;
 	}
 
 	/*Write the Packet payload to the buffer*/
@@ -874,12 +876,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		ch->len = 0;
 	}
 	if (!ch->esd->slConfig->usePaddingFlag) hdr.paddingFlag = 0;
-
-	/*if no bitstream, we missed the AU Start packet. Unusable ...*/
-	if (!ch->buffer) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d: Empty buffer - missed begining of AU\n", ch->esd->ESID));
-		return;
-	}
 	
 	if (ch->ipmp_tool) {
 		GF_Err e;

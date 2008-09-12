@@ -1233,12 +1233,15 @@ enum
 	GF_RTP_AMR_ALIGN = (1<<1),
 	/*for RFC3016, signals bitstream inspection for RAP discovery*/
 	GF_RTP_M4V_CHECK_RAP = (1<<2),
+	/*flag set when unreliable usage of the M bit is detected*/
+	GF_RTP_UNRELIABLE_M = (1<<3),
+
 	/*AWFULL hack at rtp level to cope with ffmpeg h264 crashes when jumping in stream without IDR*/
-	GF_RTP_AVC_WAIT_RAP = (1<<3),
+	GF_RTP_AVC_WAIT_RAP = (1<<4),
 	/*ISMACryp stuff*/
-	GF_RTP_HAS_ISMACRYP = (1<<4),
-	GF_RTP_ISMA_SEL_ENC = (1<<5),
-	GF_RTP_ISMA_HAS_KEY_IDX = (1<<6)
+	GF_RTP_HAS_ISMACRYP = (1<<5),
+	GF_RTP_ISMA_SEL_ENC = (1<<6),
+	GF_RTP_ISMA_HAS_KEY_IDX = (1<<7)
 };
 
 /*

@@ -575,6 +575,21 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url)
 	return ret;
 }
 
+GF_EXPORT
+void gf_mo_pause(GF_MediaObject *mo)
+{
+	if (!mo || !mo->num_open || !mo->odm) return;
+
+	MC_Pause(mo->odm);
+}
+
+GF_EXPORT
+void gf_mo_resume(GF_MediaObject *mo)
+{
+	if (!mo || !mo->num_open || !mo->odm) return;
+
+	MC_Resume(mo->odm);
+}
 
 GF_EXPORT
 void gf_mo_set_speed(GF_MediaObject *mo, Fixed speed)
@@ -734,6 +749,7 @@ u32 gf_mo_get_last_frame_time(GF_MediaObject *mo)
 {
 	return mo ? mo->timestamp : 0;
 }
+
 
 GF_EXPORT
 Bool gf_mo_has_audio(GF_MediaObject *mo)
