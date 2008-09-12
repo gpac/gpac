@@ -2355,6 +2355,26 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		}
 #endif
 		return 1;
+	case GF_JSAPI_OP_PAUSE_SVG:
+		{
+			u32 tag = gf_node_get_tag(n);
+			switch(tag) {
+			case TAG_SVG_audio: svg_pause_audio(n, 1); break;
+			case TAG_SVG_video: svg_pause_video(n, 1); break;
+			case TAG_SVG_animation: svg_pause_animation(n, 1); break;
+			}
+		}
+		return 1;
+	case GF_JSAPI_OP_RESUME_SVG:
+		{
+			u32 tag = gf_node_get_tag(n);
+			switch(tag) {
+			case TAG_SVG_audio: svg_pause_audio(n, 0); break;
+			case TAG_SVG_video: svg_pause_video(n, 0); break;
+			case TAG_SVG_animation: svg_pause_animation(n, 0); break;
+			}
+		}
+		return 1;
 	}
 	return 0;
 }

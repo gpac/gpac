@@ -24,6 +24,7 @@
  */
 
 #include "visual_manager.h"
+#include <gpac/internal/terminal_dev.h>
 
 #ifndef GPAC_DISABLE_SVG
 #include "nodes_stacks.h"
@@ -546,6 +547,14 @@ void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, svg_traverse_video);
 }
 
+void svg_pause_video(GF_Node *n, Bool pause)
+{
+	SVG_video_stack *st = gf_node_get_private(n);
+	if (!st) return;
+	if (pause) gf_odm_pause(st->txh.stream->odm);
+	else gf_odm_resume(st->txh.stream->odm);
+}
+
 /*********************/
 /* SVG audio element */
 /*********************/
@@ -679,6 +688,14 @@ void compositor_init_svg_audio(GF_Compositor *compositor, GF_Node *node, Bool sl
 
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_audio);
+}
+
+void svg_pause_audio(GF_Node *n, Bool pause)
+{
+	SVG_audio_stack *st = gf_node_get_private(n);
+	if (!st) return;
+	if (pause) gf_odm_pause(st->input.stream->odm);
+	else gf_odm_resume(st->input.stream->odm);
 }
 
 GF_TextureHandler *compositor_svg_get_image_texture(GF_Node *node)

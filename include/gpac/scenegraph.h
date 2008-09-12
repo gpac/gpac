@@ -553,6 +553,11 @@ enum
 
 	/*!gets GPAC terminal*/
 	GF_JSAPI_OP_GET_TERM,
+
+	/*!pauses an SVG element*/
+	GF_JSAPI_OP_PAUSE_SVG,
+	/*!resumes an SVG ELEMENT*/
+	GF_JSAPI_OP_RESUME_SVG,
 };
 /*
 interface to various get/set options:

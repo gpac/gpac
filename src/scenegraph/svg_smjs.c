@@ -564,13 +564,33 @@ JSBool svg_udom_smil_end(JSContext *c, JSObject *obj, uintN argc, jsval *argv, j
 /*TODO*/
 JSBool svg_udom_smil_pause(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	if (!svg_udom_smil_check_instance(c, obj) ) return JS_TRUE;
+	u32 tag;
+	GF_Node *n = dom_get_element(c, obj);
+
+	tag = gf_node_get_tag(n);
+	if (gf_svg_is_animation_tag(tag)) {
+		/* pausing an animation element (set, animate ...) should pause the main time line ? */
+	} else if (gf_svg_is_timing_tag(tag)) {
+		ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_PAUSE_SVG, n, NULL);
+	} else {
+		return JS_TRUE;
+	}
 	return JS_TRUE;
 }
 /*TODO*/
 JSBool svg_udom_smil_resume(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	if (!svg_udom_smil_check_instance(c, obj) ) return JS_TRUE;
+	u32 tag;
+	GF_Node *n = dom_get_element(c, obj);
+
+	tag = gf_node_get_tag(n);
+	if (gf_svg_is_animation_tag(tag)) {
+		/* resuming an animation element (set, animate ...) should resume the main time line ? */
+	} else if (gf_svg_is_timing_tag(tag)) {
+		ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_RESUME_SVG, n, NULL);
+	} else {
+		return JS_TRUE;
+	}
 	return JS_TRUE;
 }
 
