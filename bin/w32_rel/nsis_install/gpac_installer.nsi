@@ -85,7 +85,6 @@ Section "Osmo4/GPAC Player"
   File "..\gm_dummy_in.dll"
   File "..\gm_dx_hw.dll"
   File "..\js32.dll"
-;  File "..\gvm.dll"
 
   ;create default cache
   SetOutPath $INSTDIR\cache
@@ -325,6 +324,7 @@ SubSection "Proprietary Plugins"
 Section "BSAC Decoder"
   SectionIn 1
   File /nonfatal "..\gm_bsac_dec.dll"
+  File /nonfatal "..\Mp4BsacD.dll"
 SectionEnd
 
 Section "TI's MobileIP"
@@ -341,6 +341,17 @@ SectionEnd
 Section "JNI Wrapper"
   SectionIn 1
   File /nonfatal "..\gvm.dll"
+SectionEnd
+
+Section "MainConcept H264 Decoder"
+  SectionIn 1
+  File /nonfatal "..\gm_mc264_dec.dll"
+  File /nonfatal "..\demoh264dec.dll"
+SectionEnd
+
+Section "EIT Decoder"
+  SectionIn 1
+  File /nonfatal "..\gm_eit_dec.dll"
 SectionEnd
 
 SubSectionEnd
