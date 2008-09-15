@@ -958,7 +958,8 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 	tkHint->TotalSample = gf_isom_get_sample_count(tkHint->file, tkHint->TrackNum);
 	ft = tkHint->rtp_p->sl_config.timestampResolution;
 	ft /= tkHint->OrigTimeScale;
-
+	
+	e = GF_OK;
 	for (i=0; i<tkHint->TotalSample; i++) {
 		samp = gf_isom_get_sample(tkHint->file, tkHint->TrackNum, i+1, &descIndex);
 		if (!samp) return GF_IO_ERR;

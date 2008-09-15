@@ -1805,7 +1805,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	for (i=0; i<count; i++) {
 		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
 		gf_sc_texture_release_stream(txh);
-		if (frame_drawn && txh->tx_io && !(txh->flags & GF_SR_TEXTURE_USED)) gf_sc_texture_reset(txh);
+		if (frame_drawn && txh->tx_io && !(txh->flags & GF_SR_TEXTURE_USED)) 
+			gf_sc_texture_reset(txh);
 		/*remove the use flag*/
 		txh->flags &= ~GF_SR_TEXTURE_USED;
 	}

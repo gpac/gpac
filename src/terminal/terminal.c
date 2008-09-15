@@ -712,7 +712,8 @@ void gf_term_handle_services(GF_Terminal *term)
 	gf_mx_v(term->net_mx);
 
 	/*lock to avoid any start attemps from compositor*/
-	gf_sc_lock(term->compositor, 1);
+	if (!gf_mx_try_lock(term->compositor->mx)) 
+		return;
 	while (gf_list_count(term->net_services_to_remove)) {
 		gf_mx_p(term->net_mx);
 		ns = (GF_ClientService*)gf_list_get(term->net_services_to_remove, 0);
@@ -896,10 +897,13 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 	evt.type = event_type;
 	evt.bubbles = 0;	/*the spec says yes but we force it to NO*/
 
+	/*lock scene to prevent concurrent access of scene data*/
+	gf_sc_lock(odm->term->compositor, 1);
 	for (i=0; i<count; i++) {
 		GF_Node *node = gf_list_get(odm->mo->nodes, i);
 		gf_dom_event_fire(node, NULL, &evt);
 	}
+	gf_sc_lock(odm->term->compositor, 0);
 #endif
 }
 

@@ -390,7 +390,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	
 
 	if (!ctx->aspect.fill_texture) return 1;
-	/*regarde si la texture est updated*/
+	/*check if texture is ready*/
 	if (!ctx->aspect.fill_texture->data) return 0;
 	if (ctx->transform.m[0]<0) return 0;
 	/*check if the <0 value is due to a flip in he scene description or 
@@ -408,6 +408,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
 	if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
 	
+	ctx->aspect.fill_texture->flags |= GF_SR_TEXTURE_USED;
 	if (!alpha) return 1;
 
 	switch (ctx->aspect.fill_texture->pixelformat) {
@@ -429,7 +430,6 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	default:
 		return 0;
 	}
-
 
 	/*direct drawing, no clippers */
 	if (tr_state->direct_draw) {

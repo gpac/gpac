@@ -54,6 +54,7 @@ GF_ObjectManager *gf_odm_new()
 
 void gf_odm_del(GF_ObjectManager *odm)
 {
+	Bool lock;
 	u32 i;
 	MediaSensorStack *media_sens;
 
@@ -62,7 +63,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 	gf_list_del_item(odm->term->media_queue, odm);
 	gf_mx_v(odm->term->net_mx);
 
-	gf_mx_p(odm->mx);
+	lock = gf_mx_try_lock(odm->mx);
 	i=0;
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i))) {
 		MS_Stop(media_sens);
@@ -77,7 +78,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 	gf_list_del(odm->mc_stack);
 	gf_odf_desc_del((GF_Descriptor *)odm->OD);
 	assert (!odm->net_service);
-	gf_mx_v(odm->mx);
+	if (lock) gf_mx_v(odm->mx);
 	gf_mx_del(odm->mx);
 	free(odm);
 }
@@ -1278,7 +1279,9 @@ void gf_odm_play(GF_ObjectManager *odm)
 		if (!skip_od_st && odm->subscene->od_codec) gf_term_start_codec(odm->subscene->od_codec);
 
 		if (odm->subscene->is_dynamic_scene) {
+			gf_term_lock_compositor(odm->term, 1);
 			gf_inline_regenerate(odm->subscene);
+			gf_term_lock_compositor(odm->term, 0);
 		}
 	}
 	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec);

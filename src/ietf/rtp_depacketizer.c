@@ -602,7 +602,8 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		rtp->sl_hdr.decodingTimeStampFlag = 1;
 		rtp->sl_hdr.randomAccessPointFlag = 0;
 	} else if (rtp->sl_hdr.accessUnitEndFlag) {
-//		rtp->flags |= GF_RTP_UNRELIABLE_M;
+		rtp->flags |= GF_RTP_UNRELIABLE_M;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[H264 RTP] error in Marker bit - swithcing to unreliable mode\n"));
 	}
 
 	/*single NALU*/
@@ -712,7 +713,6 @@ static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 
 static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
-	GF_BitStream *bs;
 	u32 du_size, offset, dsize, hdr_size;
 	char *data, dhdr[6];
 
@@ -735,6 +735,8 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 	while (offset < size) {
 		switch (frag_state) {
 		case 0:
+		{
+			GF_BitStream *bs;
 			bs = gf_bs_new(payload+offset, 2, GF_BITSTREAM_READ);
 			du_size = 2 + gf_bs_read_u16(bs);
 			gf_bs_del(bs);
@@ -744,6 +746,7 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 			rtp->on_sl_packet(rtp->udta, payload + offset, du_size, &rtp->sl_hdr, GF_OK);
 			rtp->sl_hdr.accessUnitStartFlag = 0;
 			offset += du_size;
+		}
 			break;
 		case 1:
 			if (rtp->inter_bs) gf_bs_del(rtp->inter_bs);
@@ -760,17 +763,15 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 			gf_bs_write_data(rtp->inter_bs, payload+offset, size-offset);
 			gf_bs_get_content(rtp->inter_bs, &data, &dsize);
 			gf_bs_del(rtp->inter_bs);
-			rtp->inter_bs = NULL;
-			
 
 			/*send unit header - if dims size is >0xFFFF, use our internal hack for large units*/
 			rtp->inter_bs = gf_bs_new(dhdr, 6, GF_BITSTREAM_WRITE);
 			if (dsize<=0xFFFF) {
-				gf_bs_write_u16(bs, dsize);
+				gf_bs_write_u16(rtp->inter_bs, dsize);
 				hdr_size = 2;
 			} else {
-				gf_bs_write_u16(bs, 0);
-				gf_bs_write_u32(bs, dsize);
+				gf_bs_write_u16(rtp->inter_bs, 0);
+				gf_bs_write_u32(rtp->inter_bs, dsize);
 				hdr_size = 6;
 			}
 			gf_bs_del(rtp->inter_bs);
