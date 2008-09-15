@@ -313,6 +313,6 @@ LIBRARY euser.lib estlib.lib ezlib.lib hal.lib
     deffile ..\..\build\symbian\libgpac_symbian.def
 #endif
 
-//EXPORTUNFROZEN
+// EXPORTUNFROZEN
 //  nostrictdef
 

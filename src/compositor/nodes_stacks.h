@@ -277,6 +277,10 @@ GF_TextureHandler *compositor_svg_get_gradient_texture(GF_Node *node);
 GF_TextureHandler *compositor_svg_get_image_texture(GF_Node *node);
 
 Bool compositor_svg_get_viewport(GF_Node *n, GF_Rect *rc);
+void svg_pause_animation(GF_Node *n, Bool pause);
+void svg_pause_audio(GF_Node *n, Bool pause);
+void svg_pause_video(GF_Node *n, Bool pause);
+
 #endif
 
 GF_TextureHandler *compositor_mpeg4_get_gradient_texture(GF_Node *node);

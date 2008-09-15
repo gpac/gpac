@@ -108,6 +108,7 @@ static void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info)
 {
 	if (!info) {
 		gf_node_changed(n, NULL);
+		return;
 	} else if (child_modif) {
 		gf_node_dirty_set(n, GF_SG_CHILD_DIRTY, 0);
 	} 

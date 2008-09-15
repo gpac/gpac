@@ -766,11 +766,12 @@ scalable_retry:
 		/*remember base layer timing*/
 		if (!ch->esd->dependsOnESID && !ch->skip_sl) codec->last_unit_cts = AU->CTS;
 
+
+drop:
 		/*store current CTS*/
 		cts = AU->CTS;
 		prev_ch = ch;
 
-drop:
 		gf_es_drop_au(ch);
 		if (e) {
 			UnlockCompositionUnit(codec, CU, unit_size);

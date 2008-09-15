@@ -497,7 +497,7 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 	GF_DOMText *dom_text = (GF_DOMText *)node;
 	Fixed x, y;
 	u32 i;
-	Fixed x_anchor;
+	Fixed x_anchor, *ptr;
 	GF_Font *font;
 	Fixed block_width;
 	GF_FontManager *fm;
@@ -545,7 +545,8 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 		
 
 		/*apply x-anchor*/
-		x_anchor = *(Fixed *)gf_list_get(tr_state->x_anchors, tr_state->chunk_index);
+		ptr = (Fixed *)gf_list_get(tr_state->x_anchors, tr_state->chunk_index);
+		x_anchor = ptr ? *ptr : 0;
 		if (span->dx) span->dx[i] = x_anchor + x;
 		else if (!i) span->off_x = x_anchor + x;
 		if (span->dy) span->dy[i] = y;
@@ -576,7 +577,8 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 		y = tr_state->text_end_y;
 
 		/*apply x anchor*/
-		x_anchor = *(Fixed *)gf_list_get(tr_state->x_anchors, tr_state->chunk_index);
+		ptr = (Fixed *)gf_list_get(tr_state->x_anchors, tr_state->chunk_index);
+		x_anchor = ptr ? *ptr : 0;
 
 		offset = x_anchor + x - (span->dx ? span->dx[i] : span->off_x);
 
