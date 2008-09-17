@@ -125,14 +125,14 @@ void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 	} else if (param->msg_type==GF_NETIO_PARSE_HEADER) {
 		if (!strcmp(param->name, "Content-Type")) {
-			if (!strcmp(param->value, "application/x-bt")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
-			if (!strcmp(param->value, "application/x-xmt")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
-			if (!strcmp(param->value, "model/vrml")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
-			if (!strcmp(param->value, "model/x3d+vrml")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
-			if (!strcmp(param->value, "application/x-shockwave-flash")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
-			if (!strcmp(param->value, "image/svg+xml")) read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
-			if (!strcmp(param->value, "image/x-svgm")) read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
-			if (!strcmp(param->value, "application/x-LASeR+xml")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (strstr(param->value, "application/x-bt")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (strstr(param->value, "application/x-xmt")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (strstr(param->value, "model/vrml")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (strstr(param->value, "model/x3d+vrml")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (strstr(param->value, "application/x-shockwave-flash")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (strstr(param->value, "image/svg+xml")) read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
+			if (strstr(param->value, "image/x-svgm")) read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
+			if (strstr(param->value, "application/x-LASeR+xml")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
 		}
 		return;
 	} else if (!e && (param->msg_type!=GF_NETIO_DATA_EXCHANGE)) return;

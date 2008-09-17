@@ -603,7 +603,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		rtp->sl_hdr.randomAccessPointFlag = 0;
 	} else if (rtp->sl_hdr.accessUnitEndFlag) {
 		rtp->flags |= GF_RTP_UNRELIABLE_M;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[H264 RTP] error in Marker bit - swithcing to unreliable mode\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[H264 RTP] error in Marker bit - switching to unreliable mode\n"));
 	}
 
 	/*single NALU*/
