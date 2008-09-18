@@ -79,6 +79,14 @@ char *gf_url_concatenate(const char *parentName, const char *pathName);
 
 
 /*!
+ *\brief URL to file system
+ *
+ *Converts a local URL to a file system value. Removes all white spaces and similar
+ *\param url url to convert
+ */
+void gf_url_to_fs_path(char *url);
+
+/*!
  *\brief gets UTC time 
  *
  *Gets UTC time since midnight Jan 1970

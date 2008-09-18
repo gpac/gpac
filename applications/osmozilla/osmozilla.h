@@ -171,7 +171,7 @@ private:
 
 	char *m_szURL;
 
-	Bool m_isopen, m_paused, m_url_changed, m_bUse3D;
+	Bool m_isopen, m_paused, m_url_changed, m_bUse3D, m_disable_mime;
 	u32 max_duration;
 	Bool m_bCanSeek;
 	Double m_Duration;
