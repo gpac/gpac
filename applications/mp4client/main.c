@@ -583,6 +583,14 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVENT_QUIT:
 		Run = 0;
 		break;
+	case GF_EVENT_MIGRATE:
+	{
+		const char *str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");
+		if (!str || !strcmp(str, "no"))
+			gf_cfg_set_key(cfg_file, "Network", "SessionMigration", "yes");
+		Run = 0;
+	}
+		break;
 	case GF_EVENT_NAVIGATE_INFO:
 		if (evt->navigate.to_url) fprintf(stdout, "Go to URL: \"%s\"\r", evt->navigate.to_url);
 		break;

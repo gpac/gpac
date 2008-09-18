@@ -1004,6 +1004,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		char pass_buf[1024];
 		const char *user_agent;
 		const char *user_profile;
+		const char *param_string;
 		u32 size;
 		Bool has_accept, has_connection, has_range, has_agent, send_profile;
 
@@ -1043,6 +1044,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		user_agent = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserAgent");
 		if (!user_agent) user_agent = GF_DOWNLOAD_AGENT_NAME;
 
+		
 		par.error = 0;
 		par.msg_type = GF_NETIO_GET_METHOD;
 		par.name = NULL;
@@ -1056,8 +1058,19 @@ void http_do_requests(GF_DownloadSession *sess)
 			sess->http_read_type = 0;
 		}
 
-		sprintf(sHTTP, "%s %s HTTP/1.0\r\nHost: %s\r\n" ,
-			par.name ? par.name : "GET", sess->remote_path, sess->server_name);
+		param_string = gf_cfg_get_key(sess->dm->cfg, "Downloader", "ParamString");
+		if (param_string) {
+			if (strchr(sess->remote_path, '?')) {
+				sprintf(sHTTP, "%s %s&%s HTTP/1.0\r\nHost: %s\r\n" ,
+					par.name ? par.name : "GET", sess->remote_path, param_string, sess->server_name);
+			} else {
+				sprintf(sHTTP, "%s %s?%s HTTP/1.0\r\nHost: %s\r\n" ,
+					par.name ? par.name : "GET", sess->remote_path, param_string, sess->server_name);
+			}
+		} else {
+			sprintf(sHTTP, "%s %s HTTP/1.0\r\nHost: %s\r\n" ,
+				par.name ? par.name : "GET", sess->remote_path, sess->server_name);
+		}
 
 		/*signal we support title streaming*/
 		if (!strcmp(sess->remote_path, "/")) strcat(sHTTP, "icy-metadata:1\r\n");

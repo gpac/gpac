@@ -209,12 +209,11 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	
 	if(aWindow == NULL) return FALSE;
 	
-
 #ifdef XP_WIN
 	gpac_cfg = "GPAC.cfg";
 #ifdef _DEBUG
 //#if 0
-	strcpy((char *) config_path, "D:\\CVS\\gpac\\bin\\w32_deb");
+	strcpy((char *) config_path, "C:\\CVS\\gpac\\bin\\w32_deb");
 #else
 	HKEY hKey = NULL;
 	DWORD dwSize;
@@ -242,6 +241,10 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 
 	m_user.opaque = this;
 	
+	m_disable_mime = 1;
+	str = gf_cfg_get_key(m_user.config, "General", "NoMIMETypeFetch");
+	if (str && !strcmp(str, "no")) m_disable_mime = 0;
+
 	if (SetWindow(aWindow)) mInitialized = TRUE;
 	return mInitialized;
 
@@ -379,7 +382,7 @@ Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
 		NPN_Status(mInstance, msg);
 		break;
 	case GF_EVENT_NAVIGATE:
-		if (gf_term_is_supported_url(m_term, evt->navigate.to_url, 1, 1)) {
+		if (gf_term_is_supported_url(m_term, evt->navigate.to_url, 1, m_disable_mime)) {
 			gf_term_navigate_to(m_term, evt->navigate.to_url);
 			return 1;
 		} else {

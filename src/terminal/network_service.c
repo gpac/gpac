@@ -563,13 +563,10 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	if (parent_url) sURL = gf_url_concatenate(parent_url, url);
 
 	/*path absolute*/
-	if (!sURL) {
-		char *tmp = (char *) url;
-		if (!strnicmp(url, "file:///", 8)) tmp += 8;
-		else if (!strnicmp(url, "file://", 7)) tmp += 7;
-		if ((tmp[0]=='/') && (tmp[2]==':')) tmp += 1;
-		sURL = strdup(tmp);
-	}
+	if (!sURL) sURL = strdup(url);
+
+	if (gf_url_is_local(sURL)) 
+		gf_url_to_fs_path(sURL);
 
 	if (no_mime_check) {
 		mime_type = NULL;

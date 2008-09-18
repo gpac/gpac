@@ -257,6 +257,14 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	case GF_EVENT_QUIT:
 		pFrame->PostMessage(WM_CLOSE, 0L, 0L);
 		break;
+	case GF_EVENT_MIGRATE:
+	{
+		const char *str = gf_cfg_get_key(gpac->m_user.config, "Network", "SessionMigration");
+		if (!str || !strcmp(str, "no"))
+			gf_cfg_set_key(gpac->m_user.config, "Network", "SessionMigration", "yes");
+		pFrame->PostMessage(WM_CLOSE, 0L, 0L);
+	}
+		break;
 	case GF_EVENT_KEYDOWN:
 		if (gpac->can_seek && evt->key.flags & GF_KEY_MOD_ALT) {
 			s32 res;
