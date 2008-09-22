@@ -78,6 +78,7 @@ enable_tinygl="no"
 has_ssl="no"
 has_ipv6="no"
 has_dvb4linux="no"
+has_xmlrpc="no"
 has_openjpeg="no"
 gprof_build="no"
 PIC_CFLAGS=""
@@ -839,6 +840,19 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_dvb4linux="yes"
 fi
 
+# look for XMLRPC
+cat > $TMPC << EOF
+#include <xmlrpc-c/base.h>
+#include <xmlrpc-c/server.h>
+#include <xmlrpc-c/server_abyss.h>
+int main( void ) {
+}
+EOF
+
+if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+has_xmlrpc="yes"
+fi
+
 # look for alsa
 cat > $TMPC << EOF
 #include <alsa/asoundlib.h>	      
@@ -1237,6 +1251,7 @@ if test "$linux" = "yes" ; then
 echo "DVB Support: $has_dvb4linux"
 fi
 
+echo "XMLPRC Support: $has_xmlrpc"
 
 if test "$wx_too_old" = "yes" ; then
 has_wx="no"
@@ -1522,6 +1537,8 @@ echo "XUL_CFLAGS=$xul_flags" >> config.mak
 fi
 
 echo "LINUX_DVB=$has_dvb4linux" >> config.mak
+
+echo "XMLRPC_INC=$has_xmlrpc" >> config.mak
 
 if test "$has_oss_audio" != "no"; then
 echo "OSS_INC_TYPE=$has_oss_audio" >> config.mak
