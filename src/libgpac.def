@@ -524,6 +524,7 @@ EXPORTS
 	gf_isom_reset_hint_reader
 	gf_isom_next_hint_packet
 	gf_isom_has_sync_shadows
+	gf_isom_has_sample_dependency
 	gf_isom_find_od_for_track
 	gf_isom_apple_get_tag
 	gf_isom_get_media_data_size
