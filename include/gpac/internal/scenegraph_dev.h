@@ -617,9 +617,8 @@ void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai);
 void gf_smil_anim_delete_animations(GF_Node *e);
 void gf_smil_anim_remove_from_target(GF_Node *anim, GF_Node *target);
 
-void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event);
+void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer);
 void gf_smil_setup_events(GF_Node *node);
-Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event);
 
 void gf_smil_anim_reset_variables(SMIL_Anim_RTI *rai);
 void gf_smil_anim_set_anim_runtime_in_timing(GF_Node *n);
@@ -898,7 +897,7 @@ void JSScript_LoadSVG(GF_Node *node);
 typedef struct __tag_svg_script_ctx 
 {
 	Bool (*script_execute)(struct __tag_scene_graph *sg, char *utf8_script, GF_DOM_Event *event);
-	Bool (*handler_execute)(GF_Node *n, GF_DOM_Event *event);
+	Bool (*handler_execute)(GF_Node *n, GF_DOM_Event *event, GF_Node *observer);
 	u32 nb_scripts;
 	/*global script context for the scene*/
 	struct JSContext *js_ctx;
@@ -955,7 +954,7 @@ enum
 
 int dom_throw_exception(struct JSContext *c, u32 code);
 
-void gf_sg_handle_dom_event_for_vrml(GF_Node *hdl, GF_DOM_Event *event);
+void gf_sg_handle_dom_event_for_vrml(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer);
 
 void gf_sg_load_script_extensions(GF_SceneGraph *sg, struct JSContext *c, struct JSObject *obj, Bool unload);
 
@@ -1010,6 +1009,8 @@ GF_DOMAttribute *gf_xbl_create_attribute(GF_DOMNode *elt, u32 tag);
 GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep);
 
 GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target);
+
+GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event_parameter, GF_Node *handler, GF_Node **out_listener);
 
 #endif	/*_GF_SCENEGRAPH_DEV_H_*/
 

@@ -206,6 +206,9 @@ void gf_inline_sample_time(GF_InlineScene *is);
 /*compares object URL with another URL - ONLY USE THIS WITH DYNAMIC ODs*/
 Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *inline_url);
 
+void gf_mo_update_caps(GF_MediaObject *mo);
+
+
 GF_Node *gf_inline_get_subscene_root(GF_Node *inline_node);
 GF_Node *gf_inline_get_parent_node(GF_Node *node, u32 idx);
 
@@ -651,6 +654,11 @@ enum
 	GF_ODM_INLINE_PROFILES = (1<<5),
 	/*flag set if object declared by network service, not from OD stream*/
 	GF_ODM_NOT_IN_OD_STREAM = (1<<6),
+
+	/*dynamic flags*/
+	
+	/*flag set if associated subscene must be regenerated*/
+	GF_ODM_REGENERATE_SCENE = (1<<10),
 };
 
 enum

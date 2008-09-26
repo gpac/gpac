@@ -1109,6 +1109,7 @@ GF_FontManager *gf_font_manager_new(GF_User *user);
 void gf_font_manager_del(GF_FontManager *fm);
 
 GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
+GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles, Bool check_only);
 
 GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *lang, Bool fliped_text, u32 styles);
 void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);

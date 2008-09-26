@@ -3234,9 +3234,13 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 			}
 		}
 			break;
-		case SVG_FeatureList_datatype:/*int*/
 		case SVG_StrokeDashArray_datatype:/*float*/
 		case SVG_ViewBox_datatype:/*float*/
+			break;
+		case DOM_StringList_datatype:
+			if (att_tag==TAG_SVG_ATT_requiredFeatures) {
+				/*int*/
+			}
 			break;
 		}
 	} else {

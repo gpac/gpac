@@ -424,10 +424,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_svg_reset_animate_values(*((SMIL_AnimateValues *)value), sg);
 		free(value);
 		break;
-	case SVG_FeatureList_datatype:
-	case SVG_ExtensionList_datatype:
-	case SVG_FormatList_datatype:
-	case SVG_LanguageIDs_datatype:
+	case DOM_StringList_datatype:
 		l = *(GF_List**)value;
 		while (gf_list_count(l)) {
 			char *n = gf_list_last(l);
@@ -437,7 +434,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_list_del(l);
 		free(value);
 		break;
-	case SVG_ListOfIRI_datatype:
+	case XMLRI_List_datatype:
 		l = *(GF_List**)value;
 		while (gf_list_count(l)) {
 			XMLRI *r = gf_list_last(l);

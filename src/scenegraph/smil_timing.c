@@ -371,8 +371,8 @@ void gf_smil_timing_delete_runtime_info(GF_Node *timed_elt, SMIL_Timing_RTI *rti
 	gf_list_del_item(sg->smil_timed_elements, rti);
 
 	/*remove all associated listeners*/
-	gf_smil_timing_reset_time_list(* rti->timingp->begin);
-	gf_smil_timing_reset_time_list(* rti->timingp->end);
+	if (rti->timingp->begin) gf_smil_timing_reset_time_list(* rti->timingp->begin);
+	if (rti->timingp->end) gf_smil_timing_reset_time_list(* rti->timingp->end);
 	
 	free(rti);
 }
@@ -465,12 +465,13 @@ static Bool gf_smil_discard(SMIL_Timing_RTI *rti, Fixed scene_time)
 {
 	u32 nb_inst;
 	SMIL_Time *begin;
-	SMILTimingAttributesPointers *timingp = rti->timingp;
+	SVGTimedAnimBaseElement *tb = (SVGTimedAnimBaseElement *)rti->timed_elt;
+	SMILTimingAttributesPointers *timingp = (SMILTimingAttributesPointers *)rti->timingp;
 	GF_Node *target;
 
 	if (!timingp) return 0;
 	
-	target = ((SVGTimedAnimBaseElement *)rti->timed_elt)->xlinkp->href->target;
+	target = tb->xlinkp->href ? tb->xlinkp->href->target : NULL;
 
 	begin = (timingp->begin ? (SMIL_Time *)gf_list_get(*timingp->begin, 0) : NULL);
 

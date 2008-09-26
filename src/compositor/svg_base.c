@@ -225,11 +225,13 @@ static const struct svg_12_feature { const char *name; Bool supported; } svg12_f
 	{ "TextFlow", 1}, 
 	{ "TransformedVideo", 1}, 
 	{ "ComposedVideo", 1}, 
+	{ "EditableTextAttribute", 1}, 
 
 	{ "SVG-static", 1}, 
 	{ "SVG-static-DOM", 1}, 
 	{ "SVG-animated", 1}, 
 	{ "SVG-all", 1}, 
+	{ "SVG-interactive", 1}, 
 };
 
 
@@ -321,9 +323,30 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 		else if (!strnicmp(lang, lang_2cc, 2)) { found = 1; break; }
 	}
 	if (!found) return 0;
+
 	/*process required formats*/
+	count = atts->requiredFormats ? gf_list_count(*atts->requiredFormats) : 0;
+	if (count) {
+		for (i=0; i<count; i++) {
+			const char *opt;
+			char *mime = gf_list_get(*atts->requiredFormats, i);
+			char *sep = strchr(mime, ';');
+			if (sep) sep[0] = 0;
+			opt = gf_cfg_get_key(compositor->user->config, "MimeTypes", mime);
+			if (sep) sep[0] = ';';
+			if (!opt) return 0;
+		}
+	}
 
 	/*process required fonts*/
+	count = atts->requiredFonts ? gf_list_count(*atts->requiredFonts) : 0;
+	if (count) {
+		for (i=0; i<count; i++) {
+			char *font = gf_list_get(*atts->requiredFonts, i);
+			if (gf_font_manager_set_font_ex(compositor->font_manager, &font, 1, 0, 1)==NULL)
+				return 0;
+		}
+	}
 	
 	/*OK, we can render this one*/
 	return 1;

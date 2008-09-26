@@ -3749,7 +3749,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 	}
 }
 
-void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event)
+void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node *observer)
 {
 	GF_ScriptPriv *priv;
 	Bool prev_type;

@@ -148,6 +148,12 @@ u32 RP_Thread(void *param)
 		i=0;
 		while ((sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i))) {
 			RP_ProcessCommands(sess);
+
+			if (sess->connect_error) {
+				gf_term_on_connect(sess->owner->service, NULL, sess->connect_error);
+				sess->connect_error = 0;
+			}
+
 		}
 
 		gf_mx_v(rtp->mx);
@@ -254,7 +260,8 @@ static void RP_FlushCommands(RTPClient *rtp)
 		nb_com = 0;
 		i=0;
 		while ((sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i))) {
-			nb_com += gf_list_count(sess->rtsp_commands);
+			if (!sess->connect_error)
+				nb_com += gf_list_count(sess->rtsp_commands);
 		}
 		if (!nb_com) break;
 		gf_sleep(10);

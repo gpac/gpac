@@ -59,7 +59,7 @@ static void DestroyBackground2D(GF_Node *node)
 	free(stack);
 }
 
-static void b2D_new_status(Background2DStack *bck)
+static void b2D_new_status(Background2DStack *bck, M_Background2D*back)
 {
 	BackgroundStatus *status;
 
@@ -68,7 +68,7 @@ static void b2D_new_status(Background2DStack *bck)
 	status->ctx.drawable = bck->drawable;
 	status->ctx.flags = CTX_IS_BACKGROUND;
 	status->ctx.bi = &status->bi;
-	status->ctx.aspect.fill_color = GF_COL_ARGB(0xFF, 0, 0, 0);
+	status->ctx.aspect.fill_color = GF_COL_ARGB_FIXED(FIX_ONE, back->backColor.red, back->backColor.green, back->backColor.blue);
 	status->ctx.aspect.fill_texture = &bck->txh;
 	gf_list_add(bck->status_stack, status);
 }
@@ -281,7 +281,7 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 		gf_list_add(tr_state->backgrounds, node);
 		assert(gf_list_find(stack->reg_stacks, tr_state->backgrounds)==-1);
 		gf_list_add(stack->reg_stacks, tr_state->backgrounds);
-		b2D_new_status(stack);
+		b2D_new_status(stack, bck);
 
 		/*only bound if we're on top*/
 		if (gf_list_get(tr_state->backgrounds, 0) == bck) {
@@ -303,36 +303,29 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 	if (gf_node_dirty_get(node)) {
 		status->ctx.flags |= CTX_APP_DIRTY;
 		gf_node_dirty_clear(node, 0);
+
+		if (back_use_texture(bck) ) {
+			if (stack->txh.tx_io && !(status->ctx.flags & CTX_APP_DIRTY) && stack->txh.needs_refresh) 
+				status->ctx.flags |= CTX_TEXTURE_DIRTY;
+		} else {
+			col = GF_COL_ARGB_FIXED(FIX_ONE, bck->backColor.red, bck->backColor.green, bck->backColor.blue);
+			if (col != status->ctx.aspect.fill_color) {
+				status->ctx.aspect.fill_color = col;
+				status->ctx.flags |= CTX_APP_DIRTY;
+			}
+		}
 	}
 
+
+	if (tr_state->traversing_mode != TRAVERSE_BINDABLE) return;
 
 	/*3D mode*/
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
-		if (tr_state->traversing_mode != TRAVERSE_BINDABLE) return;
 		DrawBackground2D_3D(bck, stack, tr_state);
-		return;
-	}
+	} else
 #endif
-
-	/*2D mode*/
-	if ((tr_state->traversing_mode != TRAVERSE_BINDABLE) && tr_state->direct_draw) return;
-	/*setup 2D context*/
-
-	if (back_use_texture(bck) ) {
-		if (stack->txh.tx_io && !(status->ctx.flags & CTX_APP_DIRTY) && stack->txh.needs_refresh) 
-			status->ctx.flags |= CTX_TEXTURE_DIRTY;
-	} else {
-		col = GF_COL_ARGB_FIXED(FIX_ONE, bck->backColor.red, bck->backColor.green, bck->backColor.blue);
-		if (col != status->ctx.aspect.fill_color) {
-			status->ctx.aspect.fill_color = col;
-			status->ctx.flags |= CTX_APP_DIRTY;
-		}
-	}
-	/*nothing to do, we are not in draw mode*/
-	if (tr_state->traversing_mode != TRAVERSE_BINDABLE) return;
-
-	DrawBackground2D_2D(&status->ctx, tr_state);
+		DrawBackground2D_2D(&status->ctx, tr_state);
 }
 
 

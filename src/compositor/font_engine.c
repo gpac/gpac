@@ -165,7 +165,7 @@ GF_Err gf_font_manager_unregister_font(GF_FontManager *fm, GF_Font *font)
 
 
 
-GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles)
+GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles, Bool check_only)
 {
 	u32 i;
 	GF_Err e;
@@ -178,12 +178,16 @@ GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_f
 		GF_Font *best_font = NULL;
 		GF_Font *font = fm->font;
 		while (font) {
-			if (!font->not_loaded && font->name && !stricmp(font->name, alt_fonts[i])) {
+			if ((check_only || !font->not_loaded) && font->name && !stricmp(font->name, alt_fonts[i])) {
 				s32 fw;
 				s32 w;
 				u32 diff;
 				Bool ft_has_smallcaps;
-				Bool ft_has_weight = (font->styles & GF_FONT_WEIGHT_MASK) ? 1 : 0;
+				Bool ft_has_weight;
+
+				if (check_only) return font;
+				
+				ft_has_weight = (font->styles & GF_FONT_WEIGHT_MASK) ? 1 : 0;
 				if (font->styles == styles) {
 					the_font = font;
 					break;
@@ -264,12 +268,19 @@ GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_f
 
 	}
 
-	if (!the_font) the_font = fm->default_font;
+	if (!the_font) {
+		if (check_only) return NULL;
+		the_font = fm->default_font;
+	}
 	/*embeded font*/
 	if (the_font && !the_font->get_glyphs) 
 		fm->reader->set_font(fm->reader, the_font->name, the_font->styles);
 
 	return the_font;
+}
+GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles)
+{
+	return gf_font_manager_set_font_ex(fm, alt_fonts, nb_fonts, styles, 0);
 }
 
 static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)

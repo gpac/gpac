@@ -119,6 +119,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		/*scene size has been overriden*/
 		if (compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) {
 			assert(!(compositor->override_size_flags & 2));
+			compositor->msg_type &= ~GF_SR_CFG_OVERRIDE_SIZE;
 			compositor->override_size_flags |= 2;
 			width = compositor->scene_width;
 			height = compositor->scene_height;
@@ -130,20 +131,24 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		if (compositor->msg_type & GF_SR_CFG_SET_SIZE) {
 			u32 fs_width, fs_height;
 			Bool restore_fs = compositor->fullscreen;
+			compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Changing display size to %d x %d\n", compositor->new_width, compositor->new_height));
 			fs_width = fs_height = 0;
 			if (restore_fs) {
-				//gf_sc_set_fullscreen(compositor);
 				fs_width = compositor->display_width;
 				fs_height = compositor->display_height;
 			}
 			evt.type = GF_EVENT_SIZE;
 			evt.size.width = compositor->new_width;
 			evt.size.height = compositor->new_height;
+			compositor->new_width = compositor->new_height = 0;
 			/*send resize event*/
 			if (!(compositor->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF)) {
 				compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 			}
+			compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
+
 			if (restore_fs) {
 				//gf_sc_set_fullscreen(compositor);
 				compositor->display_width = fs_width;
@@ -154,21 +159,19 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			}
 			compositor->reset_graphics = 1;
 			
-//			if (!compositor->user->os_window_handler) 
-//				GF_USER_SENDEVENT(compositor->user, &evt);
-
 		}
 		/*aspect ratio modif*/
 		if (compositor->msg_type & GF_SR_CFG_AR) {
+			compositor->msg_type &= ~GF_SR_CFG_AR;
 			compositor->recompute_ar = 1;
 		}
 		/*fullscreen on/off request*/
 		if (compositor->msg_type & GF_SR_CFG_FULLSCREEN) {
+			compositor->msg_type &= ~GF_SR_CFG_FULLSCREEN;
 			gf_sc_set_fullscreen(compositor);
 			compositor->draw_next_frame = 1;
 		}
-		compositor->new_width = compositor->new_height = 0;
-		compositor->msg_type = 0;
+		compositor->msg_type &= ~GF_SR_IN_RECONFIG;
 	}
 
 	/*3D driver changed message, recheck extensions*/

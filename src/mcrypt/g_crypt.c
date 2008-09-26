@@ -250,6 +250,7 @@ void gf_crypt_deinit(GF_Crypt *td)
 	internal_end_mcrypt(td);
 }
 
+GF_EXPORT
 GF_Err gf_crypt_encrypt(GF_Crypt *td, void *plaintext, int len)
 {
 	if (!td) return GF_BAD_PARAM;

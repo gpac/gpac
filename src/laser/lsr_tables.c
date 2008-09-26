@@ -640,25 +640,25 @@ u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 	f_base.far_ptr = base_atts->visibility;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_ListOfIRI_datatype;
+	f_elt.fieldType = f_base.fieldType = XMLRI_List_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_requiredExtensions;
 	f_elt.far_ptr = elt_atts->requiredExtensions;
 	f_base.far_ptr = base_atts->requiredExtensions;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_ListOfIRI_datatype;
+	f_elt.fieldType = f_base.fieldType = XMLRI_List_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_requiredFeatures;
 	f_elt.far_ptr = elt_atts->requiredFeatures;
 	f_base.far_ptr = base_atts->requiredFeatures;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_FormatList_datatype;
+	f_elt.fieldType = f_base.fieldType = DOM_StringList_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_requiredFormats;
 	f_elt.far_ptr = elt_atts->requiredFormats;
 	f_base.far_ptr = base_atts->requiredFormats;
 	if (!gf_svg_attributes_equal(&f_elt, &f_base)) return 0;
 
-	f_elt.fieldType = f_base.fieldType = SVG_LanguageIDs_datatype;
+	f_elt.fieldType = f_base.fieldType = DOM_StringList_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT_systemLanguage;
 	f_elt.far_ptr = elt_atts->systemLanguage;
 	f_base.far_ptr = base_atts->systemLanguage;

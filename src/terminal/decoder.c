@@ -31,10 +31,6 @@
 #include "media_control.h"
 #include "input_sensor.h"
 
-/*update config of object*/
-void MO_UpdateCaps(GF_MediaObject *mo);
-
-
 #define TIME_CHECK		3
 
 
@@ -536,7 +532,7 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 	if (!dec || !dec->CB) return GF_BAD_PARAM;
 	
 	/*update config*/
-	MO_UpdateCaps(dec->odm->mo);
+	gf_mo_update_caps(dec->odm->mo);
 
 	/*bytes per sec not available: either video or audio not configured*/
 	if (!dec->bytes_per_sec) {

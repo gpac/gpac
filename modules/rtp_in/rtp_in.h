@@ -120,6 +120,7 @@ typedef struct _rtp_session
 	Double last_range;
 	u32 command_time;
 	GF_List *rtsp_commands;
+	GF_Err connect_error;
 } RTSPSession;
 
 /*creates new RTSP session handler*/

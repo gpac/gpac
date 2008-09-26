@@ -138,7 +138,7 @@ void MC_Resume(GF_ObjectManager *odm)
 
 	i=0;
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->ODlist, &i))) {
-		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
+		if (!odm->subscene && !gf_odm_shares_clock(ctrl_od, ck)) continue;
 		gf_odm_resume(ctrl_od);
 	}
 }
@@ -169,7 +169,7 @@ void MC_Pause(GF_ObjectManager *odm)
 
 	i=0;
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->ODlist, &i))) {
-		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
+		if (!odm->subscene && !gf_odm_shares_clock(ctrl_od, ck)) continue;
 		gf_odm_pause(ctrl_od);
 	}
 }
@@ -263,6 +263,8 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			odm = stack->stream->odm;
 			ODM_RemoveMediaControl(odm, stack);
 		}
+		/*also removes the association ck<->MC if the object has been destroyed before the node*/
+		if (stack->ck) stack->ck->mc = NULL;
 
 		gf_list_del(stack->seg);
 		gf_sg_vrml_mf_reset(&stack->url, GF_SG_VRML_MFURL);
@@ -301,7 +303,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 
 				stack->current_seg = 0;
 				shall_restart = need_restart = 1;
-
+				stack->ck = gf_odm_get_media_clock(stack->stream->odm);
 			}
 			/*control has been removed and we were paused, resume*/
 			else if (stack->paused) {
@@ -320,6 +322,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			if (stack->control->url.count) gf_term_invalidate_compositor(stack->parent->root_od->term);
 			return;
 		}
+		stack->ck = gf_odm_get_media_clock(stack->stream->odm);
 		gf_sg_vrml_field_copy(&stack->url, &stack->control->url, GF_SG_VRML_MFURL);
 		ODM_SetMediaControl((GF_ObjectManager *) stack->stream->odm, stack);
 

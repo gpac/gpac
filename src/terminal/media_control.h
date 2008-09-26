@@ -46,6 +46,9 @@ typedef struct _media_control
 	GF_InlineScene *parent;
 	/*stream owner*/
 	GF_MediaObject *stream;
+	/*stream owner's clock*/
+	GF_Clock *ck;
+
 	Bool changed;
 	Bool is_init;
 	Bool paused;

@@ -1574,16 +1574,7 @@ void gf_node_del(GF_Node *node)
 	} 
 	else if (node->sgprivate->tag == TAG_DOMFullNode) {
 		GF_DOMFullNode *n = (GF_DOMFullNode *)node;
-		while (n->attributes) {
-			GF_DOMAttribute *att = n->attributes;
-			n->attributes = att->next;
-			if (att->tag==TAG_DOM_ATT_any) {
-				GF_DOMFullAttribute *fa = (GF_DOMFullAttribute *)att;
-				free(fa->data);
-				free(fa->name);
-			}
-			free(att);
-		}
+		gf_node_delete_attributes(node);
 		if (n->name) free(n->name);
 		gf_sg_parent_reset(node);
 		gf_node_free(node);
@@ -1882,11 +1873,38 @@ GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 			first_foreign = ns->xmlns_id+1;
 	}
 	GF_SAFEALLOC(ns, GF_XMLNS);
-	ns->name = strdup(name);
-	if (qname) ns->qname = strdup(qname);
 	ns->xmlns_id = id ? id : first_foreign;
-	
+	ns->name = strdup(name);
+	/*prefixed namespaces are inserted in the begining of the list, in order to match the latest 
+	defined namespace*/
+	if (qname) {
+		ns->qname = strdup(qname);
+		return gf_list_insert(sg->ns, ns, 0);
+	}
 	return gf_list_add(sg->ns, ns);
+}
+
+GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *ns_name, char *q_name)
+{
+	u32 i, count;
+	count = sg->ns ? gf_list_count(sg->ns) : 0;
+	for (i=0; i<count; i++) {
+		Bool ok=0;
+		GF_XMLNS *ns = gf_list_get(sg->ns, i);
+		if (!q_name && !ns->qname) 
+			ok = 1;
+		else if (q_name && ns->qname && !strcmp(ns->qname, q_name) ) 
+			ok = 1;
+
+		if (ok && ns->name && !strcmp(ns->name, ns_name)) {
+			gf_list_rem(sg->ns, i);
+			free(ns->name);
+			if (ns->qname) free(ns->qname);
+			free(ns);
+			return GF_OK;
+		}
+	}
+	return GF_OK;
 }
 
 u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname)
@@ -1917,6 +1935,8 @@ u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name)
 	for (i=0; i<count; i++) {
 		ns = gf_list_get(sg->ns, i);
 		if (ns->name && name && !strcmp(ns->name, name)) 
+			return ns->xmlns_id;
+		if (!ns->name && !name) 
 			return ns->xmlns_id;
 	}
 	return GF_XMLNS_NONE;

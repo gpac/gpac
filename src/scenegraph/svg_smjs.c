@@ -37,6 +37,8 @@
 #define JSVAL_CHECK_STRING(_v) (JSVAL_IS_STRING(_v) || JSVAL_IS_NULL(_v))
 #define JSVAL_GET_STRING(_v) (JSVAL_IS_NULL(_v) ? NULL : JS_GetStringBytes(JSVAL_TO_STRING(_v)) )
 
+static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer);
+
 
 jsval dom_element_construct(JSContext *c, GF_Node *n);
 void dom_element_finalize(JSContext *c, JSObject *obj);
@@ -2230,6 +2232,17 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 					free(svg_rt);
 					svg_rt = NULL;
 				}
+			} else {
+				u32 i, count;
+				/*detach this script from our object cache*/
+				count = gf_list_count(n->sgprivate->scenegraph->objects);
+				for (i=0; i<count; i++) {
+					JSObject *obj = gf_list_get(n->sgprivate->scenegraph->objects, i);
+					GF_Node *a_node = JS_GetPrivate(svg_js->js_ctx, obj);
+					if (n==a_node) 
+						JS_SetPrivate(svg_js->js_ctx, obj, NULL);
+				}
+
 			}
 		}
 	}
@@ -2414,16 +2427,17 @@ void JSScript_LoadSVG(GF_Node *node)
 			/* getting a download manager */
 			par.dnld_man = NULL;
 			ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
-			if (!par.dnld_man) return;
+			if (par.dnld_man) {
 
-			GF_SAFEALLOC(jsdnload, JSFileDownload);
-			jsdnload->node = node;
-			jsdnload->sess = gf_dm_sess_new(par.dnld_man, url, 0, JS_SVG_NetIO, jsdnload, &e);
-			free(url);
-			if (!jsdnload->sess) {
-				free(jsdnload);
+				GF_SAFEALLOC(jsdnload, JSFileDownload);
+				jsdnload->node = node;
+				jsdnload->sess = gf_dm_sess_new(par.dnld_man, url, 0, JS_SVG_NetIO, jsdnload, &e);
+				if (!jsdnload->sess) {
+					free(jsdnload);
+				}
 			}
 		}
+		free(url);
 	} 
 	/*for scripts only, execute*/
 	else if (node->sgprivate->tag == TAG_SVG_script) {
@@ -2437,16 +2451,17 @@ void JSScript_LoadSVG(GF_Node *node)
 	}
 }
 
-Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
+static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer)
 {
 	GF_DOMText *txt = NULL;
 	GF_SVGJS *svg_js;
+	JSObject *__this;
 	JSBool ret = JS_TRUE;
 	GF_DOM_Event *prev_event = NULL;
 	GF_DOMHandler *hdl = (GF_DOMHandler *)node;
 	jsval fval, rval;
 
-	if (!hdl->js_fun_val && !hdl->evt_listen_obj) {
+	if (!hdl->js_fun && !hdl->js_fun_val && !hdl->evt_listen_obj) {
 		txt = svg_get_text_child(node);
 		if (!txt) return 0;
 	}
@@ -2461,16 +2476,28 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 		return 0;
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
 
-	if (hdl->js_fun_val || hdl->evt_listen_obj) {
+	/*compile the jsfun if any - 'this' is the associated observer*/
+	__this = observer ? JSVAL_TO_OBJECT( dom_element_construct(svg_js->js_ctx, observer) ) : svg_js->global;
+	if (txt && !hdl->js_fun) {
+		char *argn = "evt";
+		hdl->js_fun = JS_CompileFunction(svg_js->js_ctx, __this, NULL, 1, &argn, txt->textContent, strlen(txt->textContent), NULL, 0);
+	}
+	/*if an observer is being specified, use it*/
+	if (hdl->evt_listen_obj) __this = hdl->evt_listen_obj;
+
+	if (hdl->js_fun || hdl->js_fun_val || hdl->evt_listen_obj) {
 		JSObject *evt;
 		jsval argv[1];
 		evt = gf_dom_new_event(svg_js->js_ctx);
 		JS_SetPrivate(svg_js->js_ctx, evt, event);
 		argv[0] = OBJECT_TO_JSVAL(evt);
 
-		if (hdl->js_fun_val) {
+		if (hdl->js_fun) {
+			ret = JS_CallFunction(svg_js->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj : __this, (JSFunction *)hdl->js_fun, 1, argv, &rval);
+		}
+		else if (hdl->js_fun_val) {
 			jsval funval = (JSWord) hdl->js_fun_val;
-			ret = JS_CallFunctionValue(svg_js->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj : svg_js->global, funval, 1, argv, &rval);
+			ret = JS_CallFunctionValue(svg_js->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj : __this, funval, 1, argv, &rval);
 		} else {
 			ret = JS_CallFunctionName(svg_js->js_ctx, hdl->evt_listen_obj, "handleEvent", 1, argv, &rval);
 		}
@@ -2480,7 +2507,8 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 			ret = JS_FALSE;
 	} 
 	else {
-		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
+
+		ret = JS_EvaluateScript(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);
 

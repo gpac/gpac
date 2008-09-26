@@ -31,8 +31,6 @@
 #include <gpac/compositor.h>
 #include <gpac/nodes_x3d.h>
 
-void MO_UpdateCaps(GF_MediaObject *mo);
-
 /*SVG properties*/
 #ifndef GPAC_DISABLE_SVG
 #include <gpac/scenegraph_svg.h>
@@ -169,6 +167,7 @@ GF_ObjectManager *gf_inline_find_odm(GF_InlineScene *is, u16 OD_ID)
 	return NULL;
 }
 
+GF_EXPORT
 void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 {
 	GF_MediaObject *obj;
@@ -942,11 +941,14 @@ existing:
 	else if (odm->codec->type == GF_STREAM_SCENE) odm->mo->type = GF_MEDIA_OBJECT_UPDATES;
 	
 	/*update info*/
-	MO_UpdateCaps(odm->mo);
+	gf_mo_update_caps(odm->mo);
 	/*media object playback has already been requested by the scene, trigger media start*/
 	if (odm->mo->num_open && !odm->state) {
 		gf_odm_start(odm);
 		if (odm->mo->speed != FIX_ONE) gf_odm_set_speed(odm, odm->mo->speed);
+	}
+	if ((odm->mo->type==GF_MEDIA_OBJECT_VIDEO) && is->is_dynamic_scene) {
+		gf_inline_force_scene_size_video(is, odm->mo);
 	}
 	/*invalidate scene for all nodes using the OD*/
 	gf_term_invalidate_compositor(odm->term);
@@ -1250,6 +1252,8 @@ void gf_inline_regenerate(GF_InlineScene *is)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inline] Regenerating scene graph for service %s\n", is->root_od->net_service->url));
 
+	gf_sc_lock(is->root_od->term->compositor, 1);
+
 	if (is->root_od->term->root_scene == is) 
 		gf_sc_set_scene(is->root_od->term->compositor, NULL);
 
@@ -1420,6 +1424,8 @@ void gf_inline_regenerate(GF_InlineScene *is)
 		if (!is->dyn_ck) is->dyn_ck = odm->subscene->scene_codec->ck;
 		break;
 	}
+
+	gf_sc_lock(is->root_od->term->compositor, 0);
 	
 	/*disconnect to force resize*/
 	if (is->root_od->term->root_scene == is) {

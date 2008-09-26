@@ -785,7 +785,7 @@ static Bool is_timing_target(GF_Node *n)
 	return 0;
 }
 
-static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event)
+static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *observer)
 {
 	GF_Compositor *compositor;
 	GF_Event evt;

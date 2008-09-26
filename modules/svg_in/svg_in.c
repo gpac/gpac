@@ -107,7 +107,6 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 		svgin->file_pos = 0;
 		gf_sg_reset(svgin->inline_scene->graph);
 		return GF_OK;
-
 	}
 
 	switch (svgin->oti) {

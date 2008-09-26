@@ -316,6 +316,17 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 
 
 	if (stream_time==(u32)-1) {
+		/*seek on root stream: destroy the context manager and reload it. We cannot seek on the main stream
+		because commands may have changed node attributes/children and we d'ont track the initial value*/
+		if (priv->base_stream_id == ES_ID) {
+			if (priv->src) fclose(priv->src);
+			priv->src = NULL;
+			gf_sm_load_done(&priv->load);
+			priv->file_pos = 0;
+			/*this will call detach scene*/
+			gf_inline_disconnect(priv->inline_scene, 1);
+			return CTXLoad_Setup((GF_BaseDecoder *)plug);
+		}
 		i=0;
 		while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
 			/*not our stream*/
@@ -324,7 +335,6 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 			if (sc->in_root_od && (priv->base_stream_id != ES_ID)) continue;
 			/*handle SWF media extraction*/
 			if ((sc->streamType == GF_STREAM_OD) && (priv->load_flags==1)) continue;
-
 			sc->last_au_time = 0;
 		}
 		return GF_OK;

@@ -796,6 +796,7 @@ EXPORTS
 	gf_crypt_close
 	gf_crypt_init
 	gf_crypt_decrypt
+	gf_crypt_encrypt
 	gf_crypt_set_state
 
 ;parsers_av.h exports
@@ -1128,6 +1129,7 @@ EXPORTS
 	gf_inline_force_scene_size
 	gf_inline_get_proto_lib
 	gf_inline_process_anchor
+	gf_inline_disconnect
 	gf_odm_new
 	gf_odm_setup_object
 	gf_odm_disconnect

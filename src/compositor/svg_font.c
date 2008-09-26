@@ -199,7 +199,7 @@ static void svg_traverse_font(GF_Node *node, void *rs, Bool is_destroy)
 	}
 }
 
-static void svg_font_on_load(GF_Node *handler, GF_DOM_Event *event)
+static void svg_font_on_load(GF_Node *handler, GF_DOM_Event *event, GF_Node *observer)
 {
 	GF_Compositor *compositor;
 	GF_Font *font;

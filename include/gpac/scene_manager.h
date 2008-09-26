@@ -114,6 +114,11 @@ GF_StreamContext *gf_sm_stream_find(GF_SceneManager *ctx, u16 ES_ID);
 /*create a new AU context in the given stream context*/
 GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double time_ms, Bool isRap);
 
+/*reset the context: 
+- purge all access units on all streams 
+- destroy root OD
+*/
+void gf_sm_reset(GF_SceneManager *ctx);
 
 /*applies all commands in all streams (only BIFS for now): the context manager will only have one command per
 stream, this command being a random access*/
