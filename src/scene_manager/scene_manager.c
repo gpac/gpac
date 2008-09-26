@@ -113,7 +113,8 @@ GF_StreamContext *gf_sm_stream_find(GF_SceneManager *ctx, u16 ES_ID)
 	}
 	return NULL;
 }
-static void gf_sm_delete_stream(GF_StreamContext *sc)
+
+static void gf_sm_reset_stream(GF_StreamContext *sc)
 {
 	while (gf_list_count(sc->AUs)) {
 		GF_AUContext *au = (GF_AUContext *)gf_list_last(sc->AUs);
@@ -134,6 +135,11 @@ static void gf_sm_delete_stream(GF_StreamContext *sc)
 		gf_list_del(au->commands);
 		free(au);
 	}
+}
+
+static void gf_sm_delete_stream(GF_StreamContext *sc)
+{
+	gf_sm_reset_stream(sc);
 	gf_list_del(sc->AUs);
 	free(sc);
 }
@@ -160,6 +166,17 @@ void gf_sm_del(GF_SceneManager *ctx)
 	free(ctx);
 }
 
+GF_EXPORT
+void gf_sm_reset(GF_SceneManager *ctx)
+{
+	GF_StreamContext *sc;
+	u32 i=0;
+	while ( (sc = gf_list_enum(ctx->streams, &i)) ) {
+		gf_sm_reset_stream(sc);
+	}
+	if (ctx->root_od) gf_odf_desc_del((GF_Descriptor *) ctx->root_od);
+	ctx->root_od = NULL;
+}
 
 GF_EXPORT
 GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double time_sec, Bool isRap)

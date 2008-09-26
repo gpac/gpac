@@ -267,7 +267,7 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 	return 1;
 }
 
-void MO_UpdateCaps(GF_MediaObject *mo)
+void gf_mo_update_caps(GF_MediaObject *mo)
 {
 	GF_CodecCapability cap;
 
@@ -499,6 +499,9 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 		if (is_restart) {
 			MC_Restart(mo->odm);
 		} else {
+			if (mo->odm->subscene && mo->odm->subscene->is_dynamic_scene)
+				mo->odm->flags |= GF_ODM_REGENERATE_SCENE;
+
 			gf_odm_start(mo->odm);
 		}
 	} else if (mo->odm) {

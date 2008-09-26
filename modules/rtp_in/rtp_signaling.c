@@ -322,6 +322,7 @@ exit:
 	com->user_data = NULL;
 	if (e) {
 		if (!ch_desc) {
+			sess->connect_error = e;
 			return e;
 		} else if (ch) {
 			RP_ConfirmChannelConnect(ch, e);

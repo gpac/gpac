@@ -98,8 +98,11 @@ enum {
 	SVG_LAST_U8_PROPERTY,
 
 	DOM_String_datatype,
+	DOM_StringList_datatype,
+
 	XMLEV_Event_datatype,
 	XMLRI_datatype,
+	XMLRI_List_datatype,
 	XML_IDREF_datatype,
 
 	SMIL_KeyTimes_datatype,
@@ -125,12 +128,6 @@ enum {
 	SVG_Numbers_datatype,
 	SVG_Points_datatype,
 	SVG_Coordinates_datatype,
-	SVG_FeatureList_datatype,
-	SVG_ExtensionList_datatype,
-	SVG_FormatList_datatype,
-	SVG_FontList_datatype,
-	SVG_ListOfIRI_datatype,
-	SVG_LanguageIDs_datatype,
 
 	/*all other types*/
 	SVG_Boolean_datatype,
@@ -218,7 +215,7 @@ enum {
 	/*event time*/
 	GF_SMIL_TIME_EVENT			= 3,
 	/*indefinite time*/
-	GF_SMIL_TIME_INDEFINITE		= 4
+	GF_SMIL_TIME_INDEFINITE		= 4,
 };
 
 #define GF_SMIL_TIME_IS_CLOCK(v) (v<=GF_SMIL_TIME_EVENT_RESOLVED)

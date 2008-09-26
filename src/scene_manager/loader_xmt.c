@@ -1732,6 +1732,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			gf_node_list_add_child_last( (GF_ChildNodeItem **)container.far_ptr, node, &parent->last);
 			gf_node_register(node, parent->node);
 		}
+		assert(parent->node);
 		gf_node_changed(parent->node, NULL);
 	}
 		
@@ -2401,7 +2402,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			/*assign timescales once the ESD has been parsed*/
 			if (desc->tag == GF_ODF_ESD_TAG) {
 				GF_ESD *esd = (GF_ESD*)desc;
-				GF_StreamContext *sc = gf_sm_stream_new(parser->load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+				GF_StreamContext *sc = gf_sm_stream_new(parser->load->ctx, esd->ESID, esd->decoderConfig ? esd->decoderConfig->streamType : 0, esd->decoderConfig ? esd->decoderConfig->objectTypeIndication : 0);
 				if (sc && esd->slConfig && esd->slConfig->timestampResolution)
 					sc->timeScale = esd->slConfig->timestampResolution;
 			}
@@ -2541,6 +2542,12 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 						parser->doc_state = 4;
 					}
 				}
+			}
+			/*end of protofield node(s) content*/
+			else if (!strcmp(name, "node") || !strcmp(name, "nodes")) {
+				top->container_field.far_ptr = NULL;
+				top->container_field.name = NULL;
+				top->last = NULL;
 			}
 		}
 		/*SF/MFNode proto field, just pop node stack*/

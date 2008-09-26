@@ -180,12 +180,13 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 	read->service = serv;
 	
 	if (ext) {
+		char *cgi_par = NULL;
 		ext += 1;
 		if (ext) {
 			tmp = strchr(ext, '#'); if (tmp) tmp[0] = 0;
 			/* Warning the '?' sign should not be present in local files but it is convenient to have it 
 			   to test web content locally */
-			tmp = strchr(ext, '?'); if (tmp) tmp[0] = 0;
+			cgi_par = strchr(ext, '?'); if (cgi_par) cgi_par[0] = 0;
 		}
 		if (!stricmp(ext, "bt") || !stricmp(ext, "btz") || !stricmp(ext, "bt.gz") 
 			|| !stricmp(ext, "xmta") 
@@ -205,6 +206,8 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			read->oti = GPAC_OTI_PRIVATE_SCENE_LASER;
 		else if (!stricmp(ext, "xbl"))
 			read->oti = GPAC_OTI_PRIVATE_SCENE_XBL;
+
+		if (cgi_par) cgi_par[0] = '?';
 	}
 
 	if (!read->oti && (!strnicmp(url, "file://", 7) || !strstr(url, "://"))) {

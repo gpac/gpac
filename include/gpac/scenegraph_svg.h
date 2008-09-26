@@ -54,6 +54,7 @@ enum
 	GF_XMLNS_FOREIGN_FIRST,
 };
 GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname);
+GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *name, char *qname);
 u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname);
 u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name);
 const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, u32 xmlns_id);
@@ -336,7 +337,7 @@ event list when destructed.*/
 typedef struct __xml_ev_handler 
 {
 	GF_DOM_BASE_NODE
-	void (*handle_event)(GF_Node *hdl, GF_DOM_Event *event);
+	void (*handle_event)(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer);
 	/*if handler targets a VRML script, point to the script here*/
 	void *js_context;
 	/*target EventListener object (this) */
@@ -344,6 +345,8 @@ typedef struct __xml_ev_handler
 	/*function value for spidermonkey - we cannot use JS_CallFunction since it does not work on closures
 	we use 64 bits to store the value for portability safety	*/
 	u64 js_fun_val;
+	/*compiled function for the case were CallFunction is needed*/
+	void *js_fun;
 } GF_DOMHandler;
 
 

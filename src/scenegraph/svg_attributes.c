@@ -25,7 +25,7 @@
 
 #include <gpac/base_coding.h>
 #include <gpac/events.h>
-#include <gpac/scenegraph_svg.h>
+#include <gpac/nodes_svg.h>
 
 #ifndef GPAC_DISABLE_SVG
 
@@ -69,6 +69,7 @@ static const struct dom_event_def {u32 event;  const char *name; u32 category; }
 
 	/*activate is not a basic DOM but a MOUSE and KEY event*/
 	{ GF_EVENT_ACTIVATE, "activate", GF_DOM_EVENT_MOUSE | GF_DOM_EVENT_KEY },
+	{ GF_EVENT_ACTIVATE, "DOMActivate", GF_DOM_EVENT_MOUSE | GF_DOM_EVENT_KEY },
 
 	/*text events*/
 	{ GF_EVENT_TEXTINPUT, "textInput", GF_DOM_EVENT_TEXT },
@@ -864,21 +865,21 @@ static GF_Err svg_parse_clock_value(char *d, Double *clock_value)
 	  events, 
 	  clock value.
  */
-static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d) 
+static GF_Err smil_parse_time(GF_Node *elt, SMIL_Time *v, char *d) 
 {
+	GF_Err e = GF_OK;
 	char *tmp;
 
 	/* Offset Values */
 	if ((d[0] >= '0' && d[0] <= '9') || d[0] == '+' || d[0] == '-'){
 		v->type = GF_SMIL_TIME_CLOCK;
-		svg_parse_clock_value(d, &(v->clock));
-		return;
+		return svg_parse_clock_value(d, &(v->clock));
 	} 
 	
 	/* Indefinite Values */
 	else if (!strcmp(d, "indefinite")) {
 		v->type = GF_SMIL_TIME_INDEFINITE;
-		return;
+		return GF_OK;
 	} 
 
 	/* Wallclock Values */
@@ -907,7 +908,7 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 			}
 		}
 		if (strchr(tmp, 'Z')) {
-			return;
+			return GF_OK;
 		} else {
 			if ( (tmp1 = strchr(tmp, '+')) ) {
 				sscanf(tmp1, "%d:%d", &nhours, &nminutes);		
@@ -915,7 +916,7 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 				sscanf(tmp1, "%d:%d", &nhours, &nminutes);		
 			}
 		}
-		return;
+		return GF_OK;
 	} 
 
 	/* AccessKey Values */
@@ -923,7 +924,7 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 		char *sep;
 		v->type = GF_SMIL_TIME_EVENT;
 		v->event.type = GF_EVENT_KEYDOWN;
-		v->element = e->sgprivate->scenegraph->RootNode;
+		v->element = elt->sgprivate->scenegraph->RootNode;
 		tmp+=10;
 		sep = strchr(d, ')');
 		sep[0] = 0;
@@ -932,10 +933,10 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 		if ((tmp = strchr(sep, '+')) || (tmp = strchr(sep, '-'))) {
 			char c = *tmp;
 			tmp++;
-			svg_parse_clock_value(tmp, &(v->clock));
+			e = svg_parse_clock_value(tmp, &(v->clock));
 			if (c == '-') v->clock *= -1;
 		} 
-		return;
+		return e;
 	} 
 
 	else {
@@ -960,7 +961,7 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 			tmp = strchr(tmp2, ')');
 			if (!tmp) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] expecting ')' in SMIL Time %s\n", d));
-				return;
+				return GF_BAD_PARAM;
 			}			
 			tmp++;
 		} 
@@ -975,14 +976,16 @@ static void smil_parse_time(GF_Node *e, SMIL_Time *v, char *d)
 				v->event.parameter = 1;
 			tmp2[0] = c;
 			tmp2++;
-			svg_parse_clock_value(tmp2, &(v->clock));
+			e = svg_parse_clock_value(tmp2, &(v->clock));
 			if (c == '-') v->clock *= -1;
+			return e;
 		} else {
 			if (v->event.type == 0) v->event.type = gf_dom_event_type_by_name(tmp);
 			if (!had_param && (v->event.type == GF_EVENT_REPEAT || v->event.type == GF_EVENT_REPEAT_EVENT))
 				v->event.parameter = 1;
 		}
 	}
+	return GF_OK;
 }
 
 /* Parses a list of SVG transformations and collapses them in the given matrix */
@@ -1665,6 +1668,10 @@ next_command:
 
 static void svg_parse_iri(GF_Node *elt, XMLRI *iri, char *attribute_content)
 {
+	if (iri->string) {
+		free(iri->string);
+		iri->string = NULL;
+	}
 	/* TODO: Handle xpointer(id()) syntax */
 	if (attribute_content[0] == '#') {
 		iri->string = strdup(attribute_content);
@@ -2105,8 +2112,19 @@ static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end
 		value_string[len] = 0;
 
 		GF_SAFEALLOC(value, SMIL_Time)
-		smil_parse_time(e, value, value_string);
  		gf_list_add(values, value);
+
+		if (smil_parse_time(e, value, value_string) != GF_OK) {
+			switch (e->sgprivate->tag) {
+			case TAG_SVG_discard:
+				value->type = GF_SMIL_TIME_CLOCK;
+				value->clock = 0;
+				break;
+			default:
+				value->type=GF_SMIL_TIME_INDEFINITE;
+				break;
+			}
+		}
 
 		str = tmp + 1;
 		while (*str == ' ') str++;
@@ -2118,8 +2136,18 @@ static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end
 	value_string[len] = 0;
 
 	GF_SAFEALLOC(value, SMIL_Time)
-	smil_parse_time(e, value, value_string);
  	gf_list_add(values, value);
+	if (smil_parse_time(e, value, value_string) != GF_OK) {
+		switch (e->sgprivate->tag) {
+		case TAG_SVG_discard:
+			value->type = GF_SMIL_TIME_CLOCK;
+			value->clock = 0;
+			break;
+		default:
+			value->type=GF_SMIL_TIME_INDEFINITE;
+			break;
+		}
+	}
 
 	/* sorting timing values */
 	if (gf_list_count(values) > 1) {
@@ -2415,18 +2443,20 @@ static void svg_parse_strings(GF_List *values, char *value_string, u32 string_ty
 	while (1) {
 		while (sep && sep[0]==' ') sep++;
 		if (!sep) break;
-		next = strchr(sep, ';');
-		if (!next) {
-			next = strchr(sep, ' ');
-			if (!next) {
-				svg_string_list_add(values, sep, string_type);
-				break;
-			}
+		next = sep+1;
+		while (next[0]) {
+			if (strchr(" ;,", next[0])) break;
+			next++;
+		}
+		if (!next[0]) {
+			svg_string_list_add(values, sep, string_type);
+			break;
 		}
 		next[0]=0;
 		svg_string_list_add(values, sep, string_type);
 		next[0]=';';
 		sep = next+1;
+		while (strchr(" ,;", sep[0])) sep++;
 	}
 }
 
@@ -2955,12 +2985,10 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		*(SVG_String *)info->far_ptr = strdup(attribute_content);
 		break;
 
-	case SVG_FeatureList_datatype:
-	case SVG_ExtensionList_datatype:
-	case SVG_LanguageIDs_datatype:
+	case DOM_StringList_datatype:
 		svg_parse_strings(*(GF_List **)info->far_ptr, attribute_content, 0);
 		break;
-	case SVG_ListOfIRI_datatype:
+	case XMLRI_List_datatype:
 		svg_parse_strings(*(GF_List **)info->far_ptr, attribute_content, 1);
 		break;
 
@@ -3229,11 +3257,8 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 			return string;
 		}
 		break;
-	case SVG_FeatureList_datatype:
-	case SVG_ExtensionList_datatype:
-	case SVG_FormatList_datatype:
-	case SVG_LanguageIDs_datatype:
-	case SVG_ListOfIRI_datatype:
+	case DOM_StringList_datatype:
+	case XMLRI_List_datatype:
 	case SVG_Points_datatype:
 	case SVG_Coordinates_datatype:
 	case SMIL_Times_datatype:
@@ -3939,7 +3964,7 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 	case XML_IDREF_datatype:
 		svg_dump_idref((XMLRI*)info->far_ptr, attValue);
 		break;
-	case SVG_ListOfIRI_datatype:
+	case XMLRI_List_datatype:
 	{
 		GF_List *l = *(GF_List **)info->far_ptr;
 		u32 i, count = gf_list_count(l);
@@ -4088,10 +4113,7 @@ GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue)
 	}
 		break;
 
-	/*not sure what we'll put in requiredFormats*/
-	case SVG_FormatList_datatype:
-	case SVG_LanguageIDs_datatype:
-	case SVG_FontList_datatype:
+	case DOM_StringList_datatype:
 	{
 		GF_List *l1 = *(GF_List **) info->far_ptr;
 		u32 i = 0;
@@ -4356,7 +4378,7 @@ GF_Err gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info, char *att
 	switch (info->fieldType) {
 	case SVG_PointerEvents_datatype:
 		break;
-	case SVG_ListOfIRI_datatype:
+	case XMLRI_List_datatype:
 		strcpy(attValue, (char *) info->far_ptr);
 		break;
 
@@ -4587,7 +4609,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		return svg_numbers_equal((SVG_Number *)f1->far_ptr, (SVG_Number *)f2->far_ptr);
 	case XMLRI_datatype:
 		return svg_iris_equal((XMLRI*)f1->far_ptr, (XMLRI*)f2->far_ptr);
-	case SVG_ListOfIRI_datatype:
+	case XMLRI_List_datatype:
 	{
 		GF_List *l1 = *(GF_List **)f1->far_ptr;
 		GF_List *l2 = *(GF_List **)f2->far_ptr;
@@ -4766,10 +4788,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	}
 		break;
 
-	/*not sure what we'll put in requiredFormats*/
-	case SVG_FormatList_datatype:
-	case SVG_LanguageIDs_datatype:
-	case SVG_FontList_datatype:
+	case DOM_StringList_datatype:
 	{
 		GF_List *l1 = *(GF_List **) f1->far_ptr;
 		GF_List *l2 = *(GF_List **) f2->far_ptr;
@@ -5437,10 +5456,8 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	case SVG_LanguageID_datatype:
 	case SVG_FontFamily_datatype:
 	case XMLRI_datatype:
-	case SVG_ListOfIRI_datatype:
-	case SVG_FormatList_datatype:
-	case SVG_LanguageIDs_datatype:
-	case SVG_FontList_datatype:
+	case XMLRI_List_datatype:
+	case DOM_StringList_datatype:
 	case SVG_Clock_datatype:
 	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
@@ -5687,10 +5704,8 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		break;
 
 	/* Unsupported types */
-	case SVG_ListOfIRI_datatype:
-	case SVG_FormatList_datatype:
-	case SVG_LanguageIDs_datatype:
-	case SVG_FontList_datatype:
+	case XMLRI_List_datatype:
+	case DOM_StringList_datatype:
 	case SVG_GradientOffset_datatype:
 	case SVG_Clock_datatype:
 	case SMIL_KeyTimes_datatype:
@@ -5813,10 +5828,8 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	case SVG_LanguageID_datatype:
 	case SVG_FontFamily_datatype:
 	case XMLRI_datatype:
-	case SVG_ListOfIRI_datatype:
-	case SVG_FormatList_datatype:
-	case SVG_LanguageIDs_datatype:
-	case SVG_FontList_datatype:
+	case XMLRI_List_datatype:
+	case DOM_StringList_datatype:
 	case SVG_Clock_datatype:
 	case SVG_ID_datatype:
 	case SVG_GradientOffset_datatype:
@@ -5913,12 +5926,8 @@ char *gf_svg_attribute_type_to_string(u32 att_type)
 	case SVG_Numbers_datatype:			return "Numbers"; 
 	case SVG_Points_datatype:			return "Points"; 
 	case SVG_Coordinates_datatype:		return "Coordinates"; 
-	case SVG_FeatureList_datatype:		return "FeatureList"; 
-	case SVG_ExtensionList_datatype:	return "ExtensionList"; 
-	case SVG_FormatList_datatype:		return "FormatList"; 
-	case SVG_FontList_datatype:			return "FontList"; 
-	case SVG_ListOfIRI_datatype:		return "ListOfIRI"; 
-	case SVG_LanguageIDs_datatype:		return "LanguageIDs"; 
+	case DOM_StringList_datatype:		return "StringList"; 
+	case XMLRI_List_datatype:			return "ListOfIRI"; 
 	case SMIL_KeyTimes_datatype:		return "SMIL_KeyTimes"; 
 	case SMIL_KeySplines_datatype:		return "SMIL_KeySplines"; 
 	case SMIL_KeyPoints_datatype:		return "SMIL_KeyPoints"; 
