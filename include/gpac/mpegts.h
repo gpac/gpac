@@ -138,7 +138,7 @@ enum
 	/* A message to inform about the current time offset in the TS */
 	GF_M2TS_EVT_TOT,
 	/* A generic event message for EIT, TDT, TOT etc */
-	GF_M2TS_EVT_ALL,
+	GF_M2TS_EVT_DVB_GENERAL,
 };
 
 enum
@@ -335,6 +335,13 @@ typedef struct
 	u8 service_type;
 	unsigned char *provider, *service;
 } GF_M2TS_SDT;
+
+typedef struct
+{
+	u16 original_network_id;
+	u16 transport_stream_id;
+	GF_List *SDTs;
+} GF_M2TS_SDT_Table;
 
 #define GF_M2TS_BASE_DESCRIPTOR u32 tag;
 

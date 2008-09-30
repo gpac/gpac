@@ -624,7 +624,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		    memcpy(pck.data, sec->section, sizeof(unsigned char)*pck.data_len);
 			//pck.data[pck.data_len] = 0;
 			pck.stream = (GF_M2TS_ES *)ses;
-			ts->on_event(ts, GF_M2TS_EVT_ALL, &pck);
+			ts->on_event(ts, GF_M2TS_EVT_DVB_GENERAL, &pck);
 			free(pck.data);
 		}
 	} else {
@@ -906,6 +906,7 @@ static void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *mpe, GF
 
 static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *nit_es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
+	fprintf(stdout, "Processing NIT (PID %d)\n", table_id);
 }
 
 static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
