@@ -4799,7 +4799,7 @@ typedef struct
 	GF_AVCConfig *avccfg;
 	AVCState avc;
 	Bool force_next_au_start;
-	u32 aac_setup;
+	Bool stream_setup;
 } GF_TSImport;
 
 
@@ -5189,7 +5189,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		}
 		break;
 	case GF_M2TS_EVT_AAC_CFG:
-		if (!(import->flags & GF_IMPORT_PROBE_ONLY) && !tsimp->aac_setup) {
+		if (!(import->flags & GF_IMPORT_PROBE_ONLY) && !tsimp->stream_setup) {
 			GF_ESD *esd = gf_isom_get_esd(import->dest, tsimp->track, 1);
 			if (esd) {
 				if (!esd->decoderConfig->decoderSpecificInfo) esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
@@ -5199,7 +5199,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				gf_isom_change_mpeg4_description(import->dest, tsimp->track, 1, esd);
 				esd->decoderConfig->decoderSpecificInfo->data = NULL;
 				gf_odf_desc_del((GF_Descriptor *)esd);
-				tsimp->aac_setup = 1;
+				tsimp->stream_setup = 1;
 			}
 		}
 		break;
@@ -5323,28 +5323,33 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 			if (pck->stream->first_dts == samp->DTS) {
 
-				u32 w = 0;
-				if (pck->stream->vid_w) {
-					w = pck->stream->vid_w;
-					if (pck->stream->vid_par) w = w * (pck->stream->vid_par>>16) / (pck->stream->vid_par&0xffff);
-				}
-
 				switch (pck->stream->stream_type) {
-				case GF_M2TS_VIDEO_MPEG1: gf_import_message(import, GF_OK, "MPEG-1 Video import - %d x %d (TS PID %d)", w, pck->stream->vid_h, pck->stream->pid); break;
-				case GF_M2TS_VIDEO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Video import - %d x %d (TS PID %d)", w, pck->stream->vid_h, pck->stream->pid); break;
-				case GF_M2TS_VIDEO_MPEG4: gf_import_message(import, GF_OK, "MPEG-4 Video import - %d x %d (TS PID %d)", w, pck->stream->vid_h, pck->stream->pid); break;
-				case GF_M2TS_VIDEO_H264: gf_import_message(import, GF_OK, "MPEG-4 AVC/H264 Video import - %d x %d (TS PID %d)", pck->stream->vid_w, pck->stream->vid_h, pck->stream->pid); break;
+				case GF_M2TS_VIDEO_MPEG1: gf_import_message(import, GF_OK, "MPEG-1 Video import (TS PID %d)", pck->stream->pid); break;
+				case GF_M2TS_VIDEO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Video import (TS PID %d)", pck->stream->pid); break;
+				case GF_M2TS_VIDEO_MPEG4: gf_import_message(import, GF_OK, "MPEG-4 Video import (TS PID %d)", pck->stream->pid); break;
+				case GF_M2TS_VIDEO_H264: gf_import_message(import, GF_OK, "MPEG-4 AVC/H264 Video import (TS PID %d)", pck->stream->pid); break;
 				case GF_M2TS_AUDIO_MPEG1: gf_import_message(import, GF_OK, "MPEG-1 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
 				case GF_M2TS_AUDIO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
 				case GF_M2TS_AUDIO_AAC: gf_import_message(import, GF_OK, "MPEG-4 AAC Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid); break;
 				}
-				if (pck->stream->aud_sr) gf_isom_set_audio_info(import->dest, tsimp->track, 1, pck->stream->aud_sr, pck->stream->aud_nb_ch, 16);
-				else if (pck->stream->vid_w) {
-					gf_isom_set_visual_info(import->dest, tsimp->track, 1, pck->stream->vid_w, pck->stream->vid_h);
-					gf_isom_set_track_layout_info(import->dest, tsimp->track, w<<16, pck->stream->vid_h<<16, 0, 0, 0);
-				}
 
 				gf_isom_set_media_language(import->dest, tsimp->track, (char *) gf_4cc_to_str(pck->stream->lang)+1);
+			}
+			if (!tsimp->stream_setup) {
+				if (pck->stream->aud_sr) {
+					gf_isom_set_audio_info(import->dest, tsimp->track, 1, pck->stream->aud_sr, pck->stream->aud_nb_ch, 16);
+					tsimp->stream_setup = 1;
+				}
+				else if (pck->stream->vid_w) {
+					u32 w = pck->stream->vid_w;
+					if (pck->stream->vid_par) w = w * (pck->stream->vid_par>>16) / (pck->stream->vid_par&0xffff);
+					gf_isom_set_visual_info(import->dest, tsimp->track, 1, pck->stream->vid_w, pck->stream->vid_h);
+					gf_isom_set_track_layout_info(import->dest, tsimp->track, w<<16, pck->stream->vid_h<<16, 0, 0, 0);
+					if (w != pck->stream->vid_w)
+						e = gf_isom_set_pixel_aspect_ratio(import->dest, tsimp->track, 1, pck->stream->vid_par>>16, pck->stream->vid_par&0xff);
+
+					tsimp->stream_setup = 1;
+				}
 			}
 
 			if (samp->DTS >= pck->stream->first_dts) {
