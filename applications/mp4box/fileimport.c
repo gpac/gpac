@@ -573,6 +573,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			if (gf_isom_has_time_offset(mp4, tki->tk)) {
 				gf_isom_set_cts_packing(dest, tki->dst_tk, 1);
 			}
+			gf_isom_remove_edit_segments(dest, tki->dst_tk);
 		}
 		do_add = 1;
 		is_last = 0;
@@ -792,6 +793,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 
 		/*repack CTSs*/
 		for (i=0; i<nb_tk; i++) {
+			u32 j;
+			u64 new_track_dur;
 			tki = &tks[i];
 			if (tki->stop_state == 2) continue;
 			if (!gf_isom_get_sample_count(dest, tki->dst_tk)) {
@@ -803,6 +806,28 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			}
 			if (is_last && tki->can_duplicate) {
 				gf_isom_set_last_sample_duration(dest, tki->dst_tk, gf_isom_get_sample_duration(mp4, tki->tk, tki->sample_count));
+			}
+
+			/*rewrite edit list*/
+			new_track_dur = gf_isom_get_track_duration(dest, tki->dst_tk);
+			count = gf_isom_get_edit_segment_count(mp4, tki->tk);
+			if (count>2) {
+				fprintf(stdout, "Warning: %d edit segments - not supported while splitting (max 2) - ignoring extra\n");
+				count=2;
+			}
+			for (j=0; j<count; j++) {
+				u64 editTime, segDur, MediaTime;
+				u8 mode;
+			
+				gf_isom_get_edit_segment(mp4, tki->tk, j+1, &editTime, &segDur, &MediaTime, &mode);
+				if (!j && (mode!=GF_ISOM_EDIT_EMPTY) ) {
+					fprintf(stdout, "Warning: Edit list doesn't look like a track delay scheme - ignoring\n");
+					break;
+				}
+				if (mode==GF_ISOM_EDIT_NORMAL) {
+					segDur = new_track_dur;
+				} 
+				gf_isom_set_edit_segment(dest, tki->dst_tk, editTime, segDur, MediaTime, mode);
 			}
 		}
 		/*check chapters*/
