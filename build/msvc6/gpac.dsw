@@ -174,6 +174,21 @@ Package=<4>
 
 ###############################################################################
 
+Project: "bsac_dec"=..\..\modules\bsac_dec\bsac_dec.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "ctx_load"=.\ctx_load.dsp - Package Owner=<4>
 
 Package=<5>
@@ -205,36 +220,6 @@ Package=<4>
 ###############################################################################
 
 Project: "dx_hw"=.\dx_hw.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libgpac_dll
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "eit_dec"=..\..\modules\eit_dec\eit_dec.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libgpac_dll
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "epg_server"=..\..\applications\testapps\epg_server\epg_server.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -396,6 +381,21 @@ Package=<4>
 
 ###############################################################################
 
+Project: "mc264_dec"=..\..\MODULES\mc264_dec\mc264_dec.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "mp3_in"=.\mp3_in.dsp - Package Owner=<4>
 
 Package=<5>
@@ -457,6 +457,21 @@ Package=<4>
 ###############################################################################
 
 Project: "mp4client"=.\mp4client.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "mp4mc_drm"=..\..\modules\mp4mc_drm\mp4mc_drm.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
