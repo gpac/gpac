@@ -141,15 +141,16 @@ static void DelSection(IniSection *ptr)
 {
 	IniKey *k;
 	if (!ptr) return;
-
-	while (gf_list_count(ptr->keys)) {
-		k = (IniKey *) gf_list_get(ptr->keys, 0);
-		if (k->value) free(k->value);
-		if (k->name) free(k->name);
-		free(k);
-		gf_list_rem(ptr->keys, 0);
+	if (ptr->keys) {
+		while (gf_list_count(ptr->keys)) {
+			k = (IniKey *) gf_list_get(ptr->keys, 0);
+			if (k->value) free(k->value);
+			if (k->name) free(k->name);
+			free(k);
+			gf_list_rem(ptr->keys, 0);
+		}
+		gf_list_del(ptr->keys);
 	}
-	gf_list_del(ptr->keys);
 	free(ptr);
 }
 
