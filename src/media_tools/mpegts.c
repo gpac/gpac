@@ -208,16 +208,20 @@ void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, 
 				}
 
 				if (!pes->vid_h && (pes->frame_state==0xb3)) {
+					u32 den, num;
 					unsigned char *p = data+4;
 					pes->vid_w = (p[0] << 4) | ((p[1] >> 4) & 0xf);
 					pes->vid_h = ((p[1] & 0xf) << 8) | p[2];
 					pes->vid_par = (p[3] >> 4) & 0xf;
+
 					switch (pes->vid_par) {
 					default: pes->vid_par = 0; break;
-					case 2: pes->vid_par = (4<<16) | 3; break;
-					case 3: pes->vid_par = (16<<16) | 9; break;
-					case 4: pes->vid_par = (221<<16) | 100; break;
+					case 2: num = 4; den = 3; break;
+					case 3: num = 16; den = 9; break;
+					case 4: num = 221; den = 100; break;
 					}
+					if (den)
+						pes->vid_par = ((pes->vid_h/den)<<16) | (pes->vid_w/num); break;
 				}
 				if (pes->frame_state==0x00) {
 					switch ((data[5] >> 3) & 0x7) {

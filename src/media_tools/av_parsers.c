@@ -250,9 +250,9 @@ static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *d
 			dsi->VideoPL = 0x6A;
 			par = (p[3] >> 4) & 0xf;
 			switch (par) {
-			case 2: dsi->par_num = 4; dsi->par_den = 3; break;
-			case 3: dsi->par_num = 16; dsi->par_den = 9; break;
-			case 4: dsi->par_num = 2; dsi->par_den = 21; break;
+			case 2: dsi->par_num = dsi->height/3; dsi->par_den = dsi->width/4; break;
+			case 3: dsi->par_num = dsi->height/9; dsi->par_den = dsi->width/16; break;
+			case 4: dsi->par_num = dsi->height/2; dsi->par_den = dsi->width/21; break;
 			default: dsi->par_den = dsi->par_num = 0; break;
 			}
 			switch (p[3] & 0xf) {
