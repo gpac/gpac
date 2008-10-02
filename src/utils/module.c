@@ -52,7 +52,7 @@ GF_EXPORT
 void gf_modules_del(GF_ModuleManager *pm)
 {
 	ModuleInstance *inst;
-
+	if (!pm) return;
 	/*unload all modules*/
 	while (gf_list_count(pm->plug_list)) {
 		inst = (ModuleInstance *) gf_list_get(pm->plug_list, 0);

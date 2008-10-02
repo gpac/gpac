@@ -446,7 +446,7 @@ void wxOsmo4Frame::CheckVideoOut()
 	void *os_handle = NULL;
 	void *os_display = NULL;
 	/*build a child window for embed display*/
-	if (stricmp(sOpt, "SDL Video Output")) {
+	if (sOpt && stricmp(sOpt, "SDL Video Output")) {
 		if (m_user.os_window_handler) return;
 		m_bExternalView = 0;
 
@@ -656,7 +656,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 		const char *sOpt;
 		wxDirDialog dlg(NULL, wxT("Locate GPAC modules directory"));
 		if  (!gf_modules_get_count(m_user.modules)) {
-		  gf_modules_del(m_user.modules);
+		  if (m_user.modules) gf_modules_del(m_user.modules);
 		  m_user.modules = NULL;
 			if ( dlg.ShowModal() != wxID_OK ) return false;
 			str = dlg.GetPath().mb_str(wxConvUTF8);
@@ -665,6 +665,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 			if (!m_user.modules || !gf_modules_get_count(m_user.modules) ) {
 				wxMessageDialog(NULL, wxT("Cannot find any modules for GPAC"), wxT("Init error"), wxOK);
 				gf_cfg_del(m_user.config);
+				m_user.config = NULL;
 				return 0;
 			}
 		}
@@ -763,6 +764,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 		wxMessageDialog(NULL, wxT("No modules available - system cannot work"), wxT("Fatal Error"), wxOK).ShowModal();
 		gf_modules_del(m_user.modules);
 		gf_cfg_del(m_user.config);
+		m_user.config = NULL;
 		return 0;
 	}
 
