@@ -57,17 +57,17 @@ install:
 	rm -f $(DESTDIR)$(moddir)/libgpac.$(DYN_LIB_SUFFIX)
 	rm -f $(DESTDIR)$(moddir)/nposmozilla.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(prefix)/lib
+	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(prefix)/$(libdir)
 else
 ifeq ($(DEBUGBUILD),no)
 	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
-	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
+	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
+	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
 else
-	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
-	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
+	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
+	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
 	ldconfig || true
 endif
 endif
@@ -84,9 +84,9 @@ endif
 uninstall:
 	$(MAKE) -C applications uninstall
 	rm -rf $(moddir)
-	rm -rf $(prefix)/lib/libgpac*
-	rm -rf $(prefix)/bin/mp4box
-	rm -rf $(prefix)/bin/mp42client
+	rm -rf $(prefix)/$(libdir)/libgpac*
+	rm -rf $(prefix)/bin/MP4Box
+	rm -rf $(prefix)/bin/MP4Client
 	rm -rf $(mandir)/man1/mp4box.1
 	rm -rf $(mandir)/man1/mp4client.1
 	rm -rf $(mandir)/man1/gpac.1
@@ -99,8 +99,8 @@ install-lib:
 	install -m 644 $(SRC_PATH)/include/gpac/internal/*.h "$(DESTDIR)$(prefix)/include/gpac/internal"
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/modules"
 	install -m 644 $(SRC_PATH)/include/gpac/modules/*.h "$(DESTDIR)$(prefix)/include/gpac/modules"
-	mkdir -p "$(DESTDIR)$(prefix)/lib"
-	install -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/lib"
+	mkdir -p "$(DESTDIR)$(prefix)/$(libdir)"
+	install -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/$(libdir)"
 
 uninstall-lib:
 	rm -rf "$(prefix)/include/gpac/internal"
