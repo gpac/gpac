@@ -1958,8 +1958,6 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 	bs = gf_bs_new(buffer, nal_size, GF_BITSTREAM_READ);
 	gf_bs_read_int(bs, 8);
 
-	if (nal_size==20)
-		nal_size=20;
 	new_buffer = (char*)malloc(sizeof(char)*nal_size);
 	new_buffer[0] = (char) hdr;
 	written = 1;
