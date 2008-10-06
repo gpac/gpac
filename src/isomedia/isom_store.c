@@ -1002,14 +1002,15 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 	count = gf_list_count(writers);
 	//browse each groups
 	while (1) {
+		/*the max DTS the chunk of the current writer*/
+		u64 chunkLastDTS = 0;
+		/*the timescale related to the max DTS*/
+		u32 chunkLastScale = 0;
+
 		writeGroup = 1;
 
 		//proceed a group
 		while (writeGroup) {
-			/*the DTS for the end of this chunk*/
-			u64 chunkMaxDTS = 0;
-			/*the timescale DTS for the end of this chunk*/
-			u32 chunkMaxScale = 0;
 			curWriter = NULL;
 			for (i=0 ; i < count; i++) {
 				tmp = (TrackWriter*)gf_list_get(writers, i);
@@ -1034,8 +1035,8 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 
 					//can this sample fit in our chunk ?
 					if ( ( (DTS - tmp->DTSprev) + tmp->chunkDur) *  movie->moov->mvhd->timeScale > movie->interleavingTime * tmp->timeScale
-						/*try to keep chunk synchronized within the group*/
-						|| (drift_inter && chunkMaxDTS && ( ((u64)tmp->DTSprev*chunkMaxScale) > ((u64)chunkMaxDTS*tmp->timeScale)) ) 
+						/*drfit check: reject sample if outside our check window*/
+						|| (drift_inter && chunkLastDTS && ( ((u64)tmp->DTSprev*chunkLastScale) > ((u64)chunkLastDTS*tmp->timeScale)) ) 
 						) {
 						//in case the sample is longer than InterleaveTime
 						if (!tmp->chunkDur) {
@@ -1097,9 +1098,18 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					}
 				}
 				/*record chunk end-time & track timescale for drift-controled interleaving*/
-				if (drift_inter && !chunkMaxDTS && curWriter) {
-					chunkMaxDTS = curWriter->DTSprev;
-					chunkMaxScale = curWriter->timeScale;
+				if (drift_inter && curWriter) {
+					chunkLastScale = curWriter->timeScale;
+					chunkLastDTS = curWriter->DTSprev;
+					/*add one interleave window drift - since the "maxDTS" is the previously written one, we will
+					have the following cases:
+					- sample doesn't fit: post-pone and force new chunk 
+					- sample time larger than previous chunk time + interleave: post-pone and force new chunk
+					- otherwise store and track becomes current reference
+
+					this ensures a proper drift regulation (max DTS diff is less than the interleaving window)
+					*/
+					chunkLastDTS += curWriter->timeScale * movie->interleavingTime / movie->moov->mvhd->timeScale;
 				}
 			}
 			//no sample found, we're done with this group
