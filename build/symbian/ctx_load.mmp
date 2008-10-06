@@ -7,3 +7,4 @@ TARGET gm_ctx_load.dll
 SOURCEPATH ..\..\modules\ctx_load
 SOURCE ctx_load.c
 
+EXPORTUNFROZEN
