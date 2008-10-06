@@ -38,6 +38,11 @@ ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols ffmpeg_in.def 
 endif
 
+#need to add cross-libraries if not local
+ifeq ($(CROSS_COMPILING),yes)
+EXTRALIBS+=-L$(prefix)/lib
+endif
+
 ifeq ($(WANT_PIC),yes)
 OBJSPIC=$(OBJS:.o=.opic)
 else

@@ -4,6 +4,8 @@ vpath %.c $(SRC_PATH)/applications/mp4client
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
+LINKLIBS=$(OGL_LIBS)
+
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
 LDFLAGS+=-g
@@ -35,12 +37,49 @@ EXT=
 PROG=MP4Client
 endif
 
+ifneq ($(CONFIG_JPEG), no)
+LINKLIBS+= -L$(prefix)/lib
+else
+ifneq ($(CONFIG_PNG), no)
+LINKLIBS+= -L$(prefix)/lib
+else
+ifneq ($(TRISCOPE_MODE), no)
+LINKLIBS+= -L$(prefix)/lib
+endif
+endif
+endif
+
+ifeq ($(CONFIG_JPEG), no)
+else
+LINKLIBS+= -ljpeg
+endif
+
+ifeq ($(CONFIG_PNG), no)
+else    
+LINKLIBS+= -lpng
+endif
+
+ifeq ($(TRISCOPE_MODE), no)
+else
+LINKLIBS+= -lViRenDrivers_linux
+endif    
+
+
+
+#ifeq ($(TARGET_ARCH_X86), yes)
+#EXTRALIBS+= -L/comelec/users/comalren/renoir-application-drivers/lower-layers/sh4-x86/LINUXSH4/lib/x86_linux
+#ifeq ($(CC), sh4-unknown-linux-gnu-gcc)
+#EXTRALIBS+= -L/comelec/users/comalren/renoir-application-drivers/lower-layers/sh4-x86/LINUXSH4/lib/sh4_linux
+#endif
+#endif
+#endif
+
 SRCS := $(OBJS:.o=.c) 
 
 all: $(PROG)
 
 MP4Client$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac -lz  $(OGL_LIBS)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac -lz $(LINKLIBS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INSTALL_FLAGS) -c -o $@ $< 

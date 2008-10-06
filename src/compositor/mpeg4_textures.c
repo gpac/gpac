@@ -28,6 +28,7 @@
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
+
 typedef struct
 {
 	GF_TextureHandler txh;
@@ -216,6 +217,7 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 		free(st);
 	}
 }
+
 static void imagetexture_update(GF_TextureHandler *txh)
 {
 	M_ImageTexture *txnode = (M_ImageTexture *) txh->owner;

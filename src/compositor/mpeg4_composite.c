@@ -33,6 +33,12 @@
 #include "../../TinyGL/include/GL/oscontext.h"
 #endif
 
+#ifdef TRISCOPE_TEST_MALLOC
+#include "gltx_malloc.h"
+#endif
+
+
+
 typedef struct
 {
 	GF_TextureHandler txh;
@@ -53,7 +59,12 @@ static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		/*unregister visual*/
 		gf_sc_visual_unregister(st->visual->compositor, st->visual);
 		visual_del(st->visual);
+#ifndef TRISCOPE_TEST_MALLOC
 		if (st->txh.data) free(st->txh.data);
+#else
+		if (st->txh.data) gltx_free(st->txh.data);
+        printf("Renoir object texture freed: Total %d Max %d\n",gltx_total_mem(),gltx_max_alloc()) ;
+#endif
 		/*destroy texture*/
 		gf_sc_texture_destroy(&st->txh);
 #ifdef GPAC_USE_TINYGL
@@ -143,7 +154,6 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 	}
 	return 0;
 }
-
 
 static void composite_update(GF_TextureHandler *txh)
 {
@@ -310,7 +320,14 @@ static void composite_update(GF_TextureHandler *txh)
 #endif
 	
 		if (needs_stencil) {
+#ifndef TRISCOPE_TEST_MALLOC
 			txh->data = (char*)malloc(sizeof(unsigned char) * txh->stride * txh->height);
+#else
+			if ( txh->data = (char*)gltx_malloc(sizeof(unsigned char) * txh->stride * txh->height) ) {
+               printf("\nRenoir object texture allocation: %d bytes\n", sizeof(unsigned char) * txh->stride * txh->height ) ;
+               printf("Renoir object texture allocated: Total %d Max %d\n",gltx_total_mem(),gltx_max_alloc()) ;
+            } else printf( "Renoir object texture could not be allocated!");
+#endif
 			memset(txh->data, 0, sizeof(unsigned char) * txh->stride * txh->height);
 			e = raster->stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat, txh->pixelformat, 0);
 #ifdef GPAC_TRISCOPE_MODE
