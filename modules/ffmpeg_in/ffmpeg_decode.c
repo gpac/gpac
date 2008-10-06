@@ -292,6 +292,9 @@ static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 		avcodec_close(ffd->ctx);
 		ffd->ctx = NULL;
 	}
+#ifdef FFMPEG_SWSCALE
+	if (ffd->sws_ctx) { sws_freeContext(ffd->sws_ctx); ffd->sws_ctx = NULL; }
+#endif
 	return GF_OK;
 }
 
@@ -564,6 +567,9 @@ redecode:
 				inBuffer[0] = inBuffer[1] = inBuffer[2] = 0;
 				inBuffer[3] = 1;
 			}
+#ifdef FFMPEG_SWSCALE
+			if (ffd->sws_ctx) { sws_freeContext(ffd->sws_ctx); ffd->sws_ctx = NULL; }
+#endif
 			return GF_BUFFER_TOO_SMALL;
 		}
 		/*check PAR in case on-the-fly change*/
@@ -632,7 +638,19 @@ redecode:
 			}
 			pict.data[3] = 0;
 			pict.linesize[3] = 0;
+#ifndef FFMPEG_SWSCALE
 			img_convert(&pict, pix_out, (AVPicture *) ffd->frame, ffd->ctx->pix_fmt, ffd->ctx->width, ffd->ctx->height);
+#else
+			if (!ffd->sws_ctx) 
+				ffd->sws_ctx = sws_getContext(ffd->ctx->width, ffd->ctx->height,
+		                        ffd->ctx->pix_fmt, ffd->ctx->width, ffd->ctx->height, pix_out, SWS_BICUBIC, 
+        	                NULL, NULL, NULL);
+			
+			if (ffd->sws_ctx)
+				sws_scale(ffd->sws_ctx, ffd->frame->data, ffd->frame->linesize, 0, ffd->ctx->height->codec->height, pict.data, pict.linesize);
+
+#endif
+
 			*outBufferLength = ffd->out_size;
 #endif
 		}
