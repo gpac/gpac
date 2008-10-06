@@ -186,6 +186,63 @@ nsOsmozillaInstance::nsOsmozillaInstance(nsPluginCreateData * aCreateDataStruct)
 	m_argc=aCreateDataStruct->argc;
 	m_argv=aCreateDataStruct->argv;
 	m_argn=aCreateDataStruct->argn;
+
+	SetOptions();
+}
+
+void nsOsmozillaInstance::SetOptions()
+{
+	m_bLoop = 0;
+	m_bAutoStart = 1;
+	m_bUse3D = 0;		
+
+	/*options sent from plugin*/
+	for(int i=0;i<m_argc;i++) {   
+		if (!m_argn[i] || !m_argv[i]) continue;
+		if (!stricmp(m_argn[i],"autostart") && (!stricmp(m_argv[i], "false") || !stricmp(m_argv[i], "no")) ) 
+			m_bAutoStart = 0;
+
+		else if (!stricmp(m_argn[i],"src") ) {
+			if (m_szURL) free(m_szURL);
+			m_szURL = strdup(m_argv[i]);
+		}
+		else if (!stricmp(m_argn[i],"use3d") && (!stricmp(m_argv[i], "true") || !stricmp(m_argv[i], "yes") ) ) {
+			m_bUse3D = 1;
+		}
+		else if (!stricmp(m_argn[i],"loop") && (!stricmp(m_argv[i], "true") || !stricmp(m_argv[i], "yes") ) ) {
+			m_bLoop = 1;
+		}
+		else if (!stricmp(m_argn[i],"aspectratio")) {
+			aspect_ratio = GF_ASPECT_RATIO_KEEP;
+			if (!stricmp(m_argv[i], "keep")) aspect_ratio = GF_ASPECT_RATIO_KEEP;
+			else if (!stricmp(m_argv[i], "16:9")) aspect_ratio = GF_ASPECT_RATIO_16_9;
+			else if (!stricmp(m_argv[i], "4:3")) aspect_ratio = GF_ASPECT_RATIO_4_3;
+			else if (!stricmp(m_argv[i], "fill")) aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
+		}
+	}
+
+	/*URL is not absolute, request new stream to mozilla - we don't pass absolute URLs since some may not be 
+	handled by gecko */
+	if (m_szURL) {
+		Bool absolute_url = 0;
+		if (strstr(m_szURL, "://")) absolute_url = 1;
+		else if (m_szURL[0] == '/') {
+			FILE *test = fopen(m_szURL, "rb");
+			if (test) {	
+				absolute_url = 1;
+				fclose(test);
+			}
+		}
+		else if ((m_szURL[1] == ':') && (m_szURL[2] == '\\')) absolute_url = 1;
+
+		if (!absolute_url) {
+			char *url = m_szURL;
+			m_szURL = NULL;
+			NPN_GetURL(mInstance, url, NULL);
+			free(url);
+		}
+	}
+
 }
 
 nsOsmozillaInstance::~nsOsmozillaInstance()
@@ -199,6 +256,13 @@ nsOsmozillaInstance::~nsOsmozillaInstance()
 		mScriptablePeer->SetInstance(NULL);
 		NS_IF_RELEASE(mScriptablePeer);
     }
+}
+
+static void osmozilla_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
+{
+	FILE *logs = (FILE *) cbk;
+	vfprintf(logs, fmt, list);
+	fflush(logs);
 }
 
 NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
@@ -246,6 +310,59 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	if (str && !strcmp(str, "no")) m_disable_mime = 0;
 
 	if (SetWindow(aWindow)) mInitialized = TRUE;
+
+	/*check log file*/
+	str = gf_cfg_get_key(m_user.config, "General", "LogFile");
+	if (str) {
+		m_logs = fopen(str, "wt");
+		gf_log_set_callback(m_logs, osmozilla_do_log);
+	}
+	else m_logs = NULL;
+
+	/*set log level*/
+	m_log_level = 0;
+	str = gf_cfg_get_key(m_user.config, "General", "LogLevel");
+	if (str) {
+		if (!stricmp(str, "debug")) m_log_level = GF_LOG_DEBUG;
+		else if (!stricmp(str, "info")) m_log_level = GF_LOG_INFO;
+		else if (!stricmp(str, "warning")) m_log_level = GF_LOG_WARNING;
+		else if (!stricmp(str, "error")) m_log_level = GF_LOG_ERROR;
+		gf_log_set_level(m_log_level);
+	}
+	if (m_log_level && !m_logs) m_logs = stdout;
+
+	/*set log tools*/
+	m_log_tools = 0;
+	str = gf_cfg_get_key(m_user.config, "General", "LogTools");
+	if (str) {
+		char *sep;
+		char *val = (char *) str;
+		while (val) {
+			sep = strchr(val, ':');
+			if (sep) sep[0] = 0;
+			if (!stricmp(val, "core")) m_log_tools |= GF_LOG_CODING;
+			else if (!stricmp(val, "coding")) m_log_tools |= GF_LOG_CODING;
+			else if (!stricmp(val, "container")) m_log_tools |= GF_LOG_CONTAINER;
+			else if (!stricmp(val, "network")) m_log_tools |= GF_LOG_NETWORK;
+			else if (!stricmp(val, "rtp")) m_log_tools |= GF_LOG_RTP;
+			else if (!stricmp(val, "author")) m_log_tools |= GF_LOG_AUTHOR;
+			else if (!stricmp(val, "sync")) m_log_tools |= GF_LOG_SYNC;
+			else if (!stricmp(val, "codec")) m_log_tools |= GF_LOG_CODEC;
+			else if (!stricmp(val, "parser")) m_log_tools |= GF_LOG_PARSER;
+			else if (!stricmp(val, "media")) m_log_tools |= GF_LOG_MEDIA;
+			else if (!stricmp(val, "scene")) m_log_tools |= GF_LOG_SCENE;
+			else if (!stricmp(val, "script")) m_log_tools |= GF_LOG_SCRIPT;
+			else if (!stricmp(val, "interact")) m_log_tools |= GF_LOG_INTERACT;
+			else if (!stricmp(val, "compose")) m_log_tools |= GF_LOG_COMPOSE;
+			else if (!stricmp(val, "mmio")) m_log_tools |= GF_LOG_MMIO;
+			else if (!stricmp(val, "none")) m_log_tools = 0;
+			else if (!stricmp(val, "all")) m_log_tools = 0xFFFFFFFF;
+			if (!sep) break;
+			sep[0] = ':';
+			val = sep+1;
+		}
+		gf_log_set_tools(m_log_tools);
+	}
 	return mInitialized;
 
 err_exit:
@@ -443,11 +560,11 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 
  	m_prev_time = 0;
 	m_url_changed = 0;
-	SetOptions();
  
 	m_term = gf_term_new(&m_user);
 	if (! m_term) return FALSE;
 
+	gf_term_set_option(m_term, GF_OPT_ASPECT_RATIO, aspect_ratio);
 	mInitialized = TRUE;
 	
 	/*stream not ready*/
@@ -458,60 +575,7 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 	return TRUE;
 }
 
-void nsOsmozillaInstance::SetOptions()
-{
-	m_bLoop = 0;
-	m_bAutoStart = 1;
-	m_bUse3D = 0;		
 
-	/*options sent from plugin*/
-	for(int i=0;i<m_argc;i++) {   
-		if (!stricmp(m_argn[i],"autostart") && (!stricmp(m_argv[i], "false") || !stricmp(m_argv[i], "no")) ) 
-			m_bAutoStart = 0;
-
-		else if (!stricmp(m_argn[i],"src") ) {
-			if (m_szURL) free(m_szURL);
-			m_szURL = strdup(m_argv[i]);
-		}
-		else if (!stricmp(m_argn[i],"use3d") && (!stricmp(m_argv[i], "true") || !stricmp(m_argv[i], "yes") ) ) {
-			m_bUse3D = 1;
-		}
-		else if (!stricmp(m_argn[i],"loop") && (!stricmp(m_argv[i], "true") || !stricmp(m_argv[i], "yes") ) ) {
-			m_bLoop = 1;
-		}
-		else if (!stricmp(m_argn[i],"aspectratio")) {
-			u32 ar = GF_ASPECT_RATIO_KEEP;
-			if (!stricmp(m_argv[i], "keep")) ar = GF_ASPECT_RATIO_KEEP;
-			else if (!stricmp(m_argv[i], "16:9")) ar = GF_ASPECT_RATIO_16_9;
-			else if (!stricmp(m_argv[i], "4:3")) ar = GF_ASPECT_RATIO_4_3;
-			else if (!stricmp(m_argv[i], "fill")) ar = GF_ASPECT_RATIO_FILL_SCREEN;
-			gf_term_set_option(m_term, GF_OPT_ASPECT_RATIO, ar);
-		}
-	}
-
-	/*URL is not absolute, request new stream to mozilla - we don't pass absolute URLs since some may not be 
-	handled by gecko */
-	if (m_szURL) {
-		Bool absolute_url = 0;
-		if (strstr(m_szURL, "://")) absolute_url = 1;
-		else if (m_szURL[0] == '/') {
-			FILE *test = fopen(m_szURL, "rb");
-			if (test) {	
-				absolute_url = 1;
-				fclose(test);
-			}
-		}
-		else if ((m_szURL[1] == ':') && (m_szURL[2] == '\\')) absolute_url = 1;
-
-		if (!absolute_url) {
-			char *url = m_szURL;
-			m_szURL = NULL;
-			NPN_GetURL(mInstance, url, NULL);
-			free(url);
-		}
-	}
-
-}
 
 NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
 				    NPBool seekable, uint16 * stype)
@@ -530,7 +594,7 @@ NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
 
 NPError nsOsmozillaInstance::DestroyStream(NPStream * stream, NPError reason)
 {
-	if (m_szURL) {
+	if (0 && m_szURL) {
 		gf_term_disconnect(m_term);
 		free(m_szURL);
 		m_szURL = NULL;
@@ -546,6 +610,7 @@ uint16 nsOsmozillaInstance::HandleEvent(void* event)
  
 void nsOsmozillaInstance::Pause()
 {
+fprintf(stdout, "pause\n");
 	if (m_term) {
 		if (gf_term_get_option(m_term, GF_OPT_PLAY_STATE) == GF_STATE_PAUSED) {
 	        gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
@@ -724,6 +789,7 @@ void nsOsmozillaInstance::Update(const char *type, const char *commands)
 
 nsOsmozillaPeer *nsOsmozillaInstance::getScriptablePeer()
 {
+fprintf(stdout, "get peer\n");
     if (!mScriptablePeer) {
 		mScriptablePeer = new nsOsmozillaPeer(this);
 		if (!mScriptablePeer) return NULL;
