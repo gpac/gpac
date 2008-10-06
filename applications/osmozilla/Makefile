@@ -39,7 +39,7 @@ endif
 
 LINKLIBS=-L../../bin/gcc -lgpac
 
-OBJS= osmozilla.o npp_gate.o np_entry.o npn_gate.o
+#OBJS= osmozilla.o npp_gate.o np_entry.o npn_gate.o
 
 SRCS := $(OBJS:.o=.cpp) 
 

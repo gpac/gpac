@@ -143,8 +143,8 @@ void gf_sc_texture_reset(GF_TextureHandler *txh)
 			free(txh->tx_io->depth_data);
 			txh->tx_io->depth_data = NULL;
 		}
+	    txh->RenoirObject = NULL;
 	}
-	txh->RenoirObject = NULL;
 	
 #endif
 	
@@ -632,7 +632,7 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGBA, GL_UNSIGNED_BYTE, txh->data);
 	} else if (txh->pixelformat==GF_PIXEL_RGB_24) {
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGB, GL_UNSIGNED_BYTE, txh->data);
-	/* for triscope mode */
+
 #ifdef GPAC_TRISCOPE_MODE
 	} else if (txh->pixelformat==GF_PIXEL_RGBDS) {
 		/*we'll work with one alpha bit (=shape). we'll take the heaviest weighted as this threshold*/

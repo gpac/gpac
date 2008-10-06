@@ -1,7 +1,7 @@
 include ../config.mak
 
-APPDIRS= mp4box mp4client testapps/mp4_streamer testapps/mp42ts
-#APPDIRS= mp4client 
+#APPDIRS= mp4box mp4client testapps/mp4_streamer testapps/mp42ts
+APPDIRS= mp4client 
 ifeq ($(SRC_LOCAL_PATH), yes)
 ifeq ($(TARGET_ARCH_ARMV4L), yes)
 else

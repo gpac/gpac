@@ -27,7 +27,7 @@ cross_prefix=""
 dxsdk_path=""
 moz_path="local"
 cc_orig="gcc"
-cc=$cc_orig
+cc="${cc_orig}"
 ar="ar"
 ranlib="ranlib"
 make="make"
@@ -260,6 +260,8 @@ if test "$mingw32" = "yes" ; then
 fi
 
 cc="${cross_prefix}${cc}"
+#for ccache
+cc="${cc}"
 ar="${cross_prefix}${ar}"
 ranlib="${cross_prefix}${ranlib}"
 strip="${cross_prefix}${strip}"
@@ -377,7 +379,7 @@ linux="yes"
 case "$cpu" in
 sh4)
 CFLAGS="$CFLAGS -isystem $prefix/include"
-LDFLAGS="$LDFLAGS -L$prefix/lib"
+#LDFLAGS="$LDFLAGS -L$prefix/lib"
 ;;
 esac
 ;;
@@ -559,14 +561,30 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -ljpeg 2> /dev/null  ; then
-has_jpeg="system"
-elif test "$alt_macosx_dir" != "" ; then
- if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -ljpeg 2> /dev/null ; then
- has_jpeg="system"
- fi
-elif $cc -o $TMPO $TMPC -I$local_inc/jpeg -L$local_lib -ljpeg 2> /dev/null  ; then
-has_jpeg="local"
+if test "$cross_prefix"  != "" ; then
+  if test "`which $prefix/bin/jpeg-config`" != ""; then
+    jpeg_cflags="`$prefix/bin/jpeg-config --cflags`"
+    jpeg_lflags="`$prefix/bin/jpeg-config --libs`"
+    if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags 2> /dev/null  ; then
+       has_jpeg="system"
+    else
+       jpeg_cflags="-I$local_inc/jpeg"
+       jpeg_lflags="-L$local_lib -ljpeg"
+       if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags 2> /dev/null  ; then
+          has_jpeg="local"
+       fi
+    fi
+  fi
+else
+  if $cc -o $TMPO $TMPC -ljpeg 2> /dev/null  ; then
+  has_jpeg="system"
+  elif test "$alt_macosx_dir" != "" ; then
+   if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -ljpeg 2> /dev/null ; then
+   has_jpeg="system"
+   fi
+  elif $cc -o $TMPO $TMPC -I$local_inc/jpeg -L$local_lib -ljpeg 2> /dev/null  ; then
+  has_jpeg="local"
+  fi
 fi
 
 #look for OpenJPEG support
@@ -592,14 +610,30 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -lpng -lz 2> /dev/null  ; then
-has_png="system"
-elif test "$alt_macosx_dir" != "" ; then
- if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lpng 2> /dev/null ; then
- has_png="system"
- fi
-elif $cc -o $TMPO $TMPC -I$local_inc/png -L$local_lib -lpng 2> /dev/null  ; then
-has_png="local"
+if test "$cross_prefix"  != "" ; then
+  png_cflags="-I$prefix/include"
+  png_lflags="-L$prefix/lib -lpng -lz"
+  echo $png_cflags
+  echo $png_lflags
+  if $cc -o $TMPO $TMPC $png_cflags $png_lflags 2> /dev/null  ; then
+     has_png="system"
+  else
+     png_cflags="-I$local_inc/png"
+     png_lflags="-L$local_lib -lpng"
+     if $cc -o $TMPO $TMPC $png_cflags $png_lflags 2> /dev/null  ; then
+        has_png="local"
+     fi
+  fi
+else
+  if $cc -o $TMPO $TMPC -lpng -lz 2> /dev/null  ; then
+  has_png="system"
+  elif test "$alt_macosx_dir" != "" ; then
+   if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lpng 2> /dev/null ; then
+   has_png="system"
+   fi
+  elif $cc -o $TMPO $TMPC -I$local_inc/png -L$local_lib -lpng 2> /dev/null  ; then
+  has_png="local"
+  fi
 fi
 
 #look for MAD support
@@ -658,16 +692,31 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -lz -lavcodec -lavformat 2> /dev/null  ; then
-has_ffmpeg="system"
-elif test "$alt_macosx_dir" != "" ; then
- if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lz -lavcodec -lavformat 2> /dev/null ; then
- has_ffmpeg="system"
- fi
-elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
-has_ffmpeg="local"
+if test "$cross_prefix"  != "" ; then
+  echo "HELLO"
+  echo "HELLO"
+  echo "HELLO"
+  if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib -lz -lavcodec -lavformat -lavutil 2> /dev/null  ; then
+  echo "HELLO"
+  echo "HELLO"
+  echo "HELLO"
+     has_ffmpeg="system"
+  else
+     if $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
+        has_ffmpeg="local"
+     fi
+  fi
+else
+  if $cc -o $TMPO $TMPC -lz -lavcodec -lavformat 2> /dev/null  ; then
+  has_ffmpeg="system"
+  elif test "$alt_macosx_dir" != "" ; then
+   if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lz -lavcodec -lavformat 2> /dev/null ; then
+   has_ffmpeg="system"
+   fi
+  elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
+  has_ffmpeg="local"
+  fi
 fi
-
 
 #look for vorbis support
 cat > $TMPC << EOF
@@ -967,7 +1016,21 @@ for opt do
   ;;
   --use-ffmpeg=*) has_ffmpeg=${opt#--use-ffmpeg=}
   ;;
-  --use-png=*) has_png=${opt#--use-png=}
+  --use-png=*) tmp_has_png=${opt#--use-png=}
+if test "$tmp_has_png" = "system" ; then
+ if test "$has_png"  != "system" ; then
+  if test "$cross_prefix"  != "" ; then
+   echo 
+   echo "WARNING: PNG has been forced to system, but we are cross-compiling, it will have to be on target"
+   echo 
+  else
+   echo 
+   echo "WARNING!! : PNG has been forced to system even though it hasn't been found in this host"
+   echo 
+  fi
+ fi
+fi
+has_png=$tmp_has_png
   ;;
   --use-ogg=*) has_ogg=${opt#--use-ogg=}
   ;;
@@ -1371,6 +1434,11 @@ echo "WANT_PIC=$want_pic" >> config.mak
 echo "LDFLAGS=$LDFLAGS" >> config.mak
 echo "SHFLAGS=$SHFLAGS" >> config.mak
 
+#for cross-compilation
+if test "$cross_prefix"  != "" ; then
+echo "CROSS_COMPILING=yes" >> config.mak
+fi
+
 if test "$cpu" = "x86" ; then
   echo "TARGET_ARCH_X86=yes" >> config.mak
 elif test "$cpu" = "armv4l" ; then
@@ -1616,9 +1684,10 @@ if test "$source_path_used" = "yes" ; then
     ln -sf $source_path/src/Makefile src/Makefile
     ln -sf $source_path/src/libgpac.def src/libgpac.def
 
-    if test "$enable_renoir" = "yes" ; then
-      cp $source_path/src/compositor/triscope_renoir/*.a src/compositor/triscope_renoir
-    fi
+    #if test "$enable_renoir" = "yes" ; then
+      #should be done according to target
+      #cp $source_path/src/compositor/triscope_renoir/*.a src/compositor/triscope_renoir
+    #fi
 
     mkdir -p applications
     ln -sf $source_path/applications/Makefile applications/Makefile
@@ -1629,7 +1698,7 @@ if test "$source_path_used" = "yes" ; then
          ln -sf $source_path/$dir/Makefile $dir/Makefile
     done
 
-    MOD_DIRS="modules modules/aac_in modules/alsa modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/img_in modules/ismacryp modules/isom_in modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/raw_out modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/svg_loader modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec"
+    MOD_DIRS="modules modules/aac_in modules/alsa modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/gpac_js modules/img_in modules/ismacryp modules/isom_in modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/raw_out modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/svg_loader modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec"
     cur_dir="`pwd`"
     for dir in $MOD_DIRS ; do
             mkdir -p $dir

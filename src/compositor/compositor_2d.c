@@ -435,6 +435,9 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	if (tr_state->direct_draw) {
 		
 #ifdef GPAC_TRISCOPE_MODE
+#ifdef TRISCOPE_DEBUG
+   printf("\nEntering SetRenoirTexture...\n");
+#endif
 		return SetRenoirTexture(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0);
 		
 #else 		

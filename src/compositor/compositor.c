@@ -37,6 +37,9 @@
 #include "visual_manager.h"
 #include "texturing.h"
 
+#ifdef TRISCOPE_TEST_FRAMERATE
+#include "chrono.h"
+#endif
 
 #define SC_DEF_WIDTH	320
 #define SC_DEF_HEIGHT	240
@@ -210,7 +213,9 @@ static u32 gf_sc_proc(void *par)
 		if (compositor->is_hidden) 
 			gf_sleep(compositor->frame_duration);
 		else	
+
 			gf_sc_simulation_tick(compositor);
+
 	}
 	/*destroy video out here if w're using openGL, to avoid threading issues*/
 	compositor->video_out->Shutdown(compositor->video_out);
@@ -442,7 +447,12 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 				return NULL;
 			}
 		}
-	}
+	} else {
+#ifdef GPAC_TRISCOPE_MODE	
+/* scene creation*/	
+	tmp->RenoirHandler = CreateRenoirScene();
+#endif	
+    }
 
 	/*set default size if owning output*/
 	if (!tmp->user->os_window_handler) {
@@ -1561,7 +1571,11 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #endif
 
 	flags = compositor->traverse_state->direct_draw;
+
+
 	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
+
+
 #ifdef GPAC_TRISCOPE_MODE
 	/*here comes renoir rendering*/
 	RenderRenoirScene (compositor->RenoirHandler);	
@@ -1593,6 +1607,10 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time, time_node_time, texture_time, traverse_time, flush_time;
 #endif
+#ifdef TRISCOPE_TEST_FRAMERATE
+    double drawing_time;
+    static u32 timer_count=0;
+#endif
 	/*lock compositor for the whole cycle*/
 	gf_sc_lock(compositor, 1);
 
@@ -1616,6 +1634,9 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 
 	in_time = gf_sys_clock();
+#ifdef TRISCOPE_TEST_FRAMERATE
+     TIMER_START;
+#endif
 	if (compositor->reset_graphics)
 		compositor->draw_next_frame = 1;
 
@@ -1815,6 +1836,14 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 
 	end_time = gf_sys_clock() - in_time;
+
+#ifdef TRISCOPE_TEST_FRAMERATE
+TIMER_STOP;
+drawing_time=TIMER_ELAPSED;
+printf("frame: %d ", timer_count) ;
+printf(" %f sec\n", drawing_time/1000000.0) ;
+timer_count++;
+#endif
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
 		compositor->networks_time, 

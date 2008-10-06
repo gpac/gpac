@@ -50,7 +50,7 @@ tar:
 install:
 	install -d "$(DESTDIR)$(prefix)"
 	install -d "$(DESTDIR)$(prefix)/bin"
-	install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
+	#install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
 	$(MAKE) -C applications install
 	install -d "$(DESTDIR)$(moddir)"
 	install bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
@@ -73,11 +73,13 @@ endif
 endif
 	install -d "$(DESTDIR)$(mandir)"
 	install -d "$(DESTDIR)$(mandir)/man1"
-	install -m 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/
-	install -m 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/
-	install -m 644 doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
-	install -d "$(DESTDIR)$(prefix)/share/gpac"
-	install -m 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/
+	if [ -d  doc ] ; then \
+	install -m 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ ; \
+	install -m 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ ; \
+	install -m 644 doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/ ; \
+	install -d "$(DESTDIR)$(prefix)/share/gpac" ; \
+	install -m 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ; \
+	fi
 
 uninstall:
 	$(MAKE) -C applications uninstall
