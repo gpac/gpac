@@ -193,7 +193,8 @@ Bool CGPAXPlugin::ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog,
 void CGPAXPlugin::LoadDATAUrl()
 {
 	HRESULT hr;
-	m_url[0] = 0;
+
+	if (m_url[0]) return;
 
     /*get parent doc*/
 	CComPtr<IOleContainer> spContainer;
