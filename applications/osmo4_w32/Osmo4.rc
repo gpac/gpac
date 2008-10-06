@@ -41,8 +41,8 @@ BEGIN
             MENUITEM "&Abort",                      ID_REC_ABORT
         END
         MENUITEM SEPARATOR
-        MENUITEM "Copy\tCtrl+C",                ID_FILE_COPY
-        MENUITEM "Paste\tCtrl+V",               ID_FILE_PASTE
+        MENUITEM "Copy",                        ID_FILE_COPY
+        MENUITEM "Paste",                       ID_FILE_PASTE
         MENUITEM SEPARATOR
         MENUITEM "Exit",                        ID_FILE_EXIT
     END
@@ -144,7 +144,6 @@ END
 
 IDR_MAINFRAME ACCELERATORS PRELOAD MOVEABLE PURE 
 BEGIN
-    "C",            ID_FILE_COPY,           VIRTKEY, CONTROL, NOINVERT
     "I",            ID_FILE_PROP,           VIRTKEY, CONTROL, NOINVERT
     "L",            ID_VIEW_PL,             VIRTKEY, CONTROL, NOINVERT
     "M",            ID_FILE_MIGRATE,        VIRTKEY, CONTROL, NOINVERT
@@ -153,7 +152,6 @@ BEGIN
     "R",            ID_FILE_RELOAD,         VIRTKEY, CONTROL, NOINVERT
     "S",            ID_FILE_STEP,           VIRTKEY, CONTROL, NOINVERT
     "U",            ID_OPEN_URL,            VIRTKEY, CONTROL, NOINVERT
-    "V",            ID_FILE_PASTE,          VIRTKEY, CONTROL, NOINVERT
     VK_NUMPAD1,     ID_AR_KEEP,             VIRTKEY, CONTROL, NOINVERT
     VK_NUMPAD2,     ID_AR_FILL,             VIRTKEY, CONTROL, NOINVERT
     VK_NUMPAD3,     ID_AR_43,               VIRTKEY, CONTROL, NOINVERT
@@ -674,12 +672,12 @@ BEGIN
                     TBS_NOTICKS | WS_BORDER | WS_TABSTOP,187,3,30,13
 END
 
-IDD_NAVBAR DIALOG DISCARDABLE  0, 0, 279, 15
+IDD_NAVBAR DIALOGEX 0, 0, 279, 15
 STYLE WS_CHILD
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     COMBOBOX        IDC_ADDRESS,29,1,130,196,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
-                    WS_VSCROLL | WS_TABSTOP
+                    WS_VSCROLL | WS_TABSTOP,WS_EX_ACCEPTFILES
     LTEXT           "Address",IDC_DUMTXT,1,4,26,8
 END
 

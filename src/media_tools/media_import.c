@@ -5559,7 +5559,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
   		fclose(mts);
 		return e;
 	}
-
+	import->esd = NULL;
 	gf_set_progress(progress, (u32) (fsize/1024), (u32) (fsize/1024));
 
 	if (!(import->flags & GF_IMPORT_PROBE_ONLY)) {

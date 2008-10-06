@@ -953,6 +953,8 @@ M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __ele
 
 	switch (ifce->stream_type) {
 	case GF_STREAM_VISUAL:
+		/*just pick first valid stream_id in visual range*/
+		stream->mpeg2_stream_id = 0xE0;
 		switch (ifce->object_type_indication) {
 		case 0x20:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG4;
@@ -971,11 +973,15 @@ M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __ele
 		case 0x65:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG2;
 			break;
+		/*JPEG/PNG carried in MPEG-4 PES*/
+		case 0x6C:
+		case 0x6D:
+			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_PES;
+			stream->mpeg2_stream_id = 0xFA;
+			break;
 		default:
 			break;
 		}
-		/*just pick first valid stream_id in visual range*/
-		stream->mpeg2_stream_id = 0xE0;
 		break;
 	case GF_STREAM_AUDIO:
 		switch (ifce->object_type_indication) {
