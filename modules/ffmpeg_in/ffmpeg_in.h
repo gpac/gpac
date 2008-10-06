@@ -60,6 +60,12 @@
 
 void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl);
 
+
+#if LIBAVCODEC_VERSION_INT > ((52<<16)+(0<<8)+0)
+#define FFMPEG_SWSCALE
+#include <ffmpeg/swscale.h>
+#endif
+
 /*FFMPEG decoder module */
 typedef struct 
 {
@@ -75,6 +81,10 @@ typedef struct
 	AVFrame *frame;
 	u32 pix_fmt;
 	u32 out_pix_fmt;
+
+#ifdef FFMPEG_SWSCALE
+	struct SwsContext *sws_ctx;
+#endif
 
 	/*for audio packed frames*/
 	u32 frame_start;
