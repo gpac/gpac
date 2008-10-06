@@ -17,14 +17,21 @@ endif
 #common obj
 OBJS= pulseaudio.o
 
+ifeq ($(WANT_PIC),yes)
+OBJSPIC=$(OBJS:.o=.opic)
+else
+OBJSPIC=$(OBJS)
+endif
+
+
 SRCS := $(OBJS:.o=.c) 
 
 LIB=gm_pulseaudio.$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 
-$(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac -L/usr/lib -lpulse-simple
+$(LIB): $(OBJSPIC)
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac -L/usr/lib -lpulse-simple
 
 
 %.o: %.c
