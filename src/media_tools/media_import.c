@@ -3597,7 +3597,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	GF_AVCConfig *avccfg;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset, detect_fps;
+	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff;
 	u32 b_frames, ref_frame, pred_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Double FPS;
@@ -3663,6 +3663,7 @@ restart_import:
 	sample_data = NULL;
 	sample_is_rap = 0;
 	cur_samp = 0;
+	is_paff = 0;
 	total_size = gf_bs_get_size(bs);
 	nal_start = gf_bs_get_position(bs);
 	duration = (u32) ( ((Double)import->duration) * timescale / 1000.0);
@@ -3863,7 +3864,10 @@ restart_import:
 			if (!sample_data) sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_int(sample_data, copy_size, size_length);
 			gf_bs_write_data(sample_data, buffer, copy_size);
-			if (AVC_NALUIsSlice(nal_type)) {
+			if (AVC_NALUIsSlice(nal_type) ) {
+				if (!is_paff && avc.s_info.bottom_field_flag)
+					is_paff = 1;
+
 				if (first_nal) {
 					first_nal = 0;
 					/*we only indicate TRUE IDRs for sync samples (cf AVC file format spec).
@@ -3990,13 +3994,24 @@ restart_import:
 		last_cts_samp = 0;
 
 		for (i=0; i<cur_samp; i++) {
+			u64 cts;
 			/*not using descIdx and data_offset will only fecth DTS, CTS and RAP which is all we need*/
 			GF_ISOSample *samp = gf_isom_get_sample_info(import->dest, track, i+1, NULL, NULL);
 			/*poc re-init (RAP and POC to 0, otherwise that's SEI recovery), update base DTS*/
 			if (samp->IsRAP /*&& !samp->CTS_Offset*/) last_dts = samp->DTS;
 
 			/*CTS offset is frame POC (refers to last IDR)*/
-			samp->CTS_Offset = (min_poc + (s32) samp->CTS_Offset) * dts_inc/poc_diff + (u32) (last_dts + max_total_delay*dts_inc - samp->DTS);
+			cts = (min_poc + (s32) samp->CTS_Offset) * dts_inc/poc_diff + (u32) (last_dts + max_total_delay*dts_inc);
+
+			/*if PAFF, 2 pictures (eg poc) <=> 1 aggregated frame (eg sample), divide by 2*/
+			if (is_paff) {
+				cts /= 2;
+				/*in some cases the poc is not on the top field - if that is the case, round up*/
+				if (cts%dts_inc) {
+					cts = ((cts/dts_inc)+1)*dts_inc;
+				}
+			}
+			samp->CTS_Offset = (u32) (cts - samp->DTS);
 
 			if (max_cts < samp->DTS + samp->CTS_Offset) {
 				max_cts = samp->DTS + samp->CTS_Offset;
